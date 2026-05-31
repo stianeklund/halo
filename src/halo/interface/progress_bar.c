@@ -1,3 +1,5 @@
+#include "x87_math.h"
+
 /*
  * interface/progress_bar.c — loading progress bar UI
  * XBE source: c:\halo\SOURCE\interface\progress_bar.c
@@ -349,13 +351,13 @@ void progress_bar_generate_gradient_texture(void)
 
   for (row = 0; row < 16; row++) {
     /* Row brightness envelope: pow(sin(row * (1/15) * pi), 0.75) */
-    row_factor = (float)pow(sinf((float)row * 0.066666670f * 3.14150f), 0.75);
+    row_factor = (float)pow(x87_fsin((float)row * 0.066666670f * 3.14150f), 0.75);
 
     for (col = 0; col < 128; col++) {
       /* Column intensity: sin(col * (1/127) * pi) * row_factor * (250/255) +
        * (5/255) */
       float intensity =
-        sinf((float)col * 0.0078740157f * 3.14150f) * row_factor * 0.98039216f +
+        x87_fsin((float)col * 0.0078740157f * 3.14150f) * row_factor * 0.98039216f +
         0.019607844f;
       val = (uint32_t)(int)(intensity * 255.0f) & 0xff;
       /* Replicate val across all 4 channels: AARRGGBB */
@@ -734,7 +736,7 @@ void progress_bar_render(float normalized_progress)
 
   /* Smooth the progress value: lerp toward input with oscillation */
   smoothed =
-    (sinf(phase_timer) * 0.05 + normalized_progress - *(float *)0x46c3fc) *
+    (x87_fsin(phase_timer) * 0.05 + normalized_progress - *(float *)0x46c3fc) *
       0.2 +
     *(float *)0x46c3fc;
   if (smoothed > 1.0) {
@@ -743,7 +745,7 @@ void progress_bar_render(float normalized_progress)
   *(float *)0x46c3fc = smoothed;
 
   /* Compute base color intensity from smoothed progress */
-  pow_result = (float)pow(sinf(smoothed * 3.14159), 0.9);
+  pow_result = (float)pow(x87_fsin(smoothed * 3.14159), 0.9);
   base_color[0] = pow_result;
   base_color[1] = pow_result;
   base_color[2] = pow_result;
@@ -763,7 +765,7 @@ void progress_bar_render(float normalized_progress)
     /* Set volume if this sound buffer is valid */
     if (*(int *)(0x46c3d8 + i * 4) != 0) {
       int volume =
-        (int)((float)pow(sinf(factor * 3.1415), 0.3) * volumes[i] - 5000.0f);
+        (int)((float)pow(x87_fsin(factor * 3.1415), 0.3) * volumes[i] - 5000.0f);
       IDirectSoundBuffer_SetVolume(*(void **)(0x46c3d8 + i * 4), volume);
     }
   }

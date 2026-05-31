@@ -199,6 +199,23 @@ bool FUN_000567e0(int16_t param_1, int16_t param_2)
   return 0;
 }
 
+/* FUN_00056830 (0x56830) — Sort comparator for actor distance records.
+ * Sorts by "is_fleeing" flag first (non-fleeing before fleeing), then by
+ * distance ascending. Used as a qsort callback. */
+int FUN_00056830(int param_1, int param_2)
+{
+  if (*(char *)(param_1 + 8) != *(char *)(param_2 + 8)) {
+    return (*(char *)(param_1 + 8) != '\0') * 2 - 1;
+  }
+  if (*(float *)(param_1 + 4) < *(float *)(param_2 + 4)) {
+    return -1;
+  }
+  if (*(float *)(param_2 + 4) < *(float *)(param_1 + 4)) {
+    return 1;
+  }
+  return 0;
+}
+
 /*
  * FUN_00056880 — count actors in encounters with squad_type==9 and the
  * given actor handle. Iterates all encounters with flag=1, checks each
@@ -999,9 +1016,61 @@ void FUN_00057aa0(int encounter_handle, short state)
   }
 }
 
+/* FUN_00057bc0 — ai_status.
+ *
+ * Returns the maximum status level across all platoons in an encounter.
+ * If the AI trace flag (0x5aca59) is set, logs the thread name and encounter
+ * name. Then iterates platoons via FUN_00054680/FUN_00054750 and calls
+ * FUN_00057b40 for each actor to get individual status, tracking the maximum.
+ * 0x57bc0 / encounters.obj
+ */
+short FUN_00057bc0(int encounter_handle)
+{
+  char local_21c[512];
+  char local_1c[24];
+  scenario_t *scenario;
+  short max_status;
+  short status;
+
+  max_status = 0;
+  if (*(char *)0x5aca59) {
+    scenario = global_scenario_get();
+    FUN_00054220(encounter_handle, scenario, local_21c, 0x200);
+    error(2, "%s: ai_status %s",
+          hs_runtime_get_executing_thread_name(), local_21c);
+  }
+  FUN_00054680(encounter_handle, local_1c);
+  while (FUN_00054750(local_1c) != 0) {
+    status = (short)FUN_00057b40(*(int *)(local_1c + 0x10));
+    if (max_status <= status) {
+      max_status = status;
+    }
+  }
+  return max_status;
+}
+
 /* FUN_00057c60 — empty stub. 0x57c60 / encounters.obj */
 void FUN_00057c60(void)
 {
+}
+
+/* FUN_00057c70 (0x57c70) — ai_playfight script command. Sets the playfight
+ * flag (encounter+0x60) for an encounter. Logs if AI trace is enabled. */
+void FUN_00057c70(int encounter_handle, char param_2)
+{
+  char *encounter;
+  char local_204[512];
+
+  if (*(char *)0x5aca59 != '\0') {
+    FUN_00054220(encounter_handle, (void *)global_scenario_get(), local_204, 0x200);
+    error(2, "%s: ai_playfight %s %s",
+          hs_runtime_get_executing_thread_name(), local_204,
+          param_2 != '\0' ? (const char *)0x25c530 : (const char *)0x25c52c);
+  }
+  if (encounter_handle != -1) {
+    encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle & 0xffff);
+    *(char *)(encounter + 0x60) = param_2;
+  }
 }
 
 /*
@@ -1534,6 +1603,18 @@ void FUN_000586a0(int param_1)
   ai_conversation_advance(param_1);
 }
 
+/* FUN_00058700 (0x58700) — Tail-call wrapper for FUN_000434c0. */
+void FUN_00058700(void)
+{
+  ai_conversation_line();
+}
+
+/* FUN_00058710 (0x58710) — Tail-call wrapper for FUN_000433b0. */
+void FUN_00058710(void)
+{
+  ai_conversation_status();
+}
+
 /* 0x00058720 — FUN_00058720 (ai_link_activation script command).
  *
  * Links two encounter activation states together. If the AI trace flag
@@ -1608,6 +1689,77 @@ void FUN_000587d0(int param_1, int param_2)
       actor_berserk(*(int *)(local_1c + 0x10), param_2);
       iVar2 = FUN_00054750(local_1c);
     }
+  }
+}
+
+/* 0x00058860 — FUN_00058860 (encounter_set_team).
+ *
+ * Sets the team field (offset +2) of the encounter datum, then iterates
+ * over all actors in the encounter and updates each actor's team via
+ * actor_set_team.  Finishes with ai_update_team_status to recalculate
+ * global team allegiance state.
+ *
+ * Confirmed:
+ *   - param_1 = encounter handle (int), masked to 16-bit index for datum_get.
+ *   - param_2 = team value (int); low 16 bits stored to encounter datum +0x2.
+ *   - datum_get(*(data_t**)0x5ab270, handle & 0xffff) returns encounter datum.
+ *   - encounter_actor_iterator_new/next iterate actors in the encounter.
+ *   - iter[1] holds current actor handle after _next returns non-zero.
+ *   - actor_set_team(iter[1], param_2) sets each actor's team.
+ *   - ai_update_team_status() recalculates team status afterwards.
+ */
+void FUN_00058860(int encounter_handle, int team)
+{
+  int iter[3];
+  char *encounter;
+
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, (int)(encounter_handle & 0xffff));
+  *(short *)(encounter + 2) = (short)team;
+  encounter_actor_iterator_new(iter, (int)(encounter_handle & 0xffff));
+  if (encounter_actor_iterator_next(iter)) {
+    do {
+      actor_set_team(iter[1], (int16_t)team);
+    } while (encounter_actor_iterator_next(iter));
+  }
+  ai_update_team_status();
+}
+
+/* 0x000588d0 — FUN_000588d0 (ai_allow_dormant).
+ *
+ * Sets whether dormant mode is allowed for all platoons in the encounter.
+ * Iterates platoons via FUN_000544a0/FUN_000545a0 and writes the inverse of
+ * param_2 into platoon datum offset +0x14.  Logs the command to the AI trace
+ * if DAT_005aca59 is set.
+ *
+ * Confirmed:
+ *   - param_1 = encounter handle (int).
+ *   - param_2 = allow_dormant flag (char/bool).
+ *   - DAT_005aca59 = AI trace flag.
+ *   - FUN_00054220 formats encounter name into buffer.
+ *   - hs_runtime_get_executing_thread_name returns current script thread name.
+ *   - error(2, fmt, ...) logs the trace message.
+ *   - FUN_000544a0/FUN_000545a0 = platoon iterator init/step.
+ *   - datum+0x14 receives !param_2 (dormant disabled when allowed, and vice versa).
+ */
+void FUN_000588d0(int param_1, char param_2)
+{
+  char local_118[256];
+  int local_18[5];
+  int iVar3;
+
+  if (*(char *)0x5aca59 != '\0') {
+    FUN_00054220(param_1, global_scenario_get(), local_118, 0x100);
+    error(2, "%s: ai_allow_dormant %s %s",
+          hs_runtime_get_executing_thread_name(), local_118,
+          param_2 ? (const char *)0x25cb44 : (const char *)0x25cb3c);
+  }
+  FUN_000544a0(param_1, local_18);
+  iVar3 = FUN_000545a0(local_18);
+  if (iVar3 != 0) {
+    do {
+      *(char *)(iVar3 + 0x14) = (param_2 == '\0');
+      iVar3 = FUN_000545a0(local_18);
+    } while (iVar3 != 0);
   }
 }
 
@@ -1717,6 +1869,12 @@ void FUN_00058a40(int combined_handle)
 void encounters_dispose(void)
 {
   return;
+}
+
+/* FUN_00058ae0 (0x58ae0) — Tail-call wrapper for FUN_00055870. */
+void FUN_00058ae0(void)
+{
+  FUN_00055870();
 }
 
 /* 0x00058fb0 — encounters_dispose_from_old_map.
@@ -2044,7 +2202,7 @@ int encounter_get_by_name(char *name)
  *   ESI+0x0 : param_2 (clump_handle)
  *   ESI+0x4 : 0xffffffff (-1)
  *   ESI+0x8 : encounter->field_0x14 OR ai_globals->field_8 */
-void encounter_actor_iterator_new(int *iter, int clump_handle)
+__declspec(noinline) void encounter_actor_iterator_new(int *iter, int clump_handle)
 {
   char *encounter;
   char *ai_globals;
@@ -2077,7 +2235,7 @@ void encounter_actor_iterator_new(int *iter, int clump_handle)
  *   PUSH EDX ([0x6325a4])          → datum_get arg1  YES
  *   MOV ECX,[EAX+0x2c]             → actor->next_member  YES
  *   MOV [ESI+0x8],ECX              → iter[2]         YES */
-int encounter_actor_iterator_next(int *iter)
+__declspec(noinline) int encounter_actor_iterator_next(int *iter)
 {
   int handle;
   char *actor;
@@ -2125,6 +2283,66 @@ __declspec(noinline) void encounter_iterator_next(void *iter, char flag)
   *(int *)(p + 0x18) = -1;
   *(int *)(p + 0x14) = -1;
   *(char *)(p + 0x11) = flag;
+}
+
+/* encounter_iterator_new (0x59990) — Initialize an encounter data iterator
+ * with filter flag at offset +0x14. */
+void encounter_iterator_new(int iter, char param_2)
+{
+  if (*(char *)(*(char **)0x632574 + 1) != '\0') {
+    data_iterator_new((data_iter_t *)iter, *(data_t **)0x5ab270);
+    *(char *)(iter + 0x14) = param_2;
+  }
+}
+
+/* FUN_000599c0 (0x599c0) — Step encounter data iterator, skipping inactive
+ * encounters (datum+0xd == 0) when filter flag (iter+0x14) is set.
+ * Copies iter+0x8 to iter+0x10 after each step. Returns datum or NULL. */
+void *FUN_000599c0(int iter)
+{
+  void *result;
+
+  result = NULL;
+  if (*(char *)(*(char **)0x632574 + 1) != '\0') {
+    do {
+      result = data_iterator_next((data_iter_t *)iter);
+      if (result == NULL || *(char *)(iter + 0x14) == '\0') break;
+    } while (*(char *)((char *)result + 0xd) == '\0');
+    *(int *)(iter + 0x10) = *(int *)(iter + 0x8);
+  }
+  return result;
+}
+
+/* encounter_actor_iterator_prev (0x59a90) — Walk the encounter's actor linked
+ * list backward to find the actor preceding iter[1]. Returns actor datum ptr
+ * or 0 if not found. Updates iter[2] = next handle, iter[1] = prev handle. */
+void *encounter_actor_iterator_prev(int *iter)
+{
+  char *encounter;
+  char *actor;
+  int cur;
+  int prev;
+
+  actor = NULL;
+  if (*(char *)(*(char **)0x632574 + 1) != '\0') {
+    encounter = (char *)datum_get(*(data_t **)0x5ab270, iter[0]);
+    cur = *(int *)(encounter + 0x14);
+    prev = -1;
+    if (cur != iter[1]) {
+      while (cur != -1) {
+        prev = cur;
+        actor = (char *)datum_get(*(data_t **)0x6325a4, cur);
+        cur = *(int *)(actor + 0x2c);
+        if (cur == iter[1]) break;
+      }
+      if (cur != iter[1]) {
+        return 0;
+      }
+    }
+    iter[2] = cur;
+    iter[1] = prev;
+  }
+  return actor;
 }
 
 /* 0x00059b50 — actor_iterator_next (extended AI actor iterator advance).
@@ -2570,6 +2788,53 @@ char FUN_0005a4e0(int encounter_index /* @<eax> */)
   }
 
   return *(char *)(encounter + 0xd);
+}
+
+/* 0x5a5a0 — encounter_link_activation.
+ * Links two encounters by adding link_encounter_index to the encounter's
+ * link array (up to 3 entries at encounter+0x22, count at encounter+0x20).
+ * Returns 1 if the link already exists or was successfully added.
+ * Returns 0 if the link array is full (3 entries).
+ *
+ * Confirmed: datum_get(encounter_data, encounter_handle) at 0x5a5b1.
+ * Confirmed: global_scenario_get()->ai_encounters.count at +0x42c.
+ * Confirmed: display_assert + system_exit(-1) at 0x5a5e9/0x5a5f0.
+ * Confirmed: link count at encounter+0x20, link array at encounter+0x22.
+ * Confirmed: max 3 links (CMP CX,3 at 0x5a614).
+ * Confirmed: return AL=1 at 0x5a628, AL=BL(0) at 0x5a62f.
+ */
+char encounter_link_activation(int encounter_handle, short link_encounter_index)
+{
+  char *encounter;
+  short count;
+  short i;
+
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+
+  if (link_encounter_index < 0 ||
+      link_encounter_index >= *(int *)((char *)global_scenario_get() + 0x42c)) {
+    display_assert(
+      "(link_encounter_index >= 0) && (link_encounter_index < global_scenario_get()->ai_encounters.count)",
+      "c:\\halo\\SOURCE\\ai\\encounters.c", 0x77c, 1);
+    system_exit(-1);
+  }
+
+  count = *(short *)(encounter + 0x20);
+  i = 0;
+  if (i < count) {
+    do {
+      if (*(short *)(encounter + 0x22 + i * 2) == link_encounter_index)
+        return 1;
+      i++;
+    } while (i < *(short *)(encounter + 0x20));
+  }
+
+  if (count >= 3)
+    return 0;
+
+  *(short *)(encounter + 0x22 + count * 2) = link_encounter_index;
+  *(short *)(encounter + 0x20) = *(short *)(encounter + 0x20) + 1;
+  return 1;
 }
 
 /* 0x5a640 — encounter_deactivate.
@@ -3070,6 +3335,26 @@ void FUN_0005acf0(int encounter_handle)
   }
 }
 
+/* encounter_set_blind (0x5ad60) — Set the blind flag for an encounter. */
+void encounter_set_blind(int encounter_handle, char param_2)
+{
+  char *encounter;
+  if (*(char *)(*(char **)0x632574 + 1) != '\0') {
+    encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+    *(char *)(encounter + 0x40) = param_2;
+  }
+}
+
+/* encounter_set_deaf (0x5ad90) — Set the deaf flag for an encounter. */
+void encounter_set_deaf(int encounter_handle, char param_2)
+{
+  char *encounter;
+  if (*(char *)(*(char **)0x632574 + 1) != '\0') {
+    encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+    *(char *)(encounter + 0x41) = param_2;
+  }
+}
+
 /* 0x5adc0 — encounter_squad_delay_timer_finished.
  * Called when a squad's delay timer expires (count < 0x10 ticks).
  * Resets the squad's delay counter to 0, then optionally triggers
@@ -3366,6 +3651,26 @@ void encounters_initialize_for_new_map(void)
                    &platoon_counter);
     }
   }
+}
+
+/* encounter_force_activate (0x5ba70) — Force an encounter active by setting
+ * the respawn timer to 150 ticks and calling the activation handler. */
+void encounter_force_activate(int encounter_handle)
+{
+  char *encounter;
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+  *(int16_t *)(encounter + 0xe) = 0x96;
+  FUN_0005a4e0(encounter_handle);
+}
+
+/* encounter_force_deactivate (0x5baa0) — Force an encounter inactive by setting
+ * the respawn timer to 0 and calling the deactivation handler. */
+void encounter_force_deactivate(int encounter_handle)
+{
+  char *encounter;
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+  *(int16_t *)(encounter + 0xe) = 0;
+  FUN_0005a640(encounter_handle);
 }
 
 /* 0x0005b2a0 — encounter_increment_unit_tally (encounters_unit_died).

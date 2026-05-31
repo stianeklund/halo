@@ -1,7 +1,6 @@
 ---
 description: Build the project and produce a patched XBE
-agent: fast
-subtask: true
+subtask: false
 ---
 
 Use the `halo-build-xemu` skill for the standard build workflow.

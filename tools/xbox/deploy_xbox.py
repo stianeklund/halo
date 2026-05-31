@@ -240,6 +240,12 @@ def launch_xbe(xbox_dest: str, host: str, dry_run: bool) -> int:
             for line in result.stdout.strip().splitlines():
                 print(f"  | {line}")
         if result.returncode != 0:
+            # magicboot causes the Xbox to reboot immediately, which forcibly
+            # closes the TCP connection before a response can be read. Treat
+            # that specific error as a successful launch.
+            if result.stderr and "forcibly closed by the remote host" in result.stderr:
+                print("  | (connection reset by Xbox reboot — launch succeeded)")
+                return 0
             if result.stderr:
                 for line in result.stderr.strip().splitlines():
                     print(f"  | {line}", file=sys.stderr)

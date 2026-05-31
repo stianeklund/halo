@@ -1,7 +1,6 @@
 ---
 description: Run XBDM/RDCP commands and common real-Xbox debug probes
-agent: fast
-subtask: true
+subtask: false
 ---
 
 Use the `halo-xbdm` skill for standard RDCP parsing, host or port handling,

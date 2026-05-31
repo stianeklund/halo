@@ -184,11 +184,19 @@ class CalleeStub:
 
 def patch_rel32_calls(code: bytes, relocs: list, defined_symbols: set,
                       code_base: int = 0x00400000,
-                      symbol_sentinels: Optional[dict[str, int]] = None) -> tuple:
+                      symbol_sentinels: Optional[dict[str, int]] = None,
+                      include_defined: bool = False) -> tuple:
     """Rewrite REL32 call relocations to sentinel addresses.
 
     Returns (patched_code, stub_map) where stub_map is
-    {sentinel_addr: symbol_name} for each external call.
+    {sentinel_addr: symbol_name} for each redirected call.
+
+    include_defined: when True, also redirect calls to symbols DEFINED in the
+    same .obj (named siblings like FUN_xxxx) to sentinels.  Needed for callee
+    code run standalone at a sentinel — it has no mapped .text section, so its
+    intra-object sibling calls would otherwise keep their original (now wrong)
+    displacements.  Section-relative ".text"/".rdata" relocs are still skipped
+    (they carry an addend, not a single resolvable symbol).
     """
     patched = bytearray(code)
     stub_map = {}
@@ -202,7 +210,7 @@ def patch_rel32_calls(code: bytes, relocs: list, defined_symbols: set,
         sym = r.symbol_name
         if sym.startswith(".text") or sym.startswith(".rdata"):
             continue
-        if sym in defined_symbols:
+        if sym in defined_symbols and not include_defined:
             continue
 
         sym_key = sym.lstrip("_")
@@ -240,6 +248,12 @@ class StubManager:
         self._stub_names: dict[int, str] = {}
         self._canonical_names: dict[int, str] = {}
         self._depth = 0
+        # Real-callee sub-emulation state (populated by prepare_stubs when
+        # real_callees is enabled): DIR32 slots the loaded callee code reads
+        # from (caller seeds them) and any .rdata constant seeds.
+        self._callee_dir32_slots: dict[str, int] = {}
+        self._extra_rdata_seeds: dict[int, bytes] = {}
+        self._real_code_count = 0
 
     def _load_kb(self):
         if self._kb is None:
@@ -282,7 +296,21 @@ class StubManager:
         if not candidates:
             candidates = list(self.delinked_dir.glob("*.obj"))
 
-        for try_sym in dict.fromkeys([symbol_name, symbol_name.lstrip("_")]):
+        # Delinked objects name functions FUN_<addr>, but a call site may use the
+        # real name (lifted/clang obj) or the FUN_ form (delinked oracle).  Both
+        # resolve to the same kb_entry — normalize to FUN_<addr> so the named
+        # call site also finds the real oracle body (else it stays a trampoline
+        # and diverges from the FUN_-named oracle side).
+        fun_syms = []
+        addr = kb_entry.get("addr", "")
+        if addr:
+            try:
+                a = int(addr, 16)
+                fun_syms = [f"FUN_{a:08x}", f"FUN_{a:08X}"]
+            except ValueError:
+                pass
+
+        for try_sym in dict.fromkeys([symbol_name, symbol_name.lstrip("_")] + fun_syms):
             for obj_path in candidates:
                 try:
                     fs = extract_function(str(obj_path), try_sym)
@@ -292,44 +320,198 @@ class StubManager:
                     continue
         return None
 
-    def prepare_stubs(self, stub_map: dict) -> int:
+    # Cap on total real-code callees loaded, to bound a runaway call graph.
+    MAX_REAL_CALLEES = 96
+
+    def _register_stub(self, sentinel_addr: int, symbol_name: str):
+        """Create a trampoline CalleeStub (+ canonical name) for a sentinel.
+
+        Returns (CalleeStub or None, kb_entry or None).  A stub is only created
+        when kb.json has a parseable decl for the callee; otherwise the sentinel
+        falls back to the synthetic ret-stub in get_stub_code.
+        """
+        from abi import parse_decl
+        self._stub_names[sentinel_addr] = symbol_name
+        kb_entry = self._find_callee_in_kb(symbol_name)
+        decl = kb_entry.get("decl", "") if kb_entry else ""
+        if not decl:
+            return None, kb_entry
+        fn_m = re.search(r'\b(\w+)\s*\(', decl)
+        if fn_m:
+            self._canonical_names[sentinel_addr] = fn_m.group(1)
+        try:
+            abi = parse_decl(decl)
+        except Exception:
+            return None, kb_entry
+        stub = CalleeStub(name=symbol_name, code=b"", abi=abi,
+                          sentinel_addr=sentinel_addr, has_real_code=False)
+        self._stubs[sentinel_addr] = stub
+        return stub, kb_entry
+
+    def prepare_stubs(self, stub_map: dict, globals_base: int = None,
+                      shared_sentinels: dict = None,
+                      real_callees: bool = False) -> int:
         """Prepare callee stubs for all symbols in the stub_map.
 
-        Returns the number of successfully prepared stubs.
-        """
-        sys.path.insert(0, str(Path(__file__).resolve().parent))
-        from abi import parse_decl
+        By default each callee is a return-0 trampoline (only its call site is
+        exercised).  When ``real_callees`` is set, every non-intercept callee
+        with loadable delinked oracle code is loaded and patched to run NATIVELY
+        in place at its sentinel: its DIR32 globals are redirected to fresh
+        seed slots and its REL32 calls to sentinels (recursively, bounded by
+        ``MAX_RECURSION_DEPTH`` and ``MAX_REAL_CALLEES``).  This lets iterator
+        and helper loops actually execute over snapshot data instead of
+        early-exiting on a NULL/zero stub return.
 
+        ``globals_base`` is the first free address in the globals region (past
+        the caller's own oracle/lifted slots); ``shared_sentinels`` is the
+        symbol->sentinel map shared with the caller's REL32 patching so the
+        same callee always resolves to the same sentinel.
+
+        Returns the number of top-level stubs prepared.  Callee DIR32 slots to
+        seed are exposed via ``self._callee_dir32_slots`` (the caller runs them
+        through _build_globals_seeds) and ``self._extra_rdata_seeds``.
+        """
         prepared = 0
         for sentinel_addr, symbol_name in stub_map.items():
-            self._stub_names[sentinel_addr] = symbol_name
-            kb_entry = self._find_callee_in_kb(symbol_name)
-            if not kb_entry:
-                continue
+            stub, _ = self._register_stub(sentinel_addr, symbol_name)
+            if stub is not None:
+                prepared += 1
 
-            decl = kb_entry.get("decl", "")
-            if not decl:
-                continue
-
-            fn_m = re.search(r'\b(\w+)\s*\(', decl)
-            if fn_m:
-                self._canonical_names[sentinel_addr] = fn_m.group(1)
-
-            try:
-                abi = parse_decl(decl)
-            except Exception:
-                continue
-
-            self._stubs[sentinel_addr] = CalleeStub(
-                name=symbol_name,
-                code=b"",
-                abi=abi,
-                sentinel_addr=sentinel_addr,
-                has_real_code=False,
-            )
-            prepared += 1
+        if real_callees:
+            self._load_real_callees(stub_map, globals_base, shared_sentinels)
 
         return prepared
+
+    def _load_real_callees(self, top_stub_map: dict, globals_base: int,
+                           shared_sentinels: dict) -> None:
+        """BFS-load native oracle code for non-intercept callees.
+
+        Mutates self._stubs (sets has_real_code + patched code), discovers
+        nested callees and registers their sentinels, and accumulates the
+        DIR32 slots their code reads into self._callee_dir32_slots.
+        """
+        from coff_loader import extract_function, CoffParseError  # noqa: F401
+
+        if globals_base is None:
+            globals_base = GLOBALS_BASE
+        if shared_sentinels is None:
+            shared_sentinels = {}
+        glob_cursor = globals_base
+
+        worklist = [(sa, sym, 0) for sa, sym in top_stub_map.items()]
+        processed = set()
+        while worklist:
+            sentinel_addr, symbol_name, depth = worklist.pop(0)
+            if sentinel_addr in processed:
+                continue
+            processed.add(sentinel_addr)
+            if (self._real_code_count >= self.MAX_REAL_CALLEES
+                    or depth >= MAX_RECURSION_DEPTH):
+                continue
+            # Math/memcpy/assert intrinsics stay as Python intercepts.
+            name = self._resolve_name(sentinel_addr)
+            if name in self._INTERCEPT_NAMES or name in self._FTOL2_ADDRS:
+                continue
+            stub = self._stubs.get(sentinel_addr)
+            if stub is None:
+                continue  # no decl/abi -> synthetic ret-stub
+            kb_entry = self._find_callee_in_kb(symbol_name)
+            fs = self._load_callee_code(symbol_name, kb_entry) if kb_entry else None
+            if fs is None or not fs.code or len(fs.code) > STUB_SLOT:
+                continue  # not found / too big for a sentinel slot -> trampoline
+            defined = getattr(fs, 'defined_symbols', set())
+            rdata = getattr(fs, 'rdata_map', {})
+            # DIR32 -> fresh globals slots (each unique global one 256B slot).
+            patched, slots, rdata_seeds = patch_dir32_relocs(
+                fs.code, fs.relocs, defined,
+                globals_base=glob_cursor, return_slots=True, rdata_map=rdata)
+            glob_cursor += max(1, len(slots)) * 256
+            self._callee_dir32_slots.update(slots)
+            self._extra_rdata_seeds.update(rdata_seeds)
+            # REL32 -> sentinels, relative to where this callee will be written.
+            # include_defined: sibling (intra-object) calls must also redirect
+            # to sentinels, since this callee has no mapped .text section here.
+            patched2, new_map = patch_rel32_calls(
+                bytes(patched), fs.relocs, defined,
+                code_base=sentinel_addr, symbol_sentinels=shared_sentinels,
+                include_defined=True)
+            # Raw E8/E9 calls with NO reloc: the delinker encodes intra-XBE
+            # calls as direct displacements to absolute VAs.  At the original
+            # base they resolve; relocated to a sentinel they point to garbage.
+            # Redirect them to sentinels too (target must be an EXACT known
+            # function address — a strong guard against E8 bytes that are really
+            # mid-instruction operands).
+            callee_base = int(kb_entry.get("addr", "0"), 16) if kb_entry else 0
+            if callee_base:
+                reloc_offs = {r.virtual_address for r in fs.relocs}
+                patched2, raw_map = self._redirect_raw_calls(
+                    bytes(patched2), callee_base, reloc_offs,
+                    sentinel_addr, shared_sentinels)
+                new_map.update(raw_map)
+            stub.code = bytes(patched2)
+            stub.has_real_code = True
+            self._real_code_count += 1
+            # Enqueue nested callees discovered in this callee's body.
+            for new_sentinel, new_sym in new_map.items():
+                if new_sentinel in processed:
+                    continue
+                if new_sentinel not in self._stubs:
+                    self._register_stub(new_sentinel, new_sym)
+                worklist.append((new_sentinel, new_sym, depth + 1))
+
+    def _kb_func_addrs(self) -> set:
+        """Set of all kb.json function entry addresses (ints), cached."""
+        cached = getattr(self, "_func_addr_set", None)
+        if cached is not None:
+            return cached
+        addrs = set()
+        for obj in self._load_kb().get("objects", []):
+            for fn in obj.get("functions", []):
+                a = fn.get("addr", "")
+                if a:
+                    try:
+                        addrs.add(int(a, 16))
+                    except ValueError:
+                        pass
+        self._func_addr_set = addrs
+        return addrs
+
+    def _redirect_raw_calls(self, code: bytes, callee_base: int,
+                            reloc_offsets: set, sentinel_addr: int,
+                            shared_sentinels: dict) -> tuple:
+        """Redirect unrelocated E8/E9 calls/jumps to sentinels.
+
+        Only redirects when the computed absolute target is an EXACT kb.json
+        function entry address, so a mid-instruction 0xE8/0xE9 byte (whose
+        "target" is essentially random) is left untouched.
+        Returns (patched_code, {sentinel_addr: symbol_name}).
+        """
+        func_addrs = self._kb_func_addrs()
+        patched = bytearray(code)
+        new_map = {}
+        next_idx = len(shared_sentinels)
+        i = 0
+        n = len(patched)
+        while i + 5 <= n:
+            op = patched[i]
+            if op in (0xE8, 0xE9) and (i + 1) not in reloc_offsets:
+                disp = int.from_bytes(patched[i + 1:i + 5], "little", signed=True)
+                target_va = (callee_base + i + 5 + disp) & 0xFFFFFFFF
+                if target_va in func_addrs:
+                    sym = f"FUN_{target_va:08x}"
+                    sym_key = sym.lstrip("_")
+                    sentinel = shared_sentinels.get(sym_key)
+                    if sentinel is None:
+                        sentinel = STUB_BASE + next_idx * STUB_SLOT
+                        shared_sentinels[sym_key] = sentinel
+                        next_idx += 1
+                    new_disp = sentinel - (sentinel_addr + i + 5)
+                    patched[i + 1:i + 5] = (new_disp & 0xFFFFFFFF).to_bytes(4, "little")
+                    new_map[sentinel] = sym
+                    i += 5
+                    continue
+            i += 1
+        return bytes(patched), new_map
 
     def has_stub(self, address: int) -> bool:
         return address in self._stub_names

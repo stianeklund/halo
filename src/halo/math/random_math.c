@@ -1,32 +1,4 @@
-/* x87 helpers matching the original binary's inline instructions.
- * Library cos()/sin() use different argument reduction and precision.
- * Library fmod() compiles to FPREM1 (IEEE remainder, rounds quotient to
- * nearest) instead of FPREM (truncates quotient toward zero). */
-static float x87_fcos_mul(float val, float mul) {
-  float r;
-  __asm__ __volatile__("fmuls %2\n\tfcos" : "=t"(r) : "0"(val), "m"(mul));
-  return r;
-}
-static float x87_fsin_mul(float val, float mul) {
-  float r;
-  __asm__ __volatile__("fmuls %2\n\tfsin" : "=t"(r) : "0"(val), "m"(mul));
-  return r;
-}
-static float x87_fsin_msub(float val, float mul, float sub) {
-  float r;
-  __asm__ __volatile__("fmuls %2\n\tfsubs %3\n\tfsin"
-                       : "=t"(r) : "0"(val), "m"(mul), "m"(sub));
-  return r;
-}
-static float x87_fmod(float val, double divisor) {
-  float r;
-  __asm__ __volatile__("fldl %2\n\tfxch %%st(1)\n\t"
-                       "1: fprem\n\tfnstsw %%ax\n\t"
-                       "testb $4, %%ah\n\tjnz 1b\n\t"
-                       "fstp %%st(1)"
-                       : "=t"(r) : "0"(val), "m"(divisor) : "ax");
-  return r;
-}
+#include "x87_math.h"
 
 /* Fill a 0x400-byte periodic function lookup table for one of 6 types:
  * raw(0), pow_a(1), pow_b(2), pow_c(3), pow_d(4), sine_wave(5).
@@ -674,10 +646,10 @@ void seed_random_orientation(unsigned int *seed, float *facing, float *up)
   *seed = s3;
   roll = (float)(s3 >> 16) * *(float *)0x2647f4 * *(float *)0x255a54;
 
-  az_cos = (float)cos((double)azimuth);
-  az_sin = (float)sin((double)azimuth);
-  el_cos = (float)cos((double)elevation);
-  el_sin = (float)sin((double)elevation);
+  az_cos = x87_fcos(azimuth);
+  az_sin = x87_fsin(azimuth);
+  el_cos = x87_fcos(elevation);
+  el_sin = x87_fsin(elevation);
 
   facing[0] = el_cos * az_cos;
   facing[1] = el_cos * az_sin;
@@ -687,7 +659,7 @@ void seed_random_orientation(unsigned int *seed, float *facing, float *up)
   up[1] = -(az_sin * el_sin);
   up[2] = el_cos;
 
-  FUN_0010c690(up, facing, (float)sin((double)roll), (float)cos((double)roll));
+  FUN_0010c690(up, facing, x87_fsin(roll), x87_fcos(roll));
 }
 
 /* Generate a random 3D direction within a cone around a forward vector.
@@ -737,8 +709,8 @@ void random_direction3d(int *seed, float *forward, float zero, float angle,
 
   /* Random rotation angle in [zero, angle] (inlines random_real_range) */
   random_angle = random_real_range(seed, zero, angle);
-  sin_val = sinf(random_angle);
-  cos_val = cosf(random_angle);
+  sin_val = x87_fsin(random_angle);
+  cos_val = x87_fcos(random_angle);
 
   /* Rotate result around the cross axis by the random angle */
   rotate_vector3d_by_sincos(result, cross, sin_val, cos_val);
@@ -1019,7 +991,7 @@ void FUN_0010c7d0(float *param_1, float *param_2, float param_3, float *param_4)
     param_4[2] = param_2[2];
   }
   if (normalize3d(axis) > 0.0f) {
-    rotate_vector3d_by_sincos(param_4, axis, sinf(blend), cosf(blend));
+    rotate_vector3d_by_sincos(param_4, axis, x87_fsin(blend), x87_fcos(blend));
   }
 }
 

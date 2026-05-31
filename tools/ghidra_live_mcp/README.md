@@ -22,7 +22,7 @@ It forwards a narrow RPC surface to a Ghidra GUI plugin running inside CodeBrows
 
 ## RPC endpoint
 
-Default: `http://127.0.0.1:18080/rpc`
+Default: `http://127.0.0.1:18081/rpc`
 
 The wire format is intentionally minimal: `application/x-www-form-urlencoded`
 requests and a plain-text key/value response.

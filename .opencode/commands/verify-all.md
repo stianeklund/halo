@@ -1,6 +1,5 @@
 ---
 description: Run the standard verification chain from docs/testing_plan.md
-agent: fast
 subtask: false
 ---
 

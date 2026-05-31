@@ -21,6 +21,65 @@
 static void rasterizer_decals_vertex_cache_delete(int decal_index);
 static int rasterizer_decals_vertex_cache_query(int decal_index);
 
+/* 0x15abe0
+ *
+ * rasterizer_debug_draw_line2d  (debug 2D line drawer)
+ *
+ * Draws a single screen-space debug line between two 2D points with optional
+ * per-vertex color, using the D3D inline (Begin/SetVertexData.../End) vertex
+ * stream. Originally defined in rasterizer_xbox_debug.c (the assert __FILE__
+ * string preserves that path), but the linker grouped it into
+ * rasterizer_decals.obj.
+ *
+ *   p0     - short[2] screen coords of the first endpoint  (x, y)
+ *   p1     - short[2] screen coords of the second endpoint (x, y)
+ *   color0 - real_rgb_color for p0 (packed to 0x00RRGGBB by FUN_000d1dd0)
+ *   color1 - optional real_rgb_color for p1; if NULL, p0's color is reused
+ *
+ * D3D primitive: Begin(4 = D3DPT_LINELIST). Vertex register 9 =
+ * D3DVSDE_DIFFUSE (color), register 0 = D3DVSDE_VERTEX (position via
+ * SetVertexData2s). SetVertexData2s receives the position components
+ * zero-extended from the 16-bit screen coords. The trailing D3DDevice_End
+ * is emitted by the original as a tail-call (JMP 0x1ed490).
+ */
+void FUN_0015abe0(short *p0, short *p1, float *color0, float *color1)
+{
+  unsigned int packed0;
+  unsigned int packed1;
+
+  if (p0 == 0 || p1 == 0 || color0 == 0) {
+    display_assert(
+      "p0 && p1 && color0",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_debug.c", 0xdd, 1);
+    system_exit(-1);
+  }
+  if (*(void **)0x476ab0 == 0) {
+    display_assert(
+      "global_d3d_device",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_debug.c", 0xde, 1);
+    system_exit(-1);
+  }
+
+  packed0 = FUN_000d1dd0(color0);
+  if (color1 != 0) {
+    packed1 = FUN_000d1dd0(color1);
+  }
+
+  D3DDevice_Begin(4);
+
+  D3DDevice_SetVertexDataColor(9, packed0);
+  D3DDevice_SetVertexData2s(0, (int)(unsigned short)p0[0],
+                            (int)(unsigned short)p0[1]);
+
+  if (color1 != 0) {
+    D3DDevice_SetVertexDataColor(9, packed1);
+  }
+  D3DDevice_SetVertexData2s(0, (int)(unsigned short)p1[0],
+                            (int)(unsigned short)p1[1]);
+
+  D3DDevice_End();
+}
+
 /* 0x15b190
  *
  * rasterizer_decals_initialize_for_new_map
