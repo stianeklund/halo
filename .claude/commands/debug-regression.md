@@ -50,20 +50,15 @@ Only when static analysis leaves the root cause genuinely ambiguous.
 
 **Fallback — xemu probing** (only if no Xbox is reachable):
 
-```bash
-python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --screenshot out.png
-python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --serial
-python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --hmp "info registers"
-python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --hmp "x /10x 0x<addr>"
-python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --pause
-python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --resume
-```
+Use `mcp__xemu__*` tools directly — daemon auto-starts via SessionStart hook:
 
-Useful xemu probes for regressions:
-- `info registers` after a crash → EIP tells you where it died
-- `x /Nx 0x<addr>` → inspect memory at a suspect global or stack frame
-- Serial output often contains `assert_halt` messages with file/line info
-- Screenshot confirms whether the game reached a visible state at all
+- `mcp__xemu__xemu_send_monitor_command("info registers")` — EIP/registers after crash
+- `mcp__xemu__xemu_send_monitor_command("x /16xw 0x<addr>")` — inspect memory
+- `mcp__xemu__xemu_screenshot()` — capture visible state
+- `mcp__xemu__xemu_read_serial()` — assert_halt messages on serial
+- `mcp__xemu__xemu_pause()` / `mcp__xemu__xemu_resume()` — pause/resume VM
+
+Fallback to `tools/xbox/xemu_qmp.py` only when the MCP daemon is unavailable.
 
 ## Common regression classes
 
