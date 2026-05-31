@@ -85,7 +85,11 @@
       "source": "src/halo/math/vector_math.c"
     },
     "FUN_00013dd0": {
-      "score": 72.2,
+      "score": 72.6,
+      "source": "src/halo/ai/actor_looking.c"
+    },
+    "FUN_00013ef0": {
+      "score": 63.6,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00014360": {
@@ -196,7 +200,15 @@
       "score": 100.0,
       "source": "src/halo/ai/actor_looking.c"
     },
+    "FUN_000178b0": {
+      "score": 100.0,
+      "source": "src/halo/ai/actor_looking.c"
+    },
     "FUN_000178d0": {
+      "score": 100.0,
+      "source": "src/halo/ai/actor_looking.c"
+    },
+    "FUN_00017910": {
       "score": 100.0,
       "source": "src/halo/ai/actor_looking.c"
     },
@@ -7811,18 +7823,6 @@
     "winsock_error_report": {
       "score": 88.3,
       "source": "src/halo/bungie_net/network/transport_endpoint_set_winsock.c"
-    },
-    "FUN_000178b0": {
-      "score": 100.0,
-      "source": "src/halo/ai/actor_looking.c"
-    },
-    "FUN_00017910": {
-      "score": 100.0,
-      "source": "src/halo/ai/actor_looking.c"
-    },
-    "FUN_00013ef0": {
-      "score": 63.6,
-      "source": "src/halo/ai/actor_looking.c"
     }
   },
   "version": 1
