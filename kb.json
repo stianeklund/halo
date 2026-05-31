@@ -8019,7 +8019,7 @@
         },
         {
           "addr": "0xa8ec0",
-          "decl": "int FUN_000a8ec0(int param_1@<ecx>);",
+          "decl": "int FUN_000a8ec0(int location_ptr@<ecx>, int player_handle@<eax>);",
           "ported": true,
           "src": "src/halo/game/game_engine.c"
         },
@@ -8634,7 +8634,7 @@
         },
         {
           "addr": "0xadc40",
-          "decl": "float FUN_000adc40(int player_handle@<eax>);",
+          "decl": "float FUN_000adc40(int location_ptr@<eax>, int player_handle@<ebx>);",
           "ported": true,
           "src": "src/halo/game/game_engine.c"
         },
@@ -34110,11 +34110,11 @@
         },
         {
           "addr": "0x138f70",
-          "decl": "void FUN_00138f70(void);"
+          "decl": "void FUN_00138f70(float *output@<eax>, float *input@<esi>, float param_3, float param_4);"
         },
         {
           "addr": "0x138fd0",
-          "decl": "void FUN_00138fd0(void);"
+          "decl": "void FUN_00138fd0(int material, int lightmap, unsigned short *vertex_indices, float u, float v, int param_6);"
         },
         {
           "addr": "0x1390d0",
