@@ -2109,6 +2109,46 @@ int16_t FUN_00017940(int16_t min, int16_t max)
                       max);
 }
 
+/* FUN_00019230 (0x19230)
+ * Scripted-look prop-interest update callback.
+ *
+ * Decrements state_data timers.  If the flags byte at state_data+5 has
+ * both bit 0 and bit 1 set, invokes FUN_00017960 to compute the look-at
+ * direction and store it into state_data+0xc..0x14.
+ *
+ * Confirmed: 4 cdecl stack args — actor_handle, object_handle, unused,
+ *   state_data_ptr.
+ * Confirmed: state_data+0x2 = short countdown; state_data+0x5 = flags;
+ *   state_data+0x8 = short secondary countdown.
+ * Confirmed: FUN_00017960(state_data@<ecx>, actor_handle@<eax>,
+ *   object_handle@<edi>). */
+void FUN_00019230(int actor_handle, int object_handle, int unused,
+                  char *state_data)
+{
+  short counter;
+  char flags;
+
+  counter = *(short *)(state_data + 2);
+  if (counter > 0) {
+    *(short *)(state_data + 2) = (short)(counter - 1);
+  }
+
+  flags = *(char *)(state_data + 5);
+  if (flags & 4) {
+    counter = *(short *)(state_data + 8);
+    if (counter > 0) {
+      *(short *)(state_data + 8) = (short)(counter - 1);
+    }
+  }
+
+  if (!(flags & 1))
+    return;
+  if (!(flags & 2))
+    return;
+
+  FUN_00017960(state_data, actor_handle, object_handle);
+}
+
 /* FUN_00019280 (0x19280)
  * Compute actor prop-interest for the prop list at actor+0x9c using the
  * scripted-look update callback (FUN_00019230).

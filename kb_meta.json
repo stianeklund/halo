@@ -7070,6 +7070,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x13e3f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x13e460": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x13e510": {
       "kind": "function",
       "status": "ported"
@@ -7106,6 +7114,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x13ef70": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x13eff0": {
       "kind": "function",
       "status": "ported"
@@ -7120,7 +7132,23 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x13f120": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x13f380": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x13f3b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x13f440": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x13f4b0": {
       "kind": "function",
       "status": "ported"
     },
@@ -7250,6 +7278,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x140a00": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x140ad0": {
       "kind": "function",
       "status": "ported"
@@ -7332,6 +7364,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1417c0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x141b70": {
       "kind": "function",
       "status": "ported",
@@ -7382,6 +7418,10 @@
         "unk_200 at object_data+0xC8 is the first child object handle in a parent-child chain.",
         "FUN_00141b70 is object_compute_node_matrices, taking a single int object_handle and returning void."
       ]
+    },
+    "0x144770": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x144860": {
       "kind": "function",
