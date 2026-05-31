@@ -9662,16 +9662,15 @@ LAB_0013f5ad:
 void objects_reconnect_to_structure_bsp(void)
 {
   int iVar1;
-  short bx_val;
   int local_102c[771]; /* large buffer for cluster lookup */
   int local_420 = 0;
   unsigned int local_41c = 0;
   int obj;
   object_iter_t bsp_iter;
-  char bsp_data[8];
+  char bsp_data[8]; /* scenario_location_from_point output; bsp_data+4 = bsp index (short) */
 
   object_iterator_new(&bsp_iter, -1, 0);
-  bx_val = -1;
+  *(short *)(bsp_data + 4) = -1;
   obj = (int)object_iterator_next(&bsp_iter);
   while (obj != 0) {
     if ((*(unsigned int *)(obj + 4) & 0x800) != 0 && *(int *)(obj + 0xcc) == -1) {
@@ -9683,7 +9682,7 @@ void objects_reconnect_to_structure_bsp(void)
         *(short *)(dat_handle + 4) = -1;
       }
       CALL_FUN_0018f180(bsp_data, (void *)(obj + 0x50));
-      if (bx_val == -1) {
+      if (*(short *)(bsp_data + 4) == -1) {
         {
           int bsp_index;
           bsp_index = CALL_FUN_0018e3f0(obj + 0x50, 0, 0, *(int *)(obj + 0x5c), local_102c);
@@ -9692,13 +9691,13 @@ void objects_reconnect_to_structure_bsp(void)
         if (local_420 == 0) {
           CALL_FUN_0018f180(bsp_data, (void *)(obj + 0xc));
         } else if (local_41c == 0xffffffff) {
-          bx_val = -1;
+          *(short *)(bsp_data + 4) = -1;
         } else {
           {
             int sc;
             sc = (int)scenario_get();
             iVar1 = (int)tag_block_get_element((void *)(sc + 0xe0), local_41c & 0x7fffffff, 0x10);
-            bx_val = *(short *)(iVar1 + 8);
+            *(short *)(bsp_data + 4) = *(short *)(iVar1 + 8);
           }
         }
       }
