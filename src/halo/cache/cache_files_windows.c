@@ -735,6 +735,7 @@ void FUN_001bdb10(void)
 bool cache_files_precache_map_begin(char *map_name, bool show_error)
 {
   char path[256];
+  char header_buf[0x800];
   char *canonical;
   int16_t cache_idx;
 
@@ -743,7 +744,7 @@ bool cache_files_precache_map_begin(char *map_name, bool show_error)
   cache_idx = ((int16_t (*)(void))0x1bd1b0)();
 
   if (cache_idx == -1) {
-    if (!((char (*)(void))0x1bcb80)()) {
+    if (!FUN_001bcb80(canonical, header_buf)) {
       error(2, "couldn't find map '%s' on the DVD", canonical);
       if (show_error)
         ((void (*)(void))0xe8d20)();
@@ -759,7 +760,7 @@ bool cache_files_precache_map_begin(char *map_name, bool show_error)
       *(int *)(path + 0x148) = ((int (*)(int))0x1bea30)(copy_handle);
       slot = ((int16_t (*)(int))0x1bd210)(*(int *)(path + 0x148));
 
-      block = ((int (*)(void))0x1bc720)();
+      block = (int)FUN_001bc720(slot);
       csmemset((void *)(block + 0xc), 0, 0x800);
 
       *(uint8_t *)0x4e9220 = 1;
@@ -772,8 +773,8 @@ bool cache_files_precache_map_begin(char *map_name, bool show_error)
       error(2, "starting precaching of map '%s'", canonical);
 
       {
-        int file = ((int (*)(char *))0x1bc7e0)(path);
-        int mapped = ((int (*)(int))0x1bc7a0)(file);
+        (void)FUN_001bc7e0(slot);
+        int mapped = (int)FUN_001bc7a0(slot);
         ((void (*)(int, int, int))0x1ba2f0)(
           *(int *)(path + 0x148), copy_handle, mapped);
       }
@@ -795,7 +796,7 @@ void cache_files_precache_map_end(void)
 
   ((void (*)(void))0x1baf50)();
   ((void (*)(void))0x1beb10)();
-  ((void (*)(void))0x1bcfb0)();
+  FUN_001bcfb0(*(int16_t *)0x4e9222);
   ((void (*)(int16_t))0x1bd020)(*(int16_t *)0x4e9222);
 
   *(uint8_t *)0x4e9220 = 0;
