@@ -7410,11 +7410,11 @@
         },
         {
           "addr": "0xdd260",
-          "decl": "void first_person_weapon_center_flashlight(void);"
+          "decl": "void first_person_weapon_center_flashlight(int object_handle, float *out_position, float *out_forward, void *out_up);"
         },
         {
           "addr": "0xdd340",
-          "decl": "void first_person_weapon_adjust_light(void);"
+          "decl": "char first_person_weapon_adjust_light(int object_handle, int marker_result, void *out_position, void *out_forward, void *out_up);"
         },
         {
           "addr": "0xdd580",

@@ -40,8 +40,8 @@ double pow(double x, double y);
 #define CALL_FUN_001919a0(a,b,c) XCALL(0x1919a0, void(*)(void*,int,int))(a,b,c)
 #define CALL_FUN_001403a0(a,b,c) XCALL(0x1403a0, void(*)(int,unsigned short,float*))(a,b,c)
 #define CALL_FUN_0010a710(a,b) XCALL(0x10a710, float(*)(unsigned short,float))(a,b)
-#define CALL_FUN_000dd260(a,b,c,d) XCALL(0xdd260, void(*)(int,void*,void*,void*))(a,b,c,d)
-#define CALL_FUN_000dd340(a,b) XCALL(0xdd340, char(*)(int,int))(a,b)
+/* FUN_000dd260: replaced XCALL with named call */
+/* FUN_000dd340: replaced XCALL with named call — takes 5 args (MSVC stack-reuse) */
 #define CALL_FUN_000ddb90(a,b,c,d) XCALL(0xddb90, short(*)(int,int,void*,int))(a,b,c,d)
 #define CALL_FUN_0013fea0_2(a,b) XCALL(0x13fea0, int(*)(int,unsigned short))(a,b)
 #define CALL_FUN_0013fea0_5(a,b,c,d,e) XCALL(0x13fea0, int(*)(int,unsigned short,void*,void*,void*))(a,b,c,d,e)
@@ -9245,11 +9245,11 @@ void FUN_0013b380(void)
               if ((*pbVar9 & 0x10) == 0) {
                 if (*(short *)(local_14 + 100) == 2 && *(int *)(local_14 + 0xcc) != -1) {
                   uVar11 = CALL_FUN_0013fea0_5(*(int *)(iVar5 + 0x2c), *(unsigned short *)(iVar5 + 0x5c), &light_params[1], &light_params[4], &light_params[7]);
-                  cVar3 = CALL_FUN_000dd340(*(int *)(iVar5 + 0x2c), uVar11);
+                  cVar3 = first_person_weapon_adjust_light(*(int *)(iVar5 + 0x2c), uVar11, &light_params[1], &light_params[4], &light_params[7]);
                   if (cVar3 != '\0') goto LAB_0013baac;
                 }
               } else {
-                CALL_FUN_000dd260(*(int *)(iVar5 + 0x2c), &light_params[1], &light_params[4], &light_params[7]);
+                first_person_weapon_center_flashlight(*(int *)(iVar5 + 0x2c), (float *)&light_params[1], (float *)&light_params[4], &light_params[7]);
 LAB_0013baac:
                 *(unsigned char *)(iVar5 + 2) = *(unsigned char *)(iVar5 + 2) | 8;
               }
@@ -9542,6 +9542,7 @@ void objects_dump_memory(void)
   short local_13c[128]; /* 12 entries * (4+8 shorts) + pad */
   short sVar9;
   unsigned short uVar10;
+  object_iter_t dump_iter;
 
   uVar10 = 0;
   sVar9 = 0;
@@ -9555,8 +9556,8 @@ void objects_dump_memory(void)
     sVar2 = sVar2 + 1;
     puVar5 = puVar5 + 6;
   } while (sVar2 < 0xc);
-  CALL_FUN_001193f0(*(void **)0x5a8d50);
-  piVar3 = (int *)CALL_FUN_0013d730(0);
+  object_iterator_new(&dump_iter, -1, 0);
+  piVar3 = (int *)object_iterator_next(&dump_iter);
   do {
     if (piVar3 == (int *)0) {
       /* Done iterating — output report */
@@ -9645,7 +9646,7 @@ LAB_0013f5ad:
       CALL_thunk_FUN_001029a0(-1);
     }
     CALL_FUN_0013f3b0((int *)((char *)&local_140 + *(unsigned char *)(iVar4 + 3) * 24), iVar4);
-    piVar3 = (int *)CALL_FUN_0013d730(0);
+    piVar3 = (int *)object_iterator_next(&dump_iter);
   } while (1);
 }
 #pragma clang diagnostic pop
@@ -9666,25 +9667,22 @@ void objects_reconnect_to_structure_bsp(void)
   int local_420 = 0;
   unsigned int local_41c = 0;
   int obj;
-  char local_8[8];
+  object_iter_t bsp_iter;
+  char bsp_data[8];
 
-  CALL_FUN_001193f0(*(void **)0x5a8d50);
+  object_iterator_new(&bsp_iter, -1, 0);
   bx_val = -1;
-  *(int *)(local_8 + 4) = -1;
-  *(char *)local_8 = 0;
-  *(short *)(local_8 + 2) = 0;
-  *(int *)(local_8) = -1;
-  obj = (int)CALL_FUN_0013d730(local_8);
+  obj = (int)object_iterator_next(&bsp_iter);
   while (obj != 0) {
     if ((*(unsigned int *)(obj + 4) & 0x800) != 0 && *(int *)(obj + 0xcc) == -1) {
       *(unsigned int *)(obj + 4) = *(unsigned int *)(obj + 4) & 0xfffff7ff;
       *(short *)(obj + 0x4c) = -1;
       {
         int dat_handle;
-        dat_handle = (int)datum_get(*(void **)0x5a8d50, *(int *)(local_8 + 4));
+        dat_handle = (int)datum_get(*(void **)0x5a8d50, bsp_iter.last_handle);
         *(short *)(dat_handle + 4) = -1;
       }
-      CALL_FUN_0018f180(local_8, (void *)(obj + 0x50));
+      CALL_FUN_0018f180(bsp_data, (void *)(obj + 0x50));
       if (bx_val == -1) {
         {
           int bsp_index;
@@ -9692,7 +9690,7 @@ void objects_reconnect_to_structure_bsp(void)
           CALL_FUN_001493b0(bsp_index);
         }
         if (local_420 == 0) {
-          CALL_FUN_0018f180(local_8, (void *)(obj + 0xc));
+          CALL_FUN_0018f180(bsp_data, (void *)(obj + 0xc));
         } else if (local_41c == 0xffffffff) {
           bx_val = -1;
         } else {
@@ -9704,9 +9702,9 @@ void objects_reconnect_to_structure_bsp(void)
           }
         }
       }
-      CALL_FUN_00140ce0(*(int *)(local_8 + 4), local_8);
+      CALL_FUN_00140ce0(bsp_iter.last_handle, bsp_data);
     }
-    obj = (int)CALL_FUN_0013d730(local_8);
+    obj = (int)object_iterator_next(&bsp_iter);
   }
 }
 
