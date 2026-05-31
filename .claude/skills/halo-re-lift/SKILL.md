@@ -41,15 +41,22 @@ All file edits, `rtk git` commands, and tool invocations must target **that path
    - Struct field rotation: MSVC interleaved stores do not imply decompiler offsets
 4. Infer the narrowest defensible prototype (see
    `docs/references/prototype-inference.md`).
-5. Produce a structurally faithful C lift:
+5. **Pre-implementation pattern check** — before writing C, scan for crash classes
+   `check_lift_hazards.py` does NOT flag (full detail in `docs/lift-learnings.md`):
+   - XCALLs to targets being ported: `grep -oP 'XCALL\(0x\K[0-9a-f]+' src/<file>.c`
+   - `&local_XX` args to callees that index `param[N]` (stack aliasing → must be contiguous buffer)
+   - Loops that advance a parameter pointer when original uses a copy register post-loop
+   - After writing C: `grep -n '(float)(int)' src/<file>.c` (float-as-pointer smuggling)
+   - After writing C: `grep -n '(float \*)0\|(void \*)0\|(int \*)0' src/<file>.c` (NULL @<reg> args)
+6. Produce a structurally faithful C lift:
    - preserve control-flow shape
    - preserve side-effect order
    - preserve pointer arithmetic and odd logic unless disproven
-6. Write implementation in address-ordered position.
-7. Update kb.json conservatively (see
+7. Write implementation in address-ordered position.
+8. Update kb.json conservatively (see
    `docs/references/kb-update-policy.md`).
-8. Run `rtk python3 tools/analysis/maintain.py <source_file>`.
-9. Run `rtk python3 tools/audit/check_lift_hazards.py` and fix any target-relevant hazards.
+9. Run `rtk python3 tools/analysis/maintain.py <source_file>`.
+10. Run `rtk python3 tools/audit/check_lift_hazards.py` and fix any target-relevant hazards.
 
 ## Ghidra MCP availability (required)
 

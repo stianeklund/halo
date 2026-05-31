@@ -60,6 +60,25 @@ Procedure for analysis:
       `MOV [EBP±N], src` and its destination offset from the disassembly.
       Do not trust the decompiler's offset assignments.
 
+   d. **Runtime-crash patterns** (from `docs/lift-learnings.md` — the hazard scanner
+      does NOT catch these; check before and after writing C):
+      - **XCALL to ported target**: `grep -oP 'XCALL\(0x\K[0-9a-f]+' src/<file>.c` —
+        any XCALL whose target will be ported in this batch must be replaced with a named call.
+      - **Stack aliasing**: for every `&local_XX` passed to a callee, decompile that callee —
+        if it indexes `param[N]` (N > 0), the caller must provide a contiguous buffer, not
+        separate locals. Check the callee's `memset`/init size for the true buffer size.
+      - **Loop parameter corruption**: if a parameter is used in a loop AND again after the
+        loop, check whether the original uses a copy register (EDI/ESI/ECX) while preserving
+        `[EBP+N]` for the post-loop use — if so, the loop must operate on a copy variable, not
+        the parameter itself.
+      - **NULL `@<reg>` placeholder args**: after writing C,
+        `grep -n '(float \*)0\|(void \*)0\|(int \*)0' src/<file>.c` — any NULL for a
+        register-arg param is almost always wrong; trace the LEA/MOV before the CALL.
+      - **Float-as-pointer bit-smuggling**: after writing C,
+        `grep -n '(float)(int)' src/<file>.c` — use a union or `memcpy(&dst, &src, 4)` for
+        bit reinterpretation; C numeric casts corrupt the value (0.75 → 0 → 0.0 instead of
+        preserving the IEEE 754 bit pattern).
+
    Additionally:
    - verify operand sizes exactly
    - confirm raw CALL targets
