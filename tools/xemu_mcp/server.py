@@ -243,8 +243,12 @@ async def xemu_query_state() -> str:
 @mcp.tool()
 async def xemu_attach_gdb(port: int = 1234) -> str:
     """Start a GDB server for remote debugging."""
-    await qmp.execute("human-monitor-command", {"command-line": f"gdbserver {port}"})
-    return f"GDB server started on port {port}"
+    result = await qmp.execute(
+        "human-monitor-command", {"command-line": f"gdbserver tcp::{port}"}
+    )
+    if result and result.strip():
+        raise RuntimeError(f"gdbserver failed: {result.strip()}")
+    return f"GDB server listening on tcp::{port}"
 
 
 @mcp.tool()
