@@ -8522,7 +8522,7 @@
         },
         {
           "addr": "0xaca70",
-          "decl": "int FUN_000aca70(void);",
+          "decl": "int FUN_000aca70(int item_collection_tag@<eax>);",
           "ported": true,
           "src": "src/halo/game/game_engine.c"
         },
