@@ -371,6 +371,7 @@
     "0x1bcb80": "bool FUN_001bcb80(const char *map_name@<eax>, void *header_buf@<edi>);",
     "0x1bcea0": "void FUN_001bcea0(short map_file_index@<ax>);",
     "0x1bcfb0": "void FUN_001bcfb0(short map_file_index@<ax>);",
+    "0x1bd210": "int16_t FUN_001bd210(int16_t map_type@<ax>, int header_size);",
     "0x1bdd80": "void FUN_001bdd80(int tag_index @<eax>);",
     "0x1bee30": "void xbox_texture_cache_setup_d3d_texture(void *bitmap@<esi>, void *texture@<edi>);",
     "0x1bf180": "bool xbox_texture_cache_request(void *hardware_format@<eax>, bool block);",

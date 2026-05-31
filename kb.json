@@ -4590,7 +4590,7 @@
         },
         {
           "addr": "0x1bd210",
-          "decl": "void FUN_001bd210(void);"
+          "decl": "int16_t FUN_001bd210(int16_t map_type@<ax>, int header_size);"
         },
         {
           "addr": "0x1bd3a0",
@@ -22534,7 +22534,7 @@
         },
         {
           "addr": "0x1ba2f0",
-          "decl": "void FUN_001ba2f0(void);"
+          "decl": "void FUN_001ba2f0(int buffer, int size, int dest_file, int dest_file_size, const char *source_file_name);"
         },
         {
           "addr": "0x1ba5d0",
