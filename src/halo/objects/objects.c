@@ -8925,6 +8925,7 @@ char FUN_0013ab20(unsigned int param_1, int param_2, int *param_3)
   int local_14;
   float local_10;
   float local_c;
+  float distance_scale;
   char local_5;
 
   local_5 = 0;
@@ -8996,18 +8997,18 @@ char FUN_0013ab20(unsigned int param_1, int param_2, int *param_3)
         local_28 = (float)CALL_FUN_00013010((void *)local_58);
         local_24 = (float)CALL_FUN_00013010((void *)local_4c);
         FUN_00138f70((float *)local_70, (float *)local_4c, (float *)local_58, (float *)local_64, local_c, local_10);
-        local_18 = (short *)(int)((local_24 - local_2c) * local_10 + (local_28 - local_2c) * local_c + local_2c);
+        distance_scale = (local_24 - local_2c) * local_10 + (local_28 - local_2c) * local_c + local_2c;
         CALL_FUN_00013010((void *)local_70);
-        psVar3 = local_18;
         if (*(char *)0x5a8d59 != '\0') {
           local_2c = local_40;
           local_28 = local_3c;
           local_24 = local_38;
           local_30 = 0x3f800000;
           CALL_FUN_00189150(1, param_2, 0x3f000000, &local_30);
-          ((void (*)(int, void *, void *, int, void *))FUN_00189320)(1, (void *)param_2, local_70, (int)psVar3, &local_30);
+          { int ds_bits; memcpy(&ds_bits, &distance_scale, 4);
+          ((void (*)(int, void *, void *, int, void *))FUN_00189320)(1, (void *)param_2, local_70, ds_bits, &local_30); }
         }
-        FUN_00139e50(param_1, (float *)local_7c, (float *)local_70, (float)(int)psVar3,
+        FUN_00139e50(param_1, (float *)local_7c, (float *)local_70, distance_scale,
                      (float *)local_88, (float *)param_3, (float *)&local_40);
         local_5 = 1;
       }
