@@ -1785,11 +1785,11 @@
       "source": "src/halo/camera/bored_camera.c"
     },
     "FUN_00084a10": {
-      "score": 36.7,
+      "score": 87.5,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00084a70": {
-      "score": 78.4,
+      "score": 95.8,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00084fe0": {

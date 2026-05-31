@@ -480,6 +480,22 @@
       }
     },
     {
+      "name": "halo/objects_FUN_00084a10",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_00084a10.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects_FUN_00136150",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_FUN_00136150.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
       "name": "halo/observer",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/camera/observer.c.obj",
       "base_path": "delinked/observer.obj",
