@@ -31297,7 +31297,8 @@
         },
         {
           "addr": "0x5a640",
-          "decl": "void FUN_0005a640(int encounter_handle /* @<eax> */);"
+          "decl": "void FUN_0005a640(int encounter_handle /* @<eax> */);",
+          "ported": true
         },
         {
           "addr": "0x5a6e0",
