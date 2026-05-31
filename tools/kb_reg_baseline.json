@@ -9,6 +9,8 @@
   "0xa1b60": "bool FUN_000a1b60(int datum_handle@<edi>, float delta_time);",
   "0xc6130": "bool FUN_000c6130(int datum_index @<eax>, void *tag_block @<ebx>, int element_size @<edi>, short offset);",
   "functions": {
+    "0x12ad0": "float FUN_00012ad0(int actor_handle @<ebx>, int action_type @<esi>, void *charge_state);",
+    "0x13dd0": "int FUN_00013dd0(int actor_handle @<eax>, float *source_pos @<esi>);",
     "0x14e90": "char FUN_00014e90(int actor_handle @<eax>, char *state_data);",
     "0x15bb0": "void FUN_00015bb0(int actor_handle /* @<eax> */);",
     "0x20f80": "int actor_combat_check_mode(int actor_handle @<eax>, short mode);",
@@ -140,6 +142,7 @@
     "0xac030": "int FUN_000ac030(int param_eax@<eax>, int unused_arg1, void *out_buffer, int max_count);",
     "0xac3e0": "void FUN_000ac3e0(int player_handle@<eax>);",
     "0xac4e0": "bool game_engine_get_score_hud_text(int player_handle, int param3, int hud_player, wchar_t *buffer@<edi>, int buffer_capacity@<esi>);",
+    "0xaca70": "int FUN_000aca70(int item_collection_tag@<eax>);",
     "0xacd00": "void FUN_000acd00(int param_1@<eax>);",
     "0xaceb0": "void FUN_000aceb0(int player_handle@<ecx>, int message_type@<eax>, int extra@<ebx>);",
     "0xacef0": "void game_engine_hud_update_player(int player_handle@<ecx>, int hud_player@<eax>, int param3@<ebx>);",

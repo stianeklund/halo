@@ -7667,14 +7667,14 @@ void FUN_000ac3e0(int player_handle)
 }
 
 /* Select a random item from the item collection tag (aca70). */
-int FUN_000aca70(void)
+int FUN_000aca70(int item_collection_tag)
 {
   int *tag;
   int count;
   int data;
   int i;
 
-  tag = (int *)tag_get(0x69746d63, 0);
+  tag = (int *)tag_get(0x69746d63, item_collection_tag);
   count = *tag;
   { unsigned int *seed = (unsigned int *)get_global_random_seed_address();
   int rng = random_range(seed, 0, FUN_000a8970(tag));
