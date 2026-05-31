@@ -1,6 +1,6 @@
 ---
 description: Show the decompilation frontier
-subtask: true
+subtask: false
 ---
 
 Show the decompilation frontier — what's implemented, what's remaining, and what to work on next. For actionable target selection, prefer the combined selector.

@@ -1,7 +1,6 @@
 ---
 description: Clear Halo CE cache files from Xbox devkit cache partitions
-agent: fast
-subtask: true
+subtask: false
 ---
 
 Clear Halo CE related cache files from Xbox devkit cache partitions via XBDM/RDCP.
