@@ -1,6 +1,5 @@
 ---
 description: Target selection, Ghidra context caching, and lift delegation
-model: sonnet
 subtask: false
 ---
 
@@ -31,7 +30,7 @@ failures), repeat:
    Gather lightweight context for the target (KB entry via `rtk jq`, decompilation
    via Ghidra MCP, source file path). Then spawn a subagent:
    ```
-   Agent(subagent_type="xbox-halo-re-analyst", model="sonnet", prompt=<brief>)
+   Agent(subagent_type="xbox-halo-re-analyst", prompt=<brief>)
    ```
    The prompt must include: target address, decompilation output, KB entry JSON,
    source file path, and these file-write instructions:
@@ -49,7 +48,7 @@ failures), repeat:
    ```
 6. Evaluate pipeline result (see pass/fail criteria below).
 7. **On pass**: auto-commit (unless `--dry-run`), reset consecutive failure counter.
-8. **On fail**: attempt Opus escalation or revert+log (see escalation below),
+8. **On fail**: attempt focused escalation or revert+log (see escalation below),
    increment consecutive failure counter.
 9. If consecutive failures reach `--stop-on-fail`, stop and report.
 
@@ -81,13 +80,13 @@ When no delinked reference exists (no VC71 data), strict policy fails.
 The `/lift` skill uses `--verify-policy auto` which accepts when no VC71 data
 is available but the build and ABI audit pass.
 
-## Opus escalation
+## Escalation
 
-This skill runs on **Sonnet** by default for cost efficiency. When a lift fails
-on Sonnet due to a reasoning-class failure (not a trivial build error), escalate
-to Opus:
+When a lift fails due to a reasoning-class failure (not a trivial build error),
+rerun Phase 1 with the strongest available `xbox-halo-re-analyst` configuration
+or hand the artifact to `/verify failure` for triage.
 
-**Escalate to Opus when:**
+**Escalate when:**
 - VC71 match < 65% (control flow / structure wrong)
 - ABI audit fails (calling convention reasoning)
 - FPU-WARN (operand order requires careful disassembly reading)
@@ -99,11 +98,10 @@ to Opus:
 - Build fails on an unrelated file (repo state issue, not lift quality)
 
 **Escalation flow:**
-1. Revert the Sonnet attempt: `rtk git checkout -- src/ kb.json`
-2. Re-run Phase 1 using `Agent(subagent_type="xbox-halo-re-analyst")` without
-   the `model: "sonnet"` override — the agent's default model (Opus) kicks in.
-   Include the same prompt as the original attempt.
-3. Run Phase 2 again. If Opus also fails, revert+log with both attempts recorded.
+1. Revert the failed attempt: `rtk git checkout -- src/ kb.json`
+2. Re-run Phase 1 using `Agent(subagent_type="xbox-halo-re-analyst")` with the
+   same prompt as the original attempt.
+3. Run Phase 2 again. If the retry also fails, revert+log with both attempts recorded.
 
 ## On success — auto-commit
 
@@ -131,8 +129,8 @@ Write failure record to `artifacts/auto_lift/failures/<target_name>.json`:
   "object": "<object_name>",
   "timestamp": "<ISO 8601>",
   "attempts": [
-    {"model": "sonnet", "failure_stage": "<stage>", "error_summary": "<msg>"},
-    {"model": "opus", "failure_stage": "<stage>", "error_summary": "<msg>"}
+    {"attempt": "initial", "failure_stage": "<stage>", "error_summary": "<msg>"},
+    {"attempt": "escalated", "failure_stage": "<stage>", "error_summary": "<msg>"}
   ],
   "pipeline_output": "<full pipeline stderr/stdout from last attempt>"
 }
