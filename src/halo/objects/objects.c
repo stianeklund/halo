@@ -80,8 +80,7 @@ double pow(double x, double y);
 #define CALL_FUN_00085b60(a,b,c) XCALL(0x85b60, void(*)(int,unsigned short,int))(a,b,c)
 #define CALL_FUN_00085c80(a,b,c) XCALL(0x85c80, void(*)(int,void*,void*))(a,b,c)
 /* FUN_00138fd0 and FUN_00138f70 now in kb.json with proper declarations.
- * CALL_FUN_00138f70 still uses XCALL pending full register-arg conversion. */
-#define CALL_FUN_00138f70(a,b) XCALL(0x138f70, void(*)(float,float))(a,b)
+ * FUN_00138f70 takes @<eax>,@<ecx>,@<edx>,@<esi> + 2 stack floats. */
 #define CALL_FUN_00180570(a,b) XCALL(0x180570, void(*)(int,void*))(a,b)
 #define CALL_FUN_00180660(a,b) XCALL(0x180660, void(*)(int,void*))(a,b)
 #define CALL_FUN_00189150(a,b,c,d) XCALL(0x189150, void(*)(int,int,int,void*))(a,b,c,d)
@@ -8995,7 +8994,7 @@ char FUN_0013ab20(unsigned int param_1, int param_2, int *param_3)
         CALL_FUN_00180570((unsigned int)*puVar5 * 0x20 + *(int *)(iVar6 + 0xf8), (void *)local_64);
         CALL_FUN_00180570((unsigned int)puVar5[1] * 0x20 + *(int *)(iVar6 + 0xf8), (void *)local_58);
         CALL_FUN_00180570((unsigned int)puVar5[2] * 0x20 + *(int *)(iVar6 + 0xf8), (void *)local_4c);
-        CALL_FUN_00138f70(local_c, local_10);
+        FUN_00138f70((float *)local_7c, (float *)local_4c, (float *)local_58, (float *)local_64, local_c, local_10);
         CALL_FUN_00013010((void *)local_7c);
         CALL_FUN_00180660(*(int *)(iVar6 + 0xf8) + ((unsigned int)*puVar5 + *(int *)(iVar6 + 0xb4) * 4) * 8, (void *)local_64);
         CALL_FUN_00180660(*(int *)(iVar6 + 0xf8) + ((unsigned int)puVar5[1] + *(int *)(iVar6 + 0xb4) * 4) * 8, (void *)local_58);
@@ -9003,7 +9002,7 @@ char FUN_0013ab20(unsigned int param_1, int param_2, int *param_3)
         local_2c = (float)CALL_FUN_00013010((void *)local_64);
         local_28 = (float)CALL_FUN_00013010((void *)local_58);
         local_24 = (float)CALL_FUN_00013010((void *)local_4c);
-        CALL_FUN_00138f70(local_c, local_10);
+        FUN_00138f70((float *)local_70, (float *)local_4c, (float *)local_58, (float *)local_64, local_c, local_10);
         local_18 = (short *)(int)((local_24 - local_2c) * local_10 + (local_28 - local_2c) * local_c + local_2c);
         CALL_FUN_00013010((void *)local_70);
         psVar3 = local_18;

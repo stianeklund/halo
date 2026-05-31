@@ -34111,7 +34111,7 @@
         },
         {
           "addr": "0x138f70",
-          "decl": "void FUN_00138f70(float *output@<eax>, float *input@<esi>, float param_3, float param_4);"
+          "decl": "void FUN_00138f70(float *output@<eax>, float *vertex_c@<ecx>, float *vertex_d@<edx>, float *base@<esi>, float u, float v);"
         },
         {
           "addr": "0x138fd0",
