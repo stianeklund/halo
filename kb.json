@@ -26925,19 +26925,19 @@
         },
         {
           "addr": "0x183880",
-          "decl": "void rasterizer_text_cache_character(int character@<edi>, void *font);",
+          "decl": "void rasterizer_text_cache_character(void *font_character@<edi>, void *font);",
           "ported": true,
           "name": "rasterizer_text_cache_character"
         },
         {
           "addr": "0x183c00",
-          "decl": "void rasterizer_text_draw_cached_char(void *font, void *character, short x, short y, unsigned int color, int screen_x, int screen_y, short width, short height);",
+          "decl": "void rasterizer_text_draw_cached_char(void *arg0, void *font, void *font_character, unsigned int color, short x, short y, int screen_x, int screen_y, short width, short height);",
           "ported": true,
           "name": "rasterizer_text_draw_cached_char"
         },
         {
           "addr": "0x183cf0",
-          "decl": "void rasterizer_text_draw_cached_chars(void *font, void *character, short x, short y, unsigned int color, int offset_x, int offset_y, short width, short height);",
+          "decl": "void rasterizer_text_draw_cached_chars(void *arg0, void *font, void *font_character, unsigned int color, short x, short y, int offset_x, int offset_y, short width, short height);",
           "ported": true,
           "name": "rasterizer_text_draw_cached_chars"
         },

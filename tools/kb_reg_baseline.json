@@ -412,6 +412,9 @@
     "0x1d8750": "unsigned int FUN_001d8750(unsigned int val@<ecx>);",
     "0x1e9350": "void D3DDevice_SetRenderState_Simple(uint32_t reg@<ecx>, uint32_t value@<edx>);",
     "0x1e9380": "void D3DDevice_SetRenderState_Deferred(uint32_t reg_index@<ecx>, uint32_t value@<edx>);",
-    "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);"
+    "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);",
+    "0x183770": "void rasterizer_text_get_character_position(short index@<ax>, short *out_y@<ebx>, short *out_x);",
+    "0x183820": "void rasterizer_text_evict_character(int **slot@<esi>);",
+    "0x183880": "void rasterizer_text_cache_character(void *font_character@<edi>, void *font);"
   }
 }
