@@ -3600,13 +3600,13 @@
         },
         {
           "addr": "0x257a0",
-          "decl": "void FUN_000257a0(void);",
+          "decl": "void FUN_000257a0(int actor_handle@<eax>, void *state@<edi>, char *actor@<ecx>);",
           "ported": false
         },
         {
           "addr": "0x25970",
-          "decl": "void FUN_00025970(void);",
-          "ported": false
+          "decl": "char FUN_00025970(void *state@<eax>, int actor_handle, char *actor);",
+          "ported": true
         },
         {
           "addr": "0x25a00",
@@ -33997,11 +33997,11 @@
         },
         {
           "addr": "0x24850",
-          "decl": "void FUN_00024850(void);"
+          "decl": "void FUN_00024850(int actor_handle, int flag);"
         },
         {
           "addr": "0x24890",
-          "decl": "void FUN_00024890(void);"
+          "decl": "char FUN_00024890(int actor_handle, void *state);"
         },
         {
           "addr": "0x24900",
