@@ -397,3 +397,85 @@ Confirmed twice with this method (commit 478fd549): the §8 no-spawn selector an
 the §2 green-tint vec3. **Do not declare a visual fix done from a code read — the
 box is the only oracle** (a code read said "fixed" and the box disagreed
 repeatedly during this hunt).
+
+---
+
+## 10. Caller-Site Register Order Contradicts Thunk Convention
+
+**What happens:** A function declared `@<ecx>, @<eax>, @<ebx>` has its thunk
+map first C arg → ECX, second → EAX, third → EBX. When ported callers call it
+via the thunk, this is the expected order. But in the *original binary* a
+specific caller may load the registers in a different order — e.g.,
+ECX=first, **EBX=second, EAX=third** — before the CALL. The `@<reg>`
+annotation describes what the *callee body reads*; it does not guarantee every
+original caller prepared them in the same sequence. When that caller is ported
+and calls the function in C with `f(a, b, c)`, the thunk sends b→EAX and c→EBX,
+but the original binary expected b→EBX and c→EAX, so the second and third
+arguments are silently swapped.
+
+**Symptoms:** No crash. Silent wrong output that depends on arg semantics. If
+the swapped arg is a small event-type integer used as a switch discriminant,
+and the other arg is a datum handle (~0x00010000+), the switch hits its default
+case on every call → a feature does nothing. No assertion, no log entry.
+
+**Example:** `game_engine_player_event` (0xad0c0) called
+`game_engine_hud_update_player` (0xacef0, `@<ecx>,@<eax>,@<ebx>`) with
+ECX=param_1, **EBX=param_2** (kill event type), **EAX=param_3** (other player
+handle). C thunk put param_2 → EAX and param_3 → EBX — swapped. Inside
+`game_engine_get_score_hud_text`, `switch(param_2)` received a datum handle
+(~0x00010000) instead of an event type (0–19) → always hit default → no kill,
+suicide, or medal HUD text. The bug was live for months because the game still
+ran without crashing.
+
+**Fix:** In the ported caller, swap the argument positions in the C call to
+match the original caller's register assignment:
+`game_engine_hud_update_player(param_1, param_3, param_2)`.
+
+**Prevention:** For any callee with `@<reg>` args, run `get_function_callers`
+in Ghidra. For each caller, read the 5–10 instructions before the CALL and
+note which registers hold which values. If a caller loads EBX before EAX (or
+any non-canonical order), its ported C call must swap the corresponding args.
+This is especially worth checking when the same function has both direct callers
+and indirect callers (via an intermediate dispatch function) — they often use
+different preparation sequences.
+
+**Detection:** No runtime signal. Only way to catch this before deployment: for
+each ported caller, verify the call-site disassembly matches what the C thunk
+convention sends. A switch inside the callee that accepts only small integers
+but receives a datum handle is the smoking gun in a decompiler trace.
+
+---
+
+## 11. Builder Returns Count; Consumer Ignores It → Assert on Missing Entry
+
+**What happens:** A sorted-array builder (data_iterator_next loop) both fills
+an output buffer AND returns the count of active entries. The consumer function
+calls the builder, discards the count, and then searches the buffer with a
+hard-coded upper bound (e.g., `if (i > 15) assert`). When an entry is absent
+from the buffer — because the iterator's active-bit check skipped it — the
+search runs past the last valid entry, hits the bound, and asserts.
+
+**Symptoms:** Assertion with a message like `"place<MULTIPLAYER_MAXIMUM_PLAYERS"`
+at a search loop inside the consumer. The crashing function is not the builder
+and not the caller: it is the consumer that searches the buffer the builder
+populated.
+
+**Complication — datum_get vs data_iterator_next divergence:** The entity whose
+handle is being searched may still pass `datum_get` (salt/generation check
+succeeds) even though `data_iterator_next` skipped it (active bit = 0 in the
+datum header). Guards using `datum_get` or `datum_absolute_index_to_index` to
+pre-filter the caller will not help: both return non-zero for the entry, but the
+builder's iterator still omits it. The only correct fix is to bound the search
+by the builder's return value.
+
+**Example:** `FUN_000abd20` (sorted player array builder) returned an active
+player count, but `FUN_000abf50` discarded it and searched all 16 slots. When
+a quitting player's datum was absent from the iterator output but still passed
+`datum_get` (their salt was unchanged), the search found no match and asserted.
+Fix: capture the builder's return value and exit the search loop when `i >= count`,
+returning a zeroed output for the "not found" case.
+
+**Prevention:** When a function calls a data-structure builder and then searches
+the result, check whether the builder returns a count. If it does and the caller
+discards it with `(void)` or by casting to nothing, treat that as a latent bug
+waiting for the first time an entry is legitimately absent from the output.
