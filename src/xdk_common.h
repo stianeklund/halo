@@ -5,6 +5,8 @@
 #define DECOMP_CUSTOM 1
 #define DEBUG_BUILD 1
 
+#define TICKS_PER_SECOND               (*(float *)0x253394)
+
 extern const char *build_rev;
 extern const char *build_date;
 extern const char *build_ui_widget_text;
