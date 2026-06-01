@@ -8420,6 +8420,8 @@ void FUN_000ab090(int text, char highlight, int row, int state)
   tab_stops_large[0] = 0x82;
   tab_stops_large[1] = 0xc3;
   tab_stops_large[2] = 0x13b;
+  rect[0] = *(int *)0x506584;
+  rect[1] = *(int *)0x506588;
   tabs = tab_stops_large;
   if ((int)*(int16_t *)((char *)rect + 6) - (int)*(int16_t *)((char *)rect + 2) < 0x141)
     tabs = tab_stops_small;
@@ -8429,8 +8431,6 @@ void FUN_000ab090(int text, char highlight, int row, int state)
   } else {
     draw_string_set_tab_stops(tabs, 3);
   }
-  rect[0] = *(int *)0x506584;
-  rect[1] = *(int *)0x506588;
   rect2d_offset((int16_t *)rect, -*(int16_t *)0x50657e, -*(int16_t *)0x50657c);
   if (font_tag != -1) {
     tag_data = (int)tag_get(0x666f6e74, font_tag);
