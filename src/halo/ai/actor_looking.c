@@ -3462,3 +3462,122 @@ short FUN_0002a430(int actor_handle)
     return *(short *)(actor + 0x470);
   return -1;
 }
+
+/* FUN_00027dd0 (0x27dd0)
+ * Returns true if the dot product of a normalized 2D direction vector
+ * and a comparison direction exceeds a threshold.
+ *
+ * Confirmed: EAX=dir (float* 2D), EDX=vec2 (float* 2D), stack=threshold.
+ *   Leaf function, no callee calls. FSQRT/FDIV/FMUL/FADDP/FCOMPP chain. */
+bool FUN_00027dd0(float *dir, float *vec2, float threshold)
+{
+  float dx;
+  float dy;
+  float len;
+  float abs_len;
+
+  dx = dir[0];
+  dy = dir[1];
+
+  len = dx * dx + dy * dy;
+  if (!(len >= 0.0f))
+    return false;
+  len = dx * dx + dy * dy;
+  asm volatile ("fsqrt" : "=t"(len) : "0"(len));
+  abs_len = len;
+  asm volatile ("fabs" : "=t"(abs_len) : "0"(abs_len));
+  if (abs_len < 0.00001f)
+    return false;
+  dx = (1.0f / len) * dx;
+  dy = (1.0f / len) * dy;
+  if (dx * dx + dy * dy <= 0.0f)
+    return false;
+  if (dx * vec2[0] + dy * vec2[1] <= threshold)
+    return false;
+  return true;
+}
+
+/* FUN_00027e50 (0x27e50)
+ * Vector normalization + dot/cross comparison against two thresholds.
+ *
+ * Confirmed: EAX=dir, ECX=vec2, EDX=limit, EBP+8=threshold,
+ *   EBP+0xC=output.  FSQRT/FDIV/FMUL/FCOMPP + magnitude3d. */
+bool FUN_00027e50(float *dir, float *vec2, float *limit,
+                  float threshold, float *output)
+{
+  float dx;
+  float dy;
+  float len;
+  float sqrt_len;
+  float abs_len;
+  float inv;
+  float cross;
+  float dot;
+  float mag;
+  int idx;
+  float tmp[3];
+
+  dx = dir[0];
+  dy = dir[1];
+  tmp[0] = vec2[0];
+  tmp[1] = vec2[1];
+
+  len = dx * dx + dy * dy;
+  sqrt_len = len;
+  asm volatile ("fsqrt" : "=t"(sqrt_len) : "0"(sqrt_len));
+  abs_len = sqrt_len;
+  asm volatile ("fabs" : "=t"(abs_len) : "0"(abs_len));
+  if (abs_len < 0.00001f)
+    return false;
+  inv = 1.0f / sqrt_len;
+  dx = dx * inv;
+  dy = dy * inv;
+  if (dx * dx + dy * dy <= 0.0f)
+    return false;
+  if (dx * limit[0] + dy * limit[1] <= threshold)
+    return false;
+  tmp[2] = dx;
+  mag = magnitude3d(tmp);
+  if (mag <= 0.0f)
+    return false;
+  cross = dy * tmp[0] - dx * tmp[1];
+  idx = 0;
+  if (cross > 0.0f)
+    idx = 1;
+  dot = dx * tmp[0] + dy * tmp[1];
+  if (dot <= output[idx])
+    return false;
+  return true;
+}
+
+/* FUN_00027f40 (0x27f40) — Actor look-at angle constraint evaluator.
+ * Gets actor tag, computes pitch/yaw cosines based on combat state,
+ * and invokes FUN_00027dd0/FUN_00027e50 to fill two output flags. */
+void FUN_00027f40(int actor_handle, void *out1, void *out2)
+{
+  char *actor;
+  char *tag_data;
+  float cos_pitch;
+  float cos_yaw;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  tag_data = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+
+  *((char *)out1) = (char)FUN_00027dd0(
+      (float *)(tag_data + 0x12c), (float *)out1, 0.0f);
+
+  if (*(short *)(actor + 0x6a) == 3) {
+    cos_pitch = *(float *)(tag_data + 0xbc);
+    asm volatile ("fcos" : "=t"(cos_pitch) : "0"(cos_pitch));
+    cos_yaw = *(float *)(tag_data + 0xc0);
+    asm volatile ("fcos" : "=t"(cos_yaw) : "0"(cos_yaw));
+  } else {
+    cos_pitch = *(float *)(tag_data + 0xb4);
+    asm volatile ("fcos" : "=t"(cos_pitch) : "0"(cos_pitch));
+    cos_yaw = *(float *)(tag_data + 0xb8);
+    asm volatile ("fcos" : "=t"(cos_yaw) : "0"(cos_yaw));
+  }
+
+  *((char *)out2) = (char)FUN_00027e50(
+      (float *)(tag_data + 0x134), &cos_pitch, &cos_yaw, 0.0f, out2);
+}
