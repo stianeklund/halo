@@ -61,6 +61,236 @@ int FUN_00180050(short param_1)
   return (int)*(short *)(0x2afe14 + param_1 * 2);
 }
 
+/*
+ * rasterizer_geometry_vertex_decompress: decompress compressed vertex buffers
+ * into their uncompressed forms (0x1800b0).
+ *
+ * param_1: vertex_type (1=env_vertex, 3=env_lightmap_vertex, 5=model_vertex)
+ * param_2: count (number of vertices)
+ * param_3: uncompressed_output (output buffer base, int/ptr)
+ * param_4: uncompressed_size (expected output byte count for assert)
+ * param_5: compressed_input (input buffer base, int/ptr)
+ * param_6: compressed_size (expected input byte count for assert, INT not
+ * float)
+ *
+ * Vertex struct sizes (uncompressed / compressed):
+ *   env_vertex:           56 (0x38) / 32 (0x20)
+ *   env_lightmap_vertex:  20 (0x14) /  8
+ *   model_vertex:         68 (0x44) / 32 (0x20)
+ *
+ * Constants from binary:
+ *   _DAT_002533c8 = 1.0f
+ *   _DAT_002647f4 = 1.0f/65535.0f  (signed short texcoord scale)
+ *   _DAT_00261518 = 1.0f/255.0f    (byte weight scale)
+ *
+ * Texcoord short->float formula: (s16 * 2 + 1) * (1.0f / 65535.0f)
+ * Node weight byte->float:       byte * (1.0f / 255.0f)
+ */
+void FUN_001800b0(short param_1, int param_2, int param_3, int param_4,
+                  int param_5, int param_6)
+{
+  /* Three 12-byte (3-float) scratch buffers for FUN_0017ffc0 output */
+  float buf_c[3]; /* at EBP-0xc */
+  float buf_18[3]; /* at EBP-0x18 */
+  float buf_24[3]; /* at EBP-0x24 */
+
+  /* temp for MOVSX + FILD idiom: param_1 slot reused as int temp */
+  int temp_int;
+
+  float weight0;
+  float *result;
+  int i;
+  int count;
+  unsigned int *in32;
+  unsigned int *out32;
+  unsigned char *in8;
+  signed short *in16;
+  unsigned char node0_byte;
+  unsigned char node1_byte;
+
+  if (param_3 == 0) {
+    display_assert("uncompressed",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x118,
+                   1);
+    system_exit(-1);
+  }
+  if (param_5 == 0) {
+    display_assert("compressed",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x119,
+                   1);
+    system_exit(-1);
+  }
+
+  if (param_1 == 1) {
+    /* environment_vertex: uncompressed=56 bytes, compressed=32 bytes */
+    count = param_2;
+    if (param_2 * 0x38 != param_4) {
+      display_assert("count*sizeof(struct "
+                     "environment_vertex_uncompressed)==uncompressed_size",
+                     "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c",
+                     0x11f, 1);
+      system_exit(-1);
+    }
+    if ((count << 5) != param_6) {
+      display_assert(
+        "count*sizeof(struct environment_vertex_compressed)==compressed_size",
+        "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x120, 1);
+      system_exit(-1);
+    }
+    if (count > 0) {
+      /* ESI = out+0x18, EDI = in+0x10 at loop entry */
+      out32 = (unsigned int *)(param_3 + 0x18);
+      in32 = (unsigned int *)(param_5 + 0x10);
+      for (i = 0; i < count; i++) {
+        /* copy position xyz (3 dwords) from in[0..8] to out[0..8] */
+        out32[-6] = in32[-4];
+        out32[-5] = in32[-3];
+        out32[-4] = in32[-2];
+        /* unpack normal from in[12] into buf_24 */
+        result = FUN_0017ffc0(buf_24, in32[-1]);
+        out32[-3] = ((unsigned int *)result)[0];
+        out32[-2] = ((unsigned int *)result)[1];
+        out32[-1] = ((unsigned int *)result)[2];
+        /* unpack binormal from in[16] into buf_18 */
+        result = FUN_0017ffc0(buf_18, in32[0]);
+        out32[0] = ((unsigned int *)result)[0];
+        out32[1] = ((unsigned int *)result)[1];
+        out32[2] = ((unsigned int *)result)[2];
+        /* unpack tangent from in[20] into buf_c */
+        result = FUN_0017ffc0(buf_c, in32[1]);
+        out32[3] = ((unsigned int *)result)[0];
+        out32[4] = ((unsigned int *)result)[1];
+        out32[5] = ((unsigned int *)result)[2];
+        /* copy texcoords (2 raw dwords) from in[24..28] to out[48..52] */
+        out32[6] = in32[2];
+        out32[7] = in32[3];
+        /* advance: out += 56 bytes = 14 dwords, in += 32 bytes = 8 dwords */
+        out32 += 14;
+        in32 += 8;
+      }
+    }
+  } else if (param_1 == 3) {
+    /* environment_lightmap_vertex: uncompressed=20 bytes, compressed=8 bytes */
+    count = param_2;
+    if (param_2 * 0x14 != param_4) {
+      display_assert(
+        "count*sizeof(struct "
+        "environment_lightmap_vertex_uncompressed)==uncompressed_size",
+        "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x133, 1);
+      system_exit(-1);
+    }
+    if (param_2 * 8 != param_6) {
+      display_assert("count*sizeof(struct "
+                     "environment_lightmap_vertex_compressed)==compressed_size",
+                     "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c",
+                     0x134, 1);
+      system_exit(-1);
+    }
+    if (count > 0) {
+      /* ESI = out+0x10, EDI = in+0x6 at loop entry */
+      out32 = (unsigned int *)(param_3 + 0x10);
+      in16 = (signed short *)(param_5 + 6);
+      for (i = 0; i < count; i++) {
+        /* unpack normal from in[0] into buf_24 */
+        result = FUN_0017ffc0(buf_24, *(unsigned int *)(in16 - 3));
+        out32[-4] = ((unsigned int *)result)[0];
+        out32[-3] = ((unsigned int *)result)[1];
+        out32[-2] = ((unsigned int *)result)[2];
+        /* texcoord u: (s16 * 2 + 1) * (1/65535) -- in[4] */
+        temp_int = (int)in16[-1];
+        *(float *)(out32 - 1) =
+          ((float)temp_int + (float)temp_int + 1.0f) * (1.0f / 65535.0f);
+        /* texcoord v: (s16 * 2 + 1) * (1/65535) -- in[6] */
+        temp_int = (int)in16[0];
+        *(float *)out32 =
+          ((float)temp_int + (float)temp_int + 1.0f) * (1.0f / 65535.0f);
+        /* advance: out += 20 bytes = 5 dwords, in += 8 bytes = 4 shorts */
+        out32 += 5;
+        in16 += 4;
+      }
+    }
+  } else {
+    if (param_1 != 5) {
+      error(2, "### ERROR can't uncompress this type of vertex buffer");
+      return;
+    }
+    /* model_vertex: uncompressed=68 bytes, compressed=32 bytes */
+    count = param_2;
+    if (param_2 * 0x44 != param_4) {
+      display_assert(
+        "count*sizeof(struct model_vertex_uncompressed)==uncompressed_size",
+        "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x145, 1);
+      system_exit(-1);
+    }
+    if ((count << 5) != param_6) {
+      display_assert(
+        "count*sizeof(struct model_vertex_compressed)==compressed_size",
+        "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x146, 1);
+      system_exit(-1);
+    }
+    if (count > 0) {
+      /* ESI = out+0x18, EDI = in+0x10 at loop entry */
+      out32 = (unsigned int *)(param_3 + 0x18);
+      in32 = (unsigned int *)(param_5 + 0x10);
+      for (i = 0; i < count; i++) {
+        /* copy position xyz from in[0..8] to out[0..8] */
+        out32[-6] = in32[-4];
+        out32[-5] = in32[-3];
+        out32[-4] = in32[-2];
+        /* unpack normal from in[12] into buf_c */
+        result = FUN_0017ffc0(buf_c, in32[-1]);
+        out32[-3] = ((unsigned int *)result)[0];
+        out32[-2] = ((unsigned int *)result)[1];
+        out32[-1] = ((unsigned int *)result)[2];
+        /* unpack binormal from in[16] into buf_18 */
+        result = FUN_0017ffc0(buf_18, in32[0]);
+        out32[0] = ((unsigned int *)result)[0];
+        out32[1] = ((unsigned int *)result)[1];
+        out32[2] = ((unsigned int *)result)[2];
+        /* unpack tangent from in[20] into buf_24 */
+        result = FUN_0017ffc0(buf_24, in32[1]);
+        out32[3] = ((unsigned int *)result)[0];
+        out32[4] = ((unsigned int *)result)[1];
+        out32[5] = ((unsigned int *)result)[2];
+        /* texcoord u: (s16*2+1)*(1/65535) from in[24] */
+        temp_int = (int)*(signed short *)((int)in32 + 8);
+        *(float *)(out32 + 6) =
+          ((float)temp_int + (float)temp_int + 1.0f) * (1.0f / 65535.0f);
+        /* texcoord v: (s16*2+1)*(1/65535) from in[26] */
+        temp_int = (int)*(signed short *)((int)in32 + 10);
+        *(float *)(out32 + 7) =
+          ((float)temp_int + (float)temp_int + 1.0f) * (1.0f / 65535.0f);
+        /* node_index[0] = in[28] / 3 (assert in[28] % 3 == 0) */
+        in8 = (unsigned char *)in32;
+        node0_byte = in8[12];
+        node1_byte = in8[13];
+        if ((unsigned int)node0_byte % 3 != 0) {
+          display_assert("src->nodes[0]%3==0",
+                         "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c",
+                         0x155, 1);
+          system_exit(-1);
+        }
+        if ((unsigned int)node1_byte % 3 != 0) {
+          display_assert("src->nodes[1]%3==0",
+                         "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c",
+                         0x156, 1);
+          system_exit(-1);
+        }
+        /* node_index stored as short = byte / 3 */
+        *(short *)(out32 + 8) = (short)((int)node0_byte / 3);
+        *((short *)(out32 + 8) + 1) = (short)((int)node1_byte / 3);
+        /* weight0 = in[30] * (1/255.0f); weight1 = 1.0f - weight0 */
+        weight0 = (float)(int)in8[14] * (1.0f / 255.0f);
+        *(float *)(out32 + 9) = weight0;
+        *(float *)(out32 + 10) = 1.0f - weight0;
+        /* advance: out += 68 bytes = 17 dwords, in += 32 bytes = 8 dwords */
+        out32 += 17;
+        in32 += 8;
+      }
+    }
+  }
+}
+
 /* rasterizer_geometry_vertex_get_position: copy 3-float position from vertex
  * to output (0x180500) */
 void FUN_00180500(float *param_1, float *param_2)
@@ -451,10 +681,8 @@ void FUN_00181900(short param_1)
     *(int *)((char *)params + 0x04) = *(int *)(entry + 0x00);
     *(int *)((char *)params + 0x08) = *(int *)(entry + 0x04);
     *(int *)((char *)params + 0x0c) = *(int *)(entry + 0x08);
-    *(unsigned int *)((char *)params + 0x10) =
-      (unsigned int)FUN_00180b10(dir);
-    *(unsigned int *)((char *)params + 0x14) =
-      (unsigned int)FUN_00180b10(perp);
+    *(unsigned int *)((char *)params + 0x10) = (unsigned int)FUN_00180b10(dir);
+    *(unsigned int *)((char *)params + 0x14) = (unsigned int)FUN_00180b10(perp);
     *(int *)((char *)params + 0x18) = -1;
     *(short *)((char *)params + 0x1c) = -1;
     *(short *)((char *)params + 0x1e) = (short)(entry_idx >> 16);
@@ -570,6 +798,533 @@ void FUN_00181a90(void)
   FUN_0017d020();
 
   FUN_0016fa40(0x17);
+}
+
+/* rasterizer_lights_draw_lens_flares: render all queued lens flare reflections
+ * for the current frame. Iterates the lens flare queue (DAT_004c6480,
+ * count = DAT_004d0480), computes per-flare brightness/rotation/position,
+ * then for each reflection element calls the widget draw path
+ * (FUN_0017d010 / FUN_0017b7d0). A second pass renders sun-glow overlays
+ * (DAT_003256fe guard). (0x181c20) */
+void FUN_00181c20(void)
+{
+  /* atan2 from libm (used for flare screen-angle computation) */
+  extern double atan2(double, double);
+
+  /* Outer loop state */
+  int lf_count; /* DAT_004d0480 */
+  int i; /* outer loop counter (ESI, sign-extended as CX) */
+  int outer_ctr; /* [EBP-0x78] inner loop index within outer */
+  int *entry; /* lens flare queue entry: &DAT_004c6480 + i*0x28 (EBX) */
+  unsigned char *light_data; /* return of FUN_00181060 (ESI after call) */
+  float *dir_ptr; /* FUN_0017ffc0 return (3-float decoded direction) */
+  int definition; /* entry[0] = tag definition ptr (EDI) */
+
+  /* Relative position of flare to camera */
+  float delta_x; /* [EBP-0x18] entry_x - camera_x */
+  float delta_y; /* [EBP-0x14] entry_y - camera_y */
+  float delta_z; /* [EBP-0x10] entry_z - camera_z */
+  float view_dot; /* [EBP-0x1c] dot(fwd, delta) */
+
+  /* Reflection billboard offset */
+  float refl_off_x; /* [EBP-0x48] */
+  float refl_off_y; /* [EBP-0x44] */
+  float refl_off_z; /* [EBP-0x40] */
+
+  /* Decoded perpendicular direction of the flare (from FUN_0017ffc0) */
+  float dir_local[3]; /* [EBP-0xb4] buffer passed to FUN_0017ffc0 (12 bytes) */
+  float dir_x; /* [EBP-0x68] copy of dir_ptr[0] = local_6c */
+  float dir_y; /* [EBP-0x64] copy of dir_ptr[1] = local_68 */
+  float dir_z; /* [EBP-0x60] copy of dir_ptr[2] = local_64 */
+
+  /* Per-flare scalar values */
+  float brightness_byte; /* [EBP-0x28] *light_data * scale = local_2c */
+  float entry_x; /* [EBP-0x74] entry[1] (float) */
+  float entry_y; /* [EBP-0x70] entry[2] */
+  float entry_z; /* [EBP-0x6c] entry[3] */
+
+  /* Occlusion/brightness accumulator */
+  float brightness; /* [EBP-0xc] accumulated brightness = local_10 */
+  float depth_scale; /* [EBP-0x4] = local_8 */
+  float depth_bias; /* [EBP-0x8] = local_c */
+
+  /* Corona rotation */
+  float
+    corona_rot; /* [EBP-0x9c] = local_9c, output of FUN_00181420 * def[0x84] */
+  float flare_angle; /* [EBP-0xa0] = local_a0, fpatan result * scale */
+
+  /* Visibility array [5]: [0]=1.0, [1]=near_clip, [2]=direction, [3]=backward,
+   * [4]=rotation_fn */
+  float vis[5]; /* [EBP-0x8c] = local_90 */
+
+  /* Second loop (sun glow) */
+  short sun_i; /* [sVar13] second loop counter */
+  int sun_entry; /* pointer into lens flare queue for sun glow */
+
+  /* Inner reflection loop */
+  int refl_idx; /* [EBP-0x2c] reflection loop counter = local_30 */
+  int refl_count; /* *(int *)(definition + 0xc4) */
+  void *refl; /* tag_block_get_element result = puVar8 */
+  int refl_ivar; /* iVar7 inner loop counter */
+
+  /* Reflection color */
+  unsigned int color; /* packed ARGB for FUN_0017d010 (uVar11) */
+  unsigned int tex_flags; /* [EBP-0x5c] local_60 */
+  float anim_alpha; /* [EBP-0x58] local_5c */
+  float anim_r; /* [EBP-0x54] local_58 */
+  float anim_g; /* [EBP-0x50] local_54 */
+  float anim_b; /* [EBP-0x4c] local_50 */
+
+  /* Animation color: alpha from FUN_0010b820, RGB[3] from FUN_0007c270.
+   * In MSVC layout: anim_alpha_out at EBP-0x3c (local_40),
+   * anim_rgb[0..2] at EBP-0x38/0x34/0x30 (local_3c/38/34). */
+  float anim_alpha_out; /* [EBP-0x3c] = local_40, from FUN_0010b820 */
+  float anim_rgb[3];    /* [EBP-0x38..0x30] = local_3c/38/34, from FUN_0007c270 */
+
+  /* Reflection size and position output */
+  float refl_size;       /* current reflection size (local_8 reused = local_c in Ghidra) */
+  float refl_anim;       /* animation period result (local_8 reused again) */
+  float flare_size_angle; /* [EBP-0x24] = local_28, rotation + offset */
+  float pos[3];          /* [EBP-0xa8..0xa0]: billboard position x/y/z */
+  float scale2d[2];      /* [EBP-0x94] = local_98/local_94 */
+  unsigned short refl_flags; /* *puVar8 */
+  unsigned int stencil_mode; /* uVar15 */
+  char occlusion_result; /* cVar4 return of FUN_0017cfd0 */
+  int iVar1; /* iVar1 = i * 0x28 */
+
+  FUN_0016f910(0x19);
+
+  if (*(char *)0x3256d7 == '\0' || *(short *)0x5a5bc0 != 0 ||
+      *(int *)0x4d0480 <= 0) {
+    FUN_0016fa40(0x19);
+    return;
+  }
+
+  FUN_0017cfc0(5, 0);
+
+  lf_count = *(int *)0x4d0480;
+  outer_ctr = 0;
+  if (lf_count > 0) {
+    i = 0;
+    do {
+      /* Bounds check */
+      if ((short)outer_ctr < 0 || i >= lf_count) {
+        display_assert(
+          "lens_flare_index>=0 && lens_flare_index<local_lens_flare_count",
+          "c:\\halo\\SOURCE\\rasterizer\\rasterizer_lights.c", 0x43, 1);
+        system_exit(-1);
+      }
+
+      iVar1 = i * 0x28;
+      /* entry = &DAT_004c6480 + i*0x28 (5*8 = 0x28 bytes per entry) */
+      entry = (int *)((char *)0x4c6480 + iVar1);
+
+      /* FUN_00181060 takes @eax = entry (lens_flare_params ptr).
+       * Returns pointer to light color/alpha byte in the light table. */
+      light_data = FUN_00181060((void *)entry);
+
+      /* FUN_0017ffc0 decodes packed normal entry[4] into dir_local[3] */
+      dir_ptr = FUN_0017ffc0(dir_local, (unsigned int)entry[4]);
+      dir_x = dir_ptr[0];
+      dir_y = dir_ptr[1];
+      dir_z = dir_ptr[2];
+
+      /* Filter by window index: byte[entry+0x22] & 0x7f == DAT_005a5bc2 */
+      if (((*(unsigned char *)((char *)entry + 0x22) & 0x7f) ==
+           *(unsigned short *)0x5a5bc2) &&
+          (*(int *)((char *)entry + 0x24) > 0) &&
+          (*(unsigned char *)((char *)entry + 0x1b) != 0) &&
+          (*(int *)(entry[0] + 0xc4) > 0)) {
+        definition = entry[0];
+        entry_x = *(float *)((char *)entry + 4);
+        entry_y = *(float *)((char *)entry + 8);
+        entry_z = *(float *)((char *)entry + 0xc);
+
+        /* Compute relative position to camera origin */
+        delta_x = entry_x - *(float *)0x5a5bc8;
+        delta_y = entry_y - *(float *)0x5a5bcc;
+        delta_z = entry_z - *(float *)0x5a5bd0;
+
+        /* view_dot = dot(camera_fwd, delta) */
+        view_dot = *(float *)0x5a5bd4 * delta_x + *(float *)0x5a5bd8 * delta_y +
+                   *(float *)0x5a5bdc * delta_z;
+
+        /* Reflection offset: 2*(view_fwd * dot - delta) */
+        refl_off_x = *(float *)0x5a5bd4 * view_dot - delta_x;
+        refl_off_y = *(float *)0x5a5bd8 * view_dot - delta_y;
+        refl_off_z = *(float *)0x5a5bdc * view_dot - delta_z;
+        refl_off_x = refl_off_x + refl_off_x;
+        refl_off_y = refl_off_y + refl_off_y;
+        refl_off_z = refl_off_z + refl_off_z;
+
+        brightness_byte = (float)*light_data * *(float *)0x261518;
+
+        /* Near-clip brightness: clamp (view_dot - near_end) / (near_start -
+         * near_end) */
+        if (*(float *)(definition + 0x1c) <= *(float *)0x2533c0) {
+          brightness = 1.0f;
+        } else {
+          brightness =
+            (view_dot - *(float *)(definition + 0x1c)) /
+            (*(float *)(definition + 0x18) - *(float *)(definition + 0x1c));
+          if (brightness < *(float *)0x2533c0) {
+            brightness = 0.0f;
+          } else if (*(float *)0x2533c8 < brightness) {
+            brightness = 1.0f;
+          }
+        }
+
+        /* FUN_0017ff80: scale byte to float */
+        brightness = brightness_byte * brightness *
+                     FUN_0017ff80(*(unsigned char *)((char *)entry + 0x1b));
+
+        /* FUN_00181420: corona rotation size.
+         * Takes @esi = entry (lens_flare_params), @di =
+         * *(short*)(definition+0x80). Returns float (ST0) = corona rotation
+         * size. */
+        corona_rot =
+          FUN_00181420((void *)entry, *(short *)(definition + 0x80)) *
+          *(float *)(definition + 0x84);
+
+        /* fpatan of screen-space projection */
+        flare_angle = (float)atan2(*(float *)0x5a5c6c * delta_z +
+                                     *(float *)0x5a5c68 * delta_y +
+                                     delta_x * *(float *)0x5a5c64,
+                                   *(float *)0x5a5c78 * delta_z +
+                                     *(float *)0x5a5c74 * delta_y +
+                                     delta_x * *(float *)0x5a5c70) *
+                      *(float *)0x2b073c;
+
+        /* depth scale: 1.0 / (far - near) */
+        depth_scale = *(float *)0x2533c8 / (*(float *)(definition + 8) -
+                                            *(float *)(definition + 0xc));
+        depth_bias = -(depth_scale * *(float *)(definition + 0xc));
+
+        /* Normalize delta (in-place, modifies delta_x/y/z via &delta_x) */
+        normalize3d(&delta_x);
+
+        /* Visibility array:
+         * [0] = 1.0 (always)
+         * [1] = camera-facing: clamp(depth_bias - dot(dir, camera_pos) *
+         * depth_scale) [2] = light-facing:  clamp(depth_bias - dot(dir, delta)
+         * * depth_scale) [3] = backward:      clamp(dot(fwd, delta) *
+         * depth_scale + depth_bias) [4] = rotation fn output (filled later if
+         * brightness > 0) */
+        vis[0] = 1.0f;
+
+        {
+          float v;
+          v = depth_bias -
+              (dir_x * *(float *)0x5a5bd4 + *(float *)0x5a5bd8 * dir_y +
+               *(float *)0x5a5bdc * dir_z) *
+                depth_scale;
+          if (v < *(float *)0x2533c0) {
+            vis[1] = 0.0f;
+          } else if (*(float *)0x2533c8 < v) {
+            vis[1] = 1.0f;
+          } else {
+            vis[1] = v;
+          }
+        }
+
+        {
+          float v;
+          v =
+            depth_bias -
+            (dir_x * delta_x + dir_y * delta_y + dir_z * delta_z) * depth_scale;
+          if (v < *(float *)0x2533c0) {
+            vis[2] = 0.0f;
+          } else if (*(float *)0x2533c8 < v) {
+            vis[2] = 1.0f;
+          } else {
+            vis[2] = v;
+          }
+        }
+
+        {
+          float v;
+          v = (*(float *)0x5a5bdc * delta_z + *(float *)0x5a5bd8 * delta_y +
+               delta_x * *(float *)0x5a5bd4) *
+                depth_scale +
+              depth_bias;
+          if (v < *(float *)0x2533c0) {
+            vis[3] = 0.0f;
+          } else if (*(float *)0x2533c8 < v) {
+            vis[3] = 1.0f;
+          } else {
+            vis[3] = v;
+          }
+        }
+
+        if (*(float *)0x2533c0 < brightness) {
+          /* vis[4] = rotation function output for animation */
+          vis[4] = FUN_0017ff80(*(unsigned char *)((char *)entry + 0x23));
+
+          refl_idx = 0;
+          refl_count = *(int *)(definition + 0xc4);
+          if (refl_count > 0) {
+            refl_ivar = 0;
+            do {
+              int saved_refl_idx;
+              saved_refl_idx = refl_idx;
+
+              /* tag_block_get_element(definition+0xc4, refl_ivar, 0x80) */
+              refl = tag_block_get_element((void *)(definition + 0xc4),
+                                           refl_ivar, 0x80);
+
+              /* Compute reflection scale from animation:
+               * ((max - min) * vis[4] + min) * vis[flags] * brightness */
+              {
+                float anim_val;
+                anim_val = (*(float *)((char *)refl + 0x38) -
+                            *(float *)((char *)refl + 0x34)) *
+                             vis[4] +
+                           *(float *)((char *)refl + 0x34);
+                /* refl[0x3c] = vis-factor index (short, sign-extended) */
+                anim_alpha = anim_val *
+                             vis[(int)(*(short *)((char *)refl + 0x3c))] *
+                             brightness;
+              }
+
+              if (refl_idx == 0) {
+                brightness = anim_alpha;
+              }
+
+              if (*(float *)0x2533c0 < anim_alpha) {
+                refl_size = (*(float *)((char *)refl + 0x2c) -
+                             *(float *)((char *)refl + 0x28)) *
+                              vis[4] +
+                            *(float *)((char *)refl + 0x28);
+
+                /* Check if all tint color components are zero */
+                if (*(float *)((char *)refl + 0x40) == *(float *)0x2533c0 &&
+                    *(float *)((char *)refl + 0x44) == *(float *)0x2533c0 &&
+                    *(float *)((char *)refl + 0x48) == *(float *)0x2533c0 &&
+                    *(float *)((char *)refl + 0x4c) == *(float *)0x2533c0) {
+                  /* No tint: use alpha from light_data byte, color from entry
+                   */
+                  color = (unsigned int)FUN_00180770(anim_alpha) << 0x18 |
+                          (*(unsigned int *)((char *)entry + 0x18) & 0xffffff);
+                  tex_flags = 0x3f800000;
+                } else {
+                  /* Has tint: build ARGB from animation color */
+                  anim_r = *(float *)((char *)refl + 0x44);
+                  anim_g = *(float *)((char *)refl + 0x48);
+                  anim_b = *(float *)((char *)refl + 0x4c);
+                  /* anim_alpha already set above */
+
+                  if (*(short *)((char *)refl + 0x72) > 1) {
+                    /* Has animation: compute animated color */
+                    if (*(float *)((char *)refl + 0x74) == *(float *)0x2533c0) {
+                      display_assert(
+                        "reflection->animation_period!=0.0f",
+                        "c:\\halo\\SOURCE\\rasterizer\\rasterizer_lights.c",
+                        0x28b, 1);
+                      system_exit(-1);
+                    }
+                    refl_anim = FUN_0010a5e0(
+                      *(short *)((char *)refl + 0x72),
+                      (*(float *)0x5a5e18 + *(float *)((char *)refl + 0x78)) /
+                        *(float *)((char *)refl + 0x74));
+
+                    /* Interpolate RGB into anim_rgb[3] (EBP-0x38..EBP-0x30):
+                     * output, mode, lower, upper, t */
+                    FUN_0007c270(
+                      anim_rgb,
+                      (unsigned int)(*(unsigned char *)((char *)refl + 0x70) &
+                                     3),
+                      (float *)((char *)refl + 0x54),
+                      (float *)((char *)refl + 0x64), refl_anim);
+
+                    /* Interpolate alpha into anim_alpha_out (EBP-0x3c):
+                     * lower=entry[0x50], upper=entry[0x60], t, output */
+                    scalars_interpolate(*(float *)((char *)refl + 0x50),
+                                       *(float *)((char *)refl + 0x60),
+                                       refl_anim, &anim_alpha_out);
+
+                    /* Validate animation_color.alpha */
+                    if (anim_alpha_out < *(float *)0x2533c0 ||
+                        (anim_alpha_out < *(float *)0x2533c8 ==
+                         (anim_alpha_out == *(float *)0x2533c8))) {
+                      display_assert(
+                        "animation_color.alpha>=0.0f && "
+                        "animation_color.alpha<=1.0f",
+                        "c:\\halo\\SOURCE\\rasterizer\\rasterizer_lights.c",
+                        0x29b, 1);
+                      system_exit(-1);
+                    }
+                    /* Validate animation_color.red */
+                    if (anim_rgb[0] < *(float *)0x2533c0 ||
+                        (anim_rgb[0] < *(float *)0x2533c8 ==
+                         (anim_rgb[0] == *(float *)0x2533c8))) {
+                      display_assert(
+                        "animation_color.red >=0.0f && animation_color.red "
+                        "<=1.0f",
+                        "c:\\halo\\SOURCE\\rasterizer\\rasterizer_lights.c",
+                        0x29c, 1);
+                      system_exit(-1);
+                    }
+                    /* Validate animation_color.green */
+                    if (anim_rgb[1] < *(float *)0x2533c0 ||
+                        (anim_rgb[1] < *(float *)0x2533c8 ==
+                         (anim_rgb[1] == *(float *)0x2533c8))) {
+                      display_assert(
+                        "animation_color.green>=0.0f && "
+                        "animation_color.green<=1.0f",
+                        "c:\\halo\\SOURCE\\rasterizer\\rasterizer_lights.c",
+                        0x29d, 1);
+                      system_exit(-1);
+                    }
+                    /* Validate animation_color.blue */
+                    if (anim_rgb[2] < *(float *)0x2533c0 ||
+                        (anim_rgb[2] < *(float *)0x2533c8 ==
+                         (anim_rgb[2] == *(float *)0x2533c8))) {
+                      display_assert(
+                        "animation_color.blue >=0.0f && animation_color.blue "
+                        "<=1.0f",
+                        "c:\\halo\\SOURCE\\rasterizer\\rasterizer_lights.c",
+                        0x29e, 1);
+                      system_exit(-1);
+                    }
+
+                    anim_alpha = anim_alpha_out * anim_alpha;
+                    anim_r    = anim_r * anim_rgb[0];
+                    anim_g    = anim_g * anim_rgb[1];
+                    anim_b    = anim_b * anim_rgb[2];
+                  }
+
+                  {
+                    /* Pack ARGB: FUN_000d1c90 takes float[4] = {alpha,r,g,b}
+                     * at [EBP-0x58] = {anim_alpha, anim_r, anim_g, anim_b}.
+                     * These four contiguous slots map to local_5c/58/54/50. */
+                    float argb4[4];
+                    argb4[0] = anim_alpha;
+                    argb4[1] = anim_r;
+                    argb4[2] = anim_g;
+                    argb4[3] = anim_b;
+                    color = FUN_000d1c90(argb4);
+                  }
+                  tex_flags = *(unsigned int *)((char *)refl + 0x40);
+                }
+
+                /* Reflection position */
+                if (refl_idx == 0) {
+                  flare_size_angle =
+                    corona_rot + *(float *)((char *)refl + 0x20);
+                  scale2d[0] = *(float *)(definition + 0xa0);
+                  scale2d[1] = *(float *)(definition + 0xa4);
+                } else {
+                  flare_size_angle = *(float *)((char *)refl + 0x20);
+                  scale2d[0] = 1.0f;
+                  scale2d[1] = 1.0f;
+                }
+
+                refl_flags = *(unsigned short *)refl;
+
+                /* Optional rotation offset */
+                if (refl_flags & 1) {
+                  flare_size_angle = flare_size_angle + flare_angle;
+                }
+
+                /* Optional scale by brightness */
+                if (refl_flags & 4) {
+                  refl_size = (brightness_byte + *(float *)0x2533c8) *
+                              refl_size * *(float *)0x253398;
+                }
+
+                /* Optional scale by view dot */
+                if (refl_flags & 2) {
+                  refl_size = refl_size * view_dot;
+                }
+
+                /* Billboard position: entry_xyz + offset * refl_size */
+                {
+                  float fVar2;
+                  fVar2 = *(float *)((char *)refl + 0x1c);
+                  pos[0] = refl_off_x * fVar2 + entry_x;
+                  pos[1] = refl_off_y * fVar2 + entry_y;
+                  pos[2] = refl_off_z * fVar2 + entry_z;
+                }
+
+                /* FUN_0017cfd0: check occlusion / stencil */
+                occlusion_result =
+                  FUN_0017cfd0(0, *(unsigned int *)(definition + 0x2c),
+                               *(unsigned short *)((char *)refl + 4));
+                if (occlusion_result != '\0') {
+                  break; /* exit inner loop */
+                }
+
+                FUN_0017cfe0(tex_flags);
+
+                /* stencil mode */
+                if ((refl_flags & 8) != 0 &&
+                    (char)(*(unsigned char *)((char *)entry + 0x22)) < 0) {
+                  stencil_mode = 2;
+                } else {
+                  stencil_mode = 0;
+                }
+                FUN_00158ae0((short)stencil_mode);
+
+                /* Draw the lens flare reflection:
+                 * FUN_0017d010(&pos, refl_size, &scale2d,
+                 *              flare_size_angle * deg2rad_scale, color) */
+                FUN_0017d010(pos, refl_size, scale2d,
+                             flare_size_angle * *(float *)0x253d4c, color);
+
+                saved_refl_idx = refl_idx;
+              }
+
+              refl_idx = saved_refl_idx + 1;
+              refl_ivar = (int)(short)refl_idx;
+              refl_count = *(int *)(definition + 0xc4);
+            } while (refl_ivar < refl_count);
+          }
+        }
+      }
+
+      outer_ctr = outer_ctr + 1;
+      i = (int)(short)outer_ctr;
+      lf_count = *(int *)0x4d0480;
+    } while (i < lf_count);
+  }
+
+  FUN_00158ae0(0);
+  FUN_0017ad90();
+
+  /* Second pass: render sun glow overlays (DAT_003256fe guard) */
+  if (*(char *)0x3256fe != '\0') {
+    lf_count = *(int *)0x4d0480;
+    if (lf_count > 0) {
+      sun_i = 0;
+      i = 0;
+      do {
+        if (sun_i < 0 || i >= lf_count) {
+          display_assert(
+            "lens_flare_index>=0 && lens_flare_index<local_lens_flare_count",
+            "c:\\halo\\SOURCE\\rasterizer\\rasterizer_lights.c", 0x43, 1);
+          system_exit(-1);
+        }
+
+        sun_entry = (int)((char *)0x4c6480 + (int)(short)sun_i * 0x28);
+        if (*(int *)((char *)sun_entry + 0x24) > 0 &&
+            ((*(unsigned char *)((char *)sun_entry + 0x22) & 0x7f) ==
+             *(unsigned short *)0x5a5bc2)) {
+          int sun_def;
+          sun_def = *(int *)sun_entry;
+          if (*(int *)(sun_def + 0x10) == 0x42480000 ||
+              (*(unsigned char *)(sun_def + 0x30) & 1) != 0) {
+            FUN_00169fd0((int *)sun_entry);
+          }
+        }
+
+        sun_i = sun_i + 1;
+        i = (int)sun_i;
+        lf_count = *(int *)0x4d0480;
+      } while (i < lf_count);
+    }
+  }
+
+  FUN_0016fa40(0x19);
 }
 
 /* rasterizer_memory_pool.c */

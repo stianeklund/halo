@@ -26725,7 +26725,9 @@
         },
         {
           "addr": "0x1800b0",
-          "decl": "void FUN_001800b0(void);"
+          "decl": "void FUN_001800b0(short param_1, int param_2, int param_3, int param_4, int param_5, int param_6);",
+          "name": "FUN_001800b0",
+          "ported": false
         },
         {
           "addr": "0x180500",
@@ -26756,7 +26758,7 @@
         },
         {
           "addr": "0x180770",
-          "decl": "unsigned char FUN_00180770(int param_1);"
+          "decl": "unsigned char FUN_00180770(float alpha);"
         },
         {
           "addr": "0x1807d0",
@@ -26793,7 +26795,7 @@
         },
         {
           "addr": "0x181060",
-          "decl": "void FUN_00181060(void);"
+          "decl": "unsigned char *FUN_00181060(void *lens_flare_params @<eax>);"
         },
         {
           "addr": "0x181150",
@@ -26822,7 +26824,7 @@
         },
         {
           "addr": "0x181420",
-          "decl": "void FUN_00181420(void);"
+          "decl": "float FUN_00181420(void *lens_flare_params @<esi>, short rotation_fn @<di>);"
         },
         {
           "addr": "0x181670",
@@ -26841,7 +26843,9 @@
         },
         {
           "addr": "0x181c20",
-          "decl": "void FUN_00181c20(void);"
+          "decl": "void FUN_00181c20(void);",
+          "name": "FUN_00181c20",
+          "ported": false
         },
         {
           "addr": "0x1824e0",
@@ -27297,11 +27301,11 @@
         },
         {
           "addr": "0x17cfd0",
-          "decl": "void FUN_0017cfd0(int param_1, int param_2, short param_3);"
+          "decl": "char FUN_0017cfd0(int param_1, int param_2, short param_3);"
         },
         {
           "addr": "0x17cfe0",
-          "decl": "void FUN_0017cfe0(void);"
+          "decl": "void FUN_0017cfe0(int tex_flags);"
         },
         {
           "addr": "0x17cff0",
@@ -27313,7 +27317,7 @@
         },
         {
           "addr": "0x17d010",
-          "decl": "void FUN_0017d010(float *position, float radius, int param_3, int param_4, uint32_t color);"
+          "decl": "void FUN_0017d010(float *position, float radius, float *scale2d, float angle, uint32_t color);"
         },
         {
           "addr": "0x17d020",
@@ -33861,7 +33865,7 @@
         },
         {
           "addr": "0x169fd0",
-          "decl": "void FUN_00169fd0(void);"
+          "decl": "void FUN_00169fd0(int *param_1);"
         },
         {
           "addr": "0x16ab00",
