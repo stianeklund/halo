@@ -134,8 +134,9 @@ void rasterizer_text_evict_character(int **slot)
 /* FUN_00183880: cache a hardware character into the texture cache.
  * Original ABI: EDI=character pointer, stack=font pointer
  */
-void rasterizer_text_cache_character(int character, void *font)
+void rasterizer_text_cache_character(void *font_character, void *font)
 {
+  int character = (int)font_character;
   short char_width;
   short char_height;
   int **character_slot;
@@ -279,18 +280,19 @@ void rasterizer_text_cache_character(int character, void *font)
 }
 
 /* FUN_00183c00: draw a single cached character quad. */
-void rasterizer_text_draw_cached_char(void *font, void *character, short x,
-                                      short y, unsigned int color, int screen_x,
+void rasterizer_text_draw_cached_char(void *arg0, void *font,
+                                      void *font_character, unsigned int color,
+                                      short x, short y, int screen_x,
                                       int screen_y, short width, short height)
 {
   float quad_verts[28];
   short cache_x;
   short cache_y;
 
-  rasterizer_text_cache_character((int)character, font);
+  rasterizer_text_cache_character(font_character, font);
 
-  if (*(short *)((int)character + 0xc) != -1) {
-    rasterizer_text_get_character_position(*(short *)((int)character + 0xc),
+  if (*(short *)((int)font_character + 0xc) != -1) {
+    rasterizer_text_get_character_position(*(short *)((int)font_character + 0xc),
                                            &cache_y, &cache_x);
 
     quad_verts[0] = (float)x;
@@ -334,10 +336,10 @@ void rasterizer_text_draw_cached_char(void *font, void *character, short x,
  * Shadow pass draws with shadow_color, then second pass draws with actual
  * color.
  */
-void rasterizer_text_draw_cached_chars(void *font, void *character, short x,
-                                       short y, unsigned int color,
-                                       int offset_x, int offset_y, short width,
-                                       short height)
+void rasterizer_text_draw_cached_chars(void *arg0, void *font,
+                                       void *font_character, unsigned int color,
+                                       short x, short y, int offset_x,
+                                       int offset_y, short width, short height)
 {
   float quad_verts[28];
   short cache_x;
@@ -350,9 +352,9 @@ void rasterizer_text_draw_cached_chars(void *font, void *character, short x,
   int has_shadow;
   int c;
 
-  rasterizer_text_cache_character((int)character, font);
+  rasterizer_text_cache_character(font_character, font);
 
-  if (*(short *)((int)character + 0xc) != -1) {
+  if (*(short *)((int)font_character + 0xc) != -1) {
     x_pos = (float)(x + offset_x);
     y_pos = (float)(y + offset_y);
     shadow_x = 0.0f;
@@ -367,7 +369,7 @@ void rasterizer_text_draw_cached_chars(void *font, void *character, short x,
     /* First pass: shadow, second pass: actual color */
     c = 0;
     while (c < 2 && has_shadow != 0) {
-      rasterizer_text_get_character_position(*(short *)((int)character + 0xc),
+      rasterizer_text_get_character_position(*(short *)((int)font_character + 0xc),
                                              &cache_y, &cache_x);
 
       if (has_shadow == 1) {
