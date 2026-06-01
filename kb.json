@@ -6611,7 +6611,7 @@
         {
           "addr": "0x9ca70",
           "decl": "void effects_information_get(unsigned int *seed, float *velocity_out, uint32_t min_val, uint32_t max_val, uint32_t flags);",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — inlined into FUN_0009e310, cannot be thunked separately",
           "ported": false
         },
         {
@@ -6672,7 +6672,7 @@
         {
           "addr": "0x9dcf0",
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -8512,7 +8512,7 @@
         {
           "addr": "0xac3e0",
           "decl": "void FUN_000ac3e0(int player_handle@<eax>);",
-          "ported": true,
+          "ported": false,
           "src": "src/halo/game/game_engine.c"
         },
         {
@@ -8555,7 +8555,7 @@
         },
         {
           "addr": "0xaceb0",
-          "decl": "void FUN_000aceb0(int player_handle@<ecx>, int message_type@<eax>, int extra@<ebx>);",
+          "decl": "void FUN_000aceb0(int player_handle@<ecx>, int message_type@<eax>, int extra@<ebx>, int param4, int param5);",
           "ported": true,
           "src": "src/halo/game/game_engine.c"
         },
@@ -15336,7 +15336,7 @@
           "addr": "0x1417c0",
           "decl": "void objects_reconnect_to_structure_bsp(void);",
           "name": "objects_reconnect_to_structure_bsp",
-          "ported": true,
+          "ported": false,
           "source": "src/halo/objects/objects.c"
         },
         {
