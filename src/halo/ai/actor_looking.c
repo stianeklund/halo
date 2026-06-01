@@ -2057,6 +2057,236 @@ void FUN_000170f0(int actor_handle)
                                    (void (*)(void))FUN_00016cf0, 0);
 }
 
+/* FUN_00017120 (0x17120)
+ * Debug-print formatter for command-point action elements.
+ * Converts a command-point element (short[16]) into a human-readable
+ * description string via snprintf.  Called from the obey-action debug
+ * path and from the command-point debug dump.
+ *
+ * Each case formats the element fields into string tables (inlined
+ * on the stack) and produces a single snprintf call with the
+ * appropriate format string and parameters.
+ *
+ * Confirmed: 4 cdecl stack args — scenario_data, cmd_element, out_buf,
+ *   out_size.  Jump table at 0x17838 covering 0x1c cases.
+ * Confirmed: snprintf family for string building; tag_block_get_element
+ *   for name lookups from scenario tag blocks.
+ * Confirmed: 320 bytes of locals (SUB ESP,0x140). */
+void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size)
+{
+  int cmd_type;
+  int sub_type;
+
+  cmd_type = cmd[0];
+  sub_type = cmd[1];
+
+  if (cmd_type > 0x1b) {
+    snprintf(out_buf, out_size, "<unknown %d>", cmd_type);
+    return;
+  }
+
+  switch (cmd_type) {
+  case 0:
+    snprintf(out_buf, out_size, "pause %.1f", *(float *)(cmd + 2));
+    return;
+  case 1: {
+    static const char *go_mode[] = { "idle aim weapon", "idle turn around",
+                                     "idle look with head",
+                                     "forced exact facing",
+                                     "forced aim weapon" };
+    snprintf(out_buf, out_size, "go to (p%d) %s", cmd[6], go_mode[sub_type]);
+    return;
+  }
+  case 2:
+    snprintf(out_buf, out_size, "go to (p%d) and face (p%d)", cmd[6], cmd[7]);
+    return;
+  case 3: {
+    static const char *move_dir[] = { "forwards", "left", "right", "backwards",
+                                      "any-facing" };
+    if (cmd[6] == -1) {
+      snprintf(out_buf, out_size, "move %s along angle %.1f, dist %.2f",
+               move_dir[sub_type], *(float *)(cmd + 4), *(float *)(cmd + 2));
+      return;
+    }
+    snprintf(out_buf, out_size, "move %s towards (p%d), dist %.2f",
+             move_dir[sub_type], cmd[6], *(float *)(cmd + 2));
+    return;
+  }
+  case 4: {
+    static const char *look_mode[] = { "idle aim weapon", "idle turn around",
+                                       "idle look with head",
+                                       "forced exact facing",
+                                       "forced aim weapon" };
+    snprintf(out_buf, out_size, "look %s at (p%d) for %.1f",
+             look_mode[sub_type], cmd[6], *(float *)(cmd + 2));
+    return;
+  }
+  case 5: {
+    static const char *anim_mode[] = { "idle aim weapon", "noncombat", "asleep",
+                                       "combat", "panic" };
+    snprintf(out_buf, out_size, "animation mode %s", anim_mode[sub_type + 1]);
+    return;
+  }
+  case 6: {
+    static const char *crouch[] = { "disable", "enable" };
+    snprintf(out_buf, out_size, "crouch %s", crouch[sub_type]);
+    return;
+  }
+  case 7:
+    snprintf(out_buf, out_size, "shoot at (p%d) for %.1f", cmd[6],
+             *(float *)(cmd + 2));
+    return;
+  case 8:
+    snprintf(out_buf, out_size, "throw grenade at (p%d)", cmd[6]);
+    return;
+  case 9: {
+    static const char *seat[] = { "any-non-driver", "gunner", "passenger",
+                                  "driver", "any-seat" };
+    snprintf(out_buf, out_size, "enter vehicle as %s if within %.1f",
+             seat[sub_type], *(float *)(cmd + 2));
+    return;
+  }
+  case 10:
+    snprintf(out_buf, out_size, "exit vehicle");
+    return;
+  case 11:
+    snprintf(out_buf, out_size, "targeted jump (%.2fh, %.2fv)",
+             *(float *)(cmd + 2), *(float *)(cmd + 4));
+    return;
+  case 12: {
+    static const char *script_mode[] = { "wait-for-finish",
+                                         "wake-and-continue" };
+    char *name;
+    name = "<error>";
+    if (cmd[9] == -1)
+      name = "NONE";
+    else if (cmd[9] >= 0 && cmd[9] < *(int *)((char *)scenario_data + 0x450))
+      name = (char *)tag_block_get_element((char *)scenario_data + 0x450,
+                                           cmd[9], 0x28);
+    snprintf(out_buf, out_size, "script %s %s", name, script_mode[sub_type]);
+    return;
+  }
+  case 13: {
+    char *name;
+    name = "<error>";
+    if (cmd[8] != -1) {
+      if (cmd[8] >= 0 && cmd[8] < *(int *)((char *)scenario_data + 0x444))
+        name = (char *)tag_block_get_element((char *)scenario_data + 0x444,
+                                             cmd[8], 0x3c);
+      snprintf(out_buf, out_size, "animate %s", name);
+    } else
+      snprintf(out_buf, out_size, "animate %s", "NONE");
+    return;
+  }
+  case 14: {
+    char *name;
+    name = "<error>";
+    if (cmd[10] != -1) {
+      if (cmd[10] >= 0 && cmd[10] < *(int *)((char *)scenario_data + 0x45c))
+        name = (char *)tag_block_get_element((char *)scenario_data + 0x45c,
+                                             cmd[10], 0x28);
+      snprintf(out_buf, out_size, "play recording %s", name);
+    } else
+      snprintf(out_buf, out_size, "play recording %s", "NONE");
+    return;
+  }
+  case 15: {
+    static const char *action[] = {
+      "berserk",     "surprise-front", "surprise-back", "evade-left",
+      "evade-right", "dive-fwd",       "dive-back",     "dive-left",
+      "dive-right",  "vehicle-woohoo", "vehicle-scared"
+    };
+    snprintf(out_buf, out_size, "action %s", action[sub_type]);
+    return;
+  }
+  case 16:
+    snprintf(out_buf, out_size, "vocalize %s", FUN_001a67b0(sub_type, 0));
+    return;
+  case 17: {
+    static const char *on_off[] = { "enable", "disable" };
+    snprintf(out_buf, out_size, "targeting %s", on_off[sub_type]);
+    return;
+  }
+  case 18: {
+    static const char *on_off[] = { "enable", "disable" };
+    snprintf(out_buf, out_size, "initiative %s", on_off[sub_type]);
+    return;
+  }
+  case 19: {
+    static const char *wait_mode[] = { "until alerted", "until visible enemy",
+                                       "until told to advance" };
+    snprintf(out_buf, out_size, "wait %s", wait_mode[sub_type]);
+    return;
+  }
+  case 20: {
+    static const char *loop_mode[] = { "always", "only until told to advance" };
+    if (cmd[11] == -1) {
+      snprintf(out_buf, out_size, "loop to <none> %s", loop_mode[sub_type]);
+    } else {
+      char local_buf[256];
+      csstrcpy(local_buf, "");
+      if (cmd[7] != -1)
+        crt_sprintf(local_buf, " (p%d)", cmd[7]);
+      snprintf(out_buf, out_size, "loop to (p%d)%s %s", cmd[6], local_buf,
+               loop_mode[sub_type]);
+    }
+    return;
+  }
+  case 21:
+    snprintf(out_buf, out_size, "pause in loop %.1f", *(float *)(cmd + 2));
+    return;
+  case 22: {
+    static const char *move_dir[] = { "forwards", "left", "right",
+                                      "backwards" };
+    snprintf(out_buf, out_size, "move %s for %.1f sec", move_dir[sub_type],
+             *(float *)(cmd + 2));
+    return;
+  }
+  case 23: {
+    static const char *look_mode[] = { "idle aim weapon", "idle turn around",
+                                       "idle look with head",
+                                       "forced exact facing",
+                                       "forced aim weapon" };
+    snprintf(out_buf, out_size,
+             "look %s at random one of (p%d-p%d) for %.1f-%.1f",
+             look_mode[sub_type], cmd[6], cmd[7], *(float *)(cmd + 2),
+             *(float *)(cmd + 4));
+    return;
+  }
+  case 24: {
+    static const char *look_mode[] = { "idle aim weapon", "idle turn around",
+                                       "idle look with head",
+                                       "forced exact facing",
+                                       "forced aim weapon" };
+    snprintf(out_buf, out_size, "look %s at player for %.1f",
+             look_mode[sub_type], *(float *)(cmd + 2));
+    return;
+  }
+  case 25: {
+    static const char *look_mode[] = { "idle aim weapon", "idle turn around",
+                                       "idle look with head",
+                                       "forced exact facing",
+                                       "forced aim weapon" };
+    char *elem_name;
+    elem_name = "<error>";
+    if (cmd[12] >= 0 && cmd[12] < *(int *)((char *)scenario_data + 0x204))
+      elem_name = (char *)tag_block_get_element((char *)scenario_data + 0x204,
+                                                cmd[12], 0x24);
+    snprintf(out_buf, out_size, "look %s at %s for %.1f", look_mode[sub_type],
+             elem_name, *(float *)(cmd + 2));
+    return;
+  }
+  case 26:
+    snprintf(out_buf, out_size, "set radius %.2f", *(float *)(cmd + 2));
+    return;
+  case 27:
+    snprintf(out_buf, out_size, "continue after melee");
+    return;
+  }
+
+  snprintf(out_buf, out_size, "<unknown %d>", cmd_type);
+}
+
 /* FUN_000178b0 (0x178b0)
  * Subtract two 2D vectors: result = b - a.
  * Confirmed: cdecl, 3 stack params. FLD [ECX]/FSUB [EDX]/FSTP [EAX] twice. */
