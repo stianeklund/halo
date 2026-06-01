@@ -26692,7 +26692,8 @@
       "functions": [
         {
           "addr": "0x17ff50",
-          "decl": "void FUN_0017ff50(void);"
+          "decl": "void FUN_0017ff50(void);",
+          "ported": true
         },
         {
           "addr": "0x17ff60",
@@ -26710,7 +26711,7 @@
         },
         {
           "addr": "0x17ffc0",
-          "decl": "void FUN_0017ffc0(void);"
+          "decl": "float *FUN_0017ffc0(float *out, unsigned int packed);"
         },
         {
           "addr": "0x180050",
@@ -26730,7 +26731,8 @@
         },
         {
           "addr": "0x180570",
-          "decl": "void FUN_00180570(void);"
+          "decl": "void FUN_00180570(int param_1, float *param_2);",
+          "ported": true
         },
         {
           "addr": "0x1805f0",
@@ -26740,7 +26742,8 @@
         },
         {
           "addr": "0x180660",
-          "decl": "void FUN_00180660(void);"
+          "decl": "void FUN_00180660(unsigned int *param_1, float *param_2);",
+          "ported": true
         },
         {
           "addr": "0x1806e0",
@@ -26804,7 +26807,8 @@
         },
         {
           "addr": "0x181410",
-          "decl": "void FUN_00181410(void);"
+          "decl": "void FUN_00181410(void);",
+          "ported": true
         },
         {
           "addr": "0x181420",
@@ -26852,7 +26856,8 @@
         },
         {
           "addr": "0x1825d0",
-          "decl": "void FUN_001825d0(void);"
+          "decl": "void FUN_001825d0(void);",
+          "ported": true
         },
         {
           "addr": "0x1825e0",
