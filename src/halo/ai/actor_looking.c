@@ -6,6 +6,13 @@
  */
 
 #include "../../common.h"
+#include "../../x87_math.h"
+
+/* Cross-object callee declarations */
+extern float distance_squared3d(const float *a, const float *b);
+extern float actor_destination_tolerance(int actor_handle);
+extern char *actor_combat_get_firing_variant_definition(int actor_handle);
+extern void actor_find_pathfinding_location(int actor_handle);
 
 __declspec(noinline) static int
 s_actor_charge_estimate_target(char *actor, float *target_pos)
@@ -575,6 +582,184 @@ void FUN_000146f0(int actor_handle)
     *(char *)(actor + 0x454) = 1;
     *(short *)(actor + 1000) = 7; /* raise look priority */
   }
+}
+
+/* FUN_00014770 (0x14770) — Combat fight-action state evaluator.
+ *
+ * Evaluates the actor's combat targeting state. Two execution paths:
+ *   PATH A (field_358 && tag_bit5): quick check via FUN_00025a00.
+ *     Success → encounter checks + optional firing position reset → tail.
+ *     Failure → fall through to PATH B.
+ *   PATH B: evaluation pipeline (csmemset → FUN_00027090 → FUN_000272d0),
+ *     then randomized delay timer from tag range and weapon rate-of-fire.
+ *   TAIL: if actor->field_268 >= 7, prop unreachable check with ranged weapon.
+ *
+ * Confirmed: cdecl, single stack arg (actor_handle).
+ * Confirmed: _chkstk(0x1474c) at entry.
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x1478a.
+ * Confirmed: assert !actor->meta.swarm at 0x14797.
+ * Confirmed: guard on actor->field_4c at 0x147bb.
+ * Confirmed: tag_get(actr) at 0x147cc; FUN_000211f0 at 0x147d7.
+ * Confirmed: field_160 (suppressed) guard at 0x147e8.
+ * Confirmed: field_358+tag_bit5 branch at 0x147f0-0x14801.
+ * Confirmed: FUN_0003bc90 at 0x14808; FUN_00025a00 at 0x1481e.
+ * Confirmed: encounter/fp distance check at 0x1484f-0x1489e.
+ * Confirmed: field_504/1fc prop check at 0x148a2-0x148ee.
+ * Confirmed: evaluation pipeline at 0x14912-0x1496a.
+ * Confirmed: random timer with weapon rate cap at 0x1498f-0x14a1f.
+ * Confirmed: tail check at 0x14a26 with actor_has_ranged_weapon (0x14a51)
+ *   and actor_perception_unreachable at 0x14b27.
+ * Confirmed: XOR AL,AL return at 0x14b31 (always returns 0). */
+unsigned int FUN_00014770(int actor_handle)
+{
+  char *actor;
+  char *tag;
+  char *variant;
+  char *prop;
+  char *encounter;
+  char *firing_pos;
+  short saved_fp;
+  int within_range;
+  float f_threshold;
+  float dist_sq;
+  float timer;
+  short result;
+  static char large_buf[0x670];
+  static char huge_buf[0x1474c];
+  int local_14;
+  float local_50[3];
+  char local_c;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+
+  if (*(char *)(actor + 6) != '\0') {
+    display_assert("!actor->meta.swarm",
+                   "c:\\halo\\SOURCE\\ai\\action_fight.c", 0x37, 1);
+    system_exit(-1);
+  }
+
+  if (*(char *)(actor + 0x4c) == '\0')
+    return 0;
+
+  tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  variant = actor_combat_get_firing_variant_definition(actor_handle);
+
+  if (*(char *)(actor + 0x160) != '\0')
+    goto tail;
+
+  if (*(char *)(actor + 0x358) != '\0' && (*tag & 0x20)) {
+    actor_find_pathfinding_location(actor_handle);
+
+    if (FUN_00025a00(actor_handle, (int *)(actor + 0x168),
+                     *(int *)(actor + 0x164), 0) != '\0') {
+      within_range = 0;
+
+      if (*(int *)(actor + 0x34) != -1 &&
+          *(short *)(actor + 0x3b8) != -1) {
+        encounter = (char *)tag_block_get_element(
+          (char *)global_scenario_get() + 0x42c,
+          *(unsigned int *)(actor + 0x34) & 0xffff, 0xb0);
+        firing_pos = (char *)tag_block_get_element(
+          encounter + 0x98, (int)*(short *)(actor + 0x3b8), 0x18);
+
+        f_threshold = actor_destination_tolerance(actor_handle);
+        dist_sq = distance_squared3d((float *)(actor + 0x12c),
+                                     (float *)firing_pos);
+
+        if (dist_sq <= f_threshold * f_threshold)
+          within_range = 1;
+      }
+
+      if (*(char *)(actor + 0x504) != '\0' &&
+          *(char *)(actor + 0x1fc) == '\0') {
+        if (*(int *)(actor + 0x270) != -1) {
+          prop = (char *)datum_get(prop_data, *(int *)(actor + 0x270));
+          if (*(float *)(prop + 0x11c) < *(float *)(variant + 0xa0))
+            goto reset_fp;
+        }
+        goto tail;
+      }
+
+      if (within_range == 0)
+        goto reset_fp;
+
+      goto tail;
+    }
+  }
+
+  saved_fp = *(short *)(actor + 0x3b8);
+  csmemset(large_buf, 0, 0x670);
+  *(short *)(large_buf + 4) = 0;
+
+  result = FUN_00027090(actor_handle, large_buf, (int *)local_50,
+                        &local_14, huge_buf, &local_c);
+  result = FUN_000272d0(actor_handle, (short)result, (short)(int)&local_50,
+                        local_14, (unsigned int)(int)huge_buf, local_c);
+
+  if (result == -1) {
+    *(short *)(actor + 0x9c) = 0;
+    goto tail;
+  }
+
+  if (result != saved_fp) {
+    timer = random_real_range(get_global_random_seed_address(),
+                              *(float *)(tag + 0x3c0),
+                              *(float *)(tag + 0x3c4));
+
+    if (*(short *)(actor + 0x15e) > 0) {
+      char *weap_tag;
+      weap_tag = (char *)tag_get(
+        0x76656869,
+        *(unsigned int *)(char *)object_get_and_verify_type(
+          *(int *)(actor + 0x158), 3));
+      if (*(float *)(weap_tag + 0x3a8) > *(float *)0x2533c0 &&
+          timer > *(float *)(weap_tag + 0x3a8)) {
+        timer = *(float *)(weap_tag + 0x3a8);
+      }
+    }
+
+    *(short *)(actor + 0x9c) =
+      (short)(int)(timer * *(float *)0x253394);
+  }
+  goto tail;
+
+reset_fp:
+  *(short *)(actor + 0x3b8) = -1;
+  FUN_0002f1a0(actor_handle);
+
+tail:
+  if (*(short *)(actor + 0x268) < 7)
+    return 0;
+
+  prop = (char *)datum_get(prop_data, *(int *)(actor + 0x270));
+  within_range = 1;
+
+  if (actor_has_ranged_weapon(actor_handle) != '\0') {
+    if (*(float *)(prop + 0x11c) < *(float *)(actor + 0x608)) {
+      within_range = 0;
+    } else if (*(int *)(actor + 0x34) != -1 &&
+               *(short *)(actor + 0x3b8) != -1) {
+      encounter = (char *)tag_block_get_element(
+        (char *)global_scenario_get() + 0x42c,
+        *(unsigned int *)(actor + 0x34) & 0xffff, 0xb0);
+      firing_pos = (char *)tag_block_get_element(
+        encounter + 0x98, (int)*(short *)(actor + 0x3b8), 0x18);
+      f_threshold = actor_destination_tolerance(actor_handle);
+      dist_sq = distance_squared3d((float *)(actor + 0x12c),
+                                   (float *)firing_pos);
+      if (dist_sq < f_threshold * f_threshold) {
+        dist_sq = distance_squared3d((float *)(prop + 0xbc),
+                                     (float *)firing_pos);
+        if (dist_sq <= *(float *)(actor + 0x608) *
+                          *(float *)(actor + 0x608))
+          within_range = 0;
+      }
+    }
+  }
+
+  actor_perception_unreachable(actor_handle, *(int *)(actor + 0x270),
+                               (char)within_range);
+  return 0;
 }
 
 /* FUN_00014b40 (0x14b40)
@@ -1575,6 +1760,104 @@ char FUN_00016210(int actor_handle, int param_2, short *param_3)
   return 1;
 }
 
+/* FUN_000163d0 (0x163d0) — Firing-position combat state evaluator.
+ *
+ * Evaluates the actor's firing-position combat state and advances the
+ * state machine. Three early-exit conditions (swarm, field_160, reset).
+ * Main path: if field_4c is active and field_aa is flagged, runs
+ * the firing-position evaluation pipeline (FUN_00024be0, FUN_00024a60,
+ * FUN_00025c10, FUN_000272d0), then selects a randomized delay timer
+ * from the actor tag's min/max range, scaled by 30.0 Hz.
+ *
+ * Confirmed: cdecl, single stack arg (actor_handle).
+ * Confirmed: _chkstk with 0x14748 (83784 bytes) at 0x163d3/0x163d8.
+ * Confirmed: datum_get(actor_data=DAT_006325a4, actor_handle) at 0x163e4/0x163e9.
+ * Confirmed: tag_get('actr', actor->field_58) at 0x163f0/0x163f9.
+ * Confirmed: three early-return paths for swarm/field_160/reset at
+ *   0x16407/0x16422/0x16443.
+ * Confirmed: main evaluation pipeline: FUN_00024be0 at 0x1649b,
+ *   csmemset(0x670) at 0x164b1, FUN_00024a60 at 0x164c4,
+ *   FUN_00025c10 at 0x164f1, FUN_000272d0 at 0x1650b.
+ * Confirmed: random timer: FUN_0010b270(seed, tag_min, tag_max) at 0x16563,
+ *   FMUL [0x253394]=30.0f at 0x16568, _ftol2 at 0x16571,
+ *   store to actor->field_9c at 0x16576.
+ * Inferred: actor+0xc0 = firing-position action state (int16_t).
+ *   actor+0xc4 = firing-position target (int16_t).
+ *   actor+0x9c = combat timer (int16_t). */
+unsigned int FUN_000163d0(int actor_handle)
+{
+  char *actor;
+  char *tag;
+  static char large_buf[0x670];
+  static char huge_buf[0x1474c];
+  short result;
+  int seed_ret;
+  float timer;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+
+  if (*(char *)(actor + 0x6) != '\0') {
+    *(short *)(actor + 0xc0) = 1;
+    return 0;
+  }
+
+  if (*(char *)(actor + 0x160) != '\0') {
+    *(short *)(actor + 0xc0) = 1;
+    *(char *)(actor + 0xaa) = 1;
+    return 0;
+  }
+
+  if (*(short *)(actor + 0xc0) == 3 &&
+      *(short *)(actor + 0x3b8) == -1) {
+    *(short *)(actor + 0xc0) = 0;
+    *(char *)(actor + 0xaa) = 1;
+  }
+
+  if (*(char *)(actor + 0x4c) != '\0' && *(char *)(actor + 0xaa) != '\0') {
+    short saved_3b8;
+    int ret_24a60;
+    int local_10;
+    int local_c;
+    int local_50;
+    int ret_25c10;
+
+    if (*(short *)(actor + 0xc0) == 3 &&
+        (saved_3b8 = *(short *)(actor + 0x3b8)) != -1) {
+      FUN_00024be0(actor_handle, (int)saved_3b8, 0);
+    }
+
+    csmemset(large_buf, 0, 0x670);
+    *(short *)(large_buf + 4) = 4;
+    ret_24a60 = actor_get_firing_position_group(actor_handle, 4, 0);
+    *(int *)large_buf = ret_24a60;
+    large_buf[0x19] = 1;
+
+    ret_25c10 = (int)FUN_00025c10(actor_handle, large_buf, &local_50,
+                                   &local_c, huge_buf, &local_10);
+    result = FUN_000272d0(actor_handle, (short)ret_25c10, (short)(int)&local_50,
+                          local_c, (unsigned int)(int)huge_buf, (char)local_10);
+
+    *(char *)(actor + 0xaa) = 0;
+    *(char *)(actor + 0xb0) = 0;
+
+    if (result == -1) {
+      *(short *)(actor + 0xc0) = 1;
+    } else {
+      *(short *)(actor + 0xc0) = 3;
+      *(short *)(actor + 0xc4) = result;
+    }
+
+    seed_ret = (int)get_global_random_seed_address();
+    timer = random_real_range((int *)seed_ret,
+                         *(float *)(tag + 0x3b8),
+                         *(float *)(tag + 0x3bc));
+    return (unsigned int)((int)(timer * *(float *)0x253394) & 0xffffff00);
+  }
+
+  return 0;
+}
+
 /* FUN_00016590 (0x16590)
  * Update guard-mode look flags and dispatch navigation target based on
  * current action state (actor+0xc0).
@@ -2339,6 +2622,268 @@ int16_t FUN_00017940(int16_t min, int16_t max)
                       max);
 }
 
+/* FUN_00018b90 (0x18b90) — Action-obey command validator.
+ *
+ * Validates whether an action-obey command atom should execute based on
+ * the current game state. Dispatches through a 28-case switch on the
+ * command atom type (local_8[0]), checking actor state, threat distance,
+ * facing alignment, and various behavioral flags.
+ *
+ * Register args: @eax=unit_handle (copied to EDI).
+ * Stack args: actor_handle, scenario_index (int16_t), output_byte (byte*),
+ *   command (void*).
+ *
+ * Returns true if the command should be skipped/blocked, false if it
+ * should proceed.
+ *
+ * Confirmed: 28-case jump table at 0x18c02.
+ * Confirmed: cases fall-through to default returning true (keep-checking).
+ * Confirmed: early-return false for validated commands.
+ * Confirmed: case 0/4/0x16-0x19 returns output[2]==0.
+ * Confirmed: FPU dot-product checks in case 1/2 (blind/not-blind).
+ * Confirmed: case 3 (unit position check).
+ * Confirmed: case 7 (burst-fire check with tag weapon rate-of-fire).
+ * Confirmed: case 8 (board-vehicle / move-to-line-of-sight).
+ * Confirmed: case 10/11 (berserk/melee interrupt check).
+ * Confirmed: case 13 (threat state check).
+ * Confirmed: case 14 (game-engine status check).
+ * Confirmed: case 16 (damage aftermath check).
+ * Confirmed: case 19 (stance/vitality sub-cases). */
+bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
+                  char *output, void *command)
+{
+  char *actor;
+  char *scenario;
+  char *atom_table;
+  short *atom;
+  char check_result;
+  short command_priority;
+  float range;
+  float dot;
+  float diff_x, diff_y, diff_z;
+  float local_vec[3];
+  float threat_position[3];
+  float actor_position[3];
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  scenario = (char *)global_scenario_get();
+  atom_table = (char *)tag_block_get_element(scenario + 0x438, 0, 0);
+
+  if ((int)(unsigned char)*output >= *(int *)(atom_table + 0x30))
+    return 1;
+
+  atom = (short *)tag_block_get_element(atom_table + 0x30,
+                                        (unsigned int)(unsigned char)*output,
+                                        0x20);
+
+  switch (*atom) {
+  case 0:
+  case 4:
+  case 0x16:
+  case 0x17:
+  case 0x18:
+  case 0x19:
+    return *(short *)(output + 2) == 0;
+
+  case 1:
+  case 2:
+    if (unit_handle == *(int *)(actor + 0x18) && command != NULL) {
+      check_result = (char)FUN_0002a3f0(actor_handle);
+      if (check_result == 0 &&
+          *(char *)((char *)command + 5) != '\0' &&
+          *(char *)((char *)command + 4) != '\0') {
+        range = actor_destination_tolerance(actor_handle);
+        FUN_00012140((float *)(actor + 0x12c),
+                     (float *)((char *)command + 8),
+                     local_vec);
+        dot = FUN_00012170(local_vec);
+        if (dot < range * range ||
+            (dot < (range + 0.5f) * (range + 0.5f) &&
+             object_get_and_verify_type(*(int *)(actor + 0x18), 3),
+              local_vec[0] * *(float *)((char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3) + 0x18) +
+              local_vec[2] * *(float *)((char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3) + 0x20) +
+              local_vec[1] * *(float *)((char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3) + 0x1c) <
+             0.0f)) {
+          check_result = 1;
+        }
+      }
+      if (*atom == 2 || atom[1] == 0) {
+        if (*(char *)(actor + 0x504) != '\0') {
+          *(short *)(output + 2) = 10;
+          *(char *)(output + 3) = 0;
+        }
+        if (check_result == 0)
+          return 0;
+        if (*(short *)(output + 2) != 0)
+          return 0;
+        check_result = 1;
+      } else if (check_result == 0) {
+        return 0;
+      }
+      if (*(char *)((char *)command + 0x18) != '\0') {
+        if (*atom != 2) {
+          display_assert("current_command->atom_type == _ai_atom_go_to_and_face",
+                         "c:\\halo\\SOURCE\\ai\\action_obey.c",
+                         0x3d7, 1);
+          system_exit(-1);
+        }
+        if (*(char *)(actor + 0x99) == '\0') {
+          diff_x = *(float *)((char *)command + 0x1c) - *(float *)(actor + 0x12c);
+          diff_y = *(float *)((char *)command + 0x20) - *(float *)(actor + 0x130);
+          diff_z = 0.0f;
+          (void)diff_y;
+          (void)diff_z;
+          if (magnitude3d(&diff_x) > 0.0f) {
+            range = diff_y * *(float *)(actor + 0x178);
+            local_vec[0] = diff_x;
+          }
+        } else {
+          FUN_00012140((float *)(actor + 0x12c),
+                       (float *)((char *)command + 0x1c),
+                       local_vec);
+          if (magnitude3d(local_vec) > 0.0f) {
+            range = local_vec[2] * *(float *)(actor + 0x17c) +
+                    local_vec[1] * *(float *)(actor + 0x178);
+          }
+        }
+        if (local_vec[0] * *(float *)(actor + 0x174) + range <
+            *(float *)0x253d54) {
+          return 0;
+        }
+      }
+      FUN_0002f1a0(actor_handle);
+      return check_result != 0;
+    }
+    break;
+
+  case 3:
+    if (unit_handle == *(int *)(actor + 0x18)) {
+      actor_position[0] = *(float *)(actor + 0x12c);
+      actor_position[1] = *(float *)(actor + 0x130);
+      actor_position[2] = *(float *)(actor + 0x134);
+    } else {
+      object_get_world_position(unit_handle, (vector3_t *)actor_position);
+    }
+    FUN_00012140((float *)(output + 0x18), actor_position, threat_position);
+    if (threat_position[0] * *(float *)(output + 0xc) +
+        threat_position[1] * *(float *)(output + 0x14) +
+        threat_position[2] * *(float *)(output + 0x10) <=
+        *(float *)(atom + 1)) {
+      return 0;
+    }
+    break;
+
+  case 5:
+  case 6:
+  case 9:
+  case 0xc:
+  case 0x11:
+  case 0x12:
+  case 0x14:
+  case 0x15:
+  case 0x1a:
+  case 0x1b:
+    break;
+
+  case 7:
+    if (unit_handle == *(int *)(actor + 0x18) && command != NULL) {
+      if (*(short *)(actor + 0x60c) != 2 ||
+          !(distance_squared3d((float *)((char *)command + 0x38),
+              (float *)(actor + 0x610)) >= 0.5f)) {
+        char *weapon_tag;
+        weapon_tag = (char *)tag_get(0x61637476, *(int *)(actor + 0x5c));
+        command_priority = (short)(int)(*(float *)(weapon_tag + 0x84) *
+                                        TICKS_PER_SECOND);
+        if (command_priority < 61)
+          command_priority = 60;
+        *(short *)(output + 2) = command_priority;
+      }
+      return *(short *)(output + 2) == 0;
+    }
+    break;
+
+  case 8:
+    if (unit_handle == *(int *)(actor + 0x18) && command != NULL) {
+      if (*(char *)((char *)command + 0x49) != '\0') {
+        *(unsigned short *)(output + 2) =
+          (unsigned short)(-((*(char *)((char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3) +
+               0x23d) != '\0')) & 0x1e);
+        return *(short *)(output + 2) == 0;
+      }
+      check_result = unit_is_busy(unit_handle);
+      if (check_result == 0) {
+        threat_position[0] = *(float *)((char *)command + 0x4c);
+        threat_position[1] = *(float *)((char *)command + 0x50);
+        threat_position[2] = *(float *)((char *)command + 0x54);
+        check_result = FUN_00021e50(actor_handle,
+                                    *(short *)((char *)command + 0x4a),
+                                    threat_position, -1, -1);
+        if (check_result != 0) {
+          *(char *)((char *)command + 0x48) = 1;
+        }
+      }
+      return *(short *)(output + 2) == 0;
+    }
+    break;
+
+  case 10:
+  case 0xb:
+    if ((output[5] & 4) != 0) {
+      if (unit_handle == *(int *)(actor + 0x18)) {
+        check_result = *(char *)(actor + 0x15c);
+      } else {
+        check_result = unit_flying_through_air(unit_handle);
+      }
+      if ((output[5] & 8) != 0 && check_result != '\0') {
+        *(short *)(output + 2) = 0;
+        *(char *)(output + 3) = 0;
+      }
+      return *(short *)(output + 2) == 0;
+    }
+    break;
+
+  case 0xd:
+    return *(char *)((char *)object_get_and_verify_type(unit_handle, 3) + 0x253) !=
+           0x1c;
+
+  case 0xe:
+    check_result = recorded_animation_controlling_unit(unit_handle);
+    return (char)(check_result == '\0');
+
+  case 0xf:
+    if (command != NULL && *(char *)((char *)command + 0x30) != '\0') {
+      return 0;
+    }
+    break;
+
+  case 0x10:
+    return *(short *)((char *)object_get_and_verify_type(unit_handle, 3) + 0x338) !=
+           6;
+
+  case 0x13:
+    command_priority = atom[1];
+    if (command_priority == 0) {
+      return *(short *)(actor + 0x6e) > 0;
+    }
+    if (command_priority == 1) {
+      return *(short *)(actor + 0x6e) > 6;
+    }
+    if (command_priority == 2) {
+      if ((output[4] & 8) == 0) {
+        output[4] = output[4] | 0x10;
+        return 0;
+      }
+      output[4] = output[4] & 0xe7;
+    }
+    break;
+
+  default:
+    break;
+  }
+
+  return 1;
+}
+
 /* FUN_00019230 (0x19230)
  * Scripted-look prop-interest update callback.
  *
@@ -2439,6 +2984,193 @@ LAB_done:
     return 1;
   }
   return 0;
+}
+
+/* FUN_00019370 (0x19370) — Actor action/look initialization.
+ *
+ * Initializes the actor's action and look state based on the current
+ * combat and behavioral mode. Sets up action-priority (3e8), look-spec
+ * (3ec), look-type (3fc), and various behavioral flags (454/457/45d).
+ *
+ * Primary branches:
+ *   1. field_fe (action list active): copies x100-x10c to look-target and
+ *      sets special action flags.
+ *   2. field_e0 && can_move: aim-at-target mode — copies e4-ec to
+ *      3f0-3f8, overrides 3f8 if not blind (field_99==0).
+ *   3. field_ca == 1 or 3: retreat/fight guard-mode init.
+ *   4. field_6e >= 5 && field_a8&1: swarm-aware fire-mode init.
+ *   5. Default: reset action priority; set look-type from field_9f.
+ *
+ * Post-initialization:
+ *   - Copies field_c8 to 426/427, field_ca to 42c.
+ *   - If field_f8 is set and FUN_0002a360 passes: dispatches
+ *     FUN_0002a7e0 and FUN_00046f10 for firing-position targets.
+ *   - field_a9&1: copies field_b0/ac to 430-43c.
+ *   - field_a9&4: evasion/cliff-protection init or maintenance.
+ *
+ * Confirmed: cdecl, single stack arg (actor_handle).
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x19381/0x19383.
+ * Confirmed: assert !actor->swarm at 0x19390/0x193a5.
+ * Confirmed: branch on field_fe at 0x193b4/0x193bc.
+ * Confirmed: FUN_0002a3f0(actor_handle) at 0x19426.
+ * Confirmed: magnitude3d at 0x19390 (discard result, 0x19595: FSTP ST0).
+ * Confirmed: FCOMP [0x2533c0] / FNSTSW / TEST AH,0x44 at 0x19699/0x196a4
+ *   for null-vector check.
+ * Confirmed: FMUL [0x2533c4]=0.7f / FCOMP at 0x196c2/0x196ce. */
+void FUN_00019370(int actor_handle)
+{
+  char *actor;
+  short field_ca;
+  short field_6e;
+  short field_6a;
+  int mode;
+  int tmp;
+  float tmp_x, tmp_y;
+  float len_sq;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  field_ca = *(short *)(actor + 0xca);
+  field_6e = *(short *)(actor + 0x6e);
+  field_6a = *(short *)(actor + 0x6a);
+
+  if (*(char *)(actor + 0x6) != '\0') {
+    display_assert("!actor->meta.swarm",
+                   "c:\\halo\\SOURCE\\ai\\action_obey.c",
+                   0x6f1, 1);
+    system_exit(-1);
+  }
+
+  if (*(char *)(actor + 0xfe) != '\0') {
+    *(short *)(actor + 0x3e8) = 7;
+    *(short *)(actor + 0x3ec) = 2;
+    *(short *)(actor + 0x3fc) = 4;
+    *(char *)(actor + 0x454) = 1;
+    *(char *)(actor + 0x457) = 1;
+    *(char *)(actor + 0x45d) = 1;
+    *(int *)(actor + 0x460) = *(int *)(actor + 0x100);
+    *(int *)(actor + 0x464) = *(int *)(actor + 0x104);
+    *(int *)(actor + 0x468) = *(int *)(actor + 0x108);
+    *(int *)(actor + 0x458) = *(int *)(actor + 0x10c);
+    goto LAB_done;
+  }
+
+  if (*(char *)(actor + 0xe0) != '\0' &&
+      FUN_0002a3f0(actor_handle)) {
+    *(short *)(actor + 0x3e8) = 4;
+    *(short *)(actor + 0x3ec) = 3;
+    *(int *)(actor + 0x3f0) = *(int *)(actor + 0xe4);
+    *(int *)(actor + 0x3f4) = *(int *)(actor + 0xe8);
+    *(int *)(actor + 0x3f8) = *(int *)(actor + 0xec);
+    if (*(char *)(actor + 0x99) == '\0') {
+      *(int *)(actor + 0x3f8) = *(int *)(actor + 0x128);
+    }
+    mode = 0;
+    if (field_6a < 3)
+      mode = (field_6a - 3) & 3;
+    mode = mode + 1;
+    goto LAB_set_fc;
+  }
+
+  if (field_ca == 3 || field_ca == 1) {
+    mode = 0;
+    *(short *)(actor + 0x3e8) = 7;
+    *(short *)(actor + 0x3ec) = 0;
+  } else {
+    if (field_6e >= 5 && (*(char *)(actor + 0xa8) & 1) != 0) {
+      *(short *)(actor + 0x3e8) = 7;
+      *(short *)(actor + 0x3ec) = 2;
+      *(short *)(actor + 0x3fc) = 4;
+      *(char *)(actor + 0x454) = 1;
+      goto LAB_done;
+    }
+    mode = 0;
+    *(short *)(actor + 0x3e8) = 0;
+    if (*(char *)(actor + 0x9f) != '\0') {
+      tmp = 0;
+      if (field_6a < 3)
+        tmp = (field_6a - 3) & 3;
+      mode = tmp + 1;
+      goto LAB_set_fc;
+    }
+  }
+
+LAB_set_fc:
+  *(short *)(actor + 0x3fc) = (short)mode;
+
+LAB_done:
+  if (*(char *)(actor + 0x110) != '\0') {
+    *(char *)(actor + 0x45c) = 1;
+    *(char *)(actor + 0x110) = 0;
+  }
+
+  *(char *)(actor + 0x426) = *(char *)(actor + 0xc8);
+  *(char *)(actor + 0x427) = *(char *)(actor + 0xc8);
+  *(short *)(actor + 0x42c) = field_ca;
+
+  if (*(char *)(actor + 0xf8) != '\0' &&
+      !FUN_0002a360(actor_handle)) {
+    if (*(short *)(actor + 0xfa) != -1) {
+      tmp_y = *(float *)(actor + 0x5a8);
+      tmp_x = *(float *)(actor + 0x5a4);
+      magnitude3d(&tmp_x);
+      (void)actor_move_animation_impulse(actor_handle, *(short *)(actor + 0xfa), (int *)&tmp_x);
+    }
+    if (*(short *)(actor + 0xfc) != -1) {
+      (void)FUN_00046f10(*(short *)(actor + 0xfc),
+                         *(int *)(actor + 0x18),
+                         -1, -1, -1, -1, 0);
+    }
+    *(char *)(actor + 0xf8) = 0;
+  }
+
+  if ((*(char *)(actor + 0xa9) & 1) != 0) {
+    *(char *)(actor + 0x430) = 1;
+    *(int *)(actor + 0x434) = *(int *)(actor + 0xb0);
+    *(int *)(actor + 0x438) = *(int *)(actor + 0xb4);
+    *(int *)(actor + 0x43c) = *(int *)(actor + 0xb8);
+    *(short *)(actor + 0x42e) = *(short *)(actor + 0xac);
+  }
+
+  if ((*(char *)(actor + 0xa9) & 4) != 0) {
+    if ((*(char *)(actor + 0xa9) & 8) == 0) {
+      if (*(short *)(actor + 0xac) == 0 &&
+          *(char *)(actor + 0x15c) == '\0' &&
+          !unit_is_busy(*(int *)(actor + 0x18))) {
+        tmp_x = *(float *)(actor + 0x174);
+        tmp_y = *(float *)(actor + 0x178);
+        len_sq = magnitude3d(&tmp_x);
+        if (len_sq == *(float *)0x2533c0) {
+          tmp_x = **(float **)0x31fc0c;
+          tmp_y = *(float *)(*(int *)0x31fc0c + 4);
+        }
+        *(char *)(actor + 0x440) = 1;
+        *(char *)(actor + 0x441) =
+          (char)(*(float *)(actor + 0xb4) <
+                 *(float *)(actor + 0xb0) * *(float *)0x2533c4);
+        *(char *)(actor + 0x442) = (char)((*(unsigned char *)(actor + 0xa9) >> 4) & 1);
+        *(float *)(actor + 0x444) = tmp_x;
+        *(float *)(actor + 0x448) = tmp_y;
+        *(float *)(actor + 0x44c) = *(float *)(actor + 0xb0);
+        *(float *)(actor + 0x450) = *(float *)(actor + 0xb4);
+        *(unsigned char *)(actor + 0xa9) |= 8;
+        if ((*(unsigned char *)(actor + 0xa9) & 0x10) != 0) {
+          return;
+        }
+        *(short *)(actor + 0xac) = 15;
+        return;
+      }
+    } else {
+      if (*(short *)(actor + 0xac) < 1) {
+        return;
+      }
+      *(int *)(actor + 0x434) = *(int *)(actor + 0x174);
+      *(int *)(actor + 0x438) = *(int *)(actor + 0x178);
+      *(char *)(actor + 0x430) = 1;
+      *(int *)(actor + 0x43c) = *(int *)(actor + 0x17c);
+      *(short *)(actor + 0x42e) = 0;
+      return;
+    }
+  }
 }
 
 /* FUN_00019750 (0x19750)
@@ -2743,6 +3475,162 @@ void FUN_00019c70(int actor_handle)
   *(int *)(actor + 0xc0) = ticks;
 }
 
+/* actor_look_secondary (0x19d00) — Secondary actor aim/fire target evaluation.
+ *
+ * Evaluates whether the actor should engage a secondary aim target when the
+ * primary look-target condition (field_9e) is not met.  Branches:
+ *   1. field_a4==0 && field_270!=-1: distance check against threat obj.
+ *   2. field_a4==1 && field_a6!=-1: distance/window check with LOS test.
+ *   3. field_9e==0 && field_a1==0: iterate nearby actors (field_24 in [2,3])
+ *      and count/assess proximity for retreat/support decisions.
+ *   4. Fallback: FUN_0002d9b0 for type-0, FUN_0002d900 for type-1.
+ *
+ * Confirmed: cdecl, single stack arg (actor_handle).
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x19d10/0x19d12.
+ * Confirmed: check swarm/field_4c/field_9c early-exit at 0x19d1f/0x19d2c/0x19d38.
+ * Confirmed: field_a4==0 branch: datum_get(prop_data, field_270) at 0x19d5f/0x19d67,
+ *   squared-distance comparison at 0x19d91-0x19d9f.
+ * Confirmed: field_a4==1 branch: squared-distance to field_b0 at 0x19ddf/0x19de4,
+ *   FCOM [0x253dd0] / FCOMP [0x253dcc] at 0x19de4/0x19dff,
+ *   unit_estimate_position + ai_test_line_of_sight at 0x19e24/0x19e59.
+ * Confirmed: actor iteration with FUN_00064540/FUN_00064570 at 0x19e97/0x19ea0,
+ *   loop head at 0x19eb2, FUN_00020140 at 0x19ee0, inner datum_get at 0x19ef7.
+ * Confirmed: encounter support FUN_0005b5e0 at 0x19fac.
+ * Confirmed: fallback FUN_0002d9b0(actor_handle, field_270, 3.0f) at 0x19feb.
+ *   or FUN_0002d900(actor_handle, field_a6, 0) at 0x19fa2a.
+ * Confirmed: FUN_0002f1a0(actor_handle) call at 0x1a035. */
+int actor_look_secondary(int actor_handle)
+{
+  char *actor;
+  char *threat;
+  float dist_sq_threshold;
+  float offset_radius[3];
+  int iter_ctx[2];
+  char *iter_actor;
+  short los_result;
+  int found_count;
+  int nearby_count;
+  int enc_handle;
+  int ret;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+
+  if (*(char *)(actor + 6) != '\0')
+    return *(int *)(actor + 0x9c);
+  if (*(char *)(actor + 0x4c) == '\0')
+    return *(int *)(actor + 0x9c);
+  if (*(char *)(actor + 0x9c) != '\0')
+    return *(int *)(actor + 0x9c);
+
+  *(char *)(actor + 0x9e) = 1;
+
+  if (*(short *)(actor + 0xa4) == 0) {
+    if (*(int *)(actor + 0x270) != -1) {
+      threat = (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(actor + 0x270));
+      dist_sq_threshold = 1.7f;
+      if (*(short *)(threat + 0x38) != 0) {
+        dist_sq_threshold = 0.7f;
+      }
+      if (distance_squared3d((float *)(threat + 0xbc),
+              (float *)(actor + 0x12c)) <
+          dist_sq_threshold * dist_sq_threshold) {
+        *(char *)(actor + 0x9e) = 1;
+      } else {
+        *(char *)(actor + 0x9e) = 0;
+      }
+    }
+  } else if (*(short *)(actor + 0xa4) == 1) {
+    if (*(short *)(actor + 0xa6) != -1) {
+      if (distance_squared3d((float *)(actor + 0xb0),
+              (float *)(actor + 0x12c)) < *(float *)0x253dd0) {
+        *(char *)(actor + 0x9e) = 1;
+      } else if (distance_squared3d((float *)(actor + 0xb0),
+                   (float *)(actor + 0x12c)) < *(float *)0x253dcc) {
+        unit_estimate_position(*(int *)(actor + 0x18), 1,
+                               (vector3_t *)(actor + 0xb0),
+                               NULL, NULL,
+                               (vector3_t *)offset_radius);
+        los_result = (short)ai_test_line_of_sight(
+          (float *)(actor + 0x120),
+          (int)*(uint16_t *)(actor + 0x148),
+          offset_radius,
+          (int)*(uint16_t *)(actor + 0xa8),
+          0, 0, -1,
+          (char)(*(int *)(actor + 0x158) != -1));
+        *(char *)(actor + 0x9e) = (char)(los_result == 0);
+      } else {
+        *(char *)(actor + 0x9e) = 0;
+      }
+    }
+  }
+
+  if (*(char *)(actor + 0x9e) == '\0' &&
+      *(char *)(actor + 0xa1) == '\0') {
+    found_count = 0;
+    nearby_count = 0;
+    FUN_00064540((void *)iter_ctx, actor_handle);
+    iter_actor = (char *)FUN_00064570((void *)iter_ctx);
+    while (iter_actor != NULL) {
+      if (*(short *)(iter_actor + 0x24) >= 2 &&
+          *(short *)(iter_actor + 0x24) <= 3 &&
+          *(char *)(iter_actor + 0x60) == '\0' &&
+          *(char *)(iter_actor + 0x127) == '\0' &&
+          *(int *)(iter_actor + 0x1c) != -1 &&
+          actors_searching_same_position(actor_handle, *(int *)(iter_actor + 0x1c))) {
+        iter_actor = (char *)datum_get(actor_data,
+                                       *(int *)(iter_actor + 0x1c));
+        found_count = found_count + 1;
+        if (*(char *)(iter_actor + 6) == '\0' &&
+            *(char *)(iter_actor + 0x504) == '\0' &&
+            distance_squared3d((float *)(actor + 0x12c),
+                (float *)(iter_actor + 0x12c)) < *(float *)0x253dc8) {
+          nearby_count = nearby_count + 1;
+        }
+      }
+      iter_actor = (char *)FUN_00064570((void *)iter_ctx);
+    }
+
+    if (*(char *)(actor + 0xa0) == '\0' &&
+        found_count >= (short)((*(short *)(actor + 0xa4) != 1) * 2 + 2)) {
+      *(char *)(actor + 0x9c) = 1;
+      enc_handle = -1;
+      if (*(int *)(actor + 0x270) != -1) {
+        threat = (char *)datum_get(*(data_t **)0x5ab23c,
+                                   *(int *)(actor + 0x270));
+        enc_handle = *(int *)(threat + 0x7c);
+      }
+      if (*(int *)(actor + 0x34) != -1) {
+        encounter_mark_examined_pursuit_position(*(int *)(actor + 0x34), actor_handle,
+                     *(short *)(actor + 0xa6), enc_handle);
+      }
+    } else if (nearby_count > 0) {
+      *(char *)(actor + 0x9e) = 1;
+    }
+  }
+
+  if (*(char *)(actor + 0x9e) == '\0') {
+    if (*(short *)(actor + 0xa4) == 0) {
+      ret = actor_move_to_prop(actor_handle, *(int *)(actor + 0x270), 3.0f);
+      if (!ret) {
+        *(char *)(actor + 0x9c) = 1;
+        *(char *)(actor + 0x9d) = 1;
+        return *(int *)(actor + 0x9c);
+      }
+    } else if (*(short *)(actor + 0xa4) == 1) {
+      *(short *)(actor + 0x3b8) = -1;
+      ret = actor_move_to_firing_position(actor_handle, *(short *)(actor + 0xa6), 0);
+      if (!ret) {
+        *(char *)(actor + 0x9c) = 1;
+        *(char *)(actor + 0x9d) = 1;
+        return *(int *)(actor + 0x9c);
+      }
+    }
+  }
+
+  FUN_0002f1a0(actor_handle);
+  return *(int *)(actor + 0x9c);
+}
+
 /* FUN_0001a050 (0x1a050)
  * Clear the look-spec type word at actor+0x3fc.
  *
@@ -3026,6 +3914,134 @@ void FUN_0001a670(int actor_handle)
   }
 }
 
+/* FUN_0001a7e0 (0x1a7e0) — Update action_uncover state and timers.
+ *
+ * Manages the actor's "uncover" behavioral state: determines whether
+ * the actor should mark a location as uncovered based on actor-tag
+ * flags, threat distance, and persistent/timer-based conditions.
+ * Handles debug-log output via FUN_00049ac0 and FUN_0008f390.
+ *
+ * Confirmed: cdecl, single stack arg (actor_handle).
+ * Confirmed: datum_get at 0x1a7e0, tag_get('actr') at 0x1a7e0+0x48.
+ * Confirmed: early return on field_9d at 0x1a7e0+0x13.
+ * Confirmed: field_a4==0 branch: tag->field_2f8==4 or threat-combat check.
+ * Confirmed: field_a4==1 branch: tag->field_2f8==4 or distance check.
+ * Confirmed: field_504==0 timer management at 0x1a8bf.
+ * Confirmed: field_3b8==-1 timer decrement at 0x1a958.
+ * Confirmed: debug-log FUN_00049ac0 at 0x1a9af, FUN_0008f390 at 0x1aa70. */
+void FUN_0001a7e0(int actor_handle)
+{
+  char *actor;
+  char *tag;
+  char *threat;
+  int result;
+  char debug_buf[256];
+  char debug_msg[259];
+  char done;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(char *)(actor + 0x9d) != '\0')
+    return;
+
+  tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  result = 1;
+  done = 0;
+  *(char *)(actor + 0x9c) = 0;
+
+  if (*(short *)(actor + 0xa4) == 0) {
+    if (*(short *)(tag + 0x2f8) == 4) {
+      *(char *)(actor + 0x9c) = (char)(*(short *)(actor + 0x268) != 6);
+    } else if (((*(char *)tag & 2) != 0) &&
+               (*(short *)(actor + 0x268) == 5)) {
+      threat = (char *)datum_get(*(data_t **)0x5ab23c,
+                                 *(int *)(actor + 0x270));
+      if (*(char *)(threat + 0x121) < 3)
+        *(char *)(actor + 0x9c) = 1;
+    }
+  } else if (*(short *)(actor + 0xa4) == 1) {
+    if (*(short *)(tag + 0x2f8) == 4 ||
+        ((*(char *)tag & 4) != 0 &&
+         distance_squared3d((float *)(actor + 0x12c),
+            (float *)(actor + 0xb0)) < *(float *)0x253f00)) {
+      *(char *)(actor + 0x9c) = 1;
+    }
+  }
+
+  if (*(char *)(actor + 0x504) == '\0') {
+    *(int *)(actor + 0xc0) = *(int *)(actor + 0xc0) + 1;
+    if (*(short *)(actor + 0xa4) == 0) {
+      if (*(int *)(actor + 0xc0) > 29)
+        FUN_00024be0(actor_handle, *(short *)(actor + 0x3b8), 0);
+      goto LAB_timer_check;
+    }
+    result = (int)(*(char *)(actor + 0xbc) == '\0');
+  } else {
+    *(int *)(actor + 0xc0) = 0;
+LAB_timer_check:
+    if (*(short *)(actor + 0xa4) != 0)
+      goto LAB_timer_check_done;
+    if (*(int *)(actor + 0x270) != -1) {
+      threat = (char *)datum_get(*(data_t **)0x5ab23c,
+                                 *(int *)(actor + 0x270));
+      done = (char)(*(short *)(threat + 0x32) > 0);
+      if (done && *(short *)(actor + 0x268) < 5)
+        result = 0;
+      else
+        result = 1;
+    }
+  }
+
+LAB_timer_check_done:
+  if (*(short *)(actor + 0x3b8) == -1) {
+    *(char *)(actor + 0x9e) = 1;
+    if (*(int *)(actor + 0xc8) > 0)
+      *(int *)(actor + 0xc8) = *(int *)(actor + 0xc8) - 1;
+    *(int *)(actor + 0xcc) = *(int *)(actor + 0xcc) + 1;
+  } else {
+    if (!result ||
+        (*(char *)(actor + 0x162) == '\0' && done == '\0' &&
+         *(char *)(actor + 0x504) == '\0')) {
+      *(char *)(actor + 0x9e) = 1;
+      if (*(int *)(actor + 0xc8) > 0)
+        *(int *)(actor + 0xc8) = *(int *)(actor + 0xc8) - 1;
+      *(int *)(actor + 0xcc) = *(int *)(actor + 0xcc) + 1;
+    } else {
+      *(int *)(actor + 0xc8) = *(int *)(actor + 0xc4);
+    }
+  }
+
+  if (*(int *)(actor + 0xc8) == 0 || *(int *)(actor + 0xcc) > 359) {
+    *(char *)(actor + 0x9d) = 1;
+  } else {
+    *(char *)(actor + 0x9d) = 0;
+  }
+
+  if (*(short *)(actor + 0xa4) == 1 &&
+      *(char *)(actor + 0xbc) != '\0') {
+    *(char *)(actor + 0x9d) = 1;
+  }
+
+  if (*(char *)(actor + 0x9d) != '\0' &&
+      *(char *)0x5aca64 != '\0') {
+    ai_debug_describe_actor(actor_handle, -1, 1, debug_buf, 0x100);
+    if (*(int *)(actor + 0xc8) == 0) {
+      csprintf(debug_msg, "timer %d finished", *(int *)(actor + 0xc4));
+    } else if (*(int *)(actor + 0xcc) < 360) {
+      if (*(short *)(actor + 0xa4) == 1 &&
+          *(char *)(actor + 0xbc) != '\0') {
+        csprintf(debug_msg, "location inspected");
+      } else {
+        csprintf(debug_msg, "<unknown reason>");
+      }
+    } else {
+      csprintf(debug_msg, "persistent timer %d", *(int *)(actor + 0xcc));
+    }
+    console_printf(2, "%s: %s uncover done: %s", debug_buf,
+                   (*(short *)(actor + 0xa4) != 0) ? "pursuit" : "target",
+                   debug_msg);
+  }
+}
+
 /* FUN_0001aae0 (0x1aae0)
  * Get an object's bounding sphere (center and radius).
  *
@@ -3223,6 +4239,293 @@ done:
       *(int *)(actor + 0x34));
   }
   return *(short *)(actor + 0x3b8);
+}
+
+/* FUN_00025340 (0x25340) — Firing-position ideal-range scorer.
+ *
+ * Iterates over a firing-position array and scores each active position
+ * based on its range relative to the context's ideal range. If the
+ * context has a target, also applies weapon-optimal-range and
+ * facing-alignment bonuses.
+ *
+ * Confirmed: cdecl, 4 stack args.
+ * Confirmed: loop at 0x25340+0xd, count >= 0 check.
+ * Confirmed: display_assert guards on eval thresholds. */
+void FUN_00025340(int actor_handle, void *ctx, unsigned short count, void *positions)
+{
+  char *pos;
+  float eval;
+  float range;
+  unsigned int n;
+
+  if (0 >= (short)count)
+    return;
+
+  n = (unsigned int)count;
+  pos = (char *)positions + 8;
+  do {
+    if (*(char *)(pos + 10) != '\0') {
+      eval = 0.0f;
+      range = *(float *)((char *)ctx + 0x18) * 0.5f;
+      if (range <= *(float *)pos) {
+        if (*(float *)pos < *(float *)((char *)ctx + 0x18)) {
+          eval = (2.0f / range) *
+                 (*(float *)((char *)ctx + 0x18) - *(float *)pos) *
+                 10.0f;
+          if (eval < 0.0f || eval >= 1000.0f) {
+            display_assert("(evaluation >= 0.0f) && (evaluation < 1e+03f)",
+                           "c:\\halo\\SOURCE\\ai\\actor_firing_position.c",
+                           0x81, 1);
+            system_exit(-1);
+          }
+        }
+      } else {
+        eval = 5.0f;
+      }
+      *(float *)(pos + 0xc) = eval + *(float *)(pos + 0xc);
+
+      if (*(char *)((char *)ctx + 0x5fc) != '\0') {
+        if (*(float *)(pos + 0x10) < *(float *)0x254cd0) {
+          range = (*(float *)0x254cd0 - *(float *)(pos + 0x10)) * 0.5f;
+          if (range < 0.0f || range >= 1000.0f) {
+            display_assert("(evaluation >= 0.0f) && (evaluation < 1e+03f)",
+                           "c:\\halo\\SOURCE\\ai\\actor_firing_position.c",
+                           0x81, 1);
+            system_exit(-1);
+          }
+          *(float *)(pos + 0xc) = range + *(float *)(pos + 0xc);
+        }
+        if (*(char *)((char *)ctx + 0x43) != '\0' &&
+            *(char *)((char *)ctx + 0x648) != '\0') {
+          float dot;
+          float score;
+          dot = *(float *)(pos + 0x18) * *(float *)((char *)ctx + 0x64c) +
+                *(float *)((char *)ctx + 0x650) * *(float *)(pos + 0x1c) +
+                *(float *)(pos + 0x20) * *(float *)((char *)ctx + 0x654);
+          if (dot <= 0.0f) {
+            score = dot * (-1.0f);
+            if (score < 0.0f)
+              score = 0.0f;
+            score = score * 10.0f;
+          } else {
+            score = 10.0f;
+          }
+          FUN_00024000(ctx, score, 3);
+        }
+      }
+    }
+    pos = pos + 0x3c;
+    n = n - 1;
+  } while (n != 0);
+}
+
+/* FUN_00025510 (0x25510) — Firing-position occlusion/long-range scorer.
+ *
+ * Iterates firing positions and scores each by its distance from the
+ * context's desired range. Penalizes positions out of range
+ * (too close to ideal, or ambiguous dot-product), and awards
+ * 'in-view' bonuses. Clamps evaluations via display_assert guards.
+ *
+ * Confirmed: cdecl, 4 stack args.
+ * Confirmed: loop structure at 0x25510, position stride 0x3c.
+ * Confirmed: display_assert guards on evaluation. */
+void FUN_00025510(int actor_handle, void *ctx, unsigned short count, void *positions)
+{
+  char *pos;
+  float eval;
+  unsigned int n;
+
+  if (0 >= (short)count)
+    return;
+
+  n = (unsigned int)count;
+  pos = (char *)positions + 8;
+  do {
+    if (*(char *)(pos + 10) != '\0') {
+      if (0.0f <= *(float *)pos) {
+        eval = 0.0f;
+        if (10.0f <= *(float *)pos) {
+          if (*(float *)pos < *(float *)((char *)ctx + 0x18)) {
+            eval = ((*(float *)((char *)ctx + 0x18) - *(float *)pos) *
+                    10.0f) /
+                   (*(float *)((char *)ctx + 0x18) - 10.0f);
+            goto LAB_eval_guard;
+          }
+        } else {
+          eval = *(float *)pos - 0.0f;
+          eval = eval + eval;
+LAB_eval_guard:
+          if (eval < 0.0f || eval >= 1000.0f) {
+            display_assert("(evaluation >= 0.0f) && (evaluation < 1e+03f)",
+                           "c:\\halo\\SOURCE\\ai\\actor_firing_position.c",
+                           0x81, 1);
+            system_exit(-1);
+          }
+        }
+        *(float *)(pos + 0xc) = eval + *(float *)(pos + 0xc);
+      } else {
+        pos[0x29] = 1;
+        if (*(char *)((char *)ctx + 0x14) == '\0') {
+          *(char *)(pos + 10) = 0;
+          goto LAB_next;
+        }
+      }
+      if (*(char *)((char *)ctx + 0x5fc) != '\0') {
+        float sq_dist;
+        sq_dist = *(float *)(pos + 0x24);
+        if (!(*(float *)0x254e74 <= sq_dist) &&
+            *(char *)((char *)ctx + 0x14) == '\0' &&
+            (pos[0x29] = 1, 0)) {
+          *(char *)(pos + 10) = 0;
+        } else {
+          eval = 0.0f;
+          if ((*(float *)0x254e74 <= sq_dist ||
+               (eval = 10.0f,
+                sq_dist < *(float *)0x254e70 &&
+                (eval = (xbox_sqrtf(sq_dist) - 0.0f) * 5.0f,
+                 (eval < 0.0f || eval >= 1000.0f))))) {
+            (void)0;
+          }
+          *(float *)(pos + 0xc) = eval + *(float *)(pos + 0xc);
+          if ((*(float *)(pos + 0x14) < *(float *)0x2548fc &&
+               0.0f < *(float *)((char *)ctx + 0x600) &&
+               *(float *)((char *)ctx + 0x600) < *(float *)0x2548fc)) {
+            eval = 2.0f - *(float *)(pos + 0x14) /
+                              (*(float *)((char *)ctx + 0x600) * 1.0f);
+            if (eval <= 0.5f ||
+                !(pos[0x29] = 1, *(char *)((char *)ctx + 0x14) == '\0')) {
+              float bonus;
+              bonus = 0.0f;
+              if (0.0f <= eval && eval < 2.0f)
+                bonus = eval;
+              if (bonus > 2.0f)
+                bonus = 2.0f;
+              FUN_00024000(ctx, (2.0f - bonus) * 10.0f, 10);
+            } else {
+              *(char *)(pos + 10) = 0;
+            }
+          }
+        }
+      }
+    }
+LAB_next:
+    pos = pos + 0x3c;
+    n = n - 1;
+  } while (n != 0);
+}
+
+/* FUN_000257a0 (0x257a0) — Firing-position evaluation per-position updater.
+ *
+ * Evaluates aim/LoS targeting for a single firing position within the
+ * actor's firing-position evaluation. Two branches:
+ *   1. mode==5 (burst check): checks state[+8] against a threshold,
+ *      applies a short-duration offset-radius, and tests LOS.
+ *   2. Other modes: determines type/position/facing args, estimates
+ *      unit position, and tests LOS with varying parameters.
+ *
+ * Register args: @eax=actor_handle, @edi=state, @ecx=actor.
+ * Calls datum_get, unit_estimate_position, ai_test_line_of_sight,
+ * magnitude3d, display_assert, system_exit.
+ *
+ * Confirmed: PUSH at 0x257b0/0x257b1 → datum_get(actor_data, actor_handle).
+ * Confirmed: CMP word [ESI+4],5 / JNZ at 0x257ea/0x257ee.
+ * Confirmed: FCOMP [0x254640] / FNSTSW / TEST at 0x257f3/0x257fb.
+ * Confirmed: 2x CALL 001a93e0 (unit_estimate_position) and 2x CALL 000416e0
+ *   (ai_test_line_of_sight).
+ * Confirmed: MOV word [EDI+6],AX at 0x2584d/0x25857/0x2595e. */
+void FUN_000257a0(int actor_handle, void *state, char *actor)
+{
+  char *d;
+  short mode;
+  float diff[3];
+  float len_sq;
+  float *position_ptr;
+  void *direction_ptr;
+  int type;
+  int flag;
+  short los_result;
+  void *state_pos;
+  float offset_radius[3];
+  float offset_radius2[3];
+
+  position_ptr = NULL;
+  direction_ptr = NULL;
+
+  d = (char *)datum_get(actor_data, actor_handle);
+
+  if (*(char *)(actor + 0x5fc) == '\0') {
+    display_assert("has_target",
+                   "c:\\halo\\SOURCE\\ai\\actor_firing_position.c",
+                   0x33c, 1);
+    system_exit(-1);
+  }
+
+  mode = *(short *)(actor + 4);
+
+  if (mode == 5) {
+    state_pos = *(void **)state;
+    if (*(float *)((char *)state + 8) < *(float *)0x254640) {
+      unit_estimate_position(*(int *)(d + 0x18), 1,
+                             (vector3_t *)state_pos, NULL, NULL,
+                             (vector3_t *)offset_radius);
+      los_result = (short)ai_test_line_of_sight(
+        (float *)(d + 0x120),
+        (int)*(uint16_t *)(d + 0x148),
+        offset_radius,
+        (int)*(uint16_t *)((char *)state_pos + 0xe),
+        0, 0, -1,
+        (char)(*(int *)(d + 0x158) != -1));
+      *(short *)((char *)state + 6) = los_result;
+      return;
+    }
+    *(short *)((char *)state + 6) = 4;
+    return;
+  }
+
+  flag = 0;
+  direction_ptr = NULL;
+
+  if (mode == 1 || mode == 2) {
+    type = 2;
+  } else if (*(char *)(actor + 0x5dc) != '\0') {
+    state_pos = *(void **)state;
+    diff[0] = *(float *)(actor + 0x610) - *(float *)state_pos;
+    diff[1] = *(float *)(actor + 0x614) - *(float *)((char *)state_pos + 4);
+    diff[2] = *(float *)(actor + 0x618) - *(float *)((char *)state_pos + 8);
+    type = 3;
+    direction_ptr = (void *)(actor + 0x5e0);
+    len_sq = magnitude3d(diff);
+    if (len_sq <= *(float *)0x2533c0) {
+      position_ptr = (float *)(d + 0x174);
+    } else {
+      diff[2] = 0.0f;
+      position_ptr = diff;
+    }
+  } else {
+    type = 1;
+    position_ptr = NULL;
+  }
+
+  state_pos = *(void **)state;
+  unit_estimate_position(*(int *)(d + 0x18), type,
+                         (vector3_t *)state_pos,
+                         (vector3_t *)position_ptr,
+                         (vector3_t *)direction_ptr,
+                         (vector3_t *)offset_radius2);
+
+  if (mode >= 1 && mode <= 3)
+    flag = 1;
+
+  los_result = (short)ai_test_line_of_sight(
+    offset_radius2,
+    (int)*(uint16_t *)((char *)state_pos + 0xe),
+    (float *)(actor + 0x61c),
+    (int)*(uint16_t *)(actor + 0x640),
+    flag, 1,
+    *(int *)(actor + 0x62c),
+    (char)(*(int *)(d + 0x158) != -1));
+
+  *(short *)((char *)state + 6) = los_result;
 }
 
 /* FUN_00027870 (0x27870)
@@ -3510,27 +4813,24 @@ bool FUN_00027dd0(float *dir, float *vec2, float threshold)
   float dx;
   float dy;
   float len;
-  float abs_len;
 
   dx = dir[0];
   dy = dir[1];
+  len = xbox_sqrtf(dx * dx + dy * dy);
 
-  len = dx * dx + dy * dy;
-  if (!(len >= 0.0f))
-    return false;
-  len = dx * dx + dy * dy;
-  asm volatile ("fsqrt" : "=t"(len) : "0"(len));
-  abs_len = len;
-  asm volatile ("fabs" : "=t"(abs_len) : "0"(abs_len));
-  if (abs_len < 0.00001f)
-    return false;
+  if (!(len >= 0.0001f))
+    return 0;
+
   dx = (1.0f / len) * dx;
   dy = (1.0f / len) * dy;
-  if (dx * dx + dy * dy <= 0.0f)
-    return false;
-  if (dx * vec2[0] + dy * vec2[1] <= threshold)
-    return false;
-  return true;
+
+  if (!(len > 0.0f))
+    return 0;
+
+  if (!(dx * vec2[0] + dy * vec2[1] > threshold))
+    return 0;
+
+  return 1;
 }
 
 /* FUN_00027e50 (0x27e50)
@@ -3544,76 +4844,214 @@ bool FUN_00027e50(float *dir, float *vec2, float *limit,
   float dx;
   float dy;
   float len;
-  float sqrt_len;
-  float abs_len;
-  float inv;
+  float vx;
+  float vy;
+  float mag;
   float cross;
   float dot;
-  float mag;
   int idx;
-  float tmp[3];
 
   dx = dir[0];
   dy = dir[1];
-  tmp[0] = vec2[0];
-  tmp[1] = vec2[1];
+  vx = vec2[0];
+  vy = vec2[1];
 
-  len = dx * dx + dy * dy;
-  sqrt_len = len;
-  asm volatile ("fsqrt" : "=t"(sqrt_len) : "0"(sqrt_len));
-  abs_len = sqrt_len;
-  asm volatile ("fabs" : "=t"(abs_len) : "0"(abs_len));
-  if (abs_len < 0.00001f)
-    return false;
-  inv = 1.0f / sqrt_len;
-  dx = dx * inv;
-  dy = dy * inv;
-  if (dx * dx + dy * dy <= 0.0f)
-    return false;
-  if (dx * limit[0] + dy * limit[1] <= threshold)
-    return false;
-  tmp[2] = dx;
-  mag = magnitude3d(tmp);
-  if (mag <= 0.0f)
-    return false;
-  cross = dy * tmp[0] - dx * tmp[1];
+  len = xbox_sqrtf(dx * dx + dy * dy);
+
+  if (xbox_fabsf(len) < 0.0001f)
+    return 0;
+  if (!(len > 0.0f))
+    return 0;
+
+  dx = (1.0f / len) * dx;
+  dy = (1.0f / len) * dy;
+
+  if (!(dx * limit[0] + dy * limit[1] > threshold))
+    return 0;
+
+  {
+    float tmp[3];
+    tmp[0] = vx;
+    tmp[1] = vy;
+    tmp[2] = dx;
+    mag = magnitude3d(tmp);
+  }
+  if (!(mag > 0.0f))
+    return 0;
+
+  cross = vy * dx - vx * dy;
   idx = 0;
   if (cross > 0.0f)
     idx = 1;
-  dot = dx * tmp[0] + dy * tmp[1];
-  if (dot <= output[idx])
-    return false;
-  return true;
+
+  dot = dx * vx + dy * vy;
+  if (!(dot > output[idx]))
+    return 0;
+
+  return 1;
 }
 
 /* FUN_00027f40 (0x27f40) — Actor look-at angle constraint evaluator.
  * Gets actor tag, computes pitch/yaw cosines based on combat state,
- * and invokes FUN_00027dd0/FUN_00027e50 to fill two output flags. */
-void FUN_00027f40(int actor_handle, void *out1, void *out2)
+ * and invokes FUN_00027dd0/FUN_00027e50 to fill two output flags.
+ *
+ * Confirmed: EDI=actor, EBX=dir_ptr, out1/out2 at EBP+0x10/0x14. */
+void FUN_00027f40(int actor_handle, void *dir_ptr, void *out1, void *out2)
 {
   char *actor;
   char *tag_data;
-  float cos_pitch;
-  float cos_yaw;
+  float cos_angles[2];
 
   actor = (char *)datum_get(actor_data, actor_handle);
   tag_data = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
 
   *((char *)out1) = (char)FUN_00027dd0(
-      (float *)(tag_data + 0x12c), (float *)out1, 0.0f);
+      (float *)dir_ptr,
+      (float *)(actor + 0x174),
+      *(float *)(tag_data + 0x12c));
 
   if (*(short *)(actor + 0x6a) == 3) {
-    cos_pitch = *(float *)(tag_data + 0xbc);
-    asm volatile ("fcos" : "=t"(cos_pitch) : "0"(cos_pitch));
-    cos_yaw = *(float *)(tag_data + 0xc0);
-    asm volatile ("fcos" : "=t"(cos_yaw) : "0"(cos_yaw));
+    cos_angles[0] = x87_fcos(*(float *)(tag_data + 0xbc));
+    cos_angles[1] = *(float *)(tag_data + 0xc0);
   } else {
-    cos_pitch = *(float *)(tag_data + 0xb4);
-    asm volatile ("fcos" : "=t"(cos_pitch) : "0"(cos_pitch));
-    cos_yaw = *(float *)(tag_data + 0xb8);
-    asm volatile ("fcos" : "=t"(cos_yaw) : "0"(cos_yaw));
+    cos_angles[0] = x87_fcos(*(float *)(tag_data + 0xb4));
+    cos_angles[1] = *(float *)(tag_data + 0xb8);
   }
+  cos_angles[1] = x87_fcos(cos_angles[1]);
 
   *((char *)out2) = (char)FUN_00027e50(
-      (float *)(tag_data + 0x134), &cos_pitch, &cos_yaw, 0.0f, out2);
+      (float *)dir_ptr,
+      (float *)(actor + 0x180),
+      (float *)(actor + 0x174),
+      *(float *)(tag_data + 0x134),
+      cos_angles);
+}
+
+/* FUN_00027ff0 (0x27ff0)
+ * Evaluates firing positions for an actor's look-at target.
+ * Iterates over firing positions via object iterator, scores each
+ * by recency and distance, checks direction constraints via
+ * FUN_00027dd0/FUN_00027e50, and returns the best candidate.
+ *
+ * Confirmed: param_1=actor_handle, param_2/param_3=direction flags,
+ *   param_4=output struct (short result, int index), param_5=out_flag.
+ *   Returns true if a suitable firing position was found. */
+char FUN_00027ff0(int actor_handle, char param_2, char param_3, short *output,
+                  char *out_flag)
+{
+  char *actor;
+  char *tag_data;
+  int current_tick;
+  float tag_threshold;
+  float tag_fov;
+  float cos_yaw;
+  float cos_pitch;
+  int iter[2];
+  char *item;
+  float best_score;
+  float item_score;
+  int best_index;
+  char *best_item;
+  char best_flag;
+  char item_flag;
+  int item_timestamp;
+  char check_result;
+  (void)check_result;
+  (void)cos_pitch;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  tag_data = (char *)tag_get('actr', *(int *)(actor + 0x58));
+  best_index = -1;
+  best_score = 0.0f;
+  best_item = 0;
+  best_flag = 0;
+  current_tick = game_time_get();
+  tag_threshold = *(float *)(tag_data + 0x12c);
+  tag_fov = *(float *)(tag_data + 0x134);
+
+  if (*(short *)(actor + 0x6a) == 3) {
+    cos_yaw = x87_fcos(*(float *)(tag_data + 0xbc));
+    cos_pitch = x87_fcos(*(float *)(tag_data + 0xc0));
+  } else {
+    cos_yaw = x87_fcos(*(float *)(tag_data + 0xb4));
+    cos_pitch = x87_fcos(*(float *)(tag_data + 0xb8));
+  }
+
+  if (actor_handle == *(int *)0x5ac9f8) {
+    ai_debug_idle_look_clear(actor_handle);
+  }
+
+  FUN_00064540(iter, actor_handle);
+  item = (char *)FUN_00064570(iter);
+
+  if (item != 0) {
+    do {
+      item_flag = 0;
+      item_score = 0.0f;
+
+      if (*(short *)(item + 0x24) < 2 || *(short *)(item + 0x24) > 3 ||
+          *(short *)(item + 0x32) == 0) {
+        *(float *)(item + 0x58) = 0.0f;
+      } else if (*(float *)(item + 0x54) > 0.0f) {
+        item_timestamp = *(int *)(item + 0x5c);
+        if (item_timestamp == -1) {
+          item_score = 1.0f;
+        } else {
+          item_score =
+              ((float)current_tick - (float)item_timestamp) * (1.0f / 600.0f) -
+              1.0f;
+        }
+        item_score =
+            (*(float *)(item + 0x54) - *(float *)(item + 0x58)) /
+                *(float *)(item + 0x54) +
+            item_score;
+        if (item_score > 1.0f) {
+          item_score = 1.0f;
+        }
+        item_score = item_score * *(float *)(item + 0x54);
+        if (*(float *)(item + 0x54) <= *(float *)(item + 0x58)) {
+          item_flag = 0;
+        } else {
+          item_flag = 1;
+        }
+      }
+
+      if (actor_handle == *(int *)0x5ac9f8) {
+        ai_debug_idle_look_addprop(iter[0], item_score);
+      }
+
+      if (item_score > 0.0f) {
+        check_result = 0;
+        if (param_3 == 0) {
+          check_result = (char)FUN_00027e50(
+              (float *)(item + 0xe0), (float *)(actor + 0x5b0),
+              (float *)(actor + 0x5a4), tag_fov, &cos_yaw);
+        } else if (param_2 == 0 || item_flag == 0) {
+          check_result =
+              (char)FUN_00027dd0((float *)(item + 0xe0),
+                                 (float *)(actor + 0x5a4), tag_threshold);
+        }
+
+        if (check_result != 0 && item_score > best_score) {
+          best_index = iter[0];
+          best_item = item;
+          best_score = item_score;
+          best_flag = item_flag;
+        }
+      }
+
+      item = (char *)FUN_00064570(iter);
+    } while (item != 0);
+
+    if (best_index != -1) {
+      *(int *)(best_item + 0x5c) = current_tick;
+      *(float *)(best_item + 0x58) = *(float *)(best_item + 0x54);
+      output[0] = 1;
+      *(int *)(output + 2) = best_index;
+      *out_flag = best_flag;
+      return 1;
+    }
+  }
+
+  return 0;
 }
