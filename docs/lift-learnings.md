@@ -68,6 +68,23 @@ that offset landed on an unrelated local. Fix: replace all 14 locals with
 about out-of-range values. The call stack shows the lifted function as the
 caller, not the crash site.
 
+**Variant — the aliased locals are the callee's OUTPUT, sized from the frame:**
+Sometimes the contiguous locals are not input you set up but **results the
+callee writes into the buffer**, read back from offsets near the buffer's
+tail. The fix is the same (make them array indices, not separate locals), but:
+- **Size the buffer from the frame, not a guess.** The original `_chkstk`
+  size minus the other named locals gives the true buffer size. Example
+  (reconnect, FUN_001417c0): `_chkstk 0x1028` = `0x1010` buffer + `0x10`
+  iterator + `0x8` bsp_data ⇒ `int local_102c[1028]`. The read-back flags
+  were `local_102c[771]` (EBP-0x41c) and `[772]` (EBP-0x418) — *past* the
+  Ghidra-guessed `[771]` array end. Undersizing risks the callee writing
+  past your buffer → stack corruption.
+- **Re-deriving the region exposed a SECOND bug.** The same disasm showed a
+  `MOV [EBP-0x8],EAX` store (leaf index → bsp_data[0]) the original lift
+  dropped entirely. When re-lifting a flagged/deactivated function, re-derive
+  *every* instruction in the changed region — the dormant C is a draft, not a
+  baseline, and the flagged call is rarely the only defect.
+
 ---
 
 ## 3. Register Argument Params Passed as NULL
@@ -186,6 +203,15 @@ actually expects. Compare against the C source line by line.
 - **ESI/EDI = float value (0x3Exxxxxx)** → parameter corruption, the
   register contains data from a wrong memory region
 - **EBP == ESP** → stack exhaustion (infinite recursion) or frame not set up
+- **CR2 = 0, EIP oscillating in the kernel idle loop (≈0x8001exxx)** → a *soft
+  deadlock* (a thread blocked on a wait that never completes), NOT a page
+  fault. Sample `info registers` via the xemu QMP monitor 2-3×: if EIP barely
+  moves and only a counter (e.g. EDX) changes while every other register is
+  frozen, no game thread is running. This is a synchronization/teardown bug,
+  not a lifted-arg bug — a pure-compute lift would *page-fault* (CR2≠0) if its
+  args/offsets were wrong, so a CR2=0 idle hang **clears** a compute function
+  as the cause. Contrast the page-fault freeze (CR2 = a float bit-pattern used
+  as a pointer, see §6) which *does* implicate a lift.
 
 ---
 
@@ -221,3 +247,59 @@ uniform yellow tint on weapons and world geometry.
 
 **Detection at runtime:** No crash — just visually wrong output. Compare
 against the unpatched game at the same camera position.
+
+---
+
+## 7. Ghidra cdecl Arg Mis-Grouping (inner 0-arg getter swallows the outer call's args)
+
+**What happens:** For a call written `outer(get_x(), a, b, c)` where `get_x()`
+is a **0-arg getter**, MSVC emits (cdecl, args pushed right-to-left):
+```
+push c ; push b ; push a ; CALL get_x ; push eax ; CALL outer ; add esp, N
+```
+Ghidra attributes the `push c/b/a` to the CALL that immediately follows them —
+`get_x` — rendering it as a multi-arg call `get_x(a, b, c)` and leaving
+`outer` with only the getter's result, `outer(eax)`. The lift faithfully
+copies the mistake: the getter is called with junk extra args (cdecl-harmless,
+it ignores them) and **outer is called with too few args**, reading a/b/c from
+stale stack → garbage scalars or wild pointers.
+
+This was the root cause of three runtime bugs fixed in a single session
+(bored_camera, the "Loading level..." freeze, and the object name-table
+corruption) and is the dominant defect class in the objects.obj mass lift.
+
+**Symptoms:** Depends on the dropped args. Garbage scalars → nonsensical but
+non-crashing behavior (random camera angles). Dropped pointer/buffer args →
+page fault inside the callee (the level-load freeze was a dropped
+origin/direction/results* on a BSP sphere test).
+
+**Example (bored_camera_update, FUN_00084ae0):** Ghidra showed
+`random_math_get_local_seed_address(min, max)` (declared 0-arg!) and
+`random_real_range(seed)`. The pushed constants were `random_real_range`'s
+range, not the getter's:
+```c
+random_real_range(random_math_get_local_seed_address(), -1.0996f, 0.3927f);
+```
+
+**Example (reconnect, FUN_001417c0 → collision_bsp_test_sphere):** Ghidra
+showed `global_collision_bsp_get(0,0,dir,radius,results)` (declared 0-arg) and
+`collision_bsp_test_sphere(bsp)`. The single `ADD ESP,0x18` after the second
+CALL proved all 6 args belong to `collision_bsp_test_sphere`:
+```c
+collision_bsp_test_sphere(global_collision_bsp_get(), 0, 0,
+                          obj+0x50, *(int*)(obj+0x5c), results);
+```
+
+**Prevention:**
+- For any `outer(getter(...), ...)` where kb.json declares `getter` as 0-arg,
+  STOP and read the disasm. The extra args almost always belong to `outer`.
+- The **stack-cleanup tell:** a single `ADD ESP,N` after the *outer* CALL
+  accounts for ALL of outer's args (N/4), even though the pushes are split
+  across the inner getter CALL. If `N/4` exceeds the arg count Ghidra gave
+  `outer`, args were stolen by the getter.
+- Cross-check every XCALL / by-name arg count against the callee's kb.json
+  decl; `tools/audit/` arg-count auditing surfaces these en masse.
+
+**Detection at runtime:** Page fault (CR2≠0) inside the callee with a register
+holding a stale stack value, OR nonsensical-but-non-crashing behavior when the
+dropped args were scalars (see §5 for distinguishing the two).
