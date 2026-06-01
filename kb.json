@@ -15336,7 +15336,7 @@
           "addr": "0x1417c0",
           "decl": "void objects_reconnect_to_structure_bsp(void);",
           "name": "objects_reconnect_to_structure_bsp",
-          "ported": false,
+          "ported": true,
           "source": "src/halo/objects/objects.c"
         },
         {

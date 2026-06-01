@@ -60,8 +60,6 @@ double pow(double x, double y);
 #define CALL_FUN_001d9e59(a,b) XCALL(0x1d9e59, void*(*)(const char*,const char*))(a,b)
 #define CALL_FUN_001d9260 XCALL(0x1d9260, int(*)(void*,const char*,...))
 #define CALL_FUN_0013f3b0(a,b) XCALL(0x13f3b0, void(*)(void*,int))(a,b)
-#define CALL_FUN_001493b0(a) XCALL(0x1493b0, void(*)(int))(a)
-#define CALL_FUN_0018e3f0(a,b,c,d,e) XCALL(0x18e3f0, int(*)(int,int,int,int,void*))(a,b,c,d,e)
 #define CALL_FUN_0018f180(a,b) XCALL(0x18f180, void(*)(void*,void*))(a,b)
 #define CALL_FUN_00140ce0(a,b) XCALL(0x140ce0, void(*)(int,void*))(a,b)
 #define CALL_FUN_00013010(a) XCALL(0x13010, float(*)(void*))(a)
@@ -9658,9 +9656,14 @@ LAB_0013f5ad:
 void objects_reconnect_to_structure_bsp(void)
 {
   int iVar1;
-  int local_102c[771]; /* large buffer for cluster lookup */
-  int local_420 = 0;
-  unsigned int local_41c = 0;
+  /* collision_bsp_test_sphere results buffer. Original frame is 0x1028 bytes =
+   * 0x1010 (buffer) + 0x10 (bsp_iter) + 0x8 (bsp_data), so the buffer is
+   * int[1028]. The test outcome is read back from the TAIL of this same buffer:
+   *   local_102c[771] (EBP-0x41c) = hit flag
+   *   local_102c[772] (EBP-0x418) = leaf/cluster index
+   * Hazard #5: these must index the buffer the callee wrote — not separate
+   * locals — or clang would not lay them contiguously with the array. */
+  int local_102c[1028];
   int obj;
   object_iter_t bsp_iter;
   char bsp_data[8]; /* scenario_location_from_point output; bsp_data+4 = bsp index (short) */
@@ -9679,20 +9682,29 @@ void objects_reconnect_to_structure_bsp(void)
       }
       CALL_FUN_0018f180(bsp_data, (void *)(obj + 0x50));
       if (*(short *)(bsp_data + 4) == -1) {
-        {
-          int bsp_index;
-          bsp_index = CALL_FUN_0018e3f0(obj + 0x50, 0, 0, *(int *)(obj + 0x5c), local_102c);
-          CALL_FUN_001493b0(bsp_index);
-        }
-        if (local_420 == 0) {
+        /* Sphere-test the object's bounding sphere against the current BSP.
+         * Confirmed 6 cdecl args at 0x14185d-0x141873 (single ADD ESP,0x18):
+         *   collision_bsp_test_sphere(global_collision_bsp_get(), 0, 0,
+         *                             obj+0x50, *(int*)(obj+0x5c), local_102c)
+         * The objects.obj mass-lift dropped 5 of these (called with only the
+         * bsp), so origin/direction/radius/results* came from stale stack ->
+         * wild access -> the "Loading level..." kernel halt. */
+        collision_bsp_test_sphere((int)global_collision_bsp_get(), 0, 0,
+                                  obj + 0x50, *(int *)(obj + 0x5c), local_102c);
+        if (local_102c[771] == 0) {
           CALL_FUN_0018f180(bsp_data, (void *)(obj + 0xc));
-        } else if (local_41c == 0xffffffff) {
-          *(short *)(bsp_data + 4) = -1;
         } else {
-          {
+          /* Hit: record the leaf/cluster index (local_102c[772]) in bsp_data[0]
+           * (MOV [EBP-0x8],EAX at 0x14188d — omitted by the original lift),
+           * then resolve the structure BSP index from the scenario block. */
+          *(int *)bsp_data = local_102c[772];
+          if (local_102c[772] == -1) {
+            *(short *)(bsp_data + 4) = -1;
+          } else {
             int sc;
             sc = (int)scenario_get();
-            iVar1 = (int)tag_block_get_element((void *)(sc + 0xe0), local_41c & 0x7fffffff, 0x10);
+            iVar1 = (int)tag_block_get_element((void *)(sc + 0xe0),
+                                               local_102c[772] & 0x7fffffff, 0x10);
             *(short *)(bsp_data + 4) = *(short *)(iVar1 + 8);
           }
         }
