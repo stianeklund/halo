@@ -20,6 +20,34 @@ void FUN_0017ff60(void)
 
 /* rasterizer_geometry.c */
 
+/* scale byte 0-255 to float via constant at 0x261518 (0x17ff80) */
+float FUN_0017ff80(unsigned char param_1)
+{
+  return (float)param_1 * *(float *)0x261518;
+}
+
+/* scale signed short to float: (2*param_1 + 1.0f) * scale (0x17ffa0) */
+float FUN_0017ffa0(short param_1)
+{
+  return ((float)(int)param_1 + (float)(int)param_1 + *(float *)0x2533c8) *
+         *(float *)0x2647f4;
+}
+
+/* decode packed 32-bit normal to float[3] output, returns param_1 (0x17ffc0) */
+float *FUN_0017ffc0(float *param_1, unsigned int param_2)
+{
+  float fVar1;
+  fVar1 = (float)(int)((param_2 >> 0xb) << 0x15) * *(float *)0x29ba04;
+  *param_1 =
+    ((float)(int)(param_2 << 0x15) * *(float *)0x29ba04 + *(float *)0x2533c8) *
+    *(float *)0x2afe34;
+  param_1[1] = (fVar1 + *(float *)0x2533c8) * *(float *)0x2afe34;
+  param_1[2] = ((float)(int)(param_2 & 0xffc00000) * *(float *)0x2afe30 +
+                *(float *)0x2533c8) *
+               *(float *)0x28c8e0;
+  return param_1;
+}
+
 /* rasterizer_geometry_vertex_type_to_stride: return vertex stride for type,
  * assert valid range (0x180050) */
 int FUN_00180050(short param_1)
@@ -53,27 +81,8 @@ void FUN_00180500(float *param_1, float *param_2)
   param_2[2] = param_1[2];
 }
 
-/* rasterizer_geometry_vertex_get_texcoord: copy 2-float texcoord from
- * compressed vertex to output (0x1805f0) */
-void FUN_001805f0(int param_1, float *param_2)
-{
-  if (param_1 == 0) {
-    display_assert("vertex",
-                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x1ce,
-                   1);
-    system_exit(-1);
-  }
-  if (param_2 == 0) {
-    display_assert("texcoord",
-                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x1cf,
-                   1);
-    system_exit(-1);
-  }
-  param_2[0] = *(float *)(param_1 + 0x18);
-  param_2[1] = *(float *)(param_1 + 0x1c);
-}
-
-/* rasterizer_geometry_vertex_get_normal: unpack normal from compressed vertex +0xc (0x180570) */
+/* rasterizer_geometry_vertex_get_normal: unpack normal from compressed vertex
+ * +0xc (0x180570) */
 void FUN_00180570(int param_1, float *param_2)
 {
   float local_out[3];
@@ -96,7 +105,28 @@ void FUN_00180570(int param_1, float *param_2)
   param_2[2] = result[2];
 }
 
-/* rasterizer_geometry_vertex_get_normal_packed: unpack normal from packed value ptr (0x180660) */
+/* rasterizer_geometry_vertex_get_texcoord: copy 2-float texcoord from
+ * compressed vertex to output (0x1805f0) */
+void FUN_001805f0(int param_1, float *param_2)
+{
+  if (param_1 == 0) {
+    display_assert("vertex",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x1ce,
+                   1);
+    system_exit(-1);
+  }
+  if (param_2 == 0) {
+    display_assert("texcoord",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x1cf,
+                   1);
+    system_exit(-1);
+  }
+  param_2[0] = *(float *)(param_1 + 0x18);
+  param_2[1] = *(float *)(param_1 + 0x1c);
+}
+
+/* rasterizer_geometry_vertex_get_normal_packed: unpack normal from packed value
+ * ptr (0x180660) */
 void FUN_00180660(unsigned int *param_1, float *param_2)
 {
   float local_out[3];
@@ -117,6 +147,30 @@ void FUN_00180660(unsigned int *param_1, float *param_2)
   param_2[0] = result[0];
   param_2[1] = result[1];
   param_2[2] = result[2];
+}
+
+/* rasterizer_geometry_vertex_get_texcoord_short: decode compressed short
+ * texcoords from vertex to float[2] output (0x1806e0) */
+void FUN_001806e0(int param_1, float *param_2)
+{
+  if (param_1 == 0) {
+    display_assert("vertex",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x1e6,
+                   1);
+    system_exit(-1);
+  }
+  if (param_2 == 0) {
+    display_assert("texcoord",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x1e7,
+                   1);
+    system_exit(-1);
+  }
+  *param_2 = ((float)(int)*(short *)(param_1 + 4) +
+              (float)(int)*(short *)(param_1 + 4) + *(float *)0x2533c8) *
+             *(float *)0x2647f4;
+  param_2[1] = ((float)(int)*(short *)(param_1 + 6) +
+                (float)(int)*(short *)(param_1 + 6) + *(float *)0x2533c8) *
+               *(float *)0x2647f4;
 }
 
 /* rasterizer_lights.c */
@@ -166,11 +220,6 @@ void rasterizer_memory_pool_reset(void)
   *(int *)0x4d048c = 0;
 }
 
-/* FUN_001825d0: stub (0x1825d0) */
-void FUN_001825d0(void)
-{
-}
-
 /* rasterizer_memory_pool_alloc: allocate from memory pool, optionally copying
  * data (0x182530) */
 int rasterizer_memory_pool_alloc(int data, int size)
@@ -206,6 +255,11 @@ void rasterizer_memory_pool_copy(int data, int size)
   rasterizer_memory_pool_alloc(data, size);
 }
 
+/* FUN_001825d0: stub (0x1825d0) */
+void FUN_001825d0(void)
+{
+}
+
 /* rasterizer_memory_pool_delete: free the global rasterizer memory pool
  * (0x1825e0) */
 void rasterizer_memory_pool_delete(void)
@@ -216,6 +270,134 @@ void rasterizer_memory_pool_delete(void)
   }
   *(void **)0x4d0488 = 0;
   *(int *)0x4d048c = 0;
+}
+
+/* rasterizer_swizzle.c */
+
+/* rasterizer_swizzle_compute_masks: compute swizzle bit-interleave masks for a
+ * texture surface (0x182690).
+ * param_1/param_2: log2 of width/height; param_3/param_4: u/v tile indices;
+ * param_5[0] = u mask, param_5[1] = v mask. */
+void rasterizer_swizzle_compute_masks(short param_1, short param_2,
+                                      unsigned short param_3,
+                                      unsigned short param_4,
+                                      unsigned int *param_5)
+{
+  int16_t sVar1;
+  int16_t sVar2;
+  int16_t param_1_min;
+  unsigned char bVar5;
+  unsigned short uVar3;
+  unsigned int uVar6;
+  unsigned int uVar4;
+  int upper;
+
+  sVar1 = FUN_00108db0((unsigned int)(int)param_1);
+  sVar2 = FUN_00108db0((unsigned int)(int)param_2);
+
+  /* param_1_min = min(sVar1, sVar2) */
+  param_1_min = sVar2;
+  if (sVar1 <= sVar2) {
+    param_1_min = sVar1;
+  }
+  bVar5 = (unsigned char)param_1_min;
+  uVar3 = (unsigned short)((1 << (bVar5 & 0x1f)) - 1);
+
+  if ((short)uVar3 < 0x40) {
+    uVar6 = (unsigned int)*(
+      unsigned short *)((int)0x2b07e0 + (int)(short)(param_3 & uVar3) * 2);
+    uVar4 = (unsigned int)*(
+      unsigned short *)((int)0x2b07e0 + (int)(short)(param_4 & uVar3) * 2);
+  } else {
+    upper = (int)(short)uVar3 >> 6;
+    if (upper > 0x3f) {
+      display_assert("upper_mask<=63",
+                     "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x56,
+                     1);
+      system_exit(-1);
+    }
+    uVar6 = (unsigned int)*(
+              unsigned short *)((int)0x2b07e0 +
+                                (((int)(short)param_3 >> 6) & upper) * 2)
+              << 0xc |
+            (unsigned int)*(unsigned short *)((int)0x2b07e0 +
+                                              ((int)(short)param_3 & 0x3f) * 2);
+    uVar4 = (unsigned int)*(
+              unsigned short *)((int)0x2b07e0 +
+                                (((int)(short)param_4 >> 6) & upper) * 2)
+              << 0xc |
+            (unsigned int)*(unsigned short *)((int)0x2b07e0 +
+                                              ((int)(short)param_4 & 0x3f) * 2);
+  }
+  uVar4 = uVar4 << 1;
+  if (param_1_min < sVar1) {
+    param_5[1] = uVar4;
+    *param_5 = uVar6 | ((int)(short)param_3 >> (bVar5 & 0x1f))
+                         << (bVar5 * 2 & 0x1f);
+    return;
+  }
+  if (param_1_min < sVar2) {
+    uVar4 = uVar4 | ((int)(short)param_4 >> (bVar5 & 0x1f))
+                      << (bVar5 * 2 & 0x1f);
+  }
+  *param_5 = uVar6;
+  param_5[1] = uVar4;
+}
+
+/* rasterizer_swizzle_interleave_bits: interleave bits from up to 3 channels
+ * into a Morton (Z-order) swizzle address (0x1827c0).
+ * param_1/param_2/param_3: bit counts for each channel;
+ * param_4/param_5/param_6: channel values (x/y/z);
+ * param_7[0]=x bits, param_7[1]=y bits, param_7[2]=z bits. */
+void rasterizer_swizzle_interleave_bits(short param_1, short param_2,
+                                        short param_3, unsigned int param_4,
+                                        unsigned int param_5,
+                                        unsigned int param_6,
+                                        unsigned int *param_7)
+{
+  unsigned int local_c;
+  unsigned int local_8;
+  unsigned int uVar7;
+  short sVar6;
+  short sVar4;
+  short sVar5;
+  short bVar8;
+  unsigned int uVar1;
+  unsigned int uVar2;
+  unsigned int uVar3;
+
+  local_c = 0;
+  local_8 = 0;
+  uVar7 = 0;
+  sVar6 = 1;
+  sVar4 = 0;
+  do {
+    uVar3 = param_6;
+    uVar2 = param_5;
+    uVar1 = param_4;
+    sVar5 = sVar4;
+    if (sVar6 < param_1) {
+      param_4 = (unsigned int)(unsigned short)((short)param_4 >> 1);
+      local_8 = local_8 | (uVar1 & 1) << ((unsigned char)sVar4 & 0x1f);
+      sVar5 = sVar4 + 1;
+    }
+    if (sVar6 < param_2) {
+      param_5 = (unsigned int)(unsigned short)((short)param_5 >> 1);
+      local_c = local_c | (uVar2 & 1) << ((unsigned char)sVar5 & 0x1f);
+      sVar5 = sVar5 + 1;
+    }
+    if (sVar6 < param_3) {
+      param_6 = (unsigned int)(unsigned short)((short)param_6 >> 1);
+      uVar7 = uVar7 | (uVar3 & 1) << ((unsigned char)sVar5 & 0x1f);
+      sVar5 = sVar5 + 1;
+    }
+    sVar6 = sVar6 << 1;
+    bVar8 = (short)(sVar4 != sVar5);
+    sVar4 = sVar5;
+  } while (bVar8);
+  param_7[2] = uVar7;
+  *param_7 = local_8;
+  param_7[1] = local_c;
 }
 
 /* rasterizer_text_cache_initialize: init hardware text cache (0x183650) */
