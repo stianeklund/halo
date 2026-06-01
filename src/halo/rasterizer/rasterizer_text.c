@@ -173,13 +173,179 @@ void FUN_001806e0(int param_1, float *param_2)
                *(float *)0x2647f4;
 }
 
+extern double floor(double);
+
+/* rasterizer_geometry_float_to_uint8: clamp float [0,1] to byte via scale
+ * 255.0. FISTP round-to-nearest in original; C cast truncates — structural
+ * rounding delta at midpoints. (0x1807d0) */
+unsigned char FUN_001807d0(float param_1)
+{
+  float clamped;
+  if (param_1 < 0.0f) {
+    clamped = 0.0f;
+  } else if (param_1 > 1.0f) {
+    clamped = 1.0f;
+  } else {
+    clamped = param_1;
+  }
+  return (unsigned char)(int)(clamped * *(float *)0x2602c8);
+}
+
+/* rasterizer_geometry_pack_normal_11_11_10_validated: pack float[3] normal
+ * into 11-11-10 uint, asserting components in [-1.0, 1.0]. Encodes via
+ * floor(component * scale) + FISTP. Verifies round-trip via FUN_0017ffc0.
+ * Structural cap: FUCOMPP-based range asserts cannot be matched exactly.
+ * layout: bits[10:0]=i, bits[21:11]=j, bits[31:22]=k (10-bit). (0x1808f0) */
+unsigned int FUN_001808f0(float *param_1)
+{
+  float decoded_i;
+  float decoded_j;
+  float decoded_k;
+  float *decoded;
+  unsigned int i_11;
+  unsigned int j_11;
+  unsigned int packed;
+  int tmp;
+  float local_buf[3];
+
+  if (param_1 == 0) {
+    display_assert("parameters",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x45,
+                   1);
+    system_exit(-1);
+  }
+  if (*param_1 < -1.0f || *param_1 > 1.0f || param_1[1] < -1.0f ||
+      param_1[1] > 1.0f || param_1[2] < -1.0f || param_1[2] > 1.0f) {
+    display_assert("invalid vector",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x4e,
+                   1);
+    system_exit(-1);
+  }
+  tmp = (int)floor((double)(*param_1 * *(float *)0x2b0118));
+  i_11 = (unsigned int)tmp & 0x7ff;
+  tmp = (int)floor((double)(param_1[1] * *(float *)0x2b0118));
+  j_11 = (unsigned int)tmp & 0x7ff;
+  tmp = (int)floor((double)(param_1[2] * *(float *)0x2b0114));
+  packed = (((unsigned int)tmp & 0x3ff) << 11 | j_11) << 11 | i_11;
+
+  decoded = FUN_0017ffc0(local_buf, packed);
+  decoded_i = decoded[0];
+  decoded_j = decoded[1];
+  decoded_k = decoded[2];
+
+  if ((float)*(double *)0x28b800 <= fabsf(decoded_i - *param_1)) {
+    display_assert("fabs(v2.i - v->i)<0.01f",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x5c,
+                   1);
+    system_exit(-1);
+  }
+  if ((float)*(double *)0x28b800 <= fabsf(decoded_j - param_1[1])) {
+    display_assert("fabs(v2.j - v->j)<0.01f",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x5d,
+                   1);
+    system_exit(-1);
+  }
+  if ((float)*(double *)0x28b800 <= fabsf(decoded_k - param_1[2])) {
+    display_assert("fabs(v2.k - v->k)<0.01f",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x5e,
+                   1);
+    system_exit(-1);
+  }
+  return packed;
+}
+
+/* rasterizer_geometry_pack_normal_11_11_10_clamped: clamp float[3] normal to
+ * [-1.0, 1.0] then pack to 11-11-10 uint. Same encoding as FUN_001808f0 but
+ * silently clamps out-of-range values. Verifies round-trip via FUN_0017ffc0.
+ * layout: bits[10:0]=i, bits[21:11]=j, bits[31:22]=k (10-bit). (0x180b10) */
+unsigned int FUN_00180b10(float *param_1)
+{
+  float ci;
+  float cj;
+  float ck;
+  float *decoded;
+  float decoded_i;
+  float decoded_j;
+  float decoded_k;
+  unsigned int i_11;
+  unsigned int j_11;
+  unsigned int packed;
+  int tmp;
+  float local_buf[3];
+
+  if (param_1 == 0) {
+    display_assert("parameters",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x68,
+                   1);
+    system_exit(-1);
+  }
+  if (*param_1 < -1.0f) {
+    ci = -1.0f;
+  } else if (*param_1 > 1.0f) {
+    ci = 1.0f;
+  } else {
+    ci = *param_1;
+  }
+  tmp = (int)floor((double)(ci * *(float *)0x2b0118));
+  i_11 = (unsigned int)tmp & 0x7ff;
+
+  if (param_1[1] < -1.0f) {
+    cj = -1.0f;
+  } else if (param_1[1] > 1.0f) {
+    cj = 1.0f;
+  } else {
+    cj = param_1[1];
+  }
+  tmp = (int)floor((double)(cj * *(float *)0x2b0118));
+  j_11 = (unsigned int)tmp & 0x7ff;
+
+  if (param_1[2] < -1.0f) {
+    ck = -1.0f;
+  } else if (param_1[2] > 1.0f) {
+    ck = 1.0f;
+  } else {
+    ck = param_1[2];
+  }
+  tmp = (int)floor((double)(ck * *(float *)0x2b0114));
+  packed = (((unsigned int)tmp & 0x3ff) << 11 | j_11) << 11 | i_11;
+
+  decoded = FUN_0017ffc0(local_buf, packed);
+  decoded_i = decoded[0];
+  decoded_j = decoded[1];
+  decoded_k = decoded[2];
+
+  if ((float)*(double *)0x28b800 <= fabsf(decoded_i - *param_1)) {
+    display_assert("fabs(v2.i - v->i)<0.01f",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x76,
+                   1);
+    system_exit(-1);
+  }
+  if ((float)*(double *)0x28b800 <= fabsf(decoded_j - param_1[1])) {
+    display_assert("fabs(v2.j - v->j)<0.01f",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x77,
+                   1);
+    system_exit(-1);
+  }
+  if ((float)*(double *)0x28b800 <= fabsf(decoded_k - param_1[2])) {
+    display_assert("fabs(v2.k - v->k)<0.01f",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x78,
+                   1);
+    system_exit(-1);
+  }
+  return packed;
+}
+
 /* rasterizer_geometry_vertex_compress: compress vertex buffer (0x180d10)
  * ported=false: structural cap, too complex for reliable VC71 match */
 void FUN_00180d10(short param_1, int param_2, int param_3, int param_4,
                   void *param_5, int param_6)
 {
-  (void)param_1; (void)param_2; (void)param_3; (void)param_4;
-  (void)param_5; (void)param_6;
+  (void)param_1;
+  (void)param_2;
+  (void)param_3;
+  (void)param_4;
+  (void)param_5;
+  (void)param_6;
 }
 
 /* rasterizer_lights.c */
@@ -285,8 +451,10 @@ void FUN_00181900(short param_1)
     *(int *)((char *)params + 0x04) = *(int *)(entry + 0x00);
     *(int *)((char *)params + 0x08) = *(int *)(entry + 0x04);
     *(int *)((char *)params + 0x0c) = *(int *)(entry + 0x08);
-    *(unsigned int *)((char *)params + 0x10) = (unsigned int)FUN_00180b10((int)dir);
-    *(unsigned int *)((char *)params + 0x14) = (unsigned int)FUN_00180b10((int)perp);
+    *(unsigned int *)((char *)params + 0x10) =
+      (unsigned int)FUN_00180b10(dir);
+    *(unsigned int *)((char *)params + 0x14) =
+      (unsigned int)FUN_00180b10(perp);
     *(int *)((char *)params + 0x18) = -1;
     *(short *)((char *)params + 0x1c) = -1;
     *(short *)((char *)params + 0x1e) = (short)(entry_idx >> 16);
@@ -631,7 +799,7 @@ int FUN_00183290(void *param_1)
   mip_index = 0;
   if (-1 < (int)sVar2) {
     do {
-      mip_size = bitmap_mipmap_get_pixel_data_size((void*)bitmap, mip_index);
+      mip_size = bitmap_mipmap_get_pixel_data_size((void *)bitmap, mip_index);
       if ((*(unsigned char *)(bitmap + 0xe) & 0x10) != 0) {
         /* swizzled/tiled: add per-row padding */
         if ((short)mip_index != 0) {
@@ -646,8 +814,8 @@ int FUN_00183290(void *param_1)
                          0x1fb, 1);
           system_exit(-1);
         }
-        row_pitch = bitmap_mipmap_get_row_pitch((void*)bitmap, mip_index);
-        height = (short)bitmap_mipmap_get_height((void*)bitmap, mip_index);
+        row_pitch = bitmap_mipmap_get_row_pitch((void *)bitmap, mip_index);
+        height = (short)bitmap_mipmap_get_height((void *)bitmap, mip_index);
         mip_size = mip_size + (int)height * (-row_pitch & 0x3f);
       }
       if (*(short *)(bitmap + 10) == 2) {
@@ -716,7 +884,8 @@ int FUN_00183390(int param_1)
         local_20 = (int)sVar2;
         do {
           mip_src = (int)bitmap_mipmap_address((void *)param_1, local_c);
-          mip_size = bitmap_mipmap_get_pixel_data_size((void*)param_1, local_c);
+          mip_size =
+            bitmap_mipmap_get_pixel_data_size((void *)param_1, local_c);
           if (*(short *)(param_1 + 10) == 2) {
             mip_size = mip_size / 6;
           }
@@ -747,7 +916,7 @@ int FUN_00183390(int param_1)
                 "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x24e, 1);
               system_exit(-1);
             }
-            row_pitch = bitmap_mipmap_get_row_pitch((void*)param_1, local_c);
+            row_pitch = bitmap_mipmap_get_row_pitch((void *)param_1, local_c);
             sVar3 = 0;
             if (0 < *(short *)(param_1 + 6)) {
               do {
