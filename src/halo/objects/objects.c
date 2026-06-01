@@ -341,11 +341,11 @@ int FUN_000ae110(int param_1, int param_2, int param_3)
   if (*(int *)(player + 0x34) != -1) {
     time = game_time_get();
     if (time < 0x1c2) {
-      FUN_000aceb0(param_2, param_3, -1);
+      FUN_000aceb0(param_2, param_3, -1, param_1, 0x1d);
       return 0;
     }
     if (*(int *)(player + 0x74) != -1) {
-      FUN_000aceb0(param_2, param_3, *(int *)(player + 0x78));
+      FUN_000aceb0(param_2, param_3, *(int *)(player + 0x78), param_1, *(int *)(player + 0x74));
       return 0;
     }
     return 0;
