@@ -1,3 +1,89 @@
+/* rasterizer_frame_statistics.c */
+
+/* rasterizer_frame_statistics_dispose: free frame statistics buffer if
+ * allocated (0x17ff60) */
+void FUN_0017ff60(void)
+{
+  void *ptr;
+  ptr = *(void **)0x47ec40;
+  if (ptr != 0) {
+    debug_free(ptr,
+               "c:\\halo\\SOURCE\\rasterizer\\rasterizer_frame_statistics.c",
+               0x345);
+  }
+}
+
+/* rasterizer_geometry.c */
+
+/* rasterizer_geometry_vertex_type_to_stride: return vertex stride for type,
+ * assert valid range (0x180050) */
+int FUN_00180050(short param_1)
+{
+  if ((param_1 < 0) || (0xb < param_1)) {
+    display_assert("type>=0 && type<NUMBER_OF_RASTERIZER_VERTEX_TYPES",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0xaa,
+                   1);
+    system_exit(-1);
+  }
+  return (int)*(short *)(0x2afe14 + param_1 * 2);
+}
+
+/* rasterizer_geometry_vertex_get_position: copy 3-float position from vertex
+ * to output (0x180500) */
+void FUN_00180500(float *param_1, float *param_2)
+{
+  if (param_1 == 0) {
+    display_assert("vertex",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x1b6,
+                   1);
+    system_exit(-1);
+  }
+  if (param_2 == 0) {
+    display_assert(
+      "point", "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x1b7, 1);
+    system_exit(-1);
+  }
+  param_2[0] = param_1[0];
+  param_2[1] = param_1[1];
+  param_2[2] = param_1[2];
+}
+
+/* rasterizer_geometry_vertex_get_texcoord: copy 2-float texcoord from
+ * compressed vertex to output (0x1805f0) */
+void FUN_001805f0(int param_1, float *param_2)
+{
+  if (param_1 == 0) {
+    display_assert("vertex",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x1ce,
+                   1);
+    system_exit(-1);
+  }
+  if (param_2 == 0) {
+    display_assert("texcoord",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x1cf,
+                   1);
+    system_exit(-1);
+  }
+  param_2[0] = *(float *)(param_1 + 0x18);
+  param_2[1] = *(float *)(param_1 + 0x1c);
+}
+
+/* rasterizer_lights.c */
+
+/* rasterizer_lights_initialize: clear lights buffers and counter (0x181150) */
+void FUN_00181150(void)
+{
+  csmemset((void *)0x4bed80, 0, 0x7722);
+  csmemset((void *)0x47ed60, 0, 0x40020);
+  *(int *)0x4d0480 = 0;
+}
+
+/* rasterizer_lights_reset_stat: zero stat counter at 0x5a37e0 (0x1812b0) */
+void FUN_001812b0(void)
+{
+  *(int *)0x5a37e0 = 0;
+}
+
 /* rasterizer_memory_pool.c */
 
 /* rasterizer_memory_pool_new: allocate global rasterizer memory pool (0x1824e0)

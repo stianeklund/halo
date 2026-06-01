@@ -26696,7 +26696,9 @@
         },
         {
           "addr": "0x17ff60",
-          "decl": "void FUN_0017ff60(void);"
+          "decl": "void FUN_0017ff60(void);",
+          "name": "FUN_0017ff60",
+          "ported": true
         },
         {
           "addr": "0x17ff80",
@@ -26712,7 +26714,9 @@
         },
         {
           "addr": "0x180050",
-          "decl": "void FUN_00180050(void);"
+          "decl": "int FUN_00180050(short param_1);",
+          "name": "FUN_00180050",
+          "ported": true
         },
         {
           "addr": "0x1800b0",
@@ -26720,7 +26724,9 @@
         },
         {
           "addr": "0x180500",
-          "decl": "void FUN_00180500(void);"
+          "decl": "void FUN_00180500(float *param_1, float *param_2);",
+          "name": "FUN_00180500",
+          "ported": true
         },
         {
           "addr": "0x180570",
@@ -26728,7 +26734,9 @@
         },
         {
           "addr": "0x1805f0",
-          "decl": "void FUN_001805f0(int vertex_data, float *uv_out);"
+          "decl": "void FUN_001805f0(int param_1, float *param_2);",
+          "name": "FUN_001805f0",
+          "ported": true
         },
         {
           "addr": "0x180660",
@@ -26776,7 +26784,9 @@
         },
         {
           "addr": "0x181150",
-          "decl": "void FUN_00181150(void);"
+          "decl": "void FUN_00181150(void);",
+          "name": "FUN_00181150",
+          "ported": true
         },
         {
           "addr": "0x181180",
@@ -26784,7 +26794,9 @@
         },
         {
           "addr": "0x1812b0",
-          "decl": "void FUN_001812b0(void);"
+          "decl": "void FUN_001812b0(void);",
+          "name": "FUN_001812b0",
+          "ported": true
         },
         {
           "addr": "0x1812c0",
