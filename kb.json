@@ -26760,7 +26760,8 @@
         },
         {
           "addr": "0x1807d0",
-          "decl": "void FUN_001807d0(void);"
+          "decl": "unsigned char FUN_001807d0(float param_1);",
+          "ported": false
         },
         {
           "addr": "0x180820",
@@ -26772,11 +26773,13 @@
         },
         {
           "addr": "0x1808f0",
-          "decl": "void FUN_001808f0(void);"
+          "decl": "unsigned int FUN_001808f0(float *param_1);",
+          "ported": false
         },
         {
           "addr": "0x180b10",
-          "decl": "int FUN_00180b10(int param_1);"
+          "decl": "unsigned int FUN_00180b10(float *param_1);",
+          "ported": false
         },
         {
           "addr": "0x180d10",
