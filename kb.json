@@ -6611,7 +6611,7 @@
         {
           "addr": "0x9ca70",
           "decl": "void effects_information_get(unsigned int *seed, float *velocity_out, uint32_t min_val, uint32_t max_val, uint32_t flags);",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
           "ported": false
         },
         {
@@ -6672,7 +6672,7 @@
         {
           "addr": "0x9dcf0",
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -27517,15 +27517,18 @@
       "functions": [
         {
           "addr": "0x108e70",
-          "decl": "char bit_vector_and(int16_t bit_vector_size, int v0, int v1, int result_out);"
+          "decl": "char bit_vector_and(int16_t bit_vector_size, int v0, int v1, int result_out);",
+          "ported": true
         },
         {
           "addr": "0x108f00",
-          "decl": "void bit_vector_or(void);"
+          "decl": "void bit_vector_or(int16_t bit_vector_size, int v0, int v1, int result_out);",
+          "ported": true
         },
         {
           "addr": "0x108fa0",
-          "decl": "void FUN_00108fa0(void);"
+          "decl": "void FUN_00108fa0(int16_t bit_vector_size, int vector, int result_out);",
+          "ported": true
         }
       ],
       "name": "integer_math.obj",
@@ -33842,7 +33845,7 @@
       "functions": [
         {
           "addr": "0x1c8d90",
-          "decl": "void *FUN_001c8d90(int permutation_block_ptr, int tick_index);",
+          "decl": "void *FUN_001c8d90(int permutation_block_ptr, short tick_index);",
           "ported": true
         }
       ],

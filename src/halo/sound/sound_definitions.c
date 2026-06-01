@@ -5,7 +5,7 @@
 /* FUN_001c8d90 (0x1c8d90) — Returns a pointer into a permutation block's data
  * at the given tick_index. Asserts that tick_index is within the block's count
  * (stored at offset 0x54). The data base pointer is at offset 0x60. */
-void *FUN_001c8d90(int permutation_block_ptr, int tick_index)
+void *FUN_001c8d90(int permutation_block_ptr, short tick_index)
 {
   char *block;
   int base;
