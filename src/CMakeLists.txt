@@ -94,6 +94,7 @@
 	halo/physics/collision_features.c
 	halo/physics/collision_usage.c
 	halo/physics/point_physics.c
+	halo/math/integer_math.c
 	halo/math/random_math.c
 	halo/math/real_math.c
 	halo/math/rectangles.c
