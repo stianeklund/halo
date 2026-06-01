@@ -1,3 +1,8 @@
+/* FUN_0017ff50: stub (0x17ff50) */
+void FUN_0017ff50(void)
+{
+}
+
 /* rasterizer_frame_statistics.c */
 
 /* rasterizer_frame_statistics_dispose: free frame statistics buffer if
@@ -68,6 +73,52 @@ void FUN_001805f0(int param_1, float *param_2)
   param_2[1] = *(float *)(param_1 + 0x1c);
 }
 
+/* rasterizer_geometry_vertex_get_normal: unpack normal from compressed vertex +0xc (0x180570) */
+void FUN_00180570(int param_1, float *param_2)
+{
+  float local_out[3];
+  float *result;
+  if (param_1 == 0) {
+    display_assert("vertex",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x1c2,
+                   1);
+    system_exit(-1);
+  }
+  if (param_2 == 0) {
+    display_assert("normal",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x1c3,
+                   1);
+    system_exit(-1);
+  }
+  result = FUN_0017ffc0(local_out, *(unsigned int *)(param_1 + 0x0c));
+  param_2[0] = result[0];
+  param_2[1] = result[1];
+  param_2[2] = result[2];
+}
+
+/* rasterizer_geometry_vertex_get_normal_packed: unpack normal from packed value ptr (0x180660) */
+void FUN_00180660(unsigned int *param_1, float *param_2)
+{
+  float local_out[3];
+  float *result;
+  if (param_1 == 0) {
+    display_assert("vertex",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x1da,
+                   1);
+    system_exit(-1);
+  }
+  if (param_2 == 0) {
+    display_assert("normal",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x1db,
+                   1);
+    system_exit(-1);
+  }
+  result = FUN_0017ffc0(local_out, *param_1);
+  param_2[0] = result[0];
+  param_2[1] = result[1];
+  param_2[2] = result[2];
+}
+
 /* rasterizer_lights.c */
 
 /* rasterizer_lights_initialize: clear lights buffers and counter (0x181150) */
@@ -82,6 +133,11 @@ void FUN_00181150(void)
 void FUN_001812b0(void)
 {
   *(int *)0x5a37e0 = 0;
+}
+
+/* FUN_00181410: stub (0x181410) */
+void FUN_00181410(void)
+{
 }
 
 /* rasterizer_memory_pool.c */
@@ -108,6 +164,11 @@ int rasterizer_memory_pool_new(void)
 void rasterizer_memory_pool_reset(void)
 {
   *(int *)0x4d048c = 0;
+}
+
+/* FUN_001825d0: stub (0x1825d0) */
+void FUN_001825d0(void)
+{
 }
 
 /* rasterizer_memory_pool_alloc: allocate from memory pool, optionally copying
