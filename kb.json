@@ -18616,7 +18616,7 @@
         },
         {
           "addr": "0x173ae0",
-          "decl": "void rasterizer_window_set_fog(void);"
+          "decl": "void FUN_00173ae0(void);"
         },
         {
           "addr": "0x173af0",
@@ -18624,11 +18624,11 @@
         },
         {
           "addr": "0x173b40",
-          "decl": "void FUN_00173b40(void);"
+          "decl": "void FUN_00173b40(float *params);"
         },
         {
           "addr": "0x1741d0",
-          "decl": "void FUN_001741d0(void);"
+          "decl": "void FUN_001741d0(float *quad);"
         },
         {
           "addr": "0x1744f0",
@@ -24706,7 +24706,7 @@
         },
         {
           "addr": "0x19d8c0",
-          "decl": "void ustrlen(void);"
+          "decl": "int ustrlen(const unsigned short *s);"
         },
         {
           "addr": "0x19d930",
@@ -26892,47 +26892,64 @@
         },
         {
           "addr": "0x183650",
-          "decl": "void rasterizer_text_cache_initialize(void);"
+          "decl": "int rasterizer_text_cache_initialize(void);",
+          "ported": true
         },
         {
           "addr": "0x1836e0",
-          "decl": "void rasterizer_text_set_shadow_color(void);"
+          "decl": "void rasterizer_text_set_shadow_color(const void *color);",
+          "ported": true
         },
         {
           "addr": "0x1836f0",
-          "decl": "void rasterizer_text_cache_flush(void);"
+          "decl": "void rasterizer_text_cache_flush(void);",
+          "ported": true
         },
         {
           "addr": "0x183720",
-          "decl": "void FUN_00183720(void);"
+          "decl": "void rasterizer_text_cache_dispose(void);",
+          "ported": true,
+          "name": "rasterizer_text_cache_dispose"
         },
         {
           "addr": "0x183770",
-          "decl": "void FUN_00183770(void);"
+          "decl": "void rasterizer_text_get_character_position(short index@<ax>, short *out_y@<ebx>, short *out_x);",
+          "ported": true,
+          "name": "rasterizer_text_get_character_position"
         },
         {
           "addr": "0x183820",
-          "decl": "void FUN_00183820(void);"
+          "decl": "void rasterizer_text_evict_character(int **slot@<esi>);",
+          "ported": true,
+          "name": "rasterizer_text_evict_character"
         },
         {
           "addr": "0x183880",
-          "decl": "void FUN_00183880(void);"
+          "decl": "void rasterizer_text_cache_character(int character@<edi>, void *font);",
+          "ported": true,
+          "name": "rasterizer_text_cache_character"
         },
         {
           "addr": "0x183c00",
-          "decl": "void FUN_00183c00(void);"
+          "decl": "void rasterizer_text_draw_cached_char(void *font, void *character, short x, short y, unsigned int color, int screen_x, int screen_y, short width, short height);",
+          "ported": true,
+          "name": "rasterizer_text_draw_cached_char"
         },
         {
           "addr": "0x183cf0",
-          "decl": "void FUN_00183cf0(void);"
+          "decl": "void rasterizer_text_draw_cached_chars(void *font, void *character, short x, short y, unsigned int color, int offset_x, int offset_y, short width, short height);",
+          "ported": true,
+          "name": "rasterizer_text_draw_cached_chars"
         },
         {
           "addr": "0x183e60",
-          "decl": "void rasterizer_text_draw(void *screen_pos, short *bounds, void *out_cursor, int flags, const char *text);"
+          "decl": "void rasterizer_text_draw(void *screen_pos, short *bounds, const void *color, int flags, const char *text);",
+          "ported": true
         },
         {
           "addr": "0x184060",
-          "decl": "void rasterizer_draw_string(void *rect, int param_2, int param_3, int param_4, wchar_t *text);"
+          "decl": "void rasterizer_draw_string(void *screen_pos, short *bounds, const void *color, int flags, unsigned short *text);",
+          "ported": true
         },
         {
           "addr": "0x184260",
@@ -26967,7 +26984,8 @@
           "decl": "void FUN_001844b0(void);"
         }
       ],
-      "name": "rasterizer_text.obj"
+      "name": "rasterizer_text.obj",
+      "source": "rasterizer/rasterizer_text.c"
     },
     {
       "functions": [
@@ -27455,7 +27473,7 @@
         },
         {
           "addr": "0x1089a0",
-          "decl": "void FUN_001089a0(void);"
+          "decl": "void FUN_001089a0(int *bounds, int y0, int x0, int h, int w);"
         },
         {
           "addr": "0x1089d0",
@@ -29242,11 +29260,11 @@
       "functions": [
         {
           "addr": "0x19c5d0",
-          "decl": "void FUN_0019c5d0(void);"
+          "decl": "void FUN_0019c5d0(void *callback, void *screen_pos, const void *color, void *clip_bounds, int flags, char *text);"
         },
         {
           "addr": "0x19c960",
-          "decl": "void FUN_0019c960(void);"
+          "decl": "void FUN_0019c960(void *callback, void *screen_pos, const void *color, void *clip_bounds, int flags, unsigned short *text);"
         },
         {
           "addr": "0x19ccf0",
@@ -33700,7 +33718,7 @@
         },
         {
           "addr": "0x168370",
-          "decl": "void FUN_00168370(void *bitmap);"
+          "decl": "char FUN_00168370(void *bitmap);"
         },
         {
           "addr": "0x168500",
