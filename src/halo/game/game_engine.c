@@ -5946,11 +5946,11 @@ void game_engine_player_event(int param_1, int param_2, int param_3)
     player = (int)data_iterator_next(&iter);
     while (player != 0) {
       if (param_2 != -1)
-        game_engine_hud_update_player(iter.datum_handle, param_2, param_3);
+        game_engine_hud_update_player(iter.datum_handle, param_3, param_2);
       player = (int)data_iterator_next(&iter);
     }
   } else if (param_2 != -1) {
-    game_engine_hud_update_player(param_1, param_2, param_3);
+    game_engine_hud_update_player(param_1, param_3, param_2);
   }
 }
 
@@ -6150,23 +6150,29 @@ int FUN_000abd20(int *param_1, int param_2, char param_3)
 void FUN_000abf50(int *param_1, int player_handle)
 {
   int i;
+  int count;
   int *src;
   int *dst;
   int local_1c4[112];
 
   i = 0;
-  FUN_000abd20(local_1c4, 0, 0);
-  if (local_1c4[0] != player_handle) {
+  count = FUN_000abd20(local_1c4, 0, 0);
+  if (count > 0 && local_1c4[0] != player_handle) {
     src = local_1c4;
     do {
       i++;
       src += 7;
-      if (0xf < i) {
-        display_assert("place<MULTIPLAYER_MAXIMUM_PLAYERS",
-                       "c:\\halo\\SOURCE\\game\\game_engine.c", 0x359, 1);
-        system_exit(-1);
+      if (i >= count) {
+        /* player datum inactive (quit) — not in sorted array; zero output */
+        int n;
+        for (n = 0; n < 7; n++) param_1[n] = 0;
+        return;
       }
     } while (*src != player_handle);
+  } else if (count == 0) {
+    int n;
+    for (n = 0; n < 7; n++) param_1[n] = 0;
+    return;
   }
   src = local_1c4 + i * 7;
   dst = param_1;
@@ -8446,7 +8452,7 @@ void FUN_000ab090(int text, char highlight, int row, int state)
     row_top = (int16_t)(row + (split < 2 ? 4 : 0) + 4) * char_height;
     *(int16_t *)rect = row_top;
     *(int16_t *)((char *)rect + 4) = row_top + char_height;
-    draw_string_set_font(font_tag, -1, 0, 0, NULL);
+    draw_string_set_font(font_tag, -1, 0, 0, (const void *)state);
     rasterizer_draw_string((int16_t *)rect, 0, 0, 0, (wchar_t *)text);
   }
   draw_string_set_tab_stops(0, 0);
@@ -8517,7 +8523,7 @@ void FUN_000afa40(int param_1, float param_2)
   if (current_game_engine)
     has_teams = *(char *)0x456b14;
   (void)has_teams;
-  FUN_000ae920(local_f4);
+  FUN_000ae920(local_f4, param_1);
   player_count = FUN_000ac030(0, param_1, scoreboard, 6);
   color_a[0] = param_2;
   color_a[1] = 0.7f;
@@ -8528,7 +8534,7 @@ void FUN_000afa40(int param_1, float param_2)
   color_a[2] = 0.5f;
   color_a[3] = 0.5f;
   color_a[0] = param_2;
-  ((void (*)(int, wchar_t *))((int *)current_game_engine)[0x50 / 4])(0, local_39c);
+  ((void (*)(wchar_t *))((int *)current_game_engine)[0x50 / 4])(local_39c);
   usprintf(local_59c, L"\t%s\t%s\t%s", L"Place", L"Name", local_39c);
   FUN_000ab090((int)local_59c, 0, 1, (int)color_a);
   i = 0;
@@ -8576,7 +8582,7 @@ void FUN_000afa40(int param_1, float param_2)
 }
 
 /* Post-game: render title string with lives/score info (ae920). */
-void FUN_000ae920(wchar_t *title_buf)
+void FUN_000ae920(wchar_t *title_buf, int player_handle)
 {
   int player;
   int lives_remaining;
@@ -8584,7 +8590,7 @@ void FUN_000ae920(wchar_t *title_buf)
   wchar_t score_buf[256];
   wchar_t *lives_text;
 
-  datum_get(player_data, 0);
+  datum_get(player_data, player_handle);
   if (title_buf == NULL) {
     display_assert("title_string",
                    "c:\\halo\\SOURCE\\game\\game_engine.c", 0x363, 1);
@@ -8655,7 +8661,7 @@ check_phase:
       return; }
     }
     { int local_stats[28];
-    FUN_000abf50(local_stats, 0);
+    FUN_000abf50(local_stats, player_handle);
     ((void (*)(int, wchar_t *))((int *)current_game_engine)[0x4c / 4])(0, score_buf);
     if ((*(uint32_t *)(local_stats + 6) & 0x80000000) != 0)
       usprintf(title_buf, L"Tied for %s place with %s %s",
