@@ -26703,15 +26703,18 @@
         },
         {
           "addr": "0x17ff80",
-          "decl": "void FUN_0017ff80(void);"
+          "decl": "float FUN_0017ff80(unsigned char param_1);",
+          "ported": true
         },
         {
           "addr": "0x17ffa0",
-          "decl": "void FUN_0017ffa0(void);"
+          "decl": "float FUN_0017ffa0(short param_1);",
+          "ported": true
         },
         {
           "addr": "0x17ffc0",
-          "decl": "float *FUN_0017ffc0(float *out, unsigned int packed);"
+          "decl": "float *FUN_0017ffc0(float *param_1, unsigned int param_2);",
+          "ported": false
         },
         {
           "addr": "0x180050",
@@ -26747,7 +26750,8 @@
         },
         {
           "addr": "0x1806e0",
-          "decl": "void FUN_001806e0(void);"
+          "decl": "void FUN_001806e0(int param_1, float *param_2);",
+          "ported": true
         },
         {
           "addr": "0x180770",
@@ -26871,11 +26875,15 @@
         },
         {
           "addr": "0x182690",
-          "decl": "void FUN_00182690(void);"
+          "name": "rasterizer_swizzle_compute_masks",
+          "decl": "void rasterizer_swizzle_compute_masks(short param_1, short param_2, unsigned short param_3, unsigned short param_4, unsigned int *param_5);",
+          "ported": false
         },
         {
           "addr": "0x1827c0",
-          "decl": "void FUN_001827c0(void);"
+          "name": "rasterizer_swizzle_interleave_bits",
+          "decl": "void rasterizer_swizzle_interleave_bits(short param_1, short param_2, short param_3, unsigned int param_4, unsigned int param_5, unsigned int param_6, unsigned int *param_7);",
+          "ported": false
         },
         {
           "addr": "0x182840",
