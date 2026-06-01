@@ -3397,8 +3397,8 @@
         },
         {
           "addr": "0x17120",
-          "decl": "void FUN_00017120(void);",
-          "ported": false
+          "decl": "void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size);",
+          "ported": true
         },
         {
           "addr": "0x178b0",
