@@ -19,10 +19,6 @@ double pow(double x, double y);
 #define CALL_FUN_000b6740(a,b) XCALL(0xb6740, void(*)(unsigned short,void*))(a,b)
 #define CALL_FUN_000b7e30(a) XCALL(0xb7e30, void*(*)(unsigned short))(a)
 #define CALL_FUN_001a9240(a,b) XCALL(0x1a9240, void(*)(int,void*))(a,b)
-#define CALL_FUN_0010b120(a,b) XCALL(0x10b120, int(*)(int,int))(a,b)
-#define CALL_FUN_0010b270(a) XCALL(0x10b270, float(*)(int))(a)
-#define CALL_FUN_0010cc40() XCALL(0x10cc40, void(*)(void))()
-#define CALL_FUN_0008aa80() XCALL(0x8aa80, void(*)(void))()
 #define CALL_FUN_00084a70(a,b) XCALL(0x84a70, char(*)(float*,float*))(a,b)
 #define CALL_FUN_00084a10(a) XCALL(0x84a10, char(*)(float*))(a)
 #define CALL_game_time_get_rate() XCALL(0xb5cc0, float(*)(void))()
@@ -8284,7 +8280,6 @@ void FUN_00084ae0(int *param_1, unsigned short *param_2, unsigned char *param_3)
   int iVar4;
   float *pfVar5;
   int uVar6;
-  float fVar7;
   char cVar2;
   char local_30[8];
   int local_28 = 0;
@@ -8292,8 +8287,7 @@ void FUN_00084ae0(int *param_1, unsigned short *param_2, unsigned char *param_3)
   int local_20 = 0;
   int local_1c = 0;
   char local_18[12];
-  float local_c = 0;
-  float local_8 = 0;
+  float angles[2];
   unsigned char *puVar1;
 
   iVar3 = CALL_FUN_001d0581();
@@ -8322,24 +8316,29 @@ void FUN_00084ae0(int *param_1, unsigned short *param_2, unsigned char *param_3)
         tag_block_get_element((void *)(local_28 + 0x4c), 0, 0x1c);
       }
       pfVar5 = (float *)CALL_FUN_000b7e30(*param_2);
-      local_c = *pfVar5;
-      local_8 = pfVar5[1];
+      angles[0] = *pfVar5;
+      angles[1] = pfVar5[1];
       CALL_FUN_001a9240(iVar3, local_18);
-      uVar6 = CALL_FUN_0010b120(0xbf8cbe4c, 0x3ec90fdb);
-      fVar7 = (float)CALL_FUN_0010b270(uVar6);
-      (void)local_8; /* set but used only transiently by the original */
-      local_8 = fVar7;
-      uVar6 = CALL_FUN_0010b120(0xbf490fdb, 0x3f490fdb);
-      fVar7 = (float)CALL_FUN_0010b270(uVar6);
-      local_c = fVar7 + local_c + *(float *)0x256980;
-      CALL_FUN_0010cc40();
-      CALL_FUN_0008aa80();
-      uVar6 = CALL_FUN_0010b120(0x3f060a92, 0x3fb2b8c2);
-      fVar7 = (float)CALL_FUN_0010b270(uVar6);
-      *(float *)(param_3 + 0x20) = fVar7;
-      uVar6 = CALL_FUN_0010b120(0x3f800000, 0x40c00000);
-      fVar7 = (float)CALL_FUN_0010b270(uVar6);
-      *(float *)(param_3 + 0x1c) = fVar7;
+      /* Random bored-camera angles. The original evaluates each
+       * random_real_range(min,max) by pushing min/max, then calling the
+       * 0-arg local-seed getter, then random_real_range(seed, min, max).
+       * Ghidra mis-grouped the constants onto the 0-arg seed getter; they
+       * are the random ranges (radians). angles[] is a contiguous pair so
+       * angles_to_vector can read {angles[0], angles[1]} through one
+       * pointer (matches the original EBP-8 / EBP-4 stack layout). */
+      angles[1] = random_real_range((int *)random_math_get_local_seed_address(),
+                                    -1.0995574f, 0.39269909f);
+      angles[0] = random_real_range((int *)random_math_get_local_seed_address(),
+                                    -0.78539819f, 0.78539819f)
+                  + angles[0] + *(float *)0x256980;
+      angles_to_vector((float *)(param_3 + 0x24), angles);
+      observer_up_from_forward((float *)(param_3 + 0x24), (float *)(param_3 + 0x30));
+      *(float *)(param_3 + 0x20) =
+          random_real_range((int *)random_math_get_local_seed_address(),
+                            0.52359879f, 1.3962634f);
+      *(float *)(param_3 + 0x1c) =
+          random_real_range((int *)random_math_get_local_seed_address(),
+                            1.0f, 6.0f);
       puVar1 = *(unsigned char **)0x31fc38;
       *(int *)(param_3 + 0x3c) = *(int *)puVar1;
       *(int *)(param_3 + 0x40) = *(int *)(puVar1 + 4);
