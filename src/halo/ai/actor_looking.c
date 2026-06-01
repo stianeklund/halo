@@ -3463,6 +3463,42 @@ short FUN_0002a430(int actor_handle)
   return -1;
 }
 
+/* FUN_00025970 (0x25970) — Firing-position evaluation state updater.
+ * Advances the per-position evaluation state machine.
+ *
+ * Confirmed: EAX=state_ptr@<eax>, ESI=actor_ptr, EBP+8=actor_handle.
+ *   Calls FUN_00024850, FUN_000257a0, FUN_00024890.
+ * Confirmed: state+0x30/0x31/0x34/0x38 accessed; actor+0x668/0x66a/0x66c
+ *   debug counters. */
+char FUN_00025970(void *state, int actor_handle, char *actor)
+{
+  char result;
+
+  *(int *)((char *)state + 0x38) = 0;
+  *(int *)((char *)state + 0x34) = 0;
+  *(char *)((char *)state + 0x31) = 0;
+  *(char *)((char *)state + 0x30) = 1;
+
+  FUN_00024850(actor_handle, 1);
+
+  if (*(char *)((char *)state + 0x30) != 0)
+    *(short *)(actor + 0x668) = *(short *)(actor + 0x668) + 1;
+
+  if (*(char *)((char *)state + 0x31) == 0)
+    *(short *)(actor + 0x66a) = *(short *)(actor + 0x66a) + 1;
+
+  if (*(char *)((char *)state + 0x30) != 0) {
+    if (*(char *)(actor + 0x5fc) != 0)
+      FUN_000257a0(actor_handle, state, actor);
+    *(int *)((char *)state + 0x34) = *(int *)((char *)state + 0x38);
+    result = FUN_00024890(actor_handle, state);
+    *(char *)((char *)state + 0x30) = result;
+    *(short *)(actor + 0x66c) = *(short *)(actor + 0x66c) + 1;
+  }
+
+  return *(char *)((char *)state + 0x30);
+}
+
 /* FUN_00027dd0 (0x27dd0)
  * Returns true if the dot product of a normalized 2D direction vector
  * and a comparison direction exceeds a threshold.
