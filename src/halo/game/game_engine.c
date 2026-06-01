@@ -6926,26 +6926,32 @@ char FUN_000a9190(int param_1, int flag_index, int player_handle)
   return 0;
 }
 
-/* Dispatch HUD update event with register args. ECX=player, EAX=msg, EBX=extra. */
-void FUN_000aceb0(int player_handle, int message_type, int extra)
+/* FUN_000aceb0 / game_engine.obj -- dispatch a player game-engine message.
+ *
+ * ABI: 3 register args + 2 stack args (ECX=player_handle, EAX=message_type,
+ * EBX=extra, [EBP+8]=param4 (stack1), [EBP+0xc]=param5 (stack2)). It calls the
+ * current game engine's handler vtable[0x64] with
+ * (param4, param5, extra, player_handle, message_type); if the handler returns
+ * nonzero it stops, otherwise (or if the handler is NULL) it falls back to
+ * game_engine_get_score_hud_text(param4, param5, extra, EDI=player_handle,
+ * ESI=message_type).
+ *
+ * Must stay ported=true: the original aceb0 (0xaceb0) reads its two stack args
+ * from [EBP+8]/[EBP+0xc], but the ported=false redirect thunk only marshals the
+ * 3 register args and tail-jmps, leaving the caller's param2/param3 (a HUD-buffer
+ * pointer) at the original's stack1 slot -- which then reaches a players datum_get
+ * as a bogus handle and asserts "players index ... unused". Running our cdecl impl
+ * directly (only caller is our lifted FUN_000ae110) avoids the broken thunk. */
+void FUN_000aceb0(int player_handle, int message_type, int extra, int param4, int param5)
 {
-  int player;
+  char (*handler)(int, int, int, int, int);
 
-  player = (int)datum_get(player_data, player_handle);
-  if (*(int16_t *)(player + 2) == -1)
-    return;
-  if (((char (**)(void))current_game_engine)[0x64 / 4] != NULL) {
-    if (((char (*)(int, int, int, wchar_t *, int))((void **)current_game_engine)[0x64 / 4])(
-            player_handle, message_type, extra, (wchar_t *)((char *)player - 0x804 + 0x808), 0x400))
-      goto display;
+  handler = (char (*)(int, int, int, int, int))((void **)current_game_engine)[0x64 / 4];
+  if (handler != NULL) {
+    if (handler(param4, param5, extra, player_handle, message_type))
+      return;
   }
-  if (!game_engine_get_score_hud_text(player_handle, message_type, extra,
-                                       (wchar_t *)((char *)player - 0x804 + 0x808), 0x400))
-    return;
-display:
-  { int16_t screen_index = *(int16_t *)(player + 2);
-  *(int16_t *)((char *)player - 2) = 0;
-  hud_print_message(screen_index, (wchar_t *)((char *)player - 0x804 + 0x808)); }
+  game_engine_get_score_hud_text(param4, param5, extra, (wchar_t *)player_handle, message_type);
 }
 
 /* Check if the team won by finding a player on team ESI and dispatching. */
@@ -7480,9 +7486,14 @@ int FUN_000ac220(int param_1)
   char local_3c[12];
   char local_30[12];
   char local_24[4];
-  float local_20 = 0;
-  float local_1c = 0;
-  float local_18 = 0;
+  /* Position vec3 filled by unit_set_seat_state (a 12-byte write to local_20).
+   * MUST be one contiguous 3-float buffer. The original keeps `player` in EDI
+   * (a register untouched by callees), but our clang lift spills `player` to the
+   * stack at EBP-0x10 -- 4 bytes after this buffer at EBP-0x14. Declaring the
+   * components as 3 separate floats let the 12-byte vec3 write spill position.y
+   * onto `player`, turning it into a float; the later *(player+0x34) deref then
+   * page-faulted (float-as-pointer). A real array keeps the write self-contained. */
+  float local_20[3];
   int num_found;
   float local_10;
   float local_c;
@@ -7496,24 +7507,24 @@ int FUN_000ac220(int param_1)
         return player_index_from_unit_index(best);
     }
   }
-  ((void (*)(int, float *))unit_set_seat_state)(*(int *)(player + 0x34), &local_20);
+  ((void (*)(int, float *))unit_set_seat_state)(*(int *)(player + 0x34), local_20);
   ((void (*)(int16_t, float *))player_control_get_facing_direction)(*(int16_t *)(player + 2), (float *)local_30);
   num_found = ((int (*)(float *, float *, void *, int *, int, int *))find_objects_from_point_vector)(
-      &local_20, (float *)local_30, FUN_000a85d0, &param_1, 0x20, local_c8);
+      local_20, (float *)local_30, FUN_000a85d0, &param_1, 0x20, local_c8);
   i = 0;
   if (0 < num_found) {
     do {
       obj = local_c8[i];
       biped = (int)object_get_and_verify_type(obj, 3);
-      dx = *(float *)(biped + 0xc) - local_20;
-      dy = *(float *)(biped + 0x10) - local_1c;
-      dz = *(float *)(biped + 0x14) - local_18;
+      dx = *(float *)(biped + 0xc) - local_20[0];
+      dy = *(float *)(biped + 0x10) - local_20[1];
+      dz = *(float *)(biped + 0x14) - local_20[2];
       local_c = dy * dy + dx * dx + dz * dz;
       if ((*(float *)(biped + 0x32c) < 1.0f ||
            (player_idx = player_index_from_unit_index(obj),
             *(int *)(player + 0x7c) == player_idx)) &&
           ((char (*)(int, float *, float *, int, char *, char *, char *, float *))FUN_000a5c60)(
-              local_c8[i], &local_20, (float *)local_30, *(int *)(player + 0x34),
+              local_c8[i], local_20, (float *)local_30, *(int *)(player + 0x34),
               local_48, local_3c, local_24, &local_10) &&
           (local_10 > -*(float *)0x26c228 && local_10 < *(float *)0x26c228) &&
           local_c < *(float *)0x254f90 &&
