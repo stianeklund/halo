@@ -57,7 +57,6 @@ double pow(double x, double y);
 #define CALL_FUN_00021fb0(a) XCALL(0x21fb0, char(*)(float*))(a)
 #define CALL_FUN_000a16b0(a) XCALL(0xa16b0, char(*)(void*))(a)
 #define CALL_FUN_00143ae0() XCALL(0x143ae0, void(*)(void))()
-#define CALL_FUN_0013d880() XCALL(0x13d880, void(*)(void))()
 #define CALL_FUN_001d9e59(a,b) XCALL(0x1d9e59, void*(*)(const char*,const char*))(a,b)
 #define CALL_FUN_001d9260 XCALL(0x1d9260, int(*)(void*,const char*,...))
 #define CALL_FUN_0013f3b0(a,b) XCALL(0x13f3b0, void(*)(void*,int))(a,b)
@@ -9502,7 +9501,10 @@ LAB_0013d51f:
               (void *)((int)global_scenario_get() + 0x204), (int)param_2[1], 0x24);
     *(short *)(iVar6 + 0x20) = param_4;
     *(short *)(iVar6 + 0x22) = param_5;
-    CALL_FUN_0013d880();
+    /* Store this object's handle (param_1, held in ESI / the return value) at
+     * the scenario name-table index param_2[1]. Confirmed at 0x13d551-0x13d557:
+     * PUSH ESI (=param_1); PUSH EDX (=param_2[1]); CALL 0x13d880. */
+    object_name_list_set_handle(param_2[1], param_1);
   }
   return param_1;
 }
