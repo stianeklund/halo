@@ -15570,7 +15570,7 @@
         },
         {
           "addr": "0x8aa80",
-          "decl": "void observer_up_from_forward(void);"
+          "decl": "void observer_up_from_forward(float *forward, float *up);"
         },
         {
           "addr": "0x8ab10",
