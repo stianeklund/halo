@@ -3657,18 +3657,18 @@
         },
         {
           "addr": "0x27dd0",
-          "decl": "void FUN_00027dd0(void);",
+          "decl": "bool FUN_00027dd0(float *dir@<eax>, float *vec2@<edx>, float threshold);",
           "ported": false
         },
         {
           "addr": "0x27e50",
-          "decl": "void FUN_00027e50(void);",
+          "decl": "bool FUN_00027e50(float *dir@<eax>, float *vec2@<ecx>, float *limit@<edx>, float threshold, float *output);",
           "ported": false
         },
         {
           "addr": "0x27f40",
-          "decl": "void FUN_00027f40(void);",
-          "ported": false
+          "decl": "void FUN_00027f40(int actor_handle, void *out1, void *out2);",
+          "ported": true
         },
         {
           "addr": "0x27ff0",
