@@ -1,3 +1,76 @@
+/* rasterizer_memory_pool.c */
+
+/* rasterizer_memory_pool_new: allocate global rasterizer memory pool (0x1824e0)
+ */
+int rasterizer_memory_pool_new(void)
+{
+  void *pool;
+  char result;
+  result = 1;
+  pool = (void *)debug_malloc(
+    0x18000, 0, "c:\\halo\\SOURCE\\rasterizer\\rasterizer_memory_pool.c", 0x13);
+  *(void **)0x4d0488 = pool;
+  if (pool == 0) {
+    error(2, "### ERROR rasterizer failed to allocate global memory pool");
+    return 0;
+  }
+  return result;
+}
+
+/* rasterizer_memory_pool_reset: reset pool allocation cursor to zero (0x182520)
+ */
+void rasterizer_memory_pool_reset(void)
+{
+  *(int *)0x4d048c = 0;
+}
+
+/* rasterizer_memory_pool_alloc: allocate from memory pool, optionally copying
+ * data (0x182530) */
+int rasterizer_memory_pool_alloc(int data, int size)
+{
+  unsigned int new_offset;
+  int result;
+
+  new_offset = *(unsigned int *)0x4d048c + size;
+  result = 0;
+  if (new_offset < 0x18001) {
+    result = *(int *)0x4d0488 + *(int *)0x4d048c;
+    *(unsigned int *)0x4d048c = new_offset;
+    if (data != 0) {
+      csmemcpy((void *)result, (void *)data, size);
+      return result;
+    }
+  } else {
+    error(2, "### ERROR rasterizer memory pool exceeded");
+  }
+  return result;
+}
+
+/* rasterizer_memory_pool_copy: assert data non-null then copy into pool
+ * (0x182590) */
+void rasterizer_memory_pool_copy(int data, int size)
+{
+  if (data == 0) {
+    display_assert("data",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_memory_pool.c",
+                   0x42, 1);
+    system_exit(-1);
+  }
+  rasterizer_memory_pool_alloc(data, size);
+}
+
+/* rasterizer_memory_pool_delete: free the global rasterizer memory pool
+ * (0x1825e0) */
+void rasterizer_memory_pool_delete(void)
+{
+  if (*(void **)0x4d0488 != 0) {
+    debug_free(*(void **)0x4d0488,
+               "c:\\halo\\SOURCE\\rasterizer\\rasterizer_memory_pool.c", 0x50);
+  }
+  *(void **)0x4d0488 = 0;
+  *(int *)0x4d048c = 0;
+}
+
 /* rasterizer_text_cache_initialize: init hardware text cache (0x183650) */
 int rasterizer_text_cache_initialize(void)
 {
@@ -292,8 +365,8 @@ void rasterizer_text_draw_cached_char(void *arg0, void *font,
   rasterizer_text_cache_character(font_character, font);
 
   if (*(short *)((int)font_character + 0xc) != -1) {
-    rasterizer_text_get_character_position(*(short *)((int)font_character + 0xc),
-                                           &cache_y, &cache_x);
+    rasterizer_text_get_character_position(
+      *(short *)((int)font_character + 0xc), &cache_y, &cache_x);
 
     quad_verts[0] = (float)x;
     quad_verts[1] = (float)y;
@@ -369,8 +442,8 @@ void rasterizer_text_draw_cached_chars(void *arg0, void *font,
     /* First pass: shadow, second pass: actual color */
     c = 0;
     while (c < 2 && has_shadow != 0) {
-      rasterizer_text_get_character_position(*(short *)((int)font_character + 0xc),
-                                             &cache_y, &cache_x);
+      rasterizer_text_get_character_position(
+        *(short *)((int)font_character + 0xc), &cache_y, &cache_x);
 
       if (has_shadow == 1) {
         /* first pass uses shadow color */
@@ -422,7 +495,7 @@ void rasterizer_text_draw_cached_chars(void *arg0, void *font,
 
 /* rasterizer_text_draw: draw ASCII string (0x183e60) */
 void rasterizer_text_draw(void *screen_pos, short *bounds, const void *color,
-                           int flags, const char *text)
+                          int flags, const char *text)
 {
   int draw_bounds[4];
   int clip_bounds[4];
@@ -513,7 +586,7 @@ void rasterizer_text_draw(void *screen_pos, short *bounds, const void *color,
 
 /* rasterizer_draw_string: draw wide-character string (0x184060) */
 void rasterizer_draw_string(void *screen_pos, short *bounds, const void *color,
-                             int flags, unsigned short *text)
+                            int flags, unsigned short *text)
 {
   int draw_bounds[4];
   int clip_bounds[4];
@@ -600,4 +673,172 @@ void rasterizer_draw_string(void *screen_pos, short *bounds, const void *color,
                  clip_bounds, flags, text);
     FUN_00173ae0();
   }
+}
+
+/* rasterizer_transparent_geometry.c */
+
+/* rasterizer_transparent_geometry_new: allocate transparent geometry buffers
+ * and init vertex cache (0x184260) */
+int rasterizer_transparent_geometry_new(void)
+{
+  int success;
+
+  *(void **)0x4d0cec = debug_malloc(
+    0xf000, 0,
+    "c:\\halo\\SOURCE\\rasterizer\\rasterizer_transparent_geometry.c", 0x29);
+  *(void **)0x4d0cfc = debug_malloc(
+    0x300, 0, "c:\\halo\\SOURCE\\rasterizer\\rasterizer_transparent_geometry.c",
+    0x2b);
+  *(void **)0x4d0cf0 = debug_malloc(
+    0x1400, 0,
+    "c:\\halo\\SOURCE\\rasterizer\\rasterizer_transparent_geometry.c", 0x2e);
+  *(int *)0x4d0cf8 = 0;
+  *(int *)0x4d0cf4 = 0;
+  if (*(int *)0x4d0cec == 0 || *(int *)0x4d0cfc == 0 || *(int *)0x4d0cf0 == 0) {
+    error(2, "### ERROR failed to allocate transparent geometry buffer");
+  } else {
+    success = FUN_00174bd0();
+    if (success != 0) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+/* rasterizer_transparent_geometry_begin: reset group counts and stats for new
+ * frame (0x184300) */
+void rasterizer_transparent_geometry_begin(void)
+{
+  *(int *)0x4d0cf4 = 0;
+  *(short *)0x4d0d00 = 0;
+  csmemset((void *)0x4d0cbc, 0, 0x30);
+  *(int *)0x4d0cf8 = 0;
+}
+
+/* rasterizer_transparent_geometry_group_new: allocate next transparent geometry
+ * group slot (0x184330) */
+void *rasterizer_transparent_geometry_group_new(void)
+{
+  void *group;
+
+  group = (void *)0;
+  if (*(int *)0x4d0cf4 < 0x180) {
+    group = (void *)(*(int *)0x4d0cf4 * 0xa0 + *(int *)0x4d0cec);
+    *(int *)((char *)group + 0x90) = *(int *)0x4d0cf4;
+    *(int *)0x4d0cf4 = *(int *)0x4d0cf4 + 1;
+  }
+  return group;
+}
+
+/* rasterizer_secondary_geometry_group_new: allocate next secondary geometry
+ * group slot (0x184360) */
+void *rasterizer_secondary_geometry_group_new(void)
+{
+  void *group;
+
+  group = (void *)0;
+  if (*(int *)0x4d0cf8 < 0x20) {
+    group = (void *)(*(int *)0x4d0cf8 * 0xa0 + *(int *)0x4d0cf0);
+    *(int *)((char *)group + 0x90) = *(int *)0x4d0cf8;
+    *(int *)0x4d0cf8 = *(int *)0x4d0cf8 + 1;
+  }
+  return group;
+}
+
+/* rasterizer_secondary_geometry_groups_get: return secondary groups buffer;
+ * optionally write count (0x184390) */
+void *rasterizer_secondary_geometry_groups_get(short *out_count)
+{
+  if (out_count != (short *)0) {
+    *out_count = (short)*(int *)0x4d0cf8;
+  }
+  return *(void **)0x4d0cf0;
+}
+
+/* rasterizer_transparent_geometry_next_group: return next sorted group after
+ * given group (0x1843b0) */
+void *rasterizer_transparent_geometry_next_group(void *group)
+{
+  short next_index;
+  short sorted_index;
+
+  if (group != (void *)0) {
+    sorted_index = *(short *)((char *)group + 0x90);
+    next_index = (short)(sorted_index + 1);
+    if (*(int *)((char *)group + 0x90) < 0 ||
+        *(int *)0x4d0cf4 <= *(int *)((char *)group + 0x90)) {
+      display_assert(
+        "group->sorted_index>=0 && "
+        "group->sorted_index<transparent_geometry_group_count",
+        "c:\\halo\\SOURCE\\rasterizer\\rasterizer_transparent_geometry.c", 0x89,
+        1);
+      system_exit(-1);
+    }
+    if (next_index < *(int *)0x4d0cf4) {
+      if (next_index < 0) {
+        display_assert(
+          "next_group_sorted_index>=0",
+          "c:\\halo\\SOURCE\\rasterizer\\rasterizer_transparent_geometry.c",
+          0x8d, 1);
+        system_exit(-1);
+      }
+      return (void *)(*(short *)(*(int *)0x4d0cfc + next_index * 2) * 0xa0 +
+                      *(int *)0x4d0cec);
+    }
+  }
+  return (void *)0;
+}
+
+/* rasterizer_transparent_geometry_group_get: return group by presorted index
+ * (0x184460) */
+void *rasterizer_transparent_geometry_group_get(short group_presorted_index)
+{
+  if (group_presorted_index < 0 || *(int *)0x4d0cf4 <= group_presorted_index) {
+    display_assert(
+      "group_presorted_index>=0 && "
+      "group_presorted_index<transparent_geometry_group_count",
+      "c:\\halo\\SOURCE\\rasterizer\\rasterizer_transparent_geometry.c", 0xbc,
+      1);
+    system_exit(-1);
+  }
+  return (void *)(group_presorted_index * 0xa0 + *(int *)0x4d0cec);
+}
+
+/* rasterizer_transparent_geometry_group_to_presorted_index: convert group
+ * pointer to presorted index (0x1844b0) */
+short rasterizer_transparent_geometry_group_to_presorted_index(
+  unsigned int group)
+{
+  unsigned int base;
+  int count;
+  short index;
+  unsigned int offset;
+  unsigned int remainder;
+
+  base = *(unsigned int *)0x4d0cec;
+  count = *(int *)0x4d0cf4;
+  index = -1;
+  if (group >= base && group < base + (unsigned int)(count * 0xa0)) {
+    index = (short)((int)(group - base) / 0xa0);
+    if (index < 0 || count <= index) {
+      display_assert(
+        "group_presorted_index>=0 && "
+        "group_presorted_index<transparent_geometry_group_count",
+        "c:\\halo\\SOURCE\\rasterizer\\rasterizer_transparent_geometry.c", 0xcb,
+        1);
+      system_exit(-1);
+    }
+    offset = group - base;
+    remainder = offset % 0xa0;
+    if (remainder != 0) {
+      display_assert(
+        "((unsigned long)group-(unsigned "
+        "long)transparent_geometry_groups)%sizeof(struct "
+        "transparent_geometry_group)==0",
+        "c:\\halo\\SOURCE\\rasterizer\\rasterizer_transparent_geometry.c", 0xcc,
+        1);
+      system_exit(-1);
+    }
+  }
+  return index;
 }
