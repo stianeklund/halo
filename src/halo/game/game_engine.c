@@ -7664,16 +7664,24 @@ void FUN_000ac3e0(int player_handle)
   if (*(int *)(player + 0x7c) != -1) {
     int target_player;
     int hold_time;
+    float alpha;
 
     target_player = (int)datum_get(player_data, *(int *)(player + 0x7c));
     hold_time = *(int *)(player + 0x80);
     csmemset(target_name, 0, sizeof(target_name));
     if (9 < hold_time)
       hold_time = 10;
-    ((void (*)(wchar_t *, wchar_t *, int))ustrncpy)(target_name, (wchar_t *)(target_player + 4), 11);
+    ustrncpy(target_name, (wchar_t *)(target_player + 4), 11);
     target_name[11] = 0;
-    { float alpha = (float)game_globals_get_weapon((float)hold_time * *(float *)0x253398);
-    ((void (*)(wchar_t *, float))game_engine_rasterize_message)(target_name, alpha); }
+    /* Target-name fade alpha = pow(hold_time*0.1, ~1.9) * 0.5, ramping
+     * 0 -> 0.5 as the reticle-hold counter (player+0x80) climbs 0..10.
+     * Mirrors the original x87 sequence at 0xac4a9:
+     *   FILD hold_time; FMUL [0x25496c]=0.1f; FLD [0x26b678]=double exp;
+     *   CALL _CIpow (0x1d9e70); FMUL [0x253398]=0.5f.
+     * pow(0,exp)=0 (CRT/x87 handle base==0), so hold_time==0 -> alpha 0. */
+    alpha = (float)(pow((double)hold_time * *(float *)0x25496c,
+                        *(double *)0x26b678) * *(float *)0x253398);
+    game_engine_rasterize_message((int)target_name, alpha);
   }
 }
 
