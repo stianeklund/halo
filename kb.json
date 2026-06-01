@@ -18656,7 +18656,7 @@
         },
         {
           "addr": "0x174bd0",
-          "decl": "void FUN_00174bd0(void);"
+          "decl": "int FUN_00174bd0(void);"
         },
         {
           "addr": "0x174cc0",
@@ -26816,19 +26816,27 @@
         },
         {
           "addr": "0x1824e0",
-          "decl": "void FUN_001824e0(void);"
+          "decl": "int rasterizer_memory_pool_new(void);",
+          "name": "rasterizer_memory_pool_new",
+          "ported": false
         },
         {
           "addr": "0x182520",
-          "decl": "void FUN_00182520(void);"
+          "decl": "void rasterizer_memory_pool_reset(void);",
+          "name": "rasterizer_memory_pool_reset",
+          "ported": true
         },
         {
           "addr": "0x182530",
-          "decl": "void FUN_00182530(void);"
+          "decl": "int rasterizer_memory_pool_alloc(int data, int size);",
+          "name": "rasterizer_memory_pool_alloc",
+          "ported": true
         },
         {
           "addr": "0x182590",
-          "decl": "void FUN_00182590(void);"
+          "decl": "void rasterizer_memory_pool_copy(int data, int size);",
+          "name": "rasterizer_memory_pool_copy",
+          "ported": true
         },
         {
           "addr": "0x1825d0",
@@ -26836,7 +26844,9 @@
         },
         {
           "addr": "0x1825e0",
-          "decl": "void FUN_001825e0(void);"
+          "decl": "void rasterizer_memory_pool_delete(void);",
+          "name": "rasterizer_memory_pool_delete",
+          "ported": true
         },
         {
           "addr": "0x182610",
@@ -26953,35 +26963,51 @@
         },
         {
           "addr": "0x184260",
-          "decl": "void FUN_00184260(void);"
+          "name": "rasterizer_transparent_geometry_new",
+          "decl": "int rasterizer_transparent_geometry_new(void);",
+          "ported": false
         },
         {
           "addr": "0x184300",
-          "decl": "void FUN_00184300(void);"
+          "name": "rasterizer_transparent_geometry_begin",
+          "decl": "void rasterizer_transparent_geometry_begin(void);",
+          "ported": false
         },
         {
           "addr": "0x184330",
-          "decl": "void FUN_00184330(void);"
+          "name": "rasterizer_transparent_geometry_group_new",
+          "decl": "void *rasterizer_transparent_geometry_group_new(void);",
+          "ported": true
         },
         {
           "addr": "0x184360",
-          "decl": "void FUN_00184360(void);"
+          "name": "rasterizer_secondary_geometry_group_new",
+          "decl": "void *rasterizer_secondary_geometry_group_new(void);",
+          "ported": true
         },
         {
           "addr": "0x184390",
-          "decl": "void FUN_00184390(void);"
+          "name": "rasterizer_secondary_geometry_groups_get",
+          "decl": "void *rasterizer_secondary_geometry_groups_get(short *out_count);",
+          "ported": true
         },
         {
           "addr": "0x1843b0",
-          "decl": "void FUN_001843b0(void);"
+          "name": "rasterizer_transparent_geometry_next_group",
+          "decl": "void *rasterizer_transparent_geometry_next_group(void *group);",
+          "ported": true
         },
         {
           "addr": "0x184460",
-          "decl": "void FUN_00184460(void);"
+          "name": "rasterizer_transparent_geometry_group_get",
+          "decl": "void *rasterizer_transparent_geometry_group_get(short group_presorted_index);",
+          "ported": true
         },
         {
           "addr": "0x1844b0",
-          "decl": "void FUN_001844b0(void);"
+          "name": "rasterizer_transparent_geometry_group_to_presorted_index",
+          "decl": "short rasterizer_transparent_geometry_group_to_presorted_index(unsigned int group);",
+          "ported": false
         }
       ],
       "name": "rasterizer_text.obj",
