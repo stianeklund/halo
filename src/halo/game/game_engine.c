@@ -4144,7 +4144,7 @@ wchar_t *FUN_000b2c50(int param_1, wchar_t *param_2)
 
   if (*(int *)(variant + 0x5c) == 2) {
 
-    usprintf(param_2, *(wchar_t **)0x26c118, score);
+    usprintf(param_2, (wchar_t *)0x26c118, score); /* 0x26c118 IS L"%d" (addr), not a ptr */
 
     return param_2;
 
@@ -4176,7 +4176,7 @@ wchar_t *FUN_000b2ce0(int param_1, wchar_t *param_2)
 
   if (*(int *)(variant + 0x5c) == 2) {
 
-    usprintf(param_2, *(wchar_t **)0x26c118, score);
+    usprintf(param_2, (wchar_t *)0x26c118, score); /* 0x26c118 IS L"%d" (addr), not a ptr */
 
     return param_2;
 
@@ -4682,19 +4682,19 @@ void ticks_to_unicode_time_string(int param_1, int param_2, wchar_t *param_3)
 
   if (minutes == 0)
 
-    unicode_sprintf(min_buf, 0x40, *(wchar_t **)0x26c120);
+    unicode_sprintf(min_buf, 0x40, (wchar_t *)0x26c120);
 
   else
 
-    unicode_sprintf(min_buf, 0x40, *(wchar_t **)0x26c118, minutes);
+    unicode_sprintf(min_buf, 0x40, (wchar_t *)0x26c118, minutes);
 
   if (seconds < 10)
 
-    unicode_sprintf(sec_buf, 0x40, *(wchar_t **)0x26c110, seconds);
+    unicode_sprintf(sec_buf, 0x40, (wchar_t *)0x26c110, seconds);
 
   else
 
-    unicode_sprintf(sec_buf, 0x40, *(wchar_t **)0x26c118, seconds);
+    unicode_sprintf(sec_buf, 0x40, (wchar_t *)0x26c118, seconds);
 
   unicode_sprintf(param_3, param_2, L"%s:%s", min_buf, sec_buf);
 
@@ -5198,7 +5198,7 @@ int FUN_000b0210(int param_1, int param_2, int param_3, wchar_t *param_4, int pa
 
   case 0x22:
 
-    unicode_sprintf(param_4, param_5, *(wchar_t **)0x26cdf0);
+    unicode_sprintf(param_4, param_5, (wchar_t *)0x26cdf0);
 
     return 1;
 
@@ -7692,19 +7692,25 @@ int FUN_000aca70(int item_collection_tag)
   int count;
   int data;
   int i;
+  int accum;
+  unsigned int *seed;
 
+  /* Weighted-random selection over an item-collection's entries (0x54 bytes
+   * each). Seed the accumulator with a random value in [0, total_weight),
+   * then subtract each entry's weight (float at +0x20); the first entry that
+   * drives the accumulator negative is chosen, returning its item tag at +0x30.
+   * Returns -1 if the collection is empty. */
   tag = (int *)tag_get(0x69746d63, item_collection_tag);
   count = *tag;
-  { unsigned int *seed = (unsigned int *)get_global_random_seed_address();
-  int rng = random_range(seed, 0, FUN_000a8970(tag));
-  (void)rng; }
+  seed = (unsigned int *)get_global_random_seed_address();
+  accum = random_range(seed, 0, FUN_000a8970(tag));
   data = tag[1];
   i = 0;
   if (0 < count) {
     do {
-      int weight = (int)((float)0 + *(float *)(data + i * 0x54 + 0x20));
-      if (weight < 0)
-        return *(int *)(i * 0x54 + 0x30 + data);
+      accum = (int)((float)accum - *(float *)(data + i * 0x54 + 0x20));
+      if (accum < 0)
+        return *(int *)(data + i * 0x54 + 0x30);
       i++;
     } while (i < count);
   }
@@ -8584,7 +8590,11 @@ void FUN_000ae920(wchar_t *title_buf)
                    "c:\\halo\\SOURCE\\game\\game_engine.c", 0x363, 1);
     system_exit(-1);
   }
-  usprintf(lives_buf, *(wchar_t **)0x26cdf0);
+  /* 0x26cdf0 IS the (empty) wide format string L"", passed by address.
+   * Original at 0xae966 does PUSH 0x26cdf0 (immediate), NOT PUSH [0x26cdf0];
+   * dereferencing it yields NULL -> usprintf "string && format" assert
+   * (the MP-quit / post-game-report crash). */
+  usprintf(lives_buf, (wchar_t *)0x26cdf0);
   if (0 < *(int *)0x456b30) {
     player = (int)datum_get(player_data, 0);
     lives_remaining = *(int *)0x456b30 - *(int16_t *)(player + 0xaa);

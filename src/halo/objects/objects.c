@@ -8907,9 +8907,7 @@ char FUN_0013ab20(unsigned int param_1, int param_2, int *param_3)
   char local_64[12];
   char local_58[12];
   char local_4c[12];
-  float local_40 = 0;
-  float local_3c = 0;
-  float local_38 = 0;
+  float local_40[3];
   int local_34;
   int local_30;
   float local_2c;
@@ -8980,7 +8978,7 @@ char FUN_0013ab20(unsigned int param_1, int param_2, int *param_3)
           && (iVar4 = CALL_FUN_00138ee0(iVar2), iVar4 != 0)
           && (iVar4 = CALL_FUN_00138ee0(local_14), iVar4 != 0)) {
         CALL_FUN_001390d0(iVar6, local_14, puVar5, local_c, local_10, (void *)local_88);
-        FUN_00138fd0(iVar6, iVar2, puVar5, local_c, local_10, (int)&local_40);
+        FUN_00138fd0(iVar6, iVar2, puVar5, local_c, local_10, (int)local_40);
         CALL_FUN_00180570((unsigned int)*puVar5 * 0x20 + *(int *)(iVar6 + 0xf8), (void *)local_64);
         CALL_FUN_00180570((unsigned int)puVar5[1] * 0x20 + *(int *)(iVar6 + 0xf8), (void *)local_58);
         CALL_FUN_00180570((unsigned int)puVar5[2] * 0x20 + *(int *)(iVar6 + 0xf8), (void *)local_4c);
@@ -8996,16 +8994,16 @@ char FUN_0013ab20(unsigned int param_1, int param_2, int *param_3)
         distance_scale = (local_24 - local_2c) * local_10 + (local_28 - local_2c) * local_c + local_2c;
         CALL_FUN_00013010((void *)local_70);
         if (*(char *)0x5a8d59 != '\0') {
-          local_2c = local_40;
-          local_28 = local_3c;
-          local_24 = local_38;
+          local_2c = local_40[0];
+          local_28 = local_40[1];
+          local_24 = local_40[2];
           local_30 = 0x3f800000;
           CALL_FUN_00189150(1, param_2, 0x3f000000, &local_30);
           { int ds_bits; memcpy(&ds_bits, &distance_scale, 4);
           ((void (*)(int, void *, void *, int, void *))FUN_00189320)(1, (void *)param_2, local_70, ds_bits, &local_30); }
         }
         FUN_00139e50(param_1, (float *)local_7c, (float *)local_70, distance_scale,
-                     (float *)local_88, (float *)param_3, (float *)&local_40);
+                     (float *)local_88, (float *)param_3, (float *)local_40);
         local_5 = 1;
       }
     }
