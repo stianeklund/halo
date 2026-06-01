@@ -6790,6 +6790,14 @@
       "metadata": {
         "source_path": "objects/objects.c"
       }
+    },
+    {
+      "name": "halo/integer_math",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/integer_math.c.obj",
+      "base_path": "delinked/integer_math.obj",
+      "metadata": {
+        "source_path": "halo/math/integer_math.c"
+      }
     }
   ]
 }
