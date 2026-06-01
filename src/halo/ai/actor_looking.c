@@ -4341,18 +4341,18 @@ void FUN_00025510(int actor_handle, void *ctx, unsigned short count, void *posit
   n = (unsigned int)count;
   pos = (char *)positions + 8;
   do {
-    if (*(char *)(pos + 10) != '\0') {
-      if (0.0f <= *(float *)pos) {
+    if (*(char *)(pos + 0x28) != '\0') {
+      if (*(float *)0x2533d8 <= *(float *)pos) {
         eval = 0.0f;
-        if (10.0f <= *(float *)pos) {
+        if (*(float *)0x253f78 <= *(float *)pos) {
           if (*(float *)pos < *(float *)((char *)ctx + 0x18)) {
             eval = ((*(float *)((char *)ctx + 0x18) - *(float *)pos) *
-                    10.0f) /
-                   (*(float *)((char *)ctx + 0x18) - 10.0f);
+                    *(float *)0x253f78) /
+                   (*(float *)((char *)ctx + 0x18) - *(float *)0x253f78);
             goto LAB_eval_guard;
           }
         } else {
-          eval = *(float *)pos - 0.0f;
+          eval = *(float *)pos - *(float *)0x2533d8;
           eval = eval + eval;
 LAB_eval_guard:
           if (eval < 0.0f || eval >= 1000.0f) {
@@ -4362,49 +4362,52 @@ LAB_eval_guard:
             system_exit(-1);
           }
         }
-        *(float *)(pos + 0xc) = eval + *(float *)(pos + 0xc);
+        *(float *)(pos + 0x30) = eval + *(float *)(pos + 0x30);
       } else {
         pos[0x29] = 1;
         if (*(char *)((char *)ctx + 0x14) == '\0') {
-          *(char *)(pos + 10) = 0;
+          *(char *)(pos + 0x28) = 0;
           goto LAB_next;
         }
       }
       if (*(char *)((char *)ctx + 0x5fc) != '\0') {
         float sq_dist;
         sq_dist = *(float *)(pos + 0x24);
-        if (!(*(float *)0x254e74 <= sq_dist) &&
-            *(char *)((char *)ctx + 0x14) == '\0' &&
-            (pos[0x29] = 1, 0)) {
-          *(char *)(pos + 10) = 0;
-        } else {
+        if (*(float *)0x254e74 <= sq_dist ||
+            (*(char *)(pos + 0x29) = 1, *(char *)((char *)ctx + 0x14) != '\0')) {
           eval = 0.0f;
-          if ((*(float *)0x254e74 <= sq_dist ||
-               (eval = 10.0f,
-                sq_dist < *(float *)0x254e70 &&
-                (eval = (xbox_sqrtf(sq_dist) - 0.0f) * 5.0f,
-                 (eval < 0.0f || eval >= 1000.0f))))) {
-            (void)0;
+          if (*(float *)0x254e74 <= sq_dist &&
+              (eval = *(float *)0x253f34,
+               sq_dist < *(float *)0x254e70 &&
+               (eval = (xbox_sqrtf(sq_dist) - *(float *)0x2533d8) * *(float *)0x254e6c,
+                (eval < 0.0f || eval >= 1000.0f)))) {
+            display_assert("(evaluation >= 0.0f) && (evaluation < 1e+03f)",
+                           "c:\\halo\\SOURCE\\ai\\actor_firing_position.c",
+                           0x81, 1);
+            system_exit(-1);
           }
-          *(float *)(pos + 0xc) = eval + *(float *)(pos + 0xc);
+          *(float *)(pos + 0x30) = eval + *(float *)(pos + 0x30);
           if ((*(float *)(pos + 0x14) < *(float *)0x2548fc &&
                0.0f < *(float *)((char *)ctx + 0x600) &&
                *(float *)((char *)ctx + 0x600) < *(float *)0x2548fc)) {
-            eval = 2.0f - *(float *)(pos + 0x14) /
-                              (*(float *)((char *)ctx + 0x600) * 1.0f);
+            eval = *(float *)0x2533c8 - *(float *)(pos + 0x14) /
+                   (*(float *)((char *)ctx + 0x600) * *(float *)0x2533f0);
             if (eval <= 0.5f ||
                 !(pos[0x29] = 1, *(char *)((char *)ctx + 0x14) == '\0')) {
               float bonus;
               bonus = 0.0f;
-              if (0.0f <= eval && eval < 2.0f)
+              if (0.0f <= eval) {
                 bonus = eval;
-              if (bonus > 2.0f)
-                bonus = 2.0f;
-              FUN_00024000(ctx, (2.0f - bonus) * 10.0f, 10);
+                if (*(float *)0x2533c8 < eval)
+                  bonus = *(float *)0x2533c8;
+              }
+              FUN_00024000(ctx, (*(float *)0x2533c8 - bonus) * *(float *)0x253f78, 10);
             } else {
-              *(char *)(pos + 10) = 0;
+              *(char *)(pos + 0x28) = 0;
             }
           }
+        } else {
+          *(char *)(pos + 0x28) = 0;
         }
       }
     }
