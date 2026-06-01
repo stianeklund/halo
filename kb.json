@@ -18528,7 +18528,8 @@
         },
         {
           "addr": "0x16f910",
-          "decl": "void FUN_0016f910(void);"
+          "decl": "void FUN_0016f910(int type);",
+          "ported": false
         },
         {
           "addr": "0x16fa40",
@@ -26767,7 +26768,7 @@
         },
         {
           "addr": "0x180890",
-          "decl": "void FUN_00180890(void);"
+          "decl": "short FUN_00180890(float f);"
         },
         {
           "addr": "0x1808f0",
@@ -26779,11 +26780,13 @@
         },
         {
           "addr": "0x180d10",
-          "decl": "void FUN_00180d10(int p1, int p2, int p3, int p4, float *p5, int p6);"
+          "decl": "void FUN_00180d10(short type, int count, int compressed_out, int compressed_size, void *uncompressed, int uncompressed_size);",
+          "ported": false
         },
         {
           "addr": "0x181020",
-          "decl": "void FUN_00181020(void);"
+          "decl": "int *FUN_00181020(short index @<si>);",
+          "ported": false
         },
         {
           "addr": "0x181060",
@@ -26820,15 +26823,18 @@
         },
         {
           "addr": "0x181670",
-          "decl": "void FUN_00181670(void);"
+          "decl": "void FUN_00181670(int *params);",
+          "ported": false
         },
         {
           "addr": "0x181900",
-          "decl": "void FUN_00181900(void);"
+          "decl": "void FUN_00181900(short param_1);",
+          "ported": false
         },
         {
           "addr": "0x181a90",
-          "decl": "void FUN_00181a90(void);"
+          "decl": "void FUN_00181a90(void);",
+          "ported": false
         },
         {
           "addr": "0x181c20",
@@ -26911,7 +26917,7 @@
         },
         {
           "addr": "0x182e00",
-          "decl": "void FUN_00182e00(void);"
+          "decl": "void FUN_00182e00(int param_1);"
         },
         {
           "addr": "0x183120",
@@ -26919,11 +26925,13 @@
         },
         {
           "addr": "0x183290",
-          "decl": "int FUN_00183290(void *hardware_format);"
+          "decl": "int FUN_00183290(void *bitmap);",
+          "ported": true
         },
         {
           "addr": "0x183390",
-          "decl": "void FUN_00183390(void);"
+          "decl": "int FUN_00183390(int bitmap);",
+          "ported": false
         },
         {
           "addr": "0x183650",
@@ -27310,7 +27318,8 @@
         },
         {
           "addr": "0x17d030",
-          "decl": "void FUN_0017d030(void);"
+          "decl": "int FUN_0017d030(float *position, int vis_index, int index);",
+          "ported": false
         },
         {
           "addr": "0x17d040",

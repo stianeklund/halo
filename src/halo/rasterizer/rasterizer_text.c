@@ -173,6 +173,15 @@ void FUN_001806e0(int param_1, float *param_2)
                *(float *)0x2647f4;
 }
 
+/* rasterizer_geometry_vertex_compress: compress vertex buffer (0x180d10)
+ * ported=false: structural cap, too complex for reliable VC71 match */
+void FUN_00180d10(short param_1, int param_2, int param_3, int param_4,
+                  void *param_5, int param_6)
+{
+  (void)param_1; (void)param_2; (void)param_3; (void)param_4;
+  (void)param_5; (void)param_6;
+}
+
 /* rasterizer_lights.c */
 
 /* rasterizer_lights_initialize: clear lights buffers and counter (0x181150) */
@@ -192,6 +201,207 @@ void FUN_001812b0(void)
 /* FUN_00181410: stub (0x181410) */
 void FUN_00181410(void)
 {
+}
+
+/* lens_flare_scenery_queue: queue lens flares from scenario scenery lights for
+ * rendering. Iterates light-marker block entries for param_1 scenery_light
+ * index. Builds a 0x28-byte params struct and calls FUN_00181670 (the lens
+ * flare queue submission function) for each entry. (0x181900) */
+void FUN_00181900(short param_1)
+{
+  int scenario; /* scenario base ptr */
+  int light_block; /* scenario->scenery_lights[param_1] element ptr */
+  int lf_block_base; /* scenario->lens_flare_block ptr */
+  int lf_mark_base; /* scenario->lens_flare_marker_block ptr */
+  int entry; /* current light_marker_block entry ptr */
+  int lf_instance; /* lens_flare_instance element ptr */
+  int loop_end; /* count of light_marker entries */
+  int i; /* loop counter */
+  /* params struct for FUN_00181670: 0x28-byte contiguous buffer.
+   * Layout (confirmed from disassembly at 0x181a2c..0x181a67):
+   *   +0x00: tag_get('lens', def->tag_index) result
+   *   +0x04: entry->xyz[0] (float, from puVar2[0..2])
+   *   +0x08: entry->xyz[1]
+   *   +0x0c: entry->xyz[2]
+   *   +0x10: FUN_00180b10(&dir_vec) = compressed normal of direction
+   *   +0x14: FUN_00180b10(&perp_vec) = compressed normal of perpendicular
+   *   +0x18: 0xffffffff (color/alpha = -1)
+   *   +0x1c: 0xffff word (light_index = -1 -> scenery path)
+   *   +0x1e: entry_index >> 16 (hi word of scenery marker index)
+   *   +0x20: entry_index & 0xffff (lo word)
+   *   +0x22: DAT_0050654a (compressed window index byte)
+   *   +0x23: 0
+   */
+  int params[10]; /* 0x28 = 40 bytes = 10 ints; accessed as byte/short/int */
+  float dir[3]; /* direction vector (from entry bytes 0xc/0xd/0xe * scale) */
+  float perp[3]; /* perpendicular vector (from perpendicular3d of dir) */
+  int entry_idx; /* combined scenery marker index (hi<<16 | lo) */
+
+  if (*(char *)0x3256d7 == 0) {
+    return;
+  }
+  if (*(short *)0x46e008 > 1) {
+    return;
+  }
+  if (*(short *)0x46e008 == 1 && *(short *)0x31fa98 > 1) {
+    return;
+  }
+
+  scenario = (int)scenario_get();
+  /* tag_block_get_element(scenario+0x134, param_1, 0x68) */
+  light_block =
+    (int)tag_block_get_element((void *)(scenario + 0x134), (int)param_1, 0x68);
+  loop_end = (int)*(short *)(light_block + 0x42);
+  if (loop_end <= 0) {
+    return;
+  }
+
+  lf_mark_base = scenario + 0x128;
+  lf_block_base = scenario + 0x11c;
+
+  i = 0;
+  do {
+    /* light_marker_block entry */
+    entry_idx = (int)*(unsigned short *)(light_block + 0x40) + i;
+    entry = (int)tag_block_get_element((void *)lf_mark_base, entry_idx, 0x10);
+
+    /* lens_flare_instance element */
+    lf_instance = (int)tag_block_get_element(
+      (void *)lf_block_base, (int)*(unsigned char *)(entry + 0xf), 0x10);
+
+    /* Extract signed bytes from entry for direction vector */
+    dir[0] = (float)(int)*(signed char *)(entry + 0xc) * *(float *)0x2820c0;
+    dir[1] = (float)(int)*(signed char *)(entry + 0xd) * *(float *)0x2820c0;
+    dir[2] = (float)(int)*(signed char *)(entry + 0xe) * *(float *)0x2820c0;
+
+    /* Compute perpendicular and normalize both */
+    perpendicular3d(dir, perp);
+    normalize3d(dir);
+    normalize3d(perp);
+
+    /* Build params buffer (byte-level stores into int array). */
+    *(int *)((char *)params + 0x00) =
+      (int)tag_get(0x6c656e73, *(int *)(lf_instance + 0xc));
+    *(int *)((char *)params + 0x04) = *(int *)(entry + 0x00);
+    *(int *)((char *)params + 0x08) = *(int *)(entry + 0x04);
+    *(int *)((char *)params + 0x0c) = *(int *)(entry + 0x08);
+    *(unsigned int *)((char *)params + 0x10) = (unsigned int)FUN_00180b10((int)dir);
+    *(unsigned int *)((char *)params + 0x14) = (unsigned int)FUN_00180b10((int)perp);
+    *(int *)((char *)params + 0x18) = -1;
+    *(short *)((char *)params + 0x1c) = -1;
+    *(short *)((char *)params + 0x1e) = (short)(entry_idx >> 16);
+    *(short *)((char *)params + 0x20) = (short)entry_idx;
+    *(unsigned char *)((char *)params + 0x22) = *(unsigned char *)0x50654a;
+    *(unsigned char *)((char *)params + 0x23) = 0;
+
+    FUN_00181670(params);
+
+    i++;
+  } while (i < loop_end);
+}
+
+/* lens_flare_occlusion_submit: for each queued lens flare entry, compute the
+ * occlusion test position and submit via FUN_0017d030. Wrapped by
+ * FUN_0016f910/FUN_0016fa40 rasterizer widget begin/end. (0x181a90) */
+void FUN_00181a90(void)
+{
+  int *entry; /* pointer to queued lens flare slot (from FUN_00181020) */
+  int definition; /* *entry = definition tag ptr */
+  float *dir_result; /* return of FUN_0017ffc0 (3-float direction vec) */
+  short occlusion_dir; /* *(short *)(definition + 0x14) */
+  int vis_param; /* *(int *)(definition + 0x10) as int (passes to thunk) */
+  int lf_count; /* DAT_004d0480 */
+  int i; /* loop index */
+  float perp[3]; /* perpendicular output (12 bytes, EBP-0x2c) */
+  float dir[3]; /* direction vec copied from FUN_0017ffc0 result */
+  float pos[3]; /* output position vec for occlusion test (EBP-0x14) */
+
+  FUN_0016f910(0x17);
+
+  if (*(char *)0x3256d7 == 0) {
+    FUN_0016fa40(0x17);
+    return;
+  }
+  if (*(short *)0x46e008 > 1) {
+    FUN_0016fa40(0x17);
+    return;
+  }
+  if (*(short *)0x46e008 == 1 && *(short *)0x31fa98 > 1) {
+    FUN_0016fa40(0x17);
+    return;
+  }
+
+  if (*(short *)0x5a5bc0 != 0) {
+    FUN_0016fa40(0x17);
+    return;
+  }
+
+  lf_count = *(int *)0x4d0480;
+  if (lf_count <= 0) {
+    FUN_0016fa40(0x17);
+    return;
+  }
+
+  FUN_0017cfc0(6, 1);
+
+  lf_count = *(int *)0x4d0480;
+  if (lf_count > 0) {
+    i = 0;
+    do {
+      /* FUN_00181020 takes index via SI register; build system provides
+       * a thunk that loads the arg into SI before the call. */
+      entry = FUN_00181020((short)i);
+      definition = *entry;
+
+      /* FUN_0017ffc0(&perp, entry[4]) fills perp[] and returns a
+       * pointer to a 3-float direction vec; copy it into dir[]. */
+      dir_result = FUN_0017ffc0(perp, (unsigned int)entry[4]);
+      dir[0] = dir_result[0];
+      dir[1] = dir_result[1];
+      dir[2] = dir_result[2];
+
+      /* MOVZX byte [entry+0x22]; AND 0xffffff7f (clear bit 7) → compare
+       * with window index */
+      if ((*(unsigned char *)((char *)entry + 0x22) & 0x7f) ==
+          *(unsigned short *)0x5a5bc2) {
+        occlusion_dir = *(short *)(definition + 0x14);
+        vis_param = *(int *)(definition + 0x10);
+
+        if (occlusion_dir == 0) {
+          /* Negate scale; use global forward direction (0x5a5bd4) */
+          vector3d_scale_add((float *)(entry + 1), (float *)0x5a5bd4,
+                             -*(float *)(definition + 0x10), pos);
+        } else if (occlusion_dir == 1) {
+          /* Scale along dir[] by definition field * constant */
+          vector3d_scale_add((float *)(entry + 1), dir,
+                             *(float *)(definition + 0x10) * *(float *)0x254e68,
+                             pos);
+        } else if (occlusion_dir == 2) {
+          /* Use object/light position directly */
+          pos[0] = *(float *)(entry + 1);
+          pos[1] = *(float *)(entry + 2);
+          pos[2] = *(float *)(entry + 3);
+        } else {
+          display_assert(
+            "### ERROR unsupported lens flare occlusion offset direction",
+            "c:\\halo\\SOURCE\\rasterizer\\rasterizer_lights.c", 0x1e2, 1);
+          system_exit(-1);
+        }
+
+        entry[9] = FUN_0017d030(pos, vis_param, i);
+      }
+
+      i++;
+    } while (i < *(int *)0x4d0480);
+  }
+
+  /* FUN_0017d020 (thunk → FUN_0017ad90) is called after the loop whenever
+   * the first lf_count check passed (i.e. when lf_count > 0), matching
+   * the original control-flow shape (0x181bfd falls through to 0x181c02
+   * regardless of the inner lf_count re-check). */
+  FUN_0017d020();
+
+  FUN_0016fa40(0x17);
 }
 
 /* rasterizer_memory_pool.c */
@@ -398,6 +608,179 @@ void rasterizer_swizzle_interleave_bits(short param_1, short param_2,
   param_7[2] = uVar7;
   *param_7 = local_8;
   param_7[1] = local_c;
+}
+
+/* rasterizer_swizzle_bitmap_mipmaps: compute total swizzle buffer size
+ * needed for all mipmaps of a bitmap (0x183290).
+ * Returns total byte count, aligned to 128 bytes (or x6 for cubemaps). */
+int FUN_00183290(void *param_1)
+{
+  int bitmap;
+  short sVar2;
+  short height;
+  int iVar4;
+  int mip_size;
+  int mip_index;
+  int row_pitch;
+  int local_8;
+
+  bitmap = (int)param_1;
+  iVar4 = 0;
+  local_8 = 0;
+  sVar2 = FUN_00183120((void *)param_1);
+  mip_index = 0;
+  if (-1 < (int)sVar2) {
+    do {
+      mip_size = bitmap_mipmap_get_pixel_data_size((void*)bitmap, mip_index);
+      if ((*(unsigned char *)(bitmap + 0xe) & 0x10) != 0) {
+        /* swizzled/tiled: add per-row padding */
+        if ((short)mip_index != 0) {
+          display_assert("mipmap_index==0",
+                         "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c",
+                         0x1fa, 1);
+          system_exit(-1);
+        }
+        if ((*(unsigned char *)(bitmap + 0xe) & 2) != 0) {
+          display_assert("!TEST_FLAG(bitmap->flags, _bitmap_compressed_bit)",
+                         "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c",
+                         0x1fb, 1);
+          system_exit(-1);
+        }
+        row_pitch = bitmap_mipmap_get_row_pitch((void*)bitmap, mip_index);
+        height = (short)bitmap_mipmap_get_height((void*)bitmap, mip_index);
+        mip_size = mip_size + (int)height * (-row_pitch & 0x3f);
+      }
+      if (*(short *)(bitmap + 10) == 2) {
+        /* cubemap: divide per-face */
+        mip_size = mip_size / 6;
+      }
+      iVar4 = local_8 + mip_size;
+      mip_index = mip_index + 1;
+      local_8 = iVar4;
+    } while ((short)mip_index <= sVar2);
+  }
+  /* align total to 128 bytes */
+  iVar4 = iVar4 + (-iVar4 & 0x7f);
+  if (*(short *)(bitmap + 10) == 2) {
+    /* cubemap: multiply back by 6 */
+    return iVar4 * 6;
+  }
+  return iVar4;
+}
+
+/* rasterizer_swizzle_bitmap_all: rebuild hardware format for a bitmap by
+ * allocating a swizzle buffer and copying/padding all face mipmaps
+ * (0x183390). Returns 1 on success, 0 on out-of-memory. */
+int FUN_00183390(int param_1)
+{
+  int total_size;
+  int iVar8;
+  unsigned short face_count;
+  short sVar2;
+  short sVar3;
+  int local_c;
+  short face_index;
+  int swizzle_buf;
+  int mip_src;
+  int mip_size;
+  int row_pitch;
+  short adjusted_face_index;
+  short local_1c;
+  int local_20;
+
+  total_size = FUN_00183290((void *)param_1);
+  iVar8 = 0;
+  /* face_count: 1 for 2D textures, 6 for cubemaps */
+  face_count = (unsigned short)(*(short *)(param_1 + 10) != 2) - 1 & 5;
+  local_1c = (short)(face_count + 1);
+  if (*(int *)(param_1 + 0x2c) == 0) {
+    display_assert("bitmap->base_address",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x225,
+                   1);
+    system_exit(-1);
+  }
+  swizzle_buf = (int)debug_malloc(
+    total_size, 0, "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x228);
+  if (swizzle_buf == 0) {
+    error(2, "### ERROR rasterizer_xbox_bitmap_rebuild_hardware_format "
+             "failed (out of memory)");
+    return 0;
+  }
+  FUN_00182e00(param_1);
+  face_index = 0;
+  if (local_1c > 0) {
+    do {
+      sVar2 = FUN_00183120((void *)param_1);
+      if (-1 < (int)sVar2) {
+        local_c = 0;
+        local_20 = (int)sVar2;
+        do {
+          mip_src = (int)bitmap_mipmap_address((void *)param_1, local_c);
+          mip_size = bitmap_mipmap_get_pixel_data_size((void*)param_1, local_c);
+          if (*(short *)(param_1 + 10) == 2) {
+            mip_size = mip_size / 6;
+          }
+          adjusted_face_index = *(short *)((int)0x2b0860 + (int)face_index * 2);
+          if ((*(unsigned char *)(param_1 + 0xe) & 0x10) == 0) {
+            /* non-swizzled: copy face mipmap data */
+            csmemcpy((void *)(swizzle_buf + iVar8),
+                     (void *)((int)adjusted_face_index * mip_size + mip_src),
+                     (unsigned int)mip_size);
+            iVar8 = iVar8 + mip_size;
+          } else {
+            /* swizzled/tiled: must be face 0, mip 0 */
+            if ((face_index != 0) || (adjusted_face_index != 0)) {
+              display_assert(
+                "face_index==0 && adjusted_face_index==0",
+                "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x24c, 1);
+              system_exit(-1);
+            }
+            if ((short)local_c != 0) {
+              display_assert(
+                "mipmap_index==0",
+                "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x24d, 1);
+              system_exit(-1);
+            }
+            if ((*(unsigned char *)(param_1 + 0xe) & 2) != 0) {
+              display_assert(
+                "!TEST_FLAG(bitmap->flags, _bitmap_compressed_bit)",
+                "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x24e, 1);
+              system_exit(-1);
+            }
+            row_pitch = bitmap_mipmap_get_row_pitch((void*)param_1, local_c);
+            sVar3 = 0;
+            if (0 < *(short *)(param_1 + 6)) {
+              do {
+                csmemcpy((void *)(swizzle_buf + iVar8), (void *)mip_src,
+                         (unsigned int)row_pitch);
+                csmemset((void *)(swizzle_buf + iVar8 + row_pitch), 0,
+                         (unsigned int)(-row_pitch & 0x3f));
+                mip_src = mip_src + row_pitch;
+                iVar8 = iVar8 + row_pitch + (-row_pitch & 0x3f);
+                sVar3 = sVar3 + 1;
+              } while (sVar3 < *(short *)(param_1 + 6));
+            }
+          }
+          local_c = local_c + 1;
+        } while ((short)local_c <= (short)local_20);
+      }
+      /* align offset to 128 bytes at end of each face */
+      csmemset((void *)(swizzle_buf + iVar8), 0, (unsigned int)(-iVar8 & 0x7f));
+      iVar8 = iVar8 + (-iVar8 & 0x7f);
+      face_index = face_index + 1;
+    } while (face_index < local_1c);
+  }
+  if (iVar8 != total_size) {
+    display_assert("offset==size",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x271,
+                   1);
+    system_exit(-1);
+  }
+  csmemcpy(*(void **)(param_1 + 0x2c), (void *)swizzle_buf,
+           (unsigned int)total_size);
+  debug_free((void *)swizzle_buf,
+             "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x275);
+  return 1;
 }
 
 /* rasterizer_text_cache_initialize: init hardware text cache (0x183650) */
