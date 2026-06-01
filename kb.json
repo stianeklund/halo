@@ -8512,7 +8512,7 @@
         {
           "addr": "0xac3e0",
           "decl": "void FUN_000ac3e0(int player_handle@<eax>);",
-          "ported": false,
+          "ported": true,
           "src": "src/halo/game/game_engine.c"
         },
         {
