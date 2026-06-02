@@ -423,6 +423,9 @@
     "0x183880": "void rasterizer_text_cache_character(void *font_character@<edi>, void *font);",
     "0x181020": "int *FUN_00181020(short index @<si>);",
     "0x181060": "unsigned char *FUN_00181060(void *lens_flare_params @<eax>);",
-    "0x181420": "float FUN_00181420(void *lens_flare_params @<esi>, short rotation_fn @<di>);"
+    "0x181420": "float FUN_00181420(void *lens_flare_params @<esi>, short rotation_fn @<di>);",
+    "0x28250": "int FUN_00028250(float *look_vectors, char is_secondary, int actor_handle @<esi>, int look_type @<edi>);",
+    "0x28cc0": "char FUN_00028cc0(float *look_vectors, float *dir_vec, char look_mode, char param4, char is_secondary, int actor_handle @<eax>);",
+    "0x28ed0": "void FUN_00028ed0(float *look_vectors, float *idle_direction, int actor_handle @<eax>);"
   }
 }

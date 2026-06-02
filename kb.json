@@ -2398,7 +2398,7 @@
         },
         {
           "addr": "0x210b0",
-          "decl": "void FUN_000210b0(void);"
+          "decl": "bool FUN_000210b0(int actor_handle);"
         },
         {
           "addr": "0x210f0",
@@ -3682,18 +3682,18 @@
         },
         {
           "addr": "0x28cc0",
-          "decl": "void FUN_00028cc0(void);",
+          "decl": "char FUN_00028cc0(float *look_vectors, float *dir_vec, char look_mode, char param4, char is_secondary, int actor_handle @<eax>);",
           "ported": false
         },
         {
           "addr": "0x28ed0",
-          "decl": "void FUN_00028ed0(void);",
+          "decl": "void FUN_00028ed0(float *look_vectors, float *idle_direction, int actor_handle @<eax>);",
           "ported": false
         },
         {
           "addr": "0x29040",
           "decl": "void actor_look_update(int actor_handle);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x2a2b0",
@@ -19593,7 +19593,7 @@
         },
         {
           "addr": "0x28250",
-          "decl": "void FUN_00028250(void);"
+          "decl": "int FUN_00028250(float *look_vectors, char is_secondary, int actor_handle @<esi>, int look_type @<edi>);"
         },
         {
           "addr": "0x283b0",
