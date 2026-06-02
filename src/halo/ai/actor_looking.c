@@ -4865,8 +4865,6 @@ bool FUN_00027e50(float *dir, float *vec2, float *limit,
 
   if (xbox_fabsf(len) < 0.0001f)
     return 0;
-  if (!(len > 0.0f))
-    return 0;
 
   dx = (1.0f / len) * dx;
   dy = (1.0f / len) * dy;
