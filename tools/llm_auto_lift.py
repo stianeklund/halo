@@ -59,6 +59,88 @@ AUTO_ACCEPT = "auto_accept"
 NEEDS_REVIEW = "needs_review"
 REJECT = "reject"
 
+# Known callee buffer requirements (synced with tools/audit/check_lift_hazards.py)
+KNOWN_BUFFER_SIZES = {
+    'FUN_0013fc20': (0x88, 'object placement init — memsets 0x88 bytes'),
+}
+
+
+# ---------------------------------------------------------------------------
+# Helpers for decl parsing and context enrichment
+# ---------------------------------------------------------------------------
+
+def _decl_name(decl: str) -> str:
+    """Extract function name from a kb.json decl string."""
+    left = decl.split("(", 1)[0].strip()
+    token = re.split(r"[\s\*]+", left)[-1]
+    return token.strip()
+
+
+def _decl_param_count(decl: str) -> int:
+    """Count comma-separated parameters in a decl string."""
+    m = re.search(r"\(([^)]*)\)", decl)
+    if not m:
+        return 0
+    params = m.group(1).strip()
+    if not params or params == "void":
+        return 0
+    depth = 0
+    count = 1
+    for ch in params:
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+        elif ch == "," and depth == 0:
+            count += 1
+    return count
+
+
+def _unwrap_mcp_text(text: str) -> str:
+    """Unwrap MCP response JSON-string-wrapped text to raw decompile/disasm."""
+    if not text:
+        return ""
+    try:
+        inner = json.loads(text)
+        if isinstance(inner, dict):
+            return inner.get("result", text)
+    except (json.JSONDecodeError, ValueError):
+        pass
+    return text
+
+
+_PUSH_SCAN_SKIP = {
+    "MOV", "MOVZX", "MOVSX", "CMOVB", "CMOVNB", "CMOVE", "CMOVNE",
+    "LEA", "XOR", "AND", "OR", "NOT",
+    "SHL", "SHR", "SAL", "SAR", "ROL", "ROR", "RCL", "RCR",
+    "XCHG", "BSWAP", "CDQ", "CWDE", "CBW",
+    "CMP", "TEST", "NOP",
+    "FLD", "FST", "FADD", "FSUB", "FMUL", "FDIV",
+    "FCOM", "FCOMP", "FUCOM", "FUCOMP", "FTST", "FABS", "FCHS",
+    "FSTP",  # non-ESP already handled; ESP targets collected earlier
+    "FNSTCW", "FLDCW", "FNSTSW", "FNCLEX",
+}
+_CTRL_FLOW_MNEMONICS = {
+    "CALL", "RET", "RETN", "RETF", "IRET", "INT",
+    "JMP", "JA", "JAE", "JB", "JBE", "JC", "JE", "JG", "JGE", "JL",
+    "JLE", "JNA", "JNAE", "JNB", "JNBE", "JNC", "JNE", "JNG", "JNGE",
+    "JNL", "JNLE", "JNO", "JNP", "JNS", "JNZ", "JO", "JP", "JPE",
+    "JPO", "JS", "JZ", "JCXZ", "JECXZ",
+    "LOOP", "LOOPE", "LOOPNE", "LOOPNZ", "LOOPZ",
+}
+
+_DISASM_LINE_RE = re.compile(
+    r'^\s*([0-9a-fA-F]{8}):\s+([A-Z][A-Z0-9]*)\s*(.*?)\s*$'
+)
+
+_STRUCT_ACCESS_RE = re.compile(
+    r'\b(MOV|LEA|MOVZX|MOVSX|FSTP|FST|FLD)\b.*\[(\w+)\s*\+\s*(0x[0-9a-fA-F]+)\]',
+    re.IGNORECASE,
+)
+_BUF_DECL_RE = re.compile(
+    r'(?:uint8_t|char|byte|undefined1|undefined)\s+(local_[0-9a-fA-F]+)\s*\[\s*(0x[0-9a-fA-F]+|\d+)\s*\]',
+)
+
 
 # ---------------------------------------------------------------------------
 # Data classes
@@ -727,6 +809,7 @@ class ContextPackBuilder:
         kb_context = self._gather_kb_context(target)
         source_context = self._gather_source_context(target)
         ghidra_ctx = self._gather_ghidra_context(target)
+        ghidra_ctx = self._enrich_ghidra_context(target, ghidra_ctx)
         hazards = self._assess_hazards(target, ghidra_ctx)
         delinked = _has_delinked_ref(target.source_path, self.objdiff_units)
 
@@ -960,6 +1043,305 @@ class ContextPackBuilder:
                 "Do not modify register argument handling — the build system generates thunks."
             )
         return constraints
+
+    # ------------------------------------------------------------------
+    # Callee lookup (lazy, shared across enrichment phases)
+    # ------------------------------------------------------------------
+
+    def _ensure_callee_lookup(self) -> dict:
+        """Build {name: entry, addr: entry} for ALL kb.json functions."""
+        cached = getattr(self, "_lazy_callee_lookup", None)
+        if cached is not None:
+            return cached
+        by_name: dict = {}
+        by_addr: dict = {}
+        for obj in self.kb_raw.get("objects", []):
+            for f in obj.get("functions", []):
+                addr = f.get("addr", "").lower()
+                decl = f.get("decl", "")
+                name = _decl_name(decl)
+                has_reg = "@" in decl
+                entry = {
+                    "addr": addr,
+                    "name": name,
+                    "decl": decl,
+                    "ported": bool(f.get("ported")),
+                    "has_reg_args": has_reg,
+                    "param_count": _decl_param_count(decl),
+                    "object": obj.get("name", ""),
+                }
+                if name:
+                    by_name[name] = entry
+                if addr:
+                    by_addr[addr] = entry
+                    stripped = addr.lstrip("0x")
+                    if stripped != addr:
+                        by_addr[stripped] = entry
+        self._lazy_callee_lookup = {"by_name": by_name, "by_addr": by_addr}
+        return self._lazy_callee_lookup
+
+    # ------------------------------------------------------------------
+    # Phase 1: Callee signature table
+    # ------------------------------------------------------------------
+
+    def _gather_callee_details(self, target: LiftTarget, ghidra_ctx: dict) -> dict:
+        """For each callee, look up its kb.json signature and ported status."""
+        lookup = self._ensure_callee_lookup()
+        details: dict = {}
+        for name in ghidra_ctx.get("callees", []):
+            entry = lookup["by_name"].get(name)
+            if not entry:
+                m = re.match(r"FUN_00([0-9a-fA-F]+)$", name)
+                if m:
+                    entry = lookup["by_addr"].get(m.group(1))
+            if entry:
+                details[name] = entry
+            else:
+                details[name] = {"not_in_kb": True, "name": name}
+        return details
+
+    # ------------------------------------------------------------------
+    # Phase 2: Call-site audit
+    # ------------------------------------------------------------------
+
+    def _audit_call_sites(self, target: LiftTarget, ghidra_ctx: dict) -> list:
+        """Parse every CALL in disassembly, collect PUSH operands, cross-ref
+        with callee kb.json signatures. Flag register aliasing and FPU hazards."""
+        disasm = ghidra_ctx.get("disassembly", "")
+        if not disasm:
+            return []
+        disasm_text = _unwrap_mcp_text(disasm)
+        callee_details = ghidra_ctx.get("callee_details", {})
+        lookup = self._ensure_callee_lookup()
+        audit: list = []
+
+        instructions: list[tuple[int, str, str, str]] = []
+        for lineno, line in enumerate(disasm_text.splitlines(), 1):
+            m = _DISASM_LINE_RE.match(line.strip())
+            if m:
+                instructions.append((lineno, m.group(1), m.group(2), m.group(3)))
+
+        if not instructions:
+            return []
+
+        for i, (lineno, addr, mnemonic, operands) in enumerate(instructions):
+            if mnemonic != "CALL":
+                continue
+
+            pushes: list[dict] = []
+            for j in range(i - 1, max(i - 20, -1), -1):
+                _, pa, pm, po = instructions[j]
+                if pm == "PUSH":
+                    pushes.insert(0, {"addr": pa, "operands": po})
+                elif pm == "FSTP" and "ESP" in po.upper():
+                    pushes.insert(0, {"addr": pa, "operands": po, "is_fpu": True})
+                elif pm in _CTRL_FLOW_MNEMONICS:
+                    break
+                elif pm == "POP" or (pm == "ADD" and "ESP" in po.upper()):
+                    break
+                elif pm == "FSTP":
+                    pass
+                elif pm not in _PUSH_SCAN_SKIP:
+                    break
+
+            if not pushes:
+                continue
+
+            callee_str = operands.strip()
+            callee_info: dict = {}
+            callee_name = ""
+            call_m = re.match(r'(?:dword\s+ptr\s+\[)?(0x[0-9a-fA-F]+)', callee_str)
+            if call_m:
+                addr_key = call_m.group(1).lower().lstrip("0x")
+                callee_info = lookup["by_addr"].get(addr_key, {})
+                callee_name = callee_info.get("name", "")
+
+            hazards: list[str] = []
+            if callee_info:
+                expected = callee_info.get("param_count", 0)
+                actual = len(pushes)
+                if expected > 0 and actual != expected:
+                    hazards.append(
+                        f"ARG_COUNT: expected {expected} params, "
+                        f"found {actual} pushes"
+                    )
+
+            for p in pushes:
+                ops = p["operands"]
+                if p.get("is_fpu"):
+                    hazards.append(
+                        "FPU_ARG: FSTP [ESP] replaces dummy stack slot "
+                        "— Ghidra likely shows wrong argument"
+                    )
+                    p["type"] = "FPU"
+                elif re.match(r"^[A-Z]{2,}$", ops):
+                    p["type"] = "REGISTER"
+                    if ops in ("EBX", "ESI", "EDI"):
+                        hazards.append(
+                            f"REGISTER_ALIASING: PUSH {ops} ({p['addr']}) "
+                            "— callee-saved register, verify source at call"
+                        )
+                elif "EBP" in ops:
+                    p["type"] = "EBP_FRAME"
+                elif re.match(r"^0x[0-9a-fA-F]+$", ops):
+                    p["type"] = "IMMEDIATE"
+                else:
+                    p["type"] = "UNKNOWN"
+
+            audit.append({
+                "call_addr": addr,
+                "callee_addr": callee_str,
+                "callee_kb": callee_name,
+                "callee_decl": callee_info.get("decl", ""),
+                "callee_ported": callee_info.get("ported", False),
+                "callee_has_reg_args": callee_info.get("has_reg_args", False),
+                "num_pushes": len(pushes),
+                "pushes": pushes,
+                "hazards": hazards,
+            })
+
+        return audit
+
+    # ------------------------------------------------------------------
+    # Phase 3: Struct field offset extraction
+    # ------------------------------------------------------------------
+
+    def _extract_struct_offsets(self, ghidra_ctx: dict) -> dict:
+        """Parse MOV [reg+offset] patterns in disassembly to build verified
+        field-offset tables per struct-pointer register."""
+        disasm = ghidra_ctx.get("disassembly", "")
+        if not disasm:
+            return {}
+        disasm_text = _unwrap_mcp_text(disasm)
+        field_map: dict = {}
+
+        for line in disasm_text.splitlines():
+            for m in _STRUCT_ACCESS_RE.finditer(line):
+                reg = m.group(2).upper()
+                if reg in ("ESP", "EIP"):
+                    continue
+                offset = m.group(3).lower()
+                field_map.setdefault(reg, {}).setdefault(offset, 0)
+                field_map[reg][offset] += 1
+
+        result: dict = {}
+        for reg, offsets in sorted(field_map.items()):
+            verified = sorted(
+                [o for o, c in offsets.items() if c >= 2],
+                key=lambda x: int(x, 16),
+            )
+            if verified:
+                result[reg] = verified
+
+        return result
+
+    # ------------------------------------------------------------------
+    # Phase 4: Pre-lift buffer alias annotation
+    # ------------------------------------------------------------------
+
+    def _annotate_buffer_aliases(self, ghidra_ctx: dict) -> dict:
+        """Run buffer_alias_detector on the decompile and embed findings."""
+        decompile = ghidra_ctx.get("decompile_c", "")
+        if not decompile:
+            return {}
+        text_to_analyze = _unwrap_mcp_text(decompile)
+        if not text_to_analyze.strip():
+            return {}
+
+        try:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location(
+                "buffer_alias_detector",
+                str(ROOT / "tools" / "lift" / "buffer_alias_detector.py"),
+            )
+            bad = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(bad)
+            hits, annotated = bad.analyze(text_to_analyze)
+
+            if not hits:
+                return {"total_hits": 0, "high_risk": 0, "low_risk": 0, "details": []}
+
+            details: list[dict] = []
+            for h in hits[:20]:
+                details.append({
+                    "line": h.line_no,
+                    "local": h.local_name,
+                    "buffer": h.buffer.name,
+                    "offset_into_buffer": f"0x{h.buffer.base - h.local_offset:x}",
+                    "high_risk": h.post_call,
+                })
+
+            result: dict = {
+                "total_hits": len(hits),
+                "high_risk": sum(1 for h in hits if h.post_call),
+                "low_risk": sum(1 for h in hits if not h.post_call),
+                "details": details,
+            }
+            # Store annotated decompile for agent reference
+            if len(annotated) < 20000:
+                result["annotated_decompile"] = annotated
+            return result
+
+        except Exception as e:
+            log.warning("Buffer alias detection failed: %s", e)
+            return {"error": str(e)}
+
+    # ------------------------------------------------------------------
+    # Phase 5: Buffer size verification
+    # ------------------------------------------------------------------
+
+    def _verify_buffer_sizes(self, ghidra_ctx: dict) -> list:
+        """Flag local buffers that are smaller than what callees write."""
+        decompile = ghidra_ctx.get("decompile_c", "")
+        callee_details = ghidra_ctx.get("callee_details", {})
+        if not decompile or not KNOWN_BUFFER_SIZES:
+            return []
+        decomp_text = _unwrap_mcp_text(decompile)
+        if not decomp_text:
+            return []
+
+        buffers: dict[str, int] = {}
+        for m in _BUF_DECL_RE.finditer(decomp_text):
+            buf_name = m.group(1)
+            size_str = m.group(2)
+            size = int(size_str, 16) if size_str.startswith("0x") else int(size_str)
+            if size >= 4:
+                buffers[buf_name] = size
+
+        warnings: list[str] = []
+        for callee_name, (required_size, note) in KNOWN_BUFFER_SIZES.items():
+            call_re = re.compile(re.escape(callee_name) + r"\s*\(([^)]*)\)")
+            for call_m in call_re.finditer(decomp_text):
+                args = call_m.group(1)
+                first_arg = args.split(",")[0].strip()
+                if first_arg in buffers:
+                    declared = buffers[first_arg]
+                    if declared < required_size:
+                        warnings.append(
+                            f"BUFFER_UNDERSIZED: '{first_arg}' is {declared} bytes "
+                            f"but {callee_name} writes {required_size} bytes ({note})"
+                        )
+
+        return warnings
+
+    # ------------------------------------------------------------------
+    # Orchestrator
+    # ------------------------------------------------------------------
+
+    def _enrich_ghidra_context(self, target: LiftTarget, ghidra_ctx: dict) -> dict:
+        """Run all enrichment phases and embed verified metadata into the
+        Ghidra context dict.  All phases operate on already-fetched data;
+        no additional MCP calls are made."""
+        if not ghidra_ctx.get("disassembly") and not ghidra_ctx.get("decompile_c"):
+            return ghidra_ctx
+
+        ghidra_ctx["callee_details"] = self._gather_callee_details(target, ghidra_ctx)
+        ghidra_ctx["call_site_audit"] = self._audit_call_sites(target, ghidra_ctx)
+        ghidra_ctx["struct_offsets"] = self._extract_struct_offsets(ghidra_ctx)
+        ghidra_ctx["buffer_alias"] = self._annotate_buffer_aliases(ghidra_ctx)
+        ghidra_ctx["buffer_warnings"] = self._verify_buffer_sizes(ghidra_ctx)
+
+        return ghidra_ctx
 
 
 # ---------------------------------------------------------------------------
@@ -1410,6 +1792,35 @@ def cmd_cache_context(args: argparse.Namespace):
         has_disasm = bool(ghidra_ctx.get("disassembly"))
         print(f"  decompile={'yes' if has_decomp else 'NO'}  disasm={'yes' if has_disasm else 'NO'}  "
               f"callers={len(ghidra_ctx.get('callers', []))}  callees={len(ghidra_ctx.get('callees', []))}")
+
+        # Enrichment stats
+        callee_detail_count = len(ghidra_ctx.get("callee_details", {}))
+        audit_count = len(ghidra_ctx.get("call_site_audit", []))
+        audit_hazards = sum(
+            len(cs.get("hazards", [])) for cs in ghidra_ctx.get("call_site_audit", [])
+        )
+        buf_alias = ghidra_ctx.get("buffer_alias", {})
+        buf_alias_hits = buf_alias.get("total_hits", 0)
+        buf_alias_high = buf_alias.get("high_risk", 0)
+        buf_warnings = len(ghidra_ctx.get("buffer_warnings", []))
+        struct_regs = len(ghidra_ctx.get("struct_offsets", {}))
+
+        if callee_detail_count or audit_count:
+            parts = []
+            if callee_detail_count:
+                parts.append(f"callee_sigs={callee_detail_count}")
+            if audit_count:
+                parts.append(f"call_sites={audit_count}")
+                if audit_hazards:
+                    parts.append(f"hazards={audit_hazards}")
+            if buf_alias_hits:
+                parts.append(f"buf_alias={buf_alias_hits}({buf_alias_high} high)")
+            if buf_warnings:
+                parts.append(f"buf_warns={buf_warnings}")
+            if struct_regs:
+                parts.append(f"struct_regs={struct_regs}")
+            if parts:
+                print(f"  enrichment: {'  '.join(parts)}")
 
         if retrieval_available and has_decomp:
             neighbors = _query_retrieval_neighbors(ghidra_ctx["decompile_c"])
