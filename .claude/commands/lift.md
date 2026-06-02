@@ -46,6 +46,17 @@ Steps:
    your context as a `[retrieval-hook]` system message. Use them as worked
    examples when writing the C implementation. If no neighbors are above
    threshold the hook reports that; proceed without.
+   **Context-enrichment injection** — a second hook fires simultaneously and
+   checks whether `cache-context` was run for this target beforehand. If a
+   cache file exists, pre-computed enrichment appears as a `[context-enrichment]`
+   system message containing: a callee signature table (ported status, @reg
+   annotations), FPU/FSTP argument hazards, verified struct field offsets for
+   ESI/EDI/EBX, HIGH-RISK buffer-alias reads, and undersized-buffer warnings.
+   This data is evidence-derived from disassembly; verify against disasm before
+   relying on it, but treat HIGH-RISK buffer-alias and FSTP hazards as
+   confirmed blockers requiring investigation. If no `[context-enrichment]`
+   block appears, no cache exists for this target — proceed with live Ghidra
+   calls as normal.
 5. For every callee that takes register args (MOV/LEA into EAX/ECX/ESI/etc
    before a CALL, not PUSHed): add it to `kb.json` with `@<reg>` annotations
    and to `tools/kb_reg_baseline.json`, then call by name from C.
