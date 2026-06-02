@@ -51,7 +51,7 @@ Only when static analysis leaves the root cause genuinely ambiguous.
 **Fallback — xemu probing** (only if no Xbox is reachable):
 
 ```bash
-python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --screenshot out.png
+rtk python3 tools/xbox/xdbm_screenshot.py --host 127.0.0.1 --images 5 --png
 python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --serial
 python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --hmp "info registers"
 python3 tools/xbox/xemu_qmp.py --host localhost --port 4444 --hmp "x /10x 0x<addr>"

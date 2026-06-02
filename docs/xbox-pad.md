@@ -174,10 +174,10 @@ All responses include `"ok": true/false`. On failure, an `"error"` field is pres
 ## Typical LLM debugging loop
 
 ```
-1. Screenshot xemu (xemu_xemu_screenshot)
+1. Capture screenshots: `rtk python3 tools/xbox/xdbm_screenshot.py --host 127.0.0.1 --images 5 --png`
 2. Analyze the current screen state
 3. Navigate: python3 tools/xbox/xbox_pad.py dpad down
-4. Wait a beat, screenshot again
+4. Wait a beat, capture screenshots again with `rtk python3 tools/xbox/xdbm_screenshot.py --host 127.0.0.1 --images 5 --png`
 5. Confirm: python3 tools/xbox/xbox_pad.py tap A
 6. Repeat as needed
 7. python3 tools/xbox/xbox_pad.py reset  # clean up when done

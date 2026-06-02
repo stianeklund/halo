@@ -60,6 +60,7 @@ desktop.ini
 
 # Debug / runtime artifacts
 .gdbinit
+.gdbinit.clion
 /tools/xemu.env
 /tools/xbox.env
 /tools/xbox/xemu.env
