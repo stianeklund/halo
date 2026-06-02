@@ -101,7 +101,10 @@ tools/retrieval/index.duckdb
 tools/retrieval/index.duckdb.wal
 
 # Ephemeral worktrees
-.claude/worktrees/
+/.claude/worktrees/
+/.opencode/worktrees/
+/.qmd/
+/.vc71_stage/
 
 # Backup and generated DB files
 *.bak
