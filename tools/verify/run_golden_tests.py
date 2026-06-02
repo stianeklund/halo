@@ -61,6 +61,29 @@ def build_variant(label: str, overlay: Path, artifact_dir: Path, skip_build: boo
     )
 
 
+def restore_harness_off(artifact_dir: Path, skip_build: bool) -> dict:
+    restore = {"ok": False, "skipped": skip_build}
+    if skip_build:
+        restore["ok"] = True
+        return restore
+
+    try:
+        run_command(
+            ["cmake", "-B", "build", "-S", str(ROOT),
+             "-DHALO_TEST_HARNESS=OFF",
+             "-DCMAKE_TOOLCHAIN_FILE=toolchains/llvm.cmake"],
+            ROOT,
+            os.environ.copy(),
+            artifact_dir / "restore_harness_off_configure.txt",
+        )
+    except Exception as exc:
+        restore["error"] = str(exc)
+        return restore
+
+    restore["ok"] = True
+    return restore
+
+
 def deploy_variant(label: str, artifact_dir: Path, skip_deploy: bool) -> None:
     if skip_deploy:
         return
@@ -298,6 +321,9 @@ def main() -> int:
             "error": str(exc),
             "finished_utc": datetime.now(timezone.utc).isoformat(),
         })
+    finally:
+        summary["restore_harness_off"] = restore_harness_off(artifact_dir,
+                                                              args.skip_build)
 
     summary_path = artifact_dir / "summary.json"
     summary_path.write_text(json.dumps(summary, indent=2) + "\n",
