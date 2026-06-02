@@ -2188,7 +2188,10 @@ int FUN_00016e70(int actor_handle, short param_2, char *param_3)
   char *scenario;
   char *cmd_entry;
   unsigned int flags;
+  char bit0;
+  char bit1;
   char stop_look;
+  char bit3;
   char local_10c[256];
 
   actor = (char *)datum_get(actor_data, actor_handle);
@@ -2212,16 +2215,19 @@ int FUN_00016e70(int actor_handle, short param_2, char *param_3)
         }
         *(short *)param_3 = param_2;
         flags = *(unsigned int *)(cmd_entry + 0x20);
+        bit0 = *(char *)(cmd_entry + 0x20) & 1;
+        bit1 = (char)((flags >> 1) & 1);
         stop_look = ~(char)(flags >> 2) & 1;
+        bit3 = ~(char)(flags >> 3) & 1;
         if (stop_look == 0) {
           FUN_00027870(actor_handle);
         }
-        *(char *)(param_3 + 2) = (char)(flags & 1);
+        *(char *)(param_3 + 2) = bit0;
         param_3[3] = stop_look;
-        *(char *)(param_3 + 4) = ~(char)(flags >> 3) & 1;
+        *(char *)(param_3 + 4) = bit3;
         actor_look_compute_prop_interest(
           actor_handle, 1, (short *)param_3,
-          (void (*)(void))actor_look_secondary_stop, (int)&stop_look);
+          (void (*)(void))actor_look_secondary_stop, (int)&bit1);
         return 1;
       }
       if (*(char *)(actor + 8) == '\0') {
@@ -2373,7 +2379,7 @@ void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size)
     snprintf(out_buf, out_size, "pause %.1f", *(float *)(cmd + 2));
     return;
   case 1: {
-    static const char *go_mode[] = { "idle aim weapon", "idle turn around",
+    const char *go_mode[] = { "idle aim weapon", "idle turn around",
                                      "idle look with head",
                                      "forced exact facing",
                                      "forced aim weapon" };
@@ -2384,7 +2390,7 @@ void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size)
     snprintf(out_buf, out_size, "go to (p%d) and face (p%d)", cmd[6], cmd[7]);
     return;
   case 3: {
-    static const char *move_dir[] = { "forwards", "left", "right", "backwards",
+    const char *move_dir[] = { "forwards", "left", "right", "backwards",
                                       "any-facing" };
     if (cmd[6] == -1) {
       snprintf(out_buf, out_size, "move %s along angle %.1f, dist %.2f",
@@ -2396,7 +2402,7 @@ void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size)
     return;
   }
   case 4: {
-    static const char *look_mode[] = { "idle aim weapon", "idle turn around",
+    const char *look_mode[] = { "idle aim weapon", "idle turn around",
                                        "idle look with head",
                                        "forced exact facing",
                                        "forced aim weapon" };
@@ -2405,13 +2411,13 @@ void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size)
     return;
   }
   case 5: {
-    static const char *anim_mode[] = { "idle aim weapon", "noncombat", "asleep",
+    const char *anim_mode[] = { "idle aim weapon", "noncombat", "asleep",
                                        "combat", "panic" };
     snprintf(out_buf, out_size, "animation mode %s", anim_mode[sub_type + 1]);
     return;
   }
   case 6: {
-    static const char *crouch[] = { "disable", "enable" };
+    const char *crouch[] = { "disable", "enable" };
     snprintf(out_buf, out_size, "crouch %s", crouch[sub_type]);
     return;
   }
@@ -2423,7 +2429,7 @@ void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size)
     snprintf(out_buf, out_size, "throw grenade at (p%d)", cmd[6]);
     return;
   case 9: {
-    static const char *seat[] = { "any-non-driver", "gunner", "passenger",
+    const char *seat[] = { "any-non-driver", "gunner", "passenger",
                                   "driver", "any-seat" };
     snprintf(out_buf, out_size, "enter vehicle as %s if within %.1f",
              seat[sub_type], *(float *)(cmd + 2));
@@ -2437,7 +2443,7 @@ void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size)
              *(float *)(cmd + 2), *(float *)(cmd + 4));
     return;
   case 12: {
-    static const char *script_mode[] = { "wait-for-finish",
+    const char *script_mode[] = { "wait-for-finish",
                                          "wake-and-continue" };
     char *name;
     name = "<error>";
@@ -2474,7 +2480,7 @@ void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size)
     return;
   }
   case 15: {
-    static const char *action[] = {
+    const char *action[] = {
       "berserk",     "surprise-front", "surprise-back", "evade-left",
       "evade-right", "dive-fwd",       "dive-back",     "dive-left",
       "dive-right",  "vehicle-woohoo", "vehicle-scared"
@@ -2486,23 +2492,23 @@ void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size)
     snprintf(out_buf, out_size, "vocalize %s", FUN_001a67b0(sub_type, 0));
     return;
   case 17: {
-    static const char *on_off[] = { "enable", "disable" };
+    const char *on_off[] = { "enable", "disable" };
     snprintf(out_buf, out_size, "targeting %s", on_off[sub_type]);
     return;
   }
   case 18: {
-    static const char *on_off[] = { "enable", "disable" };
+    const char *on_off[] = { "enable", "disable" };
     snprintf(out_buf, out_size, "initiative %s", on_off[sub_type]);
     return;
   }
   case 19: {
-    static const char *wait_mode[] = { "until alerted", "until visible enemy",
+    const char *wait_mode[] = { "until alerted", "until visible enemy",
                                        "until told to advance" };
     snprintf(out_buf, out_size, "wait %s", wait_mode[sub_type]);
     return;
   }
   case 20: {
-    static const char *loop_mode[] = { "always", "only until told to advance" };
+    const char *loop_mode[] = { "always", "only until told to advance" };
     if (cmd[11] == -1) {
       snprintf(out_buf, out_size, "loop to <none> %s", loop_mode[sub_type]);
     } else {
@@ -2519,14 +2525,14 @@ void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size)
     snprintf(out_buf, out_size, "pause in loop %.1f", *(float *)(cmd + 2));
     return;
   case 22: {
-    static const char *move_dir[] = { "forwards", "left", "right",
+    const char *move_dir[] = { "forwards", "left", "right",
                                       "backwards" };
     snprintf(out_buf, out_size, "move %s for %.1f sec", move_dir[sub_type],
              *(float *)(cmd + 2));
     return;
   }
   case 23: {
-    static const char *look_mode[] = { "idle aim weapon", "idle turn around",
+    const char *look_mode[] = { "idle aim weapon", "idle turn around",
                                        "idle look with head",
                                        "forced exact facing",
                                        "forced aim weapon" };
@@ -2537,7 +2543,7 @@ void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size)
     return;
   }
   case 24: {
-    static const char *look_mode[] = { "idle aim weapon", "idle turn around",
+    const char *look_mode[] = { "idle aim weapon", "idle turn around",
                                        "idle look with head",
                                        "forced exact facing",
                                        "forced aim weapon" };
@@ -2546,7 +2552,7 @@ void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size)
     return;
   }
   case 25: {
-    static const char *look_mode[] = { "idle aim weapon", "idle turn around",
+    const char *look_mode[] = { "idle aim weapon", "idle turn around",
                                        "idle look with head",
                                        "forced exact facing",
                                        "forced aim weapon" };
@@ -3020,18 +3026,12 @@ LAB_done:
 void FUN_00019370(int actor_handle)
 {
   char *actor;
-  short field_ca;
-  short field_6e;
-  short field_6a;
   int mode;
   int tmp;
   float tmp_x, tmp_y;
   float len_sq;
 
   actor = (char *)datum_get(actor_data, actor_handle);
-  field_ca = *(short *)(actor + 0xca);
-  field_6e = *(short *)(actor + 0x6e);
-  field_6a = *(short *)(actor + 0x6a);
 
   if (*(char *)(actor + 0x6) != '\0') {
     display_assert("!actor->meta.swarm",
@@ -3064,19 +3064,18 @@ void FUN_00019370(int actor_handle)
     if (*(char *)(actor + 0x99) == '\0') {
       *(int *)(actor + 0x3f8) = *(int *)(actor + 0x128);
     }
-    mode = 0;
-    if (field_6a < 3)
-      mode = (field_6a - 3) & 3;
-    mode = mode + 1;
+    mode = 4;
+    if (*(short *)(actor + 0x6a) < 3)
+      mode = 1;
     goto LAB_set_fc;
   }
 
-  if (field_ca == 3 || field_ca == 1) {
+  if (*(short *)(actor + 0xca) == 3 || *(short *)(actor + 0xca) == 1) {
     mode = 0;
     *(short *)(actor + 0x3e8) = 7;
     *(short *)(actor + 0x3ec) = 0;
   } else {
-    if (field_6e >= 5 && (*(char *)(actor + 0xa8) & 1) != 0) {
+    if (*(short *)(actor + 0x6e) >= 5 && (*(char *)(actor + 0xa8) & 1) != 0) {
       *(short *)(actor + 0x3e8) = 7;
       *(short *)(actor + 0x3ec) = 2;
       *(short *)(actor + 0x3fc) = 4;
@@ -3086,10 +3085,10 @@ void FUN_00019370(int actor_handle)
     mode = 0;
     *(short *)(actor + 0x3e8) = 0;
     if (*(char *)(actor + 0x9f) != '\0') {
-      tmp = 0;
-      if (field_6a < 3)
-        tmp = (field_6a - 3) & 3;
-      mode = tmp + 1;
+      tmp = 4;
+      if (*(short *)(actor + 0x6a) < 3)
+        tmp = 1;
+      mode = tmp;
       goto LAB_set_fc;
     }
   }
@@ -3105,7 +3104,7 @@ LAB_done:
 
   *(char *)(actor + 0x426) = *(char *)(actor + 0xc8);
   *(char *)(actor + 0x427) = *(char *)(actor + 0xc8);
-  *(short *)(actor + 0x42c) = field_ca;
+  *(short *)(actor + 0x42c) = *(short *)(actor + 0xca);
 
   if (*(char *)(actor + 0xf8) != '\0' &&
       !FUN_0002a360(actor_handle)) {
@@ -4371,15 +4370,13 @@ LAB_eval_guard:
         }
       }
       if (*(char *)((char *)ctx + 0x5fc) != '\0') {
-        float sq_dist;
-        sq_dist = *(float *)(pos + 0x24);
-        if (*(float *)0x254e74 <= sq_dist ||
+        if (*(float *)0x254e74 <= *(float *)(pos + 0x24) ||
             (*(char *)(pos + 0x29) = 1, *(char *)((char *)ctx + 0x14) != '\0')) {
           eval = 0.0f;
-          if (*(float *)0x254e74 <= sq_dist &&
+          if (*(float *)0x254e74 <= *(float *)(pos + 0x24) &&
               (eval = *(float *)0x253f34,
-               sq_dist < *(float *)0x254e70 &&
-               (eval = (xbox_sqrtf(sq_dist) - *(float *)0x2533d8) * *(float *)0x254e6c,
+               *(float *)(pos + 0x24) < *(float *)0x254e70 &&
+               (eval = (xbox_sqrtf(*(float *)(pos + 0x24)) - *(float *)0x2533d8) * *(float *)0x254e6c,
                 (eval < 0.0f || eval >= 1000.0f)))) {
             display_assert("(evaluation >= 0.0f) && (evaluation < 1e+03f)",
                            "c:\\halo\\SOURCE\\ai\\actor_firing_position.c",
@@ -5683,21 +5680,27 @@ LAB_00029e6d:
     if (*(float *)(tag_data + 0x330) <= *(float *)0x2533c0) goto LAB_0002a0c3;
     snap_cos = x87_fcos(*(float *)(tag_data + 0x330));
     if (!*(char *)(actor + 0x99)) {
-      float sv0 = pfv[0]; float sv1 = pfv[1];
-      float dv0 = desired_facing[0]; float dv1 = desired_facing[1];
-      float ss0 = snap_stored[0]; float ss1 = snap_stored[1];
-      if (magnitude3d(&sv0) == *(float *)0x2533c0) goto LAB_0002a0a7;
-      if (magnitude3d(&dv0) == *(float *)0x2533c0) goto LAB_0002a0a7;
-      if (magnitude3d(&ss0) == *(float *)0x2533c0) goto LAB_0002a0a7;
-      if (ss1 * sv1 + ss0 * sv0 > snap_cos) {
-        if (dv1 * ss0 + sv0 * dv0 <= snap_cos) goto LAB_0002a0c3;
+      float sv[2];
+      float dv[2];
+      float ss[2];
+      sv[0] = pfv[0];
+      sv[1] = pfv[1];
+      dv[0] = desired_facing[0];
+      dv[1] = desired_facing[1];
+      ss[0] = snap_stored[0];
+      ss[1] = snap_stored[1];
+      if (magnitude3d(sv) == *(float *)0x2533c0) goto LAB_0002a0a7;
+      if (magnitude3d(dv) == *(float *)0x2533c0) goto LAB_0002a0a7;
+      if (magnitude3d(ss) == *(float *)0x2533c0) goto LAB_0002a0a7;
+      if (ss[1] * sv[1] + ss[0] * sv[0] > snap_cos) {
+        if (dv[1] * ss[1] + dv[0] * ss[0] <= snap_cos) goto LAB_0002a0c3;
       }
     } else {
-      float dot3 = desired_facing[0] * snap_stored[0]
-                 + desired_facing[1] * snap_stored[1]
-                 + desired_facing[2] * snap_stored[2];
+      float dot3 = pfv[0] * snap_stored[0]
+                 + pfv[1] * snap_stored[1]
+                 + pfv[2] * snap_stored[2];
       if (dot3 > snap_cos) {
-        float dot4 = FUN_00013070(pfv, snap_stored);
+        float dot4 = FUN_00013070(desired_facing, snap_stored);
         if (dot4 <= snap_cos) goto LAB_0002a0c3;
       }
     }
