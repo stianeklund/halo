@@ -5469,7 +5469,7 @@ float *game_engine_player_get_change_color(float *param_1, int param_2)
 
     color_index = *(int16_t *)(player + 0x60);
 
-    if (*(int *)0x2efe20 != -1)
+    if (*(int16_t *)0x2efe20 != -1)
 
       color_index = *(int16_t *)0x2efe20;
 
