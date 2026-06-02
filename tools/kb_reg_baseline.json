@@ -88,6 +88,7 @@
     "0x8c4b0": "void observer_update_result(int16_t local_player_index @<eax>);",
     "0x8ccf0": "void observer_compute_velocities(int16_t local_player_index @<esi>);",
     "0x8cd40": "void observer_update_positions(int16_t local_player_index @<eax>);",
+    "0x8e500": "const char *system_exception_name(uint32_t code@<ecx>);",
     "0x8e6d0": "void FUN_0008e6d0(void *ptr /* @<eax> */, const char *file, int line);",
     "0x8e7d0": "void FUN_0008e7d0(void *header /* @<esi> */, const char *file /* @<ebx> */, int line /* @<edi> */);",
     "0x8e8e0": "void FUN_0008e8e0(void *ptr /* @<ebx> */, uint32_t size);",

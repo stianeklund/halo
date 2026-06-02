@@ -5427,19 +5427,27 @@
         },
         {
           "addr": "0x8e250",
-          "decl": "void FUN_0008e250(void);"
+          "decl": "char *system_stristr(const char *str, const char *substr);",
+          "name": "system_stristr",
+          "ported": true
         },
         {
           "addr": "0x8e2b0",
-          "decl": "void FUN_0008e2b0(void);"
+          "decl": "uint32_t system_string_hash(const char *str);",
+          "name": "system_string_hash",
+          "ported": true
         },
         {
           "addr": "0x8e2e0",
-          "decl": "void display_debug_string(void);"
+          "decl": "void display_debug_string(const char *str);",
+          "name": "display_debug_string",
+          "ported": true
         },
         {
           "addr": "0x8e320",
-          "decl": "void system_unique_identifiers_equal(void);"
+          "decl": "int system_unique_identifiers_equal(const void *id1, const void *id2);",
+          "name": "system_unique_identifiers_equal",
+          "ported": true
         },
         {
           "addr": "0x8e380",
@@ -5448,27 +5456,39 @@
         },
         {
           "addr": "0x8e390",
-          "decl": "void system_get_user_name(void);"
+          "decl": "void system_get_user_name(char *buffer, int16_t max_len);",
+          "name": "system_get_user_name",
+          "ported": true
         },
         {
           "addr": "0x8e3b0",
-          "decl": "void system_calloc(void);"
+          "decl": "void *system_calloc(int count, int size);",
+          "name": "system_calloc",
+          "ported": true
         },
         {
           "addr": "0x8e3d0",
-          "decl": "void system_malloc(void);"
+          "decl": "void *system_malloc(int size);",
+          "name": "system_malloc",
+          "ported": true
         },
         {
           "addr": "0x8e3e0",
-          "decl": "void system_free(void);"
+          "decl": "void system_free(void *ptr);",
+          "name": "system_free",
+          "ported": true
         },
         {
           "addr": "0x8e3f0",
-          "decl": "void system_realloc(void);"
+          "decl": "void *system_realloc(void *ptr, int size);",
+          "name": "system_realloc",
+          "ported": true
         },
         {
           "addr": "0x8e470",
-          "decl": "void system_get_used_memory_size(void);"
+          "decl": "uint32_t system_get_used_memory_size(uint32_t *output);",
+          "name": "system_get_used_memory_size",
+          "ported": true
         },
         {
           "addr": "0x8e480",
@@ -5477,7 +5497,9 @@
         },
         {
           "addr": "0x8e500",
-          "decl": "void FUN_0008e500(void);"
+          "decl": "const char *system_exception_name(uint32_t code@<ecx>);",
+          "name": "system_exception_name",
+          "ported": true
         }
       ],
       "name": "cseries_windows.obj",
