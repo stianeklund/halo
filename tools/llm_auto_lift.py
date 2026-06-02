@@ -1106,12 +1106,18 @@ class ContextPackBuilder:
 
     def _audit_call_sites(self, target: LiftTarget, ghidra_ctx: dict) -> list:
         """Parse every CALL in disassembly, collect PUSH operands, cross-ref
-        with callee kb.json signatures. Flag register aliasing and FPU hazards."""
+        with callee kb.json signatures. Flag FPU-argument hazards only.
+
+        Note: ARG_COUNT and REGISTER_ALIASING hazards have been removed.
+        Push-count comparison is unreliable because register-arg callees
+        (fastcall/thiscall @ecx/@edx) pass args in registers without pushes,
+        and the backward scan cannot distinguish callee-saved prologue saves
+        (EBX/ESI/EDI) from genuine argument pushes.
+        """
         disasm = ghidra_ctx.get("disassembly", "")
         if not disasm:
             return []
         disasm_text = _unwrap_mcp_text(disasm)
-        callee_details = ghidra_ctx.get("callee_details", {})
         lookup = self._ensure_callee_lookup()
         audit: list = []
 
@@ -1157,36 +1163,12 @@ class ContextPackBuilder:
                 callee_name = callee_info.get("name", "")
 
             hazards: list[str] = []
-            if callee_info:
-                expected = callee_info.get("param_count", 0)
-                actual = len(pushes)
-                if expected > 0 and actual != expected:
-                    hazards.append(
-                        f"ARG_COUNT: expected {expected} params, "
-                        f"found {actual} pushes"
-                    )
-
             for p in pushes:
-                ops = p["operands"]
                 if p.get("is_fpu"):
                     hazards.append(
                         "FPU_ARG: FSTP [ESP] replaces dummy stack slot "
                         "— Ghidra likely shows wrong argument"
                     )
-                    p["type"] = "FPU"
-                elif re.match(r"^[A-Z]{2,}$", ops):
-                    p["type"] = "REGISTER"
-                    if ops in ("EBX", "ESI", "EDI"):
-                        hazards.append(
-                            f"REGISTER_ALIASING: PUSH {ops} ({p['addr']}) "
-                            "— callee-saved register, verify source at call"
-                        )
-                elif "EBP" in ops:
-                    p["type"] = "EBP_FRAME"
-                elif re.match(r"^0x[0-9a-fA-F]+$", ops):
-                    p["type"] = "IMMEDIATE"
-                else:
-                    p["type"] = "UNKNOWN"
 
             audit.append({
                 "call_addr": addr,
@@ -1195,8 +1177,6 @@ class ContextPackBuilder:
                 "callee_decl": callee_info.get("decl", ""),
                 "callee_ported": callee_info.get("ported", False),
                 "callee_has_reg_args": callee_info.get("has_reg_args", False),
-                "num_pushes": len(pushes),
-                "pushes": pushes,
                 "hazards": hazards,
             })
 
@@ -1208,7 +1188,24 @@ class ContextPackBuilder:
 
     def _extract_struct_offsets(self, ghidra_ctx: dict) -> dict:
         """Parse MOV [reg+offset] patterns in disassembly to build verified
-        field-offset tables per struct-pointer register."""
+        field-offset tables per struct-pointer register.
+
+        Only callee-saved registers (ESI, EDI, EBX) are included — these
+        typically hold stable struct pointers across a function. Scratch
+        registers (EAX/ECX/EDX) and the frame pointer (EBP) are excluded
+        because their [reg+off] accesses conflate unrelated objects or are
+        stack frame slots, not heap struct fields.
+
+        Offsets with the 32-bit sign bit set (i.e. negative displacements
+        mis-captured as large unsigned values) or exceeding 0x10000 are
+        also discarded as nonsensical struct field indices.
+        """
+        # Registers that plausibly hold a stable struct pointer for an entire
+        # function body. Scratch regs (EAX, ECX, EDX) and the frame pointer
+        # (EBP) are excluded.
+        _STRUCT_REGS = {"ESI", "EDI", "EBX"}
+        _MAX_STRUCT_OFFSET = 0x10000
+
         disasm = ghidra_ctx.get("disassembly", "")
         if not disasm:
             return {}
@@ -1218,9 +1215,14 @@ class ContextPackBuilder:
         for line in disasm_text.splitlines():
             for m in _STRUCT_ACCESS_RE.finditer(line):
                 reg = m.group(2).upper()
-                if reg in ("ESP", "EIP"):
+                if reg not in _STRUCT_REGS:
                     continue
                 offset = m.group(3).lower()
+                val = int(offset, 16)
+                # Reject negative displacements (32-bit sign bit set) and
+                # unreasonably large offsets that cannot be struct fields.
+                if val & 0x80000000 or val > _MAX_STRUCT_OFFSET:
+                    continue
                 field_map.setdefault(reg, {}).setdefault(offset, 0)
                 field_map[reg][offset] += 1
 

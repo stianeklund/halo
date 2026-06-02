@@ -39,6 +39,12 @@
             "command": "cd $(git rev-parse --show-toplevel) && python3 tools/retrieval/decompile_hook.py",
             "timeout": 15,
             "statusMessage": "Retrieval: finding similar ported functions"
+          },
+          {
+            "type": "command",
+            "command": "cd $(git rev-parse --show-toplevel) && python3 tools/retrieval/enrichment_hook.py",
+            "timeout": 5,
+            "statusMessage": "Enrichment: injecting cached callee/struct/alias analysis"
           }
         ]
       }
