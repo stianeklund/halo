@@ -3658,12 +3658,12 @@
         {
           "addr": "0x27dd0",
           "decl": "bool FUN_00027dd0(float *dir@<eax>, float *vec2@<edx>, float threshold);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x27e50",
           "decl": "bool FUN_00027e50(float *dir@<eax>, float *vec2@<ecx>, float *limit@<edx>, float threshold, float *output);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x27f40",
