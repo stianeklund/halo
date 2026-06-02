@@ -1788,8 +1788,13 @@ unsigned int FUN_000163d0(int actor_handle)
 {
   char *actor;
   char *tag;
+#if defined(_MSC_VER) && !defined(__clang__)
+  char large_buf[0x670];
+  char huge_buf[0x1474c];
+#else
   static char large_buf[0x670];
   static char huge_buf[0x1474c];
+#endif
   short result;
   int seed_ret;
   float timer;
@@ -3933,7 +3938,7 @@ void FUN_0001a7e0(int actor_handle)
   char *actor;
   char *tag;
   char *threat;
-  int result;
+  char result;
   char debug_buf[256];
   char debug_msg[259];
   char done;
@@ -3973,7 +3978,7 @@ void FUN_0001a7e0(int actor_handle)
         FUN_00024be0(actor_handle, *(short *)(actor + 0x3b8), 0);
       goto LAB_timer_check;
     }
-    result = (int)(*(char *)(actor + 0xbc) == '\0');
+    result = (*(char *)(actor + 0xbc) == '\0');
   } else {
     *(int *)(actor + 0xc0) = 0;
 LAB_timer_check:
