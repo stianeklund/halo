@@ -20,6 +20,13 @@ DEFAULT_PROGRESS_DIR = ROOT / "artifacts" / "progress"
 FAIL_STATUSES = {"fail", "error"}
 
 
+def run_logged(cmd: list[str], output_path: Path) -> int:
+    with output_path.open("w", encoding="utf-8") as f:
+        proc = subprocess.run(cmd, stdout=f, stderr=subprocess.STDOUT,
+                              cwd=str(ROOT), text=True)
+    return proc.returncode
+
+
 def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -89,6 +96,37 @@ def update_dashboard(progress_dir: Path) -> None:
         "--html", str(progress_dir / "index.html"),
     ]
     subprocess.run(cmd, check=True, cwd=str(ROOT))
+
+
+def restore_normal_mode(output_dir: Path, skip_deploy: bool) -> dict:
+    restore = {"ok": False, "deploy_skipped": skip_deploy, "steps": []}
+    commands = [
+        ("configure", [
+            "cmake", "-B", "build", "-S", str(ROOT),
+            "-DHALO_TEST_HARNESS=OFF",
+            "-DCMAKE_TOOLCHAIN_FILE=toolchains/llvm.cmake",
+        ]),
+        ("build", ["cmake", "--build", "build", "--target", "patched_xbe", "--", "--quiet"]),
+    ]
+    if not skip_deploy:
+        commands.append(("deploy", [
+            sys.executable,
+            str(ROOT / "tools" / "xbox" / "deploy_xbox.py"),
+            "--xbe-only",
+            "--skip-build",
+        ]))
+
+    for label, cmd in commands:
+        log_path = output_dir / f"restore_normal_{label}.txt"
+        rc = run_logged(cmd, log_path)
+        step = {"step": label, "returncode": rc, "log": str(log_path)}
+        restore["steps"].append(step)
+        if rc != 0:
+            restore["error"] = f"restore {label} failed with exit {rc}"
+            return restore
+
+    restore["ok"] = True
+    return restore
 
 
 def run_target(entry: dict, batch_id: str, skip_build: bool, skip_deploy: bool) -> tuple[dict, str]:
@@ -172,13 +210,16 @@ def main() -> int:
     results = {"total": len(targets), "pass": 0, "fail": 0, "error": 0}
     interrupted = False
     t0 = time.time()
+    restore_normal = None
 
     def on_sigint(signum, frame):
         nonlocal interrupted
         interrupted = True
         print("\n\nInterrupted - writing summary...")
 
-    prev_handler = signal.signal(signal.SIGINT, on_sigint)
+    prev_handlers = {signal.SIGINT: signal.signal(signal.SIGINT, on_sigint)}
+    if hasattr(signal, "SIGTERM"):
+        prev_handlers[signal.SIGTERM] = signal.signal(signal.SIGTERM, on_sigint)
 
     try:
         for index, entry in enumerate(targets, start=1):
@@ -217,7 +258,17 @@ def main() -> int:
             log_path = output_dir / f"{sanitize_target(entry['target'])}.log"
             log_path.write_text(output, encoding="utf-8")
     finally:
-        signal.signal(signal.SIGINT, prev_handler)
+        for sig, handler in prev_handlers.items():
+            signal.signal(sig, handler)
+        print("\nRestoring HALO_TEST_HARNESS=OFF...")
+        restore_normal = restore_normal_mode(output_dir, args.skip_deploy)
+        if restore_normal["ok"]:
+            print("Restore normal mode: PASS")
+        else:
+            print(f"Restore normal mode: ERROR ({restore_normal.get('error', '')})")
+
+    if restore_normal and not restore_normal["ok"]:
+        results["error"] += 1
 
     baseline_keys = baseline_failure_keys(args.baseline)
     current_failure_rows = [row for row in rows if row["status"] in FAIL_STATUSES]
@@ -234,6 +285,7 @@ def main() -> int:
         "results": results,
         "rows": rows,
         "comparison": comparison,
+        "restore_normal": restore_normal,
         "elapsed_seconds": elapsed,
         "interrupted": interrupted,
     }
