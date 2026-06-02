@@ -266,6 +266,14 @@ uniform yellow tint on weapons and world geometry.
 - `grep -n '(float)(int)' src/file.c` after lifting to catch these.
 - The underlying rule: **never use C casts to reinterpret float↔int bits**.
   Use `memcpy(&dst, &src, 4)` or a union if you genuinely need bit-casting.
+- **`*(type*)&local_XX` is ambiguous:** Ghidra uses this syntax for two distinct
+  situations. (a) *Genuine type-punning* — same logical value reinterpreted as a
+  different type (this section; fix with memcpy/union). (b) *Lifetime-based slot
+  reuse* — two unrelated variables share the same EBP offset because their
+  lifetimes don't overlap (optimizer decision); just declare two separate C locals
+  and the compiler re-coalesces them — no union needed, and forcing one can change
+  codegen. Tell them apart by checking whether the two "uses" of the slot are
+  semantically the same value or independent data.
 
 **Detection at runtime:** No crash — just visually wrong output. Compare
 against the unpatched game at the same camera position.
