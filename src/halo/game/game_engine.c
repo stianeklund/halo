@@ -1782,14 +1782,7 @@ void game_engine_update_non_deterministic(float dt)
     if (!ok2 && !ok3)
       return;
 
-    {
-      void *server = network_game_server_get();
-      if (server) {
-        network_server_manager_pregame_start(server);
-        return;
-      }
-      network_game_abort();
-    }
+    network_game_abort();
   }
 }
 
@@ -6147,7 +6140,7 @@ int FUN_000abd20(int *param_1, int param_2, char param_3)
 }
 
 /* Get the local player's stat entry from the sorted buffer. */
-void FUN_000abf50(int *param_1, int player_handle)
+int *FUN_000abf50(int *param_1, int player_handle)
 {
   int i;
   int count;
@@ -6166,13 +6159,13 @@ void FUN_000abf50(int *param_1, int player_handle)
         /* player datum inactive (quit) — not in sorted array; zero output */
         int n;
         for (n = 0; n < 7; n++) param_1[n] = 0;
-        return;
+        return param_1;
       }
     } while (*src != player_handle);
   } else if (count == 0) {
     int n;
     for (n = 0; n < 7; n++) param_1[n] = 0;
-    return;
+    return param_1;
   }
   src = local_1c4 + i * 7;
   dst = param_1;
@@ -6182,6 +6175,7 @@ void FUN_000abf50(int *param_1, int player_handle)
     src++;
     dst++;
   } }
+  return param_1;
 }
 
 /* Get the place rating for a player relative to others. */
@@ -8752,11 +8746,12 @@ void game_engine_post_rasterize_post_game(void)
   iVar6 = (int)tag_get(0x68756467, iVar5);
   rect[0] = 0;
   rect[1] = 0;
-  rect[2] = 640;
-  rect[3] = 480;
+  rect[2] = 0x1e0; /* 480 */
+  rect[3] = 0x280; /* 640 */
   iVar5 = (int)FUN_00076ff0(*(int *)(iVar6 + 0x3d4), 0);
   if (iVar5 != 0) {
-    draw_bitmap_in_rect(FUN_00076ff0(*(int *)(iVar6 + 0x3d4), 0));
+    draw_bitmap_in_rect((int)FUN_00076ff0(*(int *)(iVar6 + 0x3d4), 0),
+                        rect, rect, (int16_t *)0, -1, 0, 1);
   }
   if (*(char *)0x456b14 != 0) {
     team_tabs[0] = 0x32;
@@ -8914,20 +8909,20 @@ void game_engine_post_rasterize_post_game(void)
   bottom_color[2] = color[2];
   bottom_color[1] = color[1];
   bottom_color[0] = *(float *)0x5aa72c;
-  rect2[0] = *(int16_t *)0x506584;
-  rect2[1] = 0x19a;
-  rect2[2] = *(int16_t *)0x506588;
-  rect2[3] = 0x46;
+  rect2[0] = 0x19a; /* x = 410 */
+  rect2[1] = 0x46;  /* y = 70 */
+  rect2[2] = 0x1e0; /* clip bottom = 480 */
+  rect2[3] = 0x280; /* clip right = 640 */
   rect2d_offset(rect2, -*(int16_t *)0x50657e, -*(int16_t *)0x50657c);
   draw_string_set_tab_stops(0, 0);
   draw_string_set_color(bottom_color);
   iVar5 = (int)network_game_server_get();
   if (iVar5 != 0) {
-    rect2[2] = 0x17c;
+    rect2[1] = 0x17c;
     draw_string_and_hack_in_icons(rect2, 0, 0, 0, L"\t%b-button =quit    %a-button =pick game", 0);
     return;
   }
-  rect2[2] = 0x208;
+  rect2[1] = 0x208;
   draw_string_and_hack_in_icons(rect2, 0, 0, 0, L"\t%b-button =quit", 0); }
 }
 

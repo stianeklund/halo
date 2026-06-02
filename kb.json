@@ -8488,7 +8488,7 @@
         },
         {
           "addr": "0xabf50",
-          "decl": "void FUN_000abf50(int *param_1, int player_handle@<ebx>);",
+          "decl": "int *FUN_000abf50(int *param_1, int player_handle@<ebx>);",
           "ported": true,
           "src": "src/halo/game/game_engine.c"
         },
@@ -23881,7 +23881,7 @@
         },
         {
           "addr": "0xe3e80",
-          "decl": "void draw_bitmap_in_rect(void *bitmap_data);"
+          "decl": "void draw_bitmap_in_rect(int bitmap, int16_t *src_rect, int16_t *dst_rect, int16_t *clip_rect, int flags, int param_6, int param_7);"
         },
         {
           "addr": "0xe4310",
