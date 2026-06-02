@@ -138,7 +138,7 @@
     "0xab090": "void FUN_000ab090(int text, char highlight, int row@<eax>, int state@<esi>);",
     "0xab420": "bool game_engine_check_input_button(int button_index@<edi>);",
     "0xabca0": "int FUN_000abca0(int score@<eax>, int player_handle@<esi>);",
-    "0xabf50": "void FUN_000abf50(int *param_1, int player_handle@<ebx>);",
+    "0xabf50": "int *FUN_000abf50(int *param_1, int player_handle@<ebx>);",
     "0xac030": "int FUN_000ac030(int param_eax@<eax>, int unused_arg1, void *out_buffer, int max_count);",
     "0xac3e0": "void FUN_000ac3e0(int player_handle@<eax>);",
     "0xac4e0": "bool game_engine_get_score_hud_text(int player_handle, int param3, int hud_player, wchar_t *buffer@<edi>, int buffer_capacity@<esi>);",
