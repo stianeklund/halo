@@ -51,6 +51,28 @@ def _run_cmake_configure(extra_args: list[str] = None, quiet: bool = False) -> i
     return result.returncode
 
 
+def _generate_debug_elf(quiet: bool = False) -> None:
+    """Generate build/halo.debug with section VMAs adjusted to XBE runtime addresses.
+
+    The ELF is linked at 0x401000 but patch.py places our sections 0x242000
+    higher in the XBE (0x643000 for .text). Adjusting the VMAs here lets GDB
+    and CLion load the symbol file directly without add-symbol-file relocation.
+    """
+    src = os.path.join(BUILD_DIR, "halo")
+    dst = os.path.join(BUILD_DIR, "halo.debug")
+    if not os.path.isfile(src):
+        return
+    offset = 0x242000
+    cmd = ["objcopy"]
+    for sec in (".text", ".rdata", ".data", ".thunks", ".reloc"):
+        cmd += ["--change-section-vma", f"{sec}+{offset:#x}"]
+    cmd += [src, dst]
+    result = subprocess.run(cmd, check=False, cwd=ROOT_DIR,
+                            stdout=subprocess.DEVNULL if quiet else None)
+    if result.returncode != 0 and not quiet:
+        print(f"warning: objcopy failed, build/halo.debug not updated", file=sys.stderr)
+
+
 def build(target: str = "", quiet: bool = False, test_harness: bool = False) -> int:
     if not os.path.isdir(BUILD_DIR):
         print(
@@ -70,7 +92,12 @@ def build(target: str = "", quiet: bool = False, test_harness: bool = False) -> 
         if thunk_result != 0:
             return thunk_result
 
-    return _run_cmake_build(target, quiet=quiet)
+    build_result = _run_cmake_build(target, quiet=quiet)
+    if build_result != 0:
+        return build_result
+
+    _generate_debug_elf(quiet=quiet)
+    return 0
 
 
 def main() -> int:

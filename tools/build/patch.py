@@ -1334,16 +1334,27 @@ def main():
     with open(args.output_xbe, 'wb') as f:
         f.write(xbe.pack())
 
-    # Generate GDB init script
-    log.info('Generating GDB init script')
+    # Generate GDB init scripts
+    log.info('Generating GDB init scripts')
+    symbol_sections = ' '.join(f'-s {n} {addr:#x}' for n, addr in exe_to_xbe_section_map.items() if
+                               n != '.text' and not n.startswith('/'))
+    terminal_symbol_command = 'add-symbol-file build/halo ' + hex(exe_to_xbe_section_map['.text']) + ' ' + symbol_sections + '\n'
+    clion_exe_path = os.path.abspath(args.input_exe)
+    clion_symbol_command = 'add-symbol-file ' + clion_exe_path + ' ' + hex(exe_to_xbe_section_map['.text']) + ' ' + symbol_sections + '\n'
     with open(root_dir + '/.gdbinit', 'w') as f:
         f.write('set arch i386\n')
-        f.write('add-symbol-file build/halo ' + hex(exe_to_xbe_section_map['.text']) + ' ' +
-                ' '.join(f'-s {n} {addr:#x}' for n, addr in exe_to_xbe_section_map.items() if
-                         n != '.text' and not n.startswith('/')) + '\n')
-        f.write('layout src\n')
+        f.write('file build/halo\n')
+        f.write(terminal_symbol_command)
         f.write('target remote 127.0.0.1:1234\n')
         f.write('set disassembly-flavor intel\n')
+        # FIXME: Add other symbols
+    with open(root_dir + '/.gdbinit.clion', 'w') as f:
+        f.write('set architecture i386\n')
+        f.write('set disassembly-flavor intel\n')
+        f.write('set breakpoint pending on\n')
+        f.write('exec-file ' + clion_exe_path + '\n')
+        f.write(clion_symbol_command)
+        f.write('target remote 127.0.0.1:1234\n')
         # FIXME: Add other symbols
 
     log.info('Build complete')
