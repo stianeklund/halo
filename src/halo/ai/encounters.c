@@ -3798,7 +3798,7 @@ void FUN_0005c940(int encounter_handle)
   encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
   enc_def_elt = (char *)tag_block_get_element(
     (char *)global_scenario_get() + 0x42c,
-    (int)(short)(encounter_handle & 0xffff), 0xb0);
+    (encounter_handle & 0xffff), 0xb0);
   i = 0;
   if (*(short *)(encounter + 0xa) <= 0) {
     return;
