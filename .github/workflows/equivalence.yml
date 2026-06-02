@@ -121,12 +121,28 @@ jobs:
             ${{ steps.baseline.outputs.flags }} \
             --output-dir artifacts/batch_verify
 
+      - name: Generate progress dashboard
+        if: always()
+        run: |
+          mkdir -p artifacts/progress
+          ${{ env.VENV_PYTHON }} tools/report/generate_decomp_report.py \
+            --output artifacts/progress/report.json \
+            --html artifacts/progress/index.html
+
+      - name: Update historical data
+        if: always()
+        run: |
+          ${{ env.VENV_PYTHON }} tools/report/history.py \
+            --add-snapshot artifacts/progress/report.json
+
       - name: Upload results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: equivalence-results-${{ github.run_number }}
-          path: artifacts/batch_verify/
+          path: |
+            artifacts/batch_verify/
+            artifacts/progress/
           retention-days: 30
 
       - name: Summary

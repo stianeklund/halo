@@ -67,6 +67,12 @@ jobs:
             --output artifacts/progress/report.json \
             --html artifacts/progress/index.html
 
+      - name: Update historical data
+        if: always()
+        run: |
+          ${{ env.VENV_PYTHON }} tools/report/history.py \
+            --add-snapshot artifacts/progress/report.json
+
       - name: Upload runtime-oracle artifacts
         if: always()
         uses: actions/upload-artifact@v4
