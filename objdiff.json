@@ -96,7 +96,6 @@
       }
     },
     {
-
       "name": "halo/actor_moving_FUN_0002d900",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_moving.c.obj",
       "base_path": "delinked/actor_moving_FUN_0002d900.obj",
@@ -2418,7 +2417,6 @@
     },
     {
       "name": "halo/actor_looking",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking.obj",
       "metadata": {
@@ -5404,7 +5402,6 @@
     {
       "name": "halo/FUN_00184b80",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/render/render.c.obj",
-      "base_path": "delinked/functions/00184b80.obj",
       "base_path": "delinked/functions/0018af90.obj",
       "metadata": {
         "source_path": "src/halo/render/render.c"
@@ -5413,7 +5410,6 @@
     {
       "name": "halo/FUN_00184b90",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/render/render.c.obj",
-      "base_path": "delinked/functions/00184b90.obj",
       "base_path": "delinked/functions/0018afd0.obj",
       "metadata": {
         "source_path": "src/halo/render/render.c"
@@ -5422,7 +5418,6 @@
     {
       "name": "halo/FUN_00184ba0",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/render/render.c.obj",
-      "base_path": "delinked/functions/00184ba0.obj",
       "base_path": "delinked/functions/0018afe0.obj",
       "metadata": {
         "source_path": "src/halo/render/render.c"
@@ -5431,7 +5426,6 @@
     {
       "name": "halo/FUN_00184bb0",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/render/render.c.obj",
-      "base_path": "delinked/functions/00184bb0.obj",
       "base_path": "delinked/functions/0018b000.obj",
       "metadata": {
         "source_path": "src/halo/render/render.c"
@@ -6399,7 +6393,6 @@
     },
     {
       "name": "halo/actor_looking_math",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_math.obj",
       "metadata": {
@@ -6408,7 +6401,6 @@
     },
     {
       "name": "halo/actor_looking_24ca0",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_FUN_00024ca0.obj",
       "metadata": {
@@ -6417,7 +6409,6 @@
     },
     {
       "name": "halo/actor_looking_19c70",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_FUN_00019c70.obj",
       "metadata": {
@@ -6426,7 +6417,6 @@
     },
     {
       "name": "halo/actor_looking_1a100",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_FUN_0001a100.obj",
       "metadata": {
@@ -6435,7 +6425,6 @@
     },
     {
       "name": "halo/actor_looking_FUN_00014ba0",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_FUN_00014ba0.obj",
       "metadata": {
@@ -6444,7 +6433,6 @@
     },
     {
       "name": "halo/actor_looking_FUN_0001a600",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_FUN_0001a600.obj",
       "metadata": {
@@ -6453,7 +6441,6 @@
     },
     {
       "name": "halo/actor_looking_FUN_000159d0",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_FUN_000159d0.obj",
       "metadata": {
@@ -6462,7 +6449,6 @@
     },
     {
       "name": "halo/actor_looking_FUN_00019940",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_FUN_00019940.obj",
       "metadata": {
@@ -6471,7 +6457,6 @@
     },
     {
       "name": "halo/actor_looking_FUN_0001a7e0",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_FUN_0001a7e0.obj",
       "metadata": {
@@ -6480,7 +6465,6 @@
     },
     {
       "name": "halo/actor_looking_FUN_000272d0",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_FUN_000272d0.obj",
       "metadata": {
@@ -6489,7 +6473,6 @@
     },
     {
       "name": "halo/actor_looking_FUN_0001a420",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_FUN_0001a420.obj",
       "metadata": {
@@ -6498,7 +6481,6 @@
     },
     {
       "name": "halo/actor_looking_FUN_000197d0",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_FUN_000197d0.obj",
       "metadata": {
@@ -6507,7 +6489,6 @@
     },
     {
       "name": "halo/actor_looking_FUN_00015f60",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_FUN_00015f60.obj",
       "metadata": {
@@ -6516,7 +6497,6 @@
     },
     {
       "name": "halo/actor_looking_FUN_00015cf0",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_FUN_00015cf0.obj",
       "metadata": {
@@ -6525,7 +6505,6 @@
     },
     {
       "name": "halo/actor_looking_FUN_00016590",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_FUN_00016590.obj",
       "metadata": {
@@ -6534,7 +6513,6 @@
     },
     {
       "name": "halo/actor_looking_FUN_00016d40",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_FUN_00016d40.obj",
       "metadata": {
@@ -6543,7 +6521,6 @@
     },
     {
       "name": "halo/actor_looking_FUN_000278e0",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_FUN_000278e0.obj",
       "metadata": {
@@ -6552,7 +6529,6 @@
     },
     {
       "name": "halo/actor_looking_FUN_00027a60",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_FUN_00027a60.obj",
       "metadata": {
@@ -6561,7 +6537,6 @@
     },
     {
       "name": "halo/actor_looking_FUN_0001ac00",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_FUN_0001ac00_wide.obj",
       "metadata": {
@@ -6570,7 +6545,6 @@
     },
     {
       "name": "halo/actor_looking_FUN_000192b0",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_FUN_000192b0.obj",
       "metadata": {
@@ -6579,7 +6553,6 @@
     },
     {
       "name": "halo/actor_looking_FUN_00019d00",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_FUN_00019d00.obj",
       "metadata": {
@@ -6588,7 +6561,6 @@
     },
     {
       "name": "halo/actor_looking_FUN_00019b20",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_FUN_00019b20.obj",
       "metadata": {
@@ -6596,9 +6568,6 @@
       }
     },
     {
-      "name": "halo/actor_looking_FUN_00013dd0",
-      "target_path": "build/vc71/actor_looking.obj",
-      "base_path": "delinked/actor_looking_FUN_00013dd0.obj",
       "name": "halo/actor_looking_FUN_00024ca0",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_FUN_00024ca0.obj",
@@ -6607,9 +6576,6 @@
       }
     },
     {
-      "name": "halo/actor_looking_FUN_00013ef0",
-      "target_path": "build/vc71/actor_looking.obj",
-      "base_path": "delinked/actor_looking_FUN_00013ef0.obj",
       "name": "halo/actor_looking_FUN_00027a10",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_FUN_00027a10.obj",
@@ -6618,9 +6584,6 @@
       }
     },
     {
-      "name": "halo/actor_looking_FUN_00014480",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
-      "base_path": "delinked/actor_looking_FUN_00014480.obj",
       "name": "halo/actor_looking_FUN_00016cf0",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_FUN_00016cf0.obj",
@@ -6629,9 +6592,6 @@
       }
     },
     {
-      "name": "halo/actor_looking_FUN_00014540",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
-      "base_path": "delinked/actor_looking_FUN_00014540.obj",
       "name": "halo/actor_looking_FUN_00019c70",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_FUN_00019c70.obj",
@@ -6797,6 +6757,14 @@
       "base_path": "delinked/integer_math.obj",
       "metadata": {
         "source_path": "halo/math/integer_math.c"
+      }
+    },
+    {
+      "name": "halo/actor_looking_FUN_00029040",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_looking.c.obj",
+      "base_path": "delinked/actor_looking_FUN_00029040.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actor_looking.c"
       }
     }
   ]
