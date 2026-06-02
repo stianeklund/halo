@@ -5058,3 +5058,696 @@ char FUN_00027ff0(int actor_handle, char param_2, char param_3, short *output,
 
   return 0;
 }
+
+/* actor_look_update (0x29040)
+ * Per-tick update of an actor's look/aim/facing output vectors.
+ * Resolves primary/secondary look modes from the look-spec tables,
+ * manages idle-major and idle-minor timers, applies snapping constraints,
+ * and writes the final facing/aiming/looking vectors to actor output fields.
+ *
+ * Confirmed: all 13 FUN_00027dd0 call sites traced from disasm
+ *   (EAX=dir, EDX=vec2 at each CALL); FUN_00027e50 takes 2 extra cdecl args
+ *   (constrain_range, cos_limits); FUN_00028250/28cc0/28ed0 all take
+ *   actor_handle via register (@<esi>, @<eax>, @<eax> respectively).
+ *   primary_vec/secondary_vec/cos_angles are contiguous stack buffers
+ *   passed by address to callees — lift-learnings #2 applies. */
+void actor_look_update(int actor_handle)
+{
+  char *actor;
+  int tag_data;
+  float *desired_facing;
+  float *desired_aiming;
+  float *desired_looking;
+  float primary_vec[3];
+  float secondary_vec[3];
+  float cos_angles[2];
+  short look_spec_type;
+  float constrain_range;
+  int aim_threshold;
+  int look_data_mode;
+  int look_mode;
+  int secondary_mode;
+  char *actor_save;
+  char is_attacking;
+  char snap_flag;
+  char use_aim;
+  char has_primary;
+  char want_secondary;
+  char transient_aim;
+  char in_range;
+  char no_timing_window;
+  char strict_look;
+  char idle_major_active;
+  short look_type;
+  int look_data = 0;
+  char *pfVar14;
+  char cVar5;
+  short sVar8;
+  int iVar10;
+  int iVar13;
+  char cVar7;
+  char bVar15;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actor_save = actor;
+  tag_data = (int)tag_get(0x61637472, *(int *)(actor + 0x58));
+
+  desired_facing  = (float *)(actor + 0x5a4);
+  desired_aiming  = (float *)(actor + 0x5b0);
+  desired_looking = (float *)(actor + 0x5bc);
+  strict_look = 0;
+
+  if (!valid_real_normal3d(desired_facing)) {
+    display_assert("&actor->control.desired_facing_vector",
+                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x44f, 1);
+    system_exit(-1);
+  }
+  if (!valid_real_normal3d(desired_aiming)) {
+    display_assert("&actor->control.desired_aiming_vector",
+                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x450, 1);
+    system_exit(-1);
+  }
+  if (!valid_real_normal3d(desired_looking)) {
+    display_assert("&actor->control.desired_looking_vector",
+                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x451, 1);
+    system_exit(-1);
+  }
+
+  look_type = *(short *)(actor + 0x6dc);
+
+  if (look_type == 1) {
+    desired_aiming[0] = desired_facing[0];
+    desired_aiming[1] = desired_facing[1];
+    desired_aiming[2] = desired_facing[2];
+    desired_looking[0] = desired_facing[0];
+    desired_looking[1] = desired_facing[1];
+    desired_looking[2] = desired_facing[2];
+    pfVar14 = (char *)desired_aiming;
+    goto LAB_00029e6d;
+  }
+
+  /* Determine is_attacking */
+  if (*(char *)(actor + 0x161)) {
+    is_attacking = 1;
+  } else if (look_type == 0 || look_type == 2) {
+    iVar10 = actor_attacking_target(actor_handle);
+    is_attacking = (char)(iVar10 != -1);
+  } else {
+    is_attacking = 0;
+  }
+
+  snap_flag     = *(char *)(actor + 0x58d);
+  transient_aim = *(char *)(actor + 0x58e);
+  use_aim       = is_attacking;
+  aim_threshold = *(int *)(tag_data + 0x12c);
+  constrain_range = *(float *)(tag_data + 0x134);
+  has_primary   = 1;
+  no_timing_window = 0;
+  want_secondary = 0;
+
+  /* Compute cos of aim angles */
+  if (*(short *)(actor + 0x6a) == 3) {
+    cos_angles[0] = x87_fcos(*(float *)(tag_data + 0xbc));
+    cos_angles[1] = x87_fcos(*(float *)(tag_data + 0xc0));
+  } else {
+    cos_angles[0] = x87_fcos(*(float *)(tag_data + 0xb4));
+    cos_angles[1] = x87_fcos(*(float *)(tag_data + 0xb8));
+  }
+
+  /* Determine primary look mode */
+  if (FUN_000210b0(actor_handle) && !*(char *)(actor + 0x456)) {
+    look_spec_type = 2;
+    if (FUN_00028660(actor_handle, &look_spec_type, primary_vec)) {
+      look_mode = 7;
+      strict_look = 1;
+    } else {
+      goto LAB_look_mode_from_actor;
+    }
+  } else {
+LAB_look_mode_from_actor:
+    look_mode = (int)(unsigned short)(*(unsigned short *)(actor + 0x3e8));
+    if (look_mode != 0 && look_mode != 1) {
+      if (FUN_00028660(actor_handle,
+                       (short *)(actor + 0x3ec), primary_vec)) {
+        strict_look = (char)(*(short *)(actor + 0x3ec) == 2);
+      } else {
+        look_mode = 0;
+      }
+    }
+  }
+
+  /* Secondary look mode */
+  secondary_mode = 0;
+  if (*(short *)(actor + 0x544) >= 0 && *(short *)(actor + 0x548) > 0) {
+    if (FUN_00028660(actor_handle,
+                     (short *)(actor + 0x54c), secondary_vec)) {
+      secondary_mode = (int)(*(short *)(actor + 0x546));
+    }
+  }
+
+  /* Panic overrides secondary_mode up to 5 */
+  if (*(char *)(actor + 0x504)) {
+    sVar8 = actor_action_try_to_panic(actor_handle);
+    if (sVar8 == 2) {
+      iVar10 = secondary_mode;
+      secondary_mode = 5;
+      if ((short)iVar10 < 6)
+        secondary_mode = iVar10;
+    }
+  }
+
+  /* Validate primary_vec and secondary_vec */
+  if ((short)look_mode > 1 && !valid_real_normal3d(primary_vec)) {
+    display_assert("&primary_vector",
+                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x4ca, 1);
+    system_exit(-1);
+  }
+  if ((short)secondary_mode != 0 && !valid_real_normal3d(secondary_vec)) {
+    display_assert("&secondary_vector",
+                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x4ce, 1);
+    system_exit(-1);
+  }
+
+  /* Decrement look timer */
+  if (*(short *)(actor + 0x548) > 0) {
+    sVar8 = *(short *)(actor + 0x548) - 1;
+    *(short *)(actor + 0x548) = sVar8;
+    if (sVar8 == 0) {
+      if (*(char *)0x5aca5d) {
+        console_printf(0, "%s: look timer expire",
+          ai_debug_describe_actor(actor_handle, -1, 0, (char *)0x5ab100, 0x100));
+      }
+      *(short *)(actor + 0x544) = 0;
+      *(short *)(actor + 0x546) = 0;
+    }
+  }
+
+  *(char *)(actor + 0x58c) = 0;
+
+  /* Apply primary_vec if look_mode >= 2 */
+  if ((short)look_mode >= 2) {
+    if ((short)look_mode < 5 ||
+        (snap_flag == 0 && !FUN_00027dd0(primary_vec, desired_facing, aim_threshold))) {
+      if ((short)look_mode > 2 && transient_aim) {
+        transient_aim = 0;
+        snap_flag = 1;
+        goto LAB_000294dc;
+      }
+    } else {
+LAB_000294dc:
+      desired_aiming[0] = primary_vec[0];
+      desired_aiming[1] = primary_vec[1];
+      desired_aiming[2] = primary_vec[2];
+      has_primary = 0;
+      use_aim = is_attacking;
+      if ((short)look_mode > 6 && !want_secondary && is_attacking) {
+        want_secondary = 1;
+        desired_looking[0] = primary_vec[0];
+        desired_looking[1] = primary_vec[1];
+        desired_looking[2] = primary_vec[2];
+      }
+    }
+    if ((short)look_mode == 2)
+      look_mode = (int)(-(char)(snap_flag != 0) & 5);
+    if (snap_flag) {
+      desired_facing[0] = primary_vec[0];
+      desired_facing[1] = primary_vec[1];
+      desired_facing[2] = primary_vec[2];
+      snap_flag = 0;
+      transient_aim = 0;
+      *(char *)(actor + 0x591) |= (char)((short)look_mode == 4);
+    }
+    if ((*(char *)(actor + 0x58d) == 0 && *(char *)(actor + 0x58e) == 0) ||
+        (no_timing_window = 0, (short)look_mode > 5)) {
+      no_timing_window = 1;
+    }
+  }
+
+  pfVar14 = (char *)desired_facing;
+
+  /* Secondary mode switch */
+  switch ((short)secondary_mode) {
+  case 2:
+  case 3:
+  case 4:
+  case 5:
+  case 6:
+    in_range = FUN_00027dd0(secondary_vec, desired_facing, aim_threshold);
+    if (!no_timing_window) {
+      if (want_secondary) goto LAB_000296af;
+      if ((short)secondary_mode >= 6 && !actor_move_force_stop(actor_handle))
+        goto LAB_0002961a;
+      if ((short)secondary_mode >= 5
+          && (transient_aim != 0 || *(char *)(actor + 0x58d) != 0))
+        goto LAB_0002961a;
+      if ((short)secondary_mode < 4) goto LAB_0002966b;
+      if (in_range != 0) goto LAB_00029672;
+      if (!snap_flag || !has_primary) goto LAB_000296af;
+LAB_0002961a:
+      if (!*(char *)(actor + 0x591) || !in_range) {
+        desired_facing[0] = secondary_vec[0];
+        desired_facing[1] = secondary_vec[1];
+        desired_facing[2] = secondary_vec[2];
+        *(char *)(actor + 0x591) = 0;
+      }
+      desired_aiming[0] = secondary_vec[0];
+      desired_aiming[1] = secondary_vec[1];
+      desired_aiming[2] = secondary_vec[2];
+      desired_looking[0] = secondary_vec[0];
+      desired_looking[1] = secondary_vec[1];
+      desired_looking[2] = secondary_vec[2];
+      goto LAB_000297b4;
+    }
+    if (!want_secondary) {
+LAB_0002966b:
+      if (!in_range) goto LAB_000296af;
+LAB_00029672:
+      if ((short)secondary_mode < 5 &&
+          ((short)secondary_mode < 3 || !has_primary))
+        goto LAB_000296af;
+      desired_aiming[0] = secondary_vec[0];
+      desired_aiming[1] = secondary_vec[1];
+      desired_aiming[2] = secondary_vec[2];
+      desired_looking[0] = secondary_vec[0];
+      desired_looking[1] = secondary_vec[1];
+      desired_looking[2] = secondary_vec[2];
+      use_aim = is_attacking;
+      goto LAB_000297b8;
+    }
+LAB_000296af:
+    if (use_aim &&
+        FUN_00027e50(secondary_vec, desired_aiming, desired_facing,
+                     constrain_range, cos_angles)) {
+      desired_looking[0] = secondary_vec[0];
+      desired_looking[1] = secondary_vec[1];
+      desired_looking[2] = secondary_vec[2];
+      use_aim = 0;
+      goto LAB_000297c7;
+    }
+    if (has_primary && in_range) {
+      desired_aiming[0] = secondary_vec[0];
+      desired_aiming[1] = secondary_vec[1];
+      desired_aiming[2] = secondary_vec[2];
+      desired_looking[0] = secondary_vec[0];
+      desired_looking[1] = secondary_vec[1];
+      desired_looking[2] = secondary_vec[2];
+      use_aim = 1;
+      goto LAB_000297c3;
+    }
+    break;
+  case 7:
+  case 8:
+    idle_major_active = (char)((short)secondary_mode == 8);
+    no_timing_window  = idle_major_active;
+    if (!*(char *)(actor + 0x58d)) {
+      if (!FUN_00027dd0(secondary_vec, desired_facing, aim_threshold)) {
+        if (!actor_move_force_stop(actor_handle)) goto LAB_000297c7;
+        no_timing_window = 1;
+        goto LAB_0002977e;
+      }
+      if (!idle_major_active) goto LAB_0002977e;
+    }
+LAB_0002977e:
+    desired_facing[0] = secondary_vec[0];
+    desired_facing[1] = secondary_vec[1];
+    desired_facing[2] = secondary_vec[2];
+    *(char *)(actor + 0x591) = no_timing_window;
+    desired_aiming[0] = secondary_vec[0];
+    desired_aiming[1] = secondary_vec[1];
+    desired_aiming[2] = secondary_vec[2];
+    desired_looking[0] = secondary_vec[0];
+    desired_looking[1] = secondary_vec[1];
+    desired_looking[2] = secondary_vec[2];
+LAB_000297b4:
+    snap_flag = 0;
+    use_aim = is_attacking;
+LAB_000297b8:
+    *(char *)(actor + 0x58c) = 1;
+    want_secondary = 0;
+    is_attacking = use_aim;
+LAB_000297c3:
+    has_primary = 0;
+    break;
+  default:
+    break;
+  }
+LAB_000297c7:
+
+  /* look_mode==2 snap check */
+  if ((short)look_mode == 2 && has_primary &&
+      FUN_00027dd0(primary_vec, desired_facing, aim_threshold)) {
+    desired_aiming[0] = primary_vec[0];
+    desired_aiming[1] = primary_vec[1];
+    desired_aiming[2] = primary_vec[2];
+    if (use_aim) {
+      desired_looking[0] = primary_vec[0];
+      desired_looking[1] = primary_vec[1];
+      desired_looking[2] = primary_vec[2];
+    }
+    *(char *)(actor + 0x58c) = 0;
+    has_primary = 0;
+  }
+
+  /* Get look timing data */
+  iVar13 = FUN_00027a10(actor_handle);
+  bVar15 = (char)(*(float *)(iVar13 + 4) <= *(float *)0x2533c0);
+  no_timing_window = !bVar15;
+  in_range         = (char)(*(float *)0x2533c0 < *(float *)(iVar13 + 0xc));
+  transient_aim    = (char)(*(float *)0x2533c0 < *(float *)(iVar13 + 0x14));
+  look_data_mode   = iVar13;
+
+  /* Gate on look_timer */
+  if (*(short *)(actor + 0x3fc) < 1 || want_secondary ||
+      (!has_primary && !use_aim) ||
+      (bVar15 && !in_range && !transient_aim)) {
+    *(char *)(actor + 0x55c) = 0;
+    *(char *)(actor + 0x55e) = 0;
+    goto LAB_00029da2;
+  }
+
+  idle_major_active = 0;
+  want_secondary    = 0;
+
+  /* Force-snap flag for look_mode==1 */
+  if (!bVar15 && snap_flag && (short)look_mode == 1 && *(int *)(actor + 0x560))
+    look_mode = (look_mode & 0xffffff00) | 1;
+  else
+    look_mode = look_mode & 0xffffff00;
+
+  if (*(int *)(actor + 0x560) > 0)
+    *(int *)(actor + 0x560) -= 1;
+
+  /* Idle major timer branch */
+  if (!*(char *)(actor + 0x55c)) {
+LAB_00029971: {
+    float *pfv;
+    char uVar11;
+    bVar15 = 1;
+    look_data = (look_data & 0xffffff00) | 1;
+    if (!has_primary || !in_range) {
+      bVar15 = 0;
+      look_data = look_data & 0xffffff00;
+      if (!use_aim || !transient_aim)
+        goto LAB_00029a12;
+    } else if (!use_aim || !transient_aim) {
+LAB_00029998:
+      pfv = bVar15 ? desired_facing : (float *)desired_aiming;
+      uVar11 = (char)(use_aim && transient_aim ? 1 : 0);
+      *(char *)(actor + 0x55e) =
+        FUN_00028cc0((float *)iVar13, pfv,
+                     (char)look_mode, (char)(int)look_data, uVar11,
+                     actor_handle);
+      if (*(char *)(actor + 0x55c) && *(int *)(actor + 0x564) < 1) {
+        display_assert(
+          "!actor->control.idle_major_active || (actor->control.idle_major_timer > 0)",
+          "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x5dd, 1);
+        system_exit(-1);
+      }
+      idle_major_active = 1;
+      goto LAB_00029a12;
+    } else {
+      goto LAB_00029998;
+    }
+    if (use_aim && transient_aim) goto LAB_00029998;
+LAB_00029a12:;
+    }
+  } else {
+    if (*(char *)(actor + 0x55d) && !has_primary) {
+      *(char *)(actor + 0x55c) = 1;
+      *(int *)(actor + 0x564) = FUN_00028250((float *)iVar13, 1,
+                                              actor_handle, 2);
+      *(short *)(actor + 0x56c) = 4;
+      *(float *)(actor + 0x570) = desired_aiming[0];
+      *(float *)(actor + 0x574) = desired_aiming[1];
+      *(float *)(actor + 0x578) = desired_aiming[2];
+      actor = actor_save;
+    }
+    if (!*(char *)(actor + 0x55c) || !*(int *)(actor + 0x564))
+      goto LAB_00029971;
+  }
+
+  /* Idle major countdown */
+  if (!*(char *)(actor + 0x55c))
+    goto LAB_00029ccc;
+
+  *(int *)(actor + 0x564) -= 1;
+
+  if (!FUN_00028660(actor_handle, (short *)(actor + 0x56c), primary_vec))
+    goto LAB_00029ccc;
+
+  if (!valid_real_normal3d(primary_vec)) {
+    display_assert("&idle_major_vector",
+                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x5e8, 1);
+    system_exit(-1);
+  }
+
+  if (!has_primary) {
+    if (!FUN_00027e50(primary_vec, desired_aiming, desired_facing,
+                      constrain_range, cos_angles))
+      goto LAB_00029ccc;
+    desired_looking[0] = primary_vec[0];
+    desired_looking[1] = primary_vec[1];
+    desired_looking[2] = primary_vec[2];
+  } else {
+    if (snap_flag && no_timing_window && *(char *)(actor + 0x99)) {
+      look_mode = (look_mode & 0xffffff00) | 1;
+      want_secondary = 1;
+    }
+    if ((char)look_mode || (snap_flag && no_timing_window && *(char *)(actor + 0x99))) {
+      desired_facing[0] = primary_vec[0];
+      desired_facing[1] = primary_vec[1];
+      desired_facing[2] = primary_vec[2];
+      desired_aiming[0] = primary_vec[0];
+      desired_aiming[1] = primary_vec[1];
+      desired_aiming[2] = primary_vec[2];
+      *(char *)(actor + 0x58c) = 1;
+    } else {
+      if (!FUN_00027dd0(primary_vec, desired_facing, aim_threshold))
+        goto LAB_00029ccc;
+      desired_aiming[0] = primary_vec[0];
+      desired_aiming[1] = primary_vec[1];
+      desired_aiming[2] = primary_vec[2];
+      *(char *)(actor + 0x58c) = 1;
+    }
+  }
+  goto LAB_00029b75;
+
+LAB_00029ccc:
+  primary_vec[0] = desired_aiming[0];
+  primary_vec[1] = desired_aiming[1];
+  primary_vec[2] = desired_aiming[2];
+  *(char *)(actor + 0x55c) = 0;
+
+LAB_00029b75:
+  /* Idle minor timer */
+  if (idle_major_active && transient_aim) {
+    *(char *)(actor + 0x55f) = 1;
+    *(int *)(actor + 0x568) =
+      FUN_00028250((float *)look_data_mode,
+                   *(char *)(actor + 0x55e),
+                   actor_handle, 2);
+    *(int *)(actor + 0x57c) = *(int *)(actor + 0x56c);
+    *(int *)(actor + 0x580) = *(int *)(actor + 0x570);
+    *(int *)(actor + 0x584) = *(int *)(actor + 0x574);
+    *(int *)(actor + 0x588) = *(int *)(actor + 0x578);
+    if ((char)look_mode) {
+      *(int *)(actor + 0x560) =
+        FUN_00028250((float *)look_data_mode,
+                     *(char *)(actor + 0x55e),
+                     actor_handle, 0);
+    }
+  }
+
+  /* Idle minor active */
+  if (!has_primary ||
+      ((!use_aim || !transient_aim) && (!want_secondary || !in_range))) {
+    *(char *)(actor + 0x55f) = 0;
+  } else {
+    if (!*(int *)(actor + 0x568)) {
+      FUN_00028ed0((float *)look_data_mode, primary_vec, actor_handle);
+      if (*(int *)(actor + 0x568) < 1) {
+        display_assert("actor->control.idle_minor_timer > 0",
+                       "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x62d, 1);
+        system_exit(-1);
+      }
+    }
+    *(int *)(actor + 0x568) -= 1;
+    if (*(char *)(actor + 0x55f)) {
+      cVar7 = FUN_00028660(actor_handle, (short *)(actor + 0x57c), primary_vec);
+      cVar5 = want_secondary;
+      if (cVar7) {
+        if (!want_secondary)
+          cVar7 = FUN_00027e50(primary_vec, desired_aiming, desired_facing,
+                               constrain_range, cos_angles);
+        else
+          cVar7 = FUN_00027dd0(primary_vec, desired_facing, aim_threshold);
+        if (cVar7) {
+          if (!valid_real_normal3d(primary_vec)) {
+            display_assert("&idle_minor_vector",
+                           "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x645, 1);
+            system_exit(-1);
+          }
+          if (cVar5) {
+            desired_aiming[0] = primary_vec[0];
+            desired_aiming[1] = primary_vec[1];
+            desired_aiming[2] = primary_vec[2];
+          }
+          desired_looking[0] = primary_vec[0];
+          desired_looking[1] = primary_vec[1];
+          desired_looking[2] = primary_vec[2];
+          pfVar14 = (char *)desired_aiming;
+          goto LAB_00029dac;
+        }
+      }
+LAB_00029da2:
+      *(char *)(actor + 0x55f) = 0;
+      pfVar14 = (char *)desired_aiming;
+    } else {
+      goto LAB_00029dac;
+    }
+  }
+  goto LAB_00029dac;
+
+LAB_00029dac:
+  /* Snap-to-original */
+  if (!*(char *)(actor + 0x504) && !*(char *)(actor + 0x505) &&
+      !unit_is_busy(*(int *)(actor + 0x18)) &&
+      *(int *)(actor + 0x158) == -1) {
+    if (!FUN_00027dd0(desired_aiming, (float *)(actor + 0x174), aim_threshold)
+        || !FUN_00027dd0(desired_aiming, desired_facing, aim_threshold)) {
+      if (is_attacking) {
+        if (FUN_00027e50(desired_looking, desired_aiming, desired_facing,
+                         constrain_range, cos_angles)
+            && !FUN_00027e50(desired_looking, desired_aiming,
+                             (float *)(actor + 0x174),
+                             constrain_range, cos_angles))
+          goto LAB_00029e51;
+      }
+      goto LAB_00029e58;
+    }
+LAB_00029e51:
+    *(char *)(actor + 0x591) = 1;
+  }
+  if (!is_attacking) {
+LAB_00029e58:
+    desired_looking[0] = ((float *)pfVar14)[0];
+    desired_looking[1] = ((float *)pfVar14)[1];
+    desired_looking[2] = ((float *)pfVar14)[2];
+  }
+
+LAB_00029e6d:
+  /* Zero pitch if needed */
+  if (!*(char *)(actor + 0x99)) {
+    float pitch_abs = *(float *)(actor + 0x5ac);
+    if (pitch_abs < 0.0f) pitch_abs = -pitch_abs;
+    if (*(double *)0x2533d0 <= (double)pitch_abs) {
+      *(float *)(actor + 0x5ac) = 0.0f;
+      if (magnitude3d(desired_facing) == *(float *)0x2533c0) {
+        desired_facing[0] = *(float *)(actor + 0x174);
+        desired_facing[1] = *(float *)(actor + 0x178);
+        desired_facing[2] = *(float *)(actor + 0x17c);
+      }
+    }
+    if (!valid_real_normal2d((float *)(actor + 0x6fc))) {
+      display_assert("(real_vector2d *) &actor->output.facing_vector",
+                     "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x689, 1);
+      system_exit(-1);
+    }
+  }
+
+  /* Snap-to-look-target */
+  if (!*(char *)(actor + 0x58f)) {
+    *(char *)(actor + 0x590) = 0;
+    goto LAB_0002a0c3;
+  }
+  if (!*(char *)(actor + 0x590)) {
+    if (!*(char *)(actor + 0x504)) {
+      float dot = *(float *)(actor + 0x180) * ((float *)pfVar14)[0]
+                + *(float *)(actor + 0x184) * ((float *)pfVar14)[1]
+                + *(float *)(actor + 0x188) * ((float *)pfVar14)[2];
+      if (dot > *(float *)0x2555d0) {
+        *(float *)(actor + 0x598) = ((float *)pfVar14)[0];
+        *(float *)(actor + 0x59c) = ((float *)pfVar14)[1];
+        *(float *)(actor + 0x5a0) = ((float *)pfVar14)[2];
+        *(char *)(actor + 0x590) = 1;
+      }
+    }
+    goto LAB_0002a0c3;
+  }
+  {
+    float snap_cos;
+    float *snap_stored;
+    float *pfv;
+    snap_stored = (float *)(actor + 0x598);
+    pfv = (float *)pfVar14;
+    if (*(float *)(tag_data + 0x330) <= *(float *)0x2533c0) goto LAB_0002a0c3;
+    snap_cos = x87_fcos(*(float *)(tag_data + 0x330));
+    if (!*(char *)(actor + 0x99)) {
+      float sv0 = pfv[0]; float sv1 = pfv[1];
+      float dv0 = desired_facing[0]; float dv1 = desired_facing[1];
+      float ss0 = snap_stored[0]; float ss1 = snap_stored[1];
+      if (magnitude3d(&sv0) == *(float *)0x2533c0) goto LAB_0002a0a7;
+      if (magnitude3d(&dv0) == *(float *)0x2533c0) goto LAB_0002a0a7;
+      if (magnitude3d(&ss0) == *(float *)0x2533c0) goto LAB_0002a0a7;
+      if (ss1 * sv1 + ss0 * sv0 > snap_cos) {
+        if (dv1 * ss0 + sv0 * dv0 <= snap_cos) goto LAB_0002a0c3;
+      }
+    } else {
+      float dot3 = desired_facing[0] * snap_stored[0]
+                 + desired_facing[1] * snap_stored[1]
+                 + desired_facing[2] * snap_stored[2];
+      if (dot3 > snap_cos) {
+        float dot4 = FUN_00013070(pfv, snap_stored);
+        if (dot4 <= snap_cos) goto LAB_0002a0c3;
+      }
+    }
+LAB_0002a0a7:
+    *(char *)(actor + 0x590) = 0;
+    FUN_00036e50(actor_handle);
+  }
+
+LAB_0002a0c3:
+  *(float *)(actor + 0x6fc) = ((float *)pfVar14)[0];
+  *(float *)(actor + 0x700) = ((float *)pfVar14)[1];
+  *(float *)(actor + 0x704) = ((float *)pfVar14)[2];
+  *(float *)(actor + 0x708) = desired_aiming[0];
+  *(float *)(actor + 0x70c) = desired_aiming[1];
+  *(float *)(actor + 0x710) = desired_aiming[2];
+  *(float *)(actor + 0x714) = desired_looking[0];
+  *(float *)(actor + 0x718) = desired_looking[1];
+  *(float *)(actor + 0x71c) = desired_looking[2];
+
+  actor_unit_control_exact_facing(actor_handle, *(char *)(actor + 0x591));
+
+  if (!valid_real_normal3d((float *)(actor + 0x6fc))) {
+    display_assert("&actor->output.facing_vector",
+                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x6c8, 1);
+    system_exit(-1);
+  }
+  if (!valid_real_normal3d((float *)(actor + 0x708))) {
+    display_assert("&actor->output.aiming_vector",
+                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x6c9, 1);
+    system_exit(-1);
+  }
+  if (!valid_real_normal3d((float *)(actor + 0x714))) {
+    display_assert("&actor->output.looking_vector",
+                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x6ca, 1);
+    system_exit(-1);
+  }
+
+  /* Output flag */
+  if (!strict_look && *(short *)(actor + 0x3fc) != 4) {
+    switch (*(short *)(actor + 0x544)) {
+    case 3:
+    case 6:
+    case 10:
+    case 11:
+    case 12:
+      break;
+    default:
+      *(short *)(actor + 0x6f8) = 1;
+      return;
+    }
+  }
+  *(short *)(actor + 0x6f8) = 0;
+}
