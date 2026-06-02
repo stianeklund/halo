@@ -71,10 +71,31 @@ BASENAME="$(basename "${C_FILE%.c}")"
 UNIQUE="$$_${RANDOM}"
 COFF_TMP="${VC71_STAGE}/${BASENAME}_${UNIQUE}.obj"
 
-cleanup() { rm -f "$COFF_TMP"; }
+# --------------------------------------------------------------------------
+# Permuter candidates (named permuterXXXX.c by tempfile) lose the
+# `#ifndef TYPES_H` guard during permuter.py's pycparser round-trip, so the
+# typedefs they carry collide with /FI types.h (error C2371) and every
+# candidate fails to compile (0 iterations, vacuous "no improvements").
+# Strip the typedefs that types.h already defines so its definitions win;
+# this keeps the candidate in the SAME /FI environment as the real build.
+# run.py's own pre-compile of base.c keeps its guard and is left untouched.
+# --------------------------------------------------------------------------
+COMPILE_C="$C_FILE"
+STRIPPED_C=""
+if [[ "$(basename "$C_FILE")" == permuter* ]]; then
+    STRIPPED_C="${C_FILE%.c}.stripped.c"
+    TYPES_H_SRC="${SRC_INC_OVERRIDE:-$REPO_ROOT/src}/types.h"
+    if python3 "${SCRIPT_DIR}/strip_dup_typedefs.py" "$C_FILE" "$TYPES_H_SRC" "$STRIPPED_C" 2>/dev/null; then
+        COMPILE_C="$STRIPPED_C"
+    else
+        STRIPPED_C=""
+    fi
+fi
+
+cleanup() { rm -f "$COFF_TMP" ${STRIPPED_C:+"$STRIPPED_C"}; }
 trap cleanup EXIT
 
-C_WIN="$(wsl_to_win "$C_FILE")"
+C_WIN="$(wsl_to_win "$COMPILE_C")"
 COFF_WIN="$(wsl_to_win "$COFF_TMP")"
 FI_WIN="$(wsl_to_win "$REPO_ROOT/src/xdk_common.h")"
 GEN_INC="$(wsl_to_win "$REPO_ROOT/build/generated")"

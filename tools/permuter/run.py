@@ -346,6 +346,18 @@ def build_base_c(func_name: str, func_body: str, file_statics: str = "") -> str:
     type_statics = "".join(type_statics_lines)
     func_statics = "".join(func_statics_lines)
 
+    # pycparser (C99) cannot parse the MSVC `__int64` keyword. Headers expanded
+    # by cpp can leak `typedef __int64 int64_t;` (and the unsigned variant) into
+    # type_statics, which sits inside the #ifndef TYPES_H guard alongside
+    # PYCPARSER_TYPEDEFS — so pycparser sees both the friendly `long long`
+    # typedef and the `__int64` one and aborts with a syntax error (0 iterations,
+    # vacuous "no improvements"). These are redundant with PYCPARSER_TYPEDEFS for
+    # the pycparser path, and VC71 never sees type_statics (TYPES_H is defined),
+    # so drop the offending typedef statements from the guarded block.
+    type_statics = re.sub(
+        r'(?m)^[ \t]*typedef\b[^;\n]*\b__int64\b[^;\n]*;[ \t]*\n?', '', type_statics
+    )
+
     # PYCPARSER_TYPEDEFS and conflicting type statics are guarded so they are
     # only active in bare pycparser runs (where TYPES_H is not yet defined).
     # Static function definitions always appear outside the guard.
@@ -391,11 +403,15 @@ def _resolve_ref_name(func_name: str) -> str | None:
         return None
     try:
         kb = json.loads(kb_path.read_text())
+        # Match the function name as a whole identifier immediately followed by
+        # '(' so that e.g. "actor_look_secondary" does not spuriously match
+        # "actor_look_secondary_stop" (a substring) and resolve to the wrong addr.
+        name_re = re.compile(r"\b" + re.escape(func_name) + r"\s*\(")
         for obj in kb.get("objects", []):
             for fn in obj.get("functions", []):
                 decl = fn.get("decl", "")
                 addr = fn.get("addr", "")
-                if func_name in decl and addr:
+                if addr and name_re.search(decl):
                     raw = int(addr, 16)
                     return f"FUN_{raw:08x}"
     except Exception:
