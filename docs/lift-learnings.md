@@ -487,3 +487,84 @@ returning a zeroed output for the "not found" case.
 the result, check whether the builder returns a count. If it does and the caller
 discards it with `(void)` or by casting to nothing, treat that as a latent bug
 waiting for the first time an entry is legitimately absent from the output.
+
+## 12. Permuter "No Improvement" Can Be Vacuous (Candidate Never Compiled)
+
+A permuter run that prints `No improvements found` is **only** trustworthy if it
+actually compiled and scored candidates. On `actor_looking.c` functions
+(`FUN_00027a60`, `FUN_000153e0`, `actor_look_secondary`) every run was vacuous —
+zero candidates ever compiled — so the recorded "structural ceiling /
+exhausted" verdicts were artifacts. The committed VC71 %s came from
+source-level fixes, not the permuter.
+
+### Root cause: pycparser round-trip strips the `#ifndef TYPES_H` guard
+`tools/permuter/run.py` builds `base.c` with type definitions inside an
+`#ifndef TYPES_H` guard: pycparser (which has no `types.h`) needs them, but VC71
+(`compile.sh` force-includes `types.h` via `/FI`, defining `TYPES_H`) must NOT
+see them, or it hits redefinition errors.
+
+The guard works for run.py's own pre-compile (it compiles the *guarded
+original* `base.c`). But `permuter.py` does its own thing:
+1. preprocesses with `cpp -P -nostdinc -DPERMUTER` — **no `-DTYPES_H`**, so the
+   guarded type defs are *included*;
+2. parses with pycparser and re-serializes the AST to the candidate source —
+   **pycparser drops `#ifndef` directives**, so the guard is gone;
+3. compiles the candidate with `compile.sh` → `/FI types.h` →
+   `error C2371: 'vector3_t' : redefinition` (and `datum_handle_t`, plus any
+   game structs the function pulled in).
+
+Candidate never compiles → `permuter.py` reports `Unable to compile`, runs
+**0 iterations**, prints `No improvements found`. **Scope is universal:**
+`PYCPARSER_TYPEDEFS` always emits `vector3_t` and `datum_handle_t`, so even a
+pure-zlib function with no game types (`circular_queue.c` FUN_00114630) fails
+C2371 on those two — confirmed Initial LCS 98.7% but 0 iterations. Assume any
+repo permuter "ceiling" claim is vacuous until a positive control proves
+real iteration.
+
+### How to detect (before trusting any permuter verdict)
+- Run **without `-q`** and confirm `permuter.py` prints a real base score and
+  **accruing iterations (hundreds)**. An instant exit, `Unable to compile`, or
+  `Syntax error in base.c` means the run did nothing. `-q` hides permuter.py's
+  own stream, so run.py's wrapper `Initial LCS: NN%` can look healthy while the
+  real run scored nothing.
+- To see the actual compiler error, temporarily change `compile.sh`'s
+  `>/dev/null 2>&1` to capture output — **CL writes diagnostics to STDOUT, not
+  stderr** — and look for `C2371` on the `permuterXXXX.c` candidate.
+
+### Related reference-resolution bugs (all fixed) for renamed functions
+When a function is renamed from `FUN_<addr>` to a real name in `kb.json`:
+- **objdiff unit name still uses the address** → `find_delinked_reference`
+  fails the `func_name`-in-name match and falls back to the whole-TU ref. Fix:
+  rename one unit's `name` to contain the real name; delete duplicates.
+- **`_resolve_ref_name` substring match** → `actor_look_secondary` matched
+  `actor_look_secondary_stop` first, returning the wrong addr. Fixed to
+  whole-identifier regex `\bNAME\s*\(`.
+- **`typedef __int64 int64_t;` from cpp-expanded headers** → pycparser can't
+  parse `__int64`. Fixed by stripping `__int64` typedefs from the
+  pycparser-only block in `build_base_c`.
+
+### Fix (implemented & verified 2026-06-02)
+`tools/permuter/strip_dup_typedefs.py` + a hook in `compile.sh`: when compiling
+a permuter candidate (filename `permuterXXXX.c`), strip the top-level typedefs
+whose name is already defined in `types.h`, so types.h's definitions win and
+there's no C2371. Typedefs `types.h` does NOT define (`vector4_t`, `uint64_t`)
+are kept. `/FI` is preserved, so the candidate compiles in the **same**
+environment as the real build (decls, macros, math) — preserving codegen
+fidelity, which the score depends on. `run.py`'s own pre-compile of `base.c`
+keeps its `#ifndef TYPES_H` guard and is untouched. Verified: the permuter now
+iterates (hundreds of attempts, "0 errors") and finds improving candidates —
+e.g. `actor_look_secondary` base score 5195 → new best 4995; `circular_queue.c`
+FUN_00114630 iterates from a 679710 baseline. (Caveat: a function with no
+per-function delinked ref scores against the whole-TU obj, giving a huge,
+near-useless baseline — orthogonal reference-granularity limitation, not this
+bug.)
+
+Two operational gotchas when running from a `/tmp` worktree:
+- **decl.h staleness reverts mid-run.** VC71 can't read `/tmp`, so `compile.sh`
+  uses the main repo's `build/generated/decl.h`, which is regenerated stale for
+  renamed functions. Chain the re-sync into the run command
+  (`cp <worktree>/build/generated/decl.h <main>/... && permuter ...`) so it's
+  current at base-compile time.
+- **Orphaned `-j` workers.** Killing the parent (timeout/TaskStop) leaves
+  `permuter.py` worker processes running; `pkill -f decomp-permuter/permuter.py`
+  between runs.
