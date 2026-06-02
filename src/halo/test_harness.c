@@ -17,6 +17,7 @@ extern int16_t convex_polygon2d_clip_to_plane(int16_t count, float *points,
                                               uint8_t *changed, float epsilon);
 
 extern void *csstrncpy(char *destination, const char *source, size_t size);
+extern char *system_stristr(const char *str, const char *substr);
 extern char *csstrtok(char *string, const char *delimiters);
 extern void set_random_seed(int seed);
 extern float random_math_real(unsigned int *seed);
@@ -344,6 +345,42 @@ void run_tests(void)
     total += 2;
     passed += check("csstrncpy last char", dst[7], 0x0000006F, buf);
     passed += check("csstrncpy next char", (uint8_t)dst[8], 0x000000CC, buf);
+  }
+
+  /* system_stristr: original compares the first needle byte case-sensitively,
+   * then uses _strnicmp for the remainder. */
+  {
+    const char *empty_haystack = "abc";
+    const char *exact_haystack = "needle";
+    const char *first_case_haystack = "Alpha";
+    const char *rest_case_haystack = "HELlo";
+    const char *haystack = "xxHELloWorld";
+    const char *none_haystack = "abcdef";
+    char *match;
+
+    total += 6;
+    match = system_stristr(empty_haystack, "");
+    passed += check("stristr empty", (uint32_t)(match - empty_haystack), 0,
+                    buf);
+
+    match = system_stristr(exact_haystack, "needle");
+    passed += check("stristr exact", (uint32_t)(match - exact_haystack), 0,
+                    buf);
+
+    match = system_stristr(first_case_haystack, "alpha");
+    passed += check("stristr first-case", match == NULL ? 0xffffffffu : 0, 0xffffffffu,
+                    buf);
+
+    match = system_stristr(rest_case_haystack, "Hello");
+    passed += check("stristr rest-case", (uint32_t)(match - rest_case_haystack),
+                    0, buf);
+
+    match = system_stristr(haystack, "HELLO");
+    passed += check("stristr later", (uint32_t)(match - haystack), 2, buf);
+
+    match = system_stristr(none_haystack, "xyz");
+    passed += check("stristr none", match == NULL ? 0xffffffffu : 0, 0xffffffffu,
+                    buf);
   }
 
   /* csstrtok */
