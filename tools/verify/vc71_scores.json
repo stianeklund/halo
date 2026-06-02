@@ -3557,7 +3557,7 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000ab450": {
-      "score": 85.1,
+      "score": 87.7,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000ab510": {
@@ -3641,7 +3641,7 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000aca70": {
-      "score": 86.5,
+      "score": 93.6,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000acb10": {
@@ -3773,11 +3773,11 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000ae920": {
-      "score": 61.6,
+      "score": 63.5,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000aebd0": {
-      "score": 82.2,
+      "score": 84.8,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000af660": {
@@ -3789,7 +3789,7 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000afa40": {
-      "score": 90.3,
+      "score": 90.6,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000afcb0": {
@@ -4013,7 +4013,7 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b2c50": {
-      "score": 59.0,
+      "score": 83.3,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b2ca0": {
@@ -4021,7 +4021,7 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b2ce0": {
-      "score": 58.6,
+      "score": 84.2,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b2d30": {
@@ -8485,7 +8485,7 @@
       "source": "src/halo/game/game_engine.c"
     },
     "game_engine_update_non_deterministic": {
-      "score": 55.5,
+      "score": 56.7,
       "source": "src/halo/game/game_engine.c"
     },
     "game_globals_get": {
