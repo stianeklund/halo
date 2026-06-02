@@ -703,7 +703,7 @@ char game_engine_has_shield(int param_1)
 
   result = 1;
   if (*(int *)0x456b60 != 0 && param_1 != -1) {
-    result = (~(*(int *)0x456b18 >> 3)) & 1;
+    result = (~(*(unsigned int *)0x456b18 >> 3)) & 1;
   }
   return result;
 }
