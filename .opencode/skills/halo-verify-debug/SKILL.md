@@ -185,11 +185,11 @@ Useful probes (XBDM preferred):
 - `/xbdm status` — check stop state before context reads
 - `/xbdm context` — read registers after a crash
 - `/xbdm mem <addr> <len>` — inspect memory at a suspect address
-- visual check on real hardware, or xemu screenshot when hardware is unavailable
+- visual check via `rtk python3 tools/xbox/xdbm_screenshot.py --host <ip> --images 5 --png`
 
 Useful xemu probes (fallback only):
 
-- screenshot for visible state
+- `rtk python3 tools/xbox/xdbm_screenshot.py --host 127.0.0.1 --images 5 --png` — visible state
 - serial output for assertions
 - `hmp "info registers"`
 - `hmp "x /Nx 0x<addr>"`
