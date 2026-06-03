@@ -1853,7 +1853,7 @@ void rasterizer_text_cache_character(void *font_character, void *font)
   short y;
   short x;
   short *pixel_out;
-  int font_pixels;
+  unsigned char *pixel_data;
   int i;
   int cache_top;
   int cache_bottom;
@@ -1887,16 +1887,22 @@ void rasterizer_text_cache_character(void *font_character, void *font)
 
     *(short *)(character + 0xe) = *(short *)0x325748;
 
-    /* Advance to next row if needed */
+    /* Advance to next row if needed. Original writes _DAT_004d04a8 =
+       (uint)cursor_y as a single 32-bit store, which zero-extends cursor_y
+       into the high half — i.e. max_char_height (0x4d04aa) is reset to 0. */
     if (128 < (int)*(short *)0x4d04a6 + (int)char_width) {
       *(short *)0x4d04a8 += *(short *)0x4d04aa;
       *(short *)0x4d04a6 = 0;
+      *(short *)0x4d04aa = 0;
     }
 
-    /* Wrap back to top if needed, evicting characters */
+    /* Wrap back to top if needed, evicting characters. Original writes
+       _DAT_004d04a8 = 0 as a single 32-bit store, clearing both cursor_y
+       (0x4d04a8) and max_char_height (0x4d04aa). */
     if (128 < (int)*(short *)0x4d04a8 + (int)char_height) {
       *(short *)0x4d04a6 = 0;
       *(short *)0x4d04a8 = 0;
+      *(short *)0x4d04aa = 0;
 
       read_index = *(unsigned short *)0x4d04a2;
       write_index = *(unsigned short *)0x4d04a4;
@@ -1924,24 +1930,43 @@ void rasterizer_text_cache_character(void *font_character, void *font)
 
       if (read_index != write_index) {
         i = read_index & 0xFF;
-        while (i != (write_index & 0xFF)) {
-          if ((*(short *)(0x4d04b6 + i * 8) >= (short)cache_top) &&
-              (*(short *)(0x4d04b6 + i * 8) <= (short)cache_bottom)) {
-            rasterizer_text_evict_character((int **)(0x4d04b0 + i * 8));
+        /* Original is a FIFO drain: break at the first slot whose y is
+           outside [cache_top, cache_bottom); only the contiguous front
+           entries are evicted and read_index advances past them. cache_bottom
+           is exclusive. The prior lift instead scanned the whole queue and
+           then set read_index = write_index, draining the entire character
+           cache whenever a taller glyph arrived, which dropped already-cached
+           menu text. */
+        do {
+          if (*(short *)(0x4d04b6 + i * 8) < (short)cache_top ||
+              (short)cache_bottom <= *(short *)(0x4d04b6 + i * 8)) {
+            break;
           }
+          rasterizer_text_evict_character((int **)(0x4d04b0 + i * 8));
           i = (i + 1) & 0xFF;
-        }
+        } while (i != (write_index & 0xFF));
         *(unsigned short *)0x4d04a2 = (unsigned short)i;
       }
-      *(short *)0x4d04a8 += char_height;
+      /* Original writes _DAT_004d04a8 = CONCAT22(char_height, cursor_y):
+         a 32-bit store that sets max_char_height (0x4d04aa, high half) to
+         char_height while leaving cursor_y (0x4d04a8, low half) UNCHANGED.
+         The prior lift mistranslated this as `cursor_y += char_height`,
+         which advanced the pen down a full row each character until a
+         glyph was placed at cursor_y=128, overflowing the 128-tall cache
+         texture (bitmaps.c:421 "y>=0 && y<bitmap->height"). */
+      *(short *)0x4d04aa = char_height;
     }
 
-    /* Handle full cache: evict oldest character */
-    if ((*(unsigned char *)0x4d04a4 + 1u) == *(unsigned char *)0x4d04a2) {
+    /* Handle full cache: evict oldest character. Original compares
+       (byte)(write_index + 1) against read_index, so the +1 wraps at 256;
+       truncate to unsigned char before comparing or the 255->0 wrap is
+       missed and the cache-full case is never detected. */
+    if ((unsigned char)(*(unsigned char *)0x4d04a4 + 1) ==
+        *(unsigned char *)0x4d04a2) {
       character_slot = (int **)(0x4d04b0 + *(short *)0x4d04a2 * 8);
       rasterizer_text_evict_character(character_slot);
       *(unsigned short *)0x4d04a2 =
-        (unsigned short)(*(unsigned char *)0x4d04a2 + 1);
+        (unsigned short)(unsigned char)(*(unsigned char *)0x4d04a2 + 1);
     }
 
     /* Allocate slot and copy bitmap to texture */
@@ -1951,16 +1976,16 @@ void rasterizer_text_cache_character(void *font_character, void *font)
     *(short *)(0x4d04b4 + i * 8) = *(short *)0x4d04a6;
     *(short *)(0x4d04b6 + i * 8) = *(short *)0x4d04a8;
 
-    font_pixels =
-      *(int *)(*(int *)((int)font + 0x94) + *(int *)(character + 0x10));
+    pixel_data =
+      (unsigned char *)(*(int *)((int)font + 0x94) + *(int *)(character + 0x10));
 
     for (y = 0; y < char_height; y++) {
       pixel_out = (short *)bitmap_2d_address(
         *(void **)0x4d04ac, *(short *)(0x4d04b4 + i * 8),
         *(short *)(0x4d04b6 + i * 8) + y, 0);
       for (x = 0; x < char_width; x++) {
-        *pixel_out =
-          (short)((*(unsigned char *)(font_pixels + x) << 8) | 0xfff);
+        *pixel_out = (short)((*pixel_data << 8) | 0xfff);
+        pixel_data++;
         pixel_out++;
       }
     }
@@ -1969,7 +1994,7 @@ void rasterizer_text_cache_character(void *font_character, void *font)
 
     *(short *)0x4d04a6 += char_width;
     *(unsigned short *)0x4d04a4 =
-      (unsigned short)(*(unsigned char *)0x4d04a4 + 1);
+      (unsigned short)(unsigned char)(*(unsigned char *)0x4d04a4 + 1);
   } else {
     if (hw_index < 0 || hw_index >= 256) {
       display_assert(
@@ -2204,14 +2229,11 @@ void rasterizer_text_draw(void *screen_pos, short *bounds, const void *color,
     texel_width = *(float *)0x2533c8 / (float)font_width;
     texel_height = *(float *)0x2533c8 / (float)font_height;
 
-    widget_params[0] = 0;
-    widget_params[1] = *(int *)&texel_width;
-    widget_params[2] = *(int *)&texel_height;
-    widget_params[3] = 0x3f800000;
-    widget_params[4] = 0x3f800000;
-    widget_params[5] = 0;
-    widget_params[6] = 0;
-    widget_params[7] = (int)texture;
+    *(unsigned int *)&widget_params[3] = (unsigned int)texture;
+    widget_params[10] = 1.0f;
+    widget_params[11] = 1.0f;
+    widget_params[16] = texel_width;
+    widget_params[17] = texel_height;
 
     FUN_00173b40(widget_params);
     FUN_0019c5d0(rasterizer_text_draw_cached_chars, draw_bounds, color,
@@ -2295,14 +2317,11 @@ void rasterizer_draw_string(void *screen_pos, short *bounds, const void *color,
     texel_width = *(float *)0x2533c8 / (float)font_width;
     texel_height = *(float *)0x2533c8 / (float)font_height;
 
-    widget_params[0] = 0;
-    widget_params[1] = *(int *)&texel_width;
-    widget_params[2] = *(int *)&texel_height;
-    widget_params[3] = 0x3f800000;
-    widget_params[4] = 0x3f800000;
-    widget_params[5] = 0;
-    widget_params[6] = 0;
-    widget_params[7] = (int)texture;
+    *(unsigned int *)&widget_params[3] = (unsigned int)texture;
+    widget_params[10] = 1.0f;
+    widget_params[11] = 1.0f;
+    widget_params[16] = texel_width;
+    widget_params[17] = texel_height;
 
     FUN_00173b40(widget_params);
     FUN_0019c960(rasterizer_text_draw_cached_chars, draw_bounds, color,
