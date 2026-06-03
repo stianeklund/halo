@@ -1,0 +1,62 @@
+{
+  "target": "rasterizer_text_draw",
+  "region_dir": "/mnt/g/dev/halo/artifacts/equivalence/regions",
+  "regions": [
+    {
+      "addr": "0x002533c0",
+      "size": 256,
+      "label": "DAT_002533c8"
+    },
+    {
+      "addr": "0x003256d0",
+      "size": 256,
+      "label": "DAT_003256da"
+    },
+    {
+      "addr": "0x00325740",
+      "size": 256,
+      "label": "DAT_00325748"
+    },
+    {
+      "addr": "0x00456b60",
+      "size": 4,
+      "label": "current_game_engine_ptr"
+    },
+    {
+      "addr": "0x004d04a0",
+      "size": 256,
+      "label": "DAT_004d04a0"
+    },
+    {
+      "addr": "0x00506570",
+      "size": 256,
+      "label": "DAT_0050657c"
+    },
+    {
+      "addr": "0x00506580",
+      "size": 256,
+      "label": "DAT_00506584"
+    },
+    {
+      "addr": "0x005a5bc0",
+      "size": 256,
+      "label": "DAT_005a5bc0"
+    },
+    {
+      "addr": "0x005aa6d4",
+      "size": 4,
+      "label": "player_data_ptr"
+    }
+  ],
+  "memsave_commands": [
+    "memsave 0x2533c0 256 G:\\dev\\halo\\artifacts\\equivalence\\regions\\r_002533c0_100.bin",
+    "memsave 0x3256d0 256 G:\\dev\\halo\\artifacts\\equivalence\\regions\\r_003256d0_100.bin",
+    "memsave 0x325740 256 G:\\dev\\halo\\artifacts\\equivalence\\regions\\r_00325740_100.bin",
+    "memsave 0x456b60 4 G:\\dev\\halo\\artifacts\\equivalence\\regions\\r_00456b60_4.bin",
+    "memsave 0x4d04a0 256 G:\\dev\\halo\\artifacts\\equivalence\\regions\\r_004d04a0_100.bin",
+    "memsave 0x506570 256 G:\\dev\\halo\\artifacts\\equivalence\\regions\\r_00506570_100.bin",
+    "memsave 0x506580 256 G:\\dev\\halo\\artifacts\\equivalence\\regions\\r_00506580_100.bin",
+    "memsave 0x5a5bc0 256 G:\\dev\\halo\\artifacts\\equivalence\\regions\\r_005a5bc0_100.bin",
+    "memsave 0x5aa6d4 4 G:\\dev\\halo\\artifacts\\equivalence\\regions\\r_005aa6d4_4.bin"
+  ]
+}
