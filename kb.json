@@ -3605,7 +3605,7 @@
         },
         {
           "addr": "0x25970",
-          "decl": "char FUN_00025970(void *state@<eax>, int actor_handle, char *actor@<esi>);",
+          "decl": "char FUN_00025970(void *state@<eax>, int actor_handle, char *actor);",
           "ported": true
         },
         {
