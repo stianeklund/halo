@@ -1,0 +1,44 @@
+{
+  "target": "game_engine_set_goal_position",
+  "region_dir": "/mnt/g/dev/halo/artifacts/equivalence/regions",
+  "regions": [
+    {
+      "addr": "0x0026b810",
+      "size": 256,
+      "label": "DAT_0026b814"
+    },
+    {
+      "addr": "0x004566f0",
+      "size": 256,
+      "label": "DAT_004566f8"
+    },
+    {
+      "addr": "0x00456700",
+      "size": 256,
+      "label": "DAT_00456704"
+    },
+    {
+      "addr": "0x00456710",
+      "size": 256,
+      "label": "DAT_00456710"
+    },
+    {
+      "addr": "0x00456b60",
+      "size": 4,
+      "label": "current_game_engine_ptr"
+    },
+    {
+      "addr": "0x005aa6d4",
+      "size": 4,
+      "label": "player_data_ptr"
+    }
+  ],
+  "memsave_commands": [
+    "memsave 0x26b810 256 G:\\dev\\halo\\artifacts\\equivalence\\regions\\r_0026b810_100.bin",
+    "memsave 0x4566f0 256 G:\\dev\\halo\\artifacts\\equivalence\\regions\\r_004566f0_100.bin",
+    "memsave 0x456700 256 G:\\dev\\halo\\artifacts\\equivalence\\regions\\r_00456700_100.bin",
+    "memsave 0x456710 256 G:\\dev\\halo\\artifacts\\equivalence\\regions\\r_00456710_100.bin",
+    "memsave 0x456b60 4 G:\\dev\\halo\\artifacts\\equivalence\\regions\\r_00456b60_4.bin",
+    "memsave 0x5aa6d4 4 G:\\dev\\halo\\artifacts\\equivalence\\regions\\r_005aa6d4_4.bin"
+  ]
+}
