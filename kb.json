@@ -2628,7 +2628,8 @@
         },
         {
           "addr": "0x39c80",
-          "decl": "void FUN_00039c80(void);"
+          "decl": "void FUN_00039c80(int actor_handle, int object_handle, float speed, float *out_velocity);",
+          "ported": true
         },
         {
           "addr": "0x39f30",
