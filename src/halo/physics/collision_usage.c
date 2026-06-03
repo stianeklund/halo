@@ -97,7 +97,7 @@ void FUN_0014c7b0(int16_t *param_1)
   if (0 < *param_1) {
     do {
       FUN_00189540(1, param_1 + sVar2 * 0xe + 10,
-                   *(int *)(param_1 + sVar2 * 0xe + 0x10), *(void **)0x2ee6d0);
+                   *(float *)(param_1 + sVar2 * 0xe + 0x10), *(void **)0x2ee6d0);
       sVar2 = sVar2 + 1;
     } while (sVar2 < *param_1);
   }

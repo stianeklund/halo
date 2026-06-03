@@ -2314,6 +2314,6 @@ void FUN_0009f430(int param_1, short param_2, short param_3, void *param_4,
   }
 
   if (*(char *)0x4557e9 != '\0') {
-    FUN_00189540(0, param_4, 0x3d4ccccd, *(void **)0x2ee6dc);
+    FUN_00189540(0, param_4, 0.1f, *(void **)0x2ee6dc);
   }
 }
