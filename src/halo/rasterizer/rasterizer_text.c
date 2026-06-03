@@ -2013,143 +2013,149 @@ void rasterizer_text_cache_character(void *font_character, void *font)
   }
 }
 
-/* FUN_00183c00: draw a single cached character quad. */
+/* FUN_00183c00: draw a single cached character quad.
+ * Vertex format is 5 floats each (screen x, screen y, texel u, texel v,
+ * packed color) — 4 verts = 20 floats — in winding order TL, TR, BR, BL.
+ * cache_offset_x/y (param 7/8) are added to the TEXEL coords (the atlas
+ * position), not the screen position. */
 void rasterizer_text_draw_cached_char(void *arg0, void *font,
                                       void *font_character, unsigned int color,
-                                      short x, short y, int screen_x,
-                                      int screen_y, short width, short height)
+                                      short x, short y, int cache_offset_x,
+                                      int cache_offset_y, short width,
+                                      short height)
 {
-  float quad_verts[28];
+  float quad_verts[20];
   short cache_x;
   short cache_y;
+  short tx;
+  short ty;
 
   rasterizer_text_cache_character(font_character, font);
 
   if (*(short *)((int)font_character + 0xc) != -1) {
     rasterizer_text_get_character_position(
       *(short *)((int)font_character + 0xc), &cache_y, &cache_x);
+    tx = (short)(cache_x + (short)cache_offset_x);
+    ty = (short)(cache_y + (short)cache_offset_y);
 
+    /* vert0 TL */
     quad_verts[0] = (float)x;
     quad_verts[1] = (float)y;
-    quad_verts[2] = (float)cache_x;
-    quad_verts[3] = (float)cache_y;
-    quad_verts[4] = *(float *)&color;
-    quad_verts[5] = 1.0f;
-    quad_verts[6] = 1.0f;
-
-    quad_verts[7] = (float)(x + width);
-    quad_verts[8] = (float)y;
-    quad_verts[9] = (float)(cache_x + width);
-    quad_verts[10] = (float)cache_y;
-    quad_verts[11] = *(float *)&color;
-    quad_verts[12] = 1.0f;
-    quad_verts[13] = 1.0f;
-
-    quad_verts[14] = (float)x;
-    quad_verts[15] = (float)(y + height);
-    quad_verts[16] = (float)cache_x;
-    quad_verts[17] = (float)(cache_y + height);
-    quad_verts[18] = *(float *)&color;
-    quad_verts[19] = 1.0f;
-    quad_verts[20] = 1.0f;
-
-    quad_verts[21] = (float)(x + width);
-    quad_verts[22] = (float)(y + height);
-    quad_verts[23] = (float)(cache_x + width);
-    quad_verts[24] = (float)(cache_y + height);
-    quad_verts[25] = *(float *)&color;
-    quad_verts[26] = 1.0f;
-    quad_verts[27] = 1.0f;
+    quad_verts[2] = (float)tx;
+    quad_verts[3] = (float)ty;
+    *(unsigned int *)&quad_verts[4] = color;
+    /* vert1 TR */
+    quad_verts[5] = (float)(x + width);
+    quad_verts[6] = (float)y;
+    quad_verts[7] = (float)(tx + width);
+    quad_verts[8] = (float)ty;
+    *(unsigned int *)&quad_verts[9] = color;
+    /* vert2 BR */
+    quad_verts[10] = (float)(x + width);
+    quad_verts[11] = (float)(y + height);
+    quad_verts[12] = (float)(tx + width);
+    quad_verts[13] = (float)(ty + height);
+    *(unsigned int *)&quad_verts[14] = color;
+    /* vert3 BL */
+    quad_verts[15] = (float)x;
+    quad_verts[16] = (float)(y + height);
+    quad_verts[17] = (float)tx;
+    quad_verts[18] = (float)(ty + height);
+    *(unsigned int *)&quad_verts[19] = color;
 
     FUN_001741d0(quad_verts);
   }
 }
 
 /* FUN_00183cf0: draw character string via hardware cache.
- * This is the callback used by the text drawing system.
- * Shadow pass draws with shadow_color, then second pass draws with actual
- * color.
- */
+ * This is the callback used by the text drawing system. It draws the glyph
+ * twice: pass 1 is the drop shadow (offset +1.0 in x/y, shadow color), pass 2
+ * is the glyph itself (no offset, actual color). Vertex format is 5 floats
+ * (screen x, screen y, texel u, texel v, packed color) — 4 verts = 20 floats —
+ * in winding order TL, TR, BR, BL. cache_offset_x/y (param 7/8) are added to
+ * the TEXEL coords, not the screen position; the shadow offset is what moves
+ * the screen position. */
 void rasterizer_text_draw_cached_chars(void *arg0, void *font,
                                        void *font_character, unsigned int color,
-                                       short x, short y, int offset_x,
-                                       int offset_y, short width, short height)
+                                       short x, short y, int cache_offset_x,
+                                       int cache_offset_y, short width,
+                                       short height)
 {
-  float quad_verts[28];
+  float quad_verts[20];
   short cache_x;
   short cache_y;
+  short tx;
+  short ty;
   unsigned int draw_color;
-  float x_pos;
-  float y_pos;
-  float shadow_x;
-  float shadow_y;
-  int has_shadow;
-  int c;
+  unsigned int shadow_color;
+  float x_base;
+  float x_right;
+  float y_base;
+  float y_bottom;
+  float shadow_off_x;
+  float shadow_off_y;
+  int first_pass;
+  int was_first;
 
   rasterizer_text_cache_character(font_character, font);
 
   if (*(short *)((int)font_character + 0xc) != -1) {
-    x_pos = (float)(x + offset_x);
-    y_pos = (float)(y + offset_y);
-    shadow_x = 0.0f;
-    shadow_y = 0.0f;
-    has_shadow = 1;
-
-    draw_color = *(unsigned int *)0x4d0cb0;
+    shadow_off_x = 1.0f;
+    shadow_off_y = 1.0f;
+    shadow_color = *(unsigned int *)0x4d0cb0;
     if (*(unsigned int *)0x4d0cb0 == 0) {
-      draw_color = color & 0xff000000;
+      shadow_color = color & 0xff000000;
     }
+    x_base = (float)x;
+    x_right = (float)(width + x);
+    y_base = (float)y;
+    y_bottom = (float)(height + y);
+    first_pass = 1;
 
-    /* First pass: shadow, second pass: actual color */
-    c = 0;
-    while (c < 2 && has_shadow != 0) {
+    while (1) {
       rasterizer_text_get_character_position(
         *(short *)((int)font_character + 0xc), &cache_y, &cache_x);
-
-      if (has_shadow == 1) {
-        /* first pass uses shadow color */
-      } else {
+      was_first = first_pass;
+      tx = (short)(cache_x + (short)cache_offset_x);
+      ty = (short)(cache_y + (short)cache_offset_y);
+      draw_color = shadow_color;
+      if (first_pass == 0) {
         draw_color = color;
       }
 
-      quad_verts[0] = x_pos + shadow_x;
-      quad_verts[1] = y_pos + shadow_y;
-      quad_verts[2] = (float)cache_x;
-      quad_verts[3] = (float)cache_y;
-      quad_verts[4] = *(float *)&draw_color;
-      quad_verts[5] = 1.0f;
-      quad_verts[6] = 1.0f;
-
-      quad_verts[7] = (x_pos + (float)width) + shadow_x;
-      quad_verts[8] = y_pos + shadow_y;
-      quad_verts[9] = (float)(cache_x + width);
-      quad_verts[10] = (float)cache_y;
-      quad_verts[11] = *(float *)&draw_color;
-      quad_verts[12] = 1.0f;
-      quad_verts[13] = 1.0f;
-
-      quad_verts[14] = x_pos + shadow_x;
-      quad_verts[15] = (y_pos + (float)height) + shadow_y;
-      quad_verts[16] = (float)cache_x;
-      quad_verts[17] = (float)(cache_y + height);
-      quad_verts[18] = *(float *)&draw_color;
-      quad_verts[19] = 1.0f;
-      quad_verts[20] = 1.0f;
-
-      quad_verts[21] = (x_pos + (float)width) + shadow_x;
-      quad_verts[22] = (y_pos + (float)height) + shadow_y;
-      quad_verts[23] = (float)(cache_x + width);
-      quad_verts[24] = (float)(cache_y + height);
-      quad_verts[25] = *(float *)&draw_color;
-      quad_verts[26] = 1.0f;
-      quad_verts[27] = 1.0f;
+      /* vert0 TL */
+      quad_verts[0] = x_base + shadow_off_x;
+      quad_verts[1] = y_base + shadow_off_y;
+      quad_verts[2] = (float)tx;
+      quad_verts[3] = (float)ty;
+      *(unsigned int *)&quad_verts[4] = draw_color;
+      /* vert1 TR */
+      quad_verts[5] = x_right + shadow_off_x;
+      quad_verts[6] = y_base + shadow_off_y;
+      quad_verts[7] = (float)(tx + width);
+      quad_verts[8] = (float)ty;
+      *(unsigned int *)&quad_verts[9] = draw_color;
+      /* vert2 BR */
+      quad_verts[10] = x_right + shadow_off_x;
+      quad_verts[11] = y_bottom + shadow_off_y;
+      quad_verts[12] = (float)(tx + width);
+      quad_verts[13] = (float)(ty + height);
+      *(unsigned int *)&quad_verts[14] = draw_color;
+      /* vert3 BL */
+      quad_verts[15] = x_base + shadow_off_x;
+      quad_verts[16] = y_bottom + shadow_off_y;
+      quad_verts[17] = (float)tx;
+      quad_verts[18] = (float)(ty + height);
+      *(unsigned int *)&quad_verts[19] = draw_color;
 
       FUN_001741d0(quad_verts);
 
-      has_shadow = 0;
-      shadow_x = 0.0f;
-      shadow_y = 0.0f;
-      c++;
+      if (was_first == 0) {
+        break;
+      }
+      first_pass = 0;
+      shadow_off_x = 0.0f;
+      shadow_off_y = 0.0f;
     }
   }
 }
