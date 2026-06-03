@@ -14410,7 +14410,7 @@
         {
           "addr": "0xae250",
           "decl": "int FUN_000ae250(int param_1);",
-          "ported": false,
+          "ported": true,
           "source_path": "objects/objects.c"
         },
         {
