@@ -37,8 +37,11 @@ if $DO_BATCH; then
         --output-dir artifacts/batch_verify
 fi
 
-echo "=== Generating dashboard ==="
+echo "=== Generating CI status page ==="
 mkdir -p artifacts/progress
+$VENV tools/report/generate_ci_status.py --output-dir artifacts/progress
+
+echo "=== Generating dashboard ==="
 $VENV tools/report/generate_decomp_report.py \
     --output artifacts/progress/report.json \
     --html artifacts/progress/index.html
