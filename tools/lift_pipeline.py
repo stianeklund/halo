@@ -1068,8 +1068,36 @@ def finalize(summary: dict[str, object], stages: list[StageResult], artifact_dir
 
   if ok:
     _update_retrieval_index(quiet=quiet)
+    _update_dashboard(quiet=quiet)
 
   return 0 if ok else 1
+
+
+def _update_dashboard(quiet: bool = False) -> None:
+  """Kick off a background dashboard regeneration after a successful lift."""
+  repo_root = Path(__file__).resolve().parent.parent
+  ci_script = repo_root / "tools" / "report" / "generate_ci_status.py"
+  report_script = repo_root / "tools" / "report" / "generate_decomp_report.py"
+  artifact_dir = repo_root / "artifacts" / "progress"
+  report_json = artifact_dir / "report.json"
+  report_html = artifact_dir / "index.html"
+  log_path = Path("/tmp/dashboard_regen.log")
+
+  if not ci_script.exists():
+    return
+
+  venv_python = repo_root / ".venv" / "bin" / "python3"
+  py = str(venv_python) if venv_python.exists() else sys.executable
+
+  chain = (
+    f"mkdir -p {artifact_dir} && "
+    f"{py} {ci_script} --output-dir {artifact_dir} >> {log_path} 2>&1 && "
+    f"{py} {report_script} --output {report_json} --html {report_html} >> {log_path} 2>&1"
+  )
+  subprocess.Popen(chain, shell=True, cwd=str(repo_root), start_new_session=True)
+
+  if not quiet:
+    print(f"- dashboard       [ran] PASS: regeneration started in background ({log_path})")
 
 
 def _update_retrieval_index(quiet: bool = False) -> None:
