@@ -26,7 +26,21 @@ REAL_SCRIPT="$(readlink -f "${BASH_SOURCE[0]}")"
 SCRIPT_DIR="$(cd "$(dirname "$REAL_SCRIPT")" && pwd)"
 # REPO_ROOT may be overridden by the environment; otherwise auto-detect
 REPO_ROOT="${REPO_ROOT:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
-VC71_STAGE="${REPO_ROOT}/build/vc71"
+# Fall back to main repo build dir when REPO_ROOT is not on a Windows-accessible mount.
+# (VC71 CL.Exe is a Windows process and cannot write to /tmp-style worktree paths.)
+# When REPO_ROOT is already on /mnt, the else-branch leaves overrides empty so the
+# `${X_OVERRIDE:-default}` expansions below reproduce the original behavior exactly.
+if [[ "$REPO_ROOT" != /mnt/* ]] && [[ -d "/mnt/g/dev/halo/build/vc71" ]]; then
+    VC71_STAGE="/mnt/g/dev/halo/build/vc71"
+    SRC_INC_OVERRIDE="/mnt/g/dev/halo/src"
+    FI_OVERRIDE="/mnt/g/dev/halo/src/xdk_common.h"
+    GEN_INC_OVERRIDE="/mnt/g/dev/halo/build/generated"
+else
+    VC71_STAGE="${REPO_ROOT}/build/vc71"
+    SRC_INC_OVERRIDE=""
+    FI_OVERRIDE=""
+    GEN_INC_OVERRIDE=""
+fi
 mkdir -p "$VC71_STAGE"
 
 # --------------------------------------------------------------------------
@@ -97,9 +111,9 @@ trap cleanup EXIT
 
 C_WIN="$(wsl_to_win "$COMPILE_C")"
 COFF_WIN="$(wsl_to_win "$COFF_TMP")"
-FI_WIN="$(wsl_to_win "$REPO_ROOT/src/xdk_common.h")"
-GEN_INC="$(wsl_to_win "$REPO_ROOT/build/generated")"
-SRC_INC="$(wsl_to_win "$REPO_ROOT/src")"
+FI_WIN="$(wsl_to_win "${FI_OVERRIDE:-$REPO_ROOT/src/xdk_common.h}")"
+GEN_INC="$(wsl_to_win "${GEN_INC_OVERRIDE:-$REPO_ROOT/build/generated}")"
+SRC_INC="$(wsl_to_win "${SRC_INC_OVERRIDE:-$REPO_ROOT/src}")"
 
 # --------------------------------------------------------------------------
 # Invoke CL.Exe — same flags as vc71_verify.py:compile_vc71()
