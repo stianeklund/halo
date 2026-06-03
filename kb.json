@@ -14938,7 +14938,7 @@
         {
           "addr": "0x13db60",
           "decl": "void FUN_0013db60(short *param_1);",
-          "ported": false,
+          "ported": true,
           "source_path": "objects/objects.c"
         },
         {
@@ -15821,7 +15821,7 @@
         {
           "addr": "0xa1fd0",
           "decl": "void particle_new(void *spawn_params);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0xa2570",
@@ -20868,7 +20868,7 @@
         },
         {
           "addr": "0x189540",
-          "decl": "void FUN_00189540(int flag, void *p1, int val, void *ctx);"
+          "decl": "void FUN_00189540(int flag, void *p1, float val, void *ctx);"
         },
         {
           "addr": "0x1896d0",
