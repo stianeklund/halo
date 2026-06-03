@@ -7645,7 +7645,7 @@
         },
         {
           "addr": "0xb4250",
-          "decl": "wchar_t *FUN_000b4250(wchar_t *dst, int player_handle);",
+          "decl": "wchar_t *FUN_000b4250(int player_handle, wchar_t *dst);",
           "ported": true
         },
         {
