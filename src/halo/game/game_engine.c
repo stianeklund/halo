@@ -6331,7 +6331,7 @@ void FUN_000ad2b0(int param_1, int *param_2, int *param_3)
     equip_count = 5;
     do {
       if (*equip_ptr != -1) {
-        obj_handle = ((int (*)(void))FUN_000aca70)();
+        obj_handle = FUN_000aca70(*equip_ptr);
         object_placement_data_new(local_94, obj_handle, -1);
         obj_handle = (int)object_new(local_94);
         if (obj_handle != -1) {
