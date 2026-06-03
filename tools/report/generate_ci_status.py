@@ -302,12 +302,13 @@ _STYLE = '''
         .cov-fill.low { background: var(--red); }
         .workflow-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-bottom: 20px; }
         .wf-card {
-            background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px;
+            background: var(--bg-secondary); border-radius: 10px;
             padding: 14px 16px; display: flex; flex-direction: column; gap: 6px;
+            border-left: 3px solid var(--border);
         }
-        .wf-card.success { border-left: 3px solid var(--green); }
-        .wf-card.failure { border-left: 3px solid var(--red); }
-        .wf-card.cancelled, .wf-card.skipped { border-left: 3px solid var(--text-secondary); }
+        .wf-card.success { border-left-color: var(--green); }
+        .wf-card.failure { border-left-color: var(--red); }
+        .wf-card.cancelled, .wf-card.skipped { border-left-color: var(--text-secondary); }
         .wf-name { font-weight: 600; font-size: 0.92em; }
         .wf-meta { color: var(--text-secondary); font-size: 0.78em; }
         .wf-link { color: var(--accent-blue); font-size: 0.78em; text-decoration: none; }
