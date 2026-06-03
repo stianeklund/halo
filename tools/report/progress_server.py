@@ -15,6 +15,7 @@ import time
 import json
 import argparse
 import logging
+import subprocess
 import threading
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from socketserver import ThreadingMixIn
@@ -349,6 +350,34 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     daemon_threads = True
 
 
+def _background_regen(serve_dir: str, project_root: str, interval_secs: int = 300) -> None:
+    """Periodically regenerate CI status + main report so the dashboard stays fresh."""
+    venv_py = os.path.join(project_root, '.venv', 'bin', 'python3')
+    py = venv_py if os.path.exists(venv_py) else sys.executable
+    ci_script = os.path.join(project_root, 'tools', 'report', 'generate_ci_status.py')
+    report_script = os.path.join(project_root, 'tools', 'report', 'generate_decomp_report.py')
+    report_json = os.path.join(serve_dir, 'report.json')
+    report_html = os.path.join(serve_dir, 'index.html')
+
+    while True:
+        time.sleep(interval_secs)
+        try:
+            r = subprocess.run(
+                [py, ci_script, '--output-dir', serve_dir],
+                cwd=project_root, capture_output=True, timeout=30,
+            )
+            if r.returncode == 0:
+                subprocess.run(
+                    [py, report_script, '--output', report_json, '--html', report_html],
+                    cwd=project_root, capture_output=True, timeout=60,
+                )
+                logging.info('Dashboard auto-refreshed')
+            else:
+                logging.warning('CI regen failed: %s', r.stderr.decode(errors='replace')[:200])
+        except Exception as exc:
+            logging.warning('Background regen error: %s', exc)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='SSE-powered live progress dashboard server'
@@ -387,6 +416,14 @@ def main():
     logging.info('  Dashboard:  http://localhost:%d', args.port)
     logging.info('  SSE events: http://localhost:%d/events', args.port)
     logging.info('  Press Ctrl+C to stop')
+    logging.info('  Dashboard auto-refreshes every 5 min')
+
+    regen_thread = threading.Thread(
+        target=_background_regen,
+        args=(serve_dir, project_root, 300),
+        daemon=True,
+    )
+    regen_thread.start()
 
     try:
         server.serve_forever()
