@@ -568,3 +568,138 @@ Two operational gotchas when running from a `/tmp` worktree:
 - **Orphaned `-j` workers.** Killing the parent (timeout/TaskStop) leaves
   `permuter.py` worker processes running; `pkill -f decomp-permuter/permuter.py`
   between runs.
+
+---
+
+## 13. Overlapping 16-bit Fields Packed into One 32-bit Store (CONCAT22)
+
+**What happens:** Two adjacent 16-bit fields share one aligned dword. The
+original code updates *both at once* with a single 32-bit store, which Ghidra
+renders as `_DAT_XXXX = CONCAT22(high_field, low_field)` (Ghidra's
+`CONCAT22(a,b) == (a<<16) | b`). A lift that doesn't recognize the dword as two
+packed fields will mistranslate it — typically by editing only the low half, or
+worse, by inventing an accumulation (`low += x`) where the original *sets* the
+high half and *resets* the low half.
+
+**Symptoms:** A counter/cursor that should be reset instead grows monotonically.
+Here the growth marched a write cursor off the end of a fixed buffer, tripping a
+bounds assert several frames later — the crash site is the *consumer* of the
+field (an assert), not the function with the bad store.
+
+**Example (`rasterizer_text_cache_character`, FUN_00183880):** the hardware
+glyph cache packs `cursor_y` (0x4d04a8, low 16) and `max_char_height` (0x4d04aa,
+high 16) into one dword. The original's three stores were:
+```
+block 1: _DAT_004d04a8 = (uint)cursor_y          -> keep cursor_y; max_char_height = 0
+block 2: _DAT_004d04a8 = 0                        -> cursor_y = 0;  max_char_height = 0
+block 3: _DAT_004d04a8 = CONCAT22(char_h, cur_y)  -> keep cursor_y; max_char_height = char_h
+```
+The prior lift dropped the `max_char_height = 0` resets (blocks 1,2) and read
+block 3 as `cursor_y += char_height`. That advanced the row pen a full glyph
+height *per character* until one was placed at `cursor_y = 128`, overflowing the
+128-tall cache texture and tripping `bitmaps.c:421` ("y>=0 && y<bitmap->height")
+during the boot-video → main-menu transition. The visible `eip=0x80` was the
+assert handler (`display_assert` → `stack_walk`) faulting — a *secondary* effect
+of the real bug.
+
+**Prevention:**
+- Build a field map for any global accessed at **both** 16-bit (`*(short*)X`,
+  `*(short*)(X+2)`) and 32-bit (`*(uint*)X`) widths *before* lifting. Every
+  `CONCAT22`/`(hi<<16)|lo` store to that address writes **two** fields; decompose
+  it into the two `*(short*)` writes the original performs.
+- A lift that turns a packed-field SET into a `+=` is the tell. If a field is
+  only ever assigned constants/sums-of-other-fields in the original (never
+  read-modify-written), it must not become an accumulator.
+- `grep -n 'CONCAT22\|CONCAT44' <ghidra_dump>` and resolve every one to explicit
+  sub-field stores. Never leave a `CONCAT` in lifted C.
+
+**Detection at runtime:** A bounds/range assert in a *different* function (the
+buffer consumer) a few frames after the bad write, often surfacing as a
+secondary fault in the assert/stack-walk path (`eip` at a tiny address like
+`0x80`). Extract the real assert string from the stack before chasing the
+faulting `eip`.
+
+---
+
+## 14. Vertex-Buffer Stride Mismatch: Producer Floats/Vertex ≠ Consumer Stride
+
+**What happens:** A geometry builder fills a flat float buffer, then hands it to
+a fixed-function submit/draw routine that walks it at a **hard-coded stride**
+(floats per vertex). If the builder writes a *different* number of floats per
+vertex than the consumer reads, every vertex after the first is misaligned: the
+consumer reads each vertex's fields from the middle of the previous vertex's
+data. One stray vertex lands at a near-origin screen coordinate and the
+primitive stretches across the framebuffer.
+
+**Symptoms:** A diagonal smear/streak from the geometry to a screen corner (a
+vertex pinned near (0,0) or (1,1)), *plus* the real geometry missing or garbled —
+**both symptoms from the same bug**. A wrong color is common too, because the
+packed-color slot of one vertex receives a coordinate float (e.g. `1.0f` =
+`0x3f800000`, which reads as a saturated red-ish ARGB).
+
+**Example (`rasterizer_text_draw_cached_char/chars`, FUN_00183c00 / FUN_00183cf0):**
+the consumer `FUN_001741d0` reads **5 floats/vertex** (screen x, screen y, texel
+u, texel v, packed color), 4 verts = 20 floats, winding TL,TR,BR,BL. The prior
+lift wrote **7 floats/vertex** into a `float quad_verts[28]` buffer — each vertex
+was `[x, y, tx, ty, color, 1.0, 1.0]`, where the trailing `1.0, 1.0` was actually
+the *drop-shadow offset* baked per-vertex (it belongs in a separate two-pass loop
+added to screen x/y, not per-vertex). At stride 5 the consumer reads vertex 0
+from floats[0..4] = `[x, y, tx, ty, color]` — correct *by luck*, because it's the
+buffer head — but vertex 1 from floats[5..9] = `[1.0, 1.0, x+w, y, tx+w]`, so its
+screen position is **(1, 1)**: the stray `1.0, 1.0` pair becomes a vertex pinned
+at the origin and the primitive stretches from the glyph to the corner = the
+diagonal smear. Every later vertex then reads its screen/texel/color slots from
+misaligned offsets → wrong (here reddish) color and scrambled/offscreen quads, so
+the rest of the text renders "missing." The `[28]` buffer feeding a 4-vert
+stride-5 consumer (which needs only 20) is the smoking gun — 8 stray floats.
+Fix: rewrite both builders to stride-5, move the `1.0` shadow offset into a real
+two-pass loop (pass 1 = shadow color at +1,+1; pass 2 = real color at +0,+0),
+and add `cache_offset_x/y` to the **texel** coords (tx/ty), not the screen
+position.
+
+**Prevention:**
+- Derive the consumer's stride from **its** disassembly (the per-vertex byte
+  stride it advances by, or the vertex-size constant it multiplies the index by)
+  *before* writing the producer. Make the producer's floats-per-vertex match
+  exactly.
+- Cross-check: `(declared buffer length) == (vertex count) × (consumer stride)`.
+  A `float buf[28]` feeding a 4-vert stride-5 consumer (needs 20) is the smoking
+  gun — the extra 8 floats are misattributed fields.
+- Treat per-vertex constants (especially `1.0f`/`0.0f` pairs) with suspicion:
+  they are frequently a shared offset, color, or w-coordinate that the original
+  applies *outside* the per-vertex stores. Confirm against the original's vertex
+  layout before baking anything constant into every vertex.
+
+**Detection at runtime:** No crash — a visual smear + missing/garbled geometry.
+Use §9 toggle bisection to localize to the builder, then read the consumer's
+stride from disasm and diff the per-vertex field count.
+
+---
+
+## 15. Stale `build/halo.map` Sends Crash Symbolization to the Wrong Function
+
+**What happens:** `tools/build/build.py` does **not** regenerate `build/halo.map`.
+A runtime crash address symbolized against that stale map resolves to whatever
+function occupied the address in an *older* layout — which can be in a completely
+unrelated subsystem. The whole diagnosis then chases the wrong code. A prior
+session spent its entire budget blaming particle/effects code for what was a
+text-rasterizer bug, purely because the map was weeks out of date relative to the
+deployed build.
+
+**Symptoms:** Symbol names that don't match the observed behavior; call stacks
+that "don't make sense"; repeated dead-end hypotheses around a function that has
+nothing to do with the failing feature.
+
+**Prevention / correct procedure:**
+- **Symbolize from the freshly-built PE export table of `build/halo`, not the
+  `.map`.** `XBE_VA = base_addr + export_RVA`, where `base_addr =
+  round_up(max XBE section end, 0x1000)` (= `0x642000` for this build). The
+  export table is produced by the same build that was deployed, so it can't be
+  stale relative to it.
+- Before trusting `build/halo.map` for *anything*, compare its mtime against the
+  deployed build, and cross-check the deployed `DECOMP BUILD <hash>` line in
+  `xbdm/debug.txt` against the binary you symbolized from. A hash/date mismatch
+  means the map is lying.
+- When a symbolized crash points somewhere surprising, re-symbolize from the
+  export table before forming any hypothesis — wrong symbols are the most
+  expensive kind of wrong, because every downstream step inherits the error.
