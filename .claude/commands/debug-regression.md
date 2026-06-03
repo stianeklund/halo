@@ -16,9 +16,33 @@ Argument: $ARGUMENTS (description of the regression symptom or failing test)
 ## Investigation priority
 
 **Always start with git history.** Most regressions are introduced by a recent
-commit. Static analysis is fast, free, and usually sufficient.
+commit. Static analysis is fast, free, and usually sufficient. One thing is even
+cheaper and runs first: a doc lookup (Phase 0). It *informs* the bisect — it
+does not replace it.
 
-### Phase 1 — Git bisection (always first)
+### Phase 0 — Consult prior learnings (near-free, do first)
+
+Many regressions match a documented bug class. `docs/lift-learnings.md` catalogs
+recurring failure modes — packed-field (CONCAT) mistranslation, vertex-stride
+mismatch, buffer aliasing, cdecl arg mis-grouping, FPU operand order, float-as-
+pointer bit-smuggling, stale-map mis-symbolization — each with detection and fix
+steps. A match often names the root cause up front and tells you what to look
+for in the diff.
+
+If the `qmd` MCP tools are available (the doc vector index over `docs/`):
+
+- `mcp__plugin_qmd_qmd__query` with `searches` describing the symptom — pair a
+  `lex` keyword line with a `vec` natural-language line — set `intent` to the
+  regression, and scope `collections: ["halo-docs"]`.
+- Read the top hit with `mcp__plugin_qmd_qmd__get` at the reported `line`
+  (`fromLine = line - 20`, `maxLines = 80`).
+- Carry any matching § into Phase 1 as the hypothesis to confirm or refute.
+
+If qmd is unavailable, fall back to `rtk rg -n '<keyword>' docs/lift-learnings.md`.
+Either way a doc match is a lead, not proof — confirm it against the binary in
+Phase 1/2 before fixing.
+
+### Phase 1 — Git bisection (the investigation backbone)
 
 1. `git log --oneline -20` — identify recent commits touching `kb.json`, C
    source, or types.

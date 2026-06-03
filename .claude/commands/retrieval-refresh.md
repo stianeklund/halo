@@ -45,3 +45,13 @@ Report:
 
 - This updates the local index at `tools/retrieval/index.duckdb`.
 - It does not call external Claude/Mizuchi runner APIs.
+- **Scope: this is the CODE index** (Ghidra pseudocode + lifted C), used by
+  `/lift`'s retrieval-neighbor injection. The separate **doc index** (QMD,
+  `~/.cache/qmd/index.sqlite`, queried by `/debug-regression` Phase 0 and
+  `/lift`'s doc-hazard lookup) covers `docs/`, skills, and commands. QMD's
+  guardrail forbids refreshing it automatically — after editing docs, refresh
+  it yourself by running these manually:
+  ```bash
+  qmd update    # re-scan collections for new/changed markdown
+  qmd embed     # generate embeddings for the changed chunks
+  ```

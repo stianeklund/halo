@@ -57,6 +57,16 @@ Steps:
    confirmed blockers requiring investigation. If no `[context-enrichment]`
    block appears, no cache exists for this target — proceed with live Ghidra
    calls as normal.
+   **Doc-hazard lookup (optional, complements the code retrieval above)** — the
+   hooks above retrieve similar *code*; the doc index retrieves the *bug-class
+   playbook*. If the `qmd` MCP tools are available, query `docs/lift-learnings.md`
+   for the hazard classes this function is prone to given its character (FPU /
+   geometry → operand order & cross-product swap; passes a stack buffer to a
+   callee → buffer aliasing & undersized buffers; packed 16/32-bit field stores →
+   CONCAT decomposition; builds vertex/quad data → producer-vs-consumer stride).
+   `mcp__plugin_qmd_qmd__query` with a `vec` line describing the function plus a
+   `lex` line of the hazard keywords, `collections: ["halo-docs"]`. Apply the
+   documented prevention checks while writing the C; skip if qmd is unavailable.
 5. For every callee that takes register args (MOV/LEA into EAX/ECX/ESI/etc
    before a CALL, not PUSHed): add it to `kb.json` with `@<reg>` annotations
    and to `tools/kb_reg_baseline.json`, then call by name from C.
