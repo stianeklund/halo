@@ -2474,6 +2474,38 @@ done:
   }
 }
 
+/* Writes object counts and memory-usage fraction into param_1.
+ * param_1[0] = total non-empty object slots
+ * param_1[1] = object slots with active flag (elem+2 bit 0)
+ * *(float*)(param_1+2) = 1.0 - fraction of pool in use */
+void FUN_0013db60(short *param_1)
+{
+    short *psVar1;
+    int iVar2;
+    short sVar3;
+    data_t *objs_data;
+
+    csmemset(param_1, 0, 8);
+    objs_data = *(data_t **)0x5a8d50;
+    psVar1 = (short *)*(uint8_t **)((uint8_t *)objs_data + 0x34);
+    sVar3 = 0;
+    if (0 < *(int16_t *)((uint8_t *)objs_data + 0x2e)) {
+        do {
+            if (*psVar1 != 0) {
+                param_1[0] = param_1[0] + 1;
+                if (*(unsigned char *)((char *)psVar1 + 2) & 1) {
+                    param_1[1] = param_1[1] + 1;
+                }
+            }
+            objs_data = *(data_t **)0x5a8d50;
+            sVar3 = sVar3 + 1;
+            psVar1 = psVar1 + 6;
+        } while (sVar3 < *(int16_t *)((uint8_t *)objs_data + 0x2e));
+    }
+    iVar2 = memory_pool_get_contiguous_free_size(*(void **)0x46f080);
+    *(float *)(param_1 + 2) = *(float *)0x2533c8 - (float)iVar2 * *(float *)0x29ba04;
+}
+
 void garbage_collect_now(void)
 {
   *(unsigned char *)(*(int *)0x46f084 + 2) = 1;
@@ -6451,7 +6483,7 @@ void FUN_00143550(int param_1)
     if (*(int *)(tag_data + 0x34) != -1 ||
         *(int *)(tag_data + 0x7c) != -1) {
       void *sphere_color;
-      int scale_val;
+      float scale_val;
       sphere_color = *(void **)0x2ee6cc;
       if (*(float *)((char *)obj + 0x5c) <= 0.0f) {
         int datum_body;
@@ -6462,9 +6494,9 @@ void FUN_00143550(int param_1)
         }
       }
       if (*(float *)((char *)obj + 0x5c) <= 0.0f) {
-        scale_val = 0x3f800000;
+        scale_val = 1.0f;
       } else {
-        scale_val = *(int *)((char *)obj + 0x5c);
+        scale_val = *(float *)((char *)obj + 0x5c);
       }
       FUN_00189540(1, (char *)obj + 0x50, scale_val, sphere_color);
       tag_data = (char *)tag_get(0x6f626a65, *obj);
@@ -6529,7 +6561,7 @@ void FUN_00143550(int param_1)
           matrix_transform_point((float *)nm, (float *)((char *)coll_elem + 0x10), point_out);
         }
         FUN_00189540(1, point_out,
-                     *(int *)((char *)coll_elem + 0x1c),
+                     *(float *)((char *)coll_elem + 0x1c),
                      *(void **)0x2ee6d8);
         i++;
         idx = (int)i;
