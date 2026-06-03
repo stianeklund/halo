@@ -61,24 +61,39 @@ def build_variant(label: str, overlay: Path, artifact_dir: Path, skip_build: boo
     )
 
 
-def restore_harness_off(artifact_dir: Path, skip_build: bool) -> dict:
-    restore = {"ok": False, "skipped": skip_build}
+def restore_harness_off(artifact_dir: Path, skip_build: bool,
+                        skip_deploy: bool = False) -> dict:
+    restore = {"ok": False, "skipped": skip_build, "steps": []}
     if skip_build:
         restore["ok"] = True
         return restore
 
-    try:
-        run_command(
-            ["cmake", "-B", "build", "-S", str(ROOT),
-             "-DHALO_TEST_HARNESS=OFF",
-             "-DCMAKE_TOOLCHAIN_FILE=toolchains/llvm.cmake"],
-            ROOT,
-            os.environ.copy(),
-            artifact_dir / "restore_harness_off_configure.txt",
-        )
-    except Exception as exc:
-        restore["error"] = str(exc)
-        return restore
+    commands: list[tuple[str, list[str]]] = [
+        ("configure", [
+            "cmake", "-B", "build", "-S", str(ROOT),
+            "-DHALO_TEST_HARNESS=OFF",
+            "-DCMAKE_TOOLCHAIN_FILE=toolchains/llvm.cmake",
+        ]),
+        ("build", [
+            "cmake", "--build", "build", "--target", "patched_xbe", "--", "--quiet",
+        ]),
+    ]
+    if not skip_deploy:
+        commands.append(("deploy", [
+            sys.executable,
+            str(ROOT / "tools" / "xbox" / "deploy_xbox.py"),
+            "--xbe-only", "--skip-build",
+        ]))
+
+    for label, cmd in commands:
+        log_path = artifact_dir / f"restore_harness_off_{label}.txt"
+        try:
+            run_command(cmd, ROOT, os.environ.copy(), log_path)
+            restore["steps"].append({"step": label, "ok": True})
+        except Exception as exc:
+            restore["steps"].append({"step": label, "ok": False, "error": str(exc)})
+            restore["error"] = f"restore {label} failed: {exc}"
+            return restore
 
     restore["ok"] = True
     return restore
@@ -323,7 +338,8 @@ def main() -> int:
         })
     finally:
         summary["restore_harness_off"] = restore_harness_off(artifact_dir,
-                                                              args.skip_build)
+                                                              args.skip_build,
+                                                              args.skip_deploy)
 
     summary_path = artifact_dir / "summary.json"
     summary_path.write_text(json.dumps(summary, indent=2) + "\n",
