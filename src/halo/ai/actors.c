@@ -2733,6 +2733,127 @@ void FUN_00038e60(int actor_handle)
   return;
 }
 
+/* FUN_00039c80 (0x39c80) — For a swarm actor and a given member object, find
+ * the matching swarm component and compute its desired 3D velocity into
+ * out_velocity.
+ *
+ * If the component is active (flags & 1) with a live target (component+0x14):
+ *   Look up the encounter entry from encounter_data (0x5ab23c). Clamp speed to
+ *   0.12 if below the runtime threshold at 0x25698c. Call
+ *   projectile_aim_ballistic (gravity=1.0, origin=component+4,
+ *   target=encounter+0xc8) to solve a ballistic arc; on success normalise the
+ *   XY aim direction with magnitude3d. If the XY pair is zero fall back to
+ *   actor+0x174 then *(float**)0x31fc3c (global default 3D direction). Cap
+ *   vz at 0.075 for non-flying encounter types. Write velocity = aim_dir *
+ *   speed_scale (from param_14 output) and clamp magnitude to 'speed'.
+ *
+ * Otherwise if flags & 0x18 (bits 3 and 4 both set):
+ *   If component+0x21 (flags2) has bits 2 and 4 set, get the biped's XY
+ *   velocity direction (biped+0x24, fallback biped+0x30, fallback
+ *   *(float**)0x31fc0c), normalise, and write
+ *   velocity = dir * component+0x28 (xy-speed), vz = component+0x2c.
+ *   Always clear bit 4 of component->flags (& 0xef).
+ *
+ * Confirmed: cdecl 4-arg signature from disasm at 0x39c80-0x39f2d.
+ */
+void FUN_00039c80(int actor_handle, int object_handle, float speed,
+                  float *out_velocity)
+{
+  char *actor;
+  char *swarm;
+  char *component;
+  char *encounter;
+  char *biped;
+  int i;
+  unsigned short flags;
+  unsigned char flags2;
+  float min_speed;
+  float max_speed;
+  float aim_vec[3];
+  float dir[2];
+  float vz_out;
+  float speed_scale;
+  float vx;
+  float vy;
+  float mag_sq;
+  float inv;
+  float *def;
+  char aim_ok;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(int *)(actor + 0x28) == -1)
+    return;
+  swarm = (char *)datum_get(swarm_data, *(int *)(actor + 0x28));
+  for (i = 0; (short)i < *(short *)(swarm + 2); i++) {
+    if (*(int *)(swarm + 0x18 + (short)i * 4) != object_handle)
+      continue;
+    biped = (char *)object_get_and_verify_type(object_handle, 3);
+    component = (char *)datum_get(swarm_component_data,
+                                  *(int *)(swarm + 0x58 + (short)i * 4));
+    flags = *(unsigned short *)(component + 2);
+    if (!(flags & 1) || *(int *)(component + 0x14) == -1) {
+      if ((flags & 0x18) == 0x18) {
+        flags2 = *(unsigned char *)(component + 0x21);
+        if ((flags2 & 4) && (flags2 & 0x10)) {
+          dir[0] = *(float *)(biped + 0x24);
+          dir[1] = *(float *)(biped + 0x28);
+          if (magnitude3d(dir) == 0.0f) {
+            dir[0] = *(float *)(biped + 0x30);
+            dir[1] = *(float *)(biped + 0x34);
+            if (magnitude3d(dir) == 0.0f) {
+              def = *(float **)0x31fc0c;
+              dir[0] = def[0];
+              dir[1] = def[1];
+            }
+          }
+          out_velocity[0] = dir[0] * *(float *)(component + 0x28);
+          out_velocity[1] = dir[1] * *(float *)(component + 0x28);
+          out_velocity[2] = *(float *)(component + 0x2c);
+        }
+        *(unsigned char *)(component + 2) &= ~0x10;
+      }
+    } else {
+      encounter =
+        (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(component + 0x14));
+      min_speed = 0.06f;
+      max_speed = 0.80f;
+      if (speed <= *(float *)0x25698c)
+        speed = 0.12f;
+      aim_ok = projectile_aim_ballistic(
+        speed, 1.0f, (float *)(component + 4), (float *)(encounter + 0xc8),
+        (int)&min_speed, &max_speed, 0, 0, aim_vec, 0, 0, 0, &vz_out,
+        &speed_scale);
+      if (aim_ok) {
+        if (magnitude3d(aim_vec) == 0.0f) {
+          aim_vec[0] = *(float *)(actor + 0x174);
+          aim_vec[1] = *(float *)(actor + 0x178);
+          aim_vec[2] = *(float *)(actor + 0x17c);
+          if (magnitude3d(aim_vec) == 0.0f) {
+            def = *(float **)0x31fc3c;
+            aim_vec[0] = def[0];
+            aim_vec[1] = def[1];
+            aim_vec[2] = def[2];
+          }
+        }
+        if (*(char *)(encounter + 0x130) == '\0' && vz_out > *(float *)0x256988)
+          vz_out = 0.075f;
+        vx = aim_vec[0] * speed_scale;
+        vy = aim_vec[1] * speed_scale;
+        out_velocity[0] = vx;
+        out_velocity[1] = vy;
+        out_velocity[2] = vz_out;
+        mag_sq = vx * vx + vy * vy + vz_out * vz_out;
+        if (speed * speed < mag_sq) {
+          inv = speed / sqrtf(mag_sq);
+          out_velocity[0] = vx * inv;
+          out_velocity[1] = vy * inv;
+          out_velocity[2] = vz_out * inv;
+        }
+      }
+    }
+  }
+}
+
 /* FUN_00039f30 (0x39f30) — actor action state-machine tick (active-cover
  * variant). Preamble: datum_get, tag_get(0x61637472), initial_action,
  * pending_command_list, handle_surprise(1), deny_transition. If deny==false:
