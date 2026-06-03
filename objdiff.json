@@ -6766,6 +6766,14 @@
       "metadata": {
         "source_path": "src/halo/ai/actor_looking.c"
       }
+    },
+    {
+      "name": "halo/rasterizer_text",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/rasterizer_text.c.obj",
+      "base_path": "delinked/rasterizer_text.obj",
+      "metadata": {
+        "source_path": "halo/rasterizer/rasterizer_text.c"
+      }
     }
   ]
 }
