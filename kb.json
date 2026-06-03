@@ -14587,7 +14587,8 @@
         {
           "decl": "void FUN_00139a30(int param_1);",
           "addr": "0x139a30",
-          "ported": false
+          "ported": true,
+          "source_path": "objects/objects.c"
         },
         {
           "addr": "0x139b40",

@@ -970,6 +970,44 @@ int FUN_00139990(int param_1)
   return 0;
 }
 
+/* Update dynamic lighting for a single light object (object_lights.c).
+ * Reads the light tag, builds a 5-float color/scale buffer, and submits
+ * it to FUN_00189540 for each active channel. */
+void FUN_00139a30(int param_1)
+{
+    int iVar1;
+    int iVar2;
+    unsigned char *pbVar3;
+    float ctx[5]; /* contiguous: [local_18,local_14,local_10,local_c,local_8] */
+
+    if (*(char *)0x5a8d58 == '\0')
+        return;
+
+    iVar2 = (int)datum_get(*(data_t **)0x5a90bc, param_1);
+    pbVar3 = (unsigned char *)tag_get(0x6c696768, *(int *)(iVar2 + 4));
+    *(int *)&ctx[0] = *(int *)(*(int *)0x2ee6f0);
+    ctx[4] = *(float *)(pbVar3 + 0xc) * *(float *)(pbVar3 + 4);
+    ctx[1] = *(float *)(*(int *)0x2ee6f0 + 4);
+    ctx[2] = *(float *)(*(int *)0x2ee6f0 + 8);
+    ctx[3] = *(float *)(*(int *)0x2ee6f0 + 0xc);
+    iVar1 = iVar2 + 0x30;
+    FUN_00189540(1, (void *)iVar1, *(float *)(pbVar3 + 0x18), *(void **)0x2ee6c4);
+    FUN_00189540(1, (void *)iVar1, *(float *)((char *)iVar2 + 0x54), ctx);
+    ctx[1] = ctx[1] * *(float *)0x2533f0;
+    ctx[2] = ctx[2] * *(float *)0x2533f0;
+    ctx[3] = ctx[3] * *(float *)0x2533f0;
+    if ((*pbVar3 & 2) == 0) {
+        ctx[4] = ctx[4] * *(float *)(pbVar3 + 0x24);
+        FUN_00189540(1, (void *)iVar1,
+                     *(float *)(pbVar3 + 0x24) * *(float *)((char *)iVar2 + 0x54),
+                     ctx);
+    }
+    ctx[1] = ctx[1] * *(float *)0x2533f0;
+    ctx[2] = ctx[2] * *(float *)0x2533f0;
+    ctx[3] = ctx[3] * *(float *)0x2533f0;
+    FUN_00189540(1, (void *)iVar1, ctx[4], ctx);
+}
+
 /*
  * object_move_to_limbo — compute a point light's world-space position,
  * direction, and range from its parent object, then add it to the cluster
