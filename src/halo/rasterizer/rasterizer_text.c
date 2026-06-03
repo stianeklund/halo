@@ -2177,7 +2177,7 @@ void rasterizer_text_draw(void *screen_pos, short *bounds, const void *color,
   int clamp_x;
   int clamp_y;
 
-  if (*(char *)0x3256da == 0 || *(int *)0x5a5bc0 != 0) {
+  if (*(char *)0x3256da == 0 || *(short *)0x5a5bc0 != 0) {
     return;
   }
 
@@ -2265,7 +2265,7 @@ void rasterizer_draw_string(void *screen_pos, short *bounds, const void *color,
   int clamp_x;
   int clamp_y;
 
-  if (*(char *)0x3256da == 0 || *(int *)0x5a5bc0 != 0) {
+  if (*(char *)0x3256da == 0 || *(short *)0x5a5bc0 != 0) {
     return;
   }
 
