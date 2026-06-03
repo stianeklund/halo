@@ -59,6 +59,8 @@ void *tag_get(int group_tag, int tag_index)
                : "ecx", "edx", "memory", "cc");
 
   if (entry[0] != group_tag && entry[1] != group_tag && entry[2] != group_tag) {
+    error(2, "expected tag group %08x but got %08x for datum %08x",
+          group_tag, entry[0], tag_index);
     display_assert("expected tag group mismatch",
                    "c:\\halo\\SOURCE\\cache\\cache_files.c", 0xf7, true);
     system_exit(-1);
