@@ -622,6 +622,18 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             pass
     history_json = json.dumps(history_data) if history_data else 'null'
 
+    # Load CI summary (written by generate_ci_status.py before this runs)
+    ci_summary_data = None
+    ci_summary_path = os.path.join(
+        os.path.dirname(output_path) if os.path.dirname(output_path) else '.', 'ci_summary.json')
+    if os.path.exists(ci_summary_path):
+        try:
+            with open(ci_summary_path) as f:
+                ci_summary_data = json.load(f)
+        except Exception:
+            pass
+    ci_summary_json = json.dumps(ci_summary_data) if ci_summary_data else 'null'
+
     TEMPLATE = '''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1227,6 +1239,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
         /* ===== DATA ===== */
         var REPORT = __REPORT_JSON__;
         var HISTORY = __HISTORY_JSON__;
+        var CI_SUMMARY = __CI_SUMMARY_JSON__;
 
         /* ===== STATE ===== */
         var chartInstances = {};
@@ -1472,7 +1485,52 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     '<div class="stat-value" style="color:#3fb950">' + fmtNum(vData.total) + '</div>' +
                     '<div class="stat-label">' + verifiedPct + '% of ported &middot; hover for breakdown</div>' +
                     (s.functions.ported > 0 ? '<div class="progress-bar"><div class="progress-fill" style="width:' + Math.max(vData.total / s.functions.ported * 100, 0.3) + '%;background:linear-gradient(90deg,#238636,#3fb950)"><span class="progress-text">' + verifiedPct + '%</span></div></div>' : '') +
-                '</div>';
+                '</div>' +
+                renderCICards();
+        }
+
+        function renderCICards() {
+            if (!CI_SUMMARY) return '';
+            var ci = CI_SUMMARY;
+            var out = '';
+
+            // Card 1: CI Runs (GitHub Actions)
+            var ciRuns = ci.ci_runs || {};
+            var wfs = ciRuns.workflows || [];
+            var anyFail = wfs.some(function(w) { return w.conclusion === 'failure'; });
+            var allPass = wfs.length > 0 && wfs.every(function(w) { return w.conclusion === 'success'; });
+            var ciColor = allPass ? '#3fb950' : (anyFail ? '#da3633' : '#d29922');
+            var ciLabel = allPass ? 'All Pass' : (anyFail ? 'Failures' : (wfs.length ? 'Mixed' : 'No data'));
+            var wfRows = wfs.slice(0, 5).map(function(w) {
+                var dot = w.conclusion === 'success' ? '&#9679;' : (w.conclusion === 'failure' ? '&#9679;' : '&#9675;');
+                var dotColor = w.conclusion === 'success' ? '#3fb950' : (w.conclusion === 'failure' ? '#da3633' : '#8b949e');
+                var shortName = (w.name || '').replace('.github/workflows/', '');
+                return '<div style="display:flex;align-items:center;gap:6px;margin-top:3px">' +
+                       '<span style="color:' + dotColor + ';font-size:0.7em">' + dot + '</span>' +
+                       '<span style="font-size:0.8em;color:var(--text-secondary)">' + escHtml(shortName) + '</span></div>';
+            }).join('');
+            var sha = ciRuns.last_commit ? ' &middot; <span style="font-family:monospace;font-size:0.85em">' + escHtml(ciRuns.last_commit) + '</span>' : '';
+            out += '<a href="ci.html" class="card" style="text-decoration:none;display:block;cursor:pointer" title="View CI status page">' +
+                    '<div class="stat-label">CI Status</div>' +
+                    '<div class="stat-value" style="color:' + ciColor + '">' + ciLabel + '</div>' +
+                    '<div class="stat-label">' + fmtNum(wfs.length) + ' workflow' + (wfs.length === 1 ? '' : 's') + sha + '</div>' +
+                    wfRows +
+                    '<div style="color:var(--accent-blue);font-size:0.78em;margin-top:8px">View full CI status &#x2192;</div>' +
+                '</a>';
+
+            // Card 2: Equivalence Coverage
+            var eq = ci.equivalence || {};
+            var equivColor = (eq.avg_coverage >= 60) ? '#3fb950' : (eq.avg_coverage >= 30 ? '#58a6ff' : '#d29922');
+            var highPct = eq.tested > 0 ? Math.round(eq.high_confidence / eq.tested * 100) : 0;
+            out += '<a href="ci.html" class="card" style="text-decoration:none;display:block;cursor:pointer" title="View equivalence coverage details">' +
+                    '<div class="stat-label">Equivalence Coverage</div>' +
+                    '<div class="stat-value" style="color:' + equivColor + '">' + (eq.avg_coverage !== null && eq.avg_coverage !== undefined ? eq.avg_coverage.toFixed(1) + '%' : '—') + '</div>' +
+                    '<div class="stat-label">avg code coverage &middot; ' + fmtNum(eq.tested) + ' functions tested</div>' +
+                    '<div class="stat-sub" style="margin-top:6px">' + fmtNum(eq.high_confidence) + ' high-confidence (' + highPct + '%) &middot; ' + fmtNum(eq.weak_coverage) + ' weak</div>' +
+                    '<div style="color:var(--accent-blue);font-size:0.78em;margin-top:8px">View coverage details &#x2192;</div>' +
+                '</a>';
+
+            return out;
         }
 
         // Color scale encodes how close the byte-match is to byte-identical — a
@@ -2471,7 +2529,8 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
 </html>'''
 
     html = TEMPLATE.replace('__REPORT_JSON__', report_json)\
-                   .replace('__HISTORY_JSON__', history_json)
+                   .replace('__HISTORY_JSON__', history_json)\
+                   .replace('__CI_SUMMARY_JSON__', ci_summary_json)
 
     with open(output_path, 'w') as f:
         f.write(html)
