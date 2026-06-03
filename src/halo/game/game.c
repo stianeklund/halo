@@ -683,7 +683,7 @@ int FUN_000b4170(int player_handle, int param_2)
  * Looks up the player datum by handle, reads the int16 score at offset 0xc2,
  * and formats it via usprintf with the format string at 0x26c118 (likely
  * L"%d"). */
-wchar_t *FUN_000b4250(wchar_t *dst, int player_handle)
+wchar_t *FUN_000b4250(int player_handle, wchar_t *dst)
 {
   char *player;
 
