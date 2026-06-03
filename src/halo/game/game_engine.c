@@ -6415,10 +6415,10 @@ void game_engine_set_goal_position(int flag_index, int *position,
   idx = (int)flag_index;
   *(int *)(0x456710 + idx * 0x20) = player;
   icon = ((int16_t (*)(int))FUN_000d5ec0)((int)name);
-  *(int16_t *)(0x456714 + idx * 0x10) = icon;
+  *(int16_t *)(0x456714 + idx * 0x20) = icon;
   *(char *)(0x456704 + idx * 0x20) = 1;
-  *(int *)(0x4566f8 + idx * 8) = position[0];
-  *(int *)(0x4566fc + idx * 8) = position[1];
+  *(int *)(0x4566f8 + idx * 0x20) = position[0];
+  *(int *)(0x4566fc + idx * 0x20) = position[1];
   *(int *)(0x456700 + idx * 0x20) = position[2];
   *(int16_t *)(0x45670c + idx * 0x20) = team;
   *(float *)(0x456700 + idx * 0x20) = height + *(float *)(0x456700 + idx * 0x20) + *(float *)0x26b814;
