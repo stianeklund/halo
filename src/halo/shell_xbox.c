@@ -81,6 +81,7 @@ int main(int argc, const char **argv, const char **envp)
 #else
     extern void run_tests(void);
     run_tests();
+    for (;;) { }
 #endif
     shell_dispose();
   }
