@@ -42,12 +42,21 @@ add_custom_command(
 	VERBATIM
 )
 
-add_custom_command(
-	OUTPUT "${gen_dir}/build_info.c" "${gen_dir}/.force"
-	COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/build/gen-build-info.py" > ${gen_dir}/build_info.c
-	DEPENDS "${CMAKE_CURRENT_LIST_DIR}/tools/build/gen-build-info.py" create_gen_dir
+# Regenerate the build identity (git rev + microsecond date) on EVERY build so it
+# always reflects the current git HEAD. An ALL custom_target always runs (unlike an
+# OUTPUT-cached custom_command, which went stale when HEAD changed). Write to a temp
+# then copy_if_different: a corrupt/failed generation never clobbers build_info.c, and
+# the source updates (forcing one TU recompile + relink) only when content changes —
+# which is every build, since BUILD_DATE is microsecond-fresh. That fresh, unique
+# BUILD_DATE is exactly the token deploy_xbox.py verifies on the running console.
+add_custom_target(gen_build_info ALL
+	BYPRODUCTS "${gen_dir}/build_info.c" "${gen_dir}/build_info.c.tmp"
+	COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/build/gen-build-info.py" > ${gen_dir}/build_info.c.tmp
+	COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${gen_dir}/build_info.c.tmp" "${gen_dir}/build_info.c"
+	DEPENDS create_gen_dir
 	VERBATIM
 )
+set_source_files_properties("${gen_dir}/build_info.c" PROPERTIES GENERATED TRUE)
 
 add_custom_command(
 	OUTPUT "${gen_dir}/typechecks.c"
@@ -143,7 +152,7 @@ endif()
 set(import_libs ${gen_dir}/halo.xbe.lib ${gen_dir}/xboxkrnl.exe.lib)
 target_link_libraries(halo ${import_libs})
 add_custom_target(import_libs_target DEPENDS ${import_libs})
-add_dependencies(halo import_libs_target reverse_thunk_tests)
+add_dependencies(halo import_libs_target reverse_thunk_tests gen_build_info)
 
 if(ENABLE_XDK_HYBRID AND NOT MSVC)
 	set(_xdk_obj_dir "${CMAKE_BINARY_DIR}/xdk")

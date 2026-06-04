@@ -78,7 +78,9 @@ def patch_xbe():
 
 def deploy():
     print("\n=== Deploying to Xbox ===")
-    r = run([sys.executable, str(DEPLOY_SCRIPT), "--xbe-only", "--skip-build"])
+    # --skip-verify: the harness build has no DECOMP BUILD banner to match, and this
+    # runner captures its own results via wait_for_results (RUN|END).
+    r = run([sys.executable, str(DEPLOY_SCRIPT), "--xbe-only", "--skip-build", "--skip-verify"])
     if r.returncode != 0:
         print(f"Deploy failed (exit {r.returncode})", file=sys.stderr)
         sys.exit(1)
