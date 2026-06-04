@@ -28,6 +28,7 @@ import argparse
 import fnmatch
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -258,6 +259,148 @@ def launch_xbe(xbox_dest: str, host: str, dry_run: bool) -> int:
     except OSError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
+
+
+# --- Post-deploy build-identity verification ---------------------------------
+# Confirm the title actually running on the Xbox/xemu is byte-identity to the XBE
+# we just uploaded. Game builds print "DECOMP BUILD <rev> (<date>)" to debug.txt at
+# boot (print_startup_banner in src/halo/main/main.c). The <date> is a unique,
+# microsecond ISO timestamp baked into the XBE, so it uniquely identifies a build.
+# Harness builds never reach main_loop(), so they print RUN|BEGIN instead — which
+# lets us name that failure too.
+_ISO_DATE_RE = re.compile(rb"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{1,9})\x00")
+_WIDGET_RE = re.compile(rb"([0-9A-Za-z][0-9A-Za-z._\-]{0,63}) (\d{2}/\d{2}/\d{2})\x00")
+_DECOMP_BANNER_RE = re.compile(r"DECOMP BUILD (\S+) \(([^)]+)\)")
+
+
+def extract_build_identity(xbe_path: str) -> "tuple[str, str] | None":
+    """Read (build_rev, build_date) embedded in the LOCAL xbe.
+
+    Source is the XBE bytes, NOT build_info.c/git — those can disagree with the
+    actual artifact, and that disagreement is exactly the stale-build bug we catch.
+    build_date (unique microsecond ISO timestamp) is the authoritative match key;
+    build_rev (recovered from the "<rev> MM/DD/YY" widget string) is diagnostic.
+    """
+    try:
+        with open(xbe_path, "rb") as handle:
+            data = handle.read()
+    except OSError:
+        return None
+    date_match = _ISO_DATE_RE.search(data)
+    if not date_match:
+        return None
+    widget_match = _WIDGET_RE.search(data)
+    rev = widget_match.group(1).decode("ascii", "replace") if widget_match else ""
+    return rev, date_match.group(1).decode("ascii", "replace")
+
+
+def fetch_remote_debug_text(host: str, remote_debug_path: str) -> "str | None":
+    """Return the running title's debug.txt as text, or None if not yet readable."""
+    script = os.path.join(ROOT_DIR, "tools", "xbox", "xbdm_debug_txt.py")
+    script_args = ["--lines", "0", "--remote", remote_debug_path, "--output", "-"]
+    cmd = build_windows_python_command(script, script_args)
+    if cmd is None:
+        cmd = [sys.executable, script, *script_args]
+    if host:
+        cmd += ["--host", host]
+    try:
+        result = subprocess.run(cmd, cwd=ROOT_DIR, capture_output=True, check=False)
+    except OSError:
+        return None
+    if result.returncode != 0:
+        return None
+    # debug.txt is ASCII; latin1 decode never raises and preserves byte values.
+    return result.stdout.decode("latin1", "replace")
+
+
+def verify_running_build(
+    host: str,
+    remote_debug_path: str,
+    xbe_path: str,
+    timeout_s: float = 90.0,
+    poll_s: float = 3.0,
+) -> int:
+    """Prove the running title == the uploaded XBE via the DECOMP BUILD banner.
+
+    Returns 0 on a confirmed match, 1 on timeout/mismatch (with a specific cause).
+    """
+    expected = extract_build_identity(xbe_path)
+    if expected is None:
+        print(
+            "  verify: WARNING could not read build identity from local XBE; "
+            "skipping running-build verification",
+            file=sys.stderr,
+        )
+        return 0
+    exp_rev, exp_date = expected
+    print(f"  verify: expecting DECOMP BUILD {exp_rev or '?'} ({exp_date})")
+    deadline = time.time() + timeout_s
+    saw_harness = False
+    last_seen = None
+    while time.time() < deadline:
+        text = fetch_remote_debug_text(host, remote_debug_path)
+        if text:
+            if "RUN|BEGIN|suite=xbox_harness" in text or "RUN|END|passed=" in text:
+                saw_harness = True
+            banner = None
+            for line in text.splitlines():
+                match = _DECOMP_BANNER_RE.search(line)
+                if match:
+                    banner = match
+            if banner is not None:
+                last_seen = (banner.group(1), banner.group(2))
+                if banner.group(2) == exp_date:
+                    print(
+                        "  verify: OK running build matches "
+                        f"(rev {banner.group(1)}, {banner.group(2)})"
+                    )
+                    return 0
+        time.sleep(poll_s)
+
+    print("  verify: FAILED running build does not match deployed build", file=sys.stderr)
+    print(f"  verify:   expected rev {exp_rev or '?'} date {exp_date}", file=sys.stderr)
+    if last_seen is not None:
+        print(f"  verify:   running  rev {last_seen[0]} date {last_seen[1]}", file=sys.stderr)
+        print(
+            "  verify:   cause: STALE BUILD running. If this is xemu, the emulator is "
+            "running its cached in-memory XBE — FULLY RESTART xemu (close the window, "
+            "relaunch tools/xbox/xemu.sh), then redeploy. On real Xbox this means the "
+            "upload did not take.",
+            file=sys.stderr,
+        )
+    elif saw_harness:
+        print(
+            "  verify:   cause: a TEST_HARNESS build is running (saw "
+            "RUN|BEGIN|suite=xbox_harness). A harness XBE was deployed as the game. "
+            "Rebuild WITHOUT --test and redeploy.",
+            file=sys.stderr,
+        )
+    else:
+        print(
+            f"  verify:   cause: no DECOMP BUILD banner within {timeout_s:.0f}s and "
+            "debug.txt empty/absent. The title likely failed to boot or crashed before "
+            "main_loop(), xemu is serving a cached XBE, or XBDM is unreachable.",
+            file=sys.stderr,
+        )
+    return 1
+
+
+def launch_and_verify(
+    xbox_dest: str,
+    host: str,
+    dry_run: bool,
+    xbe_path: str,
+    skip_verify: bool,
+    verify_timeout: float,
+) -> int:
+    """Launch the deployed XBE, then verify the running build matches it."""
+    rc = launch_xbe(xbox_dest, host, dry_run)
+    if rc != 0:
+        return rc
+    if dry_run or skip_verify:
+        return rc
+    remote_debug_path = f"{xbox_dest.lstrip('x')}\\debug.txt"
+    return verify_running_build(host, remote_debug_path, xbe_path, timeout_s=verify_timeout)
 
 
 def run_rdcp_command(host: str, command: str) -> subprocess.CompletedProcess[str]:
@@ -728,6 +871,17 @@ def main() -> int:
         default=0,
         help="Only deploy files modified in the last N seconds (default: auto-detect from build)",
     )
+    parser.add_argument(
+        "--skip-verify",
+        action="store_true",
+        help="Skip post-launch verification that the running build matches the deployed XBE",
+    )
+    parser.add_argument(
+        "--verify-timeout",
+        type=float,
+        default=90.0,
+        help="Seconds to wait for the running build to confirm its identity (default: 90)",
+    )
     args = parser.parse_args()
 
     xbcp_exe, xbcp_display = find_xbcp()
@@ -814,10 +968,9 @@ def main() -> int:
             return 1
         print("done.")
         deploy_init_txt(args.dest, host, args.dry_run, common_kwargs)
-        rc = launch_xbe(args.dest, host, args.dry_run)
-        if rc != 0:
-            return rc
-        return 0
+        return launch_and_verify(
+            args.dest, host, args.dry_run, xbe_path, args.skip_verify, args.verify_timeout
+        )
 
     since = args.since
     if since > 0:
@@ -842,10 +995,9 @@ def main() -> int:
             return 1
         print("done.")
         deploy_init_txt(args.dest, host, args.dry_run, common_kwargs)
-        rc = launch_xbe(args.dest, host, args.dry_run)
-        if rc != 0:
-            return rc
-        return 0
+        return launch_and_verify(
+            args.dest, host, args.dry_run, xbe_path, args.skip_verify, args.verify_timeout
+        )
 
     # Default: deploy XBE + anything that looks like it changed (maps, etc.)
     # First always push the XBE
@@ -890,10 +1042,9 @@ def main() -> int:
 
     print("done.")
     deploy_init_txt(args.dest, host, args.dry_run, common_kwargs)
-    rc = launch_xbe(args.dest, host, args.dry_run)
-    if rc != 0:
-        return rc
-    return 0
+    return launch_and_verify(
+        args.dest, host, args.dry_run, xbe_path, args.skip_verify, args.verify_timeout
+    )
 
 
 if __name__ == "__main__":
