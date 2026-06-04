@@ -382,27 +382,20 @@ int FUN_000ae250(int param_1)
     int *puVar6;
 
     if (*(char *)0x456b14 != '\0') {
-        /* Multiplayer path (flag!=0, inline): compare tick counters or team state. */
         iVar2 = FUN_000a8130(0);
         iVar3 = FUN_000a8130(1);
         iVar4 = (int)datum_get(*(data_t **)0x5aa6d4, param_1);
         cVar1 = game_engine_teams_still_playing();
         if (cVar1 != '\0') {
-            if (iVar2 == iVar3) {
-                return (int)0xffffffff;
-            }
+            if (iVar2 == iVar3) goto done_minus1;
             bVar7 = (iVar2 <= iVar3);
         } else {
             cVar1 = (char)FUN_000abb90(0);
             bVar7 = (cVar1 == '\0') ? 1 : 0;
         }
-        if (bVar7 == (int)0xffffffff) {
-            return (int)0xffffffff;
-        }
+        if (bVar7 == (int)0xffffffff) goto done_minus1;
         return (int)(*(unsigned int *)(iVar4 + 0x20) == (unsigned int)bVar7);
     }
-    /* Single-player path (flag==0, else): get player state via FUN_000abf50,
-     * copy 7-dword result, test buf[6] as a handle. */
     puVar5 = FUN_000abf50(buf, param_1);
     puVar6 = buf;
     for (iVar2 = 7; iVar2 != 0; iVar2 = iVar2 + -1) {
@@ -410,13 +403,12 @@ int FUN_000ae250(int param_1)
         puVar5 = puVar5 + 1;
         puVar6 = puVar6 + 1;
     }
-    /* buf[6]: 0x80000000 = invalid (-1), 0 = won (1), else 0. */
     if ((unsigned int)buf[6] & 0x80000000) {
-        if (!((unsigned int)buf[6] & 0x7fffffff)) {
-            return (int)0xffffffff;
-        }
+        if (!((unsigned int)buf[6] & 0x7fffffff)) goto done_minus1;
     }
     return (int)(((unsigned int)buf[6] & 0x7fffffff) == 0);
+done_minus1:
+    return (int)0xffffffff;
 }
 
 
