@@ -82,7 +82,7 @@ def restore_harness_off(artifact_dir: Path, skip_build: bool,
         commands.append(("deploy", [
             sys.executable,
             str(ROOT / "tools" / "xbox" / "deploy_xbox.py"),
-            "--xbe-only", "--skip-build",
+            "--xbe-only", "--skip-build", "--skip-verify",
         ]))
 
     for label, cmd in commands:
@@ -103,7 +103,9 @@ def deploy_variant(label: str, artifact_dir: Path, skip_deploy: bool) -> None:
     if skip_deploy:
         return
     run_command(
-        [sys.executable, "tools/xbox/deploy_xbox.py", "--xbe-only"],
+        # --skip-verify: golden variants may be harness builds (no DECOMP BUILD banner);
+        # this runner captures harness output itself.
+        [sys.executable, "tools/xbox/deploy_xbox.py", "--xbe-only", "--skip-verify"],
         ROOT,
         os.environ.copy(),
         artifact_dir / f"{label}_deploy.txt",
