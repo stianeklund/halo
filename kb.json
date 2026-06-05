@@ -12191,11 +12191,12 @@
         },
         {
           "addr": "0xd6660",
-          "decl": "void FUN_000d6660(void);"
+          "decl": "void FUN_000d6660(int player_handle, float *position, short type_value, short nav_type);"
         },
         {
           "addr": "0xd6cc0",
-          "decl": "void FUN_000d6cc0(void);"
+          "decl": "void FUN_000d6cc0(int param_1);",
+          "ported": true
         },
         {
           "addr": "0xd6e50",
