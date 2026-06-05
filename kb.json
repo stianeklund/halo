@@ -32756,7 +32756,8 @@
         },
         {
           "addr": "0x1168e0",
-          "decl": "void FUN_001168e0(void);"
+          "decl": "void FUN_001168e0(int state @<eax>, int param_1, int param_2);",
+          "ported": true
         },
         {
           "addr": "0x116b00",

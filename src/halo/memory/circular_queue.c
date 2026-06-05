@@ -748,6 +748,105 @@ void FUN_001167f0(int param_1, int param_2, int tree)
   }
 }
 
+/* send_tree: send a literal or distance tree with run-length encoding (0x1168e0).
+ * Emits REP(16), REPZ_3_10(17), REPZ_11_138(18) codes for runs.
+ * ABI: @eax=state, cdecl param_1=tree, param_2=max_code */
+void FUN_001168e0(int state, int param_1, int param_2)
+{
+  unsigned int curlen;
+  unsigned int nextlen;
+  int count;
+  int max_count;
+  int min_count;
+  unsigned int prevlen;
+
+  prevlen = 0xffffffff;
+  max_count = 7;
+  min_count = 4;
+  curlen = (unsigned int)*(unsigned short *)(param_1 + 2);
+  if (curlen == 0) {
+    max_count = 0x8a;
+    min_count = 3;
+  }
+  if (param_2 >= 0) {
+    int ptr = param_1 + 6;
+    int loop_count = param_2 + 1;
+    count = 0;
+    do {
+      nextlen = (unsigned int)*(unsigned short *)ptr;
+      count = count + 1;
+      if (count >= max_count || curlen != nextlen) {
+        if (count < min_count) {
+          do {
+            if (z_verbose > 2) {
+              crt_fprintf(&z_stderr, "\ncd %3d ", curlen);
+            }
+            FUN_00116390(*(unsigned short *)(state + 0xa74 + curlen * 4),
+                         *(unsigned short *)(state + 0xa76 + curlen * 4),
+                         state);
+            count = count - 1;
+          } while (count != 0);
+        } else {
+          if (curlen == 0) {
+            if (count < 0xb) {
+              if (z_verbose > 2) {
+                crt_fprintf(&z_stderr, "\ncd %3d ", 0x11);
+              }
+              FUN_00116390(*(unsigned short *)(state + 0xab8),
+                           *(unsigned short *)(state + 0xaba),
+                           state);
+              FUN_00116390(count - 3, 3, state);
+            } else {
+              if (z_verbose > 2) {
+                crt_fprintf(&z_stderr, "\ncd %3d ", 0x12);
+              }
+              FUN_00116390(*(unsigned short *)(state + 0xabc),
+                           *(unsigned short *)(state + 0xabe),
+                           state);
+              FUN_00116390(count - 0xb, 7, state);
+            }
+          } else {
+            if (curlen != prevlen) {
+              if (z_verbose > 2) {
+                crt_fprintf(&z_stderr, "\ncd %3d ", curlen);
+              }
+              FUN_00116390(*(unsigned short *)(state + 0xa74 + curlen * 4),
+                           *(unsigned short *)(state + 0xa76 + curlen * 4),
+                           state);
+              count = count - 1;
+            }
+            if (count < 3 || count > 6) {
+              FUN_00117a80(" 3_6?");
+            }
+            if (z_verbose > 2) {
+              crt_fprintf(&z_stderr, "\ncd %3d ", 0x10);
+            }
+            FUN_00116390(*(unsigned short *)(state + 0xab4),
+                         *(unsigned short *)(state + 0xab6),
+                         state);
+            FUN_00116390(count - 3, 2, state);
+          }
+        }
+        count = 0;
+        prevlen = curlen;
+        if (nextlen == 0) {
+          max_count = 0x8a;
+          min_count = 3;
+        } else if (curlen == nextlen) {
+          max_count = 6;
+          min_count = 3;
+        } else {
+          max_count = 7;
+          min_count = 4;
+        }
+      }
+      ptr = ptr + 4;
+      loop_count = loop_count - 1;
+      curlen = nextlen;
+    } while (loop_count != 0);
+  }
+}
+
 /* _tr_tally: record a literal or a match (distance/length) in deflate buffers.
  * 0x116d10 / circular_queue.obj (deflate.c) */
 int FUN_00116d10(int param_1, int param_2, int param_3)
