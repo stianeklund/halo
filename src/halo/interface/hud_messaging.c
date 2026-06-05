@@ -356,24 +356,24 @@ void hud_set_state_message(short param_1, short param_2)
 {
   int iVar1;
   int iVar3;
-  int bVar4;
+  short sVar4;
 
   if (*(char *)(*(int *)0x46bd10 + 1) == '\0' &&
       *(int *)(*(int *)0x46bd0c + 0xfc) != -1) {
-    iVar3 = param_1 * 0x460 + *(int *)0x46bd18;
-    bVar4 = (param_2 == -1);
-    if (!bVar4) {
+    iVar3 = (int)(short)param_1 * 0x460 + *(int *)0x46bd18;
+    sVar4 = param_2;
+    if (param_2 != -1) {
       iVar1 = (int)tag_get(0x686d7420, *(int *)(*(int *)0x46bd0c + 0xfc));
-      if ((int)param_2 < *(int *)(iVar1 + 0x20)) {
+      if ((int)(short)param_2 < *(int *)(iVar1 + 0x20)) {
         *(int *)(iVar3 + 0x454) = (int)tag_block_get_element(
-          (void *)(iVar1 + 0x20), (int)param_2, 0x40);
+          (void *)(iVar1 + 0x20), (int)(short)param_2, 0x40);
         *(unsigned char *)(iVar3 + 0x459) = 0;
         *(unsigned char *)(iVar3 + 0x458) = (param_2 != -1);
         return;
       }
-      bVar4 = 1;
+      sVar4 = -1;
     }
-    *(unsigned char *)(iVar3 + 0x458) = !bVar4;
+    *(unsigned char *)(iVar3 + 0x458) = (sVar4 != -1);
   }
 }
 
@@ -650,7 +650,7 @@ int hud_find_nav_point_by_name(const char *param_1)
  * Returns pointer to a player's nav point data (0x30 bytes per player). */
 int hud_get_nav_point_data(short param_1)
 {
-  if (param_1 < 0 || param_1 > 3) {
+  if (param_1 < 0 || param_1 >= 4) {
     display_assert("local_player_index>=0&&local_player_index<MAXIMUM_NUMBER_"
                    "OF_LOCAL_PLAYERS",
                    "c:\\halo\\SOURCE\\interface\\hud_nav_points.c", 0x5f, 1);
@@ -1007,7 +1007,7 @@ short FUN_000d6550(int param_1, float *param_2, float *param_3, int param_4)
     result = 2;
   }
 
-  if (global_current_collision_user_depth < 2) {
+  if (global_current_collision_user_depth <= 1) {
     display_assert("global_current_collision_user_depth > 1",
                    "c:\\halo\\SOURCE\\interface\\hud_nav_points.c", 0x210, 1);
     system_exit(-1);
@@ -1328,7 +1328,7 @@ void FUN_000d7330(void)
   j = 0;
   i = 0;
   do {
-    if ((j < 0) || (3 < j)) {
+    if ((j < 0) || (j >= 4)) {
       display_assert("local_player_index>=0 && "
                      "local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
                      "c:\\halo\\SOURCE\\interface\\hud_unit.c", 0x106, 1);
