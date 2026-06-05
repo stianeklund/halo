@@ -931,6 +931,57 @@ void FUN_000d6520(int param_1, int param_2)
   }
 }
 
+/* nav_point_visibility_test (0xd6550)
+ * Ray-cast from param_2 to param_3 to check if the nav point is visible. */
+short FUN_000d6550(int param_1, float *param_2, float *param_3, int param_4)
+{
+  int player_handle;
+  int player;
+  int unit_handle;
+  short result;
+  short collision_result[28];
+  float direction[3];
+
+  if (global_current_collision_user_depth >= 0x20) {
+    display_assert("global_current_collision_user_depth < "
+                   "MAXIMUM_COLLISION_USER_STACK_DEPTH",
+                   "c:\\halo\\SOURCE\\interface\\hud_nav_points.c", 0x1fe, 1);
+    system_exit(-1);
+  }
+  collision_user_stack[global_current_collision_user_depth] = 0x14;
+  global_current_collision_user_depth = global_current_collision_user_depth + 1;
+
+  player_handle = local_player_get_player_index((short)param_1);
+  if (player_handle == -1) {
+    unit_handle = -1;
+  } else {
+    player_handle = local_player_get_player_index((short)param_1);
+    player = (int)datum_get(*(data_t **)0x5aa6d4, player_handle);
+    unit_handle = *(int *)(player + 0x34);
+  }
+
+  direction[0] = param_3[0] - param_2[0];
+  direction[1] = param_3[1] - param_2[1];
+  direction[2] = param_3[2] - param_2[2];
+
+  if (FUN_0014df70(0xc2ad, param_2, direction, unit_handle, collision_result) ==
+        '\0' ||
+      (collision_result[0] == 3 &&
+       *(int *)(collision_result + 0x14) == param_4)) {
+    result = 0;
+  } else {
+    result = 2;
+  }
+
+  if (global_current_collision_user_depth < 2) {
+    display_assert("global_current_collision_user_depth > 1",
+                   "c:\\halo\\SOURCE\\interface\\hud_nav_points.c", 0x210, 1);
+    system_exit(-1);
+  }
+  global_current_collision_user_depth = global_current_collision_user_depth - 1;
+  return result;
+}
+
 /* FUN_000d7080 (0xd7080)
  * Iterate all local players and update nav point rendering. */
 void FUN_000d7080(void)
