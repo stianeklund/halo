@@ -1420,6 +1420,81 @@ void FUN_001176a0(int param_1, unsigned char *param_2, int param_3, int param_4)
   FUN_001171a0(param_3, param_2, param_1, 1);
 }
 
+/* _tr_flush_block: decide how to flush the current block and emit it (0x1177c0).
+ * Chooses between stored, static Huffman, or dynamic Huffman based on sizes. */
+void FUN_001177c0(int param_1, int param_2, int param_3, int param_4)
+{
+  unsigned int opt_len;
+  unsigned int static_len;
+  int max_blindex;
+  int bits_sent;
+
+  max_blindex = 0;
+  if (*(int *)(param_1 + 0x7c) < 1) {
+    if (param_2 == 0) {
+      FUN_00117a80("lost buf");
+    }
+    static_len = param_3 + 5;
+  } else {
+    if (*(char *)(param_1 + 0x1c) == 2) {
+      FUN_00117000(param_1);
+    }
+    FUN_001173f0(param_1, (int *)(param_1 + 0xb10));
+    if (z_verbose > 0) {
+      crt_fprintf(&z_stderr, "\nlit data: dyn %ld, stat %ld",
+                  *(int *)(param_1 + 0x16a0), *(int *)(param_1 + 0x16a4));
+    }
+    FUN_001173f0(param_1, (int *)(param_1 + 0xb1c));
+    if (z_verbose > 0) {
+      crt_fprintf(&z_stderr, "\ndist data: dyn %ld, stat %ld",
+                  *(int *)(param_1 + 0x16a0), *(int *)(param_1 + 0x16a4));
+    }
+    max_blindex = FUN_00117600(param_1);
+    opt_len = (*(unsigned int *)(param_1 + 0x16a0) + 10) >> 3;
+    static_len = (*(unsigned int *)(param_1 + 0x16a4) + 10) >> 3;
+    if (z_verbose > 0) {
+      crt_fprintf(&z_stderr,
+                  "\nopt %lu(%lu) stat %lu(%lu) stored %lu lit %u ",
+                  opt_len, *(int *)(param_1 + 0x16a0),
+                  static_len, *(int *)(param_1 + 0x16a4),
+                  param_3, *(int *)(param_1 + 0x1698));
+    }
+    if (static_len > opt_len)
+      goto use_opt;
+  }
+  opt_len = static_len;
+use_opt:
+  if (opt_len < (unsigned int)(param_3 + 4) || param_2 == 0) {
+    if (static_len == opt_len) {
+      FUN_00116390(param_4 + 2, 3, param_1);
+      FUN_00116e00(param_1, (int)&zlib_static_ltree, (int)&zlib_static_dtree);
+      bits_sent = *(int *)(param_1 + 0x16a4);
+    } else {
+      FUN_00116390(param_4 + 4, 3, param_1);
+      FUN_00116b00(param_1, *(int *)(param_1 + 0xb14) + 1,
+                   *(int *)(param_1 + 0xb20) + 1, max_blindex + 1);
+      FUN_00116e00(param_1, param_1 + 0x8c, param_1 + 0x980);
+      bits_sent = *(int *)(param_1 + 0x16a0);
+    }
+    *(int *)(param_1 + 0x16b0) = *(int *)(param_1 + 0x16b0) + bits_sent + 3;
+  } else {
+    FUN_001176a0(param_1, (unsigned char *)param_2, param_3, param_4);
+  }
+  if (*(int *)(param_1 + 0x16b0) != *(int *)(param_1 + 0x16b4)) {
+    FUN_00117a80("bad compressed size");
+  }
+  FUN_00116460(param_1);
+  if (param_4 != 0) {
+    FUN_00117130(param_1);
+    *(int *)(param_1 + 0x16b0) = *(int *)(param_1 + 0x16b0) + 7;
+  }
+  if (z_verbose > 0) {
+    crt_fprintf(&z_stderr, "\ncomprlen %lu(%lu) ",
+                *(unsigned int *)(param_1 + 0x16b0) >> 3,
+                *(unsigned int *)(param_1 + 0x16b0) + param_4 * -7);
+  }
+}
+
 /* uncompress: inflate a zlib-deflated block into dest.
  * Returns 0 (Z_OK) on success with *p2 set to decompressed byte count,
  * -5 (Z_BUF_ERROR) if inflate returned Z_OK without Z_STREAM_END,
