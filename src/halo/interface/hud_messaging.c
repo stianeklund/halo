@@ -1121,6 +1121,28 @@ void FUN_000d7530(char param_1)
     *(unsigned int *)(*(int *)0x46bd20 + 0x160) & 0xffffffdf;
 }
 
+/* unit_hud_copy_slot (0xd7780)
+ * Copy unit HUD data from old player to new player. */
+void FUN_000d7780(short old_player, short new_player)
+{
+  int *src;
+  int *dst;
+
+  if (old_player == -1) {
+    display_assert("old_local_player_index!=NONE",
+                   "c:\\halo\\SOURCE\\interface\\hud_unit.c", 0x1ab, 1);
+    system_exit(-1);
+  }
+  if (new_player == -1) {
+    display_assert("new_local_player_index!=NONE",
+                   "c:\\halo\\SOURCE\\interface\\hud_unit.c", 0x1ac, 1);
+    system_exit(-1);
+  }
+  src = (int *)FUN_000d7280(old_player);
+  dst = (int *)FUN_000d7280(new_player);
+  csmemcpy(dst, src, 0x58);
+}
+
 /* FUN_000d7cd0 (0xd7cd0)
  * Subtract damage amount from a player's HUD damage indicator. */
 void FUN_000d7cd0(int player_handle, float param_2)
