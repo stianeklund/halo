@@ -6414,7 +6414,7 @@ void game_engine_set_goal_position(int flag_index, int *position,
 
   idx = (int)flag_index;
   *(int *)(0x456710 + idx * 0x20) = player;
-  icon = ((int16_t (*)(int))FUN_000d5ec0)((int)name);
+  icon = (int16_t)hud_find_nav_point_by_name((const char *)name);
   *(int16_t *)(0x456714 + idx * 0x20) = icon;
   *(char *)(0x456704 + idx * 0x20) = 1;
   *(int *)(0x4566f8 + idx * 0x20) = position[0];
