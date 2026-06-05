@@ -341,11 +341,11 @@
         },
         {
           "addr": "0xd3080",
-          "decl": "void FUN_000d3080(void);"
+          "decl": "void FUN_000d3080(int crosshair_overlay @<eax>, int hud_globals @<ecx>, int bitmap_data @<edx>, int param_1, short *param_2, float scale, int param_4, int color, int flags, char use_bitmap_size, char param_8);"
         },
         {
           "addr": "0xd3200",
-          "decl": "void FUN_000d3200(void);"
+          "decl": "void FUN_000d3200(int bitmap_data, int type, void *position, int sprite, float scale, float rotation, int color, char use_bitmap_size);"
         },
         {
           "addr": "0xd3340",
@@ -11777,7 +11777,7 @@
         },
         {
           "addr": "0xd16a0",
-          "decl": "void FUN_000d16a0(void);"
+          "decl": "void FUN_000d16a0(int bitmap_tag, short sequence_index, unsigned int frame_index, int *out_bitmap, int *out_sprite);"
         },
         {
           "addr": "0xd1890",
