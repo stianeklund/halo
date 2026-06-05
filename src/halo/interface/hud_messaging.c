@@ -982,6 +982,76 @@ short FUN_000d6550(int param_1, float *param_2, float *param_3, int param_4)
   return result;
 }
 
+/* nav_point_render (0xd6cc0)
+ * Render nav points for a player. */
+void FUN_000d6cc0(int param_1)
+{
+  int nav_data;
+  int player;
+  int unit_handle;
+  unsigned short *puVar6;
+  int iVar2;
+  short sVar5;
+  int loop_count;
+  float position[3];
+
+  if ((short)param_1 == -1)
+    goto done;
+  if (local_player_get_player_index((short)param_1) == -1)
+    goto done;
+  player = local_player_get_player_index((short)param_1);
+  player = (int)datum_get(*(data_t **)0x5aa6d4, player);
+  unit_handle = *(int *)(player + 0x34);
+  if (unit_handle == -1)
+    goto done;
+  if (*(int *)(*(int *)0x46bd0c + 0x15c) == -1)
+    goto done;
+
+  nav_data = hud_get_nav_point_data((short)param_1);
+  puVar6 = (unsigned short *)(nav_data + 8);
+  loop_count = 4;
+  do {
+    if (puVar6[-4] == 0xffff || *(int *)puVar6 == -1 ||
+        ((*((unsigned short *)puVar6 - 3) & 0xf) == 0xf)) {
+      *(unsigned char *)((char *)puVar6 - 6) |= 0xf;
+    } else {
+      sVar5 = (short)(*((unsigned short *)puVar6 - 3) << 12) >> 12;
+      if (sVar5 == 0) {
+        iVar2 = (int)global_scenario_get();
+        iVar2 = (int)tag_block_get_element((void *)(iVar2 + 0x4e4),
+                                           *(int *)puVar6, 0x5c);
+        position[0] = *(float *)(iVar2 + 0x24);
+        position[1] = *(float *)(iVar2 + 0x28);
+        position[2] = *(float *)(iVar2 + 0x2c);
+      } else if (sVar5 == 1) {
+        iVar2 = (int)object_try_and_get_and_verify_type(*(int *)puVar6, -1);
+        if (iVar2 == 0)
+          goto skip;
+        FUN_0001aae0(*(int *)puVar6, position, (float *)&param_1);
+      } else if (sVar5 == 2) {
+        game_engine_get_goal_position((int *)position, (short)*(int *)puVar6);
+      } else {
+        display_assert("!\"unreachable\"",
+                       "c:\\halo\\SOURCE\\interface\\hud_nav_points.c", 0x2d5,
+                       1);
+        system_exit(-1);
+      }
+      position[2] = position[2] + *(float *)((char *)puVar6 - 4);
+      FUN_000d6660(
+        param_1, position, (short)puVar6[-4],
+        (short)((unsigned short)(*(unsigned char *)((char *)puVar6 - 6))
+                << 8) >>
+          12);
+    }
+  skip:
+    puVar6 = puVar6 + 6;
+    loop_count = loop_count - 1;
+  } while (loop_count != 0);
+
+done:
+  game_engine_render_nav_points(param_1);
+}
+
 /* nav_point_update (0xd6e50)
  * Update nav point visibility flags for a player. */
 void FUN_000d6e50(int param_1)
