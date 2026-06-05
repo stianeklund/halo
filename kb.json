@@ -12211,11 +12211,13 @@
         },
         {
           "addr": "0xd7240",
-          "decl": "void FUN_000d7240(void);"
+          "decl": "void FUN_000d7240(int slot @<esi>);",
+          "ported": true
         },
         {
           "addr": "0xd7280",
-          "decl": "int FUN_000d7280(short local_player_index @<esi>);"
+          "decl": "int FUN_000d7280(short local_player_index @<esi>);",
+          "ported": true
         },
         {
           "addr": "0xd72f0",

@@ -947,6 +947,39 @@ void FUN_000d7080(void)
   }
 }
 
+/* unit_hud_slot_reset (0xd7240)
+ * Reset a unit HUD slot to default values.
+ * ABI: @esi=slot_pointer */
+void FUN_000d7240(int slot)
+{
+  csmemset((void *)(slot + 0x22), 0xff, 2);
+  *(int *)(slot + 4) = (int)0xbf800000;
+  *(int *)(slot) = (int)0xbf800000;
+  *(int *)(slot + 0x14) = -1;
+  *(int *)(slot + 0x18) = -1;
+  *(int *)(slot + 8) = (int)0xbf800000;
+  *(int *)(slot + 0x1c) = -1;
+}
+
+/* unit_hud_get_slot (0xd7280)
+ * Returns pointer to a player's unit HUD slot.
+ * ABI: @esi=local_player_index */
+int FUN_000d7280(short local_player_index)
+{
+  if (local_player_index < 0 || local_player_index >= 4) {
+    display_assert("local_player_index>=0 && "
+                   "local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
+                   "c:\\halo\\SOURCE\\interface\\hud_unit.c", 0x106, 1);
+    system_exit(-1);
+  }
+  if (*(int *)0x46bd20 == 0) {
+    display_assert("unit_hud_globals",
+                   "c:\\halo\\SOURCE\\interface\\hud_unit.c", 0x107, 1);
+    system_exit(-1);
+  }
+  return local_player_index * 0x58 + *(int *)0x46bd20;
+}
+
 /* unit_hud_initialize (0xd72f0)
  * Allocates the unit HUD interface globals buffer. */
 void FUN_000d72f0(void)
