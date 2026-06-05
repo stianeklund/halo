@@ -12081,7 +12081,8 @@
         },
         {
           "addr": "0xd6030",
-          "decl": "void FUN_000d6030(void);"
+          "decl": "void FUN_000d6030(int player_handle @<eax>, short type_value, short nav_type, int object_handle, int extra);",
+          "ported": true
         },
         {
           "addr": "0xd6120",
@@ -12121,7 +12122,8 @@
         },
         {
           "addr": "0xd6320",
-          "decl": "void FUN_000d6320(void);"
+          "decl": "void FUN_000d6320(int player_handle @<eax>, short nav_type @<esi>, int object_handle @<edi>);",
+          "ported": true
         },
         {
           "addr": "0xd6390",
