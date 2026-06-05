@@ -888,3 +888,75 @@ void FUN_000d7420(void)
 void FUN_000d7430(void)
 {
 }
+
+/* show_hud (0xd7440) — toggle HUD visibility flag bit 0. */
+void FUN_000d7440(char param_1)
+{
+  if (param_1 == '\0') {
+    *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
+      *(unsigned int *)(*(int *)0x46bd20 + 0x160) | 1;
+    return;
+  }
+  *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
+    *(unsigned int *)(*(int *)0x46bd20 + 0x160) & 0xfffffffe;
+}
+
+/* show_hud_help_text (0xd7470) — toggle help text flag bit 1. */
+void FUN_000d7470(char param_1)
+{
+  if (param_1 != '\0') {
+    *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
+      *(unsigned int *)(*(int *)0x46bd20 + 0x160) | 2;
+    return;
+  }
+  *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
+    *(unsigned int *)(*(int *)0x46bd20 + 0x160) & 0xfffffffd;
+}
+
+/* show_hud_health (0xd74a0) — toggle health display flag bit 2. */
+void FUN_000d74a0(char param_1)
+{
+  if (param_1 == '\0') {
+    *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
+      *(unsigned int *)(*(int *)0x46bd20 + 0x160) | 4;
+    return;
+  }
+  *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
+    *(unsigned int *)(*(int *)0x46bd20 + 0x160) & 0xfffffffb;
+}
+
+/* show_hud_motion_sensor (0xd74d0) — toggle motion sensor flag bit 3. */
+void FUN_000d74d0(char param_1)
+{
+  if (param_1 != '\0') {
+    *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
+      *(unsigned int *)(*(int *)0x46bd20 + 0x160) | 8;
+    return;
+  }
+  *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
+    *(unsigned int *)(*(int *)0x46bd20 + 0x160) & 0xfffffff7;
+}
+
+/* show_hud_crosshair (0xd7500) — toggle crosshair display flag bit 4. */
+void FUN_000d7500(char param_1)
+{
+  if (param_1 == '\0') {
+    *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
+      *(unsigned int *)(*(int *)0x46bd20 + 0x160) | 0x10;
+    return;
+  }
+  *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
+    *(unsigned int *)(*(int *)0x46bd20 + 0x160) & 0xffffffef;
+}
+
+/* show_hud_ammo (0xd7530) — toggle ammo display flag bit 5. */
+void FUN_000d7530(char param_1)
+{
+  if (param_1 != '\0') {
+    *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
+      *(unsigned int *)(*(int *)0x46bd20 + 0x160) | 0x20;
+    return;
+  }
+  *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
+    *(unsigned int *)(*(int *)0x46bd20 + 0x160) & 0xffffffdf;
+}
