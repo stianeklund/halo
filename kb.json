@@ -12278,7 +12278,8 @@
         },
         {
           "addr": "0xd7780",
-          "decl": "void FUN_000d7780(void);"
+          "decl": "void FUN_000d7780(short old_player, short new_player);",
+          "ported": true
         },
         {
           "addr": "0xd7800",
