@@ -257,6 +257,183 @@ void hud_messaging_dispose(void)
 {
 }
 
+/* scripted_hud_set_state_message (0xd46f0)
+ * Sets the scripted HUD message from the scenario's HMT tag. */
+void scripted_hud_set_state_message(short param_1)
+{
+  int scenario;
+  int hmt;
+
+  scenario = (int)global_scenario_get();
+  if (*(char *)(*(int *)0x46bd10 + 1) != '\0' && *(int *)(scenario + 0x5a0) != -1) {
+    hmt = (int)tag_get(0x686d7420, *(int *)(scenario + 0x5a0));
+    *(int *)(*(int *)0x46bd18 + 0x118c) =
+        (int)tag_block_get_element((void *)(hmt + 0x20), (int)param_1, 0x40);
+  }
+}
+
+/* scripted_hud_set_flashing_state (0xd4740)
+ * Sets the flashing state flag and records the game tick. */
+void scripted_hud_set_flashing_state(char param_1)
+{
+  int base;
+
+  if (param_1 != '\0' && *(char *)(*(int *)0x46bd18 + 0x1184) == '\0') {
+    *(int *)(*(int *)0x46bd18 + 0x1180) = game_time_get();
+    base = *(int *)0x46bd18;
+    *(char *)(base + 0x1184) = param_1;
+    return;
+  }
+  *(char *)(*(int *)0x46bd18 + 0x1184) = param_1;
+}
+
+/* scripted_hud_restart_flashing (0xd4780)
+ * Resets the flashing timer if flashing is enabled. */
+void scripted_hud_restart_flashing(void)
+{
+  if (*(char *)(*(int *)0x46bd18 + 0x1184) != '\0') {
+    *(int *)(*(int *)0x46bd18 + 0x1180) = game_time_get();
+    return;
+  }
+  error(2, "trying to restart help text flashing when flashing is disabled");
+}
+
+/* scripted_hud_set_objective (0xd47c0)
+ * Sets the objective text from the HMT tag if it's text-only. */
+void scripted_hud_set_objective(short param_1)
+{
+  int scenario;
+  int hmt;
+  int element;
+  char *pcVar;
+  int base;
+  int globals;
+
+  scenario = (int)global_scenario_get();
+  if (*(int *)(scenario + 0x5a0) != -1) {
+    hmt = (int)tag_get(0x686d7420, *(int *)(scenario + 0x5a0));
+    element = (int)tag_block_get_element((void *)(hmt + 0x20), (int)param_1, 0x40);
+    pcVar = (char *)tag_block_get_element((void *)(hmt + 0x14), *(unsigned short *)(element + 0x22), 2);
+    base = *(int *)0x46bd18;
+    globals = *(int *)0x46bd0c;
+    if (*(char *)(element + 0x24) == 1 && *pcVar == '\0') {
+      *(int *)(*(int *)0x46bd18 + 0x1190) = element;
+      *(short *)(base + 0x1194) = *(short *)(globals + 0x11e) + *(short *)(globals + 0x11c);
+      return;
+    }
+    error(2, "objective text MUST only be text, no icons");
+  }
+}
+
+/* scripted_hud_set_timer_time (0xd4860)
+ * Sets the timer countdown value in ticks and records current tick. */
+void scripted_hud_set_timer_time(short param_1, short param_2)
+{
+  int base;
+  short sVar;
+
+  base = *(int *)0x46bd18;
+  *(short *)(base + 0x119c) = (param_1 * 0x3c + param_2) * 0x1e;
+  *(unsigned char *)(base + 0x11a6) = 0;
+  *(unsigned char *)(base + 0x11a7) = 1;
+  *(int *)(base + 0x1198) = game_time_get();
+  base = *(int *)0x46bd18;
+  sVar = *(short *)(base + 0x11a4);
+  if (sVar < 0) {
+    *(short *)(base + 0x11a4) = 0;
+    return;
+  }
+  if (4 < sVar) {
+    *(short *)(base + 0x11a4) = 4;
+    return;
+  }
+  *(short *)(base + 0x11a4) = sVar;
+}
+
+/* scripted_hud_set_timer_warning_cutoff (0xd48e0)
+ * Sets the warning cutoff time in ticks. */
+void scripted_hud_set_timer_warning_cutoff(short param_1, short param_2)
+{
+  *(short *)(*(int *)0x46bd18 + 0x119e) = (param_1 * 60 + param_2) * 30;
+}
+
+/* scripted_hud_set_timer_position (0xd4900)
+ * Sets the timer position on screen. */
+void scripted_hud_set_timer_position(short param_1, short param_2, short param_3)
+{
+  int base;
+
+  base = *(int *)0x46bd18;
+  *(short *)(*(int *)0x46bd18 + 0x11a0) = param_1;
+  *(short *)(base + 0x11a2) = param_2;
+  if (param_3 < 0) {
+    *(short *)(base + 0x11a4) = 0;
+    return;
+  }
+  if (param_3 > 4) {
+    *(short *)(base + 0x11a4) = 4;
+    return;
+  }
+  *(short *)(base + 0x11a4) = param_3;
+}
+
+/* scripted_hud_show_timer (0xd4960)
+ * Shows or hides the HUD timer. */
+void scripted_hud_show_timer(unsigned char param_1)
+{
+  *(unsigned char *)(*(int *)0x46bd18 + 0x11a7) = param_1;
+}
+
+/* scripted_hud_pause_timer (0xd4980)
+ * Pauses or unpauses the HUD timer, adjusting remaining ticks. */
+void scripted_hud_pause_timer(char param_1)
+{
+  int base;
+  short *timer_start;
+  short *timer_remaining;
+  short now;
+
+  base = *(int *)0x46bd18;
+  timer_start = (short *)(*(int *)0x46bd18 + 0x1198);
+  timer_remaining = (short *)(*(int *)0x46bd18 + 0x119c);
+  *(char *)(*(int *)0x46bd18 + 0x11a6) = param_1;
+  if (*timer_remaining > 0) {
+    if (param_1 != '\0') {
+      now = (short)game_time_get();
+      timer_remaining = (short *)(base + 0x119c);
+      *timer_remaining = *timer_remaining + (*timer_start - now);
+      return;
+    }
+    now = (short)game_time_get();
+    timer_remaining = (short *)(base + 0x119c);
+    *timer_remaining = *timer_remaining + (now - *timer_start);
+  }
+}
+
+/* scripted_hud_get_timer_ticks (0xd49d0)
+ * Returns remaining timer ticks, or 0 if hidden. */
+short scripted_hud_get_timer_ticks(void)
+{
+  int base;
+  short *timer_start;
+  short result;
+
+  base = *(int *)0x46bd18;
+  timer_start = (short *)(*(int *)0x46bd18 + 0x1198);
+  result = 0;
+  if (*(char *)(*(int *)0x46bd18 + 0x11a7) != '\0') {
+    result = *(short *)(*(int *)0x46bd18 + 0x119c);
+    if (result == -1) {
+      return -1;
+    }
+    if (*(char *)(*(int *)0x46bd18 + 0x11a6) == '\0') {
+      result = (short)game_time_get();
+      result = (*(short *)(base + 0x119c) + *timer_start) - result;
+    }
+  }
+  return result;
+}
+
 /* FUN_000d7330 (0xd7330)
  * Initialize unit_hud_globals: clears the global buffer (0x164 bytes),
  * then for each of 4 local players sets float fields to -1.0f (0xbf800000),
