@@ -271,6 +271,7 @@
     "0x118d70": "void FUN_00118d70(int queue@<eax>);",
     "0x1190c0": "void crc_table_init(uint32_t *table@<edx>);",
     "0x1194a0": "void datum_initialize(data_t *data@<esi>, void *datum@<edi>);",
+    "0x11e400": "unsigned int FUN_0011e400(void *pool @<eax>, int size);",
     "0x11e430": "void FUN_0011e430(void *pool @<edi>);",
     "0x11e5a0": "void *FUN_0011e5a0(void *pool @<eax>, void **block_reference @<esi>);",
     "0x11ea50": "void FUN_0011ea50(int slot_index, void *block_hdr@<esi>, int block_size@<edi>);",
