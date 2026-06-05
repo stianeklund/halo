@@ -787,6 +787,37 @@ void FUN_000d63d0(int player_handle, int object_handle)
   FUN_000d6320(player_handle, 1, object_handle);
 }
 
+/* FUN_000d63f0 (0xd63f0)
+ * Clear nav points for all players on a given team.
+ * ABI: @eax=object_handle, @ecx=nav_type, @ebx=team_handle */
+void FUN_000d63f0(int object_handle, short nav_type, int team_handle)
+{
+  int iter[4];
+  int datum;
+
+  data_iterator_new((void *)iter, *(data_t **)0x5aa6d4);
+  datum = (int)data_iterator_next((void *)iter);
+  while (datum != 0) {
+    if (*(short *)(datum + 2) != -1 &&
+        (int)(short)team_handle == *(int *)(datum + 0x20)) {
+      FUN_000d6320(iter[2], nav_type, object_handle);
+    }
+    datum = (int)data_iterator_next((void *)iter);
+  }
+}
+
+/* FUN_000d6450 (0xd6450) — clear object nav points by team. */
+void FUN_000d6450(int team_handle, short object_handle)
+{
+  FUN_000d63f0((int)object_handle, 0, team_handle);
+}
+
+/* FUN_000d6470 (0xd6470) — clear enemy nav points by team. */
+void FUN_000d6470(int team_handle, int object_handle)
+{
+  FUN_000d63f0(object_handle, 1, team_handle);
+}
+
 /* FUN_000d6490 (0xd6490) — set object nav point for a unit's player. */
 void FUN_000d6490(int param_1, int unit_handle, short param_3, int param_4)
 {
