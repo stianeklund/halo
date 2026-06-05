@@ -12101,19 +12101,23 @@
         },
         {
           "addr": "0xd6180",
-          "decl": "void FUN_000d6180(void);"
+          "decl": "void FUN_000d6180(int type_value, short team, int extra, short nav_type @<ebx>, int unused @<esi>, int object_handle @<edi>);",
+          "ported": true
         },
         {
           "addr": "0xd61f0",
-          "decl": "void FUN_000d61f0(void);"
+          "decl": "void FUN_000d61f0(int type_value, int team, short object_handle, int extra);",
+          "ported": true
         },
         {
           "addr": "0xd6220",
-          "decl": "void FUN_000d6220(void);"
+          "decl": "void FUN_000d6220(int type_value, int team, short object_handle, int extra);",
+          "ported": true
         },
         {
           "addr": "0xd6250",
-          "decl": "void FUN_000d6250(void);"
+          "decl": "void FUN_000d6250(int type_value, int team, int object_handle, int extra);",
+          "ported": true
         },
         {
           "addr": "0xd6280",
