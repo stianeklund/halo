@@ -12117,11 +12117,13 @@
         },
         {
           "addr": "0xd6280",
-          "decl": "void FUN_000d6280(void);"
+          "decl": "void FUN_000d6280(int type_value, int extra, short nav_type @<ebx>, int object_handle @<edi>);",
+          "ported": true
         },
         {
           "addr": "0xd62f0",
-          "decl": "void FUN_000d62f0(void);"
+          "decl": "void FUN_000d62f0(int type_value, int object_handle, int extra);",
+          "ported": true
         },
         {
           "addr": "0xd6320",
