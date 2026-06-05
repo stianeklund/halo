@@ -879,10 +879,7 @@ void FUN_00116b00(int state, int param_1, int param_2, int param_3)
       }
       *(int *)(state + 0x16b4) = *(int *)(state + 0x16b4) + 3;
       iVar2 = *(int *)(state + 0x16bc);
-      if (iVar2 < 0xe) {
-        *(unsigned short *)(state + 0x16b8) = *(unsigned short *)(state + 0x16b8) | (unsigned short)(uVar1 << ((unsigned char)iVar2 & 0x1f));
-        *(int *)(state + 0x16bc) = iVar2 + 3;
-      } else {
+      if (iVar2 > 0xd) {
         *(unsigned short *)(state + 0x16b8) = *(unsigned short *)(state + 0x16b8) | (unsigned short)(uVar1 << ((unsigned char)iVar2 & 0x1f));
         *(unsigned char *)(*(int *)(state + 8) + *(int *)(state + 0x14)) = *(unsigned char *)(state + 0x16b8);
         iVar2 = *(int *)(state + 0x14) + 1;
@@ -892,6 +889,9 @@ void FUN_00116b00(int state, int param_1, int param_2, int param_3)
         iVar2 = *(int *)(state + 0x16bc);
         *(int *)(state + 0x16bc) = iVar2 + -0xd;
         *(unsigned short *)(state + 0x16b8) = (unsigned short)(uVar1 >> ((unsigned char)(0x10 - (char)iVar2) & 0x1f));
+      } else {
+        *(unsigned short *)(state + 0x16b8) = *(unsigned short *)(state + 0x16b8) | (unsigned short)(uVar1 << ((unsigned char)iVar2 & 0x1f));
+        *(int *)(state + 0x16bc) = iVar2 + 3;
       }
       i = i + 1;
     } while (i < param_3);
@@ -1015,7 +1015,7 @@ void FUN_00116e00(int state, int param_1, int param_2)
           FUN_00116390(dist - zlib_base_dist[code], extra, state);
         }
       }
-      if (*(unsigned int *)(state + 0x14) < *(unsigned int *)(state + 0x1694) + idx * 2) {
+      if (*(unsigned int *)(state + 0x14) >= *(unsigned int *)(state + 0x1694) + idx * 2) {
         FUN_00117a80("pendingBuf overflow");
       }
     } while (idx < *(unsigned int *)(state + 0x1698));
@@ -1122,7 +1122,7 @@ int FUN_00117130(int state)
  * 0x1171a0 / circular_queue.obj (deflate.c)
  * ABI: @ecx=len, @edx=buf, @eax=state (threaded through FUN_00117130), cdecl
  * param_3=header */
-void FUN_001171a0(int len, unsigned char *buf, int state, int header)
+void FUN_001171a0(unsigned int len, unsigned char *buf, int state, int header)
 {
   int iVar1;
   int iVar2;
@@ -1147,9 +1147,10 @@ void FUN_001171a0(int len, unsigned char *buf, int state, int header)
     *(int *)(iVar1 + 0x16b4) += 0x20;
   }
   *(int *)(iVar1 + 0x16b4) += len * 8;
-  for (; len != 0; len--) {
+  while (len > 0) {
     *(unsigned char *)(*(int *)(iVar1 + 0x14) + *(int *)(iVar1 + 8)) = *buf++;
     *(int *)(iVar1 + 0x14) += 1;
+    len--;
   }
 }
 
