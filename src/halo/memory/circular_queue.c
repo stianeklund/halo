@@ -1015,7 +1015,7 @@ void FUN_00116e00(int state, int param_1, int param_2)
           FUN_00116390(dist - zlib_base_dist[code], extra, state);
         }
       }
-      if (*(unsigned int *)(state + 0x14) >= *(unsigned int *)(state + 0x1694) + idx * 2) {
+      if (*(unsigned int *)(state + 0x14) < *(unsigned int *)(state + 0x1694) + idx * 2) {
         FUN_00117a80("pendingBuf overflow");
       }
     } while (idx < *(unsigned int *)(state + 0x1698));
