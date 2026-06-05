@@ -4616,6 +4616,70 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xd46f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd4740": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd4780": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd47c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd4860": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd48e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd4900": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd4960": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd4980": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd49d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd4a20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd4a50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd4a90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd4d90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd4e30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd4e90": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xd5070": {
       "kind": "function",
       "status": "ported"
@@ -4655,6 +4719,18 @@
       "uncertain": [
         "The internal helper 0xd5070 uses ESI as a register arg for vehicle tag matching; not yet in kb.json to avoid thunk recursion."
       ]
+    },
+    "0xd5ec0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd5f40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd5fb0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xd5ff0": {
       "kind": "function",
