@@ -982,6 +982,102 @@ short FUN_000d6550(int param_1, float *param_2, float *param_3, int param_4)
   return result;
 }
 
+/* nav_point_update (0xd6e50)
+ * Update nav point visibility flags for a player. */
+void FUN_000d6e50(int param_1)
+{
+  int nav_data;
+  int unit_handle;
+  int player;
+  int iVar2;
+  unsigned short *puVar6;
+  short sVar5;
+  int loop_count;
+  int local_234[128];
+  float local_28[3];
+  float local_1c[4];
+  float target_pos[3];
+  int local_18;
+  short sVar;
+
+  local_18 = FUN_000d1540();
+  csmemset(local_234, 0x62, 0x200);
+  nav_data = hud_get_nav_point_data((short)param_1);
+  player = local_player_get_player_index((short)param_1);
+  if (player == -1) {
+    unit_handle = -1;
+  } else {
+    player = local_player_get_player_index((short)param_1);
+    player = (int)datum_get(*(data_t **)0x5aa6d4, player);
+    unit_handle = *(int *)(player + 0x34);
+  }
+  puVar6 = (unsigned short *)(nav_data + 2);
+  loop_count = 4;
+  do {
+    int obj_handle = -1;
+    if (puVar6[-1] == 0xffff || *(int *)(puVar6 + 3) == -1 ||
+        (*puVar6 & 0xf) == 0xf) {
+      *(unsigned char *)puVar6 = *(unsigned char *)puVar6 | 0xf;
+    } else if (unit_handle != -1) {
+      unit_get_head_position(unit_handle, local_28);
+      sVar5 = (short)(*puVar6 << 12) >> 12;
+      if (sVar5 == 0) {
+        iVar2 = (int)global_scenario_get();
+        iVar2 = (int)tag_block_get_element((void *)(iVar2 + 0x4e4),
+                                           *(int *)(puVar6 + 3), 0x5c);
+        target_pos[0] = *(float *)(iVar2 + 0x24);
+        target_pos[1] = *(float *)(iVar2 + 0x28);
+        target_pos[2] = *(float *)(iVar2 + 0x2c);
+      } else if (sVar5 == 1) {
+        iVar2 =
+          (int)object_try_and_get_and_verify_type(*(int *)(puVar6 + 3), -1);
+        obj_handle = *(int *)(puVar6 + 3);
+        if (iVar2 == 0 || (*(unsigned char *)(iVar2 + 0xb6) & 4) != 0) {
+          *(unsigned char *)puVar6 = *(unsigned char *)puVar6 | 0xf;
+          puVar6[3] = 0xffff;
+          puVar6[4] = 0xffff;
+          puVar6[-1] = 0xffff;
+          goto next;
+        }
+        FUN_0001aae0(obj_handle, target_pos, local_1c);
+      } else if (sVar5 == 2) {
+        game_engine_get_goal_position((int *)target_pos, (short)puVar6[3]);
+        /* target_pos filled by callee */
+      }
+      target_pos[2] = target_pos[2] + *(float *)(puVar6 + 1);
+      {
+        char vis =
+          (char)FUN_000d6550(param_1, local_28, target_pos, obj_handle);
+        *puVar6 = *puVar6 ^
+                  (((unsigned char)(vis << 4) ^ (unsigned char)*puVar6) & 0xf0);
+      }
+    }
+  next:
+    puVar6 = puVar6 + 6;
+    loop_count = loop_count - 1;
+  } while (loop_count != 0);
+  sVar = 0x7f;
+  do {
+    if (local_234[(int)sVar] != 0x62626262)
+      goto check;
+    sVar = sVar - 1;
+  } while (sVar >= 0);
+  sVar = -1;
+check:
+  iVar2 = FUN_000d1540();
+  if (local_18 != iVar2) {
+    display_assert("corrupt return address!",
+                   "c:\\halo\\SOURCE\\interface\\hud_nav_points.c", 0x1f0, 1);
+    system_exit(-1);
+  }
+  if (sVar != -1) {
+    display_assert(
+      csprintf((char *)0x5ab100, "corrupt stack at %d!", (int)sVar),
+      "c:\\halo\\SOURCE\\interface\\hud_nav_points.c", 0x1f0, 1);
+    system_exit(-1);
+  }
+}
+
 /* FUN_000d7080 (0xd7080)
  * Iterate all local players and update nav point rendering. */
 void FUN_000d7080(void)
