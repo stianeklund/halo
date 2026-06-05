@@ -847,6 +847,68 @@ void FUN_001168e0(int state, int param_1, int param_2)
   }
 }
 
+/* send_all_trees: send literal, distance, and bit-length tree headers (0x116b00).
+ * ABI: @eax=state, cdecl param_1=lcodes, param_2=dcodes, param_3=blcodes */
+void FUN_00116b00(int state, int param_1, int param_2, int param_3)
+{
+  unsigned short uVar1;
+  int i;
+  int iVar2;
+
+  if (param_1 < 0x101 || param_2 < 1 || param_3 < 4) {
+    FUN_00117a80("not enough codes");
+  }
+  if (param_1 > 0x11e || param_2 > 0x1e || param_3 > 0x13) {
+    FUN_00117a80("too many codes");
+  }
+  if (z_verbose > 0) {
+    crt_fprintf(&z_stderr, "\nbl counts: ");
+  }
+  FUN_00116390(param_1 - 0x101, 5, state);
+  FUN_00116390(param_2 - 1, 5, state);
+  FUN_00116390(param_3 - 4, 4, state);
+  i = 0;
+  if (param_3 > 0) {
+    do {
+      if (z_verbose > 0) {
+        crt_fprintf(&z_stderr, "\nbl code %2d ", (unsigned int)zlib_bl_order[i]);
+      }
+      uVar1 = *(unsigned short *)(state + 0xa76 + (unsigned int)zlib_bl_order[i] * 4);
+      if (z_verbose > 1) {
+        crt_fprintf(&z_stderr, " l %2d v %4x ", 3, (unsigned int)uVar1);
+      }
+      *(int *)(state + 0x16b4) = *(int *)(state + 0x16b4) + 3;
+      iVar2 = *(int *)(state + 0x16bc);
+      if (iVar2 < 0xe) {
+        *(unsigned short *)(state + 0x16b8) = *(unsigned short *)(state + 0x16b8) | (unsigned short)(uVar1 << ((unsigned char)iVar2 & 0x1f));
+        *(int *)(state + 0x16bc) = iVar2 + 3;
+      } else {
+        *(unsigned short *)(state + 0x16b8) = *(unsigned short *)(state + 0x16b8) | (unsigned short)(uVar1 << ((unsigned char)iVar2 & 0x1f));
+        *(unsigned char *)(*(int *)(state + 8) + *(int *)(state + 0x14)) = *(unsigned char *)(state + 0x16b8);
+        iVar2 = *(int *)(state + 0x14) + 1;
+        *(int *)(state + 0x14) = iVar2;
+        *(unsigned char *)(iVar2 + *(int *)(state + 8)) = *(unsigned char *)(state + 0x16b9);
+        *(int *)(state + 0x14) = *(int *)(state + 0x14) + 1;
+        iVar2 = *(int *)(state + 0x16bc);
+        *(int *)(state + 0x16bc) = iVar2 + -0xd;
+        *(unsigned short *)(state + 0x16b8) = (unsigned short)(uVar1 >> ((unsigned char)(0x10 - (char)iVar2) & 0x1f));
+      }
+      i = i + 1;
+    } while (i < param_3);
+  }
+  if (z_verbose > 0) {
+    crt_fprintf(&z_stderr, "\nbl tree: sent %ld", *(int *)(state + 0x16b4));
+  }
+  FUN_001168e0(state, state + 0x8c, param_1 - 1);
+  if (z_verbose > 0) {
+    crt_fprintf(&z_stderr, "\nlit tree: sent %ld", *(int *)(state + 0x16b4));
+  }
+  FUN_001168e0(state, state + 0x980, param_2 - 1);
+  if (z_verbose > 0) {
+    crt_fprintf(&z_stderr, "\ndist tree: sent %ld", *(int *)(state + 0x16b4));
+  }
+}
+
 /* _tr_tally: record a literal or a match (distance/length) in deflate buffers.
  * 0x116d10 / circular_queue.obj (deflate.c) */
 int FUN_00116d10(int param_1, int param_2, int param_3)
@@ -1294,6 +1356,33 @@ void FUN_001173f0(int state, int *param_1)
 
   FUN_001165b0(param_1, state);
   FUN_001172d0(tree, max_code, (short *)(state + 0xb34));
+}
+
+/* build_bl_tree: build the bit-length tree and return max bl_order index (0x117600).
+ * ABI: @esi=state (preserved by caller). Returns max index in EDI→EAX. */
+int FUN_00117600(int state)
+{
+  int max_blindex;
+  int opt_len;
+
+  FUN_001167f0(*(int *)(state + 0xb14), state, state + 0x8c);
+  FUN_001167f0(*(int *)(state + 0xb20), state, state + 0x980);
+  FUN_001173f0(state, (int *)(state + 0xb28));
+
+  max_blindex = 0x12;
+  do {
+    if (*(short *)(state + 0xa76 + (unsigned int)zlib_bl_order[max_blindex] * 4) != 0)
+      break;
+    max_blindex = max_blindex - 1;
+  } while (max_blindex > 2);
+
+  opt_len = *(int *)(state + 0x16a0) + max_blindex * 3 + 0x11;
+  *(int *)(state + 0x16a0) = opt_len;
+  if (z_verbose > 0) {
+    crt_fprintf(&z_stderr, "\ndyn trees: dyn %ld, stat %ld", opt_len,
+                *(int *)(state + 0x16a4));
+  }
+  return max_blindex;
 }
 
 /* Align the output stream and emit STATIC_TREES end-of-block (0x1176f0).
