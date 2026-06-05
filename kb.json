@@ -11929,15 +11929,21 @@
         },
         {
           "addr": "0xd4a20",
-          "decl": "void scripted_hud_time_code_show(void);"
+          "decl": "void scripted_hud_time_code_show(char param_1);",
+          "name": "scripted_hud_time_code_show",
+          "ported": true
         },
         {
           "addr": "0xd4a50",
-          "decl": "void scripted_hud_time_code_start(void);"
+          "decl": "void scripted_hud_time_code_start(char param_1);",
+          "name": "scripted_hud_time_code_start",
+          "ported": true
         },
         {
           "addr": "0xd4a90",
-          "decl": "void scripted_hud_time_code_reset(void);"
+          "decl": "void scripted_hud_time_code_reset(void);",
+          "name": "scripted_hud_time_code_reset",
+          "ported": true
         },
         {
           "addr": "0xd4ab0",
@@ -11945,15 +11951,21 @@
         },
         {
           "addr": "0xd4d90",
-          "decl": "void hud_set_state_message(void);"
+          "decl": "void hud_set_state_message(short param_1, short param_2);",
+          "name": "hud_set_state_message",
+          "ported": true
         },
         {
           "addr": "0xd4e30",
-          "decl": "void hud_set_state_message_icon(void);"
+          "decl": "void hud_set_state_message_icon(short param_1, short param_2, int param_3);",
+          "name": "hud_set_state_message_icon",
+          "ported": true
         },
         {
           "addr": "0xd4e90",
-          "decl": "void hud_set_state_message_text(void);"
+          "decl": "void hud_set_state_message_text(short param_1, short param_2, short param_3, unsigned char param_4);",
+          "name": "hud_set_state_message_text",
+          "ported": true
         },
         {
           "addr": "0xd4f00",
