@@ -12231,27 +12231,33 @@
         },
         {
           "addr": "0xd7440",
-          "decl": "void FUN_000d7440(void);"
+          "decl": "void FUN_000d7440(char param_1);",
+          "ported": true
         },
         {
           "addr": "0xd7470",
-          "decl": "void FUN_000d7470(void);"
+          "decl": "void FUN_000d7470(char param_1);",
+          "ported": true
         },
         {
           "addr": "0xd74a0",
-          "decl": "void FUN_000d74a0(void);"
+          "decl": "void FUN_000d74a0(char param_1);",
+          "ported": true
         },
         {
           "addr": "0xd74d0",
-          "decl": "void FUN_000d74d0(void);"
+          "decl": "void FUN_000d74d0(char param_1);",
+          "ported": true
         },
         {
           "addr": "0xd7500",
-          "decl": "void FUN_000d7500(void);"
+          "decl": "void FUN_000d7500(char param_1);",
+          "ported": true
         },
         {
           "addr": "0xd7530",
-          "decl": "void FUN_000d7530(void);"
+          "decl": "void FUN_000d7530(char param_1);",
+          "ported": true
         },
         {
           "addr": "0xd7560",
