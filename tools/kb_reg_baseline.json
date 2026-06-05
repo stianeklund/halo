@@ -262,6 +262,7 @@
     "0x116390": "void FUN_00116390(int value @<eax>, int length @<ebx>, int state @<esi>);",
     "0x116460": "void FUN_00116460(int state @<edx>);",
     "0x1164d0": "void FUN_001164d0(int param_1, int state @<eax>, int tree @<edi>);",
+    "0x1165b0": "void FUN_001165b0(int *desc @<eax>, int state @<esi>);",
     "0x1167f0": "void FUN_001167f0(int param_1, int param_2, int tree @<eax>);",
     "0x117000": "void FUN_00117000(int state @<ecx>);",
     "0x1170b0": "void FUN_001170b0(int state @<eax>);",
