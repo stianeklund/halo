@@ -9383,11 +9383,11 @@
         },
         {
           "addr": "0x1c7710",
-          "decl": "void unattached_looping_sound_start(void);"
+          "decl": "int unattached_looping_sound_start(int sound_tag, int param_2, int param_3);"
         },
         {
           "addr": "0x1c7770",
-          "decl": "void unattached_looping_sound_stop(void);"
+          "decl": "void unattached_looping_sound_stop(int sound_index);"
         },
         {
           "addr": "0x1c77a0",
@@ -12209,7 +12209,8 @@
         },
         {
           "addr": "0xd70b0",
-          "decl": "void FUN_000d70b0(void);"
+          "decl": "void FUN_000d70b0(short param_1, unsigned int param_2, int *param_3, int param_4, unsigned short *param_5);",
+          "ported": true
         },
         {
           "addr": "0xd7240",
