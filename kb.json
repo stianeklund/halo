@@ -12145,15 +12145,18 @@
         },
         {
           "addr": "0xd63f0",
-          "decl": "void FUN_000d63f0(void);"
+          "decl": "void FUN_000d63f0(int object_handle @<eax>, short nav_type @<ecx>, int team_handle @<ebx>);",
+          "ported": true
         },
         {
           "addr": "0xd6450",
-          "decl": "void FUN_000d6450(void);"
+          "decl": "void FUN_000d6450(int param_1, short param_2);",
+          "ported": true
         },
         {
           "addr": "0xd6470",
-          "decl": "void FUN_000d6470(void);"
+          "decl": "void FUN_000d6470(int param_1, int param_2);",
+          "ported": true
         },
         {
           "addr": "0xd6490",
