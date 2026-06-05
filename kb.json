@@ -12157,15 +12157,18 @@
         },
         {
           "addr": "0xd6490",
-          "decl": "void FUN_000d6490(void);"
+          "decl": "void FUN_000d6490(int param_1, int unit_handle, short param_3, int param_4);",
+          "ported": true
         },
         {
           "addr": "0xd64c0",
-          "decl": "void FUN_000d64c0(void);"
+          "decl": "void FUN_000d64c0(int param_1, int unit_handle, int param_3, int param_4);",
+          "ported": true
         },
         {
           "addr": "0xd64f0",
-          "decl": "void FUN_000d64f0(void);"
+          "decl": "void FUN_000d64f0(int param_1, int param_2);",
+          "ported": true
         },
         {
           "addr": "0xd6520",
