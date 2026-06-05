@@ -1211,11 +1211,38 @@ void FUN_000d70b0(short param_1, unsigned int param_2, int *param_3,
 
   iVar6 = 0;
   sVar2 = 0;
-  if (*param_3 > 0) {
+  if (0 < *param_3) {
     do {
       piVar3 = (int *)tag_block_get_element((void *)param_3, iVar6, 0x38);
       bVar5 = (unsigned char)iVar6;
-      if ((param_2 & (unsigned int)piVar3[4]) == 0) {
+      if ((param_2 & piVar3[4]) != 0) {
+        if (*piVar3 == 0x6c736e64) {
+          if (*(int *)(param_4 + iVar6 * 4) == -1) {
+            *(int *)(param_4 + iVar6 * 4) =
+              unattached_looping_sound_start(piVar3[3], -1, piVar3[5]);
+          }
+        } else if (*piVar3 == 0x736e6421) {
+          iVar1 = *(int *)(param_4 + iVar6 * 4);
+          if (iVar1 != -1) {
+            if (((unsigned int)*param_5 & (1 << (bVar5 & 0x1f))) != 0)
+              goto set_bit;
+            if (iVar1 != -1) {
+              sound_stop_impulse(iVar1);
+            }
+          }
+          sound_impulse_start(piVar3[3], *(float *)(piVar3 + 5));
+          *(int *)(param_4 + iVar6 * 4) = piVar3[3];
+        } else {
+          display_assert("!\"unreachable\"",
+                         "c:\\halo\\SOURCE\\interface\\hud_sounds.c", 0x2f,
+                         1);
+          system_exit(-1);
+          *param_5 = *param_5 | (unsigned short)(1 << (bVar5 & 0x1f));
+          goto next;
+        }
+      set_bit:
+        *param_5 = *param_5 | (unsigned short)(1 << (bVar5 & 0x1f));
+      } else {
         iVar1 = *(int *)(param_4 + iVar6 * 4);
         if (iVar1 != -1) {
           if (*piVar3 == 0x6c736e64) {
@@ -1229,34 +1256,6 @@ void FUN_000d70b0(short param_1, unsigned int param_2, int *param_3,
           *(int *)(param_4 + iVar6 * 4) = -1;
           *param_5 = *param_5 & ~(unsigned short)(1 << (bVar5 & 0x1f));
         }
-      } else {
-        if (*piVar3 == 0x6c736e64) {
-          if (*(int *)(param_4 + iVar6 * 4) == -1) {
-            *(int *)(param_4 + iVar6 * 4) =
-              unattached_looping_sound_start(piVar3[3], -1, piVar3[5]);
-          }
-        } else {
-          if (*piVar3 != 0x736e6421) {
-            display_assert("!\"unreachable\"",
-                           "c:\\halo\\SOURCE\\interface\\hud_sounds.c", 0x2f,
-                           1);
-            system_exit(-1);
-            *param_5 = *param_5 | (unsigned short)(1 << (bVar5 & 0x1f));
-            goto next;
-          }
-          iVar1 = *(int *)(param_4 + iVar6 * 4);
-          if (iVar1 != -1) {
-            if (((unsigned int)*param_5 & (1 << (bVar5 & 0x1f))) != 0)
-              goto set_bit;
-            if (iVar1 != -1) {
-              sound_stop_impulse(iVar1);
-            }
-          }
-          sound_impulse_start(piVar3[3], *(float *)(piVar3 + 5));
-          *(int *)(param_4 + iVar6 * 4) = piVar3[3];
-        }
-      set_bit:
-        *param_5 = *param_5 | (unsigned short)(1 << (bVar5 & 0x1f));
       }
     next:
       sVar2 = sVar2 + 1;
