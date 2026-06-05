@@ -81,7 +81,7 @@ double pow(double x, double y);
 #define CALL_FUN_00196c90(a,b,c,d,e,f,g) XCALL(0x196c90, int(*)(void*,int,void*,void*,void*,void*,void*))(a,b,c,d,e,f,g)
 #define CALL_FUN_00123470(a,b,c,d) XCALL(0x123470, void(*)(void*,void*,int,void*))(a,b,c,d)
 #define CALL_FUN_00189320_5(a,b,c,d,e) XCALL(0x189320, void(*)(int,void*,void*,int,void*))(a,b,c,d,e)
-#define CALL_FUN_00139c20(a,b,c,d,e,f,g,h,i) XCALL(0x139c20, void(*)(int,unsigned short,int,int,void*,void*,void*,void*,int))(a,b,c,d,e,f,g,h,i)
+#define CALL_FUN_00139c20(a,b,c,d,e,f,g,h,i) XCALL(0x139c20, void(*)(int,unsigned short,float*,float,void*,void*,void*,void*,int))(a,b,c,d,e,f,g,h,i)
 #define CALL_FUN_00180770(a) XCALL(0x180770, unsigned char(*)(float))(a)
 #define CALL_FUN_001812b0() XCALL(0x1812b0, void(*)(void))()
 #define CALL_FUN_00181410() XCALL(0x181410, void(*)(void))()
@@ -89,7 +89,7 @@ double pow(double x, double y);
 #define CALL_FUN_00180b10(a) XCALL(0x180b10, int(*)(int))(a)
 #define CALL_FUN_001390d0(a,b,c,d,e,f) XCALL(0x1390d0, void(*)(int,int,void*,float,float,void*))(a,b,c,d,e,f)
 #define CALL_FUN_00138ee0(a) XCALL(0x138ee0, int(*)(int))(a)
-#define CALL_FUN_000d1c90(a) XCALL(0xd1c90, float(*)(float*))(a)
+#define CALL_FUN_000d1c90(a) XCALL(0xd1c90, unsigned int(*)(float*))(a)
 /*
  * real_vector3d_valid — check whether a 3D vector contains only finite floats.
  *
