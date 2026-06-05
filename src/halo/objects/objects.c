@@ -42,7 +42,7 @@ double pow(double x, double y);
 #define CALL_FUN_0013fea0_2(a,b) XCALL(0x13fea0, int(*)(int,unsigned short))(a,b)
 #define CALL_FUN_0013fea0_5(a,b,c,d,e) XCALL(0x13fea0, int(*)(int,unsigned short,void*,void*,void*))(a,b,c,d,e)
 #define CALL_FUN_00140f10(a,b,c,d) XCALL(0x140f10, short(*)(void*,int,void*,int))(a,b,c,d)
-#define CALL_FUN_00099530(a,b) XCALL(0x99530, float(*)(float,float*))(a,b)
+#define CALL_FUN_00099530(a,b) XCALL(0x99530, unsigned int(*)(float,float*))(a,b)
 #define CALL_FUN_0008fa40(a) XCALL(0x8fa40, void(*)(void*))(a)
 #define CALL_FUN_0008fac0(a) XCALL(0x8fac0, void(*)(void*))(a)
 #define CALL_FUN_001193f0(a) XCALL(0x1193f0, void(*)(void*))(a)
@@ -82,7 +82,7 @@ double pow(double x, double y);
 #define CALL_FUN_00123470(a,b,c,d) XCALL(0x123470, void(*)(void*,void*,int,void*))(a,b,c,d)
 #define CALL_FUN_00189320_5(a,b,c,d,e) XCALL(0x189320, void(*)(int,void*,void*,int,void*))(a,b,c,d,e)
 #define CALL_FUN_00139c20(a,b,c,d,e,f,g,h,i) XCALL(0x139c20, void(*)(int,unsigned short,int,int,void*,void*,void*,void*,int))(a,b,c,d,e,f,g,h,i)
-#define CALL_FUN_00180770(a) XCALL(0x180770, unsigned char(*)(int))(a)
+#define CALL_FUN_00180770(a) XCALL(0x180770, unsigned char(*)(float))(a)
 #define CALL_FUN_001812b0() XCALL(0x1812b0, void(*)(void))()
 #define CALL_FUN_00181410() XCALL(0x181410, void(*)(void))()
 #define CALL_FUN_0007c270(a,b,c,d,e) XCALL(0x7c270, float*(*)(float*,unsigned int,float*,float*,float))(a,b,c,d,e)
@@ -9363,8 +9363,8 @@ LAB_0013baac:
         }
         if (*(int *)(pbVar9 + 0xb8) != -1) {
           *(int *)(lf_params + 0x00) = (int)tag_get(0x6c656e73, *(int *)(pbVar9 + 0xb8));
-          *(float *)(lf_params + 0x18) = (float)CALL_FUN_00099530(local_c, (float *)(iVar5 + 0x14));
-          *(lf_params + 0x23) = CALL_FUN_00180770((int)local_8);
+          *(unsigned int *)(lf_params + 0x18) = CALL_FUN_00099530(local_c, (float *)(iVar5 + 0x14));
+          *(lf_params + 0x23) = CALL_FUN_00180770(local_8);
           *(short *)(lf_params + 0x1e) = (short)local_48;
           *(short *)(lf_params + 0x1c) = (short)((unsigned int)local_48 >> 0x10);
           *(unsigned char *)(lf_params + 0x22) = *(unsigned char *)0x50654a;
