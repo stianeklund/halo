@@ -713,6 +713,27 @@ void FUN_000d6030(int player_handle, short type_value, short nav_type,
   error(2, "Could not add another nav point");
 }
 
+/* nav_point_set_flag wrapper (0xd6120).
+ * Calls FUN_000d6030 with nav_type=2 (flag). */
+void FUN_000d6120(int param_1, int player_handle, short param_3, int param_4)
+{
+  FUN_000d6030(player_handle, (short)param_1, 2, (int)param_3, param_4);
+}
+
+/* nav_point_set_object wrapper (0xd6140).
+ * Calls FUN_000d6030 with nav_type=0 (object). */
+void FUN_000d6140(int param_1, int player_handle, short param_3, int param_4)
+{
+  FUN_000d6030(player_handle, (short)param_1, 0, (int)param_3, param_4);
+}
+
+/* nav_point_set_enemy wrapper (0xd6160).
+ * Calls FUN_000d6030 with nav_type=1 (enemy). */
+void FUN_000d6160(int param_1, int player_handle, int param_3, int param_4)
+{
+  FUN_000d6030(player_handle, (short)param_1, 1, param_3, param_4);
+}
+
 /* nav_point_clear: remove a nav point entry for a player (0xd6320).
  * ABI: @eax=player_handle, @esi=nav_type, @edi=object_handle */
 void FUN_000d6320(int player_handle, short nav_type, int object_handle)
