@@ -12130,15 +12130,18 @@
         },
         {
           "addr": "0xd6390",
-          "decl": "void FUN_000d6390(void);"
+          "decl": "void FUN_000d6390(int player_handle, short object_handle);",
+          "ported": true
         },
         {
           "addr": "0xd63b0",
-          "decl": "void FUN_000d63b0(void);"
+          "decl": "void FUN_000d63b0(int player_handle, short object_handle);",
+          "ported": true
         },
         {
           "addr": "0xd63d0",
-          "decl": "void FUN_000d63d0(void);"
+          "decl": "void FUN_000d63d0(int player_handle, int object_handle);",
+          "ported": true
         },
         {
           "addr": "0xd63f0",
@@ -12166,7 +12169,8 @@
         },
         {
           "addr": "0xd6520",
-          "decl": "void FUN_000d6520(void);"
+          "decl": "void FUN_000d6520(int param_1, int param_2);",
+          "ported": true
         },
         {
           "addr": "0xd6550",
