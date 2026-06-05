@@ -11834,7 +11834,8 @@
       "functions": [
         {
           "addr": "0xd3fa0",
-          "decl": "void FUN_000d3fa0(void);"
+          "decl": "void FUN_000d3fa0(int param_1, short *param_2, int param_3, int param_4, int param_5, int param_6, int param_7, int param_8, int param_9, int param_10);",
+          "ported": true
         },
         {
           "addr": "0xd3fe0",

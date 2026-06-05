@@ -1,3 +1,14 @@
+/* hud_draw_element_wrapper (0xd3fa0)
+ * Wraps FUN_000d3080 with crosshair_overlay=0, passing through remaining
+ * params. */
+void FUN_000d3fa0(int param_1, short *param_2, int param_3, int param_4,
+                  int param_5, int param_6, int param_7, int param_8,
+                  int param_9, int param_10)
+{
+  FUN_000d3080(param_4, param_3, param_1, 0, param_2, *(float *)&param_5,
+               param_6, param_7, param_8, param_9, param_10);
+}
+
 /* HUD message display system. */
 
 /* hud_messaging_initialize (0xd4680)
