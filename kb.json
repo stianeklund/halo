@@ -32914,7 +32914,7 @@
         },
         {
           "addr": "0x1171a0",
-          "decl": "void FUN_001171a0(int len @<ecx>, unsigned char *buf @<edx>, int state @<eax>, int header);",
+          "decl": "void FUN_001171a0(unsigned int len @<ecx>, unsigned char *buf @<edx>, int state @<eax>, int header);",
           "ported": true
         },
         {
