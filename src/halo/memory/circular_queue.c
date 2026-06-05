@@ -1346,7 +1346,7 @@ void FUN_001173f0(int state, int *param_1)
     *(int *)(state + 0xb58) = node;
     node = node + 1;
     FUN_001164d0(1, state, (int)tree);
-  } while (*(int *)(state + 0x1448) > 1);
+  } while (*(int *)(state + 0x1448) >= 2);
 
   {
     int mh = *(int *)(state + 0x144c) - 1;
