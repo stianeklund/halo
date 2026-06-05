@@ -219,6 +219,8 @@
     "0xcc3a0": "int FUN_000cc3a0(int thread_datum@<eax>, int16_t param_count, int formal_params, char init);",
     "0xcd840": "void FUN_000cd840(int thread_handle@<eax>);",
     "0xd5070": "void *hud_find_message_slot(int base, int param2, int tag_handle@<esi>);",
+    "0xd6030": "void FUN_000d6030(int player_handle @<eax>, short type_value, short nav_type, int object_handle, int extra);",
+    "0xd6320": "void FUN_000d6320(int player_handle @<eax>, short nav_type @<esi>, int object_handle @<edi>);",
     "0xdc800": "int16_t FUN_000dc800(int event @<eax>);",
     "0xdc8c0": "int16_t FUN_000dc8c0(int16_t state@<eax>);",
     "0xdc9d0": "void FUN_000dc9d0(int param_2@<eax>, int object_handle@<ebx>);",

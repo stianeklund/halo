@@ -662,6 +662,89 @@ void hud_messaging_dispose(void)
 {
 }
 
+/* nav_point_set: add or update a nav point entry for a player (0xd6030).
+ * Searches for existing match or empty slot in the 4-entry array.
+ * ABI: @eax=player_handle, stack: type_value, nav_type, object_handle, extra */
+void FUN_000d6030(int player_handle, short type_value, short nav_type,
+                  int object_handle, int extra)
+{
+  short local_player;
+  int nav_data;
+  short best;
+  short i;
+  short *entry;
+  short cx;
+
+  if (player_handle == -1)
+    return;
+  local_player =
+    *(short *)((int)datum_get(*(data_t **)0x5aa6d4, player_handle) + 2);
+  if (local_player < 0 || local_player >= 4 || object_handle == -1 ||
+      type_value == -1)
+    return;
+
+  nav_data = hud_get_nav_point_data(local_player);
+  best = -1;
+  i = 0;
+  do {
+    entry = (short *)(nav_data + i * 0xc);
+    cx = (short)(entry[1] << 12) >> 12;
+    if (cx == nav_type && *(int *)(entry + 4) == object_handle) {
+      *entry = type_value;
+      *(int *)(entry + 2) = extra;
+      return;
+    }
+    if (cx == -1) {
+      best = i;
+    }
+    i = i + 1;
+  } while (i < 4);
+
+  if (best != -1) {
+    entry = (short *)(nav_data + best * 0xc);
+    *(int *)(entry + 4) = object_handle;
+    *(int *)(entry + 2) = extra;
+    entry[1] =
+      entry[1] ^
+      ((*(unsigned char *)(entry + 1) ^ (unsigned char)nav_type) & 0xf);
+    *entry = type_value;
+    return;
+  }
+  error(2, "Could not add another nav point");
+}
+
+/* nav_point_clear: remove a nav point entry for a player (0xd6320).
+ * ABI: @eax=player_handle, @esi=nav_type, @edi=object_handle */
+void FUN_000d6320(int player_handle, short nav_type, int object_handle)
+{
+  short local_player;
+  int nav_data;
+  short i;
+  short *entry;
+  short bx;
+
+  if (player_handle == -1)
+    return;
+  local_player =
+    *(short *)((int)datum_get(*(data_t **)0x5aa6d4, player_handle) + 2);
+  if (local_player < 0 || local_player >= 4 || object_handle == -1)
+    return;
+
+  nav_data = hud_get_nav_point_data(local_player);
+  i = 0;
+  do {
+    entry = (short *)(nav_data + i * 0xc);
+    bx = (short)(entry[1] << 12) >> 12;
+    if (bx == nav_type && *(int *)(entry + 4) == object_handle) {
+      *(unsigned char *)(entry + 1) = *(unsigned char *)(entry + 1) | 0xf;
+      *(int *)(entry + 4) = -1;
+      *entry = -1;
+      return;
+    }
+    i = i + 1;
+  } while (i < 4);
+}
+
 /* FUN_000d7330 (0xd7330)
  * Initialize unit_hud_globals: clears the global buffer (0x164 bytes),
  * then for each of 4 local players sets float fields to -1.0f (0xbf800000),
