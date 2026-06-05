@@ -11847,7 +11847,8 @@
         },
         {
           "addr": "0xd4470",
-          "decl": "void FUN_000d4470(void);"
+          "decl": "void FUN_000d4470(char param_1, short *src_rect @<esi>, short *dst_rect @<edi>, void *text @<ebx>);",
+          "ported": true
         },
         {
           "addr": "0xd44f0",
@@ -27219,7 +27220,7 @@
         },
         {
           "addr": "0x19b5d0",
-          "decl": "void draw_string_set_indents(void);"
+          "decl": "void draw_string_set_indents(int width, int height);"
         },
         {
           "addr": "0x19b640",
@@ -29474,7 +29475,7 @@
         },
         {
           "addr": "0x19cdb0",
-          "decl": "void FUN_0019cdb0(void);"
+          "decl": "void FUN_0019cdb0(short *out_rect, void *text, short *out_bounds, short *in_rect);"
         },
         {
           "addr": "0x19ce70",

@@ -9,6 +9,29 @@ void FUN_000d3fa0(int param_1, short *param_2, int param_3, int param_4,
                param_6, param_7, param_8, param_9, param_10);
 }
 
+/* hud_draw_text_element (0xd4470)
+ * Draw a text element on the HUD, with optional icon rendering.
+ * ABI: @esi=src_rect, @edi=dst_rect, @ebx=text, stack: param_1=use_icons */
+void FUN_000d4470(char param_1, short *src_rect, short *dst_rect, void *text)
+{
+  short local_8[4];
+
+  draw_string_set_indents(
+    (int)(unsigned short)src_rect[1] - (int)(unsigned short)dst_rect[1], 0);
+  FUN_0019cdb0(dst_rect, text, local_8, src_rect);
+  src_rect[1] = src_rect[1] - 3;
+  local_8[1] = dst_rect[1];
+  if (param_1 != '\0') {
+    if (game_engine_running() != '\0') {
+      draw_string_and_hack_in_icons(local_8, 0, 0, 0, (wchar_t *)text, 1);
+      *dst_rect = *src_rect;
+      return;
+    }
+  }
+  rasterizer_draw_string(local_8, 0, 0, 0, (unsigned short *)text);
+  *dst_rect = *src_rect;
+}
+
 /* HUD message display system. */
 
 /* hud_messaging_initialize (0xd4680)
