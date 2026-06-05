@@ -895,6 +895,41 @@ void FUN_001172d0(int *param_1, int param_2, short *bl_count)
   }
 }
 
+/* Align the output stream and emit STATIC_TREES end-of-block (0x1176f0).
+ * If the last match distance is too small, repeat alignment. */
+void FUN_001176f0(int param_1)
+{
+  FUN_00116390(2, 3, param_1);
+  if (z_verbose > 2) {
+    crt_fprintf(&z_stderr, "\ncd %3d ", 0x100);
+  }
+  FUN_00116390(0, 7, param_1);
+  *(int *)(param_1 + 0x16b0) = *(int *)(param_1 + 0x16b0) + 10;
+  FUN_001170b0(param_1);
+  if (*(int *)(param_1 + 0x16ac) - *(int *)(param_1 + 0x16bc) + 0xb < 9) {
+    FUN_00116390(2, 3, param_1);
+    if (z_verbose > 2) {
+      crt_fprintf(&z_stderr, "\ncd %3d ", 0x100);
+    }
+    FUN_00116390(0, 7, param_1);
+    *(int *)(param_1 + 0x16b0) = *(int *)(param_1 + 0x16b0) + 10;
+    FUN_001170b0(param_1);
+    *(int *)(param_1 + 0x16ac) = 7;
+    return;
+  }
+  *(int *)(param_1 + 0x16ac) = 7;
+}
+
+/* Send a stored block: emit 3-bit block type header, then raw copy (0x1176a0).
+ * Updates bits_sent accounting. */
+void FUN_001176a0(int param_1, unsigned char *param_2, int param_3, int param_4)
+{
+  FUN_00116390(param_4, 3, param_1);
+  *(int *)(param_1 + 0x16b0) =
+    ((*(int *)(param_1 + 0x16b0) + 10) & 0xfffffff8) + 0x20 + param_3 * 8;
+  FUN_001171a0(param_3, param_2, param_1, 1);
+}
+
 /* uncompress: inflate a zlib-deflated block into dest.
  * Returns 0 (Z_OK) on success with *p2 set to decompressed byte count,
  * -5 (Z_BUF_ERROR) if inflate returned Z_OK without Z_STREAM_END,
