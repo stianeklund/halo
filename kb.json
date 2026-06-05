@@ -12086,15 +12086,18 @@
         },
         {
           "addr": "0xd6120",
-          "decl": "void FUN_000d6120(void);"
+          "decl": "void FUN_000d6120(int param_1, int player_handle, short param_3, int param_4);",
+          "ported": true
         },
         {
           "addr": "0xd6140",
-          "decl": "void FUN_000d6140(void);"
+          "decl": "void FUN_000d6140(int param_1, int player_handle, short param_3, int param_4);",
+          "ported": true
         },
         {
           "addr": "0xd6160",
-          "decl": "void FUN_000d6160(void);"
+          "decl": "void FUN_000d6160(int param_1, int player_handle, int param_3, int param_4);",
+          "ported": true
         },
         {
           "addr": "0xd6180",
