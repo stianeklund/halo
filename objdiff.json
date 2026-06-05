@@ -6790,6 +6790,14 @@
       "metadata": {
         "source_path": "src/halo/memory/memory_pool.c"
       }
+    },
+    {
+      "name": "halo/hud_messaging",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud_messaging.c.obj",
+      "base_path": "delinked/hud_messaging.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/hud_messaging.c"
+      }
     }
   ]
 }
