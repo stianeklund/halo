@@ -567,6 +567,118 @@ void FUN_001164d0(int param_1, int state, int tree)
   *(int *)(state + 0xb54 + param_1 * 4) = iVar3;
 }
 
+/* gen_bitlen: compute optimal bit lengths for a tree (0x1165b0).
+ * Adjusts the bit length distribution to satisfy maximum depth constraint,
+ * then recomputes opt_len and static_len.
+ * ABI: @eax=tree_desc*, @esi=deflate_state (preserved by caller) */
+void FUN_001165b0(int *desc, int state)
+{
+  int max_code;
+  int *tree;
+  int *stree_ptr;
+  int stree;
+  int *extra;
+  int extra_base;
+  unsigned int max_length;
+  int overflow;
+  int h;
+  int *heap_ptr;
+  unsigned int heap_count;
+  int n;
+  unsigned int bits;
+  unsigned int freq;
+  int xbits;
+  short *bl;
+  int k;
+
+  max_code = ((int *)desc)[1];
+  tree = (int *)((int *)desc)[0];
+  stree_ptr = (int *)((int *)desc)[2];
+  stree = stree_ptr[0];
+  extra = (int *)stree_ptr[1];
+  extra_base = stree_ptr[2];
+  max_length = (unsigned int)stree_ptr[4];
+
+  csmemset((void *)(state + 0xb34), 0, 0x20);
+
+  *(short *)((char *)tree + *(int *)(state + 0xb54 + *(int *)(state + 0x144c) * 4) * 4 + 2) = 0;
+
+  h = *(int *)(state + 0x144c) + 1;
+  overflow = 0;
+  if (h < 0x23d) {
+    heap_ptr = (int *)(state + 0xb54 + h * 4);
+    heap_count = 0x23d - h;
+    h = h + heap_count;
+    do {
+      n = *heap_ptr;
+      bits = (unsigned int)*(unsigned short *)((char *)tree + (unsigned int)*(unsigned short *)((char *)tree + n * 4 + 2) * 4 + 2) + 1;
+      if ((int)max_length < (int)bits) {
+        overflow = overflow + 1;
+        bits = max_length;
+      }
+      *(short *)((char *)tree + n * 4 + 2) = (short)bits;
+      if (n <= max_code) {
+        *(short *)(state + 0xb34 + bits * 2) = *(short *)(state + 0xb34 + bits * 2) + 1;
+        xbits = 0;
+        if (n >= extra_base) {
+          xbits = extra[(n - extra_base)];
+        }
+        freq = (unsigned int)*(unsigned short *)((char *)tree + n * 4);
+        *(int *)(state + 0x16a0) = *(int *)(state + 0x16a0) + (int)(bits + xbits) * (int)freq;
+        if (stree != 0) {
+          *(int *)(state + 0x16a4) = *(int *)(state + 0x16a4) + (int)((unsigned int)*(unsigned short *)(stree + n * 4 + 2) + xbits) * (int)freq;
+        }
+      }
+      heap_ptr = heap_ptr + 1;
+      heap_count = heap_count - 1;
+    } while (heap_count != 0);
+
+    if (overflow != 0) {
+      if (z_verbose >= 0) {
+        crt_fprintf(&z_stderr, "\nbit length overflow\n");
+      }
+      bl = (short *)(state + 0xb34 + max_length * 2);
+      do {
+        k = max_length - 1;
+        while (*(short *)(state + 0xb34 + k * 2) == 0) {
+          k = k - 1;
+        }
+        *(short *)(state + 0xb34 + k * 2) = *(short *)(state + 0xb34 + k * 2) - 1;
+        *(short *)(state + 0xb36 + k * 2) = *(short *)(state + 0xb36 + k * 2) + 2;
+        *bl = *bl - 1;
+        overflow = overflow - 2;
+      } while (overflow > 0);
+
+      for (; (int)max_length > 0; max_length = max_length - 1) {
+        bits = (unsigned int)*bl;
+        if (bits != 0) {
+          int addr = state + 0xb54 + h * 4;
+          heap_count = bits;
+          do {
+            n = *(int *)(addr - 4);
+            h = h - 1;
+            addr = addr - 4;
+            if (n <= max_code) {
+              freq = (unsigned int)*(unsigned short *)((char *)tree + n * 4 + 2);
+              if (freq != max_length) {
+                if (z_verbose >= 0) {
+                  crt_fprintf(&z_stderr, "code %d bits %d->%d\n", n, freq, max_length);
+                }
+                *(int *)(state + 0x16a0) = *(int *)(state + 0x16a0) + (int)(max_length - *(unsigned short *)((char *)tree + n * 4 + 2)) * (int)(unsigned int)*(unsigned short *)((char *)tree + n * 4);
+                *(short *)((char *)tree + n * 4 + 2) = (short)max_length;
+                bits = heap_count;
+              }
+              bits = bits - 1;
+              heap_count = bits;
+            }
+          } while (bits != 0);
+        }
+        bl = bl - 1;
+      }
+    }
+  }
+}
+
 /* scan_tree: scan a Huffman tree to determine code lengths and run statistics.
  * 0x1167f0 / circular_queue.obj (deflate.c)
  * ABI: @eax=tree(ct_data*), cdecl param_1=max_code, param_2=deflate_state */
