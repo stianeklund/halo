@@ -734,6 +734,48 @@ void FUN_000d6160(int param_1, int player_handle, int param_3, int param_4)
   FUN_000d6030(player_handle, (short)param_1, 1, param_3, param_4);
 }
 
+/* FUN_000d6180 (0xd6180)
+ * Set nav point for all players on a matching team.
+ * ABI: @ebx=nav_type, @esi=extra, @edi=object_handle, stack: type_value, team,
+ * param_3 */
+void FUN_000d6180(int type_value, short team, int param_3, short nav_type,
+                  int extra, int object_handle)
+{
+  int iter[4];
+  int datum;
+
+  data_iterator_new((void *)iter, *(data_t **)0x5aa6d4);
+  datum = (int)data_iterator_next((void *)iter);
+  while (datum != 0) {
+    if (*(short *)(datum + 2) != -1 && (int)team == *(int *)(datum + 0x20)) {
+      FUN_000d6030(iter[2], (short)type_value, nav_type,
+                   (int)(short)object_handle, extra);
+    }
+    datum = (int)data_iterator_next((void *)iter);
+  }
+}
+
+/* FUN_000d61f0 (0xd61f0)
+ * Set flag nav point for all players on a team. */
+void FUN_000d61f0(int type_value, int team, short object_handle, int extra)
+{
+  FUN_000d6180(type_value, (short)team, extra, 2, 0, (int)object_handle);
+}
+
+/* FUN_000d6220 (0xd6220)
+ * Set object nav point for all players on a team. */
+void FUN_000d6220(int type_value, int team, short object_handle, int extra)
+{
+  FUN_000d6180(type_value, (short)team, extra, 0, 0, (int)object_handle);
+}
+
+/* FUN_000d6250 (0xd6250)
+ * Set enemy nav point for all players on a team. */
+void FUN_000d6250(int type_value, int team, int object_handle, int extra)
+{
+  FUN_000d6180(type_value, (short)team, extra, 1, 0, object_handle);
+}
+
 /* FUN_000d6280 (0xd6280)
  * Set nav points for all players.
  * ABI: @ebx=nav_type, @edi=object_handle, stack: type_value, extra */

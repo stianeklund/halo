@@ -221,6 +221,7 @@
     "0xd3080": "void FUN_000d3080(int crosshair_overlay @<eax>, int hud_globals @<ecx>, int bitmap_data @<edx>, int param_1, short *param_2, float scale, int param_4, int color, int flags, char use_bitmap_size, char param_8);",
     "0xd5070": "void *hud_find_message_slot(int base, int param2, int tag_handle@<esi>);",
     "0xd6030": "void FUN_000d6030(int player_handle @<eax>, short type_value, short nav_type, int object_handle, int extra);",
+    "0xd6180": "void FUN_000d6180(int type_value, short team, int extra, short nav_type @<ebx>, int unused @<esi>, int object_handle @<edi>);",
     "0xd6280": "void FUN_000d6280(int type_value, int extra, short nav_type @<ebx>, int object_handle @<edi>);",
     "0xd6320": "void FUN_000d6320(int player_handle @<eax>, short nav_type @<esi>, int object_handle @<edi>);",
     "0xd63f0": "void FUN_000d63f0(int object_handle @<eax>, short nav_type @<ecx>, int team_handle @<ebx>);",
