@@ -219,6 +219,7 @@
     "0xcc3a0": "int FUN_000cc3a0(int thread_datum@<eax>, int16_t param_count, int formal_params, char init);",
     "0xcd840": "void FUN_000cd840(int thread_handle@<eax>);",
     "0xd3080": "void FUN_000d3080(int crosshair_overlay @<eax>, int hud_globals @<ecx>, int bitmap_data @<edx>, int param_1, short *param_2, float scale, int param_4, int color, int flags, char use_bitmap_size, char param_8);",
+    "0xd4470": "void FUN_000d4470(char param_1, short *src_rect @<esi>, short *dst_rect @<edi>, void *text @<ebx>);",
     "0xd5070": "void *hud_find_message_slot(int base, int param2, int tag_handle@<esi>);",
     "0xd6030": "void FUN_000d6030(int player_handle @<eax>, short type_value, short nav_type, int object_handle, int extra);",
     "0xd6180": "void FUN_000d6180(int type_value, short team, int extra, short nav_type @<ebx>, int unused @<esi>, int object_handle @<edi>);",
