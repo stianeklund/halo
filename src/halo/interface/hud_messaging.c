@@ -250,6 +250,72 @@ void scripted_hud_time_code_reset(void)
   }
 }
 
+/* FUN_000d4f00 (0xd4f00)
+ * Toggle help text display state for a player. */
+void FUN_000d4f00(short param_1, char param_2)
+{
+  int iVar1;
+  int iVar2;
+
+  iVar1 = param_1 * 0x460;
+  iVar2 = iVar1 + *(int *)0x46bd18;
+  *(unsigned char *)(iVar2 + 0x45e) =
+    *(unsigned char *)(iVar1 + 0x45e + *(int *)0x46bd18) |
+    (*(char *)(iVar1 + 0x458 + *(int *)0x46bd18) != param_2);
+  *(char *)(iVar2 + 0x458) = param_2;
+  *(int *)(iVar2 + 0x454) = 0;
+  if (param_2 != '\0') {
+    *(int *)(iVar2 + 0x454) = 0;
+    ustrncpy((wchar_t *)(iVar2 + 0x230), (wchar_t *)0x26cdf0, 0xff);
+  }
+  *(char *)(iVar2 + 0x45f) = param_2;
+}
+
+/* FUN_000d4f70 (0xd4f70)
+ * Set help text string for a player. */
+void FUN_000d4f70(short param_1, wchar_t *param_2)
+{
+  int iVar1;
+
+  iVar1 = param_1 * 0x460 + *(int *)0x46bd18;
+  ustrncpy((wchar_t *)(iVar1 + 0x230), param_2, 0xff);
+  *(short *)(iVar1 + 0x42e) = 0;
+}
+
+/* FUN_000d4fb0 (0xd4fb0)
+ * Get the objective text string from the HMT tag. */
+int FUN_000d4fb0(void)
+{
+  int result;
+  int scenario;
+  int hmt;
+  int msg;
+  char *element;
+
+  result = 0;
+  if (*(int *)(*(int *)0x46bd18 + 0x1190) != 0) {
+    scenario = (int)global_scenario_get();
+    hmt = (int)tag_get(0x686d7420, *(int *)(scenario + 0x5a0));
+    msg = *(int *)(*(int *)0x46bd18 + 0x1190);
+    element = (char *)tag_block_get_element((void *)(hmt + 0x14),
+                                            *(unsigned short *)(msg + 0x22), 2);
+    if (*(char *)(msg + 0x24) != 1) {
+      display_assert("message->element_count==1",
+                     "c:\\halo\\SOURCE\\interface\\hud_messaging.c", 0x2a1, 1);
+      system_exit(-1);
+    }
+    if (*element != '\0') {
+      display_assert("element->type==_hud_message_type_text",
+                     "c:\\halo\\SOURCE\\interface\\hud_messaging.c", 0x2a2, 1);
+      system_exit(-1);
+    }
+    result = (int)tag_data_get_pointer(
+      (void *)hmt, (int)((unsigned int)*(unsigned short *)(msg + 0x20) << 1),
+      (int)((unsigned int)(unsigned char)element[1] << 1));
+  }
+  return result;
+}
+
 /* FUN_000d4d90 (0xd4d90)
  * Set a HUD message element reference for a player. */
 void hud_set_state_message(short param_1, short param_2)
