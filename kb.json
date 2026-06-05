@@ -11757,7 +11757,7 @@
         },
         {
           "addr": "0xd1540",
-          "decl": "void FUN_000d1540(void);"
+          "decl": "int FUN_000d1540(void);"
         },
         {
           "addr": "0xd1550",
@@ -12199,7 +12199,8 @@
         },
         {
           "addr": "0xd6e50",
-          "decl": "void FUN_000d6e50(int player_handle);"
+          "decl": "void FUN_000d6e50(int player_handle);",
+          "ported": true
         },
         {
           "addr": "0xd7080",
