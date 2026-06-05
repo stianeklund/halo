@@ -787,6 +787,39 @@ void FUN_000d63d0(int player_handle, int object_handle)
   FUN_000d6320(player_handle, 1, object_handle);
 }
 
+/* FUN_000d6490 (0xd6490) — set object nav point for a unit's player. */
+void FUN_000d6490(int param_1, int unit_handle, short param_3, int param_4)
+{
+  int player_index;
+
+  player_index = player_index_from_unit_index(unit_handle);
+  if (player_index != -1) {
+    FUN_000d6030(player_index, (short)param_1, 0, (int)param_3, param_4);
+  }
+}
+
+/* FUN_000d64c0 (0xd64c0) — set enemy nav point for a unit's player. */
+void FUN_000d64c0(int param_1, int unit_handle, int param_3, int param_4)
+{
+  int player_index;
+
+  player_index = player_index_from_unit_index(unit_handle);
+  if (player_index != -1) {
+    FUN_000d6030(player_index, (short)param_1, 1, param_3, param_4);
+  }
+}
+
+/* FUN_000d64f0 (0xd64f0) — clear object nav point for a unit's player. */
+void FUN_000d64f0(int param_1, int param_2)
+{
+  int player_index;
+
+  player_index = player_index_from_unit_index(param_1);
+  if (player_index != -1) {
+    FUN_000d6320(player_index, 0, param_2);
+  }
+}
+
 /* FUN_000d6520 (0xd6520)
  * Clear enemy nav point for a unit's player. */
 void FUN_000d6520(int param_1, int param_2)
