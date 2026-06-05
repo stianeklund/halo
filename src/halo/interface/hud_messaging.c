@@ -832,6 +832,18 @@ void FUN_000d6520(int param_1, int param_2)
   }
 }
 
+/* unit_hud_initialize (0xd72f0)
+ * Allocates the unit HUD interface globals buffer. */
+void FUN_000d72f0(void)
+{
+  *(int *)0x46bd20 = (int)game_state_malloc("hud unit interface", 0, 0x164);
+  if (*(int *)0x46bd20 == 0) {
+    display_assert("unit_hud_globals",
+                   "c:\\halo\\SOURCE\\interface\\hud_unit.c", 0x110, 1);
+    system_exit(-1);
+  }
+}
+
 /* FUN_000d7330 (0xd7330)
  * Initialize unit_hud_globals: clears the global buffer (0x164 bytes),
  * then for each of 4 local players sets float fields to -1.0f (0xbf800000),
