@@ -12013,7 +12013,7 @@
           "addr": "0xd5180",
           "decl": "void hud_get_text_color(int *param_1);",
           "name": "hud_get_text_color",
-          "ported": false,
+          "ported": true,
           "source_path": "src/halo/interface/hud_messaging.c"
         },
         {
@@ -12189,11 +12189,12 @@
         },
         {
           "addr": "0xd6e50",
-          "decl": "void FUN_000d6e50(void);"
+          "decl": "void FUN_000d6e50(int player_handle);"
         },
         {
           "addr": "0xd7080",
-          "decl": "void FUN_000d7080(void);"
+          "decl": "void FUN_000d7080(void);",
+          "ported": true
         },
         {
           "addr": "0xd70b0",
