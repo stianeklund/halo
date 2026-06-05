@@ -1,4 +1,9 @@
 {
+  "0x1176a0": {
+    "class": "leaf",
+    "confidence": "weak",
+    "coverage_pct": 0.0
+  },
   "0x13010": {
     "confidence": "high",
     "coverage_pct": 100.0,
@@ -277,5 +282,10 @@
   "0xcc": {
     "confidence": "moderate",
     "coverage_pct": 56.1
+  },
+  "0xd6390": {
+    "class": "leaf",
+    "confidence": "weak",
+    "coverage_pct": 0.0
   }
 }
