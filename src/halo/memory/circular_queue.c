@@ -895,6 +895,78 @@ int FUN_00116d10(int param_1, int param_2, int param_3)
   return *(int *)(param_1 + 0x1698) == *(int *)(param_1 + 0x1694) - 1;
 }
 
+/* compress_block: send the block data compressed using given Huffman trees (0x116e00).
+ * ABI: @eax=state, cdecl param_1=ltree, param_2=dtree */
+void FUN_00116e00(int state, int param_1, int param_2)
+{
+  unsigned int dist;
+  unsigned int lc;
+  unsigned int code;
+  unsigned int extra;
+  unsigned int idx;
+
+  idx = 0;
+  if (*(unsigned int *)(state + 0x1698) != 0) {
+    do {
+      dist = (unsigned int)*(unsigned short *)(*(int *)(state + 0x169c) + idx * 2);
+      lc = (unsigned int)*(unsigned char *)(idx + *(int *)(state + 0x1690));
+      idx = idx + 1;
+      if (dist == 0) {
+        if (z_verbose > 2) {
+          crt_fprintf(&z_stderr, "\ncd %3d ", lc);
+        }
+        FUN_00116390(*(unsigned short *)(param_1 + lc * 4),
+                     *(unsigned short *)(param_1 + lc * 4 + 2),
+                     state);
+        if (z_verbose > 1 && crt_isgraph(lc) != 0) {
+          crt_fprintf(&z_stderr, " \'%c\' ", lc);
+        }
+      } else {
+        code = (unsigned int)zlib_length_code[lc];
+        if (z_verbose > 2) {
+          crt_fprintf(&z_stderr, "\ncd %3d ", code + 0x101);
+        }
+        FUN_00116390(*(unsigned short *)(param_1 + code * 4 + 0x404),
+                     *(unsigned short *)(param_1 + code * 4 + 0x406),
+                     state);
+        extra = (unsigned int)zlib_extra_lbits[code];
+        if (extra != 0) {
+          FUN_00116390(lc - zlib_base_length[code], extra, state);
+        }
+        dist = dist - 1;
+        if (dist < 0x100) {
+          code = (unsigned int)zlib_dist_code_lo[dist];
+        } else {
+          code = (unsigned int)zlib_dist_code_hi[dist >> 7];
+        }
+        if (code >= 0x1e) {
+          FUN_00117a80("bad d_code");
+        }
+        if (z_verbose > 2) {
+          crt_fprintf(&z_stderr, "\ncd %3d ", code);
+        }
+        FUN_00116390(*(unsigned short *)(param_2 + code * 4),
+                     *(unsigned short *)(param_2 + code * 4 + 2),
+                     state);
+        extra = (unsigned int)zlib_extra_dbits[code];
+        if (extra != 0) {
+          FUN_00116390(dist - zlib_base_dist[code], extra, state);
+        }
+      }
+      if (*(unsigned int *)(state + 0x14) >= *(unsigned int *)(state + 0x1694) + idx * 2) {
+        FUN_00117a80("pendingBuf overflow");
+      }
+    } while (idx < *(unsigned int *)(state + 0x1698));
+  }
+  if (z_verbose > 2) {
+    crt_fprintf(&z_stderr, "\ncd %3d ", 0x100);
+  }
+  FUN_00116390(*(unsigned short *)(param_1 + 0x400),
+               *(unsigned short *)(param_1 + 0x402),
+               state);
+  *(int *)(state + 0x16ac) = (int)(unsigned int)*(unsigned short *)(param_1 + 0x402);
+}
+
 /* set_data_type: set data_type field based on literal frequency counts.
  * 0x117000 / circular_queue.obj (deflate.c)
  * ABI: @ecx=deflate_state */
