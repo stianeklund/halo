@@ -581,6 +581,67 @@ void FUN_000d52e0(int actor_handle, wchar_t *message)
   }
 }
 
+/* hud_find_nav_point_by_name (0xd5ec0)
+ * Search the nav point definitions for a matching name, return its index. */
+int hud_find_nav_point_by_name(const char *param_1)
+{
+  short found;
+  short i;
+  int element;
+  int result;
+
+  found = -1;
+  if (*(int *)0x46bd0c != 0) {
+    i = 0;
+    if (*(int *)(*(int *)0x46bd0c + 0x160) > 0) {
+      do {
+        element = (int)tag_block_get_element((void *)(*(int *)0x46bd0c + 0x160),
+                                             (int)i, 0x68);
+        result = csstricmp(param_1, (const char *)element);
+        if (result == 0) {
+          found = i;
+          if (i != -1)
+            return (int)i;
+          break;
+        }
+        i = i + 1;
+      } while ((int)i < *(int *)(*(int *)0x46bd0c + 0x160));
+    }
+  }
+  error(2, "could not find nav point");
+  return (int)found;
+}
+
+/* hud_get_nav_point_data (0xd5f40)
+ * Returns pointer to a player's nav point data (0x30 bytes per player). */
+int hud_get_nav_point_data(short param_1)
+{
+  if (param_1 < 0 || param_1 > 3) {
+    display_assert("local_player_index>=0&&local_player_index<MAXIMUM_NUMBER_"
+                   "OF_LOCAL_PLAYERS",
+                   "c:\\halo\\SOURCE\\interface\\hud_nav_points.c", 0x5f, 1);
+    system_exit(-1);
+  }
+  if (*(int *)0x46bd1c == 0) {
+    display_assert("nav_point_data",
+                   "c:\\halo\\SOURCE\\interface\\hud_nav_points.c", 0x60, 1);
+    system_exit(-1);
+  }
+  return param_1 * 0x30 + *(int *)0x46bd1c;
+}
+
+/* hud_nav_points_initialize (0xd5fb0)
+ * Allocates nav point data via game_state_malloc. */
+void hud_nav_points_initialize(void)
+{
+  *(int *)0x46bd1c = (int)game_state_malloc("hud nav points", 0, 0xc0);
+  if (*(int *)0x46bd1c == 0) {
+    display_assert("nav_point_data",
+                   "c:\\halo\\SOURCE\\interface\\hud_nav_points.c", 0x6a, 1);
+    system_exit(-1);
+  }
+}
+
 /* hud_messaging_initialize_for_new_map: clear the messaging slot table.
  * Called from hud_initialize_for_new_map (0xd0360).
  * Fills *(void**)0x46bd1c with 0xff for 0xc0 bytes (all slots invalid). */
