@@ -11879,43 +11879,53 @@
         },
         {
           "addr": "0xd46f0",
-          "decl": "void scripted_hud_set_state_message(void);"
+          "decl": "void scripted_hud_set_state_message(short param_1);",
+          "ported": true
         },
         {
           "addr": "0xd4740",
-          "decl": "void scripted_hud_set_flashing_state(void);"
+          "decl": "void scripted_hud_set_flashing_state(char param_1);",
+          "ported": true
         },
         {
           "addr": "0xd4780",
-          "decl": "void scripted_hud_restart_flashing(void);"
+          "decl": "void scripted_hud_restart_flashing(void);",
+          "ported": true
         },
         {
           "addr": "0xd47c0",
-          "decl": "void scripted_hud_set_objective(void);"
+          "decl": "void scripted_hud_set_objective(short param_1);",
+          "ported": true
         },
         {
           "addr": "0xd4860",
-          "decl": "void scripted_hud_set_timer_time(void);"
+          "decl": "void scripted_hud_set_timer_time(short param_1, short param_2);",
+          "ported": true
         },
         {
           "addr": "0xd48e0",
-          "decl": "void scripted_hud_set_timer_warning_cutoff(void);"
+          "decl": "void scripted_hud_set_timer_warning_cutoff(short param_1, short param_2);",
+          "ported": true
         },
         {
           "addr": "0xd4900",
-          "decl": "void scripted_hud_set_timer_position(void);"
+          "decl": "void scripted_hud_set_timer_position(short param_1, short param_2, short param_3);",
+          "ported": true
         },
         {
           "addr": "0xd4960",
-          "decl": "void scripted_hud_show_timer(void);"
+          "decl": "void scripted_hud_show_timer(unsigned char param_1);",
+          "ported": true
         },
         {
           "addr": "0xd4980",
-          "decl": "void scripted_hud_pause_timer(void);"
+          "decl": "void scripted_hud_pause_timer(char param_1);",
+          "ported": true
         },
         {
           "addr": "0xd49d0",
-          "decl": "void scripted_hud_get_timer_ticks(void);"
+          "decl": "short scripted_hud_get_timer_ticks(void);",
+          "ported": true
         },
         {
           "addr": "0xd4a20",
