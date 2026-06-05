@@ -766,6 +766,39 @@ void FUN_000d6320(int player_handle, short nav_type, int object_handle)
   } while (i < 4);
 }
 
+/* nav_point_clear_flag wrapper (0xd6390).
+ * Clears a flag nav point (type=2). */
+void FUN_000d6390(int player_handle, short object_handle)
+{
+  FUN_000d6320(player_handle, 2, (int)object_handle);
+}
+
+/* nav_point_clear_object wrapper (0xd63b0).
+ * Clears an object nav point (type=0). */
+void FUN_000d63b0(int player_handle, short object_handle)
+{
+  FUN_000d6320(player_handle, 0, (int)object_handle);
+}
+
+/* nav_point_clear_enemy wrapper (0xd63d0).
+ * Clears an enemy nav point (type=1). */
+void FUN_000d63d0(int player_handle, int object_handle)
+{
+  FUN_000d6320(player_handle, 1, object_handle);
+}
+
+/* FUN_000d6520 (0xd6520)
+ * Clear enemy nav point for a unit's player. */
+void FUN_000d6520(int param_1, int param_2)
+{
+  int player_index;
+
+  player_index = player_index_from_unit_index(param_1);
+  if (player_index != -1) {
+    FUN_000d6320(player_index, 1, param_2);
+  }
+}
+
 /* FUN_000d7330 (0xd7330)
  * Initialize unit_hud_globals: clears the global buffer (0x164 bytes),
  * then for each of 4 local players sets float fields to -1.0f (0xbf800000),
