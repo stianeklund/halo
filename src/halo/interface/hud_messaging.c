@@ -734,6 +734,32 @@ void FUN_000d6160(int param_1, int player_handle, int param_3, int param_4)
   FUN_000d6030(player_handle, (short)param_1, 1, param_3, param_4);
 }
 
+/* FUN_000d6280 (0xd6280)
+ * Set nav points for all players.
+ * ABI: @ebx=nav_type, @edi=object_handle, stack: type_value, extra */
+void FUN_000d6280(int type_value, int extra, short nav_type, int object_handle)
+{
+  int iter[4];
+  int datum;
+
+  data_iterator_new((void *)iter, *(data_t **)0x5aa6d4);
+  datum = (int)data_iterator_next((void *)iter);
+  while (datum != 0) {
+    if (*(short *)(datum + 2) != -1) {
+      FUN_000d6030(iter[2], (short)type_value, nav_type,
+                   (int)(short)object_handle, extra);
+    }
+    datum = (int)data_iterator_next((void *)iter);
+  }
+}
+
+/* FUN_000d62f0 (0xd62f0)
+ * Set flag nav points for all players. */
+void FUN_000d62f0(int type_value, int object_handle, int extra)
+{
+  FUN_000d6280(type_value, extra, 2, object_handle);
+}
+
 /* nav_point_clear: remove a nav point entry for a player (0xd6320).
  * ABI: @eax=player_handle, @esi=nav_type, @edi=object_handle */
 void FUN_000d6320(int player_handle, short nav_type, int object_handle)
