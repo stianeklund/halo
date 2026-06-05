@@ -12275,7 +12275,7 @@
         },
         {
           "addr": "0xd7a20",
-          "decl": "void FUN_000d7a20(void);"
+          "decl": "void FUN_000d7a20(int param_1);"
         },
         {
           "addr": "0xd7cd0",
