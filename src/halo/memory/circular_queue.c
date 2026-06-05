@@ -1106,6 +1106,124 @@ void FUN_001172d0(int *param_1, int param_2, short *bl_count)
   }
 }
 
+/* build_tree: build a Huffman tree from frequency counts (0x1173f0).
+ * Constructs heap, builds tree using pqdownheap, generates bit lengths
+ * and codes.
+ * ABI: @eax=state, cdecl param_1=tree_desc* */
+void FUN_001173f0(int state, int *param_1)
+{
+  int *tree;
+  int *stree_info;
+  int stree;
+  int max_elems;
+  int n;
+  int max_code;
+  int node;
+  int m;
+  unsigned char d1, d2;
+
+  tree = (int *)param_1[0];
+  stree_info = (int *)param_1[2];
+  max_elems = stree_info[3];
+  stree = stree_info[0];
+
+  n = 0;
+  max_code = -1;
+  *(int *)(state + 0x1448) = 0;
+  *(int *)(state + 0x144c) = 0x23d;
+
+  if (max_elems > 0) {
+    do {
+      if (*(short *)((char *)tree + n * 4) != 0) {
+        int heap_size = *(int *)(state + 0x1448) + 1;
+        *(int *)(state + 0x1448) = heap_size;
+        *(int *)(state + 0xb54 + heap_size * 4) = n;
+        max_code = n;
+        *(unsigned char *)(state + 0x1450 + n) = 0;
+      } else {
+        *(short *)((char *)tree + n * 4 + 2) = 0;
+      }
+      n = n + 1;
+    } while (n < max_elems);
+  }
+
+  while (*(int *)(state + 0x1448) < 2) {
+    if (max_code < 2) {
+      max_code = max_code + 1;
+      n = max_code;
+    } else {
+      n = 0;
+    }
+    {
+      int heap_size = *(int *)(state + 0x1448) + 1;
+      *(int *)(state + 0x1448) = heap_size;
+      *(int *)(state + 0xb54 + heap_size * 4) = n;
+    }
+    *(short *)((char *)tree + n * 4) = 1;
+    *(unsigned char *)(state + 0x1450 + n) = 0;
+    *(int *)(state + 0x16a0) = *(int *)(state + 0x16a0) - 1;
+    if (stree != 0) {
+      *(int *)(state + 0x16a4) = *(int *)(state + 0x16a4) - (int)(unsigned int)*(unsigned short *)(stree + n * 4 + 2);
+    }
+  }
+  param_1[1] = max_code;
+
+  {
+    int half = *(int *)(state + 0x1448) / 2;
+    for (; half >= 1; half = half - 1) {
+      FUN_001164d0(half, state, (int)tree);
+    }
+  }
+
+  node = max_elems;
+  do {
+    m = *(int *)(state + 0xb58);
+    {
+      int last = *(int *)(state + 0x1448);
+      *(int *)(state + 0x1448) = last - 1;
+      *(int *)(state + 0xb58) = *(int *)(state + 0xb54 + last * 4);
+    }
+    FUN_001164d0(1, state, (int)tree);
+
+    n = *(int *)(state + 0xb58);
+
+    {
+      int mh = *(int *)(state + 0x144c) - 1;
+      *(int *)(state + 0x144c) = mh;
+      *(int *)(state + 0xb54 + mh * 4) = m;
+    }
+    {
+      int mh = *(int *)(state + 0x144c) - 1;
+      *(int *)(state + 0x144c) = mh;
+      *(int *)(state + 0xb54 + mh * 4) = n;
+    }
+
+    *(short *)((char *)tree + node * 4) = *(short *)((char *)tree + n * 4) + *(short *)((char *)tree + m * 4);
+
+    d1 = *(unsigned char *)(state + 0x1450 + n);
+    d2 = *(unsigned char *)(state + 0x1450 + m);
+    if (d2 < d1) {
+      d2 = d1;
+    }
+    *(unsigned char *)(state + 0x1450 + node) = (unsigned char)(d2 + 1);
+    *(short *)((char *)tree + n * 4 + 2) = (short)node;
+    *(short *)((char *)tree + m * 4 + 2) = (short)node;
+
+    *(int *)(state + 0xb58) = node;
+    node = node + 1;
+    FUN_001164d0(1, state, (int)tree);
+  } while (*(int *)(state + 0x1448) > 1);
+
+  {
+    int mh = *(int *)(state + 0x144c) - 1;
+    *(int *)(state + 0x144c) = mh;
+    *(int *)(state + 0xb54 + mh * 4) = *(int *)(state + 0xb58);
+  }
+
+  FUN_001165b0(param_1, state);
+  FUN_001172d0(tree, max_code, (short *)(state + 0xb34));
+}
+
 /* Align the output stream and emit STATIC_TREES end-of-block (0x1176f0).
  * If the last match distance is too small, repeat alignment. */
 void FUN_001176f0(int param_1)
