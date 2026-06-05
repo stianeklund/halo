@@ -57,8 +57,8 @@
     "coverage_pct": 100.0
   },
   "0x2": {
-    "confidence": "weak",
-    "coverage_pct": 3.6
+    "confidence": "high",
+    "coverage_pct": 73.6
   },
   "0x268": {
     "confidence": "weak",
