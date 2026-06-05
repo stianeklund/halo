@@ -227,6 +227,7 @@
     "0xd63f0": "void FUN_000d63f0(int object_handle @<eax>, short nav_type @<ecx>, int team_handle @<ebx>);",
     "0xd7240": "void FUN_000d7240(int slot @<esi>);",
     "0xd7280": "int FUN_000d7280(short local_player_index @<esi>);",
+    "0xd7800": "void FUN_000d7800(int player_handle @<eax>);",
     "0xdc800": "int16_t FUN_000dc800(int event @<eax>);",
     "0xdc8c0": "int16_t FUN_000dc8c0(int16_t state@<eax>);",
     "0xdc9d0": "void FUN_000dc9d0(int param_2@<eax>, int object_handle@<ebx>);",

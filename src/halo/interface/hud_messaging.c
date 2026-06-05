@@ -1156,3 +1156,19 @@ void FUN_000d7cd0(int player_handle, float param_2)
     *pfVar2 = *pfVar2 - param_2;
   }
 }
+
+/* FUN_000d7d10 (0xd7d10)
+ * Iterate local players and update unit HUD for each. */
+void FUN_000d7d10(void)
+{
+  int result;
+  short sVar;
+
+  result = (int)local_player_get_next(-1);
+  sVar = (short)result;
+  while (sVar != -1) {
+    FUN_000d7800(sVar);
+    result = (int)local_player_get_next(sVar);
+    sVar = (short)result;
+  }
+}
