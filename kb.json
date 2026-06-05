@@ -158,6 +158,14 @@
           "decl": "data_t *particle_system_header_data;"
         },
         {
+          "addr": "0x320e30",
+          "decl": "int z_verbose;"
+        },
+        {
+          "addr": "0x331070",
+          "decl": "void *z_stderr;"
+        },
+        {
           "addr": "0x32eaa0",
           "decl": "void *game_state_callback_32eaa0;"
         },
@@ -32802,11 +32810,13 @@
         },
         {
           "addr": "0x1176a0",
-          "decl": "void FUN_001176a0(void);"
+          "decl": "void FUN_001176a0(int param_1, unsigned char *param_2, int param_3, int param_4);",
+          "ported": true
         },
         {
           "addr": "0x1176f0",
-          "decl": "void FUN_001176f0(void);"
+          "decl": "void FUN_001176f0(int param_1);",
+          "ported": true
         },
         {
           "addr": "0x1177c0",
