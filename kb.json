@@ -12206,7 +12206,7 @@
         },
         {
           "addr": "0xd7280",
-          "decl": "void hud_broadcast_team_message(void);"
+          "decl": "int FUN_000d7280(short local_player_index @<esi>);"
         },
         {
           "addr": "0xd72f0",
@@ -12279,7 +12279,8 @@
         },
         {
           "addr": "0xd7cd0",
-          "decl": "void FUN_000d7cd0(int player_index, float amount);"
+          "decl": "void FUN_000d7cd0(int player_handle, float param_2);",
+          "ported": true
         },
         {
           "addr": "0xd7d10",
