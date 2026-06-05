@@ -158,6 +158,54 @@
           "decl": "data_t *particle_system_header_data;"
         },
         {
+          "addr": "0x28dc40",
+          "decl": "int zlib_extra_lbits[29];"
+        },
+        {
+          "addr": "0x28dcb8",
+          "decl": "int zlib_extra_dbits[30];"
+        },
+        {
+          "addr": "0x28dd7c",
+          "decl": "unsigned char zlib_bl_order[19];"
+        },
+        {
+          "addr": "0x28dd90",
+          "decl": "int zlib_static_ltree[576];"
+        },
+        {
+          "addr": "0x28e210",
+          "decl": "int zlib_static_dtree[60];"
+        },
+        {
+          "addr": "0x28e288",
+          "decl": "unsigned char zlib_dist_code_lo[256];"
+        },
+        {
+          "addr": "0x28e388",
+          "decl": "unsigned char zlib_dist_code_hi[256];"
+        },
+        {
+          "addr": "0x28e488",
+          "decl": "unsigned char zlib_length_code[256];"
+        },
+        {
+          "addr": "0x28e588",
+          "decl": "int zlib_base_length[29];"
+        },
+        {
+          "addr": "0x28e600",
+          "decl": "int zlib_base_dist[30];"
+        },
+        {
+          "addr": "0x28e6d0",
+          "decl": "char zlib_fmt_cd[16];"
+        },
+        {
+          "addr": "0x320d88",
+          "decl": "unsigned int zlib_inflate_mask[17];"
+        },
+        {
           "addr": "0x320e30",
           "decl": "int z_verbose;"
         },
@@ -27713,7 +27761,8 @@
         },
         {
           "addr": "0x1dac2f",
-          "decl": "void FUN_001dac2f(void);"
+          "name": "crt_isgraph",
+          "decl": "int crt_isgraph(int c);"
         },
         {
           "addr": "0x1dad15",
@@ -32770,7 +32819,8 @@
         },
         {
           "addr": "0x116e00",
-          "decl": "void FUN_00116e00(void);"
+          "decl": "void FUN_00116e00(int state @<eax>, int param_1, int param_2);",
+          "ported": true
         },
         {
           "addr": "0x117000",
