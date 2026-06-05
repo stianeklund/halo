@@ -2083,6 +2083,158 @@ void FUN_00118620(void *data, int count, int element_size)
   }
 }
 
+/* Byte-swap interpreter: walk a byte-swap code array and swap fields (0x1187f0).
+ * Handles 2/4/8-byte swaps, nested struct references, and array repeats.
+ * out_size receives the total data offset processed, out_step receives
+ * the number of code words consumed. */
+void FUN_001187f0(void *bs_definition, int data_ptr, int *codes,
+                  int *out_size, int *out_step)
+{
+  int *def = (int *)bs_definition;
+  char *msg;
+  int code;
+  int offset;
+  int step;
+  int array_count;
+  int local_size;
+  int local_step;
+  unsigned int v4;
+  unsigned int v8_lo, v8_hi;
+
+  if (def[3] != 0x62797377) {
+    msg = csprintf((char *)0x5ab100,
+                   "got bs data with bad signature (assuming name is wrong)",
+                   "c:\\halo\\SOURCE\\memory\\byte_swapping.c", 0xb0, 0);
+    display_assert(msg, 0, 0, 0);
+    if (def[3] != 0x62797377) {
+      msg = csprintf((char *)0x5ab100, "%s bs data has bad signature", *(char **)def,
+                     "c:\\halo\\SOURCE\\memory\\byte_swapping.c", 0xb2, 1);
+      display_assert(msg, 0, 0, 0);
+      system_exit(-1);
+    }
+  }
+
+  if (codes[0] != -100) {
+    msg = csprintf((char *)0x5ab100,
+                   "%s bs data @%p.#0 has bad start #%d",
+                   *(char **)def, codes, *(int *)def[2],
+                   "c:\\halo\\SOURCE\\memory\\byte_swapping.c", 0xb7, 1);
+    display_assert(msg, 0, 0, 0);
+    system_exit(-1);
+  }
+
+  array_count = codes[1];
+  if (array_count < 0) {
+    msg = csprintf((char *)0x5ab100,
+                   "%s bs data @%p.#1 has invalid array size #%d",
+                   *(char **)def, codes, array_count,
+                   "c:\\halo\\SOURCE\\memory\\byte_swapping.c", 0xbd, 1);
+    display_assert(msg, 0, 0, 0);
+    system_exit(-1);
+  }
+
+  offset = 0;
+  if (array_count < 1)
+    goto done;
+
+  do {
+    step = 2;
+    for (;;) {
+      code = codes[step];
+      switch (code) {
+      case -2:
+        if (data_ptr != 0) {
+          unsigned short w = *(unsigned short *)(offset + data_ptr);
+          *(unsigned short *)(offset + data_ptr) =
+              (unsigned short)((w >> 8) | (w << 8));
+        }
+        step = step + 1;
+        offset = offset + 2;
+        break;
+
+      case -4:
+        if (data_ptr != 0) {
+          v4 = *(unsigned int *)(offset + data_ptr);
+          *(unsigned int *)(offset + data_ptr) =
+              (((v4 & 0xff0000) | (v4 >> 16)) >> 8) |
+              (((v4 << 16) | (v4 & 0xff00)) << 8);
+        }
+        step = step + 1;
+        offset = offset + 4;
+        break;
+
+      case -8:
+        if (data_ptr != 0) {
+          v8_lo = *(unsigned int *)(offset + data_ptr);
+          v8_hi = *(unsigned int *)(offset + data_ptr + 4);
+          *(unsigned int *)(offset + data_ptr) =
+              (((v8_hi >> 16) | (((v8_hi & 0xff0000) >> 16) | (v8_hi & 0xff00)) << 16) >> 8) |
+              (v8_hi << 24);
+          *(unsigned int *)(offset + data_ptr + 4) =
+              (((v8_lo << 16) | (((v8_lo & 0xff00) << 16) | (v8_lo & 0xff0000)) >> 16) << 8) |
+              (v8_lo >> 24);
+        }
+        step = step + 1;
+        offset = offset + 8;
+        break;
+
+      case -100: {
+        int sub_data;
+        if (data_ptr == 0)
+          sub_data = 0;
+        else
+          sub_data = offset + data_ptr;
+        FUN_001187f0(bs_definition, sub_data, codes + step, &local_size,
+                     &local_step);
+        step = step + local_step;
+        offset = offset + local_size;
+        break;
+      }
+
+      case -102: {
+        int ref_def = codes[step + 1];
+        int sub_data;
+        if (data_ptr == 0)
+          sub_data = 0;
+        else
+          sub_data = offset + data_ptr;
+        FUN_001187f0((void *)ref_def, sub_data, *(int **)(ref_def + 8),
+                     &local_size, 0);
+        step = step + 2;
+        offset = offset + local_size;
+        break;
+      }
+
+      case -101:
+        goto next_iteration;
+
+      default:
+        if (code < 1) {
+          msg = csprintf((char *)0x5ab100,
+                         "%s bs @%p.#%d has invalid code #%d",
+                         *(char **)def, codes, step, code,
+                         "c:\\halo\\SOURCE\\memory\\byte_swapping.c", 0x129, 1);
+          display_assert(msg, 0, 0, 0);
+          system_exit(-1);
+        } else {
+          step = step + 1;
+          offset = offset + code;
+        }
+        break;
+      }
+    }
+  next_iteration:
+    step = step + 1;
+    array_count = array_count - 1;
+  } while (array_count != 0);
+
+done:
+  if (out_size != 0)
+    *out_size = offset;
+  if (out_step != 0)
+    *out_step = step;
+}
+
 /* Compute the byte size described by a byte-swap definition by walking
  * the code array with null data. Returns the computed size.
  * 0x118ba0 / circular_queue.obj (byte_swapping.c) */

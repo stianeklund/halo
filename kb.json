@@ -32966,7 +32966,8 @@
         },
         {
           "addr": "0x1187f0",
-          "decl": "void FUN_001187f0(void *bs_definition, int data_ptr, int *codes, int *out_size, int *out_step);"
+          "decl": "void FUN_001187f0(void *bs_definition, int data_ptr, int *codes, int *out_size, int *out_step);",
+          "ported": true
         },
         {
           "addr": "0x118ba0",
