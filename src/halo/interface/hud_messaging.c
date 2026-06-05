@@ -832,6 +832,22 @@ void FUN_000d6520(int param_1, int param_2)
   }
 }
 
+/* FUN_000d7080 (0xd7080)
+ * Iterate all local players and update nav point rendering. */
+void FUN_000d7080(void)
+{
+  int result;
+  short sVar;
+
+  result = (int)local_player_get_next(-1);
+  sVar = (short)result;
+  while (sVar != -1) {
+    FUN_000d6e50(result);
+    result = (int)local_player_get_next((short)result);
+    sVar = (short)result;
+  }
+}
+
 /* unit_hud_initialize (0xd72f0)
  * Allocates the unit HUD interface globals buffer. */
 void FUN_000d72f0(void)
