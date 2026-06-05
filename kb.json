@@ -5574,11 +5574,12 @@
         {
           "addr": "0x11e3c0",
           "decl": "int memory_pool_get_contiguous_free_size(void *pool);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x11e400",
-          "decl": "void FUN_0011e400(void);"
+          "decl": "unsigned int FUN_0011e400(void *pool @<eax>, int size);",
+          "ported": true
         },
         {
           "addr": "0x11e650",
@@ -5592,7 +5593,8 @@
         },
         {
           "addr": "0x11e840",
-          "decl": "void memory_pool_compact(void *pool);"
+          "decl": "void memory_pool_compact(void *pool);",
+          "ported": true
         },
         {
           "addr": "0x11e8a0",
