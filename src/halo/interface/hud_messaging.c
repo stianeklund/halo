@@ -988,3 +988,17 @@ void FUN_000d7530(char param_1)
   *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
     *(unsigned int *)(*(int *)0x46bd20 + 0x160) & 0xffffffdf;
 }
+
+/* FUN_000d7cd0 (0xd7cd0)
+ * Subtract damage amount from a player's HUD damage indicator. */
+void FUN_000d7cd0(int player_handle, float param_2)
+{
+  int player;
+  float *pfVar2;
+
+  player = (int)datum_get(*(data_t **)0x5aa6d4, player_handle);
+  if (*(short *)(player + 2) != -1) {
+    pfVar2 = (float *)FUN_000d7280(*(short *)(player + 2));
+    *pfVar2 = *pfVar2 - param_2;
+  }
+}
