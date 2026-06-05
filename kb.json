@@ -12045,15 +12045,21 @@
         },
         {
           "addr": "0xd5ec0",
-          "decl": "void FUN_000d5ec0(void);"
+          "decl": "int hud_find_nav_point_by_name(const char *param_1);",
+          "name": "hud_find_nav_point_by_name",
+          "ported": true
         },
         {
           "addr": "0xd5f40",
-          "decl": "void FUN_000d5f40(void);"
+          "decl": "int hud_get_nav_point_data(short param_1);",
+          "name": "hud_get_nav_point_data",
+          "ported": true
         },
         {
           "addr": "0xd5fb0",
-          "decl": "void FUN_000d5fb0(void);"
+          "decl": "void hud_nav_points_initialize(void);",
+          "name": "hud_nav_points_initialize",
+          "ported": true
         },
         {
           "decl": "void hud_messaging_initialize_for_new_map(void);",
