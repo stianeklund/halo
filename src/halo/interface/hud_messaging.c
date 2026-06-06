@@ -385,14 +385,16 @@ void scripted_hud_set_objective(short param_1)
 void scripted_hud_set_timer_time(short param_1, short param_2)
 {
   int base;
+  int tick;
   short sVar;
 
   base = *(int *)0x46bd18;
   *(short *)(base + 0x119c) = (param_1 * 0x3c + param_2) * 0x1e;
   *(unsigned char *)(base + 0x11a6) = 0;
   *(unsigned char *)(base + 0x11a7) = 1;
-  *(int *)(base + 0x1198) = game_time_get();
+  tick = game_time_get();
   base = *(int *)0x46bd18;
+  *(int *)(base + 0x1198) = tick;
   sVar = *(short *)(base + 0x11a4);
   if (sVar < 0) {
     *(short *)(base + 0x11a4) = 0;
@@ -420,7 +422,7 @@ void scripted_hud_set_timer_position(short param_1, short param_2,
   int base;
 
   base = *(int *)0x46bd18;
-  *(short *)(*(int *)0x46bd18 + 0x11a0) = param_1;
+  *(short *)(base + 0x11a0) = param_1;
   *(short *)(base + 0x11a2) = param_2;
   if (param_3 < 0) {
     *(short *)(base + 0x11a4) = 0;
@@ -445,24 +447,18 @@ void scripted_hud_show_timer(unsigned char param_1)
 void scripted_hud_pause_timer(char param_1)
 {
   int base;
-  short *timer_start;
-  short *timer_remaining;
   short now;
 
   base = *(int *)0x46bd18;
-  timer_start = (short *)(*(int *)0x46bd18 + 0x1198);
-  timer_remaining = (short *)(*(int *)0x46bd18 + 0x119c);
-  *(char *)(*(int *)0x46bd18 + 0x11a6) = param_1;
-  if (*timer_remaining > 0) {
+  *(char *)(base + 0x11a6) = param_1;
+  if (*(short *)(base + 0x119c) > 0) {
     if (param_1 != '\0') {
       now = (short)game_time_get();
-      timer_remaining = (short *)(base + 0x119c);
-      *timer_remaining = *timer_remaining + (*timer_start - now);
+      *(short *)(base + 0x119c) += *(short *)(base + 0x1198) - now;
       return;
     }
     now = (short)game_time_get();
-    timer_remaining = (short *)(base + 0x119c);
-    *timer_remaining = *timer_remaining + (now - *timer_start);
+    *(short *)(base + 0x119c) += now - *(short *)(base + 0x1198);
   }
 }
 
@@ -471,20 +467,18 @@ void scripted_hud_pause_timer(char param_1)
 short scripted_hud_get_timer_ticks(void)
 {
   int base;
-  short *timer_start;
   short result;
 
   base = *(int *)0x46bd18;
-  timer_start = (short *)(*(int *)0x46bd18 + 0x1198);
   result = 0;
-  if (*(char *)(*(int *)0x46bd18 + 0x11a7) != '\0') {
-    result = *(short *)(*(int *)0x46bd18 + 0x119c);
+  if (*(char *)(base + 0x11a7) != '\0') {
+    result = *(short *)(base + 0x119c);
     if (result == -1) {
       return -1;
     }
-    if (*(char *)(*(int *)0x46bd18 + 0x11a6) == '\0') {
+    if (*(char *)(base + 0x11a6) == '\0') {
       result = (short)game_time_get();
-      result = (*(short *)(base + 0x119c) + *timer_start) - result;
+      result = (*(short *)(base + 0x119c) + *(short *)(base + 0x1198)) - result;
     }
   }
   return result;
@@ -521,9 +515,12 @@ void scripted_hud_time_code_start(char param_1)
  * Reset the loading timer start to current tick. */
 void scripted_hud_time_code_reset(void)
 {
-  *(int *)0x2f66e4 = game_time_get();
+  int tick;
+
+  tick = game_time_get();
+  *(int *)0x2f66e4 = tick;
   if (*(int *)0x2f66e8 != -1) {
-    *(int *)0x2f66e8 = *(int *)0x2f66e4;
+    *(int *)0x2f66e8 = tick;
   }
 }
 
@@ -668,21 +665,18 @@ void hud_render_timer(void)
  * Toggle help text display state for a player. */
 void FUN_000d4f00(short param_1, char param_2)
 {
-  int iVar1;
-  int iVar2;
+  int base;
 
-  iVar1 = param_1 * 0x460;
-  iVar2 = iVar1 + *(int *)0x46bd18;
-  *(unsigned char *)(iVar2 + 0x45e) =
-    *(unsigned char *)(iVar1 + 0x45e + *(int *)0x46bd18) |
-    (*(char *)(iVar1 + 0x458 + *(int *)0x46bd18) != param_2);
-  *(char *)(iVar2 + 0x458) = param_2;
-  *(int *)(iVar2 + 0x454) = 0;
+  base = param_1 * 0x460 + *(int *)0x46bd18;
+  *(unsigned char *)(base + 0x45e) =
+      *(unsigned char *)(base + 0x45e) | (*(char *)(base + 0x458) != param_2);
+  *(char *)(base + 0x458) = param_2;
+  *(int *)(base + 0x454) = 0;
   if (param_2 != '\0') {
-    *(int *)(iVar2 + 0x454) = 0;
-    ustrncpy((wchar_t *)(iVar2 + 0x230), (wchar_t *)0x26cdf0, 0xff);
+    *(int *)(base + 0x454) = 0;
+    ustrncpy((wchar_t *)(base + 0x230), (wchar_t *)0x26cdf0, 0xff);
   }
-  *(char *)(iVar2 + 0x45f) = param_2;
+  *(char *)(base + 0x45f) = param_2;
 }
 
 /* FUN_000d4f70 (0xd4f70)
@@ -764,11 +758,10 @@ void hud_set_state_message_icon(short param_1, short param_2, int param_3)
   int iVar1;
 
   iVar1 = param_1 * 0x460 + *(int *)0x46bd18;
-  if (*(char *)(param_1 * 0x460 + 0x458 + *(int *)0x46bd18) != '\0' &&
+  if (*(char *)(iVar1 + 0x458) != '\0' &&
       *(char *)(*(int *)0x46bd10 + 1) == '\0' && *(int *)(iVar1 + 0x454) != 0) {
     *(int *)(iVar1 + 0x434 + param_2 * 4) = param_3;
-    *(unsigned char *)(iVar1 + 0x459) = *(unsigned char *)(iVar1 + 0x459) &
-                                        ~(1 << ((unsigned char)param_2 & 0x1f));
+    *(unsigned char *)(iVar1 + 0x459) &= (unsigned char)~(1 << (unsigned char)param_2);
   }
 }
 
@@ -780,12 +773,11 @@ void hud_set_state_message_text(short param_1, short param_2, short param_3,
   int iVar1;
 
   iVar1 = param_1 * 0x460 + *(int *)0x46bd18;
-  if (*(char *)(param_1 * 0x460 + 0x458 + *(int *)0x46bd18) != '\0' &&
+  if (*(char *)(iVar1 + 0x458) != '\0' &&
       *(char *)(*(int *)0x46bd10 + 1) == '\0' && *(int *)(iVar1 + 0x454) != 0) {
     *(short *)(iVar1 + 0x434 + param_2 * 4) = param_3;
     *(unsigned char *)(iVar1 + 0x436 + param_2 * 4) = param_4;
-    *(unsigned char *)(iVar1 + 0x459) = *(unsigned char *)(iVar1 + 0x459) |
-                                        (1 << ((unsigned char)param_2 & 0x1f));
+    *(unsigned char *)(iVar1 + 0x459) |= (unsigned char)(1 << (unsigned char)param_2);
   }
 }
 
@@ -2122,6 +2114,8 @@ void FUN_000d6e50(int param_1)
   float target_pos[3];
   int local_18;
   short sVar;
+  int obj_handle;
+  char vis;
 
   local_18 = FUN_000d1540();
   csmemset(local_234, 0x62, 0x200);
@@ -2137,7 +2131,7 @@ void FUN_000d6e50(int param_1)
   puVar6 = (unsigned short *)(nav_data + 2);
   loop_count = 4;
   do {
-    int obj_handle = -1;
+    obj_handle = -1;
     if (puVar6[-1] == 0xffff || *(int *)(puVar6 + 3) == -1 ||
         (*puVar6 & 0xf) == 0xf) {
       *(unsigned char *)puVar6 = *(unsigned char *)puVar6 | 0xf;
@@ -2169,8 +2163,7 @@ void FUN_000d6e50(int param_1)
       }
       target_pos[2] = target_pos[2] + *(float *)(puVar6 + 1);
       {
-        char vis =
-          (char)FUN_000d6550(param_1, local_28, target_pos, obj_handle);
+        vis = (char)FUN_000d6550(param_1, local_28, target_pos, obj_handle);
         *puVar6 = *puVar6 ^
                   (((unsigned char)(vis << 4) ^ (unsigned char)*puVar6) & 0xf0);
       }
