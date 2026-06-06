@@ -32,6 +32,53 @@ void FUN_000d4470(char param_1, short *src_rect, short *dst_rect, void *text)
   *dst_rect = *src_rect;
 }
 
+/* hud_draw_icon_sprite (0xd44f0)
+ * Look up a bitmap element and draw it as a sprite.
+ * ABI: @esi=element, @ebx=cursor */
+void FUN_000d44f0(int cursor, short *element, int param_1, int param_2)
+{
+  int iVar4;
+  short sVar2;
+  int local_14;
+  short local_10[2];
+  int local_c;
+  int local_8;
+
+  iVar4 = 0;
+  local_c = 0;
+  local_14 = 0;
+  if (*(char *)((int)element + 12) != '\0') {
+    iVar4 = game_time_get();
+    iVar4 = iVar4 / (int)*(char *)((int)element + 12);
+  }
+  FUN_000d16a0(*(int *)(*(int *)0x46bd0c + 0xb0), *element, iVar4, &local_c,
+               &local_14);
+  if (local_c != 0 &&
+      (int)xbox_texture_cache_get_hardware_format((void *)local_c, 0, 1) != 0) {
+    sVar2 = local_player_count();
+    local_8 = 0x3f400000;
+    if (sVar2 < 2) {
+      local_8 = 0x3f800000;
+    }
+    local_10[0] = (short)*(int *)(cursor + 2);
+    local_10[1] = (short)element[3];
+    if ((*(unsigned char *)((int)element + 0xd) & 2) != 0) {
+      param_2 = *(int *)(element + 4);
+    }
+    FUN_000d3200(local_c, 2, local_10, local_14, *(float *)&local_8, 0,
+                 param_2, 0);
+    if ((*(unsigned char *)((int)element + 0xd) & 4) != 0) {
+      *(short *)(cursor + 2) = (short)local_10[0];
+      return;
+    }
+    if (local_14 != 0) {
+      *(short *)(cursor + 2) = (short)local_10[0];
+      return;
+    }
+    *(short *)(cursor + 2) = (short)local_10[0];
+  }
+}
+
 /* HUD message display system. */
 
 /* hud_messaging_initialize (0xd4680)
