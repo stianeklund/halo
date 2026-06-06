@@ -1460,6 +1460,87 @@ void FUN_000d7780(short old_player, short new_player)
   csmemcpy(dst, src, 0x58);
 }
 
+/* hud_render_damage_indicators (0xd7a20)
+ * Render motion sensor direction indicators for incoming damage. */
+void FUN_000d7a20(int param_1)
+{
+  int iVar3;
+  int iVar5;
+  int iVar6;
+  float fVar7;
+  short sVar2;
+  unsigned char local_18[4];
+  int local_14;
+  short local_10[2];
+  int local_c;
+  int local_8;
+
+  if ((short)param_1 == -1) {
+    return;
+  }
+  iVar3 = local_player_get_player_index(param_1);
+  if (iVar3 == -1) {
+    iVar3 = 0;
+  } else {
+    iVar3 = local_player_get_player_index(param_1);
+    iVar3 = (int)datum_get(*(data_t **)0x5aa6d4, iVar3);
+    iVar3 = *(int *)(iVar3 + 0x34);
+  }
+  iVar5 = (int)object_try_and_get_and_verify_type(iVar3, 3);
+  if (iVar5 == 0) {
+    player_effect_clear_damage_indicators(param_1);
+    return;
+  }
+  iVar3 = *(int *)0x46bd0c;
+  sVar2 = local_player_count();
+  fVar7 = FUN_000d1690(1 < sVar2);
+  player_effect_get_damage_indicators(param_1, local_18);
+  local_14 = 4;
+  iVar5 = 0;
+  do {
+    if (local_18[iVar5] != 0 && local_18[iVar5] < 0x1e) {
+      switch (iVar5) {
+      case 0:
+        param_1 = 0x40490fdb;
+        break;
+      case 1:
+        param_1 = 0x3fc90fdb;
+        break;
+      case 2:
+        param_1 = 0;
+        break;
+      case 3:
+        param_1 = 0x4096cbe4;
+        break;
+      default:
+        display_assert("!\"unreachable\"",
+                       "c:\\halo\\SOURCE\\interface\\hud_unit.c", 0x400, 1);
+        system_exit(-1);
+      }
+      iVar6 = *(int *)(iVar3 + 0x344);
+      sVar2 = local_player_count();
+      if (sVar2 < 2) {
+        sVar2 = *(short *)(iVar3 + 0x348);
+      } else {
+        sVar2 = *(short *)(iVar3 + 0x34a);
+      }
+      local_8 = 0;
+      local_c = 0;
+      FUN_000d16a0(iVar6, sVar2, 0, &local_8, &local_c);
+      if (local_8 != 0 &&
+          (int)xbox_texture_cache_get_hardware_format((void *)local_8, 0, 1) !=
+              0) {
+        local_10[0] = (short)fVar7;
+        local_10[1] = (short)fVar7;
+        FUN_000d3200(local_8, 4, local_10, local_c, fVar7,
+                     *(float *)&param_1, *(int *)(iVar3 + 0x34c), 0);
+      }
+    }
+    iVar5 = iVar5 + 1;
+    local_14 = local_14 - 1;
+  } while (local_14 != 0);
+}
+
 /* FUN_000d7cd0 (0xd7cd0)
  * Subtract damage amount from a player's HUD damage indicator. */
 void FUN_000d7cd0(int player_handle, float param_2)
