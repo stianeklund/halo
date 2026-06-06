@@ -567,11 +567,13 @@ void hud_render_timer(void)
     local_c = 0;
     local_10 = (int)scripted_hud_get_timer_ticks();
     local_68 = *(int *)(iVar10 + 0x11a0);
-    local_28 = 2;
-    local_26 = 4;
-    local_27 = 1;
-    local_64 = 1.0f;
-    local_60 = 1.0f;
+    *(volatile char *)&local_28 = 2;
+    *(volatile char *)&local_26 = 4;
+    *(volatile char *)&local_27 = 1;
+    *(volatile float *)&local_64 = 1.0f;
+    *(volatile float *)&local_60 = 1.0f;
+    (void)local_8e_tail;
+    (void)pad_21;
     iVar6 = interface_get_tag_index(0xb);
     if (iVar6 != -1) {
       iVar6 = (int)tag_get(0x68756423, iVar6);
@@ -597,23 +599,7 @@ void hud_render_timer(void)
       system_exit(-1);
     }
     iVar6 = 8;
-    if ((short)local_10 <= 0) {
-      iVar8 = *piVar7;
-      *(short *)(iVar10 + 0x119c) = (short)-1;
-      puVar9 = (int *)(*(int *)0x46bd0c + 0x380);
-      puVar11 = local_48;
-      for (; iVar6 != 0; iVar6 = iVar6 - 1) {
-        *puVar11 = *puVar9;
-        puVar9 = puVar9 + 1;
-        puVar11 = puVar11 + 1;
-      }
-      local_c = 1;
-      if (iVar8 == -1) {
-        *piVar7 = game_time_get();
-      }
-      uVar1 = (short)local_10;
-      iVar6 = local_c;
-    } else {
+    if ((short)local_10 > 0) {
       uVar1 = (short)local_10;
       puVar9 = (int *)(*(int *)0x46bd0c + 0x360);
       puVar11 = local_48;
@@ -631,6 +617,22 @@ void hud_render_timer(void)
           *piVar7 = ((int)sVar2 - (int)(short)uVar1) + local_8;
         }
       }
+    } else {
+      iVar8 = *piVar7;
+      *(short *)(iVar10 + 0x119c) = (short)-1;
+      puVar9 = (int *)(*(int *)0x46bd0c + 0x380);
+      puVar11 = local_48;
+      for (; iVar6 != 0; iVar6 = iVar6 - 1) {
+        *puVar11 = *puVar9;
+        puVar9 = puVar9 + 1;
+        puVar11 = puVar11 + 1;
+      }
+      local_c = 1;
+      if (iVar8 == -1) {
+        *piVar7 = game_time_get();
+      }
+      uVar1 = (short)local_10;
+      iVar6 = local_c;
     }
     iVar10 = (int)(short)(uVar1 & ((short)uVar1 < 1) - 1);
     local_8 = iVar10;
@@ -993,6 +995,475 @@ void FUN_000d52e0(int actor_handle, wchar_t *message)
   }
 }
 
+/* FUN_000d5350 (0xd5350)
+ * Main HUD messaging renderer. Draws objectives, state messages, and custom
+ * text elements for a single local player. Handles three message sources:
+ * objective messages, state messages, and per-slot queued messages (vehicle
+ * notifications, pickups, etc). */
+void FUN_000d5350(int param_1)
+{
+  char cVar1;
+  short sVar2;
+  int uVar7;
+  int font_tag_data;
+  char *pcVar9;
+  int *piVar10;
+  int iVar12;
+  short *psVar13;
+  short *local_38_p;
+  int iVar16;
+  int slot_base;
+  int hmt_tag;
+  int message_ptr;
+  int game_ticks;
+  unsigned int font_height;
+  int max_slots;
+  int font_index;
+  short sVar15;
+  short local_64;
+  int local_62_dw;
+  float color[4];
+  uint32_t packed_color;
+  int local_30_dw;
+  int local_2c;
+  char show_objective;
+  char show_state;
+  char show_custom;
+  char is_splitscreen;
+  short rect_a[4];
+  short rect_b[4];
+  int msg_slot_idx;
+  unsigned char prefs[24];
+  short bounds_a[4];
+  short bounds_b[4];
+  short bounds_c[4];
+  float icon_color[4];
+  wchar_t format_buf[256];
+
+  cVar1 = cinematic_in_progress();
+  if (cVar1 != '\0') {
+    return;
+  }
+  if ((short)param_1 == -1) {
+    return;
+  }
+  uVar7 = local_player_get_player_index((short)param_1);
+  cVar1 = FUN_000ab230(uVar7);
+  if (cVar1 == '\0') {
+    return;
+  }
+
+  sVar2 = local_player_count();
+  if (sVar2 < 2 || (font_index = *(int *)(*(int *)0x5aa68c + 0x64), font_index == -1)) {
+    font_index = *(int *)(*(int *)0x5aa68c + 0x54);
+  }
+  sVar2 = local_player_count();
+  is_splitscreen = 1 < sVar2;
+
+  {
+    short sVar3;
+    sVar3 = local_player_count();
+    FUN_000d1f40((short)param_1, (short *)(*(int *)0x5aa68c + 0x24),
+                 *(int *)0x5aa68c, 0, 1 < sVar3, 0, &local_64);
+  }
+  local_62_dw = *(int *)((char *)&local_64 + 2);
+
+  font_tag_data = (int)tag_get(0x666f6e74, font_index);
+  if (is_splitscreen) {
+    font_height = (unsigned int)(unsigned short)(
+        *(short *)(font_tag_data + 8) + *(short *)(font_tag_data + 4));
+    local_62_dw = local_62_dw - *(int *)0x2f66ec;
+  } else {
+    font_height = (unsigned int)(unsigned short)(
+        *(short *)(font_tag_data + 8) + *(short *)(font_tag_data + 6) +
+        *(short *)(font_tag_data + 4));
+  }
+  sVar15 = (short)local_62_dw;
+
+  slot_base = (int)(short)*(int *)0x506548 * 0x460 + *(int *)0x46bd18;
+  {
+    short sVar3;
+    sVar3 = local_player_count();
+    max_slots = 4 - (int)(1 < sVar3);
+  }
+
+  if (*(int *)(*(int *)0x46bd18 + 0x1190) == 0 ||
+      (show_objective = '\x01', *(short *)(*(int *)0x46bd18 + 0x1194) == 0)) {
+    show_objective = '\0';
+  }
+  if (*(char *)(*(int *)0x46bd10 + 1) == '\0' ||
+      (show_state = '\x01', *(int *)(*(int *)0x46bd18 + 0x118c) == 0)) {
+    show_state = '\0';
+  }
+  if (*(char *)(slot_base + 0x458) == '\0' ||
+      (*(int *)(slot_base + 0x454) == 0 && *(short *)(slot_base + 0x230) == 0)) {
+    show_custom = '\0';
+  } else {
+    show_custom = '\x01';
+  }
+
+  if (show_objective != '\0' || show_state != '\0' || show_custom != '\0') {
+    local_38_p = (short *)(slot_base + 0x230);
+    input_abstraction_get_local_player_preferences((short)param_1, prefs);
+    cVar1 = show_objective;
+    iVar16 = *(int *)0x46bd0c;
+
+    if (show_objective == '\0') {
+      if (show_state == '\0') {
+        color[0] = *(float *)(*(int *)0x5aa68c + 0x70);
+        color[1] = *(float *)(*(int *)0x5aa68c + 0x74);
+        color[2] = *(float *)(*(int *)0x5aa68c + 0x78);
+        color[3] = *(float *)(*(int *)0x5aa68c + 0x7c);
+        packed_color = FUN_000d1c90(color);
+      } else {
+        if (*(char *)(*(int *)0x46bd18 + 0x1184) == '\0') {
+          if ((*(unsigned char *)(*(int *)0x46bd0c + 0xe2) & 1) == 0) {
+            packed_color = *(uint32_t *)(*(int *)0x46bd0c + 0xd0);
+          } else {
+            packed_color = *(uint32_t *)(*(int *)0x46bd0c + 0xd4);
+          }
+        } else {
+          packed_color = (uint32_t)FUN_000d2320(*(int *)0x46bd0c + 0xd0,
+              *(int *)(*(int *)0x46bd18 + 0x1180));
+        }
+        pixel32_to_real_argb_color(packed_color, color);
+      }
+    } else {
+      iVar12 = *(int *)0x46bd0c + 0x100;
+      iVar16 = game_time_get();
+      packed_color = (uint32_t)FUN_000d2320(iVar12,
+          iVar16 + (((int)*(short *)(*(int *)0x46bd18 + 0x1194) -
+                     (int)*(short *)(iVar12 + 0x1c)) -
+                    (int)*(short *)(iVar12 + 0x1e)));
+      pixel32_to_real_argb_color(packed_color, color);
+      local_2c = (int)*(short *)(iVar12 + 0x1e);
+      {
+        float fade;
+        fade = (float)(int)*(short *)(*(int *)0x46bd18 + 0x1194) / (float)local_2c;
+        if (1.0f < fade) {
+          fade = 1.0f;
+        }
+        color[0] = fade * color[0];
+      }
+      packed_color = FUN_000d1c90(color);
+    }
+
+    rect_a[3] = *(short *)0x50658a - *(short *)0x50657e;
+    rect_a[1] = local_64;
+    rect_a[0] = sVar15;
+    if (*(char *)(*(int *)0x46bd10 + 1) != '\0') {
+      rect_a[0] = sVar15 + (short)font_height * 4;
+    }
+    rect_a[2] = (short)font_height + rect_a[0];
+    *(int *)&rect_b[0] = *(int *)&rect_a[0];
+    *(int *)&rect_b[2] = *(int *)&rect_a[2];
+
+    draw_string_set_font(font_index, -1, 0, 0, color);
+
+    if (cVar1 == '\0') {
+      if (show_state != '\0') {
+        iVar16 = (int)global_scenario_get();
+        hmt_tag = (int)tag_get(0x686d7420, *(int *)(iVar16 + 0x5a0));
+        message_ptr = *(int *)(*(int *)0x46bd18 + 0x118c);
+        goto LAB_000d57ad;
+      }
+      if (*(int *)(slot_base + 0x454) != 0) {
+        if (show_custom == '\0') {
+          display_assert("show_state_message",
+              "c:\\halo\\SOURCE\\interface\\hud_messaging.c", 0x42a, 1);
+          system_exit(-1);
+        }
+        hmt_tag = (int)tag_get(0x686d7420, *(int *)(*(int *)0x46bd0c + 0xfc));
+        message_ptr = *(int *)(slot_base + 0x454);
+        goto LAB_000d57ad;
+      }
+      if (*local_38_p != 0) {
+        FUN_000d4470(1, rect_b, rect_a, (void *)local_38_p);
+      }
+    } else {
+      if (*(int *)(*(int *)0x46bd18 + 0x1190) == 0 ||
+          *(short *)(*(int *)0x46bd18 + 0x1194) == 0) {
+        display_assert(
+            "hud_messaging_globals->objective.message && hud_messaging_globals->objective.uptime",
+            "c:\\halo\\SOURCE\\interface\\hud_messaging.c", 0x41e, 1);
+        system_exit(-1);
+      }
+      {
+        short elapsed;
+        int remaining;
+        psVar13 = (short *)(*(int *)0x46bd18 + 0x1194);
+        elapsed = game_time_get_elapsed();
+        remaining = (int)*psVar13 - (int)elapsed;
+        if (remaining <= 0) {
+          elapsed = 0;
+        } else {
+          psVar13 = (short *)(*(int *)0x46bd18 + 0x1194);
+          elapsed = game_time_get_elapsed();
+          elapsed = *psVar13 - elapsed;
+        }
+        *psVar13 = elapsed;
+      }
+      iVar16 = (int)global_scenario_get();
+      hmt_tag = (int)tag_get(0x686d7420, *(int *)(iVar16 + 0x5a0));
+      message_ptr = *(int *)(*(int *)0x46bd18 + 0x1190);
+
+LAB_000d57ad:
+      local_30_dw = (int)(unsigned short)*(unsigned short *)(message_ptr + 0x20);
+      local_2c = 0;
+      if (*(unsigned char *)(message_ptr + 0x24) != 0) {
+        int tag_block_base;
+        iVar16 = 0;
+        tag_block_base = hmt_tag + 0x14;
+        psVar13 = local_38_p;
+        do {
+          pcVar9 = (char *)tag_block_get_element(
+              (void *)tag_block_base,
+              (int)(unsigned short)*(unsigned short *)(message_ptr + 0x22) + iVar16,
+              2);
+          if (*pcVar9 == '\0') {
+            uVar7 = (int)tag_data_get_pointer((void *)hmt_tag,
+                ((unsigned int)(unsigned short)local_30_dw) << 1,
+                (unsigned int)(unsigned char)pcVar9[1] << 1);
+            draw_string_set_indents(
+                *(int *)((char *)rect_b + 2) - *(int *)((char *)rect_a + 2), 0);
+            FUN_0019cdb0(rect_a, (void *)uVar7, bounds_a, rect_b);
+            rect_b[3] = rect_b[3] - 3;
+            bounds_a[1] = rect_a[1];
+            rasterizer_draw_string(bounds_a, 0, 0, 0, (unsigned short *)uVar7);
+            rect_a[0] = rect_b[0];
+            local_30_dw = local_30_dw +
+                (int)(unsigned short)(unsigned char)pcVar9[1];
+          } else if (*pcVar9 == '\x01') {
+            unsigned char bVar1;
+            int icon_idx;
+            bVar1 = (unsigned char)pcVar9[1];
+            icon_idx = -1;
+            if (bVar1 <= 0x11) {
+              icon_idx = (int)(unsigned short)bVar1;
+            } else if (bVar1 <= 0x1f) {
+              if (bVar1 <= 0x1c) {
+                icon_idx = (int)(unsigned short)
+                    prefs[(int)(signed char)((char *)0x2f66c2)[bVar1]];
+              } else {
+                icon_idx = (int)(short)(signed char)((char *)0x2f66c2)[bVar1];
+              }
+            } else {
+              if (*(char *)(*(int *)0x46bd10 + 1) == '\0') {
+                short custom_si;
+                int ci;
+                custom_si = (short)((unsigned short)bVar1 - 0x20);
+                if (custom_si >= 8) {
+                  display_assert("custom_index<NUMBER_OF_HUD_CUSTOM_ICONS",
+                      "c:\\halo\\SOURCE\\interface\\hud_messaging.c", 0x455, 1);
+                  system_exit(-1);
+                }
+                ci = (int)custom_si;
+                if (((unsigned char)(1 << ((unsigned char)custom_si & 0x1f)) &
+                     *(unsigned char *)((char *)psVar13 + 0x229)) == 0) {
+                  if (*(int *)((char *)psVar13 + ci * 4 + 0x204) == 0) {
+                    error(2, "help message using old code. get latest code and tags.");
+                  } else {
+                    FUN_000d44f0((int)rect_b,
+                        (short *)(*(int *)((char *)psVar13 + ci * 4 + 0x204)),
+                        (int)rect_a, (int)packed_color);
+                  }
+                } else {
+                  short icon_ref;
+                  wchar_t *icon_text;
+                  icon_ref = *(short *)((char *)psVar13 + ci * 4 + 0x204);
+                  if (icon_ref == -1) {
+                    icon_text = 0;
+                  } else if (*(char *)((char *)psVar13 + ci * 4 + 0x206) == '\0') {
+                    icon_text = 0;
+                    FUN_0019d420(*(int *)(*(int *)0x46bd0c + 0xc0),
+                        (int)(unsigned short)icon_ref);
+                  } else {
+                    int scenario;
+                    scenario = (int)global_scenario_get();
+                    if (*(int *)(scenario + 0x580) == -1) {
+                      display_assert(
+                          "global_scenario_get()->custom_object_names.index!=NONE",
+                          "c:\\halo\\SOURCE\\interface\\hud_messaging.c", 0x45e, 1);
+                      system_exit(-1);
+                    }
+                    icon_text = 0;
+                    scenario = (int)global_scenario_get();
+                    FUN_0019d420(*(int *)(scenario + 0x580),
+                        (int)(unsigned short)icon_ref);
+                  }
+                  FUN_000d4470((char)(int)(void *)icon_text,
+                      rect_b, rect_a, (void *)psVar13);
+                  psVar13 = local_38_p;
+                }
+                goto LAB_000d5b78;
+              }
+              error(2, "help text cannot use custom icons");
+            }
+            if ((int)(short)icon_idx < *(int *)(*(int *)0x46bd0c + 0xc4)) {
+              short remapped;
+              int icon_element;
+              remapped = remap_sticks_for_local_player((short)icon_idx, param_1);
+              icon_element = (int)tag_block_get_element(
+                  (void *)(*(int *)0x46bd0c + 0xc4), (int)remapped, 0x10);
+              if ((*(unsigned char *)(icon_element + 0xd) & 1) == 0) {
+                FUN_000d44f0((int)rect_b, (short *)icon_element,
+                    (int)rect_a, (int)packed_color);
+              } else {
+                if ((*(unsigned char *)(icon_element + 0xd) & 2) != 0) {
+                  pixel32_to_real_argb_color(packed_color, icon_color);
+                  draw_string_set_font(font_index, -1, 0, 0, icon_color);
+                }
+                uVar7 = (int)FUN_0019d420(*(int *)(*(int *)0x46bd0c + 0xc0),
+                    (int)*(unsigned short *)(icon_element + 0xe));
+                draw_string_set_indents(
+                    *(int *)((char *)rect_b + 2) - *(int *)((char *)rect_a + 2), 0);
+                FUN_0019cdb0(rect_a, (void *)uVar7, bounds_b, rect_b);
+                rect_b[3] = rect_b[3] - 3;
+                bounds_b[1] = rect_a[1];
+                rasterizer_draw_string(bounds_b, 0, 0, 0, (unsigned short *)uVar7);
+                rect_a[0] = rect_b[0];
+                draw_string_set_font(font_index, -1, 0, 0, color);
+              }
+            } else {
+              draw_string_set_indents(
+                  *(int *)((char *)rect_b + 2) - *(int *)((char *)rect_a + 2), 0);
+              FUN_0019cdb0(rect_a, (void *)L"<no button icon>", bounds_c, rect_b);
+              rect_b[3] = rect_b[3] - 3;
+              bounds_c[1] = rect_a[1];
+              rasterizer_draw_string(bounds_c, 0, 0, 0,
+                  (unsigned short *)L"<no button icon>");
+              rect_a[0] = rect_b[0];
+            }
+          } else {
+            display_assert("!\"unreachable\"",
+                "c:\\halo\\SOURCE\\interface\\hud_messaging.c", 0x4a5, 1);
+            system_exit(-1);
+          }
+LAB_000d5b78:
+          local_2c = local_2c + 1;
+          iVar16 = (int)(short)local_2c;
+        } while (iVar16 < (int)(unsigned int)*(unsigned char *)(message_ptr + 0x24));
+      }
+    }
+    draw_string_set_indents(0, 0);
+    iVar16 = *(int *)&rect_b[2];
+    if (show_objective != '\0' || (cVar1 = is_splitscreen, show_state != '\0')) {
+      goto LAB_000d5c20;
+    }
+  }
+
+  if (*(char *)(slot_base + 0x458) != '\0' || *(char *)(slot_base + 0x45e) != '\0') {
+    if (cVar1 != '\0') {
+      local_62_dw = (int)(short)font_height;
+    }
+    {
+      float ftmp;
+      if (is_splitscreen) {
+        int split_y;
+        split_y = (int)(short)local_62_dw - *(int *)0x2f66ec;
+        ftmp = (float)split_y +
+               (float)(int)(short)font_height * *(float *)(*(int *)0x5aa68c + 0x90);
+      } else {
+        ftmp = (float)(int)(short)font_height * *(float *)(*(int *)0x5aa68c + 0x90) +
+               (float)(int)(short)local_62_dw;
+      }
+      iVar16 = (int)ftmp;
+    }
+    max_slots = max_slots - 1;
+  }
+
+LAB_000d5c20:
+  qsort((void *)slot_base, 4, 0x8c,
+      (int (__cdecl *)(const void *, const void *))hud_messaging_slot_compare);
+  msg_slot_idx = 0;
+  if (0 < (short)max_slots) {
+    do {
+      int *piVar14;
+      int slot_offset;
+      float fade_alpha;
+      float uptime_limit;
+      piVar14 = (int *)((short)msg_slot_idx * 0x8c + slot_base);
+      if (*(char *)((short)msg_slot_idx * 0x8c + 0x82 + slot_base) == '\0') {
+        return;
+      }
+      game_ticks = game_time_get();
+      color[0] = *(float *)(*(int *)0x5aa68c + 0x80);
+      color[1] = *(float *)(*(int *)0x5aa68c + 0x84);
+      color[2] = *(float *)(*(int *)0x5aa68c + 0x88);
+      color[3] = *(float *)(*(int *)0x5aa68c + 0x8c);
+      slot_offset = game_ticks - *piVar14;
+      uptime_limit = *(float *)(*(int *)0x5aa68c + 0x68) * 30.0f;
+      if (uptime_limit < (float)slot_offset) {
+        fade_alpha = 1.0f -
+            ((float)slot_offset - uptime_limit) /
+            (*(float *)(*(int *)0x5aa68c + 0x6c) * 30.0f);
+        if (fade_alpha < 0.0f) {
+          fade_alpha = 0.0f;
+        } else if (1.0f < fade_alpha) {
+          fade_alpha = 1.0f;
+        }
+        color[0] = (float)pow((double)fade_alpha, 1.9) * color[0];
+      }
+      rect_b[3] = *(short *)0x50658a - *(short *)0x50657e;
+      rect_b[1] = local_64;
+      rect_b[0] = (short)iVar16;
+      rect_b[2] = (short)font_height + rect_b[0];
+      {
+        float ftmp2;
+        ftmp2 = (float)(int)(short)font_height *
+                *(float *)(*(int *)0x5aa68c + 0x90) +
+                (float)(int)(short)iVar16;
+        iVar16 = (int)ftmp2;
+      }
+      draw_string_set_font(font_index, -1, 0, 0, color);
+      if (piVar14[0x21] == -1) {
+        piVar10 = piVar14 + 1;
+        goto LAB_000d5e5d;
+      } else {
+        char item_variant;
+        int item_tag;
+        item_variant = *(char *)((int)piVar14 + 0x8a);
+        if (item_variant == (char)-1) {
+          item_variant = (char)(1 < (short)piVar14[0x22]);
+        }
+        item_tag = (int)tag_get(0x6974656d, piVar14[0x21]);
+        piVar10 = (int *)hud_get_item_string(
+            (int)(short)(*(short *)(item_tag + 0x180) + (short)item_variant));
+        if ((*(char *)((int)piVar14 + 0x8a) != (char)-1 || item_variant == '\0') &&
+            (short)piVar14[0x22] == 0) {
+          goto LAB_000d5e5d;
+        }
+        {
+          short max_count;
+          max_count = *(short *)(item_tag + 0x188);
+          if (max_count < 2) {
+            max_count = 1;
+          }
+          usprintf(format_buf, (const wchar_t *)piVar10,
+              (int)(short)piVar14[0x22] / (int)max_count);
+          rasterizer_draw_string(rect_b, 0, 0, 0, (unsigned short *)format_buf);
+        }
+      }
+      goto LAB_000d5e65_skip;
+LAB_000d5e5d:
+      rasterizer_draw_string(rect_b, 0, 0, 0, (unsigned short *)piVar10);
+LAB_000d5e65_skip:
+      slot_offset = game_ticks - *piVar14;
+      {
+        char alive;
+        alive = (char)((float)slot_offset <
+            (*(float *)(*(int *)0x5aa68c + 0x6c) +
+             *(float *)(*(int *)0x5aa68c + 0x68)) * 30.0f);
+        *(char *)((int)piVar14 + 0x82) = alive;
+        if (!alive) {
+          *piVar14 = -1;
+        }
+      }
+      msg_slot_idx = msg_slot_idx + 1;
+    } while ((short)msg_slot_idx < (short)max_slots);
+  }
+  return;
+}
 /* hud_find_nav_point_by_name (0xd5ec0)
  * Search the nav point definitions for a matching name, return its index. */
 int hud_find_nav_point_by_name(const char *param_1)
