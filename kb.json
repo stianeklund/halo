@@ -12047,7 +12047,7 @@
         },
         {
           "addr": "0xd5350",
-          "decl": "void FUN_000d5350(void);",
+          "decl": "void FUN_000d5350(int param_1);",
           "ported": true
         },
         {
@@ -12347,7 +12347,7 @@
         },
         {
           "addr": "0xce6c0",
-          "decl": "void input_abstraction_get_local_player_preferences(void);"
+          "decl": "void input_abstraction_get_local_player_preferences(short local_player_index, void *preferences_out);"
         },
         {
           "addr": "0xce740",
@@ -24182,7 +24182,7 @@
         },
         {
           "addr": "0xe4da0",
-          "decl": "void remap_sticks_for_local_player(void);"
+          "decl": "short remap_sticks_for_local_player(short icon_type, int local_player_index);"
         },
         {
           "addr": "0xe4f20",
