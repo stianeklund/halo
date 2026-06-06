@@ -6693,7 +6693,7 @@
         {
           "addr": "0x9ca70",
           "decl": "void effects_information_get(unsigned int *seed, float *velocity_out, uint32_t min_val, uint32_t max_val, uint32_t flags);",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — inlined into FUN_0009e310, cannot be thunked separately",
           "ported": false
         },
         {
@@ -6754,7 +6754,7 @@
         {
           "addr": "0x9dcf0",
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -11771,7 +11771,7 @@
         },
         {
           "addr": "0xd1690",
-          "decl": "float FUN_000d1690(void);",
+          "decl": "float FUN_000d1690(int split_screen);",
           "ported": true,
           "src": "src/halo/interface/hud.c"
         },
@@ -12293,7 +12293,8 @@
         },
         {
           "addr": "0xd7a20",
-          "decl": "void FUN_000d7a20(int param_1);"
+          "decl": "void FUN_000d7a20(int param_1);",
+          "ported": true
         },
         {
           "addr": "0xd7cd0",
@@ -16334,11 +16335,11 @@
         },
         {
           "addr": "0xa2a10",
-          "decl": "void player_effect_get_damage_indicators(void);"
+          "decl": "void player_effect_get_damage_indicators(int player_index, void *out);"
         },
         {
           "addr": "0xa2a70",
-          "decl": "void player_effect_clear_damage_indicators(void);"
+          "decl": "void player_effect_clear_damage_indicators(int player_index);"
         },
         {
           "addr": "0xa2a90",
