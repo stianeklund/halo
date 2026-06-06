@@ -53,6 +53,23 @@ int memory_pool_get_contiguous_free_size(void *pool)
   return *(int *)(p + 0x28) - used;
 }
 
+/* Returns the next allocation point if size bytes can fit after the last block,
+ * 0 otherwise (0x11e400). pool passed in EAX, size on stack. */
+unsigned int FUN_0011e400(void *pool, int size)
+{
+  char *p = (char *)pool;
+  int last_block;
+  unsigned int alloc_point;
+
+  last_block = *(int *)(p + 0x34);
+  if (last_block != 0) {
+    alloc_point = *(int *)(last_block + 4) + last_block;
+  } else {
+    alloc_point = *(unsigned int *)(p + 0x24);
+  }
+  return ~-(unsigned int)(*(unsigned int *)(p + 0x28) + *(unsigned int *)(p + 0x24) < (unsigned int)size + alloc_point) & alloc_point;
+}
+
 /* Validate pool structure and all blocks in the linked list (0x11e430).
  * Checks pool/block signatures, linked list consistency, and address bounds. */
 void FUN_0011e430(void *pool)
@@ -279,6 +296,41 @@ void memory_pool_block_free(void *pool, void **block_reference)
   }
 
   csmemset(block, 0, *(int *)(block + 4));
+}
+
+/* Compact the memory pool by moving blocks down to close gaps (0x11e840).
+ * Walks the linked list and uses csmemmove to shift blocks toward the base. */
+void memory_pool_compact(void *pool)
+{
+  int *p = (int *)pool;
+  unsigned int block;
+  unsigned int dest;
+  unsigned int prev;
+
+  block = (unsigned int)p[0x30 / 4];
+  if (block != 0) {
+    dest = (unsigned int)p[0x24 / 4];
+    prev = 0;
+    do {
+      if (block > dest) {
+        csmemmove((void *)dest, (void *)block, *(int *)(block + 4));
+        **(int **)(dest + 8) = (int)(dest + 0x18);
+        block = dest;
+      }
+      *(unsigned int *)(block + 0x10) = prev;
+      if (prev != 0) {
+        *(unsigned int *)(prev + 0x0c) = block;
+      } else {
+        p[0x30 / 4] = (int)block;
+      }
+      dest = *(int *)(block + 4) + block;
+      prev = block;
+      block = *(unsigned int *)(block + 0x0c);
+    } while (block != 0);
+    *(unsigned int *)(prev + 0x0c) = 0;
+    p[0x34 / 4] = (int)prev;
+  }
+  FUN_0011e430(pool);
 }
 
 /* Resize a block in a memory pool (0x11e8a0).
