@@ -6693,7 +6693,7 @@
         {
           "addr": "0x9ca70",
           "decl": "void effects_information_get(unsigned int *seed, float *velocity_out, uint32_t min_val, uint32_t max_val, uint32_t flags);",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — inlined into FUN_0009e310, cannot be thunked separately",
           "ported": false
         },
         {
@@ -6754,7 +6754,7 @@
         {
           "addr": "0x9dcf0",
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -11844,7 +11844,8 @@
         },
         {
           "addr": "0xd4260",
-          "decl": "void FUN_000d4260(int param_1, int param_2, int param_3, unsigned int param_4, int param_5, unsigned char param_6, int param_7);"
+          "decl": "void FUN_000d4260(int param_1, int param_2, int param_3, unsigned int param_4, int param_5, unsigned char param_6, int param_7);",
+          "ported": true
         },
         {
           "addr": "0xd4470",
@@ -12046,7 +12047,8 @@
         },
         {
           "addr": "0xd5350",
-          "decl": "void FUN_000d5350(void);"
+          "decl": "void FUN_000d5350(void);",
+          "ported": true
         },
         {
           "addr": "0xd5ec0",
@@ -12314,7 +12316,8 @@
         },
         {
           "addr": "0xd7d40",
-          "decl": "void FUN_000d7d40(int param_1);"
+          "decl": "void FUN_000d7d40(int param_1);",
+          "ported": true
         }
       ],
       "name": "hud_messaging.obj",
@@ -32783,7 +32786,8 @@
         },
         {
           "addr": "0x114740",
-          "decl": "void FUN_00114740(unsigned int param_1, int *param_2, int param_3);"
+          "decl": "void FUN_00114740(unsigned int param_1, int *param_2, int param_3);",
+          "ported": true
         },
         {
           "addr": "0x114f60",
@@ -32792,7 +32796,8 @@
         },
         {
           "addr": "0x114fa0",
-          "decl": "int FUN_00114fa0(int param_1, int param_2, int param_3, int param_4, int param_5, int *param_6);"
+          "decl": "int FUN_00114fa0(int param_1, int param_2, int param_3, int param_4, int param_5, int *param_6);",
+          "ported": true
         },
         {
           "addr": "0x1153c0",
@@ -32816,7 +32821,8 @@
         },
         {
           "addr": "0x1155e0",
-          "decl": "int FUN_001155e0(int z, int flush);"
+          "decl": "int FUN_001155e0(int z, int flush);",
+          "ported": true
         },
         {
           "addr": "0x115a00",
@@ -32836,7 +32842,7 @@
         {
           "addr": "0x115ba0",
           "decl": "int FUN_00115ba0(unsigned int *bb@<eax>, int *param_1, unsigned int param_2, unsigned int param_3, int param_4, int param_5, int *param_6, int param_7, unsigned int *param_8, unsigned int *param_9);",
-          "ported": null
+          "ported": true
         },
         {
           "addr": "0x116010",
