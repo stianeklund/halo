@@ -129,7 +129,7 @@ int FUN_001154a0(int z, int w, char *version, int stream_size)
       w = -w;
       *(int *)(*(int *)(z + 0x1c) + adler_fn) = 1;
     }
-    wbits = 1 << ((unsigned char)w & 0x1f);
+    wbits = 1 << (unsigned char)w;
     if (w < 8 || w > 15) {
       FUN_00115430(z);
       return (int)0xfffffffe;
@@ -191,14 +191,14 @@ int FUN_00114fa0(int param_1, int param_2, int param_3, int param_4,
   do {
     for (; uVar11 < 0x14; uVar11 = uVar11 + 8) {
       local_8 = local_8 - 1;
-      uVar12 = uVar12 | (unsigned int)*local_c << ((unsigned char)uVar11 & 0x1f);
+      uVar12 = uVar12 | (unsigned int)*local_c << (unsigned char)uVar11;
       local_c = local_c + 1;
     }
     pbVar7 = (unsigned char *)(param_3 + (uVar8 & uVar12) * 8);
     bVar2 = pbVar7[1];
     bVar3 = *pbVar7;
     uVar5 = (unsigned int)bVar3;
-    uVar12 = uVar12 >> (bVar2 & 0x1f);
+    uVar12 = uVar12 >> bVar2;
     if (uVar5 == 0) {
       goto LAB_001151e9;
     }
@@ -243,7 +243,7 @@ int FUN_00114fa0(int param_1, int param_2, int param_3, int param_4,
       pbVar7 = pbVar7 + iVar6 * 8;
       bVar3 = *pbVar7;
       uVar5 = (unsigned int)bVar3;
-      uVar12 = uVar12 >> (bVar2 & 0x1f);
+      uVar12 = uVar12 >> bVar2;
       if (uVar5 == 0) goto LAB_001151e9;
       uVar11 = uVar11 - pbVar7[1];
     }
@@ -258,11 +258,11 @@ int FUN_00114fa0(int param_1, int param_2, int param_3, int param_4,
     }
     for (; uVar11 < 0xf; uVar11 = uVar11 + 8) {
       local_8 = local_8 - 1;
-      uVar12 = uVar12 | (unsigned int)*local_c << ((unsigned char)uVar11 & 0x1f);
+      uVar12 = uVar12 | (unsigned int)*local_c << (unsigned char)uVar11;
       local_c = local_c + 1;
     }
     pbVar7 = (unsigned char *)(param_4 + (uVar4 & uVar12) * 8);
-    uVar12 = uVar12 >> (pbVar7[1] & 0x1f);
+    uVar12 = uVar12 >> pbVar7[1];
     uVar11 = uVar11 - pbVar7[1];
     bVar3 = *pbVar7;
     while ((bVar3 & 0x10) == 0) {
@@ -286,7 +286,7 @@ int FUN_00114fa0(int param_1, int param_2, int param_3, int param_4,
         unsigned char *pbVar1;
         pbVar1 = pbVar7 + iVar6 * 8 + 1;
         pbVar7 = pbVar7 + iVar6 * 8;
-        uVar12 = uVar12 >> (*pbVar1 & 0x1f);
+        uVar12 = uVar12 >> *pbVar1;
         uVar11 = uVar11 - *pbVar1;
         bVar3 = *pbVar7;
       }
@@ -294,7 +294,7 @@ int FUN_00114fa0(int param_1, int param_2, int param_3, int param_4,
     uVar5 = bVar3 & 0xf;
     for (; uVar11 < uVar5; uVar11 = uVar11 + 8) {
       local_8 = local_8 - 1;
-      uVar12 = uVar12 | (unsigned int)*local_c << ((unsigned char)uVar11 & 0x1f);
+      uVar12 = uVar12 | (unsigned int)*local_c << (unsigned char)uVar11;
       local_c = local_c + 1;
     }
     uVar10 = (*(unsigned int *)(0x320d88 + uVar5 * 4) & uVar12) +
@@ -451,12 +451,12 @@ void FUN_00114740(unsigned int param_1, int *param_2, int param_3)
         }
         n = n - 1;
         (void)r; /* original: r = r */
-        b = b | (unsigned int)*local_c << ((unsigned char)r & 0x1f);
+        b = b | (unsigned int)*local_c << (unsigned char)r;
         local_c = local_c + 1;
       }
       pbVar1 = (unsigned char *)(c[2] +
                 (*(unsigned int *)(0x320d88 + c[3] * 4) & b) * 8);
-      b = b >> (pbVar1[1] & 0x1f);
+      b = b >> pbVar1[1];
       r = r - (unsigned int)pbVar1[1];
       bVar2 = *pbVar1;
       uVar7 = (unsigned int)bVar2;
@@ -500,11 +500,11 @@ void FUN_00114740(unsigned int param_1, int *param_2, int param_3)
         if (n == 0) goto LAB_00114dca;
         n = n - 1;
         (void)r; /* original: r = r */
-        b = b | (unsigned int)*local_c << ((unsigned char)r & 0x1f);
+        b = b | (unsigned int)*local_c << (unsigned char)r;
         local_c = local_c + 1;
       }
       c[1] = c[1] + (*(unsigned int *)(0x320d88 + uVar7 * 4) & b);
-      b = b >> ((unsigned char)uVar7 & 0x1f);
+      b = b >> (unsigned char)uVar7;
       r = r - (int)uVar7;
       c[3] = (unsigned int)*((unsigned char *)c + 0x11);
       c[2] = c[6];
@@ -525,12 +525,12 @@ LAB_00114a43:
         }
         n = n - 1;
         (void)r; /* original: r = r */
-        b = b | (unsigned int)*local_c << ((unsigned char)r & 0x1f);
+        b = b | (unsigned int)*local_c << (unsigned char)r;
         local_c = local_c + 1;
       }
       pbVar1 = (unsigned char *)(c[2] +
                 (*(unsigned int *)(0x320d88 + c[3] * 4) & b) * 8);
-      b = b >> (pbVar1[1] & 0x1f);
+      b = b >> pbVar1[1];
       r = r - (unsigned int)pbVar1[1];
       bVar2 = *pbVar1;
       if ((bVar2 & 0x10) != 0) {
@@ -562,12 +562,12 @@ LAB_00114a43:
         }
         n = n - 1;
         (void)r; /* original: r = r */
-        b = b | (unsigned int)*local_c << ((unsigned char)r & 0x1f);
+        b = b | (unsigned int)*local_c << (unsigned char)r;
         local_c = local_c + 1;
       }
       c[3] = c[3] + (*(unsigned int *)(0x320d88 + uVar7 * 4) & b);
       r = r - (int)uVar7;
-      b = b >> ((unsigned char)uVar7 & 0x1f);
+      b = b >> (unsigned char)uVar7;
       if (*(int *)0x320e30 > 1) {
         crt_fprintf(*(void **)0x331070,
                     "inflate:         distance %u\n", c[3]);
@@ -858,7 +858,7 @@ int FUN_00115ba0(unsigned int *bb, int *param_1, unsigned int param_2,
     local_8 = local_20;
   }
   uVar9 = local_8;
-  iVar12 = 1 << ((unsigned char)uVar11 & 0x1f);
+  iVar12 = 1 << (unsigned char)uVar11;
   *bb = local_8;
 
   /* Check for over-subscribed or incomplete set */
@@ -937,7 +937,7 @@ int FUN_00115ba0(unsigned int *bb, int *param_1, unsigned int param_2,
               uVar11 = uVar9;
             }
             uVar9 = local_c - (unsigned int)iVar14;
-            uVar5 = 1 << ((unsigned char)uVar9 & 0x1f);
+            uVar5 = 1 << (unsigned char)uVar9;
             if (local_88[0x10] < uVar5 &&
                 (iVar6 = (int)uVar5 + (-1 - (int)local_14),
                  puVar2 = local_28, uVar9 < uVar11)) {
@@ -949,7 +949,7 @@ int FUN_00115ba0(unsigned int *bb, int *param_1, unsigned int param_2,
                 puVar2 = puVar2 + 1;
               }
             }
-            local_38 = 1 << ((unsigned char)uVar9 & 0x1f);
+            local_38 = 1 << (unsigned char)uVar9;
             uVar5 = local_38 + *param_8;
             if (0x5a0 < uVar5) {
               return (int)0xfffffffc;
@@ -964,7 +964,7 @@ int FUN_00115ba0(unsigned int *bb, int *param_1, unsigned int param_2,
               *param_6 = iVar6;
             } else {
               local_30 = (local_30 & 0xffffff00) | (unsigned char)uVar9;
-              uVar9 = local_1c >> ((unsigned char)local_24 & 0x1f);
+              uVar9 = local_1c >> (unsigned char)local_24;
               iVar1 = local_40[-1];
               auStack_cc[(int)param_1 + 2] = local_1c;
               local_30 = (local_30 & 0xffff00ff) |
@@ -996,8 +996,8 @@ int FUN_00115ba0(unsigned int *bb, int *param_1, unsigned int param_2,
         local_30 = (local_30 & 0xffff0000) |
                    ((unsigned int)(unsigned char)((char)local_c - bVar13) << 8) |
                    (local_30 & 0xff);
-        iVar12 = 1 << ((char)local_c - bVar13 & 0x1f);
-        uVar9 = uVar11 >> (bVar13 & 0x1f);
+        iVar12 = 1 << ((char)local_c - bVar13);
+        uVar9 = uVar11 >> bVar13;
         if (uVar9 < local_38) {
           puVar10 = (unsigned int *)(local_10 + uVar9 * 8);
           do {
@@ -1009,7 +1009,7 @@ int FUN_00115ba0(unsigned int *bb, int *param_1, unsigned int param_2,
           } while (uVar9 < local_38);
         }
         /* Increment bit-reversal counter */
-        uVar5 = 1 << ((unsigned char)local_34 & 0x1f);
+        uVar5 = 1 << (unsigned char)local_34;
         uVar9 = uVar11 & uVar5;
         while (uVar9 != 0) {
           uVar11 = uVar11 ^ uVar5;
@@ -1022,13 +1022,13 @@ int FUN_00115ba0(unsigned int *bb, int *param_1, unsigned int param_2,
         uVar9 = local_8;
         iVar12 = local_3c;
         /* Back up through table levels if needed */
-        if (((1 << (bVar13 & 0x1f)) - 1u & uVar11) !=
+        if (((1 << bVar13) - 1u & uVar11) !=
             auStack_cc[(int)param_1 + 1]) {
           do {
             iVar14 = iVar14 - (int)local_8;
             puVar2 = auStack_cc + (int)param_1;
             param_1 = (int *)((int)param_1 + -1);
-          } while (((1 << ((unsigned char)iVar14 & 0x1f)) - 1u & uVar11) !=
+          } while (((1 << (unsigned char)iVar14) - 1u & uVar11) !=
                    *puVar2);
         }
       }
@@ -1255,7 +1255,7 @@ int FUN_00115a00(int z, int dictionary, unsigned int dictLength)
     if (adler_check != *(int *)(z + 0x30))
       return (int)0xfffffffd;
     *(int *)(z + 0x30) = 1;
-    wsize = 1 << (*(int *)(*(int *)(z + 0x1c) + 0x10) & 0x1f);
+    wsize = 1 << *(int *)(*(int *)(z + 0x1c) + 0x10);
     if (dictLength >= wsize) {
       n = wsize - 1;
       dictionary = dictionary + (int)(dictLength - n);
@@ -1536,7 +1536,7 @@ void FUN_00116390(int value, int length, int state)
   if (0x10 - length < iVar1) {
     *(unsigned short *)(state + 0x16b8) =
       *(unsigned short *)(state + 0x16b8) |
-      (unsigned short)(value << (iVar1 & 0x1f));
+      (unsigned short)(value << iVar1);
     *(unsigned char *)(*(int *)(state + 8) + *(int *)(state + 0x14)) =
       *(unsigned char *)(state + 0x16b8);
     iVar1 = *(int *)(state + 0x14) + 1;
@@ -1547,13 +1547,13 @@ void FUN_00116390(int value, int length, int state)
     iVar1 = *(int *)(state + 0x16bc);
     *(int *)(state + 0x16bc) = iVar1 + -0x10 + length;
     *(unsigned short *)(state + 0x16b8) =
-      (unsigned short)value >> ((unsigned int)(0x10 - (char)iVar1) & 0x1f);
+      (unsigned short)value >> (0x10 - iVar1);
     return;
   }
   *(int *)(state + 0x16bc) = iVar1 + length;
   *(unsigned short *)(state + 0x16b8) =
     *(unsigned short *)(state + 0x16b8) |
-    (unsigned short)(value << (iVar1 & 0x1f));
+    (unsigned short)(value << iVar1);
 }
 
 /* init_block: zero per-block frequency counts and set EOB count to 1.
@@ -1963,17 +1963,17 @@ void FUN_00116b00(int state, int param_1, int param_2, int param_3)
       *(int *)(state + 0x16b4) = *(int *)(state + 0x16b4) + 3;
       iVar2 = *(int *)(state + 0x16bc);
       if (iVar2 > 0xd) {
-        *(unsigned short *)(state + 0x16b8) = *(unsigned short *)(state + 0x16b8) | (unsigned short)(uVar1 << ((unsigned char)iVar2 & 0x1f));
+        *(unsigned short *)(state + 0x16b8) = *(unsigned short *)(state + 0x16b8) | (unsigned short)(uVar1 << iVar2);
         *(unsigned char *)(*(int *)(state + 8) + *(int *)(state + 0x14)) = *(unsigned char *)(state + 0x16b8);
         iVar2 = *(int *)(state + 0x14) + 1;
         *(int *)(state + 0x14) = iVar2;
         *(unsigned char *)(iVar2 + *(int *)(state + 8)) = *(unsigned char *)(state + 0x16b9);
         *(int *)(state + 0x14) = *(int *)(state + 0x14) + 1;
         iVar2 = *(int *)(state + 0x16bc);
-        *(int *)(state + 0x16bc) = iVar2 + -0xd;
-        *(unsigned short *)(state + 0x16b8) = (unsigned short)(uVar1 >> ((unsigned char)(0x10 - (char)iVar2) & 0x1f));
+        *(int *)(state + 0x16bc) = iVar2 - 0xd;
+        *(unsigned short *)(state + 0x16b8) = (unsigned short)(uVar1 >> (0x10 - iVar2));
       } else {
-        *(unsigned short *)(state + 0x16b8) = *(unsigned short *)(state + 0x16b8) | (unsigned short)(uVar1 << ((unsigned char)iVar2 & 0x1f));
+        *(unsigned short *)(state + 0x16b8) = *(unsigned short *)(state + 0x16b8) | (unsigned short)(uVar1 << iVar2);
         *(int *)(state + 0x16bc) = iVar2 + 3;
       }
       i = i + 1;
