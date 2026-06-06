@@ -640,7 +640,7 @@ short FUN_000d6550(int param_1, float *param_2, float *param_3, int param_4)
   int player;
   int unit_handle;
   short result;
-  short collision_result[28];
+  char collision_result[80];
   float direction[3];
 
   if (global_current_collision_user_depth >= 0x20) {
@@ -665,10 +665,11 @@ short FUN_000d6550(int param_1, float *param_2, float *param_3, int param_4)
   direction[1] = param_3[1] - param_2[1];
   direction[2] = param_3[2] - param_2[2];
 
-  if (FUN_0014df70(0xc2ad, param_2, direction, unit_handle, collision_result) ==
+  if (FUN_0014df70(0xc2ad, param_2, direction, unit_handle,
+                   (short *)collision_result) ==
         '\0' ||
-      (collision_result[0] == 3 &&
-       *(int *)(collision_result + 0x14) == param_4)) {
+      (*(short *)collision_result == 3 &&
+       *(int *)(collision_result + 0x38) == param_4)) {
     result = 0;
   } else {
     result = 2;
