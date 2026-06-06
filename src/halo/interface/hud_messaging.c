@@ -31,6 +31,78 @@ void FUN_000d46e0(void)
 {
 }
 
+/* scripted_hud_set_state_message (0xd46f0)
+ * Sets the scripted HUD message from the scenario's HMT tag. */
+void scripted_hud_set_state_message(short param_1)
+{
+  int scenario;
+  int hmt;
+
+  scenario = (int)global_scenario_get();
+  if (*(char *)(*(int *)0x46bd10 + 1) != '\0' &&
+      *(int *)(scenario + 0x5a0) != -1) {
+    hmt = (int)tag_get(0x686d7420, *(int *)(scenario + 0x5a0));
+    *(int *)(*(int *)0x46bd18 + 0x118c) =
+      (int)tag_block_get_element((void *)(hmt + 0x20), (int)param_1, 0x40);
+  }
+}
+
+/* scripted_hud_restart_flashing (0xd4780)
+ * Resets the flashing timer if flashing is enabled. */
+void scripted_hud_restart_flashing(void)
+{
+  if (*(char *)(*(int *)0x46bd18 + 0x1184) != '\0') {
+    *(int *)(*(int *)0x46bd18 + 0x1180) = game_time_get();
+    return;
+  }
+  error(2, "trying to restart help text flashing when flashing is disabled");
+}
+
+/* FUN_000d4f70 (0xd4f70)
+ * Set help text string for a player. */
+void FUN_000d4f70(short param_1, wchar_t *param_2)
+{
+  int iVar1;
+
+  iVar1 = param_1 * 0x460 + *(int *)0x46bd18;
+  ustrncpy((wchar_t *)(iVar1 + 0x230), param_2, 0xff);
+  *(short *)(iVar1 + 0x42e) = 0;
+}
+
+/* FUN_000d4fb0 (0xd4fb0)
+ * Get the objective text string from the HMT tag. */
+int FUN_000d4fb0(void)
+{
+  int result;
+  int scenario;
+  int hmt;
+  int msg;
+  char *element;
+
+  result = 0;
+  if (*(int *)(*(int *)0x46bd18 + 0x1190) != 0) {
+    scenario = (int)global_scenario_get();
+    hmt = (int)tag_get(0x686d7420, *(int *)(scenario + 0x5a0));
+    msg = *(int *)(*(int *)0x46bd18 + 0x1190);
+    element = (char *)tag_block_get_element((void *)(hmt + 0x14),
+                                            *(unsigned short *)(msg + 0x22), 2);
+    if (*(char *)(msg + 0x24) != 1) {
+      display_assert("message->element_count==1",
+                     "c:\\halo\\SOURCE\\interface\\hud_messaging.c", 0x2a1, 1);
+      system_exit(-1);
+    }
+    if (*element != '\0') {
+      display_assert("element->type==_hud_message_type_text",
+                     "c:\\halo\\SOURCE\\interface\\hud_messaging.c", 0x2a2, 1);
+      system_exit(-1);
+    }
+    result = (int)tag_data_get_pointer(
+      (void *)hmt, (int)((unsigned int)*(unsigned short *)(msg + 0x20) << 1),
+      (int)((unsigned int)(unsigned char)element[1] << 1));
+  }
+  return result;
+}
+
 /* Find a message slot in the 4-entry array at base (each 0x8c bytes).
  * Prefers: exact match (tag_handle + param2), then free slot, then oldest.
  * tag_handle passed in ESI (register arg). */
@@ -237,6 +309,36 @@ void FUN_000d52e0(int actor_handle, wchar_t *message)
   }
 }
 
+/* hud_get_nav_point_data (0xd5f40)
+ * Returns pointer to a player's nav point data (0x30 bytes per player). */
+int hud_get_nav_point_data(short param_1)
+{
+  if (param_1 < 0 || param_1 >= 4) {
+    display_assert("local_player_index>=0&&local_player_index<MAXIMUM_NUMBER_"
+                   "OF_LOCAL_PLAYERS",
+                   "c:\\halo\\SOURCE\\interface\\hud_nav_points.c", 0x5f, 1);
+    system_exit(-1);
+  }
+  if (*(int *)0x46bd1c == 0) {
+    display_assert("nav_point_data",
+                   "c:\\halo\\SOURCE\\interface\\hud_nav_points.c", 0x60, 1);
+    system_exit(-1);
+  }
+  return param_1 * 0x30 + *(int *)0x46bd1c;
+}
+
+/* hud_nav_points_initialize (0xd5fb0)
+ * Allocates nav point data via game_state_malloc. */
+void hud_nav_points_initialize(void)
+{
+  *(int *)0x46bd1c = (int)game_state_malloc("hud nav points", 0, 0xc0);
+  if (*(int *)0x46bd1c == 0) {
+    display_assert("nav_point_data",
+                   "c:\\halo\\SOURCE\\interface\\hud_nav_points.c", 0x6a, 1);
+    system_exit(-1);
+  }
+}
+
 /* hud_messaging_initialize_for_new_map: clear the messaging slot table.
  * Called from hud_initialize_for_new_map (0xd0360).
  * Fills *(void**)0x46bd1c with 0xff for 0xc0 bytes (all slots invalid). */
@@ -255,6 +357,69 @@ void hud_messaging_dispose_from_old_map(void)
  * Called from hud_dispose (0xd0340). */
 void hud_messaging_dispose(void)
 {
+}
+
+/* nav_point_visibility_test (0xd6550)
+ * Ray-cast from param_2 to param_3 to check if the nav point is visible. */
+short FUN_000d6550(int param_1, float *param_2, float *param_3, int param_4)
+{
+  int player_handle;
+  int player;
+  int unit_handle;
+  short result;
+  short collision_result[28];
+  float direction[3];
+
+  if (global_current_collision_user_depth >= 0x20) {
+    display_assert("global_current_collision_user_depth < "
+                   "MAXIMUM_COLLISION_USER_STACK_DEPTH",
+                   "c:\\halo\\SOURCE\\interface\\hud_nav_points.c", 0x1fe, 1);
+    system_exit(-1);
+  }
+  collision_user_stack[global_current_collision_user_depth] = 0x14;
+  global_current_collision_user_depth = global_current_collision_user_depth + 1;
+
+  player_handle = local_player_get_player_index((short)param_1);
+  if (player_handle == -1) {
+    unit_handle = -1;
+  } else {
+    player_handle = local_player_get_player_index((short)param_1);
+    player = (int)datum_get(*(data_t **)0x5aa6d4, player_handle);
+    unit_handle = *(int *)(player + 0x34);
+  }
+
+  direction[0] = param_3[0] - param_2[0];
+  direction[1] = param_3[1] - param_2[1];
+  direction[2] = param_3[2] - param_2[2];
+
+  if (FUN_0014df70(0xc2ad, param_2, direction, unit_handle, collision_result) ==
+        '\0' ||
+      (collision_result[0] == 3 &&
+       *(int *)(collision_result + 0x14) == param_4)) {
+    result = 0;
+  } else {
+    result = 2;
+  }
+
+  if (global_current_collision_user_depth <= 1) {
+    display_assert("global_current_collision_user_depth > 1",
+                   "c:\\halo\\SOURCE\\interface\\hud_nav_points.c", 0x210, 1);
+    system_exit(-1);
+  }
+  global_current_collision_user_depth = global_current_collision_user_depth - 1;
+  return result;
+}
+
+/* unit_hud_initialize (0xd72f0)
+ * Allocates the unit HUD interface globals buffer. */
+void FUN_000d72f0(void)
+{
+  *(int *)0x46bd20 = (int)game_state_malloc("hud unit interface", 0, 0x164);
+  if (*(int *)0x46bd20 == 0) {
+    display_assert("unit_hud_globals",
+                   "c:\\halo\\SOURCE\\interface\\hud_unit.c", 0x110, 1);
+    system_exit(-1);
+  }
 }
 
 /* FUN_000d7330 (0xd7330)
@@ -312,4 +477,76 @@ void FUN_000d7420(void)
  * Shared RET stub, tail-called from hud_dispose. Empty body. */
 void FUN_000d7430(void)
 {
+}
+
+/* show_hud (0xd7440) — toggle HUD visibility flag bit 0. */
+void FUN_000d7440(char param_1)
+{
+  if (param_1 == '\0') {
+    *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
+      *(unsigned int *)(*(int *)0x46bd20 + 0x160) | 1;
+    return;
+  }
+  *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
+    *(unsigned int *)(*(int *)0x46bd20 + 0x160) & 0xfffffffe;
+}
+
+/* show_hud_help_text (0xd7470) — toggle help text flag bit 1. */
+void FUN_000d7470(char param_1)
+{
+  if (param_1 != '\0') {
+    *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
+      *(unsigned int *)(*(int *)0x46bd20 + 0x160) | 2;
+    return;
+  }
+  *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
+    *(unsigned int *)(*(int *)0x46bd20 + 0x160) & 0xfffffffd;
+}
+
+/* show_hud_health (0xd74a0) — toggle health display flag bit 2. */
+void FUN_000d74a0(char param_1)
+{
+  if (param_1 == '\0') {
+    *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
+      *(unsigned int *)(*(int *)0x46bd20 + 0x160) | 4;
+    return;
+  }
+  *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
+    *(unsigned int *)(*(int *)0x46bd20 + 0x160) & 0xfffffffb;
+}
+
+/* show_hud_motion_sensor (0xd74d0) — toggle motion sensor flag bit 3. */
+void FUN_000d74d0(char param_1)
+{
+  if (param_1 != '\0') {
+    *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
+      *(unsigned int *)(*(int *)0x46bd20 + 0x160) | 8;
+    return;
+  }
+  *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
+    *(unsigned int *)(*(int *)0x46bd20 + 0x160) & 0xfffffff7;
+}
+
+/* show_hud_crosshair (0xd7500) — toggle crosshair display flag bit 4. */
+void FUN_000d7500(char param_1)
+{
+  if (param_1 == '\0') {
+    *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
+      *(unsigned int *)(*(int *)0x46bd20 + 0x160) | 0x10;
+    return;
+  }
+  *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
+    *(unsigned int *)(*(int *)0x46bd20 + 0x160) & 0xffffffef;
+}
+
+/* show_hud_ammo (0xd7530) — toggle ammo display flag bit 5. */
+void FUN_000d7530(char param_1)
+{
+  if (param_1 != '\0') {
+    *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
+      *(unsigned int *)(*(int *)0x46bd20 + 0x160) | 0x20;
+    return;
+  }
+  *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
+    *(unsigned int *)(*(int *)0x46bd20 + 0x160) & 0xffffffdf;
 }
