@@ -3157,10 +3157,11 @@ char FUN_000a95c0(void)
 
 /* Return a combined spawn/respawn readiness flag.
  * Checks engine active, server/client, game type 2 + flag, and flags byte. */
-char FUN_000a9f90(void)
+char FUN_000a9f90(int param_1)
 {
   char result;
   int is_client;
+  (void)param_1;
 
   result = 1;
   if (current_game_engine) {
@@ -6414,7 +6415,7 @@ void game_engine_set_goal_position(int flag_index, int *position,
 
   idx = (int)flag_index;
   *(int *)(0x456710 + idx * 0x20) = player;
-  icon = ((int16_t (*)(int))FUN_000d5ec0)((int)name);
+  icon = (int16_t)hud_find_nav_point_by_name((const char *)name);
   *(int16_t *)(0x456714 + idx * 0x20) = icon;
   *(char *)(0x456704 + idx * 0x20) = 1;
   *(int *)(0x4566f8 + idx * 0x20) = position[0];
