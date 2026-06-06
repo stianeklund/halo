@@ -7031,7 +7031,7 @@ float FUN_000adc40(int location_ptr, int player_handle)
   rating = game_engine_get_distance_rating_for_spawn(player_handle, (float *)location_ptr);
   if (current_game_engine != 0) {
     if (0.0f < rating && *(char *)0x456b14 != 0) {
-      rating = FUN_000adb20(player_handle) * rating;
+      rating = FUN_000adb20(location_ptr) * rating;
     }
     if (current_game_engine != 0 &&
         ((float (**)(void))current_game_engine)[0x68 / 4] != NULL) {
