@@ -11983,13 +11983,13 @@
           "addr": "0xd4f70",
           "decl": "void hud_set_state_text(short param_1, wchar_t *param_2);",
           "name": "hud_set_state_text",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0xd4fb0",
           "decl": "int hud_messaging_get_objective(void);",
           "name": "hud_messaging_get_objective",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0xd5070",
