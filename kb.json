@@ -12195,7 +12195,8 @@
         },
         {
           "addr": "0xd6660",
-          "decl": "void FUN_000d6660(int player_handle, float *position, short type_value, short nav_type);"
+          "decl": "void FUN_000d6660(int player_handle, float *position, short type_value, short nav_type);",
+          "ported": true
         },
         {
           "addr": "0xd6cc0",
@@ -20534,7 +20535,7 @@
         },
         {
           "addr": "0x113a90",
-          "decl": "void FUN_00113a90(void);"
+          "decl": "int FUN_00113a90(int codes, int *z, int r);"
         }
       ],
       "name": "real_math.obj",
@@ -32814,7 +32815,8 @@
         },
         {
           "addr": "0x1155e0",
-          "decl": "int FUN_001155e0(int z, int flush);"
+          "decl": "int FUN_001155e0(int z, int flush);",
+          "ported": true
         },
         {
           "addr": "0x115a00",

@@ -157,6 +157,202 @@ int FUN_001155c0(int z, char *version, int stream_size)
   return FUN_001154a0(z, 0xf, version, stream_size);
 }
 
+/* inflate: main decompression state machine (zlib).
+ * 0x1155e0 / circular_queue.obj (inflate.c) */
+int FUN_001155e0(int z, int flush)
+{
+  unsigned char bVar1;
+  int uVar2;
+  int *puVar3;
+  unsigned int uVar4;
+  unsigned int uVar5;
+  int *param_1 = (int *)z;
+  int param_2 = flush;
+
+  if (param_1 == (int *)0 || (int *)param_1[7] == (int *)0 || *param_1 == 0) {
+    return 0xfffffffe;
+  }
+  uVar2 = *(int *)param_1[7];
+  uVar5 = 0xfffffffb;
+  uVar4 = (unsigned int)(param_2 != 4) - 1 & 0xfffffffb;
+  do {
+    switch (uVar2) {
+    case 0:
+      if (param_1[1] == 0) return uVar5;
+      param_1[1] = param_1[1] - 1;
+      param_1[2] = param_1[2] + 1;
+      *(unsigned int *)(param_1[7] + 4) = (unsigned int)*(unsigned char *)*param_1;
+      puVar3 = (int *)param_1[7];
+      uVar2 = puVar3[1];
+      *param_1 = *param_1 + 1;
+      if (((unsigned char)uVar2 & 0xf) == 8) {
+        if (((unsigned int)puVar3[1] >> 4) + 8 <= (unsigned int)puVar3[4]) {
+          *puVar3 = 1;
+          uVar5 = uVar4;
+          goto case_1;
+        }
+        *puVar3 = 0xd;
+        param_1[6] = (int)"invalid window size";
+      } else {
+        *puVar3 = 0xd;
+        param_1[6] = (int)"unknown compression method";
+      }
+      goto set_mark;
+    case 1:
+    case_1:
+      if (param_1[1] == 0) return uVar5;
+      param_1[1] = param_1[1] - 1;
+      param_1[2] = param_1[2] + 1;
+      bVar1 = *(unsigned char *)*param_1;
+      *param_1 = *param_1 + 1;
+      if ((((int *)param_1[7])[1] * 0x100 + (unsigned int)bVar1) % 0x1f == 0) {
+        if (0 < *(int *)0x320e30) {
+          crt_fprintf(*(void **)0x331070, "inflate: zlib header ok\n");
+        }
+        if ((bVar1 & 0x20) != 0) {
+          *(int *)param_1[7] = 2;
+          uVar5 = uVar4;
+          goto case_2;
+        }
+        *(int *)param_1[7] = 7;
+        uVar5 = uVar4;
+      } else {
+        *(int *)param_1[7] = 0xd;
+        param_1[6] = (int)"incorrect header check";
+        *(int *)(param_1[7] + 4) = 5;
+        uVar5 = uVar4;
+      }
+      break;
+    case 2:
+    case_2:
+      if (param_1[1] == 0) return uVar5;
+      param_1[2] = param_1[2] + 1;
+      param_1[1] = param_1[1] - 1;
+      *(unsigned int *)(param_1[7] + 8) =
+          (unsigned int)*(unsigned char *)*param_1 << 0x18;
+      *param_1 = *param_1 + 1;
+      *(int *)param_1[7] = 3;
+      uVar5 = uVar4;
+    case 3:
+      if (param_1[1] == 0) return uVar5;
+      param_1[1] = param_1[1] - 1;
+      param_1[2] = param_1[2] + 1;
+      *(unsigned int *)(param_1[7] + 8) =
+          *(int *)(param_1[7] + 8) +
+          (unsigned int)*(unsigned char *)*param_1 * 0x10000;
+      *param_1 = *param_1 + 1;
+      *(int *)param_1[7] = 4;
+      uVar5 = uVar4;
+    case 4:
+      if (param_1[1] == 0) return uVar5;
+      param_1[1] = param_1[1] - 1;
+      param_1[2] = param_1[2] + 1;
+      *(unsigned int *)(param_1[7] + 8) =
+          *(int *)(param_1[7] + 8) +
+          (unsigned int)*(unsigned char *)*param_1 * 0x100;
+      *param_1 = *param_1 + 1;
+      *(int *)param_1[7] = 5;
+      uVar5 = uVar4;
+    case 5:
+      if (param_1[1] == 0) return uVar5;
+      param_1[1] = param_1[1] - 1;
+      param_1[2] = param_1[2] + 1;
+      *(int *)(param_1[7] + 8) =
+          *(int *)(param_1[7] + 8) + (unsigned int)*(unsigned char *)*param_1;
+      *param_1 = *param_1 + 1;
+      param_1[0xc] = ((int *)param_1[7])[2];
+      *(int *)param_1[7] = 6;
+      return 2;
+    case 6:
+      *(int *)param_1[7] = 0xd;
+      param_1[6] = (int)"need dictionary";
+      *(int *)(param_1[7] + 4) = 0;
+      return 0xfffffffe;
+    case 7:
+      uVar5 = FUN_00113a90(*(int *)(param_1[7] + 0x14), param_1, uVar5);
+      if (uVar5 == 0xfffffffd) {
+        *(int *)param_1[7] = 0xd;
+        *(int *)(param_1[7] + 4) = 0;
+        uVar5 = 0xfffffffd;
+      } else {
+        if (uVar5 == 0) {
+          uVar5 = uVar4;
+        }
+        if (uVar5 != 1) return uVar5;
+        FUN_00113930(*(int *)(param_1[7] + 0x14), (int)param_1,
+                     param_1[7] + 4);
+        puVar3 = (int *)param_1[7];
+        if (puVar3[3] == 0) {
+          *puVar3 = 8;
+          uVar5 = uVar4;
+          goto case_8;
+        }
+        *puVar3 = 0xc;
+        uVar5 = uVar4;
+      }
+      break;
+    case 8:
+    case_8:
+      if (param_1[1] == 0) return uVar5;
+      param_1[1] = param_1[1] - 1;
+      param_1[2] = param_1[2] + 1;
+      *(unsigned int *)(param_1[7] + 8) =
+          (unsigned int)*(unsigned char *)*param_1 << 0x18;
+      *param_1 = *param_1 + 1;
+      *(int *)param_1[7] = 9;
+      uVar5 = uVar4;
+    case 9:
+      if (param_1[1] == 0) return uVar5;
+      param_1[1] = param_1[1] - 1;
+      param_1[2] = param_1[2] + 1;
+      *(unsigned int *)(param_1[7] + 8) =
+          *(int *)(param_1[7] + 8) +
+          (unsigned int)*(unsigned char *)*param_1 * 0x10000;
+      *param_1 = *param_1 + 1;
+      *(int *)param_1[7] = 10;
+      uVar5 = uVar4;
+    case 10:
+      if (param_1[1] == 0) return uVar5;
+      param_1[1] = param_1[1] - 1;
+      param_1[2] = param_1[2] + 1;
+      *(unsigned int *)(param_1[7] + 8) =
+          *(int *)(param_1[7] + 8) +
+          (unsigned int)*(unsigned char *)*param_1 * 0x100;
+      *param_1 = *param_1 + 1;
+      *(int *)param_1[7] = 0xb;
+      uVar5 = uVar4;
+    case 0xb:
+      if (param_1[1] == 0) return uVar5;
+      param_1[1] = param_1[1] - 1;
+      param_1[2] = param_1[2] + 1;
+      *(int *)(param_1[7] + 8) =
+          *(int *)(param_1[7] + 8) + (unsigned int)*(unsigned char *)*param_1;
+      *param_1 = *param_1 + 1;
+      puVar3 = (int *)param_1[7];
+      if (puVar3[1] == puVar3[2]) {
+        if (0 < *(int *)0x320e30) {
+          crt_fprintf(*(void **)0x331070, "inflate: zlib check ok\n");
+        }
+        *(int *)param_1[7] = 0xc;
+        return 1;
+      }
+      *puVar3 = 0xd;
+      param_1[6] = (int)"incorrect data check";
+    set_mark:
+      *(int *)(param_1[7] + 4) = 5;
+      uVar5 = uVar4;
+      break;
+    case 0xc:
+      return 1;
+    case 0xd:
+      return 0xfffffffd;
+    default:
+      return 0xfffffffe;
+    }
+    uVar2 = *(int *)param_1[7];
+  } while (1);
+}
+
 /* inflateSetDictionary: set the decompression dictionary after DICT check.
  * 0x115a00 / circular_queue.obj (inflate.c) */
 int FUN_00115a00(int z, int dictionary, unsigned int dictLength)
