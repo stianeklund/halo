@@ -186,7 +186,7 @@ int FUN_000d1550(int param_1)
   return iVar1;
 }
 
-float FUN_000d1690(void)
+float FUN_000d1690(int split_screen)
 {
   return *(float *)0x002533c8;
 }
