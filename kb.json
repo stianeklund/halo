@@ -11767,7 +11767,7 @@
         },
         {
           "addr": "0xd1580",
-          "decl": "void FUN_000d1580(void);"
+          "decl": "int *FUN_000d1580(void);"
         },
         {
           "addr": "0xd1690",
@@ -11781,7 +11781,7 @@
         },
         {
           "addr": "0xd1890",
-          "decl": "void FUN_000d1890(void);"
+          "decl": "void FUN_000d1890(int bitmap_handle, short screen_index);"
         },
         {
           "addr": "0xd1a70",
@@ -11808,7 +11808,7 @@
         },
         {
           "addr": "0xd1f40",
-          "decl": "void FUN_000d1f40(void);"
+          "decl": "void FUN_000d1f40(short local_player, short *param_2, int param_3, int param_4, int param_5, int param_6, void *out);"
         },
         {
           "addr": "0xd2300",
@@ -11816,7 +11816,7 @@
         },
         {
           "addr": "0xd2320",
-          "decl": "void FUN_000d2320(void);"
+          "decl": "int FUN_000d2320(int color_ref, int time);"
         },
         {
           "addr": "0xd2580",
@@ -11824,7 +11824,7 @@
         },
         {
           "addr": "0xd27a0",
-          "decl": "void FUN_000d27a0(void);"
+          "decl": "void FUN_000d27a0(int param_1 @<eax>, void *param_2, int *param_3, void *param_4, int param_5, int param_6);"
         }
       ],
       "name": "hud.obj",
@@ -11839,7 +11839,8 @@
         },
         {
           "addr": "0xd3fe0",
-          "decl": "void FUN_000d3fe0(void);"
+          "decl": "void FUN_000d3fe0(int param_1, short *param_2, int param_3, unsigned int param_4, int param_5);",
+          "ported": true
         },
         {
           "addr": "0xd4260",
