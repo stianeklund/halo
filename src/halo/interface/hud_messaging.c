@@ -120,6 +120,90 @@ LAB_000d41e7:
   }
 }
 
+/* hud_draw_overlay_elements (0xd4260)
+ * Draw overlay bitmap elements for a HUD widget. Iterates over the overlay
+ * element tag block, performs bitmap lookup with optional animation cycling,
+ * optional color interpolation, and renders each visible element via
+ * FUN_000d3080. Protected by a stack canary (0x200 bytes of 0x62). */
+void FUN_000d4260(int param_1, int param_2, int param_3,
+                  unsigned int param_4, int param_5, unsigned char param_6,
+                  int param_7)
+{
+  int element;
+  int bitmap_seq;
+  int color;
+  int frame_idx;
+  int iVar1;
+  short sVar5;
+  int local_214[128];
+  int local_14;
+  int out_sprite;
+  int out_bitmap;
+  int local_4;
+
+  local_14 = FUN_000d1540();
+  csmemset(local_214, 0x62, 0x200);
+  local_4 = 0;
+  if (0 < *(int *)(param_3 + 0x10)) {
+    do {
+      element = (int)tag_block_get_element((void *)(param_3 + 0x10), local_4,
+                                           0x88);
+      if ((*(unsigned char *)(element + 0x4c) & 2) == 0 &&
+          (param_4 & (int)*(short *)(element + 0x4a)) != 0) {
+        bitmap_seq = (int)tag_block_get_element(
+          (void *)((int)tag_get(0x6269746d, *(int *)(param_3 + 0xc)) + 0x54),
+          (int)*(short *)(element + 0x48), 0x40);
+        if ((*(unsigned char *)(element + 0x4c) & 1) == 0 ||
+            (param_6 & 1) == 0) {
+          color = *(int *)(element + 0x24);
+        } else {
+          color = FUN_000d2320(element + 0x24, param_5);
+        }
+        if ((*(unsigned char *)(element + 0x4c) & 1) == 0 ||
+            (param_6 & 1) == 0 || *(short *)(element + 0x44) < 1) {
+          frame_idx = 0;
+        } else {
+          frame_idx =
+            ((game_time_get() - param_5) / (int)*(short *)(element + 0x44)) /
+              30 %
+            *(int *)(bitmap_seq + 0x34);
+        }
+        out_bitmap = 0;
+        out_sprite = 0;
+        FUN_000d16a0(*(int *)(param_3 + 0xc),
+                     *(unsigned short *)(element + 0x48), frame_idx,
+                     &out_bitmap, &out_sprite);
+        if (out_bitmap != 0 &&
+            (int)xbox_texture_cache_get_hardware_format((void *)out_bitmap, 0,
+                                                        1) != 0) {
+          FUN_000d3080(out_sprite, element, out_bitmap, 0, (short *)param_2,
+                       1.0f, 0, color, param_7, 0, 0);
+        }
+      }
+      local_4 = local_4 + 1;
+    } while (local_4 < *(int *)(param_3 + 0x10));
+  }
+  sVar5 = 0x7f;
+  do {
+    if (local_214[(int)sVar5] != 0x62626262) goto LAB_000d43f5;
+    sVar5 = sVar5 - 1;
+  } while (-1 < sVar5);
+  sVar5 = -1;
+LAB_000d43f5:
+  iVar1 = FUN_000d1540();
+  if (local_14 != iVar1) {
+    display_assert("corrupt return address!",
+                   "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x2ec, 1);
+    system_exit(-1);
+  }
+  if (sVar5 != -1) {
+    display_assert(
+      csprintf((char *)0x5ab100, "corrupt stack at %d!", (int)sVar5),
+      "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x2ec, 1);
+    system_exit(-1);
+  }
+}
+
 /* hud_draw_text_element (0xd4470)
  * Draw a text element on the HUD, with optional icon rendering.
  * ABI: @esi=src_rect, @edi=dst_rect, @ebx=text, stack: param_1=use_icons */
@@ -1172,6 +1256,175 @@ short FUN_000d6550(int param_1, float *param_2, float *param_3, int param_4)
   }
   global_current_collision_user_depth = global_current_collision_user_depth - 1;
   return result;
+}
+
+/* nav_point_draw_single (0xd6660)
+ * Draw a single nav point indicator with distance/angle calculations. */
+void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
+{
+  float fVar1;
+  float fVar2;
+  float fVar3;
+  float *pfVar4;
+  char cVar5;
+  short sVar7;
+  int iVar8;
+  int iVar9;
+  unsigned int uVar10;
+  int uVar11;
+  unsigned char bVar12;
+  unsigned int uVar13;
+  int local_2ac[128];
+  int local_34;
+  float local_30;
+  float local_2c;
+  float local_28;
+  float local_24;
+  float local_20;
+  float local_1c;
+  float local_18;
+  float local_14;
+  float local_10;
+  float local_c;
+  float local_8;
+
+  local_34 = FUN_000d1540();
+  csmemset(local_2ac, 0x62, 0x200);
+  iVar8 = (int)tag_block_get_element(
+    (void *)(*(int *)0x46bd0c + 0x160), (int)param_3, 0x68);
+  pfVar4 = param_2;
+  local_30 = *param_2;
+  local_2c = param_2[1];
+  local_28 = param_2[2];
+  iVar9 = local_player_get_player_index(param_1);
+  if (iVar9 == -1) {
+    uVar11 = -1;
+  } else {
+    uVar11 = local_player_get_player_index(param_1);
+    iVar9 = (int)datum_get(*(data_t **)0x5aa6d4, uVar11);
+    uVar11 = *(int *)(iVar9 + 0x34);
+  }
+  unit_set_seat_state(uVar11, &local_24);
+  local_18 = sqrtf((*pfVar4 - local_24) * (*pfVar4 - local_24) +
+                  (pfVar4[1] - local_20) * (pfVar4[1] - local_20) +
+                  (pfVar4[2] - local_1c) * (pfVar4[2] - local_1c));
+  if (local_18 <= *(float *)0x254cc0) {
+    local_14 = *(float *)0x2533c8;
+  } else {
+    local_14 = 0.5f;
+  }
+  matrix_transform_point((float *)0x5065b4, &local_30, &local_30);
+  sVar7 = param_4;
+  if (sVar7 == 1 ||
+      (cVar5 = render_camera_view_to_screen((int *)0x506550, (int *)0x5065a4, &local_30,
+                            &local_10),
+       cVar5 == '\0')) {
+    local_10 = local_30;
+    local_c = -local_2c;
+    sVar7 = 1;
+  } else {
+    local_10 = local_10 - (float)(((int)*(short *)0x506582 -
+                                   (int)*(short *)0x50657e) /
+                                      2 +
+                                  (int)*(short *)0x50657e);
+    local_c = local_c - (float)(((int)*(short *)0x506580 -
+                                 (int)*(short *)0x50657c) /
+                                    2 +
+                                (int)*(short *)0x50657c);
+  }
+  local_8 = 0.0f;
+  fVar1 =
+      ((float)((int)*(short *)0x506588 + 2 - (int)*(short *)0x506584 + 2) -
+       (*(float *)(*(int *)0x46bd0c + 300) +
+        *(float *)(*(int *)0x46bd0c + 0x128))) *
+      *(float *)0x253398;
+  fVar3 = ((float)((int)*(short *)0x506588 - (int)*(short *)0x506584) -
+           (*(float *)(*(int *)0x46bd0c + 0x124) +
+            *(float *)(*(int *)0x46bd0c + 0x120))) *
+          *(float *)0x253398;
+  fVar2 = fVar3 * fVar1;
+  fVar1 = fVar1 * local_c;
+  if (sVar7 == 1 ||
+      fVar2 * fVar2 <= fVar3 * local_10 * (fVar3 * local_10) + fVar1 * fVar1) {
+    sVar7 = 1;
+    fVar1 = sqrtf((fVar2 * fVar2) /
+                 (fVar3 * local_10 * (fVar3 * local_10) + fVar1 * fVar1));
+    local_10 = local_10 * fVar1;
+    local_c = fVar1 * local_c;
+    if ((*(unsigned char *)(iVar8 + 0x4c) & 1) == 0) {
+      local_8 = -(float)atan2((double)local_10, (double)local_c);
+    }
+  }
+  local_10 =
+      (float)(((int)*(short *)0x506582 - (int)*(short *)0x50657e) / 2) +
+      local_10;
+  local_c = (float)(((int)*(short *)0x506580 - (int)*(short *)0x50657c) / 2) +
+            local_c;
+  if (sVar7 == -1) {
+    display_assert(
+        "waypoint_type!=NONE",
+        "c:\\halo\\SOURCE\\interface\\hud_nav_points.c", 0x267, 1);
+    system_exit(-1);
+  }
+  iVar9 = 0;
+  uVar11 = 0;
+  FUN_000d16a0(*(int *)(*(int *)0x46bd0c + 0x15c),
+               *(short *)(iVar8 + 0x34 + sVar7 * 2), 0, &iVar9, &uVar11);
+  if (iVar9 != 0 &&
+      (int)xbox_texture_cache_get_hardware_format((void *)iVar9, 0, 1) != 0) {
+    local_10 = (float)(int)local_10;
+    local_c = (float)(int)local_c;
+    bVar12 = (unsigned char)FUN_000d1c50(*(float *)(iVar8 + 0x2c) * 255.0f);
+    pixel32_to_real_argb_color(*(unsigned int *)(iVar8 + 0x28), &local_24);
+    fVar1 = *(float *)0x2533c8 - *(float *)(iVar8 + 0x30);
+    fVar2 = *(float *)0x2533c0;
+    if (*(float *)0x2533c0 <= fVar1) {
+      fVar2 = fVar1;
+      if (*(float *)0x2533c8 < fVar1) {
+        fVar2 = *(float *)0x2533c8;
+      }
+    }
+    local_24 = fVar2 * local_24;
+    fVar2 = *(float *)0x2533c0;
+    if (*(float *)0x2533c0 <= fVar1) {
+      fVar2 = fVar1;
+      if (*(float *)0x2533c8 < fVar1) {
+        fVar2 = *(float *)0x2533c8;
+      }
+    }
+    local_20 = fVar2 * local_20;
+    fVar2 = *(float *)0x2533c0;
+    if (*(float *)0x2533c0 <= fVar1) {
+      fVar2 = fVar1;
+      if (*(float *)0x2533c8 < fVar1) {
+        fVar2 = *(float *)0x2533c8;
+      }
+    }
+    local_1c = fVar2 * local_1c;
+    uVar13 = (unsigned int)bVar12 << 0x18;
+    uVar10 = FUN_000d1dd0(&local_24);
+    FUN_000d3200(iVar9, 4, &local_10, uVar11, local_14, local_8,
+                 uVar10 | uVar13, 0);
+  }
+  sVar7 = 0x7f;
+  do {
+    if (local_2ac[(int)sVar7] != 0x62626262) goto LAB_000d6c45;
+    sVar7 = sVar7 - 1;
+  } while (-1 < sVar7);
+  sVar7 = -1;
+LAB_000d6c45:
+  iVar8 = FUN_000d1540();
+  if (local_34 != iVar8) {
+    display_assert("corrupt return address!",
+                   "c:\\halo\\SOURCE\\interface\\hud_nav_points.c", 0x2a3, 1);
+    system_exit(-1);
+  }
+  if (sVar7 != -1) {
+    display_assert(
+        csprintf((char *)0x5ab100, "corrupt stack at %d!", (int)sVar7),
+        "c:\\halo\\SOURCE\\interface\\hud_nav_points.c", 0x2a3, 1);
+    system_exit(-1);
+  }
 }
 
 /* nav_point_render (0xd6cc0)
