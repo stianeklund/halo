@@ -663,7 +663,7 @@ void hud_render_timer(void)
 
 /* FUN_000d4f00 (0xd4f00)
  * Toggle help text display state for a player. */
-void FUN_000d4f00(short param_1, char param_2)
+void hud_enable_custom_state_message(short param_1, char param_2)
 {
   int base;
 
@@ -681,7 +681,7 @@ void FUN_000d4f00(short param_1, char param_2)
 
 /* FUN_000d4f70 (0xd4f70)
  * Set help text string for a player. */
-void FUN_000d4f70(short param_1, wchar_t *param_2)
+void hud_set_state_text(short param_1, wchar_t *param_2)
 {
   int iVar1;
 
@@ -692,7 +692,7 @@ void FUN_000d4f70(short param_1, wchar_t *param_2)
 
 /* FUN_000d4fb0 (0xd4fb0)
  * Get the objective text string from the HMT tag. */
-int FUN_000d4fb0(void)
+int hud_messaging_get_objective(void)
 {
   int result;
   int scenario;
