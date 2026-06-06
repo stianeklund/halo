@@ -5574,7 +5574,7 @@
         {
           "addr": "0x11e3c0",
           "decl": "int memory_pool_get_contiguous_free_size(void *pool);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x11e400",
@@ -11821,7 +11821,8 @@
         },
         {
           "addr": "0xd46f0",
-          "decl": "void scripted_hud_set_state_message(void);"
+          "decl": "void scripted_hud_set_state_message(short param_1);",
+          "ported": true
         },
         {
           "addr": "0xd4740",
@@ -11829,7 +11830,8 @@
         },
         {
           "addr": "0xd4780",
-          "decl": "void scripted_hud_restart_flashing(void);"
+          "decl": "void scripted_hud_restart_flashing(void);",
+          "ported": true
         },
         {
           "addr": "0xd47c0",
@@ -11893,11 +11895,13 @@
         },
         {
           "addr": "0xd4f70",
-          "decl": "void hud_set_state_text(void);"
+          "decl": "void hud_set_state_text(void);",
+          "ported": true
         },
         {
           "addr": "0xd4fb0",
-          "decl": "void hud_messaging_get_objective(void);"
+          "decl": "void hud_messaging_get_objective(void);",
+          "ported": true
         },
         {
           "addr": "0xd5070",
@@ -11963,11 +11967,15 @@
         },
         {
           "addr": "0xd5f40",
-          "decl": "void FUN_000d5f40(void);"
+          "decl": "int hud_get_nav_point_data(short param_1);",
+          "ported": true,
+          "name": "hud_get_nav_point_data"
         },
         {
           "addr": "0xd5fb0",
-          "decl": "void FUN_000d5fb0(void);"
+          "decl": "void hud_nav_points_initialize(void);",
+          "ported": true,
+          "name": "hud_nav_points_initialize"
         },
         {
           "decl": "void hud_messaging_initialize_for_new_map(void);",
@@ -12073,7 +12081,8 @@
         },
         {
           "addr": "0xd6550",
-          "decl": "void FUN_000d6550(void);"
+          "decl": "short FUN_000d6550(int param_1, float *param_2, float *param_3, int param_4);",
+          "ported": true
         },
         {
           "addr": "0xd6660",
@@ -12105,7 +12114,8 @@
         },
         {
           "addr": "0xd72f0",
-          "decl": "void FUN_000d72f0(void);"
+          "decl": "void FUN_000d72f0(void);",
+          "ported": true
         },
         {
           "addr": "0xd7330",
@@ -12127,27 +12137,33 @@
         },
         {
           "addr": "0xd7440",
-          "decl": "void FUN_000d7440(void);"
+          "decl": "void FUN_000d7440(char param_1);",
+          "ported": true
         },
         {
           "addr": "0xd7470",
-          "decl": "void FUN_000d7470(void);"
+          "decl": "void FUN_000d7470(char param_1);",
+          "ported": true
         },
         {
           "addr": "0xd74a0",
-          "decl": "void FUN_000d74a0(void);"
+          "decl": "void FUN_000d74a0(char param_1);",
+          "ported": true
         },
         {
           "addr": "0xd74d0",
-          "decl": "void FUN_000d74d0(void);"
+          "decl": "void FUN_000d74d0(char param_1);",
+          "ported": true
         },
         {
           "addr": "0xd7500",
-          "decl": "void FUN_000d7500(void);"
+          "decl": "void FUN_000d7500(char param_1);",
+          "ported": true
         },
         {
           "addr": "0xd7530",
-          "decl": "void FUN_000d7530(void);"
+          "decl": "void FUN_000d7530(char param_1);",
+          "ported": true
         },
         {
           "addr": "0xd7560",
