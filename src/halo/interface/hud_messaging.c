@@ -9,6 +9,117 @@ void FUN_000d3fa0(int param_1, short *param_2, int param_3, int param_4,
                param_6, param_7, param_8, param_9, param_10);
 }
 
+/* hud_draw_element (0xd3fe0)
+ * Draw a HUD element with bitmap lookup, texture caching, and stack canary. */
+void FUN_000d3fe0(int param_1, short *param_2, int param_3,
+                  unsigned int param_4, int param_5)
+{
+  int iVar1;
+  int iVar2;
+  int *puVar3;
+  int uVar4;
+  char cVar5;
+  short sVar6;
+  int local_24c[128];
+  unsigned char local_4c[16];
+  int local_3c;
+  int local_38;
+  int local_34;
+  float local_30;
+  int local_2c;
+  float local_28;
+  unsigned int local_24;
+  int local_20;
+  int local_1c;
+  unsigned char local_18[4];
+  int local_14;
+  int local_10;
+  int local_c;
+  short *local_8;
+
+  local_20 = FUN_000d1540();
+  csmemset(local_24c, 0x62, 0x200);
+  iVar1 = verify_tag_reference((int *)(param_3 + 0x24));
+  local_8 = (short *)tag_get(0x6269746d, iVar1);
+  local_c = (int)FUN_00077040(*(int *)(param_3 + 0x30),
+                              *(short *)(param_3 + 0x54), 0);
+  iVar2 = (int)xbox_texture_cache_get_hardware_format((void *)local_c, 0, 1);
+  if (iVar2 != 0) {
+    verify_tag_reference((int *)(param_3 + 0x24));
+    puVar3 = FUN_000d1580();
+    if ((param_4 & 2) == 0) {
+      if ((param_4 & 1) == 0) {
+        uVar4 = *(int *)(param_3 + 0x34);
+      } else {
+        uVar4 = FUN_000d2320(param_3 + 0x34, param_5);
+      }
+    } else {
+      uVar4 = *(int *)(param_3 + 0x4c);
+    }
+    sVar6 = *local_8;
+    local_14 = (sVar6 == 4);
+    FUN_000d3080((int)puVar3, (int)param_3, local_c, 0, param_2, 1.0f, 0,
+                 uVar4, (param_4 >> 2) & 0xffffff01, (char)local_14, 0);
+    local_8 = (short *)0;
+    if (0 < *(int *)(param_3 + 0x58)) {
+      iVar2 = 0;
+      local_24 = param_4 & 4;
+      local_34 = 0;
+      local_2c = 0;
+      cVar5 = (char)(sVar6 == 4);
+      while (1) {
+        local_1c = (int)tag_block_get_element((void *)(param_3 + 0x58), iVar2,
+                                              0x1e0);
+        local_30 = 1.0f;
+        local_28 = 1.0f;
+        if (cVar5 != '\0') {
+          local_10 = (int)*(short *)(local_c + 6);
+          local_30 = (float)(int)*(short *)(local_c + 4);
+          local_28 = (float)local_10;
+        }
+        if (puVar3 == (int *)0) {
+          puVar3 = &local_34;
+        }
+        local_3c = *(int *)(param_3 + 4);
+        local_38 = *(int *)(param_3 + 8);
+        if (((short)local_24 == 0) ||
+            (uVar4 = 1, (*(unsigned char *)(param_3 + 0xc) & 1) != 0)) {
+          uVar4 = 0;
+        }
+        FUN_000d1f40((short)*(int *)0x506548, param_2, (int)param_3, 0, uVar4,
+                     0, local_18);
+        FUN_000d1890(local_c, *param_2);
+        FUN_000d27a0(param_1, local_18, puVar3, local_4c, 0, uVar4);
+        iVar2 = iVar2 + 1;
+        iVar2 = (int)(short)iVar2;
+        if (*(int *)(param_3 + 0x58) <= iVar2) break;
+        cVar5 = (char)local_14;
+      }
+    }
+  }
+  (void)local_3c; (void)local_38; (void)local_30; (void)local_2c;
+  (void)local_28; (void)local_1c;
+  sVar6 = 0x7f;
+  do {
+    if (local_24c[(int)sVar6] != 0x62626262) goto LAB_000d41e7;
+    sVar6 = sVar6 - 1;
+  } while (-1 < sVar6);
+  sVar6 = -1;
+LAB_000d41e7:
+  iVar2 = FUN_000d1540();
+  if (local_20 != iVar2) {
+    display_assert("corrupt return address!",
+                   "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x2ad, 1);
+    system_exit(-1);
+  }
+  if (sVar6 != -1) {
+    display_assert(
+      csprintf((char *)0x5ab100, "corrupt stack at %d!", (int)sVar6),
+      "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x2ad, 1);
+    system_exit(-1);
+  }
+}
+
 /* hud_draw_text_element (0xd4470)
  * Draw a text element on the HUD, with optional icon rendering.
  * ABI: @esi=src_rect, @edi=dst_rect, @ebx=text, stack: param_1=use_icons */
