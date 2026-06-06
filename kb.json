@@ -12052,7 +12052,7 @@
         },
         {
           "addr": "0xd5ec0",
-          "decl": "int hud_find_nav_point_by_name(const char *param_1);",
+          "decl": "short hud_find_nav_point_by_name(const char *param_1);",
           "name": "hud_find_nav_point_by_name",
           "ported": true
         },
