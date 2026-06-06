@@ -11852,7 +11852,8 @@
         },
         {
           "addr": "0xd44f0",
-          "decl": "void FUN_000d44f0(void);"
+          "decl": "void FUN_000d44f0(int cursor @<ebx>, short *element @<esi>, int param_1, int param_2);",
+          "ported": true
         },
         {
           "addr": "0xd4680",
