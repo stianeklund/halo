@@ -37,6 +37,7 @@ void FUN_000d3fe0(int param_1, short *param_2, int param_3,
   int local_c;
   short *local_8;
 
+  (void)local_28;
   local_20 = FUN_000d1540();
   csmemset(local_24c, 0x62, 0x200);
   iVar1 = verify_tag_reference((int *)(param_3 + 0x24));
@@ -523,6 +524,141 @@ void scripted_hud_time_code_reset(void)
   *(int *)0x2f66e4 = game_time_get();
   if (*(int *)0x2f66e8 != -1) {
     *(int *)0x2f66e8 = *(int *)0x2f66e4;
+  }
+}
+
+
+/* hud_render_timer (0xd4ab0) */
+void hud_render_timer(void)
+{
+  int iVar10;
+  int *piVar7;
+  int iVar6;
+  int iVar8;
+  int *puVar9;
+  int *puVar11;
+  short uVar1;
+  short sVar2;
+  short local_90;
+  int local_8e[8];
+  short local_8e_tail;
+  int local_68;
+  float local_64;
+  float local_60;
+  int local_48[8];
+  char local_28;
+  char local_27;
+  char local_26;
+  char pad_21;
+  double local_14;
+  int local_10;
+  int local_c;
+  int local_8;
+  int local_4;
+  int loading_time;
+
+  iVar10 = *(int *)0x46bd18;
+  piVar7 = (int *)(iVar10 + 0x1198);
+  if (*(char *)(iVar10 + 0x11a7) != '\0') {
+    local_90 = *(short *)(iVar10 + 0x11a4);
+    csmemset(local_8e, 0, 34);
+    local_8 = game_time_get();
+    iVar8 = 0;
+    local_c = 0;
+    local_10 = (int)scripted_hud_get_timer_ticks();
+    local_68 = *(int *)(iVar10 + 0x11a0);
+    local_28 = 2;
+    local_26 = 4;
+    local_27 = 1;
+    local_64 = 1.0f;
+    local_60 = 1.0f;
+    iVar6 = interface_get_tag_index(0xb);
+    if (iVar6 != -1) {
+      iVar6 = (int)tag_get(0x68756423, iVar6);
+      local_c = (int)*(char *)(iVar6 + 0x11);
+      iVar8 = (int)((double)local_c * 2.0);
+      local_c = iVar8;
+    }
+    switch (*(short *)(iVar10 + 0x11a4)) {
+    case 0:
+    case 2:
+      break;
+    case 1:
+    case 3:
+      *(short *)&local_68 = (short)(*(short *)&local_68 + (short)iVar8 * 5);
+      local_c = -iVar8;
+      break;
+    case 4:
+      *(short *)&local_68 = (short)(*(short *)&local_68 + (short)iVar8 * -3);
+      break;
+    default:
+      display_assert("!\"unreachable\"",
+                     "c:\\halo\\SOURCE\\interface\\hud_messaging.c", 0x1f8, 1);
+      system_exit(-1);
+    }
+    iVar6 = 8;
+    if ((short)local_10 <= 0) {
+      iVar8 = *piVar7;
+      *(short *)(iVar10 + 0x119c) = (short)-1;
+      puVar9 = (int *)(*(int *)0x46bd0c + 0x380);
+      puVar11 = local_48;
+      for (; iVar6 != 0; iVar6 = iVar6 - 1) {
+        *puVar11 = *puVar9;
+        puVar9 = puVar9 + 1;
+        puVar11 = puVar11 + 1;
+      }
+      local_c = 1;
+      if (iVar8 == -1) {
+        *piVar7 = game_time_get();
+      }
+      uVar1 = (short)local_10;
+      iVar6 = local_c;
+    } else {
+      uVar1 = (short)local_10;
+      puVar9 = (int *)(*(int *)0x46bd0c + 0x360);
+      puVar11 = local_48;
+      for (; iVar6 != 0; iVar6 = iVar6 - 1) {
+        *puVar11 = *puVar9;
+        puVar9 = puVar9 + 1;
+        puVar11 = puVar11 + 1;
+      }
+      sVar2 = *(short *)(iVar10 + 0x119e);
+      iVar6 = local_c;
+      if ((short)uVar1 <= sVar2) {
+        iVar6 = 1;
+        if (sVar2 < *(short *)(iVar10 + 0x119c)) {
+          *(short *)(iVar10 + 0x119c) = sVar2;
+          *piVar7 = ((int)sVar2 - (int)(short)uVar1) + local_8;
+        }
+      }
+    }
+    iVar10 = (int)(short)(uVar1 & ((short)uVar1 < 1) - 1);
+    local_8 = iVar10;
+    local_4 = iVar10;
+    iVar8 = (int)((float)local_4 * *(float *)0x2546a4 * *(float *)0x25634c);
+    FUN_000d3860((short)*(int *)0x506548, &local_90, &local_68,
+                 iVar8, -1, iVar6, *piVar7, 2.0f);
+    local_4 = (int)(short)local_c;
+    local_14 = (double)local_4 * *(double *)0x281b40;
+    local_4 = (int)*(short *)&local_68;
+    *(short *)&local_68 = (short)(int)((double)local_4 + local_14);
+    iVar8 = (iVar10 / 30) % 60;
+    FUN_000d3860((short)*(int *)0x506548, &local_90, &local_68,
+                 iVar8, -1, iVar6, *piVar7, 2.0f);
+    local_4 = (int)*(short *)&local_68;
+    *(short *)&local_68 = (short)(int)((double)local_4 + local_14);
+    iVar8 = ((iVar10 % 1800) * 100) / 30;
+    FUN_000d3860((short)*(int *)0x506548, &local_90, &local_68,
+                 iVar8, -1, iVar6, *piVar7, 2.0f);
+  }
+  if (*(int *)0x2f66e4 != -1) {
+    loading_time = *(int *)0x2f66e8;
+    if (loading_time == -1) {
+      loading_time = game_time_get();
+    }
+    crt_sprintf((char *)0x5ab100, (const char *)0x25acb8,
+                loading_time - *(int *)0x2f66e4);
+    FUN_00189c40(1, (const char *)0x5ab100);
   }
 }
 
@@ -1279,15 +1415,16 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
   float local_30;
   float local_2c;
   float local_28;
-  float local_24;
-  float local_20;
-  float local_1c;
+  float local_24 = 0;
+  float local_20 = 0;
+  float local_1c = 0;
   float local_18;
   float local_14;
   float local_10;
-  float local_c;
+  float local_c = 0;
   float local_8;
 
+  (void)local_28;
   local_34 = FUN_000d1540();
   csmemset(local_2ac, 0x62, 0x200);
   iVar8 = (int)tag_block_get_element(
