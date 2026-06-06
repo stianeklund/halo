@@ -1466,7 +1466,7 @@ LAB_000d5e65_skip:
 }
 /* hud_find_nav_point_by_name (0xd5ec0)
  * Search the nav point definitions for a matching name, return its index. */
-int hud_find_nav_point_by_name(const char *param_1)
+short hud_find_nav_point_by_name(const char *param_1)
 {
   short found;
   short i;
@@ -1484,7 +1484,7 @@ int hud_find_nav_point_by_name(const char *param_1)
         if (result == 0) {
           found = i;
           if (i != -1)
-            return (int)i;
+            return i;
           break;
         }
         i = i + 1;
@@ -1492,7 +1492,7 @@ int hud_find_nav_point_by_name(const char *param_1)
     }
   }
   error(2, "could not find nav point");
-  return (int)found;
+  return found;
 }
 
 /* hud_get_nav_point_data (0xd5f40)
@@ -2549,7 +2549,7 @@ void FUN_000d7780(short old_player, short new_player)
   }
   src = (int *)FUN_000d7280(old_player);
   dst = (int *)FUN_000d7280(new_player);
-  csmemcpy(dst, src, 0x58);
+  memcpy(dst, src, 0x58);
 }
 
 /* unit_hud_update_shield_health (0xd7800)
