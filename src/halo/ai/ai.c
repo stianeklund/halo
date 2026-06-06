@@ -651,7 +651,7 @@ void ai_update_team_status(void)
  *
  * Confirmed: [EBP+8]=param_1 (int), [EBP+C]=param_2 (int).
  */
-void ai_handle_bump(int param_1, int param_2)
+void ai_handle_bump(int param_1, int param_2, float *velocity_ptr)
 {
   void *obj2;
   void *obj1;
