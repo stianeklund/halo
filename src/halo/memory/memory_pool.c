@@ -136,49 +136,6 @@ void FUN_0011e430(void *pool)
     block = *(char **)(block + 0x0c);
   }
 }
-
-/* Validate a block reference and return the block header pointer (0x11e5a0).
- * Checks that the reference is non-null, verifies pool integrity, confirms
- * the block's stored reference matches, and walks the list to find it. */
-void *FUN_0011e5a0(void *pool, void **block_reference)
-{
-  char *p = (char *)pool;
-  char *data;
-  char *block;
-  char *other_block;
-
-  if (block_reference == NULL || *block_reference == NULL) {
-    display_assert("reference && (*reference)",
-                   "c:\\halo\\SOURCE\\memory\\memory_pool.c", 0x174, 1);
-    system_exit(-1);
-  }
-
-  FUN_0011e430(pool);
-
-  data = (char *)*block_reference;
-  block = data - 0x18;
-
-  if (*(void **)(data - 0x10) != (void *)block_reference) {
-    char *msg =
-      csprintf((char *)0x5ab100, "expected reference %08x but got %08x",
-               *(int *)(data - 0x10), (int)block_reference);
-    display_assert(msg, "c:\\halo\\SOURCE\\memory\\memory_pool.c", 0x17b, 1);
-    system_exit(-1);
-  }
-
-  other_block = *(char **)(p + 0x30);
-  while (other_block != NULL) {
-    if (block == other_block)
-      return block;
-    other_block = *(char **)(other_block + 0x0c);
-  }
-
-  display_assert("other_block", "c:\\halo\\SOURCE\\memory\\memory_pool.c",
-                 0x184, 1);
-  system_exit(-1);
-  return block;
-}
-
 /* Allocate and initialize a new memory pool (0x11e650).
  * Allocates pool_config+0x38 bytes via debug_malloc then calls
  * memory_pool_initialize. */
