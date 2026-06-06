@@ -2754,3 +2754,772 @@ void FUN_000d7d10(void)
     sVar = (short)result;
   }
 }
+
+/* FUN_000d7d40 (0xd7d40)
+ * Full HUD unit render for a single player. Draws shield meters,
+ * health bars, damage indicators, motion tracker, and overlay widgets.
+ * Uses a 0x200-byte stack canary (0x62 fill) with post-check.
+ * Source: c:\halo\SOURCE\interface\hud_unit.c line 0x209. */
+void FUN_000d7d40(int param_1)
+{
+  int canary_buf[128];
+  int handle_slots[18];
+  int tag_indices[18];
+  float fraction_slots[4];
+  unsigned int full_shield;
+  unsigned int damage_active;
+  unsigned int slot_count;
+  unsigned int local_player_idx;
+  int player_index;
+  int canary_cookie;
+  int *unit_ptr;
+  int unit_data;
+  int unhi_tag;
+  int parent_handle;
+  int health_meter_data[26];
+  int widget_meter_data[26];
+  short local_130[2];
+  int overlay_colors[6];
+  unsigned int flags;
+  int iVar7, iVar8, iVar13;
+  int flash_param_int;
+  int clamp_a, clamp_b;
+  short sVar4, sVar5;
+  char cVar3;
+  unsigned char bVar;
+  float fVar1, fVar2, fVar14;
+  float local_44;
+  float local_34;
+  float local_48;
+  float meter_scale;
+  short *psVar12;
+  short *psVar22;
+  int tag_ref_result;
+  int *meter_src_ptr;
+  int i;
+  void *local_78_buf[1];
+  float *pfVar6;
+  unsigned char *unit_tag_data;
+
+  canary_cookie = FUN_000d1540();
+  csmemset(canary_buf, 0x62, 0x200);
+
+  if (*(short *)(param_1 + 2) != *(short *)0x506548) {
+    display_assert(
+        "player->local_player_index==render.local_player_index",
+        "c:\\halo\\SOURCE\\interface\\hud_unit.c", 0x209, 1);
+    system_exit(-1);
+  }
+
+  if (*(short *)(param_1 + 2) != *(short *)0x506548)
+    goto done_canary_check;
+  if (*(int *)(param_1 + 0x34) == -1)
+    goto done_canary_check;
+
+  unit_ptr = (int *)object_get_and_verify_type(*(int *)(param_1 + 0x34), 3);
+  unit_tag_data = (unsigned char *)tag_get(0x756e6974, *unit_ptr);
+  local_player_idx = (unsigned int)(unsigned short)*(short *)(param_1 + 2);
+  player_index = local_player_get_player_index(local_player_idx);
+  pfVar6 = (float *)FUN_000d7280((short)local_player_idx);
+
+  handle_slots[0] = *(int *)(param_1 + 0x34);
+  for (i = 0; i < 17; i++) {
+    handle_slots[1 + i] = 0;
+  }
+
+  sVar4 = local_player_count();
+  tag_indices[0] = FUN_001a6820((int)unit_tag_data, 1 < sVar4);
+
+  for (i = 0; i < 17; i++) {
+    tag_indices[1 + i] = 0;
+  }
+
+  slot_count = 1;
+
+  if (*(int *)((char *)pfVar6 + 0x1c) == (int)0xFFFFFFFF) {
+    FUN_000d7280((short)local_player_idx);
+    FUN_000d7240((short)local_player_idx);
+  }
+
+  *(int *)((char *)pfVar6 + 0x1c) = *(int *)(param_1 + 0x34);
+
+  parent_handle = unit_ptr[0x33];
+  fraction_slots[0] = *(float *)&parent_handle;
+
+  if (parent_handle != -1 && *(short *)((char *)unit_ptr + 0x2a0) != -1) {
+    int *vehicle_ptr;
+    int vehicle_tag;
+    int seat_element;
+
+    vehicle_ptr = (int *)object_get_and_verify_type(parent_handle, 3);
+    vehicle_tag = (int)tag_get(0x756e6974, *vehicle_ptr);
+    seat_element = (int)tag_block_get_element(
+        (void *)(vehicle_tag + 0x2e4),
+        (int)*(short *)((char *)unit_ptr + 0x2a0), 0x11c);
+    unit_tag_data = (unsigned char *)seat_element;
+
+    FUN_000d7280((short)local_player_idx);
+    sVar4 = local_player_count();
+    iVar8 = FUN_001a6820(vehicle_tag, 1 < sVar4);
+
+    if ((*unit_tag_data & 4) != 0) {
+      if (iVar8 != -1) {
+        handle_slots[1] = parent_handle;
+        tag_indices[1] = iVar8;
+        slot_count = 2;
+      }
+
+      iVar13 = vehicle_ptr[0x32];
+      while (iVar13 != -1 && slot_count < 0x12) {
+        unsigned char *next_obj_data;
+        int next_unit;
+
+        next_obj_data = (unsigned char *)object_get_and_verify_type(
+            iVar13, (int)0xFFFFFFFF);
+        next_unit =
+            (int)object_try_and_get_and_verify_type(iVar13, 3);
+        if (next_unit != 0 &&
+            (float)*(int *)(next_unit + 0xcc) == fraction_slots[0] &&
+            *(short *)(next_unit + 0x2a0) != -1) {
+          handle_slots[slot_count] = iVar13;
+          sVar4 = local_player_count();
+          iVar13 = FUN_001a6870(
+              vehicle_tag,
+              *(unsigned short *)(next_unit + 0x2a0), 1 < sVar4);
+          tag_indices[slot_count] = iVar13;
+          slot_count = slot_count + 1;
+        }
+        iVar13 = *(int *)(next_obj_data + 0xc4);
+      }
+    }
+  }
+
+  {
+    int shield_frac_raw = *(int *)((char *)unit_ptr + 0x2f0);
+    full_shield = (unsigned int)(shield_frac_raw == 0x3f800000);
+
+    if ((unit_ptr[0x6d] & 0x80000) != 0 ||
+        *(float *)((char *)unit_ptr + 0x2f4) >= *(float *)0x2549d4) {
+      damage_active = 0;
+    } else if ((*(unsigned char *)((char *)unit_ptr + 0x1b8) & 0x10) != 0) {
+      damage_active = 1;
+    } else {
+      damage_active = 0;
+    }
+
+    fraction_slots[0] = *(float *)((char *)unit_ptr + 0x2f4);
+  }
+
+  {
+    unsigned int uVar16 = slot_count;
+    unsigned int uVar18;
+
+    while (uVar16 != 0) {
+      uVar18 = uVar16 - 1;
+
+      iVar13 = (int)object_try_and_get_and_verify_type(
+          handle_slots[uVar16 - 1], 3);
+      unit_data = iVar13;
+
+      uVar16 = uVar18;
+      if (iVar13 == 0 || tag_indices[uVar18] == -1)
+        goto next_slot;
+
+      iVar7 = (int)tag_get(0x756e6869, tag_indices[uVar18]);
+      unhi_tag = iVar7;
+
+      if (*(int *)(iVar7 + 0x54) != -1) {
+        bVar = (unsigned char)((*(unsigned char *)(iVar13 + 0xb6)) >> 1) & 2;
+        sVar4 = local_player_count();
+        if (1 < sVar4) {
+          bVar = bVar | 4;
+        }
+        FUN_000d3fe0(local_player_idx, (short *)iVar7, iVar7 + 0x24,
+                     (unsigned int)bVar, (int)0xFFFFFFFF);
+      }
+
+      cVar3 = game_engine_has_shield(player_index);
+      iVar8 = unit_data;
+      {
+        int iVar21 = unhi_tag;
+
+        if (cVar3 != '\0' &&
+            (iVar8 = iVar13, iVar21 = iVar7,
+             (*(unsigned int *)(*(int *)0x46bd20 + 0x160) & 4) == 0)) {
+
+          if (*(float *)(iVar13 + 0x94) < *(float *)0x25337c ||
+              (*(unsigned int *)(*(int *)0x46bd20 + 0x160) & 8) != 0) {
+            flags = 1;
+          } else {
+            flags = 0;
+          }
+
+          if ((*(unsigned char *)(unit_data + 0xb6) & 4) != 0) {
+            flags = flags | 2;
+          }
+
+          sVar4 = local_player_count();
+          if (1 < sVar4) {
+            flags = flags | 4;
+          }
+
+          if (uVar18 == 0) {
+            if ((flags & 1) == 0) {
+              *(int *)((char *)pfVar6 + 0x10) = (int)0xFFFFFFFF;
+            } else if (*(int *)((char *)pfVar6 + 0x10) == (int)0xFFFFFFFF) {
+              *(int *)((char *)pfVar6 + 0x10) = game_time_get();
+            }
+          }
+
+          if (*(int *)(iVar7 + 0x124) != -1) {
+            int layer_idx;
+            int saved_layer_idx;
+            int meter_max;
+            int *color_ptr;
+
+            game_engine_running();
+
+            if (uVar18 == 0) {
+              local_44 = pfVar6[0];
+            } else {
+              local_44 = *(float *)(unit_data + 0x94);
+            }
+
+            meter_max =
+                (int)(unsigned short)*(unsigned short *)(unhi_tag + 0x13e);
+            if (meter_max == 0) {
+              meter_max = 0xff;
+            }
+
+            meter_src_ptr = (int *)(unhi_tag + 0xf4);
+            {
+              int *src = (int *)(unhi_tag + 0xf4);
+              int *dst = widget_meter_data;
+              int cnt;
+              for (cnt = 0x1a; cnt != 0; cnt--) {
+                *dst = *src;
+                src++;
+                dst++;
+              }
+            }
+
+            overlay_colors[0] = 0;
+            overlay_colors[1] = 0xff0000;
+            overlay_colors[2] = 0xff00;
+            overlay_colors[3] = 0xffff00;
+            overlay_colors[4] = 0x7f00ff;
+            color_ptr = overlay_colors;
+
+            layer_idx = 0;
+            fVar14 = *(float *)&flags;
+
+            if (0 <= *(int *)0x2f66f0) {
+              do {
+                saved_layer_idx = layer_idx;
+
+                local_34 =
+                    *(float *)(unit_data + 0x94) - (float)layer_idx;
+                if (local_34 < *(float *)0x2533c0) {
+                  local_34 = 0.0f;
+                } else if (local_34 > *(float *)0x2533c8) {
+                  local_34 = 1.0f;
+                }
+
+                fVar14 = local_44 - (float)layer_idx;
+                fVar1 = *(float *)0x2533c0;
+                if (*(float *)0x2533c0 <= fVar14) {
+                  fVar1 = fVar14;
+                  if (*(float *)0x2533c8 < fVar14) {
+                    fVar1 = *(float *)0x2533c8;
+                  }
+                }
+
+                fVar2 = local_34;
+                if (local_34 < fVar1) {
+                  fVar2 = fVar1;
+                }
+
+                if ((local_34 < *(float *)0x2533c0 !=
+                     (local_34 == *(float *)0x2533c0)) &&
+                    (fVar14 = *(float *)&flags,
+                     fVar2 < *(float *)0x2533c0 !=
+                         (fVar2 == *(float *)0x2533c0)))
+                  break;
+
+                if (fVar1 <= local_34) {
+                  flash_param_int = (int)0xbf800000;
+                } else {
+                  flash_param_int = *(int *)((char *)pfVar6 + 0x08);
+                }
+
+                local_48 = (float)(short)meter_max * fVar2;
+                clamp_a = (int)local_48;
+                if (clamp_a < 0) {
+                  clamp_a = 0;
+                } else {
+                  if ((int)local_48 > 0xff) {
+                    clamp_a = 0xff;
+                  } else {
+                    clamp_a = (int)local_48;
+                  }
+                }
+
+                {
+                  float local_38_v =
+                      (float)(short)meter_max * local_34;
+                  clamp_b = (int)local_38_v;
+                  if (clamp_b < 0) {
+                    clamp_b = 0;
+                  } else {
+                    if ((int)local_38_v > 0xff) {
+                      clamp_b = 0xff;
+                    } else {
+                      clamp_b = (int)local_38_v;
+                    }
+                  }
+                }
+
+                {
+                  int *meter_data_ptr;
+                  if (layer_idx == 0) {
+                    meter_data_ptr = meter_src_ptr;
+                  } else {
+                    meter_data_ptr = widget_meter_data;
+                  }
+
+                  FUN_000d3340(local_player_idx, unhi_tag,
+                               (int)meter_data_ptr, clamp_b, clamp_a,
+                               flags, flash_param_int, local_34);
+                }
+
+                color_ptr = color_ptr + 1;
+                layer_idx = saved_layer_idx + 1;
+                fVar14 = *(float *)&flags;
+              } while (saved_layer_idx + 1 <= *(int *)0x2f66f0);
+            }
+          }
+
+          iVar8 = unit_data;
+          iVar21 = unhi_tag;
+
+          if (*(int *)(unhi_tag + 0xbc) != -1) {
+            FUN_000d3fe0(local_player_idx, (short *)unhi_tag,
+                         unhi_tag + 0x8c, (unsigned int)fVar14,
+                         *(int *)((char *)pfVar6 + 0x10));
+            iVar8 = unit_data;
+            iVar21 = unhi_tag;
+          }
+        }
+
+        if ((*(unsigned int *)(*(int *)0x46bd20 + 0x160) & 1) == 0) {
+          unsigned short health_status_bits;
+
+          health_status_bits = *(unsigned short *)(iVar8 + 0xb6);
+          if ((health_status_bits & 8) == 0 &&
+              (*(unsigned int *)(*(int *)0x46bd20 + 0x160) & 2) == 0) {
+            flags = 0;
+          } else {
+            flags = 1;
+          }
+          if ((health_status_bits & 4) != 0) {
+            flags = flags | 2;
+          }
+          sVar4 = local_player_count();
+          if (1 < sVar4) {
+            flags = flags | 4;
+          }
+
+          if (uVar18 == 0) {
+            if ((flags & 1) == 0) {
+              *(int *)((char *)pfVar6 + 0x14) = (int)0xFFFFFFFF;
+            } else if (*(int *)((char *)pfVar6 + 0x14) ==
+                       (int)0xFFFFFFFF) {
+              *(int *)((char *)pfVar6 + 0x14) = game_time_get();
+            }
+          }
+
+          iVar13 = unhi_tag;
+          if (*(int *)(iVar21 + 0x214) != -1) {
+            short health_max;
+            int h_cnt;
+            int health_alpha;
+            int health_flash_alpha;
+
+            health_max = *(short *)(iVar21 + 0x22e);
+            if (health_max == 0) {
+              health_max = 8;
+            }
+
+            {
+              int *h_src = (int *)(unhi_tag + 0x1e4);
+              int *h_dst = health_meter_data;
+              for (iVar8 = unit_data, h_cnt = 0x1a; h_cnt != 0;
+                   h_cnt--) {
+                *h_dst = *h_src;
+                h_src++;
+                h_dst++;
+              }
+            }
+
+            if (*(float *)(unit_data + 0x90) <
+                *(float *)(iVar13 + 0x250)) {
+              if (*(float *)(unit_data + 0x90) <
+                      *(float *)(iVar13 + 0x254) ||
+                  *(float *)(unit_data + 0x90) ==
+                      *(float *)(iVar13 + 0x254)) {
+                health_meter_data[15] = health_meter_data[14];
+              } else {
+                health_meter_data[15] = *(int *)(iVar13 + 0x24c);
+              }
+            }
+            health_meter_data[14] = health_meter_data[15];
+
+            meter_scale = (float)(int)health_max;
+
+            iVar7 = FUN_000d1c50(
+                meter_scale * *(float *)(unit_data + 0x90));
+            if (iVar7 < 0) {
+              health_alpha = 0;
+            } else {
+              iVar7 = FUN_000d1c50(
+                  meter_scale * *(float *)(iVar8 + 0x90));
+              if (iVar7 < 0x100) {
+                health_alpha = FUN_000d1c50(
+                    meter_scale * *(float *)(iVar8 + 0x90));
+              } else {
+                health_alpha = 0xff;
+              }
+            }
+
+            iVar7 = FUN_000d1c50(
+                meter_scale * *(float *)(iVar8 + 0x90));
+            if (iVar7 < 0) {
+              health_flash_alpha = 0;
+            } else {
+              iVar7 = FUN_000d1c50(
+                  meter_scale * *(float *)(iVar8 + 0x90));
+              if (iVar7 < 0x100) {
+                health_flash_alpha = FUN_000d1c50(
+                    meter_scale * *(float *)(iVar8 + 0x90));
+              } else {
+                health_flash_alpha = 0xff;
+              }
+            }
+
+            FUN_000d3340(local_player_idx, iVar13,
+                         (int)health_meter_data, health_flash_alpha,
+                         health_alpha, flags, (int)0xbf800000,
+                         *(float *)(iVar8 + 0x90));
+            iVar21 = unhi_tag;
+          }
+
+          if (*(int *)(iVar21 + 0x1ac) != -1) {
+            FUN_000d3fe0(local_player_idx, (short *)iVar21,
+                         iVar21 + 0x17c, flags,
+                         *(int *)((char *)pfVar6 + 0x14));
+          }
+
+          pfVar6[1] = *(float *)(unit_data + 0x90);
+        }
+
+        if (uVar18 == 0 &&
+            (*(unsigned char *)(*(int *)0x46bd20 + 0x160) & 0x10) == 0 &&
+            FUN_000a9f90(player_index) != '\0') {
+
+          local_130[0] = 2;
+
+          sVar4 = local_player_count();
+          bVar = (unsigned char)((sVar4 < 2) - 1) & 4;
+          if ((*(unsigned char *)(*(int *)0x46bd20 + 0x160) & 0x20) !=
+              0) {
+            bVar = bVar | 1;
+          }
+
+          if ((bVar & 1) == 0) {
+            *(int *)((char *)pfVar6 + 0x18) = (int)0xFFFFFFFF;
+          } else if (*(int *)((char *)pfVar6 + 0x18) ==
+                     (int)0xFFFFFFFF) {
+            *(int *)((char *)pfVar6 + 0x18) = game_time_get();
+          }
+
+          iVar13 = unhi_tag;
+          if (*(int *)(unhi_tag + 0x29c) != -1) {
+            FUN_000d3fe0(local_player_idx, local_130,
+                         unhi_tag + 0x26c, (unsigned int)bVar,
+                         (int)0xFFFFFFFF);
+          }
+          if (*(int *)(iVar13 + 0x304) != -1) {
+            FUN_000d3fe0(local_player_idx, local_130,
+                         iVar13 + 0x2d4, (unsigned int)bVar,
+                         (int)0xFFFFFFFF);
+          }
+
+          sVar4 = local_player_count();
+          FUN_000d1f40((short)local_player_idx, local_130,
+                       iVar13 + 0x35c, 0, 1 < sVar4, 0,
+                       local_78_buf);
+
+          sVar4 = local_player_count();
+          FUN_000dbfb0(local_player_idx, 1 < sVar4,
+                       (int)local_78_buf);
+        }
+
+        {
+          int widget_base;
+          int *widget_block_ptr;
+          int widget_flags_mask;
+
+          iVar13 = unhi_tag;
+          widget_base = unhi_tag + 0x380;
+          cVar3 = FUN_000a95a0();
+          sVar4 = local_player_count();
+          widget_block_ptr = (int *)(iVar13 + 0x3a4);
+          widget_flags_mask = (int)((sVar4 < 2) - 1) & 4;
+
+          if (0 < *(int *)(iVar13 + 0x3a4)) {
+            int widget_type_mask;
+            int widget_idx_int;
+
+            widget_type_mask = (unsigned int)(cVar3 != '\0');
+            widget_idx_int = 0;
+
+            do {
+              int widget_element;
+
+              widget_element = (int)tag_block_get_element(
+                  (void *)widget_block_ptr, widget_idx_int, 0x84);
+
+              if ((widget_type_mask &
+                   (1 << (*(unsigned char *)(widget_element + 0x68) &
+                          0x1f))) != 0) {
+                if ((*(unsigned char *)(widget_element + 0x6a) & 1) !=
+                    0) {
+                  unsigned int packed_color;
+                  packed_color = FUN_000d1dd0(
+                      (float *)(unit_data + 0x138));
+                  *(unsigned int *)(widget_element + 0x34) =
+                      packed_color | 0xff000000;
+                }
+
+                FUN_000d3fe0(local_player_idx,
+                             (short *)widget_base,
+                             widget_element,
+                             (unsigned int)widget_flags_mask,
+                             (int)0xFFFFFFFF);
+              }
+
+              i = (int)(short)(widget_idx_int + 1);
+              widget_idx_int = i;
+            } while (i < *widget_block_ptr);
+          }
+        }
+
+        {
+          int overlay_loop_idx = 0;
+
+          if (0 < *(int *)(unhi_tag + 0x3cc)) {
+            int overlay_idx = 0;
+
+            do {
+              psVar12 = (short *)tag_block_get_element(
+                  (void *)(unhi_tag + 0x3cc), overlay_idx, 0x144);
+
+              {
+                short overlay_type;
+                unsigned int type_bit;
+                unsigned int bitmask_20;
+
+                overlay_type = *psVar12;
+                type_bit =
+                    1 << ((unsigned char)overlay_type & 0x1f);
+                bitmask_20 = (unsigned int)*(unsigned short
+                                                *)((char *)pfVar6 +
+                                                   0x20);
+
+                if ((type_bit & bitmask_20) != 0 &&
+                    (full_shield & type_bit) == 0) {
+                  *(short *)((char *)pfVar6 +
+                             overlay_type * 2 + 0x22) =
+                      (short)0xffff;
+                }
+
+                overlay_type = *psVar12;
+                type_bit =
+                    1 << ((unsigned char)overlay_type & 0x1f);
+
+                if ((full_shield & type_bit) == 0) {
+                  if ((damage_active & type_bit) == 0) {
+                    psVar22 =
+                        (short *)((char *)pfVar6 +
+                                  overlay_type * 2 + 0x22);
+                    if (*psVar22 != -1) {
+                      psVar22 = (short *)((char *)pfVar6 +
+                                          *psVar12 * 2 + 0x22);
+                      iVar13 =
+                          FUN_000d2300((int)(psVar12 + 0x24));
+                      if (*psVar22 < iVar13)
+                        goto overlay_active_no_shield;
+                    }
+                    *psVar22 = -1;
+                  } else {
+                  overlay_active_no_shield:
+                    tag_ref_result = verify_tag_reference(
+                        (int *)(psVar12 + 0x1c));
+                    sVar4 = local_player_count();
+                    psVar22 =
+                        (short *)((char *)pfVar6 +
+                                  *psVar12 * 2 + 0x22);
+                    sVar5 = game_time_get_elapsed();
+                    *psVar22 = *psVar22 + sVar5;
+
+                    if (tag_ref_result != (int)0xFFFFFFFF) {
+                      int time_val = game_time_get();
+                      FUN_000d3fe0(
+                          local_player_idx,
+                          (short *)unhi_tag,
+                          (int)(psVar12 + 10),
+                          ((unsigned int)((sVar4 < 2) - 1) &
+                           4) |
+                              1,
+                          time_val -
+                              (int)*(short *)((char *)pfVar6 +
+                                              *psVar12 * 2 +
+                                              0x22));
+                    }
+                  }
+                } else {
+                  int overlay_ref2;
+
+                  tag_ref_result = verify_tag_reference(
+                      (int *)(psVar12 + 0x1c));
+                  overlay_ref2 = verify_tag_reference(
+                      (int *)(psVar12 + 0x50));
+                  sVar4 = local_player_count();
+                  flags =
+                      (unsigned int)((sVar4 < 2) - 1) & 4;
+
+                  if (fraction_slots[*psVar12] <
+                          *(float *)(psVar12 + 0x72) &&
+                      fraction_slots[*psVar12] !=
+                          *(float *)(psVar12 + 0x72)) {
+                    flags = flags | 1;
+                  }
+
+                  psVar22 =
+                      (short *)((char *)pfVar6 +
+                                *psVar12 * 2 + 0x22);
+                  sVar5 = game_time_get_elapsed();
+                  *psVar22 = *psVar22 + sVar5;
+
+                  psVar22 =
+                      (short *)((char *)pfVar6 +
+                                *psVar12 * 2 + 0x22);
+                  iVar13 =
+                      FUN_000d2300((int)(psVar12 + 0x24));
+                  *psVar22 =
+                      (short)((int)*psVar22 % (iVar13 << 1));
+
+                  if (tag_ref_result != (int)0xFFFFFFFF) {
+                    int time_val2 = game_time_get();
+                    FUN_000d3fe0(
+                        local_player_idx,
+                        (short *)unhi_tag,
+                        (int)(psVar12 + 10), flags,
+                        time_val2 -
+                            (int)*(short *)((char *)pfVar6 +
+                                            *psVar12 * 2 +
+                                            0x22));
+                  }
+
+                  if (overlay_ref2 != (int)0xFFFFFFFF) {
+                    float frac_value;
+                    float computed_alpha;
+                    int alpha_a2, alpha_b2;
+                    short alpha_scale;
+
+                    alpha_scale = psVar12[99];
+                    frac_value = fraction_slots[*psVar12];
+                    meter_scale = (float)(int)alpha_scale;
+                    computed_alpha = meter_scale * frac_value;
+
+                    clamp_a = (int)computed_alpha;
+                    if (clamp_a < 0) {
+                      alpha_a2 = 0;
+                    } else {
+                      clamp_a = (int)computed_alpha;
+                      if (clamp_a > 0xff) {
+                        alpha_a2 = 0xff;
+                      } else {
+                        alpha_a2 = (int)computed_alpha;
+                      }
+                    }
+
+                    clamp_b = (int)computed_alpha;
+                    if (clamp_b < 0) {
+                      alpha_b2 = 0;
+                    } else {
+                      clamp_b = (int)computed_alpha;
+                      if (clamp_b > 0xff) {
+                        alpha_b2 = 0xff;
+                      } else {
+                        alpha_b2 = (int)computed_alpha;
+                      }
+                    }
+
+                    FUN_000d3340(
+                        local_player_idx, unhi_tag,
+                        (int)(psVar12 + 0x3e), alpha_b2,
+                        alpha_a2, flags, (int)0xbf800000,
+                        frac_value);
+                  }
+                }
+              }
+
+              overlay_idx =
+                  (int)(short)(overlay_loop_idx + 1);
+              overlay_loop_idx = overlay_loop_idx + 1;
+            } while (overlay_idx <
+                     *(int *)(unhi_tag + 0x3cc));
+          }
+        }
+
+        *(unsigned short *)((char *)pfVar6 + 0x20) =
+            (unsigned short)full_shield;
+      }
+
+    next_slot:
+      slot_count = uVar18;
+    }
+  }
+
+done_canary_check:
+  {
+    short canary_idx = 0x7f;
+    do {
+      if (canary_buf[canary_idx] != 0x62626262)
+        goto canary_found;
+      canary_idx = canary_idx - 1;
+    } while (canary_idx >= 0);
+    canary_idx = -1;
+
+  canary_found:
+    {
+      int cookie_check = FUN_000d1540();
+      if (canary_cookie != cookie_check) {
+        display_assert("corrupt return address!",
+                       "c:\\halo\\SOURCE\\interface\\hud_unit.c",
+                       0x3c9, 1);
+        system_exit(-1);
+      }
+      if (canary_idx != -1) {
+        char *msg =
+            csprintf((char *)0x5ab100, "corrupt stack at %d!",
+                     (int)canary_idx);
+        display_assert(
+            msg, "c:\\halo\\SOURCE\\interface\\hud_unit.c",
+            0x3c9, 1);
+        system_exit(-1);
+      }
+    }
+  }
+}
