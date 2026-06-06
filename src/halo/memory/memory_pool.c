@@ -37,6 +37,21 @@ int memory_pool_get_used_size(void *pool)
          last_block;
 }
 
+/* Returns contiguous free space from end of last block to end of pool
+ * (0x11e3c0). If no blocks, returns pool->size. */
+int memory_pool_get_contiguous_free_size(void *pool)
+{
+  char *p = (char *)pool;
+  int last_block = *(int *)(p + 0x34);
+  int used;
+
+  if (last_block == 0) {
+    used = 0;
+  } else {
+    used = (*(int *)(last_block + 4) - *(int *)(p + 0x24)) + last_block;
+  }
+  return *(int *)(p + 0x28) - used;
+}
 
 /* Validate pool structure and all blocks in the linked list (0x11e430).
  * Checks pool/block signatures, linked list consistency, and address bounds. */
