@@ -71,13 +71,18 @@ jobs:
           # Ensure history is in the deploy directory
           cp artifacts/progress/history.json artifacts/progress/history.json.deploy 2>/dev/null || true
       
+      - name: Prepare GitHub Pages Payload
+        run: |
+          mkdir -p artifacts/pages/progress
+          cp -a artifacts/progress/. artifacts/pages/
+          cp -a artifacts/progress/. artifacts/pages/progress/
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./artifacts/progress
+          publish_dir: ./artifacts/pages
           publish_branch: gh-pages
-          destination_dir: progress
           keep_files: true
       
       - name: Comment on PR (if applicable)
