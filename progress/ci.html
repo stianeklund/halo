@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CI Status &mdash; Halo CE Xbox</title>
+  
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --border: #30363d;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --accent-blue: #58a6ff;
+            --accent-green: #238636;
+            --green: #3fb950;
+            --accent-yellow: #d29922;
+            --accent-orange: #d4760a;
+            --accent-red: #da3633;
+            --red: #f85149;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0; padding: 0;
+            background: var(--bg-primary); color: var(--text-primary); line-height: 1.6;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        header {
+            text-align: center; padding: 28px 0 16px;
+            border-bottom: 1px solid var(--border); margin-bottom: 24px;
+        }
+        .header-row { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; }
+        h1 { color: var(--accent-blue); margin: 0; font-size: 2em; font-weight: 700; }
+        .subtitle { color: var(--text-secondary); font-size: 1em; margin-top: 4px; }
+        .back-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            color: var(--accent-blue); text-decoration: none; font-size: 0.9em;
+            padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border);
+            background: var(--bg-secondary); margin-bottom: 4px;
+        }
+        .back-btn:hover { background: var(--bg-tertiary); }
+        h2 {
+            color: var(--accent-blue); margin-top: 32px; margin-bottom: 14px;
+            padding-bottom: 8px; border-bottom: 1px solid var(--border); font-size: 1.2em;
+        }
+        .card {
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: 12px; padding: 20px; margin-bottom: 14px;
+        }
+        .cards-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 16px; }
+        .stat-value { font-size: 2em; font-weight: 700; color: var(--accent-blue); margin: 6px 0 2px; }
+        .stat-label { color: var(--text-secondary); font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+        .stat-sub { color: var(--text-secondary); font-size: 0.82em; margin-top: 6px; }
+        /* Badge */
+        .badge {
+            display: inline-block; padding: 2px 9px; border-radius: 20px;
+            font-size: 0.75em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+        }
+        .badge.success { background: rgba(35,134,54,0.2); color: var(--green); border: 1px solid rgba(35,134,54,0.35); }
+        .badge.failure { background: rgba(218,54,51,0.2); color: var(--red); border: 1px solid rgba(218,54,51,0.35); }
+        .badge.cancelled { background: rgba(139,148,158,0.2); color: var(--text-secondary); border: 1px solid var(--border); }
+        .badge.skipped { background: rgba(139,148,158,0.15); color: var(--text-secondary); border: 1px solid var(--border); }
+        .badge.pending { background: rgba(210,153,34,0.2); color: var(--accent-yellow); border: 1px solid rgba(210,153,34,0.35); }
+        .badge.pass { background: rgba(35,134,54,0.15); color: var(--green); border: 1px solid rgba(35,134,54,0.3); }
+        .badge.fail { background: rgba(218,54,51,0.15); color: var(--red); border: 1px solid rgba(218,54,51,0.3); }
+        .badge.none { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); opacity: 0.6; }
+        .badge.high { background: rgba(35,134,54,0.15); color: var(--green); }
+        .badge.moderate { background: rgba(88,166,255,0.15); color: var(--accent-blue); }
+        .badge.weak { background: rgba(218,54,51,0.15); color: var(--red); }
+        .badge.uncached { background: transparent; color: var(--text-secondary); opacity: 0.5; }
+        /* Table */
+        .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+        table { width: 100%; border-collapse: collapse; background: var(--bg-secondary); }
+        th {
+            background: var(--bg-tertiary); color: var(--text-secondary);
+            font-weight: 600; font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.5px;
+            padding: 10px 12px; text-align: left; white-space: nowrap;
+        }
+        td { padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 0.88em; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: rgba(88,166,255,0.04); }
+        .mono { font-family: "SF Mono","Cascadia Code",monospace; font-size: 0.9em; }
+        .num { text-align: right; font-variant-numeric: tabular-nums; }
+        .dim { color: var(--text-secondary); }
+        .cov-bar {
+            display: inline-flex; align-items: center; gap: 5px;
+        }
+        .cov-track { width: 60px; height: 5px; background: var(--bg-tertiary); border-radius: 3px; overflow: hidden; }
+        .cov-fill { height: 100%; border-radius: 3px; }
+        .cov-fill.high { background: var(--green); }
+        .cov-fill.moderate { background: var(--accent-blue); }
+        .cov-fill.weak { background: var(--accent-yellow); }
+        .cov-fill.low { background: var(--red); }
+        .workflow-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .wf-card {
+            background: var(--bg-secondary); border-radius: 10px;
+            padding: 14px 16px; display: flex; flex-direction: column; gap: 6px;
+            border-left: 3px solid var(--border);
+        }
+        .wf-card.success { border-left-color: var(--green); }
+        .wf-card.failure { border-left-color: var(--red); }
+        .wf-card.cancelled, .wf-card.skipped { border-left-color: var(--text-secondary); }
+        .wf-name { font-weight: 600; font-size: 0.92em; }
+        .wf-meta { color: var(--text-secondary); font-size: 0.78em; }
+        .wf-link { color: var(--accent-blue); font-size: 0.78em; text-decoration: none; }
+        .wf-link:hover { text-decoration: underline; }
+        .meta { color: var(--text-secondary); font-size: 0.8em; margin-top: 32px; padding-top: 14px; border-top: 1px solid var(--border); text-align: center; }
+        .empty-msg { color: var(--text-secondary); font-style: italic; padding: 16px 0; text-align: center; }
+        .section-note { color: var(--text-secondary); font-size: 0.82em; margin-bottom: 12px; }
+        .conf-bar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; margin: 10px 0; }
+        .conf-bar-seg { height: 100%; }
+        @media (max-width: 768px) {
+            h1 { font-size: 1.5em; }
+            .cards-row { grid-template-columns: 1fr 1fr; }
+            .workflow-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-row">
+        <h1>CI Status</h1>
+      </div>
+      <div class="subtitle">Halo CE Xbox &mdash; Verification &amp; Pipeline Health</div>
+    </header>
+
+    <a class="back-btn" href="index.html">&#x2190; Back to Dashboard</a>
+
+    <h2>GitHub Actions &mdash; Current Status</h2>
+    <div class="workflow-grid">
+            <div class="wf-card failure">
+                <div class="wf-name">main.yml</div>
+                <div><span class="badge failure">Fail</span></div>
+                <div class="wf-meta">2026-06-06 19:50 UTC &middot; <span class="mono">9fdd5f91</span></div>
+                <a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/27072203725" target="_blank">View run ↗</a>
+            </div>
+            <div class="wf-card success">
+                <div class="wf-name">Equivalence Tests</div>
+                <div><span class="badge success">Pass</span></div>
+                <div class="wf-meta">2026-06-06 19:38 UTC &middot; <span class="mono">1c6b6f3f</span></div>
+                <a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/27071923289" target="_blank">View run ↗</a>
+            </div>
+            <div class="wf-card failure">
+                <div class="wf-name">Snapshot Verification</div>
+                <div><span class="badge failure">Fail</span></div>
+                <div class="wf-meta">2026-06-06 19:38 UTC &middot; <span class="mono">1c6b6f3f</span></div>
+                <a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/27071923280" target="_blank">View run ↗</a>
+            </div>
+            <div class="wf-card cancelled">
+                <div class="wf-name">Runtime Oracle Tests</div>
+                <div><span class="badge cancelled">Cancelled</span></div>
+                <div class="wf-meta">2026-06-06 19:38 UTC &middot; <span class="mono">1c6b6f3f</span></div>
+                <a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/27071923285" target="_blank">View run ↗</a>
+            </div>
+            <div class="wf-card pending">
+                <div class="wf-name">Progress Report</div>
+                <div><span class="badge pending">in progress</span></div>
+                <div class="wf-meta">2026-06-06 19:50 UTC &middot; <span class="mono">9fdd5f91</span></div>
+                <a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/27072203715" target="_blank">View run ↗</a>
+            </div>
+            <div class="wf-card success">
+                <div class="wf-name">pages-build-deployment</div>
+                <div><span class="badge success">Pass</span></div>
+                <div class="wf-meta">2026-06-06 19:38 UTC &middot; <span class="mono">7f6353f3</span></div>
+                <a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/27071935299" target="_blank">View run ↗</a>
+            </div></div>
+
+    <h2>GitHub Actions &mdash; Run History</h2>
+    
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Time</th><th>Workflow</th><th>Result</th><th>Commit</th><th>Link</th>
+            </tr></thead>
+            <tbody><tr><td class="mono dim">2026-06-06 19:50 UTC</td><td>main.yml</td><td><span class="badge failure">Fail</span></td><td class="mono dim">9fdd5f91</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/27072203725" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-06 19:50 UTC</td><td>Progress Report</td><td><span class="badge pending">in progress</span></td><td class="mono dim">9fdd5f91</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/27072203715" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-06 19:38 UTC</td><td>pages-build-deployment</td><td><span class="badge success">Pass</span></td><td class="mono dim">7f6353f3</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/27071935299" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-06 19:38 UTC</td><td>Equivalence Tests</td><td><span class="badge success">Pass</span></td><td class="mono dim">1c6b6f3f</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/27071923289" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-06 19:38 UTC</td><td>Runtime Oracle Tests</td><td><span class="badge cancelled">Cancelled</span></td><td class="mono dim">1c6b6f3f</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/27071923285" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-06 19:38 UTC</td><td>Snapshot Verification</td><td><span class="badge failure">Fail</span></td><td class="mono dim">1c6b6f3f</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/27071923280" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-06 19:38 UTC</td><td>Progress Report</td><td><span class="badge success">Pass</span></td><td class="mono dim">1c6b6f3f</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/27071923271" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-06 19:38 UTC</td><td>main.yml</td><td><span class="badge failure">Fail</span></td><td class="mono dim">1c6b6f3f</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/27071923269" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-06 19:26 UTC</td><td>pages-build-deployment</td><td><span class="badge success">Pass</span></td><td class="mono dim">4dbff5fa</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/27071664948" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-06 19:25 UTC</td><td>pages-build-deployment</td><td><span class="badge failure">Fail</span></td><td class="mono dim">4dbff5fa</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/27071650933" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-06 19:24 UTC</td><td>pages-build-deployment</td><td><span class="badge success">Pass</span></td><td class="mono dim">4dbff5fa</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/27071622235" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-06 05:18 UTC</td><td>Runtime Oracle Tests</td><td><span class="badge success">Pass</span></td><td class="mono dim">9ff86eaa</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/27053587849" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-06 04:21 UTC</td><td>Equivalence Tests</td><td><span class="badge success">Pass</span></td><td class="mono dim">9ff86eaa</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/27052432919" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-06 00:35 UTC</td><td>Progress Report</td><td><span class="badge success">Pass</span></td><td class="mono dim">9ff86eaa</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/27047427512" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-05 20:40 UTC</td><td>Progress Report</td><td><span class="badge success">Pass</span></td><td class="mono dim">9ff86eaa</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/27038943318" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-05 20:40 UTC</td><td>Runtime Oracle Tests</td><td><span class="badge success">Pass</span></td><td class="mono dim">9ff86eaa</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/27038943316" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-05 20:40 UTC</td><td>main.yml</td><td><span class="badge failure">Fail</span></td><td class="mono dim">9ff86eaa</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/27038943298" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-05 20:40 UTC</td><td>Equivalence Tests</td><td><span class="badge success">Pass</span></td><td class="mono dim">9ff86eaa</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/27038943295" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-05 20:40 UTC</td><td>Snapshot Verification</td><td><span class="badge failure">Fail</span></td><td class="mono dim">9ff86eaa</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/27038943280" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-05 05:32 UTC</td><td>Runtime Oracle Tests</td><td><span class="badge cancelled">Cancelled</span></td><td class="mono dim">837b6571</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/26997413927" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-05 04:28 UTC</td><td>Equivalence Tests</td><td><span class="badge success">Pass</span></td><td class="mono dim">837b6571</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/26995394038" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-05 00:37 UTC</td><td>Progress Report</td><td><span class="badge success">Pass</span></td><td class="mono dim">837b6571</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/26988172668" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-04 05:37 UTC</td><td>Runtime Oracle Tests</td><td><span class="badge failure">Fail</span></td><td class="mono dim">837b6571</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/26933090127" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-04 04:29 UTC</td><td>Equivalence Tests</td><td><span class="badge success">Pass</span></td><td class="mono dim">837b6571</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/26930761370" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-04 00:45 UTC</td><td>Progress Report</td><td><span class="badge success">Pass</span></td><td class="mono dim">837b6571</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/26922634271" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-03 16:54 UTC</td><td>Equivalence Tests</td><td><span class="badge success">Pass</span></td><td class="mono dim">837b6571</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/26899822305" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-03 16:54 UTC</td><td>Runtime Oracle Tests</td><td><span class="badge success">Pass</span></td><td class="mono dim">837b6571</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/26899822191" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-03 16:54 UTC</td><td>Progress Report</td><td><span class="badge success">Pass</span></td><td class="mono dim">837b6571</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/26899821891" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-03 16:54 UTC</td><td>main.yml</td><td><span class="badge failure">Fail</span></td><td class="mono dim">837b6571</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/26899821867" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-03 16:54 UTC</td><td>Snapshot Verification</td><td><span class="badge failure">Fail</span></td><td class="mono dim">837b6571</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/26899821636" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-03 15:10 UTC</td><td>Snapshot Verification</td><td><span class="badge failure">Fail</span></td><td class="mono dim">130ac263</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/26893996391" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-03 15:10 UTC</td><td>Equivalence Tests</td><td><span class="badge success">Pass</span></td><td class="mono dim">130ac263</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/26893996261" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-03 15:10 UTC</td><td>main.yml</td><td><span class="badge failure">Fail</span></td><td class="mono dim">130ac263</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/26893996228" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-03 15:10 UTC</td><td>Runtime Oracle Tests</td><td><span class="badge failure">Fail</span></td><td class="mono dim">130ac263</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/26893996198" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-03 15:10 UTC</td><td>Progress Report</td><td><span class="badge success">Pass</span></td><td class="mono dim">130ac263</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/26893996165" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-03 15:01 UTC</td><td>main.yml</td><td><span class="badge failure">Fail</span></td><td class="mono dim">a3c7e51d</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/26893456440" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-03 15:01 UTC</td><td>Snapshot Verification</td><td><span class="badge failure">Fail</span></td><td class="mono dim">a3c7e51d</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/26893456330" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-03 15:01 UTC</td><td>Runtime Oracle Tests</td><td><span class="badge failure">Fail</span></td><td class="mono dim">a3c7e51d</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/26893456025" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-03 15:01 UTC</td><td>Equivalence Tests</td><td><span class="badge success">Pass</span></td><td class="mono dim">a3c7e51d</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/26893455908" target="_blank">↗</a></td></tr><tr><td class="mono dim">2026-06-03 15:01 UTC</td><td>Progress Report</td><td><span class="badge success">Pass</span></td><td class="mono dim">a3c7e51d</td><td><a class="wf-link" href="https://github.com/stianeklund/halo/actions/runs/26893455002" target="_blank">↗</a></td></tr></tbody>
+          </table>
+        </div>
+
+    <h2>Snapshot / Golden Tests</h2>
+    <p class="empty-msg">No snapshot results found. The Snapshot Verification workflow writes
+        <code>artifacts/equivalence/ci_results.json</code> when it runs on this machine.</p>
+
+    <h2>Equivalence Coverage Health</h2>
+    
+    <div class="cards-row">
+      <div class="card">
+        <div class="stat-label">Tested (any)</div>
+        <div class="stat-value">72</div>
+      </div>
+      <div class="card">
+        <div class="stat-label">High Confidence</div>
+        <div class="stat-value" style="color:var(--green)">21</div>
+        <div class="stat-sub">29% of tested</div>
+      </div>
+      <div class="card">
+        <div class="stat-label">Avg Coverage</div>
+        <div class="stat-value">71.8%</div>
+      </div>
+    </div>
+    
+        <div class="conf-bar">
+          <div class="conf-bar-seg" style="width:29.2%;background:var(--green)" title="High: 21"></div>
+          <div class="conf-bar-seg" style="width:8.3%;background:var(--accent-blue)" title="Moderate: 6"></div>
+          <div class="conf-bar-seg" style="width:23.6%;background:var(--accent-yellow)" title="Weak: 17"></div>
+          <div class="conf-bar-seg" style="width:38.9%;background:var(--bg-tertiary)" title="Uncached: 28"></div>
+        </div>
+        <div style="display:flex;gap:16px;font-size:0.78em;color:var(--text-secondary);margin-top:4px">
+          <span><span style="color:var(--green)">&#9632;</span> High (21, 29%)</span>
+          <span><span style="color:var(--accent-blue)">&#9632;</span> Moderate (6, 8%)</span>
+          <span><span style="color:var(--accent-yellow)">&#9632;</span> Weak (17, 24%)</span>
+          <span><span style="color:var(--bg-tertiary)">&#9632;</span> Uncached (28)</span>
+        </div>
+    <p class="section-note">72 functions have equivalence data in leaf_cache.json &middot; avg coverage 71.8%</p>
+    
+    <h3 style="color:var(--text-secondary);font-size:0.95em;margin:16px 0 8px">Functions with &lt;30% coverage (7 total, showing first 50)</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Address</th><th>Class</th><th>Confidence</th><th>Coverage</th></tr></thead>
+        <tbody><tr><td class="mono">0x38e60</td><td><span class="badge non_leaf">non_leaf</span></td><td><span class="badge weak">weak</span></td><td><div class="cov-bar"><div class="cov-track"><div class="cov-fill low" style="width:0%"></div></div><span class="mono">0%</span></div></td></tr><tr><td class="mono">0x3a740</td><td><span class="badge leaf">leaf</span></td><td><span class="badge weak">weak</span></td><td><div class="cov-bar"><div class="cov-track"><div class="cov-fill low" style="width:0%"></div></div><span class="mono">0%</span></div></td></tr><tr><td class="mono">0x3a760</td><td><span class="badge leaf">leaf</span></td><td><span class="badge weak">weak</span></td><td><div class="cov-bar"><div class="cov-track"><div class="cov-fill low" style="width:0%"></div></div><span class="mono">0%</span></div></td></tr><tr><td class="mono">0x1a8</td><td><span class="badge none">?</span></td><td><span class="badge weak">weak</span></td><td><div class="cov-bar"><div class="cov-track"><div class="cov-fill weak" style="width:23%"></div></div><span class="mono">23%</span></div></td></tr><tr><td class="mono">0x268</td><td><span class="badge none">?</span></td><td><span class="badge weak">weak</span></td><td><div class="cov-bar"><div class="cov-track"><div class="cov-fill weak" style="width:29%"></div></div><span class="mono">29%</span></div></td></tr><tr><td class="mono">0x3ab80</td><td><span class="badge non_leaf">non_leaf</span></td><td><span class="badge weak">weak</span></td><td><div class="cov-bar"><div class="cov-track"><div class="cov-fill weak" style="width:29%"></div></div><span class="mono">29%</span></div></td></tr><tr><td class="mono">0x164</td><td><span class="badge none">?</span></td><td><span class="badge weak">weak</span></td><td><div class="cov-bar"><div class="cov-track"><div class="cov-fill weak" style="width:29%"></div></div><span class="mono">29%</span></div></td></tr></tbody>
+      </table>
+    </div>
+
+    <h2>Runtime Oracle</h2>
+    
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Target</th><th>Result</th><th>Finished</th><th>Error</th></tr></thead>
+            <tbody><tr><td class="mono">system_stristr</td><td><span class="badge pass">Pass</span></td><td class="dim">2026-06-02 19:39 UTC</td><td></td></tr><tr><td class="mono">FUN_00012140</td><td><span class="badge fail">Fail</span></td><td class="dim">2026-05-25 22:22 UTC</td><td><span class="dim" style="font-size:0.82em">timeout waiting for oracle harness output; see /mnt/g/dev/halo/artifacts/runtime</span></td></tr><tr><td class="mono">FUN_001bd5f0</td><td><span class="badge pass">Pass</span></td><td class="dim">2026-05-26 20:14 UTC</td><td></td></tr><tr><td class="mono">normalize3d</td><td><span class="badge fail">Fail</span></td><td class="dim">2026-05-25 22:09 UTC</td><td><span class="dim" style="font-size:0.82em">timeout waiting for oracle harness output; see /mnt/g/dev/halo/artifacts/runtime</span></td></tr><tr><td class="mono">FUN_00012170</td><td><span class="badge fail">Fail</span></td><td class="dim">2026-05-25 22:06 UTC</td><td><span class="dim" style="font-size:0.82em">timeout waiting for oracle harness output; see /mnt/g/dev/halo/artifacts/runtime</span></td></tr><tr><td class="mono">FUN_001155c0</td><td><span class="badge fail">Fail</span></td><td class="dim">2026-05-25 22:01 UTC</td><td><span class="dim" style="font-size:0.82em">cmake failed with exit 2; see /mnt/g/dev/halo/artifacts/runtime_oracle/20260525-</span></td></tr><tr><td class="mono">scalars_interpolate_and_clamp_0_to_1</td><td><span class="badge pass">Pass</span></td><td class="dim">2026-05-25 21:54 UTC</td><td></td></tr></tbody>
+          </table>
+        </div>
+
+    <h2>Local Lift Pipeline Runs</h2>
+    <p class="empty-msg">No local lift pipeline runs found in artifacts/lift_runs/.</p>
+
+    <div class="meta">Generated 2026-06-06 20:17 UTC &middot; Halo CE Xbox Decompilation</div>
+  </div>
+</body>
+</html>
