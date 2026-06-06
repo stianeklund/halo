@@ -1485,6 +1485,79 @@ void FUN_000d7530(char param_1)
     *(unsigned int *)(*(int *)0x46bd20 + 0x160) & 0xffffffdf;
 }
 
+/* unit_hud_update_sounds (0xd7560)
+ * Build sound state flags from unit properties and update HUD sounds. */
+void FUN_000d7560(int param_1, char param_2)
+{
+  char cVar1;
+  short sVar2;
+  int *pfVar3;
+  int iVar4;
+  int *puVar5;
+  int iVar7;
+  unsigned int uVar8;
+
+  pfVar3 = (int *)FUN_000d7280(*(short *)(param_1 + 2));
+  iVar4 = *(int *)(param_1 + 0x34);
+  if (iVar4 == -1) {
+    iVar4 = pfVar3[7];
+  }
+  puVar5 = (int *)object_try_and_get_and_verify_type(iVar4, 3);
+  if (puVar5 != (int *)0) {
+    iVar7 = (int)tag_get(0x756e6974, *puVar5);
+    sVar2 = local_player_count();
+    iVar7 = FUN_001a6820(iVar7, 1 < sVar2);
+    if (iVar7 != -1) {
+      iVar7 = (int)tag_get(0x756e6869, iVar7);
+      uVar8 = 0;
+      if ((*(unsigned char *)((int)puVar5 + 4) & 4) != 0 ||
+          *(float *)((int)puVar5 + 0x90) <= *(float *)0x2533c0) {
+        pfVar3[7] = -1;
+      } else if (param_2 != '\0' &&
+                 (cVar1 = cinematic_in_progress(), cVar1 == '\0')) {
+        if (*(int *)pfVar3 != (int)0xbf800000) {
+          iVar4 = local_player_get_player_index(*(short *)(param_1 + 2));
+          cVar1 = game_engine_has_shield(iVar4);
+          if (cVar1 != '\0' &&
+              (*(unsigned int *)(*(int *)0x46bd20 + 0x160) & 4) == 0) {
+            uVar8 =
+                (*(unsigned short *)((int)puVar5 + 0xb6) & 0x1000) >> 0xc;
+            if (*(float *)pfVar3 < *(float *)((int)puVar5 + 0x94)) {
+              uVar8 = uVar8 | 2;
+            }
+            if (*(float *)((int)puVar5 + 0x94) < *(float *)0x25337c &&
+                *(float *)0x2533c0 < *(float *)((int)puVar5 + 0x94)) {
+              uVar8 = uVar8 | 4;
+            }
+            if (*(float *)((int)puVar5 + 0x94) == *(float *)0x2533c0) {
+              uVar8 = uVar8 | 8;
+            }
+          }
+        }
+        if ((*(unsigned int *)(*(int *)0x46bd20 + 0x160) & 1) == 0) {
+          if (*(float *)((int)puVar5 + 0x90) < *(float *)0x25337c) {
+            uVar8 = uVar8 | 0x10;
+          }
+          if ((*(unsigned char *)((int)puVar5 + 0xb6) & 4) != 0) {
+            uVar8 = uVar8 | 0x20;
+          }
+          if (*(float *)((int)puVar5 + 0x90) < *(float *)(pfVar3 + 1) &&
+              *(float *)(pfVar3 + 1) - *(float *)((int)puVar5 + 0x90) <
+                  *(float *)0x281e94) {
+            uVar8 = uVar8 | 0x40;
+          }
+          if (*(float *)0x281e94 <=
+              *(float *)(pfVar3 + 1) - *(float *)((int)puVar5 + 0x90)) {
+            uVar8 = uVar8 | 0x80;
+          }
+        }
+      }
+      FUN_000d70b0(*(short *)(param_1 + 2), uVar8, (int *)(iVar7 + 0x3c0),
+                   (int)(pfVar3 + 10), (unsigned short *)(pfVar3 + 9));
+    }
+  }
+}
+
 /* unit_hud_copy_slot (0xd7780)
  * Copy unit HUD data from old player to new player. */
 void FUN_000d7780(short old_player, short new_player)
