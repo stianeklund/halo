@@ -6693,7 +6693,7 @@
         {
           "addr": "0x9ca70",
           "decl": "void effects_information_get(unsigned int *seed, float *velocity_out, uint32_t min_val, uint32_t max_val, uint32_t flags);",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
           "ported": false
         },
         {
@@ -6754,7 +6754,7 @@
         {
           "addr": "0x9dcf0",
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -8269,7 +8269,7 @@
         },
         {
           "addr": "0xa9f90",
-          "decl": "char FUN_000a9f90(void);",
+          "decl": "char FUN_000a9f90(int param_1);",
           "ported": true,
           "src": "src/halo/game/game_engine.c"
         },
@@ -11789,7 +11789,7 @@
         },
         {
           "addr": "0xd1c50",
-          "decl": "unsigned char FUN_000d1c50(float param_1);"
+          "decl": "int FUN_000d1c50(float param_1);"
         },
         {
           "addr": "0xd1c90",
