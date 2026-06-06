@@ -150,11 +150,898 @@ int FUN_001154a0(int z, int w, char *version, int stream_size)
   return (int)0xfffffffc;
 }
 
+/* inflate_fast: fast inner loop for inflate_codes when enough input/output
+ * available. Processes literal/length/distance codes without per-byte checks.
+ * 0x114fa0 / circular_queue.obj (inffast.c)
+ * param_1=bl (literal bits), param_2=bd (distance bits),
+ * param_3=tl (literal table), param_4=td (distance table),
+ * param_5=s (block state), param_6=z (z_stream) */
+int FUN_00114fa0(int param_1, int param_2, int param_3, int param_4,
+                 int param_5, int *param_6)
+{
+  unsigned char *pbVar7;
+  unsigned char bVar2;
+  unsigned char bVar3;
+  unsigned int uVar4;
+  unsigned int uVar5;
+  int iVar6;
+  unsigned int uVar8;
+  char *fmt;
+  unsigned int uVar9;
+  unsigned int uVar10;
+  unsigned int uVar11;
+  unsigned int uVar12;
+  unsigned char *local_14;
+  unsigned char *local_10;
+  unsigned char *local_c;
+  unsigned int local_8;
+
+  local_c = (unsigned char *)*param_6;
+  local_8 = (unsigned int)param_6[1];
+  local_10 = *(unsigned char **)(param_5 + 0x34);
+  uVar11 = *(unsigned int *)(param_5 + 0x1c);
+  uVar12 = *(unsigned int *)(param_5 + 0x20);
+  if (local_10 < *(unsigned char **)(param_5 + 0x30)) {
+    local_14 = (unsigned char *)(*(int *)(param_5 + 0x30) + (-1 - (int)local_10));
+  } else {
+    local_14 = (unsigned char *)(*(int *)(param_5 + 0x2c) - (int)local_10);
+  }
+  uVar8 = *(unsigned int *)(0x320d88 + param_1 * 4);
+  uVar4 = *(unsigned int *)(0x320d88 + param_2 * 4);
+  do {
+    for (; uVar11 < 0x14; uVar11 = uVar11 + 8) {
+      local_8 = local_8 - 1;
+      uVar12 = uVar12 | (unsigned int)*local_c << ((unsigned char)uVar11 & 0x1f);
+      local_c = local_c + 1;
+    }
+    pbVar7 = (unsigned char *)(param_3 + (uVar8 & uVar12) * 8);
+    bVar2 = pbVar7[1];
+    bVar3 = *pbVar7;
+    uVar5 = (unsigned int)bVar3;
+    uVar12 = uVar12 >> (bVar2 & 0x1f);
+    if (uVar5 == 0) {
+      goto LAB_001151e9;
+    }
+    uVar11 = uVar11 - pbVar7[1];
+    while ((bVar3 & 0x10) == 0) {
+      if ((uVar5 & 0x40) != 0) {
+        if ((uVar5 & 0x20) != 0) {
+          if (*(int *)0x320e30 > 1) {
+            crt_fprintf(*(void **)0x331070,
+                        "inflate:         * end of block\n");
+          }
+          uVar8 = (unsigned int)param_6[1] - local_8;
+          if (uVar11 >> 3 < (unsigned int)param_6[1] - local_8) {
+            uVar8 = uVar11 >> 3;
+          }
+          *(unsigned int *)(param_5 + 0x20) = uVar12;
+          *(unsigned int *)(param_5 + 0x1c) = uVar11 + uVar8 * (unsigned int)-8;
+          iVar6 = *param_6;
+          param_6[1] = (int)(uVar8 + local_8);
+          *param_6 = (int)local_c - (int)uVar8;
+          param_6[2] = param_6[2] + (((int)local_c - (int)uVar8) - iVar6);
+          *(unsigned char **)(param_5 + 0x34) = local_10;
+          return 1;
+        }
+        param_6[6] = (int)"invalid literal/length code";
+        uVar8 = (unsigned int)param_6[1] - local_8;
+        if (uVar11 >> 3 < (unsigned int)param_6[1] - local_8) {
+          uVar8 = uVar11 >> 3;
+        }
+        *(unsigned int *)(param_5 + 0x20) = uVar12;
+        *(unsigned int *)(param_5 + 0x1c) = uVar11 + uVar8 * (unsigned int)-8;
+        iVar6 = *param_6;
+        param_6[1] = (int)(uVar8 + local_8);
+        *param_6 = (int)local_c - (int)uVar8;
+        param_6[2] = param_6[2] + (((int)local_c - (int)uVar8) - iVar6);
+        *(unsigned char **)(param_5 + 0x34) = local_10;
+        return (int)0xfffffffd;
+      }
+      iVar6 = (*(unsigned int *)(0x320d88 + uVar5 * 4) & uVar12) +
+              *(int *)(pbVar7 + 4);
+      bVar2 = pbVar7[iVar6 * 8 + 1];
+      pbVar7 = pbVar7 + iVar6 * 8;
+      bVar3 = *pbVar7;
+      uVar5 = (unsigned int)bVar3;
+      uVar12 = uVar12 >> (bVar2 & 0x1f);
+      if (uVar5 == 0) goto LAB_001151e9;
+      uVar11 = uVar11 - pbVar7[1];
+    }
+    uVar5 = uVar5 & 0xf;
+    uVar9 = (*(unsigned int *)(0x320d88 + uVar5 * 4) & uVar12) +
+            *(int *)(pbVar7 + 4);
+    uVar11 = uVar11 - uVar5;
+    uVar12 = uVar12 >> (unsigned char)uVar5;
+    if (*(int *)0x320e30 > 1) {
+      crt_fprintf(*(void **)0x331070,
+                  "inflate:         * length %u\n", uVar9);
+    }
+    for (; uVar11 < 0xf; uVar11 = uVar11 + 8) {
+      local_8 = local_8 - 1;
+      uVar12 = uVar12 | (unsigned int)*local_c << ((unsigned char)uVar11 & 0x1f);
+      local_c = local_c + 1;
+    }
+    pbVar7 = (unsigned char *)(param_4 + (uVar4 & uVar12) * 8);
+    uVar12 = uVar12 >> (pbVar7[1] & 0x1f);
+    uVar11 = uVar11 - pbVar7[1];
+    bVar3 = *pbVar7;
+    while ((bVar3 & 0x10) == 0) {
+      if ((bVar3 & 0x40) != 0) {
+        param_6[6] = (int)"invalid distance code";
+        uVar8 = (unsigned int)param_6[1] - local_8;
+        if (uVar11 >> 3 < (unsigned int)param_6[1] - local_8) {
+          uVar8 = uVar11 >> 3;
+        }
+        *(unsigned int *)(param_5 + 0x20) = uVar12;
+        *(unsigned int *)(param_5 + 0x1c) = uVar11 + uVar8 * (unsigned int)-8;
+        param_6[1] = (int)(uVar8 + local_8);
+        param_6[2] = param_6[2] + (((int)local_c - (int)uVar8) - *param_6);
+        *param_6 = (int)local_c - (int)uVar8;
+        *(unsigned char **)(param_5 + 0x34) = local_10;
+        return (int)0xfffffffd;
+      }
+      iVar6 = (*(unsigned int *)(0x320d88 + (unsigned int)bVar3 * 4) & uVar12) +
+              *(int *)(pbVar7 + 4);
+      {
+        unsigned char *pbVar1;
+        pbVar1 = pbVar7 + iVar6 * 8 + 1;
+        pbVar7 = pbVar7 + iVar6 * 8;
+        uVar12 = uVar12 >> (*pbVar1 & 0x1f);
+        uVar11 = uVar11 - *pbVar1;
+        bVar3 = *pbVar7;
+      }
+    }
+    uVar5 = bVar3 & 0xf;
+    for (; uVar11 < uVar5; uVar11 = uVar11 + 8) {
+      local_8 = local_8 - 1;
+      uVar12 = uVar12 | (unsigned int)*local_c << ((unsigned char)uVar11 & 0x1f);
+      local_c = local_c + 1;
+    }
+    uVar10 = (*(unsigned int *)(0x320d88 + uVar5 * 4) & uVar12) +
+             *(int *)(pbVar7 + 4);
+    uVar11 = uVar11 - uVar5;
+    uVar12 = uVar12 >> (unsigned char)uVar5;
+    if (*(int *)0x320e30 > 1) {
+      crt_fprintf(*(void **)0x331070,
+                  "inflate:         * distance %u\n", uVar10);
+    }
+    local_14 = local_14 - uVar9;
+    if ((unsigned int)((int)local_10 - *(int *)(param_5 + 0x28)) < uVar10) {
+      uVar10 = (unsigned int)(*(int *)(param_5 + 0x28) - (int)local_10) + uVar10;
+      pbVar7 = (unsigned char *)(*(int *)(param_5 + 0x2c) - uVar10);
+      if (uVar10 < uVar9) {
+        uVar9 = uVar9 - uVar10;
+        do {
+          *local_10 = *pbVar7;
+          local_10 = local_10 + 1;
+          pbVar7 = pbVar7 + 1;
+          uVar10 = uVar10 - 1;
+        } while (uVar10 != 0);
+        pbVar7 = *(unsigned char **)(param_5 + 0x28);
+      }
+    } else {
+      pbVar7 = local_10 + -(int)uVar10;
+      *local_10 = *pbVar7;
+      local_10[1] = pbVar7[1];
+      local_10 = local_10 + 2;
+      pbVar7 = pbVar7 + 2;
+      uVar9 = uVar9 - 2;
+    }
+    do {
+      *local_10 = *pbVar7;
+      local_10 = local_10 + 1;
+      pbVar7 = pbVar7 + 1;
+      uVar9 = uVar9 - 1;
+    } while (uVar9 != 0);
+    goto LAB_0011522d;
+LAB_001151e9:
+    uVar11 = uVar11 - bVar2;
+    if (*(int *)0x320e30 > 1) {
+      uVar5 = *(unsigned int *)(pbVar7 + 4);
+      if (uVar5 < 0x20 || (fmt = "inflate:         * literal \'%c\'\n",
+                            0x7e < uVar5)) {
+        fmt = "inflate:         * literal 0x%02x\n";
+      }
+      crt_fprintf(*(void **)0x331070, fmt, uVar5);
+    }
+    *local_10 = pbVar7[4];
+    local_10 = local_10 + 1;
+    local_14 = local_14 + -1;
+LAB_0011522d:
+    if (local_14 < (unsigned char *)0x102 || local_8 < 10) {
+      uVar8 = (unsigned int)param_6[1] - local_8;
+      if (uVar11 >> 3 < (unsigned int)param_6[1] - local_8) {
+        uVar8 = uVar11 >> 3;
+      }
+      *(unsigned int *)(param_5 + 0x20) = uVar12;
+      *(unsigned int *)(param_5 + 0x1c) = uVar11 + uVar8 * (unsigned int)-8;
+      iVar6 = *param_6;
+      param_6[1] = (int)(uVar8 + local_8);
+      *param_6 = (int)local_c - (int)uVar8;
+      param_6[2] = param_6[2] + (((int)local_c - (int)uVar8) - iVar6);
+      *(unsigned char **)(param_5 + 0x34) = local_10;
+      return 0;
+    }
+  } while (1);
+}
+
+/* inflate_codes: process Huffman-coded data in a compressed block.
+ * 10-case state machine that decodes literal/length/distance codes.
+ * Falls through to inflate_fast when enough input/output is available.
+ * 0x114740 / circular_queue.obj (infcodes.c)
+ * Note: declared void but tail-calls FUN_00116280 whose return (in EAX)
+ * is implicitly passed to the eventual caller (FUN_00113a90). */
+void FUN_00114740(unsigned int param_1, int *param_2, int param_3)
+{
+  unsigned char *pbVar1;
+  unsigned char bVar2;
+  unsigned int *c; /* codes state struct */
+  unsigned char *puVar4;
+  int s;          /* block state pointer (saved param_1) */
+  int *z;         /* z_stream pointer (saved param_2) */
+  unsigned int uVar7;
+  char *fmt;
+  int iVar8;
+  unsigned char *f;  /* source pointer for copy */
+  int uVar10;
+  unsigned char *q;  /* output pointer (working) */
+  unsigned char *p;  /* write pointer (current) */
+  unsigned char *m_ptr; /* available output space */
+  unsigned int n;  /* available input bytes */
+  unsigned char *local_c; /* input pointer */
+  unsigned int b;  /* bit buffer (reuses param_1 slot [EBP+0x8]) */
+  unsigned int k;  /* bits in bit buffer (reuses param_2 slot [EBP+0xc]) */
+  int r;           /* result code (param_3 slot [EBP+0x10]) */
+
+  z = param_2;
+  s = (int)param_1;
+  p = *(unsigned char **)(param_1 + 0x34);
+  c = *(unsigned int **)(param_1 + 4);
+  local_c = (unsigned char *)*param_2;
+  n = (unsigned int)param_2[1];
+  k = (unsigned int)*(int **)(param_1 + 0x1c);
+  if (p < *(unsigned char **)(param_1 + 0x30)) {
+    m_ptr = (unsigned char *)(*(int *)(param_1 + 0x30) + (-1 - (int)p));
+  } else {
+    m_ptr = (unsigned char *)(*(int *)(param_1 + 0x2c) - (int)p);
+  }
+  b = *(unsigned int *)(param_1 + 0x20);
+  r = param_3;
+
+  uVar7 = *c;
+  while (uVar7 < 10) {
+    switch (uVar7) {
+    case 0:
+      if ((unsigned char *)0x101 < m_ptr && 9 < n) {
+        *(unsigned int *)(s + 0x20) = b;
+        *(int **)(s + 0x1c) = (int *)r;
+        z[1] = (int)n;
+        iVar8 = *z;
+        *z = (int)local_c;
+        z[2] = (int)(local_c + (z[2] - iVar8));
+        *(unsigned char **)(s + 0x34) = p;
+        r = FUN_00114fa0((int)(unsigned char)*((unsigned char *)c + 0x10),
+                               (int)(unsigned char)*((unsigned char *)c + 0x11),
+                               (int)c[5], (int)c[6], s, z);
+        local_c = (unsigned char *)*z;
+        p = *(unsigned char **)(s + 0x34);
+        n = (unsigned int)z[1];
+        b = *(unsigned int *)(s + 0x20);
+        k = *(unsigned int *)(s + 0x1c);
+        if (p < *(unsigned char **)(s + 0x30)) {
+          m_ptr = (unsigned char *)(*(int *)(s + 0x30) +
+                                       (-1 - (int)p));
+        } else {
+          m_ptr = (unsigned char *)(*(int *)(s + 0x2c) - (int)p);
+        }
+        if (r != 0) {
+          *c = (unsigned int)(r != 1) * 2 + 7;
+          break;
+        }
+      }
+      c[3] = (unsigned int)(unsigned char)*((unsigned char *)c + 0x10);
+      c[2] = c[5];
+      *c = 1;
+      /* fall through */
+    case 1:
+      for (; (int *)r < (int *)c[3];
+           r = r + 8) {
+        if (n == 0) {
+          goto LAB_00114dca;
+        }
+        n = n - 1;
+        (void)r; /* original: r = r */
+        b = b | (unsigned int)*local_c << ((unsigned char)r & 0x1f);
+        local_c = local_c + 1;
+      }
+      pbVar1 = (unsigned char *)(c[2] +
+                (*(unsigned int *)(0x320d88 + c[3] * 4) & b) * 8);
+      b = b >> (pbVar1[1] & 0x1f);
+      r = r - (unsigned int)pbVar1[1];
+      bVar2 = *pbVar1;
+      uVar7 = (unsigned int)bVar2;
+      if (uVar7 == 0) {
+        c[2] = *(unsigned int *)(pbVar1 + 4);
+        if (*(int *)0x320e30 > 1) {
+          uVar7 = *(unsigned int *)(pbVar1 + 4);
+          if (uVar7 < 0x20 ||
+              (fmt = "inflate:         literal \'%c\'\n", 0x7e < uVar7)) {
+            fmt = "inflate:         literal 0x%02x\n";
+          }
+          crt_fprintf(*(void **)0x331070, fmt, uVar7);
+        }
+        *c = 6;
+      } else if ((bVar2 & 0x10) == 0) {
+        if ((bVar2 & 0x40) == 0) {
+          c[3] = uVar7;
+          c[2] = (unsigned int)(pbVar1 + *(int *)(pbVar1 + 4) * 8);
+        } else {
+          if ((bVar2 & 0x20) == 0) {
+            *c = 9;
+            z[6] = (int)"invalid literal/length code";
+            goto switchD_caseD_9;
+          }
+          if (*(int *)0x320e30 > 1) {
+            crt_fprintf(*(void **)0x331070,
+                        "inflate:         end of block\n");
+          }
+          *c = 7;
+        }
+      } else {
+        c[2] = uVar7 & 0xf;
+        c[1] = *(unsigned int *)(pbVar1 + 4);
+        *c = 2;
+      }
+      break;
+    case 2:
+      uVar7 = c[2];
+      for (; (unsigned int)r < uVar7;
+           r = r + 8) {
+        if (n == 0) goto LAB_00114dca;
+        n = n - 1;
+        (void)r; /* original: r = r */
+        b = b | (unsigned int)*local_c << ((unsigned char)r & 0x1f);
+        local_c = local_c + 1;
+      }
+      c[1] = c[1] + (*(unsigned int *)(0x320d88 + uVar7 * 4) & b);
+      b = b >> ((unsigned char)uVar7 & 0x1f);
+      r = r - (int)uVar7;
+      c[3] = (unsigned int)*((unsigned char *)c + 0x11);
+      c[2] = c[6];
+      if (*(int *)0x320e30 > 1) {
+        crt_fprintf(*(void **)0x331070,
+                    "inflate:         length %u\n", c[1]);
+      }
+      *c = 3;
+      goto LAB_00114a43;
+    case 3:
+LAB_00114a43:
+      for (; (unsigned int)r < c[3];
+           r = r + 8) {
+        if (n == 0) {
+          *(unsigned int *)(s + 0x20) = b;
+          *(int **)(s + 0x1c) = (int *)r;
+          goto LAB_00114e4b;
+        }
+        n = n - 1;
+        (void)r; /* original: r = r */
+        b = b | (unsigned int)*local_c << ((unsigned char)r & 0x1f);
+        local_c = local_c + 1;
+      }
+      pbVar1 = (unsigned char *)(c[2] +
+                (*(unsigned int *)(0x320d88 + c[3] * 4) & b) * 8);
+      b = b >> (pbVar1[1] & 0x1f);
+      r = r - (unsigned int)pbVar1[1];
+      bVar2 = *pbVar1;
+      if ((bVar2 & 0x10) != 0) {
+        c[2] = bVar2 & 0xf;
+        c[3] = *(unsigned int *)(pbVar1 + 4);
+        *c = 4;
+        break;
+      }
+      if ((bVar2 & 0x40) != 0) {
+        *c = 9;
+        z[6] = (int)"invalid distance code";
+        *(unsigned int *)(s + 0x20) = b;
+        *(int **)(s + 0x1c) = (int *)r;
+        z[1] = (int)n;
+        r = -3;
+        goto LAB_00114d76;
+      }
+      c[3] = (unsigned int)bVar2;
+      c[2] = (unsigned int)(pbVar1 + *(int *)(pbVar1 + 4) * 8);
+      break;
+    case 4:
+      uVar7 = c[2];
+      for (; (unsigned int)r < uVar7;
+           r = r + 8) {
+        if (n == 0) {
+          *(unsigned int *)(s + 0x20) = b;
+          *(int **)(s + 0x1c) = (int *)r;
+          goto LAB_00114e4b;
+        }
+        n = n - 1;
+        (void)r; /* original: r = r */
+        b = b | (unsigned int)*local_c << ((unsigned char)r & 0x1f);
+        local_c = local_c + 1;
+      }
+      c[3] = c[3] + (*(unsigned int *)(0x320d88 + uVar7 * 4) & b);
+      r = r - (int)uVar7;
+      b = b >> ((unsigned char)uVar7 & 0x1f);
+      if (*(int *)0x320e30 > 1) {
+        crt_fprintf(*(void **)0x331070,
+                    "inflate:         distance %u\n", c[3]);
+      }
+      *c = 5;
+      /* fall through */
+    case 5:
+      uVar7 = c[3];
+      if ((unsigned int)((int)p - *(int *)(s + 0x28)) < uVar7) {
+        iVar8 = (*(int *)(s + 0x2c) - *(int *)(s + 0x28)) -
+                (int)uVar7;
+      } else {
+        iVar8 = -(int)uVar7;
+      }
+      f = p + iVar8;
+      uVar7 = c[1];
+      while (uVar7 != 0) {
+        q = p;
+        if (m_ptr == (unsigned char *)0x0) {
+          if (p == *(unsigned char **)(s + 0x2c)) {
+            m_ptr = *(unsigned char **)(s + 0x30);
+            q = *(unsigned char **)(s + 0x28);
+            if (m_ptr != q) {
+              if (q < m_ptr) {
+                m_ptr = (unsigned char *)((int)m_ptr + (-1 - (int)q));
+              } else {
+                m_ptr = (unsigned char *)(*(int *)(s + 0x2c) - (int)q);
+              }
+              p = q;
+              if (m_ptr != (unsigned char *)0x0) goto LAB_00114c69;
+            }
+          }
+          *(unsigned char **)(s + 0x34) = p;
+          r = FUN_00116280(s, (int)z, r);
+          q = *(unsigned char **)(s + 0x34);
+          p = *(unsigned char **)(s + 0x30);
+          if (q < p) {
+            m_ptr = (unsigned char *)((int)p + (-1 - (int)q));
+          } else {
+            m_ptr = (unsigned char *)(*(int *)(s + 0x2c) - (int)q);
+          }
+          if (q == *(unsigned char **)(s + 0x2c) &&
+              (puVar4 = *(unsigned char **)(s + 0x28),
+               p != puVar4)) {
+            q = puVar4;
+            if (puVar4 < p) {
+              m_ptr = (unsigned char *)((int)p + (-1 - (int)puVar4));
+            } else {
+              m_ptr = (unsigned char *)(*(int *)(s + 0x2c) - (int)puVar4);
+            }
+          }
+          if (m_ptr == (unsigned char *)0x0) goto LAB_00114e67;
+        }
+LAB_00114c69:
+        *q = *f;
+        p = q + 1;
+        f = f + 1;
+        m_ptr = m_ptr + -1;
+        r = 0;
+        if (f == *(unsigned char **)(s + 0x2c)) {
+          f = *(unsigned char **)(s + 0x28);
+        }
+        c[1] = c[1] - 1;
+        uVar7 = c[1];
+      }
+      *c = 0;
+      break;
+    case 6:
+      q = p;
+      if (m_ptr == (unsigned char *)0x0) {
+        if (p == *(unsigned char **)(s + 0x2c)) {
+          m_ptr = *(unsigned char **)(s + 0x30);
+          q = *(unsigned char **)(s + 0x28);
+          if (m_ptr != q) {
+            if (q < m_ptr) {
+              m_ptr = (unsigned char *)((int)m_ptr + (-1 - (int)q));
+            } else {
+              m_ptr = (unsigned char *)(*(int *)(s + 0x2c) - (int)q);
+            }
+            p = q;
+            if (m_ptr != (unsigned char *)0x0) goto LAB_00114d37;
+          }
+        }
+        *(unsigned char **)(s + 0x34) = p;
+        r = FUN_00116280(s, (int)z, r);
+        q = *(unsigned char **)(s + 0x34);
+        p = *(unsigned char **)(s + 0x30);
+        if (q < p) {
+          m_ptr = (unsigned char *)((int)p + (-1 - (int)q));
+        } else {
+          m_ptr = (unsigned char *)(*(int *)(s + 0x2c) - (int)q);
+        }
+        if (q == *(unsigned char **)(s + 0x2c) &&
+            (f = *(unsigned char **)(s + 0x28),
+             p != f)) {
+          q = f;
+          if (f < p) {
+            m_ptr = (unsigned char *)((int)p + (-1 - (int)f));
+          } else {
+            m_ptr = (unsigned char *)(*(int *)(s + 0x2c) - (int)f);
+          }
+        }
+        if (m_ptr == (unsigned char *)0x0) {
+          goto LAB_00114e67;
+        }
+      }
+LAB_00114d37:
+      *q = (char)c[2];
+      p = q + 1;
+      m_ptr = m_ptr + -1;
+      r = 0;
+      *c = 0;
+      break;
+    case 7:
+      if ((unsigned int)r > 7) {
+        if ((unsigned int)r > 0xf) {
+          FUN_00117a80("inflate_codes grabbed too many bytes");
+        }
+        r = r - 8;
+        n = n + 1;
+        local_c = local_c + -1;
+      }
+      *(unsigned char **)(s + 0x34) = p;
+      uVar10 = FUN_00116280(s, (int)z, r);
+      p = *(unsigned char **)(s + 0x34);
+      if (*(unsigned char **)(s + 0x30) != p) {
+        *(unsigned int *)(s + 0x20) = b;
+        *(int **)(s + 0x1c) = (int *)r;
+        z[1] = (int)n;
+        z[2] = (int)(local_c + (z[2] - *z));
+        *z = (int)local_c;
+        *(unsigned char **)(s + 0x34) = p;
+        FUN_00116280(s, (int)z, uVar10);
+        return;
+      }
+      *c = 8;
+      /* fall through */
+    case 8:
+      *(unsigned int *)(s + 0x20) = b;
+      *(int **)(s + 0x1c) = (int *)r;
+      z[1] = (int)n;
+      r = 1;
+      goto LAB_00114d76;
+    case 9:
+      goto switchD_caseD_9;
+    }
+    uVar7 = *c;
+  }
+  /* default exit: bad state */
+  *(unsigned int *)(s + 0x20) = b;
+  *(unsigned int *)(s + 0x1c) = k;
+  z[1] = (int)n;
+  r = -2;
+LAB_00114d76:
+  z[2] = (int)(local_c + (z[2] - *z));
+LAB_00114d82:
+  *z = (int)local_c;
+  *(unsigned char **)(s + 0x34) = p;
+  FUN_00116280(s, (int)z, r);
+  return;
+
+switchD_caseD_9:
+  *(unsigned int *)(s + 0x20) = b;
+  *(unsigned int *)(s + 0x1c) = k;
+  z[1] = (int)n;
+  z[2] = (int)(local_c + (z[2] - *z));
+  r = -3;
+  goto LAB_00114d82;
+
+LAB_00114dca:
+  *(unsigned int *)(s + 0x20) = b;
+  *(unsigned int *)(s + 0x1c) = k;
+  iVar8 = *z;
+  *z = (int)local_c;
+  z[1] = 0;
+  z[2] = (int)(local_c + (z[2] - iVar8));
+  *(unsigned char **)(s + 0x34) = p;
+  FUN_00116280(s, (int)z, r);
+  return;
+
+LAB_00114e4b:
+  z[2] = (int)(local_c + (z[2] - *z));
+  z[1] = 0;
+  goto LAB_00114d82;
+
+LAB_00114e67:
+  *(unsigned int *)(s + 0x20) = b;
+  *(unsigned int *)(s + 0x1c) = k;
+  z[1] = (int)n;
+  z[2] = (int)(local_c + (z[2] - *z));
+  p = q;
+  goto LAB_00114d82;
+}
+
 /* inflateInit: initialize inflate stream with default window bits
  * (MAX_WBITS=15). 0x1155c0 / circular_queue.obj (inflate.c) */
 int FUN_001155c0(int z, char *version, int stream_size)
 {
   return FUN_001154a0(z, 0xf, version, stream_size);
+}
+
+/* huft_build: build Huffman decode tables from code length array.
+ * Generates multi-level lookup tables for fast Huffman decoding.
+ * 0x115ba0 / circular_queue.obj (inftrees.c)
+ * bb is passed @eax (register arg); returns 0 on success, -3/-4/-5 on error. */
+int FUN_00115ba0(unsigned int *bb, int *param_1, unsigned int param_2,
+                 unsigned int param_3, int param_4, int param_5,
+                 int *param_6, int param_7, unsigned int *param_8,
+                 unsigned int *param_9)
+{
+  int iVar1;
+  unsigned int *puVar2;
+  unsigned int uVar5;
+  unsigned int uVar7;
+  int iVar6;
+  int iVar8;
+  unsigned int uVar9;
+  unsigned int *puVar10;
+  unsigned int uVar11;
+  int iVar12;
+  unsigned char bVar13;
+  int iVar14;
+  unsigned int uVar15;
+  int local_104[14]; /* u: table stack */
+  unsigned int auStack_cc[17]; /* x: bit offsets */
+  unsigned int local_88[17]; /* c: bit counts */
+  int local_44;
+  int *local_40;
+  int local_3c;
+  unsigned int local_38;
+  int local_34;
+  unsigned int local_30; /* r: table entry (4 bytes: byte0=Exop, byte1=Bits, dword+4=Base) */
+  unsigned int local_2c = 0;
+  unsigned int *local_28;
+  int local_24;
+  unsigned int local_20;
+  unsigned int local_1c;
+  unsigned int *local_18;
+  unsigned int local_14;
+  int local_10;
+  unsigned int local_c;
+  unsigned int local_8;
+  int *piVar4;
+
+  /* Zero the bit count array c[0..15] */
+  local_88[0] = 0; local_88[1] = 0; local_88[2] = 0; local_88[3] = 0;
+  local_88[4] = 0; local_88[5] = 0; local_88[6] = 0; local_88[7] = 0;
+  local_88[8] = 0; local_88[9] = 0; local_88[10] = 0; local_88[11] = 0;
+  local_88[12] = 0; local_88[13] = 0; local_88[14] = 0; local_88[15] = 0;
+
+  /* Count bit lengths */
+  piVar4 = param_1;
+  uVar11 = param_2;
+  do {
+    local_88[*piVar4] = local_88[*piVar4] + 1;
+    piVar4 = piVar4 + 1;
+    uVar11 = uVar11 - 1;
+  } while (uVar11 != 0);
+
+  /* If all codes are zero length, nothing to do */
+  if (local_88[0] == param_2) {
+    *param_6 = 0;
+    *bb = 0;
+    return 0;
+  }
+
+  /* Find minimum and maximum code lengths */
+  local_8 = *bb;
+  uVar11 = 1;
+  do {
+    if (local_88[uVar11] != 0) break;
+    if (local_88[uVar11 + 1] != 0) { uVar11 = uVar11 + 1; break; }
+    if (local_88[uVar11 + 2] != 0) { uVar11 = uVar11 + 2; break; }
+    if (local_88[uVar11 + 3] != 0) { uVar11 = uVar11 + 3; break; }
+    if (local_88[uVar11 + 4] != 0) { uVar11 = uVar11 + 4; break; }
+    uVar11 = uVar11 + 5;
+  } while (uVar11 < 0x10);
+  local_c = uVar11;
+  if (local_8 < uVar11) {
+    local_8 = uVar11;
+  }
+  local_20 = 0xf;
+  do {
+    if (local_88[local_20] != 0) break;
+    local_20 = local_20 - 1;
+  } while (local_20 != 0);
+  if (local_20 < local_8) {
+    local_8 = local_20;
+  }
+  uVar9 = local_8;
+  iVar12 = 1 << ((unsigned char)uVar11 & 0x1f);
+  *bb = local_8;
+
+  /* Check for over-subscribed or incomplete set */
+  for (; uVar11 < local_20; uVar11 = uVar11 + 1) {
+    if ((int)(iVar12 - (int)local_88[uVar11]) < 0) {
+      return (int)0xfffffffd;
+    }
+    iVar12 = (iVar12 - (int)local_88[uVar11]) * 2;
+  }
+  local_24 = local_20 * 4;
+  iVar12 = iVar12 - (int)local_88[local_20];
+  local_3c = iVar12;
+  if (iVar12 < 0) {
+    return (int)0xfffffffd;
+  }
+  local_88[local_20] = local_88[local_20] + (unsigned int)iVar12;
+
+  /* Generate offsets into symbol table for each code length */
+  iVar8 = 0;
+  iVar14 = (int)local_20 - 1;
+  auStack_cc[2] = 0;
+  if (iVar14 != 0) {
+    iVar6 = 0;
+    do {
+      iVar8 = iVar8 + *(int *)((int)local_88 + iVar6 + 4);
+      iVar14 = iVar14 + -1;
+      *(int *)((int)auStack_cc + iVar6 + 0xc) = iVar8;
+      iVar6 = iVar6 + 4;
+    } while (iVar14 != 0);
+  }
+
+  /* Fill the symbol table with sorted values */
+  uVar11 = 0;
+  do {
+    iVar8 = *param_1;
+    local_18 = (unsigned int *)(param_1 + 1);
+    if (iVar8 != 0) {
+      uVar15 = auStack_cc[iVar8 + 1];
+      param_9[uVar15] = uVar11;
+      auStack_cc[iVar8 + 1] = uVar15 + 1;
+    }
+    uVar11 = uVar11 + 1;
+    param_1 = (int *)local_18;
+  } while (uVar11 < param_2);
+
+  /* Generate the Huffman tables */
+  iVar8 = *(int *)((int)auStack_cc + local_24 + 4);
+  local_18 = param_9;
+  auStack_cc[1] = 0;
+  local_104[0] = 0;
+  local_10 = 0;
+  local_38 = 0;
+  uVar11 = 0;
+  iVar14 = -(int)uVar9;
+  local_1c = 0;
+  param_1 = (int *)0xffffffff;
+  if ((int)local_c <= (int)local_20) {
+    local_34 = (int)local_c - 1;
+    local_28 = local_88 + local_c;
+    uVar15 = local_2c;
+    do {
+      local_88[0x10] = *local_28;
+      iVar12 = local_3c;
+      while (local_3c = iVar12, local_88[0x10] != 0) {
+        local_14 = local_88[0x10] - 1;
+        local_44 = iVar14 + (int)uVar9;
+        if (local_44 < (int)local_c) {
+          local_24 = iVar14 - (int)uVar9;
+          do {
+            iVar14 = iVar14 + (int)uVar9;
+            local_24 = local_24 + (int)uVar9;
+            iVar12 = (int)param_1 + 1;
+            local_44 = local_44 + (int)uVar9;
+            uVar11 = local_20 - (unsigned int)iVar14;
+            if (uVar9 < local_20 - (unsigned int)iVar14) {
+              uVar11 = uVar9;
+            }
+            uVar9 = local_c - (unsigned int)iVar14;
+            uVar5 = 1 << ((unsigned char)uVar9 & 0x1f);
+            if (local_88[0x10] < uVar5 &&
+                (iVar6 = (int)uVar5 + (-1 - (int)local_14),
+                 puVar2 = local_28, uVar9 < uVar11)) {
+              while (uVar9 = uVar9 + 1, uVar9 < uVar11) {
+                uVar5 = puVar2[1];
+                uVar7 = (unsigned int)iVar6 * 2;
+                if (uVar7 < uVar5 || uVar7 - uVar5 == 0) break;
+                iVar6 = (int)(uVar7 - uVar5);
+                puVar2 = puVar2 + 1;
+              }
+            }
+            local_38 = 1 << ((unsigned char)uVar9 & 0x1f);
+            uVar5 = local_38 + *param_8;
+            if (0x5a0 < uVar5) {
+              return (int)0xfffffffc;
+            }
+            iVar6 = param_7 + (int)*param_8 * 8;
+            local_40 = local_104 + iVar12;
+            local_104[iVar12] = iVar6;
+            uVar11 = local_1c;
+            *param_8 = uVar5;
+            local_10 = iVar6;
+            if (iVar12 == 0) {
+              *param_6 = iVar6;
+            } else {
+              local_30 = (local_30 & 0xffffff00) | (unsigned char)uVar9;
+              uVar9 = local_1c >> ((unsigned char)local_24 & 0x1f);
+              iVar1 = local_40[-1];
+              auStack_cc[(int)param_1 + 2] = local_1c;
+              local_30 = (local_30 & 0xffff00ff) |
+                         ((unsigned int)(unsigned char)local_8 << 8);
+              uVar15 = (unsigned int)(((iVar6 - iVar1) >> 3) - (int)uVar9);
+              *(unsigned int *)(iVar1 + uVar9 * 8) = local_30;
+              *(unsigned int *)(iVar1 + 4 + uVar9 * 8) = uVar15;
+            }
+            uVar9 = local_8;
+            param_1 = (int *)iVar12;
+          } while (local_44 < (int)local_c);
+        }
+        bVar13 = (unsigned char)iVar14;
+        if (local_18 < param_9 + iVar8) {
+          uVar15 = *local_18;
+          if (uVar15 < param_3) {
+            local_30 = (local_30 & 0xffffff00) |
+                       (unsigned int)((uVar15 < 0x100) - 1u & 0x60);
+          } else {
+            iVar12 = (int)(uVar15 - param_3) * 4;
+            local_30 = (local_30 & 0xffffff00) |
+                       (unsigned int)((unsigned char)(*(char *)(iVar12 + param_5) + 0x50));
+            uVar15 = *(unsigned int *)(iVar12 + param_4);
+          }
+          local_18 = local_18 + 1;
+        } else {
+          local_30 = (local_30 & 0xffffff00) | 0xc0;
+        }
+        local_30 = (local_30 & 0xffff0000) |
+                   ((unsigned int)(unsigned char)((char)local_c - bVar13) << 8) |
+                   (local_30 & 0xff);
+        iVar12 = 1 << ((char)local_c - bVar13 & 0x1f);
+        uVar9 = uVar11 >> (bVar13 & 0x1f);
+        if (uVar9 < local_38) {
+          puVar10 = (unsigned int *)(local_10 + uVar9 * 8);
+          do {
+            *puVar10 = local_30;
+            puVar10[1] = uVar15;
+            puVar10 = puVar10 + iVar12 * 2;
+            uVar9 = uVar9 + (unsigned int)iVar12;
+            uVar11 = local_1c;
+          } while (uVar9 < local_38);
+        }
+        /* Increment bit-reversal counter */
+        uVar5 = 1 << ((unsigned char)local_34 & 0x1f);
+        uVar9 = uVar11 & uVar5;
+        while (uVar9 != 0) {
+          uVar11 = uVar11 ^ uVar5;
+          uVar5 = uVar5 >> 1;
+          uVar9 = uVar11 & uVar5;
+        }
+        uVar11 = uVar11 ^ uVar5;
+        local_1c = uVar11;
+        local_88[0x10] = local_14;
+        uVar9 = local_8;
+        iVar12 = local_3c;
+        /* Back up through table levels if needed */
+        if (((1 << (bVar13 & 0x1f)) - 1u & uVar11) !=
+            auStack_cc[(int)param_1 + 1]) {
+          do {
+            iVar14 = iVar14 - (int)local_8;
+            puVar2 = auStack_cc + (int)param_1;
+            param_1 = (int *)((int)param_1 + -1);
+          } while (((1 << ((unsigned char)iVar14 & 0x1f)) - 1u & uVar11) !=
+                   *puVar2);
+        }
+      }
+      local_28 = local_28 + 1;
+      local_c = local_c + 1;
+      local_34 = local_34 + 1;
+    } while ((int)local_c <= (int)local_20);
+  }
+  /* Check for incomplete code set */
+  if (iVar12 != 0 && local_20 != 1) {
+    return (int)0xfffffffb;
+  }
+  return 0;
 }
 
 /* inflate: main decompression state machine (zlib).
