@@ -996,7 +996,7 @@ int FUN_00115ba0(unsigned int *bb, int *param_1, unsigned int param_2,
         local_30 = (local_30 & 0xffff0000) |
                    ((unsigned int)(unsigned char)((char)local_c - bVar13) << 8) |
                    (local_30 & 0xff);
-        iVar12 = 1 << ((char)local_c - bVar13);
+        iVar12 = 1 << ((char)local_c - bVar13 & 0x1f);
         uVar9 = uVar11 >> bVar13;
         if (uVar9 < local_38) {
           puVar10 = (unsigned int *)(local_10 + uVar9 * 8);
@@ -1547,7 +1547,7 @@ void FUN_00116390(int value, int length, int state)
     iVar1 = *(int *)(state + 0x16bc);
     *(int *)(state + 0x16bc) = iVar1 + -0x10 + length;
     *(unsigned short *)(state + 0x16b8) =
-      (unsigned short)value >> (0x10 - iVar1);
+      (unsigned short)value >> ((unsigned int)(0x10 - (char)iVar1) & 0x1f);
     return;
   }
   *(int *)(state + 0x16bc) = iVar1 + length;
