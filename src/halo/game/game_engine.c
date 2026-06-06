@@ -7345,9 +7345,9 @@ int FUN_000afe50(float *position)
 
   tag_idx = get_flag_definition_index();
   object_placement_data_new(placement, tag_idx, -1);
-  *(float *)(placement + 0x1c) = position[0];
-  *(float *)(placement + 0x20) = position[1];
-  *(float *)(placement + 0x24) = position[2];
+  *(float *)(placement + 0x18) = position[0];
+  *(float *)(placement + 0x1c) = position[1];
+  *(float *)(placement + 0x20) = position[2];
   handle = object_new(placement);
   object_set_automatic_deactivation(handle, 0);
   /* OutputDebugStringA("created a flag"); — debug only */
@@ -7588,9 +7588,9 @@ void FUN_000b2e70(int16_t slot_index)
   }
   object_placement_data_new(placement, ball_tag, -1);
   FUN_000b2d30(local_10, (int)slot_index);
-  *(int *)(placement + 0x1c) = local_10[0];
-  *(int *)(placement + 0x20) = local_10[1];
-  *(int *)(placement + 0x24) = local_10[2];
+  *(int *)(placement + 0x18) = local_10[0];
+  *(int *)(placement + 0x1c) = local_10[1];
+  *(int *)(placement + 0x20) = local_10[2];
   handle = object_new(placement);
   weapon = (int)object_get_and_verify_type(handle, 4);
   *(int16_t *)(weapon + 0x68) = slot_index;
@@ -7797,7 +7797,7 @@ void FUN_000b0ac0(int param_1)
                            "c:\\halo\\SOURCE\\game\\game_engine_ctf.c", 0x20f, 1);
             system_exit(-1);
           }
-          if (FUN_000b0a70(*(int *)(player + 0x20), (float *)biped, 1.0f)) {
+          if (FUN_000b0a70(*(int *)(player + 0x20), (float *)(biped + 0xc), 1.0f)) {
             variant = (int)game_engine_get_variant();
             if (*(char *)(variant + 0x4f) == 0 ||
                 (variant = (int)game_engine_get_variant(), *(int *)(variant + 0x50) != 0) ||
@@ -8268,9 +8268,9 @@ int FUN_000b05c0(void)
       if (*(int *)(0x456b74 + team * 4) != 0) {
         int tag_idx = get_flag_definition_index();
         object_placement_data_new(placement, tag_idx, -1);
-        *(int *)(placement + 0x1c) = *(int *)*(int *)(0x456b74 + team * 4);
-        *(int *)(placement + 0x20) = ((int *)*(int *)(0x456b74 + team * 4))[1];
-        *(int *)(placement + 0x24) = ((int *)*(int *)(0x456b74 + team * 4))[2];
+        *(int *)(placement + 0x18) = *(int *)*(int *)(0x456b74 + team * 4);
+        *(int *)(placement + 0x1c) = ((int *)*(int *)(0x456b74 + team * 4))[1];
+        *(int *)(placement + 0x20) = ((int *)*(int *)(0x456b74 + team * 4))[2];
         weapon = object_new(placement);
         object_set_automatic_deactivation(weapon, 0);
         if (weapon == -1) {

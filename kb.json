@@ -3954,7 +3954,7 @@
         },
         {
           "addr": "0x40360",
-          "decl": "void ai_handle_bump(int param_1, int param_2);",
+          "decl": "void ai_handle_bump(int param_1, int param_2, float *velocity_ptr);",
           "ported": true
         },
         {
@@ -16829,7 +16829,7 @@
         },
         {
           "addr": "0xba5f0",
-          "decl": "void players_set_local_player_unit(void);"
+          "decl": "void players_set_local_player_unit(int player_index, int unit_handle);"
         },
         {
           "addr": "0xba6b0",
@@ -25096,7 +25096,7 @@
         },
         {
           "addr": "0x19f530",
-          "decl": "void FUN_0019f530(void);"
+          "decl": "uint8_t FUN_0019f530(int unit_handle);"
         },
         {
           "addr": "0x19f540",
@@ -25143,27 +25143,33 @@
         },
         {
           "addr": "0x1a0950",
-          "decl": "void biped_stop_melee_attack(void);"
+          "decl": "void biped_stop_melee_attack(int unit_handle);",
+          "ported": false
         },
         {
           "addr": "0x1a0970",
-          "decl": "void biped_start_limp_body_physics(void);"
+          "decl": "void biped_start_limp_body_physics(int unit_handle);",
+          "ported": false
         },
         {
           "addr": "0x1a09f0",
-          "decl": "void biped_stop_limp_body_physics(void);"
+          "decl": "void biped_stop_limp_body_physics(int unit_handle);",
+          "ported": false
         },
         {
           "addr": "0x1a0a40",
-          "decl": "void FUN_001a0a40(void);"
+          "decl": "void FUN_001a0a40(int unit_handle@<edi>, char *biped_obj@<ebx>, float *velocity_ptr);",
+          "ported": true
         },
         {
           "addr": "0x1a0b30",
-          "decl": "void FUN_001a0b30(void);"
+          "decl": "char FUN_001a0b30(int unit_handle@<edi>);",
+          "ported": true
         },
         {
           "addr": "0x1a0be0",
-          "decl": "void FUN_001a0be0(void);"
+          "decl": "void FUN_001a0be0(float vertical_speed, int unit_handle@<edi>);",
+          "ported": true
         },
         {
           "addr": "0x1a0db0",
