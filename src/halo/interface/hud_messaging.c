@@ -2138,14 +2138,16 @@ void FUN_000d6e50(int param_1)
     } else if (unit_handle != -1) {
       unit_get_head_position(unit_handle, local_28);
       sVar5 = (short)(*puVar6 << 12) >> 12;
-      if (sVar5 == 0) {
+      switch (sVar5) {
+      case 0:
         iVar2 = (int)global_scenario_get();
         iVar2 = (int)tag_block_get_element((void *)(iVar2 + 0x4e4),
                                            *(int *)(puVar6 + 3), 0x5c);
         target_pos[0] = *(float *)(iVar2 + 0x24);
         target_pos[1] = *(float *)(iVar2 + 0x28);
         target_pos[2] = *(float *)(iVar2 + 0x2c);
-      } else if (sVar5 == 1) {
+        break;
+      case 1:
         iVar2 =
           (int)object_try_and_get_and_verify_type(*(int *)(puVar6 + 3), -1);
         obj_handle = *(int *)(puVar6 + 3);
@@ -2157,15 +2159,18 @@ void FUN_000d6e50(int param_1)
           goto next;
         }
         FUN_0001aae0(obj_handle, target_pos, local_1c);
-      } else if (sVar5 == 2) {
-        game_engine_get_goal_position((int *)target_pos, (short)puVar6[3]);
-        /* target_pos filled by callee */
+        break;
+      case 2:
+        game_engine_get_goal_position((int *)target_pos, (unsigned short)puVar6[3]);
+        break;
       }
       target_pos[2] = target_pos[2] + *(float *)(puVar6 + 1);
       {
         vis = (char)FUN_000d6550(param_1, local_28, target_pos, obj_handle);
-        *puVar6 = *puVar6 ^
-                  (((unsigned char)(vis << 4) ^ (unsigned char)*puVar6) & 0xf0);
+        {
+          int shifted = (int)vis << 4;
+          *puVar6 = *puVar6 ^ (unsigned short)(((unsigned char)shifted ^ (unsigned char)*puVar6) & 0xf0);
+        }
       }
     }
   next:
