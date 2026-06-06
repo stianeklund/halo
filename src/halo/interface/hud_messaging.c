@@ -1580,6 +1580,98 @@ void FUN_000d7780(short old_player, short new_player)
   csmemcpy(dst, src, 0x58);
 }
 
+/* unit_hud_update_shield_health (0xd7800)
+ * Track shield/health changes and manage regen timing.
+ * ABI: @eax=player_handle */
+void FUN_000d7800(int player_handle)
+{
+  char cVar1;
+  int iVar2;
+  int iVar6;
+  short sVar7;
+  float *pfVar4;
+  float fVar5;
+  int local_20c[128];
+  int local_c;
+  int local_8;
+
+  local_c = FUN_000d1540();
+  csmemset(local_20c, 0x62, 0x200);
+  iVar2 = local_player_get_player_index(player_handle);
+  if (iVar2 == -1) goto LAB_000d794f;
+  iVar2 = local_player_get_player_index(player_handle);
+  iVar2 = (int)datum_get(*(data_t **)0x5aa6d4, iVar2);
+  if (*(int *)(iVar2 + 0x34) == -1) goto LAB_000d794f;
+  iVar2 = (int)object_get_and_verify_type(*(int *)(iVar2 + 0x34), 3);
+  pfVar4 = (float *)FUN_000d7280(*(short *)((int)player_handle + 2));
+  if (pfVar4[1] == -1.0f) {
+    pfVar4[1] = *(float *)(iVar2 + 0x90);
+  }
+  if (*pfVar4 == -1.0f) {
+    *pfVar4 = *(float *)(iVar2 + 0x94);
+  }
+  fVar5 = *(float *)0x2533c0;
+  if (*pfVar4 <= *(float *)(iVar2 + 0x94)) {
+    if (*(float *)(iVar2 + 0x94) <= *pfVar4) {
+      *pfVar4 = *(float *)(iVar2 + 0x94);
+      if (fVar5 < pfVar4[2]) {
+        local_8 = game_time_get();
+        local_8 = local_8 - (int)pfVar4[3];
+        goto LAB_000d7939;
+      }
+    } else {
+      *pfVar4 = *(float *)(iVar2 + 0x94);
+      pfVar4[2] = -1.0f;
+    }
+  } else {
+    if (pfVar4[2] < *(float *)0x2533c0 ||
+        *(float *)0x2533c8 < pfVar4[2]) {
+      fVar5 = (float)game_time_get();
+      pfVar4[3] = fVar5;
+    }
+    iVar6 = game_time_get();
+    if (iVar6 - (int)pfVar4[3] < 0xf) {
+      pfVar4[2] = 0.0f;
+      goto LAB_000d794f;
+    }
+    *pfVar4 = *(float *)(iVar2 + 0x94);
+    local_8 = game_time_get();
+    local_8 = local_8 - (int)pfVar4[3];
+  LAB_000d7939:
+    pfVar4[2] = (float)local_8 * *(float *)0x2546a4 + pfVar4[2];
+  }
+  fVar5 = (float)game_time_get();
+  pfVar4[3] = fVar5;
+LAB_000d794f:
+  cVar1 = cinematic_in_progress();
+  if (cVar1 != '\0') {
+    iVar2 = local_player_get_player_index(player_handle);
+    if (iVar2 != -1) {
+      iVar2 = (int)datum_get(*(data_t **)0x5aa6d4, iVar2);
+      FUN_000d7560(iVar2, *(char *)0x46bd10);
+    }
+  }
+  sVar7 = 0x7f;
+  do {
+    if (local_20c[(int)sVar7] != 0x62626262) goto LAB_000d79a8;
+    sVar7 = sVar7 - 1;
+  } while (-1 < sVar7);
+  sVar7 = -1;
+LAB_000d79a8:
+  iVar2 = FUN_000d1540();
+  if (local_c != iVar2) {
+    display_assert("corrupt return address!",
+                   "c:\\halo\\SOURCE\\interface\\hud_unit.c", 0x201, 1);
+    system_exit(-1);
+  }
+  if (sVar7 != -1) {
+    display_assert(
+      csprintf((char *)0x5ab100, "corrupt stack at %d!", (int)sVar7),
+      "c:\\halo\\SOURCE\\interface\\hud_unit.c", 0x201, 1);
+    system_exit(-1);
+  }
+}
+
 /* hud_render_damage_indicators (0xd7a20)
  * Render motion sensor direction indicators for incoming damage. */
 void FUN_000d7a20(int param_1)

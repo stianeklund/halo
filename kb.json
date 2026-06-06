@@ -12291,7 +12291,8 @@
         },
         {
           "addr": "0xd7800",
-          "decl": "void FUN_000d7800(int player_handle @<eax>);"
+          "decl": "void FUN_000d7800(int player_handle @<eax>);",
+          "ported": true
         },
         {
           "addr": "0xd7a20",
