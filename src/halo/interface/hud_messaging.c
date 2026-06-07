@@ -1212,7 +1212,8 @@ LAB_000d57ad:
               (void *)tag_block_base,
               (int)(unsigned short)*(unsigned short *)(message_ptr + 0x22) + iVar16,
               2);
-          if (*pcVar9 == '\0') {
+          switch (*pcVar9) {
+          case '\0':
             uVar7 = (int)tag_data_get_pointer((void *)hmt_tag,
                 ((unsigned int)(unsigned short)local_30_dw) << 1,
                 (unsigned int)(unsigned char)pcVar9[1] << 1);
@@ -1225,7 +1226,8 @@ LAB_000d57ad:
             rect_a[0] = rect_b[0];
             local_30_dw = local_30_dw +
                 (int)(unsigned short)(unsigned char)pcVar9[1];
-          } else if (*pcVar9 == '\x01') {
+            break;
+          case '\x01': {
             unsigned char bVar1;
             int icon_idx;
             bVar1 = (unsigned char)pcVar9[1];
@@ -1326,10 +1328,13 @@ LAB_000d57ad:
                   (unsigned short *)L"<no button icon>");
               rect_a[0] = rect_b[0];
             }
-          } else {
+            break;
+          }
+          default:
             display_assert("!\"unreachable\"",
                 "c:\\halo\\SOURCE\\interface\\hud_messaging.c", 0x4a5, 1);
             system_exit(-1);
+            break;
           }
 LAB_000d5b78:
           local_2c = local_2c + 1;
