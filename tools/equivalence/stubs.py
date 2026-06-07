@@ -8,6 +8,7 @@ Provides:
 """
 
 import math
+import os
 import struct
 import json
 import re
@@ -807,6 +808,41 @@ class StubManager:
                 return True
 
             if symbol_name == "tag_get":
+                # OPT-IN real tag resolution (gated by env BIPED_REAL_TAGS=1).
+                # Mirrors FUN_001b9bf0 + tag_get: the tag-instances table base
+                # lives at 0x5054F0; entry = base + (handle & 0xFFFF)*0x20; the
+                # tag body pointer is at entry+0x14 (piVar1[5]). Both oracle and
+                # candidate call this same stub, so resolving the REAL bipd/antr
+                # tag body (present in a biped state-snapshot) drives both sides
+                # down the real path (node-copy loops, jump speed, phase
+                # boundaries) that the synthetic projectile tag below zeros out.
+                #
+                # Falls through to the synthetic projectile tag when the flag is
+                # off OR the table/handle does not resolve in snapshot memory, so
+                # the projectile path (FUN_000f9c40 / infection_swarm) is
+                # bit-for-bit unaffected.
+                if os.environ.get("BIPED_REAL_TAGS") == "1":
+                    try:
+                        group = int.from_bytes(_safe_read(caller_esp + 4, 4), "little")
+                        handle = int.from_bytes(_safe_read(caller_esp + 8, 4), "little")
+                        tbl_base = int.from_bytes(_safe_read(0x5054F0, 4), "little")
+                        idx = handle & 0xFFFF
+                        if tbl_base and idx != 0xFFFF:
+                            entry = tbl_base + idx * 0x20
+                            g0 = int.from_bytes(_safe_read(entry, 4), "little")
+                            g1 = int.from_bytes(_safe_read(entry + 4, 4), "little")
+                            g2 = int.from_bytes(_safe_read(entry + 8, 4), "little")
+                            body = int.from_bytes(_safe_read(entry + 0x14, 4), "little")
+                            # Accept only when the requested group matches one of
+                            # the entry's three group sigs (bipd/unit/obje etc.)
+                            # and the body pointer is a plausible heap address.
+                            if (group in (g0, g1, g2) and body
+                                    and 0x10000 <= body < 0x84000000):
+                                uc.reg_write(UC_X86_REG_EAX, body)
+                                return True
+                    except Exception:
+                        pass
+                    # else fall through to synthetic tag (resolution failed)
                 # Return a pointer to a synthetic projectile tag block.
                 # tag_get(group_tag, datum_handle) → void* tag_data
                 # Projectile physics (FUN_000f9c40) uses these key offsets:
