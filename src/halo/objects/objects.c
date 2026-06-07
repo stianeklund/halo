@@ -2420,8 +2420,10 @@ int object_get_root_parent(int object_handle)
   return result;
 }
 
-void FUN_0013d870(void)
+void FUN_0013d870(int unit_handle, void *data)
 {
+    (void)unit_handle;
+    (void)data;
 }
 
 /*
