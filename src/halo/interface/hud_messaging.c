@@ -1891,6 +1891,7 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
   float local_10;
   float local_c = 0;
   float local_8;
+  short screen_coords[2];
 
   (void)local_28;
   local_34 = FUN_000d1540();
@@ -1979,8 +1980,6 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
                *(short *)(iVar8 + 0x34 + sVar7 * 2), 0, &iVar9, &uVar11);
   if (iVar9 != 0 &&
       (int)xbox_texture_cache_get_hardware_format((void *)iVar9, 0, 1) != 0) {
-    local_10 = (float)(int)local_10;
-    local_c = (float)(int)local_c;
     {
       int alpha_round = FUN_000d1c50(*(float *)(iVar8 + 0x2c));
       int alpha_scaled = alpha_round * 0xff;
@@ -2020,7 +2019,9 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
     local_1c = fVar2 * local_1c;
     uVar13 = (unsigned int)bVar12 << 0x18;
     uVar10 = FUN_000d1dd0(&local_24);
-    FUN_000d3200(iVar9, 4, &local_10, uVar11, local_14, local_8,
+    screen_coords[0] = (short)local_10;
+    screen_coords[1] = (short)local_c;
+    FUN_000d3200(iVar9, 4, screen_coords, uVar11, local_14, local_8,
                  uVar10 | uVar13, 0);
 
     if (sVar7 != 1) {
