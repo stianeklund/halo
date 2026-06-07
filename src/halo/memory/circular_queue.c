@@ -374,7 +374,7 @@ LAB_0011522d:
 void FUN_00114740(unsigned int param_1, int *param_2, int param_3)
 {
   unsigned char *pbVar1;
-  unsigned char bVar2;
+  int bVar2;
   unsigned int *c; /* codes state struct */
   unsigned char *puVar4;
   int s;          /* block state pointer (saved param_1) */
