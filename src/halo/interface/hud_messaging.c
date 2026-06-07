@@ -2220,6 +2220,7 @@ void FUN_000d7080(void)
 void FUN_000d70b0(short param_1, unsigned int param_2, int *param_3,
                   int param_4, unsigned short *param_5)
 {
+  float new_var;
   int iVar1;
   short sVar2;
   int *piVar3;
@@ -2232,6 +2233,7 @@ void FUN_000d70b0(short param_1, unsigned int param_2, int *param_3,
     do {
       piVar3 = (int *)tag_block_get_element((void *)param_3, iVar6, 0x38);
       bVar5 = (unsigned char)iVar6;
+      new_var = *(float *)(piVar3 + 5);
       if ((param_2 & piVar3[4]) != 0) {
         if (*piVar3 == 0x6c736e64) {
           if (*(int *)(param_4 + iVar6 * 4) == -1) {
@@ -2247,7 +2249,7 @@ void FUN_000d70b0(short param_1, unsigned int param_2, int *param_3,
               sound_stop_impulse(iVar1);
             }
           }
-          sound_impulse_start(piVar3[3], *(float *)(piVar3 + 5));
+          sound_impulse_start(piVar3[3], new_var);
           *(int *)(param_4 + iVar6 * 4) = piVar3[3];
         } else {
           display_assert("!\"unreachable\"",
