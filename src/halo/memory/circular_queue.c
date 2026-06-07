@@ -160,7 +160,7 @@ int FUN_00114fa0(int param_1, int param_2, int param_3, int param_4,
                  int param_5, int *param_6)
 {
   unsigned char *pbVar7;
-  unsigned char bVar2;
+  int bVar2;
   unsigned char bVar3;
   unsigned int uVar4;
   unsigned int uVar5;
