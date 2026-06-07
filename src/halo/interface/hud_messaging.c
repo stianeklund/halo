@@ -239,6 +239,7 @@ void FUN_000d44f0(int cursor, short *element, int param_1, int param_2)
   short local_10[2];
   int local_c;
   int local_8;
+  float scale;
 
   iVar4 = 0;
   local_c = 0;
@@ -256,22 +257,34 @@ void FUN_000d44f0(int cursor, short *element, int param_1, int param_2)
     if (sVar2 < 2) {
       local_8 = 0x3f800000;
     }
-    local_10[0] = (short)*(int *)(cursor + 2);
-    local_10[1] = (short)element[3];
+    scale = *(float *)&local_8;
+    local_10[0] = (short)((float)(int)element[2] * scale +
+                          (float)(int)*(short *)(cursor + 2));
+    local_10[1] = (short)((float)(int)*(short *)(cursor + 4) -
+                          (float)(int)element[3] * scale);
     if ((*(unsigned char *)((int)element + 0xd) & 2) != 0) {
       param_2 = *(int *)(element + 4);
     }
-    FUN_000d3200(local_c, 2, local_10, local_14, *(float *)&local_8, 0,
+    FUN_000d3200(local_c, 2, local_10, local_14, scale, 0,
                  param_2, 0);
     if ((*(unsigned char *)((int)element + 0xd) & 4) != 0) {
-      *(short *)(cursor + 2) = (short)local_10[0];
+      *(short *)(cursor + 2) = (short)((float)(int)element[1] * scale +
+                                        (float)(int)local_10[0]);
       return;
     }
     if (local_14 != 0) {
-      *(short *)(cursor + 2) = (short)local_10[0];
+      int *rect = (int *)local_14;
+      float rect_w = *(float *)(rect + 1) - *(float *)rect;
+      *(short *)(cursor + 2) =
+          (short)(((float)(int)*(short *)(local_c + 4) * rect_w +
+                   (float)(int)element[1]) * scale +
+                  (float)(int)local_10[0]);
       return;
     }
-    *(short *)(cursor + 2) = (short)local_10[0];
+    *(short *)(cursor + 2) =
+        (short)((float)((int)*(short *)(local_c + 4) +
+                        (int)element[1]) * scale +
+                (float)(int)local_10[0]);
   }
 }
 
