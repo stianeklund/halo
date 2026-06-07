@@ -2047,7 +2047,7 @@ void FUN_00116e00(int state, int param_1, int param_2)
   unsigned int dist;
   unsigned int lc;
   unsigned int code;
-  unsigned int extra;
+  volatile long extra;
   unsigned int idx;
 
   idx = 0;
@@ -3181,7 +3181,9 @@ void FUN_001187f0(void *bs_definition, int data_ptr, int *codes,
   int local_size;
   int local_step;
   unsigned int v4;
-  unsigned int v8_lo, v8_hi;
+  unsigned int v8_lo;
+  unsigned int v8_hi;
+  char *new_var;
 
   if (def[3] != 0x62797377) {
     msg = csprintf((char *)0x5ab100,
@@ -3292,7 +3294,8 @@ void FUN_001187f0(void *bs_definition, int data_ptr, int *codes,
 
       default:
         if (code < 1) {
-          msg = csprintf((char *)0x5ab100,
+          new_var = (char *)0x5ab100;
+          msg = csprintf(new_var,
                          "%s bs @%p.#%d has invalid code #%d",
                          *(char **)def, codes, step, code,
                          "c:\\halo\\SOURCE\\memory\\byte_swapping.c", 0x129, 1);
