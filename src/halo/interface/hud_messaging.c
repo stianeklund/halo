@@ -1913,10 +1913,12 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
   local_18 = sqrtf((*pfVar4 - local_24) * (*pfVar4 - local_24) +
                   (pfVar4[1] - local_20) * (pfVar4[1] - local_20) +
                   (pfVar4[2] - local_1c) * (pfVar4[2] - local_1c));
-  if (local_18 <= *(float *)0x254cc0) {
-    local_14 = *(float *)0x2533c8;
-  } else {
+  if (local_18 > *(float *)0x254cc0) {
     local_14 = 0.5f;
+  } else {
+    local_14 = (float)pow(
+        (double)(*(float *)0x2533c8 - local_18 * *(float *)0x253d48),
+        *(double *)0x281e18) + *(float *)0x253398;
   }
   matrix_transform_point((float *)0x5065b4, &local_30, &local_30);
   sVar7 = param_4;
@@ -1979,7 +1981,17 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
       (int)xbox_texture_cache_get_hardware_format((void *)iVar9, 0, 1) != 0) {
     local_10 = (float)(int)local_10;
     local_c = (float)(int)local_c;
-    bVar12 = (unsigned char)FUN_000d1c50(*(float *)(iVar8 + 0x2c) * 255.0f);
+    {
+      int alpha_round = FUN_000d1c50(*(float *)(iVar8 + 0x2c));
+      int alpha_scaled = alpha_round * 0xff;
+      if (alpha_scaled < 0) {
+        bVar12 = 0;
+      } else if (alpha_scaled > 0xff) {
+        bVar12 = 0xff;
+      } else {
+        bVar12 = (unsigned char)(-(char)FUN_000d1c50(*(float *)(iVar8 + 0x2c)));
+      }
+    }
     pixel32_to_real_argb_color(*(unsigned int *)(iVar8 + 0x28), &local_24);
     fVar1 = *(float *)0x2533c8 - *(float *)(iVar8 + 0x30);
     fVar2 = *(float *)0x2533c0;
@@ -2010,6 +2022,68 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
     uVar10 = FUN_000d1dd0(&local_24);
     FUN_000d3200(iVar9, 4, &local_10, uVar11, local_14, local_8,
                  uVar10 | uVar13, 0);
+
+    if (sVar7 != 1) {
+      char text_element[36];
+      char text_pos_buf[84];
+      short *text_pos_ptr;
+      short text_x, text_y;
+      int tmp_int;
+      float pow_val;
+      int text_value;
+
+      local_18 = local_18 * *(float *)0x281e00;
+      csmemset(text_element, 0, 0x24);
+      csmemset(text_pos_buf, 0, 0x54);
+      *(short *)text_element = 0;
+      *(unsigned int *)(text_element + 0x18) =
+          FUN_000d1dd0(&local_24) | uVar13;
+      *(unsigned int *)(text_element + 0x1c) =
+          FUN_000d1dd0(&local_24) | uVar13;
+      text_element[0x20] = 3;
+      text_element[0x22] = 1;
+      text_element[0x21] = 5;
+
+      {
+        short scr_x = (short)local_10;
+        short scr_y = (short)local_c;
+        float bmp_w;
+        float bmp_h;
+
+        tmp_int = (int)*(short *)(iVar9 + 4);
+        bmp_w = (*(float *)(uVar11 + 4) - *(float *)uVar11);
+        text_x = (short)((float)(int)scr_x +
+                 bmp_w * (float)tmp_int * *(float *)0x253398 *
+                 local_14 * *(float *)0x281dfc);
+
+        tmp_int = (int)*(short *)(iVar9 + 6);
+        bmp_h = (*(float *)(uVar11 + 0xc) - *(float *)(uVar11 + 0x8));
+        text_y = (short)((float)(int)scr_y +
+                 bmp_h * (float)tmp_int * *(float *)0x253398 *
+                 local_14 * *(float *)0x281df8);
+
+        text_x = text_x + (*(short *)0x50657e - *(short *)0x506586);
+        text_y = text_y + (*(short *)0x50657c - *(short *)0x506584);
+      }
+
+      text_pos_ptr = (short *)text_pos_buf;
+      text_pos_ptr[0] = text_x;
+      text_pos_ptr[1] = text_y;
+
+      pow_val = (float)pow(*(double *)0x281df0, *(double *)0x281de8);
+      {
+        float fmod_input = (float)fabs((double)(pow_val * local_18));
+        float fmod_result = (float)fmod((double)fmod_input,
+                                         (double)pow_val);
+        text_value = (int)fmod_result;
+      }
+
+      {
+        int rounded = FUN_000d1c50(local_18);
+        FUN_000d3860((short)param_1, text_element, text_pos_buf,
+                     rounded, text_value, 0, 0, 0.0f);
+      }
+    }
   }
   sVar7 = 0x7f;
   do {
