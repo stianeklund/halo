@@ -5,6 +5,448 @@
  */
 
 #include "../../common.h"
+#include "../../x87_math.h"
+
+/* FUN_001a01d0 (0x1a01d0)
+ *
+ * Builds an orthonormal forward/left/up basis (biped_limp_noodle.c:0x217).
+ * Each supplied vector is normalized; a zero-length vector is replaced by the
+ * matching global world axis. The left and up vectors are then rebuilt via
+ * cross products to enforce orthogonality, renormalizing (with axis fallback)
+ * after each rebuild.
+ *
+ * Confirmed: CALL 0x13010 (normalize3d) returns the length; length 0.0 selects
+ * the fallback axis. Globals: 0x31fc3c forward, 0x31fc40 left, 0x31fc44 up.
+ * Cross products: left = up x forward, up = forward x left, left = up x forward
+ * (operand order transcribed from disassembly).
+ */
+void FUN_001a01d0(float *forward, float *left, float *up)
+{
+  float lc0;
+  float lc1;
+  float lc2;
+
+  if (forward == NULL) {
+    display_assert("forward", "c:\\halo\\SOURCE\\units\\biped_limp_noodle.c",
+                   0x217, true);
+    system_exit(-1);
+  }
+  if (left == NULL) {
+    display_assert("left", "c:\\halo\\SOURCE\\units\\biped_limp_noodle.c",
+                   0x217, true);
+    system_exit(-1);
+  }
+  if (up == NULL) {
+    display_assert("up", "c:\\halo\\SOURCE\\units\\biped_limp_noodle.c", 0x217,
+                   true);
+    system_exit(-1);
+  }
+
+  if (normalize3d(forward) == 0.0f) {
+    forward[0] = global_forward_vector_ptr[0];
+    forward[1] = global_forward_vector_ptr[1];
+    forward[2] = global_forward_vector_ptr[2];
+  }
+  if (normalize3d(up) == 0.0f) {
+    up[0] = global_up_vector_ptr[0];
+    up[1] = global_up_vector_ptr[1];
+    up[2] = global_up_vector_ptr[2];
+  }
+
+  /* left = up x forward. All three components are computed before any store
+   * (the original cannot assume left[] doesn't alias forward[]/up[], so it
+   * batches the cross product onto the x87 stack, then stores [0],[1],[2]). */
+  lc2 = forward[1] * up[0] - up[1] * forward[0];
+  lc1 = up[2] * forward[0] - forward[2] * up[0];
+  lc0 = up[1] * forward[2] - up[2] * forward[1];
+  left[0] = lc0;
+  left[1] = lc1;
+  left[2] = lc2;
+  if (normalize3d(left) == 0.0f) {
+    left[0] = global_left_vector_ptr[0];
+    left[1] = global_left_vector_ptr[1];
+    left[2] = global_left_vector_ptr[2];
+  }
+
+  /* up = forward x left */
+  lc2 = left[1] * forward[0] - forward[1] * left[0];
+  lc1 = forward[2] * left[0] - forward[0] * left[2];
+  lc0 = forward[1] * left[2] - left[1] * forward[2];
+  up[0] = lc0;
+  up[1] = lc1;
+  up[2] = lc2;
+  if (normalize3d(up) == 0.0f) {
+    up[0] = global_up_vector_ptr[0];
+    up[1] = global_up_vector_ptr[1];
+    up[2] = global_up_vector_ptr[2];
+  }
+
+  /* left = up x forward */
+  lc2 = forward[1] * up[0] - up[1] * forward[0];
+  lc1 = up[2] * forward[0] - forward[2] * up[0];
+  lc0 = up[1] * forward[2] - up[2] * forward[1];
+  left[0] = lc0;
+  left[1] = lc1;
+  left[2] = lc2;
+  if (normalize3d(left) == 0.0f) {
+    left[0] = global_left_vector_ptr[0];
+    left[1] = global_left_vector_ptr[1];
+    left[2] = global_left_vector_ptr[2];
+  }
+}
+
+/* FUN_001a03c0 (0x1a03c0)
+ *
+ * Biped limp-noodle (ragdoll) node orientation updater.
+ * Called once per frame to update the orientation (forward/left/up basis) of
+ * each biped antenna/hair node using the current world-space positions.
+ *
+ * Register args (confirmed from caller 0x1a0680):
+ *   unit_handle  EAX  — datum handle of the biped unit
+ *   nodes        EDI  — pointer to node-state array; each entry is 0x34 bytes:
+ *                         +0x00  position (vec3, 3 floats)
+ *                         +0x04 .. +0x0f  (gaps/unused in this function)
+ *                         +0x10  up vector (vec3, 3 floats)
+ *                         +0x1c  ??? (vec3, 3 floats)
+ *                         +0x28  position mirror? (vec3, 3 floats)
+ *                         +0x30  (float*) pointer to current pos [EBP-0x10]
+ *
+ * Stack args:
+ *   node_count   [EBP+0x08]  — dead param (body uses tag count instead)
+ *   positions    [EBP+0x0c]  — pointer to position array; each entry 0x0c bytes
+ *                              (vec3 stride 0x0c)
+ *
+ * For each antenna node i (skipping i==0):
+ *   - Computes delta vectors A (positions delta) and B (nodes delta) from the
+ *     parent node.
+ *   - Normalizes both deltas.
+ *   - Computes cross_axis = cross(A, B) and normalizes it.
+ *   - Computes dot = dot(A, B).
+ *   - If |dot - 1.0f| >= epsilon (not co-linear), computes angle = acos(dot).
+ *   - If epsilon <= |angle| < max_angle, rotates the node's forward/up vectors
+ *     around cross_axis by (sin(angle), cos(angle)), rebuilding the basis.
+ *
+ * Confirmed offsets (from disassembly):
+ *   node stride:       0x34
+ *   node +0x04:        forward vector (rotated by rotate_vector3d_by_sincos)
+ *   node +0x10:        left   vector
+ *   node +0x1c:        up     vector (rotated by rotate_vector3d_by_sincos)
+ *   node +0x28:        position delta base (3 floats)
+ *   positions stride:  0x0c
+ *   tag block @[tag+0x68]: antenna block count+ptr
+ *   element[i]+0x24:   short parent_node_index
+ *   element[i]+0x28:   flags byte (bit 2 = skip-rotation)
+ *
+ * Globals: 0x2533c8 = 1.0f, 0x2533d0 = epsilon (~1e-6), 0x25b3f0 = max_angle
+ *
+ * Inferred: positions[0] is unused (loop body guarded by local_1c != 0).
+ * Uncertain: exact semantics of node +0x10 and +0x1c fields.
+ */
+void FUN_001a03c0(int unit_handle, int node_count, float *positions,
+                  void *nodes)
+{
+  /* unit_handle passed in EAX; nodes passed in EDI — see kb.json decl.
+   * node_count ([EBP+8]) is a dead parameter; the body uses the tag count. */
+  void *unit_data;
+  void *bipd_tag;
+  void *antr_tag;
+  int *block; /* antenna tag_block: [0]=count                       */
+  int i;
+  float *pfx; /* &positions[i].z  (EBX in original, +0x0c/iter)     */
+  float *nfx; /* &nodes[i]+0x30   (local_14, +0x34/iter)            */
+  char *elem;
+  char *parent_elem;
+  float A[3]; /* pos delta  — [EBP-0x38], normalized in-place */
+  float B[3]; /* node delta — [EBP-0x2c], normalized in-place */
+  float cross[3]; /* cross(A,B) — [EBP-0x44], normalized in-place */
+  float dot_val; /* [EBP-0x4] */
+  float angle; /* [EBP-0x14] */
+  float sin_a;
+  char *nodes_bytes;
+  char *base; /* nodes + parent_idx*0x34 */
+  char axis_ok;
+  float *saved_pfx; /* local_10 = [EBP-0xc] */
+
+  nodes_bytes = (char *)nodes;
+
+  unit_data = object_get_and_verify_type(unit_handle, 1);
+  bipd_tag = tag_get(0x62697064, *(int *)unit_data);
+  antr_tag = tag_get(0x616e7472, *(int *)((char *)bipd_tag + 0x44));
+  block = (int *)((char *)antr_tag + 0x68);
+
+  if (block[0] <= 0) {
+    return;
+  }
+
+  /* pfx = positions+8 (points to .z of slot 0, pfx[-2]=.x pfx[-1]=.y)
+   * nfx = nodes+0x30  (nfx[-2]=.x nfx[-1]=.y nfx[0]=.z of pos-mirror at +0x28)
+   * Both advance by their respective strides each iteration. */
+  pfx = (float *)((char *)positions + 8);
+  nfx = (float *)(nodes_bytes + 0x30);
+
+  i = 0;
+  do {
+    if (i != 0) {
+      float *parent_pos;
+      float *parent_nod28;
+
+      saved_pfx = pfx;
+
+      elem = (char *)tag_block_get_element(block, i, 0x40);
+      parent_elem = (char *)tag_block_get_element(
+        block, (int)(*(short *)(elem + 0x24)), 0x40);
+
+      if ((*(unsigned char *)(parent_elem + 0x28) & 4) == 0) {
+        parent_pos =
+          (float *)((char *)positions + (int)(*(short *)(elem + 0x24)) * 0x0c);
+        parent_nod28 =
+          (float *)(nodes_bytes + (int)(*(short *)(elem + 0x24)) * 0x34 + 0x28);
+
+        /* pos delta A = positions[i] - positions[parent] */
+        A[0] = pfx[-2] - parent_pos[0];
+        A[1] = pfx[-1] - parent_pos[1];
+        A[2] = *pfx - parent_pos[2];
+
+        /* nod delta B = nodes[i]+0x28 - nodes[parent]+0x28 */
+        B[0] = nfx[-2] - parent_nod28[0];
+        B[1] = nfx[-1] - parent_nod28[1];
+        B[2] = nfx[0] - parent_nod28[2];
+
+        normalize3d(A);
+        normalize3d(B);
+
+        /* cross(A,B) — operand order verified from FSUBP sequence:
+         *   [0]: B[2]*A[1] - B[1]*A[2] = cross(A,B)[0]
+         *   [1]: A[2]*B[0] - B[2]*A[0] = cross(A,B)[1]
+         *   [2]: B[1]*A[0] - A[1]*B[0] = cross(A,B)[2]   */
+        cross[0] = B[2] * A[1] - B[1] * A[2];
+        cross[1] = A[2] * B[0] - B[2] * A[0];
+        cross[2] = B[1] * A[0] - A[1] * B[0];
+
+        normalize3d(cross);
+
+        /* dot(A,B) — FPU order: A[2]*B[2] + A[1]*B[1] + A[0]*B[0] */
+        dot_val = A[2] * B[2] + A[1] * B[1] + A[0] * B[0];
+
+        /* if |dot - 1.0f| >= epsilon */
+        if (*(double *)0x2533d0 <= fabs(dot_val - *(float *)0x2533c8)) {
+          angle = acosf(dot_val);
+
+          /* if epsilon <= |angle| < max_angle */
+          if (*(double *)0x2533d0 <= fabs(angle) &&
+              fabs(angle) < *(double *)0x25b3f0) {
+            /* Original re-reads *(short*)(elem+0x24) and recomputes
+             * parent_idx*0x34 + nodes + offset at EVERY call site.
+             * Reproduce that re-read pattern faithfully. */
+
+            /* First valid_real_vector3d_axes3 / FUN_001a01d0 block */
+            base = nodes_bytes + (int)(*(short *)(elem + 0x24)) * 0x34;
+            axis_ok = valid_real_vector3d_axes3((float *)(base + 0x4),
+                                                (float *)(base + 0x10),
+                                                (float *)(base + 0x1c));
+            if (!axis_ok) {
+              FUN_001a01d0((float *)(base + 0x4), (float *)(base + 0x10),
+                           (float *)(base + 0x1c));
+            }
+
+            sin_a = x87_fsin(angle);
+
+            /* rotate fwd and up — each re-reads *(short*)(elem+0x24) */
+            rotate_vector3d_by_sincos(
+              (float *)(nodes_bytes + (int)(*(short *)(elem + 0x24)) * 0x34 +
+                        0x4),
+              cross, sin_a, dot_val);
+            rotate_vector3d_by_sincos(
+              (float *)(nodes_bytes + (int)(*(short *)(elem + 0x24)) * 0x34 +
+                        0x1c),
+              cross, sin_a, dot_val);
+
+            normalize3d((float *)(nodes_bytes +
+                                  (int)(*(short *)(elem + 0x24)) * 0x34 + 0x4));
+            normalize3d((float *)(nodes_bytes +
+                                  (int)(*(short *)(elem + 0x24)) * 0x34 +
+                                  0x1c));
+
+            /* cross_product3d(up, fwd, left) — uses single base */
+            base = nodes_bytes + (int)(*(short *)(elem + 0x24)) * 0x34;
+            cross_product3d((float *)(base + 0x1c), (float *)(base + 0x4),
+                            (float *)(base + 0x10));
+
+            normalize3d((float *)(nodes_bytes +
+                                  (int)(*(short *)(elem + 0x24)) * 0x34 +
+                                  0x10));
+
+            /* Second valid_real_vector3d_axes3 / FUN_001a01d0 block */
+            base = nodes_bytes + (int)(*(short *)(elem + 0x24)) * 0x34;
+            axis_ok = valid_real_vector3d_axes3((float *)(base + 0x4),
+                                                (float *)(base + 0x10),
+                                                (float *)(base + 0x1c));
+            if (!axis_ok) {
+              FUN_001a01d0((float *)(base + 0x4), (float *)(base + 0x10),
+                           (float *)(base + 0x1c));
+              pfx = saved_pfx;
+            }
+            pfx = saved_pfx;
+          }
+        }
+      }
+    }
+
+    i++;
+    pfx = pfx + 3; /* +0x0c bytes (3 floats per position) */
+    nfx = nfx + (0x34 / 4); /* +0x34 bytes (13 floats per node)    */
+  } while (i < block[0]);
+}
+
+/* FUN_001a0680 (0x1a0680)
+ *
+ * Updates biped limp-noodle (ragdoll/physics) node positions. Gets the biped
+ * object and its 'bipd' tag, then looks up the 'antr' animation tag via the
+ * tag reference at bipd+0x44. Fetches the object header block reference at
+ * offset object+0x1a0 (the node transform block). Returns 1 if the current
+ * node step count (byte at biped_obj+0x47c) >= the maximum step count (byte
+ * at biped_obj+0x47d); otherwise copies node positions into the scratch buffer
+ * at 0x4e49f0, calls FUN_0019fa20 to process limp-noodle physics, calls
+ * FUN_001a03c0 to apply the updated positions back, increments the step
+ * counter (capped at 0x7f), and returns 0.
+ *
+ * Confirmed: CALL 0x13d680 (object_get_and_verify_type) type 1 (biped).
+ * Confirmed: CALL 0x1ba140 (tag_get) 'bipd' (0x62697064) then 'antr'
+ * (0x616e7472). Confirmed: CALL 0x13dfc0 (object_header_block_reference_get)
+ * offset +0x1a0. Confirmed: comparison [ESI+0x47c] vs [ESI+0x47d] (CMP/SBB/INC
+ * pattern). Confirmed: node stride 0x34 (13 floats), position offset +0x28
+ * within node. Confirmed: scratch buffer at 0x4e49f0 (DAT_004e49f0). Confirmed:
+ * antr node count at antr+0x68. Confirmed: step counter cap at 0x7f (JNC =
+ * unsigned compare). Inferred: FUN_001a03c0 @<eax>=unit_handle,
+ * @<edi>=node_block_ptr.
+ */
+char FUN_001a0680(int unit_handle)
+{
+  char *biped_obj;
+  char *bipd_tag;
+  char *antr_tag;
+  void *node_block;
+  char *obj_base;
+  int count;
+  int i;
+  int *src_node;
+  int *scratch;
+  char result;
+
+  biped_obj = (char *)object_get_and_verify_type(unit_handle, 1);
+  bipd_tag = (char *)tag_get(0x62697064, *(int *)biped_obj);
+  antr_tag = (char *)tag_get(0x616e7472, *(int *)(bipd_tag + 0x44));
+  obj_base = (char *)object_get_and_verify_type(unit_handle, -1);
+  node_block = object_header_block_reference_get(unit_handle, obj_base + 0x1a0);
+
+  /* CMP [ESI+0x47c],[ESI+0x47d]; SBB CL,CL; INC CL */
+  result = (char)(*(unsigned char *)(biped_obj + 0x47c) >=
+                  *(unsigned char *)(biped_obj + 0x47d));
+  if (result != '\0') {
+    return result;
+  }
+
+  count = *(int *)((char *)antr_tag + 0x68);
+  if (count > 0) {
+    scratch = (int *)0x4e49f0;
+    src_node = (int *)((char *)node_block + 0x28);
+    i = 0;
+    do {
+      scratch[0] = src_node[0];
+      scratch[1] = src_node[1];
+      scratch[2] = src_node[2];
+      i++;
+      src_node += (0x34 / 4); /* advance by 0x34 bytes (13 ints) */
+      scratch += 3;
+    } while (i < count);
+  }
+
+  FUN_0019fa20(unit_handle, node_block);
+  /* @<eax>=unit_handle, node_count, positions=scratch buf, @<edi>=node_block */
+  FUN_001a03c0(unit_handle, *(int *)((char *)antr_tag + 0x68),
+               (float *)0x4e49f0, node_block);
+
+  if (*(unsigned char *)(biped_obj + 0x47c) < 0x7f) {
+    *(unsigned char *)(biped_obj + 0x47c) =
+      *(unsigned char *)(biped_obj + 0x47c) + 1;
+  }
+  return result;
+}
+
+/* biped_place (0x1a07c0)
+ *
+ * Places a biped unit at a placement location. Calls unit_place with the
+ * placement data at offset +0x48 (the unit-level placement struct), then
+ * calls FUN_0013d870 (no-op stub) with the placement data at offset +0x28.
+ *
+ * Confirmed: param_2+0x48 passed to unit_place (PUSH ESI+0x48 via LEA).
+ * Confirmed: param_2+0x28 passed to FUN_0013d870 (ADD ESI,0x28; PUSH ESI).
+ * Confirmed: FUN_0013d870 is a no-op (single RET).
+ * Inferred: param_2 is a biped placement struct (unit placement at +0x48,
+ *   biped-specific data at +0x28).
+ */
+void biped_place(int unit_handle, void *placement)
+{
+  unit_place(unit_handle, (char *)placement + 0x48);
+  FUN_0013d870(unit_handle, (char *)placement + 0x28);
+}
+
+/* biped_reset (0x1a0800)
+ *
+ * Resets biped physics/state fields to default values. Clears 0x5c bytes
+ * starting at obj+0x424, then restores four default float constants from
+ * 0x32513c..0x325148 into obj+0x46c..0x478, and sets obj+0x450 = -1.
+ *
+ * Confirmed: csmemset(obj+0x424, 0, 0x5c) clears the full state block.
+ * Confirmed: store offsets from disasm: obj+0x46c, +0x470, +0x474, +0x478
+ *   loaded from globals 0x32513c, 0x325140, 0x325144, 0x325148.
+ * Confirmed: obj+0x450 = 0xffffffff (OR ECX,-1 pattern; int -1).
+ * Confirmed: MSVC schedules obj+0x450 between the 3rd and 4th const stores;
+ *   written naturally here, VC71 reschedules.
+ * Inferred: the four constants are default float values (0.0, 0.0, 1.0,
+ *   -256.0 from memory at 0x32513c).
+ */
+void biped_reset(int unit_handle)
+{
+  char *obj;
+  int *dst;
+  int tmp0;
+  int tmp1;
+  int tmp2;
+  int tmp3;
+
+  obj = (char *)object_get_and_verify_type(unit_handle, 1);
+  csmemset(obj + 0x424, 0, 0x5c);
+  tmp0 = *(int *)0x32513c;
+  dst = (int *)(obj + 0x46c);
+  tmp1 = *(int *)0x325140;
+  dst[0] = tmp0;
+  tmp2 = *(int *)0x325144;
+  dst[1] = tmp1;
+  tmp3 = *(int *)0x325148;
+  *(int *)(obj + 0x450) = -1;
+  dst[2] = tmp2;
+  dst[3] = tmp3;
+}
+
+/* biped_disconnect_from_structure_bsp (0x1a0860)
+ *
+ * Clears the biped's BSP leaf/cluster/surface datum handle fields to -1,
+ * disconnecting the unit from the current structure BSP.
+ *
+ * Confirmed: obj+0x430 = -1, obj+0x434 = -1, obj+0x448 = -1 (OR ECX,-1
+ * pattern). Confirmed: uses same ECX=-1 value for all three stores (single OR
+ * ECX,-1). Uncertain: exact field names at 0x430, 0x434, 0x448.
+ */
+void biped_disconnect_from_structure_bsp(int unit_handle)
+{
+  char *obj;
+
+  obj = (char *)object_get_and_verify_type(unit_handle, 1);
+  *(int *)(obj + 0x430) = -1;
+  *(int *)(obj + 0x434) = -1;
+  *(int *)(obj + 0x448) = -1;
+}
 
 /* biped_get_camera_height_and_offset (0x1a0890)
  *
@@ -26,9 +468,6 @@ void biped_get_camera_height_and_offset(int unit_handle, vector3_t *out_pos,
 {
   char *unit_obj;
   char *biped_tag;
-  float crouch_fraction;
-  float crouching_height;
-  float standing_height;
   float camera_height;
 
   unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
@@ -45,21 +484,655 @@ void biped_get_camera_height_and_offset(int unit_handle, vector3_t *out_pos,
   if ((*(uint8_t *)(biped_tag + 0x2f4) & 0x10) == 0 &&
       (*(int *)(unit_obj + 0x1c8) != -1 ||
        (*(uint32_t *)(unit_obj + 0x4) & 0x400000) != 0)) {
-    /* Unit has actor or is player-controlled: interpolate based on crouch */
-    standing_height = *(float *)(biped_tag + 0x428);
-    crouching_height = *(float *)(biped_tag + 0x424);
+    /* Unit has actor or is player-controlled: interpolate based on crouch.
+     * Memory-access order matches the original: standing/crouching heights and
+     * crouch fraction are read inline; camera_height is cached once so the
+     * doubling compiles to FADD ST0,ST0; out_camera_height re-reads [0x42c]. */
     camera_height = *(float *)(biped_tag + 0x42c);
-    crouch_fraction = *(float *)(unit_obj + 0x464);
-
     *out_height_offset =
-      (standing_height - crouching_height) * crouch_fraction +
-      crouching_height - (camera_height + camera_height);
-    *out_camera_height = camera_height;
+      (*(float *)(biped_tag + 0x428) - *(float *)(biped_tag + 0x424)) *
+        *(float *)(unit_obj + 0x464) +
+      *(float *)(biped_tag + 0x424) - (camera_height + camera_height);
+    *out_camera_height = *(float *)(biped_tag + 0x42c);
   } else {
     /* No actor and not player-controlled: zero offset */
     *out_height_offset = 0.0f;
     *out_camera_height = *(float *)(biped_tag + 0x42c);
   }
+}
+
+/* biped_stop_melee_attack (0x1a0950)
+ *
+ * Clears the melee-attack active flag (obj+0x45d = 0) on the biped's unit
+ * object, if the object exists. Uses object_try_and_get_and_verify_type (does
+ * not assert on missing object).
+ *
+ * Confirmed: CALL 0x13d640 (object_try_and_get_and_verify_type) with type 1.
+ * Confirmed: MOV byte ptr [EAX+0x45d],0x0 if result != NULL.
+ * Inferred: "stop melee" semantics from flag offset matching biped_start_limp
+ *   sequence and the clear-vs-set pattern.
+ */
+void biped_stop_melee_attack(int unit_handle)
+{
+  char *obj;
+
+  obj = (char *)object_try_and_get_and_verify_type(unit_handle, 1);
+  if (obj != NULL) {
+    *(uint8_t *)(obj + 0x45d) = 0;
+  }
+}
+
+/* biped_start_limp_body_physics (0x1a0970)
+ *
+ * Begins limp-body (ragdoll-like) physics simulation for a biped. Checks
+ * several preconditions against the tag flags and object state before
+ * activating: requires the limp-body tag flag (tag+0x2f4 bit 9 set), the
+ * biped must have a velocity (obj+0x4 bit 5), must not already be in ragdoll
+ * (obj+0x424 bits 0x21), and the global freeze flag must be clear.
+ * On entry it clears obj+0x47c (sub-step counter) and stores the unit
+ * definition type constant (0x14) in obj+0x47d, then ORs obj+0x4 with
+ * 0x800000 and obj+0x424 with 0x20.
+ *
+ * Confirmed: CALL 0x13d680 (object_get_and_verify_type) type 1.
+ * Confirmed: CALL 0x1ba140 (tag_get) 'bipd'.
+ * Confirmed: DAT_004e4cf3 = global freeze flag (byte).
+ * Confirmed: tag+0x2f4 >> 9 & 1 = limp-body enabled flag.
+ * Confirmed: obj+0x4 bit 0x20 = has-velocity; obj+0x424 bits 0x21 = already
+ * ragdoll. Confirmed: CALL 0x19f530 with unit_handle arg → returns 0x14 (unit
+ * def type const). Confirmed: stores return value (0x14) in obj+0x47d.
+ * Inferred: obj+0x47c is a ragdoll sub-frame counter, cleared on start.
+ */
+void biped_start_limp_body_physics(int unit_handle)
+{
+  char *obj;
+  char *biped_tag;
+  uint8_t type_const;
+  uint32_t flags4;
+  uint32_t flags424;
+
+  obj = (char *)object_get_and_verify_type(unit_handle, 1);
+  biped_tag = (char *)tag_get(0x62697064, *(int *)obj);
+  if (*(uint8_t *)0x4e4cf3 != 0) {
+    return;
+  }
+  if ((*(uint32_t *)(biped_tag + 0x2f4) >> 9 & 1) == 0) {
+    return;
+  }
+  if ((*(uint8_t *)(obj + 0x4) & 0x20) == 0) {
+    return;
+  }
+  if ((*(uint8_t *)(obj + 0x424) & 0x21) != 0) {
+    return;
+  }
+  *(uint8_t *)(obj + 0x47c) = 0;
+  type_const = (uint8_t)FUN_0019f530(unit_handle);
+  *(uint8_t *)(obj + 0x47d) = type_const;
+  flags4 = *(uint32_t *)(obj + 0x4);
+  flags424 = *(uint32_t *)(obj + 0x424);
+  flags4 |= 0x800000;
+  flags424 |= 0x20;
+  *(uint32_t *)(obj + 0x4) = flags4;
+  *(uint32_t *)(obj + 0x424) = flags424;
+}
+
+/* biped_stop_limp_body_physics (0x1a09f0)
+ *
+ * Ends limp-body physics simulation if preconditions are met: the tag must
+ * have the limp-body flag (tag+0x2f4 bit 9 = CH bit), and the ragdoll-active
+ * flag (obj+0x424 bit 5 = 0x20) must be set. On success, clears both flags.
+ *
+ * Confirmed: TEST CH,0x2 checks bit 9 of the dword at tag+0x2f4 (CH = byte 1
+ *   of dword; bit 1 of CH = bit 9 of dword).
+ * Confirmed: AND [ESI+4],0xff7fffff clears obj+0x4 bit 23 (0x800000).
+ * Confirmed: AND [ESI+0x424],0xffffffdf clears bit 5 (0x20).
+ * Inferred: mirror of biped_start_limp_body_physics.
+ */
+void biped_stop_limp_body_physics(int unit_handle)
+{
+  char *obj;
+  char *biped_tag;
+  uint32_t tag_flags;
+  uint32_t flags4;
+  uint32_t flags424;
+
+  obj = (char *)object_get_and_verify_type(unit_handle, 1);
+  biped_tag = (char *)tag_get(0x62697064, *(int *)obj);
+  tag_flags = *(uint32_t *)(biped_tag + 0x2f4);
+  if ((tag_flags & 0x200) == 0) {
+    return;
+  }
+  flags424 = *(uint32_t *)(obj + 0x424);
+  if ((flags424 & 0x20) == 0) {
+    return;
+  }
+  flags4 = *(uint32_t *)(obj + 0x4) & 0xff7fffff;
+  flags424 = flags424 & 0xffffffdf;
+  *(uint32_t *)(obj + 0x4) = flags4;
+  *(uint32_t *)(obj + 0x424) = flags424;
+}
+
+/* FUN_001a0a40 (0x1a0a40)
+ *
+ * Per-frame melee-contact/bump handler for bipeds. Tracks a timer (obj+0x458)
+ * and triggers AI bump notification and optional player-unit reassignment.
+ *
+ * Register args (confirmed from caller FUN_001a5300 at 0x1a61ba/0x1a61c4):
+ *   @edi  unit_handle  — biped datum handle
+ *   @ebx  biped_obj    — pointer to biped object data (pre-fetched by caller)
+ * Stack arg:
+ *   velocity_ptr  [EBP+0x8]  — pointer to the biped's velocity vector (3
+ * floats)
+ *
+ * Logic:
+ *   If timer (obj+0x458) is negative (counting up through negatives):
+ *     - If no new contact (EDI == -1): just increment timer and return.
+ *     - Else: fall through to common exit (set timer to 0xf1).
+ *   If timer >= 0 and no new contact (EDI == -1): early return (nothing to do).
+ *   Otherwise:
+ *     - Get the contact object (EDI, type -1).
+ *     - Call ai_handle_bump(biped_handle, contact_handle, velocity_ptr).
+ *     - If vehicle slot (obj+0x1c8) != -1 OR recorded-animation controlling:
+ *         If obj+0x454 (last contact) != new contact: store new contact, clear
+ * timer, return. Else: increment timer; if timer reaches 4 (> 3): If in
+ * multiplayer + has local player: set obj+0x458=0xf1, call
+ * players_set_local_player_unit. Fall-through/exit: set obj+0x458 = 0xf1.
+ *
+ * Confirmed: obj+0x458 = bump_timer (int8_t); obj+0x1c8 = vehicle_datum handle.
+ * Confirmed: obj+0x454 = last_contact handle; obj+0x1c8 = vehicle slot.
+ * Confirmed: DAT_005aa893 = multiplayer flag.
+ * Confirmed: CALL 0x94ff0 (recorded_animation_controlling_unit).
+ * Confirmed: CALL 0xb6990 (unit_get_local_player_index), returns int16_t (-1 =
+ * none). Confirmed: CALL 0xba5f0 (players_set_local_player_unit(player_idx,
+ * unit_handle)). Confirmed: [EDX+0x64] word = some vehicle-seat type field
+ * checked == 0. Inferred: 0xf1 timer value = "reset/cleared" sentinel.
+ */
+void FUN_001a0a40(int contact_handle /* @edi */, int unit_handle /* @ebx */,
+                  float *velocity_ptr)
+{
+  char *obj;
+  char *contact_obj;
+  int8_t timer;
+  int16_t player_idx;
+
+  obj = (char *)object_get_and_verify_type(unit_handle, 1);
+  tag_get(0x62697064, *(int *)obj);
+
+  timer = *(int8_t *)(obj + 0x458);
+  if (timer < 0) {
+    if (contact_handle == -1) {
+      *(int8_t *)(obj + 0x458) = timer + 1;
+      return;
+    }
+  } else {
+    if (contact_handle == -1) {
+      return;
+    }
+    contact_obj = (char *)object_get_and_verify_type(contact_handle, -1);
+    ai_handle_bump(unit_handle, contact_handle, velocity_ptr);
+    if ((*(int *)(obj + 0x1c8) == -1) &&
+        (recorded_animation_controlling_unit(unit_handle) == 0)) {
+      return;
+    }
+    if (*(int *)(obj + 0x454) != contact_handle) {
+      *(int *)(obj + 0x454) = contact_handle;
+      *(int8_t *)(obj + 0x458) = 0;
+      return;
+    }
+    timer = *(int8_t *)(obj + 0x458);
+    timer++;
+    *(int8_t *)(obj + 0x458) = timer;
+    if (timer <= 3) {
+      return;
+    }
+    if ((*(int16_t *)(contact_obj + 0x64) == 0) &&
+        (*(uint8_t *)0x5aa893 != 0)) {
+      player_idx = unit_get_local_player_index(unit_handle);
+      if (player_idx != -1) {
+        *(uint8_t *)(contact_obj + 0x458) = 0xf1;
+        players_set_local_player_unit(player_idx, unit_handle);
+      }
+    }
+  }
+  *(uint8_t *)(obj + 0x458) = 0xf1;
+}
+
+/* FUN_001a0b30 (0x1a0b30)
+ *
+ * Checks whether a biped is stuck in an unreachable (bad) position and erases
+ * it if so. Triggered once per update frame from the biped update loop.
+ *
+ * Register arg (confirmed from caller FUN_001a6350 at 0x1a6727):
+ *   @edi  unit_handle  — biped datum handle
+ *
+ * Conditions to erase (all must hold):
+ *   1. game_engine_running() == false (not in a game engine / network game)
+ *   2. Either obj+0x4 bit 0x200000 set (flying/physics flag) OR obj+0x4c == -1
+ *      (no parent handle)
+ *   3. obj+0x14 (velocity Z / speed float) < DAT_002b4d1c (negative-infinity or
+ *      very-small threshold — biped is sinking/below world)
+ *
+ * On erase:
+ *   Looks up actor (obj+0x1a8 or fallback obj+0x1a4), calls
+ *   ai_debug_describe_actor for the warning string, prints WARNING via error(),
+ *   then calls object_delete(unit_handle).
+ *
+ * Confirmed: FCOMP [0x2b4d1c], TEST AH,0x5, JP = "< with NaN" check.
+ * Confirmed: PUSH 0x100 / PUSH 0x5ab100 / PUSH 0x1 / PUSH EDI / PUSH EAX =
+ *   ai_debug_describe_actor(actor_handle, unit_handle, 1, buf@0x5ab100, 0x100).
+ * Confirmed: PUSH EAX / PUSH ECX / CALL 0x1ba1f0 = tag_get_name(tag_index).
+ * Confirmed: warning format string at 0x2b4cd8.
+ * Returns 0 (char) always.
+ * Inferred: function name from warning message "biped %s (%s) is in a bad
+ * place".
+ */
+char FUN_001a0b30(int unit_handle /* @edi */)
+{
+  char *obj;
+  int actor_handle;
+  const char *tag_name;
+  const char *actor_desc;
+
+  obj = (char *)object_get_and_verify_type(unit_handle, 1);
+  if (game_engine_running() != 0) {
+    return 0;
+  }
+  if ((*(uint32_t *)(obj + 0x4) & 0x200000) == 0 &&
+      *(int16_t *)(obj + 0x4c) != -1) {
+    return 0;
+  }
+  if (!(*(float *)(obj + 0x14) < *(float *)0x2b4d1c)) {
+    return 0;
+  }
+  actor_handle = *(int *)(obj + 0x1a8);
+  if (actor_handle == -1) {
+    actor_handle = *(int *)(obj + 0x1a4);
+  }
+  actor_desc = ai_debug_describe_actor(actor_handle, unit_handle, 1,
+                                       (char *)0x5ab100, 0x100);
+  tag_name = tag_get_name(*(int *)obj);
+  tag_name = tag_name_strip_path(tag_name);
+  error(2, "WARNING: biped %s (%s) is in a bad place (%.1f %.1f %.1f), erasing",
+        tag_name, actor_desc, (double)*(float *)(obj + 0xc),
+        (double)*(float *)(obj + 0x10), (double)*(float *)(obj + 0x14));
+  object_delete(unit_handle);
+  return 0;
+}
+
+/* FUN_001a0be0 (0x1a0be0)
+ *
+ * Per-frame biped world-boundary check. If the biped falls outside the world
+ * or below the kill-volume threshold, applies damage and/or erases the biped.
+ *
+ * Register arg (confirmed from caller FUN_001a5300 at 0x1a61d1):
+ *   @edi  unit_handle  — biped datum handle
+ * Stack arg:
+ *   vertical_speed  [EBP+0x8]  — current vertical speed (float, from local_24
+ *     in caller = camera Z delta or velocity component)
+ *
+ * Logic summary:
+ *   1. Get biped object and tag. Get game_globals physics block element [0].
+ *   2. Compute bVar1 (= "is_protected"): set true if obj+0x1b4 bit 0x1000 set
+ *      OR tag+0x2f4 bit 7 (0x80) set.
+ *   3. If multiplayer-engine running (DAT_5aa891) AND obj+0x1c8 != -1: skip.
+ *   4. If vertical_speed > physics[0x90] (kill-height threshold):
+ *      - If not protected: build damage params from physics[0x1c] tag ref,
+ *        call damage_data_new + object_cause_damage.
+ *      - Compute t = clamp01((speed - low) / (high - low)) and return.
+ *   5. Else (below threshold):
+ *      - Check tag flag bit 2 (0x4) at tag+0x2f4 and vertical speed.
+ *      - If not flying and falling fast: possibly apply damage, then erase.
+ *
+ * Confirmed: tag_block_get_element(game_globals+0x188, 0, 0x98).
+ * Confirmed: TEST AH,0x10 checks obj+0x1b4 bit 0x1000.
+ * Confirmed: physics block offsets 0x8c (fall speed), 0x90 (jump height),
+ *   0x94 (climb height), 0x38/0x1c (damage tag refs).
+ * Confirmed: damage_data_new, object_cause_damage call arg counts from disasm.
+ * Confirmed: clamp01 via FCOMP+FNSTSW+TEST pattern.
+ * Confirmed: erasing path = player_index_from_unit_index +
+ * ai_debug_describe_actor
+ *   + error("fell outside world") + object_delete.
+ * Inferred: vertical_speed param meaning (from call site local_24 in 0x1a5300).
+ * Uncertain: exact semantics of obj+0x1b4 bit 0x1000 (possibly "in vehicle" or
+ *   "has shield").
+ */
+void FUN_001a0be0(float vertical_speed, int unit_handle /* @edi */)
+{
+  char *obj;
+  char *biped_tag;
+  char *physics;
+  char damage_params[0x40];
+  float t;
+  int actor_handle;
+  int player_idx;
+  const char *tag_name;
+  const char *actor_desc;
+  char is_protected;
+
+  obj = (char *)object_get_and_verify_type(unit_handle, 1);
+  biped_tag = (char *)tag_get(0x62697064, *(int *)obj);
+  physics =
+    (char *)tag_block_get_element((char *)game_globals_get() + 0x188, 0, 0x98);
+
+  /* is_protected = obj has special flag OR tag marks it protected */
+  if ((*(uint32_t *)(obj + 0x1b4) & 0x1000) != 0 ||
+      *(int8_t *)(biped_tag + 0x2f4) < 0) {
+    is_protected = 1;
+  } else {
+    is_protected = 0;
+  }
+
+  /* In multiplayer with a vehicle: skip all checks */
+  if (*(uint8_t *)0x5aa891 != 0 && *(int *)(obj + 0x1c8) != -1) {
+    return;
+  }
+
+  if (vertical_speed > *(float *)(physics + 0x90)) {
+    /* Above jump-height threshold: if protected return early, else damage +
+     * return */
+    if (is_protected) {
+      return;
+    }
+    damage_data_new(damage_params, *(int *)(physics + 0x1c));
+    /* Compute lerp t = clamp01((speed - low) / (high - low)) */
+    t = (vertical_speed - *(float *)(physics + 0x90)) /
+        (*(float *)(physics + 0x94) - *(float *)(physics + 0x90));
+    if (t < *(float *)0x2533c0) {
+      t = 0.0f;
+    } else if (!(t <= *(float *)0x2533c8)) {
+      t = 1.0f;
+    }
+    object_cause_damage(damage_params, unit_handle, -1, -1, -1, 0);
+    return;
+  }
+
+  /* Below threshold — check for fall/erase conditions */
+  if ((*(uint8_t *)(biped_tag + 0x2f4) & 0x4) != 0) {
+    return;
+  }
+  if (!(*(float *)(obj + 0x20) < -(*(float *)(physics + 0x8c)))) {
+    return;
+  }
+  if (!is_protected && (*(uint8_t *)(obj + 0xb6) & 0x4) == 0) {
+    damage_data_new(damage_params, *(int *)(physics + 0x38));
+    object_cause_damage(damage_params, unit_handle, -1, -1, -1, 0);
+  }
+  if (game_engine_running() != 0) {
+    return;
+  }
+  if ((*(uint32_t *)(obj + 0x4) & 0x200000) == 0) {
+    return;
+  }
+  player_idx = player_index_from_unit_index(unit_handle);
+  if (player_idx != -1) {
+    return;
+  }
+  actor_handle = *(int *)(obj + 0x1a8);
+  if (actor_handle == -1) {
+    actor_handle = *(int *)(obj + 0x1a4);
+  }
+  actor_desc = ai_debug_describe_actor(actor_handle, unit_handle, 1,
+                                       (char *)0x5ab100, 0x100);
+  tag_name = tag_get_name(*(int *)obj);
+  tag_name = tag_name_strip_path(tag_name);
+  error(2, "WARNING: biped %s (%s) fell outside world and was erased", tag_name,
+        actor_desc);
+  object_delete(unit_handle);
+}
+
+/* biped_flying_through_air (0x1a0db0)
+ *
+ * Predicate: returns 1 if the biped is considered airborne (flying through the
+ * air) and should run air physics. True when the airborne-frame counter
+ * (unit+0x459) exceeds 3 AND either the biped tag does not have the "no
+ * airborne" flag (tag+0x2f4 bit 2) or the unit has the override flag
+ * (unit+0xb6 bit 2).
+ *
+ * Confirmed: object_get_and_verify_type(unit_handle, 1); tag_get('bipd', ...).
+ * unit+0x459 signed-char counter compared > 3; tag+0x2f4 bit2; unit+0xb6 bit2.
+ */
+int biped_flying_through_air(int unit_handle)
+{
+  char *unit_obj;
+  char *biped_tag;
+
+  unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
+  biped_tag = (char *)tag_get(0x62697064, *(int *)unit_obj);
+
+  if (*(char *)(unit_obj + 0x459) > 3 &&
+      (((*(unsigned char *)(biped_tag + 0x2f4) & 4) == 0) ||
+       ((*(unsigned char *)(unit_obj + 0xb6) & 4) != 0))) {
+    return 1;
+  }
+  return 0;
+}
+
+/* FUN_001a0e00 (0x1a0e00)
+ *
+ * Advances a biped animation/transition phase based on an elapsed-time
+ * threshold. The biped tag stores three phase boundaries (in ticks) at
+ * tag+0x3dc/0x3e0/0x3e4, converted to seconds via *(1/30). Given the elapsed
+ * time `threshold`, selects which phase the biped is in, computes a normalized
+ * progress t (clamped to [0,1]) across that phase, and writes:
+ *   unit+0x460 (uint16) = phase flag (0 = first phase, 1 = second phase)
+ *   unit+0x428 (byte)   = 0
+ *   unit+0x429 (byte)   = (char)(int)(phase_rate * t)
+ * where phase_rate = tag[0x3d4 or 0x3d8] * TICKS_PER_SECOND.
+ *
+ * unit_handle is passed in EAX (register arg); `threshold` is the cdecl stack
+ * arg. _ftol2 (0x1d9068) is the MSVC float->int intrinsic — written as (int).
+ * Constant 0x2546a4 = seconds-per-tick (1/30); 0x253394 = TICKS_PER_SECOND.
+ */
+void FUN_001a0e00(float threshold, int unit_handle)
+{
+  char *unit_obj;
+  char *biped_tag;
+  float fVar1;
+  float fVar2;
+  float range;
+  float offset;
+  float base;
+  float scaled;
+  float t;
+  int flag;
+
+  unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
+  biped_tag = (char *)tag_get(0x62697064, *(int *)unit_obj);
+
+  fVar1 = *(float *)(biped_tag + 0x3dc) * *(float *)0x2546a4;
+  fVar2 = *(float *)(biped_tag + 0x3e0) * *(float *)0x2546a4;
+
+  /* Branch primitives transcribed from the disassembly: the original tests with
+   * `<` (FCOMP; TEST AH,0x5) and inverts the jump, so mirror those `<` forms
+   * and the early-exit shape rather than the algebraically-equivalent `<=`
+   * nesting. */
+  if (threshold < fVar1) {
+    return;
+  }
+  if (threshold < fVar2) {
+    offset = threshold - fVar1;
+    range = fVar2 - fVar1;
+    base = *(float *)(biped_tag + 0x3d4);
+    flag = 0;
+  } else {
+    range = *(float *)(biped_tag + 0x3e4) * *(float *)0x2546a4 - fVar2;
+    offset = threshold;
+    base = *(float *)(biped_tag + 0x3d8);
+    flag = 1;
+  }
+  scaled = base * TICKS_PER_SECOND;
+  if (range <= 0.0f) {
+    return;
+  }
+  t = offset / range;
+  if (t < 0.0f) {
+    t = 0.0f;
+  } else if (1.0f < t) {
+    t = 1.0f;
+  }
+  *(uint16_t *)(unit_obj + 0x460) = (uint16_t)flag;
+  *(unsigned char *)(unit_obj + 0x428) = 0;
+  *(unsigned char *)(unit_obj + 0x429) = (unsigned char)(int)(scaled * t);
+}
+
+/* FUN_001a0f10 (0x1a0f10)
+ *
+ * Spawns a biped contact/footstep effect from one entry of the biped tag's
+ * contact-point block. Looks up the biped tag ('bipd') from the unit, brackets
+ * the work in the collision-user-depth stack (global 0x4761d8 / stack 0x5a8c80,
+ * marker 7), asserting depth < 0x20 on entry (line 0xf4f) and > 1 on exit
+ * (line 0xf60). If the requested contact index (register BX) is in range of the
+ * tag's contact-point block at tag+0x4e8 AND the effect tag reference at
+ * tag+0x398 is valid (!= -1), and the object's animation/contact gate
+ * FUN_0009f3b0(object+0x50) passes, it fetches contact-point element BX
+ * (element size 0x40), resolves the named marker (name at element+0x20) on the
+ * object via object_get_markers_by_string_id (one marker, into a 108-byte
+ * result buffer), and on success spawns the effect (tag+0x398) at the marker's
+ * world position (buffer+0x60) via FUN_0009f570.
+ *
+ * Confirmed (disasm): cdecl, 2 stack params [EBP+8]=unit_handle, [EBP+0xc];
+ *   index is register-passed in BX (MOVSX EBX,BX at 0x1a0f73 reads BX before
+ *   any write; callers 0x1a2440 load EBX immediately before each CALL). void
+ *   return. The marker-result buffer is one contiguous region: Ghidra split it
+ *   into local_74[96]+local_14[12], but object_get_markers_by_string_id writes
+ *   to offset 0x6c (108 bytes) and FUN_0009f570 reads the position at +0x60
+ *   (LEA [EBP-0x70] vs LEA [EBP-0x10] differ by exactly 0x60).
+ * Inferred: 'bipd' contact-point footstep-effect spawn semantics from the
+ *   tag-block index + effect-tag + marker-position spawn shape.
+ * Uncertain: precise meaning of param_2 (forwarded unchanged to FUN_0009f570);
+ *   callers pass 3 or 4 (region/permutation selector). Layout of the 108-byte
+ *   marker-result buffer beyond "transform copy at +0x38..0x6c, position at
+ *   +0x60" is opaque (no named struct in headers yet).
+ */
+void FUN_001a0f10(int unit_handle, int param_2, short index /* @bx */)
+{
+  unsigned int *object;
+  int biped_tag;
+  int depth;
+  void *contact_elem;
+  /* One contiguous marker-result buffer. object_get_markers_by_string_id
+   * writes up to offset 0x6c (108 bytes); FUN_0009f570 reads the marker
+   * world position at +0x60. Sized so the MSVC frame totals 0x70 with the
+   * 4-byte object pointer (do not split into separate locals). */
+  char marker_buf[0x6c];
+
+  object = (unsigned int *)object_get_and_verify_type(unit_handle, 1);
+  biped_tag = (int)tag_get(0x62697064, *object); /* 'bipd' */
+
+  if (*(int16_t *)0x4761d8 >= 0x20) {
+    display_assert("global_current_collision_user_depth < "
+                   "MAXIMUM_COLLISION_USER_STACK_DEPTH",
+                   "c:\\halo\\SOURCE\\units\\bipeds.c", 0xf4f, true);
+    system_exit(-1);
+  }
+  depth = *(int16_t *)0x4761d8;
+  *(int16_t *)0x4761d8 = (int16_t)(depth + 1);
+  *(int16_t *)(0x5a8c80 + depth * 2) = 7;
+
+  if (((int)index < *(int *)(biped_tag + 0x4e8)) &&
+      (*(int *)(biped_tag + 0x398) != -1)) {
+    if (FUN_0009f3b0((char *)object + 0x50) != false) {
+      contact_elem =
+        tag_block_get_element((void *)(biped_tag + 0x4e8), (int)index, 0x40);
+      if (object_get_markers_by_string_id(
+            unit_handle, (char *)contact_elem + 0x20, marker_buf, 1) != 0) {
+        FUN_0009f570(*(int *)(biped_tag + 0x398), param_2, marker_buf + 0x60,
+                     0);
+      }
+    }
+  }
+
+  if (*(int16_t *)0x4761d8 <= 1) {
+    display_assert("global_current_collision_user_depth > 1",
+                   "c:\\halo\\SOURCE\\units\\bipeds.c", 0xf60, true);
+    system_exit(-1);
+  }
+  *(int16_t *)0x4761d8 = (int16_t)(*(int16_t *)0x4761d8 - 1);
+}
+
+/* biped_adjust_placement (0x1a1020)
+ *
+ * If the biped tag has the "camera offset placement" flag (tag+0x2f4 bit 3)
+ * set and NOT the suppress flag (bit 2), shifts the placement's position
+ * (placement+0x18..0x20) along the placement's forward axis (placement+0x40..
+ * 0x48) by the biped's camera height (tag+0x42c).
+ *
+ * Confirmed: object_get_and_verify_type(unit_handle, 1); tag_get('bipd', ...).
+ * camera_height (tag+0x42c) loaded once and reused for all three axes.
+ */
+void biped_adjust_placement(int unit_handle, char *placement)
+{
+  char *unit_obj;
+  char *biped_tag;
+  float camera_height;
+
+  unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
+  biped_tag = (char *)tag_get(0x62697064, *(int *)unit_obj);
+
+  if ((*(unsigned int *)(biped_tag + 0x2f4) & 8) != 0 &&
+      (*(unsigned int *)(biped_tag + 0x2f4) & 4) == 0) {
+    camera_height = *(float *)(biped_tag + 0x42c);
+    *(float *)(placement + 0x18) =
+      camera_height * *(float *)(placement + 0x40) +
+      *(float *)(placement + 0x18);
+    *(float *)(placement + 0x1c) =
+      camera_height * *(float *)(placement + 0x44) +
+      *(float *)(placement + 0x1c);
+    *(float *)(placement + 0x20) =
+      camera_height * *(float *)(placement + 0x48) +
+      *(float *)(placement + 0x20);
+  }
+}
+
+/* biped_export_function_values (0x1a1080)
+ *
+ * Exports up to 4 animation "function" input values (unit+0xd4..0xe0) from the
+ * biped tag's function-input table (tag+0x30c, 4 int16 type codes). For each
+ * slot whose type is 1 ("speed"), the value is the unit's velocity magnitude
+ * normalized by the biped's max speed (tag+0x334 ticks/sec * seconds-per-tick),
+ * clamped to [0,1]. Type 0 slots are skipped (left unchanged). Other types
+ * export 0.
+ *
+ * Confirmed: object_get_and_verify_type(unit_handle, 1); tag_get('bipd', ...).
+ * Velocity at unit+0x18..0x20; output at unit+0xd4 (stride 4); types at
+ * tag+0x30c (stride 2); max-speed denom = tag+0x334 * (1/30).
+ */
+void biped_export_function_values(int unit_handle)
+{
+  char *unit_obj;
+  char *biped_tag;
+  short *type_ptr;
+  float *out_ptr;
+  float *vel;
+  float ratio;
+  float val;
+  int count;
+
+  unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
+  biped_tag = (char *)tag_get(0x62697064, *(int *)unit_obj);
+
+  type_ptr = (short *)(biped_tag + 0x30c);
+  out_ptr = (float *)(unit_obj + 0xd4);
+  count = 4;
+  do {
+    if (*type_ptr != 0) {
+      val = 0.0f;
+      if (*type_ptr == 1) {
+        vel = (float *)(unit_obj + 0x18);
+        ratio = sqrtf(vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2]) /
+                (*(float *)(biped_tag + 0x334) * *(float *)0x2546a4);
+        if (0.0f <= ratio) {
+          val = ratio;
+          if (1.0f < ratio) {
+            val = 1.0f;
+          }
+        }
+      }
+      *out_ptr = val;
+    }
+    type_ptr = type_ptr + 1;
+    out_ptr = out_ptr + 1;
+    count = count + -1;
+  } while (count != 0);
 }
 
 /* biped_estimate_position (0x1a1140)
@@ -159,17 +1232,1762 @@ void biped_estimate_position(int unit_handle, int16_t estimate_mode,
   }
 
 height_adjustment:
-  /* Calculate crouch value based on estimate mode */
-  if (estimate_mode == 1) {
+  /* Calculate crouch value based on estimate mode. The switch matches the
+   * original's MOVSX/DEC/JZ dispatch (mode 1 -> 0.0, mode 2 -> 1.0, else the
+   * unit's actual crouch fraction). */
+  switch (estimate_mode) {
+  case 1:
     crouch_value = 0.0f; /* Crouching */
-  } else if (estimate_mode == 2) {
+    break;
+  case 2:
     crouch_value = 1.0f; /* Standing */
-  } else {
+    break;
+  default:
     crouch_value = *(float *)(unit_obj + 0x464); /* Actual crouch fraction */
+    break;
   }
 
-  /* Interpolate height between crouching and standing based on crouch value */
-  out_position->z = crouch_value * *(float *)(biped_tag + 0x404) +
-                    (1.0f - crouch_value) * *(float *)(biped_tag + 0x400) +
+  /* Interpolate height between crouching and standing based on crouch value.
+   * Order matches the original FPU sequence: (1-cv)*crouching + cv*standing. */
+  out_position->z = (1.0f - crouch_value) * *(float *)(biped_tag + 0x400) +
+                    crouch_value * *(float *)(biped_tag + 0x404) +
                     out_position->z;
+}
+
+/* biped_get_autoaim_pill (0x1a12e0)
+ *
+ * Computes the auto-aim capsule (pill) for a biped: base position (out_pos),
+ * axis/extent (out_axis), and the biped's autoaim flags value
+ * (*out_value = tag+0x458). Three cases by the tag's autoaim marker node
+ * indices (tag+0x4e4, +0x4e6):
+ *   - Both valid + tag flag bit4 (tag+0x2f4 & 0x10): base = midpoint of the
+ *     two marker node positions; axis = zero vector.
+ *   - Both valid, no flag: base = marker0 position; axis = marker1 - marker0.
+ *   - Either invalid: base/height from biped_get_camera_height_and_offset;
+ *     base.z += half the height offset; axis = half-offset along world up.
+ *
+ * Confirmed: object_get_and_verify_type(unit_handle, 1); tag_get('bipd', ...);
+ * object_get_node_matrix (node matrix +0x28 = position); midpoint3d (0x2a540);
+ * 0.5f = *(float*)0x253398; axis = marker1 - marker0 (FSUB order from disasm).
+ */
+void biped_get_autoaim_pill(int unit_handle, float *out_pos, float *out_axis,
+                            int *out_value)
+{
+  char *unit_obj;
+  char *biped_tag;
+  char *marker0;
+  char *marker1;
+  float height_offset;
+  float camera_height;
+  float half;
+
+  unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
+  biped_tag = (char *)tag_get(0x62697064, *(int *)unit_obj);
+
+  if (*(short *)(biped_tag + 0x4e4) != -1 &&
+      *(short *)(biped_tag + 0x4e6) != -1) {
+    marker0 = (char *)object_get_node_matrix(unit_handle,
+                                             *(short *)(biped_tag + 0x4e4));
+    marker1 = (char *)object_get_node_matrix(unit_handle,
+                                             *(short *)(biped_tag + 0x4e6));
+    if ((*(unsigned char *)(biped_tag + 0x2f4) & 0x10) != 0) {
+      midpoint3d((float *)(marker0 + 0x28), (float *)(marker1 + 0x28), out_pos);
+      out_axis[0] = global_zero_vector_ptr[0];
+      out_axis[1] = global_zero_vector_ptr[1];
+      out_axis[2] = global_zero_vector_ptr[2];
+      *out_value = *(int *)(biped_tag + 0x458);
+      return;
+    }
+    out_pos[0] = *(float *)(marker0 + 0x28);
+    out_pos[1] = *(float *)(marker0 + 0x2c);
+    out_pos[2] = *(float *)(marker0 + 0x30);
+    out_axis[0] = *(float *)(marker1 + 0x28) - *(float *)(marker0 + 0x28);
+    out_axis[1] = *(float *)(marker1 + 0x2c) - *(float *)(marker0 + 0x2c);
+    out_axis[2] = *(float *)(marker1 + 0x30) - *(float *)(marker0 + 0x30);
+    *out_value = *(int *)(biped_tag + 0x458);
+    return;
+  }
+
+  biped_get_camera_height_and_offset(unit_handle, (vector3_t *)out_pos,
+                                     &height_offset, &camera_height);
+  half = height_offset * *(float *)0x253398;
+  out_pos[2] = half + out_pos[2];
+  out_axis[0] = half * global_up_vector_ptr[0];
+  out_axis[1] = half * global_up_vector_ptr[1];
+  out_axis[2] = half * global_up_vector_ptr[2];
+  *out_value = *(int *)(biped_tag + 0x458);
+}
+
+/* biped_fix_position (0x1a1430)
+ *
+ * Tries to find a collision-free world position for a biped (used when
+ * teleporting it out of a vehicle seat, respawning, etc.). Starting from an
+ * initial position (either supplied via initial_position, or the biped's
+ * estimated camera/standing position when NULL), it walks a fixed table of
+ * displacement directions at 0x2b4b80 (stride 3 floats), scaling each by
+ * `scale`. For each candidate it (1) finds the BSP3D leaf, rejecting points
+ * outside the BSP; (2) runs a battery of collision tests (FUN_0014f020 sphere
+ * fit, FUN_0014e7d0 vector-to-surface, and when a seat is involved the
+ * FUN_0014cc80 / FUN_000130d0 line-of-sight checks against both objects). The
+ * first candidate that passes all gates becomes the fixed location: the biped
+ * object's position (obj+0xc) is updated, children are re-parented, and the
+ * object is translated to the new location (unless dont_teleport). The final
+ * world point is optionally written to final_position. Returns 1 on success.
+ *
+ * The whole search runs inside the collision-user-depth stack (global
+ * 0x4761d8 / stack 0x5a8c80, marker 7), asserting depth < 0x20 on entry
+ * (line 0x37f) and > 1 on exit (line 0x438).
+ *
+ * Confirmed (disasm): cdecl, 8 stack params, char return. param_4 is float*
+ *   (3-float out-write at 0x1a1891). param_6/7/8 are byte flags (TEST AL,AL).
+ *   collision_flags = (biped_tag+0x2f4 & 0x20) ? 0x20c3a0 : (0x20c3a0 +
+ *   0xffdfff00) via NEG/SBB/AND/ADD. The direction-search count is branchless:
+ *   loop_limit = 0x1b - ((p6!=0)-1 & 9) -> 0x1b when p6, 0x12 when !p6.
+ *   The cross product cross = normalize3d(forward_axis x up_axis) is built from
+ *   the biped's basis rows at obj+0x24 (right) and obj+0x30 (up); FSUBP order
+ *   preserved from disasm. final candidate stored at local_14/10/c.
+ * Inferred: the 0x2b4b80 table is a spiral/expanding set of search offsets;
+ *   collision_flags low bits select the collision material/group mask.
+ * Uncertain: exact field meanings inside the 130d0 collision result buffer
+ *   beyond the hit-object-handle word at +0x38 (compared to the two unit
+ *   handles to skip self/seat hits).
+ */
+char biped_fix_position(int unit_handle, int seat_handle,
+                        float *initial_position, float *final_position,
+                        float scale, char keep_basis, char dont_teleport,
+                        char scale_by_height)
+{
+  unsigned int *biped_obj;
+  int biped_tag;
+  int depth;
+  unsigned char success;
+  short i;
+  short loop_limit;
+  int from_seat;
+  int collision_flags;
+  int leaf_index;
+  int bsp;
+  int leaf_elem;
+  float *src_pos;
+  float *basis; /* biped_obj as float[] — basis-matrix rows at +0x24..0x38 */
+  float position[3]; /* local_2c/28/24 */
+  float camera_height; /* local_18 ([EBP-0x18], 1a0890 arg4) */
+  float height_offset; /* local_1c ([EBP-0x1c], 1a0890 arg3) */
+  float offset_vec[3]; /* local_4c/48/44 */
+  float cross[3]; /* local_40/3c/38 */
+  float fx, fy;
+  float candidate[3]; /* local_14: candidate.x; local_10/c/8 below */
+  float cand[3]; /* local_10/c/8 — the BSP query point */
+  /* Out buffers passed to collision callees. Sized per each callee's writes;
+   * preserve sizes to keep the original 0x538 frame layout. */
+  char center[12]; /* local_64 — 1aae0 sphere center / 130d0 args */
+  char box[16]; /* local_74 — 14c8e0 out, reused as 14cc80 arg1 */
+  char location[16]; /* local_58/54/50 — scenario_location_from_point */
+  char surf_result[80]; /* local_114 — 14e7d0 result */
+  char los_result[56]; /* local_c4 — 130d0 result; +0x38 = hit handle */
+  static char obstruction[1064]; /* local_53c — 14cc80 working buffer */
+
+  success = 0;
+  if ((final_position == (float *)0) && (dont_teleport != '\0')) {
+    display_assert("final_position || !dont_teleport",
+                   "c:\\halo\\SOURCE\\units\\bipeds.c", 0x37d, true);
+    system_exit(-1);
+  }
+  if (*(int16_t *)0x4761d8 >= 0x20) {
+    display_assert("global_current_collision_user_depth < "
+                   "MAXIMUM_COLLISION_USER_STACK_DEPTH",
+                   "c:\\halo\\SOURCE\\units\\bipeds.c", 0x37f, true);
+    system_exit(-1);
+  }
+  depth = *(int16_t *)0x4761d8;
+  *(int16_t *)0x4761d8 = (int16_t)(depth + 1);
+  *(int16_t *)(0x5a8c80 + depth * 2) = 7;
+
+  /* Branch structure preserved from disasm (0x1a14aa): call FUN_0001aae0 only
+   * when a seat is involved, jumping straight to the epilogue when both handles
+   * are NONE. */
+  if (unit_handle == -1) {
+    if (seat_handle == -1) {
+      goto epilogue;
+    }
+    goto call_aae0;
+  }
+  if (seat_handle != -1) {
+  call_aae0:
+    FUN_0001aae0(seat_handle, (float *)center, (float *)&from_seat);
+  }
+  {
+    from_seat = (unit_handle == -1);
+    if (from_seat) {
+      unit_handle = seat_handle;
+    }
+    biped_obj = (unsigned int *)object_get_and_verify_type(unit_handle, 1);
+    biped_tag = (int)tag_get(0x62697064, *biped_obj); /* 'bipd' */
+    collision_flags =
+      (-(int)((*(unsigned int *)(biped_tag + 0x2f4) & 0x20) != 0) &
+       0xffdfff00) +
+      0x20c3a0;
+
+    if (initial_position == (float *)0) {
+      src_pos = &position[0];
+    } else {
+      position[0] = initial_position[0];
+      position[1] = initial_position[1];
+      position[2] = initial_position[2];
+      src_pos = &offset_vec[0];
+    }
+    biped_get_camera_height_and_offset(unit_handle, (vector3_t *)src_pos,
+                                       &height_offset, &camera_height);
+    if (from_seat) {
+      unit_handle = -1;
+    }
+    loop_limit = (short)(0x1b - ((keep_basis != '\0') - 1 & 9));
+    if (seat_handle != -1) {
+      FUN_0014c8e0((int *)box, seat_handle);
+    }
+    /* cross = right_axis(obj+0x24) x up_axis(obj+0x30); normalize. The basis
+     * rows at obj+0x24..0x38 are floats; load them as floats (FLD), not via
+     * int->float conversion. FSUBP order preserved exactly from disasm. */
+    basis = (float *)biped_obj;
+    cross[0] = basis[0xe] * basis[0xa] - basis[0xb] * basis[0xd];
+    cross[1] = basis[0xb] * basis[0xc] - basis[9] * basis[0xe];
+    cross[2] = basis[9] * basis[0xd] - basis[0xc] * basis[0xa];
+    normalize3d(&cross[0]);
+    offset_vec[0] = height_offset * global_up_vector_ptr[0];
+    offset_vec[1] = height_offset * global_up_vector_ptr[1];
+    offset_vec[2] = height_offset * global_up_vector_ptr[2];
+    if (scale_by_height != '\0') {
+      scale = camera_height * scale;
+    }
+
+    i = 0;
+    while ((short)i < loop_limit) {
+      leaf_index = (int)(short)i;
+      if (keep_basis == '\0') {
+        cand[0] = scale * ((float *)0x2b4b80)[leaf_index * 3] + position[0];
+        cand[1] = scale * ((float *)0x2b4b84)[leaf_index * 3] + position[1];
+        cand[2] = scale * ((float *)0x2b4b88)[leaf_index * 3] + position[2];
+      } else {
+        fx = scale * ((float *)0x2b4b80)[leaf_index * 3];
+        fy = scale * ((float *)0x2b4b84)[leaf_index * 3];
+        candidate[2] = scale * ((float *)0x2b4b88)[leaf_index * 3];
+        cand[0] = candidate[2] * basis[0xc] + cross[0] * fy + fx * basis[9] +
+                  position[0];
+        cand[1] = candidate[2] * basis[0xd] + cross[1] * fy + fx * basis[0xa] +
+                  position[1];
+        cand[2] = candidate[2] * basis[0xe] + cross[2] * fy + fx * basis[0xb] +
+                  position[2];
+      }
+
+      if (FUN_0018e720((int)&cand[0]) != -1) {
+        leaf_index = FUN_0018e720((int)&cand[0]) & 0x7fffffff;
+        bsp = (int)scenario_get();
+        leaf_elem =
+          (int)tag_block_get_element((void *)(bsp + 0xe0), leaf_index, 0x10);
+        if ((*(short *)(leaf_elem + 8) != -1) &&
+            (FUN_0014f020((uint32_t)collision_flags, &cand[0],
+                          camera_height + camera_height, height_offset,
+                          camera_height, unit_handle, &cand[0]) != '\0') &&
+            (FUN_0014e7d0((uint32_t)collision_flags, &cand[0], &offset_vec[0],
+                          camera_height, unit_handle, surf_result) == '\0') &&
+            ((seat_handle == -1) ||
+             ((FUN_0014cc80((int)box, (int)&cand[0], (int)&offset_vec[0],
+                            camera_height, (int16_t *)obstruction) == '\0') &&
+              ((FUN_000130d0((uint32_t)collision_flags, &cand[0],
+                             (float *)center, unit_handle,
+                             (int16_t *)los_result) == 0) ||
+               (*(int *)(los_result + 0x38) == seat_handle)) &&
+              ((FUN_000130d0((uint32_t)collision_flags, (float *)center,
+                             &cand[0], seat_handle,
+                             (int16_t *)los_result) == 0) ||
+               (*(int *)(los_result + 0x38) == unit_handle))))) {
+          biped_tag = (int)tag_get(0x62697064, *biped_obj);
+          scenario_location_from_point(location, &cand[0]);
+          if (*(short *)(location + 4) == -1) {
+            display_assert("fixed_location.cluster_index!=NONE",
+                           "c:\\halo\\SOURCE\\units\\bipeds.c", 0x41e, true);
+            system_exit(-1);
+          }
+          if ((*(unsigned char *)(biped_tag + 0x2f4) & 8) == 0) {
+            cand[2] = cand[2] - *(float *)(biped_tag + 0x42c);
+          }
+          if ((unit_handle != -1) && (dont_teleport == '\0')) {
+            biped_obj[3] = *(unsigned int *)&cand[0];
+            biped_obj[4] = *(unsigned int *)&cand[1];
+            biped_obj[5] = *(unsigned int *)&cand[2];
+            object_update_children_recursive(unit_handle);
+            object_translate(unit_handle, &cand[0], location);
+          }
+          if (final_position != (float *)0) {
+            final_position[0] = cand[0];
+            final_position[1] = cand[1];
+            final_position[2] = cand[2];
+          }
+          success = 1;
+        }
+      }
+      i = (short)(i + 1);
+      if (success != 0) {
+        break;
+      }
+    }
+  }
+
+epilogue:
+  if (*(int16_t *)0x4761d8 < 2) {
+    display_assert("global_current_collision_user_depth > 1",
+                   "c:\\halo\\SOURCE\\units\\bipeds.c", 0x438, true);
+    system_exit(-1);
+  }
+  *(int16_t *)0x4761d8 = (int16_t)(*(int16_t *)0x4761d8 - 1);
+  return (char)success;
+}
+
+/* biped_render_debug (0x1a1900)
+ *
+ * Debug-visualization for a biped's camera/aim geometry, gated by two debug
+ * globals. When 0x5054fe is set, draws the camera height/offset: if the height
+ * offset is at/below the small threshold (0x2533c0), renders a point
+ * (FUN_00189540); otherwise scales the world-up vector by the height offset and
+ * renders a vector arrow (FUN_00189860). When 0x5054fd is set, fetches the
+ * autoaim pill (biped_get_autoaim_pill) and renders the axis as an arrow if its
+ * squared length exceeds the threshold, else a point. Render context pointers
+ * come from [0x2ee6c4] (camera) and [0x2ee6d0] (autoaim).
+ *
+ * Confirmed: out_pos vec3 at EBP-0x20, scaled vec3 at EBP-0x14, height_offset
+ * at EBP-0x8, camera_height/val at EBP-0x4; camera call arg order; up vector
+ * from [0x31fc44]; squared-length FPU order is z,y,x; threshold [0x2533c0].
+ * Inferred: "render debug" semantics from the two render_debug.c helpers and
+ * the debug-global gating.
+ */
+void biped_render_debug(int unit_handle)
+{
+  vector3_t out_pos;
+  float scaled[3];
+  float height_offset;
+  float camera_height;
+
+  if (*(char *)0x5054fe != '\0') {
+    biped_get_camera_height_and_offset(unit_handle, &out_pos, &height_offset,
+                                       &camera_height);
+    if (*(float *)0x2533c0 < height_offset) {
+      scaled[0] = height_offset * global_up_vector_ptr[0];
+      scaled[1] = height_offset * global_up_vector_ptr[1];
+      scaled[2] = height_offset * global_up_vector_ptr[2];
+      FUN_00189860(1, &out_pos, scaled, camera_height, *(void **)0x2ee6c4);
+    } else {
+      FUN_00189540(1, &out_pos, camera_height, *(void **)0x2ee6c4);
+    }
+  }
+  if (*(char *)0x5054fd != '\0') {
+    biped_get_autoaim_pill(unit_handle, (float *)&out_pos, scaled,
+                           (int *)&camera_height);
+    if (*(float *)0x2533c0 <
+        scaled[2] * scaled[2] + scaled[1] * scaled[1] + scaled[0] * scaled[0]) {
+      FUN_00189860(1, &out_pos, scaled, camera_height, *(void **)0x2ee6d0);
+      return;
+    }
+    FUN_00189540(1, &out_pos, camera_height, *(void **)0x2ee6d0);
+  }
+}
+
+/* FUN_001a1a10 (0x1a1a10)
+ *
+ * Casts a collision ray (vector) from the unit's world position along a caller-
+ * supplied direction (scaled) and reports the hit. Computes the ray origin as
+ * the unit's world position nudged by a global offset vector ([0x31fc44]) times
+ * a global scale ([0x253524]); the ray direction is the caller's direction
+ * vector (@eax) times the caller-supplied scale ([EBP+8]). Brackets the work in
+ * the collision-user-depth stack (global 0x4761d8 / stack 0x5a8c80, marker 7),
+ * asserting depth < 0x20 on entry (line 0x47a) and > 1 on exit (line 0x490).
+ * Runs collision_bsp_test_vector against the global collision BSP. On a hit and
+ * if out_point != NULL, writes the world-space hit point
+ * (out_point[i] = scaled_dir[i] * t + origin[i]); if out_vec != NULL, copies
+ * the 3-float surface record pointed to by result+4 into out_vec. Returns the
+ * hit surface/leaf index (result+8) on hit, or -1 on miss.
+ *
+ * Confirmed (disasm): cdecl, returns int in EAX (MOV EAX,ESI; ESI = -1 default
+ *   / result+8 on hit). Register args: @eax = direction vector pointer
+ *   (MOV ESI,EAX; FMUL [ESI]/[ESI+4]/[ESI+8]); @edi = unit_handle (PUSH EDI ->
+ *   object_get_and_verify_type(.,1)). Stack args [EBP+8]=float scale,
+ *   [EBP+0xc]=float *out_point, [EBP+0x10]=void *out_vec (caller 0x1a1b90:
+ *   PUSH 0x40000000 (2.0f), PUSH out_point, PUSH 0x0; EAX=[0x31fc50],
+ *   EDI=unit_handle). collision_bsp_test_vector takes 8 args; its 0x20 cleanup
+ *   is combined with object_get_world_position's deferred 8-byte cleanup
+ *   (ADD ESP,0x28 = 0x20 + 8). The collision-result buffer is ONE contiguous
+ *   region at EBP-0x434: result+0=t (float), result+4=surface-record pointer
+ *   (3 floats copied to out_vec), result+8=hit index (return). Ghidra's
+ *   local_438/local_434/local_430 are this single buffer, not separate locals.
+ * Inferred: origin offset/scale semantics from the FADD-into-world-position
+ *   shape; "supporting/forward ray" usage from the 2.0f scale and out params.
+ * Uncertain: exact meaning of globals [0x31fc44] (offset vector) and [0x253524]
+ *   (scale); full layout of the 0x414-byte collision-result buffer beyond the
+ *   three fields read here.
+ */
+int FUN_001a1a10(float scale, float *out_point, void *out_vec,
+                 float *direction /* @eax */, int unit_handle /* @edi */)
+{
+  /* One contiguous collision-result buffer (frame base EBP-0x434). Sized to
+   * cover collision_bsp_test_vector's full record (mirrors path.c's
+   * local_438[264]); we read t at +0, a surface-record pointer at +4, and the
+   * hit index at +8. Do NOT split into separate locals. */
+  float collision_result[264];
+  int result_index;
+  int depth;
+  void *bsp;
+  float *offset_vec;
+  float *surface_record;
+  float t;
+  float origin[3];
+  float scaled_dir[3];
+
+  object_get_and_verify_type(unit_handle, 1);
+  bsp = global_collision_bsp_get();
+  result_index = -1;
+
+  if (*(int16_t *)0x4761d8 >= 0x20) {
+    display_assert("global_current_collision_user_depth < "
+                   "MAXIMUM_COLLISION_USER_STACK_DEPTH",
+                   "c:\\halo\\SOURCE\\units\\bipeds.c", 0x47a, true);
+    system_exit(-1);
+  }
+  depth = *(int16_t *)0x4761d8;
+  *(int16_t *)0x4761d8 = (int16_t)(depth + 1);
+  *(int16_t *)(0x5a8c80 + depth * 2) = 7;
+
+  object_get_world_position(unit_handle, (vector3_t *)origin);
+
+  offset_vec = *(float **)0x31fc44;
+  origin[0] = offset_vec[0] * *(float *)0x253524 + origin[0];
+  origin[1] = offset_vec[1] * *(float *)0x253524 + origin[1];
+  origin[2] = offset_vec[2] * *(float *)0x253524 + origin[2];
+
+  scaled_dir[0] = scale * direction[0];
+  scaled_dir[1] = scale * direction[1];
+  scaled_dir[2] = scale * direction[2];
+
+  if ((char)collision_bsp_test_vector(1, (int)bsp, 0, 0, (int)origin,
+                                      (int)scaled_dir, 3.4028235e+38f,
+                                      collision_result) != 0) {
+    t = collision_result[0];
+    if (out_point != (float *)0) {
+      out_point[0] = scaled_dir[0] * t + origin[0];
+      out_point[1] = scaled_dir[1] * t + origin[1];
+      out_point[2] = scaled_dir[2] * t + origin[2];
+    }
+    result_index = *(int *)((char *)collision_result + 8);
+    if (out_vec != (void *)0) {
+      surface_record = *(float **)((char *)collision_result + 4);
+      ((int *)out_vec)[0] = ((int *)surface_record)[0];
+      ((int *)out_vec)[1] = ((int *)surface_record)[1];
+      ((int *)out_vec)[2] = ((int *)surface_record)[2];
+    }
+  }
+
+  if (*(int16_t *)0x4761d8 <= 1) {
+    display_assert("global_current_collision_user_depth > 1",
+                   "c:\\halo\\SOURCE\\units\\bipeds.c", 0x490, true);
+    system_exit(-1);
+  }
+  *(int16_t *)0x4761d8 = (int16_t)(*(int16_t *)0x4761d8 - 1);
+  return result_index;
+}
+
+/* biped_approximate_surface_index (0x1a1b90)
+ *
+ * Thin wrapper over the biped collision probe (FUN_001a1a10): casts a ray of
+ * length 2.0 from the biped's world position along the global direction vector
+ * at [0x31fc50], with no surface-vector output. The keystone's collision-result
+ * index is returned unchanged in EAX (-1 = no hit). out_point, when non-NULL,
+ * receives the hit point.
+ *
+ * Confirmed (disasm 0x1a1b90): keystone direction@<eax> = *(float**)0x31fc50;
+ * unit_handle@<edi> = param_1; cdecl pushes scale=2.0f (0x40000000),
+ * out_point=param_2, out_vec=NULL; ADD ESP,0xc. No MOV EAX after CALL, so the
+ * keystone return flows through (caller 0x56c60 tests the result == -1).
+ */
+int biped_approximate_surface_index(int unit_handle, float *out_point)
+{
+  return FUN_001a1a10(2.0f, out_point, (void *)0, *(float **)0x31fc50,
+                      unit_handle);
+}
+
+/* biped_find_pathfinding_surface_index (0x1a1bc0)
+ *
+ * Resolves the BSP surface index the biped is standing on for pathfinding,
+ * caching it on the unit object. If the biped's tag wants the simple path
+ * (tag+0x2f4 bit 2 set and unit+0xb6 bit 2 clear) it just clears the cached
+ * index and calls object_get_world_position. Otherwise it lazily recomputes:
+ * when the cache is stale (unit+0x434 == -1 and game_time advanced past
+ * unit+0x444), it snapshots the cached position (unit+0x438..0x440), and tries
+ * to re-project onto the previous surface (unit+0x430 last-good, else
+ * unit+0x448 last-result) via the collision_surface_* helpers; if that fails it
+ * falls back to a fresh 2.0-length collision probe. On success it stores the
+ * new position and surface index. Finally it always copies the cached position
+ * (unit+0x438) into *pos and returns the cached index (unit+0x434).
+ *
+ * Confirmed (disasm 0x1a1bc0): object_get_and_verify_type(unit_handle,1);
+ * tag_get('bipd', obj[0]); game_time_get; global_collision_bsp_get; keystone
+ * direction@<eax>=*(float**)0x31fc50, unit_handle@<edi>=unit_handle, push
+ * scale=2.0f,&pos_buf,NULL. collision_surface helper arg counts from disasm
+ * (test_point2d=5 args ret char, find_closest/project=6 args). Position vec3 at
+ * EBP-0x14, 2D scratch at EBP-0x8. display_assert at :0x4e7 if pos==NULL.
+ *
+ * Unit field offsets (dword index in the disasm): 0x430=last_good_surface
+ * (0x10c), 0x434=cached_surface_index (0x10d), 0x438=cached_position[3]
+ * (0x10e/0x10f/0x110), 0x444=cache_timestamp (0x111), 0x448=last_result_surface
+ * (0x112).
+ */
+int biped_find_pathfinding_surface_index(int unit_handle, vector3_t *pos)
+{
+  int *unit_obj;
+  int tag;
+  int game_time;
+  void *bsp;
+  float position[3]; /* EBP-0x14: snapshot/output position vec3 */
+  float proj2d[2]; /* EBP-0x8: 2D projected scratch point */
+  char projected;
+
+  unit_obj = (int *)object_get_and_verify_type(unit_handle, 1);
+  tag = (int)tag_get(0x62697064, *unit_obj);
+  if (((*(unsigned char *)(tag + 0x2f4) & 4) != 0) &&
+      ((*(unsigned char *)((char *)unit_obj + 0xb6) & 4) == 0)) {
+    unit_obj[0x10d] = -1;
+    object_get_world_position(unit_handle, pos);
+  } else if ((unit_obj[0x10d] == -1) &&
+             (game_time = game_time_get(), game_time > unit_obj[0x111])) {
+    bsp = global_collision_bsp_get();
+    position[0] = ((float *)(unit_obj + 0x10e))[0];
+    position[1] = ((float *)(unit_obj + 0x10e))[1];
+    position[2] = ((float *)(unit_obj + 0x10e))[2];
+    unit_obj[0x111] = game_time;
+    if (unit_obj[0x10c] != -1) {
+      collision_surface_find_closest_point2d(
+        (int)bsp, unit_obj[0x10c], 2, 1, (float *)(unit_obj + 0x10e), proj2d);
+      collision_surface_project_point2d((int)bsp, unit_obj[0x10c], 2, 1, proj2d,
+                                        position);
+      unit_obj[0x10d] = unit_obj[0x10c];
+    } else if ((unit_obj[0x112] != -1) &&
+               (projected = (char)collision_surface_test_point2d(
+                  (int)bsp, unit_obj[0x112], 2, 1, (float *)(unit_obj + 0x10e)),
+                projected != 0)) {
+      unit_obj[0x10d] = unit_obj[0x112];
+      collision_surface_project_point2d((int)bsp, unit_obj[0x112], 2, 1,
+                                        (float *)(unit_obj + 0x10e), position);
+      unit_obj[0x10d] = unit_obj[0x112];
+    }
+    if (unit_obj[0x10d] == -1) {
+      unit_obj[0x10d] = FUN_001a1a10(2.0f, position, (void *)0,
+                                     *(float **)0x31fc50, unit_handle);
+    }
+    if (unit_obj[0x10d] != -1) {
+      ((float *)(unit_obj + 0x10e))[0] = position[0];
+      ((float *)(unit_obj + 0x10e))[1] = position[1];
+      ((float *)(unit_obj + 0x10e))[2] = position[2];
+      unit_obj[0x112] = unit_obj[0x10d];
+    }
+  }
+
+  if (pos == (vector3_t *)0) {
+    display_assert("pathfinding_point", "c:\\halo\\SOURCE\\units\\bipeds.c",
+                   0x4e7, true);
+    system_exit(-1);
+  }
+  ((int *)pos)[0] = unit_obj[0x10e];
+  ((int *)pos)[1] = unit_obj[0x10f];
+  ((int *)pos)[2] = unit_obj[0x110];
+  return unit_obj[0x10d];
+}
+
+/* biped_exit_seat_end (0x1a1d80)
+ *
+ * Finishes a biped exiting a vehicle seat. Flattens the biped's exit forward
+ * vector (unit+0x24) to horizontal (zeroes z at unit+0x2c) and renormalizes,
+ * falling back to the world forward axis if degenerate; sets the exit up
+ * vector (unit+0x30) to world up; sets unit+0x424 bit0. Then tries to fix the
+ * biped's position out of the vehicle: first with a fixed 2.0 distance, and if
+ * that fails, using the vehicle's bounding sphere; logs a warning if still
+ * unable.
+ *
+ * Confirmed: object_get_and_verify_type(unit_handle, 1); tag_get('bipd', ...)
+ * (result discarded). normalize3d(unit+0x24); fallback = global forward axis;
+ * unit+0x30 = global up axis. FUN_0001aae0 gets vehicle center+radius.
+ * 2.0f arg pushed as 0x40000000.
+ */
+void biped_exit_seat_end(int unit_handle, int seat_handle)
+{
+  char *unit_obj;
+  float center[3];
+  float radius;
+  char fixed;
+
+  unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
+  tag_get(0x62697064, *(int *)unit_obj);
+
+  *(int *)(unit_obj + 0x2c) = 0;
+  if (normalize3d((float *)(unit_obj + 0x24)) == 0.0f) {
+    *(float *)(unit_obj + 0x24) = global_forward_vector_ptr[0];
+    *(float *)(unit_obj + 0x28) = global_forward_vector_ptr[1];
+    *(float *)(unit_obj + 0x2c) = global_forward_vector_ptr[2];
+  }
+  *(float *)(unit_obj + 0x30) = global_up_vector_ptr[0];
+  *(float *)(unit_obj + 0x34) = global_up_vector_ptr[1];
+  *(float *)(unit_obj + 0x38) = global_up_vector_ptr[2];
+  *(int *)(unit_obj + 0x424) |= 1;
+
+  fixed =
+    biped_fix_position(unit_handle, seat_handle, (float *)0, 0, 2.0f, 1, 0, 1);
+  if (fixed == 0) {
+    FUN_0001aae0(seat_handle, center, &radius);
+    fixed =
+      biped_fix_position(unit_handle, seat_handle, center, 0, radius, 1, 0, 0);
+    if (fixed == 0) {
+      error(2, "couldn't teleport the biped out far enough from the vehicle"
+               "...");
+    }
+  }
+}
+
+/* FUN_001a1e70 (0x1a1e70)
+ *
+ * Per-tick "is this biped stuck falling / off a ledge?" check for AI bipeds.
+ * After a battery of eligibility gates (not in a vehicle, tag flags clear,
+ * not flying, has a valid path leader, not in scream state 0x1d, settle timer
+ * past 0x1e, and a throttled recheck interval of game_time+0xf), it casts a
+ * 6.0-length probe from the biped along the global direction at [0x31fc50].
+ * If the probe misses, OR (after fetching the biped's world position) the
+ * biped's clearance field (obj+0x20) is small and the vertical drop to the
+ * probe point exceeds the physics fall threshold (physics+0x94 squared), it
+ * triggers the recovery path FUN_001a74d0(unit_handle, 0).
+ *
+ * Confirmed (disasm 0x1a1e70): cdecl unit_handle at [EBP+8] (caller 0x1a6350
+ * PUSH EDI; ADD ESP,4); object_get_and_verify_type(unit,1); tag_get('bipd');
+ * game_time_get; tag_block_get_element(game_globals_get()+0x188, 0, 0x98);
+ * keystone direction@<eax>=*(float**)0x31fc50, unit@<edi>, scale=6.0f
+ * (0x40c00000); object_get_world_position; FUN_001a74d0(unit,0). Return
+ * discarded (void).
+ *
+ * Inferred: obj+0x20 = clearance/height float; physics+0x94 = fall-distance
+ * threshold; DAT_0032512c gravity-related scalar. Probe hit point and world
+ * position are separate 3-float stack buffers.
+ */
+void FUN_001a1e70(int unit_handle)
+{
+  int *unit_obj;
+  int tag;
+  int game_time;
+  int physics;
+  float fall_term;
+  float probe_hit[3]; /* EBP-0x18: keystone out_point */
+  float world_pos[3]; /* EBP-0xc: object_get_world_position out */
+
+  unit_obj = (int *)object_get_and_verify_type(unit_handle, 1);
+  tag = (int)tag_get(0x62697064, *unit_obj);
+  if (((*(unsigned char *)((char *)unit_obj + 0xb6) & 4) == 0) &&
+      ((*(unsigned char *)(tag + 0x2f4) & 0x84) == 0) &&
+      ((unit_obj[0x6d] & 0x1000) == 0) && (unit_obj[0x69] != -1) &&
+      (*(char *)((char *)unit_obj + 0x253) != 0x1d)) {
+    game_time = game_time_get();
+    if ((*(char *)((char *)unit_obj + 0x459) > 0x1e) &&
+        ((unit_obj[0x114] == -1) || (unit_obj[0x114] + 0xf < game_time))) {
+      physics =
+        (int)tag_block_get_element((char *)game_globals_get() + 0x188, 0, 0x98);
+      unit_obj[0x114] = game_time;
+      if ((FUN_001a1a10(6.0f, probe_hit, (void *)0, *(float **)0x31fc50,
+                        unit_handle) == -1) ||
+          (object_get_world_position(unit_handle, (vector3_t *)world_pos),
+           *(float *)((char *)unit_obj + 0x20) <= *(float *)0x2533c0 &&
+             (fall_term = (world_pos[2] - probe_hit[2]) * *(float *)0x32512c,
+              *(float *)(physics + 0x94) * *(float *)(physics + 0x94) <=
+                *(float *)((char *)unit_obj + 0x20) *
+                    *(float *)((char *)unit_obj + 0x20) +
+                  fall_term + fall_term))) {
+        FUN_001a74d0(unit_handle, 0);
+      }
+    }
+  }
+}
+
+/* FUN_001a1fb0 (0x1a1fb0)
+ *
+ * Vehicle-rider variant of the stuck/ejection check (mirrors FUN_001a1e70 for a
+ * biped riding a vehicle seat). Gates on the vehicle tag flag (vehi+0x17c bit
+ * 6), the biped having a seat (obj+0x1a4 != -1), not in scream state 0x1d, a
+ * recheck throttle field (obj+0x2d2 > 'x'), the vehicle settle counter
+ * (vehi+0x428 > 0x1e), and a game_time+0xf interval on obj+0x450. It first
+ * probes straight (8.0 length) along [0x31fc50]; if that misses it computes a
+ * scaled velocity vector from the vehicle physics (phys+0x18/0x1c/0x20 times
+ * DAT_2b4ee4, with a gravity bias on z), and if that vector's length is large
+ * enough re-probes along it. Depending on which probe/threshold fails it logs
+ * one of three eject reasons (0x26/0x27/0x28) via FUN_00046f10(reason,
+ * unit_handle, -1,-1,-1,-1, 0).
+ *
+ * Confirmed (disasm 0x1a1fb0): register arg unit_handle@<eax> (MOV EDI,EAX at
+ * 0x1a1fb9; caller 0x1a6350 MOV EAX,EDI; CALL with no stack arg). vehi =
+ * object_get_and_verify_type(object_get_and_verify_type(unit,1)->[0xcc], 2);
+ * tag_get('vehi'). keystone: 1st call direction@<eax>=*(float**)0x31fc50,
+ * scale=8.0f, out_point=0, out_vec=0; 2nd call direction@<eax>=&scaled_vel,
+ * scale=8.0f, out_point=0, out_vec=&probe_vec. unit@<edi> on both.
+ * FUN_00046f10 args: 7 pushes (reason, EDI=unit, -1,-1,-1,-1, 0). Void.
+ *
+ * Inferred: DAT_2b4ee4 velocity scalar, DAT_2b4ee0/DAT_32512c gravity bias;
+ * obj fields 0x1a4 seat, 0x253 scream, 0x2d2 throttle byte; vehi+0x428 settle;
+ * obj+0x450 recheck timestamp. phys[6..8] = obj+0x18/0x1c/0x20 vehicle
+ * velocity.
+ */
+void FUN_001a1fb0(int unit_handle /* @eax */)
+{
+  int *unit_obj;
+  int *vehi_obj;
+  int tag;
+  int game_time;
+  int probe_vec[3]; /* EBP-0x18: 2nd keystone out_vec */
+  float scaled_vel[3]; /* EBP-0xc: scaled vehicle velocity */
+
+  unit_obj = (int *)object_get_and_verify_type(unit_handle, 1);
+  vehi_obj = (int *)object_get_and_verify_type(unit_obj[0x33], 2);
+  tag = (int)tag_get(0x76656869, *vehi_obj);
+  if (((*(unsigned char *)(tag + 0x17c) & 0x40) != 0) &&
+      (unit_obj[0x69] != -1) && (*(char *)((char *)unit_obj + 0x253) != 0x1d) &&
+      (*(char *)((char *)unit_obj + 0x2d2) > 0x78)) {
+    game_time = game_time_get();
+    if ((*(unsigned char *)((char *)vehi_obj + 0x428) > 0x1e) &&
+        ((unit_obj[0x114] == -1) || (unit_obj[0x114] + 0xf < game_time))) {
+      unit_obj[0x114] = game_time;
+      if (FUN_001a1a10(8.0f, (float *)0, (void *)0, *(float **)0x31fc50,
+                       unit_handle) == -1) {
+        scaled_vel[0] =
+          *(float *)((char *)vehi_obj + 0x18) * *(float *)0x2b4ee4;
+        scaled_vel[1] =
+          *(float *)((char *)vehi_obj + 0x1c) * *(float *)0x2b4ee4;
+        scaled_vel[2] =
+          *(float *)((char *)vehi_obj + 0x20) * *(float *)0x2b4ee4 -
+          *(float *)0x32512c * *(float *)0x2b4ee0;
+        if (normalize3d(scaled_vel) <= *(float *)0x2533c0) {
+          FUN_00046f10(0x28, unit_handle, -1, -1, -1, -1, 0);
+          return;
+        }
+        if ((FUN_001a1a10(8.0f, (float *)0, probe_vec, scaled_vel,
+                          unit_handle) == -1) ||
+            (*(float *)&probe_vec[2] <= *(float *)0x2533e4)) {
+          FUN_00046f10(0x28, unit_handle, -1, -1, -1, -1, 0);
+          return;
+        }
+      }
+      if (*(float *)0x253f3c < *(float *)((char *)vehi_obj + 0x38)) {
+        if (FUN_00012fe0((float *)(vehi_obj + 0xf)) < *(float *)0x26e2ec) {
+          FUN_00046f10(0x26, unit_handle, -1, -1, -1, -1, 0);
+          return;
+        }
+      }
+      FUN_00046f10(0x27, unit_handle, -1, -1, -1, -1, 0);
+    }
+  }
+}
+
+/* FUN_001a2160 (0x1a2160)
+ *
+ * Rotates a biped's forward/up axes (unit+0x24 fwd, unit+0x30 up) about the
+ * axis stored at unit+0x3c by the angle equal to that axis vector's length.
+ * Normalizes the axis (angle = |axis|), rotates the forward vector by
+ * (sin,cos) of the angle and renormalizes it, then rebuilds an orthogonal up
+ * vector via two cross products (cross(up_rot, fwd) then cross(temp, fwd)) and
+ * renormalizes; on degenerate result, resets to world forward/up.
+ *
+ * Register arg: unit_handle in EAX. Confirmed: normalize3d (0x13010);
+ * rotate_vector3d_by_sincos (0x10b6e0); x87 FCOS/FSIN; globals 0x31fc3c fwd,
+ * 0x31fc44 up. Cross operand order transcribed from disassembly.
+ */
+void FUN_001a2160(int unit_handle)
+{
+  char *unit_obj;
+  float axis[3];
+  float up_rot[3];
+  float t0;
+  float t1;
+  float t2;
+  float angle;
+  float cos_a;
+  float sin_a;
+
+  unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
+
+  axis[0] = *(float *)(unit_obj + 0x3c);
+  axis[1] = *(float *)(unit_obj + 0x40);
+  axis[2] = *(float *)(unit_obj + 0x44);
+  angle = normalize3d(axis);
+  /* sincos idiom. The original keeps `angle` live on the x87 stack between
+   * FCOS and FSIN (FLD angle; FLD ST0; FCOS; FSTP; FSIN; FSTP). We use the
+   * vetted balanced in-place x87 helpers instead — each loads `angle` fresh,
+   * costing ~1 extra FLD vs the original but avoiding the x87 stack-depth
+   * drift that an unbalanced hand-rolled block would introduce under clang.
+   * See src/x87_math.h. */
+  cos_a = x87_fcos(angle);
+  sin_a = x87_fsin(angle);
+  rotate_vector3d_by_sincos((float *)(unit_obj + 0x24), axis, sin_a, cos_a);
+  normalize3d((float *)(unit_obj + 0x24));
+
+  up_rot[0] = *(float *)(unit_obj + 0x30);
+  up_rot[1] = *(float *)(unit_obj + 0x34);
+  up_rot[2] = *(float *)(unit_obj + 0x38);
+  rotate_vector3d_by_sincos(up_rot, axis, sin_a, cos_a);
+
+  /* temp = cross(up_rot, fwd), fwd = unit+0x24 */
+  t0 = up_rot[2] * *(float *)(unit_obj + 0x28) -
+       up_rot[1] * *(float *)(unit_obj + 0x2c);
+  t1 = up_rot[0] * *(float *)(unit_obj + 0x2c) -
+       up_rot[2] * *(float *)(unit_obj + 0x24);
+  t2 = up_rot[1] * *(float *)(unit_obj + 0x24) -
+       up_rot[0] * *(float *)(unit_obj + 0x28);
+  /* up(unit+0x30) = cross(temp, fwd) */
+  *(float *)(unit_obj + 0x30) =
+    t0 * *(float *)(unit_obj + 0x28) - t1 * *(float *)(unit_obj + 0x24);
+  *(float *)(unit_obj + 0x34) =
+    t2 * *(float *)(unit_obj + 0x24) - t0 * *(float *)(unit_obj + 0x2c);
+  *(float *)(unit_obj + 0x38) =
+    t1 * *(float *)(unit_obj + 0x2c) - t2 * *(float *)(unit_obj + 0x28);
+  if (normalize3d((float *)(unit_obj + 0x30)) == 0.0f) {
+    *(float *)(unit_obj + 0x24) = global_forward_vector_ptr[0];
+    *(float *)(unit_obj + 0x28) = global_forward_vector_ptr[1];
+    *(float *)(unit_obj + 0x2c) = global_forward_vector_ptr[2];
+    *(float *)(unit_obj + 0x30) = global_up_vector_ptr[0];
+    *(float *)(unit_obj + 0x34) = global_up_vector_ptr[1];
+    *(float *)(unit_obj + 0x38) = global_up_vector_ptr[2];
+  }
+}
+
+/* FUN_001a2290 (0x1a2290)
+ *
+ * Attempts to make a biped "jump"/launch along its up axis. Skips if already
+ * launched (unit+0x424 bit0) or in a blocking state (unit+0x460 == 1). Computes
+ * a launch speed from the biped tag (tag+0x3b4), scaled down by the actor's
+ * physics block and (if a global flag is set) a further factor. If the biped's
+ * current velocity along up is below the launch speed, boosts it to the launch
+ * speed. If actor-controlled, defers to actor_aim_jump (which can veto). On
+ * success, writes back the velocity, marks launched (unit+0x424 bit0), clears
+ * unit+0x45c, resets unit+0x430, and disconnects two structure-BSP markers.
+ *
+ * Register arg: unit_handle in EDI. Returns the success flag (char).
+ * Confirmed offsets/calls from disassembly; max-speed denom uses arg reuse
+ * (game_globals_get(0,0xf4) shares its 0/0xf4 with tag_block_get_element).
+ */
+char FUN_001a2290(int unit_handle)
+{
+  char *unit_obj;
+  char *biped_tag;
+  char *physics;
+  float *vel_ptr;
+  int actor_handle;
+  float max_speed;
+  float vel[3];
+  float dot;
+  char success;
+  char aim_flag;
+
+  unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
+  biped_tag = (char *)tag_get(0x62697064, *(int *)unit_obj);
+
+  if ((*(unsigned char *)(unit_obj + 0x424) & 1) != 0) {
+    return 0;
+  }
+  if (*(short *)(unit_obj + 0x460) == 1) {
+    return 0;
+  }
+
+  max_speed = *(float *)(biped_tag + 0x3b4);
+  success = 1;
+  if (*(int *)(unit_obj + 0x1c8) != -1) {
+    physics = (char *)tag_block_get_element((char *)game_globals_get() + 0x170,
+                                            0, 0xf4);
+    max_speed = (*(float *)0x2533c8 -
+                 *(float *)(unit_obj + 0x3d4) * *(float *)(physics + 0x84)) *
+                max_speed;
+  }
+  if (*(char *)0x5aa894 != '\0' && *(int *)(unit_obj + 0x1c8) != -1) {
+    max_speed = max_speed * *(float *)0x2533d8;
+  }
+
+  /* Original keeps &velocity in EBX across the actor_aim_jump call and writes
+   * back through it (LEA EBX,[ESI+0x18] at 0x1a233a; MOV [EBX] at 0x1a23ea). */
+  vel_ptr = (float *)(unit_obj + 0x18);
+  vel[0] = vel_ptr[0];
+  vel[1] = vel_ptr[1];
+  vel[2] = vel_ptr[2];
+  dot = vel[1] * *(float *)(unit_obj + 0x34) +
+        vel[2] * *(float *)(unit_obj + 0x38) +
+        vel[0] * *(float *)(unit_obj + 0x30);
+  if (dot < max_speed) {
+    dot = max_speed - dot;
+    vel[0] = dot * *(float *)(unit_obj + 0x30) + vel[0];
+    vel[1] = dot * *(float *)(unit_obj + 0x34) + vel[1];
+    vel[2] = dot * *(float *)(unit_obj + 0x38) + vel[2];
+  }
+
+  actor_handle = *(int *)(unit_obj + 0x1a8);
+  if (actor_handle == -1) {
+    actor_handle = *(int *)(unit_obj + 0x1a4);
+  }
+  if (actor_handle != -1) {
+    aim_flag = (*(char *)(unit_obj + 0x253) == 0x27 ||
+                *(char *)(unit_obj + 0x253) == 0x28) ?
+                 1 :
+                 0;
+    success =
+      (char)actor_aim_jump(actor_handle, unit_handle, aim_flag, max_speed, vel);
+    if (success == 0) {
+      return success;
+    }
+  }
+
+  vel_ptr[0] = vel[0];
+  vel_ptr[1] = vel[1];
+  vel_ptr[2] = vel[2];
+  *(int *)(unit_obj + 0x424) |= 1;
+  *(unsigned char *)(unit_obj + 0x45c) = 0;
+  *(int *)(unit_obj + 0x430) = -1;
+  FUN_001a0f10(unit_handle, 4, 0);
+  FUN_001a0f10(unit_handle, 4, 1);
+  return success;
+}
+
+/* FUN_001a2440 (0x1a2440) — per-tick footstep / animation-marker event step
+ *
+ * Step in the biped update dispatcher (FUN_001a6350). Classifies the biped's
+ * movement state (object+0x253):
+ *   - states 2,3  -> walking (is_walking)
+ *   - states 4..7 -> moving fast enough if horizontal velocity squared
+ *     (object+0x228..0x230) exceeds threshold 0x25337c (is_fast)
+ * If the biped has an active animation (object+0x80 != NONE), looks up the
+ * 'antr' animation graph (via object+0x7c) and the current animation element
+ * (object+0x80, stride 0xb4 in antr+0x74):
+ *   - walking and on the animation's first frame (object+0x82 == 0): fires two
+ *     collision-user events (param_2 = 3, indices 0 then 1).
+ *   - fast and the current frame matches one of the element's two footstep
+ *     marker frames (element+0x40 / element+0x41): fires one event with
+ *     index = which marker matched (0 = +0x40, 1 = +0x41) and param_2 = whether
+ *     the biped is crouched (object+0x257 == 2).
+ * Then runs the slip/recovery counter at object+0x45b based on object+0x42a:
+ *   - 0x42a == 0: increment the counter; once it reaches 4 fire two events
+ *     (param_2 = 3, indices 0,1) and reset the counter to 0.
+ *   - 0x42a == 1: latch the counter to 1 and return.
+ *   - otherwise:  reset the counter to 0.
+ *
+ * unit_handle arrives in EDI (register parameter); no stack arguments.
+ *
+ * Confirmed: object_get_and_verify_type(unit_handle, 1); tag_get('bipd',...)
+ * and tag_get('antr', object+0x7c); tag_block_get_element(antr+0x74, idx,
+ * 0xb4); jump table at 0x1a25c0 (states 2..7); velocity sum-of-squares vs
+ * 0x25337c; FUN_001a0f10(unit, param_2, idx) idx routed to BX.
+ */
+void FUN_001a2440(int unit_handle /* @edi */)
+{
+  unsigned int *object;
+  char *anim_elem;
+  char is_walking;
+  char is_fast;
+  char matched_second;
+  char counter;
+
+  object = (unsigned int *)object_get_and_verify_type(unit_handle, 1);
+  tag_get(0x62697064, (int)object[0]); /* 'bipd' */
+
+  is_walking = 0;
+  is_fast = 0;
+  switch (*(char *)((int)object + 0x253)) {
+  case 2:
+  case 3:
+    is_walking = 1;
+    break;
+  case 4:
+  case 5:
+  case 6:
+  case 7:
+    if (*(float *)(object + 0x8a) * *(float *)(object + 0x8a) +
+          *(float *)(object + 0x8b) * *(float *)(object + 0x8b) +
+          *(float *)(object + 0x8c) * *(float *)(object + 0x8c) >
+        *(float *)0x25337c) {
+      is_fast = 1;
+    }
+    break;
+  default:
+    break;
+  }
+
+  if (*(short *)((int)object + 0x80) != -1) {
+    anim_elem = (char *)tag_get(0x616e7472, (int)object[0x1f]); /* 'antr' */
+    anim_elem = (char *)tag_block_get_element(
+      anim_elem + 0x74, (int)*(short *)((int)object + 0x80), 0xb4);
+    if (is_walking) {
+      if (*(short *)((int)object + 0x82) == 0) {
+        FUN_001a0f10(unit_handle, 3, 0);
+        FUN_001a0f10(unit_handle, 3, 1);
+      }
+    } else if (is_fast && ((anim_elem[0x40] != 0) || (anim_elem[0x41] != 0)) &&
+               ((*(short *)((int)object + 0x82) ==
+                 (unsigned char)anim_elem[0x40]) ||
+                (*(short *)((int)object + 0x82) ==
+                 (unsigned char)anim_elem[0x41]))) {
+      matched_second =
+        (*(short *)((int)object + 0x82) != (unsigned char)anim_elem[0x40]);
+      FUN_001a0f10(unit_handle, (*(char *)((int)object + 0x257) == 2),
+                   matched_second);
+    }
+  }
+
+  switch (*(char *)((int)object + 0x42a)) {
+  case 0:
+    if (*(char *)((int)object + 0x45b) < 1) {
+      return;
+    }
+    counter = (char)(*(char *)((int)object + 0x45b) + 1);
+    *(char *)((int)object + 0x45b) = counter;
+    if (counter < 4) {
+      return;
+    }
+    FUN_001a0f10(unit_handle, 3, 0);
+    FUN_001a0f10(unit_handle, 3, 1);
+    break;
+  case 1:
+    *(char *)((int)object + 0x45b) = 1;
+    return;
+  }
+  *(char *)((int)object + 0x45b) = 0;
+}
+
+/* FUN_001a25e0 (0x1a25e0)
+ *
+ * Finds the BSP surface most directly under the biped's camera point and
+ * records it on the unit. Gets the biped camera position, sphere-tests the
+ * collision BSP for nearby surfaces (collision_bsp_test_sphere), then for each
+ * returned surface index looks up its plane (orienting the normal by the
+ * surface's plane-index sign bit) and selects the surface whose signed plane
+ * distance to the camera point is smallest. The winning surface index is stored
+ * at unit+0x430 and its oriented normal is written to unit+0x46c (4 floats) and
+ * unit+0x30 (3 floats). Brackets the work in the collision-user-depth stack
+ * (global 0x4761d8 / stack 0x5a8c80), asserting depth < 0x20 on entry and > 1
+ * on exit.
+ *
+ * Confirmed: @ecx = unit_handle (MOV EDI,ECX at 0x1a25ef); 0x1054-byte stack
+ *   frame (_chkstk); out_pos vec3 at EBP-0x44; radius = camera_height +
+ * [0x2533e8] passed via push-then-fstp; surface index from results[1+i]; plane
+ * lookups via tag_block_get_element (element sizes 0xc and 0x10); normal
+ * negated when the plane index sign bit is set; dot FPU order z*nz, then +x*nx,
+ * +y*ny, -d. Inferred: "find supporting surface" semantics from the stores into
+ * unit+0x430/ 0x46c/0x30 and the min-distance selection.
+ */
+void FUN_001a25e0(int unit_handle /* @ecx */)
+{
+  int results[1028]; /* 0x1010 bytes: results[0]=count, results[1+i]=surface idx
+                      */
+  vector3_t cam_pos;
+  float height_offset;
+  float camera_height;
+  char *unit_obj;
+  char *surface_data;
+  void *bsp;
+  int16_t depth;
+  int count;
+  int i;
+  int *surface_elem;
+  float *plane;
+  int plane_index;
+  int best_index;
+  float best_dist;
+  float n[4];
+  float best_n[4];
+  float dist;
+  float radius;
+
+  unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
+  bsp = global_collision_bsp_get();
+  biped_get_camera_height_and_offset(unit_handle, &cam_pos, &height_offset,
+                                     &camera_height);
+
+  if (*(int16_t *)0x4761d8 >= 0x20) {
+    display_assert("collision_user_depth<NUMBER_OF_COLLISION_USERS",
+                   "c:\\halo\\SOURCE\\units\\bipeds.c", 0xf71, true);
+    system_exit(-1);
+  }
+  depth = *(int16_t *)0x4761d8;
+  *(int16_t *)0x4761d8 = (int16_t)(depth + 1);
+  *(int16_t *)(0x5a8c80 + depth * 2) = 7;
+
+  surface_data = (char *)breakable_surfaces_get_bsp_surface_data();
+  radius = camera_height + *(float *)0x2533e8;
+  if ((char)collision_bsp_test_sphere((int)bsp, 0x100, (int)surface_data,
+                                      (int)&cam_pos, *(int *)&radius,
+                                      results) != 0) {
+    count = results[0];
+    best_index = -1;
+    *(int *)&best_dist = 0x7f7fffff;
+    i = 0;
+    if (count > 0) {
+      do {
+        surface_elem = (int *)tag_block_get_element(
+          (void *)(surface_data + 0x3c), results[1 + i], 0xc);
+        plane_index = *surface_elem;
+        plane = (float *)tag_block_get_element((void *)(surface_data + 0xc),
+                                               plane_index & 0x7fffffff, 0x10);
+        if (plane_index < 0) {
+          n[0] = -plane[0];
+          n[1] = -plane[1];
+          n[2] = -plane[2];
+          n[3] = -plane[3];
+        } else {
+          n[0] = plane[0];
+          n[1] = plane[1];
+          n[2] = plane[2];
+          n[3] = plane[3];
+        }
+        dist = (cam_pos.z * n[2] + n[0] * cam_pos.x + cam_pos.y * n[1]) - n[3];
+        if (dist < best_dist) {
+          best_index = results[1 + i];
+          best_n[0] = n[0];
+          best_n[1] = n[1];
+          best_n[2] = n[2];
+          best_n[3] = n[3];
+          best_dist = dist;
+        }
+        i = (int)(int16_t)(i + 1);
+      } while (i < count);
+
+      if (best_index != -1) {
+        *(int *)(unit_obj + 0x430) = best_index;
+        *(float *)(unit_obj + 0x46c) = best_n[0];
+        *(float *)(unit_obj + 0x470) = best_n[1];
+        *(float *)(unit_obj + 0x474) = best_n[2];
+        *(float *)(unit_obj + 0x478) = best_n[3];
+        *(float *)(unit_obj + 0x30) = best_n[0];
+        *(float *)(unit_obj + 0x34) = best_n[1];
+        *(float *)(unit_obj + 0x38) = best_n[2];
+      }
+    }
+  }
+
+  if (*(int16_t *)0x4761d8 <= 1) {
+    display_assert("collision_user_depth>0",
+                   "c:\\halo\\SOURCE\\units\\bipeds.c", 0xf94, true);
+    system_exit(-1);
+  }
+  *(int16_t *)0x4761d8 = (int16_t)(*(int16_t *)0x4761d8 - 1);
+}
+
+/* FUN_001a2800 (0x1a2800)
+ *
+ * Biped vector-failure assert: validates that the biped's forward axis
+ * (unit+0x24) and up axis (unit+0x30) are perpendicular unit vectors
+ * (valid_real_normal3d_perpendicular). If not, formats a diagnostic naming the
+ * biped tag, its physics mode (flying / player-physics / climb / normal from
+ * tag flags at +0x2f4), its dead/limping state, the supplied failure-kind
+ * string, and the two offending vectors, then asserts and exits.
+ *
+ * Confirmed: @eax = unit_handle (caller MOV EAX,[EBP+8] then PUSH str; ADD
+ * ESP,4); perpendicular check on (unit+0x24, unit+0x30); six floats
+ * unit+0x24..+0x38 promoted to double for csprintf; dead bit =
+ * byte[unit+0xb6]&4, limp bit = byte[unit+0x424]&0x20; tag flags at tag+0x2f4
+ * (&4 flying, &2 player-physics, &0x40 climb); display_assert at
+ * bipeds.c:0x55d. Inferred: "vector failure" / mode-string semantics from the
+ * format string.
+ */
+void FUN_001a2800(int unit_handle /* @eax */, const char *failure_kind)
+{
+  char *unit_obj;
+  char *biped_tag;
+  const char *limp_str;
+  const char *dead_str;
+  const char *mode_str;
+  uint32_t flags;
+
+  unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
+  if (valid_real_normal3d_perpendicular((float *)(unit_obj + 0x24),
+                                        (float *)(unit_obj + 0x30)) == 0) {
+    biped_tag = (char *)tag_get(0x62697064, *(int *)unit_obj);
+
+    limp_str = "/limping";
+    if ((*(unsigned char *)(unit_obj + 0x424) & 0x20) == 0) {
+      limp_str = "";
+    }
+    dead_str = "/dead";
+    if ((*(unsigned char *)(unit_obj + 0xb6) & 4) == 0) {
+      dead_str = "";
+    }
+    flags = *(uint32_t *)(biped_tag + 0x2f4);
+    if ((flags & 4) != 0) {
+      mode_str = "flying";
+    } else if ((flags & 2) != 0) {
+      mode_str = "player-physics";
+    } else if ((flags & 0x40) != 0) {
+      mode_str = "climb";
+    } else {
+      mode_str = "normal";
+    }
+
+    csprintf(
+      (char *)0x5ab100,
+      "biped %s (%s%s%s): %s vector failure: (%f, %f, %f) / (%f, %f, %f)",
+      tag_name_strip_path(tag_get_name(*(int *)unit_obj)), mode_str, dead_str,
+      limp_str, failure_kind, (double)*(float *)(unit_obj + 0x24),
+      (double)*(float *)(unit_obj + 0x28), (double)*(float *)(unit_obj + 0x2c),
+      (double)*(float *)(unit_obj + 0x30), (double)*(float *)(unit_obj + 0x34),
+      (double)*(float *)(unit_obj + 0x38));
+    display_assert((const char *)0x5ab100, "c:\\halo\\SOURCE\\units\\bipeds.c",
+                   0x55d, true);
+    system_exit(-1);
+  }
+}
+
+/* FUN_001a2900 (0x1a2900) — post-airborne update step
+ *
+ * Step in the biped update dispatcher (FUN_001a6350), reached when the biped
+ * is airborne (object+0x424 bit 0). When the biped is flying through the air
+ * (biped_flying_through_air) and the tag allows airborne aiming control
+ * (tag+0x2f4 bit 8 / 0x100), and the movement state (object+0x253) is neither
+ * 0x1f nor 0x29, perturbs the biped's aim/facing:
+ *   - Picks a small random pitch in [3deg, 5deg] (random_real_range).
+ *   - If the biped's airborne timer (object+0x38) is below threshold 0x2533f0,
+ *     OR the horizontal facing (cross of object+0x30 with world up 0x31fc44)
+ *     is degenerate (length <= 0x2533c0), uses a fully random yaw in [0, 2pi)
+ *     to build the facing axis; otherwise uses the computed horizontal facing.
+ *   - Scales the facing by the random pitch and adds it into object+0x3c
+ *     (vector3d_scale_add), then runs the airborne aim helper FUN_001a2160.
+ * Asserts the biped is airborne (object+0x424 bit 0). Writes the airborne
+ * landing-prep state into *state (0x28 for states 0x27/0x28, 0x14 for state
+ * 0x14 or when aiming control was active) and emits the "post-airborne" marker.
+ *
+ * unit_handle and state are both cdecl stack arguments (caller pushes
+ * &update_state then unit_handle).
+ *
+ * Confirmed: object_get_and_verify_type(unit_handle, 1); tag_get('bipd',...);
+ * biped_flying_through_air (0x1a0db0); random_real_range over global seed
+ * (0x10b0d0) with min/max 0x3d567750/0x3db2b8c2; cross_product3d(object+0x30,
+ * world_up, tmp); normalize3d (0x13010); FUN_000121e0(0, 2pi) random yaw;
+ * vector3d_from_angle (0x10cc70); vector3d_scale_add (0x12f80) into
+ * object+0x3c.
+ */
+void FUN_001a2900(int unit_handle, char *state)
+{
+  unsigned int *object;
+  int biped_tag;
+  char aim_control;
+  char move_state;
+  float pitch;
+  float facing[3];
+
+  object = (unsigned int *)object_get_and_verify_type(unit_handle, 1);
+  biped_tag = (int)tag_get(0x62697064, (int)object[0]); /* 'bipd' */
+
+  aim_control = 0;
+  if ((biped_flying_through_air(unit_handle) != 0) &&
+      (aim_control = 1, (*(unsigned int *)(biped_tag + 0x2f4) & 0x100) != 0)) {
+    move_state = *(char *)((int)object + 0x253);
+    if ((move_state != 0x1f) && (move_state != 0x29)) {
+      pitch = random_real_range(get_global_random_seed_address(), 0.05235988f,
+                                0.08726646f);
+      if (*(float *)(object + 0xe) /* +0x38 */ >= *(float *)0x2533f0) {
+        cross_product3d((float *)(object + 0xc) /* +0x30 */,
+                        *(float **)0x31fc44 /* world up */, facing);
+        if (normalize3d(facing) > *(float *)0x2533c0) {
+          goto have_facing;
+        }
+      }
+      vector3d_from_angle(facing, FUN_000121e0(0.0f, 6.2831855f));
+    have_facing:
+      vector3d_scale_add((float *)(object + 0xf) /* +0x3c */, facing, pitch,
+                         (float *)(object + 0xf));
+    }
+    FUN_001a2160(unit_handle);
+  }
+
+  if ((*(unsigned char *)(object + 0x109) /* +0x424 */ & 1) == 0) {
+    display_assert("TEST_FLAG(biped->biped.flags, _biped_airborne_bit)",
+                   "c:\\halo\\SOURCE\\units\\bipeds.c", 0xa61, true);
+    system_exit(-1);
+  }
+
+  move_state = *(char *)((int)object + 0x253);
+  if ((move_state == 0x27) || (move_state == 0x28)) {
+    *state = 0x28;
+  } else if ((move_state == 0x14) || (aim_control)) {
+    *state = 0x14;
+  }
+
+  FUN_001a2800(unit_handle, "post-airborne");
+}
+
+/* FUN_001a2a60 (0x1a2a60) — post-landing update step
+ *
+ * Step in the biped update dispatcher (FUN_001a6350), reached when the biped
+ * has a landing-animation index (object+0x460 != NONE). Increments the
+ * landing-frame counter (object+0x428); once it reaches the landing frame
+ * count (object+0x429) the landing animation index (object+0x460) is cleared
+ * to NONE (0xffff). When no cinematic is running and the landing has just
+ * begun (counter == 2) or is effectively a one-frame landing (index already
+ * cleared and frame count < 2), fires two collision-user events via
+ * FUN_001a0f10 with selector indices 0 then 1 (param_2 = 5). Writes the
+ * resulting landing-sound id into *state (0x16 if index == 1, else 0x15) and
+ * emits the "post-landing" timing marker via FUN_001a2800.
+ *
+ * unit_handle arrives in EDI (register parameter); state is the only stack
+ * argument (caller pushes &update_state byte).
+ *
+ * Confirmed: object_get_and_verify_type(unit_handle, 1); tag_get('bipd',...);
+ * cinematic_in_progress (0x930a0); FUN_001a0f10(unit, 5, idx) idx->BX (0,1).
+ */
+void FUN_001a2a60(int unit_handle /* @edi */, char *state)
+{
+  unsigned char *object;
+  char counter;
+
+  object = (unsigned char *)object_get_and_verify_type(unit_handle, 1);
+  tag_get(0x62697064, *(int *)object); /* 'bipd' */
+
+  counter = (char)(object[0x428] + 1);
+  object[0x428] = (unsigned char)counter;
+  if (counter >= (char)object[0x429]) {
+    *(short *)(object + 0x460) = -1;
+  }
+
+  if ((cinematic_in_progress() == 0) &&
+      (((char)object[0x428] == 2) ||
+       ((*(short *)(object + 0x460) == -1) && ((char)object[0x429] < 2)))) {
+    FUN_001a0f10(unit_handle, 5, 0);
+    FUN_001a0f10(unit_handle, 5, 1);
+  }
+
+  *state = (char)((*(short *)(object + 0x460) == 1) + 0x15);
+  FUN_001a2800(unit_handle, "post-landing");
+}
+
+/* FUN_001a2b10 (0x1a2b10) — post-slipping update step
+ *
+ * Step in the biped update dispatcher (FUN_001a6350). If the biped's slipping
+ * counter (object+0x45a) has exceeded 3 ticks AND the object's linear velocity
+ * magnitude squared (object+0x18..0x20) exceeds the "moving" threshold at
+ * 0x25620c (== 1/900), fires two collision-user events via FUN_001a0f10 with
+ * selector indices 0 then 1 (param_2 = 2). Always emits the "post-slipping"
+ * timing marker via FUN_001a2800.
+ *
+ * unit_handle arrives in EDI (register parameter). The caller (FUN_001a6350)
+ * also pushes a pointer to its update-state byte buffer, but this function
+ * never reads it; it is not declared as a parameter because the original is
+ * frameless (no EBP frame, no stack-arg load) — the caller's cdecl push and
+ * matching ESP cleanup are unaffected.
+ *
+ * Confirmed: object_get_and_verify_type(unit_handle, 1); tag_get('bipd',...);
+ * velocity sum-of-squares at +0x18/+0x1c/+0x20 vs threshold 0x25620c;
+ * FUN_001a0f10(unit, 2, idx) with idx routed to BX (0 then 1).
+ */
+void FUN_001a2b10(int unit_handle /* @edi */)
+{
+  unsigned int *object;
+  float *velocity;
+
+  object = (unsigned int *)object_get_and_verify_type(unit_handle, 1);
+  tag_get(0x62697064, (int)object[0]); /* 'bipd' */
+
+  velocity = (float *)(object + 6); /* +0x18: linear velocity vec3 */
+  if ((*(char *)((int)object + 0x45a) > 3) &&
+      (velocity[2] * velocity[2] + velocity[1] * velocity[1] +
+         velocity[0] * velocity[0] >
+       *(float *)0x25620c)) {
+    FUN_001a0f10(unit_handle, 2, 0);
+    FUN_001a0f10(unit_handle, 2, 1);
+  }
+
+  FUN_001a2800(unit_handle, "post-slipping");
+}
+
+/* FUN_001a2b90 (0x1a2b90) — airborne aim / landing-rumble update step
+ *
+ * Step in the biped update dispatcher (FUN_001a5300). When the biped is not
+ * yet airborne (object+0x424 bit 0 clear) and its landing index (object+0x460)
+ * isn't 1, advances the airborne-frame counter (object+0x45c, capped at 0x7f);
+ * if the biped has the relevant control flag (object+0x1b8 bit 1) and the
+ * counter exceeds 5, runs FUN_001a2290.
+ *
+ * If a controlling unit (player) is bound (global 0x5aa891 set, object+0x1c8 is
+ * a valid datum) it fetches the player record (datum_get) and, depending on
+ * object+0x1b8 flags:
+ *   - bits 0x800 AND 0x2000 set: re-orients the biped's aim vector
+ *     (object+0x18). Computes the dot of the aim (object+0x18) with the desired
+ *     aim (object+0x1ec); when that dot is below epsilon (0x2533c0) it derives
+ *     an angle via FUN_00013070, otherwise uses epsilon. A blend weight is
+ *     formed (0x2b4fbc * angle) and saturated to [0,1]. The aim is rotated
+ *     toward the desired aim via three vector3d_scale_add steps and the
+ *     airborne flag (object+0x424 bit 0) is set.
+ *   - only bit 1 (and already airborne): damps the aim vector by -0.2
+ *     (FUN_00012fb0).
+ * Finally, if the aim was re-oriented this tick and the player has a valid
+ * controller index (player+2), triggers a landing rumble (rumble_player_impulse
+ * with a 0x3c-byte rumble definition: scale 1.0, 0.3, type 3).
+ *
+ * unit_handle arrives in EAX (register parameter). The caller also pushes its
+ * update-state pointer, but this function never reads it.
+ *
+ * Confirmed: object_get_and_verify_type(unit_handle, 1); tag_get('bipd',...);
+ * FUN_001a2290 (@edi=unit_handle); datum_get(0x5aa6d4, object+0x1c8);
+ * FUN_00013070 dot/angle of object+0x18 and object+0x1ec; vector3d_scale_add
+ * (0x12f80) x3; FUN_00012fb0 damp; csmemset+rumble_player_impulse (0xb9bc0).
+ */
+void FUN_001a2b90(int unit_handle /* @eax */)
+{
+  unsigned int *object;
+  int player;
+  unsigned int flags;
+  char aim_reoriented;
+  float angle;
+  float weight;
+  float scale;
+  float tmp[3];
+  float rumble_def[15]; /* 0x3c bytes */
+
+  object = (unsigned int *)object_get_and_verify_type(unit_handle, 1);
+  tag_get(0x62697064, (int)object[0]); /* 'bipd' */
+
+  if (((*(unsigned char *)((int)object + 0x424) & 1) == 0) &&
+      (*(short *)((int)object + 0x460) != 1)) {
+    if (*(char *)((int)object + 0x45c) < 0x7f) {
+      *(char *)((int)object + 0x45c) =
+        (char)(*(char *)((int)object + 0x45c) + 1);
+    }
+    if (((*(unsigned char *)((int)object + 0x1b8) & 2) != 0) &&
+        (*(char *)((int)object + 0x45c) > 5)) {
+      FUN_001a2290(unit_handle);
+    }
+  }
+
+  if ((*(char *)0x5aa891 != 0) && ((int)object[0x72] != -1)) {
+    player = (int)datum_get(*(void **)0x5aa6d4, (int)object[0x72]);
+    flags = object[0x6e]; /* +0x1b8 */
+    aim_reoriented = 0;
+    if (((flags & 0x800) == 0) || ((flags & 0x2000) == 0)) {
+      if (((flags & 1) != 0) &&
+          ((*(unsigned char *)((int)object + 0x424) & 1) != 0)) {
+        FUN_00012fb0((float *)(object + 6), -0.2f, (float *)(object + 6));
+      }
+    } else {
+      /* Dot of aim (object+0x18) with desired aim (object+0x1ec); z,y,x order
+       * matches the original FLD sequence. The FLD/FMUL operand assignment for
+       * each commutative product is an MSVC scheduling choice (a*b == b*a, so
+       * bit-identical); vc71 flags it as an FPU operand-order diff but the
+       * value is provably the same. */
+      if (*(float *)(object + 8) * *(float *)(object + 0x7d) +
+            *(float *)(object + 7) * *(float *)(object + 0x7c) +
+            *(float *)(object + 6) * *(float *)(object + 0x7b) <
+          *(float *)0x2533c0) {
+        angle = FUN_00013070((float *)(object + 6), (float *)(object + 0x7b));
+      } else {
+        angle = *(float *)0x2533c0;
+      }
+      weight = *(float *)0x2b4fbc * angle;
+      if (weight < *(float *)0x2533c0) {
+        scale = 0.0f; /* clamp below epsilon -> 0 */
+      } else if (weight > *(float *)0x2533c8) {
+        scale = 1.0f; /* clamp above 1.0 -> 1.0 */
+      } else {
+        scale = weight;
+      }
+      vector3d_scale_add((float *)(object + 6), (float *)(object + 0x7b),
+                         -angle, tmp);
+      vector3d_scale_add((float *)(object + 6), tmp, -0.2f,
+                         (float *)(object + 6));
+      vector3d_scale_add((float *)(object + 6), (float *)(object + 0x7b),
+                         scale * *(float *)0x25bb0c -
+                           scale * scale * *(float *)0x2533e8 +
+                           *(float *)0x25bb10,
+                         (float *)(object + 6));
+      object[0x109] |= 1; /* +0x424 bit 0 */
+      aim_reoriented = 1;
+    }
+    if ((*(short *)(player + 2) != -1) && (aim_reoriented)) {
+      csmemset(rumble_def, 0, 0x3c);
+      *(unsigned int *)&rumble_def[0] = 0x3f800000; /* 1.0 */
+      *(unsigned int *)&rumble_def[1] = 0x3e99999a; /* 0.3 */
+      *(short *)&rumble_def[2] = 3;
+      rumble_player_impulse(*(short *)(player + 2), rumble_def, 1.0f, 1.0f);
+    }
+  }
+}
+
+/* biped_build_flying_axes (0x1a2d90)
+ *
+ * Builds an orthonormal forward/left/up basis for a flying biped from a given
+ * forward vector. Sets up = world up, left = up x forward (renormalized; if
+ * degenerate, retries with up = world forward), then up = forward x left
+ * (renormalized). Asserts the result is a valid axis triple.
+ *
+ * Confirmed: normalize3d (0x13010); global up = 0x31fc44, forward = 0x31fc3c;
+ * valid_real_vector3d_axes3 (0xf6c40); cross operand order from disassembly.
+ * Asserts at bipeds.c:0xb93 (null args) and :0xba2 (invalid axes).
+ */
+void biped_build_flying_axes(float *forward, float *left, float *up)
+{
+  float lc0;
+  float lc1;
+  float lc2;
+
+  if (forward == NULL || left == NULL || up == NULL) {
+    display_assert("forward_vector && left_vector && up_vector",
+                   "c:\\halo\\SOURCE\\units\\bipeds.c", 0xb93, true);
+    system_exit(-1);
+  }
+
+  up[0] = global_up_vector_ptr[0];
+  up[1] = global_up_vector_ptr[1];
+  up[2] = global_up_vector_ptr[2];
+
+  /* left = up x forward (batched: all components before any store) */
+  lc2 = forward[1] * up[0] - up[1] * forward[0];
+  lc1 = up[2] * forward[0] - forward[2] * up[0];
+  lc0 = up[1] * forward[2] - up[2] * forward[1];
+  left[0] = lc0;
+  left[1] = lc1;
+  left[2] = lc2;
+  if (normalize3d(left) == 0.0f) {
+    up[0] = global_forward_vector_ptr[0];
+    up[1] = global_forward_vector_ptr[1];
+    up[2] = global_forward_vector_ptr[2];
+    lc2 = forward[1] * up[0] - up[1] * forward[0];
+    lc1 = up[2] * forward[0] - forward[2] * up[0];
+    lc0 = up[1] * forward[2] - up[2] * forward[1];
+    left[0] = lc0;
+    left[1] = lc1;
+    left[2] = lc2;
+    normalize3d(left);
+  }
+
+  /* up = forward x left */
+  lc2 = left[1] * forward[0] - forward[1] * left[0];
+  lc1 = forward[2] * left[0] - forward[0] * left[2];
+  lc0 = forward[1] * left[2] - left[1] * forward[2];
+  up[0] = lc0;
+  up[1] = lc1;
+  up[2] = lc2;
+  normalize3d(up);
+
+  if (valid_real_vector3d_axes3(forward, left, up) == 0) {
+    display_assert(
+      csprintf(error_string_buffer,
+               "%s, %s, %s: assert_valid_real_vector3d_axes3(%f, %f, %f / %f, "
+               "%f, %f / %f, %f, %f)",
+               "forward_vector", "left_vector", "up_vector", (double)forward[0],
+               (double)forward[1], (double)forward[2], (double)up[0],
+               (double)up[1], (double)up[2], (double)left[0], (double)left[1],
+               (double)left[2]),
+      "c:\\halo\\SOURCE\\units\\bipeds.c", 0xba2, true);
+    system_exit(-1);
+  }
+}
+
+/* FUN_001a2f40 (0x1a2f40) — biped ground/movement physics step.
+ *
+ * Largest function in bipeds.obj (~5.3 KB, ~1613 instructions). Reconstructed
+ * directly from disassembly: the Ghidra decompiler output for this routine is
+ * heavily polluted (return-address pushes modelled as struct stores, ._4_4_
+ * half-splits, unstable type propagation), so the decompiler was used only as a
+ * control-flow skeleton. Every store offset, FPU operand order, and branch in
+ * the reconstructed portion was cross-checked against the raw listing.
+ *
+ * ABI (Confirmed): single register argument in ESI (read-before-write at the
+ *   prologue; caller FUN_001a5300 does `LEA ESI,[EBP-0xe4]; CALL` with no
+ *   pushes and discards EAX). Returns void. Huge _chkstk frame (0xafac) for the
+ *   ~44 KB debug-draw scratch buffer passed to FUN_0014ec30 in the back half.
+ *
+ * `physics` (ESI) is a biped movement/physics state struct accessed as a flat
+ * float array. Notable fields (index = byte offset / 4), all Confirmed from
+ * the access patterns in the listing:
+ *   +0x04  flags (u16)
+ *   +0x08  position[3]
+ *   +0x14  control / movement axis (forward basis input)
+ *   +0x20  ground-plane normal
+ *   +0x2c  velocity[3]
+ *   +0x38  step-height offset
+ *   +0x3c  control direction (x,y,z = physics[0xf],[0x10],[0x11])
+ *   +0x48  friction/damping factor
+ *   +0x4c  max horizontal speed clamp (mode 0x10)
+ *   +0x50  max speed clamp (mode 0x01)
+ *   +0xa0  result/state word (mixed u16/byte access)
+ *   +0xac  new_position (per assert string &physics->new_position @0x2b5080)
+ *   +0xb8  new_velocity (per assert string &physics->new_velocity @0x2b5068)
+ *   +0xc8  step distance
+ *
+ * NOTE (Confirmed): byte offsets +0xac and +0xb8 are new_position /
+ * new_velocity from the binary's own assert strings — the decompiler's field
+ * labels for these are inverted; the assert strings are authoritative.
+ *
+ * SCOPE OF THIS LIFT:
+ *   Reconstructed faithfully (front half, 0x1a2f40..0x1a36a4):
+ *     - prologue, the two input asserts (position / velocity)
+ *     - the movement-mode dispatch on flags bits 0x10 / 0x20 / 0x01
+ *     - each of those three branches' new_velocity computation and state write
+ *   NOT reconstructed (back half, ~0x1a3269 default branch + 0x1a36a4..0x1a4409):
+ *     - the default surface-walk mode (flags & 0x200 select)
+ *     - the LAB_001a36a4 debug-draw + collision-query setup
+ *     - the FUN_00150550 collision query and the three loops over the 16-entry
+ *       result array (ground-plane select, nearest-object, 'mach'-tag scan)
+ *     - the biped step-down (FUN_0014ec30 / FUN_0014c4b0)
+ *     - the new_position (+0xac) writeback, step-distance (+0xc8), and the two
+ *       final NaN asserts (lines 0xee2 / 0xee3)
+ *   The back half holds three live x87 values across the material-select branch
+ *   at 0x1a34c0 and routes pervasively-aliased ESP scratch slots through
+ *   cross_product3d / the slope curve and through tag/datum field reads whose
+ *   semantics are not confirmable from disassembly alone. Rather than fabricate
+ *   ~700 instructions of plausible arithmetic, that region is left explicitly
+ *   unreconstructed. A wrong store here would be silent: this function is
+ *   dormant (ported=false), so the back half never executes.
+ *
+ * Status: dormant (ported=false). Register-arg entry, ~44 KB _chkstk frame,
+ * pervasive x87, and the unreconstructed back half put VC71 well below the 88%
+ * activation threshold. This is a partial faithful lift for documentation.
+ */
+void FUN_001a2f40(void *physics_arg /* @esi */)
+{
+  float *physics;
+  float *velocity;             /* physics + 0xb (EBX = ESI+0x2c) */
+  float *position;             /* physics + 2  (EDI = ESI+0x8)  */
+  unsigned short flags;
+  unsigned int flags_word;     /* full flags promoted [EBP-0x48] */
+  float damp;                  /* 1.0 - friction (physics[0x12]) */
+  float length3;
+  float clamp;
+
+  physics = (float *)physics_arg;
+  velocity = physics + 0xb;    /* +0x2c */
+  position = physics + 2;      /* +0x08 */
+
+  flags = *(unsigned short *)((char *)physics + 4);
+
+  /* assert_valid_real_point3d(&physics->position) */
+  if (valid_real_point3d(position) == 0) {
+    display_assert(
+        csprintf(error_string_buffer,
+                 "%s: assert_valid_real_point3d(%f, %f, %f)",
+                 "&physics->position", (double)position[0],
+                 (double)position[1], (double)position[2]),
+        "c:\\halo\\SOURCE\\units\\bipeds.c", 0xbae, true);
+    system_exit(-1);
+  }
+  /* assert_valid_real_vector2d(&physics->velocity) */
+  if (real_vector3d_valid(velocity) == 0) {
+    display_assert(
+        csprintf(error_string_buffer,
+                 "%s: assert_valid_real_vector2d(%f, %f, %f)",
+                 "&physics->velocity", (double)velocity[0],
+                 (double)velocity[1], (double)velocity[2]),
+        "c:\\halo\\SOURCE\\units\\bipeds.c", 0xbaf, true);
+    system_exit(-1);
+  }
+
+  flags = *(unsigned short *)((char *)physics + 4);
+  flags_word = flags;
+  *(unsigned short *)((char *)physics + 0xa0) = 0;
+
+  if ((flags & 0x10) != 0) {
+    /* ---- mode 0x10 (0x1a3037..0x1a3149): oriented/flying movement ----
+     * Build a forward/left/up basis from the control axis (physics+0x14),
+     * transform the control direction (physics[0xf..0x11]) into that basis,
+     * scale by (1-friction), subtract current velocity, clamp the magnitude
+     * to physics[0x13], add velocity back, and write new_velocity (+0xb8). */
+    float left[3];             /* local_6c / 68 / 64 */
+    float up[3];               /* local_54 / 50 / 4c */
+    float t0, t1, t2;          /* transformed control components */
+    float dx, dy, dz;          /* displacement (local_54/50/4c reused) */
+
+    biped_build_flying_axes(physics + 5, left, up); /* forward = physics+0x14 */
+
+    /* control transformed by the basis rows (operand order from 0x1a3048..) */
+    t0 = left[0] * physics[0x10] + up[0] * physics[0x11] +
+         physics[0xf] * physics[5];
+    t1 = physics[6] * physics[0xf] + left[1] * physics[0x10] +
+         up[1] * physics[0x11];
+    t2 = physics[7] * physics[0xf] + left[2] * physics[0x10] +
+         up[2] * physics[0x11];
+
+    damp = *(float *)0x2533c8 - physics[0x12]; /* 1.0 - friction, local_60 */
+
+    /* displacement = damp*transformed - velocity */
+    dx = damp * t0 - velocity[0];   /* local_30 -> local_54 */
+    dy = damp * t1 - velocity[1];   /* local_2c -> local_50 */
+    dz = damp * t2 - velocity[2];   /* local_28 -> local_4c */
+
+    /* clamp to max horizontal speed physics[0x13].
+     * normalize3d (0x13010) normalizes `disp` IN PLACE and returns the prior
+     * length (confirmed: the original double-saves dx/dy/dz to both
+     * [EBP-0x30..] and [EBP-0x54..], then calls normalize3d on &local_54 which
+     * destroys the second copy; the clamp branch at 0x1a30ea multiplies the
+     * unit components, the no-clamp branch at 0x1a3102 reads back the raw
+     * copies). So on clamp the result is unit_component * physics[0x13]
+     * (magnitude exactly physics[0x13]); otherwise the raw displacement. */
+    {
+      float disp[3];
+      disp[0] = dx; disp[1] = dy; disp[2] = dz;
+      length3 = normalize3d(disp); /* disp now holds the unit vector */
+      if (length3 > physics[0x13]) {
+        clamp = physics[0x13];
+        dx = disp[0] * clamp;
+        dy = disp[1] * clamp;
+        dz = disp[2] * clamp;
+      }
+    }
+    physics[0x2e] = dx + velocity[0];   /* new_velocity.x +0xb8 */
+    physics[0x2f] = dy + physics[0xc];  /* +0xbc */
+    physics[0x30] = dz + physics[0xd];  /* +0xc0 */
+    *(unsigned short *)((char *)physics + 0xa0) =
+        (unsigned short)((*(unsigned short *)((char *)physics + 0xa0) & 0xfffd) | 1);
+    return; /* JMP LAB_001a36a4 — back half not reconstructed */
+  }
+
+  if ((flags & 0x20) != 0) {
+    /* ---- mode 0x20 (0x1a3152..0x1a318b): planar heading carry ----
+     * new_velocity = rotate(control.xy) by the forward axis; z carried. */
+    physics[0x30] = physics[0x11];                                  /* +0xc0 */
+    physics[0x2e] = physics[0xf] * physics[5] - physics[6] * physics[0x10];
+    physics[0x2f] = physics[0xf] * physics[6] + physics[0x10] * physics[5];
+    return; /* JMP LAB_001a36a4 — back half not reconstructed */
+  }
+
+  if ((flags & 1) != 0) {
+    /* ---- mode 0x01 (0x1a3198..0x1a3264): ground tangent movement ----
+     * Build the planar tangent of the control direction, scale by
+     * (1-friction), subtract velocity, clamp to physics[0x14], add velocity,
+     * write new_velocity (+0xb8) with a fixed step-down on z. */
+    float tang[3];             /* local_44 / 40 / 3c */
+
+    damp = *(float *)0x2533c8 - physics[0x12];
+
+    tang[0] = damp * (physics[0xf] * physics[5] - physics[6] * physics[0x10])
+              - velocity[0];                   /* local_44 */
+    tang[1] = damp * (physics[0xf] * physics[6] + physics[0x10] * physics[5])
+              - velocity[1];                   /* local_40 (FSUB physics[0xc]) */
+    /* UNCERTAIN: the original passes local_44/40/3c to magnitude3d, but
+     * local_3c (tang[2]) is never written before the call in this branch —
+     * magnitude3d reads whatever the slot held from earlier code. That
+     * stale-slot read cannot be reproduced in defined C, so tang[2] is fixed
+     * to 0.0f. Only tang[0]/tang[1] are subsequently stored, so this affects
+     * only the clamp's length test, never an output field. */
+    tang[2] = 0.0f;
+
+    length3 = magnitude3d(tang);
+    if (length3 > physics[0x14]) {
+      clamp = physics[0x14];
+      tang[0] = tang[0] * clamp;
+      tang[1] = tang[1] * clamp;
+    }
+    physics[0x2e] = tang[0] + velocity[0];               /* +0xb8 */
+    physics[0x2f] = tang[1] + velocity[1];               /* +0xbc */
+    physics[0x30] = velocity[2] - *(float *)0x32512c;    /* +0xc0 step-down */
+    *(unsigned short *)((char *)physics + 0xa0) =
+        (unsigned short)((unsigned char)flags_word & 2);
+    return; /* JMP 0x1a369e — back half not reconstructed */
+  }
+
+  /* ---- default surface-walk mode (flags & 0x200 select) + entire back half ----
+   * NOT RECONSTRUCTED. See the SCOPE note in the function header. Reaching this
+   * point in the original runs the slope-response surface walk, the collision
+   * query, the result-array refinement loops, the step-down, the +0xac/+0xc8
+   * writeback, and the final NaN asserts. Faithful transcription of that region
+   * is blocked by held x87 stack state across 0x1a34c0 and unconfirmable
+   * tag-field semantics, so no arithmetic is invented for it. Function is
+   * dormant; this path is never executed. */
+  (void)flags_word;
 }
