@@ -2718,7 +2718,7 @@ LAB_000d794f:
     iVar2 = local_player_get_player_index(player_handle);
     if (iVar2 != -1) {
       iVar2 = (int)datum_get(*(data_t **)0x5aa6d4, iVar2);
-      FUN_000d7560(iVar2, *(char *)0x46bd10);
+      FUN_000d7560(iVar2, **(char **)0x46bd10);
     }
   }
   sVar7 = 0x7f;
@@ -2959,7 +2959,6 @@ void FUN_000d7d40(int param_1)
   *(int *)((char *)pfVar6 + 0x1c) = *(int *)(param_1 + 0x34);
 
   parent_handle = unit_ptr[0x33];
-  fraction_slots[0] = *(float *)&parent_handle;
 
   if (parent_handle != -1 && *(short *)((char *)unit_ptr + 0x2a0) != -1) {
     int *vehicle_ptr;
@@ -2994,7 +2993,7 @@ void FUN_000d7d40(int param_1)
         next_unit =
             (int)object_try_and_get_and_verify_type(iVar13, 3);
         if (next_unit != 0 &&
-            (float)*(int *)(next_unit + 0xcc) == fraction_slots[0] &&
+            *(int *)(next_unit + 0xcc) == parent_handle &&
             *(short *)(next_unit + 0x2a0) != -1) {
           handle_slots[slot_count] = iVar13;
           sVar4 = local_player_count();
@@ -3126,7 +3125,6 @@ void FUN_000d7d40(int param_1)
             color_ptr = overlay_colors;
 
             layer_idx = 0;
-            fVar14 = *(float *)&flags;
 
             if (0 <= *(int *)0x2f66f0) {
               do {
@@ -3156,8 +3154,7 @@ void FUN_000d7d40(int param_1)
 
                 if ((local_34 < *(float *)0x2533c0 !=
                      (local_34 == *(float *)0x2533c0)) &&
-                    (fVar14 = *(float *)&flags,
-                     fVar2 < *(float *)0x2533c0 !=
+                    (fVar2 < *(float *)0x2533c0 !=
                          (fVar2 == *(float *)0x2533c0)))
                   break;
 
@@ -3209,7 +3206,6 @@ void FUN_000d7d40(int param_1)
 
                 color_ptr = color_ptr + 1;
                 layer_idx = saved_layer_idx + 1;
-                fVar14 = *(float *)&flags;
               } while (saved_layer_idx + 1 <= *(int *)0x2f66f0);
             }
           }
@@ -3219,7 +3215,7 @@ void FUN_000d7d40(int param_1)
 
           if (*(int *)(unhi_tag + 0xbc) != -1) {
             FUN_000d3fe0(local_player_idx, (short *)unhi_tag,
-                         unhi_tag + 0x8c, (unsigned int)fVar14,
+                         unhi_tag + 0x8c, flags,
                          *(int *)((char *)pfVar6 + 0x10));
             iVar8 = unit_data;
             iVar21 = unhi_tag;
