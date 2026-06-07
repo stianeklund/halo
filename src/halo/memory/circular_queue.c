@@ -1075,7 +1075,6 @@ int FUN_001155e0(int z, int flush)
       if (((unsigned char)uVar2 & 0xf) == 8) {
         if (((unsigned int)puVar3[1] >> 4) + 8 <= (unsigned int)puVar3[4]) {
           *puVar3 = 1;
-          uVar5 = uVar4;
           goto case_1;
         }
         *puVar3 = 0xd;
@@ -1087,7 +1086,7 @@ int FUN_001155e0(int z, int flush)
       goto set_mark;
     case 1:
     case_1:
-      if (param_1[1] == 0) return uVar5;
+      if (param_1[1] == 0) return uVar4;
       param_1[1] = param_1[1] - 1;
       param_1[2] = param_1[2] + 1;
       bVar1 = *(unsigned char *)*param_1;
