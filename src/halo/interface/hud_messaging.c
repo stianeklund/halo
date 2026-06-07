@@ -2061,25 +2061,30 @@ void FUN_000d6cc0(int param_1)
       *(unsigned char *)((char *)puVar6 - 6) |= 0xf;
     } else {
       sVar5 = (short)(*((unsigned short *)puVar6 - 3) << 12) >> 12;
-      if (sVar5 == 0) {
+      switch (sVar5) {
+      case 0:
         iVar2 = (int)global_scenario_get();
         iVar2 = (int)tag_block_get_element((void *)(iVar2 + 0x4e4),
                                            *(int *)puVar6, 0x5c);
         position[0] = *(float *)(iVar2 + 0x24);
         position[1] = *(float *)(iVar2 + 0x28);
         position[2] = *(float *)(iVar2 + 0x2c);
-      } else if (sVar5 == 1) {
+        break;
+      case 1:
         iVar2 = (int)object_try_and_get_and_verify_type(*(int *)puVar6, -1);
         if (iVar2 == 0)
           goto skip;
         FUN_0001aae0(*(int *)puVar6, position, (float *)&param_1);
-      } else if (sVar5 == 2) {
+        break;
+      case 2:
         game_engine_get_goal_position((int *)position, (short)*(int *)puVar6);
-      } else {
+        break;
+      default:
         display_assert("!\"unreachable\"",
                        "c:\\halo\\SOURCE\\interface\\hud_nav_points.c", 0x2d5,
                        1);
         system_exit(-1);
+        break;
       }
       position[2] = position[2] + *(float *)((char *)puVar6 - 4);
       FUN_000d6660(
