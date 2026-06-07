@@ -2929,16 +2929,12 @@ void FUN_000d7d40(int param_1)
   pfVar6 = (float *)FUN_000d7280((short)local_player_idx);
 
   handle_slots[0] = *(int *)(param_1 + 0x34);
-  for (i = 0; i < 17; i++) {
-    handle_slots[1 + i] = 0;
-  }
+  csmemset(handle_slots + 1, 0, 17 * 4);
 
   sVar4 = local_player_count();
   tag_indices[0] = FUN_001a6820((int)unit_tag_data, 1 < sVar4);
 
-  for (i = 0; i < 17; i++) {
-    tag_indices[1 + i] = 0;
-  }
+  csmemset(tag_indices + 1, 0, 17 * 4);
 
   slot_count = 1;
 
@@ -3247,7 +3243,6 @@ void FUN_000d7d40(int param_1)
           iVar13 = unhi_tag;
           if (*(int *)(iVar21 + 0x214) != -1) {
             short health_max;
-            int h_cnt;
             int health_alpha;
             int health_flash_alpha;
 
@@ -3259,6 +3254,7 @@ void FUN_000d7d40(int param_1)
             {
               int *h_src = (int *)(unhi_tag + 0x1e4);
               int *h_dst = health_meter_data;
+              int h_cnt;
               for (iVar8 = unit_data, h_cnt = 0x1a; h_cnt != 0;
                    h_cnt--) {
                 *h_dst = *h_src;
