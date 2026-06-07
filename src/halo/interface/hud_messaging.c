@@ -2742,6 +2742,10 @@ void FUN_000d7a20(int param_1)
   short local_10[2];
   int local_c;
   int local_8;
+  int tmp;
+  float pos_x;
+  float pos_y;
+  short *pESI;
 
   if ((short)param_1 == -1) {
     return;
@@ -2760,6 +2764,7 @@ void FUN_000d7a20(int param_1)
     return;
   }
   iVar3 = *(int *)0x46bd0c;
+  pESI = (short *)(iVar3 + 0x310);
   sVar2 = local_player_count();
   fVar7 = FUN_000d1690(1 < sVar2);
   player_effect_get_damage_indicators(param_1, local_18);
@@ -2769,22 +2774,38 @@ void FUN_000d7a20(int param_1)
     if (local_18[iVar5] != 0 && local_18[iVar5] < 0x1e) {
       switch (iVar5) {
       case 0:
+        pos_x = (float)((int)pESI[0] + (int)*(short *)0x506584);
+        tmp = ((int)*(short *)0x506582 + (int)*(short *)0x50657e) / 2;
         param_1 = 0x40490fdb;
+        pos_y = (float)tmp;
         break;
       case 1:
+        pos_x = (float)((int)pESI[2] + (int)*(short *)0x506586);
+        tmp = ((int)*(short *)0x506580 + (int)*(short *)0x50657c) / 2;
         param_1 = 0x3fc90fdb;
+        pos_y = (float)tmp;
         break;
       case 2:
+        pos_x = (float)((int)*(short *)0x506588 - (int)pESI[1]);
+        tmp = ((int)*(short *)0x506582 + (int)*(short *)0x50657e) / 2;
         param_1 = 0;
+        pos_y = (float)tmp;
         break;
       case 3:
+        pos_x = (float)((int)*(short *)0x50658a - (int)pESI[3]);
+        tmp = ((int)*(short *)0x506580 + (int)*(short *)0x50657c) / 2;
         param_1 = 0x4096cbe4;
+        pos_y = (float)tmp;
         break;
       default:
         display_assert("!\"unreachable\"",
                        "c:\\halo\\SOURCE\\interface\\hud_unit.c", 0x400, 1);
         system_exit(-1);
       }
+
+      pos_x = pos_x - (float)(int)*(short *)0x50657e;
+      pos_y = pos_y - (float)(int)*(short *)0x50657c;
+
       iVar6 = *(int *)(iVar3 + 0x344);
       sVar2 = local_player_count();
       if (sVar2 < 2) {
@@ -2798,8 +2819,8 @@ void FUN_000d7a20(int param_1)
       if (local_8 != 0 &&
           (int)xbox_texture_cache_get_hardware_format((void *)local_8, 0, 1) !=
               0) {
-        local_10[0] = (short)fVar7;
-        local_10[1] = (short)fVar7;
+        local_10[0] = (short)pos_x;
+        local_10[1] = (short)pos_y;
         FUN_000d3200(local_8, 4, local_10, local_c, fVar7,
                      *(float *)&param_1, *(int *)(iVar3 + 0x34c), 0);
       }
