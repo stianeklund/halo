@@ -529,7 +529,7 @@
         },
         {
           "addr": "0x150550",
-          "decl": "void FUN_00150550(void);"
+          "decl": "int FUN_00150550(void *out_point, float *direction, float *origin, float arg4, int arg5, int arg6, float *out_point2, void *out_arg8, int max_results, void *results);"
         },
         {
           "addr": "0x1506d0",
@@ -5135,7 +5135,7 @@
         },
         {
           "addr": "0x14f020",
-          "decl": "void FUN_0014f020(void);"
+          "decl": "char FUN_0014f020(uint32_t collision_flags, float *point, float vertical_extent, float p4, float p5, int unit_handle, float *point_out);"
         },
         {
           "addr": "0x14f2c0",
@@ -12612,6 +12612,18 @@
           "decl": "int16_t collision_user_stack[32];"
         },
         {
+          "addr": "0x31fc38",
+          "decl": "float *global_zero_vector_ptr;"
+        },
+        {
+          "addr": "0x31fc3c",
+          "decl": "float *global_forward_vector_ptr;"
+        },
+        {
+          "addr": "0x31fc40",
+          "decl": "float *global_left_vector_ptr;"
+        },
+        {
           "addr": "0x31fc44",
           "decl": "float *global_up_vector_ptr;"
         }
@@ -12779,7 +12791,7 @@
         },
         {
           "addr": "0xf6c40",
-          "decl": "void valid_real_vector3d_axes3(void);"
+          "decl": "char valid_real_vector3d_axes3(float *a, float *b, float *c);"
         },
         {
           "addr": "0xf6d00",
@@ -15052,7 +15064,7 @@
         },
         {
           "addr": "0x13d870",
-          "decl": "void FUN_0013d870(void);",
+          "decl": "void FUN_0013d870(int unit_handle, void *data);",
           "ported": true
         },
         {
@@ -15886,7 +15898,7 @@
         },
         {
           "addr": "0x9f570",
-          "decl": "void FUN_0009f570(void);"
+          "decl": "void FUN_0009f570(int effect_tag_index, int param_2, void *position, int param_4);"
         },
         {
           "addr": "0x9f7e0",
@@ -21019,7 +21031,7 @@
         },
         {
           "addr": "0x189860",
-          "decl": "void FUN_00189860(void);"
+          "decl": "void FUN_00189860(int flag, void *pos, void *height_vec, float val, void *color);"
         },
         {
           "addr": "0x189a20",
@@ -25104,7 +25116,7 @@
         },
         {
           "addr": "0x19fa20",
-          "decl": "void FUN_0019fa20(void);"
+          "decl": "void FUN_0019fa20(int unit_handle, void *node_block);"
         }
       ],
       "name": "unicode.obj",
@@ -25114,57 +25126,63 @@
       "functions": [
         {
           "addr": "0x1a01d0",
-          "decl": "void FUN_001a01d0(void);"
+          "decl": "void FUN_001a01d0(float *forward, float *left, float *up);",
+          "ported": true
         },
         {
           "addr": "0x1a03c0",
-          "decl": "void FUN_001a03c0(void);"
+          "decl": "void FUN_001a03c0(int unit_handle@<eax>, int node_count, float *positions, void *nodes@<edi>);",
+          "ported": true
         },
         {
           "addr": "0x1a0680",
-          "decl": "void FUN_001a0680(void);"
+          "decl": "char FUN_001a0680(int unit_handle);",
+          "ported": false
         },
         {
           "addr": "0x1a07c0",
-          "decl": "void biped_place(void);"
+          "decl": "void biped_place(int unit_handle, void *placement);",
+          "ported": true
         },
         {
           "addr": "0x1a0800",
-          "decl": "void biped_reset(void);"
+          "decl": "void biped_reset(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1a0860",
-          "decl": "void biped_disconnect_from_structure_bsp(void);"
+          "decl": "void biped_disconnect_from_structure_bsp(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1a0890",
           "decl": "void biped_get_camera_height_and_offset(int unit_handle, vector3_t *out_pos, float *out_height_offset, float *out_camera_height);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1a0950",
           "decl": "void biped_stop_melee_attack(int unit_handle);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1a0970",
           "decl": "void biped_start_limp_body_physics(int unit_handle);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1a09f0",
           "decl": "void biped_stop_limp_body_physics(int unit_handle);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1a0a40",
-          "decl": "void FUN_001a0a40(int unit_handle@<edi>, char *biped_obj@<ebx>, float *velocity_ptr);",
+          "decl": "void FUN_001a0a40(int contact_handle@<edi>, int unit_handle@<ebx>, float *velocity_ptr);",
           "ported": true
         },
         {
           "addr": "0x1a0b30",
           "decl": "char FUN_001a0b30(int unit_handle@<edi>);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x1a0be0",
@@ -25173,108 +25191,134 @@
         },
         {
           "addr": "0x1a0db0",
-          "decl": "void biped_flying_through_air(void);"
+          "decl": "int biped_flying_through_air(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1a0e00",
-          "decl": "void FUN_001a0e00(void);"
+          "decl": "void FUN_001a0e00(float threshold, int unit_handle@<eax>);",
+          "ported": false
         },
         {
           "addr": "0x1a0f10",
-          "decl": "void FUN_001a0f10(void);"
+          "decl": "void FUN_001a0f10(int unit_handle, int param_2, short index@<bx>);",
+          "ported": true
         },
         {
           "addr": "0x1a1020",
-          "decl": "void biped_adjust_placement(void);"
+          "decl": "void biped_adjust_placement(int unit_handle, char *placement);",
+          "ported": true
         },
         {
           "addr": "0x1a1080",
-          "decl": "void biped_export_function_values(void);"
+          "decl": "void biped_export_function_values(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1a1140",
           "decl": "void biped_estimate_position(int unit_handle, int16_t estimate_mode, vector3_t *estimated_body_position, vector3_t *desired_facing, vector3_t *desired_gun_offset, vector3_t *out_position);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1a12e0",
-          "decl": "void biped_get_autoaim_pill(void);"
+          "decl": "void biped_get_autoaim_pill(int unit_handle, float *out_pos, float *out_axis, int *out_value);",
+          "ported": true
         },
         {
           "addr": "0x1a1430",
-          "decl": "void biped_fix_position(void);"
+          "decl": "char biped_fix_position(int unit_handle, int seat_handle, float *initial_position, float *final_position, float scale, char keep_basis, char dont_teleport, char scale_by_height);",
+          "name": "biped_fix_position",
+          "ported": true
         },
         {
           "addr": "0x1a1900",
-          "decl": "void biped_render_debug(void);"
+          "decl": "void biped_render_debug(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1a1a10",
-          "decl": "void FUN_001a1a10(void);"
+          "decl": "int FUN_001a1a10(float scale, float *out_point, void *out_vec, float *direction@<eax>, int unit_handle@<edi>);",
+          "ported": false
         },
         {
           "addr": "0x1a1b90",
-          "decl": "int biped_approximate_surface_index(int unit_handle, int param_2);"
+          "decl": "int biped_approximate_surface_index(int unit_handle, float *out_point);",
+          "ported": false
         },
         {
           "addr": "0x1a1bc0",
-          "decl": "int biped_find_pathfinding_surface_index(int unit_handle, vector3_t *pos);"
+          "decl": "int biped_find_pathfinding_surface_index(int unit_handle, vector3_t *pos);",
+          "ported": true
         },
         {
           "addr": "0x1a1d80",
-          "decl": "void biped_exit_seat_end(void);"
+          "decl": "void biped_exit_seat_end(int unit_handle, int seat_handle);",
+          "ported": true
         },
         {
           "addr": "0x1a1e70",
-          "decl": "void FUN_001a1e70(void);"
+          "decl": "void FUN_001a1e70(int unit_handle);",
+          "ported": false
         },
         {
           "addr": "0x1a1fb0",
-          "decl": "void FUN_001a1fb0(void);"
+          "decl": "void FUN_001a1fb0(int unit_handle@<eax>);",
+          "ported": true
         },
         {
           "addr": "0x1a2160",
-          "decl": "void FUN_001a2160(void);"
+          "decl": "void FUN_001a2160(int unit_handle@<eax>);",
+          "ported": false
         },
         {
           "addr": "0x1a2290",
-          "decl": "void FUN_001a2290(void);"
+          "decl": "char FUN_001a2290(int unit_handle@<edi>);",
+          "ported": false
         },
         {
           "addr": "0x1a2440",
-          "decl": "void FUN_001a2440(void);"
+          "decl": "void FUN_001a2440(int unit_handle@<edi>);",
+          "ported": true
         },
         {
           "addr": "0x1a25e0",
-          "decl": "void FUN_001a25e0(void);"
+          "decl": "void FUN_001a25e0(int unit_handle@<ecx>);",
+          "ported": false
         },
         {
           "addr": "0x1a2800",
-          "decl": "void FUN_001a2800(void);"
+          "decl": "void FUN_001a2800(int unit_handle@<eax>, const char *failure_kind);",
+          "ported": true
         },
         {
           "addr": "0x1a2900",
-          "decl": "void FUN_001a2900(void);"
+          "decl": "void FUN_001a2900(int unit_handle, char *state);",
+          "ported": true
         },
         {
           "addr": "0x1a2a60",
-          "decl": "void FUN_001a2a60(void);"
+          "decl": "void FUN_001a2a60(int unit_handle@<edi>, char *state);",
+          "ported": false
         },
         {
           "addr": "0x1a2b10",
-          "decl": "void FUN_001a2b10(void);"
+          "decl": "void FUN_001a2b10(int unit_handle@<edi>);",
+          "ported": false
         },
         {
           "addr": "0x1a2b90",
-          "decl": "void FUN_001a2b90(void);"
+          "decl": "void FUN_001a2b90(int unit_handle@<eax>);",
+          "ported": true
         },
         {
           "addr": "0x1a2d90",
-          "decl": "void biped_build_flying_axes(void);"
+          "decl": "void biped_build_flying_axes(float *forward, float *left, float *up);",
+          "ported": true
         },
         {
           "addr": "0x1a2f40",
-          "decl": "void FUN_001a2f40(void);"
+          "decl": "void FUN_001a2f40(void *physics@<esi>);",
+          "ported": false
         }
       ],
       "name": "bipeds.obj",
@@ -25388,7 +25432,7 @@
         },
         {
           "addr": "0x1a74d0",
-          "decl": "void FUN_001a74d0(void);"
+          "decl": "int FUN_001a74d0(int unit_handle, int scream_type);"
         },
         {
           "addr": "0x1a7650",
@@ -26124,7 +26168,7 @@
         },
         {
           "addr": "0x1b24d0",
-          "decl": "void unit_place(void);"
+          "decl": "void unit_place(int unit_handle, void *placement);"
         },
         {
           "addr": "0x1b2610",
@@ -33615,7 +33659,7 @@
         },
         {
           "addr": "0x14c4b0",
-          "decl": "void FUN_0014c4b0(void);"
+          "decl": "char FUN_0014c4b0(int arg1, float *arg2, float *arg3, void *out_result);"
         }
       ],
       "name": "collision_features.obj",
@@ -35061,15 +35105,15 @@
         },
         {
           "addr": "0x147990",
-          "decl": "void collision_surface_project_point2d(void);"
+          "decl": "int collision_surface_project_point2d(int bsp, int surface_index, int param3, int param4, float *point, float *out_point);"
         },
         {
           "addr": "0x1479e0",
-          "decl": "void collision_surface_test_point2d(void);"
+          "decl": "char collision_surface_test_point2d(int bsp, int surface_index, int param3, int param4, float *point);"
         },
         {
           "addr": "0x147ae0",
-          "decl": "void collision_surface_find_closest_point2d(void);"
+          "decl": "int collision_surface_find_closest_point2d(int bsp, int surface_index, int param3, int param4, float *point, float *out_point);"
         },
         {
           "addr": "0x147d10",
@@ -35149,7 +35193,7 @@
         },
         {
           "addr": "0x14e7d0",
-          "decl": "void FUN_0014e7d0(void);"
+          "decl": "char FUN_0014e7d0(uint32_t collision_flags, float *point, float *offset_vec, float p4, int unit_handle, void *result);"
         },
         {
           "addr": "0x14e940",
