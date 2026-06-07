@@ -129,6 +129,7 @@ if(ENABLE_XDK_HYBRID AND NOT MSVC)
 		halo/saved_games/game_state.c
 		halo/sound/game_sound.c
 		halo/sound/sound_manager.c
+		halo/units/bipeds.c
 		halo/units/units.c
 	)
 endif()
