@@ -24,10 +24,24 @@ Dump sources:
     xemu (default): QMP pmemsave — physical memory dump, needs virt-to-phys mapping
     XBDM (--xbdm): getmem over RDCP — virtual memory reads, works on real hardware
 
-The dump tool saves raw physical memory.  The snapshot tool reads the
-function's relocations to discover which globals/data it touches, then
-extracts those regions from the physical dump into a state_snapshot JSON
-that unicorn_diff can load directly.
+*** WARNING — VERIFY EVERY DUMP on the Cerbios-debug-BIOS dev xemu (2026-06-07) ***
+The identity mapping above does NOT reliably hold on the dev xemu (Cerbios 3.1.0
+Hybrid Debug BIOS, kernel-irqchip=off). All three capture methods produced
+UNUSABLE data in 2026-06-07 testing:
+  - QMP `pmemsave` (default): physical dump; game VA is not identity-mapped, so
+    virt_to_phys() below reads the WRONG bytes.
+  - `--xbdm` getmem: returned an ALL-ZEROS 128MB file.
+  - QMP `memsave` of an arbitrary paused state: read zeros at known globals.
+The only proven capture (artifacts/snapshots/, see its README) used QMP `memsave`
+of specific VA regions during a SPECIFIC active-gameplay paused state (the paused
+CPU context must have the game's user address space live — not a menu/idle pause).
+ALWAYS verify a dump before trusting it: read a known global and confirm it is
+sane/non-zero, e.g. read_u32(dump, 0x31fc38) (fwd-vector ptr) ~ 0x0028xxxx, or look
+for datum magic 0x64407440 in the object table. If they read 0, the dump is junk.
+
+The snapshot tool reads the function's relocations to discover which globals/data
+it touches, then extracts those regions from the dump (via virt_to_phys) into a
+state_snapshot JSON that unicorn_diff can load directly.
 """
 
 import argparse
