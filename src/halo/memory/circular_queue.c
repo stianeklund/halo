@@ -1786,8 +1786,11 @@ void FUN_001167f0(int param_1, int param_2, int tree)
   local_c = 0xffffffff;
   iVar3 = 7;
   iVar4 = 4;
-  iVar3 = 0;
-  if (uVar2 == iVar3) {
+  /* original keeps max_count(iVar3)=7 here; the lift's `iVar3 = 0` clobbered it,
+   * making the run-flush condition (count <= max_count) always true and breaking
+   * run-length detection -> corrupted deflate output. Test first code length
+   * directly (orig: MOV ECX,7 kept; sets 0x8a only when first length == 0). */
+  if (uVar2 == 0) {
     iVar3 = 0x8a;
     iVar4 = 3;
   }
