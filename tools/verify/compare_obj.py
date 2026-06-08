@@ -45,7 +45,7 @@ def disassemble(obj_path: str) -> dict[str, list[str]]:
         m = re.match(r'^(?:[0-9a-f]+ )?<([^>]+)>:', line)
         if m:
             sym = m.group(1)
-            if sym.startswith("LAB_") or sym.startswith("switchD_") or sym.startswith("$L"):
+            if sym.startswith("LAB_") or sym.startswith("switchD_") or sym.startswith("$L") or sym.startswith("$case") or sym.startswith("$next"):
                 current_labels.add(len(current_lines))
                 continue
             if current_func and current_lines:
