@@ -289,7 +289,7 @@
     "0x117000": "void FUN_00117000(int state @<ecx>);",
     "0x1170b0": "void FUN_001170b0(int state @<eax>);",
     "0x117130": "int FUN_00117130(int state @<eax>);",
-    "0x1171a0": "void FUN_001171a0(int len @<ecx>, unsigned char *buf @<edx>, int state @<eax>, int header);",
+    "0x1171a0": "void FUN_001171a0(unsigned int len @<ecx>, unsigned char *buf @<edx>, int state @<eax>, int header);",
     "0x1172d0": "void FUN_001172d0(int *param_1, int param_2, short *bl_count @<eax>);",
     "0x1173f0": "void FUN_001173f0(int state @<eax>, int *param_1);",
     "0x117600": "int FUN_00117600(int state @<esi>);",
