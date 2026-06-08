@@ -13,35 +13,47 @@ on:
 jobs:
   generate-progress-report:
     name: Generate decomp.dev-style Progress Report
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       contents: write
+    env:
+      VENV_PYTHON: /mnt/g/dev/halo/.venv/bin/python3
+      BUILD_DIR: /mnt/g/dev/halo/build
+      ARTIFACTS_DIR: /mnt/g/dev/halo/artifacts
     
     steps:
       - name: Clone Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      
-      - name: Install Dependencies
+
+      - name: Link Report Data
         run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install -r requirements.txt
+          if [ ! -e build ] && [ -d "$BUILD_DIR" ]; then
+            ln -s "$BUILD_DIR" build
+          fi
+          mkdir -p artifacts
+          for dir in batch_verify equivalence runtime_oracle runtime_oracle_batch; do
+            if [ ! -e "artifacts/$dir" ] && [ -d "$ARTIFACTS_DIR/$dir" ]; then
+              ln -s "$ARTIFACTS_DIR/$dir" "artifacts/$dir"
+            fi
+          done
+
+      - name: Generate CI Status
+        run: |
+          mkdir -p artifacts/progress
+          "$VENV_PYTHON" tools/report/generate_ci_status.py \
+            --output-dir artifacts/progress
 
       - name: Generate Progress Report
         run: |
-          python3 tools/report/generate_decomp_report.py \
+          "$VENV_PYTHON" tools/report/generate_decomp_report.py \
             --output artifacts/progress/report.json \
             --html artifacts/progress/index.html
       
       - name: Update README Badge Data
         run: |
-          PERCENT=$(python3 -c "import json; d=json.load(open('artifacts/progress/report.json')); print('%.1f' % d['summary']['functions']['percent'])")
+          PERCENT=$("$VENV_PYTHON" -c "import json; d=json.load(open('artifacts/progress/report.json')); print('%.1f' % d['summary']['functions']['percent'])")
           echo "PROGRESS_PERCENT=$PERCENT" >> $GITHUB_ENV
           printf '{"schemaVersion":1,"label":"progress","message":"%s%%","color":"blue"}\n' "$PERCENT" > artifacts/progress/badge.json
       
@@ -56,28 +68,33 @@ jobs:
       
       - name: Update Historical Data
         run: |
-          python3 tools/report/history.py \
+          "$VENV_PYTHON" tools/report/history.py \
             --add-snapshot artifacts/progress/report.json \
             --commit ${{ github.sha }}
-      
+       
       - name: Generate Historical Summary
         run: |
-          python3 tools/report/history.py --show-summary
-          python3 tools/report/history.py --show-velocity
-          python3 tools/report/history.py --show-eta
+          "$VENV_PYTHON" tools/report/history.py --show-summary
+          "$VENV_PYTHON" tools/report/history.py --show-velocity
+          "$VENV_PYTHON" tools/report/history.py --show-eta
       
       - name: Copy History for Deployment
         run: |
           # Ensure history is in the deploy directory
           cp artifacts/progress/history.json artifacts/progress/history.json.deploy 2>/dev/null || true
       
+      - name: Prepare GitHub Pages Payload
+        run: |
+          mkdir -p artifacts/pages/progress
+          cp -a artifacts/progress/. artifacts/pages/
+          cp -a artifacts/progress/. artifacts/pages/progress/
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./artifacts/progress
+          publish_dir: ./artifacts/pages
           publish_branch: gh-pages
-          destination_dir: progress
           keep_files: true
       
       - name: Comment on PR (if applicable)

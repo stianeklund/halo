@@ -73,6 +73,7 @@
 	halo/items/items.c
 	halo/items/projectiles.c
 	halo/items/weapons.c
+	halo/units/bipeds.c
 	halo/units/units.c
 	halo/units/vehicles.c
 	halo/networking/network_client_manager.c

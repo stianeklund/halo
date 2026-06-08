@@ -58,21 +58,61 @@ def connect(read_only: bool = False) -> duckdb.DuckDBPyConnection:
 
 
 def upsert_record(con: duckdb.DuckDBPyConnection, rec: dict) -> None:
-    """Insert or replace a function record. Embedding fields are left null."""
-    con.execute(
-        """
-        INSERT OR REPLACE INTO functions
-            (addr, name, obj_name, source_path, decl, pseudocode, c_source,
-             pseudocode_sha, c_source_sha, indexed_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        """,
-        [
-            rec["addr"], rec["name"], rec.get("obj_name"),
-            rec.get("source_path"), rec.get("decl"),
-            rec.get("pseudocode"), rec.get("c_source"),
-            rec.get("pseudocode_sha"), rec.get("c_source_sha"),
-        ],
-    )
+    """Insert or update a function record, preserving embeddings on unchanged rows.
+
+    When content (pseudocode or C source) changes, embedding columns are nulled
+    so the next ``embed`` run re-embeds them. Unchanged rows keep their embeddings.
+    """
+    existing = con.execute(
+        "SELECT pseudocode_sha, c_source_sha FROM functions WHERE addr = ?",
+        [rec["addr"]],
+    ).fetchone()
+
+    if existing:
+        sha_unchanged = (
+            existing[0] == rec.get("pseudocode_sha")
+            and existing[1] == rec.get("c_source_sha")
+        )
+        if sha_unchanged:
+            con.execute(
+                "UPDATE functions SET indexed_at = CURRENT_TIMESTAMP WHERE addr = ?",
+                [rec["addr"]],
+            )
+            return
+
+        con.execute(
+            """
+            UPDATE functions SET
+                name = ?, obj_name = ?, source_path = ?, decl = ?,
+                pseudocode = ?, c_source = ?,
+                pseudocode_sha = ?, c_source_sha = ?,
+                emb_pseudocode = NULL, emb_c = NULL, emb_model = NULL,
+                indexed_at = CURRENT_TIMESTAMP
+            WHERE addr = ?
+            """,
+            [
+                rec["name"], rec.get("obj_name"),
+                rec.get("source_path"), rec.get("decl"),
+                rec.get("pseudocode"), rec.get("c_source"),
+                rec.get("pseudocode_sha"), rec.get("c_source_sha"),
+                rec["addr"],
+            ],
+        )
+    else:
+        con.execute(
+            """
+            INSERT INTO functions
+                (addr, name, obj_name, source_path, decl, pseudocode, c_source,
+                 pseudocode_sha, c_source_sha, indexed_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            """,
+            [
+                rec["addr"], rec["name"], rec.get("obj_name"),
+                rec.get("source_path"), rec.get("decl"),
+                rec.get("pseudocode"), rec.get("c_source"),
+                rec.get("pseudocode_sha"), rec.get("c_source_sha"),
+            ],
+        )
 
 
 def update_embeddings(
