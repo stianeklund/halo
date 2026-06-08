@@ -666,8 +666,9 @@ char game_engine_get_goal_in_use(short param_1)
 /* game_engine_get_goal_position (0xa9380)
  *
  * Copies the position (3 floats) of the goal at index param_2 into param_1.
- * Asserts the goal is in use. */
-void game_engine_get_goal_position(int *param_1, short param_2)
+ * Returns param_1 in EAX — unported callers (FUN_000d6cc0) use the return
+ * value as the position pointer. */
+int *game_engine_get_goal_position(int *param_1, short param_2)
 {
   int iVar1;
   char *src;
@@ -682,6 +683,7 @@ void game_engine_get_goal_position(int *param_1, short param_2)
   *param_1 = *(int *)src;
   param_1[1] = *(int *)(src + 4);
   param_1[2] = *(int *)(src + 8);
+  return param_1;
 }
 
 /* game_engine_clear_goal_position (0xa9460)
@@ -4948,40 +4950,26 @@ void game_show_score_you_ally_enemy(int param_1, int param_2, int param_3, int p
 
 
 
-/* Find a player whose biped is carrying a flag. */
-
-int FUN_000b0100(void)
-
+/* Find a player whose biped is carrying weapon_handle.
+ * weapon_handle passed via @<edi> — set by FUN_000b0c10 before the call. */
+int FUN_000b0100(int weapon_handle /* @<edi> */)
 {
-
   data_iter_t iter;
-
   int player;
 
-
-
   data_iterator_new(&iter, player_data);
-
   player = (int)data_iterator_next(&iter);
 
   while (1) {
-
     if (player == 0)
-
       return -1;
-
     if (*(int *)(player + 0x34) != -1 &&
-
-        ((char (*)(int))FUN_001ac3b0)(*(int *)(player + 0x34)))
-
+        ((char (*)(int, int))FUN_001ac3b0)(*(int *)(player + 0x34), weapon_handle))
       break;
-
     player = (int)data_iterator_next(&iter);
-
   }
 
   return iter.datum_handle;
-
 }
 
 
@@ -8193,7 +8181,7 @@ void FUN_000b0c10(int weapon_handle, int weapon_obj)
       FUN_000b0990(weapon_handle);
     }
   }
-  flag_carrier = FUN_000b0100();
+  flag_carrier = FUN_000b0100(weapon_handle);
   flag_team = *(int16_t *)(weapon_obj + 0x68);
   team_idx = (int)flag_team + 1;
   team_idx = team_idx & 0x80000001;
