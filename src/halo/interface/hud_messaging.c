@@ -2895,6 +2895,18 @@ void FUN_000d7d40(int param_1)
   int canary_buf[128];
   int handle_slots[18];
   int tag_indices[18];
+  /*
+   * In the original MSVC frame this is &local_24 (base EBP-0x20); only
+   * fraction_slots[0] (the shield fraction, unit_ptr+0x2f4) is ever stored.
+   * The overlay loop reads fraction_slots[*psVar12], where *psVar12 is the
+   * overlay_type. That read is reached only via the (full_shield & (1<<type))
+   * branch, and full_shield is forced to {0,1} at 0x7f91/0x7f9a
+   * (= unit_ptr+0x2f0 == 1.0f). A {0,1} value ANDed with (1<<type) is nonzero
+   * only for type==0, so the indexed read is structurally always
+   * fraction_slots[0]; slots [1..3] are dead on the read path and the latent
+   * OOB for overlay_type>=4 cannot occur here. The discrete float[4] is
+   * therefore faithful. (See FUN_000d7d40 disasm 0x87d2-0x87e1.)
+   */
   float fraction_slots[4];
   unsigned int full_shield;
   unsigned int damage_active;
