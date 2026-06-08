@@ -35703,5 +35703,11 @@
     "decl": "char FUN_000159d0(int actor_handle, short *state_data);",
     "ported": true,
     "obj": "actor_looking.obj"
+  },
+  "0x14540": {
+    "name": "FUN_00014540",
+    "decl": "void FUN_00014540(int actor_handle);",
+    "ported": true,
+    "obj": "actor_looking.obj"
   }
 }
