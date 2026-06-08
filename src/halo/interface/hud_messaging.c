@@ -1955,7 +1955,7 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
   }
   local_8 = 0.0f;
   fVar1 =
-      ((float)((int)*(short *)0x506588 + 2 - (int)*(short *)0x506584 + 2) -
+      ((float)((int)*(short *)0x50658a - (int)*(short *)0x506586) -
        (*(float *)(*(int *)0x46bd0c + 300) +
         *(float *)(*(int *)0x46bd0c + 0x128))) *
       *(float *)0x253398;
