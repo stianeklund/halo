@@ -1345,10 +1345,11 @@ char FUN_000159d0(int actor_handle, short *state_data)
   if (*(short *)(actor + 0x15e) == 4) {
     return 0;
   }
+  prop_handle = *(int *)(actor + 0x1e8);
   if ((*(char *)(actor + 0x160) == '\0') && (*(char *)(actor + 6) == '\0') &&
-      ((prop_handle = *(int *)(actor + 0x1e8)) != -1)) {
+      prop_handle != -1) {
     prop = (char *)datum_get(prop_data, prop_handle);
-    *(int *)((char *)state_data + 0x3c) = prop_handle;
+    *(int *)((char *)state_data + 0x3c) = *(int *)(actor + 0x1e8);
     state_data[1] = 0x78;
     *(char *)((char *)state_data + 0x40) = 1;
     behavior = *(short *)(actor + 0x1e4) - 6;
@@ -1366,7 +1367,7 @@ char FUN_000159d0(int actor_handle, short *state_data)
     default:
       return 1;
     }
-    actor_perception_find_prop_pathfinding_location(actor_handle, prop_handle);
+    actor_perception_find_prop_pathfinding_location(actor_handle, *(int *)(actor + 0x1e8));
     state_data[0x12] = 2;
     *(int *)((char *)state_data + 0x28) = *(int *)(prop + 0xf0);
     *(int *)((char *)state_data + 0x2c) = *(int *)(prop + 0xf4);
@@ -3221,7 +3222,6 @@ int FUN_000197d0(int actor_handle, short param_2, char param_3,
 {
   char *actor;
   char *enc;
-  int *pos;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   if (state_data == NULL) {
@@ -3233,6 +3233,7 @@ int FUN_000197d0(int actor_handle, short param_2, char param_3,
   if ((*(char *)(actor + 0x160) == '\0') && (*(char *)(actor + 6) == '\0') &&
       (*(int *)(actor + 0x34) != -1)) {
     if (param_2 != -1) {
+      int *pos;
       enc = (char *)tag_block_get_element(
         (char *)global_scenario_get() + 0x42c,
         *(unsigned int *)(actor + 0x34) & 0xffff, 0xb0);
