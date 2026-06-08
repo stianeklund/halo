@@ -1237,6 +1237,215 @@ bool FUN_000153e0(int actor_handle)
   return false;
 }
 
+/* FUN_00015520 (0x15520)
+ * Per-tick update for actor flee state (action_flee.c).
+ * Manages flee target selection (firing positions), flee timer, look
+ * animation state, and flee-related vocal/sound cues. Returns 1 if flee is
+ * still active, 0 if done (neither flee_unable nor done_fleeing is set).
+ *
+ * State block layout (actor+0x9c base = ESI):
+ *   +0x00 = look_type (int16_t)
+ *   +0x02 = 9e = flee_ticks_remaining (int16_t)
+ *   +0x04 = a0 (unused in this fn)
+ *   +0x06 = a2 = find_new_position flag (char)
+ *   +0x08 = a4 = current_firing_position_index (int16_t)
+ *   +0x0a = a6 = firing_position_byte (char)
+ *   +0x0c = a8 = look_anim_type (int16_t)
+ *   +0x0e = aa = unable_to_flee (char)
+ *   +0x0f = ab = done_fleeing (char)
+ *   +0x10 = ac = flee_sound_played (char)
+ *   +0x14 = b0 = last_update_tick (int)
+ *   +0x1c = b8 = encounter_handle (int)
+ *
+ * Confirmed: EBX=actor_handle, EDI=actor*, ESI=actor+0x9c.
+ * Confirmed: FUN_000153e0 @<ebx>=actor_handle (no stack args).
+ * Confirmed: FUN_00014e90 @<eax>=actor_handle, stack=state_block_ptr.
+ * Confirmed: FUN_00014c10 cdecl 1 arg; FUN_000300b0/302b0 cdecl 1 arg.
+ * Confirmed: switch table at 0x15864; cases 9/10 share case 0xb/0xc bodies.
+ * Confirmed: assert at action_flee.c:0x12e, 0x98. */
+int FUN_00015520(int actor_handle)
+{
+  char *actor;
+  char *state;
+  short look_anim;
+  short sVar;
+  int encounter_handle;
+  char *encounter;
+  int cur_tick;
+  int enc_val;
+  int mode;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  state = actor + 0x9c;
+
+  if (*(char *)(actor + 0x6) == '\0') {
+    /* Update look_type counter if we are in animated flee range [9,12] */
+    look_anim = *(int16_t *)(state + 0xc);
+    if (look_anim > 8 && look_anim < 0xd) {
+      *(int16_t *)(state + 0x0) = 0xb4;
+    }
+
+    /* Manage firing position selection */
+    if (*(int16_t *)(state + 0x2) < 1) {
+      if (*(int16_t *)(state + 0x8) == -1) {
+        /* No current target, need new one */
+        *(char *)(state + 0x6) = 1;
+      } else if (*(int16_t *)(actor + 0x3b8) == -1) {
+        /* No firing positions available */
+        *(int16_t *)(state + 0x8) = (short)0xffff;
+        *(char *)(state + 0x6) = 1;
+      } else {
+        /* Check if current firing position is valid */
+        if (FUN_000153e0(actor_handle)) {
+          if (*(int16_t *)(actor + 0x3b8) == -1) {
+            display_assert("actor->firing_positions.current_position_index != NONE",
+                           "c:\\halo\\SOURCE\\ai\\action_flee.c", 0x98, 1);
+            system_exit(-1);
+          }
+          if (*(int16_t *)(state + 0x0) == 0) {
+            /* Adopt new firing position */
+            *(int16_t *)(state + 0x8) = *(int16_t *)(actor + 0x3b8);
+            *(char *)(state + 0xa) = *(char *)(actor + 0x3ba);
+            *(char *)(state + 0xf) = 1;
+            *(char *)(state + 0x6) = 0;
+            /* Update encounter state if actor has encounter */
+            encounter_handle = *(int *)(state + 0x1c);
+            if (encounter_handle != -1) {
+              encounter = (char *)datum_get(*(data_t **)0x5ab23c, encounter_handle);
+              *(int16_t *)(encounter + 0x32) = 0;
+              sVar = *(int16_t *)(encounter + 0x34);
+              if (*(int16_t *)(encounter + 0x34) <= *(int16_t *)(encounter + 0x36)) {
+                sVar = *(int16_t *)(encounter + 0x36);
+              }
+              *(char *)(encounter + 0x74) = 0;
+              *(int16_t *)(encounter + 0x30) = sVar;
+              *(int16_t *)(encounter + 0x38) = 2;
+              actor_situation_update_target_status(actor_handle);
+              actor_situation_combat_status_update(actor_handle);
+            }
+          } else {
+            *(char *)(state + 0x6) = 1;
+          }
+        }
+      }
+    } else {
+      /* Flee timer expired */
+      *(int16_t *)(state + 0x8) = (short)0xffff;
+    }
+
+    /* Switch on look animation type */
+    look_anim = *(int16_t *)(state + 0xc);
+    switch (look_anim) {
+    case 9:
+    case 10:
+      if (*(int *)(actor + 0x1b0) == -1)
+        *(char *)(state + 0xf) = 1;
+      break;
+    case 0xb:
+      if (*(char *)(actor + 0x1b4) == '\0')
+        *(char *)(state + 0xf) = 1;
+      break;
+    case 0xc:
+      if (*(char *)(actor + 0x1b5) == '\0')
+        *(char *)(state + 0xf) = 1;
+      break;
+    default:
+      break;
+    }
+
+    /* Check if actor is actively fleeing and can find a position */
+    if (*(char *)(actor + 0x4c) != '\0' && *(char *)(state + 0xf) == '\0') {
+      if (*(int16_t *)(state + 0x8) != -1 &&
+          *(int16_t *)(state + 0x0) == 0 &&
+          FUN_00014e90(actor_handle, state)) {
+        *(int16_t *)(state + 0x8) = (short)0xffff;
+        *(char *)(state + 0x6) = 1;
+      }
+      if (*(char *)(actor + 0x160) == '\0') {
+        if (*(char *)(state + 0x6) == '\0' ||
+            (FUN_00014c10(1), *(int16_t *)(state + 0x8) != -1)) {
+          goto skip_mark_unable;
+        }
+      } else {
+        *(char *)(state + 0x6) = 0;
+      }
+      *(char *)(state + 0xe) = 1;
+      *(int *)(actor + 0x398) = game_time_get();
+    }
+  }
+
+skip_mark_unable:
+  /* Clear flee_sound_played if still in flee anim range and unit not talking */
+  look_anim = *(int16_t *)(state + 0xc);
+  if (look_anim > 8 && look_anim < 0xd) {
+    if (*(int *)(actor + 0x18) != -1) {
+      if ((char)FUN_001a6bc0(*(int *)(actor + 0x18)) == 0) {
+        *(char *)(state + 0x10) = 0;
+      }
+    }
+  }
+
+  /* Check if we should play flee sound/vocal */
+  if (*(int16_t *)(state + 0xc) <= 0 ||
+      *(int16_t *)(state + 0x8) == -1 ||
+      *(char *)(state + 0xe) != '\0' ||
+      *(int *)(actor + 0x18) == -1) {
+    goto skip_flee_vocal;
+  }
+  cur_tick = game_time_get();
+  if (*(char *)(state + 0x10) != '\0' &&
+      *(int *)(state + 0x14) + 0x3c < cur_tick) {
+    goto skip_flee_vocal;
+  }
+
+  /* Dispatch flee vocal/sound based on look_anim type */
+  look_anim = *(int16_t *)(state + 0xc);
+  if (look_anim == 0xc || look_anim == 0xb) {
+    FUN_001a74d0(*(int *)(actor + 0x18), 2);
+  } else if (look_anim == 9 || look_anim == 0xa) {
+    FUN_001a74d0(*(int *)(actor + 0x18), 1);
+  } else {
+    /* Encounter-based flee sound */
+    enc_val = -1;
+    encounter_handle = *(int *)(state + 0x1c);
+    if (encounter_handle != -1) {
+      encounter = (char *)datum_get(*(data_t **)0x5ab23c, encounter_handle);
+      enc_val = *(int *)(encounter + 0x18);
+    }
+    if (*(char *)(state + 0x10) == '\0') {
+      mode = (look_anim == 8) ? 0x20 : 0x1f;
+      FUN_00046f10(mode, *(int *)(actor + 0x18), enc_val, -1, -1, 4, 0);
+      *(char *)(state + 0x10) = 1;
+    } else {
+      FUN_00046f10(0x21, *(int *)(actor + 0x18), enc_val, -1, -1, -1, 0);
+    }
+  }
+  *(int *)(state + 0x14) = cur_tick;
+
+skip_flee_vocal:
+  /* Check if flee is complete or asserted */
+  if (*(char *)(actor + 0x6) == '\0') {
+    if ((*(char *)(actor + 0x4c) != '\0' || *(char *)(state + 0x6) == '\0') &&
+        *(int16_t *)(state + 0x2) < 1 && *(int16_t *)(state + 0x8) == -1) {
+      if (*(char *)(state + 0xe) != '\0') {
+        return 1;
+      }
+      if (*(char *)(state + 0xf) == '\0') {
+        display_assert("(!actor->meta.timeslice && state_data->find_new_flee_position)"
+                       " || (state_data->flee_stationary_ticks > 0)"
+                       " || (state_data->flee_firing_position_index != NONE)"
+                       " || state_data->unable_to_flee || state_data->done_fleeing",
+                       "c:\\halo\\SOURCE\\ai\\action_flee.c", 0x12e, 1);
+        system_exit(-1);
+      }
+    }
+  }
+  if (*(char *)(state + 0xe) == '\0' && *(char *)(state + 0xf) == '\0') {
+    return 0;
+  }
+  return 1;
+}
+
 /* FUN_00015880 (0x15880)
  * Initializes a guard state block (0x44 bytes) for the given actor.
  * Copies 3 floats from actor+0x174..0x17c into state_data+0x18..0x20,
@@ -2031,6 +2240,121 @@ int FUN_00016960(float *param_1, float *param_2)
     return 1;
   }
   return 0;
+}
+
+/* FUN_000169a0 (0x169a0)
+ * Command-list step execution callback for actor scripted-look behavior.
+ * Dispatches on the command type (*cmd_entry) to apply the appropriate
+ * state change. Called with @<esi>=state_ptr (the actor's look state block).
+ *
+ * State block (ESI) layout:
+ *   ESI[0]  = command_index (byte, current entry index in the command list)
+ *   ESI[1]  = loop_count (byte, incremented on each loop)
+ *   ESI[4]  = flags (byte: bit 0=?, bit 3=?, bit 4=?)
+ *   ESI[5]  = flags2 (byte: bit 0=active?, bit 2=?)
+ *   ESI[8:9] = int16 index
+ *
+ * Confirmed: ESI not in stack frame; reads [ESI],[ESI+1],[ESI+4],[ESI+5],
+ *   [ESI+8] from raw disasm.
+ * Confirmed: switch table at 0x16bac (byte lookup) + 0x16b8c (DWORD jumps).
+ * Confirmed: assert strings "c:\\halo\\SOURCE\\ai\\action_obey.c". */
+void FUN_000169a0(int actor_handle, int unit_handle, short scenario_idx,
+                  int param_4, char *param_5 /* @<esi>=state_ptr */)
+{
+  char *actor;
+  char *scenario;
+  char *cmd_entry;
+  short cmd_type;
+  int idx;
+  char *obj;
+  char local_buf[512];
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  scenario = (char *)global_scenario_get();
+  cmd_entry = (char *)tag_block_get_element(scenario + 0x438, (int)scenario_idx, 0x60);
+
+  idx = (int)(unsigned char)param_5[0];
+  if (idx >= *(int *)(cmd_entry + 0x30)) {
+    return;
+  }
+  cmd_entry = (char *)tag_block_get_element(cmd_entry + 0x30, idx, 0x20);
+
+  cmd_type = *(short *)cmd_entry - 1;
+  if ((unsigned short)cmd_type > 0x18) {
+    return;
+  }
+
+  switch ((int)(unsigned char)cmd_type) {
+  case 0:  /* case 1 */
+  case 1:  /* case 2 */
+    if (unit_handle == *(int *)(actor + 0x18)) {
+      FUN_0002f1a0(actor_handle);
+    }
+    if (param_4 != 0) {
+      *(char *)(param_4 + 4) = 0;
+      *(char *)(param_4 + 0x18) = 0;
+      return;
+    }
+    break;
+  case 2:  /* case 3 */
+  case 0x15: /* case 0x16 */
+    param_5[5] = param_5[5] & (char)0xfe;
+    *(short *)(param_5 + 8) = (short)0xffff;
+    return;
+  case 3:  /* case 4 */
+  case 0x16: /* case 0x17 */
+  case 0x17: /* case 0x18 */
+  case 0x18: /* case 0x19 */
+    if (unit_handle == *(int *)(actor + 0x18)) {
+      FUN_00027870(actor_handle);
+    }
+    break;
+  case 6:  /* case 7 */
+    if (param_4 != 0) {
+      *(char *)(param_4 + 0x36) = 0;
+      return;
+    }
+    break;
+  case 9:  /* case 10 */
+  case 0xa: /* case 0xb */
+    param_5[5] = param_5[5] & (char)0xfb;
+    *(short *)(param_5 + 8) = 0;
+    return;
+  case 0xc: /* case 0xd */
+    obj = (char *)object_try_and_get_and_verify_type(unit_handle, 1);
+    if (obj != NULL) {
+      *(unsigned int *)(obj + 0x424) &= 0xfffffff3;
+      return;
+    }
+    break;
+  case 0x13: /* case 0x14 */
+    if (*(short *)(cmd_entry + 2) == 1) {
+      char flags = param_5[4];
+      param_5[4] = flags & (char)0xf7;
+      if ((~(flags >> 3) & 1) == 0) {
+        param_5[4] = flags & (char)0xe7;
+        return;
+      }
+      param_5[4] = (flags & (char)0xf7) | (char)0x10;
+    }
+    if (*(short *)(cmd_entry + 0x16) == (short)(unsigned char)param_5[0]) {
+      ai_debug_describe_actor(actor_handle, -1, 1, local_buf, 0x200);
+      error(2, "%s: command list %s entry #%d tried to loop to itself",
+            (int)local_buf, (int)cmd_entry, (int)(unsigned char)param_5[0]);
+      return;
+    }
+    if ((unsigned char)param_5[1] > 9) {
+      ai_debug_describe_actor(actor_handle, -1, 1, local_buf, 0x200);
+      error(2, "%s: command list %s is stuck looping (aborting on loop #%d)",
+            (int)local_buf, (int)cmd_entry, (int)(unsigned char)param_5[0]);
+      return;
+    }
+    *param_5 = *(char *)(cmd_entry + 0x16);
+    param_5[1]++;
+    return;
+  default:
+    break;
+  }
 }
 
 /* FUN_00016bd0 / actor_look_secondary_stop (0x16bd0)
@@ -3222,6 +3546,7 @@ int FUN_000197d0(int actor_handle, short param_2, char param_3,
 {
   char *actor;
   char *enc;
+  int *pos;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   if (state_data == NULL) {
@@ -3233,7 +3558,6 @@ int FUN_000197d0(int actor_handle, short param_2, char param_3,
   if ((*(char *)(actor + 0x160) == '\0') && (*(char *)(actor + 6) == '\0') &&
       (*(int *)(actor + 0x34) != -1)) {
     if (param_2 != -1) {
-      int *pos;
       enc = (char *)tag_block_get_element(
         (char *)global_scenario_get() + 0x42c,
         *(unsigned int *)(actor + 0x34) & 0xffff, 0xb0);
