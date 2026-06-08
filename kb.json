@@ -3149,13 +3149,13 @@
         {
           "addr": "0x13dd0",
           "decl": "int FUN_00013dd0(int actor_handle @<eax>, float *source_pos @<esi>);",
-          "ported": true,
+          "ported": false,
           "delinked": "delinked/actor_looking_FUN_00013dd0.obj"
         },
         {
           "addr": "0x13ef0",
           "decl": "char FUN_00013ef0(int actor_handle, int action_type, void *charge_state);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x142a0",
@@ -3248,7 +3248,7 @@
         {
           "addr": "0x14e90",
           "decl": "char FUN_00014e90(int actor_handle @<eax>, char *state_data);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x14ff0",
@@ -3288,14 +3288,14 @@
         },
         {
           "addr": "0x153e0",
-          "decl": "bool FUN_000153e0(int actor_handle);",
-          "ported": true,
+          "decl": "bool FUN_000153e0(int actor_handle @<ebx>);",
+          "ported": false,
           "name": "FUN_000153e0"
         },
         {
           "addr": "0x15520",
-          "decl": "void FUN_00015520(void);",
-          "ported": false
+          "decl": "int FUN_00015520(int actor_handle);",
+          "ported": true
         },
         {
           "addr": "0x15880",
@@ -3383,7 +3383,7 @@
         },
         {
           "addr": "0x169a0",
-          "decl": "void FUN_000169a0(int param_1, int param_2, short param_3, int param_4, char *param_5);",
+          "decl": "void FUN_000169a0(int actor_handle, int unit_handle, short scenario_idx, int param_4, char *param_5 @<esi>);",
           "ported": false
         },
         {
@@ -30248,11 +30248,11 @@
         },
         {
           "addr": "0x300b0",
-          "decl": "void actor_situation_update_target_status(void);"
+          "decl": "void actor_situation_update_target_status(int actor_handle);"
         },
         {
           "addr": "0x302b0",
-          "decl": "void actor_situation_combat_status_update(void);"
+          "decl": "void actor_situation_combat_status_update(int actor_handle);"
         },
         {
           "addr": "0x303f0",
@@ -35709,5 +35709,77 @@
     "decl": "void FUN_00014540(int actor_handle);",
     "ported": true,
     "obj": "actor_looking.obj"
+  },
+  "0x12ad0": {
+    "name": "FUN_00012ad0",
+    "decl": "float FUN_00012ad0(int actor_handle @<ebx>, int action_type @<esi>, void *charge_state);",
+    "obj": "actor_looking.obj",
+    "ported": false
+  },
+  "0x13dd0": {
+    "name": "FUN_00013dd0",
+    "decl": "int FUN_00013dd0(int actor_handle @<eax>, float *source_pos @<esi>);",
+    "obj": "actor_looking.obj",
+    "ported": false
+  },
+  "0x13ef0": {
+    "name": "FUN_00013ef0",
+    "decl": "char FUN_00013ef0(int actor_handle, int action_type, void *charge_state);",
+    "obj": "actor_looking.obj",
+    "ported": false
+  },
+  "0x14e90": {
+    "name": "FUN_00014e90",
+    "decl": "char FUN_00014e90(int actor_handle @<eax>, char *state_data);",
+    "obj": "actor_looking.obj",
+    "ported": false
+  },
+  "0x153e0": {
+    "name": "FUN_000153e0",
+    "decl": "bool FUN_000153e0(int actor_handle @<ebx>);",
+    "obj": "actor_looking.obj",
+    "ported": false
+  },
+  "0x15520": {
+    "name": "FUN_00015520",
+    "decl": "int FUN_00015520(int actor_handle);",
+    "obj": "actor_looking.obj",
+    "ported": true
+  },
+  "0x15880": {
+    "name": "FUN_00015880",
+    "decl": "int FUN_00015880(int actor_handle, char *state_data);",
+    "obj": "actor_looking.obj",
+    "ported": true
+  },
+  "0x15900": {
+    "name": "FUN_00015900",
+    "decl": "int FUN_00015900(int actor_handle, short param_2, char *state_data);",
+    "obj": "actor_looking.obj",
+    "ported": true
+  },
+  "0x300b0": {
+    "name": "FUN_000300b0",
+    "decl": "void FUN_000300b0(int actor_handle);",
+    "obj": "actor_looking.obj",
+    "ported": false
+  },
+  "0x302b0": {
+    "name": "FUN_000302b0",
+    "decl": "void FUN_000302b0(int actor_handle);",
+    "obj": "actor_looking.obj",
+    "ported": false
+  },
+  "0x46f10": {
+    "name": "FUN_00046f10",
+    "decl": "void FUN_00046f10(int mode, int unit_handle, int target_handle, int a4, int a5, int a6, int a7);",
+    "obj": "actor_looking.obj",
+    "ported": false
+  },
+  "0x169a0": {
+    "name": "FUN_000169a0",
+    "decl": "void FUN_000169a0(int actor_handle, int unit_handle, short scenario_idx, int param_4, char *param_5 @<esi>);",
+    "obj": "actor_looking.obj",
+    "ported": false
   }
 }
