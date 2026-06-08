@@ -84,6 +84,30 @@ Use `mcp__xemu__*` tools directly — daemon auto-starts via SessionStart hook:
 
 Fallback to `tools/xbox/xemu_qmp.py` only when the MCP daemon is unavailable.
 
+### Phase 3b — Toggle-bisect for visual/render regressions
+
+For tint / culling / no-draw / no-spawn regressions, static diff and VC71/
+instruction-diff do **not** converge — the oracle is the runtime ported-flag
+toggle-bisect (memory `feedback_toggle_bisect_visual_regression`): flip
+`ported=false` on suspect functions/TUs with `artifacts/toggle_ported.py`,
+rebuild, redeploy, then eyeball the symptom.
+
+**Mandatory liveness gate — run after each toggle deploy, before any verdict:**
+
+```
+rtk python3 tools/xbox/verify_toggles_live.py
+```
+
+The deploy `rev` token is pre-patch: `verify: OK` proves running==built *source*
+but does **not** prove your `ported` toggle is live in the running image. The
+verifier QMP-reads each function's VA and confirms toggled-off funcs run ORIGINAL
+bytes (`55 8B EC…`) while a sampled positive control still shows redirects
+(`68 <impl> C3`) — it hard-fails on a stale/cached XBE. On `RESULT: FAIL`,
+redeploy and retry; never record an in-game verdict against a failing gate (a
+whole session was once burned this way — memory `verify-toggles-live`). Run it
+before `git checkout kb.json`, since it compares the live image to the
+working-tree kb.json.
+
 ## Common regression classes
 
 - Wrong prototype (arg count, arg type, return type)

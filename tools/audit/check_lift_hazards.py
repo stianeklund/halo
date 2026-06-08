@@ -33,6 +33,14 @@ Hazard classes:
    both a local buffer and a different pointer — a strong signal that one of the
    accesses should be the buffer, not the pointer.
 
+6. Void-return out-param (EAX implicit return): MSVC frequently ends void-like
+   functions with MOV EAX,[EBP+8] (loading the first out-param pointer into EAX)
+   before RET. Unported callers use that EAX as the function's return value.
+   If the ported C implementation declares void, the caller gets garbage EAX and
+   reads through a dangling pointer — causing wrong nav positions, wrong coords,
+   or silent corruption. Functions in VOID_BUT_RETURNS_EAX must be declared with
+   the matching pointer return type.
+
 Usage:
     python3 tools/audit/check_lift_hazards.py
     python3 tools/audit/check_lift_hazards.py -q
@@ -64,6 +72,18 @@ INTRINSIC_PATTERN = re.compile(
 
 KNOWN_BUFFER_SIZES = {
     'FUN_0013fc20': (0x88, 'object placement init — memsets 0x88 bytes'),
+}
+
+# Functions that MSVC ends with "MOV EAX,[EBP+8]; RET", returning their first
+# out-param pointer in EAX.  Unported callers (Ghidra shows them reading the
+# return value as a pointer) depend on this.  Any of these declared void in
+# decl.h will cause the caller to read through garbage EAX.
+# Map: addr_hex -> (canonical_name, description)
+VOID_BUT_RETURNS_EAX = {
+    '0xa9380': (
+        'game_engine_get_goal_position',
+        'returns param_1 (goal pos float*) in EAX — FUN_000d6cc0 uses it as position pointer',
+    ),
 }
 
 BUFFER_CALL_PATTERN = re.compile(
@@ -104,6 +124,34 @@ LOCAL_SCALAR16_PATTERN = re.compile(
 LOCAL_SCALAR8_PATTERN = re.compile(
     r'^\s+(?:unsigned\s+)?(?:char|int8_t|uint8_t)\s+\w+\s*;',
 )
+
+
+def check_void_eax_returns():
+    """Check that functions in VOID_BUT_RETURNS_EAX are not declared void in decl.h.
+
+    MSVC ends these functions with MOV EAX,[EBP+8] before RET, returning the
+    first out-param pointer in EAX.  Unported callers use that EAX value as a
+    pointer.  If the ported C implementation is declared void the caller reads
+    through garbage EAX — causing silent corruption or wrong coordinates.
+    """
+    errors = []
+    if not os.path.isfile(DECL_H):
+        return errors
+
+    with open(DECL_H, 'r', errors='replace') as f:
+        decl_content = f.read()
+
+    for addr, (name, desc) in VOID_BUT_RETURNS_EAX.items():
+        # Match lines like: HFUNC void name( ...
+        pattern = re.compile(
+            r'\bvoid\s+' + re.escape(name) + r'\s*\('
+        )
+        if pattern.search(decl_content):
+            errors.append(
+                f'  decl.h: {name} ({addr}) declared void but must return '
+                f'its first out-param as int* — {desc}'
+            )
+    return errors
 
 
 def check_intrinsics(filepath, content, lines):
@@ -748,6 +796,7 @@ def main():
 
     params_map = _parse_decl_params()
 
+    all_void_eax_errors = check_void_eax_returns()
     all_intrinsic_errors = []
     all_buffer_errors = []
     all_duplicate_errors = []
@@ -774,6 +823,7 @@ def main():
 
     if quiet:
         counts = (
+            f'void_eax: {len(all_void_eax_errors)}, '
             f'intrinsics: {len(all_intrinsic_errors)}, '
             f'buffer_sizes: {len(all_buffer_errors)}, '
             f'duplicate_args: {len(all_duplicate_errors)}, '
@@ -784,13 +834,24 @@ def main():
         )
         if frame_audit:
             counts += f', frame_sizes: {len(all_frame_errors)}'
-        total = (len(all_intrinsic_errors) + len(all_buffer_errors) +
+        total = (len(all_void_eax_errors) + len(all_intrinsic_errors) + len(all_buffer_errors) +
                  len(all_duplicate_errors) + len(all_ptr_float_errors) +
                  len(all_alias_errors) + len(all_frame_errors) +
                  len(all_output_size_errors) + len(all_x87_math_errors))
         if total:
             print(counts, file=sys.stderr)
     else:
+        if all_void_eax_errors:
+            print(
+                'ERROR: void-return functions that must return out-param in EAX.\n'
+                'Unported callers use the EAX return value as a pointer.\n'
+                'Change the C return type from void to int* and add "return param_1":\n',
+                file=sys.stderr,
+            )
+            for e in all_void_eax_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
+
         if all_intrinsic_errors:
             print(
                 'ERROR: MSVC intrinsic addresses found in lifted code.\n'
@@ -882,7 +943,7 @@ def main():
                 print(e, file=sys.stderr)
             print(file=sys.stderr)
 
-    if all_intrinsic_errors or all_buffer_errors or all_output_size_errors:
+    if all_void_eax_errors or all_intrinsic_errors or all_buffer_errors or all_output_size_errors:
         return 1
 
     return 0
