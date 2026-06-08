@@ -4668,6 +4668,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xd4ab0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xd4d90": {
       "kind": "function",
       "status": "ported"
@@ -4677,6 +4681,18 @@
       "status": "ported"
     },
     "0xd4e90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd4f00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd4f70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd4fb0": {
       "kind": "function",
       "status": "ported"
     },
@@ -7672,6 +7688,13 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x14c4b0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Resolved from void(void) to a 4-arg cdecl surface/feature lookup returning a bool in AL; arg4 is a 0x2c-byte out_result buffer matching the collision-result entry layout."
+      ]
+    },
     "0x14cc80": {
       "kind": "function",
       "status": "ported"
@@ -7723,6 +7746,13 @@
     "0x14d9d0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x150550": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Resolved from void(void) to a 10-arg cdecl collision/line-of-sight query returning a u16 result count in AX; arg9 is the max-result count (0x10) and arg10 is the base of a 16-entry 0x2c-byte result array; arg4 is a float field pushed as physics[0x15]."
+      ]
     },
     "0x154860": {
       "kind": "function",
@@ -8505,13 +8535,182 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1a07c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1a0800": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1a0860": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1a0890": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1a0950": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1a0970": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1a09f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1a0db0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1a0f10": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Spawns a biped contact/footstep effect: 'bipd' tag contact-point block element at tag+0x4e8[BX] supplies a marker name (element+0x20); the effect tag reference at tag+0x398 is spawned at that marker's world position."
+      ],
+      "uncertain": [
+        "param_2 is forwarded unchanged to FUN_0009f570 (callers 0x1a2440 pass 3 or 4); likely a region/permutation selector but its exact meaning is unconfirmed.",
+        "The 108-byte marker-result buffer layout is opaque beyond the transform copy at +0x38..0x6c and the marker position at +0x60; no named struct exists in headers yet."
+      ]
+    },
+    "0x1a1020": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1a1080": {
       "kind": "function",
       "status": "ported"
     },
     "0x1a1140": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x1a12e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1a1430": {
+      "kind": "function",
+      "status": "ported",
+      "uncertain": [
+        "VC71 ~79.3% structural ceiling (399/408 insns); logic verified correct (matched instruction count). Residual is callee-saved register allocation: biped_obj is ESI in original but EDI in our build, plus collision_flags boolean materialization (original NEG/SBB borrow trick vs our shrl/andl/negl). Left ported=false."
+      ]
+    },
+    "0x1a1900": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Signature is void biped_render_debug(int unit_handle); debug visualization of biped camera height/offset (gated by global 0x5054fe) and autoaim pill (gated by 0x5054fd), rendering points (FUN_00189540) or arrows (FUN_00189860) with render contexts from 0x2ee6c4 and 0x2ee6d0."
+      ]
+    },
+    "0x1a1b90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1a1bc0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Unit dword-index fields: 0x430 last_good_surface, 0x434 cached_surface_index, 0x438 cached_position vec3, 0x444 cache_timestamp (game_time), 0x448 last_result_surface, inferred from the lazy-recompute cache pattern in the disassembly."
+      ],
+      "uncertain": [
+        "The double-store of cached_surface_index in the test_point2d branch is transcribed faithfully from the original (MOV [ESI+0x434] at 0x1cce then again at 0x1ce2) but its purpose is unclear."
+      ]
+    },
+    "0x1a1d80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1a1fb0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "DAT_2b4ee4 is a velocity scalar and DAT_2b4ee0/DAT_32512c form a gravity bias applied to the z component of the scaled vehicle velocity before the second collision probe."
+      ],
+      "uncertain": [
+        "Eject reason codes 0x26, 0x27, 0x28 passed to FUN_00046f10 are distinct outcomes (probe-miss/velocity-too-small, default, and angle-check-fail) but their exact gameplay meaning is unconfirmed."
+      ]
+    },
+    "0x1a2440": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Footstep/animation-marker event step: states 2,3 are walking, 4-7 are fast-moving (velocity-squared at object+0x228 vs threshold 0x25337c); marker frames at antr element+0x40/+0x41 gate the single fast-path event. The 'footstep' semantics are inferred from the antr animation-graph lookup and the slip/recovery counter at object+0x45b."
+      ]
+    },
+    "0x1a25e0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Signature is void FUN_001a25e0(int unit_handle @ecx) confirmed by MOV EDI,ECX after the _chkstk prologue; selects the BSP surface most directly below the biped camera point via collision_bsp_test_sphere then min signed-plane-distance, storing the winning surface index at unit+0x430 and the oriented 4-component plane normal at unit+0x46c (4 floats) and unit+0x30 (3 floats).",
+        "Collision radius (camera_height + global 0x2533e8) is passed through collision_bsp_test_sphere's int radius parameter via a float bit-cast to follow the shared codebase signature; the original caller emits push-then-fstp (float formal) while the int-decl form emits a plain push, a minor instruction-shape divergence that cannot be changed without breaking the other committed collision_bsp_test_sphere callers."
+      ],
+      "uncertain": [
+        "VC71 caps at 79.3% (171/177 mnemonics in LCS); residual is stack-slot allocation divergence: clang does not coalesce non-overlapping-lifetime locals as MSVC did, so height_offset lands at EBP-0x8 vs reference EBP-0x18 and unit_obj at EBP-0x30 vs EBP-0x24, shifting EBP-relative operands on otherwise-matching instructions."
+      ]
+    },
+    "0x1a2800": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Signature is void FUN_001a2800(int unit_handle @eax, const char *failure_kind) confirmed by the caller doing MOV EAX,[EBP+8] then PUSH str with a single ADD ESP,4; it is the biped vector-failure assert that validates unit+0x24 and unit+0x30 are perpendicular via valid_real_normal3d_perpendicular and on failure formats a diagnostic and calls display_assert at bipeds.c:0x55d."
+      ]
+    },
+    "0x1a2900": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The post-airborne perturbation applies a small random pitch in [3deg,5deg] to the biped aim and a random or computed yaw; the 'aiming control' semantics of tag+0x2f4 bit 8 (0x100) and the *state output codes 0x28/0x14 are inferred from surrounding biped update code, not from symbol names."
+      ]
+    },
+    "0x1a2a60": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Post-landing step: increments landing-frame counter object+0x428; clears landing index object+0x460 to NONE once the counter reaches the frame count object+0x429; fires two collision-user events (param_2=5, indices 0,1) when no cinematic runs and landing just began (counter==2) or is a one-frame landing; writes landing-sound id 0x16/0x15 to *state."
+      ],
+      "uncertain": [
+        "Left ported=false at 86.5% VC71 (structural reg-arg keystone ceiling): residual is the EDI live-in load, the EBX=-1 register reuse for the object+0x460 store/compare, and the BX index plus EAX routing for the FUN_001a0f10 and FUN_001a2800 calls -- all thunk-mediated register-argument materialization that cannot be expressed in C without inline asm. Body logic is correct."
+      ]
+    },
+    "0x1a2b10": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Post-slipping step: fires two collision-user events (param_2=2, indices 0,1) when the slip counter object+0x45a exceeds 3 and linear velocity magnitude squared at object+0x18..0x20 exceeds the moving threshold 0x25620c (1/900). The caller also pushes an unused state pointer not consumed here."
+      ],
+      "uncertain": [
+        "Left ported=false at 84.0% VC71 (structural reg-arg keystone ceiling, not a body bug): the original takes unit_handle live-in in EDI with no EBP frame and routes the FUN_001a0f10 index through BX, while a standalone C compile builds a frame and pushes the index on the stack; the thunk performs the EDI/BX routing at runtime so the body is behaviorally correct."
+      ]
+    },
+    "0x1a2b90": {
+      "kind": "function",
+      "status": "unknown",
+      "uncertain": [
+        "VC71 reports a benign FPU operand-order difference in the aim dot-product: MSVC assigns the FLD vs FMUL operand of each commutative product inconsistently, but a*b == b*a is bit-identical so the result is unaffected. The 0x3c-byte rumble definition fields (1.0, 0.3, type 3) and global 0x2b4fbc (a tiny denormal blend factor) are confirmed from disassembly."
+      ]
+    },
+    "0x1a2d90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1a2f40": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "new_position is at byte offset +0xac (physics[0x2b..0x2d]) and new_velocity is at +0xb8 (physics[0x2e..0x30]); confirmed from the binary's own assert strings at 0x2b5080 and 0x2b5068, which invert the Ghidra decompiler's field labels."
+      ],
+      "uncertain": [
+        "Signature resolved but intentionally left unlifted (5.3KB, structural ceiling). Sole arg is ESI (@<esi>): caller FUN_001a5300 at 0x1a5e01 does LEA ESI,[EBP-0xe4]; CALL with no pushes; ESI is read-before-write (mov ax,[esi+4]). Returns void (caller does not consume EAX). ESI = biped physics/movement struct: +4 flags(u16), +8 position[3] (assert physics->position), +0x2c velocity (assert physics->velocity), writes new_position/new_velocity at ESI+0x2b.. and step distance at ESI[0x32]. Resolved decl for follow-up lift: void FUN_001a2f40(void *physics /* @esi */). kb.json decl deliberately left as void(void) to avoid the unimplemented @<reg> thunk-recursion hazard until a body is written.",
+        "Structural section map for follow-up: (1) prologue validate position+velocity asserts, read flags=*(u16)(ESI+4); (2) movement-mode dispatch on flags bit 0x10 -> FUN_001a2d90 flying path, bit 0x20 (0x10 clear) -> simple velocity copy, else ground path via FUN_000178d0/normalize3d/FUN_00012f80; (3) LAB_001a36a4 recompute flags + collision-material select + optional debug draw (DAT_004e4cf2/f0 -> FUN_00150550); (4) ESI[0x24]-indexed surface walk loop (tag_block_get_element) for contact resolution; (5) ground-point selection loop over local_36c (0xb-dword stride); (6) epilogue writes new_position/new_velocity, step-down via FUN_0014ec30/FUN_0014c4b0, final asserts. Capped <88% by x87 ST0-chaining (float10 normalize3d returns compared directly) + static 44KB frame (no _chkstk). Decompiler output polluted (return-address pushes modeled as struct stores; type propagation not settling) - body must be reconstructed from disassembly, with each callee arg resolved per cdecl-misgroup (FUN_00012f80/12f10/121a0/12170/12fe0/178d0/a16b0/84a10/99640/14ec30/14c4b0/150550/18e3f0/13d640).",
+        "Only the front half (prologue, two input asserts, and the three movement-mode branches 0x10/0x20/0x01 that compute new_velocity) is reconstructed; the default surface-walk mode and the entire back half (0x1a36a4-0x1a4409: debug-draw setup, FUN_00150550 collision query, three loops over a 16-entry 0x2c-stride result array, biped step-down, the +0xac/+0xc8 writeback, and the two NaN asserts at lines 0xee2/0xee3) are not reconstructed because three live x87 values are held across the material-select branch at 0x1a34c0 and tag-field semantics are unconfirmable.",
+        "In the mode-0x01 branch the original passes local_44/40/3c to magnitude3d but never writes local_3c (tang[2]) first, reading a stale stack slot; this is fixed to 0.0f in the lift since it affects only the clamp length test, not an output field."
+      ]
     },
     "0x1a7f80": {
       "kind": "function",

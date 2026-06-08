@@ -341,6 +341,12 @@ class TraceDiff:
     value_diffs: list = field(default_factory=list)
     oracle_only: list = field(default_factory=list)
     lifted_only: list = field(default_factory=list)
+    # Affirmative evidence: same-address writes whose values agreed.
+    #   matched           : (addr, size, value) — bit-exact
+    #   matched_within_tol: (addr, size, oracle_val, lifted_val, ulp) — float
+    #                       fields equal within the ULP tolerance (rounding).
+    matched: list = field(default_factory=list)
+    matched_within_tol: list = field(default_factory=list)
 
     def has_differences(self) -> bool:
         return bool(self.value_diffs or self.oracle_only or self.lifted_only)
@@ -353,13 +359,30 @@ class TraceDiff:
             parts.append(f"{len(self.oracle_only)} oracle-only write(s)")
         if self.lifted_only:
             parts.append(f"{len(self.lifted_only)} lifted-only write(s)")
+        if not parts and (self.matched or self.matched_within_tol):
+            parts.append(
+                f"{len(self.matched)} exact + "
+                f"{len(self.matched_within_tol)} within-tol match(es)")
         return "; ".join(parts) if parts else "traces match"
 
 
-def compare_mem_traces(oracle: CPUState, lifted: CPUState) -> TraceDiff:
+def compare_mem_traces(oracle: CPUState, lifted: CPUState,
+                       float_tolerance_ulp: int = 0) -> TraceDiff:
     """Compare memory write traces between oracle and lifted.
 
     Builds final-value maps keyed by (address, size) and diffs them.
+
+    Field-aware (advisor-mandated): when float_tolerance_ulp > 0 a
+    same-address 4-byte write whose oracle/candidate values are not
+    bit-identical is re-compared as an IEEE-754 single via _float_ulp;
+    differences within tolerance are recorded as matched_within_tol
+    (x87-vs-clang rounding on float outputs such as position/velocity),
+    not as a value diff.  1-byte/2-byte writes (state/flag bytes) and
+    4-byte integer handles/counters stay exact-match — a diff there is a
+    REAL lift bug, never tolerated.  With float_tolerance_ulp == 0 the
+    behaviour is identical to the original exact-match comparator, except
+    that agreeing writes are also surfaced in `matched` as affirmative
+    evidence (the comparator previously recorded only disagreements).
     """
     def _build_finals(writes):
         finals = {}
@@ -374,19 +397,31 @@ def compare_mem_traces(oracle: CPUState, lifted: CPUState) -> TraceDiff:
     value_diffs = []
     oracle_only = []
     lifted_only = []
+    matched = []
+    matched_within_tol = []
     for key in sorted(all_keys):
+        addr, size = key
         ov = orc.get(key)
         lv = lft.get(key)
         if ov is not None and lv is not None:
-            if ov != lv:
-                value_diffs.append((key[0], ov, lv))
+            if ov == lv:
+                matched.append((addr, size, ov))
+            elif (float_tolerance_ulp > 0 and size == 4):
+                ulp = _float_ulp(ov & 0xFFFFFFFF, lv & 0xFFFFFFFF)
+                if ulp <= float_tolerance_ulp:
+                    matched_within_tol.append((addr, size, ov, lv, ulp))
+                else:
+                    value_diffs.append((addr, ov, lv))
+            else:
+                value_diffs.append((addr, ov, lv))
         elif ov is not None:
-            oracle_only.append(key[0])
+            oracle_only.append(addr)
         else:
-            lifted_only.append(key[0])
+            lifted_only.append(addr)
 
     return TraceDiff(value_diffs=value_diffs, oracle_only=oracle_only,
-                     lifted_only=lifted_only)
+                     lifted_only=lifted_only, matched=matched,
+                     matched_within_tol=matched_within_tol)
 
 
 def format_state_verbose(state: CPUState, label: str) -> str:

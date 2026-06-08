@@ -781,6 +781,16 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
     global_reads = {}
     _mapped_regions = set()
 
+    # GATED heap-output witnessing (BIPED_HEAP_COMPARE=1): when a heap write
+    # (>= 0x20000000) falls inside a snapshot-mapped region, INCLUDE it in the
+    # write trace so output writes to the live biped object (~0x800bxxxx) are
+    # actually compared.  Flag-off behaviour is byte-identical to before (the
+    # blanket >= 0x20000000 drop is preserved).  The FXSAVE instrumentation
+    # page lives at 0x20000000 (0x1000 bytes), which is never inside a snapshot
+    # region, so it is excluded for free by the membership test.
+    _heap_compare = (os.environ.get("BIPED_HEAP_COMPARE") == "1"
+                     and bool(_override_ranges))
+
     if collect_mem_trace:
         from unicorn import UC_HOOK_MEM_WRITE, UC_HOOK_MEM_READ
 
@@ -789,8 +799,13 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
                 return
             if CODE_BASE <= address < CODE_BASE + CODE_SIZE:
                 return
-            if address >= 0x20000000:  # FXSAVE instrumentation region — not program writes
-                return
+            if address >= 0x20000000:  # FXSAVE region / arbitrary heap
+                if not _heap_compare:
+                    return
+                # Only witness heap writes that land in a snapshot-mapped
+                # region (shared by oracle and candidate -> same addresses).
+                if not any(lo <= address < hi for lo, hi in _override_ranges):
+                    return
             mem_writes.append(state_mod.MemoryWrite(
                 address=address, size=size, value=value))
 
@@ -1414,10 +1429,23 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
 
         # For lifted code, also patch REL32 if present.
         # Lifted runs from CODE_BASE directly (no section prefix).
+        #
+        # include_defined: the single-function lifted extraction maps only the
+        # target body, so a call to a DEFINED intra-object sibling (e.g.
+        # 2290->FUN_001a0f10, 0680->FUN_001a03c0) would be left as an unpatched
+        # rel32 pointing outside the loaded range -> wild fetch crash
+        # (eip=0x1ffffc).  The oracle resolves such siblings via its whole-.text
+        # mapping (oracle_text); to stay SYMMETRIC the candidate must redirect
+        # the same sibling calls to shared sentinels.  Combined with
+        # --real-callees, _load_callee_code loads the *delinked* sibling body for
+        # BOTH sides (same bytes), giving a valid, lift-isolating comparison.
+        # Gated (additive) so the rest of the suite is unperturbed.
+        _sibling_resolve = os.environ.get("BIPED_SIBLING_RESOLVE") == "1"
         if lft_cls.call_count > 0:
             lifted_code_patched, lft_stub_map = patch_rel32_calls(
                 bytes(lifted_code_patched), lifted_slice.relocs, lft_defined,
-                symbol_sentinels=shared_stub_sentinels)
+                symbol_sentinels=shared_stub_sentinels,
+                include_defined=_sibling_resolve)
 
         combined_stub_map = dict(orc_stub_map)
         combined_stub_map.update(lft_stub_map)
@@ -1546,6 +1574,15 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     errors = 0
     first_diff = None
     trace_diff_count = 0
+    # Affirmative heap-output evidence accumulated across seeds (BIPED_HEAP_COMPARE).
+    # Keyed by (addr, size) -> last observed sample, so the report can show the
+    # exact output offsets witnessed and their oracle/candidate values.
+    heap_matched = {}          # (addr,size) -> value (bit-exact)
+    heap_matched_tol = {}      # (addr,size) -> (oracle, lifted, ulp)
+    heap_value_diffs = {}      # (addr,size) -> (oracle, lifted)  REAL-BUG candidates
+    heap_oracle_only = set()   # addresses written only by oracle (disjoint base?)
+    heap_lifted_only = set()   # addresses written only by candidate
+    _heap_compare_on = os.environ.get("BIPED_HEAP_COMPARE") == "1"
     all_visited_pcs = {}
     oracle_returns = set()
     merged_global_reads = {}
@@ -1616,11 +1653,32 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
 
         # Memory-trace comparison (side-effect writes)
         if enable_trace and oracle_state.mem_writes and lifted_state.mem_writes:
-            tdiff = state_mod.compare_mem_traces(oracle_state, lifted_state)
+            tdiff = state_mod.compare_mem_traces(
+                oracle_state, lifted_state,
+                float_tolerance_ulp=(float_tolerance_ulp if _heap_compare_on else 0))
             if tdiff.has_differences():
                 trace_diff_count += 1
                 if verbose:
                     log(f"  {seed_label} TRACE-DIFF: {tdiff.summary()}")
+            if _heap_compare_on:
+                # Accumulate affirmative output evidence (heap = >= 0x20000000,
+                # i.e. the live biped object). Restrict to heap so we do not
+                # clutter the report with low-VA globals scratch.
+                for addr, size, val in tdiff.matched:
+                    if addr >= 0x20000000:
+                        heap_matched[(addr, size)] = val
+                for addr, size, ov, lv, ulp in tdiff.matched_within_tol:
+                    if addr >= 0x20000000:
+                        heap_matched_tol[(addr, size)] = (ov, lv, ulp)
+                for addr, ov, lv in tdiff.value_diffs:
+                    if addr >= 0x20000000:
+                        heap_value_diffs[(addr, None)] = (ov, lv)
+                for addr in tdiff.oracle_only:
+                    if addr >= 0x20000000:
+                        heap_oracle_only.add(addr)
+                for addr in tdiff.lifted_only:
+                    if addr >= 0x20000000:
+                        heap_lifted_only.add(addr)
 
         # Determine what to compare based on return type
         ret_eax = not abi['ret_void'] and not abi['ret_st0'] and not abi.get('ret_is_ptr', False)
@@ -1815,6 +1873,60 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     if trace_diff_count and not quiet:
         log(f"  mem-trace: {trace_diff_count} seed(s) with write-trace divergences")
 
+    # Heap-output (live biped object) witness report. This is the deliverable
+    # of BIPED_HEAP_COMPARE: affirmative evidence that the object-output writes
+    # were compared at the SAME address and agreed (or disagreed = real bug).
+    if _heap_compare_on:
+        import struct as _struct
+
+        def _as_f32(v):
+            try:
+                return _struct.unpack('<f', _struct.pack('<I', v & 0xFFFFFFFF))[0]
+            except Exception:
+                return float('nan')
+
+        n_evidence = (len(heap_matched) + len(heap_matched_tol)
+                      + len(heap_value_diffs) + len(heap_oracle_only)
+                      + len(heap_lifted_only))
+        log("")
+        log("=== HEAP-OUTPUT WITNESS (BIPED_HEAP_COMPARE) ===")
+        if n_evidence == 0:
+            log("  NO heap-output writes witnessed inside any snapshot-mapped "
+                "region.")
+            log("  -> outputs unwitnessed: CONTROL-FLOW-ONLY (golden harness "
+                "required), OR the run exercised no output path.")
+        else:
+            if heap_matched:
+                log(f"  EXACT matches ({len(heap_matched)}):")
+                for (addr, size) in sorted(heap_matched):
+                    val = heap_matched[(addr, size)]
+                    extra_f = f"  (~f32 {_as_f32(val):.6g})" if size == 4 else ""
+                    log(f"    [0x{addr:08x}/{size}] oracle==candidate="
+                        f"0x{val:0{size*2}x}{extra_f}")
+            if heap_matched_tol:
+                log(f"  WITHIN-TOL float matches ({len(heap_matched_tol)}):")
+                for (addr, size) in sorted(heap_matched_tol):
+                    ov, lv, ulp = heap_matched_tol[(addr, size)]
+                    log(f"    [0x{addr:08x}/{size}] oracle=0x{ov:08x} "
+                        f"({_as_f32(ov):.6g}) candidate=0x{lv:08x} "
+                        f"({_as_f32(lv):.6g})  ulp={ulp}")
+            if heap_value_diffs:
+                log(f"  *** VALUE DIFFS ({len(heap_value_diffs)}) — REAL-BUG "
+                    f"candidates (same addr, value differs beyond tol): ***")
+                for (addr, _sz) in sorted(heap_value_diffs):
+                    ov, lv = heap_value_diffs[(addr, _sz)]
+                    log(f"    [0x{addr:08x}] oracle=0x{ov:08x} ({_as_f32(ov):.6g})"
+                        f" candidate=0x{lv:08x} ({_as_f32(lv):.6g})")
+            if heap_oracle_only or heap_lifted_only:
+                log(f"  DISJOINT writes: {len(heap_oracle_only)} oracle-only, "
+                    f"{len(heap_lifted_only)} candidate-only")
+                log("  -> if these are the object outputs, oracle/candidate "
+                    "resolved different bases -> CONTROL-FLOW-ONLY.")
+                for a in sorted(heap_oracle_only)[:12]:
+                    log(f"    oracle-only  0x{a:08x}")
+                for a in sorted(heap_lifted_only)[:12]:
+                    log(f"    cand-only    0x{a:08x}")
+
     if first_diff and not verbose:
         label, seed_vec, diff, oracle_state, lifted_state = first_diff
         log(f"\nFirst divergence at {label}:")
@@ -1838,6 +1950,11 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         confidence=confidence,
         trace_diffs=trace_diff_count,
         concolic_seeds=concolic_seeds_run,
+        heap_matched=len(heap_matched),
+        heap_matched_tol=len(heap_matched_tol),
+        heap_value_diffs=len(heap_value_diffs),
+        heap_oracle_only=len(heap_oracle_only),
+        heap_lifted_only=len(heap_lifted_only),
     )
     if merged_global_reads:
         reads = []
