@@ -39,7 +39,7 @@
   "0x1a0b30": {
     "class": "non_leaf",
     "confidence": "weak",
-    "coverage_pct": 28.5
+    "coverage_pct": 100.0
   },
   "0x1a0e00": {
     "class": "non_leaf",
