@@ -3643,32 +3643,39 @@ LAB_001a4062_done:
     }
   }
 
-  /* ---- final NaN asserts (0x1a42dc..0x1a4409) ---- */
-  isnan_tmp = *(unsigned int *)&physics[0x2b];
-  if ((isnan_tmp & 0x7f800000) == 0x7f800000 ||
-      ((isnan_tmp = *(unsigned int *)&physics[0x2c]),
-       (isnan_tmp & 0x7f800000) == 0x7f800000) ||
-      ((isnan_tmp = *(unsigned int *)&physics[0x2d]),
-       (isnan_tmp & 0x7f800000) == 0x7f800000)) {
-    display_assert(csprintf(error_string_buffer,
-                            "%s: assert_valid_real_point3d(%f, %f, %f)",
-                            "&physics->new_position", (double)physics[0x2b],
-                            (double)physics[0x2c], (double)physics[0x2d]),
-                   "c:\\halo\\SOURCE\\units\\bipeds.c", 0xee2, true);
-    system_exit(-1);
+  /* ---- final NaN asserts (0x1a42dc..0x1a4409) ----
+   * The original reads each component through a single pointer to the vector
+   * base (EDI=&physics->new_position at +0xac, EAX=&physics->new_velocity at
+   * +0xb8) and copies it to a scratch slot ([EBP-0x40]) before the
+   * exponent-mask test. Model with pointer-indexed reads so MSVC reproduces
+   * the [EDI]/[EDI+4]/[EDI+8] addressing and the per-component temp store. */
+  {
+    unsigned int *np = (unsigned int *)&physics[0x2b];
+    isnan_tmp = np[0];
+    if ((isnan_tmp & 0x7f800000) == 0x7f800000 ||
+        ((isnan_tmp = np[1]), (isnan_tmp & 0x7f800000) == 0x7f800000) ||
+        ((isnan_tmp = np[2]), (isnan_tmp & 0x7f800000) == 0x7f800000)) {
+      display_assert(csprintf(error_string_buffer,
+                              "%s: assert_valid_real_point3d(%f, %f, %f)",
+                              "&physics->new_position", (double)physics[0x2b],
+                              (double)physics[0x2c], (double)physics[0x2d]),
+                     "c:\\halo\\SOURCE\\units\\bipeds.c", 0xee2, true);
+      system_exit(-1);
+    }
   }
-  isnan_tmp = *(unsigned int *)&physics[0x2e];
-  if ((isnan_tmp & 0x7f800000) == 0x7f800000 ||
-      ((isnan_tmp = *(unsigned int *)&physics[0x2f]),
-       (isnan_tmp & 0x7f800000) == 0x7f800000) ||
-      ((isnan_tmp = *(unsigned int *)&physics[0x30]),
-       (isnan_tmp & 0x7f800000) == 0x7f800000)) {
-    display_assert(csprintf(error_string_buffer,
-                            "%s: assert_valid_real_vector2d(%f, %f, %f)",
-                            "&physics->new_velocity", (double)physics[0x2e],
-                            (double)physics[0x2f], (double)physics[0x30]),
-                   "c:\\halo\\SOURCE\\units\\bipeds.c", 0xee3, true);
-    system_exit(-1);
+  {
+    unsigned int *nv = (unsigned int *)&physics[0x2e];
+    isnan_tmp = nv[0];
+    if ((isnan_tmp & 0x7f800000) == 0x7f800000 ||
+        ((isnan_tmp = nv[1]), (isnan_tmp & 0x7f800000) == 0x7f800000) ||
+        ((isnan_tmp = nv[2]), (isnan_tmp & 0x7f800000) == 0x7f800000)) {
+      display_assert(csprintf(error_string_buffer,
+                              "%s: assert_valid_real_vector2d(%f, %f, %f)",
+                              "&physics->new_velocity", (double)physics[0x2e],
+                              (double)physics[0x2f], (double)physics[0x30]),
+                     "c:\\halo\\SOURCE\\units\\bipeds.c", 0xee3, true);
+      system_exit(-1);
+    }
   }
   (void)flags_word;
   (void)tval;
