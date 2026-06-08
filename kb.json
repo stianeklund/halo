@@ -9281,7 +9281,7 @@
         },
         {
           "addr": "0x1c7480",
-          "decl": "void sound_impulse_start(int sound_tag_index, float scale);",
+          "decl": "int sound_impulse_start(int sound_tag_index, float scale);",
           "ported": true
         },
         {

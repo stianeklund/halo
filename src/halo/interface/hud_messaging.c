@@ -2055,13 +2055,17 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
       csmemset(text_element, 0, 0x24);
       csmemset(text_pos_buf, 0, 0x54);
       *(short *)text_element = 0;
-      *(unsigned int *)(text_element + 0x18) =
+      /* original writes the 5 color/style fields into text_pos_buf (arg3), NOT
+       * text_element (arg2, whose only write is the first-word zero above).
+       * Disasm: stores at [EBP-0x60]/[EBP-0x5c]/[EBP-0x40]/[EBP-0x3f]/[EBP-0x3e]
+       * = text_pos_buf+0x24/+0x28/+0x44/+0x45/+0x46 (base EBP-0x84). */
+      *(unsigned int *)(text_pos_buf + 0x24) =
           FUN_000d1dd0(&local_24) | uVar13;
-      *(unsigned int *)(text_element + 0x1c) =
+      *(unsigned int *)(text_pos_buf + 0x28) =
           FUN_000d1dd0(&local_24) | uVar13;
-      text_element[0x20] = 3;
-      text_element[0x22] = 1;
-      text_element[0x21] = 5;
+      text_pos_buf[0x44] = 3;
+      text_pos_buf[0x46] = 1;
+      text_pos_buf[0x45] = 5;
 
       {
         short scr_x = (short)local_10;
@@ -2352,8 +2356,10 @@ void FUN_000d70b0(short param_1, unsigned int param_2, int *param_3,
               sound_stop_impulse(iVar1);
             }
           }
-          sound_impulse_start(piVar3[3], new_var);
-          *(int *)(param_4 + iVar6 * 4) = piVar3[3];
+          /* store the RETURNED sound datum handle (not the tag index piVar3[3]);
+           * this slot is consumed later by sound_stop_impulse. */
+          *(int *)(param_4 + iVar6 * 4) =
+              sound_impulse_start(piVar3[3], new_var);
         } else {
           display_assert("!\"unreachable\"",
                          "c:\\halo\\SOURCE\\interface\\hud_sounds.c", 0x2f,

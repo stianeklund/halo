@@ -104,7 +104,7 @@ void unattached_impulse_sound_new(int sound_tag_index, void *location,
  * Builds a minimal sound source descriptor (spatialization_mode=0,
  * scale, gain=1.0f) and forwards to sound_start (0x1ce180) with
  * no object attachment, no track data. */
-void sound_impulse_start(int sound_tag_index, float scale)
+int sound_impulse_start(int sound_tag_index, float scale)
 {
   /* 64-byte sound source descriptor — only first 12 bytes matter here.
    * offset 0x00: int16_t spatialization_mode
@@ -118,7 +118,9 @@ void sound_impulse_start(int sound_tag_index, float scale)
   *(float *)(source + 0x04) = scale;
   *(float *)(source + 0x08) = 1.0f;
 
-  sound_start(sound_tag_index, source, NONE, 0, 0, 0);
+  /* original returns the sound datum handle (or -1) from this tail call;
+   * callers like hud_sounds_update (FUN_000d70b0) store it for sound_stop_impulse. */
+  return sound_start(sound_tag_index, source, NONE, 0, 0, 0);
 }
 
 bool FUN_001c7a10(int object_handle, void *attachment_data, void *source)
