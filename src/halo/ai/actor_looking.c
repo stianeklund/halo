@@ -4891,6 +4891,192 @@ void FUN_00027870(int actor_handle)
   *(short *)(actor + 0x548) = 0;
 }
 
+/* FUN_00027a60 (0x27a60)
+ * Set an actor's secondary scripted-look target.
+ *
+ * Validates look_type (0-13), checks priority against current look state,
+ * optionally selects a prop object and applies cooldown/speed limits, then
+ * writes the look spec (type, priority, tick-count, look_buf) to actor+0x544.
+ * Returns 1 on success, 0 if blocked by priority or state conditions.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x27a74.
+ * Confirmed: tag_get(0x61637472, actor+0x58) at 0x27a7f.
+ * Confirmed: assert (type >= 0) && (type < 14) at line 0x87 actor_looking.c.
+ * Confirmed: actor+0x3e8 >= 7 check (SETGE) stored to local_5 at 0x27ae6.
+ * Confirmed: MOV word [ESI+0x546],DI; MOV word [ESI+0x548],BX;
+ *   MOV word [ESI+0x544],DX at 0x27d8b-0x27d99.
+ * Confirmed: 16-byte copy from param_4 to actor+0x54c (4 dwords) at 0x27da0-0x27db9.
+ * Confirmed: debug type_names[14] at EBP-0x64, prio_names[9] at EBP-0x34;
+ *   literal XBE addresses 0x2551e0..0x255178 (type) and 0x255244..0x2551ec (prio). */
+int FUN_00027a60(int actor_handle, short look_type, short priority,
+                 short *look_buf)
+{
+  char *actor;
+  char *tag;
+  char *prop;
+  float scale;
+  float rng_min;
+  float rng_max;
+  int tick_count;
+  char is_high_level;
+  int *seed;
+  char *type_names[12];
+  char *prio_names[9];
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+
+  if (look_type < 0 || look_type >= 0xe) {
+    display_assert(
+      "(type >= 0) && (type < NUMBER_OF_SECONDARY_LOOK_TYPES)",
+      "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x87, 1);
+    system_exit(-1);
+  }
+
+  /* Priority gate: skip if look_type is low and actor already has higher-priority look */
+  if (*(short *)(actor + 0x6a) <= 1 && look_type < 0xd) {
+    return 0;
+  }
+  if (*(short *)(actor + 0x544) > look_type) {
+    return 0;
+  }
+
+  is_high_level = (char)(*(short *)(actor + 0x3e8) >= 7);
+
+  /* Additional gate for types < 13: special actor state checks */
+  if (look_type < 0xd) {
+    if (*(short *)(actor + 0x6c) == 0xb && *(char *)(actor + 0x9f) == '\0') {
+      return 0;
+    }
+  }
+
+  if (is_high_level && look_type < 4) {
+    return 0;
+  }
+
+  /* If look_buf[0] == 1: prop-based look — check prop state and cooldown */
+  if (*(short *)look_buf == 1) {
+    prop = (char *)datum_absolute_index_to_index(
+      *(data_t **)0x5ab23c, *(int *)(look_buf + 2));
+    if (prop == (char *)0) {
+      return 0;
+    }
+    if (look_type < 8) {
+      /* Visibility/awareness gate: must have flags+awareness to proceed */
+      if (*(char *)(prop + 0x60) != '\0' || *(char *)(prop + 0x127) != '\0') {
+        if (*(char *)(prop + 0x127) == '\0') {
+          goto after_prop_check;
+        }
+        if (*(short *)(actor + 0x6a) < 3) {
+          goto after_prop_check;
+        }
+      }
+      /* Cooldown check */
+      tick_count = game_time_get();
+      if (is_high_level) {
+        return 0;
+      }
+      if (*(char *)(prop + 0x12e) != '\0' && look_type < 4) {
+        goto do_update_timer;
+      }
+      if (*(int *)(prop + 0x5c) == -1 ||
+          *(int *)(prop + 0x5c) + 600 <= tick_count) {
+        goto do_update_timer;
+      }
+      return 0;
+
+do_update_timer:
+      *(int *)(prop + 0x5c) = tick_count;
+      *(float *)(prop + 0x58) =
+        *(float *)(prop + 0x58) > *(float *)(prop + 0x54)
+        ? *(float *)(prop + 0x58) : *(float *)(prop + 0x54);
+    }
+  }
+
+after_prop_check:
+  /* Load base scale from table by look_type */
+  scale = *(float *)((char *)0x25510c + (int)look_type * 4);
+
+  /* Double scale if actor awareness < 3 or actor+0x6e == 0 */
+  if (*(short *)(actor + 0x6a) < 3 || *(short *)(actor + 0x6e) == 0) {
+    scale = scale + scale;
+  }
+
+  /* Apply random scale from tag if tag+0xd4 or tag+0xd8 is non-zero */
+  if (*(float *)(tag + 0xd4) != *(float *)0x2533c0 ||
+      *(float *)(tag + 0xd8) != *(float *)0x2533c0) {
+    /* Floor min at 0.5f */
+    if (*(float *)(tag + 0xd4) < *(float *)0x253398) {
+      rng_min = *(float *)0x253398;
+    } else {
+      rng_min = *(float *)(tag + 0xd4);
+    }
+    /* Ceiling max at 2.0f */
+    if (*(float *)(tag + 0xd8) < *(float *)0x253f40) {
+      rng_max = *(float *)(tag + 0xd8);
+    } else {
+      rng_max = *(float *)0x253f40;
+    }
+    seed = get_global_random_seed_address();
+    scale = scale * random_real_range(seed, rng_min, rng_max);
+  }
+
+  /* Convert scale to tick count (int), capped at 0x7fff */
+  rng_min = scale * *(float *)0x253394;
+  tick_count = (int)rng_min;
+  if (tick_count > 0x7fff) {
+    tick_count = 0x7fff;
+  }
+
+  /* Remap priority=1 from table indexed by [look_type, actor+0x6e>=4] */
+  if (priority == 1) {
+    priority = *(short *)((char *)0x2550d4 +
+      ((int)(unsigned char)(*(short *)(actor + 0x6e) >= 4) + (int)look_type * 2) * 2);
+  }
+
+  /* Debug output */
+  if (*(char *)0x5aca5d != '\0') {
+    type_names[0]  = (char *)0x254384;
+    type_names[1]  = (char *)0x2551e0;
+    type_names[2]  = (char *)0x2551d4;
+    type_names[3]  = (char *)0x2551cc;
+    type_names[4]  = (char *)0x2551c0;
+    type_names[5]  = (char *)0x2551b0;
+    type_names[6]  = (char *)0x2551a4;
+    type_names[7]  = (char *)0x255194;
+    type_names[8]  = (char *)0x255188;
+    type_names[9]  = (char *)0x255180;
+    type_names[10] = (char *)0x255178;
+    type_names[11] = (char *)0x25516c;
+
+    prio_names[0] = (char *)0x254384;
+    prio_names[1] = (char *)0x255244;
+    prio_names[2] = (char *)0x255238;
+    prio_names[3] = (char *)0x25522c;
+    prio_names[4] = (char *)0x255228;
+    prio_names[5] = (char *)0x255218;
+    prio_names[6] = (char *)0x255208;
+    prio_names[7] = (char *)0x2551fc;
+    prio_names[8] = (char *)0x2551ec;
+
+    console_printf(0, (char *)0x255158,
+      ai_debug_describe_actor(actor_handle, -1, 0, (char *)0x5ab100, 0x100),
+      type_names[(int)look_type],
+      prio_names[(int)priority],
+      (int)(short)tick_count);
+  }
+
+  /* Write look spec to actor */
+  *(short *)(actor + 0x546) = priority;
+  *(short *)(actor + 0x548) = (short)tick_count;
+  *(short *)(actor + 0x544) = look_type;
+  *(int *)(actor + 0x54c) = *(int *)look_buf;
+  *(int *)(actor + 0x550) = *(int *)(look_buf + 2);
+  *(int *)(actor + 0x554) = *(int *)(look_buf + 4);
+  *(int *)(actor + 0x558) = *(int *)(look_buf + 6);
+  return 1;
+}
+
 /* FUN_000278e0 (0x278e0)
  * Compute a prop's threat importance score for actor look targeting.
  *

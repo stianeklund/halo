@@ -35781,5 +35781,23 @@
     "decl": "void FUN_000169a0(int actor_handle, int unit_handle, short scenario_idx, int param_4, char *param_5 @<esi>);",
     "obj": "actor_looking.obj",
     "ported": false
+  },
+  "0x16bd0": {
+    "name": "actor_look_secondary_stop",
+    "decl": "void actor_look_secondary_stop(int param_1, int param_2, int param_3, char *param_4, int param_5, char *param_6);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x16d40": {
+    "name": "actor_look_compute_prop_interest",
+    "decl": "void actor_look_compute_prop_interest(int actor_handle, int param_2, short *param_3, void (*callback)(void), int param_5);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x27a60": {
+    "name": "FUN_00027a60",
+    "decl": "int FUN_00027a60(int actor_handle, short look_type, short priority, short *look_buf);",
+    "ported": true,
+    "obj": "actor_looking.obj"
   }
 }
