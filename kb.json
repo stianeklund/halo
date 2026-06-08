@@ -25137,7 +25137,7 @@
         {
           "addr": "0x1a0680",
           "decl": "char FUN_001a0680(int unit_handle);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1a07c0",
