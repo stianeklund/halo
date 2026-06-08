@@ -12183,7 +12183,7 @@
         },
         {
           "addr": "0xd64f0",
-          "decl": "void FUN_000d64f0(int param_1, int param_2);",
+          "decl": "void FUN_000d64f0(int param_1, short param_2);",
           "ported": true
         },
         {
