@@ -115,11 +115,23 @@ def main() -> int:
     t0 = time.monotonic()
     neighbors_md = _query_via_server(decomp_text)
     if neighbors_md is None:
-        # Server not running — skip silently (too slow to spawn subprocess)
+        # Server not running — start it in background (auto-rebuilds if stale)
+        server_py = REPO_ROOT / "tools" / "retrieval" / "server.py"
+        venv_python = REPO_ROOT / ".venv" / "bin" / "python3"
+        py = str(venv_python) if venv_python.exists() else "python3"
+        log_path = Path("/tmp/retrieval_server.log")
+        import subprocess as _sp
+        _sp.Popen(
+            [py, str(server_py)],
+            stdout=open(log_path, "a"), stderr=_sp.STDOUT,
+            cwd=str(REPO_ROOT),
+            start_new_session=True,
+        )
         print(
             json.dumps({"systemMessage": (
-                "[retrieval-hook] Server not running. Start it with: "
-                "python3 tools/retrieval/server.py &"
+                "[retrieval-hook] Server not running — started in background "
+                f"(log: {log_path}). "
+                "It will auto-rebuild the index if stale, then serve queries."
             )}),
             flush=True,
         )
