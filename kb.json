@@ -35619,5 +35619,11 @@
     "addr": "0x1abd0",
     "decl": "void FUN_0001abd0(int actor_handle);",
     "ported": true
+  },
+  "0x14620": {
+    "name": "FUN_00014620",
+    "decl": "char FUN_00014620(int actor_handle, void *state_data);",
+    "ported": true,
+    "obj": "actor_looking.obj"
   }
 }
