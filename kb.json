@@ -529,7 +529,7 @@
         },
         {
           "addr": "0x150550",
-          "decl": "int FUN_00150550(void *out_point, float *direction, float *origin, float arg4, int arg5, int arg6, float *out_point2, void *out_arg8, int max_results, void *results);"
+          "decl": "int FUN_00150550(void *out_point, float *direction, float *origin, int arg4, int arg5, int arg6, float *out_point2, void *out_arg8, int max_results, void *results);"
         },
         {
           "addr": "0x1506d0",
