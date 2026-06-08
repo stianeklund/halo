@@ -761,3 +761,43 @@ this — the function produces correct data in `param_1` regardless of return ty
 The divergence only manifests in the **caller's** read of EAX. The correct test is
 `unicorn_diff.py` on the *caller* function with `--allow-stubs --state-snapshot`,
 or a targeted check comparing `*(int*)EAX_on_return` between oracle and candidate.
+
+## 17. Address Offset Mis-Rendered as a Value Addition
+
+**What happens:** Two adjacent fields of a global struct live at `BASE` and
+`BASE+N` (e.g. two `short` rect edges at `0x506588` and `0x50658a`). The
+original reads the second field directly: `*(short*)(BASE+N)`. A lift that is
+thinking of the struct as "base plus an index" writes the `+N` on the **wrong
+side of the dereference**: `*(short*)BASE + N` (value add) instead of
+`*(short*)(BASE+N)` (address add). These are not equal —
+`((int)*(short*)0x506588) + 2 != *(short*)0x50658a` — so the function reads the
+wrong field *and* adds a stray constant.
+
+**Symptoms:** No crash (both addresses are valid globals). Silent wrong scalar:
+a width computed from the height fields, a Y from an X field, etc. The effect is
+a subtly-wrong geometric quantity — here a nav-point clamping ellipse with the
+wrong aspect ratio, mis-positioning off-cone markers.
+
+**Example (`nav_point_draw_single`, FUN_000d6660):** the visibility-cone
+half-extents are two rect deltas. Disasm at 0xd67e9-0xd6822:
+```
+fVar1.int: movswl [0x50658a]; movswl [0x506586]; sub   ->  *0x50658a - *0x506586   (width = field[3]-field[1])
+fVar3.int: movswl [0x506588]; movswl [0x506584]; sub   ->  *0x506588 - *0x506584   (height = field[2]-field[0])
+```
+The lift wrote fVar1 as `*(short*)0x506588 + 2 - *(short*)0x506584 + 2`, turning
+the address offsets `0x506588+2`/`0x506584+2` into value `+2`s on the height
+fields — computing `height + 4` instead of `width`.
+
+**Prevention — the detection grep (this is the reusable part):**
+- `grep -nE '\*\(\w+ \*\)0x[0-9a-f]+ \+ [0-9]'` (and the `*(T*)(ptr) + N` form on
+  a named pointer). For each hit, check whether a **sibling expression reads the
+  adjacent address `BASE+N` directly**. If it does, the `+N` is an address
+  offset that belongs *inside* the cast: rewrite `*(T*)BASE + N` →
+  `*(T*)(BASE+N)`.
+- Cross-confirm against the disasm: a single `movswl [BASE+N]` (or
+  `mov [BASE+N]`) with **no** trailing `add reg, N` proves the constant is part
+  of the address, not a value added after the load.
+
+**Detection at runtime:** No signal — a wrong scalar with no crash. Use §9
+toggle bisection / a state-snapshot mem-trace differential to localize, then
+read the disasm to confirm which address is actually loaded.
