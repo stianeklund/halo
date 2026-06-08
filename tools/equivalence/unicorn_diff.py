@@ -1572,6 +1572,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     passed = 0
     failed = 0
     errors = 0
+    error_details = []
     first_diff = None
     trace_diff_count = 0
     # Affirmative heap-output evidence accumulated across seeds (BIPED_HEAP_COMPARE).
@@ -1607,6 +1608,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                                          max_insn=_max_insn)
         except Exception as exc:
             log(f"  {seed_label} ORACLE-ERROR: {exc}")
+            error_details.append(f"{seed_label} ORACLE-ERROR: {exc}")
             errors += 1
             continue
 
@@ -1622,21 +1624,26 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                                          max_insn=_max_insn)
         except Exception as exc:
             log(f"  {seed_label} LIFTED-ERROR: {exc}")
+            error_details.append(f"{seed_label} LIFTED-ERROR: {exc}")
             errors += 1
             continue
 
         if oracle_state.error:
             log(f"  {seed_label} ORACLE-CRASH: {oracle_state.error}")
+            error_details.append(f"{seed_label} ORACLE-CRASH: {oracle_state.error}")
             errors += 1
             continue
         if lifted_state.error:
             log(f"  {seed_label} LIFTED-CRASH: {lifted_state.error}")
+            error_details.append(f"{seed_label} LIFTED-CRASH: {lifted_state.error}")
             errors += 1
             continue
         # If either side hit the instruction limit, the register state is
         # garbage from an aborted loop — treat as error, not a divergence.
         if oracle_state.insn_count >= _max_insn or lifted_state.insn_count >= _max_insn:
-            log(f"  {seed_label} INSN-LIMIT: oracle={oracle_state.insn_count} lifted={lifted_state.insn_count} (skipped — likely assert→stub loop)")
+            msg = f"{seed_label} INSN-LIMIT: oracle={oracle_state.insn_count} lifted={lifted_state.insn_count}"
+            log(f"  {msg} (skipped — likely assert→stub loop)")
+            error_details.append(msg)
             errors += 1
             continue
 
@@ -1784,7 +1791,10 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                                     collect_mem_trace=enable_trace,
                                     memory_overrides=merged_overrides,
                                     max_insn=_max_insn)
-                            except Exception:
+                            except Exception as exc:
+                                msg = f"{sl} ORACLE-ERROR: {exc}"
+                                log(f"  {msg}")
+                                error_details.append(msg)
                                 errors += 1
                                 continue
 
@@ -1798,14 +1808,28 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                                     collect_mem_trace=enable_trace,
                                     memory_overrides=merged_overrides,
                                     max_insn=_max_insn)
-                            except Exception:
+                            except Exception as exc:
+                                msg = f"{sl} LIFTED-ERROR: {exc}"
+                                log(f"  {msg}")
+                                error_details.append(msg)
                                 errors += 1
                                 continue
 
                             if orc_s.error or lft_s.error:
+                                if orc_s.error:
+                                    msg = f"{sl} ORACLE-CRASH: {orc_s.error}"
+                                    log(f"  {msg}")
+                                    error_details.append(msg)
+                                if lft_s.error:
+                                    msg = f"{sl} LIFTED-CRASH: {lft_s.error}"
+                                    log(f"  {msg}")
+                                    error_details.append(msg)
                                 errors += 1
                                 continue
                             if orc_s.insn_count >= MAX_INSN or lft_s.insn_count >= MAX_INSN:
+                                msg = f"{sl} INSN-LIMIT: oracle={orc_s.insn_count} lifted={lft_s.insn_count}"
+                                log(f"  {msg}")
+                                error_details.append(msg)
                                 errors += 1
                                 continue
 
@@ -1944,6 +1968,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
 
     extra = dict(
         passed=passed, failed=failed, errors=errors,
+        error_details=error_details,
         seeds=total_seeds,
         coverage_pct=round(coverage_pct, 1),
         unique_returns=unique_returns,

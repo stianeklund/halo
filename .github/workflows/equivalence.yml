@@ -168,6 +168,23 @@ jobs:
               print()
               print('### New Failures (regressions)')
               for f in s['comparison']['new_failures']:
-                  print(f'- **{f[\"name\"]}** ({f[\"obj\"]}): {f[\"reason\"]}')
+                  nm = f['name']; obj = f['obj']; rsn = f['reason']
+                  ed = f.get('error_details', [])
+                  print('- **' + nm + '** (' + obj + '): ' + rsn)
+                  if ed and rsn in ('emulation_error', 'timeout'):
+                      for d in ed[:5]:
+                          print('  - `' + d + '`')
+                      if len(ed) > 5:
+                          print('  - *... and ' + str(len(ed)-5) + ' more*')
+          if s.get('comparison', {}).get('known_failures'):
+              print()
+              print('### Known Failures (cont.)')
+              for f in s['comparison']['known_failures']:
+                  nm = f['name']; obj = f['obj']; rsn = f['reason']
+                  ed = f.get('error_details', [])
+                  print('- **' + nm + '** (' + obj + '): ' + rsn)
+                  if ed and rsn in ('emulation_error', 'timeout'):
+                      for d in ed[:3]:
+                          print('  - `' + d + '`')
           " >> "$GITHUB_STEP_SUMMARY"
           fi
