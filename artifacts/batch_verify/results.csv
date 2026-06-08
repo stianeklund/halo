@@ -1,1 +1,3 @@
 addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
+0x3a740,FUN_0003a740,leaf,actors.obj,fail,emulation_error,0,20,0
+0x3a760,FUN_0003a760,leaf,actors.obj,fail,emulation_error,0,20,0
