@@ -1,0 +1,2 @@
+- [Biped equivalence-activation bar (1430 precedent)](project_biped_equiv_activation_bar.md) — the sanctioned bar for flipping ported=true on register-arg biped fns via equivalence; what cleared 1430 vs what fails 0e00/2290/0b30
+- [OR-with-constant byte-vs-dword is benign by construction](feedback_or_const_store_width_benign.md) — clang narrows `*(int*)p |= 1` to `OR byte[p],1`; mem-trace flags a width disjoint but final memory is identical for ANY upper bytes; not snapshot-dependent
