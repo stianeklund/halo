@@ -167,10 +167,18 @@ void *debug_malloc(uint32_t size, bool zero, const char *file, int line)
   {
     /* link header into debug allocation list; function reads ESI */
     int _esi = (int)header;
+#if defined(_MSC_VER) && !defined(__clang__)
+    __asm {
+        mov esi, _esi
+        mov eax, 0x8e950
+        call eax
+    }
+#else
     asm volatile("call *%[fn]"
                  : "+S"(_esi)
                  : [fn] "r"((void *)0x8e950)
                  : "eax", "ecx", "edx", "memory", "cc");
+#endif
   }
 
   header = (debug_allocation_header_t *)((char *)header + 0x20);
@@ -204,11 +212,21 @@ void debug_free(void *ptr, const char *file, int line)
     int _esi = (int)header;
     int _ebx = (int)file;
     int _edi = line;
+#if defined(_MSC_VER) && !defined(__clang__)
+    __asm {
+        mov esi, _esi
+        mov ebx, _ebx
+        mov edi, _edi
+        mov eax, 0x8e7d0
+        call eax
+    }
+#else
     asm volatile("movl $0x8e7d0, %%eax\n\t"
                  "call *%%eax"
                  : "+S"(_esi), "+b"(_ebx), "+D"(_edi)
                  :
                  : "eax", "ecx", "edx", "memory", "cc");
+#endif
   }
   if (*(uint32_t *)((char *)header + header->size + 0x20) != 0x3c2d2d2d) {
     display_assert(
@@ -226,6 +244,16 @@ void debug_free(void *ptr, const char *file, int line)
     int _eax = (int)header;
     int _file = (int)file;
     int _line = line;
+#if defined(_MSC_VER) && !defined(__clang__)
+    __asm {
+        mov eax, _eax
+        push _line
+        push _file
+        mov ecx, 0x8e9f0
+        call ecx
+        add esp, 8
+    }
+#else
     asm volatile(
       "pushl %[line]\n\t"
       "pushl %[file]\n\t"
@@ -234,6 +262,7 @@ void debug_free(void *ptr, const char *file, int line)
       : "+a"(_eax)
       : [fn] "r"((void *)0x8e9f0), [file] "r"(_file), [line] "r"(_line)
       : "ecx", "edx", "memory", "cc");
+#endif
   }
   header->begin_guard = 0x3c424144;
   ((void (*)(void *))0x8e3e0)(header);
