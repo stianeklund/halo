@@ -1,6 +1,7 @@
 # Build output
 /build
 /build_debug/
+/build.bisect.tmp/
 /dist
 build_output.log
 artifacts
