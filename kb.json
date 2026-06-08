@@ -11781,7 +11781,7 @@
         },
         {
           "addr": "0xd1890",
-          "decl": "void FUN_000d1890(int bitmap_handle, short screen_index);"
+          "decl": "void FUN_000d1890(float *out_corners @<eax>, float *rect @<edi>, char align_flag @<bl>, int bitmap_handle, short screen_index);"
         },
         {
           "addr": "0xd1a70",
@@ -11824,7 +11824,7 @@
         },
         {
           "addr": "0xd27a0",
-          "decl": "void FUN_000d27a0(int param_1 @<eax>, void *param_2, int *param_3, void *param_4, int param_5, int param_6);"
+          "decl": "void FUN_000d27a0(int element @<ecx>, float *scale @<eax>, int local_player_index, void *cursor, float *icon_rect, float *corners, void *param_6, int color);"
         }
       ],
       "name": "hud.obj",
