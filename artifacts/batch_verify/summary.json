@@ -1,24 +1,84 @@
 {
   "results": {
     "pass": 0,
-    "fail": 0,
+    "fail": 2,
     "error": 0,
     "not_applicable": 0,
     "z3_proven": 0,
-    "total": 0
+    "total": 2
   },
-  "failures": [],
+  "failures": [
+    [
+      "FUN_0003a740",
+      "emulation_error"
+    ],
+    [
+      "FUN_0003a760",
+      "emulation_error"
+    ]
+  ],
   "errors": [],
   "z3_proven": [],
-  "rows": [],
-  "by_object": {},
+  "rows": [
+    {
+      "addr": "0x3a740",
+      "name": "FUN_0003a740",
+      "class": "leaf",
+      "obj": "actors.obj",
+      "status": "fail",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x3a760",
+      "name": "FUN_0003a760",
+      "class": "leaf",
+      "obj": "actors.obj",
+      "status": "fail",
+      "reason": "emulation_error",
+      "seeds_passed": 0,
+      "seeds_total": 20,
+      "z3_proven": "0"
+    }
+  ],
+  "by_object": {
+    "actors.obj": {
+      "fail": 2,
+      "total": 2
+    }
+  },
   "comparison": {
     "baseline": "artifacts/batch_verify/summary.json",
     "new_failures": [],
-    "known_failures": [],
+    "known_failures": [
+      {
+        "addr": "0x3a740",
+        "name": "FUN_0003a740",
+        "class": "leaf",
+        "obj": "actors.obj",
+        "status": "fail",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x3a760",
+        "name": "FUN_0003a760",
+        "class": "leaf",
+        "obj": "actors.obj",
+        "status": "fail",
+        "reason": "emulation_error",
+        "seeds_passed": 0,
+        "seeds_total": 20,
+        "z3_proven": "0"
+      }
+    ],
     "allowlisted": []
   },
-  "elapsed_seconds": 1.6689300537109375e-05,
+  "elapsed_seconds": 0.004216670989990234,
   "interrupted": false,
-  "skipped": 0
+  "skipped": 2
 }
