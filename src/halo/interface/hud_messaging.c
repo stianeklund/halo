@@ -1249,8 +1249,10 @@ LAB_000d57ad:
               icon_idx = (int)(unsigned short)bVar1;
             } else if (bVar1 <= 0x1f) {
               if (bVar1 <= 0x1c) {
+                /* prefs buffer is filled at base+0; the original indexes it at
+                 * base+8 (movzx bx,[ebp+edx-0x98] vs buffer base [ebp-0xa0]). */
                 icon_idx = (int)(unsigned short)
-                    prefs[(int)(signed char)((char *)0x2f66c2)[bVar1]];
+                    prefs[(int)(signed char)((char *)0x2f66c2)[bVar1] + 8];
               } else {
                 icon_idx = (int)(short)(signed char)((char *)0x2f66c2)[bVar1];
               }
@@ -1801,14 +1803,17 @@ void FUN_000d64c0(int param_1, int unit_handle, int param_3, int param_4)
   }
 }
 
-/* FUN_000d64f0 (0xd64f0) — clear object nav point for a unit's player. */
-void FUN_000d64f0(int param_1, int param_2)
+/* FUN_000d64f0 (0xd64f0) — clear object nav point for a unit's player.
+ * param_2 is a 16-bit object handle: the original sign-extends it
+ * (MOVSX EDI,word[EBP+0xc]) before the full 32-bit compare in FUN_000d6320,
+ * so it must be a short here, not an int. */
+void FUN_000d64f0(int param_1, short param_2)
 {
   int player_index;
 
   player_index = player_index_from_unit_index(param_1);
   if (player_index != -1) {
-    FUN_000d6320(player_index, 0, param_2);
+    FUN_000d6320(player_index, 0, (int)param_2);
   }
 }
 
@@ -3278,12 +3283,14 @@ void FUN_000d7d40(int param_1)
                       *(float *)(iVar13 + 0x254) ||
                   *(float *)(unit_data + 0x90) ==
                       *(float *)(iVar13 + 0x254)) {
-                health_meter_data[15] = health_meter_data[14];
+                /* override stores at base+0x38/+0x34 = indices 14/13, not 15/14
+                 * (disasm: MOV [EBP-0x15c]/[EBP-0x160], base EBP-0x194). */
+                health_meter_data[14] = health_meter_data[13];
               } else {
-                health_meter_data[15] = *(int *)(iVar13 + 0x24c);
+                health_meter_data[14] = *(int *)(iVar13 + 0x24c);
               }
             }
-            health_meter_data[14] = health_meter_data[15];
+            health_meter_data[13] = health_meter_data[14];
 
             meter_scale = (float)(int)health_max;
 
