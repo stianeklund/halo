@@ -36,6 +36,63 @@ if _VENV_SP.exists() and str(_VENV_SP) not in sys.path:
 sys.path.insert(0, str(REPO_ROOT))
 
 
+def _is_index_stale() -> bool:
+    """Return True if the retrieval index needs rebuilding.
+
+    Compares kb.json mtime (and the latest git commit touching kb.json or src/)
+    against the DuckDB index file's mtime.  If input sources are newer, the
+    index is stale.
+    """
+    db_path = REPO_ROOT / "tools" / "retrieval" / "index.duckdb"
+    kb_path = REPO_ROOT / "kb.json"
+
+    if not db_path.exists():
+        return True
+
+    import subprocess as _subprocess
+
+    # Latest git commit touching inputs
+    result = _subprocess.run(
+        ["git", "log", "-1", "--format=%ct", "--", "kb.json", "src/"],
+        capture_output=True, text=True, cwd=str(REPO_ROOT),
+    )
+    git_ts = int(result.stdout.strip()) if result.stdout.strip() else 0
+
+    # Latest file mtime on kb.json (covers uncommitted changes)
+    kb_ts = kb_path.stat().st_mtime
+
+    latest_input = max(kb_ts, float(git_ts))
+    index_mtime = db_path.stat().st_mtime
+
+    return latest_input > index_mtime + 1.0  # 1-second fudge for fs resolution
+
+
+def _rebuild_index() -> None:
+    """Run extract + embed in a subprocess to rebuild the index."""
+    build_index = REPO_ROOT / "tools" / "retrieval" / "build_index.py"
+    log_path = Path("/tmp/retrieval_auto_rebuild.log")
+
+    venv_python = REPO_ROOT / ".venv" / "bin" / "python3"
+    py = str(venv_python) if venv_python.exists() else sys.executable
+
+    import subprocess as _subprocess
+    import time as _time
+    t0 = _time.monotonic()
+
+    chain = (
+        f"{py} {build_index} extract >> {log_path} 2>&1 && "
+        f"{py} {build_index} embed >> {log_path} 2>&1"
+    )
+    ret = _subprocess.run(chain, shell=True, cwd=str(REPO_ROOT))
+
+    elapsed = _time.monotonic() - t0
+    if ret.returncode == 0:
+        print(f"[server] index rebuilt ({elapsed:.1f}s)", flush=True)
+    else:
+        print(f"[server] index rebuild FAILED (exit={ret.returncode}, {elapsed:.1f}s) — "
+              f"see {log_path}", flush=True)
+
+
 def _load() -> tuple:
     """Load embedder + index rows once."""
     import numpy as np
@@ -147,11 +204,20 @@ def _handle(conn: socket.socket, state: tuple) -> None:
 
 
 def main() -> None:
-    state = _load()
-
-    # Remove stale socket
+    # Clean up stale socket from any previous instance
     if SOCK_PATH.exists():
         SOCK_PATH.unlink()
+    if PID_PATH.exists():
+        PID_PATH.unlink()
+
+    # Rebuild index if input sources are newer than the last index
+    if _is_index_stale():
+        print("[server] index is stale — rebuilding...", flush=True)
+        _rebuild_index()
+    else:
+        print("[server] index is fresh", flush=True)
+
+    state = _load()
 
     PID_PATH.write_text(str(os.getpid()))
 
