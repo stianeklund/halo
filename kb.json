@@ -35799,5 +35799,17 @@
     "decl": "int FUN_00027a60(int actor_handle, short look_type, short priority, short *look_buf);",
     "ported": true,
     "obj": "actor_looking.obj"
+  },
+  "0x15f60": {
+    "name": "FUN_00015f60",
+    "decl": "void FUN_00015f60(int actor_handle, int *param_2);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x1a600": {
+    "name": "FUN_0001a600",
+    "decl": "void FUN_0001a600(int actor_handle, int *param_2);",
+    "ported": true,
+    "obj": "actor_looking.obj"
   }
 }
