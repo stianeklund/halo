@@ -35625,5 +35625,77 @@
     "decl": "char FUN_00014620(int actor_handle, void *state_data);",
     "ported": true,
     "obj": "actor_looking.obj"
+  },
+  "0x15cf0": {
+    "name": "FUN_00015cf0",
+    "decl": "void FUN_00015cf0(int actor_handle);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x16050": {
+    "name": "FUN_00016050",
+    "decl": "int FUN_00016050(int actor_handle, short *param_2);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x16210": {
+    "name": "FUN_00016210",
+    "decl": "char FUN_00016210(int actor_handle, int param_2, short *param_3);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x16cf0": {
+    "name": "FUN_00016cf0",
+    "decl": "void FUN_00016cf0(int param_1, int param_2, short param_3, int param_4, int param_5);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x192b0": {
+    "name": "FUN_000192b0",
+    "decl": "int FUN_000192b0(int actor_handle);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x19b20": {
+    "name": "FUN_00019b20",
+    "decl": "void FUN_00019b20(int actor_handle);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x19c70": {
+    "name": "FUN_00019c70",
+    "decl": "void FUN_00019c70(int actor_handle);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x1a670": {
+    "name": "FUN_0001a670",
+    "decl": "void FUN_0001a670(int actor_handle);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x1ac00": {
+    "name": "FUN_0001ac00",
+    "decl": "void FUN_0001ac00(int actor_handle);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x272d0": {
+    "name": "FUN_000272d0",
+    "decl": "short FUN_000272d0(int actor_handle, short param_2, short param_3, int param_4, unsigned int param_5, char param_6);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x278e0": {
+    "name": "FUN_000278e0",
+    "decl": "float FUN_000278e0(int actor_handle, int prop_handle);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x2a2b0": {
+    "name": "FUN_0002a2b0",
+    "decl": "void FUN_0002a2b0(int actor_handle);",
+    "ported": true,
+    "obj": "actor_looking.obj"
   }
 }
