@@ -96,7 +96,7 @@ COFF_TMP="${VC71_STAGE}/${BASENAME}_${UNIQUE}.obj"
 # --------------------------------------------------------------------------
 COMPILE_C="$C_FILE"
 STRIPPED_C=""
-if [[ "$(basename "$C_FILE")" == permuter* ]]; then
+if [[ "$(basename "$C_FILE")" == permuter* ]] || [[ "$C_FILE" == */output-*/source.c ]]; then
     STRIPPED_C="${C_FILE%.c}.stripped.c"
     TYPES_H_SRC="${SRC_INC_OVERRIDE:-$REPO_ROOT/src}/types.h"
     if python3 "${SCRIPT_DIR}/strip_dup_typedefs.py" "$C_FILE" "$TYPES_H_SRC" "$STRIPPED_C" 2>/dev/null; then
