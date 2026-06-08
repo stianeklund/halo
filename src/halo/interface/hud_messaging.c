@@ -16,18 +16,15 @@ void FUN_000d3fe0(int param_1, short *param_2, int param_3,
 {
   int iVar1;
   int iVar2;
-  int *puVar3;
+  float *puVar3;
   int uVar4;
   char cVar5;
   short sVar6;
+  int draw_flag;
+  float scale[2];
+  float icon_rect[4];
   int local_24c[128];
   unsigned char local_4c[16];
-  int local_3c;
-  int local_38;
-  int local_34;
-  float local_30;
-  int local_2c;
-  float local_28;
   unsigned int local_24;
   int local_20;
   int local_1c;
@@ -37,7 +34,6 @@ void FUN_000d3fe0(int param_1, short *param_2, int param_3,
   int local_c;
   short *local_8;
 
-  (void)local_28;
   local_20 = FUN_000d1540();
   csmemset(local_24c, 0x62, 0x200);
   iVar1 = verify_tag_reference((int *)(param_3 + 0x24));
@@ -47,7 +43,7 @@ void FUN_000d3fe0(int param_1, short *param_2, int param_3,
   iVar2 = (int)xbox_texture_cache_get_hardware_format((void *)local_c, 0, 1);
   if (iVar2 != 0) {
     verify_tag_reference((int *)(param_3 + 0x24));
-    puVar3 = FUN_000d1580();
+    puVar3 = (float *)FUN_000d1580();
     if ((param_4 & 2) == 0) {
       if ((param_4 & 1) == 0) {
         uVar4 = *(int *)(param_3 + 0x34);
@@ -65,32 +61,37 @@ void FUN_000d3fe0(int param_1, short *param_2, int param_3,
     if (0 < *(int *)(param_3 + 0x58)) {
       iVar2 = 0;
       local_24 = param_4 & 4;
-      local_34 = 0;
-      local_2c = 0;
+      icon_rect[0] = 0.0f;
+      icon_rect[2] = 0.0f;
       cVar5 = (char)(sVar6 == 4);
       while (1) {
         local_1c = (int)tag_block_get_element((void *)(param_3 + 0x58), iVar2,
                                               0x1e0);
-        local_30 = 1.0f;
-        local_28 = 1.0f;
+        icon_rect[1] = 1.0f;
+        icon_rect[3] = 1.0f;
         if (cVar5 != '\0') {
           local_10 = (int)*(short *)(local_c + 6);
-          local_30 = (float)(int)*(short *)(local_c + 4);
-          local_28 = (float)local_10;
+          icon_rect[1] = (float)(int)*(short *)(local_c + 4);
+          icon_rect[3] = (float)local_10;
         }
-        if (puVar3 == (int *)0) {
-          puVar3 = &local_34;
+        if (puVar3 == (float *)0) {
+          puVar3 = icon_rect;
         }
-        local_3c = *(int *)(param_3 + 4);
-        local_38 = *(int *)(param_3 + 8);
+        scale[0] = *(float *)(param_3 + 4);
+        scale[1] = *(float *)(param_3 + 8);
         if (((short)local_24 == 0) ||
-            (uVar4 = 1, (*(unsigned char *)(param_3 + 0xc) & 1) != 0)) {
-          uVar4 = 0;
+            (draw_flag = 1, (*(unsigned char *)(param_3 + 0xc) & 1) != 0)) {
+          draw_flag = 0;
         }
-        FUN_000d1f40((short)*(int *)0x506548, param_2, (int)param_3, 0, uVar4,
+        FUN_000d1f40((short)*(int *)0x506548, param_2, (int)param_3, 0, draw_flag,
                      0, local_18);
-        FUN_000d1890(local_c, *param_2);
-        FUN_000d27a0(param_1, local_18, puVar3, local_4c, 0, uVar4);
+        /* d1890: @<eax>=local_4c (out corners), @<edi>=puVar3 (in rect),
+         * @<bl>=cVar5 (align flag); 2 stack args: bitmap, screen index. */
+        FUN_000d1890((float *)local_4c, puVar3, cVar5, local_c, *param_2);
+        /* d27a0: @<ecx>=local_1c (element ptr), @<eax>=scale[2];
+         * 6 stack args; 6th = uVar4 (color, raw int bitpattern). */
+        FUN_000d27a0(local_1c, scale, param_1, local_18, puVar3,
+                     (float *)local_4c, 0, uVar4);
         iVar2 = iVar2 + 1;
         iVar2 = (int)(short)iVar2;
         if (*(int *)(param_3 + 0x58) <= iVar2) break;
@@ -98,8 +99,7 @@ void FUN_000d3fe0(int param_1, short *param_2, int param_3,
       }
     }
   }
-  (void)local_3c; (void)local_38; (void)local_30; (void)local_2c;
-  (void)local_28; (void)local_1c;
+  (void)scale; (void)local_1c;
   sVar6 = 0x7f;
   do {
     if (local_24c[(int)sVar6] != 0x62626262) goto LAB_000d41e7;
