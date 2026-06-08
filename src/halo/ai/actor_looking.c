@@ -1765,8 +1765,8 @@ void FUN_00015f60(int actor_handle, int *param_2)
     src = *(int **)0x2ee6f4;
     if (*(char *)(actor + 0xa5) != '\0') {
       src = *(int **)0x2ee6e8;
-      param_2[0] = src[0];
       param_2[1] = src[1];
+      param_2[0] = src[0];
       param_2[2] = src[2];
       param_2[3] = src[3];
       return;
@@ -4171,22 +4171,23 @@ void FUN_0001a600(int actor_handle, int *param_2)
   char *actor;
   char *looking;
   char *src;
+  int *p;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   looking = actor + 0x9c;
   if (*looking != '\0') {
     src = *(char **)0x2ee6d8;
-    *param_2 = *(int *)src;
+    p = (int *)src;
+    *param_2 = *p;
     param_2[1] = *(int *)(src + 4);
     param_2[2] = *(int *)(src + 8);
     param_2[3] = *(int *)(src + 0xc);
     return;
   }
-  src = *(char **)0x2ee6ec;
-  *param_2 = *(int *)src;
-  param_2[1] = *(int *)(src + 4);
-  param_2[2] = *(int *)(src + 8);
-  param_2[3] = *(int *)(src + 0xc);
+  *param_2 = *(int *)*(char **)0x2ee6ec;
+  param_2[1] = *(int *)(*(char **)0x2ee6ec + 4);
+  param_2[2] = *(int *)(*(char **)0x2ee6ec + 8);
+  param_2[3] = *(int *)(*(char **)0x2ee6ec + 0xc);
 }
 
 /* FUN_0001a670 (0x1a670)
