@@ -2779,102 +2779,134 @@ void biped_build_flying_axes(float *forward, float *left, float *up)
   }
 }
 
+/* Collision/line-of-sight query result entry (0x2c bytes), as filled by
+ * FUN_00150550 into a 16-element local array. Offsets confirmed from the
+ * back-half access patterns (EDI walks the array at stride 0x2c):
+ *   +0x00 point[3] (also used as plane normal source)
+ *   +0x04 normal.y (EDI+0x4, used in the ground-plane height test)
+ *   +0x0c object datum handle (EDI+0xc, compared to -1, fed to datum_get)
+ *   +0x14 flags byte (EDI+0x14, tested &8 / &4) and +0x28 plane reference.
+ * The decompiler models the array as scattered local_358/local_35c/local_36c
+ * char* locals at stride 0xb; this struct preserves the same 0x2c layout. */
+typedef struct biped_collision_result {
+  float point[4]; /* +0x00 .. +0x0c */
+  float normal[3]; /* +0x10 .. +0x18 */
+  float plane_d; /* +0x1c */
+  int object_handle; /* +0x20 */
+  int surface_handle; /* +0x24 */
+  int flags; /* +0x28 */
+} biped_collision_result;
+
 /* FUN_001a2f40 (0x1a2f40) — biped ground/movement physics step.
  *
- * Largest function in bipeds.obj (~5.3 KB, ~1613 instructions). Reconstructed
- * directly from disassembly: the Ghidra decompiler output for this routine is
- * heavily polluted (return-address pushes modelled as struct stores, ._4_4_
- * half-splits, unstable type propagation), so the decompiler was used only as a
- * control-flow skeleton. Every store offset, FPU operand order, and branch in
- * the reconstructed portion was cross-checked against the raw listing.
+ * Largest function in bipeds.obj (~5.3 KB, ~1613 instructions). The Ghidra
+ * decompiler output for this routine is heavily polluted ("type propagation
+ * not settling"; return-address pushes modelled as struct stores; pervasive
+ * (char*)/(char**) casts on what are really float scratch slots), so it was
+ * used only as a control-flow skeleton and EVERY store offset, FPU operand
+ * order, branch sense, and the integer-vs-float nature of each store was
+ * cross-checked against the raw disassembly.
  *
  * ABI (Confirmed): single register argument in ESI (read-before-write at the
  *   prologue; caller FUN_001a5300 does `LEA ESI,[EBP-0xe4]; CALL` with no
- *   pushes and discards EAX). Returns void. Huge _chkstk frame (0xafac) for the
- *   ~44 KB debug-draw scratch buffer passed to FUN_0014ec30 in the back half.
+ *   pushes and discards EAX). Returns void. Huge _chkstk frame (0xafac) for a
+ *   ~44 KB debug-draw scratch buffer passed to FUN_0014ec30.
  *
  * `physics` (ESI) is a biped movement/physics state struct accessed as a flat
- * float array. Notable fields (index = byte offset / 4), all Confirmed from
- * the access patterns in the listing:
- *   +0x04  flags (u16)
+ * float array. Field map (index = byte offset / 4), all Confirmed:
+ *   +0x04  flags (u16); bit 0x10/0x20/0x01 select movement mode, bit 0x200
+ *          selects the surface-walk sub-mode, bits 0x40/0x80/0x100 select the
+ *          debug-draw colour.
  *   +0x08  position[3]
- *   +0x14  control / movement axis (forward basis input)
- *   +0x20  ground-plane normal
- *   +0x2c  velocity[3]
- *   +0x38  step-height offset
- *   +0x3c  control direction (x,y,z = physics[0xf],[0x10],[0x11])
- *   +0x48  friction/damping factor
- *   +0x4c  max horizontal speed clamp (mode 0x10)
- *   +0x50  max speed clamp (mode 0x01)
- *   +0xa0  result/state word (mixed u16/byte access)
- *   +0xac  new_position (per assert string &physics->new_position @0x2b5080)
- *   +0xb8  new_velocity (per assert string &physics->new_velocity @0x2b5068)
- *   +0xc8  step distance
+ *   +0x14  control / forward basis axis (physics[5..7])
+ *   +0x20  ground-plane normal (physics[8..0xa]); +0x2c plane_d at physics[0xb]
+ *   +0x2c  velocity[3] (physics[0xb..0xd])  [NOTE: aliases ground-plane d]
+ *   +0x38  step-height offset (physics[0xe])
+ *   +0x3c  control direction (physics[0xf..0x11])
+ *   +0x48  friction (used as 1.0 - friction; 1.0f = *(float*)0x2533c8)
+ *   +0x4c  max-speed clamp (mode 0x10, physics[0x13])
+ *   +0x50  max-speed clamp (mode 0x01, physics[0x14])
+ *   +0x54/0x58  line-of-sight direction/origin args to FUN_00150550
+ *   +0x60..0x7c slope-response material curve breakpoints (physics[0x18..0x1f])
+ *   +0x80  ground-plane struct (physics+0x80 = physics[0x20..0x23])
+ *   +0xa0  result/state word (mixed u16/byte access to the SAME field)
+ *   +0xa4  surface datum handle (physics[0x29]); +0xa8 plane reference
+ *          (physics[0x2a]) — both 32-bit handles in float slots, "none" = -1
+ *   +0xac  new_position (assert string &physics->new_position @0x2b5080)
+ *   +0xb8  new_velocity (assert string &physics->new_velocity @0x2b5068)
+ *   +0xc4  result point (physics[0x31]); +0xc8 step distance (physics[0x32])
  *
  * NOTE (Confirmed): byte offsets +0xac and +0xb8 are new_position /
  * new_velocity from the binary's own assert strings — the decompiler's field
  * labels for these are inverted; the assert strings are authoritative.
  *
- * SCOPE OF THIS LIFT:
- *   Reconstructed faithfully (front half, 0x1a2f40..0x1a36a4):
- *     - prologue, the two input asserts (position / velocity)
- *     - the movement-mode dispatch on flags bits 0x10 / 0x20 / 0x01
- *     - each of those three branches' new_velocity computation and state write
- *   NOT reconstructed (back half, ~0x1a3269 default branch + 0x1a36a4..0x1a4409):
- *     - the default surface-walk mode (flags & 0x200 select)
- *     - the LAB_001a36a4 debug-draw + collision-query setup
- *     - the FUN_00150550 collision query and the three loops over the 16-entry
- *       result array (ground-plane select, nearest-object, 'mach'-tag scan)
- *     - the biped step-down (FUN_0014ec30 / FUN_0014c4b0)
- *     - the new_position (+0xac) writeback, step-distance (+0xc8), and the two
- *       final NaN asserts (lines 0xee2 / 0xee3)
- *   The back half holds three live x87 values across the material-select branch
- *   at 0x1a34c0 and routes pervasively-aliased ESP scratch slots through
- *   cross_product3d / the slope curve and through tag/datum field reads whose
- *   semantics are not confirmable from disassembly alone. Rather than fabricate
- *   ~700 instructions of plausible arithmetic, that region is left explicitly
- *   unreconstructed. A wrong store here would be silent: this function is
- *   dormant (ported=false), so the back half never executes.
+ * NOTE (Confirmed): the ESI[0x26]/[0x27]/[0x29]/[0x2a] "−NAN" stores the
+ * decompiler shows are integer `MOV dword ptr [...],0xffffffff` (the "none"
+ * datum handle), NOT float NaN loads — verified in the listing. The NaN
+ * *checks* in the two final asserts are `AND reg,0x7f800000; CMP 0x7f800000`.
  *
- * Status: dormant (ported=false). Register-arg entry, ~44 KB _chkstk frame,
- * pervasive x87, and the unreconstructed back half put VC71 well below the 88%
- * activation threshold. This is a partial faithful lift for documentation.
+ * Status: dormant (ported=false). This is a faithful full reconstruction kept
+ * dead-code while iterating; the orchestrator flips the port toggle.
  */
 void FUN_001a2f40(void *physics_arg /* @esi */)
 {
   float *physics;
-  float *velocity;             /* physics + 0xb (EBX = ESI+0x2c) */
-  float *position;             /* physics + 2  (EDI = ESI+0x8)  */
+  float *velocity; /* physics + 0xb (EBX = ESI+0x2c) */
+  float *position; /* physics + 2  (EDI = ESI+0x8)  */
   unsigned short flags;
-  unsigned int flags_word;     /* full flags promoted [EBP-0x48] */
-  float damp;                  /* 1.0 - friction (physics[0x12]) */
+  unsigned int flags_word; /* full flags promoted [EBP-0x48] */
+  float damp; /* 1.0 - friction (physics[0x12]) */
   float length3;
   float clamp;
 
-  physics = (float *)physics_arg;
-  velocity = physics + 0xb;    /* +0x2c */
-  position = physics + 2;      /* +0x08 */
+  /* --- back-half locals --- */
+  char debug_scratch[44040]; /* local_afb0: ~44 KB FUN_0014ec30 buffer (forces
+                              * the _chkstk prologue the original uses) */
+  char surface_result[44]; /* local_3a8: FUN_0014c4b0 out-result */
+  biped_collision_result results[16]; /* local_378 base; FUN_00150550 array */
+  int result_count; /* local_40: u16 count from FUN_00150550 */
+  int draw_color; /* pcVar10: debug-draw colour code */
+  float gx, gy; /* local_5c, local_60: carried planar normal */
+  float pos_world[3]; /* local_34/30: position copy */
+  float new_pos[3]; /* local_9c/98/94: new_position+step */
+  float los_dir[3]; /* local_7c/78/74: line-of-sight out point */
+  float surf[3]; /* local_6c/68/64: projected surface point */
+  float disp[3]; /* local_58/54/50: clamp scratch vec3 */
+  float best_t; /* local_4c */
+  int best_index; /* local_3c */
+  int tval;
+  float r, t, fdist;
+  void *obj;
+  void *tag;
+  float proj_seg[3]; /* scale_add scratch in the LOS gate */
+  float los_dir2[3]; /* local_18: second LOS out point */
+  unsigned int isnan_tmp;
+  char material_local; /* [EBP-0x31]: (flags>>9)&1 material flag */
 
-  flags = *(unsigned short *)((char *)physics + 4);
+  physics = (float *)physics_arg;
+  velocity = physics + 0xb; /* +0x2c */
+  position = physics + 2; /* +0x08 */
+
+  gx = 0.0f; /* local_5c = 0.0 (prologue) */
+  gy = 0.0f; /* local_60 = 0.0 (prologue) */
+  material_local = (char)((*(unsigned short *)((char *)physics + 4) >> 9) & 1);
 
   /* assert_valid_real_point3d(&physics->position) */
   if (valid_real_point3d(position) == 0) {
-    display_assert(
-        csprintf(error_string_buffer,
-                 "%s: assert_valid_real_point3d(%f, %f, %f)",
-                 "&physics->position", (double)position[0],
-                 (double)position[1], (double)position[2]),
-        "c:\\halo\\SOURCE\\units\\bipeds.c", 0xbae, true);
+    display_assert(csprintf(error_string_buffer,
+                            "%s: assert_valid_real_point3d(%f, %f, %f)",
+                            "&physics->position", (double)position[0],
+                            (double)position[1], (double)position[2]),
+                   "c:\\halo\\SOURCE\\units\\bipeds.c", 0xbae, true);
     system_exit(-1);
   }
   /* assert_valid_real_vector2d(&physics->velocity) */
   if (real_vector3d_valid(velocity) == 0) {
-    display_assert(
-        csprintf(error_string_buffer,
-                 "%s: assert_valid_real_vector2d(%f, %f, %f)",
-                 "&physics->velocity", (double)velocity[0],
-                 (double)velocity[1], (double)velocity[2]),
-        "c:\\halo\\SOURCE\\units\\bipeds.c", 0xbaf, true);
+    display_assert(csprintf(error_string_buffer,
+                            "%s: assert_valid_real_vector2d(%f, %f, %f)",
+                            "&physics->velocity", (double)velocity[0],
+                            (double)velocity[1], (double)velocity[2]),
+                   "c:\\halo\\SOURCE\\units\\bipeds.c", 0xbaf, true);
     system_exit(-1);
   }
 
@@ -2884,18 +2916,17 @@ void FUN_001a2f40(void *physics_arg /* @esi */)
 
   if ((flags & 0x10) != 0) {
     /* ---- mode 0x10 (0x1a3037..0x1a3149): oriented/flying movement ----
-     * Build a forward/left/up basis from the control axis (physics+0x14),
-     * transform the control direction (physics[0xf..0x11]) into that basis,
-     * scale by (1-friction), subtract current velocity, clamp the magnitude
-     * to physics[0x13], add velocity back, and write new_velocity (+0xb8). */
-    float left[3];             /* local_6c / 68 / 64 */
-    float up[3];               /* local_54 / 50 / 4c */
-    float t0, t1, t2;          /* transformed control components */
-    float dx, dy, dz;          /* displacement (local_54/50/4c reused) */
+     * The original double-stores the displacement into a raw copy (local_30..)
+     * and a unit copy (local_54..); normalize3d destroys the unit copy in
+     * place; the clamp branch scales the unit, the no-clamp branch reads back
+     * the raw. Modelling that as two vec3s reproduces the movl/movl pairs. */
+    float left[3];
+    float up[3];
+    float t0, t1, t2;
+    float dx, dy, dz;
 
-    biped_build_flying_axes(physics + 5, left, up); /* forward = physics+0x14 */
+    biped_build_flying_axes(physics + 5, left, up);
 
-    /* control transformed by the basis rows (operand order from 0x1a3048..) */
     t0 = left[0] * physics[0x10] + up[0] * physics[0x11] +
          physics[0xf] * physics[5];
     t1 = physics[6] * physics[0xf] + left[1] * physics[0x10] +
@@ -2903,68 +2934,60 @@ void FUN_001a2f40(void *physics_arg /* @esi */)
     t2 = physics[7] * physics[0xf] + left[2] * physics[0x10] +
          up[2] * physics[0x11];
 
-    damp = *(float *)0x2533c8 - physics[0x12]; /* 1.0 - friction, local_60 */
+    damp = *(float *)0x2533c8 - physics[0x12];
 
-    /* displacement = damp*transformed - velocity */
-    dx = damp * t0 - velocity[0];   /* local_30 -> local_54 */
-    dy = damp * t1 - velocity[1];   /* local_2c -> local_50 */
-    dz = damp * t2 - velocity[2];   /* local_28 -> local_4c */
+    dx = damp * t0 - velocity[0];
+    dy = damp * t1 - physics[0xc];
+    dz = damp * t2 - physics[0xd];
 
-    /* clamp to max horizontal speed physics[0x13].
-     * normalize3d (0x13010) normalizes `disp` IN PLACE and returns the prior
-     * length (confirmed: the original double-saves dx/dy/dz to both
-     * [EBP-0x30..] and [EBP-0x54..], then calls normalize3d on &local_54 which
-     * destroys the second copy; the clamp branch at 0x1a30ea multiplies the
-     * unit components, the no-clamp branch at 0x1a3102 reads back the raw
-     * copies). So on clamp the result is unit_component * physics[0x13]
-     * (magnitude exactly physics[0x13]); otherwise the raw displacement. */
-    {
-      float disp[3];
-      disp[0] = dx; disp[1] = dy; disp[2] = dz;
-      length3 = normalize3d(disp); /* disp now holds the unit vector */
-      if (length3 > physics[0x13]) {
-        clamp = physics[0x13];
-        dx = disp[0] * clamp;
-        dy = disp[1] * clamp;
-        dz = disp[2] * clamp;
-      }
+    disp[0] = dx;
+    disp[1] = dy;
+    disp[2] = dz;
+    length3 = normalize3d(disp);
+    if (length3 > physics[0x13]) {
+      clamp = physics[0x13];
+      dx = disp[0] * clamp;
+      dy = disp[1] * clamp;
+      dz = disp[2] * clamp;
     }
-    physics[0x2e] = dx + velocity[0];   /* new_velocity.x +0xb8 */
-    physics[0x2f] = dy + physics[0xc];  /* +0xbc */
-    physics[0x30] = dz + physics[0xd];  /* +0xc0 */
+    physics[0x2e] = dx + velocity[0];
+    physics[0x2f] = dy + physics[0xc];
+    physics[0x30] = dz + physics[0xd];
     *(unsigned short *)((char *)physics + 0xa0) =
-        (unsigned short)((*(unsigned short *)((char *)physics + 0xa0) & 0xfffd) | 1);
-    return; /* JMP LAB_001a36a4 — back half not reconstructed */
+      (unsigned short)((*(unsigned short *)((char *)physics + 0xa0) & 0xfffd) |
+                       1);
+    goto LAB_001a36a4;
   }
 
   if ((flags & 0x20) != 0) {
     /* ---- mode 0x20 (0x1a3152..0x1a318b): planar heading carry ----
-     * new_velocity = rotate(control.xy) by the forward axis; z carried. */
-    physics[0x30] = physics[0x11];                                  /* +0xc0 */
-    physics[0x2e] = physics[0xf] * physics[5] - physics[6] * physics[0x10];
-    physics[0x2f] = physics[0xf] * physics[6] + physics[0x10] * physics[5];
-    return; /* JMP LAB_001a36a4 — back half not reconstructed */
+     * new_velocity.xy = rotate(control.xy) by the forward axis; z carried as a
+     * raw 32-bit copy. gx/gy double-store to both new_velocity and the carried
+     * planar normal (fsts + fstps). */
+    gx = physics[0x2e] = physics[0xf] * physics[5] - physics[6] * physics[0x10];
+    *(int *)((char *)physics + 0xc0) =
+      *(int *)&physics[0x11]; /* +0xc0 int mov */
+    gy = physics[0x2f] = physics[0xf] * physics[6] + physics[0x10] * physics[5];
+    goto LAB_001a36a4;
   }
 
   if ((flags & 1) != 0) {
     /* ---- mode 0x01 (0x1a3198..0x1a3264): ground tangent movement ----
-     * Build the planar tangent of the control direction, scale by
-     * (1-friction), subtract velocity, clamp to physics[0x14], add velocity,
-     * write new_velocity (+0xb8) with a fixed step-down on z. */
-    float tang[3];             /* local_44 / 40 / 3c */
+     * The original computes both planar cross-products, THEN damp = 1-friction,
+     * duplicates damp (fld st0) and multiplies it into each before subtracting
+     * velocity. Compute the crosses into temps first to match that order. */
+    float tang[3];
+    float c0, c1;
 
+    c0 = physics[0xf] * physics[5] - physics[6] * physics[0x10];
+    c1 = physics[0xf] * physics[6] + physics[0x10] * physics[5];
     damp = *(float *)0x2533c8 - physics[0x12];
 
-    tang[0] = damp * (physics[0xf] * physics[5] - physics[6] * physics[0x10])
-              - velocity[0];                   /* local_44 */
-    tang[1] = damp * (physics[0xf] * physics[6] + physics[0x10] * physics[5])
-              - velocity[1];                   /* local_40 (FSUB physics[0xc]) */
-    /* UNCERTAIN: the original passes local_44/40/3c to magnitude3d, but
-     * local_3c (tang[2]) is never written before the call in this branch —
-     * magnitude3d reads whatever the slot held from earlier code. That
-     * stale-slot read cannot be reproduced in defined C, so tang[2] is fixed
-     * to 0.0f. Only tang[0]/tang[1] are subsequently stored, so this affects
-     * only the clamp's length test, never an output field. */
+    tang[0] = damp * c0 - velocity[0];
+    tang[1] = damp * c1 - physics[0xc];
+    /* tang[2] (local_3c) is read stale by magnitude3d in the original; fixed
+     * to 0 here. Only tang[0]/tang[1] feed outputs, so this affects only the
+     * clamp's length test, never a stored field. */
     tang[2] = 0.0f;
 
     length3 = magnitude3d(tang);
@@ -2973,21 +2996,681 @@ void FUN_001a2f40(void *physics_arg /* @esi */)
       tang[0] = tang[0] * clamp;
       tang[1] = tang[1] * clamp;
     }
-    physics[0x2e] = tang[0] + velocity[0];               /* +0xb8 */
-    physics[0x2f] = tang[1] + velocity[1];               /* +0xbc */
-    physics[0x30] = velocity[2] - *(float *)0x32512c;    /* +0xc0 step-down */
+    physics[0x2e] = tang[0] + velocity[0];
+    physics[0x2f] = tang[1] + physics[0xc];
+    physics[0x30] = physics[0xd] - *(float *)0x32512c;
     *(unsigned short *)((char *)physics + 0xa0) =
-        (unsigned short)((unsigned char)flags_word & 2);
-    return; /* JMP 0x1a369e — back half not reconstructed */
+      (unsigned short)((unsigned char)flags_word & 2);
+    goto LAB_001a36a4;
   }
 
-  /* ---- default surface-walk mode (flags & 0x200 select) + entire back half ----
-   * NOT RECONSTRUCTED. See the SCOPE note in the function header. Reaching this
-   * point in the original runs the slope-response surface walk, the collision
-   * query, the result-array refinement loops, the step-down, the +0xac/+0xc8
-   * writeback, and the final NaN asserts. Faithful transcription of that region
-   * is blocked by held x87 stack state across 0x1a34c0 and unconfirmable
-   * tag-field semantics, so no arithmetic is invented for it. Function is
-   * dormant; this path is never executed. */
+  /* ---- (flags & 1): ground tangent already handled above; fall here only for
+   * the default surface-walk mode entered at 0x1a3269. The decompiler's
+   * mode-0x01 test (0x1a3190 TEST AL,1) gates the planar tangent above; the
+   * surface-walk path proper starts at 0x1a3269. ---- */
+  {
+    float magnitude; /* local_40 (-0x3c): control-direction magnitude */
+    short submode; /* local_38: flags & 0x200 */
+    float vecA[3]; /* local_30/2c/28 */
+    float vecB[3]; /* local_24/20/1c */
+    float d0, d1, d2; /* local_18/14/10: projected planar dots */
+    float curve_scale; /* fVar1: slope-response result */
+    float damp2;
+    char curve_flag; /* local_1: secondary state byte */
+    float *gp; /* EDI = physics + 0x20 ground-plane normal */
+
+    magnitude =
+      sqrtf(physics[0xf] * physics[0xf] + physics[0x10] * physics[0x10] +
+           physics[0x11] * physics[0x11]); /* 0x1a327d..0x1a328f */
+    submode = (short)(flags_word & 0x200);
+
+    if (submode != 0) {
+      /* ---- 0x1a329e: recover an in-plane axis from the ground normal via a
+       * sequence of cross products, retrying with fallback basis vectors
+       * (0x31fc44, 0x31fc3c) when the result degenerates to zero length. ----
+       */
+      gp = physics + 0x20;
+      vecB[0] = physics[8];
+      vecB[1] = physics[9];
+      vecB[2] = physics[10];
+      cross_product3d(gp, vecB, vecA); /* 0x1a32c1 */
+      if (normalize3d(vecA) == *(float *)0x2533c0) {
+        cross_product3d(gp, (float *)(*(int *)0x31fc44), vecA); /* 0x1a32eb */
+        if (normalize3d(vecA) == *(float *)0x2533c0) {
+          cross_product3d(gp, (float *)(*(int *)0x31fc3c), vecA); /* 0x1a3315 */
+          normalize3d(vecA); /* ST0 discarded */
+        }
+      }
+      cross_product3d(vecA, gp, vecB); /* 0x1a3331 */
+      normalize3d(vecB); /* ST0 discarded */
+      /* d0/d1/d2 = projected components of control onto (vecB, vecA) */
+      d0 = vecB[0] * physics[0xf] + vecA[0] * physics[0x10]; /* 0x1a3341 */
+      d1 = vecB[1] * physics[0xf] + vecA[1] * physics[0x10]; /* 0x1a3356 */
+      d2 = vecB[2] * physics[0xf] + vecA[2] * physics[0x10] +
+           physics[0x11]; /* 0x1a3367 */
+      normalize3d(&d0); /* 0x1a337b, ST0 discarded */
+      /* JMP 0x1a34f6 — skip the ground-plane projection path */
+    } else if (physics[0x22] <= *(float *)0x253f44) {
+      /* ---- 0x1a339b: ground normal nearly horizontal — derive d* from a
+       * planar tangent rotated by the ground-plane components. ---- */
+      gp = physics + 0x20;
+      d0 =
+        physics[0xf] * physics[5] - physics[6] * physics[0x10]; /* 0x1a33af */
+      gx = d0; /* [EBP-0x58] = local_5c */
+      d1 =
+        physics[0x10] * physics[5] + physics[0xf] * physics[6]; /* 0x1a33c6 */
+      gy = d1; /* [EBP-0x5c] = local_60 */
+      d2 = (d1 * physics[0x21] + d0 * gp[0]) / physics[0x22]; /* 0x1a33df */
+      d2 = physics[0x11] - d2; /* FSUBR [ESI+0x44] */
+      /* JMP 0x1a34e7 -> normalize d at 0x1a34ea */
+      normalize3d(&d0); /* 0x1a34ee, ST0 discarded */
+    } else {
+      /* ---- 0x1a33ed: full ground-plane projection of control via two
+       * cross products and a scale_add (0x1a33ed..0x1a34c0). ---- */
+      gp = physics + 0x20;
+      vecB[0] = physics[8];
+      vecB[1] = physics[9];
+      vecB[2] = physics[10];
+      cross_product3d((float *)(*(int *)0x31fc44), vecB, vecA); /* 0x1a340e */
+      normalize3d(vecA); /* 0x1a3416, ST0 discarded */
+      /* scale_add(gp, gp, -(vecA . gp), &vecA) twice (0x1a341e..0x1a3477) */
+      vector3d_scale_add(&vecA[0], gp,
+                         -(vecA[0] * gp[2] + vecB[0] * gp[1] + vecB[1] * gp[0]),
+                         gp);
+      vector3d_scale_add(&vecA[0], gp,
+                         -(vecA[0] * gp[2] + vecA[1] * gp[1] + vecA[2] * gp[0]),
+                         gp);
+      d0 = physics[0xf] * gp[1] + physics[0x10] * gp[2]; /* 0x1a347c */
+      gx = physics[0x10] * physics[5] + physics[0xf] * gp[1]; /* 0x1a3490 */
+      gy = 0.0f;
+      (void)gy;
+      d1 = vecB[0] * gp[1] + vecA[0] * gp[2]; /* 0x1a34a1 */
+      d2 = vecB[1] * gp[1] + vecA[1] * gp[2]; /* 0x1a34b2 */
+    }
+
+    /* ---- slope-response material curve (0x1a34c0..0x1a358f) ---- */
+    {
+      float height; /* [EBP-0x10] */
+      float low; /* [EBP-0x14] */
+      curve_flag = 0; /* set later (0x1a3595) */
+      low = d1 * physics[8 + 6] + d0 * physics[8]; /* [EBP-0x14] from d* dots */
+      /* [EBP-0x14] = vecB.y*ctrl + ... ; [EBP-0x10] = projected height */
+      low = d0 * physics[8] + d1 * physics[9];
+      height = d0 * physics[0xf] + d1 * physics[0x10] + physics[0x11];
+      if (material_local != 0) {
+        height = height * *(float *)0x254cc4; /* 0x1a34e1 */
+      }
+      normalize3d(&d0); /* 0x1a34ee, ST0 discarded */
+
+      /* slope-response breakpoint curve (0x1a34f6..0x1a358f). Comparison
+       * senses transcribed exactly from the FCOMP/TEST/Jcc pairs:
+       *   0x1a3503 FCOMP[0x6c] TEST 0x41 JP   -> goto 3518 iff height > [0x1b]
+       *   0x1a351b FCOMP[0x68] TEST 0x5  JP   -> goto 3549 iff height >= [0x1a]
+       *   0x1a3549 FCOMP[0x78] TEST 0x1  JNZ  -> goto 355b iff height <  [0x1e]
+       *   0x1a355e FCOMP[0x74] TEST 0x41 JNZ  -> goto 358c iff height <= [0x1d]
+       */
+      if (submode != 0) {
+        /* 0x1a34fd: submode != 0 -> JNZ 0x358c, curve = magnitude */
+        curve_scale = magnitude;
+      } else if (!(height > physics[0x1b])) {
+        curve_scale = magnitude * physics[0x1c]; /* 0x1a3510 FMUL [ESI+0x70] */
+      } else if (height < physics[0x1a]) {
+        /* 0x1a3528 lo segment interp [0x1a..0x1b] */
+        curve_scale =
+          ((physics[0x1c] - *(float *)0x2533c8) * (height - physics[0x1a]) /
+             (physics[0x1b] - physics[0x1a]) +
+           *(float *)0x2533c8) *
+          magnitude;
+      } else if (height < physics[0x1e]) {
+        if (height <= physics[0x1d]) {
+          curve_scale = magnitude; /* 0x1a358c FLD [EBP-0x3c] */
+        } else {
+          /* 0x1a3568 hi segment interp [0x1d..0x1e] */
+          curve_scale =
+            ((physics[0x1f] - *(float *)0x2533c8) * (height - physics[0x1d]) /
+               (physics[0x1e] - physics[0x1d]) +
+             *(float *)0x2533c8) *
+            magnitude;
+        }
+      } else {
+        curve_scale = magnitude * physics[0x1f]; /* 0x1a3553 FMUL [ESI+0x7c] */
+      }
+
+      /* damp2 = (1.0 - friction) * curve_scale (0x1a358f..0x1a359c) */
+      damp2 = (*(float *)0x2533c8 - physics[0x12]) * curve_scale;
+      /* disp = damp2 * (low, height-related, d2) - velocity (0x1a359e..) */
+      disp[0] = low * damp2 - velocity[0]; /* [EBP-0x68] - [EBX] */
+      disp[1] = height * damp2 - physics[0xc]; /* [EBP-0x64] - [ESI+0x30] */
+      disp[2] = curve_scale * d2 - physics[0xd]; /* (held) */
+      length3 = normalize3d(disp); /* 0x1a35e2; ST0 -> compare */
+      if (length3 < physics[0x13] || length3 == physics[0x13]) {
+        /* 0x1a35f2 JNZ 0x1a361f: keep raw disp */
+        disp[0] = disp[0];
+        disp[1] = disp[1];
+        disp[2] = disp[2];
+        curve_flag = 0;
+      } else {
+        if (submode == 0) {
+          curve_flag =
+            (char)(((unsigned char)flags_word >> 1) & 1); /* 0x1a35fb */
+        }
+        clamp = physics[0x13];
+        disp[0] = disp[0] * clamp; /* 0x1a360a */
+        disp[1] = disp[1] * clamp;
+        disp[2] = disp[2] * clamp;
+      }
+
+      /* new_velocity = disp - ground_normal*0x25f0d0 + velocity (0x1a3637..) */
+      gp = physics + 0x20;
+      r = physics[0x20] * *(float *)0x25f0d0; /* gp[0] */
+      t = physics[0x21] * *(float *)0x25f0d0;
+      fdist = physics[0x22] * *(float *)0x25f0d0;
+      *(unsigned short *)((char *)physics + 0xa0) =
+        (unsigned short)(-(unsigned short)(curve_flag != 0) & 2); /* 0x1a364d */
+      physics[0x2e] = (disp[0] - r) + velocity[0]; /* 0x1a3672 */
+      physics[0x2f] = (disp[1] - t) + physics[0xc]; /* 0x1a3676 */
+      physics[0x30] = (disp[2] - fdist) + physics[0xd]; /* 0x1a3681 */
+      if ((*(unsigned char *)((char *)physics + 0xa0) & 2) == 0) {
+        goto LAB_001a36a4;
+      }
+      physics[0x30] =
+        physics[0x30] - *(float *)0x32512c; /* 0x1a3692 step-down */
+    }
+  }
+
+LAB_001a36a4:
+  /* ---- debug-draw colour select (0x1a36a4..0x1a36d2) ---- */
+  flags = *(unsigned short *)((char *)physics + 4);
+  if ((flags & 0x40) != 0) {
+    draw_color = 0;
+  } else if ((char)flags < 0) {
+    draw_color = 0xc0a0;
+  } else {
+    draw_color =
+      (int)((-(unsigned int)((flags & 0x100) != 0) & 0xffdfff00) + 0x20c3a0);
+  }
+
+  /* position copy (local_34/30/2c) and ray endpoint (local_9c/98/94). The
+   * endpoint z carries the step-height offset physics[0xe]. (0x1a36d2..) */
+  pos_world[0] = physics[2];
+  pos_world[1] = physics[3];
+  pos_world[2] = physics[4];
+  new_pos[0] = physics[0x2e];
+  new_pos[1] = physics[0x2f];
+  new_pos[2] = physics[0x30] + physics[0xe];
+
+  /* ---- collision/line-of-sight query (0x1a36d2..0x1a3803) ---- */
+  if (*(char *)0x4e4cf2 == '\0') {
+    /* live path: 10-arg query. Arg order matches the push sequence at
+     * 0x1a37ce..0x1a37f6 (last push = first C arg):
+     *   draw_color, &pos_world, &new_pos, physics[0x15], physics[0x16],
+     *   physics[0], &los_dir2, &los_dir, 0x10, results. */
+    result_count = FUN_00150550(
+      (void *)draw_color, pos_world, new_pos, *(int *)&physics[0x15],
+      *(int *)&physics[0x16], (int)physics[0], &los_dir2[0], &los_dir[0], 0x10,
+      results);
+  } else {
+    /* debug-draw line record (0x1a3721..0x1a37cc): no query runs, count stays
+     * 1. Builds results[0] (point/normal/plane_d/handles) from the position
+     * and the basis at *0x31fc44, plus the los_dir endpoints. Dead in normal
+     * play (gated on debug global 0x4e4cf2); transcribed for fidelity. */
+    results[0].point[1] = physics[2];
+    results[0].point[2] = physics[3];
+    results[0].point[3] = physics[4];
+    results[0].normal[0] = *(float *)(*(int *)0x31fc44);
+    results[0].point[0] = 0.0f;
+    results[0].normal[1] = *(float *)(*(int *)0x31fc44 + 4);
+    results[0].normal[2] = *(float *)(*(int *)0x31fc44 + 8);
+    results[0].plane_d = -physics[4];
+    los_dir[0] = pos_world[0] + new_pos[0];
+    results[0].surface_handle = -1;
+    results[0].flags = -1; /* word 0xffff into +0x2a */
+    los_dir[1] = physics[3] + new_pos[1];
+    *(int *)&results[0].object_handle = *(int *)&physics[0];
+    los_dir2[0] = new_pos[0];
+    los_dir2[1] = new_pos[1];
+    los_dir2[2] = physics[4];
+    result_count = 1;
+  }
+
+  /* ---- debug-draw stub (0x1a3803..0x1a3880) ---- */
+  if (*(char *)0x4e4cf0 != '\0') {
+    obj = object_get_and_verify_type((int)physics[0], -1);
+    if (*(int *)((char *)obj + 0x70) != -1) {
+      *(float *)0x5a8d00 = pos_world[0];
+      *(int *)0x5a8d04 = *(int *)&pos_world[1];
+      *(int *)0x5a8d08 = *(int *)&pos_world[2];
+      *(int *)0x5a8d1c = 1;
+      *(float *)0x5a8cf0 = new_pos[0];
+      *(float *)0x5a8cf4 = new_pos[1];
+      *(float *)0x5a8cf8 = new_pos[2];
+      *(int *)0x324fc4 = 0x3f800000;
+      *(float *)0x4761b8 = physics[0x16];
+      *(float *)0x4761bc = physics[0x15];
+    }
+  }
+
+  /* the query count (low 16 bits) drives the result-walk and a state bit */
+  if ((unsigned short)result_count < 0x10) {
+    *(unsigned char *)((char *)physics + 0xa0) &= 0xf7;
+  } else {
+    *(unsigned char *)((char *)physics + 0xa0) |= 8;
+  }
+
+  /* ---- nearest 'mach' surface-plane refinement (0x1a3899..0x1a3d32) ----
+   * Only when the count==0 AND a valid mach-surface block (physics[0x24]) is
+   * present. Walks the surface block's edge list, projecting the new_velocity
+   * (physics+0xb8) onto each candidate plane and keeping the nearest in-range
+   * hit, then snaps the ground plane / +0xc4 to it. Held FPU values across the
+   * named calls (bsp3d_get_plane / distance helpers) are kept in C scalars. */
+  *(int *)((char *)physics + 0xa8) = 0xffffffff; /* physics[0x2a] = none */
+  /* note: the entry test reuses the count==0 ZF from the >0x10 compare */
+  if ((unsigned short)result_count == 0 &&
+      *(int *)((char *)physics + 0x90) != -1) {
+    int surf_block; /* EDI = global_collision_bsp_get() */
+    int surf_index; /* physics[0x24] index */
+    int best_edge; /* local_38 */
+    float best_dist; /* local_48 */
+    float nrm_d; /* local_8 */
+    float proj[3]; /* local_6c/68/64 */
+    float plane0[4]; /* local_8c/88/84/80 (from bsp3d_get_plane) */
+    float planeN[4]; /* local_58/54/4c projected plane */
+    char edge_swap; /* local_1 */
+    float bestN[4]; /* local_ac/a8/a4/a0 region: ff58/5c/60/64 */
+    int sel_edge;
+    int edge0, edge1;
+    void *ce; /* current edge element */
+    float *pa, *pb;
+
+    surf_block = (int)global_collision_bsp_get();
+    surf_index = *(int *)((char *)physics + 0x90);
+    best_edge = 0xffffffff;
+    *(unsigned int *)&best_dist = 0x7f7fffff;
+    if (surf_index >= 0 && surf_index < *(int *)(surf_block + 0x3c)) {
+      void *surf =
+        tag_block_get_element((void *)(surf_block + 0x3c), surf_index, 0xc);
+      edge0 = *(int *)surf;
+      edge1 = *(int *)((char *)surf + 4);
+      bsp3d_get_plane_from_designator(surf_block, edge0, plane0);
+      nrm_d = -(plane0[0] * physics[0x2e] + plane0[1] * physics[0x2f] +
+                plane0[2] * physics[0x30] - plane0[3]);
+      proj[0] = plane0[0] * nrm_d + physics[0x2e];
+      proj[1] = plane0[1] * nrm_d + physics[0x2f];
+      proj[2] = plane0[2] * nrm_d + physics[0x30];
+      ce = (void *)edge1;
+      do {
+        void *edge =
+          tag_block_get_element((void *)(surf_block + 0x48), (int)ce, 0x18);
+        surf_index = *(int *)((char *)physics + 0x90);
+        edge_swap = (char)(surf_index == *(int *)((char *)edge + 0x14));
+        sel_edge = *(int *)((char *)edge + 0x10 + (edge_swap == 0 ? 4 : 0));
+        if (sel_edge != -1) {
+          void *e2 =
+            tag_block_get_element((void *)(surf_block + 0x3c), sel_edge, 0xc);
+          if ((*(unsigned char *)((char *)physics + 0x14) & 2) != 0 ||
+              (*(unsigned char *)((char *)e2 + 8) & 4) != 0) {
+            float side;
+            bsp3d_get_plane_from_designator(surf_block, *(int *)e2, plane0);
+            side =
+              plane0[0] * proj[0] + plane0[1] * proj[1] + plane0[2] * proj[2];
+            nrm_d = side;
+            if (!(*(float *)0x2533c0 < side) &&
+                physics[0x16] * *(float *)0x255964 <
+                  (plane0[0] * physics[0x2e] + plane0[1] * physics[0x2f] +
+                   plane0[2] * physics[0x30] - plane0[3])) {
+              void *v0 = tag_block_get_element((void *)(surf_block + 0x54),
+                                               *(int *)edge, 0x10);
+              void *v1 = tag_block_get_element(
+                (void *)(surf_block + 0x54), *(int *)((char *)edge + 4), 0x10);
+              float ev[3], t2;
+              pa = (float *)v0;
+              pb = (float *)v1;
+              ev[0] = pb[0] - pa[0];
+              ev[1] = pb[1] - pa[1];
+              ev[2] = pb[2] - pa[2];
+              t2 = ((proj[0] - pa[0]) * ev[0] + (proj[1] - pa[1]) * ev[1] +
+                    (proj[2] - pa[2]) * ev[2]) /
+                   (ev[0] * ev[0] + ev[1] * ev[1] + ev[2] * ev[2]);
+              if (!(*(float *)0x2533c0 < t2)) {
+                planeN[0] = pa[0];
+                planeN[1] = pa[1];
+                planeN[2] = pa[2];
+              } else if (t2 <= *(float *)0x2533c8) {
+                vector3d_scale_add(pa, ev, t2, planeN);
+              } else {
+                planeN[0] = pb[0];
+                planeN[1] = pb[1];
+                planeN[2] = pb[2];
+              }
+              if (distance_squared3d(proj, planeN) < best_dist) {
+                best_dist = distance_squared3d(proj, planeN);
+                best_edge = sel_edge;
+                bestN[0] = plane0[0];
+                bestN[1] = plane0[1];
+                bestN[2] = plane0[2];
+                bestN[3] = plane0[3];
+                nrm_d = side;
+              }
+            }
+          }
+        }
+        ce = (void *)*(int *)((char *)edge + 8 + (edge_swap != 0 ? 4 : 0));
+      } while (ce != (void *)edge1);
+
+      if (best_edge != -1 &&
+          (physics[0x16] + physics[0x16]) * (physics[0x16] + physics[0x16]) >=
+            best_dist &&
+          nrm_d <= *(float *)0x2b509c) {
+        float depth = (bestN[0] * physics[0x2e] + bestN[1] * physics[0x2f] +
+                       bestN[2] * physics[0x30]) -
+                      (bestN[3] + physics[0x16]);
+        if ((depth < 0.0f ? -depth : depth) <=
+            physics[0x16] * *(float *)0x253398) {
+          float face =
+            bestN[0] * proj[0] + bestN[2] * proj[2] + bestN[1] * proj[1];
+          float pushv = -depth;
+          physics[0x2e] = bestN[0] * pushv + physics[0x2e];
+          physics[0x2f] = bestN[1] * pushv + physics[0x2f];
+          physics[0x30] = bestN[2] * pushv + physics[0x30];
+          if (*(float *)0x256348 < face) {
+            /* In-place adjust of the projected point: proj += -(face+k)*bestN.
+             * Original (0x1a3c65..0x1a3c8b) aliases base==out==proj (EBP-0x78);
+             * scale_add is component-wise so in-place is safe. */
+            vector3d_scale_add(proj, bestN, -(face + *(float *)0x2546a4), proj);
+          }
+          /* build a draw record from the plane (0x1a3c8f..) */
+          pushv = -physics[0x16];
+          results[0].normal[0] = bestN[0];
+          results[0].normal[1] = bestN[1];
+          results[0].normal[2] = bestN[2];
+          results[0].plane_d = bestN[3];
+          results[0].point[0] = bestN[0] * pushv + physics[0x2e];
+          results[0].flags = 1;
+          results[0].object_handle = 0;
+          results[0].point[2] = bestN[2] * pushv + physics[0x30];
+          results[0].surface_handle = -1;
+          results[0].point[1] = bestN[1] * pushv + physics[0x2f];
+          *(int *)((char *)physics + 0xa8) = best_edge;
+          *(unsigned char *)((char *)physics + 0xb1) = 0;
+          *(unsigned char *)((char *)physics + 0xb2) = 0;
+        }
+      }
+    }
+  }
+
+  /* ---- planar-normal clamp (0x1a3d34..0x1a3d69) ---- */
+  r = gx * gx + gy * gy;
+  if (*(float *)0x2b5098 < r) {
+    r = (float)(*(double *)0x2573d8 / sqrtf(r));
+    gy = gy * r;
+    gx = r * gx;
+  }
+
+  /* ---- result-array refinement (0x1a3d69..) ---- */
+  best_index = 0xffffffff;
+  {
+    char loop_flag9; /* local_9 */
+    char loop_flag1; /* local_1 */
+    float loop_best; /* local_48 */
+    float loop_metric; /* ff74 */
+    biped_collision_result *e;
+    int n;
+    loop_flag9 = 0;
+    loop_flag1 = 0;
+    *(unsigned int *)&loop_best = 0xff7fffff;
+    *(unsigned int *)&loop_metric = 0xff7fffff;
+    if ((*(unsigned short *)((char *)physics + 4) & 0x10) != 0) {
+      goto LAB_001a401e;
+    }
+    if ((short)(unsigned short)result_count <= 0) {
+      goto LAB_001a401e;
+    }
+    /* ---- loop A: ground-plane select over the result array ---- */
+    for (n = 0; n < (short)(unsigned short)result_count; n++) {
+      char want, same;
+      float metric;
+      e = &results[n];
+      if ((char)*(unsigned char *)((char *)physics + 4) < 0 ||
+          (material_local == 0 && (e->flags & 4) == 0)) {
+        want = 0;
+      } else {
+        want = 1;
+      }
+      if (*(int *)((char *)physics + 0xa8) != -1 &&
+          *(int *)((char *)physics + 0xa8) == e->flags) {
+        same = 1;
+      } else {
+        same = 0;
+      }
+      metric = -(physics[0x2e] * e->normal[0] + e->normal[2] * physics[0x30] +
+                 physics[0x2f] * e->normal[1]);
+      if (want == 0) {
+        if (loop_flag9 == 0 && e->normal[1] < loop_best) {
+          goto loopA_take;
+        }
+      } else if ((material_local != 0 ||
+                  gx * e->normal[0] + gy * e->normal[1] <=
+                    *(float *)0x253398) &&
+                 (loop_flag9 == 0 || same ||
+                  (loop_flag1 == 0 && loop_metric < metric))) {
+      loopA_take:
+        loop_flag9 = want;
+        best_index = n;
+        loop_flag1 = same;
+        loop_best = e->normal[1];
+        loop_metric = metric;
+      }
+      if ((*(unsigned char *)((char *)physics + 0xa0) & 0x10) == 0) {
+        if ((e->flags & 8) == 0 && e->object_handle != -1) {
+          void *od = datum_get((data_t *)*(int *)0x5a8d50, e->object_handle);
+          if ((1 << (*(unsigned char *)((char *)od + 3) & 0x1f) & 0x40) != 0) {
+            goto loopA_nomark;
+          }
+        }
+        *(unsigned char *)((char *)physics + 0xa0) |= 0x10;
+      loopA_nomark:;
+      }
+    }
+    if ((short)best_index == -1) {
+      goto LAB_001a401e;
+    }
+    e = &results[(short)best_index];
+    /* selected entry: compute the result normal dot (local_3c) */
+    best_t = -(e->normal[0] * new_pos[0] + e->normal[2] * new_pos[2] +
+               e->normal[1] * new_pos[1]);
+    if (loop_flag9 == 0 && loop_flag1 == 0) {
+      if (e->normal[1] < physics[0x19]) {
+        goto LAB_001a401e;
+      }
+      if ((*(unsigned short *)((char *)physics + 4) & 1) != 0 &&
+          physics[0x17] < *(float *)0x2548fc) {
+        float seg[3], slen;
+        vector3d_scale_add(&new_pos[0], &e->normal[0], best_t, proj_seg);
+        slen = FUN_00012170(proj_seg);
+        if (physics[0x17] * physics[0x17] < slen) {
+          float md = FUN_00012fe0(&new_pos[0]);
+          if (best_t / md < physics[0x18]) {
+            goto LAB_001a401e;
+          }
+        }
+        (void)seg;
+        (void)slen;
+      }
+    }
+    /* snap ground plane (+0x80 = entry.normal[3]) + surface handle (+0xa4) to
+     * the selected entry, then +0xc4 from the normal dot. EDI = &entry.normal
+     */
+    {
+      int sel_surface = e->flags;
+      *(unsigned char *)((char *)physics + 0xa0) &= 0xfe;
+      *(int *)((char *)physics + 0x80) = *(int *)&e->normal[0];
+      *(int *)((char *)physics + 0x84) = *(int *)&e->normal[1];
+      *(int *)((char *)physics + 0x88) = *(int *)&e->normal[2];
+      *(int *)((char *)physics + 0x8c) = *(int *)&e->plane_d;
+      *(int *)((char *)physics + 0xa4) = sel_surface;
+      if (sel_surface != -1 &&
+          sel_surface == *(int *)((char *)physics + 0xa8)) {
+        *(int *)((char *)physics + 0xc4) = 0;
+        goto LAB_001a4062;
+      }
+      physics[0x31] =
+        -(new_pos[0] * physics[0x21] + new_pos[2] * physics[0x22] +
+          new_pos[1] * physics[0x20]);
+      goto LAB_001a4062;
+    }
+  }
+  goto LAB_001a4062_done;
+
+LAB_001a401e:
+  *(unsigned char *)((char *)physics + 0xa0) |= 1;
+  *(int *)((char *)physics + 0x80) = *(int *)0x32513c;
+  *(int *)((char *)physics + 0x84) = *(int *)0x325140;
+  *(int *)((char *)physics + 0x88) = *(int *)0x325144;
+  *(int *)((char *)physics + 0x8c) = *(int *)0x325148;
+  *(int *)((char *)physics + 0xa4) = 0xffffffff;
+  physics[0x31] = 0.0f;
+
+LAB_001a4062:
+LAB_001a4062_done:
+  /* ---- loop B: nearest object (0x1a4062..0x1a40ec). Pointer-walk over the
+   * object_handle field at stride 0x2c (matches the original's add edi,0x2c).
+   */
+  {
+    int near_obj = 0xffffffff;
+    int near_type = 0;
+    float near_dist;
+    int n;
+    int *eh;
+    *(unsigned int *)&near_dist = 0;
+    if ((short)(unsigned short)result_count > 0) {
+      eh = &results[0].object_handle;
+      n = (unsigned short)result_count;
+      do {
+        if (*eh != -1) {
+          void *o = object_get_and_verify_type(*eh, -1);
+          float ddx = *(float *)((char *)o + 0x18) - los_dir[0];
+          float ddy = *(float *)((char *)o + 0x1c) - los_dir[1];
+          float ddz = *(float *)((char *)o + 0x20) - los_dir[2];
+          float d2 = ddx * ddx + ddy * ddy + ddz * ddz;
+          if (near_obj != -1) {
+            if ((short)near_type == 1) {
+              if (*(short *)((char *)o + 0x64) != 1)
+                goto loopB_next;
+            } else if (*(short *)((char *)o + 0x64) == 1) {
+              goto loopB_take;
+            }
+            if (d2 <= near_dist)
+              goto loopB_next;
+          }
+        loopB_take:
+          near_dist = d2;
+          near_obj = *eh;
+          near_type = (near_type & 0xffff0000) |
+                      (unsigned short)*(short *)((char *)o + 0x64);
+        }
+      loopB_next:
+        eh = (int *)((char *)eh + 0x2c);
+        n--;
+      } while (n != 0);
+    }
+    *(int *)((char *)physics + 0x98) = near_obj;
+  }
+
+  /* ---- loop C: 'mach' tag scan (0x1a40f2..0x1a4160). Pointer-walk. ---- */
+  *(int *)((char *)physics + 0x9c) = 0xffffffff;
+  if ((short)(unsigned short)result_count > 0) {
+    int n = (unsigned short)result_count;
+    int *eh = &results[0].object_handle;
+    do {
+      int handle = *eh;
+      if (handle != -1) {
+        void *t2obj = object_try_and_get_and_verify_type(handle, 0x80);
+        if (t2obj != (void *)0) {
+          void *mtag = tag_get(0x6d616368, *(int *)t2obj);
+          if ((*(unsigned char *)((char *)mtag + 0x292) & 4) != 0 &&
+              *(short *)((char *)mtag + 0x2ea) != -1) {
+            *(int *)((char *)physics + 0x9c) = handle;
+          }
+        }
+      }
+      eh = (int *)((char *)eh + 0x2c);
+      n--;
+    } while (n != 0);
+  }
+
+  /* ---- writeback: new_position (+0xac), new_velocity (+0xb8), step distance
+   * (+0xc8) and the z step-down (0x1a4160..0x1a41de). new_position is the
+   * displacement between the two query out-points (los_dir - los_dir2). ---- */
+  physics[0x2b] = los_dir[0] - los_dir2[0]; /* +0xac */
+  physics[0x2c] = los_dir[1] - los_dir2[1];
+  physics[0x2d] = los_dir[2] - los_dir2[2];
+  physics[0x2e] = los_dir[0];
+  physics[0x2f] = los_dir[1];
+  physics[0x30] = los_dir[2];
+  physics[0x32] =
+    sqrtf(physics[0x2b] * physics[0x2b] + physics[0x2c] * physics[0x2c] +
+         physics[0x2d] * physics[0x2d]);
+  physics[0x30] = physics[0x30] - physics[0xe];
+
+  /* ---- biped step-down (0x1a41de..0x1a42da) ---- */
+  flags = *(unsigned short *)((char *)physics + 4);
+  if ((flags & 4) != 0 && (flags & 8) != 0) {
+    obj = object_get_and_verify_type((int)physics[0], 1);
+    if (*(int *)((char *)obj + 0x1c8) != -1) {
+      tag = tag_get(0x62697064, *(int *)obj);
+      if ((*(unsigned char *)((char *)tag + 0x2f4) & 0x18) == 0) {
+        float half = *(float *)((char *)tag + 0x424) * *(float *)0x253398;
+        *(int *)&surf[0] = *(int *)&physics[0x2b]; /* movl copies (0x1a4239) */
+        *(int *)&surf[1] = *(int *)&physics[0x2c];
+        surf[2] = physics[0x2d] + half;
+        if (FUN_0014ec30(
+              (int)((-(unsigned int)((flags & 0x80) != 0) & 0xffdffd00) +
+                    0x20c3a0),
+              surf, *(float *)((char *)tag + 0x42c), 0.0f, (int)physics[0], 0,
+              debug_scratch)) {
+          float fr =
+            *(float *)((char *)tag + 0x424) -
+            (*(float *)((char *)tag + 0x42c) + *(float *)((char *)tag + 0x42c));
+          disp[0] = fr * *(float *)(*(int *)0x31fc44);
+          disp[1] = fr * *(float *)(*(int *)0x31fc44 + 4);
+          disp[2] = fr * *(float *)(*(int *)0x31fc44 + 8);
+          if (FUN_0014c4b0((int)debug_scratch, &physics[0x2b], disp,
+                           surface_result)) {
+            *(unsigned char *)((char *)physics + 0xa0) |= 4;
+          }
+        }
+      }
+    }
+  }
+
+  /* ---- final NaN asserts (0x1a42dc..0x1a4409) ---- */
+  isnan_tmp = *(unsigned int *)&physics[0x2b];
+  if ((isnan_tmp & 0x7f800000) == 0x7f800000 ||
+      ((isnan_tmp = *(unsigned int *)&physics[0x2c]),
+       (isnan_tmp & 0x7f800000) == 0x7f800000) ||
+      ((isnan_tmp = *(unsigned int *)&physics[0x2d]),
+       (isnan_tmp & 0x7f800000) == 0x7f800000)) {
+    display_assert(csprintf(error_string_buffer,
+                            "%s: assert_valid_real_point3d(%f, %f, %f)",
+                            "&physics->new_position", (double)physics[0x2b],
+                            (double)physics[0x2c], (double)physics[0x2d]),
+                   "c:\\halo\\SOURCE\\units\\bipeds.c", 0xee2, true);
+    system_exit(-1);
+  }
+  isnan_tmp = *(unsigned int *)&physics[0x2e];
+  if ((isnan_tmp & 0x7f800000) == 0x7f800000 ||
+      ((isnan_tmp = *(unsigned int *)&physics[0x2f]),
+       (isnan_tmp & 0x7f800000) == 0x7f800000) ||
+      ((isnan_tmp = *(unsigned int *)&physics[0x30]),
+       (isnan_tmp & 0x7f800000) == 0x7f800000)) {
+    display_assert(csprintf(error_string_buffer,
+                            "%s: assert_valid_real_vector2d(%f, %f, %f)",
+                            "&physics->new_velocity", (double)physics[0x2e],
+                            (double)physics[0x2f], (double)physics[0x30]),
+                   "c:\\halo\\SOURCE\\units\\bipeds.c", 0xee3, true);
+    system_exit(-1);
+  }
   (void)flags_word;
+  (void)tval;
+  (void)fdist;
 }
