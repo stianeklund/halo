@@ -7960,12 +7960,160 @@
       "score": 99.2,
       "source": "src/halo/text/unicode.c"
     },
+    "FUN_001a01d0": {
+      "score": 94.1,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a03c0": {
+      "score": 91.1,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a0680": {
+      "score": 61.5,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a07c0": {
+      "score": 77.6,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a0800": {
+      "score": 98.1,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a0860": {
+      "score": 100.0,
+      "source": "src/halo/units/bipeds.c"
+    },
     "FUN_001a0890": {
-      "score": 86.9,
+      "score": 100.0,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a0950": {
+      "score": 100.0,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a0970": {
+      "score": 95.0,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a09f0": {
+      "score": 100.0,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a0a40": {
+      "score": 92.3,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a0b30": {
+      "score": 81.4,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a0be0": {
+      "score": 88.3,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a0db0": {
+      "score": 100.0,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a0e00": {
+      "score": 82.3,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a0f10": {
+      "score": 91.3,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a1020": {
+      "score": 100.0,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a1080": {
+      "score": 88.4,
       "source": "src/halo/units/bipeds.c"
     },
     "FUN_001a1140": {
-      "score": 86.7,
+      "score": 92.9,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a12e0": {
+      "score": 93.4,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a1430": {
+      "score": 79.3,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a1900": {
+      "score": 98.1,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a1a10": {
+      "score": 80.0,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a1b90": {
+      "score": 78.6,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a1bc0": {
+      "score": 95.5,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a1d80": {
+      "score": 94.3,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a1e70": {
+      "score": 86.9,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a1fb0": {
+      "score": 95.1,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a2160": {
+      "score": 73.4,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a2290": {
+      "score": 84.4,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a2440": {
+      "score": 88.4,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a25e0": {
+      "score": 79.3,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a2800": {
+      "score": 93.6,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a2900": {
+      "score": 96.9,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a2a60": {
+      "score": 86.5,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a2b10": {
+      "score": 84.0,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a2b90": {
+      "score": 96.2,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a2d90": {
+      "score": 95.1,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a2f40": {
+      "score": 75.9,
       "source": "src/halo/units/bipeds.c"
     },
     "FUN_001ac2f0": {
