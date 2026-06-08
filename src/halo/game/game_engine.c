@@ -666,8 +666,9 @@ char game_engine_get_goal_in_use(short param_1)
 /* game_engine_get_goal_position (0xa9380)
  *
  * Copies the position (3 floats) of the goal at index param_2 into param_1.
- * Asserts the goal is in use. */
-void game_engine_get_goal_position(int *param_1, short param_2)
+ * Returns param_1 in EAX — unported callers (FUN_000d6cc0) use the return
+ * value as the position pointer. */
+int *game_engine_get_goal_position(int *param_1, short param_2)
 {
   int iVar1;
   char *src;
@@ -682,6 +683,7 @@ void game_engine_get_goal_position(int *param_1, short param_2)
   *param_1 = *(int *)src;
   param_1[1] = *(int *)(src + 4);
   param_1[2] = *(int *)(src + 8);
+  return param_1;
 }
 
 /* game_engine_clear_goal_position (0xa9460)
@@ -4948,40 +4950,26 @@ void game_show_score_you_ally_enemy(int param_1, int param_2, int param_3, int p
 
 
 
-/* Find a player whose biped is carrying a flag. */
-
-int FUN_000b0100(void)
-
+/* Find a player whose biped is carrying weapon_handle.
+ * weapon_handle passed via @<edi> — set by FUN_000b0c10 before the call. */
+int FUN_000b0100(int weapon_handle /* @<edi> */)
 {
-
   data_iter_t iter;
-
   int player;
 
-
-
   data_iterator_new(&iter, player_data);
-
   player = (int)data_iterator_next(&iter);
 
   while (1) {
-
     if (player == 0)
-
       return -1;
-
     if (*(int *)(player + 0x34) != -1 &&
-
-        ((char (*)(int))FUN_001ac3b0)(*(int *)(player + 0x34)))
-
+        ((char (*)(int, int))FUN_001ac3b0)(*(int *)(player + 0x34), weapon_handle))
       break;
-
     player = (int)data_iterator_next(&iter);
-
   }
 
   return iter.datum_handle;
-
 }
 
 
@@ -7031,7 +7019,7 @@ float FUN_000adc40(int location_ptr, int player_handle)
   rating = game_engine_get_distance_rating_for_spawn(player_handle, (float *)location_ptr);
   if (current_game_engine != 0) {
     if (0.0f < rating && *(char *)0x456b14 != 0) {
-      rating = FUN_000adb20(player_handle) * rating;
+      rating = FUN_000adb20(location_ptr) * rating;
     }
     if (current_game_engine != 0 &&
         ((float (**)(void))current_game_engine)[0x68 / 4] != NULL) {
@@ -7345,9 +7333,9 @@ int FUN_000afe50(float *position)
 
   tag_idx = get_flag_definition_index();
   object_placement_data_new(placement, tag_idx, -1);
-  *(float *)(placement + 0x1c) = position[0];
-  *(float *)(placement + 0x20) = position[1];
-  *(float *)(placement + 0x24) = position[2];
+  *(float *)(placement + 0x18) = position[0];
+  *(float *)(placement + 0x1c) = position[1];
+  *(float *)(placement + 0x20) = position[2];
   handle = object_new(placement);
   object_set_automatic_deactivation(handle, 0);
   /* OutputDebugStringA("created a flag"); — debug only */
@@ -7588,9 +7576,9 @@ void FUN_000b2e70(int16_t slot_index)
   }
   object_placement_data_new(placement, ball_tag, -1);
   FUN_000b2d30(local_10, (int)slot_index);
-  *(int *)(placement + 0x1c) = local_10[0];
-  *(int *)(placement + 0x20) = local_10[1];
-  *(int *)(placement + 0x24) = local_10[2];
+  *(int *)(placement + 0x18) = local_10[0];
+  *(int *)(placement + 0x1c) = local_10[1];
+  *(int *)(placement + 0x20) = local_10[2];
   handle = object_new(placement);
   weapon = (int)object_get_and_verify_type(handle, 4);
   *(int16_t *)(weapon + 0x68) = slot_index;
@@ -7797,7 +7785,7 @@ void FUN_000b0ac0(int param_1)
                            "c:\\halo\\SOURCE\\game\\game_engine_ctf.c", 0x20f, 1);
             system_exit(-1);
           }
-          if (FUN_000b0a70(*(int *)(player + 0x20), (float *)biped, 1.0f)) {
+          if (FUN_000b0a70(*(int *)(player + 0x20), (float *)(biped + 0xc), 1.0f)) {
             variant = (int)game_engine_get_variant();
             if (*(char *)(variant + 0x4f) == 0 ||
                 (variant = (int)game_engine_get_variant(), *(int *)(variant + 0x50) != 0) ||
@@ -8193,7 +8181,7 @@ void FUN_000b0c10(int weapon_handle, int weapon_obj)
       FUN_000b0990(weapon_handle);
     }
   }
-  flag_carrier = FUN_000b0100();
+  flag_carrier = FUN_000b0100(weapon_handle);
   flag_team = *(int16_t *)(weapon_obj + 0x68);
   team_idx = (int)flag_team + 1;
   team_idx = team_idx & 0x80000001;
@@ -8268,9 +8256,9 @@ int FUN_000b05c0(void)
       if (*(int *)(0x456b74 + team * 4) != 0) {
         int tag_idx = get_flag_definition_index();
         object_placement_data_new(placement, tag_idx, -1);
-        *(int *)(placement + 0x1c) = *(int *)*(int *)(0x456b74 + team * 4);
-        *(int *)(placement + 0x20) = ((int *)*(int *)(0x456b74 + team * 4))[1];
-        *(int *)(placement + 0x24) = ((int *)*(int *)(0x456b74 + team * 4))[2];
+        *(int *)(placement + 0x18) = *(int *)*(int *)(0x456b74 + team * 4);
+        *(int *)(placement + 0x1c) = ((int *)*(int *)(0x456b74 + team * 4))[1];
+        *(int *)(placement + 0x20) = ((int *)*(int *)(0x456b74 + team * 4))[2];
         weapon = object_new(placement);
         object_set_automatic_deactivation(weapon, 0);
         if (weapon == -1) {

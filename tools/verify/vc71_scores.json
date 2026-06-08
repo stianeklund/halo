@@ -3317,7 +3317,7 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000a9190": {
-      "score": 78.8,
+      "score": 83.6,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000a9210": {
@@ -3341,7 +3341,7 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000a93e0": {
-      "score": 65.7,
+      "score": 67.6,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000a9460": {
@@ -3369,7 +3369,7 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000a95f0": {
-      "score": 92.9,
+      "score": 100.0,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000a9620": {
@@ -3705,7 +3705,7 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000ad2b0": {
-      "score": 90.8,
+      "score": 96.9,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000ad3e0": {
@@ -4845,7 +4845,7 @@
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d44f0": {
-      "score": 87.0,
+      "score": 61.8,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d4680": {
@@ -4881,7 +4881,7 @@
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d4860": {
-      "score": 85.7,
+      "score": 82.8,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d48e0": {
@@ -4897,11 +4897,11 @@
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d4980": {
-      "score": 97.9,
+      "score": 93.6,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d49d0": {
-      "score": 82.6,
+      "score": 80.9,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d4a20": {
@@ -4925,15 +4925,15 @@
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d4e30": {
-      "score": 93.3,
+      "score": 88.5,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d4e90": {
-      "score": 90.6,
+      "score": 86.2,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d4f00": {
-      "score": 100.0,
+      "score": 84.4,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d4f70": {
@@ -4969,7 +4969,7 @@
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d5350": {
-      "score": 68.6,
+      "score": 63.2,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d5ec0": {
@@ -5085,15 +5085,15 @@
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d6660": {
-      "score": 77.0,
+      "score": 66.4,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d6cc0": {
-      "score": 84.5,
+      "score": 72.5,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d6e50": {
-      "score": 90.8,
+      "score": 83.6,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d7080": {
@@ -5101,7 +5101,7 @@
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d70b0": {
-      "score": 66.9,
+      "score": 56.9,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d7240": {
@@ -5165,7 +5165,7 @@
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d7a20": {
-      "score": 90.0,
+      "score": 69.5,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d7cd0": {
@@ -5177,7 +5177,7 @@
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d7d40": {
-      "score": 65.7,
+      "score": 64.4,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000db0f0": {
@@ -6112,8 +6112,16 @@
       "score": 98.5,
       "source": "src/halo/memory/circular_queue.c"
     },
+    "FUN_00114740": {
+      "score": 68.5,
+      "source": "src/halo/memory/circular_queue.c"
+    },
     "FUN_00114f60": {
       "score": 97.3,
+      "source": "src/halo/memory/circular_queue.c"
+    },
+    "FUN_00114fa0": {
+      "score": 61.8,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_001153c0": {
@@ -6132,6 +6140,10 @@
       "score": 100.0,
       "source": "src/halo/memory/circular_queue.c"
     },
+    "FUN_001155e0": {
+      "score": 22.3,
+      "source": "src/halo/memory/circular_queue.c"
+    },
     "FUN_00115a00": {
       "score": 91.2,
       "source": "src/halo/memory/circular_queue.c"
@@ -6142,6 +6154,10 @@
     },
     "FUN_00115b70": {
       "score": 100.0,
+      "source": "src/halo/memory/circular_queue.c"
+    },
+    "FUN_00115ba0": {
+      "score": 70.9,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00116010": {
@@ -6185,7 +6201,7 @@
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00116b00": {
-      "score": 83.1,
+      "score": 86.9,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00116d10": {
@@ -6209,7 +6225,7 @@
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_001171a0": {
-      "score": 86.8,
+      "score": 88.4,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00117250": {
@@ -6221,7 +6237,7 @@
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_001173f0": {
-      "score": 85.5,
+      "score": 89.0,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00117600": {
@@ -7944,12 +7960,160 @@
       "score": 99.2,
       "source": "src/halo/text/unicode.c"
     },
+    "FUN_001a01d0": {
+      "score": 94.1,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a03c0": {
+      "score": 91.1,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a0680": {
+      "score": 61.5,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a07c0": {
+      "score": 77.6,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a0800": {
+      "score": 98.1,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a0860": {
+      "score": 100.0,
+      "source": "src/halo/units/bipeds.c"
+    },
     "FUN_001a0890": {
-      "score": 86.9,
+      "score": 100.0,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a0950": {
+      "score": 100.0,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a0970": {
+      "score": 95.0,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a09f0": {
+      "score": 100.0,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a0a40": {
+      "score": 92.3,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a0b30": {
+      "score": 81.4,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a0be0": {
+      "score": 88.3,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a0db0": {
+      "score": 100.0,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a0e00": {
+      "score": 82.3,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a0f10": {
+      "score": 91.3,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a1020": {
+      "score": 100.0,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a1080": {
+      "score": 88.4,
       "source": "src/halo/units/bipeds.c"
     },
     "FUN_001a1140": {
-      "score": 86.7,
+      "score": 92.9,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a12e0": {
+      "score": 93.4,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a1430": {
+      "score": 79.3,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a1900": {
+      "score": 98.1,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a1a10": {
+      "score": 80.0,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a1b90": {
+      "score": 78.6,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a1bc0": {
+      "score": 95.5,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a1d80": {
+      "score": 94.3,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a1e70": {
+      "score": 86.9,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a1fb0": {
+      "score": 95.1,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a2160": {
+      "score": 73.4,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a2290": {
+      "score": 84.4,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a2440": {
+      "score": 88.4,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a25e0": {
+      "score": 79.3,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a2800": {
+      "score": 93.6,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a2900": {
+      "score": 96.9,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a2a60": {
+      "score": 86.5,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a2b10": {
+      "score": 84.0,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a2b90": {
+      "score": 96.2,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a2d90": {
+      "score": 95.1,
+      "source": "src/halo/units/bipeds.c"
+    },
+    "FUN_001a2f40": {
+      "score": 75.9,
       "source": "src/halo/units/bipeds.c"
     },
     "FUN_001ac2f0": {
