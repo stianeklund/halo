@@ -53,7 +53,19 @@ writeback, biped step-down, and 2 NaN asserts.
 - `-NAN` sentinel stores to ESI[0x26/0x27/0x29/0x2a] are INTEGER
   `MOV dword,0xffffffff` (none-handle), NOT float NaN. Write as `*(int*)`.
 - `local_40`/result_count is the u16 count from FUN_00150550 (in AX), int.
-- new_position(+0xac) = los_dir(arg8 out) - los_dir2(arg7 out), NOT - new_pos.
+- new_position(+0xac): UNCERTAIN. Current source recomputes `los_dir - los_dir2`
+  at the writeback (float store). But the ORIGINAL writeback (0x1a4160) does NOT
+  recompute: it INTEGER-copies (`movl`) three dwords from a per-mode carried stack
+  vector ([EBP-0x18/-0x14/-0x10]) into +0xac, and integer-copies los_dir
+  ([EBP-0x78/-0x74/-0x70]) into new_velocity(+0xb8); the fresh FSUB+FSQRT only
+  computes the step distance (+0xc8). That carried [-0x18] vector is written
+  per-movement-mode (rotation at 0x3341/0x34af, `[-0x30]+[-0x78]` at 0x3760, the
+  `proj` scale-add at 0x3c37) — it is NOT obviously `los_dir - los_dir2`. So the
+  REPRESENTATION differs (int-copy of a carried slot vs float recompute) — proven.
+  Whether the VALUE diverges is UNRESOLVED (would need equivalence; fn dormant).
+  Recovering the writeback's integer-copy run faithfully would require threading the
+  carried new_position vector through every mode = path-spanning rewrite, NOT a
+  mechanical block. Deferred. (~+0.6pp upside, real latent-bug risk if value diverges.)
 - FUN_00150550 arg4 was `float` in kb.json but the original pushes physics[0x15]
   as a RAW dword; corrected the kb decl to `int arg4` (only caller is this
   dormant fn) and pass `*(int*)&physics[0x15]`. Same for arg5.
@@ -77,6 +89,25 @@ blocks would reach ~82-83%, still short of 88%. Decision rule that ended the
 oscillation: per residual block, FPU-stack juggling (fxch/fld %st/fucomp/
 doubled-load) = capped/leave; straight-line mov/fld/fchs/fstp/branch =
 mechanical/fix.
+
+### Writeback / asserts / block-23 — mechanical-recovery pass (2026-06-08)
+- VC71 75.76% (1587) -> 75.94% (1590), still rounds to 75.9%. One value-preserving
+  win: the two final NaN asserts now read each vec3 component through a single
+  base pointer (`unsigned int *np=&physics[0x2b]; np[0]/np[1]/np[2]`) instead of
+  three `*(unsigned int*)&physics[0x2b/2c/2d]` — matches the original's
+  `[EDI]/[EDI+4]/[EDI+8]` (EDI=ESI+0xac) + `MOV [EBP-0x40],reg` per-component temp
+  store at 0x1a42dc/0x1a436b. +3 matched mnemonics, NO neighbor regressed, no value
+  change. (Block scope braces needed for C89 — the pointer is block-local.)
+- block-20 (`fmuls 0x8(%edi)` vs `0x3c(%esi)`) and block-23 (`flds 0x7c(%esi);
+  fsubs 0x2533c8; ...` the hi-segment slope interp at 0x1a356e, source line ~3129)
+  are CAPPED: operands are IDENTICAL (block-23 = `(physics[0x1f]-1.0)*(height-
+  physics[0x1d])/(physics[0x1e]-physics[0x1d])+1.0`), only x87 SCHEDULING differs.
+  And vc71 LCS is mnemonic-only, so operand-only diffs score 0pp anyway — never a lever.
+- The remaining ~23-insn gap is the value-coupled writeback (above) + the proven
+  x87/scheduling caps. 75.9% is the faithful mechanical ceiling without a
+  path-spanning rewrite. The "~82-83%" estimate in the older note assumed the
+  writeback was mechanically recoverable; it is not (value-coupled). Treat ~76-77%
+  as the honest cap for this function absent equivalence-backed restructuring.
 
 ### Refinement-block scale_add operates on `proj`, NOT new_velocity (2026-06-07)
 At 0x1a3c65..0x1a3c8b the in-place `vector3d_scale_add(base,dir,scale,out)` call
