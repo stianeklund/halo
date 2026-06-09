@@ -27,6 +27,7 @@
       "obj": "actors.obj",
       "status": "fail",
       "reason": "emulation_error",
+      "error_details": [],
       "seeds_passed": 0,
       "seeds_total": 20,
       "z3_proven": "0"
@@ -38,6 +39,7 @@
       "obj": "actors.obj",
       "status": "fail",
       "reason": "emulation_error",
+      "error_details": [],
       "seeds_passed": 0,
       "seeds_total": 20,
       "z3_proven": "0"
@@ -60,6 +62,7 @@
         "obj": "actors.obj",
         "status": "fail",
         "reason": "emulation_error",
+        "error_details": [],
         "seeds_passed": 0,
         "seeds_total": 20,
         "z3_proven": "0"
@@ -71,6 +74,7 @@
         "obj": "actors.obj",
         "status": "fail",
         "reason": "emulation_error",
+        "error_details": [],
         "seeds_passed": 0,
         "seeds_total": 20,
         "z3_proven": "0"
@@ -78,7 +82,7 @@
     ],
     "allowlisted": []
   },
-  "elapsed_seconds": 0.004216670989990234,
+  "elapsed_seconds": 0.004250049591064453,
   "interrupted": false,
   "skipped": 2
 }
