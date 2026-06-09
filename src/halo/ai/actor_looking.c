@@ -627,7 +627,7 @@ unsigned int FUN_00014770(int actor_handle)
   static char large_buf[0x670];
   static char huge_buf[0x1474c];
   int local_14;
-  float local_50[3];
+  int local_50[12]; /* FUN_00027090 writes 12 ints (48 bytes); was float[3]=12 bytes causing overflow */
   char local_c;
 
   actor = (char *)datum_get(actor_data, actor_handle);
@@ -691,9 +691,9 @@ unsigned int FUN_00014770(int actor_handle)
   csmemset(large_buf, 0, 0x670);
   *(short *)(large_buf + 4) = 0;
 
-  result = FUN_00027090(actor_handle, large_buf, (int *)local_50,
+  result = FUN_00027090(actor_handle, large_buf, local_50,
                         &local_14, huge_buf, &local_c);
-  result = FUN_000272d0(actor_handle, (short)result, (short)(int)&local_50,
+  result = FUN_000272d0(actor_handle, (short)result, (short)result,
                         local_14, (unsigned int)(int)huge_buf, local_c);
 
   if (result == -1) {
@@ -1824,7 +1824,7 @@ unsigned int FUN_000163d0(int actor_handle)
     int ret_24a60;
     int local_10;
     int local_c;
-    int local_50;
+    int local_50[12]; /* FUN_00025c10 writes 12 ints (48 bytes) */
     int ret_25c10;
 
     if (*(short *)(actor + 0xc0) == 3 &&
@@ -1838,9 +1838,9 @@ unsigned int FUN_000163d0(int actor_handle)
     *(int *)large_buf = ret_24a60;
     large_buf[0x19] = 1;
 
-    ret_25c10 = (int)FUN_00025c10(actor_handle, large_buf, &local_50,
+    ret_25c10 = (int)FUN_00025c10(actor_handle, large_buf, local_50,
                                    &local_c, huge_buf, &local_10);
-    result = FUN_000272d0(actor_handle, (short)ret_25c10, (short)(int)&local_50,
+    result = FUN_000272d0(actor_handle, (short)ret_25c10, (short)ret_25c10,
                           local_c, (unsigned int)(int)huge_buf, (char)local_10);
 
     *(char *)(actor + 0xaa) = 0;
