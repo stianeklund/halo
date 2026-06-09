@@ -43,8 +43,8 @@
   },
   "0x1a0e00": {
     "class": "non_leaf",
-    "confidence": "high",
-    "coverage_pct": 79.4
+    "confidence": "moderate",
+    "coverage_pct": 33.9
   },
   "0x1a1430": {
     "class": "non_leaf",

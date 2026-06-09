@@ -36,6 +36,22 @@ structural ceiling (~73-82%), not a source bug. Two confirmed sub-patterns
    both branches push offset/range/base onto ST0/ST1/ST2 and the merge label
    does `FDIVRP`/`FCOM` on them. C forces every temp through a memory local.
 
+3. **Fused fall-distance compare tail.** `FUN_001a1e70` (cdecl, TRUE per-fn
+   86.9% / 96-95 insns via `delinked/functions/FUN_001a1e70.obj` — NOT
+   NOP-inflated, the 86.9% is genuine). 2026-06-08: the residual diff mass is
+   DOMINATED by the FPU fall-distance tail 0x1f63-0x1f8f, NOT the keystone
+   FUN_001a1a10 reg-setup as hypothesized. Original keeps clearance/threshold
+   temps on ST0..ST3 across `FADD ST0,ST0; FLD ST2; FMUL ST3; FADDP; FLD ST1;
+   FMUL ST2; FCOMPP` (the `c^2 <= clearance^2 + 2*fall_term` test) and branches
+   on `JP`/`JNE` (parity-ordered FCOMPP) where clang emits `je`. The keystone
+   call setup (`MOV EAX,[0x31fc50]`→`movl 0x0,%eax` reloc-stripped, push reorder,
+   `movl %edi,%ecx`) is only ~3-4 of the unmatched insns. Both regions are
+   structural ceilings; keystone reg-arg cap is the SMALLER contributor here.
+   §10/§16 audit PASS: keystone call args in correct order (scale=6.0f@push,
+   out_point=&probe_hit, out_vec=0, direction@eax=*(float**)0x31fc50,
+   unit@edi=unit_handle); fn is void and original RET leaves nothing meaningful
+   in EAX. Caller FUN_001a6350 — verify its ported status before activation.
+
 **Why:** The x87 register stack is invisible to the C type system; there is no
 portable way to say "leave 3 values on the FPU stack across a branch" or "fuse a
 function's ST0 return into the next FPU op."
