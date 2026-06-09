@@ -3480,7 +3480,7 @@
         {
           "addr": "0x17960",
           "decl": "void FUN_00017960(char *state_data@<ecx>, int actor_handle@<eax>, int object_handle@<edi>);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x17ab0",
