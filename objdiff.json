@@ -6336,6 +6336,22 @@
       }
     },
     {
+      "name": "halo/actor_looking_FUN_0001a200",
+      "target_path": "build/vc71/actor_looking.obj",
+      "base_path": "delinked/actor_looking_FUN_0001a200.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actor_looking.c"
+      }
+    },
+    {
+      "name": "halo/actor_looking_FUN_00019110",
+      "target_path": "build/vc71/actor_looking.obj",
+      "base_path": "delinked/actor_looking_FUN_00019110.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actor_looking.c"
+      }
+    },
+    {
       "name": "halo/actor_looking_FUN_00017960",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_FUN_00017960.obj",
@@ -6595,6 +6611,14 @@
       "name": "halo/actor_looking_FUN_00024ca0",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_FUN_00024ca0.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actor_looking.c"
+      }
+    },
+    {
+      "name": "halo/actor_looking_FUN_00024cf0",
+      "target_path": "build/vc71/actor_looking.obj",
+      "base_path": "delinked/actor_looking_FUN_00024cf0.obj",
       "metadata": {
         "source_path": "src/halo/ai/actor_looking.c"
       }
