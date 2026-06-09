@@ -113,13 +113,10 @@ float normalize3d(float *v)
   float scale;
 
   mag = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
-  if (!(fabsf(mag) >= *(float *)0x2533d0)) {
-    /* Original: _DAT_002533d0 = -3.69e19 (large negative float), so this
-       branch is only entered for NaN inputs. Matches original XBE behavior:
-       always normalizes non-NaN vectors, returns 0.0f only for NaN. */
-    if (v[0] != v[0] || v[1] != v[1] || v[2] != v[2]) {
-      v[0] = v[1] = v[2] = 0.0f;
-    }
+  /* _DAT_002533d0 = -3.69e19: original condition (-3.69e19 <= ABS(mag)) is
+     always true for non-NaN. Guard against zero/NaN to avoid Inf/NaN in
+     components; callers check the 0.0f return. */
+  if (mag == 0.0f || v[0] != v[0] || v[1] != v[1] || v[2] != v[2]) {
     return 0.0f;
   }
   scale = 1.0f / mag;
