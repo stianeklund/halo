@@ -365,21 +365,25 @@ void FUN_00014480(int actor_handle)
 {
   char *actor;
   char *conversation;
+  int16_t *move_type;
+  int prop_handle_init;
   int prop_handle;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   conversation = NULL;
+  prop_handle_init = *(int *)(actor + 0xac);
   if (*(int *)(actor + 0x9c) != -1)
     conversation =
       (char *)datum_get(*(data_t **)0x6324ec, *(int *)(actor + 0x9c));
-  prop_handle = *(int *)(actor + 0xac);
+  prop_handle = prop_handle_init;
   if (prop_handle == -1 && conversation != NULL &&
       *(int *)(conversation + 0x10) != -1)
     prop_handle = prop_get_active_by_unit_index(actor_handle,
                                                 *(int *)(conversation + 0x10));
   *(int16_t *)(actor + 0x3fc) = 1;
   if (prop_handle != -1) {
-    *(int16_t *)(actor + 0x3e8) = 3;
+    move_type = (int16_t *)(actor + 0x3e8);
+    *move_type = 3;
     *(int16_t *)(actor + 0x3ec) = 1;
     *(int *)(actor + 0x3f0) = prop_handle;
   }
@@ -4069,17 +4073,23 @@ void FUN_0001a420(int actor_handle)
   char *actor;
   char *tag_data;
   char *prop;
+  char *actor_162;
+  short *move_type;
+  int threshold_6;
   int prop_handle;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   tag_data = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
   prop_handle = *(int *)(actor + 0x270);
+  actor_162 = actor + 0x162;
+  move_type = (short *)(actor + 0x3e8);
+  threshold_6 = 6;
   if (prop_handle != -1) {
     prop = (char *)datum_get(prop_data, prop_handle);
     if (*(short *)(actor + 0xa4) == 0) {
-      if (*(char *)(actor + 0x162) == '\0') {
+      if (*actor_162 == '\0') {
         if ((*tag_data & 0x10) == 0) {
-          *(char *)(actor + 0x454) = (char)(*(short *)(actor + 0x268) >= 6);
+          *(char *)(actor + 0x454) = (char)(*(short *)(actor + 0x268) >= threshold_6);
         } else {
           *(char *)(actor + 0x454) = (char)(*(short *)(actor + 0x268) >= 5);
         }
@@ -4090,14 +4100,14 @@ void FUN_0001a420(int actor_handle)
     }
     if ((*(char *)(actor + 0x454) != '\0' &&
          (*(short *)(prop + 0x38) == 0 || *(short *)(prop + 0x38) == 1)) ||
-        (*(char *)(actor + 0x162) != '\0')) {
-      *(short *)(actor + 0x3e8) = 7;
+        (*actor_162 != '\0')) {
+      *move_type = 7;
     } else if (*(short *)(actor + 0x268) < 5) {
-      *(short *)(actor + 0x3e8) = 3;
+      *move_type = 3;
     } else if (*(short *)(prop + 0x38) == 2 || *(short *)(prop + 0x38) == 4) {
-      *(short *)(actor + 0x3e8) = 2;
+      *move_type = 2;
     } else {
-      *(short *)(actor + 0x3e8) = 5;
+      *move_type = 5;
     }
     if (*(short *)(actor + 0xa4) == 0) {
       *(short *)(actor + 0x3ec) = 2;
