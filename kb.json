@@ -3294,7 +3294,7 @@
         },
         {
           "addr": "0x15520",
-          "decl": "void FUN_00015520(void);",
+          "decl": "int FUN_00015520(int actor_index);",
           "ported": false
         },
         {
@@ -30248,11 +30248,11 @@
         },
         {
           "addr": "0x300b0",
-          "decl": "void actor_situation_update_target_status(void);"
+          "decl": "void actor_situation_update_target_status(int actor_index);"
         },
         {
           "addr": "0x302b0",
-          "decl": "void actor_situation_combat_status_update(void);"
+          "decl": "void actor_situation_combat_status_update(int actor_index);"
         },
         {
           "addr": "0x303f0",
