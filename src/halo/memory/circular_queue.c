@@ -156,6 +156,7 @@ int FUN_001154a0(int z, int w, char *version, int stream_size)
  * param_1=bl (literal bits), param_2=bd (distance bits),
  * param_3=tl (literal table), param_4=td (distance table),
  * param_5=s (block state), param_6=z (z_stream) */
+__attribute__((noinline))
 int FUN_00114fa0(int param_1, int param_2, int param_3, int param_4,
                  int param_5, int *param_6)
 {
@@ -386,7 +387,7 @@ void FUN_00114740(unsigned int param_1, int *param_2, int param_3)
   int uVar10;
   unsigned char *q;  /* output pointer (working) */
   unsigned char *p;  /* write pointer (current) */
-  unsigned char *m_ptr; /* available output space */
+  unsigned int m_ptr; /* available output space */
   unsigned int n;  /* available input bytes */
   unsigned char *local_c; /* input pointer */
   unsigned int b;  /* bit buffer (reuses param_1 slot [EBP+0x8]) */
@@ -401,9 +402,9 @@ void FUN_00114740(unsigned int param_1, int *param_2, int param_3)
   n = (unsigned int)param_2[1];
   k = (unsigned int)*(int **)(param_1 + 0x1c);
   if (p < *(unsigned char **)(param_1 + 0x30)) {
-    m_ptr = (unsigned char *)(*(int *)(param_1 + 0x30) + (-1 - (int)p));
+    m_ptr = (unsigned int)(*(int *)(param_1 + 0x30) + (-1 - (int)p));
   } else {
-    m_ptr = (unsigned char *)(*(int *)(param_1 + 0x2c) - (int)p);
+    m_ptr = (unsigned int)(*(int *)(param_1 + 0x2c) - (int)p);
   }
   b = *(unsigned int *)(param_1 + 0x20);
   r = param_3;
@@ -412,7 +413,7 @@ void FUN_00114740(unsigned int param_1, int *param_2, int param_3)
   while (uVar7 < 10) {
     switch (uVar7) {
     case 0:
-      if ((unsigned char *)0x101 < m_ptr && 9 < n) {
+      if (m_ptr > 0x101 && 9 < n) {
         *(unsigned int *)(s + 0x20) = b;
         *(unsigned int *)(s + 0x1c) = k;
         z[1] = (int)n;
@@ -429,10 +430,10 @@ void FUN_00114740(unsigned int param_1, int *param_2, int param_3)
         b = *(unsigned int *)(s + 0x20);
         k = *(unsigned int *)(s + 0x1c);
         if (p < *(unsigned char **)(s + 0x30)) {
-          m_ptr = (unsigned char *)(*(int *)(s + 0x30) +
+          m_ptr = (unsigned int)(*(int *)(s + 0x30) +
                                        (-1 - (int)p));
         } else {
-          m_ptr = (unsigned char *)(*(int *)(s + 0x2c) - (int)p);
+          m_ptr = (unsigned int)(*(int *)(s + 0x2c) - (int)p);
         }
         if (r != 0) {
           *c = (unsigned int)(r != 1) * 2 + 7;
@@ -586,18 +587,18 @@ LAB_00114a43:
       uVar7 = c[1];
       while (uVar7 != 0) {
         q = p;
-        if (m_ptr == (unsigned char *)0x0) {
+        if (m_ptr == 0) {
           if (p == *(unsigned char **)(s + 0x2c)) {
-            m_ptr = *(unsigned char **)(s + 0x30);
+            m_ptr = (unsigned int)*(unsigned char **)(s + 0x30);
             q = *(unsigned char **)(s + 0x28);
-            if (m_ptr != q) {
-              if (q < m_ptr) {
-                m_ptr = (unsigned char *)((int)m_ptr + (-1 - (int)q));
+            if ((unsigned char *)m_ptr != q) {
+              if (q < (unsigned char *)m_ptr) {
+                m_ptr = (unsigned int)((int)m_ptr + (-1 - (int)q));
               } else {
-                m_ptr = (unsigned char *)(*(int *)(s + 0x2c) - (int)q);
+                m_ptr = (unsigned int)(*(int *)(s + 0x2c) - (int)q);
               }
               p = q;
-              if (m_ptr != (unsigned char *)0x0) goto LAB_00114c69;
+              if (m_ptr != 0) goto LAB_00114c69;
             }
           }
           *(unsigned char **)(s + 0x34) = p;
@@ -605,21 +606,21 @@ LAB_00114a43:
           q = *(unsigned char **)(s + 0x34);
           p = *(unsigned char **)(s + 0x30);
           if (q < p) {
-            m_ptr = (unsigned char *)((int)p + (-1 - (int)q));
+            m_ptr = (unsigned int)((int)p + (-1 - (int)q));
           } else {
-            m_ptr = (unsigned char *)(*(int *)(s + 0x2c) - (int)q);
+            m_ptr = (unsigned int)(*(int *)(s + 0x2c) - (int)q);
           }
           if (q == *(unsigned char **)(s + 0x2c) &&
               (puVar4 = *(unsigned char **)(s + 0x28),
                p != puVar4)) {
             q = puVar4;
             if (puVar4 < p) {
-              m_ptr = (unsigned char *)((int)p + (-1 - (int)puVar4));
+              m_ptr = (unsigned int)((int)p + (-1 - (int)puVar4));
             } else {
-              m_ptr = (unsigned char *)(*(int *)(s + 0x2c) - (int)puVar4);
+              m_ptr = (unsigned int)(*(int *)(s + 0x2c) - (int)puVar4);
             }
           }
-          if (m_ptr == (unsigned char *)0x0) goto LAB_00114e67;
+          if (m_ptr == 0) goto LAB_00114e67;
         }
 LAB_00114c69:
         *q = *f;
@@ -637,18 +638,18 @@ LAB_00114c69:
       break;
     case 6:
       q = p;
-      if (m_ptr == (unsigned char *)0x0) {
+      if (m_ptr == 0) {
         if (p == *(unsigned char **)(s + 0x2c)) {
-          m_ptr = *(unsigned char **)(s + 0x30);
+          m_ptr = (unsigned int)*(unsigned char **)(s + 0x30);
           q = *(unsigned char **)(s + 0x28);
-          if (m_ptr != q) {
-            if (q < m_ptr) {
-              m_ptr = (unsigned char *)((int)m_ptr + (-1 - (int)q));
+          if ((unsigned char *)m_ptr != q) {
+            if (q < (unsigned char *)m_ptr) {
+              m_ptr = (unsigned int)((int)m_ptr + (-1 - (int)q));
             } else {
-              m_ptr = (unsigned char *)(*(int *)(s + 0x2c) - (int)q);
+              m_ptr = (unsigned int)(*(int *)(s + 0x2c) - (int)q);
             }
             p = q;
-            if (m_ptr != (unsigned char *)0x0) goto LAB_00114d37;
+            if (m_ptr != 0) goto LAB_00114d37;
           }
         }
         *(unsigned char **)(s + 0x34) = p;
@@ -656,21 +657,21 @@ LAB_00114c69:
         q = *(unsigned char **)(s + 0x34);
         p = *(unsigned char **)(s + 0x30);
         if (q < p) {
-          m_ptr = (unsigned char *)((int)p + (-1 - (int)q));
+          m_ptr = (unsigned int)((int)p + (-1 - (int)q));
         } else {
-          m_ptr = (unsigned char *)(*(int *)(s + 0x2c) - (int)q);
+          m_ptr = (unsigned int)(*(int *)(s + 0x2c) - (int)q);
         }
         if (q == *(unsigned char **)(s + 0x2c) &&
             (f = *(unsigned char **)(s + 0x28),
              p != f)) {
           q = f;
           if (f < p) {
-            m_ptr = (unsigned char *)((int)p + (-1 - (int)f));
+            m_ptr = (unsigned int)((int)p + (-1 - (int)f));
           } else {
-            m_ptr = (unsigned char *)(*(int *)(s + 0x2c) - (int)f);
+            m_ptr = (unsigned int)(*(int *)(s + 0x2c) - (int)f);
           }
         }
-        if (m_ptr == (unsigned char *)0x0) {
+        if (m_ptr == 0) {
           goto LAB_00114e67;
         }
       }
