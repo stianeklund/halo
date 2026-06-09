@@ -4135,6 +4135,89 @@ bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
   return 1;
 }
 
+/* FUN_00019110 (0x19110) — Action-obey command-list step driver.
+ *
+ * Walks the command atoms of an actor "obey" command, validating each atom
+ * (FUN_00018b90), dispatching the cleanup/stop handler (FUN_000169a0) to
+ * advance to the next atom, and executing the chosen atom (FUN_00017ab0).
+ * The run-state record (`state`, param_4) holds the current atom index at
+ * byte[0], a re-entry counter at byte[1], and a flags byte at [4]
+ * (bit1=0x2 "finished", bit2=0x4 "yield this tick").  When the walk
+ * completes without the finished flag, *out_finished is cleared (and a
+ * NULL out_finished trips the action_obey.c:0x595 "finished_reference"
+ * assert).
+ *
+ * Confirmed (disasm 0x19110-0x19222): pure cdecl, 6 stack args, no register
+ *   args of its own.
+ * Confirmed: atom_table = tag_block_get_element(global_scenario_get()+0x438,
+ *   scenario_index, 0x60); atom count at atom_table+0x30 (Ghidra mis-groups
+ *   the (idx,0x60) args onto global_scenario_get).
+ * Confirmed: leading datum_get(actor_data, actor_handle) return is discarded.
+ * Confirmed: do-while loop; back-edge gated on (state[4] & 4) == 0.
+ * Confirmed call-site reg bindings:
+ *   FUN_00018b90(@eax=unit_handle, actor_handle, scenario_index, state,
+ * command) FUN_000169a0(actor_handle, unit_handle, scenario_index, command,
+ *                &next, state@esi)
+ *   FUN_00017ab0(@eax=command/look_state, @ecx=unit_handle, actor_handle,
+ *                scenario_index, state)
+ * Inferred: param_5 ([EBP+0x18]) is the same incoming pointer in all three
+ *   calls (command / out_state / look_state); typed conservatively as void*.
+ */
+void FUN_00019110(int actor_handle, int unit_handle, short scenario_index,
+                  unsigned char *state, void *command,
+                  unsigned char *out_finished)
+{
+  int atom_table;
+  char in_range;
+  unsigned char next;
+
+  datum_get(actor_data, actor_handle);
+  atom_table = (int)tag_block_get_element(
+    (void *)((int)global_scenario_get() + 0x438), (int)scenario_index, 0x60);
+
+  if ((state[4] & 2) == 0) {
+    in_range = (int)(unsigned int)state[0] < *(int *)(atom_table + 0x30);
+    state[1] = 0;
+    do {
+      if (in_range != '\0' &&
+          FUN_00018b90(unit_handle, actor_handle, scenario_index, (char *)state,
+                       command) == 0) {
+        break;
+      }
+
+      if (state[0] == 0xff) {
+        next = 0;
+      } else {
+        next = (unsigned char)(state[0] + 1);
+      }
+
+      if (in_range != '\0') {
+        FUN_000169a0(actor_handle, unit_handle, scenario_index, (int)command,
+                     (char *)&next, state);
+      }
+
+      if (*(int *)(atom_table + 0x30) <= (int)(unsigned int)next) {
+        state[4] = state[4] | 2;
+        break;
+      }
+
+      state[0] = next;
+      in_range =
+        FUN_00017ab0(command, unit_handle, actor_handle, scenario_index, state);
+    } while ((state[4] & 4) == 0);
+  }
+
+  if ((state[4] & 2) == 0) {
+    if (out_finished == (unsigned char *)0x0) {
+      display_assert("finished_reference",
+                     "c:\\halo\\SOURCE\\ai\\action_obey.c", 0x595, 1);
+      system_exit(-1);
+    }
+    *out_finished = 0;
+  }
+  return;
+}
+
 /* FUN_00019230 (0x19230)
  * Scripted-look prop-interest update callback.
  *
@@ -4966,6 +5049,116 @@ int FUN_0001a100(int actor_handle, short param_2, char *state_data)
   return 0;
 }
 
+/* FUN_0001a200 (0x1a200) — action_uncover firing-position update.
+ *
+ * Builds a firing-position request in a 0x670-byte scratch buffer, runs the
+ * firing-position evaluation pipeline (FUN_00027090 to choose a position,
+ * FUN_000272d0 to commit it), and emits debug log lines on certain
+ * inspection outcomes. Same structural pattern as FUN_00014770
+ * (action_fight) but for the action_uncover state.
+ *
+ * Asserts !actor->meta.swarm (action_uncover.c:0x84) on entry. Body only
+ * runs when actor+0x4c (active) is set, actor+0x160 (suppressed) is clear,
+ * and actor+0x9d (already-uncovered flag) is clear.
+ *
+ * If actor+0xa4 (search stance, int16) == 1, copies the pursuit location
+ * (actor+0xb0/0xb4/0xb8 position, actor+0xac, actor+0xa8) into the request
+ * and flags it (req+0x20 = 1); otherwise stores the search-flag byte
+ * (actor+0xa0) at req+0x41.
+ *
+ * After FUN_00027090 returns a valid (!= -1) result:
+ *   - stance 0: if the chosen point type (result+6, int16) is neither 0 nor
+ *     1, optionally logs "%s: unable to see target's current location" once
+ *     (gated on actor+0xa0 == 0 and the AI-debug flag at 0x5aca64) and sets
+ *     actor+0xa0 = 1.
+ *   - stance != 0: if the chosen point type is 0 and the point's distance
+ *     field (result+8, float) is below actor_destination_tolerance, optionally
+ *     logs "%s: inspected pursuit location" once (gated on actor+0xbc == 0 and
+ *     the AI-debug flag) and sets actor+0xbc = 1.
+ *
+ * FUN_000272d0 then commits the firing position; if it returns -1, the
+ * actor's blocked flag at actor+0x9e is set. Returns 0 (XOR AL,AL).
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x1a219.
+ * Confirmed: csmemset(req, 0, 0x670) at 0x1a27f; req+4 (int16) = 3.
+ * Confirmed: FUN_00027090(actor_handle, req, result_buf, &local_8, scratch,
+ *   &local_4) — 6 cdecl args, ESP+0x18. FUN_000272d0 takes the 0x27090 result
+ *   plus the same scratch/output slots (param_3 is a dead arg; matches the
+ *   FUN_00014770 idiom of passing the result handle).
+ * Confirmed: FCOMP direction at 0x1a38f → body runs when result+8 < tolerance.
+ * Confirmed: assert filepath action_uncover.c, line 0x84, reason swarm. */
+unsigned int FUN_0001a200(int actor_handle)
+{
+  char *actor;
+  short result;
+  int local_8;
+  char local_4;
+  float tolerance;
+  char debug_buf[0x100];
+  static char request[0x670];
+  static char scratch[0x14084];
+  char result_buf[0x30];
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+
+  if (*(char *)(actor + 6) != '\0') {
+    display_assert("!actor->meta.swarm",
+                   "c:\\halo\\SOURCE\\ai\\action_uncover.c", 0x84, 1);
+    system_exit(-1);
+  }
+
+  if (*(char *)(actor + 0x4c) != '\0' && *(char *)(actor + 0x160) == '\0' &&
+      *(char *)(actor + 0x9d) == '\0') {
+    csmemset(request, 0, 0x670);
+    *(short *)(request + 4) = 3;
+
+    if (*(short *)(actor + 0xa4) == 1) {
+      *(int *)(request + 0x24) = *(int *)(actor + 0xb0);
+      *(int *)(request + 0x28) = *(int *)(actor + 0xb4);
+      *(int *)(request + 0x2c) = *(int *)(actor + 0xb8);
+      *(int *)(request + 0x30) = *(int *)(actor + 0xac);
+      *(short *)(request + 0x34) = *(short *)(actor + 0xa8);
+      *(char *)(request + 0x20) = 1;
+    } else {
+      *(char *)(request + 0x41) = *(char *)(actor + 0xa0);
+    }
+
+    result = FUN_00027090(actor_handle, request, result_buf, &local_8, scratch,
+                          &local_4);
+
+    if (result != -1) {
+      if (*(short *)(actor + 0xa4) == 0) {
+        if (*(short *)(result_buf + 6) != 0 &&
+            *(short *)(result_buf + 6) != 1) {
+          if (*(char *)(actor + 0xa0) == '\0' && *(char *)0x5aca64 != '\0') {
+            ai_debug_describe_actor(actor_handle, -1, 1, debug_buf, 0x100);
+            error(2, "%s: unable to see target's current location", debug_buf);
+          }
+          *(char *)(actor + 0xa0) = 1;
+        }
+      } else if (*(short *)(result_buf + 6) == 0) {
+        tolerance = actor_destination_tolerance(actor_handle);
+        if (*(float *)(result_buf + 8) < tolerance) {
+          if (*(char *)(actor + 0xbc) == '\0' && *(char *)0x5aca64 != '\0') {
+            ai_debug_describe_actor(actor_handle, -1, 1, debug_buf, 0x100);
+            error(2, "%s: inspected pursuit location", debug_buf);
+          }
+          *(char *)(actor + 0xbc) = 1;
+        }
+      }
+    }
+
+    result = FUN_000272d0(actor_handle, result, result, local_8,
+                          (unsigned int)(int)scratch, local_4);
+
+    if (result == -1) {
+      *(char *)(actor + 0x9e) = 1;
+    }
+  }
+
+  return 0;
+}
+
 /* FUN_0001a420 (0x1a420)
  * Set up uncover-mode look output fields (movement/navigation type).
  *
@@ -5409,6 +5602,246 @@ char FUN_00024ca0(int actor_handle, short param_2)
   return 0;
 }
 
+/* FUN_00024cf0 (0x24cf0) — Firing-position danger/cover scorer.
+ *
+ * Iterates the firing-position evaluation records (stride 0x3c, count =
+ * param_3) anchored at param_4. For each active record it:
+ *   1. Drops the record if its firing-position index is no longer in the
+ *      actor's active set (FUN_00024ca0) unless ctx+0x14 forces retention.
+ *   2. If ctx+0x40 (danger present): tests the record position against the
+ *      actor danger zone (FUN_0010cd40 point-to-line dist-sq, and
+ *      FUN_0010ce10 line-to-line dist-sq for the danger trajectory) and
+ *      accumulates a danger penalty via FUN_00024000, or kills the record.
+ *   3. Adds a flag-gated evaluation bonus (ctx+0x48 bitmask vs record+0x00
+ *      type field, ctx+0x4c evaluation) into the record's score (rec+0x38).
+ *   4. Scores avoidance against ctx+0x50 zone spheres (ctx+0x54..0x60).
+ * After the loop, if ctx+0x45 is set and the actor has a valid target object
+ * (actor+0x158), runs a second pass scoring each record's facing alignment
+ * with the target object's forward axis.
+ *
+ * Confirmed: cdecl, 4 stack args; void return (callers ADD ESP,0x10 and do
+ *   not consume EAX). Dispatched via the fn-ptr table at 0x254bf8.
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x24d04.
+ * Confirmed: FUN_00024000 receives the record base in ESI (LEA [iter-0x14]).
+ * Confirmed: record score accumulator at rec+0x38 (loop1 +0x24 off iter,
+ *   loop2 +8 off iter, FUN_00024000 +0x38 off rec).
+ * Confirmed: assert path c:\halo\SOURCE\ai\actor_firing_position.c lines
+ *   0xba and 0x81. */
+void FUN_00024cf0(int actor_handle, void *ctx, unsigned short count,
+                  void *positions)
+{
+  char *actor;
+  char *iter;
+  char *rec;
+  float *pos;
+  float danger_dx, danger_dy, danger_dz;
+  float radius;
+  float dist_to_line;
+  float danger_eval;
+  float vel[3]; /* scaled danger velocity, contiguous (rec+0x14..) */
+  float target_pos[3]; /* danger zone trajectory point / target world pos */
+  float eval;
+  float closest;
+  float facing_eval;
+  float dx, dy, dz, len_sq, dot;
+  unsigned int n;
+  int target_obj;
+  char *tobj;
+  int j;
+  short k;
+  char *zone;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (0 < (short)count) {
+    n = (unsigned int)count;
+    iter = (char *)positions + 0x14;
+    do {
+      if (*(char *)(iter + 0x1c) != '\0') {
+        rec = iter - 0x14;
+        if (FUN_00024ca0(actor_handle, *(short *)(iter - 0x10)) == '\0' &&
+            (*(char *)(iter + 0x1d) = 1,
+             *(char *)((char *)ctx + 0x14) == '\0')) {
+          *(char *)(iter + 0x1c) = 0;
+        } else {
+          *(char *)(iter + 0x1d) = 1;
+          if (*(char *)((char *)ctx + 0x40) != '\0') {
+            if (*(short *)(actor + 0x280) < 1 ||
+                *(char *)(actor + 0x287) == '\0') {
+              display_assert(
+                "(actor->danger_zone.danger_type > _actor_danger_zone_none) && "
+                "actor->danger_zone.noticed_danger",
+                "c:\\halo\\SOURCE\\ai\\actor_firing_position.c", 0xba, 1);
+              system_exit(-1);
+            }
+            pos = *(float **)(iter - 0x14);
+            target_pos[0] =
+              *(float *)(actor + 0x2c8) - *(float *)(actor + 0x2b0);
+            target_pos[1] =
+              *(float *)(actor + 0x2cc) - *(float *)(actor + 0x2b4);
+            target_pos[2] =
+              *(float *)(actor + 0x2d0) - *(float *)(actor + 0x2b8);
+            danger_dx = pos[0] - *(float *)(actor + 0x2dc);
+            danger_dy = pos[1] - *(float *)(actor + 0x2e0);
+            danger_dz = pos[2] - *(float *)(actor + 0x2e4);
+            radius = *(float *)(actor + 0x2d8) + *(float *)0x254e04;
+            if (danger_dx * danger_dx + danger_dy * danger_dy +
+                  danger_dz * danger_dz <
+                radius * radius) {
+              dist_to_line =
+                FUN_0010cd40(pos, (float *)(actor + 0x2b0), target_pos);
+              danger_eval = 0.0f;
+              if (*(float *)(actor + 0x294) * *(float *)(actor + 0x294) <=
+                  dist_to_line) {
+                radius = *(float *)(actor + 0x294) + *(float *)0x254e04;
+                if (radius * radius <= dist_to_line) {
+                  danger_eval = 20.0f;
+                } else {
+                  danger_eval =
+                    (xbox_sqrtf(dist_to_line) - *(float *)(actor + 0x294)) *
+                    *(float *)0x253f78;
+                }
+              } else {
+                *(char *)(iter + 0x1d) = 1;
+                if (*(char *)((char *)ctx + 0x14) == '\0') {
+                  *(char *)(iter + 0x1c) = 0;
+                  goto LAB_next1;
+                }
+              }
+              FUN_00024000(rec, ctx, danger_eval, 0x17);
+            }
+            danger_dx = *(float *)(actor + 0x12c) - *(float *)(actor + 0x2dc);
+            danger_dy = *(float *)(actor + 0x130) - *(float *)(actor + 0x2e0);
+            danger_dz = *(float *)(actor + 0x134) - *(float *)(actor + 0x2e4);
+            radius = *(float *)(actor + 0x2d8) + *(float *)0x254644;
+            if (danger_dx * danger_dx + danger_dy * danger_dy +
+                    danger_dz * danger_dz <
+                  radius * radius &&
+                *(float *)(actor + 0x294) < *(float *)(actor + 0x2d4) &&
+                *(float *)(actor + 0x294) * *(float *)(actor + 0x294) <
+                  FUN_0010cd40((float *)(actor + 0x12c),
+                               (float *)(actor + 0x2b0), target_pos)) {
+              vel[0] = *(float *)(iter - 0x8) * *(float *)0x254644;
+              vel[1] = *(float *)(iter - 0x4) * *(float *)0x254644;
+              vel[2] = *(float *)iter * *(float *)0x254644;
+              if (*(float *)0x253f44 <
+                  vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2]) {
+                eval = *(float *)(actor + 0x294);
+                if (FUN_0010ce10((float *)(actor + 0x12c), vel,
+                                 (float *)(actor + 0x2b0),
+                                 target_pos) < eval * eval &&
+                    (*(char *)(iter + 0x1d) = 1,
+                     *(char *)((char *)ctx + 0x14) == '\0')) {
+                  *(char *)(iter + 0x1c) = 0;
+                  goto LAB_next1;
+                }
+              }
+            }
+          }
+          if ((*(unsigned int *)((char *)ctx + 0x48) &
+               (1 << (*(unsigned char *)(*(int *)(iter - 0x14) + 0xc) &
+                      0x1f))) != 0) {
+            eval = *(float *)((char *)ctx + 0x4c);
+            if (eval < 0.0f || eval >= 1000.0f) {
+              display_assert("(evaluation >= 0.0f) && (evaluation < 1e+03f)",
+                             "c:\\halo\\SOURCE\\ai\\actor_firing_position.c",
+                             0x81, 1);
+              system_exit(-1);
+            }
+            *(float *)(iter + 0x24) = eval + *(float *)(iter + 0x24);
+          }
+          j = *(int *)((char *)ctx + 0x50);
+          if (0 < j) {
+            closest = 1.0f;
+            pos = *(float **)(iter - 0x14);
+            k = 0;
+            do {
+              zone = (char *)ctx + (int)k * 0x10;
+              dx = *(float *)(zone + 0x58) - pos[0];
+              dy = *(float *)(zone + 0x5c) - pos[1];
+              dz = *(float *)(zone + 0x60) - pos[2];
+              eval = (dx * dx + dy * dy + dz * dz) /
+                     (*(float *)(zone + 0x54) * *(float *)(zone + 0x54));
+              if (eval < closest) {
+                closest = eval;
+              }
+              k = k + 1;
+            } while ((int)k < j);
+            eval = 10.0f;
+            if (closest < *(float *)0x2533c8 &&
+                (eval = xbox_sqrtf(closest) * *(float *)0x253f34,
+                 eval < 0.0f || eval >= 1000.0f)) {
+              display_assert("(evaluation >= 0.0f) && (evaluation < 1e+03f)",
+                             "c:\\halo\\SOURCE\\ai\\actor_firing_position.c",
+                             0x81, 1);
+              system_exit(-1);
+            }
+            *(float *)(iter + 0x24) = eval + *(float *)(iter + 0x24);
+          }
+        }
+      }
+    LAB_next1:
+      iter = iter + 0x3c;
+      n = n - 1;
+    } while (n != 0);
+  }
+
+  if (*(char *)((char *)ctx + 0x45) != '\0' && *(int *)(actor + 0x158) != -1) {
+    target_obj = (int)object_get_and_verify_type(*(int *)(actor + 0x158), 2);
+    object_get_world_position(*(int *)(actor + 0x158), (vector3_t *)target_pos);
+    tobj = (char *)target_obj;
+    if (0 < (short)count) {
+      zone = (char *)positions + 0x30;
+      n = (unsigned int)count;
+      do {
+        if (*zone != '\0') {
+          pos = *(float **)(zone - 0x30);
+          dx = pos[0] - target_pos[0];
+          dy = pos[1] - target_pos[1];
+          dz = pos[2] - target_pos[2];
+          len_sq = dx * dx + dy * dy + dz * dz;
+          if ((float)*(double *)0x2533d0 <= xbox_fabsf(len_sq) &&
+              len_sq < *(float *)0x254e00) {
+            dot = (dx * *(float *)(tobj + 0x24) + dy * *(float *)(tobj + 0x28) +
+                   dz * *(float *)(tobj + 0x2c)) /
+                  xbox_sqrtf(len_sq);
+            if ((*(char *)((char *)ctx + 0x46) == '\0' &&
+                 *(float *)(tobj + 0x20) * *(float *)(tobj + 0x20) +
+                     *(float *)(tobj + 0x1c) * *(float *)(tobj + 0x1c) +
+                     *(float *)(tobj + 0x18) * *(float *)(tobj + 0x18) <=
+                   *(float *)0x254dfc) ||
+                *(float *)0x254df8 <= len_sq || *(float *)0x254b50 <= dot ||
+                (zone[1] = 1, *(char *)((char *)ctx + 0x14) != '\0')) {
+              facing_eval = 15.0f;
+              if (0.0f <= dot) {
+                if (*(float *)0x2533dc < dot) {
+                  facing_eval =
+                    (dot - *(float *)0x2533dc) * *(float *)0x254df0 +
+                    *(float *)0x254cc0;
+                  goto LAB_facing_guard;
+                }
+              } else {
+                facing_eval = *(float *)0x254cc0 - dot * *(float *)0x254df4;
+              LAB_facing_guard:
+                if (facing_eval < 0.0f || facing_eval >= 1000.0f) {
+                  display_assert(
+                    "(evaluation >= 0.0f) && (evaluation < 1e+03f)",
+                    "c:\\halo\\SOURCE\\ai\\actor_firing_position.c", 0x81, 1);
+                  system_exit(-1);
+                }
+              }
+              *(float *)(zone + 8) = facing_eval + *(float *)(zone + 8);
+            } else {
+              *zone = 0;
+            }
+          }
+        }
+        zone = zone + 0x3c;
+        n = n - 1;
+      } while (n != 0);
+    }
+  }
+}
+
 /* FUN_00025340 (0x25340) — Firing-position ideal-range scorer.
  *
  * Iterates over a firing-position array and scores each active position
@@ -5478,7 +5911,7 @@ void FUN_00025340(int actor_handle, void *ctx, unsigned short count,
           } else {
             score = 10.0f;
           }
-          FUN_00024000(ctx, score, 3);
+          FUN_00024000(pos - 8, ctx, score, 3);
         }
       }
     }
@@ -5572,8 +6005,9 @@ void FUN_00025510(int actor_handle, void *ctx, unsigned short count,
                 if (*(float *)0x2533c8 < eval)
                   bonus = *(float *)0x2533c8;
               }
-              FUN_00024000(
-                ctx, (*(float *)0x2533c8 - bonus) * *(float *)0x253f78, 10);
+              FUN_00024000(pos - 8, ctx,
+                           (*(float *)0x2533c8 - bonus) * *(float *)0x253f78,
+                           10);
             } else {
               *(char *)(pos + 0x28) = 0;
             }
