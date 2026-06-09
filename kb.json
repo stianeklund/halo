@@ -35713,7 +35713,7 @@
   "0x12ad0": {
     "name": "FUN_00012ad0",
     "decl": "float FUN_00012ad0(int actor_handle @<ebx>, int action_type @<esi>, void *charge_state);",
-    "obj": "actor_looking.obj",
+    "obj": "actors.obj",
     "ported": false
   },
   "0x13dd0": {
