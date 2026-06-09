@@ -944,41 +944,42 @@ char FUN_00015040(int actor_handle, short param_2, int param_3, char param_4,
                   char param_5, char param_6, short *param_7)
 {
   char *actor;
+  volatile char result;
 
   actor = (char *)datum_get(actor_data, actor_handle);
-  if (*(char *)(actor + 0x160) != '\0') {
-    return 0;
-  }
-  if (param_7 == (short *)0) {
-    display_assert("state_data", "c:\\halo\\SOURCE\\ai\\action_flee.c", 0x2c,
-                   1);
-    system_exit(-1);
-  }
-  csmemset(param_7, 0, 0x30);
-  *((char *)param_7 + 5) = param_6;
-  param_7[4] = (short)0xffff;
-  param_7[6] = param_2;
-  *(char *)(param_7 + 2) = param_5;
-  *(int *)(param_7 + 0xe) = param_3;
-  *param_7 = param_4 != '\0' ? (short)0xb4 : 0;
-  if (param_3 != -1) {
-    actor_situation_try_new_target(actor_handle, param_3);
-  }
-  if ((short)param_2 >= 9 && (short)param_2 <= 0xc) {
-    if (random_math_real((unsigned int *)get_global_random_seed_address()) <
-        *(float *)0x253524) {
-      param_7[1] = 0x2d;
-      return 1;
+  result = 0;
+  if (*(char *)(actor + 0x160) == '\0') {
+    if (param_7 == (short *)0) {
+      display_assert("state_data", "c:\\halo\\SOURCE\\ai\\action_flee.c", 0x2c,
+                     1);
+      system_exit(-1);
+    }
+    csmemset(param_7, 0, 0x30);
+    *((char *)param_7 + 5) = param_6;
+    param_7[4] = (short)0xffff;
+    param_7[6] = param_2;
+    *(char *)(param_7 + 2) = param_5;
+    *(int *)(param_7 + 0xe) = param_3;
+    *param_7 = param_4 != '\0' ? (short)0xb4 : 0;
+    if (param_3 != -1) {
+      actor_situation_try_new_target(actor_handle, param_3);
+    }
+    if ((short)param_2 >= 9 && (short)param_2 <= 0xc) {
+      if (random_math_real((unsigned int *)get_global_random_seed_address()) <
+          *(float *)0x253524) {
+        param_7[1] = 0x2d;
+        return 1;
+      }
+    }
+    if (*(char *)(actor + 6) == '\0') {
+      FUN_00014c10(0);
+      if (param_7[4] != (short)0xffff) {
+        return 1;
+      }
+      *(char *)(param_7 + 7) = 0;
     }
   }
-  if (*(char *)(actor + 6) == '\0') {
-    FUN_00014c10(0);
-    if (param_7[4] != (short)0xffff) {
-      return 1;
-    }
-    *(char *)(param_7 + 7) = 0;
-  }
-  return 0;
+  return result;
 }
 
 /* FUN_00015150 (0x15150)
