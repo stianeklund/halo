@@ -119,22 +119,10 @@ char FUN_00013ef0(int actor_handle, int action_type, void *charge_state)
   csmemset(charge_state, 0, 0x38);
   *(int *)charge_state = game_time_get();
 
-  if ((short)action_type == 5 || (short)action_type == 4) {
-    return_flag = (char)(*(int16_t *)(actor + 0x15e) > 1);
-    *(int16_t *)(actor_state + 0x190) =
-      (int16_t)(*(int16_t *)(actor + 0x15e) <= 1);
-    goto done;
-  }
-  if ((short)action_type != 2) {
-    if ((short)action_type == 0 && (*(int *)actr_tag & 0x20000) &&
-        *(int16_t *)(actor + 0x6e) >= 5 && !*(char *)(actor + 0x378)) {
-      action_type = 1;
-      *(int16_t *)(actor_state + 0x190) = 8;
-    } else {
-      *(int16_t *)(actor_state + 0x190) = 9;
-    }
-    goto done;
-  }
+  if ((short)action_type == 5 || (short)action_type == 4)
+    goto case_invade_retreat;
+  if ((short)action_type != 2)
+    goto case_default;
 
   /* action_type == 2: melee charge */
   if (*(char *)(actor + 0x6)) {
@@ -142,6 +130,10 @@ char FUN_00013ef0(int actor_handle, int action_type, void *charge_state)
     *(int16_t *)(actor_state + 0x190) = 2;
     goto done;
   }
+  /* Original zeroes return_flag unconditionally here (0x13fe4: MOV byte
+   * [EBP-0x1],0 before the JNS) — the rest of the melee path is pessimistic:
+   * fail reasons 3-6 all return 0; only reason 7 re-sets 1. */
+  return_flag = 0;
   if (*(int8_t *)((char *)object_get_and_verify_type(*(int *)(actor + 0x18),
                                                      3) +
                   0xb6) < 0) {
@@ -227,6 +219,21 @@ char FUN_00013ef0(int actor_handle, int action_type, void *charge_state)
   }
   *(int16_t *)(actor_state + 0x190) = 6;
   *(float *)(actor_state + 0x194) = speed;
+  goto done;
+
+case_default:
+  if ((short)action_type == 0 && (*(int *)actr_tag & 0x20000) &&
+      *(int16_t *)(actor + 0x6e) >= 5 && !*(char *)(actor + 0x378)) {
+    action_type = 1;
+    *(int16_t *)(actor_state + 0x190) = 8;
+  } else {
+    *(int16_t *)(actor_state + 0x190) = 9;
+  }
+  goto done;
+
+case_invade_retreat:
+  return_flag = (char)(*(int16_t *)(actor + 0x15e) > 1);
+  *(int16_t *)(actor_state + 0x190) = (int16_t)(return_flag == '\0');
 
 done:
   *(int16_t *)((char *)charge_state + 0x4) = (int16_t)action_type;
