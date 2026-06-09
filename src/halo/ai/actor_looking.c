@@ -3153,6 +3153,720 @@ void FUN_00017960(char *state_data, int actor_handle, int object_handle)
   }
 }
 
+/* FUN_00017ab0 (0x17ab0) — Execute an actor "obey" command atom.
+ *
+ * Executor counterpart of FUN_00018b90 (the validator).  Reads the active
+ * command atom from the scenario's command-list block and applies its effect:
+ * setting look/aim state in the caller's look-state record, posting movement,
+ * dialogue, grenades, recorded/unit animations, vehicle entry, etc.  Dispatches
+ * through a 28-case jump table on the atom type word (atom[0]).
+ *
+ * Register args:
+ *   @<eax> look_state -> ESI : output state record (the validator's "output").
+ *   @<ecx> unit_handle -> EDI : the unit being commanded.
+ * Stack args:
+ *   actor_handle    : datum handle into actor_data.
+ *   scenario_index  : int16 command-list/scenario index.
+ *   command         : byte* command-atom runtime state.
+ *
+ * Returns char status (1 = atom handled/advance, 0 = blocked/skip).  On the
+ * debug path (DAT_005aca5b != 0) it also emits a per-atom trace line.
+ *
+ * Confirmed ABI: prologue MOV ESI,EAX; MOV EDI,ECX; datum_get(actor_data,
+ *   [EBP+8]); tag_get('actr',*(actor+0x58))->actr_tag; tag_get('actv',
+ *   *(actor+0x5c))->actv_tag; atom_table = tag_block_get_element(
+ *   global_scenario_get()+0x438, scenario_index, 0x60); atom stride 0x20 at
+ *   +0x30; command-point stride 0x14 at +0x3c.
+ * Confirmed: 28-case jump table at 0x18adc (CMP ECX,0x1b; JA default).
+ * Confirmed: case 0/0x16 use _ftol2 -> (short)(int)(atom[2]f * deg-scale).
+ * Confirmed: cases 4/0x17/0x18/0x19 share one merge at 0x17ec8 over three
+ *   distinct slots: prop_handle [EBP-0x30], prop_object [EBP-0x2c],
+ *   sel_index [EBP-0x14], gated by threshold [EBP-0x28] > 0.0f.  case 0x18
+ *   uses a separate min-distance scratch [EBP-0x8] (init bit pattern
+ *   0x7f7fffff), leaving threshold untouched. */
+char FUN_00017ab0(void *look_state, int unit_handle, int actor_handle,
+                  short scenario_index, unsigned char *command)
+{
+  char *look;
+  char *actor;
+  char *actr_tag;
+  char *actv_tag;
+  char *atom_table;
+  int *atom_count;
+  short *atom;
+  char status;
+  short atom_type;
+  float threshold;
+  float min_dist;
+  int prop_handle; /* [EBP-0x30] */
+  int prop_object; /* [EBP-0x2c] */
+  int sel_index; /* [EBP-0x14] */
+  short look_type;
+  int element;
+  int iter[8];
+  short interest[32]; /* case 9: 16 {float dist, int handle} pairs */
+  short packet[24]; /* case 0x10: dialogue packet (0x30 bytes) */
+  short vocal;
+  int sound_index;
+  int dir_buf[8]; /* look_buf / vector scratch */
+  char selector;
+  char anim_flag;
+  int atom_index;
+  int i;
+
+  look = (char *)look_state;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actr_tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  actv_tag = (char *)tag_get(0x61637476, *(int *)(actor + 0x5c));
+  atom_table = (char *)tag_block_get_element(
+    (char *)global_scenario_get() + 0x438, (int)scenario_index, 0x60);
+  atom_count = (int *)(atom_table + 0x30);
+  status = '\0';
+
+  if (*atom_count <= (int)(unsigned int)*command)
+    return '\0';
+
+  atom =
+    (short *)tag_block_get_element(atom_count, (unsigned int)*command, 0x20);
+  atom_index = (int)(unsigned int)*command + 1;
+  atom_type = *atom;
+
+  /* Cases are emitted in the binary's physical (jump-table-address) order to
+     match MSVC's case-body layout: 0, 1/2, 4-group, 3, 0x16, 0xa, 0xb, 5, 6,
+     0x11, 0x12, 0x1a, 0xf, 7, 8, 9, 0xd, 0xe, 0xc, 0x14, 0x15, 0x10, 0x1b. */
+  switch (atom_type) {
+  case 0:
+    *(short *)(command + 2) =
+      (short)(int)(*(float *)(atom + 2) * *(float *)0x253394);
+    goto done_ok;
+
+  case 1:
+  case 2:
+    if (look != NULL && atom[6] >= 0 &&
+        (int)atom[6] < *(int *)(atom_table + 0x3c)) {
+      int *elem =
+        (int *)tag_block_get_element(atom_table + 0x3c, (int)atom[6], 0x14);
+      command[2] = 0;
+      command[3] = 0;
+      *(char *)(look + 4) = 1;
+      *(char *)(look + 5) = (char)(atom[1] == 1);
+      *(int *)(look + 8) = elem[0];
+      *(int *)(look + 0xc) = elem[1];
+      *(int *)(look + 0x10) = elem[2];
+      *(int *)(look + 0x14) = elem[3];
+      status =
+        actor_move_to_point(actor_handle, (float *)(look + 8), elem[3], -1);
+      if (status != '\0') {
+        if (*(char *)(look + 5) != '\0')
+          FUN_0002a330(actor_handle);
+        if (*atom == 2 && atom[7] >= 0 &&
+            (int)atom[7] < *(int *)(atom_table + 0x3c)) {
+          elem =
+            (int *)tag_block_get_element(atom_table + 0x3c, (int)atom[7], 0x14);
+          *(char *)(look + 0x18) = 1;
+          *(int *)(look + 0x1c) = elem[0];
+          *(int *)(look + 0x20) = elem[1];
+          *(int *)(look + 0x24) = elem[2];
+        }
+      }
+    }
+    break;
+
+  case 4:
+  case 0x17:
+  case 0x18:
+  case 0x19:
+    if (look == NULL)
+      break;
+    threshold = *(float *)(atom + 2);
+    sel_index = -1;
+    prop_handle = -1;
+    prop_object = -1;
+    if (atom_type == 4) {
+      look_type = atom[6];
+      if (look_type >= 0 && (int)look_type < *(int *)(atom_table + 0x3c)) {
+        threshold = *(float *)(atom + 2);
+        sel_index = (int)look_type;
+      }
+    } else if (atom_type == 0x17) {
+      look_type = atom[6];
+      if (look_type >= 0 && (int)look_type < *(int *)(atom_table + 0x3c)) {
+        short look_type2 = atom[7];
+        if (look_type2 >= 0 && (int)look_type2 < *(int *)(atom_table + 0x3c)) {
+          sel_index = FUN_00017940(look_type, (short)(look_type2 + 1));
+          if (*(float *)(atom + 2) == *(float *)0x2533c0 &&
+              *(float *)(atom + 4) == *(float *)0x2533c0) {
+            threshold = FUN_000121e0(*(float *)(actr_tag + 0xec),
+                                     *(float *)(actr_tag + 0xf0));
+          } else {
+            threshold =
+              FUN_000121e0(*(float *)(atom + 2), *(float *)(atom + 4));
+          }
+        }
+      }
+    } else if (atom_type == 0x18) {
+      int it;
+      float fv;
+      union {
+        int i;
+        float f;
+      } big;
+      big.i = 0x7f7fffff;
+      min_dist = big.f;
+      FUN_00064540(iter, actor_handle);
+      it = FUN_00064570(iter);
+      if (it != 0) {
+        do {
+          if (*(short *)(it + 0x24) > 1 && *(short *)(it + 0x24) < 4 &&
+              *(char *)(it + 0x12e) != '\0' &&
+              *(float *)(it + 0x11c) < min_dist) {
+            min_dist = *(float *)(it + 0x11c);
+            prop_handle = iter[0];
+          }
+          it = FUN_00064570(iter);
+        } while (it != 0);
+
+        if (prop_handle != -1)
+          goto merge_target;
+      }
+      big.i = 0x7f7fffff;
+      min_dist = big.f;
+      data_iterator_new((void *)iter, *(data_t **)0x5aa6d4);
+      it = (int)data_iterator_next((void *)iter);
+      while (it != 0) {
+        if (*(int *)(it + 0x34) != -1) {
+          unit_get_head_position(*(int *)(it + 0x34), (float *)dir_buf);
+          fv = distance_squared3d((float *)dir_buf, (float *)(actor + 0x120));
+          if (fv < min_dist) {
+            prop_object = *(int *)(it + 0x34);
+            min_dist = fv;
+          }
+        }
+        it = (int)data_iterator_next((void *)iter);
+      }
+    } else if (atom_type == 0x19) {
+      look_type = atom[0xc];
+      if (look_type >= 0 &&
+          (int)look_type < *(int *)((char *)global_scenario_get() + 0x204)) {
+        element = object_name_list_get_handle(look_type);
+        if (object_try_and_get_and_verify_type(element, 3) != 0) {
+          prop_handle = prop_get_active_by_unit_index(actor_handle, element);
+          prop_object = element;
+        }
+      }
+    }
+  merge_target:
+    if (*(float *)0x2533c0 < threshold &&
+        (prop_handle != -1 || prop_object != -1 ||
+         ((short)sel_index >= 0 &&
+          (int)(short)sel_index < *(int *)(atom_table + 0x3c)))) {
+      short lt = atom[1];
+      int look_kind = 1;
+      if (lt == 1)
+        look_kind = 5;
+      else if (lt == 2)
+        look_kind = 2;
+      else if (lt == 4)
+        look_kind = 7;
+      else if (lt == 3)
+        look_kind = 8;
+      if (prop_handle != -1) {
+        *(short *)((char *)dir_buf) = 1;
+        dir_buf[1] = prop_handle;
+      } else if (prop_object != -1) {
+        *(short *)((char *)dir_buf) = 3;
+        unit_get_head_position(prop_object, (float *)&dir_buf[1]);
+      } else {
+        int *elem = (int *)tag_block_get_element(atom_table + 0x3c,
+                                                 (int)(short)sel_index, 0x14);
+        *(short *)((char *)dir_buf) = 3;
+        dir_buf[1] = elem[0];
+        dir_buf[2] = elem[1];
+        dir_buf[3] = elem[2];
+      }
+      FUN_00027a60(actor_handle, (short)0xd, (short)look_kind,
+                   (short *)dir_buf);
+      *(short *)(command + 2) = (short)(int)(threshold * *(float *)0x253394);
+      status = '\x01';
+    }
+    break;
+
+  case 3:
+    if (unit_handle == *(int *)(actor + 0x18)) {
+      *(int *)(command + 0x18) = *(int *)(actor + 0x12c);
+      *(int *)(command + 0x1c) = *(int *)(actor + 0x130);
+      *(int *)(command + 0x20) = *(int *)(actor + 0x134);
+    } else {
+      object_get_world_position(unit_handle, (vector3_t *)(command + 0x18));
+    }
+    look_type = atom[6];
+    if (look_type < 0)
+      goto case3_facing;
+    if (*(int *)(atom_table + 0x3c) <= (int)look_type)
+      goto case3_facing;
+    {
+      void *elem =
+        tag_block_get_element(atom_table + 0x3c, (int)look_type, 0x14);
+      FUN_00012140((float *)(command + 0x18), (float *)elem,
+                   (float *)(command + 0xc));
+      if ((float)normalize3d((float *)(command + 0xc)) <= *(float *)0x2533c0)
+        break;
+      goto case3_apply;
+    }
+  case3_facing:
+    if (*(float *)(atom + 4) < *(float *)0x2533c0 ||
+        *(float *)0x253d50 <= *(float *)(atom + 4))
+      break;
+    vector3d_from_angle((float *)(command + 0xc),
+                        *(float *)(atom + 4) * *(float *)0x253d4c);
+  case3_apply:
+    status = '\x01';
+    look_type = atom[1];
+    if (look_type < 0 || look_type > 3) {
+      command[8] = 0xff;
+      command[9] = 0xff;
+    } else {
+      *(short *)(command + 8) = look_type;
+    }
+    if (unit_handle == *(int *)(actor + 0x18))
+      FUN_0002f1a0(actor_handle);
+    command[5] = (command[5] & 0xfd) | 1;
+    break;
+
+  case 0x16:
+    look_type = atom[1];
+    if (look_type < 0 || look_type > 3) {
+      command[8] = 0;
+      command[9] = 0;
+    } else {
+      *(short *)(command + 8) = look_type;
+    }
+    FUN_00017960((char *)command, actor_handle, unit_handle);
+    *(short *)(command + 2) =
+      (short)(int)(*(float *)(atom + 2) * *(float *)0x253394);
+    command[5] = command[5] | 3;
+    goto done_ok;
+
+  case 10:
+    if (unit_handle == *(int *)(actor + 0x18) && *(int *)(actor + 0x158) != -1)
+      break;
+    command[5] = (command[5] & 0xe7) | 4;
+    if (unit_handle == *(int *)(actor + 0x18)) {
+      if (*(char *)(actor + 0x504) == '\0') {
+        anim_flag = 0;
+      } else {
+        anim_flag = (char)(*(short *)(actor + 0x50a) == 0);
+      }
+    } else {
+      char *unit_obj = (char *)object_get_and_verify_type(unit_handle, 3);
+      if (*(int *)(unit_obj + 0xcc) != -1) {
+        anim_flag = 0;
+      } else {
+        anim_flag = (char)(*(float *)0x253d48 <
+                           (float)FUN_00013070((float *)(unit_obj + 0x18),
+                                               (float *)(unit_obj + 0x24)));
+      }
+    }
+    command[2] = 0x3c;
+    command[3] = 0;
+    *(unsigned short *)(command + 8) = (unsigned short)((anim_flag - 1) & 10);
+    goto done_ok;
+
+  case 0xb:
+    if (unit_handle == *(int *)(actor + 0x18) && *(int *)(actor + 0x158) != -1)
+      break;
+    command[5] = (command[5] & 0xf7) | 0x14;
+    command[8] = 0;
+    command[9] = 0;
+    *(int *)(command + 0xc) = *(int *)(atom + 2);
+    *(int *)(command + 0x10) = *(int *)(atom + 4);
+    command[2] = 0x3c;
+    command[3] = 0;
+    goto done_ok;
+
+  case 5:
+    if (look == NULL || atom[1] < 0 || atom[1] > 3)
+      break;
+    *(short *)(look + 2) = atom[1];
+    goto done_ok;
+
+  case 6:
+    if (look != NULL) {
+      status = '\x01';
+      *(char *)look = (char)(atom[1] == 1);
+    }
+    break;
+
+  case 0x11:
+    if (atom[1] == 0) {
+      command[4] = command[4] | 1;
+      status = '\x01';
+    } else {
+      command[4] = command[4] & 0xfe;
+      status = '\x01';
+    }
+    break;
+
+  case 0x12:
+    if (unit_handle != *(int *)(actor + 0x18))
+      break;
+    *(char *)(actor + 0x9e) = (char)(atom[1] == 0);
+    goto done_ok;
+
+  case 0x1a:
+    if (look != NULL && *(float *)0x2533c0 < *(float *)(atom + 2)) {
+      *(char *)(look + 0x28) = 1;
+      *(int *)(look + 0x2c) = *(int *)(atom + 2);
+      status = '\x01';
+    }
+    break;
+
+  case 0xf:
+    if (look == NULL)
+      break;
+    *(char *)(look + 0x30) = 0;
+    switch (atom[1]) {
+    case 0:
+      *(char *)(look + 0x30) = 1;
+      status = *(char *)(look + 0x30);
+      *(short *)(look + 0x32) = 0;
+      *(short *)(look + 0x34) = 0x2a;
+      break;
+    case 1:
+      *(char *)(look + 0x30) = 1;
+      status = *(char *)(look + 0x30);
+      *(short *)(look + 0x32) = 4;
+      *(short *)(look + 0x34) = 0x29;
+      break;
+    case 2:
+      *(char *)(look + 0x30) = 1;
+      status = *(char *)(look + 0x30);
+      *(short *)(look + 0x32) = 5;
+      *(short *)(look + 0x34) = 0x29;
+      break;
+    case 3:
+      *(char *)(look + 0x30) = 1;
+      status = *(char *)(look + 0x30);
+      *(short *)(look + 0x32) = 6;
+      *(short *)(look + 0x34) = (short)0xffff;
+      break;
+    case 4:
+      *(char *)(look + 0x30) = 1;
+      status = *(char *)(look + 0x30);
+      *(short *)(look + 0x32) = 7;
+      *(short *)(look + 0x34) = (short)0xffff;
+      break;
+    case 5:
+      *(char *)(look + 0x30) = 1;
+      status = *(char *)(look + 0x30);
+      *(short *)(look + 0x32) = 8;
+      *(short *)(look + 0x34) = 0x2c;
+      break;
+    case 6:
+      *(char *)(look + 0x30) = 1;
+      status = *(char *)(look + 0x30);
+      *(short *)(look + 0x32) = 9;
+      *(short *)(look + 0x34) = 0x2c;
+      break;
+    case 7:
+      *(char *)(look + 0x30) = 1;
+      status = *(char *)(look + 0x30);
+      *(short *)(look + 0x32) = 10;
+      *(short *)(look + 0x34) = 0x2c;
+      break;
+    case 8:
+      *(char *)(look + 0x30) = 1;
+      status = *(char *)(look + 0x30);
+      *(short *)(look + 0x32) = 0xb;
+      *(short *)(look + 0x34) = 0x2c;
+      break;
+    case 9:
+      *(short *)(look + 0x34) = 0x26;
+      *(short *)(look + 0x32) = (short)0xffff;
+      *(char *)(look + 0x30) = 1;
+      status = *(char *)(look + 0x30);
+      break;
+    case 10:
+      *(short *)(look + 0x34) = 0x27;
+      *(short *)(look + 0x32) = (short)0xffff;
+      *(char *)(look + 0x30) = 1;
+      status = *(char *)(look + 0x30);
+      break;
+    default:
+      status = *(char *)(look + 0x30);
+      break;
+    }
+    break;
+
+  case 7:
+    if (look != NULL && atom[6] >= 0 &&
+        (int)atom[6] < *(int *)(atom_table + 0x3c)) {
+      int *elem =
+        (int *)tag_block_get_element(atom_table + 0x3c, (int)atom[6], 0x14);
+      *(char *)(look + 0x36) = 1;
+      *(int *)(look + 0x38) = elem[0];
+      *(int *)(look + 0x3c) = elem[1];
+      *(int *)(look + 0x40) = elem[2];
+      *(int *)(look + 0x44) = *(int *)(atom + 2);
+      status = '\x01';
+    }
+    break;
+
+  case 8:
+    if (look == NULL || *(short *)(actv_tag + 0x180) == -1 || atom[6] < 0)
+      break;
+    if (*(int *)(atom_table + 0x3c) <= (int)atom[6])
+      break;
+    {
+      int *elem =
+        (int *)tag_block_get_element(atom_table + 0x3c, (int)atom[6], 0x14);
+      unit_set_grenade_count(*(int *)(actor + 0x18),
+                             *(short *)(actv_tag + 0x180), 1);
+      *(char *)(look + 0x49) = 0;
+      *(char *)(look + 0x48) = 0;
+      *(int *)(look + 0x4c) = elem[0];
+      *(int *)(look + 0x50) = elem[1];
+      *(int *)(look + 0x54) = elem[2];
+      *(short *)(look + 0x4a) = 0;
+      look_type = atom[1];
+      if (look_type >= 0 && look_type < 3)
+        *(short *)(look + 0x4a) = look_type;
+      command[2] = 0x3c;
+      command[3] = 0;
+    }
+    goto done_ok;
+
+  case 9:
+    if (unit_handle == *(int *)(actor + 0x18)) {
+      short count = 0;
+      look_type = -1;
+      object_iterator_new((void *)iter, 2, 0);
+      element = (int)object_iterator_next((void *)iter);
+      if (element != 0) {
+        do {
+          float dist;
+          int obj = iter[2]; /* current object handle, iterator+0x8 */
+          object_get_world_position(obj, (vector3_t *)dir_buf);
+          dist = distance_squared3d((float *)(actor + 0x12c), (float *)dir_buf);
+          if (*(float *)(atom + 2) == *(float *)0x2533c0 ||
+              dist < *(float *)(atom + 2) * *(float *)(atom + 2)) {
+            int idx = (int)(short)count;
+            count = (short)(count + 1);
+            ((float *)interest)[idx * 2] = dist;
+            *(int *)&((float *)interest)[idx * 2 + 1] = obj;
+            if (count > 0xf)
+              break;
+          }
+          element = (int)object_iterator_next((void *)iter);
+        } while (element != 0);
+        if ((short)count > 1)
+          qsort(interest, (size_t)(short)count, 8,
+                (int(__cdecl *)(const void *, const void *))FUN_00016960);
+      }
+      {
+        short pri = atom[1];
+        if (pri >= 0 && pri < 5)
+          look_type = pri;
+      }
+      i = 0;
+      if ((short)count > 0) {
+        do {
+          char r = actor_action_try_to_enter_vehicle(
+            actor_handle, *(int *)&((float *)interest)[i * 2 + 1], 0x25386f,
+            look_type, 0, 0);
+          if (r != '\0') {
+            command[4] = command[4] | 4;
+            goto done_ok;
+          }
+          i++;
+        } while (i < (short)count);
+      }
+    }
+    break;
+
+  case 0xd:
+    if (atom[8] == -1)
+      break;
+    {
+      int *cmd_elem = (int *)tag_block_get_element(
+        (char *)global_scenario_get() + 0x444, (int)atom[8], 0x3c);
+      int anim_index = *(int *)((char *)cmd_elem + 0x2c);
+      char flag13 = 0;
+      selector = 1;
+      anim_flag = 0;
+      if (anim_index == -1) {
+        int *uobj = (int *)object_get_and_verify_type(unit_handle, 3);
+        int unit_tag = (int)tag_get(0x756e6974, *uobj);
+        anim_index = *(int *)(unit_tag + 0x44);
+      }
+      switch (atom[1]) {
+      case 1:
+        anim_flag = 1;
+        break;
+      case 2:
+        selector = 0;
+        flag13 = 1;
+        anim_flag = 1;
+        break;
+      case 3:
+        selector = 0;
+        break;
+      case 4:
+        selector = 0;
+        anim_flag = 1;
+        break;
+      case 5:
+        selector = 0;
+        flag13 = 1;
+        anim_flag = 1;
+        break;
+      default:
+        break;
+      }
+      if (FUN_001ac180(unit_handle, anim_index, (int)cmd_elem, selector) ==
+          '\0')
+        break;
+      {
+        int *obj = (int *)object_try_and_get_and_verify_type(unit_handle, 1);
+        if (obj != NULL) {
+          if (anim_flag)
+            *(unsigned int *)((char *)obj + 0x424) =
+              *(unsigned int *)((char *)obj + 0x424) | 4;
+          else
+            *(unsigned int *)((char *)obj + 0x424) =
+              *(unsigned int *)((char *)obj + 0x424) & 0xfffffffb;
+          if (flag13 == 0)
+            *(unsigned int *)((char *)obj + 0x424) =
+              *(unsigned int *)((char *)obj + 0x424) & 0xfffffff7;
+          else
+            *(unsigned int *)((char *)obj + 0x424) =
+              *(unsigned int *)((char *)obj + 0x424) | 8;
+        }
+      }
+    }
+    goto done_ok;
+
+  case 0xe:
+    if (atom[10] >= 0) {
+      look_type = atom[10];
+      if ((int)look_type < *(int *)((char *)global_scenario_get() + 0x45c)) {
+        void *blk = tag_block_get_element((char *)global_scenario_get() + 0x45c,
+                                          (int)look_type, 0x28);
+        short idx = (short)FUN_000936b0((int)global_scenario_get(), blk);
+        if (idx != -1)
+          status = recorded_animation_play(unit_handle, idx);
+      }
+    }
+    break;
+
+  case 0xc:
+    if (atom[9] >= 0) {
+      look_type = atom[9];
+      if ((int)look_type < *(int *)((char *)global_scenario_get() + 0x450)) {
+        void *blk = tag_block_get_element((char *)global_scenario_get() + 0x450,
+                                          (int)look_type, 0x28);
+        status = hs_wake_by_name(blk);
+      }
+    }
+    break;
+
+  case 0x14:
+    look_type = atom[0xb];
+    if (look_type < 0 || *atom_count <= (int)look_type ||
+        (int)look_type == (int)(unsigned int)*command)
+      break;
+    goto done_ok;
+
+  case 0x15: {
+    char *uobj = (char *)object_get_and_verify_type(unit_handle, 3);
+    if (atom[1] == 1) {
+      *(unsigned char *)(uobj + 0xb6) = *(unsigned char *)(uobj + 0xb6) | 0x40;
+      status = '\x01';
+    } else {
+      *(unsigned char *)(uobj + 0xb6) = *(unsigned char *)(uobj + 0xb6) | 0x20;
+      status = '\x01';
+    }
+  } break;
+
+  case 0x10: {
+    int spoke;
+    vocal = (short)(unsigned short)atom[1];
+    sound_index = -1;
+    spoke = FUN_001a68d0(unit_handle, 6, 1, 1, 0, &vocal, &sound_index);
+    if ((short)spoke < 1)
+      break;
+    csmemset(packet, 0, 0x30);
+    packet[1] = vocal;
+    *(int *)&packet[2] = sound_index;
+    packet[0] = 6;
+    ai_communication_packet_new((char *)packet + 0x10);
+    FUN_001a6ef0(unit_handle, (short)spoke, packet);
+  }
+    goto done_ok;
+
+  case 0x1b:
+    look_type = atom[6];
+    if (look_type < 0)
+      break;
+    atom_count = (int *)(atom_table + 0x3c);
+    if (*atom_count <= (int)look_type)
+      break;
+    {
+      void *elem = tag_block_get_element(atom_count, (int)look_type, 0x14);
+      short look_type2;
+      units_debug_get_closest_unit(unit_handle, dir_buf);
+      look_type2 = atom[7];
+      if (look_type2 >= 0 && (int)look_type2 < *atom_count) {
+        void *elem2 = tag_block_get_element(atom_count, (int)look_type2, 0x14);
+        int *uobj = (int *)object_try_and_get_and_verify_type(unit_handle, 1);
+        int biped_tag = (uobj == NULL) ? 0 : (int)tag_get(0x62697064, *uobj);
+        FUN_00012140((float *)elem, (float *)elem2, (float *)dir_buf);
+        if (biped_tag == 0 ||
+            (*(unsigned char *)(biped_tag + 0x2f4) & 0x44) == 0) {
+          if ((float)magnitude3d((float *)dir_buf) == *(float *)0x2533c0)
+            units_debug_get_closest_unit(unit_handle, dir_buf);
+        } else {
+          if ((float)normalize3d((float *)dir_buf) == *(float *)0x2533c0)
+            units_debug_get_closest_unit(unit_handle, dir_buf);
+        }
+      }
+      object_set_position(unit_handle, (float *)elem, (float *)dir_buf, NULL);
+      object_reset(unit_handle);
+      object_update_children_recursive(unit_handle);
+      if (unit_handle == *(int *)(actor + 0x18)) {
+        FUN_0003bde0(actor_handle, *(int *)(actor + 0x18), actor + 0x120);
+        FUN_0002f1a0(actor_handle);
+      }
+    }
+  case 0x13:
+  done_ok:
+    status = '\x01';
+  }
+
+  if (*(char *)0x5aca5b == '\0')
+    return status;
+
+  {
+    char trace[128];
+    const char *fail;
+    if (*(unsigned int *)(actor + 0x34) == 0xffffffff) {
+      csstrcpy(trace, "<no encounter>");
+    } else {
+      char *enc = (char *)tag_block_get_element(
+        (char *)global_scenario_get() + 0x42c,
+        *(unsigned int *)(actor + 0x34) & 0xffff, 0xb0);
+      void *sq =
+        tag_block_get_element(enc + 0x80, (int)*(short *)(actor + 0x3a), 0xe8);
+      crt_sprintf(trace, "%s/%s", enc, sq);
+    }
+    FUN_00017120((void *)global_scenario_get(), atom, (char *)0x5ab100, 0x100);
+    fail = (status == '\0') ? " FAILED" : "";
+    error(2, "%s: %s #%d%s: %s", trace, atom_table, (int)(short)atom_index,
+          fail, (char *)0x5ab100);
+  }
+  return status;
+}
+
 /* FUN_00018b90 (0x18b90) — Action-obey command validator.
  *
  * Validates whether an action-obey command atom should execute based on
