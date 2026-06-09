@@ -104,6 +104,7 @@ char FUN_00013ef0(int actor_handle, int action_type, void *charge_state)
   float rand_val;
   char *actv_tag;
   float min_speed;
+  int enc_handle;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   actr_tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
@@ -141,13 +142,14 @@ char FUN_00013ef0(int actor_handle, int action_type, void *charge_state)
     *(int16_t *)(actor_state + 0x190) = 3;
     goto done;
   }
-  if (*(int *)(actor + 0x270) == -1) {
+  enc_handle = *(int *)(actor + 0x270);
+  if (enc_handle == -1) {
     return_flag = 0;
     *(int16_t *)(actor_state + 0x190) = 4;
     goto done;
   }
 
-  encounter = (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(actor + 0x270));
+  encounter = (char *)datum_get(*(data_t **)0x5ab23c, enc_handle);
 
   /* determine is_secondary (lunge vs normal melee) */
   if (*(float *)(actr_tag + 0x388) == *(float *)0x2533c0 ||
@@ -158,8 +160,9 @@ char FUN_00013ef0(int actor_handle, int action_type, void *charge_state)
              *(int16_t *)(encounter + 0x9c) <= 0) {
     rand_val =
       random_math_real((unsigned int *)get_global_random_seed_address());
-    is_secondary = 1;
-    if (rand_val >= *(float *)(actr_tag + 0x390))
+    if (rand_val < *(float *)(actr_tag + 0x390))
+      is_secondary = 1;
+    else
       is_secondary = 0;
     *(char *)((char *)charge_state + 0xa) = (char)is_secondary;
     if (*(float *)(encounter + 0x11c) < *(float *)(actr_tag + 0x384)) {
@@ -188,7 +191,7 @@ char FUN_00013ef0(int actor_handle, int action_type, void *charge_state)
     *(int *)((char *)charge_state + 0x34) = 0;
     *(char *)((char *)charge_state + 0x30) = 1;
   } else {
-    if (!melee_tick_count) {
+    if (!(int16_t)melee_tick_count) {
       actv_tag = (char *)tag_get(0x61637476, *(int *)(actor + 0x5c));
       if (*(int *)(actv_tag + 0x8)) {
         error(2, "actor %s melee animation has no damage keyframe",
