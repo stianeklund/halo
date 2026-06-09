@@ -818,13 +818,9 @@ void FUN_00014ba0(int actor_handle, int *param_2)
   looking = actor + 0x9c;
   if (*(short *)(looking + 0xc) > 0) {
     src = *(char **)0x2ee6e0;
-    *param_2 = *(int *)src;
-    param_2[1] = *(int *)(src + 4);
-    param_2[2] = *(int *)(src + 8);
-    param_2[3] = *(int *)(src + 0xc);
-    return;
+  } else {
+    src = *(char **)0x2ee6d4;
   }
-  src = *(char **)0x2ee6d4;
   *param_2 = *(int *)src;
   param_2[1] = *(int *)(src + 4);
   param_2[2] = *(int *)(src + 8);
@@ -3639,15 +3635,7 @@ void FUN_00019940(int actor_handle)
     *(char *)(actor + 0x9f) = 1;
   }
 skip_flag:
-  if (*(char *)(actor + 0x9e) == '\0') {
-    if ((*(char *)(actor + 0x504) == '\0') && (*(char *)(actor + 6) == '\0')) {
-      *(int *)(actor + 0xc4) = *(int *)(actor + 0xc4) + 1;
-      if (0x78 < *(int *)(actor + 0xc4)) {
-        *(char *)(actor + 0x9d) = 1;
-        *(char *)(actor + 0x9c) = 1;
-      }
-    }
-  } else {
+  if (*(char *)(actor + 0x9e) != '\0') {
     if (0 < *(int *)(actor + 0xc0)) {
       *(int *)(actor + 0xc0) = *(int *)(actor + 0xc0) - 1;
     }
@@ -3670,6 +3658,14 @@ skip_flag:
         FUN_00046f10(0x12, *(int *)(actor + 0x18),
                      actor_target_unit_index(actor_handle), -1, -1, -1, 0);
         return;
+      }
+    }
+  } else {
+    if ((*(char *)(actor + 0x504) == '\0') && (*(char *)(actor + 6) == '\0')) {
+      *(int *)(actor + 0xc4) = *(int *)(actor + 0xc4) + 1;
+      if (*(int *)(actor + 0xc4) >= 0x78) {
+        *(char *)(actor + 0x9d) = 1;
+        *(char *)(actor + 0x9c) = 1;
       }
     }
   }
