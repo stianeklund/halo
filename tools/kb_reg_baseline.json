@@ -470,6 +470,7 @@
     "0x1e9350": "void D3DDevice_SetRenderState_Simple(uint32_t reg@<ecx>, uint32_t value@<edx>);",
     "0x1e9380": "void D3DDevice_SetRenderState_Deferred(uint32_t reg_index@<ecx>, uint32_t value@<edx>);",
     "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);",
-    "0x14c10": "void FUN_00014c10(int actor_handle @<ebx>, char *look_state @<esi>, int param_1);"
+    "0x14c10": "void FUN_00014c10(int actor_handle @<ebx>, char *look_state @<esi>, int param_1);",
+    "0x169a0": "void FUN_000169a0(int actor_handle, int object_handle, short cmd_type, int out_state, char *out_index, unsigned char *state @<esi>);"
   }
 }
