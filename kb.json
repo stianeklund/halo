@@ -3149,13 +3149,13 @@
         {
           "addr": "0x13dd0",
           "decl": "int FUN_00013dd0(int actor_handle @<eax>, float *source_pos @<esi>);",
-          "ported": true,
+          "ported": false,
           "delinked": "delinked/actor_looking_FUN_00013dd0.obj"
         },
         {
           "addr": "0x13ef0",
           "decl": "char FUN_00013ef0(int actor_handle, int action_type, void *charge_state);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x142a0",
@@ -3248,7 +3248,7 @@
         {
           "addr": "0x14e90",
           "decl": "char FUN_00014e90(int actor_handle @<eax>, char *state_data);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x14ff0",
@@ -3288,14 +3288,14 @@
         },
         {
           "addr": "0x153e0",
-          "decl": "bool FUN_000153e0(int actor_handle);",
-          "ported": true,
+          "decl": "bool FUN_000153e0(int actor_handle @<ebx>);",
+          "ported": false,
           "name": "FUN_000153e0"
         },
         {
           "addr": "0x15520",
-          "decl": "void FUN_00015520(void);",
-          "ported": false
+          "decl": "int FUN_00015520(int actor_handle);",
+          "ported": true
         },
         {
           "addr": "0x15880",
@@ -3383,7 +3383,7 @@
         },
         {
           "addr": "0x169a0",
-          "decl": "void FUN_000169a0(int param_1, int param_2, short param_3, int param_4, char *param_5);",
+          "decl": "void FUN_000169a0(int actor_handle, int unit_handle, short scenario_idx, int param_4, char *param_5 @<esi>);",
           "ported": false
         },
         {
@@ -30248,11 +30248,11 @@
         },
         {
           "addr": "0x300b0",
-          "decl": "void actor_situation_update_target_status(void);"
+          "decl": "void actor_situation_update_target_status(int actor_handle);"
         },
         {
           "addr": "0x302b0",
-          "decl": "void actor_situation_combat_status_update(void);"
+          "decl": "void actor_situation_combat_status_update(int actor_handle);"
         },
         {
           "addr": "0x303f0",
@@ -35619,5 +35619,263 @@
     "addr": "0x1abd0",
     "decl": "void FUN_0001abd0(int actor_handle);",
     "ported": true
+  },
+  "0x14620": {
+    "name": "FUN_00014620",
+    "decl": "char FUN_00014620(int actor_handle, void *state_data);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x15cf0": {
+    "name": "FUN_00015cf0",
+    "decl": "void FUN_00015cf0(int actor_handle);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x16050": {
+    "name": "FUN_00016050",
+    "decl": "int FUN_00016050(int actor_handle, short *param_2);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x16210": {
+    "name": "FUN_00016210",
+    "decl": "char FUN_00016210(int actor_handle, int param_2, short *param_3);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x16cf0": {
+    "name": "FUN_00016cf0",
+    "decl": "void FUN_00016cf0(int param_1, int param_2, short param_3, int param_4, int param_5);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x192b0": {
+    "name": "FUN_000192b0",
+    "decl": "int FUN_000192b0(int actor_handle);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x19b20": {
+    "name": "FUN_00019b20",
+    "decl": "void FUN_00019b20(int actor_handle);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x19c70": {
+    "name": "FUN_00019c70",
+    "decl": "void FUN_00019c70(int actor_handle);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x1a670": {
+    "name": "FUN_0001a670",
+    "decl": "void FUN_0001a670(int actor_handle);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x1ac00": {
+    "name": "FUN_0001ac00",
+    "decl": "void FUN_0001ac00(int actor_handle);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x272d0": {
+    "name": "FUN_000272d0",
+    "decl": "short FUN_000272d0(int actor_handle, short param_2, short param_3, int param_4, unsigned int param_5, char param_6);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x278e0": {
+    "name": "FUN_000278e0",
+    "decl": "float FUN_000278e0(int actor_handle, int prop_handle);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x2a2b0": {
+    "name": "FUN_0002a2b0",
+    "decl": "void FUN_0002a2b0(int actor_handle);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x159d0": {
+    "name": "FUN_000159d0",
+    "decl": "char FUN_000159d0(int actor_handle, short *state_data);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x14540": {
+    "name": "FUN_00014540",
+    "decl": "void FUN_00014540(int actor_handle);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x12ad0": {
+    "name": "FUN_00012ad0",
+    "decl": "float FUN_00012ad0(int actor_handle @<ebx>, int action_type @<esi>, void *charge_state);",
+    "obj": "actors.obj",
+    "ported": false
+  },
+  "0x13dd0": {
+    "name": "FUN_00013dd0",
+    "decl": "int FUN_00013dd0(int actor_handle @<eax>, float *source_pos @<esi>);",
+    "obj": "actor_looking.obj",
+    "ported": true
+  },
+  "0x13ef0": {
+    "name": "FUN_00013ef0",
+    "decl": "char FUN_00013ef0(int actor_handle, int action_type, void *charge_state);",
+    "obj": "actor_looking.obj",
+    "ported": true
+  },
+  "0x14e90": {
+    "name": "FUN_00014e90",
+    "decl": "char FUN_00014e90(int actor_handle @<eax>, char *state_data);",
+    "obj": "actor_looking.obj",
+    "ported": true
+  },
+  "0x153e0": {
+    "name": "FUN_000153e0",
+    "decl": "bool FUN_000153e0(int actor_handle @<ebx>);",
+    "obj": "actor_looking.obj",
+    "ported": true
+  },
+  "0x15520": {
+    "name": "FUN_00015520",
+    "decl": "int FUN_00015520(int actor_handle);",
+    "obj": "actor_looking.obj",
+    "ported": true
+  },
+  "0x15880": {
+    "name": "FUN_00015880",
+    "decl": "int FUN_00015880(int actor_handle, char *state_data);",
+    "obj": "actor_looking.obj",
+    "ported": true
+  },
+  "0x15900": {
+    "name": "FUN_00015900",
+    "decl": "int FUN_00015900(int actor_handle, short param_2, char *state_data);",
+    "obj": "actor_looking.obj",
+    "ported": true
+  },
+  "0x300b0": {
+    "name": "FUN_000300b0",
+    "decl": "void FUN_000300b0(int actor_handle);",
+    "obj": "actor_perception.obj",
+    "ported": false
+  },
+  "0x302b0": {
+    "name": "FUN_000302b0",
+    "decl": "void FUN_000302b0(int actor_handle);",
+    "obj": "actor_perception.obj",
+    "ported": false
+  },
+  "0x46f10": {
+    "name": "FUN_00046f10",
+    "decl": "void FUN_00046f10(int mode, int unit_handle, int target_handle, int a4, int a5, int a6, int a7);",
+    "obj": "ai.obj",
+    "ported": false
+  },
+  "0x169a0": {
+    "name": "FUN_000169a0",
+    "decl": "void FUN_000169a0(int actor_handle, int unit_handle, short scenario_idx, int param_4, char *param_5 @<esi>);",
+    "obj": "actor_looking.obj",
+    "ported": true
+  },
+  "0x16bd0": {
+    "name": "actor_look_secondary_stop",
+    "decl": "void actor_look_secondary_stop(int param_1, int param_2, int param_3, char *param_4, int param_5, char *param_6);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x16d40": {
+    "name": "actor_look_compute_prop_interest",
+    "decl": "void actor_look_compute_prop_interest(int actor_handle, int param_2, short *param_3, void (*callback)(void), int param_5);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x27a60": {
+    "name": "FUN_00027a60",
+    "decl": "int FUN_00027a60(int actor_handle, short look_type, short priority, short *look_buf);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x15f60": {
+    "name": "FUN_00015f60",
+    "decl": "void FUN_00015f60(int actor_handle, int *param_2);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x1a600": {
+    "name": "FUN_0001a600",
+    "decl": "void FUN_0001a600(int actor_handle, int *param_2);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x27a10": {
+    "name": "FUN_00027a10",
+    "decl": "int FUN_00027a10(int actor_handle);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x14480": {
+    "name": "FUN_00014480",
+    "decl": "void FUN_00014480(int actor_handle);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x16590": {
+    "name": "FUN_00016590",
+    "decl": "void FUN_00016590(int actor_handle);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x197d0": {
+    "name": "FUN_000197d0",
+    "decl": "int FUN_000197d0(int actor_handle, short param_2, char param_3, char *state_data);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x1a420": {
+    "name": "FUN_0001a420",
+    "decl": "void FUN_0001a420(int actor_handle);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x14ba0": {
+    "name": "FUN_00014ba0",
+    "decl": "void FUN_00014ba0(int actor_handle, int *param_2);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x15040": {
+    "name": "FUN_00015040",
+    "decl": "char FUN_00015040(int actor_handle, short param_2, int param_3, char param_4, char *state_data);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x19940": {
+    "name": "FUN_00019940",
+    "decl": "void FUN_00019940(int actor_handle);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x1a7e0": {
+    "name": "FUN_0001a7e0",
+    "decl": "void FUN_0001a7e0(int actor_handle);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x24ca0": {
+    "name": "FUN_00024ca0",
+    "decl": "char FUN_00024ca0(int actor_handle, short param_2);",
+    "ported": true,
+    "obj": "actor_looking.obj"
+  },
+  "0x29040": {
+    "name": "actor_look_update",
+    "decl": "void actor_look_update(int actor_handle);",
+    "ported": true,
+    "obj": "actor_looking.obj"
   }
 }
