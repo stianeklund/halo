@@ -3071,6 +3071,88 @@ int16_t FUN_00017940(int16_t min, int16_t max)
                       max);
 }
 
+/* FUN_00017960 (0x17960) — Resolve a look/facing direction into a state slot.
+ *
+ * Computes a unit-facing or derived direction vector and stores it (or its
+ * negation) into the caller's state record at offset +0xc..+0x14.
+ *
+ * Source for the aim vector (aim[3], local buffer):
+ *   obj = datum_get(actor_data, actor_handle).
+ *   If object_handle == obj[0x18] (the actor's own unit handle), copy the
+ *   actor's facing vector obj[0x174..0x17c] directly.  Otherwise look it up
+ *   via units_debug_get_closest_unit(object_handle, &aim).
+ *
+ * The output direction depends on state_data[8] (int16 selector):
+ *   case 0: store +aim
+ *   case 1: store -aim
+ *   case 2/3: cross global_up_vector_ptr x aim -> result; if |result| == 0,
+ *     retry with the object tag's up-axis vector (tag+0x30); if still zero,
+ *     fall back to global_forward_vector_ptr.  case 2 stores +result,
+ *     case 3 stores -result.
+ *
+ * Confirmed: @<ecx> state_data (-> ESI), @<eax> actor_handle, @<edi>
+ *   object_handle (both callers verified).
+ * Confirmed: 4-case jump table at 0x17aa0 (CMP EAX,3; JA default).
+ * Confirmed: aim buffer at EBP-0x18, result buffer at EBP-0xc, both float[3].
+ * Confirmed: object_get_and_verify_type(object_handle, 3) return + 0x30 is the
+ *   tag up-axis vec3 (PUSH 0x3; PUSH EDI; CALL 0x13d680; ADD EAX,0x30).
+ * Confirmed: magnitude test is normalize3d(result) == *(float *)0x2533c0
+ *   (== 0.0f); fallback runs iff magnitude == 0 (TEST AH,0x44; JP).
+ * Confirmed: case 2-vs-3 split re-reads *(short *)(state_data + 8) == 2. */
+void FUN_00017960(char *state_data, int actor_handle, int object_handle)
+{
+  char *obj;
+  char *tag;
+  float aim[3];
+  float result[3];
+
+  obj = (char *)datum_get(actor_data, actor_handle);
+  if (object_handle == *(int *)(obj + 0x18)) {
+    aim[0] = *(float *)(obj + 0x174);
+    aim[1] = *(float *)(obj + 0x178);
+    aim[2] = *(float *)(obj + 0x17c);
+  } else {
+    units_debug_get_closest_unit(object_handle, aim);
+  }
+
+  switch (*(short *)(state_data + 8)) {
+  case 0:
+    *(float *)(state_data + 0xc) = aim[0];
+    *(float *)(state_data + 0x10) = aim[1];
+    *(float *)(state_data + 0x14) = aim[2];
+    return;
+  case 1:
+    *(float *)(state_data + 0xc) = -aim[0];
+    *(float *)(state_data + 0x10) = -aim[1];
+    *(float *)(state_data + 0x14) = -aim[2];
+    return;
+  case 2:
+  case 3:
+    cross_product3d(global_up_vector_ptr, aim, result);
+    if (normalize3d(result) == *(float *)0x2533c0) {
+      tag = (char *)object_get_and_verify_type(object_handle, 3);
+      cross_product3d((float *)(tag + 0x30), aim, result);
+      if (normalize3d(result) == *(float *)0x2533c0) {
+        result[0] = global_forward_vector_ptr[0];
+        result[1] = global_forward_vector_ptr[1];
+        result[2] = global_forward_vector_ptr[2];
+      }
+    }
+    if (*(short *)(state_data + 8) == 2) {
+      *(float *)(state_data + 0xc) = result[0];
+      *(float *)(state_data + 0x10) = result[1];
+      *(float *)(state_data + 0x14) = result[2];
+      return;
+    }
+    *(float *)(state_data + 0xc) = -result[0];
+    *(float *)(state_data + 0x10) = -result[1];
+    *(float *)(state_data + 0x14) = -result[2];
+    return;
+  default:
+    return;
+  }
+}
+
 /* FUN_00018b90 (0x18b90) — Action-obey command validator.
  *
  * Validates whether an action-obey command atom should execute based on
