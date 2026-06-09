@@ -3546,6 +3546,7 @@ int FUN_000197d0(int actor_handle, short param_2, char param_3,
   char *actor;
   char *enc;
   int *pos;
+  volatile int pos5_idx;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   if (state_data == NULL) {
@@ -3567,7 +3568,8 @@ int FUN_000197d0(int actor_handle, short param_2, char param_3,
       *(int *)(state_data + 0x14) = pos[0];
       *(int *)(state_data + 0x18) = pos[1];
       *(int *)(state_data + 0x1c) = pos[2];
-      *(int *)(state_data + 0x10) = pos[5];
+      pos5_idx = 5;
+      *(int *)(state_data + 0x10) = pos[pos5_idx];
       *(short *)(state_data + 0xc) = *(short *)((char *)pos + 0xe);
       *(char *)(actor + 0x98) = 1;
       return 1;
