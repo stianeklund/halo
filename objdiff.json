@@ -6664,6 +6664,14 @@
       }
     },
     {
+      "name": "halo/actor_looking_FUN_00015520",
+      "target_path": "build/vc71/actor_looking.obj",
+      "base_path": "delinked/actor_looking_FUN_00015520.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actor_looking.c"
+      }
+    },
+    {
       "name": "halo/game_engine_game_engine_player_killed",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/game/game_engine.c.obj",
       "base_path": "delinked/game_engine_game_engine_player_killed.obj",
