@@ -1,8 +1,11 @@
 # Agent Memory Index
 
+- [Crash symbolization method](reference_crash_symbolization_method.md) — patched-XBE crash addrs: 0x006xxxxx=lifted (EXE_VMA=addr-0x642000+0x400000), 0x001xxxxx=original; symbolize via build/halo PE export table, NOT stale halo.map; validate frames are real return-after-CALL
+- [Reg-arg-shift use-after-free crash](feedback_reg_arg_shift_use_after_free.md) — missing @<reg> annotation shifts every stack param one slot; lifted impl reads wrong arg as datum handle → data.c:78 "unused or changed" with tiny salt-0 raw index (e.g. #13); fix = add @<reg> to kb.json+baseline, no C change (FUN_00018b90 unit_handle@<eax>)
 - [maintain.py invocation](feedback_maintain_py.md) — always use relative paths; absolute paths cause maintain.py to empty the file
 - [Object helper functions not yet in kb.json](reference_object_helpers.md) — addresses for 0x13d640, 0x13d7f0, 0xbbb80, 0xbbcb0, 0x425b0 and key struct offsets
 - [Camera transition analysis](camera_transition_analysis.md) — vehicle exit state cascade is original behavior; smooth transitions come from observer blend timers not state_253
+- [Biped branch drivability](reference_biped_branch_drivability.md) — 0680/1e70/0e00 dual-oracle branch map; sole callers + gating inputs; 0e00 drive-first (threshold vs tag+0x3dc/+0x3e0), 0680 output disjoint=vacuous, 1e70 recovery needs live collision
 - [MSVC intrinsics catalog](reference_msvc_intrinsics.md) — _ftol2, _chkstk, __SEH_prolog/epilog, _allmul, _aullshr/div/rem, _allshr; no _CIxxx or signed 64-bit helpers
 - [Equivalence hardcoded-import artifact](feedback_equivalence_hardcoded_import.md) — non-leaf calling XAPILIB import via literal-address cast diverges 100% in Unicorn (huge INSN_count, ESP blowup); trust VC71 not equivalence
 - [Thunk signature propagation](feedback_thunk_signature_propagation.md) — correcting a callee decl arg count breaks JMP-forwarding tail-call thunks; fix thunk decl + forward the arg, grep all callers first
