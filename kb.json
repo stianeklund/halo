@@ -3484,8 +3484,8 @@
         },
         {
           "addr": "0x17ab0",
-          "decl": "void FUN_00017ab0(void);",
-          "ported": false
+          "decl": "char FUN_00017ab0(void *look_state @<eax>, int unit_handle @<ecx>, int actor_handle, short scenario_index, unsigned char *command);",
+          "ported": true
         },
         {
           "addr": "0x18b90",
@@ -4921,7 +4921,7 @@
         },
         {
           "addr": "0x936b0",
-          "decl": "void FUN_000936b0(void);"
+          "decl": "int FUN_000936b0(int param_1, void *name);"
         },
         {
           "addr": "0x93710",
@@ -11438,7 +11438,7 @@
         },
         {
           "addr": "0xcb9a0",
-          "decl": "void hs_wake_by_name(void);"
+          "decl": "char hs_wake_by_name(void *script_ref);"
         },
         {
           "addr": "0xcb9c0",
@@ -20686,7 +20686,7 @@
         },
         {
           "addr": "0x95640",
-          "decl": "void recorded_animation_play(void);"
+          "decl": "char recorded_animation_play(int unit_handle, int index);"
         },
         {
           "addr": "0x95660",
@@ -22357,7 +22357,7 @@
         },
         {
           "addr": "0x1ac180",
-          "decl": "void FUN_001ac180(void);"
+          "decl": "char FUN_001ac180(int unit_handle, int param_2, int param_3, char param_4);"
         },
         {
           "addr": "0x1ac350",
@@ -25386,7 +25386,7 @@
         },
         {
           "addr": "0x1a68d0",
-          "decl": "void FUN_001a68d0(void);"
+          "decl": "short FUN_001a68d0(int unit_handle, short priority, char param_3, char param_4, void *out_def, short *vocalization, int *sound_index);"
         },
         {
           "addr": "0x1a6bc0",
@@ -25420,7 +25420,7 @@
         },
         {
           "addr": "0x1a6ef0",
-          "decl": "void FUN_001a6ef0(void);"
+          "decl": "void FUN_001a6ef0(int unit_handle, short count, void *speech_item);"
         },
         {
           "addr": "0x1a70d0",
@@ -30403,7 +30403,7 @@
         },
         {
           "addr": "0x42d20",
-          "decl": "void ai_communication_packet_new(void);"
+          "decl": "void ai_communication_packet_new(void *packet);"
         },
         {
           "addr": "0x42d80",
