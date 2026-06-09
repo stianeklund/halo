@@ -1386,6 +1386,190 @@ bool FUN_000153e0(int actor_handle)
   return false;
 }
 
+/* FUN_00015520 (0x15520)
+ * action_flee per-tick update.  Manages the actor's flee firing-position
+ * target (the "look state" block at actor+0x9c) and drives the appropriate
+ * scream/vocalization based on the looking-action type at actor+0xa8.
+ *
+ * Returns 1 when the actor is unable to flee (actor+0xaa) or has finished
+ * fleeing (actor+0xab), 0 otherwise (still fleeing).
+ *
+ * Confirmed: prototype is cdecl with the actor index at [EBP+8]; EAX holds
+ *   the 0/1 return (XOR EAX,EAX / MOV EAX,1 at the two RET sites).
+ * Confirmed: datum_get(actor_data, actor_index) at 0x15530; the flee look
+ *   state lives at actor+0x9c (ESI base).
+ * Confirmed: FUN_000153e0 (target-reached test) is called with the actor
+ *   index passed in a register (no PUSH at 0x1559a; EBX = actor index).
+ * Confirmed: FUN_00014e90 takes the actor index in EAX (MOV EAX,[EBP+8] at
+ *   0x15697) and the look-state pointer pushed.
+ * Confirmed: FUN_00014c10 takes the actor index in EBX (0x156c6), the
+ *   look-state pointer in ESI, and a stack arg of 1.
+ * Confirmed: actor_situation_update_target_status (0x300b0) /
+ *   actor_situation_combat_status_update (0x302b0) each take the actor index
+ *   as a single stack arg (PUSH EBX at 0x1562f / 0x1563f); decl was (void)
+ *   but both consume param_1 as the datum_get handle inside the callee.
+ * Confirmed: the looking-action switch (cases 9-12) uses the jump table at
+ *   0x15864; the scream dispatch at the tail maps action types 9/10 -> 1
+ *   and 11/12 -> 2 for FUN_001a74d0.
+ * Confirmed: prop-status writes at 0x1560d-0x15634 target the prop datum
+ *   (datum_get(prop_data, actor+0xb8)): +0x32=0, +0x30=max(+0x34,+0x36),
+ *   +0x74=0, +0x38=2.
+ * Confirmed: assert strings + line numbers (0x98, 0x12e) from action_flee.c.
+ */
+int FUN_00015520(int actor_index)
+{
+  char *actor;
+  char *look_state;
+  char *prop;
+  short max_burst;
+  int now;
+  int scream_unit;
+  int scream_type;
+  char reached;
+
+  actor = (char *)datum_get(actor_data, actor_index);
+  look_state = actor + 0x9c;
+
+  if (*(char *)(actor + 0x6) == 0) {
+    if (*(short *)(actor + 0xa8) > 8 && *(short *)(actor + 0xa8) < 0xd)
+      *(short *)look_state = 0xb4;
+
+    if (*(short *)(actor + 0x9e) < 1) {
+      if (*(short *)(actor + 0xa4) == -1) {
+        *(char *)(actor + 0xa2) = 1;
+      } else if (*(short *)(actor + 0x3b8) == -1) {
+        *(short *)(actor + 0xa4) = (short)0xffff;
+        *(char *)(actor + 0xa2) = 1;
+      } else {
+        reached = FUN_000153e0(actor_index);
+        if (reached != 0) {
+          if (*(short *)(actor + 0x3b8) == -1) {
+            display_assert(
+              "actor->firing_positions.current_position_index != NONE",
+              "c:\\halo\\SOURCE\\ai\\action_flee.c", 0x98, 1);
+            system_exit(-1);
+          }
+          if (*(short *)look_state == 0) {
+            *(short *)(actor + 0xa4) = *(short *)(actor + 0x3b8);
+            *(char *)(actor + 0xa6) = *(char *)(actor + 0x3ba);
+            *(char *)(actor + 0xab) = 1;
+            *(char *)(actor + 0xa2) = 0;
+            if (*(int *)(actor + 0xb8) != -1) {
+              prop = (char *)datum_get(prop_data, *(int *)(actor + 0xb8));
+              *(short *)(prop + 0x32) = 0;
+              max_burst = *(short *)(prop + 0x34);
+              if (*(short *)(prop + 0x34) <= *(short *)(prop + 0x36))
+                max_burst = *(short *)(prop + 0x36);
+              *(char *)(prop + 0x74) = 0;
+              *(short *)(prop + 0x30) = max_burst;
+              *(short *)(prop + 0x38) = 2;
+              actor_situation_update_target_status(actor_index);
+              actor_situation_combat_status_update(actor_index);
+            }
+          } else {
+            *(char *)(actor + 0xa2) = 1;
+          }
+        }
+      }
+    } else {
+      *(short *)(actor + 0xa4) = (short)0xffff;
+    }
+
+    switch (*(short *)(actor + 0xa8)) {
+    case 9:
+    case 10:
+      if (*(int *)(actor + 0x1b0) == -1)
+        *(char *)(actor + 0xab) = 1;
+      break;
+    case 0xb:
+      if (*(char *)(actor + 0x1b4) == 0)
+        *(char *)(actor + 0xab) = 1;
+      break;
+    case 0xc:
+      if (*(char *)(actor + 0x1b5) == 0)
+        *(char *)(actor + 0xab) = 1;
+      break;
+    default:
+      break;
+    }
+
+    if (*(char *)(actor + 0x4c) != 0 && *(char *)(actor + 0xab) == 0) {
+      if (*(short *)(actor + 0xa4) != -1 && *(short *)look_state == 0 &&
+          FUN_00014e90(actor_index, look_state) != 0) {
+        *(short *)(actor + 0xa4) = (short)0xffff;
+        *(char *)(actor + 0xa2) = 1;
+      }
+      if (*(char *)(actor + 0x160) == 0) {
+        if (*(char *)(actor + 0xa2) == 0)
+          goto flee_post;
+        FUN_00014c10(actor_index, look_state, 1);
+        if (*(short *)(actor + 0xa4) != -1)
+          goto flee_post;
+      } else {
+        *(char *)(actor + 0xa2) = 0;
+      }
+      *(char *)(actor + 0xaa) = 1;
+      *(int *)(actor + 0x398) = game_time_get();
+    }
+  }
+
+flee_post:
+  if (*(short *)(actor + 0xa8) > 8 && *(short *)(actor + 0xa8) < 0xd &&
+      *(int *)(actor + 0x18) != -1 &&
+      FUN_001a6bc0(*(int *)(actor + 0x18)) == 0) {
+    *(char *)(actor + 0xac) = 0;
+  }
+
+  if (*(short *)(actor + 0xa8) < 1 || *(short *)(actor + 0xa4) == -1 ||
+      *(char *)(actor + 0xaa) != 0 || *(int *)(actor + 0x18) == -1 ||
+      (now = game_time_get(),
+       *(char *)(actor + 0xac) != 0 && *(int *)(actor + 0xb0) + 0x3c < now))
+    goto flee_skip;
+
+  if (*(short *)(actor + 0xa8) == 0xc || *(short *)(actor + 0xa8) == 0xb) {
+    FUN_001a74d0(*(int *)(actor + 0x18), 2);
+  } else if (*(short *)(actor + 0xa8) == 9 || *(short *)(actor + 0xa8) == 10) {
+    FUN_001a74d0(*(int *)(actor + 0x18), 1);
+  } else {
+    scream_unit = -1;
+    if (*(int *)(actor + 0xb8) != -1) {
+      prop = (char *)datum_get(prop_data, *(int *)(actor + 0xb8));
+      scream_unit = *(int *)(prop + 0x18);
+    }
+    if (*(char *)(actor + 0xac) == 0) {
+      scream_type = (*(short *)(actor + 0xa8) == 8) + 0x1f;
+      FUN_00046f10(scream_type, *(int *)(actor + 0x18), scream_unit, -1, -1, 4,
+                   0);
+      *(char *)(actor + 0xac) = 1;
+    } else {
+      FUN_00046f10(0x21, *(int *)(actor + 0x18), scream_unit, -1, -1, -1, 0);
+    }
+  }
+  *(int *)(actor + 0xb0) = now;
+
+flee_skip:
+
+  if (*(char *)(actor + 0x6) == 0 &&
+      (*(char *)(actor + 0x4c) != 0 || *(char *)(actor + 0xa2) == 0) &&
+      *(short *)(actor + 0x9e) < 1 && *(short *)(actor + 0xa4) == -1) {
+    if (*(char *)(actor + 0xaa) != 0)
+      return 1;
+    if (*(char *)(actor + 0xab) == 0) {
+      display_assert(
+        "(!actor->meta.timeslice && state_data->find_new_flee_position) || "
+        "(state_data->flee_stationary_ticks > 0) || "
+        "(state_data->flee_firing_position_index != NONE) || "
+        "state_data->unable_to_flee || state_data->done_fleeing",
+        "c:\\halo\\SOURCE\\ai\\action_flee.c", 0x12e, 1);
+      system_exit(-1);
+    }
+  }
+
+  if (*(char *)(actor + 0xaa) == 0 && *(char *)(actor + 0xab) == 0)
+    return 0;
+  return 1;
+}
+
 /* FUN_00015880 (0x15880)
  * Initializes a guard state block (0x44 bytes) for the given actor.
  * Copies 3 floats from actor+0x174..0x17c into state_data+0x18..0x20,
