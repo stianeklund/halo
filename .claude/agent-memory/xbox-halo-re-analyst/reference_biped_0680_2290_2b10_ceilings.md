@@ -26,6 +26,27 @@ BYTE-IDENTICAL codegen (zero gain). Net source change for this session: none.
   result==0 on the fall-through). Capped.
 - Tried (no gain, reverted): per-iteration re-read `while(i<*(int*)(antr+0x68))`
   — clang hoists invariant; `for(i=0;i<count;i++)` — identical to do-while.
+- 2026-06-08 re-confirm (this session, no source edit): a clean per-fn ref now
+  lives at `delinked/functions/001a0680.obj` (91 insns, no inflation) → 83.2%
+  reproduced. `--reg-normalize` is NOT a useful strengthener here: it reports
+  53.2% with `[struct:83.2%]` — the EBX/EDI *role swap* (unit_handle vs antr_tag
+  land in opposite callee-saved regs) is penalized by the normalize lane, not
+  hidden by it. Cite the structural 83.2%, not reg-normalize.
+- BEHAVIORAL AUDIT (because activation was on the table) — all PASS, full fn is
+  75 live insns (0x1a0680..RET 0x76a + early-exit 0x76b..0x773):
+  * §16 return: BOTH paths return the SBB/INC `result` byte — fall-through
+    `MOV AL,[EBP-1]` (0x761), early-exit `MOV AL,CL` (0x76d). Not EAX-passthrough.
+    `char` decl + `return result;` correct.
+  * §10 FUN_001a03c0 (ported=true, 91.1%, transitive dep): call @0x747 loads
+    EDI=node_block (0x73c), EAX=unit_handle (0x745 MOV EAX,EBX), PUSH 0x4e49f0
+    then PUSH [EDI+0x68]=node_count → C `(unit_handle@eax, node_count,
+    positions=0x4e49f0, node_block@edi)` matches exactly.
+  * §2 no `&local` to callee — scratch is GLOBAL 0x4e49f0.
+  * Caller FUN_001a6280 is ported=NULL (inactive) → activation caller-safe;
+    EDI=unit_handle confirmed at `PUSH EDI; CALL 0x1a0680; ADD ESP,4`.
+  * Increment `[ESI+0x47c]++` gated `<0x7f` (JNC 0x757), only on fall-through.
+- VERDICT: NEEDS-DUAL-ORACLE (behaviorally clean, sub-88% byte-match → runtime
+  is the correct activation confirmation), NOT merely keep-dormant.
 
 **0x1a2290 `char FUN_001a2290(int unit_handle@<edi>)` — 84.4% (143/139), ref accurate (NOT NOP-inflated; candidate>ref).**
 - Residual: `[5] movl 0x8(%ebp),%edi` = the @<edi> keystone cdecl-vs-register
