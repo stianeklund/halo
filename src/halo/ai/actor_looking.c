@@ -2090,11 +2090,14 @@ void FUN_00016590(int actor_handle)
   char *tag_data;
   char *prop;
   float *fwd;
+  int *src;
+  int *dst;
   char bVar2;
   int prop_unit;
+  int look_flag;
   float fsq;
   float thresh;
-  short sVar1;
+  unsigned short sVar1;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   tag_data = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
@@ -2103,16 +2106,20 @@ void FUN_00016590(int actor_handle)
     *(char *)(actor + 0x427) = 1;
   } else {
     *(char *)(actor + 0x427) = 0;
-    if (*(char *)(actor + 0xa4) == '\0') {
-      if ((*tag_data & 0x80) != 0 && *(short *)(actor + 0x6e) > 0) {
-        *(char *)(actor + 0x426) = 1;
+    if (*(char *)(actor + 0xa4) != '\0') {
+      if (*(char *)(actor + 0xa6) != '\0') {
+        *(char *)(actor + 0x426) =
+            (char)((*(unsigned int *)tag_data >> 0x17) & 1);
       } else {
-        *(char *)(actor + 0x426) = 0;
+        *(char *)(actor + 0x426) = 1;
       }
-    } else if (*(char *)(actor + 0xa6) == '\0') {
-      *(char *)(actor + 0x426) = 1;
     } else {
-      *(char *)(actor + 0x426) = (char)((*tag_data >> 0x17) & 1);
+      if (*tag_data < 0 && *(short *)(actor + 0x6e) > 0) {
+        look_flag = 1;
+      } else {
+        look_flag = 0;
+      }
+      *(char *)(actor + 0x426) = (char)look_flag;
     }
   }
   *(char *)(actor + 0x428) = 0;
@@ -2131,25 +2138,25 @@ void FUN_00016590(int actor_handle)
   case 2:
     fsq = distance_squared3d((float *)(actor + 0x12c), (float *)(actor + 0xc4));
     thresh = *(float *)(actor + 0xd4);
-    if (thresh * thresh <= fsq) {
+    if (fsq < thresh * thresh) {
+      FUN_0002f1a0(actor_handle);
+    } else {
       actor_move_to_point(actor_handle, (float *)(actor + 0xc4),
                           *(int *)(actor + 0xd0), -1);
+    }
+    if (fsq < *(float *)0x2536cc) {
+      bVar2 = 1;
     } else {
-      FUN_0002f1a0(actor_handle);
-    }
-    if (fsq >= *(float *)0x2536cc) {
       bVar2 = 0;
-      break;
     }
-    bVar2 = 1;
     break;
   case 3:
-    sVar1 = *(short *)(actor + 0xc4);
-    if (sVar1 != -1) {
-      *(short *)(actor + 0x3b8) = sVar1;
+    sVar1 = *(unsigned short *)(actor + 0xc4);
+    if (sVar1 != 0xffff) {
+      *(short *)(actor + 0x3b8) = (short)sVar1;
       *(char *)(actor + 0x3ba) = 0;
       if (actor_move_to_firing_position(actor_handle, sVar1, 0) == '\0') {
-        FUN_00024be0(actor_handle, *(short *)(actor + 0xc4), 0);
+        FUN_00024be0(actor_handle, *(unsigned short *)(actor + 0xc4), 0);
         *(short *)(actor + 0x3b8) = -1;
       }
     }
@@ -2190,12 +2197,12 @@ output:
     *(char *)(actor + 0x454) = 1;
     *(char *)(actor + 0x45d) = 1;
     fwd = *(float **)0x31fc44;
-    *(float *)(actor + 0x468) =
-      fwd[2] * *(float *)0x2533e8 + *(float *)(actor + 0xcc);
-    *(float *)(actor + 0x464) =
-      fwd[1] * *(float *)0x2533e8 + *(float *)(actor + 0xc8);
     *(float *)(actor + 0x460) =
       fwd[0] * *(float *)0x2533e8 + *(float *)(actor + 0xc4);
+    *(float *)(actor + 0x464) =
+      fwd[1] * *(float *)0x2533e8 + *(float *)(actor + 0xc8);
+    *(float *)(actor + 0x468) =
+      fwd[2] * *(float *)0x2533e8 + *(float *)(actor + 0xcc);
   } else {
     prop_unit = *(int *)(actor + 0xd8);
     if (prop_unit != -1) {
@@ -2206,9 +2213,11 @@ output:
       *(short *)(actor + 0x3ec) = 4;
       *(short *)(actor + 0x3e8) =
         (short)(3 + (*(char *)(actor + 0xb1) != '\0') * 2);
-      *(int *)(actor + 0x3f0) = *(int *)(actor + 0xb4);
-      *(int *)(actor + 0x3f4) = *(int *)(actor + 0xb8);
-      *(int *)(actor + 0x3f8) = *(int *)(actor + 0xbc);
+      src = (int *)(actor + 0xb4);
+      dst = (int *)(actor + 0x3f0);
+      dst[0] = src[0];
+      dst[1] = src[1];
+      dst[2] = src[2];
     } else if (*(short *)(actor + 0x6e) > 0 && *(int *)(actor + 0x270) != -1) {
       *(short *)(actor + 0x3e8) = 3;
       *(short *)(actor + 0x3ec) = 1;
@@ -4498,17 +4507,20 @@ void FUN_0001ac00(int actor_handle)
 char FUN_00024ca0(int actor_handle, short param_2)
 {
   char *actor;
+  char result;
   short i;
 
   actor = (char *)datum_get(actor_data, actor_handle);
+  result = 0;
   if (param_2 != -1) {
     for (i = 0; i < 4; i++) {
       if (param_2 == *(short *)(actor + 0x3ca + (int)i * 4)) {
-        return 1;
+        result = 1;
+        break;
       }
     }
   }
-  return 0;
+  return result;
 }
 
 /* FUN_000272d0 (0x272d0)
