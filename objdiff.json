@@ -6806,6 +6806,14 @@
       "metadata": {
         "source_path": "src/halo/interface/hud_messaging.c"
       }
+    },
+    {
+      "name": "halo/actor_looking_FUN_000169a0",
+      "target_path": "build/vc71/actor_looking.obj",
+      "base_path": "delinked/actor_looking_FUN_000169a0.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actor_looking.c"
+      }
     }
   ]
 }
