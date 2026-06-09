@@ -126,3 +126,34 @@ artifacts/snapshot_FUN_001a0*_combat.json. Handle 0xe26f0000 (idx0, obj 0x800bf3
   HIT path gated behind stubbed collision_bsp_test_vector.
 NOTE: no matched_within_tol fired -> all 8 object writes were BIT-EXACT (stronger than
 tol); the ULP path is validated additive but was inert on these states, not exercised.
+
+## 2026-06-08: 0e00 CX=1 leg WITNESSED — all 3 branches now product-equivalent
+The combat capture only ever drove the CX=0 leg (default threshold=0.1f). 0e00 branch
+selection is a pure compare of caller-supplied `threshold` (the float stack arg) vs two
+real bipd-tag fields, so it's drivable by editing `arg_overrides.threshold` (IEEE bits)
+in a copied snapshot — NOT a unicorn flag. unicorn_diff consumes arg_overrides as
+`seed[idx]=int(val)` across all seeds (L1549-1567). For handle 0xe26f0000 the REAL bipd
+tag (idx 0x1a3, body 0x80a8a308) reads: tag+0x3dc=1.5, +0x3e0=5.0, +0x3e4=8.0; *_DAT_002546a4
+(=0.03333=1/30) -> fVar1=0.05, fVar2=0.1667, spread+0x3e4/30=0.2667. Spread gate
+FLOAT_002533c0=0.0 (strict `0.0<spread`); spread is +0.1167 (leg B) / +0.10 (leg C) -> gate
+open both. Three /tmp/snap_1a0e00_leg_{A,B,C}.json (threshold 0.02/0.10/0.50):
+- LEG A (0.02 < fVar1): 16/16, NO heap writes either side (early return). cov 33.9%.
+- LEG B (0.10, CX=0): 16/16, EXACT obj+0x428=0x00 / +0x429=0x07 / +0x460(2B)=0x0000. cov 79.4% high.
+- LEG C (0.50, CX=1): 16/16, EXACT obj+0x428=0x00 / +0x429=0x3c / +0x460(2B)=0x0001. cov 85.2% high.
+Zero divergence/disjoint/value-diff any leg. LEG B is the CONTROL: with a zeroed synthetic
+tag fVar2=0 -> spread 0 -> gate `0.0<0` false -> NO writes; B *writing* word=0 proves real
+tag traversal executed (so C's word=1 is real, not stub garbage). Witness landed at
+obj_base+0x428/429/460 (0x800bf820/821/858) confirming real obj resolution. Run:
+`BIPED_REAL_TAGS=1 BIPED_HEAP_COMPARE=1 unicorn_diff.py FUN_001a0e00 --allow-stubs --mem-trace
+--float-tolerance 32 --seeds 16 --state-snapshot <leg>`. 0e00 has NO remaining unwitnessed
+product path -> activation gate (CX=1 evidence) MET.
+FRESHNESS: candidate build/vc71/bipeds.obj was STALE (~3.8h older than bipeds.c, which the
+branch's 0x1a2f40 work had edited). Rebuilt via `vc71_verify.py src/halo/units/bipeds.c
+--no-cache` (0e00 stays 82.3%, 79/79 insns — reg-arg/x87 structural ceiling, not a bug) and
+re-ran all 3 legs on the FRESH obj: identical results. Always check obj-vs-src mtime before
+trusting an equiv witness on a shared-TU branch (objdump symbol lookup gave exit 1 here —
+COFF format; do not rely on it for freshness). Coverage C(85.2%)>B(79.4%) is expected, not a
+missed path: leg C takes the `fVar2<=param_1` true-branch (extra `range=tag[0x3e4]*m-fVar2`
+reading tag+0x3e4=0x80a8a6ec); leg B takes the else (`fVar2-fVar1`); both converge on the
+same write block. byte+0x429 here is a REAL ST0->int witness (0x07 leg B vs 0x3c leg C tracks
+the scaled value) — the _ftol2 stub does the real conversion, not a constant.
