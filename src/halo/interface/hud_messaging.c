@@ -2685,7 +2685,7 @@ void FUN_000d7800(int player_handle)
   iVar2 = (int)datum_get(*(data_t **)0x5aa6d4, iVar2);
   if (*(int *)(iVar2 + 0x34) == -1) goto LAB_000d794f;
   iVar2 = (int)object_get_and_verify_type(*(int *)(iVar2 + 0x34), 3);
-  pfVar4 = (float *)FUN_000d7280(*(short *)((int)player_handle + 2));
+  pfVar4 = (float *)FUN_000d7280((short)player_handle);
   if (pfVar4[1] == -1.0f) {
     pfVar4[1] = *(float *)(iVar2 + 0x90);
   }
@@ -2976,8 +2976,13 @@ void FUN_000d7d40(int param_1)
   slot_count = 1;
 
   if (*(int *)((char *)pfVar6 + 0x1c) == (int)0xFFFFFFFF) {
-    FUN_000d7280((short)local_player_idx);
-    FUN_000d7240((short)local_player_idx);
+    csmemset((char *)pfVar6 + 0x22, 0xFF, 2);
+    *(float *)pfVar6 = -1.0f;
+    *(float *)((char *)pfVar6 + 0x04) = -1.0f;
+    *(float *)((char *)pfVar6 + 0x08) = -1.0f;
+    *(int *)((char *)pfVar6 + 0x14) = -1;
+    *(int *)((char *)pfVar6 + 0x18) = -1;
+    *(int *)((char *)pfVar6 + 0x1c) = -1;
   }
 
   *(int *)((char *)pfVar6 + 0x1c) = *(int *)(param_1 + 0x34);
