@@ -3494,8 +3494,8 @@
         },
         {
           "addr": "0x19110",
-          "decl": "void FUN_00019110(void);",
-          "ported": false
+          "decl": "void FUN_00019110(int actor_handle, int unit_handle, short scenario_index, unsigned char *state, void *command, unsigned char *out_finished);",
+          "ported": true
         },
         {
           "addr": "0x19230",
@@ -3582,8 +3582,8 @@
         },
         {
           "addr": "0x1a200",
-          "decl": "void FUN_0001a200(void);",
-          "ported": false
+          "decl": "unsigned int FUN_0001a200(int actor_handle);",
+          "ported": true
         },
         {
           "addr": "0x1a420",
@@ -3642,8 +3642,8 @@
         },
         {
           "addr": "0x24cf0",
-          "decl": "void FUN_00024cf0(void);",
-          "ported": false
+          "decl": "void FUN_00024cf0(int actor_handle, void *ctx, unsigned short count, void *positions);",
+          "ported": true
         },
         {
           "addr": "0x25340",
@@ -20164,7 +20164,7 @@
         },
         {
           "addr": "0x10ce10",
-          "decl": "void vector_to_line_distance_squared3d(void);"
+          "decl": "float FUN_0010ce10(float *p1, float *p2, float *p3, float *p4);"
         },
         {
           "addr": "0x10d380",
@@ -34173,7 +34173,7 @@
       "functions": [
         {
           "addr": "0x24000",
-          "decl": "void FUN_00024000(void *ctx, float score, int type);"
+          "decl": "void FUN_00024000(void *rec@<esi>, void *ctx, float score, int type);"
         },
         {
           "addr": "0x24060",
