@@ -4496,12 +4496,11 @@ char FUN_00024ca0(int actor_handle, short param_2)
   short i;
 
   actor = (char *)datum_get(actor_data, actor_handle);
-  if (param_2 == -1) {
-    return 0;
-  }
-  for (i = 0; i < 4; i++) {
-    if (param_2 == *(short *)(actor + 0x3ca + (int)i * 4)) {
-      return 1;
+  if (param_2 != -1) {
+    for (i = 0; i < 4; i++) {
+      if (param_2 == *(short *)(actor + 0x3ca + (int)i * 4)) {
+        return 1;
+      }
     }
   }
   return 0;
