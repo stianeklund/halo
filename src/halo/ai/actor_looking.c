@@ -2361,6 +2361,122 @@ int FUN_00016960(float *param_1, float *param_2)
   return 0;
 }
 
+/* FUN_000169a0 (0x169a0) — Command-list step "stop/cleanup" dispatcher.
+ *
+ * Given a command-list execution-state struct (passed in ESI), looks up the
+ * current command element in the scenario's command_list tag block
+ * (global_scenario + 0x438) and dispatches on the element's opcode word
+ * (element[0]) to perform the appropriate stop/cleanup action for the
+ * command type. Bounds-checks state->cmd_index against the element count
+ * before fetching the element.
+ *
+ * Register arg: state @<esi> — pointer to the per-command-list run state.
+ *   state[0]      = current command index (byte)
+ *   state[1]      = loop counter (byte)
+ *   state[4]      = flag byte (bits manipulated by case 0x14)
+ *   state[5]      = flag byte (bits cleared by cases 3/0x16 and 0xa/0xb)
+ *   word[state+8] = sub-state word (set to 0xffff / 0 by those cases)
+ *
+ * Confirmed (disasm 0x169a0-0x16b88):
+ *  - datum_get(actor_data, actor_handle) -> actor (iVar2), uses actor+0x18.
+ *  - cmd_list = tag_block_get_element(global_scenario_get()+0x438, cmd_type,
+ * 0x60).
+ *  - if state[0] >= cmd_list[0x30] (element count): return.
+ *  - element = tag_block_get_element(cmd_list+0x30, state[0], 0x20).
+ *  - switch (element[0]) — opcode word — via jump table at 0x16b8c.
+ *  - ESI is passed in register by both callers (FUN_00016cf0, FUN_00019110),
+ *    each loaded from their own [EBP+0x14] (param_4 = state ptr).
+ *  - case 0xd uses object_try_and_get_and_verify_type at 0x13d640
+ *    (NOT the caller's 0x13d680). */
+void FUN_000169a0(int actor_handle, int object_handle, short cmd_type,
+                  int out_state, char *out_index, unsigned char *state)
+{
+  char buf[512];
+  int actor;
+  int cmd_list;
+  unsigned short *element;
+  unsigned char b;
+
+  actor = (int)datum_get(actor_data, actor_handle);
+  cmd_list = (int)tag_block_get_element((char *)global_scenario_get() + 0x438,
+                                        (int)cmd_type, 0x60);
+  if ((int)(unsigned int)*state < *(int *)(cmd_list + 0x30)) {
+    element = (unsigned short *)tag_block_get_element(
+      (void *)(cmd_list + 0x30), (unsigned int)*state, 0x20);
+    switch (*element) {
+    case 1:
+    case 2:
+      if (object_handle == *(int *)(actor + 0x18)) {
+        FUN_0002f1a0(actor_handle);
+      }
+      if (out_state != 0) {
+        *(unsigned char *)(out_state + 4) = 0;
+        *(unsigned char *)(out_state + 0x18) = 0;
+        return;
+      }
+      break;
+    case 3:
+    case 0x16:
+      state[5] = state[5] & 0xfe;
+      *(unsigned short *)(state + 8) = 0xffff;
+      return;
+    case 7:
+      if (out_state != 0) {
+        *(unsigned char *)(out_state + 0x36) = 0;
+        return;
+      }
+      break;
+    case 10:
+    case 0xb:
+      state[5] = state[5] & 0xfb;
+      *(unsigned short *)(state + 8) = 0;
+      return;
+    case 0x14:
+      if (element[1] == 1) {
+        b = state[4];
+        state[4] = b & 0xf7;
+        if ((~(b >> 3) & 1) == 0) {
+          state[4] = b & 0xe7;
+          return;
+        }
+        state[4] = (b & 0xf7) | 0x10;
+      }
+      if (element[0xb] == (unsigned short)*state) {
+        ai_debug_describe_actor(actor_handle, -1, 1, buf, 0x200);
+        error(2, "%s: command list %s entry #%d tried to loop to itself", buf,
+              cmd_list, *state);
+        return;
+      }
+      if (9 < state[1]) {
+        ai_debug_describe_actor(actor_handle, -1, 1, buf, 0x200);
+        error(2, "%s: command list %s is stuck looping (aborting on loop #%d)",
+              buf, cmd_list, *state);
+        return;
+      }
+      *out_index = *(char *)((char *)element + 0x16);
+      state[1] = state[1] + 1;
+      return;
+    case 0xd:
+      actor = (int)object_try_and_get_and_verify_type(object_handle, 1);
+      if (actor != 0) {
+        *(unsigned int *)(actor + 0x424) =
+          *(unsigned int *)(actor + 0x424) & 0xfffffff3;
+        return;
+      }
+      break;
+    case 4:
+    case 0x17:
+    case 0x18:
+    case 0x19:
+      if (object_handle == *(int *)(actor + 0x18)) {
+        FUN_00027870(actor_handle);
+      }
+      break;
+    }
+  }
+  return;
+}
+
 /* FUN_00016bd0 / actor_look_secondary_stop (0x16bd0)
  * Command-list initialization callback for prop interest dispatch.
  *
@@ -2442,9 +2558,9 @@ void FUN_00016cf0(int param_1, int param_2, short param_3, int param_4,
   char *unit;
 
   unit = (char *)object_get_and_verify_type(param_2, 3);
-  if ((*(char *)(param_4 + 4) & 2) == 0) {
+  if ((*(unsigned char *)(param_4 + 4) & 2) == 0) {
     FUN_000169a0(param_1, param_2, param_3, param_5,
-                 (char *)((int)&param_4 + 3));
+                 (char *)((int)&param_4 + 3), (unsigned char *)param_4);
   }
   *(int *)(unit + 0x1b4) = *(int *)(unit + 0x1b4) & 0xffffefff;
 }
