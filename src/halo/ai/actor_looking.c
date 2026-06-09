@@ -126,7 +126,6 @@ char FUN_00013ef0(int actor_handle, int action_type, void *charge_state)
     goto done;
   }
   if ((short)action_type != 2) {
-    return_flag = 0;
     if ((short)action_type == 0 && (*(int *)actr_tag & 0x20000) &&
         *(int16_t *)(actor + 0x6e) >= 5 && !*(char *)(actor + 0x378)) {
       action_type = 1;
