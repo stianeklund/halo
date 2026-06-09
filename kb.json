@@ -3242,8 +3242,8 @@
         },
         {
           "addr": "0x14c10",
-          "decl": "void FUN_00014c10(int param_1);",
-          "ported": false
+          "decl": "void FUN_00014c10(int actor_handle @<ebx>, char *look_state @<esi>, int param_1);",
+          "ported": true
         },
         {
           "addr": "0x14e90",
@@ -35287,7 +35287,7 @@
         },
         {
           "addr": "0x5e9b0",
-          "decl": "void path_state_approach_point(void);"
+          "decl": "char path_state_approach_point(int path_state, int pos_ptr, int pos2, unsigned char *out_straight, int *out_ref);"
         },
         {
           "addr": "0x5eae0",
