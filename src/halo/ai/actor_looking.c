@@ -814,21 +814,17 @@ void FUN_00014b70(int actor_handle)
  * Confirmed: 16-byte (4 dword) copy from dereferenced global pointer. */
 void FUN_00014ba0(int actor_handle, int *param_2)
 {
+  struct look_vec4 { int v0, v1, v2, v3; };
   char *actor;
   char *looking;
-  char *src;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   looking = actor + 0x9c;
   if (*(short *)(looking + 0xc) > 0) {
-    src = *(char **)0x2ee6e0;
-  } else {
-    src = *(char **)0x2ee6d4;
+    *(struct look_vec4 *)param_2 = **(struct look_vec4 **)0x2ee6e0;
+    return;
   }
-  *param_2 = *(int *)src;
-  param_2[1] = *(int *)(src + 4);
-  param_2[2] = *(int *)(src + 8);
-  param_2[3] = *(int *)(src + 0xc);
+  *(struct look_vec4 *)param_2 = **(struct look_vec4 **)0x2ee6d4;
 }
 
 /* FUN_00014e90 (0x14e90)
@@ -4074,49 +4070,50 @@ void FUN_0001a420(int actor_handle)
   char *actor;
   char *tag_data;
   char *prop;
-  char *actor_162;
-  short *move_type;
-  int threshold_6;
+  int *src;
+  int *dst;
+  char force7;
+  short pursuit;
   int prop_handle;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   tag_data = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
   prop_handle = *(int *)(actor + 0x270);
-  actor_162 = actor + 0x162;
-  move_type = (short *)(actor + 0x3e8);
-  threshold_6 = 6;
   if (prop_handle != -1) {
     prop = (char *)datum_get(prop_data, prop_handle);
+    force7 = 0;
     if (*(short *)(actor + 0xa4) == 0) {
-      if (*actor_162 == '\0') {
-        if ((*tag_data & 0x10) == 0) {
-          *(char *)(actor + 0x454) = (char)(*(short *)(actor + 0x268) >= threshold_6);
-        } else {
-          *(char *)(actor + 0x454) = (char)(*(short *)(actor + 0x268) >= 5);
-        }
-      } else {
+      if (*(char *)(actor + 0x162) != '\0') {
         *(char *)(actor + 0x454) = 1;
         *(char *)(actor + 0x455) = 1;
+        force7 = 1;
+      } else if ((*tag_data & 0x10) != 0) {
+        *(char *)(actor + 0x454) = (char)(*(short *)(actor + 0x268) >= 5);
+      } else {
+        *(char *)(actor + 0x454) = (char)(*(short *)(actor + 0x268) >= 6);
       }
     }
     if ((*(char *)(actor + 0x454) != '\0' &&
          (*(short *)(prop + 0x38) == 0 || *(short *)(prop + 0x38) == 1)) ||
-        (*actor_162 != '\0')) {
-      *move_type = 7;
+        force7 != '\0') {
+      *(short *)(actor + 0x3e8) = 7;
     } else if (*(short *)(actor + 0x268) < 5) {
-      *move_type = 3;
+      *(short *)(actor + 0x3e8) = 3;
     } else if (*(short *)(prop + 0x38) == 2 || *(short *)(prop + 0x38) == 4) {
-      *move_type = 2;
+      *(short *)(actor + 0x3e8) = 2;
     } else {
-      *move_type = 5;
+      *(short *)(actor + 0x3e8) = 5;
     }
-    if (*(short *)(actor + 0xa4) == 0) {
+    pursuit = *(short *)(actor + 0xa4);
+    if (pursuit == 0) {
       *(short *)(actor + 0x3ec) = 2;
-    } else if (*(short *)(actor + 0xa4) == 1) {
+    } else if (pursuit == 1) {
       *(short *)(actor + 0x3ec) = 3;
-      *(int *)(actor + 0x3f0) = *(int *)(actor + 0xb0);
-      *(int *)(actor + 0x3f4) = *(int *)(actor + 0xb4);
-      *(int *)(actor + 0x3f8) = *(int *)(actor + 0xb8);
+      src = (int *)(actor + 0xb0);
+      dst = (int *)(actor + 0x3f0);
+      dst[0] = src[0];
+      dst[1] = src[1];
+      dst[2] = src[2];
     }
   }
   *(short *)(actor + 0x3fc) = 3;
