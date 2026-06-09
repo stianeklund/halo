@@ -3489,7 +3489,7 @@
         },
         {
           "addr": "0x18b90",
-          "decl": "bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index, char *output, void *command);",
+          "decl": "bool FUN_00018b90(int unit_handle @<eax>, int actor_handle, short scenario_index, char *output, void *command);",
           "ported": true
         },
         {
