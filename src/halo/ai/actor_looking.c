@@ -4264,7 +4264,12 @@ void FUN_0001a670(int actor_handle)
  * Confirmed: field_a4==0 branch: tag->field_2f8==4 or threat-combat check.
  * Confirmed: field_a4==1 branch: tag->field_2f8==4 or distance check.
  * Confirmed: field_504==0 timer management at 0x1a8bf.
- * Confirmed: field_3b8==-1 timer decrement at 0x1a958.
+ * Confirmed: a4!=0 paths converge on result=(field_bc==0) at 0x1a958
+ *   (both from the increment block and the shared merge at 0x1a912).
+ * Confirmed: field_9e=1 written ONLY on the field_3b8==-1 path (0x1a96d);
+ *   the else path's je jumps past it to the shared decrement at 0x1a974.
+ * Confirmed: field_9d receives the flag register once at 0x1aad0
+ *   (single MOV [ESI+0x9d],BL at function exit).
  * Confirmed: debug-log FUN_00049ac0 at 0x1a9af, FUN_0008f390 at 0x1aa70. */
 void FUN_0001a7e0(int actor_handle)
 {
@@ -4292,7 +4297,7 @@ void FUN_0001a7e0(int actor_handle)
                (*(short *)(actor + 0x268) == 5)) {
       threat = (char *)datum_get(*(data_t **)0x5ab23c,
                                  *(int *)(actor + 0x270));
-      if (*(char *)(threat + 0x121) < 3)
+      if (*(char *)(threat + 0x121) <= 2)
         *(char *)(actor + 0x9c) = 1;
     }
   } else if (*(short *)(actor + 0xa4) == 1) {
@@ -4304,19 +4309,17 @@ void FUN_0001a7e0(int actor_handle)
     }
   }
 
-  if (*(char *)(actor + 0x504) == '\0') {
-    *(int *)(actor + 0xc0) = *(int *)(actor + 0xc0) + 1;
-    if (*(short *)(actor + 0xa4) == 0) {
-      if (*(int *)(actor + 0xc0) > 29)
-        FUN_00024be0(actor_handle, *(short *)(actor + 0x3b8), 0);
-      goto LAB_timer_check;
-    }
-    result = (*(char *)(actor + 0xbc) == '\0');
-  } else {
+  if (*(char *)(actor + 0x504) != '\0') {
     *(int *)(actor + 0xc0) = 0;
-LAB_timer_check:
+  } else {
+    *(int *)(actor + 0xc0) = *(int *)(actor + 0xc0) + 1;
     if (*(short *)(actor + 0xa4) != 0)
-      goto LAB_timer_check_done;
+      goto LAB_result_inspected;
+    if (*(int *)(actor + 0xc0) >= 30)
+      FUN_00024be0(actor_handle, *(unsigned short *)(actor + 0x3b8), 0);
+  }
+
+  if (*(short *)(actor + 0xa4) == 0) {
     if (*(int *)(actor + 0x270) != -1) {
       threat = (char *)datum_get(*(data_t **)0x5ab23c,
                                  *(int *)(actor + 0x270));
@@ -4326,57 +4329,55 @@ LAB_timer_check:
       else
         result = 1;
     }
+  } else {
+LAB_result_inspected:
+    result = (*(char *)(actor + 0xbc) == '\0');
   }
 
-LAB_timer_check_done:
   if (*(short *)(actor + 0x3b8) == -1) {
     *(char *)(actor + 0x9e) = 1;
+LAB_decrement:
     if (*(int *)(actor + 0xc8) > 0)
       *(int *)(actor + 0xc8) = *(int *)(actor + 0xc8) - 1;
     *(int *)(actor + 0xcc) = *(int *)(actor + 0xcc) + 1;
+LAB_expiry:
+    if (*(int *)(actor + 0xc8) == 0 || *(int *)(actor + 0xcc) >= 360)
+      result = 1;
+    else
+      result = 0;
   } else {
     if (!result ||
         (*(char *)(actor + 0x162) == '\0' && done == '\0' &&
-         *(char *)(actor + 0x504) == '\0')) {
-      *(char *)(actor + 0x9e) = 1;
-      if (*(int *)(actor + 0xc8) > 0)
-        *(int *)(actor + 0xc8) = *(int *)(actor + 0xc8) - 1;
-      *(int *)(actor + 0xcc) = *(int *)(actor + 0xcc) + 1;
-    } else {
-      *(int *)(actor + 0xc8) = *(int *)(actor + 0xc4);
-    }
-  }
-
-  if (*(int *)(actor + 0xc8) == 0 || *(int *)(actor + 0xcc) > 359) {
-    *(char *)(actor + 0x9d) = 1;
-  } else {
-    *(char *)(actor + 0x9d) = 0;
+         *(char *)(actor + 0x504) == '\0'))
+      goto LAB_decrement;
+    *(int *)(actor + 0xc8) = *(int *)(actor + 0xc4);
+    goto LAB_expiry;
   }
 
   if (*(short *)(actor + 0xa4) == 1 &&
-      *(char *)(actor + 0xbc) != '\0') {
-    *(char *)(actor + 0x9d) = 1;
-  }
+      *(char *)(actor + 0xbc) != '\0')
+    result = 1;
+  else if (result == '\0')
+    goto LAB_store;
 
-  if (*(char *)(actor + 0x9d) != '\0' &&
-      *(char *)0x5aca64 != '\0') {
+  if (*(char *)0x5aca64 != '\0') {
     ai_debug_describe_actor(actor_handle, -1, 1, debug_buf, 0x100);
     if (*(int *)(actor + 0xc8) == 0) {
       csprintf(debug_msg, "timer %d finished", *(int *)(actor + 0xc4));
-    } else if (*(int *)(actor + 0xcc) < 360) {
-      if (*(short *)(actor + 0xa4) == 1 &&
-          *(char *)(actor + 0xbc) != '\0') {
-        csprintf(debug_msg, "location inspected");
-      } else {
-        csprintf(debug_msg, "<unknown reason>");
-      }
-    } else {
+    } else if (*(int *)(actor + 0xcc) >= 360) {
       csprintf(debug_msg, "persistent timer %d", *(int *)(actor + 0xcc));
+    } else if (*(short *)(actor + 0xa4) == 1 &&
+               *(char *)(actor + 0xbc) != '\0') {
+      csprintf(debug_msg, "location inspected");
+    } else {
+      csprintf(debug_msg, "<unknown reason>");
     }
     console_printf(2, "%s: %s uncover done: %s", debug_buf,
-                   (*(short *)(actor + 0xa4) != 0) ? "pursuit" : "target",
+                   (*(short *)(actor + 0xa4) == 0) ? "target" : "pursuit",
                    debug_msg);
   }
+LAB_store:
+  *(char *)(actor + 0x9d) = result;
 }
 
 /* FUN_0001aae0 (0x1aae0)
