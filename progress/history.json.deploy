@@ -53114,6 +53114,1671 @@
           "bytes_total": 1725
         }
       ]
+    },
+    {
+      "timestamp": "2026-06-11T00:22:21.222035+02:00",
+      "commit": "ed169421b88801f358b78eb3c175071506e32691",
+      "summary": {
+        "functions": {
+          "total": 7553,
+          "ported": 2770,
+          "percent": 36.67
+        },
+        "bytes": {
+          "total": 1795009,
+          "ported": 548554,
+          "percent": 30.56
+        },
+        "match": {
+          "average": 87.2,
+          "weighted": 82.2,
+          "scored_count": 2312
+        },
+        "equivalence": {
+          "tested": 31,
+          "high_confidence": 12,
+          "avg_coverage": 59.8
+        },
+        "snapshot": null,
+        "runtime_oracle": {
+          "tested": 7,
+          "passed": 3
+        }
+      },
+      "units": [
+        {
+          "name": "XAPILIB:xcontent",
+          "ported": 1,
+          "total": 1,
+          "percent": 100.0,
+          "bytes_ported": 797,
+          "bytes_total": 797
+        },
+        {
+          "name": "bink_sound",
+          "ported": 2,
+          "total": 2,
+          "percent": 100.0,
+          "bytes_ported": 207,
+          "bytes_total": 207
+        },
+        {
+          "name": "bored_camera",
+          "ported": 1,
+          "total": 1,
+          "percent": 100.0,
+          "bytes_ported": 27,
+          "bytes_total": 27
+        },
+        {
+          "name": "circular_queue",
+          "ported": 69,
+          "total": 69,
+          "percent": 100.0,
+          "bytes_ported": 18163,
+          "bytes_total": 18163
+        },
+        {
+          "name": "console",
+          "ported": 12,
+          "total": 12,
+          "percent": 100.0,
+          "bytes_ported": 1792,
+          "bytes_total": 1792
+        },
+        {
+          "name": "contrails",
+          "ported": 18,
+          "total": 18,
+          "percent": 100.0,
+          "bytes_ported": 4216,
+          "bytes_total": 4216
+        },
+        {
+          "name": "crc",
+          "ported": 3,
+          "total": 3,
+          "percent": 100.0,
+          "bytes_ported": 181,
+          "bytes_total": 181
+        },
+        {
+          "name": "cseries",
+          "ported": 23,
+          "total": 23,
+          "percent": 100.0,
+          "bytes_ported": 2261,
+          "bytes_total": 2261
+        },
+        {
+          "name": "cseries_windows",
+          "ported": 15,
+          "total": 15,
+          "percent": 100.0,
+          "bytes_ported": 728,
+          "bytes_total": 728
+        },
+        {
+          "name": "d3d_resource",
+          "ported": 6,
+          "total": 6,
+          "percent": 100.0,
+          "bytes_ported": 0,
+          "bytes_total": 0
+        },
+        {
+          "name": "data",
+          "ported": 27,
+          "total": 27,
+          "percent": 100.0,
+          "bytes_ported": 3984,
+          "bytes_total": 3984
+        },
+        {
+          "name": "debug_keys",
+          "ported": 5,
+          "total": 5,
+          "percent": 100.0,
+          "bytes_ported": 482,
+          "bytes_total": 482
+        },
+        {
+          "name": "debug_memory",
+          "ported": 4,
+          "total": 4,
+          "percent": 100.0,
+          "bytes_ported": 1180,
+          "bytes_total": 1180
+        },
+        {
+          "name": "editor_stubs",
+          "ported": 10,
+          "total": 10,
+          "percent": 100.0,
+          "bytes_ported": 46,
+          "bytes_total": 46
+        },
+        {
+          "name": "game_allegiance",
+          "ported": 17,
+          "total": 17,
+          "percent": 100.0,
+          "bytes_ported": 1991,
+          "bytes_total": 1991
+        },
+        {
+          "name": "game_engine",
+          "ported": 237,
+          "total": 237,
+          "percent": 100.0,
+          "bytes_ported": 42873,
+          "bytes_total": 42873
+        },
+        {
+          "name": "game_statistics",
+          "ported": 4,
+          "total": 4,
+          "percent": 100.0,
+          "bytes_ported": 802,
+          "bytes_total": 802
+        },
+        {
+          "name": "game_time",
+          "ported": 20,
+          "total": 20,
+          "percent": 100.0,
+          "bytes_ported": 2313,
+          "bytes_total": 2313
+        },
+        {
+          "name": "integer_math",
+          "ported": 3,
+          "total": 3,
+          "percent": 100.0,
+          "bytes_ported": 383,
+          "bytes_total": 383
+        },
+        {
+          "name": "marketing_and_strategic_business_development",
+          "ported": 5,
+          "total": 5,
+          "percent": 100.0,
+          "bytes_ported": 735,
+          "bytes_total": 735
+        },
+        {
+          "name": "memory_pool",
+          "ported": 14,
+          "total": 14,
+          "percent": 100.0,
+          "bytes_ported": 1572,
+          "bytes_total": 1572
+        },
+        {
+          "name": "player_queues_new",
+          "ported": 19,
+          "total": 19,
+          "percent": 100.0,
+          "bytes_ported": 2989,
+          "bytes_total": 2989
+        },
+        {
+          "name": "player_rumble",
+          "ported": 12,
+          "total": 12,
+          "percent": 100.0,
+          "bytes_ported": 1385,
+          "bytes_total": 1385
+        },
+        {
+          "name": "predicted_resources",
+          "ported": 8,
+          "total": 8,
+          "percent": 100.0,
+          "bytes_ported": 331,
+          "bytes_total": 331
+        },
+        {
+          "name": "projectiles",
+          "ported": 28,
+          "total": 28,
+          "percent": 100.0,
+          "bytes_ported": 12158,
+          "bytes_total": 12158
+        },
+        {
+          "name": "rasterizer_common",
+          "ported": 5,
+          "total": 5,
+          "percent": 100.0,
+          "bytes_ported": 253,
+          "bytes_total": 253
+        },
+        {
+          "name": "rasterizer_xbox_shadows",
+          "ported": 1,
+          "total": 1,
+          "percent": 100.0,
+          "bytes_ported": 147,
+          "bytes_total": 147
+        },
+        {
+          "name": "shell_xbox",
+          "ported": 3,
+          "total": 3,
+          "percent": 100.0,
+          "bytes_ported": 305,
+          "bytes_total": 305
+        },
+        {
+          "name": "sound_classes",
+          "ported": 10,
+          "total": 10,
+          "percent": 100.0,
+          "bytes_ported": 655,
+          "bytes_total": 655
+        },
+        {
+          "name": "sound_definitions",
+          "ported": 1,
+          "total": 1,
+          "percent": 100.0,
+          "bytes_ported": 71,
+          "bytes_total": 71
+        },
+        {
+          "name": "stack_walk_windows",
+          "ported": 6,
+          "total": 6,
+          "percent": 100.0,
+          "bytes_ported": 2530,
+          "bytes_total": 2530
+        },
+        {
+          "name": "structure_detail_objects",
+          "ported": 5,
+          "total": 5,
+          "percent": 100.0,
+          "bytes_ported": 335,
+          "bytes_total": 335
+        },
+        {
+          "name": "structure_runtime_decals",
+          "ported": 1,
+          "total": 1,
+          "percent": 100.0,
+          "bytes_ported": 514,
+          "bytes_total": 514
+        },
+        {
+          "name": "terminal",
+          "ported": 10,
+          "total": 10,
+          "percent": 100.0,
+          "bytes_ported": 1730,
+          "bytes_total": 1730
+        },
+        {
+          "name": "ui_widget_event_handler_functions",
+          "ported": 1,
+          "total": 1,
+          "percent": 100.0,
+          "bytes_ported": 142,
+          "bytes_total": 142
+        },
+        {
+          "name": "widgets",
+          "ported": 5,
+          "total": 5,
+          "percent": 100.0,
+          "bytes_ported": 305,
+          "bytes_total": 305
+        },
+        {
+          "name": "hud_messaging",
+          "ported": 90,
+          "total": 91,
+          "percent": 98.9,
+          "bytes_ported": 15540,
+          "bytes_total": 18456
+        },
+        {
+          "name": "actors",
+          "ported": 124,
+          "total": 127,
+          "percent": 97.64,
+          "bytes_ported": 33944,
+          "bytes_total": 33944
+        },
+        {
+          "name": "particles",
+          "ported": 19,
+          "total": 20,
+          "percent": 95.0,
+          "bytes_ported": 3443,
+          "bytes_total": 4871
+        },
+        {
+          "name": "tag_groups",
+          "ported": 15,
+          "total": 16,
+          "percent": 93.75,
+          "bytes_ported": 818,
+          "bytes_total": 925
+        },
+        {
+          "name": "errors",
+          "ported": 24,
+          "total": 26,
+          "percent": 92.31,
+          "bytes_ported": 3149,
+          "bytes_total": 3244
+        },
+        {
+          "name": "random_math",
+          "ported": 35,
+          "total": 38,
+          "percent": 92.11,
+          "bytes_ported": 4549,
+          "bytes_total": 4899
+        },
+        {
+          "name": "effects",
+          "ported": 34,
+          "total": 37,
+          "percent": 91.89,
+          "bytes_ported": 10567,
+          "bytes_total": 10846
+        },
+        {
+          "name": "input_xbox",
+          "ported": 25,
+          "total": 28,
+          "percent": 89.29,
+          "bytes_ported": 3683,
+          "bytes_total": 4039
+        },
+        {
+          "name": "game_state",
+          "ported": 17,
+          "total": 20,
+          "percent": 85.0,
+          "bytes_ported": 1665,
+          "bytes_total": 2176
+        },
+        {
+          "name": "actor_looking",
+          "ported": 101,
+          "total": 120,
+          "percent": 84.17,
+          "bytes_ported": 24435,
+          "bytes_total": 48151
+        },
+        {
+          "name": "damage",
+          "ported": 27,
+          "total": 34,
+          "percent": 79.41,
+          "bytes_ported": 6632,
+          "bytes_total": 10632
+        },
+        {
+          "name": "collision_usage",
+          "ported": 26,
+          "total": 33,
+          "percent": 78.79,
+          "bytes_ported": 4169,
+          "bytes_total": 13187
+        },
+        {
+          "name": "hs_compile",
+          "ported": 36,
+          "total": 46,
+          "percent": 78.26,
+          "bytes_ported": 8117,
+          "bytes_total": 11265
+        },
+        {
+          "name": "physical_memory_map",
+          "ported": 3,
+          "total": 4,
+          "percent": 75.0,
+          "bytes_ported": 392,
+          "bytes_total": 392
+        },
+        {
+          "name": "bipeds",
+          "ported": 29,
+          "total": 39,
+          "percent": 74.36,
+          "bytes_ported": 8818,
+          "bytes_total": 16635
+        },
+        {
+          "name": "ai",
+          "ported": 35,
+          "total": 48,
+          "percent": 72.92,
+          "bytes_ported": 6151,
+          "bytes_total": 13623
+        },
+        {
+          "name": "encounters",
+          "ported": 99,
+          "total": 139,
+          "percent": 71.22,
+          "bytes_ported": 17685,
+          "bytes_total": 31083
+        },
+        {
+          "name": "decals",
+          "ported": 53,
+          "total": 75,
+          "percent": 70.67,
+          "bytes_ported": 12956,
+          "bytes_total": 14986
+        },
+        {
+          "name": "files_windows",
+          "ported": 19,
+          "total": 27,
+          "percent": 70.37,
+          "bytes_ported": 3230,
+          "bytes_total": 4776
+        },
+        {
+          "name": "game",
+          "ported": 42,
+          "total": 61,
+          "percent": 68.85,
+          "bytes_ported": 4462,
+          "bytes_total": 8039
+        },
+        {
+          "name": "network_server_manager",
+          "ported": 57,
+          "total": 84,
+          "percent": 67.86,
+          "bytes_ported": 9911,
+          "bytes_total": 15833
+        },
+        {
+          "name": "collision_features",
+          "ported": 12,
+          "total": 18,
+          "percent": 66.67,
+          "bytes_ported": 4044,
+          "bytes_total": 6405
+        },
+        {
+          "name": "shell",
+          "ported": 6,
+          "total": 9,
+          "percent": 66.67,
+          "bytes_ported": 242,
+          "bytes_total": 249
+        },
+        {
+          "name": "bink_playback",
+          "ported": 20,
+          "total": 31,
+          "percent": 64.52,
+          "bytes_ported": 3406,
+          "bytes_total": 7585
+        },
+        {
+          "name": "files",
+          "ported": 9,
+          "total": 14,
+          "percent": 64.29,
+          "bytes_ported": 1247,
+          "bytes_total": 2200
+        },
+        {
+          "name": "vector_math",
+          "ported": 29,
+          "total": 46,
+          "percent": 63.04,
+          "bytes_ported": 1184,
+          "bytes_total": 9203
+        },
+        {
+          "name": "bitmap_utilities",
+          "ported": 34,
+          "total": 54,
+          "percent": 62.96,
+          "bytes_ported": 12661,
+          "bytes_total": 25655
+        },
+        {
+          "name": "cache_files_windows",
+          "ported": 29,
+          "total": 48,
+          "percent": 60.42,
+          "bytes_ported": 3319,
+          "bytes_total": 8789
+        },
+        {
+          "name": "real_math",
+          "ported": 101,
+          "total": 171,
+          "percent": 59.06,
+          "bytes_ported": 18640,
+          "bytes_total": 42799
+        },
+        {
+          "name": "particle_systems",
+          "ported": 12,
+          "total": 22,
+          "percent": 54.55,
+          "bytes_ported": 3776,
+          "bytes_total": 7060
+        },
+        {
+          "name": "first_person_weapons",
+          "ported": 16,
+          "total": 30,
+          "percent": 53.33,
+          "bytes_ported": 3722,
+          "bytes_total": 8780
+        },
+        {
+          "name": "breakable_surfaces",
+          "ported": 10,
+          "total": 19,
+          "percent": 52.63,
+          "bytes_ported": 4969,
+          "bytes_total": 5577
+        },
+        {
+          "name": "event_manager",
+          "ported": 18,
+          "total": 35,
+          "percent": 51.43,
+          "bytes_ported": 1923,
+          "bytes_total": 11427
+        },
+        {
+          "name": "bitmaps",
+          "ported": 20,
+          "total": 39,
+          "percent": 51.28,
+          "bytes_ported": 3696,
+          "bytes_total": 12547
+        },
+        {
+          "name": "rasterizer_text",
+          "ported": 35,
+          "total": 69,
+          "percent": 50.72,
+          "bytes_ported": 4539,
+          "bytes_total": 17235
+        },
+        {
+          "name": "edit_text",
+          "ported": 6,
+          "total": 12,
+          "percent": 50.0,
+          "bytes_ported": 1402,
+          "bytes_total": 2568
+        },
+        {
+          "name": "structure_visibility",
+          "ported": 3,
+          "total": 6,
+          "percent": 50.0,
+          "bytes_ported": 602,
+          "bytes_total": 1670
+        },
+        {
+          "name": "actions",
+          "ported": 35,
+          "total": 74,
+          "percent": 47.3,
+          "bytes_ported": 4908,
+          "bytes_total": 21644
+        },
+        {
+          "name": "game_sound",
+          "ported": 17,
+          "total": 36,
+          "percent": 47.22,
+          "bytes_ported": 2780,
+          "bytes_total": 6280
+        },
+        {
+          "name": "interface",
+          "ported": 8,
+          "total": 17,
+          "percent": 47.06,
+          "bytes_ported": 658,
+          "bytes_total": 5542
+        },
+        {
+          "name": "network_game_globals",
+          "ported": 14,
+          "total": 30,
+          "percent": 46.67,
+          "bytes_ported": 1804,
+          "bytes_total": 3454
+        },
+        {
+          "name": "hud",
+          "ported": 17,
+          "total": 37,
+          "percent": 45.95,
+          "bytes_ported": 1323,
+          "bytes_total": 11076
+        },
+        {
+          "name": "stack_memory_pool",
+          "ported": 17,
+          "total": 37,
+          "percent": 45.95,
+          "bytes_ported": 2918,
+          "bytes_total": 5710
+        },
+        {
+          "name": "progress_bar",
+          "ported": 14,
+          "total": 31,
+          "percent": 45.16,
+          "bytes_ported": 4001,
+          "bytes_total": 5553
+        },
+        {
+          "name": "draw_string",
+          "ported": 9,
+          "total": 20,
+          "percent": 45.0,
+          "bytes_ported": 1395,
+          "bytes_total": 4932
+        },
+        {
+          "name": "input_abstraction",
+          "ported": 4,
+          "total": 9,
+          "percent": 44.44,
+          "bytes_ported": 2549,
+          "bytes_total": 3224
+        },
+        {
+          "name": "observer",
+          "ported": 18,
+          "total": 41,
+          "percent": 43.9,
+          "bytes_ported": 9446,
+          "bytes_total": 16436
+        },
+        {
+          "name": "actor_combat",
+          "ported": 8,
+          "total": 19,
+          "percent": 42.11,
+          "bytes_ported": 3101,
+          "bytes_total": 11020
+        },
+        {
+          "name": "sound_manager",
+          "ported": 39,
+          "total": 93,
+          "percent": 41.94,
+          "bytes_ported": 9634,
+          "bytes_total": 20857
+        },
+        {
+          "name": "sound_dsound_xbox",
+          "ported": 12,
+          "total": 29,
+          "percent": 41.38,
+          "bytes_ported": 2402,
+          "bytes_total": 7713
+        },
+        {
+          "name": "render",
+          "ported": 9,
+          "total": 22,
+          "percent": 40.91,
+          "bytes_ported": 1785,
+          "bytes_total": 4363
+        },
+        {
+          "name": "main",
+          "ported": 44,
+          "total": 108,
+          "percent": 40.74,
+          "bytes_ported": 9213,
+          "bytes_total": 17598
+        },
+        {
+          "name": "weapons",
+          "ported": 22,
+          "total": 57,
+          "percent": 38.6,
+          "bytes_ported": 4281,
+          "bytes_total": 11157
+        },
+        {
+          "name": "actor_moving",
+          "ported": 11,
+          "total": 29,
+          "percent": 37.93,
+          "bytes_ported": 2054,
+          "bytes_total": 19484
+        },
+        {
+          "name": "cheats",
+          "ported": 10,
+          "total": 28,
+          "percent": 35.71,
+          "bytes_ported": 756,
+          "bytes_total": 5348
+        },
+        {
+          "name": "hs_runtime",
+          "ported": 45,
+          "total": 130,
+          "percent": 34.62,
+          "bytes_ported": 12824,
+          "bytes_total": 22995
+        },
+        {
+          "name": "thread_win32",
+          "ported": 5,
+          "total": 15,
+          "percent": 33.33,
+          "bytes_ported": 554,
+          "bytes_total": 2173
+        },
+        {
+          "name": "units",
+          "ported": 65,
+          "total": 204,
+          "percent": 31.86,
+          "bytes_ported": 13611,
+          "bytes_total": 60247
+        },
+        {
+          "name": "path",
+          "ported": 13,
+          "total": 41,
+          "percent": 31.71,
+          "bytes_ported": 2270,
+          "bytes_total": 11034
+        },
+        {
+          "name": "network_client_manager",
+          "ported": 19,
+          "total": 60,
+          "percent": 31.67,
+          "bytes_ported": 2425,
+          "bytes_total": 11856
+        },
+        {
+          "name": "game_state_xbox",
+          "ported": 10,
+          "total": 32,
+          "percent": 31.25,
+          "bytes_ported": 1143,
+          "bytes_total": 6093
+        },
+        {
+          "name": "transport_endpoint_set_winsock",
+          "ported": 16,
+          "total": 52,
+          "percent": 30.77,
+          "bytes_ported": 4024,
+          "bytes_total": 9852
+        },
+        {
+          "name": "lruv_cache",
+          "ported": 14,
+          "total": 46,
+          "percent": 30.43,
+          "bytes_ported": 2049,
+          "bytes_total": 7389
+        },
+        {
+          "name": "objects",
+          "ported": 65,
+          "total": 219,
+          "percent": 29.68,
+          "bytes_ported": 22240,
+          "bytes_total": 61068
+        },
+        {
+          "name": "director",
+          "ported": 13,
+          "total": 44,
+          "percent": 29.55,
+          "bytes_ported": 2825,
+          "bytes_total": 10996
+        },
+        {
+          "name": "point_physics",
+          "ported": 4,
+          "total": 14,
+          "percent": 28.57,
+          "bytes_ported": 156,
+          "bytes_total": 3258
+        },
+        {
+          "name": "props",
+          "ported": 10,
+          "total": 36,
+          "percent": 27.78,
+          "bytes_ported": 766,
+          "bytes_total": 6515
+        },
+        {
+          "name": "scenario",
+          "ported": 23,
+          "total": 85,
+          "percent": 27.06,
+          "bytes_ported": 2545,
+          "bytes_total": 20452
+        },
+        {
+          "name": "actor_perception",
+          "ported": 12,
+          "total": 45,
+          "percent": 26.67,
+          "bytes_ported": 2657,
+          "bytes_total": 29830
+        },
+        {
+          "name": "model_animations",
+          "ported": 11,
+          "total": 42,
+          "percent": 26.19,
+          "bytes_ported": 3540,
+          "bytes_total": 13339
+        },
+        {
+          "name": "profile",
+          "ported": 13,
+          "total": 51,
+          "percent": 25.49,
+          "bytes_ported": 2231,
+          "bytes_total": 10193
+        },
+        {
+          "name": "player_effects",
+          "ported": 7,
+          "total": 29,
+          "percent": 24.14,
+          "bytes_ported": 426,
+          "bytes_total": 5860
+        },
+        {
+          "name": "ui_widget",
+          "ported": 29,
+          "total": 121,
+          "percent": 23.97,
+          "bytes_ported": 8180,
+          "bytes_total": 35073
+        },
+        {
+          "name": "weather_particle_systems",
+          "ported": 4,
+          "total": 17,
+          "percent": 23.53,
+          "bytes_ported": 194,
+          "bytes_total": 5458
+        },
+        {
+          "name": "player_control",
+          "ported": 11,
+          "total": 47,
+          "percent": 23.4,
+          "bytes_ported": 2676,
+          "bytes_total": 10329
+        },
+        {
+          "name": "XAPILIB:xbox_crt",
+          "ported": 4,
+          "total": 18,
+          "percent": 22.22,
+          "bytes_ported": 365,
+          "bytes_total": 4485
+        },
+        {
+          "name": "items",
+          "ported": 10,
+          "total": 48,
+          "percent": 20.83,
+          "bytes_ported": 1748,
+          "bytes_total": 14227
+        },
+        {
+          "name": "structure_bsp_definitions",
+          "ported": 3,
+          "total": 15,
+          "percent": 20.0,
+          "bytes_ported": 450,
+          "bytes_total": 3832
+        },
+        {
+          "name": "cinematics",
+          "ported": 6,
+          "total": 33,
+          "percent": 18.18,
+          "bytes_ported": 134,
+          "bytes_total": 4541
+        },
+        {
+          "name": "international_strings",
+          "ported": 4,
+          "total": 22,
+          "percent": 18.18,
+          "bytes_ported": 709,
+          "bytes_total": 4389
+        },
+        {
+          "name": "players",
+          "ported": 45,
+          "total": 249,
+          "percent": 18.07,
+          "bytes_ported": 9764,
+          "bytes_total": 24919
+        },
+        {
+          "name": "network_messages",
+          "ported": 7,
+          "total": 39,
+          "percent": 17.95,
+          "bytes_ported": 2237,
+          "bytes_total": 8154
+        },
+        {
+          "name": "rasterizer_decals",
+          "ported": 11,
+          "total": 62,
+          "percent": 17.74,
+          "bytes_ported": 1279,
+          "bytes_total": 17566
+        },
+        {
+          "name": "tags",
+          "ported": 4,
+          "total": 27,
+          "percent": 14.81,
+          "bytes_ported": 380,
+          "bytes_total": 4760
+        },
+        {
+          "name": "d3d_intimacy",
+          "ported": 1,
+          "total": 7,
+          "percent": 14.29,
+          "bytes_ported": 124,
+          "bytes_total": 441
+        },
+        {
+          "name": "xbox_texture_cache",
+          "ported": 3,
+          "total": 21,
+          "percent": 14.29,
+          "bytes_ported": 689,
+          "bytes_total": 3419
+        },
+        {
+          "name": "tiff_file",
+          "ported": 1,
+          "total": 8,
+          "percent": 12.5,
+          "bytes_ported": 994,
+          "bytes_total": 3567
+        },
+        {
+          "name": "ai_debug",
+          "ported": 9,
+          "total": 73,
+          "percent": 12.33,
+          "bytes_ported": 898,
+          "bytes_total": 42908
+        },
+        {
+          "name": "structures",
+          "ported": 15,
+          "total": 127,
+          "percent": 11.81,
+          "bytes_ported": 1896,
+          "bytes_total": 34045
+        },
+        {
+          "name": "telnet_console",
+          "ported": 3,
+          "total": 27,
+          "percent": 11.11,
+          "bytes_ported": 622,
+          "bytes_total": 8045
+        },
+        {
+          "name": "recorded_animations",
+          "ported": 5,
+          "total": 47,
+          "percent": 10.64,
+          "bytes_ported": 800,
+          "bytes_total": 7520
+        },
+        {
+          "name": "ai_communication",
+          "ported": 5,
+          "total": 48,
+          "percent": 10.42,
+          "bytes_ported": 712,
+          "bytes_total": 25282
+        },
+        {
+          "name": "hs",
+          "ported": 26,
+          "total": 255,
+          "percent": 10.2,
+          "bytes_ported": 3463,
+          "bytes_total": 15846
+        },
+        {
+          "name": "player_ui",
+          "ported": 4,
+          "total": 40,
+          "percent": 10.0,
+          "bytes_ported": 347,
+          "bytes_total": 3971
+        },
+        {
+          "name": "rectangles",
+          "ported": 2,
+          "total": 27,
+          "percent": 7.41,
+          "bytes_ported": 58,
+          "bytes_total": 4482
+        },
+        {
+          "name": "rasterizer",
+          "ported": 7,
+          "total": 102,
+          "percent": 6.86,
+          "bytes_ported": 248,
+          "bytes_total": 46987
+        },
+        {
+          "name": "vehicles",
+          "ported": 2,
+          "total": 32,
+          "percent": 6.25,
+          "bytes_ported": 670,
+          "bytes_total": 16187
+        },
+        {
+          "name": "unicode",
+          "ported": 4,
+          "total": 69,
+          "percent": 5.8,
+          "bytes_ported": 596,
+          "bytes_total": 10068
+        },
+        {
+          "name": "rasterizer_xbox",
+          "ported": 2,
+          "total": 37,
+          "percent": 5.41,
+          "bytes_ported": 429,
+          "bytes_total": 8130
+        },
+        {
+          "name": "render_cameras",
+          "ported": 3,
+          "total": 59,
+          "percent": 5.08,
+          "bytes_ported": 3554,
+          "bytes_total": 20821
+        },
+        {
+          "name": "shaders",
+          "ported": 1,
+          "total": 25,
+          "percent": 4.0,
+          "bytes_ported": 85,
+          "bytes_total": 3447
+        },
+        {
+          "name": "saved_game_files",
+          "ported": 2,
+          "total": 55,
+          "percent": 3.64,
+          "bytes_ported": 456,
+          "bytes_total": 11444
+        },
+        {
+          "name": "ui_widget_game_data_input_functions",
+          "ported": 2,
+          "total": 72,
+          "percent": 2.78,
+          "bytes_ported": 223,
+          "bytes_total": 22930
+        },
+        {
+          "name": "rasterizer_sprites",
+          "ported": 1,
+          "total": 87,
+          "percent": 1.15,
+          "bytes_ported": 9,
+          "bytes_total": 11975
+        },
+        {
+          "name": "<common>",
+          "ported": 0,
+          "total": 178,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 77124
+        },
+        {
+          "name": "<xdk_stubs>",
+          "ported": 0,
+          "total": 73,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 2389
+        },
+        {
+          "name": "D3D8:d3dresource",
+          "ported": 0,
+          "total": 3,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 0
+        },
+        {
+          "name": "D3D8:d3dsurface",
+          "ported": 0,
+          "total": 6,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 0
+        },
+        {
+          "name": "LIBCMT:_control87",
+          "ported": 0,
+          "total": 25,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 1931
+        },
+        {
+          "name": "LIBCMT:close",
+          "ported": 0,
+          "total": 184,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 27797
+        },
+        {
+          "name": "LIBCMT:fclose",
+          "ported": 0,
+          "total": 4,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 170
+        },
+        {
+          "name": "LIBCMT:fflush",
+          "ported": 0,
+          "total": 10,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 677
+        },
+        {
+          "name": "LIBCMT:fgets",
+          "ported": 0,
+          "total": 5,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 256
+        },
+        {
+          "name": "LIBCMT:fopen",
+          "ported": 0,
+          "total": 4,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 499
+        },
+        {
+          "name": "LIBCMT:fprintf",
+          "ported": 0,
+          "total": 10,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 523
+        },
+        {
+          "name": "LIBCMT:isctype",
+          "ported": 0,
+          "total": 7,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 686
+        },
+        {
+          "name": "LIBCMT:localtim",
+          "ported": 0,
+          "total": 1,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 384
+        },
+        {
+          "name": "LIBCMT:memmove",
+          "ported": 0,
+          "total": 1,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 664
+        },
+        {
+          "name": "LIBCMT:qsort",
+          "ported": 0,
+          "total": 1,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 643
+        },
+        {
+          "name": "LIBCMT:rand",
+          "ported": 0,
+          "total": 2,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 47
+        },
+        {
+          "name": "LIBCMT:snprintf",
+          "ported": 0,
+          "total": 2,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 193
+        },
+        {
+          "name": "LIBCMT:sprintf",
+          "ported": 0,
+          "total": 16,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 402
+        },
+        {
+          "name": "LIBCMT:strchr",
+          "ported": 0,
+          "total": 3,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 387
+        },
+        {
+          "name": "LIBCMT:stricmp",
+          "ported": 0,
+          "total": 48,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 6226
+        },
+        {
+          "name": "LIBCMT:strncat",
+          "ported": 0,
+          "total": 1,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 291
+        },
+        {
+          "name": "LIBCMT:strncpy",
+          "ported": 0,
+          "total": 2,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 310
+        },
+        {
+          "name": "LIBCMT:strrchr",
+          "ported": 0,
+          "total": 3,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 227
+        },
+        {
+          "name": "LIBCMT:strstr",
+          "ported": 0,
+          "total": 1,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 128
+        },
+        {
+          "name": "LIBCMT:strtok",
+          "ported": 0,
+          "total": 2,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 236
+        },
+        {
+          "name": "LIBCMT:time",
+          "ported": 0,
+          "total": 2,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 132
+        },
+        {
+          "name": "LIBCMT:vsnprint",
+          "ported": 0,
+          "total": 3,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 179
+        },
+        {
+          "name": "LIBCMT:vsnwprint",
+          "ported": 0,
+          "total": 35,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 2972
+        },
+        {
+          "name": "LIBCMT:vsprintf",
+          "ported": 0,
+          "total": 9,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 541
+        },
+        {
+          "name": "LIBCMT:wcslen",
+          "ported": 0,
+          "total": 8,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 729
+        },
+        {
+          "name": "LIBCMT:wcsncpy",
+          "ported": 0,
+          "total": 27,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 2261
+        },
+        {
+          "name": "XAPILIB:fileio",
+          "ported": 0,
+          "total": 25,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 4878
+        },
+        {
+          "name": "XAPILIB:lasterr",
+          "ported": 0,
+          "total": 18,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 2773
+        },
+        {
+          "name": "XAPILIB:physmem",
+          "ported": 0,
+          "total": 59,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 11029
+        },
+        {
+          "name": "XAPILIB:xinput",
+          "ported": 0,
+          "total": 1,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 0
+        },
+        {
+          "name": "XAPILIB:xvutil",
+          "ported": 0,
+          "total": 25,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 2255
+        },
+        {
+          "name": "XNET:wsock",
+          "ported": 0,
+          "total": 8,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 0
+        },
+        {
+          "name": "XNET:xnet",
+          "ported": 0,
+          "total": 15,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 1470
+        },
+        {
+          "name": "actor_firing_position",
+          "ported": 0,
+          "total": 15,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 3122
+        },
+        {
+          "name": "ai_profile",
+          "ported": 0,
+          "total": 46,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 8485
+        },
+        {
+          "name": "ai_script",
+          "ported": 0,
+          "total": 3,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 715
+        },
+        {
+          "name": "bink",
+          "ported": 0,
+          "total": 11,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 0
+        },
+        {
+          "name": "bsp3d",
+          "ported": 0,
+          "total": 5,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 1900
+        },
+        {
+          "name": "cache_files",
+          "ported": 0,
+          "total": 8,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 967
+        },
+        {
+          "name": "collision_bsp",
+          "ported": 0,
+          "total": 35,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 12464
+        },
+        {
+          "name": "data_packet_groups",
+          "ported": 0,
+          "total": 4,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 1622
+        },
+        {
+          "name": "devices",
+          "ported": 0,
+          "total": 18,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 3009
+        },
+        {
+          "name": "geometry",
+          "ported": 0,
+          "total": 8,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 4472
+        },
+        {
+          "name": "message_header",
+          "ported": 0,
+          "total": 24,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 3651
+        },
+        {
+          "name": "network_client_message_handler",
+          "ported": 0,
+          "total": 13,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 2150
+        },
+        {
+          "name": "network_connection",
+          "ported": 0,
+          "total": 25,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 6107
+        },
+        {
+          "name": "network_game_manager",
+          "ported": 0,
+          "total": 20,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 3308
+        },
+        {
+          "name": "network_server_message_handler",
+          "ported": 0,
+          "total": 8,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 2954
+        },
+        {
+          "name": "object_lights",
+          "ported": 0,
+          "total": 9,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 1209
+        },
+        {
+          "name": "path_obstacle_avoidance",
+          "ported": 0,
+          "total": 8,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 4142
+        },
+        {
+          "name": "path_smoothing",
+          "ported": 0,
+          "total": 11,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 5262
+        },
+        {
+          "name": "rasterizer_xbox_dynavobgeom",
+          "ported": 0,
+          "total": 111,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 57262
+        },
+        {
+          "name": "static_camera",
+          "ported": 0,
+          "total": 1,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 1051
+        },
+        {
+          "name": "tif_dir",
+          "ported": 0,
+          "total": 26,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 6583
+        },
+        {
+          "name": "tif_flush",
+          "ported": 0,
+          "total": 57,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 12630
+        },
+        {
+          "name": "tif_open",
+          "ported": 0,
+          "total": 41,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 8451
+        },
+        {
+          "name": "tif_write",
+          "ported": 0,
+          "total": 81,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 25434
+        },
+        {
+          "name": "transport_address",
+          "ported": 0,
+          "total": 4,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 802
+        },
+        {
+          "name": "xbox_sound_cache",
+          "ported": 0,
+          "total": 9,
+          "percent": 0.0,
+          "bytes_ported": 0,
+          "bytes_total": 1725
+        }
+      ]
     }
   ],
   "trends": {
@@ -53334,6 +54999,13 @@
         "bytes_gained": 0,
         "functions_velocity": 0.0,
         "bytes_velocity": 0.0
+      },
+      {
+        "date": "2026-06-11",
+        "functions_gained": -2,
+        "bytes_gained": -3461,
+        "functions_velocity": -2.21,
+        "bytes_velocity": -3825.87
       }
     ],
     "weekly": [
@@ -53461,11 +55133,16 @@
         "date": "2026-06-10",
         "functions_velocity_7d": 16.71,
         "bytes_velocity_7d": 78859.29
+      },
+      {
+        "date": "2026-06-11",
+        "functions_velocity_7d": 11.29,
+        "bytes_velocity_7d": 78364.86
       }
     ]
   },
   "metadata": {
     "created": "2026-05-25T22:17:29.640438+00:00",
-    "last_updated": "2026-06-10T02:39:41.157957+02:00"
+    "last_updated": "2026-06-11T00:22:21.222254+02:00"
   }
 }
