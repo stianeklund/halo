@@ -3199,11 +3199,18 @@ char FUN_000a9ff0(void)
   return 0;
 }
 
-/* Initialize the default map name and game variant for multiplayer. */
-void game_engine_playlist_next(void)
+/* Initialize the default map name and game variant for multiplayer.
+ *
+ * Callers push 3 cdecl args (e.g. 0xae750: PUSH 2; PUSH 0; PUSH 0) but this
+ * body never reads [EBP+8/C/10] — only game_variant_type is named by usage
+ * intent; param_2 and param_3 are declared for ABI completeness (unused). */
+void game_engine_playlist_next(int game_variant_type, int param_2, int param_3)
 {
   char *map_name;
   char local_6c[104];
+  (void)game_variant_type;
+  (void)param_2;
+  (void)param_3;
 
   csstrncpy((char *)0x5aa760, "levels\\test\\carousel\\carousel", 0x3f);
   map_name = main_get_multiplayer_map_name();
@@ -3810,7 +3817,8 @@ void game_engine_playlist_initialize(void)
 
 {
 
-  game_engine_playlist_next();
+  /* 0xae750: PUSH 2; PUSH 0; PUSH 0 → game_variant_type=2, param_2=0, param_3=0 */
+  game_engine_playlist_next(2, 0, 0);
 
 }
 
@@ -7449,7 +7457,10 @@ void FUN_000b39a0(int player_handle)
   }
 }
 
-/* CTF: check if position is within radius of a team's flag. EAX = team_index. */
+/* CTF: check if position is within radius of a team's flag.
+ * EAX = team_index (@<eax>), ECX = position ptr (@<ecx> — TEST ECX,ECX at
+ * 0xb0a75, FSUB [ECX] at 0xb0a86), [EBP+8] = radius (FLD [EBP+8] at 0xb0a4).
+ * kb.json decl updated to add @<ecx> on position. */
 char FUN_000b0a70(int team_index, float *position, float radius)
 {
   float *flag_pos;
