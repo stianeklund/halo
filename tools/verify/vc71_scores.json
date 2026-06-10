@@ -2741,11 +2741,11 @@
       "source": "src/halo/effects/contrails.c"
     },
     "FUN_00098970": {
-      "score": 94.7,
+      "score": 99.5,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_00098aa0": {
-      "score": 90.9,
+      "score": 92.1,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_00098b20": {
@@ -2753,27 +2753,27 @@
       "source": "src/halo/effects/decals.c"
     },
     "FUN_00098ca0": {
-      "score": 82.4,
+      "score": 100.0,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_00098d40": {
-      "score": 62.9,
+      "score": 97.6,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_00098df0": {
-      "score": 91.2,
+      "score": 100.0,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_00098e60": {
-      "score": 80.0,
+      "score": 100.0,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_00098e70": {
-      "score": 78.5,
+      "score": 84.5,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_00098fe0": {
-      "score": 98.8,
+      "score": 100.0,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_00099220": {
@@ -2813,15 +2813,15 @@
       "source": "src/halo/effects/decals.c"
     },
     "FUN_00099840": {
-      "score": 90.2,
+      "score": 92.5,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_000998b0": {
-      "score": 64.6,
+      "score": 65.8,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_00099fd0": {
-      "score": 90.4,
+      "score": 91.5,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_0009a300": {
@@ -2833,7 +2833,7 @@
       "source": "src/halo/effects/decals.c"
     },
     "FUN_0009ac90": {
-      "score": 59.4,
+      "score": 60.2,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_0009c4b0": {
@@ -3897,7 +3897,7 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000ae750": {
-      "score": 0.0,
+      "score": 100.0,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000ae7e0": {
