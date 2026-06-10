@@ -3242,7 +3242,7 @@
         },
         {
           "addr": "0x14c10",
-          "decl": "void FUN_00014c10(int actor_handle @<ebx>, int param_2);",
+          "decl": "void FUN_00014c10(int actor_handle @<ebx>, void *state_data @<esi>, int param_3);",
           "ported": false
         },
         {
