@@ -6185,7 +6185,7 @@
         },
         {
           "addr": "0x17ca60",
-          "decl": "void FUN_0017ca60(void);",
+          "decl": "void FUN_0017ca60(void *decal_group, int16_t count, int capacity);",
           "ported": true
         },
         {
@@ -6260,12 +6260,12 @@
         },
         {
           "addr": "0x17cb60",
-          "decl": "void FUN_0017cb60(void);",
+          "decl": "void FUN_0017cb60(void *decal_group);",
           "ported": true
         },
         {
           "addr": "0x17cb70",
-          "decl": "void FUN_0017cb70(void);",
+          "decl": "void FUN_0017cb70(void *decal_group);",
           "ported": true
         },
         {
@@ -6275,7 +6275,7 @@
         },
         {
           "addr": "0x17cb90",
-          "decl": "void FUN_0017cb90(void);",
+          "decl": "void FUN_0017cb90(void *decal);",
           "ported": true
         },
         {
@@ -6350,7 +6350,7 @@
         },
         {
           "addr": "0x17ccb0",
-          "decl": "void FUN_0017ccb0(void);",
+          "decl": "void FUN_0017ccb0(int param_1, void *decal_set, void *position, float radius, int *result_out);",
           "ported": true
         },
         {
@@ -6360,7 +6360,7 @@
         },
         {
           "addr": "0x17ccd0",
-          "decl": "void FUN_0017ccd0(void);",
+          "decl": "void FUN_0017ccd0(void *decal, int param_2, void *param_3, void *param_4);",
           "ported": true
         },
         {
@@ -7299,7 +7299,7 @@
         },
         {
           "addr": "0x19a450",
-          "decl": "void file_error(file_ref_t *info, const char *function_name);",
+          "decl": "void file_error(file_ref_t *info@<eax>, const char *function_name);",
           "ported": true
         },
         {
@@ -8298,7 +8298,7 @@
         },
         {
           "addr": "0xaa120",
-          "decl": "void game_engine_playlist_next(void);",
+          "decl": "void game_engine_playlist_next(int game_variant_type, int param_2, int param_3);",
           "ported": true,
           "src": "src/halo/game/game_engine.c"
         },
@@ -8925,7 +8925,7 @@
         },
         {
           "addr": "0xb0a70",
-          "decl": "char FUN_000b0a70(int team_index@<eax>, float *position, float radius);",
+          "decl": "char FUN_000b0a70(int team_index@<eax>, float *position@<ecx>, float radius);",
           "ported": true,
           "src": "src/halo/game/game_engine.c"
         },
@@ -18730,7 +18730,7 @@
         },
         {
           "addr": "0x170c90",
-          "decl": "void FUN_00170c90(void);"
+          "decl": "void FUN_00170c90(void *decal);"
         },
         {
           "addr": "0x171bc0",
@@ -18762,11 +18762,11 @@
         },
         {
           "addr": "0x172a30",
-          "decl": "void FUN_00172a30(void);"
+          "decl": "void FUN_00172a30(int param_1, void *decal_set, void *position, float radius, int *result_out);"
         },
         {
           "addr": "0x172de0",
-          "decl": "void FUN_00172de0(void);"
+          "decl": "void FUN_00172de0(void *decal, int param_2, void *param_3, void *param_4);"
         },
         {
           "addr": "0x173090",
@@ -19195,7 +19195,7 @@
         },
         {
           "addr": "0x15acc0",
-          "decl": "void FUN_0015acc0(void);"
+          "decl": "void FUN_0015acc0(void *decal_group, int16_t count, int capacity);"
         },
         {
           "addr": "0x15afa0",
@@ -19317,11 +19317,11 @@
         },
         {
           "addr": "0x15c980",
-          "decl": "void FUN_0015c980(void);"
+          "decl": "void FUN_0015c980(void *decal_group);"
         },
         {
           "addr": "0x15cbb0",
-          "decl": "void FUN_0015cbb0(void);"
+          "decl": "void FUN_0015cbb0(void *decal_group);"
         },
         {
           "addr": "0x15d020",

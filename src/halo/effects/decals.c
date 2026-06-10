@@ -2007,10 +2007,12 @@ void FUN_0017ca50(short *p0, short *p1, float *color0, float *color1)
   FUN_0015abe0(p0, p1, color0, color1);
 }
 
-/* Tail-call thunk to rasterizer decal initialization (FUN_0015acc0). */
-void FUN_0017ca60(void)
+/* Tail-call thunk to rasterizer decal initialization (FUN_0015acc0).
+ * 0x17ca60: PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x15acc0 — forwards 3 stack
+ * args: [EBP+8]=decal_group ptr, [EBP+C]=count (int16_t), [EBP+10]=capacity. */
+void FUN_0017ca60(void *decal_group, int16_t count, int capacity)
 {
-  FUN_0015acc0();
+  FUN_0015acc0(decal_group, count, capacity);
 }
 
 /* Tail-call thunk to rasterizer decal setup (FUN_0015a4e0). */
@@ -2097,16 +2099,19 @@ void FUN_0017cb50(void)
 }
 
 /* Tail-call thunk to rasterizer decal geometry initialization (FUN_0015c980).
- */
-void FUN_0017cb60(void)
+ * 0x17cb60: PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x15c980 — forwards 1 stack
+ * arg: [EBP+8]=decal_group ptr (MOV ESI,[EBP+8] at 0x15c9aa). */
+void FUN_0017cb60(void *decal_group)
 {
-  FUN_0015c980();
+  FUN_0015c980(decal_group);
 }
 
-/* Tail-call thunk to rasterizer decal geometry disposal (FUN_0015cbb0). */
-void FUN_0017cb70(void)
+/* Tail-call thunk to rasterizer decal geometry disposal (FUN_0015cbb0).
+ * 0x17cb70: PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x15cbb0 — forwards 1 stack
+ * arg: [EBP+8]=decal_group ptr (MOV ESI,[EBP+8] at 0x15cbe1). */
+void FUN_0017cb70(void *decal_group)
 {
-  FUN_0015cbb0();
+  FUN_0015cbb0(decal_group);
 }
 
 /* Tail-call thunk to rasterizer decal geometry (FUN_0015c5f0). */
@@ -2115,10 +2120,12 @@ void FUN_0017cb80(void)
   FUN_0015c5f0();
 }
 
-/* Tail-call thunk to rasterizer decal rendering (FUN_00170c90). */
-void FUN_0017cb90(void)
+/* Tail-call thunk to rasterizer decal rendering (FUN_00170c90).
+ * 0x17cb90: PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x170c90 — forwards 1 stack
+ * arg: [EBP+8]=decal ptr (MOV EAX,[EBP+8] at 0x170ccb; passed to 0x17dc70). */
+void FUN_0017cb90(void *decal)
 {
-  FUN_00170c90();
+  FUN_00170c90(decal);
 }
 
 /* Tail-call thunk to dynamic vertex geometry decal flush (FUN_0016bed0). */
@@ -2164,10 +2171,14 @@ void FUN_0017cc70(void)
   FUN_00162560();
 }
 
-/* Tail-call thunk to rasterizer decal rendering (FUN_00172a30). */
-void FUN_0017ccb0(void)
+/* Tail-call thunk to rasterizer decal rendering (FUN_00172a30).
+ * 0x17ccb0: PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x172a30 — forwards 5 stack
+ * args (ADD ESP,0x14 at 0x18b928): [EBP+8]=param_1, [EBP+C]=decal_set ptr
+ * (MOV ESI,[EBP+C] at 0x172a81), [EBP+10]=position ptr (MOV EBX,[EBP+10]),
+ * [EBP+14]=radius float (FLD [EBP+14] at 0x172b88), [EBP+18]=result_out. */
+void FUN_0017ccb0(int param_1, void *decal_set, void *position, float radius, int *result_out)
 {
-  FUN_00172a30();
+  FUN_00172a30(param_1, decal_set, position, radius, result_out);
 }
 
 /* Tail-call thunk to rasterizer decal rendering (FUN_00172590).
@@ -2177,10 +2188,14 @@ void FUN_0017ccc0(int param_1)
   FUN_00172590(param_1);
 }
 
-/* Tail-call thunk to rasterizer decal rendering (FUN_00172de0). */
-void FUN_0017ccd0(void)
+/* Tail-call thunk to rasterizer decal rendering (FUN_00172de0).
+ * 0x17ccd0: PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x172de0 — forwards 4 stack
+ * args (ADD ESP,0x10 at 0x173041): [EBP+8]=decal ptr (MOV ESI,[EBP+8]),
+ * [EBP+C]=param_2 (pushed @0x172f20), [EBP+10]=param_3 (MOV EBX,[EBP+10]),
+ * [EBP+14]=param_4 (MOV EDI,[EBP+14]). */
+void FUN_0017ccd0(void *decal, int param_2, void *param_3, void *param_4)
 {
-  FUN_00172de0();
+  FUN_00172de0(decal, param_2, param_3, param_4);
 }
 
 /* Tail-call thunk to rasterizer decal rendering (FUN_00173090). */
