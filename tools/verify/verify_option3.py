@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Run the Option 3 verification ladder for a target lift.
 
+LEGACY: no callers found (2026-06-10 audit).  Superseded by
+tools/lift_pipeline.py which runs build, ABI audit, VC71 verify, buffer-alias,
+frame-map, and low-match policy in one orchestrated pipeline.
+Kept for reference; remove when confident it is unused.
+
 Option 3 is intended as a practical default lane:
 1) build the patched XBE
 2) optionally build ISO

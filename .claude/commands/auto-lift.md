@@ -33,14 +33,9 @@ failures), repeat:
    ```
    Agent(subagent_type="xbox-halo-re-analyst", model="sonnet", prompt=<brief>)
    ```
-   The prompt must include: target address, decompilation output, KB entry JSON,
-   source file path, and these file-write instructions:
-   - Write the C89 implementation to the source file at the correct address-ordered position
-   - Update kb.json declaration if needed (conservatively)
-   - Update `tools/kb_reg_baseline.json` for any `@<reg>` annotations
-   - Run `rtk python3 tools/analysis/maintain.py <source_file>`
-   - Run `rtk python3 tools/audit/check_lift_hazards.py` and fix target-relevant hazards
-   - Report: RESOLVED_TARGET, Confirmed/Inferred/Uncertain, kb.json updates made
+   The prompt must follow the **Phase-1 subagent briefing template** in
+   `docs/lift-policy.md`, filling in the target address, decompilation output,
+   KB entry JSON, and source file path.
 5. **Phase 2 — build + verify (orchestrator):**
    After the agent returns, ensure a delinked reference exists (export via
    `mcp__ghidra-live__export_delinked_object` if missing), then run:
@@ -67,43 +62,16 @@ Any hard failure stops the pipeline and reports the failing stage.
 | **VC71 verify** | Compiles with MSVC 7.1, compared against delinked reference | Depends on low-match policy |
 | **Low-match policy** (default: strict) | See thresholds below | Yes |
 
-Low-match thresholds (VC71 or objdiff structural match %):
-- **>= 65%**: PASS unconditionally — safe for auto-commit
-- **50–65%**: PASS if at least one behavior signal (behavior_check or runtime_check)
-- **40–50%**: PASS only if BOTH behavior_check AND runtime_check pass
-- **< 40%**: hard REJECT — no override
-- **FPU-WARN present**: FAIL — operand-order mismatch needs manual review
-
-Pass `--low-match-threshold 65 --low-match-behavior-both-below 50 --low-match-reject-below 40`
-to `lift_pipeline.py` to enforce these thresholds.
-
-When no delinked reference exists (no VC71 data), strict policy fails.
-The `/lift` skill uses `--verify-policy auto` which accepts when no VC71 data
-is available but the build and ABI audit pass.
+See `docs/lift-policy.md` §Verify-policy-presets for the canonical threshold table.
+Use `--verify-policy auto` (default) for this skill.  The `/lift` skill uses
+`auto` which accepts when no VC71 data is available but build and ABI audit pass.
 
 ## Opus escalation
 
-This skill runs on **Sonnet** by default for cost efficiency. When a lift fails
-on Sonnet due to a reasoning-class failure (not a trivial build error), escalate
-to Opus:
-
-**Escalate to Opus when:**
-- VC71 match < 65% (control flow / structure wrong)
-- ABI audit fails (calling convention reasoning)
-- FPU-WARN (operand order requires careful disassembly reading)
-- Build fails on the second attempt (not a simple typo)
-
-**Do NOT escalate (just revert+log) when:**
-- Target has SEH prolog/epilog (not liftable with current tooling)
-- Target has >3 register args (disqualified)
-- Build fails on an unrelated file (repo state issue, not lift quality)
-
-**Escalation flow:**
-1. Revert the Sonnet attempt: `rtk git checkout -- src/ kb.json`
-2. Re-run Phase 1 using `Agent(subagent_type="xbox-halo-re-analyst")` without
-   the `model: "sonnet"` override — the agent's default model (Opus) kicks in.
-   Include the same prompt as the original attempt.
-3. Run Phase 2 again. If Opus also fails, revert+log with both attempts recorded.
+This skill runs on **Sonnet** by default for cost efficiency.
+See `docs/lift-policy.md` §Escalation-flow for the canonical escalation rules and
+pass/fail thresholds.  Summary: escalate on VC71 <65%, ABI fail, FPU-WARN, or
+second build failure; do not escalate on SEH, >3 reg-args, or unrelated build fail.
 
 ## On success — auto-commit
 
@@ -156,4 +124,4 @@ Write failure record to `artifacts/auto_lift/failures/<target_name>.json`:
 3. Always revert on failure — never leave broken state in the working tree.
 4. Skip targets that already have failure records (don't retry known failures).
 5. `--stop-on-fail` prevents runaway failures from burning tokens.
-6. `review` and `promote` are legacy subcommands for old batch artifacts.
+6. `review` and `promote` are legacy subcommands (see `docs/lift-policy.md` §Legacy-subcommands).
