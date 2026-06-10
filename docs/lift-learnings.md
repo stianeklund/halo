@@ -834,3 +834,56 @@ fields — computing `height + 4` instead of `width`.
 **Detection at runtime:** No signal — a wrong scalar with no crash. Use §9
 toggle bisection / a state-snapshot mem-trace differential to localize, then
 read the disasm to confirm which address is actually loaded.
+
+---
+
+## 18. Deactivation Stub Re-Pushes Register-Arg Slots (Stack Offset Shift)
+
+**Automation:** FULL — `patch.py::generate_deactivation_redirect` now builds `stack_only_indices` and only re-pushes those; 6 exact-byte self-test cases in `deact_cases` including the FUN_00014e90 regression shape.  The `--test-thunks` gate runs at build time.
+
+**What happens:** When a `ported=false` function has `@<reg>` annotations,
+`patch.py` generates a deactivation stub at the compiled impl entry that
+marshals the C caller's stack args into registers and CALLs the original. The
+bug: the stub re-pushed **all** C-caller args (including the register-arg
+slots) onto the stack before the CALL. The original function's frame only
+expects its stack-positional params; the extra register-arg slots shift every
+`[EBP+N]` reference by `4 * (number of register args)`.
+
+For `f(int handle @<eax>, char *state)` (1 reg + 1 stack):
+- C caller pushes: `state`, `handle` (R→L). Stack: `[ret] [handle] [state]`.
+- Old stub re-pushed both → original sees `[ebp+8] = handle` (wrong — it
+  expects `state` there, since `handle` travels in EAX).
+- Fixed stub re-pushes only `state` → original sees `[ebp+8] = state` (correct).
+
+**Scope:** 22 of 50 `ported=false` `@<reg>` functions had mixed reg+stack
+params. Every one had a broken stub. Pure-register functions (28 of 50) were
+also affected in theory (re-pushing a slot the original ignores) but
+harmlessly — the original never reads `[ebp+8]` for a pure-register callee.
+
+**Symptoms:** ACCESS_VIOLATION inside the *original* (unported) function, with
+a datum handle (e.g. `0xe364001f`) in a register that should hold a resolved
+pointer. The fault address is in original code (0x10000–0x1Dxxxx), not in
+our compiled code — misleading, because the *stub* is the actual culprit.
+
+**Example (FUN_00014e90, flee firing-position evaluator):** Declared
+`char FUN_00014e90(int actor_handle @<eax>, char *state_data)`. Original reads
+`state_data` from `[EBP+8]` at 0x14ed7 (`MOV ESI,[EBP+8]`), then accesses
+`[ESI+0x1c]` at 0x14eda. The broken stub placed `actor_handle` (a datum handle
+`0xe3640003`) at `[EBP+8]` → `ESI = 0xe3640003` → `MOV EAX,[0xe364001f]` →
+ACCESS_VIOLATION at 0x14eda.
+
+**Prevention:**
+- The fix is infrastructure-level (in `generate_deactivation_redirect`), not
+  per-lift. No action needed when lifting — the build-time self-tests catch
+  regressions.
+- If adding a *new* `@<reg>` annotation to a `ported=false` function, run
+  `patch.py --test-thunks` to verify the generated stub is correct.
+- The diagnostic tell: a crash inside **original** code at an address that
+  *should* work, with a register holding a datum handle where a pointer is
+  expected. Check the deactivation stub at the compiled impl entry
+  (`getmem addr=<impl_export> length=32`) — if it re-pushes more args than the
+  original expects on stack, this is the bug.
+
+**Related:** §1 (XCALL ABI mismatch — same symptom class, different cause),
+[[feedback_deactivation_stub_callee_saved]] (the companion bug where the stub
+also clobbered callee-saved registers).
