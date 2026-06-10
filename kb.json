@@ -30109,7 +30109,8 @@
         },
         {
           "addr": "0x2b310",
-          "decl": "void FUN_0002b310(void);"
+          "decl": "char FUN_0002b310(float *direction@<ecx>, short count@<ebx>, int records, float *values, float *out_index, float *out_value);",
+          "ported": true
         },
         {
           "addr": "0x2b400",
