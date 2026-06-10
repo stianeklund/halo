@@ -4685,7 +4685,9 @@ void FUN_00025340(int actor_handle, void *ctx, unsigned short count, void *posit
           } else {
             score = 10.0f;
           }
-          FUN_00024000(ctx, score, 3);
+          /* @<esi> = position element base (original 0x254ed LEA ESI,[EDI-8]);
+           * 24000 accumulates score into [esi+0x38] = pos+0x30. */
+          FUN_00024000(ctx, score, 3, pos - 8);
         }
       }
     }
@@ -4774,7 +4776,9 @@ LAB_eval_guard:
                 if (*(float *)0x2533c8 < eval)
                   bonus = *(float *)0x2533c8;
               }
-              FUN_00024000(ctx, (*(float *)0x2533c8 - bonus) * *(float *)0x253f78, 10);
+              /* @<esi> = position element base (original 0x2576b). */
+              FUN_00024000(ctx, (*(float *)0x2533c8 - bonus) * *(float *)0x253f78,
+                           10, pos - 8);
             } else {
               *(char *)(pos + 0x28) = 0;
             }

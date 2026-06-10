@@ -34173,7 +34173,7 @@
       "functions": [
         {
           "addr": "0x24000",
-          "decl": "void FUN_00024000(void *ctx, float score, int type);"
+          "decl": "void FUN_00024000(void *ctx, float score, int type, void *position @<esi>);"
         },
         {
           "addr": "0x24060",
