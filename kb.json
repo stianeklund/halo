@@ -30114,11 +30114,13 @@
         },
         {
           "addr": "0x2b400",
-          "decl": "void actor_move_transform_avoidance_vector(void);"
+          "decl": "void actor_move_transform_avoidance_vector(int matrix, float *in_vec, float *out_vec);",
+          "ported": true
         },
         {
           "addr": "0x2b490",
-          "decl": "void FUN_0002B490(void);"
+          "decl": "void actor_move_get_avoidance_vector(int matrix, float dir_index, float *out_vec);",
+          "ported": true
         },
         {
           "addr": "0x2b830",
