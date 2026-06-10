@@ -3745,7 +3745,7 @@
         {
           "addr": "0x28ed0",
           "decl": "void FUN_00028ed0(float *look_vectors, float *idle_direction, int actor_handle @<eax>);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x29040",
