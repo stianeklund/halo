@@ -1511,7 +1511,7 @@ void main_vertical_blank_interrupt_handler(void)
   int16_t ring_index;
 
   /* increment 64-bit flip counter with carry */
-  flip_lo = *(uint32_t *)0x325678 + 1;
+  flip_lo = *(uint32_t *)0x325678 + 1; /* hazard-ok: value-arithmetic (counter+1 for carry) */
   *(uint32_t *)0x325678 = flip_lo;
   *(uint32_t *)0x32567c = *(uint32_t *)0x32567c + (uint32_t)(flip_lo == 0);
 

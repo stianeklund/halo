@@ -2423,7 +2423,7 @@ void game_engine_player_added(int player_data_handle)
       /* No client info: use counter with wrap-around to bit 0 */
       *(uint8_t *)(player_datum + 0x66) = *(uint8_t *)0x5aa724;
       *(int32_t *)(player_datum + 0x20) = (int32_t)(*(uint8_t *)0x5aa724);
-      v = *(int32_t *)0x5aa724 + 1;
+      v = *(int32_t *)0x5aa724 + 1; /* hazard-ok: value-arithmetic (team round-robin counter +1) */
       /* AND with 0x80000001 then sign-extend (MSVC idiom for mod 2) */
       v &= 0x80000001;
       if (v < 0)
@@ -6999,7 +6999,7 @@ float FUN_000adb20(int spawn_pos)
     if (*(float *)0x254644 < rating)
       rating = 3.0f;
   }
-  return rating * *(float *)0x254644 + 1.0f; }
+  return rating * *(float *)0x254644 + 1.0f; } /* hazard-ok: value-arithmetic (multiplied scale + offset) */
 }
 
 /* Compute the combined spawn location rating. EAX = player_handle. */
