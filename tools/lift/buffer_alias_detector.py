@@ -77,20 +77,23 @@ ARRAY_DECL_RE = re.compile(
 
 # Scalar local — undefined4 local_44;  int local_3c;  float *local_40;
 #               undefined *local_40;  undefined4 *puVar;  (skip non-local names)
-# Group 1: var name
+#               Also matches Ghidra's acStack_XXXX / puStack_XXXX naming.
+# Group 1: var name (local_XX or *Stack_XX form)
 SCALAR_DECL_RE = re.compile(
     r'^\s*'
     r'(?:unsigned\s+|signed\s+)?'
     r'(?:undefined\d*|char|short|int|long|float|double|byte|uint\w*|int\w*|ushort\w*)'
     r'(?:\s*\*+\s*|\s+)'           # pointer stars OR whitespace between type and name
-    r'(local_[0-9a-fA-F]+)\s*;',
+    r'((?:[a-zA-Z_]\w*Stack_|local_)[0-9a-fA-F]+)\s*;',
     re.IGNORECASE,
 )
 
-# Any reference to local_XX in a non-declaration line.
+# Any reference to local_XX or *Stack_XX in a non-declaration line.
 # We look for the name not followed by '[' (to skip array-base uses inside
 # declarations) but we DO want array indexing uses: local_xx[0x34].
-LOCAL_REF_RE = re.compile(r'\blocal_([0-9a-fA-F]+)\b')
+LOCAL_REF_RE = re.compile(
+    r'\b(?:local_([0-9a-fA-F]+)|(?:[a-zA-Z_]\w*Stack_)([0-9a-fA-F]+))\b'
+)
 
 # Function call on the line — very broad: word( or FUN_xxxxx(
 CALL_RE = re.compile(r'\b(\w+)\s*\(')
@@ -142,8 +145,12 @@ class AliasHit:
 
 def _extract_local_offset(name: str) -> Optional[int]:
     """Parse the hex offset out of a local_XX name.  Returns None if name
-    doesn't match the expected pattern."""
-    m = re.fullmatch(r'local_([0-9a-fA-F]+)', name, re.IGNORECASE)
+    doesn't match the expected pattern.
+    Handles both Ghidra naming conventions:
+      local_8c     → 0x8c  (EBP-relative)
+      acStack_8c   → 0x8c  (EBP-relative, stack-frame prefix variant)
+    """
+    m = re.fullmatch(r'(?:[a-zA-Z_]\w*Stack_|local_)([0-9a-fA-F]+)', name, re.IGNORECASE)
     if m:
         return int(m.group(1), 16)
     return None
@@ -199,7 +206,6 @@ def analyze(source: str) -> Tuple[List[AliasHit], str]:
             name = m.group(1)
             size = _parse_size(m.group(2))
             if size >= MIN_BUFFER_SIZE:
-                # Only track local_XX form (not Stack_ variants for now)
                 offset = _extract_local_offset(name)
                 if offset is not None:
                     buffers[name] = BufferInfo(
@@ -248,10 +254,12 @@ def analyze(source: str) -> Tuple[List[AliasHit], str]:
         # the call passes the buffer; reads on subsequent lines are the risk.
         # But if the same line both passes AND reads, that's also suspicious.
 
-        # Find every local_XX reference on the line
+        # Find every local_XX / *Stack_XX reference on the line
         for ref_m in LOCAL_REF_RE.finditer(line):
-            ref_name = 'local_' + ref_m.group(1)
-            ref_offset = int(ref_m.group(1), 16)
+            # Group 1: local_XX hex digits; Group 2: *Stack_XX hex digits
+            hex_digits = ref_m.group(1) or ref_m.group(2)
+            ref_name = ref_m.group(0)   # full matched name (e.g. "local_44" or "acStack_44")
+            ref_offset = int(hex_digits, 16)
 
             # Skip if this IS a buffer's own name (the buffer being passed as
             # an argument is expected; the alias risk is in OTHER locals)
@@ -525,6 +533,9 @@ def main() -> int:
                         help='Write annotated output to FILE instead of stdout')
     parser.add_argument('--quiet', action='store_true',
                         help='Suppress hit report; only write annotated source')
+    parser.add_argument('--json-output', metavar='FILE',
+                        help='Write machine-readable JSON hit list to FILE '
+                             '(for pipeline consumption); suppresses annotated source output')
 
     args = parser.parse_args()
 
@@ -551,6 +562,30 @@ def main() -> int:
         return 2
 
     hits, annotated = analyze(source)
+
+    # Machine-readable JSON output for pipeline consumption
+    if args.json_output:
+        hit_records = [
+            {
+                "line": h.line_no,
+                "local": h.local_name,
+                "local_offset": h.local_offset,
+                "buffer": h.buffer.name,
+                "buffer_base": h.buffer.base,
+                "buffer_size": h.buffer.size,
+                "field_offset": h.buffer.offset_of(h.local_offset),
+                "post_call": h.post_call,
+            }
+            for h in hits
+        ]
+        json_path = args.json_output
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(hit_records, f, indent=2)
+        high_risk = sum(1 for h in hits if h.post_call)
+        print(f"[buffer_alias] {len(hits)} hit(s), {high_risk} HIGH-RISK → {json_path}")
+        if any(h.post_call for h in hits):
+            return 1
+        return 0
 
     if not args.quiet:
         _report(hits, source_name)
