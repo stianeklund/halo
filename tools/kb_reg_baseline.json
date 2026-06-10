@@ -29,6 +29,7 @@
     "0x21590": "void actor_combat_set_fire_timer(int actor_handle @<esi>);",
     "0x21640": "bool actor_combat_evaluate_firing(int actor_handle @<eax>, void *timing_data @<edi>);",
     "0x22010": "int actor_combat_check_fire_target(int actor_handle @<edi>, short mode);",
+    "0x24000": "void FUN_00024000(void *ctx, float score, int type, void *position @<esi>);",
     "0x24850": "void FUN_00024850(int actor_handle, int flag, char *actor @<edi>, void *state @<ebx>);",
     "0x24890": "char FUN_00024890(int actor_handle, void *state, char *actor @<edi>);",
     "0x257a0": "void FUN_000257a0(int actor_handle@<eax>, void *state@<edi>, char *actor@<ecx>);",
