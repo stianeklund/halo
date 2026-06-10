@@ -5,6 +5,7 @@ Provides:
   - patch_dir32_relocs(): rewrite DIR32 relocations to globals region
   - patch_rel32_calls(): rewrite CALL targets to sentinel addresses
   - StubManager: intercept calls via Unicorn hooks, run callees in sub-emulator
+  - StubArgTracer / compare_stub_arg_traces: record and diff per-stub call args
 """
 
 import math
@@ -15,7 +16,7 @@ import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 IMAGE_REL_I386_DIR32 = 0x0006
 IMAGE_REL_I386_REL32 = 0x0014
@@ -55,6 +56,134 @@ def _write_st0_double(uc, val: float):
     else:
         ext = (sign << 79) | ((exp - 1023 + 16383) << 64) | (1 << 63) | (frac << 11)
     uc.reg_write(UC_X86_REG_ST0, ext)
+
+
+# ---------------------------------------------------------------------------
+# Stub argument tracing
+# ---------------------------------------------------------------------------
+
+# Stack region bounds (must match unicorn_diff.py constants).
+_STACK_BASE = 0x00100000
+_STACK_TOP  = 0x00200000  # STACK_BASE + STACK_SIZE (1 MB)
+
+
+@dataclass
+class StubCallRecord:
+    """Arguments captured for one stub invocation."""
+    seq: int           # 0-based call sequence index within this run
+    callee_addr: int   # sentinel address
+    callee_name: str   # resolved callee name (from _stub_names)
+    args: List[int]    # dword values: reg-args first, then stack-args (ESP+4, ESP+8, …)
+    is_varargs: bool   # True when callee has a '...' param
+
+
+@dataclass
+class StubArgTracer:
+    """Accumulates StubCallRecords for one emulator run (oracle or candidate).
+
+    Attach via StubManager.set_tracer() before a run, then read .records after.
+    """
+    records: List[StubCallRecord] = field(default_factory=list)
+
+    def reset(self):
+        self.records = []
+
+
+@dataclass
+class StubArgDiff:
+    """Result of comparing oracle and candidate StubArgTracer records."""
+    # Total stubs executed (from oracle run)
+    total_calls: int
+    # Number of arg-value mismatches (excludes soft-matched stack-ptr pairs)
+    arg_mismatches: int
+    # Number of arg positions where BOTH sides are stack pointers (soft match)
+    soft_stack_ptr_matches: int
+    # Detailed mismatch records: (seed_label, seq, callee_name, arg_pos, oracle_val, cand_val)
+    details: List[tuple]
+    # True when call sequences diverge (different length or different callee order)
+    sequence_diverged: bool
+    sequence_diverge_index: int  # index where divergence first occurs (-1 if none)
+
+    def has_differences(self) -> bool:
+        return self.sequence_diverged or self.arg_mismatches > 0
+
+    def summary(self) -> str:
+        parts = []
+        if self.sequence_diverged:
+            parts.append(f"call-seq diverged at index {self.sequence_diverge_index}")
+        if self.arg_mismatches:
+            parts.append(f"{self.arg_mismatches} arg mismatch(es)")
+        if self.soft_stack_ptr_matches:
+            parts.append(f"{self.soft_stack_ptr_matches} stack-ptr arg(s) soft-matched")
+        if not parts:
+            parts.append("ok")
+        return "stub-args: " + ", ".join(parts)
+
+
+def _is_stack_ptr(v: int) -> bool:
+    """Return True when v looks like a pointer into the emulated stack region."""
+    return _STACK_BASE <= v < _STACK_TOP
+
+
+def compare_stub_arg_traces(oracle_tracer: StubArgTracer,
+                             cand_tracer: StubArgTracer,
+                             seed_label: str = "") -> StubArgDiff:
+    """Compare oracle and candidate StubArgTracer records for one seed.
+
+    Rules:
+      - Call sequences must have the same length and callee order.
+      - Per argument: exact compare, EXCEPT when BOTH oracle and candidate
+        values are stack pointers (STACK_BASE..STACK_TOP) — those differ due
+        to legitimate frame-layout differences and count as soft matches.
+      - Varargs callees: only fixed args (those recorded) are compared.
+    """
+    oc = oracle_tracer.records
+    cc = cand_tracer.records
+
+    total_calls = len(oc)
+    seq_diverged = False
+    seq_diverge_idx = -1
+
+    # Check sequence length
+    if len(oc) != len(cc):
+        seq_diverged = True
+        seq_diverge_idx = min(len(oc), len(cc))
+
+    # Check callee identity up to the shorter of the two
+    if not seq_diverged:
+        for i, (o, c) in enumerate(zip(oc, cc)):
+            if o.callee_addr != c.callee_addr:
+                seq_diverged = True
+                seq_diverge_idx = i
+                break
+
+    arg_mismatches = 0
+    soft_matches = 0
+    details = []
+
+    # Per-arg comparison over matching prefix
+    pairs = list(zip(oc, cc))
+    for o_rec, c_rec in pairs:
+        n_args = max(len(o_rec.args), len(c_rec.args))
+        for ai in range(n_args):
+            o_val = o_rec.args[ai] if ai < len(o_rec.args) else 0
+            c_val = c_rec.args[ai] if ai < len(c_rec.args) else 0
+            if o_val == c_val:
+                continue
+            if _is_stack_ptr(o_val) and _is_stack_ptr(c_val):
+                soft_matches += 1
+                continue
+            arg_mismatches += 1
+            details.append((seed_label, o_rec.seq, o_rec.callee_name, ai, o_val, c_val))
+
+    return StubArgDiff(
+        total_calls=total_calls,
+        arg_mismatches=arg_mismatches,
+        soft_stack_ptr_matches=soft_matches,
+        details=details,
+        sequence_diverged=seq_diverged,
+        sequence_diverge_index=seq_diverge_idx,
+    )
 
 
 @dataclass
@@ -255,6 +384,17 @@ class StubManager:
         self._callee_dir32_slots: dict[str, int] = {}
         self._extra_rdata_seeds: dict[int, bytes] = {}
         self._real_code_count = 0
+        # Optional stub argument tracer; set via set_tracer() before each run.
+        self._tracer: Optional[StubArgTracer] = None
+
+    def set_tracer(self, tracer: Optional["StubArgTracer"]):
+        """Attach (or detach) a StubArgTracer for the current emulation run.
+
+        Call with a fresh StubArgTracer before running oracle or candidate,
+        and with None (or simply don't call) when tracing is disabled.
+        The tracer accumulates one StubCallRecord per stub invocation.
+        """
+        self._tracer = tracer
 
     def _load_kb(self):
         if self._kb is None:
@@ -646,6 +786,57 @@ class StubManager:
             # Read caller's current state
             caller_esp = uc.reg_read(UC_X86_REG_ESP)
             symbol_name = self._resolve_name(address)
+
+            # --- Stub argument capture (depth==1 only: top-level callee) ---
+            if self._tracer is not None and self._depth == 1:
+                _reg_map = {
+                    "eax": UC_X86_REG_EAX, "ecx": UC_X86_REG_ECX,
+                    "edx": UC_X86_REG_EDX, "ebp": UC_X86_REG_EBP,
+                }
+                # Import ESI/EDI lazily (they're in abi._uc_regs but not
+                # imported at the top of execute_stub).
+                try:
+                    from unicorn.x86_const import UC_X86_REG_ESI, UC_X86_REG_EDI
+                    _reg_map["esi"] = UC_X86_REG_ESI
+                    _reg_map["edi"] = UC_X86_REG_EDI
+                except ImportError:
+                    pass
+
+                _args = []
+                _is_varargs = False
+                _n_stack = 4  # fallback: read 4 stack dwords when no decl
+                if stub is not None:
+                    params = stub.abi.get("params", [])
+                    _is_varargs = any(
+                        getattr(p, "c_type", "") == "..." for p in params
+                    )
+                    # Register args first (in parameter order)
+                    for p in params:
+                        p_reg = getattr(p, "reg", "")
+                        if p_reg:
+                            reg_id = _reg_map.get(p_reg.lower())
+                            if reg_id is not None:
+                                _args.append(uc.reg_read(reg_id) & 0xFFFFFFFF)
+                    # Stack args: only the declared fixed count
+                    stack_params = [p for p in params
+                                    if not getattr(p, "reg", "")
+                                    and getattr(p, "c_type", "") != "..."]
+                    _n_stack = len(stack_params)
+                for _si in range(_n_stack):
+                    try:
+                        _dw = bytes(uc.mem_read(caller_esp + 4 + _si * 4, 4))
+                        _args.append(int.from_bytes(_dw, "little"))
+                    except Exception:
+                        _args.append(0)
+
+                self._tracer.records.append(StubCallRecord(
+                    seq=len(self._tracer.records),
+                    callee_addr=address,
+                    callee_name=self._stub_names.get(address, hex(address)),
+                    args=_args,
+                    is_varargs=_is_varargs,
+                ))
+            # --- end arg capture ---
 
             if symbol_name in ("csmemcpy", "memcpy"):
                 dst = int.from_bytes(bytes(uc.mem_read(caller_esp + 4, 4)), "little")

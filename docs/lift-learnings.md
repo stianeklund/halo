@@ -8,6 +8,8 @@ how we diagnosed it when it reached the Xbox.
 
 ## 1. XCALL to a Ported Function
 
+**Automation:** PARTIAL — `check_xcall_types.py` catches float↔int return/param mismatches (ERROR); missing register args not yet checked automatically.
+
 **What happens:** `XCALL(0xADDR, type)(args)` does a raw indirect call to
 the original XBE address. When the target is **unported**, original code is
 intact and this works by accident. When the target gets **ported**, patch.py
@@ -37,6 +39,8 @@ thunk recursion) or EAX/EDX containing float-as-pointer values.
 ---
 
 ## 2. Stack Aliasing (Contiguous Struct as Separate Locals)
+
+**Automation:** PARTIAL — `buffer_alias_detector.py` detects local_XX reads inside a buffer's address range; not yet wired into `lift_pipeline.py` (Task 2 of workflow-improvement-plan).  Frame-map contract validator planned (Task 3).
 
 **What happens:** MSVC lays out local variables contiguously on the stack.
 When a function passes `&local_80` to a callee that reads at fixed offsets
@@ -111,6 +115,8 @@ near ground-emitting teleporter lights. Fix: `float local_40[3]`.
 
 ## 3. Register Argument Params Passed as NULL
 
+**Automation:** PARTIAL — `check_callee_regs` skill audits unported callees for missing register args before a new lift; `audit_reg_abi.py` checks staged caller diffs.  NULL-const passing not yet detected automatically.
+
 **What happens:** A function with `@<reg>` annotations (e.g.,
 `color_ptr@<ebx>`, `output_ptr@<esi>`) is called from lifted code with
 `(float *)0` for the register params. This happens when the lift author
@@ -138,6 +144,8 @@ Fix: pass `local_88`, `param_3`, `&local_40`.
 ---
 
 ## 4. Parameter Corruption by Loop
+
+**Automation:** PARTIAL — `check_lift_hazards.py::check_param_loop_corruption` (WARN) detects function parameters mutated (++/--/+=) inside a loop body and used afterwards.  Regex-based; imperfect parsing may miss complex cases.
 
 **What happens:** Ghidra decompiles a REP MOVSD loop as
 `*param = *src; param++; src++` — modifying the function parameter
@@ -168,6 +176,8 @@ value from the memory region 0x74 bytes past the buffer).
 ---
 
 ## 5. Debugging Runtime Crashes on Xbox (Methodology)
+
+**Automation:** not mechanically detectable — methodology section, no bug pattern.
 
 When a lifted function causes a hang or crash on map load, this is the
 diagnostic procedure that works:
@@ -239,6 +249,8 @@ actually expects. Compare against the C source line by line.
 
 ## 6. Float-as-Pointer Bit Smuggling
 
+**Automation:** PARTIAL — `check_lift_hazards.py::check_float_int_bit_smuggling` (WARN) uses a two-pass per-function scan: detects a variable assigned via `(T*)(int)(expr)` that is later read via `(float)(int)var`.  Does not catch the case where the Ghidra pointer name is a cast chain without an explicit intermediate variable.
+
 **What happens:** Ghidra decompiles a float value stored through an integer
 register as a series of pointer casts: `local_18 = (short *)(int)(float_expr)`.
 Later, the value is passed to a function as `(float)(int)psVar3`. In C,
@@ -281,6 +293,8 @@ against the unpatched game at the same camera position.
 ---
 
 ## 7. Ghidra cdecl Arg Mis-Grouping (inner 0-arg getter swallows the outer call's args)
+
+**Automation:** PARTIAL — stack-cleanup cross-check (Task 5 of workflow-improvement-plan): compare `ADD ESP,N` cleanup after each CALL against the callee's kb.json arg count; 0-arg getter followed by outer with missing args is the specific signal.  Not yet implemented as a standalone check.
 
 **What happens:** For a call written `outer(get_x(), a, b, c)` where `get_x()`
 is a **0-arg getter**, MSVC emits (cdecl, args pushed right-to-left):
@@ -338,6 +352,8 @@ dropped args were scalars (see §5 for distinguishing the two).
 
 ## 8. Running Accumulator / Loop State Misread as a Constant
 
+**Automation:** PARTIAL — `check_lift_hazards.py::check_discarded_result` (WARN) detects `(void)var;` applied to a variable that was assigned from a function call in the preceding lines.  Does not yet detect the `(float)0` constant-load variant (accumulator seed not discarded, just read as zero).  Draft-decompiler annotation for accumulator slots planned (Task 8 of workflow-improvement-plan).
+
 **What happens:** A function seeds a local accumulator from a value (often an
 RNG result), mutates it each loop iteration, and branches on the running value.
 Ghidra sometimes loses the data flow: it renders the initial load of the
@@ -377,6 +393,8 @@ spawn, a selection always returns the same/none). Use §9 toggle bisection.
 
 ## 9. Localizing Non-Crashing Runtime Regressions (toggle bisection)
 
+**Automation:** not mechanically detectable — methodology section, no bug pattern.
+
 VC71 match% and instruction diffing **do not converge** on FPU/stack-heavy
 functions: a faithful lift there scores 98–100%, but a real behavioral bug can
 sit at 98%+, and codegen-ceiling functions sit at 43–78% with the defect buried
@@ -410,6 +428,8 @@ repeatedly during this hunt).
 
 ## 10. Caller-Site Register Order Contradicts Thunk Convention
 
+**Automation:** PARTIAL — `audit_reg_abi.py` confirms registers are written before CALL but not which value flows to which register.  `dump_caller_regsetup.py` (new) mechanises evidence-gathering: given a callee address or name it disassembles every original CALL site from the pristine XBE and prints each caller's last register load per GPR plus the PUSH sequence; value→register comparison against C call sites remains manual review.  Value→register mapping check planned as Task 6 of workflow-improvement-plan.
+
 **What happens:** A function declared `@<ecx>, @<eax>, @<ebx>` has its thunk
 map first C arg → ECX, second → EAX, third → EBX. When ported callers call it
 via the thunk, this is the expected order. But in the *original binary* a
@@ -439,13 +459,20 @@ ran without crashing.
 match the original caller's register assignment:
 `game_engine_hud_update_player(param_1, param_3, param_2)`.
 
-**Prevention:** For any callee with `@<reg>` args, run `get_function_callers`
-in Ghidra. For each caller, read the 5–10 instructions before the CALL and
-note which registers hold which values. If a caller loads EBX before EAX (or
-any non-canonical order), its ported C call must swap the corresponding args.
-This is especially worth checking when the same function has both direct callers
-and indirect callers (via an intermediate dispatch function) — they often use
-different preparation sequences.
+**Prevention:** For any callee with `@<reg>` args, run
+`rtk python3 tools/audit/dump_caller_regsetup.py <callee>` to dump every
+original CALL site's last register load per GPR and PUSH sequence in one pass.
+Compare each site's decoded summary against the C thunk convention.  If a
+caller loads EBX before EAX (or any non-canonical order), its ported C call
+must swap the corresponding args.  Critically, when a §10 swap is found and
+fixed on one caller, audit **every** caller of that callee before closing —
+`game_engine_hud_update_player` (0xacef0) had its swap fixed in `0xad0c0`
+months before the sibling `FUN_000acff0` (0xacff0) was ported; that caller
+carried the same swap undetected until 2026-06-10 because no all-callers audit
+was done at the time of the first fix.  This is especially worth checking when
+the same function has both direct callers and indirect callers (via an
+intermediate dispatch function) — they often use different preparation
+sequences.
 
 **Detection:** No runtime signal. Only way to catch this before deployment: for
 each ported caller, verify the call-site disassembly matches what the C thunk
@@ -455,6 +482,8 @@ but receives a datum handle is the smoking gun in a decompiler trace.
 ---
 
 ## 11. Builder Returns Count; Consumer Ignores It → Assert on Missing Entry
+
+**Automation:** PARTIAL — `check_lift_hazards.py::check_discarded_result` (WARN) flags `(void)func(...)` for non-exempt named callees that likely return non-void values.  The specific builder-count class requires knowing the callee's return semantics; manual review remains necessary for first instances.
 
 **What happens:** A sorted-array builder (data_iterator_next loop) both fills
 an output buffer AND returns the count of active entries. The consumer function
@@ -489,6 +518,9 @@ discards it with `(void)` or by casting to nothing, treat that as a latent bug
 waiting for the first time an entry is legitimately absent from the output.
 
 ## 12. Permuter "No Improvement" Can Be Vacuous (Candidate Never Compiled)
+
+**Automation:** FULL — `tools/permuter/compile.sh` with the `strip_dup_typedefs.py` hook, wired in `tools/permuter/run.py`.  The fix (PYCPARSER_TYPEDEFS guard stripping) ships in the repo.  Verified: permuter now iterates and finds improving candidates.
+
 
 A permuter run that prints `No improvements found` is **only** trustworthy if it
 actually compiled and scored candidates. On `actor_looking.c` functions
@@ -572,6 +604,8 @@ Two operational gotchas when running from a `/tmp` worktree:
 ---
 
 ## 13. Overlapping 16-bit Fields Packed into One 32-bit Store (CONCAT22)
+
+**Automation:** FULL — `check_lift_hazards.py::check_concat_survival` (ERROR) prevents any CONCAT* token from reaching the final C source.  `draft_decompiler.py` rewrites them to shift/OR idioms before lifting.
 
 **What happens:** Two adjacent 16-bit fields share one aligned dword. The
 original code updates *both at once* with a single 32-bit store, which Ghidra
@@ -678,6 +712,8 @@ stride from disasm and diff the per-vertex field count.
 
 ## 15. Stale `build/halo.map` Sends Crash Symbolization to the Wrong Function
 
+**Automation:** not mechanically detectable — process/methodology error, not a source-code pattern.  Prevention: symbolize from the PE export table at base 0x642000, not the map file.
+
 **What happens:** `tools/build/build.py` does **not** regenerate `build/halo.map`.
 A runtime crash address symbolized against that stale map resolves to whatever
 function occupied the address in an *older* layout — which can be in a completely
@@ -707,6 +743,8 @@ nothing to do with the failing feature.
 ---
 
 ## 16. Void-Return Out-Param Functions That Return EAX Implicitly
+
+**Automation:** FULL — `check_lift_hazards.py::check_void_eax_returns` (ERROR) checks the `VOID_BUT_RETURNS_EAX` table against `decl.h`; `find_void_eax_returns.py` (Task 4 of workflow-improvement-plan) will batch-discover new candidates from disasm tails.
 
 **What happens:** MSVC frequently ends "void-like" functions that write through
 an out-parameter with `MOV EAX, [EBP+8]` (loading the first argument — the
@@ -764,6 +802,8 @@ or a targeted check comparing `*(int*)EAX_on_return` between oracle and candidat
 
 ## 17. Address Offset Mis-Rendered as a Value Addition
 
+**Automation:** PARTIAL — `check_lift_hazards.py::check_addr_value_add` (WARN) flags `*(T*)0xLITERAL + N` (N < 16) patterns excluding double-dereferences and counter-increment idioms.  Sibling-address cross-check (the strongest signal) is not yet automated; manual disasm verification required for each hit.
+
 **What happens:** Two adjacent fields of a global struct live at `BASE` and
 `BASE+N` (e.g. two `short` rect edges at `0x506588` and `0x50658a`). The
 original reads the second field directly: `*(short*)(BASE+N)`. A lift that is
@@ -801,3 +841,135 @@ fields — computing `height + 4` instead of `width`.
 **Detection at runtime:** No signal — a wrong scalar with no crash. Use §9
 toggle bisection / a state-snapshot mem-trace differential to localize, then
 read the disasm to confirm which address is actually loaded.
+
+---
+
+## 18. Deactivation Stub Re-Pushes Register-Arg Slots (Stack Offset Shift)
+
+**Automation:** FULL — `patch.py::generate_deactivation_redirect` now builds `stack_only_indices` and only re-pushes those; 6 exact-byte self-test cases in `deact_cases` including the FUN_00014e90 regression shape.  The `--test-thunks` gate runs at build time.
+
+**What happens:** When a `ported=false` function has `@<reg>` annotations,
+`patch.py` generates a deactivation stub at the compiled impl entry that
+marshals the C caller's stack args into registers and CALLs the original. The
+bug: the stub re-pushed **all** C-caller args (including the register-arg
+slots) onto the stack before the CALL. The original function's frame only
+expects its stack-positional params; the extra register-arg slots shift every
+`[EBP+N]` reference by `4 * (number of register args)`.
+
+For `f(int handle @<eax>, char *state)` (1 reg + 1 stack):
+- C caller pushes: `state`, `handle` (R→L). Stack: `[ret] [handle] [state]`.
+- Old stub re-pushed both → original sees `[ebp+8] = handle` (wrong — it
+  expects `state` there, since `handle` travels in EAX).
+- Fixed stub re-pushes only `state` → original sees `[ebp+8] = state` (correct).
+
+**Scope:** 22 of 50 `ported=false` `@<reg>` functions had mixed reg+stack
+params. Every one had a broken stub. Pure-register functions (28 of 50) were
+also affected in theory (re-pushing a slot the original ignores) but
+harmlessly — the original never reads `[ebp+8]` for a pure-register callee.
+
+**Symptoms:** ACCESS_VIOLATION inside the *original* (unported) function, with
+a datum handle (e.g. `0xe364001f`) in a register that should hold a resolved
+pointer. The fault address is in original code (0x10000–0x1Dxxxx), not in
+our compiled code — misleading, because the *stub* is the actual culprit.
+
+**Example (FUN_00014e90, flee firing-position evaluator):** Declared
+`char FUN_00014e90(int actor_handle @<eax>, char *state_data)`. Original reads
+`state_data` from `[EBP+8]` at 0x14ed7 (`MOV ESI,[EBP+8]`), then accesses
+`[ESI+0x1c]` at 0x14eda. The broken stub placed `actor_handle` (a datum handle
+`0xe3640003`) at `[EBP+8]` → `ESI = 0xe3640003` → `MOV EAX,[0xe364001f]` →
+ACCESS_VIOLATION at 0x14eda.
+
+**Prevention:**
+- The fix is infrastructure-level (in `generate_deactivation_redirect`), not
+  per-lift. No action needed when lifting — the build-time self-tests catch
+  regressions.
+- If adding a *new* `@<reg>` annotation to a `ported=false` function, run
+  `patch.py --test-thunks` to verify the generated stub is correct.
+- The diagnostic tell: a crash inside **original** code at an address that
+  *should* work, with a register holding a datum handle where a pointer is
+  expected. Check the deactivation stub at the compiled impl entry
+  (`getmem addr=<impl_export> length=32`) — if it re-pushes more args than the
+  original expects on stack, this is the bug.
+
+**Related:** §1 (XCALL ABI mismatch — same symptom class, different cause),
+[[feedback_deactivation_stub_callee_saved]] (the companion bug where the stub
+also clobbered callee-saved registers).
+
+---
+
+## 19. "Structural Ceiling" Scores Are Often Improvable
+
+**What happens:** A function scores 73–80% VC71 and gets labeled "structural
+ceiling" — the gap attributed to `@<reg>` prologues, FPU idiom differences
+(FUCOMPP vs FCOMPS), or compiler-specific scheduling. The function stays
+dormant, never investigated further. But the gap often contains 5–15pp of
+recoverable match hidden behind codegen noise, reachable through three
+techniques that don't require inline assembly or ABI changes.
+
+**Why "structural" verdicts are unreliable at <85%:**
+§12 showed prior permuter verdicts were vacuous (candidates never compiled).
+Even with a working permuter, a 120-second random search samples a tiny
+fraction of the codegen space. And instruction-level diffs at 73% are too
+noisy to visually separate structural from improvable — dozens of
+mismatched instructions make it impossible to tell which came from the
+`@<reg>` prologue and which from a suboptimal C idiom.
+
+**Proven session example:** FUN_001a2160 went from 73.4% → 82.8% through
+source rewrites, and FUN_001a1a10 went from 80.0% → 91.5% from a single
+variable addition. Both were previously declared structural ceilings.
+
+**Technique 1 — `cos()/sin()` intrinsification (replace x87 helpers):**
+VC71 with `/O2` (which includes `/Oi`) compiles `(float)cos((double)x)` and
+`(float)sin((double)x)` to inline FCOS/FSIN instructions. When the same
+variable feeds both, MSVC uses `FLD ST0` to share the value on the FPU stack
+— a pattern the `x87_fcos`/`x87_fsin` inline asm helpers cannot produce
+(each helper does its own `FLD [mem]`). The fix: use standard math calls
+under `#if defined(_MSC_VER) && !defined(__clang__)` and keep the x87
+helpers in the `#else` path (clang `cosf` goes to libm, not FCOS).
+Recovered ~5 instructions on FUN_001a2160.
+
+**Technique 2 — pointer-base aliasing (consecutive stores):**
+MSVC generates compact `FSTP [EDI]; FSTP [EDI+4]; FSTP [EDI+8]` when it
+sees three stores through the same base pointer. Writing
+`*(float*)(obj+0x30) = ...; *(float*)(obj+0x34) = ...; *(float*)(obj+0x38) = ...`
+with separate base+offset expressions prevents this optimization. The fix:
+declare `float *up_ptr = (float*)(obj + 0x30)` and write `up_ptr[0] = ...;
+up_ptr[1] = ...; up_ptr[2] = ...`. Same for read-side: `float *fwd = (float*)
+(obj + 0x24)` then `fwd[0]`, `fwd[1]`, `fwd[2]`. This also applies to
+physics-struct fields accessed as `physics[0x2e]` vs through a `float *nv`
+pointer. Recovered ~10 instructions on FUN_001a2160.
+
+**Technique 3 — early register-load hint (permuter-proven):**
+When a `@<reg>` parameter (e.g., `direction@<eax>`) is used late in the
+function, MSVC may spill it after the prologue and reload it later. Saving
+it to a local early (`float dir0 = direction[0]`) forces the register load
+to happen while the pointer is still live in the register, matching the
+original's register flow. Recovered +11.5pp on FUN_001a1a10 (80% → 91.5%).
+The permuter finds these automatically but they're easy to spot manually:
+any `@<reg>` parameter whose first USE is far from the function entry.
+
+**Prevention — the rewrite checklist (before declaring a ceiling):**
+1. Does the function use `x87_fcos`/`x87_fsin`? → Try `cos()`/`sin()` under
+   `_MSC_VER`.
+2. Are there 3+ stores to consecutive offsets from the same struct/object?
+   → Use a single `float *ptr` base.
+3. Does a `@<reg>` parameter get used far from entry? → Add an early
+   `local = reg_param[0]` load.
+4. Run the permuter for 120s on the IMPROVED source (not the original) —
+   the search space is smaller after manual fixes.
+5. If VC71 match is still <85% after all four steps, THEN it's a genuine
+   structural ceiling. Document which specific instructions are unmatched
+   (FPU stack depth refs like `FLD ST(1)`, FPU comparison idioms, `@<reg>`
+   prologue) so future sessions don't re-investigate.
+
+**Variant — vector3d_scale_add operand confusion (§2 + §4 interaction):**
+In FUN_001a2f40, the Ghidra decompiler lost track of which vector was
+which across `vector3d_scale_add` calls — outputting `vecA` where the
+disasm showed `vecB`, and `gp` where the disasm showed the in-place
+buffer. The tell: two `vector3d_scale_add` calls with DIFFERENT dot-product
+operands where the mathematical operation (Gram-Schmidt projection) requires
+them to be IDENTICAL (project the same vector). Combined with a material-
+condition inversion and a double-normalize control-flow error, this produced
+5 interrelated bugs in a single branch. These bugs were invisible to VC71
+comparison (they produce similar instruction counts) but would cause wrong
+ground-movement physics at runtime.

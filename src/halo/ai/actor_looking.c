@@ -25,6 +25,20 @@ s_actor_charge_estimate_target(char *actor, float *target_pos)
   return 1;
 }
 
+/* Compute the cross product of two 3D vectors: out = a x b.
+ *
+ * Ref: z computed first, then y, then x; all three FPU results held on the
+ * x87 stack before the first FSTP (aliasing safe when b==out). */
+void cross_product3d(float *a, float *b, float *out)
+{
+  float z = a[0] * b[1] - a[1] * b[0];
+  float y = a[2] * b[0] - a[0] * b[2];
+  float x = a[1] * b[2] - a[2] * b[1];
+  out[0] = x;
+  out[1] = y;
+  out[2] = z;
+}
+
 /* FUN_00013dd0 (0x13dd0)
  * Tests whether a clear collision path exists from source_pos to the actor's
  * charge target. If actor->flag_0x484 is set, reads the target position from
@@ -104,6 +118,7 @@ char FUN_00013ef0(int actor_handle, int action_type, void *charge_state)
   float rand_val;
   char *actv_tag;
   float min_speed;
+  int enc_handle;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   actr_tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
@@ -119,23 +134,10 @@ char FUN_00013ef0(int actor_handle, int action_type, void *charge_state)
   csmemset(charge_state, 0, 0x38);
   *(int *)charge_state = game_time_get();
 
-  if ((short)action_type == 5 || (short)action_type == 4) {
-    return_flag = (char)(*(int16_t *)(actor + 0x15e) > 1);
-    *(int16_t *)(actor_state + 0x190) =
-      (int16_t)(*(int16_t *)(actor + 0x15e) <= 1);
-    goto done;
-  }
-  if ((short)action_type != 2) {
-    return_flag = 0;
-    if ((short)action_type == 0 && (*(int *)actr_tag & 0x20000) &&
-        *(int16_t *)(actor + 0x6e) >= 5 && !*(char *)(actor + 0x378)) {
-      action_type = 1;
-      *(int16_t *)(actor_state + 0x190) = 8;
-    } else {
-      *(int16_t *)(actor_state + 0x190) = 9;
-    }
-    goto done;
-  }
+  if ((short)action_type == 5 || (short)action_type == 4)
+    goto case_invade_retreat;
+  if ((short)action_type != 2)
+    goto case_default;
 
   /* action_type == 2: melee charge */
   if (*(char *)(actor + 0x6)) {
@@ -143,6 +145,10 @@ char FUN_00013ef0(int actor_handle, int action_type, void *charge_state)
     *(int16_t *)(actor_state + 0x190) = 2;
     goto done;
   }
+  /* Original zeroes return_flag unconditionally here (0x13fe4: MOV byte
+   * [EBP-0x1],0 before the JNS) — the rest of the melee path is pessimistic:
+   * fail reasons 3-6 all return 0; only reason 7 re-sets 1. */
+  return_flag = 0;
   if (*(int8_t *)((char *)object_get_and_verify_type(*(int *)(actor + 0x18),
                                                      3) +
                   0xb6) < 0) {
@@ -150,13 +156,14 @@ char FUN_00013ef0(int actor_handle, int action_type, void *charge_state)
     *(int16_t *)(actor_state + 0x190) = 3;
     goto done;
   }
-  if (*(int *)(actor + 0x270) == -1) {
+  enc_handle = *(int *)(actor + 0x270);
+  if (enc_handle == -1) {
     return_flag = 0;
     *(int16_t *)(actor_state + 0x190) = 4;
     goto done;
   }
 
-  encounter = (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(actor + 0x270));
+  encounter = (char *)datum_get(*(data_t **)0x5ab23c, enc_handle);
 
   /* determine is_secondary (lunge vs normal melee) */
   if (*(float *)(actr_tag + 0x388) == *(float *)0x2533c0 ||
@@ -167,8 +174,9 @@ char FUN_00013ef0(int actor_handle, int action_type, void *charge_state)
              *(int16_t *)(encounter + 0x9c) <= 0) {
     rand_val =
       random_math_real((unsigned int *)get_global_random_seed_address());
-    is_secondary = 1;
-    if (rand_val >= *(float *)(actr_tag + 0x390))
+    if (rand_val < *(float *)(actr_tag + 0x390))
+      is_secondary = 1;
+    else
       is_secondary = 0;
     *(char *)((char *)charge_state + 0xa) = (char)is_secondary;
     if (*(float *)(encounter + 0x11c) < *(float *)(actr_tag + 0x384)) {
@@ -197,7 +205,7 @@ char FUN_00013ef0(int actor_handle, int action_type, void *charge_state)
     *(int *)((char *)charge_state + 0x34) = 0;
     *(char *)((char *)charge_state + 0x30) = 1;
   } else {
-    if (!melee_tick_count) {
+    if (!(int16_t)melee_tick_count) {
       actv_tag = (char *)tag_get(0x61637476, *(int *)(actor + 0x5c));
       if (*(int *)(actv_tag + 0x8)) {
         error(2, "actor %s melee animation has no damage keyframe",
@@ -228,6 +236,21 @@ char FUN_00013ef0(int actor_handle, int action_type, void *charge_state)
   }
   *(int16_t *)(actor_state + 0x190) = 6;
   *(float *)(actor_state + 0x194) = speed;
+  goto done;
+
+case_default:
+  if ((short)action_type == 0 && (*(int *)actr_tag & 0x20000) &&
+      *(int16_t *)(actor + 0x6e) >= 5 && !*(char *)(actor + 0x378)) {
+    action_type = 1;
+    *(int16_t *)(actor_state + 0x190) = 8;
+  } else {
+    *(int16_t *)(actor_state + 0x190) = 9;
+  }
+  goto done;
+
+case_invade_retreat:
+  return_flag = (char)(*(int16_t *)(actor + 0x15e) > 1);
+  *(int16_t *)(actor_state + 0x190) = (int16_t)(return_flag == '\0');
 
 done:
   *(int16_t *)((char *)charge_state + 0x4) = (int16_t)action_type;
@@ -366,21 +389,25 @@ void FUN_00014480(int actor_handle)
 {
   char *actor;
   char *conversation;
+  int16_t *move_type;
+  int prop_handle_init;
   int prop_handle;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   conversation = NULL;
+  prop_handle_init = *(int *)(actor + 0xac);
   if (*(int *)(actor + 0x9c) != -1)
     conversation =
       (char *)datum_get(*(data_t **)0x6324ec, *(int *)(actor + 0x9c));
-  prop_handle = *(int *)(actor + 0xac);
+  prop_handle = prop_handle_init;
   if (prop_handle == -1 && conversation != NULL &&
       *(int *)(conversation + 0x10) != -1)
     prop_handle = prop_get_active_by_unit_index(actor_handle,
                                                 *(int *)(conversation + 0x10));
   *(int16_t *)(actor + 0x3fc) = 1;
   if (prop_handle != -1) {
-    *(int16_t *)(actor + 0x3e8) = 3;
+    move_type = (int16_t *)(actor + 0x3e8);
+    *move_type = 3;
     *(int16_t *)(actor + 0x3ec) = 1;
     *(int *)(actor + 0x3f0) = prop_handle;
   }
@@ -627,15 +654,14 @@ unsigned int FUN_00014770(int actor_handle)
   static char large_buf[0x670];
   static char huge_buf[0x1474c];
   int local_14;
-  int local_50[12]; /* FUN_00027090 writes 12 ints (48 bytes); was float[3]=12
-                       bytes causing overflow */
+  int local_50[12]; /* FUN_00027090 writes 12 ints (48 bytes); was float[3]=12 bytes causing overflow */
   char local_c;
 
   actor = (char *)datum_get(actor_data, actor_handle);
 
   if (*(char *)(actor + 6) != '\0') {
-    display_assert("!actor->meta.swarm", "c:\\halo\\SOURCE\\ai\\action_fight.c",
-                   0x37, 1);
+    display_assert("!actor->meta.swarm",
+                   "c:\\halo\\SOURCE\\ai\\action_fight.c", 0x37, 1);
     system_exit(-1);
   }
 
@@ -655,7 +681,8 @@ unsigned int FUN_00014770(int actor_handle)
                      *(int *)(actor + 0x164), 0) != '\0') {
       within_range = 0;
 
-      if (*(int *)(actor + 0x34) != -1 && *(short *)(actor + 0x3b8) != -1) {
+      if (*(int *)(actor + 0x34) != -1 &&
+          *(short *)(actor + 0x3b8) != -1) {
         encounter = (char *)tag_block_get_element(
           (char *)global_scenario_get() + 0x42c,
           *(unsigned int *)(actor + 0x34) & 0xffff, 0xb0);
@@ -663,8 +690,8 @@ unsigned int FUN_00014770(int actor_handle)
           encounter + 0x98, (int)*(short *)(actor + 0x3b8), 0x18);
 
         f_threshold = actor_destination_tolerance(actor_handle);
-        dist_sq =
-          distance_squared3d((float *)(actor + 0x12c), (float *)firing_pos);
+        dist_sq = distance_squared3d((float *)(actor + 0x12c),
+                                     (float *)firing_pos);
 
         if (dist_sq <= f_threshold * f_threshold)
           within_range = 1;
@@ -691,10 +718,10 @@ unsigned int FUN_00014770(int actor_handle)
   csmemset(large_buf, 0, 0x670);
   *(short *)(large_buf + 4) = 0;
 
-  result = FUN_00027090(actor_handle, large_buf, local_50, &local_14, huge_buf,
-                        &local_c);
-  result = FUN_000272d0(actor_handle, (short)result, (short)result, local_14,
-                        (unsigned int)(int)huge_buf, local_c);
+  result = FUN_00027090(actor_handle, large_buf, local_50,
+                        &local_14, huge_buf, &local_c);
+  result = FUN_000272d0(actor_handle, (short)result, (short)result,
+                        local_14, (unsigned int)(int)huge_buf, local_c);
 
   if (result == -1) {
     *(short *)(actor + 0x9c) = 0;
@@ -703,20 +730,23 @@ unsigned int FUN_00014770(int actor_handle)
 
   if (result != saved_fp) {
     timer = random_real_range(get_global_random_seed_address(),
-                              *(float *)(tag + 0x3c0), *(float *)(tag + 0x3c4));
+                              *(float *)(tag + 0x3c0),
+                              *(float *)(tag + 0x3c4));
 
     if (*(short *)(actor + 0x15e) > 0) {
       char *weap_tag;
       weap_tag = (char *)tag_get(
-        0x76656869, *(unsigned int *)(char *)object_get_and_verify_type(
-                      *(int *)(actor + 0x158), 3));
+        0x76656869,
+        *(unsigned int *)(char *)object_get_and_verify_type(
+          *(int *)(actor + 0x158), 3));
       if (*(float *)(weap_tag + 0x3a8) > *(float *)0x2533c0 &&
           timer > *(float *)(weap_tag + 0x3a8)) {
         timer = *(float *)(weap_tag + 0x3a8);
       }
     }
 
-    *(short *)(actor + 0x9c) = (short)(int)(timer * *(float *)0x253394);
+    *(short *)(actor + 0x9c) =
+      (short)(int)(timer * *(float *)0x253394);
   }
   goto tail;
 
@@ -742,12 +772,13 @@ tail:
       firing_pos = (char *)tag_block_get_element(
         encounter + 0x98, (int)*(short *)(actor + 0x3b8), 0x18);
       f_threshold = actor_destination_tolerance(actor_handle);
-      dist_sq =
-        distance_squared3d((float *)(actor + 0x12c), (float *)firing_pos);
+      dist_sq = distance_squared3d((float *)(actor + 0x12c),
+                                   (float *)firing_pos);
       if (dist_sq < f_threshold * f_threshold) {
-        dist_sq =
-          distance_squared3d((float *)(prop + 0xbc), (float *)firing_pos);
-        if (dist_sq <= *(float *)(actor + 0x608) * *(float *)(actor + 0x608))
+        dist_sq = distance_squared3d((float *)(prop + 0xbc),
+                                     (float *)firing_pos);
+        if (dist_sq <= *(float *)(actor + 0x608) *
+                          *(float *)(actor + 0x608))
           within_range = 0;
       }
     }
@@ -807,25 +838,17 @@ void FUN_00014b70(int actor_handle)
  * Confirmed: 16-byte (4 dword) copy from dereferenced global pointer. */
 void FUN_00014ba0(int actor_handle, int *param_2)
 {
+  struct look_vec4 { int v0, v1, v2, v3; };
   char *actor;
   char *looking;
-  char *src;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   looking = actor + 0x9c;
   if (*(short *)(looking + 0xc) > 0) {
-    src = *(char **)0x2ee6e0;
-    *param_2 = *(int *)src;
-    param_2[1] = *(int *)(src + 4);
-    param_2[2] = *(int *)(src + 8);
-    param_2[3] = *(int *)(src + 0xc);
+    *(struct look_vec4 *)param_2 = **(struct look_vec4 **)0x2ee6e0;
     return;
   }
-  src = *(char **)0x2ee6d4;
-  *param_2 = *(int *)src;
-  param_2[1] = *(int *)(src + 4);
-  param_2[2] = *(int *)(src + 8);
-  param_2[3] = *(int *)(src + 0xc);
+  *(struct look_vec4 *)param_2 = **(struct look_vec4 **)0x2ee6d4;
 }
 
 /* FUN_00014c10 (0x14c10) — Recompute the actor's firing-position target.
@@ -1085,50 +1108,57 @@ int FUN_00015020(short param_1)
  * Validates state_data pointer, zeroes 0x30 bytes, populates fields from
  * params. If a valid target is provided, calls actor_situation_try_new_target.
  * For scripted look types [9,12], rolls a random chance against 0x253524 and
- * may set a short timer. Otherwise dispatches FUN_00014c10(0) to find a
- * firing position.
+ * may set a short timer. Otherwise dispatches FUN_00014c10(actor_handle,
+ * state_data, 0) to find a firing position.
  *
  * Confirmed: standard cdecl, 7 stack params.
+ * Confirmed: FUN_00014c10 takes actor_handle @<ebx> + state_data @<esi> +
+ * 1 stack arg — original 0x1504c loads EBX=[EBP+8] (handle), 0x15071 loads
+ * ESI=[EBP+0x20] (param_7 state_data, still live at the call), 0x15121
+ * PUSH 0, 0x15123 CALL. Ghidra showed only FUN_00014c10(0) (register-arg
+ * blindness); the missing args caused a datum_get assert (garbage EBX) and
+ * then an AV at 0x14c7d reading [ESI+4] with leftover ESI=-1.
  * Confirmed: NEG CL; SBB ECX,ECX; AND ECX,0xb4 → condition ? 0xb4 : 0. */
 char FUN_00015040(int actor_handle, short param_2, int param_3, char param_4,
                   char param_5, char param_6, short *param_7)
 {
   char *actor;
+  volatile char result;
 
   actor = (char *)datum_get(actor_data, actor_handle);
-  if (*(char *)(actor + 0x160) != '\0') {
-    return 0;
-  }
-  if (param_7 == (short *)0) {
-    display_assert("state_data", "c:\\halo\\SOURCE\\ai\\action_flee.c", 0x2c,
-                   1);
-    system_exit(-1);
-  }
-  csmemset(param_7, 0, 0x30);
-  *((char *)param_7 + 5) = param_6;
-  param_7[4] = (short)0xffff;
-  param_7[6] = param_2;
-  *(char *)(param_7 + 2) = param_5;
-  *(int *)(param_7 + 0xe) = param_3;
-  *param_7 = param_4 != '\0' ? (short)0xb4 : 0;
-  if (param_3 != -1) {
-    actor_situation_try_new_target(actor_handle, param_3);
-  }
-  if ((short)param_2 >= 9 && (short)param_2 <= 0xc) {
-    if (random_math_real((unsigned int *)get_global_random_seed_address()) <
-        *(float *)0x253524) {
-      param_7[1] = 0x2d;
-      return 1;
+  result = 0;
+  if (*(char *)(actor + 0x160) == '\0') {
+    if (param_7 == (short *)0) {
+      display_assert("state_data", "c:\\halo\\SOURCE\\ai\\action_flee.c", 0x2c,
+                     1);
+      system_exit(-1);
+    }
+    csmemset(param_7, 0, 0x30);
+    *((char *)param_7 + 5) = param_6;
+    param_7[4] = (short)0xffff;
+    param_7[6] = param_2;
+    *(char *)(param_7 + 2) = param_5;
+    *(int *)(param_7 + 0xe) = param_3;
+    *param_7 = param_4 != '\0' ? (short)0xb4 : 0;
+    if (param_3 != -1) {
+      actor_situation_try_new_target(actor_handle, param_3);
+    }
+    if ((short)param_2 >= 9 && (short)param_2 <= 0xc) {
+      if (random_math_real((unsigned int *)get_global_random_seed_address()) <
+          *(float *)0x253524) {
+        param_7[1] = 0x2d;
+        return 1;
+      }
+    }
+    if (*(char *)(actor + 6) == '\0') {
+      FUN_00014c10(actor_handle, (char *)param_7, 0);
+      if (param_7[4] != (short)0xffff) {
+        return 1;
+      }
+      *(char *)(param_7 + 7) = 0;
     }
   }
-  if (*(char *)(actor + 6) == '\0') {
-    FUN_00014c10(actor_handle, (char *)param_7, 0);
-    if (param_7[4] != (short)0xffff) {
-      return 1;
-    }
-    *(char *)(param_7 + 7) = 0;
-  }
-  return 0;
+  return result;
 }
 
 /* FUN_00015150 (0x15150)
@@ -1387,186 +1417,216 @@ bool FUN_000153e0(int actor_handle)
 }
 
 /* FUN_00015520 (0x15520)
- * action_flee per-tick update.  Manages the actor's flee firing-position
- * target (the "look state" block at actor+0x9c) and drives the appropriate
- * scream/vocalization based on the looking-action type at actor+0xa8.
+ * Per-tick update for actor flee state (action_flee.c).
+ * Manages flee target selection (firing positions), flee timer, look
+ * animation state, and flee-related vocal/sound cues. Returns 1 if flee is
+ * still active, 0 if done (neither flee_unable nor done_fleeing is set).
  *
- * Returns 1 when the actor is unable to flee (actor+0xaa) or has finished
- * fleeing (actor+0xab), 0 otherwise (still fleeing).
+ * State block layout (actor+0x9c base = ESI):
+ *   +0x00 = look_type (int16_t)
+ *   +0x02 = 9e = flee_ticks_remaining (int16_t)
+ *   +0x04 = a0 (unused in this fn)
+ *   +0x06 = a2 = find_new_position flag (char)
+ *   +0x08 = a4 = current_firing_position_index (int16_t)
+ *   +0x0a = a6 = firing_position_byte (char)
+ *   +0x0c = a8 = look_anim_type (int16_t)
+ *   +0x0e = aa = unable_to_flee (char)
+ *   +0x0f = ab = done_fleeing (char)
+ *   +0x10 = ac = flee_sound_played (char)
+ *   +0x14 = b0 = last_update_tick (int)
+ *   +0x1c = b8 = encounter_handle (int)
  *
- * Confirmed: prototype is cdecl with the actor index at [EBP+8]; EAX holds
- *   the 0/1 return (XOR EAX,EAX / MOV EAX,1 at the two RET sites).
- * Confirmed: datum_get(actor_data, actor_index) at 0x15530; the flee look
- *   state lives at actor+0x9c (ESI base).
- * Confirmed: FUN_000153e0 (target-reached test) is called with the actor
- *   index passed in a register (no PUSH at 0x1559a; EBX = actor index).
- * Confirmed: FUN_00014e90 takes the actor index in EAX (MOV EAX,[EBP+8] at
- *   0x15697) and the look-state pointer pushed.
- * Confirmed: FUN_00014c10 takes the actor index in EBX (0x156c6), the
- *   look-state pointer in ESI, and a stack arg of 1.
- * Confirmed: actor_situation_update_target_status (0x300b0) /
- *   actor_situation_combat_status_update (0x302b0) each take the actor index
- *   as a single stack arg (PUSH EBX at 0x1562f / 0x1563f); decl was (void)
- *   but both consume param_1 as the datum_get handle inside the callee.
- * Confirmed: the looking-action switch (cases 9-12) uses the jump table at
- *   0x15864; the scream dispatch at the tail maps action types 9/10 -> 1
- *   and 11/12 -> 2 for FUN_001a74d0.
- * Confirmed: prop-status writes at 0x1560d-0x15634 target the prop datum
- *   (datum_get(prop_data, actor+0xb8)): +0x32=0, +0x30=max(+0x34,+0x36),
- *   +0x74=0, +0x38=2.
- * Confirmed: assert strings + line numbers (0x98, 0x12e) from action_flee.c.
- */
-int FUN_00015520(int actor_index)
+ * Confirmed: EBX=actor_handle, EDI=actor*, ESI=actor+0x9c.
+ * Confirmed: FUN_000153e0 @<ebx>=actor_handle (no stack args).
+ * Confirmed: FUN_00014e90 @<eax>=actor_handle, stack=state_block_ptr.
+ * Confirmed: FUN_00014c10(actor_handle @<ebx>, state_data @<esi>, int) —
+ *   original 0x156c6: MOV EBX,[EBP+8]; PUSH 1; CALL 0x14c10, with ESI =
+ *   state block (LEA ESI,[EDI+0x9c] at 0x1553f still live). 14c10 reads
+ *   [ESI], [ESI+4], [ESI+0xc] before any ESI write (first use 0x14c7d).
+ *   Ghidra missed both register args.
+ * Confirmed: FUN_000300b0/302b0 cdecl 1 arg.
+ * Confirmed: switch table at 0x15864; cases 9/10 share case 0xb/0xc bodies.
+ * Confirmed: assert at action_flee.c:0x12e, 0x98. */
+int FUN_00015520(int actor_handle)
 {
   char *actor;
-  char *look_state;
-  char *prop;
-  short max_burst;
-  int now;
-  int scream_unit;
-  int scream_type;
-  char reached;
+  char *state;
+  short look_anim;
+  short sVar;
+  int encounter_handle;
+  char *encounter;
+  int cur_tick;
+  int enc_val;
+  int mode;
 
-  actor = (char *)datum_get(actor_data, actor_index);
-  look_state = actor + 0x9c;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  state = actor + 0x9c;
 
-  if (*(char *)(actor + 0x6) == 0) {
-    if (*(short *)(actor + 0xa8) > 8 && *(short *)(actor + 0xa8) < 0xd)
-      *(short *)look_state = 0xb4;
+  if (*(char *)(actor + 0x6) == '\0') {
+    /* Update look_type counter if we are in animated flee range [9,12] */
+    look_anim = *(int16_t *)(state + 0xc);
+    if (look_anim > 8 && look_anim < 0xd) {
+      *(int16_t *)(state + 0x0) = 0xb4;
+    }
 
-    if (*(short *)(actor + 0x9e) < 1) {
-      if (*(short *)(actor + 0xa4) == -1) {
-        *(char *)(actor + 0xa2) = 1;
-      } else if (*(short *)(actor + 0x3b8) == -1) {
-        *(short *)(actor + 0xa4) = (short)0xffff;
-        *(char *)(actor + 0xa2) = 1;
+    /* Manage firing position selection */
+    if (*(int16_t *)(state + 0x2) < 1) {
+      if (*(int16_t *)(state + 0x8) == -1) {
+        /* No current target, need new one */
+        *(char *)(state + 0x6) = 1;
+      } else if (*(int16_t *)(actor + 0x3b8) == -1) {
+        /* No firing positions available */
+        *(int16_t *)(state + 0x8) = (short)0xffff;
+        *(char *)(state + 0x6) = 1;
       } else {
-        reached = FUN_000153e0(actor_index);
-        if (reached != 0) {
-          if (*(short *)(actor + 0x3b8) == -1) {
-            display_assert(
-              "actor->firing_positions.current_position_index != NONE",
-              "c:\\halo\\SOURCE\\ai\\action_flee.c", 0x98, 1);
+        /* Check if current firing position is valid */
+        if (FUN_000153e0(actor_handle)) {
+          if (*(int16_t *)(actor + 0x3b8) == -1) {
+            display_assert("actor->firing_positions.current_position_index != NONE",
+                           "c:\\halo\\SOURCE\\ai\\action_flee.c", 0x98, 1);
             system_exit(-1);
           }
-          if (*(short *)look_state == 0) {
-            *(short *)(actor + 0xa4) = *(short *)(actor + 0x3b8);
-            *(char *)(actor + 0xa6) = *(char *)(actor + 0x3ba);
-            *(char *)(actor + 0xab) = 1;
-            *(char *)(actor + 0xa2) = 0;
-            if (*(int *)(actor + 0xb8) != -1) {
-              prop = (char *)datum_get(prop_data, *(int *)(actor + 0xb8));
-              *(short *)(prop + 0x32) = 0;
-              max_burst = *(short *)(prop + 0x34);
-              if (*(short *)(prop + 0x34) <= *(short *)(prop + 0x36))
-                max_burst = *(short *)(prop + 0x36);
-              *(char *)(prop + 0x74) = 0;
-              *(short *)(prop + 0x30) = max_burst;
-              *(short *)(prop + 0x38) = 2;
-              actor_situation_update_target_status(actor_index);
-              actor_situation_combat_status_update(actor_index);
+          if (*(int16_t *)(state + 0x0) == 0) {
+            /* Adopt new firing position */
+            *(int16_t *)(state + 0x8) = *(int16_t *)(actor + 0x3b8);
+            *(char *)(state + 0xa) = *(char *)(actor + 0x3ba);
+            *(char *)(state + 0xf) = 1;
+            *(char *)(state + 0x6) = 0;
+            /* Update encounter state if actor has encounter */
+            encounter_handle = *(int *)(state + 0x1c);
+            if (encounter_handle != -1) {
+              encounter = (char *)datum_get(*(data_t **)0x5ab23c, encounter_handle);
+              *(int16_t *)(encounter + 0x32) = 0;
+              sVar = *(int16_t *)(encounter + 0x34);
+              if (*(int16_t *)(encounter + 0x34) <= *(int16_t *)(encounter + 0x36)) {
+                sVar = *(int16_t *)(encounter + 0x36);
+              }
+              *(char *)(encounter + 0x74) = 0;
+              *(int16_t *)(encounter + 0x30) = sVar;
+              *(int16_t *)(encounter + 0x38) = 2;
+              actor_situation_update_target_status(actor_handle);
+              actor_situation_combat_status_update(actor_handle);
             }
           } else {
-            *(char *)(actor + 0xa2) = 1;
+            *(char *)(state + 0x6) = 1;
           }
         }
       }
     } else {
-      *(short *)(actor + 0xa4) = (short)0xffff;
+      /* Flee timer expired */
+      *(int16_t *)(state + 0x8) = (short)0xffff;
     }
 
-    switch (*(short *)(actor + 0xa8)) {
+    /* Switch on look animation type */
+    look_anim = *(int16_t *)(state + 0xc);
+    switch (look_anim) {
     case 9:
     case 10:
       if (*(int *)(actor + 0x1b0) == -1)
-        *(char *)(actor + 0xab) = 1;
+        *(char *)(state + 0xf) = 1;
       break;
     case 0xb:
-      if (*(char *)(actor + 0x1b4) == 0)
-        *(char *)(actor + 0xab) = 1;
+      if (*(char *)(actor + 0x1b4) == '\0')
+        *(char *)(state + 0xf) = 1;
       break;
     case 0xc:
-      if (*(char *)(actor + 0x1b5) == 0)
-        *(char *)(actor + 0xab) = 1;
+      if (*(char *)(actor + 0x1b5) == '\0')
+        *(char *)(state + 0xf) = 1;
       break;
     default:
       break;
     }
 
-    if (*(char *)(actor + 0x4c) != 0 && *(char *)(actor + 0xab) == 0) {
-      if (*(short *)(actor + 0xa4) != -1 && *(short *)look_state == 0 &&
-          FUN_00014e90(actor_index, look_state) != 0) {
-        *(short *)(actor + 0xa4) = (short)0xffff;
-        *(char *)(actor + 0xa2) = 1;
+    /* Check if actor is actively fleeing and can find a position */
+    if (*(char *)(actor + 0x4c) != '\0' && *(char *)(state + 0xf) == '\0') {
+      if (*(int16_t *)(state + 0x8) != -1 &&
+          *(int16_t *)(state + 0x0) == 0 &&
+          FUN_00014e90(actor_handle, state)) {
+        *(int16_t *)(state + 0x8) = (short)0xffff;
+        *(char *)(state + 0x6) = 1;
       }
-      if (*(char *)(actor + 0x160) == 0) {
-        if (*(char *)(actor + 0xa2) == 0)
-          goto flee_post;
-        FUN_00014c10(actor_index, look_state, 1);
-        if (*(short *)(actor + 0xa4) != -1)
-          goto flee_post;
+      if (*(char *)(actor + 0x160) == '\0') {
+        if (*(char *)(state + 0x6) == '\0' ||
+            (FUN_00014c10(actor_handle, state, 1), *(int16_t *)(state + 0x8) != -1)) {
+          goto skip_mark_unable;
+        }
       } else {
-        *(char *)(actor + 0xa2) = 0;
+        *(char *)(state + 0x6) = 0;
       }
-      *(char *)(actor + 0xaa) = 1;
+      *(char *)(state + 0xe) = 1;
       *(int *)(actor + 0x398) = game_time_get();
     }
   }
 
-flee_post:
-  if (*(short *)(actor + 0xa8) > 8 && *(short *)(actor + 0xa8) < 0xd &&
-      *(int *)(actor + 0x18) != -1 &&
-      FUN_001a6bc0(*(int *)(actor + 0x18)) == 0) {
-    *(char *)(actor + 0xac) = 0;
+skip_mark_unable:
+  /* Clear flee_sound_played if still in flee anim range and unit not talking */
+  look_anim = *(int16_t *)(state + 0xc);
+  if (look_anim > 8 && look_anim < 0xd) {
+    if (*(int *)(actor + 0x18) != -1) {
+      if ((char)FUN_001a6bc0(*(int *)(actor + 0x18)) == 0) {
+        *(char *)(state + 0x10) = 0;
+      }
+    }
   }
 
-  if (*(short *)(actor + 0xa8) < 1 || *(short *)(actor + 0xa4) == -1 ||
-      *(char *)(actor + 0xaa) != 0 || *(int *)(actor + 0x18) == -1 ||
-      (now = game_time_get(),
-       *(char *)(actor + 0xac) != 0 && *(int *)(actor + 0xb0) + 0x3c < now))
-    goto flee_skip;
+  /* Check if we should play flee sound/vocal */
+  if (*(int16_t *)(state + 0xc) <= 0 ||
+      *(int16_t *)(state + 0x8) == -1 ||
+      *(char *)(state + 0xe) != '\0' ||
+      *(int *)(actor + 0x18) == -1) {
+    goto skip_flee_vocal;
+  }
+  cur_tick = game_time_get();
+  if (*(char *)(state + 0x10) != '\0' &&
+      *(int *)(state + 0x14) + 0x3c < cur_tick) {
+    goto skip_flee_vocal;
+  }
 
-  if (*(short *)(actor + 0xa8) == 0xc || *(short *)(actor + 0xa8) == 0xb) {
+  /* Dispatch flee vocal/sound based on look_anim type */
+  look_anim = *(int16_t *)(state + 0xc);
+  if (look_anim == 0xc || look_anim == 0xb) {
     FUN_001a74d0(*(int *)(actor + 0x18), 2);
-  } else if (*(short *)(actor + 0xa8) == 9 || *(short *)(actor + 0xa8) == 10) {
+  } else if (look_anim == 9 || look_anim == 0xa) {
     FUN_001a74d0(*(int *)(actor + 0x18), 1);
   } else {
-    scream_unit = -1;
-    if (*(int *)(actor + 0xb8) != -1) {
-      prop = (char *)datum_get(prop_data, *(int *)(actor + 0xb8));
-      scream_unit = *(int *)(prop + 0x18);
+    /* Encounter-based flee sound */
+    enc_val = -1;
+    encounter_handle = *(int *)(state + 0x1c);
+    if (encounter_handle != -1) {
+      encounter = (char *)datum_get(*(data_t **)0x5ab23c, encounter_handle);
+      enc_val = *(int *)(encounter + 0x18);
     }
-    if (*(char *)(actor + 0xac) == 0) {
-      scream_type = (*(short *)(actor + 0xa8) == 8) + 0x1f;
-      FUN_00046f10(scream_type, *(int *)(actor + 0x18), scream_unit, -1, -1, 4,
-                   0);
-      *(char *)(actor + 0xac) = 1;
+    if (*(char *)(state + 0x10) == '\0') {
+      mode = (look_anim == 8) ? 0x20 : 0x1f;
+      FUN_00046f10(mode, *(int *)(actor + 0x18), enc_val, -1, -1, 4, 0);
+      *(char *)(state + 0x10) = 1;
     } else {
-      FUN_00046f10(0x21, *(int *)(actor + 0x18), scream_unit, -1, -1, -1, 0);
+      FUN_00046f10(0x21, *(int *)(actor + 0x18), enc_val, -1, -1, -1, 0);
     }
   }
-  *(int *)(actor + 0xb0) = now;
+  *(int *)(state + 0x14) = cur_tick;
 
-flee_skip:
-
-  if (*(char *)(actor + 0x6) == 0 &&
-      (*(char *)(actor + 0x4c) != 0 || *(char *)(actor + 0xa2) == 0) &&
-      *(short *)(actor + 0x9e) < 1 && *(short *)(actor + 0xa4) == -1) {
-    if (*(char *)(actor + 0xaa) != 0)
-      return 1;
-    if (*(char *)(actor + 0xab) == 0) {
-      display_assert(
-        "(!actor->meta.timeslice && state_data->find_new_flee_position) || "
-        "(state_data->flee_stationary_ticks > 0) || "
-        "(state_data->flee_firing_position_index != NONE) || "
-        "state_data->unable_to_flee || state_data->done_fleeing",
-        "c:\\halo\\SOURCE\\ai\\action_flee.c", 0x12e, 1);
-      system_exit(-1);
+skip_flee_vocal:
+  /* Check if flee is complete or asserted */
+  if (*(char *)(actor + 0x6) == '\0') {
+    if ((*(char *)(actor + 0x4c) != '\0' || *(char *)(state + 0x6) == '\0') &&
+        *(int16_t *)(state + 0x2) < 1 && *(int16_t *)(state + 0x8) == -1) {
+      if (*(char *)(state + 0xe) != '\0') {
+        return 1;
+      }
+      if (*(char *)(state + 0xf) == '\0') {
+        display_assert("(!actor->meta.timeslice && state_data->find_new_flee_position)"
+                       " || (state_data->flee_stationary_ticks > 0)"
+                       " || (state_data->flee_firing_position_index != NONE)"
+                       " || state_data->unable_to_flee || state_data->done_fleeing",
+                       "c:\\halo\\SOURCE\\ai\\action_flee.c", 0x12e, 1);
+        system_exit(-1);
+      }
     }
   }
-
-  if (*(char *)(actor + 0xaa) == 0 && *(char *)(actor + 0xab) == 0)
+  if (*(char *)(state + 0xe) == '\0' && *(char *)(state + 0xf) == '\0') {
     return 0;
+  }
   return 1;
 }
 
@@ -1678,10 +1738,11 @@ char FUN_000159d0(int actor_handle, short *state_data)
   if (*(short *)(actor + 0x15e) == 4) {
     return 0;
   }
+  prop_handle = *(int *)(actor + 0x1e8);
   if ((*(char *)(actor + 0x160) == '\0') && (*(char *)(actor + 6) == '\0') &&
-      ((prop_handle = *(int *)(actor + 0x1e8)) != -1)) {
+      prop_handle != -1) {
     prop = (char *)datum_get(prop_data, prop_handle);
-    *(int *)((char *)state_data + 0x3c) = prop_handle;
+    *(int *)((char *)state_data + 0x3c) = *(int *)(actor + 0x1e8);
     state_data[1] = 0x78;
     *(char *)((char *)state_data + 0x40) = 1;
     behavior = *(short *)(actor + 0x1e4) - 6;
@@ -1699,7 +1760,7 @@ char FUN_000159d0(int actor_handle, short *state_data)
     default:
       return 1;
     }
-    actor_perception_find_prop_pathfinding_location(actor_handle, prop_handle);
+    actor_perception_find_prop_pathfinding_location(actor_handle, *(int *)(actor + 0x1e8));
     state_data[0x12] = 2;
     *(int *)((char *)state_data + 0x28) = *(int *)(prop + 0xf0);
     *(int *)((char *)state_data + 0x2c) = *(int *)(prop + 0xf4);
@@ -1888,8 +1949,8 @@ void FUN_00015f60(int actor_handle, int *param_2)
     src = *(int **)0x2ee6f4;
     if (*(char *)(actor + 0xa5) != '\0') {
       src = *(int **)0x2ee6e8;
-      param_2[0] = src[0];
       param_2[1] = src[1];
+      param_2[0] = src[0];
       param_2[2] = src[2];
       param_2[3] = src[3];
       return;
@@ -2104,15 +2165,17 @@ char FUN_00016210(int actor_handle, int param_2, short *param_3)
  *
  * Confirmed: cdecl, single stack arg (actor_handle).
  * Confirmed: _chkstk with 0x14748 (83784 bytes) at 0x163d3/0x163d8.
- * Confirmed: datum_get(actor_data=DAT_006325a4, actor_handle) at
- * 0x163e4/0x163e9. Confirmed: tag_get('actr', actor->field_58) at
- * 0x163f0/0x163f9. Confirmed: three early-return paths for
- * swarm/field_160/reset at 0x16407/0x16422/0x16443. Confirmed: main evaluation
- * pipeline: FUN_00024be0 at 0x1649b, csmemset(0x670) at 0x164b1, FUN_00024a60
- * at 0x164c4, FUN_00025c10 at 0x164f1, FUN_000272d0 at 0x1650b. Confirmed:
- * random timer: FUN_0010b270(seed, tag_min, tag_max) at 0x16563, FMUL
- * [0x253394]=30.0f at 0x16568, _ftol2 at 0x16571, store to actor->field_9c at
- * 0x16576. Inferred: actor+0xc0 = firing-position action state (int16_t).
+ * Confirmed: datum_get(actor_data=DAT_006325a4, actor_handle) at 0x163e4/0x163e9.
+ * Confirmed: tag_get('actr', actor->field_58) at 0x163f0/0x163f9.
+ * Confirmed: three early-return paths for swarm/field_160/reset at
+ *   0x16407/0x16422/0x16443.
+ * Confirmed: main evaluation pipeline: FUN_00024be0 at 0x1649b,
+ *   csmemset(0x670) at 0x164b1, FUN_00024a60 at 0x164c4,
+ *   FUN_00025c10 at 0x164f1, FUN_000272d0 at 0x1650b.
+ * Confirmed: random timer: FUN_0010b270(seed, tag_min, tag_max) at 0x16563,
+ *   FMUL [0x253394]=30.0f at 0x16568, _ftol2 at 0x16571,
+ *   store to actor->field_9c at 0x16576.
+ * Inferred: actor+0xc0 = firing-position action state (int16_t).
  *   actor+0xc4 = firing-position target (int16_t).
  *   actor+0x9c = combat timer (int16_t). */
 unsigned int FUN_000163d0(int actor_handle)
@@ -2144,7 +2207,8 @@ unsigned int FUN_000163d0(int actor_handle)
     return 0;
   }
 
-  if (*(short *)(actor + 0xc0) == 3 && *(short *)(actor + 0x3b8) == -1) {
+  if (*(short *)(actor + 0xc0) == 3 &&
+      *(short *)(actor + 0x3b8) == -1) {
     *(short *)(actor + 0xc0) = 0;
     *(char *)(actor + 0xaa) = 1;
   }
@@ -2168,8 +2232,8 @@ unsigned int FUN_000163d0(int actor_handle)
     *(int *)large_buf = ret_24a60;
     large_buf[0x19] = 1;
 
-    ret_25c10 = (int)FUN_00025c10(actor_handle, large_buf, local_50, &local_c,
-                                  huge_buf, &local_10);
+    ret_25c10 = (int)FUN_00025c10(actor_handle, large_buf, local_50,
+                                   &local_c, huge_buf, &local_10);
     result = FUN_000272d0(actor_handle, (short)ret_25c10, (short)ret_25c10,
                           local_c, (unsigned int)(int)huge_buf, (char)local_10);
 
@@ -2184,8 +2248,9 @@ unsigned int FUN_000163d0(int actor_handle)
     }
 
     seed_ret = (int)get_global_random_seed_address();
-    timer = random_real_range((int *)seed_ret, *(float *)(tag + 0x3b8),
-                              *(float *)(tag + 0x3bc));
+    timer = random_real_range((int *)seed_ret,
+                         *(float *)(tag + 0x3b8),
+                         *(float *)(tag + 0x3bc));
     return (unsigned int)((int)(timer * *(float *)0x253394) & 0xffffff00);
   }
 
@@ -2213,11 +2278,14 @@ void FUN_00016590(int actor_handle)
   char *tag_data;
   char *prop;
   float *fwd;
+  int *src;
+  int *dst;
   char bVar2;
   int prop_unit;
+  int look_flag;
   float fsq;
   float thresh;
-  short sVar1;
+  unsigned short sVar1;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   tag_data = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
@@ -2226,16 +2294,20 @@ void FUN_00016590(int actor_handle)
     *(char *)(actor + 0x427) = 1;
   } else {
     *(char *)(actor + 0x427) = 0;
-    if (*(char *)(actor + 0xa4) == '\0') {
-      if ((*tag_data & 0x80) != 0 && *(short *)(actor + 0x6e) > 0) {
-        *(char *)(actor + 0x426) = 1;
+    if (*(char *)(actor + 0xa4) != '\0') {
+      if (*(char *)(actor + 0xa6) != '\0') {
+        *(char *)(actor + 0x426) =
+            (char)((*(unsigned int *)tag_data >> 0x17) & 1);
       } else {
-        *(char *)(actor + 0x426) = 0;
+        *(char *)(actor + 0x426) = 1;
       }
-    } else if (*(char *)(actor + 0xa6) == '\0') {
-      *(char *)(actor + 0x426) = 1;
     } else {
-      *(char *)(actor + 0x426) = (char)((*tag_data >> 0x17) & 1);
+      if (*tag_data < 0 && *(short *)(actor + 0x6e) > 0) {
+        look_flag = 1;
+      } else {
+        look_flag = 0;
+      }
+      *(char *)(actor + 0x426) = (char)look_flag;
     }
   }
   *(char *)(actor + 0x428) = 0;
@@ -2254,25 +2326,25 @@ void FUN_00016590(int actor_handle)
   case 2:
     fsq = distance_squared3d((float *)(actor + 0x12c), (float *)(actor + 0xc4));
     thresh = *(float *)(actor + 0xd4);
-    if (thresh * thresh <= fsq) {
+    if (fsq < thresh * thresh) {
+      FUN_0002f1a0(actor_handle);
+    } else {
       actor_move_to_point(actor_handle, (float *)(actor + 0xc4),
                           *(int *)(actor + 0xd0), -1);
+    }
+    if (fsq < *(float *)0x2536cc) {
+      bVar2 = 1;
     } else {
-      FUN_0002f1a0(actor_handle);
-    }
-    if (fsq >= *(float *)0x2536cc) {
       bVar2 = 0;
-      break;
     }
-    bVar2 = 1;
     break;
   case 3:
-    sVar1 = *(short *)(actor + 0xc4);
-    if (sVar1 != -1) {
-      *(short *)(actor + 0x3b8) = sVar1;
+    sVar1 = *(unsigned short *)(actor + 0xc4);
+    if (sVar1 != 0xffff) {
+      *(short *)(actor + 0x3b8) = (short)sVar1;
       *(char *)(actor + 0x3ba) = 0;
       if (actor_move_to_firing_position(actor_handle, sVar1, 0) == '\0') {
-        FUN_00024be0(actor_handle, *(short *)(actor + 0xc4), 0);
+        FUN_00024be0(actor_handle, *(unsigned short *)(actor + 0xc4), 0);
         *(short *)(actor + 0x3b8) = -1;
       }
     }
@@ -2313,12 +2385,12 @@ output:
     *(char *)(actor + 0x454) = 1;
     *(char *)(actor + 0x45d) = 1;
     fwd = *(float **)0x31fc44;
-    *(float *)(actor + 0x468) =
-      fwd[2] * *(float *)0x2533e8 + *(float *)(actor + 0xcc);
-    *(float *)(actor + 0x464) =
-      fwd[1] * *(float *)0x2533e8 + *(float *)(actor + 0xc8);
     *(float *)(actor + 0x460) =
       fwd[0] * *(float *)0x2533e8 + *(float *)(actor + 0xc4);
+    *(float *)(actor + 0x464) =
+      fwd[1] * *(float *)0x2533e8 + *(float *)(actor + 0xc8);
+    *(float *)(actor + 0x468) =
+      fwd[2] * *(float *)0x2533e8 + *(float *)(actor + 0xcc);
   } else {
     prop_unit = *(int *)(actor + 0xd8);
     if (prop_unit != -1) {
@@ -2329,9 +2401,11 @@ output:
       *(short *)(actor + 0x3ec) = 4;
       *(short *)(actor + 0x3e8) =
         (short)(3 + (*(char *)(actor + 0xb1) != '\0') * 2);
-      *(int *)(actor + 0x3f0) = *(int *)(actor + 0xb4);
-      *(int *)(actor + 0x3f4) = *(int *)(actor + 0xb8);
-      *(int *)(actor + 0x3f8) = *(int *)(actor + 0xbc);
+      src = (int *)(actor + 0xb4);
+      dst = (int *)(actor + 0x3f0);
+      dst[0] = src[0];
+      dst[1] = src[1];
+      dst[2] = src[2];
     } else if (*(short *)(actor + 0x6e) > 0 && *(int *)(actor + 0x270) != -1) {
       *(short *)(actor + 0x3e8) = 3;
       *(short *)(actor + 0x3ec) = 1;
@@ -2558,7 +2632,7 @@ void FUN_00016cf0(int param_1, int param_2, short param_3, int param_4,
   char *unit;
 
   unit = (char *)object_get_and_verify_type(param_2, 3);
-  if ((*(unsigned char *)(param_4 + 4) & 2) == 0) {
+  if ((*(char *)(param_4 + 4) & 2) == 0) {
     FUN_000169a0(param_1, param_2, param_3, param_5,
                  (char *)((int)&param_4 + 3), (unsigned char *)param_4);
   }
@@ -2830,8 +2904,9 @@ void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size)
     return;
   case 1: {
     const char *go_mode[] = { "idle aim weapon", "idle turn around",
-                              "idle look with head", "forced exact facing",
-                              "forced aim weapon" };
+                                     "idle look with head",
+                                     "forced exact facing",
+                                     "forced aim weapon" };
     snprintf(out_buf, out_size, "go to (p%d) %s", cmd[6], go_mode[sub_type]);
     return;
   }
@@ -2840,7 +2915,7 @@ void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size)
     return;
   case 3: {
     const char *move_dir[] = { "forwards", "left", "right", "backwards",
-                               "any-facing" };
+                                      "any-facing" };
     if (cmd[6] == -1) {
       snprintf(out_buf, out_size, "move %s along angle %.1f, dist %.2f",
                move_dir[sub_type], *(float *)(cmd + 4), *(float *)(cmd + 2));
@@ -2852,15 +2927,16 @@ void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size)
   }
   case 4: {
     const char *look_mode[] = { "idle aim weapon", "idle turn around",
-                                "idle look with head", "forced exact facing",
-                                "forced aim weapon" };
+                                       "idle look with head",
+                                       "forced exact facing",
+                                       "forced aim weapon" };
     snprintf(out_buf, out_size, "look %s at (p%d) for %.1f",
              look_mode[sub_type], cmd[6], *(float *)(cmd + 2));
     return;
   }
   case 5: {
     const char *anim_mode[] = { "idle aim weapon", "noncombat", "asleep",
-                                "combat", "panic" };
+                                       "combat", "panic" };
     snprintf(out_buf, out_size, "animation mode %s", anim_mode[sub_type + 1]);
     return;
   }
@@ -2877,8 +2953,8 @@ void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size)
     snprintf(out_buf, out_size, "throw grenade at (p%d)", cmd[6]);
     return;
   case 9: {
-    const char *seat[] = { "any-non-driver", "gunner", "passenger", "driver",
-                           "any-seat" };
+    const char *seat[] = { "any-non-driver", "gunner", "passenger",
+                                  "driver", "any-seat" };
     snprintf(out_buf, out_size, "enter vehicle as %s if within %.1f",
              seat[sub_type], *(float *)(cmd + 2));
     return;
@@ -2891,7 +2967,8 @@ void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size)
              *(float *)(cmd + 2), *(float *)(cmd + 4));
     return;
   case 12: {
-    const char *script_mode[] = { "wait-for-finish", "wake-and-continue" };
+    const char *script_mode[] = { "wait-for-finish",
+                                         "wake-and-continue" };
     char *name;
     name = "<error>";
     if (cmd[9] == -1)
@@ -2950,7 +3027,7 @@ void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size)
   }
   case 19: {
     const char *wait_mode[] = { "until alerted", "until visible enemy",
-                                "until told to advance" };
+                                       "until told to advance" };
     snprintf(out_buf, out_size, "wait %s", wait_mode[sub_type]);
     return;
   }
@@ -2972,15 +3049,17 @@ void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size)
     snprintf(out_buf, out_size, "pause in loop %.1f", *(float *)(cmd + 2));
     return;
   case 22: {
-    const char *move_dir[] = { "forwards", "left", "right", "backwards" };
+    const char *move_dir[] = { "forwards", "left", "right",
+                                      "backwards" };
     snprintf(out_buf, out_size, "move %s for %.1f sec", move_dir[sub_type],
              *(float *)(cmd + 2));
     return;
   }
   case 23: {
     const char *look_mode[] = { "idle aim weapon", "idle turn around",
-                                "idle look with head", "forced exact facing",
-                                "forced aim weapon" };
+                                       "idle look with head",
+                                       "forced exact facing",
+                                       "forced aim weapon" };
     snprintf(out_buf, out_size,
              "look %s at random one of (p%d-p%d) for %.1f-%.1f",
              look_mode[sub_type], cmd[6], cmd[7], *(float *)(cmd + 2),
@@ -2989,16 +3068,18 @@ void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size)
   }
   case 24: {
     const char *look_mode[] = { "idle aim weapon", "idle turn around",
-                                "idle look with head", "forced exact facing",
-                                "forced aim weapon" };
+                                       "idle look with head",
+                                       "forced exact facing",
+                                       "forced aim weapon" };
     snprintf(out_buf, out_size, "look %s at player for %.1f",
              look_mode[sub_type], *(float *)(cmd + 2));
     return;
   }
   case 25: {
     const char *look_mode[] = { "idle aim weapon", "idle turn around",
-                                "idle look with head", "forced exact facing",
-                                "forced aim weapon" };
+                                       "idle look with head",
+                                       "forced exact facing",
+                                       "forced aim weapon" };
     char *elem_name;
     elem_name = "<error>";
     if (cmd[12] >= 0 && cmd[12] < *(int *)((char *)scenario_data + 0x204))
@@ -3026,20 +3107,6 @@ void FUN_000178b0(float *a, float *b, float *result)
 {
   result[0] = b[0] - a[0];
   result[1] = b[1] - a[1];
-}
-
-/* Compute the cross product of two 3D vectors: out = a x b.
- *
- * Ref: z computed first, then y, then x; all three FPU results held on the
- * x87 stack before the first FSTP (aliasing safe when b==out). */
-void cross_product3d(float *a, float *b, float *out)
-{
-  float z = a[0] * b[1] - a[1] * b[0];
-  float y = a[2] * b[0] - a[0] * b[2];
-  float x = a[1] * b[2] - a[2] * b[1];
-  out[0] = x;
-  out[1] = y;
-  out[2] = z;
 }
 
 /* FUN_00017910 (0x17910)
@@ -3912,13 +3979,21 @@ bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
 
   actor = (char *)datum_get(actor_data, actor_handle);
   scenario = (char *)global_scenario_get();
-  atom_table = (char *)tag_block_get_element(scenario + 0x438, 0, 0);
+  /* Command-list entry for THIS list (scenario_index selects the list,
+   * entry size 0x60). Confirmed vs original: MOVSX EDX,[EBP+0xC]; PUSH 0x60;
+   * PUSH EDX at 0x18bab-0x18bb4. A prior lift passed (0, 0) here — classic
+   * cdecl arg-misgroup (args pushed before the nested global_scenario_get
+   * call were misattributed by Ghidra), which made every atom validate
+   * against command list 0 and instantly completed go_to atoms. */
+  atom_table = (char *)tag_block_get_element(scenario + 0x438,
+                                             (int)scenario_index, 0x60);
 
   if ((int)(unsigned char)*output >= *(int *)(atom_table + 0x30))
     return 1;
 
-  atom = (short *)tag_block_get_element(
-    atom_table + 0x30, (unsigned int)(unsigned char)*output, 0x20);
+  atom = (short *)tag_block_get_element(atom_table + 0x30,
+                                        (unsigned int)(unsigned char)*output,
+                                        0x20);
 
   switch (*atom) {
   case 0:
@@ -3933,25 +4008,21 @@ bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
   case 2:
     if (unit_handle == *(int *)(actor + 0x18) && command != NULL) {
       check_result = (char)FUN_0002a3f0(actor_handle);
-      if (check_result == 0 && *(char *)((char *)command + 5) != '\0' &&
+      if (check_result == 0 &&
+          *(char *)((char *)command + 5) != '\0' &&
           *(char *)((char *)command + 4) != '\0') {
         range = actor_destination_tolerance(actor_handle);
-        FUN_00012140((float *)(actor + 0x12c), (float *)((char *)command + 8),
+        FUN_00012140((float *)(actor + 0x12c),
+                     (float *)((char *)command + 8),
                      local_vec);
         dot = FUN_00012170(local_vec);
         if (dot < range * range ||
             (dot < (range + 0.5f) * (range + 0.5f) &&
-               object_get_and_verify_type(*(int *)(actor + 0x18), 3),
-             local_vec[0] * *(float *)((char *)object_get_and_verify_type(
-                                         *(int *)(actor + 0x18), 3) +
-                                       0x18) +
-                 local_vec[2] * *(float *)((char *)object_get_and_verify_type(
-                                             *(int *)(actor + 0x18), 3) +
-                                           0x20) +
-                 local_vec[1] * *(float *)((char *)object_get_and_verify_type(
-                                             *(int *)(actor + 0x18), 3) +
-                                           0x1c) <
-               0.0f)) {
+             object_get_and_verify_type(*(int *)(actor + 0x18), 3),
+              local_vec[0] * *(float *)((char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3) + 0x18) +
+              local_vec[2] * *(float *)((char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3) + 0x20) +
+              local_vec[1] * *(float *)((char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3) + 0x1c) <
+             0.0f)) {
           check_result = 1;
         }
       }
@@ -3970,16 +4041,14 @@ bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
       }
       if (*(char *)((char *)command + 0x18) != '\0') {
         if (*atom != 2) {
-          display_assert(
-            "current_command->atom_type == _ai_atom_go_to_and_face",
-            "c:\\halo\\SOURCE\\ai\\action_obey.c", 0x3d7, 1);
+          display_assert("current_command->atom_type == _ai_atom_go_to_and_face",
+                         "c:\\halo\\SOURCE\\ai\\action_obey.c",
+                         0x3d7, 1);
           system_exit(-1);
         }
         if (*(char *)(actor + 0x99) == '\0') {
-          diff_x =
-            *(float *)((char *)command + 0x1c) - *(float *)(actor + 0x12c);
-          diff_y =
-            *(float *)((char *)command + 0x20) - *(float *)(actor + 0x130);
+          diff_x = *(float *)((char *)command + 0x1c) - *(float *)(actor + 0x12c);
+          diff_y = *(float *)((char *)command + 0x20) - *(float *)(actor + 0x130);
           diff_z = 0.0f;
           (void)diff_y;
           (void)diff_z;
@@ -3989,7 +4058,8 @@ bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
           }
         } else {
           FUN_00012140((float *)(actor + 0x12c),
-                       (float *)((char *)command + 0x1c), local_vec);
+                       (float *)((char *)command + 0x1c),
+                       local_vec);
           if (magnitude3d(local_vec) > 0.0f) {
             range = local_vec[2] * *(float *)(actor + 0x17c) +
                     local_vec[1] * *(float *)(actor + 0x178);
@@ -4015,8 +4085,8 @@ bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
     }
     FUN_00012140((float *)(output + 0x18), actor_position, threat_position);
     if (threat_position[0] * *(float *)(output + 0xc) +
-          threat_position[1] * *(float *)(output + 0x14) +
-          threat_position[2] * *(float *)(output + 0x10) <=
+        threat_position[1] * *(float *)(output + 0x14) +
+        threat_position[2] * *(float *)(output + 0x10) <=
         *(float *)(atom + 1)) {
       return 0;
     }
@@ -4038,11 +4108,11 @@ bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
     if (unit_handle == *(int *)(actor + 0x18) && command != NULL) {
       if (*(short *)(actor + 0x60c) != 2 ||
           !(distance_squared3d((float *)((char *)command + 0x38),
-                               (float *)(actor + 0x610)) >= 0.5f)) {
+              (float *)(actor + 0x610)) >= 0.5f)) {
         char *weapon_tag;
         weapon_tag = (char *)tag_get(0x61637476, *(int *)(actor + 0x5c));
-        command_priority =
-          (short)(int)(*(float *)(weapon_tag + 0x84) * TICKS_PER_SECOND);
+        command_priority = (short)(int)(*(float *)(weapon_tag + 0x84) *
+                                        TICKS_PER_SECOND);
         if (command_priority < 61)
           command_priority = 60;
         *(short *)(output + 2) = command_priority;
@@ -4055,10 +4125,8 @@ bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
     if (unit_handle == *(int *)(actor + 0x18) && command != NULL) {
       if (*(char *)((char *)command + 0x49) != '\0') {
         *(unsigned short *)(output + 2) =
-          (unsigned short)(-((*(char *)((char *)object_get_and_verify_type(
-                                          *(int *)(actor + 0x18), 3) +
-                                        0x23d) != '\0')) &
-                           0x1e);
+          (unsigned short)(-((*(char *)((char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3) +
+               0x23d) != '\0')) & 0x1e);
         return *(short *)(output + 2) == 0;
       }
       check_result = unit_is_busy(unit_handle);
@@ -4066,9 +4134,9 @@ bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
         threat_position[0] = *(float *)((char *)command + 0x4c);
         threat_position[1] = *(float *)((char *)command + 0x50);
         threat_position[2] = *(float *)((char *)command + 0x54);
-        check_result =
-          FUN_00021e50(actor_handle, *(short *)((char *)command + 0x4a),
-                       threat_position, -1, -1);
+        check_result = FUN_00021e50(actor_handle,
+                                    *(short *)((char *)command + 0x4a),
+                                    threat_position, -1, -1);
         if (check_result != 0) {
           *(char *)((char *)command + 0x48) = 1;
         }
@@ -4094,8 +4162,8 @@ bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
     break;
 
   case 0xd:
-    return *(char *)((char *)object_get_and_verify_type(unit_handle, 3) +
-                     0x253) != 0x1c;
+    return *(char *)((char *)object_get_and_verify_type(unit_handle, 3) + 0x253) !=
+           0x1c;
 
   case 0xe:
     check_result = recorded_animation_controlling_unit(unit_handle);
@@ -4108,8 +4176,8 @@ bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
     break;
 
   case 0x10:
-    return *(short *)((char *)object_get_and_verify_type(unit_handle, 3) +
-                      0x338) != 6;
+    return *(short *)((char *)object_get_and_verify_type(unit_handle, 3) + 0x338) !=
+           6;
 
   case 0x13:
     command_priority = atom[1];
@@ -4362,7 +4430,8 @@ void FUN_00019370(int actor_handle)
   actor = (char *)datum_get(actor_data, actor_handle);
 
   if (*(char *)(actor + 0x6) != '\0') {
-    display_assert("!actor->meta.swarm", "c:\\halo\\SOURCE\\ai\\action_obey.c",
+    display_assert("!actor->meta.swarm",
+                   "c:\\halo\\SOURCE\\ai\\action_obey.c",
                    0x6f1, 1);
     system_exit(-1);
   }
@@ -4381,7 +4450,8 @@ void FUN_00019370(int actor_handle)
     goto LAB_done;
   }
 
-  if (*(char *)(actor + 0xe0) != '\0' && FUN_0002a3f0(actor_handle)) {
+  if (*(char *)(actor + 0xe0) != '\0' &&
+      FUN_0002a3f0(actor_handle)) {
     *(short *)(actor + 0x3e8) = 4;
     *(short *)(actor + 0x3ec) = 3;
     *(int *)(actor + 0x3f0) = *(int *)(actor + 0xe4);
@@ -4432,17 +4502,18 @@ LAB_done:
   *(char *)(actor + 0x427) = *(char *)(actor + 0xc8);
   *(short *)(actor + 0x42c) = *(short *)(actor + 0xca);
 
-  if (*(char *)(actor + 0xf8) != '\0' && !FUN_0002a360(actor_handle)) {
+  if (*(char *)(actor + 0xf8) != '\0' &&
+      !FUN_0002a360(actor_handle)) {
     if (*(short *)(actor + 0xfa) != -1) {
       tmp_y = *(float *)(actor + 0x5a8);
       tmp_x = *(float *)(actor + 0x5a4);
       magnitude3d(&tmp_x);
-      (void)actor_move_animation_impulse(actor_handle, *(short *)(actor + 0xfa),
-                                         (int *)&tmp_x);
+      (void)actor_move_animation_impulse(actor_handle, *(short *)(actor + 0xfa), (int *)&tmp_x); /* hazard-ok: intentional-discard (output via pointer param; return val = success bool not needed here) */
     }
     if (*(short *)(actor + 0xfc) != -1) {
-      (void)FUN_00046f10(*(short *)(actor + 0xfc), *(int *)(actor + 0x18), -1,
-                         -1, -1, -1, 0);
+      (void)FUN_00046f10(*(short *)(actor + 0xfc),
+                         *(int *)(actor + 0x18),
+                         -1, -1, -1, -1, 0);
     }
     *(char *)(actor + 0xf8) = 0;
   }
@@ -4457,7 +4528,8 @@ LAB_done:
 
   if ((*(char *)(actor + 0xa9) & 4) != 0) {
     if ((*(char *)(actor + 0xa9) & 8) == 0) {
-      if (*(short *)(actor + 0xac) == 0 && *(char *)(actor + 0x15c) == '\0' &&
+      if (*(short *)(actor + 0xac) == 0 &&
+          *(char *)(actor + 0x15c) == '\0' &&
           !unit_is_busy(*(int *)(actor + 0x18))) {
         tmp_x = *(float *)(actor + 0x174);
         tmp_y = *(float *)(actor + 0x178);
@@ -4470,8 +4542,7 @@ LAB_done:
         *(char *)(actor + 0x441) =
           (char)(*(float *)(actor + 0xb4) <
                  *(float *)(actor + 0xb0) * *(float *)0x2533c4);
-        *(char *)(actor + 0x442) =
-          (char)((*(unsigned char *)(actor + 0xa9) >> 4) & 1);
+        *(char *)(actor + 0x442) = (char)((*(unsigned char *)(actor + 0xa9) >> 4) & 1);
         *(float *)(actor + 0x444) = tmp_x;
         *(float *)(actor + 0x448) = tmp_y;
         *(float *)(actor + 0x44c) = *(float *)(actor + 0xb0);
@@ -4542,6 +4613,7 @@ int FUN_000197d0(int actor_handle, short param_2, char param_3,
   char *actor;
   char *enc;
   int *pos;
+  volatile int pos5_idx;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   if (state_data == NULL) {
@@ -4563,7 +4635,8 @@ int FUN_000197d0(int actor_handle, short param_2, char param_3,
       *(int *)(state_data + 0x14) = pos[0];
       *(int *)(state_data + 0x18) = pos[1];
       *(int *)(state_data + 0x1c) = pos[2];
-      *(int *)(state_data + 0x10) = pos[5];
+      pos5_idx = 5;
+      *(int *)(state_data + 0x10) = pos[pos5_idx];
       *(short *)(state_data + 0xc) = *(short *)((char *)pos + 0xe);
       *(char *)(actor + 0x98) = 1;
       return 1;
@@ -4633,15 +4706,7 @@ void FUN_00019940(int actor_handle)
     *(char *)(actor + 0x9f) = 1;
   }
 skip_flag:
-  if (*(char *)(actor + 0x9e) == '\0') {
-    if ((*(char *)(actor + 0x504) == '\0') && (*(char *)(actor + 6) == '\0')) {
-      *(int *)(actor + 0xc4) = *(int *)(actor + 0xc4) + 1;
-      if (0x78 < *(int *)(actor + 0xc4)) {
-        *(char *)(actor + 0x9d) = 1;
-        *(char *)(actor + 0x9c) = 1;
-      }
-    }
-  } else {
+  if (*(char *)(actor + 0x9e) != '\0') {
     if (0 < *(int *)(actor + 0xc0)) {
       *(int *)(actor + 0xc0) = *(int *)(actor + 0xc0) - 1;
     }
@@ -4664,6 +4729,14 @@ skip_flag:
         FUN_00046f10(0x12, *(int *)(actor + 0x18),
                      actor_target_unit_index(actor_handle), -1, -1, -1, 0);
         return;
+      }
+    }
+  } else {
+    if ((*(char *)(actor + 0x504) == '\0') && (*(char *)(actor + 6) == '\0')) {
+      *(int *)(actor + 0xc4) = *(int *)(actor + 0xc4) + 1;
+      if (*(int *)(actor + 0xc4) >= 0x78) {
+        *(char *)(actor + 0x9d) = 1;
+        *(char *)(actor + 0x9c) = 1;
       }
     }
   }
@@ -4811,11 +4884,11 @@ void FUN_00019c70(int actor_handle)
  *
  * Confirmed: cdecl, single stack arg (actor_handle).
  * Confirmed: datum_get(actor_data, actor_handle) at 0x19d10/0x19d12.
- * Confirmed: check swarm/field_4c/field_9c early-exit at
- * 0x19d1f/0x19d2c/0x19d38. Confirmed: field_a4==0 branch: datum_get(prop_data,
- * field_270) at 0x19d5f/0x19d67, squared-distance comparison at
- * 0x19d91-0x19d9f. Confirmed: field_a4==1 branch: squared-distance to field_b0
- * at 0x19ddf/0x19de4, FCOM [0x253dd0] / FCOMP [0x253dcc] at 0x19de4/0x19dff,
+ * Confirmed: check swarm/field_4c/field_9c early-exit at 0x19d1f/0x19d2c/0x19d38.
+ * Confirmed: field_a4==0 branch: datum_get(prop_data, field_270) at 0x19d5f/0x19d67,
+ *   squared-distance comparison at 0x19d91-0x19d9f.
+ * Confirmed: field_a4==1 branch: squared-distance to field_b0 at 0x19ddf/0x19de4,
+ *   FCOM [0x253dd0] / FCOMP [0x253dcc] at 0x19de4/0x19dff,
  *   unit_estimate_position + ai_test_line_of_sight at 0x19e24/0x19e59.
  * Confirmed: actor iteration with FUN_00064540/FUN_00064570 at 0x19e97/0x19ea0,
  *   loop head at 0x19eb2, FUN_00020140 at 0x19ee0, inner datum_get at 0x19ef7.
@@ -4856,7 +4929,7 @@ int actor_look_secondary(int actor_handle)
         dist_sq_threshold = 0.7f;
       }
       if (distance_squared3d((float *)(threat + 0xbc),
-                             (float *)(actor + 0x12c)) <
+              (float *)(actor + 0x12c)) <
           dist_sq_threshold * dist_sq_threshold) {
         *(char *)(actor + 0x9e) = 1;
       } else {
@@ -4866,17 +4939,20 @@ int actor_look_secondary(int actor_handle)
   } else if (*(short *)(actor + 0xa4) == 1) {
     if (*(short *)(actor + 0xa6) != -1) {
       if (distance_squared3d((float *)(actor + 0xb0),
-                             (float *)(actor + 0x12c)) < *(float *)0x253dd0) {
+              (float *)(actor + 0x12c)) < *(float *)0x253dd0) {
         *(char *)(actor + 0x9e) = 1;
       } else if (distance_squared3d((float *)(actor + 0xb0),
-                                    (float *)(actor + 0x12c)) <
-                 *(float *)0x253dcc) {
+                   (float *)(actor + 0x12c)) < *(float *)0x253dcc) {
         unit_estimate_position(*(int *)(actor + 0x18), 1,
-                               (vector3_t *)(actor + 0xb0), NULL, NULL,
+                               (vector3_t *)(actor + 0xb0),
+                               NULL, NULL,
                                (vector3_t *)offset_radius);
         los_result = (short)ai_test_line_of_sight(
-          (float *)(actor + 0x120), (int)*(uint16_t *)(actor + 0x148),
-          offset_radius, (int)*(uint16_t *)(actor + 0xa8), 0, 0, -1,
+          (float *)(actor + 0x120),
+          (int)*(uint16_t *)(actor + 0x148),
+          offset_radius,
+          (int)*(uint16_t *)(actor + 0xa8),
+          0, 0, -1,
           (char)(*(int *)(actor + 0x158) != -1));
         *(char *)(actor + 0x9e) = (char)(los_result == 0);
       } else {
@@ -4885,7 +4961,8 @@ int actor_look_secondary(int actor_handle)
     }
   }
 
-  if (*(char *)(actor + 0x9e) == '\0' && *(char *)(actor + 0xa1) == '\0') {
+  if (*(char *)(actor + 0x9e) == '\0' &&
+      *(char *)(actor + 0xa1) == '\0') {
     found_count = 0;
     nearby_count = 0;
     FUN_00064540((void *)iter_ctx, actor_handle);
@@ -4896,15 +4973,14 @@ int actor_look_secondary(int actor_handle)
           *(char *)(iter_actor + 0x60) == '\0' &&
           *(char *)(iter_actor + 0x127) == '\0' &&
           *(int *)(iter_actor + 0x1c) != -1 &&
-          actors_searching_same_position(actor_handle,
-                                         *(int *)(iter_actor + 0x1c))) {
-        iter_actor = (char *)datum_get(actor_data, *(int *)(iter_actor + 0x1c));
+          actors_searching_same_position(actor_handle, *(int *)(iter_actor + 0x1c))) {
+        iter_actor = (char *)datum_get(actor_data,
+                                       *(int *)(iter_actor + 0x1c));
         found_count = found_count + 1;
         if (*(char *)(iter_actor + 6) == '\0' &&
             *(char *)(iter_actor + 0x504) == '\0' &&
             distance_squared3d((float *)(actor + 0x12c),
-                               (float *)(iter_actor + 0x12c)) <
-              *(float *)0x253dc8) {
+                (float *)(iter_actor + 0x12c)) < *(float *)0x253dc8) {
           nearby_count = nearby_count + 1;
         }
       }
@@ -4916,14 +4992,13 @@ int actor_look_secondary(int actor_handle)
       *(char *)(actor + 0x9c) = 1;
       enc_handle = -1;
       if (*(int *)(actor + 0x270) != -1) {
-        threat =
-          (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(actor + 0x270));
+        threat = (char *)datum_get(*(data_t **)0x5ab23c,
+                                   *(int *)(actor + 0x270));
         enc_handle = *(int *)(threat + 0x7c);
       }
       if (*(int *)(actor + 0x34) != -1) {
-        encounter_mark_examined_pursuit_position(
-          *(int *)(actor + 0x34), actor_handle, *(short *)(actor + 0xa6),
-          enc_handle);
+        encounter_mark_examined_pursuit_position(*(int *)(actor + 0x34), actor_handle,
+                     *(short *)(actor + 0xa6), enc_handle);
       }
     } else if (nearby_count > 0) {
       *(char *)(actor + 0x9e) = 1;
@@ -4940,8 +5015,7 @@ int actor_look_secondary(int actor_handle)
       }
     } else if (*(short *)(actor + 0xa4) == 1) {
       *(short *)(actor + 0x3b8) = -1;
-      ret = actor_move_to_firing_position(actor_handle,
-                                          *(short *)(actor + 0xa6), 0);
+      ret = actor_move_to_firing_position(actor_handle, *(short *)(actor + 0xa6), 0);
       if (!ret) {
         *(char *)(actor + 0x9c) = 1;
         *(char *)(actor + 0x9d) = 1;
@@ -5176,6 +5250,10 @@ void FUN_0001a420(int actor_handle)
   char *actor;
   char *tag_data;
   char *prop;
+  int *src;
+  int *dst;
+  char force7;
+  short pursuit;
   int prop_handle;
 
   actor = (char *)datum_get(actor_data, actor_handle);
@@ -5183,21 +5261,21 @@ void FUN_0001a420(int actor_handle)
   prop_handle = *(int *)(actor + 0x270);
   if (prop_handle != -1) {
     prop = (char *)datum_get(prop_data, prop_handle);
+    force7 = 0;
     if (*(short *)(actor + 0xa4) == 0) {
-      if (*(char *)(actor + 0x162) == '\0') {
-        if ((*tag_data & 0x10) == 0) {
-          *(char *)(actor + 0x454) = (char)(*(short *)(actor + 0x268) >= 6);
-        } else {
-          *(char *)(actor + 0x454) = (char)(*(short *)(actor + 0x268) >= 5);
-        }
-      } else {
+      if (*(char *)(actor + 0x162) != '\0') {
         *(char *)(actor + 0x454) = 1;
         *(char *)(actor + 0x455) = 1;
+        force7 = 1;
+      } else if ((*tag_data & 0x10) != 0) {
+        *(char *)(actor + 0x454) = (char)(*(short *)(actor + 0x268) >= 5);
+      } else {
+        *(char *)(actor + 0x454) = (char)(*(short *)(actor + 0x268) >= 6);
       }
     }
     if ((*(char *)(actor + 0x454) != '\0' &&
          (*(short *)(prop + 0x38) == 0 || *(short *)(prop + 0x38) == 1)) ||
-        (*(char *)(actor + 0x162) != '\0')) {
+        force7 != '\0') {
       *(short *)(actor + 0x3e8) = 7;
     } else if (*(short *)(actor + 0x268) < 5) {
       *(short *)(actor + 0x3e8) = 3;
@@ -5206,13 +5284,16 @@ void FUN_0001a420(int actor_handle)
     } else {
       *(short *)(actor + 0x3e8) = 5;
     }
-    if (*(short *)(actor + 0xa4) == 0) {
+    pursuit = *(short *)(actor + 0xa4);
+    if (pursuit == 0) {
       *(short *)(actor + 0x3ec) = 2;
-    } else if (*(short *)(actor + 0xa4) == 1) {
+    } else if (pursuit == 1) {
       *(short *)(actor + 0x3ec) = 3;
-      *(int *)(actor + 0x3f0) = *(int *)(actor + 0xb0);
-      *(int *)(actor + 0x3f4) = *(int *)(actor + 0xb4);
-      *(int *)(actor + 0x3f8) = *(int *)(actor + 0xb8);
+      src = (int *)(actor + 0xb0);
+      dst = (int *)(actor + 0x3f0);
+      dst[0] = src[0];
+      dst[1] = src[1];
+      dst[2] = src[2];
     }
   }
   *(short *)(actor + 0x3fc) = 3;
@@ -5275,22 +5356,23 @@ void FUN_0001a600(int actor_handle, int *param_2)
   char *actor;
   char *looking;
   char *src;
+  int *p;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   looking = actor + 0x9c;
   if (*looking != '\0') {
     src = *(char **)0x2ee6d8;
-    *param_2 = *(int *)src;
+    p = (int *)src;
+    *param_2 = *p;
     param_2[1] = *(int *)(src + 4);
     param_2[2] = *(int *)(src + 8);
     param_2[3] = *(int *)(src + 0xc);
     return;
   }
-  src = *(char **)0x2ee6ec;
-  *param_2 = *(int *)src;
-  param_2[1] = *(int *)(src + 4);
-  param_2[2] = *(int *)(src + 8);
-  param_2[3] = *(int *)(src + 0xc);
+  *param_2 = *(int *)*(char **)0x2ee6ec;
+  param_2[1] = *(int *)(*(char **)0x2ee6ec + 4);
+  param_2[2] = *(int *)(*(char **)0x2ee6ec + 8);
+  param_2[3] = *(int *)(*(char **)0x2ee6ec + 0xc);
 }
 
 /* FUN_0001a670 (0x1a670)
@@ -5360,7 +5442,12 @@ void FUN_0001a670(int actor_handle)
  * Confirmed: field_a4==0 branch: tag->field_2f8==4 or threat-combat check.
  * Confirmed: field_a4==1 branch: tag->field_2f8==4 or distance check.
  * Confirmed: field_504==0 timer management at 0x1a8bf.
- * Confirmed: field_3b8==-1 timer decrement at 0x1a958.
+ * Confirmed: a4!=0 paths converge on result=(field_bc==0) at 0x1a958
+ *   (both from the increment block and the shared merge at 0x1a912).
+ * Confirmed: field_9e=1 written ONLY on the field_3b8==-1 path (0x1a96d);
+ *   the else path's je jumps past it to the shared decrement at 0x1a974.
+ * Confirmed: field_9d receives the flag register once at 0x1aad0
+ *   (single MOV [ESI+0x9d],BL at function exit).
  * Confirmed: debug-log FUN_00049ac0 at 0x1a9af, FUN_0008f390 at 0x1aa70. */
 void FUN_0001a7e0(int actor_handle)
 {
@@ -5384,88 +5471,91 @@ void FUN_0001a7e0(int actor_handle)
   if (*(short *)(actor + 0xa4) == 0) {
     if (*(short *)(tag + 0x2f8) == 4) {
       *(char *)(actor + 0x9c) = (char)(*(short *)(actor + 0x268) != 6);
-    } else if (((*(char *)tag & 2) != 0) && (*(short *)(actor + 0x268) == 5)) {
-      threat = (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(actor + 0x270));
-      if (*(char *)(threat + 0x121) < 3)
+    } else if (((*(char *)tag & 2) != 0) &&
+               (*(short *)(actor + 0x268) == 5)) {
+      threat = (char *)datum_get(*(data_t **)0x5ab23c,
+                                 *(int *)(actor + 0x270));
+      if (*(char *)(threat + 0x121) <= 2)
         *(char *)(actor + 0x9c) = 1;
     }
   } else if (*(short *)(actor + 0xa4) == 1) {
     if (*(short *)(tag + 0x2f8) == 4 ||
         ((*(char *)tag & 4) != 0 &&
-         distance_squared3d((float *)(actor + 0x12c), (float *)(actor + 0xb0)) <
-           *(float *)0x253f00)) {
+         distance_squared3d((float *)(actor + 0x12c),
+            (float *)(actor + 0xb0)) < *(float *)0x253f00)) {
       *(char *)(actor + 0x9c) = 1;
     }
   }
 
-  if (*(char *)(actor + 0x504) == '\0') {
-    *(int *)(actor + 0xc0) = *(int *)(actor + 0xc0) + 1;
-    if (*(short *)(actor + 0xa4) == 0) {
-      if (*(int *)(actor + 0xc0) > 29)
-        FUN_00024be0(actor_handle, *(short *)(actor + 0x3b8), 0);
-      goto LAB_timer_check;
-    }
-    result = (*(char *)(actor + 0xbc) == '\0');
-  } else {
+  if (*(char *)(actor + 0x504) != '\0') {
     *(int *)(actor + 0xc0) = 0;
-  LAB_timer_check:
+  } else {
+    *(int *)(actor + 0xc0) = *(int *)(actor + 0xc0) + 1;
     if (*(short *)(actor + 0xa4) != 0)
-      goto LAB_timer_check_done;
+      goto LAB_result_inspected;
+    if (*(int *)(actor + 0xc0) >= 30)
+      FUN_00024be0(actor_handle, *(unsigned short *)(actor + 0x3b8), 0);
+  }
+
+  if (*(short *)(actor + 0xa4) == 0) {
     if (*(int *)(actor + 0x270) != -1) {
-      threat = (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(actor + 0x270));
+      threat = (char *)datum_get(*(data_t **)0x5ab23c,
+                                 *(int *)(actor + 0x270));
       done = (char)(*(short *)(threat + 0x32) > 0);
       if (done && *(short *)(actor + 0x268) < 5)
         result = 0;
       else
         result = 1;
     }
+  } else {
+LAB_result_inspected:
+    result = (*(char *)(actor + 0xbc) == '\0');
   }
 
-LAB_timer_check_done:
   if (*(short *)(actor + 0x3b8) == -1) {
     *(char *)(actor + 0x9e) = 1;
+LAB_decrement:
     if (*(int *)(actor + 0xc8) > 0)
       *(int *)(actor + 0xc8) = *(int *)(actor + 0xc8) - 1;
     *(int *)(actor + 0xcc) = *(int *)(actor + 0xcc) + 1;
+LAB_expiry:
+    if (*(int *)(actor + 0xc8) == 0 || *(int *)(actor + 0xcc) >= 360)
+      result = 1;
+    else
+      result = 0;
   } else {
-    if (!result || (*(char *)(actor + 0x162) == '\0' && done == '\0' &&
-                    *(char *)(actor + 0x504) == '\0')) {
-      *(char *)(actor + 0x9e) = 1;
-      if (*(int *)(actor + 0xc8) > 0)
-        *(int *)(actor + 0xc8) = *(int *)(actor + 0xc8) - 1;
-      *(int *)(actor + 0xcc) = *(int *)(actor + 0xcc) + 1;
-    } else {
-      *(int *)(actor + 0xc8) = *(int *)(actor + 0xc4);
-    }
+    if (!result ||
+        (*(char *)(actor + 0x162) == '\0' && done == '\0' &&
+         *(char *)(actor + 0x504) == '\0'))
+      goto LAB_decrement;
+    *(int *)(actor + 0xc8) = *(int *)(actor + 0xc4);
+    goto LAB_expiry;
   }
 
-  if (*(int *)(actor + 0xc8) == 0 || *(int *)(actor + 0xcc) > 359) {
-    *(char *)(actor + 0x9d) = 1;
-  } else {
-    *(char *)(actor + 0x9d) = 0;
-  }
+  if (*(short *)(actor + 0xa4) == 1 &&
+      *(char *)(actor + 0xbc) != '\0')
+    result = 1;
+  else if (result == '\0')
+    goto LAB_store;
 
-  if (*(short *)(actor + 0xa4) == 1 && *(char *)(actor + 0xbc) != '\0') {
-    *(char *)(actor + 0x9d) = 1;
-  }
-
-  if (*(char *)(actor + 0x9d) != '\0' && *(char *)0x5aca64 != '\0') {
+  if (*(char *)0x5aca64 != '\0') {
     ai_debug_describe_actor(actor_handle, -1, 1, debug_buf, 0x100);
     if (*(int *)(actor + 0xc8) == 0) {
       csprintf(debug_msg, "timer %d finished", *(int *)(actor + 0xc4));
-    } else if (*(int *)(actor + 0xcc) < 360) {
-      if (*(short *)(actor + 0xa4) == 1 && *(char *)(actor + 0xbc) != '\0') {
-        csprintf(debug_msg, "location inspected");
-      } else {
-        csprintf(debug_msg, "<unknown reason>");
-      }
-    } else {
+    } else if (*(int *)(actor + 0xcc) >= 360) {
       csprintf(debug_msg, "persistent timer %d", *(int *)(actor + 0xcc));
+    } else if (*(short *)(actor + 0xa4) == 1 &&
+               *(char *)(actor + 0xbc) != '\0') {
+      csprintf(debug_msg, "location inspected");
+    } else {
+      csprintf(debug_msg, "<unknown reason>");
     }
     console_printf(2, "%s: %s uncover done: %s", debug_buf,
-                   (*(short *)(actor + 0xa4) != 0) ? "pursuit" : "target",
+                   (*(short *)(actor + 0xa4) == 0) ? "target" : "pursuit",
                    debug_msg);
   }
+LAB_store:
+  *(char *)(actor + 0x9d) = result;
 }
 
 /* FUN_0001aae0 (0x1aae0)
@@ -5588,18 +5678,20 @@ void FUN_0001ac00(int actor_handle)
 char FUN_00024ca0(int actor_handle, short param_2)
 {
   char *actor;
+  char result;
   short i;
 
   actor = (char *)datum_get(actor_data, actor_handle);
-  if (param_2 == -1) {
-    return 0;
-  }
-  for (i = 0; i < 4; i++) {
-    if (param_2 == *(short *)(actor + 0x3ca + (int)i * 4)) {
-      return 1;
+  result = 0;
+  if (param_2 != -1) {
+    for (i = 0; i < 4; i++) {
+      if (param_2 == *(short *)(actor + 0x3ca + (int)i * 4)) {
+        result = 1;
+        break;
+      }
     }
   }
-  return 0;
+  return result;
 }
 
 /* FUN_00024cf0 (0x24cf0) — Firing-position danger/cover scorer.
@@ -5852,8 +5944,7 @@ void FUN_00024cf0(int actor_handle, void *ctx, unsigned short count,
  * Confirmed: cdecl, 4 stack args.
  * Confirmed: loop at 0x25340+0xd, count >= 0 check.
  * Confirmed: display_assert guards on eval thresholds. */
-void FUN_00025340(int actor_handle, void *ctx, unsigned short count,
-                  void *positions)
+void FUN_00025340(int actor_handle, void *ctx, unsigned short count, void *positions)
 {
   char *pos;
   float eval;
@@ -5872,7 +5963,8 @@ void FUN_00025340(int actor_handle, void *ctx, unsigned short count,
       if (range <= *(float *)pos) {
         if (*(float *)pos < *(float *)((char *)ctx + 0x18)) {
           eval = (2.0f / range) *
-                 (*(float *)((char *)ctx + 0x18) - *(float *)pos) * 10.0f;
+                 (*(float *)((char *)ctx + 0x18) - *(float *)pos) *
+                 10.0f;
           if (eval < 0.0f || eval >= 1000.0f) {
             display_assert("(evaluation >= 0.0f) && (evaluation < 1e+03f)",
                            "c:\\halo\\SOURCE\\ai\\actor_firing_position.c",
@@ -5911,6 +6003,8 @@ void FUN_00025340(int actor_handle, void *ctx, unsigned short count,
           } else {
             score = 10.0f;
           }
+          /* @<esi> = position element base (original 0x254ed LEA ESI,[EDI-8]);
+           * 24000 accumulates score into [esi+0x38] = pos+0x30. */
           FUN_00024000(pos - 8, ctx, score, 3);
         }
       }
@@ -5930,8 +6024,7 @@ void FUN_00025340(int actor_handle, void *ctx, unsigned short count,
  * Confirmed: cdecl, 4 stack args.
  * Confirmed: loop structure at 0x25510, position stride 0x3c.
  * Confirmed: display_assert guards on evaluation. */
-void FUN_00025510(int actor_handle, void *ctx, unsigned short count,
-                  void *positions)
+void FUN_00025510(int actor_handle, void *ctx, unsigned short count, void *positions)
 {
   char *pos;
   float eval;
@@ -5956,7 +6049,7 @@ void FUN_00025510(int actor_handle, void *ctx, unsigned short count,
         } else {
           eval = *(float *)pos - *(float *)0x2533d8;
           eval = eval + eval;
-        LAB_eval_guard:
+LAB_eval_guard:
           if (eval < 0.0f || eval >= 1000.0f) {
             display_assert("(evaluation >= 0.0f) && (evaluation < 1e+03f)",
                            "c:\\halo\\SOURCE\\ai\\actor_firing_position.c",
@@ -5974,16 +6067,13 @@ void FUN_00025510(int actor_handle, void *ctx, unsigned short count,
       }
       if (*(char *)((char *)ctx + 0x5fc) != '\0') {
         if (*(float *)0x254e74 <= *(float *)(pos + 0x24) ||
-            (*(char *)(pos + 0x29) = 1,
-             *(char *)((char *)ctx + 0x14) != '\0')) {
+            (*(char *)(pos + 0x29) = 1, *(char *)((char *)ctx + 0x14) != '\0')) {
           eval = 0.0f;
           if (*(float *)0x254e74 <= *(float *)(pos + 0x24) &&
               (eval = *(float *)0x253f34,
                *(float *)(pos + 0x24) < *(float *)0x254e70 &&
-                 (eval =
-                    (xbox_sqrtf(*(float *)(pos + 0x24)) - *(float *)0x2533d8) *
-                    *(float *)0x254e6c,
-                  (eval < 0.0f || eval >= 1000.0f)))) {
+               (eval = (xbox_sqrtf(*(float *)(pos + 0x24)) - *(float *)0x2533d8) * *(float *)0x254e6c,
+                (eval < 0.0f || eval >= 1000.0f)))) {
             display_assert("(evaluation >= 0.0f) && (evaluation < 1e+03f)",
                            "c:\\halo\\SOURCE\\ai\\actor_firing_position.c",
                            0x81, 1);
@@ -5993,9 +6083,8 @@ void FUN_00025510(int actor_handle, void *ctx, unsigned short count,
           if ((*(float *)(pos + 0x14) < *(float *)0x2548fc &&
                0.0f < *(float *)((char *)ctx + 0x600) &&
                *(float *)((char *)ctx + 0x600) < *(float *)0x2548fc)) {
-            eval = *(float *)0x2533c8 -
-                   *(float *)(pos + 0x14) /
-                     (*(float *)((char *)ctx + 0x600) * *(float *)0x2533f0);
+            eval = *(float *)0x2533c8 - *(float *)(pos + 0x14) /
+                   (*(float *)((char *)ctx + 0x600) * *(float *)0x2533f0);
             if (eval <= 0.5f ||
                 !(pos[0x29] = 1, *(char *)((char *)ctx + 0x14) == '\0')) {
               float bonus;
@@ -6005,8 +6094,8 @@ void FUN_00025510(int actor_handle, void *ctx, unsigned short count,
                 if (*(float *)0x2533c8 < eval)
                   bonus = *(float *)0x2533c8;
               }
-              FUN_00024000(pos - 8, ctx,
-                           (*(float *)0x2533c8 - bonus) * *(float *)0x253f78,
+              /* @<esi> = position element base (original 0x2576b). */
+              FUN_00024000(pos - 8, ctx, (*(float *)0x2533c8 - bonus) * *(float *)0x253f78,
                            10);
             } else {
               *(char *)(pos + 0x28) = 0;
@@ -6017,7 +6106,7 @@ void FUN_00025510(int actor_handle, void *ctx, unsigned short count,
         }
       }
     }
-  LAB_next:
+LAB_next:
     pos = pos + 0x3c;
     n = n - 1;
   } while (n != 0);
@@ -6064,7 +6153,8 @@ void FUN_000257a0(int actor_handle, void *state, char *actor)
 
   if (*(char *)(actor + 0x5fc) == '\0') {
     display_assert("has_target",
-                   "c:\\halo\\SOURCE\\ai\\actor_firing_position.c", 0x33c, 1);
+                   "c:\\halo\\SOURCE\\ai\\actor_firing_position.c",
+                   0x33c, 1);
     system_exit(-1);
   }
 
@@ -6073,11 +6163,15 @@ void FUN_000257a0(int actor_handle, void *state, char *actor)
   if (mode == 5) {
     state_pos = *(void **)state;
     if (*(float *)((char *)state + 8) < *(float *)0x254640) {
-      unit_estimate_position(*(int *)(d + 0x18), 1, (vector3_t *)state_pos,
-                             NULL, NULL, (vector3_t *)offset_radius);
+      unit_estimate_position(*(int *)(d + 0x18), 1,
+                             (vector3_t *)state_pos, NULL, NULL,
+                             (vector3_t *)offset_radius);
       los_result = (short)ai_test_line_of_sight(
-        (float *)(d + 0x120), (int)*(uint16_t *)(d + 0x148), offset_radius,
-        (int)*(uint16_t *)((char *)state_pos + 0xe), 0, 0, -1,
+        (float *)(d + 0x120),
+        (int)*(uint16_t *)(d + 0x148),
+        offset_radius,
+        (int)*(uint16_t *)((char *)state_pos + 0xe),
+        0, 0, -1,
         (char)(*(int *)(d + 0x158) != -1));
       *(short *)((char *)state + 6) = los_result;
       return;
@@ -6111,17 +6205,23 @@ void FUN_000257a0(int actor_handle, void *state, char *actor)
   }
 
   state_pos = *(void **)state;
-  unit_estimate_position(*(int *)(d + 0x18), type, (vector3_t *)state_pos,
-                         (vector3_t *)position_ptr, (vector3_t *)direction_ptr,
+  unit_estimate_position(*(int *)(d + 0x18), type,
+                         (vector3_t *)state_pos,
+                         (vector3_t *)position_ptr,
+                         (vector3_t *)direction_ptr,
                          (vector3_t *)offset_radius2);
 
   if (mode >= 1 && mode <= 3)
     flag = 1;
 
   los_result = (short)ai_test_line_of_sight(
-    offset_radius2, (int)*(uint16_t *)((char *)state_pos + 0xe),
-    (float *)(actor + 0x61c), (int)*(uint16_t *)(actor + 0x640), flag, 1,
-    *(int *)(actor + 0x62c), (char)(*(int *)(d + 0x158) != -1));
+    offset_radius2,
+    (int)*(uint16_t *)((char *)state_pos + 0xe),
+    (float *)(actor + 0x61c),
+    (int)*(uint16_t *)(actor + 0x640),
+    flag, 1,
+    *(int *)(actor + 0x62c),
+    (char)(*(int *)(d + 0x158) != -1));
 
   *(short *)((char *)state + 6) = los_result;
 }
@@ -6129,8 +6229,14 @@ void FUN_000257a0(int actor_handle, void *state, char *actor)
 /* FUN_00025970 (0x25970) — Firing-position evaluation state updater.
  * Advances the per-position evaluation state machine.
  *
- * Confirmed: EAX=state_ptr@<eax>, ESI=actor_ptr, EBP+8=actor_handle.
+ * Confirmed: EAX=state_ptr@<eax>, ESI=actor_ptr@<esi>, EBP+8=actor_handle.
+ *   (actor was wrongly a stack param before 2026-06-10 — original callers
+ *   at 0x26d2f/0x2728f push only the handle; the rvthunk fed garbage.)
  *   Calls FUN_00024850, FUN_000257a0, FUN_00024890.
+ * Confirmed: FUN_00024850 takes actor@<edi> + state@<ebx> pass-throughs —
+ *   original 0x25988 MOV EDI,ESI and 0x25974 MOV EBX,EAX before the call;
+ *   24850/24890 gate hook tables (0x254bf8/0x254c30) on 1<<[actor+4]
+ *   (actor type index) and forward (handle, actor, state) to each hook.
  * Confirmed: state+0x30/0x31/0x34/0x38 accessed; actor+0x668/0x66a/0x66c
  *   debug counters. */
 char FUN_00025970(void *state, int actor_handle, char *actor)
@@ -6142,7 +6248,7 @@ char FUN_00025970(void *state, int actor_handle, char *actor)
   *(char *)((char *)state + 0x31) = 0;
   *(char *)((char *)state + 0x30) = 1;
 
-  FUN_00024850(actor_handle, 1);
+  FUN_00024850(actor_handle, 1, actor, state);
 
   if (*(char *)((char *)state + 0x30) != 0)
     *(short *)(actor + 0x668) = *(short *)(actor + 0x668) + 1;
@@ -6154,7 +6260,7 @@ char FUN_00025970(void *state, int actor_handle, char *actor)
     if (*(char *)(actor + 0x5fc) != 0)
       FUN_000257a0(actor_handle, state, actor);
     *(int *)((char *)state + 0x34) = *(int *)((char *)state + 0x38);
-    result = FUN_00024890(actor_handle, state);
+    result = FUN_00024890(actor_handle, state, actor);
     *(char *)((char *)state + 0x30) = result;
     *(short *)(actor + 0x66c) = *(short *)(actor + 0x66c) + 1;
   }
@@ -6476,191 +6582,183 @@ int FUN_00027a10(int actor_handle)
 }
 
 /* FUN_00027a60 (0x27a60)
- * Issue (or reject) a secondary look request for an actor.
+ * Set an actor's secondary scripted-look target.
  *
- * Validates the look type (0..13), applies a chain of acceptance gates based
- * on the actor's current look state, optionally suppresses redundant
- * "moving-prop" looks against an existing prop entry, computes a duration
- * (look_buf duration table * tag scale, optionally doubled and optionally
- * randomized by the actor tag's look-time perturbation), clamps the resulting
- * tick count to 0x7fff, remaps the priority, optionally emits a debug console
- * line, then stores the accepted look type / priority / duration / 16-byte
- * target payload into the actor record at +0x544..+0x558.
+ * Validates look_type (0-13), checks priority against current look state,
+ * optionally selects a prop object and applies cooldown/speed limits, then
+ * writes the look spec (type, priority, tick-count, look_buf) to actor+0x544.
+ * Returns 1 on success, 0 if blocked by priority or state conditions.
  *
- * Returns 1 if the look was accepted and stored, 0 otherwise. The original
- * only writes AL (XOR AL,AL / MOV AL,1), so the return type is char; all 15
- * callers discard the value.
- *
- * Confirmed: datum_get(actor_data, actor_handle) -> actor (ESI) at 0x27a74.
- * Confirmed: tag_get(0x61637472, *(int*)(actor+0x58)) -> actor tag (EDI) at
- *   0x27a84. The decompiler types this as float and threads it through
- *   (int)fVar2; it is a pointer (all later [tag+0xd4]/[+0xd8] reads use EDI).
- * Confirmed: type bounds assert (0..13) -> display_assert + system_exit(-1).
- * Confirmed: cdecl group mis-read by Ghidra at 0x27c4d-0x27c55 -- the two
- *   pushes (rmin, rmax) belong to random_real_range; the seed is fetched by
- *   get_global_random_seed_address() (no args) between them; ADD ESP,0xc.
- * Confirmed: FISTP at 0x27c72 -> natural (int) cast of the scaled float.
- * Confirmed: debug block is two calls (Ghidra merged them): describe_actor
- *   (5 args, ADD ESP,0x14) feeds console_printf's first %s (6 dwords,
- *   ADD ESP,0x18). Gated on debug flag *(char*)0x5aca5d.
- * Confirmed: priority==1 remap from table 0x2550d4 indexed by
- *   ((actor+0x6e >= 4) + type*2) at 0x27c8e-0x27ca0.
- * Confirmed: duration table 0x25510c indexed by type at 0x27bbc.
- * Confirmed: store-back +0x546=priority(DI), +0x548=ticks(BX),
- *   +0x544=type(DX), +0x54c..+0x558 = 16 bytes copied from look_buf at
- *   0x27d8b-0x27dba. */
-char FUN_00027a60(int actor_handle, short look_type, short priority,
-                  short *look_buf)
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x27a74.
+ * Confirmed: tag_get(0x61637472, actor+0x58) at 0x27a7f.
+ * Confirmed: assert (type >= 0) && (type < 14) at line 0x87 actor_looking.c.
+ * Confirmed: actor+0x3e8 >= 7 check (SETGE) stored to local_5 at 0x27ae6.
+ * Confirmed: MOV word [ESI+0x546],DI; MOV word [ESI+0x548],BX;
+ *   MOV word [ESI+0x544],DX at 0x27d8b-0x27d99.
+ * Confirmed: 16-byte copy from param_4 to actor+0x54c (4 dwords) at 0x27da0-0x27db9.
+ * Confirmed: debug type_names[14] at EBP-0x64, prio_names[9] at EBP-0x34;
+ *   literal XBE addresses 0x2551e0..0x255178 (type) and 0x255244..0x2551ec (prio). */
+int FUN_00027a60(int actor_handle, short look_type, short priority,
+                 short *look_buf)
 {
   char *actor;
   char *tag;
   char *prop;
-  int now;
-  int ticks;
-  char gate_aim; /* local_5: actor+0x3e8 >= 7 */
-  float look_value; /* duration in seconds before scaling to ticks */
-  float rmin;
-  float rmax;
-
-  /* look type/priority name tables for the debug line (built on stack).
-   * Sized exactly as the original (frame is SUB ESP,0x64): 12 type slots and
-   * 9 priority slots.  The original indexes type_names with look_type up to 13,
-   * overreading into adjacent stack for type 12/13 -- a latent quirk only
-   * reachable behind the debug flag and never hit in normal play.  Sizes are
-   * kept faithful to the binary layout rather than "fixed". */
-  char *type_names[12]; /* local_68: indexed by look_type */
-  char *priority_names[9]; /* local_38: indexed by priority */
+  float scale;
+  float rng_min;
+  float rng_max;
+  int tick_count;
+  char is_high_level;
+  int *seed;
+  char *type_names[12];
+  char *prio_names[9];
 
   actor = (char *)datum_get(actor_data, actor_handle);
   tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
 
-  if (look_type < 0 || look_type > 13) {
-    display_assert("(type >= 0) && (type < NUMBER_OF_SECONDARY_LOOK_TYPES)",
-                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x87, 1);
-    halt_and_catch_fire();
+  if (look_type < 0 || look_type >= 0xe) {
+    display_assert(
+      "(type >= 0) && (type < NUMBER_OF_SECONDARY_LOOK_TYPES)",
+      "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x87, 1);
+    system_exit(-1);
   }
 
-  /* Gate 1: only proceed when (look class > 1 or type==13) and the new type's
-   * priority is not below the currently active look type at +0x544. */
-  if ((*(short *)(actor + 0x6a) <= 1 && look_type < 13) ||
-      *(short *)(actor + 0x544) > look_type) {
+  /* Priority gate: skip if look_type is low and actor already has higher-priority look */
+  if (*(short *)(actor + 0x6a) <= 1 && look_type < 0xd) {
+    return 0;
+  }
+  if (*(short *)(actor + 0x544) > look_type) {
     return 0;
   }
 
-  gate_aim = (*(short *)(actor + 0x3e8) >= 7);
+  is_high_level = (char)(*(short *)(actor + 0x3e8) >= 7);
 
-  /* Gate 2a: reject when type is below the override range, the actor is in
-   * look class 0xb, and the no-suppress flag (+0x9f) is clear. */
-  if (look_type < 13 && *(short *)(actor + 0x6c) == 0xb &&
-      *(char *)(actor + 0x9f) == '\0') {
-    return 0;
-  }
-  /* Gate 2b: when in the high-aim state, reject idle/aim look types (< 4). */
-  if (gate_aim && look_type < 4) {
-    return 0;
+  /* Additional gate for types < 13: special actor state checks */
+  if (look_type < 0xd) {
+    if (*(short *)(actor + 0x6c) == 0xb && *(char *)(actor + 0x9f) == '\0') {
+      return 0;
+    }
   }
 
-  /* Object-handle look (type 1 payload): de-dup against the existing prop. */
-  if (*look_buf == 1) {
-    prop =
-      (char *)datum_absolute_index_to_index(prop_data, *(int *)(look_buf + 2));
+  if (is_high_level && look_type < 4) {
+    return 0;
+  }
+
+  /* If look_buf[0] == 1: prop-based look — check prop state and cooldown */
+  if (*(short *)look_buf == 1) {
+    prop = (char *)datum_absolute_index_to_index(
+      *(data_t **)0x5ab23c, *(int *)(look_buf + 2));
     if (prop == (char *)0) {
       return 0;
     }
-    if (look_type < 8 &&
-        ((*(char *)(prop + 0x60) == '\0' && *(char *)(prop + 0x127) == '\0') ||
-         (*(char *)(prop + 0x127) != '\0' && *(short *)(actor + 0x6a) > 2))) {
-      now = game_time_get();
-      if (gate_aim != 0) {
+    if (look_type < 8) {
+      /* Visibility/awareness gate: must have flags+awareness to proceed */
+      if (*(char *)(prop + 0x60) != '\0' || *(char *)(prop + 0x127) != '\0') {
+        if (*(char *)(prop + 0x127) == '\0') {
+          goto after_prop_check;
+        }
+        if (*(short *)(actor + 0x6a) < 3) {
+          goto after_prop_check;
+        }
+      }
+      /* Cooldown check */
+      tick_count = game_time_get();
+      if (is_high_level) {
         return 0;
       }
-      if (((*(char *)(prop + 0x12e) == '\0' || look_type < 4) &&
-           *(int *)(prop + 0x5c) != -1) &&
-          now < *(int *)(prop + 0x5c) + 600) {
-        return 0;
+      if (*(char *)(prop + 0x12e) != '\0' && look_type < 4) {
+        goto do_update_timer;
       }
-      *(int *)(prop + 0x5c) = now;
-      /* prop[0x58] = max(prop[0x58], prop[0x54]) -- FLD/FCOMP/FSTP at 0x27b96
-       */
-      if (*(float *)(prop + 0x58) <= *(float *)(prop + 0x54)) {
-        *(float *)(prop + 0x58) = *(float *)(prop + 0x54);
+      if (*(int *)(prop + 0x5c) == -1 ||
+          *(int *)(prop + 0x5c) + 600 <= tick_count) {
+        goto do_update_timer;
       }
+      return 0;
+
+do_update_timer:
+      *(int *)(prop + 0x5c) = tick_count;
+      *(float *)(prop + 0x58) =
+        *(float *)(prop + 0x58) > *(float *)(prop + 0x54)
+        ? *(float *)(prop + 0x58) : *(float *)(prop + 0x54);
     }
   }
 
-  /* Duration in seconds = type-indexed table value (0x25510c), doubled when
-   * the actor is not in the high look class or has no look-time override. */
-  look_value = ((float *)0x25510c)[look_type];
+after_prop_check:
+  /* Load base scale from table by look_type */
+  scale = *(float *)((char *)0x25510c + (int)look_type * 4);
+
+  /* Double scale if actor awareness < 3 or actor+0x6e == 0 */
   if (*(short *)(actor + 0x6a) < 3 || *(short *)(actor + 0x6e) == 0) {
-    look_value = look_value + look_value;
+    scale = scale + scale;
   }
 
-  /* Optional randomization by the tag's look-time perturbation (tag+0xd4 min,
-   * tag+0xd8 max).  Skipped when both equal 0.0f.  min floored at 0.5,
-   * max capped at 2.0. */
+  /* Apply random scale from tag if tag+0xd4 or tag+0xd8 is non-zero */
   if (*(float *)(tag + 0xd4) != *(float *)0x2533c0 ||
       *(float *)(tag + 0xd8) != *(float *)0x2533c0) {
-    if (*(float *)(tag + 0xd4) <= *(float *)0x253398) {
-      rmin = 0.5f;
+    /* Floor min at 0.5f */
+    if (*(float *)(tag + 0xd4) < *(float *)0x253398) {
+      rng_min = *(float *)0x253398;
     } else {
-      rmin = *(float *)(tag + 0xd4);
+      rng_min = *(float *)(tag + 0xd4);
     }
-    if (*(float *)(tag + 0xd8) <= *(float *)0x253f40) {
-      rmax = *(float *)(tag + 0xd8);
+    /* Ceiling max at 2.0f */
+    if (*(float *)(tag + 0xd8) < *(float *)0x253f40) {
+      rng_max = *(float *)(tag + 0xd8);
     } else {
-      rmax = 2.0f;
+      rng_max = *(float *)0x253f40;
     }
-    look_value =
-      random_real_range(get_global_random_seed_address(), rmin, rmax) *
-      look_value;
+    seed = get_global_random_seed_address();
+    scale = scale * random_real_range(seed, rng_min, rng_max);
   }
 
-  /* Convert seconds -> ticks (round via FISTP, *30.0f) and clamp to 0x7fff. */
-  rmax = look_value * *(float *)0x253394;
-  ticks = (int)rmax;
-  if (ticks > 0x7fff) {
-    ticks = 0x7fff;
+  /* Convert scale to tick count (int), capped at 0x7fff */
+  rng_min = scale * *(float *)0x253394;
+  tick_count = (int)rng_min;
+  if (tick_count > 0x7fff) {
+    tick_count = 0x7fff;
   }
 
-  /* Priority 1 (default) is remapped via the priority table (0x2550d4),
-   * picking column based on whether the actor's look-override class (+0x6e)
-   * is >= 4. */
+  /* Remap priority=1 from table indexed by [look_type, actor+0x6e>=4] */
   if (priority == 1) {
-    priority = ((short *)0x2550d4)[(*(short *)(actor + 0x6e) >= 4 ? 1 : 0) +
-                                   look_type * 2];
+    priority = *(short *)((char *)0x2550d4 +
+      ((int)(unsigned char)(*(short *)(actor + 0x6e) >= 4) + (int)look_type * 2) * 2);
   }
 
+  /* Debug output */
   if (*(char *)0x5aca5d != '\0') {
-    char *describe;
-    type_names[0] = "none";
-    type_names[1] = "environment";
-    type_names[2] = "moving-prop";
-    type_names[3] = "impact";
-    type_names[4] = "new-prop";
-    type_names[5] = "shooting-prop";
-    type_names[6] = "comm-prop";
-    type_names[7] = "comm-direction";
-    type_names[8] = "combat-prop";
-    type_names[9] = "damage";
-    type_names[10] = "danger";
-    type_names[11] = "scripted";
-    priority_names[0] = "none";
-    priority_names[1] = "default";
-    priority_names[2] = "idle-look";
-    priority_names[3] = "idle-aim";
-    priority_names[4] = "aim";
-    priority_names[5] = "turn-and-aim";
-    priority_names[6] = "stop-and-aim";
-    priority_names[7] = "override";
-    priority_names[8] = "override-facing";
-    describe =
-      ai_debug_describe_actor(actor_handle, -1, 0, (char *)0x5ab100, 0x100);
-    console_printf(0, "%s: look %s %s %d", describe, type_names[look_type],
-                   priority_names[priority], (int)(short)ticks);
+    type_names[0]  = (char *)0x254384;
+    type_names[1]  = (char *)0x2551e0;
+    type_names[2]  = (char *)0x2551d4;
+    type_names[3]  = (char *)0x2551cc;
+    type_names[4]  = (char *)0x2551c0;
+    type_names[5]  = (char *)0x2551b0;
+    type_names[6]  = (char *)0x2551a4;
+    type_names[7]  = (char *)0x255194;
+    type_names[8]  = (char *)0x255188;
+    type_names[9]  = (char *)0x255180;
+    type_names[10] = (char *)0x255178;
+    type_names[11] = (char *)0x25516c;
+
+    prio_names[0] = (char *)0x254384;
+    prio_names[1] = (char *)0x255244;
+    prio_names[2] = (char *)0x255238;
+    prio_names[3] = (char *)0x25522c;
+    prio_names[4] = (char *)0x255228;
+    prio_names[5] = (char *)0x255218;
+    prio_names[6] = (char *)0x255208;
+    prio_names[7] = (char *)0x2551fc;
+    prio_names[8] = (char *)0x2551ec;
+
+    console_printf(0, (char *)0x255158,
+      ai_debug_describe_actor(actor_handle, -1, 0, (char *)0x5ab100, 0x100),
+      type_names[(int)look_type],
+      prio_names[(int)priority],
+      (int)(short)tick_count);
   }
 
+  /* Write look spec to actor */
   *(short *)(actor + 0x546) = priority;
-  *(short *)(actor + 0x548) = (short)ticks;
+  *(short *)(actor + 0x548) = (short)tick_count;
   *(short *)(actor + 0x544) = look_type;
   *(int *)(actor + 0x54c) = *(int *)look_buf;
   *(int *)(actor + 0x550) = *(int *)(look_buf + 2);
@@ -6705,8 +6803,8 @@ bool FUN_00027dd0(float *dir, float *vec2, float threshold)
  *
  * Confirmed: EAX=dir, ECX=vec2, EDX=limit, EBP+8=threshold,
  *   EBP+0xC=output.  FSQRT/FDIV/FMUL/FCOMPP + magnitude3d. */
-bool FUN_00027e50(float *dir, float *vec2, float *limit, float threshold,
-                  float *output)
+bool FUN_00027e50(float *dir, float *vec2, float *limit,
+                  float threshold, float *output)
 {
   float dx;
   float dy;
@@ -6771,7 +6869,9 @@ void FUN_00027f40(int actor_handle, void *dir_ptr, void *out1, void *out2)
   tag_data = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
 
   *((char *)out1) = (char)FUN_00027dd0(
-    (float *)dir_ptr, (float *)(actor + 0x174), *(float *)(tag_data + 0x12c));
+      (float *)dir_ptr,
+      (float *)(actor + 0x174),
+      *(float *)(tag_data + 0x12c));
 
   if (*(short *)(actor + 0x6a) == 3) {
     cos_angles[0] = x87_fcos(*(float *)(tag_data + 0xbc));
@@ -6783,8 +6883,11 @@ void FUN_00027f40(int actor_handle, void *dir_ptr, void *out1, void *out2)
   cos_angles[1] = x87_fcos(cos_angles[1]);
 
   *((char *)out2) = (char)FUN_00027e50(
-    (float *)dir_ptr, (float *)(actor + 0x180), (float *)(actor + 0x174),
-    *(float *)(tag_data + 0x134), cos_angles);
+      (float *)dir_ptr,
+      (float *)(actor + 0x180),
+      (float *)(actor + 0x174),
+      *(float *)(tag_data + 0x134),
+      cos_angles);
 }
 
 /* FUN_00027ff0 (0x27ff0)
@@ -6858,12 +6961,13 @@ char FUN_00027ff0(int actor_handle, char param_2, char param_3, short *output,
           item_score = 1.0f;
         } else {
           item_score =
-            ((float)current_tick - (float)item_timestamp) * (1.0f / 600.0f) -
-            1.0f;
+              ((float)current_tick - (float)item_timestamp) * (1.0f / 600.0f) -
+              1.0f;
         }
-        item_score = (*(float *)(item + 0x54) - *(float *)(item + 0x58)) /
-                       *(float *)(item + 0x54) +
-                     item_score;
+        item_score =
+            (*(float *)(item + 0x54) - *(float *)(item + 0x58)) /
+                *(float *)(item + 0x54) +
+            item_score;
         if (item_score > 1.0f) {
           item_score = 1.0f;
         }
@@ -6882,12 +6986,13 @@ char FUN_00027ff0(int actor_handle, char param_2, char param_3, short *output,
       if (item_score > 0.0f) {
         check_result = 0;
         if (param_3 == 0) {
-          check_result =
-            (char)FUN_00027e50((float *)(item + 0xe0), (float *)(actor + 0x5b0),
-                               (float *)(actor + 0x5a4), tag_fov, &cos_yaw);
+          check_result = (char)FUN_00027e50(
+              (float *)(item + 0xe0), (float *)(actor + 0x5b0),
+              (float *)(actor + 0x5a4), tag_fov, &cos_yaw);
         } else if (param_2 == 0 || item_flag == 0) {
-          check_result = (char)FUN_00027dd0(
-            (float *)(item + 0xe0), (float *)(actor + 0x5a4), tag_threshold);
+          check_result =
+              (char)FUN_00027dd0((float *)(item + 0xe0),
+                                 (float *)(actor + 0x5a4), tag_threshold);
         }
 
         if (check_result != 0 && item_score > best_score) {
@@ -6913,14 +7018,6 @@ char FUN_00027ff0(int actor_handle, char param_2, char param_3, short *output,
 
   return 0;
 }
-
-/* FUN_000283b0 (0x283b0) -- unported.
- * Randomized look-direction search with collision validation. Takes the
- * source direction vector in EAX, a collision context (actor+0x120), a 3D
- * flag, yaw min/max and pitch min/max float ranges, and an output vector.
- * Declared here with the correct @<eax> register-arg ABI so the build-time
- * thunk generator passes the register argument correctly; the body is not
- * yet lifted. */
 
 /* FUN_00028cc0 (0x28cc0) -- actor_set_idle_minor_look_target
  * Computes an idle look/aim target from the actor's "actr" tag look-limit
@@ -7136,7 +7233,7 @@ void actor_look_update(int actor_handle)
   float cos_angles[2];
   short look_spec_type;
   float constrain_range;
-  float aim_threshold;
+  int aim_threshold;
   int look_data_mode;
   int look_mode;
   int secondary_mode;
@@ -7165,39 +7262,24 @@ void actor_look_update(int actor_handle)
   actor_save = actor;
   tag_data = (int)tag_get(0x61637472, *(int *)(actor + 0x58));
 
-  desired_facing = (float *)(actor + 0x5a4);
-  desired_aiming = (float *)(actor + 0x5b0);
+  desired_facing  = (float *)(actor + 0x5a4);
+  desired_aiming  = (float *)(actor + 0x5b0);
   desired_looking = (float *)(actor + 0x5bc);
   strict_look = 0;
 
   if (!valid_real_normal3d(desired_facing)) {
-    display_assert(
-      csprintf(error_string_buffer,
-               "%s: assert_valid_real_normal3d(%f, %f, %f)",
-               "&actor->control.desired_facing_vector",
-               (double)desired_facing[0], (double)*(float *)(actor + 0x5a8),
-               (double)*(float *)(actor + 0x5ac)),
-      "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x44f, 1);
+    display_assert("&actor->control.desired_facing_vector",
+                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x44f, 1);
     system_exit(-1);
   }
   if (!valid_real_normal3d(desired_aiming)) {
-    display_assert(
-      csprintf(error_string_buffer,
-               "%s: assert_valid_real_normal3d(%f, %f, %f)",
-               "&actor->control.desired_aiming_vector",
-               (double)desired_aiming[0], (double)*(float *)(actor + 0x5b4),
-               (double)*(float *)(actor + 0x5b8)),
-      "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x450, 1);
+    display_assert("&actor->control.desired_aiming_vector",
+                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x450, 1);
     system_exit(-1);
   }
   if (!valid_real_normal3d(desired_looking)) {
-    display_assert(
-      csprintf(error_string_buffer,
-               "%s: assert_valid_real_normal3d(%f, %f, %f)",
-               "&actor->control.desired_looking_vector",
-               (double)desired_looking[0], (double)*(float *)(actor + 0x5c0),
-               (double)*(float *)(actor + 0x5c4)),
-      "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x451, 1);
+    display_assert("&actor->control.desired_looking_vector",
+                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x451, 1);
     system_exit(-1);
   }
 
@@ -7224,12 +7306,12 @@ void actor_look_update(int actor_handle)
     is_attacking = 0;
   }
 
-  snap_flag = *(char *)(actor + 0x58d);
+  snap_flag     = *(char *)(actor + 0x58d);
   transient_aim = *(char *)(actor + 0x58e);
-  use_aim = is_attacking;
-  aim_threshold = *(float *)(tag_data + 0x12c);
+  use_aim       = is_attacking;
+  aim_threshold = *(int *)(tag_data + 0x12c);
   constrain_range = *(float *)(tag_data + 0x134);
-  has_primary = 1;
+  has_primary   = 1;
   no_timing_window = 0;
   want_secondary = 0;
 
@@ -7252,10 +7334,11 @@ void actor_look_update(int actor_handle)
       goto LAB_look_mode_from_actor;
     }
   } else {
-  LAB_look_mode_from_actor:
+LAB_look_mode_from_actor:
     look_mode = (int)(unsigned short)(*(unsigned short *)(actor + 0x3e8));
     if (look_mode != 0 && look_mode != 1) {
-      if (FUN_00028660(actor_handle, (short *)(actor + 0x3ec), primary_vec)) {
+      if (FUN_00028660(actor_handle,
+                       (short *)(actor + 0x3ec), primary_vec)) {
         strict_look = (char)(*(short *)(actor + 0x3ec) == 2);
       } else {
         look_mode = 0;
@@ -7266,7 +7349,8 @@ void actor_look_update(int actor_handle)
   /* Secondary look mode */
   secondary_mode = 0;
   if (*(short *)(actor + 0x544) >= 0 && *(short *)(actor + 0x548) > 0) {
-    if (FUN_00028660(actor_handle, (short *)(actor + 0x54c), secondary_vec)) {
+    if (FUN_00028660(actor_handle,
+                     (short *)(actor + 0x54c), secondary_vec)) {
       secondary_mode = (int)(*(short *)(actor + 0x546));
     }
   }
@@ -7284,21 +7368,13 @@ void actor_look_update(int actor_handle)
 
   /* Validate primary_vec and secondary_vec */
   if ((short)look_mode > 1 && !valid_real_normal3d(primary_vec)) {
-    display_assert(
-      csprintf(error_string_buffer,
-               "%s: assert_valid_real_normal3d(%f, %f, %f)", "&primary_vector",
-               (double)primary_vec[0], (double)primary_vec[1],
-               (double)primary_vec[2]),
-      "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x4ca, 1);
+    display_assert("&primary_vector",
+                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x4ca, 1);
     system_exit(-1);
   }
   if ((short)secondary_mode != 0 && !valid_real_normal3d(secondary_vec)) {
-    display_assert(
-      csprintf(error_string_buffer,
-               "%s: assert_valid_real_normal3d(%f, %f, %f)",
-               "&secondary_vector", (double)secondary_vec[0],
-               (double)secondary_vec[1], (double)secondary_vec[2]),
-      "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x4ce, 1);
+    display_assert("&secondary_vector",
+                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x4ce, 1);
     system_exit(-1);
   }
 
@@ -7309,8 +7385,7 @@ void actor_look_update(int actor_handle)
     if (sVar8 == 0) {
       if (*(char *)0x5aca5d) {
         console_printf(0, "%s: look timer expire",
-                       ai_debug_describe_actor(actor_handle, -1, 0,
-                                               (char *)0x5ab100, 0x100));
+          ai_debug_describe_actor(actor_handle, -1, 0, (char *)0x5ab100, 0x100));
       }
       *(short *)(actor + 0x544) = 0;
       *(short *)(actor + 0x546) = 0;
@@ -7322,15 +7397,14 @@ void actor_look_update(int actor_handle)
   /* Apply primary_vec if look_mode >= 2 */
   if ((short)look_mode >= 2) {
     if ((short)look_mode < 5 ||
-        (snap_flag == 0 &&
-         !FUN_00027dd0(primary_vec, desired_facing, aim_threshold))) {
+        (snap_flag == 0 && !FUN_00027dd0(primary_vec, desired_facing, aim_threshold))) {
       if ((short)look_mode > 2 && transient_aim) {
         transient_aim = 0;
         snap_flag = 1;
         goto LAB_000294dc;
       }
     } else {
-    LAB_000294dc:
+LAB_000294dc:
       desired_aiming[0] = primary_vec[0];
       desired_aiming[1] = primary_vec[1];
       desired_aiming[2] = primary_vec[2];
@@ -7370,20 +7444,16 @@ void actor_look_update(int actor_handle)
   case 6:
     in_range = FUN_00027dd0(secondary_vec, desired_facing, aim_threshold);
     if (!no_timing_window) {
-      if (want_secondary)
-        goto LAB_000296af;
+      if (want_secondary) goto LAB_000296af;
       if ((short)secondary_mode >= 6 && !actor_move_force_stop(actor_handle))
         goto LAB_0002961a;
-      if ((short)secondary_mode >= 5 &&
-          (transient_aim != 0 || *(char *)(actor + 0x58d) != 0))
+      if ((short)secondary_mode >= 5
+          && (transient_aim != 0 || *(char *)(actor + 0x58d) != 0))
         goto LAB_0002961a;
-      if ((short)secondary_mode < 4)
-        goto LAB_0002966b;
-      if (in_range != 0)
-        goto LAB_00029672;
-      if (!snap_flag || !has_primary)
-        goto LAB_000296af;
-    LAB_0002961a:
+      if ((short)secondary_mode < 4) goto LAB_0002966b;
+      if (in_range != 0) goto LAB_00029672;
+      if (!snap_flag || !has_primary) goto LAB_000296af;
+LAB_0002961a:
       if (!*(char *)(actor + 0x591) || !in_range) {
         desired_facing[0] = secondary_vec[0];
         desired_facing[1] = secondary_vec[1];
@@ -7399,10 +7469,9 @@ void actor_look_update(int actor_handle)
       goto LAB_000297b4;
     }
     if (!want_secondary) {
-    LAB_0002966b:
-      if (!in_range)
-        goto LAB_000296af;
-    LAB_00029672:
+LAB_0002966b:
+      if (!in_range) goto LAB_000296af;
+LAB_00029672:
       if ((short)secondary_mode < 5 &&
           ((short)secondary_mode < 3 || !has_primary))
         goto LAB_000296af;
@@ -7415,9 +7484,10 @@ void actor_look_update(int actor_handle)
       use_aim = is_attacking;
       goto LAB_000297b8;
     }
-  LAB_000296af:
-    if (use_aim && FUN_00027e50(secondary_vec, desired_aiming, desired_facing,
-                                constrain_range, cos_angles)) {
+LAB_000296af:
+    if (use_aim &&
+        FUN_00027e50(secondary_vec, desired_aiming, desired_facing,
+                     constrain_range, cos_angles)) {
       desired_looking[0] = secondary_vec[0];
       desired_looking[1] = secondary_vec[1];
       desired_looking[2] = secondary_vec[2];
@@ -7438,18 +7508,16 @@ void actor_look_update(int actor_handle)
   case 7:
   case 8:
     idle_major_active = (char)((short)secondary_mode == 8);
-    no_timing_window = idle_major_active;
+    no_timing_window  = idle_major_active;
     if (!*(char *)(actor + 0x58d)) {
       if (!FUN_00027dd0(secondary_vec, desired_facing, aim_threshold)) {
-        if (!actor_move_force_stop(actor_handle))
-          goto LAB_000297c7;
+        if (!actor_move_force_stop(actor_handle)) goto LAB_000297c7;
         no_timing_window = 1;
         goto LAB_0002977e;
       }
-      if (!idle_major_active)
-        goto LAB_0002977e;
+      if (!idle_major_active) goto LAB_0002977e;
     }
-  LAB_0002977e:
+LAB_0002977e:
     desired_facing[0] = secondary_vec[0];
     desired_facing[1] = secondary_vec[1];
     desired_facing[2] = secondary_vec[2];
@@ -7460,14 +7528,14 @@ void actor_look_update(int actor_handle)
     desired_looking[0] = secondary_vec[0];
     desired_looking[1] = secondary_vec[1];
     desired_looking[2] = secondary_vec[2];
-  LAB_000297b4:
+LAB_000297b4:
     snap_flag = 0;
     use_aim = is_attacking;
-  LAB_000297b8:
+LAB_000297b8:
     *(char *)(actor + 0x58c) = 1;
     want_secondary = 0;
     is_attacking = use_aim;
-  LAB_000297c3:
+LAB_000297c3:
     has_primary = 0;
     break;
   default:
@@ -7494,20 +7562,21 @@ LAB_000297c7:
   iVar13 = FUN_00027a10(actor_handle);
   bVar15 = (char)(*(float *)(iVar13 + 4) <= *(float *)0x2533c0);
   no_timing_window = !bVar15;
-  in_range = (char)(*(float *)(iVar13 + 0xc) > *(float *)0x2533c0);
-  transient_aim = (char)(*(float *)(iVar13 + 0x14) > *(float *)0x2533c0);
-  look_data_mode = iVar13;
+  in_range         = (char)(*(float *)0x2533c0 < *(float *)(iVar13 + 0xc));
+  transient_aim    = (char)(*(float *)0x2533c0 < *(float *)(iVar13 + 0x14));
+  look_data_mode   = iVar13;
 
   /* Gate on look_timer */
   if (*(short *)(actor + 0x3fc) < 1 || want_secondary ||
-      (!has_primary && !use_aim) || (bVar15 && !in_range && !transient_aim)) {
+      (!has_primary && !use_aim) ||
+      (bVar15 && !in_range && !transient_aim)) {
     *(char *)(actor + 0x55c) = 0;
     *(char *)(actor + 0x55e) = 0;
     goto LAB_00029da2;
   }
 
   idle_major_active = 0;
-  want_secondary = 0;
+  want_secondary    = 0;
 
   /* Force-snap flag for look_mode==1 */
   if (!bVar15 && snap_flag && (short)look_mode == 1 && *(int *)(actor + 0x560))
@@ -7520,7 +7589,7 @@ LAB_000297c7:
 
   /* Idle major timer branch */
   if (!*(char *)(actor + 0x55c)) {
-  LAB_00029971: {
+LAB_00029971: {
     float *pfv;
     char uVar11;
     bVar15 = 1;
@@ -7531,16 +7600,17 @@ LAB_000297c7:
       if (!use_aim || !transient_aim)
         goto LAB_00029a12;
     } else if (!use_aim || !transient_aim) {
-    LAB_00029998:
+LAB_00029998:
       pfv = bVar15 ? desired_facing : (float *)desired_aiming;
       uVar11 = (char)(use_aim && transient_aim ? 1 : 0);
       *(char *)(actor + 0x55e) =
-        FUN_00028cc0((float *)iVar13, pfv, (char)look_mode,
-                     (char)(int)look_data, uVar11, actor_handle);
+        FUN_00028cc0((float *)iVar13, pfv,
+                     (char)look_mode, (char)(int)look_data, uVar11,
+                     actor_handle);
       if (*(char *)(actor + 0x55c) && *(int *)(actor + 0x564) < 1) {
-        display_assert("!actor->control.idle_major_active || "
-                       "(actor->control.idle_major_timer > 0)",
-                       "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x5dd, 1);
+        display_assert(
+          "!actor->control.idle_major_active || (actor->control.idle_major_timer > 0)",
+          "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x5dd, 1);
         system_exit(-1);
       }
       idle_major_active = 1;
@@ -7548,15 +7618,14 @@ LAB_000297c7:
     } else {
       goto LAB_00029998;
     }
-    if (use_aim && transient_aim)
-      goto LAB_00029998;
-  LAB_00029a12:;
-  }
+    if (use_aim && transient_aim) goto LAB_00029998;
+LAB_00029a12:;
+    }
   } else {
     if (*(char *)(actor + 0x55d) && !has_primary) {
       *(char *)(actor + 0x55c) = 1;
-      *(int *)(actor + 0x564) =
-        FUN_00028250((float *)iVar13, 1, actor_handle, 2);
+      *(int *)(actor + 0x564) = FUN_00028250((float *)iVar13, 1,
+                                              actor_handle, 2);
       *(short *)(actor + 0x56c) = 4;
       *(float *)(actor + 0x570) = desired_aiming[0];
       *(float *)(actor + 0x574) = desired_aiming[1];
@@ -7577,12 +7646,8 @@ LAB_000297c7:
     goto LAB_00029ccc;
 
   if (!valid_real_normal3d(primary_vec)) {
-    display_assert(
-      csprintf(error_string_buffer,
-               "%s: assert_valid_real_normal3d(%f, %f, %f)",
-               "&idle_major_vector", (double)primary_vec[0],
-               (double)primary_vec[1], (double)primary_vec[2]),
-      "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x5e8, 1);
+    display_assert("&idle_major_vector",
+                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x5e8, 1);
     system_exit(-1);
   }
 
@@ -7598,8 +7663,7 @@ LAB_000297c7:
       look_mode = (look_mode & 0xffffff00) | 1;
       want_secondary = 1;
     }
-    if ((char)look_mode ||
-        (snap_flag && no_timing_window && *(char *)(actor + 0x99))) {
+    if ((char)look_mode || (snap_flag && no_timing_window && *(char *)(actor + 0x99))) {
       desired_facing[0] = primary_vec[0];
       desired_facing[1] = primary_vec[1];
       desired_facing[2] = primary_vec[2];
@@ -7628,15 +7692,19 @@ LAB_00029b75:
   /* Idle minor timer */
   if (idle_major_active && transient_aim) {
     *(char *)(actor + 0x55f) = 1;
-    *(int *)(actor + 0x568) = FUN_00028250(
-      (float *)look_data_mode, *(char *)(actor + 0x55e), actor_handle, 2);
+    *(int *)(actor + 0x568) =
+      FUN_00028250((float *)look_data_mode,
+                   *(char *)(actor + 0x55e),
+                   actor_handle, 2);
     *(int *)(actor + 0x57c) = *(int *)(actor + 0x56c);
     *(int *)(actor + 0x580) = *(int *)(actor + 0x570);
     *(int *)(actor + 0x584) = *(int *)(actor + 0x574);
     *(int *)(actor + 0x588) = *(int *)(actor + 0x578);
     if ((char)look_mode) {
-      *(int *)(actor + 0x560) = FUN_00028250(
-        (float *)look_data_mode, *(char *)(actor + 0x55e), actor_handle, 0);
+      *(int *)(actor + 0x560) =
+        FUN_00028250((float *)look_data_mode,
+                     *(char *)(actor + 0x55e),
+                     actor_handle, 0);
     }
   }
 
@@ -7665,12 +7733,8 @@ LAB_00029b75:
           cVar7 = FUN_00027dd0(primary_vec, desired_facing, aim_threshold);
         if (cVar7) {
           if (!valid_real_normal3d(primary_vec)) {
-            display_assert(
-              csprintf(error_string_buffer,
-                       "%s: assert_valid_real_normal3d(%f, %f, %f)",
-                       "&idle_minor_vector", (double)primary_vec[0],
-                       (double)primary_vec[1], (double)primary_vec[2]),
-              "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x645, 1);
+            display_assert("&idle_minor_vector",
+                           "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x645, 1);
             system_exit(-1);
           }
           if (cVar5) {
@@ -7685,7 +7749,7 @@ LAB_00029b75:
           goto LAB_00029dac;
         }
       }
-    LAB_00029da2:
+LAB_00029da2:
       *(char *)(actor + 0x55f) = 0;
       pfVar14 = (char *)desired_aiming;
     } else {
@@ -7697,25 +7761,25 @@ LAB_00029b75:
 LAB_00029dac:
   /* Snap-to-original */
   if (!*(char *)(actor + 0x504) && !*(char *)(actor + 0x505) &&
-      !unit_is_busy(*(int *)(actor + 0x18)) && *(int *)(actor + 0x158) == -1) {
-    if (!FUN_00027dd0(desired_aiming, (float *)(actor + 0x174),
-                      aim_threshold) ||
-        !FUN_00027dd0(desired_aiming, desired_facing, aim_threshold)) {
+      !unit_is_busy(*(int *)(actor + 0x18)) &&
+      *(int *)(actor + 0x158) == -1) {
+    if (!FUN_00027dd0(desired_aiming, (float *)(actor + 0x174), aim_threshold)
+        || !FUN_00027dd0(desired_aiming, desired_facing, aim_threshold)) {
       if (is_attacking) {
         if (FUN_00027e50(desired_looking, desired_aiming, desired_facing,
-                         constrain_range, cos_angles) &&
-            !FUN_00027e50(desired_looking, desired_aiming,
-                          (float *)(actor + 0x174), constrain_range,
-                          cos_angles))
+                         constrain_range, cos_angles)
+            && !FUN_00027e50(desired_looking, desired_aiming,
+                             (float *)(actor + 0x174),
+                             constrain_range, cos_angles))
           goto LAB_00029e51;
       }
       goto LAB_00029e58;
     }
-  LAB_00029e51:
+LAB_00029e51:
     *(char *)(actor + 0x591) = 1;
   }
   if (!is_attacking) {
-  LAB_00029e58:
+LAB_00029e58:
     desired_looking[0] = ((float *)pfVar14)[0];
     desired_looking[1] = ((float *)pfVar14)[1];
     desired_looking[2] = ((float *)pfVar14)[2];
@@ -7725,8 +7789,7 @@ LAB_00029e6d:
   /* Zero pitch if needed */
   if (!*(char *)(actor + 0x99)) {
     float pitch_abs = *(float *)(actor + 0x5ac);
-    if (pitch_abs < 0.0f)
-      pitch_abs = -pitch_abs;
+    if (pitch_abs < 0.0f) pitch_abs = -pitch_abs;
     if (*(double *)0x2533d0 <= (double)pitch_abs) {
       *(float *)(actor + 0x5ac) = 0.0f;
       if (magnitude3d(desired_facing) == *(float *)0x2533c0) {
@@ -7736,12 +7799,8 @@ LAB_00029e6d:
       }
     }
     if (!valid_real_normal2d((float *)(actor + 0x6fc))) {
-      display_assert(
-        csprintf(error_string_buffer, "%s: assert_valid_real_normal2d(%f, %f)",
-                 "(real_vector2d *) &actor->output.facing_vector",
-                 (double)*(float *)(actor + 0x6fc),
-                 (double)*(float *)(actor + 0x700)),
-        "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x689, 1);
+      display_assert("(real_vector2d *) &actor->output.facing_vector",
+                     "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x689, 1);
       system_exit(-1);
     }
   }
@@ -7753,9 +7812,9 @@ LAB_00029e6d:
   }
   if (!*(char *)(actor + 0x590)) {
     if (!*(char *)(actor + 0x504)) {
-      float dot = *(float *)(actor + 0x188) * ((float *)pfVar14)[2] +
-                  *(float *)(actor + 0x184) * ((float *)pfVar14)[1] +
-                  *(float *)(actor + 0x180) * ((float *)pfVar14)[0];
+      float dot = *(float *)(actor + 0x180) * ((float *)pfVar14)[0]
+                + *(float *)(actor + 0x184) * ((float *)pfVar14)[1]
+                + *(float *)(actor + 0x188) * ((float *)pfVar14)[2];
       if (dot > *(float *)0x2555d0) {
         *(float *)(actor + 0x598) = ((float *)pfVar14)[0];
         *(float *)(actor + 0x59c) = ((float *)pfVar14)[1];
@@ -7771,8 +7830,7 @@ LAB_00029e6d:
     float *pfv;
     snap_stored = (float *)(actor + 0x598);
     pfv = (float *)pfVar14;
-    if (*(float *)(tag_data + 0x330) <= *(float *)0x2533c0)
-      goto LAB_0002a0c3;
+    if (*(float *)(tag_data + 0x330) <= *(float *)0x2533c0) goto LAB_0002a0c3;
     snap_cos = x87_fcos(*(float *)(tag_data + 0x330));
     if (!*(char *)(actor + 0x99)) {
       float sv[2];
@@ -7784,26 +7842,22 @@ LAB_00029e6d:
       dv[1] = desired_facing[1];
       ss[0] = snap_stored[0];
       ss[1] = snap_stored[1];
-      if (magnitude3d(sv) == *(float *)0x2533c0)
-        goto LAB_0002a0a7;
-      if (magnitude3d(dv) == *(float *)0x2533c0)
-        goto LAB_0002a0a7;
-      if (magnitude3d(ss) == *(float *)0x2533c0)
-        goto LAB_0002a0a7;
+      if (magnitude3d(sv) == *(float *)0x2533c0) goto LAB_0002a0a7;
+      if (magnitude3d(dv) == *(float *)0x2533c0) goto LAB_0002a0a7;
+      if (magnitude3d(ss) == *(float *)0x2533c0) goto LAB_0002a0a7;
       if (ss[1] * sv[1] + ss[0] * sv[0] > snap_cos) {
-        if (dv[1] * ss[1] + dv[0] * ss[0] <= snap_cos)
-          goto LAB_0002a0c3;
+        if (dv[1] * ss[1] + dv[0] * ss[0] <= snap_cos) goto LAB_0002a0c3;
       }
     } else {
-      float dot3 = pfv[2] * snap_stored[2] + pfv[1] * snap_stored[1] +
-                   pfv[0] * snap_stored[0];
+      float dot3 = pfv[0] * snap_stored[0]
+                 + pfv[1] * snap_stored[1]
+                 + pfv[2] * snap_stored[2];
       if (dot3 > snap_cos) {
         float dot4 = FUN_00013070(desired_facing, snap_stored);
-        if (dot4 <= snap_cos)
-          goto LAB_0002a0c3;
+        if (dot4 <= snap_cos) goto LAB_0002a0c3;
       }
     }
-  LAB_0002a0a7:
+LAB_0002a0a7:
     *(char *)(actor + 0x590) = 0;
     FUN_00036e50(actor_handle);
   }
@@ -7822,36 +7876,18 @@ LAB_0002a0c3:
   actor_unit_control_exact_facing(actor_handle, *(char *)(actor + 0x591));
 
   if (!valid_real_normal3d((float *)(actor + 0x6fc))) {
-    display_assert(
-      csprintf(error_string_buffer,
-               "%s: assert_valid_real_normal3d(%f, %f, %f)",
-               "&actor->output.facing_vector",
-               (double)*(float *)(actor + 0x6fc),
-               (double)*(float *)(actor + 0x700),
-               (double)*(float *)(actor + 0x704)),
-      "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x6c8, 1);
+    display_assert("&actor->output.facing_vector",
+                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x6c8, 1);
     system_exit(-1);
   }
   if (!valid_real_normal3d((float *)(actor + 0x708))) {
-    display_assert(
-      csprintf(error_string_buffer,
-               "%s: assert_valid_real_normal3d(%f, %f, %f)",
-               "&actor->output.aiming_vector",
-               (double)*(float *)(actor + 0x708),
-               (double)*(float *)(actor + 0x70c),
-               (double)*(float *)(actor + 0x710)),
-      "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x6c9, 1);
+    display_assert("&actor->output.aiming_vector",
+                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x6c9, 1);
     system_exit(-1);
   }
   if (!valid_real_normal3d((float *)(actor + 0x714))) {
-    display_assert(
-      csprintf(error_string_buffer,
-               "%s: assert_valid_real_normal3d(%f, %f, %f)",
-               "&actor->output.looking_vector",
-               (double)*(float *)(actor + 0x714),
-               (double)*(float *)(actor + 0x718),
-               (double)*(float *)(actor + 0x71c)),
-      "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x6ca, 1);
+    display_assert("&actor->output.looking_vector",
+                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x6ca, 1);
     system_exit(-1);
   }
 
