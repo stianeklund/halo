@@ -6198,7 +6198,8 @@ char FUN_00025a00(int actor_handle, int *param_2, int param_3, int param_4)
   short loop_index;
   float distance;
   int path_input[18]; /* path_input_new memsets 0x48 bytes here */
-  static float path_state[20515]; /* path_state work area; static to avoid _chkstk */
+  static float
+    path_state[20515]; /* path_state work area; static to avoid _chkstk */
 
   actor = (char *)datum_get(actor_data, actor_handle);
   actr_tag = tag_get(0x61637472, *(int *)(actor + 0x58));
@@ -6472,6 +6473,200 @@ int FUN_00027a10(int actor_handle)
     return (int)(tag + 0xdc);
   }
   return (int)(tag + 0x10c);
+}
+
+/* FUN_00027a60 (0x27a60)
+ * Issue (or reject) a secondary look request for an actor.
+ *
+ * Validates the look type (0..13), applies a chain of acceptance gates based
+ * on the actor's current look state, optionally suppresses redundant
+ * "moving-prop" looks against an existing prop entry, computes a duration
+ * (look_buf duration table * tag scale, optionally doubled and optionally
+ * randomized by the actor tag's look-time perturbation), clamps the resulting
+ * tick count to 0x7fff, remaps the priority, optionally emits a debug console
+ * line, then stores the accepted look type / priority / duration / 16-byte
+ * target payload into the actor record at +0x544..+0x558.
+ *
+ * Returns 1 if the look was accepted and stored, 0 otherwise. The original
+ * only writes AL (XOR AL,AL / MOV AL,1), so the return type is char; all 15
+ * callers discard the value.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) -> actor (ESI) at 0x27a74.
+ * Confirmed: tag_get(0x61637472, *(int*)(actor+0x58)) -> actor tag (EDI) at
+ *   0x27a84. The decompiler types this as float and threads it through
+ *   (int)fVar2; it is a pointer (all later [tag+0xd4]/[+0xd8] reads use EDI).
+ * Confirmed: type bounds assert (0..13) -> display_assert + system_exit(-1).
+ * Confirmed: cdecl group mis-read by Ghidra at 0x27c4d-0x27c55 -- the two
+ *   pushes (rmin, rmax) belong to random_real_range; the seed is fetched by
+ *   get_global_random_seed_address() (no args) between them; ADD ESP,0xc.
+ * Confirmed: FISTP at 0x27c72 -> natural (int) cast of the scaled float.
+ * Confirmed: debug block is two calls (Ghidra merged them): describe_actor
+ *   (5 args, ADD ESP,0x14) feeds console_printf's first %s (6 dwords,
+ *   ADD ESP,0x18). Gated on debug flag *(char*)0x5aca5d.
+ * Confirmed: priority==1 remap from table 0x2550d4 indexed by
+ *   ((actor+0x6e >= 4) + type*2) at 0x27c8e-0x27ca0.
+ * Confirmed: duration table 0x25510c indexed by type at 0x27bbc.
+ * Confirmed: store-back +0x546=priority(DI), +0x548=ticks(BX),
+ *   +0x544=type(DX), +0x54c..+0x558 = 16 bytes copied from look_buf at
+ *   0x27d8b-0x27dba. */
+char FUN_00027a60(int actor_handle, short look_type, short priority,
+                  short *look_buf)
+{
+  char *actor;
+  char *tag;
+  char *prop;
+  int now;
+  int ticks;
+  char gate_aim; /* local_5: actor+0x3e8 >= 7 */
+  float look_value; /* duration in seconds before scaling to ticks */
+  float rmin;
+  float rmax;
+
+  /* look type/priority name tables for the debug line (built on stack).
+   * Sized exactly as the original (frame is SUB ESP,0x64): 12 type slots and
+   * 9 priority slots.  The original indexes type_names with look_type up to 13,
+   * overreading into adjacent stack for type 12/13 -- a latent quirk only
+   * reachable behind the debug flag and never hit in normal play.  Sizes are
+   * kept faithful to the binary layout rather than "fixed". */
+  char *type_names[12]; /* local_68: indexed by look_type */
+  char *priority_names[9]; /* local_38: indexed by priority */
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+
+  if (look_type < 0 || look_type > 13) {
+    display_assert("(type >= 0) && (type < NUMBER_OF_SECONDARY_LOOK_TYPES)",
+                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x87, 1);
+    halt_and_catch_fire();
+  }
+
+  /* Gate 1: only proceed when (look class > 1 or type==13) and the new type's
+   * priority is not below the currently active look type at +0x544. */
+  if ((*(short *)(actor + 0x6a) <= 1 && look_type < 13) ||
+      *(short *)(actor + 0x544) > look_type) {
+    return 0;
+  }
+
+  gate_aim = (*(short *)(actor + 0x3e8) >= 7);
+
+  /* Gate 2a: reject when type is below the override range, the actor is in
+   * look class 0xb, and the no-suppress flag (+0x9f) is clear. */
+  if (look_type < 13 && *(short *)(actor + 0x6c) == 0xb &&
+      *(char *)(actor + 0x9f) == '\0') {
+    return 0;
+  }
+  /* Gate 2b: when in the high-aim state, reject idle/aim look types (< 4). */
+  if (gate_aim && look_type < 4) {
+    return 0;
+  }
+
+  /* Object-handle look (type 1 payload): de-dup against the existing prop. */
+  if (*look_buf == 1) {
+    prop =
+      (char *)datum_absolute_index_to_index(prop_data, *(int *)(look_buf + 2));
+    if (prop == (char *)0) {
+      return 0;
+    }
+    if (look_type < 8 &&
+        ((*(char *)(prop + 0x60) == '\0' && *(char *)(prop + 0x127) == '\0') ||
+         (*(char *)(prop + 0x127) != '\0' && *(short *)(actor + 0x6a) > 2))) {
+      now = game_time_get();
+      if (gate_aim != 0) {
+        return 0;
+      }
+      if (((*(char *)(prop + 0x12e) == '\0' || look_type < 4) &&
+           *(int *)(prop + 0x5c) != -1) &&
+          now < *(int *)(prop + 0x5c) + 600) {
+        return 0;
+      }
+      *(int *)(prop + 0x5c) = now;
+      /* prop[0x58] = max(prop[0x58], prop[0x54]) -- FLD/FCOMP/FSTP at 0x27b96
+       */
+      if (*(float *)(prop + 0x58) <= *(float *)(prop + 0x54)) {
+        *(float *)(prop + 0x58) = *(float *)(prop + 0x54);
+      }
+    }
+  }
+
+  /* Duration in seconds = type-indexed table value (0x25510c), doubled when
+   * the actor is not in the high look class or has no look-time override. */
+  look_value = ((float *)0x25510c)[look_type];
+  if (*(short *)(actor + 0x6a) < 3 || *(short *)(actor + 0x6e) == 0) {
+    look_value = look_value + look_value;
+  }
+
+  /* Optional randomization by the tag's look-time perturbation (tag+0xd4 min,
+   * tag+0xd8 max).  Skipped when both equal 0.0f.  min floored at 0.5,
+   * max capped at 2.0. */
+  if (*(float *)(tag + 0xd4) != *(float *)0x2533c0 ||
+      *(float *)(tag + 0xd8) != *(float *)0x2533c0) {
+    if (*(float *)(tag + 0xd4) <= *(float *)0x253398) {
+      rmin = 0.5f;
+    } else {
+      rmin = *(float *)(tag + 0xd4);
+    }
+    if (*(float *)(tag + 0xd8) <= *(float *)0x253f40) {
+      rmax = *(float *)(tag + 0xd8);
+    } else {
+      rmax = 2.0f;
+    }
+    look_value =
+      random_real_range(get_global_random_seed_address(), rmin, rmax) *
+      look_value;
+  }
+
+  /* Convert seconds -> ticks (round via FISTP, *30.0f) and clamp to 0x7fff. */
+  rmax = look_value * *(float *)0x253394;
+  ticks = (int)rmax;
+  if (ticks > 0x7fff) {
+    ticks = 0x7fff;
+  }
+
+  /* Priority 1 (default) is remapped via the priority table (0x2550d4),
+   * picking column based on whether the actor's look-override class (+0x6e)
+   * is >= 4. */
+  if (priority == 1) {
+    priority = ((short *)0x2550d4)[(*(short *)(actor + 0x6e) >= 4 ? 1 : 0) +
+                                   look_type * 2];
+  }
+
+  if (*(char *)0x5aca5d != '\0') {
+    char *describe;
+    type_names[0] = "none";
+    type_names[1] = "environment";
+    type_names[2] = "moving-prop";
+    type_names[3] = "impact";
+    type_names[4] = "new-prop";
+    type_names[5] = "shooting-prop";
+    type_names[6] = "comm-prop";
+    type_names[7] = "comm-direction";
+    type_names[8] = "combat-prop";
+    type_names[9] = "damage";
+    type_names[10] = "danger";
+    type_names[11] = "scripted";
+    priority_names[0] = "none";
+    priority_names[1] = "default";
+    priority_names[2] = "idle-look";
+    priority_names[3] = "idle-aim";
+    priority_names[4] = "aim";
+    priority_names[5] = "turn-and-aim";
+    priority_names[6] = "stop-and-aim";
+    priority_names[7] = "override";
+    priority_names[8] = "override-facing";
+    describe =
+      ai_debug_describe_actor(actor_handle, -1, 0, (char *)0x5ab100, 0x100);
+    console_printf(0, "%s: look %s %s %d", describe, type_names[look_type],
+                   priority_names[priority], (int)(short)ticks);
+  }
+
+  *(short *)(actor + 0x546) = priority;
+  *(short *)(actor + 0x548) = (short)ticks;
+  *(short *)(actor + 0x544) = look_type;
+  *(int *)(actor + 0x54c) = *(int *)look_buf;
+  *(int *)(actor + 0x550) = *(int *)(look_buf + 2);
+  *(int *)(actor + 0x554) = *(int *)(look_buf + 4);
+  *(int *)(actor + 0x558) = *(int *)(look_buf + 6);
+  return 1;
 }
 
 /* FUN_00027dd0 (0x27dd0)
