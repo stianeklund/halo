@@ -7898,7 +7898,7 @@ void FUN_0003ec80(int actor_handle /* @<esi> */)
   FUN_00014540(actor_handle);
   actor_destination_update(actor_handle);
   FUN_0002a2b0(actor_handle);
-  FUN_0002e560(actor_handle);
+  actor_move_update(actor_handle);
   actor_look_update(actor_handle);
   FUN_00022dc0(actor_handle);
   FUN_0003e7a0(actor_handle);
