@@ -6914,6 +6914,121 @@ char FUN_00027ff0(int actor_handle, char param_2, char param_3, short *output,
   return 0;
 }
 
+/* FUN_000283b0 (0x283b0) -- unported.
+ * Randomized look-direction search with collision validation. Takes the
+ * source direction vector in EAX, a collision context (actor+0x120), a 3D
+ * flag, yaw min/max and pitch min/max float ranges, and an output vector.
+ * Declared here with the correct @<eax> register-arg ABI so the build-time
+ * thunk generator passes the register argument correctly; the body is not
+ * yet lifted. */
+
+/* FUN_00028cc0 (0x28cc0) -- actor_set_idle_minor_look_target
+ * Computes an idle look/aim target from the actor's "actr" tag look-limit
+ * fields and the requested direction vector, validates it via a collision
+ * search (FUN_000283b0), then installs the resulting look state and a
+ * randomized idle-major timer (FUN_00028250) into the actor's control block.
+ *
+ * Parameters:
+ *   look_vectors  : actor look output vectors (forwarded to FUN_00028250)
+ *   dir_vec       : requested direction vector (float[3])
+ *   look_mode     : selects aiming (0) vs facing limits within the secondary
+ * path param4        : 0 => primary facing/aiming yaw/pitch limits; nonzero =>
+ * secondary aim/look path (and zeroes dir z) is_secondary  : if set, skip the
+ * FUN_00027ff0 acknowledge gate actor_handle  : actor datum handle (EAX)
+ *
+ * tag (actr) look-limit float offsets:
+ *   +0xa4/+0xc4 aim yaw min/max, +0xa8/+0xc8 aim pitch min/max,
+ *   +0xac/+0xcc facing yaw min/max, +0xb0/+0xd0 facing pitch min/max.
+ *
+ * Returns the (zero-extended) idle-minor "active" byte: 1 if a target was
+ * installed, 0 otherwise.
+ *
+ * Confirmed (disasm 0x28cc0-0x28eca): actor_handle@<eax> (MOV ESI,EAX);
+ *   datum_get(DAT_006325a4, actor_handle); tag_get('actr', actor+0x58);
+ *   FUN_000283b0 @<eax>=&dir_local (0x28e68 is the LAST EAX write before
+ *   the call), stack param_1 = actor+0x120 (collision ctx); arg3=-yaw passed
+ *   via PUSH+FSTP[ESP] (0x28e5b/0x28e5c); FUN_00028250 @<esi>=actor_handle,
+ *   @<edi>=look_type (1 + (param4==0)).
+ * Inferred: float yaw=[EBP+0x18 scratch], pitch=[EBP-0x4], pitch_min=[EBP-0xc].
+ * Uncertain: dir_local is a contiguous float[3] (EBP-0x18) shared by
+ *   normalize3d and FUN_000283b0's EAX arg. */
+char FUN_00028cc0(float *look_vectors, float *dir_vec, char look_mode,
+                  char param4, char is_secondary, int actor_handle)
+{
+  char *actor;
+  int tag_data;
+  int idle_major_timer;
+  float dir_local[3];
+  float yaw;
+  float pitch;
+  float pitch_min;
+  char result_byte;
+  int look_type;
+
+  actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  tag_data = (int)tag_get(0x61637472, *(int *)(actor + 0x58));
+  result_byte = 0;
+  *(char *)(actor + 0x55c) = 0;
+
+  if (is_secondary != '\0' ||
+      FUN_00027ff0(actor_handle, look_mode, param4, (short *)(actor + 0x56c),
+                   &result_byte) == '\0') {
+    dir_local[0] = dir_vec[0];
+    dir_local[1] = dir_vec[1];
+    dir_local[2] = dir_vec[2];
+
+    if (param4 != '\0') {
+      if (look_mode != '\0') {
+        yaw = 3.1415927f;
+      } else {
+        if (*(float *)(tag_data + 0xa4) > *(float *)(tag_data + 0xc4))
+          yaw = *(float *)(tag_data + 0xc4);
+        else
+          yaw = *(float *)(tag_data + 0xa4);
+      }
+      if (*(float *)(tag_data + 0xa8) > *(float *)(tag_data + 0xc8))
+        pitch = *(float *)(tag_data + 0xc8);
+      else
+        pitch = *(float *)(tag_data + 0xa8);
+      dir_local[2] = 0.0f;
+      if (normalize3d(dir_local) == *(float *)0x2533c0) {
+        dir_local[0] = (*(float **)0x31fc3c)[0];
+        dir_local[1] = (*(float **)0x31fc3c)[1];
+        dir_local[2] = (*(float **)0x31fc3c)[2];
+      }
+    } else {
+      if (*(float *)(tag_data + 0xac) > *(float *)(tag_data + 0xcc))
+        yaw = *(float *)(tag_data + 0xcc);
+      else
+        yaw = *(float *)(tag_data + 0xac);
+      if (*(float *)(tag_data + 0xb0) > *(float *)(tag_data + 0xd0))
+        pitch = *(float *)(tag_data + 0xd0);
+      else
+        pitch = *(float *)(tag_data + 0xb0);
+    }
+
+    pitch_min = -pitch;
+    if (*(char *)(actor + 0x161) != '\0')
+      pitch_min = pitch_min * *(float *)0x253398;
+
+    *(short *)(actor + 0x56c) = 4;
+    if (FUN_000283b0(dir_local, (int)(actor + 0x120), 1, -yaw, yaw, pitch_min,
+                     pitch, (float *)(actor + 0x570)) == '\0')
+      return result_byte;
+  }
+
+  look_type = 1 + (param4 == '\0' ? 1 : 0);
+  idle_major_timer =
+    FUN_00028250(look_vectors, is_secondary, actor_handle, look_type);
+  *(int *)(actor + 0x564) = idle_major_timer;
+  if (idle_major_timer == 0)
+    return result_byte;
+
+  *(char *)(actor + 0x55c) = 1;
+  *(char *)(actor + 0x55d) = param4;
+  return result_byte;
+}
+
 /* actor_look_update (0x29040)
  * Per-tick update of an actor's look/aim/facing output vectors.
  * Resolves primary/secondary look modes from the look-spec tables,
