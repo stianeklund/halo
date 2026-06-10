@@ -566,6 +566,146 @@ int actor_aim_jump(int actor_handle, int a2, char param_3, float param_4,
   return 1;
 }
 
+/* 0x2ade0 — actor_move_build_obstacle_list: scan nearby objects and record an
+ * obstacle entry for each colliding object found within the actor's avoidance
+ * radius.
+ *
+ * Confirmed: search radius = max(*0x2557f0, *0x255778) * actor[0x6044]
+ *   (FCOMP/TEST AH,0x41 at 0x2ae0f selects the larger; FMUL at 0x2ae22).
+ * Confirmed: object_find_in_radius(1, 0xc2, obj+0x48, actor+0xc, radius,
+ *   handles, 0x800) at 0x2ae47; handles is a 2048-int stack buffer; the
+ *   int16 return is the found count, treated unsigned (MOVZX at 0x2ae5e).
+ * Confirmed: actor[0x3c] (record count) zeroed at 0x2ae52, capped at 0x400.
+ * Confirmed: each object's own handle (obj+8) is skipped (0x2ae8c); -1
+ *   handles are skipped (0x2ae83).
+ * Confirmed: tag_get('obje', obj_tag_id) then tag_get('coll', objtag[0x7c])
+ *   at 0x2ae9d/0x2aeab; collision tag block at coll[0x280] drives the per-
+ *   element loop.
+ * Confirmed: FUN_0001aae0 writes center[3] (&[EBP-0x20]) + obj_radius
+ *   (&[EBP-0x10]); matrix_transform_point writes out[3]; node==0xffff uses
+ *   world matrix, else node matrix (0x2af0b branch). scale_term =
+ *   marker[0x1c] * matrix[0]. obj_radius ([EBP-0x10]) is distinct from the
+ *   search radius and drives the record math at 0x2af9f/0x2afd8.
+ * Confirmed: distance is 2D (X,Y only) — sqrt(dx*dx+dy*dy)+scale_term
+ *   (FLD -0x30/-0x2c at 0x2af4b; out[2] written but unread).
+ * Confirmed store offsets from disasm 0x2afb8-0x2affb (decompiler shifts
+ *   these one slot — see store-offset table in the lift report):
+ *   record[0x40]=handle, [0x44..0x4c]=center xyz, [0x4c] RMW to
+ *   center[2]-(obj_radius-maxdist), [0x50]=max(2*obj_radius-2*maxdist,
+ *   *0x2533c0), [0x54]=maxdist. Record stride 0x18, base actor+0x40. */
+void FUN_0002ade0(int actor_handle)
+{
+  int handles[2048];
+  float world_matrix[13];
+  void *obj;
+  void *obj_tag;
+  void *coll_tag;
+  int *coll_count;
+  int object_handle;
+  int16_t found;
+  int16_t i;
+  int j;
+  float radius;
+  float obj_radius;
+  float maxdist;
+  float scale_term;
+  float center[3];
+  float out[3];
+  float kbase;
+  void *matrix;
+  unsigned short *marker;
+  int16_t record_count;
+  int record;
+
+  obj = object_get_and_verify_type(*(int *)(actor_handle + 8), -1);
+
+  /* disasm 0x2adfc: FLD [0x2557f0]; FCOMP [0x255778]; JNZ loads 778 — i.e.
+   * kbase = max(7f0, 778).  Written with the > leaf taken (load 7f0) so VC71
+   * lays the branch out as FCOMP+JNE rather than the <= min-idiom JP. */
+  if (*(float *)0x2557f0 > *(float *)0x255778) {
+    kbase = *(float *)0x2557f0;
+  } else {
+    kbase = *(float *)0x255778;
+  }
+  radius = kbase * *(float *)(actor_handle + 0x6044);
+
+  found = object_find_in_radius(1, 0xc2, (char *)obj + 0x48,
+                                (float *)(actor_handle + 0xc), radius, handles,
+                                0x800);
+  *(int16_t *)(actor_handle + 0x3c) = 0;
+
+  for (i = 0; i < found; i++) {
+    object_handle = handles[i];
+    obj = object_get_and_verify_type(object_handle, -1);
+    if (object_handle == -1 || object_handle == *(int *)(actor_handle + 8)) {
+      continue;
+    }
+
+    obj_tag = tag_get(0x6f626a65, *(int *)obj); /* 'obje' */
+    coll_tag =
+      tag_get(0x636f6c6c, *(int *)((char *)obj_tag + 0x7c)); /* 'coll' */
+    coll_count = (int *)((char *)coll_tag + 0x280);
+    if (*coll_count <= 0) {
+      continue;
+    }
+
+    FUN_0001aae0(object_handle, center, &obj_radius);
+    object_get_world_matrix(object_handle, world_matrix);
+
+    maxdist = 0.0f;
+    /* disasm 0x2af81-0x2af8a: j incremented full-width (INC EAX), but the
+     * loop-continue test compares the sign-extended low 16 bits
+     * (MOVSX EAX,AX) against *coll_count. */
+    j = 0;
+    while ((int16_t)j < *coll_count) {
+      marker = (unsigned short *)tag_block_get_element(coll_count, j, 0x20);
+      /* disasm 0x2af07: CMP AX,0xffff; JZ — node!=0xffff path is fall-through.
+       * Written != so VC71 lays out the node-matrix branch first (JE shape). */
+      if (*marker != 0xffff) {
+        matrix = object_get_node_matrix(object_handle, (int16_t)*marker);
+        matrix_transform_point((float *)matrix,
+                               (float *)((char *)marker + 0x10), out);
+        scale_term = *(float *)((char *)marker + 0x1c) * *(float *)matrix;
+      } else {
+        matrix_transform_point(world_matrix, (float *)((char *)marker + 0x10),
+                               out);
+        scale_term = world_matrix[0] * *(float *)((char *)marker + 0x1c);
+      }
+      scale_term = sqrtf((out[0] - center[0]) * (out[0] - center[0]) +
+                         (out[1] - center[1]) * (out[1] - center[1])) +
+                   scale_term;
+      /* disasm 0x2af69: FLD maxdist; FCOMP scale_term; JZ keeps maxdist.
+       * Written maxdist-first with > so VC71 emits the JNE/JE shape. */
+      if (maxdist > scale_term) {
+        /* keep maxdist */
+      } else {
+        maxdist = scale_term;
+      }
+      j++;
+    }
+
+    record_count = *(int16_t *)(actor_handle + 0x3c);
+    if (record_count < 0x400) {
+      *(int16_t *)(actor_handle + 0x3c) = record_count + 1;
+      record = actor_handle + record_count * 0x18;
+      *(float *)(record + 0x54) = maxdist;
+      *(float *)(record + 0x44) = center[0];
+      *(float *)(record + 0x48) = center[1];
+      *(float *)(record + 0x4c) = center[2];
+      *(int *)(record + 0x40) = object_handle;
+      *(float *)(record + 0x4c) =
+        *(float *)(record + 0x4c) - (obj_radius - maxdist);
+      scale_term = (obj_radius + obj_radius) - (maxdist + maxdist);
+      /* disasm 0x2afe4: FLD [0x2533c0]; FCOMP scale_term; JNZ keeps
+       * scale_term — i.e. max(const, scale_term). */
+      if (*(float *)0x2533c0 > scale_term) {
+        scale_term = *(float *)0x2533c0;
+      }
+      *(float *)(record + 0x50) = scale_term;
+    }
+  }
+}
+
 /* 0x2b5d0 — actor_move_get_avoidance_direction: initialize trigonometric lookup
  * tables.
  *
