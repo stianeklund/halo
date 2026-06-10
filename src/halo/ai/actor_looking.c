@@ -6162,6 +6162,112 @@ char FUN_00025970(void *state, int actor_handle, char *actor)
   return *(char *)((char *)state + 0x30);
 }
 
+/* FUN_00025a00 (0x25a00) — Test whether an actor can reach/see a target point.
+ *
+ * Given an actor and a candidate point (param_2 = float[3] world position,
+ * param_3 = a BSP surface index, param_4 = a firing-position-group selector),
+ * decides whether the point is reachable. The actor struct field +0x99 selects
+ * one of two regimes:
+ *   - field+0x99 == 0 (live / pathfinding regime): asserts the surface index is
+ *     valid, builds a path_input/path_state pair from the actor's pathfinding
+ *     facing target, and for each candidate firing position whose group bit is
+ *     set and which is within range (_DAT_00254e74) of param_2, estimates the
+ *     path distance; if that distance is below _DAT_002533d8 it returns 1.
+ *   - field+0x99 != 0 (cheap / no-pathfinding regime): for each in-range
+ *     candidate firing position it calls path_3d_available(); first success
+ *     returns 1.
+ * Returns 0 if no firing position qualifies.
+ *
+ * The big stack buffer (afStack, 20515 floats) is the path_state work area
+ * written by path_state_new / FUN_0005ff70 (REP MOVSD 0x5023 dwords).
+ * Confirmed: __chkstk(0x140e0) at 0x25a08; datum_get(actor_data, actor_handle)
+ *   at 0x25a1b; tag_get('actr', actor+0x58) at 0x25a2b; assert at 0x25a67
+ *   (actor_firing_position.c:0x59a); FUN_00024a60 (firing-position group mask)
+ *   at 0x25abc; path_input pipeline at 0x25ae3..0x25b1d; per-position loop
+ *   over *(int*)(encounter+0x98); path_state_estimated_distance vs
+ * _DAT_002533d8 at 0x25bde; path_3d_available at 0x25bb1. */
+char FUN_00025a00(int actor_handle, int *param_2, int param_3, int param_4)
+{
+  char *actor;
+  void *actr_tag;
+  void *collision_bsp;
+  void *scenario;
+  void *encounter;
+  float *pos;
+  unsigned int group_mask;
+  short loop_index;
+  float distance;
+  int path_input[18]; /* path_input_new memsets 0x48 bytes here */
+  static float path_state[20515]; /* path_state work area; static to avoid _chkstk */
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actr_tag = tag_get(0x61637472, *(int *)(actor + 0x58));
+
+  if (*(char *)(actor + 0x99) == '\0') {
+    if (param_3 != -1) {
+      collision_bsp = global_collision_bsp_get();
+      if (param_3 < 0 || *(int *)((char *)collision_bsp + 0x3c) <= param_3) {
+        display_assert("(test_surface_index >= 0) && (test_surface_index < "
+                       "collision_bsp->surfaces.count)",
+                       "c:\\halo\\SOURCE\\ai\\actor_firing_position.c", 0x59a,
+                       1);
+        system_exit(-1);
+      }
+    }
+    if (*(char *)(actor + 0x99) == '\0' && param_3 == -1)
+      return 0;
+  }
+
+  if (*(unsigned int *)(actor + 0x34) == 0xffffffff)
+    return 0;
+
+  scenario = global_scenario_get();
+  encounter = tag_block_get_element(
+    (char *)scenario + 0x42c, *(unsigned int *)(actor + 0x34) & 0xffff, 0xb0);
+  group_mask =
+    (unsigned int)actor_get_firing_position_group(actor_handle, 0, param_4);
+
+  if (*(char *)(actor + 0x99) == '\0') {
+    path_input_new(path_input, *(unsigned int *)((char *)actr_tag + 0x8c), 1,
+                   -1);
+    path_input_set_start(path_input, (float *)param_2, param_3);
+    path_input_set_search_bounds(path_input, 0x40800000);
+    path_state_new(path_state, path_input, 0);
+    FUN_0005ff70((unsigned int *)path_state);
+  }
+
+  loop_index = 0;
+  if (*(int *)((char *)encounter + 0x98) <= 0)
+    return 0;
+
+  do {
+    pos = (float *)tag_block_get_element((char *)encounter + 0x98, loop_index,
+                                         0x18);
+    if ((group_mask & (1 << (*(unsigned char *)((char *)pos + 0xc) & 0x1f))) !=
+          0 &&
+        (pos[0] - ((float *)param_2)[0]) * (pos[0] - ((float *)param_2)[0]) +
+            (pos[1] - ((float *)param_2)[1]) *
+              (pos[1] - ((float *)param_2)[1]) +
+            (pos[2] - ((float *)param_2)[2]) *
+              (pos[2] - ((float *)param_2)[2]) <
+          *(float *)0x254e74) {
+      if (*(char *)(actor + 0x99) != '\0') {
+        if (path_3d_available((int)scenario_get(), param_2, 0, (int *)pos, 0,
+                              0) != '\0')
+          return 1;
+      } else {
+        path_state_estimated_distance(
+          (int)path_state, pos, *(int *)((char *)pos + 0x14), &distance, 0, 0);
+        if (distance < *(float *)0x2533d8)
+          return 1;
+      }
+    }
+    loop_index = loop_index + 1;
+  } while (loop_index < *(int *)((char *)encounter + 0x98));
+
+  return 0;
+}
+
 /* FUN_000272d0 (0x272d0)
  * Assign a firing position to an actor, evicting any previous occupant.
  *
