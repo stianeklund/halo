@@ -428,7 +428,7 @@ repeatedly during this hunt).
 
 ## 10. Caller-Site Register Order Contradicts Thunk Convention
 
-**Automation:** PARTIAL — `audit_reg_abi.py` confirms registers are written before CALL but not which value flows to which register.  Value→register mapping check planned as Task 6 of workflow-improvement-plan.
+**Automation:** PARTIAL — `audit_reg_abi.py` confirms registers are written before CALL but not which value flows to which register.  `dump_caller_regsetup.py` (new) mechanises evidence-gathering: given a callee address or name it disassembles every original CALL site from the pristine XBE and prints each caller's last register load per GPR plus the PUSH sequence; value→register comparison against C call sites remains manual review.  Value→register mapping check planned as Task 6 of workflow-improvement-plan.
 
 **What happens:** A function declared `@<ecx>, @<eax>, @<ebx>` has its thunk
 map first C arg → ECX, second → EAX, third → EBX. When ported callers call it
@@ -459,13 +459,20 @@ ran without crashing.
 match the original caller's register assignment:
 `game_engine_hud_update_player(param_1, param_3, param_2)`.
 
-**Prevention:** For any callee with `@<reg>` args, run `get_function_callers`
-in Ghidra. For each caller, read the 5–10 instructions before the CALL and
-note which registers hold which values. If a caller loads EBX before EAX (or
-any non-canonical order), its ported C call must swap the corresponding args.
-This is especially worth checking when the same function has both direct callers
-and indirect callers (via an intermediate dispatch function) — they often use
-different preparation sequences.
+**Prevention:** For any callee with `@<reg>` args, run
+`rtk python3 tools/audit/dump_caller_regsetup.py <callee>` to dump every
+original CALL site's last register load per GPR and PUSH sequence in one pass.
+Compare each site's decoded summary against the C thunk convention.  If a
+caller loads EBX before EAX (or any non-canonical order), its ported C call
+must swap the corresponding args.  Critically, when a §10 swap is found and
+fixed on one caller, audit **every** caller of that callee before closing —
+`game_engine_hud_update_player` (0xacef0) had its swap fixed in `0xad0c0`
+months before the sibling `FUN_000acff0` (0xacff0) was ported; that caller
+carried the same swap undetected until 2026-06-10 because no all-callers audit
+was done at the time of the first fix.  This is especially worth checking when
+the same function has both direct callers and indirect callers (via an
+intermediate dispatch function) — they often use different preparation
+sequences.
 
 **Detection:** No runtime signal. Only way to catch this before deployment: for
 each ported caller, verify the call-site disassembly matches what the C thunk
