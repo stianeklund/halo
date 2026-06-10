@@ -112,6 +112,14 @@
       }
     },
     {
+      "name": "halo/actor_moving_FUN_0002ab40",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_moving.c.obj",
+      "base_path": "delinked/actor_moving_FUN_0002ab40.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actor_moving.c"
+      }
+    },
+    {
       "name": "halo/breakable_surfaces",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/breakable_surfaces.c.obj",
       "base_path": "delinked/breakable_surfaces.obj",
