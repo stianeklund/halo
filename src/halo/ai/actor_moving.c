@@ -391,6 +391,112 @@ done:
   return found;
 }
 
+/* actor_move_try_evasion_direction (0x2ab40) — Try one perpendicular evasion
+ * direction (and its mirror) derived from the alignment vector.
+ *
+ * Builds a 2D evade vector from alignment_vector according to the requested
+ * reference mode (*evade_direction_reference), then delegates the actual
+ * feasibility test to actor_move_try_evasion_vector (0x2a8f0) for each of the
+ * candidate directions. On the first feasible candidate the chosen direction
+ * index is written back to *evade_direction_reference and 1 is returned. If no
+ * candidate is feasible, 0xffff is written back and 0 is returned.
+ *
+ * Confirmed: datum_get(*0x6325a4, actor_handle) at 0x2ab49-0x2ab54 (only its
+ * side effect / handle validation; result unused).
+ * Confirmed: assert "alignment_vector && evade_direction_reference && result"
+ * at 0x2ab78-0x2ab89 when any of param_2/param_4/param_7 is NULL.
+ * Confirmed: switch on (short)*evade_direction_reference (MOVSX, jump table at
+ * 0x2acc4), cases 0-4, default asserts at 0x2ac3a (line 0x508).
+ *   case 0: evade[0]=-v[1], evade[1]= v[0], index unchanged, count=1.
+ *   case 1: evade[0]= v[1], evade[1]=-v[0], index unchanged, count=1.
+ *   case 2: evade[0]= v[0], evade[1]= v[1], index unchanged, count=1.
+ *   case 3: evade[0]=-v[0], evade[1]=-v[1], index unchanged, count=1.
+ *   case 4: random pick of case 0 (index 0) vs case 1 (index 1), count=2;
+ *           random_seed_step(seed) <= 0x8000 -> index 1 branch (0x2ac1f).
+ * Confirmed: the two evade floats are a contiguous buffer at
+ * [EBP-0xc]/[EBP-0x8] passed by address to actor_move_try_evasion_vector at
+ * 0x2ac77. Confirmed: per-attempt both evade floats are negated (FCHS at
+ * 0x2ac87/0x2ac96) and the index toggles (XOR EDI,1) at 0x2ac89. Confirmed:
+ * success writes index to *evade_direction_reference (16-bit store at
+ * 0x2aca5/0x2acb9); exhaustion writes 0xffff (0x2aca5). Return is char (AL). */
+char actor_move_try_evasion_direction(int actor_handle, float *alignment_vector,
+                                      float param_3,
+                                      unsigned short *evade_direction_reference,
+                                      float param_5, char *out_flag,
+                                      void *result)
+{
+  float evade_dir[2];
+  short count;
+  short attempt;
+  short index;
+
+  datum_get(*(data_t **)0x6325a4, actor_handle);
+
+  count = 1;
+  if (alignment_vector == (float *)0x0 ||
+      evade_direction_reference == (unsigned short *)0x0 ||
+      result == (void *)0x0) {
+    display_assert("alignment_vector && evade_direction_reference && result",
+                   "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x4e4, 1);
+    system_exit(-1);
+  }
+
+  index = *evade_direction_reference;
+  switch (index) {
+  case 0:
+    evade_dir[1] = alignment_vector[0];
+    evade_dir[0] = -alignment_vector[1];
+    break;
+  case 1:
+    evade_dir[0] = alignment_vector[1];
+    evade_dir[1] = -alignment_vector[0];
+    break;
+  case 2:
+    evade_dir[1] = alignment_vector[1];
+    evade_dir[0] = alignment_vector[0];
+    break;
+  case 3:
+    evade_dir[0] = -alignment_vector[0];
+    evade_dir[1] = -alignment_vector[1];
+    break;
+  case 4:
+    if (random_seed_step((unsigned int *)get_global_random_seed_address()) <
+        0x8001) {
+      evade_dir[0] = alignment_vector[1];
+      evade_dir[1] = -alignment_vector[0];
+      index = 1;
+      count = 2;
+    } else {
+      evade_dir[1] = alignment_vector[0];
+      evade_dir[0] = -alignment_vector[1];
+      index = 0;
+      count = 2;
+    }
+    break;
+  default:
+    display_assert((char *)0, "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x508, 1);
+    system_exit(-1);
+  }
+
+  attempt = 0;
+  if (count > 0) {
+    do {
+      if (actor_move_try_evasion_vector(actor_handle, evade_dir, param_3,
+                                        param_5, out_flag, result) != '\0') {
+        *evade_direction_reference = index;
+        return 1;
+      }
+      attempt = attempt + 1;
+      evade_dir[0] = -evade_dir[0];
+      index = index ^ 1;
+      evade_dir[1] = -evade_dir[1];
+    } while (attempt < count);
+  }
+
+  *evade_direction_reference = 0xffff;
+  return 0;
+}
+
 /* actor_aim_jump (0x2ace0) — Compute and clamp the jump aim velocity vector.
  *
  * Checks actor->swarm_element (-1 at actor[0x158]) and mounted state

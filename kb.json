@@ -30088,7 +30088,8 @@
         },
         {
           "addr": "0x2ab40",
-          "decl": "void actor_move_try_evasion_direction(void);"
+          "decl": "char actor_move_try_evasion_direction(int actor_handle, float *alignment_vector, float param_3, unsigned short *evade_direction_reference, float param_5, char *out_flag, void *result);",
+          "name": "actor_move_try_evasion_direction"
         },
         {
           "addr": "0x2ace0",
