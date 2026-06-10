@@ -8,6 +8,7 @@ if __name__ == "__main__":
     from audit.check_requirements import check_requirements
     check_requirements()
 
+import bisect
 import itertools
 import json
 import struct
@@ -371,48 +372,114 @@ def encode_jmp_rel32(src_addr_of_jmp, target_addr):
     return b'\xe9' + struct.pack('<i', rel32)
 
 
+def encode_ret_imm16(imm):
+    assert 0 <= imm <= 0xFFFF
+    return bytes([0xC2]) + struct.pack('<H', imm)
+
+
+# Registers the C caller's compiler may keep live values in across a call.
+DEACT_CALLEE_SAVED = ('ebx', 'esi', 'edi', 'ebp')
+
+
+def decl_param_count(decl):
+    """Count declared parameters in a kb.json decl (depth-aware comma split,
+    so @<reg> annotations and nested function-pointer params don't miscount)."""
+    open_paren = decl.find('(')
+    close_paren = decl.rfind(')')
+    assert open_paren >= 0 and close_paren >= 0
+    params_src = decl[open_paren + 1:close_paren].strip()
+    if not params_src or params_src == 'void':
+        return 0
+    depth = 0
+    count = 1
+    for ch in params_src:
+        if ch == '(' or ch == '<':
+            depth += 1
+        elif ch == ')' or ch == '>':
+            depth -= 1
+        elif ch == ',' and depth == 0:
+            count += 1
+    return count
+
+
 def generate_deactivation_redirect(sym, impl_addr, original_addr):
     """Emit a redirect to splat at the impl entry when ported=false.
 
     For non-@<reg> functions: a single 5-byte JMP rel32 to original_addr.
-    For @<reg> functions: load each register arg from the cdecl stack frame
-    that our C caller built ([esp+4+i*4]), then JMP to original. The cdecl
-    caller's args remain on the stack; original reads its register args from
-    the loaded regs and ignores the stack slots that overlap them. Stack-only
-    args (params not in registers) sit at the same offsets the original
-    expects, so no re-pushing is needed.
 
-    The cdecl caller's return address is preserved on entry, so original
-    returns directly to the cdecl caller. Caller cleans the stack (cdecl)
-    or original's RET N pops it (__stdcall) — both work.
+    For @<reg> functions the stub must marshal stack args into registers
+    WITHOUT clobbering callee-saved registers (EBX/ESI/EDI/EBP): the C
+    caller was compiled against a normal cdecl prototype and may keep live
+    values in those registers across the call. (A bare `mov ebx,[esp+4];
+    jmp original` corrupted FUN_00015520's `state` pointer across a call to
+    dormant FUN_000153e0 @<ebx> — ACCESS_VIOLATION reading a datum handle.)
+
+    Layout (CALL-based, not tail-JMP):
+      0. PUSH each callee-saved register used for marshaling.
+      1. Re-push the caller's entire arg block in reverse order, so the
+         original sees the exact same stack-arg layout the caller built
+         (register args' slots included, matching the old tail-JMP view).
+      2. Load each register arg from the re-pushed block ([esp+4*i]).
+      3. CALL original (returns here, not to the C caller).
+      4. cdecl original: ADD ESP to drop the re-pushed block; restore saved
+         registers; RET — the C caller cleans its own args.
+         __stdcall original: its RET N already dropped the re-pushed block;
+         restore saved registers; RET imm16 to drop the caller's arg block
+         (the caller was compiled callee-cleans).
     """
     reg_args = sym.register_args
     if not reg_args:
         # Plain cdecl/stdcall: 5-byte JMP is enough.
         return encode_jmp_rel32(impl_addr, original_addr)
 
+    param_count = decl_param_count(sym.decl)
+    callee_cleans = '__stdcall' in sym.decl
+
+    callee_saved_used = []
+    for _, reg in reg_args:
+        parent32 = REG_PARENT.get(reg, reg)
+        if parent32 not in REG32_BITS:
+            raise ValueError(f'Unsupported register {reg!r} in @<reg> annotation')
+        if parent32 in DEACT_CALLEE_SAVED and parent32 not in callee_saved_used:
+            callee_saved_used.append(parent32)
+
     code = bytearray()
 
-    # Load each register arg from the incoming cdecl stack frame.
-    # Stack on entry: [esp]=ret_addr, [esp+4]=arg0, [esp+8]=arg1, ...
-    for param_idx, reg in reg_args:
-        disp = 4 + param_idx * 4
-        parent32 = REG_PARENT.get(reg, reg)
-        if reg in REG32_BITS:
-            code += encode_mov_r32_mesp(reg, disp)
-        elif reg in REG16_BITS:
-            # Load 32 bits, then the low 16 bits of the parent are the desired value.
-            # (Original reads only the 16-bit reg; high bits of parent don't matter.)
-            code += encode_mov_r32_mesp(parent32, disp)
-        elif reg in REG8_BITS:
-            # Load 32 bits into the parent; original reads only the 8-bit slice.
-            code += encode_mov_r32_mesp(parent32, disp)
-        else:
-            raise ValueError(f'Unsupported register {reg!r} in @<reg> annotation')
+    # 0. Save callee-saved marshal registers.
+    for reg32 in callee_saved_used:
+        code += encode_push_r32(reg32)
+    save_bytes = 4 * len(callee_saved_used)
 
-    # Tail-call original.
-    jmp_site = impl_addr + len(code)
-    code += encode_jmp_rel32(jmp_site, original_addr)
+    # 1. Re-push the caller's arg block (rightmost first). After the saves,
+    #    caller arg i lives at [esp + 4 + 4*i + save_bytes]; each push we
+    #    emit shifts subsequent source offsets by another 4.
+    pushed = 0
+    for i in reversed(range(param_count)):
+        disp = 4 + 4 * i + save_bytes + 4 * pushed
+        code += encode_push_mesp(disp)
+        pushed += 1
+
+    # 2. Load register args from the re-pushed block: arg i at [esp + 4*i].
+    #    Sources are stack slots, so load order can't clobber anything.
+    #    16/8-bit register args: load the full 32-bit parent; the original
+    #    reads only the low slice.
+    for param_idx, reg in reg_args:
+        parent32 = REG_PARENT.get(reg, reg)
+        code += encode_mov_r32_mesp(parent32, 4 * param_idx)
+
+    # 3. Call the original.
+    call_site = impl_addr + len(code)
+    code += encode_call_rel32(call_site, original_addr)
+
+    # 4. Unwind and return to the C caller.
+    if param_count and not callee_cleans:
+        code += encode_add_esp(4 * param_count)
+    for reg32 in reversed(callee_saved_used):
+        code += encode_pop_r32(reg32)
+    if callee_cleans and param_count:
+        code += encode_ret_imm16(4 * param_count)
+    else:
+        code += b'\xc3'
 
     return bytes(code)
 
@@ -1018,6 +1085,90 @@ def _test_reverse_thunks():
         checked += 1
 
     log.info("PASS: generated and verified %d current kb.json @<reg> thunk(s)", checked)
+
+    # --- Deactivation redirect (ported=false impl-entry stub) tests ---
+    deact_cases = [
+        (
+            "void plain_fn(int a, int b);",
+            0x650000, 0x150000,
+            b'\xe9' + _rel32(0x650000, 0x150000),
+            "non-@<reg>: bare 5-byte JMP",
+        ),
+        (
+            "bool FUN_000153e0(int actor_handle@<ebx>);",
+            0x6497b0, 0x153e0,
+            (
+                b'\x53'                  # PUSH EBX (callee-saved marshal reg)
+                b'\xff\x74\x24\x08'      # PUSH [ESP+8]      (re-push arg0)
+                b'\x8b\x1c\x24'          # MOV EBX, [ESP]
+                b'\xe8' + _rel32(0x6497b0 + 8, 0x153e0) +
+                b'\x83\xc4\x04'          # ADD ESP, 4
+                b'\x5b'                  # POP EBX
+                b'\xc3'
+            ),
+            "@<ebx> arg: EBX preserved (FUN_00015520 flee-state regression)",
+        ),
+        (
+            "void f(int h@<eax>);",
+            0x650000, 0x150000,
+            (
+                b'\xff\x74\x24\x04'      # PUSH [ESP+4]
+                b'\x8b\x04\x24'          # MOV EAX, [ESP]
+                b'\xe8' + _rel32(0x650000 + 7, 0x150000) +
+                b'\x83\xc4\x04'
+                b'\xc3'
+            ),
+            "@<eax> arg: caller-saved, no PUSH/POP wrapper",
+        ),
+        (
+            "void players_update_pvs(void *combined_pvs@<edi>, bool local_player_only);",
+            0x650000, 0x150000,
+            (
+                b'\x57'                  # PUSH EDI
+                b'\xff\x74\x24\x0c'      # PUSH [ESP+0xc]    (arg1)
+                b'\xff\x74\x24\x0c'      # PUSH [ESP+0xc]    (arg0 after shift)
+                b'\x8b\x3c\x24'          # MOV EDI, [ESP]
+                b'\xe8' + _rel32(0x650000 + 12, 0x150000) +
+                b'\x83\xc4\x08'
+                b'\x5f'                  # POP EDI
+                b'\xc3'
+            ),
+            "@<edi> + stack arg: arg block re-pushed, EDI preserved",
+        ),
+        (
+            "int __stdcall f(int a@<ebx>, int b);",
+            0x650000, 0x150000,
+            (
+                b'\x53'
+                b'\xff\x74\x24\x0c'
+                b'\xff\x74\x24\x0c'
+                b'\x8b\x1c\x24'
+                b'\xe8' + _rel32(0x650000 + 12, 0x150000) +
+                b'\x5b'                  # POP EBX (original's RET N dropped re-push)
+                b'\xc2\x08\x00'          # RET 8 (drop caller's arg block)
+            ),
+            "__stdcall @<ebx>: callee-clean both arg blocks",
+        ),
+    ]
+
+    for decl, impl_addr, orig_addr, expected, desc in deact_cases:
+        sym = Function(decl, addr=orig_addr)
+        actual = generate_deactivation_redirect(sym, impl_addr, orig_addr)
+        assert actual == expected, (
+            f"FAIL: unexpected deactivation stub bytes for {desc}\n"
+            f"  expected: {expected.hex(' ')}\n"
+            f"  actual:   {actual.hex(' ')}"
+        )
+        log.info("PASS: deactivation stub: %s", desc)
+
+    deact_checked = 0
+    for sym in kb.symbols:
+        if not isinstance(sym, Function) or not sym.register_args:
+            continue
+        generate_deactivation_redirect(sym, 0x650000, sym.addr or 0x150000)
+        deact_checked += 1
+    log.info("PASS: generated %d current kb.json @<reg> deactivation stub(s)", deact_checked)
+
     log.info("All reverse thunk self-tests passed.")
 
 
@@ -1296,6 +1447,7 @@ def main():
         xbe.sections[name] = XbeSection(name, hdr, bytes(rvthunks_bytes))
 
     deactivated_count = 0
+    sorted_export_addrs = sorted(set(export_name_to_addr.values()))
     for n in patch_functions:
         kb_name = export_to_kb_name[n]
         if kb_name not in kb.name_to_addr:
@@ -1314,6 +1466,16 @@ def main():
             # JMP at impl entry) end up at original code.
             redirect_bytes = generate_deactivation_redirect(
                 sym, addr_of_reimplementation, addr_of_original_in_xbe)
+            # The stub overwrites the impl body; make sure it fits before the
+            # next exported function so we never splat a neighbor.
+            nxt = bisect.bisect_right(sorted_export_addrs, addr_of_reimplementation)
+            if nxt < len(sorted_export_addrs):
+                room = sorted_export_addrs[nxt] - addr_of_reimplementation
+                if len(redirect_bytes) > room:
+                    log.error('Deactivation stub for "%s" (%d bytes) exceeds impl room '
+                              '(%d bytes to next export at %x)',
+                              n, len(redirect_bytes), room, sorted_export_addrs[nxt])
+                    exit(1)
             log.info('Deactivating "%s" (kb.json ported=false): impl %x → JMP %x (%d bytes)',
                      n, addr_of_reimplementation, addr_of_original_in_xbe, len(redirect_bytes))
             write_to_vaddr(xbe, addr_of_reimplementation, redirect_bytes)
