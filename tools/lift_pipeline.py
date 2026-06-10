@@ -1032,7 +1032,27 @@ def run_pipeline(args: argparse.Namespace) -> int:
       policy_ok = True
       reason = "accepted"
 
-      if vc71_has_fpu_warn and not equivalence_ok and (match_source == "vc71" or objdiff_match_pct is None):
+      # goal90 preset: >=90 commit, 85-89 permuter-recommended (WARN not FAIL),
+      # 65-85 structural-cap check, <65 assume lift bug.
+      if args.verify_policy == "goal90":
+        if best_match_pct >= 90.0:
+          policy_ok = True
+          reason = "goal90: >=90% — commit"
+        elif best_match_pct >= 85.0:
+          policy_ok = True  # WARN only; skill should attempt one permute pass
+          reason = f"goal90: {best_match_pct:.1f}% in 85-89 band — permuter recommended before commit"
+        elif best_match_pct >= 65.0:
+          policy_ok = False
+          reason = f"goal90: {best_match_pct:.1f}% in 65-85 band — check structural cap; one Opus escalation allowed"
+        else:
+          policy_ok = False
+          reason = f"goal90: {best_match_pct:.1f}% <65 — assume lift bug, revert"
+        details.append(f"verdict={'PASS' if policy_ok else 'FAIL'}")
+        details.append(f"reason={reason}")
+        stages.append(StageResult("low_match_policy", ran=True, ok=policy_ok, details=" ".join(details)))
+        if not policy_ok:
+          return finalize(summary, stages, artifact_dir, ok=False, quiet=args.quiet)
+      elif vc71_has_fpu_warn and not equivalence_ok and (match_source == "vc71" or objdiff_match_pct is None):
         policy_ok = False
         reason = "FPU operand-order warnings present"
       elif best_match_pct < args.low_match_reject_below:
@@ -1248,8 +1268,8 @@ def build_parser() -> argparse.ArgumentParser:
                   help="Lifted function address (required for --verify-auto).")
   ap.add_argument("--verify-output", default="",
                   help="Output path for generated verify payload (defaults to artifact dir).")
-  ap.add_argument("--verify-policy", choices=["manual", "auto", "strict"], default="auto",
-                  help="Verification policy: manual=only explicit flags, auto=enable verify for risky functions when inputs exist, strict=fail if risky function cannot be verified.")
+  ap.add_argument("--verify-policy", choices=["manual", "auto", "strict", "goal90"], default="auto",
+                  help="Verification policy: manual=only explicit flags; auto=enable verify for risky functions when inputs exist; strict=fail if risky function cannot be verified; goal90=goal-lift preset (>=90%% commit, 85-89%% permute-recommended, <85%% fail).")
   ap.add_argument("--verify-risk-threshold", type=int, default=3,
                   help="Risk score threshold for policy-driven verify decisions.")
 
