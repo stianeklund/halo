@@ -5331,8 +5331,14 @@ short FUN_0002a430(int actor_handle)
 /* FUN_00025970 (0x25970) — Firing-position evaluation state updater.
  * Advances the per-position evaluation state machine.
  *
- * Confirmed: EAX=state_ptr@<eax>, ESI=actor_ptr, EBP+8=actor_handle.
+ * Confirmed: EAX=state_ptr@<eax>, ESI=actor_ptr@<esi>, EBP+8=actor_handle.
+ *   (actor was wrongly a stack param before 2026-06-10 — original callers
+ *   at 0x26d2f/0x2728f push only the handle; the rvthunk fed garbage.)
  *   Calls FUN_00024850, FUN_000257a0, FUN_00024890.
+ * Confirmed: FUN_00024850 takes actor@<edi> + state@<ebx> pass-throughs —
+ *   original 0x25988 MOV EDI,ESI and 0x25974 MOV EBX,EAX before the call;
+ *   24850/24890 gate hook tables (0x254bf8/0x254c30) on 1<<[actor+4]
+ *   (actor type index) and forward (handle, actor, state) to each hook.
  * Confirmed: state+0x30/0x31/0x34/0x38 accessed; actor+0x668/0x66a/0x66c
  *   debug counters. */
 char FUN_00025970(void *state, int actor_handle, char *actor)
@@ -5344,7 +5350,7 @@ char FUN_00025970(void *state, int actor_handle, char *actor)
   *(char *)((char *)state + 0x31) = 0;
   *(char *)((char *)state + 0x30) = 1;
 
-  FUN_00024850(actor_handle, 1);
+  FUN_00024850(actor_handle, 1, actor, state);
 
   if (*(char *)((char *)state + 0x30) != 0)
     *(short *)(actor + 0x668) = *(short *)(actor + 0x668) + 1;
@@ -5356,7 +5362,7 @@ char FUN_00025970(void *state, int actor_handle, char *actor)
     if (*(char *)(actor + 0x5fc) != 0)
       FUN_000257a0(actor_handle, state, actor);
     *(int *)((char *)state + 0x34) = *(int *)((char *)state + 0x38);
-    result = FUN_00024890(actor_handle, state);
+    result = FUN_00024890(actor_handle, state, actor);
     *(char *)((char *)state + 0x30) = result;
     *(short *)(actor + 0x66c) = *(short *)(actor + 0x66c) + 1;
   }
