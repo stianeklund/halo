@@ -96,7 +96,7 @@ void update_client_queue_push(void)
  * first_action_index to last_action_index in the client globals). */
 int update_get_maximum_actions(void)
 {
-  return *(int *)0x45b1d8 - *(int *)0x45b1d4 + 1;
+  return *(int *)0x45b1d8 - *(int *)0x45b1d4 + 1; /* hazard-ok: value-arithmetic (queue count = last-first+1) */
 }
 
 /* Copy the current client action collection from update_client_globals.
