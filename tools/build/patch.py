@@ -443,6 +443,10 @@ def generate_deactivation_redirect(sym, impl_addr, original_addr):
         if parent32 in DEACT_CALLEE_SAVED and parent32 not in callee_saved_used:
             callee_saved_used.append(parent32)
 
+    reg_param_indices = {pi for pi, _ in reg_args}
+    stack_only_indices = [i for i in range(param_count) if i not in reg_param_indices]
+    stack_push_count = len(stack_only_indices)
+
     code = bytearray()
 
     # 0. Save callee-saved marshal registers.
@@ -450,30 +454,31 @@ def generate_deactivation_redirect(sym, impl_addr, original_addr):
         code += encode_push_r32(reg32)
     save_bytes = 4 * len(callee_saved_used)
 
-    # 1. Re-push the caller's arg block (rightmost first). After the saves,
-    #    caller arg i lives at [esp + 4 + 4*i + save_bytes]; each push we
-    #    emit shifts subsequent source offsets by another 4.
+    # 1. Re-push ONLY stack-positional args (rightmost first). Register args
+    #    stay in the caller's frame and are loaded into registers in step 2.
+    #    The original function's stack frame expects only its stack-positional
+    #    params; re-pushing register-arg slots would shift all stack offsets.
     pushed = 0
-    for i in reversed(range(param_count)):
+    for i in reversed(stack_only_indices):
         disp = 4 + 4 * i + save_bytes + 4 * pushed
         code += encode_push_mesp(disp)
         pushed += 1
 
-    # 2. Load register args from the re-pushed block: arg i at [esp + 4*i].
-    #    Sources are stack slots, so load order can't clobber anything.
-    #    16/8-bit register args: load the full 32-bit parent; the original
-    #    reads only the low slice.
+    # 2. Load register args from the caller's original frame. Each arg i
+    #    lives at [esp + 4 + 4*i + save_bytes + 4*pushed] (return addr +
+    #    caller args + saves + re-pushes above).
     for param_idx, reg in reg_args:
         parent32 = REG_PARENT.get(reg, reg)
-        code += encode_mov_r32_mesp(parent32, 4 * param_idx)
+        disp = 4 + 4 * param_idx + save_bytes + 4 * stack_push_count
+        code += encode_mov_r32_mesp(parent32, disp)
 
     # 3. Call the original.
     call_site = impl_addr + len(code)
     code += encode_call_rel32(call_site, original_addr)
 
     # 4. Unwind and return to the C caller.
-    if param_count and not callee_cleans:
-        code += encode_add_esp(4 * param_count)
+    if stack_push_count and not callee_cleans:
+        code += encode_add_esp(4 * stack_push_count)
     for reg32 in reversed(callee_saved_used):
         code += encode_pop_r32(reg32)
     if callee_cleans and param_count:
@@ -1099,55 +1104,61 @@ def _test_reverse_thunks():
             0x6497b0, 0x153e0,
             (
                 b'\x53'                  # PUSH EBX (callee-saved marshal reg)
-                b'\xff\x74\x24\x08'      # PUSH [ESP+8]      (re-push arg0)
-                b'\x8b\x1c\x24'          # MOV EBX, [ESP]
-                b'\xe8' + _rel32(0x6497b0 + 8, 0x153e0) +
-                b'\x83\xc4\x04'          # ADD ESP, 4
+                b'\x8b\x5c\x24\x08'     # MOV EBX, [ESP+8]  (actor_handle from caller)
+                b'\xe8' + _rel32(0x6497b0 + 5, 0x153e0) +
                 b'\x5b'                  # POP EBX
                 b'\xc3'
             ),
-            "@<ebx> arg: EBX preserved (FUN_00015520 flee-state regression)",
+            "@<ebx> pure-reg: no stack args to re-push",
         ),
         (
             "void f(int h@<eax>);",
             0x650000, 0x150000,
             (
-                b'\xff\x74\x24\x04'      # PUSH [ESP+4]
-                b'\x8b\x04\x24'          # MOV EAX, [ESP]
-                b'\xe8' + _rel32(0x650000 + 7, 0x150000) +
-                b'\x83\xc4\x04'
+                b'\x8b\x44\x24\x04'     # MOV EAX, [ESP+4]  (h from caller)
+                b'\xe8' + _rel32(0x650000 + 4, 0x150000) +
                 b'\xc3'
             ),
-            "@<eax> arg: caller-saved, no PUSH/POP wrapper",
+            "@<eax> pure-reg: caller-saved, no saves, no stack re-push",
         ),
         (
             "void players_update_pvs(void *combined_pvs@<edi>, bool local_player_only);",
             0x650000, 0x150000,
             (
                 b'\x57'                  # PUSH EDI
-                b'\xff\x74\x24\x0c'      # PUSH [ESP+0xc]    (arg1)
-                b'\xff\x74\x24\x0c'      # PUSH [ESP+0xc]    (arg0 after shift)
-                b'\x8b\x3c\x24'          # MOV EDI, [ESP]
-                b'\xe8' + _rel32(0x650000 + 12, 0x150000) +
-                b'\x83\xc4\x08'
+                b'\xff\x74\x24\x0c'     # PUSH [ESP+0xc]    (stack arg: local_player_only)
+                b'\x8b\x7c\x24\x0c'     # MOV EDI, [ESP+0xc] (combined_pvs from caller)
+                b'\xe8' + _rel32(0x650000 + 9, 0x150000) +
+                b'\x83\xc4\x04'          # ADD ESP, 4 (1 re-pushed stack arg)
                 b'\x5f'                  # POP EDI
                 b'\xc3'
             ),
-            "@<edi> + stack arg: arg block re-pushed, EDI preserved",
+            "@<edi> + 1 stack arg: only stack-positional arg re-pushed",
         ),
         (
             "int __stdcall f(int a@<ebx>, int b);",
             0x650000, 0x150000,
             (
-                b'\x53'
-                b'\xff\x74\x24\x0c'
-                b'\xff\x74\x24\x0c'
-                b'\x8b\x1c\x24'
-                b'\xe8' + _rel32(0x650000 + 12, 0x150000) +
+                b'\x53'                  # PUSH EBX
+                b'\xff\x74\x24\x0c'     # PUSH [ESP+0xc]    (b, the stack-only arg)
+                b'\x8b\x5c\x24\x0c'     # MOV EBX, [ESP+0xc] (a from caller)
+                b'\xe8' + _rel32(0x650000 + 9, 0x150000) +
                 b'\x5b'                  # POP EBX (original's RET N dropped re-push)
-                b'\xc2\x08\x00'          # RET 8 (drop caller's arg block)
+                b'\xc2\x08\x00'          # RET 8 (drop caller's 2-arg block)
             ),
-            "__stdcall @<ebx>: callee-clean both arg blocks",
+            "__stdcall @<ebx> + stack: callee-clean, only stack arg re-pushed",
+        ),
+        (
+            "char FUN_00014e90(int actor_handle @<eax>, char *state_data);",
+            0x649280, 0x14e90,
+            (
+                b'\xff\x74\x24\x08'     # PUSH [ESP+8]       (state_data, the stack arg)
+                b'\x8b\x44\x24\x08'     # MOV EAX, [ESP+8]   (actor_handle from caller)
+                b'\xe8' + _rel32(0x649280 + 8, 0x14e90) +
+                b'\x83\xc4\x04'          # ADD ESP, 4
+                b'\xc3'
+            ),
+            "@<eax> + stack: regression test for FUN_00014e90 freeze",
         ),
     ]
 
