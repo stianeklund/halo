@@ -735,8 +735,8 @@ void FUN_0002ade0(int actor_handle)
  * a scratch float (EBP-0x4) that is compared against *collision_t.  This
  * scratch is distinct from avoidance_ray[6], which Ghidra aliases as the same
  * slot. */
-void FUN_0002b020(float *avoidance_ray, float *ray_origin, int avoidance_data,
-                  float *ray_direction, float *collision_t, char *param_3)
+short FUN_0002b020(float *avoidance_ray, float *ray_origin, int avoidance_data,
+                   float *ray_direction, float *collision_t, char *param_3)
 {
   float *mtx;
   float obj_pos_t[3];
@@ -852,12 +852,13 @@ void FUN_0002b020(float *avoidance_ray, float *ray_origin, int avoidance_data,
   if (param_3 != (char *)0x0) {
     if ((short)status > 0) {
       *param_3 = '\0';
-      return;
+      return (short)status;
     }
     if (*param_3 != -1) {
       *param_3 = *param_3 + '\x01';
     }
   }
+  return (short)status;
 }
 
 /* 0x2b310 — actor_move_find_avoidance_sector: locate the angular sector of the
@@ -1338,6 +1339,723 @@ void FUN_0002b830(float *facing_basis /* @<ecx> */, char use_3d,
       system_exit(-1);
     }
   }
+}
+
+/* 0x2bab0 — actor_move_facing_to_movement_frame: express the movement
+ * direction in the local frame of the facing direction, writing the result
+ * into the caller's output vector.
+ *
+ * Register args (confirmed from caller FUN_0002daa0 @ 0x2dbeb-0x2dbf7):
+ *   use_3d              @<al>   : 0 selects the 2D (planar) path, nonzero the
+ *                                 full 3D path.
+ *   movement_direction  @<esi>  : float[3] unit movement direction.
+ *   facing_direction    @<edi>  : float[3] unit facing direction.
+ *   out                 @<ebx>  : float[3] result frame coordinates.
+ *
+ * 3D path: out = ( movement.facing, movement.left, movement.up ) where
+ *   biped_build_flying_axes(facing, left, up) builds the orthonormal frame
+ *   (left at EBP-0x10, up at EBP-0x1c).  Then normalize3d(out).
+ *   Asserts: real_normal3d(movement) @0x775, real_normal3d(facing) @0x776.
+ * 2D path: out[0] = movement.facing (2D dot), out[1] = the 2D cross
+ *   facing[0]*movement[1] - facing[1]*movement[0], out[2] = 0; normalize3d.
+ *   Asserts: real_normal2d(movement) @0x785, real_normal2d(facing) @0x786,
+ *   realcmp(movement->k) @0x787, realcmp(facing->k) @0x788 (k-component must
+ *   be finite and below the *0x2549d8 bound). */
+void FUN_0002bab0(char use_3d /* @<al> */,
+                  float *movement_direction /* @<esi> */,
+                  float *facing_direction /* @<edi> */, float *out /* @<ebx> */)
+{
+  float left[3];
+  float up[3];
+  float mk;
+  float fk;
+
+  if (use_3d != 0) {
+    if (valid_real_normal3d(movement_direction) == 0) {
+      display_assert(
+        csprintf((char *)0x5ab100, "%s: assert_valid_real_normal3d(%f, %f, %f)",
+                 "movement_direction", (double)movement_direction[0],
+                 (double)movement_direction[1], (double)movement_direction[2]),
+        "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x775, 1);
+      system_exit(-1);
+    }
+    if (valid_real_normal3d(facing_direction) == 0) {
+      display_assert(
+        csprintf((char *)0x5ab100, "%s: assert_valid_real_normal3d(%f, %f, %f)",
+                 "facing_direction", (double)facing_direction[0],
+                 (double)facing_direction[1], (double)facing_direction[2]),
+        "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x776, 1);
+      system_exit(-1);
+    }
+    biped_build_flying_axes(facing_direction, left, up);
+    out[0] = movement_direction[0] * facing_direction[0] +
+             facing_direction[1] * movement_direction[1] +
+             facing_direction[2] * movement_direction[2];
+    out[1] = left[1] * movement_direction[1] + left[2] * movement_direction[2] +
+             left[0] * movement_direction[0];
+    out[2] = up[1] * movement_direction[1] + up[2] * movement_direction[2] +
+             up[0] * movement_direction[0];
+    normalize3d(out);
+    return;
+  }
+
+  if (valid_real_normal2d(movement_direction) == 0) {
+    display_assert(
+      csprintf((char *)0x5ab100, "%s: assert_valid_real_normal2d(%f, %f)",
+               "(real_vector2d *) movement_direction",
+               (double)movement_direction[0], (double)movement_direction[1]),
+      "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x785, 1);
+    system_exit(-1);
+  }
+  if (valid_real_normal2d(facing_direction) == 0) {
+    display_assert(
+      csprintf((char *)0x5ab100, "%s: assert_valid_real_normal2d(%f, %f)",
+               "(real_vector2d *) facing_direction",
+               (double)facing_direction[0], (double)facing_direction[1]),
+      "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x786, 1);
+    system_exit(-1);
+  }
+  mk = movement_direction[2];
+  if (((*(unsigned int *)&mk & 0x7f800000) == 0x7f800000) ||
+      (!(fabsf(mk) < *(double *)0x2549d8))) {
+    display_assert(csprintf((char *)0x5ab100,
+                            "%s, %s: assert_valid_realcmp(%f, %f)",
+                            "movement_direction->k", (char *)0x255b18,
+                            (double)movement_direction[2], 0, 0),
+                   "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x787, 1);
+    system_exit(-1);
+  }
+  fk = facing_direction[2];
+  if (((*(unsigned int *)&fk & 0x7f800000) == 0x7f800000) ||
+      (!(fabsf(fk) < *(double *)0x2549d8))) {
+    display_assert(csprintf((char *)0x5ab100,
+                            "%s, %s: assert_valid_realcmp(%f, %f)",
+                            "facing_direction->k", (char *)0x255b18,
+                            (double)facing_direction[2], 0, 0),
+                   "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x788, 1);
+    system_exit(-1);
+  }
+  out[0] = movement_direction[0] * facing_direction[0] +
+           movement_direction[1] * facing_direction[1];
+  out[1] = facing_direction[0] * movement_direction[1] +
+           (-facing_direction[1]) * movement_direction[0];
+  out[2] = 0.0f;
+  normalize3d(out);
+}
+
+/* 0x2bd80 — actor_move_compute_avoidance: the per-tick obstacle-avoidance and
+ * movement-vector resolver.  Given the actor's desired facing (avoidance
+ * rotation), it builds a local avoidance state, samples avoidance rays in 8
+ * directions, scores each direction, picks the best, and produces an output
+ * velocity direction (vel_out) and emergency turn amount (speed_out).
+ *
+ * ABI (confirmed from caller FUN_0002e560 @ 0x2e705-0x2e710):
+ *   actor_handle @<ecx> : actor datum handle.
+ *   facing              : float[3] desired facing / avoidance rotation (read).
+ *   vel_out             : float[3] output movement direction.
+ *   speed_out           : float    output emergency amount.
+ *
+ * The avoidance state is a 0x6048-byte scratch struct, copied at the end into
+ * the per-actor avoidance record (avd) at avd+0x1a0.  avd lives at
+ * actor_index_low * 0x657c + *0x331f58.  Layout of avoidance_state (offsets
+ * confirmed from prologue disasm 0x2be48-0x2bef7):
+ *   +0x00 scenario ptr   +0x04 collision bsp ptr   +0x08 unit datum handle
+ *   +0x0c world position[3]   +0x18 object forward row (obj+0x24)[3]
+ *   +0x24 cross(up,forward)[3]   +0x30 object up row (obj+0x30)[3]
+ *
+ * Confirmed: FUN_001d90e0 is _chkstk (frame > 0x1000), not SEH.  The scattered
+ * decompiler stores into local_1c/uStack_18/local_24/local_28 are chkstk/frame
+ * scheduling noise and are not real stores. */
+void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
+                  float *speed_out)
+{
+  unsigned char avoidance_state[0x6048];
+  int actor;
+  int obj;
+  int avd;
+  int unit_handle;
+  float *fwd;
+  float *up;
+  float *state;
+  float weights[8];
+  float max_weight;
+  short last_best_dir;
+  int idx;
+  int ip0, ip2, ip4, ip5, ip6, ip7;
+  int i, n;
+  float *wp;
+  float *rec;
+  int *table;
+  short hit_count;
+  float vel_mag;
+  float emergency;
+  float mag, inv;
+  char have_dir;
+  float best_value;
+  short best_dir;
+  float out[3]; /* EBP-0x24/-0x20/-0x1c: prologue=world translation, final
+                   vel_out */
+  float work[3]; /* EBP-0x10/-0xc/-0x8: emergency/cross working vector */
+  float xform[3]; /* EBP-0x40/-0x3c/-0x38: avoidance-vector transform output */
+  float move_amt, move_idx, move_value;
+  float em_value, em_index, em_push;
+  float out_speed;
+  unsigned char *pb;
+
+  state = (float *)avoidance_state;
+  actor = (int)datum_get((data_t *)*(int *)0x6325a4, actor_handle);
+
+  /* world-matrix translation row; also the default movement output used by the
+   * unit_handle==-1 early-exit. */
+  out[0] = (*(float **)0x31fc38)[0];
+  out[1] = (*(float **)0x31fc38)[1];
+  out[2] = (*(float **)0x31fc38)[2];
+  out_speed = *(float *)0x2533c0;
+
+  unit_handle = *(int *)(actor + 0x158);
+  if (unit_handle == -1) {
+    unit_handle = *(int *)(actor + 0x18);
+  }
+
+  if (vel_out == (float *)0x0 || speed_out == (float *)0x0) {
+    display_assert("avoidance_rotation && emergency_amount",
+                   "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x887, 1);
+    system_exit(-1);
+  }
+
+  if (unit_handle == -1) {
+    goto write_outputs;
+  }
+
+  obj = (int)object_get_and_verify_type(unit_handle, -1);
+  /* avd = (actor_index_low & 0xffff) * 0x657c + *0x331f58 */
+  avd = (actor_handle & 0xffff) * 0x657c + *(int *)0x331f58;
+
+  /* game_time_get() stored into avd+0x19c (timestamp). */
+  *(int *)(avd + 0x19c) = game_time_get();
+
+  *(int *)((char *)state + 0) = (int)scenario_get();
+  *(int *)((char *)state + 4) = (int)global_collision_bsp_get();
+  *(int *)((char *)state + 8) = unit_handle;
+  object_get_world_position(unit_handle, (vector3_t *)((char *)state + 0xc));
+
+  /* forward = obj+0x24, up = obj+0x30 */
+  fwd = (float *)(obj + 0x24);
+  *(float *)((char *)state + 0x18) = fwd[0];
+  *(float *)((char *)state + 0x1c) = fwd[1];
+  *(float *)((char *)state + 0x20) = fwd[2];
+  up = (float *)(obj + 0x30);
+  *(float *)((char *)state + 0x30) = up[0];
+  *(float *)((char *)state + 0x34) = up[1];
+  *(float *)((char *)state + 0x38) = up[2];
+  /* cross(up, forward) into +0x24 */
+  *(float *)((char *)state + 0x24) = up[1] * fwd[2] - up[2] * fwd[1];
+  *(float *)((char *)state + 0x28) = fwd[0] * up[2] - up[0] * fwd[2];
+  *(float *)((char *)state + 0x2c) = up[0] * fwd[1] - fwd[0] * up[1];
+
+  FUN_0002ade0((int)state);
+
+  /* zero the 8-direction weight array, reset running max. */
+  csmemset(weights, 0, 0x20);
+  max_weight = 0.0f;
+
+  /* seed weights around the previously chosen best direction (actor[0x5d8]). */
+  last_best_dir = *(short *)(actor + 0x5d8);
+  if (last_best_dir >= 0 && last_best_dir < 8) {
+    idx = (int)last_best_dir;
+    ip0 = (idx + 1) % 8;
+    ip2 = (idx + 2) % 8;
+    ip7 = (idx + 7) % 8;
+    ip6 = (idx + 6) % 8;
+    weights[idx] = weights[idx] + *(float *)0x253524;
+    weights[(short)ip0] =
+      *(float *)0x255954 * *(float *)0x253524 + weights[(short)ip0];
+    weights[(short)ip2] =
+      *(float *)0x255958 * *(float *)0x253524 + weights[(short)ip2];
+    weights[(short)ip7] =
+      *(float *)0x255954 * *(float *)0x253524 + weights[(short)ip7];
+    weights[(short)ip6] =
+      *(float *)0x255958 * *(float *)0x253524 + weights[(short)ip6];
+  }
+
+  /* First avoidance ray pass: 9 rays.  Each ray is transformed and cast by
+   * FUN_0002b020 (avoidance_ray@<eax>, ray_origin@<ebx>, avoidance_data@<esi>).
+   * The per-ray origin/direction are recorded at avd+0x6220/avd+0x628c (stride
+   * 3 floats); the hit count goes to avd+0x61e8 (stride 2, short) and the
+   * collision time to avd+0x61fc (stride 4, float). */
+  rec = (float *)(avd + 0x628c);
+  wp = (float *)0x255828; /* per-ray blend-weight table (8 floats/ray) */
+  table = (int *)0x6327e0; /* per-ray packed-ray records (7 ints/ray) */
+  {
+    short *count_ptr = (short *)(avd + 0x61e8);
+    float *t_ptr = (float *)(avd + 0x61fc);
+    float ray_dir[3];
+    float ray_origin[3];
+    float collision_t;
+    for (n = 9; n != 0; n--) {
+      hit_count = (short)FUN_0002b020((float *)table, ray_origin, (int)state,
+                                      ray_dir, &collision_t, (char *)0);
+      rec[-0x1b] = ray_origin[0];
+      rec[-0x1a] = ray_origin[1];
+      rec[-0x19] = ray_origin[2];
+      rec[0] = ray_dir[0];
+      rec[1] = ray_dir[1];
+      rec[2] = ray_dir[2];
+      *count_ptr = hit_count;
+      *t_ptr = collision_t;
+      if (hit_count > 0) {
+        float frac = *(float *)0x2533c8 - collision_t;
+        float *acc = weights;
+        float *blend = wp;
+        for (i = 8; i != 0; i--) {
+          float bf = frac + frac;
+          if (*(float *)0x2533c8 < bf) {
+            bf = *(float *)0x2533c8;
+          }
+          *acc = bf * *blend + *acc;
+          blend++;
+          acc++;
+        }
+        if (max_weight <= frac) {
+          max_weight = frac;
+        }
+      }
+      count_ptr = count_ptr + 1;
+      t_ptr = t_ptr + 1;
+      table = table + 7;
+      wp = wp + 8;
+      rec = rec + 3;
+    }
+  }
+
+  /* Second pass: for each of 8 directions, sample 2 short avoidance probes,
+   * classify them, accumulate a per-direction score, and redistribute it into
+   * the weight array with the same neighbor-falloff used for seeding.  Probe
+   * records: hit-count shorts at avd+0x6418 (stride 2), origin/direction floats
+   * at avd+0x62f8/avd+0x6318 (stride 3). */
+  {
+    short *probe_count = (short *)(avd + 0x6418);
+    float *probe_origin = (float *)(avd + 0x62f8);
+    float *probe_dir = (float *)(avd + 0x6318);
+    int *probe_table = (int *)0x6325c0;
+    pb = (unsigned char *)(actor + 0x5c9);
+    idx = 2; /* current direction index (local_70) */
+    for (n = 8; n != 0; n--) {
+      short probe_hits[2];
+      float probe_t[2];
+      float probe_buf[2 * 3];
+      float score;
+      int k;
+      unsigned char *pbi = pb;
+      for (k = 0; k < 2; k++) {
+        float pd[3];
+        float po[3];
+        float pt;
+        probe_hits[k] = (short)FUN_0002b020(
+          (float *)probe_table, po, (int)state, pd, &pt, (char *)(pbi - 1));
+        probe_origin[k * 3 + 0] = po[0];
+        probe_origin[k * 3 + 1] = po[1];
+        probe_origin[k * 3 + 2] = po[2];
+        probe_dir[k * 3 + 0] = pd[0];
+        probe_dir[k * 3 + 1] = pd[1];
+        probe_dir[k * 3 + 2] = pd[2];
+        probe_count[k] = probe_hits[k];
+        probe_buf[k * 3 + 0] = pd[0];
+        probe_buf[k * 3 + 1] = pd[1];
+        probe_buf[k * 3 + 2] = pd[2];
+        probe_t[k] = pt;
+        probe_table = probe_table + 7;
+        pbi = pbi + 1;
+      }
+
+      /* classify the two probes back-to-front and accumulate score. */
+      {
+        int blocked = 0;
+        score = *(float *)0x2533c0;
+        for (k = 1; k >= 0; k--) {
+          if (probe_hits[k] == 0) {
+            float v;
+            if (blocked) {
+              v = *(float *)0x2533c8;
+              score = v * *(float *)(0x25594c + k * 4) + score;
+            } else {
+              unsigned char b = pb[k];
+              if (b < 0x4b) {
+                score =
+                  *(float *)0x2533c0 * *(float *)(0x25594c + k * 4) + score;
+              } else {
+                v = *(float *)0x2533c8 - *(float *)0x255ca4 / (float)b;
+                if (*(float *)0x2533c0 <= v) {
+                  if (*(float *)0x2533c8 < v) {
+                    v = *(float *)0x2533c8;
+                  }
+                  score = v * *(float *)(0x25594c + k * 4) + score;
+                } else {
+                  score =
+                    *(float *)0x2533c0 * *(float *)(0x25594c + k * 4) + score;
+                }
+              }
+            }
+          } else {
+            float v = *(float *)0x2533c8 - probe_buf[k * 3 + 1];
+            v = v + v;
+            if (*(float *)0x2533c8 < v) {
+              v = *(float *)0x2533c8;
+            }
+            blocked = 1;
+            score = score - v * *(float *)(0x25594c + k * 4);
+          }
+        }
+      }
+
+      ip0 = (idx - 1) % 8;
+      ip2 = idx % 8;
+      ip5 = (idx + 5) % 8;
+      ip4 = (idx + 4) % 8;
+      weights[(short)((idx - 2) & 7)] = score + weights[(short)((idx - 2) & 7)];
+      weights[(short)ip0] = *(float *)0x255954 * score + weights[(short)ip0];
+      weights[(short)ip2] = score * *(float *)0x255958 + weights[(short)ip2];
+      weights[(short)ip5] = *(float *)0x255954 * score + weights[(short)ip5];
+      weights[(short)ip4] = score * *(float *)0x255958 + weights[(short)ip4];
+
+      pb = pb + 2;
+      idx = idx + 1;
+    }
+  }
+
+  /* Emergency obstacle response: if the object's velocity (obj+0x3c..0x44)
+   * magnitude exceeds *0x255ca0, push the avoidance weights away from the
+   * velocity direction (projected into the avoidance frame, 2D). */
+  *(unsigned char *)(avd + 0x6551) = 0;
+  vel_mag = sqrtf(*(float *)(obj + 0x44) * *(float *)(obj + 0x44) +
+                  *(float *)(obj + 0x40) * *(float *)(obj + 0x40) +
+                  *(float *)(obj + 0x3c) * *(float *)(obj + 0x3c));
+  if (*(float *)0x255ca0 < vel_mag) {
+    float dlen, em_scl;
+    em_value = 0.0f;
+    em_scl = *(float *)0x2533c0;
+    em_push = (vel_mag - *(float *)0x255ca0) * *(float *)0x255c9c;
+    if (*(float *)0x2533c8 < em_push) {
+      em_push = *(float *)0x2533c8;
+    }
+    em_push = em_push * *(float *)0x2533f0;
+    work[0] = 0.0f;
+    work[1] = *(float *)((char *)state + 0x34) * *(float *)(obj + 0x40) +
+              *(float *)((char *)state + 0x38) * *(float *)(obj + 0x44) +
+              *(float *)((char *)state + 0x30) * *(float *)(obj + 0x3c);
+    work[2] = -(*(float *)((char *)state + 0x2c) * *(float *)(obj + 0x44) +
+                *(float *)((char *)state + 0x28) * *(float *)(obj + 0x40) +
+                *(float *)((char *)state + 0x24) * *(float *)(obj + 0x3c));
+    dlen = sqrtf(work[1] * work[1] + work[2] * work[2]);
+    if (fabsf(dlen) >= *(double *)0x2533d0) {
+      inv = *(float *)0x2533c8 / dlen;
+      work[0] = *(float *)0x2533c0 * inv;
+      work[1] = work[1] * inv;
+      work[2] = inv * work[2];
+      if (*(float *)0x2533c0 < dlen) {
+        char ok =
+          FUN_0002b310(work, 8, 0x632780, weights, &em_index, &em_value);
+        em_scl = *(float *)0x2533c0;
+        if (ok != '\0' && *(float *)0x253398 < em_value) {
+          int j2;
+          float *w = weights;
+          float *p = (float *)0x632784;
+          for (j2 = 8; j2 != 0; j2--) {
+            float d = work[2] * p[0] + work[0] * p[-1] + work[1] * p[1];
+            if (d < *(float *)0x2533c0) {
+              *w = d * em_push + *w;
+            }
+            em_scl = em_push;
+            p = p + 3;
+            w = w + 1;
+          }
+        }
+      }
+    }
+    *(float *)(avd + 0x6554) = em_scl;
+    *(float *)(avd + 0x6558) = vel_mag;
+    *(float *)(avd + 0x655c) = work[0];
+    *(float *)(avd + 0x6560) = work[1];
+    *(unsigned char *)(avd + 0x6551) = 1;
+    *(float *)(avd + 0x6564) = work[2];
+    *(float *)(avd + 0x6568) = em_value;
+  }
+
+  /* find the best (largest) weight above *0x255c98. */
+  best_value = *(float *)0x255c98;
+  best_dir = -1;
+  for (i = 0; (short)i < 8; i++) {
+    if (best_value < weights[i]) {
+      best_value = weights[i];
+      best_dir = (short)i;
+    }
+  }
+  if (best_dir < 0 || best_dir >= 8) {
+    display_assert(
+      "(best_avoidance_direction >= 0) && (best_avoidance_direction < "
+      "VECTOR_AVOIDANCE_NUMBER_OF_DIRECTIONS)",
+      "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x983, 1);
+    system_exit(-1);
+  }
+
+  /* copy the 8 weights into the avoidance record. */
+  csmemcpy((void *)(avd + 0x64d8), weights, 0x20);
+
+  /* express the requested facing in the avoidance frame; validate the
+   * resulting movement-direction approximation.  xform = normalized facing;
+   * move_idx = facing.forward; work = facing projected onto the lateral axes.
+   */
+  xform[0] = facing[0];
+  xform[1] = facing[1];
+  xform[2] = facing[2];
+  work[0] = (*(float **)0x31fc38)[0];
+  work[1] = (*(float **)0x31fc38)[1];
+  work[2] = (*(float **)0x31fc38)[2];
+  move_idx = 1.0f;
+  move_amt = 0.0f;
+  move_value = 0.0f;
+  mag = sqrtf(xform[0] * xform[0] + xform[1] * xform[1] + xform[2] * xform[2]);
+  if (fabsf(mag) >= *(double *)0x2533d0) {
+    inv = *(float *)0x2533c8 / mag;
+    xform[0] = xform[0] * inv;
+    xform[1] = xform[1] * inv;
+    xform[2] = xform[2] * inv;
+    if (*(float *)0x2533c0 < mag) {
+      move_idx = xform[0] * *(float *)((char *)state + 0x18) +
+                 *(float *)((char *)state + 0x1c) * xform[1] +
+                 *(float *)((char *)state + 0x20) * xform[2];
+      work[1] = xform[2] * *(float *)((char *)state + 0x2c) +
+                xform[1] * *(float *)((char *)state + 0x28) +
+                xform[0] * *(float *)((char *)state + 0x24);
+      work[2] = xform[1] * *(float *)((char *)state + 0x34) +
+                xform[2] * *(float *)((char *)state + 0x38) +
+                xform[0] * *(float *)((char *)state + 0x30);
+      mag = sqrtf(work[1] * work[1] + work[2] * work[2]);
+      if (fabsf(mag) >= *(double *)0x2533d0) {
+        inv = *(float *)0x2533c8 / mag;
+        work[0] = *(float *)0x2533c0 * inv;
+        work[1] = work[1] * inv;
+        work[2] = inv * work[2];
+        if (*(float *)0x2533c0 < mag) {
+          FUN_0002b310(work, 8, 0x632780, weights, &move_amt, &move_value);
+          if ((move_amt < *(float *)0x2533c0) ||
+              (move_amt > *(float *)0x253f78)) {
+            display_assert("(movement_direction_approximation >= 0) && "
+                           "(movement_direction_approximation <= ((real) "
+                           "VECTOR_AVOIDANCE_NUMBER_OF_DIRECTIONS))",
+                           "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x9a2, 1);
+            system_exit(-1);
+          }
+        }
+      }
+    }
+  }
+
+  /* record the forward row, facing input, best direction, and the
+   * direction-approximation residual into the avoidance record. */
+  *(float *)(avd + 0x6524) = *(float *)((char *)state + 0x18);
+  *(float *)(avd + 0x6528) = *(float *)((char *)state + 0x1c);
+  *(float *)(avd + 0x652c) = *(float *)((char *)state + 0x20);
+  *(float *)(avd + 0x6530) = facing[0];
+  *(float *)(avd + 0x6534) = facing[1];
+  *(float *)(avd + 0x6538) = facing[2];
+  *(float *)(avd + 0x6504) = move_amt;
+  *(float *)(avd + 0x64fc) = best_value;
+  *(short *)(avd + 0x6500) = best_dir;
+  *(float *)(avd + 0x6508) = move_value;
+
+  /* emergency-amount ramp from the running max weight (max_weight). */
+  if (max_weight <= *(float *)0x253f3c) {
+    emergency = (max_weight - *(float *)0x253f3c) * *(float *)0x255ba8;
+    if (*(float *)0x2533c8 <= emergency) {
+      emergency = *(float *)0x2533c8;
+    }
+    emergency = emergency + *(float *)0x2533c8;
+  } else {
+    emergency = max_weight * *(float *)0x254e6c;
+    if (*(float *)0x2533c8 <= emergency) {
+      emergency = 1.0f;
+    }
+  }
+  *(float *)(avd + 0x650c) = best_value - move_idx;
+  *(float *)(avd + 0x6510) = move_idx;
+
+  have_dir = 0;
+  if (*(float *)0x255ba4 <= move_idx) {
+    goto emergency_state;
+  }
+
+  if (*(short *)(actor + 0x5f0) == -1 || *(short *)(actor + 0x5f0) >= 0x5a) {
+    float velsq = *(float *)(obj + 0x44) * *(float *)(obj + 0x44) +
+                  *(float *)(obj + 0x40) * *(float *)(obj + 0x40) +
+                  *(float *)(obj + 0x3c) * *(float *)(obj + 0x3c);
+    if (velsq <= *(float *)0x255ba0) {
+      if (emergency <= *(float *)0x253398) {
+        goto emergency_state;
+      }
+      *(short *)(avd + 0x653c) = 5;
+      goto count_state;
+    }
+    if (*(float *)0x253f40 < (best_value - move_idx) &&
+        *(float *)0x253f40 < best_value) {
+      *(short *)(avd + 0x653c) = 6;
+      goto count_state;
+    }
+  emergency_state:
+    *(short *)(actor + 0x5f0) = -1;
+    if (*(float *)0x253398 <= move_idx) {
+      /* mode 0/1: steer directly toward the chosen avoidance direction. */
+      if (max_weight <= *(float *)0x2533c0) {
+        *(short *)(avd + 0x653c) = 0;
+      } else {
+        float bx, by, bz, blen, axis_x, neg_z;
+        bz = -(*(float *)(0x632788 + best_dir * 0xc));
+        neg_z = bz;
+        axis_x = *(float *)(0x632784 + best_dir * 0xc);
+        bx = axis_x * *(float *)((char *)state + 0x30) +
+             *(float *)((char *)state + 0x2c) * neg_z +
+             (*(float **)0x31fc38)[0];
+        by = *(float *)((char *)state + 0x34) * axis_x +
+             *(float *)((char *)state + 0x28) * neg_z +
+             (*(float **)0x31fc38)[1];
+        bz = *(float *)((char *)state + 0x38) * axis_x +
+             *(float *)((char *)state + 0x24) * neg_z +
+             (*(float **)0x31fc38)[2];
+        out[0] = bx;
+        out[1] = by;
+        out[2] = bz;
+        blen = sqrtf(bx * bx + by * by + bz * bz);
+        if (fabsf(blen) < *(double *)0x2533d0) {
+          blen = 0.0f;
+        } else {
+          float f = *(float *)0x2533c8 / blen;
+          out[0] = bx * f;
+          out[1] = by * f;
+          out[2] = bz * f;
+          if (blen <= *(float *)0x2533c0) {
+            blen = 0.0f;
+          } else {
+            float g = emergency * *(float *)0x255b94;
+            out[0] = bx * f * g;
+            out[1] = by * f * g;
+            out[2] = bz * f * g;
+          }
+        }
+        *(float *)(avd + 0x6520) = blen;
+        have_dir = 1;
+        *(short *)(avd + 0x653c) = 1;
+        *(float *)(avd + 0x651c) = max_weight;
+        out_speed = emergency;
+      }
+    } else if ((best_value - move_idx) <= *(float *)0x255b9c) {
+      *(short *)(avd + 0x653c) = 2;
+    } else {
+      /* mode 3/4: gauge how far the emergency vector (work) already points at
+       * the chosen direction; small dot -> mode 4 lateral turn, else mode 3. */
+      int bd = (int)best_dir;
+      float dot = work[0] * *(float *)(0x632780 + bd * 0xc) +
+                  work[1] * *(float *)(0x632784 + bd * 0xc) +
+                  work[2] * *(float *)(0x632788 + bd * 0xc);
+      if (*(float *)0x253398 < dot) {
+        float turn =
+          (best_value - move_idx) * *(float *)0x255b98 - *(float *)0x253398;
+        float lat;
+        move_amt = *(float *)0x2533c0;
+        if (*(float *)0x2533c0 <= turn) {
+          move_amt = turn;
+          if (*(float *)0x2533c8 < turn) {
+            move_amt = *(float *)0x2533c8;
+          }
+        }
+        if (move_amt <= emergency) {
+          move_amt = emergency;
+        }
+        emergency = *(float *)0x255b94 * move_amt;
+        lat = work[1] * *(float *)(0x632784 + bd * 0xc) -
+              work[0] * *(float *)(0x632788 + bd * 0xc);
+        if (*(float *)0x2533c0 < lat) {
+          emergency = -emergency;
+        }
+        have_dir = 1;
+        out[0] = *(float *)((char *)state + 0x18) * emergency;
+        out[1] = *(float *)((char *)state + 0x1c) * emergency;
+        *(short *)(avd + 0x653c) = 4;
+        out[2] = *(float *)((char *)state + 0x20) * emergency;
+        *(float *)(avd + 0x6518) = emergency;
+      } else {
+        *(float *)(avd + 0x6514) = dot;
+        *(short *)(avd + 0x653c) = 3;
+      }
+    }
+  } else {
+    *(short *)(avd + 0x653c) = 7;
+  count_state:
+    if (*(short *)(actor + 0x5f0) == -1) {
+      *(short *)(actor + 0x5f0) = 0;
+    } else {
+      *(short *)(actor + 0x5f0) = *(short *)(actor + 0x5f0) + 1;
+    }
+    /* mode 5/6/7: blend toward the chosen direction's world-space vector. */
+    actor_move_transform_avoidance_vector(
+      (int)state, (float *)(0x632780 + best_dir * 0xc), xform);
+    work[0] = xform[2] * facing[1] - xform[1] * facing[2];
+    work[1] = xform[0] * facing[2] - xform[2] * facing[0];
+    work[2] = xform[1] * facing[0] - xform[0] * facing[1];
+    mag = sqrtf(work[0] * work[0] + work[1] * work[1] + work[2] * work[2]);
+    if (fabsf(mag) >= *(double *)0x2533d0) {
+      inv = *(float *)0x2533c8 / mag;
+      work[0] = work[0] * inv;
+      work[1] = work[1] * inv;
+      work[2] = work[2] * inv;
+      if (*(float *)0x2533c0 < mag) {
+        float scl = FUN_0010c510(facing, xform);
+        out[0] = work[0] * scl;
+        out[1] = work[1] * scl;
+        out[2] = work[2] * scl;
+      }
+    }
+    move_amt = (*(float *)0x253f40 - move_value) * *(float *)0x253398 -
+               *(float *)0x253398;
+    out_speed = *(float *)0x2533c0;
+    if (*(float *)0x2533c0 <= move_amt) {
+      out_speed = move_amt;
+      if (*(float *)0x2533c8 < move_amt) {
+        out_speed = *(float *)0x2533c8;
+      }
+    }
+    if (out_speed <= emergency) {
+      out_speed = emergency;
+    }
+    have_dir = 1;
+  }
+
+  *(char *)(avd + 0x6550) = have_dir;
+  if (have_dir == 0) {
+    *(short *)(actor + 0x5d8) = -1;
+  } else {
+    *(short *)(actor + 0x5d8) = best_dir;
+  }
+
+  /* publish the assembled avoidance state into the per-actor record. */
+  {
+    int *src = (int *)state;
+    int *dst = (int *)(avd + 0x1a0);
+    for (i = 0x1812; i != 0; i--) {
+      *dst = *src;
+      src++;
+      dst++;
+    }
+  }
+  *(float *)(avd + 0x654c) = out_speed;
+  *(float *)(avd + 0x6540) = out[0];
+  *(float *)(avd + 0x6544) = out[1];
+  *(float *)(avd + 0x6548) = out[2];
+
+write_outputs:
+  vel_out[0] = out[0];
+  vel_out[1] = out[1];
+  vel_out[2] = out[2];
+  *speed_out = out_speed;
 }
 
 /*

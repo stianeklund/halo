@@ -475,8 +475,9 @@
     "0x169a0": "void FUN_000169a0(int actor_handle, int object_handle, short cmd_type, int out_state, char *out_index, unsigned char *state @<esi>);",
     "0x24000": "void FUN_00024000(void *rec@<esi>, void *ctx, float score, int type);",
     "0x283b0": "char FUN_000283b0(float *dir_vec @<eax>, int collision_ctx, char is_3d, float yaw_min, float yaw_max, float pitch_min, float pitch_max, float *result_vector);",
-    "0x2b020": "void FUN_0002b020(float *avoidance_ray@<eax>, float *ray_origin@<ebx>, int avoidance_data@<esi>, float *ray_direction, float *collision_t, char *param_3);",
+    "0x2b020": "short FUN_0002b020(float *avoidance_ray@<eax>, float *ray_origin@<ebx>, int avoidance_data@<esi>, float *ray_direction, float *collision_t, char *param_3);",
     "0x2b310": "char FUN_0002b310(float *direction@<ecx>, short count@<ebx>, int records, float *values, float *out_index, float *out_value);",
-    "0x2b830": "void FUN_0002b830(float *facing_basis@<ecx>, char use_3d, float *out_vector, short *out_index, float *in_vec@<eax>, float *weight_vec@<edi>);"
+    "0x2b830": "void FUN_0002b830(float *facing_basis@<ecx>, char use_3d, float *out_vector, short *out_index, float *in_vec@<eax>, float *weight_vec@<edi>);",
+    "0x2bab0": "void FUN_0002bab0(char use_3d@<al>, float *movement_direction@<esi>, float *facing_direction@<edi>, float *out@<ebx>);"
   }
 }
