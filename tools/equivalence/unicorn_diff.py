@@ -536,7 +536,8 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
                   lifted: bool = False,
                   collect_mem_trace: bool = False,
                   memory_overrides: dict = None,
-                  max_insn: int = None) -> "state.CPUState":
+                  max_insn: int = None,
+                  stub_arg_tracer=None) -> "state.CPUState":
     """Run a function in a fresh Unicorn instance.
 
     Returns a CPUState with captured registers and scratch memory.
@@ -935,6 +936,10 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
 
     uc.hook_add(UC_HOOK_INTR, hook_interrupt)
 
+    # Attach stub-arg tracer for this run (detached in the finally block below)
+    if stub_manager is not None and stub_arg_tracer is not None:
+        stub_manager.set_tracer(stub_arg_tracer)
+
     err_msg = None
     try:
         uc.emu_start(entry_point, entry_point + len(code), timeout=TIMEOUT_MS * 1000,
@@ -953,6 +958,10 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
                 err_msg = f"{err_str} [{last_unmapped_access[0]}]"
             else:
                 err_msg = err_str
+
+    # Detach stub-arg tracer now that emulation has finished for this run
+    if stub_manager is not None and stub_arg_tracer is not None:
+        stub_manager.set_tracer(None)
 
     s = state_mod.capture(uc, SCRATCH_BASE, SCRATCH_SIZE, entry_esp + 4)
 
@@ -1121,7 +1130,8 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
              state_snapshot: Optional[Path] = None,
              no_concolic: bool = False,
              real_callees: bool = False,
-             max_insn: int = None) -> int:
+             max_insn: int = None,
+             stub_arg_trace: bool = True) -> int:
     """Run the differential test.  Returns 0 if all pass, 1 if any diverge."""
 
     # In --allow-stubs mode each callee stub executes real oracle code, consuming
@@ -1374,7 +1384,8 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     lifted_code_patched = lifted_slice.code
     if not is_leaf and allow_stubs:
         from stubs import (classify_relocations, patch_dir32_relocs,
-                           patch_rel32_calls, StubManager, GLOBALS_BASE, GLOBALS_SIZE)
+                           patch_rel32_calls, StubManager, GLOBALS_BASE, GLOBALS_SIZE,
+                           StubArgTracer, compare_stub_arg_traces)
         orc_cls = classify_relocations(oracle_slice.relocs,
                                        getattr(oracle_slice, 'defined_symbols', set()))
         lft_cls = classify_relocations(lifted_slice.relocs,
@@ -1591,11 +1602,24 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     oracle_func_base = (CODE_BASE + oracle_slice.section_offset) if oracle_text else CODE_BASE
     oracle_func_end = oracle_func_base + len(oracle_code_patched)
     enable_trace = mem_trace or (use_stubs and not is_leaf)
+    # Stub-arg tracing is enabled when --allow-stubs is on AND --no-stub-arg-trace
+    # was not given AND there are actual stub addresses to trace.
+    enable_stub_arg_trace = (stub_arg_trace and use_stubs
+                             and stub_manager is not None
+                             and bool(stub_manager.get_stub_addresses()))
+
+    # Accumulated stub-arg diff statistics across all seeds
+    stub_arg_total_calls = 0
+    stub_arg_total_mismatches = 0
+    stub_arg_total_soft = 0
+    stub_arg_mismatch_details = []  # (seed_label, seq, callee_name, arg_pos, o_val, c_val)
+    stub_arg_failed_seeds = 0
 
     for si, seed_vec in enumerate(seeds):
         seed_label = f"seed[{si:3d}]"
 
         # Run oracle
+        oracle_tracer = StubArgTracer() if enable_stub_arg_trace else None
         try:
             oracle_state = _run_function(oracle_code_patched, abi, seed_vec,
                                          verbose=verbose, map_globals=use_stubs,
@@ -1605,6 +1629,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                                          func_offset=oracle_slice.section_offset,
                                          collect_mem_trace=enable_trace,
                                          memory_overrides=snapshot_overrides,
+                                         stub_arg_tracer=oracle_tracer,
                                          max_insn=_max_insn)
         except Exception as exc:
             log(f"  {seed_label} ORACLE-ERROR: {exc}")
@@ -1613,6 +1638,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             continue
 
         # Run lifted
+        cand_tracer = StubArgTracer() if enable_stub_arg_trace else None
         try:
             lifted_state = _run_function(lifted_code_patched, abi, seed_vec,
                                          verbose=verbose, map_globals=use_stubs,
@@ -1621,7 +1647,8 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                                          lifted=True,
                                          collect_mem_trace=enable_trace,
                                          memory_overrides=snapshot_overrides,
-                                         max_insn=_max_insn)
+                                         max_insn=_max_insn,
+                                         stub_arg_tracer=cand_tracer)
         except Exception as exc:
             log(f"  {seed_label} LIFTED-ERROR: {exc}")
             error_details.append(f"{seed_label} LIFTED-ERROR: {exc}")
@@ -1704,7 +1731,22 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             check_esp=is_leaf if not skip_esp else False,
         )
 
-        if diff.has_differences():
+        # Stub-arg trace comparison (before deciding pass/fail for this seed)
+        stub_arg_diff = None
+        if enable_stub_arg_trace and oracle_tracer and cand_tracer:
+            stub_arg_diff = compare_stub_arg_traces(
+                oracle_tracer, cand_tracer, seed_label=seed_label)
+            stub_arg_total_calls += stub_arg_diff.total_calls
+            stub_arg_total_mismatches += stub_arg_diff.arg_mismatches
+            stub_arg_total_soft += stub_arg_diff.soft_stack_ptr_matches
+            if stub_arg_diff.has_differences():
+                stub_arg_failed_seeds += 1
+                stub_arg_mismatch_details.extend(stub_arg_diff.details)
+                if verbose:
+                    log(f"  {seed_label} STUB-ARG-DIFF: {stub_arg_diff.summary()}")
+
+        if diff.has_differences() or (stub_arg_diff is not None
+                                      and stub_arg_diff.has_differences()):
             failed += 1
             if first_diff is None:
                 first_diff = (si, seed_vec, diff, oracle_state, lifted_state)
@@ -1717,7 +1759,10 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                                                         lifted_state.scratch_data):
                         log(line)
             else:
-                log(f"  {seed_label} FAIL: {diff.summary()}")
+                if diff.has_differences():
+                    log(f"  {seed_label} FAIL: {diff.summary()}")
+                if stub_arg_diff is not None and stub_arg_diff.has_differences():
+                    log(f"  {seed_label} FAIL: {stub_arg_diff.summary()}")
         else:
             passed += 1
             if verbose and si < 3:
@@ -1896,6 +1941,15 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
 
     if trace_diff_count and not quiet:
         log(f"  mem-trace: {trace_diff_count} seed(s) with write-trace divergences")
+
+    if enable_stub_arg_trace:
+        log(f"  stub-arg differential: {stub_arg_total_calls} calls, "
+            f"{stub_arg_total_mismatches} arg mismatch(es), "
+            f"{stub_arg_total_soft} soft-matched stack ptr(s)")
+        if stub_arg_mismatch_details and not quiet:
+            for (sl, seq, callee, ai, o_val, c_val) in stub_arg_mismatch_details[:20]:
+                log(f"    {sl} call[{seq}] {callee} arg[{ai}]: "
+                    f"oracle=0x{o_val:08x} candidate=0x{c_val:08x}")
 
     # Heap-output (live biped object) witness report. This is the deliverable
     # of BIPED_HEAP_COMPARE: affirmative evidence that the object-output writes
@@ -2223,6 +2277,11 @@ def main():
     parser.add_argument("--real-callees", action="store_true",
                         help="Run callees as native oracle code (loops iterate over "
                              "snapshot data) instead of return-0 stubs. Implies --allow-stubs.")
+    parser.add_argument("--no-stub-arg-trace", action="store_true",
+                        help="Disable stub-argument differential (default: enabled with "
+                             "--allow-stubs). When enabled, oracle and candidate argument "
+                             "values for each callee stub hit are compared and mismatches "
+                             "are reported.")
     args = parser.parse_args()
     if args.real_callees:
         args.allow_stubs = True
@@ -2264,6 +2323,7 @@ def main():
         no_concolic=args.no_concolic,
         real_callees=args.real_callees,
         max_insn=args.max_insn,
+        stub_arg_trace=not args.no_stub_arg_trace,
     ))
 
 
