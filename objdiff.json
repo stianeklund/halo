@@ -6336,6 +6336,14 @@
       }
     },
     {
+      "name": "halo/actor_looking_FUN_00029040",
+      "target_path": "build/vc71/actor_looking.obj",
+      "base_path": "delinked/actor_looking_FUN_00029040.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actor_looking.c"
+      }
+    },
+    {
       "name": "halo/actor_looking_FUN_0001ab70",
       "target_path": "build/vc71/actor_looking.obj",
       "base_path": "delinked/actor_looking_FUN_0001ab70.obj",
