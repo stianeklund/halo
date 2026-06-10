@@ -3018,7 +3018,14 @@ bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
 
   actor = (char *)datum_get(actor_data, actor_handle);
   scenario = (char *)global_scenario_get();
-  atom_table = (char *)tag_block_get_element(scenario + 0x438, 0, 0);
+  /* Command-list entry for THIS list (scenario_index selects the list,
+   * entry size 0x60). Confirmed vs original: MOVSX EDX,[EBP+0xC]; PUSH 0x60;
+   * PUSH EDX at 0x18bab-0x18bb4. A prior lift passed (0, 0) here — classic
+   * cdecl arg-misgroup (args pushed before the nested global_scenario_get
+   * call were misattributed by Ghidra), which made every atom validate
+   * against command list 0 and instantly completed go_to atoms. */
+  atom_table = (char *)tag_block_get_element(scenario + 0x438,
+                                             (int)scenario_index, 0x60);
 
   if ((int)(unsigned char)*output >= *(int *)(atom_table + 0x30))
     return 1;
