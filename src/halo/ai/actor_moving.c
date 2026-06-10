@@ -2457,10 +2457,12 @@ LAB_fail:
   return '\0';
 
 LAB_path_ok:
-  *(char *)(actor + 0x4a4) = 1;
-  if (store_distance != '\0') {
-    *(float *)(actor + 0x4a0) = dist;
-  }
+  /*
+   * actor_test_destination fast-path success. At 0x2d32a the original simply
+   * loads AL=1 and returns — NO side effects (does not touch actor[0x4a4] or
+   * actor[0x4a0]). On this path `dist` is not yet computed (it is computed at
+   * 0x2d10d, which is bypassed), so writing it would be UB. Just return 1.
+   */
   return '\x01';
 }
 
@@ -2496,7 +2498,6 @@ LAB_path_ok:
  */
 void actor_destination_update(int actor_handle)
 {
-  extern data_t *actor_data;
   char *actor;
   char *path_ctl;
   char exhausted;
@@ -2516,7 +2517,7 @@ void actor_destination_update(int actor_handle)
   int sign_val;
   float step;
 
-  actor = (char *)datum_get(actor_data, actor_handle);
+  actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
 
   if (*(char *)(actor + 0x4c) != '\0' && *(char *)(actor + 0x4a4) == '\0' &&
       *(char *)(actor + 0x13) == '\0') {
@@ -2757,10 +2758,21 @@ void actor_destination_update(int actor_handle)
       *path_ctl = '\0';
       return;
     }
-    return;
+    /*
+     * Fall through to the move-type evaluation (0x2d624). The path-active
+     * block does NOT unconditionally return: at 0x2d556 (*path_ctl cleared,
+     * e.g. by actor_path_stop) and at 0x2d56e (path active but
+     * actor[0x504]==0 && actor[0x484]!=0) the original jumps to the shared
+     * move-type tail at 0x2d624. The set-target block above returns on both
+     * its exits, so only those two fall-through edges reach here.
+     */
   }
 
-  /* No active path. Check movement mode. */
+  /*
+   * Move-type evaluation (join at 0x2d624): reached when the path was never
+   * active (entry 0x2d3ac), when an active path was cleared, or when an
+   * active path yielded no target this tick.
+   */
   if (*(short *)(actor + 0x15e) != 4) {
     /* Not far-movement: reset path destination and target state. */
     *(char *)(actor + 0x504) = '\0';
@@ -2769,7 +2781,7 @@ void actor_destination_update(int actor_handle)
 
     /* Re-fetch actor (second datum_get call in this branch, confirmed at
      * 0x2d6ea). */
-    actor = (char *)datum_get(actor_data, actor_handle);
+    actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
     *(char *)(actor + 0x4a8) = '\0';
     *(char *)(actor + 0x484) = '\x01';
     *(int *)(actor + 0x4a0) = 0;
