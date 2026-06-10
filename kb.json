@@ -3750,7 +3750,7 @@
         {
           "addr": "0x29040",
           "decl": "void actor_look_update(int actor_handle);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x2a2b0",
