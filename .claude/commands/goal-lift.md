@@ -98,35 +98,22 @@ Fetch decompilation via Ghidra MCP (`decompile_function`). Then spawn:
 ```
 Agent(subagent_type="xbox-halo-re-analyst", model="sonnet", prompt=<brief>)
 ```
-The prompt must include: target address, decompilation output, KB entry JSON,
-source file path, and these file-write instructions:
-- Write the C89 implementation to the source file at the correct address-ordered position
-- Update kb.json declaration if needed (conservatively)
-- Update `tools/kb_reg_baseline.json` for any `@<reg>` annotations
-- Run `rtk python3 tools/analysis/maintain.py <source_file>`
-- Run `rtk python3 tools/audit/check_lift_hazards.py` and fix target-relevant hazards
-- Report: RESOLVED_TARGET, Confirmed/Inferred/Uncertain, kb.json updates made
+The prompt must follow the **Phase-1 subagent briefing template** in
+`docs/lift-policy.md`, filling in the target address, decompilation output,
+KB entry JSON, and source file path.
 
 ### Phase 2 — build + verify (orchestrator)
 
 After the agent returns, ensure a delinked reference exists (export via
 `mcp__ghidra-live__export_delinked_object` if missing), then run:
 ```bash
-rtk python3 tools/lift_pipeline.py --target FUNCNAME --no-metadata-update --verify-policy auto
+rtk python3 tools/lift_pipeline.py --target FUNCNAME --no-metadata-update --verify-policy goal90
 ```
 
 ### Pass/fail decision
 
-| VC71 score | Action |
-|---|---|
-| >=99% | Commit — byte-match sufficient |
-| 90–98% | Commit — meets policy |
-| 85–89% | Do NOT commit. One permutation attempt only if mapped delinked ref exists |
-| 65–85% | Check structural cap. If capped → skip. One focused escalation allowed if not capped |
-| <65% | Assume lift bug — revert unless there is a clear, cheap fix |
-| No VC71 data | Treat as infra/build issue, not pass |
-
-**Max 3 total attempts per function** (including re-delink, permutation, Opus escalation). After 3 failures → revert and skip.
+Use `--verify-policy goal90`.  See `docs/lift-policy.md` §goal90-pass-fail-bands
+for the canonical table and attempt limits.  Summary: ≥90% commit, 85–89% permute then commit, 65–84% cap-check/escalate, <65% revert.
 
 ### Per-function delink fallback (boundary artifact suspicion only)
 
@@ -156,20 +143,9 @@ rtk git status --short
 
 ## Opus escalation
 
-Escalate by re-running Phase 1 with `Agent(subagent_type="xbox-halo-re-analyst")`
-without the `model: "sonnet"` override — the agent's default model (Opus) kicks in.
-Revert the Sonnet attempt first: `rtk git checkout -- src/ kb.json tools/kb_reg_baseline.json`
-
-Escalate when:
-- VC71 < 65% (control flow / structure wrong)
-- ABI audit fails (calling convention reasoning)
-- FPU-WARN (operand order)
-- Build fails on second attempt (not a simple typo)
-
-Do NOT escalate (revert+skip instead):
-- Target has SEH prolog/epilog (not liftable with current tooling)
-- Target has >3 register args (disqualified)
-- Build fails on an unrelated file (repo state issue)
+See `docs/lift-policy.md` §Escalation-flow for canonical rules.
+Summary: escalate on VC71 <65%, ABI fail, FPU-WARN, or second build failure;
+do not escalate on SEH, >3 reg-args, or unrelated build fail.
 
 ## Ghidra bridge recovery
 

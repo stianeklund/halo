@@ -129,6 +129,14 @@ char stack_walk_with_context(int a1, int16_t depth, int a3)
  *
  * Returns 1 on success, 0 on failure. Static buffers are safe because
  * this function is called once at startup on single-threaded Xbox.
+ *
+ * Intentional divergence from original: the original 0x92710 takes a 3rd
+ * parameter `const void *ref_symbol` which the caller passes as the runtime
+ * address of a known symbol to compute the load bias as
+ * (runtime_addr - link_VA).  This implementation derives the reference
+ * symbol internally by scanning the map file for "_load_symbol_table" —
+ * functionally equivalent because the sole original C caller (ported) only
+ * ever passes 2 args and our internal derivation reaches the same bias value.
  * ----------------------------------------------------------------------- */
 int load_symbol_table(const char *map_path, int32_t *symtab_out)
 {

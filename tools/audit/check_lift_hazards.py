@@ -45,7 +45,7 @@ Usage:
     python3 tools/audit/check_lift_hazards.py
     python3 tools/audit/check_lift_hazards.py -q
     python3 tools/audit/check_lift_hazards.py --changed-only
-    python3 tools/audit/check_lift_hazards.py --changed-only --cached
+    python3 tools/audit/check_lift_hazards.py --staged-only
 """
 import os
 import re
@@ -751,26 +751,336 @@ def check_frame_sizes(filepath, content, lines):
     return errors
 
 
-def _collect_c_files(changed_only=False, cached=False):
+# ---------------------------------------------------------------------------
+# §13: CONCAT* macro survival (ERROR)
+# ---------------------------------------------------------------------------
+CONCAT_PATTERN = re.compile(r'\bCONCAT\d+\b')
+
+
+def check_concat_survival(filepath, content, lines):
+    """Flag any CONCAT* macro that survived the draft_decompiler rewrite pass.
+
+    draft_decompiler.py rewrites CONCAT16/CONCAT22/CONCAT44 etc. into bitfield
+    or shift/OR idioms.  If a CONCAT token reaches lifted C it means the draft
+    pass was not run, or the output was edited by hand.  Every occurrence is a
+    build error: the macro is undefined and the function is almost certainly
+    wrong (see lift-learnings §13).
+    """
+    errors = []
+    flat_lines = _blank_comments_and_literals(content).split('\n')
+    for lineno, line in enumerate(flat_lines, 1):
+        if CONCAT_PATTERN.search(line):
+            relpath = os.path.relpath(filepath, ROOT_DIR)
+            errors.append(
+                f'  {relpath}:{lineno}: CONCAT token survived — run '
+                f'draft_decompiler.py to rewrite into shift/OR (see lift-learnings §13)'
+            )
+    return errors
+
+
+# ---------------------------------------------------------------------------
+# §6: Float-as-pointer bit smuggling (WARN)
+# ---------------------------------------------------------------------------
+# var = (T*)(int)(float_expr)  — float bits stored in a pointer variable
+_FLOAT_BIT_STORE = re.compile(
+    r'(\w+)\s*=\s*\(\s*(?:short|char|int|uint8_t|int8_t|uint16_t|int16_t|uint32_t|int32_t)\s*\*\s*\)'
+    r'\s*\(\s*(?:unsigned\s+)?int\s*\)\s*'
+)
+# (float)(int)var  — retrieves float bits back from that pointer variable
+_FLOAT_FROM_INT_VAR = re.compile(r'\(float\)\s*\((?:unsigned\s+)?int\s*\)\s*(\w+)\b')
+
+
+def check_float_int_bit_smuggling(filepath, content, lines):
+    """Flag (float)(int)var where var was previously assigned via (T*)(int)(expr).
+
+    Ghidra decompiles a float-through-register as pointer casts.  A lift that
+    follows the pseudocode literally does an integer truncation instead of a
+    bit-reinterpretation — producing completely wrong values (see §6).
+    Suppress with /* hazard-ok: numeric-truncation */ on the same line.
+    """
+    errors = []
+    flat_lines = _blank_comments_and_literals(content).split('\n')
+    chunks = _split_functions(lines)
+    for chunk_start, chunk_end in chunks:
+        smuggled_vars = set()
+        for i in range(chunk_start - 1, min(chunk_end, len(flat_lines))):
+            m = _FLOAT_BIT_STORE.search(flat_lines[i])
+            if m:
+                smuggled_vars.add(m.group(1))
+        if not smuggled_vars:
+            continue
+        for i in range(chunk_start - 1, min(chunk_end, len(flat_lines))):
+            src_line = lines[i] if i < len(lines) else ''
+            if 'hazard-ok' in src_line:
+                continue
+            for m in _FLOAT_FROM_INT_VAR.finditer(flat_lines[i]):
+                if m.group(1) in smuggled_vars:
+                    relpath = os.path.relpath(filepath, ROOT_DIR)
+                    errors.append(
+                        f'  {relpath}:{i + 1}: (float)(int){m.group(1)} — float bits '
+                        f'smuggled through pointer cast; use memcpy(&dst,&src,4) or a '
+                        f'union (see lift-learnings §6)'
+                    )
+    return errors
+
+
+# ---------------------------------------------------------------------------
+# §17: Address offset mis-rendered as value addition (WARN)
+# ---------------------------------------------------------------------------
+# *(T*)0xLITERAL + N  where N < 0x10 and literal is a non-trivial address
+_ADDR_VALUE_ADD = re.compile(
+    r'\*\(\s*\w+\s*\*\s*\)\s*(0x[0-9a-fA-F]{4,})\s*\+\s*([0-9]+)\b'
+)
+
+
+def check_addr_value_add(filepath, content, lines):
+    """Flag *(T*)0xADDR + N patterns that may be *(T*)(0xADDR + N) instead.
+
+    The former reads the value at 0xADDR and adds N (value add); the latter
+    reads from address 0xADDR+N (address add / struct field access).  The two
+    are NOT equivalent.  Check disasm: if a single movswl [0xADDR+N] appears
+    with no trailing ADD instruction the +N belongs inside the cast.
+    (see lift-learnings §17)
+    Suppress with /* hazard-ok: counter-increment */ or similar.
+
+    False-positive heuristics applied automatically:
+    - Inner double-dereference:  *(T*)(*(T*)0xADDR + N)  — the +N adds to a
+      runtime pointer value, not a literal address.  Detected by ')' following
+      the match end.
+    - Counter-increment pattern:  *(T*)0xADDR = *(T*)0xADDR + N  — the same
+      literal address appears on the LHS; incrementing a global counter.
+    """
+    errors = []
+    flat_lines = _blank_comments_and_literals(content).split('\n')
+    for lineno, line in enumerate(flat_lines, 1):
+        src_line = lines[lineno - 1] if lineno <= len(lines) else ''
+        if 'hazard-ok' in src_line:
+            continue
+        for m in _ADDR_VALUE_ADD.finditer(line):
+            const = int(m.group(2))
+            if const >= 0x10:
+                continue
+            addr_str = m.group(1)
+            # Skip: inner expression already inside a cast-paren (double-deref)
+            # e.g. *(float *)(*(int *)0xADDR + 4) — +4 is address math, correct
+            end = m.end()
+            if end < len(line) and line[end:].lstrip().startswith(')'):
+                continue
+            # Skip: same literal address on LHS (counter increment)
+            # e.g.  *(int *)0xADDR = *(int *)0xADDR + 1
+            lhs_pat = re.search(
+                r'\*\(\s*\w+\s*\*\s*\)\s*' + re.escape(addr_str) + r'\s*=',
+                line[:m.start()]
+            )
+            if lhs_pat:
+                continue
+            addr = int(addr_str, 16)
+            relpath = os.path.relpath(filepath, ROOT_DIR)
+            errors.append(
+                f'  {relpath}:{lineno}: *(T*)0x{addr:x} + {const} — '
+                f'may be address-add mis-rendered as value-add; '
+                f'check disasm for movswl/mov [0x{addr:x}+{const}] '
+                f'(see lift-learnings §17; suppress with hazard-ok comment)'
+            )
+    return errors
+
+
+# ---------------------------------------------------------------------------
+# §4: Parameter corruption by loop (WARN)
+# ---------------------------------------------------------------------------
+_FUNC_SIG_PAT = re.compile(
+    r'^(?:static\s+)?(?:void|int|short|char|float|unsigned\s+\w+|uint\w*|int\w*|data_t|bool|[A-Za-z_]\w*_t)\s*\*?\s*'
+    r'(?:FUN_[0-9a-fA-F]+|\w+)\s*\(([^)]*)\)\s*\{'
+)
+_LOOP_KW = re.compile(r'\b(for|while|do)\b')
+_PARAM_MUTATE_PAT = re.compile(r'\b(\w+)\s*(?:\+\+|--|[+\-*/%]=)')
+
+
+def _extract_param_names_from_sig(sig_line):
+    """Return set of bare parameter names from a function signature line."""
+    m = _FUNC_SIG_PAT.match(sig_line.strip())
+    if not m:
+        return set()
+    params_raw = m.group(1)
+    names = set()
+    for part in params_raw.split(','):
+        part = part.strip().rstrip(')').strip()
+        tokens = part.replace('*', ' ').split()
+        skip = {'void', 'int', 'char', 'float', 'short', 'unsigned',
+                'long', 'const', 'volatile', 'signed', 'double'}
+        if tokens and tokens[-1] not in skip:
+            names.add(tokens[-1])
+    return names
+
+
+def check_param_loop_corruption(filepath, content, lines):
+    """Flag function parameters mutated inside a loop that are used after it.
+
+    Ghidra generates ``param = param + 1`` inside a loop body when the
+    original code used a separate copy register.  After the loop the param
+    is advanced past the buffer end.  (see lift-learnings §4)
+    Suppress with /* hazard-ok: intentional-param-advance */ on the loop line.
+    """
+    errors = []
+    flat_lines = _blank_comments_and_literals(content).split('\n')
+    i = 0
+    while i < len(flat_lines):
+        src_line = lines[i] if i < len(lines) else ''
+        params = _extract_param_names_from_sig(src_line)
+        if not params:
+            i += 1
+            continue
+        body_start = i + 1
+        depth = src_line.count('{') - src_line.count('}')
+        j = body_start
+        while j < len(flat_lines) and depth > 0:
+            depth += flat_lines[j].count('{') - flat_lines[j].count('}')
+            j += 1
+        body_end = j
+
+        k = body_start
+        while k < body_end:
+            src_k = lines[k] if k < len(lines) else ''
+            if _LOOP_KW.search(flat_lines[k]) and 'hazard-ok' not in src_k:
+                loop_depth = flat_lines[k].count('{') - flat_lines[k].count('}')
+                loop_line = k
+                mutated = set()
+                k2 = k + 1
+                if loop_depth <= 0:
+                    loop_depth = 1
+                while k2 < body_end and loop_depth > 0:
+                    loop_depth += flat_lines[k2].count('{') - flat_lines[k2].count('}')
+                    for mm in _PARAM_MUTATE_PAT.finditer(flat_lines[k2]):
+                        v = mm.group(1)
+                        if v in params:
+                            mutated.add(v)
+                    k2 += 1
+                if mutated:
+                    for k3 in range(k2, body_end):
+                        for v in list(mutated):
+                            if re.search(r'\b' + re.escape(v) + r'\b', flat_lines[k3]):
+                                relpath = os.path.relpath(filepath, ROOT_DIR)
+                                errors.append(
+                                    f'  {relpath}:{k3 + 1}: parameter \'{v}\' used '
+                                    f'after loop body (mutated ~line {loop_line + 1}) '
+                                    f'— verify loop uses a copy register, not param '
+                                    f'(see lift-learnings §4)'
+                                )
+                                mutated.discard(v)
+                k = k2
+                continue
+            k += 1
+        i = body_end
+    return errors
+
+
+# ---------------------------------------------------------------------------
+# §8/§11: Discarded non-trivial function-call result (WARN)
+# ---------------------------------------------------------------------------
+_DISCARD_VAR_PAT = re.compile(r'^\s*\(void\)\s*(\w+)\s*;')
+_CALL_ASSIGN_PAT = re.compile(
+    r'\b(\w+)\s*=\s*(?:FUN_[0-9a-fA-F]+|[a-z_]\w*)\s*\('
+)
+_DISCARD_INLINE_PAT = re.compile(r'^\s*\(void\)\s*([a-zA-Z_]\w*)\s*\(')
+_DISCARD_INLINE_EXEMPT = re.compile(
+    r'\b(?:tag_get|tag_group_get|object_get_and_verify_type|datum_get)\s*\('
+)
+
+
+def check_discarded_result(filepath, content, lines):
+    """Flag (void)var; where var was assigned from a function call nearby.
+
+    The §8 accumulator-discard bug: an RNG/score result is computed then
+    thrown away before the loop that depends on it.  Also flags
+    ``(void)func(...)`` for non-exempt named callees.
+    (see lift-learnings §8, §11)
+    Suppress with /* hazard-ok: intentional-discard */ on the line.
+    """
+    errors = []
+    flat_lines = _blank_comments_and_literals(content).split('\n')
+
+    # Pattern 1: (void)var; after a recent function-call assignment
+    for lineno, line in enumerate(flat_lines, 1):
+        src_line = lines[lineno - 1] if lineno <= len(lines) else ''
+        if 'hazard-ok' in src_line:
+            continue
+        m = _DISCARD_VAR_PAT.match(line)
+        if not m:
+            continue
+        var = m.group(1)
+        look_start = max(0, lineno - 6)
+        for prev in flat_lines[look_start:lineno - 1]:
+            mm = _CALL_ASSIGN_PAT.search(prev)
+            if mm and mm.group(1) == var:
+                relpath = os.path.relpath(filepath, ROOT_DIR)
+                errors.append(
+                    f'  {relpath}:{lineno}: (void){var}; discards a '
+                    f'function-call result — verify original also ignores it '
+                    f'(see lift-learnings §8/§11)'
+                )
+                break
+
+    # Pattern 2: (void)callee(...) inline — only non-exempt named functions
+    for lineno, line in enumerate(flat_lines, 1):
+        src_line = lines[lineno - 1] if lineno <= len(lines) else ''
+        if 'hazard-ok' in src_line:
+            continue
+        m = _DISCARD_INLINE_PAT.match(line)
+        if not m:
+            continue
+        if _DISCARD_INLINE_EXEMPT.search(line):
+            continue
+        callee = m.group(1)
+        if re.match(r'FUN_', callee):
+            continue  # unknown return type
+        relpath = os.path.relpath(filepath, ROOT_DIR)
+        errors.append(
+            f'  {relpath}:{lineno}: (void){callee}(...) — return value '
+            f'discarded; verify original code also ignores it '
+            f'(see lift-learnings §8/§11)'
+        )
+    return errors
+
+
+def _collect_c_files(changed_only=False, staged_only=False):
     """Collect .c file paths under SRC_DIR.
 
-    If changed_only is True, only return files appearing in git diff output.
-    If cached is also True, use --cached to check staged files.
+    If staged_only is True, only return files staged in the index
+    (git diff --cached), for use in pre-commit hooks.
+
+    If changed_only is True, return the union of:
+      - staged files (git diff --cached --name-only)
+      - unstaged tracked changes (git diff --name-only HEAD)
+      - untracked files in src/ (git ls-files -o --exclude-standard)
+    This covers everything that differs from HEAD in any state — useful
+    for manual hazard sweeps after editing.
     """
-    if changed_only:
-        cmd = ['git', 'diff', '--name-only', 'HEAD']
-        if cached:
-            cmd = ['git', 'diff', '--name-only', '--cached']
+    def _git_lines(cmd):
         try:
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=ROOT_DIR
-            )
-            changed = set()
-            for line in result.stdout.strip().splitlines():
-                abspath = os.path.normpath(os.path.join(ROOT_DIR, line))
-                changed.add(abspath)
+            r = subprocess.run(cmd, capture_output=True, text=True, cwd=ROOT_DIR)
+            return r.stdout.strip().splitlines()
         except (subprocess.SubprocessError, FileNotFoundError):
-            changed = None
+            return []
+
+    if staged_only:
+        lines = _git_lines(['git', 'diff', '--cached', '--name-only', '--', 'src/'])
+        changed = set()
+        for line in lines:
+            abspath = os.path.normpath(os.path.join(ROOT_DIR, line))
+            changed.add(abspath)
+    elif changed_only:
+        changed = set()
+        # staged
+        for line in _git_lines(['git', 'diff', '--cached', '--name-only', '--', 'src/']):
+            changed.add(os.path.normpath(os.path.join(ROOT_DIR, line)))
+        # unstaged tracked
+        for line in _git_lines(['git', 'diff', '--name-only', 'HEAD', '--', 'src/']):
+            changed.add(os.path.normpath(os.path.join(ROOT_DIR, line)))
+        # untracked
+        for line in _git_lines(['git', 'ls-files', '-o', '--exclude-standard', '--', 'src/']):
+            changed.add(os.path.normpath(os.path.join(ROOT_DIR, line)))
+        if not changed:
+            changed = None  # fall back to full scan if git unavailable
     else:
         changed = None
 
@@ -778,6 +1088,8 @@ def _collect_c_files(changed_only=False, cached=False):
     for dirpath, _, filenames in os.walk(SRC_DIR):
         for fname in filenames:
             if not fname.endswith('.c'):
+                continue
+            if fname.startswith('.'):  # skip generated/hidden files (e.g. .vc71_regcall_*)
                 continue
             fpath = os.path.join(dirpath, fname)
             if changed is not None and fpath not in changed:
@@ -790,9 +1102,9 @@ def main():
     frame_audit = '--frame-size-audit' in sys.argv
     quiet = '-q' in sys.argv or '--quiet' in sys.argv or os.environ.get('LOG_LEVEL') == 'WARNING'
     changed_only = '--changed-only' in sys.argv
-    cached = '--cached' in sys.argv
+    staged_only = '--staged-only' in sys.argv
 
-    c_files = _collect_c_files(changed_only=changed_only, cached=cached)
+    c_files = _collect_c_files(changed_only=changed_only, staged_only=staged_only)
 
     params_map = _parse_decl_params()
 
@@ -805,6 +1117,11 @@ def main():
     all_frame_errors = []
     all_output_size_errors = []
     all_x87_math_errors = []
+    all_concat_errors = []
+    all_float_smuggle_errors = []
+    all_addr_value_add_errors = []
+    all_param_loop_errors = []
+    all_discard_result_errors = []
 
     for fpath in c_files:
         with open(fpath, 'r', errors='replace') as f:
@@ -818,6 +1135,11 @@ def main():
         all_alias_errors.extend(check_buffer_alias(fpath, content, lines))
         all_output_size_errors.extend(check_callee_output_size(fpath, content, lines))
         all_x87_math_errors.extend(check_x87_math(fpath, content, lines))
+        all_concat_errors.extend(check_concat_survival(fpath, content, lines))
+        all_float_smuggle_errors.extend(check_float_int_bit_smuggling(fpath, content, lines))
+        all_addr_value_add_errors.extend(check_addr_value_add(fpath, content, lines))
+        all_param_loop_errors.extend(check_param_loop_corruption(fpath, content, lines))
+        all_discard_result_errors.extend(check_discarded_result(fpath, content, lines))
         if frame_audit:
             all_frame_errors.extend(check_frame_sizes(fpath, content, lines))
 
@@ -830,14 +1152,22 @@ def main():
             f'pointer_as_float: {len(all_ptr_float_errors)}, '
             f'buffer_alias: {len(all_alias_errors)}, '
             f'callee_output_size: {len(all_output_size_errors)}, '
-            f'x87_math: {len(all_x87_math_errors)}'
+            f'x87_math: {len(all_x87_math_errors)}, '
+            f'concat_survival: {len(all_concat_errors)}, '
+            f'float_smuggling: {len(all_float_smuggle_errors)}, '
+            f'addr_value_add: {len(all_addr_value_add_errors)}, '
+            f'param_loop: {len(all_param_loop_errors)}, '
+            f'discard_result: {len(all_discard_result_errors)}'
         )
         if frame_audit:
             counts += f', frame_sizes: {len(all_frame_errors)}'
         total = (len(all_void_eax_errors) + len(all_intrinsic_errors) + len(all_buffer_errors) +
                  len(all_duplicate_errors) + len(all_ptr_float_errors) +
                  len(all_alias_errors) + len(all_frame_errors) +
-                 len(all_output_size_errors) + len(all_x87_math_errors))
+                 len(all_output_size_errors) + len(all_x87_math_errors) +
+                 len(all_concat_errors) + len(all_float_smuggle_errors) +
+                 len(all_addr_value_add_errors) + len(all_param_loop_errors) +
+                 len(all_discard_result_errors))
         if total:
             print(counts, file=sys.stderr)
     else:
@@ -943,7 +1273,65 @@ def main():
                 print(e, file=sys.stderr)
             print(file=sys.stderr)
 
-    if all_void_eax_errors or all_intrinsic_errors or all_buffer_errors or all_output_size_errors:
+        if all_concat_errors:
+            print(
+                'ERROR: CONCAT* macro survived in lifted C — draft_decompiler.py\n'
+                'must be run first, or the output was hand-edited incorrectly.\n'
+                'Rewrite as bitfield or shift/OR (see lift-learnings §13):\n',
+                file=sys.stderr,
+            )
+            for e in all_concat_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
+
+        if all_float_smuggle_errors:
+            print(
+                'WARNING: float bits smuggled through pointer cast.\n'
+                'A variable assigned via (T*)(int)(float) is later read as\n'
+                '(float)(int)var — numeric truncation, not bit-reinterpretation.\n'
+                'Use memcpy(&dst, &src, 4) or a union (see lift-learnings §6):\n',
+                file=sys.stderr,
+            )
+            for e in all_float_smuggle_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
+
+        if all_addr_value_add_errors:
+            print(
+                'WARNING: *(T*)0xADDR + N may be *(T*)(0xADDR+N) address-add.\n'
+                'Check disasm: movswl [0xADDR+N] with no trailing ADD = address,\n'
+                'not value, add (see lift-learnings §17):\n',
+                file=sys.stderr,
+            )
+            for e in all_addr_value_add_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
+
+        if all_param_loop_errors:
+            print(
+                'WARNING: function parameter mutated inside loop body and used after.\n'
+                'Ghidra can show param++ when the original used a copy register.\n'
+                'Use a separate loop variable (see lift-learnings §4):\n',
+                file=sys.stderr,
+            )
+            for e in all_param_loop_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
+
+        if all_discard_result_errors:
+            print(
+                'WARNING: function-call result discarded with (void).\n'
+                'Verify the original binary also ignores this return value;\n'
+                'it may seed a loop accumulator or an assertion counter.\n'
+                '(see lift-learnings §8/§11):\n',
+                file=sys.stderr,
+            )
+            for e in all_discard_result_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
+
+    if all_void_eax_errors or all_intrinsic_errors or all_buffer_errors \
+            or all_output_size_errors or all_concat_errors:
         return 1
 
     return 0

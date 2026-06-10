@@ -168,6 +168,7 @@ class SelectedTarget:
     frontier_rank: Optional[int]
     lane: str
     reasons: list[str]
+    oracle_strength: str = "weak"  # "strong" | "medium" | "weak"
 
 
 @dataclass
@@ -780,6 +781,21 @@ def _select_targets(
             branch, stage = rejected
             reasons.append(f"prior_rejected_branch({stage or 'unknown'})")
 
+        # Compute oracle strength for model routing (Task 10)
+        _has_delink = bool(target.score_details.get("delinked_ref"))
+        _is_leaf_or_stub = bool(
+            target.score_details.get("eq_pure_leaf") or
+            target.score_details.get("eq_stubbable") or
+            target.score_details.get("z3_proven")
+        )
+        _no_reg_args = not target.has_reg_args
+        if _has_delink and _is_leaf_or_stub and _no_reg_args:
+            _oracle = "strong"
+        elif _has_delink:
+            _oracle = "medium"
+        else:
+            _oracle = "weak"
+
         selected.append(SelectedTarget(
             target=target,
             total_score=total_score,
@@ -788,6 +804,7 @@ def _select_targets(
             frontier_rank=frontier_rank,
             lane=lane,
             reasons=reasons,
+            oracle_strength=_oracle,
         ))
 
     selected.sort(key=lambda item: (-item.total_score, item.target.object_name, item.target.addr))
@@ -1170,6 +1187,46 @@ class ContextPackBuilder:
                         "— Ghidra likely shows wrong argument"
                     )
 
+            # Stack-cleanup cross-check (§7): scan forward for ADD ESP,N after CALL
+            cleanup_args: int | None = None
+            for fwd in range(i + 1, min(i + 6, len(instructions))):
+                _, fa, fm, fo = instructions[fwd]
+                if fm == "ADD" and "ESP" in fo.upper():
+                    m2 = re.match(r'ESP\s*,\s*(0x[0-9a-fA-F]+|\d+)', fo, re.I)
+                    if m2:
+                        val = m2.group(1)
+                        cleanup_bytes = int(val, 16) if val.startswith(("0x","0X")) else int(val)
+                        cleanup_args = cleanup_bytes // 4
+                    break
+                elif fm in _CTRL_FLOW_MNEMONICS:
+                    break
+
+            if callee_info and cleanup_args is not None:
+                decl = callee_info.get("decl", "")
+                is_stdcall = "__stdcall" in decl or "WINAPI" in decl
+                if not is_stdcall:
+                    reg_arg_count = len(re.findall(r'@<\w+>', decl))
+                    param_m = re.search(r'\(([^)]*)\)', decl)
+                    if param_m:
+                        praw = param_m.group(1).strip()
+                        total_params = 0 if (not praw or praw == "void") else len(praw.split(","))
+                        declared_stack = max(0, total_params - reg_arg_count)
+                        if cleanup_args != declared_stack:
+                            # §7 special: 0-arg getter with prior pushes
+                            if declared_stack == 0 and reg_arg_count == 0 and len(pushes) > 0:
+                                hazards.append(
+                                    f"§7_GETTER_SWALLOWED: {callee_name or callee_str} declares 0 args "
+                                    f"but cleanup={cleanup_args}; {len(pushes)} push(es) before it "
+                                    f"likely belong to the NEXT call's arg list"
+                                )
+                            else:
+                                hazards.append(
+                                    f"ARG_COUNT: cleanup={cleanup_args} stack args, "
+                                    f"decl={declared_stack} stack args "
+                                    f"(total={total_params} params, {reg_arg_count} reg_args) — "
+                                    f"verify against disasm push count"
+                                )
+
             audit.append({
                 "call_addr": addr,
                 "callee_addr": callee_str,
@@ -1177,6 +1234,7 @@ class ContextPackBuilder:
                 "callee_decl": callee_info.get("decl", ""),
                 "callee_ported": callee_info.get("ported", False),
                 "callee_has_reg_args": callee_info.get("has_reg_args", False),
+                "cleanup_args": cleanup_args,
                 "hazards": hazards,
             })
 
@@ -1592,9 +1650,13 @@ def main():
     p_cache = sub.add_parser("cache-context", help="Build Ghidra context packs (requires MCP)")
     p_cache.add_argument("--target", default="", help="Specific function address or name")
     p_cache.add_argument("--batch", type=int, default=5, help="Number of top targets")
+    p_cache.add_argument("--batch-frontier", type=int, default=0,
+                         help="Convenience: set --batch=N and --frontier-limit=max(N*4,300)")
     p_cache.add_argument("--object", default="", help="Filter to one object")
     p_cache.add_argument("--min-score", type=int, default=30, help="Minimum liftability score")
     p_cache.add_argument("--frontier-limit", type=int, default=50, help="Frontier rows to consider")
+    p_cache.add_argument("--force", action="store_true", help="Re-cache even if pack already exists")
+    p_cache.add_argument("--stats", action="store_true", help="Print cache coverage and exit")
 
     # -- review (legacy) --
     p_review = sub.add_parser("review", help="Show legacy batch results")
@@ -1677,8 +1739,8 @@ def cmd_select(args: argparse.Namespace):
         return
 
     if not args.quiet:
-        print(f"{'Total':>5}  {'Lift':>4}  {'Fr':>3}  {'Lane':<13}  {'Miz':>3}  {'Address':>10}  {'Object':<35}  {'Name':<35}  {'Reasons'}")
-        print("-" * 146)
+        print(f"{'Total':>5}  {'Lift':>4}  {'Fr':>3}  {'Lane':<13}  {'Oracle':<7}  {'Miz':>3}  {'Address':>10}  {'Object':<35}  {'Name':<35}  {'Reasons'}")
+        print("-" * 155)
     for item in selected:
         target = item.target
         reasons = ", ".join(item.reasons)
@@ -1687,7 +1749,7 @@ def cmd_select(args: argparse.Namespace):
         skip_marker = " [skip:prior_fail]" if has_failure else ""
         print(
             f"{item.total_score:>5}  {item.liftability_score:>4}  {item.frontier_score:>3}  "
-            f"{item.lane:<13}  {miz:>3}  {target.addr:>10}  {target.object_name:<35}  {target.name:<35}  {reasons}{skip_marker}"
+            f"{item.lane:<13}  {item.oracle_strength:<7}  {miz:>3}  {target.addr:>10}  {target.object_name:<35}  {target.name:<35}  {reasons}{skip_marker}"
         )
 
     if not args.quiet:
@@ -1759,6 +1821,38 @@ def _find_mizuchi_result(func_name: str) -> str | None:
 
 
 def cmd_cache_context(args: argparse.Namespace):
+    # --stats: print coverage report and exit
+    if getattr(args, 'stats', False):
+        cached = len([f for f in CONTEXT_CACHE.iterdir() if f.suffix == '.json']) if CONTEXT_CACHE.exists() else 0
+        scorer = LiftabilityScorer()
+        all_targets = scorer.score_all()
+        # LiftTarget only includes unported functions; count all kb.json entries
+        import json as _json
+        with open(ROOT / 'kb.json', encoding='utf-8') as _f:
+            _kb = _json.load(_f)
+        def _count_kb_ported(node):
+            c = 0
+            if isinstance(node, dict):
+                if 'addr' in node and 'decl' in node:
+                    c += 1
+                for v in node.values():
+                    c += _count_kb_ported(v)
+            elif isinstance(node, list):
+                for item in node:
+                    c += _count_kb_ported(item)
+            return c
+        total_unported = len(all_targets)
+        total_all = len(scorer.score_all())
+        print(f"Context cache coverage: {cached} cached / {total_unported} unported / {total_all} total")
+        pct = 100.0 * cached / total_unported if total_unported else 0.0
+        print(f"  Coverage: {pct:.1f}% of unported functions")
+        return
+
+    # --batch-frontier N: convenience for batch+frontier-limit
+    if getattr(args, 'batch_frontier', 0):
+        args.batch = args.batch_frontier
+        args.frontier_limit = max(args.batch_frontier * 4, 300)
+
     scorer = LiftabilityScorer()
     if args.target:
         targets = scorer.score_all()
@@ -1771,6 +1865,14 @@ def cmd_cache_context(args: argparse.Namespace):
     if not targets:
         print("No targets found.")
         return
+
+    # Skip already-cached unless --force
+    if not getattr(args, 'force', False):
+        CONTEXT_CACHE.mkdir(parents=True, exist_ok=True)
+        targets = [t for t in targets if not (CONTEXT_CACHE / f"{t.name}.json").exists()]
+        if not targets:
+            print("All targets already cached. Use --force to re-cache.")
+            return
 
     # Check Ghidra MCP
     check_cmd = [sys.executable, str(ROOT / "tools" / "audit" / "check_ghidra_mcp.py")]
@@ -1785,10 +1887,17 @@ def cmd_cache_context(args: argparse.Namespace):
 
     retrieval_available = _check_retrieval_index()
 
+    cached_count = 0
+    failed_count = 0
     for t in targets:
         print(f"Caching context for {t.name} ({t.addr})...")
-        pack = builder.build(t)
         cache_file = CONTEXT_CACHE / f"{t.name}.json"
+        try:
+            pack = builder.build(t)
+        except Exception as exc:
+            print(f"  ERROR: {exc} — skipping")
+            failed_count += 1
+            continue
         ghidra_ctx = pack.ghidra
         has_decomp = bool(ghidra_ctx.get("decompile_c"))
         has_disasm = bool(ghidra_ctx.get("disassembly"))
@@ -1842,8 +1951,11 @@ def cmd_cache_context(args: argparse.Namespace):
             print(f"  mizuchi: no successful result found")
 
         cache_file.write_text(json.dumps(ghidra_ctx, indent=2), encoding="utf-8")
+        cached_count += 1
 
-    print(f"\nCached {len(targets)} context packs to {CONTEXT_CACHE}")
+    print(f"\nCached {cached_count}/{len(targets)} context packs to {CONTEXT_CACHE}"
+          + (f"  ({failed_count} failed)" if failed_count else ""))
+    print(f"Coverage: {len(list(CONTEXT_CACHE.glob('*.json')))} total cached")
 
 
 if __name__ == "__main__":

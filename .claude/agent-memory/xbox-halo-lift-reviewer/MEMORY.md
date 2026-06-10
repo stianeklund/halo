@@ -1,2 +1,4 @@
 - [Biped equivalence-activation bar (1430 precedent)](project_biped_equiv_activation_bar.md) — the sanctioned bar for flipping ported=true on register-arg biped fns via equivalence; what cleared 1430 vs what fails 0e00/2290/0b30
 - [OR-with-constant byte-vs-dword is benign by construction](feedback_or_const_store_width_benign.md) — clang narrows `*(int*)p |= 1` to `OR byte[p],1`; mem-trace flags a width disjoint but final memory is identical for ANY upper bytes; not snapshot-dependent
+- [Assert-macro LCS desync](feedback_assert_macro_lcs_desync.md) — compact display_assert vs original csprintf-based assert expansion (~14 insns/site × ~11 sites) tanks VC71 % and desyncs LCS so identical body runs show as +/-; not a body bug, still fail-closed <90%
+- [compare_obj diff polarity](feedback_compare_obj_diff_polarity.md) — `-` lines = CANDIDATE, `+` = REFERENCE; objdump both before classifying; --function resolves COMDAT that bare vc71_verify misreads as 323/1
