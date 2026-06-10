@@ -3475,7 +3475,7 @@ LAB_done:
       tmp_y = *(float *)(actor + 0x5a8);
       tmp_x = *(float *)(actor + 0x5a4);
       magnitude3d(&tmp_x);
-      (void)actor_move_animation_impulse(actor_handle, *(short *)(actor + 0xfa), (int *)&tmp_x);
+      (void)actor_move_animation_impulse(actor_handle, *(short *)(actor + 0xfa), (int *)&tmp_x); /* hazard-ok: intentional-discard (output via pointer param; return val = success bool not needed here) */
     }
     if (*(short *)(actor + 0xfc) != -1) {
       (void)FUN_00046f10(*(short *)(actor + 0xfc),

@@ -54,6 +54,42 @@ class CallerEvidence:
     line_no: int
     call_line: str
     written_regs: list[str]
+    reg_sources: dict[str, str] = None  # reg -> source classification (param_1, local_N, imm, reg)
+
+    def __post_init__(self):
+        if self.reg_sources is None:
+            self.reg_sources = {}
+
+
+# Source classification patterns
+_EBP_PARAM_RE = re.compile(r'\[EBP\s*\+\s*(0x[0-9a-fA-F]+|\d+)\]', re.I)
+_EBP_LOCAL_RE = re.compile(r'\[EBP\s*-\s*(0x[0-9a-fA-F]+|\d+)\]', re.I)
+_IMM_RE        = re.compile(r'^-?(?:0x[0-9a-fA-F]+|\d+)$')
+
+
+def _classify_reg_source(line: str) -> str:
+    """Classify the source of a register write from a single disassembly line."""
+    s = strip_disasm_prefix(line)
+    # MOV reg, [EBP+N] — stack parameter
+    m = _EBP_PARAM_RE.search(s)
+    if m:
+        offset = int(m.group(1), 16) if m.group(1).startswith('0x') else int(m.group(1))
+        if offset >= 8:
+            param_n = (offset - 8) // 4 + 1
+            return f'param_{param_n}'
+        return f'ebp+{offset:#x}'
+    # LEA reg, [EBP-N] — local address
+    m = _EBP_LOCAL_RE.search(s)
+    if m:
+        return f'local_addr'
+    # Immediate
+    if _IMM_RE.search(s.split(',')[-1].strip() if ',' in s else ''):
+        return 'imm'
+    # Another register (source is the last operand if it's a register name)
+    src = s.split(',')[-1].strip().split()[0] if ',' in s else ''
+    if src.lower() in REG_PARENT:
+        return f'reg:{canon32(src)}'
+    return 'other'
 
 
 def normalize_addr(value: str | int) -> str:
@@ -198,12 +234,14 @@ def scan_caller_evidence(sym: Function, disasm: str, window: int) -> list[Caller
         start = max(0, i - window)
         regs: list[str] = []
         seen: set[str] = set()
+        reg_sources: dict[str, str] = {}
         for prev in lines[start:i]:
             reg = written_register(prev)
             if reg in ARG_REGS and reg not in seen:
                 seen.add(reg)
                 regs.append(reg)
-        evidence.append(CallerEvidence(i + 1, line.strip(), regs))
+                reg_sources[reg] = _classify_reg_source(prev)
+        evidence.append(CallerEvidence(i + 1, line.strip(), regs, reg_sources))
     return evidence
 
 
@@ -251,13 +289,49 @@ def audit(sym: Function, evidence: list[CallerEvidence], strict_callers: bool) -
         written = set(item.written_regs)
         missing = sorted(expected_set - written)
         unexpected = sorted(written - expected_set)
+
+        # §10 register order / value mapping check
+        # Build expected reg→param_N mapping from kb.json @<reg> order
+        # (position in reg_args list = C argument position)
+        order_problems: list[str] = []
+        if item.reg_sources and reg_args:
+            # expected_order: reg -> param_n (1-indexed C arg)
+            expected_order: dict[str, int] = {}
+            for c_arg_idx, (param_idx, src_reg) in enumerate(reg_args):
+                expected_order[canon32(src_reg)] = param_idx  # param_idx is 1-based
+
+            # For each observed register, check if the source matches the
+            # expected param_N for that register
+            for reg, source in item.reg_sources.items():
+                if reg not in expected_order:
+                    continue
+                expected_param = expected_order[reg]
+                if source.startswith('param_'):
+                    observed_param = int(source.split('_')[1])
+                    if observed_param != expected_param:
+                        # Find which reg is expected to hold observed_param
+                        expected_reg_for_observed = next(
+                            (canon32(r) for _, (p, r) in enumerate(reg_args) if p == observed_param),
+                            None
+                        )
+                        order_problems.append(
+                            f'reg {reg} carries param_{observed_param} but '
+                            f'kb.json expects param_{expected_param}; '
+                            f'param_{observed_param} should go to '
+                            f'{expected_reg_for_observed or "?"}'
+                        )
+
         caller_reports.append({
             "line_no": item.line_no,
             "call_line": item.call_line,
             "written_regs": item.written_regs,
+            "reg_sources": item.reg_sources,
             "missing_expected_regs": missing,
             "unexpected_recent_regs": unexpected,
+            "reg_order_problems": order_problems,
         })
+        for prob in order_problems:
+            errors.append(f"§10 REG_ORDER caller line {item.line_no}: {prob}")
         if missing:
             msg = (
                 f"caller line {item.line_no}: no recent write observed for "
