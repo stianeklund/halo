@@ -30104,7 +30104,8 @@
         },
         {
           "addr": "0x2b020",
-          "decl": "void FUN_0002b020(void);"
+          "decl": "void FUN_0002b020(float *avoidance_ray@<eax>, float *ray_origin@<ebx>, int avoidance_data@<esi>, float *ray_direction, float *collision_t, char *param_3);",
+          "ported": true
         },
         {
           "addr": "0x2b310",
