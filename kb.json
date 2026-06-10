@@ -12199,7 +12199,7 @@
         {
           "addr": "0xd6660",
           "decl": "void FUN_000d6660(int player_handle, float *position, short type_value, short nav_type);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0xd6cc0",
