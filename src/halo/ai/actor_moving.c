@@ -931,6 +931,124 @@ char FUN_0002b310(float *direction, short count, int records, float *values,
   return 0;
 }
 
+/* 0x2b400 — actor_move_transform_avoidance_vector: transform a local-space
+ * direction vector (in_vec) by the avoidance_data's per-instance 3x3 rotation
+ * (rows at +0x18/+0x24/+0x30) and add the global world translation row read
+ * from the dereferenced pointer at *0x31fc38 (translation at +0x0/+0x4/+0x8).
+ *
+ * cdecl, all stack args (confirmed: PUSH EBP / RET, no RET N; caller
+ * FUN_0004c920 @ 0x4d39c-0x4d39d pushes EAX=[EDI+0x1a0] last).
+ *   matrix   : per-instance struct, 3x3 rotation rows at +0x18..+0x38
+ *   in_vec   : float[3] local-space direction
+ *   out_vec  : float[3] world-space output
+ *
+ * Confirmed (disasm 0x2b406-0x2b41c): out_vec is seeded from the world matrix
+ * translation row via the once-dereferenced global pointer at *0x31fc38, NOT
+ * the raw global address.  Confirmed three interleaved read-modify-write passes
+ * (one per in_vec component) with operand order in_vec[c] * mtx[col] + out[r].
+ */
+void actor_move_transform_avoidance_vector(int matrix, float *in_vec,
+                                           float *out_vec)
+{
+  float *world_translation;
+  float component;
+
+  world_translation = *(float **)0x31fc38;
+  out_vec[0] = world_translation[0];
+  out_vec[1] = world_translation[1];
+  out_vec[2] = world_translation[2];
+
+  component = in_vec[0];
+  out_vec[0] = component * *(float *)(matrix + 0x18) + out_vec[0];
+  out_vec[1] = component * *(float *)(matrix + 0x1c) + out_vec[1];
+  out_vec[2] = component * *(float *)(matrix + 0x20) + out_vec[2];
+
+  component = in_vec[1];
+  out_vec[0] = component * *(float *)(matrix + 0x24) + out_vec[0];
+  out_vec[1] = component * *(float *)(matrix + 0x28) + out_vec[1];
+  out_vec[2] = component * *(float *)(matrix + 0x2c) + out_vec[2];
+
+  component = in_vec[2];
+  out_vec[0] = component * *(float *)(matrix + 0x30) + out_vec[0];
+  out_vec[1] = component * *(float *)(matrix + 0x34) + out_vec[1];
+  out_vec[2] = component * *(float *)(matrix + 0x38) + out_vec[2];
+}
+
+/* 0x2b490 — actor_move_get_avoidance_vector: map an avoidance "direction index"
+ * (a fractional sector index in [0,8)) into a world-space direction vector.
+ *
+ * The index is clamped to [0,8); a per-sector angle is linearly interpolated
+ * between adjacent entries of the angle table at 0x2557f4 (the wrap entry for
+ * sector 7 uses table[0]).  cos/sin of the interpolated angle form a local
+ * {0, cos, sin} vector that is transformed by
+ * actor_move_transform_avoidance_vector.
+ *
+ * cdecl, all stack args (confirmed: PUSH EBP / RET, no RET N; caller
+ * FUN_0004c920 @ 0x4d26a-0x4d26b and 0x4d2d7-0x4d2d8).
+ *   matrix      : per-instance struct (passed through to the transform)
+ *   dir_index   : float fractional sector index in [0,8)
+ *   out_vec     : float[3] world-space output
+ *
+ * Confirmed constants: 0.0f @0x2533c0, 1.0f @0x2533c8, 8.0f @0x253f78,
+ * FLT_MAX sentinel @0x2548fc, 2*pi (_full_circle) @0x255a54.  Assert text and
+ * warning text both at actor_moving.c line 0xab7.  The warning passes the
+ * (possibly clamped) index as a double (FLD float; FSTP double [ESP]). */
+void actor_move_get_avoidance_vector(int matrix, float dir_index,
+                                     float *out_vec)
+{
+  const float *angles = (const float *)0x2557f4;
+  short sector;
+  int idx;
+  float next_angle;
+  float frac;
+  float angle;
+  float vec[3];
+
+  /* Clamp the index into the valid [0, 8) range. */
+  if (dir_index < *(const float *)0x2533c0 ||
+      *(const float *)0x253f78 <= dir_index) {
+    dir_index = 0.0f;
+  }
+
+  angle = 0.0f;
+  sector = 0;
+  do {
+    if (dir_index < (float)(int)sector + *(const float *)0x2533c8) {
+      idx = (int)sector;
+      next_angle = *(const float *)0x2557f4;
+      if (sector != 7) {
+        next_angle = ((const float *)0x2557f8)[idx];
+      }
+      frac = dir_index - (float)idx;
+      angle =
+        next_angle * frac + (*(const float *)0x2533c8 - frac) * angles[idx];
+      if (angle != *(const float *)0x2548fc) {
+        if (angle < *(const float *)0x2533c0 ||
+            *(const float *)0x255a54 <= angle) {
+          display_assert("(angle >= 0.0f) && (angle < _full_circle)",
+                         "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0xab7, 1);
+          system_exit(-1);
+        }
+        goto build_vector;
+      }
+      break;
+    }
+    sector = sector + 1;
+  } while (sector < 8);
+
+  angle = 0.0f;
+  error(2,
+        "warning: actor_move_get_avoidance_vector couldn't find out-of-bounds "
+        "direction %.4f",
+        (double)dir_index);
+
+build_vector:
+  vec[0] = 0.0f;
+  vec[1] = x87_fcos(angle);
+  vec[2] = x87_fsin(angle);
+  actor_move_transform_avoidance_vector(matrix, vec, out_vec);
+}
+
 /* 0x2b5d0 — actor_move_get_avoidance_direction: initialize trigonometric lookup
  * tables.
  *
