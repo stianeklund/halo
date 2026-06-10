@@ -30020,7 +30020,7 @@
         {
           "addr": "0x2d350",
           "decl": "void actor_destination_update(int actor_handle);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x2e560",
@@ -30040,7 +30040,7 @@
         {
           "addr": "0x2cdb0",
           "decl": "char actor_path_refresh(int actor_handle, char store_distance, void *override_path);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x2a470",
