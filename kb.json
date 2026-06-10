@@ -30058,7 +30058,8 @@
         },
         {
           "addr": "0x2a530",
-          "decl": "void arccosine(void);"
+          "decl": "float arccosine(float x);",
+          "ported": true
         },
         {
           "addr": "0x2a540",

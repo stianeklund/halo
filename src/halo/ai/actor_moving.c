@@ -59,6 +59,18 @@ void actor_path_input_new(int actor_handle, char *nav_state_out)
                        *(int *)(actor + 0x164));
 }
 
+/* arccosine (0x2a530) — Single-precision arc cosine.
+ * The original loads the float argument into ST(0) and tail-jumps to the
+ * MSVC CRT acos core at 0x1d94f0 (which stores ST(0) as a double, calls the
+ * x87 acos helper at 0x1dee48, then 0x1d950d, and returns the result in
+ * ST(0)). Faithful equivalent is acosf(x). Confirmed by caller 0x2daa0
+ * (0x2e1e1-0x2e21b): result 0 when arg >= ~1.0, PI (0x40490fdb) when
+ * arg <= ~-1.0, CALL 0x1d94f0 otherwise — the defining signature of acos. */
+float arccosine(float x)
+{
+  return acosf(x);
+}
+
 /* midpoint3d (0x2a540) — Compute the midpoint of two 3D vectors.
  * out[i] = (a[i] + b[i]) * 0.5f for i in {0,1,2}. */
 void midpoint3d(float *a, float *b, float *out)
@@ -316,7 +328,9 @@ int actor_aim_jump(int actor_handle, int a2, char param_3, float param_4,
                         param_5[2] * param_5[2]);
       if (cVar3 == 0) {
         if (param_4 < magnitude) {
-          FUN_00012fb0(param_5, param_4 / magnitude, param_5); /* dup-args-ok: in-place scale matches confirmed call above. */
+          FUN_00012fb0(param_5, param_4 / magnitude,
+                       param_5); /* dup-args-ok: in-place scale matches
+                                    confirmed call above. */
         }
       }
     }
