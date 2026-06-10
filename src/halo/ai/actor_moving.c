@@ -706,6 +706,160 @@ void FUN_0002ade0(int actor_handle)
   }
 }
 
+/* 0x2b020 — actor_move_avoidance_ray_cast: transform an avoidance ray by the
+ * avoidance_data's per-instance world matrix, then cast it against the BSP and
+ * a list of obstacle spheres to find the nearest collision time.
+ *
+ * Register args (confirmed from caller FUN_0002bd80 @ 0x2c01f-0x2c02b and
+ * 0x2c166-0x2c17b):
+ *   avoidance_ray  @<eax>  : packed ray data, floats [1..6] used in transform
+ *   ray_origin     @<ebx>  : float[3] world-space ray origin output
+ *   avoidance_data @<esi>  : per-instance struct (matrix at +0x18, bsp at +0x4,
+ *                            obstacle count at +0x3c, obstacle records at
+ * +0x40, scale floats at +0x6040 / +0x6044) Stack args: ray_direction :
+ * float[3] world-space ray direction output collision_t            : float*
+ * nearest collision time output param_3                : optional char*
+ * status/counter byte (may be NULL)
+ *
+ * Confirmed asserts at 0x7f7/0x7f8/0x7f9 (actor_moving.c) gate the three
+ * pointer-pair preconditions.  Transform reads the global world matrix pointer
+ * at *0x31fc38 (translation row at +0x0/+0x4/+0x8) and the avoidance_data
+ * rotation rows at +0x18.. as the 3x3.
+ *
+ * Confirmed: two collision_bsp_test_vector (0x149480) calls — first against the
+ * transformed direction (local origin pfVar1=avoidance_data+0xc), second the
+ * world-space ray_origin/ray_direction.  Ghidra truncates the 2nd call to 4
+ * args; disasm 0x2b256-0x2b265 shows the full 8.
+ * Confirmed: obstacle loop calls FUN_0010d4c0 (truncated to 3 args by Ghidra;
+ * disasm 0x2b29d-0x2b2b3 shows 7) writing the per-obstacle collision time into
+ * a scratch float (EBP-0x4) that is compared against *collision_t.  This
+ * scratch is distinct from avoidance_ray[6], which Ghidra aliases as the same
+ * slot. */
+void FUN_0002b020(float *avoidance_ray, float *ray_origin, int avoidance_data,
+                  float *ray_direction, float *collision_t, char *param_3)
+{
+  float *mtx;
+  float obj_pos_t[3];
+  float dir[3];
+  float scale;
+  float ray_scale;
+  float dist;
+  int status;
+  short i;
+  char hit;
+  float result[262];
+
+  status = 0;
+  if (avoidance_data == 0 || avoidance_ray == (float *)0x0) {
+    display_assert("avoidance_data && avoidance_ray",
+                   "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x7f7, 1);
+    system_exit(-1);
+  }
+  if (ray_origin == (float *)0x0 || ray_direction == (float *)0x0) {
+    display_assert("ray_origin && ray_direction",
+                   "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x7f8, 1);
+    system_exit(-1);
+  }
+  if (collision_t == (float *)0x0) {
+    display_assert("collision_t", "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x7f9,
+                   1);
+    system_exit(-1);
+  }
+
+  *collision_t = 3.4028235e+38f;
+
+  mtx = *(float **)0x31fc38;
+
+  /* Transform avoidance_ray[4..6] (direction) by the rotation rows at
+   * avoidance_data+0x18.. and add the world matrix translation row. */
+  obj_pos_t[0] = avoidance_ray[6] * *(float *)(avoidance_data + 0x30) +
+                 avoidance_ray[5] * *(float *)(avoidance_data + 0x24) +
+                 avoidance_ray[4] * *(float *)(avoidance_data + 0x18) + mtx[0];
+  obj_pos_t[1] = avoidance_ray[6] * *(float *)(avoidance_data + 0x34) +
+                 avoidance_ray[5] * *(float *)(avoidance_data + 0x28) +
+                 avoidance_ray[4] * *(float *)(avoidance_data + 0x1c) + mtx[1];
+  obj_pos_t[2] = avoidance_ray[6] * *(float *)(avoidance_data + 0x38) +
+                 avoidance_ray[5] * *(float *)(avoidance_data + 0x2c) +
+                 avoidance_ray[4] * *(float *)(avoidance_data + 0x20) + mtx[2];
+
+  /* ray_origin = (avoidance_ray[1..3] rotated + world translation) * scale
+   *              + avoidance_data instance position (+0xc/+0x10/+0x14). */
+  scale = *(float *)(avoidance_data + 0x6040);
+  ray_origin[0] =
+    (avoidance_ray[3] * *(float *)(avoidance_data + 0x30) +
+     avoidance_ray[2] * *(float *)(avoidance_data + 0x24) +
+     avoidance_ray[1] * *(float *)(avoidance_data + 0x18) + mtx[0]) *
+      scale +
+    *(float *)(avoidance_data + 0xc);
+  ray_origin[1] =
+    (avoidance_ray[3] * *(float *)(avoidance_data + 0x34) +
+     avoidance_ray[2] * *(float *)(avoidance_data + 0x28) +
+     avoidance_ray[1] * *(float *)(avoidance_data + 0x1c) + mtx[1]) *
+      scale +
+    *(float *)(avoidance_data + 0x10);
+  ray_origin[2] =
+    (avoidance_ray[3] * *(float *)(avoidance_data + 0x38) +
+     avoidance_ray[2] * *(float *)(avoidance_data + 0x2c) +
+     avoidance_ray[1] * *(float *)(avoidance_data + 0x20) + mtx[2]) *
+      scale +
+    *(float *)(avoidance_data + 0x14);
+
+  /* ray_direction = transformed object position * (instance ray scale *
+   * avoidance_ray[0]). */
+  ray_scale = *(float *)(avoidance_data + 0x6044) * avoidance_ray[0];
+  ray_direction[0] = obj_pos_t[0] * ray_scale;
+  ray_direction[1] = obj_pos_t[1] * ray_scale;
+  ray_direction[2] = obj_pos_t[2] * ray_scale;
+
+  /* dir = ray_origin - instance position (+0xc/+0x10/+0x14). */
+  dir[0] = ray_origin[0] - *(float *)(avoidance_data + 0xc);
+  dir[1] = ray_origin[1] - *(float *)(avoidance_data + 0x10);
+  dir[2] = ray_origin[2] - *(float *)(avoidance_data + 0x14);
+
+  hit = collision_bsp_test_vector(3, *(int *)(avoidance_data + 4), 0, 0,
+                                  (int)(avoidance_data + 0xc), (int)dir, 1.0f,
+                                  result);
+  if (hit == '\0') {
+    hit = collision_bsp_test_vector(3, *(int *)(avoidance_data + 4), 0, 0,
+                                    (int)ray_origin, (int)ray_direction, 1.0f,
+                                    result);
+    if (hit != '\0') {
+      status = 2;
+      *collision_t = result[0];
+    }
+  } else {
+    status = 2;
+    *collision_t = 0.0f;
+  }
+
+  if (*(short *)(avoidance_data + 0x3c) > 0) {
+    i = 0;
+    do {
+      int rec;
+
+      rec = avoidance_data + 0x40 + i * 0x18;
+      hit = FUN_0010d4c0((float *)(rec + 4), *(float *)(rec + 0x10),
+                         *(float *)(rec + 0x14), ray_origin, ray_direction,
+                         &dist, dir);
+      if (hit != '\0' && dist < *collision_t) {
+        status = 1;
+        *collision_t = dist;
+      }
+      i = i + 1;
+    } while (i < *(short *)(avoidance_data + 0x3c));
+  }
+
+  if (param_3 != (char *)0x0) {
+    if ((short)status > 0) {
+      *param_3 = '\0';
+      return;
+    }
+    if (*param_3 != -1) {
+      *param_3 = *param_3 + '\x01';
+    }
+  }
+}
+
 /* 0x2b5d0 — actor_move_get_avoidance_direction: initialize trigonometric lookup
  * tables.
  *
