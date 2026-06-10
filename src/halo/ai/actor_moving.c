@@ -270,6 +270,127 @@ int actor_move_force_stop(int actor_handle)
   return (int)result;
 }
 
+/* actor_move_try_evasion_vector (0x2a8f0) — Test whether an actor can move
+ * along a candidate evasion vector and, if not, whether a half-scaled
+ * collision-clearance vector is usable instead.
+ *
+ * Args (all cdecl stack):
+ *   actor_handle   = EBP+0x08 actor datum handle
+ *   evasion_vector = EBP+0x0c float[2] direction (asserted non-NULL)
+ *   scale          = EBP+0x10 step length applied to evasion_vector
+ *   param_4        = EBP+0x14 distance/threshold control (>= 0.0)
+ *   out_flag       = EBP+0x18 optional char* out (set to local_5)
+ *   result         = EBP+0x1c >=28-byte collision/path result buffer
+ *                    (asserted non-NULL; FUN_00063e90 fills 7 dwords)
+ *
+ * Returns BL (char): 1 if a usable move/evasion vector was found, else 0.
+ *
+ * Confirmed: datum_get(*0x6325a4, actor_handle) at 0x2a907; tag_get('actr',
+ * actor[0x58]) at 0x2a917 -> actr_tag (used only for actr_tag[0x8c]).
+ * Confirmed: assert "evasion_vector && result" at 0x2a946 when
+ * evasion_vector==NULL || result==NULL.
+ * Confirmed: gated on actor[0x99]==0 (0x2a955); when nonzero, skips to return.
+ * Confirmed: target point local[0]=scale*evasion[0]+actor[0x12c],
+ * local[1]=scale*evasion[1]+actor[0x130] at 0x2a963-0x2a981 (2 floats).
+ * Confirmed: actor_find_pathfinding_location(actor_handle) at 0x2a984.
+ * Confirmed: 9-arg FUN_00063e90(scenario_get(), (u8)actor[0x376],
+ * (float*)actor[0x168], actor[0x164], &local_target, -1, actr_tag[0x8c], 0,
+ * result) at 0x2a9bf — Ghidra mis-grouped the 8 pushes onto the inner
+ * zero-arg scenario_get(); cleanup ADD ESP,0x24=36=9 cdecl args proves it.
+ * Confirmed: when that returns 0, set found=1; fVar1=result[3]-actor[0x134];
+ * keep found=1 iff (fVar1 <= scale*0.5) && (param_4 != 0.0 ||
+ * scale*-0.5 <= fVar1) (FCOMP polarity at 0x2a9d3-0x2aa1d).
+ * Confirmed: clearance fallback only when param_4 > 0.0 (0x2aa1f-0x2aa2d).
+ *   origin   = ((actor[0x120]+actor[0x12c])*0.5, (actor[0x124]+actor[0x130])
+ *               *0.5, (actor[0x128]+actor[0x134])*0.5)
+ *   direction= (scale*evasion[0], scale*evasion[1], 0.0)
+ * Confirmed: collision_bsp_test_vector(3, global_collision_bsp_get(), 0, 0,
+ * &origin, &direction, 0x7f7fffff(FLT_MAX), col_result) at 0x2aaad.
+ * Miss (0) => found=1,
+ * local_5=1; if param_4 < FLT_MAX, build a half-clearance segment via
+ * vector3d_scale_add(&origin, &direction, 1.0, seg_a) and
+ * FUN_00012fb0(*(float**)0x31fc50, param_4, seg_b), retest; a hit there
+ * clears found back to 0 (0x2aab9-0x2ab24).
+ * Confirmed: out_flag NULL-checked at 0x2ab2b; *out_flag=local_5. */
+char actor_move_try_evasion_vector(int actor_handle, float *evasion_vector,
+                                   float scale, float param_4, char *out_flag,
+                                   void *result)
+{
+  char *actor;
+  char *actr_tag;
+  float local_target[2];
+  float origin[3];
+  float direction[3];
+  float seg_a[3];
+  float seg_b[3];
+  int bsp;
+  float col_result[264];
+  float fVar1;
+  char found;
+  char local_5;
+
+  actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  actr_tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  found = 0;
+  local_5 = 0;
+
+  if (evasion_vector == (float *)0x0 || result == (void *)0x0) {
+    display_assert("evasion_vector && result",
+                   "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x484, 1);
+    system_exit(-1);
+  }
+
+  if (*(char *)(actor + 0x99) == '\0') {
+    local_target[0] = scale * evasion_vector[0] + *(float *)(actor + 0x12c);
+    local_target[1] = scale * evasion_vector[1] + *(float *)(actor + 0x130);
+    actor_find_pathfinding_location(actor_handle);
+    if (FUN_00063e90((int)scenario_get(), *(unsigned char *)(actor + 0x376),
+                     (float *)(actor + 0x168), *(int *)(actor + 0x164),
+                     local_target, 0xffffffff, *(float *)(actr_tag + 0x8c), 0,
+                     (unsigned int *)result) == '\0') {
+      found = 1;
+      fVar1 = *(float *)((char *)result + 0xc) - *(float *)(actor + 0x134);
+      if (!(fVar1 > scale * *(float *)0x253398) &&
+          (param_4 != *(float *)0x2533c0 ||
+           scale * *(float *)0x255964 <= fVar1)) {
+        goto done;
+      }
+    }
+    found = 0;
+    if (*(float *)0x2533c0 < param_4) {
+      bsp = (int)global_collision_bsp_get();
+      origin[0] = (*(float *)(actor + 0x120) + *(float *)(actor + 0x12c)) *
+                  *(float *)0x253398;
+      origin[1] = (*(float *)(actor + 0x124) + *(float *)(actor + 0x130)) *
+                  *(float *)0x253398;
+      origin[2] = (*(float *)(actor + 0x128) + *(float *)(actor + 0x134)) *
+                  *(float *)0x253398;
+      direction[0] = scale * evasion_vector[0];
+      direction[1] = scale * evasion_vector[1];
+      direction[2] = 0.0f;
+      if (collision_bsp_test_vector(3, bsp, 0, 0, (int)origin, (int)direction,
+                                    3.4028235e+38f, col_result) == '\0') {
+        found = 1;
+        local_5 = 1;
+        if (param_4 < *(float *)0x2548fc) {
+          vector3d_scale_add(origin, direction, 1.0f, seg_a);
+          FUN_00012fb0(*(float **)0x31fc50, param_4, seg_b);
+          if (collision_bsp_test_vector(3, bsp, 0, 0, (int)seg_a, (int)seg_b,
+                                        3.4028235e+38f, col_result) == '\0') {
+            found = 0;
+          }
+        }
+      }
+    }
+  }
+
+done:
+  if (out_flag != (char *)0x0) {
+    *out_flag = local_5;
+  }
+  return found;
+}
+
 /* actor_aim_jump (0x2ace0) — Compute and clamp the jump aim velocity vector.
  *
  * Checks actor->swarm_element (-1 at actor[0x158]) and mounted state
