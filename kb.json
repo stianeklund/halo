@@ -26137,7 +26137,7 @@
         },
         {
           "addr": "0x1b1c70",
-          "decl": "void unit_leap_begin(void);"
+          "decl": "char unit_leap_begin(int unit_handle, float *target_vector);"
         },
         {
           "addr": "0x1b1d00",
@@ -26341,7 +26341,7 @@
         },
         {
           "addr": "0x1b8060",
-          "decl": "void vehicle_stuck(void);"
+          "decl": "char vehicle_stuck(int vehicle_handle, float *out_vector);"
         },
         {
           "addr": "0x1b81d0",
@@ -30024,7 +30024,9 @@
         },
         {
           "addr": "0x2e560",
-          "decl": "void FUN_0002e560(int actor_handle);"
+          "decl": "void actor_move_update(int actor_handle);",
+          "name": "actor_move_update",
+          "ported": true
         },
         {
           "addr": "0x2a3a0",
@@ -30156,7 +30158,9 @@
         },
         {
           "addr": "0x2daa0",
-          "decl": "void FUN_0002daa0(void);"
+          "decl": "void actor_move_compute_facing(char want_facing@<al>, short move_dir@<ecx>, int actor_handle, char use_z, float max_speed_sq, char path_gate, float arg4, float arg5, float arg6, float arg7, float maximum_throttle, float *movement, float *out_facing, short *out_dir, float *out_vec2, char *out_byte, char *out_bool);",
+          "name": "actor_move_compute_facing",
+          "ported": true
         }
       ],
       "name": "actor_moving.obj",
@@ -35447,7 +35451,7 @@
         },
         {
           "addr": "0x639e0",
-          "decl": "void FUN_000639e0(void);"
+          "decl": "int FUN_000639e0(int structure_bsp, char check_breakable, float *origin, int start_surface, float *dest, int target_surface, void *result);"
         }
       ],
       "name": "path_smoothing.obj",
