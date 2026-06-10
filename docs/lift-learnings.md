@@ -887,3 +887,82 @@ ACCESS_VIOLATION at 0x14eda.
 **Related:** §1 (XCALL ABI mismatch — same symptom class, different cause),
 [[feedback_deactivation_stub_callee_saved]] (the companion bug where the stub
 also clobbered callee-saved registers).
+
+---
+
+## 19. "Structural Ceiling" Scores Are Often Improvable
+
+**What happens:** A function scores 73–80% VC71 and gets labeled "structural
+ceiling" — the gap attributed to `@<reg>` prologues, FPU idiom differences
+(FUCOMPP vs FCOMPS), or compiler-specific scheduling. The function stays
+dormant, never investigated further. But the gap often contains 5–15pp of
+recoverable match hidden behind codegen noise, reachable through three
+techniques that don't require inline assembly or ABI changes.
+
+**Why "structural" verdicts are unreliable at <85%:**
+§12 showed prior permuter verdicts were vacuous (candidates never compiled).
+Even with a working permuter, a 120-second random search samples a tiny
+fraction of the codegen space. And instruction-level diffs at 73% are too
+noisy to visually separate structural from improvable — dozens of
+mismatched instructions make it impossible to tell which came from the
+`@<reg>` prologue and which from a suboptimal C idiom.
+
+**Proven session example:** FUN_001a2160 went from 73.4% → 82.8% through
+source rewrites, and FUN_001a1a10 went from 80.0% → 91.5% from a single
+variable addition. Both were previously declared structural ceilings.
+
+**Technique 1 — `cos()/sin()` intrinsification (replace x87 helpers):**
+VC71 with `/O2` (which includes `/Oi`) compiles `(float)cos((double)x)` and
+`(float)sin((double)x)` to inline FCOS/FSIN instructions. When the same
+variable feeds both, MSVC uses `FLD ST0` to share the value on the FPU stack
+— a pattern the `x87_fcos`/`x87_fsin` inline asm helpers cannot produce
+(each helper does its own `FLD [mem]`). The fix: use standard math calls
+under `#if defined(_MSC_VER) && !defined(__clang__)` and keep the x87
+helpers in the `#else` path (clang `cosf` goes to libm, not FCOS).
+Recovered ~5 instructions on FUN_001a2160.
+
+**Technique 2 — pointer-base aliasing (consecutive stores):**
+MSVC generates compact `FSTP [EDI]; FSTP [EDI+4]; FSTP [EDI+8]` when it
+sees three stores through the same base pointer. Writing
+`*(float*)(obj+0x30) = ...; *(float*)(obj+0x34) = ...; *(float*)(obj+0x38) = ...`
+with separate base+offset expressions prevents this optimization. The fix:
+declare `float *up_ptr = (float*)(obj + 0x30)` and write `up_ptr[0] = ...;
+up_ptr[1] = ...; up_ptr[2] = ...`. Same for read-side: `float *fwd = (float*)
+(obj + 0x24)` then `fwd[0]`, `fwd[1]`, `fwd[2]`. This also applies to
+physics-struct fields accessed as `physics[0x2e]` vs through a `float *nv`
+pointer. Recovered ~10 instructions on FUN_001a2160.
+
+**Technique 3 — early register-load hint (permuter-proven):**
+When a `@<reg>` parameter (e.g., `direction@<eax>`) is used late in the
+function, MSVC may spill it after the prologue and reload it later. Saving
+it to a local early (`float dir0 = direction[0]`) forces the register load
+to happen while the pointer is still live in the register, matching the
+original's register flow. Recovered +11.5pp on FUN_001a1a10 (80% → 91.5%).
+The permuter finds these automatically but they're easy to spot manually:
+any `@<reg>` parameter whose first USE is far from the function entry.
+
+**Prevention — the rewrite checklist (before declaring a ceiling):**
+1. Does the function use `x87_fcos`/`x87_fsin`? → Try `cos()`/`sin()` under
+   `_MSC_VER`.
+2. Are there 3+ stores to consecutive offsets from the same struct/object?
+   → Use a single `float *ptr` base.
+3. Does a `@<reg>` parameter get used far from entry? → Add an early
+   `local = reg_param[0]` load.
+4. Run the permuter for 120s on the IMPROVED source (not the original) —
+   the search space is smaller after manual fixes.
+5. If VC71 match is still <85% after all four steps, THEN it's a genuine
+   structural ceiling. Document which specific instructions are unmatched
+   (FPU stack depth refs like `FLD ST(1)`, FPU comparison idioms, `@<reg>`
+   prologue) so future sessions don't re-investigate.
+
+**Variant — vector3d_scale_add operand confusion (§2 + §4 interaction):**
+In FUN_001a2f40, the Ghidra decompiler lost track of which vector was
+which across `vector3d_scale_add` calls — outputting `vecA` where the
+disasm showed `vecB`, and `gp` where the disasm showed the in-place
+buffer. The tell: two `vector3d_scale_add` calls with DIFFERENT dot-product
+operands where the mathematical operation (Gram-Schmidt projection) requires
+them to be IDENTICAL (project the same vector). Combined with a material-
+condition inversion and a double-normalize control-flow error, this produced
+5 interrelated bugs in a single branch. These bugs were invisible to VC71
+comparison (they produce similar instruction counts) but would cause wrong
+ground-movement physics at runtime.
