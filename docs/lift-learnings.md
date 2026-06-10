@@ -8,6 +8,8 @@ how we diagnosed it when it reached the Xbox.
 
 ## 1. XCALL to a Ported Function
 
+**Automation:** PARTIAL — `check_xcall_types.py` catches float↔int return/param mismatches (ERROR); missing register args not yet checked automatically.
+
 **What happens:** `XCALL(0xADDR, type)(args)` does a raw indirect call to
 the original XBE address. When the target is **unported**, original code is
 intact and this works by accident. When the target gets **ported**, patch.py
@@ -37,6 +39,8 @@ thunk recursion) or EAX/EDX containing float-as-pointer values.
 ---
 
 ## 2. Stack Aliasing (Contiguous Struct as Separate Locals)
+
+**Automation:** PARTIAL — `buffer_alias_detector.py` detects local_XX reads inside a buffer's address range; not yet wired into `lift_pipeline.py` (Task 2 of workflow-improvement-plan).  Frame-map contract validator planned (Task 3).
 
 **What happens:** MSVC lays out local variables contiguously on the stack.
 When a function passes `&local_80` to a callee that reads at fixed offsets
@@ -111,6 +115,8 @@ near ground-emitting teleporter lights. Fix: `float local_40[3]`.
 
 ## 3. Register Argument Params Passed as NULL
 
+**Automation:** PARTIAL — `check_callee_regs` skill audits unported callees for missing register args before a new lift; `audit_reg_abi.py` checks staged caller diffs.  NULL-const passing not yet detected automatically.
+
 **What happens:** A function with `@<reg>` annotations (e.g.,
 `color_ptr@<ebx>`, `output_ptr@<esi>`) is called from lifted code with
 `(float *)0` for the register params. This happens when the lift author
@@ -138,6 +144,8 @@ Fix: pass `local_88`, `param_3`, `&local_40`.
 ---
 
 ## 4. Parameter Corruption by Loop
+
+**Automation:** PARTIAL — `check_lift_hazards.py::check_param_loop_corruption` (WARN) detects function parameters mutated (++/--/+=) inside a loop body and used afterwards.  Regex-based; imperfect parsing may miss complex cases.
 
 **What happens:** Ghidra decompiles a REP MOVSD loop as
 `*param = *src; param++; src++` — modifying the function parameter
@@ -168,6 +176,8 @@ value from the memory region 0x74 bytes past the buffer).
 ---
 
 ## 5. Debugging Runtime Crashes on Xbox (Methodology)
+
+**Automation:** not mechanically detectable — methodology section, no bug pattern.
 
 When a lifted function causes a hang or crash on map load, this is the
 diagnostic procedure that works:
@@ -239,6 +249,8 @@ actually expects. Compare against the C source line by line.
 
 ## 6. Float-as-Pointer Bit Smuggling
 
+**Automation:** PARTIAL — `check_lift_hazards.py::check_float_int_bit_smuggling` (WARN) uses a two-pass per-function scan: detects a variable assigned via `(T*)(int)(expr)` that is later read via `(float)(int)var`.  Does not catch the case where the Ghidra pointer name is a cast chain without an explicit intermediate variable.
+
 **What happens:** Ghidra decompiles a float value stored through an integer
 register as a series of pointer casts: `local_18 = (short *)(int)(float_expr)`.
 Later, the value is passed to a function as `(float)(int)psVar3`. In C,
@@ -281,6 +293,8 @@ against the unpatched game at the same camera position.
 ---
 
 ## 7. Ghidra cdecl Arg Mis-Grouping (inner 0-arg getter swallows the outer call's args)
+
+**Automation:** PARTIAL — stack-cleanup cross-check (Task 5 of workflow-improvement-plan): compare `ADD ESP,N` cleanup after each CALL against the callee's kb.json arg count; 0-arg getter followed by outer with missing args is the specific signal.  Not yet implemented as a standalone check.
 
 **What happens:** For a call written `outer(get_x(), a, b, c)` where `get_x()`
 is a **0-arg getter**, MSVC emits (cdecl, args pushed right-to-left):
@@ -338,6 +352,8 @@ dropped args were scalars (see §5 for distinguishing the two).
 
 ## 8. Running Accumulator / Loop State Misread as a Constant
 
+**Automation:** PARTIAL — `check_lift_hazards.py::check_discarded_result` (WARN) detects `(void)var;` applied to a variable that was assigned from a function call in the preceding lines.  Does not yet detect the `(float)0` constant-load variant (accumulator seed not discarded, just read as zero).  Draft-decompiler annotation for accumulator slots planned (Task 8 of workflow-improvement-plan).
+
 **What happens:** A function seeds a local accumulator from a value (often an
 RNG result), mutates it each loop iteration, and branches on the running value.
 Ghidra sometimes loses the data flow: it renders the initial load of the
@@ -377,6 +393,8 @@ spawn, a selection always returns the same/none). Use §9 toggle bisection.
 
 ## 9. Localizing Non-Crashing Runtime Regressions (toggle bisection)
 
+**Automation:** not mechanically detectable — methodology section, no bug pattern.
+
 VC71 match% and instruction diffing **do not converge** on FPU/stack-heavy
 functions: a faithful lift there scores 98–100%, but a real behavioral bug can
 sit at 98%+, and codegen-ceiling functions sit at 43–78% with the defect buried
@@ -409,6 +427,8 @@ repeatedly during this hunt).
 ---
 
 ## 10. Caller-Site Register Order Contradicts Thunk Convention
+
+**Automation:** PARTIAL — `audit_reg_abi.py` confirms registers are written before CALL but not which value flows to which register.  Value→register mapping check planned as Task 6 of workflow-improvement-plan.
 
 **What happens:** A function declared `@<ecx>, @<eax>, @<ebx>` has its thunk
 map first C arg → ECX, second → EAX, third → EBX. When ported callers call it
@@ -456,6 +476,8 @@ but receives a datum handle is the smoking gun in a decompiler trace.
 
 ## 11. Builder Returns Count; Consumer Ignores It → Assert on Missing Entry
 
+**Automation:** PARTIAL — `check_lift_hazards.py::check_discarded_result` (WARN) flags `(void)func(...)` for non-exempt named callees that likely return non-void values.  The specific builder-count class requires knowing the callee's return semantics; manual review remains necessary for first instances.
+
 **What happens:** A sorted-array builder (data_iterator_next loop) both fills
 an output buffer AND returns the count of active entries. The consumer function
 calls the builder, discards the count, and then searches the buffer with a
@@ -489,6 +511,9 @@ discards it with `(void)` or by casting to nothing, treat that as a latent bug
 waiting for the first time an entry is legitimately absent from the output.
 
 ## 12. Permuter "No Improvement" Can Be Vacuous (Candidate Never Compiled)
+
+**Automation:** FULL — `tools/permuter/compile.sh` with the `strip_dup_typedefs.py` hook, wired in `tools/permuter/run.py`.  The fix (PYCPARSER_TYPEDEFS guard stripping) ships in the repo.  Verified: permuter now iterates and finds improving candidates.
+
 
 A permuter run that prints `No improvements found` is **only** trustworthy if it
 actually compiled and scored candidates. On `actor_looking.c` functions
@@ -572,6 +597,8 @@ Two operational gotchas when running from a `/tmp` worktree:
 ---
 
 ## 13. Overlapping 16-bit Fields Packed into One 32-bit Store (CONCAT22)
+
+**Automation:** FULL — `check_lift_hazards.py::check_concat_survival` (ERROR) prevents any CONCAT* token from reaching the final C source.  `draft_decompiler.py` rewrites them to shift/OR idioms before lifting.
 
 **What happens:** Two adjacent 16-bit fields share one aligned dword. The
 original code updates *both at once* with a single 32-bit store, which Ghidra
@@ -678,6 +705,8 @@ stride from disasm and diff the per-vertex field count.
 
 ## 15. Stale `build/halo.map` Sends Crash Symbolization to the Wrong Function
 
+**Automation:** not mechanically detectable — process/methodology error, not a source-code pattern.  Prevention: symbolize from the PE export table at base 0x642000, not the map file.
+
 **What happens:** `tools/build/build.py` does **not** regenerate `build/halo.map`.
 A runtime crash address symbolized against that stale map resolves to whatever
 function occupied the address in an *older* layout — which can be in a completely
@@ -707,6 +736,8 @@ nothing to do with the failing feature.
 ---
 
 ## 16. Void-Return Out-Param Functions That Return EAX Implicitly
+
+**Automation:** FULL — `check_lift_hazards.py::check_void_eax_returns` (ERROR) checks the `VOID_BUT_RETURNS_EAX` table against `decl.h`; `find_void_eax_returns.py` (Task 4 of workflow-improvement-plan) will batch-discover new candidates from disasm tails.
 
 **What happens:** MSVC frequently ends "void-like" functions that write through
 an out-parameter with `MOV EAX, [EBP+8]` (loading the first argument — the
@@ -763,6 +794,8 @@ The divergence only manifests in the **caller's** read of EAX. The correct test 
 or a targeted check comparing `*(int*)EAX_on_return` between oracle and candidate.
 
 ## 17. Address Offset Mis-Rendered as a Value Addition
+
+**Automation:** PARTIAL — `check_lift_hazards.py::check_addr_value_add` (WARN) flags `*(T*)0xLITERAL + N` (N < 16) patterns excluding double-dereferences and counter-increment idioms.  Sibling-address cross-check (the strongest signal) is not yet automated; manual disasm verification required for each hit.
 
 **What happens:** Two adjacent fields of a global struct live at `BASE` and
 `BASE+N` (e.g. two `short` rect edges at `0x506588` and `0x50658a`). The
