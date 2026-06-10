@@ -3849,7 +3849,7 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000adc40": {
-      "score": 81.5,
+      "score": 81.7,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000adcf0": {
@@ -3945,7 +3945,7 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b0000": {
-      "score": 75.2,
+      "score": 76.2,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b00c0": {
@@ -3953,7 +3953,7 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b0100": {
-      "score": 89.7,
+      "score": 95.2,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b0170": {
@@ -4009,7 +4009,7 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b0ed0": {
-      "score": 71.6,
+      "score": 72.7,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b1030": {
@@ -4181,11 +4181,11 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b3470": {
-      "score": 71.1,
+      "score": 71.8,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b3630": {
-      "score": 77.5,
+      "score": 78.3,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b36f0": {
@@ -4205,7 +4205,7 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b39a0": {
-      "score": 78.3,
+      "score": 81.8,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b3b30": {
@@ -4953,7 +4953,7 @@
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d3fe0": {
-      "score": 81.1,
+      "score": 83.2,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d4260": {
@@ -4965,7 +4965,7 @@
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d44f0": {
-      "score": 61.8,
+      "score": 87.0,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d4680": {
@@ -5001,7 +5001,7 @@
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d4860": {
-      "score": 82.8,
+      "score": 85.7,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d48e0": {
@@ -5017,11 +5017,11 @@
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d4980": {
-      "score": 93.6,
+      "score": 97.9,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d49d0": {
-      "score": 80.9,
+      "score": 82.6,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d4a20": {
@@ -5045,15 +5045,15 @@
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d4e30": {
-      "score": 88.5,
+      "score": 93.3,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d4e90": {
-      "score": 86.2,
+      "score": 90.6,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d4f00": {
-      "score": 84.4,
+      "score": 100.0,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d4f70": {
@@ -5089,7 +5089,7 @@
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d5350": {
-      "score": 63.2,
+      "score": 68.6,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d5ec0": {
@@ -5205,15 +5205,15 @@
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d6660": {
-      "score": 66.4,
+      "score": 76.7,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d6cc0": {
-      "score": 72.5,
+      "score": 84.5,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d6e50": {
-      "score": 83.6,
+      "score": 90.8,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d7080": {
@@ -5221,7 +5221,7 @@
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d70b0": {
-      "score": 56.9,
+      "score": 58.8,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d7240": {
@@ -5281,11 +5281,11 @@
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d7800": {
-      "score": 76.3,
+      "score": 77.2,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d7a20": {
-      "score": 69.5,
+      "score": 90.0,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d7cd0": {
@@ -5297,7 +5297,7 @@
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d7d40": {
-      "score": 64.4,
+      "score": 65.6,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000db0f0": {
