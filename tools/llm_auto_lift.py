@@ -168,6 +168,7 @@ class SelectedTarget:
     frontier_rank: Optional[int]
     lane: str
     reasons: list[str]
+    oracle_strength: str = "weak"  # "strong" | "medium" | "weak"
 
 
 @dataclass
@@ -780,6 +781,21 @@ def _select_targets(
             branch, stage = rejected
             reasons.append(f"prior_rejected_branch({stage or 'unknown'})")
 
+        # Compute oracle strength for model routing (Task 10)
+        _has_delink = bool(target.score_details.get("delinked_ref"))
+        _is_leaf_or_stub = bool(
+            target.score_details.get("eq_pure_leaf") or
+            target.score_details.get("eq_stubbable") or
+            target.score_details.get("z3_proven")
+        )
+        _no_reg_args = not target.has_reg_args
+        if _has_delink and _is_leaf_or_stub and _no_reg_args:
+            _oracle = "strong"
+        elif _has_delink:
+            _oracle = "medium"
+        else:
+            _oracle = "weak"
+
         selected.append(SelectedTarget(
             target=target,
             total_score=total_score,
@@ -788,6 +804,7 @@ def _select_targets(
             frontier_rank=frontier_rank,
             lane=lane,
             reasons=reasons,
+            oracle_strength=_oracle,
         ))
 
     selected.sort(key=lambda item: (-item.total_score, item.target.object_name, item.target.addr))
@@ -1722,8 +1739,8 @@ def cmd_select(args: argparse.Namespace):
         return
 
     if not args.quiet:
-        print(f"{'Total':>5}  {'Lift':>4}  {'Fr':>3}  {'Lane':<13}  {'Miz':>3}  {'Address':>10}  {'Object':<35}  {'Name':<35}  {'Reasons'}")
-        print("-" * 146)
+        print(f"{'Total':>5}  {'Lift':>4}  {'Fr':>3}  {'Lane':<13}  {'Oracle':<7}  {'Miz':>3}  {'Address':>10}  {'Object':<35}  {'Name':<35}  {'Reasons'}")
+        print("-" * 155)
     for item in selected:
         target = item.target
         reasons = ", ".join(item.reasons)
@@ -1732,7 +1749,7 @@ def cmd_select(args: argparse.Namespace):
         skip_marker = " [skip:prior_fail]" if has_failure else ""
         print(
             f"{item.total_score:>5}  {item.liftability_score:>4}  {item.frontier_score:>3}  "
-            f"{item.lane:<13}  {miz:>3}  {target.addr:>10}  {target.object_name:<35}  {target.name:<35}  {reasons}{skip_marker}"
+            f"{item.lane:<13}  {item.oracle_strength:<7}  {miz:>3}  {target.addr:>10}  {target.object_name:<35}  {target.name:<35}  {reasons}{skip_marker}"
         )
 
     if not args.quiet:
