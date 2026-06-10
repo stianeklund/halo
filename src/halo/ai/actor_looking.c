@@ -7029,6 +7029,89 @@ char FUN_00028cc0(float *look_vectors, float *dir_vec, char look_mode,
   return result_byte;
 }
 
+/* FUN_00028ed0 (0x28ed0) -- actor aiming-look re-target.
+ * Sibling of FUN_00028cc0 (idle-minor look) but for the actor's *aiming*
+ * look-state block (actor+0x57c..+0x588) instead of the idle-minor block.
+ * Recomputes a randomized aim direction from the "actr" tag facing yaw/pitch
+ * limits, validates it via the collision search FUN_000283b0, installs the
+ * result into the aiming-look state, then refreshes the idle-major timer via
+ * FUN_00028250 and sets the actor's aiming-active byte (actor+0x55f).
+ *
+ * Parameters:
+ *   look_vectors   : actor look output vectors (forwarded to FUN_00028250)
+ *   idle_direction : requested aim direction vector (float[3]); passed to
+ *                    FUN_000283b0 in EAX.
+ *   actor_handle   : actor datum handle (EAX).
+ *
+ * Confirmed (disasm 0x28ed0-0x29039):
+ *   actor_handle@<eax> (MOV ESI,EAX at 0x28ed8); datum_get(0x6325a4, handle);
+ *   tag_get('actr', actor+0x58). FUN_00027ff0(actor_handle, 0, 0,
+ *   (short*)(actor+0x57c), &look_ack_flag), 5 stack args. The yaw clamp uses
+ *   pfVar4 = tag+0xbc when *(short*)(actor+0x6a)==3 else tag+0xb4.
+ *   FUN_000283b0(idle_direction@<eax>, actor+0x120, 0 [is_3d], yaw_min,
+ *   yaw_max, -pitch, pitch, &result_vec); the -pitch arg is the dummy push at
+ *   0x28fc8 overwritten by FSTP[ESP] at 0x28fcc. On success the store block is
+ *   actor+0x57c=4 (short), +0x580/+0x584/+0x588 = result_vec[0..2].
+ *   FUN_00028250(look_vectors, look_ack_flag, actor_handle@<esi>, 2@<edi>);
+ *   nonzero return => actor+0x55f = 1.
+ * Inferred: yaw_min=[EBP-0x10], yaw_max=[EBP-0xc], pitch=[EBP-0x4].
+ * Uncertain: result_vec is a contiguous float[3] ([EBP-0x1c]) shared as
+ *   FUN_000283b0's output buffer (lift-learnings #2). */
+void FUN_00028ed0(float *look_vectors, float *idle_direction, int actor_handle)
+{
+  char *actor;
+  int tag_data;
+  float yaw_min;
+  float yaw_max;
+  float pitch;
+  char look_ack_flag;
+  float result_vec[3];
+  float *pfVar4;
+  int idle_major_timer;
+
+  actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  tag_data = (int)tag_get(0x61637472, *(int *)(actor + 0x58));
+  look_ack_flag = 0;
+  *(char *)(actor + 0x55f) = 0;
+
+  if (FUN_00027ff0(actor_handle, 0, 0, (short *)(actor + 0x57c),
+                   &look_ack_flag) == '\0') {
+    if (*(float *)(tag_data + 0xac) > *(float *)(tag_data + 0xcc))
+      yaw_max = *(float *)(tag_data + 0xcc);
+    else
+      yaw_max = *(float *)(tag_data + 0xac);
+    if (*(float *)(tag_data + 0xb0) > *(float *)(tag_data + 0xd0))
+      pitch = *(float *)(tag_data + 0xd0);
+    else
+      pitch = *(float *)(tag_data + 0xb0);
+
+    pfVar4 = (float *)(tag_data + 0xbc);
+    if (*(short *)(actor + 0x6a) != 3)
+      pfVar4 = (float *)(tag_data + 0xb4);
+
+    yaw_min = -pfVar4[0];
+    if (yaw_min < -yaw_max)
+      yaw_min = -yaw_max;
+    if (pfVar4[1] < yaw_max)
+      yaw_max = pfVar4[1];
+
+    if (FUN_000283b0(idle_direction, (int)(actor + 0x120), 0, yaw_min, yaw_max,
+                     -pitch, pitch, result_vec) == '\0')
+      return;
+
+    *(int *)(actor + 0x580) = *(int *)&result_vec[0];
+    *(int *)(actor + 0x584) = *(int *)&result_vec[1];
+    *(short *)(actor + 0x57c) = 4;
+    *(int *)(actor + 0x588) = *(int *)&result_vec[2];
+    look_ack_flag = 0;
+  }
+
+  idle_major_timer = FUN_00028250(look_vectors, look_ack_flag, actor_handle, 2);
+  *(int *)(actor + 0x568) = idle_major_timer;
+  if (idle_major_timer != 0)
+    *(char *)(actor + 0x55f) = 1;
+}
+
 /* actor_look_update (0x29040)
  * Per-tick update of an actor's look/aim/facing output vectors.
  * Resolves primary/secondary look modes from the look-spec tables,
