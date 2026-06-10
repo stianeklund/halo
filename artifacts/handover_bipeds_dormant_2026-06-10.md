@@ -5,6 +5,57 @@
 Fully port all remaining 10 `ported:false` functions from bipeds.obj to ≥88% MSVC or
 ≥90% genuine equivalence.
 
+## Session Work (what was tried and why it stopped)
+
+**Starting point:** Worktree was 12 commits behind main. Merged main first →
+revealed that 0x1a0680 and 0x1a0e00 had already been activated in the prior
+`scalable-coalescing-lobster` worktree session, reducing the backlog from 12 to 10.
+
+**VC71 ceiling investigation (compare_obj):**
+Exported per-function delinked refs for the two highest-scoring functions
+(0x1a1e70 at 86.9%, 0x1a2a60 at 86.5%) and ran `compare_obj.py` against the
+VC71 build. Confirmed both are structural:
+- 0x1a1e70: `jp` vs `je` (TEST AH,0x41 + parity idiom vs zero flag — semantically
+  equivalent for ordered floats but different machine bytes) plus 3–4 instructions
+  from the `@<edi>` keystone call to FUN_001a1a10. Prior permuter ran 188 non-vacuous
+  iterations post-PYCPARSER fix and got +0.15% (86.9% → ~87.0%). Gap to 88% is ~1%
+  but all residuals are structural; permuter cannot fix FPU idioms or ABI artifacts.
+- 0x1a2a60: 100% `@<edi>` prologue artifacts, no body differences. Skip permuter.
+
+**Equivalence tests (unicorn_diff):**
+Exported delinked refs for 0x1a0b30 and 0x1a2290 and ran unicorn_diff with
+`BIPED_REAL_TAGS=1 BIPED_HEAP_COMPARE=1 BIPED_SIBLING_RESOLVE=1` against existing
+scalable-coalescing-lobster snapshots:
+- 0x1a0b30 (tweaked snapshot, kill-Z triggered): 50/50, 100% coverage, 0 diffs —
+  BUT all returns are 0x0 because FUN_00140cc0 (object_delete) is stubbed. The
+  function's product (the actual deletion) is never witnessed. Advisor: stub-constant
+  = not genuine evidence.
+- 0x1a2290 (combat snapshot, actor_handle==-1 for all bipeds): 50/50, 69% coverage,
+  5 exact velocity writes (obj+0x18/0x1c/0x20), obj+0x430, obj+0x45c. Strong main-path
+  evidence, but the actor-veto branch (calls actor_aim_jump when actor_handle != -1)
+  was never reached.
+
+**Actor-veto branch investigation for 0x1a2290:**
+Scanned biped_capture and Flood encounter gamestates to find bipeds with
+`actor_handle != -1` at offsets 0x1a4/0x1a8 (the fields FUN_001a2290 actually reads).
+- biped_capture: 0 qualifying bipeds (0xe26f0000, idx=0, is the player — no AI actor)
+- Flood encounter gamestate: **4 qualifying bipeds**. Best candidate: idx=538,
+  handle=0xe4ce021a, actor=0xe36b0001, all gates open (obj+0x424 bit0=0, obj+0x460=ffff).
+
+Built hybrid snapshot `artifacts/snapshot_FUN_001a2290_actor_veto.json`:
+Replaced the gamestate region with the Flood encounter's (same VA/size), added the
+0x632000 actor_data pointer page. Ran unicorn_diff with handle 0xe4ce021a:
+50/50 pass, 51.7% coverage, actor-veto branch IS reached — but actor_aim_jump
+(FUN_0002ace0) is treated as an external reloc and stubbed to return 0.
+Function exits early via `if (success==0) return 0`. All returns 0x0. Zero heap writes.
+Advisor confirmed this is stub-constant = still not genuine evidence (×3 checks).
+
+**Why it stopped:** The project's activation bar for reg-arg functions requires an
+in-engine dual-oracle (same precedent as 0x1a1430/0x1a0680/0x1a0e00) that witnesses
+the real product bitwise-identical, original-by-address vs verbatim-copy candidate.
+xemu is running but in attract/menu state (1 non-biped object, 0 actors). Getting
+xemu into a live combat state is a **user action** (load a campaign level).
+
 ## Current State
 
 - **0 new activations.** All 10 remaining functions hit genuine structural walls.
