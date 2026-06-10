@@ -1640,10 +1640,12 @@ int FUN_001a1a10(float scale, float *out_point, void *out_vec,
   float t;
   float origin[3];
   float scaled_dir[3];
+  float dir0;
 
   object_get_and_verify_type(unit_handle, 1);
   bsp = global_collision_bsp_get();
   result_index = -1;
+  dir0 = direction[0];
 
   if (*(int16_t *)0x4761d8 >= 0x20) {
     display_assert("global_current_collision_user_depth < "
@@ -1662,7 +1664,7 @@ int FUN_001a1a10(float scale, float *out_point, void *out_vec,
   origin[1] = offset_vec[1] * *(float *)0x253524 + origin[1];
   origin[2] = offset_vec[2] * *(float *)0x253524 + origin[2];
 
-  scaled_dir[0] = scale * direction[0];
+  scaled_dir[0] = scale * dir0;
   scaled_dir[1] = scale * direction[1];
   scaled_dir[2] = scale * direction[2];
 
@@ -1878,8 +1880,9 @@ void FUN_001a1e70(int unit_handle)
   int game_time;
   int physics;
   float fall_term;
-  float probe_hit[3]; /* EBP-0x18: keystone out_point */
-  float world_pos[3]; /* EBP-0xc: object_get_world_position out */
+  float probe_hit[3];
+  float world_pos[3];
+  float *dir_ptr;
 
   unit_obj = (int *)object_get_and_verify_type(unit_handle, 1);
   tag = (int)tag_get(0x62697064, *unit_obj);
@@ -1893,7 +1896,8 @@ void FUN_001a1e70(int unit_handle)
       physics =
         (int)tag_block_get_element((char *)game_globals_get() + 0x188, 0, 0x98);
       unit_obj[0x114] = game_time;
-      if ((FUN_001a1a10(6.0f, probe_hit, (void *)0, *(float **)0x31fc50,
+      dir_ptr = *(float **)0x31fc50;
+      if ((FUN_001a1a10(6.0f, probe_hit, (void *)0, dir_ptr,
                         unit_handle) == -1) ||
           (object_get_world_position(unit_handle, (vector3_t *)world_pos),
            *(float *)((char *)unit_obj + 0x20) <= *(float *)0x2533c0 &&
@@ -2009,6 +2013,8 @@ void FUN_001a2160(int unit_handle)
   float angle;
   float cos_a;
   float sin_a;
+  float *fwd;
+  float *up_ptr;
 
   unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
 
@@ -2016,43 +2022,37 @@ void FUN_001a2160(int unit_handle)
   axis[1] = *(float *)(unit_obj + 0x40);
   axis[2] = *(float *)(unit_obj + 0x44);
   angle = normalize3d(axis);
-  /* sincos idiom. The original keeps `angle` live on the x87 stack between
-   * FCOS and FSIN (FLD angle; FLD ST0; FCOS; FSTP; FSIN; FSTP). We use the
-   * vetted balanced in-place x87 helpers instead — each loads `angle` fresh,
-   * costing ~1 extra FLD vs the original but avoiding the x87 stack-depth
-   * drift that an unbalanced hand-rolled block would introduce under clang.
-   * See src/x87_math.h. */
+  fwd = (float *)(unit_obj + 0x24);
+#if defined(_MSC_VER) && !defined(__clang__)
+  cos_a = (float)cos((double)angle);
+  sin_a = (float)sin((double)angle);
+#else
   cos_a = x87_fcos(angle);
   sin_a = x87_fsin(angle);
-  rotate_vector3d_by_sincos((float *)(unit_obj + 0x24), axis, sin_a, cos_a);
-  normalize3d((float *)(unit_obj + 0x24));
+#endif
+  rotate_vector3d_by_sincos(fwd, axis, sin_a, cos_a);
+  normalize3d(fwd);
 
-  up_rot[0] = *(float *)(unit_obj + 0x30);
-  up_rot[1] = *(float *)(unit_obj + 0x34);
-  up_rot[2] = *(float *)(unit_obj + 0x38);
+  up_ptr = (float *)(unit_obj + 0x30);
+  up_rot[0] = up_ptr[0];
+  up_rot[1] = up_ptr[1];
+  up_rot[2] = up_ptr[2];
   rotate_vector3d_by_sincos(up_rot, axis, sin_a, cos_a);
 
-  /* temp = cross(up_rot, fwd), fwd = unit+0x24 */
-  t0 = up_rot[2] * *(float *)(unit_obj + 0x28) -
-       up_rot[1] * *(float *)(unit_obj + 0x2c);
-  t1 = up_rot[0] * *(float *)(unit_obj + 0x2c) -
-       up_rot[2] * *(float *)(unit_obj + 0x24);
-  t2 = up_rot[1] * *(float *)(unit_obj + 0x24) -
-       up_rot[0] * *(float *)(unit_obj + 0x28);
-  /* up(unit+0x30) = cross(temp, fwd) */
-  *(float *)(unit_obj + 0x30) =
-    t0 * *(float *)(unit_obj + 0x28) - t1 * *(float *)(unit_obj + 0x24);
-  *(float *)(unit_obj + 0x34) =
-    t2 * *(float *)(unit_obj + 0x24) - t0 * *(float *)(unit_obj + 0x2c);
-  *(float *)(unit_obj + 0x38) =
-    t1 * *(float *)(unit_obj + 0x2c) - t2 * *(float *)(unit_obj + 0x28);
-  if (normalize3d((float *)(unit_obj + 0x30)) == 0.0f) {
-    *(float *)(unit_obj + 0x24) = global_forward_vector_ptr[0];
-    *(float *)(unit_obj + 0x28) = global_forward_vector_ptr[1];
-    *(float *)(unit_obj + 0x2c) = global_forward_vector_ptr[2];
-    *(float *)(unit_obj + 0x30) = global_up_vector_ptr[0];
-    *(float *)(unit_obj + 0x34) = global_up_vector_ptr[1];
-    *(float *)(unit_obj + 0x38) = global_up_vector_ptr[2];
+  t0 = up_rot[2] * fwd[1] - up_rot[1] * fwd[2];
+  t1 = up_rot[0] * fwd[2] - up_rot[2] * fwd[0];
+  t2 = up_rot[1] * fwd[0] - up_rot[0] * fwd[1];
+  /* up = cross(temp, fwd) — FPU LIFO: computed z,y,x, stored x,y,z */
+  up_ptr[0] = t1 * fwd[2] - t2 * fwd[1];
+  up_ptr[1] = t2 * fwd[0] - t0 * fwd[2];
+  up_ptr[2] = t0 * fwd[1] - t1 * fwd[0];
+  if (normalize3d(up_ptr) == 0.0f) {
+    fwd[0] = global_forward_vector_ptr[0];
+    fwd[1] = global_forward_vector_ptr[1];
+    fwd[2] = global_forward_vector_ptr[2];
+    up_ptr[0] = global_up_vector_ptr[0];
+    up_ptr[1] = global_up_vector_ptr[1];
+    up_ptr[2] = global_up_vector_ptr[2];
   }
 }
 
@@ -2078,8 +2078,10 @@ char FUN_001a2290(int unit_handle)
   char *physics;
   float *vel_ptr;
   int actor_handle;
+  int zero_idx;
   float max_speed;
   float vel[3];
+  float *vel0_ptr;
   float dot;
   char success;
   char aim_flag;
@@ -2090,11 +2092,13 @@ char FUN_001a2290(int unit_handle)
   if ((*(unsigned char *)(unit_obj + 0x424) & 1) != 0) {
     return 0;
   }
+  zero_idx = 0;
   if (*(short *)(unit_obj + 0x460) == 1) {
     return 0;
   }
 
   max_speed = *(float *)(biped_tag + 0x3b4);
+  vel0_ptr = &vel[0];
   success = 1;
   if (*(int *)(unit_obj + 0x1c8) != -1) {
     physics = (char *)tag_block_get_element((char *)game_globals_get() + 0x170,
@@ -2107,18 +2111,16 @@ char FUN_001a2290(int unit_handle)
     max_speed = max_speed * *(float *)0x2533d8;
   }
 
-  /* Original keeps &velocity in EBX across the actor_aim_jump call and writes
-   * back through it (LEA EBX,[ESI+0x18] at 0x1a233a; MOV [EBX] at 0x1a23ea). */
   vel_ptr = (float *)(unit_obj + 0x18);
   vel[0] = vel_ptr[0];
   vel[1] = vel_ptr[1];
   vel[2] = vel_ptr[2];
   dot = vel[1] * *(float *)(unit_obj + 0x34) +
         vel[2] * *(float *)(unit_obj + 0x38) +
-        vel[0] * *(float *)(unit_obj + 0x30);
+        vel[zero_idx] * *(float *)(unit_obj + 0x30);
   if (dot < max_speed) {
     dot = max_speed - dot;
-    vel[0] = dot * *(float *)(unit_obj + 0x30) + vel[0];
+    vel[zero_idx] = dot * *(float *)(unit_obj + 0x30) + *vel0_ptr;
     vel[1] = dot * *(float *)(unit_obj + 0x34) + vel[1];
     vel[2] = dot * *(float *)(unit_obj + 0x38) + vel[2];
   }
@@ -2134,7 +2136,7 @@ char FUN_001a2290(int unit_handle)
                  0;
     success =
       (char)actor_aim_jump(actor_handle, unit_handle, aim_flag, max_speed, vel);
-    if (success == 0) {
+    if (success == zero_idx) {
       return success;
     }
   }
@@ -2143,7 +2145,7 @@ char FUN_001a2290(int unit_handle)
   vel_ptr[1] = vel[1];
   vel_ptr[2] = vel[2];
   *(int *)(unit_obj + 0x424) |= 1;
-  *(unsigned char *)(unit_obj + 0x45c) = 0;
+  *(unsigned char *)(unit_obj + 0x45c) = zero_idx;
   *(int *)(unit_obj + 0x430) = -1;
   FUN_001a0f10(unit_handle, 4, 0);
   FUN_001a0f10(unit_handle, 4, 1);
@@ -2280,6 +2282,7 @@ void FUN_001a25e0(int unit_handle /* @ecx */)
   int results[1028]; /* 0x1010 bytes: results[0]=count, results[1+i]=surface idx
                       */
   vector3_t cam_pos;
+  vector3_t *cam_ptr;
   float height_offset;
   float camera_height;
   char *unit_obj;
@@ -2288,6 +2291,7 @@ void FUN_001a25e0(int unit_handle /* @ecx */)
   int16_t depth;
   int count;
   int i;
+  int idx2;
   int *surface_elem;
   float *plane;
   int plane_index;
@@ -2312,10 +2316,11 @@ void FUN_001a25e0(int unit_handle /* @ecx */)
   *(int16_t *)0x4761d8 = (int16_t)(depth + 1);
   *(int16_t *)(0x5a8c80 + depth * 2) = 7;
 
+  cam_ptr = &cam_pos;
   surface_data = (char *)breakable_surfaces_get_bsp_surface_data();
   radius = camera_height + *(float *)0x2533e8;
   if ((char)collision_bsp_test_sphere((int)bsp, 0x100, (int)surface_data,
-                                      (int)&cam_pos, *(int *)&radius,
+                                      (int)cam_ptr, *(int *)&radius,
                                       results) != 0) {
     count = results[0];
     best_index = -1;
@@ -2331,20 +2336,22 @@ void FUN_001a25e0(int unit_handle /* @ecx */)
         if (plane_index < 0) {
           n[0] = -plane[0];
           n[1] = -plane[1];
-          n[2] = -plane[2];
+          idx2 = 2;
+          n[idx2] = -plane[idx2];
           n[3] = -plane[3];
         } else {
           n[0] = plane[0];
           n[1] = plane[1];
-          n[2] = plane[2];
+          n[idx2] = plane[idx2];
           n[3] = plane[3];
         }
-        dist = (cam_pos.z * n[2] + n[0] * cam_pos.x + cam_pos.y * n[1]) - n[3];
+        dist = (cam_pos.z * n[idx2] + n[0] * cam_pos.x + cam_pos.y * n[1]) -
+               n[3];
         if (dist < best_dist) {
           best_index = results[1 + i];
           best_n[0] = n[0];
           best_n[1] = n[1];
-          best_n[2] = n[2];
+          best_n[idx2] = n[idx2];
           best_n[3] = n[3];
           best_dist = dist;
         }
@@ -2355,11 +2362,11 @@ void FUN_001a25e0(int unit_handle /* @ecx */)
         *(int *)(unit_obj + 0x430) = best_index;
         *(float *)(unit_obj + 0x46c) = best_n[0];
         *(float *)(unit_obj + 0x470) = best_n[1];
-        *(float *)(unit_obj + 0x474) = best_n[2];
+        *(float *)(unit_obj + 0x474) = best_n[idx2];
         *(float *)(unit_obj + 0x478) = best_n[3];
         *(float *)(unit_obj + 0x30) = best_n[0];
         *(float *)(unit_obj + 0x34) = best_n[1];
-        *(float *)(unit_obj + 0x38) = best_n[2];
+        *(float *)(unit_obj + 0x38) = best_n[idx2];
       }
     }
   }
@@ -3013,7 +3020,7 @@ void FUN_001a2f40(void *physics_arg /* @esi */)
     short submode; /* local_38: flags & 0x200 */
     float vecA[3]; /* local_30/2c/28 */
     float vecB[3]; /* local_24/20/1c */
-    float d0, d1, d2; /* local_18/14/10: projected planar dots */
+    float d[3]; /* local_18/14/10: must be contiguous for normalize3d(&d[0]) */
     float curve_scale; /* fVar1: slope-response result */
     float damp2;
     char curve_flag; /* local_1: secondary state byte */
@@ -3025,82 +3032,71 @@ void FUN_001a2f40(void *physics_arg /* @esi */)
     submode = (short)(flags_word & 0x200);
 
     if (submode != 0) {
-      /* ---- 0x1a329e: recover an in-plane axis from the ground normal via a
-       * sequence of cross products, retrying with fallback basis vectors
-       * (0x31fc44, 0x31fc3c) when the result degenerates to zero length. ----
-       */
+      /* ---- 0x1a329e: in-plane axis recovery via cross products ---- */
       gp = physics + 0x20;
       vecB[0] = physics[8];
       vecB[1] = physics[9];
       vecB[2] = physics[10];
-      cross_product3d(gp, vecB, vecA); /* 0x1a32c1 */
+      cross_product3d(gp, vecB, vecA);
       if (normalize3d(vecA) == *(float *)0x2533c0) {
-        cross_product3d(gp, (float *)(*(int *)0x31fc44), vecA); /* 0x1a32eb */
+        cross_product3d(gp, (float *)(*(int *)0x31fc44), vecA);
         if (normalize3d(vecA) == *(float *)0x2533c0) {
-          cross_product3d(gp, (float *)(*(int *)0x31fc3c), vecA); /* 0x1a3315 */
-          normalize3d(vecA); /* ST0 discarded */
+          cross_product3d(gp, (float *)(*(int *)0x31fc3c), vecA);
+          normalize3d(vecA);
         }
       }
-      cross_product3d(vecA, gp, vecB); /* 0x1a3331 */
-      normalize3d(vecB); /* ST0 discarded */
-      /* d0/d1/d2 = projected components of control onto (vecB, vecA) */
-      d0 = vecB[0] * physics[0xf] + vecA[0] * physics[0x10]; /* 0x1a3341 */
-      d1 = vecB[1] * physics[0xf] + vecA[1] * physics[0x10]; /* 0x1a3356 */
-      d2 = vecB[2] * physics[0xf] + vecA[2] * physics[0x10] +
-           physics[0x11]; /* 0x1a3367 */
-      normalize3d(&d0); /* 0x1a337b, ST0 discarded */
-      /* JMP 0x1a34f6 — skip the ground-plane projection path */
-    } else if (physics[0x22] <= *(float *)0x253f44) {
-      /* ---- 0x1a339b: ground normal nearly horizontal — derive d* from a
-       * planar tangent rotated by the ground-plane components. ---- */
-      gp = physics + 0x20;
-      d0 =
-        physics[0xf] * physics[5] - physics[6] * physics[0x10]; /* 0x1a33af */
-      gx = d0; /* [EBP-0x58] = local_5c */
-      d1 =
-        physics[0x10] * physics[5] + physics[0xf] * physics[6]; /* 0x1a33c6 */
-      gy = d1; /* [EBP-0x5c] = local_60 */
-      d2 = (d1 * physics[0x21] + d0 * gp[0]) / physics[0x22]; /* 0x1a33df */
-      d2 = physics[0x11] - d2; /* FSUBR [ESI+0x44] */
-      /* JMP 0x1a34e7 -> normalize d at 0x1a34ea */
-      normalize3d(&d0); /* 0x1a34ee, ST0 discarded */
+      cross_product3d(vecA, gp, vecB);
+      normalize3d(vecB);
+      d[0] = vecB[0] * physics[0xf] + vecA[0] * physics[0x10];
+      d[1] = vecB[1] * physics[0xf] + vecA[1] * physics[0x10];
+      d[2] = vecB[2] * physics[0xf] + vecA[2] * physics[0x10] +
+             physics[0x11];
+      normalize3d(d); /* submode normalizes here, JMP 0x34f6 skips below */
     } else {
-      /* ---- 0x1a33ed: full ground-plane projection of control via two
-       * cross products and a scale_add (0x1a33ed..0x1a34c0). ---- */
-      gp = physics + 0x20;
-      vecB[0] = physics[8];
-      vecB[1] = physics[9];
-      vecB[2] = physics[10];
-      cross_product3d((float *)(*(int *)0x31fc44), vecB, vecA); /* 0x1a340e */
-      normalize3d(vecA); /* 0x1a3416, ST0 discarded */
-      /* scale_add(gp, gp, -(vecA . gp), &vecA) twice (0x1a341e..0x1a3477) */
-      vector3d_scale_add(&vecA[0], gp,
-                         -(vecA[0] * gp[2] + vecB[0] * gp[1] + vecB[1] * gp[0]),
-                         gp);
-      vector3d_scale_add(&vecA[0], gp,
-                         -(vecA[0] * gp[2] + vecA[1] * gp[1] + vecA[2] * gp[0]),
-                         gp);
-      d0 = physics[0xf] * gp[1] + physics[0x10] * gp[2]; /* 0x1a347c */
-      gx = physics[0x10] * physics[5] + physics[0xf] * gp[1]; /* 0x1a3490 */
-      gy = 0.0f;
-      (void)gy;
-      d1 = vecB[0] * gp[1] + vecA[0] * gp[2]; /* 0x1a34a1 */
-      d2 = vecB[1] * gp[1] + vecA[1] * gp[2]; /* 0x1a34b2 */
+      /* else-if and else share the normalize at 0x34ea; only else has
+       * the material multiply. */
+      if (physics[0x22] <= *(float *)0x253f44) {
+        /* ---- 0x1a339b: ground normal nearly horizontal ---- */
+        gp = physics + 0x20;
+        d[0] =
+          physics[0xf] * physics[5] - physics[6] * physics[0x10];
+        gx = d[0];
+        d[1] =
+          physics[0x10] * physics[5] + physics[0xf] * physics[6];
+        gy = d[1];
+        d[2] = (d[1] * physics[0x21] + d[0] * gp[0]) / physics[0x22];
+        d[2] = physics[0x11] - d[2];
+      } else {
+        /* ---- 0x1a33ed: full ground-plane projection ---- */
+        gp = physics + 0x20;
+        vecB[0] = physics[8];
+        vecB[1] = physics[9];
+        vecB[2] = physics[10];
+        cross_product3d((float *)(*(int *)0x31fc44), vecB, vecA);
+        normalize3d(vecA);
+        vector3d_scale_add(vecB, gp,
+                           -(vecB[0] * gp[0] + vecB[1] * gp[1] + vecB[2] * gp[2]),
+                           vecB);
+        vector3d_scale_add(vecA, gp,
+                           -(vecA[0] * gp[0] + vecA[1] * gp[1] + vecA[2] * gp[2]),
+                           vecA);
+        gx = physics[0xf] * physics[5] - physics[6] * physics[0x10];
+        gy = physics[0x10] * physics[5] + physics[0xf] * physics[6];
+        d[0] = vecB[0] * physics[0xf] + vecA[0] * physics[0x10];
+        d[1] = vecB[1] * physics[0xf] + vecA[1] * physics[0x10];
+        d[2] = vecB[2] * physics[0xf] + vecA[2] * physics[0x10] +
+               physics[0x11];
+        /* material gate: multiply d[2] when material_local == 0 */
+        if (material_local == 0) {
+          d[2] = d[2] * *(float *)0x254cc4;
+        }
+      }
+      normalize3d(d); /* shared normalize at 0x34ea */
     }
 
-    /* ---- slope-response material curve (0x1a34c0..0x1a358f) ---- */
+    /* ---- slope-response curve (0x1a34f6..0x1a358f) ---- */
     {
-      float height; /* [EBP-0x10] */
-      float low; /* [EBP-0x14] */
-      curve_flag = 0; /* set later (0x1a3595) */
-      low = d1 * physics[8 + 6] + d0 * physics[8]; /* [EBP-0x14] from d* dots */
-      /* [EBP-0x14] = vecB.y*ctrl + ... ; [EBP-0x10] = projected height */
-      low = d0 * physics[8] + d1 * physics[9];
-      height = d0 * physics[0xf] + d1 * physics[0x10] + physics[0x11];
-      if (material_local != 0) {
-        height = height * *(float *)0x254cc4; /* 0x1a34e1 */
-      }
-      normalize3d(&d0); /* 0x1a34ee, ST0 discarded */
+      curve_flag = 0;
 
       /* slope-response breakpoint curve (0x1a34f6..0x1a358f). Comparison
        * senses transcribed exactly from the FCOMP/TEST/Jcc pairs:
@@ -3112,36 +3108,32 @@ void FUN_001a2f40(void *physics_arg /* @esi */)
       if (submode != 0) {
         /* 0x1a34fd: submode != 0 -> JNZ 0x358c, curve = magnitude */
         curve_scale = magnitude;
-      } else if (!(height > physics[0x1b])) {
-        curve_scale = magnitude * physics[0x1c]; /* 0x1a3510 FMUL [ESI+0x70] */
-      } else if (height < physics[0x1a]) {
-        /* 0x1a3528 lo segment interp [0x1a..0x1b] */
+      } else if (!(d[2] > physics[0x1b])) {
+        curve_scale = magnitude * physics[0x1c];
+      } else if (d[2] < physics[0x1a]) {
         curve_scale =
-          ((physics[0x1c] - *(float *)0x2533c8) * (height - physics[0x1a]) /
+          ((physics[0x1c] - *(float *)0x2533c8) * (d[2] - physics[0x1a]) /
              (physics[0x1b] - physics[0x1a]) +
            *(float *)0x2533c8) *
           magnitude;
-      } else if (height < physics[0x1e]) {
-        if (height <= physics[0x1d]) {
-          curve_scale = magnitude; /* 0x1a358c FLD [EBP-0x3c] */
+      } else if (d[2] < physics[0x1e]) {
+        if (d[2] <= physics[0x1d]) {
+          curve_scale = magnitude;
         } else {
-          /* 0x1a3568 hi segment interp [0x1d..0x1e] */
           curve_scale =
-            ((physics[0x1f] - *(float *)0x2533c8) * (height - physics[0x1d]) /
+            ((physics[0x1f] - *(float *)0x2533c8) * (d[2] - physics[0x1d]) /
                (physics[0x1e] - physics[0x1d]) +
              *(float *)0x2533c8) *
             magnitude;
         }
       } else {
-        curve_scale = magnitude * physics[0x1f]; /* 0x1a3553 FMUL [ESI+0x7c] */
+        curve_scale = magnitude * physics[0x1f];
       }
 
-      /* damp2 = (1.0 - friction) * curve_scale (0x1a358f..0x1a359c) */
       damp2 = (*(float *)0x2533c8 - physics[0x12]) * curve_scale;
-      /* disp = damp2 * (low, height-related, d2) - velocity (0x1a359e..) */
-      disp[0] = low * damp2 - velocity[0]; /* [EBP-0x68] - [EBX] */
-      disp[1] = height * damp2 - physics[0xc]; /* [EBP-0x64] - [ESI+0x30] */
-      disp[2] = curve_scale * d2 - physics[0xd]; /* (held) */
+      disp[0] = d[0] * damp2 - velocity[0];
+      disp[1] = d[1] * damp2 - physics[0xc];
+      disp[2] = d[2] * damp2 - physics[0xd];
       length3 = normalize3d(disp); /* 0x1a35e2; ST0 -> compare */
       if (length3 < physics[0x13] || length3 == physics[0x13]) {
         /* 0x1a35f2 JNZ 0x1a361f: keep raw disp */
