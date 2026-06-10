@@ -6934,6 +6934,22 @@
       "metadata": {
         "source_path": "src/halo/ai/actor_moving.c"
       }
+    },
+    {
+      "name": "halo/actor_moving_FUN_0002b5d0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_moving.c.obj",
+      "base_path": "delinked/actor_moving_FUN_0002b5d0.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actor_moving.c"
+      }
+    },
+    {
+      "name": "halo/actor_moving_FUN_0002b830",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_moving.c.obj",
+      "base_path": "delinked/actor_moving_FUN_0002b830.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actor_moving.c"
+      }
     }
   ]
 }

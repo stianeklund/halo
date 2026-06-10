@@ -1060,9 +1060,17 @@ build_vector:
  */
 void actor_move_get_avoidance_direction(void)
 {
-  float(*table_a)[7] = (float(*)[7])0x6327e0;
-  float(*table_b)[7] = (float(*)[7])0x6325c0;
-  float(*basis)[3] = (float(*)[3])0x632780;
+  /* First-stage table: 9 rows of 7 floats, base 0x6327e0, stride 0x1c. */
+  float *p_a = (float *)0x6327e0;
+  /* Second-stage table rooted at 0x6325c0; the working outer pointer starts
+   * at 0x6325cc (entry stores reach back via p_b[-3..0] and forward p_b[1..3]).
+   * The outer pointer advances 7 floats per outer iteration; the inner pointer
+   * advances 14 floats (0x38) per inner iteration. */
+  float *outer_b = (float *)0x6325cc;
+  /* Per-column basis vectors, reset to 0x632780 at the start of each outer
+   * iteration (only 8 entries are ever live, stride 0xc). */
+  float *basis;
+  float *p_b;
 
   const float *angle_table_9 = (const float *)0x2557cc;
   const float *scale_table_9 = (const float *)0x2557a8;
@@ -1073,7 +1081,7 @@ void actor_move_get_avoidance_direction(void)
 
   const float *outer_angles = (const float *)0x25581c;
   const float *outer_scales = (const float *)0x255814;
-  const float *inner_angles = (const float *)0x2557f4;
+  const float *inner_angles;
   const float k_inner_base = *(const float *)0x2557f0;
 
   int i;
@@ -1082,7 +1090,6 @@ void actor_move_get_avoidance_direction(void)
   float angle, sin_angle, cos_angle, scaled_angle, sin_scaled, scaled_len;
   float sin_outer, cos_outer, row_scale;
   float inner, cos_inner, sin_inner;
-  int index;
 
   for (i = 0; i < 9; i++) {
     angle = angle_table_9[i];
@@ -1092,13 +1099,14 @@ void actor_move_get_avoidance_direction(void)
     sin_scaled = x87_fsin(scaled_angle);
     scaled_len = k_length * length_table_9[i];
 
-    table_a[i][0] = k_base;
-    table_a[i][1] = 0.0f;
-    table_a[i][2] = scaled_len * cos_angle;
-    table_a[i][3] = scaled_len * sin_angle;
-    table_a[i][4] = x87_fcos(scaled_len);
-    table_a[i][5] = sin_scaled * scaled_angle;
-    table_a[i][6] = sin_scaled * sin_angle;
+    p_a[0] = k_base;
+    p_a[1] = 0.0f;
+    p_a[2] = scaled_len * cos_angle;
+    p_a[3] = scaled_len * sin_angle;
+    p_a[4] = x87_fcos(scaled_angle);
+    p_a[5] = sin_scaled * cos_angle;
+    p_a[6] = sin_scaled * sin_angle;
+    p_a += 7;
   }
 
   for (row = 0; row < 2; row++) {
@@ -1106,24 +1114,37 @@ void actor_move_get_avoidance_direction(void)
     cos_outer = x87_fcos(outer_angles[row]);
     row_scale = outer_scales[row];
 
+    basis = (float *)0x632780;
+    p_b = outer_b;
+    inner_angles = (const float *)0x2557f4;
+
     for (col = 0; col < 8; col++) {
       inner = inner_angles[col];
       cos_inner = x87_fcos(inner);
       sin_inner = x87_fsin(inner);
-      index = row * 8 + col;
 
-      basis[index][0] = 0.0f;
-      basis[index][1] = cos_inner;
-      basis[index][2] = sin_inner;
+      basis[0] = 0.0f;
+      basis[1] = cos_inner;
+      basis[2] = sin_inner;
 
-      table_b[index][0] = k_inner_base;
-      table_b[index][1] = row_scale * basis[index][0];
-      table_b[index][2] = row_scale * basis[index][1];
-      table_b[index][3] = row_scale * basis[index][2];
-      table_b[index][4] = cos_outer;
-      table_b[index][5] = sin_outer * basis[index][1];
-      table_b[index][6] = sin_outer * basis[index][2];
+      /* table_b entry base = p_b + 3 floats:
+       *   [+0] k_inner_base
+       *   [+0x10] row_scale * basis[0..2]
+       *   [+0x1c] sin_outer * basis[0..2], with [+0x1c] then overwritten by
+       *           cos_outer (the sin_outer*basis[0] product is dead). */
+      p_b[-3] = k_inner_base;
+      p_b[-2] = row_scale * basis[0];
+      p_b[-1] = row_scale * basis[1];
+      p_b[0] = row_scale * basis[2];
+      p_b[1] = sin_outer * basis[0];
+      p_b[2] = sin_outer * basis[1];
+      p_b[3] = sin_outer * basis[2];
+      p_b[1] = cos_outer;
+
+      basis += 3;
+      p_b += 14;
     }
+    outer_b += 7;
   }
 }
 
@@ -1185,6 +1206,138 @@ char actor_path_3d_available(int actor_handle, float *dest_pos, float *dist_out)
     *dist_out = local_8;
   }
   return result;
+}
+
+/* 0x2b830 — FUN_0002b830: choose a desired facing vector.
+ *
+ * Builds four candidate facing vectors in a local [4][3] array:
+ *   cand0 = normalized in_vec (z zeroed first when use_3d == 0)
+ *   cand1 = -cand0
+ *   cand2 = world forward (*0x31fc38) when use_3d != 0, else the 2D
+ *           perpendicular (-y, x, 0) of cand0
+ *   cand3 = -cand2
+ * If normalize3d() reports the vector is degenerate (returns the 0.0 sentinel
+ * at 0x2533c0), cand0 falls back to facing_basis (param_1 / @ecx).
+ *
+ * Each candidate is scored by two dot products: against weight_vec (@edi) and
+ * against facing_basis (@ecx). The 3D form is used when use_3d != 0, otherwise
+ * the XY-plane form. The loop keeps the running best (index, score-pair) and
+ * applies a 0.5 tie-break threshold (0x253398) before replacing the best.
+ *
+ * The chosen candidate is written to out_vector and its index to out_index,
+ * then the result is validated as a unit normal (|len^2 - 1| <= ~0.001).
+ *
+ * Register args confirmed from caller FUN_0002daa0 @ 0x2dd9a-0x2ddb4:
+ *   ECX = facing_basis (this+0x174), EAX = in_vec (the desired vector),
+ *   EDI = weight_vec (this+0x524); cdecl stack: use_3d, out_vector, out_index
+ *   (caller cleans 0xc bytes). */
+void FUN_0002b830(float *facing_basis /* @<ecx> */, char use_3d,
+                  float *out_vector, short *out_index,
+                  float *in_vec /* @<eax> */, float *weight_vec /* @<edi> */)
+{
+  float cand[12];
+  float best_weight_dot;
+  float best_basis_dot;
+  float cur_basis_dot;
+  float cur_weight_dot;
+  short best_index;
+  short i;
+  float *p;
+  int chosen;
+
+  /* cand0 = in_vec. */
+  cand[0] = in_vec[0];
+  cand[1] = in_vec[1];
+  cand[2] = in_vec[2];
+
+  if (use_3d == 0) {
+    cand[2] = 0.0f;
+    if (normalize3d(cand) == *(float *)0x2533c0) {
+      cand[0] = facing_basis[0];
+      cand[1] = facing_basis[1];
+      cand[2] = facing_basis[2];
+    }
+    /* cand2 = perpendicular (-y, x, 0). */
+    cand[6] = -cand[1];
+    cand[7] = cand[0];
+    cand[8] = 0.0f;
+  } else {
+    if (normalize3d(cand) == *(float *)0x2533c0) {
+      cand[0] = facing_basis[0];
+      cand[1] = facing_basis[1];
+      cand[2] = facing_basis[2];
+    }
+    /* cand2 = world forward vector. */
+    cand[6] = *(float *)*(int *)0x31fc38;
+    cand[7] = ((float *)*(int *)0x31fc38)[1];
+    cand[8] = ((float *)*(int *)0x31fc38)[2];
+  }
+
+  /* cand1 = -cand0, cand3 = -cand2. */
+  cand[3] = -cand[0];
+  cand[4] = -cand[1];
+  cand[5] = -cand[2];
+  cand[9] = -cand[6];
+  cand[10] = -cand[7];
+  cand[11] = -cand[8];
+
+  best_index = -1;
+  best_weight_dot = 0.0f;
+  best_basis_dot = 0.0f;
+  p = cand;
+  for (i = 0; i < 4; i++) {
+    if (use_3d == 0) {
+      cur_weight_dot = weight_vec[0] * p[0] + weight_vec[1] * p[1];
+      cur_basis_dot = facing_basis[0] * p[0];
+    } else {
+      cur_weight_dot =
+        weight_vec[0] * p[0] + weight_vec[1] * p[1] + weight_vec[2] * p[2];
+      cur_basis_dot = facing_basis[0] * p[0] + facing_basis[2] * p[2];
+    }
+    cur_basis_dot = p[1] * facing_basis[1] + cur_basis_dot;
+
+    if (best_index == -1) {
+      best_weight_dot = cur_weight_dot;
+      best_basis_dot = cur_basis_dot;
+      best_index = i;
+    } else if (cur_weight_dot <= best_weight_dot) {
+      if (best_basis_dot < cur_basis_dot &&
+          *(float *)0x253398 < cur_weight_dot) {
+        best_weight_dot = cur_weight_dot;
+        best_basis_dot = cur_basis_dot;
+        best_index = i;
+      }
+    } else if (best_basis_dot < cur_basis_dot ||
+               best_basis_dot < *(float *)0x253398) {
+      best_weight_dot = cur_weight_dot;
+      best_basis_dot = cur_basis_dot;
+      best_index = i;
+    }
+
+    p += 3;
+  }
+
+  *out_index = best_index;
+  chosen = (int)best_index;
+  out_vector[0] = cand[chosen * 3];
+  out_vector[1] = cand[chosen * 3 + 1];
+  out_vector[2] = cand[chosen * 3 + 2];
+
+  {
+    float err;
+    err = (out_vector[2] * out_vector[2] + out_vector[1] * out_vector[1] +
+           out_vector[0] * out_vector[0]) -
+          *(float *)0x2533c8;
+    if (((*(unsigned int *)&err & 0x7f800000) == 0x7f800000) ||
+        (fabsf(err) >= *(double *)0x2549d8)) {
+      display_assert(csprintf((char *)0x5ab100,
+                              "%s: assert_valid_real_normal3d(%f, %f, %f)",
+                              "desired_facing_vector", (double)out_vector[0],
+                              (double)out_vector[1], (double)out_vector[2]),
+                     "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x764, 1);
+      system_exit(-1);
+    }
+  }
 }
 
 /*
