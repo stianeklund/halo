@@ -516,6 +516,9 @@ void path_from_file_reference(int16_t location, const char *path, char *out)
   csstrcpy(out + csstrlen(out), path);
 }
 
+/* 0x19a450: PUSH EAX (info) at entry — EAX is passed directly to
+ * file_reference_verify (0x199620); [EBP+8] = function_name (only stack arg).
+ * info is a register arg @<eax>; kb.json decl updated accordingly. */
 void file_error(file_ref_t *info, const char *function_name)
 {
   file_ref_t *ref;
