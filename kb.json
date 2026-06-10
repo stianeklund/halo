@@ -30100,7 +30100,7 @@
         },
         {
           "addr": "0x2ade0",
-          "decl": "void FUN_0002ade0(void);"
+          "decl": "void FUN_0002ade0(int actor_handle);"
         },
         {
           "addr": "0x2b020",
