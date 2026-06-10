@@ -3740,7 +3740,7 @@
         {
           "addr": "0x28cc0",
           "decl": "char FUN_00028cc0(float *look_vectors, float *dir_vec, char look_mode, char param4, char is_secondary, int actor_handle @<eax>);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x28ed0",
@@ -19753,7 +19753,7 @@
         },
         {
           "addr": "0x283b0",
-          "decl": "void FUN_000283b0(void);"
+          "decl": "char FUN_000283b0(float *dir_vec @<eax>, int collision_ctx, char is_3d, float yaw_min, float yaw_max, float pitch_min, float pitch_max, float *result_vector);"
         }
       ],
       "name": "vector_math.obj",
