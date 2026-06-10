@@ -1,0 +1,1192 @@
+[
+  {
+    "addr": "0x1c0e0",
+    "name": "FUN_0001c0e0",
+    "object": "actions.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1cfa0",
+    "name": "actor_action_can_stop_conversing",
+    "object": "actions.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1d7c0",
+    "name": "actor_action_set_default_state",
+    "object": "actions.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1dd40",
+    "name": "actor_action_handle_panic_transition",
+    "object": "actions.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1f920",
+    "name": "actor_action_handle_combat_failure",
+    "object": "actions.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x20470",
+    "name": "actor_action_handle_berserk_transition",
+    "object": "actions.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x205a0",
+    "name": "actor_action_handle_grenade_throwing",
+    "object": "actions.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13dd0",
+    "name": "FUN_00013dd0",
+    "object": "actor_looking.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13ef0",
+    "name": "FUN_00013ef0",
+    "object": "actor_looking.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x14e90",
+    "name": "FUN_00014e90",
+    "object": "actor_looking.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x153e0",
+    "name": "FUN_000153e0",
+    "object": "actor_looking.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x169a0",
+    "name": "FUN_000169a0",
+    "object": "actor_looking.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x27a60",
+    "name": "FUN_00027a60",
+    "object": "actor_looking.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x29040",
+    "name": "actor_look_update",
+    "object": "actor_looking.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1bd910",
+    "name": "cache_files_precache_map_begin",
+    "object": "cache_files_windows.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1bda30",
+    "name": "cache_files_precache_map_end",
+    "object": "cache_files_windows.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0xdc7a0",
+    "name": "FUN_000dc7a0",
+    "object": "first_person_weapons.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0xb45c0",
+    "name": "FUN_000b45c0",
+    "object": "game.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0xb4960",
+    "name": "FUN_000b4960",
+    "object": "game.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0xd5350",
+    "name": "FUN_000d5350",
+    "object": "hud_messaging.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x12a000",
+    "name": "network_game_in_progress",
+    "object": "network_game_globals.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x12a160",
+    "name": "network_game_accept_remote_connections",
+    "object": "network_game_globals.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x12a170",
+    "name": "network_game_is_splitscreen_local",
+    "object": "network_game_globals.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x12a1d0",
+    "name": "network_game_server_get",
+    "object": "network_game_globals.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x12a1e0",
+    "name": "dispose_global_network_game_client",
+    "object": "network_game_globals.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x12a240",
+    "name": "network_game_client_get",
+    "object": "network_game_globals.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x12a2d0",
+    "name": "network_game_client_start_frame",
+    "object": "network_game_globals.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x12a500",
+    "name": "network_game_client_end_frame",
+    "object": "network_game_globals.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x12a780",
+    "name": "network_game_abort",
+    "object": "network_game_globals.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x84a10",
+    "name": "real_vector3d_valid",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x84a70",
+    "name": "valid_real_normal3d_perpendicular",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x84fe0",
+    "name": "FUN_00084fe0",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x850d0",
+    "name": "FUN_000850d0",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x85110",
+    "name": "FUN_00085110",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x85150",
+    "name": "FUN_00085150",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x9eb40",
+    "name": "FUN_0009eb40",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x9ec30",
+    "name": "FUN_0009ec30",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1396e0",
+    "name": "object_wake",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13aed0",
+    "name": "object_move_to_limbo",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13d570",
+    "name": "cluster_get_first_noncollideable_object",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13d590",
+    "name": "cluster_get_next_noncollideable_object",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13d5b0",
+    "name": "cluster_partition_object_iter_first",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13d5d0",
+    "name": "cluster_partition_object_iter_next",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13d640",
+    "name": "object_try_and_get_and_verify_type",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13d680",
+    "name": "object_get_and_verify_type",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13d6f0",
+    "name": "object_iterator_new",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13d730",
+    "name": "object_iterator_next",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13d7f0",
+    "name": "object_get_root_parent",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13d920",
+    "name": "object_set_garbage_flag",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13db50",
+    "name": "garbage_collect_now",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13dda0",
+    "name": "object_definition_predict",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13de80",
+    "name": "object_beautify",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13ded0",
+    "name": "object_header_new",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13dfc0",
+    "name": "object_header_block_reference_get",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13e3f0",
+    "name": "object_find_region_permutations_available_with_variant",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13e460",
+    "name": "object_determine_variant_number",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13e510",
+    "name": "object_child_list_remove",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13eb30",
+    "name": "object_scripting_set_collideable",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13eb70",
+    "name": "object_reset_markers",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13ebc0",
+    "name": "object_marker_end",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13ec50",
+    "name": "object_mark",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13ee60",
+    "name": "object_propagate_flag_to_children",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13ef70",
+    "name": "object_name_list_new",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13eff0",
+    "name": "object_remove_from_name_list",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13f060",
+    "name": "objects_place",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13f380",
+    "name": "sort_dumps",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13f3b0",
+    "name": "object_add_to_dump",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13f440",
+    "name": "object_dump_write",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13f810",
+    "name": "objects_initialize",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13f950",
+    "name": "objects_initialize_for_new_map",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13f9f0",
+    "name": "objects_dispose_from_old_map",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13fac0",
+    "name": "objects_dispose",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13fb30",
+    "name": "object_activate",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13fb80",
+    "name": "object_deactivate",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13fbc0",
+    "name": "object_reset",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13fc20",
+    "name": "object_placement_data_new",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13fd00",
+    "name": "object_disconnect_from_map",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13fe70",
+    "name": "object_get_node_matrices",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13fea0",
+    "name": "object_get_child_marker_definition",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13fef0",
+    "name": "object_has_node",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13ff50",
+    "name": "object_set_automatic_deactivation",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x13ffc0",
+    "name": "object_set_garbage",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x140070",
+    "name": "object_get_root_location",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x140130",
+    "name": "object_get_location",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x140160",
+    "name": "object_set_region_count",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x140230",
+    "name": "object_adjust_interpolation_position",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1402c0",
+    "name": "object_permute_region",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1403a0",
+    "name": "object_get_function_value",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x140420",
+    "name": "object_find_in_cluster",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x140720",
+    "name": "object_name_list_get_handle",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1407e0",
+    "name": "object_visible_to_any_player",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1409d0",
+    "name": "object_pvs_activate",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x140a00",
+    "name": "object_select_random_region_permutations_by_variant",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x140b80",
+    "name": "objects_scripting_set_scale",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x140bc0",
+    "name": "object_delete_internal",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x140cc0",
+    "name": "object_delete",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x140ce0",
+    "name": "object_connect_to_map",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x140eb0",
+    "name": "object_get_node_matrix",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x140f10",
+    "name": "object_get_markers_by_string_id",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x141020",
+    "name": "object_compute_child_marker_position",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1411c0",
+    "name": "object_detach_from_parent",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1412f0",
+    "name": "object_get_world_position",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x141360",
+    "name": "object_get_orientation",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x141480",
+    "name": "object_get_world_matrix",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1415f0",
+    "name": "object_find_in_radius",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x141b70",
+    "name": "object_compute_node_matrices",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x143510",
+    "name": "objects_scripting_detach",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x143a00",
+    "name": "attachments_delete",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x143ae0",
+    "name": "object_set_position",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x143be0",
+    "name": "object_translate",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x143c80",
+    "name": "object_new",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x144240",
+    "name": "object_attach_to_parent",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1443f0",
+    "name": "object_try_place",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1446a0",
+    "name": "object_update_children_recursive",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x144770",
+    "name": "object_new_from_scenario",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x144860",
+    "name": "object_attach_to_marker",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1449b0",
+    "name": "object_delete_recursive",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x144b30",
+    "name": "objects_garbage_collection",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x144b50",
+    "name": "objects_garbage_collect_tick",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x145170",
+    "name": "objects_update",
+    "object": "objects.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0xa1fd0",
+    "name": "particle_new",
+    "object": "particles.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x10c390",
+    "name": "FUN_0010c390",
+    "object": "random_math.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x12f10",
+    "name": "magnitude3d",
+    "object": "vector_math.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x10bbc0",
+    "name": "vectors3d_from_euler_angles3d",
+    "object": "real_math.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x10fd90",
+    "name": "quantize_real_to_byte_rectangle3d",
+    "object": "real_math.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1913c0",
+    "name": "reference_list_remove",
+    "object": "structures.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x191660",
+    "name": "cluster_partition_iter_next",
+    "object": "structures.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1917a0",
+    "name": "cluster_partition_add_object",
+    "object": "structures.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1919a0",
+    "name": "cluster_partition_remove_object",
+    "object": "structures.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x191a50",
+    "name": "cluster_partition_iter_first",
+    "object": "structures.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1a0b30",
+    "name": "FUN_001a0b30",
+    "object": "bipeds.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1a1a10",
+    "name": "FUN_001a1a10",
+    "object": "bipeds.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1a1b90",
+    "name": "biped_approximate_surface_index",
+    "object": "bipeds.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1a1e70",
+    "name": "FUN_001a1e70",
+    "object": "bipeds.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1a2160",
+    "name": "FUN_001a2160",
+    "object": "bipeds.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1a2290",
+    "name": "FUN_001a2290",
+    "object": "bipeds.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1a25e0",
+    "name": "FUN_001a25e0",
+    "object": "bipeds.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1a2a60",
+    "name": "FUN_001a2a60",
+    "object": "bipeds.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1a2b10",
+    "name": "FUN_001a2b10",
+    "object": "bipeds.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1a2f40",
+    "name": "FUN_001a2f40",
+    "object": "bipeds.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1bea30",
+    "name": "xbox_texture_cache_steal_memory",
+    "object": "xbox_texture_cache.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1beb10",
+    "name": "xbox_texture_cache_return_memory",
+    "object": "xbox_texture_cache.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1beba0",
+    "name": "bitmap_format_to_d3d_linear_format",
+    "object": "xbox_texture_cache.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1bf570",
+    "name": "xbox_texture_cache_get_hardware_format",
+    "object": "xbox_texture_cache.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x17ffc0",
+    "name": "FUN_0017ffc0",
+    "object": "rasterizer_text.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1800b0",
+    "name": "FUN_001800b0",
+    "object": "rasterizer_text.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1807d0",
+    "name": "FUN_001807d0",
+    "object": "rasterizer_text.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1808f0",
+    "name": "FUN_001808f0",
+    "object": "rasterizer_text.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x180b10",
+    "name": "FUN_00180b10",
+    "object": "rasterizer_text.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x180d10",
+    "name": "FUN_00180d10",
+    "object": "rasterizer_text.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x181a90",
+    "name": "FUN_00181a90",
+    "object": "rasterizer_text.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x181c20",
+    "name": "FUN_00181c20",
+    "object": "rasterizer_text.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1824e0",
+    "name": "rasterizer_memory_pool_new",
+    "object": "rasterizer_text.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x182690",
+    "name": "rasterizer_swizzle_compute_masks",
+    "object": "rasterizer_text.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1827c0",
+    "name": "rasterizer_swizzle_interleave_bits",
+    "object": "rasterizer_text.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x183390",
+    "name": "FUN_00183390",
+    "object": "rasterizer_text.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x184260",
+    "name": "rasterizer_transparent_geometry_new",
+    "object": "rasterizer_text.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x184300",
+    "name": "rasterizer_transparent_geometry_begin",
+    "object": "rasterizer_text.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x1844b0",
+    "name": "rasterizer_transparent_geometry_group_to_presorted_index",
+    "object": "rasterizer_text.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x2b5d0",
+    "name": "actor_move_get_avoidance_direction",
+    "object": "actor_moving.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x2d350",
+    "name": "actor_destination_update",
+    "object": "actor_moving.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x2cdb0",
+    "name": "actor_path_refresh",
+    "object": "actor_moving.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x58700",
+    "name": "FUN_00058700",
+    "object": "encounters.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x58710",
+    "name": "FUN_00058710",
+    "object": "encounters.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x58ae0",
+    "name": "FUN_00058ae0",
+    "object": "encounters.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x5a5a0",
+    "name": "encounter_link_activation",
+    "object": "encounters.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x5ba70",
+    "name": "encounter_force_activate",
+    "object": "encounters.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x5baa0",
+    "name": "encounter_force_deactivate",
+    "object": "encounters.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x994d0",
+    "name": "plane_negate",
+    "object": "geometry.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  },
+  {
+    "addr": "0x106510",
+    "name": "convex_polygon2d_clip_to_plane",
+    "object": "geometry.obj",
+    "reason": "pre-gate baseline 2026-06-10",
+    "since": "2026-06-10"
+  }
+]

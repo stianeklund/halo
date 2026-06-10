@@ -2423,7 +2423,7 @@ void game_engine_player_added(int player_data_handle)
       /* No client info: use counter with wrap-around to bit 0 */
       *(uint8_t *)(player_datum + 0x66) = *(uint8_t *)0x5aa724;
       *(int32_t *)(player_datum + 0x20) = (int32_t)(*(uint8_t *)0x5aa724);
-      v = *(int32_t *)0x5aa724 + 1;
+      v = *(int32_t *)0x5aa724 + 1; /* hazard-ok: value-arithmetic (team round-robin counter +1) */
       /* AND with 0x80000001 then sign-extend (MSVC idiom for mod 2) */
       v &= 0x80000001;
       if (v < 0)
@@ -3199,11 +3199,18 @@ char FUN_000a9ff0(void)
   return 0;
 }
 
-/* Initialize the default map name and game variant for multiplayer. */
-void game_engine_playlist_next(void)
+/* Initialize the default map name and game variant for multiplayer.
+ *
+ * Callers push 3 cdecl args (e.g. 0xae750: PUSH 2; PUSH 0; PUSH 0) but this
+ * body never reads [EBP+8/C/10] — only game_variant_type is named by usage
+ * intent; param_2 and param_3 are declared for ABI completeness (unused). */
+void game_engine_playlist_next(int game_variant_type, int param_2, int param_3)
 {
   char *map_name;
   char local_6c[104];
+  (void)game_variant_type;
+  (void)param_2;
+  (void)param_3;
 
   csstrncpy((char *)0x5aa760, "levels\\test\\carousel\\carousel", 0x3f);
   map_name = main_get_multiplayer_map_name();
@@ -3810,7 +3817,8 @@ void game_engine_playlist_initialize(void)
 
 {
 
-  game_engine_playlist_next();
+  /* 0xae750: PUSH 2; PUSH 0; PUSH 0 → game_variant_type=2, param_2=0, param_3=0 */
+  game_engine_playlist_next(2, 0, 0);
 
 }
 
@@ -4888,7 +4896,7 @@ int game_engine_remap_weapon(int param_1)
 
 /* Show score messages to you, allies, and enemies. */
 
-void game_show_score_you_ally_enemy(int param_1, int param_2, int param_3, int param_4)
+void game_show_score_you_ally_enemy(int param_1, int param_2, int param_3, int param_4, int param_5)
 
 {
 
@@ -4938,9 +4946,11 @@ void game_show_score_you_ally_enemy(int param_1, int param_2, int param_3, int p
 
     }
 
+    /* Original 0xad09b: ECX=iter handle, EAX=param_5 (other-player handle
+     * for %s formatting), EBX=msg (message type). */
     if (msg != -1)
 
-      game_engine_hud_update_player(iter.datum_handle, msg, param_1);
+      game_engine_hud_update_player(iter.datum_handle, param_5, msg);
 
     player = (int)data_iterator_next(&iter);
 
@@ -6999,7 +7009,7 @@ float FUN_000adb20(int spawn_pos)
     if (*(float *)0x254644 < rating)
       rating = 3.0f;
   }
-  return rating * *(float *)0x254644 + 1.0f; }
+  return rating * *(float *)0x254644 + 1.0f; } /* hazard-ok: value-arithmetic (multiplied scale + offset) */
 }
 
 /* Compute the combined spawn location rating. EAX = player_handle. */
@@ -7154,7 +7164,8 @@ char FUN_000b3630(int weapon_handle, int player_handle)
       return 1;
     }
   } else {
-    game_show_score_you_ally_enemy(player_handle, 0x1e, 0x1f, 0x20);
+    game_show_score_you_ally_enemy(player_handle, 0x1e, 0x1f, 0x20,
+                                   player_handle);
   }
   return 1;
 }
@@ -7367,7 +7378,9 @@ void FUN_000b0000(int player_handle, int team, int flag_weapon)
   *(int16_t *)(player + 0xc4) = *(int16_t *)(player + 0xc4) + 1;
   { char event = (-(uint32_t)(*(int *)(player + 0x20) != 0) & 0xfffffffd) + 0xd;
   game_engine_post_event(event); }
-  game_show_score_you_ally_enemy(player_handle, 0x1f, 0x20, 0x21);
+  /* Original 0xb00ac pushes (you=0x1f, enemy=0x21, ally=0x20, player). */
+  game_show_score_you_ally_enemy(player_handle, 0x1f, 0x21, 0x20,
+                                 player_handle);
 }
 
 /* Race: score a lap completion for a player (b39a0). EAX = player_handle. */
@@ -7385,8 +7398,15 @@ void FUN_000b39a0(int player_handle)
   *(uint32_t *)(0x456f54 + (player_handle & 0xffff) * 4) = 0;
   game_engine_post_event(0x2a);
   *(int16_t *)(player + 0xc0) = (int16_t)lap_time;
-  game_engine_get_variant();
-  game_show_score_you_ally_enemy(player_handle, 0, 0, 0);
+  /* Original 0xb39f1: variant+0x4c == 2 selects (0x21, 0x22) messages,
+   * otherwise (0x1e, 0x1f); ally message is 0x20 in both cases. */
+  variant = (int)game_engine_get_variant();
+  if (*(int *)(variant + 0x4c) == 2)
+    game_show_score_you_ally_enemy(player_handle, 0x21, 0x22, 0x20,
+                                   player_handle);
+  else
+    game_show_score_you_ally_enemy(player_handle, 0x1e, 0x1f, 0x20,
+                                   player_handle);
   if (*(int16_t *)(player + 0xc2) == 0) {
     *(int16_t *)(player + 0xc4) = (int16_t)lap_time;
   } else if (lap_time < *(int16_t *)(player + 0xc4)) {
@@ -7437,7 +7457,10 @@ void FUN_000b39a0(int player_handle)
   }
 }
 
-/* CTF: check if position is within radius of a team's flag. EAX = team_index. */
+/* CTF: check if position is within radius of a team's flag.
+ * EAX = team_index (@<eax>), ECX = position ptr (@<ecx> — TEST ECX,ECX at
+ * 0xb0a75, FSUB [ECX] at 0xb0a86), [EBP+8] = radius (FLD [EBP+8] at 0xb0a4).
+ * kb.json decl updated to add @<ecx> on position. */
 char FUN_000b0a70(int team_index, float *position, float radius)
 {
   float *flag_pos;
@@ -7731,7 +7754,8 @@ int FUN_000b0ed0(int weapon_handle, int player_handle)
             *(char *)(0x456b90 + flag_team) = 0;
             *(int *)(0x456b94 + flag_team * 4) = 0;
             *(int16_t *)(player + 0xc2) = *(int16_t *)(player + 0xc2) + 1;
-            game_show_score_you_ally_enemy(player_handle, 0x23, 0x28, 0x26);
+            game_show_score_you_ally_enemy(player_handle, 0x23, 0x28, 0x26,
+                                           player_handle);
             { char event = (-(uint32_t)(*(int *)(player + 0x20) != 0) & 0xfffffffd) + 0xc;
             game_engine_post_event(event); }
           }
@@ -7752,7 +7776,8 @@ int FUN_000b0ed0(int weapon_handle, int player_handle)
           game_engine_post_event(event); }
           *(char *)(0x456b90 + flag_team) = 1;
           *(int *)(0x456b94 + flag_team * 4) = 0;
-          game_show_score_you_ally_enemy(player_handle, -1, 0x27, 0x24);
+          game_show_score_you_ally_enemy(player_handle, -1, 0x27, 0x24,
+                                         player_handle);
         }
       }
     }
@@ -7955,12 +7980,13 @@ find_slot:
     variant = (int)game_engine_get_variant();
     is_team_mode = *(int *)(variant + 0x5c) >= 1 && *(int *)(variant + 0x5c) <= 2;
     game_show_score_you_ally_enemy(param_2,
-        is_team_mode ? 0x03 : 0x21, 0x22, 0x23);
+        is_team_mode ? -1 : 0x21, 0x22, 0x23, param_2);
     *(int *)(0x456ecc + capture_idx * 4) = param_2; }
   }
 clear_dead:
-  /* Note: game_show_score_you_ally_enemy above uses 0x03 for team mode
-   * and 0x21 for FFA mode, matching the decompile's -(uint)bVar1 & 0xffffffde + 0x21 pattern. */
+  /* Note: game_show_score_you_ally_enemy above suppresses the self message
+   * (-1) in team mode and uses 0x21 in FFA: the decompile's
+   * (-(uint)bVar1 & 0xffffffde) + 0x21 is -1 when bVar1==1, 0x21 when 0. */
   i = 0;
   if (0 < num_balls) {
     do {

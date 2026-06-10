@@ -95,3 +95,21 @@ jobs:
             --head-ref HEAD \
             --github-summary \
             --fail-on-regression
+
+  DeactivationGate:
+    name: Block non-allowlisted port deactivations
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone Tree
+        uses: actions/checkout@v3
+
+      - name: Check for non-allowlisted deactivations
+        run: |
+          python3 tools/audit/check_ported_deactivations.py --check
+          RC=$?
+          if [ $RC -ne 0 ]; then
+            printf '## ❌ Non-allowlisted Port Deactivations\n\nA function was flipped to `ported: false` without an allowlist entry.\nSee `tools/audit/deactivation_allowlist.json` and the job log.\n' >> "$GITHUB_STEP_SUMMARY"
+          else
+            printf '## ✅ Port Deactivation Gate\n\nAll active deactivations are in the allowlist.\n' >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit $RC

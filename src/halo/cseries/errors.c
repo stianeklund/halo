@@ -735,7 +735,7 @@ int FUN_0008f6b0(void)
     } while (i < *(int16_t *)0x3361b0);
   }
 
-  new_frame = *(int32_t *)0x3361ac + 1;
+  new_frame = *(int32_t *)0x3361ac + 1; /* hazard-ok: value-arithmetic (next frame index) */
   *(uint8_t *)0x3361aa = 0;
   *(int32_t *)0x3361ac = new_frame % 0x78;
   return new_frame / 0x78;

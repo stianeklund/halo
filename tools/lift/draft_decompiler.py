@@ -567,6 +567,94 @@ def rewrite(text):
     return text
 
 
+# ---------------------------------------------------------------------------
+# Hazard annotation pass (comment-only; does NOT rewrite code)
+# ---------------------------------------------------------------------------
+import re as _re
+
+_LOOP_KW_ANN = _re.compile(r'\b(for|while|do)\b')
+_LOCAL_DECL_ANN = _re.compile(
+    r'^\s+(?:undefined\d*|char|short|int|long|float|double)\s+'
+    r'(local_[0-9a-fA-F]+|[a-zA-Z_]\w*Stack_[0-9a-fA-F]+)\s*(?:\[\d+\])?\s*;'
+)
+_PTR_FROM_INT_ANN = _re.compile(
+    r'=\s*\(\s*(?:short|char|int|uint\w*|int\w*)\s*\*\s*\)\s*\(\s*(?:unsigned\s+)?int\s*\)\s*'
+)
+_ADDR_OF_LOCAL_ANN = _re.compile(r'&(local_[0-9a-fA-F]+|[a-zA-Z_]\w*Stack_[0-9a-fA-F]+)')
+_FLOAT_ZERO_ANN = _re.compile(r'\(float\)\s*0\b|= 0\.0f\b|= 0\.0\b')
+_FILD_LOAD_ANN = _re.compile(r'FILD\s+\[EBP')
+
+
+def annotate_hazards(text):
+    """Inject HAZARD comments for patterns the rewriter cannot safely rewrite.
+
+    This is an ADVISORY pass: comments only, no code changes.
+    Patterns detected:
+      §6: float bits stored via (T*)(int)(expr) assignment
+      §8: possible running accumulator (loop body with float 0 / FILD load)
+      §2: &local_XX passed to a call with adjacent locals in declared range
+
+    Returns the annotated text (idempotent).
+    """
+    lines = text.splitlines(keepends=True)
+    out = []
+
+    # Build local decl table for §2 check
+    local_offsets = {}
+    for line in lines:
+        m = _LOCAL_DECL_ANN.match(line)
+        if m:
+            name = m.group(1)
+            suffix_m = _re.search(r'([0-9a-fA-F]+)$', name)
+            if suffix_m:
+                local_offsets[name] = int(suffix_m.group(1), 16)
+
+    in_loop = 0
+    for i, line in enumerate(lines):
+        stripped = line.rstrip('\r\n')
+        ann = None
+
+        # §6: bit-smuggling assignment
+        if _PTR_FROM_INT_ANN.search(line) and '/* HAZARD' not in line:
+            ann = '/* HAZARD §6: float bits smuggled through pointer cast — use memcpy/union */'
+
+        # §8: accumulator pattern inside loop
+        if in_loop > 0 and not ann and '/* HAZARD' not in line:
+            if _FLOAT_ZERO_ANN.search(line):
+                ann = '/* HAZARD §8: (float)0 or 0.0f inside loop — verify this is not a running accumulator seed; see lift-learnings §8 */'
+
+        # §2: address-of-local with call context
+        if not ann and '/* HAZARD' not in line:
+            addr_m = _ADDR_OF_LOCAL_ANN.search(line)
+            if addr_m and '(' in line:  # passed to a call
+                local_name = addr_m.group(1)
+                if local_name in local_offsets:
+                    base = local_offsets[local_name]
+                    # Check if any adjacent locals exist in range [base-0x80, base+0x80]
+                    adjacent = [
+                        n for n, off in local_offsets.items()
+                        if n != local_name and abs(off - base) < 0x80
+                    ]
+                    if adjacent:
+                        ann = '/* HAZARD §2: address-of-local passed to callee — verify buffer contiguity/frame map; adjacent locals: %s */' % ', '.join(adjacent[:4])
+
+        # Brace tracking for loop detection
+        open_braces = line.count('{')
+        close_braces = line.count('}')
+        if _LOOP_KW_ANN.search(line):
+            in_loop += open_braces - close_braces + 1
+        else:
+            in_loop = max(0, in_loop + open_braces - close_braces)
+
+        if ann:
+            eol = '\r\n' if line.endswith('\r\n') else '\n' if line.endswith('\n') else ''
+            out.append(stripped + '  ' + ann + eol)
+        else:
+            out.append(line)
+
+    return ''.join(out)
+
+
 def stats_report():
     """Return a human-readable table of transform counts."""
     lines = ['Transform counts:']
@@ -755,6 +843,8 @@ def main():
                         help='Print transform statistics after rewriting.')
     parser.add_argument('-o', '--output', metavar='FILE',
                         help='Write output to FILE instead of stdout.')
+    parser.add_argument('--no-annotate', action='store_true',
+                        help='Skip hazard annotation pass (rewrite only).')
     args = parser.parse_args()
 
     if args.self_test:
@@ -778,6 +868,8 @@ def main():
 
     reset_counts()
     out = rewrite(text)
+    if not args.no_annotate:
+        out = annotate_hazards(out)
 
     if args.output:
         with open(args.output, 'w', encoding='utf-8') as f:

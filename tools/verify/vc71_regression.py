@@ -2,6 +2,11 @@
 """
 vc71_regression.py — Track VC71 match scores and detect regressions.
 
+STATUS: Active.  Generates and updates tools/verify/vc71_scores.json which is
+committed to the repo.  The scores file is consumed by tools/analysis/frontier.py,
+tools/llm_auto_lift.py (liftability scoring), and tools/equivalence/batch_equivalence.py
+(priority queue).  No auto-callers; run manually after bulk lifts.
+
 Manages tools/verify/vc71_scores.json (committed to repo), which records the
 expected minimum VC71 match percentage for each ported function. Used to catch
 edits that silently degrade byte-match quality.

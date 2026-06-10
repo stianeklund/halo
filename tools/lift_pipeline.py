@@ -531,6 +531,65 @@ def run_pipeline(args: argparse.Namespace) -> int:
     stages.append(StageResult("hazard_scan", ran=False, ok=True,
                               details="skipped (no source path)"))
 
+  # --- buffer-alias detector (runs on source file; HIGH-RISK fails strict policy) ---
+  if target.source_path:
+    alias_json = artifact_dir / "buffer_alias_hits.json"
+    alias_cmd = [
+      "python3", "tools/lift/buffer_alias_detector.py",
+      "--json-output", str(alias_json),
+      "--quiet",
+      target.source_path,
+    ]
+    alias_proc = run_command(alias_cmd, cwd=ROOT, log_path=artifact_dir / "buffer_alias.log")
+    alias_has_high_risk = alias_proc.returncode == 1
+    # Under strict policy HIGH-RISK hits block progression; other policies only warn
+    strict = (args.verify_policy == "strict")
+    alias_ok = not alias_has_high_risk or not strict
+    if alias_has_high_risk:
+      alias_detail = "HIGH-RISK buffer-alias hits detected"
+      if not strict:
+        alias_detail += " (WARN; use --verify-policy strict to block)"
+    elif alias_proc.returncode == 0:
+      alias_detail = "clean"
+    else:
+      alias_detail = "skipped or error"
+    stages.append(StageResult("buffer_alias", ran=True, ok=alias_ok, details=alias_detail))
+    if not alias_ok:
+      return finalize(summary, stages, artifact_dir, ok=False, quiet=args.quiet)
+  else:
+    stages.append(StageResult("buffer_alias", ran=False, ok=True,
+                              details="skipped (no source path)"))
+
+  # --- frame-map check (opt-in: --frame-map-check; requires cached disasm context) ---
+  if getattr(args, 'frame_map_check', False) and target.source_path:
+    cache_dir = ROOT / "artifacts" / "auto_lift" / "context_cache"
+    addr_key = target.addr.lstrip('0x').lstrip('0') or '0' if target.addr else ''
+    func_name = target.name or f"FUN_{int(target.addr, 16):08x}"
+    cache_file = cache_dir / f"{func_name}.json"
+    if cache_file.exists():
+      fm_json = artifact_dir / "frame_map.json"
+      fm_cmd = [
+        "python3", "tools/lift/frame_map.py",
+        "--context-cache", str(cache_file),
+        "--func", func_name,
+        "--json-out", str(fm_json),
+        target.source_path,
+      ]
+      fm_proc = run_command(fm_cmd, cwd=ROOT, log_path=artifact_dir / "frame_map.log")
+      fm_ok = fm_proc.returncode == 0
+      fm_detail = "clean" if fm_ok else "frame-map validation errors detected"
+      stages.append(StageResult("frame_map", ran=True, ok=fm_ok, details=fm_detail))
+      if not fm_ok:
+        # frame-map failures are advisory in default mode; only fail under strict
+        if args.verify_policy == "strict":
+          return finalize(summary, stages, artifact_dir, ok=False, quiet=args.quiet)
+    else:
+      stages.append(StageResult("frame_map", ran=False, ok=True,
+                                details="skipped (no cached context)"))
+  elif getattr(args, 'frame_map_check', False):
+    stages.append(StageResult("frame_map", ran=False, ok=True,
+                              details="skipped (no source path)"))
+
   risk_assessment = assess_verify_risk(target, args.verify_risk_threshold)
   trigger_text = ",".join(risk_assessment.triggers) if risk_assessment.triggers else "none"
 
@@ -973,7 +1032,27 @@ def run_pipeline(args: argparse.Namespace) -> int:
       policy_ok = True
       reason = "accepted"
 
-      if vc71_has_fpu_warn and not equivalence_ok and (match_source == "vc71" or objdiff_match_pct is None):
+      # goal90 preset: >=90 commit, 85-89 permuter-recommended (WARN not FAIL),
+      # 65-85 structural-cap check, <65 assume lift bug.
+      if args.verify_policy == "goal90":
+        if best_match_pct >= 90.0:
+          policy_ok = True
+          reason = "goal90: >=90% — commit"
+        elif best_match_pct >= 85.0:
+          policy_ok = True  # WARN only; skill should attempt one permute pass
+          reason = f"goal90: {best_match_pct:.1f}% in 85-89 band — permuter recommended before commit"
+        elif best_match_pct >= 65.0:
+          policy_ok = False
+          reason = f"goal90: {best_match_pct:.1f}% in 65-85 band — check structural cap; one Opus escalation allowed"
+        else:
+          policy_ok = False
+          reason = f"goal90: {best_match_pct:.1f}% <65 — assume lift bug, revert"
+        details.append(f"verdict={'PASS' if policy_ok else 'FAIL'}")
+        details.append(f"reason={reason}")
+        stages.append(StageResult("low_match_policy", ran=True, ok=policy_ok, details=" ".join(details)))
+        if not policy_ok:
+          return finalize(summary, stages, artifact_dir, ok=False, quiet=args.quiet)
+      elif vc71_has_fpu_warn and not equivalence_ok and (match_source == "vc71" or objdiff_match_pct is None):
         policy_ok = False
         reason = "FPU operand-order warnings present"
       elif best_match_pct < args.low_match_reject_below:
@@ -1189,8 +1268,8 @@ def build_parser() -> argparse.ArgumentParser:
                   help="Lifted function address (required for --verify-auto).")
   ap.add_argument("--verify-output", default="",
                   help="Output path for generated verify payload (defaults to artifact dir).")
-  ap.add_argument("--verify-policy", choices=["manual", "auto", "strict"], default="auto",
-                  help="Verification policy: manual=only explicit flags, auto=enable verify for risky functions when inputs exist, strict=fail if risky function cannot be verified.")
+  ap.add_argument("--verify-policy", choices=["manual", "auto", "strict", "goal90"], default="auto",
+                  help="Verification policy: manual=only explicit flags; auto=enable verify for risky functions when inputs exist; strict=fail if risky function cannot be verified; goal90=goal-lift preset (>=90%% commit, 85-89%% permute-recommended, <85%% fail).")
   ap.add_argument("--verify-risk-threshold", type=int, default=3,
                   help="Risk score threshold for policy-driven verify decisions.")
 
@@ -1249,6 +1328,11 @@ def build_parser() -> argparse.ArgumentParser:
   ap.add_argument("--no-metadata-update", action="store_true",
                   help="Do not update kb_meta status.")
 
+  ap.add_argument("--frame-map-check", action="store_true",
+                  help="Opt-in: derive MSVC frame map from cached disasm and validate that "
+                       "all addr-taken slot regions are covered by a single C local "
+                       "(§2 stack-aliasing contract check, tools/lift/frame_map.py). "
+                       "Requires a cached context pack; WARN under auto, FAIL under strict.")
   ap.add_argument("--permute", action="store_true",
                   help="When VC71 match falls in [85, 98], spawn a permuter "
                        "pass via tools/permuter/run.py. Reports best score; "
