@@ -13,6 +13,26 @@ Usage:
     python3 tools/audit/check_arg_counts.py --callee 0xacff0
     python3 tools/audit/check_arg_counts.py --check       # exit 1 on any HIGH
     python3 tools/audit/check_arg_counts.py --self-test
+
+Known limitations (verified false-positive mechanisms):
+  1. fstp-to-[esp] float passing: MSVC passes floats via PUSH <dummy>; FSTP
+     [ESP]; the PUSH is counted but the actual float value comes from the FPU.
+     This does not affect stack-slot counting (the slot is still there) but
+     the dummy push value is not the actual argument.
+  2. Args pushed before an inner call (outside window): when a caller pushes
+     args for callee A, then calls callee B, then calls callee A, the pushes
+     for A fall outside the PUSH_SCAN_BACKWARD window and are missed.
+  3. Combined cleanup of back-to-back calls: if two consecutive cdecl calls
+     share one ADD ESP,N that cleans up both, the cleanup for the first call
+     appears as 0 (no ADD ESP before the second CALL) and the cleanup for the
+     second call is inflated by the first call's arg count.
+  4. Callee-save pushes attributed as args: PUSH EBX/ESI/EDI immediately
+     before a CALL in the backward scan window are miscounted as argument
+     pushes.  This is rare because cf-terminators reset the scan.
+  5. ADD ESP belonging to an adjacent call: the forward scan (up to
+     CLEANUP_SCAN_FORWARD instructions) stops at the next CALL or branch, so
+     this is largely mitigated, but tight back-to-back calls can still
+     confuse the attribution.
     python3 tools/audit/check_arg_counts.py -v            # verbose per-site detail
 """
 
@@ -152,12 +172,58 @@ _REG_ANNOTATION_RE = re.compile(
 )
 
 
+_WIDE_TYPE_RE = re.compile(r"\b(double|__int64|u?int64_t|long\s+long)\b")
+
+
+def _param_slots(param: str) -> int:
+    """Stack dword slots one parameter occupies: 64-bit value types
+    (double, __int64, int64_t, uint64_t, long long) take 2 slots;
+    pointers (including pointers to 64-bit types) and everything else
+    take 1.  ADD ESP,N counts slots, not parameters."""
+    if "*" in param:
+        return 1
+    if _WIDE_TYPE_RE.search(param):
+        return 2
+    return 1
+
+
+_FASTCALL_RE = re.compile(r'\b__fastcall\b')
+
+# Non-floating, non-64-bit param types that __fastcall passes in ECX/EDX.
+# A param is a "register candidate" when it is not a 64-bit type, not a float,
+# not a double, and does not already carry a @<reg> annotation.
+_FLOAT_TYPE_RE  = re.compile(r'\bfloat\b')
+
+
+def _is_fastcall_reg_candidate(param: str) -> bool:
+    """True when a parameter would be placed in ECX or EDX by __fastcall.
+
+    __fastcall puts the first two integer/pointer-sized (<=32-bit) params in
+    ECX and EDX.  64-bit values (double, __int64, etc.) and float params are
+    passed on the stack even under __fastcall.
+    """
+    if _REG_ANNOTATION_RE.search(param):
+        return False          # already annotated — don't double-count
+    if "*" in param:
+        return True           # pointers always fit in a register
+    if _WIDE_TYPE_RE.search(param):
+        return False          # 64-bit → stack
+    if _FLOAT_TYPE_RE.search(param):
+        return False          # float → stack (FPU-passed under fastcall too)
+    return True
+
+
 def parse_decl(decl: str) -> Tuple[Optional[int], Optional[int]]:
     """
-    Parse a C function declaration and return (stack_args, reg_args).
+    Parse a C function declaration and return (stack_slots, reg_args).
 
     Returns (None, None) for varargs functions or unparseable decls.
-    stack_args = total params - reg_args.
+    stack_slots = sum of dword slots of non-@reg params (64-bit types = 2).
+
+    For __fastcall declarations the first two integer/pointer-typed params
+    (that are not already @<reg>-annotated) are counted as register args and
+    excluded from the stack slot total, matching the x86 __fastcall ABI
+    (ECX/EDX receive the first two eligible params; callers do not push them).
     """
     paren_start = decl.find("(")
     paren_end = decl.rfind(")")
@@ -180,9 +246,31 @@ def parse_decl(decl: str) -> Tuple[Optional[int], Optional[int]]:
     # Filter out empty segments that can arise from trailing commas
     params = [p for p in params if p.strip()]
 
-    total = len(params)
-    reg_count = sum(1 for p in params if _REG_ANNOTATION_RE.search(p))
-    stack_args = total - reg_count
+    is_fastcall = bool(_FASTCALL_RE.search(decl))
+
+    if is_fastcall:
+        # Under __fastcall, the first two register-eligible params go in
+        # ECX/EDX and are NOT pushed by the caller.
+        fastcall_reg_budget = 2
+        reg_count_from_annotations = sum(
+            1 for p in params if _REG_ANNOTATION_RE.search(p))
+        stack_args = 0
+        extra_reg = 0
+        for p in params:
+            if _REG_ANNOTATION_RE.search(p):
+                # Explicit @<reg> annotation — already a register arg.
+                continue
+            if fastcall_reg_budget > 0 and _is_fastcall_reg_candidate(p):
+                extra_reg += 1
+                fastcall_reg_budget -= 1
+            else:
+                stack_args += _param_slots(p)
+        reg_count = reg_count_from_annotations + extra_reg
+    else:
+        reg_count = sum(1 for p in params if _REG_ANNOTATION_RE.search(p))
+        stack_args = sum(
+            _param_slots(p) for p in params if not _REG_ANNOTATION_RE.search(p))
+
     return stack_args, reg_count
 
 
@@ -586,6 +674,14 @@ def _self_test() -> None:
          3, 0, "function pointer param"),
         ("void bar(int a, int b@<esi>, int c@<ecx>, int d);",
          2, 2, "mixed inline annotations"),
+        ("double floor(double x);",
+         2, 0, "double param = 2 dword slots"),
+        ("void baz(double a, float b, double *c, __int64 d);",
+         6, 0, "64-bit slot counting (2+1+1+2)"),
+        # __fastcall: first two integer/pointer params → ECX/EDX (2 reg args),
+        # remaining params go on stack (2 stack slots for uint32_t + uint32_t *).
+        ("void __fastcall f(int a, int32_t *b, uint32_t c, uint32_t *d);",
+         2, 2, "__fastcall: 2 reg + 2 stack"),
     ]
 
     all_pass = True
