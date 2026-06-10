@@ -7136,7 +7136,7 @@ void actor_look_update(int actor_handle)
   float cos_angles[2];
   short look_spec_type;
   float constrain_range;
-  int aim_threshold;
+  float aim_threshold;
   int look_data_mode;
   int look_mode;
   int secondary_mode;
@@ -7171,18 +7171,33 @@ void actor_look_update(int actor_handle)
   strict_look = 0;
 
   if (!valid_real_normal3d(desired_facing)) {
-    display_assert("&actor->control.desired_facing_vector",
-                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x44f, 1);
+    display_assert(
+      csprintf(error_string_buffer,
+               "%s: assert_valid_real_normal3d(%f, %f, %f)",
+               "&actor->control.desired_facing_vector",
+               (double)desired_facing[0], (double)*(float *)(actor + 0x5a8),
+               (double)*(float *)(actor + 0x5ac)),
+      "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x44f, 1);
     system_exit(-1);
   }
   if (!valid_real_normal3d(desired_aiming)) {
-    display_assert("&actor->control.desired_aiming_vector",
-                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x450, 1);
+    display_assert(
+      csprintf(error_string_buffer,
+               "%s: assert_valid_real_normal3d(%f, %f, %f)",
+               "&actor->control.desired_aiming_vector",
+               (double)desired_aiming[0], (double)*(float *)(actor + 0x5b4),
+               (double)*(float *)(actor + 0x5b8)),
+      "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x450, 1);
     system_exit(-1);
   }
   if (!valid_real_normal3d(desired_looking)) {
-    display_assert("&actor->control.desired_looking_vector",
-                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x451, 1);
+    display_assert(
+      csprintf(error_string_buffer,
+               "%s: assert_valid_real_normal3d(%f, %f, %f)",
+               "&actor->control.desired_looking_vector",
+               (double)desired_looking[0], (double)*(float *)(actor + 0x5c0),
+               (double)*(float *)(actor + 0x5c4)),
+      "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x451, 1);
     system_exit(-1);
   }
 
@@ -7212,7 +7227,7 @@ void actor_look_update(int actor_handle)
   snap_flag = *(char *)(actor + 0x58d);
   transient_aim = *(char *)(actor + 0x58e);
   use_aim = is_attacking;
-  aim_threshold = *(int *)(tag_data + 0x12c);
+  aim_threshold = *(float *)(tag_data + 0x12c);
   constrain_range = *(float *)(tag_data + 0x134);
   has_primary = 1;
   no_timing_window = 0;
@@ -7269,13 +7284,21 @@ void actor_look_update(int actor_handle)
 
   /* Validate primary_vec and secondary_vec */
   if ((short)look_mode > 1 && !valid_real_normal3d(primary_vec)) {
-    display_assert("&primary_vector", "c:\\halo\\SOURCE\\ai\\actor_looking.c",
-                   0x4ca, 1);
+    display_assert(
+      csprintf(error_string_buffer,
+               "%s: assert_valid_real_normal3d(%f, %f, %f)", "&primary_vector",
+               (double)primary_vec[0], (double)primary_vec[1],
+               (double)primary_vec[2]),
+      "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x4ca, 1);
     system_exit(-1);
   }
   if ((short)secondary_mode != 0 && !valid_real_normal3d(secondary_vec)) {
-    display_assert("&secondary_vector", "c:\\halo\\SOURCE\\ai\\actor_looking.c",
-                   0x4ce, 1);
+    display_assert(
+      csprintf(error_string_buffer,
+               "%s: assert_valid_real_normal3d(%f, %f, %f)",
+               "&secondary_vector", (double)secondary_vec[0],
+               (double)secondary_vec[1], (double)secondary_vec[2]),
+      "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x4ce, 1);
     system_exit(-1);
   }
 
@@ -7471,8 +7494,8 @@ LAB_000297c7:
   iVar13 = FUN_00027a10(actor_handle);
   bVar15 = (char)(*(float *)(iVar13 + 4) <= *(float *)0x2533c0);
   no_timing_window = !bVar15;
-  in_range = (char)(*(float *)0x2533c0 < *(float *)(iVar13 + 0xc));
-  transient_aim = (char)(*(float *)0x2533c0 < *(float *)(iVar13 + 0x14));
+  in_range = (char)(*(float *)(iVar13 + 0xc) > *(float *)0x2533c0);
+  transient_aim = (char)(*(float *)(iVar13 + 0x14) > *(float *)0x2533c0);
   look_data_mode = iVar13;
 
   /* Gate on look_timer */
@@ -7554,8 +7577,12 @@ LAB_000297c7:
     goto LAB_00029ccc;
 
   if (!valid_real_normal3d(primary_vec)) {
-    display_assert("&idle_major_vector",
-                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x5e8, 1);
+    display_assert(
+      csprintf(error_string_buffer,
+               "%s: assert_valid_real_normal3d(%f, %f, %f)",
+               "&idle_major_vector", (double)primary_vec[0],
+               (double)primary_vec[1], (double)primary_vec[2]),
+      "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x5e8, 1);
     system_exit(-1);
   }
 
@@ -7638,8 +7665,12 @@ LAB_00029b75:
           cVar7 = FUN_00027dd0(primary_vec, desired_facing, aim_threshold);
         if (cVar7) {
           if (!valid_real_normal3d(primary_vec)) {
-            display_assert("&idle_minor_vector",
-                           "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x645, 1);
+            display_assert(
+              csprintf(error_string_buffer,
+                       "%s: assert_valid_real_normal3d(%f, %f, %f)",
+                       "&idle_minor_vector", (double)primary_vec[0],
+                       (double)primary_vec[1], (double)primary_vec[2]),
+              "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x645, 1);
             system_exit(-1);
           }
           if (cVar5) {
@@ -7705,8 +7736,12 @@ LAB_00029e6d:
       }
     }
     if (!valid_real_normal2d((float *)(actor + 0x6fc))) {
-      display_assert("(real_vector2d *) &actor->output.facing_vector",
-                     "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x689, 1);
+      display_assert(
+        csprintf(error_string_buffer, "%s: assert_valid_real_normal2d(%f, %f)",
+                 "(real_vector2d *) &actor->output.facing_vector",
+                 (double)*(float *)(actor + 0x6fc),
+                 (double)*(float *)(actor + 0x700)),
+        "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x689, 1);
       system_exit(-1);
     }
   }
@@ -7718,9 +7753,9 @@ LAB_00029e6d:
   }
   if (!*(char *)(actor + 0x590)) {
     if (!*(char *)(actor + 0x504)) {
-      float dot = *(float *)(actor + 0x180) * ((float *)pfVar14)[0] +
+      float dot = *(float *)(actor + 0x188) * ((float *)pfVar14)[2] +
                   *(float *)(actor + 0x184) * ((float *)pfVar14)[1] +
-                  *(float *)(actor + 0x188) * ((float *)pfVar14)[2];
+                  *(float *)(actor + 0x180) * ((float *)pfVar14)[0];
       if (dot > *(float *)0x2555d0) {
         *(float *)(actor + 0x598) = ((float *)pfVar14)[0];
         *(float *)(actor + 0x59c) = ((float *)pfVar14)[1];
@@ -7760,8 +7795,8 @@ LAB_00029e6d:
           goto LAB_0002a0c3;
       }
     } else {
-      float dot3 = pfv[0] * snap_stored[0] + pfv[1] * snap_stored[1] +
-                   pfv[2] * snap_stored[2];
+      float dot3 = pfv[2] * snap_stored[2] + pfv[1] * snap_stored[1] +
+                   pfv[0] * snap_stored[0];
       if (dot3 > snap_cos) {
         float dot4 = FUN_00013070(desired_facing, snap_stored);
         if (dot4 <= snap_cos)
@@ -7787,18 +7822,36 @@ LAB_0002a0c3:
   actor_unit_control_exact_facing(actor_handle, *(char *)(actor + 0x591));
 
   if (!valid_real_normal3d((float *)(actor + 0x6fc))) {
-    display_assert("&actor->output.facing_vector",
-                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x6c8, 1);
+    display_assert(
+      csprintf(error_string_buffer,
+               "%s: assert_valid_real_normal3d(%f, %f, %f)",
+               "&actor->output.facing_vector",
+               (double)*(float *)(actor + 0x6fc),
+               (double)*(float *)(actor + 0x700),
+               (double)*(float *)(actor + 0x704)),
+      "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x6c8, 1);
     system_exit(-1);
   }
   if (!valid_real_normal3d((float *)(actor + 0x708))) {
-    display_assert("&actor->output.aiming_vector",
-                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x6c9, 1);
+    display_assert(
+      csprintf(error_string_buffer,
+               "%s: assert_valid_real_normal3d(%f, %f, %f)",
+               "&actor->output.aiming_vector",
+               (double)*(float *)(actor + 0x708),
+               (double)*(float *)(actor + 0x70c),
+               (double)*(float *)(actor + 0x710)),
+      "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x6c9, 1);
     system_exit(-1);
   }
   if (!valid_real_normal3d((float *)(actor + 0x714))) {
-    display_assert("&actor->output.looking_vector",
-                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x6ca, 1);
+    display_assert(
+      csprintf(error_string_buffer,
+               "%s: assert_valid_real_normal3d(%f, %f, %f)",
+               "&actor->output.looking_vector",
+               (double)*(float *)(actor + 0x714),
+               (double)*(float *)(actor + 0x718),
+               (double)*(float *)(actor + 0x71c)),
+      "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x6ca, 1);
     system_exit(-1);
   }
 
