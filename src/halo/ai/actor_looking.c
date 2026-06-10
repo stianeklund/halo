@@ -941,14 +941,16 @@ int FUN_00015020(short param_1)
  * Validates state_data pointer, zeroes 0x30 bytes, populates fields from
  * params. If a valid target is provided, calls actor_situation_try_new_target.
  * For scripted look types [9,12], rolls a random chance against 0x253524 and
- * may set a short timer. Otherwise dispatches FUN_00014c10(actor_handle, 0)
- * to find a firing position.
+ * may set a short timer. Otherwise dispatches FUN_00014c10(actor_handle,
+ * state_data, 0) to find a firing position.
  *
  * Confirmed: standard cdecl, 7 stack params.
- * Confirmed: FUN_00014c10 takes actor_handle @<ebx> + 1 stack arg — original
- * 0x1504c loads EBX=[EBP+8] (handle), 0x15121 PUSH 0, 0x15123 CALL. Ghidra
- * showed only FUN_00014c10(0) (register-arg blindness); the missing handle
- * caused datum_get asserts on garbage EBX (state ptr) at runtime.
+ * Confirmed: FUN_00014c10 takes actor_handle @<ebx> + state_data @<esi> +
+ * 1 stack arg — original 0x1504c loads EBX=[EBP+8] (handle), 0x15071 loads
+ * ESI=[EBP+0x20] (param_7 state_data, still live at the call), 0x15121
+ * PUSH 0, 0x15123 CALL. Ghidra showed only FUN_00014c10(0) (register-arg
+ * blindness); the missing args caused a datum_get assert (garbage EBX) and
+ * then an AV at 0x14c7d reading [ESI+4] with leftover ESI=-1.
  * Confirmed: NEG CL; SBB ECX,ECX; AND ECX,0xb4 → condition ? 0xb4 : 0. */
 char FUN_00015040(int actor_handle, short param_2, int param_3, char param_4,
                   char param_5, char param_6, short *param_7)
@@ -982,7 +984,7 @@ char FUN_00015040(int actor_handle, short param_2, int param_3, char param_4,
       }
     }
     if (*(char *)(actor + 6) == '\0') {
-      FUN_00014c10(actor_handle, 0);
+      FUN_00014c10(actor_handle, param_7, 0);
       if (param_7[4] != (short)0xffff) {
         return 1;
       }
@@ -1270,8 +1272,11 @@ bool FUN_000153e0(int actor_handle)
  * Confirmed: EBX=actor_handle, EDI=actor*, ESI=actor+0x9c.
  * Confirmed: FUN_000153e0 @<ebx>=actor_handle (no stack args).
  * Confirmed: FUN_00014e90 @<eax>=actor_handle, stack=state_block_ptr.
- * Confirmed: FUN_00014c10(actor_handle @<ebx>, int) — original 0x156c6:
- *   MOV EBX,[EBP+8]; PUSH 1; CALL 0x14c10 (Ghidra missed the @<ebx> arg).
+ * Confirmed: FUN_00014c10(actor_handle @<ebx>, state_data @<esi>, int) —
+ *   original 0x156c6: MOV EBX,[EBP+8]; PUSH 1; CALL 0x14c10, with ESI =
+ *   state block (LEA ESI,[EDI+0x9c] at 0x1553f still live). 14c10 reads
+ *   [ESI], [ESI+4], [ESI+0xc] before any ESI write (first use 0x14c7d).
+ *   Ghidra missed both register args.
  * Confirmed: FUN_000300b0/302b0 cdecl 1 arg.
  * Confirmed: switch table at 0x15864; cases 9/10 share case 0xb/0xc bodies.
  * Confirmed: assert at action_flee.c:0x12e, 0x98. */
@@ -1375,7 +1380,7 @@ int FUN_00015520(int actor_handle)
       }
       if (*(char *)(actor + 0x160) == '\0') {
         if (*(char *)(state + 0x6) == '\0' ||
-            (FUN_00014c10(actor_handle, 1), *(int16_t *)(state + 0x8) != -1)) {
+            (FUN_00014c10(actor_handle, state, 1), *(int16_t *)(state + 0x8) != -1)) {
           goto skip_mark_unable;
         }
       } else {

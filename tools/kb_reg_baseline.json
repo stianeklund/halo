@@ -15,7 +15,7 @@
   "functions": {
     "0x12ad0": "float FUN_00012ad0(int actor_handle @<ebx>, int action_type @<esi>, void *charge_state);",
     "0x13dd0": "int FUN_00013dd0(int actor_handle @<eax>, float *source_pos @<esi>);",
-    "0x14c10": "void FUN_00014c10(int actor_handle @<ebx>, int param_2);",
+    "0x14c10": "void FUN_00014c10(int actor_handle @<ebx>, void *state_data @<esi>, int param_3);",
     "0x14e90": "char FUN_00014e90(int actor_handle @<eax>, char *state_data);",
     "0x153e0": "bool FUN_000153e0(int actor_handle @<ebx>);",
     "0x15bb0": "void FUN_00015bb0(int actor_handle /* @<eax> */);",
