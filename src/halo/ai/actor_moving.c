@@ -3075,3 +3075,891 @@ char actor_move_to_prop(int actor_handle, int encounter_handle, float distance)
   }
   return actor_path_refresh(actor_handle, 1, 0);
 }
+
+
+/* 0x2daa0 — actor_move_compute_facing: Resolve the actor's desired facing
+ * vector, movement-direction index, and steering speed for this update.
+ *
+ * Register args (confirmed from sole caller FUN_0002e560 @ 0x2ed71-0x2edbf):
+ *   ECX = move_dir  (actor's facing-direction selector, actor[0x42e]);
+ *   AL  = want_facing (avoidance/facing flag, caller local_5).
+ * cdecl stack args (caller cleans 0x3c = 15 dwords) — see below.
+ *
+ * Confirmed: datum_get(*0x6325a4, actor_handle) at 0x2dab8; tag_get('actr',
+ *            actor[0x58]) at 0x2dacb (actr_tag, used only via actr_tag[0xa0]).
+ * Confirmed: 4-way move_dir switch (jump table 0x2e524) at 0x2db64; second
+ *            4-way move_type switch (table 0x2e534) at 0x2dedf; third
+ *            move_type switch (table 0x2e544) at 0x2e110.
+ * Confirmed: FUN_0002bab0(use_z@al [MOV AL,[EBP+0xc]], mvdir@esi, fdir@edi,
+ *            avoid_vec@ebx) at 0x2dbf7, and FUN_0002b830(...) at 0x2ddb4
+ *            (both reg-arg). NB: @al here is use_z (stack [EBP+0xc]), not the
+ *            incoming want_facing@<al> register arg.
+ * Confirmed: actor_get_stopping_distances(actor_handle, &min_dist, &slow_dist)
+ *            at 0x2e02a writes floats into the arg3 ([EBP+0x14]) and slow_dist
+ *            ([EBP+0x2c], the dead movement-ptr slot) — modelled with fresh
+ *            typed locals here, never recycling parameters or float<->ptr
+ * casts. Confirmed: FUN_000639e0(scenario_get(), actor[0x376], actor+0x12c,
+ *            node_handle, &scratch2, -1, &bsp_scratch) at 0x2df9c — the inner
+ *            scenario_get() return is its arg0 (Ghidra mis-grouped the pushes).
+ * Confirmed: out-stores at 0x2e4ec-0x2e519: *out_dir = move_type (EDI reloaded
+ *            from [EBP-0x8]); *out_facing = facing; *out_vec2 = steer_vec.
+ * Uncertain: many actor field meanings are by-offset (0x42a, 0x591, 0x505,
+ *            0x46e, 0x594, 0x6dc); named only where prior lifts established. */
+void actor_move_compute_facing(char want_facing /* @<al> */,
+                               short move_dir /* @<ecx> */, int actor_handle,
+                               char use_z, float max_speed_sq, char path_gate,
+                               float arg4, float arg5, float arg6, float arg7,
+                               float maximum_throttle, float *movement,
+                               float *out_facing, short *out_dir,
+                               float *out_vec2, char *out_byte, char *out_bool)
+{
+  char bsp_scratch[28]; /* [EBP-0x5c..] FUN_000639e0 result buffer */
+  char *actor;
+  char *actr_tag;
+  short move_type;
+  float accept_threshold;
+  float facing[3]; /* [EBP-0x1c..-0x14] resolved facing vector */
+  float src[3]; /* [EBP-0x28..-0x20] movement candidate scratch */
+  float scratch2[3]; /* [EBP-0x34..-0x2c] second candidate / steer vec */
+  float avoid_vec[3]; /* [EBP-0x40..-0x38] avoidance / steer result */
+  float *mvdir; /* movement_direction arg to FUN_0002bab0 (@esi) */
+  float *fdir; /* facing_direction arg to FUN_0002bab0 (@edi) */
+  char use_perp; /* [EBP-0x1] */
+  float facing_dot;
+  float mag_sq;
+  float min_dist; /* [EBP+0x14] after stopping-distance write */
+  float slow_dist; /* [EBP+0x2c] after stopping-distance write */
+  char want_steer;
+  float steer_temp; /* [EBP+0x40] reused sqrt/oversteer temp */
+  float desired_speed; /* [EBP+0x2c] reused: target angular speed */
+  float steer_speed; /* [EBP+0x14] reused: clamped steer speed */
+  float cap; /* [EBP+0x40] reused */
+  float delta_angle; /* [EBP+0x18] reused */
+  int node_handle;
+
+  actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  actr_tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  accept_threshold = 0.8660254f;
+  move_type = -1;
+  if (*(char *)(actor + 0x42a) != '\0') {
+    *(char *)(actor + 0x591) = 1;
+  }
+
+  if (move_dir < 0 || move_dir > 3) {
+    /* Free / non-canonical facing (DI out of [0,3]): derive facing from the
+     * movement vector and, when requested, run the avoidance solver. */
+    mag_sq = movement[2] * movement[2] + movement[1] * movement[1] +
+             movement[0] * movement[0];
+    if (*(float *)0x253dc8 < mag_sq) {
+      accept_threshold = *(float *)(actr_tag + 0xa0);
+    }
+    if (want_facing != '\0' && mag_sq < max_speed_sq) {
+      /* scratch2 = movement copy (the avoidance movement_direction). */
+      scratch2[0] = movement[0];
+      scratch2[1] = movement[1];
+      scratch2[2] = movement[2];
+      use_perp = 0;
+      if (*(char *)(actor + 0x505) == '\0') {
+        facing[0] = *(float *)(actor + 0x174);
+        facing[1] = *(float *)(actor + 0x178);
+        facing[2] = *(float *)(actor + 0x17c);
+      } else {
+        facing[0] = *(float *)(actor + 0x524);
+        facing[1] = *(float *)(actor + 0x528);
+        facing[2] = *(float *)(actor + 0x52c);
+        if (*(int16_t *)(actor + 0x15e) > 0) {
+          use_perp = 1;
+        }
+      }
+      if (use_z == '\0') {
+        scratch2[2] = 0.0f;
+        facing[2] = 0.0f;
+      }
+      if (normalize3d(facing) == *(float *)0x2533c0) {
+        facing[0] = *(float *)(actor + 0x174);
+        facing[1] = *(float *)(actor + 0x178);
+        facing[2] = *(float *)(actor + 0x17c);
+      }
+      if (normalize3d(scratch2) == *(float *)0x2533c0) {
+        scratch2[0] = facing[0];
+        scratch2[1] = facing[1];
+        scratch2[2] = facing[2];
+      }
+      if (use_perp != '\0') {
+        /* src = actor-forward, used as facing_direction for the solver. */
+        src[0] = *(float *)(actor + 0x174);
+        src[1] = *(float *)(actor + 0x178);
+        src[2] = *(float *)(actor + 0x17c);
+        if (use_z == '\0') {
+          src[2] = 0.0f;
+        }
+        if (normalize3d(src) == *(float *)0x2533c0) {
+          src[0] = facing[0];
+          src[1] = facing[1];
+          src[2] = facing[2];
+        }
+        mvdir = scratch2;
+        fdir = src;
+        goto bab0_converge;
+      }
+      mvdir = scratch2;
+      fdir = facing;
+      goto bab0_converge;
+    }
+    if (*(char *)(actor + 0x505) == '\0') {
+      facing[0] = movement[0];
+      facing[1] = movement[1];
+      facing[2] = movement[2];
+      if (use_z == '\0') {
+        facing[2] = 0.0f;
+      }
+      if (normalize3d(facing) == *(float *)0x2533c0) {
+        facing[0] = *(float *)(actor + 0x174);
+        facing[1] = *(float *)(actor + 0x178);
+        facing[2] = *(float *)(actor + 0x17c);
+      }
+      move_type = 0;
+    } else {
+      FUN_0002b830((float *)(actor + 0x174), use_z, facing, &move_type,
+                   movement, (float *)(actor + 0x524));
+    }
+  } else {
+    /* Canonical facing (DI in [0,3]): rotate the movement vector into the
+     * chosen cardinal direction; src = normalized movement. */
+    src[0] = movement[0];
+    src[1] = movement[1];
+    src[2] = movement[2];
+    if (use_z == '\0') {
+      src[2] = 0.0f;
+    }
+    move_type = move_dir;
+    if (normalize3d(src) == *(float *)0x2533c0) {
+      src[0] = *(float *)(actor + 0x174);
+      src[1] = *(float *)(actor + 0x178);
+      src[2] = *(float *)(actor + 0x17c);
+    }
+    switch (move_dir) {
+    case 0:
+      facing[0] = src[0];
+      facing[1] = src[1];
+      facing[2] = src[2];
+      break;
+    case 1:
+      facing[0] = -src[0];
+      facing[2] = src[2];
+      facing[1] = -src[1];
+      break;
+    case 2:
+      facing[0] = -src[1];
+      facing[1] = src[0];
+      facing[2] = src[2];
+      break;
+    case 3:
+      facing[1] = -src[0];
+      facing[0] = src[1];
+      facing[2] = src[2];
+      break;
+    default:
+      display_assert("!\"unreachable\"", "c:\\halo\\SOURCE\\ai\\actor_moving.c",
+                     0x598, 1);
+      system_exit(-1);
+    }
+    if (want_facing != '\0') {
+      mvdir = src;
+      fdir = facing;
+    bab0_converge:
+      FUN_0002bab0(use_z, mvdir, fdir, avoid_vec);
+      move_type = 4;
+    }
+  }
+
+  if (valid_real_normal3d(facing) == 0) {
+    display_assert(csprintf((char *)0x5ab100,
+                            "%s: assert_valid_real_normal3d(%f, %f, %f)",
+                            "&facing_vector", (double)facing[0],
+                            (double)facing[1], (double)facing[2]),
+                   "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x5fc, 1);
+    system_exit(-1);
+  }
+
+  facing_dot = facing[0] * *(float *)(actor + 0x174) +
+               facing[2] * *(float *)(actor + 0x17c) +
+               facing[1] * *(float *)(actor + 0x178);
+  want_steer = 1;
+  if (path_gate == '\0' && *(int16_t *)(actor + 0x6dc) != 4) {
+    if (*(char *)(actor + 0x99) == '\0') {
+      actor_find_pathfinding_location(actor_handle);
+      node_handle = *(int *)(actor + 0x164);
+      if (node_handle != -1) {
+        switch ((short)move_type) {
+        case 0:
+          scratch2[1] = *(float *)(actor + 0x178);
+          scratch2[0] = *(float *)(actor + 0x174);
+          break;
+        case 1:
+          scratch2[0] = -*(float *)(actor + 0x174);
+          scratch2[1] = -*(float *)(actor + 0x178);
+          break;
+        case 2:
+          scratch2[0] = *(float *)(actor + 0x178);
+          scratch2[1] = -*(float *)(actor + 0x174);
+          break;
+        case 3:
+          scratch2[1] = *(float *)(actor + 0x174);
+          scratch2[0] = -*(float *)(actor + 0x178);
+          break;
+        default:
+          goto eval_throttle;
+        }
+        scratch2[2] = *(float *)(actor + 0x17c);
+        if (*(float *)0x2533c0 < magnitude3d(scratch2)) {
+          scratch2[2] = 0.0f;
+          vector3d_scale_add((float *)(actor + 0x12c), scratch2, 0.4f,
+                             avoid_vec);
+          if (FUN_000639e0((int)scenario_get(),
+                           *(unsigned char *)(actor + 0x376),
+                           (float *)(actor + 0x12c), node_handle, avoid_vec, -1,
+                           bsp_scratch) != 0 &&
+              accept_threshold <= *(float *)0x255ed4) {
+            accept_threshold = 0.95f;
+          }
+        }
+      }
+    }
+  eval_throttle:
+    if (facing_dot <= accept_threshold) {
+      want_steer = 0;
+    }
+  }
+
+  accept_threshold = actor_destination_tolerance(actor_handle);
+  mag_sq = movement[2] * movement[2] + movement[1] * movement[1] +
+           movement[0] * movement[0];
+  *out_bool = (char)(mag_sq < accept_threshold * accept_threshold);
+  actor_get_stopping_distances(actor_handle, &min_dist, &slow_dist);
+  if (*(char *)(actor + 0x46e) == '\0' && mag_sq < min_dist * min_dist) {
+    steer_temp = sqrtf(mag_sq);
+    if (steer_temp <= slow_dist + *(float *)0x2533e8 || min_dist <= slow_dist) {
+      maximum_throttle = 0.0f;
+    } else {
+      cap = (steer_temp - slow_dist) / (min_dist - slow_dist);
+      if (cap < maximum_throttle) {
+        maximum_throttle = cap;
+      }
+      if (maximum_throttle < *(float *)0x2533c0 ||
+          (maximum_throttle < *(float *)0x2533c8) ==
+            (maximum_throttle == *(float *)0x2533c8)) {
+        display_assert(
+          "(maximum_throttle >= 0.0f) && (maximum_throttle <= 1.0f)",
+          "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x662, 1);
+        system_exit(-1);
+      }
+    }
+  }
+
+  scratch2[0] = *(float *)*(int *)0x31fc38;
+  scratch2[1] = ((float *)*(int *)0x31fc38)[1];
+  scratch2[2] = ((float *)*(int *)0x31fc38)[2];
+  if (want_steer != '\0') {
+    switch ((short)move_type) {
+    case 0:
+      scratch2[0] = 1.0f;
+      break;
+    case 1:
+      scratch2[0] = -1.0f;
+      break;
+    case 2:
+      scratch2[1] = -1.0f;
+      break;
+    case 3:
+      scratch2[1] = 1.0f;
+      break;
+    case 4:
+      scratch2[0] = avoid_vec[0];
+      scratch2[1] = avoid_vec[1];
+      scratch2[2] = avoid_vec[2];
+      break;
+    default:
+      display_assert(0, "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x671, 1);
+      system_exit(-1);
+    }
+    scratch2[0] = scratch2[0] * maximum_throttle;
+    *out_byte = 0;
+    scratch2[1] = scratch2[1] * maximum_throttle;
+    scratch2[2] = scratch2[2] * maximum_throttle;
+  } else {
+    *(char *)(actor + 0x591) = 1;
+    *out_byte = 1;
+  }
+
+  if (game_connection() == 0 && *(char *)0x5ac9d1 != '\0') {
+    arg6 = 0.0f;
+    arg5 = 0.0f;
+  }
+
+  if (*(float *)0x2533c0 < arg4 || *(float *)0x2533c0 < arg6) {
+    if (facing_dot < *(float *)0x2533c8) {
+      if (facing_dot > *(float *)0x255e94) {
+        desired_speed = acosf(facing_dot);
+      } else {
+        desired_speed = 3.1415927f;
+      }
+    } else {
+      desired_speed = 0.0f;
+    }
+    steer_speed = desired_speed;
+    if (*(float *)0x2533c0 < arg4) {
+      /* steer_speed = arg4 * arg7; cap = arg4, but if arg7 > 1 use a clamped
+       * (capped at 0x2533ec) variant. arg6 here is the arg4 slot reused to
+       * hold desired_speed*0x254644 (the "fast" angular cap). */
+      steer_speed = arg4 * arg7;
+      cap = arg4;
+      if (*(float *)0x2533c8 < arg7) {
+        delta_angle = arg7;
+        if (*(float *)0x2533ec < arg7) {
+          delta_angle = *(float *)0x2533ec;
+        }
+        cap = delta_angle * arg4;
+      }
+      arg6 = desired_speed * *(float *)0x254644;
+      if (arg6 <= steer_speed) {
+        steer_speed = arg6;
+      }
+      if (steer_speed <= desired_speed) {
+        steer_speed = desired_speed;
+        if (cap < desired_speed) {
+          desired_speed = cap;
+          steer_speed = desired_speed;
+        }
+      }
+    }
+    if (steer_speed <= *(float *)(actor + 0x594)) {
+      if (*(float *)0x2533c0 < *(float *)(actor + 0x594)) {
+        if (arg5 <= steer_speed) {
+          if (*(char *)0x5aca5e != '\0') {
+            console_printf(0, "steer %.4f - oversteer to %.4f",
+                           (double)steer_speed,
+                           (double)*(float *)(actor + 0x594));
+          }
+          steer_speed = *(float *)(actor + 0x594);
+        } else {
+          if (*(char *)0x5aca5e != '\0') {
+            console_printf(0, "steer %.4f", (double)steer_speed);
+          }
+          *(int *)(actor + 0x594) = 0;
+        }
+      }
+    } else if (*(char *)(actor + 0x591) == '\0' || steer_speed <= arg5) {
+      if (*(char *)0x5aca5e != '\0') {
+        console_printf(0, "steer %.4f", (double)steer_speed);
+      }
+    } else {
+      cap = steer_speed;
+      if (arg6 < steer_speed) {
+        cap = arg6;
+      }
+      *(float *)(actor + 0x594) = cap;
+      if (*(char *)0x5aca5e != '\0') {
+        console_printf(0, "steer %.4f (set oversteer %.4f)",
+                       (double)steer_speed, (double)cap);
+      }
+    }
+    delta_angle = steer_speed - desired_speed;
+    if (*(double *)0x2533d0 < fabsf(delta_angle)) {
+      avoid_vec[0] = facing[2] * *(float *)(actor + 0x178) -
+                     facing[1] * *(float *)(actor + 0x17c);
+      avoid_vec[1] = facing[0] * *(float *)(actor + 0x17c) -
+                     facing[2] * *(float *)(actor + 0x174);
+      avoid_vec[2] = facing[1] * *(float *)(actor + 0x174) -
+                     facing[0] * *(float *)(actor + 0x178);
+      if (*(float *)0x2533c0 < normalize3d(avoid_vec)) {
+        rotate_vector3d_by_sincos(facing, avoid_vec, x87_fsin(delta_angle),
+                                  x87_fcos(delta_angle));
+        if (*(char *)0x5aca5e != '\0') {
+          console_printf(0, "rotate %.4f %.4f %.4f", (double)desired_speed,
+                         (double)steer_speed, (double)delta_angle);
+        }
+      }
+    }
+  }
+
+  if (*(char *)(actor + 0x505) == '\0' && *(int16_t *)(actor + 0x42e) == -1 &&
+      (short)move_type != 0 && (short)move_type != 4) {
+    display_assert("(facing_direction == _actor_facing_forward) || "
+                   "(facing_direction == _actor_facing_free)",
+                   "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x6f1, 1);
+    system_exit(-1);
+  }
+
+  *out_dir = move_type;
+  out_facing[0] = facing[0];
+  out_facing[1] = facing[1];
+  out_facing[2] = facing[2];
+  out_vec2[0] = scratch2[0];
+  out_vec2[1] = scratch2[1];
+  out_vec2[2] = scratch2[2];
+}
+
+/* 0x2e560 — actor_move_update: Top-level per-tick actor movement dispatcher.
+ * Re-evaluates the actor's facing seed, picks the movement state from the
+ * pending move-type (actor[0x15e]) and vehicle/path context, then calls
+ * actor_move_compute_facing to resolve the final facing/throttle and applies
+ * crouch/jump unit control.
+ *
+ * cdecl, sole arg actor_handle (confirmed: caller FUN_0003ec80 @ 0x3ed88,
+ * prologue MOV EDI,[EBP+0x8] is the only stack arg, RET with MOV ESP,EBP).
+ *
+ * Confirmed: datum_get(*0x6325a4, actor_handle) at 0x2e573; tag_get('actr',
+ *            actor[0x58]) at 0x2e583 -> actr_tag (uint*, control flags).
+ * Confirmed: assert_valid_real_normal3d(actor+0x174) at 0x2e5d4 then seed
+ *            desired_facing actor[0x5a4] = actor[0x174] at 0x2e62f.
+ * Confirmed: actor[0x430] branch (0x2e64d) copies actor[0x434] vec into
+ *            actor[0x518] and resets the smoothing state (0x5dc..0x5ec).
+ * Confirmed: vehicle smoothing path when actor[0x15e]==4 (0x2e6bf) via
+ *            FUN_0002bd80(actor+0x518 or scaled, &slerp, &weight)@<ecx>.
+ * Confirmed: facing-direction resolution from actor[0x42c]/0x429/0x428/0x6a
+ *            at 0x2e8b7 -> actor[0x6dc].
+ * Confirmed: big move-state switch on actor[0x15e] (vehicle / >0 path) at
+ *            0x2e958 and the no-vehicle branch at 0x2eb77.
+ * Confirmed: actor_move_compute_facing(...) call at 0x2edbf (al=local_5,
+ *            ecx=actor[0x42e]).
+ * Confirmed: actor_unit_control_crouch(actor_handle, crouch) at 0x2ef32,
+ *            actor_unit_control_jump at 0x2f04b/0x2f123, and the leap/anim
+ *            impulse path (0x2efa4-0x2f039 and 0x2f083-0x2f166). */
+void actor_move_update(int actor_handle)
+{
+  char *actor;
+  unsigned int *actr_tag;
+  float vec_scratch[3]; /* [EBP-0x44..-0x3c] */
+  float slerp[3]; /* [EBP-0x38..-0x30] */
+  short facing_dir; /* [EBP-0x30] (resolved facing-direction selector) */
+  float arg4; /* [EBP-0x28] */
+  float arg5; /* [EBP-0x24] */
+  float arg6; /* [EBP-0x20] */
+  float arg7; /* [EBP-0x1c] */
+  float maximum_throttle; /* [EBP-0x18] */
+  char use_z; /* [EBP-0x14] -> compute_facing arg1 */
+  float max_speed_sq; /* [EBP-0x10] */
+  float weight; /* [EBP-0x8] (FUN_0002bd80 speed out) */
+  char want_facing; /* [EBP-0x1]  -> compute_facing want_facing@al */
+  char need_jump; /* [EBP-0x2]  seed-fallback gate */
+  char leap_jump; /* [EBP-0x3]  unit-control-jump gate */
+  char clear_firing; /* [EBP-0x4]  discarded-firing-position gate */
+  char path_gate; /* [EBP-0x2c] -> compute_facing arg3 */
+  char crouch; /* low byte of [EBP-0x8] crouch flag (bVar14/BL) */
+  char *src;
+  char *vehicle;
+  char *vehicle_tag;
+  short pending;
+  short submode;
+  int handle;
+  float fade;
+  float keep;
+  float len_sq;
+  float inv_len;
+  float forward[3]; /* [EBP-0x34..-0x30] cross-edge scratch */
+
+  actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  actr_tag = (unsigned int *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  want_facing = 0;
+  use_z = 0;
+  path_gate = 0;
+  clear_firing = 0;
+  need_jump = 0;
+  leap_jump = 0;
+  crouch = 0;
+  max_speed_sq = 0.0f;
+  arg4 = 0.0f;
+  arg6 = 0.0f;
+  arg5 = 0.0f;
+  arg7 = 0.0f;
+  maximum_throttle = 1.0f;
+
+  if (valid_real_normal3d((float *)(actor + 0x174)) == 0) {
+    display_assert(csprintf((char *)0x5ab100,
+                            "%s: assert_valid_real_normal3d(%f, %f, %f)",
+                            (char *)0x255efc, (double)*(float *)(actor + 0x174),
+                            (double)*(float *)(actor + 0x178),
+                            (double)*(float *)(actor + 0x17c)),
+                   "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x11e, 1);
+    system_exit(-1);
+  }
+  *(float *)(actor + 0x5a4) = *(float *)(actor + 0x174);
+  *(int *)(actor + 0x5a8) = *(int *)(actor + 0x178);
+  *(int *)(actor + 0x5ac) = *(int *)(actor + 0x17c);
+  *(char *)(actor + 0x591) = 0;
+  *(char *)(actor + 0x58d) = 1;
+  *(char *)(actor + 0x58e) = 1;
+
+  if (*(char *)(actor + 0x430) != '\0') {
+    *(int *)(actor + 0x518) = *(int *)(actor + 0x434);
+    *(int *)(actor + 0x51c) = *(int *)(actor + 0x438);
+    *(int *)(actor + 0x520) = *(int *)(actor + 0x43c);
+    *(char *)(actor + 0x504) = 1;
+    *(char *)(actor + 0x58d) = 0;
+    *(int *)(actor + 0x5dc) = *(int *)*(int *)0x31fc38;
+    *(int *)(actor + 0x5e0) = ((int *)*(int *)0x31fc38)[1];
+    *(int *)(actor + 0x5e4) = ((int *)*(int *)0x31fc38)[2];
+    *(int *)(actor + 0x5e8) = 0;
+    *(int *)(actor + 0x5ec) = 0;
+  } else if (*(int16_t *)(actor + 0x15e) == 4) {
+    if (*(char *)(actor + 0x504) == '\0') {
+      vec_scratch[0] = *(float *)(actor + 0x174) * *(float *)0x254644;
+      vec_scratch[1] = *(float *)(actor + 0x178) * *(float *)0x254644;
+      vec_scratch[2] = *(float *)(actor + 0x17c) * *(float *)0x254644;
+      src = (char *)vec_scratch;
+    } else {
+      src = actor + 0x518;
+    }
+    FUN_0002bd80(actor_handle, (float *)src, slerp, &weight);
+    fade = *(float *)0x2533e8;
+    if (*(float *)(actor + 0x5e4) * *(float *)(actor + 0x5e4) +
+          *(float *)(actor + 0x5e0) * *(float *)(actor + 0x5e0) +
+          *(float *)(actor + 0x5dc) * *(float *)(actor + 0x5dc) <
+        slerp[2] * slerp[2] + slerp[1] * slerp[1] + slerp[0] * slerp[0]) {
+      fade = *(float *)0x2533e4;
+    }
+    keep = *(float *)0x2533c8 - fade;
+    *(float *)(actor + 0x5dc) = keep * *(float *)(actor + 0x5dc);
+    *(float *)(actor + 0x5e0) = keep * *(float *)(actor + 0x5e0);
+    *(float *)(actor + 0x5e4) = keep * *(float *)(actor + 0x5e4);
+    *(float *)(actor + 0x5dc) = slerp[0] * fade + *(float *)(actor + 0x5dc);
+    *(float *)(actor + 0x5e0) = slerp[1] * fade + *(float *)(actor + 0x5e0);
+    *(float *)(actor + 0x5e4) = slerp[2] * fade + *(float *)(actor + 0x5e4);
+    if (*(float *)(actor + 0x5e4) * *(float *)(actor + 0x5e4) +
+          *(float *)(actor + 0x5e0) * *(float *)(actor + 0x5e0) +
+          *(float *)(actor + 0x5dc) * *(float *)(actor + 0x5dc) <
+        *(float *)0x253f44) {
+      *(int *)(actor + 0x5dc) = *(int *)*(int *)0x31fc38;
+      *(int *)(actor + 0x5e0) = ((int *)*(int *)0x31fc38)[1];
+      *(int *)(actor + 0x5e4) = ((int *)*(int *)0x31fc38)[2];
+    }
+    *(float *)(actor + 0x5ec) = weight;
+    fade = fade * weight + keep * *(float *)(actor + 0x5e8);
+    *(float *)(actor + 0x5e8) = fade;
+    if (fade < *(float *)0x255ef8) {
+      *(int *)(actor + 0x5e8) = 0;
+    }
+    if (*(char *)(actor + 0x504) != '\0') {
+      slerp[0] = *(float *)(actor + 0x5dc);
+      slerp[1] = *(float *)(actor + 0x5e0);
+      slerp[2] = *(float *)(actor + 0x5e4);
+      len_sq = slerp[1] * slerp[1] + slerp[2] * slerp[2] + slerp[0] * slerp[0];
+      if (*(float *)0x253f44 < len_sq) {
+        inv_len = *(float *)0x2533c8 / sqrtf(len_sq);
+        slerp[0] = slerp[0] * inv_len;
+        slerp[1] = slerp[1] * inv_len;
+        slerp[2] = slerp[2] * inv_len;
+        rotate_vector3d_by_sincos((float *)(actor + 0x518), slerp,
+                                  x87_fsin(sqrtf(len_sq)),
+                                  x87_fcos(sqrtf(len_sq)));
+      }
+      arg7 = *(float *)(actor + 0x5e8);
+    }
+  }
+
+  pending = *(int16_t *)(actor + 0x42c);
+  if (pending == -1) {
+    pending = 2;
+    if (*(char *)(actor + 0x429) != '\0') {
+      pending = 4;
+    } else if (*(char *)(actor + 0x428) != '\0') {
+      pending = 3;
+    } else {
+      submode = *(int16_t *)(actor + 0x6a);
+      if (submode == 1) {
+        pending = 1;
+      } else if (submode == 2) {
+        pending = 0;
+      } else if (submode == 3) {
+        pending = 2;
+      }
+    }
+  }
+  *(int16_t *)(actor + 0x6dc) = pending;
+  facing_dir = *(int16_t *)(actor + 0x42e);
+
+  actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  if (*(char *)(actor + 0x4a8) == '\0' ||
+      *(float *)(actor + 0x4a0) < (float)actr_tag[0x25]) {
+    crouch = *(char *)(actor + 0x426);
+  } else {
+    crouch = *(char *)(actor + 0x427);
+  }
+
+  if (*(int16_t *)(actor + 0x15e) < 1) {
+    if (*(char *)(actor + 0x160) == '\0') {
+      if (*(int16_t *)(actor + 0x418) == -1) {
+        pending = *(int16_t *)(actor + 0x6dc);
+        if (pending == 1) {
+          crouch = 0;
+          *(char *)(actor + 0x504) = 0;
+          *(char *)(actor + 0x58d) = 0;
+          *(char *)(actor + 0x58e) = 0;
+          need_jump = 1;
+        } else if (*(char *)(actor + 0x15c) == '\0' ||
+                   *(char *)(actor + 0x99) != '\0') {
+          if (*(char *)(actor + 0x6a0) == '\0') {
+            if (*(int16_t *)(actor + 0x360) < 1) {
+              clear_firing = 1;
+              if (pending != 2 || (crouch == 0 ? (*actr_tag & 0x4000) != 0 :
+                                                 (char)(*actr_tag >> 8) < 0)) {
+                *(char *)(actor + 0x505) = 0;
+              }
+              if (pending == 4) {
+                need_jump = 1;
+              }
+              if ((*actr_tag & 0x200000) != 0) {
+                max_speed_sq = (float)actr_tag[0x26] * (float)actr_tag[0x26];
+                use_z = 1;
+                want_facing = 1;
+                if (*(char *)(actor + 0x505) != '\0') {
+                  max_speed_sq = max_speed_sq * *(float *)0x2533d8;
+                }
+              }
+            } else {
+              *(char *)(actor + 0x504) = 0;
+              *(char *)(actor + 0x58d) = 1;
+              crouch = (char)(*actr_tag >> 0x1e) & 1;
+            }
+          } else {
+            *(char *)(actor + 0x504) = 0;
+            FUN_00012140((float *)(actor + 0x12c), (float *)(actor + 0x6a8),
+                         vec_scratch);
+            crouch = 0;
+            if (normalize3d(vec_scratch) == *(float *)0x2533c0) {
+              *(char *)(actor + 0x58d) = 1;
+            } else {
+              *(float *)(actor + 0x5a4) = vec_scratch[0];
+              *(float *)(actor + 0x5a8) = vec_scratch[1];
+              *(float *)(actor + 0x5ac) = vec_scratch[2];
+              *(char *)(actor + 0x58d) = 0;
+              *(char *)(actor + 0x58e) = 0;
+              *(char *)(actor + 0x591) = 1;
+            }
+          }
+        } else {
+          crouch = 0;
+          *(char *)(actor + 0x504) = 0;
+          *(char *)(actor + 0x58d) = 1;
+        }
+      } else {
+        crouch = 0;
+        *(char *)(actor + 0x504) = 0;
+        *(char *)(actor + 0x58d) = 0;
+        *(char *)(actor + 0x58e) = 0;
+      }
+    } else {
+      *(char *)(actor + 0x504) = 0;
+      *(int16_t *)(actor + 0x50a) = 0;
+      if (*(int16_t *)(actor + 4) == 0xf || *(char *)(actor + 0x161) != '\0') {
+        *(char *)(actor + 0x58d) = 1;
+      } else {
+        *(char *)(actor + 0x58d) = 0;
+      }
+      crouch = 0;
+      *(char *)(actor + 0x58e) = 0;
+    }
+  } else {
+    vehicle = (char *)object_get_and_verify_type(*(int *)(actor + 0x158), 2);
+    vehicle_tag = (char *)tag_get(0x76656869, *(int *)vehicle);
+    arg4 = *(float *)(vehicle_tag + 0x3a0);
+    if (*(float *)0x2533c0 < *(float *)(vehicle_tag + 0x3a4)) {
+      maximum_throttle = *(float *)(vehicle_tag + 0x3a4);
+    }
+    arg5 = *(float *)(vehicle_tag + 0x398);
+    arg6 = *(float *)(vehicle_tag + 0x39c);
+    pending = *(int16_t *)(actor + 0x15e);
+    if (pending == 2) {
+      if (*(char *)(vehicle + 0x428) == '\0') {
+        if (*(float *)(vehicle + 0x444) < *(float *)0x2533c4 &&
+            (leap_jump = 1, *(float *)(vehicle + 0x38) < *(float *)0x2533f0)) {
+          vec_scratch[0] = *(float *)(vehicle + 0x30);
+          vec_scratch[1] = *(float *)(vehicle + 0x34);
+          vec_scratch[2] = 0.0f;
+          if (*(float *)0x2533c0 < magnitude3d(vec_scratch)) {
+            *(char *)(actor + 0x504) = 1;
+            crouch = 0;
+            *(float *)(actor + 0x518) = vec_scratch[0] * *(float *)0x254644;
+            *(float *)(actor + 0x51c) = vec_scratch[1] * *(float *)0x254644;
+            *(float *)(actor + 0x520) = vec_scratch[2] * *(float *)0x254644;
+          } else {
+            crouch = 0;
+            *(char *)(actor + 0x504) = 0;
+          }
+        } else {
+          goto length_seed;
+        }
+      } else {
+        crouch = 0;
+        leap_jump = 1;
+        *(char *)(actor + 0x504) = 0;
+        *(char *)(actor + 0x58d) = 1;
+      }
+    } else if (pending == 3) {
+    length_seed:
+      crouch = 0;
+      max_speed_sq =
+        *(float *)(vehicle_tag + 0x380) * *(float *)(vehicle_tag + 0x380);
+      want_facing = 1;
+    } else if (pending == 4) {
+      if (vehicle_stuck(*(int *)(actor + 0x158), vec_scratch) == '\0') {
+        crouch = 0;
+        facing_dir = 0;
+        path_gate = 1;
+        use_z = 1;
+      } else {
+        *(char *)(actor + 0x504) = 0;
+        *(char *)(actor + 0x58d) = 0;
+        *(char *)(actor + 0x58e) = 0;
+        *(float *)(actor + 0x5a4) = -vec_scratch[0];
+        crouch = 0;
+        *(float *)(actor + 0x5a8) = -vec_scratch[1];
+        *(float *)(actor + 0x5ac) = -vec_scratch[2];
+      }
+    } else {
+      *(char *)(actor + 0x504) = 0;
+      *(int16_t *)(actor + 0x50a) = 0;
+      if (*(int16_t *)(actor + 4) == 0xf || *(char *)(actor + 0x161) != '\0') {
+        *(char *)(actor + 0x58d) = 1;
+      } else {
+        *(char *)(actor + 0x58d) = 0;
+      }
+      crouch = 0;
+    }
+  }
+
+  if (*(char *)(actor + 0x504) == '\0') {
+    goto seed_fallback;
+  } else {
+    if (*(char *)(actor + 0x506) == '\0') {
+      actor_move_compute_facing(
+        want_facing, facing_dir, actor_handle, use_z, max_speed_sq, path_gate,
+        arg4, arg5, arg6, arg7, maximum_throttle, (float *)(actor + 0x518),
+        (float *)(actor + 0x5a4), (short *)(actor + 0x50a),
+        (float *)(actor + 0x6e0), (char *)(actor + 0x507),
+        (char *)(actor + 0x506));
+      if (*(char *)(actor + 0x506) != '\0') {
+        *(char *)(actor + 0x504) = 0;
+      }
+    }
+    if (*(char *)(actor + 0x504) == '\0') {
+      goto seed_fallback;
+    }
+    *(char *)(actor + 0x58e) = 0;
+    goto clear_active;
+  }
+
+seed_fallback:
+  if (need_jump != '\0') {
+    *(int *)(actor + 0x5a4) = *(int *)(actor + 0x174);
+    *(int *)(actor + 0x5a8) = *(int *)(actor + 0x178);
+    *(int *)(actor + 0x5ac) = *(int *)(actor + 0x17c);
+    *(char *)(actor + 0x58e) = 0;
+    goto clear_pending;
+  }
+  if (*(char *)(actor + 0x590) != '\0') {
+    *(int *)(actor + 0x5a4) = *(int *)(actor + 0x598);
+    *(int *)(actor + 0x5a8) = *(int *)(actor + 0x59c);
+    *(int *)(actor + 0x5ac) = *(int *)(actor + 0x5a0);
+    *(char *)(actor + 0x58e) = 1;
+  clear_pending:
+    *(int16_t *)(actor + 0x50a) = 0;
+  clear_active:
+    *(char *)(actor + 0x58d) = 0;
+  }
+
+  if (valid_real_normal3d((float *)(actor + 0x5a4)) == 0) {
+    display_assert(csprintf((char *)0x5ab100,
+                            "%s: assert_valid_real_normal3d(%f, %f, %f)",
+                            "&actor->control.desired_facing_vector",
+                            (double)*(float *)(actor + 0x5a4),
+                            (double)*(float *)(actor + 0x5a8),
+                            (double)*(float *)(actor + 0x5ac)),
+                   "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x28f, 1);
+    system_exit(-1);
+  }
+  if (clear_firing != '\0' && *(char *)(actor + 0x504) == '\0') {
+    actor_clear_discarded_firing_positions(actor_handle, 1);
+  }
+  if (*(char *)(actor + 0x504) != '\0' && (*actr_tag & 0x10000000) != 0) {
+    crouch = 0;
+  }
+  if (game_connection() == 0 && *(char *)0x5ac9ce != '\0') {
+    crouch = 1;
+  }
+  *(char *)(actor + 0x58f) = 0;
+  if (crouch != 0 && (*actr_tag & 0x20000000) != 0) {
+    *(char *)(actor + 0x58f) = 1;
+  }
+  *(char *)(actor + 0x508) = crouch;
+  actor_unit_control_crouch(actor_handle, crouch);
+
+  actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  if (*(int16_t *)(actor + 0x418) == -1 &&
+      (*(int *)(actor + 0x18) == -1 ||
+       unit_is_busy(*(int *)(actor + 0x18)) == 0) &&
+      *(int *)(actor + 0x158) == -1 && *(char *)(actor + 0x15c) == '\0' &&
+      *(char *)(actor + 0x378) != '\0' && *(char *)(actor + 0x379) == '\0') {
+    forward[0] = *(float *)(actor + 0x174);
+    forward[1] = *(float *)(actor + 0x178);
+    handle = -1;
+    if (*(int *)(actor + 0x270) != -1) {
+      src = (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(actor + 0x270));
+      forward[0] = *(float *)(src + 0xe0);
+      forward[1] = *(float *)(src + 0xe4);
+      handle = *(int *)(src + 0x18);
+      if (magnitude3d(forward) == *(float *)0x2533c0) {
+        forward[0] = *(float *)(actor + 0x174);
+        forward[1] = *(float *)(actor + 0x178);
+      }
+    }
+    actor_move_animation_impulse(actor_handle, 0, (int *)forward);
+    FUN_00046f10(0x2a, *(int *)(actor + 0x18), handle, 3, -1, -1, 0);
+    *(char *)(actor + 0x379) = 1;
+  }
+
+  if (leap_jump != '\0') {
+    actor_unit_control_jump(actor_handle);
+    goto store_prev;
+  }
+  if (*(char *)(actor + 0x15c) != '\0' || *(int *)(actor + 0x158) != -1) {
+    *(char *)(actor + 0x530) = 0;
+    goto store_prev;
+  }
+  if (FUN_0002a360(actor_handle) != '\0' || *(char *)(actor + 0x440) == '\0') {
+    goto store_prev;
+  }
+  if (*(char *)(actor + 0x441) == '\0') {
+    actor_unit_control_jump(actor_handle);
+  } else {
+    if (*(char *)(actor + 0x442) == '\0') {
+      forward[0] = *(float *)(actor + 0x174);
+      forward[1] = *(float *)(actor + 0x178);
+      if (magnitude3d(forward) == *(float *)0x2533c0) {
+        forward[0] = *(float *)*(int *)0x31fc0c;
+        forward[1] = ((float *)*(int *)0x31fc0c)[1];
+      }
+    } else {
+      forward[0] = *(float *)(actor + 0x444);
+      forward[1] = *(float *)(actor + 0x448);
+    }
+    if (unit_leap_begin(*(int *)(actor + 0x18), forward) == '\0') {
+      actor_unit_control_jump(actor_handle);
+    } else {
+      FUN_00046f10(0x2f, *(int *)(actor + 0x18), -1, -1, -1, -1, 0);
+    }
+  }
+  if (*(char *)(actor + 0x442) != '\0') {
+    *(int *)(actor + 0x534) = *(int *)(actor + 0x444);
+    *(char *)(actor + 0x530) = 1;
+    *(int *)(actor + 0x538) = *(int *)(actor + 0x448);
+    *(int *)(actor + 0x53c) = *(int *)(actor + 0x44c);
+    *(int *)(actor + 0x540) = *(int *)(actor + 0x450);
+  }
+
+store_prev:
+  *(int *)(actor + 0x6ec) = *(int *)(actor + 0x418);
+  *(int *)(actor + 0x6f0) = *(int *)(actor + 0x41c);
+  *(int *)(actor + 0x6f4) = *(int *)(actor + 0x420);
+}
