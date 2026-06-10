@@ -1,3 +1,5 @@
+#include "x87_math.h"
+
 /* hud_draw_element_wrapper (0xd3fa0)
  * Wraps FUN_000d3080 with crosshair_overlay=0, passing through remaining
  * params. */
@@ -1898,29 +1900,24 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
   unsigned char bVar12;
   unsigned int uVar13;
   int local_2ac[128];
+  char text_element[36];
+  char text_pos_buf[84];
   int local_34;
-  float local_30;
-  float local_2c;
-  float local_28;
-  float local_24 = 0;
-  float local_20 = 0;
-  float local_1c = 0;
-  float local_18;
+  float local_30[3];
+  float local_24[4] = {0, 0, 0, 0};
+  float distance;
   float local_14;
-  float local_10;
-  float local_c = 0;
+  float screen_pos[2] = {0, 0};
   float local_8;
   short screen_coords[2];
-
-  (void)local_28;
   local_34 = FUN_000d1540();
   csmemset(local_2ac, 0x62, 0x200);
   iVar8 = (int)tag_block_get_element(
     (void *)(*(int *)0x46bd0c + 0x160), (int)param_3, 0x68);
   pfVar4 = param_2;
-  local_30 = *param_2;
-  local_2c = param_2[1];
-  local_28 = param_2[2];
+  local_30[0] = *param_2;
+  local_30[1] = param_2[1];
+  local_30[2] = param_2[2];
   iVar9 = local_player_get_player_index(param_1);
   if (iVar9 == -1) {
     uVar11 = -1;
@@ -1929,32 +1926,32 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
     iVar9 = (int)datum_get(*(data_t **)0x5aa6d4, uVar11);
     uVar11 = *(int *)(iVar9 + 0x34);
   }
-  unit_set_seat_state(uVar11, &local_24);
-  local_18 = sqrtf((*pfVar4 - local_24) * (*pfVar4 - local_24) +
-                  (pfVar4[1] - local_20) * (pfVar4[1] - local_20) +
-                  (pfVar4[2] - local_1c) * (pfVar4[2] - local_1c));
-  if (local_18 > *(float *)0x254cc0) {
+  unit_set_seat_state(uVar11, local_24);
+  distance = sqrtf((*pfVar4 - local_24[0]) * (*pfVar4 - local_24[0]) +
+                  (pfVar4[1] - local_24[1]) * (pfVar4[1] - local_24[1]) +
+                  (pfVar4[2] - local_24[2]) * (pfVar4[2] - local_24[2]));
+  if (distance > *(float *)0x254cc0) {
     local_14 = 0.5f;
   } else {
     local_14 = (float)pow(
-        (double)(*(float *)0x2533c8 - local_18 * *(float *)0x253d48),
+        (double)(*(float *)0x2533c8 - distance * *(float *)0x253d48),
         *(double *)0x281e18) + *(float *)0x253398;
   }
-  matrix_transform_point((float *)0x5065b4, &local_30, &local_30);
+  matrix_transform_point((float *)0x5065b4, local_30, local_30);
   sVar7 = param_4;
   if (sVar7 == 1 ||
-      (cVar5 = render_camera_view_to_screen((int *)0x506550, (int *)0x5065a4, &local_30,
-                            &local_10),
+      (cVar5 = render_camera_view_to_screen((int *)0x506550, (int *)0x5065a4, local_30,
+                            screen_pos),
        cVar5 == '\0')) {
-    local_10 = local_30;
-    local_c = -local_2c;
+    screen_pos[0] = local_30[0];
+    screen_pos[1] = -local_30[1];
     sVar7 = 1;
   } else {
-    local_10 = local_10 - (float)(((int)*(short *)0x506582 -
+    screen_pos[0] = screen_pos[0] - (float)(((int)*(short *)0x506582 -
                                    (int)*(short *)0x50657e) /
                                       2 +
                                   (int)*(short *)0x50657e);
-    local_c = local_c - (float)(((int)*(short *)0x506580 -
+    screen_pos[1] = screen_pos[1] - (float)(((int)*(short *)0x506580 -
                                  (int)*(short *)0x50657c) /
                                     2 +
                                 (int)*(short *)0x50657c);
@@ -1970,23 +1967,23 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
             *(float *)(*(int *)0x46bd0c + 0x120))) *
           *(float *)0x253398;
   fVar2 = fVar3 * fVar1;
-  fVar1 = fVar1 * local_c;
+  fVar1 = fVar1 * screen_pos[1];
   if (sVar7 == 1 ||
-      fVar2 * fVar2 <= fVar3 * local_10 * (fVar3 * local_10) + fVar1 * fVar1) {
+      fVar2 * fVar2 <= fVar3 * screen_pos[0] * (fVar3 * screen_pos[0]) + fVar1 * fVar1) {
     sVar7 = 1;
     fVar1 = sqrtf((fVar2 * fVar2) /
-                 (fVar3 * local_10 * (fVar3 * local_10) + fVar1 * fVar1));
-    local_10 = local_10 * fVar1;
-    local_c = fVar1 * local_c;
+                 (fVar3 * screen_pos[0] * (fVar3 * screen_pos[0]) + fVar1 * fVar1));
+    screen_pos[0] = screen_pos[0] * fVar1;
+    screen_pos[1] = fVar1 * screen_pos[1];
     if ((*(unsigned char *)(iVar8 + 0x4c) & 1) == 0) {
-      local_8 = -(float)atan2((double)local_10, (double)local_c);
+      local_8 = -(float)atan2((double)screen_pos[0], (double)screen_pos[1]);
     }
   }
-  local_10 =
+  screen_pos[0] =
       (float)(((int)*(short *)0x506582 - (int)*(short *)0x50657e) / 2) +
-      local_10;
-  local_c = (float)(((int)*(short *)0x506580 - (int)*(short *)0x50657c) / 2) +
-            local_c;
+      screen_pos[0];
+  screen_pos[1] = (float)(((int)*(short *)0x506580 - (int)*(short *)0x50657c) / 2) +
+            screen_pos[1];
   if (sVar7 == -1) {
     display_assert(
         "waypoint_type!=NONE",
@@ -2010,7 +2007,7 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
         bVar12 = (unsigned char)(-(char)FUN_000d1c50(*(float *)(iVar8 + 0x2c)));
       }
     }
-    pixel32_to_real_argb_color(*(unsigned int *)(iVar8 + 0x28), &local_24);
+    pixel32_to_real_argb_color(*(unsigned int *)(iVar8 + 0x28), local_24);
     fVar1 = *(float *)0x2533c8 - *(float *)(iVar8 + 0x30);
     fVar2 = *(float *)0x2533c0;
     if (*(float *)0x2533c0 <= fVar1) {
@@ -2019,7 +2016,7 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
         fVar2 = *(float *)0x2533c8;
       }
     }
-    local_24 = fVar2 * local_24;
+    local_24[0] = fVar2 * local_24[0];
     fVar2 = *(float *)0x2533c0;
     if (*(float *)0x2533c0 <= fVar1) {
       fVar2 = fVar1;
@@ -2027,7 +2024,7 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
         fVar2 = *(float *)0x2533c8;
       }
     }
-    local_20 = fVar2 * local_20;
+    local_24[1] = fVar2 * local_24[1];
     fVar2 = *(float *)0x2533c0;
     if (*(float *)0x2533c0 <= fVar1) {
       fVar2 = fVar1;
@@ -2035,24 +2032,25 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
         fVar2 = *(float *)0x2533c8;
       }
     }
-    local_1c = fVar2 * local_1c;
+    local_24[2] = fVar2 * local_24[2];
     uVar13 = (unsigned int)bVar12 << 0x18;
-    uVar10 = FUN_000d1dd0(&local_24);
-    screen_coords[0] = (short)local_10;
-    screen_coords[1] = (short)local_c;
+    uVar10 = FUN_000d1dd0(local_24);
+    screen_coords[0] = (short)screen_pos[0];
+    screen_coords[1] = (short)screen_pos[1];
     FUN_000d3200(iVar9, 4, screen_coords, uVar11, local_14, local_8,
                  uVar10 | uVar13, 0);
 
     if (sVar7 != 1) {
-      char text_element[36];
-      char text_pos_buf[84];
       short *text_pos_ptr;
       short text_x, text_y;
       int tmp_int;
       float pow_val;
       int text_value;
 
-      local_18 = local_18 * *(float *)0x281e00;
+      /* Original 0xd6ac7: FLD [EBP-0x14] -- the sqrtf distance slot -- times
+       * 0x281e00 (world units -> meters). The seat/color buffer local_24 ends
+       * at [EBP-0x18]; the distance is a separate local, not local_24[3]. */
+      distance = distance * *(float *)0x281e00;
       csmemset(text_element, 0, 0x24);
       csmemset(text_pos_buf, 0, 0x54);
       *(short *)text_element = 0;
@@ -2061,16 +2059,16 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
        * Disasm: stores at [EBP-0x60]/[EBP-0x5c]/[EBP-0x40]/[EBP-0x3f]/[EBP-0x3e]
        * = text_pos_buf+0x24/+0x28/+0x44/+0x45/+0x46 (base EBP-0x84). */
       *(unsigned int *)(text_pos_buf + 0x24) =
-          FUN_000d1dd0(&local_24) | uVar13;
+          FUN_000d1dd0(local_24) | uVar13;
       *(unsigned int *)(text_pos_buf + 0x28) =
-          FUN_000d1dd0(&local_24) | uVar13;
+          FUN_000d1dd0(local_24) | uVar13;
       text_pos_buf[0x44] = 3;
       text_pos_buf[0x46] = 1;
       text_pos_buf[0x45] = 5;
 
       {
-        short scr_x = (short)local_10;
-        short scr_y = (short)local_c;
+        short scr_x = (short)screen_pos[0];
+        short scr_y = (short)screen_pos[1];
         float bmp_w;
         float bmp_h;
 
@@ -2096,14 +2094,17 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
 
       pow_val = (float)pow(*(double *)0x281df0, *(double *)0x281de8);
       {
-        float fmod_input = (float)fabs((double)(pow_val * local_18));
-        float fmod_result = (float)fmod((double)fmod_input,
-                                         (double)pow_val);
+        float fmod_input = (float)fabs((double)(pow_val * distance));
+        /* clang -mno-sse compiles fmod() to FPREM1 (IEEE remainder, result
+         * can be negative); the original 0xd6bdc uses FPREM (truncating).
+         * A negative tenths digit prints a stray '-' and the displayed
+         * digit count flickers. x87_fmod keeps the result in [0, pow_val). */
+        float fmod_result = x87_fmod(fmod_input, (double)pow_val);
         text_value = (int)fmod_result;
       }
 
       {
-        int rounded = FUN_000d1c50(local_18);
+        int rounded = FUN_000d1c50(distance);
         FUN_000d3860((short)param_1, text_element, text_pos_buf,
                      rounded, text_value, 0, 0, 0.0f);
       }
