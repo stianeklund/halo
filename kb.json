@@ -30015,7 +30015,7 @@
         {
           "addr": "0x2b5d0",
           "decl": "void actor_move_get_avoidance_direction(void);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x2d350",
@@ -30124,7 +30124,8 @@
         },
         {
           "addr": "0x2b830",
-          "decl": "void FUN_0002b830(void);"
+          "decl": "void FUN_0002b830(float *facing_basis@<ecx>, char use_3d, float *out_vector, short *out_index, float *in_vec@<eax>, float *weight_vec@<edi>);",
+          "ported": true
         },
         {
           "addr": "0x2bab0",
