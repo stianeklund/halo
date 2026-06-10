@@ -30135,7 +30135,8 @@
         },
         {
           "addr": "0x2d720",
-          "decl": "char actor_move_to_point(int actor_handle, float *destination, int param_3, int param_4);"
+          "decl": "char actor_move_to_point(int actor_handle, float *destination, int param_3, int param_4);",
+          "ported": true
         },
         {
           "addr": "0x2d850",
@@ -30144,7 +30145,8 @@
         },
         {
           "addr": "0x2d900",
-          "decl": "int actor_move_to_firing_position(int actor_handle, int16_t param_2, void *param_3);"
+          "decl": "char actor_move_to_firing_position(int actor_handle, int16_t param_2, void *param_3);",
+          "ported": true
         },
         {
           "addr": "0x2d9b0",

@@ -2824,6 +2824,86 @@ void actor_destination_update(int actor_handle)
     *(float *)(actor + 0x134) + *(float *)(actor + 0x520);
 }
 
+/* 0x2d720 — actor_move_to_point: Set actor movement to point-movement mode
+ * (move_type=2, dest=destination xyz, dest_node=param_3, override=param_4).
+ *
+ * Clears the actor's +0x3b8 movement flag (0xffff), wakes the actor via
+ * actor_set_dormant, then checks if the actor is already in mode 2 heading to
+ * the same destination node (+0x47c == param_3) and within the close-enough
+ * threshold (squared distance from active dest at +0x470..+0x478 to the
+ * requested destination <= *0x255d1c). If so and the actor is still active
+ * (+0x4c) and not sleeping (+0x4a4), refreshes the path (store_distance=0);
+ * otherwise returns 1. If not already at the target, sets up the movement
+ * block at +0x400 (mode=2, dest xyz at +0x404, dest_node at +0x410,
+ * override at +0x414), copies the 24-byte block to the active slot at +0x46c,
+ * and kicks off a path refresh (store_distance=1).
+ *
+ * Confirmed: datum_get(*0x6325a4, actor_handle) at 0x2d730.
+ * Confirmed: NULL-destination assert("destination", file, 0x3b7, 1) +
+ *            system_exit(-1) at 0x2d752-0x2d759.
+ * Confirmed: MOV [ESI+0x3b8],0xffff at 0x2d764.
+ * Confirmed: actor_set_dormant(actor_handle, 0) at 0x2d76d.
+ * Confirmed: CMP [ESI+0x46c],2 / CMP [ESI+0x47c],param_3 at 0x2d77b-0x2d787.
+ * Confirmed: FLD/FSUB squared-distance vs FCOMP [0x255d1c]; TEST AH,0x41 =
+ *            dist_sq <= threshold at 0x2d78c-0x2d7c7.
+ * Confirmed: setup stores at 0x2d7f2-0x2d820 (offsets 0x402,0x400,0x404,
+ *            0x408,0x40c,0x410,0x414).
+ * Confirmed: REP MOVSD ECX=6 from actor+0x400 to actor+0x46c at 0x2d837.
+ * Confirmed: actor_path_refresh(actor_handle,1,0) at 0x2d839.
+ * Confirmed: actor_path_refresh(actor_handle,0,0) at 0x2d7df.
+ * Confirmed: return 1 via MOV AL,1 at 0x2d848.
+ */
+char actor_move_to_point(int actor_handle, float *destination, int param_3,
+                         int param_4)
+{
+  char *actor;
+  float dx;
+  float dy;
+  float dz;
+  float dist_sq;
+  int iVar3;
+  int *pending_state;
+  short *active_state;
+
+  actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  if (destination == (float *)0x0) {
+    display_assert("destination", "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x3b7,
+                   1);
+    system_exit(-1);
+  }
+  *(int16_t *)(actor + 0x3b8) = -1;
+  actor_set_dormant(actor_handle, 0);
+  if ((*(int16_t *)(actor + 0x46c) == 2) &&
+      (*(int *)(actor + 0x47c) == param_3)) {
+    dx = *(float *)(actor + 0x470) - destination[0];
+    dy = *(float *)(actor + 0x474) - destination[1];
+    dz = *(float *)(actor + 0x478) - destination[2];
+    dist_sq = dx * dx + dy * dy + dz * dz;
+    if (dist_sq <= *(float *)0x255d1c) {
+      if ((*(char *)(actor + 0x4c) != '\0') &&
+          (*(char *)(actor + 0x4a4) == '\0')) {
+        return actor_path_refresh(actor_handle, 0, 0);
+      }
+      return 1;
+    }
+  }
+  *(char *)(actor + 0x402) = 0;
+  *(int16_t *)(actor + 0x400) = 2;
+  *(float *)(actor + 0x404) = destination[0];
+  *(float *)(actor + 0x408) = destination[1];
+  *(float *)(actor + 0x40c) = destination[2];
+  *(int *)(actor + 0x410) = param_3;
+  *(int *)(actor + 0x414) = param_4;
+  pending_state = (int *)(actor + 0x400);
+  active_state = (short *)(actor + 0x46c);
+  for (iVar3 = 6; iVar3 != 0; iVar3--) {
+    *(int *)active_state = *pending_state;
+    pending_state++;
+    active_state += 2;
+  }
+  return actor_path_refresh(actor_handle, 1, 0);
+}
+
 /* 0x2d850 — Set actor movement to far-movement mode (move_type=4,
  * dest=param_2).
  *
@@ -2876,6 +2956,65 @@ char actor_move_to_move_position(int actor_handle, int16_t param_2)
     return actor_path_refresh(actor_handle, 0, 0);
   }
   return 1;
+}
+
+/* 0x2d900 — actor_move_to_firing_position: Set actor movement to firing-point
+ * mode (move_type=3, dest=param_2).
+ *
+ * Wakes the actor (actor_set_dormant), then checks if it is already in mode 3
+ * heading to the same firing-point target (+0x470 == param_2). If so, either
+ * refreshes the path (store_distance=0, override=param_3) when the actor is
+ * active (+0x4c) and not sleeping (+0x4a4), or returns 1. Otherwise sets up
+ * the movement block at +0x400 (mode=3, target at +0x404, override slot
+ * +0x414 = -1, clears +0x402 and +0x3bb), copies the 24-byte block to the
+ * active slot at +0x46c, and kicks off a path refresh (store_distance=1,
+ * override=param_3).
+ *
+ * Unlike actor_move_to_point/move_position, this function does NOT clear the
+ * +0x3b8 movement flag, and it threads param_3 through as the path-refresh
+ * override argument in both refresh branches.
+ *
+ * Confirmed: datum_get(*0x6325a4, actor_handle) at 0x2d910.
+ * Confirmed: actor_set_dormant(actor_handle, 0) at 0x2d91a.
+ * Confirmed: CMP [ESI+0x46c],3 / CMP [ESI+0x470],CX (param_2) at
+ *            0x2d92c-0x2d932.
+ * Confirmed: fast-path actor_path_refresh(actor_handle,0,param_3) at 0x2d953.
+ * Confirmed: setup stores MOV [ESI+0x404],CX; MOV [ESI+0x402],0;
+ *            MOV [ESI+0x414],-1; MOV [ESI+0x3bb],0; MOV [ESI+0x400],3 at
+ *            0x2d96a-0x2d98d.
+ * Confirmed: REP MOVSD ECX=6 from actor+0x400 to actor+0x46c at 0x2d998.
+ * Confirmed: setup actor_path_refresh(actor_handle,1,param_3) at 0x2d99a.
+ * Confirmed: return 1 via MOV AL,1 at 0x2d9a9.
+ */
+char actor_move_to_firing_position(int actor_handle, int16_t param_2,
+                                   void *param_3)
+{
+  char *actor;
+  int iVar3;
+  int *pending_state;
+  int *active_state;
+
+  actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  actor_set_dormant(actor_handle, 0);
+  active_state = (int *)(actor + 0x46c);
+  if ((*(int16_t *)active_state == 3) &&
+      (*(int16_t *)(actor + 0x470) == param_2)) {
+    if ((*(char *)(actor + 0x4c) != '\0') &&
+        (*(char *)(actor + 0x4a4) == '\0')) {
+      return actor_path_refresh(actor_handle, 0, param_3);
+    }
+    return 1;
+  }
+  *(int16_t *)(actor + 0x404) = param_2;
+  *(char *)(actor + 0x402) = 0;
+  *(int *)(actor + 0x414) = -1;
+  *(char *)(actor + 0x3bb) = 0;
+  *(int16_t *)(actor + 0x400) = 3;
+  pending_state = (int *)(actor + 0x400);
+  for (iVar3 = 6; iVar3 != 0; iVar3--) {
+    *active_state++ = *pending_state++;
+  }
+  return actor_path_refresh(actor_handle, 1, param_3);
 }
 
 /* 0x2d9b0 — Set actor movement to encounter-path mode (move_type=5,
