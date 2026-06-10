@@ -1,8 +1,8 @@
 {
   "0x13010": {
+    "class": "non_leaf",
     "confidence": "high",
-    "coverage_pct": 100.0,
-    "class": "non_leaf"
+    "coverage_pct": 100.0
   },
   "0x164": {
     "confidence": "weak",
@@ -70,7 +70,7 @@
   "0x1a2290": {
     "class": "non_leaf",
     "confidence": "weak",
-    "coverage_pct": 0.0
+    "coverage_pct": 69.0
   },
   "0x1a25e0": {
     "class": "non_leaf",

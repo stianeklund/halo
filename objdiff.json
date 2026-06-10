@@ -6846,6 +6846,38 @@
       "metadata": {
         "source_path": "src/halo/ai/actor_looking.c"
       }
+    },
+    {
+      "name": "halo/units/biped_FUN_001a1e70",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/units/bipeds.c.obj",
+      "base_path": "delinked/biped_FUN_001a1e70.obj",
+      "metadata": {
+        "source_path": "src/halo/units/bipeds.c"
+      }
+    },
+    {
+      "name": "halo/units/biped_FUN_001a2a60",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/units/bipeds.c.obj",
+      "base_path": "delinked/biped_FUN_001a2a60.obj",
+      "metadata": {
+        "source_path": "src/halo/units/bipeds.c"
+      }
+    },
+    {
+      "name": "halo/units/biped_FUN_001a0b30",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/units/bipeds.c.obj",
+      "base_path": "delinked/biped_FUN_001a0b30.obj",
+      "metadata": {
+        "source_path": "src/halo/units/bipeds.c"
+      }
+    },
+    {
+      "name": "halo/units/biped_FUN_001a2290",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/units/bipeds.c.obj",
+      "base_path": "delinked/biped_FUN_001a2290.obj",
+      "metadata": {
+        "source_path": "src/halo/units/bipeds.c"
+      }
     }
   ]
 }
