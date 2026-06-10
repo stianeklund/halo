@@ -70,7 +70,7 @@
   "0x1a2290": {
     "class": "non_leaf",
     "confidence": "weak",
-    "coverage_pct": 69.0
+    "coverage_pct": 51.7
   },
   "0x1a25e0": {
     "class": "non_leaf",
