@@ -8654,7 +8654,7 @@
         },
         {
           "addr": "0xacff0",
-          "decl": "void game_show_score_you_ally_enemy(int param_1, int param_2, int param_3, int param_4);",
+          "decl": "void game_show_score_you_ally_enemy(int param_1, int param_2, int param_3, int param_4, int param_5);",
           "ported": true,
           "src": "src/halo/game/game_engine.c"
         },
@@ -12199,7 +12199,7 @@
         {
           "addr": "0xd6660",
           "decl": "void FUN_000d6660(int player_handle, float *position, short type_value, short nav_type);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0xd6cc0",
