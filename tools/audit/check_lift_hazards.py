@@ -45,7 +45,7 @@ Usage:
     python3 tools/audit/check_lift_hazards.py
     python3 tools/audit/check_lift_hazards.py -q
     python3 tools/audit/check_lift_hazards.py --changed-only
-    python3 tools/audit/check_lift_hazards.py --changed-only --cached
+    python3 tools/audit/check_lift_hazards.py --staged-only
 """
 import os
 import re
@@ -1042,26 +1042,45 @@ def check_discarded_result(filepath, content, lines):
     return errors
 
 
-def _collect_c_files(changed_only=False, cached=False):
+def _collect_c_files(changed_only=False, staged_only=False):
     """Collect .c file paths under SRC_DIR.
 
-    If changed_only is True, only return files appearing in git diff output.
-    If cached is also True, use --cached to check staged files.
+    If staged_only is True, only return files staged in the index
+    (git diff --cached), for use in pre-commit hooks.
+
+    If changed_only is True, return the union of:
+      - staged files (git diff --cached --name-only)
+      - unstaged tracked changes (git diff --name-only HEAD)
+      - untracked files in src/ (git ls-files -o --exclude-standard)
+    This covers everything that differs from HEAD in any state — useful
+    for manual hazard sweeps after editing.
     """
-    if changed_only:
-        cmd = ['git', 'diff', '--name-only', 'HEAD']
-        if cached:
-            cmd = ['git', 'diff', '--name-only', '--cached']
+    def _git_lines(cmd):
         try:
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=ROOT_DIR
-            )
-            changed = set()
-            for line in result.stdout.strip().splitlines():
-                abspath = os.path.normpath(os.path.join(ROOT_DIR, line))
-                changed.add(abspath)
+            r = subprocess.run(cmd, capture_output=True, text=True, cwd=ROOT_DIR)
+            return r.stdout.strip().splitlines()
         except (subprocess.SubprocessError, FileNotFoundError):
-            changed = None
+            return []
+
+    if staged_only:
+        lines = _git_lines(['git', 'diff', '--cached', '--name-only', '--', 'src/'])
+        changed = set()
+        for line in lines:
+            abspath = os.path.normpath(os.path.join(ROOT_DIR, line))
+            changed.add(abspath)
+    elif changed_only:
+        changed = set()
+        # staged
+        for line in _git_lines(['git', 'diff', '--cached', '--name-only', '--', 'src/']):
+            changed.add(os.path.normpath(os.path.join(ROOT_DIR, line)))
+        # unstaged tracked
+        for line in _git_lines(['git', 'diff', '--name-only', 'HEAD', '--', 'src/']):
+            changed.add(os.path.normpath(os.path.join(ROOT_DIR, line)))
+        # untracked
+        for line in _git_lines(['git', 'ls-files', '-o', '--exclude-standard', '--', 'src/']):
+            changed.add(os.path.normpath(os.path.join(ROOT_DIR, line)))
+        if not changed:
+            changed = None  # fall back to full scan if git unavailable
     else:
         changed = None
 
@@ -1083,9 +1102,9 @@ def main():
     frame_audit = '--frame-size-audit' in sys.argv
     quiet = '-q' in sys.argv or '--quiet' in sys.argv or os.environ.get('LOG_LEVEL') == 'WARNING'
     changed_only = '--changed-only' in sys.argv
-    cached = '--cached' in sys.argv
+    staged_only = '--staged-only' in sys.argv
 
-    c_files = _collect_c_files(changed_only=changed_only, cached=cached)
+    c_files = _collect_c_files(changed_only=changed_only, staged_only=staged_only)
 
     params_map = _parse_decl_params()
 
