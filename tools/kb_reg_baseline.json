@@ -15,8 +15,11 @@
   "functions": {
     "0x12ad0": "float FUN_00012ad0(int actor_handle @<ebx>, int action_type @<esi>, void *charge_state);",
     "0x13dd0": "int FUN_00013dd0(int actor_handle @<eax>, float *source_pos @<esi>);",
+    "0x14c10": "void FUN_00014c10(int actor_handle @<ebx>, int param_2);",
     "0x14e90": "char FUN_00014e90(int actor_handle @<eax>, char *state_data);",
+    "0x153e0": "bool FUN_000153e0(int actor_handle @<ebx>);",
     "0x15bb0": "void FUN_00015bb0(int actor_handle /* @<eax> */);",
+    "0x169a0": "void FUN_000169a0(int actor_handle, int unit_handle, short scenario_idx, int param_4, char *param_5 @<esi>);",
     "0x17960": "void FUN_00017960(char *state_data@<ecx>, int actor_handle@<eax>, int object_handle@<edi>);",
     "0x18b90": "bool FUN_00018b90(int unit_handle @<eax>, int actor_handle, short scenario_index, char *output, void *command);",
     "0x20f80": "int actor_combat_check_mode(int actor_handle @<eax>, short mode);",
@@ -469,8 +472,6 @@
     "0x1d8750": "unsigned int FUN_001d8750(unsigned int val@<ecx>);",
     "0x1e9350": "void D3DDevice_SetRenderState_Simple(uint32_t reg@<ecx>, uint32_t value@<edx>);",
     "0x1e9380": "void D3DDevice_SetRenderState_Deferred(uint32_t reg_index@<ecx>, uint32_t value@<edx>);",
-    "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);",
-    "0x153e0": "bool FUN_000153e0(int actor_handle @<ebx>);",
-    "0x169a0": "void FUN_000169a0(int actor_handle, int unit_handle, short scenario_idx, int param_4, char *param_5 @<esi>);"
+    "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);"
   }
 }
