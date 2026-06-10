@@ -860,6 +860,77 @@ void FUN_0002b020(float *avoidance_ray, float *ray_origin, int avoidance_data,
   }
 }
 
+/* 0x2b310 — actor_move_find_avoidance_sector: locate the angular sector of the
+ * query direction within a fan of direction records and linearly interpolate a
+ * fractional index plus an associated value.
+ *
+ * Register args (confirmed from caller FUN_0002bd80 @ 0x2c4c7-0x2c4cf and
+ * 0x2c765-0x2c76d):
+ *   direction @<ecx> : query direction vector (direction[0..2])
+ *   count     @<ebx> : number of records (always 8 at both call sites; used as
+ *                      a signed short — TEST BX,BX / CMP DX,BX / MOVSX)
+ * Stack args (cdecl, ADD ESP,0x10 cleanup):
+ *   records   : base of count direction records, 12-byte (float[3]) stride
+ *               (= global table 0x632780)
+ *   values    : parallel array of count floats, 4-byte stride
+ *   out_index : fractional sector index output
+ *   out_value : interpolated value output
+ * Returns 1 (AL) when a bracketing sector is found, else 0.
+ *
+ * The function walks the fan, computing for each record the 2D cross-product
+ * component (rec.y*dir.z - rec.z*dir.y) against the query direction.  When the
+ * sign of consecutive cross-products differs (product <= 0) and the dot product
+ * with the record is positive (forward hemisphere), the query lies between the
+ * previous record (prev) and the current record (i); the fractional index and
+ * value are interpolated from the two cross magnitudes.  prev starts at the
+ * wrap-around predecessor count-1.
+ *
+ * Confirmed: cross/dot loads at 0x2b32c-0x2b338 (seed), 0x2b34c-0x2b358
+ * (cross), 0x2b36c-0x2b37e (dot).  Confirmed: opposite-sign test FCOMP
+ * [0x2533c0]=0.0; TEST AH,0x41; JP at 0x2b35f-0x2b36a (enters body for product
+ * <= 0). Confirmed: dot test FCOMP [0x2533c0]; TEST AH,0x41; JZ at
+ * 0x2b380-0x2b38b (enters success for dot > 0).  Confirmed: success-block
+ * index/value interpolation FILD/FMUL/FSUBP/FDIV at 0x2b3b3-0x2b3ec. */
+char FUN_0002b310(float *direction, short count, int records, float *values,
+                  float *out_index, float *out_value)
+{
+  float prev_cross;
+  float cross;
+  float *rec;
+  short prev;
+  short i;
+  short denom_idx;
+
+  prev = count - 1;
+  i = 0;
+  prev_cross = *(float *)(records + prev * 0xc + 4) * direction[2] -
+               *(float *)(records + prev * 0xc + 8) * direction[1];
+  if (count > 0) {
+    do {
+      rec = (float *)(records + i * 0xc);
+      cross = rec[1] * direction[2] - rec[2] * direction[1];
+      if (prev_cross * cross <= 0.0f && 0.0f < direction[0] * rec[0] +
+                                                 rec[1] * direction[1] +
+                                                 rec[2] * direction[2]) {
+        denom_idx = i;
+        if (i == 0) {
+          denom_idx = count;
+        }
+        *out_index =
+          ((float)(int)prev * cross - (float)(int)denom_idx * prev_cross) /
+          (cross - prev_cross);
+        *out_value = (cross * values[prev] - prev_cross * values[i]) /
+                     (cross - prev_cross);
+        return 1;
+      }
+      prev = i;
+      i = i + 1;
+      prev_cross = cross;
+    } while (i < count);
+  }
+  return 0;
+}
+
 /* 0x2b5d0 — actor_move_get_avoidance_direction: initialize trigonometric lookup
  * tables.
  *
