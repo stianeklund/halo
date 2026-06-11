@@ -14189,8 +14189,8 @@
         },
         {
           "addr": "0x12c410",
-          "decl": "void network_game_server_graceful_shutdown(void);",
-          "ported": null
+          "decl": "bool network_game_server_graceful_shutdown(void *server);",
+          "ported": true
         },
         {
           "addr": "0x12c560",
@@ -14260,7 +14260,8 @@
         },
         {
           "addr": "0x12d1c0",
-          "decl": "bool server_ok_to_countdown(void *server);"
+          "decl": "bool server_ok_to_countdown(void *server);",
+          "ported": true
         },
         {
           "addr": "0x12d210",
@@ -14269,11 +14270,13 @@
         },
         {
           "addr": "0x12d250",
-          "decl": "void network_game_generate_join_game_token(void);"
+          "decl": "void network_game_generate_join_game_token(void *join_token);",
+          "ported": true
         },
         {
           "addr": "0x12d2f0",
-          "decl": "void network_game_server_get_client_machine(void);"
+          "decl": "void network_game_server_get_client_machine(int server, int machine, int *out);",
+          "ported": true
         },
         {
           "addr": "0x12d380",
@@ -14282,11 +14285,13 @@
         },
         {
           "addr": "0x12d3d0",
-          "decl": "void network_game_server_get_machine_connection(void);"
+          "decl": "int network_game_server_get_machine_connection(int server, int machine);",
+          "ported": true
         },
         {
           "addr": "0x12d4a0",
-          "decl": "void network_game_server_get_client_machine_at_address(void);"
+          "decl": "int network_game_server_get_client_machine_at_address(int server, int ip_address);",
+          "ported": true
         },
         {
           "addr": "0x12d5b0",
@@ -14306,7 +14311,8 @@
         },
         {
           "addr": "0x12d6f0",
-          "decl": "void network_game_server_change_map_name(void);"
+          "decl": "void network_game_server_change_map_name(int server, char *map_name);",
+          "ported": true
         },
         {
           "addr": "0x12d7f0",
@@ -14368,11 +14374,13 @@
         },
         {
           "addr": "0x12f3f0",
-          "decl": "void FUN_0012f3f0(void);"
+          "decl": "int FUN_0012f3f0(int server, int machine, void *message);",
+          "ported": true
         },
         {
           "addr": "0x12f540",
-          "decl": "void FUN_0012f540(void);"
+          "decl": "bool FUN_0012f540(int server, void *player);",
+          "ported": true
         },
         {
           "addr": "0x12f690",
