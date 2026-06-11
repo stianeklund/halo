@@ -1,11 +1,11 @@
 {
   "results": {
-    "pass": 0,
+    "pass": 1,
     "fail": 2,
     "error": 0,
     "not_applicable": 0,
-    "z3_proven": 0,
-    "total": 2
+    "z3_proven": 1,
+    "total": 3
   },
   "failures": [
     [
@@ -18,7 +18,9 @@
     ]
   ],
   "errors": [],
-  "z3_proven": [],
+  "z3_proven": [
+    "vector3d_scale_add"
+  ],
   "rows": [
     {
       "addr": "0x3a740",
@@ -43,12 +45,28 @@
       "seeds_passed": 0,
       "seeds_total": 20,
       "z3_proven": "0"
+    },
+    {
+      "addr": "0x12f80",
+      "name": "vector3d_scale_add",
+      "class": "leaf",
+      "obj": "vector_math.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "1"
     }
   ],
   "by_object": {
     "actors.obj": {
       "fail": 2,
       "total": 2
+    },
+    "vector_math.obj": {
+      "pass": 1,
+      "total": 1
     }
   },
   "comparison": {
@@ -82,7 +100,7 @@
     ],
     "allowlisted": []
   },
-  "elapsed_seconds": 0.003734588623046875,
+  "elapsed_seconds": 0.005923032760620117,
   "interrupted": false,
-  "skipped": 2
+  "skipped": 3
 }
