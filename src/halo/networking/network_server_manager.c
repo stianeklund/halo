@@ -472,6 +472,87 @@ bool network_game_server_client_machine_is_joined_to_game(int server,
   return (*(uint8_t *)((char *)machine + 0xe) >> 1) & 1;
 }
 
+/* Accept a client machine into the game and assign it to the next open slot
+ * (0x12c560). */
+char network_game_server_accept_client_machine_into_game(int server,
+                                                         void *machine)
+{
+  char buf[0x44];
+  int i;
+  char *slot;
+  char result;
+  int addr_buf[6];
+
+  result = 0;
+  if (!server) {
+    display_assert("server",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x3da, 1);
+    system_exit(-1);
+  }
+  if (!machine) {
+    display_assert("machine",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x3db, 1);
+    system_exit(-1);
+  }
+  i = 0;
+  slot = (char *)server + 0x15c;
+  while (1) {
+    if (*slot < 0 || *slot > 3)
+      break;
+    i++;
+    slot += 0x44;
+    if (i > 3) {
+      if (i == 4)
+        network_game_log(
+          "network_game_server_accept_client_machine_into_game() failed to "
+          "find an available opening for the new machine");
+      return result;
+    }
+  }
+  csmemcpy(buf, (char *)server + 0x11c + i * 0x44, 0x44);
+  buf[0x40] = (char)i;
+  result = network_game_add_machine(server + 8, buf);
+  if (result == 1) {
+    csmemset(addr_buf, 0, sizeof(addr_buf));
+    FUN_001283c0(*(int *)machine, addr_buf, 0);
+    network_game_log("server added machine @ %s to the game at machine index "
+                     "#%d",
+                     transport_address_to_string((void *)addr_buf), i);
+    *(char *)((char *)machine + 0xe) = *(char *)((char *)machine + 0xe) | 2;
+    *(short *)((char *)machine + 0xc) = (short)i;
+  } else {
+    network_game_log("network_game_add_machine() failed in "
+                     "network_game_server_accept_client_machine_into_game()");
+  }
+  if (i == 4)
+    network_game_log(
+      "network_game_server_accept_client_machine_into_game() failed to find "
+      "an available opening for the new machine");
+  return result;
+}
+
+/* Check if a player name/identity already exists in the server's player list
+ * (0x12c690). Iterates 0x10 player slots at server+0x22e with stride 0x20.
+ * Returns false if a matching player is found, true if unique. */
+bool FUN_0012c690(int server, int player)
+{
+  int i;
+  char *slot;
+  i = 0;
+  slot = (char *)server + 0x22e;
+  do {
+    if (network_player_is_valid((void *)slot)) {
+      if (!ustrcmp((const wchar_t *)slot, (const wchar_t *)player))
+        return false;
+    }
+    i++;
+    slot += 0x20;
+  } while (i < 0x10);
+  return true;
+}
+
 /* FUN_0012c6d0 — 0x12c6d0
  * Pick a random player name that is not already used by any active player.
  * Iterates up to 0x10 player slots at param_1+0x22e (0x20 bytes each).
@@ -546,6 +627,63 @@ void FUN_0012c750(int param_1, int param_2)
       return;
     }
   } while (1);
+}
+
+/* Add a player to the game after machine/identity validation (0x12c7e0). */
+char network_game_server_add_player_to_game(int server, int machine,
+                                            void *player)
+{
+  char *p = (char *)player;
+  char result;
+
+  if (!server) {
+    display_assert("server",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x46c, 1);
+    system_exit(-1);
+  }
+  if (!machine) {
+    display_assert("machine",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x46d, 1);
+    system_exit(-1);
+  }
+  if (!player) {
+    display_assert("player",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x46e, 1);
+    system_exit(-1);
+  }
+  if (*(short *)(machine + 0xc) == (short)p[0x1c]) {
+    *(char *)(p + 0x1e) = (char)*(int *)0x46eed8;
+    *(int *)0x46eed8 = (*(int *)0x46eed8 + 1) & 0x80000001;
+    if ((int)*(int *)0x46eed8 < 0) {
+      *(int *)0x46eed8 = (*(int *)0x46eed8 - 1 | 0xfffffffe) + 1;
+    }
+    if (*(short *)p == 0) {
+      FUN_0012c6d0(server, (int)player);
+    }
+    if (!FUN_0012c690(server, (int)player)) {
+      FUN_0012c6d0(server, (int)player);
+    }
+    if (*(short *)(p + 0x18) == -1) {
+      FUN_0012c750(server, (int)player);
+    }
+    result = network_game_add_player(server + 8, player);
+    if (result == 1) {
+      network_game_log("server added player from machine #%d at controller "
+                       "index #%d to the game",
+                       (int)(short)*(short *)(machine + 0xc),
+                       (int)*(char *)(p + 0x1d));
+      return result;
+    }
+    network_game_log("network_game_add_player() failed in "
+                     "network_game_server_add_player_to_game()");
+    return result;
+  }
+  network_game_log("client machine tried to add a player with a non-matching "
+                   "machine identifier");
+  return 0;
 }
 
 /* network_game_server_remove_player_from_game — 0x12c920
@@ -710,6 +848,76 @@ void network_game_server_client_machine_is_precached(int param_1, int param_2,
   }
 }
 
+/* Handle a client update packet (tick sync, player data) from a machine
+ * (0x12cc10). */
+void network_game_server_handle_client_update_packet(int server, int machine,
+                                                     void *message)
+{
+  short player_count;
+  unsigned int tick;
+  unsigned int machine_last_tick;
+  unsigned int *input_buf[32];
+  int i;
+  unsigned int *src;
+  unsigned int *dst;
+
+  if (!server) {
+    display_assert("server",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x51e, 1);
+    system_exit(-1);
+  }
+  if (!machine) {
+    display_assert("machine",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x51f, 1);
+    system_exit(-1);
+  }
+  if (!message) {
+    display_assert("message_packet",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x520, 1);
+    system_exit(-1);
+  }
+  if (*(int *)message < 0) {
+    network_game_log(
+      "client machine #%d is out of sync @ game tick #%ld; switching to "
+      "post-game",
+      (int)*(short *)((char *)machine + 0xc), (int)game_time_get());
+    game_engine_switch_to_postgame();
+    return;
+  }
+  tick = *(unsigned int *)message & 0x7fffffff;
+  machine_last_tick = *(unsigned int *)((char *)machine + 4);
+  if (tick < machine_last_tick) {
+    network_game_log("received an outdated client update packet; ignoring "
+                     "(#%d / #%d)",
+                     tick, machine_last_tick);
+    return;
+  }
+  player_count = *(short *)((char *)message + 6);
+  if (player_count >= 0 && player_count < 5) {
+    csmemset(input_buf, 0, sizeof(input_buf));
+    if (player_count > 0) {
+      src = (unsigned int *)((char *)message + 8);
+      dst = (unsigned int *)input_buf;
+      for (i = (int)player_count << 3; i != 0; i--) {
+        *dst = *src;
+        src++;
+        dst++;
+      }
+    }
+    update_server_apply_actions(*(short *)((char *)machine + 0xc),
+                                (void *)input_buf);
+    *(unsigned int *)((char *)machine + 4) =
+      *(unsigned int *)message & 0x7fffffff;
+  } else {
+    network_game_log(
+      "client update packet from machine #%d had a bad player count; ignoring",
+      (int)*(short *)((char *)machine + 0xc));
+  }
+}
+
 /* network_game_server_switch_machine_from_postgame_to_pregame — 0x12cd60 */
 int network_game_server_switch_machine_from_postgame_to_pregame(int param_1,
                                                                 int param_2)
@@ -724,6 +932,92 @@ int network_game_server_switch_machine_from_postgame_to_pregame(int param_1,
                    (int)*(short *)(param_2 + 0xc));
   *(unsigned char *)(param_2 + 0xe) = *(unsigned char *)(param_2 + 0xe) & 0xfb;
   return 1;
+}
+
+/* Main server tick function (0x12cdb0).
+ * Sends game state updates, handles pending player additions.
+ * tick_count @<ax> implicitly forwarded from esi context. */
+void network_game_server_update_ticks(int server, unsigned short tick_count)
+{
+  int i;
+  unsigned int j;
+  short machine_idx;
+  char *s;
+  char *slot;
+  void *msg;
+  char result;
+  unsigned short tick_buf[2];
+  char update_buf[512];
+  int local_214;
+
+  char local_204[512];
+
+  s = (char *)server;
+  if (!server) {
+    display_assert("server",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x553, 1);
+    system_exit(-1);
+  }
+  if (*(short *)(s + 4) == 1) {
+    j = (unsigned int)tick_count;
+    while (j != 0) {
+      {
+        char upkt[0x210];
+        int upkt_random;
+        int upkt_time;
+        local_214 = *(int *)(s + 0x47c);
+        *(int *)(s + 0x47c) = local_214 + 1;
+        update_server_create_snapshot();
+        update_server_get_update(-1, (void *)tick_buf, &local_214);
+        upkt_random = get_random_seed();
+        upkt_time = game_time_get();
+        csmemcpy(local_204, update_buf, (unsigned int)tick_buf[0] << 5);
+        *(int *)(upkt + 0) = local_214;
+        *(int *)(upkt + 4) = upkt_random;
+        *(int *)(upkt + 8) = upkt_time;
+        *(unsigned short *)(upkt + 0xc) = tick_buf[0];
+        csmemcpy(upkt + 0x10, local_204, (unsigned int)tick_buf[0] << 5);
+        msg = encode_network_game_message(0x14, upkt, 0x210);
+      }
+      if (msg && !FUN_0012f430((void *)server, msg))
+        network_game_log(
+          "server failed to send game update message to all machines; client "
+          "machine may be out of sync");
+      j--;
+    }
+    if (*(char *)(s + 0x4b8)) {
+      i = 0;
+      slot = s + 0x448;
+      do {
+        machine_idx = *(short *)(s + 0x4b4);
+        if (*(short *)slot == machine_idx) {
+          int conn = i * 0x10 + 0x43c + server;
+          if (conn) {
+            result = network_game_server_add_player_to_game(
+              server, conn, (void *)(s + 0x498));
+            if (result) {
+              result = FUN_0012f540(server, (void *)(s + 0x498));
+              if (!result)
+                network_game_log(
+                  "network_game_server_send_player_joined_info_ingame() "
+                  "failed in network_game_server_handle_message_client_"
+                  "add_player_request_ingame()");
+              goto done_add;
+            }
+          }
+          break;
+        }
+        i++;
+        slot += 0x10;
+      } while (i < 4);
+      network_game_log("server failed to add a network player in-game");
+    done_add:
+      *(char *)(s + 0x4b8) = 0;
+    }
+  } else if (*(short *)(s + 4) == 2) {
+    game_engine_update();
+  }
 }
 
 /* network_game_server_queue_player_for_addition — 0x12cf60 */
@@ -1272,6 +1566,48 @@ bool FUN_0012d9f0(int server)
   } while (result);
 
   return false;
+}
+
+/* Send a rejection message to an endpoint (0x12da90).
+ * endpoint @<ebx>, reason @<ax> (0-6). */
+void FUN_0012da90(int endpoint, unsigned short reason)
+{
+  unsigned short local_reason;
+  void *msg;
+  unsigned short msg_len;
+  int send_result;
+
+  local_reason = reason;
+  if (!endpoint || reason >= 7) {
+    display_assert("endpoint && (reason < NUMBER_OF_SERVER_REJECTION_CODES)",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x878, 1);
+    system_exit(-1);
+  }
+  msg = encode_network_game_message(5, &local_reason, 2);
+  if (!msg) {
+    network_game_log(
+      "failed to create a message_server_machine_rejected message in "
+      "network_game_server_send_rejection_message");
+    return;
+  }
+  msg_len = (*(unsigned short *)msg) >> 4;
+  FUN_00080c20(msg, 1);
+  send_result = send_endpoint((int *)endpoint, (const char *)msg, msg_len);
+  if (send_result != msg_len) {
+    const char *err = FUN_00081c80(send_result);
+    network_game_log(
+      "error sending rejection message to client; transport error= \'%s\'",
+      err);
+  }
+}
+
+/* Connection refused (game full) callback (0x12db30).
+ * Forwards endpoint @<ebx> and reason @<ax> to FUN_0012da90. */
+void FUN_0012db30(int endpoint, unsigned short reason)
+{
+  network_game_log("client connection refused; game is full");
+  FUN_0012da90(endpoint, reason);
 }
 
 /* Postgame state handler (0x12db60).
@@ -2250,6 +2586,60 @@ bool network_server_manager_pregame_start(void *server)
   return result;
 }
 
+/* Initialize the global network server (0x12eef0).
+ * Creates a connection, sets up game data, initializes machine slots. */
+void *FUN_0012eef0(void)
+{
+  int *server;
+  int i;
+  int *slot;
+
+  if (*(char *)0x46eed4) {
+    display_assert("!network_game_server_memory_do_not_use_directly_in_use",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0xe0, 1);
+    system_exit(-1);
+  }
+  *(char *)0x46eed4 = 1;
+  server = (int *)0x5a90e0;
+  csmemset(server, 0, 0x4bc);
+  server[0] = FUN_001296b0(1, 0x141e);
+  if (!server[0]) {
+    error(2, "failed to create the server connection");
+    network_game_client_dispose((void *)server);
+    return (void *)0;
+  }
+  FUN_00082a90();
+  *(short *)((char *)server + 4) = 0;
+  *(short *)((char *)server + 6) = 2;
+  csmemset((char *)server + 8, 0, 0x434);
+  network_connection_set_connection_rejection_procedure(server[0],
+                                                        (void *)FUN_0012db30);
+  network_game_invalidate((char *)server + 8);
+  *(short *)((char *)server + 0x118) = (short)main_get_difficulty();
+  *(int *)0x5a9514 = -1;
+  i = 0;
+  slot = (int *)0x5a9520;
+  do {
+    slot[-1] = 0;
+    slot[0] = 0;
+    slot[1] = 0;
+    *(unsigned short *)(slot + 2) = 0xffff;
+    *(unsigned short *)((char *)(slot + 2) + 2) = 0;
+    network_game_invalidate_machine((void *)((char *)server + 8), i);
+    slot += 4;
+    i++;
+  } while ((int)slot < 0x5a9560);
+  *(char *)0x5a9599 = 0;
+  *(int *)0x5a9564 = 0;
+  if (!network_server_manager_pregame_start((void *)server)) {
+    error(2, "failed to initialize server pregame settings");
+    network_game_client_dispose((void *)server);
+    return (void *)0;
+  }
+  return (void *)server;
+}
+
 /* Handle game-start request from client (0x12f040).
  * Checks pregame state, decodes, then triggers countdown update. */
 bool FUN_0012f040(int server, int machine, void *message_data, int message_size)
@@ -2426,6 +2816,16 @@ char FUN_0012f330(int server, int machine, void *message_data, int message_size)
   return result;
 }
 
+/* Fastcall wrapper: write message via network_connection_write (0x12f3d0).
+ * dest_address @<ecx>, size @<edx>, reliable @<eax>, stack: connection,
+ * message. */
+bool FUN_0012f3d0(int dest_address, unsigned short size, int reliable,
+                  void *connection, void *message)
+{
+  return network_connection_write(connection, message, size, dest_address,
+                                  reliable);
+}
+
 /* Write a message to a machine's network connection (0x12f3f0).
  * Resolves machine→connection via get_machine_connection, then sends reliably.
  */
@@ -2576,4 +2976,181 @@ bool FUN_0012f5d0(void *server)
   }
 
   return result;
+}
+
+/* Handle client broadcast game search (0x12f690).
+ * client_message @<ecx>, source_address @<eax>, server on stack. */
+char network_game_server_reset_to_pregame(int server, void *client_message,
+                                          void *source_address)
+{
+  char advertise_buf[0x140];
+  int local_1c[4];
+  int game_data;
+  void *msg;
+  unsigned short msg_len;
+  int connection;
+  char result;
+
+  if (!server || !source_address || !client_message) {
+    display_assert(
+      "server && source_address && client_message",
+      "c:\\halo\\SOURCE\\networking\\network_server_message_handler.c", 0x21f,
+      1);
+    system_exit(-1);
+  }
+  if (*(short *)((char *)client_message + 2) != 1)
+    return true;
+  game_data = network_game_server_get_game((void *)server);
+  if (!game_data)
+    return true;
+  csmemset(advertise_buf, 0, sizeof(advertise_buf));
+  local_1c[0] = -1;
+  csmemcpy(advertise_buf, (char *)client_message + 4, 8);
+  network_game_generate_join_game_token((void *)((char *)advertise_buf + 0x38));
+  msg = encode_network_game_message(2, advertise_buf, 0x114);
+  if (!msg) {
+    network_game_log(
+      "failed to create a message_server_game_advertise message");
+    return true;
+  }
+  msg_len = *(unsigned short *)msg;
+  connection = network_game_server_get_connection((void *)server);
+  result = network_connection_write((void *)connection, msg, msg_len >> 4,
+                                    (int)local_1c, 0);
+  if (!result)
+    network_game_log("network_game_server_write() failed in "
+                     "handle_message_client_broadcast_game_search()");
+  return result;
+}
+
+/* Handle a ping message from a client - send pong response (0x12f8d0). */
+char FUN_0012f8d0(int server, void *decoded_msg, void *client_message)
+{
+  int ping_data;
+  short ping_extra;
+  int local_data[8];
+  void *pong_msg;
+  unsigned short pong_len;
+  int connection;
+  char result;
+
+  if (!server || !client_message || !decoded_msg) {
+    display_assert(
+      "server && source_address && client_message",
+      "c:\\halo\\SOURCE\\networking\\network_server_message_handler.c", 0x26a,
+      1);
+    system_exit(-1);
+  }
+  ping_data = *(int *)decoded_msg;
+  local_data[0] = ping_data;
+  pong_msg = encode_network_game_message(3, &local_data[0], 4);
+  if (!pong_msg) {
+    network_game_log("failed to create a message_server_pong message");
+    return false;
+  }
+  ping_extra = *(short *)((char *)decoded_msg + 4);
+  local_data[0] = *(int *)client_message;
+  pong_len = *(unsigned short *)pong_msg;
+  *(short *)((char *)&local_data[0] + 4) = ping_extra;
+  *(short *)((char *)&local_data[0] + 2) = 4;
+  connection = network_game_server_get_connection((void *)server);
+  result = network_connection_write((void *)connection, pong_msg, pong_len >> 4,
+                                    (int)local_data, 0);
+  if (!result)
+    network_game_log(
+      "network_game_server_write() failed in handle_message_client_ping()");
+  return result;
+}
+
+/* Handle client join-game request (0x12f990).
+ * server @<ecx>, source_address @<eax>, message/message_size on stack. */
+char FUN_0012f990(int server, void *source_address, void *message,
+                  int message_size)
+{
+  char decode_buf[64];
+  char addr_buf[16];
+  short packet_type;
+  short packet_ver;
+  short machine_idx;
+  void *msg;
+  unsigned short msg_len;
+  int connection;
+  char result;
+  char join_token[16];
+  int reject_code;
+
+  short state = network_game_server_get_state(server, (short *)0);
+  if (state != 0)
+    return true;
+  message_size -= 2;
+  packet_type = 0xc;
+  packet_ver = 1;
+  if (network_game_server_client_machine_is_joined_to_game(
+        server, (int)(char *)source_address)) {
+    network_game_log("ignoring redundant join request from machine");
+    return true;
+  }
+  if (!FUN_0012bce0((int)decode_buf, (int)((char *)message + 2),
+                    (short *)&message_size, &packet_type, &packet_ver, 3)) {
+    network_game_log(
+      "server failed to decode a message_client_join_game_request packet");
+    return false;
+  }
+  network_game_generate_join_game_token(join_token);
+  if (csmemcmp(addr_buf, join_token, 0x10) == 0 &&
+      network_game_server_get_state(server, (short *)0) == 0 &&
+      network_game_server_game_is_open((void *)server)) {
+    result = network_game_server_accept_client_machine_into_game(
+      server, (void *)(char *)source_address);
+    if (result) {
+      machine_idx = *(short *)((char *)source_address + 0xc);
+      if (machine_idx < 0 || machine_idx > 3) {
+        display_assert(
+          "network_machine_is_valid(client_machine)",
+          "c:\\halo\\SOURCE\\networking\\network_server_message_handler.c",
+          0x2ce, 1);
+        system_exit(-1);
+      }
+      connection = network_game_server_get_connection((void *)server);
+      {
+        int tmp_conn = connection;
+        msg = encode_network_game_message(4, &tmp_conn, 8);
+      }
+      if (!msg)
+        return false;
+      msg_len = *(unsigned short *)msg;
+      connection = network_game_server_get_connection((void *)server);
+      result =
+        network_connection_write((void *)connection, msg, msg_len >> 4, 0, 1);
+      if (!result) {
+        network_game_log(
+          "network_game_server_write() failed in "
+          "network_game_server_handle_message_client_join_game_request()");
+        return result;
+      }
+      return FUN_0012f5d0((void *)server);
+    }
+    reject_code = 5;
+    network_game_log(
+      "server failed to accept valid client machine into the game");
+  } else {
+    reject_code = 2;
+    network_game_log(
+      "client machine tried to join game with a bad join token or should not "
+      "be joining");
+  }
+  msg = encode_network_game_message(5, &reject_code, 2);
+  if (!msg) {
+    network_game_log(
+      "failed to create a message_server_machine_rejected message");
+    return false;
+  }
+  msg_len = *(unsigned short *)msg;
+  connection = network_game_server_get_connection((void *)server);
+  result =
+    network_connection_write((void *)connection, msg, msg_len >> 4, 0, 1);
+  if (!result)
+    network_game_log(
+      "network_game_server_write() failed while sending a rejection reply");
+  return false;
 }
