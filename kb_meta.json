@@ -194,6 +194,18 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x25c10": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Lift derived from a full disasm audit that corrected fourteen issues in the earlier 74% draft, most importantly: the prop-scan gate flags and the seed weights read the ACTR TAG (+0/+4 sign and bit0, +0x3c8/+0x3cc weights) not the encounter element; the scorer-table entries are called as fn(actor_handle, ctx, rec_count, records); path_state_estimated_distance is 6-arg cdecl with main-loop args (huge_buf, pos, pos[0x14], rec+0x8, rec+0x1c, ctx[0x40]?rec+0xc:NULL); unit_estimate_position estimate_mode is 1 (PUSH 0x1 at 0x25e34); the discard test is <= (TEST AH,0x41/JP); record init zeroes rec+0x2c/+0x34/+0x38; the overflow error passes the encounter element for %s; and the fp-eval debug name table is {fight,panic,cover,uncover,guard,pursue}.",
+        "VC71 87.1% against the per-function delinked reference; all large buffers are plain stack locals reproducing the 0x1c91c frame under both compilers, enabled by the __chkstk runtime stub added in src/halo/cseries/xbox_crt.c (lift-learnings section 20)."
+      ],
+      "uncertain": [
+        "Unicorn equivalence under zero-fill is inconclusive for this target: the oracle crashes on unresolved data relocs on most seeds, and the remaining divergences trace to differing uninitialized-buffer fill (0xcc oracle stack vs zeroed candidate memory) flowing through the stubbed encounter_build_firing_position_owner_actor_indices initializer (owner_indices garbage 0xcccccccc vs 0), not to lift behavior.",
+        "Remaining ~13% VC71 gap is x87 scheduling (FMULP/FXCH distance-sum patterns VC71 will not reproduce from any tried source form) plus minor register-choice and spill-slot differences; a 420s permuter pass found only a +0.4pp candidate that relied on an uninitialized-pointer UB transform (alias of ctx+0x50 assigned inside a gated block but read unconditionally) and was rejected; the safe equivalent of that transform scores equal to baseline."
+      ]
+    },
     "0x28610": {
       "kind": "function",
       "status": "ported"
