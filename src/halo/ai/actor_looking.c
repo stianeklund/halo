@@ -7144,7 +7144,9 @@ short FUN_00025c10(int actor_handle, void *eval_ctx, int *out_record,
     *(int *)(ctx + 0x62c) = -1;
     *(int *)(ctx + 0x658) = 0;
     *(float *)(ctx + 0x600) = xbox_sqrtf(dz * dz + dy * dy + dx * dx);
-    unit_estimate_position(*(int *)(actor + 0x18), 0,
+    /* estimate_mode=1 confirmed: PUSH 0x1 at 0x25e34; args 4/5 are both
+     * genuine NULLs (PUSH 0 x2 at 0x25e07/0x25e0c). */
+    unit_estimate_position(*(int *)(actor + 0x18), 1,
                            (vector3_t *)(ctx + 0x604), (vector3_t *)0,
                            (vector3_t *)0, (vector3_t *)(ctx + 0x610));
     *(vector3_t *)(ctx + 0x61c) = *(vector3_t *)(ctx + 0x610);
