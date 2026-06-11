@@ -355,7 +355,7 @@
     "0x12f3d0": "bool FUN_0012f3d0(int dest_address @<ecx>, unsigned short size @<edx>, int reliable @<eax>, void *connection, void *message);",
     "0x12f690": "char network_game_server_reset_to_pregame(int server, void *client_message @<ecx>, void *source_address @<eax>);",
     "0x12f8d0": "char FUN_0012f8d0(int server @<ecx>, void *decoded_msg @<eax>, void *client_message);",
-    "0x12f990": "char FUN_0012f990(int server @<ecx>, void *source_address @<eax>, void *message, int message_size);",
+    "0x12f990": "char FUN_0012f990(int server, void *machine @<esi>, void *message, int message_size);",
     "0x130b70": "char FUN_00130b70(void *client@<esi>, const char *data, int count);",
     "0x1330f0": "void FUN_001330f0(int glow_widget@<eax>);",
     "0x1331d0": "void FUN_001331d0(int glow_widget@<eax>, int particle_ptr@<ecx>);",
