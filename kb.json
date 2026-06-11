@@ -722,11 +722,6 @@
         {
           "addr": "0x1e68bb",
           "decl": "void FUN_001e68bb(void);"
-        },
-        {
-          "decl": "char FUN_000977f0(void);",
-          "addr": "0x977f0",
-          "ported": false
         }
       ],
       "name": "<common>"
@@ -3155,7 +3150,7 @@
         {
           "addr": "0x13ef0",
           "decl": "char FUN_00013ef0(int actor_handle, int action_type, void *charge_state);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x142a0",
@@ -3248,7 +3243,7 @@
         {
           "addr": "0x14e90",
           "decl": "char FUN_00014e90(int actor_handle @<eax>, char *state_data);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x14ff0",
@@ -3289,7 +3284,7 @@
         {
           "addr": "0x153e0",
           "decl": "bool FUN_000153e0(int actor_handle @<ebx>);",
-          "ported": false,
+          "ported": true,
           "name": "FUN_000153e0"
         },
         {
@@ -3384,7 +3379,7 @@
         {
           "addr": "0x169a0",
           "decl": "void FUN_000169a0(int actor_handle, int unit_handle, short scenario_idx, int param_4, char *out_index, void *state_ptr @<esi>);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x16bd0",
@@ -3480,11 +3475,11 @@
         {
           "addr": "0x17960",
           "decl": "void FUN_00017960(char *state_data@<ecx>, int actor_handle@<eax>, int object_handle@<edi>);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x17ab0",
-          "decl": "void FUN_00017ab0(void);",
+          "decl": "bool FUN_00017ab0(int actor_handle, short scenario_idx, char *state_data, int cmd_param @<eax>, int unit_handle @<ecx>);",
           "ported": false
         },
         {
@@ -3494,8 +3489,8 @@
         },
         {
           "addr": "0x19110",
-          "decl": "void FUN_00019110(void);",
-          "ported": false
+          "decl": "void FUN_00019110(int actor_handle, int unit_handle, short scenario_idx, char *state_data, int cmd_param, char *finished_ref);",
+          "ported": true
         },
         {
           "addr": "0x19230",
@@ -3745,12 +3740,12 @@
         {
           "addr": "0x28ed0",
           "decl": "void FUN_00028ed0(float *look_vectors, float *idle_direction, int actor_handle @<eax>);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x29040",
           "decl": "void actor_look_update(int actor_handle);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x2a2b0",
@@ -19753,7 +19748,7 @@
         },
         {
           "addr": "0x283b0",
-          "decl": "void FUN_000283b0(void);"
+          "decl": "char FUN_000283b0(float *actor_facing, char is_aim, float az_min, float az_max, float el_min, float el_max, float *out_vec3, float *current_dir @<eax>);"
         }
       ],
       "name": "vector_math.obj",
