@@ -1197,10 +1197,12 @@ void network_game_generate_join_game_token(void *join_token)
   csmemcpy(join_token, buf, 0x10);
 }
 
-/* Get the machine type byte for a client machine slot (0x12d2f0).
- * Writes (int8_t)server[machine_index*0x44+0x15c] to *out if non-null. */
-void network_game_server_get_client_machine(int server, int machine, int *out)
+/* Get the copied network-machine slot for a client machine (0x12d2f0).
+ * Returns server+0x11c+machine_index*0x44 and writes its index byte to *out. */
+int network_game_server_get_client_machine(int server, int machine, int *out)
 {
+  int result;
+
   if (!server || !machine) {
     display_assert("server && client_machine",
                    "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
@@ -1215,8 +1217,10 @@ void network_game_server_get_client_machine(int server, int machine, int *out)
   }
   if (out)
     *out = -1;
+  result = *(short *)(machine + 0xc) * 0x44 + server + 0x11c;
   if (out)
-    *out = (int)*(char *)(*(short *)(machine + 0xc) * 0x44 + server + 0x15c);
+    *out = (int)*(char *)(result + 0x40);
+  return result;
 }
 
 /* Return the connection object from the server (server[0]).
@@ -3105,12 +3109,14 @@ char FUN_0012f990(int server, void *machine, void *message, int message_size)
       result =
         network_game_server_accept_client_machine_into_game(server, machine);
       if (result) {
+        int client_machine;
+
         machine_idx_out = -1;
-        network_game_server_get_client_machine(server, (int)machine,
-                                               (int *)&machine_idx_out);
+        client_machine = network_game_server_get_client_machine(
+            server, (int)machine, (int *)&machine_idx_out);
         network_game_server_get_game((void *)server);
-        if (*(char *)((char *)machine + 0x40) < 0 ||
-            *(char *)((char *)machine + 0x40) >= 4) {
+        if (!client_machine || *(char *)(client_machine + 0x40) < 0 ||
+            *(char *)(client_machine + 0x40) >= 4) {
           display_assert(
             "network_machine_is_valid(client_machine)",
             "c:\\halo\\SOURCE\\networking\\network_server_message_handler.c",
