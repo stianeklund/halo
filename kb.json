@@ -3480,7 +3480,7 @@
         {
           "addr": "0x17ab0",
           "decl": "bool FUN_00017ab0(int actor_handle, short scenario_idx, char *state_data, int cmd_param @<eax>, int unit_handle @<ecx>);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x18b90",
@@ -4916,7 +4916,8 @@
         },
         {
           "addr": "0x936b0",
-          "decl": "void FUN_000936b0(void);"
+          "decl": "short FUN_000936b0(void *scenario, void *entry);",
+      "ported": false
         },
         {
           "addr": "0x93710",
@@ -11433,7 +11434,8 @@
         },
         {
           "addr": "0xcb9a0",
-          "decl": "void hs_wake_by_name(void);"
+          "decl": "char hs_wake_by_name(void *block_entry);",
+      "ported": false
         },
         {
           "addr": "0xcb9c0",
@@ -20681,7 +20683,8 @@
         },
         {
           "addr": "0x95640",
-          "decl": "void recorded_animation_play(void);"
+          "decl": "char recorded_animation_play(int actor, short anim_idx);",
+      "ported": false
         },
         {
           "addr": "0x95660",
@@ -22352,7 +22355,8 @@
         },
         {
           "addr": "0x1ac180",
-          "decl": "void FUN_001ac180(void);"
+          "decl": "char FUN_001ac180(int actor, int anim_tag, void *entry, int do_flag);",
+      "ported": false
         },
         {
           "addr": "0x1ac350",
@@ -25381,7 +25385,8 @@
         },
         {
           "addr": "0x1a68d0",
-          "decl": "void FUN_001a68d0(void);"
+          "decl": "short FUN_001a68d0(int actor, int mode, int a3, int a4, int a5, short *seat_out, int *obj_out);",
+      "ported": false
         },
         {
           "addr": "0x1a6bc0",
@@ -25415,7 +25420,8 @@
         },
         {
           "addr": "0x1a6ef0",
-          "decl": "void FUN_001a6ef0(void);"
+          "decl": "void FUN_001a6ef0(int actor, short count, void *comm_buf);",
+      "ported": false
         },
         {
           "addr": "0x1a70d0",
@@ -30398,7 +30404,7 @@
         },
         {
           "addr": "0x42d20",
-          "decl": "void ai_communication_packet_new(void);"
+          "decl": "void ai_communication_packet_new(void *packet);"
         },
         {
           "addr": "0x42d80",
