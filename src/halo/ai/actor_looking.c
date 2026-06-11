@@ -837,6 +837,60 @@ void FUN_00014ba0(int actor_handle, int *param_2)
   *(struct look_vec4 *)param_2 = **(struct look_vec4 **)0x2ee6d4;
 }
 
+/* FUN_00025c10 (0x25c10)
+ * Firing-position evaluation core. Queries the encounter's firing-position
+ * table, builds a candidate list (struct array fp_records[0x200][0x3c]),
+ * applies debug-mode bookkeeping, sorts by scoring comparator, then selects
+ * the best accessible FP.
+ *
+ * Outputs:
+ *   *out1  (int*): receives pointer to the winning FP record (60-byte struct)
+ *   *out2  (int*): receives secondary index (handle value)
+ *   *out3  (char*): receives exclusion flag byte (1 = excluded)
+ *   return (short): fp_index of the best candidate (-1 if none)
+ *
+ * Stack frame (chkstk EAX=0x1c91c at 0x25c13):
+ *   EBP-0x1:      debug_flag (bool, is actor being debugged)
+ *   EBP-0x2:      has_passing_fp (bool, set when valid FP found in loop)
+ *   EBP-0x8:      fp_count (int, count of FP candidates added)
+ *   EBP-0xc:      scenario_fp_block ptr
+ *   EBP-0x10:     fp_iter_idx (loop counter)
+ *   EBP-0x14:     iter_handle (from FUN_00064540 iterator)
+ *   EBP-0x18/-0x14/-0x10: temp_dir[3] float
+ *   EBP-0x19:     overflow_warned (bool)
+ *   EBP-0x1c:     scratch
+ *   EBP-0x20:     target_entity_handle (prop/vehicle entity)
+ *   EBP-0x24:     best_fp_score (float, best candidate score)
+ *   EBP-0x28:     actor_tag ptr
+ *   EBP-0x2c:     actor ptr
+ *   EBP-0x30:     win_fp_index (short)
+ *   EBP-0x34/-0x38/-0x3c: temp_pos[3] float
+ *   EBP-0x40-0x48: debug string table (6 ptrs)
+ *   fp_records:   EBP-0x8890, [0x200][0x3c] bytes (stride 0x3c)
+ *   sort_keys:    EBP-0x1090, [0x200] int  (sort permutation)
+ *   fp_mask:      EBP-0x890,  [0x200] int  (FP owner actor indices from encounter)
+ *   path_input:   EBP-0x90,   0x90 bytes
+ *   path_state:   EBP-0x1c91c, rest of frame (0x1408c bytes = huge_buf)
+ *
+ * Confirmed: fp_records stride 0x3c (IMUL EAX*0x3c at 0x26716, 0x26e36).
+ * Confirmed: EBP-0x8890 base (LEA [EBP + EAX*0x3c + 0xffff7770]).
+ * Confirmed: sort_keys EBP-0x1090 (LEA [EBP+0xffffef70] at 0x26dc0).
+ * Confirmed: fp_mask EBP-0x890 (EBP+EAX*4+0xfffff770 at 0x26d69).
+ * Confirmed: path_input EBP-0x90 (LEA [EBP+0xffffff70] at 0x26a1d).
+ * Confirmed: return in AX (MOV AX,[EBP-0x30] at 0x2685f/0x27028).
+ * Confirmed: *out3 receives char exclusion flag (0x26aef: MOV byte ptr [EAX],0x1).
+ * Confirmed: *out2 = fp_mask value at winner index (0x27069-0x27072).
+ * Confirmed: *out1 receives 0x3c-byte struct copied via MOVSD.REP ECX=0xf (0x2704b).
+ * Confirmed: FUN_00091ef0 is sort: (int *keys, int count, int(*cmp)(int,int)).
+ * Confirmed: FUN_00024900 signature: char FUN_00024900(int actor_handle @<edi>).
+ * Confirmed: FUN_000309d0 real sig: char FUN_000309d0(int a_h, int iter_h, float *pos).
+ * Confirmed: global[0x331f00]=fp_count, global[0x331f04]=fp_records (for sort cmp 0x24950).
+ * Confirmed: debug copy at 0x26524 REP MOVSD ECX=0x19c (copyout to 0x629d44).
+ * Inferred:  actor+0x99 = ground-class flag (MOV CL,[EDI+0x99] at 0x261ac).
+ * Inferred:  actor+0x280 = look_count (short); +0x287 = is_looking (bool).
+ * Inferred:  actor+0x2d4/2d8 = look_timeout fields; +0x254644 = look_bias constant. */
+
+
 /* FUN_00014c10 (0x14c10)
  * Firing-position state update for look/fight actor actions.
  *
