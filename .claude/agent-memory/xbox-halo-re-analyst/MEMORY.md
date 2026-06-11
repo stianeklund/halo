@@ -1,5 +1,7 @@
 # Agent Memory Index
 
+- [FP evaluate 25c10 lift](reference_fp_evaluate_25c10_lift.md) — landed 87.1% (d01852a4); [EBP-0x28]=actr tag (NOT encounter) for prop-scan flags/seed weights/path_input arg2; scorer table fn(actor,ctx,count,records); 5f550 is 6-arg; estimate_mode=1; VC71 idioms memcpy/vector3_t-copy/direct-index/<=3; equiv inconclusive (oracle relocs + 0xcc-vs-0 fill); __chkstk stub exists now, no static split
+- [Permuter output retention](feedback_permuter_output_retention.md) — run.py deletes work dir + NEW BEST source unless --keep/--output-dir; always pass --output-dir, and audit candidates for UB transforms (uninit-pointer hoist faked +0.4pp on 25c10)
 - [Crash symbolization method](reference_crash_symbolization_method.md) — patched-XBE crash addrs: 0x006xxxxx=lifted (EXE_VMA=addr-0x642000+0x400000), 0x001xxxxx=original; symbolize via build/halo PE export table, NOT stale halo.map; validate frames are real return-after-CALL
 - [Reg-arg-shift use-after-free crash](feedback_reg_arg_shift_use_after_free.md) — missing @<reg> annotation shifts every stack param one slot; lifted impl reads wrong arg as datum handle → data.c:78 "unused or changed" with tiny salt-0 raw index (e.g. #13); fix = add @<reg> to kb.json+baseline, no C change (FUN_00018b90 unit_handle@<eax>)
 - [maintain.py invocation](feedback_maintain_py.md) — always use relative paths; absolute paths cause maintain.py to empty the file
