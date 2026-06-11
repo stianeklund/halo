@@ -93,6 +93,19 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x17ab0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "28-case switch dispatcher (~1280 instructions); VC71 best score reached 63.5% with raw function-pointer casts for 0x1ac180/0x1a68d0/0x1a6ef0/0xcb9a0/0x936b0/0x95640 and full case coverage.",
+        "Key callees for future lift: FUN_001ac180 is (char)(int actor, int anim_tag, void *entry, int do_flag); FUN_001a68d0 is (short)(int actor, int mode, int a3, int a4, int a5, short *seat_out, int *obj_out); FUN_001a6ef0 is (void)(int actor, short count, void *comm_buf).",
+        "Final lift uses named kb.json callees for all six previously-raw-cast targets (0x1ac180, 0x1a68d0, 0x1a6ef0, 0xcb9a0, 0x936b0, 0x95640), reaching 89.7% VC71 (1253/1269) after two permuter-validated scheduling hoists (elem[2] copy before the cmd_param store burst in cases 1/2, and bipd NULL test computed before the FUN_00012140 call in case 0x1b)."
+      ],
+      "uncertain": [
+        "Score gap likely due to: (1) MSVC register allocation differences when using raw casts vs named functions (casts cause extra stack spill); (2) cmd_block+0x30 being kept in EBX register in original but recomputed in C; (3) prologue register save ordering differs.",
+        "Remaining ~10% VC71 gap is register allocation around the @<eax>/@<ecx> register-arg prologue and callee-saved register choice; no behavioral divergence found in the instruction diff."
+      ]
+    },
     "0x19d00": {
       "kind": "function",
       "status": "ported"

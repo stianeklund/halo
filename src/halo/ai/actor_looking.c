@@ -3216,6 +3216,745 @@ int16_t FUN_00017940(int16_t min, int16_t max)
                       max);
 }
 
+/* FUN_00017ab0 (0x17ab0) — Execute one command-list atom for an actor.
+ *
+ * Dispatches on the atom type (28 cases, jump table at 0x18adc) from the
+ * scenario command list block (scenario+0x438, stride 0x60; atoms at
+ * cmd_list+0x30, stride 0x20; points at cmd_list+0x3c, stride 0x14).
+ * Returns 1 when the atom executed/queued successfully, 0 otherwise.
+ * When the AI command-debug flag (0x5aca5b) is set, prints
+ * "<encounter/squad>: <list> #<n>[ FAILED]: <describe>" via error().
+ *
+ * Confirmed: cdecl(actor_handle, scenario_idx, state_data) plus
+ *   cmd_param@<eax>, unit_handle@<ecx>; frame SUB ESP,0x174.
+ * Confirmed: misgrouped Ghidra calls are really
+ *   tag_block_get_element(scenario+0x438, scenario_idx, 0x60),
+ *   tag_block_get_element(scenario+0x450/0x444/0x45c, idx, stride) and
+ *   FUN_00017120(scenario, atom, 0x5ab100, 0x100).
+ * Confirmed: FUN_00017960(state_data@<ecx>, actor_handle@<eax>,
+ *   unit_handle@<edi>) at 0x18113 (EDI still holds entry ECX).
+ * Confirmed: qsort(near_list, count, 8, FUN_00016960) at 0x185ea.
+ * Confirmed: case 0x10 reuses the state_data arg slot for the seat short
+ *   and case 0x1b reuses the scenario_idx slot for the point element
+ *   (separate locals here).
+ * Confirmed: case 0x1b non-flying branch zeroes the actr-definition local
+ *   (dead store kept for parity, decomp local_1c = 0). */
+bool FUN_00017ab0(int actor_handle, short scenario_idx, char *state_data,
+                  int cmd_param, int unit_handle)
+{
+  char *actor;
+  char *actr_def;
+  char *actv_def;
+  char *cmd_list;
+  short *atom;
+  int *elem;
+  int *elem2;
+  char *obj;
+  char *bipd;
+  char *ent;
+  char *enc;
+  int bipd_null;
+  char *sq;
+  const char *status;
+  int prop;
+  short cmd_type;
+  short mode;
+  short mode2;
+  short anim_idx;
+  short count;
+  short i;
+  short seat_count;
+  unsigned short umode;
+  int atom_seq;
+  int fp_index;
+  int prop_handle;
+  int object_index;
+  int style;
+  int anim_tag;
+  int do_flag;
+  int vmode;
+  int seat_slot;
+  int unit_out;
+  int t;
+  char loop_flag;
+  char aim_flag;
+  char flag;
+  char result;
+  int elem_z;
+  float radius;
+  float best;
+  float d;
+  int prop_iter[2];
+  int obj_iter[4];
+  data_iter_t iter;
+  float pos[3];
+  float near_list[32];
+  char look_target[0x10];
+  char comm[0x30];
+  char name_buf[128];
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actr_def = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  actv_def = (char *)tag_get(0x61637476, *(int *)(actor + 0x5c));
+  cmd_list = (char *)tag_block_get_element(
+    (char *)global_scenario_get() + 0x438, (int)scenario_idx, 0x60);
+  result = 0;
+  if ((int)(unsigned char)*state_data >= *(int *)(cmd_list + 0x30)) {
+    return 0;
+  }
+  atom = (short *)tag_block_get_element(
+    cmd_list + 0x30, (int)(unsigned char)*state_data, 0x20);
+  atom_seq = (int)(unsigned char)*state_data + 1;
+  cmd_type = *atom;
+
+  switch (cmd_type) {
+  case 0:
+    *(short *)(state_data + 2) =
+      (short)(int)(*(float *)(atom + 2) * *(float *)0x253394);
+    result = 1;
+    break;
+
+  case 1:
+  case 2:
+    if (cmd_param != 0 && (mode = atom[6], mode >= 0)) {
+      if ((int)mode < *(int *)(cmd_list + 0x3c)) {
+        elem = (int *)tag_block_get_element(cmd_list + 0x3c, (int)mode, 0x14);
+        *(short *)(state_data + 2) = 0;
+        *(char *)(cmd_param + 4) = 1;
+        elem_z = elem[2];
+        *(char *)(cmd_param + 5) = (atom[1] == 1);
+        *(int *)(cmd_param + 8) = elem[0];
+        *(int *)(cmd_param + 0xc) = elem[1];
+        *(int *)(cmd_param + 0x10) = elem_z;
+        *(int *)(cmd_param + 0x14) = elem[3];
+        result = actor_move_to_point(actor_handle, (float *)(cmd_param + 8),
+                                     elem[3], -1);
+        if (result != 0) {
+          if (*(char *)(cmd_param + 5) != 0) {
+            FUN_0002a330(actor_handle);
+          }
+          if (*atom == 2 && (mode = atom[7], mode >= 0)) {
+            if ((int)mode < *(int *)(cmd_list + 0x3c)) {
+              elem = (int *)tag_block_get_element(cmd_list + 0x3c, (int)mode,
+                                                  0x14);
+              *(char *)(cmd_param + 0x18) = 1;
+              *(int *)(cmd_param + 0x1c) = elem[0];
+              *(int *)(cmd_param + 0x20) = elem[1];
+              *(int *)(cmd_param + 0x24) = elem[2];
+            }
+          }
+        }
+      }
+    }
+    break;
+
+  case 4:
+  case 0x17:
+  case 0x18:
+  case 0x19:
+    if (cmd_param == 0) {
+      break;
+    }
+    radius = *(float *)(atom + 2);
+    fp_index = -1;
+    prop_handle = -1;
+    object_index = -1;
+    if (cmd_type == 4) {
+      mode = atom[6];
+      if (mode >= 0 && (int)mode < *(int *)(cmd_list + 0x3c)) {
+        radius = *(float *)(atom + 2);
+        fp_index = mode;
+      }
+    } else if (cmd_type == 0x17) {
+      mode = atom[6];
+      if (mode >= 0 && (int)mode < *(int *)(cmd_list + 0x3c)) {
+        mode2 = atom[7];
+        if (mode2 >= 0 && (int)mode2 < *(int *)(cmd_list + 0x3c)) {
+          fp_index = FUN_00017940(mode, (short)(mode2 + 1));
+          if (*(float *)(atom + 2) == *(float *)0x2533c0 &&
+              *(float *)(atom + 4) == *(float *)0x2533c0) {
+            radius = FUN_000121e0(*(float *)(actr_def + 0xec),
+                                  *(float *)(actr_def + 0xf0));
+          } else {
+            radius = FUN_000121e0(*(float *)(atom + 2),
+                                  *(float *)(atom + 4));
+          }
+        }
+      }
+    } else if (cmd_type == 0x18) {
+      best = 3.4028235e+38f;
+      FUN_00064540(prop_iter, actor_handle);
+      prop = FUN_00064570(prop_iter);
+      if (prop != 0) {
+        do {
+          if (*(short *)(prop + 0x24) >= 2 && *(short *)(prop + 0x24) <= 3 &&
+              *(char *)(prop + 0x12e) != 0 &&
+              *(float *)(prop + 0x11c) < best) {
+            best = *(float *)(prop + 0x11c);
+            prop_handle = prop_iter[0];
+          }
+          prop = FUN_00064570(prop_iter);
+        } while (prop != 0);
+        if (prop_handle != -1) {
+          goto LAB_look_merge;
+        }
+      }
+      best = 3.4028235e+38f;
+      data_iterator_new(&iter, player_data);
+      ent = (char *)data_iterator_next(&iter);
+      while (ent != 0) {
+        if (*(int *)(ent + 0x34) != -1) {
+          unit_get_head_position(*(int *)(ent + 0x34), pos);
+          d = distance_squared3d(pos, (float *)(actor + 0x120));
+          if (d < best) {
+            object_index = *(int *)(ent + 0x34);
+            best = d;
+          }
+        }
+        ent = (char *)data_iterator_next(&iter);
+      }
+    } else { /* 0x19 */
+      mode = atom[0xc];
+      if (mode >= 0 &&
+          (int)mode < *(int *)((char *)global_scenario_get() + 0x204)) {
+        t = object_name_list_get_handle(mode);
+        if (object_try_and_get_and_verify_type(t, 3) != 0) {
+          prop_handle = prop_get_active_by_unit_index(actor_handle, t);
+          object_index = t;
+        }
+      }
+    }
+  LAB_look_merge:
+    if (radius > *(float *)0x2533c0 &&
+        (prop_handle != -1 || object_index != -1 ||
+         ((short)fp_index >= 0 &&
+          (int)(short)fp_index < *(int *)(cmd_list + 0x3c)))) {
+      mode = atom[1];
+      style = 1;
+      if (mode == 1) {
+        style = 5;
+      } else if (mode == 2) {
+        style = 2;
+      } else if (mode == 4) {
+        style = 7;
+      } else if (mode == 3) {
+        style = 8;
+      }
+      if (prop_handle == -1) {
+        if (object_index == -1) {
+          elem = (int *)tag_block_get_element(
+            cmd_list + 0x3c, (int)(short)fp_index, 0x14);
+          *(short *)look_target = 3;
+          *(int *)(look_target + 4) = elem[0];
+          *(int *)(look_target + 8) = elem[1];
+          *(int *)(look_target + 0xc) = elem[2];
+        } else {
+          *(short *)look_target = 3;
+          unit_get_head_position(object_index, (float *)(look_target + 4));
+        }
+      } else {
+        *(short *)look_target = 1;
+        *(int *)(look_target + 4) = prop_handle;
+      }
+      FUN_00027a60(actor_handle, 0xd, (short)style, (short *)look_target);
+      *(short *)(state_data + 2) =
+        (short)(int)(radius * *(float *)0x253394);
+      result = 1;
+    }
+    break;
+
+  case 3:
+    if (unit_handle == *(int *)(actor + 0x18)) {
+      *(int *)(state_data + 0x18) = *(int *)(actor + 0x12c);
+      *(int *)(state_data + 0x1c) = *(int *)(actor + 0x130);
+      *(int *)(state_data + 0x20) = *(int *)(actor + 0x134);
+    } else {
+      object_get_world_position(unit_handle,
+                                (vector3_t *)(state_data + 0x18));
+    }
+    mode = atom[6];
+    if (mode >= 0) {
+      if ((int)mode >= *(int *)(cmd_list + 0x3c)) {
+        goto LAB_move_angle;
+      }
+      elem = (int *)tag_block_get_element(cmd_list + 0x3c, (int)mode, 0x14);
+      FUN_00012140((float *)(state_data + 0x18), (float *)elem,
+                   (float *)(state_data + 0xc));
+      if (!(normalize3d((float *)(state_data + 0xc)) > *(float *)0x2533c0)) {
+        result = 0;
+        break;
+      }
+    } else {
+    LAB_move_angle:
+      if (*(float *)(atom + 4) < *(float *)0x2533c0 ||
+          *(float *)0x253d50 <= *(float *)(atom + 4)) {
+        break;
+      }
+      vector3d_from_angle((float *)(state_data + 0xc),
+                          *(float *)(atom + 4) * *(float *)0x253d4c);
+    }
+    mode = atom[1];
+    result = 1;
+    if (mode < 0 || mode > 3) {
+      *(short *)(state_data + 8) = -1;
+    } else {
+      *(short *)(state_data + 8) = mode;
+    }
+    if (unit_handle == *(int *)(actor + 0x18)) {
+      FUN_0002f1a0(actor_handle);
+    }
+    state_data[5] = (char)((state_data[5] & 0xfd) | 1);
+    break;
+
+  case 0x16:
+    mode = atom[1];
+    if (mode < 0 || mode > 3) {
+      *(short *)(state_data + 8) = 0;
+    } else {
+      *(short *)(state_data + 8) = mode;
+    }
+    FUN_00017960(state_data, actor_handle, unit_handle);
+    *(short *)(state_data + 2) =
+      (short)(int)(*(float *)(atom + 2) * *(float *)0x253394);
+    state_data[5] = state_data[5] | 3;
+    result = 1;
+    break;
+
+  case 10:
+    if (unit_handle == *(int *)(actor + 0x18) &&
+        *(int *)(actor + 0x158) != -1) {
+      break;
+    }
+    state_data[5] = (char)((state_data[5] & 0xe7) | 4);
+    if (unit_handle == *(int *)(actor + 0x18)) {
+      if (*(char *)(actor + 0x504) == 0) {
+        flag = 0;
+      } else {
+        flag = (*(short *)(actor + 0x50a) == 0);
+      }
+    } else {
+      obj = (char *)object_get_and_verify_type(unit_handle, 3);
+      if (*(int *)(obj + 0xcc) == -1) {
+        flag = (FUN_00013070((float *)(obj + 0x18), (float *)(obj + 0x24)) >
+                *(float *)0x253d48);
+      } else {
+        flag = 0;
+      }
+    }
+    *(short *)(state_data + 2) = 0x3c;
+    *(unsigned short *)(state_data + 8) =
+      (unsigned short)(((flag != 0) - 1) & 10);
+    result = 1;
+    break;
+
+  case 0xb:
+    if (unit_handle == *(int *)(actor + 0x18) &&
+        *(int *)(actor + 0x158) != -1) {
+      break;
+    }
+    state_data[5] = (char)((state_data[5] & 0xf7) | 0x14);
+    *(short *)(state_data + 8) = 0;
+    *(int *)(state_data + 0xc) = *(int *)(atom + 2);
+    *(int *)(state_data + 0x10) = *(int *)(atom + 4);
+    *(short *)(state_data + 2) = 0x3c;
+    result = 1;
+    break;
+
+  case 5:
+    if (cmd_param == 0 || (mode = atom[1], mode < 0) || mode > 3) {
+      break;
+    }
+    *(short *)(cmd_param + 2) = mode;
+    result = 1;
+    break;
+
+  case 6:
+    if (cmd_param != 0) {
+      result = 1;
+      *(char *)cmd_param = (atom[1] == 1);
+    }
+    break;
+
+  case 0x11:
+    if (atom[1] == 0) {
+      state_data[4] = state_data[4] | 1;
+      result = 1;
+    } else {
+      state_data[4] = (char)(state_data[4] & 0xfe);
+      result = 1;
+    }
+    break;
+
+  case 0x12:
+    if (unit_handle != *(int *)(actor + 0x18)) {
+      break;
+    }
+    *(char *)(actor + 0x9e) = (atom[1] == 0);
+    result = 1;
+    break;
+
+  case 0x13:
+    result = 1;
+    break;
+
+  case 0x1a:
+    if (cmd_param != 0 && *(float *)(atom + 2) > *(float *)0x2533c0) {
+      *(char *)(cmd_param + 0x28) = 1;
+      *(int *)(cmd_param + 0x2c) = *(int *)(atom + 2);
+      result = 1;
+    }
+    break;
+
+  case 0xf:
+    if (cmd_param == 0) {
+      break;
+    }
+    *(char *)(cmd_param + 0x30) = 0;
+    switch (atom[1]) {
+    case 0:
+      *(char *)(cmd_param + 0x30) = 1;
+      result = *(char *)(cmd_param + 0x30);
+      *(short *)(cmd_param + 0x32) = 0;
+      *(short *)(cmd_param + 0x34) = 0x2a;
+      break;
+    case 1:
+      *(char *)(cmd_param + 0x30) = 1;
+      result = *(char *)(cmd_param + 0x30);
+      *(short *)(cmd_param + 0x32) = 4;
+      *(short *)(cmd_param + 0x34) = 0x29;
+      break;
+    case 2:
+      *(char *)(cmd_param + 0x30) = 1;
+      result = *(char *)(cmd_param + 0x30);
+      *(short *)(cmd_param + 0x32) = 5;
+      *(short *)(cmd_param + 0x34) = 0x29;
+      break;
+    case 3:
+      *(char *)(cmd_param + 0x30) = 1;
+      result = *(char *)(cmd_param + 0x30);
+      *(short *)(cmd_param + 0x32) = 6;
+      *(short *)(cmd_param + 0x34) = -1;
+      break;
+    case 4:
+      *(char *)(cmd_param + 0x30) = 1;
+      result = *(char *)(cmd_param + 0x30);
+      *(short *)(cmd_param + 0x32) = 7;
+      *(short *)(cmd_param + 0x34) = -1;
+      break;
+    case 5:
+      *(char *)(cmd_param + 0x30) = 1;
+      result = *(char *)(cmd_param + 0x30);
+      *(short *)(cmd_param + 0x32) = 8;
+      *(short *)(cmd_param + 0x34) = 0x2c;
+      break;
+    case 6:
+      *(char *)(cmd_param + 0x30) = 1;
+      result = *(char *)(cmd_param + 0x30);
+      *(short *)(cmd_param + 0x32) = 9;
+      *(short *)(cmd_param + 0x34) = 0x2c;
+      break;
+    case 7:
+      *(char *)(cmd_param + 0x30) = 1;
+      result = *(char *)(cmd_param + 0x30);
+      *(short *)(cmd_param + 0x32) = 10;
+      *(short *)(cmd_param + 0x34) = 0x2c;
+      break;
+    case 8:
+      *(char *)(cmd_param + 0x30) = 1;
+      result = *(char *)(cmd_param + 0x30);
+      *(short *)(cmd_param + 0x32) = 0xb;
+      *(short *)(cmd_param + 0x34) = 0x2c;
+      break;
+    case 9:
+      *(short *)(cmd_param + 0x34) = 0x26;
+      goto LAB_cue_common;
+    case 10:
+      *(short *)(cmd_param + 0x34) = 0x27;
+    LAB_cue_common:
+      *(short *)(cmd_param + 0x32) = -1;
+      *(char *)(cmd_param + 0x30) = 1;
+      /* FALLTHROUGH */
+    default:
+      result = *(char *)(cmd_param + 0x30);
+      break;
+    }
+    break;
+
+  case 7:
+    if (cmd_param != 0 && (mode = atom[6], mode >= 0)) {
+      if ((int)mode < *(int *)(cmd_list + 0x3c)) {
+        elem = (int *)tag_block_get_element(cmd_list + 0x3c, (int)mode, 0x14);
+        *(char *)(cmd_param + 0x36) = 1;
+        *(int *)(cmd_param + 0x38) = elem[0];
+        *(int *)(cmd_param + 0x3c) = elem[1];
+        *(int *)(cmd_param + 0x40) = elem[2];
+        *(int *)(cmd_param + 0x44) = *(int *)(atom + 2);
+        result = 1;
+      }
+    }
+    break;
+
+  case 8:
+    if (cmd_param == 0 || *(short *)(actv_def + 0x180) == -1 ||
+        (mode = atom[6], mode < 0)) {
+      break;
+    }
+    if ((int)mode >= *(int *)(cmd_list + 0x3c)) {
+      break;
+    }
+    elem = (int *)tag_block_get_element(cmd_list + 0x3c, (int)mode, 0x14);
+    unit_set_grenade_count(*(int *)(actor + 0x18),
+                           *(unsigned short *)(actv_def + 0x180), 1);
+    *(char *)(cmd_param + 0x49) = 0;
+    *(char *)(cmd_param + 0x48) = 0;
+    *(int *)(cmd_param + 0x4c) = elem[0];
+    *(int *)(cmd_param + 0x50) = elem[1];
+    *(int *)(cmd_param + 0x54) = elem[2];
+    *(short *)(cmd_param + 0x4a) = 0;
+    mode = atom[1];
+    if (mode >= 0 && mode < 3) {
+      *(short *)(cmd_param + 0x4a) = mode;
+    }
+    *(short *)(state_data + 2) = 0x3c;
+    result = 1;
+    break;
+
+  case 9:
+    if (unit_handle == *(int *)(actor + 0x18)) {
+      count = 0;
+      vmode = -1;
+      object_iterator_new(obj_iter, 2, 0);
+      if (object_iterator_next(obj_iter) != 0) {
+        do {
+          object_get_world_position(obj_iter[2], (vector3_t *)pos);
+          d = distance_squared3d((float *)(actor + 0x12c), pos);
+          if (*(float *)(atom + 2) == *(float *)0x2533c0 ||
+              d < *(float *)(atom + 2) * *(float *)(atom + 2)) {
+            near_list[count * 2] = d;
+            *(int *)&near_list[count * 2 + 1] = obj_iter[2];
+            count = (short)(count + 1);
+            if (count >= 16) {
+              break;
+            }
+          }
+        } while (object_iterator_next(obj_iter) != 0);
+        if (count > 1) {
+          qsort(near_list, (int)count, 8,
+                (int (*)(const void *, const void *))FUN_00016960);
+        }
+      }
+      umode = *(unsigned short *)(atom + 1);
+      if ((short)umode >= 0 && (short)umode < 5) {
+        vmode = umode;
+      }
+      i = 0;
+      if (count > 0) {
+        do {
+          if (actor_action_try_to_enter_vehicle(
+                actor_handle, *(int *)&near_list[i * 2 + 1], (int)"", vmode,
+                0, 0) != 0) {
+            state_data[4] = state_data[4] | 4;
+            result = 1;
+            goto LAB_done;
+          }
+          i = (short)(i + 1);
+        } while (i < count);
+      }
+    }
+    break;
+
+  case 0xd:
+    mode = atom[8];
+    if (mode == -1) {
+      break;
+    }
+    elem = (int *)tag_block_get_element(
+      (char *)global_scenario_get() + 0x444, (int)mode, 0x3c);
+    anim_tag = elem[0xb];
+    loop_flag = 0;
+    aim_flag = 0;
+    do_flag = 1;
+    if (anim_tag == -1) {
+      obj = (char *)object_get_and_verify_type(unit_handle, 3);
+      anim_tag = *(int *)((char *)tag_get(0x756e6974, *(int *)obj) + 0x44);
+    }
+    switch (atom[1]) {
+    case 1:
+      loop_flag = 1;
+      break;
+    case 2:
+      aim_flag = 1;
+      loop_flag = 1;
+      break;
+    case 3:
+      do_flag = 0;
+      break;
+    case 4:
+      do_flag = 0;
+      loop_flag = 1;
+      break;
+    case 5:
+      do_flag = 0;
+      aim_flag = 1;
+      loop_flag = 1;
+      break;
+    default:
+      break;
+    }
+    if (FUN_001ac180(unit_handle, anim_tag, elem, do_flag) == 0) {
+      break;
+    }
+    obj = (char *)object_try_and_get_and_verify_type(unit_handle, 1);
+    if (obj != 0) {
+      if (loop_flag != 0) {
+        *(unsigned int *)(obj + 0x424) = *(unsigned int *)(obj + 0x424) | 4;
+      } else {
+        *(unsigned int *)(obj + 0x424) =
+          *(unsigned int *)(obj + 0x424) & 0xfffffffb;
+      }
+      if (aim_flag != 0) {
+        *(unsigned int *)(obj + 0x424) = *(unsigned int *)(obj + 0x424) | 8;
+      } else {
+        *(unsigned int *)(obj + 0x424) =
+          *(unsigned int *)(obj + 0x424) & 0xfffffff7;
+      }
+    }
+    result = 1;
+    break;
+
+  case 0xe:
+    if (atom[10] >= 0) {
+      mode = atom[10];
+      if ((int)mode < *(int *)((char *)global_scenario_get() + 0x45c)) {
+        anim_idx = FUN_000936b0(
+          global_scenario_get(),
+          tag_block_get_element((char *)global_scenario_get() + 0x45c,
+                                (int)mode, 0x28));
+        if (anim_idx != -1) {
+          result = recorded_animation_play(unit_handle, anim_idx);
+        }
+      }
+    }
+    break;
+
+  case 0xc:
+    if (atom[9] >= 0) {
+      mode = atom[9];
+      if ((int)mode < *(int *)((char *)global_scenario_get() + 0x450)) {
+        result = hs_wake_by_name(tag_block_get_element(
+          (char *)global_scenario_get() + 0x450, (int)mode, 0x28));
+      }
+    }
+    break;
+
+  case 0x14:
+    mode = atom[0xb];
+    if (mode < 0 || (int)mode >= *(int *)(cmd_list + 0x30) ||
+        (int)mode == (int)(unsigned char)*state_data) {
+      break;
+    }
+    result = 1;
+    break;
+
+  case 0x15:
+    obj = (char *)object_get_and_verify_type(unit_handle, 3);
+    if (atom[1] == 1) {
+      *(unsigned char *)(obj + 0xb6) = *(unsigned char *)(obj + 0xb6) | 0x40;
+      result = 1;
+    } else {
+      *(unsigned char *)(obj + 0xb6) = *(unsigned char *)(obj + 0xb6) | 0x20;
+      result = 1;
+    }
+    break;
+
+  case 0x10:
+    seat_slot = *(unsigned short *)(atom + 1);
+    unit_out = -1;
+    seat_count = FUN_001a68d0(unit_handle, 6, 1, 1, 0, (short *)&seat_slot,
+                              &unit_out);
+    if (seat_count < 1) {
+      break;
+    }
+    csmemset(comm, 0, 0x30);
+    *(short *)(comm + 2) = (short)seat_slot;
+    *(int *)(comm + 4) = unit_out;
+    *(short *)comm = 6;
+    ai_communication_packet_new(comm + 0x10);
+    FUN_001a6ef0(unit_handle, seat_count, comm);
+    result = 1;
+    break;
+
+  case 0x1b:
+    mode = atom[6];
+    if (mode < 0) {
+      break;
+    }
+    if ((int)mode >= *(int *)(cmd_list + 0x3c)) {
+      break;
+    }
+    elem = (int *)tag_block_get_element(cmd_list + 0x3c, (int)mode, 0x14);
+    units_debug_get_closest_unit(unit_handle, pos);
+    mode = atom[7];
+    if (mode >= 0 && (int)mode < *(int *)(cmd_list + 0x3c)) {
+      elem2 = (int *)tag_block_get_element(cmd_list + 0x3c, (int)mode, 0x14);
+      obj = (char *)object_try_and_get_and_verify_type(unit_handle, 1);
+      if (obj == 0) {
+        bipd = 0;
+      } else {
+        bipd = (char *)tag_get(0x62697064, *(int *)obj);
+      }
+      bipd_null = (bipd == 0);
+      FUN_00012140((float *)elem, (float *)elem2, pos);
+      if (bipd_null || (*(unsigned char *)(bipd + 0x2f4) & 0x44) == 0) {
+        actr_def = 0;
+        if (magnitude3d(pos) == *(float *)0x2533c0) {
+          goto LAB_teleport_face;
+        }
+      } else {
+        if (normalize3d(pos) == *(float *)0x2533c0) {
+        LAB_teleport_face:
+          units_debug_get_closest_unit(unit_handle, pos);
+        }
+      }
+    }
+    object_set_position(unit_handle, (float *)elem, pos, 0);
+    object_reset(unit_handle);
+    object_update_children_recursive(unit_handle);
+    if (unit_handle == *(int *)(actor + 0x18)) {
+      FUN_0003bde0(actor_handle, *(int *)(actor + 0x18), actor + 0x120);
+      FUN_0002f1a0(actor_handle);
+    }
+    result = 1;
+    break;
+
+  default:
+    break;
+  }
+
+LAB_done:
+  if (*(char *)0x5aca5b == 0) {
+    return result;
+  }
+  if (*(unsigned int *)(actor + 0x34) == 0xffffffff) {
+    csstrcpy(name_buf, "<no encounter>");
+  } else {
+    enc = (char *)tag_block_get_element(
+      (char *)global_scenario_get() + 0x42c,
+      (int)(*(unsigned int *)(actor + 0x34) & 0xffff), 0xb0);
+    sq = (char *)tag_block_get_element(enc + 0x80,
+                                       (int)*(short *)(actor + 0x3a), 0xe8);
+    crt_sprintf(name_buf, "%s/%s", enc, sq);
+  }
+  FUN_00017120(global_scenario_get(), atom, (char *)0x5ab100, 0x100);
+  status = "";
+  if (result == 0) {
+    status = " FAILED";
+  }
+  error(2, "%s: %s #%d%s: %s", name_buf, cmd_list, (int)(short)atom_seq,
+        status, (char *)0x5ab100);
+  return result;
+}
+
 /* FUN_00017960 (0x17960) — Resolve look-direction vector into state_data.
  *
  * Writes a normalized look-direction vec3 to state_data+0xc..+0x14 based
