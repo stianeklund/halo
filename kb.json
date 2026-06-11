@@ -14346,27 +14346,33 @@
         },
         {
           "addr": "0x12f040",
-          "decl": "void FUN_0012f040(void);"
+          "decl": "bool FUN_0012f040(int server @<esi>, int machine, void *message_data, int message_size);",
+          "ported": true
         },
         {
           "addr": "0x12f0d0",
-          "decl": "void FUN_0012f0d0(void);"
+          "decl": "bool FUN_0012f0d0(int server @<esi>, int machine, void *message_data, int message_size);",
+          "ported": true
         },
         {
           "addr": "0x12f170",
-          "decl": "void FUN_0012f170(void);"
+          "decl": "bool FUN_0012f170(int server @<esi>, int machine, void *message_data, int message_size);",
+          "ported": true
         },
         {
           "addr": "0x12f200",
-          "decl": "void FUN_0012f200(void);"
+          "decl": "bool FUN_0012f200(int server @<esi>, int machine, void *message_data, int message_size);",
+          "ported": true
         },
         {
           "addr": "0x12f290",
-          "decl": "void FUN_0012f290(void);"
+          "decl": "bool FUN_0012f290(int server @<esi>, int machine, void *message_data, int message_size);",
+          "ported": true
         },
         {
           "addr": "0x12f330",
-          "decl": "void FUN_0012f330(void);"
+          "decl": "char FUN_0012f330(int server @<esi>, int machine, void *message_data, int message_size);",
+          "ported": true
         },
         {
           "addr": "0x12f3d0",
