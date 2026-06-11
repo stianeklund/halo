@@ -26138,7 +26138,7 @@
         },
         {
           "addr": "0x1b1c70",
-          "decl": "void unit_leap_begin(void);"
+          "decl": "char unit_leap_begin(int unit_handle, float *forward);"
         },
         {
           "addr": "0x1b1d00",
@@ -26342,7 +26342,7 @@
         },
         {
           "addr": "0x1b8060",
-          "decl": "void vehicle_stuck(void);"
+          "decl": "char vehicle_stuck(int unit_handle, float *vec);"
         },
         {
           "addr": "0x1b81d0",
@@ -29362,7 +29362,7 @@
         },
         {
           "addr": "0x1d8368",
-          "decl": "void FUN_001d8368(void);"
+          "decl": "int __stdcall XapiFormatFATVolume(void *device_path);"
         },
         {
           "addr": "0x1d86c3",
@@ -30016,21 +30016,26 @@
         {
           "addr": "0x2b5d0",
           "decl": "void actor_move_get_avoidance_direction(void);",
-          "ported": false
+          "ported": true,
+          "name": "actor_move_get_avoidance_direction"
         },
         {
           "addr": "0x2d350",
           "decl": "void actor_destination_update(int actor_handle);",
-          "ported": false
+          "ported": true,
+          "name": "actor_destination_update"
         },
         {
           "addr": "0x2e560",
-          "decl": "void FUN_0002e560(int actor_handle);"
+          "decl": "void actor_move_update(int actor_handle);",
+          "ported": true,
+          "name": "actor_move_update"
         },
         {
           "addr": "0x2a3a0",
           "decl": "void FUN_0002a3a0(int actor_handle);",
-          "ported": true
+          "ported": true,
+          "name": "FUN_0002a3a0"
         },
         {
           "addr": "0x2a580",
@@ -30041,30 +30046,37 @@
         {
           "addr": "0x2cdb0",
           "decl": "char actor_path_refresh(int actor_handle, char store_distance, void *override_path);",
-          "ported": false
+          "ported": true,
+          "name": "actor_path_refresh"
         },
         {
           "addr": "0x2a470",
           "decl": "void actor_path_input_new(int actor_handle, char *nav_state_out);",
-          "ported": true
+          "ported": true,
+          "name": "actor_path_input_new"
         },
         {
           "addr": "0x2b720",
           "decl": "char actor_path_3d_available(int actor_handle, float *dest_pos, float *dist_out);",
-          "ported": true
+          "ported": true,
+          "name": "actor_path_3d_available"
         },
         {
           "addr": "0x2bd80",
-          "decl": "void FUN_0002bd80(int actor_handle @<ecx>, float *facing, float *vel_out, float *speed_out);"
+          "decl": "void FUN_0002bd80(int actor_handle , float *facing, float *vel_out, float *speed_out);",
+          "name": "FUN_0002bd80"
         },
         {
           "addr": "0x2a530",
-          "decl": "void arccosine(void);"
+          "decl": "float arccosine(float x);",
+          "ported": true,
+          "name": "arccosine"
         },
         {
           "addr": "0x2a540",
           "decl": "void midpoint3d(float *a, float *b, float *out);",
-          "ported": true
+          "ported": true,
+          "name": "midpoint3d"
         },
         {
           "addr": "0x2a610",
@@ -30075,20 +30087,26 @@
         {
           "addr": "0x2a7e0",
           "decl": "int actor_move_animation_impulse(int actor_handle, int16_t param_2, int *param_3);",
-          "ported": true
+          "ported": true,
+          "name": "actor_move_animation_impulse"
         },
         {
           "addr": "0x2a860",
           "decl": "int actor_move_force_stop(int actor_handle);",
-          "ported": true
+          "ported": true,
+          "name": "actor_move_force_stop"
         },
         {
           "addr": "0x2a8f0",
-          "decl": "void actor_move_try_evasion_vector(void);"
+          "decl": "char actor_move_try_evasion_vector(int actor_handle, float *evasion_vector, float scale, float param_4, char *out_flag, void *result);",
+          "ported": true,
+          "name": "actor_move_try_evasion_vector"
         },
         {
           "addr": "0x2ab40",
-          "decl": "void actor_move_try_evasion_direction(void);"
+          "decl": "char actor_move_try_evasion_direction(int actor_handle, float *alignment_vector, float param_3, unsigned short *evade_direction_reference, float param_5, char *out_flag, void *result);",
+          "ported": true,
+          "name": "actor_move_try_evasion_direction"
         },
         {
           "addr": "0x2ace0",
@@ -30099,54 +30117,76 @@
         },
         {
           "addr": "0x2ade0",
-          "decl": "void FUN_0002ade0(void);"
+          "decl": "void FUN_0002ade0(int actor_handle);",
+          "ported": true,
+          "name": "FUN_0002ade0"
         },
         {
           "addr": "0x2b020",
-          "decl": "void FUN_0002b020(void);"
+          "decl": "short FUN_0002b020(float *avoidance_ray, float *ray_origin, int avoidance_data, float *ray_direction, float *collision_t, char *param_3);",
+          "ported": true,
+          "name": "FUN_0002b020"
         },
         {
           "addr": "0x2b310",
-          "decl": "void FUN_0002b310(void);"
+          "decl": "char FUN_0002b310(float *direction, short count, int records, float *values, float *out_index, float *out_value);",
+          "ported": true,
+          "name": "FUN_0002b310"
         },
         {
           "addr": "0x2b400",
-          "decl": "void actor_move_transform_avoidance_vector(void);"
+          "decl": "void actor_move_transform_avoidance_vector(int matrix, float *in_vec, float *out_vec);",
+          "ported": true,
+          "name": "actor_move_transform_avoidance_vector"
         },
         {
           "addr": "0x2b490",
-          "decl": "void FUN_0002B490(void);"
+          "decl": "void actor_move_get_avoidance_vector(int matrix, float dir_index, float *out_vec);",
+          "ported": true,
+          "name": "actor_move_get_avoidance_vector"
         },
         {
           "addr": "0x2b830",
-          "decl": "void FUN_0002b830(void);"
+          "decl": "void FUN_0002b830(float *facing_basis , char use_3d, float *out_vector, short *out_index, float *in_vec , float *weight_vec);",
+          "ported": true,
+          "name": "FUN_0002b830"
         },
         {
           "addr": "0x2bab0",
-          "decl": "void FUN_0002bab0(void);"
+          "decl": "void FUN_0002bab0(char use_3d , float *movement_direction , float *facing_direction , float *out);",
+          "ported": true,
+          "name": "FUN_0002bab0"
         },
         {
           "addr": "0x2d720",
-          "decl": "char actor_move_to_point(int actor_handle, float *destination, int param_3, int param_4);"
+          "decl": "char actor_move_to_point(int actor_handle, float *destination, int param_3, int param_4);",
+          "ported": true,
+          "name": "actor_move_to_point"
         },
         {
           "addr": "0x2d850",
           "decl": "char actor_move_to_move_position(int actor_handle, int16_t param_2);",
-          "ported": true
+          "ported": true,
+          "name": "actor_move_to_move_position"
         },
         {
           "addr": "0x2d900",
-          "decl": "int actor_move_to_firing_position(int actor_handle, int16_t param_2, void *param_3);"
+          "decl": "char actor_move_to_firing_position(int actor_handle, int16_t param_2, void *param_3);",
+          "ported": true,
+          "name": "actor_move_to_firing_position"
         },
         {
           "addr": "0x2d9b0",
           "decl": "char actor_move_to_prop(int actor_handle, int encounter_handle, float distance);",
           "ported": true,
-          "status": "ported"
+          "status": "ported",
+          "name": "actor_move_to_prop"
         },
         {
           "addr": "0x2daa0",
-          "decl": "void FUN_0002daa0(void);"
+          "decl": "void actor_move_compute_facing(char want_facing , short move_dir , int actor_handle, char use_z, float max_speed_sq, char path_gate, float arg4, float arg5, float arg6, float arg7, float maximum_throttle, float *movement, float *out_facing, short *out_dir, float *out_vec2, char *out_byte, char *out_bool);",
+          "ported": true,
+          "name": "actor_move_compute_facing"
         }
       ],
       "name": "actor_moving.obj",
@@ -31851,7 +31891,7 @@
         },
         {
           "addr": "0x63e90",
-          "decl": "void FUN_00063e90(void);"
+          "decl": "char FUN_00063e90(int scenario, unsigned char bsp_idx, float *origin, int node_handle, float *target, int flags, float param_7, int param_8, unsigned int *result);"
         },
         {
           "addr": "0x64170",
@@ -35437,7 +35477,7 @@
         },
         {
           "addr": "0x639e0",
-          "decl": "void FUN_000639e0(void);"
+          "decl": "int FUN_000639e0(int scenario, unsigned char bsp_idx, float *origin, int node_handle, float *target, int flags, char *result_buf);"
         }
       ],
       "name": "path_smoothing.obj",
