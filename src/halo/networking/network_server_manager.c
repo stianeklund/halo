@@ -2250,6 +2250,182 @@ bool network_server_manager_pregame_start(void *server)
   return result;
 }
 
+/* Handle game-start request from client (0x12f040).
+ * Checks pregame state, decodes, then triggers countdown update. */
+bool FUN_0012f040(int server, int machine, void *message_data, int message_size)
+{
+  int s = server;
+  char decoded_buf[4];
+  short packet_type;
+  short packet_version;
+
+  if (network_game_server_get_state(s, (short *)0) != 0) {
+    network_game_log(
+      "failed to handle a message_client_game_start_request because the "
+      "server is not in pregame");
+    return true;
+  }
+  message_size -= 2;
+  packet_type = 0x10;
+  packet_version = 1;
+  if (FUN_0012bce0((int)decoded_buf, (int)((char *)message_data + 2),
+                   (short *)&message_size, &packet_type, &packet_version, 3)) {
+    network_game_server_update_countdown((void *)s, *(short *)decoded_buf);
+    return true;
+  }
+  network_game_log(
+    "server failed to decode a message_client_game_start_request packet");
+  return true;
+}
+
+/* Handle map-precached notification from client (0x12f0d0). */
+bool FUN_0012f0d0(int server, int machine, void *message_data, int message_size)
+{
+  char decoded_buf[256];
+  short packet_type;
+  short packet_version;
+
+  if (network_game_server_get_state(server, (short *)0) != 0) {
+    network_game_log(
+      "failed to handle a message_type_client_map_is_precached_pregame "
+      "because the server is not in pregame");
+    return true;
+  }
+  message_size -= 2;
+  packet_type = 0x13;
+  packet_version = 1;
+  if (FUN_0012bce0((int)decoded_buf, (int)((char *)message_data + 2),
+                   (short *)&message_size, &packet_type, &packet_version, 3)) {
+    network_game_server_client_machine_is_precached((int)server, machine,
+                                                    (int)decoded_buf);
+    return true;
+  }
+  network_game_log(
+    "server failed to decode a message_type_client_map_is_precached_pregame "
+    "packet");
+  return true;
+}
+
+/* Handle client-loaded notification from client (0x12f170). */
+bool FUN_0012f170(int server, int machine, void *message_data, int message_size)
+{
+  char decoded_buf[4];
+  short packet_type;
+  short packet_version;
+
+  if (network_game_server_get_state(server, (short *)0) != 0) {
+    network_game_log(
+      "failed to handle a message_client_loaded message because the server is "
+      "not in pregame");
+    return false;
+  }
+  message_size -= 2;
+  packet_type = 0x18;
+  packet_version = 1;
+  if (FUN_0012bce0((int)decoded_buf, (int)((char *)message_data + 2),
+                   (short *)&message_size, &packet_type, &packet_version, 5)) {
+    network_game_server_client_machine_game_loading_completed((void *)server,
+                                                              (void *)machine);
+    return true;
+  }
+  network_game_log("server failed to decode a message_client_loaded packet");
+  return false;
+}
+
+/* Handle add-player request ingame (0x12f200). */
+bool FUN_0012f200(int server, int machine, void *message_data, int message_size)
+{
+  char decoded_buf[32];
+  short packet_type;
+  short packet_version;
+
+  if (network_game_server_get_state(server, (short *)0) != 1) {
+    network_game_log(
+      "failed to handle a message_client_add_player_request_ingame because "
+      "the server is not in game");
+    return true;
+  }
+  message_size -= 2;
+  packet_type = 0x1a;
+  packet_version = 1;
+  if (FUN_0012bce0((int)decoded_buf, (int)((char *)message_data + 2),
+                   (short *)&message_size, &packet_type, &packet_version, 5)) {
+    network_game_server_queue_player_for_addition(server, (int)decoded_buf);
+    return true;
+  }
+  network_game_log(
+    "server failed to decode a message_client_add_player_request_ingame "
+    "packet");
+  return true;
+}
+
+/* Handle remove-player request postgame (0x12f290). */
+bool FUN_0012f290(int server, int machine, void *message_data, int message_size)
+{
+  char decoded_buf[32];
+  short packet_type;
+  short packet_version;
+
+  if (network_game_server_get_state(server, (short *)0) != 2) {
+    network_game_log(
+      "failed to handle a message_client_remove_player_request_postgame "
+      "because the server is not in post-game");
+    return true;
+  }
+  message_size -= 2;
+  packet_type = 0x20;
+  packet_version = 1;
+  if (FUN_0012bce0((int)decoded_buf, (int)((char *)message_data + 2),
+                   (short *)&message_size, &packet_type, &packet_version, 7)) {
+    if (!network_game_server_remove_player_from_game(server, machine,
+                                                     (int)decoded_buf))
+      network_game_log("server failed to remove a network player post-game");
+    return true;
+  }
+  network_game_log(
+    "server failed to decode a message_client_remove_player_request_postgame "
+    "packet");
+  return true;
+}
+
+/* Handle client switch-to-pregame request (0x12f330). */
+char FUN_0012f330(int server, int machine, void *message_data, int message_size)
+{
+  char decoded_buf[4];
+  short packet_type;
+  short packet_version;
+  char result;
+
+  result = 1;
+  if (network_game_server_get_state(server, (short *)0) == 2) {
+    message_size -= 2;
+    packet_type = 0x21;
+    packet_version = 1;
+    if (FUN_0012bce0((int)decoded_buf, (int)((char *)message_data + 2),
+                     (short *)&message_size, &packet_type, &packet_version,
+                     7)) {
+      result =
+        (char)network_game_server_switch_machine_from_postgame_to_pregame(
+          server, machine);
+      if (!result) {
+        network_game_log(
+          "network_game_server_switch_machine_from_postgame_to_pregame() "
+          "failed");
+        return result;
+      }
+    } else {
+      network_game_log(
+        "server failed to decode a message_client_remove_player_request_"
+        "postgame packet");
+    }
+  } else {
+    network_game_log(
+      "failed to handle a message_client_switch_to_pregame because the server "
+      "is not in post-game");
+  }
+  return result;
+}
+
 /* Write a message to a machine's network connection (0x12f3f0).
  * Resolves machine→connection via get_machine_connection, then sends reliably.
  */

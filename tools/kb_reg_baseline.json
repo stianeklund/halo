@@ -33,6 +33,7 @@
     "0x24000": "void FUN_00024000(void *ctx, float score, int type, void *position @<esi>);",
     "0x24850": "void FUN_00024850(int actor_handle, int flag, char *actor @<edi>, void *state @<ebx>);",
     "0x24890": "char FUN_00024890(int actor_handle, void *state, char *actor @<edi>);",
+    "0x24900": "char FUN_00024900(int actor_handle, void *query_buf @<edi>);",
     "0x257a0": "void FUN_000257a0(int actor_handle@<eax>, void *state@<edi>, char *actor@<ecx>);",
     "0x25970": "char FUN_00025970(void *state@<eax>, int actor_handle, char *actor@<esi>);",
     "0x27a10": "int FUN_00027a10(int actor_handle /* @<eax> */);",
@@ -342,6 +343,12 @@
     "0x12dd20": "void FUN_0012dd20(void *game_data, const char *prefix@<esi>);",
     "0x12e580": "bool FUN_0012e580(int server@<ebx>);",
     "0x12e750": "bool FUN_0012e750(int server@<esi>);",
+    "0x12f040": "bool FUN_0012f040(int server @<esi>, int machine, void *message_data, int message_size);",
+    "0x12f0d0": "bool FUN_0012f0d0(int server @<esi>, int machine, void *message_data, int message_size);",
+    "0x12f170": "bool FUN_0012f170(int server @<esi>, int machine, void *message_data, int message_size);",
+    "0x12f200": "bool FUN_0012f200(int server @<esi>, int machine, void *message_data, int message_size);",
+    "0x12f290": "bool FUN_0012f290(int server @<esi>, int machine, void *message_data, int message_size);",
+    "0x12f330": "char FUN_0012f330(int server @<esi>, int machine, void *message_data, int message_size);",
     "0x130b70": "char FUN_00130b70(void *client@<esi>, const char *data, int count);",
     "0x1330f0": "void FUN_001330f0(int glow_widget@<eax>);",
     "0x1331d0": "void FUN_001331d0(int glow_widget@<eax>, int particle_ptr@<ecx>);",
@@ -477,7 +484,6 @@
     "0x1d8750": "unsigned int FUN_001d8750(unsigned int val@<ecx>);",
     "0x1e9350": "void D3DDevice_SetRenderState_Simple(uint32_t reg@<ecx>, uint32_t value@<edx>);",
     "0x1e9380": "void D3DDevice_SetRenderState_Deferred(uint32_t reg_index@<ecx>, uint32_t value@<edx>);",
-    "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);",
-    "0x24900": "char FUN_00024900(int actor_handle, void *query_buf @<edi>);"
+    "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);"
   }
 }
