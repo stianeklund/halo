@@ -939,6 +939,11 @@ int network_game_server_switch_machine_from_postgame_to_pregame(int param_1,
  * tick_count @<ax> implicitly forwarded from esi context. */
 void network_game_server_update_ticks(int server, unsigned short tick_count)
 {
+  char input_buf[516]; /* [count:2][pad:2][data:512] contiguous */
+  char upkt[0x210];
+  int tick_out;
+  int upkt_random;
+  int upkt_time;
   int i;
   unsigned int j;
   short machine_idx;
@@ -946,11 +951,6 @@ void network_game_server_update_ticks(int server, unsigned short tick_count)
   char *slot;
   void *msg;
   char result;
-  unsigned short tick_buf[2];
-  char update_buf[512];
-  int local_214;
-
-  char local_204[512];
 
   s = (char *)server;
   if (!server) {
@@ -962,24 +962,19 @@ void network_game_server_update_ticks(int server, unsigned short tick_count)
   if (*(short *)(s + 4) == 1) {
     j = (unsigned int)tick_count;
     while (j != 0) {
-      {
-        char upkt[0x210];
-        int upkt_random;
-        int upkt_time;
-        local_214 = *(int *)(s + 0x47c);
-        *(int *)(s + 0x47c) = local_214 + 1;
-        update_server_create_snapshot();
-        update_server_get_update(-1, (void *)tick_buf, &local_214);
-        upkt_random = get_random_seed();
-        upkt_time = game_time_get();
-        csmemcpy(local_204, update_buf, (unsigned int)tick_buf[0] << 5);
-        *(int *)(upkt + 0) = local_214;
-        *(int *)(upkt + 4) = upkt_random;
-        *(int *)(upkt + 8) = upkt_time;
-        *(unsigned short *)(upkt + 0xc) = tick_buf[0];
-        csmemcpy(upkt + 0x10, local_204, (unsigned int)tick_buf[0] << 5);
-        msg = encode_network_game_message(0x14, upkt, 0x210);
-      }
+      tick_out = *(int *)(s + 0x47c);
+      *(int *)(s + 0x47c) = tick_out + 1;
+      update_server_create_snapshot();
+      update_server_get_update(-1, (void *)input_buf, &tick_out);
+      upkt_random = get_random_seed();
+      upkt_time = game_time_get();
+      *(int *)(upkt + 0) = tick_out;
+      *(int *)(upkt + 4) = upkt_random;
+      *(int *)(upkt + 8) = upkt_time;
+      *(unsigned short *)(upkt + 0xc) = *(unsigned short *)input_buf;
+      csmemcpy(upkt + 0x10, input_buf + 4,
+               (unsigned int)*(unsigned short *)input_buf << 5);
+      msg = encode_network_game_message(0x14, upkt, 0x210);
       if (msg && !FUN_0012f430((void *)server, msg))
         network_game_log(
           "server failed to send game update message to all machines; client "
@@ -3063,30 +3058,32 @@ char FUN_0012f8d0(int server, void *decoded_msg, void *client_message)
 }
 
 /* Handle client join-game request (0x12f990).
- * server @<ecx>, source_address @<eax>, message/message_size on stack. */
-char FUN_0012f990(int server, void *source_address, void *message,
-                  int message_size)
+ * server=stack, machine=ESI(thunk-provided), message/size=stack. */
+char FUN_0012f990(int server, void *machine, void *message, int message_size)
 {
-  char decode_buf[64];
+  char decode_buf[0x50]; /* [0x40]=name(wchar), [0x40..0x4f]=client_token */
+  char expected_token[16];
   char addr_buf[16];
-  short packet_type;
-  short packet_ver;
-  short machine_idx;
+  int conn;
+  short machine_idx_out;
   void *msg;
   unsigned short msg_len;
-  int connection;
   char result;
-  char join_token[16];
-  int reject_code;
+  short reject_code;
+  struct {
+    int games;
+    short idx;
+  } accepted_data;
+  short packet_type;
+  short packet_ver;
 
-  short state = network_game_server_get_state(server, (short *)0);
-  if (state != 0)
+  if (network_game_server_get_state(server, (short *)0) != 0)
     return true;
   message_size -= 2;
   packet_type = 0xc;
   packet_ver = 1;
   if (network_game_server_client_machine_is_joined_to_game(
-        server, (int)(char *)source_address)) {
+        server, (int)(void *)machine)) {
     network_game_log("ignoring redundant join request from machine");
     return true;
   }
@@ -3096,48 +3093,72 @@ char FUN_0012f990(int server, void *source_address, void *message,
       "server failed to decode a message_client_join_game_request packet");
     return false;
   }
-  network_game_generate_join_game_token(join_token);
-  if (csmemcmp(addr_buf, join_token, 0x10) == 0 &&
-      network_game_server_get_state(server, (short *)0) == 0 &&
+  conn = network_game_server_adjust_machine_settings(machine);
+  FUN_001283c0(conn, (void *)addr_buf, 0);
+  if (network_game_server_get_state(server, (short *)0) == 0 &&
       network_game_server_game_is_open((void *)server)) {
-    result = network_game_server_accept_client_machine_into_game(
-      server, (void *)(char *)source_address);
-    if (result) {
-      machine_idx = *(short *)((char *)source_address + 0xc);
-      if (machine_idx < 0 || machine_idx > 3) {
-        display_assert(
-          "network_machine_is_valid(client_machine)",
-          "c:\\halo\\SOURCE\\networking\\network_server_message_handler.c",
-          0x2ce, 1);
-        system_exit(-1);
-      }
-      connection = network_game_server_get_connection((void *)server);
-      {
-        int tmp_conn = connection;
-        msg = encode_network_game_message(4, &tmp_conn, 8);
-      }
-      if (!msg)
-        return false;
-      msg_len = *(unsigned short *)msg;
-      connection = network_game_server_get_connection((void *)server);
+    network_game_generate_join_game_token(expected_token);
+    /* client token is at decode_buf[0x40..0x4f] */
+    if (csmemcmp(decode_buf + 0x40, expected_token, 0x10) == 0) {
+      wide_to_ascii((const wchar_t *)decode_buf, decode_buf, 0x40);
+      /* hosts.txt check skipped (file never exists on Xbox) */
       result =
-        network_connection_write((void *)connection, msg, msg_len >> 4, 0, 1);
-      if (!result) {
-        network_game_log(
-          "network_game_server_write() failed in "
-          "network_game_server_handle_message_client_join_game_request()");
+        network_game_server_accept_client_machine_into_game(server, machine);
+      if (result) {
+        machine_idx_out = -1;
+        network_game_server_get_client_machine(server, (int)machine,
+                                               (int *)&machine_idx_out);
+        network_game_server_get_game((void *)server);
+        if (*(char *)((char *)machine + 0x40) < 0 ||
+            *(char *)((char *)machine + 0x40) >= 4) {
+          display_assert(
+            "network_machine_is_valid(client_machine)",
+            "c:\\halo\\SOURCE\\networking\\network_server_message_handler.c",
+            0x2ce, 1);
+          system_exit(-1);
+        }
+        accepted_data.games = network_game_get_number_of_games_played();
+        accepted_data.idx = machine_idx_out;
+        msg = encode_network_game_message(4, &accepted_data, 8);
+        if (!msg)
+          return false;
+        msg_len = *(unsigned short *)msg;
+        conn = network_game_server_adjust_machine_settings(machine);
+        result =
+          network_connection_write((void *)conn, msg, msg_len >> 4, 0, 1);
+        if (!result)
+          network_game_log(
+            "network_game_server_write() failed in "
+            "network_game_server_handle_message_client_join_game_request()");
+        else
+          network_game_log("sent _message_type_server_machine_accepted message "
+                           "to %d",
+                           (int)machine_idx_out);
+        if (result == 1) {
+          result = FUN_0012f5d0((void *)server);
+          if (!result)
+            network_game_log(
+              "network_game_server_send_game_data_pregame() failed in "
+              "network_game_server_handle_message_client_join_game_request()");
+          return result;
+        }
         return result;
       }
-      return FUN_0012f5d0((void *)server);
+      reject_code = 5;
+      network_game_log(
+        "server failed to accept valid client machine '%s' @%s into the game",
+        decode_buf, transport_address_to_string((void *)addr_buf));
+    } else {
+      reject_code = 2;
+      network_game_log(
+        "client machine '%s' @%s tried to join game with a bad join token",
+        decode_buf, transport_address_to_string((void *)addr_buf));
     }
+  } else {
     reject_code = 5;
     network_game_log(
-      "server failed to accept valid client machine into the game");
-  } else {
-    reject_code = 2;
-    network_game_log(
-      "client machine tried to join game with a bad join token or should not "
-      "be joining");
+      "client machine '%s' @%s tried to join game when they should not be",
+      decode_buf, transport_address_to_string((void *)addr_buf));
   }
   msg = encode_network_game_message(5, &reject_code, 2);
   if (!msg) {
@@ -3146,9 +3167,8 @@ char FUN_0012f990(int server, void *source_address, void *message,
     return false;
   }
   msg_len = *(unsigned short *)msg;
-  connection = network_game_server_get_connection((void *)server);
-  result =
-    network_connection_write((void *)connection, msg, msg_len >> 4, 0, 1);
+  conn = network_game_server_adjust_machine_settings(machine);
+  result = network_connection_write((void *)conn, msg, msg_len >> 4, 0, 1);
   if (!result)
     network_game_log(
       "network_game_server_write() failed while sending a rejection reply");
