@@ -3667,8 +3667,8 @@
         },
         {
           "addr": "0x25c10",
-          "decl": "short FUN_00025c10(int actor_handle, void *buf, int *out1, int *out2, void *huge_buf, int *out3);",
-          "ported": false
+          "decl": "short FUN_00025c10(int actor_handle, void *eval_ctx, int *out_record, int *out_owner, void *huge_buf, int *out_found);",
+          "ported": true
         },
         {
           "addr": "0x27090",
@@ -34218,7 +34218,7 @@
         },
         {
           "addr": "0x24950",
-          "decl": "void FUN_00024950(void);"
+          "decl": "int FUN_00024950(int index1, int index2);"
         },
         {
           "addr": "0x24a60",
@@ -35317,7 +35317,7 @@
         },
         {
           "addr": "0x5f550",
-          "decl": "char path_state_estimated_distance(void *path_state, void *fp_element, int surface_index, float *result);"
+          "decl": "char path_state_estimated_distance(void *path_state, void *fp_element, int surface_index, float *result, float *opt_min_clearance, float *opt_out_vec);"
         },
         {
           "addr": "0x5f740",
