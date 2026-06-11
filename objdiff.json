@@ -5417,6 +5417,14 @@
       }
     },
     {
+      "name": "halo/network_server_manager_FUN_0012f540",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_server_manager.c.obj",
+      "base_path": "delinked/network_server_manager_FUN_0012f540.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_server_manager.c"
+      }
+    },
+    {
       "name": "halo/objects",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
       "base_path": "delinked/objects.obj",
