@@ -973,3 +973,61 @@ condition inversion and a double-normalize control-flow error, this produced
 5 interrelated bugs in a single branch. These bugs were invisible to VC71
 comparison (they produce similar instruction counts) but would cause wrong
 ground-movement physics at runtime.
+
+---
+
+## 20. `__chkstk` Missing Runtime — Static Buffer Workaround Kills EBP-Relative Addressing
+
+**Automation:** RESOLVED — `_chkstk` naked stub added to `src/halo/cseries/xbox_crt.c`
+(2026-06-11, commit `d01852a4`). No future function will hit this linker error. Any
+`static` buffer with a `/* ... avoid _chkstk ... */` comment is a legacy workaround
+that can now be converted back to a stack declaration.
+
+**What happens:** Clang (targeting `i386-pc-win32`) emits `mov eax, N; call __chkstk`
+before `sub esp, eax` for any function whose stack frame exceeds one page (4096 bytes).
+`__chkstk` is a Windows CRT runtime symbol — our lld-link build had no definition for
+it, so the link failed with `undefined symbol: __chkstk`.
+
+The workaround that accumulated in the codebase: declare large local buffers as
+`static`. This suppresses `__chkstk` (static storage doesn't consume stack space) and
+the link error disappears. But it introduces a **permanent VC71 ceiling**: the original
+binary accesses all its local buffers via EBP-relative addressing
+(`lea eax, [ebp - 0x8890]`), while the static workaround uses absolute symbol addresses
+(`mov eax, OFFSET _buf`). That generates entirely different instruction sequences for
+every buffer access — on `FUN_00025c10` (117KB frame, 1535-instruction function) this
+caused ~30% instruction divergence and a stuck score of 77.3%.
+
+**The fix:** Add a no-op `__chkstk` stub to `xbox_crt.c`:
+```c
+/* Windows x86 name-mangling: C _chkstk → __chkstk in object file */
+__attribute__((naked)) void _chkstk(void)
+{
+  __asm__("ret\n\t");
+}
+```
+Xbox stacks are fully committed at thread creation by the kernel — page-probing is
+a no-op. The stub satisfies the linker, EAX is preserved by `ret`, and the caller's
+`sub esp, eax` still gets the correct frame size.
+
+**Score impact (FUN_00025c10):** 77.3% static → **87.1% stack** after removing the
+`#ifdef` guards and converting all four large locals back to plain stack arrays.
+The entire 10pp gain came from the addressing change alone; no logic was touched.
+
+**Affected functions pre-fix:**
+- `FUN_00025c10` (0x25c10): 77.3% with static → 87.1% with stack
+- `actor_has_accessible_firing_position` (0x25a00): stuck at 78.4% with static
+  (lower impact because its buffer is accessed less densely)
+
+**How to detect residual workarounds:**
+```bash
+grep -rn 'static.*avoid.*_chkstk\|static.*_chkstk\|chkstk linker' src/
+```
+Each hit is a buffer that can now be converted to a stack declaration. Convert,
+rebuild, and re-verify — the VC71 score should improve.
+
+**Name-mangling note:** On `i386-pc-win32`, the C compiler prepends `_` to all
+cdecl symbols: C `_chkstk` → object-file `__chkstk`. Naming the C function
+`__chkstk` (2 underscores) would produce `___chkstk` (3 underscores) in the object
+and the linker would still fail. This is the same convention as `_ftol2` in
+`xdk_rt.c` (C `_ftol2` → `__ftol2` in object), which is what the original binary
+emits for float→int truncations.
