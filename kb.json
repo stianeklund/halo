@@ -14194,11 +14194,13 @@
         },
         {
           "addr": "0x12c560",
-          "decl": "void network_game_server_accept_client_machine_into_game(void);"
+          "decl": "char network_game_server_accept_client_machine_into_game(int server, void *machine);",
+          "ported": true
         },
         {
           "addr": "0x12c690",
-          "decl": "void FUN_0012c690(void);"
+          "decl": "bool FUN_0012c690(int server @<eax>, int player @<ebx>);",
+          "ported": true
         },
         {
           "addr": "0x12c6d0",
@@ -14212,8 +14214,8 @@
         },
         {
           "addr": "0x12c7e0",
-          "decl": "void network_game_server_add_player_to_game(void);",
-          "ported": null
+          "decl": "char network_game_server_add_player_to_game(int server, int machine, void *player);",
+          "ported": true
         },
         {
           "addr": "0x12c920",
@@ -14237,7 +14239,8 @@
         },
         {
           "addr": "0x12cc10",
-          "decl": "void network_game_server_handle_client_update_packet(void);"
+          "decl": "void network_game_server_handle_client_update_packet(int server, int machine, void *message);",
+          "ported": true
         },
         {
           "addr": "0x12cd60",
@@ -14246,7 +14249,8 @@
         },
         {
           "addr": "0x12cdb0",
-          "decl": "void network_game_server_update_ticks(void);"
+          "decl": "void network_game_server_update_ticks(int server, unsigned short tick_count);",
+          "ported": true
         },
         {
           "addr": "0x12cf60",
@@ -14321,11 +14325,13 @@
         },
         {
           "addr": "0x12da90",
-          "decl": "void FUN_0012da90(void);"
+          "decl": "void FUN_0012da90(int endpoint @<ebx>, unsigned short reason @<ax>);",
+          "ported": true
         },
         {
           "addr": "0x12db30",
-          "decl": "void FUN_0012db30(void);"
+          "decl": "void FUN_0012db30(int endpoint @<ebx>, unsigned short reason @<ax>);",
+          "ported": true
         },
         {
           "addr": "0x12e1d0",
@@ -14342,7 +14348,8 @@
         },
         {
           "addr": "0x12eef0",
-          "decl": "void *FUN_0012eef0(void);"
+          "decl": "void *FUN_0012eef0(void);",
+          "ported": true
         },
         {
           "addr": "0x12f040",
@@ -14376,7 +14383,8 @@
         },
         {
           "addr": "0x12f3d0",
-          "decl": "void FUN_0012f3d0(void);"
+          "decl": "bool FUN_0012f3d0(int dest_address @<ecx>, unsigned short size @<edx>, int reliable @<eax>, void *connection, void *message);",
+          "ported": true
         },
         {
           "addr": "0x12f3f0",
@@ -14390,15 +14398,18 @@
         },
         {
           "addr": "0x12f690",
-          "decl": "void network_game_server_reset_to_pregame(void);"
+          "decl": "char network_game_server_reset_to_pregame(int server, void *client_message @<ecx>, void *source_address @<eax>);",
+          "ported": true
         },
         {
           "addr": "0x12f8d0",
-          "decl": "void FUN_0012f8d0(void);"
+          "decl": "char FUN_0012f8d0(int server @<ecx>, void *decoded_msg @<eax>, void *client_message);",
+          "ported": true
         },
         {
           "addr": "0x12f990",
-          "decl": "void FUN_0012f990(void);"
+          "decl": "char FUN_0012f990(int server @<ecx>, void *source_address @<eax>, void *message, int message_size);",
+          "ported": true
         }
       ],
       "name": "network_server_manager.obj",
@@ -33493,7 +33504,7 @@
         },
         {
           "addr": "0x128580",
-          "decl": "void network_connection_set_connection_rejection_procedure(void);"
+          "decl": "void network_connection_set_connection_rejection_procedure(int connection, void *callback);"
         },
         {
           "addr": "0x1288e0",
@@ -33509,7 +33520,7 @@
         },
         {
           "addr": "0x1296b0",
-          "decl": "void FUN_001296b0(void);"
+          "decl": "int FUN_001296b0(int type, int max_size);"
         }
       ],
       "name": "network_connection.obj",
@@ -33548,7 +33559,7 @@
         },
         {
           "addr": "0x12a960",
-          "decl": "void network_game_add_machine(void);"
+          "decl": "char network_game_add_machine(int game_data, void *machine_data);"
         },
         {
           "addr": "0x12a9f0",
@@ -33560,7 +33571,7 @@
         },
         {
           "addr": "0x12ad60",
-          "decl": "void network_game_add_player(void);"
+          "decl": "char network_game_add_player(int game_data, void *player);"
         },
         {
           "addr": "0x12af00",
@@ -33576,7 +33587,7 @@
         },
         {
           "addr": "0x12b150",
-          "decl": "void network_game_invalidate(void);"
+          "decl": "void network_game_invalidate(void *game_data);"
         },
         {
           "addr": "0x12b1f0",
@@ -34978,7 +34989,7 @@
         },
         {
           "addr": "0x80c20",
-          "decl": "void FUN_00080c20(void);"
+          "decl": "void FUN_00080c20(void *message, int reliable);"
         },
         {
           "addr": "0x80ca0",
