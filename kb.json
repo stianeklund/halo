@@ -3667,7 +3667,7 @@
         },
         {
           "addr": "0x25c10",
-          "decl": "int FUN_00025c10(int actor_handle, void *buf, int *out1, int *out2, void *huge_buf, int *out3);",
+          "decl": "short FUN_00025c10(int actor_handle, void *buf, int *out1, int *out2, void *huge_buf, int *out3);",
           "ported": false
         },
         {
@@ -18106,7 +18106,7 @@
         },
         {
           "addr": "0x91ef0",
-          "decl": "void FUN_00091ef0(void);"
+          "decl": "void FUN_00091ef0(int *keys, int count, int (*cmp)(int, int));"
         },
         {
           "addr": "0x92050",
@@ -30259,7 +30259,7 @@
         },
         {
           "addr": "0x309d0",
-          "decl": "void actor_perception_friend_prop_is_attacking(void);"
+          "decl": "char actor_perception_friend_prop_is_attacking(int actor_handle, int iter_handle, float *out_pos);"
         },
         {
           "addr": "0x30b80",
@@ -34208,7 +34208,7 @@
         },
         {
           "addr": "0x24900",
-          "decl": "void FUN_00024900(void);"
+          "decl": "char FUN_00024900(int actor_handle, void *query_buf @<edi>);"
         },
         {
           "addr": "0x24950",
