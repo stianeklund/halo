@@ -3577,8 +3577,8 @@
         },
         {
           "addr": "0x1a200",
-          "decl": "void FUN_0001a200(void);",
-          "ported": false
+          "decl": "char FUN_0001a200(int actor_handle);",
+          "ported": true
         },
         {
           "addr": "0x1a420",

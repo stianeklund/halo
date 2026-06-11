@@ -4419,6 +4419,108 @@ int FUN_0001a100(int actor_handle, short param_2, char *state_data)
   return 0;
 }
 
+/* FUN_0001a200 (0x1a200) — Run actor uncover-action look-target search.
+ *
+ * Source file: c:\halo\SOURCE\ai\action_uncover.c (assert line 0x84).
+ *
+ * Checks three gating flags on the actor record (swarm-assert, flag+0x4c,
+ * flag+0x160, flag+0x9d), then builds a 0x670-byte look-state buffer and
+ * calls FUN_00027090 to find a look target.  If a target is found:
+ *   - If actor+0xa4==0 and look-result (local_48+6) is not 0 or 1:
+ *       sets actor+0xa0=1 (with optional ai_debug log when +0xa0 was 0).
+ *   - If actor+0xa4==1 and look-result==0:
+ *       if distance (local_48+8) < actor_destination_tolerance:
+ *         sets actor+0xbc=1 (with optional ai_debug log when +0xbc was 0).
+ * Then always calls FUN_000272d0 to find firing position.
+ * If firing position == -1: sets actor+0x9e=1.
+ * Always returns 0.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) stores ESI at 0x1a21e.
+ * Confirmed: swarm assert at action_uncover.c:0x84 (flag at actor+6).
+ * Confirmed: csmemset 0x670 bytes at 0x1a271-0x1a284.
+ * Confirmed: look_type = 3 at state_buf+0x4 (short).
+ * Confirmed: store offsets from disasm (buf base EBP-0x7b4).
+ * Confirmed: XOR AL,AL at 0x1a40e — always returns 0.
+ */
+char FUN_0001a200(int actor_handle)
+{
+  char *actor;
+  static char state_buf[0x670];
+  static char big_buf[0x14840];
+  char local_48[0x44];
+  int local_4;
+  int local_8;
+  short result;
+  short look_result;
+  float dist;
+  float tol;
+  char desc_buf[0x100];
+  short fire_result;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (*(char *)(actor + 6) != '\0') {
+    display_assert("!actor->meta.swarm",
+                   "c:\\halo\\SOURCE\\ai\\action_uncover.c", 0x84, 1);
+    system_exit(-1);
+  }
+  if (*(char *)(actor + 0x4c) == '\0')
+    return 0;
+  if (*(char *)(actor + 0x160) != '\0')
+    return 0;
+  if (*(char *)(actor + 0x9d) != '\0')
+    return 0;
+
+  csmemset(state_buf, 0, 0x670);
+  *(short *)(state_buf + 0x4) = 3;
+
+  if (*(short *)(actor + 0xa4) == 1) {
+    *(char *)(state_buf + 0x20) = 1;
+    *(int *)(state_buf + 0x24) = *(int *)(actor + 0xb0);
+    *(int *)(state_buf + 0x28) = *(int *)(actor + 0xb4);
+    *(int *)(state_buf + 0x2c) = *(int *)(actor + 0xb8);
+    *(int *)(state_buf + 0x30) = *(int *)(actor + 0xac);
+    *(short *)(state_buf + 0x34) = *(short *)(actor + 0xa8);
+  } else {
+    *(char *)(state_buf + 0x41) = *(char *)(actor + 0xa0);
+  }
+
+  result = (short)FUN_00027090(actor_handle, state_buf, local_48, &local_8,
+                               big_buf, &local_4);
+  if (result != -1) {
+    if (*(short *)(actor + 0xa4) == 0) {
+      look_result = *(short *)(local_48 + 6);
+      if ((look_result != 0) && (look_result != 1)) {
+        if ((*(char *)(actor + 0xa0) == '\0') &&
+            (*(char *)0x5aca64 != '\0')) {
+          ai_debug_describe_actor(actor_handle, -1, 1, desc_buf, 0x100);
+          error(2, "%s: unable to see target's current location", desc_buf);
+        }
+        *(char *)(actor + 0xa0) = 1;
+      }
+    } else {
+      if (*(short *)(local_48 + 6) == 0) {
+        dist = *(float *)(local_48 + 8);
+        tol = actor_destination_tolerance(actor_handle);
+        if (dist < tol) {
+          if ((*(char *)(actor + 0xbc) == '\0') &&
+              (*(char *)0x5aca64 != '\0')) {
+            ai_debug_describe_actor(actor_handle, -1, 1, desc_buf, 0x100);
+            error(2, "%s: inspected pursuit location", desc_buf);
+          }
+          *(char *)(actor + 0xbc) = 1;
+        }
+      }
+    }
+  }
+
+  fire_result = (short)FUN_000272d0(actor_handle, result, local_48, local_8,
+                                    (unsigned int)big_buf, (char)local_4);
+  if (fire_result == -1) {
+    *(char *)(actor + 0x9e) = 1;
+  }
+  return 0;
+}
+
 /* FUN_0001a420 (0x1a420)
  * Set up uncover-mode look output fields (movement/navigation type).
  *
