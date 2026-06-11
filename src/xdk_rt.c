@@ -47,6 +47,16 @@ __attribute__((naked)) void _CIpow(void) {
     );
 }
 
+/* __chkstk: Stack allocation probe for large frames (>4KB).
+ * Clang (i386-pc-win32) emits `mov eax, N; call __chkstk` before `sub esp, eax`
+ * for any function with a stack frame larger than one page.  On Xbox the kernel
+ * fully commits the stack at thread creation, so page-probing is a no-op —
+ * we just need the symbol to satisfy the linker.  EAX is preserved by RET so
+ * the caller's `sub esp, eax` still gets the correct frame size. */
+__attribute__((naked)) void _chkstk(void) {
+    __asm__("ret\n\t");
+}
+
 /* MSVC's __ftol2: truncate ST(0) to int32 in EAX.
  * Non-standard calling convention: float on x87 stack, result in EAX.
  * Sets rounding mode to truncation, converts, restores original rounding. */
