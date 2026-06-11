@@ -837,59 +837,6 @@ void FUN_00014ba0(int actor_handle, int *param_2)
   *(struct look_vec4 *)param_2 = **(struct look_vec4 **)0x2ee6d4;
 }
 
-/* FUN_00025c10 (0x25c10)
- * Firing-position evaluation core. Queries the encounter's firing-position
- * table, builds a candidate list (struct array fp_records[0x200][0x3c]),
- * applies debug-mode bookkeeping, sorts by scoring comparator, then selects
- * the best accessible FP.
- *
- * Outputs:
- *   *out1  (int*): receives pointer to the winning FP record (60-byte struct)
- *   *out2  (int*): receives secondary index (handle value)
- *   *out3  (char*): receives exclusion flag byte (1 = excluded)
- *   return (short): fp_index of the best candidate (-1 if none)
- *
- * Stack frame (chkstk EAX=0x1c91c at 0x25c13):
- *   EBP-0x1:      debug_flag (bool, is actor being debugged)
- *   EBP-0x2:      has_passing_fp (bool, set when valid FP found in loop)
- *   EBP-0x8:      fp_count (int, count of FP candidates added)
- *   EBP-0xc:      scenario_fp_block ptr
- *   EBP-0x10:     fp_iter_idx (loop counter)
- *   EBP-0x14:     iter_handle (from FUN_00064540 iterator)
- *   EBP-0x18/-0x14/-0x10: temp_dir[3] float
- *   EBP-0x19:     overflow_warned (bool)
- *   EBP-0x1c:     scratch
- *   EBP-0x20:     target_entity_handle (prop/vehicle entity)
- *   EBP-0x24:     best_fp_score (float, best candidate score)
- *   EBP-0x28:     actor_tag ptr
- *   EBP-0x2c:     actor ptr
- *   EBP-0x30:     win_fp_index (short)
- *   EBP-0x34/-0x38/-0x3c: temp_pos[3] float
- *   EBP-0x40-0x48: debug string table (6 ptrs)
- *   fp_records:   EBP-0x8890, [0x200][0x3c] bytes (stride 0x3c)
- *   sort_keys:    EBP-0x1090, [0x200] int  (sort permutation)
- *   fp_mask:      EBP-0x890,  [0x200] int  (FP owner actor indices from encounter)
- *   path_input:   EBP-0x90,   0x90 bytes
- *   path_state:   EBP-0x1c91c, rest of frame (0x1408c bytes = huge_buf)
- *
- * Confirmed: fp_records stride 0x3c (IMUL EAX*0x3c at 0x26716, 0x26e36).
- * Confirmed: EBP-0x8890 base (LEA [EBP + EAX*0x3c + 0xffff7770]).
- * Confirmed: sort_keys EBP-0x1090 (LEA [EBP+0xffffef70] at 0x26dc0).
- * Confirmed: fp_mask EBP-0x890 (EBP+EAX*4+0xfffff770 at 0x26d69).
- * Confirmed: path_input EBP-0x90 (LEA [EBP+0xffffff70] at 0x26a1d).
- * Confirmed: return in AX (MOV AX,[EBP-0x30] at 0x2685f/0x27028).
- * Confirmed: *out3 receives char exclusion flag (0x26aef: MOV byte ptr [EAX],0x1).
- * Confirmed: *out2 = fp_mask value at winner index (0x27069-0x27072).
- * Confirmed: *out1 receives 0x3c-byte struct copied via MOVSD.REP ECX=0xf (0x2704b).
- * Confirmed: FUN_00091ef0 is sort: (int *keys, int count, int(*cmp)(int,int)).
- * Confirmed: FUN_00024900 signature: char FUN_00024900(int actor_handle @<edi>).
- * Confirmed: FUN_000309d0 real sig: char FUN_000309d0(int a_h, int iter_h, float *pos).
- * Confirmed: global[0x331f00]=fp_count, global[0x331f04]=fp_records (for sort cmp 0x24950).
- * Confirmed: debug copy at 0x26524 REP MOVSD ECX=0x19c (copyout to 0x629d44).
- * Inferred:  actor+0x99 = ground-class flag (MOV CL,[EDI+0x99] at 0x261ac).
- * Inferred:  actor+0x280 = look_count (short); +0x287 = is_looking (bool).
- * Inferred:  actor+0x2d4/2d8 = look_timeout fields; +0x254644 = look_bias constant. */
-
 
 /* FUN_00014c10 (0x14c10)
  * Firing-position state update for look/fight actor actions.
@@ -6923,9 +6870,13 @@ char FUN_00025970(void *state, int actor_handle, char *actor)
  * Confirmed: actor+0x99 = is_swarm flag; actor+0x34 = encounter handle;
  *   actor+0x3a = firing_position_index (short); actor+0x58 = tag_index.
  * Confirmed: FUN_00024a60 = actor_get_firing_position_group (3 args).
- * Confirmed: FUN_0005f550 = path_state_estimated_distance (4 args, output via
- *   param_4 float*); NOT an ESI-output function — unaff_ESI in Ghidra is
- *   artifact of inlining; real result is stored at [EBP-0x8] after the call.
+ * Confirmed: FUN_0005f550 = path_state_estimated_distance (6 args cdecl,
+ *   ADD ESP,0x18 at 0x25bb6/all sites; output via arg4 float*, args 5/6 are
+ *   optional out-pointers — this site shares two PUSH 0 with the 0x5e830
+ *   branch, so it passes NULL/NULL); NOT an ESI-output function — unaff_ESI
+ *   in Ghidra is an artifact of inlining; result is at [EBP-0x8] after the
+ *   call.  arg3 is a raw int load (MOV ECX,[EDX+0x14]), not a float-to-int
+ *   conversion.
  * Confirmed: threshold at 0x2533d8 = 4.0f; dist_sq threshold at 0x254e74 =
  *   16.0f.
  * Confirmed: huge path-state buffer at EBP-0x140e0 (82080 bytes); ray-init
@@ -6950,8 +6901,7 @@ char actor_has_accessible_firing_position(int actor_handle, float *position,
     int i;
     int fp_count;
     char vis;
-    /* Large path-state buffer; static to avoid _chkstk linker requirement */
-    static unsigned char huge_buf[0x140e0];
+    unsigned char huge_buf[0x140e0];
     unsigned char ray_init[0x54];
 
     actor = (char *)datum_get(actor_data, actor_handle);
@@ -7020,7 +6970,8 @@ char actor_has_accessible_firing_position(int actor_handle, float *position,
                     hit_dist = 0.0f;
                     path_state_estimated_distance(
                         (void *)huge_buf, (void *)fp_elem,
-                        (int)fp_elem[5], &hit_dist);
+                        *(int *)(fp_elem + 5), &hit_dist,
+                        (float *)0, (float *)0);
                     if (hit_dist < 4.0f) {
                         return 1;
                     }
@@ -7041,6 +6992,763 @@ char actor_has_accessible_firing_position(int actor_handle, float *position,
     } while (i < fp_count);
 
     return 0;
+}
+
+/* FUN_00025c10 (0x25c10) — actor_firing_position evaluate/select.
+ *
+ * Main entry point for choosing an actor's firing position within its
+ * encounter.  Populates the caller-supplied evaluation context (eval_ctx),
+ * gathers candidate firing-position records, refines them against the
+ * current target, runs the registered scorer table, sorts the survivors,
+ * and selects the best valid record.
+ *
+ *   actor_handle  — actor datum handle (EBP+0x8).
+ *   eval_ctx      — evaluation context / request buffer (EBP+0xc, EBX).
+ *   out_record    — if non-NULL receives a 0x3c-byte copy of the selected
+ *                   record (15 dwords) (EBP+0x10).
+ *   out_owner     — if non-NULL receives the selected firing-position's
+ *                   owner actor index (EBP+0x14).
+ *   huge_buf      — caller-provided path-state scratch (EBP+0x18).
+ *   out_found     — byte out: 1 when the actor path-state is valid
+ *                   (EBP+0x1c).
+ *
+ * Returns the selected firing-position index (AX), or -1.
+ *
+ * Confirmed: cdecl 6 stack args; _chkstk frame 0x1c91c at 0x25c13.
+ * Confirmed: EDI=actor, EBX=eval_ctx, [EBP-0x28]=actr tag, [EBP-0xc]=
+ *   encounter element (scenario+0x42c stride 0xb0), [EBP-0x24]=best score
+ *   (init 0), [EBP-0x30]=selected (init -1).
+ * Confirmed: debug gate compares DAT_005ac9f8 against ACTOR_HANDLE
+ *   (CMP EDX,ESI at 0x25c63; ESI=[EBP+8]).
+ * Confirmed: candidate records are a 0x3c-stride array (max 0x200) at
+ *   EBP-0x8890: pos-ptr +0x0, fp-index +0x4 (u16), +0x6 u16 0, dist +0x8,
+ *   dir +0xc..0x14, clearance +0x18, refine-dir +0x20..0x28, target-dist²
+ *   +0x2c, active +0x30, skip +0x31, score-copy +0x34, score +0x38.
+ *   Init zeroes +0x2c/+0x34/+0x38 (0x2677f-0x2678d).
+ * Confirmed: prop-scan gate flags read the ACTR TAG (+0 sign bit, +4 bit0)
+ *   via [EBP-0x28] (0x262dc-0x262fa), and the seed weight at 0x261ee is
+ *   actor_tag+0x3c8 (ESI=[EBP-0x28] set at 0x26018).
+ * Confirmed: prop loop second branch enters when
+ *   (prop+0xa4 && (prop+0x12e || prop+0x12f)) || (actor_tag[4] & 1)
+ *   (0x26447-0x26471).
+ * Confirmed: actor_perception_friend_prop_is_attacking(actor_handle,
+ *   iter[0], out_dir) — pushes EAX(dir) ECX(iter) EDX(actor) at 0x263b4.
+ * Confirmed: scorer table at 0x254bf8 (8-byte entries: mask word at -4,
+ *   fn at +0): fn(actor_handle, ctx, rec_count, records) — pushes
+ *   ECX(records) EDX(count) EBX(ctx) EAX(actor) at 0x26da0.
+ * Confirmed: sort FUN_00091ef0(order, count, FUN_00024950) with record
+ *   base/count published to 0x331f04/0x331f00 (0x26de8/0x26def).
+ * Confirmed: path_state_estimated_distance is 6-arg cdecl (ADD ESP,0x18):
+ *   main loop (huge_buf, pos, pos[0x14], rec+0x8, rec+0x1c,
+ *   ctx[0x40] ? rec+0xc : 0) at 0x26c50; refine loop (path_eval, pos,
+ *   pos[0x14], rec+0x18, 0, ctx[0x43] ? rec+0x20 : 0) at 0x269fb.
+ * Confirmed: discard test uses <= (TEST AH,0x41; JP at 0x26e78):
+ *   rec[0x38]+ctx[0x660] <= best.
+ * Confirmed: "too many firing positions" error passes the encounter
+ *   element for %s and *(enc+0x98) for %d (pushes at 0x267b7-0x267c3).
+ * Confirmed: fp-eval debug name table = {fight, panic, cover, uncover,
+ *   guard, pursue} built at EBP-0x48..-0x34 (0x26fe7-0x2700a).
+ * Confirmed: local path-eval buffer at EBP-0x1c91c (0x1408c bytes,
+ *   LEA at 0x269f4) is distinct from the huge_buf parameter.
+ * Confirmed: returns AX=[EBP-0x30]; on success AX=rec[+0x4] and
+ *   *out_owner=owner_indices[fp_idx] (0x27058-0x27072). */
+short FUN_00025c10(int actor_handle, void *eval_ctx, int *out_record,
+                   int *out_owner, void *huge_buf, int *out_found)
+{
+  char path_eval_scratch[0x1408c]; /* EBP-0x1c91c local path-eval state */
+  char records[0x200 * 0x3c];      /* EBP-0x8890 candidate records */
+  int order[0x200];                /* EBP-0x1090 sort order indices */
+  int owner_indices[0x200];        /* EBP-0x890 fp owner actor indices */
+  char path_input[0x44];           /* EBP-0x90 path-input scratch */
+  int prop_iter[2];                /* EBP-0x14 prop iterator */
+  float vtmp[3];                   /* EBP-0x3c scratch vector */
+  float dir[3];                    /* EBP-0x18 aim direction */
+  const char *names[6];            /* EBP-0x48 fp-eval debug names */
+  char *ctx;                       /* EBX = eval_ctx */
+  char *actor;                     /* EDI */
+  char *actor_tag;                 /* EBP-0x28 ('actr' definition) */
+  char *encounter_atoms;           /* EBP-0xc encounter element */
+  void *fp;
+  char *unit;
+  int selected;                    /* EBP-0x30 chosen record index */
+  float best;                      /* EBP-0x24 running best score */
+  float sel;                       /* facing-evaluation weight */
+  char debug_eval;                 /* EBP-0x1 */
+  char debug_overflow;             /* EBP-0x19 */
+  char range_flag;                 /* EBP-0x2 */
+  int rec_count;                   /* EBP-0x8 */
+  int fp_index;                    /* EBP-0x10 */
+  int mode;
+  int i;
+  int j;
+
+  ctx = (char *)eval_ctx;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  selected = -1;
+  best = 0.0f;
+  debug_eval = 0;
+  if (*(int *)(actor + 0x34) == *(int *)0x5ac9f4 &&
+      (*(int *)0x5ac9f8 == -1 || *(int *)0x5ac9f8 == actor_handle)) {
+    char dbg;
+    dbg = *(char *)0x5aca83;
+    if (dbg != 0 && *(short *)(ctx + 0x4) != 5)
+      debug_eval = 1;
+    dbg = *(char *)0x5aca84;
+    if (dbg != 0 && *(short *)(ctx + 0x4) == 5)
+      debug_eval = 1;
+  }
+
+  if (*(int *)(actor + 0x34) == -1)
+    return (short)selected;
+
+  actor_tag = (char *)tag_get(0x61637472 /*'actr'*/, *(int *)(actor + 0x58));
+  tag_get(0x61637476 /*'actv'*/, *(int *)(actor + 0x5c));
+  encounter_atoms =
+    (char *)tag_block_get_element((char *)global_scenario_get() + 0x42c,
+                                  *(int *)(actor + 0x34) & 0xffff, 0xb0);
+
+  if (*(char *)(actor + 0x160) != '\0') {
+    display_assert("!actor->input.vehicle_passenger",
+                   "c:\\halo\\SOURCE\\ai\\actor_firing_position.c", 0x610, 1);
+    system_exit(-1);
+  }
+
+  ++*(short *)0x5ac904;
+  encounter_build_firing_position_owner_actor_indices(*(int *)(actor + 0x34),
+                                                      owner_indices);
+  if (*(short *)(actor + 0x3b8) != -1)
+    owner_indices[*(short *)(actor + 0x3b8)] = -1;
+
+  if (*(short *)(actor + 0x15e) == 0)
+    sel = *(float *)0x254cc0;
+  else
+    sel = *(float *)0x254fe4;
+  *(float *)(ctx + 0x18) = sel;
+  if (*(float *)(ctx + 0x1c) == *(float *)0x2533c0)
+    *(float *)(ctx + 0x1c) = sel;
+
+  *(char *)(ctx + 0x42) = (*(short *)(ctx + 0x4) == 5);
+  *(char *)(ctx + 0x5fc) = 0;
+
+  if (*(char *)(ctx + 0x20) != '\0') {
+    float dx, dy, dz;
+    *(vector3_t *)(ctx + 0x604) = *(vector3_t *)(ctx + 0x24);
+    *(vector3_t *)(ctx + 0x634) = *(vector3_t *)(ctx + 0x24);
+    *(short *)(ctx + 0x640) = *(short *)(ctx + 0x34);
+    *(char *)(ctx + 0x5fc) = 1;
+    *(int *)(ctx + 0x630) = *(int *)(ctx + 0x30);
+    dx = *(float *)(ctx + 0x604) - *(float *)(actor + 0x12c);
+    dy = *(float *)(ctx + 0x608) - *(float *)(actor + 0x130);
+    dz = *(float *)(ctx + 0x60c) - *(float *)(actor + 0x134);
+    *(int *)(ctx + 0x644) = -1;
+    *(int *)(ctx + 0x62c) = -1;
+    *(int *)(ctx + 0x658) = 0;
+    *(float *)(ctx + 0x600) = xbox_sqrtf(dz * dz + dy * dy + dx * dx);
+    unit_estimate_position(*(int *)(actor + 0x18), 0,
+                           (vector3_t *)(ctx + 0x604), (vector3_t *)0,
+                           (vector3_t *)0, (vector3_t *)(ctx + 0x610));
+    *(vector3_t *)(ctx + 0x61c) = *(vector3_t *)(ctx + 0x610);
+  } else {
+    int guard;
+    if (((*(short *)(actor + 0x6c) == 4 &&
+          (guard = *(int *)(actor + 0xb8)) != -1) ||
+         (guard = *(int *)(actor + 0x270)) != -1) &&
+        guard != -1) {
+      unit = (char *)datum_get(*(data_t **)0x5ab23c, guard);
+      if (*(char *)(ctx + 0x42) != '\0' && *(short *)(unit + 0x24) >= 2 &&
+          *(short *)(unit + 0x24) <= 3)
+        actor_perception_find_prop_pathfinding_location(actor_handle, guard);
+      *(char *)(ctx + 0x5fc) = 1;
+      *(vector3_t *)(ctx + 0x604) = *(vector3_t *)(unit + 0xbc);
+      *(vector3_t *)(ctx + 0x634) = *(vector3_t *)(unit + 0xf0);
+      *(int *)(ctx + 0x630) = *(int *)(unit + 0xec);
+      *(short *)(ctx + 0x640) = *(short *)(unit + 0x100);
+      *(int *)(ctx + 0x600) = *(int *)(unit + 0x11c);
+      *(int *)(ctx + 0x644) = guard;
+      *(vector3_t *)(ctx + 0x610) = *(vector3_t *)(unit + 0x104);
+      *(int *)(ctx + 0x62c) = *(int *)(unit + 0x110);
+      *(int *)(ctx + 0x658) = *(int *)(unit + 0x20);
+      if (*(char *)(ctx + 0x41) == '\0' || *(int *)(unit + 0x8c) == -1) {
+        *(vector3_t *)(ctx + 0x61c) = *(vector3_t *)(unit + 0x104);
+      } else {
+        *(vector3_t *)(ctx + 0x61c) = *(vector3_t *)(unit + 0x90);
+      }
+      if (*(short *)(unit + 0x24) >= 4 && *(short *)(unit + 0x24) <= 5) {
+        *(char *)(ctx + 0x648) = 1;
+        *(vector3_t *)(ctx + 0x64c) = *(vector3_t *)(unit + 0x40);
+      }
+      if (*(short *)(ctx + 0x4) == 4 || *(short *)(ctx + 0x4) == 6)
+        *(char *)(ctx + 0x628) = 1;
+      else
+        *(char *)(ctx + 0x628) = 0;
+    }
+  }
+
+  /* aim / forward axis validity (ctx+0x5dc / +0x5ec) from the actr tag. */
+  if (*(float *)(actor_tag + 0xac) * *(float *)(actor_tag + 0xac) +
+        *(float *)(actor_tag + 0xa8) * *(float *)(actor_tag + 0xa8) +
+        *(float *)(actor_tag + 0xa4) * *(float *)(actor_tag + 0xa4) >
+      *(float *)0x253f44) {
+    *(char *)(ctx + 0x5dc) = 1;
+    *(int *)(ctx + 0x5e0) = *(int *)(actor_tag + 0xa4);
+    *(int *)(ctx + 0x5e4) = *(int *)(actor_tag + 0xa8);
+    *(int *)(ctx + 0x5e8) = *(int *)(actor_tag + 0xac);
+  } else if (*(float *)(actor_tag + 0x3c) * *(float *)(actor_tag + 0x3c) +
+               *(float *)(actor_tag + 0x38) * *(float *)(actor_tag + 0x38) +
+               *(float *)(actor_tag + 0x34) * *(float *)(actor_tag + 0x34) >
+             *(float *)0x253f44) {
+    *(char *)(ctx + 0x5dc) = 1;
+    *(int *)(ctx + 0x5e0) = *(int *)(actor_tag + 0x34);
+    *(int *)(ctx + 0x5e4) = *(int *)(actor_tag + 0x38);
+    *(int *)(ctx + 0x5e8) = *(int *)(actor_tag + 0x3c);
+  } else {
+    *(char *)(ctx + 0x5dc) = 0;
+  }
+
+  if (*(float *)(actor_tag + 0xb8) * *(float *)(actor_tag + 0xb8) +
+        *(float *)(actor_tag + 0xb4) * *(float *)(actor_tag + 0xb4) +
+        *(float *)(actor_tag + 0xb0) * *(float *)(actor_tag + 0xb0) >
+      *(float *)0x253f44) {
+    *(char *)(ctx + 0x5ec) = 1;
+    *(int *)(ctx + 0x5f0) = *(int *)(actor_tag + 0xb0);
+    *(int *)(ctx + 0x5f4) = *(int *)(actor_tag + 0xb4);
+    *(int *)(ctx + 0x5f8) = *(int *)(actor_tag + 0xb8);
+  } else if (*(float *)(actor_tag + 0x48) * *(float *)(actor_tag + 0x48) +
+               *(float *)(actor_tag + 0x44) * *(float *)(actor_tag + 0x44) +
+               *(float *)(actor_tag + 0x40) * *(float *)(actor_tag + 0x40) >
+             *(float *)0x253f44) {
+    *(char *)(ctx + 0x5ec) = 1;
+    *(int *)(ctx + 0x5f0) = *(int *)(actor_tag + 0x40);
+    *(int *)(ctx + 0x5f4) = *(int *)(actor_tag + 0x44);
+    *(int *)(ctx + 0x5f8) = *(int *)(actor_tag + 0x48);
+  } else {
+    *(char *)(ctx + 0x5ec) = 0;
+  }
+
+  if (*(short *)(actor + 0x280) > 0 && *(char *)(actor + 0x287) != '\0' &&
+      *(float *)(actor + 0x2d4) < *(float *)(actor + 0x2d8) + *(float *)0x254644)
+    *(char *)(ctx + 0x40) = 1;
+  *(char *)(ctx + 0x44) = *(char *)(actor + 0x99);
+  if (*(short *)(actor + 0x15e) == 4) {
+    *(char *)(ctx + 0x45) = 1;
+    *(char *)(ctx + 0x46) = 1;
+  }
+
+  *(int *)(ctx + 0x50) = 0;
+  if (*(char *)(actor + 0x3d8) != '\0') {
+    *(int *)(ctx + 0x58) = *(int *)(actor + 0x3dc);
+    *(int *)(ctx + 0x5c) = *(int *)(actor + 0x3e0);
+    *(int *)(ctx + 0x60) = *(int *)(actor + 0x3e4);
+    *(int *)(ctx + (*(int *)(ctx + 0x50) << 4) + 0x54) =
+      *(int *)(actor_tag + 0x3c8);
+    *(int *)(ctx + 0x50) = *(int *)(ctx + 0x50) + 1;
+  }
+
+  /* group-scan: pull nearby allied prop positions into the ctx+0x54 list. */
+  if (*(float *)(actor_tag + 0x3cc) > *(float *)0x2533c0 &&
+      (mode = *(short *)(ctx + 0x4), mode == 0 || mode == 3 || mode == 6)) {
+    FUN_00064540(prop_iter, actor_handle);
+    while (*(int *)(ctx + 0x50) < 0x20) {
+      int it = FUN_00064570(prop_iter);
+      if (it == 0)
+        break;
+      if (*(short *)(it + 0x24) >= 2 && *(short *)(it + 0x24) <= 3 &&
+          *(char *)(it + 0x60) == '\0' && *(char *)(it + 0x127) == '\0' &&
+          *(char *)(it + 0x12e) == '\0') {
+        *(vector3_t *)(ctx + (*(int *)(ctx + 0x50) << 4) + 0x58) =
+          *(vector3_t *)(it + 0xbc);
+        *(int *)(ctx + (*(int *)(ctx + 0x50) << 4) + 0x54) =
+          *(int *)(actor_tag + 0x3cc);
+        *(int *)(ctx + 0x50) = *(int *)(ctx + 0x50) + 1;
+      }
+    }
+  }
+
+  *(short *)(ctx + 0x254) = 0;
+  *(short *)(ctx + 0x256) = 0;
+  *(short *)(ctx + 0x258) = 0;
+
+  {
+    char prop_scan = 0;
+    if (*(int *)actor_tag < 0 && *(short *)(actor + 0x6e) >= 3 &&
+        *(char *)(actor + 0x200) > '\0')
+      prop_scan = 1;
+    if ((*(unsigned int *)(actor_tag + 4) & 1) != 0 &&
+        *(short *)(actor + 0x6e) >= 3)
+      prop_scan = 1;
+
+    switch ((int)*(short *)(ctx + 0x4)) {
+    case 0:
+    case 2:
+    case 3:
+    case 6:
+      if (prop_scan) {
+        FUN_00064540(prop_iter, actor_handle);
+        while (*(short *)(ctx + 0x254) < 0x20) {
+          int it = FUN_00064570(prop_iter);
+          if (it == 0)
+            break;
+          if (*(short *)(it + 0x24) >= 2 && *(short *)(it + 0x24) <= 3 &&
+              *(char *)(it + 0x127) == '\0') {
+            if (*(char *)(it + 0x60) == '\0') {
+              if (*(char *)(it + 0x12e) != '\0' || *(int *)(it + 0x110) == -1) {
+                if (actor_perception_friend_prop_is_attacking(
+                      actor_handle, prop_iter[0], vtmp) != '\0') {
+                  *(short *)(ctx + *(short *)(ctx + 0x254) * 0x1c + 0x25c) =
+                    (unsigned short)(*(char *)(it + 0x12e) != '\0');
+                  *(vector3_t *)(ctx + *(short *)(ctx + 0x254) * 0x1c +
+                                 0x260) = *(vector3_t *)(it + 0xbc);
+                  *(vector3_t *)(ctx + *(short *)(ctx + 0x254) * 0x1c +
+                                 0x26c) = *(vector3_t *)vtmp;
+                  *(short *)(ctx + 0x254) = *(short *)(ctx + 0x254) + 1;
+                  *(short *)(ctx + 0x256) = *(short *)(ctx + 0x256) + 1;
+                }
+              }
+              if (*(char *)(it + 0x60) == '\0')
+                goto prop_scan_next;
+            }
+            if ((*(char *)(it + 0xa4) != '\0' &&
+                 (*(char *)(it + 0x12e) != '\0' ||
+                  *(char *)(it + 0x12f) != '\0')) ||
+                (*(unsigned int *)(actor_tag + 4) & 1) != 0) {
+              int aim;
+              aim = *(int *)(it + 0x110);
+              if (aim == -1)
+                aim = *(int *)(it + 0x18);
+              *(short *)(ctx + *(short *)(ctx + 0x254) * 0x1c + 0x25c) = 2;
+              *(vector3_t *)(ctx + *(short *)(ctx + 0x254) * 0x1c + 0x260) =
+                *(vector3_t *)(it + 0xbc);
+              unit_scripting_unit_driver(
+                aim, ctx + *(short *)(ctx + 0x254) * 0x1c + 0x26c);
+              *(short *)(ctx + 0x254) = *(short *)(ctx + 0x254) + 1;
+              *(short *)(ctx + 0x258) = *(short *)(ctx + 0x258) + 1;
+            }
+          }
+        prop_scan_next:;
+        }
+      }
+      break;
+    default:
+      break;
+    }
+  }
+
+  *(short *)(ctx + 0x66e) = 0;
+  *(short *)(ctx + 0x66c) = 0;
+  *(short *)(ctx + 0x66a) = 0;
+  *(short *)(ctx + 0x668) = 0;
+  *(short *)(ctx + 0x666) = 0;
+  *(short *)(ctx + 0x664) = 0;
+
+  if (debug_eval) {
+    *(char *)0x629d40 = 1;
+    memcpy((void *)0x629d44, ctx, 0x19c * 4);
+  }
+
+  if (huge_buf == (void *)0) {
+    display_assert("area_path_state_valid",
+                   "c:\\halo\\SOURCE\\ai\\actor_firing_position.c", 0x726, 1);
+    system_exit(-1);
+  }
+  *(char *)out_found = 0;
+
+  /* walk the encounter firing positions and build candidate records. */
+  debug_overflow = 0;
+  rec_count = 0;
+  fp_index = 0;
+  if (*(int *)(encounter_atoms + 0x98) > 0) {
+    do {
+      fp = tag_block_get_element(encounter_atoms + 0x98, fp_index, 0x18);
+      if (debug_eval)
+        *(char *)(0x62a3b5 + fp_index * 0x40) = 0;
+      if ((*(unsigned int *)ctx &
+           (1u << (*(unsigned char *)((char *)fp + 0xc) & 0x1f))) != 0) {
+        if (*(int *)(actor + 0x34) == *(int *)0x5ac9f4)
+          *(char *)(0x62a3b4 + fp_index * 0x40) = (*(short *)(ctx + 0x4) == 5);
+        if (*(char *)(ctx + 0x44) != '\0' ||
+            *(int *)((char *)fp + 0x14) != -1) {
+          int keep = 1;
+          if (*(short *)(ctx + 0x4) == 5) {
+            if (actor_has_accessible_firing_position(
+                  actor_handle, (float *)fp,
+                  *(int *)((char *)fp + 0x14), 1) == '\0')
+              keep = 0;
+          }
+          if (keep) {
+            if (owner_indices[fp_index] != -1) {
+              float dx, dy, dz, downer, dself;
+              if (*(short *)(ctx + 0x4) == 4 && *(int *)(ctx + 0x50) < 0x20) {
+                *(vector3_t *)(ctx + (*(int *)(ctx + 0x50) << 4) + 0x58) =
+                  *(vector3_t *)fp;
+                *(int *)(ctx + (*(int *)(ctx + 0x50) << 4) + 0x54) =
+                  0x40800000;
+                *(int *)(ctx + 0x50) = *(int *)(ctx + 0x50) + 1;
+              }
+              {
+                char *owner =
+                  (char *)datum_get(actor_data, owner_indices[fp_index]);
+                dx = *(float *)fp - *(float *)(owner + 0x12c);
+                dy = *(float *)((char *)fp + 4) - *(float *)(owner + 0x130);
+                dz = *(float *)((char *)fp + 8) - *(float *)(owner + 0x134);
+              }
+              downer = xbox_sqrtf(dx * dx + dy * dy + dz * dz);
+              dx = *(float *)fp - *(float *)(actor + 0x12c);
+              dy = *(float *)((char *)fp + 4) - *(float *)(actor + 0x130);
+              dz = *(float *)((char *)fp + 8) - *(float *)(actor + 0x134);
+              if (downer < *(float *)0x2533c8)
+                goto fp_next;
+              dself = xbox_sqrtf(dx * dx + dy * dy + dz * dz);
+              if (downer < dself + dself)
+                goto fp_next;
+            }
+            if ((short)rec_count < 0x200) {
+              char *fwd = *(char **)0x31fc38;
+              int ri = (short)rec_count * 0x3c;
+              *(short *)(records + ri + 0x4) = (unsigned short)fp_index;
+              *(int *)(records + ri + 0x0) = (int)fp;
+              *(short *)(records + ri + 0x6) = 0;
+              *(int *)(records + ri + 0x8) = 0x7f7fffff;
+              *(vector3_t *)(records + ri + 0xc) = *(vector3_t *)fwd;
+              *(int *)(records + ri + 0x18) = 0x7f7fffff;
+              *(int *)(records + ri + 0x1c) = 0x7f7fffff;
+              *(vector3_t *)(records + ri + 0x20) = *(vector3_t *)fwd;
+              *(int *)(records + ri + 0x2c) = 0;
+              *(int *)(records + ri + 0x34) = 0;
+              *(int *)(records + ri + 0x38) = 0;
+              *(char *)(records + ri + 0x30) = 1;
+              *(char *)(records + ri + 0x31) = 0;
+              rec_count++;
+            } else if (debug_overflow == '\0') {
+              error(2, "encounter %s has too many firing positions (%d > %d)",
+                    encounter_atoms, *(int *)(encounter_atoms + 0x98), 0x200);
+              debug_overflow = 1;
+            }
+          }
+        }
+      }
+    fp_next:
+      fp_index++;
+      fp_index = (short)fp_index;
+    } while (fp_index < *(int *)(encounter_atoms + 0x98));
+  }
+
+  *(short *)(ctx + 0x664) = *(short *)(encounter_atoms + 0x98);
+  *(short *)(ctx + 0x666) = (short)rec_count;
+
+  if ((short)rec_count == 0) {
+    char *a = (char *)datum_get(actor_data, actor_handle);
+    short *p;
+    *(short *)(a + 0x3c6) = 0;
+    p = (short *)(a + 0x3ca);
+    for (j = 4; j != 0; j--) {
+      *p = (short)0xffff;
+      p += 2;
+    }
+    if (*(char *)(a + 0x3d8) != '\0')
+      *(char *)(a + 0x3d8) = 0;
+    return (short)selected;
+  }
+
+  /* refine candidate clearance against the target. */
+  if (*(char *)(ctx + 0x5fc) != '\0' && *(char *)(ctx + 0x42) != '\0') {
+    if (*(char *)(ctx + 0x44) == '\0') {
+      if (*(int *)(ctx + 0x630) != -1) {
+        path_input_new(path_input, *(int *)(actor_tag + 0x8c),
+                       *(unsigned char *)(actor + 0x376), -1);
+        path_input_set_start(path_input, (float *)(ctx + 0x634),
+                             *(int *)(ctx + 0x630));
+        path_input_set_search_bounds(path_input, 0x41a00000);
+        path_state_new(path_input, path_eval_scratch, (void *)0);
+        FUN_0005ff70((unsigned int *)path_eval_scratch);
+        if ((short)rec_count > 0) {
+          char *rec = records;
+          unsigned int n = (unsigned int)(unsigned short)(short)rec_count;
+          do {
+            float *clr;
+            float *pos = *(float **)rec;
+            if (*(char *)(ctx + 0x43) == '\0')
+              clr = (float *)0;
+            else
+              clr = (float *)(rec + 0x20);
+            path_state_estimated_distance(path_eval_scratch, pos,
+                                          *(int *)((char *)pos + 0x14),
+                                          (float *)(rec + 0x18), (float *)0,
+                                          clr);
+            rec += 0x3c;
+            n--;
+          } while (n != 0);
+        }
+      }
+    } else {
+      void *scn = scenario_get();
+      if ((short)rec_count > 0) {
+        char *rec = records;
+        unsigned int n = (unsigned int)(unsigned short)(short)rec_count;
+        do {
+          float *pos = *(float **)rec;
+          vtmp[0] = pos[0] - *(float *)(ctx + 0x604);
+          vtmp[1] = pos[1] - *(float *)(ctx + 0x608);
+          vtmp[2] = pos[2] - *(float *)(ctx + 0x60c);
+          if (vtmp[1] * vtmp[1] + vtmp[2] * vtmp[2] + vtmp[0] * vtmp[0] <
+              *(float *)0x254f90) {
+            if (path_3d_available((int)scn, (int *)(ctx + 0x604), 0,
+                                  (int *)pos, (unsigned char *)0,
+                                  (float *)0) != '\0') {
+              *(float *)(rec + 0x18) = normalize3d(vtmp);
+              if (*(char *)(ctx + 0x43) != '\0') {
+                *(int *)(rec + 0x20) = *(int *)&vtmp[0];
+                *(int *)(rec + 0x24) = *(int *)&vtmp[1];
+                *(int *)(rec + 0x28) = *(int *)&vtmp[2];
+              }
+            }
+          }
+          rec += 0x3c;
+          n--;
+        } while (n != 0);
+      }
+    }
+  }
+
+  /* build the actor path input, then clearance-test every candidate. */
+  if (*(char *)(ctx + 0x44) == '\0') {
+    actor_path_input_new(actor_handle, path_input);
+    path_input_set_search_bounds(path_input, *(int *)(ctx + 0x1c));
+    if (*(char *)(ctx + 0x36) != '\0' && *(char *)(ctx + 0x5fc) != '\0') {
+      int aim;
+      aim = -1;
+      if (*(int *)(ctx + 0x644) != -1) {
+        char *u2 =
+          (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(ctx + 0x644));
+        aim = *(int *)(u2 + 0x18);
+      }
+      path_input_set_attractor(path_input, (float *)(ctx + 0x604),
+                               *(float *)(ctx + 0x3c), aim,
+                               *(float *)(ctx + 0x38));
+    } else {
+      if (*(short *)(actor + 0x280) > 0 &&
+          (*(unsigned int *)(actor_tag + 4) & 0x10) == 0)
+        path_input_set_attractor(path_input, (float *)(actor + 0x2b0),
+                                 *(float *)(actor + 0x294),
+                                 *(unsigned int *)(actor + 0x28c), 10.0f);
+    }
+    path_state_new(path_input, huge_buf,
+                   ai_debug_get_path_storage(actor_handle));
+    if (FUN_0005ff70((unsigned int *)huge_buf) != '\0')
+      *(char *)out_found = 1;
+  }
+
+  /* re-score each candidate against actor position / path clearance. */
+  range_flag = 0;
+  if ((short)rec_count > 0) {
+    char *rec = records;
+    unsigned int n = (unsigned int)(unsigned short)(short)rec_count;
+    do {
+      float *pos = *(float **)rec;
+      if (*(char *)(ctx + 0x5fc) != '\0') {
+        float tx = pos[0] - *(float *)(ctx + 0x604);
+        float ty = pos[1] - *(float *)(ctx + 0x608);
+        float tz = pos[2] - *(float *)(ctx + 0x60c);
+        *(float *)(rec + 0x2c) = tz * tz + ty * ty + tx * tx;
+      }
+      dir[0] = pos[0] - *(float *)(actor + 0x12c);
+      dir[1] = pos[1] - *(float *)(actor + 0x130);
+      dir[2] = pos[2] - *(float *)(actor + 0x134);
+      if (dir[2] * dir[2] + dir[1] * dir[1] + dir[0] * dir[0] <
+          *(float *)(ctx + 0x1c) * *(float *)(ctx + 0x1c)) {
+        if (*(char *)(ctx + 0x44) == '\0') {
+          path_state_estimated_distance(
+            huge_buf, pos, *(int *)((char *)pos + 0x14), (float *)(rec + 0x8),
+            (float *)(rec + 0x1c),
+            (*(char *)(ctx + 0x40) != '\0') ? (float *)(rec + 0xc)
+                                            : (float *)0);
+        } else {
+          float mag;
+          float mag_kept;
+          *(float *)(rec + 0x1c) = xbox_sqrtf(FUN_0010cd40(
+            (float *)(ctx + 0x604), (float *)(actor + 0x12c), dir));
+          mag = xbox_sqrtf(dir[2] * dir[2] + dir[1] * dir[1] +
+                           dir[0] * dir[0]);
+          mag_kept = *(float *)0x2533c0;
+          if ((double)xbox_fabsf(mag) >= *(double *)0x2533d0) {
+            float inv = *(float *)0x2533c8 / mag;
+            dir[0] = dir[0] * inv;
+            dir[1] = dir[1] * inv;
+            dir[2] = dir[2] * inv;
+            mag_kept = mag;
+          }
+          *(float *)(rec + 0x8) = mag_kept;
+          if (*(char *)(ctx + 0x40) != '\0') {
+            *(int *)(rec + 0xc) = *(int *)&dir[0];
+            *(int *)(rec + 0x10) = *(int *)&dir[1];
+            *(int *)(rec + 0x14) = *(int *)&dir[2];
+          }
+        }
+      }
+      if (*(float *)(rec + 0x8) < *(float *)(ctx + 0x1c))
+        range_flag = 1;
+      else
+        *(char *)(rec + 0x30) = 0;
+      rec += 0x3c;
+      n--;
+    } while (n != 0);
+  }
+
+  if (*(char *)(ctx + 0x15) != '\0' && range_flag == 0) {
+    /* nothing in range and the actor must move: pick a random fallback. */
+    int rec_idx;
+    char *rec;
+    if ((short)rec_count < 1) {
+      display_assert("firing_position_count > 0",
+                     "c:\\halo\\SOURCE\\ai\\actor_firing_position.c", 0x83c,
+                     1);
+      system_exit(-1);
+    }
+    rec_idx = random_range((unsigned int *)get_global_random_seed_address(),
+                           0, (short)rec_count);
+    *(char *)out_found = 0;
+    selected = rec_idx;
+    {
+      char *a = (char *)datum_get(actor_data, actor_handle);
+      short *p;
+      *(short *)(a + 0x3c6) = 0;
+      p = (short *)(a + 0x3ca);
+      for (j = 4; j != 0; j--) {
+        *p = (short)0xffff;
+        p += 2;
+      }
+      if (*(char *)(a + 0x3d8) != '\0')
+        *(char *)(a + 0x3d8) = 0;
+    }
+    rec = records + (short)rec_idx * 0x3c;
+    if (FUN_00025970(rec, actor_handle, ctx) == '\0')
+      selected = -1;
+    if (debug_eval) {
+      short ridx = *(short *)(rec + 0x4);
+      *(char *)(0x62a3b5 + ridx * 0x40) = 1;
+      memcpy((void *)(0x62a3b8 + ridx * 0x40), rec, 0xf * 4);
+    }
+  } else {
+    /* normal path: run scorers, sort, select the best valid record. */
+    char too_far;
+    too_far = 0;
+    {
+      void **tbl = (void **)0x254bf8;
+      if (*tbl != (void *)0) {
+        do {
+          if (((int)*(short *)((char *)tbl - 4) &
+               (1 << (*(unsigned char *)(ctx + 4) & 0x1f))) != 0) {
+            ((void (*)(int, void *, int, void *))*tbl)(
+              actor_handle, ctx, rec_count, records);
+          }
+          tbl += 2;
+        } while (*tbl != (void *)0);
+      }
+    }
+    if ((short)rec_count > 0) {
+      unsigned int n = (unsigned int)(unsigned short)(short)rec_count;
+      i = 0;
+      do {
+        order[i] = i;
+        i++;
+        n--;
+      } while (n != 0);
+    }
+    *(short *)0x331f00 = (short)rec_count;
+    *(int *)0x331f04 = (int)records;
+    FUN_00091ef0(order, (short)rec_count, FUN_00024950);
+    *(char *)(ctx + 0x65c) = FUN_00024900(actor_handle, ctx);
+
+    i = 0;
+    if ((short)rec_count > 0) {
+      do {
+        int ridx = (short)*(unsigned short *)&order[(short)i];
+        char *rec = records + ridx * 0x3c;
+        if (*(char *)(rec + 0x30) != '\0')
+          *(short *)(ctx + 0x668) = *(short *)(ctx + 0x668) + 1;
+        if (*(char *)(rec + 0x31) == '\0')
+          *(short *)(ctx + 0x66a) = *(short *)(ctx + 0x66a) + 1;
+        if (*(char *)(rec + 0x30) == '\0' ||
+            (*(char *)(ctx + 0x65c) != '\0' &&
+             *(float *)(rec + 0x38) + *(float *)(ctx + 0x660) <= best)) {
+          if (game_connection() != 0 || *(char *)0x5ac9c5 == '\0') {
+            if ((short)i < (short)rec_count) {
+              int *o = &order[(short)i];
+              unsigned int m = (unsigned int)((rec_count - i) & 0xffff);
+              do {
+                if (*(char *)(records + (*o) * 0x3c + 0x30) != '\0') {
+                  *(short *)(ctx + 0x668) = *(short *)(ctx + 0x668) + 1;
+                  *(short *)(ctx + 0x66e) = *(short *)(ctx + 0x66e) + 1;
+                }
+                o++;
+                m--;
+              } while (m != 0);
+            }
+            break;
+          }
+          too_far = 1;
+        }
+        if (*(char *)(rec + 0x30) != '\0') {
+          if (*(char *)(ctx + 0x5fc) != '\0')
+            FUN_000257a0(actor_handle, rec, ctx);
+          *(short *)(ctx + 0x66c) = *(short *)(ctx + 0x66c) + 1;
+          *(int *)(rec + 0x34) = *(int *)(rec + 0x38);
+          if (FUN_00024890(actor_handle, rec, ctx) != '\0' &&
+              best < *(float *)(rec + 0x38)) {
+            if (too_far) {
+              display_assert("!expected_to_discard",
+                             "c:\\halo\\SOURCE\\ai\\actor_firing_position.c",
+                             0x8c3, 1);
+              system_exit(-1);
+            }
+            selected = ridx;
+            best = *(float *)(rec + 0x38);
+          }
+        }
+        i++;
+      } while ((short)i < (short)rec_count);
+    }
+
+    if (debug_eval && (short)rec_count > 0) {
+      char *rec = records;
+      unsigned int n = (unsigned int)(unsigned short)(short)rec_count;
+      do {
+        short ridx = *(short *)(rec + 0x4);
+        *(char *)(0x62a3b5 + ridx * 0x40) = 1;
+        memcpy((void *)(0x62a3b8 + ridx * 0x40), rec, 0xf * 4);
+        rec += 0x3c;
+        n--;
+      } while (n != 0);
+    }
+
+    if (*(char *)0x5aca4e != '\0') {
+      names[0] = "fight";
+      names[1] = "panic";
+      names[2] = "cover";
+      names[3] = "uncover";
+      names[4] = "guard";
+      names[5] = "pursue";
+      error(2,
+            "fp-eval %s: encounter %3d consider %3d valid %3d nonrejected"
+            " %3d post-eval %3d skipped %3d",
+            names[*(short *)(ctx + 0x4)], (int)*(short *)(ctx + 0x664),
+            (int)*(short *)(ctx + 0x666), (int)*(short *)(ctx + 0x668),
+            (int)*(short *)(ctx + 0x66a), (int)*(short *)(ctx + 0x66c),
+            (int)*(short *)(ctx + 0x66e));
+    }
+  }
+
+  /* publish the selection. */
+  if ((short)selected != -1) {
+    char *rec = records + (short)selected * 0x3c;
+    short fp_idx;
+    if (out_record != (int *)0)
+      memcpy(out_record, rec, 0xf * 4);
+    fp_idx = *(short *)(rec + 0x4);
+    if (out_owner != (int *)0)
+      *out_owner = owner_indices[fp_idx];
+    return fp_idx;
+  }
+  return (short)selected;
 }
 
 /* FUN_00027dd0 (0x27dd0)
