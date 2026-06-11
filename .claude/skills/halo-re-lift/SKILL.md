@@ -48,6 +48,8 @@ All file edits, `rtk git` commands, and tool invocations must target **that path
    - Loops that advance a parameter pointer when original uses a copy register post-loop
    - After writing C: `grep -n '(float)(int)' src/<file>.c` (float-as-pointer smuggling)
    - After writing C: `grep -n '(float \*)0\|(void \*)0\|(int \*)0' src/<file>.c` (NULL @<reg> args)
+   - **→ Use `lift-arg-hazards` skill** for ADD ESP mismatch suspicion, 0-arg getter patterns, or @<reg> order questions
+   - **→ Use `lift-frame-hazards` skill** when the decompile has `_chkstk`, you need to size a buffer from the frame, or you see `&local` passed to an indexing callee
 6. Produce a structurally faithful C lift:
    - preserve control-flow shape
    - preserve side-effect order
@@ -57,6 +59,10 @@ All file edits, `rtk git` commands, and tool invocations must target **that path
    `docs/references/kb-update-policy.md`).
 9. Run `rtk python3 tools/analysis/maintain.py <source_file>`.
 10. Run `rtk python3 tools/audit/check_lift_hazards.py` and fix any target-relevant hazards.
+11. **Post-verify score routing:**
+    - Score 65–84% and gap described as "structural" → **invoke `lift-score-improve` skill first** before reverting or escalating
+    - Xbox crash / hang / ACCESS_VIOLATION → **invoke `lift-crash-signals` skill**
+    - Wrong visual output / silent wrong behavior → **invoke `lift-crash-signals` skill** (toggle-bisect section)
 
 ## Ghidra MCP availability (required)
 
