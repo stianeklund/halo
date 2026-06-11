@@ -279,3 +279,13 @@ double fabs(double x)
   __asm__ __volatile__("fabs" : "+t"(x));
   return x;
 }
+
+/* __chkstk (exported as __chkstk after Windows x86 name-mangling of _chkstk).
+ * Clang (i386-pc-win32) emits `mov eax, N; call __chkstk` before `sub esp, eax`
+ * for stack frames larger than one page.  On Xbox the kernel fully commits the
+ * thread stack at creation time, so page-probing is unnecessary.  EAX is
+ * preserved by RET so the caller's `sub esp, eax` still gets the frame size. */
+__attribute__((naked)) void _chkstk(void)
+{
+  __asm__("ret\n\t");
+}
