@@ -13466,7 +13466,7 @@
         },
         {
           "addr": "0x12a830",
-          "decl": "void network_game_get_number_of_games_played(void);"
+          "decl": "int network_game_get_number_of_games_played(void);"
         },
         {
           "addr": "0x12a890",
@@ -14408,7 +14408,7 @@
         },
         {
           "addr": "0x12f990",
-          "decl": "char FUN_0012f990(int server @<ecx>, void *source_address @<eax>, void *message, int message_size);",
+          "decl": "char FUN_0012f990(int server, void *machine @<esi>, void *message, int message_size);",
           "ported": true
         }
       ],
