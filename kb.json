@@ -3637,7 +3637,7 @@
         },
         {
           "addr": "0x24cf0",
-          "decl": "void FUN_00024cf0(void);",
+          "decl": "void FUN_00024cf0(int actor_handle, char *eval_state, unsigned short fp_count, char *fp_array);",
           "ported": false
         },
         {
@@ -3677,7 +3677,7 @@
         },
         {
           "addr": "0x272d0",
-          "decl": "short FUN_000272d0(int actor_handle, short param_2, short param_3, int param_4, unsigned int param_5, char param_6);",
+          "decl": "short FUN_000272d0(int actor_handle, short param_2, void *param_3, int param_4, unsigned int param_5, char param_6);",
           "ported": true
         },
         {
@@ -3735,7 +3735,7 @@
         {
           "addr": "0x28cc0",
           "decl": "char FUN_00028cc0(float *look_vectors, float *dir_vec, char look_mode, char param4, char is_secondary, int actor_handle @<eax>);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x28ed0",
@@ -20159,7 +20159,7 @@
         },
         {
           "addr": "0x10ce10",
-          "decl": "void vector_to_line_distance_squared3d(void);"
+          "decl": "float vector_to_line_distance_squared3d(float *p1, float *p2, float *p3, float *p4);"
         },
         {
           "addr": "0x10d380",
@@ -35282,7 +35282,7 @@
         },
         {
           "addr": "0x5e9b0",
-          "decl": "void path_state_approach_point(void);"
+          "decl": "char path_state_approach_point(void *path_state, float *fp_results, int fp_count, char *out_byte, char *out_dest);"
         },
         {
           "addr": "0x5eae0",
@@ -35677,7 +35677,7 @@
   },
   "0x272d0": {
     "name": "FUN_000272d0",
-    "decl": "short FUN_000272d0(int actor_handle, short param_2, short param_3, int param_4, unsigned int param_5, char param_6);",
+    "decl": "short FUN_000272d0(int actor_handle, short param_2, void *param_3, int param_4, unsigned int param_5, char param_6);",
     "ported": true,
     "obj": "actor_looking.obj"
   },
