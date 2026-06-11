@@ -663,7 +663,7 @@ unsigned int FUN_00014770(int actor_handle)
   if (*(char *)(actor + 0x358) != '\0' && (*tag & 0x20)) {
     actor_find_pathfinding_location(actor_handle);
 
-    if (FUN_00025a00(actor_handle, (int *)(actor + 0x168),
+    if (actor_has_accessible_firing_position(actor_handle, (float *)(actor + 0x168),
                      *(int *)(actor + 0x164), 0) != '\0') {
       within_range = 0;
 
@@ -2030,7 +2030,7 @@ int FUN_00016050(int actor_handle, short *param_2)
       system_exit(-1);
     }
     if (*(char *)(actor + 0x314) != '\0') {
-      cVar1 = FUN_00025a00(actor_handle, (int *)(actor + 0x318),
+      cVar1 = actor_has_accessible_firing_position(actor_handle, (float *)(actor + 0x318),
                            *(int *)(actor + 0x324), 1);
       if (cVar1 != '\0') {
         param_2[0x12] = 2;
@@ -6015,6 +6015,137 @@ char FUN_00025970(void *state, int actor_handle, char *actor)
   }
 
   return *(char *)((char *)state + 0x30);
+}
+
+/* FUN_00025a00 (0x25a00) — actor_has_accessible_firing_position
+ * Tests whether the given position is an accessible firing position for the
+ * actor.  Checks that the position belongs to the actor's encounter's firing-
+ * position list, is within range, and (for non-swarm actors) is reachable via
+ * a path-state ray cast.
+ *
+ * Confirmed: param_1=actor_handle, param_2=position (float *),
+ *   param_3=surface_index (-1 = none), param_4=group_mask (bitfield).
+ * Confirmed: actor+0x99 = is_swarm flag; actor+0x34 = encounter handle;
+ *   actor+0x3a = firing_position_index (short); actor+0x58 = tag_index.
+ * Confirmed: FUN_00024a60 = actor_get_firing_position_group (3 args).
+ * Confirmed: FUN_0005f550 = path_state_estimated_distance (4 args, output via
+ *   param_4 float*); NOT an ESI-output function — unaff_ESI in Ghidra is
+ *   artifact of inlining; real result is stored at [EBP-0x8] after the call.
+ * Confirmed: threshold at 0x2533d8 = 4.0f; dist_sq threshold at 0x254e74 =
+ *   16.0f.
+ * Confirmed: huge path-state buffer at EBP-0x140e0 (82080 bytes); ray-init
+ *   struct at EBP-0x54 (84 bytes).
+ * Source file string: c:\halo\SOURCE\ai\actor_firing_position.c */
+char actor_has_accessible_firing_position(int actor_handle, float *position,
+                                          int surface_index, int group_mask)
+{
+    /* C89: all declarations at top */
+    char *actor;
+    char *tag;
+    void *bsp;
+    char *encounter_elem;
+    unsigned int mask;
+    char *fp_block;
+    float *fp_elem;
+    float dx;
+    float dy;
+    float dz;
+    float dist_sq;
+    float hit_dist;
+    int i;
+    int fp_count;
+    char vis;
+    /* Large path-state buffer; static to avoid _chkstk linker requirement */
+    static unsigned char huge_buf[0x140e0];
+    unsigned char ray_init[0x54];
+
+    actor = (char *)datum_get(actor_data, actor_handle);
+    tag   = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+
+    if (*(char *)(actor + 0x99) == 0) {
+        /* not a swarm: validate surface_index */
+        if (surface_index != -1) {
+            bsp = global_collision_bsp_get();
+            if (surface_index < 0 ||
+                surface_index >= *(int *)((char *)bsp + 0x3c)) {
+                display_assert(
+                    "(test_surface_index >= 0) && (test_surface_index < collision_bsp->surfaces.count)",
+                    "c:\\halo\\SOURCE\\ai\\actor_firing_position.c",
+                    0x59a, 1);
+                system_exit(-1);
+            }
+        }
+        if (*(char *)(actor + 0x99) == 0 && surface_index == -1) {
+            return 0;
+        }
+    }
+
+    if (*(int *)(actor + 0x34) == -1) {
+        return 0;
+    }
+
+    /* actor has an encounter — get firing-position group mask */
+    encounter_elem = (char *)tag_block_get_element(
+        (char *)global_scenario_get() + 0x42c,
+        *(unsigned int *)(actor + 0x34) & 0xffff, 0xb0);
+    mask = (unsigned int)actor_get_firing_position_group(
+        actor_handle, 0, group_mask);
+
+    /* for non-swarm: set up path-state ray */
+    if (*(char *)(actor + 0x99) == 0) {
+        path_input_new((void *)ray_init,
+                       *(unsigned int *)((char *)tag + 0x8c), 1, -1);
+        path_input_set_start((void *)ray_init, position, surface_index);
+        path_input_set_search_bounds((void *)ray_init, 0x40800000);
+        path_state_new((void *)ray_init, (void *)huge_buf, (void *)0);
+        FUN_0005ff70((unsigned int *)huge_buf);
+    }
+
+    /* iterate over encounter's firing positions */
+    fp_block = encounter_elem + 0x98;
+    fp_count = *(int *)(encounter_elem + 0x98);
+    i = 0;
+    if (fp_count <= 0) {
+        return 0;
+    }
+    do {
+        fp_elem = (float *)tag_block_get_element((void *)fp_block, i, 0x18);
+
+        /* check group bit */
+        if (mask & (1u << (*(unsigned char *)((char *)fp_elem + 0xc) & 0x1f))) {
+            /* check squared distance */
+            dx = fp_elem[0] - position[0];
+            dy = fp_elem[1] - position[1];
+            dz = fp_elem[2] - position[2];
+            dist_sq = dx * dx + dy * dy + dz * dz;
+
+            if (dist_sq < 16.0f) {
+                if (*(char *)(actor + 0x99) == 0) {
+                    /* non-swarm: ray-cast check */
+                    hit_dist = 0.0f;
+                    path_state_estimated_distance(
+                        (void *)huge_buf, (void *)fp_elem,
+                        (int)fp_elem[5], &hit_dist);
+                    if (hit_dist < 4.0f) {
+                        return 1;
+                    }
+                } else {
+                    /* swarm: simple 3D visibility check */
+                    vis = path_3d_available(
+                        (int)scenario_get(), (int *)position, 0,
+                        (int *)fp_elem, (unsigned char *)0,
+                        (float *)0);
+                    if (vis != 0) {
+                        return 1;
+                    }
+                }
+            }
+        }
+
+        i++;
+    } while (i < fp_count);
+
+    return 0;
 }
 
 /* FUN_00027dd0 (0x27dd0)

@@ -3662,8 +3662,8 @@
         },
         {
           "addr": "0x25a00",
-          "decl": "char FUN_00025a00(int param_1, int *param_2, int param_3, int param_4);",
-          "ported": false
+          "decl": "char actor_has_accessible_firing_position(int actor_handle, float *position, int surface_index, int group_mask);",
+          "ported": true
         },
         {
           "addr": "0x25c10",
@@ -35311,7 +35311,7 @@
         },
         {
           "addr": "0x5f550",
-          "decl": "void path_state_estimated_distance(void);"
+          "decl": "char path_state_estimated_distance(void *path_state, void *fp_element, int surface_index, float *result);"
         },
         {
           "addr": "0x5f740",
