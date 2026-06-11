@@ -706,7 +706,7 @@ unsigned int FUN_00014770(int actor_handle)
 
   result = FUN_00027090(actor_handle, large_buf, local_50,
                         &local_14, huge_buf, &local_c);
-  result = FUN_000272d0(actor_handle, (short)result, (short)result,
+  result = FUN_000272d0(actor_handle, (short)result, local_50,
                         local_14, (unsigned int)(int)huge_buf, local_c);
 
   if (result == -1) {
@@ -835,6 +835,180 @@ void FUN_00014ba0(int actor_handle, int *param_2)
     return;
   }
   *(struct look_vec4 *)param_2 = **(struct look_vec4 **)0x2ee6d4;
+}
+
+/* FUN_00014c10 (0x14c10)
+ * Firing-position state update for look/fight actor actions.
+ *
+ * Initialises state_data (zeroes it, fills the FP query buffer, queries
+ * the best firing position via FUN_00025c10 + FUN_000272d0), then if a
+ * valid FP and secondary target exist evaluates path accessibility via
+ * the path_input / path_state pipeline.
+ *
+ * Register args:
+ *   EBX = actor_handle
+ *   ESI = state_data (output block, written throughout)
+ * Stack arg:
+ *   param_3 (int) DEAD: no [EBP+8] access in disasm.
+ *
+ * state_data field writes (all confirmed from disasm):
+ *   +0x8  (short): fp_index; FUN_00025c10 ret written first (0x14d54),
+ *                  then overwritten by FUN_000272d0 return (0x14d64)
+ *   +0xa  (bool):  1 iff fp_index != -1 && (char)out3_int == 0 (0x14d7e)
+ *   +0x20 (char):  0 always (0x14d81), conditionally path_state_approach_point
+ *                  return (0x14e79)
+ *   +0x6  (char):  always 0 at exit (0x14e7c)
+ *
+ * Stack-local layout (_chkstk EAX=0x28820 = 165920-byte frame):
+ *   EBP-0x1    local_byte (char output from path_state_approach_point)
+ *   EBP-0x5    out3_int (int written by FUN_00025c10 *out3; low byte used)
+ *   EBP-0xc    tag_ptr
+ *   EBP-0x10   actor_ptr
+ *   EBP-0x14   out2 (int written by FUN_00025c10 *out2)
+ *   EBP-0x50   fp_result_ptr (void* output from FUN_00025c10 *out1;
+ *                used as struct ptr via [EBP-0x50]+0x14 accesses)
+ *   EBP-0x98   path_buf (0x98 bytes)
+ *   EBP-0x708  query_buf (0x670 bytes, csmemset confirmed)
+ *   EBP-0x14794 path_state_buf (up to 0x146fc bytes)
+ *   EBP-0x28820 huge_buf (0x1408c bytes raw FP candidate data)
+ *
+ * Confirmed: swarm assert action_flee.c:0x20a (522).
+ * Confirmed: PUSH EDI at 0x14c22 is callee-save, not a datum_get arg.
+ * Confirmed: datum_get(actor_data, actor_handle) global at 0x6325a4.
+ * Confirmed: secondary target: datum_get(prop_data, state_data->0x1c).
+ * Confirmed: fp_result_ptr is pointer output from FUN_00025c10; disasm
+ *   0x14e2e MOV EAX,[EBP-0x50] then 0x14e31 MOV ECX,[EAX+0x14] proves it.
+ * Confirmed: FUN_000272d0 param_3 = LEA [EBP-0x50] = &fp_result_ptr.
+ * Confirmed: FUN_000272d0 param_5 = LEA [EBP-0x28820] = (uint)addr of huge_buf. */
+void FUN_00014c10(int actor_handle, void *state_data, int param_3)
+{
+  char *actor;
+  char *tag;
+  char *sec_target;
+  void *fp_result_ptr;
+  short fp_index_tmp;
+  short fp_index;
+  int out2;
+  int out3_int;
+  char local_byte;
+  int target_pos;
+  unsigned char valid;
+  static char path_buf[0x98];
+  static char path_state_buf[0x146fc];
+  static char huge_buf[0x1408c];
+  char query_buf[0x670];
+  short group_type;
+
+  (void)param_3; /* DEAD: no [EBP+8] access in disasm */
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+
+  /* assert(!actor->meta.swarm) action_flee.c:0x20a */
+  if (*(char *)(actor + 0x6) != 0) {
+    display_assert("!actor->meta.swarm",
+                   "c:\\halo\\SOURCE\\ai\\action_flee.c", 0x20a, 1);
+    system_exit(-1);
+  }
+
+  csmemset(query_buf, 0, 0x670);
+
+  /* query_buf[0x41] = state_data+4; set before branch (0x14c7d, 0x14c88) */
+  query_buf[0x41] = *(char *)((char *)state_data + 0x4);
+
+  if (*(short *)((char *)state_data + 0xc) > 0) {
+    /* Swarm actor: group_type = 1 */
+    group_type = 1;
+    if (*(short *)((char *)state_data) > 0) {
+      query_buf[0x14] = 1;
+      query_buf[0x15] = 1;
+    }
+    query_buf[0x36] = 1;
+    *(float *)(query_buf + 0x38) = 10.0f;
+    *(float *)(query_buf + 0x3c) = 6.0f;
+  } else {
+    /* Normal actor: group_type = 2 */
+    query_buf[0x8] = *(char *)((char *)state_data + 0x5);
+    group_type = 2;
+    /* FPU: tag->0x320 > 0.0f (FCOMP [0x2533c0]=0.0; TEST AH,0x41; JNZ=6.0) */
+    if (*(float *)(tag + 0x320) > 0.0f) {
+      *(float *)(query_buf + 0x1c) = *(float *)(tag + 0x320);
+    } else {
+      *(float *)(query_buf + 0x1c) = 6.0f;
+    }
+  }
+
+  *(short *)(query_buf + 0x4) = group_type;
+
+  /* Store group handle at query_buf+0 (0x14d24), search firing positions */
+  *(int *)query_buf = actor_get_firing_position_group(actor_handle,
+                                                       (int)group_type, 0);
+
+  /*
+   * FUN_00025c10 returns a short (AX = fp candidate count/index).
+   * Writes pointer to fp results into fp_result_ptr via *out1 (EBP-0x50).
+   * Writes out2 int via *out2 (EBP-0x14).
+   * Writes out3 int via *out3 (EBP-0x5); low byte = exclusion flag.
+   */
+  fp_index_tmp = (short)FUN_00025c10(actor_handle, query_buf,
+                                      (int *)&fp_result_ptr, &out2,
+                                      huge_buf, &out3_int);
+
+  /* Temporary write (0x14d54); overwritten by FUN_000272d0 return */
+  *(short *)((char *)state_data + 0x8) = fp_index_tmp;
+
+  /*
+   * FUN_000272d0:
+   *   param_3 = &fp_result_ptr (address of pointer storage, void **)
+   *   param_5 = (unsigned int) address of huge_buf (pointer as uint)
+   */
+  fp_index = FUN_000272d0(actor_handle, fp_index_tmp,
+                           &fp_result_ptr, out2,
+                           (unsigned int)(int)huge_buf, (char)out3_int);
+  *(short *)((char *)state_data + 0x8) = fp_index;
+
+  /* valid = 1 iff fp_index != -1 AND out3 low byte == 0 */
+  valid = (fp_index != (short)-1) && ((char)out3_int == 0) ? 1 : 0;
+  *(char *)((char *)state_data + 0xa) = (char)valid;
+  *(char *)((char *)state_data + 0x20) = 0;
+
+  if (fp_index != (short)-1 && *(int *)((char *)state_data + 0x1c) != -1) {
+    sec_target = (char *)datum_get(prop_data,
+                                   *(int *)((char *)state_data + 0x1c));
+
+    /* If sec_target type (field_0x24) is 2 or 3: find prop pathfinding loc */
+    if (*(short *)(sec_target + 0x24) >= 2
+        && *(short *)(sec_target + 0x24) <= 3) {
+      actor_perception_find_prop_pathfinding_location(actor_handle,
+          *(int *)((char *)state_data + 0x1c));
+    }
+
+    /* Resolve target pos: sec_target->0x110 if not -1, else ->0x18 */
+    if (*(int *)(sec_target + 0x110) != -1) {
+      target_pos = *(int *)(sec_target + 0x110);
+    } else {
+      target_pos = *(int *)(sec_target + 0x18);
+    }
+
+    /* Path accessibility pipeline for the firing position */
+    path_input_new(path_buf, *(unsigned int *)(tag + 0x8c), 0, target_pos);
+    path_input_set_start(path_buf, (float *)(sec_target + 0xf0),
+                         *(int *)(sec_target + 0xec));
+    paths_dispose(path_buf, *(int *)(actor + 0x18));
+    path_state_new(path_buf, path_state_buf, 0);
+    /* fp_result_ptr->field_0x14 = *(int*)((char*)fp_result_ptr + 0x14) */
+    FUN_0005e0d0(path_state_buf, (float *)fp_result_ptr,
+                 *(int *)((char *)fp_result_ptr + 0x14), 0);
+    if (FUN_0005ff70((unsigned int *)path_state_buf)) {
+      *(char *)((char *)state_data + 0x20) =
+          path_state_approach_point(path_state_buf, (float *)fp_result_ptr,
+                                    *(int *)((char *)fp_result_ptr + 0x14),
+                                    &local_byte,
+                                    (char *)state_data + 0x24);
+    }
+  }
+
+  *(char *)((char *)state_data + 0x6) = 0;
 }
 
 /* FUN_00014e90 (0x14e90)
@@ -2067,7 +2241,7 @@ unsigned int FUN_000163d0(int actor_handle)
 
     ret_25c10 = (int)FUN_00025c10(actor_handle, large_buf, local_50,
                                    &local_c, huge_buf, &local_10);
-    result = FUN_000272d0(actor_handle, (short)ret_25c10, (short)ret_25c10,
+    result = FUN_000272d0(actor_handle, (short)ret_25c10, local_50,
                           local_c, (unsigned int)(int)huge_buf, (char)local_10);
 
     *(char *)(actor + 0xaa) = 0;
@@ -4678,6 +4852,320 @@ void FUN_0001ac00(int actor_handle)
   *(short *)(actor + 0x3fc) = 4;
 }
 
+/* FUN_00024cf0 (0x24cf0)
+ * Evaluate and score firing positions for an actor.
+ *
+ * First pass (for each fp in fp_array[0..fp_count)):
+ *   Stride = 0x3c bytes. fp_ptr = fp_array+0x14+i*0x3c.
+ *   fp_pos_ptr = *(int*)(fp_ptr-0x14)  external 3-float position pointer.
+ *   fp_type    = *(short*)(fp_ptr-0x10).
+ *   fp->valid  = *(char*)(fp_ptr+0x1c).
+ *   fp->score  = *(float*)(fp_ptr+0x24).
+ *
+ *   FUN_00024ca0: 1 if fp_type in actor's active slot set.
+ *   result==1: mark fp[0x1d]=1; invalidate (fp[0x1c]=0) if not locked.
+ *   result==0: skip marks, fall through to scoring body.
+ *
+ *   Danger zone (eval[0x40] set):
+ *     Trajectory dir = actor[0x2c8..0x2d0] - actor[0x2b0..0x2b8].
+ *     Sphere (r=actor[0x2d8]+2.5) around actor[0x2dc]: if fp inside:
+ *       FUN_0010cd40 dist from fp to trajectory line (dist_sq).
+ *       if dist_sq <= range^2: mark fp[0x1d]=1; invalidate if unlocked.
+ *       if dist_sq <= (range+2.5)^2: score=(sqrt(dist_sq)-range)*8.0 -> FUN_00024000.
+ *       else: score=20.0 -> FUN_00024000.
+ *     Sphere (r=actor[0x2d8]+3.0) around actor[0x12c] eye: if eye inside AND
+ *       actor[0x2d4]>range: FUN_0010cd40 from eye to trajectory; if eye_dist>range^2:
+ *         scaled fp direction = fp_ptr[-8..0]*3.0; if norm>1e-4:
+ *           vector_to_line_distance_squared3d; if dist<range^2: invalidate if unlocked.
+ *
+ *   Faction bonus: bit (1<<fp_faction) in eval[0x48] -> fp->score += eval[0x4c].
+ *   Threat proximity: eval[0x50] threats; stride 0x10; weight at +0x54, pos at +0x58.
+ *     min_ratio = min of dist_sq/(w^2); fp->score += (min<1)?sqrt(min)*10:10.
+ *
+ * Second pass (eval[0x45] && actor[0x158] != -1):
+ *   fp2 = fp_array+0x30+i*0x3c; fp2->valid at fp2[0]; fp2->score at fp2[8].
+ *   fp2_pos_ptr = *(int*)(fp2-0x30).
+ *   cos_angle = dot(fp2_pos-target_pos, target_facing) / dist.
+ *   dist<8m AND cos<0.707 AND dir non-degen: invalidate if unlocked.
+ *   Else: los_score = f(cos_angle) in [0..15]; fp2->score += los_score.
+ *
+ * Confirmed: datum_get at 0x24d04; CALL FUN_00024ca0 at 0x24d46.
+ * Confirmed: stride 0x3c at 0x25138; fp_ptr saved at [EBP-4] (0x24d24).
+ * Confirmed: FUN_0010cd40 at 0x24e33, 0x24f3a; FUN_0010ce10 at 0x24fb8.
+ * Confirmed: object_get_and_verify_type(target,2) at 0x25168.
+ * Confirmed: fp->score = fp_ptr+0x24 = fp2_ptr+8 (element_base+0x38).
+ * Confirmed: threat stride i*0x10 (SHL EAX,4 at 0x25076). */
+void FUN_00024cf0(int actor_handle, char *eval_state, unsigned short fp_count,
+                  char *fp_array)
+{
+  char *actor;
+  char *fp_ptr;
+  char *fp_pos_ptr;
+  char *fp_base_ptr;
+  char *actor_traj_base;
+  float local_buf[3];
+  float dir_vec[3];
+  float faction_bonus;
+  float local_1c_range;
+  float local_14_score;
+  float local_10_dsq;
+  float local_8_min;
+  float local_c_score;
+  int target_handle;
+  char *target_obj;
+  unsigned int fp_idx;
+  int threat_count;
+  int threat_i;
+  float dist_sq;
+  float norm_sq;
+  float radius;
+  float range;
+  float dx, dy, dz;
+  float w;
+  float ratio;
+  short fp_type;
+  unsigned int faction_mask;
+  unsigned int faction_bit;
+  char *fp2_ptr;
+  char *fp2_pos_ptr;
+  unsigned int fp2_idx;
+  float dot_val;
+  float dist;
+  float cos_angle;
+  float los_score;
+  float tfx, tfy, tfz;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+
+  /* ======================================================
+   * First pass: evaluate each firing position
+   * ====================================================== */
+  if ((short)fp_count > 0) {
+    fp_ptr = fp_array + 0x14;
+    fp_idx = (unsigned int)fp_count;
+    do {
+      if (*(char *)(fp_ptr + 0x1c) != 0) {
+        fp_type = *(short *)(fp_ptr - 0x10);
+        if (FUN_00024ca0(actor_handle, fp_type) != 0) {
+          *(char *)(fp_ptr + 0x1d) = 1;
+          if (*(char *)(eval_state + 0x14) == 0) {
+            *(char *)(fp_ptr + 0x1c) = 0;
+            goto LAB_24cf0_fp_next;
+          }
+        }
+
+        if (*(char *)(eval_state + 0x40) != 0) {
+          if (*(short *)(actor + 0x280) <= 0 ||
+              *(char  *)(actor + 0x287) == 0) {
+            display_assert("actor->danger_zone.position != NONE",
+                           "c:\\halo\\SOURCE\\ai\\actor_firing_position.c",
+                           0xba, 1);
+            system_exit(-1);
+          }
+
+          fp_pos_ptr      = (char *)*(int *)(fp_ptr - 0x14);
+          actor_traj_base = actor + 0x2b0;
+          local_buf[0]    = *(float *)(actor + 0x2c8) - *(float *)(actor + 0x2b0);
+          local_buf[1]    = *(float *)(actor + 0x2cc) - *(float *)(actor + 0x2b4);
+          local_buf[2]    = *(float *)(actor + 0x2d0) - *(float *)(actor + 0x2b8);
+          fp_base_ptr     = fp_ptr - 0x14;
+
+          dx      = *(float *)fp_pos_ptr       - *(float *)(actor + 0x2dc);
+          dy      = *(float *)(fp_pos_ptr + 4) - *(float *)(actor + 0x2e0);
+          dz      = *(float *)(fp_pos_ptr + 8) - *(float *)(actor + 0x2e4);
+          dist_sq = dx*dx + dy*dy + dz*dz;
+          radius  = *(float *)(actor + 0x2d8) + 2.5f;
+
+          if (dist_sq <= radius * radius) {
+            local_10_dsq   = FUN_0010cd40((float *)fp_pos_ptr,
+                                          (float *)actor_traj_base,
+                                          local_buf);
+            range          = *(float *)(actor + 0x294);
+            local_14_score = 0.0f;
+
+            if (local_10_dsq <= range * range) {
+              *(char *)(fp_ptr + 0x1d) = 1;
+              if (*(char *)(eval_state + 0x14) == 0) {
+                *(char *)(fp_ptr + 0x1c) = 0;
+                goto LAB_24cf0_fp_next;
+              }
+            } else {
+              if (local_10_dsq <= (range + 2.5f) * (range + 2.5f)) {
+                local_14_score =
+                    (xbox_sqrtf(local_10_dsq) - range) * 8.0f;
+              } else {
+                local_14_score = 20.0f;
+              }
+              FUN_00024000(eval_state, local_14_score, 0x17, fp_base_ptr);
+            }
+          }
+
+          dx      = *(float *)(actor + 0x12c) - *(float *)(actor + 0x2dc);
+          dy      = *(float *)(actor + 0x130) - *(float *)(actor + 0x2e0);
+          dz      = *(float *)(actor + 0x134) - *(float *)(actor + 0x2e4);
+          dist_sq = dx*dx + dy*dy + dz*dz;
+          radius  = *(float *)(actor + 0x2d8) + 3.0f;
+
+          if (dist_sq <= radius * radius) {
+            if (*(float *)(actor + 0x2d4) > *(float *)(actor + 0x294)) {
+              local_10_dsq = FUN_0010cd40((float *)(actor + 0x12c),
+                                          (float *)actor_traj_base,
+                                          local_buf);
+              range = *(float *)(actor + 0x294);
+              if (local_10_dsq > range * range) {
+                dir_vec[0] = *(float *)(fp_ptr - 8) * 3.0f;
+                dir_vec[1] = *(float *)(fp_ptr - 4) * 3.0f;
+                dir_vec[2] = *(float *)(fp_ptr + 0) * 3.0f;
+                norm_sq    = dir_vec[0]*dir_vec[0] +
+                             dir_vec[1]*dir_vec[1] +
+                             dir_vec[2]*dir_vec[2];
+                if (norm_sq > 1e-4f) {
+                  local_1c_range = *(float *)(actor + 0x294);
+                  local_10_dsq   = vector_to_line_distance_squared3d(
+                      (float *)(actor + 0x12c),
+                      dir_vec,
+                      (float *)actor_traj_base,
+                      local_buf);
+                  if (local_10_dsq < local_1c_range * local_1c_range) {
+                    *(char *)(fp_ptr + 0x1d) = 1;
+                    if (*(char *)(eval_state + 0x14) == 0) {
+                      *(char *)(fp_ptr + 0x1c) = 0;
+                      goto LAB_24cf0_fp_next;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        fp_pos_ptr   = (char *)*(int *)(fp_ptr - 0x14);
+        faction_mask = *(unsigned int *)(eval_state + 0x48);
+        faction_bit  = 1u << (*(unsigned char *)(fp_pos_ptr + 0xc) & 0x1f);
+        if (faction_mask & faction_bit) {
+          faction_bonus = *(float *)(eval_state + 0x4c);
+          if (faction_bonus < 0.0f || faction_bonus >= 1000.0f) {
+            display_assert("score >= 0.f && score < REAL_MAX",
+                           "c:\\halo\\SOURCE\\ai\\actor_firing_position.c",
+                           0x81, 1);
+            system_exit(-1);
+          }
+          *(float *)(fp_ptr + 0x24) += faction_bonus;
+        }
+
+        threat_count = *(int *)(eval_state + 0x50);
+        if (threat_count > 0) {
+          fp_pos_ptr    = (char *)*(int *)(fp_ptr - 0x14);
+          local_8_min   = 1.0f;
+          for (threat_i = 0; threat_i < threat_count; threat_i++) {
+            int off = threat_i * 0x10;
+            w       = *(float *)(eval_state + off + 0x54);
+            dx      = *(float *)(eval_state + off + 0x58) - *(float *)fp_pos_ptr;
+            dy      = *(float *)(eval_state + off + 0x5c) - *(float *)(fp_pos_ptr + 4);
+            dz      = *(float *)(eval_state + off + 0x60) - *(float *)(fp_pos_ptr + 8);
+            dist_sq = dx*dx + dy*dy + dz*dz;
+            ratio   = dist_sq / (w * w);
+            if (ratio < local_8_min)
+              local_8_min = ratio;
+          }
+          local_c_score = 10.0f;
+          if (local_8_min < 1.0f) {
+            local_c_score = xbox_sqrtf(local_8_min) * 10.0f;
+            if (local_c_score < 0.0f || local_c_score >= 1000.0f) {
+              display_assert("score >= 0.f && score < REAL_MAX",
+                             "c:\\halo\\SOURCE\\ai\\actor_firing_position.c",
+                             0x81, 1);
+              system_exit(-1);
+            }
+          }
+          *(float *)(fp_ptr + 0x24) += local_c_score;
+        }
+      }
+
+LAB_24cf0_fp_next:
+      fp_ptr += 0x3c;
+      fp_idx--;
+    } while (fp_idx != 0);
+  }
+
+  /* ======================================================
+   * Second pass: LOS scoring against locked target
+   * ====================================================== */
+  if (*(char *)(eval_state + 0x45) != 0) {
+    target_handle = *(int *)(actor + 0x158);
+    if (target_handle != -1) {
+      target_obj = (char *)object_get_and_verify_type(target_handle, 2);
+      object_get_world_position(target_handle, (vector3_t *)local_buf);
+
+      if ((short)fp_count > 0) {
+        fp2_ptr = fp_array + 0x30;
+        fp2_idx = (unsigned int)fp_count;
+        do {
+          if (*(char *)fp2_ptr != 0) {
+            fp2_pos_ptr = (char *)*(int *)(fp2_ptr - 0x30);
+            dx      = *(float *)fp2_pos_ptr       - local_buf[0];
+            dy      = *(float *)(fp2_pos_ptr + 4) - local_buf[1];
+            dz      = *(float *)(fp2_pos_ptr + 8) - local_buf[2];
+            dist_sq = dx*dx + dy*dy + dz*dz;
+
+            if ((double)(dist_sq < 0.0f ? -dist_sq : dist_sq) > 1e-4 &&
+                dist_sq < 900.0f) {
+              dot_val   = dz * *(float *)(target_obj + 0x2c);
+              dot_val  += dy * *(float *)(target_obj + 0x28);
+              dot_val  += dx * *(float *)(target_obj + 0x24);
+              dist      = xbox_sqrtf(dist_sq);
+              cos_angle = dot_val / dist;
+
+              if (*(char *)(eval_state + 0x46) == 0) {
+                tfx       = *(float *)(target_obj + 0x18);
+                tfy       = *(float *)(target_obj + 0x1c);
+                tfz       = *(float *)(target_obj + 0x20);
+                norm_sq   = tfx*tfx + tfy*tfy + tfz*tfz;
+                if (norm_sq <= 1.0f / 144.0f)
+                  goto LAB_24cf0_fp2_score;
+              }
+
+              if (dist_sq < 64.0f && cos_angle < 0.7071068f) {
+                *(char *)(fp2_ptr + 1) = 1;
+                if (*(char *)(eval_state + 0x14) == 0) {
+                  *(char *)fp2_ptr = 0;
+                  goto LAB_24cf0_fp2_next;
+                }
+              }
+
+LAB_24cf0_fp2_score:
+              los_score = 15.0f;
+              if (cos_angle >= 0.866025f) {
+                /* max score; no assertion needed */
+              } else if (cos_angle < 0.0f) {
+                los_score = 15.0f - cos_angle * -15.0f;
+                if (los_score < 0.0f || los_score >= 1000.0f) {
+                  display_assert("score >= 0.f && score < REAL_MAX",
+                                 "c:\\halo\\SOURCE\\ai\\actor_firing_position.c",
+                                 0x81, 1);
+                  system_exit(-1);
+                }
+              } else {
+                los_score = (cos_angle - 0.866025f) * 111.9619f + 15.0f;
+                if (los_score < 0.0f || los_score >= 1000.0f) {
+                  display_assert("score >= 0.f && score < REAL_MAX",
+                                 "c:\\halo\\SOURCE\\ai\\actor_firing_position.c",
+                                 0x81, 1);
+                  system_exit(-1);
+                }
+              }
+              *(float *)(fp2_ptr + 8) += los_score;
+            }
+          }
+LAB_24cf0_fp2_next:
+          fp2_ptr += 0x3c;
+          fp2_idx--;
+        } while (fp2_idx != 0);
+      }
+    }
+  }
+}
+
 /* FUN_00024ca0 (0x24ca0)
  * Check if a firing position index is in the actor's active set.
  *
@@ -4717,7 +5205,7 @@ char FUN_00024ca0(int actor_handle, short param_2)
  * Confirmed: datum_get(actor_data, actor_handle) at 0x272e3.
  * Confirmed: assert on actor->meta.encounter_index != NONE at 0x27305.
  * Confirmed: FUN_0002d900 = attempt move to position. */
-short FUN_000272d0(int actor_handle, short param_2, short param_3, int param_4,
+short FUN_000272d0(int actor_handle, short param_2, void *param_3, int param_4,
                    unsigned int param_5, char param_6)
 {
   char *actor;
@@ -5779,6 +6267,112 @@ char FUN_00027ff0(int actor_handle, char param_2, char param_3, short *output,
   }
 
   return 0;
+}
+
+/* FUN_00028cc0 (0x28cc0)
+ * Primary look update: evaluates whether the actor should be looking/aiming
+ * at a target within angular constraints, then writes the constrained direction
+ * to actor+0x570 and updates the look-spec via FUN_00028250.
+ *
+ * Confirmed: EAX = actor_handle (register arg, invisible to Ghidra);
+ *   look_vectors = param_1 (float*); dir_vec = param_2 (float*);
+ *   look_mode = param_3 (char); is_aim = param_4 (char);
+ *   is_secondary = param_5 (char).
+ *   The is_secondary param slot [EBP+0x18] is REUSED as az_range float storage
+ *   by MSVC — local az_range variable avoids the slot reuse in C89.
+ *   FUN_000283b0 called with @<eax>=local_dir (copy of *dir_vec);
+ *   FUN_00028250 called with @<esi>=actor_handle (preserved ESI), @<edi>=look_type.
+ *   look_type = is_aim ? 1 : 2 (computed via SETZ+INC in disasm at 0x28e8a-0x28e92).
+ *   Original branch layout: is_aim!=0 (combat) is fallthrough at 0x28d3b;
+ *   is_aim==0 (idle) is the taken JZ branch to 0x28dd7.
+ *   actor+0x55c = primary look valid flag; actor+0x55d = is_aim copy;
+ *   actor+0x56c = 4 (short, look type slot set before FUN_000283b0 call);
+ *   actor+0x564 = FUN_00028250 result; actor+0x570 = output look direction vec3.
+ *   Returns 1 (char) if FUN_00028250 found a valid look target, 0 otherwise. */
+char FUN_00028cc0(float *look_vectors, float *dir_vec, char look_mode,
+                  char is_aim, char is_secondary, int actor_handle)
+{
+  char *actor;
+  int tag_data;
+  float local_dir[3];
+  float el_min;
+  char local_c;
+  float el_max;
+  float az_range;
+  int look_type;
+  int fp_result;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  tag_data = (int)tag_get('actr', *(int *)(actor + 0x58));
+  local_c = 0;
+  *(char *)(actor + 0x55c) = 0;
+
+  if (is_secondary != '\0' ||
+      FUN_00027ff0(actor_handle, look_mode, is_aim,
+                   (short *)(actor + 0x56c), &local_c) == '\0') {
+    local_dir[0] = dir_vec[0];
+    local_dir[1] = dir_vec[1];
+    local_dir[2] = dir_vec[2];
+
+    /* Original branch layout: is_aim != 0 (combat) is fallthrough (JZ to idle
+     * path taken at 0x28d3b), is_aim == 0 (idle) is the JZ-taken branch */
+    if (is_aim != '\0') {
+      /* Combat/aim angular constraints from tag */
+      if (look_mode != '\0') {
+        /* Full 180-degree horizontal range */
+        az_range = 3.1415927f;
+      } else {
+        if (*(float *)(tag_data + 0xa4) <= *(float *)(tag_data + 0xc4)) {
+          az_range = *(float *)(tag_data + 0xa4);
+        } else {
+          az_range = *(float *)(tag_data + 0xc4);
+        }
+      }
+      if (*(float *)(tag_data + 0xa8) <= *(float *)(tag_data + 0xc8)) {
+        el_max = *(float *)(tag_data + 0xa8);
+      } else {
+        el_max = *(float *)(tag_data + 0xc8);
+      }
+      local_dir[2] = 0.0f;
+      if (normalize3d(local_dir) == 0.0f) {
+        local_dir[0] = *(float *)(*(int *)0x0031fc3c);
+        local_dir[1] = *(float *)(*(int *)0x0031fc3c + 4);
+        local_dir[2] = *(float *)(*(int *)0x0031fc3c + 8);
+      }
+    } else {
+      /* Idle angular constraints from tag */
+      if (*(float *)(tag_data + 0xac) <= *(float *)(tag_data + 0xcc)) {
+        az_range = *(float *)(tag_data + 0xac);
+      } else {
+        az_range = *(float *)(tag_data + 0xcc);
+      }
+      if (*(float *)(tag_data + 0xb0) <= *(float *)(tag_data + 0xd0)) {
+        el_max = *(float *)(tag_data + 0xb0);
+      } else {
+        el_max = *(float *)(tag_data + 0xd0);
+      }
+    }
+
+    el_min = -el_max;
+    if (*(char *)(actor + 0x161) != '\0') {
+      el_min = el_min * *(float *)0x00253398;
+    }
+    *(short *)(actor + 0x56c) = 4;
+    if (!FUN_000283b0((float *)(actor + 0x120), 1, -az_range, az_range,
+                      el_min, el_max, (float *)(actor + 0x570), local_dir)) {
+      return local_c;
+    }
+  }
+
+  look_type = is_aim ? 1 : 2;
+  fp_result = FUN_00028250(look_vectors, local_c, actor_handle, look_type);
+  *(int *)(actor + 0x564) = fp_result;
+  if (fp_result == 0) {
+    return local_c;
+  }
+  *(char *)(actor + 0x55c) = 1;
+  *(char *)(actor + 0x55d) = is_aim;
+  return local_c;
 }
 
 /* FUN_00028ed0 (0x28ed0)
