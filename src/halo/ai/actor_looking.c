@@ -2294,12 +2294,13 @@ void FUN_000169a0(int actor_handle, int unit_handle, short scenario_idx,
   int idx;
   char *obj;
   char local_buf[512];
+  char *sp;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   scenario = (char *)global_scenario_get();
   cmd_entry = (char *)tag_block_get_element(scenario + 0x438, (int)scenario_idx, 0x60);
 
-  char *sp = (char *)state_ptr; /* ESI: state block */
+  sp = (char *)state_ptr; /* ESI: state block */
 
   idx = (int)(unsigned char)sp[0];
   if (idx >= *(int *)(cmd_entry + 0x30)) {
@@ -2987,6 +2988,74 @@ int16_t FUN_00017940(int16_t min, int16_t max)
                       max);
 }
 
+/* FUN_00017960 (0x17960) — Resolve look-direction vector into state_data.
+ *
+ * Writes a normalized look-direction vec3 to state_data+0xc..+0x14 based
+ * on the look_type field at state_data+8.
+ *
+ * look_type 0: copy actor's current facing (actor+0x174..0x17c)
+ * look_type 1: negate the actor's current facing
+ * look_type 2/3: cross product of world forward vector (*(float**)0x31fc44)
+ *   with the actor facing; if zero-length, fallback to object forward
+ *   (object+0x30); if still zero, use world default (*(float**)0x31fc3c).
+ *   look_type 2 stores positive, look_type 3 stores negative.
+ *
+ * Register args: ECX=state_data, EAX=actor_handle, EDI=object_handle.
+ * Confirmed: ESI=state_data; actor+0x18=object_handle check. */
+void FUN_00017960(char *state_data, int actor_handle, int object_handle)
+{
+  char *actor;
+  float facing[3];
+  float cross[3];
+  char *obj;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (object_handle == *(int *)(actor + 0x18)) {
+    facing[0] = *(float *)(actor + 0x174);
+    facing[1] = *(float *)(actor + 0x178);
+    facing[2] = *(float *)(actor + 0x17c);
+  } else {
+    units_debug_get_closest_unit(object_handle, &facing[0]);
+  }
+
+  switch (*(short *)(state_data + 8)) {
+  case 0:
+    *(float *)(state_data + 0xc) = facing[0];
+    *(float *)(state_data + 0x10) = facing[1];
+    *(float *)(state_data + 0x14) = facing[2];
+    return;
+  case 1:
+    *(float *)(state_data + 0xc) = -facing[0];
+    *(float *)(state_data + 0x10) = -facing[1];
+    *(float *)(state_data + 0x14) = -facing[2];
+    return;
+  case 2:
+  case 3:
+    cross_product3d(*(float **)0x31fc44, &facing[0], &cross[0]);
+    if (normalize3d(&cross[0]) == 0.0f) {
+      obj = (char *)object_get_and_verify_type(object_handle, 0x3);
+      cross_product3d((float *)(obj + 0x30), &facing[0], &cross[0]);
+      if (normalize3d(&cross[0]) == 0.0f) {
+        cross[0] = *(float *)(*(int *)0x31fc3c);
+        cross[1] = *(float *)(*(int *)0x31fc3c + 4);
+        cross[2] = *(float *)(*(int *)0x31fc3c + 8);
+      }
+    }
+    if (*(short *)(state_data + 8) == 2) {
+      *(float *)(state_data + 0xc) = cross[0];
+      *(float *)(state_data + 0x10) = cross[1];
+      *(float *)(state_data + 0x14) = cross[2];
+      return;
+    }
+    *(float *)(state_data + 0xc) = -cross[0];
+    *(float *)(state_data + 0x10) = -cross[1];
+    *(float *)(state_data + 0x14) = -cross[2];
+    return;
+  default:
+    return;
+  }
+}
+
 /* FUN_00018b90 (0x18b90) — Action-obey command validator.
  *
  * Validates whether an action-obey command atom should execute based on
@@ -3254,6 +3323,89 @@ bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
   }
 
   return 1;
+}
+
+/* FUN_00019110 (0x19110)
+ * Action-obey command-list step callback (prop-interest update).
+ *
+ * Called by actor_look_compute_prop_interest via FUN_000192b0.
+ * Steps through atoms in the encounter's command list:
+ *   - Validates the current atom via FUN_00018b90 (if cVar5 set).
+ *   - If validated, advances the atom index and calls FUN_000169a0 to execute
+ *     the atom step.
+ *   - Sets the exhausted flag (state_data[4] | 0x2) when the index reaches
+ *     the atom count.
+ *   - When the loop exits without exhausting, writes 0 to *finished_ref.
+ *     Asserts if finished_ref is NULL.
+ *
+ * Confirmed: param_1=actor_handle (EDI), param_2=unit_handle (EAX@<eax> of
+ *   18b90/17ab0 call via [EBP+0xc]), param_3=scenario_idx (EBX, sign-extended
+ *   short), param_4=state_data (ESI, loaded at 0x19142), param_5=cmd_param
+ *   ([EBP+0x18]), param_6=finished_ref ([EBP+0x1c]).
+ * Confirmed: FUN_00018b90 @<eax>=unit_handle, cdecl(actor_handle,
+ *   scenario_idx, state_data, cmd_param).
+ * Confirmed: FUN_000169a0 @<esi>=state_data, cdecl(actor_handle, unit_handle,
+ *   scenario_idx, cmd_param, &out_index).
+ * Confirmed: FUN_00017ab0 @<eax>=cmd_param, @<ecx>=unit_handle,
+ *   cdecl(actor_handle, scenario_idx, state_data).
+ * Confirmed: out_index local at [EBP+0x17]; cVar5 (loop-continue) stored at
+ *   [EBP+0x13]; loop exits on (state_data[4] & 4). */
+void FUN_00019110(int actor_handle, int unit_handle, short scenario_idx,
+                  char *state_data, int cmd_param, char *finished_ref)
+{
+  char *atom_table;
+  char cVar5;
+  char out_index;
+  bool validated;
+
+  atom_table = (char *)tag_block_get_element(
+    (char *)global_scenario_get() + 0x438, (int)scenario_idx, 0x60);
+
+  if ((state_data[4] & 2) != 0)
+    goto LAB_check_finished;
+
+  cVar5 = (int)(unsigned char)state_data[0] < *(int *)(atom_table + 0x30);
+  state_data[1] = 0;
+
+  do {
+    if (cVar5 != 0) {
+      validated = FUN_00018b90(unit_handle, actor_handle, scenario_idx,
+                               state_data, (void *)cmd_param);
+      if (validated == 0)
+        break;
+    }
+
+    if (state_data[0] == (char)0xff) {
+      out_index = 0;
+    } else {
+      out_index = state_data[0] + 1;
+    }
+
+    if (cVar5 != 0) {
+      FUN_000169a0(actor_handle, unit_handle, scenario_idx, cmd_param,
+                   &out_index, state_data);
+    }
+
+    if (*(int *)(atom_table + 0x30) <= (int)(unsigned char)out_index) {
+      state_data[4] = state_data[4] | 2;
+      break;
+    }
+
+    state_data[0] = out_index;
+    cVar5 = FUN_00017ab0(actor_handle, scenario_idx, state_data, cmd_param,
+                         unit_handle);
+  } while ((state_data[4] & 4) == 0);
+
+LAB_check_finished:
+  if ((state_data[4] & 2) != 0)
+    return;
+
+  if (finished_ref == NULL) {
+    display_assert("finished_reference",
+                   "c:\\halo\\SOURCE\\ai\\action_obey.c", 0x595, 1);
+    system_exit(-1);
+  }
+  *finished_ref = 0;
 }
 
 /* FUN_00019230 (0x19230)
@@ -5627,6 +5779,84 @@ char FUN_00027ff0(int actor_handle, char param_2, char param_3, short *output,
   }
 
   return 0;
+}
+
+/* FUN_00028ed0 (0x28ed0)
+ * Idle-minor look update: selects a randomised look direction within the
+ * actor's angular constraints and writes a new idle-minor look-spec if one
+ * is found, then evaluates the current look state via FUN_00028250.
+ *
+ * Called from actor_look_update when the idle-minor timer has expired.
+ *
+ * Confirmed: EAX = actor_handle (register arg); param_1 = look_vectors (float*);
+ *   param_2 = idle_direction (float*, passed as @<eax> to FUN_000283b0);
+ *   FUN_000283b0 called with 7 cdecl + 1 @<eax> = idle_direction;
+ *   FUN_00028250 called with ESI=actor_handle (preserved), EDI=2, cdecl
+ *   (look_vectors, flag_byte). Output vec3 written to actor+0x580/584/588. */
+void FUN_00028ed0(float *look_vectors, float *idle_direction, int actor_handle)
+{
+  char *actor;
+  int tag_data;
+  float az_range;
+  float el_range;
+  float *pfVar4;
+  float az_min;
+  float az_max;
+  float out_vec3[3];
+  char flag_byte;
+  char look_found;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  tag_data = (int)tag_get('actr', *(int *)(actor + 0x58));
+  flag_byte = 0;
+  *(char *)(actor + 0x55f) = 0;
+
+  look_found = FUN_00027ff0(actor_handle, 0, 0, (short *)(actor + 0x57c),
+                            &flag_byte);
+  if (!look_found) {
+    /* az_range = min(tag[0xac], tag[0xcc]) */
+    if (*(float *)(tag_data + 0xac) <= *(float *)(tag_data + 0xcc)) {
+      az_range = *(float *)(tag_data + 0xac);
+    } else {
+      az_range = *(float *)(tag_data + 0xcc);
+    }
+    /* el_range = min(tag[0xb0], tag[0xd0]) */
+    if (*(float *)(tag_data + 0xb0) <= *(float *)(tag_data + 0xd0)) {
+      el_range = *(float *)(tag_data + 0xb0);
+    } else {
+      el_range = *(float *)(tag_data + 0xd0);
+    }
+    /* select azimuth limit table: crouching (state==3) vs standing */
+    if (*(short *)(actor + 0x6a) == 3) {
+      pfVar4 = (float *)(tag_data + 0xbc);
+    } else {
+      pfVar4 = (float *)(tag_data + 0xb4);
+    }
+    /* az_min = max(-az_range, -pfVar4[0]) */
+    az_min = -*pfVar4;
+    if (az_min < -az_range) {
+      az_min = -az_range;
+    }
+    /* az_max = min(az_range, pfVar4[1]) */
+    az_max = az_range;
+    if (pfVar4[1] < az_range) {
+      az_max = pfVar4[1];
+    }
+    if (FUN_000283b0((float *)(actor + 0x120), 0, az_min, az_max,
+                     -el_range, el_range, out_vec3, idle_direction)) {
+      *(float *)(actor + 0x580) = out_vec3[0];
+      *(float *)(actor + 0x584) = out_vec3[1];
+      *(float *)(actor + 0x588) = out_vec3[2];
+      *(short *)(actor + 0x57c) = 4;
+      flag_byte = 0;
+    }
+  }
+
+  *(int *)(actor + 0x568) = FUN_00028250(look_vectors, flag_byte,
+                                          actor_handle, 2);
+  if (*(int *)(actor + 0x568) != 0) {
+    *(char *)(actor + 0x55f) = 1;
+  }
 }
 
 /* actor_look_update (0x29040)
