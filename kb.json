@@ -14409,7 +14409,7 @@
         {
           "addr": "0x12f990",
           "decl": "char FUN_0012f990(int server, void *machine @<esi>, void *message, int message_size);",
-          "ported": true
+          "ported": false
         }
       ],
       "name": "network_server_manager.obj",
