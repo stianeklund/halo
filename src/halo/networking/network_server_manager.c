@@ -859,7 +859,7 @@ void network_game_server_handle_client_update_packet(int server, int machine,
   unsigned int *input_buf[32];
   int i;
   unsigned int *src;
-  unsigned int *dst;
+  unsigned int *dst = 0;
 
   if (!server) {
     display_assert("server",
