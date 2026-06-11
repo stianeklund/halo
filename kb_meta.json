@@ -177,6 +177,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x25a00": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x28610": {
       "kind": "function",
       "status": "ported"
