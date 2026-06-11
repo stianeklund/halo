@@ -1904,7 +1904,7 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
   char text_pos_buf[84];
   int local_34;
   float local_30[3];
-  float local_24[4] = {0, 0, 0, 0};
+  float local_24[3] = {0, 0, 0};
   float distance;
   float local_14;
   float screen_pos[2] = {0, 0};
@@ -2007,7 +2007,7 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
         bVar12 = (unsigned char)(-(char)FUN_000d1c50(*(float *)(iVar8 + 0x2c)));
       }
     }
-    pixel32_to_real_argb_color(*(unsigned int *)(iVar8 + 0x28), local_24);
+    pixel32_to_real_rgb_color(*(unsigned int *)(iVar8 + 0x28), local_24);
     fVar1 = *(float *)0x2533c8 - *(float *)(iVar8 + 0x30);
     fVar2 = *(float *)0x2533c0;
     if (*(float *)0x2533c0 <= fVar1) {
