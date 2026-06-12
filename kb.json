@@ -5134,7 +5134,8 @@
         },
         {
           "addr": "0x14f020",
-          "decl": "char FUN_0014f020(uint32_t collision_flags, float *point, float vertical_extent, float p4, float p5, int unit_handle, float *point_out);"
+          "decl": "char FUN_0014f020(uint32_t collision_flags, float *point, float vertical_extent, float p4, float p5, int unit_handle, float *point_out);",
+          "ported": true
         },
         {
           "addr": "0x14f2c0",
