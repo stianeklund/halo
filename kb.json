@@ -11783,7 +11783,9 @@
         },
         {
           "addr": "0xd1a70",
-          "decl": "void FUN_000d1a70(void);"
+          "decl": "char FUN_000d1a70(int render @<eax>, int param_1);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd1c50",
@@ -29820,7 +29822,7 @@
         },
         {
           "addr": "0xfc550",
-          "decl": "void weapon_build_weapon_interface_state(void);"
+          "decl": "void weapon_build_weapon_interface_state(int weapon_handle, int param_2);"
         },
         {
           "addr": "0xfc690",
