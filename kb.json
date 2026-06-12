@@ -11698,7 +11698,9 @@
         },
         {
           "addr": "0xd04d0",
-          "decl": "void FUN_000d04d0(void);"
+          "decl": "void FUN_000d04d0(int local_player_index @<eax>);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd0ba0",
@@ -26180,7 +26182,7 @@
         },
         {
           "addr": "0x1b1b40",
-          "decl": "void unit_inventory_next_weapon(void);"
+          "decl": "int unit_inventory_next_weapon(int unit_handle, int slot, int direction);"
         },
         {
           "addr": "0x1b1b60",
