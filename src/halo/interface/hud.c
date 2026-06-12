@@ -191,6 +191,15 @@ float FUN_000d1690(int split_screen)
   return *(float *)0x002533c8;
 }
 
+/* Truncate a float toward zero to a 32-bit int (C cast semantics).
+ * The original is an inline /QIfist truncation helper: it FISTs (round to
+ * nearest), then corrects back toward zero via an integer-bits SBB/SETG of the
+ * remainder.  Verified equivalent to (int)x by exhaustive sweep. */
+int FUN_000d1c50(float param_1)
+{
+  return (int)param_1;
+}
+
 uint32_t FUN_000d1c90(float *color)
 {
   int a;
