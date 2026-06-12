@@ -6452,7 +6452,7 @@
         },
         {
           "addr": "0x86410",
-          "decl": "void director_get_perspective(void);"
+          "decl": "int16_t director_get_perspective(int16_t local_player_index);"
         },
         {
           "addr": "0x864b0",
@@ -7030,7 +7030,7 @@
         },
         {
           "addr": "0xdabf0",
-          "decl": "void FUN_000dabf0(void);"
+          "decl": "void FUN_000dabf0(int param_1);"
         },
         {
           "addr": "0xdade0",
@@ -11761,7 +11761,9 @@
         },
         {
           "addr": "0xd1400",
-          "decl": "void FUN_000d1400(void);"
+          "decl": "void FUN_000d1400(void);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd1540",
