@@ -11846,7 +11846,9 @@
         },
         {
           "addr": "0xd2580",
-          "decl": "void FUN_000d2580(void);"
+          "decl": "void FUN_000d2580(float *scale @<eax>, short *screen_pos @<edi>, int bitmap_handle, int param_4, int *uv_coords, float *corner_offsets, float angle, int color);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd27a0",
