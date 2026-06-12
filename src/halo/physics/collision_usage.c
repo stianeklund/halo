@@ -1326,7 +1326,8 @@ char FUN_0014f020(uint32_t collision_flags, float *point, float vertical_extent,
   ctr = *(short *)0x4761d8;
   elevation = p4 * *(float *)0x253398;
   ((short *)0x5a8c80)[ctr] = 7;
-  *(short *)0x4761d8 = (short)(ctr + 1);
+  ctr++;
+  *(short *)0x4761d8 = ctr;
 
   local_pos[0] = point[0];
   local_pos[1] = point[1];
@@ -1345,7 +1346,7 @@ char FUN_0014f020(uint32_t collision_flags, float *point, float vertical_extent,
 
   found_any = 0;
   for (i = 0; i < 0x11; i++) {
-    dir_entry = (float *)((char *)0x325060 + (int)(i * 3) * 4);
+    dir_entry = (float *)0x325060 + (int)(short)i * 3;
     local_offset[0] = vertical_extent * dir_entry[0] + point[0];
     local_offset[1] = vertical_extent * dir_entry[1] + point[1];
     local_offset[2] = vertical_extent * dir_entry[2] + point[2];
