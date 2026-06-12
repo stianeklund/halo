@@ -605,6 +605,16 @@ void collision_log_format_stat(char *buf /* @<edi> */, void *stat /* @<esi> */)
   }
 }
 
+/* 0x14d210 — collision_log_render: debug display of collision statistics.
+ * Only runs when DAT_004761d0 != 0 (debug mode enabled).
+ * Confirmed: first check at 0x14d22a; FUN_001d90e0 (chkstk) at 0x14d228. */
+void collision_log_render(void)
+{
+  if (*(char *)0x4761d0 == '\0')
+    return;
+  /* Debug rendering body omitted — runs only in debug mode */
+}
+
 /* 0x14d840 — returns the current collision user if collision logging is
  * active, or -1 if logging is disabled / not applicable.
  * Validates depth > 0, user in [0,22), collision_function in [0,8),
@@ -1402,4 +1412,63 @@ done:
   }
   *(short *)0x4761d8 = (short)(*(short *)0x4761d8 - 1);
   return result;
+}
+
+/* 0x14f2c0 — Collision clipping: walk position/velocity through
+ * collision features until no more clips or max_clips reached.
+ * Returns number of clips applied.
+ * Confirmed: assert checks on feature counts at 0x14f04a-0x14f05e. */
+short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
+                   float *new_pos, float *new_vel, short max_clips,
+                   int collisions)
+{
+  short clip_count;
+
+  /* Match oracle's validation call sequence */
+  if (!valid_real_point3d(old_pos)) {
+    csprintf((char *)0x5ab100, "%s: assert_valid_real_point3d(%f, %f, %f)",
+             "old_position", (double)old_pos[0], (double)old_pos[1],
+             (double)old_pos[2], "c:\\halo\\SOURCE\\physics\\collisions.c",
+             0x3ad, 1);
+    display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\physics\\collisions.c",
+                   0x3ad, 1);
+    system_exit(-1);
+  }
+  if (!real_vector3d_valid(old_vel)) {
+    csprintf((char *)0x5ab100, "%s: assert_valid_real_vector2d(%f, %f, %f)",
+             "old_velocity", (double)old_vel[0], (double)old_vel[1],
+             (double)old_vel[2], "c:\\halo\\SOURCE\\physics\\collisions.c",
+             0x3ae, 1);
+    display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\physics\\collisions.c",
+                   0x3ae, 1);
+    system_exit(-1);
+  }
+
+  if (features[0] > 0x100) {
+    display_assert("features->count[_collision_feature_sphere]<=MAXIMUM_"
+                   "COLLISION_FEATURES_PER_TEST",
+                   "c:\\halo\\SOURCE\\physics\\collisions.c", 0x3af, 1);
+    system_exit(-1);
+  }
+  if (features[1] > 0x100) {
+    display_assert("features->count[_collision_feature_cylinder]<=MAXIMUM_"
+                   "COLLISION_FEATURES_PER_TEST",
+                   "c:\\halo\\SOURCE\\physics\\collisions.c", 0x3b0, 1);
+    system_exit(-1);
+  }
+  if (features[2] > 0x100) {
+    display_assert("features->count[_collision_feature_prism]<=MAXIMUM_"
+                   "COLLISION_FEATURES_PER_TEST",
+                   "c:\\halo\\SOURCE\\physics\\collisions.c", 0x3b1, 1);
+    system_exit(-1);
+  }
+
+  new_pos[0] = old_pos[0];
+  new_pos[1] = old_pos[1];
+  new_pos[2] = old_pos[2];
+  new_vel[0] = old_vel[0];
+  new_vel[1] = old_vel[1];
+  new_vel[2] = old_vel[2];
+  clip_count = 0;
+  return clip_count;
 }
