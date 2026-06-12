@@ -6966,7 +6966,8 @@
         },
         {
           "addr": "0x8f1f0",
-          "decl": "void errors_dispose(void);"
+          "decl": "void errors_dispose(void);",
+          "ported": true
         },
         {
           "addr": "0x8f200",
