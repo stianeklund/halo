@@ -11787,7 +11787,9 @@
         },
         {
           "addr": "0xd1c50",
-          "decl": "int FUN_000d1c50(float param_1);"
+          "decl": "int FUN_000d1c50(float param_1);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd1c90",
