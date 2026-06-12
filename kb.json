@@ -11814,7 +11814,9 @@
         },
         {
           "addr": "0xd2300",
-          "decl": "int FUN_000d2300(int param_1);"
+          "decl": "int FUN_000d2300(int param_1);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd2320",
