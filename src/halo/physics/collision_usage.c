@@ -1308,7 +1308,7 @@ char FUN_0014f020(uint32_t collision_flags, float *point, float vertical_extent,
   float local_pos[3];       /* reused as local_dir after ec30 */
   float local_offset[3];
   float save_pos[3];
-  char ret_val;
+  volatile char ret_val;
   char found_any;
   unsigned short i;
   short ctr;
