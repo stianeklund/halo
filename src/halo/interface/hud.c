@@ -257,6 +257,22 @@ done_scan:
   return elem;
 }
 
+/* Predicate: returns 1 when a weapon-interface-state buffer is "displayable"
+ * — either it has a non-zero count field (+0x10) with both +0xe and +0x12
+ * clear, or its scalar field (+0x4) equals 1.0f.  EAX = state buffer. */
+int FUN_000d02c0(void *state_buf)
+{
+  if (*(short *)((char *)state_buf + 0x10) != 0 &&
+      *(short *)((char *)state_buf + 0xe) == 0 &&
+      *(short *)((char *)state_buf + 0x12) == 0) {
+    return 1;
+  }
+  if (*(unsigned int *)((char *)state_buf + 4) == 0x3f800000) {
+    return 1;
+  }
+  return 0;
+}
+
 /* Projects a player's biped head position to screen space and draws a rotating
  * crosshair/reticle sprite there.  The reticle's rotation angle is derived from
  * the head's camera-space depth (mapped through a near/far range and clamped).
