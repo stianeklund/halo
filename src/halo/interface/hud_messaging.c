@@ -51,7 +51,7 @@ void FUN_000d3fe0(int param_1, short *param_2, int param_3,
       if ((param_4 & 1) == 0) {
         uVar4 = *(int *)(param_3 + 0x34);
       } else {
-        uVar4 = FUN_000d2320(param_3 + 0x34, param_5);
+        uVar4 = FUN_000d2320((int *)(param_3 + 0x34), param_5);
       }
     } else {
       uVar4 = *(int *)(param_3 + 0x4c);
@@ -161,7 +161,7 @@ void FUN_000d4260(int param_1, int param_2, int param_3,
             (param_6 & 1) == 0) {
           color = *(int *)(element + 0x24);
         } else {
-          color = FUN_000d2320(element + 0x24, param_5);
+          color = FUN_000d2320((int *)(element + 0x24), param_5);
         }
         if ((*(unsigned char *)(element + 0x4c) & 1) == 0 ||
             (param_6 & 1) == 0 || *(short *)(element + 0x44) < 1) {
@@ -1131,7 +1131,7 @@ void FUN_000d5350(int param_1)
             packed_color = *(uint32_t *)(*(int *)0x46bd0c + 0xd4);
           }
         } else {
-          packed_color = (uint32_t)FUN_000d2320(*(int *)0x46bd0c + 0xd0,
+          packed_color = (uint32_t)FUN_000d2320((int *)(*(int *)0x46bd0c + 0xd0),
               *(int *)(*(int *)0x46bd18 + 0x1180));
         }
         pixel32_to_real_argb_color(packed_color, color);
@@ -1139,7 +1139,7 @@ void FUN_000d5350(int param_1)
     } else {
       iVar12 = *(int *)0x46bd0c + 0x100;
       iVar16 = game_time_get();
-      packed_color = (uint32_t)FUN_000d2320(iVar12,
+      packed_color = (uint32_t)FUN_000d2320((int *)iVar12,
           iVar16 + (((int)*(short *)(*(int *)0x46bd18 + 0x1194) -
                      (int)*(short *)(iVar12 + 0x1c)) -
                     (int)*(short *)(iVar12 + 0x1e)));

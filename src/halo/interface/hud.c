@@ -1,3 +1,5 @@
+#include "x87_math.h"
+
 void hud_dispose(void)
 {
   FUN_000db140();
@@ -354,6 +356,124 @@ int FUN_000d2300(int param_1)
 
   v = *(float *)(param_1 + 8) * *(float *)0x253394;
   return (int)(v < 0.0f ? v - 0.5f : v + 0.5f);
+}
+
+/* Resolves the animated HUD meter color: decompresses two packed colors,
+ * computes a cosine-eased blend factor for the current point in the fade
+ * cycle, and returns the packed ARGB result.  param_1 -> color-cycle
+ * descriptor (floats at [2]=cycle duration, [3]+[5]=segment span, [5]=fade-in
+ * span; int16 at +0x10 = segment count; byte at +0x12 bit0 = reverse flag).
+ * param_2 = animation base time (0 selects an endpoint by flag, no blend).
+ * Stack-guard instrumented (hud_draw.c). */
+uint32_t FUN_000d2320(int *param_1, int param_2)
+{
+  int return_address;
+  int guard[128];
+  int elapsed_ticks;
+  float color_a[4];
+  float color_b[4];
+  float out_color[4];
+  float elapsed_f;
+  float period_total;
+  int period_count_i;
+  short period_count;
+  float elapsed_mod;
+  float t;
+  float t_sqrt;
+  short corrupt_index;
+  short i;
+
+  return_address = FUN_000d1540();
+  csmemset(guard, 0x62, 0x200);
+
+  elapsed_ticks = game_time_get() - param_2;
+  elapsed_f = x87_fmod((float)elapsed_ticks * *(float *)0x2546a4,
+                       (double)((float *)param_1)[2]);
+
+  pixel32_to_real_argb_color((unsigned int)param_1[0], color_a);
+  pixel32_to_real_argb_color((unsigned int)param_1[1], color_b);
+
+  period_total = ((float *)param_1)[3] + ((float *)param_1)[5];
+  period_count = *(short *)((char *)param_1 + 0x10);
+  period_count_i = (int)period_count;
+
+  if ((float)period_count_i * period_total <= elapsed_f) {
+    out_color[0] = color_a[0];
+    out_color[1] = color_a[1];
+    out_color[2] = color_a[2];
+    out_color[3] = color_a[3];
+    goto check_guard;
+  }
+
+  elapsed_mod = x87_fmod(elapsed_f, (double)period_total);
+
+  if (param_2 == 0) {
+    if (*(char *)((char *)param_1 + 0x12) & 1) {
+      out_color[0] = color_a[0];
+      out_color[1] = color_a[1];
+      out_color[2] = color_a[2];
+      out_color[3] = color_a[3];
+    } else {
+      out_color[0] = color_b[0];
+      out_color[1] = color_b[1];
+      out_color[2] = color_b[2];
+      out_color[3] = color_b[3];
+    }
+    goto check_guard;
+  }
+
+  if (elapsed_mod < ((float *)param_1)[5]) {
+    t = (float)(1.0 - ((double)x87_fcos_mul(elapsed_mod / ((float *)param_1)[5],
+                                            *(float *)0x281a78) + 1.0) * 0.5);
+    if (*(float *)0x2533c0 <= t) {
+      if (*(float *)0x2533c8 < t) {
+        t = *(float *)0x2533c8;
+      }
+    } else {
+      t = *(float *)0x2533c0;
+    }
+    t_sqrt = sqrtf(t);
+    if (*(char *)((char *)param_1 + 0x12) & 1) {
+      vectors_interpolate(color_b, color_a, t_sqrt, out_color);
+      scalars_interpolate(color_b[3], color_a[3], t_sqrt, &out_color[3]);
+    } else {
+      vectors_interpolate(color_a, color_b, t_sqrt, out_color);
+      scalars_interpolate(color_a[3], color_b[3], t_sqrt, &out_color[3]);
+    }
+  } else {
+    if (*(char *)((char *)param_1 + 0x12) & 1) {
+      out_color[0] = color_b[0];
+      out_color[1] = color_b[1];
+      out_color[2] = color_b[2];
+      out_color[3] = color_b[3];
+    } else {
+      out_color[0] = color_a[0];
+      out_color[1] = color_a[1];
+      out_color[2] = color_a[2];
+      out_color[3] = color_a[3];
+    }
+  }
+
+check_guard:
+  corrupt_index = -1;
+  for (i = 0x7f; i >= 0; i--) {
+    if (guard[i] != 0x62626262) {
+      corrupt_index = i;
+      break;
+    }
+  }
+  if (return_address != FUN_000d1540()) {
+    display_assert("corrupt return address!",
+                   "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x137, 1);
+    system_exit(-1);
+  }
+  if (corrupt_index != -1) {
+    display_assert(
+        csprintf((char *)0x5ab100, "corrupt stack at %d!", (int)corrupt_index),
+        "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x137, 1);
+    system_exit(-1);
+  }
+  return FUN_000d1c90(out_color);
 }
 
 uint32_t FUN_000d1c90(float *color)
