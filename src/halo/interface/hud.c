@@ -1141,6 +1141,98 @@ check_guard:
   return FUN_000d1c90(out_color);
 }
 
+/* Builds a rotated 4-corner sprite quad and submits it to the sprite rasterizer.
+ * For each corner the local-space offset (corner_offsets, selected per corner)
+ * is rotated by `angle` (2x2), scaled (scale[0]/scale[1]), rounded to int and
+ * added to screen_pos to form the vertex position; uv_coords supplies the two
+ * per-corner texture fields and `color` the packed color.  A 0x8c-byte render
+ * descriptor is initialised (bitmap_handle, param_4, four 1.0 fields, mode 7,
+ * single-player present flag) and passed with the vertices to
+ * rasterizer_sprites_render.  Stack-guard instrumented (hud_draw.c). */
+void FUN_000d2580(float *scale, short *screen_pos, int bitmap_handle, int param_4,
+                  int *uv_coords, float *corner_offsets, float angle, int color)
+{
+  int return_address;
+  int guard[128];
+  char vertex_buf[0x50];
+  char render_desc[0x8c];
+  float cos_a;
+  float sin_a;
+  short i;
+  int cnt;
+  char *vp;
+  int sel_flag;
+  int field_c;
+  int field_10;
+  float u;
+  float v;
+  float rotated;
+  char bitmap_present;
+  short corrupt_index;
+
+  return_address = FUN_000d1540();
+  csmemset(guard, 0x62, 0x200);
+
+  sin_a = x87_fsin(angle);
+  cos_a = x87_fcos(angle);
+
+  cnt = 1;
+  vp = vertex_buf;
+  for (i = 0; i < 4; i++) {
+    sel_flag = cnt & 2;
+    field_c = sel_flag ? uv_coords[1] : uv_coords[0];
+    field_10 = (i > 1) ? uv_coords[3] : uv_coords[2];
+    u = sel_flag ? corner_offsets[1] : corner_offsets[0];
+    v = (i > 1) ? corner_offsets[3] : corner_offsets[2];
+    rotated = (u * cos_a - v * sin_a) * scale[0];
+    *(float *)(vp + 0x0) = (float)(screen_pos[0] + (int)rotated);
+    rotated = (v * cos_a + u * sin_a) * scale[1];
+    *(float *)(vp + 0x4) = (float)(screen_pos[1] + (int)rotated);
+    *(int *)(vp + 0x8) = field_c;
+    *(int *)(vp + 0xc) = field_10;
+    *(int *)(vp + 0x10) = color;
+    cnt++;
+    vp += 0x14;
+  }
+
+  csmemset(render_desc, 0, 0x8c);
+  *(int *)(render_desc + 0x44) = 0x3f800000;
+  *(int *)(render_desc + 0x40) = 0x3f800000;
+  *(int *)(render_desc + 0x2c) = 0x3f800000;
+  *(int *)(render_desc + 0x28) = 0x3f800000;
+  *(int *)(render_desc + 0x0) = bitmap_handle;
+  if (bitmap_handle != 0 && local_player_count() == 1) {
+    bitmap_present = 1;
+  } else {
+    bitmap_present = 0;
+  }
+  render_desc[0x8a] = bitmap_present;
+  *(short *)(render_desc + 0x88) = 7;
+  *(int *)(render_desc + 0xc) = param_4;
+  rasterizer_sprites_render(render_desc, vertex_buf);
+
+  corrupt_index = 0x7f;
+  do {
+    if (guard[(int)corrupt_index] != 0x62626262) {
+      goto found_corrupt;
+    }
+    corrupt_index--;
+  } while (corrupt_index >= 0);
+  corrupt_index = -1;
+found_corrupt:
+  if (return_address != FUN_000d1540()) {
+    display_assert("corrupt return address!",
+                   "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x3d9, 1);
+    system_exit(-1);
+  }
+  if (corrupt_index != -1) {
+    display_assert(
+        csprintf((char *)0x5ab100, "corrupt stack at %d!", (int)corrupt_index),
+        "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x3d9, 1);
+    system_exit(-1);
+  }
+}
+
 uint32_t FUN_000d1c90(float *color)
 {
   int a;
