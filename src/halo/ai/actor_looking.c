@@ -7243,19 +7243,17 @@ short FUN_00027090(int actor_handle, void *param_2, void *param_3,
   unsigned int allowed;
   unsigned int gb;
   unsigned int total;
-  int one;
   short fp_idx;
   short existing_fp;
   int iVar8;
   float *def;
 
   actor = (char *)datum_get(actor_data, actor_handle);
-  one = 1;
   if (*(int *)(actor + 0x34) != -1) {
     allowed = (unsigned int)actor_get_firing_position_group(
-      actor_handle, (short)(((unsigned int *)param_2)[one]), 0);
+      actor_handle, (short)(((unsigned int *)param_2)[1]), 0);
     gb = (unsigned int)actor_get_firing_position_group(
-      actor_handle, (short)(((unsigned int *)param_2)[one]), 2);
+      actor_handle, (short)(((unsigned int *)param_2)[1]), 2);
     total = (unsigned int)actor_get_firing_position_group(
       actor_handle, (short)(((unsigned int *)param_2)[1]), 1);
     total = total | gb;
@@ -7267,8 +7265,8 @@ short FUN_00027090(int actor_handle, void *param_2, void *param_3,
         display_assert("(total_groups & currently_allowed_groups) == "
                        "currently_allowed_groups",
                        "c:\\halo\\SOURCE\\ai\\actor_firing_position.c", 0x907,
-                       one);
-        system_exit(-one);
+                       1);
+        system_exit(-1);
       }
       ((unsigned int *)param_2)[0] = total;
     } else {
@@ -7280,7 +7278,7 @@ short FUN_00027090(int actor_handle, void *param_2, void *param_3,
     } else {
       *(char *)((char *)param_2 + 0x15) = 0;
     }
-    *(char *)((char *)param_2 + 0x14) = (char)one;
+    *(char *)((char *)param_2 + 0x14) = 1;
 
     fp_idx =
       FUN_00025c10(actor_handle, param_2, param_3, param_4, param_5, param_6);
@@ -7331,7 +7329,7 @@ short FUN_00027090(int actor_handle, void *param_2, void *param_3,
     }
     return fp_idx;
   }
-  return -one;
+  return -1;
 }
 
 /* FUN_000272d0 (0x272d0)
