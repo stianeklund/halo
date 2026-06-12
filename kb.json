@@ -11692,7 +11692,9 @@
         },
         {
           "addr": "0xd04a0",
-          "decl": "void FUN_000d04a0(void);"
+          "decl": "int FUN_000d04a0(int weapon_handle @<eax>);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd04d0",
@@ -11777,7 +11779,9 @@
         },
         {
           "addr": "0xd16a0",
-          "decl": "void FUN_000d16a0(int bitmap_tag, short sequence_index, unsigned int frame_index, int *out_bitmap, int *out_sprite);"
+          "decl": "void FUN_000d16a0(int bitmap_tag, short sequence_index, unsigned int frame_index, int *out_bitmap, int *out_sprite);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd1890",
