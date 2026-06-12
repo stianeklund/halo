@@ -12528,7 +12528,9 @@
         },
         {
           "addr": "0xd02c0",
-          "decl": "void FUN_000d02c0(void);"
+          "decl": "int FUN_000d02c0(void *state_buf @<eax>);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd02f0",
