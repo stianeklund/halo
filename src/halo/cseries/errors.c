@@ -11,6 +11,31 @@ typedef struct debug_allocation_header {
   uint32_t checksum;
 } debug_allocation_header_t;
 
+/* FUN_0008e5f0 (0x8e5f0) — top-level structured-exception reporter.
+ *
+ * Installed as the unhandled/structured exception filter (no direct call
+ * xref; referenced via function pointer). Resolves the exception code to a
+ * human-readable name, dumps a stack trace from the faulting context, then
+ * reports the failure through error(2, ...). Always returns 1
+ * (EXCEPTION_EXECUTE_HANDLER).
+ *
+ * param_1: exception code (passed to system_exception_name in ECX).
+ * param_2: EXCEPTION_POINTERS *; field at +4 is the CONTEXT record, handed
+ *          to stack_walk_with_context for the trace. */
+int FUN_0008e5f0(uint32_t code, int exception_pointers)
+{
+  const char *name;
+
+  name = system_exception_name(code);
+  stack_walk_with_context(0, 0, *(int *)(exception_pointers + 4));
+  if (name != (const char *)0) {
+    error(2, "%s", name);
+    return 1;
+  }
+  error(2, "unknown exception %08lX", code);
+  return 1;
+}
+
 /* FUN_0008e680 (0x8e680) — Validate debug memory manager sentinels. Halts
  * if the SAFT guards have been corrupted. */
 void FUN_0008e680(int param_1, int param_2)
