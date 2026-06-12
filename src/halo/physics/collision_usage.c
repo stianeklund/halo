@@ -97,7 +97,8 @@ void FUN_0014c7b0(int16_t *param_1)
   if (0 < *param_1) {
     do {
       FUN_00189540(1, param_1 + sVar2 * 0xe + 10,
-                   *(float *)(param_1 + sVar2 * 0xe + 0x10), *(void **)0x2ee6d0);
+                   *(float *)(param_1 + sVar2 * 0xe + 0x10),
+                   *(void **)0x2ee6d0);
       sVar2 = sVar2 + 1;
     } while (sVar2 < *param_1);
   }
@@ -424,15 +425,15 @@ char FUN_0014cde0(int param_1, int param_2, float param_3, int param_4,
               iVar5 = iVar4;
             }
             piVar3 = (int *)tag_block_get_element((void *)(iVar3 + 0x34),
-                                                   (int)(short)iVar5, 0x60);
+                                                  (int)(short)iVar5, 0x60);
             if (0 < *piVar3) {
               node_matrix = (float *)(iVar6 * 0x34 + *(int *)(param_1 + 0xc));
               matrix_inverse(node_matrix, local_48);
               matrix_transform_point(local_48, (float *)param_2, local_14);
               radius_f = local_48[0] * param_3;
               cVar2 = (char)collision_bsp_test_sphere(
-                  (int)piVar3, 0, 0, (int)local_14,
-                  *(int *)&radius_f, (int *)local_1058);
+                (int)piVar3, 0, 0, (int)local_14, *(int *)&radius_f,
+                (int *)local_1058);
               if (cVar2 != '\0') {
                 collision_features_add((int)piVar3, (int *)local_1058,
                                        (int)node_matrix, param_4, param_5,
@@ -904,4 +905,31 @@ check_result:
     return 0;
   }
   return 1;
+}
+
+/* 0x14eeb0 — Project point onto line: closest point on ray (origin + t*dir)
+ * to target. Writes result to output.
+ * origin @<ecx>, output @<edx>, dir @<eax>, target = stack. */
+void collision_log_end_time(float *target, float *origin, float *output,
+                            float *dir)
+{
+  float t =
+    ((target[0] - origin[0]) * dir[0] + (target[1] - origin[1]) * dir[1] +
+     (target[2] - origin[2]) * dir[2]) /
+    (dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]);
+  output[0] = t * dir[0] + origin[0];
+  output[1] = t * dir[1] + origin[1];
+  output[2] = t * dir[2] + origin[2];
+}
+
+/* 0x14ef30 — Project vector onto direction: output = t*dir where
+ * t = dot(vec, dir) / |dir|^2. All args in registers.
+ * output @<ecx>, vec @<edx>, dir @<eax>. */
+void collision_log_usage(float *output, float *vec, float *dir)
+{
+  float t = (vec[0] * dir[0] + vec[1] * dir[1] + vec[2] * dir[2]) /
+            (dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]);
+  output[0] = t * dir[0];
+  output[1] = t * dir[1];
+  output[2] = t * dir[2];
 }
