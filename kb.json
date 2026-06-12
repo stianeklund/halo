@@ -11749,7 +11749,9 @@
         },
         {
           "addr": "0xd0ff0",
-          "decl": "void FUN_000d0ff0(void);"
+          "decl": "void FUN_000d0ff0(void);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd1090",
