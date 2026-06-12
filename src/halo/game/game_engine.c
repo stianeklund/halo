@@ -6573,7 +6573,7 @@ void FUN_000b23b0(void)
     return;
   variant = (int)game_engine_get_variant();
   if (*(char *)(variant + 0x4c) == 0)
-    return;
+    goto check_hill;
   *(int *)0x456d50 = *(int *)0x456d50 - 1;
   if (*(int *)0x456d50 != 0)
     goto check_hill;
@@ -6940,17 +6940,27 @@ char FUN_000a9190(int param_1, int flag_index, int player_handle)
  * 3 register args and tail-jmps, leaving the caller's param2/param3 (a HUD-buffer
  * pointer) at the original's stack1 slot -- which then reaches a players datum_get
  * as a bogus handle and asserts "players index ... unused". Running our cdecl impl
- * directly (only caller is our lifted FUN_000ae110) avoids the broken thunk. */
-void FUN_000aceb0(int player_handle, int message_type, int extra, int param4, int param5)
+ * directly (only caller is our lifted FUN_000ae110) avoids the broken thunk.
+ *
+ * RETURNS the "text was produced" flag in AL (original 0xacec0..0xaceed: the
+ * vtable handler's AL if nonzero, else game_engine_get_score_hud_text's AL).
+ * FUN_000ae110 propagates this to FUN_000d04d0 (unported), which only draws
+ * the HUD text when AL != 0 ("test al,al; je" at 0xd0931). Declaring this
+ * void (and returning 0 from ae110) suppressed all live-player game-engine
+ * HUD text ("Hold BACK for score", KotH "winning (X seconds)"). */
+char FUN_000aceb0(int player_handle, int message_type, int extra, int param4, int param5)
 {
   char (*handler)(int, int, int, int, int);
+  char handled;
 
   handler = (char (*)(int, int, int, int, int))((void **)current_game_engine)[0x64 / 4];
   if (handler != NULL) {
-    if (handler(param4, param5, extra, player_handle, message_type))
-      return;
+    handled = handler(param4, param5, extra, player_handle, message_type);
+    if (handled)
+      return handled;
   }
-  game_engine_get_score_hud_text(param4, param5, extra, (wchar_t *)player_handle, message_type);
+  return (char)game_engine_get_score_hud_text(param4, param5, extra,
+                                              (wchar_t *)player_handle, message_type);
 }
 
 /* Check if the team won by finding a player on team ESI and dispatching. */
@@ -7195,9 +7205,10 @@ void FUN_000b1180(void)
   float x0;
   float y0;
   float points_2d[48];
-  int16_t hull_indices[6];
+  int16_t hull_indices[12];
   int16_t hull_count;
   int flag_indices[12];
+  float positions[36];
 
   scenario = (int)global_scenario_get();
   flag_block = (int *)(scenario + 0x378);
@@ -7207,7 +7218,7 @@ void FUN_000b1180(void)
     return;
   i = 0;
   if (0 < num_flags) {
-    float *dst = (float *)0x456c3c;
+    float *dst = positions;
     do {
       flag_pos = (float *)tag_block_get_element(flag_block, flag_indices[i], 0x94);
       if (flag_pos == NULL) {
@@ -7222,27 +7233,27 @@ void FUN_000b1180(void)
       dst += 3;
     } while (i < num_flags);
   }
-  x0 = *(float *)0x456c3c;
-  y0 = *(float *)0x456c40;
+  x0 = positions[0];
+  y0 = positions[1];
   if (num_flags == 1) {
-    *(float *)(0x456c3c + 0*12) = x0 - 1.0f;
-    *(float *)(0x456c40 + 0*12) = y0 - 1.0f;
-    *(float *)(0x456c3c + 1*12) = x0 + 1.0f;
-    *(float *)(0x456c40 + 1*12) = y0 - 1.0f;
-    *(float *)(0x456c3c + 2*12) = x0 - 1.0f;
-    *(float *)(0x456c40 + 2*12) = y0 + 1.0f;
-    *(float *)(0x456c3c + 3*12) = x0 + 1.0f;
-    *(float *)(0x456c40 + 3*12) = y0 + 1.0f;
+    positions[0] = x0 - 1.0f;
+    positions[1] = y0 - 1.0f;
+    positions[3] = x0 + 1.0f;
+    positions[4] = y0 - 1.0f;
+    positions[6] = x0 - 1.0f;
+    positions[7] = y0 + 1.0f;
+    positions[9] = x0 + 1.0f;
+    positions[10] = y0 + 1.0f;
     /* z coords copied from first flag */
-    *(float *)(0x456c44 + 1*12) = *(float *)0x456c44;
-    *(float *)(0x456c44 + 2*12) = *(float *)0x456c44;
-    *(float *)(0x456c44 + 3*12) = *(float *)0x456c44;
+    positions[5] = positions[2];
+    positions[8] = positions[2];
+    positions[11] = positions[2];
     num_flags = 4;
   }
   /* Build 2D convex hull from x,y coordinates */
   i = 0;
   if (0 < num_flags) {
-    float *src = (float *)0x456c3c;
+    float *src = positions;
     do {
       points_2d[i * 2] = src[0];
       points_2d[i * 2 + 1] = src[1];
@@ -7259,9 +7270,9 @@ void FUN_000b1180(void)
     float *dst_2d = (float *)0x456ccc;
     do {
       int idx = (int)hull_indices[i];
-      *dst_pos = *(float *)(0x456c3c + idx * 12);
-      dst_pos[1] = *(float *)(0x456c40 + idx * 12);
-      dst_pos[2] = *(float *)(0x456c44 + idx * 12);
+      *dst_pos = positions[idx * 3];
+      dst_pos[1] = positions[idx * 3 + 1];
+      dst_pos[2] = positions[idx * 3 + 2];
       dst_2d[0] = points_2d[idx * 2];
       dst_2d[1] = points_2d[idx * 2 + 1];
       i++;
@@ -9010,8 +9021,8 @@ void FUN_000b1b30(float *param_1, int param_2, void *param_3, void *param_4,
     iVar4 = local_c;
   }
   if (param_4 == NULL) {
-    *(void **)(render_state + 0x84) = (void *)0x5aa6e0;
-    *(void **)(render_state + 0x88) = (void *)0x5aa710;
+    *(int *)(render_state + 0x84) = 0;
+    *(int *)(render_state + 0x88) = 0;
   } else {
     *(int *)(render_state + 0x84) = *(int *)param_4;
     *(int *)(render_state + 0x88) = *((int *)param_4 + 1);
@@ -9052,7 +9063,8 @@ void FUN_000b2010(void)
   float fVar2;
   float total_distance;
   float t_per_distance;
-  float inv_t;
+  float distance_scale;
+  float texture_scale;
   float t_accum;
   float t_value;
   float dx;
@@ -9089,11 +9101,11 @@ void FUN_000b2010(void)
   { double fVar9 = floor((double)(total_distance + *(float *)0x253398));
   t_accum = 0.0f;
   t_per_distance = (float)(*(double *)0x2573d8 / fVar9);
-  inv_t = (float)((double)*(float *)0x2533c8 / ((*(double *)0x2573d8 / fVar9) * (double)total_distance));
+  distance_scale = *(float *)0x2533c8 / (t_per_distance * total_distance);
   total_distance = 0.0f; }
   if (0 < (int)point_count) {
     uVar8 = 1;
-    inv_t = *(float *)0x2533c8 / t_per_distance;
+    texture_scale = *(float *)0x2533c8 / t_per_distance;
     pfVar7 = (float *)0x456c3c;
     loop_count = point_count;
     do {
@@ -9102,7 +9114,7 @@ void FUN_000b2010(void)
         float ddy = ((float *)0x456c40)[uVar6 * 3] - pfVar7[1];
         float ddz = ((float *)0x456c44)[uVar6 * 3] - pfVar7[2];
       total_distance += xbox_sqrtf(ddx * ddx + ddy * ddy + ddz * ddz); }
-      t_value = total_distance / inv_t;
+      t_value = total_distance * distance_scale;
       csmemset(render_buf, 0, 0x110);
       /* local_114/110/10c → buf[0x11/0x12/0x13]: current pos + z_offset */
       render_buf[0x11] = pfVar7[0];
@@ -9161,7 +9173,7 @@ void FUN_000b2010(void)
       render_buf[0x40] = 1.0f;
       render_buf[0x1d] = u0;
       render_buf[0x3f] = u1; }
-      FUN_000b1b30(render_buf, shader_tag, 0, 0, inv_t, 1.0f);
+      FUN_000b1b30(render_buf, shader_tag, 0, 0, texture_scale, 1.0f);
       pfVar7 += 3;
       uVar8++;
       loop_count--;
