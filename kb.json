@@ -11727,7 +11727,9 @@
         },
         {
           "addr": "0xd0c80",
-          "decl": "void FUN_000d0c80(void);"
+          "decl": "void FUN_000d0c80(float param_1, int param_2);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd0d50",
@@ -27700,7 +27702,7 @@
         },
         {
           "addr": "0x17eb10",
-          "decl": "void FUN_0017eb10(void);"
+          "decl": "void FUN_0017eb10(float *vert_a, float *vert_b, int param_3);"
         },
         {
           "addr": "0x17eb30",
