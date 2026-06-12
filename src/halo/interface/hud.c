@@ -186,6 +186,75 @@ int FUN_000d1550(int param_1)
   return iVar1;
 }
 
+/* Looks up a HUD bitmap-widget element: indexes the 'bitm' tag's widget block
+ * by hud_widget_index, then its sub-block by (param_1 % count), returning the
+ * element pointer + 8 (or NULL if any index is invalid).  Stack-guard
+ * instrumented (hud_draw.c). */
+void *FUN_000d1580(int tag_index, short hud_widget_index, short param_1)
+{
+  int return_addr;
+  int guard[128];
+  void *block;
+  void *inner_block;
+  void *elem;
+  int block_count;
+  int inner_block_count;
+  int widget_idx;
+  int param1_mod;
+  short i;
+  short corrupt_index;
+
+  elem = NULL;
+  return_addr = FUN_000d1540();
+  csmemset(guard, 0x62, 0x200);
+
+  if (tag_index == -1 || hud_widget_index == -1 || param_1 == -1) {
+    goto done_scan;
+  }
+
+  block = tag_get(0x6269746d, tag_index);
+  block_count = *(int *)((char *)block + 0x54);
+  block = (char *)block + 0x54;
+  widget_idx = (int)hud_widget_index;
+  if (widget_idx >= block_count) {
+    goto done_scan;
+  }
+
+  inner_block = tag_block_get_element(block, widget_idx, 0x40);
+  inner_block_count = *(int *)((char *)inner_block + 0x34);
+  inner_block = (char *)inner_block + 0x34;
+  if (inner_block_count == 0) {
+    goto done_scan;
+  }
+
+  param1_mod = (int)param_1 % inner_block_count;
+  elem = (char *)tag_block_get_element(inner_block, param1_mod, 0x20) + 8;
+
+done_scan:
+  corrupt_index = -1;
+  for (i = 0x7f; i >= 0; i--) {
+    if (guard[(int)i] != 0x62626262) {
+      corrupt_index = i;
+      break;
+    }
+  }
+
+  if (FUN_000d1540() != return_addr) {
+    display_assert("corrupt return address!",
+                   "c:\\halo\\SOURCE\\interface\\hud_draw.c", 100, 1);
+    system_exit(-1);
+  }
+
+  if (corrupt_index != -1) {
+    display_assert(
+        csprintf((char *)0x5ab100, "corrupt stack at %d!", (int)corrupt_index),
+        "c:\\halo\\SOURCE\\interface\\hud_draw.c", 100, 1);
+    system_exit(-1);
+  }
+
+  return elem;
+}
+
 float FUN_000d1690(int split_screen)
 {
   return *(float *)0x002533c8;
