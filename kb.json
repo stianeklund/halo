@@ -11743,7 +11743,9 @@
         },
         {
           "addr": "0xd0e90",
-          "decl": "void FUN_000d0e90(void);"
+          "decl": "void FUN_000d0e90(int player_handle @<eax>);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd0ff0",
@@ -12607,7 +12609,7 @@
         },
         {
           "addr": "0xdff90",
-          "decl": "void interface_draw_bitmap(void);"
+          "decl": "void interface_draw_bitmap(int sprite_handle, short *offset_xy, void *color, float scale_a, int flag, float scale_b);"
         },
         {
           "addr": "0xe0110",
