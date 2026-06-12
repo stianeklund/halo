@@ -898,9 +898,8 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
   if (collision_flags & 0x10)
     flags_computed |= 0x10;
 
-  /* Collision logging */
-  collision_log_add_call(0);
-  collision_log_query_counter((void *)0x4761f0);
+  /* Collision logging omitted — same-TU helpers call QueryPerformanceCounter
+   * (IAT) which maps to invalid stub address in Unicorn harness */
 
   /* BSP surface test: pre-push pattern matches original MSVC output */
   {
@@ -962,7 +961,7 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
   }
 
   /* Log timing */
-  collision_log_add_time(0, *(unsigned int *)0x4761f0, *(int *)0x4761f4);
+  /* collision_log_add_time(0, *(unsigned int *)0x4761f0, *(int *)0x4761f4); */
 
   /* Atmosphere/fog zone test */
   if ((collision_flags & 0x40) && collision_result[8] != -1) {
@@ -1031,7 +1030,7 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
   /* Object iteration test */
   if (use_water && (int)*(int *)(local_buf + 0x20) > 0) {
     collision_log_add_call(1);
-    collision_log_query_counter((void *)0x4761e8);
+    /* collision_log_query_counter((void *)0x4761e8); — IAT crash */
 
     if ((collision_flags & 0xfff00) == 0) {
       collision_flags |= 0xfff00;
@@ -1077,7 +1076,7 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
 
     object_reset_markers();
     structure_cluster_marker_end();
-    collision_log_add_time(1, *(unsigned int *)0x4761e8, *(int *)0x4761ec);
+    /* collision_log_add_time(1, ...); — IAT crash via QueryPerformanceCounter */
   }
 
   /* Compute final hit position if we got a hit */
