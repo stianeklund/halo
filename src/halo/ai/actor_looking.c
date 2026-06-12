@@ -7231,6 +7231,109 @@ short FUN_00025c10(int actor_handle, void *eval_ctx, int *out_record,
   return (short)selected;
 }
 
+/* FUN_00027090 (0x27090) — Select firing position for actor.
+ * Sets up eval_ctx group bitmasks, calls FUN_00025c10; falls back to
+ * cached actor fp_index on miss.
+ * Confirmed: allowed_groups from actor_get_firing_position_group 0/2/1.
+ * Confirmed: ctx[0]=total, ctx[0x12]=allowed, ctx[0x13]=0x41000000. */
+short FUN_00027090(int actor_handle, void *param_2, void *param_3,
+                   void *param_4, void *param_5, void *param_6)
+{
+  char *actor;
+  unsigned int allowed;
+  unsigned int gb;
+  unsigned int total;
+  int one;
+  short fp_idx;
+  short existing_fp;
+  int iVar8;
+  float *def;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  one = 1;
+  if (*(int *)(actor + 0x34) != -1) {
+    allowed = (unsigned int)actor_get_firing_position_group(
+      actor_handle, (short)(((unsigned int *)param_2)[one]), 0);
+    gb = (unsigned int)actor_get_firing_position_group(
+      actor_handle, (short)(((unsigned int *)param_2)[one]), 2);
+    total = (unsigned int)actor_get_firing_position_group(
+      actor_handle, (short)(((unsigned int *)param_2)[1]), 1);
+    total = total | gb;
+
+    if (allowed < total) {
+      ((unsigned int *)param_2)[0x12] = allowed;
+      ((unsigned int *)param_2)[0x13] = 0x41000000u;
+      if ((total & allowed) != allowed) {
+        display_assert("(total_groups & currently_allowed_groups) == "
+                       "currently_allowed_groups",
+                       "c:\\halo\\SOURCE\\ai\\actor_firing_position.c", 0x907,
+                       one);
+        system_exit(-one);
+      }
+      ((unsigned int *)param_2)[0] = total;
+    } else {
+      ((unsigned int *)param_2)[0] = allowed;
+    }
+
+    if (*(short *)(actor + 0x3b8) == -1 || *(char *)(actor + 0x3ba) == '\0') {
+      *(char *)((char *)param_2 + 0x15) = 1;
+    } else {
+      *(char *)((char *)param_2 + 0x15) = 0;
+    }
+    *(char *)((char *)param_2 + 0x14) = (char)one;
+
+    fp_idx =
+      FUN_00025c10(actor_handle, param_2, param_3, param_4, param_5, param_6);
+
+    if (fp_idx != -1) {
+      if ((allowed &
+           (1u << (*(unsigned char *)(*(int *)param_3 + 0xc) & 0x1f))) == 0) {
+        actor = (char *)datum_get(actor_data, actor_handle);
+        *(char *)(actor + 0x98) = (*(char *)(actor + 0x98) == '\0');
+      }
+      return fp_idx;
+    }
+
+    existing_fp = *(short *)(actor + 0x3b8);
+    if (existing_fp != -1 && *(char *)(actor + 0x3ba) != '\0') {
+      iVar8 = (int)tag_block_get_element(
+        (char *)global_scenario_get() + 0x42c,
+        *(unsigned int *)(actor + 0x34) & 0xffff, 0xb0);
+      iVar8 = (int)tag_block_get_element((char *)iVar8 + 0x98, (int)existing_fp,
+                                         0x18);
+      *(int *)param_3 = iVar8;
+      *(short *)((char *)param_3 + 4) = existing_fp;
+      *(unsigned short *)((char *)param_3 + 6) = 0;
+      ((int *)param_3)[2] = 0x7f7fffff;
+      ((int *)param_3)[6] = 0x7f7fffff;
+      ((int *)param_3)[7] = 0x7f7fffff;
+      def = *(float **)0x31fc38;
+      ((int *)param_3)[3] = *(int *)(def + 0);
+      ((int *)param_3)[4] = *(int *)(def + 1);
+      ((int *)param_3)[5] = *(int *)(def + 2);
+      def = *(float **)0x31fc38;
+      ((int *)param_3)[8] = *(int *)(def + 0);
+      ((int *)param_3)[9] = *(int *)(def + 1);
+      ((int *)param_3)[10] = *(int *)(def + 2);
+      if (*(char *)((char *)param_2 + 0x5fc) == '\0') {
+        ((int *)param_3)[0xb] = 0;
+      } else {
+        ((int *)param_3)[0xb] = (int)distance_squared3d(
+          (const float *)((char *)param_2 + 0x604), (const float *)iVar8);
+      }
+      if (!FUN_00025970(param_2, actor_handle, actor)) {
+        existing_fp = -1;
+        *(short *)(actor + 0x3b8) = -1;
+      }
+      *(int *)param_4 = -1;
+      *(char *)param_6 = 0;
+      return existing_fp;
+    }
+    return fp_idx;
+  }
+  return -one;
+}
+
 /* FUN_000272d0 (0x272d0)
  * Assign a firing position to an actor, evicting any previous occupant.
  *
