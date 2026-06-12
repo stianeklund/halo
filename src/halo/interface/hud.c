@@ -798,11 +798,11 @@ void FUN_000d16a0(int bitmap_tag, short sequence_index, unsigned int frame_index
     }
   }
 
-  if (*out_bitmap == 0) {
-    *out_sprite = 0;
-  } else {
+  if (*out_bitmap != 0) {
     *out_sprite =
         (int)FUN_000d1580(bitmap_tag, sequence_index, (short)frame_index);
+  } else {
+    *out_sprite = 0;
   }
 
   corrupt = 0x7f;
