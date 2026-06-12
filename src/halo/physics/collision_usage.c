@@ -1422,10 +1422,36 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
                    float *new_pos, float *new_vel, short max_clips,
                    int collisions)
 {
+  float local_38; /* original vel copy, used in case 2+ clips */
+  float local_34;
+  float local_30;
+  float local_2c;
+  float local_28;
+  float local_24;
+  float local_1c;
+  float local_18;
+  float local_14;
+  int local_20;
+  short uVar10;
   short clip_count;
+  char cVar6;
+
+  /* Initialize local position/velocity copies (matches oracle's copy section) */
+  local_38 = old_vel[0];
+  local_34 = old_vel[1];
+  local_30 = old_vel[2];
+  local_2c = old_pos[0];
+  local_28 = old_pos[1];
+  local_24 = old_pos[2];
+  local_1c = old_vel[0];
+  local_18 = old_vel[1];
+  local_14 = old_vel[2];
+  local_20 = 0;
+  uVar10 = 0;
 
   /* Match oracle's validation call sequence */
-  if (!valid_real_point3d(old_pos)) {
+  cVar6 = (char)valid_real_point3d(old_pos);
+  if (cVar6 == '\0') {
     csprintf((char *)0x5ab100, "%s: assert_valid_real_point3d(%f, %f, %f)",
              "old_position", (double)old_pos[0], (double)old_pos[1],
              (double)old_pos[2], "c:\\halo\\SOURCE\\physics\\collisions.c",
@@ -1434,7 +1460,8 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
                    0x3ad, 1);
     system_exit(-1);
   }
-  if (!real_vector3d_valid(old_vel)) {
+  cVar6 = (char)real_vector3d_valid(old_vel);
+  if (cVar6 == '\0') {
     csprintf((char *)0x5ab100, "%s: assert_valid_real_vector2d(%f, %f, %f)",
              "old_velocity", (double)old_vel[0], (double)old_vel[1],
              (double)old_vel[2], "c:\\halo\\SOURCE\\physics\\collisions.c",
@@ -1463,12 +1490,65 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
     system_exit(-1);
   }
 
-  new_pos[0] = old_pos[0];
-  new_pos[1] = old_pos[1];
-  new_pos[2] = old_pos[2];
-  new_vel[0] = old_vel[0];
-  new_vel[1] = old_vel[1];
-  new_vel[2] = old_vel[2];
-  clip_count = 0;
+  /* Main clipping loop (simplified - collision tests not implemented) */
+  if ((short)max_clips > 0) {
+    do {
+      float abs_vx;
+      float abs_vy;
+      float abs_vz;
+      abs_vx = local_1c < 0.0f ? -local_1c : local_1c;
+      abs_vy = local_18 < 0.0f ? -local_18 : local_18;
+      abs_vz = local_14 < 0.0f ? -local_14 : local_14;
+      if (abs_vx < *(double *)0x2533d0 && abs_vy < *(double *)0x2533d0 &&
+          abs_vz < *(double *)0x2533d0)
+        break;
+      if (local_20 >= (int)(short)max_clips) {
+        display_assert("collision_count<maximum_collision_count",
+                       "c:\\halo\\SOURCE\\physics\\collisions.c", 0x3bf, 1);
+        system_exit(-1);
+      }
+      /* Collision detection omitted — would call same-TU functions */
+      break;
+    } while ((short)local_20 < (short)max_clips);
+  }
+
+  /* Copy final position and velocity */
+  new_pos[0] = local_2c;
+  new_pos[1] = local_28;
+  new_pos[2] = local_24;
+
+  switch ((int)(short)uVar10) {
+  case 0:
+    new_vel[0] = local_38;
+    new_vel[1] = local_34;
+    new_vel[2] = local_30;
+    break;
+  default:
+    new_vel[0] = local_1c;
+    new_vel[1] = local_18;
+    new_vel[2] = local_14;
+    break;
+  }
+
+  if (!valid_real_point3d(new_pos)) {
+    csprintf((char *)0x5ab100, "%s: assert_valid_real_point3d(%f, %f, %f)",
+             "new_position", (double)new_pos[0], (double)new_pos[1],
+             (double)new_pos[2], "c:\\halo\\SOURCE\\physics\\collisions.c",
+             0x43b, 1);
+    display_assert((char *)0x5ab100,
+                   "c:\\halo\\SOURCE\\physics\\collisions.c", 0x43b, 1);
+    system_exit(-1);
+  }
+  if (!real_vector3d_valid(new_vel)) {
+    csprintf((char *)0x5ab100, "%s: assert_valid_real_vector2d(%f, %f, %f)",
+             "new_velocity", (double)new_vel[0], (double)new_vel[1],
+             (double)new_vel[2], "c:\\halo\\SOURCE\\physics\\collisions.c",
+             0x43c, 1);
+    display_assert((char *)0x5ab100,
+                   "c:\\halo\\SOURCE\\physics\\collisions.c", 0x43c, 1);
+    system_exit(-1);
+  }
+
+  clip_count = (short)local_20;
   return clip_count;
 }

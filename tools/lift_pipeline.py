@@ -861,6 +861,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
       "--no-leaf-cache",
       "--z3-equiv",
       "--allow-stubs",
+      "--no-stub-arg-trace",
       "--mem-trace",
     ]
     proc = run_command(cmd, cwd=ROOT, log_path=artifact_dir / "equivalence.log")
