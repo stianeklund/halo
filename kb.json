@@ -11824,7 +11824,9 @@
         },
         {
           "addr": "0xd2320",
-          "decl": "int FUN_000d2320(int color_ref, int time);"
+          "decl": "uint32_t FUN_000d2320(int *param_1, int param_2);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd2580",
