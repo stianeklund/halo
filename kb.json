@@ -11765,7 +11765,9 @@
         },
         {
           "addr": "0xd1580",
-          "decl": "int *FUN_000d1580(void);"
+          "decl": "void *FUN_000d1580(int tag_index @<eax>, short hud_widget_index @<ebx>, short param_1);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd1690",
