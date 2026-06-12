@@ -435,6 +435,17 @@ void FUN_0008f1e0(void)
   debug_dump_memory_for_file(NULL);
 }
 
+/* errors_dispose (0x8f1f0) — tear down the error subsystem.
+ *
+ * In the shipped binary this is a single `JMP stack_walk_dispose`: the source
+ * body was identical to stack_walk_dispose (0x92440), so the linker's
+ * identical-COMDAT-folding collapsed it into a tail-call thunk. Expressed as
+ * a sibling call so the compiler re-emits the same JMP. */
+void errors_dispose(void)
+{
+  stack_walk_dispose();
+}
+
 /* errors_output_to_debug_file (0x8f200) — Set the debug-output-to-file flag. */
 void errors_output_to_debug_file(char param_1)
 {
