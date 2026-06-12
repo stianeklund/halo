@@ -861,7 +861,6 @@ def run_pipeline(args: argparse.Namespace) -> int:
       "--no-leaf-cache",
       "--z3-equiv",
       "--allow-stubs",
-      "--no-stub-arg-trace",
       "--mem-trace",
     ]
     proc = run_command(cmd, cwd=ROOT, log_path=artifact_dir / "equivalence.log")
@@ -908,10 +907,14 @@ def run_pipeline(args: argparse.Namespace) -> int:
         details += f" [{confidence}]"
       if reason:
         details += f" reason={reason}"
-      # Allow low_match_policy to evaluate structural VC71 score even when
-      # equivalence diverges — same-TU callee differences cause divergence
-      # that does not reflect actual behavioral bugs in the function under test.
-      stages.append(StageResult("equivalence", ran=True, ok=True, details=details))
+      # When VC71 is already >=88% (stated MSVC criterion), equivalence
+      # divergence is non-blocking — the structural criterion is met and
+      # same-TU callee differences in the harness are a known limitation.
+      if vc71_match_pct is not None and vc71_match_pct >= 88.0:
+        stages.append(StageResult("equivalence", ran=True, ok=True, details=details))
+      else:
+        stages.append(StageResult("equivalence", ran=True, ok=False, details=details))
+        return finalize(summary, stages, artifact_dir, ok=False, quiet=args.quiet)
     elif status == "not_applicable":
       ok = equivalence_policy != "required"
       details = f"skipped ({reason or 'not_applicable'})"
@@ -927,11 +930,8 @@ def run_pipeline(args: argparse.Namespace) -> int:
           return finalize(summary, stages, artifact_dir, ok=False, quiet=args.quiet)
       else:
         details = f"error ({reason or 'no structured result'}; see equivalence.log)"
-        # Mark as ran=True, ok=True (non-blocking) so low_match_policy can
-        # evaluate the structural VC71 score when equiv errors out (e.g. due to
-        # same-TU callee crashes in Unicorn). A divergence (status="fail") is
-        # still a blocking failure; only errors are allowed through.
-        stages.append(StageResult("equivalence", ran=True, ok=True, details=details))
+        stages.append(StageResult("equivalence", ran=True, ok=False, details=details))
+        return finalize(summary, stages, artifact_dir, ok=False, quiet=args.quiet)
   else:
     stages.append(StageResult("equivalence", ran=False, ok=True,
                               details="skipped (--equivalence-policy=off)"))
@@ -1058,10 +1058,10 @@ def run_pipeline(args: argparse.Namespace) -> int:
         stages.append(StageResult("low_match_policy", ran=True, ok=policy_ok, details=" ".join(details)))
         if not policy_ok:
           return finalize(summary, stages, artifact_dir, ok=False, quiet=args.quiet)
-      elif vc71_has_fpu_warn and not equivalence_ok and (match_source == "vc71" or objdiff_match_pct is None) and (best_match_pct is not None and best_match_pct < args.low_match_threshold):
+      elif vc71_has_fpu_warn and not equivalence_ok and (match_source == "vc71" or objdiff_match_pct is None):
         policy_ok = False
         reason = "FPU operand-order warnings present"
-      elif best_match_pct < args.low_match_reject_below and not behavior_any_ok:
+      elif best_match_pct < args.low_match_reject_below:
         policy_ok = False
         reason = f"match below hard floor ({args.low_match_reject_below:.1f}%)"
       elif best_match_pct < args.low_match_behavior_both_below:
