@@ -958,3 +958,124 @@ void FUN_0014ef80(int param_1, float *dir, int param_3, float *pos,
     pos[3] = origin[2];
   }
 }
+
+/* 0x14f020 — Vertical-search collision test. Elevates point by p4*30,
+ * does sphere-feature collection, then checks original point. On failure,
+ * iterates 17 offset directions (scaled by vertical_extent) looking for a
+ * valid standing position, walks each via FUN_0014ef80. Returns 1 if a
+ * valid point_out was found.
+ * Confirmed: chkstk(0xac88) at 0x14f028; collision user = 7; 17 iters DI<0x11.
+ * Confirmed: dir table at 0x325060 stride 12; scale ptr at 0x31fc50. */
+char FUN_0014f020(uint32_t collision_flags, float *point, float vertical_extent,
+                  float p4, float p5, int unit_handle, float *point_out)
+{
+  static char feature_buf[0xac88];
+  char initial_scratch[0x2c];
+  float local_pos[3];
+  char loop_features[0x54];
+  float candidate[3];
+  float z_extent[3];
+  float dir_buf[3];
+  float best[3];
+  char result;
+  char found_best;
+  int depth;
+  int i;
+  float dist_threshold;
+  float *scale_dir;
+  float *dir_entry;
+  float pos_buf[4];
+
+  result = 0;
+
+  if (*(short *)0x4761d8 >= 0x20) {
+    display_assert("global_current_collision_user_depth < "
+                   "MAXIMUM_COLLISION_USER_STACK_DEPTH",
+                   "c:\\halo\\SOURCE\\physics\\collision_usage.c", 0x4f8, 1);
+    system_exit(-1);
+  }
+
+  depth = *(short *)0x4761d8;
+  *(short *)(0x5a8c80 + depth * 2) = 7;
+  *(short *)0x4761d8 = (short)(depth + 1);
+
+  local_pos[0] = point[0];
+  local_pos[1] = point[1];
+  local_pos[2] = point[2] + p4 * *(float *)0x253398;
+
+  FUN_0014ec30(collision_flags, local_pos,
+               p4 * *(float *)0x253398 + vertical_extent + p5, p4, p5,
+               unit_handle, feature_buf);
+
+  if (!collision_features_test_los(feature_buf, point, initial_scratch)) {
+    if (!FUN_0014dc30(collision_flags, point, unit_handle)) {
+      point_out[0] = point[0];
+      point_out[1] = point[1];
+      point_out[2] = point[2];
+      result = 1;
+      goto done;
+    }
+  }
+
+  found_best = 0;
+  for (i = 0; i < 0x11; i++) {
+    dir_entry = (float *)(0x325060 + i * 12);
+    candidate[0] = vertical_extent * dir_entry[0] + point[0];
+    candidate[1] = vertical_extent * dir_entry[1] + point[1];
+    candidate[2] = vertical_extent * dir_entry[2] + point[2];
+
+    if (!collision_features_test_los(feature_buf, candidate, loop_features))
+      continue;
+    if (!FUN_0014dc30(collision_flags, candidate, unit_handle))
+      continue;
+
+    scale_dir = *(float **)0x31fc50;
+    z_extent[0] = vertical_extent * scale_dir[0];
+    z_extent[1] = vertical_extent * scale_dir[1];
+    z_extent[2] = vertical_extent * scale_dir[2];
+
+    if (!FUN_0014c4b0((int)(void *)feature_buf, candidate, z_extent,
+                      loop_features))
+      continue;
+
+    dist_threshold = *(float *)((char *)loop_features + 0x18);
+    if (dist_threshold > *(float *)0x29d59c) {
+      pos_buf[0] = dist_threshold;
+      FUN_0014ef80(collision_flags, z_extent, unit_handle, pos_buf, candidate);
+      point_out[0] = pos_buf[1];
+      point_out[1] = pos_buf[2];
+      point_out[2] = pos_buf[3];
+      result = 1;
+      goto done;
+    }
+
+    if (!found_best) {
+      best[0] = candidate[0];
+      best[1] = candidate[1];
+      best[2] = candidate[2];
+      found_best = 1;
+    }
+  }
+
+  if (found_best) {
+    dir_buf[0] = point[0] - best[0];
+    dir_buf[1] = point[1] - best[1];
+    dir_buf[2] = point[2] - best[2];
+    FUN_0014c4b0((int)(void *)feature_buf, best, dir_buf, loop_features);
+    pos_buf[0] = *(float *)((char *)loop_features + 0x18);
+    FUN_0014ef80(collision_flags, dir_buf, unit_handle, pos_buf, best);
+    point_out[0] = pos_buf[1];
+    point_out[1] = pos_buf[2];
+    point_out[2] = pos_buf[3];
+    result = 1;
+  }
+
+done:
+  if (*(short *)0x4761d8 <= 1) {
+    display_assert("global_current_collision_user_depth > 1",
+                   "c:\\halo\\SOURCE\\physics\\collision_usage.c", 0x562, 1);
+    system_exit(-1);
+  }
+  *(short *)0x4761d8 = (short)(*(short *)0x4761d8 - 1);
+  return result;
+}
