@@ -7355,8 +7355,9 @@ void FUN_00027410(int actor_handle, void *ctx, unsigned short fp_count,
 
         if (0.0f < *(float *)(variant_def + 0x74)) {
           if (*(float *)(variant_def + 0x74) * *(float *)0x2533f0 <= range) {
-            score = (*(float *)(variant_def + 0x74) * *(float *)0x2533f0 /
-                     range) * *(float *)0x253f34;
+            score =
+              (*(float *)(variant_def + 0x74) * *(float *)0x2533f0 / range) *
+              *(float *)0x253f34;
             if (score < 0.0f || score >= 1000.0f) {
               display_assert("(evaluation >= 0.0f) && (evaluation < 1e+03f)",
                              "c:\\halo\\SOURCE\\ai\\actor_firing_position.c",
@@ -7432,8 +7433,8 @@ void FUN_00027410(int actor_handle, void *ctx, unsigned short fp_count,
               dx = pos[0] - *(float *)(av + 0x260);
               dy = pos[1] - *(float *)(av + 0x264);
               dz = pos[2] - *(float *)(av + 0x268);
-              dot = dx * *(float *)(av + 0x26c) +
-                    dz * *(float *)(av + 0x274) + dy * *(float *)(av + 0x270);
+              dot = dx * *(float *)(av + 0x26c) + dz * *(float *)(av + 0x274) +
+                    dy * *(float *)(av + 0x270);
               if (0.0f < dot) {
                 float neg_dot, px, py, pz, perp_sq;
                 neg_dot = -dot;
@@ -7694,7 +7695,7 @@ int FUN_00027a60(int actor_handle, short look_type, short priority,
       if (is_high_level) {
         return 0;
       }
-      if (*(char *)(prop + 0x12e) != '\0' && look_type < 4) {
+      if (*(char *)(prop + 0x12e) != '\0' && look_type >= 4) {
         goto do_update_timer;
       }
       if (*(int *)(prop + 0x5c) == -1 ||
@@ -7725,16 +7726,16 @@ after_prop_check:
   if (*(float *)(tag + 0xd4) != *(float *)0x2533c0 ||
       *(float *)(tag + 0xd8) != *(float *)0x2533c0) {
     /* Floor min at 0.5f */
-    if (*(float *)(tag + 0xd4) < *(float *)0x253398) {
-      rng_min = *(float *)0x253398;
-    } else {
+    if (*(float *)(tag + 0xd4) > *(float *)0x253398) {
       rng_min = *(float *)(tag + 0xd4);
+    } else {
+      rng_min = 0.5f;
     }
     /* Ceiling max at 2.0f */
-    if (*(float *)(tag + 0xd8) < *(float *)0x253f40) {
-      rng_max = *(float *)(tag + 0xd8);
+    if (*(float *)(tag + 0xd8) > *(float *)0x253f40) {
+      rng_max = 2.0f;
     } else {
-      rng_max = *(float *)0x253f40;
+      rng_max = *(float *)(tag + 0xd8);
     }
     seed = get_global_random_seed_address();
     scale = scale * random_real_range(seed, rng_min, rng_max);
