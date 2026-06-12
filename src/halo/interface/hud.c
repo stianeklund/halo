@@ -273,6 +273,280 @@ int FUN_000d02c0(void *state_buf)
   return 0;
 }
 
+/* Updates the player's weapon/equipment HUD state message: handles respawn
+ * failure prompts, then a weapon-HUD-state machine (held weapon, vehicle seat,
+ * equipment, pickups, seat weapon, custom string, and weapon-switch search).
+ * EAX = local player index. */
+void FUN_000d04d0(int local_player_index)
+{
+  void *player_rec;
+  short respawn_failure;
+  int item_handle;
+  void *item_obj;
+  int item_wphi_tag_index;
+  short weapon_hud_state;
+  int unit_handle;
+  void *unit_obj;
+  int vehicle_unit_handle;
+  short vehicle_seat_index;
+  void *vehicle_obj;
+  void *seat_elem;
+  int initial_slot;
+  int initial_weapon_handle;
+  int current_weapon_handle;
+  int next_slot;
+  int total_weapons;
+  int is_valid;
+  void *obj_result;
+  void *weap_tag;
+  void *wphi_tag;
+  int wphi_index;
+  short *wphi_ptr;
+  void *unit_obj89;
+  short weapon_slot_89;
+  void *seat_block89;
+  short slot_indicator;
+  void *obj10;
+  short custom_idx;
+  int d04a0_result;
+  unsigned char wif_buf[0x20];
+  wchar_t wchar_buf[0x400];
+
+  player_rec = datum_get(*(data_t **)0x5aa6d4, local_player_index);
+  respawn_failure = players_get_respawn_failure();
+
+  if (respawn_failure != 0 && *(int *)((char *)player_rec + 0x34) == -1) {
+    switch ((int)respawn_failure) {
+    case 1:
+      hud_set_state_message(*(short *)0x506548, 0xb);
+      return;
+    case 2:
+      hud_set_state_message(*(short *)0x506548, 0xa);
+      return;
+    case 3:
+      hud_set_state_message(*(short *)0x506548, 0x9);
+      return;
+    case 4:
+      hud_set_state_message(*(short *)0x506548, 0xc);
+      return;
+    default:
+      display_assert("!\"unreachable\"", "c:\\halo\\SOURCE\\interface\\hud.c",
+                     0x1a8, 1);
+      system_exit(-1);
+      return;
+    }
+  }
+
+  item_handle = *(int *)((char *)player_rec + 0x24);
+  item_wphi_tag_index = -1;
+  if (item_handle != -1) {
+    item_obj = object_get_and_verify_type(item_handle, -1);
+    item_wphi_tag_index =
+        *(short *)((char *)tag_get(0x6f626a65, *(int *)item_obj) + 0x13c);
+  }
+
+  weapon_hud_state = *(short *)((char *)player_rec + 0x28);
+  unit_handle = *(int *)((char *)player_rec + 0x34);
+
+  switch ((int)weapon_hud_state) {
+  case 1:
+  case 2:
+    hud_set_state_message(*(short *)0x506548, 0);
+    hud_set_state_message_text(*(short *)0x506548, 0, (short)item_wphi_tag_index,
+                               0);
+    return;
+
+  case 3:
+    unit_obj = object_get_and_verify_type(unit_handle, 3);
+    hud_set_state_message(*(short *)0x506548, 7);
+    d04a0_result = FUN_000d04a0(*(int *)((char *)unit_obj + 0xcc));
+    hud_set_state_message_text(*(short *)0x506548, 0, (short)d04a0_result, 0);
+    return;
+
+  case 5:
+    hud_set_state_message(*(short *)0x506548, 1);
+    d04a0_result = FUN_000d04a0(unit_get_equipment(unit_handle));
+    hud_set_state_message_text(*(short *)0x506548, 0, (short)d04a0_result, 0);
+    hud_set_state_message_text(*(short *)0x506548, 1, (short)item_wphi_tag_index,
+                               0);
+    return;
+
+  case 6:
+    obj_result =
+        object_try_and_get_and_verify_type(*(int *)((char *)player_rec + 0x24), 4);
+    if (obj_result == NULL) {
+      break;
+    }
+    weap_tag = tag_get(0x77656170, *(int *)obj_result);
+    wphi_index = *(int *)((char *)weap_tag + 0x48c);
+    wphi_ptr = NULL;
+    if (wphi_index != -1) {
+      wphi_tag = tag_get(0x77706869, wphi_index);
+      wphi_ptr = (short *)((char *)wphi_tag + 0x13c);
+      if (*wphi_ptr == -1) {
+        wphi_ptr = NULL;
+      }
+    }
+    hud_set_state_message(*(short *)0x506548, 4);
+    if (wphi_ptr != NULL) {
+      hud_set_state_message_icon(*(short *)0x506548, 0, (int)wphi_ptr);
+      return;
+    }
+    hud_set_state_message_text(*(short *)0x506548, 0, (short)item_wphi_tag_index,
+                               0);
+    return;
+
+  case 7:
+    obj_result =
+        object_try_and_get_and_verify_type(*(int *)((char *)player_rec + 0x24), 4);
+    if (obj_result == NULL) {
+      break;
+    }
+    weap_tag = tag_get(0x77656170, *(int *)obj_result);
+    wphi_index = *(int *)((char *)weap_tag + 0x48c);
+    wphi_ptr = NULL;
+    if (wphi_index != -1) {
+      wphi_tag = tag_get(0x77706869, wphi_index);
+      wphi_ptr = (short *)((char *)wphi_tag + 0x13c);
+      if (*wphi_ptr == -1) {
+        wphi_ptr = NULL;
+      }
+    }
+    hud_set_state_message(*(short *)0x506548, 0);
+    if (wphi_ptr != NULL) {
+      hud_set_state_message_icon(*(short *)0x506548, 0, (int)wphi_ptr);
+      return;
+    }
+    hud_set_state_message_text(*(short *)0x506548, 0, (short)item_wphi_tag_index,
+                               0);
+    return;
+
+  case 8:
+  case 9:
+    unit_obj89 =
+        object_get_and_verify_type(*(int *)((char *)player_rec + 0x24), 3);
+    weapon_slot_89 = *(short *)((char *)unit_obj89 + 0x2a);
+    hud_set_state_message(*(short *)0x506548, 6);
+    seat_block89 = tag_block_get_element(
+        (char *)tag_get(0x756e6974, *(int *)unit_obj89) + 0x2e4,
+        (int)weapon_slot_89, 0x11c);
+    slot_indicator = *(short *)((char *)seat_block89 + 0xec);
+    hud_set_state_message_text(*(short *)0x506548, 0, slot_indicator, 0);
+    hud_set_state_message_text(*(short *)0x506548, 1, (short)item_wphi_tag_index,
+                               0);
+    return;
+
+  case 10:
+    obj10 = object_get_and_verify_type(*(int *)((char *)player_rec + 0x24), 0x100);
+    custom_idx = *(short *)((char *)obj10 + 0x1c8);
+    if (custom_idx != -1) {
+      hud_set_state_message(*(short *)0x506548, 3);
+      hud_set_state_message_text(*(short *)0x506548, 0, custom_idx, 1);
+      return;
+    }
+    hud_set_state_message(*(short *)0x506548, 2);
+    hud_set_state_message_text(*(short *)0x506548, 0, (short)item_wphi_tag_index,
+                               0);
+    return;
+
+  case 11:
+    hud_set_state_message(*(short *)0x506548, 8);
+    d04a0_result = FUN_000d04a0(*(int *)((char *)player_rec + 0x24));
+    hud_set_state_message_text(*(short *)0x506548, 0, (short)d04a0_result, 0);
+    return;
+
+  default:
+    if (FUN_000ae110(local_player_index, (int)wchar_buf, 0x400)) {
+      hud_enable_custom_state_message(*(short *)0x506548, 1);
+      hud_set_state_text(*(short *)0x506548, wchar_buf);
+      return;
+    }
+    if (unit_handle == -1) {
+      hud_enable_custom_state_message(*(short *)0x506548, 0);
+      return;
+    }
+
+    unit_obj = object_get_and_verify_type(unit_handle, 3);
+    initial_slot = (int)*(short *)((char *)unit_obj + 0x2a2);
+    initial_weapon_handle = unit_get_weapon(unit_handle, (short)initial_slot);
+
+    unit_obj = object_get_and_verify_type(unit_handle, 3);
+    vehicle_unit_handle = *(int *)((char *)unit_obj + 0xcc);
+    vehicle_seat_index = *(short *)((char *)unit_obj + 0x2a0);
+
+    is_valid = 1;
+    if (vehicle_unit_handle != -1 && vehicle_seat_index != -1) {
+      vehicle_obj = object_get_and_verify_type(vehicle_unit_handle, 3);
+      seat_elem = tag_block_get_element(
+          (char *)tag_get(0x756e6974, *(int *)vehicle_obj) + 0x2e4,
+          (int)vehicle_seat_index, 0x11c);
+      if ((*(unsigned char *)seat_elem & 0xc) != 0) {
+        is_valid = 0;
+      } else {
+        is_valid = 1;
+      }
+    }
+
+    if (initial_weapon_handle == -1 || !is_valid) {
+      goto disable;
+    }
+
+    weapon_build_weapon_interface_state(initial_weapon_handle, (int)wif_buf);
+    if (!FUN_000d02c0(wif_buf)) {
+      goto disable;
+    }
+
+    total_weapons = unit_count_weapons(unit_handle);
+    next_slot = initial_slot;
+    do {
+      next_slot = unit_inventory_next_weapon(unit_handle, next_slot, 1);
+      current_weapon_handle = unit_get_weapon(unit_handle, (short)next_slot);
+      weapon_build_weapon_interface_state(current_weapon_handle, (int)wif_buf);
+      if (!(*(short *)(wif_buf + 0x10) != 0 && *(short *)(wif_buf + 0xe) == 0 &&
+            *(short *)(wif_buf + 0x12) == 0)) {
+        if (*(float *)(wif_buf + 4) == *(float *)0x2533c8) {
+          break;
+        }
+      }
+      if (current_weapon_handle == initial_weapon_handle) {
+        break;
+      }
+      total_weapons--;
+      if ((short)total_weapons == 0) {
+        continue;
+      }
+      break;
+    } while (1);
+
+    if (FUN_000d02c0(wif_buf) || current_weapon_handle == initial_weapon_handle) {
+      goto disable;
+    }
+
+    hud_set_state_message(*(short *)0x506548, 5);
+    obj_result = object_try_and_get_and_verify_type(current_weapon_handle, 4);
+    if (obj_result == NULL) {
+      goto disable;
+    }
+    weap_tag = tag_get(0x77656170, *(int *)obj_result);
+    wphi_index = *(int *)((char *)weap_tag + 0x48c);
+    if (wphi_index != -1) {
+      wphi_tag = tag_get(0x77706869, wphi_index);
+      if (*(short *)((char *)wphi_tag + 0x13c) != -1) {
+        hud_set_state_message_icon(*(short *)0x506548, 0,
+                                   (int)((char *)wphi_tag + 0x13c));
+        return;
+      }
+    }
+    hud_set_state_message_text(*(short *)0x506548, 0, (short)item_wphi_tag_index,
+                               0);
+    return;
+
+  disable:
+    hud_enable_custom_state_message(*(short *)0x506548, 0);
+    return;
+  }
+}
+
 /* Projects a player's biped head position to screen space and draws a rotating
  * crosshair/reticle sprite there.  The reticle's rotation angle is derived from
  * the head's camera-space depth (mapped through a near/far range and clamped).
