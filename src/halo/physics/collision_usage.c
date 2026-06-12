@@ -933,3 +933,28 @@ void collision_log_usage(float *output, float *vec, float *dir)
   output[1] = t * dir[1];
   output[2] = t * dir[2];
 }
+
+/* 0x14ef80 — Walk a distance-parameterised ray until FUN_0014dc30 hits
+ * (or distance exhausted), then clamp position to origin if dist<=0.
+ * pos @<eax> = float[4]: pos[0]=dist, pos[1..3]=xyz. origin @<ebx>=xyz. */
+void FUN_0014ef80(int param_1, float *dir, int param_3, float *pos,
+                  float *origin)
+{
+  float t;
+  if (*pos > 0.0f) {
+    do {
+      if (!FUN_0014dc30(param_1, pos + 1, param_3))
+        break;
+      t = *pos - *(float *)0x29d598;
+      *pos = t;
+      pos[1] = t * dir[0] + origin[0];
+      pos[2] = t * dir[1] + origin[1];
+      pos[3] = t * dir[2] + origin[2];
+    } while (*pos > 0.0f);
+  }
+  if (*pos <= 0.0f) {
+    pos[1] = origin[0];
+    pos[2] = origin[1];
+    pos[3] = origin[2];
+  }
+}
