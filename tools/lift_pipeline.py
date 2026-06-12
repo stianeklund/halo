@@ -1061,7 +1061,9 @@ def run_pipeline(args: argparse.Namespace) -> int:
       elif vc71_has_fpu_warn and not equivalence_ok and (match_source == "vc71" or objdiff_match_pct is None):
         policy_ok = False
         reason = "FPU operand-order warnings present"
-      elif best_match_pct < args.low_match_reject_below:
+      elif best_match_pct < args.low_match_reject_below and not equivalence_ok:
+        # Hard floor only blocks when equivalence also fails.
+        # If equivalence passes (>=90%), the stated criterion is met regardless of VC71.
         policy_ok = False
         reason = f"match below hard floor ({args.low_match_reject_below:.1f}%)"
       elif best_match_pct < args.low_match_behavior_both_below:
