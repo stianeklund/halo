@@ -2321,7 +2321,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00084ae0": {
-      "score": 80.8,
+      "score": 86.3,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00084fe0": {
@@ -3912,6 +3912,10 @@
       "score": 62.1,
       "source": "src/halo/objects/objects.c"
     },
+    "FUN_000ae250": {
+      "score": 2.3,
+      "source": "src/halo/objects/objects.c"
+    },
     "FUN_000ae310": {
       "score": 75.9,
       "source": "src/halo/game/game_engine.c"
@@ -4057,7 +4061,7 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b1180": {
-      "score": 77.0,
+      "score": 81.2,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b14e0": {
@@ -4117,7 +4121,7 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b2010": {
-      "score": 65.9,
+      "score": 67.2,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b23b0": {
@@ -5337,7 +5341,7 @@
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d7d40": {
-      "score": 65.6,
+      "score": 65.8,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000db0f0": {
@@ -7088,8 +7092,20 @@
       "score": 100.0,
       "source": "src/halo/networking/network_server_manager.c"
     },
+    "FUN_0012c410": {
+      "score": 84.3,
+      "source": "src/halo/networking/network_server_manager.c"
+    },
     "FUN_0012c500": {
       "score": 100.0,
+      "source": "src/halo/networking/network_server_manager.c"
+    },
+    "FUN_0012c560": {
+      "score": 80.0,
+      "source": "src/halo/networking/network_server_manager.c"
+    },
+    "FUN_0012c690": {
+      "score": 83.1,
       "source": "src/halo/networking/network_server_manager.c"
     },
     "FUN_0012c6d0": {
@@ -7098,6 +7114,10 @@
     },
     "FUN_0012c750": {
       "score": 96.1,
+      "source": "src/halo/networking/network_server_manager.c"
+    },
+    "FUN_0012c7e0": {
+      "score": 91.1,
       "source": "src/halo/networking/network_server_manager.c"
     },
     "FUN_0012c920": {
@@ -7120,8 +7140,16 @@
       "score": 100.0,
       "source": "src/halo/networking/network_server_manager.c"
     },
+    "FUN_0012cc10": {
+      "score": 88.3,
+      "source": "src/halo/networking/network_server_manager.c"
+    },
     "FUN_0012cd60": {
       "score": 96.4,
+      "source": "src/halo/networking/network_server_manager.c"
+    },
+    "FUN_0012cdb0": {
+      "score": 81.8,
       "source": "src/halo/networking/network_server_manager.c"
     },
     "FUN_0012cf60": {
@@ -7144,8 +7172,20 @@
       "score": 98.7,
       "source": "src/halo/networking/network_server_manager.c"
     },
+    "FUN_0012d1c0": {
+      "score": 93.3,
+      "source": "src/halo/networking/network_server_manager.c"
+    },
     "FUN_0012d210": {
       "score": 100.0,
+      "source": "src/halo/networking/network_server_manager.c"
+    },
+    "FUN_0012d250": {
+      "score": 100.0,
+      "source": "src/halo/networking/network_server_manager.c"
+    },
+    "FUN_0012d2f0": {
+      "score": 97.7,
       "source": "src/halo/networking/network_server_manager.c"
     },
     "FUN_0012d380": {
@@ -7156,8 +7196,16 @@
       "score": 100.0,
       "source": "src/halo/networking/network_server_manager.c"
     },
+    "FUN_0012d3d0": {
+      "score": 86.0,
+      "source": "src/halo/networking/network_server_manager.c"
+    },
     "FUN_0012d450": {
       "score": 100.0,
+      "source": "src/halo/networking/network_server_manager.c"
+    },
+    "FUN_0012d4a0": {
+      "score": 93.0,
       "source": "src/halo/networking/network_server_manager.c"
     },
     "FUN_0012d570": {
@@ -7176,6 +7224,10 @@
       "score": 100.0,
       "source": "src/halo/networking/network_server_manager.c"
     },
+    "FUN_0012d6f0": {
+      "score": 100.0,
+      "source": "src/halo/networking/network_server_manager.c"
+    },
     "FUN_0012d7f0": {
       "score": 100.0,
       "source": "src/halo/networking/network_server_manager.c"
@@ -7186,6 +7238,14 @@
     },
     "FUN_0012d9f0": {
       "score": 88.5,
+      "source": "src/halo/networking/network_server_manager.c"
+    },
+    "FUN_0012da90": {
+      "score": 75.2,
+      "source": "src/halo/networking/network_server_manager.c"
+    },
+    "FUN_0012db30": {
+      "score": 63.2,
       "source": "src/halo/networking/network_server_manager.c"
     },
     "FUN_0012db60": {
@@ -7244,12 +7304,64 @@
       "score": 75.2,
       "source": "src/halo/networking/network_server_manager.c"
     },
+    "FUN_0012eef0": {
+      "score": 80.9,
+      "source": "src/halo/networking/network_server_manager.c"
+    },
+    "FUN_0012f040": {
+      "score": 74.3,
+      "source": "src/halo/networking/network_server_manager.c"
+    },
+    "FUN_0012f0d0": {
+      "score": 67.2,
+      "source": "src/halo/networking/network_server_manager.c"
+    },
+    "FUN_0012f170": {
+      "score": 76.3,
+      "source": "src/halo/networking/network_server_manager.c"
+    },
+    "FUN_0012f200": {
+      "score": 76.1,
+      "source": "src/halo/networking/network_server_manager.c"
+    },
+    "FUN_0012f290": {
+      "score": 76.9,
+      "source": "src/halo/networking/network_server_manager.c"
+    },
+    "FUN_0012f330": {
+      "score": 76.8,
+      "source": "src/halo/networking/network_server_manager.c"
+    },
+    "FUN_0012f3d0": {
+      "score": 89.7,
+      "source": "src/halo/networking/network_server_manager.c"
+    },
+    "FUN_0012f3f0": {
+      "score": 87.7,
+      "source": "src/halo/networking/network_server_manager.c"
+    },
     "FUN_0012f430": {
       "score": 79.4,
       "source": "src/halo/networking/network_server_manager.c"
     },
+    "FUN_0012f540": {
+      "score": 82.5,
+      "source": "src/halo/networking/network_server_manager.c"
+    },
     "FUN_0012f5d0": {
       "score": 62.8,
+      "source": "src/halo/networking/network_server_manager.c"
+    },
+    "FUN_0012f690": {
+      "score": 50.4,
+      "source": "src/halo/networking/network_server_manager.c"
+    },
+    "FUN_0012f8d0": {
+      "score": 72.5,
+      "source": "src/halo/networking/network_server_manager.c"
+    },
+    "FUN_0012f990": {
+      "score": 61.0,
       "source": "src/halo/networking/network_server_manager.c"
     },
     "FUN_00130ab0": {
