@@ -3223,6 +3223,8 @@ void FUN_000d7d40(int param_1)
 
                 {
                   int *meter_data_ptr;
+                  widget_meter_data[13] = *color_ptr;
+                  widget_meter_data[14] = *color_ptr;
                   if (layer_idx == 0) {
                     meter_data_ptr = meter_src_ptr;
                   } else {

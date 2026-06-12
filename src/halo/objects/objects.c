@@ -313,8 +313,11 @@ int FUN_000ae0a0(int tag_index)
   return tag_index;
 }
 
-/* FUN_000ae110 / objects.obj -- determine respawn state for a player. */
-int FUN_000ae110(int param_1, int param_2, int param_3)
+/* FUN_000ae110 / objects.obj -- determine respawn state for a player.
+ * Returns the "HUD text was produced" flag in AL (original only ever sets AL;
+ * see xor al,al at 0xae23e). FUN_000d04d0 (unported) draws the buffer only
+ * when this returns nonzero. */
+char FUN_000ae110(int param_1, int param_2, int param_3)
 {
   int player;
   int respawn_state;
@@ -332,14 +335,17 @@ int FUN_000ae110(int param_1, int param_2, int param_3)
   }
 
   if (*(int *)(player + 0x34) != -1) {
+    /* Live player: both aceb0 paths RETURN the dispatcher's AL ("text was
+     * produced"), per original 0xae205-0xae21c and 0xae21d-0xae23d -- there is
+     * no xor al,al before those rets. The unported caller FUN_000d04d0 only
+     * draws the buffer when this returns nonzero (test al,al at 0xd0931). */
     time = game_time_get();
     if (time < 0x1c2) {
-      FUN_000aceb0(param_2, param_3, -1, param_1, 0x1d);
-      return 0;
+      return FUN_000aceb0(param_2, param_3, -1, param_1, 0x1d);
     }
     if (*(int *)(player + 0x74) != -1) {
-      FUN_000aceb0(param_2, param_3, *(int *)(player + 0x78), param_1, *(int *)(player + 0x74));
-      return 0;
+      return FUN_000aceb0(param_2, param_3, *(int *)(player + 0x78), param_1,
+                          *(int *)(player + 0x74));
     }
     return 0;
   }
@@ -360,11 +366,12 @@ int FUN_000ae110(int param_1, int param_2, int param_3)
 
   { void *vtable_fn = *(void **)((char *)current_game_engine + 0x64);
   if (vtable_fn != NULL) {
-    if (((char (*)(int, int, int, int, int))vtable_fn)(
-            param_1, respawn_state, local_8, param_2, param_3))
-      return 1;
+    char handled = ((char (*)(int, int, int, int, int))vtable_fn)(
+        param_1, respawn_state, local_8, param_2, param_3);
+    if (handled)
+      return handled;
   } }
-  return (int)(char)game_engine_get_score_hud_text(
+  return (char)game_engine_get_score_hud_text(
       param_1, respawn_state, local_8, (wchar_t *)param_2, param_3);
 }
 
