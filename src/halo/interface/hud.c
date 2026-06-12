@@ -191,6 +191,83 @@ float FUN_000d1690(int split_screen)
   return *(float *)0x002533c8;
 }
 
+/* HUD weapon-interface draw helper (hud_draw.c). EAX = render/player state.
+ * Resolves the player's current weapon; if the player has none, falls back to
+ * the parent unit's weapon (gated by a 'unit' tag flag bit).  When a weapon is
+ * found, builds its HUD interface state.  Returns true if a weapon was drawn.
+ * Wrapped in the hud_draw debug instrumentation: a return-address capture plus
+ * a 0x200-byte 0x62 stack canary, both re-checked on exit. */
+char FUN_000d1a70(int render, int param_1)
+{
+  int return_address;
+  int guard[128];
+  void *obj;
+  void *parent_unit;
+  unsigned char *flags_elem;
+  void *weapon_tag;
+  int weapon;
+  char drew;
+  short corrupt_index;
+  short i;
+
+  drew = 0;
+  return_address = FUN_000d1540();
+  csmemset(guard, 0x62, 0x200);
+
+  obj = object_get_and_verify_type(*(int *)(render + 0x34), 3);
+  weapon = unit_get_weapon(*(int *)(render + 0x34),
+                           *(short *)((char *)obj + 0x2a2));
+  if (weapon == -1) {
+    obj = object_get_and_verify_type(*(int *)(render + 0x34), 3);
+    if (*(int *)((char *)obj + 0xcc) != -1 &&
+        *(short *)((char *)obj + 0x2a0) != -1) {
+      parent_unit = object_get_and_verify_type(*(int *)((char *)obj + 0xcc), 3);
+      weapon_tag = tag_get(0x756e6974, *(int *)parent_unit);
+      flags_elem = (unsigned char *)tag_block_get_element(
+          (char *)weapon_tag + 0x2e4, *(short *)((char *)obj + 0x2a0), 0x11c);
+      if ((*flags_elem & 8) != 0) {
+        parent_unit =
+            object_get_and_verify_type(*(int *)((char *)obj + 0xcc), 3);
+        weapon = unit_get_weapon(*(int *)((char *)obj + 0xcc),
+                                 *(short *)((char *)parent_unit + 0x2a2));
+      }
+    }
+  }
+
+  if (*(short *)(render + 2) != *(short *)0x506548) {
+    display_assert("player->local_player_index==render.local_player_index",
+                   "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x3fd, 1);
+    system_exit(-1);
+  }
+
+  if (weapon != -1) {
+    weapon_tag = object_get_and_verify_type(weapon, 4);
+    tag_get(0x77656170, *(int *)weapon_tag);
+    weapon_build_weapon_interface_state(weapon, param_1);
+    drew = 1;
+  }
+
+  corrupt_index = -1;
+  for (i = 0x7f; i >= 0; i--) {
+    if (guard[i] != 0x62626262) {
+      corrupt_index = i;
+      break;
+    }
+  }
+  if (return_address != FUN_000d1540()) {
+    display_assert("corrupt return address!",
+                   "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x408, 1);
+    system_exit(-1);
+  }
+  if (corrupt_index != -1) {
+    display_assert(csprintf((char *)0x5ab100, "corrupt stack at %d!",
+                            (int)corrupt_index),
+                   "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x408, 1);
+    system_exit(-1);
+  }
+  return drew;
+}
+
 /* Truncate a float toward zero to a 32-bit int (C cast semantics).
  * The original is an inline /QIfist truncation helper: it FISTs (round to
  * nearest), then corrects back toward zero via an integer-bits SBB/SETG of the
