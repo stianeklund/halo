@@ -90,7 +90,7 @@ void FUN_000d3fe0(int param_1, short *param_2, int param_3,
                      0, local_18);
         /* d1890: @<eax>=local_4c (out corners), @<edi>=puVar3 (in rect),
          * @<bl>=cVar5 (align flag); 2 stack args: bitmap, screen index. */
-        FUN_000d1890((float *)local_4c, puVar3, cVar5, local_c, *param_2);
+        FUN_000d1890((float *)local_4c, puVar3, cVar5, (short *)local_c, *param_2);
         /* d27a0: @<ecx>=local_1c (element ptr), @<eax>=scale[2];
          * 6 stack args; 6th = uVar4 (color, raw int bitpattern). */
         FUN_000d27a0(local_1c, scale, param_1, local_18, puVar3,
