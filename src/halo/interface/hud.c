@@ -315,6 +315,43 @@ void FUN_000d0e90(int player_handle)
   interface_draw_bitmap(sprite_handle, offset_xy, color_struct, 1.0f, 0, 1.0f);
 }
 
+/* Draws the rotating crosshair (FUN_000d0e90) for every OTHER live player on
+ * the local player's team (same team, valid unit, different handle). */
+void FUN_000d0ff0(void)
+{
+  int player_index;
+  void *player_datum;
+  int team;
+  int count;
+  int handles[16];
+  data_iter_t iter;
+  void *datum;
+  int handle;
+  int i;
+
+  player_index = local_player_get_player_index((int16_t) * (short *)0x506548);
+  player_datum = datum_get(*(data_t **)0x5aa6d4, player_index);
+  team = *(int *)((char *)player_datum + 0x20);
+  if (player_index == -1) {
+    return;
+  }
+  count = 0;
+  data_iterator_new(&iter, *(data_t **)0x5aa6d4);
+  datum = data_iterator_next(&iter);
+  while (datum != NULL) {
+    handle = *((int *)&iter + 2); /* iter.datum_handle at iter+8 */
+    if (player_index != handle && *(int *)((char *)datum + 0x20) == team &&
+        *(int *)((char *)datum + 0x34) != -1) {
+      handles[count] = handle;
+      count++;
+    }
+    datum = data_iterator_next(&iter);
+  }
+  for (i = 0; i < count; i++) {
+    FUN_000d0e90(handles[i]);
+  }
+}
+
 /* Draws a 16-segment HUD ring (e.g. a charge/cooldown indicator).  param_1
  * sets the ring radius via tan(); each of 16 vertices is placed on the circle
  * at depth -0.0625, transformed by the HUD matrix at 0x5065e8, then drawn as
