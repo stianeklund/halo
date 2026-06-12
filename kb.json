@@ -11830,7 +11830,9 @@
         },
         {
           "addr": "0xd1f40",
-          "decl": "void FUN_000d1f40(short local_player, short *param_2, int param_3, int param_4, int param_5, int param_6, void *out);"
+          "decl": "void FUN_000d1f40(short local_player, unsigned short *absolute_placement, short *placement, int offset_struct, char flag, float in_scale, short *out);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd2300",
