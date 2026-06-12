@@ -34295,7 +34295,7 @@
         },
         {
           "addr": "0x24a60",
-          "decl": "int actor_get_firing_position_group(int actor_handle, int param_2, int param_3);"
+          "decl": "int actor_get_firing_position_group(int actor_handle, short param_2, int param_3);"
         },
         {
           "addr": "0x24b80",
