@@ -807,6 +807,330 @@ char FUN_0014db10(int param_1, int param_2, int param_3, int param_4)
   return 0;
 }
 
+/* 0x14df70 — Main collision raycast function. Tests a ray from origin
+ * along direction against BSP surfaces and optional object geometry.
+ * Fills collision_result with hit info. Returns 1 on collision.
+ * Confirmed: init at 0x14df7d; scenario_get at 0x14dfc5; BSP test at 0x14e054.
+ * Confirmed: log_add_call(0)/log_add_call(1) bracketing; atmosphere zone test.
+ */
+bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
+                  int max_distance, int16_t *collision_result)
+{
+  char result;
+  char use_water;
+  uint32_t flags_computed;
+  void *scenario_h;
+  char local_buf[0x434];
+  float saved_dist;
+  float local_18[3];
+  float local_10[3];
+  float local_c;
+  int iter_state;
+  int i;
+  float fVar_dist;
+  float fVar_dir_dot;
+  char fog_side;
+  int16_t leaf_idx;
+  void *scen_elem;
+  int16_t cluster_idx;
+  void *s;
+  void *elem;
+  void *pg_list;
+  void *pg;
+  void *fog_tag;
+  void *fog;
+  int cur_zone;
+  int object_handle;
+  char bsp_hit;
+  short pg_idx;
+  int pg_surf;
+
+  result = 0;
+
+  /* Init collision_result to invalid */
+  collision_result[0] = (int16_t)-1;
+  *(int *)((char *)collision_result + 4) = -1;
+  collision_result[4] = (int16_t)-1;
+  *(int *)((char *)collision_result + 0xc) = -1;
+  collision_result[8] = (int16_t)-1;
+  *(float *)((char *)collision_result + 0x14) = 1.0f;
+
+  /* Check if relevant flags are set */
+  if ((collision_flags & 0xe0) == 0 || *(char *)0x4761f9 != '\0') {
+    /* No BSP test: just compute end point */
+    *(float *)((char *)collision_result + 0x14) =
+      *(float *)((char *)collision_result + 0x14);
+    ((float *)((char *)collision_result + 0x18))[0] = origin[0] + direction[0];
+    ((float *)((char *)collision_result + 0x18))[1] = origin[1] + direction[1];
+    ((float *)((char *)collision_result + 0x18))[2] = origin[2] + direction[2];
+    scenario_location_from_point((char *)collision_result + 0xc,
+                                 (char *)collision_result + 0x18);
+    return result;
+  }
+
+  scenario_h = scenario_get();
+
+  /* Compute water flag from bit 7 of collision_flags */
+  use_water = (char)((collision_flags >> 7) & 1);
+  if (*(char *)0x4761f8 != '\0')
+    use_water = 0;
+
+  /* Normalize collision type flags */
+  flags_computed = 0;
+  if (collision_flags & 1)
+    flags_computed |= 1;
+  if (collision_flags & 2)
+    flags_computed |= 2;
+  if (collision_flags & 4)
+    flags_computed |= 4;
+  if (collision_flags & 8)
+    flags_computed |= 8;
+  if (collision_flags & 0x10)
+    flags_computed |= 0x10;
+
+  /* Collision logging */
+  collision_log_add_call(0);
+  collision_log_query_counter((void *)0x4761f0);
+
+  /* BSP surface test: pre-push pattern matches original MSVC output */
+  {
+    bsp_hit = collision_bsp_test_vector(
+      (int)flags_computed, (int)global_collision_bsp_get(), 0x100,
+      (int)breakable_surfaces_get_bsp_surface_data(), (int)origin,
+      (int)direction, *(float *)"\x00\x00\xff\x7f", (float *)local_buf);
+
+    if (bsp_hit && (collision_flags & 0x20)) {
+      /* Fill collision_result from local_buf */
+      *(float *)((char *)collision_result + 0x14) = *(float *)(local_buf);
+      collision_result[0] = 2;
+
+      *(int *)((char *)collision_result + 0x24) = *(int *)(local_buf + 0x4);
+      *(int *)((char *)collision_result + 0x28) = *(int *)(local_buf + 0x8);
+      *(int *)((char *)collision_result + 0x2c) = *(int *)(local_buf + 0xc);
+      *(int *)((char *)collision_result + 0x30) = *(int *)(local_buf + 0x10);
+
+      if (*(int *)(local_buf + 0x18) < 0)
+        vector3d_scale_add((float *)((char *)collision_result + 0x24),
+                           (float *)((char *)collision_result + 0x24), 1.0f,
+                           (float *)((char *)collision_result + 0x24));
+
+      /* Leaf/surface index */
+      {
+        leaf_idx = *(short *)(local_buf + 0x1e);
+        if (leaf_idx != -1) {
+          scen_elem = tag_block_get_element((char *)scenario_h + 0xa4,
+                                            (int)leaf_idx, 0x14);
+          collision_result[0x1a] = *(short *)((char *)scen_elem + 0x12);
+        } else {
+          collision_result[0x1a] = -1;
+        }
+      }
+      *(int *)((char *)collision_result + 0x44) = *(int *)(local_buf + 0x14);
+      *(int *)((char *)collision_result + 0x48) = *(int *)(local_buf + 0x18);
+      collision_result[0x26] = *(short *)(local_buf + 0x1c);
+      collision_result[0x27] = *(short *)(local_buf + 0x1d);
+      collision_result[0x4e / 2] = *(short *)(local_buf + 0x1e);
+      result = 1;
+    }
+
+    /* Object cluster refs from local_buf */
+    if ((int)*(int *)(local_buf + 0x20) > 0) {
+      int obj_ref = *(int *)(local_buf + 0x24);
+      if (obj_ref == -1) {
+        collision_result[2] = (int16_t)-1;
+      } else {
+        cluster_idx = -1;
+        obj_ref = (int)((unsigned int)obj_ref & 0x7fffffff);
+        s = (void *)((int)scenario_get() + (obj_ref & 0x7fffffff) * 0x10);
+        elem = tag_block_get_element((char *)s + 0xe0, 0, 0);
+        cluster_idx = *(int16_t *)((char *)elem + 8);
+        collision_result[2] = cluster_idx;
+      }
+      *(int *)((char *)collision_result + 4) =
+        *(int *)(local_buf + (*(int *)(local_buf + 0x20)) * 4 + 0x24);
+    }
+  }
+
+  /* Log timing */
+  collision_log_add_time(0, *(unsigned int *)0x4761f0, *(int *)0x4761f4);
+
+  /* Atmosphere/fog zone test */
+  if ((collision_flags & 0x40) && collision_result[8] != -1) {
+    void *scen = scenario_get();
+    void *bsp_zone = tag_block_get_element(
+      (char *)scen + 0x134, (int)(short)collision_result[8], 0x68);
+    short zone_ref = *(short *)((char *)bsp_zone + 2);
+
+    if (zone_ref != -1 && ((unsigned short)zone_ref & 0x8000)) {
+      zone_ref = (short)((unsigned short)zone_ref & 0x7fff);
+      pg_list =
+        tag_block_get_element((char *)scen + 0x178, (int)zone_ref, 0x20);
+      if (*(short *)((char *)pg_list + 2) != -1) {
+        pg_idx = *(short *)pg_list;
+        pg = tag_block_get_element((char *)scen + 0x184, (int)pg_idx, 0x28);
+        pg_surf = *(int *)((char *)pg + 0x24);
+        fog_tag =
+          tag_block_get_element((char *)scen + 0x190, (int)pg_surf, 0x88);
+        fog = tag_get(0x666f6720, *(int *)((char *)fog_tag + 0x2c));
+
+        /* Read fog plane data */
+        local_18[0] = *(float *)((char *)pg_list + 4);
+        local_18[1] = *(float *)((char *)pg_list + 8);
+        local_18[2] = *(float *)((char *)pg_list + 0xc);
+        local_c =
+          *(float *)((char *)pg_list + 0x10) - *(float *)((char *)fog + 0x74);
+
+        fVar_dist = plane3d_distance_to_point((float *)origin, local_18);
+        fVar_dir_dot = local_18[0] * direction[0] + local_18[1] * direction[1] +
+                       local_18[2] * direction[2];
+
+        if ((fVar_dist > 0.0f) != (fVar_dir_dot > 0.0f) &&
+            fabsf(fVar_dir_dot) >= 1e-4 &&
+            -(fVar_dist / fVar_dir_dot) <
+              *(float *)((char *)collision_result + 0x14)) {
+          fog_side = (char)(fVar_dist >= 0.0f ? 1 : 0);
+          *(float *)((char *)collision_result + 0x14) =
+            -(fVar_dist / fVar_dir_dot);
+
+          local_10[0] = local_18[0];
+          local_10[1] = local_18[1];
+          local_10[2] = local_18[2];
+          *(float *)((char *)local_10 + 0xc) = local_c;
+
+          *(int *)((char *)collision_result + 0x24) = *(int *)local_10;
+          *(int *)((char *)collision_result + 0x28) = *(int *)(local_10 + 1);
+          *(int *)((char *)collision_result + 0x2c) = *(int *)(local_10 + 2);
+          *(int *)((char *)collision_result + 0x30) = (int)local_c;
+          collision_result[0] = 0;
+
+          if (!fog_side) {
+            vector3d_scale_add((float *)((char *)collision_result + 0x24),
+                               (float *)((char *)collision_result + 0x24), 1.0f,
+                               (float *)((char *)collision_result + 0x24));
+            collision_result[0x1a] = 0x1c;
+            result = 1;
+          } else {
+            collision_result[0x1a] = *(short *)((char *)pg_list + 2);
+            result = 1;
+          }
+        }
+      }
+    }
+  }
+
+  /* Object iteration test */
+  if (use_water && (int)*(int *)(local_buf + 0x20) > 0) {
+    collision_log_add_call(1);
+    collision_log_query_counter((void *)0x4761e8);
+
+    if ((collision_flags & 0xfff00) == 0) {
+      collision_flags |= 0xfff00;
+    }
+
+    structures_cluster_marker_begin();
+    object_reset_markers();
+
+    i = 0;
+    while (i < (int)*(int *)(local_buf + 0x20)) {
+      int obj_ref = *(int *)(local_buf + i * 4 + 0x24);
+      cluster_idx = -1;
+
+      if (obj_ref == -1) {
+        cluster_idx = -1;
+      } else {
+        obj_ref = (int)((unsigned int)obj_ref & 0x7fffffff);
+        s = (void *)((int)scenario_get() + (obj_ref & 0x7fffffff) * 0x10);
+        elem = tag_block_get_element((char *)s + 0xe0, 0, 0);
+        cluster_idx = *(int16_t *)((char *)elem + 8);
+      }
+
+      if (structure_cluster_mark(cluster_idx)) {
+        object_handle = 0;
+        if (cluster_partition_object_iter_first(&iter_state, cluster_idx) !=
+            -1) {
+          object_handle = iter_state;
+          do {
+            if (object_mark(object_handle)) {
+              char obj_hit =
+                FUN_0014dce0(object_handle, collision_flags, flags_computed,
+                             (int)origin, (int)direction, max_distance,
+                             (int16_t *)((char *)collision_result));
+              if (obj_hit)
+                result = 1;
+            }
+            object_handle = cluster_partition_object_iter_next(&iter_state);
+          } while (object_handle != -1);
+        }
+      }
+      i++;
+    }
+
+    object_reset_markers();
+    structure_cluster_marker_end();
+    collision_log_add_time(1, *(unsigned int *)0x4761e8, *(int *)0x4761ec);
+  }
+
+  /* Compute final hit position if we got a hit */
+  if (!result) {
+    *(float *)((char *)collision_result + 0x14) = 1.0f;
+  }
+  saved_dist = *(float *)((char *)collision_result + 0x14);
+  ((float *)((char *)collision_result + 0x18))[0] =
+    saved_dist * direction[0] + origin[0];
+  ((float *)((char *)collision_result + 0x18))[1] =
+    saved_dist * direction[1] + origin[1];
+  ((float *)((char *)collision_result + 0x18))[2] =
+    saved_dist * direction[2] + origin[2];
+  scenario_location_from_point((char *)collision_result + 0xc,
+                               (char *)collision_result + 0x18);
+
+  /* Handle zone tracking */
+  if ((collision_flags & 0x100000) && result &&
+      *(int *)((char *)collision_result + 0xc) != -1) {
+    cur_zone = FUN_0018e720((int)((char *)collision_result + 0x18));
+    if (cur_zone != *(int *)((char *)collision_result + 0xc)) {
+      vector3d_scale_add((float *)((char *)collision_result + 0x24),
+                         (float *)((char *)collision_result + 0x18),
+                         0.001953125f,
+                         (float *)((char *)collision_result + 0x18));
+      scenario_location_from_point((char *)collision_result + 0xc,
+                                   (char *)collision_result + 0x18);
+      if (*(int *)((char *)collision_result + 0xc) == -1) {
+        float dir_len =
+          FUN_00013070(direction, (float *)((char *)collision_result + 0x24));
+        float step;
+        if (dir_len == 0.0f)
+          step = *(double *)0x29d588;
+        else
+          step = *(double *)0x29d590 / fabsf(dir_len);
+
+        while (*(float *)((char *)collision_result + 0x14) >= 0.0f) {
+          *(float *)((char *)collision_result + 0x14) -= step;
+          if (*(float *)((char *)collision_result + 0x14) <= 0.0f)
+            *(float *)((char *)collision_result + 0x14) = 0.0f;
+          ((float *)((char *)collision_result + 0x18))[0] =
+            *(float *)((char *)collision_result + 0x14) * direction[0] +
+            origin[0];
+          ((float *)((char *)collision_result + 0x18))[1] =
+            *(float *)((char *)collision_result + 0x14) * direction[1] +
+            origin[1];
+          ((float *)((char *)collision_result + 0x18))[2] =
+            *(float *)((char *)collision_result + 0x14) * direction[2] +
+            origin[2];
+          scenario_location_from_point((char *)collision_result + 0xc,
+                                       (char *)collision_result + 0x18);
+          if (*(float *)((char *)collision_result + 0x14) < 0.0f)
+            break;
+          if (*(int *)((char *)collision_result + 0xc) != -1)
+            return result;
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
 /* 0x14ec30 — Collision test against BSP surfaces and nearby objects.
  * Performs a BSP surface collision query with the given search radius,
  * optionally adds BSP collision features, then iterates over objects in
