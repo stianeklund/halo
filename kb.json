@@ -11795,7 +11795,9 @@
         },
         {
           "addr": "0xd1890",
-          "decl": "void FUN_000d1890(float *out_corners @<eax>, float *rect @<edi>, char align_flag @<bl>, int bitmap_handle, short screen_index);"
+          "decl": "void FUN_000d1890(float *out_corners @<eax>, float *rect @<edi>, char align_flag @<bl>, short *bitmap_dims, short screen_index);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd1a70",
