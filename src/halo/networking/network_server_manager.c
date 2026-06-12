@@ -971,7 +971,7 @@ void network_game_server_update_ticks(int server, unsigned short tick_count)
       *(int *)(upkt + 0) = tick_out;
       *(int *)(upkt + 4) = upkt_random;
       *(int *)(upkt + 8) = upkt_time;
-      *(unsigned short *)(upkt + 0xc) = *(unsigned short *)input_buf;
+      *(unsigned short *)(upkt + 0xe) = *(unsigned short *)input_buf;
       csmemcpy(upkt + 0x10, input_buf + 4,
                (unsigned int)*(unsigned short *)input_buf << 5);
       msg = encode_network_game_message(0x14, upkt, 0x210);
