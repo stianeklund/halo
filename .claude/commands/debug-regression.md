@@ -31,9 +31,8 @@ for in the diff.
 
 If the `qmd` MCP tools are available (the doc vector index over `docs/`):
 
-- `mcp__plugin_qmd_qmd__query` with `searches` describing the symptom — pair a
-  `lex` keyword line with a `vec` natural-language line — set `intent` to the
-  regression, and scope `collections: ["halo-docs"]`.
+- Call `mcp__plugin_qmd_qmd__query` directly — **do not call `__status` first**, the daemon is always running.
+- Use `searches` describing the symptom — pair a `lex` keyword line with a `vec` natural-language line — set `intent` to the regression, and scope `collections: ["halo-docs"]`.
 - Read the top hit with `mcp__plugin_qmd_qmd__get` at the reported `line`
   (`fromLine = line - 20`, `maxLines = 80`).
 - Carry any matching § into Phase 1 as the hypothesis to confirm or refute.
