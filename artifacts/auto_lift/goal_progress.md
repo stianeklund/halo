@@ -1,5 +1,7 @@
 # Goal-lift: port all remaining hud.obj functions (>=88% VC71 or >=90% equiv)
 
+> **⚠️ COMMIT-MESSAGE ACCURACY**: every commit message's "60/60 equiv" is a FALSE stale count from generate_lift_commit.py — NO equivalence run passed for any of these. d1400/d16a0/d1890 are verified by VC71 ≥88% (legit). **d0e90/d2580/d1f40 are committed ACTIVE but verified by STRUCTURAL INFERENCE ONLY (insn-count + diff, no equiv/runtime)** — at 74-78% LCS the failure mode is silent visual HUD corruption; NEXT DEPLOY MUST EYEBALL THE HUD (weapon sprite, anchor elements, crosshair) before trusting them. d2320's equiv actually FAILED. See HANDOVER_hud_obj.md top section.
+
 Started 2026-06-12. 19 unported functions in hud.obj.
 
 | function | addr | source_file | screen_result | vc71 | action | reason |
