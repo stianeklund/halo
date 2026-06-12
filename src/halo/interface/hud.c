@@ -257,6 +257,33 @@ done_scan:
   return elem;
 }
 
+/* Draws a 16-segment HUD ring (e.g. a charge/cooldown indicator).  param_1
+ * sets the ring radius via tan(); each of 16 vertices is placed on the circle
+ * at depth -0.0625, transformed by the HUD matrix at 0x5065e8, then drawn as
+ * connected segments with style param_2. */
+void FUN_000d0c80(float param_1, int param_2)
+{
+  float vertices[16][3];
+  float radius;
+  float angle;
+  int i;
+
+  radius = x87_fptan(param_1 * *(float *)0x253398) * *(float *)0x255d90;
+
+  angle = 0.0f;
+  for (i = 0; i < 16; i++) {
+    vertices[i][2] = -0.0625f;
+    vertices[i][0] = x87_fcos(angle) * radius;
+    vertices[i][1] = x87_fsin(angle) * radius;
+    matrix_transform_point((float *)0x5065e8, vertices[i], vertices[i]);
+    angle += *(float *)0x26b164;
+  }
+
+  for (i = 1; i <= 16; i++) {
+    FUN_0017eb10(vertices[i - 1], vertices[i % 16], param_2);
+  }
+}
+
 /* Returns a weapon's HUD interface index (int16 at the weapon's 'obje' tag
  * +0x13c), or -1 if the handle is NONE.  Frameless leaf; EAX = weapon handle. */
 int FUN_000d04a0(int weapon_handle)
