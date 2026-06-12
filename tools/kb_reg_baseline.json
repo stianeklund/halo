@@ -240,7 +240,7 @@
     "0xd04d0": "void FUN_000d04d0(int local_player_index @<eax>);",
     "0xd0e90": "void FUN_000d0e90(int player_handle @<eax>);",
     "0xd1580": "void *FUN_000d1580(int tag_index @<eax>, short hud_widget_index @<ebx>, short param_1);",
-    "0xd1890": "void FUN_000d1890(float *out_corners @<eax>, float *rect @<edi>, char align_flag @<bl>, int bitmap_handle, short screen_index);",
+    "0xd1890": "void FUN_000d1890(float *out_corners @<eax>, float *rect @<edi>, char align_flag @<bl>, short *bitmap_dims, short screen_index);",
     "0xd1a70": "char FUN_000d1a70(int render @<eax>, int param_1);",
     "0xd27a0": "void FUN_000d27a0(int element @<ecx>, float *scale @<eax>, int local_player_index, void *cursor, float *icon_rect, float *corners, void *param_6, int color);",
     "0xd3080": "void FUN_000d3080(int crosshair_overlay @<eax>, int hud_globals @<ecx>, int bitmap_data @<edx>, int param_1, short *param_2, float scale, int param_4, int color, int flags, char use_bitmap_size, char param_8);",
