@@ -235,6 +235,7 @@
     "0xcc340": "void FUN_000cc340(int16_t script_index@<ax>, int thread_handle@<esi>, char init);",
     "0xcc3a0": "int FUN_000cc3a0(int thread_datum@<eax>, int16_t param_count, int formal_params, char init);",
     "0xcd840": "void FUN_000cd840(int thread_handle@<eax>);",
+    "0xd1580": "void *FUN_000d1580(int tag_index @<eax>, short hud_widget_index @<ebx>, short param_1);",
     "0xd1890": "void FUN_000d1890(float *out_corners @<eax>, float *rect @<edi>, char align_flag @<bl>, int bitmap_handle, short screen_index);",
     "0xd1a70": "char FUN_000d1a70(int render @<eax>, int param_1);",
     "0xd27a0": "void FUN_000d27a0(int element @<ecx>, float *scale @<eax>, int local_player_index, void *cursor, float *icon_rect, float *corners, void *param_6, int color);",

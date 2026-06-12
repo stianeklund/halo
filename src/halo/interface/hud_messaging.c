@@ -44,8 +44,9 @@ void FUN_000d3fe0(int param_1, short *param_2, int param_3,
                               *(short *)(param_3 + 0x54), 0);
   iVar2 = (int)xbox_texture_cache_get_hardware_format((void *)local_c, 0, 1);
   if (iVar2 != 0) {
-    verify_tag_reference((int *)(param_3 + 0x24));
-    puVar3 = (float *)FUN_000d1580();
+    puVar3 = (float *)FUN_000d1580(
+        verify_tag_reference((int *)(param_3 + 0x24)),
+        *(short *)(param_3 + 0x54), 0);
     if ((param_4 & 2) == 0) {
       if ((param_4 & 1) == 0) {
         uVar4 = *(int *)(param_3 + 0x34);
