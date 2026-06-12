@@ -1233,6 +1233,140 @@ found_corrupt:
   }
 }
 
+/* Resolves an absolute on-screen position (out[0],out[1]) from an anchor-mode
+ * `placement` relative to the safe-frame rect (globals at 0x506584).  The
+ * anchor index (*absolute_placement) selects which corner/edge the placement is
+ * measured from (anchors 0-3 use signed per-axis offsets, anchor>=4 centres on
+ * the rect midpoint).  An optional offset_struct nudges the result per anchor
+ * (cases 0-4).  scale = (flag==0 || in_scale==const) ? 1 : in_scale.  Result is
+ * rounded to two shorts.  Stack-guard instrumented (hud_draw.c). */
+void FUN_000d1f40(short local_player, unsigned short *absolute_placement,
+                  short *placement, int offset_struct, char flag, float in_scale,
+                  short *out)
+{
+  int return_address;
+  int guard[128];
+  unsigned short anchor;
+  float scale;
+  float coord_x;
+  float coord_y;
+  int iVar3;
+  short corrupt_index;
+
+  return_address = FUN_000d1540();
+  csmemset(guard, 0x62, 0x200);
+
+  if (flag == '\0' || in_scale == *(float *)0x2533c0) {
+    scale = 1.0f;
+  } else {
+    scale = in_scale;
+  }
+
+  if (*(short *)0x506548 != local_player) {
+    display_assert("render.local_player_index==local_player_index",
+                   "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x7d, 1);
+    system_exit(-1);
+  }
+  if (absolute_placement == NULL) {
+    display_assert("absolute_placement",
+                   "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x7e, 1);
+    system_exit(-1);
+  }
+  if (placement == NULL) {
+    display_assert("placement", "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x7f, 1);
+    system_exit(-1);
+  }
+
+  anchor = *absolute_placement;
+  if ((short)anchor < 4) {
+    coord_x = (float)(((-(int)((anchor & 1) != 0) & -2) + 1) * (int)placement[0]) *
+                  scale +
+              (int)*(short *)(0x506584 + (((anchor & 1) << 1 | 1) * 2)) -
+              (int)*(short *)0x50657e;
+    coord_y = (float)(((-(int)((anchor & 2) != 0) & -2) + 1) * (int)placement[1]) *
+                  scale +
+              (int)*(short *)(0x506584 + ((anchor & 2) * 2)) -
+              (int)*(short *)0x50657c;
+  } else {
+    coord_x =
+        (float)(int)placement[0] * scale +
+        (float)(short)((*(short *)0x506586 + *(short *)0x50658a) / 2 -
+                       *(short *)0x50657e);
+    coord_y =
+        (float)(int)placement[1] * scale +
+        (float)(short)((*(short *)0x506584 + *(short *)0x506588) / 2 -
+                       *(short *)0x50657c);
+  }
+
+  if (offset_struct != 0) {
+    switch (anchor) {
+    case 0:
+      coord_x = (float)(int)*(short *)(offset_struct + 0x10) * scale + coord_x;
+      coord_y = (float)(int)*(short *)(offset_struct + 0x12) * scale + coord_y;
+      break;
+    case 1:
+      coord_x = (float)((int)*(short *)(offset_struct + 0x10) -
+                        (int)*(short *)(offset_struct + 4)) *
+                    scale +
+                coord_x;
+      coord_y = (float)(int)*(short *)(offset_struct + 0x12) * scale + coord_y;
+      break;
+    case 2:
+      coord_x = (float)(int)*(short *)(offset_struct + 0x10) * scale + coord_x;
+      coord_y = (float)((int)*(short *)(offset_struct + 0x12) -
+                        (int)*(short *)(offset_struct + 6)) *
+                    scale +
+                coord_y;
+      break;
+    case 3:
+      coord_x = (float)((int)*(short *)(offset_struct + 0x10) -
+                        (int)*(short *)(offset_struct + 4)) *
+                    scale +
+                coord_x;
+      coord_y = (float)((int)*(short *)(offset_struct + 0x12) -
+                        (int)*(short *)(offset_struct + 6)) *
+                    scale +
+                coord_y;
+      break;
+    case 4:
+      iVar3 = (int)*(short *)(offset_struct + 4) / 2;
+      coord_x =
+          (float)(*(short *)(offset_struct + 0x10) + iVar3) * scale + coord_x;
+      coord_y =
+          (float)(*(short *)(offset_struct + 0x12) + iVar3) * scale + coord_y;
+      break;
+    default:
+      display_assert("!\"unreachable\"",
+                     "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0xae, 1);
+      system_exit(-1);
+    }
+  }
+
+  out[0] = (short)(int)coord_x;
+  out[1] = (short)(int)coord_y;
+
+  corrupt_index = 0x7f;
+  do {
+    if (guard[(int)corrupt_index] != 0x62626262) {
+      goto found_corrupt2;
+    }
+    corrupt_index--;
+  } while (corrupt_index >= 0);
+  corrupt_index = -1;
+found_corrupt2:
+  if (return_address != FUN_000d1540()) {
+    display_assert("corrupt return address!",
+                   "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0xb5, 1);
+    system_exit(-1);
+  }
+  if (corrupt_index != -1) {
+    display_assert(
+        csprintf((char *)0x5ab100, "corrupt stack at %d!", (int)corrupt_index),
+        "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0xb5, 1);
+    system_exit(-1);
+  }
+}
+
 uint32_t FUN_000d1c90(float *color)
 {
   int a;
