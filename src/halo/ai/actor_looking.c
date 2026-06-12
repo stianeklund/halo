@@ -7251,11 +7251,11 @@ short FUN_00027090(int actor_handle, void *param_2, void *param_3,
   actor = (char *)datum_get(actor_data, actor_handle);
   if (*(int *)(actor + 0x34) != -1) {
     allowed = (unsigned int)actor_get_firing_position_group(
-      actor_handle, (short)(((unsigned int *)param_2)[1]), 0);
+      actor_handle, *(short *)((char *)param_2 + 4), 0);
     gb = (unsigned int)actor_get_firing_position_group(
-      actor_handle, (short)(((unsigned int *)param_2)[1]), 2);
+      actor_handle, *(short *)((char *)param_2 + 4), 2);
     total = (unsigned int)actor_get_firing_position_group(
-      actor_handle, (short)(((unsigned int *)param_2)[1]), 1);
+      actor_handle, *(short *)((char *)param_2 + 4), 1);
     total = total | gb;
 
     if (allowed < total) {
