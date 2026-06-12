@@ -109,6 +109,7 @@ After Phase 1 completes:
    ```
    If the result is `0`, export it before running the pipeline:
    - Get the function body range: `mcp__ghidra__get_function_by_address` at target address
+   - **Verify end > start before exporting.** Also check `ls delinked/ | grep <ADDR>` — skip if a file already exists.
    - Export: `mcp__ghidra-live__export_delinked_object` to
      `G:\dev\halo\delinked\<obj>_FUN_<ADDR>.obj` with `selection_mode=range`
    - Add entry to `objdiff.json` under `.units`:
