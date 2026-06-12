@@ -257,6 +257,64 @@ done_scan:
   return elem;
 }
 
+/* Projects a player's biped head position to screen space and draws a rotating
+ * crosshair/reticle sprite there.  The reticle's rotation angle is derived from
+ * the head's camera-space depth (mapped through a near/far range and clamped).
+ * EAX = local player handle. */
+void FUN_000d0e90(int player_handle)
+{
+  void *player;
+  float head_pos[3];
+  float cam_pos[3];
+  float screen_xy[2];
+  int screen_int;
+  short offset_xy[2];
+  int sprite_handle;
+  float depth_ratio;
+  float t;
+  float color_struct[4];
+
+  player = datum_get(*(data_t **)0x5aa6d4, player_handle);
+  unit_get_head_position(*(int *)((char *)player + 0x34), head_pos);
+  head_pos[2] += *(float *)0x2533e4;
+  matrix_transform_point((float *)0x5065b4, head_pos, cam_pos);
+  if (render_camera_view_to_screen((int *)0x506550, (int *)0x5065a4, cam_pos,
+                                   screen_xy) == '\0') {
+    return;
+  }
+
+  sprite_handle = interface_get_tag_index(9);
+  sprite_handle = (int)FUN_00077040(sprite_handle, 0, 0);
+  if (xbox_texture_cache_get_hardware_format((void *)sprite_handle, 0, 1) ==
+      NULL) {
+    return;
+  }
+
+  screen_int = (int)(screen_xy[0] + 0.5f);
+  offset_xy[0] = (short)(screen_int - *(short *)0x50657e);
+
+  screen_int = (int)(screen_xy[1] + 0.5f);
+  depth_ratio = (-cam_pos[2] - *(float *)0x50667c) * *(float *)0x253f00 /
+                (*(float *)0x506680 - *(float *)0x50667c);
+  offset_xy[1] = (short)(screen_int - *(int *)0x50657c);
+
+  t = *(float *)0x2533c8 - depth_ratio;
+  if (*(float *)0x256988 <= t) {
+    if (*(float *)0x2533c8 < t) {
+      t = *(float *)0x2533c8;
+    }
+  } else {
+    t = *(float *)0x256988;
+  }
+
+  color_struct[0] = 0.0f;
+  color_struct[1] = 1.0f;
+  color_struct[2] = (*(float *)0x2533c8 - t) * *(float *)0x253398;
+  color_struct[3] = 1.0f;
+
+  interface_draw_bitmap(sprite_handle, offset_xy, color_struct, 1.0f, 0, 1.0f);
+}
+
 /* Draws a 16-segment HUD ring (e.g. a charge/cooldown indicator).  param_1
  * sets the ring radius via tan(); each of 16 vertices is placed on the circle
  * at depth -0.0625, transformed by the HUD matrix at 0x5065e8, then drawn as
