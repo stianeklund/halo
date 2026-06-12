@@ -5129,7 +5129,8 @@
         },
         {
           "addr": "0x14ef80",
-          "decl": "void FUN_0014ef80(void);"
+          "decl": "void FUN_0014ef80(int param_1, float *dir, int param_3, float *pos @<eax>, float *origin @<ebx>);",
+          "ported": true
         },
         {
           "addr": "0x14f020",
@@ -35250,7 +35251,7 @@
         },
         {
           "addr": "0x14dc30",
-          "decl": "void FUN_0014dc30(void);"
+          "decl": "char FUN_0014dc30(int param_1, float *pos, int param_3);"
         },
         {
           "addr": "0x14dce0",
