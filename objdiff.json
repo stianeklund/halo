@@ -5267,6 +5267,12 @@
       "metadata": { "source_path": "src/halo/interface/hud.c" }
     },
     {
+      "name": "halo/hud_d1400_d1531",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
+      "base_path": "delinked/hud_d1400_d1531.obj",
+      "metadata": { "source_path": "src/halo/interface/hud.c" }
+    },
+    {
       "name": "halo/hud_d1580_d168e",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
       "base_path": "delinked/hud_d1580_d168e.obj",
