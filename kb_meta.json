@@ -7840,6 +7840,10 @@
         "FUN_001d33fb at 0x1d33fb identified as QueryPerformanceFrequency wrapper: calls IAT slot [0x253208] which is adjacent to [0x253204] (QueryPerformanceCounter); Xbox ordinals 0x5e/0x5f confirm consecutive ordering."
       ]
     },
+    "0x14d210": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x14d840": {
       "kind": "function",
       "status": "ported"
@@ -7853,6 +7857,14 @@
       "status": "ported"
     },
     "0x14d9d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x14eeb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x14ef30": {
       "kind": "function",
       "status": "ported"
     },
