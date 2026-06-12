@@ -1,38 +1,38 @@
 {
-  "generated": "2026-06-11T00:40:03.314949+00:00",
+  "generated": "2026-06-12T00:41:44.304665+00:00",
   "ci_runs": {
     "available": true,
     "total": 60,
-    "last_run_time": "2026-06-11T00:39:56Z",
+    "last_run_time": "2026-06-12T00:41:32Z",
     "last_commit": "ed169421",
     "workflows": [
       {
         "name": "Progress Report",
         "conclusion": "",
-        "created_at": "2026-06-11T00:39:56Z",
+        "created_at": "2026-06-12T00:41:32Z",
         "head_sha": "ed169421",
-        "url": "https://github.com/stianeklund/halo/actions/runs/27315879053"
+        "url": "https://github.com/stianeklund/halo/actions/runs/27386839211"
+      },
+      {
+        "name": "Runtime Oracle Tests",
+        "conclusion": "success",
+        "created_at": "2026-06-11T05:35:14Z",
+        "head_sha": "ed169421",
+        "url": "https://github.com/stianeklund/halo/actions/runs/27326197313"
+      },
+      {
+        "name": "Equivalence Tests",
+        "conclusion": "success",
+        "created_at": "2026-06-11T04:29:33Z",
+        "head_sha": "ed169421",
+        "url": "https://github.com/stianeklund/halo/actions/runs/27323871234"
       },
       {
         "name": "pages-build-deployment",
         "conclusion": "success",
-        "created_at": "2026-06-10T22:22:26Z",
-        "head_sha": "2b1cf4ab",
-        "url": "https://github.com/stianeklund/halo/actions/runs/27310179022"
-      },
-      {
-        "name": "Equivalence Tests",
-        "conclusion": "failure",
-        "created_at": "2026-06-10T21:20:05Z",
-        "head_sha": "ed169421",
-        "url": "https://github.com/stianeklund/halo/actions/runs/27307086866"
-      },
-      {
-        "name": "Runtime Oracle Tests",
-        "conclusion": "failure",
-        "created_at": "2026-06-10T21:20:05Z",
-        "head_sha": "ed169421",
-        "url": "https://github.com/stianeklund/halo/actions/runs/27307086853"
+        "created_at": "2026-06-11T00:40:12Z",
+        "head_sha": "fb15dda9",
+        "url": "https://github.com/stianeklund/halo/actions/runs/27315889809"
       },
       {
         "name": ".github/workflows/main.yml",
