@@ -11847,6 +11847,12 @@
         {
           "addr": "0xd27a0",
           "decl": "void FUN_000d27a0(int element @<ecx>, float *scale @<eax>, int local_player_index, void *cursor, float *icon_rect, float *corners, void *param_6, int color);"
+        },
+        {
+          "addr": "0xd02c0",
+          "decl": "int FUN_000d02c0(void *state_buf @<eax>);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         }
       ],
       "name": "hud.obj",
@@ -12527,12 +12533,6 @@
         {
           "addr": "0xd0030",
           "decl": "void input_get_raw_data_string(void);"
-        },
-        {
-          "addr": "0xd02c0",
-          "decl": "int FUN_000d02c0(void *state_buf @<eax>);",
-          "ported": true,
-          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd02f0",
