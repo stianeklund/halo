@@ -4,10 +4,11 @@
 Port all remaining `hud.obj` functions (`src/halo/interface/hud.c`) at ≥88% VC71 match OR ≥90% equivalence.
 
 ## Current State (after session 2026-06-12b)
-- **hud.obj now 30/36 ported.** 14 functions committed across the goal-lift (13 in hud.c + d02c0 prereq). Working tree clean except gitignored delinked/ objs + pre-existing untracked `.vc71_regcall_*` / agent-memory files.
-- Branch `biped-2f40-relift-consolidate`. **3 commits this session**: d1400 (NEW 88.3%), d16a0 (IMPROVED 87.0→88.9%), d0e90 (faithfulness fix, 80.6%).
+- **hud.obj now 33/36 ported.** Working tree clean except gitignored delinked/ objs + pre-existing untracked `.vc71_regcall_*` / agent-memory files.
+- Branch `biped-2f40-relift-consolidate`. **6 function commits this session**: d1400 (NEW 88.3%), d16a0 (87.0→88.9%), d0e90 (faithfulness fix 80.6%), **d1890 (NEW 89.4% — cleared bar)**, **d2580 (NEW 74.6% faithful)**, **d1f40 (NEW 78.0% faithful)**.
 - Full per-function status + blockers + recipes in `artifacts/auto_lift/goal_progress.md`. Continuity memory: `project_hud_obj_goal_lift`.
-- **8 remain not-at-bar**: 5 unported (d1090, d2580, d1f40, d1890, d27a0) + 3 below-bar committed (d2320 85.4%, d0e90 80.6%, d04d0 80.5%) + d1540 (frameless, stays `ported=false`). ALL are tooling-blocked (see Uncertain/Risks) — none is a quick lift.
+- **3 remain**: **d1090** (unported, hardest — variadic sprintf calls w/ Ghidra-lost args + CONCAT22 + float10; callee decls partly resolved in goal_progress.md, incl. a 0x8df60 csstrlen-vs-sprintf CONFLICT to settle from disasm), **d27a0** (unported, largest ~2192B; cursor/icon FSIN/FCOS rotation, kb decl `void*param_6` is really `float angle`), **d1540** (frameless ret-addr helper — stays `ported=false`, NOT portable; exclude from the bar math).
+- **KEY LESSON this session**: the prior "register-arg/FPU draws are ~73-82% capped" claim was FALSE — d1890 (register args + FPU) cleared 89.4% with a faithful lift. The real VC71 cap = count of `_ftol` (`(int)float`) + x87-wrapper calls (sin/cos/fmod) vs the original's inline FISTP/FSIN. Always attempt the faithful lift first; only conclude "capped" after measuring.
 
 ## Confirmed (this session)
 - **Integer branch-inversion lever** (the cheap win): when vc71 --show-diffs shows a single `jne`↔`je` at an integer compare with high insns-matched, the upstream branch has the wrong fall-through arm and desyncs the whole LCS. Read disasm for the not-taken arm, write the C `if` so that arm is first (invert + swap blocks verbatim, zero behavior risk). **Validated twice**: d1400 87.3→88.3, d16a0 87.0→88.9. See `feedback_integer_branch_inversion_realigns_lcs`.
