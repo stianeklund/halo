@@ -642,10 +642,10 @@ void FUN_000d0e90(int player_handle)
     return;
   }
 
-  screen_int = (int)(screen_xy[0] + 0.5f);
+  screen_int = (int)screen_xy[0];
   offset_xy[0] = (short)(screen_int - *(short *)0x50657e);
 
-  screen_int = (int)(screen_xy[1] + 0.5f);
+  screen_int = (int)screen_xy[1];
   depth_ratio = (-cam_pos[2] - *(float *)0x50667c) * *(float *)0x253f00 /
                 (*(float *)0x506680 - *(float *)0x50667c);
   offset_xy[1] = (short)(screen_int - *(int *)0x50657c);
