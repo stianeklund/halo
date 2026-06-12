@@ -1991,6 +1991,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x8f1f0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x8f200": {
       "kind": "function",
       "status": "ported"
