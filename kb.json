@@ -3705,7 +3705,7 @@
         {
           "addr": "0x27a60",
           "decl": "int FUN_00027a60(int actor_handle, short look_type, short priority, short *look_buf);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x27dd0",
