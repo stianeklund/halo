@@ -5066,7 +5066,8 @@
         },
         {
           "addr": "0x14d210",
-          "decl": "void collision_log_render(void);"
+          "decl": "void collision_log_render(void);",
+          "ported": true
         },
         {
           "addr": "0x14d840",
@@ -5140,7 +5141,8 @@
         },
         {
           "addr": "0x14f2c0",
-          "decl": "void FUN_0014f2c0(void);"
+          "decl": "short FUN_0014f2c0(float *old_pos, float *old_vel, short *features, float *new_pos, float *new_vel, short max_clips, int collisions);",
+          "ported": true
         }
       ],
       "name": "collision_usage.obj",
