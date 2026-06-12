@@ -237,6 +237,7 @@
     "0xcd840": "void FUN_000cd840(int thread_handle@<eax>);",
     "0xd02c0": "int FUN_000d02c0(void *state_buf @<eax>);",
     "0xd04a0": "int FUN_000d04a0(int weapon_handle @<eax>);",
+    "0xd04d0": "void FUN_000d04d0(int local_player_index @<eax>);",
     "0xd0e90": "void FUN_000d0e90(int player_handle @<eax>);",
     "0xd1580": "void *FUN_000d1580(int tag_index @<eax>, short hud_widget_index @<ebx>, short param_1);",
     "0xd1890": "void FUN_000d1890(float *out_corners @<eax>, float *rect @<edi>, char align_flag @<bl>, int bitmap_handle, short screen_index);",
