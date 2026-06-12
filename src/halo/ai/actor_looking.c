@@ -5835,19 +5835,19 @@ void FUN_00024cf0(int actor_handle, char *eval_state, unsigned short fp_count,
             range = *(float *)(actor + 0x294);
             local_14_score = 0.0f;
 
-            if (local_10_dsq <= range * range) {
+            if (range * range <= local_10_dsq) {
+              if ((range + 2.5f) * (range + 2.5f) <= local_10_dsq) {
+                local_14_score = 20.0f;
+              } else {
+                local_14_score = (xbox_sqrtf(local_10_dsq) - range) * 8.0f;
+              }
+              FUN_00024000(eval_state, local_14_score, 0x17, fp_base_ptr);
+            } else {
               *(char *)(fp_ptr + 0x1d) = 1;
               if (*(char *)(eval_state + 0x14) == 0) {
                 *(char *)(fp_ptr + 0x1c) = 0;
                 goto LAB_24cf0_fp_next;
               }
-            } else {
-              if (local_10_dsq <= (range + 2.5f) * (range + 2.5f)) {
-                local_14_score = (xbox_sqrtf(local_10_dsq) - range) * 8.0f;
-              } else {
-                local_14_score = 20.0f;
-              }
-              FUN_00024000(eval_state, local_14_score, 0x17, fp_base_ptr);
             }
           }
 
