@@ -6882,8 +6882,8 @@
         },
         {
           "addr": "0x8e5f0",
-          "decl": "int FUN_0008e5f0(int param_1, int param_2);",
-          "ported": false
+          "decl": "int FUN_0008e5f0(uint32_t code, int exception_pointers);",
+          "ported": true
         },
         {
           "addr": "0x8e650",
