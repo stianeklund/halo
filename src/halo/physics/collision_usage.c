@@ -1302,13 +1302,101 @@ void FUN_0014ef80(int param_1, float *dir, int param_3, float *pos,
 char FUN_0014f020(uint32_t collision_flags, float *point, float vertical_extent,
                   float p4, float p5, int unit_handle, float *point_out)
 {
-  static char feature_buf[0xac88];
-  float local_pos[3];
+  char feature_buf[0xac88]; /* stack — _chkstk is now a no-op stub */
+  float local_84[11];       /* first bc10 scratch output, 44 bytes */
+  float local_hit[11];      /* loop bc10/c4b0 scratch output, 44 bytes */
+  float local_pos[3];       /* reused as local_dir after ec30 */
+  float local_offset[3];
+  float save_pos[3];
+  char ret_val;
+  char found_any;
+  unsigned short i;
+  short ctr;
+  float *scale_table;
+  float elevation;
+  float *dir_entry;
+
+  ret_val = 0;
+
+  if (*(short *)0x4761d8 >= 0x20) {
+    display_assert((const char *)0x253440, (const char *)0x29d5a0, 0x4f8, 1);
+    system_exit(-1);
+  }
+
+  ctr = *(short *)0x4761d8;
+  elevation = p4 * *(float *)0x253398;
+  ((short *)0x5a8c80)[ctr] = 7;
+  *(short *)0x4761d8 = (short)(ctr + 1);
+
   local_pos[0] = point[0];
   local_pos[1] = point[1];
-  local_pos[2] = point[2];
-  FUN_0014ec30(collision_flags, local_pos, 1.0f, p4, p5, unit_handle, feature_buf);
-  return 0;
+  local_pos[2] = elevation + point[2];
+
+  FUN_0014ec30((int)collision_flags, local_pos,
+               elevation + vertical_extent + p5, p4, p5, unit_handle, feature_buf);
+
+  if (!collision_features_test_los(feature_buf, (void *)point, (void *)local_84) &&
+      !FUN_0014dc30((int)collision_flags, point, unit_handle)) {
+    point_out[0] = point[0];
+    point_out[1] = point[1];
+    point_out[2] = point[2];
+    goto mark_success;
+  }
+
+  found_any = 0;
+  for (i = 0; i < 0x11; i++) {
+    dir_entry = (float *)((char *)0x325060 + (int)(i * 3) * 4);
+    local_offset[0] = vertical_extent * dir_entry[0] + point[0];
+    local_offset[1] = vertical_extent * dir_entry[1] + point[1];
+    local_offset[2] = vertical_extent * dir_entry[2] + point[2];
+
+    if (!collision_features_test_los(feature_buf, (void *)local_offset, (void *)local_hit)) {
+      if (!FUN_0014dc30((int)collision_flags, local_offset, unit_handle)) {
+        scale_table = *(float **)0x31fc50;
+        local_pos[0] = vertical_extent * scale_table[0];
+        local_pos[1] = vertical_extent * scale_table[1];
+        local_pos[2] = vertical_extent * scale_table[2];
+
+        if (FUN_0014c4b0((int)(void *)feature_buf, local_offset, local_pos, (void *)local_hit)) {
+          if (local_hit[6] > *(float *)0x29d59c) {
+            FUN_0014ef80((int)collision_flags, local_pos, unit_handle, local_hit, local_offset);
+            point_out[0] = local_hit[1];
+            point_out[1] = local_hit[2];
+            point_out[2] = local_hit[3];
+            goto mark_success;
+          }
+        }
+        if (!found_any) {
+          save_pos[0] = local_offset[0];
+          save_pos[1] = local_offset[1];
+          save_pos[2] = local_offset[2];
+          found_any = 1;
+        }
+      }
+    }
+  }
+
+  if (!found_any)
+    goto epilog;
+
+  local_pos[0] = point[0] - save_pos[0];
+  local_pos[1] = point[1] - save_pos[1];
+  local_pos[2] = point[2] - save_pos[2];
+  FUN_0014c4b0((int)(void *)feature_buf, save_pos, local_pos, (void *)local_hit);
+  FUN_0014ef80((int)collision_flags, local_pos, unit_handle, local_hit, save_pos);
+  point_out[0] = local_hit[1];
+  point_out[1] = local_hit[2];
+  point_out[2] = local_hit[3];
+
+mark_success:
+  ret_val = 1;
+epilog:
+  if (*(short *)0x4761d8 <= 1) {
+    display_assert((const char *)0x253418, (const char *)0x29d5a0, 0x562, 1);
+    system_exit(-1);
+  }
+  (*(short *)0x4761d8)--;
+  return ret_val;
 }
 
 /* 0x14f2c0 — Collision clipping: walk position/velocity through
