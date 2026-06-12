@@ -832,6 +832,101 @@ float FUN_000d1690(int split_screen)
   return *(float *)0x002533c8;
 }
 
+/* Computes the 4 corner offsets (out_corners[0..3]) of a HUD bitmap quad from a
+ * rect (rect = x0,x1,y0,y1) and an anchor mode (screen_index 0..4).  The extent
+ * along each axis is (rect[1]-rect[0]) / (rect[3]-rect[2]) scaled by either 1
+ * (align_flag set) or the bitmap's pixel dimensions (signed words at
+ * bitmap_dims+0x4 / +0x6).  screen_index selects which corners receive the
+ * +/- extents; mode 4 scales by two global aspect constants.  Stack-guard
+ * instrumented (hud_draw.c). */
+void FUN_000d1890(float *out_corners, float *rect, char align_flag,
+                  short *bitmap_dims, short screen_index)
+{
+  int return_address;
+  int guard[128];
+  int extent_x_count;
+  int extent_y_count;
+  float x_extent;
+  float y_extent;
+  short corrupt_index;
+
+  return_address = FUN_000d1540();
+  csmemset(guard, 0x62, 0x200);
+
+  if (align_flag != '\0') {
+    extent_x_count = 1;
+  } else {
+    extent_x_count = (int)bitmap_dims[2];
+  }
+  x_extent = (rect[1] - rect[0]) * extent_x_count;
+
+  if (align_flag != '\0') {
+    extent_y_count = 1;
+  } else {
+    extent_y_count = (int)bitmap_dims[3];
+  }
+  y_extent = (rect[3] - rect[2]) * extent_y_count;
+
+  switch (screen_index) {
+  case 0:
+    out_corners[0] = 0.0f;
+    out_corners[1] = x_extent;
+    out_corners[2] = 0.0f;
+    out_corners[3] = y_extent;
+    break;
+  case 1:
+    out_corners[0] = -x_extent;
+    out_corners[1] = 0.0f;
+    out_corners[2] = 0.0f;
+    out_corners[3] = y_extent;
+    break;
+  case 2:
+    out_corners[0] = 0.0f;
+    out_corners[1] = x_extent;
+    out_corners[2] = -y_extent;
+    out_corners[3] = 0.0f;
+    break;
+  case 3:
+    out_corners[0] = -x_extent;
+    out_corners[1] = 0.0f;
+    out_corners[2] = -y_extent;
+    out_corners[3] = 0.0f;
+    break;
+  case 4:
+    out_corners[0] = x_extent * *(float *)0x255964;
+    out_corners[1] = x_extent * *(float *)0x253398;
+    out_corners[2] = y_extent * *(float *)0x255964;
+    out_corners[3] = y_extent * *(float *)0x253398;
+    break;
+  default:
+    display_assert("!\"unreachable\"",
+                   "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x388, 1);
+    system_exit(-1);
+    break;
+  }
+
+  corrupt_index = 0x7f;
+  do {
+    if (guard[(int)corrupt_index] != 0x62626262) {
+      goto found_corrupt;
+    }
+    corrupt_index--;
+  } while (corrupt_index >= 0);
+  corrupt_index = -1;
+found_corrupt:
+  if (return_address != FUN_000d1540()) {
+    display_assert("corrupt return address!",
+                   "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x38b, 1);
+    system_exit(-1);
+  }
+  if (corrupt_index != -1) {
+    display_assert(
+        csprintf((char *)0x5ab100, "corrupt stack at %d!", (int)corrupt_index),
+        "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x38b, 1);
+    system_exit(-1);
+  }
+}
+
 /* HUD weapon-interface draw helper (hud_draw.c). EAX = render/player state.
  * Resolves the player's current weapon; if the player has none, falls back to
  * the parent unit's weapon (gated by a 'unit' tag flag bit).  When a weapon is
