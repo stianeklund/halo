@@ -255,3 +255,31 @@ void FUN_000d1e90(float alpha, float intensity)
   color[3] = intensity;
   FUN_000d1c90(color);
 }
+
+/* Packs a 3-component real RGB color (each 0.0..1.0) into a 0x00RRGGBB
+ * 32-bit pixel.  Validates the color via valid_real_rgb_color() and, on
+ * failure, formats an assert message (bitmaps_inlines.h:0xc9) and halts.
+ * Sibling of FUN_000d1c90 (the 4-component ARGB variant). */
+unsigned int FUN_000d1dd0(float *color)
+{
+  float scale;
+  int packed;
+  char *msg;
+
+  scale = 255.0f;
+  if (!valid_real_rgb_color(color)) {
+    msg = csprintf((char *)0x5ab100,
+                   "%s: assert_valid_real_rgb_color(%f, %f, %f)", "color",
+                   (double)color[0], (double)color[1], (double)color[2]);
+    display_assert(msg, "..\\bitmaps\\bitmaps_inlines.h", 0xc9, 1);
+    system_exit(-1);
+  }
+
+  /* Original rounds via x87 FISTP (round-to-nearest); the products are always
+   * positive (color is validated to [0,1]), so the +0.5f truncation idiom is
+   * behaviorally equivalent under our clang/-mno-sse build. */
+  packed = (int)(color[2] * scale + 0.5f) & 0xff;
+  packed |= ((int)(color[1] * scale + 0.5f) & 0xff) << 8;
+  packed |= ((int)(color[0] * scale + 0.5f) & 0xff) << 16;
+  return (unsigned int)packed;
+}
