@@ -5119,11 +5119,13 @@
         },
         {
           "addr": "0x14eeb0",
-          "decl": "void collision_log_end_time(void);"
+          "decl": "void collision_log_end_time(float *target, float *origin @<ecx>, float *output @<edx>, float *dir @<eax>);",
+          "ported": true
         },
         {
           "addr": "0x14ef30",
-          "decl": "void collision_log_usage(void);"
+          "decl": "void collision_log_usage(float *output @<ecx>, float *vec @<edx>, float *dir @<eax>);",
+          "ported": true
         },
         {
           "addr": "0x14ef80",
