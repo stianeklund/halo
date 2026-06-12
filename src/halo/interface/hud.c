@@ -200,6 +200,16 @@ int FUN_000d1c50(float param_1)
   return (int)param_1;
 }
 
+/* Scales the float at struct offset +8 by a global factor and rounds to the
+ * nearest int (original uses x87 FISTP round-to-nearest). */
+int FUN_000d2300(int param_1)
+{
+  float v;
+
+  v = *(float *)(param_1 + 8) * *(float *)0x253394;
+  return (int)(v < 0.0f ? v - 0.5f : v + 0.5f);
+}
+
 uint32_t FUN_000d1c90(float *color)
 {
   int a;
