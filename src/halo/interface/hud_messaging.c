@@ -86,8 +86,8 @@ void FUN_000d3fe0(int param_1, short *param_2, int param_3,
             (draw_flag = 1, (*(unsigned char *)(param_3 + 0xc) & 1) != 0)) {
           draw_flag = 0;
         }
-        FUN_000d1f40((short)*(int *)0x506548, param_2, (int)param_3, 0, draw_flag,
-                     0, local_18);
+        FUN_000d1f40((short)*(int *)0x506548, (unsigned short *)param_2,
+                     (short *)param_3, 0, draw_flag, 0, (short *)local_18);
         /* d1890: @<eax>=local_4c (out corners), @<edi>=puVar3 (in rect),
          * @<bl>=cVar5 (align flag); 2 stack args: bitmap, screen index. */
         FUN_000d1890((float *)local_4c, puVar3, cVar5, (short *)local_c, *param_2);
@@ -1071,8 +1071,8 @@ void FUN_000d5350(int param_1)
   {
     short sVar3;
     sVar3 = local_player_count();
-    FUN_000d1f40((short)param_1, (short *)(*(int *)0x5aa68c + 0x24),
-                 *(int *)0x5aa68c, 0, 1 < sVar3, 0, &local_64);
+    FUN_000d1f40((short)param_1, (unsigned short *)(*(int *)0x5aa68c + 0x24),
+                 (short *)*(int *)0x5aa68c, 0, 1 < sVar3, 0, (short *)&local_64);
   }
   local_62_dw = *(int *)((char *)&local_64 + 2);
 
@@ -3401,9 +3401,9 @@ void FUN_000d7d40(int param_1)
           }
 
           sVar4 = local_player_count();
-          FUN_000d1f40((short)local_player_idx, local_130,
-                       iVar13 + 0x35c, 0, 1 < sVar4, 0,
-                       local_78_buf);
+          FUN_000d1f40((short)local_player_idx, (unsigned short *)local_130,
+                       (short *)(iVar13 + 0x35c), 0, 1 < sVar4, 0,
+                       (short *)local_78_buf);
 
           sVar4 = local_player_count();
           FUN_000dbfb0(local_player_idx, 1 < sVar4,
