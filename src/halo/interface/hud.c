@@ -188,6 +188,68 @@ int FUN_000d1550(int param_1)
   return iVar1;
 }
 
+/* Top-level per-frame HUD update for the local player: skips while the engine
+ * is running a non-active state or a cinematic, draws teammate crosshairs,
+ * then updates the player's weapon/state HUD (full or minimal depending on
+ * perspective and vehicle state). */
+void FUN_000d1400(void)
+{
+  int player_index;
+  short perspective;
+  void *player_datum;
+  char c;
+
+  player_index = local_player_get_player_index((int16_t) * (short *)0x506548);
+  perspective = director_get_perspective((int16_t) * (short *)0x506548);
+  FUN_0015f1f0();
+  if (player_index == -1) {
+    goto done;
+  }
+  player_datum = datum_get(*(data_t **)0x5aa6d4, player_index);
+  c = game_engine_running();
+  if (c == '\0') {
+    goto check_cinematic;
+  }
+  c = FUN_000a95c0();
+  if (c == '\0') {
+    goto after_cinematic;
+  }
+check_cinematic:
+  c = cinematic_in_progress();
+  if (c == '\0') {
+    FUN_000d0ff0();
+  }
+after_cinematic:
+  c = game_time_get_paused();
+  if (c == '\0') {
+    if ((int16_t) * (short *)0x506548 == local_player_get_next(-1)) {
+      FUN_000dc000();
+    }
+  }
+  if (*(char *)*(void **)0x46bd10 == '\0') {
+    FUN_000d7560((int)player_datum, '\0');
+  } else {
+    if (perspective == 3 || perspective == 2 ||
+        *(int *)((char *)player_datum + 0x34) == -1) {
+      FUN_000d04d0(player_index);
+      FUN_000d7560((int)player_datum, (char)*(char *)*(void **)0x46bd10);
+    } else {
+      FUN_000dabf0((int)player_datum);
+      FUN_000d04d0(player_index);
+      FUN_000d7560((int)player_datum, (char)*(char *)*(void **)0x46bd10);
+      FUN_000d7d40((int)player_datum);
+      FUN_000d6cc0((int)(int16_t) * (short *)0x506548);
+      FUN_000d7a20((int)(int16_t) * (short *)0x506548);
+    }
+  }
+  FUN_000d5350((int)(int16_t) * (short *)0x506548);
+done:
+  FUN_0015f200();
+  if (*(char *)0x5aa690 != '\0') {
+    FUN_000d1090();
+  }
+}
+
 /* Looks up a HUD bitmap-widget element: indexes the 'bitm' tag's widget block
  * by hud_widget_index, then its sub-block by (param_1 % count), returning the
  * element pointer + 8 (or NULL if any index is invalid).  Stack-guard
