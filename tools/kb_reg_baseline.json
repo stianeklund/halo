@@ -166,7 +166,7 @@
     "0xac4e0": "bool game_engine_get_score_hud_text(int player_handle, int param3, int hud_player, wchar_t *buffer@<edi>, int buffer_capacity@<esi>);",
     "0xaca70": "int FUN_000aca70(int item_collection_tag@<eax>);",
     "0xacd00": "void FUN_000acd00(int param_1@<eax>);",
-    "0xaceb0": "void FUN_000aceb0(int player_handle@<ecx>, int message_type@<eax>, int extra@<ebx>, int param4, int param5);",
+    "0xaceb0": "char FUN_000aceb0(int player_handle@<ecx>, int message_type@<eax>, int extra@<ebx>, int param4, int param5);",
     "0xacef0": "void game_engine_hud_update_player(int player_handle@<ecx>, int hud_player@<eax>, int param3@<ebx>);",
     "0xadb20": "float FUN_000adb20(int spawn_pos@<esi>);",
     "0xadc40": "float FUN_000adc40(int location_ptr@<eax>, int player_handle@<ebx>);",
