@@ -11796,7 +11796,9 @@
         },
         {
           "addr": "0xd1dd0",
-          "decl": "unsigned int FUN_000d1dd0(float *color);"
+          "decl": "unsigned int FUN_000d1dd0(float *color);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd1e90",
