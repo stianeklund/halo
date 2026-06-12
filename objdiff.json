@@ -5225,6 +5225,18 @@
       }
     },
     {
+      "name": "halo/hud_d04a0_d04c7",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
+      "base_path": "delinked/hud_d04a0_d04c7.obj",
+      "metadata": { "source_path": "src/halo/interface/hud.c" }
+    },
+    {
+      "name": "halo/hud_d16a0_d1882",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
+      "base_path": "delinked/hud_d16a0_d1882.obj",
+      "metadata": { "source_path": "src/halo/interface/hud.c" }
+    },
+    {
       "name": "halo/hud_d1580_d168e",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
       "base_path": "delinked/hud_d1580_d168e.obj",
