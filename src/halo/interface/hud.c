@@ -257,6 +257,102 @@ done_scan:
   return elem;
 }
 
+/* Returns a weapon's HUD interface index (int16 at the weapon's 'obje' tag
+ * +0x13c), or -1 if the handle is NONE.  Frameless leaf; EAX = weapon handle. */
+int FUN_000d04a0(int weapon_handle)
+{
+  void *obj;
+  void *tag;
+
+  if (weapon_handle == -1) {
+    return -1;
+  }
+  obj = object_get_and_verify_type(weapon_handle, -1);
+  tag = tag_get(0x6f626a65, *(int *)obj);
+  return (int)*(short *)((char *)tag + 0x13c);
+}
+
+/* Resolves a bitmap data element (and optional sprite element) from a 'bitm'
+ * tag given a sequence and frame index, writing the results to *out_bitmap and
+ * *out_sprite.  Stack-guard instrumented (hud_draw.c). */
+void FUN_000d16a0(int bitmap_tag, short sequence_index, unsigned int frame_index,
+                  int *out_bitmap, int *out_sprite)
+{
+  int return_addr;
+  int guard[128];
+  void *tag_data;
+  void *seq_elem;
+  void *sprite_elem;
+  int sprite_count;
+  int bitmap_index;
+  short corrupt;
+
+  return_addr = FUN_000d1540();
+  csmemset(guard, 0x62, 0x200);
+
+  if (out_bitmap == NULL) {
+    display_assert("bitmap", "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0xc1, 1);
+    system_exit(-1);
+  }
+  if (out_sprite == NULL) {
+    display_assert("clip", "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0xc2, 1);
+    system_exit(-1);
+  }
+
+  if (bitmap_tag != -1) {
+    tag_data = tag_get(0x6269746d, bitmap_tag);
+    if ((int)(short)sequence_index < *(int *)((char *)tag_data + 0x54)) {
+      seq_elem = tag_block_get_element((char *)tag_data + 0x54,
+                                       (int)(short)sequence_index, 0x40);
+      frame_index = frame_index & 0x7fff;
+      if ((short)frame_index < 0) {
+        display_assert("frame_index >= 0",
+                       "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0xcd, 1);
+        system_exit(-1);
+      }
+      sprite_count = *(int *)((char *)seq_elem + 0x34);
+      if (sprite_count == 0) {
+        *out_bitmap =
+            (int)FUN_00077040(bitmap_tag, sequence_index, (short)frame_index);
+      } else {
+        sprite_elem = tag_block_get_element(
+            (char *)seq_elem + 0x34, (int)(short)frame_index % sprite_count, 0x20);
+        bitmap_index = (int)*(short *)sprite_elem;
+        *out_bitmap =
+            (int)tag_block_get_element((char *)tag_data + 0x60, bitmap_index, 0x30);
+      }
+    }
+  }
+
+  if (*out_bitmap == 0) {
+    *out_sprite = 0;
+  } else {
+    *out_sprite =
+        (int)FUN_000d1580(bitmap_tag, sequence_index, (short)frame_index);
+  }
+
+  corrupt = 0x7f;
+  do {
+    if (guard[(int)corrupt] != 0x62626262) {
+      goto found_corrupt;
+    }
+    corrupt--;
+  } while (corrupt >= 0);
+  corrupt = -1;
+found_corrupt:
+  if (FUN_000d1540() != return_addr) {
+    display_assert("corrupt return address!",
+                   "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0xe4, 1);
+    system_exit(-1);
+  }
+  if (corrupt != -1) {
+    display_assert(
+        csprintf((char *)0x5ab100, "corrupt stack at %d!", (int)corrupt),
+        "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0xe4, 1);
+    system_exit(-1);
+  }
+}
+
 float FUN_000d1690(int split_screen)
 {
   return *(float *)0x002533c8;
