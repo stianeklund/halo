@@ -5,6 +5,7 @@ set(CMAKE_C_STANDARD 90)
 
 option(ENABLE_XDK_HYBRID "Compile select TUs with XDK MSVC 7.1 for matching FPU codegen" OFF)
 option(HALO_TEST_HARNESS "Build with in-engine test harness enabled" OFF)
+option(HALO_RETAIL64 "Build experimental 64MB retail-compatible runtime profile" OFF)
 
 find_package(Python3 COMPONENTS Interpreter)
 
@@ -150,6 +151,10 @@ if(HALO_TEST_HARNESS)
 	target_sources(halo PRIVATE src/halo/test_harness.c)
 endif()
 
+if(HALO_RETAIL64)
+	target_compile_definitions(halo PRIVATE HALO_RETAIL64=1)
+endif()
+
 set(import_libs ${gen_dir}/halo.xbe.lib ${gen_dir}/xboxkrnl.exe.lib)
 target_link_libraries(halo ${import_libs})
 add_custom_target(import_libs_target DEPENDS ${import_libs})
@@ -224,9 +229,10 @@ add_custom_target(
 			"${Python3_EXECUTABLE}" -m unittest
 			tools.audit.test_patch.RegAnnotationBaselineTests
 	COMMAND
+		"${CMAKE_COMMAND}" -E env "HALO_RETAIL64_XBE=$<IF:$<BOOL:${HALO_RETAIL64}>,1,0>"
 		"${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/build/patch.py"
 			"${CMAKE_CURRENT_LIST_DIR}/halo-patched/cachebeta.xbe"
 			"$<TARGET_FILE:halo>"
 			"${CMAKE_CURRENT_LIST_DIR}/halo-patched/default.xbe"
 	VERBATIM
-	)
+)
