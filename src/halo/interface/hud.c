@@ -235,6 +235,209 @@ uint32_t FUN_000d1c90(float *color)
   return result;
 }
 
+/* Draw weapon/equipment name and status text for the local player's HUD.
+ * Builds a multi-line string in the shared HUD text buffer (0x5ab100) from
+ * the local player's held weapon/equipment tags, then renders it using the
+ * rasterizer text pipeline.  Covers:
+ *   - Equipment name (or "|n" if none)
+ *   - Grenade count + type name
+ *   - Weapon name + ammo counts + heat + age (if magazines present) or just name
+ *   - Active-camouflage / full-spectrum-vision status strings
+ *   - hud_set_element_digital calls for zoom ratio and ammo fill
+ * Screen position is loaded from 0x506584 (x|y packed), y offset by +100.
+ * Color pointer from 0x2ee6c4; style/justify/flags set to (-1,0,0). */
+void FUN_000d1090(void)
+{
+  int player_handle;
+  char *player;
+  int weapon_obj_handle;
+  void *unit_obj;
+  void *weapon_obj;
+  void *weapon_tag;
+  const char *name_ptr;
+  const char *base_name;
+  int equip_handle;
+  void *mag_block_elem;
+  int rounds_loaded_curr;
+  int rounds_loaded_max;
+  int rounds_total;
+  int rounds_loaded_max2;
+  float heat;
+  float age;
+  float fvar;
+  const char *fsv_str;
+  const char *ac_str;
+  float autoaim;
+  int16_t zoom_level;
+  float magnification;
+  unsigned int flags_dword;
+  unsigned int *tag_block_flags;
+  int screen_pos[2]; /* EBP-0xc: packed as short x, short y, then [1]=color */
+
+  player_handle = local_player_get_player_index(
+      (int16_t)*(int *)0x506548);
+  if (player_handle == -1)
+    return;
+
+  player = (char *)datum_get(*(data_t **)0x5aa6d4, player_handle);
+  if (*(int *)(player + 0x34) == -1)
+    return;
+
+  /* Get unit object (type 3) and its tag ('unit') */
+  unit_obj = object_get_and_verify_type(*(int *)(player + 0x34), 3);
+  tag_get(0x756e6974, *(int *)unit_obj);
+
+  /* Second call to get unit_obj again for weapon slot read (matches disasm) */
+  {
+    void *tmp_unit;
+    tmp_unit = object_get_and_verify_type(*(int *)(player + 0x34), 3);
+    weapon_obj_handle = unit_get_weapon(
+        *(int *)(player + 0x34),
+        *(int16_t *)((char *)tmp_unit + 0x2a2));
+  }
+
+  /* Get equipment handle */
+  equip_handle = unit_get_equipment(*(int *)(player + 0x34));
+
+  /* --- Equipment block: first (and only) write from offset 0 in buf --- */
+  if (equip_handle != -1) {
+    void *equip_obj;
+    equip_obj = object_get_and_verify_type(equip_handle, -1);
+    name_ptr = tag_get_name(*(int *)equip_obj);
+    base_name = strrchr(name_ptr, 0x5c);
+    crt_sprintf((char *)0x5ab100,
+                "%s (press WHITE to use)|n", base_name + 1);
+  } else {
+    /* No equipment: just a newline */
+    crt_sprintf((char *)0x5ab100, "|n");
+  }
+
+  /* --- Grenade block --- */
+  if (*(char *)((char *)unit_obj + 0x2cc) != (char)-1) {
+    void *game_globals;
+    void *grenade_elem;
+    const char *grenade_name;
+    int gren_idx;
+    int grenade_count;
+
+    gren_idx = (int)*(signed char *)((char *)unit_obj + 0x2cc);
+    game_globals = game_globals_get();
+    grenade_elem = tag_block_get_element(
+        (char *)game_globals + 0x128, gren_idx, 0x44);
+    name_ptr = tag_get_name(*(int *)((char *)grenade_elem + 0x40));
+    grenade_name = tag_name_strip_path(name_ptr);
+    /* grenade count = [unit_obj + 0x2ce + grenade_type_index] */
+    grenade_count = (int)*(signed char *)((char *)unit_obj
+                   + 0x2ce + gren_idx);
+    crt_sprintf((char *)0x5ab100 + csstrlen((char *)0x5ab100),
+                "%d %s|n", grenade_count, grenade_name);
+  }
+
+  /* --- Weapon block --- */
+  if (weapon_obj_handle != -1) {
+    void *mag_block;
+
+    weapon_obj = object_get_and_verify_type(weapon_obj_handle, 4);
+    weapon_tag = tag_get(0x77656170, *(int *)weapon_obj);
+
+    mag_block = (char *)weapon_tag + 0x4f0;
+
+    if (*(int *)mag_block > 0) {
+      /* Has magazines: full ammo display */
+      mag_block_elem = tag_block_get_element(
+          mag_block, 0, 0x70);
+
+      heat = *(float *)((char *)weapon_obj + 0x1ec);
+      age  = *(float *)((char *)weapon_obj + 0x1f0);
+      rounds_loaded_curr = (int)*(int16_t *)((char *)weapon_obj + 0x25e);
+      rounds_total       = (int)*(int16_t *)((char *)weapon_obj + 0x260);
+      rounds_loaded_max  = (int)*(int16_t *)((char *)mag_block_elem + 0x8);
+      rounds_loaded_max2 = (int)*(int16_t *)((char *)mag_block_elem + 0xa);
+
+      name_ptr  = tag_get_name(*(int *)weapon_obj);
+      base_name = strrchr(name_ptr, 0x5c);
+      crt_sprintf((char *)0x5ab100 + csstrlen((char *)0x5ab100),
+                  "%s|ntotal %d/%d|nloaded %d/%d|nheat %3.2f|nage %3.2f|n",
+                  base_name + 1,
+                  rounds_loaded_curr, rounds_loaded_max,
+                  rounds_total, rounds_loaded_max2,
+                  (double)heat, (double)age);
+    } else {
+      /* No magazines: weapon name via tag_name_strip_path (original uses
+         tag_name_strip_path which returns strrchr_result+1; caller adds
+         another +1 in the INC EAX at 0xd1282) */
+      name_ptr  = tag_get_name(*(int *)weapon_obj);
+      base_name = tag_name_strip_path(name_ptr);
+      crt_sprintf((char *)0x5ab100 + csstrlen((char *)0x5ab100),
+                  "%s|n", base_name + 1);
+    }
+
+    /* Cloak / FSV status */
+    {
+      int scratch;
+      float fsv_f, ac_f;
+      /* original: MOVSX+store to [EBP-4], FILD from [EBP-4] */
+      scratch = (int)*(int16_t *)(player + 0x6a); /* fsv_timer */
+      fsv_f = (float)scratch;
+      scratch = (int)*(int16_t *)(player + 0x68); /* ac_timer */
+      ac_f = (float)scratch;
+      fsv_str = "FULL-SPECTRUM VISION ";
+      if (!(fsv_f > 0.0f)) fsv_str = "";
+      ac_str = "ACTIVE-CAMOUFLAGE ";
+      if (!(ac_f > 0.0f)) ac_str = "";
+
+      crt_sprintf((char *)0x5ab100 + csstrlen((char *)0x5ab100),
+                  "%s%s", ac_str, fsv_str);
+    }
+
+    /* Autoaim level → select draw pointer */
+    {
+      const void *draw_ptr;
+      autoaim = player_control_get_autoaim_level(
+          (int16_t)*(int *)0x506548);
+      draw_ptr = (autoaim > 0.0f)
+                 ? *(const void **)0x2ee6d0
+                 : *(const void **)0x2ee6d8;
+
+      zoom_level  = (int16_t)player_control_get_zoom_level(
+          (int16_t)*(int *)0x506548, draw_ptr);
+      magnification = weapon_get_zoom_magnification(
+          weapon_obj_handle, zoom_level);
+
+      hud_set_element_digital(
+          *(float *)((char *)weapon_tag + 0x3e4) / magnification,
+          draw_ptr);
+    }
+
+    /* Ammo fill indicator */
+    {
+      tag_block_flags = (unsigned int *)tag_block_get_element(
+          (char *)weapon_tag + 0x4fc, 0, 0x114);
+      flags_dword = tag_block_flags[0];
+
+      if (flags_dword & 0x200) {
+        fvar = *(float *)((char *)weapon_obj + 0x1e4);
+      } else {
+        fvar = *(float *)((char *)weapon_obj + 0x22c);
+      }
+
+      hud_set_element_digital(
+          fvar * *(float *)((char *)tag_block_flags + 0x80) +
+          (1.0f - fvar) * *(float *)((char *)tag_block_flags + 0x7c),
+          *(const void **)0x2ee6e0);
+    }
+  }
+
+  /* --- Draw block (always) --- */
+  screen_pos[0] = *(int *)0x506584;
+  ((int16_t *)screen_pos)[1] += 100;   /* y += 100 (hi-word of screen_pos[0]) */
+  screen_pos[1] = *(int *)0x506588;
+
+  draw_string_set_style_justify_flags(-1, 0, 0);
+  draw_string_set_color(*(const void **)0x2ee6c4);
+  rasterizer_text_draw(screen_pos, 0, 0, 0, (char *)0x5ab100);
+}
+
 void FUN_000d1e90(float alpha, float intensity)
 {
   float color[4];
