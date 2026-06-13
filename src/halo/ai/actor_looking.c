@@ -3117,7 +3117,7 @@ void FUN_000178b0(float *a, float *b, float *result)
  *
  * Ref: z computed first, then y, then x; all three FPU results held on the
  * x87 stack before the first FSTP (aliasing safe when b==out). */
-float *cross_product3d(float *a, float *b, float *out)
+void cross_product3d(float *a, float *b, float *out)
 {
   float z = a[0] * b[1] - a[1] * b[0];
   float y = a[2] * b[0] - a[0] * b[2];
@@ -3125,7 +3125,6 @@ float *cross_product3d(float *a, float *b, float *out)
   out[0] = x;
   out[1] = y;
   out[2] = z;
-  return out;
 }
 
 /* FUN_00017910 (0x17910)
