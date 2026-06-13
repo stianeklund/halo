@@ -69,7 +69,7 @@
       "source": "src/halo/math/vector_math.c"
     },
     "FUN_00013010": {
-      "score": 63.1,
+      "score": 64.7,
       "source": "src/halo/math/vector_math.c"
     },
     "FUN_00013070": {
@@ -245,7 +245,7 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00016590": {
-      "score": 96.1,
+      "score": 96.3,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00016960": {
@@ -405,7 +405,7 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_0001a200": {
-      "score": 94.0,
+      "score": 94.7,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_0001a420": {
@@ -641,15 +641,15 @@
       "source": "src/halo/common.c"
     },
     "FUN_00021370": {
-      "score": 60.0,
+      "score": 75.0,
       "source": "src/halo/math/vector_math.c"
     },
     "FUN_00021380": {
-      "score": 60.0,
+      "score": 75.0,
       "source": "src/halo/math/vector_math.c"
     },
     "FUN_00021390": {
-      "score": 34.8,
+      "score": 47.6,
       "source": "src/halo/math/vector_math.c"
     },
     "FUN_000213a0": {
@@ -677,7 +677,7 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00024cf0": {
-      "score": 73.3,
+      "score": 93.1,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00025340": {
@@ -704,8 +704,16 @@
       "score": 87.1,
       "source": "src/halo/ai/actor_looking.c"
     },
+    "FUN_00027090": {
+      "score": 91.2,
+      "source": "src/halo/ai/actor_looking.c"
+    },
     "FUN_000272d0": {
       "score": 91.5,
+      "source": "src/halo/ai/actor_looking.c"
+    },
+    "FUN_00027410": {
+      "score": 87.4,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00027870": {
@@ -721,7 +729,7 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00027a60": {
-      "score": 94.9,
+      "score": 96.5,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00027dd0": {
@@ -5001,7 +5009,7 @@
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d3fe0": {
-      "score": 83.2,
+      "score": 83.5,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d4260": {
@@ -5137,7 +5145,7 @@
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d5350": {
-      "score": 68.6,
+      "score": 68.9,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d5ec0": {
