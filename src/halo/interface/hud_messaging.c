@@ -44,13 +44,14 @@ void FUN_000d3fe0(int param_1, short *param_2, int param_3,
                               *(short *)(param_3 + 0x54), 0);
   iVar2 = (int)xbox_texture_cache_get_hardware_format((void *)local_c, 0, 1);
   if (iVar2 != 0) {
-    verify_tag_reference((int *)(param_3 + 0x24));
-    puVar3 = (float *)FUN_000d1580();
+    puVar3 = (float *)FUN_000d1580(
+        verify_tag_reference((int *)(param_3 + 0x24)),
+        *(short *)(param_3 + 0x54), 0);
     if ((param_4 & 2) == 0) {
       if ((param_4 & 1) == 0) {
         uVar4 = *(int *)(param_3 + 0x34);
       } else {
-        uVar4 = FUN_000d2320(param_3 + 0x34, param_5);
+        uVar4 = FUN_000d2320((int *)(param_3 + 0x34), param_5);
       }
     } else {
       uVar4 = *(int *)(param_3 + 0x4c);
@@ -85,11 +86,11 @@ void FUN_000d3fe0(int param_1, short *param_2, int param_3,
             (draw_flag = 1, (*(unsigned char *)(param_3 + 0xc) & 1) != 0)) {
           draw_flag = 0;
         }
-        FUN_000d1f40((short)*(int *)0x506548, param_2, (int)param_3, 0, draw_flag,
-                     0, local_18);
+        FUN_000d1f40((short)*(int *)0x506548, (unsigned short *)param_2,
+                     (short *)param_3, 0, draw_flag, 0, (short *)local_18);
         /* d1890: @<eax>=local_4c (out corners), @<edi>=puVar3 (in rect),
          * @<bl>=cVar5 (align flag); 2 stack args: bitmap, screen index. */
-        FUN_000d1890((float *)local_4c, puVar3, cVar5, local_c, *param_2);
+        FUN_000d1890((float *)local_4c, puVar3, cVar5, (short *)local_c, *param_2);
         /* d27a0: @<ecx>=local_1c (element ptr), @<eax>=scale[2];
          * 6 stack args; 6th = uVar4 (color, raw int bitpattern). */
         FUN_000d27a0(local_1c, scale, param_1, local_18, puVar3,
@@ -160,7 +161,7 @@ void FUN_000d4260(int param_1, int param_2, int param_3,
             (param_6 & 1) == 0) {
           color = *(int *)(element + 0x24);
         } else {
-          color = FUN_000d2320(element + 0x24, param_5);
+          color = FUN_000d2320((int *)(element + 0x24), param_5);
         }
         if ((*(unsigned char *)(element + 0x4c) & 1) == 0 ||
             (param_6 & 1) == 0 || *(short *)(element + 0x44) < 1) {
@@ -1070,8 +1071,8 @@ void FUN_000d5350(int param_1)
   {
     short sVar3;
     sVar3 = local_player_count();
-    FUN_000d1f40((short)param_1, (short *)(*(int *)0x5aa68c + 0x24),
-                 *(int *)0x5aa68c, 0, 1 < sVar3, 0, &local_64);
+    FUN_000d1f40((short)param_1, (unsigned short *)(*(int *)0x5aa68c + 0x24),
+                 (short *)*(int *)0x5aa68c, 0, 1 < sVar3, 0, (short *)&local_64);
   }
   local_62_dw = *(int *)((char *)&local_64 + 2);
 
@@ -1130,7 +1131,7 @@ void FUN_000d5350(int param_1)
             packed_color = *(uint32_t *)(*(int *)0x46bd0c + 0xd4);
           }
         } else {
-          packed_color = (uint32_t)FUN_000d2320(*(int *)0x46bd0c + 0xd0,
+          packed_color = (uint32_t)FUN_000d2320((int *)(*(int *)0x46bd0c + 0xd0),
               *(int *)(*(int *)0x46bd18 + 0x1180));
         }
         pixel32_to_real_argb_color(packed_color, color);
@@ -1138,7 +1139,7 @@ void FUN_000d5350(int param_1)
     } else {
       iVar12 = *(int *)0x46bd0c + 0x100;
       iVar16 = game_time_get();
-      packed_color = (uint32_t)FUN_000d2320(iVar12,
+      packed_color = (uint32_t)FUN_000d2320((int *)iVar12,
           iVar16 + (((int)*(short *)(*(int *)0x46bd18 + 0x1194) -
                      (int)*(short *)(iVar12 + 0x1c)) -
                     (int)*(short *)(iVar12 + 0x1e)));
@@ -3400,9 +3401,9 @@ void FUN_000d7d40(int param_1)
           }
 
           sVar4 = local_player_count();
-          FUN_000d1f40((short)local_player_idx, local_130,
-                       iVar13 + 0x35c, 0, 1 < sVar4, 0,
-                       local_78_buf);
+          FUN_000d1f40((short)local_player_idx, (unsigned short *)local_130,
+                       (short *)(iVar13 + 0x35c), 0, 1 < sVar4, 0,
+                       (short *)local_78_buf);
 
           sVar4 = local_player_count();
           FUN_000dbfb0(local_player_idx, 1 < sVar4,

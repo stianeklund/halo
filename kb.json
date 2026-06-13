@@ -6459,7 +6459,7 @@
         },
         {
           "addr": "0x86410",
-          "decl": "void director_get_perspective(void);"
+          "decl": "int16_t director_get_perspective(int16_t local_player_index);"
         },
         {
           "addr": "0x864b0",
@@ -7038,7 +7038,7 @@
         },
         {
           "addr": "0xdabf0",
-          "decl": "void FUN_000dabf0(void);"
+          "decl": "void FUN_000dabf0(int param_1);"
         },
         {
           "addr": "0xdade0",
@@ -11700,11 +11700,15 @@
         },
         {
           "addr": "0xd04a0",
-          "decl": "void FUN_000d04a0(void);"
+          "decl": "int FUN_000d04a0(int weapon_handle @<eax>);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd04d0",
-          "decl": "void FUN_000d04d0(void);"
+          "decl": "void FUN_000d04d0(int local_player_index @<eax>);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd0ba0",
@@ -11734,7 +11738,9 @@
         {
           "addr": "0xd0c80",
           "name": "hud_set_element_digital",
-          "decl": "void hud_set_element_digital(float value, const void *draw_ptr);"
+          "decl": "void hud_set_element_digital(float value, const void *draw_ptr);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd0d50",
@@ -11748,11 +11754,15 @@
         },
         {
           "addr": "0xd0e90",
-          "decl": "void FUN_000d0e90(void);"
+          "decl": "void FUN_000d0e90(int player_handle @<eax>);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd0ff0",
-          "decl": "void FUN_000d0ff0(void);"
+          "decl": "void FUN_000d0ff0(void);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd1090",
@@ -11761,7 +11771,9 @@
         },
         {
           "addr": "0xd1400",
-          "decl": "void FUN_000d1400(void);"
+          "decl": "void FUN_000d1400(void);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd1540",
@@ -11775,7 +11787,9 @@
         },
         {
           "addr": "0xd1580",
-          "decl": "int *FUN_000d1580(void);"
+          "decl": "void *FUN_000d1580(int tag_index @<eax>, short hud_widget_index @<ebx>, short param_1);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd1690",
@@ -11785,19 +11799,27 @@
         },
         {
           "addr": "0xd16a0",
-          "decl": "void FUN_000d16a0(int bitmap_tag, short sequence_index, unsigned int frame_index, int *out_bitmap, int *out_sprite);"
+          "decl": "void FUN_000d16a0(int bitmap_tag, short sequence_index, unsigned int frame_index, int *out_bitmap, int *out_sprite);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd1890",
-          "decl": "void FUN_000d1890(float *out_corners @<eax>, float *rect @<edi>, char align_flag @<bl>, int bitmap_handle, short screen_index);"
+          "decl": "void FUN_000d1890(float *out_corners @<eax>, float *rect @<edi>, char align_flag @<bl>, short *bitmap_dims, short screen_index);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd1a70",
-          "decl": "void FUN_000d1a70(void);"
+          "decl": "char FUN_000d1a70(int render @<eax>, int param_1);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd1c50",
-          "decl": "int FUN_000d1c50(float param_1);"
+          "decl": "int FUN_000d1c50(float param_1);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd1c90",
@@ -11806,7 +11828,9 @@
         },
         {
           "addr": "0xd1dd0",
-          "decl": "unsigned int FUN_000d1dd0(float *color);"
+          "decl": "unsigned int FUN_000d1dd0(float *color);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd1e90",
@@ -11816,23 +11840,38 @@
         },
         {
           "addr": "0xd1f40",
-          "decl": "void FUN_000d1f40(short local_player, short *param_2, int param_3, int param_4, int param_5, int param_6, void *out);"
+          "decl": "void FUN_000d1f40(short local_player, unsigned short *absolute_placement, short *placement, int offset_struct, char flag, float in_scale, short *out);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd2300",
-          "decl": "int FUN_000d2300(int param_1);"
+          "decl": "int FUN_000d2300(int param_1);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd2320",
-          "decl": "int FUN_000d2320(int color_ref, int time);"
+          "decl": "uint32_t FUN_000d2320(int *param_1, int param_2);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd2580",
-          "decl": "void FUN_000d2580(void);"
+          "decl": "void FUN_000d2580(float *scale @<eax>, short *screen_pos @<edi>, int bitmap_handle, int param_4, int *uv_coords, float *corner_offsets, float angle, int color);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         },
         {
           "addr": "0xd27a0",
-          "decl": "void FUN_000d27a0(int element @<ecx>, float *scale @<eax>, int local_player_index, void *cursor, float *icon_rect, float *corners, void *param_6, int color);"
+          "decl": "void FUN_000d27a0(int element @<ecx>, float *scale @<eax>, int local_player_index, void *cursor, float *icon_rect, float *corners, float angle, int color);",
+          "ported": true
+        },
+        {
+          "addr": "0xd02c0",
+          "decl": "int FUN_000d02c0(void *state_buf @<eax>);",
+          "ported": true,
+          "src": "src/halo/interface/hud.c"
         }
       ],
       "name": "hud.obj",
@@ -12515,10 +12554,6 @@
           "decl": "void input_get_raw_data_string(void);"
         },
         {
-          "addr": "0xd02c0",
-          "decl": "void FUN_000d02c0(void);"
-        },
-        {
           "addr": "0xd02f0",
           "decl": "void FUN_000d02f0(void);"
         }
@@ -12599,7 +12634,7 @@
         },
         {
           "addr": "0xdff90",
-          "decl": "void interface_draw_bitmap(void);"
+          "decl": "void interface_draw_bitmap(int sprite_handle, short *offset_xy, void *color, float scale_a, int flag, float scale_b);"
         },
         {
           "addr": "0xe0110",
@@ -16212,7 +16247,7 @@
         },
         {
           "addr": "0xb6a70",
-          "decl": "int16_t player_control_get_zoom_level(int16_t local_player_index, const void *draw_ptr);"
+          "decl": "int16_t player_control_get_zoom_level(int16_t local_player_index, ...);"
         },
         {
           "addr": "0xb6a90",
@@ -26166,7 +26201,7 @@
         },
         {
           "addr": "0x1b1b40",
-          "decl": "void unit_inventory_next_weapon(void);"
+          "decl": "int unit_inventory_next_weapon(int unit_handle, int slot, int direction);"
         },
         {
           "addr": "0x1b1b60",
@@ -27694,7 +27729,7 @@
         },
         {
           "addr": "0x17eb10",
-          "decl": "void FUN_0017eb10(void);"
+          "decl": "void FUN_0017eb10(float *vert_a, float *vert_b, int param_3);"
         },
         {
           "addr": "0x17eb30",
@@ -29824,7 +29859,7 @@
         },
         {
           "addr": "0xfc550",
-          "decl": "void weapon_build_weapon_interface_state(void);"
+          "decl": "void weapon_build_weapon_interface_state(int weapon_handle, int param_2);"
         },
         {
           "addr": "0xfc690",
