@@ -572,14 +572,6 @@
           "decl": "void FUN_0016e2e0(void);"
         },
         {
-          "addr": "0x18ab30",
-          "decl": "void FUN_0018ab30(void);"
-        },
-        {
-          "addr": "0x18ac50",
-          "decl": "void FUN_0018ac50(void);"
-        },
-        {
           "addr": "0x196c90",
           "decl": "void FUN_00196c90(void);"
         },
@@ -21189,6 +21181,20 @@
       ],
       "name": "render_cameras.obj",
       "source": "render/render_cameras.c"
+    },
+    {
+      "functions": [
+        {
+          "addr": "0x18ab30",
+          "decl": "void FUN_0018ab30(void);"
+        },
+        {
+          "addr": "0x18ac50",
+          "decl": "void FUN_0018ac50(void);"
+        }
+      ],
+      "name": "render_debug.obj",
+      "source": "render/render_debug.c"
     },
     {
       "functions": [
