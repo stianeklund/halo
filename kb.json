@@ -6695,9 +6695,9 @@
         },
         {
           "addr": "0x9ca70",
-          "decl": "void effects_information_get(unsigned int *seed, float *velocity_out, uint32_t min_val, uint32_t max_val, uint32_t flags);",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
-          "ported": false
+          "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
+          "ported": true
         },
         {
           "addr": "0x9caf0",
@@ -6808,12 +6808,13 @@
         },
         {
           "addr": "0x9c9a0",
-          "decl": "void FUN_0009c9a0(void);",
-          "ported": false
+          "decl": "float FUN_0009c9a0(int unused@<ecx>, int effect_ptr@<edx>, float base_val, uint32_t flags_lo, uint32_t flags_hi, uint8_t bit_index);",
+          "ported": true
         },
         {
           "addr": "0x9c9f0",
-          "decl": "void FUN_0009c9f0(void);"
+          "decl": "float FUN_0009c9f0(int bit_index@<edx>, int effect_ptr@<ebx>, uint32_t flags_lo@<esi>, uint32_t flags_hi@<edi>, unsigned int *seed, float min_val, float max_val);",
+          "ported": true
         },
         {
           "addr": "0x9ce80",
