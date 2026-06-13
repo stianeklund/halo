@@ -95,11 +95,12 @@ float magnitude3d(float *v)
 }
 
 /* 0x12f80 — Compute out = base + scale * direction (3-component). */
-void vector3d_scale_add(float *base, float *direction, float scale, float *out)
+float *vector3d_scale_add(float *base, float *direction, float scale, float *out)
 {
   out[0] = scale * direction[0] + base[0];
   out[1] = scale * direction[1] + base[1];
   out[2] = scale * direction[2] + base[2];
+  return out;
 }
 
 /* Normalize a 3D vector in-place.

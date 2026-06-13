@@ -1,6 +1,6 @@
 extern float normalize3d(float *v);
-extern void vector3d_scale_add(float *base, float *direction, float scale,
-                               float *out);
+extern float *vector3d_scale_add(float *base, float *direction, float scale,
+                                 float *out);
 extern void matrix_transform_point(float *matrix, float *in, float *out);
 extern void perpendicular3d(float *in, float *out);
 extern void angles_to_vector(float *out, float *angles);
