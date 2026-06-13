@@ -12,6 +12,7 @@ Usage:
     python3 tools/audit/check_arg_counts.py               # full run
     python3 tools/audit/check_arg_counts.py --callee 0xacff0
     python3 tools/audit/check_arg_counts.py --check       # exit 1 on any HIGH
+    python3 tools/audit/check_arg_counts.py --recent-commits 3  # delta: only changed entries
     python3 tools/audit/check_arg_counts.py --self-test
 
 Known limitations (verified false-positive mechanisms):
@@ -43,6 +44,7 @@ import json
 import os
 import re
 import struct
+import subprocess
 import sys
 import time
 from collections import defaultdict
@@ -157,6 +159,28 @@ def _load_kb() -> List[FuncEntry]:
             seen.add(e.addr)
             deduped.append(e)
     return deduped
+
+
+# ---------------------------------------------------------------------------
+# Delta-mode: extract kb.json-changed addresses from git history
+# ---------------------------------------------------------------------------
+
+def _get_changed_addrs(commits: int) -> "set[int]":
+    """Return set of function addresses whose kb.json entries changed in the
+    last `commits` commits.  Parses git diff for addr lines."""
+    result = subprocess.run(
+        ["git", "diff", f"HEAD~{commits}..HEAD", "--", str(KB_PATH)],
+        capture_output=True, text=True, cwd=str(REPO_ROOT),
+    )
+    addrs: set[int] = set()
+    for line in result.stdout.splitlines():
+        m = re.search(r'"addr":\s*"(0x[0-9a-fA-F]+)"', line)
+        if m:
+            try:
+                addrs.add(int(m.group(1), 16))
+            except ValueError:
+                pass
+    return addrs
 
 
 # ---------------------------------------------------------------------------
@@ -781,6 +805,8 @@ def main() -> None:
                     help="Print per-site details for findings")
     ap.add_argument("--no-report", action="store_true",
                     help="Skip writing artifacts/audit/arg_count_report.txt")
+    ap.add_argument("--recent-commits", metavar="N", type=int, default=0,
+                    help="Delta mode: only check callees whose kb.json entries changed in the last N commits")
     args = ap.parse_args()
 
     if args.self_test:
@@ -803,6 +829,15 @@ def main() -> None:
     print(f"Loading kb.json ... ", end="", flush=True)
     entries = _load_kb()
     print(f"{len(entries)} functions loaded.")
+
+    if args.recent_commits:
+        changed = _get_changed_addrs(args.recent_commits)
+        print(f"Delta mode: {len(changed)} addresses changed in last {args.recent_commits} commits")
+        entries = [e for e in entries if e.addr in changed]
+        if not entries:
+            print("No kb.json function entries changed in that window. Nothing to check.")
+            sys.exit(0)
+        print(f"Checking {len(entries)} changed callees.")
 
     print(f"Loading XBE and disassembling ... ", end="", flush=True)
     t0 = time.time()

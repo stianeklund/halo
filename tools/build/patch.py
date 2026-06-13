@@ -35,6 +35,7 @@ log = logging.getLogger(__name__)
 root_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../.."))
 KB_REG_BASELINE_PATH = os.path.join(root_dir, 'tools', 'kb_reg_baseline.json')
 KB_OVERLAY_ENV = 'HALO_KB_OVERLAY'
+XBE_INIT_LIMIT64MB = 4
 
 
 EXCEPTION_BUILD_AT_STRING_ADDR = 0x28b6f8
@@ -48,6 +49,27 @@ def normalize_hex_addr(addr):
     if isinstance(addr, str):
         return hex(int(addr, 0))
     return hex(addr)
+
+
+def env_flag(name):
+    value = os.environ.get(name, '')
+    return value.lower() in ('1', 'true', 'yes', 'on')
+
+
+def apply_retail64_xbe_profile(xbe):
+    """Make the generated XBE prefer retail-style 64MB boot metadata."""
+    current_kthunk_key = Xbe.KTHUNK_DEBUG if xbe.is_debug else Xbe.KTHUNK_RETAIL
+    kern_thunk_addr = xbe.header.kern_thunk_addr ^ current_kthunk_key
+
+    xbe.header.init_flags |= XBE_INIT_LIMIT64MB
+    xbe.header.kern_thunk_addr = kern_thunk_addr ^ Xbe.KTHUNK_RETAIL
+    xbe.is_debug = False
+
+    for lib in xbe.libraries.values():
+        if hasattr(lib.header, 'debug_build'):
+            lib.header.debug_build = 0
+
+    log.info('Applied retail64 XBE profile: LIMIT64MB, retail entry/key thunks')
 
 
 def format_register_args(reg_args):
@@ -1220,6 +1242,9 @@ def main():
                     help='Run reverse thunk self-tests and exit')
     ap.add_argument('--kb-overlay', default=os.environ.get(KB_OVERLAY_ENV, ''),
                     help='Temporary metadata override JSON. Also read from HALO_KB_OVERLAY.')
+    ap.add_argument('--retail64', action='store_true',
+                    default=env_flag('HALO_RETAIL64') or env_flag('HALO_RETAIL64_XBE'),
+                    help='Emit experimental retail-style 64MB XBE metadata.')
     args = ap.parse_args()
 
     if args.test_thunks:
@@ -1250,6 +1275,8 @@ def main():
 
     log.info('Loading original XBE')
     xbe = Xbe.from_file(args.input_xbe)
+    if args.retail64:
+        apply_retail64_xbe_profile(xbe)
 
     # Patch EXE into XBE
     log.info('Loading EXE %s', args.input_exe)
