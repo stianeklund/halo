@@ -1459,3 +1459,377 @@ unsigned int FUN_000d1dd0(float *color)
   packed |= ((int)(color[0] * scale + 0.5f) & 0xff) << 16;
   return (unsigned int)packed;
 }
+
+/* HUD meter/cursor sprite draw with rotation.  `element` (@<ecx>) is a meter
+ * widget-collection element; `scale` (@<eax>) holds the two screen-scale
+ * factors (scale[0]=x, scale[1]=y).  Builds a four-vertex rotated quad from the
+ * caller's icon_rect (UVs) and `corners` offsets, rotated by `angle`, then
+ * resolves up to three icon bitmaps (element+0x70/0x80/0x90), fills a sprite
+ * render descriptor (render_desc) with per-icon scale/normalization reciprocals
+ * and a pointer table into the colour/transform block, then evaluates each
+ * meter widget (element+0x154 tag-block, 0xdc stride): switch(widget+0x44)
+ * selects a source value, an optional lerp/clamp maps it to [0,1] and derives
+ * an interpolated scalar plus an RGB triple, and switch(widget+0x42) /
+ * switch(widget+0x40) routes those into the colour/transform output slots.
+ * Finally issues the sprite render.  Stack-guard instrumented (hud_draw.c).
+ * Mirrors sibling FUN_000d2580 for the rotation/vertex/canary scaffold.
+ *
+ * Note: the original deliberately overlaps the transient sin/cos scalars
+ * (EBP-0x1c/-0x10) with colour_block+0x68/+0x74; the colour block is only read
+ * up to +0x64 by the rasterizer, so they are modelled as separate C locals. */
+void FUN_000d27a0(int element, float *scale, int local_player_index, void *cursor,
+                  float *icon_rect, float *corners, float angle, int color)
+{
+  short *cursor_pos = (short *)cursor;
+  int return_addr;
+  int guard[128];          /* canary buffer, EBP-0x38c, 0x200 bytes */
+  char color_block[0x68];  /* EBP-0x84 (transform/colour scratch passed to rasterizer) */
+  char render_desc[0x8c];  /* EBP-0x110 */
+  char vertex_buf[0x50];   /* EBP-0xe8 (4 verts x 0x14) */
+  float angles_buf[0x10];  /* EBP-0x130 */
+  float driver_out[0x14];  /* EBP-0x13c */
+  short corrupt_index;
+
+  float sin_a;
+  float cos_a;
+  int player_index;
+  void *hud_globals;
+
+  /* vertex loop locals */
+  int cnt;
+  short vi;
+  int sel_flag;
+  int uv_u;
+  int uv_v;
+  float ofs_u;
+  float ofs_v;
+  float rotated;
+  int rounded;
+  char *vp;
+
+  /* icon loop locals */
+  int icon_handles[3];
+  int present_flag;
+  int ki;
+  int *icon;
+  float recip_x;
+  float recip_y;
+
+  /* widget loop locals */
+  int widget_count;
+  int widget_index;
+  int widget;
+  int sel;
+  float dest_value;   /* EBP-0x4 */
+  float clamp_value;  /* EBP-0x10 */
+  float out_scalar;   /* EBP+0x18 (reused angle slot) */
+  float rgb_out[3];   /* FUN_0007c270 output, color_block+0x1c */
+  int rgb0;
+  int rgb1;
+  int rgb2;
+  float aim_angles[2];  /* EBP-0x2c, vector_to_angles output for case 0 */
+
+  return_addr = FUN_000d1540();
+  csmemset(guard, 0x62, 0x200);
+
+  sin_a = x87_fsin(angle);
+
+  /* element+0x4c .. +0x60 -> color_block[0x0 .. 0x14] */
+  *(int *)(color_block + 0x0) = *(int *)(element + 0x4c);
+  *(int *)(color_block + 0x4) = *(int *)(element + 0x50);
+  *(int *)(color_block + 0x8) = *(int *)(element + 0x54);
+  *(int *)(color_block + 0xc) = *(int *)(element + 0x58);
+  *(int *)(color_block + 0x10) = *(int *)(element + 0x5c);
+  *(int *)(color_block + 0x14) = *(int *)(element + 0x60);
+  /* zero color_block[0x28 .. 0x48] + [0x60 .. 0x64]; set 1.0 at +0x4c/+0x50/+0x54 */
+  *(int *)(color_block + 0x28) = 0;
+  *(int *)(color_block + 0x2c) = 0;
+  *(int *)(color_block + 0x30) = 0;
+  *(int *)(color_block + 0x34) = 0;
+  *(int *)(color_block + 0x38) = 0;
+  *(int *)(color_block + 0x3c) = 0;
+  *(int *)(color_block + 0x40) = 0;
+  *(int *)(color_block + 0x44) = 0;
+  *(int *)(color_block + 0x48) = 0;
+  *(int *)(color_block + 0x4c) = 0x3f800000;
+  *(int *)(color_block + 0x50) = 0x3f800000;
+  *(int *)(color_block + 0x54) = 0x3f800000;
+  *(int *)(color_block + 0x60) = 0;
+  *(int *)(color_block + 0x64) = 0;
+
+  cos_a = x87_fcos(angle);
+
+  player_index = local_player_get_player_index((short)local_player_index);
+  hud_globals = datum_get(*(data_t **)0x5aa6d4, player_index);
+  FUN_000d1a70((int)hud_globals, (int)angles_buf);
+
+  /* Build four rotated vertices into vertex_buf (5 dwords each). */
+  cnt = 1;
+  vp = vertex_buf;
+  for (vi = 0; vi < 4; vi++) {
+    sel_flag = cnt & 2;
+    uv_u = sel_flag ? *(int *)&icon_rect[1] : *(int *)&icon_rect[0];
+    uv_v = (vi > 1) ? *(int *)&icon_rect[3] : *(int *)&icon_rect[2];
+    ofs_u = sel_flag ? corners[1] : corners[0];
+    ofs_v = (vi > 1) ? corners[3] : corners[2];
+
+    rotated = (ofs_u * cos_a - ofs_v * sin_a) * scale[0];
+    rounded = (int)rotated;
+    rounded = (int)cursor_pos[0] + rounded;
+    *(float *)(vp + 0x0) = (float)rounded;
+
+    rotated = (ofs_v * cos_a + ofs_u * sin_a) * scale[1];
+    rounded = (int)rotated;
+    rounded = (int)cursor_pos[1] + rounded;
+    *(float *)(vp + 0x4) = (float)rounded;
+
+    *(int *)(vp + 0x8) = uv_u;
+    *(int *)(vp + 0xc) = uv_v;
+    *(int *)(vp + 0x10) = color;
+    cnt++;
+    vp += 0x14;
+  }
+
+  /* Sprite render descriptor. */
+  csmemset(render_desc, 0, 0x8c);
+  *(int *)(render_desc + 0x44) = 0x3f800000;
+  *(int *)(render_desc + 0x40) = 0x3f800000;
+  *(int *)(render_desc + 0x2c) = 0x3f800000;
+  *(int *)(render_desc + 0x28) = 0x3f800000;
+  *(int *)(render_desc + 0x0) = 0;
+  present_flag = (local_player_count() == 1) ? 1 : 0;
+  render_desc[0x8a] = (char)present_flag;
+
+  icon_handles[0] = (int)FUN_00077040(*(int *)(element + 0x70), 0, 0);
+  icon_handles[1] = (int)FUN_00077040(*(int *)(element + 0x80), 0, 0);
+  icon_handles[2] = (int)FUN_00077040(*(int *)(element + 0x90), 0, 0);
+
+  /* Per-icon scale and texture-normalization reciprocals.
+   * element+0x34+8k = scale.x, element+0x38+8k = scale.y -> normalize slots
+   *   render_desc+0x28+8k (1/scale.y), render_desc+0x2c+8k (1/scale.x).
+   * icon bitmap dims at icon+4 (w) / icon+6 (h): when NOT both power-of-two,
+   *   store 1/w, 1/h to render_desc+0x44+8k / render_desc+0x48+8k, else 1.0.
+   * Pointer table render_desc+0x1c+4k points at color_block+8k. */
+  for (ki = 0; ki < 3; ki++) {
+    icon = (int *)icon_handles[ki];
+    if (icon == NULL) {
+      continue;
+    }
+
+    recip_x = *(float *)0x2533c8; /* 1.0 */
+    if (*(float *)(element + 0x34 + 8 * ki) != *(float *)0x2533c0) {
+      recip_x = recip_x / *(float *)(element + 0x34 + 8 * ki);
+    }
+    recip_y = *(float *)0x2533c8;
+    if (*(float *)(element + 0x38 + 8 * ki) != *(float *)0x2533c0) {
+      recip_y = recip_y / *(float *)(element + 0x38 + 8 * ki);
+    }
+
+    if (((int)*(short *)((char *)icon + 4) &
+         ((int)*(short *)((char *)icon + 4) - 1)) != 0 ||
+        ((int)*(short *)((char *)icon + 6) &
+         ((int)*(short *)((char *)icon + 6) - 1)) != 0) {
+      *(float *)(render_desc + 0x44 + 8 * ki) =
+          *(float *)0x2533c8 / (float)(int)*(short *)((char *)icon + 4);
+      *(float *)(render_desc + 0x48 + 8 * ki) =
+          *(float *)0x2533c8 / (float)(int)*(short *)((char *)icon + 6);
+    } else {
+      *(int *)(render_desc + 0x44 + 8 * ki) = 0x3f800000;
+      *(int *)(render_desc + 0x48 + 8 * ki) = 0x3f800000;
+    }
+
+    /* FXCH leaves the y reciprocal on top: it is stored first (+0x28). */
+    *(float *)(render_desc + 0x28 + 8 * ki) = recip_y;
+    *(float *)(render_desc + 0x2c + 8 * ki) = recip_x;
+    *(int *)(render_desc + 0x1c + 4 * ki) = (int)(color_block + 8 * ki);
+    render_desc[0x18 + ki] = *(char *)(element + 0x94 + 2 * ki);
+  }
+
+  /* Evaluate each meter widget (element+0x154 tag-block, 0xdc stride). */
+  widget_count = *(int *)(element + 0x154);
+  widget_index = 0;
+  if (widget_count > 0) {
+    do {
+      /* advance the shared animation-phase global */
+      *(float *)0x46bd14 = *(float *)0x46bd14 + *(float *)0x2533e8;
+      widget = (int)tag_block_get_element((void *)(element + 0x154), widget_index,
+                                          0xdc);
+
+      /* switch(widget+0x44): select source value -> dest_value */
+      sel = (int)*(short *)(widget + 0x44);
+      switch (sel) {
+      case 0:
+        player_index = local_player_get_player_index((short)local_player_index);
+        if (player_index == -1) {
+          dest_value = 0.0f;
+        } else {
+          player_index = local_player_get_player_index((short)local_player_index);
+          hud_globals = datum_get(*(data_t **)0x5aa6d4, player_index);
+          unit_scripting_unit_driver(*(int *)((char *)hud_globals + 0x34),
+                                     driver_out);
+          vector_to_angles(aim_angles, driver_out);
+          dest_value = aim_angles[1];
+        }
+        break;
+      case 1:
+      case 2:
+        dest_value = 0.0f;
+        break;
+      case 3:
+        dest_value = (float)(int)*(short *)((char *)driver_out + 0x1a);
+        break;
+      case 4:
+        dest_value = (float)(int)*(short *)((char *)driver_out + 0x1e);
+        break;
+      case 5:
+        dest_value = angles_buf[0];
+        break;
+      case 6:
+        dest_value = *(float *)(widget + 0x48);
+        break;
+      case 7:
+        dest_value = (float)(int)(short)player_control_get_zoom_level();
+        break;
+      default:
+        break;
+      }
+
+      /* lerp/clamp only when widget+0x4c > widget+0x48 AND widget+0x54 > widget+0x50 */
+      if (*(float *)(widget + 0x4c) > *(float *)(widget + 0x48) &&
+          *(float *)(widget + 0x54) > *(float *)(widget + 0x50)) {
+        clamp_value = (dest_value - *(float *)(widget + 0x48)) /
+                      (*(float *)(widget + 0x4c) - *(float *)(widget + 0x48));
+        if (clamp_value <= *(float *)0x2533c0) {
+          clamp_value = 0.0f;
+        } else if (clamp_value >= *(float *)0x2533c8) {
+          clamp_value = 1.0f;
+        }
+        scalars_interpolate(*(float *)(widget + 0x50), *(float *)(widget + 0x54),
+                            clamp_value, &out_scalar);
+        FUN_0007c270(rgb_out, 0, (float *)(widget + 0x98),
+                     (float *)(widget + 0xa4), clamp_value);
+        rgb0 = *(int *)&rgb_out[0];
+        rgb1 = *(int *)&rgb_out[1];
+        rgb2 = *(int *)&rgb_out[2];
+      } else {
+        out_scalar = *(float *)(widget + 0x50);
+        rgb0 = *(int *)(widget + 0x98);
+        rgb1 = *(int *)(widget + 0x9c);
+        rgb2 = *(int *)(widget + 0xa0);
+      }
+
+      /* switch(widget+0x42): output block; inner switch(widget+0x40): mode. */
+      switch ((int)*(short *)(widget + 0x42)) {
+      case 0:
+        if (*(short *)(widget + 0x40) == 1) {
+          *(float *)(color_block + 0x60) = out_scalar;
+        } else {
+          *(int *)(color_block + 0x60) = 0;
+        }
+        if (*(short *)(widget + 0x40) == 2) {
+          *(float *)(color_block + 0x64) = out_scalar;
+        } else {
+          *(int *)(color_block + 0x64) = 0;
+        }
+        *(int *)(render_desc + 0x4) = (int)(color_block + 0x60);
+        break;
+      case 1:
+        sel = (int)*(short *)(widget + 0x40);
+        if (sel == 0) {
+          *(int *)(color_block + 0x28) = rgb0;
+          *(int *)(color_block + 0x2c) = rgb1;
+          *(int *)(color_block + 0x30) = rgb2;
+          *(int *)(render_desc + 0x58) = (int)(color_block + 0x28);
+        } else if (sel == 1) {
+          *(float *)(*(int *)(render_desc + 0x1c)) =
+              out_scalar + *(float *)(*(int *)(render_desc + 0x1c));
+        } else if (sel == 2) {
+          ((float *)(*(int *)(render_desc + 0x1c)))[1] =
+              out_scalar + ((float *)(*(int *)(render_desc + 0x1c)))[1];
+        } else if (sel == 3) {
+          *(int *)(render_desc + 0x78) = (int)(color_block + 0x4c);
+          *(float *)(color_block + 0x4c) = out_scalar;
+          if (out_scalar < *(float *)0x2533c0 || out_scalar > *(float *)0x2533c8) {
+            display_assert("dest_value>=0.0f && dest_value<=1.0f",
+                           "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x507, 1);
+            system_exit(-1);
+          }
+        }
+        break;
+      case 2:
+        sel = (int)*(short *)(widget + 0x40);
+        if (sel == 0) {
+          *(int *)(color_block + 0x34) = rgb0;
+          *(int *)(color_block + 0x38) = rgb1;
+          *(int *)(color_block + 0x3c) = rgb2;
+          *(int *)(render_desc + 0x5c) = (int)(color_block + 0x34);
+        } else if (sel == 1) {
+          *(float *)(*(int *)(render_desc + 0x20)) =
+              out_scalar + *(float *)(*(int *)(render_desc + 0x20));
+        } else if (sel == 2) {
+          ((float *)(*(int *)(render_desc + 0x20)))[1] =
+              out_scalar + ((float *)(*(int *)(render_desc + 0x20)))[1];
+        } else if (sel == 3) {
+          *(int *)(render_desc + 0x7c) = (int)(color_block + 0x50);
+          *(float *)(color_block + 0x50) = out_scalar;
+          if (out_scalar < *(float *)0x2533c0 || out_scalar > *(float *)0x2533c8) {
+            display_assert("dest_value>=0.0f && dest_value<=1.0f",
+                           "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x51e, 1);
+            system_exit(-1);
+          }
+        }
+        break;
+      case 3:
+        sel = (int)*(short *)(widget + 0x40);
+        if (sel == 0) {
+          *(int *)(color_block + 0x40) = rgb0;
+          *(int *)(color_block + 0x44) = rgb1;
+          *(int *)(color_block + 0x48) = rgb2;
+          *(int *)(render_desc + 0x60) = (int)(color_block + 0x40);
+        } else if (sel == 1) {
+          *(float *)(*(int *)(render_desc + 0x24)) =
+              out_scalar + *(float *)(*(int *)(render_desc + 0x24));
+        } else if (sel == 2) {
+          ((float *)(*(int *)(render_desc + 0x24)))[1] =
+              out_scalar + ((float *)(*(int *)(render_desc + 0x24)))[1];
+        } else if (sel == 3) {
+          *(int *)(render_desc + 0x80) = (int)(color_block + 0x54);
+          *(float *)(color_block + 0x54) = out_scalar;
+          if (out_scalar < *(float *)0x2533c0 || out_scalar > *(float *)0x2533c8) {
+            display_assert("dest_value>=0.0f && dest_value<=1.0f",
+                           "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x535, 1);
+            system_exit(-1);
+          }
+        }
+        break;
+      default:
+        break;
+      }
+
+      widget_index++;
+    } while (widget_index < *(int *)(element + 0x154));
+  }
+
+  rasterizer_sprites_render(render_desc, vertex_buf);
+
+  corrupt_index = 0x7f;
+  do {
+    if (guard[(int)corrupt_index] != 0x62626262) {
+      goto found_corrupt;
+    }
+    corrupt_index--;
+  } while (corrupt_index >= 0);
+  corrupt_index = -1;
+found_corrupt:
+  if (return_addr != FUN_000d1540()) {
+    display_assert("corrupt return address!",
+                   "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x55c, 1);
+    system_exit(-1);
+  }
+  if (corrupt_index != -1) {
+    display_assert(
+        csprintf((char *)0x5ab100, "corrupt stack at %d!", (int)corrupt_index),
+        "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x55c, 1);
+    system_exit(-1);
+  }
+}
