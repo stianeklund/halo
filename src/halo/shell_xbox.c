@@ -70,7 +70,7 @@ void update_loaded_module_section_attributes(void)
 
 int main(int argc, const char **argv, const char **envp)
 {
-#if DEBUG_BUILD
+#if DEBUG_BUILD && !defined(HALO_RETAIL64)
   update_loaded_module_section_attributes();
 #endif
   rasterizer_preinitialize();
