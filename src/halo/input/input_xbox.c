@@ -944,6 +944,48 @@ void input_update_keyboard_devices(void)
   }
 }
 
+/* input_get_raw_data_string (0xd0030) — format raw gamepad stick state into buf
+ */
+void input_get_raw_data_string(char *buffer, int16_t size)
+{
+  short written;
+  short delta;
+  int i;
+  short *sticks;
+  int *connected;
+  int count;
+
+  if (buffer == NULL) {
+    display_assert("buffer", "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x32b, 1);
+    system_exit(-1);
+  }
+  if (size < 1) {
+    display_assert("size>0", "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x32c, 1);
+    system_exit(-1);
+  }
+  if (buffer != NULL && (int)size > 0) {
+    written = (short)snprintf(buffer, (int)size,
+                              "|n|n|n|ngamepad|tleft stick|tright stick|t|n");
+    i = 0;
+    sticks = (short *)0x46ba1c;
+    connected = (int *)0x46ba3c;
+    count = 4;
+    do {
+      if (*connected != 0) {
+        delta = (short)snprintf(buffer + written, (int)size - (int)written,
+                                "gamepad %d|t(%d, %d)|t(%d, %d)|n", i,
+                                (int)sticks[-2], (int)sticks[-1], (int)*sticks,
+                                (int)sticks[1]);
+        written += delta;
+      }
+      connected++;
+      i++;
+      sticks += 4;
+      count--;
+    } while (count != 0);
+  }
+}
+
 void input_update(void)
 {
   int i;
