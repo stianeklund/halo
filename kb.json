@@ -11854,7 +11854,8 @@
         },
         {
           "addr": "0xd27a0",
-          "decl": "void FUN_000d27a0(int element @<ecx>, float *scale @<eax>, int local_player_index, void *cursor, float *icon_rect, float *corners, void *param_6, int color);"
+          "decl": "void FUN_000d27a0(int element @<ecx>, float *scale @<eax>, int local_player_index, void *cursor, float *icon_rect, float *corners, float angle, int color);",
+          "ported": true
         },
         {
           "addr": "0xd02c0",
@@ -16236,7 +16237,7 @@
         },
         {
           "addr": "0xb6a70",
-          "decl": "void player_control_get_zoom_level(void);"
+          "decl": "short player_control_get_zoom_level(void);"
         },
         {
           "addr": "0xb6a90",
