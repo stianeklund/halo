@@ -800,7 +800,7 @@ void FUN_001a0be0(float vertical_speed, int unit_handle /* @edi */)
   char *obj;
   char *biped_tag;
   char *physics;
-  char damage_params[0x40];
+  char damage_params[0x54]; /* damage_data_new clears through +0x53. */
   float t;
   int actor_handle;
   int player_idx;
