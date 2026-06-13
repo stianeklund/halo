@@ -1258,7 +1258,7 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
                  false, -1, 0);
 
   } else if (tag_class == 0x6a707421) {
-    char damage_params[0x44];
+    char damage_params[0x54]; /* damage_data_new clears through +0x53. */
     void *object;
 
     object = object_try_and_get_and_verify_type(*(int *)(ef + 0x40), -1);
