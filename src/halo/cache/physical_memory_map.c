@@ -1,3 +1,13 @@
+#ifdef HALO_RETAIL64
+#define HALO_TAG_CACHE_SIZE 0x1600000
+#define HALO_TEXTURE_CACHE_SIZE 0x800000
+#define HALO_SOUND_CACHE_SIZE 0x200000
+#else
+#define HALO_TAG_CACHE_SIZE 0x1600000
+#define HALO_TEXTURE_CACHE_SIZE 0x1600000
+#define HALO_SOUND_CACHE_SIZE 0x400000
+#endif
+
 void physical_memory_allocate(void)
 {
   physical_memory_map_globals.game_state_base_address =
@@ -7,17 +17,17 @@ void physical_memory_allocate(void)
     GAME_STATE_BASE_ADDRESS);
 
   physical_memory_map_globals.tag_cache_base_address =
-    XPhysicalAlloc(0x1600000, TAG_CACHE_BASE_ADDRESS - 0x80000000, 0, 4);
+    XPhysicalAlloc(HALO_TAG_CACHE_SIZE, TAG_CACHE_BASE_ADDRESS - 0x80000000, 0, 4);
   assert_halt(
     (unsigned long)physical_memory_map_globals.tag_cache_base_address ==
     TAG_CACHE_BASE_ADDRESS);
 
   physical_memory_map_globals.texture_cache_base_address =
-    XPhysicalAlloc(0x1600000, (uint32_t)-1, 0, 0x404);
+    XPhysicalAlloc(HALO_TEXTURE_CACHE_SIZE, (uint32_t)-1, 0, 0x404);
   assert_halt(physical_memory_map_globals.texture_cache_base_address);
 
   physical_memory_map_globals.sound_cache_base_address =
-    XPhysicalAlloc(0x400000, (uint32_t)-1, 0, 4);
+    XPhysicalAlloc(HALO_SOUND_CACHE_SIZE, (uint32_t)-1, 0, 4);
   assert_halt(physical_memory_map_globals.sound_cache_base_address);
 }
 
@@ -29,7 +39,7 @@ void physical_memory_map_verify(void)
   int page_status;
 
   addr = (unsigned int)g->tag_cache_base_address;
-  while (addr < (unsigned int)g->tag_cache_base_address + 0x1600000) {
+  while (addr < (unsigned int)g->tag_cache_base_address + HALO_TAG_CACHE_SIZE) {
     page_status = MmQueryAddressProtect((void *)addr);
     assert_halt(page_status == PAGE_READWRITE);
     addr += 0x1000;

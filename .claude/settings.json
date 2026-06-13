@@ -32,6 +32,17 @@
         ]
       },
       {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // \"\"' | { read -r f; [[ \"$f\" == src/* || \"$f\" == *kb.json ]] && cd /mnt/g/dev/halo && rtk python3 tools/audit/check_lift_hazards.py --changed-only 2>&1 | head -60; } 2>/dev/null || true",
+            "timeout": 15,
+            "statusMessage": "Bug-hunt T0: scanning changed files for lift hazards"
+          }
+        ]
+      },
+      {
         "matcher": "mcp__ghidra__decompile_function|mcp__ghidra__batch_decompile|mcp__ghidra__force_decompile",
         "hooks": [
           {
