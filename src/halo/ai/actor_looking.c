@@ -5769,7 +5769,7 @@ void FUN_00024cf0(int actor_handle, char *eval_state, unsigned short fp_count,
   char *target_obj;
   unsigned int fp_idx;
   int threat_count;
-  int threat_i;
+  short threat_i;
   float dist_sq;
   float norm_sq;
   float radius;
@@ -5832,22 +5832,23 @@ void FUN_00024cf0(int actor_handle, char *eval_state, unsigned short fp_count,
           if (dist_sq <= radius * radius) {
             local_10_dsq = FUN_0010cd40((float *)fp_pos_ptr,
                                         (float *)actor_traj_base, local_buf);
-            range = *(float *)(actor + 0x294);
             local_14_score = 0.0f;
 
-            if (range * range <= local_10_dsq) {
-              if ((range + 2.5f) * (range + 2.5f) <= local_10_dsq) {
-                local_14_score = 20.0f;
-              } else {
-                local_14_score = (xbox_sqrtf(local_10_dsq) - range) * 8.0f;
-              }
-              FUN_00024000(eval_state, local_14_score, 0x17, fp_base_ptr);
-            } else {
+            if (local_10_dsq < *(float *)(actor + 0x294) * *(float *)(actor + 0x294)) {
               *(char *)(fp_ptr + 0x1d) = 1;
               if (*(char *)(eval_state + 0x14) == 0) {
                 *(char *)(fp_ptr + 0x1c) = 0;
                 goto LAB_24cf0_fp_next;
               }
+            } else {
+              if (local_10_dsq < (*(float *)(actor + 0x294) + 2.5f) *
+                                   (*(float *)(actor + 0x294) + 2.5f)) {
+                local_14_score =
+                  (xbox_sqrtf(local_10_dsq) - *(float *)(actor + 0x294)) * 8.0f;
+              } else {
+                local_14_score = 20.0f;
+              }
+              FUN_00024000(eval_state, local_14_score, 0x17, fp_base_ptr);
             }
           }
 
@@ -5891,7 +5892,7 @@ void FUN_00024cf0(int actor_handle, char *eval_state, unsigned short fp_count,
         faction_bit = 1u << (*(unsigned char *)(fp_pos_ptr + 0xc) & 0x1f);
         if (faction_mask & faction_bit) {
           faction_bonus = *(float *)(eval_state + 0x4c);
-          if (faction_bonus < 0.0f || faction_bonus >= 1000.0f) {
+          if (!(faction_bonus >= 0.0f && faction_bonus < 1000.0f)) {
             display_assert("score >= 0.f && score < REAL_MAX",
                            "c:\\halo\\SOURCE\\ai\\actor_firing_position.c",
                            0x81, 1);
@@ -5906,21 +5907,20 @@ void FUN_00024cf0(int actor_handle, char *eval_state, unsigned short fp_count,
           local_8_min = 1.0f;
           for (threat_i = 0; threat_i < threat_count; threat_i++) {
             int off = threat_i * 0x10;
-            w = *(float *)(eval_state + off + 0x54);
             dx = *(float *)(eval_state + off + 0x58) - *(float *)fp_pos_ptr;
             dy =
               *(float *)(eval_state + off + 0x5c) - *(float *)(fp_pos_ptr + 4);
             dz =
               *(float *)(eval_state + off + 0x60) - *(float *)(fp_pos_ptr + 8);
-            dist_sq = dx * dx + dy * dy + dz * dz;
-            ratio = dist_sq / (w * w);
+            w = *(float *)(eval_state + off + 0x54);
+            ratio = (dx * dx + dy * dy + dz * dz) / (w * w);
             if (ratio < local_8_min)
               local_8_min = ratio;
           }
           local_c_score = 10.0f;
           if (local_8_min < 1.0f) {
             local_c_score = xbox_sqrtf(local_8_min) * 10.0f;
-            if (local_c_score < 0.0f || local_c_score >= 1000.0f) {
+            if (!(local_c_score >= 0.0f && local_c_score < 1000.0f)) {
               display_assert("score >= 0.f && score < REAL_MAX",
                              "c:\\halo\\SOURCE\\ai\\actor_firing_position.c",
                              0x81, 1);
@@ -5944,7 +5944,8 @@ void FUN_00024cf0(int actor_handle, char *eval_state, unsigned short fp_count,
     target_handle = *(int *)(actor + 0x158);
     if (target_handle != -1) {
       target_obj = (char *)object_get_and_verify_type(target_handle, 2);
-      object_get_world_position(target_handle, (vector3_t *)local_buf);
+      object_get_world_position(*(int *)(actor + 0x158),
+                                (vector3_t *)local_buf);
 
       if ((short)fp_count > 0) {
         fp2_ptr = fp_array + 0x30;
@@ -5957,18 +5958,17 @@ void FUN_00024cf0(int actor_handle, char *eval_state, unsigned short fp_count,
             dz = *(float *)(fp2_pos_ptr + 8) - local_buf[2];
             dist_sq = dx * dx + dy * dy + dz * dz;
 
-            if ((double)(dist_sq < 0.0f ? -dist_sq : dist_sq) > 1e-4 &&
-                dist_sq < 900.0f) {
-              dot_val = dz * *(float *)(target_obj + 0x2c);
-              dot_val += dy * *(float *)(target_obj + 0x28);
-              dot_val += dx * *(float *)(target_obj + 0x24);
+            if (fabs(dist_sq) > 1e-4 && dist_sq < 900.0f) {
+              dot_val = dz * *(float *)(target_obj + 0x2c) +
+                        dy * *(float *)(target_obj + 0x28) +
+                        dx * *(float *)(target_obj + 0x24);
               dist = xbox_sqrtf(dist_sq);
               cos_angle = dot_val / dist;
 
               if (*(char *)(eval_state + 0x46) == 0) {
-                tfx = *(float *)(target_obj + 0x18);
-                tfy = *(float *)(target_obj + 0x1c);
                 tfz = *(float *)(target_obj + 0x20);
+                tfy = *(float *)(target_obj + 0x1c);
+                tfx = *(float *)(target_obj + 0x18);
                 norm_sq = tfx * tfx + tfy * tfy + tfz * tfz;
                 if (norm_sq <= 1.0f / 144.0f)
                   goto LAB_24cf0_fp2_score;
@@ -5988,7 +5988,7 @@ void FUN_00024cf0(int actor_handle, char *eval_state, unsigned short fp_count,
                 /* max score; no assertion needed */
               } else if (cos_angle < 0.0f) {
                 los_score = 15.0f - cos_angle * -15.0f;
-                if (los_score < 0.0f || los_score >= 1000.0f) {
+                if (!(los_score >= 0.0f && los_score < 1000.0f)) {
                   display_assert(
                     "score >= 0.f && score < REAL_MAX",
                     "c:\\halo\\SOURCE\\ai\\actor_firing_position.c", 0x81, 1);
@@ -5996,7 +5996,7 @@ void FUN_00024cf0(int actor_handle, char *eval_state, unsigned short fp_count,
                 }
               } else {
                 los_score = (cos_angle - 0.866025f) * 111.9619f + 15.0f;
-                if (los_score < 0.0f || los_score >= 1000.0f) {
+                if (!(los_score >= 0.0f && los_score < 1000.0f)) {
                   display_assert(
                     "score >= 0.f && score < REAL_MAX",
                     "c:\\halo\\SOURCE\\ai\\actor_firing_position.c", 0x81, 1);
