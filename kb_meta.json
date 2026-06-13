@@ -4588,6 +4588,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xd0030": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xd0120": {
       "kind": "function",
       "status": "ported"
@@ -4605,6 +4609,10 @@
       "status": "ported"
     },
     "0xd01c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd02f0": {
       "kind": "function",
       "status": "ported"
     },
@@ -4658,6 +4666,10 @@
       ]
     },
     "0xd0c60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd0c80": {
       "kind": "function",
       "status": "ported"
     },
