@@ -4976,6 +4976,10 @@
       "score": 84.7,
       "source": "src/halo/interface/hud.c"
     },
+    "FUN_000d1090": {
+      "score": 87.7,
+      "source": "src/halo/interface/hud.c"
+    },
     "FUN_000d1550": {
       "score": 93.3,
       "source": "src/halo/interface/hud.c"
