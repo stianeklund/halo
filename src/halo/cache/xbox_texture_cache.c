@@ -1,11 +1,31 @@
 /* Xbox texture cache: retrieve and block on hardware texture data.
  * Source: c:\halo\SOURCE\cache\xbox_texture_cache.c */
+#ifdef HALO_RETAIL64
+#define HALO_TEXTURE_CACHE_SIZE 0x800000
+#else
+#define HALO_TEXTURE_CACHE_SIZE 0x1600000
+#endif
+
+#define HALO_TEXTURE_CACHE_PAGE_BITS 0xe
+#define HALO_TEXTURE_CACHE_PAGE_SIZE (1 << HALO_TEXTURE_CACHE_PAGE_BITS)
+#define HALO_TEXTURE_CACHE_PAGE_COUNT \
+  (HALO_TEXTURE_CACHE_SIZE >> HALO_TEXTURE_CACHE_PAGE_BITS)
+#define HALO_TEXTURE_CACHE_STEAL_GUARD_SIZE 0x104000
+#define HALO_TEXTURE_CACHE_STEAL_GUARD_PAGES \
+  (HALO_TEXTURE_CACHE_STEAL_GUARD_SIZE >> HALO_TEXTURE_CACHE_PAGE_BITS)
+#define HALO_TEXTURE_CACHE_STEALABLE_PAGES \
+  (HALO_TEXTURE_CACHE_PAGE_COUNT - (HALO_TEXTURE_CACHE_STEAL_GUARD_PAGES * 2))
+
 void *xbox_texture_cache_steal_memory(unsigned int size)
 {
-  int page_count = ((int)(size + (((int)size >> 0x1f) & 0x3fffU)) >> 0xe) + 1;
-  int remaining_page_count = 0x4fe - page_count;
-  char *base = (char *)FUN_001bdd60() + (remaining_page_count << 0xe);
-  int stolen_size = page_count << 0xe;
+  int page_count =
+    ((int)(size + (((int)size >> 0x1f) & (HALO_TEXTURE_CACHE_PAGE_SIZE - 1))) >>
+     HALO_TEXTURE_CACHE_PAGE_BITS) +
+    1;
+  int remaining_page_count = HALO_TEXTURE_CACHE_STEALABLE_PAGES - page_count;
+  char *base = (char *)FUN_001bdd60() +
+               (remaining_page_count << HALO_TEXTURE_CACHE_PAGE_BITS);
+  int stolen_size = page_count << HALO_TEXTURE_CACHE_PAGE_BITS;
 
   if (remaining_page_count < 1) {
     display_assert("remaining_page_count>0",
@@ -22,11 +42,14 @@ void *xbox_texture_cache_steal_memory(unsigned int size)
   }
 
   lruv_resize(*(void **)0x4ea980, remaining_page_count);
-  physical_memory_protect(base + 0x104000, stolen_size, 4);
-  physical_memory_protect(base, 0x104000, 2);
-  physical_memory_protect(base + 0x104000 + stolen_size, 0x104000, 2);
+  physical_memory_protect(base + HALO_TEXTURE_CACHE_STEAL_GUARD_SIZE,
+                          stolen_size, 4);
+  physical_memory_protect(base, HALO_TEXTURE_CACHE_STEAL_GUARD_SIZE, 2);
+  physical_memory_protect(base + HALO_TEXTURE_CACHE_STEAL_GUARD_SIZE +
+                            stolen_size,
+                          HALO_TEXTURE_CACHE_STEAL_GUARD_SIZE, 2);
   *(int8_t *)0x4ea984 = 1;
-  return base + 0x104000;
+  return base + HALO_TEXTURE_CACHE_STEAL_GUARD_SIZE;
 }
 
 void xbox_texture_cache_return_memory(void)
@@ -38,8 +61,8 @@ void xbox_texture_cache_return_memory(void)
     system_exit(-1);
   }
 
-  lruv_resize(*(void **)0x4ea980, 0x580);
-  physical_memory_protect(FUN_001bdd60(), 0x1600000, 0x404);
+  lruv_resize(*(void **)0x4ea980, HALO_TEXTURE_CACHE_PAGE_COUNT);
+  physical_memory_protect(FUN_001bdd60(), HALO_TEXTURE_CACHE_SIZE, 0x404);
   *(int8_t *)0x4ea984 = 0;
 }
 
