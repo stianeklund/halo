@@ -997,6 +997,16 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
       }
       *(int16_t *)((char *)collision_result + 0x10) = cluster_last;
     }
+    /* Guard: FUN_00198580 uses collision_result+0xC as a BSP cluster-object
+     * reference.  When count==0 (no cluster objects at the hit surface) or
+     * obj_ref_last==-1 (sentinel), the field stays at its initialised -1.
+     * FUN_00198580 does (-1) & 0x7FFFFFFF = 0x7FFFFFFF and passes that as
+     * an index into the scenario structure-bsp block → asserts in our ported
+     * tag_block_get_element.  The original code masked this via a NaN max_t
+     * (0x7FFF0000) that silently caused every BSP test to miss; fixing max_t
+     * to FLT_MAX exposed the bug.  Treat no-valid-cluster-ref as a miss. */
+    if (*(int *)((char *)collision_result + 0xc) == -1)
+      result = 0;
   }
 
   /* Log timing */
