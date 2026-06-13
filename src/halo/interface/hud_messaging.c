@@ -897,7 +897,7 @@ int hud_get_font_index(void)
 /* hud_get_text_color (0xd5180)
  * Copies 4 HUD text color words from the messaging globals into param_1[0..3].
  */
-void hud_get_text_color(int *param_1)
+int *hud_get_text_color(int *param_1)
 {
   int *src;
 
@@ -906,6 +906,7 @@ void hud_get_text_color(int *param_1)
   param_1[1] = src[1];
   param_1[2] = src[2];
   param_1[3] = src[3];
+  return param_1;
 }
 
 /* hud_messaging_globals_update (0xd51b0)
