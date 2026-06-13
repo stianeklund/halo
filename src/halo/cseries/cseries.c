@@ -24,11 +24,12 @@ uint32_t string_to_tag(uint32_t *param_1)
 
 /* tag_to_string (0x8d890) — byte-swap param_1 and write it to *param_2,
  * then null-terminate the byte immediately after the stored value. */
-void tag_to_string(uint32_t param_1, uint32_t *param_2)
+uint32_t *tag_to_string(uint32_t param_1, uint32_t *param_2)
 {
   *param_2 = ((param_1 & 0xff0000) | param_1 >> 0x10) >> 8 |
              ((param_1 & 0xff00) | param_1 << 0x10) << 8;
   *(uint8_t *)(param_2 + 1) = 0;
+  return param_2;
 }
 
 /* strnlen (0x8d8d0) — bounded strlen: count non-null chars in s up to n.
