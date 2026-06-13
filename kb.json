@@ -11733,7 +11733,8 @@
         },
         {
           "addr": "0xd0c80",
-          "decl": "void FUN_000d0c80(void);"
+          "name": "hud_set_element_digital",
+          "decl": "void hud_set_element_digital(float value, const void *draw_ptr);"
         },
         {
           "addr": "0xd0d50",
@@ -11755,7 +11756,8 @@
         },
         {
           "addr": "0xd1090",
-          "decl": "void FUN_000d1090(void);"
+          "decl": "void FUN_000d1090(void);",
+          "ported": true
         },
         {
           "addr": "0xd1400",
@@ -16202,7 +16204,7 @@
         },
         {
           "addr": "0xb6940",
-          "decl": "void player_control_get_autoaim_level(void);"
+          "decl": "float player_control_get_autoaim_level(int16_t local_player_index);"
         },
         {
           "addr": "0xb69d0",
@@ -16210,7 +16212,7 @@
         },
         {
           "addr": "0xb6a70",
-          "decl": "void player_control_get_zoom_level(void);"
+          "decl": "int16_t player_control_get_zoom_level(int16_t local_player_index, const void *draw_ptr);"
         },
         {
           "addr": "0xb6a90",
@@ -29834,7 +29836,7 @@
         },
         {
           "addr": "0xfc780",
-          "decl": "void weapon_get_zoom_magnification(void);"
+          "decl": "float weapon_get_zoom_magnification(int weapon_handle, int16_t zoom_level);"
         },
         {
           "addr": "0xfc8e0",
