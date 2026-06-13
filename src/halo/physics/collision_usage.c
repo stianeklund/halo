@@ -843,7 +843,6 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
   int16_t leaf_idx;
   void *scen_elem;
   int16_t cluster_idx;
-  void *s;
   void *elem;
   void *pg_list;
   void *pg;
@@ -906,26 +905,43 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
     bsp_hit = collision_bsp_test_vector(
       (int)flags_computed, (int)global_collision_bsp_get(), 0x100,
       (int)breakable_surfaces_get_bsp_surface_data(), (int)origin,
-      (int)direction, *(float *)"\x00\x00\xff\x7f", (float *)local_buf);
+      (int)direction, 3.4028235e+38f, (float *)local_buf);
 
     if (bsp_hit && (collision_flags & 0x20)) {
-      /* Fill collision_result from local_buf */
-      *(float *)((char *)collision_result + 0x14) = *(float *)(local_buf);
+      /* Fill collision_result from the BSP-test result struct (local_buf).
+       * The buffer the original passes to the BSP test is at EBP-0x434, so
+       * the field offsets within it are:
+       *   +0x0  dword  hit distance          -> collision_result+0x14
+       *   +0x4  float* -> plane[4] (x,y,z,d)  -> collision_result+0x24..+0x30
+       *   +0x8  dword                         -> collision_result+0x44
+       *   +0xc  dword  (sign-tested)          -> collision_result+0x48
+       *   +0x10 byte                          -> collision_result+0x4c
+       *   +0x11 byte                          -> collision_result+0x4d
+       *   +0x12 short  leaf/surface index     -> collision_result+0x4e (+ scenario+0xa4 lookup)
+       *   +0x14 dword  obj_ref count
+       *   +0x18 dword[] obj_ref array
+       * The prior lift had every offset shifted (reading +0x4..+0x1e where
+       * the data is at +0x0..+0x18), and read the plane components inline
+       * instead of through the pointer at +0x4 — corrupting the hit data and
+       * driving the obj_ref count/index reads (below) off the end of the
+       * meaningful data into garbage. */
+      int *hit_plane = *(int **)(local_buf + 0x4);
+
+      *(int *)((char *)collision_result + 0x14) = *(int *)(local_buf);
       collision_result[0] = 2;
 
-      *(int *)((char *)collision_result + 0x24) = *(int *)(local_buf + 0x4);
-      *(int *)((char *)collision_result + 0x28) = *(int *)(local_buf + 0x8);
-      *(int *)((char *)collision_result + 0x2c) = *(int *)(local_buf + 0xc);
-      *(int *)((char *)collision_result + 0x30) = *(int *)(local_buf + 0x10);
+      *(int *)((char *)collision_result + 0x24) = hit_plane[0];
+      *(int *)((char *)collision_result + 0x28) = hit_plane[1];
+      *(int *)((char *)collision_result + 0x2c) = hit_plane[2];
+      *(int *)((char *)collision_result + 0x30) = hit_plane[3];
 
-      if (*(int *)(local_buf + 0x18) < 0)
-        vector3d_scale_add((float *)((char *)collision_result + 0x24),
-                           (float *)((char *)collision_result + 0x24), 1.0f,
-                           (float *)((char *)collision_result + 0x24));
+      if (*(int *)(local_buf + 0xc) < 0)
+        plane_negate((float *)((char *)collision_result + 0x24),
+                     (float *)((char *)collision_result + 0x24));
 
       /* Leaf/surface index */
       {
-        leaf_idx = *(short *)(local_buf + 0x1e);
+        leaf_idx = *(short *)(local_buf + 0x12);
         if (leaf_idx != -1) {
           scen_elem = tag_block_get_element((char *)scenario_h + 0xa4,
                                             (int)leaf_idx, 0x14);
@@ -934,29 +950,52 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
           collision_result[0x1a] = -1;
         }
       }
-      *(int *)((char *)collision_result + 0x44) = *(int *)(local_buf + 0x14);
-      *(int *)((char *)collision_result + 0x48) = *(int *)(local_buf + 0x18);
-      collision_result[0x26] = *(short *)(local_buf + 0x1c);
-      collision_result[0x27] = *(short *)(local_buf + 0x1d);
-      collision_result[0x4e / 2] = *(short *)(local_buf + 0x1e);
+      *(int *)((char *)collision_result + 0x44) = *(int *)(local_buf + 0x8);
+      *(int *)((char *)collision_result + 0x48) = *(int *)(local_buf + 0xc);
+      *(char *)((char *)collision_result + 0x4c) = *(char *)(local_buf + 0x10);
+      *(char *)((char *)collision_result + 0x4d) = *(char *)(local_buf + 0x11);
+      collision_result[0x4e / 2] = *(short *)(local_buf + 0x12);
       result = 1;
     }
 
-    /* Object cluster refs from local_buf */
-    if ((int)*(int *)(local_buf + 0x20) > 0) {
-      int obj_ref = *(int *)(local_buf + 0x24);
-      if (obj_ref == -1) {
-        collision_result[2] = (int16_t)-1;
+    /* Object cluster refs from local_buf: local_buf+0x14 = obj_ref count,
+     * local_buf+0x18 = obj_ref[]. Resolve the first (index 0) and last
+     * (index count-1) refs: store the raw handle to collision_result+4 / +0xc
+     * and the cluster index to collision_result+8 / +0x10. The cluster index
+     * is field +8 of element [ref & 0x7fffffff] in the scenario structure-bsp
+     * block (scenario+0xe0, element_size 0x10).
+     *
+     * NOTE: the original pushes element_size(0x10) and index(ref&0x7fffffff)
+     * BEFORE the inner 0-arg scenario_get() call (cdecl arg mis-grouping,
+     * lift-learnings §7); they are tag_block_get_element's args, not address
+     * arithmetic on the block base. */
+    if (*(int *)(local_buf + 0x14) > 0) {
+      int obj_ref_first = *(int *)(local_buf + 0x18);
+      int obj_ref_last;
+      int16_t cluster_first;
+      int16_t cluster_last;
+
+      *(int *)((char *)collision_result + 4) = obj_ref_first;
+      if (obj_ref_first == -1) {
+        cluster_first = (int16_t)-1;
       } else {
-        cluster_idx = -1;
-        obj_ref = (int)((unsigned int)obj_ref & 0x7fffffff);
-        s = (void *)((int)scenario_get() + (obj_ref & 0x7fffffff) * 0x10);
-        elem = tag_block_get_element((char *)s + 0xe0, 0, 0);
-        cluster_idx = *(int16_t *)((char *)elem + 8);
-        collision_result[2] = cluster_idx;
+        elem = tag_block_get_element((char *)scenario_get() + 0xe0,
+                                     obj_ref_first & 0x7fffffff, 0x10);
+        cluster_first = *(int16_t *)((char *)elem + 8);
       }
-      *(int *)((char *)collision_result + 4) =
-        *(int *)(local_buf + (*(int *)(local_buf + 0x20)) * 4 + 0x24);
+      *(int16_t *)((char *)collision_result + 8) = cluster_first;
+
+      obj_ref_last =
+        *(int *)(local_buf + (*(int *)(local_buf + 0x14)) * 4 + 0x14);
+      *(int *)((char *)collision_result + 0xc) = obj_ref_last;
+      if (obj_ref_last == -1) {
+        cluster_last = (int16_t)-1;
+      } else {
+        elem = tag_block_get_element((char *)scenario_get() + 0xe0,
+                                     obj_ref_last & 0x7fffffff, 0x10);
+        cluster_last = *(int16_t *)((char *)elem + 8);
+      }
+      *(int16_t *)((char *)collision_result + 0x10) = cluster_last;
     }
   }
 
@@ -1028,7 +1067,7 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
   }
 
   /* Object iteration test */
-  if (use_water && (int)*(int *)(local_buf + 0x20) > 0) {
+  if (use_water && (int)*(int *)(local_buf + 0x14) > 0) {
     collision_log_add_call(1);
     /* collision_log_query_counter((void *)0x4761e8); — IAT crash */
 
@@ -1040,24 +1079,24 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
     object_reset_markers();
 
     i = 0;
-    while (i < (int)*(int *)(local_buf + 0x20)) {
-      int obj_ref = *(int *)(local_buf + i * 4 + 0x24);
+    while (i < (int)*(int *)(local_buf + 0x14)) {
+      int obj_ref = *(int *)(local_buf + i * 4 + 0x18);
       cluster_idx = -1;
 
       if (obj_ref == -1) {
         cluster_idx = -1;
       } else {
-        obj_ref = (int)((unsigned int)obj_ref & 0x7fffffff);
-        s = (void *)((int)scenario_get() + (obj_ref & 0x7fffffff) * 0x10);
-        elem = tag_block_get_element((char *)s + 0xe0, 0, 0);
+        /* Same cdecl arg mis-grouping as the cluster block above: block is
+         * scenario_get()+0xe0, index is ref&0x7fffffff, element_size is 0x10. */
+        elem = tag_block_get_element((char *)scenario_get() + 0xe0,
+                                     obj_ref & 0x7fffffff, 0x10);
         cluster_idx = *(int16_t *)((char *)elem + 8);
       }
 
       if (structure_cluster_mark(cluster_idx)) {
-        object_handle = 0;
-        if (cluster_partition_object_iter_first(&iter_state, cluster_idx) !=
-            -1) {
-          object_handle = iter_state;
+        object_handle =
+            cluster_partition_object_iter_first(&iter_state, cluster_idx);
+        if (object_handle != -1) {
           do {
             if (object_mark(object_handle)) {
               char obj_hit =
@@ -1074,7 +1113,7 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
       i++;
     }
 
-    object_reset_markers();
+    object_marker_end();
     structure_cluster_marker_end();
     /* collision_log_add_time(1, ...); — IAT crash via QueryPerformanceCounter */
   }
