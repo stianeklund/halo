@@ -5329,6 +5329,96 @@
       }
     },
     {
+      "name": "halo/hud_d04d0_d0b5c",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
+      "base_path": "delinked/hud_d04d0_d0b5c.obj",
+      "metadata": { "source_path": "src/halo/interface/hud.c" }
+    },
+    {
+      "name": "halo/hud_d02c0_d02e6",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
+      "base_path": "delinked/hud_d02c0_d02e6.obj",
+      "metadata": { "source_path": "src/halo/interface/hud.c" }
+    },
+    {
+      "name": "halo/hud_d0ff0_d1084",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
+      "base_path": "delinked/hud_d0ff0_d1084.obj",
+      "metadata": { "source_path": "src/halo/interface/hud.c" }
+    },
+    {
+      "name": "halo/hud_d0e90_d0fe1",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
+      "base_path": "delinked/hud_d0e90_d0fe1.obj",
+      "metadata": { "source_path": "src/halo/interface/hud.c" }
+    },
+    {
+      "name": "halo/hud_d0c80_d0d44",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
+      "base_path": "delinked/hud_d0c80_d0d44.obj",
+      "metadata": { "source_path": "src/halo/interface/hud.c" }
+    },
+    {
+      "name": "halo/hud_d04a0_d04c7",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
+      "base_path": "delinked/hud_d04a0_d04c7.obj",
+      "metadata": { "source_path": "src/halo/interface/hud.c" }
+    },
+    {
+      "name": "halo/hud_d16a0_d1882",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
+      "base_path": "delinked/hud_d16a0_d1882.obj",
+      "metadata": { "source_path": "src/halo/interface/hud.c" }
+    },
+    {
+      "name": "halo/hud_d1400_d1531",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
+      "base_path": "delinked/hud_d1400_d1531.obj",
+      "metadata": { "source_path": "src/halo/interface/hud.c" }
+    },
+    {
+      "name": "halo/hud_d1890_d1a4f",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
+      "base_path": "delinked/hud_d1890_d1a4f.obj",
+      "metadata": { "source_path": "src/halo/interface/hud.c" }
+    },
+    {
+      "name": "halo/hud_d2580_d279f",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
+      "base_path": "delinked/hud_d2580_d279f.obj",
+      "metadata": { "source_path": "src/halo/interface/hud.c" }
+    },
+    {
+      "name": "halo/hud_d1f40_d22e1",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
+      "base_path": "delinked/hud_d1f40_d22e1.obj",
+      "metadata": { "source_path": "src/halo/interface/hud.c" }
+    },
+    {
+      "name": "halo/hud_d1580_d168e",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
+      "base_path": "delinked/hud_d1580_d168e.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/hud.c"
+      }
+    },
+    {
+      "name": "halo/hud_d1a70_d1c4f",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
+      "base_path": "delinked/hud_d1a70_d1c4f.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/hud.c"
+      }
+    },
+    {
+      "name": "halo/hud_d2300_d28ff",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
+      "base_path": "delinked/hud_d2300_d28ff.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/hud.c"
+      }
+    },
+    {
       "name": "halo/hud_messaging",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud_messaging.c.obj",
       "base_path": "delinked/hud_messaging.obj",
