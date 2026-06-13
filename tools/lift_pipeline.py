@@ -863,6 +863,8 @@ def run_pipeline(args: argparse.Namespace) -> int:
       "--allow-stubs",
       "--mem-trace",
     ]
+    if getattr(args, "equivalence_real_callees", False):
+      cmd.append("--real-callees")
     proc = run_command(cmd, cwd=ROOT, log_path=artifact_dir / "equivalence.log")
     output = (proc.stdout or "") + (proc.stderr or "")
     payload: dict[str, object] | None = None
@@ -1354,6 +1356,10 @@ def build_parser() -> argparse.ArgumentParser:
                   help="Compatibility alias for --equivalence-policy=auto.")
   ap.add_argument("--equivalence-seeds", type=int, default=100,
                   help="Number of seeds for unicorn_diff (default 100).")
+  ap.add_argument("--equivalence-real-callees", action="store_true",
+                  help="Pass --real-callees to unicorn_diff. Use when the function under test "
+                       "calls a sibling in the same .obj (stub-based equivalence gives false "
+                       "negatives because the candidate's internal call bypasses the stub).")
   ap.add_argument("-q", "--quiet", action="store_true",
                   help="Suppress skipped stages and condense detail strings in final output.")
   return ap
