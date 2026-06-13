@@ -73,7 +73,13 @@ def _generate_debug_elf(quiet: bool = False) -> None:
         print(f"warning: objcopy failed, build/halo.debug not updated", file=sys.stderr)
 
 
-def build(target: str = "", quiet: bool = False, test_harness: bool = False) -> int:
+def _env_flag(name: str) -> bool:
+    value = os.environ.get(name, "")
+    return value.lower() in ("1", "true", "yes", "on")
+
+
+def build(target: str = "", quiet: bool = False, test_harness: bool = False,
+          retail64: bool | None = None) -> int:
     if not os.path.isdir(BUILD_DIR):
         print(
             f"error: build directory not found: {BUILD_DIR}\n"
@@ -82,8 +88,10 @@ def build(target: str = "", quiet: bool = False, test_harness: bool = False) -> 
         )
         return 1
 
-    harness_flag = "-DHALO_TEST_HARNESS=" + ("ON" if test_harness else "OFF")
-    cfg_result = _run_cmake_configure(extra_args=[harness_flag], quiet=quiet)
+    configure_args = ["-DHALO_TEST_HARNESS=" + ("ON" if test_harness else "OFF")]
+    if retail64 is not None:
+        configure_args.append("-DHALO_RETAIL64=" + ("ON" if retail64 else "OFF"))
+    cfg_result = _run_cmake_configure(extra_args=configure_args, quiet=quiet)
     if cfg_result != 0:
         return cfg_result
 
@@ -117,8 +125,23 @@ def main() -> int:
         action="store_true",
         help="Build with the in-engine test harness enabled (HALO_TEST_HARNESS=ON).",
     )
+    retail64_group = parser.add_mutually_exclusive_group()
+    retail64_group.add_argument(
+        "--retail64",
+        dest="retail64",
+        action="store_true",
+        default=True if _env_flag("HALO_RETAIL64") else None,
+        help="Build experimental 64MB retail-compatible runtime profile.",
+    )
+    retail64_group.add_argument(
+        "--no-retail64",
+        dest="retail64",
+        action="store_false",
+        help="Disable the experimental 64MB retail-compatible runtime profile.",
+    )
     args = parser.parse_args()
-    return build(target=args.target, quiet=args.quiet, test_harness=args.test)
+    return build(target=args.target, quiet=args.quiet, test_harness=args.test,
+                 retail64=args.retail64)
 
 
 if __name__ == "__main__":
