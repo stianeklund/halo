@@ -5001,6 +5001,22 @@
       }
     },
     {
+      "name": "halo/effects_9c9f0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/effects.c.obj",
+      "base_path": "delinked/effects_9c9f0.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/effects.c"
+      }
+    },
+    {
+      "name": "halo/effects_9ca70",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/effects.c.obj",
+      "base_path": "delinked/effects_9ca70.obj",
+      "metadata": {
+        "source_path": "src/halo/effects/effects.c"
+      }
+    },
+    {
       "name": "halo/effects_9ce80",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/effects.c.obj",
       "base_path": "delinked/effects_9ce80.obj",
