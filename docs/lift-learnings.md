@@ -1031,3 +1031,22 @@ cdecl symbols: C `_chkstk` → object-file `__chkstk`. Naming the C function
 and the linker would still fail. This is the same convention as `_ftol2` in
 `xdk_rt.c` (C `_ftol2` → `__ftol2` in object), which is what the original binary
 emits for float→int truncations.
+
+---
+
+## 21. NaN Float Literal Masking a Latent Crash
+
+**Automation:** PARTIAL — `check_lift_hazards.py::check_float_int_bit_smuggling` (WARN) catches `(T*)(int)(float_expr)` patterns. The specific `*(float *)"bytes"` literal pattern that silently produces NaN is not yet detected automatically; a check for NaN/Inf float literals in source is planned.
+
+**What happens:** A lifted float constant is written as a byte-pattern cast: `*(float *)"\x00\x00\xff\x7f"`. The bytes 00 00 FF 7F (little-endian) = 0x7FFF0000 as a 32-bit float. Float 0x7FFF0000 has exponent=0xFF and non-zero mantissa → **NaN**, not FLT_MAX (0x7F7FFFFF). In IEEE 754, any comparison involving NaN returns false: `distance < NaN` = false. The effect: the BSP ray test used this as its max-distance argument and silently produced **no hits at all** (every candidate surface's distance check failed). The function returned false for every test call, so downstream code that depended on the test result was never reached.
+
+**Symptoms:** No immediate crash — but a caller-expected code path is never executed. In FUN_0014df70, the BSP test always returning false caused bsp_hit=false on every call, so the collision result was never filled and FUN_00198580 (which requires a valid cluster ref in collision_result+0xC) was never invoked. When the NaN was fixed to FLT_MAX, the BSP test began returning hits, exposing a **latent crash**: FUN_00198580 called tag_block_get_element with the uninitialised -1 cluster ref → `(-1) & 0x7FFFFFFF = 0x7FFFFFFF` → index out of range in a block of 1039 → assert.
+
+**Example (FUN_0014df70, collision raycast):** The max_t argument to `collision_bsp_test_vector` was `*(float *)"\x00\x00\xff\x7f"` (NaN). The underlying latent bug: when the BSP test finds no cluster object refs (count=0), collision_result+0xC stays at -1 (its initialised value). The caller FUN_00198580 uses collision_result+0xC as a cluster-object index, masking with `& 0x7FFFFFFF` → 0x7FFFFFFF → tag_block_get_element assert. Fix: (1) use `3.4028235e+38f` (FLT_MAX) for the max_t constant; (2) guard against the case where count=0 leaves no valid cluster ref — in that case treat the BSP test as a miss (result=0) so FUN_00198580 is never called.
+
+**Prevention:**
+- Never use `*(float *)"bytes"` to embed float constants; write the decimal literal or a named constant so the value is human-readable.
+- After any fix that changes a float constant to its correct value, check whether the old wrong value was silently suppressing a code path — run the corrected build in the scenario that previously avoided the path (e.g., multiplayer map load).
+- When a latent crash is triggered by a previously-suppressed code path: search for WHERE the bad value originates, not just what asserts. The assert (`tag_block_get_element` with 0x7FFFFFFF) was a symptom; the root cause was -1 in collision_result+0xC, itself caused by count=0 after a previously-always-false BSP test.
+
+**Detection at runtime:** After correcting a float constant, a new crash appears in a code path that was previously never reached. The new crash may be several call levels removed from the changed code — bisect by temporarily reverting the constant change to confirm the new code path is the cause.
