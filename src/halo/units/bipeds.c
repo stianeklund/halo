@@ -898,6 +898,7 @@ int biped_flying_through_air(int unit_handle)
   unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
   biped_tag = (char *)tag_get(0x62697064, *(int *)unit_obj);
 
+
   if (*(char *)(unit_obj + 0x459) > 3 &&
       (((*(unsigned char *)(biped_tag + 0x2f4) & 4) == 0) ||
        ((*(unsigned char *)(unit_obj + 0xb6) & 4) != 0))) {
