@@ -31132,63 +31132,81 @@
         },
         {
           "addr": "0x54c40",
-          "decl": "void FUN_00054c40(void);"
+          "decl": "void FUN_00054c40(unsigned int ai_ref /* @<eax> */, char by_player);",
+          "ported": true,
+          "reg_args": {
+            "ai_ref": "eax"
+          }
         },
         {
           "addr": "0x54ca0",
-          "decl": "void FUN_00054ca0(void);"
+          "decl": "void FUN_00054ca0(unsigned int ai_ref);",
+          "ported": true
         },
         {
           "addr": "0x54d00",
-          "decl": "void FUN_00054d00(void);"
+          "decl": "void FUN_00054d00(unsigned int ai_ref);",
+          "ported": true
         },
         {
           "addr": "0x54d60",
-          "decl": "void FUN_00054d60(void);"
+          "decl": "void FUN_00054d60(unsigned int ai_ref);",
+          "ported": true
         },
         {
           "addr": "0x54df0",
-          "decl": "void FUN_00054df0(void);"
+          "decl": "void FUN_00054df0(void);",
+          "ported": true
         },
         {
           "addr": "0x54e20",
-          "decl": "void FUN_00054e20(void);"
+          "decl": "void FUN_00054e20(void);",
+          "ported": true
         },
         {
           "addr": "0x54e40",
-          "decl": "void FUN_00054e40(void);"
+          "decl": "void FUN_00054e40(int encounter_ref);",
+          "ported": true
         },
         {
           "addr": "0x54e80",
-          "decl": "void FUN_00054e80(void);"
+          "decl": "void FUN_00054e80(unsigned int ai_ref);",
+          "ported": true
         },
         {
           "addr": "0x54f90",
-          "decl": "void FUN_00054f90(void);"
+          "decl": "void FUN_00054f90(unsigned int combined_index, char flag);",
+          "ported": true
         },
         {
           "addr": "0x55010",
-          "decl": "void FUN_00055010(void);"
+          "decl": "void FUN_00055010(unsigned int combined_index, char flag);",
+          "ported": true
         },
         {
           "addr": "0x55090",
-          "decl": "void FUN_00055090(void);"
+          "decl": "void FUN_00055090(unsigned int combined_index, char flag);",
+          "ported": true
         },
         {
           "addr": "0x55110",
-          "decl": "void FUN_00055110(int combined_handle, int unit_handle);"
+          "decl": "void FUN_00055110(unsigned int combined_handle, int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x551e0",
-          "decl": "void FUN_000551e0(void);"
+          "decl": "void FUN_000551e0(unsigned int combined_handle, int unit_group);",
+          "ported": true
         },
         {
           "addr": "0x55220",
-          "decl": "void FUN_00055220(void);"
+          "decl": "void FUN_00055220(unsigned int combined_index);",
+          "ported": true
         },
         {
           "addr": "0x552b0",
-          "decl": "void FUN_000552b0(void);"
+          "decl": "void FUN_000552b0(unsigned int combined_index);",
+          "ported": true
         },
         {
           "addr": "0x55350",
@@ -31868,11 +31886,11 @@
         },
         {
           "addr": "0x5c510",
-          "decl": "void encounter_spawn_actor(void);"
+          "decl": "void encounter_spawn_actor(int profile_index, int squad_index);"
         },
         {
           "addr": "0x5c630",
-          "decl": "void encounter_set_respawn(void);"
+          "decl": "void encounter_set_respawn(int encounter_handle, char flag);"
         },
         {
           "addr": "0x5c680",

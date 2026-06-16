@@ -957,3 +957,348 @@ bool FUN_000556f0(unsigned int ai_ref)
 
   return 0;
 }
+
+/* ---------------------------------------------------------------------------
+ * ai_kill / ai_kill_silent / ai_erase / ai_erase_all / ai_spawn_actor +
+ * ai_debug select commands. Each public command emits a verbose diagnostic
+ * trace gated by the AI-spew flag at 0x5aca59, then performs its work.
+ * ------------------------------------------------------------------------- */
+
+/* FUN_00054c40 — kill every actor named by the packed ai_index_reference in
+ * EAX, forwarding by_player to actor_kill. Walks the Layout B actor iterator;
+ * the live actor handle is the embedded iterator's current handle (iter[4]).
+ * No-op when ai_ref is the -1 sentinel. 0x990 obj / 0x54c40 XBE. */
+void FUN_00054c40(unsigned int ai_ref /* @<eax> */, char by_player)
+{
+  int iter[6];                 /* [ebp-0x18], Layout B actor iterator */
+
+  if (ai_ref == 0xffffffff)
+    return;
+
+  FUN_00054680(ai_ref, iter);
+  if (FUN_00054750(iter) != 0) {
+    do {
+      actor_kill(iter[4], by_player, 0);
+    } while (FUN_00054750(iter) != 0);
+  }
+}
+
+/* FUN_00054ca0 — ai_kill: kill the actors named by ai_ref (by_player = 0).
+ * 0x9f0 obj / 0x54ca0 XBE. */
+void FUN_00054ca0(unsigned int ai_ref)
+{
+  char buffer[0x100];          /* [ebp-0x100] */
+
+  if (*(char *)0x5aca59 != 0) {
+    FUN_00054220(ai_ref, global_scenario_get(), buffer, 0x100);
+    error(2, (const char *)0x25c4ac,
+          hs_runtime_get_executing_thread_name(), buffer);
+  }
+
+  FUN_00054c40(ai_ref, 0);
+}
+
+/* FUN_00054d00 — ai_kill_silent: kill the actors named by ai_ref silently
+ * (by_player = 1). 0xa50 obj / 0x54d00 XBE. */
+void FUN_00054d00(unsigned int ai_ref)
+{
+  char buffer[0x100];          /* [ebp-0x100] */
+
+  if (*(char *)0x5aca59 != 0) {
+    FUN_00054220(ai_ref, global_scenario_get(), buffer, 0x100);
+    error(2, (const char *)0x25c4bc,
+          hs_runtime_get_executing_thread_name(), buffer);
+  }
+
+  FUN_00054c40(ai_ref, 1);
+}
+
+/* FUN_00054d60 — ai_erase: erase the encounter/squad named by ai_ref. The
+ * selector picks which sub-index (squad vs platoon) is passed; a non-matching
+ * selector passes the -1 wildcard. 0xab0 obj / 0x54d60 XBE. */
+void FUN_00054d60(unsigned int ai_ref)
+{
+  char buffer[0x100];          /* [ebp-0x100] */
+  unsigned char sub_byte;      /* [ebp+0xa] -> dl */
+  int sub_a;
+  int sub_b;
+
+  if (*(char *)0x5aca59 != 0) {
+    FUN_00054220(ai_ref, global_scenario_get(), buffer, 0x100);
+    error(2, (const char *)0x25c4d4,
+          hs_runtime_get_executing_thread_name(), buffer);
+  }
+
+  if (ai_ref == 0xffffffff)
+    return;
+
+  sub_byte = *(unsigned char *)((char *)&ai_ref + 2);
+
+  sub_b = ((ai_ref >> 0x1e) == 2) ? sub_byte : -1;
+  sub_a = ((ai_ref >> 0x1e) == 1) ? sub_byte : -1;
+
+  ai_erase(ai_ref & 0xffff, sub_a, sub_b, 0);
+}
+
+/* FUN_00054df0 — ai_erase_all: erase every encounter (wildcard).
+ * 0xb40 obj / 0x54df0 XBE. */
+void FUN_00054df0(void)
+{
+  if (*(char *)0x5aca59 != 0) {
+    error(2, (const char *)0x25c4e4,
+          hs_runtime_get_executing_thread_name());
+  }
+
+  ai_erase(-1, -1, -1, 0);
+}
+
+/* FUN_00054e20 — ai debug: select all actors (wildcard). Calls
+ * ai_debug_select_actor(-1, -1) when AI is enabled (*(0x632574)+1).
+ * 0xd70 obj / 0x54e20 XBE. */
+void FUN_00054e20(void)
+{
+  if (*(char *)((char *)*(void **)0x632574 + 1) != 0)
+    ai_debug_select_actor(-1, -1);
+}
+
+/* FUN_00054e40 — ai debug: select an encounter. The -1 sentinel selects the
+ * current/all encounter; otherwise the low 16 bits index it. Gated by
+ * *(0x632574)+1 (AI enabled). 0xd90 obj / 0x54e40 XBE. */
+void FUN_00054e40(int encounter_ref)
+{
+  if (*(char *)((char *)*(void **)0x632574 + 1) == 0)
+    return;
+
+  if (encounter_ref == -1)
+    ai_debug_select_encounter(-1);
+  else
+    ai_debug_select_encounter(encounter_ref & 0xffff);
+}
+
+/* FUN_00054e80 — ai_spawn_actor: spawn the actor(s) named by ai_ref. For a
+ * direct squad reference (selector 2) the sub-index byte is the squad index;
+ * for a profile reference (selector 1) it scans element+0x80 (squad sub-block,
+ * stride 0xe8) for the squad whose +0x22 key matches the sub-index byte. On a
+ * hit, encounter_spawn_actor(profile_index, squad_index). Gated by
+ * *(0x632574)+1. 0xdd0 obj / 0x54e80 XBE. */
+void FUN_00054e80(unsigned int ai_ref)
+{
+  char buffer[0x100];          /* [ebp-0x104] */
+  void *element;
+  void *sq;
+  int profile_index;           /* [ebp-0x4] */
+  int sub_byte;
+  short squad_index;
+  short i;
+
+  if (*(char *)0x5aca59 != 0) {
+    FUN_00054220(ai_ref, global_scenario_get(), buffer, 0x100);
+    error(2, (const char *)0x25c4f8,
+          hs_runtime_get_executing_thread_name(), buffer);
+  }
+
+  if (*(char *)((char *)*(void **)0x632574 + 1) == 0)
+    return;
+  if (ai_ref == 0xffffffff)
+    return;
+
+  profile_index = ai_ref & 0xffff;
+
+  if ((ai_ref >> 0x1e) == 2) {
+    squad_index = (short)*(unsigned char *)((char *)&ai_ref + 2);
+    if (squad_index != -1)
+      goto spawn;
+    /* fall through to the selector==1 test (which fails) */
+  }
+
+  if ((ai_ref >> 0x1e) != 1)
+    return;
+
+  element = tag_block_get_element((char *)global_scenario_get() + 0x42c,
+                                  profile_index & 0xffff, 0xb0);
+  if (*(int *)((char *)element + 0x80) <= 0)
+    return;
+
+  sub_byte = (int)((ai_ref >> 0x10) & 0xff);
+  squad_index = -1;
+  i = 0;
+  do {
+    sq = tag_block_get_element((char *)element + 0x80, (int)i, 0xe8);
+    if ((int)*(short *)((char *)sq + 0x22) == sub_byte) {
+      squad_index = i;
+      break;
+    }
+    i++;
+  } while ((int)i < *(int *)((char *)element + 0x80));
+
+  if (squad_index == -1)
+    return;
+
+spawn:
+  encounter_spawn_actor(profile_index, (int)squad_index);
+}
+
+/* ---------------------------------------------------------------------------
+ * AI script-command interface: per-profile setters and timer/effect drivers.
+ * Each resolves a packed ai_index_reference to its named profile (for the
+ * optional trace spew), then walks the referenced encounters/squads/actors to
+ * apply the effect. The on/off token comes from the string pair 0x25c530 /
+ * 0x25c52c. Structurally identical to the ai_braindead family in encounters.obj.
+ * ------------------------------------------------------------------------- */
+
+/* FUN_00054f90 — ai_set_respawn: toggle the respawn flag on the named
+ * encounter. 0xee0 obj / 0x54f90 XBE. */
+void FUN_00054f90(unsigned int combined_index, char flag)
+{
+  char name[256];          /* [ebp-0x100] */
+
+  if (*(char *)0x5aca59) {
+    FUN_00054220(combined_index, global_scenario_get(), name, 0x100);
+    error(2, (const char *)0x25c510, hs_runtime_get_executing_thread_name(),
+          name, flag ? (const char *)0x25c530 : (const char *)0x25c52c);
+  }
+  if (combined_index != 0xffffffff) {
+    encounter_set_respawn(combined_index & 0xffff, flag);
+  }
+}
+
+/* FUN_00055010 — ai_set_deaf: toggle the deaf flag on the named encounter.
+ * 0xf60 obj / 0x55010 XBE. */
+void FUN_00055010(unsigned int combined_index, char flag)
+{
+  char name[256];          /* [ebp-0x100] */
+
+  if (*(char *)0x5aca59) {
+    FUN_00054220(combined_index, global_scenario_get(), name, 0x100);
+    error(2, (const char *)0x25c534, hs_runtime_get_executing_thread_name(),
+          name, flag ? (const char *)0x25c530 : (const char *)0x25c52c);
+  }
+  if (combined_index != 0xffffffff) {
+    encounter_set_deaf(combined_index & 0xffff, flag);
+  }
+}
+
+/* FUN_00055090 — ai_set_blind: toggle the blind flag on the named encounter.
+ * 0xfe0 obj / 0x55090 XBE. */
+void FUN_00055090(unsigned int combined_index, char flag)
+{
+  char name[256];          /* [ebp-0x100] */
+
+  if (*(char *)0x5aca59) {
+    FUN_00054220(combined_index, global_scenario_get(), name, 0x100);
+    error(2, (const char *)0x25c54c, hs_runtime_get_executing_thread_name(),
+          name, flag ? (const char *)0x25c530 : (const char *)0x25c52c);
+  }
+  if (combined_index != 0xffffffff) {
+    encounter_set_blind(combined_index & 0xffff, flag);
+  }
+}
+
+/* FUN_00055110 — ai_magically_see_unit: make every actor named by
+ * combined_handle "magically see" unit_handle. For each actor: force its
+ * encounter active (actor+0x34), then look up the unit's slot (FUN_00064b40)
+ * and apply unit-effect 3 (actor_handle_unit_effect). 0x1060 obj / 0x55110. */
+void FUN_00055110(unsigned int combined_handle, int unit_handle)
+{
+  char name[256];          /* [ebp-0x118] */
+  int iter[6];             /* [ebp-0x18], Layout B actor iterator */
+  void *actor;
+  int encounter_handle;
+  int slot;
+
+  if (*(char *)0x5aca59) {
+    FUN_00054220(combined_handle, global_scenario_get(), name, 0x100);
+    error(2, (const char *)0x25c564, hs_runtime_get_executing_thread_name(),
+          name, unit_handle & 0xffff);
+  }
+
+  if (combined_handle == 0xffffffff || unit_handle == -1) {
+    return;
+  }
+
+  FUN_00054680(combined_handle, iter);
+  actor = (void *)FUN_00054750(iter);
+  while (actor != 0) {
+    encounter_handle = *(int *)((char *)actor + 0x34);
+    if (encounter_handle != -1) {
+      encounter_force_activate(encounter_handle);
+    }
+    slot = FUN_00064b40(iter[4], unit_handle, 1, 0);
+    if (slot != -1) {
+      actor_handle_unit_effect(iter[4], slot, 3);
+    }
+    actor = (void *)FUN_00054750(iter);
+  }
+}
+
+/* FUN_000551e0 — ai_magically_see: make all actors named by combined_handle
+ * see every unit in unit_group. Iterates the unit group via
+ * FUN_000ce450/FUN_000ce320 and relays each unit through FUN_00055110.
+ * 0x1130 obj / 0x551e0 XBE. */
+void FUN_000551e0(unsigned int combined_handle, int unit_group)
+{
+  int unit;
+  int state;               /* [ebp-0x4] */
+
+  unit = FUN_000ce450(unit_group, &state);
+  if (unit == -1) {
+    return;
+  }
+  do {
+    FUN_00055110(combined_handle, unit);
+    unit = FUN_000ce320(unit_group, &state);
+  } while (unit != -1);
+}
+
+/* FUN_00055220 — ai_timer_start: set the timer-running flag (squad+0x11 = 1)
+ * on every squad named by combined_index. 0x1170 obj / 0x55220 XBE. */
+void FUN_00055220(unsigned int combined_index)
+{
+  char name[256];          /* [ebp-0x114] */
+  int iter[5];             /* [ebp-0x14], Layout A squad iterator */
+  void *squad;
+
+  if (*(char *)0x5aca59) {
+    FUN_00054220(combined_index, global_scenario_get(), name, 0x100);
+    error(2, (const char *)0x25c588, hs_runtime_get_executing_thread_name(),
+          name);
+  }
+
+  if (combined_index == 0xffffffff) {
+    return;
+  }
+
+  FUN_000544a0(combined_index, iter);
+  squad = (void *)FUN_000545a0(iter);
+  while (squad != 0) {
+    *(char *)((char *)squad + 0x11) = 1;
+    squad = (void *)FUN_000545a0(iter);
+  }
+}
+
+/* FUN_000552b0 — ai_timer_expire: expire the timer on every squad named by
+ * combined_index (encounter_squad_timer_expire(iter[0], iter[2])).
+ * 0x1200 obj / 0x552b0 XBE. */
+void FUN_000552b0(unsigned int combined_index)
+{
+  char name[256];          /* [ebp-0x114] */
+  int iter[5];             /* [ebp-0x14], Layout A squad iterator */
+  void *squad;
+
+  if (*(char *)0x5aca59) {
+    FUN_00054220(combined_index, global_scenario_get(), name, 0x100);
+    error(2, (const char *)0x25c5a0, hs_runtime_get_executing_thread_name(),
+          name);
+  }
+
+  if (combined_index == 0xffffffff) {
+    return;
+  }
+
+  FUN_000544a0(combined_index, iter);
+  squad = (void *)FUN_000545a0(iter);
+  while (squad != 0) {
+    encounter_squad_timer_expire(iter[0], (short)iter[2]);
+    squad = (void *)FUN_000545a0(iter);
+  }
+}
