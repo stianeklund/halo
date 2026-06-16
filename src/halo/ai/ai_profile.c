@@ -256,3 +256,465 @@ void *FUN_00054430(int *iter)
 
   return result;
 }
+
+/* ---------------------------------------------------------------------------
+ * ai_index_reference iterators. Two record layouts:
+ *   Layout A (encounter/squad iterator, FUN_000544a0 begin / FUN_000545a0 next),
+ *     5 ints: [0]=profile index, [1]=encounter-key filter (-1=wildcard),
+ *     [2]=cursor scratch, [3]=loop cursor, [4]=loop bound (inclusive).
+ *   Layout B (actor iterator, FUN_00054680 begin / FUN_00054750 next), 6 ints:
+ *     [0]=clump handle, [1]=squad filter (-1=wildcard), [2]=platoon filter
+ *     (-1=wildcard), [3..5]=embedded encounter_actor_iterator state.
+ * ------------------------------------------------------------------------- */
+
+/* FUN_000544a0 — begin an encounter/squad iterator over the squads named by a
+ * packed ai_index_reference (Layout A). On invalid input iter[0] = -1.
+ * 0x3f0 obj / 0x544a0 XBE. Asserts (ai_script.c:0x11a) iter non-NULL. */
+void FUN_000544a0(unsigned int combined_index, void *iter_arg)
+{
+  int *iter;
+  void *ai_globals;
+  void *element;
+  int profile_index;
+  unsigned int selector;
+  short sub_index;
+
+  iter = (int *)iter_arg;
+  ai_globals = FUN_0018e3b0();
+  if (iter == 0) {
+    display_assert("iterator", "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x11a, 1);
+    system_exit(-1);
+  }
+
+  profile_index = combined_index & 0xffff;
+  iter[0] = profile_index;
+
+  if (ai_globals == 0
+      || *(char *)((char *)*(void **)0x632574 + 1) == 0
+      || profile_index < 0
+      || profile_index >= *(int *)((char *)ai_globals + 0x42c)) {
+    iter[0] = -1;
+    return;
+  }
+
+  element = tag_block_get_element((char *)global_scenario_get() + 0x42c,
+                                  profile_index & 0xffff, 0xb0);
+  selector = combined_index >> 0x1e;
+
+  if (selector > 1) {
+    if (selector != 2) {
+      iter[0] = -1;
+      return;
+    }
+
+    sub_index = (short)((unsigned char *)&combined_index)[2];
+    if (sub_index < 0 || sub_index >= *(int *)((char *)element + 0x80)) {
+      iter[0] = -1;
+      return;
+    }
+    iter[2] = -1;
+    iter[4] = sub_index;
+    iter[3] = sub_index;
+    iter[1] = -1;
+    return;
+  }
+
+  iter[2] = -1;
+  iter[3] = 0;
+  iter[4] = *(int *)((char *)element + 0x80) - 1;
+  if (selector == 0) {
+    iter[1] = -1;
+  } else {
+    iter[1] = ((unsigned char *)&combined_index)[2];
+  }
+}
+
+/* FUN_000545a0 — step an encounter/squad iterator (Layout A record from
+ * FUN_000544a0). Scans element+0x80 sub-blocks (stride 0xe8) from iter[3] to
+ * iter[4], skipping any whose field+0x22 != the iter[1] filter (-1 matches
+ * all). Returns the squad pointer for a hit, NULL when exhausted.
+ * 0x4f0 obj / 0x545a0 XBE. Asserts (ai_script.c:0x15f) iter non-NULL. */
+int FUN_000545a0(void *iter_arg)
+{
+  int *iter;
+  void *encounter;
+  void *element;
+  char *sub_base;
+  void *sub;
+  int profile_index;
+  int result;
+
+  iter = (int *)iter_arg;
+  result = 0;
+  if (iter == 0) {
+    display_assert("iterator", "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x15f, 1);
+    system_exit(-1);
+  }
+
+  profile_index = iter[0];
+  if (profile_index != -1) {
+    encounter = datum_get(*(data_t **)0x5ab270, profile_index);
+    element = tag_block_get_element((char *)global_scenario_get() + 0x42c,
+                                    iter[0] & 0xffff, 0xb0);
+
+    if (iter[3] <= iter[4]) {
+      sub_base = (char *)element + 0x80;
+      do {
+        iter[2] = iter[3];
+        iter[3] = iter[3] + 1;
+        sub = tag_block_get_element(sub_base, iter[2], 0xe8);
+        if (iter[1] == -1) {
+          goto found;
+        }
+        if ((int)*(short *)((char *)sub + 0x22) == iter[1]) {
+          goto found;
+        }
+      } while (iter[3] <= iter[4]);
+    }
+  }
+
+  return result;
+
+found:
+  return (int)encounter_get_squad((char *)encounter,
+                                  (short)(unsigned short)iter[2]);
+}
+
+/* FUN_00054680 — begin an actor iterator over the actors named by a packed
+ * ai_index_reference (Layout B). On invalid input iter[0] = -1.
+ * 0x5d0 obj / 0x54680 XBE. Asserts (ai_script.c:0x180) iter non-NULL. */
+void FUN_00054680(unsigned int combined_index, void *iter_arg)
+{
+  int *iter;
+  void *ai_globals;
+  int profile_index;
+  unsigned int selector;
+
+  iter = (int *)iter_arg;
+  ai_globals = FUN_0018e3b0();
+  if (iter == 0) {
+    display_assert("iterator", "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x180, 1);
+    system_exit(-1);
+  }
+
+  profile_index = combined_index & 0xffff;
+  iter[0] = profile_index;
+
+  if (ai_globals == 0
+      || *(char *)((char *)*(void **)0x632574 + 1) == 0
+      || profile_index < 0
+      || profile_index >= *(int *)((char *)ai_globals + 0x42c)) {
+    iter[0] = -1;
+    return;
+  }
+
+  /* element fetched for validation side effects; result not read afterward
+   * (eax is overwritten by the selector ladder in the original). */
+  tag_block_get_element((char *)global_scenario_get() + 0x42c,
+                        profile_index & 0xffff, 0xb0);
+
+  selector = combined_index >> 0x1e;
+  iter[2] = -1;
+  iter[1] = -1;
+
+  switch (selector) {
+  case 0:
+    /* both filters wildcard */
+    break;
+  case 1:
+    iter[2] = (unsigned char)(combined_index >> 16);
+    break;
+  case 2:
+    iter[1] = (unsigned char)(combined_index >> 16);
+    break;
+  default:
+    iter[0] = -1;
+    return;
+  }
+
+  if (iter[0] != -1) {
+    encounter_actor_iterator_new(iter + 3, iter[0]);
+  }
+}
+
+/* FUN_00054750 — step an actor iterator (Layout B record from FUN_00054680).
+ * Pulls the next actor from the embedded encounter_actor_iterator (iter+3),
+ * skipping any whose squad (field+0x3a) or platoon (field+0x3c) does not match
+ * the iter[1]/iter[2] filters (-1 matches all). Returns the actor, NULL when
+ * exhausted. 0x6a0 obj / 0x54750 XBE. Asserts (ai_script.c:0x1ba) iter non-NULL. */
+int FUN_00054750(void *iter_arg)
+{
+  int *iter;
+  void *actor;
+
+  iter = (int *)iter_arg;
+  if (iter == 0) {
+    display_assert("iterator", "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x1ba, 1);
+    system_exit(-1);
+  }
+
+  for (;;) {
+    actor = (void *)encounter_actor_iterator_next(iter + 3);
+    if (actor == 0) {
+      break;
+    }
+    if (iter[1] == -1 || iter[1] == (int)*(short *)((char *)actor + 0x3a)) {
+      if (iter[2] == -1) {
+        break;
+      }
+      if (iter[2] == (int)*(short *)((char *)actor + 0x3c)) {
+        break;
+      }
+    }
+  }
+
+  return (int)actor;
+}
+
+/* FUN_000547c0 — relay all actors named by an ai_index_reference (plus each
+ * actor's unit and child chain) through FUN_000ce2b0, keyed by the resource
+ * handle from FUN_000ce200. Returns that handle, or -1 on bad input / no
+ * resource. 0x710 obj / 0x547c0 XBE. */
+int FUN_000547c0(int encounter_handle)
+{
+  int iter[6];               /* [ebp-0x18], Layout B */
+  int resource;
+  void *actor;
+  int child;
+
+  if (encounter_handle == -1) {
+    return -1;
+  }
+
+  resource = FUN_000ce200();
+  if (resource != -1) {
+    FUN_00054680((unsigned int)encounter_handle, iter);
+    actor = (void *)FUN_00054750(iter);
+    if (actor != 0) {
+      do {
+        if (*(int *)((char *)actor + 0x18) != -1) {
+          FUN_000ce2b0(resource, *(int *)((char *)actor + 0x18));
+        }
+
+        child = *(int *)((char *)actor + 0x24);
+        while (child != -1) {
+          void *object = object_get_and_verify_type(child, 3);
+          FUN_000ce2b0(resource, child);
+          child = *(int *)((char *)object + 0x1ac);
+        }
+
+        actor = (void *)FUN_00054750(iter);
+      } while (actor != 0);
+    }
+  }
+
+  return resource;
+}
+
+/* ---------------------------------------------------------------------------
+ * ai_attach / ai_detach / ai_place script-command implementations.
+ * The verbose AI-spew flag at 0x5aca59 gates a diagnostic error(2, ...) trace
+ * at each entry; the AI-enabled gate at *(0x632574)+1 gates the actual work in
+ * the attach path. (FUN_00054a80 keeps its legacy kb name
+ * ai_profile_change_render_spray; behaviorally it is ai_attach over children.)
+ * ------------------------------------------------------------------------- */
+
+/* FUN_00054860 — ai_attach: create one actor (from the ai_profile squad named
+ * by ai_ref) and attach it to the unit object unit_handle. No-ops if AI is
+ * disabled or either handle is the -1 sentinel. 0x7b0 obj / 0x54860 XBE. */
+void FUN_00054860(int unit_handle, unsigned int ai_ref)
+{
+  char buffer[0x100];          /* [ebp-0x10c] */
+  void *scenario;
+  void *element;
+  void *squad;
+  void *variant;
+  void *actv;
+  int *actr_tag;
+  int profile_index;
+  int selector;
+  int sub_index;
+  int i;
+
+  scenario = global_scenario_get();
+
+  if (*(char *)0x5aca59 != 0) {
+    FUN_00054220(ai_ref, scenario, buffer, 0x100);
+    error(2, (const char *)0x25c460,
+          hs_runtime_get_executing_thread_name(),
+          unit_handle & 0xffff, buffer);
+  }
+
+  if (*(char *)((char *)*(void **)0x632574 + 1) == 0)
+    return;
+  if (unit_handle == -1 || ai_ref == 0xffffffff)
+    return;
+
+  profile_index = ai_ref & 0xffff;
+  if (profile_index < 0)
+    return;
+  if (profile_index >= *(int *)((char *)scenario + 0x42c))
+    return;
+
+  element = tag_block_get_element((char *)global_scenario_get() + 0x42c,
+                                  profile_index & 0xffff, 0xb0);
+  selector = ai_ref >> 0x1e;
+  sub_index = 0;
+
+  if (selector == 2) {
+    sub_index = *(unsigned char *)((char *)&ai_ref + 2);
+    if (sub_index < 0)
+      goto bad_squad;
+  } else if (selector == 1) {
+    i = 0;
+    if (*(int *)((char *)element + 0x80) > 0) {
+      do {
+        void *sq = tag_block_get_element((char *)element + 0x80, i, 0xe8);
+        if (*(short *)((char *)sq + 0x22)
+            == *(unsigned char *)((char *)&ai_ref + 2)) {
+          sub_index = i;
+          if (sub_index < 0)
+            goto bad_squad;
+          break;
+        }
+        i++;
+      } while (i < *(int *)((char *)element + 0x80));
+    }
+  }
+
+  if (sub_index < *(int *)((char *)element + 0x80)) {
+    squad = tag_block_get_element((char *)element + 0x80, sub_index, 0xe8);
+    if (*(short *)((char *)squad + 0x20) != -1) {
+      variant = tag_block_get_element((char *)scenario + 0x420,
+                                      *(short *)((char *)squad + 0x20), 0x10);
+      if (*(int *)((char *)variant + 0xc) != -1) {
+        actv = tag_get(0x61637476, *(int *)((char *)variant + 0xc));
+        if (*(int *)((char *)actv + 0x10) != -1) {
+          actr_tag = (int *)tag_get(0x61637472, *(int *)((char *)actv + 0x10));
+          actor_create_for_unit(
+              (char)((*(unsigned int *)actr_tag >> 0x1a) & 0x101),
+              unit_handle,
+              *(int *)((char *)variant + 0xc),
+              profile_index,
+              sub_index,
+              0,
+              -1,
+              (char)((*(unsigned int *)((char *)element + 0x20) >> 4) & 0x101),
+              (short)*(unsigned short *)((char *)squad + 0x24),
+              (short)*(unsigned short *)((char *)squad + 0x26),
+              0xffff,
+              0);
+          encounters_update_dirty_status();
+          return;
+        }
+      }
+    }
+
+    error(2, (const char *)0x25c408, element, squad);
+    return;
+  }
+
+bad_squad:
+  error(2, (const char *)0x25c3c0, element);
+}
+
+/* FUN_00054a80 (ai_profile_change_render_spray) — ai_attach over the children
+ * of a parent object: iterates every child (FUN_000ce450/FUN_000ce320) and
+ * attaches the same ai_ref to each. 0x9d0 obj / 0x54a80 XBE. */
+void ai_profile_change_render_spray(int parent_handle, unsigned int ai_ref)
+{
+  int iter_state;
+  int child;
+
+  child = FUN_000ce450(parent_handle, &iter_state);
+  if (child == -1)
+    return;
+  do {
+    FUN_00054860(child, ai_ref);
+    child = FUN_000ce320(parent_handle, &iter_state);
+  } while (child != -1);
+}
+
+/* FUN_00054ac0 — ai_detach: detach (delete the attached actor of) one unit
+ * object. No-op if the handle is -1 or it has no attached actor (object+0x1a4
+ * == -1). 0xa10 obj / 0x54ac0 XBE. */
+void FUN_00054ac0(int unit_handle)
+{
+  void *object;
+  int actor_handle;
+
+  if (*(char *)0x5aca59 != 0) {
+    error(2, "%s: ai_detach unit 0x%04X",
+          hs_runtime_get_executing_thread_name(),
+          unit_handle & 0xffff);
+  }
+
+  if (unit_handle == -1)
+    return;
+
+  object = object_get_and_verify_type(unit_handle, 3);
+  actor_handle = *(int *)((char *)object + 0x1a4);
+  if (actor_handle == -1)
+    return;
+
+  actor_delete(actor_handle, 0);
+}
+
+/* FUN_00054b20 — ai_detach over the children of a parent object: iterates each
+ * child (FUN_000ce450/FUN_000ce320) and detaches its attached actor (inlines
+ * FUN_00054ac0). 0xa70 obj / 0x54b20 XBE. */
+void FUN_00054b20(int parent_handle)
+{
+  int iter_state;
+  int child;
+  void *object;
+  int actor_handle;
+
+  child = FUN_000ce450(parent_handle, &iter_state);
+  if (child == -1)
+    return;
+
+  do {
+    if (*(char *)0x5aca59 != 0) {
+      error(2, "%s: ai_detach unit 0x%04X",
+            hs_runtime_get_executing_thread_name(),
+            child & 0xffff);
+    }
+    if (child != -1) {
+      object = object_get_and_verify_type(child, 3);
+      actor_handle = *(int *)((char *)object + 0x1a4);
+      if (actor_handle != -1)
+        actor_delete(actor_handle, 0);
+    }
+    child = FUN_000ce320(parent_handle, &iter_state);
+  } while (child != -1);
+}
+
+/* FUN_00054bb0 — ai_place: place (spawn) the encounter named by an
+ * ai_index_reference via encounter_create. The two sub-arguments are the
+ * sub-index for the matching selector and -1 otherwise. 0xb00 obj/0x54bb0 XBE. */
+void FUN_00054bb0(unsigned int ai_ref)
+{
+  char buffer[0x100];
+  int selector;
+  unsigned char sub_byte;
+  int arg_a;
+  int arg_b;
+
+  if (*(char *)0x5aca59 != 0) {
+    FUN_00054220(ai_ref, global_scenario_get(), buffer, 0x100);
+    error(2, (const char *)0x25c49c,
+          hs_runtime_get_executing_thread_name(), buffer);
+  }
+
+  if (ai_ref == 0xffffffff)
+    return;
+
+  sub_byte = *(unsigned char *)((char *)&ai_ref + 2);
+  selector = ai_ref >> 0x1e;
+
+  arg_b = (selector == 2) ? sub_byte : -1;
+  arg_a = ((ai_ref >> 0x1e) == 1) ? sub_byte : -1;
+
+  encounter_create(ai_ref & 0xffff, (short)arg_a, (short)arg_b);
+}

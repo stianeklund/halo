@@ -11540,7 +11540,7 @@
         },
         {
           "addr": "0xce200",
-          "decl": "void FUN_000ce200(void);"
+          "decl": "int FUN_000ce200(void);"
         },
         {
           "addr": "0xce240",
@@ -11548,7 +11548,7 @@
         },
         {
           "addr": "0xce2b0",
-          "decl": "void FUN_000ce2b0(void);"
+          "decl": "void FUN_000ce2b0(int param_1, int param_2);"
         },
         {
           "addr": "0xce320",
@@ -31082,43 +31082,53 @@
         },
         {
           "addr": "0x544a0",
-          "decl": "void FUN_000544a0(int encounter_handle, void *iter);"
+          "decl": "void FUN_000544a0(unsigned int combined_index, void *iter);",
+          "ported": true
         },
         {
           "addr": "0x545a0",
-          "decl": "int FUN_000545a0(void *iter);"
+          "decl": "int FUN_000545a0(void *iter);",
+          "ported": true
         },
         {
           "addr": "0x54680",
-          "decl": "void FUN_00054680(int encounter_handle, void *iter);"
+          "decl": "void FUN_00054680(unsigned int combined_index, void *iter);",
+          "ported": true
         },
         {
           "addr": "0x54750",
-          "decl": "int FUN_00054750(void *iter);"
+          "decl": "int FUN_00054750(void *iter);",
+          "ported": true
         },
         {
           "addr": "0x547c0",
-          "decl": "void FUN_000547c0(void);"
+          "decl": "int FUN_000547c0(int encounter_handle);",
+          "ported": true
         },
         {
           "addr": "0x54860",
-          "decl": "void FUN_00054860(void);"
+          "decl": "void FUN_00054860(int unit_handle, unsigned int ai_ref);",
+          "ported": true
         },
         {
           "addr": "0x54a80",
-          "decl": "void ai_profile_change_render_spray(void);"
+          "decl": "void ai_profile_change_render_spray(int parent_handle, unsigned int ai_ref);",
+          "ported": true
         },
         {
           "addr": "0x54ac0",
-          "decl": "void FUN_00054ac0(void);"
+          "decl": "void FUN_00054ac0(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x54b20",
-          "decl": "void FUN_00054b20(void);"
+          "decl": "void FUN_00054b20(int parent_handle);",
+          "ported": true
         },
         {
           "addr": "0x54bb0",
-          "decl": "void FUN_00054bb0(void);"
+          "decl": "void FUN_00054bb0(unsigned int ai_ref);",
+          "ported": true
         },
         {
           "addr": "0x54c40",
