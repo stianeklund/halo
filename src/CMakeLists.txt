@@ -10,6 +10,7 @@
 	halo/ai/ai.c
 	halo/ai/ai_communication.c
 	halo/ai/ai_debug.c
+	halo/ai/ai_profile.c
 	halo/ai/encounters.c
 	halo/ai/path.c
 	halo/ai/props.c

@@ -6628,7 +6628,7 @@
         {
           "addr": "0x9ca70",
           "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
           "ported": true
         },
         {
@@ -6689,7 +6689,7 @@
         {
           "addr": "0x9dcf0",
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -31042,35 +31042,43 @@
       "functions": [
         {
           "addr": "0x540b0",
-          "decl": "void FUN_000540b0(void);"
+          "decl": "void FUN_000540b0(void);",
+          "ported": true
         },
         {
           "addr": "0x540c0",
-          "decl": "void ai_profile_dispose(void);"
+          "decl": "void ai_profile_dispose(void);",
+          "ported": true
         },
         {
           "addr": "0x540d0",
-          "decl": "void FUN_000540d0(void);"
+          "decl": "void FUN_000540d0(void);",
+          "ported": true
         },
         {
           "addr": "0x540e0",
-          "decl": "void ai_profile_dispose_from_old_map(void);"
+          "decl": "void ai_profile_dispose_from_old_map(void);",
+          "ported": true
         },
         {
           "addr": "0x540f0",
-          "decl": "bool FUN_000540f0(void *scenario, const char *name, int *out_value);"
+          "decl": "bool FUN_000540f0(void *scenario, const char *name, int *out_value);",
+          "ported": true
         },
         {
           "addr": "0x54220",
-          "decl": "void FUN_00054220(unsigned int combined_index, void *scenario, char *buffer, int buffer_size);"
+          "decl": "void FUN_00054220(unsigned int combined_index, void *scenario, char *buffer, int buffer_size);",
+          "ported": true
         },
         {
           "addr": "0x54310",
-          "decl": "void FUN_00054310(void);"
+          "decl": "void FUN_00054310(unsigned int combined_index, int *out);",
+          "ported": true
         },
         {
           "addr": "0x54430",
-          "decl": "void FUN_00054430(void);"
+          "decl": "void *FUN_00054430(int *iter);",
+          "ported": true
         },
         {
           "addr": "0x544a0",
@@ -31268,15 +31276,15 @@
         },
         {
           "addr": "0x53e20",
-          "decl": "void FUN_00053e20(void);"
+          "decl": "int FUN_00053e20(void *scenario, const char *name);"
         },
         {
           "addr": "0x53e80",
-          "decl": "void FUN_00053e80(void);"
+          "decl": "int FUN_00053e80(void *ai_profile_element, const char *name);"
         },
         {
           "addr": "0x53ee0",
-          "decl": "void FUN_00053ee0(void);"
+          "decl": "int FUN_00053ee0(void *ai_profile_element, const char *name);"
         },
         {
           "addr": "0x53f40",
