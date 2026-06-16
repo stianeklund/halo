@@ -482,33 +482,32 @@ int FUN_000547c0(int encounter_handle)
   void *actor;
   int child;
 
-  if (encounter_handle == -1) {
-    return -1;
-  }
+  if (encounter_handle != -1) {
+    resource = FUN_000ce200();
+    if (resource != -1) {
+      FUN_00054680((unsigned int)encounter_handle, iter);
+      actor = (void *)FUN_00054750(iter);
+      if (actor != 0) {
+        do {
+          if (*(int *)((char *)actor + 0x18) != -1) {
+            FUN_000ce2b0(resource, *(int *)((char *)actor + 0x18));
+          }
 
-  resource = FUN_000ce200();
-  if (resource != -1) {
-    FUN_00054680((unsigned int)encounter_handle, iter);
-    actor = (void *)FUN_00054750(iter);
-    if (actor != 0) {
-      do {
-        if (*(int *)((char *)actor + 0x18) != -1) {
-          FUN_000ce2b0(resource, *(int *)((char *)actor + 0x18));
-        }
+          child = *(int *)((char *)actor + 0x24);
+          while (child != -1) {
+            void *object = object_get_and_verify_type(child, 3);
+            FUN_000ce2b0(resource, child);
+            child = *(int *)((char *)object + 0x1ac);
+          }
 
-        child = *(int *)((char *)actor + 0x24);
-        while (child != -1) {
-          void *object = object_get_and_verify_type(child, 3);
-          FUN_000ce2b0(resource, child);
-          child = *(int *)((char *)object + 0x1ac);
-        }
-
-        actor = (void *)FUN_00054750(iter);
-      } while (actor != 0);
+          actor = (void *)FUN_00054750(iter);
+        } while (actor != 0);
+      }
     }
+    return resource;
   }
 
-  return resource;
+  return -1;
 }
 
 /* ---------------------------------------------------------------------------
