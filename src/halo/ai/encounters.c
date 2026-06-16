@@ -1871,10 +1871,12 @@ void encounters_dispose(void)
   return;
 }
 
-/* FUN_00058ae0 (0x58ae0) — Tail-call wrapper for FUN_00055870. */
-void FUN_00058ae0(void)
+/* FUN_00058ae0 (0x58ae0) — Tail-call wrapper for FUN_00055870 (ai_maneuver);
+ * forwards combined_index. Dormant (ported=false); the original runs at
+ * runtime. Signature follows FUN_00055870 now that it is lifted as 1-arg. */
+void FUN_00058ae0(unsigned int combined_index)
 {
-  FUN_00055870();
+  FUN_00055870(combined_index);
 }
 
 /* 0x00058fb0 — encounters_dispose_from_old_map.
