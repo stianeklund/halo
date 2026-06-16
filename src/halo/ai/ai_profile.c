@@ -718,3 +718,242 @@ void FUN_00054bb0(unsigned int ai_ref)
 
   encounter_create(ai_ref & 0xffff, (short)arg_a, (short)arg_b);
 }
+
+/* ---------------------------------------------------------------------------
+ * ai_index_reference count accessor (the "how many of X" query).
+ *
+ * FUN_00055350 resolves a packed ai_index_reference to a tag record and reports
+ * one of three count_type quantities about it:
+ *     count_type 0 -> the record's "start"/min index
+ *     count_type 1 -> the record's "end"/max index
+ *     count_type 2 -> the span (end - start), clamped to >= 0
+ * The record is located by the reference's selector (top 2 bits):
+ *     selector 0 -> the ai_profile element itself (offsets +0x2a/+0x2c/+0x34)
+ *     selector 1 -> a platoon record (encounter_get_platoon, offs +0x4/+6/+8/+c)
+ *     selector 2 -> a squad record  (encounter_get_squad,    offs +0x16..+0x1c)
+ * In addition to the EAX result the dispatcher returns two record fields through
+ * the optional out parameters: *out_min receives a fixed record field (squad/
+ * platoon "name" word at +0x16/+0x4, or the profile's +0x18) and *out_handle
+ * receives a record dword (squad/platoon +0x1c/+0xc, or the profile's +0x34).
+ * count_type arrives in EDI as an int16 (compared via di / sign-extended via
+ * movsx). 0x12a0 obj / 0x55350 XBE. Asserts (ai_script.c) on bad count_type and
+ * on the unreachable selector/count_type defaults. */
+int FUN_00055350(unsigned int ai_ref, int *out_min, int *out_handle,
+                 int count_type /* @<edi> */)
+{
+  int ret_val;      /* [ebp-0x4], EAX result */
+  int handle_val;   /* [ebp-0x8], flows to *out_handle */
+  int min_val;      /* EBX, flows to *out_min */
+  void *scenario;
+  void *element;
+  char *record;
+  int profile_index;
+  unsigned int selector;
+  short sub_index;
+
+  ret_val = 0;
+  handle_val = 0;
+  min_val = 0;
+
+  if ((short)count_type < 0 || (short)count_type >= 3) {
+    display_assert("(count_type >= 0) && (count_type < NUMBER_OF_AI_COUNT_TYPES)",
+                   "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x405, 1);
+    system_exit(-1);
+  }
+
+  if (ai_ref == 0xffffffff)
+    goto done;
+
+  scenario = global_scenario_get();
+  selector = ai_ref >> 0x1e;
+
+  switch (selector) {
+  case 0:
+    profile_index = ai_ref & 0xffff;
+    if (profile_index < 0
+        || profile_index >= *(int *)((char *)scenario + 0x42c))
+      goto done;
+    element = datum_get(*(data_t **)0x5ab270, profile_index);
+
+    switch ((short)count_type) {
+    case 0:
+      ret_val = *(short *)((char *)element + 0x2a);
+      break;
+    case 1:
+      ret_val = *(short *)((char *)element + 0x2c);
+      break;
+    case 2:
+      ret_val = (int)*(short *)((char *)element + 0x2a)
+                - (int)*(short *)((char *)element + 0x2c);
+      ret_val = (ret_val < 0) ? 0 : ret_val;
+      break;
+    default:
+      display_assert("!\"unreachable\"",
+                     "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x424, 1);
+      system_exit(-1);
+    }
+    min_val = *(short *)((char *)element + 0x18);
+    handle_val = *(int *)((char *)element + 0x34);
+    break;
+
+  case 1:
+    profile_index = ai_ref & 0xffff;
+    if (profile_index < 0
+        || profile_index >= *(int *)((char *)scenario + 0x42c))
+      goto done;
+    element = datum_get(*(data_t **)0x5ab270, profile_index);
+    sub_index = ((unsigned char *)&ai_ref)[2];
+    if (sub_index < 0 || sub_index >= *(short *)((char *)element + 0xa))
+      goto done;
+    record = FUN_00054020((char *)element, sub_index);
+
+    switch ((short)count_type) {
+    case 0:
+      min_val = *(short *)(record + 0x4);
+      ret_val = *(short *)(record + 0x6);
+      handle_val = *(int *)(record + 0xc);
+      break;
+    case 1:
+      min_val = *(short *)(record + 0x4);
+      ret_val = *(short *)(record + 0x8);
+      handle_val = *(int *)(record + 0xc);
+      break;
+    case 2:
+      min_val = *(short *)(record + 0x4);
+      ret_val = (int)*(short *)(record + 0x6)
+                - (int)*(short *)(record + 0x8);
+      ret_val = (ret_val < 0) ? 0 : ret_val;
+      handle_val = *(int *)(record + 0xc);
+      break;
+    default:
+      display_assert("!\"unreachable\"",
+                     "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x448, 1);
+      system_exit(-1);
+      min_val = *(short *)(record + 0x4);
+      handle_val = *(int *)(record + 0xc);
+    }
+    break;
+
+  case 2:
+    profile_index = ai_ref & 0xffff;
+    if (profile_index < 0
+        || profile_index >= *(int *)((char *)scenario + 0x42c))
+      goto done;
+    element = datum_get(*(data_t **)0x5ab270, profile_index);
+    sub_index = ((unsigned char *)&ai_ref)[2];
+    if (sub_index < 0 || sub_index >= *(short *)((char *)element + 0x6))
+      goto done;
+    record = encounter_get_squad((char *)element, sub_index);
+
+    switch ((short)count_type) {
+    case 0:
+      min_val = *(short *)(record + 0x16);
+      ret_val = *(short *)(record + 0x18);
+      handle_val = *(int *)(record + 0x1c);
+      break;
+    case 1:
+      min_val = *(short *)(record + 0x16);
+      ret_val = *(short *)(record + 0x1a);
+      handle_val = *(int *)(record + 0x1c);
+      break;
+    case 2:
+      min_val = *(short *)(record + 0x16);
+      ret_val = (int)*(short *)(record + 0x18)
+                - (int)*(short *)(record + 0x1a);
+      ret_val = (ret_val < 0) ? 0 : ret_val;
+      handle_val = *(int *)(record + 0x1c);
+      break;
+    default:
+      display_assert("!\"unreachable\"",
+                     "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x46d, 1);
+      system_exit(-1);
+      min_val = *(short *)(record + 0x16);
+      handle_val = *(int *)(record + 0x1c);
+    }
+    break;
+
+  default:
+    display_assert("!\"unreachable\"",
+                   "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x477, 1);
+    system_exit(-1);
+  }
+
+done:
+  if (out_min != 0)
+    *out_min = min_val;
+  if (out_handle != 0)
+    *out_handle = handle_val;
+  return ret_val;
+}
+
+/* FUN_00055620 — count_type 1 ("end"/max) accessor wrapper. 0x1570 obj. */
+int FUN_00055620(unsigned int ai_ref)
+{
+  return FUN_00055350(ai_ref, 0, 0, 1);
+}
+
+/* FUN_00055640 — count_type 2 ("span") accessor wrapper. 0x1590 obj. */
+int FUN_00055640(unsigned int ai_ref)
+{
+  return FUN_00055350(ai_ref, 0, 0, 2);
+}
+
+/* FUN_00055660 — count_type 0 ("start"/min) accessor wrapper. 0x15b0 obj. */
+int FUN_00055660(unsigned int ai_ref)
+{
+  return FUN_00055350(ai_ref, 0, 0, 0);
+}
+
+/* FUN_00055680 — ratio accessor: count_type 0 result divided by the record's
+ * *out_min field (numerator = EAX, denominator = the value written through
+ * out_min). Returns 0.0f when the denominator is non-positive. 0x15d0 obj. */
+float FUN_00055680(unsigned int ai_ref)
+{
+  int denom;
+  int numer;
+  union { int i; float f; } zero;
+
+  zero.i = 0;
+  numer = FUN_00055350(ai_ref, &denom, 0, 0);
+  if (denom > 0)
+    return (float)numer / (float)denom;
+  return zero.f;
+}
+
+/* FUN_000556c0 — float-field accessor: count_type 0 resolves the record and
+ * writes its handle dword through out_handle; that dword is reinterpreted as a
+ * float (bit pattern, not a numeric conversion). 0x1610 obj. */
+float FUN_000556c0(unsigned int ai_ref)
+{
+  union { int i; float f; } out;
+
+  out.i = 0;
+  FUN_00055350(ai_ref, 0, &out.i, 0);
+  return out.f;
+}
+
+/* FUN_000556f0 — predicate: returns true if the ai_index_reference names any
+ * encounter whose first byte is zero. Walks the encounter iterator built by
+ * FUN_00054310/FUN_00054430; returns false if exhausted without a match.
+ * 0x1640 obj. */
+bool FUN_000556f0(unsigned int ai_ref)
+{
+  int iter[3];
+  char *encounter;
+
+  if (ai_ref == 0xffffffff)
+    return 0;
+
+  FUN_00054310(ai_ref, iter);
+  encounter = (char *)FUN_00054430(iter);
+  if (encounter == 0)
+    return 0;
+
+  do {
+    if (*encounter == 0)
+      return 1;
+    encounter = (char *)FUN_00054430(iter);
+  } while (encounter != 0);
+
+  return 0;
+}
