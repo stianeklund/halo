@@ -57,6 +57,7 @@
     "0x3e7a0": "void FUN_0003e7a0(int actor_handle /* @<eax> */);",
     "0x3ec80": "void FUN_0003ec80(int actor_handle@<esi>);",
     "0x413c0": "void FUN_000413c0(ai_firing_pos_entry_t *entry@<esi>, int unit_handle@<edi>, int actor_handle);",
+    "0x55350": "int FUN_00055350(unsigned int ai_ref, int *out_min, int *out_handle, int count_type /* @<edi> */);",
     "0x559a0": "int16_t FUN_000559a0(unsigned int encounter_handle@<eax>, int field_0x34, int16_t squad_index, void *actr_tag, void *actv_tag, char match_flag, const void *debug_str);",
     "0x55dd0": "void FUN_00055dd0(int encounter_handle@<eax>, int dest_encounter, int param_3, int param_4);",
     "0x563c0": "void FUN_000563c0(int actor_datum@<eax>, unsigned int encounter_handle, char do_migrate, int param_3);",
