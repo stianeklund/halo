@@ -1023,6 +1023,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x54a80": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x56790": {
       "kind": "function",
       "status": "ported"
