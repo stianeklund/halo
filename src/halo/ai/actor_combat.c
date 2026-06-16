@@ -8,17 +8,21 @@ int actor_combat_check_mode(int actor_handle /* @<eax> */, short mode)
 {
   char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
 
-  if (mode == 1) {
+  switch (mode) {
+  case 1:
     if (*(short *)(actor + 0x60c) == 1 && *(short *)(actor + 0x268) >= 8)
       return 1;
-  } else if (mode == 2) {
+    break;
+  case 2:
     if (*(short *)(actor + 0x60c) == 0 && *(short *)(actor + 0x268) >= 5 &&
         *(char *)(actor + 0x27c) != 0 && *(int *)(actor + 0x278) >= 0x4b)
       return 1;
-  } else if (mode == 3) {
+    break;
+  case 3:
     if (*(short *)(actor + 0x60c) == 1 && *(short *)(actor + 0x268) >= 8 &&
         *(char *)(actor + 0x161) != 0)
       return 1;
+    break;
   }
   return 0;
 }
@@ -172,6 +176,7 @@ bool actor_combat_evaluate_firing(int actor_handle /* @<eax> */,
 int actor_combat_check_fire_target(int actor_handle /* @<edi> */, short mode)
 {
   char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
+  char *encounter;
 
   if (mode != 3)
     return 1;
@@ -183,7 +188,7 @@ int actor_combat_check_fire_target(int actor_handle /* @<edi> */, short mode)
     system_exit(-1);
   }
 
-  char *encounter =
+  encounter =
     (char *)datum_get(*(void **)0x5ab23c, *(int *)(actor + 0x610));
 
   if (*(int *)(encounter + 0x110) != -1)
