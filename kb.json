@@ -31192,31 +31192,41 @@
         },
         {
           "addr": "0x55350",
-          "decl": "void FUN_00055350(void);"
+          "decl": "int FUN_00055350(unsigned int ai_ref, int *out_min, int *out_handle, int count_type /* @<edi> */);",
+          "reg_args": {
+            "count_type": "edi"
+          },
+          "ported": true
         },
         {
           "addr": "0x55620",
-          "decl": "void FUN_00055620(void);"
+          "decl": "int FUN_00055620(unsigned int ai_ref);",
+          "ported": true
         },
         {
           "addr": "0x55640",
-          "decl": "void FUN_00055640(void);"
+          "decl": "int FUN_00055640(unsigned int ai_ref);",
+          "ported": true
         },
         {
           "addr": "0x55660",
-          "decl": "void FUN_00055660(void);"
+          "decl": "int FUN_00055660(unsigned int ai_ref);",
+          "ported": true
         },
         {
           "addr": "0x55680",
-          "decl": "void FUN_00055680(void);"
+          "decl": "float FUN_00055680(unsigned int ai_ref);",
+          "ported": true
         },
         {
           "addr": "0x556c0",
-          "decl": "void FUN_000556c0(void);"
+          "decl": "float FUN_000556c0(unsigned int ai_ref);",
+          "ported": true
         },
         {
           "addr": "0x556f0",
-          "decl": "void FUN_000556f0(void);"
+          "decl": "bool FUN_000556f0(unsigned int ai_ref);",
+          "ported": true
         },
         {
           "addr": "0x55750",
