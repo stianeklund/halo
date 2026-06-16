@@ -144,18 +144,27 @@ void FUN_00054220(unsigned int combined_index, void *scenario,
   selector = combined_index >> 0x1e;
   sub_index = (unsigned char)(combined_index >> 16);
 
-  if (selector == 0) {
+  /* NOTE: a switch (not an if-else-if cascade) is required to match MSVC's
+   * CMP-chain selector dispatch; clang lowers the equivalent if-else-if to a
+   * DEC-chain (sub/dec/dec), costing ~10pp VC71. See lift-learnings.md §19. */
+  switch (selector) {
+  case 0:
     /* profile name only */
     snprintf(buffer, buffer_size, (const char *)0x257984, element);
-  } else if (selector == 1) {
+    return;
+  case 1: {
     /* profile + element+0x8c sub-block (stride 0xac) */
     void *sub = tag_block_get_element((char *)element + 0x8c, sub_index, 0xac);
     snprintf(buffer, buffer_size, (const char *)0x253d30, element, sub);
-  } else if (selector == 2) {
+    return;
+  }
+  case 2: {
     /* profile + element+0x80 sub-block (stride 0xe8) */
     void *sub = tag_block_get_element((char *)element + 0x80, sub_index, 0xe8);
     snprintf(buffer, buffer_size, (const char *)0x253d30, element, sub);
-  } else {
+    return;
+  }
+  default:
     /* selector 3: invalid */
     csstrncpy(buffer, (const char *)0x253b58, buffer_size);
   }
