@@ -1302,3 +1302,541 @@ void FUN_000552b0(unsigned int combined_index)
     squad = (void *)FUN_000545a0(iter);
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * ai_attack / ai_defend / ai_maneuver / ai_maneuver_enable: per-encounter mode
+ * setters. Each resolves the packed ai_index_reference, then walks the
+ * FUN_00054310/FUN_00054430 encounter iterator poking a single mode byte on
+ * every named encounter. Verbose trace gated by 0x5aca59.
+ * ------------------------------------------------------------------------- */
+
+/* FUN_00055750 — ai_attack: clear encounter[0] (attack mode) on every named
+ * encounter. 0x16a0 obj / 0x55750 XBE. */
+void FUN_00055750(unsigned int combined_index)
+{
+  char name[256];          /* [ebp-0x10c] */
+  int iter[3];             /* [ebp-0xc] */
+  char *encounter;
+
+  if (*(char *)0x5aca59) {
+    FUN_00054220(combined_index, global_scenario_get(), name, 0x100);
+    error(2, (const char *)0x25c5f8, hs_runtime_get_executing_thread_name(),
+          name);
+  }
+
+  if (combined_index == 0xffffffff) {
+    return;
+  }
+
+  FUN_00054310(combined_index, iter);
+  encounter = (char *)FUN_00054430(iter);
+  if (encounter == 0) {
+    return;
+  }
+  do {
+    encounter[0] = 0;
+    encounter = (char *)FUN_00054430(iter);
+  } while (encounter != 0);
+}
+
+/* FUN_000557e0 — ai_defend: set encounter[0] (defend mode) on every named
+ * encounter. 0x1730 obj / 0x557e0 XBE. */
+void FUN_000557e0(unsigned int combined_index)
+{
+  char name[256];          /* [ebp-0x10c] */
+  int iter[3];             /* [ebp-0xc] */
+  char *encounter;
+
+  if (*(char *)0x5aca59) {
+    FUN_00054220(combined_index, global_scenario_get(), name, 0x100);
+    error(2, (const char *)0x25c60c, hs_runtime_get_executing_thread_name(),
+          name);
+  }
+
+  if (combined_index == 0xffffffff) {
+    return;
+  }
+
+  FUN_00054310(combined_index, iter);
+  encounter = (char *)FUN_00054430(iter);
+  if (encounter == 0) {
+    return;
+  }
+  do {
+    encounter[0] = 1;
+    encounter = (char *)FUN_00054430(iter);
+  } while (encounter != 0);
+}
+
+/* FUN_00055870 — ai_maneuver: set encounter[1] (maneuver flag) on every named
+ * encounter. 0x17c0 obj / 0x55870 XBE. */
+void FUN_00055870(unsigned int combined_index)
+{
+  char name[256];          /* [ebp-0x10c] */
+  int iter[3];             /* [ebp-0xc] */
+  char *encounter;
+
+  if (*(char *)0x5aca59) {
+    FUN_00054220(combined_index, global_scenario_get(), name, 0x100);
+    error(2, (const char *)0x25c620, hs_runtime_get_executing_thread_name(),
+          name);
+  }
+
+  if (combined_index == 0xffffffff) {
+    return;
+  }
+
+  FUN_00054310(combined_index, iter);
+  encounter = (char *)FUN_00054430(iter);
+  if (encounter == 0) {
+    return;
+  }
+  do {
+    encounter[1] = 1;
+    encounter = (char *)FUN_00054430(iter);
+  } while (encounter != 0);
+}
+
+/* FUN_00055900 — ai_maneuver_enable: enable/disable maneuvering on every named
+ * encounter. Stores the inverse of the enable flag into encounter[2] (a
+ * "maneuver disabled" byte): enable -> 0, disable -> 1. 0x1850 obj / 0x55900. */
+void FUN_00055900(unsigned int combined_index, char flag)
+{
+  char name[256];          /* [ebp-0x10c] */
+  int iter[3];             /* [ebp-0xc] */
+  char *encounter;
+  char disabled;
+
+  if (*(char *)0x5aca59) {
+    FUN_00054220(combined_index, global_scenario_get(), name, 0x100);
+    error(2, (const char *)0x25c634, hs_runtime_get_executing_thread_name(),
+          name, flag ? (const char *)0x25c530 : (const char *)0x25c52c);
+  }
+
+  if (combined_index == 0xffffffff) {
+    return;
+  }
+
+  FUN_00054310(combined_index, iter);
+  encounter = (char *)FUN_00054430(iter);
+  if (encounter == 0) {
+    return;
+  }
+  disabled = (flag == 0);
+  do {
+    encounter[2] = disabled;
+    encounter = (char *)FUN_00054430(iter);
+  } while (encounter != 0);
+}
+
+/* FUN_000559a0 — squad-migration core (ai_migrate per-squad mapper). 0x18f0 obj
+ * / 0x559a0 XBE. Given one SOURCE squad (squad_index, with its resolved 'actr'
+ * tag actr_tag and 'actv' tag actv_tag, plus the source profile index
+ * field_0x34), finds the best matching squad in the DESTINATION encounter
+ * (encounter_handle, @<eax>) and returns its squad index. Iterates the dest
+ * encounter's squads (FUN_000544a0/FUN_000545a0) and records, in priority
+ * order, the first dest squad that matches on five levels:
+ *   slot1 ([ebp-0x8])  self: match_flag set and dest squad index == squad_index
+ *   slot2 ([ebp-0xc])  same-variant: dest squad's 'actv' tag == actv_tag
+ *   slot3 ([ebp-0x10]) same-actor:   dest squad's 'actr' tag == actr_tag
+ *   slot4 ([ebp-0x14]) same-type:    actr_tag[+0x14] (actor type) matches
+ *   slot5 ([ebp-0x18]) fallback:     first dest squad
+ * Resolution walks slots 1..5; the first set slot wins, emits a verbose trace
+ * (gated by *(char*)0x5aca57) and is range-checked against the dest squads
+ * count. If no slot is set but the dest has >=1 squad, returns 0; if the dest
+ * has no squads, returns -1. */
+int16_t FUN_000559a0(unsigned int encounter_handle /* @<eax> */, int field_0x34,
+                     int16_t squad_index, void *actr_tag, void *actv_tag,
+                     char match_flag, const void *debug_str)
+{
+  int iter[5];               /* [ebp-0x34] FUN_000544a0/FUN_000545a0 record */
+  void *scenario;            /* [ebp-0x1c] */
+  void *dest_element;        /* [ebp-0x20] dest profile element             */
+  void *dest_squads;         /* [ebp-0x4]  dest squads tag_block            */
+  int slot1;                 /* [ebp-0x8]  self                             */
+  int slot2;                 /* [ebp-0xc]  same-variant                     */
+  int slot3;                 /* [ebp-0x10] same-actor                       */
+  int slot4;                 /* [ebp-0x14] same-type                        */
+  int slot5;                 /* [ebp-0x18] fallback                         */
+  int cur;                   /* esi: current dest squad index               */
+  void *squad;               /* FUN_000545a0 return                         */
+  void *element;             /* per-squad tag element                       */
+  void *actr_element;        /* actor-palette element                       */
+  void *cand_actv;           /* edi: this dest squad's 'actv' tag           */
+  void *cand_actr;           /* ebx: this dest squad's 'actr' tag           */
+  short variant_index;       /* ax: dest squad's actor-variant index        */
+  int found;                 /* ebx in resolution: chosen squad index       */
+
+  scenario = global_scenario_get();
+  dest_element = tag_block_get_element((char *)global_scenario_get() + 0x42c,
+                                       encounter_handle & 0xffff, 0xb0);
+  slot1 = -1;
+  slot2 = -1;
+  slot3 = -1;
+  slot4 = -1;
+  slot5 = -1;
+  FUN_000544a0(encounter_handle, iter);
+  squad = (void *)FUN_000545a0(iter);
+  if (squad == 0)
+    goto no_squad_match;
+
+  dest_squads = (char *)dest_element + 0x80;
+  do {
+    cur = iter[2];
+    element = tag_block_get_element(dest_squads, cur, 0xe8);
+    variant_index = *(short *)((char *)element + 0x20);
+    cand_actv = 0;
+    cand_actr = 0;
+    if (variant_index >= 0
+        && (int)variant_index < *(int *)((char *)scenario + 0x420)) {
+      actr_element = tag_block_get_element((char *)scenario + 0x420,
+                                           (int)variant_index, 0x10);
+      if (*(int *)((char *)actr_element + 0xc) != -1
+          && tag_get_group_tag(*(int *)((char *)actr_element + 0xc))
+                 == 0x61637476) {
+        cand_actv = tag_get(0x61637476, *(int *)((char *)actr_element + 0xc));
+        if (*(int *)((char *)cand_actv + 0x10) != -1)
+          cand_actr = tag_get(0x61637472, *(int *)((char *)cand_actv + 0x10));
+      }
+    }
+    cur = iter[2];
+
+    if ((short)slot1 == (short)-1 && match_flag != 0
+        && (int)squad_index == cur)
+      slot1 = cur;
+    if ((short)slot2 == (short)-1 && actv_tag != 0 && cand_actv != 0
+        && actv_tag == cand_actv)
+      slot2 = cur;
+    if ((short)slot3 == (short)-1 && actr_tag != 0 && cand_actr != 0
+        && actr_tag == cand_actr)
+      slot3 = cur;
+    if ((short)slot4 == (short)-1 && actr_tag != 0 && cand_actr != 0
+        && *(short *)((char *)actr_tag + 0x14)
+               == *(short *)((char *)cand_actr + 0x14))
+      slot4 = cur;
+    if ((short)slot5 == (short)-1)
+      slot5 = cur;
+
+    squad = (void *)FUN_000545a0(iter);
+  } while (squad != 0);
+
+  /* --- resolution: first set slot, in priority order, wins --------------- */
+  found = slot1;
+  if ((short)found != (short)0xffff) {
+    if (*(char *)0x5aca57)
+      error(2, (const char *)0x25c76c /* "%s unchanged" */, debug_str);
+    goto validate;
+  }
+
+  found = slot2;
+  if ((short)found != (short)0xffff) {
+    if (*(char *)0x5aca57) {
+      void *dst_sq;
+      void *name;
+      dst_sq = tag_block_get_element(dest_squads, (int)(short)found, 0xe8);
+      name = (void *)0x253b58; /* "<error>" */
+      if (field_0x34 != -1 && (short)squad_index != (short)0xffff) {
+        void *src_prof;
+        void *src_sq;
+        short si;
+        src_prof = tag_block_get_element(
+            (char *)global_scenario_get() + 0x42c, field_0x34 & 0xffff, 0xb0);
+        src_sq = tag_block_get_element((char *)src_prof + 0x80,
+                                       (int)squad_index, 0xe8);
+        si = *(short *)((char *)src_sq + 0x20);
+        if (si >= 0 && (int)si < *(int *)((char *)scenario + 0x420)) {
+          void *src_actr;
+          src_actr = tag_block_get_element((char *)scenario + 0x420,
+                                           (int)si, 0x10);
+          if (*(int *)((char *)src_actr + 0xc) != -1)
+            name = (void *)tag_get_name(*(int *)((char *)src_actr + 0xc));
+        }
+      }
+      error(2, (const char *)0x25c74c /* "%s -> %s (same-variant %s)" */,
+            debug_str, dst_sq, name);
+    }
+    goto validate;
+  }
+
+  found = slot3;
+  if ((short)found != (short)0xffff) {
+    if (*(char *)0x5aca57) {
+      void *dst_sq;
+      void *name;
+      dst_sq = tag_block_get_element(dest_squads, (int)(short)found, 0xe8);
+      if (actv_tag == 0)
+        name = (void *)0x253b58; /* "<error>" */
+      else if (*(int *)((char *)actv_tag + 0x10) == -1)
+        name = (void *)0x25ad08; /* "<none>" */
+      else
+        name = (void *)tag_get_name(*(int *)((char *)actv_tag + 0x10));
+      error(2, (const char *)0x25c6d0 /* "%s -> %s (same-actor %s)" */,
+            debug_str, dst_sq, name);
+    }
+    goto validate;
+  }
+
+  found = slot4;
+  if ((short)found != (short)0xffff) {
+    if (*(char *)0x5aca57) {
+      void *dst_sq;
+      const char *type_name;
+      dst_sq = tag_block_get_element(dest_squads, (int)(short)found, 0xe8);
+      type_name = FUN_0003a760(*(short *)((char *)actr_tag + 0x14));
+      error(2, (const char *)0x25c6b4 /* "%s -> %s (same-type %s)" */,
+            debug_str, dst_sq, type_name);
+    }
+    goto validate;
+  }
+
+  found = slot5;
+  if ((short)found != (short)0xffff) {
+    if (*(char *)0x5aca57) {
+      void *dst_sq;
+      dst_sq = tag_block_get_element(dest_squads, (int)(short)found, 0xe8);
+      error(2, (const char *)0x25c68c /* "%s -> %s (no matching types ...)" */,
+            debug_str, dst_sq);
+    }
+    goto validate;
+  }
+
+no_squad_match:
+  dest_squads = (char *)dest_element + 0x80;
+  if (*(int *)((char *)dest_element + 0x80) <= 0)
+    return -1;
+  found = 0;
+  if (*(char *)0x5aca57) {
+    void *dst_sq;
+    dst_sq = tag_block_get_element(dest_squads, 0, 0xe8);
+    error(2, (const char *)0x25c654 /* "%s -> %s (no matching squads ...)" */,
+          debug_str, dst_sq);
+  }
+  goto count_check;
+
+validate:
+  if ((short)found == (short)0xffff)
+    return (int16_t)(short)found;
+  if ((short)found >= 0) {
+  count_check:
+    if ((int)(short)found < *(int *)dest_squads)
+      return (int16_t)(short)found;
+  }
+  display_assert("(found_squad_index >= 0) && (found_squad_index < "
+                 "target_encounter_definition->squads.count)",
+                 "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x5fc, 1);
+  system_exit(-1);
+  return (int16_t)(short)found;
+}
+
+/* ai_migrate (FUN_00055dd0) — migrate all AI of a source encounter into a
+ * destination encounter. 0x1d20 obj / 0x55dd0 XBE (largest in the TU). Both
+ * args are packed ai_index_references (only the low 16 bits matter). Builds a
+ * source-squad -> dest-squad map (FUN_000559a0 migration core per squad),
+ * re-attaches live actors, rewrites pending creation records and BSP-resident
+ * actors, then refreshes team status and dirty flags. match_flag =
+ * (source==dest) skips identity mappings. encounter_handle (source) is @<eax>;
+ * param_3/param_4 drive an optional per-actor FUN_00036dc0 (encounters.c passes
+ * 0,0 so that path is inert). */
+void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
+                  int param_3, int param_4)
+{
+  short target_squad_indices[64]; /* [ebp-0xc8], 0x80 bytes, init 0xffff */
+  int squad_iter[5];              /* [ebp-0x34], Layout A (FUN_000544a0) */
+  int actor_iter[3];              /* [ebp-0x2c], FUN_00059a00 (iter[1]=handle) */
+  char enc_iter[0x1c];            /* [ebp-0x3c], FUN_00059b10 */
+  void *scenario;                 /* [ebp-0x40] */
+  void *src_datum;                /* [ebp-0xc]  source encounter datum */
+  void *dst_datum;                /* [ebp-0x1c] dest encounter datum   */
+  void *src_element;              /* [ebp-0x44] source profile element  */
+  void *dst_element;              /* [ebp-0x8]  dest profile element    */
+  int src_index;                  /* [ebp-0x10] / [ebp-0x18] */
+  int dst_index;                  /* [ebp-0x14] */
+  char match_flag;                /* [ebp-0x4]  */
+  void *squad;                    /* loop-1 squad pointer (esi) */
+  int src_squad;                  /* [ebp-0x2c] iter cursor (ebx) */
+  void *sub_element;              /* [ebp-0x48] */
+  int actr_tag;                   /* [ebp-0x20] */
+  void *actv_tag;                 /* esi in loop 1 */
+  void *actv_element;
+  void *actor;                    /* loop-2/4 actor record */
+  char *record;                   /* loop-3 pending record (ebx) */
+  short cur_squad;                /* si */
+  short mapped;                   /* target_squad_indices[cur_squad] */
+
+  if (encounter_handle == -1)
+    return;
+  if (dest_encounter == -1)
+    return;
+
+  src_index = encounter_handle & 0xffff;
+  dst_index = dest_encounter & 0xffff;
+  if (src_index == -1 || dst_index == -1)
+    return;
+
+  scenario = global_scenario_get();
+  src_datum = datum_get(*(data_t **)0x5ab270, src_index);
+  dst_datum = datum_get(*(data_t **)0x5ab270, dst_index);
+  src_element = tag_block_get_element((char *)global_scenario_get() + 0x42c,
+                                      src_index & 0xffff, 0xb0);
+  dst_element = tag_block_get_element((char *)global_scenario_get() + 0x42c,
+                                      dst_index & 0xffff, 0xb0);
+  csmemset(target_squad_indices, -1, 0x80);
+  match_flag = (char)(src_index == dst_index);
+
+  /* --- Loop 1: build the source-squad -> dest-squad map ----------------- */
+  FUN_000544a0((unsigned int)encounter_handle, squad_iter);
+  squad = (void *)FUN_000545a0(squad_iter);
+  while (squad != 0) {
+    src_squad = squad_iter[2];
+    if (src_squad < 0 || src_squad >= 0x40) {
+      display_assert("(source_iterator.squad_index >= 0) && "
+                     "(source_iterator.squad_index < MAXIMUM_SQUADS_PER_ENCOUNTER)",
+                     "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x623, 1);
+      system_exit(-1);
+    }
+
+    if (*(short *)((char *)squad + 0x18) > 0
+        || *(char *)((char *)src_datum + 0x1e) != 0) {
+      sub_element = tag_block_get_element((char *)src_element + 0x80,
+                                          src_squad, 0xe8);
+      actr_tag = 0;
+      actv_tag = 0;
+      if ((short)*(short *)((char *)sub_element + 0x20) >= 0
+          && (int)*(short *)((char *)sub_element + 0x20)
+                 < *(int *)((char *)scenario + 0x420)) {
+        void *actr_element =
+            tag_block_get_element((char *)scenario + 0x420,
+                                  (int)*(short *)((char *)sub_element + 0x20),
+                                  0x10);
+        if (*(int *)((char *)actr_element + 0xc) != -1
+            && tag_get_group_tag(*(int *)((char *)actr_element + 0xc))
+                   == 0x61637476) {
+          actv_element = tag_get(0x61637476,
+                                 *(int *)((char *)actr_element + 0xc));
+          if (*(int *)((char *)actv_element + 0x10) != -1) {
+            actr_tag = (int)tag_get(0x61637472,
+                                    *(int *)((char *)actv_element + 0x10));
+            actv_tag = actv_element;
+          }
+        }
+      }
+
+      crt_sprintf((char *)0x5ab100, (const char *)0x25c864 /* "squad %s" */,
+                  sub_element);
+      target_squad_indices[src_squad] =
+          FUN_000559a0((unsigned int)dest_encounter, src_index,
+                       (int16_t)src_squad, (void *)actr_tag, actv_tag,
+                       match_flag, (const void *)0x5ab100);
+    }
+
+    squad = (void *)FUN_000545a0(squad_iter);
+  }
+
+  /* --- Loop 2: re-attach live actors of the source encounter ------------ */
+  encounter_actor_iterator_new(actor_iter, src_index);
+  actor = (void *)encounter_actor_iterator_next(actor_iter);
+  while (actor != 0) {
+    cur_squad = *(short *)((char *)actor + 0x3a);
+    if (cur_squad < 0 || cur_squad >= 0x40) {
+      display_assert("(current_squad_index >= 0) && "
+                     "(current_squad_index < MAXIMUM_SQUADS_PER_ENCOUNTER)",
+                     "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x651, 1);
+      system_exit(-1);
+    }
+    mapped = target_squad_indices[cur_squad];
+    if (mapped != (short)0xffff && !(match_flag && mapped == cur_squad)) {
+      if (mapped < 0
+          || (int)mapped >= *(int *)((char *)dst_element + 0x80)) {
+        display_assert("(target_squad_indices[current_squad_index] >= 0) && "
+                       "(target_squad_indices[current_squad_index] < "
+                       "target_encounter_definition->squads.count)",
+                       "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x65d, 1);
+        system_exit(-1);
+      }
+      FUN_0003baa0(actor_iter[1], dst_index, (int16_t)mapped);
+      if ((char)param_3 != 0)
+        FUN_00036dc0(actor_iter[1], (char)param_4, 0);
+    }
+    actor = (void *)encounter_actor_iterator_next(actor_iter);
+  }
+
+  /* --- Loop 3: rewrite pending records (only if source is active) ------- */
+  if (*(char *)((char *)src_datum + 0x1e) != 0) {
+    encounter_iterator_next(enc_iter, 0);
+    record = (char *)FUN_00059b50(enc_iter);
+    while (record != 0) {
+      if ((*(int *)(record + 0x44) & 0xffff) == src_index) {
+        cur_squad = *(short *)(record + 0x48);
+        if (cur_squad < 0 || cur_squad >= 0x40) {
+          display_assert("(current_squad_index >= 0) && "
+                         "(current_squad_index < MAXIMUM_SQUADS_PER_ENCOUNTER)",
+                         "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x677, 1);
+          system_exit(-1);
+        }
+        mapped = target_squad_indices[cur_squad];
+        if (mapped != (short)0xffff
+            && !(match_flag && mapped == cur_squad)) {
+          if (mapped < 0
+              || (int)mapped >= *(int *)((char *)dst_element + 0x80)) {
+            display_assert("(target_squad_indices[current_squad_index] >= 0) && "
+                           "(target_squad_indices[current_squad_index] < "
+                           "target_encounter_definition->squads.count)",
+                           "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x683, 1);
+            system_exit(-1);
+          }
+          *(int *)(record + 0x44) = dst_index;
+          *(short *)(record + 0x48) = target_squad_indices[cur_squad];
+        }
+      }
+      record = (char *)FUN_00059b50(enc_iter);
+    }
+
+    if (match_flag == 0) {
+      if ((src_index & 0xc0000000) == 0)
+        *(char *)((char *)src_datum + 0x1e) = 0;
+      *(char *)((char *)dst_datum + 0x1e) = 1;
+    }
+  }
+
+  /* --- Loop 4: BSP-resident actors across all encounters ---------------- */
+  encounter_actor_iterator_new(actor_iter, -1);
+  actor = (void *)encounter_actor_iterator_next(actor_iter);
+  while (actor != 0) {
+    if ((*(int *)((char *)actor + 0x30) & 0xffff) == src_index) {
+      cur_squad = *(short *)((char *)actor + 0x38);
+      if (cur_squad < 0 || cur_squad >= 0x40) {
+        display_assert("(source_iterator.squad_index >= 0) && "
+                       "(source_iterator.squad_index < MAXIMUM_SQUADS_PER_ENCOUNTER)",
+                       "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x6a4, 1);
+        system_exit(-1);
+      }
+      mapped = target_squad_indices[cur_squad];
+      if (mapped != (short)0xffff && !(match_flag && mapped == cur_squad)) {
+        if (mapped < 0
+            || (int)mapped >= *(int *)((char *)dst_element + 0x80)) {
+          display_assert("(target_squad_indices[current_squad_index] >= 0) && "
+                         "(target_squad_indices[current_squad_index] < "
+                         "target_encounter_definition->squads.count)",
+                         "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x6b0, 1);
+          system_exit(-1);
+        }
+        *(int *)((char *)actor + 0x30) = dst_index;
+        *(short *)((char *)actor + 0x38) = target_squad_indices[cur_squad];
+        if (match_flag == 0
+            && *(short *)((char *)dst_element + 0x7e)
+                   == global_structure_bsp_index_get()) {
+          encounterless_detach_actor(actor_iter[1]);
+          encounter_attach_actor(actor_iter[1],
+                                 *(int *)((char *)actor + 0x30),
+                                 *(short *)((char *)actor + 0x38), 1);
+        }
+      }
+    }
+    actor = (void *)encounter_actor_iterator_next(actor_iter);
+  }
+
+  /* --- Tail: refresh team status + dirty flags -------------------------- */
+  if (*(short *)((char *)src_datum + 2) != *(short *)((char *)dst_datum + 2))
+    ai_update_team_status();
+  encounters_update_dirty_status();
+}
