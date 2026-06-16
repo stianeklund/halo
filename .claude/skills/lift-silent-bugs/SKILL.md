@@ -1,6 +1,13 @@
 ---
 name: lift-silent-bugs
-description: Checklist for non-crashing silent correctness bugs — wrong colors, features doing nothing, wrong positions, wrong scalars. Run after writing any lift before deploying to Xbox. Covers float-as-pointer (§6), accumulator misread (§8), builder-count ignored (§11), void-EAX implicit return (§16), address-offset mis-read as value (§17).
+description: >-
+  Checklist for non-crashing silent correctness bugs — wrong colors, yellow/white
+  tint, invisible geometry, missing spawn, no effect, wrong positions, wrong
+  scalars, features doing nothing, lighting unresponsive, wrong scale factors.
+  Run after writing any lift before deploying to Xbox. Covers float-as-pointer
+  (§6), accumulator misread (§8), builder-count ignored (§11), void-EAX implicit
+  return (§16), address-offset mis-read as value (§17). These bugs do NOT trigger
+  assertions and do NOT change VC71 match — the box is the only oracle.
 ---
 
 # Silent Bug Checklist
