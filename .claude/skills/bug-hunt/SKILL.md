@@ -1,6 +1,14 @@
 ---
 name: bug-hunt
-description: Tiered automated bug scanner for Halo CE Xbox lifts. Run after editing source files, before deploying to Xbox, before committing, or whenever you need to find bugs or verify correctness. Checks for silent correctness bugs (float-as-pointer, void-EAX, address-offset misreads, accumulator misreads, discarded builder counts), lift hazards (duplicate args, undersized buffers, intrinsic calls, CONCAT survival), register argument mismatches, and ABI drift. Delegates to check_lift_hazards.py, check_callee_reg_args.py, batch_equivalence.py, and extract_reg_args.py.
+description: >-
+  Tiered automated bug scanner for Halo CE Xbox lifts. Run after editing source
+  files, before deploying to Xbox, before committing, as a pre-commit check, as
+  a safety scan, or as an audit. Checks for silent correctness bugs
+  (float-as-pointer, void-EAX, address-offset misreads, accumulator misreads,
+  discarded builder counts), lift hazards (duplicate args, undersized buffers,
+  intrinsic calls, CONCAT survival), register argument mismatches, ABI drift,
+  and visual/behavioral regressions. Delegates to check_lift_hazards.py,
+  check_callee_reg_args.py, batch_equivalence.py, and extract_reg_args.py.
 ---
 
 # Bug Hunt — Tiered Automated Bug Scanning
@@ -39,6 +47,28 @@ rtk python3 tools/audit/extract_reg_args.py --check 2>&1
 
 Delegate to `crash-triage` skill — parses register patterns, matches signal table,
 proposes root cause. Then follow `halo-page-fault` for detailed investigation.
+
+---
+
+## Tier 2.5 — Visual/behavioral regression (<5min, on wrong runtime behavior)
+
+When the game runs but produces wrong output (wrong color, missing geometry,
+invisible objects, features doing nothing, wrong positions):
+
+```bash
+# 1. Verify the deploy is live and correct
+rtk python3 tools/xbox/verify_toggles_live.py
+
+# 2. Run silent-bug grep sweep
+grep -rn '(float)(int)' src/ --include='*.c'
+grep -rnE '\*\([a-zA-Z_]+ \*\)0x[0-9a-f]+ \+ [0-9]' src/ --include='*.c'
+```
+
+**Routing:**
+- If grep finds hits in recently touched files → load `lift-silent-bugs` skill
+- If grep is clean → load `debug` skill Section D (toggle-bisect) to isolate
+- If assert in debug.txt → load `debug` skill Section B (assert triage)
+- If hang/freeze → load `debug` skill Section C (hang investigation)
 
 ---
 
