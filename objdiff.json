@@ -7294,6 +7294,14 @@
       "metadata": {
         "source_path": "src/halo/interface/hud.c"
       }
+    },
+    {
+      "name": "halo/ai_profile",
+      "base_path": "delinked/ai_profile.obj",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/ai_profile.c.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/ai_profile.c"
+      }
     }
   ]
 }
