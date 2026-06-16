@@ -31248,27 +31248,36 @@
         },
         {
           "addr": "0x55750",
-          "decl": "void FUN_00055750(void);"
+          "decl": "void FUN_00055750(unsigned int combined_index);",
+          "ported": true
         },
         {
           "addr": "0x557e0",
-          "decl": "void FUN_000557e0(void);"
+          "decl": "void FUN_000557e0(unsigned int combined_index);",
+          "ported": true
         },
         {
           "addr": "0x55870",
-          "decl": "void FUN_00055870(void);"
+          "decl": "void FUN_00055870(unsigned int combined_index);",
+          "ported": true
         },
         {
           "addr": "0x55900",
-          "decl": "void FUN_00055900(void);"
+          "decl": "void FUN_00055900(unsigned int combined_index, char flag);",
+          "ported": true
         },
         {
           "addr": "0x559a0",
-          "decl": "int16_t FUN_000559a0(unsigned int encounter_handle@<eax>, int field_0x34, int16_t squad_index, void *actr_tag, void *actv_tag, char match_flag, const void *debug_str);"
+          "decl": "int16_t FUN_000559a0(unsigned int encounter_handle@<eax>, int field_0x34, int16_t squad_index, void *actr_tag, void *actv_tag, char match_flag, const void *debug_str);",
+          "ported": true
         },
         {
           "addr": "0x55dd0",
-          "decl": "void FUN_00055dd0(int encounter_handle@<eax>, int dest_encounter, int param_3, int param_4);"
+          "decl": "void FUN_00055dd0(int encounter_handle@<eax>, int dest_encounter, int param_3, int param_4);",
+          "ported": true,
+          "reg_args": {
+            "encounter_handle": "eax"
+          }
         }
       ],
       "name": "ai_profile.obj",
@@ -31649,7 +31658,7 @@
         },
         {
           "addr": "0x58ae0",
-          "decl": "void FUN_00058ae0(void);",
+          "decl": "void FUN_00058ae0(unsigned int combined_index);",
           "ported": false
         },
         {
