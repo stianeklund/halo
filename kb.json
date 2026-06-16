@@ -5044,7 +5044,7 @@
         {
           "addr": "0x14df70",
           "decl": "bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction, int max_distance, int16_t *collision_result);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x14ec30",
