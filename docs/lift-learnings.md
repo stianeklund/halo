@@ -948,6 +948,33 @@ original's register flow. Recovered +11.5pp on FUN_001a1a10 (80% → 91.5%).
 The permuter finds these automatically but they're easy to spot manually:
 any `@<reg>` parameter whose first USE is far from the function entry.
 
+**Technique 4 — `if`-else-if cascade → `switch` (DEC-chain → CMP-chain):**
+clang lowers a *dense* small-integer cascade — `if (x==0) … else if (x==1)
+… else if (x==2) …` — to a **DEC-chain** (`sub $0,reg; je; dec reg; je; dec
+reg; je`), treating it as a computed switch. MSVC 7.1 instead emits an
+independent **CMP-chain** (`test reg,reg; jne; cmp $1; jne; cmp $2; jne`).
+Rewriting the cascade as `switch (x) { case 0: … case 1: … case 2: …
+default: … }` makes clang emit the CMP-chain, matching MSVC. Behavior is
+identical — the variable takes exactly one arm. **Guard-clause early-returns
+do NOT help:** clang compiles `if (x==k) { …; return; }` chains the same as
+else-if and still DEC-chains; only `switch` flips the lowering. Recovered
+**+9.8pp on FUN_00054220 (88.1% → 97.9%, ai_profile.obj)** — the whole gap
+was this one cascade. Only applies to *dense, ascending* sets of ≥3 constants:
+a 2-way branch (`==2 / ==1`) already compiles to independent compares (no win).
+
+**Detector (grep):**
+```bash
+grep -rnE '\} else if \([A-Za-z_][A-Za-z0-9_]* == [0-9]' src/
+```
+Each hit is a candidate. Confirm it is a dense ascending set of ≥3 integer
+constants on the *same* variable, then check the function's `vc71_verify
+--show-diffs` for the DEC-chain signature (`sub $0`/`dec`/`je` where MSVC has
+`cmp $N`/`jne`). If present, convert that cascade to `switch` and re-verify.
+*(Automation: documented grep only — this is a match-optimization hint, not a
+correctness hazard, so it is deliberately not wired into the correctness-
+focused `check_lift_hazards.py`; it lives in the §19 rewrite checklist below
+alongside the other manual-spot techniques.)*
+
 **Prevention — the rewrite checklist (before declaring a ceiling):**
 1. Does the function use `x87_fcos`/`x87_fsin`? → Try `cos()`/`sin()` under
    `_MSC_VER`.
@@ -955,9 +982,12 @@ any `@<reg>` parameter whose first USE is far from the function entry.
    → Use a single `float *ptr` base.
 3. Does a `@<reg>` parameter get used far from entry? → Add an early
    `local = reg_param[0]` load.
-4. Run the permuter for 120s on the IMPROVED source (not the original) —
+4. Is there a dense `if`-else-if cascade on a small-integer variable (≥3
+   consecutive constants)? → Convert to `switch` (DEC-chain → CMP-chain).
+   Detector: `grep -rnE '\} else if \([A-Za-z_][A-Za-z0-9_]* == [0-9]' src/`.
+5. Run the permuter for 120s on the IMPROVED source (not the original) —
    the search space is smaller after manual fixes.
-5. If VC71 match is still <85% after all four steps, THEN it's a genuine
+6. If VC71 match is still <85% after all five steps, THEN it's a genuine
    structural ceiling. Document which specific instructions are unmatched
    (FPU stack depth refs like `FLD ST(1)`, FPU comparison idioms, `@<reg>`
    prologue) so future sessions don't re-investigate.
