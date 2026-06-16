@@ -13,7 +13,7 @@ collision_usage.obj,true,0x0014C6D0-0x0014F4C0,33
 console.obj,true,0x000FF400-0x000FFBE0,12
 contrails.obj,true,0x00097890-0x0009F8E0,18
 debug_memory.obj,true,0x0008EB80-0x0008F170,4
-cseries.obj,true,0x0008D410-0x0008E390,24
+cseries.obj,true,0x0008D830-0x0008E390,23
 cseries_windows.obj,true,0x0008E250-0x0008E700,15
 crc.obj,true,0x001190B0-0x00119300,3
 memory_pool.obj,true,0x0011E330-0x0011EAA0,14
@@ -41,10 +41,12 @@ game_time.obj,true,0x000B5990-0x000B6220,20
 hs.obj,true,0x000C0C30-0x000C59A0,255
 hs_compile.obj,true,0x000C5730-0x000C95F0,46
 hs_runtime.obj,true,0x000C7840-0x000CE6A0,130
-hud.obj,true,0x000D0340-0x000D29A0,36
+hud.obj,true,0x000D02C0-0x000D29A0,38
+hud_draw.obj,true,0x000D3080-0x000D3A60,4
 hud_messaging.obj,true,0x000D3FA0-0x000D7F40,91
+hud_weapon.obj,true,0x000D8AF0-0x000D91F0,11
 input_abstraction.obj,true,0x000CE690-0x000CEC90,9
-input_xbox.obj,true,0x000CE4B0-0x000D04F0,28
+input_xbox.obj,true,0x000CE4B0-0x000D03C0,26
 interface.obj,true,0x000DEC50-0x000E0310,17
 items.obj,true,0x000F4210-0x000F7540,42
 main.obj,true,0x000E8D20-0x00104630,103
@@ -72,7 +74,7 @@ profile.obj,true,0x0008F870-0x000924A0,50
 projectiles.obj,true,0x000F7CB0-0x000FAF00,28
 progress_bar.obj,true,0x000E19C0-0x000E35E0,31
 random_math.obj,true,0x0010A930-0x0010CB20,38
-rasterizer.obj,true,0x0016EEF0-0x0017CC40,103
+rasterizer.obj,true,0x0016EEF0-0x0017CC40,102
 rasterizer_common.obj,true,0x00154FC0-0x00155310,5
 rasterizer_decals.obj,true,0x00157E40-0x0015D7B0,62
 rasterizer_xbox.obj,true,0x00155350-0x00157210,37
@@ -81,6 +83,7 @@ real_math.obj,true,0x0001ACB0-0x00113C90,171
 recorded_animations.obj,true,0x00094020-0x00095E60,47
 render.obj,true,0x00184570-0x00185880,22
 render_cameras.obj,true,0x00185770-0x0018AC00,59
+render_debug.obj,true,0x0018AB30-0x0018AE50,2
 saved_game_files.obj,true,0x001C1B00-0x001C4A50,55
 scenario.obj,true,0x0018E280-0x0018F710,20
 shaders.obj,true,0x00190240-0x00191010,25
@@ -163,7 +166,7 @@ actor_firing_position.obj,true,0x00024000-0x00024DE0,15
 geometry.obj,true,0x000994D0-0x00107150,8
 damage.obj,true,0x00136700-0x001392D0,34
 object_lights.obj,true,0x001391E0-0x00139680,9
-<xdk_stubs>,true,0x001CFA3F-0x002064D0,71
+<xdk_stubs>,true,0x001CFA3F-0x002064D0,73
 transport_address.obj,true,0x00081A90-0x00082000,4
 xbox_sound_cache.obj,true,0x001BDED0-0x001BE9B0,9
 message_header.obj,true,0x00080210-0x00081310,24
@@ -175,3 +178,5 @@ path_smoothing.obj,true,0x00062960-0x00063BE0,11
 path_obstacle_avoidance.obj,true,0x00060C40-0x00061950,8
 XAPILIB:xbox_crt.obj,true,0x001D63D5-0x001D83F4,18
 XAPILIB:xcontent.obj,true,0x001D8368-0x001D8568,1
+static_camera.obj,true,0x0008D410-0x0008D610,1
+rasterizer_xbox_shadows.obj,true,0x00172590-0x00172790,1

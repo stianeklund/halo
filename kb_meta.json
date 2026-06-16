@@ -1015,6 +1015,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x540c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x540e0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x56790": {
       "kind": "function",
       "status": "ported"
