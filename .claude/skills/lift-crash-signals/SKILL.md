@@ -1,6 +1,13 @@
 ---
 name: lift-crash-signals
-description: Xbox runtime crash diagnosis — key register signals, call-stack walk procedure, and toggle-bisection for non-crashing regressions. Invoke on any Xbox hang, ACCESS_VIOLATION, assert, or silent wrong-behavior report.
+description: >-
+  Xbox runtime crash diagnosis — key register signals, call-stack walk procedure,
+  toggle-bisection for non-crashing regressions and visual bugs. Invoke on any
+  Xbox hang, ACCESS_VIOLATION, assert, silent wrong-behavior report, wrong color,
+  tint, invisible geometry, missing objects, wrong physics, toggle bisect, visual
+  regression, or when you need to localize which ported function caused a
+  regression. For the full toggle-bisect procedure with liveness verification,
+  see the `debug` skill Section D.
 ---
 
 # Lift Crash and Regression Signals
@@ -66,19 +73,50 @@ python3 tools/xbox/xbdm_rdcp.py "getmem addr=<EBP> length=128"
 VC71 match% does NOT detect stack-layout or buffer-contiguity bugs. The box is
 the only oracle for wrong colors, wrong physics, features that do nothing.
 
-1. **Revert entire suspect cluster** (`ported=false` for all) + deploy. Symptom
-   gone → the bug is in our lift. Symptom persists → not our lift.
-2. **Re-enable in dependency-complete subsets.** Re-enabling a callee is always
-   safe. Toggling a callee OFF under a still-ported caller risks thunk arg-drop
-   (§1) — split at a plain-cdecl edge.
-3. **Once localized** to one function: read the call site first (~10 disasm insns),
-   then check callee output buffer sizes vs what the caller reads back.
+### Quick procedure (see `debug` skill Section D for the full detailed version)
+
+**Step 1 — Establish baseline:**
+Revert entire suspect cluster (`ported=false` for all) + deploy. Symptom gone →
+bug is in our lift. Symptom persists → not our lift (check pre-existing bugs).
+
+**Step 2 — MANDATORY liveness verification gate:**
+```bash
+rtk python3 tools/xbox/verify_toggles_live.py
+```
+This proves toggles are ACTUALLY live in the running image. A stale/cached XBE
+silently inverts all verdicts — a whole session was burned this way. Run BEFORE
+`git checkout kb.json`. On `RESULT: FAIL`, redeploy and retry; never record a
+verdict against a failing gate.
+
+**Step 3 — Binary search with dependency-aware subsets:**
+- Enabling a callee (`ported=true`) under a still-original caller is ALWAYS safe
+- Disabling a callee under a still-ported caller risks thunk arg-drop (§1) —
+  split at a plain-cdecl boundary
+- Enable half → deploy → test → recurse into the half that has the symptom
+
+**Step 4 — Investigate the isolated function:**
+Read the call site first (~10 disasm insns), then check callee output buffer
+sizes vs what the caller reads back. Load `lift-arg-hazards` if swapped args,
+`lift-decompiler-traps` trap 5 if buffer-alias, `lift-silent-bugs` for the
+5 silent-bug checks.
 
 ```bash
-# Toggle a function without rebuilding:
-sed -i 's/"ported": true/"ported": false/' ... # or vice versa, then:
-rtk python3 tools/build/build.py -q --target halo && ./tools/xbox/build_deploy_run.sh -q
+# Toggle a function:
+sed -i '/"addr": "0xADDR"/,/ported/ s/"ported": true/"ported": false/' kb.json
+./tools/xbox/build_deploy_run.sh -q
+rtk python3 tools/xbox/verify_toggles_live.py   # ALWAYS verify after deploy
 ```
+
+### Common false positives in toggle-bisect
+
+- **Stale XBE image:** Verify_toggles_live.py catches this. If it fails, the
+  image on the box doesn't match your kb.json.
+- **Thunk arg-drop:** Disabling a callee under a ported caller drops `@<reg>`
+  args. The symptom may be the arg-drop, not the callee's lift. Only toggle at
+  cdecl boundaries.
+- **Multiple interacting bugs:** Two functions may both be needed to reproduce.
+  Binary search assumes one culprit — if narrowing to one function doesn't
+  reproduce, try pairs.
 
 ---
 
