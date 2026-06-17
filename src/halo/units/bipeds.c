@@ -1898,8 +1898,8 @@ void FUN_001a1e70(int unit_handle)
         (int)tag_block_get_element((char *)game_globals_get() + 0x188, 0, 0x98);
       unit_obj[0x114] = game_time;
       dir_ptr = *(float **)0x31fc50;
-      if ((FUN_001a1a10(6.0f, probe_hit, (void *)0, dir_ptr,
-                        unit_handle) == -1) ||
+      if ((FUN_001a1a10(6.0f, probe_hit, (void *)0, dir_ptr, unit_handle) ==
+           -1) ||
           (object_get_world_position(unit_handle, (vector3_t *)world_pos),
            *(float *)((char *)unit_obj + 0x20) <= *(float *)0x2533c0 &&
              (fall_term = (world_pos[2] - probe_hit[2]) * *(float *)0x32512c,
@@ -2346,8 +2346,8 @@ void FUN_001a25e0(int unit_handle /* @ecx */)
           n[idx2] = plane[idx2];
           n[3] = plane[3];
         }
-        dist = (cam_pos.z * n[idx2] + n[0] * cam_pos.x + cam_pos.y * n[1]) -
-               n[3];
+        dist =
+          (cam_pos.z * n[idx2] + n[0] * cam_pos.x + cam_pos.y * n[1]) - n[3];
         if (dist < best_dist) {
           best_index = results[1 + i];
           best_n[0] = n[0];
@@ -3029,7 +3029,7 @@ void FUN_001a2f40(void *physics_arg /* @esi */)
 
     magnitude =
       sqrtf(physics[0xf] * physics[0xf] + physics[0x10] * physics[0x10] +
-           physics[0x11] * physics[0x11]); /* 0x1a327d..0x1a328f */
+            physics[0x11] * physics[0x11]); /* 0x1a327d..0x1a328f */
     submode = (short)(flags_word & 0x200);
 
     if (submode != 0) {
@@ -3050,8 +3050,7 @@ void FUN_001a2f40(void *physics_arg /* @esi */)
       normalize3d(vecB);
       d[0] = vecB[0] * physics[0xf] + vecA[0] * physics[0x10];
       d[1] = vecB[1] * physics[0xf] + vecA[1] * physics[0x10];
-      d[2] = vecB[2] * physics[0xf] + vecA[2] * physics[0x10] +
-             physics[0x11];
+      d[2] = vecB[2] * physics[0xf] + vecA[2] * physics[0x10] + physics[0x11];
       normalize3d(d); /* submode normalizes here, JMP 0x34f6 skips below */
     } else {
       /* else-if and else share the normalize at 0x34ea; only else has
@@ -3059,11 +3058,9 @@ void FUN_001a2f40(void *physics_arg /* @esi */)
       if (physics[0x22] <= *(float *)0x253f44) {
         /* ---- 0x1a339b: ground normal nearly horizontal ---- */
         gp = physics + 0x20;
-        d[0] =
-          physics[0xf] * physics[5] - physics[6] * physics[0x10];
+        d[0] = physics[0xf] * physics[5] - physics[6] * physics[0x10];
         gx = d[0];
-        d[1] =
-          physics[0x10] * physics[5] + physics[0xf] * physics[6];
+        d[1] = physics[0x10] * physics[5] + physics[0xf] * physics[6];
         gy = d[1];
         d[2] = (d[1] * physics[0x21] + d[0] * gp[0]) / physics[0x22];
         d[2] = physics[0x11] - d[2];
@@ -3075,18 +3072,17 @@ void FUN_001a2f40(void *physics_arg /* @esi */)
         vecB[2] = physics[10];
         cross_product3d((float *)(*(int *)0x31fc44), vecB, vecA);
         normalize3d(vecA);
-        vector3d_scale_add(vecB, gp,
-                           -(vecB[0] * gp[0] + vecB[1] * gp[1] + vecB[2] * gp[2]),
-                           vecB);
-        vector3d_scale_add(vecA, gp,
-                           -(vecA[0] * gp[0] + vecA[1] * gp[1] + vecA[2] * gp[2]),
-                           vecA);
+        vector3d_scale_add(
+          vecB, gp, -(vecB[0] * gp[0] + vecB[1] * gp[1] + vecB[2] * gp[2]),
+          vecB);
+        vector3d_scale_add(
+          vecA, gp, -(vecA[0] * gp[0] + vecA[1] * gp[1] + vecA[2] * gp[2]),
+          vecA);
         gx = physics[0xf] * physics[5] - physics[6] * physics[0x10];
         gy = physics[0x10] * physics[5] + physics[0xf] * physics[6];
         d[0] = vecB[0] * physics[0xf] + vecA[0] * physics[0x10];
         d[1] = vecB[1] * physics[0xf] + vecA[1] * physics[0x10];
-        d[2] = vecB[2] * physics[0xf] + vecA[2] * physics[0x10] +
-               physics[0x11];
+        d[2] = vecB[2] * physics[0xf] + vecA[2] * physics[0x10] + physics[0x11];
         /* material gate: multiply d[2] when material_local == 0 */
         if (material_local == 0) {
           d[2] = d[2] * *(float *)0x254cc4;
@@ -3198,10 +3194,10 @@ LAB_001a36a4:
      * 0x1a37ce..0x1a37f6 (last push = first C arg):
      *   draw_color, &pos_world, &new_pos, physics[0x15], physics[0x16],
      *   physics[0], &los_dir2, &los_dir, 0x10, results. */
-    result_count = FUN_00150550(
-      (void *)draw_color, pos_world, new_pos, *(int *)&physics[0x15],
-      *(int *)&physics[0x16], (int)physics[0], &los_dir2[0], &los_dir[0], 0x10,
-      results);
+    result_count =
+      FUN_00150550((void *)draw_color, pos_world, new_pos,
+                   *(int *)&physics[0x15], *(int *)&physics[0x16],
+                   (int)physics[0], &los_dir2[0], &los_dir[0], 0x10, results);
   } else {
     /* debug-draw line record (0x1a3721..0x1a37cc): no query runs, count stays
      * 1. Builds results[0] (point/normal/plane_d/handles) from the position
@@ -3455,8 +3451,15 @@ LAB_001a36a4:
       }
       if ((*(unsigned char *)((char *)physics + 0xa0) & 0x10) == 0) {
         if ((e->flags & 8) == 0 && e->object_handle != -1) {
-          void *od = datum_get((data_t *)*(int *)0x5a8d50, e->object_handle);
-          if ((1 << (*(unsigned char *)((char *)od + 3) & 0x1f) & 0x40) != 0) {
+          /* DEVIATION: hardened datum_get -> object_try_and_get_and_verify_type
+           * to survive stale handles; original calls raw datum_get @0x1a3e97
+           * then tests (1 << (od[3] & 0x1f)) & 0x40 (type-6 mask). The
+           * verifying accessor (object_try @0x13d640) performs the identical
+           * (mask & (1 << (type & 0x1f))) test, but adds salt/generation
+           * validation so a stale handle returns NULL instead of dereferencing
+           * a freed datum slot. */
+          if (object_try_and_get_and_verify_type(e->object_handle, 0x40) !=
+              (void *)0) {
             goto loopA_nomark;
           }
         }
@@ -3602,7 +3605,7 @@ LAB_001a4062_done:
   physics[0x30] = los_dir[2];
   physics[0x32] =
     sqrtf(physics[0x2b] * physics[0x2b] + physics[0x2c] * physics[0x2c] +
-         physics[0x2d] * physics[0x2d]);
+          physics[0x2d] * physics[0x2d]);
   physics[0x30] = physics[0x30] - physics[0xe];
 
   /* ---- biped step-down (0x1a41de..0x1a42da) ---- */
