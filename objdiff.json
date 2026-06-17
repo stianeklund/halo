@@ -7048,9 +7048,9 @@
       }
     },
     {
-      "name": "halo/units/biped_FUN_001a2f40",
+      "name": "halo/units/bipeds_FUN_001a2f40",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/units/bipeds.c.obj",
-      "base_path": "delinked/biped_FUN_001a2f40.obj",
+      "base_path": "delinked/bipeds_FUN_001a2f40.obj",
       "metadata": {
         "source_path": "src/halo/units/bipeds.c"
       }
