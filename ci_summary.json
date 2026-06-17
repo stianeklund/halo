@@ -1,38 +1,38 @@
 {
-  "generated": "2026-06-16T06:24:33.626972+00:00",
+  "generated": "2026-06-17T00:41:32.204598+00:00",
   "ci_runs": {
     "available": true,
     "total": 60,
-    "last_run_time": "2026-06-16T05:50:36Z",
+    "last_run_time": "2026-06-17T00:41:21Z",
     "last_commit": "394c5bfd",
     "workflows": [
       {
-        "name": "Runtime Oracle Tests",
+        "name": "Progress Report",
         "conclusion": "",
+        "created_at": "2026-06-17T00:41:21Z",
+        "head_sha": "394c5bfd",
+        "url": "https://github.com/stianeklund/halo/actions/runs/27657850614"
+      },
+      {
+        "name": "pages-build-deployment",
+        "conclusion": "success",
+        "created_at": "2026-06-16T06:24:40Z",
+        "head_sha": "32f676ea",
+        "url": "https://github.com/stianeklund/halo/actions/runs/27598537422"
+      },
+      {
+        "name": "Runtime Oracle Tests",
+        "conclusion": "failure",
         "created_at": "2026-06-16T05:50:36Z",
         "head_sha": "394c5bfd",
         "url": "https://github.com/stianeklund/halo/actions/runs/27597117992"
       },
       {
         "name": "Equivalence Tests",
-        "conclusion": "",
+        "conclusion": "success",
         "created_at": "2026-06-16T04:30:33Z",
         "head_sha": "394c5bfd",
         "url": "https://github.com/stianeklund/halo/actions/runs/27594249759"
-      },
-      {
-        "name": "Progress Report",
-        "conclusion": "",
-        "created_at": "2026-06-16T00:46:21Z",
-        "head_sha": "394c5bfd",
-        "url": "https://github.com/stianeklund/halo/actions/runs/27586293069"
-      },
-      {
-        "name": "pages-build-deployment",
-        "conclusion": "success",
-        "created_at": "2026-06-15T00:41:20Z",
-        "head_sha": "fb45a60a",
-        "url": "https://github.com/stianeklund/halo/actions/runs/27517390931"
       },
       {
         "name": "Snapshot Verification",
