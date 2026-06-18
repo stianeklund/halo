@@ -8893,6 +8893,10 @@
         "summary": "Resolves seat animation mode for target seat label, computes enter-position matrix and marker positions via animation/marker helpers, and writes up to three output vectors (out_pos_a/out_pos_b/out_pos_c). Returns 1 on success, 0 when no valid mode/path is found."
       }
     },
+    "0x1a84c0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1a8690": {
       "kind": "function",
       "status": "ported"
