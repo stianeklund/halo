@@ -5185,3 +5185,15 @@ void unit_start_flaming_to_death(int unit_handle, int param_2)
     unit_start_running_blindly(unit_handle);
   }
 }
+
+/* unit_handle_region_destroyed (0x1abcd0)
+ * Triggers scream when a body region is destroyed. */
+void unit_handle_region_destroyed(int unit_handle, int param_2, uint32_t flags)
+{
+  char *unit;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  if ((*(uint8_t *)(unit + 0xb6) & 4) == 0) {
+    FUN_001a74d0(unit_handle, ((flags & 0x200) != 0) + 3);
+  }
+}

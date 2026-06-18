@@ -9171,6 +9171,10 @@
         "The exact name of 0x1a9240 (unit_set_seat_state) is uncertain; it receives the unit handle and the root position vector."
       ]
     },
+    "0x1abcd0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1ac2f0": {
       "kind": "function",
       "status": "ported"
