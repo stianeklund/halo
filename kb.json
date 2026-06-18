@@ -25994,7 +25994,7 @@
         },
         {
           "addr": "0x1ab730",
-          "decl": "char FUN_001ab730(void);"
+          "decl": "int16_t FUN_001ab730(int seat_name@<edi>);"
         },
         {
           "addr": "0x1ab770",
@@ -26179,11 +26179,12 @@
         },
         {
           "addr": "0x1ae730",
-          "decl": "void scripting_set_magic_base_seat(void);"
+          "decl": "void scripting_set_magic_base_seat(int param_1);",
+          "ported": true
         },
         {
           "addr": "0x1ae750",
-          "decl": "void unit_scripting_set_seat(int unit_handle);",
+          "decl": "void unit_scripting_set_seat(int unit_handle, int seat_name);",
           "ported": true
         },
         {
