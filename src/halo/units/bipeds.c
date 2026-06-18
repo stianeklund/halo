@@ -2890,7 +2890,6 @@ void FUN_001a2f40(void *physics_arg /* @esi */)
   float los_dir2[3]; /* local_18: second LOS out point */
   unsigned int isnan_tmp;
   char material_local; /* [EBP-0x31]: (flags>>9)&1 material flag */
-
   physics = (float *)physics_arg;
   velocity = physics + 0xb; /* +0x2c */
   position = physics + 2; /* +0x08 */
@@ -2983,19 +2982,22 @@ void FUN_001a2f40(void *physics_arg /* @esi */)
     /* ---- mode 0x01 (0x1a3198..0x1a3264): ground tangent movement ----
      * The original computes both planar cross-products, THEN damp = 1-friction,
      * duplicates damp (fld st0) and multiplies it into each before subtracting
-     * velocity. Compute the crosses into temps first to match that order. */
+     * velocity. magnitude3d normalizes tang in-place, so keep the raw deltas
+     * for the original's no-clamp branch at 0x1a3219. */
     float tang[3];
     float c0, c1;
+    float raw0, raw1;
 
     c0 = physics[0xf] * physics[5] - physics[6] * physics[0x10];
     c1 = physics[0xf] * physics[6] + physics[0x10] * physics[5];
     damp = *(float *)0x2533c8 - physics[0x12];
 
-    tang[0] = damp * c0 - velocity[0];
-    tang[1] = damp * c1 - physics[0xc];
-    /* tang[2] (local_3c) is read stale by magnitude3d in the original; fixed
-     * to 0 here. Only tang[0]/tang[1] feed outputs, so this affects only the
-     * clamp's length test, never a stored field. */
+    raw0 = damp * c0 - velocity[0];
+    raw1 = damp * c1 - physics[0xc];
+    tang[0] = raw0;
+    tang[1] = raw1;
+    /* magnitude3d at 0x12f10 is the 2D normalize helper; it only reads/writes
+     * tang[0]/tang[1]. Keep tang[2] zero for a complete local vec3. */
     tang[2] = 0.0f;
 
     length3 = magnitude3d(tang);
@@ -3003,6 +3005,9 @@ void FUN_001a2f40(void *physics_arg /* @esi */)
       clamp = physics[0x14];
       tang[0] = tang[0] * clamp;
       tang[1] = tang[1] * clamp;
+    } else {
+      tang[0] = raw0;
+      tang[1] = raw1;
     }
     physics[0x2e] = tang[0] + velocity[0];
     physics[0x2f] = tang[1] + physics[0xc];
@@ -3055,8 +3060,16 @@ void FUN_001a2f40(void *physics_arg /* @esi */)
     } else {
       /* else-if and else share the normalize at 0x34ea; only else has
        * the material multiply. */
-      if (physics[0x22] <= *(float *)0x253f44) {
-        /* ---- 0x1a339b: ground normal nearly horizontal ---- */
+      /* Routing (0x1a3?: flds physics[0x22]; fcomps threshold; test 0x41/jne
+       * 0x1a33ed): the JUMP taken when physics[0x22] <= threshold goes to the
+       * full-projection body (0x1a33ed, else below); the fall-through
+       * (physics[0x22] > threshold) runs the single-component solve at
+       * 0x1a339b. The lift had this inverted (`<=`), so steep planes
+       * (physics[0x22] ~ 0) hit the divide-by-physics[0x22] below -> 0/0 NaN
+       * (new_position.z = -1.#IND) and broken slope movement; full projection
+       * (cross-product/Gram-Schmidt) is the steep-plane path. */
+      if (physics[0x22] > *(float *)0x253f44) {
+        /* ---- 0x1a339b: solve d[2] via the dominant (z) normal component ---- */
         gp = physics + 0x20;
         d[0] = physics[0xf] * physics[5] - physics[6] * physics[0x10];
         gx = d[0];
@@ -3128,15 +3141,26 @@ void FUN_001a2f40(void *physics_arg /* @esi */)
       }
 
       damp2 = (*(float *)0x2533c8 - physics[0x12]) * curve_scale;
-      disp[0] = d[0] * damp2 - velocity[0];
-      disp[1] = d[1] * damp2 - physics[0xc];
-      disp[2] = d[2] * damp2 - physics[0xd];
+      /* Save the pre-normalize displacement before normalize3d() unit-
+       * normalizes disp in place: the keep-raw branch below needs the
+       * ORIGINAL (un-normalized) vector, not the unit vector. The original
+       * computes each component into vecB's stack slots (local_24/20/1c,
+       * reused here) and copies to the working disp slots (local_54/50/4c).
+       * Collapsing the two into one disp[] dropped the save, so the keep-raw
+       * branch returned a unit-length (magnitude 1.0) displacement on every
+       * sub-max-speed frame -> "slow then suddenly fast" biped movement. */
+      vecB[0] = d[0] * damp2 - velocity[0];
+      disp[0] = vecB[0];
+      vecB[1] = d[1] * damp2 - physics[0xc];
+      disp[1] = vecB[1];
+      vecB[2] = d[2] * damp2 - physics[0xd];
+      disp[2] = vecB[2];
       length3 = normalize3d(disp); /* 0x1a35e2; ST0 -> compare */
       if (length3 < physics[0x13] || length3 == physics[0x13]) {
-        /* 0x1a35f2 JNZ 0x1a361f: keep raw disp */
-        disp[0] = disp[0];
-        disp[1] = disp[1];
-        disp[2] = disp[2];
+        /* 0x1a361f: keep raw (pre-normalize) disp -> restore saved vecB */
+        disp[0] = vecB[0];
+        disp[1] = vecB[1];
+        disp[2] = vecB[2];
         curve_flag = 0;
       } else {
         if (submode == 0) {
@@ -3197,7 +3221,8 @@ LAB_001a36a4:
     result_count =
       FUN_00150550((void *)draw_color, pos_world, new_pos,
                    *(int *)&physics[0x15], *(int *)&physics[0x16],
-                   (int)physics[0], &los_dir2[0], &los_dir[0], 0x10, results);
+                   *(int *)&physics[0], &los_dir2[0], &los_dir[0], 0x10,
+                   results);
   } else {
     /* debug-draw line record (0x1a3721..0x1a37cc): no query runs, count stays
      * 1. Builds results[0] (point/normal/plane_d/handles) from the position
@@ -3224,7 +3249,7 @@ LAB_001a36a4:
 
   /* ---- debug-draw stub (0x1a3803..0x1a3880) ---- */
   if (*(char *)0x4e4cf0 != '\0') {
-    obj = object_get_and_verify_type((int)physics[0], -1);
+    obj = object_get_and_verify_type(*(int *)&physics[0], -1);
     if (*(int *)((char *)obj + 0x70) != -1) {
       *(float *)0x5a8d00 = pos_world[0];
       *(int *)0x5a8d04 = *(int *)&pos_world[1];
@@ -3281,11 +3306,22 @@ LAB_001a36a4:
       edge0 = *(int *)surf;
       edge1 = *(int *)((char *)surf + 4);
       bsp3d_get_plane_from_designator(surf_block, edge0, plane0);
-      nrm_d = -(plane0[0] * physics[0x2e] + plane0[1] * physics[0x2f] +
-                plane0[2] * physics[0x30] - plane0[3]);
-      proj[0] = plane0[0] * nrm_d + physics[0x2e];
-      proj[1] = plane0[1] * nrm_d + physics[0x2f];
-      proj[2] = plane0[2] * nrm_d + physics[0x30];
+      /* DEVIATION-FIX 2026-06-17: this count==0 mach-edge block operates on the
+       * collision-query swept out-points, NOT physics+0xb8. The original keeps
+       * THREE distinct stack vec3s; the prior lift collapsed two of them, which
+       * silently dropped the edge de-penetration push-outs and corrupted the
+       * surviving new_velocity (= los_dir, copied unconditionally at 0x1a4160).
+       *   los_dir2 (EBP-0x18) = query out-point-1 -> new_position (+0xac):
+       *                         nrm_d, proj base, in-range test, depth, push-out
+       *   proj     (EBP-0x6c) = projection of los_dir2 onto plane0: t2, distance
+       *   los_dir  (EBP-0x78) = query out-point-2 -> new_velocity (+0xb8):
+       *                         side dot, face dot, in-place scale_add
+       * nrm_d / proj-base read los_dir2 (disasm 0x9cc..0xa14). */
+      nrm_d = -(plane0[0] * los_dir2[0] + plane0[1] * los_dir2[1] +
+                plane0[2] * los_dir2[2] - plane0[3]);
+      proj[0] = plane0[0] * nrm_d + los_dir2[0];
+      proj[1] = plane0[1] * nrm_d + los_dir2[1];
+      proj[2] = plane0[2] * nrm_d + los_dir2[2];
       ce = (void *)edge1;
       do {
         void *edge =
@@ -3300,13 +3336,14 @@ LAB_001a36a4:
               (*(unsigned char *)((char *)e2 + 8) & 4) != 0) {
             float side;
             bsp3d_get_plane_from_designator(surf_block, *(int *)e2, plane0);
-            side =
-              plane0[0] * proj[0] + plane0[1] * proj[1] + plane0[2] * proj[2];
+            /* side dots plane0 with los_dir (out-point-2), disasm 0xa8b */
+            side = plane0[0] * los_dir[0] + plane0[1] * los_dir[1] +
+                   plane0[2] * los_dir[2];
             nrm_d = side;
             if (!(*(float *)0x2533c0 < side) &&
                 physics[0x16] * *(float *)0x255964 <
-                  (plane0[0] * physics[0x2e] + plane0[1] * physics[0x2f] +
-                   plane0[2] * physics[0x30] - plane0[3])) {
+                  (plane0[0] * los_dir2[0] + plane0[1] * los_dir2[1] +
+                   plane0[2] * los_dir2[2] - plane0[3])) {
               void *v0 = tag_block_get_element((void *)(surf_block + 0x54),
                                                *(int *)edge, 0x10);
               void *v1 = tag_block_get_element(
@@ -3350,35 +3387,56 @@ LAB_001a36a4:
           (physics[0x16] + physics[0x16]) * (physics[0x16] + physics[0x16]) >=
             best_dist &&
           nrm_d <= *(float *)0x2b509c) {
-        float depth = (bestN[0] * physics[0x2e] + bestN[1] * physics[0x2f] +
-                       bestN[2] * physics[0x30]) -
+        /* depth dots bestN with los_dir2 (out-point-1), disasm 0xc83 */
+        float depth = (bestN[0] * los_dir2[0] + bestN[1] * los_dir2[1] +
+                       bestN[2] * los_dir2[2]) -
                       (bestN[3] + physics[0x16]);
         if ((depth < 0.0f ? -depth : depth) <=
             physics[0x16] * *(float *)0x253398) {
+          /* face dots bestN with los_dir (out-point-2), disasm 0xcc8 */
           float face =
-            bestN[0] * proj[0] + bestN[2] * proj[2] + bestN[1] * proj[1];
+            bestN[0] * los_dir[0] + bestN[2] * los_dir[2] + bestN[1] * los_dir[1];
+          /* push-out de-penetrates los_dir2 (-> new_position), disasm 0xcec */
           float pushv = -depth;
-          physics[0x2e] = bestN[0] * pushv + physics[0x2e];
-          physics[0x2f] = bestN[1] * pushv + physics[0x2f];
-          physics[0x30] = bestN[2] * pushv + physics[0x30];
+          los_dir2[0] = bestN[0] * pushv + los_dir2[0];
+          los_dir2[1] = bestN[1] * pushv + los_dir2[1];
+          los_dir2[2] = bestN[2] * pushv + los_dir2[2];
           if (*(float *)0x256348 < face) {
-            /* In-place adjust of the projected point: proj += -(face+k)*bestN.
-             * Original (0x1a3c65..0x1a3c8b) aliases base==out==proj (EBP-0x78);
-             * scale_add is component-wise so in-place is safe. */
-            vector3d_scale_add(proj, bestN, -(face + *(float *)0x2546a4), proj);
+            /* In-place adjust of the swept out-point (new_velocity source):
+             * los_dir += -(face+k)*bestN. Original (0x1a3c65..0x1a3c8b) aliases
+             * base==out==EBP-0x78 (= los_dir); scale_add is component-wise so
+             * in-place is safe. */
+            vector3d_scale_add(los_dir, bestN, -(face + *(float *)0x2546a4),
+                               los_dir);
           }
-          /* build a draw record from the plane (0x1a3c8f..) */
+          /* build a draw record from the plane (0x1a3c8f..0x1a3dce).
+           * Original synthetic-contact layout (verified vs disasm):
+           *   point[0]=0 (0xd9f movl $0); spatial XYZ in point[1..3]
+           *     (0xd8c/0xdd5/0xdec); object_handle=-1 (0xdb1 eax=0xffffffff);
+           *   surface_handle=best_edge (0xdb7 ecx); flags=0xffff0000
+           *     (0xdc0..0xdce bytes 00,00,ff,ff); result_count=1 (0xd92
+           *   movl $0x1,-0x3c) so the refinement loop below actually processes
+           *   this synthetic edge contact (prior lift left result_count==0, so
+           *   the loop skipped it and the ground-plane snap never ran). */
           pushv = -physics[0x16];
           results[0].normal[0] = bestN[0];
           results[0].normal[1] = bestN[1];
           results[0].normal[2] = bestN[2];
           results[0].plane_d = bestN[3];
-          results[0].point[0] = bestN[0] * pushv + physics[0x2e];
-          results[0].flags = 1;
-          results[0].object_handle = 0;
-          results[0].point[2] = bestN[2] * pushv + physics[0x30];
-          results[0].surface_handle = -1;
-          results[0].point[1] = bestN[1] * pushv + physics[0x2f];
+          results[0].point[0] = 0.0f;                            /* +0x00 */
+          results[0].point[1] = bestN[0] * pushv + los_dir2[0];  /* +0x04 X */
+          results[0].point[2] = bestN[1] * pushv + los_dir2[1];  /* +0x08 Y */
+          results[0].point[3] = bestN[2] * pushv + los_dir2[2];  /* +0x0c Z */
+          results[0].object_handle = -1;                         /* +0x20 */
+          results[0].surface_handle = best_edge;                 /* +0x24 */
+          results[0].flags = (int)0xffff0000;                    /* +0x28 */
+          /* BISECT 2026-06-18: `result_count = 1;` (orig 0xd92) intentionally
+           * omitted. Setting it un-gates the edge-snap (physics+0xa4=best_edge),
+           * Loop B/C, and metric loop in the count==0 path — which correlates
+           * with an MP-load decals.c:479 cluster_index crash (FUN_001a2f40 not
+           * on the crash stack => persistent/global state via an unverified
+           * best_edge). Re-enable only after best_edge is re-derived from the
+           * mach-edge fallback disasm. */
           *(int *)((char *)physics + 0xa8) = best_edge;
           *(unsigned char *)((char *)physics + 0xb1) = 0;
           *(unsigned char *)((char *)physics + 0xb2) = 0;
@@ -3425,8 +3483,12 @@ LAB_001a36a4:
       } else {
         want = 1;
       }
+      /* BISECT 2026-06-18: reverted .surface_handle->.flags pending grounded-path
+       * verification (walking velocity regression). 0x1a3e8a movswl best_index;
+       * cmp physics+0xa8 vs the selected best entry. */
       if (*(int *)((char *)physics + 0xa8) != -1 &&
-          *(int *)((char *)physics + 0xa8) == e->flags) {
+          *(int *)((char *)physics + 0xa8) ==
+              results[(short)best_index].flags) {
         same = 1;
       } else {
         same = 0;
@@ -3434,7 +3496,13 @@ LAB_001a36a4:
       metric = -(physics[0x2e] * e->normal[0] + e->normal[2] * physics[0x30] +
                  physics[0x2f] * e->normal[1]);
       if (want == 0) {
-        if (loop_flag9 == 0 && e->normal[1] < loop_best) {
+        /* 0x1a3f13: FCOMP normal[2] (flds 0x4(%edi)) vs loop_best, test 0x41/jne
+         * -> take when normal[2] > loop_best (MAXIMUM: most upward-facing ground
+         * plane; Z is the up axis). loop_best inits to -FLT_MAX. The
+         * compare/store use normal[2] (Z/up), NOT normal[1] (Y): selecting on Y
+         * lets a vertical wall (normal ~= +/-Y, Z~=0) win as "ground", so the
+         * biped is projected along/up the wall after a high-velocity contact. */
+        if (loop_flag9 == 0 && e->normal[2] > loop_best) {
           goto loopA_take;
         }
       } else if ((material_local != 0 ||
@@ -3446,7 +3514,7 @@ LAB_001a36a4:
         loop_flag9 = want;
         best_index = n;
         loop_flag1 = same;
-        loop_best = e->normal[1];
+        loop_best = e->normal[2]; /* 0x1a3f26: mov 0x4(%edi) = normal[2] (Z/up) */
         loop_metric = metric;
       }
       if ((*(unsigned char *)((char *)physics + 0xa0) & 0x10) == 0) {
@@ -3475,7 +3543,9 @@ LAB_001a36a4:
     best_t = -(e->normal[0] * new_pos[0] + e->normal[2] * new_pos[2] +
                e->normal[1] * new_pos[1]);
     if (loop_flag9 == 0 && loop_flag1 == 0) {
-      if (e->normal[1] < physics[0x19]) {
+      /* 0x1a3ff8: flds -0x48(%ebp) = loop_best (the selected entry's normal[2],
+       * Z/up), compared against physics[0x19] (stand-on-slope threshold). */
+      if (loop_best < physics[0x19]) {
         goto LAB_001a401e;
       }
       if ((*(unsigned short *)((char *)physics + 4) & 1) != 0 &&
@@ -3497,7 +3567,7 @@ LAB_001a36a4:
      * the selected entry, then +0xc4 from the normal dot. EDI = &entry.normal
      */
     {
-      int sel_surface = e->flags;
+      int sel_surface = e->flags; /* BISECT 2026-06-18: reverted .surface_handle pending grounded-path verify */
       *(unsigned char *)((char *)physics + 0xa0) &= 0xfe;
       *(int *)((char *)physics + 0x80) = *(int *)&e->normal[0];
       *(int *)((char *)physics + 0x84) = *(int *)&e->normal[1];
@@ -3509,9 +3579,13 @@ LAB_001a36a4:
         *(int *)((char *)physics + 0xc4) = 0;
         goto LAB_001a4062;
       }
+      /* 0x1a40b6: -(new_pos . ground_normal); new_pos[i] pairs with
+       * physics[0x20+i] (i.e. +0x80+4i). The prior lift swapped x/y
+       * (new_pos[0]*[0x21] + new_pos[1]*[0x20]), corrupting the +0xc4 signed
+       * plane distance used by downstream positioning. */
       physics[0x31] =
-        -(new_pos[0] * physics[0x21] + new_pos[2] * physics[0x22] +
-          new_pos[1] * physics[0x20]);
+        -(new_pos[0] * physics[0x20] + new_pos[1] * physics[0x21] +
+          new_pos[2] * physics[0x22]);
       goto LAB_001a4062;
     }
   }
@@ -3543,11 +3617,15 @@ LAB_001a4062_done:
       n = (unsigned short)result_count;
       do {
         if (*eh != -1) {
-          void *o = object_get_and_verify_type(*eh, -1);
-          float ddx = *(float *)((char *)o + 0x18) - los_dir[0];
-          float ddy = *(float *)((char *)o + 0x1c) - los_dir[1];
-          float ddz = *(float *)((char *)o + 0x20) - los_dir[2];
-          float d2 = ddx * ddx + ddy * ddy + ddz * ddz;
+          void *o;
+          float ddx, ddy, ddz, d2;
+          o = object_try_and_get_and_verify_type(*eh, -1);
+          if (o == (void *)0)
+            goto loopB_next;
+          ddx = *(float *)((char *)o + 0x18) - los_dir[0];
+          ddy = *(float *)((char *)o + 0x1c) - los_dir[1];
+          ddz = *(float *)((char *)o + 0x20) - los_dir[2];
+          d2 = ddx * ddx + ddy * ddy + ddz * ddz;
           if (near_obj != -1) {
             if ((short)near_type == 1) {
               if (*(short *)((char *)o + 0x64) != 1)
@@ -3594,24 +3672,35 @@ LAB_001a4062_done:
     } while (n != 0);
   }
 
-  /* ---- writeback: new_position (+0xac), new_velocity (+0xb8), step distance
-   * (+0xc8) and the z step-down (0x1a4160..0x1a41de). new_position is the
-   * displacement between the two query out-points (los_dir - los_dir2). ---- */
-  physics[0x2b] = los_dir[0] - los_dir2[0]; /* +0xac */
-  physics[0x2c] = los_dir[1] - los_dir2[1];
-  physics[0x2d] = los_dir[2] - los_dir2[2];
-  physics[0x2e] = los_dir[0];
-  physics[0x2f] = los_dir[1];
-  physics[0x30] = los_dir[2];
-  physics[0x32] =
-    sqrtf(physics[0x2b] * physics[0x2b] + physics[0x2c] * physics[0x2c] +
-          physics[0x2d] * physics[0x2d]);
+  /* ---- writeback (0x1a4160..0x1a41de): new_position (+0xac) = los_dir2 (the
+   * near LOS out-point, raw 32-bit copy); new_velocity (+0xb8) = los_dir (the
+   * far out-point); step distance (+0xc8) = |los_dir - new_pos|; then the z
+   * step-down.
+   * DEVIATION-FIX 2026-06-17: the prior lift wrote new_position = los_dir -
+   * los_dir2 and derived the step from that, corrupting the biped position
+   * every frame (bipeds float to the ceiling; the camera/PVS derived from the
+   * bad position culls all BSP geometry -> split-screen skybox flicker). The
+   * original (objdump of delinked bipeds_FUN_001a2f40.obj, 0x1a4160) integer-
+   * copies los_dir2 into new_position and takes the step magnitude from
+   * (los_dir - new_pos). ---- */
+  {
+    float d0 = los_dir[0] - new_pos[0];
+    float d1 = los_dir[1] - new_pos[1];
+    float d2 = los_dir[2] - new_pos[2];
+    *(int *)&physics[0x2b] = *(int *)&los_dir2[0]; /* +0xac new_position */
+    *(int *)&physics[0x2c] = *(int *)&los_dir2[1];
+    *(int *)&physics[0x2d] = *(int *)&los_dir2[2];
+    *(int *)&physics[0x2e] = *(int *)&los_dir[0]; /* +0xb8 new_velocity */
+    *(int *)&physics[0x2f] = *(int *)&los_dir[1];
+    *(int *)&physics[0x30] = *(int *)&los_dir[2];
+    physics[0x32] = sqrtf(d0 * d0 + d1 * d1 + d2 * d2); /* +0xc8 step */
+  }
   physics[0x30] = physics[0x30] - physics[0xe];
 
   /* ---- biped step-down (0x1a41de..0x1a42da) ---- */
   flags = *(unsigned short *)((char *)physics + 4);
   if ((flags & 4) != 0 && (flags & 8) != 0) {
-    obj = object_get_and_verify_type((int)physics[0], 1);
+    obj = object_get_and_verify_type(*(int *)&physics[0], 1);
     if (*(int *)((char *)obj + 0x1c8) != -1) {
       tag = tag_get(0x62697064, *(int *)obj);
       if ((*(unsigned char *)((char *)tag + 0x2f4) & 0x18) == 0) {
@@ -3622,7 +3711,8 @@ LAB_001a4062_done:
         if (FUN_0014ec30(
               (int)((-(unsigned int)((flags & 0x80) != 0) & 0xffdffd00) +
                     0x20c3a0),
-              surf, *(float *)((char *)tag + 0x42c), 0.0f, (int)physics[0], 0,
+              surf, half, 0.0f, *(float *)((char *)tag + 0x42c),
+              *(int *)&physics[0],
               debug_scratch)) {
           float fr =
             *(float *)((char *)tag + 0x424) -
