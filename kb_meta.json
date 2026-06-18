@@ -8982,6 +8982,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1a9980": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1a9a30": {
       "kind": "function",
       "status": "ported",
@@ -9020,6 +9024,14 @@
       "status": "ported"
     },
     "0x1a9da0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1a9e40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1aa080": {
       "kind": "function",
       "status": "ported"
     },
