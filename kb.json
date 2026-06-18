@@ -26037,7 +26037,8 @@
         },
         {
           "addr": "0x1abcd0",
-          "decl": "void unit_handle_region_destroyed(void);"
+          "decl": "void unit_handle_region_destroyed(int unit_handle, int param_2, uint32_t flags);",
+          "ported": true
         },
         {
           "addr": "0x1abd10",
