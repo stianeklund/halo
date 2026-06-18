@@ -193,6 +193,34 @@ int FUN_001911b0(void)
   return 1;
 }
 
+/* FUN_00191210 (0x191210)
+ * JMP thunk to physical_memory_map_verify (0x1bdc60).
+ * Called from shell_initialize after subsystem init.
+ * Single E9 rel32 instruction (5 bytes).
+ */
+void FUN_00191210(void)
+{
+  physical_memory_map_verify();
+}
+
+/* FUN_00191220 (0x191220)
+ * Single-RET stub (no-op). Called from shell_dispose.
+ * Single 0xC3 byte.
+ */
+void FUN_00191220(void)
+{
+}
+
+/* FUN_00191230 (0x191230)
+ * Bare-RET stub (no-op). Called from FUN_00191180
+ * (shell_application_set_paused) with the pause-state argument.
+ * Single 0xC3 byte.
+ */
+void FUN_00191230(int param_1)
+{
+  (void)param_1;
+}
+
 /* shell_get_command_line (0x191240)
  *
  * Returns a pointer to the static command-line string buffer at 0x4d8a88.
