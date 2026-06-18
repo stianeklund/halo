@@ -25876,11 +25876,13 @@
         },
         {
           "addr": "0x1aa550",
-          "decl": "void unit_set_desired_flashlight_state(void);"
+          "decl": "void unit_set_desired_flashlight_state(int unit_handle, char desired);",
+          "ported": true
         },
         {
           "addr": "0x1aa590",
-          "decl": "void unit_get_current_flashlight_state(void);"
+          "decl": "char unit_get_current_flashlight_state(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1aa5c0",
@@ -25888,19 +25890,23 @@
         },
         {
           "addr": "0x1aa700",
-          "decl": "void unit_seat_filled(void);"
+          "decl": "char unit_seat_filled(int unit_handle, int16_t seat_index);",
+          "ported": true
         },
         {
           "addr": "0x1aa770",
-          "decl": "void unit_seat_is_driver(void);"
+          "decl": "char unit_seat_is_driver(int unit_handle, int16_t seat_index);",
+          "ported": true
         },
         {
           "addr": "0x1aa7d0",
-          "decl": "void unit_seat_is_gunner(void);"
+          "decl": "char unit_seat_is_gunner(int unit_handle, int16_t seat_index);",
+          "ported": true
         },
         {
           "addr": "0x1aa830",
-          "decl": "void unit_seat_allow_noncombatants(void);"
+          "decl": "char unit_seat_allow_noncombatants(int unit_handle, int16_t seat_index);",
+          "ported": true
         },
         {
           "addr": "0x1aa890",
@@ -25939,7 +25945,8 @@
         },
         {
           "addr": "0x1aad00",
-          "decl": "bool unit_has_weapon_definition_index(int unit_handle, int definition_index);"
+          "decl": "char unit_has_weapon_definition_index(int unit_handle, int definition_index);",
+          "ported": true
         },
         {
           "addr": "0x1aad60",
