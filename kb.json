@@ -26141,7 +26141,8 @@
         },
         {
           "addr": "0x1ae1e0",
-          "decl": "void unit_set_seat(void);"
+          "decl": "char unit_set_seat(int unit_handle, int seat_name);",
+          "ported": true
         },
         {
           "addr": "0x1ae210",
@@ -26222,7 +26223,8 @@
         },
         {
           "addr": "0x1af2a0",
-          "decl": "void unit_start_flaming_to_death(void);"
+          "decl": "void unit_start_flaming_to_death(int unit_handle, int param_2);",
+          "ported": true
         },
         {
           "addr": "0x1af340",

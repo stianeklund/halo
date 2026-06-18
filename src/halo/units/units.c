@@ -5152,3 +5152,36 @@ char unit_get_melee_range_and_ticks(int unit_handle, char is_secondary,
   }
   return 1;
 }
+
+/* unit_set_seat (0x1ae1e0)
+ * Attempts to set the unit's seat via animation lookup. */
+char unit_set_seat(int unit_handle, int seat_name)
+{
+  return FUN_001acd70(seat_name, 0, 1) != '\0';
+}
+
+/* unit_start_flaming_to_death (0x1af2a0)
+ * Initiates the flaming-to-death state for a unit. */
+void unit_start_flaming_to_death(int unit_handle, int param_2)
+{
+  char *unit;
+  int *seed;
+  int16_t ticks;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  unit_set_in_vehicle(unit_handle, 1);
+  *(uint32_t *)(unit + 0x1b4) |= 0x80;
+  *(uint16_t *)(unit + 0xb6) = (*(uint16_t *)(unit + 0xb6) & ~0x4u) | 0x800;
+  if (*(char *)(unit + 0x23b) == '\0') {
+    seed = get_global_random_seed_address();
+    ticks = random_range((unsigned int *)seed, 0x3c, 0x96);
+    if (ticks < 1) {
+      ticks = 1;
+    } else if (ticks > 0xff) {
+      ticks = 0xff;
+    }
+    *(char *)(unit + 0x23b) = (char)ticks;
+    *(int *)(unit + 0x3c0) = param_2;
+    unit_start_running_blindly(unit_handle);
+  }
+}
