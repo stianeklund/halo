@@ -4970,3 +4970,77 @@ void FUN_001a7790(int param_1)
     FUN_001a6ef0(param_1, 3, unit + 0x368);
   }
 }
+
+/* FUN_001a6bf0 (0x1a6bf0)
+ * Selects dialogue variant for the unit if none is set. */
+void FUN_001a6bf0(int unit_handle)
+{
+  uint32_t *unit;
+  char *unit_tag;
+  int *dialogue_block;
+  int16_t *variant;
+  uint16_t count;
+  int16_t i;
+  int16_t variants[16];
+
+  unit = (uint32_t *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag = (char *)tag_get(0x756e6974, *unit);
+  if (*(int16_t *)((char *)unit + 0x6e) == 0) {
+    dialogue_block = (int *)(unit_tag + 0x2b4);
+    count = 0;
+    i = 0;
+    if (0 < *dialogue_block) {
+      do {
+        variant = (int16_t *)tag_block_get_element(dialogue_block, (int)i, 0x18);
+        if (*variant < 100) {
+          if (count >= 0xf) {
+            error(2, "unit_dialogue_determine_variant overflowed variant array");
+            break;
+          }
+          variants[(int16_t)count] = *variant;
+          count++;
+        }
+        i++;
+      } while ((int)i < *dialogue_block);
+      if ((int16_t)count > 0) {
+        *(int16_t *)((char *)unit + 0x6e) =
+            variants[*(int *)0x4e4cf4 % (int)(int16_t)count];
+        *(int *)0x4e4cf4 = *(int *)0x4e4cf4 + 1;
+      }
+    }
+  }
+}
+
+/* FUN_001a70d0 (0x1a70d0)
+ * Initiates direct sound speech on a unit (used for scripted dialogue). */
+void FUN_001a70d0(int unit_handle, int sound_tag, int sound_handle)
+{
+  char *unit;
+  int result;
+  char speech_buf[0x30];
+  int local_8;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  local_8 = -1;
+  result = FUN_001a68d0(unit_handle, 6, 0, 0, 0, (int16_t *)&local_8, &result);
+  if ((int16_t)result < 3) {
+    result = 2;
+  }
+  csmemset(speech_buf, 0, 0x30);
+  *(int16_t *)(speech_buf + 0x00) = 6;
+  *(int16_t *)(speech_buf + 0x02) = -1;
+  *(int *)(speech_buf + 0x04) = sound_tag;
+  *(int16_t *)(speech_buf + 0x0c) = 0x18;
+  ai_communication_packet_new(speech_buf + 0x10);
+  FUN_001a6ef0(unit_handle, (int16_t)result, speech_buf);
+  if (*(int *)(unit + 0x33c) != sound_tag) {
+    display_assert(
+        "unit->unit.speech.current.sound_definition_index == sound_definition_index",
+        "c:\\halo\\SOURCE\\units\\unit_dialogue.c", 0x196, 1);
+    system_exit(-1);
+  }
+  *(int *)(unit + 0x3b0) = sound_handle;
+  *(uint8_t *)(unit + 0x3a4) = 1;
+  *(int16_t *)(unit + 0x3a8) = 0;
+  FUN_00044fd0(unit_handle, 6, 0xffff, unit + 0x348);
+}
