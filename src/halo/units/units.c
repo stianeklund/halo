@@ -237,6 +237,171 @@ short FUN_001a6cd0(const char *param_1)
   return (short)result;
 }
 
+/* FUN_001a6e20 (0x1a6e20) — unit_dialogue_log_lost_speech
+ *
+ * Logs a "lost speech" debug message when a speech item is being replaced.
+ * Only produces output when the debug flag at 0x5aca56 is nonzero.
+ *
+ * Looks up the unit's tag name via tag_get('unit'), then resolves the speech
+ * item's dialogue name either via FUN_001a67b0 (if speech_item+2 != -1) or
+ * via tag_get_name (if speech_item+4 != -1), falling back to "<unknown>".
+ * Logs "lost <waiting|queued> speech <name>" via console_printf.
+ *
+ * Register args: unit_handle @<eax>, speech_item @<ecx>.
+ * Stack arg: priority (short) — 2 = "waiting", otherwise "queued".
+ *
+ * Confirmed: PUSH EAX (unit_handle) / MOV ESI,ECX (speech_item) at entry.
+ * Confirmed: PUSH 0x3 for object_get_and_verify_type.
+ * Confirmed: CMP word [EBP+0x8],0x2 for priority check.
+ * Confirmed: tag_get(0x756e6974, *unit) for unit tag name.
+ * Confirmed: console_printf(0, "%s: lost %s speech %s", ...) at 0xff4d0.
+ */
+void FUN_001a6e20(int unit_handle, void *speech_item, short priority)
+{
+  char *unit;
+  char *unit_tag;
+  char *speech_name;
+  char *lost_type;
+  int16_t dialogue_index;
+  int tag_index;
+  char *found;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  if (speech_item == NULL) {
+    display_assert("speech_item",
+                   "c:\\halo\\SOURCE\\units\\unit_dialogue.c", 0x415, 1);
+    system_exit(-1);
+  }
+  if (*(char *)0x5aca56 != '\0') {
+    unit_tag = (char *)tag_get(0x756e6974, *(int *)unit);
+    dialogue_index = *(int16_t *)((char *)speech_item + 2);
+    if (dialogue_index != (int16_t)-1) {
+      speech_name = (char *)FUN_001a67b0(dialogue_index, 0);
+    } else {
+      tag_index = *(int *)((char *)speech_item + 4);
+      if (tag_index != -1) {
+        speech_name = (char *)tag_get_name(tag_index);
+        found = strrchr(speech_name, '\\');
+        if (found != NULL) {
+          speech_name = found + 1;
+        }
+      } else {
+        speech_name = "<unknown>";
+      }
+    }
+    if (priority == 2) {
+      lost_type = "waiting";
+    } else {
+      lost_type = "queued";
+    }
+    console_printf(0, "%s: lost %s speech %s",
+                   *(char **)(unit_tag + 0x2c), lost_type, speech_name);
+  }
+}
+
+/* FUN_001a6ef0 (0x1a6ef0) — unit_dialogue_queue_speech_item
+ *
+ * Queues or promotes a speech item for the unit's dialogue system.
+ * Three priority levels (param_2):
+ *   1 = queue into backup slot (unit+0x368)
+ *   2 = promote to current slot (unit+0x338), evicting existing if present
+ *   3 = promote to current and clear backup if identical
+ *
+ * Copies 0x30 bytes (12 dwords, REP MOVSD with ECX=0xC) of speech data.
+ * After promotion, copies timing fields from the speech item and computes
+ * a vocalization timer from the sound tag's duration:
+ *   timer = (duration_ms * 30) / 1000  (converting ms to 30Hz ticks).
+ * If no sound tag is set, asserts unless it's a standalone server
+ * or force_vocalizations is off.
+ *
+ * Confirmed: ADD ESP,0x8 after object_get_and_verify_type (cdecl, 2 args).
+ * Confirmed: REP MOVSD with ECX=0xC for 0x30-byte copy.
+ * Confirmed: IMUL ECX,0x1e / MUL 0x10624dd3 / SAR 0x6 = divide by 1000.
+ * Confirmed: assert "speech_item" at line 0x12E, file unit_dialogue.c.
+ * Confirmed: assert "AI_BEHAVIOR(force_vocalizations)" at line 0x168.
+ * Confirmed: assert "unit->unit.speech.current.priority > _unit_speech_none"
+ *            at line 0x16E.
+ */
+void FUN_001a6ef0(int unit_handle, short priority, void *speech_item)
+{
+  char *unit;
+  int sound_tag_index;
+  char *sound_tag;
+  int duration_ticks;
+  short game_conn;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  if (speech_item == NULL) {
+    display_assert("speech_item",
+                   "c:\\halo\\SOURCE\\units\\unit_dialogue.c", 0x12e, 1);
+    system_exit(-1);
+  }
+
+  /* If unit has AI-controlled speech bit set, only allow priority 10 (override) */
+  if ((*(uint8_t *)(unit + 0xb6) & 4) != 0 &&
+      *(int16_t *)speech_item != 10) {
+    return;
+  }
+
+  if (priority >= 2) {
+    /* Promoting to current slot — log existing speech being evicted */
+    if (*(int16_t *)(unit + 0x338) > 0 &&
+        *(char *)(unit + 0x3a4) == '\0') {
+      FUN_001a6e20(unit_handle, unit + 0x338, 2);
+    }
+
+    /* Copy 0x30 bytes of speech data to current slot (unit+0x338) */
+    memcpy(unit + 0x338, speech_item, 0x30);
+
+    /* If priority == 3, clear backup slot if it exists and isn't the same */
+    if (priority == 3 && *(int16_t *)(unit + 0x368) > 0) {
+      if (speech_item != (void *)(unit + 0x368)) {
+        FUN_001a6e20(unit_handle, unit + 0x368, 1);
+      }
+      *(int16_t *)(unit + 0x368) = 0;
+    }
+
+    /* Copy timing/state fields from the speech item */
+    *(uint16_t *)(unit + 0x3a8) = *(uint16_t *)(unit + 0x340);
+    *(uint8_t *)(unit + 0x3a4) = 0;
+    *(uint8_t *)(unit + 0x3a5) = 0;
+    *(uint8_t *)(unit + 0x3a6) = 0;
+    *(uint32_t *)(unit + 0x3b0) = 0xffffffff;
+    *(uint16_t *)(unit + 0x3ae) = *(uint16_t *)(unit + 0x344);
+    *(uint16_t *)(unit + 0x3ac) = *(uint16_t *)(unit + 0x342);
+
+    /* Compute vocalization timer from sound tag duration */
+    sound_tag_index = *(int *)(unit + 0x33c);
+    if (sound_tag_index != -1) {
+      sound_tag = (char *)tag_get(0x736e6421, sound_tag_index);
+      duration_ticks = *(int *)(sound_tag + 0x84) * 30;
+      *(int16_t *)(unit + 0x3aa) = (int16_t)(duration_ticks / 1000);
+      return;
+    }
+    game_conn = game_connection();
+    if (game_conn == 0 && *(char *)0x5ac9cd != '\0') {
+      /* Standalone with force_vocalizations off — use default 45 ticks */
+    } else {
+      display_assert("AI_BEHAVIOR(force_vocalizations)",
+                     "c:\\halo\\SOURCE\\units\\unit_dialogue.c", 0x168, 1);
+      system_exit(-1);
+    }
+    *(int16_t *)(unit + 0x3aa) = 0x2d;
+    return;
+  }
+
+  if (priority == 1) {
+    /* Queue to backup slot */
+    if (*(int16_t *)(unit + 0x338) < 1) {
+      display_assert(
+          "unit->unit.speech.current.priority > _unit_speech_none",
+          "c:\\halo\\SOURCE\\units\\unit_dialogue.c", 0x16e, 1);
+      system_exit(-1);
+    }
+    memcpy(unit + 0x368, speech_item, 0x30);
+  }
+}
+
 /* unit_set_actively_controlled_flag (0x1a7f80)
  *
  * Sets bit 5 (0x20) of the byte at object_data_t+0xb6 (offset 182,
@@ -727,6 +892,189 @@ void unit_handle_weapon_state_change(int object_handle, int16_t state)
   }
 }
 
+/* unit_record_damage (0x1a8ee0)
+ *
+ * Records damage in the unit's 4-slot damage tracking array at +0x3E0.
+ * Each slot is 16 bytes: [timestamp, damage_amount, killing_object, attacker_object].
+ *
+ * First scans existing slots for a matching attacker or killing object handle;
+ * if found, accumulates damage and updates the timestamp. Otherwise, finds an
+ * empty slot (timestamp == -1) or evicts the oldest slot with the smallest
+ * accumulated damage.
+ *
+ * If notify_ai is true and attacker_team != NONE, checks team allegiance
+ * and notifies the AI system about killing sprees. Resolves the actual
+ * attacker unit by following the player->unit chain and seat hierarchy.
+ *
+ * Confirmed: SUB ESP,0x8; 4 callee-saved regs; 7 stack params.
+ * Confirmed: LEA EAX,[EDI+0x3E4] — damage array starts at +0x3E4 (per-slot +0x4).
+ * Confirmed: IMUL/FCOMP loop with 4 iterations.
+ * Confirmed: assert "best_new_attacker_index!=NONE" at line 0x136C, file units.c.
+ * Confirmed: FUN_000b5aa0 = game_time_get, FUN_000a7a30 = game_allegiance check.
+ * Confirmed: FUN_0003ff40 = ai_handle_killing_spree.
+ */
+void unit_record_damage(int unit_handle, float damage_amount, int16_t damage_type,
+                        char notify_ai, int attacker_object, int16_t attacker_team,
+                        int killing_object)
+{
+  char *unit;
+  char found_existing;
+  int timestamp;
+  float *slot_damage;
+  int i;
+  int16_t empty_slot;
+  int16_t best_damage_slot;
+  int16_t best_oldest_slot;
+  int16_t s;
+  char *attacker_unit;
+  int attacker_unit_handle;
+  int seated_handle;
+  int killing_spree_count;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  found_existing = 0;
+  timestamp = game_time_get();
+
+  /* Scan existing 4 slots for matching attacker or killing object */
+  slot_damage = (float *)(unit + 0x3e4);
+  i = 4;
+  do {
+    if ((attacker_object != -1 && *(int *)(((char *)slot_damage) + 8) == attacker_object) ||
+        *(int *)(((char *)slot_damage) + 4) == killing_object) {
+      *(int *)(((char *)slot_damage) - 4) = timestamp;
+      found_existing = 1;
+      *slot_damage = damage_amount + *slot_damage;
+    }
+    slot_damage = (float *)((char *)slot_damage + 0x10);
+    i = i - 1;
+  } while (i != 0);
+
+  if (!found_existing) {
+    /* Find an empty slot (timestamp == -1) */
+    empty_slot = 0;
+    do {
+      if (*(int *)(unit + ((int)empty_slot + 0x3e) * 0x10) == -1) {
+        goto write_slot;
+      }
+      empty_slot = empty_slot + 1;
+    } while (empty_slot < 4);
+
+    /* No empty slot — find the slot with the smallest damage (to evict) */
+    best_damage_slot = 0;
+    s = 1;
+    do {
+      if (*(float *)(unit + 0x3e4 + (int)best_damage_slot * 0x10) <
+          *(float *)(unit + 0x3f4 + ((int)s - 1) * 0x10)) {
+        best_damage_slot = s;
+      }
+      s = s + 1;
+    } while (s < 4);
+
+    /* Among remaining slots (excluding best_damage_slot), find the oldest */
+    best_oldest_slot = -1;
+    s = 0;
+    do {
+      if (s != best_damage_slot) {
+        if (best_oldest_slot == -1 ||
+            *(uint32_t *)(unit + 0x3e0 + (int)s * 0x10) <
+                *(uint32_t *)(unit + ((int)best_oldest_slot + 0x3e) * 0x10)) {
+          best_oldest_slot = s;
+        }
+      }
+      s = s + 1;
+    } while (s < 4);
+
+    if (best_oldest_slot == -1) {
+      display_assert("best_new_attacker_index!=NONE",
+                     "c:\\halo\\SOURCE\\units\\units.c", 0x136c, 1);
+      system_exit(-1);
+    }
+
+    empty_slot = best_oldest_slot;
+
+  write_slot:
+    {
+      int slot_base;
+      slot_base = (int)empty_slot * 0x10;
+      *(int *)(unit + slot_base + 0x3ec) = attacker_object;
+      *(int *)(unit + slot_base + 0x3e8) = killing_object;
+      /* Store damage as raw float bits via int assignment matches original MOV */
+      *(float *)(unit + slot_base + 0x3e4) = damage_amount;
+      *(int *)(unit + ((int)empty_slot + 0x3e) * 0x10) = timestamp;
+    }
+  }
+
+  /* AI notification section */
+  if (notify_ai == '\0') {
+    return;
+  }
+  if ((int16_t)attacker_team == -1) {
+    return;
+  }
+  if (!game_allegiance_get_team_is_friendly(
+          *(int16_t *)(unit + 0x68), attacker_team)) {
+    return;
+  }
+
+  /* Resolve the actual attacking unit */
+  attacker_unit = NULL;
+  attacker_unit_handle = killing_object;
+  if (attacker_object != -1) {
+    {
+      char *player_entry;
+      player_entry = (char *)datum_get(*(void **)0x5aa6d4, attacker_object);
+      seated_handle = *(int *)(player_entry + 0x34);
+      if (seated_handle != -1) {
+        attacker_unit = (char *)object_get_and_verify_type(seated_handle, 3);
+        attacker_unit_handle = seated_handle;
+        if (attacker_unit != NULL) {
+          goto have_attacker;
+        }
+      }
+    }
+  }
+  attacker_unit = (char *)object_try_and_get_and_verify_type(killing_object, 3);
+  attacker_unit_handle = killing_object;
+  if (attacker_unit == NULL) {
+    return;
+  }
+
+have_attacker:
+  /* Follow seat hierarchy (driver/gunner) to the controlling unit */
+  if (damage_type == 9) {
+    seated_handle = *(int *)(attacker_unit + 0x2d4);
+  } else {
+    seated_handle = *(int *)(attacker_unit + 0x2d8);
+  }
+  if (seated_handle != -1) {
+    attacker_unit = (char *)object_get_and_verify_type(seated_handle, 3);
+    attacker_unit_handle = seated_handle;
+  }
+
+  /* Skip AI-controlled units */
+  if ((*(uint8_t *)(attacker_unit + 0xb6) & 4) != 0) {
+    return;
+  }
+
+  /* Update killing spree counter */
+  {
+    int last_damage_time;
+    last_damage_time = *(int *)(attacker_unit + 0x3dc);
+    if (last_damage_time == -1 || last_damage_time + 0x78 < timestamp) {
+      *(int16_t *)(attacker_unit + 0x3da) = 0;
+    }
+    *(int16_t *)(attacker_unit + 0x3da) =
+        *(int16_t *)(attacker_unit + 0x3da) + 1;
+    killing_spree_count = (int)(uint16_t) *(int16_t *)(attacker_unit + 0x3da);
+    *(int *)(attacker_unit + 0x3dc) = timestamp;
+
+    if (ai_handle_killing_spree(attacker_unit_handle,
+                                (short)killing_spree_count) != '\0') {
+      *(int16_t *)(attacker_unit + 0x3da) = 0;
+    }
+  }
+}
+
 /* 0x1a9200 — get world-space position of the "head" marker on a unit.
  * Thin wrapper: calls object_get_markers_by_string_id for the string at
  * 0x2909e4 ("head"), then extracts XYZ from offset 0x60 in the marker
@@ -1095,6 +1443,72 @@ bool unit_animation_state_allows_impulse(int unit_handle, int impulse_index)
     return false;
 
   return true;
+}
+
+/* unit_test_animation_impulse (0x1a97c0)
+ *
+ * Tests whether a specific animation impulse can be applied to a unit.
+ * First checks if the current animation state allows the impulse, then
+ * looks up the unit's animation tag block to verify the impulse has a
+ * valid animation entry.
+ *
+ * Returns true (AL=1) if the animation impulse is available and mapped
+ * to a non-NONE animation index; false otherwise.
+ *
+ * Tag lookup chain:
+ *   unit tag (0x756e6974) -> animations tag ref at +0x44 ->
+ *   animation tag (0x616e7472) -> block at +0xC, elem size 100 ->
+ *   sub-block at result+0x58, elem size 0xBC ->
+ *   count at +0x98, data pointer at +0x9C, indexed by animation kind.
+ *
+ * Confirmed: PUSH [EBP+0x8] / PUSH 0x3 -> cdecl, 2 stack params.
+ * Confirmed: MOV EAX,EBX -> @eax for unit_animation_state_allows_impulse.
+ * Confirmed: LEA EBX,[EBP-0x4] / MOV EAX,EDI -> @ebx, @ax for
+ *            unit_impulse_to_animation_kind.
+ * Confirmed: MOVSX EDX,byte[ESI+0x250] and byte[ESI+0x251] for anim indices.
+ * Confirmed: CMP AX,0xffff / SETNZ AL for return logic.
+ */
+uint32_t unit_test_animation_impulse(int unit_handle, int impulse_index)
+{
+  char *unit;
+  char *anim_tag;
+  char *anim_block;
+  int16_t anim_kind;
+  int16_t update_kind;
+  int16_t *data;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+
+  if (!unit_animation_state_allows_impulse(unit_handle, impulse_index)) {
+    return 0;
+  }
+
+  /* Look up unit tag -> animations tag -> animation block elements */
+  {
+    char *unit_tag;
+    int anim_tag_index;
+
+    unit_tag = (char *)tag_get(0x756e6974, *(int *)unit);
+    anim_tag_index = *(int *)(unit_tag + 0x44);
+    anim_tag = (char *)tag_get(0x616e7472, anim_tag_index);
+  }
+
+  anim_block = (char *)tag_block_get_element(
+      anim_tag + 0xc, (int)*(int8_t *)(unit + 0x250), 100);
+  anim_block = (char *)tag_block_get_element(
+      anim_block + 0x58, (int)*(int8_t *)(unit + 0x251), 0xbc);
+
+  /* Map impulse to animation kind */
+  anim_kind = unit_impulse_to_animation_kind((int16_t)impulse_index,
+                                             &update_kind);
+
+  if (anim_kind < 0 || (int)anim_kind >= *(int *)(anim_block + 0x98)) {
+    /* Out of range — return false (matches OR EAX,-1; CMP AX,0xffff; SETNZ) */
+    return (uint32_t)(int16_t)-1 != (int16_t)-1;
+  }
+
+  data = *(int16_t **)(anim_block + 0x9c);
+  return (uint32_t)(data[anim_kind] != (int16_t)-1);
 }
 
 /* unit_scripting_unit_driver (0x1a9900)
@@ -4520,6 +4934,73 @@ char unit_has_weapon_definition_index(int unit_handle, int definition_index)
     i++;
   } while (i < 4);
   return 0;
+}
+
+/* unit_start_running_blindly (0x1ac450)
+ *
+ * Sets bit 25 (0x2000000) of unit flags at +0x1B4 and computes a random
+ * blind-running direction stored at unit+0x3C4.
+ *
+ * If the unit has an actor (unit+0x1A4 != -1), tries to get a running blind
+ * vector via actor_get_running_blind_vector. On success, stores 0 at +0x3C4
+ * and uses a 25-degree random spread. On failure (or no actor), computes the
+ * unit's facing yaw via vector_to_angles, wraps it to [0, pi), and uses a
+ * 100-degree random spread.
+ *
+ * The final direction is: base_angle + random_real_range(seed, -spread, spread).
+ *
+ * Confirmed: PUSH [EBP+0x8] / PUSH 0x3 -> cdecl, 1 stack param.
+ * Confirmed: TEST EAX,0x2000000 -> early exit if already running blindly.
+ * Confirmed: OR EAX,0x2000000 -> set flag.
+ * Confirmed: CALL 0x3ce40 = actor_get_running_blind_vector.
+ * Confirmed: CALL 0x10cc00 = vector_to_angles.
+ * Confirmed: FCOM [0x256980] (pi); FSUB [0x255a54] (2*pi) -> wrap to [0,pi).
+ * Confirmed: 0x3edf66f3 = 0.4363f (25 deg), 0x3fdf66f3 = 1.7453f (100 deg).
+ * Confirmed: push-then-fstp pattern for random_real_range float args.
+ * Confirmed: FADD [ESI+0x3c4]; FSTP [ESI+0x3c4] -> accumulate into direction.
+ */
+void unit_start_running_blindly(int unit_handle)
+{
+  char *unit;
+  uint32_t flags;
+  int actor_handle;
+  char has_blind_vector;
+  float base_angle;
+  float spread;
+  int *seed;
+  float angles[2];
+  char blind_vector[12];
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  flags = *(uint32_t *)(unit + 0x1b4);
+  if ((flags & 0x2000000) != 0) {
+    return;
+  }
+  *(uint32_t *)(unit + 0x1b4) = flags | 0x2000000;
+
+  actor_handle = *(int *)(unit + 0x1a4);
+  if (actor_handle != -1) {
+    has_blind_vector = actor_get_running_blind_vector(actor_handle, (float *)blind_vector);
+  } else {
+    has_blind_vector = 0;
+  }
+
+  if (has_blind_vector) {
+    *(float *)(unit + 0x3c4) = 0.0f;
+    spread = 0.4363323f;
+  } else {
+    vector_to_angles(angles, (float *)(unit + 0x24));
+    base_angle = angles[0];
+    if (base_angle > 3.1415927f) {
+      base_angle = base_angle - 6.2831855f;
+    }
+    *(float *)(unit + 0x3c4) = base_angle;
+    spread = 1.7453293f;
+  }
+
+  seed = get_global_random_seed_address();
+  *(float *)(unit + 0x3c4) =
+      random_real_range(seed, -spread, spread) + *(float *)(unit + 0x3c4);
 }
 
 /* unit_stop_running_blindly (0x1ac520)
