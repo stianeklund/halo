@@ -26071,7 +26071,7 @@
         },
         {
           "addr": "0x1acd70",
-          "decl": "bool unit_try_animation_state(int unit_handle@<eax>, int seat_label, int weapon_label, int reset_flag);",
+          "decl": "char FUN_001acd70(int param_1, int param_2, int param_3);",
           "ported": true
         },
         {
@@ -26202,7 +26202,8 @@
         },
         {
           "addr": "0x1af100",
-          "decl": "void unit_custom_animation_at_frame(void);"
+          "decl": "char unit_custom_animation_at_frame(int unit_handle, int param_2, int param_3, int param_4, int16_t frame);",
+          "ported": true
         },
         {
           "addr": "0x1af180",
@@ -26246,7 +26247,8 @@
         },
         {
           "addr": "0x1b0d00",
-          "decl": "char unit_has_animation_to_enter_seat(int unit_handle, int param_2, int16_t seat_index);"
+          "decl": "char unit_has_animation_to_enter_seat(int unit_handle, int vehicle_handle, int16_t seat_index);",
+          "ported": true
         },
         {
           "addr": "0x1b0d90",
@@ -26259,7 +26261,8 @@
         },
         {
           "addr": "0x1b1350",
-          "decl": "void unit_get_zoom_magnification(void);"
+          "decl": "float unit_get_zoom_magnification(int unit_handle, int zoom_level);",
+          "ported": true
         },
         {
           "addr": "0x1b13a0",
@@ -26276,7 +26279,8 @@
         },
         {
           "addr": "0x1b1b40",
-          "decl": "int unit_inventory_next_weapon(int unit_handle, int slot, int direction);"
+          "decl": "int unit_inventory_next_weapon(int unit_handle, int slot, int direction);",
+          "ported": true
         },
         {
           "addr": "0x1b1b60",
@@ -29946,7 +29950,7 @@
         },
         {
           "addr": "0xfc780",
-          "decl": "float weapon_get_zoom_magnification(int weapon_handle, int16_t zoom_level);"
+          "decl": "float weapon_get_zoom_magnification(int weapon_handle, int zoom_level);"
         },
         {
           "addr": "0xfc8e0",
