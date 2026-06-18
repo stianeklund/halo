@@ -10,6 +10,9 @@ similarity across both columns. The top-K neighbors are returned with
 their full C source, so the agent can use them as worked examples in the
 /lift prompt.
 
+Quality filtering (v2): only return neighbors with proven high VC71 match
+(>=85%), prefer same-TU neighbors, require C source.
+
 Usage as a CLI:
     python3 tools/retrieval/query.py "void FUN_00012345(int a) { ... }" --top 3
 
@@ -50,36 +53,36 @@ class Neighbor:
     pseudocode: Optional[str]
     similarity: float
     match_column: str  # "pseudocode" or "c_source"
+    vc71_score: Optional[float] = None
 
 
-def _cosine_topk(
-    query_vec: np.ndarray,
-    matrix: np.ndarray,
-    k: int,
-) -> list[tuple[int, float]]:
-    """Return top-k (row_index, cosine_similarity) pairs, descending."""
-    if matrix.shape[0] == 0:
-        return []
-    # query_vec and rows are already L2-normalized → cosine = dot product
-    sims = matrix @ query_vec
-    if k >= len(sims):
-        indices = np.argsort(-sims)
-    else:
-        indices = np.argpartition(-sims, k)[:k]
-        indices = indices[np.argsort(-sims[indices])]
-    return [(int(i), float(sims[i])) for i in indices]
+@dataclass
+class HazardWarning:
+    source_name: str
+    source_addr: str
+    similarity: float
+    vc71_score: Optional[float]
+    verdict: str
+    failure_reason: Optional[str]
+    hazard_flags: list[str]
+
+
+SAME_TU_BONUS = 0.05
 
 
 def query_neighbors(
     pseudocode: str,
     *,
     top_k: int = 3,
-    min_similarity: float = 0.3,
+    min_similarity: float = 0.5,
+    min_vc71_score: float = 85.0,
+    prefer_obj_name: str | None = None,
+    require_c_source: bool = True,
 ) -> list[Neighbor]:
     """Embed `pseudocode` and return the top-K most-similar ported functions.
 
-    Searches both emb_pseudocode and emb_c columns, deduplicates by addr,
-    and takes the better score for each function.
+    Filters to proven-good lifts (vc71_score >= min_vc71_score), prefers
+    same-TU matches, and requires C source for worked examples.
     """
     from tools.retrieval.embed import Embedder
 
@@ -96,7 +99,6 @@ def query_neighbors(
     if not rows:
         return []
 
-    # Build matrices (some rows may have only one column embedded)
     pseudo_vecs = []
     c_vecs = []
     for r in rows:
@@ -108,12 +110,9 @@ def query_neighbors(
     pseudo_mat = np.stack(pseudo_vecs)
     c_mat = np.stack(c_vecs)
 
-    # Score each row as max(pseudo_sim, c_sim) — best match across columns
     pseudo_sims = pseudo_mat @ q_arr
     c_sims = c_mat @ q_arr
 
-    # For rows with a null embedding column the vector was zero → sim ~= 0;
-    # mask those so they don't suppress the other column.
     has_pseudo = np.array([r.get("emb_pseudocode") is not None for r in rows])
     has_c = np.array([r.get("emb_c") is not None for r in rows])
     pseudo_sims[~has_pseudo] = -1.0
@@ -121,6 +120,23 @@ def query_neighbors(
 
     best_sims = np.maximum(pseudo_sims, c_sims)
     best_col = np.where(pseudo_sims >= c_sims, "pseudocode", "c_source")
+
+    # Quality mask: only return proven-good lifts with code
+    mask = np.ones(len(rows), dtype=bool)
+    for i, r in enumerate(rows):
+        score = r.get("vc71_score")
+        if score is not None and score < min_vc71_score:
+            mask[i] = False
+        if require_c_source and not r.get("c_source"):
+            mask[i] = False
+
+    best_sims[~mask] = -1.0
+
+    # Same-TU bonus
+    if prefer_obj_name:
+        for i, r in enumerate(rows):
+            if r.get("obj_name") == prefer_obj_name:
+                best_sims[i] += SAME_TU_BONUS
 
     if top_k >= len(best_sims):
         indices = np.argsort(-best_sims)
@@ -144,6 +160,90 @@ def query_neighbors(
             pseudocode=r.get("pseudocode"),
             similarity=sim,
             match_column=str(best_col[idx]),
+            vc71_score=r.get("vc71_score"),
+        ))
+    return results[:top_k]
+
+
+def query_hazard_warnings(
+    pseudocode: str,
+    *,
+    top_k: int = 5,
+    min_similarity: float = 0.4,
+) -> list[HazardWarning]:
+    """Find functions similar to the target that FAILED or had hazards.
+
+    Returns anti-patterns from similar functions, not code examples.
+    """
+    from tools.retrieval.embed import Embedder
+
+    embedder = Embedder()
+    q_vec = embedder.embed_one(pseudocode)
+    if q_vec is None:
+        return []
+    q_arr = np.array(q_vec, dtype=np.float32)
+
+    con = _db.connect(read_only=True)
+    rows = list(_db.iter_records(con, require_embeddings=True))
+    con.close()
+
+    if not rows:
+        return []
+
+    c_vecs = []
+    pseudo_vecs = []
+    for r in rows:
+        p = r.get("emb_pseudocode")
+        c = r.get("emb_c")
+        pseudo_vecs.append(np.array(p, dtype=np.float32) if p else np.zeros(len(q_vec), dtype=np.float32))
+        c_vecs.append(np.array(c, dtype=np.float32) if c else np.zeros(len(q_vec), dtype=np.float32))
+
+    pseudo_mat = np.stack(pseudo_vecs)
+    c_mat = np.stack(c_vecs)
+
+    pseudo_sims = pseudo_mat @ q_arr
+    c_sims = c_mat @ q_arr
+
+    has_pseudo = np.array([r.get("emb_pseudocode") is not None for r in rows])
+    has_c = np.array([r.get("emb_c") is not None for r in rows])
+    pseudo_sims[~has_pseudo] = -1.0
+    c_sims[~has_c] = -1.0
+    best_sims = np.maximum(pseudo_sims, c_sims)
+
+    # Only keep rows with a failure verdict or hazard flags
+    mask = np.zeros(len(rows), dtype=bool)
+    for i, r in enumerate(rows):
+        verdict = r.get("verdict")
+        hazards = r.get("hazard_flags")
+        if verdict in ("fail", "reject") or hazards:
+            mask[i] = True
+    best_sims[~mask] = -1.0
+
+    if top_k >= len(best_sims):
+        indices = np.argsort(-best_sims)
+    else:
+        indices = np.argpartition(-best_sims, top_k)[:top_k]
+        indices = indices[np.argsort(-best_sims[indices])]
+
+    results: list[HazardWarning] = []
+    for idx in indices:
+        sim = float(best_sims[idx])
+        if sim < min_similarity:
+            break
+        r = rows[idx]
+        flags_raw = r.get("hazard_flags")
+        try:
+            flags = json.loads(flags_raw) if flags_raw else []
+        except (json.JSONDecodeError, TypeError):
+            flags = []
+        results.append(HazardWarning(
+            source_name=r.get("name", ""),
+            source_addr=r.get("addr", ""),
+            similarity=sim,
+            vc71_score=r.get("vc71_score"),
+            verdict=r.get("verdict", ""),
+            failure_reason=r.get("failure_reason"),
+            hazard_flags=flags,
         ))
     return results[:top_k]
 
@@ -155,8 +255,9 @@ def format_for_prompt(neighbors: list[Neighbor], max_c_lines: int = 40) -> str:
     parts = ["## Similar already-ported functions\n"]
     for i, n in enumerate(neighbors, 1):
         parts.append(f"### {i}. {n.name} @ {n.addr} ({n.obj_name})")
+        score_info = f"VC71: {n.vc71_score:.1f}%" if n.vc71_score is not None else "VC71: N/A"
         parts.append(f"Decl: `{n.decl}`  ")
-        parts.append(f"Similarity: {n.similarity:.3f} (matched on {n.match_column})\n")
+        parts.append(f"Similarity: {n.similarity:.3f} (matched on {n.match_column}) | {score_info}\n")
         if n.c_source:
             lines = n.c_source.splitlines()
             if len(lines) > max_c_lines:
@@ -167,6 +268,28 @@ def format_for_prompt(neighbors: list[Neighbor], max_c_lines: int = 40) -> str:
     return "\n".join(parts)
 
 
+def format_hazard_warnings(warnings: list[HazardWarning], max_chars: int = 1000) -> str:
+    """Format hazard warnings as compact markdown for injection."""
+    if not warnings:
+        return ""
+    parts = ["## Hazard warnings from similar functions\n"]
+    for w in warnings:
+        score_str = f"{w.vc71_score:.1f}%" if w.vc71_score is not None else "N/A"
+        parts.append(
+            f"- **{w.source_name}** ({w.similarity:.2f} similar, "
+            f"{w.verdict.upper()}, {score_str} VC71)"
+        )
+        if w.failure_reason:
+            reason = w.failure_reason[:150]
+            parts.append(f"  Cause: {reason}")
+        if w.hazard_flags:
+            parts.append(f"  Hazards: {', '.join(w.hazard_flags)}")
+    text = "\n".join(parts)
+    if len(text) > max_chars:
+        text = text[:max_chars - 20] + "\n  ... (truncated)"
+    return text
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Query the retrieval index for similar functions")
     ap.add_argument("pseudocode", nargs="?",
@@ -174,7 +297,10 @@ def main() -> int:
     ap.add_argument("--file", "-f",
                     help="Read pseudocode from a file instead of argument")
     ap.add_argument("--top", "-k", type=int, default=3)
-    ap.add_argument("--min-sim", type=float, default=0.3)
+    ap.add_argument("--min-sim", type=float, default=0.5)
+    ap.add_argument("--min-vc71", type=float, default=85.0)
+    ap.add_argument("--obj-name", help="Prefer neighbors from this TU")
+    ap.add_argument("--hazards", action="store_true", help="Show hazard warnings instead of neighbors")
     ap.add_argument("--json", action="store_true", help="Emit JSON output")
     ap.add_argument("--prompt", action="store_true",
                     help="Emit markdown suitable for injection into a /lift prompt")
@@ -191,7 +317,33 @@ def main() -> int:
         print("error: empty pseudocode input", file=sys.stderr)
         return 1
 
-    neighbors = query_neighbors(text, top_k=args.top, min_similarity=args.min_sim)
+    if args.hazards:
+        warnings = query_hazard_warnings(text, top_k=args.top, min_similarity=args.min_sim)
+        if args.json:
+            out = [
+                {
+                    "name": w.source_name,
+                    "addr": w.source_addr,
+                    "similarity": round(w.similarity, 4),
+                    "vc71_score": w.vc71_score,
+                    "verdict": w.verdict,
+                    "hazard_flags": w.hazard_flags,
+                }
+                for w in warnings
+            ]
+            print(json.dumps(out, indent=2))
+        elif args.prompt:
+            print(format_hazard_warnings(warnings))
+        else:
+            for w in warnings:
+                flags = ",".join(w.hazard_flags) if w.hazard_flags else "-"
+                print(f"{w.similarity:.3f}  {w.source_name:40s} {w.verdict:6s} hazards={flags}")
+        return 0
+
+    neighbors = query_neighbors(
+        text, top_k=args.top, min_similarity=args.min_sim,
+        min_vc71_score=args.min_vc71, prefer_obj_name=args.obj_name,
+    )
 
     if args.json:
         out = [
@@ -203,6 +355,7 @@ def main() -> int:
                 "decl": n.decl,
                 "similarity": round(n.similarity, 4),
                 "match_column": n.match_column,
+                "vc71_score": n.vc71_score,
                 "c_source_lines": len(n.c_source.splitlines()) if n.c_source else 0,
             }
             for n in neighbors
@@ -212,7 +365,8 @@ def main() -> int:
         print(format_for_prompt(neighbors))
     else:
         for n in neighbors:
-            print(f"{n.similarity:.3f}  {n.name:40s} @ {n.addr}  ({n.obj_name})")
+            score = f"{n.vc71_score:.1f}%" if n.vc71_score is not None else "N/A"
+            print(f"{n.similarity:.3f}  {n.name:40s} @ {n.addr}  ({n.obj_name})  VC71={score}")
 
     return 0
 

@@ -99,17 +99,65 @@ def cmd_extract(args: argparse.Namespace) -> int:
     n_total = 0
     n_with_pseudo = 0
     n_with_c = 0
+    n_with_score = 0
     for rec in _extract.iter_ported_records():
         n_total += 1
         if rec.pseudocode:
             n_with_pseudo += 1
         if rec.c_source:
             n_with_c += 1
+        if rec.vc71_score is not None:
+            n_with_score += 1
         _db.upsert_record(con, _extract.to_db_dict(rec))
+        _db.update_outcome(
+            con, rec.addr,
+            vc71_score=rec.vc71_score,
+            call_count=rec.call_count,
+            branch_count=rec.branch_count,
+            has_fpu=rec.has_fpu,
+            callee_set=rec.callee_set,
+        )
     con.close()
     print(f"extract: {n_total} ported functions written")
     print(f"  with pseudocode: {n_with_pseudo}")
     print(f"  with c_source  : {n_with_c}")
+    print(f"  with vc71_score: {n_with_score}")
+    return 0
+
+
+def cmd_outcomes(args: argparse.Namespace) -> int:
+    """Ingest lift outcomes (vc71 scores, verdicts, hazard flags) from artifacts."""
+    con = _db.connect()
+    seen: dict[str, dict] = {}
+    for outcome in _extract.iter_lift_outcomes():
+        addr = outcome.get("addr")
+        if not addr:
+            continue
+        addr = addr.lower()
+        prev = seen.get(addr, {})
+        if outcome.get("vc71_score") is not None:
+            prev["vc71_score"] = outcome["vc71_score"]
+        if outcome.get("verdict"):
+            prev["verdict"] = outcome["verdict"]
+        if outcome.get("failure_reason"):
+            prev["failure_reason"] = outcome["failure_reason"]
+        if outcome.get("hazard_flags"):
+            prev["hazard_flags"] = outcome["hazard_flags"]
+        seen[addr] = prev
+
+    n_updated = 0
+    for addr, fields in seen.items():
+        _db.update_outcome(con, addr, **fields)
+        n_updated += 1
+
+    con.close()
+    n_scores = sum(1 for f in seen.values() if "vc71_score" in f)
+    n_verdicts = sum(1 for f in seen.values() if "verdict" in f)
+    n_hazards = sum(1 for f in seen.values() if "hazard_flags" in f)
+    print(f"outcomes: processed {n_updated} functions")
+    print(f"  with vc71_score  : {n_scores}")
+    print(f"  with verdict     : {n_verdicts}")
+    print(f"  with hazard_flags: {n_hazards}")
     return 0
 
 
@@ -122,6 +170,9 @@ def cmd_stats(args: argparse.Namespace) -> int:
     print(f"  with pseudocode    : {s['with_pseudocode']}")
     print(f"  with c_source      : {s['with_c']}")
     print(f"  with embeddings    : {s['with_emb']}")
+    print(f"  with vc71_score    : {s['with_vc71']}")
+    print(f"  with verdict       : {s['with_verdict']}")
+    print(f"  with hazard_flags  : {s['with_hazards']}")
     print(f"  distinct objects   : {s['objects']}")
     print(f"  embedding models   : {s['models']}")
     return 0
@@ -156,6 +207,12 @@ def cmd_show(args: argparse.Namespace) -> int:
     print(f"decl: {rec.get('decl')}")
     print(f"pseudocode: {len(rec['pseudocode']) if rec.get('pseudocode') else 0} chars")
     print(f"c_source  : {len(rec['c_source']) if rec.get('c_source') else 0} chars")
+    quality_keys = ("vc71_score", "call_count", "branch_count", "has_fpu",
+                    "verdict", "failure_reason", "hazard_flags")
+    for k in quality_keys:
+        v = rec.get(k)
+        if v is not None:
+            print(f"{k}: {v}")
     return 0
 
 
@@ -165,6 +222,9 @@ def main() -> int:
 
     sp_e = sub.add_parser("extract", help="Populate the index with text signals from kb.json + sources")
     sp_e.set_defaults(func=cmd_extract)
+
+    sp_o = sub.add_parser("outcomes", help="Ingest lift outcomes (vc71, verdicts, hazards) from artifacts")
+    sp_o.set_defaults(func=cmd_outcomes)
 
     sp_em = sub.add_parser("embed", help="Compute and store jina-v2 embeddings for indexed rows")
     sp_em.add_argument("--model", default="jinaai/jina-embeddings-v2-base-code")
