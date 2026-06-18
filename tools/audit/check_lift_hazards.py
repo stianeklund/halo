@@ -1042,6 +1042,91 @@ def check_discarded_result(filepath, content, lines):
     return errors
 
 
+# ---------------------------------------------------------------------------
+# §22: In-place vector normalizer — clamp branch without raw restore (WARN)
+# ---------------------------------------------------------------------------
+# magnitude3d (FUN_00012f10), normalize3d (FUN_00013010) and normalize2d
+# NORMALIZE their vector argument IN PLACE and return its pre-normalization
+# length.  The Halo clamp idiom is:
+#     len = magnitude3d(v);
+#     if (len > clamp) { v[0] = v[0] * clamp; v[1] = v[1] * clamp; } /* scale  */
+#     else             { v[0] = raw0;          v[1] = raw1;        } /* RESTORE */
+# Dropping the else-restore (mistaking the helper for a pure magnitude) makes
+# the no-clamp path emit the normalized unit vector -> runaway magnitude (the
+# FUN_001a2f40 ground-tangent jump/incline bug).  This fires when a branch
+# scales v[i] in place after the call (v[i] = <...v[i]...>) but no sibling
+# branch restores v[i] from a non-v source.  Our current (correct) code has
+# both a scale and a restore for each index, so it does NOT fire; deleting the
+# restore makes it fire.  Suppress with /* hazard-ok: normalize-in-place */.
+# Match `len = magnitude3d(v)` — capture BOTH the return var and the vector.
+# Requiring the return to be captured (and later compared, below) is what
+# separates the clamp idiom from the common, legitimate `normalize3d(v);
+# v[i] = -v[i];` (conditional sign-flip, return ignored) and `len =
+# normalize3d(v); if (len != eps) v[i] = len * v[i];` (intentional rescale on
+# a validity check, not a magnitude clamp).
+_MUT_CALL_PAT = re.compile(
+    r'\b([A-Za-z_]\w*)\s*=\s*(magnitude3d|normalize3d|normalize2d)'
+    r'\s*\(\s*&?\s*([A-Za-z_]\w*)\s*\)'
+)
+
+
+def check_inplace_mutator_misuse(filepath, content, lines):
+    """Flag an in-place normalizer whose no-clamp restore branch is missing.
+
+    Fires only on the magnitude-clamp shape: the captured length is compared
+    with a relational operator (>, <, >=, <=), a branch scales v[i] in place
+    (v[i] = <...v[i]...> * ...), and no sibling branch restores v[i] from a
+    non-v source. Our current (correct) FUN_001a2f40 code has both scale and
+    restore for each index, so it does not fire; deleting the restore fires it.
+    Suppress with /* hazard-ok: normalize-in-place */.
+    """
+    errors = []
+    flat = _blank_comments_and_literals(content).split('\n')
+    for idx, fline in enumerate(flat):
+        m = _MUT_CALL_PAT.search(fline)
+        if not m:
+            continue
+        retvar, mut, v = m.group(1), m.group(2), m.group(3)
+        src_line = lines[idx] if idx < len(lines) else ''
+        if 'hazard-ok' in src_line:
+            continue
+        clamp_cmp = re.compile(
+            r'(?:\b' + re.escape(retvar) + r'\b\s*(?:>=|<=|>|<)'
+            r'|(?:>=|<=|>|<)\s*\b' + re.escape(retvar) + r'\b)'
+        )
+        assign_pat = re.compile(
+            r'\b' + re.escape(v) + r'\s*\[\s*(\w+)\s*\]\s*=\s*([^=].*)'
+        )
+        has_clamp = False
+        scale_idxs = set()
+        restore_idxs = set()
+        # The if/else clamp lives immediately after the call; bound the scan.
+        for j in range(idx + 1, min(idx + 60, len(flat))):
+            lj = flat[j]
+            if clamp_cmp.search(lj):
+                has_clamp = True
+            am = assign_pat.search(lj)
+            if not am:
+                continue
+            vi, rhs = am.group(1), am.group(2)
+            self_ref = re.search(
+                r'\b' + re.escape(v) + r'\s*\[\s*' + re.escape(vi) + r'\s*\]', rhs)
+            if self_ref and '*' in rhs:
+                scale_idxs.add(vi)    # v[i] = <...v[i]...> * ...  (in-place scale)
+            elif not self_ref:
+                restore_idxs.add(vi)  # v[i] = <other>            (raw restore)
+        missing = sorted(scale_idxs - restore_idxs)
+        if has_clamp and missing:
+            relpath = os.path.relpath(filepath, ROOT_DIR)
+            errors.append(
+                f'  {relpath}:{idx + 1}: {v}[{",".join(missing)}] scaled in '
+                f'place after {mut}() (clamp on {retvar}) with no sibling '
+                f'restore — {mut} normalizes its arg in place; the no-clamp '
+                f'branch needs the raw pre-call value (see lift-learnings §22)'
+            )
+    return errors
+
+
 def _collect_c_files(changed_only=False, staged_only=False):
     """Collect .c file paths under SRC_DIR.
 
@@ -1122,6 +1207,7 @@ def main():
     all_addr_value_add_errors = []
     all_param_loop_errors = []
     all_discard_result_errors = []
+    all_inplace_mut_errors = []
 
     for fpath in c_files:
         with open(fpath, 'r', errors='replace') as f:
@@ -1140,6 +1226,7 @@ def main():
         all_addr_value_add_errors.extend(check_addr_value_add(fpath, content, lines))
         all_param_loop_errors.extend(check_param_loop_corruption(fpath, content, lines))
         all_discard_result_errors.extend(check_discarded_result(fpath, content, lines))
+        all_inplace_mut_errors.extend(check_inplace_mutator_misuse(fpath, content, lines))
         if frame_audit:
             all_frame_errors.extend(check_frame_sizes(fpath, content, lines))
 
@@ -1157,7 +1244,8 @@ def main():
             f'float_smuggling: {len(all_float_smuggle_errors)}, '
             f'addr_value_add: {len(all_addr_value_add_errors)}, '
             f'param_loop: {len(all_param_loop_errors)}, '
-            f'discard_result: {len(all_discard_result_errors)}'
+            f'discard_result: {len(all_discard_result_errors)}, '
+            f'inplace_mutator: {len(all_inplace_mut_errors)}'
         )
         if frame_audit:
             counts += f', frame_sizes: {len(all_frame_errors)}'
@@ -1167,7 +1255,7 @@ def main():
                  len(all_output_size_errors) + len(all_x87_math_errors) +
                  len(all_concat_errors) + len(all_float_smuggle_errors) +
                  len(all_addr_value_add_errors) + len(all_param_loop_errors) +
-                 len(all_discard_result_errors))
+                 len(all_discard_result_errors) + len(all_inplace_mut_errors))
         if total:
             print(counts, file=sys.stderr)
     else:
@@ -1327,6 +1415,19 @@ def main():
                 file=sys.stderr,
             )
             for e in all_discard_result_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
+
+        if all_inplace_mut_errors:
+            print(
+                'WARNING: in-place vector normalizer with a clamp branch but no\n'
+                'raw restore. magnitude3d/normalize3d/normalize2d normalize their\n'
+                'argument IN PLACE and return the length; the no-clamp branch must\n'
+                'restore the raw pre-call value, not reuse the normalized vector\n'
+                '(see lift-learnings §22):\n',
+                file=sys.stderr,
+            )
+            for e in all_inplace_mut_errors:
                 print(e, file=sys.stderr)
             print(file=sys.stderr)
 
