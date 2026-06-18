@@ -9235,6 +9235,10 @@
         "summary": "Checks if the unit's current weapon is in state 2 or 3 (offset 0x211). Returns true if busy, false if no weapon or in another state."
       }
     },
+    "0x1ae1e0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1ae210": {
       "kind": "function",
       "status": "ported"
@@ -9309,6 +9313,10 @@
       "status": "ported",
       "name": "unit_apply_alignment_vector",
       "name_confidence": "confirmed"
+    },
+    "0x1af2a0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1af620": {
       "kind": "function",
