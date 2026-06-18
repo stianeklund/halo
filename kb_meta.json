@@ -9044,6 +9044,30 @@
         "Bit 2 of offset 0x248 (unk_584) acts as a suppression flag that prevents units in state 0x18/0x19 from being considered dangerous."
       ]
     },
+    "0x1aa550": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1aa590": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1aa700": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1aa770": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1aa7d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1aa830": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1aa890": {
       "kind": "function",
       "status": "ported",
@@ -9089,6 +9113,10 @@
       "inferred": [
         "The second inner check (i == unit->unk_674) is dead code because the outer condition already excludes i == unk_674; preserved for binary fidelity."
       ]
+    },
+    "0x1aad00": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1aad60": {
       "kind": "function",

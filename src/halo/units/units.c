@@ -4386,3 +4386,138 @@ int units_debug_get_next_unit(int current_unit)
   }
   return local_c;
 }
+
+/* unit_set_desired_flashlight_state (0x1aa550)
+ * Sets the desired flashlight state. Bit 28=on, bit 29=off at +0x1B4. */
+void unit_set_desired_flashlight_state(int unit_handle, char desired)
+{
+  char *unit;
+
+  if (unit_handle != -1) {
+    unit = (char *)object_get_and_verify_type(unit_handle, 3);
+    if (desired != '\0') {
+      *(uint32_t *)(unit + 0x1b4) |= 0x10000000;
+    } else {
+      *(uint32_t *)(unit + 0x1b4) |= 0x20000000;
+    }
+  }
+}
+
+/* unit_get_current_flashlight_state (0x1aa590)
+ * Returns whether the flashlight is currently on. Bit 19 of +0x1B4. */
+char unit_get_current_flashlight_state(int unit_handle)
+{
+  char *unit;
+
+  if (unit_handle != -1) {
+    unit = (char *)object_get_and_verify_type(unit_handle, 3);
+    return (*(uint32_t *)(unit + 0x1b4) >> 0x13) & 1;
+  }
+  return 0;
+}
+
+/* unit_seat_filled (0x1aa700)
+ * Returns true if any unit is sitting in the specified seat. */
+char unit_seat_filled(int unit_handle, int16_t seat_index)
+{
+  char *iVar1;
+  char local_14[16];
+
+  object_iterator_new(local_14, 3, 0);
+  iVar1 = (char *)object_iterator_next(local_14);
+  while (1) {
+    if (iVar1 == NULL) {
+      return 0;
+    }
+    if (*(int *)(iVar1 + 0xcc) == unit_handle &&
+        *(int16_t *)(iVar1 + 0x2a0) == seat_index) {
+      break;
+    }
+    iVar1 = (char *)object_iterator_next(local_14);
+  }
+  return 1;
+}
+
+/* unit_seat_is_driver (0x1aa770)
+ * Returns true if the seat at seat_index has the driver flag (bit 2). */
+char unit_seat_is_driver(int unit_handle, int16_t seat_index)
+{
+  uint32_t *unit;
+  char *unit_tag;
+  uint32_t *seat;
+
+  unit = (uint32_t *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag = (char *)tag_get(0x756e6974, *unit);
+  if (seat_index >= 0) {
+    if ((int)seat_index < *(int *)(unit_tag + 0x2e4)) {
+      seat = (uint32_t *)tag_block_get_element(
+          (int *)(unit_tag + 0x2e4), (int)seat_index, 0x11c);
+      return (*seat >> 2) & 1;
+    }
+  }
+  return 0;
+}
+
+/* unit_seat_is_gunner (0x1aa7d0)
+ * Returns true if the seat at seat_index has the gunner flag (bit 3). */
+char unit_seat_is_gunner(int unit_handle, int16_t seat_index)
+{
+  uint32_t *unit;
+  char *unit_tag;
+  uint32_t *seat;
+
+  unit = (uint32_t *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag = (char *)tag_get(0x756e6974, *unit);
+  if (seat_index >= 0) {
+    if ((int)seat_index < *(int *)(unit_tag + 0x2e4)) {
+      seat = (uint32_t *)tag_block_get_element(
+          (int *)(unit_tag + 0x2e4), (int)seat_index, 0x11c);
+      return (*seat >> 3) & 1;
+    }
+  }
+  return 0;
+}
+
+/* unit_seat_allow_noncombatants (0x1aa830)
+ * Returns true if the seat at seat_index allows noncombatants (bit 10). */
+char unit_seat_allow_noncombatants(int unit_handle, int16_t seat_index)
+{
+  uint32_t *unit;
+  char *unit_tag;
+  uint32_t *seat;
+
+  unit = (uint32_t *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag = (char *)tag_get(0x756e6974, *unit);
+  if (seat_index >= 0) {
+    if ((int)seat_index < *(int *)(unit_tag + 0x2e4)) {
+      seat = (uint32_t *)tag_block_get_element(
+          (int *)(unit_tag + 0x2e4), (int)seat_index, 0x11c);
+      return (*seat >> 10) & 1;
+    }
+  }
+  return 0;
+}
+
+/* unit_has_weapon_definition_index (0x1aad00)
+ * Checks whether a unit is carrying a weapon with the given tag definition. */
+char unit_has_weapon_definition_index(int unit_handle, int definition_index)
+{
+  char *unit;
+  int weapon_handle;
+  int *weapon;
+  int16_t i;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  i = 0;
+  do {
+    weapon_handle = *(int *)(unit + 0x2a8 + i * 4);
+    if (weapon_handle != -1) {
+      weapon = (int *)object_get_and_verify_type(weapon_handle, 4);
+      if (*weapon == definition_index) {
+        return 1;
+      }
+    }
+    i++;
+  } while (i < 4);
+  return 0;
+}
