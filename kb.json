@@ -14765,7 +14765,7 @@
         {
           "name": "FUN_001365d0",
           "addr": "0x1365d0",
-          "decl": "void FUN_001365d0(int param_1, float *param_2, float *param_3);",
+          "decl": "void FUN_001365d0(int object_handle, float *body_damage, float *shield_damage);",
           "ported": false
         },
         {
@@ -25545,15 +25545,18 @@
         },
         {
           "addr": "0x1a7a90",
-          "decl": "void FUN_001a7a90(void);"
+          "decl": "void FUN_001a7a90(int param_1, float *body_dmg, float *shield_dmg);",
+          "ported": true
         },
         {
           "addr": "0x1a7ad0",
-          "decl": "void FUN_001a7ad0(void);"
+          "decl": "void FUN_001a7ad0(int parent_handle, int param_2, int param_3);",
+          "ported": true
         },
         {
           "addr": "0x1a7b50",
-          "decl": "void FUN_001a7b50(int datum_handle, float body_damage, float shield_damage);"
+          "decl": "void FUN_001a7b50(int datum_handle, float body_damage, float shield_damage);",
+          "ported": true
         },
         {
           "addr": "0x1a7c70",
@@ -34592,7 +34595,7 @@
         },
         {
           "addr": "0x136b40",
-          "decl": "void object_deplete_shield(int object_handle);",
+          "decl": "void FUN_00136b40(int object_handle);",
           "ported": true
         },
         {
@@ -34616,7 +34619,7 @@
         },
         {
           "addr": "0x137540",
-          "decl": "void object_deplete_body(int object_handle);",
+          "decl": "void FUN_00137540(int object_handle);",
           "ported": true
         },
         {

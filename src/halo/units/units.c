@@ -4739,3 +4739,81 @@ int unit_inventory_next_weapon(int unit_handle, int slot, int direction)
 {
   return FUN_001ae490(slot, direction);
 }
+
+/* FUN_001a7a90 (0x1a7a90)
+ * Applies damage to an object if it's not dead (bit 2 of +0xB6 clear). */
+void FUN_001a7a90(int param_1, float *body_dmg, float *shield_dmg)
+{
+  char *obj;
+
+  if (param_1 != -1) {
+    obj = (char *)object_get_and_verify_type(param_1, -1);
+    if ((*(uint8_t *)(obj + 0xb6) & 4) == 0) {
+      FUN_001365d0(param_1, body_dmg, shield_dmg);
+    }
+  }
+}
+
+/* FUN_001a7ad0 (0x1a7ad0)
+ * Iterates child objects and applies damage to each alive object. */
+void FUN_001a7ad0(int parent_handle, int param_2, int param_3)
+{
+  int iter_state;
+  int child;
+  char *obj;
+  int local_c;
+  int local_8;
+
+  child = FUN_000ce450(parent_handle, &iter_state);
+  while (child != -1) {
+    local_8 = param_3;
+    local_c = param_2;
+    if (child != -1) {
+      obj = (char *)object_get_and_verify_type(child, -1);
+      if ((*(uint8_t *)(obj + 0xb6) & 4) == 0) {
+        FUN_001365d0(child, (float *)&local_c, (float *)&local_8);
+      }
+    }
+    child = FUN_000ce320(parent_handle, &iter_state);
+  }
+}
+
+/* FUN_001a7b50 (0x1a7b50)
+ * Computes and stores body/shield vitality ratios. Triggers events when
+ * vitality transitions from nonzero to zero. */
+void FUN_001a7b50(int datum_handle, float body_damage, float shield_damage)
+{
+  float shield_ratio;
+  char *obj;
+  float body_ratio;
+
+  if (datum_handle == -1) {
+    return;
+  }
+  obj = (char *)object_get_and_verify_type(datum_handle, -1);
+  if ((*(uint8_t *)(obj + 0xb6) & 4) != 0) {
+    return;
+  }
+  if (*(float *)(obj + 0x8c) <= 0.0f) {
+    body_ratio = 0.0f;
+  } else if (shield_damage < *(float *)(obj + 0x8c)) {
+    body_ratio = shield_damage / *(float *)(obj + 0x8c);
+  } else {
+    body_ratio = 1.0f;
+  }
+  if (*(float *)(obj + 0x88) <= 0.0f) {
+    shield_ratio = 0.0f;
+  } else if (body_damage < *(float *)(obj + 0x88)) {
+    shield_ratio = body_damage / *(float *)(obj + 0x88);
+  } else {
+    shield_ratio = 1.0f;
+  }
+  if (0.0f < *(float *)(obj + 0x94) && body_ratio <= 0.0f) {
+    FUN_00136b40(datum_handle);
+  }
+  *(float *)(obj + 0x94) = body_ratio;
+  if (0.0f < *(float *)(obj + 0x90) && shield_ratio <= 0.0f) {
+    FUN_00137540(datum_handle);
+  }
+  *(float *)(obj + 0x90) = shield_ratio;
+}
