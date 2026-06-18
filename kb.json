@@ -25691,7 +25691,8 @@
         },
         {
           "addr": "0x1a8da0",
-          "decl": "void unit_impulse(void);"
+          "decl": "void unit_impulse(int unit_index, int unused, float *impulse_vector, float scale);",
+          "ported": true
         },
         {
           "addr": "0x1a8e10",
@@ -25743,7 +25744,8 @@
         },
         {
           "addr": "0x1a9880",
-          "decl": "void unit_get_aiming_unit_index(void);"
+          "decl": "int unit_get_aiming_unit_index(int unit_index);",
+          "ported": true
         },
         {
           "addr": "0x1a9900",
@@ -25786,11 +25788,13 @@
         },
         {
           "addr": "0x1a9b30",
-          "decl": "void unit_scripting_set_emotion_animation(void);"
+          "decl": "void unit_scripting_set_emotion_animation(int unit_index, const char *animation_name);",
+          "ported": true
         },
         {
           "addr": "0x1a9b80",
-          "decl": "void unit_scripting_suspended(void);"
+          "decl": "void unit_scripting_suspended(int unit_index, char suspended);",
+          "ported": true
         },
         {
           "addr": "0x1a9c00",
@@ -25808,7 +25812,8 @@
         },
         {
           "addr": "0x1a9da0",
-          "decl": "void unit_scripting_vehicle_test_seat(void);"
+          "decl": "char unit_scripting_vehicle_test_seat(int vehicle_index, const char *seat_name, int unit_index);",
+          "ported": true
         },
         {
           "addr": "0x1a9e40",
@@ -33470,7 +33475,7 @@
         },
         {
           "addr": "0x120cb0",
-          "decl": "void animation_graph_get_animation_by_name(void);"
+          "decl": "short FUN_00120cb0(int animation_graph_tag_index, const char *name);"
         },
         {
           "addr": "0x120d10",
