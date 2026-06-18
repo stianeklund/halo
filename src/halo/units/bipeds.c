@@ -3227,7 +3227,9 @@ LAB_001a36a4:
     /* debug-draw line record (0x1a3721..0x1a37cc): no query runs, count stays
      * 1. Builds results[0] (point/normal/plane_d/handles) from the position
      * and the basis at *0x31fc44, plus the los_dir endpoints. Dead in normal
-     * play (gated on debug global 0x4e4cf2); transcribed for fidelity. */
+     * play (gated on debug global 0x4e4cf2); objdump offsets 0x7e1..0x889
+     * show los_dir (later new_velocity) is bare new_pos.xy/0, while los_dir2
+     * (later new_position) is pos_world.xy + new_pos.xy and pos_world.z. */
     results[0].point[1] = physics[2];
     results[0].point[2] = physics[3];
     results[0].point[3] = physics[4];
@@ -3236,14 +3238,15 @@ LAB_001a36a4:
     results[0].normal[1] = *(float *)(*(int *)0x31fc44 + 4);
     results[0].normal[2] = *(float *)(*(int *)0x31fc44 + 8);
     results[0].plane_d = -physics[4];
-    los_dir[0] = pos_world[0] + new_pos[0];
+    los_dir[0] = new_pos[0];
     results[0].surface_handle = -1;
     results[0].flags = -1; /* word 0xffff into +0x2a */
-    los_dir[1] = physics[3] + new_pos[1];
+    los_dir[1] = new_pos[1];
     *(int *)&results[0].object_handle = *(int *)&physics[0];
-    los_dir2[0] = new_pos[0];
-    los_dir2[1] = new_pos[1];
-    los_dir2[2] = physics[4];
+    los_dir2[0] = pos_world[0] + new_pos[0];
+    los_dir2[1] = pos_world[1] + new_pos[1];
+    los_dir2[2] = pos_world[2];
+    los_dir[2] = 0.0f;
     result_count = 1;
   }
 
