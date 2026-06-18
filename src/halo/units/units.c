@@ -3833,3 +3833,228 @@ void unit_scripting_doesnt_drop_items(int object_list)
     child = FUN_000ce320(object_list, &iter_state);
   }
 }
+
+/* FUN_001a7d40 (0x1a7d40)
+ * Sums grenade counts for all grenade types (2 types). */
+int FUN_001a7d40(int datum_handle)
+{
+  int i;
+  int sum;
+  char *ptr;
+  char *unit;
+
+  unit = (char *)object_try_and_get_and_verify_type(datum_handle, 3);
+  sum = 0;
+  if (unit != NULL) {
+    ptr = unit + 0x2ce;
+    i = 2;
+    do {
+      sum += (int16_t)*(int8_t *)ptr;
+      ptr++;
+      i--;
+    } while (i != 0);
+  }
+  return sum;
+}
+
+/* FUN_001a7d80 (0x1a7d80)
+ * Sets or clears bit 23 (0x800000) in unit flags for all child units. */
+void FUN_001a7d80(int datum_handle, char flag)
+{
+  int iter_state;
+  int child;
+  char *unit;
+  uint32_t flags;
+
+  child = FUN_000ce450(datum_handle, &iter_state);
+  while (child != -1) {
+    unit = (char *)object_try_and_get_and_verify_type(child, 3);
+    if (unit != NULL) {
+      if (flag == '\0') {
+        flags = *(uint32_t *)(unit + 0x1b4) & 0xff7fffff;
+      } else {
+        flags = *(uint32_t *)(unit + 0x1b4) | 0x800000;
+      }
+      *(uint32_t *)(unit + 0x1b4) = flags;
+    }
+    child = FUN_000ce320(datum_handle, &iter_state);
+  }
+}
+
+/* FUN_001a7df0 (0x1a7df0)
+ * Returns true only if FUN_001ac180 returns true for ALL child units. */
+char FUN_001a7df0(int datum_handle, int param_2, int param_3, int param_4)
+{
+  char result;
+  char cVar2;
+  int child;
+  char *unit;
+  int iter_state;
+
+  result = 1;
+  child = FUN_000ce450(datum_handle, &iter_state);
+  while (child != -1) {
+    unit = (char *)object_try_and_get_and_verify_type(child, 3);
+    if (unit != NULL) {
+      if (result && (cVar2 = FUN_001ac180(child, param_2, (void *)param_3, param_4), cVar2 != '\0')) {
+        result = 1;
+      } else {
+        result = 0;
+      }
+    }
+    child = FUN_000ce320(datum_handle, &iter_state);
+  }
+  return result;
+}
+
+/* FUN_001a7ea0 (0x1a7ea0)
+ * Checks if the unit's current weapon has the given tag definition. */
+char FUN_001a7ea0(int unit_handle, int weapon_def_tag)
+{
+  char *unit;
+  int weapon;
+  int *weapon_data;
+
+  if (unit_handle != -1 && weapon_def_tag != -1) {
+    unit = (char *)object_get_and_verify_type(unit_handle, 3);
+    weapon = unit_get_weapon(unit_handle, (int)*(int16_t *)(unit + 0x2a2));
+    if (weapon != -1) {
+      weapon_data = (int *)object_get_and_verify_type(weapon, 4);
+      return *weapon_data == weapon_def_tag;
+    }
+  }
+  return 0;
+}
+
+/* unit_get_animation_frames_remaining (0x1a84c0)
+ * Returns the number of animation frames remaining.
+ * Outputs the current animation state byte to *animation_state_out. */
+int unit_get_animation_frames_remaining(int unit_handle, int16_t *animation_state_out)
+{
+  char *unit;
+  char *anim_tag;
+  char *anim_entry;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  anim_tag = (char *)tag_get(0x616e7472, *(int *)(unit + 0x7c));
+  anim_entry = (char *)tag_block_get_element(
+      (int *)(anim_tag + 0x74),
+      (int)*(int16_t *)(unit + 0x80),
+      0xb4);
+  if (animation_state_out == NULL) {
+    display_assert("animation_state",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x738, 1);
+    system_exit(-1);
+  }
+  *animation_state_out = (int16_t)*(int8_t *)(unit + 0x253);
+  return (int)*(uint16_t *)(anim_entry + 0x22) -
+         (int)*(uint16_t *)(unit + 0x82);
+}
+
+/* FUN_001a8730 (0x1a8730)
+ * Returns 1 for vehicle-related animation states. @ecx = anim state ptr. */
+char FUN_001a8730(void *anim_state)
+{
+  switch (*(uint8_t *)((char *)anim_state + 0xb)) {
+  case 0x17: case 0x18: case 0x19: case 0x1a: case 0x1b:
+  case 0x1d: case 0x1e: case 0x1f: case 0x20: case 0x21:
+  case 0x22: case 0x23: case 0x27: case 0x29:
+    return 1;
+  }
+  return 0;
+}
+
+/* FUN_001a8790 (0x1a8790)
+ * Returns 0 for vehicle/combat animation states. @ecx = anim state ptr. */
+char FUN_001a8790(void *anim_state)
+{
+  switch (*(uint8_t *)((char *)anim_state + 0xb)) {
+  case 1: case 2: case 3:
+  case 0x17: case 0x1a: case 0x1b: case 0x1c:
+  case 0x1d: case 0x1e: case 0x1f:
+  case 0x21: case 0x22: case 0x23:
+  case 0x27: case 0x29:
+    return 0;
+  }
+  return 1;
+}
+
+/* FUN_001a87f0 (0x1a87f0)
+ * Boolean: idle and free, unless overridden by certain anim states.
+ * @ecx = anim state ptr. Switch table verified from binary. */
+char FUN_001a87f0(void *anim_state)
+{
+  char result;
+
+  result = *(char *)((char *)anim_state + 0xc) == '\0' &&
+           *(int16_t *)((char *)anim_state + 0x1a) == -1;
+  switch (*(uint8_t *)((char *)anim_state + 0xb)) {
+  case 0x14: case 0x15: case 0x16:
+  case 0x24: case 0x25: case 0x26:
+    result = 0;
+  }
+  return result;
+}
+
+/* FUN_001a8850 (0x1a8850)
+ * Returns 0 for specific vehicle/boarding animation states.
+ * @ecx = anim state ptr. */
+char FUN_001a8850(void *anim_state)
+{
+  switch (*(uint8_t *)((char *)anim_state + 0xb)) {
+  case 0x17: case 0x18: case 0x19: case 0x1a: case 0x1b:
+  case 0x1d: case 0x22: case 0x23:
+    return 0;
+  }
+  return 1;
+}
+
+/* FUN_001a88b0 (0x1a88b0)
+ * Maps animation state to animation index. @ecx = anim state value. */
+int FUN_001a88b0(int16_t anim_state)
+{
+  switch ((int)anim_state) {
+  case 0x0: case 0x2: case 0x3:
+  case 0x10: case 0x11: case 0x12: case 0x13:
+  case 0x14: case 0x15: case 0x16:
+  case 0x25: case 0x26:
+    return 0x19;
+  case 0x4: case 0x5: case 0x6: case 0x7:
+  case 0x8: case 0x9: case 0xa: case 0xb:
+  case 0xc: case 0xd: case 0xe: case 0xf:
+    return 0x1a;
+  }
+  return -1;
+}
+
+/* FUN_001a86b0 (0x1a86b0)
+ * Animation state transition check. @ecx = anim state ptr, @edx = target state. */
+char FUN_001a86b0(void *anim_state, int16_t target_state)
+{
+  switch (*(uint8_t *)((char *)anim_state + 0xb)) {
+  case 0x2: case 0x3: case 0x25: case 0x26:
+    if (target_state != 0) {
+      return 1;
+    }
+    break;
+  case 0x17: case 0x1a: case 0x1b: case 0x1c:
+    break;
+  case 0x18: case 0x19:
+    if (target_state > 0x17 && target_state < 0x1a) {
+      return 1;
+    }
+    break;
+  case 0x1d: case 0x1e: case 0x1f:
+  case 0x21: case 0x22: case 0x23:
+  case 0x27: case 0x29:
+    if (target_state != 0x17) {
+      return 0;
+    }
+    goto default_return;
+  default:
+    goto default_return;
+  }
+  return 0;
+default_return:
+  return 1;
+}
