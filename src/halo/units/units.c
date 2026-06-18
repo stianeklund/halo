@@ -4185,3 +4185,204 @@ char unit_scripting_vehicle_test_seat(int vehicle_index, const char *seat_name, 
   }
   return 0;
 }
+
+/* FUN_001aa4d0 (0x1aa4d0) — unit_driven_by_ai
+ * Returns true if the unit (or its driver) has an AI actor. */
+char FUN_001aa4d0(int unit_handle)
+{
+  char *unit;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  if (*(int *)(unit + 0x2d4) != -1) {
+    unit = (char *)object_get_and_verify_type(*(int *)(unit + 0x2d4), 3);
+  }
+  return *(int *)(unit + 0x1a4) != -1;
+}
+
+/* FUN_001aa510 (0x1aa510) — unit_gunned_by_ai
+ * Returns true if the unit (or its gunner) has an AI actor. */
+char FUN_001aa510(int unit_handle)
+{
+  char *unit;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  if (*(int *)(unit + 0x2d8) != -1) {
+    unit = (char *)object_get_and_verify_type(*(int *)(unit + 0x2d8), 3);
+  }
+  return *(int *)(unit + 0x1a4) != -1;
+}
+
+/* FUN_001a7cc0 (0x1a7cc0)
+ * Returns the body vitality (0x90) or 0.0 if dead, default if invalid. */
+float FUN_001a7cc0(int datum_handle)
+{
+  char *obj;
+  float result;
+
+  obj = (char *)object_try_and_get_and_verify_type(datum_handle, -1);
+  result = *(float *)0x255e94;
+  if (obj != NULL) {
+    if ((*(uint8_t *)(obj + 0xb6) & 4) != 0) {
+      return 0.0f;
+    }
+    result = *(float *)(obj + 0x90);
+  }
+  return result;
+}
+
+/* FUN_001a7d00 (0x1a7d00)
+ * Returns the shield vitality (0x94) or 0.0 if dead, default if invalid. */
+float FUN_001a7d00(int datum_handle)
+{
+  char *obj;
+  float result;
+
+  obj = (char *)object_try_and_get_and_verify_type(datum_handle, -1);
+  result = *(float *)0x255e94;
+  if (obj != NULL) {
+    if ((*(uint8_t *)(obj + 0xb6) & 4) != 0) {
+      return 0.0f;
+    }
+    result = *(float *)(obj + 0x94);
+  }
+  return result;
+}
+
+/* FUN_001a7c70 (0x1a7c70)
+ * Iterates child objects and calls FUN_001a7b50 on each. */
+void FUN_001a7c70(int parent_handle, int param_2, int param_3)
+{
+  int iter_state;
+  int child;
+
+  child = FUN_000ce450(parent_handle, &iter_state);
+  while (child != -1) {
+    FUN_001a7b50(child, param_2, param_3);
+    child = FUN_000ce320(parent_handle, &iter_state);
+  }
+}
+
+/* unit_inventory_next_grenade (0x1a9980)
+ * Cycles through grenade types to find the next available one. */
+int16_t unit_inventory_next_grenade(int unit_handle, int current_index, int16_t direction)
+{
+  char *unit;
+  int16_t start;
+  int16_t saved;
+  int idx;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  saved = -1;
+  start = (int16_t)current_index;
+  if (start == -1) {
+    current_index = 0;
+    idx = current_index;
+  } else {
+    idx = current_index;
+    if (start < 0 || 1 < start) {
+      display_assert("current_index>=0 && current_index<NUMBER_OF_UNIT_GRENADE_TYPES",
+                     "c:\\halo\\SOURCE\\units\\units.c", 0x163e, 1);
+      system_exit(-1);
+    }
+  }
+  do {
+    start = (int16_t)current_index;
+    if (*(char *)((int)start + 0x2ce + (int)unit) > '\0') {
+      if (start != (int16_t)idx) {
+        return start;
+      }
+      saved = (int16_t)current_index;
+      if (direction == 0) {
+        return start;
+      }
+    }
+    if (direction < 0) {
+      if (start == 0) {
+        current_index = 1;
+      } else {
+        current_index = (int)start - 1;
+      }
+    } else if (start == 1) {
+      current_index = 0;
+    } else {
+      current_index = (int)start + 1;
+    }
+    if ((int16_t)current_index == (int16_t)idx) {
+      return saved;
+    }
+  } while (1);
+}
+
+/* unit_scripting_unit_riders (0x1a9e40)
+ * Creates a list of all child units that have a seat assignment. */
+int unit_scripting_unit_riders(int unit_handle)
+{
+  char *unit;
+  int list;
+  int child;
+  char *child_obj;
+
+  list = -1;
+  if (unit_handle != -1) {
+    unit = (char *)object_get_and_verify_type(unit_handle, 3);
+    list = FUN_000ce200();
+    if (list != -1) {
+      child = *(int *)(unit + 0xc8);
+      while (child != -1) {
+        child_obj = (char *)object_get_and_verify_type(child, -1);
+        if (((1 << (*(uint8_t *)(child_obj + 0x64) & 0x1f)) & 3u) != 0 &&
+            *(int16_t *)(child_obj + 0x2a0) != -1) {
+          FUN_000ce2b0(list, child);
+        }
+        child = *(int *)(child_obj + 0xc4);
+      }
+    }
+  }
+  return list;
+}
+
+/* units_debug_get_next_unit (0x1aa080)
+ * Finds the next debug-selectable unit after current_unit. */
+int units_debug_get_next_unit(int current_unit)
+{
+  int result;
+  char *iVar1;
+  char local_14[8];
+  int local_c = 0;
+
+  result = -1;
+  if (current_unit != -1) {
+    object_iterator_new(local_14, 3, 0);
+    iVar1 = (char *)object_iterator_next(local_14);
+    while (iVar1 != NULL && local_c != current_unit) {
+      iVar1 = (char *)object_iterator_next(local_14);
+    }
+    iVar1 = (char *)object_iterator_next(local_14);
+    while (iVar1 != NULL) {
+      if (*(int *)(iVar1 + 0x1a4) == -1 &&
+          *(int *)(iVar1 + 0x1a8) == -1 &&
+          (*(uint8_t *)(iVar1 + 0xb6) & 4) == 0) {
+        result = local_c;
+        if (local_c != -1) {
+          return local_c;
+        }
+        break;
+      }
+      iVar1 = (char *)object_iterator_next(local_14);
+    }
+  }
+  object_iterator_new(local_14, 3, 0);
+  iVar1 = (char *)object_iterator_next(local_14);
+  while (1) {
+    if (iVar1 == NULL) {
+      return result;
+    }
+    if (*(int *)(iVar1 + 0x1a4) == -1 &&
+        *(int *)(iVar1 + 0x1a8) == -1 &&
+        (*(uint8_t *)(iVar1 + 0xb6) & 4) == 0) {
+      break;
+    }
+    iVar1 = (char *)object_iterator_next(local_14);
+  }
+  return local_c;
+}
