@@ -3815,7 +3815,7 @@
         },
         {
           "addr": "0x3f350",
-          "decl": "void FUN_0003f350(void);"
+          "decl": "int FUN_0003f350(int unit_handle, int spawn_tag, int16_t count, float radius);"
         },
         {
           "addr": "0x3f770",
@@ -25711,7 +25711,8 @@
         },
         {
           "addr": "0x1a9130",
-          "decl": "uint32_t unit_test_spawning(int unit_handle);"
+          "decl": "uint32_t unit_test_spawning(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1a91e0",
