@@ -6628,7 +6628,7 @@
         {
           "addr": "0x9ca70",
           "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
           "ported": true
         },
         {
@@ -6689,7 +6689,7 @@
         {
           "addr": "0x9dcf0",
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -21680,17 +21680,17 @@
         {
           "addr": "0x191210",
           "decl": "void FUN_00191210(void);",
-      "ported": true
+          "ported": true
         },
         {
           "addr": "0x191220",
           "decl": "void FUN_00191220(void);",
-      "ported": true
+          "ported": true
         },
         {
           "addr": "0x191230",
           "decl": "void FUN_00191230(int param_1);",
-      "ported": true
+          "ported": true
         }
       ],
       "name": "shell.obj",
@@ -25581,7 +25581,8 @@
         },
         {
           "addr": "0x1a7e70",
-          "decl": "void FUN_001a7e70(void);"
+          "decl": "char FUN_001a7e70(int unit_handle, int definition_index);",
+          "ported": true
         },
         {
           "addr": "0x1a7ea0",
@@ -25594,7 +25595,8 @@
         },
         {
           "addr": "0x1a7fa0",
-          "decl": "void unit_kill(void);"
+          "decl": "void unit_kill(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1a7fc0",
@@ -25634,7 +25636,8 @@
         },
         {
           "addr": "0x1a8690",
-          "decl": "void unit_get_zoom_level(void);"
+          "decl": "int16_t unit_get_zoom_level(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1a86b0",
@@ -25690,11 +25693,12 @@
         },
         {
           "addr": "0x1a9130",
-          "decl": "void unit_test_spawning(void);"
+          "decl": "uint32_t unit_test_spawning(int unit_handle);"
         },
         {
           "addr": "0x1a91e0",
-          "decl": "void unit_destroy(void);"
+          "decl": "void unit_destroy(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1a9200",
@@ -25756,11 +25760,13 @@
         },
         {
           "addr": "0x1a9a50",
-          "decl": "void unit_set_controllable(void);"
+          "decl": "void unit_set_controllable(int unit_handle, char controllable);",
+          "ported": true
         },
         {
           "addr": "0x1a9a90",
-          "decl": "void unit_set_possessed(void);"
+          "decl": "void unit_set_possessed(int unit_handle, char possessed);",
+          "ported": true
         },
         {
           "addr": "0x1a9ad0",
@@ -25777,11 +25783,13 @@
         },
         {
           "addr": "0x1a9c00",
-          "decl": "void unit_scripting_can_blink(void);"
+          "decl": "void unit_scripting_can_blink(int unit_handle, char can_blink);",
+          "ported": true
         },
         {
           "addr": "0x1a9c40",
-          "decl": "void unit_scripting_doesnt_drop_items(void);"
+          "decl": "void unit_scripting_doesnt_drop_items(int object_list);",
+          "ported": true
         },
         {
           "addr": "0x1a9c90",
@@ -25797,11 +25805,13 @@
         },
         {
           "addr": "0x1a9ec0",
-          "decl": "void FUN_001A9EC0(void);"
+          "decl": "int FUN_001a9ec0(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1a9ef0",
-          "decl": "void FUN_001A9EF0(void);"
+          "decl": "int FUN_001a9ef0(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1a9f20",
@@ -25905,7 +25915,7 @@
         },
         {
           "addr": "0x1aad00",
-          "decl": "void unit_has_weapon_definition_index(void);"
+          "decl": "bool unit_has_weapon_definition_index(int unit_handle, int definition_index);"
         },
         {
           "addr": "0x1aad60",
