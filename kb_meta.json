@@ -9284,6 +9284,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1af100": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1af180": {
       "kind": "function",
       "status": "ported",
@@ -9315,6 +9319,10 @@
         "FUN_0x21fb0 is assert_valid_real_normal3d (validates unit vector). FUN_0x1af6b0 is a profiling/trace function accepting a string label."
       ]
     },
+    "0x1b0d00": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1b1290": {
       "kind": "function",
       "status": "ported",
@@ -9322,6 +9330,10 @@
         "Weapon tag offset 0x4bc is a sound tag index for zoom-deactivation sound.",
         "Player datum offset +2 is checked against -1 to verify player validity before playing sound."
       ]
+    },
+    "0x1b1350": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1b1a20": {
       "kind": "function",
@@ -9335,6 +9347,10 @@
         "The anim_data parameter (void*) is passed as the alignment_vector to FUN_001af180; it's a float[2] (2D normal) representing a facing direction in the ground plane.",
         "The anim_index parameter doubles as the EDI register value passed to unit_animation_state_allows_impulse (0x1a96f0) via register leak \u2014 the callee uses DI to gate impulses 0xc and 0xd."
       ]
+    },
+    "0x1b1b40": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1b1d00": {
       "kind": "function",
