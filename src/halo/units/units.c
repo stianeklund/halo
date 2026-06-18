@@ -4666,3 +4666,76 @@ void unit_stop_custom_animation(int unit_handle)
     }
   }
 }
+
+/* unit_custom_animation_at_frame (0x1af100)
+ * Starts a custom animation and sets it to a specific frame. */
+char unit_custom_animation_at_frame(int unit_handle, int param_2, int param_3, int param_4,
+                                    int16_t frame)
+{
+  char *unit;
+  char *anim_tag;
+  char *anim_entry;
+
+  if (!FUN_001ac180(unit_handle, param_2, (void *)param_3, param_4)) {
+    return 0;
+  }
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  anim_tag = (char *)tag_get(0x616e7472, *(int *)(unit + 0x7c));
+  anim_entry = (char *)tag_block_get_element(
+      (int *)(anim_tag + 0x74),
+      (int)*(int16_t *)(unit + 0x80), 0xb4);
+  if (frame >= 0 && frame < *(int16_t *)(anim_entry + 0x22)) {
+    *(int16_t *)(unit + 0x82) = frame;
+    return 1;
+  }
+  return 0;
+}
+
+/* unit_has_animation_to_enter_seat (0x1b0d00)
+ * Returns true if the unit has an animation to enter the given seat. */
+char unit_has_animation_to_enter_seat(int unit_handle, int vehicle_handle, int16_t seat_index)
+{
+  uint32_t *vehicle;
+  char *unit_tag;
+  char *unit_data;
+  char *seat_entry;
+
+  vehicle = (uint32_t *)object_get_and_verify_type(vehicle_handle, 3);
+  unit_tag = (char *)tag_get(0x756e6974, *vehicle);
+  if (seat_index >= 0) {
+    if ((int)seat_index < *(int *)(unit_tag + 0x2e4)) {
+      unit_data = (char *)object_get_and_verify_type(unit_handle, 3);
+      if (*(int16_t *)(unit_data + 0x64) != 1) {
+        seat_entry = (char *)tag_block_get_element(
+            (int *)(unit_tag + 0x2e4), (int)seat_index, 0x11c);
+        if (!FUN_001acd70((int)(seat_entry + 4), 0, 0)) {
+          return 0;
+        }
+      }
+      return 1;
+    }
+  }
+  return 0;
+}
+
+/* unit_get_zoom_magnification (0x1b1350)
+ * Returns the zoom magnification for the current weapon. */
+float unit_get_zoom_magnification(int unit_handle, int zoom_level)
+{
+  char *unit;
+  int weapon;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  weapon = unit_get_weapon(unit_handle, (int)*(int16_t *)(unit + 0x2a2));
+  if (weapon != -1) {
+    return weapon_get_zoom_magnification(weapon, zoom_level);
+  }
+  return 1.0f;
+}
+
+/* unit_inventory_next_weapon (0x1b1b40)
+ * Advances to the next weapon in the inventory. */
+int unit_inventory_next_weapon(int unit_handle, int slot, int direction)
+{
+  return FUN_001ae490(slot, direction);
+}
