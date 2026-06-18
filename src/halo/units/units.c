@@ -4521,3 +4521,42 @@ char unit_has_weapon_definition_index(int unit_handle, int definition_index)
   } while (i < 4);
   return 0;
 }
+
+/* unit_stop_running_blindly (0x1ac520)
+ * Clears bit 25 (0x2000000) of unit flags at +0x1B4. */
+void unit_stop_running_blindly(int unit_handle)
+{
+  char *unit;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  *(uint32_t *)(unit + 0x1b4) &= ~0x2000000u;
+}
+
+/* unit_flying_through_air (0x1ac650)
+ * Returns true if this is a biped (type==0) and it's flying through air. */
+char unit_flying_through_air(int unit_handle)
+{
+  char *unit;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  if (*(int16_t *)(unit + 0x64) == 0) {
+    return FUN_001a0db0(unit_handle);
+  }
+  return 0;
+}
+
+/* unit_abort_animation (0x1ad7e0)
+ * Aborts the current animation by calling FUN_001ad260 with state 0. */
+void unit_abort_animation(int unit_handle)
+{
+  FUN_001ad260(unit_handle, 0);
+}
+
+/* unit_open (0x1ae160)
+ * Opens a unit by transitioning to animation state 0x25. */
+void unit_open(int unit_handle)
+{
+  if (unit_handle != -1) {
+    FUN_001ad260(unit_handle, 0x25);
+  }
+}

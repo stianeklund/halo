@@ -25286,7 +25286,7 @@
         },
         {
           "addr": "0x1a0db0",
-          "decl": "int biped_flying_through_air(int unit_handle);",
+          "decl": "char FUN_001a0db0(int biped_handle);",
           "ported": true
         },
         {
@@ -26049,7 +26049,8 @@
         },
         {
           "addr": "0x1ac520",
-          "decl": "void unit_stop_running_blindly(int unit_handle);"
+          "decl": "void unit_stop_running_blindly(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1ac550",
@@ -26057,7 +26058,8 @@
         },
         {
           "addr": "0x1ac650",
-          "decl": "char unit_flying_through_air(int unit_handle);"
+          "decl": "char unit_flying_through_air(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1ac680",
@@ -26082,11 +26084,12 @@
         },
         {
           "addr": "0x1ad260",
-          "decl": "void FUN_001ad260(void);"
+          "decl": "void FUN_001ad260(int unit_handle, int anim_state);"
         },
         {
           "addr": "0x1ad7e0",
-          "decl": "void unit_abort_animation(void);"
+          "decl": "void unit_abort_animation(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1ad800",
@@ -26114,7 +26117,8 @@
         },
         {
           "addr": "0x1ae160",
-          "decl": "void unit_open(void);"
+          "decl": "void unit_open(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1ae180",
