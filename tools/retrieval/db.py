@@ -47,6 +47,17 @@ CREATE TABLE IF NOT EXISTS functions (
 );
 """
 
+MIGRATIONS = [
+    "ALTER TABLE functions ADD COLUMN IF NOT EXISTS vc71_score FLOAT",
+    "ALTER TABLE functions ADD COLUMN IF NOT EXISTS call_count INTEGER",
+    "ALTER TABLE functions ADD COLUMN IF NOT EXISTS branch_count INTEGER",
+    "ALTER TABLE functions ADD COLUMN IF NOT EXISTS has_fpu BOOLEAN DEFAULT FALSE",
+    "ALTER TABLE functions ADD COLUMN IF NOT EXISTS callee_set TEXT",
+    "ALTER TABLE functions ADD COLUMN IF NOT EXISTS verdict VARCHAR",
+    "ALTER TABLE functions ADD COLUMN IF NOT EXISTS failure_reason TEXT",
+    "ALTER TABLE functions ADD COLUMN IF NOT EXISTS hazard_flags TEXT",
+]
+
 
 def connect(read_only: bool = False) -> duckdb.DuckDBPyConnection:
     """Open the index DB and ensure the schema exists."""
@@ -54,6 +65,11 @@ def connect(read_only: bool = False) -> duckdb.DuckDBPyConnection:
     con = duckdb.connect(str(DB_PATH), read_only=read_only)
     if not read_only:
         con.execute(SCHEMA)
+        for stmt in MIGRATIONS:
+            try:
+                con.execute(stmt)
+            except duckdb.CatalogException:
+                pass
     return con
 
 
@@ -115,6 +131,48 @@ def upsert_record(con: duckdb.DuckDBPyConnection, rec: dict) -> None:
         )
 
 
+def update_outcome(
+    con: duckdb.DuckDBPyConnection,
+    addr: str,
+    *,
+    vc71_score: float | None = None,
+    call_count: int | None = None,
+    branch_count: int | None = None,
+    has_fpu: bool | None = None,
+    callee_set: str | None = None,
+    verdict: str | None = None,
+    failure_reason: str | None = None,
+    hazard_flags: str | None = None,
+) -> bool:
+    """Update outcome/structural columns without touching embeddings.
+
+    Returns True if a row was updated, False if the addr doesn't exist.
+    """
+    sets = []
+    vals = []
+    for col, val in [
+        ("vc71_score", vc71_score),
+        ("call_count", call_count),
+        ("branch_count", branch_count),
+        ("has_fpu", has_fpu),
+        ("callee_set", callee_set),
+        ("verdict", verdict),
+        ("failure_reason", failure_reason),
+        ("hazard_flags", hazard_flags),
+    ]:
+        if val is not None:
+            sets.append(f"{col} = ?")
+            vals.append(val)
+    if not sets:
+        return False
+    vals.append(addr)
+    result = con.execute(
+        f"UPDATE functions SET {', '.join(sets)} WHERE addr = ?",
+        vals,
+    )
+    return result.fetchone() is not None if hasattr(result, 'fetchone') else True
+
+
 def update_embeddings(
     con: duckdb.DuckDBPyConnection,
     addr: str,
@@ -168,11 +226,15 @@ def stats(con: duckdb.DuckDBPyConnection) -> dict:
             COUNT(c_source)                                     AS with_c,
             COUNT(*) FILTER (WHERE emb_pseudocode IS NOT NULL OR emb_c IS NOT NULL) AS with_emb,
             COUNT(DISTINCT obj_name)                            AS objects,
-            COUNT(DISTINCT emb_model)                           AS models
+            COUNT(DISTINCT emb_model)                           AS models,
+            COUNT(vc71_score)                                   AS with_vc71,
+            COUNT(verdict)                                      AS with_verdict,
+            COUNT(hazard_flags)                                 AS with_hazards
         FROM functions
         """
     ).fetchone()
     return dict(zip(
-        ("total", "with_pseudocode", "with_c", "with_emb", "objects", "models"),
+        ("total", "with_pseudocode", "with_c", "with_emb", "objects", "models",
+         "with_vc71", "with_verdict", "with_hazards"),
         row,
     ))

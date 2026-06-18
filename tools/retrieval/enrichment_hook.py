@@ -144,7 +144,10 @@ def render_enrichment_markdown(ghidra_ctx: dict) -> str:
                 seen.add(line)
                 fpu_lines.append(line)
     if fpu_lines:
-        out.append("**FPU/FSTP arg hazards**\n" + "\n".join(fpu_lines))
+        out.append(
+            "**FPU/FSTP arg hazards** (see lift-learnings §6, §10)\n"
+            + "\n".join(fpu_lines)
+        )
 
     # --- Struct offsets (pointer-holding registers only) ---
     POINTER_REGS = {"ESI", "EDI", "EBX"}
@@ -164,12 +167,18 @@ def render_enrichment_markdown(ghidra_ctx: dict) -> str:
             f"- line {d['line']}: `{d['local']}` is `{d['buffer']}`+{d['offset_into_buffer']}"
             for d in hi_risk
         ]
-        out.append("**HIGH-RISK buffer-alias reads**\n" + "\n".join(lines))
+        out.append(
+            "**HIGH-RISK buffer-alias reads** (see lift-learnings §2)\n"
+            + "\n".join(lines)
+        )
 
     # --- Undersized-buffer warnings ---
     bw: list = ghidra_ctx.get("buffer_warnings") or []
     if bw:
-        out.append("**Undersized-buffer warnings**\n" + "\n".join(f"- {w}" for w in bw))
+        out.append(
+            "**Undersized-buffer warnings** (see lift-learnings §2, §20)\n"
+            + "\n".join(f"- {w}" for w in bw)
+        )
 
     if not out:
         return ""
