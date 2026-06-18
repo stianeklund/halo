@@ -4596,15 +4596,15 @@ void units_set_desired_flashlight_state(int object_list, char desired)
 }
 
 /* unit_scripting_set_seat (0x1ae750)
- * Sets the unit's seat override from the magic base seat. */
-void unit_scripting_set_seat(int unit_handle)
+ * Sets the unit's seat override from a seat name string. */
+void unit_scripting_set_seat(int unit_handle, int seat_name)
 {
   char *unit;
   char seat;
 
   if (unit_handle != -1) {
     unit = (char *)object_get_and_verify_type(unit_handle, 3);
-    seat = FUN_001ab730();
+    seat = (char)FUN_001ab730(seat_name);
     *(char *)(unit + 0x1bf) = seat;
   }
 }
@@ -4846,4 +4846,11 @@ uint32_t unit_test_spawning(int unit_handle)
     }
   }
   return flags & 0xffff0000;
+}
+
+/* scripting_set_magic_base_seat (0x1ae730)
+ * Sets the global magic base seat from a seat name string. */
+void scripting_set_magic_base_seat(int param_1)
+{
+  *(int16_t *)0x32de80 = FUN_001ab730(param_1);
 }
