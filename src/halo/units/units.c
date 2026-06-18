@@ -4854,3 +4854,119 @@ void scripting_set_magic_base_seat(int param_1)
 {
   *(int16_t *)0x32de80 = FUN_001ab730(param_1);
 }
+
+/* FUN_001a7790 (0x1a7790)
+ * Updates the unit's dialogue/speech state machine each tick. */
+void FUN_001a7790(int param_1)
+{
+  int16_t sVar1;
+  char *unit;
+  int16_t marker_count;
+  char marker_buf[0x6c];
+  float position[3];
+  float forward[3];
+
+  unit = (char *)object_get_and_verify_type(param_1, 3);
+
+  if ((*(uint32_t *)(unit + 0x1b4) & 0x100) != 0) {
+    FUN_001a7730(param_1);
+    *(uint32_t *)(unit + 0x1b4) &= ~0x100u;
+  }
+
+  if (*(int16_t *)(unit + 0x398) > 0) {
+    sVar1 = *(int16_t *)(unit + 0x398) - 1;
+    *(int16_t *)(unit + 0x398) = sVar1;
+    if (sVar1 == 0 && *(int16_t *)(unit + 0x39a) > 0) {
+      *(int16_t *)(unit + 0x39a) -= 1;
+      *(int16_t *)(unit + 0x398) = 0x16;
+    }
+  }
+  if (*(int16_t *)(unit + 0x39c) > 0) {
+    *(int16_t *)(unit + 0x39c) -= 1;
+  }
+  if (*(int16_t *)(unit + 0x39c) > 0) {
+    *(int16_t *)(unit + 0x39c) -= 1;
+  }
+
+  if (*(int16_t *)(unit + 0x338) > 0) {
+    if (*(int16_t *)(unit + 0x3a8) > 0) {
+      *(int16_t *)(unit + 0x3a8) -= 1;
+    } else {
+      if (*(uint8_t *)(unit + 0x3a4) == 0) {
+        marker_count = object_get_markers_by_string_id(
+            param_1, (void *)0x2909e4, marker_buf, 1);
+        if (marker_count == 0) {
+          position[0] = (*(float **)0x31fc1c)[0];
+          position[1] = (*(float **)0x31fc1c)[1];
+          position[2] = (*(float **)0x31fc1c)[2];
+          forward[0] = (*(float **)0x31fc3c)[0];
+          forward[1] = (*(float **)0x31fc3c)[1];
+          forward[2] = (*(float **)0x31fc3c)[2];
+          *(int16_t *)marker_buf = 0;
+        } else {
+          position[0] = *(float *)(marker_buf + 0x2c);
+          position[1] = *(float *)(marker_buf + 0x30);
+          position[2] = *(float *)(marker_buf + 0x34);
+          forward[0] = *(float *)(marker_buf + 0x08);
+          forward[1] = *(float *)(marker_buf + 0x0c);
+          forward[2] = *(float *)(marker_buf + 0x10);
+        }
+        if (*(int *)(unit + 0x33c) != -1) {
+          *(int *)(unit + 0x3b0) = object_impulse_sound_new(
+              param_1, *(int *)(unit + 0x33c), *(int16_t *)marker_buf,
+              position, forward, 1.0f);
+        }
+        FUN_00044fd0(param_1,
+            *(uint16_t *)(unit + 0x338), *(uint16_t *)(unit + 0x33a),
+            unit + 0x348);
+        *(uint8_t *)(unit + 0x3a4) = 1;
+      }
+      if (*(int16_t *)(unit + 0x3ac) > 0) {
+        *(int16_t *)(unit + 0x3ac) -= 1;
+      }
+      if (*(int16_t *)(unit + 0x3aa) > 0) {
+        if (*(int16_t *)(unit + 0x338) < 1) {
+          display_assert(
+              "unit->unit.speech.current.priority > _unit_speech_none",
+              "c:\\halo\\SOURCE\\units\\unit_dialogue.c", 0x2f5, 1);
+          system_exit(-1);
+        }
+        *(int16_t *)(unit + 0x3aa) -= 1;
+        if (*(int16_t *)(unit + 0x3aa) == 0) {
+          *(int *)(unit + 0x3b0) = -1;
+        }
+      } else {
+        if (*(uint8_t *)(unit + 0x3a6) == 0) {
+          FUN_00046530(param_1,
+              *(uint16_t *)(unit + 0x338), *(uint16_t *)(unit + 0x33a),
+              0, -1, unit + 0x348);
+          *(uint8_t *)(unit + 0x3a6) = 1;
+        }
+        if (*(int16_t *)(unit + 0x3ae) > 0) {
+          *(int16_t *)(unit + 0x3ae) -= 1;
+        }
+        if (*(int16_t *)(unit + 0x3ae) == 0) {
+          *(int16_t *)(unit + 0x3ac) = 0;
+        }
+      }
+    }
+  }
+
+  if (*(int16_t *)(unit + 0x3ac) == 0 && *(uint8_t *)(unit + 0x3a5) == 0) {
+    FUN_00045290(param_1,
+        *(uint16_t *)(unit + 0x338), *(uint16_t *)(unit + 0x33a),
+        unit + 0x348);
+    *(uint8_t *)(unit + 0x3a5) = 1;
+  }
+
+  sVar1 = *(int16_t *)(unit + 0x338);
+  if (sVar1 > 0) {
+    if (*(int16_t *)(unit + 0x3aa) == 0 && *(int16_t *)(unit + 0x3ae) == 0) {
+      *(int16_t *)(unit + 0x338) = 0;
+    }
+    sVar1 = *(int16_t *)(unit + 0x338);
+  }
+  if (sVar1 == 0 && *(int16_t *)(unit + 0x368) > 0) {
+    FUN_001a6ef0(param_1, 3, unit + 0x368);
+  }
+}
