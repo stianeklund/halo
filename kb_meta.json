@@ -8920,6 +8920,10 @@
         "The return semantics are inverted: returns true when NO matching seat occupant or friendly child was found, meaning the seat is available."
       ]
     },
+    "0x1a8da0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1a8e10": {
       "kind": "function",
       "status": "ported"
@@ -8962,6 +8966,10 @@
         "Exact set of blocking animation states from switch table 0x1a97a8 \u2014 cases 0x17-0x1b, 0x1d-0x23, 0x27, 0x29 confirmed; gaps 0x1c and 0x24-0x26, 0x28 not independently verified."
       ]
     },
+    "0x1a9880": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1a9900": {
       "kind": "function",
       "status": "ported"
@@ -8995,11 +9003,23 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1a9b30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1a9b80": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1a9c00": {
       "kind": "function",
       "status": "ported"
     },
     "0x1a9c40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1a9da0": {
       "kind": "function",
       "status": "ported"
     },
