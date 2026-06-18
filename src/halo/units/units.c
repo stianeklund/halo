@@ -5044,3 +5044,111 @@ void FUN_001a70d0(int unit_handle, int sound_tag, int sound_handle)
   *(int16_t *)(unit + 0x3a8) = 0;
   FUN_00044fd0(unit_handle, 6, 0xffff, unit + 0x348);
 }
+
+/* unit_export_function_values (0x1a8010)
+ * Exports 4 animation function values from unit tag to unit+0xD4. */
+void unit_export_function_values(int unit_handle)
+{
+  uint32_t *unit;
+  char *unit_tag;
+  float fVar1;
+  float *pfVar4;
+  int16_t *psVar5;
+  char *anim_tag;
+  char *anim_entry;
+  int local_8;
+
+  unit = (uint32_t *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag = (char *)tag_get(0x756e6974, *unit);
+  pfVar4 = (float *)(unit + 0x35);
+  psVar5 = (int16_t *)(unit_tag + 0x198);
+  local_8 = 4;
+  do {
+    if (*psVar5 != 0) {
+      fVar1 = 0.0f;
+      switch (*psVar5) {
+      case 1:
+        fVar1 = *(float *)(unit + 0xba);
+        break;
+      case 2:
+        fVar1 = *(float *)(unit + 0xbb);
+        break;
+      case 3:
+        fVar1 = (float)*(uint8_t *)((char *)unit + 0x2d3) * *(float *)0x261518;
+        break;
+      case 4:
+        fVar1 = *(float *)(unit + 0xa6);
+        break;
+      case 5:
+        fVar1 = *(float *)(unit + 0xbc);
+        break;
+      case 6:
+        if ((*(uint8_t *)((char *)unit + 0xb6) & 4) == 0 &&
+            (unit[0x6d] & 0x400000) == 0) {
+          fVar1 = *(float *)0x2533c8;
+        }
+        break;
+      case 7:
+        anim_tag = (char *)tag_get(0x616e7472, unit[0x1f]);
+        anim_entry = (char *)tag_block_get_element(
+            (int *)(anim_tag + 0x74),
+            (int)*(int16_t *)(unit + 0x20), 0xb4);
+        if (*(int16_t *)(unit + 0x20) < *(int16_t *)(anim_entry + 0x2e)) {
+          fVar1 = (float)(int)*(int16_t *)(unit + 0x20) /
+                  (float)(int)*(int16_t *)(anim_entry + 0x2e);
+        } else {
+          fVar1 = *(float *)0x2533c8 -
+                  (float)(int)*(int8_t *)((char *)unit + 0x1be) * *(float *)0x26f2e0;
+        }
+        break;
+      }
+      *pfVar4 = fVar1;
+    }
+    psVar5++;
+    pfVar4++;
+    local_8--;
+  } while (local_8 != 0);
+}
+
+/* unit_get_melee_range_and_ticks (0x1a83e0)
+ * Gets melee attack animation timing data. */
+char unit_get_melee_range_and_ticks(int unit_handle, char is_secondary,
+    int *out_tick_count, float *out_attack_time, int16_t *out_frame_count,
+    float *out_damage_time)
+{
+  uint32_t *unit;
+  char *unit_tag;
+  char *anim_tag;
+  char *anim_set;
+  char *anim_mode;
+  int anim_index;
+  int16_t anim_id;
+
+  unit = (uint32_t *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag = (char *)tag_get(0x756e6974, *unit);
+  tag_get(0x6d6f6465, *(int *)(unit_tag + 0x34));
+  anim_tag = (char *)tag_get(0x616e7472, *(int *)(unit_tag + 0x44));
+  anim_set = (char *)tag_block_get_element(
+      (int *)(anim_tag + 0xc), (int)*(int8_t *)(unit + 0x94), 100);
+  anim_mode = (char *)tag_block_get_element(
+      (int *)(anim_set + 0x58), (int)*(int8_t *)((char *)unit + 0x251), 0xbc);
+  anim_index = (-(uint32_t)(is_secondary != '\0') & 3) + 0x27;
+  if (anim_index < *(int *)(anim_mode + 0x98)) {
+    anim_id = *(int16_t *)(*(int *)(anim_mode + 0x9c) + anim_index * 2);
+  } else {
+    anim_id = -1;
+  }
+  if (anim_id == -1) {
+    return 0;
+  }
+  anim_tag = (char *)tag_block_get_element(
+      (int *)(anim_tag + 0x74), (int)anim_id, 0xb4);
+  FUN_00120710((int)anim_tag, (int)out_attack_time, (int)out_damage_time);
+  if (out_tick_count != NULL) {
+    *out_tick_count = (int)*(int16_t *)(anim_tag + 0x34);
+  }
+  if (out_frame_count != NULL) {
+    *out_frame_count = *(int16_t *)(anim_tag + 0x22);
+  }
+  return 1;
+}
