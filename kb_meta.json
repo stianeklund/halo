@@ -8936,6 +8936,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1a8ee0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1a9130": {
       "kind": "function",
       "status": "ported"
@@ -8977,6 +8981,10 @@
       "uncertain": [
         "Exact set of blocking animation states from switch table 0x1a97a8 \u2014 cases 0x17-0x1b, 0x1d-0x23, 0x27, 0x29 confirmed; gaps 0x1c and 0x24-0x26, 0x28 not independently verified."
       ]
+    },
+    "0x1a97c0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1a9880": {
       "kind": "function",
@@ -9180,6 +9188,10 @@
       "status": "ported"
     },
     "0x1ac3f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1ac450": {
       "kind": "function",
       "status": "ported"
     },
