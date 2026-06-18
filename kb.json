@@ -25537,11 +25537,12 @@
         },
         {
           "addr": "0x1a7730",
-          "decl": "void FUN_001a7730(void);"
+          "decl": "void FUN_001a7730(int unit_handle@<eax>);"
         },
         {
           "addr": "0x1a7790",
-          "decl": "void FUN_001a7790(void);"
+          "decl": "void FUN_001a7790(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1a7a90",
@@ -30721,11 +30722,11 @@
         },
         {
           "addr": "0x44fd0",
-          "decl": "void ai_communication_started(void);"
+          "decl": "void FUN_00044fd0(int unit_handle, uint16_t priority, uint16_t type, void *comm_data);"
         },
         {
           "addr": "0x45290",
-          "decl": "void ai_communication_notify(void);"
+          "decl": "void FUN_00045290(int unit_handle, uint16_t priority, uint16_t type, void *comm_data);"
         },
         {
           "addr": "0x454a0",
@@ -30749,7 +30750,7 @@
         },
         {
           "addr": "0x46530",
-          "decl": "void ai_communication_finished(void);"
+          "decl": "void FUN_00046530(int unit_handle, uint16_t priority, uint16_t type, int unk, int unk2, void *comm_data);"
         },
         {
           "addr": "0x46b60",
