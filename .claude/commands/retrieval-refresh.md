@@ -1,13 +1,13 @@
 ---
-description: Refresh local retrieval/vector index (extract + embed + stats)
+description: Refresh local retrieval/vector index (extract + outcomes + embed + stats)
 model: sonnet
 subtask: false
 ---
 
 Argument: `$ARGUMENTS` (optional flags)
 
-Refresh the repo-local vector database used by retrieval neighbor injection in
-`llm_auto_lift.py cache-context`.
+Refresh the repo-local vector database used by retrieval neighbor injection and
+hazard warning lookup during `/lift`.
 
 ## What it runs
 
@@ -15,6 +15,7 @@ Default sequence:
 
 ```bash
 rtk python3 tools/retrieval/build_index.py extract
+rtk python3 tools/retrieval/build_index.py outcomes
 rtk python3 tools/retrieval/build_index.py embed
 rtk python3 tools/retrieval/build_index.py stats
 ```
@@ -37,9 +38,10 @@ Example:
 ## Output contract
 
 Report:
-- Extract summary (`ported functions written`, pseudocode/C coverage)
+- Extract summary (`ported functions written`, pseudocode/C/VC71 coverage)
+- Outcomes summary (`vc71_score`, `verdict`, `hazard_flags` counts)
 - Embed summary (`rows embedded`, model, batch/chunk settings)
-- Final stats (`total`, `with_pseudocode`, `with_c`, `with_embeddings`, `models`)
+- Final stats (`total`, `with_pseudocode`, `with_c`, `with_embeddings`, `with_vc71`, `with_verdict`, `with_hazards`, `models`)
 
 ## Notes
 
