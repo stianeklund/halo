@@ -25513,12 +25513,13 @@
         },
         {
           "addr": "0x1a6e20",
-          "decl": "void FUN_001a6e20(void);"
+          "decl": "void FUN_001a6e20(int unit_handle@<eax>, void *speech_item@<ecx>, short priority);",
+          "ported": true
         },
         {
           "addr": "0x1a6ef0",
           "decl": "void FUN_001a6ef0(int actor, short count, void *comm_buf);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1a70d0",
@@ -25712,7 +25713,8 @@
         },
         {
           "addr": "0x1a8ee0",
-          "decl": "void unit_record_damage(void);"
+          "decl": "void unit_record_damage(int unit_handle, float damage_amount, int16_t damage_type, char notify_ai, int attacker_object, int16_t attacker_team, int killing_object);",
+          "ported": true
         },
         {
           "addr": "0x1a9130",
@@ -25752,7 +25754,8 @@
         },
         {
           "addr": "0x1a97c0",
-          "decl": "void unit_test_animation_impulse(void);"
+          "decl": "uint32_t unit_test_animation_impulse(int unit_handle, int impulse_index);",
+          "ported": true
         },
         {
           "addr": "0x1a9880",
@@ -26055,7 +26058,8 @@
         },
         {
           "addr": "0x1ac450",
-          "decl": "void unit_start_running_blindly(int unit_handle);"
+          "decl": "void unit_start_running_blindly(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1ac520",

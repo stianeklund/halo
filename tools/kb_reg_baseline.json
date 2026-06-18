@@ -447,6 +447,12 @@
     "0x1a2b10": "void FUN_001a2b10(int unit_handle@<edi>);",
     "0x1a2b90": "void FUN_001a2b90(int unit_handle@<eax>);",
     "0x1a2f40": "void FUN_001a2f40(void *physics@<esi>);",
+    "0x1a86b0": "char FUN_001a86b0(void *anim_state@<ecx>, int16_t target_state@<edx>);",
+    "0x1a8730": "char FUN_001a8730(void *anim_state@<ecx>);",
+    "0x1a8790": "char FUN_001a8790(void *anim_state@<ecx>);",
+    "0x1a87f0": "char FUN_001a87f0(void *anim_state@<ecx>);",
+    "0x1a8850": "char FUN_001a8850(void *anim_state@<ecx>);",
+    "0x1a88b0": "int FUN_001a88b0(int16_t anim_state@<ecx>);",
     "0x1a8b20": "void FUN_001a8b20(int object_handle @<eax>, int16_t state);",
     "0x1a9560": "int16_t unit_impulse_to_animation_kind(int16_t impulse_index@<ax>, int16_t *out_update_kind@<ebx>);",
     "0x1a96f0": "bool unit_animation_state_allows_impulse(int unit_handle@<eax>, int impulse_index@<edi>);",
@@ -506,6 +512,7 @@
     "0x1d8750": "unsigned int FUN_001d8750(unsigned int val@<ecx>);",
     "0x1e9350": "void D3DDevice_SetRenderState_Simple(uint32_t reg@<ecx>, uint32_t value@<edx>);",
     "0x1e9380": "void D3DDevice_SetRenderState_Deferred(uint32_t reg_index@<ecx>, uint32_t value@<edx>);",
-    "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);"
+    "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);",
+    "0x1a6e20": "void FUN_001a6e20(int unit_handle@<eax>, void *speech_item@<ecx>, short priority);"
   }
 }
