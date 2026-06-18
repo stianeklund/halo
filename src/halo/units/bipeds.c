@@ -3622,9 +3622,13 @@ LAB_001a4062_done:
         if (*eh != -1) {
           void *o;
           float ddx, ddy, ddz, d2;
-          o = object_try_and_get_and_verify_type(*eh, -1);
-          if (o == (void *)0)
-            goto loopB_next;
+          /* Faithful: original CALL 0x13d680 object_get_and_verify_type
+           * (asserting, mask -1). Result used directly, NO NULL check
+           * (orig 0x1a408a: mov ecx,eax; flds [ecx+0x18]). The inner datum_get
+           * asserts/HALTs on a stale handle — which only occurs if FUN_0014f2c0
+           * returns a count larger than the filled records. Loop C below stays
+           * object_try_and_get_and_verify_type (0x13d640) — that IS faithful. */
+          o = object_get_and_verify_type(*eh, -1);
           ddx = *(float *)((char *)o + 0x18) - los_dir[0];
           ddy = *(float *)((char *)o + 0x1c) - los_dir[1];
           ddz = *(float *)((char *)o + 0x20) - los_dir[2];
