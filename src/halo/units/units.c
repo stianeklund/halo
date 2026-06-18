@@ -3702,3 +3702,134 @@ bool unit_board_vehicle(int unit_handle, int vehicle_handle, int16_t seat_index)
   unit_reset_weapon_state(unit_handle);
   return true;
 }
+
+/* unit_get_zoom_level (0x1a8690)
+ * Returns the unit's current zoom level from byte at unit+0x2D0. */
+int16_t unit_get_zoom_level(int unit_handle)
+{
+  char *unit;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  return (int16_t)*(int8_t *)(unit + 0x2D0);
+}
+
+/* unit_kill (0x1a7fa0)
+ * Marks a unit for killing by setting bit 0x40 on object flags at +0xB6. */
+void unit_kill(int unit_handle)
+{
+  char *obj;
+
+  obj = (char *)object_get_and_verify_type(unit_handle, 3);
+  *(uint8_t *)(obj + 0xB6) |= 0x40;
+}
+
+/* unit_set_controllable (0x1a9a50)
+ * Sets or clears bit 6 (0x40) of unit flags dword at +0x1B4. */
+void unit_set_controllable(int unit_handle, char controllable)
+{
+  char *unit;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  if (controllable) {
+    *(uint32_t *)(unit + 0x1B4) |= 0x40;
+  } else {
+    *(uint32_t *)(unit + 0x1B4) &= ~0x40u;
+  }
+}
+
+/* unit_set_possessed (0x1a9a90)
+ * Sets or clears bit 27 (0x8000000) of unit flags dword at +0x1B4. */
+void unit_set_possessed(int unit_handle, char possessed)
+{
+  char *unit;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  if (possessed) {
+    *(uint32_t *)(unit + 0x1B4) |= 0x8000000;
+  } else {
+    *(uint32_t *)(unit + 0x1B4) &= ~0x8000000u;
+  }
+}
+
+/* FUN_001a9ec0 (0x1a9ec0)
+ * Returns datum handle at unit+0x2D4, or NONE if object lookup fails. */
+int FUN_001a9ec0(int unit_handle)
+{
+  char *unit;
+
+  unit = (char *)object_try_and_get_and_verify_type(unit_handle, 3);
+  if (unit != NULL) {
+    return *(int *)(unit + 0x2D4);
+  }
+  return -1;
+}
+
+/* FUN_001a9ef0 (0x1a9ef0)
+ * Returns datum handle at unit+0x2D8, or NONE if object lookup fails. */
+int FUN_001a9ef0(int unit_handle)
+{
+  char *unit;
+
+  unit = (char *)object_try_and_get_and_verify_type(unit_handle, 3);
+  if (unit != NULL) {
+    return *(int *)(unit + 0x2D8);
+  }
+  return -1;
+}
+
+/* FUN_001a7e70 (0x1a7e70)
+ * Guard wrapper around unit_has_weapon_definition_index.
+ * Returns false if either handle is NONE. */
+char FUN_001a7e70(int unit_handle, int definition_index)
+{
+  char result;
+
+  result = 0;
+  if (unit_handle != -1 && definition_index != -1) {
+    result = unit_has_weapon_definition_index(unit_handle, definition_index);
+  }
+  return result;
+}
+
+/* unit_destroy (0x1a91e0)
+ * Destroys a unit: runs object_destroy then unit_test_spawning. */
+void unit_destroy(int unit_handle)
+{
+  object_destroy(unit_handle);
+  unit_test_spawning(unit_handle);
+}
+
+/* unit_scripting_can_blink (0x1a9c00)
+ * Sets whether a unit can blink. Inverted: bit 22 (0x400000) at +0x1B4
+ * means "cannot blink", so can_blink=false sets the bit. */
+void unit_scripting_can_blink(int unit_handle, char can_blink)
+{
+  char *unit;
+
+  if (unit_handle != -1) {
+    unit = (char *)object_get_and_verify_type(unit_handle, 3);
+    if (can_blink == '\0') {
+      *(uint32_t *)(unit + 0x1B4) |= 0x400000;
+    } else {
+      *(uint32_t *)(unit + 0x1B4) &= ~0x400000u;
+    }
+  }
+}
+
+/* unit_scripting_doesnt_drop_items (0x1a9c40)
+ * Iterates child objects and sets bit 20 (0x100000) on each unit's flags. */
+void unit_scripting_doesnt_drop_items(int object_list)
+{
+  int iter_state;
+  int child;
+  char *unit;
+
+  child = FUN_000ce450(object_list, &iter_state);
+  while (child != -1) {
+    unit = (char *)object_try_and_get_and_verify_type(child, 3);
+    if (unit != NULL) {
+      *(uint32_t *)(unit + 0x1B4) |= 0x100000;
+    }
+    child = FUN_000ce320(object_list, &iter_state);
+  }
+}
