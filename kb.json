@@ -25990,7 +25990,7 @@
         },
         {
           "addr": "0x1ab730",
-          "decl": "void FUN_001ab730(void);"
+          "decl": "char FUN_001ab730(void);"
         },
         {
           "addr": "0x1ab770",
@@ -26122,7 +26122,8 @@
         },
         {
           "addr": "0x1ae180",
-          "decl": "void unit_close(void);"
+          "decl": "void unit_close(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1ae1a0",
@@ -26135,7 +26136,8 @@
         },
         {
           "addr": "0x1ae210",
-          "decl": "void units_set_desired_flashlight_state(void);"
+          "decl": "void units_set_desired_flashlight_state(int object_list, char desired);",
+          "ported": true
         },
         {
           "addr": "0x1ae290",
@@ -26159,7 +26161,7 @@
         },
         {
           "addr": "0x1ae490",
-          "decl": "int16_t unit_next_weapon_index(int unit_handle@<ebx>, int16_t weapon_index, int16_t direction);",
+          "decl": "int16_t FUN_001ae490(int param_1, int param_2);",
           "ported": true
         },
         {
@@ -26177,11 +26179,13 @@
         },
         {
           "addr": "0x1ae750",
-          "decl": "void unit_scripting_set_seat(void);"
+          "decl": "void unit_scripting_set_seat(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1ae780",
-          "decl": "void unit_handle_deleted_object(void);"
+          "decl": "void unit_handle_deleted_object(int unit_handle, int deleted_handle);",
+          "ported": true
         },
         {
           "addr": "0x1ae840",
@@ -26193,7 +26197,8 @@
         },
         {
           "addr": "0x1af0d0",
-          "decl": "void unit_stop_custom_animation(void);"
+          "decl": "void unit_stop_custom_animation(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1af100",

@@ -4560,3 +4560,109 @@ void unit_open(int unit_handle)
     FUN_001ad260(unit_handle, 0x25);
   }
 }
+
+/* unit_close (0x1ae180)
+ * Closes a unit by transitioning to animation state 0x26. */
+void unit_close(int unit_handle)
+{
+  if (unit_handle != -1) {
+    FUN_001ad260(unit_handle, 0x26);
+  }
+}
+
+/* units_set_desired_flashlight_state (0x1ae210)
+ * Iterates child objects and sets flashlight state for each unit. */
+void units_set_desired_flashlight_state(int object_list, char desired)
+{
+  int iter_state;
+  int child;
+  char *unit;
+  uint32_t flags;
+
+  child = FUN_000ce450(object_list, &iter_state);
+  while (child != -1) {
+    unit = (char *)object_try_and_get_and_verify_type(child, 3);
+    if (unit != NULL && child != -1) {
+      unit = (char *)object_get_and_verify_type(child, 3);
+      if (desired == '\0') {
+        flags = *(uint32_t *)(unit + 0x1b4) | 0x20000000;
+      } else {
+        flags = *(uint32_t *)(unit + 0x1b4) | 0x10000000;
+      }
+      *(uint32_t *)(unit + 0x1b4) = flags;
+    }
+    child = FUN_000ce320(object_list, &iter_state);
+  }
+}
+
+/* unit_scripting_set_seat (0x1ae750)
+ * Sets the unit's seat override from the magic base seat. */
+void unit_scripting_set_seat(int unit_handle)
+{
+  char *unit;
+  char seat;
+
+  if (unit_handle != -1) {
+    unit = (char *)object_get_and_verify_type(unit_handle, 3);
+    seat = FUN_001ab730();
+    *(char *)(unit + 0x1bf) = seat;
+  }
+}
+
+/* unit_handle_deleted_object (0x1ae780)
+ * Cleans up references to a deleted object in all unit fields. */
+void unit_handle_deleted_object(int unit_handle, int deleted_handle)
+{
+  char *unit;
+  int16_t i;
+  int *weapon_slot;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  if (*(int *)(unit + 0x244) == deleted_handle) {
+    *(int *)(unit + 0x244) = -1;
+  }
+  if (*(int *)(unit + 0x2d4) == deleted_handle) {
+    *(int *)(unit + 0x2d4) = -1;
+  }
+  if (*(int *)(unit + 0x2d8) == deleted_handle) {
+    *(int *)(unit + 0x2d8) = -1;
+  }
+  i = 0;
+  weapon_slot = (int *)(unit + 0x2a8);
+  do {
+    if (*weapon_slot == deleted_handle) {
+      *weapon_slot = -1;
+      if (i == *(int16_t *)(unit + 0x2a4)) {
+        *(int16_t *)(unit + 0x2a4) = -1;
+      }
+      if (i == *(int16_t *)(unit + 0x2a2)) {
+        *(int16_t *)(unit + 0x2a2) = -1;
+      }
+    }
+    i++;
+    weapon_slot++;
+  } while (i < 4);
+  if (*(int16_t *)(unit + 0x2a2) == -1) {
+    *(int16_t *)(unit + 0x2a4) = FUN_001ae490(-1, 0);
+  }
+  if (*(int *)(unit + 0x2c8) == deleted_handle) {
+    *(int *)(unit + 0x2c8) = -1;
+  }
+  if (*(int *)(unit + 0x3bc) == deleted_handle) {
+    *(int *)(unit + 0x3bc) = -1;
+  }
+}
+
+/* unit_stop_custom_animation (0x1af0d0)
+ * Stops a custom animation if the current state is 0x1c. */
+void unit_stop_custom_animation(int unit_handle)
+{
+  char *unit;
+
+  if (unit_handle != -1) {
+    unit = (char *)object_get_and_verify_type(unit_handle, 3);
+    if (*(char *)(unit + 0x253) == '\x1c') {
+      FUN_001ad260(unit_handle, 0);
+    }
+  }
+}
