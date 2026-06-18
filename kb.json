@@ -25623,7 +25623,8 @@
         },
         {
           "addr": "0x1a8010",
-          "decl": "void unit_export_function_values(void);"
+          "decl": "void unit_export_function_values(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1a8190",
@@ -25637,7 +25638,8 @@
         },
         {
           "addr": "0x1a83e0",
-          "decl": "char unit_get_melee_range_and_ticks(int unit_handle, int is_secondary, int *out_tick_count, float *out_attack_time, short *out_tick_short, float *out_damage_time);"
+          "decl": "char unit_get_melee_range_and_ticks(int unit_handle, char is_secondary, int *out_tick_count, float *out_attack_time, int16_t *out_frame_count, float *out_damage_time);",
+          "ported": true
         },
         {
           "addr": "0x1a84c0",
@@ -33473,7 +33475,7 @@
         },
         {
           "addr": "0x120710",
-          "decl": "void animation_get_x_offsets(void);"
+          "decl": "void FUN_00120710(int anim_entry, int tick_out, int damage_time_out);"
         },
         {
           "addr": "0x120790",
