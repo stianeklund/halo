@@ -1080,3 +1080,30 @@ emits for float→int truncations.
 - When a latent crash is triggered by a previously-suppressed code path: search for WHERE the bad value originates, not just what asserts. The assert (`tag_block_get_element` with 0x7FFFFFFF) was a symptom; the root cause was -1 in collision_result+0xC, itself caused by count=0 after a previously-always-false BSP test.
 
 **Detection at runtime:** After correcting a float constant, a new crash appears in a code path that was previously never reached. The new crash may be several call levels removed from the changed code — bisect by temporarily reverting the constant change to confirm the new code path is the cause.
+
+---
+
+## 22. In-Place Vector Normalizer Misused as a Pure Magnitude (No-Clamp Restore Dropped)
+
+**Automation:** RESOLVED — `check_lift_hazards.py::check_inplace_mutator_misuse` (WARN), shipped in this commit. Plus the standing golden-master case for `FUN_001a2f40` ground-tangent (see `test_harness.c`). Suppress a verified-legitimate hit with `/* hazard-ok: normalize-in-place */`.
+
+**What happens:** Three Halo vector helpers **normalize their argument IN PLACE and return its pre-normalization length** — they are NOT pure magnitude functions despite the name:
+- `magnitude3d` (`FUN_00012f10`, a 2D normalize of `v[0]/v[1]`)
+- `normalize3d` (`FUN_00013010`)
+- `normalize2d`
+
+The original code's clamp idiom keeps a raw copy precisely because the call destroys it:
+```c
+raw0 = damp * c0 - vel[0];  raw1 = damp * c1 - vel[1];
+v[0] = raw0;  v[1] = raw1;
+len = magnitude3d(v);                 /* v[0]/v[1] now overwritten with unit vector */
+if (len > clamp) { v[0] = v[0] * clamp; v[1] = v[1] * clamp; }  /* scale the unit vec */
+else             { v[0] = raw0;          v[1] = raw1;        }  /* RESTORE the raw    */
+```
+A "cleanup" that mistakes the helper for pure and deletes the `else`-restore makes the no-clamp branch emit the **normalized unit vector (magnitude ~1.0)** instead of the small raw delta. Injected as velocity every frame, that is a runaway speed.
+
+**Example (FUN_001a2f40, biped ground-tangent, `flags & 1`):** disasm `bipeds_FUN_001a2f40.obj` at `LAB_001a3219` (file offset `0x2d9`) reloads `raw0` from `edi` and `raw1` from `[ebp-0xac]` in the no-clamp branch rather than reading `tang[0]/tang[1]` at `[ebp-0x44]/[ebp-0x40]` — the proof the helper clobbered those slots. With the restore present the lift matches; deleting it reproduced the "jump/walk up an incline → massive speed → die" bug. (`magnitude3d` mutation is independently locked by `test_harness.c` which asserts `v[0]/v[1]` come back normalized.)
+
+**Prevention:**
+- Treat `magnitude3d`/`normalize3d`/`normalize2d` as in-place mutators. If a later branch needs the pre-call vector, save a raw copy first and restore it — never reuse the post-call vector as if it were unchanged.
+- The detector fires only on the dangerous shape: the captured length is compared with a relational clamp (`>`,`<`,`>=`,`<=`), a branch scales `v[i]` in place (`v[i] = <…v[i]…> * …`), and **no sibling branch restores `v[i]` from a non-`v` source**. The common legitimate idioms (`normalize3d(v); v[i] = -v[i];` sign-flip with the return ignored, or `len = normalize3d(v); if (len != eps) v[i] = len*v[i];` intentional rescale on a validity check) do not match and are not flagged.
