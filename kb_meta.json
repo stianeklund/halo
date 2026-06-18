@@ -9167,6 +9167,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1ac520": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1ac650": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1acd70": {
       "kind": "function",
       "status": "ported",
@@ -9176,6 +9184,10 @@
       "uncertain": [
         "The multi-weapon flag logic checks key_data pointers at mode+0x44 offsets +4, +6, +8 for non-NONE int16_t values; exact semantics of these weapon animation channels are unconfirmed."
       ]
+    },
+    "0x1ad7e0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1ad800": {
       "kind": "function",
@@ -9193,6 +9205,10 @@
       "status": "ported"
     },
     "0x1adf10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1ae160": {
       "kind": "function",
       "status": "ported"
     },
