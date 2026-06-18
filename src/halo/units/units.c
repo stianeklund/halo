@@ -4058,3 +4058,130 @@ char FUN_001a86b0(void *anim_state, int16_t target_state)
 default_return:
   return 1;
 }
+
+/* unit_impulse (0x1a8da0)
+ * Applies scaled impulse to unit's transitional velocity (unit+0x18). */
+void unit_impulse(int unit_index, int unused, float *impulse_vector, float scale)
+{
+  uint32_t *unit;
+  char *unit_tag;
+  char *phys_tag;
+  (void)unused;
+
+  unit = (uint32_t *)object_get_and_verify_type(unit_index, 3);
+  unit_tag = (char *)tag_get(0x756e6974, *unit);
+  if (*(int *)(unit_tag + 0x8c) != -1) {
+    phys_tag = (char *)tag_get(0x70687973, *(int *)(unit_tag + 0x8c));
+    scale = scale / *(float *)(phys_tag + 8);
+    *(float *)((char *)unit + 0x18) = scale * impulse_vector[0] + *(float *)((char *)unit + 0x18);
+    *(float *)((char *)unit + 0x1c) = scale * impulse_vector[1] + *(float *)((char *)unit + 0x1c);
+    *(float *)((char *)unit + 0x20) = scale * impulse_vector[2] + *(float *)((char *)unit + 0x20);
+  }
+}
+
+/* unit_get_aiming_unit_index (0x1a9880)
+ * Returns the datum index of the unit that controls aiming.
+ * If the unit is in a seat with the aiming flag, returns the parent. */
+int unit_get_aiming_unit_index(int unit_index)
+{
+  char *unit;
+  uint32_t *parent;
+  char *parent_tag;
+  uint8_t *seat;
+
+  if (unit_index == -1) {
+    return -1;
+  }
+  unit = (char *)object_get_and_verify_type(unit_index, 3);
+  if (*(int *)(unit + 0xcc) != -1 && *(int16_t *)(unit + 0x2a0) != -1) {
+    parent = (uint32_t *)object_get_and_verify_type(*(int *)(unit + 0xcc), 3);
+    parent_tag = (char *)tag_get(0x756e6974, *parent);
+    seat = (uint8_t *)tag_block_get_element(
+        (int *)(parent_tag + 0x2e4),
+        (int)*(int16_t *)(unit + 0x2a0), 0x11c);
+    if ((*seat & 9) != 0) {
+      return *(int *)(unit + 0xcc);
+    }
+  }
+  return unit_index;
+}
+
+/* unit_scripting_set_emotion_animation (0x1a9b30)
+ * Looks up an animation by name and sets it as the unit's emotion animation. */
+void unit_scripting_set_emotion_animation(int unit_index, const char *animation_name)
+{
+  char *unit;
+  int16_t anim;
+
+  if (unit_index != -1) {
+    unit = (char *)object_get_and_verify_type(unit_index, 3);
+    anim = FUN_00120cb0(*(int *)(unit + 0x7c), animation_name);
+    if (anim != -1) {
+      *(int16_t *)(unit + 0x1ce) = anim;
+      return;
+    }
+    console_warning("couldn\'t find the emotion animation \'%s\'", animation_name);
+  }
+}
+
+/* unit_scripting_suspended (0x1a9b80)
+ * Suspends or unsuspends a unit. Sets/clears bit 24 (0x1000000) at +0x1B4,
+ * zeros the velocity from global origin, and clears biped bit if type==0. */
+void unit_scripting_suspended(int unit_index, char suspended)
+{
+  char *unit;
+  uint32_t flags;
+  char *global_origin;
+  char *biped;
+
+  if (unit_index != -1) {
+    unit = (char *)object_get_and_verify_type(unit_index, 3);
+    if (suspended != '\0') {
+      flags = *(uint32_t *)(unit + 0x1b4) | 0x1000000;
+    } else {
+      flags = *(uint32_t *)(unit + 0x1b4) & 0xfeffffff;
+    }
+    *(uint32_t *)(unit + 0x1b4) = flags;
+    global_origin = *(char **)0x31fc38;
+    *(uint32_t *)(unit + 0x18) = *(uint32_t *)global_origin;
+    *(uint32_t *)(unit + 0x1c) = *(uint32_t *)(global_origin + 4);
+    *(uint32_t *)(unit + 0x20) = *(uint32_t *)(global_origin + 8);
+    if (*(int16_t *)(unit + 0x64) == 0) {
+      biped = (char *)object_get_and_verify_type(unit_index, 1);
+      *(uint32_t *)(biped + 0x424) &= 0xfffffffe;
+    }
+  }
+}
+
+/* unit_scripting_vehicle_test_seat (0x1a9da0)
+ * Returns true if unit_index is sitting in the named seat of vehicle_index. */
+char unit_scripting_vehicle_test_seat(int vehicle_index, const char *seat_name, int unit_index)
+{
+  uint32_t *vehicle;
+  char *vehicle_tag;
+  int *seats_block;
+  char *seat_element;
+  char *unit_data;
+  int16_t i;
+
+  if (vehicle_index != -1 && unit_index != -1) {
+    vehicle = (uint32_t *)object_get_and_verify_type(vehicle_index, 3);
+    vehicle_tag = (char *)tag_get(0x756e6974, *vehicle);
+    seats_block = (int *)(vehicle_tag + 0x2e4);
+    if (0 < *seats_block) {
+      i = 0;
+      do {
+        seat_element = (char *)tag_block_get_element(seats_block, (int)i, 0x11c);
+        if (crt_stricmp(seat_name, seat_element + 4) == 0) {
+          unit_data = (char *)object_get_and_verify_type(unit_index, 3);
+          if (*(int *)(unit_data + 0xcc) == vehicle_index &&
+              *(int16_t *)(unit_data + 0x2a0) == i) {
+            return 1;
+          }
+        }
+        i++;
+      } while ((int)i < *seats_block);
+    }
+  }
+  return 0;
+}
