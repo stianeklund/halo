@@ -417,6 +417,123 @@ void run_tests(void)
     passed += check("magnitude3d y", *(uint32_t *)&v[1], 0x3F4CCCCD, buf);
   }
 
+  /* FUN_001a2f40 ground-tangent no-clamp restore lock.
+   *
+   * Locks the "no-clamp ground-tangent" fix in src/halo/units/bipeds.c
+   * (FUN_001a2f40, mode flags&1 branch). That branch computes raw tangent
+   * deltas (raw0/raw1), copies them into tang[], then calls magnitude3d
+   * (FUN_00012f10) which NORMALIZES tang IN PLACE and returns the
+   * pre-normalize length. When the length does NOT exceed the clamp
+   * (physics[0x14]), the original RESTORES tang[0]=raw0; tang[1]=raw1 before
+   * writing new_velocity. A "cleanup" that assumes magnitude3d is pure and
+   * drops that restore emits the ~unit vector instead of the small raw delta
+   * -> runaway velocity ("walk/jump up an incline -> massive speed -> die").
+   *
+   * The full function overwrites new_velocity (+0xb8) at its tail (0x1a4160),
+   * so the restored tangent is only observable when the back-half is driven
+   * through its debug-draw synth path (global 0x4e4cf2 != 0): no live BSP
+   * query runs, result_count stays 1, and the synth writeback publishes the
+   * ground tangent as new_velocity. With physics[0]=-1 (none) the result-walk
+   * loops skip all object lookups, so the path is fully deterministic with no
+   * map loaded.
+   *
+   * Golden values below match the original debug-synth path: objdump of
+   * delinked/bipeds_FUN_001a2f40.obj at offsets 0x7e1..0x889 shows the local
+   * later copied to new_velocity receives bare new_pos.xy (not position +
+   * new_pos). The restore is fully exercised and locked: removing it changes
+   * the observed no-clamp x from 0.06 to 0.6, so this case FAILS.
+   *
+   * Input (zero-init except below) forces the flags&1 branch:
+   *   flags(+0x04)=0x0001; position(+0x08)=(1,2,3); forward(+0x14)=(0.06,0.08);
+   *   control(+0x3c)=(1,0,0); friction(+0x48)=0 -> damp=1;
+   *   c0=damp*(fwd.x*ctl.x - fwd.y*ctl.y)=0.06, c1=damp*(fwd.x*ctl.y + ... )=0.08
+   *   velocity(+0x2c)=0 -> raw0=0.06, raw1=0.08, |tang|=0.1.
+   * NO-CLAMP case: clamp(+0x50)=10 (0.1 <= 10) -> restore tang=(0.06,0.08).
+   * CLAMP case: clamp(+0x50)=0.05 (0.1 > 0.05) -> unit*0.05 = (0.03,0.04);
+   *   the clamp branch never reads raw0/raw1, so it locks that path too. */
+  {
+    volatile char *dbg_synth = (volatile char *)0x4e4cf2; /* synth-path gate */
+    volatile char *dbg_stub = (volatile char *)0x4e4cf0;  /* draw-stub gate  */
+    char saved_synth = *dbg_synth;
+    char saved_stub = *dbg_stub;
+    float physics[80];
+    float dump_values[2];
+    int i;
+
+    *dbg_synth = 1; /* take the no-query debug synth path */
+    *dbg_stub = 0;  /* skip the object debug-draw stub */
+
+    /* ---- no-clamp (restore) case ---- */
+    for (i = 0; i < 80; i++) {
+      physics[i] = 0.0f;
+    }
+    *(int *)&physics[0] = -1;       /* +0x00 object handle = none */
+    *(unsigned short *)((char *)physics + 4) = 0x0001; /* flags: ground mode */
+    physics[2] = 1.0f;              /* +0x08 position.x */
+    physics[3] = 2.0f;              /* +0x0c position.y */
+    physics[4] = 3.0f;              /* +0x10 position.z */
+    physics[5] = 0.06f;            /* +0x14 forward.x */
+    physics[6] = 0.08f;            /* +0x18 forward.y */
+    physics[0xf] = 1.0f;           /* +0x3c control.x */
+    physics[0x10] = 0.0f;          /* +0x40 control.y */
+    physics[0x11] = 0.0f;          /* +0x44 control.z */
+    physics[0x12] = 0.0f;          /* +0x48 friction -> damp = 1.0 */
+    physics[0x14] = 10.0f;         /* +0x50 clamp (large -> no clamp) */
+
+    FUN_001a2f40(physics);
+
+    dump_values[0] = physics[0x2e]; /* +0xb8 new_velocity.x */
+    dump_values[1] = physics[0x2f]; /* +0xbc new_velocity.y */
+    dump_float_case("a2f40", "ground_tangent_noclamp", dump_values, 2, buf);
+
+    total += 2;
+    /* new_velocity = restored tangent(0.06,0.08). Removing the no-clamp
+     * restore lets magnitude3d's in-place normalization leak through:
+     * tangent -> unit (0.6,0.8), so this case FAILS. */
+    passed += check("a2f40 noclamp vx", *(uint32_t *)&dump_values[0],
+                    0x3D75C28F, buf); /* 0.06f */
+    passed += check("a2f40 noclamp vy", *(uint32_t *)&dump_values[1],
+                    0x3DA3D70A, buf); /* 0.08f */
+
+    /* ---- clamp case (independent lock on the > clamp branch) ---- */
+    for (i = 0; i < 80; i++) {
+      physics[i] = 0.0f;
+    }
+    *(int *)&physics[0] = -1;
+    *(unsigned short *)((char *)physics + 4) = 0x0001;
+    physics[2] = 1.0f;
+    physics[3] = 2.0f;
+    physics[4] = 3.0f;
+    physics[5] = 0.06f;
+    physics[6] = 0.08f;
+    physics[0xf] = 1.0f;
+    physics[0x10] = 0.0f;
+    physics[0x11] = 0.0f;
+    physics[0x12] = 0.0f;
+    physics[0x14] = 0.05f;          /* +0x50 clamp (small -> clamp branch) */
+
+    FUN_001a2f40(physics);
+
+    dump_values[0] = physics[0x2e];
+    dump_values[1] = physics[0x2f];
+    dump_float_case("a2f40", "ground_tangent_clamp", dump_values, 2, buf);
+
+    total += 2;
+    /* new_velocity = unit*clamp((0.6,0.8)*0.05) ~= (0.03, 0.04). The clamp
+     * branch never reads raw0/raw1, so it locks the > clamp path independently
+     * of the restore fix. Expected values are the actual x87 results of the
+     * normalize(1/mag) + clamp-multiply chain, which round 1 ULP above the
+     * ideal 0.03f/0.04f literals; both the original (ported=false) and our
+     * lift produce these exact bits (runtime_oracle diff = 0). */
+    passed += check("a2f40 clamp vx", *(uint32_t *)&dump_values[0],
+                    0x3CF5C290, buf); /* ~0.03f (x87) */
+    passed += check("a2f40 clamp vy", *(uint32_t *)&dump_values[1],
+                    0x3D23D70B, buf); /* ~0.04f (x87) */
+
+    *dbg_synth = saved_synth;
+    *dbg_stub = saved_stub;
+  }
+
   /* FUN_00013070 (dot_product3d) */
   {
     float a[3] = { 1.5f, -2.0f, 3.0f };
