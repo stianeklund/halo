@@ -25553,19 +25553,22 @@
         },
         {
           "addr": "0x1a7b50",
-          "decl": "void FUN_001a7b50(void);"
+          "decl": "void FUN_001a7b50(int datum_handle, float body_damage, float shield_damage);"
         },
         {
           "addr": "0x1a7c70",
-          "decl": "void FUN_001a7c70(void);"
+          "decl": "void FUN_001a7c70(int parent_handle, int param_2, int param_3);",
+          "ported": true
         },
         {
           "addr": "0x1a7cc0",
-          "decl": "void FUN_001a7cc0(void);"
+          "decl": "float FUN_001a7cc0(int datum_handle);",
+          "ported": true
         },
         {
           "addr": "0x1a7d00",
-          "decl": "void FUN_001a7d00(void);"
+          "decl": "float FUN_001a7d00(int datum_handle);",
+          "ported": true
         },
         {
           "addr": "0x1a7d40",
@@ -25764,7 +25767,8 @@
         },
         {
           "addr": "0x1a9980",
-          "decl": "void unit_inventory_next_grenade(void);"
+          "decl": "int16_t unit_inventory_next_grenade(int unit_handle, int current_index, int16_t direction);",
+          "ported": true
         },
         {
           "addr": "0x1a9a30",
@@ -25817,7 +25821,8 @@
         },
         {
           "addr": "0x1a9e40",
-          "decl": "void unit_scripting_unit_riders(void);"
+          "decl": "int unit_scripting_unit_riders(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1a9ec0",
@@ -25835,7 +25840,8 @@
         },
         {
           "addr": "0x1aa080",
-          "decl": "void units_debug_get_next_unit(void);"
+          "decl": "int units_debug_get_next_unit(int current_unit);",
+          "ported": true
         },
         {
           "addr": "0x1aa170",
@@ -25860,11 +25866,13 @@
         },
         {
           "addr": "0x1aa4d0",
-          "decl": "void unit_driven_by_ai(void);"
+          "decl": "char FUN_001aa4d0(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1aa510",
-          "decl": "void unit_gunned_by_ai(void);"
+          "decl": "char FUN_001aa510(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1aa550",
