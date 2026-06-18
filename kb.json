@@ -25492,7 +25492,8 @@
         },
         {
           "addr": "0x1a6bf0",
-          "decl": "void FUN_001a6bf0(void);"
+          "decl": "void FUN_001a6bf0(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1a6ca0",
@@ -25508,7 +25509,7 @@
         },
         {
           "addr": "0x1a6d10",
-          "decl": "void FUN_001a6d10(void);"
+          "decl": "int FUN_001a6d10(int unit_handle, char full_path, int16_t max_len, char *output);"
         },
         {
           "addr": "0x1a6e20",
@@ -25521,7 +25522,8 @@
         },
         {
           "addr": "0x1a70d0",
-          "decl": "void FUN_001a70d0(void);"
+          "decl": "void FUN_001a70d0(int unit_handle, int sound_tag, int sound_handle);",
+          "ported": true
         },
         {
           "addr": "0x1a71c0",
