@@ -4817,3 +4817,33 @@ void FUN_001a7b50(int datum_handle, float body_damage, float shield_damage)
   }
   *(float *)(obj + 0x90) = shield_ratio;
 }
+
+/* unit_test_spawning (0x1a9130)
+ * Tests if unit should spawn attached objects on death. */
+uint32_t unit_test_spawning(int unit_handle)
+{
+  uint32_t *unit;
+  char *unit_tag;
+  uint32_t flags;
+  int *seed;
+  int16_t count;
+
+  unit = (uint32_t *)object_get_and_verify_type(unit_handle, 3);
+  flags = unit[0x6d];
+  if ((flags & 0x20000) == 0) {
+    unit_tag = (char *)tag_get(0x756e6974, *unit);
+    if (*(int *)(unit_tag + 0x258) != -1) {
+      seed = get_global_random_seed_address();
+      count = random_range((unsigned int *)seed,
+          *(int16_t *)(unit_tag + 0x25c),
+          (int16_t)(*(int16_t *)(unit_tag + 0x25e) + 1));
+      if (count > 0) {
+        FUN_0003f350(unit_handle, *(int *)(unit_tag + 0x258), count,
+                     *(float *)(unit_tag + 0x260) * *(float *)0x2546a4);
+      }
+      unit[0x6d] = unit[0x6d] | 0x20000;
+      return flags;
+    }
+  }
+  return flags & 0xffff0000;
+}
