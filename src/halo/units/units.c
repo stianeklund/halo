@@ -8947,7 +8947,7 @@ void unit_impact_melee_damage(int unit_handle, int param_2, int param_3,
     target_tag = (int)tag_get(0x756e6974, *(int *)target_data);
     if ((*(uint32_t *)(target_tag + 0x17c) & 0x400000) != 0) {
       unit_cause_melee_damage(unit_handle, 1, param_2, param_3, param_4,
-                              param_5, param_7);
+                              param_5, (int)param_7);
       FUN_00137540(unit_handle);
       object_delete(unit_handle);
       return;
@@ -9033,4 +9033,958 @@ void unit_impact_melee_damage(int unit_handle, int param_2, int param_3,
 
   /* Start forced melee attack (param_2=1 for forced, param_3=0 for no alignment) */
   unit_melee_attack_begin(unit_handle, 1, 0);
+}
+
+/* unit_cause_melee_damage (0x1ae840)
+ * Applies melee damage from a unit to a target. Resolves the melee marker
+ * position, optionally performs a collision test to adjust the damage origin,
+ * then builds damage params and applies via object_cause_damage.
+ * cdecl, 7 stack params.
+ * If melee_hit is false and the collision result has a valid material type,
+ * plays the melee clang sound via FUN_001abd10. */
+void unit_cause_melee_damage(int unit_handle, char melee_hit, int target_handle,
+                             int param_4, int param_5, int param_6,
+                             int param_7)
+{
+  char *unit;
+  char *unit_tag;
+  int16_t marker_count;
+  int16_t collision_result[2];
+  float *position;
+  float melee_pos[3];
+  float direction[3];
+  char coll_hit;
+  int16_t coll_depth;
+  int weapon_handle;
+  char *weapon_obj;
+  char *weapon_tag;
+  int damage_effect_index;
+  char marker_buf[96];
+  char damage_params[0x54];
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag = (char *)tag_get(0x756e6974, *(int *)unit);
+
+  if (*(int *)(unit_tag + 0x294) == -1) {
+    goto cleanup;
+  }
+
+  marker_count = object_get_markers_by_string_id(
+      unit_handle, (void *)0x25961c, marker_buf, 1);
+
+  if (marker_count == 1) {
+    /* marker found — use marker position as melee origin */
+    melee_pos[0] = *(float *)(marker_buf + 0x60);
+    melee_pos[1] = *(float *)(marker_buf + 0x64);
+    melee_pos[2] = *(float *)(marker_buf + 0x68);
+
+    /* collision user stack depth check */
+    if (*(int16_t *)0x4761d8 >= MAXIMUM_COLLISION_USER_STACK_DEPTH) {
+      display_assert(
+          "global_current_collision_user_depth < "
+          "MAXIMUM_COLLISION_USER_STACK_DEPTH",
+          "c:\\halo\\SOURCE\\units\\units.c", 0x21b9, true);
+      system_exit(-1);
+    }
+
+    coll_depth = *(int16_t *)0x4761d8;
+    *(int16_t *)0x4761d8 = coll_depth + 1;
+
+    position = (float *)(unit + 0x50);
+    *(int16_t *)(0x5a8c80 + coll_depth * 2) = 7;
+
+    /* direction = melee_pos - unit position */
+    direction[0] = melee_pos[0] - position[0];
+    direction[1] = melee_pos[1] - position[1];
+    direction[2] = melee_pos[2] - position[2];
+
+    coll_hit = (char)FUN_0014df70(0x1000e9, position, direction, -1,
+                                  collision_result);
+    if (coll_hit != 0) {
+      /* collision hit — snap melee position to unit center */
+      melee_pos[0] = position[0];
+      melee_pos[1] = position[1];
+      melee_pos[2] = position[2];
+    }
+
+    if (*(int16_t *)0x4761d8 < 2) {
+      display_assert("global_current_collision_user_depth > 1",
+                     "c:\\halo\\SOURCE\\units\\units.c", 0x21c1, true);
+      system_exit(-1);
+    }
+    *(int16_t *)0x4761d8 = *(int16_t *)0x4761d8 - 1;
+  } else {
+    /* no marker — use unit position directly */
+    position = (float *)(unit + 0x50);
+    melee_pos[0] = position[0];
+    melee_pos[1] = position[1];
+    melee_pos[2] = position[2];
+  }
+
+  /* Determine the damage effect tag index */
+  damage_effect_index = *(int *)(unit_tag + 0x294);
+
+  /* Check if the current weapon has an override melee damage effect */
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  weapon_handle =
+      unit_get_weapon(unit_handle, *(int16_t *)(unit + 0x2a2));
+
+  if (weapon_handle != -1) {
+    weapon_obj = (char *)object_get_and_verify_type(weapon_handle, 4);
+    weapon_tag = (char *)tag_get(0x77656170, *(int *)weapon_obj);
+    /* Check weapon flags bit 15 (byte at +0x309, high bit) for melee override */
+    if ((char)(*(uint32_t *)(weapon_tag + 0x308) >> 8) < 0) {
+      damage_effect_index = *(int *)(weapon_tag + 0x3a0);
+    }
+  }
+
+  /* Build damage params */
+  damage_data_new(damage_params, damage_effect_index);
+
+  *(int *)(damage_params + 0x14) = *(int *)(unit + 0x48);
+  *(int *)(damage_params + 0x18) = *(int *)(unit + 0x4c);
+  *(int16_t *)(damage_params + 0x10) = *(int16_t *)(unit + 0x68);
+  *(int *)(damage_params + 0x08) = *(int *)(unit + 0x1c8);
+  *(float *)(damage_params + 0x20) = melee_pos[1];
+  *(int *)(damage_params + 0x2c) = *(int *)(unit + 0x54);
+  *(int *)(damage_params + 0x0c) = unit_handle;
+  *(float *)(damage_params + 0x1c) = melee_pos[0];
+  *(int *)(damage_params + 0x28) = *(int *)(unit + 0x50);
+  *(float *)(damage_params + 0x24) = melee_pos[2];
+  *(int *)(damage_params + 0x30) = *(int *)(unit + 0x58);
+
+  if (target_handle == -1) {
+    FUN_00138e30(damage_params, -1);
+  } else {
+    object_cause_damage(damage_params, target_handle, (short)param_4,
+                        (short)param_5, (short)param_6, (unsigned int)param_7);
+  }
+
+  if (melee_hit == 0 && *(int16_t *)(damage_params + 0x4c) != -1) {
+    FUN_001abd10(*(int16_t *)(damage_params + 0x4c), unit_handle,
+                 damage_effect_index);
+  }
+
+cleanup:
+  *(uint8_t *)(unit + 0x239) = 0;
+}
+
+/* unit_died (0x1b3060)
+ * Handles unit death or feign-death. On real death (param_2=0): sets garbage,
+ * releases player/actor refs, clears seats, drops weapons and grenades.
+ * On feign death (param_2!=0): checks feign_death_timer and random chance
+ * to decide living/feigning.
+ * cdecl, 2 stack params. */
+void unit_died(int unit_handle, char param_2)
+{
+  char *unit;
+  char *unit_tag;
+  char *actor_data;
+  int weapon_handle;
+  int temp_unit;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+
+  if (param_2 == 0) {
+    /* Real death */
+    *(int16_t *)(unit + 0x3d0) = 0;
+    object_set_garbage_flag(unit_handle, 1);
+
+    /* Release player reference */
+    if (*(int *)(unit + 0x1c8) != -1) {
+      player_died(*(int *)(unit + 0x1c8));
+      *(int *)(unit + 0x1c8) = -1;
+    }
+
+    /* Release actor reference (first slot) */
+    if (*(int *)(unit + 0x1a4) != -1) {
+      actor_data =
+          (char *)datum_get(*(data_t **)0x6325a4, *(int *)(unit + 0x1a4));
+      *(int16_t *)(unit + 0x2e4) = *(int16_t *)(actor_data + 0x34);
+      *(int16_t *)(unit + 0x2e6) = *(int16_t *)(actor_data + 0x3a);
+      actor_died(*(int *)(unit + 0x1a4));
+      *(int *)(unit + 0x1a4) = -1;
+    }
+
+    /* Release actor reference (second slot) */
+    if (*(int *)(unit + 0x1a8) != -1) {
+      actor_data =
+          (char *)datum_get(*(data_t **)0x6325a4, *(int *)(unit + 0x1a8));
+      *(int16_t *)(unit + 0x2e4) = *(int16_t *)(actor_data + 0x34);
+      *(int16_t *)(unit + 0x2e6) = *(int16_t *)(actor_data + 0x3a);
+      actor_swarm_unit_died(*(int *)(unit + 0x1a8), unit_handle);
+      *(int *)(unit + 0x1a8) = -1;
+    }
+
+    /* Record time of death */
+    *(int *)(unit + 0x3cc) = game_time_get();
+  } else {
+    /* Feign death */
+    if (*(int16_t *)(unit + 0x3d0) < 1) {
+      display_assert("unit->unit.feign_death_timer > 0",
+                     "c:\\halo\\SOURCE\\units\\units.c", 0x13eb, true);
+      system_exit(-1);
+    }
+
+    unit_tag = (char *)tag_get(0x756e6974, *(int *)unit);
+
+    {
+      int *seed;
+      float rnd;
+      seed = get_global_random_seed_address();
+      rnd = random_math_real((unsigned int *)seed);
+      if (rnd < *(float *)(unit_tag + 0x248)) {
+        *(uint32_t *)(unit + 0x1b4) |= 0x2000;
+      } else {
+        *(uint32_t *)(unit + 0x1b4) &= ~0x2000u;
+      }
+    }
+  }
+
+  /* Common death cleanup */
+  *(uint32_t *)(unit + 0x1b4) &= 0xffffffee;
+  *(int *)(unit + 0x1b8) = 0;
+
+  /* Notify current weapon */
+  if (*(int16_t *)(unit + 0x2a2) != -1) {
+    temp_unit = (int)object_get_and_verify_type(unit_handle, 3);
+    weapon_handle =
+        unit_get_weapon(unit_handle, *(int16_t *)(temp_unit + 0x2a2));
+    weapon_owner_update(weapon_handle);
+  }
+
+  /* Clear integrated light bit */
+  temp_unit = (int)object_get_and_verify_type(unit_handle, 3);
+  *(uint32_t *)(temp_unit + 0x1b4) &= ~0x02000000u;
+
+  /* Detach from parent (vehicle seat exit) */
+  if (*(int *)(unit + 0xcc) != -1) {
+    if (*(int16_t *)(unit + 0x2a0) == -1) {
+      unit_detach_from_parent(unit_handle);
+    } else {
+      unit_exit_seat_end(unit_handle);
+    }
+  }
+
+  /* Drop weapons and grenades */
+  *(int16_t *)(unit + 0x368) = 0;
+  unit_drop_weapons_on_death(unit_handle);
+
+  /* Clean up secondary weapon reference */
+  temp_unit = (int)object_get_and_verify_type(unit_handle, 3);
+  if (*(int *)(temp_unit + 0x2c8) != -1) {
+    weapon_handle = *(int *)(temp_unit + 0x2c8);
+    unit_detach_weapon(unit_handle, weapon_handle);
+    *(int *)(temp_unit + 0x2c8) = -1;
+  }
+
+  unit_drop_grenades_on_death(unit_handle);
+
+  /* Hide in vehicle if not flagged */
+  if (*(char *)(unit + 0x23c) == 0) {
+    unit_set_in_vehicle(unit_handle, 1);
+  }
+
+  /* Final cleanup */
+  *(int16_t *)(unit + 0x25e) = -1;
+  *(int16_t *)(unit + 0x25a) = -1;
+  *(uint8_t *)(unit + 0x239) = 0;
+  if (*(char *)(unit + 0x23d) == 1) {
+    *(uint8_t *)(unit + 0x23d) = 0;
+  }
+}
+
+/* unit_exit_seat_end (0x1b2dd0)
+ * Finalizes a unit's exit from a vehicle seat. Gets the seat marker transform,
+ * detaches from parent, repositions the unit, applies seat exit matrix, and
+ * reselects weapon. If unit is a biped, calls biped_exit_seat_end.
+ * cdecl, 1 stack param. */
+void unit_exit_seat_end(int unit_handle)
+{
+  char *unit;
+  char *parent_unit;
+  char *parent_tag;
+  char *seat_element;
+  char *node_matrix;
+  float exit_offset[3];
+  char marker_buf[56];
+  char transform_buf[40];
+  float exit_position[3];
+  char matrix_out[48];
+  int seat_handle;
+  int seat_rotation_offset;
+  float model_node_pos[3];
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  seat_handle = *(int *)(unit + 0xcc);
+
+  if (seat_handle == -1 || *(int16_t *)(unit + 0x2a0) == -1) {
+    return;
+  }
+
+  parent_unit = (char *)object_get_and_verify_type(seat_handle, 3);
+  parent_tag = (char *)tag_get(0x756e6974, *(int *)parent_unit);
+  seat_element = (char *)tag_block_get_element(
+      parent_tag + 0x2e4, (int)*(int16_t *)(unit + 0x2a0), 0x11c);
+
+  node_matrix = (char *)object_get_node_matrix(unit_handle, 0);
+
+  /* Get marker position from seat */
+  object_get_markers_by_string_id(
+      seat_handle, (void *)(seat_element + 0x24), marker_buf, 1);
+
+  /* Compute exit offset: node_matrix.position - marker_position */
+  exit_offset[0] = *(float *)(node_matrix + 0x28) - *(float *)(marker_buf + 0x60);
+  exit_offset[1] = *(float *)(node_matrix + 0x2c) - *(float *)(marker_buf + 0x64);
+  exit_offset[2] = *(float *)(node_matrix + 0x30) - *(float *)(marker_buf + 0x68);
+
+  /* Transform exit offset through marker rotation (result unused) */
+  {
+    float transform_out[3];
+    real_matrix3x3_transform_vector(transform_buf,
+                                    (vector3_t *)exit_offset,
+                                    (vector3_t *)transform_out);
+  }
+
+  /* Get the unit's own model node 0 data for default position */
+  {
+    char *own_unit_tag;
+    char *own_model_tag;
+    char *node_data;
+
+    own_unit_tag = (char *)tag_get(0x756e6974, *(int *)unit);
+    own_model_tag = (char *)tag_get(0x6d6f6465, *(int *)(own_unit_tag + 0x34));
+    node_data =
+        (char *)tag_block_get_element(own_model_tag + 0xb8, 0, 0x9c);
+
+    seat_rotation_offset = (int)(node_data + 0x68);
+    model_node_pos[0] = *(float *)(node_data + 0x28);
+    model_node_pos[1] = *(float *)(node_data + 0x2c);
+    model_node_pos[2] = *(float *)(node_data + 0x30);
+  }
+
+  /* Notify parent driver if this unit was the driver */
+  if (*(int *)(parent_unit + 0x2d4) == unit_handle &&
+      *(char *)(parent_unit + 0x253) != 0x25 &&
+      *(int *)(unit + 0xcc) != -1) {
+    FUN_001ad260(*(int *)(unit + 0xcc), 0x25);
+  }
+
+  /* Record exit info */
+  *(int *)(unit + 0x2dc) = seat_handle;
+  *(int *)(unit + 0x2e0) = game_time_get();
+
+  /* Clear driver/gunner references if they point to this unit */
+  if (*(int *)(unit + 0x2d4) == unit_handle) {
+    *(int *)(unit + 0x2d4) = -1;
+  }
+  if (*(int *)(unit + 0x2d8) == unit_handle) {
+    *(int *)(unit + 0x2d8) = -1;
+  }
+
+  /* Detach from parent */
+  object_detach_from_parent(unit_handle);
+
+  /* Compute exit world position */
+  exit_position[0] = exit_offset[0] + *(float *)(unit + 0x0c);
+  exit_position[1] = exit_offset[1] + *(float *)(unit + 0x10);
+  exit_position[2] = exit_offset[2] + *(float *)(unit + 0x14) - model_node_pos[2];
+
+  object_set_position(unit_handle, exit_position, 0, 0);
+
+  /* Multiply node matrix by seat rotation to get new orientation */
+  {
+    char *node_matrix2;
+
+    node_matrix2 = (char *)object_get_node_matrix(unit_handle, 0);
+    matrix4x3_multiply((float *)node_matrix2, (float *)seat_rotation_offset,
+                       (float *)matrix_out);
+
+    /* Copy forward (offset 0x04) and up (offset 0x1C) from result */
+    *(int *)(unit + 0x24) = *(int *)(matrix_out + 0x04);
+    *(int *)(unit + 0x28) = *(int *)(matrix_out + 0x08);
+    *(int *)(unit + 0x2c) = *(int *)(matrix_out + 0x0c);
+    *(int *)(unit + 0x30) = *(int *)(matrix_out + 0x1c);
+    *(int *)(unit + 0x34) = *(int *)(matrix_out + 0x20);
+    *(int *)(unit + 0x38) = *(int *)(matrix_out + 0x24);
+  }
+
+  /* Set object as garbage (for cleanup) */
+  object_set_garbage(unit_handle, 1);
+
+  /* Reset seat index and set exit-state */
+  *(int16_t *)(unit + 0x2a0) = -1;
+  *(uint8_t *)(unit + 0x257) = 2;
+
+  /* Clear parent driver/gunner references to this unit */
+  if (*(int *)(parent_unit + 0x2d4) == unit_handle) {
+    *(int *)(parent_unit + 0x2d4) = -1;
+  }
+  if (*(int *)(parent_unit + 0x2d8) == unit_handle) {
+    *(int *)(parent_unit + 0x2d8) = -1;
+  }
+
+  /* Update vehicle seat occupancy and weapon selection */
+  unit_update_seat_occupancy(seat_handle);
+  unit_select_weapon_after_vehicle_exit(unit_handle);
+
+  /* Send animation update (anim type 0x14 = seat exit) */
+  {
+    uint8_t anim_data[2];
+    anim_data[0] = 0x14;
+    anim_data[1] = 0x00;
+    FUN_001b0d90(unit_handle, anim_data);
+  }
+
+  /* Create object header block reference for exit velocity */
+  {
+    char *block_ref;
+    block_ref =
+        (char *)object_header_block_reference_get(unit_handle, unit + 0x198);
+
+    *(float *)(block_ref + 0x10) = model_node_pos[0];
+    *(float *)(block_ref + 0x14) = model_node_pos[1];
+    *(float *)(block_ref + 0x18) = model_node_pos[2];
+  }
+
+  /* Biped-specific exit handling */
+  if (*(int16_t *)(unit + 0x64) == 0) {
+    biped_exit_seat_end(unit_handle, seat_handle);
+  }
+
+  /* Update children */
+  object_update_children_recursive(unit_handle);
+}
+
+/* FUN_001aaf40 (0x1aaf40) — grenade throw initiation
+ * Decrements grenade count (unless infinite), creates a grenade placement
+ * from the unit's forward vector and marker position, spawns the grenade
+ * object, and attaches it to the unit.
+ * Register args: @edi = unit_handle. No stack params.
+ * Called from the grenade throw state (state=1) in the unit update switch. */
+void FUN_001aaf40(int unit_handle)
+{
+  char *unit;
+  char *globals_entry;
+  int grenade_index;
+  char marker_buf[0x6c]; /* marker output buffer at EBP-0xf4 */
+  char placement[0x88];  /* object placement data at EBP-0x88 */
+  float forward[3];      /* at EBP-0x54 */
+  float perp_out[12];    /* at EBP-0x48 */
+  int new_handle;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  tag_get(0x756e6974, *(int *)unit);
+
+  grenade_index = (int)*(int8_t *)(unit + 0x2cc);
+  {
+    char *game_globals;
+    game_globals = (char *)game_globals_get();
+    globals_entry =
+        (char *)tag_block_get_element(game_globals + 0x128, grenade_index, 0x44);
+  }
+
+  /* Check if we should consume a grenade (skip if infinite) */
+  if (*(int *)(unit + 0x1c8) != -1) {
+    if (*(char *)0x5aa892 != 0) {
+      goto skip_decrement;
+    }
+    if (FUN_000a9570(*(int *)(unit + 0x1c8)) != 0) {
+      goto skip_decrement;
+    }
+  }
+
+  if (*(int *)(unit + 0x1a4) != -1) {
+    if (actor_has_unlimited_grenades() != 0) {
+      goto skip_decrement;
+    }
+  }
+
+  /* Validate grenade index */
+  if (*(int8_t *)(unit + 0x2cc) < 0 || *(int8_t *)(unit + 0x2cc) > 1) {
+    display_assert(
+        "unit->unit.current_grenade_index>=0 && "
+        "unit->unit.current_grenade_index<NUMBER_OF_UNIT_GRENADE_TYPES",
+        "c:\\halo\\SOURCE\\units\\units.c", 0x1f1e, true);
+    system_exit(-1);
+  }
+
+  /* Validate grenade count > 0 */
+  if (*(int8_t *)(unit + 0x2ce + *(int8_t *)(unit + 0x2cc)) < 1) {
+    display_assert(
+        "unit->unit.grenade_counts[unit->unit.current_grenade_index]>0",
+        "c:\\halo\\SOURCE\\units\\units.c", 0x1f1f, true);
+    system_exit(-1);
+  }
+
+  /* Decrement grenade count */
+  *(int8_t *)(unit + 0x2ce + *(int8_t *)(unit + 0x2cc)) -= 1;
+
+skip_decrement:
+  /* Get grenade marker position */
+  object_get_markers_by_string_id(
+      unit_handle, (void *)0x2b6d2c, marker_buf, 1);
+
+  /* Build object placement data for the grenade */
+  object_placement_data_new(placement, *(int *)(globals_entry + 0x40),
+                            unit_handle);
+  *(uint32_t *)(placement + 0x04) |= 2;
+
+  /* Copy unit's aim forward vector */
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  forward[0] = *(float *)(unit + 0x1ec);
+  forward[1] = *(float *)(unit + 0x1f0);
+  forward[2] = *(float *)(unit + 0x1f4);
+
+  /* Compute perpendicular vector for orientation */
+  perpendicular3d(forward, perp_out);
+  normalize3d(perp_out);
+
+  /* Copy marker position into placement position (offset 0x18) */
+  *(int *)(placement + 0x18) = *(int *)(marker_buf + 0x60);
+  *(int *)(placement + 0x1c) = *(int *)(marker_buf + 0x64);
+  *(int *)(placement + 0x20) = *(int *)(marker_buf + 0x68);
+
+  /* Spawn the grenade object */
+  new_handle = object_new(placement);
+  if (new_handle != -1) {
+    /* Attach grenade to the unit at the marker node */
+    object_attach_to_parent(unit_handle, new_handle,
+                            *(int *)marker_buf);
+    *(int *)(unit + 0x244) = new_handle;
+    *(uint8_t *)(unit + 0x23d) = 2;
+    return;
+  }
+
+  *(uint8_t *)(unit + 0x23d) = 3;
+}
+
+/* FUN_001abd90 (0x1abd90) — melee lunge collision damage
+ * Tests for melee collision against the unit's parent (seat occupant target),
+ * and applies damage using the unit's melee damage effect tag. When collision
+ * hits, computes a surface normal and applies damage with collision context.
+ * Otherwise applies damage with no-target params.
+ * Register args: @edi = unit_handle. No stack params.
+ * Called at the melee lunge phase (state 4) in unit_update. */
+void FUN_001abd90(int unit_handle)
+{
+  char *unit;
+  char *unit_tag_data;
+  int parent_handle;
+  char collision_buf[0x4c0 - 0x64]; /* large collision buffer */
+  char collision_result[0x60];
+  char damage_params[0x54];
+  float direction[3];
+  float point_out[3];
+  float surface_out[16];
+  float normal_out[16];
+  char hit_found;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag_data = (char *)tag_get(0x756e6974, *(int *)unit);
+
+  /* Only proceed if in melee lunge state 4, has parent, and has damage effect */
+  if (*(char *)(unit + 0x239) != 4) {
+    return;
+  }
+  parent_handle = *(int *)(unit + 0xcc);
+  if (parent_handle == -1) {
+    return;
+  }
+  if (*(int *)(unit_tag_data + 0x294) == -1) {
+    return;
+  }
+
+  hit_found = 0;
+
+  if (*(char *)(unit + 0x23a) == 0) {
+    /* First attempt — perform collision test */
+    if (*(int16_t *)0x4761d8 >= MAXIMUM_COLLISION_USER_STACK_DEPTH) {
+      display_assert(
+          "global_current_collision_user_depth < "
+          "MAXIMUM_COLLISION_USER_STACK_DEPTH",
+          "c:\\halo\\SOURCE\\units\\units.c", 0x22e6, true);
+      system_exit(-1);
+    }
+
+    {
+      int16_t coll_depth;
+      char coll_result;
+
+      coll_depth = *(int16_t *)0x4761d8;
+      *(int16_t *)0x4761d8 = coll_depth + 1;
+      *(int16_t *)(0x5a8c80 + coll_depth * 2) = 8;
+
+      /* Set up collision test against parent */
+      coll_result = FUN_0014c8e0((int *)collision_buf, parent_handle);
+
+      if (coll_result != 0) {
+        /* Get world position and compute melee direction */
+        object_get_world_position(unit_handle, (vector3_t *)point_out);
+
+        direction[0] = *(float *)(unit + 0x24) * *(float *)0x2549d4;
+        direction[1] = *(float *)(unit + 0x28) * *(float *)0x2549d4;
+        direction[2] = *(float *)(unit + 0x2c) * *(float *)0x2549d4;
+
+        vector3d_scale_add(point_out, direction, *(float *)0xbf000000,
+                           point_out);
+
+        coll_result = FUN_0014cb00((int)collision_buf, (void *)3, point_out,
+                                   direction, (int16_t *)collision_result);
+
+        if (coll_result != 0) {
+          /* Compute hit point */
+          vector3d_scale_add(point_out, direction,
+                             *(float *)(collision_result + 0x0c),
+                             surface_out);
+
+          /* Get surface normal */
+          {
+            int surface_base;
+            surface_base = *(int *)(collision_buf + 0x70 - 0x64);
+            FUN_0010a1c0(
+                (float *)(surface_base +
+                          *(int16_t *)collision_result * 0x34),
+                (float *)(collision_result + 0x14),
+                (float *)normal_out);
+          }
+
+          /* Negate normal if backfacing */
+          if (*(int *)(collision_result + 0x1c) < 0) {
+            plane_negate((float *)normal_out, (float *)normal_out);
+          }
+
+          hit_found = 1;
+        }
+      }
+
+      /* Pop collision user depth */
+      if (*(int16_t *)0x4761d8 < 2) {
+        display_assert("global_current_collision_user_depth > 1",
+                       "c:\\halo\\SOURCE\\units\\units.c", 0x22fe, true);
+        system_exit(-1);
+      }
+      *(int16_t *)0x4761d8 = *(int16_t *)0x4761d8 - 1;
+    }
+  }
+
+  /* Build damage params from melee damage effect */
+  {
+    int damage_effect;
+    damage_effect = *(int *)(unit_tag_data + 0x294);
+    damage_data_new(damage_params, damage_effect);
+  }
+
+  /* Set damage params common fields */
+  *(int *)(damage_params + 0x00) = unit_handle;
+  *(int16_t *)(damage_params + 0x04) = *(int16_t *)(unit + 0x68);
+  *(int *)(damage_params + 0x08) = *(int *)(unit + 0x1c8);
+  *(float *)(damage_params + 0x20) = 0.03333333f; /* 1/30 */
+
+  if (hit_found) {
+    /* Copy hit position and forward direction into damage params */
+    *(float *)(damage_params + 0x34) = surface_out[0];
+    *(float *)(damage_params + 0x38) = surface_out[1];
+    *(float *)(damage_params + 0x30) = surface_out[0]; /* duplicate */
+    *(float *)(damage_params + 0x3c) = surface_out[2];
+
+    /* Copy unit forward as damage direction */
+    *(float *)(damage_params + 0x2c) = *(float *)(unit + 0x24);
+    *(float *)(damage_params + 0x28) = *(float *)(unit + 0x28);
+    *(float *)(damage_params + 0x24) = *(float *)(unit + 0x2c);
+
+    *(uint32_t *)(damage_params + 0x04) |= 2;
+    *(char *)(unit + 0x23a) = 10;
+
+    object_cause_damage(damage_params, parent_handle,
+                        *(int16_t *)collision_result,
+                        *(int16_t *)(collision_result + 0x02),
+                        *(int16_t *)(collision_result + 0x1a),
+                        (unsigned int)normal_out);
+  } else {
+    object_cause_damage(damage_params, parent_handle,
+                        (short)-1, (short)-1, (short)-1, 0);
+  }
+
+  /* Decrement attack timer */
+  *(char *)(unit + 0x23a) = *(char *)(unit + 0x23a) - 1;
+}
+
+/* unit_adjust_plan_overlap (0x1acb70) — FPU quadratic solver for movement plans
+ * When two movement plans overlap in time, adjusts the later plan by solving
+ * a quadratic equation to trim its acceleration/deceleration phases.
+ * Register args: @ecx = plan_a, @eax = plan_b. Stack: dummy, delta_time.
+ * Pure math, no side effects beyond plan modification. */
+void unit_adjust_plan_overlap(void *plan_a_ptr, void *plan_b_ptr, int dummy,
+                              float delta_time)
+{
+  char *plan_a;
+  char *plan_b;
+  char *adjust_plan;
+  float total_a;
+  float total_b;
+  float t_extension;
+  float t_factor;
+  float disc;
+  float adj_amount;
+  float min_t;
+  float accel_t;
+  float decel_t;
+  float v_peak;
+
+  plan_a = (char *)plan_a_ptr;
+  plan_b = (char *)plan_b_ptr;
+
+  /* Both plans must be active (byte 0 == 0) */
+  if (*plan_a != 0 || *plan_b != 0) {
+    return;
+  }
+
+  /* Compute total time for each plan: decel_t + vel_t + accel_t */
+  total_a = *(float *)(plan_a + 0x1c) + *(float *)(plan_a + 0x14) +
+            *(float *)(plan_a + 0x10);
+  total_b = *(float *)(plan_b + 0x1c) + *(float *)(plan_b + 0x14) +
+            *(float *)(plan_b + 0x10);
+
+  /* Determine which plan to adjust */
+  if (*(float *)(plan_a + 0x10) > 0.0f && total_b > total_a) {
+    /* plan_a has priority — adjust plan_b using plan_a's extension */
+    t_extension = total_b - total_a;
+    adjust_plan = plan_a;
+  } else if (*(float *)(plan_b + 0x10) > 0.0f && total_a > total_b) {
+    /* plan_b has priority — adjust plan_a using plan_b's extension */
+    t_extension = total_a - total_b;
+    adjust_plan = plan_b;
+  } else {
+    return;
+  }
+
+  if (adjust_plan == NULL) {
+    return;
+  }
+
+  /* Assert t_extension > 0 */
+  if (t_extension <= 0.0f) {
+    display_assert("t_extension > 0",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x8ae, true);
+    system_exit(-1);
+  }
+
+  /* Solve quadratic for adjustment amount */
+  t_factor = (t_extension + *(float *)(adjust_plan + 0x14)) * delta_time;
+
+  {
+    float abs_vpeak;
+    abs_vpeak = *(float *)(adjust_plan + 0x10) *
+                    *(float *)(adjust_plan + 0x0c) +
+                *(float *)(adjust_plan + 0x08);
+    if (abs_vpeak < 0.0f) {
+      abs_vpeak = -abs_vpeak;
+    }
+    disc = t_factor * t_factor -
+           (-t_extension) * abs_vpeak * delta_time * 4.0f;
+  }
+
+  /* Assert discriminant >= 0 */
+  if (disc < 0.0f) {
+    display_assert("disc >= 0", "c:\\halo\\SOURCE\\units\\units.c", 0x8c4,
+                   true);
+    system_exit(-1);
+  }
+
+  /* Quadratic formula: (-b + sqrt(disc)) / (2*a) */
+  adj_amount = (sqrtf(disc) - t_factor) / (delta_time + delta_time);
+
+  /* Clamp to min(accel_t, decel_t) */
+  if (*(float *)(adjust_plan + 0x10) <= *(float *)(adjust_plan + 0x1c)) {
+    min_t = *(float *)(adjust_plan + 0x10);
+  } else {
+    min_t = *(float *)(adjust_plan + 0x1c);
+  }
+
+  if (adj_amount > min_t) {
+    if (*(float *)(adjust_plan + 0x10) <= *(float *)(adjust_plan + 0x1c)) {
+      adj_amount = *(float *)(adjust_plan + 0x10);
+    } else {
+      adj_amount = *(float *)(adjust_plan + 0x1c);
+    }
+  }
+
+  /* Apply adjustment if positive */
+  if (adj_amount <= 0.0f) {
+    return;
+  }
+
+  accel_t = *(float *)(adjust_plan + 0x10) - adj_amount;
+  *(float *)(adjust_plan + 0x10) = accel_t;
+
+  v_peak = accel_t * *(float *)(adjust_plan + 0x0c) +
+           *(float *)(adjust_plan + 0x08);
+
+  decel_t = *(float *)(adjust_plan + 0x1c) - adj_amount;
+  *(float *)(adjust_plan + 0x1c) = decel_t;
+
+  *(float *)(adjust_plan + 0x14) =
+      ((v_peak + v_peak + adj_amount * *(float *)(adjust_plan + 0x0c)) *
+       adj_amount) / v_peak;
+
+  /* Assert both times remain non-negative */
+  if (accel_t < 0.0f || decel_t < 0.0f) {
+    display_assert(
+        "(adjust_plan->accel_t >= 0) && (adjust_plan->decel_t >= 0)",
+        "c:\\halo\\SOURCE\\units\\units.c", 0x8d8, true);
+    system_exit(-1);
+    return;
+  }
+}
+
+/* unit_update_running_blind (0x1af340) — update running blind direction
+ * Computes a random steering angle for the unit when running blind (no actor
+ * guidance). Uses fcos/fsin to rotate the run vector around the global up axis.
+ * Register args: @eax = unit_handle, @esi = run_vector (float[3]).
+ * No stack params. */
+void unit_update_running_blind(int unit_handle, float *run_vector)
+{
+  char *unit;
+  char has_actor_guidance;
+  char *msg;
+  float max_left;
+  float local_val;
+  float angle_delta;
+  float angle;
+  float cos_angle;
+  float sin_angle;
+  float *up_axis;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  has_actor_guidance = 0;
+
+  if (*(int *)(unit + 0x1a4) == -1 ||
+      actor_get_running_blind_vector(*(int *)(unit + 0x1a4), run_vector) ==
+          0) {
+    /* No actor guidance — use global left vector as default */
+    char *left_ptr;
+    left_ptr = *(char **)0x31fc3c;
+    run_vector[0] = *(float *)left_ptr;
+    run_vector[1] = *(float *)(left_ptr + 4);
+    run_vector[2] = *(float *)(left_ptr + 8);
+  } else {
+    has_actor_guidance = 1;
+  }
+
+  /* Assert valid normal */
+  if (valid_real_normal3d(run_vector) == 0) {
+    msg = csprintf(
+        (char *)0x5ab100,
+        "%s: assert_valid_real_normal3d(%f, %f, %f)", "run_vector",
+        (double)run_vector[0], (double)run_vector[1],
+        (double)run_vector[2], "c:\\halo\\SOURCE\\units\\units.c", 0x253e,
+        true);
+    display_assert(msg, "c:\\halo\\SOURCE\\units\\units.c", 0x253e, true);
+    system_exit(-1);
+  }
+
+  local_val = 1.0f;
+  max_left = *(float *)0x2533c8; /* 1.0f */
+
+  if (has_actor_guidance) {
+    /* Compute max turn rates based on current angle */
+    float fwd_range;
+    float bwd_range;
+
+    fwd_range =
+        (*(float *)0x254a58 - *(float *)(unit + 0x3c4)) * *(float *)0x2b7258;
+    bwd_range =
+        (*(float *)(unit + 0x3c4) + *(float *)0x254a58) * *(float *)0x2b7258;
+
+    if (fwd_range < *(float *)0x2533c8) {
+      local_val = fwd_range;
+    }
+    if (bwd_range < *(float *)0x2533c8) {
+      max_left = bwd_range;
+    }
+  }
+
+  /* Apply pitch constraints */
+  {
+    float fwd_pitch;
+    float bwd_pitch;
+
+    fwd_pitch =
+        (*(float *)0x2b7254 - *(float *)(unit + 0x3c8)) * *(float *)0x2b7250;
+    if (fwd_pitch < local_val) {
+      local_val = fwd_pitch;
+    }
+
+    bwd_pitch =
+        (*(float *)(unit + 0x3c8) + *(float *)0x2b7254) * *(float *)0x2b7250;
+    if (bwd_pitch < max_left) {
+      max_left = bwd_pitch;
+    }
+  }
+
+  /* Determine random angle delta */
+  if (max_left > local_val) {
+    /* Right turn dominant */
+    if (max_left < *(float *)0x255e94) {
+      angle_delta = *(float *)0x2b7248;
+      goto apply_angle;
+    }
+    if (max_left >= *(float *)0x2533c8) {
+      max_left = *(float *)0x2533c8;
+    }
+    max_left = max_left * *(float *)0x2b724c;
+    local_val = 0.02094395f;
+  } else {
+    /* Left turn dominant */
+    if (local_val < *(float *)0x255e94) {
+      angle_delta = *(float *)0x2b724c;
+      goto apply_angle;
+    }
+    if (local_val >= *(float *)0x2533c8) {
+      local_val = *(float *)0x2533c8 * *(float *)0x2b7248;
+    } else {
+      local_val = local_val * *(float *)0x2b7248;
+    }
+    max_left = -0.02094395f;
+  }
+
+  {
+    int *seed;
+    seed = get_global_random_seed_address();
+    angle_delta = random_real_range((int *)seed, max_left, local_val);
+  }
+
+apply_angle:
+  /* Accumulate angle delta into unit steering */
+  angle_delta += *(float *)(unit + 0x3c8);
+  *(float *)(unit + 0x3c8) = angle_delta;
+
+  angle = angle_delta + *(float *)(unit + 0x3c4);
+  *(float *)(unit + 0x3c4) = angle;
+
+  /* Wrap angle to [-pi, pi] */
+  if (angle < *(float *)0x26e280) {
+    *(float *)(unit + 0x3c4) = angle + *(float *)0x255a54;
+  } else if (angle > *(float *)0x256980) {
+    *(float *)(unit + 0x3c4) = angle - *(float *)0x255a54;
+  }
+
+  /* Rotate run_vector by the angle around the global up axis */
+  cos_angle = x87_fcos(*(float *)(unit + 0x3c4));
+  sin_angle = x87_fsin(*(float *)(unit + 0x3c4));
+  up_axis = *(float **)0x31fc44;
+  rotate_vector3d_by_sincos(run_vector, up_axis, sin_angle, cos_angle);
+
+  /* Assert valid normal after rotation */
+  if (valid_real_normal3d(run_vector) == 0) {
+    msg = csprintf(
+        (char *)0x5ab100,
+        "%s: assert_valid_real_normal3d(%f, %f, %f)", "run_vector",
+        (double)run_vector[0], (double)run_vector[1],
+        (double)run_vector[2], "c:\\halo\\SOURCE\\units\\units.c", 0x2585,
+        true);
+    display_assert(msg, "c:\\halo\\SOURCE\\units\\units.c", 0x2585, true);
+    system_exit(-1);
+  }
 }
