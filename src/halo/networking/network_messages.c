@@ -128,7 +128,7 @@ int FUN_0011a340(int *state, short count, void *bs_definition)
 
 /* decode_raw_data — byte-swap raw elements in the buffer (0x11a430).
  * Source: data_encoding.c line 0x100. */
-int FUN_0011a430(int *state, short count, int element_size)
+__declspec(noinline) int FUN_0011a430(int *state, short count, int element_size)
 {
   int byte_count;
   int result;
@@ -179,7 +179,7 @@ int FUN_0011a430(int *state, short count, int element_size)
 
 /* decode_byte — read a single byte from the decode buffer (0x11a560).
  * Source: data_encoding.c. */
-unsigned char FUN_0011a560(int *state)
+__declspec(noinline) unsigned char FUN_0011a560(int *state)
 {
   int new_offset;
   unsigned char *ptr;
@@ -274,7 +274,7 @@ int64_t FUN_0011a6d0(int *state)
 
 /* decode_value — width-adaptive read based on maximum_value (0x11a700).
  * Source: data_encoding.c line 0x141. */
-unsigned int FUN_0011a700(int *state, int maximum_value)
+__declspec(noinline) unsigned int FUN_0011a700(int *state, int maximum_value)
 {
   if (maximum_value < 1) {
     display_assert("maximum_value>0",
@@ -353,7 +353,7 @@ void *FUN_0011a770(int *state, int element_size_type, unsigned int *element_coun
 
 /* decode_string_read — scan for NUL-terminated string in buffer (0x11a8e0).
  * Source: data_encoding.c. */
-char *FUN_0011a8e0(int *state)
+__declspec(noinline) char *FUN_0011a8e0(int *state)
 {
   int start_offset;
   short scan_count;
