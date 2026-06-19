@@ -2823,7 +2823,7 @@ void FUN_000face0(int animation_graph_tag_index, short *state, int *out_sound)
  * animation_index). Called by FUN_001b3580 when transitioning a unit
  * to a new animation state after a melee/scripted override.
  */
-void FUN_000fad00(int animation_graph_tag_index, int16_t animation_index)
+int16_t FUN_000fad00(int animation_graph_tag_index, int16_t animation_index)
 {
-  model_animation_choose_random(1, animation_graph_tag_index, animation_index);
+  return model_animation_choose_random(1, animation_graph_tag_index, animation_index);
 }
