@@ -1972,7 +1972,8 @@ void FUN_0009c4b0(int decal_tag_index, void *origin, void *direction,
 
     if (FUN_0014df70(0x100061, (float *)origin, (float *)direction, -1,
                      collision_result) &&
-        collision_result[0] != 0 && collision_result[0] == 2) {
+        collision_result[0] != 0 && collision_result[0] == 2 &&
+        collision_result[8] >= 0 && collision_result[8] < 0x200) {
       uint8_t *decal_tag = (uint8_t *)tag_get(0x64656361, decal_tag_index);
       if ((decal_tag[0] & 0x10) == 0) {
         decal_new_from_collision(decal_tag_index, collision_result, direction,
