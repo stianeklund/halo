@@ -7651,3 +7651,765 @@ void FUN_001a6280(int unit_handle, char *state_out)
   FUN_001a2800(unit_handle, "post-dying");
   state_out[1] = 0;
 }
+
+/* FUN_001a68d0 (0x1a68d0) — unit dialogue speech slot allocation.
+ *
+ * Resolves a vocalization type to a sound definition index via the unit's
+ * dialogue tag (udlg). Walks the vocalization fallback table at 0x2b6420
+ * when the primary type yields no sound. Evaluates priority-based
+ * preemption of the current speech slot against timing thresholds in the
+ * global tables at 0x2b65c4 (short[11]) and 0x2b65dc (float[11]).
+ *
+ * Returns a result code:
+ *   0 = no speech possible
+ *   1 = interrupt current speech
+ *   2 = immediate slot available or priority preemption
+ *   3 = priority exceeds current threshold
+ *
+ * Source file: unit_dialogue.c, lines 0x80–0x82 asserts.
+ */
+short FUN_001a68d0(int unit_handle, short priority, char param_3, char param_4,
+                   int *param_5, short *vocalization_type_ref,
+                   int *sound_definition_index_ref)
+{
+  char *unit;
+  int udlg_tag;
+  short voc_type;
+  int snd_def_idx;
+  short slot_priority;
+  short slot_secondary;
+  short max_priority;
+  int priority_int;
+  short result;
+  char bVar;
+  float timing_threshold;
+  short ftol_result;
+  short *priority_table;
+  float *timing_table;
+  short *fallback_table;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  game_time_get();
+
+  result = 0;
+
+  if (vocalization_type_ref == NULL) {
+    display_assert("vocalization_type_reference",
+                   "c:\\halo\\SOURCE\\units\\unit_dialogue.c", 0x80, 1);
+    system_exit(-1);
+  }
+  if (sound_definition_index_ref == NULL) {
+    display_assert("sound_definition_index_reference",
+                   "c:\\halo\\SOURCE\\units\\unit_dialogue.c", 0x81, 1);
+    system_exit(-1);
+  }
+  if (priority < 0 || priority > 10) {
+    display_assert(
+      "(priority >= 0) && (priority < NUMBER_OF_UNIT_SPEECH_PRIORITIES)",
+      "c:\\halo\\SOURCE\\units\\unit_dialogue.c", 0x82, 1);
+    system_exit(-1);
+  }
+
+  voc_type = *vocalization_type_ref;
+  snd_def_idx = *sound_definition_index_ref;
+
+  priority_table = (short *)0x2b65c4;
+  timing_table = (float *)0x2b65dc;
+  fallback_table = (short *)0x2b6420;
+
+  /* Walk the dialogue tag's vocalization table with fallback chain */
+  if (snd_def_idx == NONE && *(int *)(unit + 0x334) != NONE && voc_type != -1) {
+    udlg_tag = (int)tag_get(0x75646c67, *(int *)(unit + 0x334));
+    do {
+      if (voc_type < 0 || voc_type > 0xd0) {
+        display_assert(
+          "(vocalization_type >= 0) && (vocalization_type < "
+          "NUMBER_OF_VOCALIZATION_TYPES)",
+          "c:\\halo\\SOURCE\\units\\unit_dialogue.c", 0x90, 1);
+        system_exit(-1);
+      }
+      snd_def_idx = *(int *)(udlg_tag + (int)voc_type * 0x10 + 0x1c);
+    } while (param_3 != '\0' && snd_def_idx == NONE &&
+             (game_connection() != 0 || *(char *)0x5ac9cd == '\0') &&
+             (voc_type = fallback_table[voc_type], voc_type != -1));
+  }
+
+  /* Check if unit can speak (flag check and game connection) */
+  if ((*(uint8_t *)(unit + 0xb6) & 4) != 0 && priority != 10) {
+    goto done;
+  }
+  if (game_connection() == 0 && *(char *)0x5ac9cd != '\0') {
+    /* pass through */
+  } else if (snd_def_idx == NONE) {
+    goto done;
+  }
+
+  /* Evaluate speech slot priority */
+  slot_priority = *(short *)(unit + 0x338);
+  if (slot_priority == 0) {
+    result = 2;
+  } else {
+    slot_secondary = *(short *)(unit + 0x368);
+    max_priority = slot_priority;
+    if (slot_priority <= slot_secondary) {
+      max_priority = slot_secondary;
+    }
+
+    priority_int = (int)priority;
+
+    /* High-priority interrupt check (priority 2, 7, or 10) */
+    if ((priority_int == 2 || priority_int == 7 || priority_int == 10) &&
+        *(char *)(unit + 0x3a4) != '\0' &&
+        *(short *)(unit + 0x3aa) == 0 &&
+        max_priority < priority) {
+      slot_priority = 0;
+      max_priority = slot_secondary;
+    }
+
+    if (priority_table[priority_int] >= max_priority) {
+      result = 3;
+    } else if (priority >= 7 && priority_table[priority_int] >= slot_priority) {
+      result = 2;
+    } else if (param_4 != '\0' &&
+               timing_table[priority_int] != 0.0f) {
+      timing_threshold = timing_table[priority_int];
+      if (timing_threshold == *(float *)0x2548fc) {
+        /* REAL_MAX => always interrupt */
+        bVar = 1;
+      } else {
+        ftol_result = (short)(timing_threshold * 30.0f);
+        bVar = (*(short *)(unit + 0x3ae) + *(short *)(unit + 0x3aa) <
+                ftol_result) ? 1 : 0;
+        if (!bVar) goto done;
+      }
+      if (priority <= max_priority) {
+        if (priority <= *(short *)(unit + 0x368)) goto done;
+        if (slot_priority == 2 || slot_priority == 7) {
+          bVar = 1;
+        }
+        if (priority != 6 && !bVar) goto done;
+      }
+      result = 1;
+    }
+  }
+
+done:
+  *vocalization_type_ref = voc_type;
+  *sound_definition_index_ref = snd_def_idx;
+  if (param_5 != NULL) {
+    *param_5 = *(int *)(unit + 0x3a0);
+  }
+  return result;
+}
+
+/* FUN_001ac680 (0x1ac680) — acceleration plan builder.
+ *
+ * Computes a piecewise acceleration/deceleration plan given initial
+ * position, velocity, maximum velocity, and maximum acceleration.
+ * The plan output structure at param_5 has layout:
+ *   +0x00: bool  at_rest
+ *   +0x04: float initial_p
+ *   +0x08: float initial_v
+ *   +0x0C: float accel_a
+ *   +0x10: float accel_t
+ *   +0x14: float coast_t
+ *   +0x18: float decel_a
+ *   +0x1C: float decel_t
+ *
+ * Recursive for the negative-velocity case (negates p and v, then
+ * negates the plan output). Source file: units.c lines 0x7b7-0x860.
+ */
+void FUN_001ac680(float initial_p, float initial_v, float max_v,
+                  float max_a, int plan)
+{
+  float fVar1;        /* |initial_v| / max_a */
+  float fVar4;        /* discriminant / intermediate */
+  float neg_max_a;
+  float doubled_v;
+  float t;
+  float actual_t;
+  float coasting_vel;
+  float coast_diff;
+  char bVar;          /* initial_v <= 0 */
+
+  *(int *)(plan + 0x0c) = 0x7f7fffff;
+  *(int *)(plan + 0x10) = 0x7f7fffff;
+  *(int *)(plan + 0x14) = 0x7f7fffff;
+  *(int *)(plan + 0x18) = 0x7f7fffff;
+  *(int *)(plan + 0x1c) = 0x7f7fffff;
+  *(float *)(plan + 4) = initial_p;
+  *(float *)(plan + 8) = initial_v;
+
+  /* Check if effectively at rest (MSVC intrinsic fabs → inline FABS) */
+  if (fabs(initial_p) < 0.001 && fabs(initial_v) < 0.001) {
+    *(uint8_t *)plan = 1;
+    *(int *)(plan + 0x0c) = 0;
+    *(int *)(plan + 0x10) = 0;
+    *(int *)(plan + 0x14) = 0;
+    *(int *)(plan + 0x18) = 0;
+    *(int *)(plan + 0x1c) = 0;
+    return;
+  }
+  *(uint8_t *)plan = 0;
+
+  fVar1 = (float)(fabs(initial_v) / max_a);
+  bVar = (initial_v > 0.0f) ? 1 : 0;
+
+  /* Check if we're moving in the wrong direction (need to reverse) */
+  if (fVar1 * 0.5f * initial_v * 0.5f + initial_p < 0.0f) {
+    /* Recursive case: negate and re-plan */
+    FUN_001ac680(-initial_p, -initial_v, max_v, max_a, plan);
+    *(float *)(plan + 0x04) = *(float *)(plan + 0x04) * -1.0f;
+    *(float *)(plan + 0x08) = *(float *)(plan + 0x08) * -1.0f;
+    *(float *)(plan + 0x0c) = *(float *)(plan + 0x0c) * -1.0f;
+    *(float *)(plan + 0x18) = *(float *)(plan + 0x18) * -1.0f;
+    goto validate;
+  }
+
+  fVar4 = initial_v * 0.5f * fVar1 + initial_p;
+
+  if (fVar4 < 0.0f) {
+    /* Overshoot case: initial_p near zero, velocity away from target */
+    if (initial_p <= -0.001f) {
+      display_assert("plan->initial_p > -1e-03f",
+                     "c:\\halo\\SOURCE\\units\\units.c", 0x7b7, 1);
+      system_exit(-1);
+    }
+    if (*(float *)(plan + 8) >= 0.0f) {
+      display_assert("plan->initial_v < 0",
+                     "c:\\halo\\SOURCE\\units\\units.c", 0x7b8, 1);
+      system_exit(-1);
+    }
+    *(int *)(plan + 0x0c) = 0;
+    *(int *)(plan + 0x10) = 0;
+    fVar4 = *(float *)(plan + 8) * *(float *)(plan + 8) /
+            (*(float *)(plan + 4) + *(float *)(plan + 4));
+    *(float *)(plan + 0x18) = fVar4;
+    *(float *)(plan + 0x1c) = -(*(float *)(plan + 8) / fVar4);
+    *(int *)(plan + 0x14) = 0;
+    goto validate;
+  }
+
+  /* Normal deceleration case */
+  if (!bVar) {
+    /* Decelerating (initial_v <= 0): quadratic formula */
+    neg_max_a = -max_a;
+    doubled_v = initial_v + initial_v;
+    fVar4 = doubled_v * doubled_v - neg_max_a * fVar4 * 4.0f;
+    if (fVar4 < 0.0f) {
+      display_assert("disc >= 0",
+                     "c:\\halo\\SOURCE\\units\\units.c", 0x7eb, 1);
+      system_exit(-1);
+    }
+    fVar4 = sqrtf(fVar4);
+    t = (-doubled_v - fVar4) / (neg_max_a + neg_max_a);
+    actual_t = (fVar4 - doubled_v) / (neg_max_a + neg_max_a);
+    if (t >= 0.0f && (actual_t < 0.0f || t < actual_t)) {
+      /* use t */
+    } else if (actual_t >= 0.0f) {
+      t = actual_t;
+    } else {
+      t = 0.0f;
+      goto check_t;
+    }
+    initial_v = t;
+    goto check_t;
+  } else {
+    /* Accelerating (initial_v > 0): direct sqrt */
+    initial_v = sqrtf(fVar4 / max_a);
+  }
+
+check_t:
+  if (initial_v < 0.0f) {
+    display_assert("t >= 0", "c:\\halo\\SOURCE\\units\\units.c", 0x7fa, 1);
+    system_exit(-1);
+  }
+
+  /* Apply maximum velocity constraint */
+  if (max_v <= 0.0f) {
+    actual_t = initial_v;
+  } else {
+    if (!bVar) {
+      max_v = max_v + *(float *)(plan + 8);
+    }
+    actual_t = max_v / max_a;
+    if (actual_t < 0.0f) {
+      actual_t = 0.0f;
+    }
+    if (initial_v <= actual_t) {
+      actual_t = initial_v;
+    }
+  }
+
+  /* Fill plan fields */
+  *(float *)(plan + 0x0c) = -max_a;
+  *(float *)(plan + 0x18) = max_a;
+  if (bVar) {
+    /* initial_v > 0: accel_t = actual_t + fVar1, decel_t = actual_t */
+    *(float *)(plan + 0x10) = actual_t + fVar1;
+    *(float *)(plan + 0x1c) = actual_t;
+  } else {
+    /* initial_v <= 0: accel_t = actual_t, decel_t = actual_t + fVar1 */
+    *(float *)(plan + 0x1c) = actual_t + fVar1;
+    *(float *)(plan + 0x10) = actual_t;
+  }
+
+  /* Check if we need a coasting phase */
+  if (actual_t < initial_v) {
+    coasting_vel = -max_a * *(float *)(plan + 0x10) + *(float *)(plan + 8);
+    coast_diff = initial_v - actual_t;
+    if (coasting_vel >= 0.0f) {
+      display_assert("coasting_vel < 0",
+                     "c:\\halo\\SOURCE\\units\\units.c", 0x850, 1);
+      system_exit(-1);
+    }
+    *(float *)(plan + 0x14) =
+      ((coast_diff * coasting_vel + coast_diff * coasting_vel) -
+       coast_diff * coast_diff * max_a) / coasting_vel;
+    if (*(float *)(plan + 0x14) < 0.0f) {
+      display_assert("plan->coast_t >= 0",
+                     "c:\\halo\\SOURCE\\units\\units.c", 0x852, 1);
+      system_exit(-1);
+    }
+    if (actual_t + *(float *)(plan + 0x14) < initial_v) {
+      display_assert("plan->coast_t + actual_t >= t",
+                     "c:\\halo\\SOURCE\\units\\units.c", 0x853, 1);
+      system_exit(-1);
+    }
+    goto validate;
+  }
+
+  *(int *)(plan + 0x14) = 0;
+
+validate:
+  if (*(int *)(plan + 0x0c) == 0x7f7fffff) {
+    display_assert("REAL_MAX != plan->accel_a",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x85c, 1);
+    system_exit(-1);
+  }
+  if (*(int *)(plan + 0x10) == 0x7f7fffff) {
+    display_assert("REAL_MAX != plan->accel_t",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x85d, 1);
+    system_exit(-1);
+  }
+  if (*(int *)(plan + 0x14) == 0x7f7fffff) {
+    display_assert("REAL_MAX != plan->coast_t",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x85e, 1);
+    system_exit(-1);
+  }
+  if (*(int *)(plan + 0x18) == 0x7f7fffff) {
+    display_assert("REAL_MAX != plan->decel_a",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x85f, 1);
+    system_exit(-1);
+  }
+  if (*(int *)(plan + 0x1c) == 0x7f7fffff) {
+    display_assert("REAL_MAX != plan->decel_t",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x860, 1);
+    system_exit(-1);
+  }
+}
+
+/* unit_adjust_projectile_ray (0x1acf90) — adjust projectile ray origin
+ * and direction based on unit state.
+ *
+ * If use_unit_forward is true, copies the unit's forward vector (+0x1ec)
+ * into direction. If adjust_origin is true, projects the origin onto the
+ * unit's aim position along the direction vector. Finally computes
+ * velocity_out as the dot product of the root location's direction with
+ * the forward direction.
+ *
+ * Source: units.c
+ */
+void unit_adjust_projectile_ray(int unit_handle, float *origin,
+                                float *direction, float *velocity_out,
+                                char adjust_origin, char use_unit_forward)
+{
+  char *unit;
+  float aim_pos[3];
+  float dot;
+  float root_dir[3];
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+
+  /* Copy unit forward vector as direction if requested */
+  if (use_unit_forward != '\0') {
+    direction[0] = *(float *)(unit + 0x1ec);
+    direction[1] = *(float *)(unit + 0x1f0);
+    direction[2] = *(float *)(unit + 0x1f4);
+  }
+
+  /* Project origin onto aim position along direction */
+  if (adjust_origin != '\0') {
+    unit_set_seat_state(unit_handle, aim_pos);
+    dot = (origin[0] - aim_pos[0]) * direction[0] +
+          (origin[1] - aim_pos[1]) * direction[1] +
+          (origin[2] - aim_pos[2]) * direction[2];
+    origin[0] = dot * direction[0] + aim_pos[0];
+    origin[1] = dot * direction[1] + aim_pos[1];
+    origin[2] = dot * direction[2] + aim_pos[2];
+  }
+
+  /* Compute velocity as dot(root_direction, direction) */
+  object_get_root_location(unit_handle, root_dir, 0);
+  *velocity_out = root_dir[0] * direction[0] +
+                  root_dir[2] * direction[2] +
+                  root_dir[1] * direction[1];
+}
+
+/* unit_render_debug (0x1ad060) — debug rendering for unit state.
+ *
+ * Draws debug visualization for unit aim vectors, seat positions, and
+ * animation throttle when the corresponding debug flags (0x5054f5-f7)
+ * are enabled. Conditional on global debug toggles.
+ *
+ * Source: units.c
+ */
+void unit_render_debug(int unit_handle)
+{
+  char *unit;
+  int unit_tag;
+  float eye_pos[3];
+  float head_pos[3];
+  char marker_data[0x6c];       /* marker output; position at +0x60 */
+  int seat_idx;
+  float seat_a[3], seat_b[3], seat_c[3];
+  int seat_count;
+  int local_player;
+  char result;
+  char *text;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag = (int)tag_get(0x756e6974, *(int *)unit);
+
+  /* Debug aim/look vectors */
+  if (*(char *)0x5054f7 != '\0') {
+    unit_set_seat_state(unit_handle, eye_pos);
+    object_get_world_position(unit_handle, (vector3_t *)head_pos);
+    head_pos[2] = head_pos[2] + 0.1f;
+    /* Draw aim direction line (scale 1.0, yellow) */
+    FUN_00189320(1, eye_pos, (void *)(unit + 0x1ec), 0x3f800000,
+                 *(int *)0x2ee6c4);
+    /* Draw aim direction line (scale 0.5, green) */
+    FUN_00189320(1, eye_pos, (void *)(unit + 0x1e0), 0x3f000000,
+                 *(int *)0x2ee6d0);
+    /* Draw head position (scale 1.0, yellow) */
+    FUN_00189320(1, head_pos, (void *)(unit + 0x24), 0x3f800000,
+                 *(int *)0x2ee6c4);
+    /* Draw body direction (scale 0.5, green) */
+    FUN_00189320(1, head_pos, (void *)(unit + 0x1d4), 0x3f000000,
+                 *(int *)0x2ee6d0);
+  }
+
+  /* Debug seat positions */
+  if (*(char *)0x5054f6 != '\0') {
+    {
+      int player_idx;
+      player_idx = local_player_get_player_index(*(int16_t *)0x506548);
+      local_player = (int)datum_get(*(data_t **)0x5aa6d4, player_idx);
+    }
+    seat_count = *(int *)(local_player + 0x34);
+    if (seat_count != NONE) {
+      seat_idx = 0;
+      if (seat_idx < *(int *)(unit_tag + 0x2e4)) {
+        do {
+          result = (char)unit_get_seat_enter_position(
+            seat_count, unit_handle, (int16_t)seat_idx,
+            seat_a, seat_b, seat_c);
+          if (result != '\0') {
+            FUN_00189150(1, seat_a, 0.25f, *(void **)0x2ee6d0);
+            FUN_00189150(1, seat_b, 0.25f, *(void **)0x2ee6d8);
+            FUN_00189150(1, seat_c, 0.25f, *(void **)0x2ee6e0);
+          }
+          seat_idx += 1;
+        } while ((int)(short)seat_idx < *(int *)(unit_tag + 0x2e4));
+      }
+    }
+  }
+
+  /* Debug animation throttle */
+  if (*(char *)0x5054f5 != '\0') {
+    object_get_markers_by_string_id(unit_handle, (void *)0x2909e4,
+                                    marker_data, 1);
+    /* Position is at offset 0x60 within the marker output struct.
+     * marker_data base is EBP-0x98; position at EBP-0x38 = base+0x60. */
+    head_pos[0] = *(float *)((char *)marker_data + 0x60);
+    head_pos[1] = *(float *)((char *)marker_data + 0x64);
+    head_pos[2] = *(float *)((char *)marker_data + 0x68);
+    text = csprintf((char *)0x5ab100, "%.2f",
+                     (double)*(float *)(unit + 0x298));
+    FUN_00189cb0(0, head_pos, text, *(int *)0x2ee6f0);
+  }
+}
+
+/* vehicle_scripting_find_available_seats (0x1adfc0) — find available seats
+ * in a unit matching a substring filter and seat desire type.
+ *
+ * Iterates unit seats from the unit tag (0x756e6974), checks the seat name
+ * against the substring filter, applies the seat desire type filter, and
+ * stores matching seat indices in seat_indices up to max_seats.
+ *
+ * seat_desire_type values:
+ *   -1 = NONE (no filter, accept all)
+ *   0 = NOT driver (bit 2 clear)
+ *   1 = gunner (bit 3 set)
+ *   2 = neither driver nor gunner
+ *   3 = driver (bit 2 set)
+ *   default = accept
+ *
+ * Source: units.c line 0x178f-0x1790 asserts.
+ */
+int16_t vehicle_scripting_find_available_seats(int unit_handle,
+                                               int seat_substring_addr,
+                                               int16_t seat_desire_type,
+                                               int16_t *seat_indices,
+                                               int16_t max_seats)
+{
+  const char *seat_substring;
+  char *unit;
+  int unit_tag;
+  char match_all;
+  short found_count;
+  int loop_idx;
+  uint32_t *seat_entry;
+  char seat_name_buf[256];
+  uint8_t bit_val;
+  char seat_filled;
+
+  seat_substring = (const char *)seat_substring_addr;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag = (int)tag_get(0x756e6974, *(int *)unit);
+
+  if (seat_substring == NULL) {
+    display_assert("seat_substring_name",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x178f, 1);
+    system_exit(-1);
+  }
+  if (seat_desire_type != -1 &&
+      (seat_desire_type < 0 || seat_desire_type >= 5)) {
+    display_assert("(seat_desire_type == NONE) || "
+                   "((seat_desire_type >= 0) && "
+                   "(seat_desire_type < NUMBER_OF_VEHICLE_SEAT_DESIRE_TYPES))",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x1790, 1);
+    system_exit(-1);
+  }
+
+  /* Determine if we should match all seats or filter by substring */
+  if (seat_substring != NULL && csstrlen(seat_substring) != 0) {
+    match_all = 0;
+  } else {
+    match_all = 1;
+  }
+
+  found_count = 0;
+  loop_idx = 0;
+  while ((short)loop_idx < *(int *)(unit_tag + 0x2e4)) {
+    seat_entry = (uint32_t *)tag_block_get_element(
+      (void *)(unit_tag + 0x2e4), loop_idx, 0x11c);
+
+    if (found_count >= max_seats) {
+      return found_count;
+    }
+
+    /* Copy and lowercase the seat name for comparison */
+    csstrcpy(seat_name_buf, (const char *)(seat_entry + 1));
+    csstr_tolower(seat_name_buf);
+
+    /* Check substring match */
+    if (!match_all && crt_strstr(seat_name_buf, seat_substring) == NULL) {
+      goto next_seat;
+    }
+
+    /* Check seat desire type filter */
+    switch ((int)seat_desire_type) {
+    case 0:
+      bit_val = ~(uint8_t)(*seat_entry >> 2);
+      break;
+    case 1:
+      bit_val = (uint8_t)(*seat_entry >> 3);
+      break;
+    case 2:
+      if ((*seat_entry & 4) != 0 || (*seat_entry & 8) != 0)
+        goto next_seat;
+      goto accept_seat;
+    case 3:
+      bit_val = (uint8_t)(*seat_entry >> 2);
+      break;
+    default:
+      goto accept_seat;
+    }
+    if ((bit_val & 1) == 0)
+      goto next_seat;
+
+  accept_seat:
+    seat_filled = unit_seat_filled(unit_handle, (int16_t)loop_idx);
+    if (seat_filled == '\0') {
+      seat_indices[found_count] = (int16_t)loop_idx;
+      found_count = found_count + 1;
+    }
+
+  next_seat:
+    loop_idx += 1;
+  }
+  return found_count;
+}
+
+/* unit_leap_begin (0x1b1c70) — start a leap animation.
+ *
+ * Checks the unit's animation state via a switch; if the state is not one
+ * of the dying/dead/special states, and either the unit has a vehicle
+ * or melee is not active, requests animation state 0x27 (leap). If the
+ * forward vector is non-NULL, applies it as the unit's alignment vector.
+ *
+ * Returns 1 on success, 0 if the state blocks leaping.
+ *
+ * Source: units.c
+ */
+char unit_leap_begin(int unit_handle, float *forward)
+{
+  char *unit;
+  char result;
+  char anim_ok;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  result = 0;
+
+  switch (*(uint8_t *)(unit + 0x253)) {
+  case 0x17: case 0x18: case 0x19: case 0x1a: case 0x1b:
+  case 0x1d: case 0x1e: case 0x1f: case 0x20: case 0x21:
+  case 0x22: case 0x23: case 0x27: case 0x29:
+    /* These states block leaping */
+    break;
+  default:
+    if (*(short *)(unit + 0x64) != 0 ||
+        (*(uint8_t *)(unit + 0x424) & 1) == 0) {
+      anim_ok = FUN_001ad260(unit_handle, 0x27);
+      if (anim_ok != '\0') {
+        if (forward != 0) {
+          unit_apply_alignment_vector(unit_handle, forward);
+        }
+        result = 1;
+      }
+    }
+    break;
+  }
+  return result;
+}
+
+/* unit_throw_grenade_begin (0x1b2090) — begin grenade throw animation.
+ *
+ * Checks grenade availability, animation state eligibility, weapon state,
+ * and initiates the grenade throw animation (state 0x21). Sets up
+ * animation frame counts, applies alignment vector, triggers first-person
+ * weapon message and player aim assist clear, and creates the grenade
+ * throw effect if one is defined in the game globals.
+ *
+ * Returns 1 on success, 0 if throw cannot begin.
+ *
+ * Source: units.c
+ */
+char unit_throw_grenade_begin(int unit_handle, float *alignment_vector)
+{
+  char *unit;
+  int unit_tag;
+  int weapon_handle;
+  char result;
+  int16_t grenade_type;
+  int16_t grenade_count;
+  char anim_ok;
+  int antr_tag;
+  int anim_element;
+  int gg;
+  int gg_element;
+  int effect_tag;
+  float local_buf[3]; /* alignment_vector scratch; z uninitialized per original */
+  char weapon_blocks;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag = (int)tag_get(0x756e6974, *(int *)unit);
+
+  /* Get the current weapon handle */
+  {
+    int temp_unit;
+    temp_unit = (int)object_get_and_verify_type(unit_handle, 3);
+    weapon_handle = unit_get_weapon(unit_handle,
+      *(int16_t *)(temp_unit + 0x2a2));
+  }
+
+  result = 0;
+
+  /* Check grenade availability */
+  grenade_type = unit_get_current_grenade_type(unit_handle);
+  grenade_count = unit_get_grenade_count(unit_handle, grenade_type);
+  if (grenade_count < 1) {
+    return result;
+  }
+
+  /* Check animation state */
+  switch (*(uint8_t *)(unit + 0x253)) {
+  case 0x17: case 0x18: case 0x19: case 0x1a: case 0x1b:
+  case 0x1d: case 0x1e: case 0x1f: case 0x20: case 0x21:
+  case 0x22: case 0x23: case 0x27: case 0x29:
+    return result;
+  }
+
+  /* Check if weapon prevents grenade throwing */
+  weapon_blocks = (char)weapon_prevents_grenade_throwing(weapon_handle);
+  if (weapon_blocks != '\0') {
+    return result;
+  }
+
+  /* Stop weapon reload and melee attack */
+  if (weapon_handle != NONE) {
+    weapon_stop_reload(weapon_handle);
+  }
+  biped_stop_melee_attack(unit_handle);
+
+  /* Clear some unit state */
+  *(uint8_t *)(unit + 0x254) = 0;
+  *(int16_t *)(unit + 0x25a) = -1;
+
+  /* Request grenade throw animation */
+  anim_ok = FUN_001ad260(unit_handle, 0x21);
+  if (anim_ok == '\0') {
+    return result;
+  }
+
+  /* Set up animation timing */
+  *(uint8_t *)(unit + 0x23d) = 1;
+  *(int16_t *)(unit + 0x23e) = 0;
+  antr_tag = (int)tag_get(0x616e7472, *(int *)(unit_tag + 0x44));
+  anim_element = (int)tag_block_get_element(
+    (void *)(antr_tag + 0x74),
+    (int)*(int16_t *)(unit + 0x80), 0xb4);
+  *(int16_t *)(unit + 0x240) =
+    (int16_t)(*(int16_t *)(anim_element + 0x34) -
+              *(int16_t *)(unit + 0x82) + 1);
+
+  /* Apply alignment vector */
+  if (alignment_vector != NULL) {
+    unit_apply_alignment_vector(unit_handle, alignment_vector);
+  } else {
+    /* Compute alignment from unit forward direction if magnitude > 0 */
+    local_buf[0] = *(float *)(unit + 0x1ec);
+    local_buf[1] = *(float *)(unit + 0x1f0);
+    if (magnitude3d(local_buf) > 0.0f) {
+      unit_apply_alignment_vector(unit_handle, local_buf);
+    }
+  }
+  /* Trigger first-person weapon messages and player aim assist */
+  first_person_weapon_message_from_unit(unit_handle, 0x11);
+  player_clear_aim_assist(unit_handle);
+
+  /* Create grenade throw effect */
+  gg = (int)game_globals_get();
+  gg_element = (int)tag_block_get_element(
+    (void *)(gg + 0x128),
+    (int)*(int8_t *)(unit + 0x2cc), 0x44);
+  effect_tag = *(int *)(gg_element + 0x10);
+  if (effect_tag != NONE) {
+    FUN_0009ec30(effect_tag, unit_handle, unit_handle, (short)-1,
+                 0.0f, 0.0f, 0, 0);
+  }
+  return 1;
+}
