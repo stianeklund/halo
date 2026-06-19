@@ -515,6 +515,7 @@
     "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);",
     "0x1a6e20": "void FUN_001a6e20(int unit_handle@<eax>, void *speech_item@<ecx>, short priority);",
     "0x1a7650": "int FUN_001a7650(void *tag_data@<ecx>, int dialogue_type);",
-    "0x1a7730": "void FUN_001a7730(int unit_handle@<eax>);"
+    "0x1a7730": "void FUN_001a7730(int unit_handle@<eax>);",
+    "0x1a8550": "char FUN_001a8550(void *plan@<ecx>, float delta_time, float position, float *out_position, float velocity, float *out_velocity);"
   }
 }
