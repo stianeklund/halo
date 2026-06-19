@@ -25509,7 +25509,8 @@
         },
         {
           "addr": "0x1a6d10",
-          "decl": "int FUN_001a6d10(int unit_handle, char full_path, int16_t max_len, char *output);"
+          "decl": "char *FUN_001a6d10(int unit_handle, char full_path, int16_t max_len, char *output);",
+          "ported": true
         },
         {
           "addr": "0x1a6e20",
@@ -25532,15 +25533,17 @@
         },
         {
           "addr": "0x1a74d0",
-          "decl": "int FUN_001a74d0(int unit_handle, int scream_type);"
+          "decl": "char FUN_001a74d0(int unit_handle, int scream_type);",
+          "ported": true
         },
         {
           "addr": "0x1a7650",
-          "decl": "void FUN_001a7650(void);"
+          "decl": "int FUN_001a7650(void *tag_data@<ecx>, int dialogue_type);"
         },
         {
           "addr": "0x1a7730",
-          "decl": "void FUN_001a7730(int unit_handle@<eax>);"
+          "decl": "void FUN_001a7730(int unit_handle@<eax>);",
+          "ported": true
         },
         {
           "addr": "0x1a7790",
@@ -25824,7 +25827,8 @@
         },
         {
           "addr": "0x1a9c90",
-          "decl": "void unit_scripting_vehicle_test_seat_list(void);"
+          "decl": "char FUN_001a9c90(int unit_handle, const char *seat_name, int object_list);",
+          "ported": true
         },
         {
           "addr": "0x1a9da0",
@@ -25848,7 +25852,8 @@
         },
         {
           "addr": "0x1a9f20",
-          "decl": "void unit_shield_sapping_update(void);"
+          "decl": "void FUN_001a9f20(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1aa080",
@@ -25865,7 +25870,8 @@
         },
         {
           "addr": "0x1aa360",
-          "decl": "void unit_set_user_animation(void);"
+          "decl": "char FUN_001aa360(int unit_handle, int param_2, int16_t index);",
+          "ported": true
         },
         {
           "addr": "0x1aa3c0",
@@ -25874,7 +25880,8 @@
         },
         {
           "addr": "0x1aa430",
-          "decl": "void unit_can_see_point(void);"
+          "decl": "char FUN_001aa430(int unit_handle, float *point, float half_angle);",
+          "ported": true
         },
         {
           "addr": "0x1aa4d0",
