@@ -601,11 +601,11 @@
         },
         {
           "addr": "0x1a4c50",
-          "decl": "void FUN_001a4c50(void);"
+          "decl": "void FUN_001a4c50(int unit_handle, unsigned char *state);"
         },
         {
           "addr": "0x1a5300",
-          "decl": "void FUN_001a5300(void);"
+          "decl": "void FUN_001a5300(int unit_handle, unsigned char *state);"
         },
         {
           "addr": "0x1b8f10",
@@ -18320,7 +18320,7 @@
         {
           "addr": "0xf8720",
           "decl": "bool FUN_000f8720(int projectile_handle@<eax>, float *new_pos@<edi>, int16_t *collision_result);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0xf8920",
@@ -25429,12 +25429,12 @@
         {
           "addr": "0x122a50",
           "decl": "void FUN_00122a50(int animation, float frame_pos, float blend_weight, int node_output);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x122e50",
           "decl": "void FUN_00122e50(int animation, float *blend_params, float direction, float throttle, int node_output);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x123470",
@@ -25449,7 +25449,7 @@
         {
           "addr": "0x123560",
           "decl": "void FUN_00123560(int model_tag, int permutation_data, int *node_matrices, int render_data, short shader_permutation, short detail_level, unsigned char flags);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1a6280",
@@ -25459,7 +25459,7 @@
         {
           "addr": "0x1a6350",
           "decl": "char FUN_001a6350(int unit_handle);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1a67b0",
@@ -26270,7 +26270,7 @@
           "addr": "0x1aea90",
           "decl": "void unit_cause_player_melee_damage(int unit_handle);",
           "name": "unit_cause_player_melee_damage",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1af0d0",
@@ -26316,7 +26316,7 @@
         {
           "addr": "0x1afd30",
           "decl": "void FUN_001afd30(int unit_handle, int node_output);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1b04b0",
@@ -26326,7 +26326,7 @@
         {
           "addr": "0x1b0630",
           "decl": "void FUN_001b0630(int transform_matrix, float *aiming_vector, float *desired_vector, float *angular_velocity, float *aiming_bounds, float angular_velocity_limit, float angular_acceleration_limit);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1b0d00",
@@ -26337,7 +26337,7 @@
           "addr": "0x1b0d90",
           "decl": "short FUN_001b0d90(int unit_handle, char *anim_state);",
           "name": "FUN_001b0d90",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1b1290",
@@ -26359,7 +26359,7 @@
         {
           "addr": "0x1b1400",
           "decl": "void FUN_001b1400(int unit_handle, char is_melee, char is_throw, char is_airborne, char is_ground, char is_ping, float throttle_magnitude, int weapon_class, int alignment_vector);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1b1a20",
@@ -26492,7 +26492,7 @@
         {
           "addr": "0x1b3690",
           "decl": "char FUN_001b3690(int unit_handle);",
-          "ported": false
+          "ported": true
         }
       ],
       "name": "units.obj",
@@ -30086,7 +30086,7 @@
         },
         {
           "addr": "0xfc930",
-          "decl": "void weapon_prevents_melee_attack(void);"
+          "decl": "char weapon_prevents_melee_attack(int weapon_handle);"
         },
         {
           "addr": "0xfc990",
