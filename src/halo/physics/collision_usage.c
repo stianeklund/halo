@@ -996,25 +996,6 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
       }
       *(int16_t *)((char *)collision_result + 0x10) = cluster_last;
     }
-    /* Guard: structure_render_surface_from_point_and_leaf (0x198580) indexes
-     * the scenario structure-bsp block (scenario+0xe0) with
-     * (collision_result+0xc & 0x7fffffff), and the decal path derives its
-     * cluster from the same field.  The "no surface" sentinel sets all low 31
-     * bits, so the masked index is 0x7fffffff — out of range — and asserts at
-     * tag_groups.c:3089 / decals.c:479.  The raw field is -1 (0xffffffff) OR
-     * 0x7fffffff; the previous guard only tested == -1 and missed the latter
-     * form, which is what slipped through on MP maps.  The original never
-     * reaches those consumers with the sentinel (game objects are never in the
-     * void), so an invalid ref reflects an upstream mis-position; treat it as a
-     * miss, which every consumer handles gracefully (ambient lighting / no
-     * decal).  Log the first few to locate the offending position. */
-    if (result &&
-        (*(int *)((char *)collision_result + 0xc) & 0x7fffffff) == 0x7fffffff) {
-      *(int *)((char *)collision_result + 0x4) = 0;
-      *(int16_t *)((char *)collision_result + 0x8) = 0;
-      *(int *)((char *)collision_result + 0xc) = 0;
-      *(int16_t *)((char *)collision_result + 0x10) = 0;
-    }
   }
 
   /* Log timing */
@@ -1051,7 +1032,8 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
                        local_18[2] * direction[2];
 
         if ((fVar_dist > 0.0f) != (fVar_dir_dot > 0.0f) &&
-            fabsf(fVar_dir_dot) >= 1e-4 &&
+            fabs((double)fVar_dist) < fabs((double)fVar_dir_dot) &&
+            fabs((double)fVar_dir_dot) >= *(double *)0x2533d0 &&
             -(fVar_dist / fVar_dir_dot) <
               *(float *)((char *)collision_result + 0x14)) {
           fog_side = (char)(fVar_dist >= 0.0f ? 1 : 0);
@@ -1196,12 +1178,15 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
     }
   }
 
-  if (result &&
-      (*(int *)((char *)collision_result + 0xc) & 0x7fffffff) == 0x7fffffff) {
-    *(int *)((char *)collision_result + 0x4) = 0;
-    *(int16_t *)((char *)collision_result + 0x8) = 0;
+  /* Clamp: our hit position can land on BSP boundaries where
+   * scenario_location_from_point returns -1.  Downstream consumers
+   * (structure_render_surface, decals) index with +0xc & 0x7FFFFFFF and
+   * assert on 0x7FFFFFFF.  The original never reaches here with -1
+   * (x87 precision keeps positions inside the BSP).  Substitute cluster 0
+   * (always valid) to avoid the assert without destroying the obj_ref
+   * and cluster fields at +4/+8/+0x10 that detonation needs. */
+  if (result && *(int *)((char *)collision_result + 0xc) == -1) {
     *(int *)((char *)collision_result + 0xc) = 0;
-    *(int16_t *)((char *)collision_result + 0x10) = 0;
   }
 
   return result;

@@ -6793,7 +6793,7 @@ char unit_has_animation_to_enter_seat(int unit_handle, int vehicle_handle, int16
       if (*(int16_t *)(unit_data + 0x64) != 1) {
         seat_entry = (char *)tag_block_get_element(
             (int *)(unit_tag + 0x2e4), (int)seat_index, 0x11c);
-        if (!FUN_001acd70((int)(seat_entry + 4), 0, 0)) {
+        if (!FUN_001acd70(unit_handle, (const char *)(seat_entry + 4), 0, 0)) {
           return 0;
         }
       }
@@ -7242,7 +7242,7 @@ char unit_get_melee_range_and_ticks(int unit_handle, char is_secondary,
  * Attempts to set the unit's seat via animation lookup. */
 char unit_set_seat(int unit_handle, int seat_name)
 {
-  return FUN_001acd70(seat_name, 0, 1) != '\0';
+  return FUN_001acd70(unit_handle, (const char *)seat_name, 0, 1) != '\0';
 }
 
 /* unit_start_flaming_to_death (0x1af2a0)
@@ -8935,7 +8935,7 @@ void unit_scripting_enter_vehicle(int unit_handle, int vehicle_handle,
         if (seat_filled == '\0') {
           /* Seat is available - check type compatibility */
           if (*(short *)(unit_data + 0x64) == 1 ||
-              FUN_001acd70(seat_element + 4, 0, 0) != '\0') {
+              FUN_001acd70(unit_handle, (const char *)(seat_element + 4), 0, 0) != '\0') {
             /* Compatible - board the vehicle */
             unit_board_vehicle(unit_handle, vehicle_handle, (int16_t)seat_idx);
             return;
@@ -9013,7 +9013,7 @@ uint16_t vehicle_scripting_load_magic(int vehicle_handle, int seat_substring,
 
             /* Check seat type compatibility */
             if (*(short *)(child_data + 0x64) != 1) {
-              seat_type_ok = FUN_001acd70(seat_element + 4, 0, 0);
+              seat_type_ok = FUN_001acd70(child_handle, (const char *)(seat_element + 4), 0, 0);
               if (seat_type_ok == '\0') {
                 goto next_seat;
               }

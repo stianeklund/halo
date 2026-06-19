@@ -25287,7 +25287,7 @@
         {
           "addr": "0x1a0db0",
           "decl": "char FUN_001a0db0(int biped_handle);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x1a0e00",
@@ -25459,7 +25459,7 @@
         {
           "addr": "0x1a6350",
           "decl": "char FUN_001a6350(int unit_handle);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x1a67b0",
@@ -26132,7 +26132,7 @@
         },
         {
           "addr": "0x1acd70",
-          "decl": "char FUN_001acd70(int param_1, int param_2, int param_3);",
+          "decl": "char FUN_001acd70(int unit_handle@<eax>, const char *seat_label, const char *weapon_name, char apply_state);",
           "ported": false
         },
         {
@@ -26230,7 +26230,7 @@
         },
         {
           "addr": "0x1ae490",
-          "decl": "int16_t FUN_001ae490(int param_1, int param_2);",
+          "decl": "int16_t FUN_001ae490(int unit_handle@<ebx>, int16_t current_index, int16_t direction);",
           "ported": false
         },
         {
@@ -34721,7 +34721,7 @@
         {
           "addr": "0x136b40",
           "decl": "void FUN_00136b40(int object_handle);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x136bc0",
@@ -34745,7 +34745,7 @@
         {
           "addr": "0x137540",
           "decl": "void FUN_00137540(int object_handle);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x137620",
