@@ -26008,7 +26008,10 @@
         },
         {
           "addr": "0x1ab410",
-          "decl": "void FUN_001ab410(void);"
+          "decl": "void unit_aiming_vector(int unit_handle@<eax>);",
+          "name": "unit_aiming_vector",
+          "ported": true,
+          "obj": "units.obj"
         },
         {
           "addr": "0x1ab6e0",
@@ -26052,11 +26055,17 @@
         },
         {
           "addr": "0x1abb20",
-          "decl": "void FUN_001abb20(void);"
+          "decl": "void unit_drop_grenades_on_death(int unit_handle@<eax>);",
+          "name": "unit_drop_grenades_on_death",
+          "ported": true,
+          "obj": "units.obj"
         },
         {
           "addr": "0x1abbd0",
-          "decl": "void FUN_001abbd0(void);"
+          "decl": "void unit_drop_weapons_on_death(int unit_handle@<eax>);",
+          "name": "unit_drop_weapons_on_death",
+          "ported": true,
+          "obj": "units.obj"
         },
         {
           "addr": "0x1abcd0",
@@ -26207,7 +26216,10 @@
         },
         {
           "addr": "0x1ae700",
-          "decl": "void FUN_001ae700(void);"
+          "decl": "char *unit_get_weapon_name(int unit_handle@<esi>, int unused);",
+          "name": "unit_get_weapon_name",
+          "ported": true,
+          "obj": "units.obj"
         },
         {
           "addr": "0x1ae730",
@@ -26304,7 +26316,10 @@
         },
         {
           "addr": "0x1b13a0",
-          "decl": "void FUN_001b13a0(void);"
+          "decl": "char unit_has_night_vision_weapon(int unit_handle@<esi>);",
+          "name": "unit_has_night_vision_weapon",
+          "ported": true,
+          "obj": "units.obj"
         },
         {
           "addr": "0x1b1400",
@@ -26322,7 +26337,7 @@
         },
         {
           "addr": "0x1b1b60",
-          "decl": "void unit_melee_attack_begin(void);"
+          "decl": "char FUN_001b1b60(int unit_handle, int param_2, int param_3);"
         },
         {
           "addr": "0x1b1c70",
@@ -26349,7 +26364,10 @@
         },
         {
           "addr": "0x1b2260",
-          "decl": "void scripting_magic_melee_attack(void);"
+          "decl": "void scripting_magic_melee_attack(void);",
+          "name": "scripting_magic_melee_attack",
+          "ported": true,
+          "obj": "units.obj"
         },
         {
           "addr": "0x1b2290",
@@ -26361,7 +26379,9 @@
         },
         {
           "addr": "0x1b2610",
-          "decl": "void unit_solo_player_integrated_night_vision_is_active(void);"
+          "decl": "char unit_solo_player_integrated_night_vision_is_active(void);",
+          "ported": true,
+          "obj": "units.obj"
         },
         {
           "addr": "0x1b2660",
@@ -26369,7 +26389,10 @@
         },
         {
           "addr": "0x1b2740",
-          "decl": "void FUN_001b2740(void);"
+          "decl": "void unit_select_weapon_after_vehicle_exit(int unit_handle@<eax>);",
+          "name": "unit_select_weapon_after_vehicle_exit",
+          "ported": true,
+          "obj": "units.obj"
         },
         {
           "addr": "0x1b2780",
@@ -29839,7 +29862,7 @@
         },
         {
           "addr": "0xfaf50",
-          "decl": "void weapon_can_be_fired(void);"
+          "decl": "char weapon_can_be_fired(int weapon_handle);"
         },
         {
           "addr": "0xfafe0",
