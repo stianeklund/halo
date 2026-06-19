@@ -9,18 +9,32 @@
  *   [3] = overflow flag (byte at low byte of word [3])
  * ======================================================================== */
 
-/* These call original engine routines by name (declared in kb.json) instead of
- * via raw function-pointer casts to hex addresses. The semantic macro names are
- * kept as aliases over the kb.json symbol names. */
-#define byte_swap_raw        FUN_00118620
-#define byte_swap_structures FUN_00118be0
-#define encode_state_new     FUN_00119c50
-#define encode_raw_data      FUN_00119cc0
-#define encode_packet_fields FUN_0011afa0
-/* csstrcpy (0x8dff0) is declared by name in kb.json — no macro needed. */
-#define array_get_element    FUN_00117ee0
-#define array_reset          array_new
-#define array_dispose        FUN_00117cf0
+#define byte_swap_raw \
+  ((void (*)(void *, int, int))0x118620)
+
+#define byte_swap_structures \
+  ((void (*)(void *, void *, int))0x118be0)
+
+#define encode_state_new \
+  ((void (*)(int *, int, int))0x119c50)
+
+#define encode_raw_data \
+  ((int (*)(int *, int, short, int))0x119cc0)
+
+#define encode_packet_fields \
+  ((void (*)(int, int *, short, void *, short, int, short *))0x11afa0)
+
+#define csstrcpy \
+  ((char *(*)(char *, const char *))0x8dff0)
+
+#define array_get_element \
+  ((int (*)(int *, int, int))0x117ee0)
+
+#define array_reset \
+  ((void (*)(int *, int))0x117b20)
+
+#define array_dispose \
+  ((void (*)(int *))0x117cf0)
 
 /* packet_header byte-swap definition at 0x3220c0 */
 #define packet_header_bs_def ((void *)0x3220c0)
@@ -114,7 +128,7 @@ int FUN_0011a340(int *state, short count, void *bs_definition)
 
 /* decode_raw_data — byte-swap raw elements in the buffer (0x11a430).
  * Source: data_encoding.c line 0x100. */
-__declspec(noinline) int FUN_0011a430(int *state, short count, int element_size)
+int FUN_0011a430(int *state, short count, int element_size)
 {
   int byte_count;
   int result;
@@ -165,7 +179,7 @@ __declspec(noinline) int FUN_0011a430(int *state, short count, int element_size)
 
 /* decode_byte — read a single byte from the decode buffer (0x11a560).
  * Source: data_encoding.c. */
-__declspec(noinline) unsigned char FUN_0011a560(int *state)
+unsigned char FUN_0011a560(int *state)
 {
   int new_offset;
   unsigned char *ptr;
@@ -260,7 +274,7 @@ int64_t FUN_0011a6d0(int *state)
 
 /* decode_value — width-adaptive read based on maximum_value (0x11a700).
  * Source: data_encoding.c line 0x141. */
-__declspec(noinline) unsigned int FUN_0011a700(int *state, int maximum_value)
+unsigned int FUN_0011a700(int *state, int maximum_value)
 {
   if (maximum_value < 1) {
     display_assert("maximum_value>0",
@@ -339,25 +353,25 @@ void *FUN_0011a770(int *state, int element_size_type, unsigned int *element_coun
 
 /* decode_string_read — scan for NUL-terminated string in buffer (0x11a8e0).
  * Source: data_encoding.c. */
-__declspec(noinline) char *FUN_0011a8e0(int *state, unsigned short max_length)
+char *FUN_0011a8e0(int *state)
 {
-  int offset;
+  int start_offset;
   short scan_count;
-  char *base;
+  int scan_pos;
 
-  offset = state[1];
-  base = (char *)(*state + offset);
+  start_offset = state[1];
   scan_count = 0;
-  if (offset >= state[2])
-    goto overflow;
-  while (state[1] + (int)scan_count < state[2]) {
-    if (base[(int)scan_count] == '\0') {
-      state[1] = (int)scan_count + 1 + offset;
-      return base;
-    }
-    scan_count = scan_count + 1;
+  if (start_offset < state[2]) {
+    scan_pos = 0;
+    do {
+      if (*(char *)(scan_pos + *state + start_offset) == '\0') {
+        state[1] = (int)scan_count + 1 + start_offset;
+        return (char *)(*state + start_offset);
+      }
+      scan_count = scan_count + 1;
+      scan_pos = (int)scan_count;
+    } while (state[1] + scan_pos < state[2]);
   }
-overflow:
   *(unsigned char *)(state + 3) = 1;
   return NULL;
 }
@@ -407,7 +421,8 @@ void verify_packet_group_definitions(group_definition *group)
  */
 
 /* compute_packet_field_sizes at 0x11add0 — not yet ported (data_packets.c) */
-#define compute_packet_field_sizes FUN_0011add0
+#define compute_packet_field_sizes \
+  ((void (*)(packet_definition *, short *, short *, short *))0x11add0)
 
 void verify_packet_definition(packet_definition *def)
 {
@@ -534,6 +549,7 @@ void FUN_0011b2a0(int definition, int *decode_state, unsigned short version,
                   unsigned short *output, short *decoded_size_out,
                   short *field_defs, short *field_count_out)
 {
+  short field_type;
   short *cur_field;
   unsigned short *cur_output;
   int raw_ptr;
@@ -544,10 +560,13 @@ void FUN_0011b2a0(int definition, int *decode_state, unsigned short version,
 
   cur_field = field_defs;
   cur_output = output;
-  if (*cur_field == 9) goto loop_done;
-  do {
-    if ((short)version >= cur_field[2] &&
-        ((short)version <= cur_field[3] || cur_field[3] == 0)) {
+  field_type = *cur_field;
+  while (field_type != 9) {
+    if ((short)version < cur_field[2] ||
+        (cur_field[3] < (short)version && cur_field[3] != 0)) {
+      csmemset(cur_output, 0, (int)cur_field[4]);
+    }
+    else {
       switch (*cur_field) {
       case 1:
         raw_ptr = FUN_0011a430(decode_state, cur_field[1], 1);
@@ -574,7 +593,7 @@ void FUN_0011b2a0(int definition, int *decode_state, unsigned short version,
         }
         break;
       case 5:
-        raw_ptr = (int)FUN_0011a8e0(decode_state, cur_field[1]);
+        raw_ptr = (int)FUN_0011a8e0(decode_state);
         if (raw_ptr != 0) {
           csstrcpy((char *)cur_output, (const char *)raw_ptr);
         }
@@ -622,13 +641,10 @@ void FUN_0011b2a0(int definition, int *decode_state, unsigned short version,
         break;
       }
     }
-    else {
-      csmemset(cur_output, 0, (int)cur_field[4]);
-    }
     cur_output = (unsigned short *)((int)cur_output + (int)cur_field[4]);
     cur_field = cur_field + 5;
-  } while (*cur_field != 9);
-loop_done:
+    field_type = *cur_field;
+  }
   if (field_count_out != NULL) {
     int byte_diff;
     byte_diff = (int)cur_field - (int)field_defs;
@@ -910,8 +926,8 @@ int FUN_0011ba50(short *table, void *key, unsigned short *slot_index_out)
     else {
       element_ptr = array_get_element((int *)(table + 0xe), (int)slot,
                                       (int)table[1]);
-      found = (char)(*(int (**)(int, int, void *))(table + 10))(
-        *(int *)(table + 6), element_ptr, key);
+      found = (char)(*(int (**)(int, int))(table + 10))(
+        *(int *)(table + 6), element_ptr);
     }
     if (found != '\0') {
       *slot_index_out = hash_val;
@@ -1011,36 +1027,24 @@ void FUN_0011bc20(short *table, void *key)
         *(int *)(psVar3 + 6), next_element);
     }
     key_hash = (unsigned short)(psVar3[0x10] - 1) & key_hash;
-    if ((short)key_hash < (short)next_slot) {
-      if ((short)removed_slot < (short)key_hash) {
-        goto no_shift;
-      }
-      if ((short)removed_slot < (short)next_slot) {
-        goto do_shift;
-      }
-    } else if ((short)key_hash > (short)next_slot) {
-      if ((short)removed_slot >= (short)key_hash) {
-        goto do_shift;
-      }
-      if ((short)removed_slot < (short)next_slot) {
-        goto do_shift;
-      }
-    }
-    goto no_shift;
-    do_shift:
     {
-      int src_element;
-      int dst_element;
-      src_element = array_get_element((int *)(psVar3 + 0xe), cur_pos,
-                                      (int)psVar3[1]);
-      dst_element = array_get_element((int *)(psVar3 + 0xe), (int)removed_slot,
-                                      (int)psVar3[1]);
-      csmemcpy((void *)dst_element, (void *)src_element,
-               *(int *)(psVar3 + 0xe));
-      removed_slot = (short)next_slot;
+      short s_next = (short)next_slot;
+      short s_hash = (short)key_hash;
+      short s_removed = removed_slot;
+      if (((s_hash < s_next && s_hash <= s_removed && s_removed < s_next) ||
+           (s_next < s_hash &&
+            (s_hash <= s_removed || s_removed < s_next)))) {
+        int src_element;
+        int dst_element;
+        src_element = array_get_element((int *)(psVar3 + 0xe), cur_pos,
+                                        (int)psVar3[1]);
+        dst_element = array_get_element((int *)(psVar3 + 0xe), (int)removed_slot,
+                                        (int)psVar3[1]);
+        csmemcpy((void *)dst_element, (void *)src_element,
+                 *(int *)(psVar3 + 0xe));
+        removed_slot = (short)next_slot;
+      }
     }
-    no_shift:
-    (void)0;
     next_slot = (unsigned short)((int)(next_slot + 1) &
                 (int)(unsigned short)(psVar3[0x10] - 1));
     cur_pos = (int)(short)next_slot;
