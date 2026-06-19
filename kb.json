@@ -25428,11 +25428,13 @@
         },
         {
           "addr": "0x122a50",
-          "decl": "void FUN_00122a50(void);"
+          "decl": "void FUN_00122a50(int animation, float frame_pos, float blend_weight, int node_output);",
+          "ported": true
         },
         {
           "addr": "0x122e50",
-          "decl": "void FUN_00122e50(void);"
+          "decl": "void FUN_00122e50(int animation, float *blend_params, float direction, float throttle, int node_output);",
+          "ported": true
         },
         {
           "addr": "0x123470",
@@ -25441,11 +25443,13 @@
         },
         {
           "addr": "0x1234b0",
-          "decl": "void FUN_001234b0(void);"
+          "decl": "void FUN_001234b0(void *mode_tag, void *animation, int frame_index, float *out_delta);",
+          "ported": true
         },
         {
           "addr": "0x123560",
-          "decl": "void FUN_00123560(void);"
+          "decl": "void FUN_00123560(int model_tag, int permutation_data, int *node_matrices, int render_data, short shader_permutation, short detail_level, unsigned char flags);",
+          "ported": true
         },
         {
           "addr": "0x1a6280",
@@ -25454,7 +25458,8 @@
         },
         {
           "addr": "0x1a6350",
-          "decl": "void FUN_001a6350(void);"
+          "decl": "char FUN_001a6350(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1a67b0",
@@ -26264,7 +26269,8 @@
         {
           "addr": "0x1aea90",
           "decl": "void unit_cause_player_melee_damage(int unit_handle);",
-          "name": "unit_cause_player_melee_damage"
+          "name": "unit_cause_player_melee_damage",
+          "ported": true
         },
         {
           "addr": "0x1af0d0",
@@ -26309,15 +26315,18 @@
         },
         {
           "addr": "0x1afd30",
-          "decl": "void unit_preprocess_node_orientations(void);"
+          "decl": "void FUN_001afd30(int unit_handle, int node_output);",
+          "ported": true
         },
         {
           "addr": "0x1b04b0",
-          "decl": "void unit_postprocess_node_matrices(void);"
+          "decl": "void FUN_001b04b0(int unit_handle, int node_matrices);",
+          "ported": true
         },
         {
           "addr": "0x1b0630",
-          "decl": "void unit_euler_aiming_update(void);"
+          "decl": "void FUN_001b0630(int transform_matrix, float *aiming_vector, float *desired_vector, float *angular_velocity, float *aiming_bounds, float angular_velocity_limit, float angular_acceleration_limit);",
+          "ported": true
         },
         {
           "addr": "0x1b0d00",
@@ -26326,8 +26335,9 @@
         },
         {
           "addr": "0x1b0d90",
-          "decl": "void FUN_001b0d90(int unit_handle, void *anim_data);",
-          "name": "FUN_001b0d90"
+          "decl": "short FUN_001b0d90(int unit_handle, char *anim_state);",
+          "name": "FUN_001b0d90",
+          "ported": true
         },
         {
           "addr": "0x1b1290",
@@ -26348,7 +26358,8 @@
         },
         {
           "addr": "0x1b1400",
-          "decl": "void FUN_001b1400(int unit_handle, char param_2, int param_3, int param_4, int param_5, int param_6, int param_7, int param_8, int param_9);"
+          "decl": "void FUN_001b1400(int unit_handle, char is_melee, char is_throw, char is_airborne, char is_ground, char is_ping, float throttle_magnitude, int weapon_class, int alignment_vector);",
+          "ported": true
         },
         {
           "addr": "0x1b1a20",
@@ -26437,7 +26448,8 @@
         },
         {
           "addr": "0x1b2780",
-          "decl": "void unit_new(void);"
+          "decl": "char FUN_001b2780(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1b2b80",
@@ -26479,7 +26491,8 @@
         },
         {
           "addr": "0x1b3690",
-          "decl": "void FUN_001b3690(void);"
+          "decl": "char FUN_001b3690(int unit_handle);",
+          "ported": true
         }
       ],
       "name": "units.obj",
