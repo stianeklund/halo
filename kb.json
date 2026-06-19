@@ -18320,7 +18320,7 @@
         {
           "addr": "0xf8720",
           "decl": "bool FUN_000f8720(int projectile_handle@<eax>, float *new_pos@<edi>, int16_t *collision_result);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0xf8920",
