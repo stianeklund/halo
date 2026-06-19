@@ -26133,7 +26133,7 @@
         {
           "addr": "0x1acd70",
           "decl": "char FUN_001acd70(int unit_handle@<eax>, const char *seat_label, const char *weapon_name, char apply_state);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1acf90",
@@ -26231,7 +26231,7 @@
         {
           "addr": "0x1ae490",
           "decl": "int16_t FUN_001ae490(int unit_handle@<ebx>, int16_t current_index, int16_t direction);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1ae600",
@@ -26321,7 +26321,7 @@
         {
           "addr": "0x1b04b0",
           "decl": "void FUN_001b04b0(int unit_handle, int node_matrices);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1b0630",
