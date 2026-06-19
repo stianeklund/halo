@@ -7363,3 +7363,291 @@ void unit_select_weapon_after_vehicle_exit(int unit_handle)
   *(int16_t *)(unit + 0x2a4) = next_idx;
   unit_update_weapon_readiness(unit_handle, 1);
 }
+
+/* FUN_001abd10 (0x1abd10)
+ * Plays impact sounds for melee damage. Looks up the unit's material type
+ * sound via FUN_0018e500 and plays it on the unit. If a weapon tag is
+ * provided, also plays the weapon's melee impact sound (tag 'jpt!'+0x120).
+ * Register args: @eax = material_type, @esi = unit_handle,
+ *                @edi = weapon_tag_index (or -1).
+ * Confirmed from callers 0x1ae840 @001aea76, 0x1aea90 @001af016. */
+void FUN_001abd10(int16_t material_type, int unit_handle, int weapon_tag_index)
+{
+  char *material_effects;
+  int sound_tag;
+  char *weapon_tag;
+  float *position;
+  float *forward;
+
+  position = *(float **)0x31fc3c;
+  forward = *(float **)0x31fc1c;
+
+  material_effects = (char *)FUN_0018e500(material_type);
+  sound_tag = *(int *)(material_effects + 0x370);
+  if (sound_tag != -1) {
+    object_impulse_sound_new(unit_handle, sound_tag, -1, position, forward,
+                             1.0f);
+  }
+
+  if (weapon_tag_index != -1) {
+    weapon_tag = (char *)tag_get(0x6a707421, weapon_tag_index);
+    sound_tag = *(int *)(weapon_tag + 0x120);
+    if (sound_tag != -1) {
+      object_impulse_sound_new(unit_handle, sound_tag, -1, position, forward,
+                               1.0f);
+    }
+  }
+}
+
+/* unit_flame_to_death (0x1ac550)
+ * Handles the flame-to-death damage effect when a unit's flame-death
+ * timer expires. Clears flame flags on the unit, looks up the flame damage
+ * effect tag from game globals, and applies it. If the unit doesn't die,
+ * logs a warning and sets a fallback flag.
+ * cdecl: 1 stack param (unit_handle). */
+void unit_flame_to_death(int unit_handle)
+{
+  char *unit;
+  char *globals;
+  char *element;
+  char *object_data;
+  char damage_params[0x54];
+  char *parent_obj;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+
+  globals = (char *)game_globals_get();
+  element = (char *)tag_block_get_element(globals + 0x188, 0, 0x98);
+
+  object_data = (char *)object_get_and_verify_type(unit_handle, 3);
+  *(uint32_t *)(object_data + 0x1b4) &= ~0x02000000u;
+
+  *(uint8_t *)(unit + 0xb7) &= ~0x08;
+  *(uint32_t *)(unit + 0x1b4) &= ~0x80u;
+
+  if (element != NULL && *(int *)(element + 0x78) != -1) {
+    parent_obj = (char *)object_try_and_get_and_verify_type(
+        *(int *)(unit + 0x3c0), -1);
+
+    damage_data_new(damage_params, *(int *)(element + 0x78));
+
+    if (parent_obj != NULL) {
+      *(int *)(damage_params + 0x08) = *(int *)(parent_obj + 0x70);
+      {
+        int cause_player = *(int *)(parent_obj + 0x74);
+        if (cause_player == -1) {
+          cause_player = *(int *)(unit + 0x3c0);
+        }
+        *(int *)(damage_params + 0x0c) = cause_player;
+      }
+      *(int16_t *)(damage_params + 0x10) = *(int16_t *)(parent_obj + 0x68);
+    }
+
+    object_cause_damage(damage_params, unit_handle, -1, -1, -1, 0);
+  }
+
+  if ((*(uint8_t *)(unit + 0xb6) & 0x4) == 0) {
+    const char *tag_name;
+    const char *stripped;
+    tag_name = tag_get_name(*(int *)unit);
+    stripped = tag_name_strip_path(tag_name);
+    error(2, "WARNING: %s tried to die from flaming to death but couldn't",
+          stripped);
+    *(uint8_t *)(unit + 0xb6) |= 0x20;
+  }
+}
+
+/* FUN_001ab110 (0x1ab110)
+ * Grenade throw release. Detaches the held grenade from the unit, computes
+ * its throw velocity using the unit's forward vector and tag throw speed,
+ * optionally applies random spread if the throw animation was cut short,
+ * subtracts the grenade's world position to get relative velocity, and
+ * attempts to place it.
+ * cdecl: 2 stack params (unit_handle, flag).
+ * Confirmed from callers 0x1ad260, 0x1b0d90, 0x1b1400, 0x1b3690. */
+void FUN_001ab110(int unit_handle, char flag)
+{
+  char *unit;
+  char *unit_tag;
+  int grenade_handle;
+  int ebx;
+  char *throw_params;
+  float forward[3];
+  float cross_fwd[3];
+  float cross2[3];
+  float velocity[3];
+  float seat_pos[3];
+  float ratio_val;
+  float throw_speed;
+  float rand_val;
+  float rand_x;
+  float rand_y;
+  float rand_z;
+  float one_minus;
+  char *grenade_data;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag = (char *)tag_get(0x756e6974, *(int *)unit);
+
+  if (*(uint8_t *)(unit + 0x23d) != 2) {
+    return;
+  }
+
+  grenade_handle = *(int *)(unit + 0x244);
+  ebx = -1;
+  if (grenade_handle == ebx) {
+    return;
+  }
+
+  /* Detach grenade from parent */
+  object_detach_from_parent(grenade_handle);
+
+  if (*(int *)(unit + 0x1a4) != ebx) {
+    /* Actor-controlled: get world position and transform via actor */
+    object_get_world_position(*(int *)(unit + 0x244), (void *)cross2);
+    actor_aim_grenade(*(int *)(unit + 0x1a4), cross2, velocity);
+  } else {
+    if (*(int *)(unit + 0x1c8) != ebx) {
+      /* Player-controlled with weapon: compute velocity from marker */
+      char *globals;
+      globals = (char *)game_globals_get();
+      throw_params = (char *)tag_block_get_element(
+          globals + 0x170, 0, 0xf4);
+
+      /* Get unit's forward vector */
+      forward[0] = *(float *)(unit + 0x1ec);
+      forward[1] = *(float *)(unit + 0x1f0);
+      forward[2] = *(float *)(unit + 0x1f4);
+
+      {
+        float *up_ptr = *(float **)0x31fc44;
+        float mag;
+        cross_product3d(up_ptr, forward, cross_fwd);
+        mag = normalize3d(cross_fwd);
+        if (mag == 0.0f) {
+          cross_fwd[0] = up_ptr[0];
+          cross_fwd[1] = up_ptr[1];
+          cross_fwd[2] = up_ptr[2];
+        }
+      }
+
+      cross_product3d(forward, cross_fwd, cross2);
+      normalize3d(cross2);
+
+      /* Get the unit's seat/marker position */
+      unit_set_seat_state(unit_handle, seat_pos);
+
+      /* Apply throw direction offsets from throw params */
+      {
+        float fwd_s = *(float *)(throw_params + 0x68);
+        float right_s = *(float *)(throw_params + 0x6c);
+        float up_s = *(float *)(throw_params + 0x70);
+
+        seat_pos[0] += forward[0] * fwd_s + cross_fwd[0] * right_s
+                       + cross2[0] * up_s;
+        seat_pos[1] += forward[1] * fwd_s + cross_fwd[1] * right_s
+                       + cross2[1] * up_s;
+        seat_pos[2] += forward[2] * fwd_s + cross_fwd[2] * right_s
+                       + cross2[2] * up_s;
+      }
+
+      object_translate(grenade_handle, seat_pos, 0);
+      ebx = -1;
+    }
+
+    /* Compute throw velocity from unit tag grenade speed and forward */
+    throw_speed = *(float *)(unit_tag + 0x2c0) * *(float *)0x2546a4;
+    velocity[0] = throw_speed * *(float *)(unit + 0x1ec);
+    velocity[1] = throw_speed * *(float *)(unit + 0x1f0);
+    velocity[2] = throw_speed * *(float *)(unit + 0x1f4);
+  }
+
+  /* Apply random spread if throw timer is short */
+  if (flag != 0) {
+    int throw_timer = (int)*(int16_t *)(unit + 0x23e);
+    int throw_total = (int)*(int16_t *)(unit + 0x240);
+    ratio_val = (float)throw_timer / (float)throw_total;
+    if (ratio_val < 1.0f) {
+      rand_val = random_real_range(
+          get_global_random_seed_address(), 0.02f, 0.046875f);
+      rand_x = rand_val * *(float *)(unit + 0x1ec);
+      rand_y = rand_val * *(float *)(unit + 0x1f0);
+      rand_z = rand_val * *(float *)(unit + 0x1f4);
+
+      velocity[0] = velocity[0] * ratio_val;
+      velocity[1] = velocity[1] * ratio_val;
+      velocity[2] = velocity[2] * ratio_val;
+
+      one_minus = 1.0f - ratio_val;
+      velocity[0] = rand_x * one_minus + velocity[0];
+      velocity[1] = rand_y * one_minus + velocity[1];
+      velocity[2] = rand_z * one_minus + velocity[2];
+    }
+  }
+
+  /* Subtract grenade's current world position to get relative velocity */
+  grenade_data = (char *)object_get_and_verify_type(grenade_handle, ebx);
+  velocity[0] -= *(float *)(grenade_data + 0x18);
+  velocity[1] -= *(float *)(grenade_data + 0x1c);
+  velocity[2] -= *(float *)(grenade_data + 0x20);
+
+  projectile_accelerate(grenade_handle, velocity);
+
+  /* Mark grenade as released */
+  *(uint8_t *)(unit + 0x23d) = 3;
+  *(int *)(unit + 0x244) = -1;
+
+  /* Try to place the grenade; delete on failure */
+  unit_set_seat_state(unit_handle, cross2);
+  if (object_try_place(grenade_handle, cross2) == 0) {
+    object_delete(grenade_handle);
+  }
+}
+
+/* FUN_001a6280 (0x1a6280)
+ * Biped death state handler. After a biped is killed, decides which
+ * post-death sub-state to enter: limp-noodle (ragdoll-like), dying-airborne
+ * (fell while dying), or normal dying. Checks limp-noodle counter, airborne
+ * ticks, and animation state.
+ * Register args: @edi = unit_handle, @ebx = pointer to state byte pair.
+ * Confirmed from caller 0x1a6350 @001a65ed. */
+void FUN_001a6280(int unit_handle, char *state_out)
+{
+  char *biped;
+  char *biped_tag;
+
+  biped = (char *)object_get_and_verify_type(unit_handle, 1);
+  biped_tag = (char *)tag_get(0x62697064, *(int *)biped);
+
+  /* Check limp-noodle state */
+  if ((*(uint8_t *)(biped + 0x424) & 0x20) != 0 &&
+      *(uint8_t *)(biped + 0x47c) < *(uint8_t *)(biped + 0x47d)) {
+    if (*(char *)0x4e4cf3 == 0) {
+      FUN_001a0680(unit_handle);
+    }
+    FUN_001a2800(unit_handle, "post-limp-noodle");
+    state_out[1] = 0;
+    return;
+  }
+
+  /* Check dying-airborne state */
+  if (*(int8_t *)(biped + 0x459) > 2 &&
+      (*(uint32_t *)(biped_tag + 0x2f4) & 0x400) == 0) {
+    if (*(uint8_t *)(biped + 0x253) == 0x18) {
+      FUN_001a2160(unit_handle);
+    }
+    *state_out = 0x18;
+    FUN_001a2800(unit_handle, "post-dying-airborne");
+    state_out[1] = 0;
+    return;
+  }
+
+  /* Normal dying state */
+  if (*(uint8_t *)(biped + 0x253) == 0x18) {
+    *(int *)(biped + 0x468) = 0;
+    FUN_001a4440(unit_handle);
+  }
+  *state_out = 0x19;
+  FUN_001a2800(unit_handle, "post-dying");
+  state_out[1] = 0;
+}
