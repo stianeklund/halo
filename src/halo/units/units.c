@@ -6728,7 +6728,7 @@ void unit_handle_deleted_object(int unit_handle, int deleted_handle)
     weapon_slot++;
   } while (i < 4);
   if (*(int16_t *)(unit + 0x2a2) == -1) {
-    *(int16_t *)(unit + 0x2a4) = FUN_001ae490(-1, 0);
+    *(int16_t *)(unit + 0x2a4) = FUN_001ae490(unit_handle, -1, 0);
   }
   if (*(int *)(unit + 0x2c8) == deleted_handle) {
     *(int *)(unit + 0x2c8) = -1;
@@ -6822,7 +6822,7 @@ float unit_get_zoom_magnification(int unit_handle, int zoom_level)
  * Advances to the next weapon in the inventory. */
 int unit_inventory_next_weapon(int unit_handle, int slot, int direction)
 {
-  return FUN_001ae490(slot, direction);
+  return FUN_001ae490(unit_handle, slot, direction);
 }
 
 /* FUN_001a7a90 (0x1a7a90)
@@ -10221,5 +10221,315 @@ apply_angle:
         true);
     display_assert(msg, "c:\\halo\\SOURCE\\units\\units.c", 0x2585, true);
     system_exit(-1);
+  }
+}
+
+/* FUN_001acd70 (0x1acd70) — unit_try_animation_state
+ * Searches the unit's animation graph for a matching seat/weapon animation mode.
+ * Register arg: unit_handle in EAX. */
+char FUN_001acd70(int unit_handle, const char *seat_label,
+                  const char *weapon_name, char apply_state)
+{
+  char *unit;
+  char *unit_tag;
+  char *antr_tag;
+  int *anim_block;
+  int mode_count;
+  int16_t mode_index;
+  char *mode;
+  int sub_count;
+  int16_t sub_index;
+  char *sub_anim;
+  int *weapon_block;
+  int weapon_count;
+  int16_t weapon_index;
+  char *weapon_entry;
+  char found;
+  char has_multi_weapon;
+  int16_t base_seat;
+  int16_t si;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag = (char *)tag_get(0x756e6974, *(int *)unit);
+  antr_tag = (char *)tag_get(0x616e7472, *(int *)(unit_tag + 0x44));
+  anim_block = (int *)(antr_tag + 0xc);
+  mode_count = *anim_block;
+  found = 0;
+
+  if (mode_count < 1)
+    return 0;
+
+  mode_index = 0;
+  while (1) {
+    mode = (char *)tag_block_get_element(anim_block, (int)mode_index, 0x64);
+
+    if (seat_label != 0 &&
+        crt_stricmp(seat_label, mode) != 0) {
+      goto next_mode;
+    }
+
+    sub_count = *(int *)(mode + 0x58);
+    sub_index = 0;
+    if (sub_count < 1)
+      goto next_mode;
+
+    while (1) {
+      sub_anim = (char *)tag_block_get_element(
+        (int *)(mode + 0x58), (int)sub_index, 0xbc);
+      weapon_block = (int *)(sub_anim + 0xb0);
+      weapon_count = *weapon_block;
+      weapon_index = 0;
+
+      if (weapon_count < 1)
+        goto next_sub;
+
+      while (1) {
+        weapon_entry = (char *)tag_block_get_element(
+          weapon_block, (int)weapon_index, 0x3c);
+
+        if (weapon_name == 0)
+          goto matched;
+        if (csstrcmp(weapon_name, "unarmed") == 0 &&
+            *weapon_entry == '\0')
+          goto matched;
+        if (crt_stricmp(weapon_name, weapon_entry) == 0)
+          goto matched;
+
+        weapon_index++;
+        if ((int)(int16_t)weapon_index >= weapon_count)
+          goto next_sub;
+        continue;
+
+      matched:
+        if (apply_state == 0)
+          goto found_match;
+
+        {
+          int num_key_types;
+          int *key_data;
+
+          num_key_types = *(int *)(mode + 0x40);
+          key_data = *(int **)(mode + 0x44);
+          has_multi_weapon = 0;
+
+          if ((num_key_types >= 3 &&
+               *(int16_t *)((char *)key_data + 4) != -1) ||
+              (num_key_types >= 4 &&
+               *(int16_t *)((char *)key_data + 6) != -1) ||
+              (num_key_types >= 5 &&
+               *(int16_t *)((char *)key_data + 8) != -1)) {
+            has_multi_weapon = 1;
+          }
+        }
+
+        if (*(uint8_t *)(unit + 0x253) != 0x1c)
+          *(uint8_t *)(unit + 0x253) = 0xff;
+
+        *(uint8_t *)(unit + 0x250) = (uint8_t)mode_index;
+
+        base_seat = -1;
+        for (si = 0; si < NUMBER_OF_UNIT_BASE_SEATS; si++) {
+          if (crt_stricmp(seat_label,
+                          *(const char **)(0x32e484 + (int)si * 4)) == 0) {
+            base_seat = si;
+            break;
+          }
+        }
+
+        *(uint8_t *)(unit + 0x252) = (uint8_t)weapon_index;
+        *(int8_t *)(unit + 0x257) = (int8_t)base_seat;
+        *(uint8_t *)(unit + 0x251) = (uint8_t)sub_index;
+
+        if (has_multi_weapon) {
+          *(uint8_t *)(unit + 0x248) |= 0x2;
+        } else {
+          *(uint8_t *)(unit + 0x248) &= ~0x2;
+        }
+
+      found_match:
+        found = 1;
+        goto next_sub;
+      }
+
+    next_sub:
+      sub_index++;
+      if ((int)(int16_t)sub_index >= *(int *)(mode + 0x58))
+        goto next_mode;
+    }
+
+  next_mode:
+    mode_index++;
+    if ((int)(int16_t)mode_index >= *anim_block)
+      break;
+  }
+
+  return found;
+}
+
+/* FUN_001ae490 (0x1ae490) — unit_next_weapon_index
+ * Scans weapon slots circularly for the next valid weapon.
+ * Register arg: unit_handle in EBX. */
+int16_t FUN_001ae490(int unit_handle, int16_t current_index, int16_t direction)
+{
+  char *unit;
+  int iter_index;
+  int weapon_handle;
+  int seat_label;
+  char *weapon_label;
+  char can_use;
+  char usable;
+  char readied;
+  int best_index;
+  int current;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  best_index = -1;
+
+  if (current_index == (int16_t)-1) {
+    current_index = 0;
+  } else if (current_index < 0 || current_index >= MAXIMUM_WEAPONS_PER_UNIT) {
+    display_assert(
+      "current_index>=0 && current_index<MAXIMUM_WEAPONS_PER_UNIT",
+      "c:\\halo\\SOURCE\\units\\units.c", 0x1e40, 1);
+    system_exit(-1);
+  }
+
+  current = current_index;
+
+  do {
+    iter_index = (int)(int16_t)current;
+    weapon_handle = *(int *)(unit + 0x2a8 + iter_index * 4);
+
+    if (weapon_handle != -1) {
+      object_get_and_verify_type(unit_handle, 3);
+      object_get_and_verify_type(weapon_handle, 4);
+
+      seat_label = unit_get_seat_label(unit_handle);
+      weapon_label = (char *)weapon_get_label(weapon_handle);
+      can_use = FUN_001acd70(unit_handle, (const char *)seat_label,
+                             (const char *)weapon_label, 0);
+
+      if (can_use != 0) {
+        usable = (char)game_engine_allow_weapon_pick_up(unit_handle, weapon_handle);
+        if (usable != 0) {
+          if (direction != 0) {
+            best_index = current;
+          } else {
+            if ((int16_t)best_index == (int16_t)-1 ||
+                *(int *)(unit + 0x2b8 + (int)(int16_t)best_index * 4) <
+                  *(int *)(unit + 0x2b8 + iter_index * 4)) {
+              best_index = current;
+            }
+          }
+
+          readied = (char)weapon_must_be_readied(
+            *(int *)(unit + 0x2a8 + iter_index * 4));
+          if (readied != 0)
+            return (int16_t)best_index;
+
+          if ((int16_t)current != current_index)
+            return (int16_t)best_index;
+        }
+      }
+    }
+
+    if (direction < 0) {
+      if ((int16_t)current == 0)
+        current = 3;
+      else
+        current = iter_index - 1;
+    } else {
+      if ((int16_t)current == 3)
+        current = 0;
+      else
+        current = iter_index + 1;
+    }
+  } while ((int16_t)current != current_index);
+
+  return (int16_t)best_index;
+}
+
+/* FUN_001b04b0 (0x1b04b0) — unit_postprocess_nodes
+ * Applies IK constraints and weapon-hold overlays to animation node matrices. */
+void FUN_001b04b0(int unit_handle, int node_matrices)
+{
+  unsigned int *unit_data;
+  int unit_tag;
+  int anim_graph;
+  int anim_mode;
+  int mode_ext;
+  int ik_point;
+  int weapon_ik_point;
+  unsigned int *unit_data2;
+  int weapon_handle;
+  short ik_index;
+  unsigned char *anim_ctrl;
+  char ik_active;
+  char weapon_ik_active;
+  int *ik_block;
+  int *weapon_ik_block;
+  int idx;
+
+  unit_data = (unsigned int *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag = (int)tag_get(0x756e6974, *(int *)unit_data);
+
+  if ((*(unsigned int *)(unit_tag + 0x17c) & 0x800) != 0) {
+    return;
+  }
+  if (*(signed char *)((int)unit_data + 0x250) == -1) {
+    return;
+  }
+
+  anim_graph = (int)tag_get(0x616e7472, *(int *)(unit_tag + 0x44));
+  anim_mode = (int)tag_block_get_element(
+    (void *)(anim_graph + 0xc),
+    (int)*(signed char *)((int)unit_data + 0x250), 100);
+  mode_ext = (int)tag_block_get_element(
+    (void *)(anim_mode + 0x58),
+    (int)*(signed char *)((int)unit_data + 0x251), 0xbc);
+
+  if (*(int *)((int)unit_data + 0xcc) != -1) {
+    ik_active = FUN_001a8850((void *)((int)unit_data + 0x248));
+    if (ik_active != '\0') {
+      ik_block = (int *)(anim_mode + 0x4c);
+      ik_index = 0;
+      if (0 < *(int *)(anim_mode + 0x4c)) {
+        idx = 0;
+        do {
+          ik_point = (int)tag_block_get_element(ik_block, idx, 0x40);
+          FUN_001414e0(unit_handle, ik_point,
+                       *(int *)((int)unit_data + 0xcc),
+                       ik_point + 0x20, node_matrices);
+          ik_index = ik_index + 1;
+          idx = (int)ik_index;
+        } while (idx < *ik_block);
+      }
+    }
+  }
+
+  if (*(short *)((int)unit_data + 0x2a2) != -1) {
+    anim_ctrl = (unsigned char *)((int)unit_data + 0x248);
+    weapon_ik_active = FUN_001a87f0((void *)anim_ctrl);
+    if (weapon_ik_active != '\0') {
+      weapon_ik_block = (int *)(mode_ext + 0xa4);
+      ik_index = 0;
+      if (0 < *(int *)(mode_ext + 0xa4)) {
+        idx = 0;
+        do {
+          weapon_ik_point = (int)tag_block_get_element(
+            weapon_ik_block, idx, 0x40);
+          unit_data2 = (unsigned int *)object_get_and_verify_type(
+            unit_handle, 3);
+          weapon_handle = unit_get_weapon(unit_handle,
+            (short)*(unsigned short *)((int)unit_data2 + 0x2a2));
+          FUN_001414e0(unit_handle, weapon_ik_point,
+                       weapon_handle,
+                       weapon_ik_point + 0x20, node_matrices);
+          ik_index = ik_index + 1;
+          idx = (int)ik_index;
+        } while (idx < *weapon_ik_block);
+      }
+      *anim_ctrl = *anim_ctrl & 0xfe;
+    }
   }
 }
