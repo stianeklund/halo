@@ -884,6 +884,11 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
   if (*(char *)0x4761f8 != '\0')
     use_water = 0;
 
+  /* Force bits 0+1 on when neither is set (original: TEST BL,3; JNZ; OR EBX,3
+   * at 0x14dfe4). This ensures at least one surface type is always tested. */
+  if ((collision_flags & 3) == 0)
+    collision_flags |= 3;
+
   /* Normalize collision type flags */
   flags_computed = 0;
   if (collision_flags & 1)
@@ -1131,8 +1136,11 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
     saved_dist * direction[1] + origin[1];
   ((float *)((char *)collision_result + 0x18))[2] =
     saved_dist * direction[2] + origin[2];
-  scenario_location_from_point((char *)collision_result + 0xc,
-                               (char *)collision_result + 0x18);
+  /* NOTE: the original does NOT call scenario_location_from_point here.
+   * collision_result+0xc retains the obj_ref_last value from the BSP
+   * extraction (line 989).  The scenario_location_from_point call that
+   * was here previously overwrote obj_ref_last with a scenario location,
+   * destroying BSP cluster data that downstream detonation code needs. */
 
   /* Handle zone tracking */
   if ((collision_flags & 0x100000) && result &&
@@ -1178,16 +1186,10 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
     }
   }
 
-  /* Clamp: our hit position can land on BSP boundaries where
-   * scenario_location_from_point returns -1.  Downstream consumers
-   * (structure_render_surface, decals) index with +0xc & 0x7FFFFFFF and
-   * assert on 0x7FFFFFFF.  The original never reaches here with -1
-   * (x87 precision keeps positions inside the BSP).  Substitute cluster 0
-   * (always valid) to avoid the assert without destroying the obj_ref
-   * and cluster fields at +4/+8/+0x10 that detonation needs. */
-  if (result && *(int *)((char *)collision_result + 0xc) == -1) {
-    *(int *)((char *)collision_result + 0xc) = 0;
-  }
+  /* No cluster clamp needed: the spurious scenario_location_from_point
+   * call that overwrote +0xc with -1 has been removed.  The original
+   * XBE has no such clamp — +0xc retains obj_ref_last from the BSP
+   * extraction, which downstream code handles correctly. */
 
   return result;
 }
