@@ -589,7 +589,7 @@
         },
         {
           "addr": "0x1a4440",
-          "decl": "void FUN_001a4440(void);"
+          "decl": "void FUN_001a4440(int unit_handle);"
         },
         {
           "addr": "0x1a4990",
@@ -25449,7 +25449,8 @@
         },
         {
           "addr": "0x1a6280",
-          "decl": "void FUN_001a6280(void);"
+          "decl": "void FUN_001a6280(int unit_handle@<edi>, char *state_out@<ebx>);",
+          "ported": true
         },
         {
           "addr": "0x1a6350",
@@ -26004,7 +26005,8 @@
         },
         {
           "addr": "0x1ab110",
-          "decl": "void FUN_001ab110(int unit_handle, int flag);"
+          "decl": "void FUN_001ab110(int unit_handle, char flag);",
+          "ported": true
         },
         {
           "addr": "0x1ab410",
@@ -26074,7 +26076,8 @@
         },
         {
           "addr": "0x1abd10",
-          "decl": "void FUN_001abd10(void);"
+          "decl": "void FUN_001abd10(int16_t material_type@<eax>, int unit_handle@<esi>, int weapon_tag_index@<edi>);",
+          "ported": true
         },
         {
           "addr": "0x1abd90",
@@ -26097,7 +26100,8 @@
         },
         {
           "addr": "0x1ac550",
-          "decl": "void unit_flame_to_death(void);"
+          "decl": "void unit_flame_to_death(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1ac650",
@@ -30215,7 +30219,7 @@
         },
         {
           "addr": "0x22ba0",
-          "decl": "void actor_aim_grenade(void);"
+          "decl": "void actor_aim_grenade(int actor_handle, float *position, float *velocity);"
         }
       ],
       "name": "actor_combat.obj",

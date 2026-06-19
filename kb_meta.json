@@ -9223,6 +9223,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1ac550": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1ac650": {
       "kind": "function",
       "status": "ported"
