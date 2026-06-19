@@ -3899,7 +3899,7 @@
         },
         {
           "addr": "0x40860",
-          "decl": "void ai_handle_unit_effect(void);"
+          "decl": "void ai_handle_unit_effect(int unit_handle, int effect_type, int priority);"
         },
         {
           "addr": "0x409e0",
@@ -21953,7 +21953,7 @@
         },
         {
           "addr": "0x18f250",
-          "decl": "void scenario_location_underwater(void);"
+          "decl": "char scenario_location_underwater(float *position);"
         },
         {
           "addr": "0x18f3e0",
@@ -25529,7 +25529,8 @@
         },
         {
           "addr": "0x1a71c0",
-          "decl": "void FUN_001a71c0(void);"
+          "decl": "char FUN_001a71c0(int unit_handle, int *param_2, char param_3, char param_4, float param_5);",
+          "ported": true
         },
         {
           "addr": "0x1a74d0",
@@ -25538,7 +25539,8 @@
         },
         {
           "addr": "0x1a7650",
-          "decl": "int FUN_001a7650(void *tag_data@<ecx>, int dialogue_type);"
+          "decl": "int FUN_001a7650(void *tag_data@<ecx>, int dialogue_type);",
+          "ported": true
         },
         {
           "addr": "0x1a7730",
@@ -25652,7 +25654,8 @@
         },
         {
           "addr": "0x1a8550",
-          "decl": "void FUN_001a8550(void);"
+          "decl": "char FUN_001a8550(void *plan@<ecx>, float delta_time, float position, float *out_position, float velocity, float *out_velocity);",
+          "ported": true
         },
         {
           "addr": "0x1a8690",
@@ -25862,7 +25865,8 @@
         },
         {
           "addr": "0x1aa170",
-          "decl": "void FUN_001AA170(void);"
+          "decl": "int FUN_001AA170(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1aa240",
@@ -25905,7 +25909,8 @@
         },
         {
           "addr": "0x1aa5c0",
-          "decl": "void unit_detach_from_parent(int object_handle);"
+          "decl": "void unit_detach_from_parent(int object_handle);",
+          "ported": true
         },
         {
           "addr": "0x1aa700",
@@ -25989,7 +25994,8 @@
         },
         {
           "addr": "0x1aaee0",
-          "decl": "void unit_get_current_grenade_type(void);"
+          "decl": "int16_t unit_get_current_grenade_type(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1aaf40",
@@ -25997,7 +26003,7 @@
         },
         {
           "addr": "0x1ab110",
-          "decl": "void FUN_001ab110(void);"
+          "decl": "void FUN_001ab110(int unit_handle, int flag);"
         },
         {
           "addr": "0x1ab410",
@@ -26105,7 +26111,8 @@
         },
         {
           "addr": "0x1ad260",
-          "decl": "void FUN_001ad260(int unit_handle, int anim_state);"
+          "decl": "char FUN_001ad260(int unit_handle, int16_t anim_state);",
+          "ported": true
         },
         {
           "addr": "0x1ad7e0",
