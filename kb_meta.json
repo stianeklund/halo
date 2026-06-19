@@ -9241,6 +9241,14 @@
         "The multi-weapon flag logic checks key_data pointers at mode+0x44 offsets +4, +6, +8 for non-NONE int16_t values; exact semantics of these weapon animation channels are unconfirmed."
       ]
     },
+    "0x1acf90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1ad060": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1ad7e0": {
       "kind": "function",
       "status": "ported"
@@ -9261,6 +9269,10 @@
       "status": "ported"
     },
     "0x1adf10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1adfc0": {
       "kind": "function",
       "status": "ported"
     },
@@ -9428,6 +9440,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1b1c70": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1b1d00": {
       "kind": "function",
       "status": "ported"
@@ -9443,6 +9459,10 @@
         "The weapon attachment markers come from the animation sub-element at mode+0x58: parent marker at sub_anim+0x40, weapon marker at sub_anim+0x20.",
         "When weapon readiness transitions to a new weapon, unk_696[weapon_index] records game_time_get() as a timestamp."
       ]
+    },
+    "0x1b2090": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1b2260": {
       "kind": "function",
