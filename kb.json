@@ -13893,7 +13893,7 @@
           "addr": "0x11a430",
           "decl": "int FUN_0011a430(int *state, short count, int element_size);",
           "name": "FUN_0011a430",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x11a560",
@@ -13917,7 +13917,7 @@
           "addr": "0x11a6d0",
           "decl": "int64_t FUN_0011a6d0(int *state);",
           "name": "FUN_0011a6d0",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x11a700",
