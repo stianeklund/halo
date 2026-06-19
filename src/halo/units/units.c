@@ -4,6 +4,7 @@
  */
 
 #include "../../common.h"
+#include "../../x87_math.h"
 
 #define NUMBER_OF_UNIT_BASE_SEATS 6
 
@@ -237,6 +238,75 @@ short FUN_001a6cd0(const char *param_1)
   return (short)result;
 }
 
+/* FUN_001a6d10 (0x1a6d10) — unit_dialogue_format_speech_name
+ *
+ * Formats the current speech sound name for the given unit.
+ * If the unit has no active speech (speech_count at +0x338 is 0),
+ * outputs "<none>". Otherwise looks up the sound tag name via
+ * tag_get_name(+0x33c), strips path components based on full_path flag,
+ * and optionally prepends the dialogue variant name from FUN_001a67b0.
+ *
+ * full_path=0: uses strrchr to find last backslash (show filename only)
+ * full_path!=0: uses strchr loop to strip all path prefix (show leaf)
+ *
+ * Returns the output buffer pointer.
+ *
+ * Confirmed: cdecl, 4 stack params (ADD ESP cleanup at callers).
+ * Confirmed: FUN_001d9179 = snprintf, FUN_001ba1f0 = tag_get_name.
+ * Confirmed: 0x257984 = "%s", 0x259f40 = "%s %s", 0x25ad08 = "<none>".
+ */
+char *FUN_001a6d10(int unit_handle, char full_path, int16_t max_len,
+                   char *output)
+{
+  char *unit;
+  char *current_name;
+  char *found;
+  char *variant_name;
+  int16_t dialogue_index;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+
+  if (*(int16_t *)(unit + 0x338) == 0) {
+    snprintf(output, (int)max_len, "<none>");
+    return output;
+  }
+
+  current_name = "<none>";
+  if (*(int *)(unit + 0x33c) != -1) {
+    current_name = (char *)tag_get_name(*(int *)(unit + 0x33c));
+  }
+
+  if (full_path == '\0') {
+    found = strrchr(current_name, '\\');
+    if (found != NULL) {
+      current_name = found + 1;
+    }
+  } else {
+    while (current_name != NULL) {
+      found = crt_strchr(current_name, '\\');
+      if (found == NULL) {
+        break;
+      }
+      current_name = found + 1;
+    }
+  }
+
+  dialogue_index = *(int16_t *)(unit + 0x33a);
+  if (dialogue_index != -1) {
+    if (full_path == '\0') {
+      variant_name = FUN_001a67b0(dialogue_index, 0);
+      snprintf(output, (int)max_len, "%s", variant_name);
+      return output;
+    }
+    variant_name = FUN_001a67b0(dialogue_index, 0);
+    snprintf(output, (int)max_len, "%s %s", variant_name, current_name);
+    return output;
+  }
+
+  snprintf(output, (int)max_len, "%s", current_name);
+  return output;
+}
+
 /* FUN_001a6e20 (0x1a6e20) — unit_dialogue_log_lost_speech
  *
  * Logs a "lost speech" debug message when a speech item is being replaced.
@@ -400,6 +470,137 @@ void FUN_001a6ef0(int unit_handle, short priority, void *speech_item)
     }
     memcpy(unit + 0x368, speech_item, 0x30);
   }
+}
+
+/* FUN_001a74d0 (0x1a74d0) — unit_dialogue_scream
+ *
+ * Triggers a unit scream dialogue event. Maps scream_type [0..5] to a
+ * dialogue index via switch:
+ *   0 → 10 (pain_body_minor)
+ *   1 → random 50/50: 0x27 (scream) or fall through to case 2
+ *   2 → 11 (pain_body_major)
+ *   3 → 12 (pain_shield)
+ *   4 → 13 (pain_falling)
+ *   5 → 0xb7 (183, death)
+ * Then looks up the dialogue tag at unit+0x334, fetches the sound reference
+ * at dialogue_index*0x10+0x1c, and calls FUN_001a68d0 to allocate a speech
+ * slot. On success, builds a speech item struct (0x30 bytes) and queues it
+ * via FUN_001a6ef0.
+ *
+ * Returns 1 on success, 0 if no dialogue tag or sound not available.
+ *
+ * Confirmed: cdecl, 2 stack params.
+ * Confirmed: switch table at 0x1a7638 (6 entries).
+ * Confirmed: 0x253398 = 0.5f for random threshold.
+ * Confirmed: FUN_00042d20 = ai_communication_packet_new.
+ * Confirmed: merged ADD ESP,0x1c cleans csmemset(3)+packet_new(1)+6ef0(3).
+ */
+char FUN_001a74d0(int unit_handle, int scream_type)
+{
+  char *unit;
+  int16_t dialogue_index;
+  int dialogue_tag_index;
+  char *dialogue_tag;
+  uint32_t sound_ref;
+  short result;
+  char speech_buf[0x30];
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  dialogue_index = (int16_t)scream_type;
+
+  if ((int16_t)scream_type < 0 || (int16_t)scream_type >= 6) {
+    display_assert(
+        "(scream_type >= 0) && (scream_type < NUMBER_OF_UNIT_SCREAM_TYPES)",
+        "c:\\halo\\SOURCE\\units\\unit_dialogue.c", 599, 1);
+    system_exit(-1);
+  }
+
+  switch ((int16_t)scream_type) {
+  case 0:
+    dialogue_index = 10;
+    break;
+  case 1:
+    if (random_math_real((unsigned int *)get_global_random_seed_address()) < 0.5f) {
+      dialogue_index = 0x27;
+      break;
+    }
+    /* fall through */
+  case 2:
+    dialogue_index = 0xb;
+    break;
+  case 3:
+    dialogue_index = 0xc;
+    break;
+  case 4:
+    dialogue_index = 0xd;
+    break;
+  case 5:
+    dialogue_index = 0xb7;
+    break;
+  default:
+    display_assert("!\"unreachable\"",
+                   "c:\\halo\\SOURCE\\units\\unit_dialogue.c", 0x27b, 1);
+    system_exit(-1);
+  }
+
+  dialogue_tag_index = *(int *)(unit + 0x334);
+  if (dialogue_tag_index != -1) {
+    dialogue_tag = (char *)tag_get(0x75646c67, dialogue_tag_index);
+    sound_ref = *(uint32_t *)(dialogue_tag + (int)dialogue_index * 0x10 + 0x1c);
+    if (sound_ref != 0xffffffff) {
+      result = FUN_001a68d0(unit_handle, 9, 1, 0, 0, &dialogue_index,
+                            (int *)&sound_ref);
+      if (result > 0) {
+        csmemset(speech_buf, 0, 0x30);
+        *(int16_t *)(speech_buf + 0x00) = 9;
+        *(int16_t *)(speech_buf + 0x02) = dialogue_index;
+        *(uint32_t *)(speech_buf + 0x04) = sound_ref;
+        *(int16_t *)(speech_buf + 0x0c) = 7;
+        ai_communication_packet_new(speech_buf + 0x10);
+        FUN_001a6ef0(unit_handle, result, speech_buf);
+        return 1;
+      }
+    }
+  }
+  return 0;
+}
+
+/* FUN_001a7730 (0x1a7730) — unit_dialogue_select_variant
+ *
+ * Selects a dialogue variant for the unit. Queries FUN_001a7650 with the
+ * unit's current dialogue type (+0x6e). If that fails (returns -1), tries
+ * type 0 (default). If that also fails, tries type -1 (wildcard).
+ * Stores the resulting dialogue tag index at unit+0x334.
+ *
+ * Confirmed: @eax = unit_handle (PUSH EAX at 001a7734).
+ * Confirmed: FUN_001a7650 takes @ecx = tag data pointer, stack param = type.
+ * Confirmed: three fallback calls in sequence.
+ * Confirmed: result stored at [ESI + 0x334].
+ */
+void FUN_001a7730(int unit_handle)
+{
+  char *unit;
+  char *tag_data;
+  int result;
+  int16_t dialogue_type;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  tag_data = (char *)tag_get(0x756e6974, *(int *)unit);
+
+  dialogue_type = *(int16_t *)(unit + 0x6e);
+  if (dialogue_type > 0) {
+    result = FUN_001a7650(tag_data, (int)dialogue_type);
+    if (result != -1) {
+      *(int *)(unit + 0x334) = result;
+      return;
+    }
+  }
+
+  result = FUN_001a7650(tag_data, 0);
+  if (result == -1) {
+    result = FUN_001a7650(tag_data, -1);
+  }
+  *(int *)(unit + 0x334) = result;
 }
 
 /* unit_set_actively_controlled_flag (0x1a7f80)
@@ -1596,6 +1797,92 @@ bool unit_is_busy(int unit_handle)
   default:
     return false;
   }
+}
+
+/* FUN_001aa360 (0x1aa360) — unit_set_user_animation
+ *
+ * Validates a user animation index against the range
+ * [0, NUMBER_OF_UNIT_USER_ANIMATIONS). The function resolves the unit tag
+ * and its animation tag (antr) but does not use them beyond validation.
+ * Asserts if the index is out of range. Returns 0 (AL cleared to 0).
+ *
+ * Confirmed: cdecl, 3 stack params (unit_handle, param_2, index).
+ * Confirmed: assert "index>=0 && index<NUMBER_OF_UNIT_USER_ANIMATIONS"
+ *   at line 0x1a21 in units.c.
+ * Confirmed: NUMBER_OF_UNIT_USER_ANIMATIONS == 2 (CMP AX,0x2).
+ * Confirmed: returns AL=0 (XOR AL,AL at 001aa3bb).
+ */
+char FUN_001aa360(int unit_handle, int param_2, int16_t index)
+{
+  char *unit;
+  int unit_tag_index;
+  char *unit_tag;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag_index = *(int *)unit;
+  unit_tag = (char *)tag_get(0x756e6974, unit_tag_index);
+  tag_get(0x616e7472, *(int *)(unit_tag + 0x44));
+
+  if (index < 0 || index >= 2) {
+    display_assert("index>=0 && index<NUMBER_OF_UNIT_USER_ANIMATIONS",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x1a21, 1);
+    system_exit(-1);
+  }
+
+  return 0;
+}
+
+/* FUN_001aa430 (0x1aa430) — unit_can_see_point
+ *
+ * Returns true if the given point is within the unit's field of view.
+ * Computes a direction vector from the unit's head marker to the target
+ * point, normalizes it, then takes the dot product with the unit's
+ * facing/aiming vector at +0x210. Compares against cos(param_3) where
+ * param_3 is the half-angle of the vision cone.
+ *
+ * Returns false if unit_handle is NONE (-1).
+ *
+ * Confirmed: cdecl, 3 stack params (unit_handle, point, half_angle).
+ * Confirmed: "head" marker name at 0x2909e4.
+ * Confirmed: marker buffer 0x78 bytes, position at buffer+0x60.
+ * Confirmed: FPU dot product order: z*fz + y*fy + x*fx.
+ * Confirmed: FCOS + FCOMPP comparison: dot > cos(angle) → return 1.
+ * Confirmed: normalize3d return (magnitude) discarded via FSTP ST0.
+ */
+char FUN_001aa430(int unit_handle, float *point, float half_angle)
+{
+  char *unit;
+  char marker_buf[0x78];
+  float *marker_pos;
+  float dir_x;
+  float dir_y;
+  float dir_z;
+  float dot;
+
+  if (unit_handle == -1) {
+    return 0;
+  }
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  object_get_markers_by_string_id(unit_handle, (void *)0x2909e4,
+                                  marker_buf, 1);
+
+  marker_pos = (float *)(marker_buf + 0x60);
+  dir_x = point[0] - marker_pos[0];
+  dir_y = point[1] - marker_pos[1];
+  dir_z = point[2] - marker_pos[2];
+
+  normalize3d(&dir_x);
+
+  dot = dir_x * *(float *)(unit + 0x210) +
+        dir_y * *(float *)(unit + 0x214) +
+        dir_z * *(float *)(unit + 0x218);
+
+  if (dot > x87_fcos(half_angle)) {
+    return 1;
+  }
+
+  return 0;
 }
 
 /* any_unit_is_dangerous (0x1aa3c0)
@@ -4191,6 +4478,91 @@ int FUN_001a9ef0(int unit_handle)
   return -1;
 }
 
+/* FUN_001a9f20 (0x1a9f20) — unit_shield_sapping_update
+ *
+ * Called each tick for units in the shield-sapping state (unit+0x253 == 0x2a
+ * = '*'). Checks whether the unit's current seat index (+0x80) exceeds the
+ * seat's max-shield-sapping threshold (+0x2e in the animation seat entry).
+ * If so, iterates all players via the player_data table (0x5aa6d4) and for
+ * each player whose unit (+0x34) is not NONE, computes the squared distance
+ * between the sapping unit's position (+0x50) and the player's unit position
+ * (+0x50). If within range (squared distance < 16.0f at 0x254e74), applies
+ * damage from the unit tag's shield-sapping damage effect at +0x294.
+ *
+ * If any damage was dealt, resets the cooldown counter at unit+0x1be to 0.
+ * Otherwise, increments it.
+ *
+ * Confirmed: cdecl, 1 stack param (unit_handle).
+ * Confirmed: player iteration via data_iterator_new/next (0x1197b0/0x119810).
+ * Confirmed: damage_data_new (0x136750) + object_cause_damage (0x137d20).
+ * Confirmed: attacker handle stored at damage_params+0x0c = [EBP-0x5c].
+ * Confirmed: 0x254e74 = 16.0f (squared distance threshold).
+ */
+void FUN_001a9f20(int unit_handle)
+{
+  char *unit;
+  char *unit_tag;
+  char *antr_tag;
+  char *seat_entry;
+  char *player_entry;
+  int player_unit_handle;
+  char *player_unit;
+  float dx;
+  float dy;
+  float dz;
+  char damage_params[0x60];
+  data_iter_t player_iter;
+  char did_damage;
+  int damage_effect_index;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag = (char *)tag_get(0x756e6974, *(int *)unit);
+
+  if (*(char *)(unit + 0x253) != '*') {
+    return;
+  }
+
+  antr_tag = (char *)tag_get(0x616e7472, *(int *)(unit + 0x7c));
+  seat_entry = (char *)tag_block_get_element(
+      antr_tag + 0x74, (int)*(int16_t *)(unit + 0x80), 0xb4);
+
+  if (*(int16_t *)(unit + 0x80) < *(int16_t *)(seat_entry + 0x2e)) {
+    return;
+  }
+
+  did_damage = 0;
+  data_iterator_new(&player_iter, *(data_t **)0x5aa6d4);
+  player_entry = (char *)data_iterator_next(&player_iter);
+
+  while (player_entry != NULL) {
+    player_unit_handle = *(int *)(player_entry + 0x34);
+    if (player_unit_handle != -1) {
+      player_unit =
+          (char *)object_get_and_verify_type(player_unit_handle, 3);
+
+      dx = *(float *)(unit + 0x50) - *(float *)(player_unit + 0x50);
+      dy = *(float *)(unit + 0x54) - *(float *)(player_unit + 0x54);
+      dz = *(float *)(unit + 0x58) - *(float *)(player_unit + 0x58);
+
+      if (dx * dx + dy * dy + dz * dz < 16.0f) {
+        damage_effect_index = *(int *)(unit_tag + 0x294);
+        damage_data_new(damage_params, damage_effect_index);
+        *(int *)(damage_params + 0x0c) = unit_handle;
+        object_cause_damage(damage_params, player_unit_handle,
+                            (short)-1, (short)-1, (short)-1, 0);
+        did_damage = 1;
+      }
+    }
+    player_entry = (char *)data_iterator_next(&player_iter);
+  }
+
+  if (did_damage) {
+    *(uint8_t *)(unit + 0x1be) = 0;
+  } else {
+    *(uint8_t *)(unit + 0x1be) += 1;
+  }
+}
+
 /* FUN_001a7e70 (0x1a7e70)
  * Guard wrapper around unit_has_weapon_definition_index.
  * Returns false if either handle is NONE. */
@@ -4565,6 +4937,97 @@ void unit_scripting_suspended(int unit_index, char suspended)
       *(uint32_t *)(biped + 0x424) &= 0xfffffffe;
     }
   }
+}
+
+/* FUN_001a9c90 (0x1a9c90) — unit_scripting_vehicle_test_seat_list
+ *
+ * Checks whether any unit occupying a named seat in the given vehicle
+ * (unit_handle) is present in the object_list. Iterates seats from the
+ * unit tag block at +0x2e4 (element size 0x11c), compares seat_name at
+ * element+4 via crt_stricmp. For each matching seat, scans all unit objects
+ * (type mask 3) to find one whose parent at +0xcc is this unit and whose
+ * seat index at +0x2a0 matches. Then checks if that seated unit is in the
+ * child list via FUN_000ce450/FUN_000ce320.
+ *
+ * Returns true (1) if any seated occupant was found in the object_list.
+ *
+ * Confirmed: cdecl, 3 stack params.
+ * Confirmed: seat element size 0x11c, name at element+4.
+ * Confirmed: object iterator at EBP-0x18 (16 bytes), datum handle at iter+0x08.
+ * Confirmed: child iter state at EBP-0x8 (single int).
+ */
+char FUN_001a9c90(int unit_handle, const char *seat_name, int object_list)
+{
+  char *unit_data;
+  char *unit_tag;
+  int *seats_block;
+  char *seat_element;
+  int obj_iter[4];
+  int child_iter_state;
+  int child_handle;
+  int seated_handle;
+  char *seated_unit;
+  char result;
+  int16_t seat_index;
+  int seat_count;
+
+  result = 0;
+
+  if (unit_handle == -1) {
+    return 0;
+  }
+
+  unit_data = (char *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag = (char *)tag_get(0x756e6974, *(int *)unit_data);
+  seats_block = (int *)(unit_tag + 0x2e4);
+  seat_count = *seats_block;
+  seat_index = 0;
+
+  if (seat_count <= 0) {
+    return 0;
+  }
+
+  while ((int)seat_index < seat_count) {
+    seat_element =
+        (char *)tag_block_get_element(seats_block, (int)seat_index, 0x11c);
+
+    if (crt_stricmp(seat_name, seat_element + 4) == 0) {
+      /* Seat name matches — find the occupant */
+      object_iterator_new(obj_iter, 3, 0);
+      seated_unit = (char *)object_iterator_next(obj_iter);
+
+      while (seated_unit != NULL) {
+        if (*(int *)(seated_unit + 0xcc) == unit_handle &&
+            *(int16_t *)(seated_unit + 0x2a0) == seat_index) {
+          /* Found the unit sitting in this seat — check object list */
+          seated_handle = obj_iter[2];
+          child_handle = FUN_000ce450(object_list, &child_iter_state);
+          while (child_handle != -1) {
+            if (seated_handle == child_handle) {
+              goto found;
+            }
+            child_handle = FUN_000ce320(object_list, &child_iter_state);
+          }
+          /* child_handle == -1 here; check if seated_handle also -1 */
+          if (seated_handle == child_handle) {
+            goto found;
+          }
+          break;
+        }
+        seated_unit = (char *)object_iterator_next(obj_iter);
+      }
+    }
+
+    seat_index++;
+    seat_count = *seats_block;
+    continue;
+found:
+    result = 1;
+    seat_index++;
+    seat_count = *seats_block;
+  }
+
+  return result;
 }
 
 /* unit_scripting_vehicle_test_seat (0x1a9da0)
