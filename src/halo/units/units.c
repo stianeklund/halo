@@ -65,6 +65,46 @@ void FUN_00123470(void *mode_tag, void *animation, int animation_index,
                                   (float *)node_data);
 }
 
+/* FUN_001234b0 (0x1234b0) - animation_get_root_delta
+ *
+ * Computes the delta position between frame param_3 and frame (param_3-1)
+ * of an animation. Uses _chkstk for 0x1000 bytes of stack.
+ * Two 0x800-byte node data buffers are filled via FUN_00121d60.
+ * The translation component (offset 0x10 from each buffer base) is
+ * subtracted to produce the frame delta in param_4[0..2].
+ *
+ * Confirmed: 4 cdecl params, void return. _chkstk 0x1000 frame.
+ */
+void FUN_001234b0(void *mode_tag, void *animation, int frame_index,
+                  float *out_delta)
+{
+  uint8_t frame_data[0x800];
+  uint8_t prev_frame_data[0x800];
+  int frame;
+
+  if (*(short *)((char *)animation + 0x22) < 2) {
+    display_assert("animation->frame_count>1",
+                   "c:\\halo\\SOURCE\\models\\model_animations.c", 0xdd,
+                   true);
+    system_exit(-1);
+  }
+
+  frame = frame_index;
+  if ((short)frame == 0) {
+    frame = 1;
+  }
+
+  FUN_00121d60(mode_tag, animation, frame, frame_data);
+  FUN_00121d60(mode_tag, animation, frame - 1, prev_frame_data);
+
+  out_delta[0] = *(float *)(frame_data + 0x10) -
+                 *(float *)(prev_frame_data + 0x10);
+  out_delta[1] = *(float *)(frame_data + 0x14) -
+                 *(float *)(prev_frame_data + 0x14);
+  out_delta[2] = *(float *)(frame_data + 0x18) -
+                 *(float *)(prev_frame_data + 0x18);
+}
+
 /* FUN_001a67b0 (0x1a67b0)
  *
  * Returns the animation state string for the given animation index (param_1)
@@ -5176,6 +5216,201 @@ void unit_update_weapon_readiness(int unit_handle, int flag)
   unit_reset_weapon_state(unit_handle);
 }
 
+/* FUN_001b2780 / unit_new (0x1b2780)
+ *
+ * Unit creation/initialization. Called when a new unit object is created.
+ * Sets default values for all unit-specific fields: weapons, seats,
+ * animation state, aiming vectors, control flags, etc.
+ * Copies the object's forward vector to all 5 directional vector slots.
+ * If the unit tag has initial seat occupancy data and a valid dialog
+ * entry, assigns equipment creation. Returns 1 on success, 0 if the
+ * unit tag's animation graph index is -1.
+ *
+ * Confirmed: 1 cdecl param (unit_handle), returns char (0 or 1).
+ */
+char FUN_001b2780(int unit_handle)
+{
+  char *unit;
+  char *unit_tag;
+  float *forward;
+  char valid;
+  int i;
+  short seat_idx;
+  char *seat_entry;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag = (char *)tag_get(0x756e6974, *(int *)unit);
+
+  if (*(int *)(unit_tag + 0x44) == -1) { /* animation graph index */
+    return 0;
+  }
+
+  /* Initialize weapon slots to -1 */
+  *(int *)(unit + 0x2c8) = -1;
+  csmemset((void *)(unit + 0x2a8), 0xff, 0x10);
+
+  /* Initialize animation/seat tracking fields */
+  *(int16_t *)(unit + 0x2a2) = -1;
+  *(int16_t *)(unit + 0x2a4) = -1;
+  *(uint8_t *)(unit + 0x2cc) = 0xff;
+  *(uint8_t *)(unit + 0x2cd) = 0xff;
+  *(uint8_t *)(unit + 0x2d0) = 0xff;
+  *(uint8_t *)(unit + 0x2d1) = 0xff;
+  *(int *)(unit + 0x1c8) = -1;
+  *(int *)(unit + 0x1a4) = -1;
+  *(int *)(unit + 0x1a8) = -1;
+  *(int *)(unit + 0x1ac) = -1;
+  *(int *)(unit + 0x1b0) = -1;
+  *(int16_t *)(unit + 0x2a0) = -1;
+  *(int *)(unit + 0x2d4) = -1;
+  *(int *)(unit + 0x2d8) = -1;
+
+  /* Clear base seat/weapon fields */
+  *(int16_t *)(unit + 0x248) = 0;
+  *(uint8_t *)(unit + 0x250) = 0xff;
+  *(uint8_t *)(unit + 0x251) = 0xff;
+  *(uint8_t *)(unit + 0x252) = 0xff;
+  *(uint8_t *)(unit + 0x253) = 0xff;
+  *(uint8_t *)(unit + 0x254) = 0;
+  *(uint8_t *)(unit + 0x255) = 0;
+  *(int16_t *)(unit + 0x24a) = -1;
+  *(int16_t *)(unit + 0x24c) = -1;
+  *(int16_t *)(unit + 0x25a) = -1;
+  *(int16_t *)(unit + 0x25e) = -1;
+  *(int16_t *)(unit + 0x262) = -1;
+  *(uint8_t *)(unit + 0x257) = 2;
+  *(int16_t *)(unit + 0x24e) = -1;
+  *(uint8_t *)(unit + 0x258) = 0xff;
+  *(int16_t *)(unit + 0x1ce) = -1;
+  *(uint8_t *)(unit + 0x1bf) = 0xff;
+  *(uint8_t *)(unit + 0x266) = 0;
+
+  /* Zero-fill aiming/looking orientation buffers */
+  csmemset((void *)(unit + 0x268), 0, 0x10);
+  *(uint8_t *)(unit + 0x267) = 0;
+  csmemset((void *)(unit + 0x278), 0, 0x10);
+
+  /* Validate forward vector */
+  forward = (float *)(unit + 0x24);
+  valid = (char)valid_real_normal3d(forward);
+  if (valid == 0) {
+    csprintf((char *)0x5ab100,
+             "%s: assert_valid_real_normal3d(%f, %f, %f)",
+             "&unit->object.forward", (double)forward[0],
+             (double)*(float *)(unit + 0x28),
+             (double)*(float *)(unit + 0x2c),
+             "c:\\halo\\SOURCE\\units\\units.c", 0x189, true);
+    display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\units\\units.c",
+                   0x189, true);
+    system_exit(-1);
+  }
+
+  /* Copy forward vector to all 5 direction vector slots */
+  *(float *)(unit + 0x210) = forward[0];
+  *(float *)(unit + 0x214) = *(float *)(unit + 0x28);
+  *(float *)(unit + 0x218) = *(float *)(unit + 0x2c);
+  *(float *)(unit + 0x204) = forward[0];
+  *(float *)(unit + 0x208) = *(float *)(unit + 0x28);
+  *(float *)(unit + 0x20c) = *(float *)(unit + 0x2c);
+  *(float *)(unit + 0x1ec) = forward[0];
+  *(float *)(unit + 0x1f0) = *(float *)(unit + 0x28);
+  *(float *)(unit + 0x1f4) = *(float *)(unit + 0x2c);
+  *(float *)(unit + 0x1e0) = forward[0];
+  *(float *)(unit + 0x1e4) = *(float *)(unit + 0x28);
+  *(float *)(unit + 0x1e8) = *(float *)(unit + 0x2c);
+  *(float *)(unit + 0x1d4) = forward[0];
+  *(float *)(unit + 0x1d8) = *(float *)(unit + 0x28);
+  *(float *)(unit + 0x1dc) = *(float *)(unit + 0x2c);
+
+  /* Initialize control/animation state */
+  *(int *)(unit + 0x1c0) = 0;
+  *(int *)(unit + 0x334) = -1;
+  *(int *)(unit + 0x1b4) = *(int *)(unit + 0x1b4) | 0x100;
+
+  csmemset((void *)(unit + 0x338), 0, 0x7c);
+  *(int *)(unit + 0x3a0) = -1;
+
+  FUN_001a6bf0(unit_handle);
+
+  csmemset((void *)(unit + 0x3e0), 0xff, 0x40);
+
+  *(int16_t *)(unit + 0x3b4) = 0;
+  *(int16_t *)(unit + 0x3b6) = 0;
+  *(int *)(unit + 0x3b8) = 0;
+  *(int16_t *)(unit + 0x3da) = 0;
+  *(int *)(unit + 0x3bc) = -1;
+  *(int *)(unit + 0x3cc) = -1;
+  *(int16_t *)(unit + 0x2e4) = -1;
+  *(int16_t *)(unit + 0x2e6) = -1;
+  *(int *)(unit + 0x2f4) = 0x3f800000; /* 1.0f */
+  *(uint8_t *)(unit + 0x23b) = 0;
+  *(int *)(unit + 0x3c0) = -1;
+  *(int *)(unit + 0x3dc) = -1;
+
+  /* Assign initial grenade count from tag */
+  {
+    short grenade_type;
+    grenade_type = *(short *)(unit_tag + 0x2c4);
+    if (grenade_type >= 0 && grenade_type < 2 &&
+        *(short *)(unit_tag + 0x2c6) >= 0) {
+      *(uint8_t *)(unit + 0x2ce + (int)grenade_type) =
+          *(uint8_t *)(unit_tag + 0x2c6);
+    }
+  }
+
+  /* Set flags */
+  *(int *)(unit + 0x4) = *(int *)(unit + 0x4) | 0x6000;
+
+  /* Check powered melee probability */
+  if (*(float *)(unit_tag + 0x22c) > *(float *)0x2533c0 &&
+      *(float *)(unit_tag + 0x230) > *(float *)0x2533c0 &&
+      *(float *)(unit_tag + 0x244) > *(float *)0x2533c0) {
+    float random_val;
+
+    random_val = random_math_real(
+        (unsigned int *)get_global_random_seed_address());
+    if (random_val < *(float *)(unit_tag + 0x244)) {
+      *(int *)(unit + 0x1b4) = *(int *)(unit + 0x1b4) | 0x2000;
+    } else {
+      *(int *)(unit + 0x1b4) = *(int *)(unit + 0x1b4) & ~0x2000;
+    }
+  }
+
+  /* Set initial health region permutation from tag */
+  valid = (char)game_engine_running();
+  if (valid == 0 &&
+      (*(short *)(unit + 0x68) == 0 || *(short *)(unit + 0x68) == -1)) {
+    *(int16_t *)(unit + 0x68) = *(int16_t *)(unit_tag + 0x180);
+  }
+
+  /* Apply initial animation state */
+  unit_try_animation_state(unit_handle, *(int *)0x32e48c, 0, 1);
+
+  /* Create initial weapons */
+  unit_create_initial_weapons(unit_handle);
+
+  /* Check for power-up equipment in seats */
+  i = 0;
+  seat_idx = 0;
+  if (*(int *)(unit_tag + 0x2e4) > 0) {
+    for (;;) {
+      seat_entry = (char *)
+          tag_block_get_element((int *)(unit_tag + 0x2e4), i, 0x11c);
+      if (*(int *)(seat_entry + 0x104) != -1) {
+        break;
+      }
+      seat_idx = seat_idx + 1;
+      i = (int)seat_idx;
+      if (i >= *(int *)(unit_tag + 0x2e4)) {
+        return 1;
+      }
+    }
+    ai_create_mounted_weapons_for_unit(unit_handle);
+  }
+
+  return 1;
+}
+
 /* unit_board_vehicle (0x1b2b80)
  *
  * Handles a unit boarding a vehicle at a specific seat. Validates the seat via
@@ -9433,7 +9668,7 @@ void unit_exit_seat_end(int unit_handle)
     uint8_t anim_data[2];
     anim_data[0] = 0x14;
     anim_data[1] = 0x00;
-    FUN_001b0d90(unit_handle, anim_data);
+    FUN_001b0d90(unit_handle, (char *)anim_data);
   }
 
   /* Create object header block reference for exit velocity */
