@@ -522,6 +522,42 @@
     "0x1ab770": "const char *FUN_001ab770(int16_t base_weapon_index@<si>);",
     "0x1ab870": "int16_t FUN_001ab870(void *animation_state@<ecx>, int animation_graph_tag_index@<edx>, int unit_handle);",
     "0x1ab8c0": "void FUN_001ab8c0(int unit_handle@<edi>);",
-    "0x1ab940": "int FUN_001ab940(int16_t weapon_index@<si>, char *unit_data);"
+    "0x1ab940": "int FUN_001ab940(int16_t weapon_index@<si>, char *unit_data);",
+    "0x1ab410": {
+      "name": "unit_aiming_vector",
+      "regs": [
+        "eax"
+      ]
+    },
+    "0x1abb20": {
+      "name": "unit_drop_grenades_on_death",
+      "regs": [
+        "eax"
+      ]
+    },
+    "0x1abbd0": {
+      "name": "unit_drop_weapons_on_death",
+      "regs": [
+        "eax"
+      ]
+    },
+    "0x1ae700": {
+      "name": "unit_get_weapon_name",
+      "regs": [
+        "esi"
+      ]
+    },
+    "0x1b13a0": {
+      "name": "unit_has_night_vision_weapon",
+      "regs": [
+        "esi"
+      ]
+    },
+    "0x1b2740": {
+      "name": "unit_select_weapon_after_vehicle_exit",
+      "regs": [
+        "eax"
+      ]
+    }
   }
 }

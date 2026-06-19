@@ -7047,3 +7047,319 @@ void unit_handle_region_destroyed(int unit_handle, int param_2, uint32_t flags)
     FUN_001a74d0(unit_handle, ((flags & 0x200) != 0) + 3);
   }
 }
+
+
+/* unit_aiming_vector (0x1ab410)
+ * Computes the unit's aiming vector (offset 0x320, 3 floats) from position
+ * deltas transformed by the orientation matrix, scaled by tag sensitivity,
+ * offset by 0.5, clamped to [0.0, 0.7]. Updates origin (0x2FC) and delta
+ * (0x308). Uses seat marker if in a vehicle; early-exits with 0.5 if marker
+ * not found. Register arg: unit_handle in EAX. */
+void unit_aiming_vector(int unit_handle)
+{
+  char *unit;
+  int parent_handle;
+  char *parent_unit;
+  int tag_data;
+  int seat_entry;
+  float *sensitivity;
+  int16_t marker_result;
+  char marker_buf[60];
+  float pos[3];
+  float fwd[3];
+  float up[3];
+  float side[3];
+  float dx, dy, dz;
+  float ddx, ddy, ddz;
+  float val;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  parent_handle = *(int *)(unit + 0xcc);
+
+  if (parent_handle == -1 || *(int16_t *)(unit + 0x2a0) == -1) {
+    /* No parent or no seat -- use unit's own transform */
+    tag_data = (int)tag_get(0x756e6974, *(int *)unit);
+    pos[0] = *(float *)(unit + 0x0c);
+    pos[1] = *(float *)(unit + 0x10);
+    pos[2] = *(float *)(unit + 0x14);
+    fwd[0] = *(float *)(unit + 0x24);
+    fwd[1] = *(float *)(unit + 0x28);
+    fwd[2] = *(float *)(unit + 0x2c);
+    up[0] = *(float *)(unit + 0x30);
+    up[1] = *(float *)(unit + 0x34);
+    up[2] = *(float *)(unit + 0x38);
+    sensitivity = (float *)(tag_data + 0x200);
+  } else {
+    /* In a vehicle seat -- use parent marker transform */
+    parent_unit = (char *)object_get_and_verify_type(parent_handle, 3);
+    tag_data = (int)tag_get(0x756e6974, *(int *)parent_unit);
+    seat_entry = (int)tag_block_get_element(
+        (void *)(tag_data + 0x2e4),
+        (int)*(int16_t *)(unit + 0x2a0), 0x11c);
+    marker_result = object_get_markers_by_string_id(
+        parent_handle, (void *)(seat_entry + 0x24), marker_buf, 1);
+    if (marker_result == 0) {
+      *(float *)(unit + 0x320) = 0.5f;
+      *(float *)(unit + 0x324) = 0.5f;
+      *(float *)(unit + 0x328) = 0.5f;
+      return;
+    }
+    object_get_world_position(parent_handle, (vector3_t *)pos);
+    sensitivity = (float *)(seat_entry + 0x64);
+  }
+
+  /* Delta from previous aiming origin */
+  dx = pos[0] - *(float *)(unit + 0x2fc);
+  dy = pos[1] - *(float *)(unit + 0x300);
+  dz = pos[2] - *(float *)(unit + 0x304);
+
+  /* Double-delta: subtract previous delta */
+  ddx = dx - *(float *)(unit + 0x308);
+  ddy = dy - *(float *)(unit + 0x30c);
+  ddz = dz - *(float *)(unit + 0x310);
+
+  /* side = up x fwd (verified from FSUBP order in disasm at 0x1ab537-0x1ab55f) */
+  side[0] = fwd[2] * up[1] - fwd[1] * up[2];
+  side[1] = up[2] * fwd[0] - fwd[2] * up[0];
+  side[2] = up[0] * fwd[1] - up[1] * fwd[0];
+
+  /* Project double-delta onto orientation axes, scale by sensitivity, +0.5 */
+  *(float *)(unit + 0x320) =
+      (fwd[0] * ddx + fwd[1] * ddy + fwd[2] * ddz) * sensitivity[0] + 0.5f;
+  *(float *)(unit + 0x324) =
+      (side[0] * ddx + side[1] * ddy + side[2] * ddz) * sensitivity[1] + 0.5f;
+  *(float *)(unit + 0x328) =
+      (up[0] * ddx + up[1] * ddy + up[2] * ddz) * sensitivity[2] + 0.5f;
+
+  /* Clamp each component to [0.0, 0.7] */
+  val = *(float *)(unit + 0x320);
+  if (val < 0.0f)
+    val = 0.0f;
+  else if (val > 0.7f)
+    val = 0.7f;
+  *(float *)(unit + 0x320) = val;
+
+  val = *(float *)(unit + 0x324);
+  if (val < 0.0f)
+    val = 0.0f;
+  else if (val > 0.7f)
+    val = 0.7f;
+  *(float *)(unit + 0x324) = val;
+
+  val = *(float *)(unit + 0x328);
+  if (val < 0.0f)
+    val = 0.0f;
+  else if (val > 0.7f)
+    val = 0.7f;
+  *(float *)(unit + 0x328) = val;
+
+  /* Update aiming origin */
+  *(float *)(unit + 0x2fc) = pos[0];
+  *(float *)(unit + 0x300) = pos[1];
+  *(float *)(unit + 0x304) = pos[2];
+
+  /* Update aiming delta */
+  *(float *)(unit + 0x308) = dx;
+  *(float *)(unit + 0x30c) = dy;
+  *(float *)(unit + 0x310) = dz;
+}
+
+/* unit_drop_grenades_on_death (0x1abb20)
+ * Creates grenade weapon objects for each grenade the unit carries and drops
+ * them. Iterates over 2 grenade types. For each, looks up the grenade tag
+ * from game globals, creates weapon objects, disconnects from map, then
+ * detaches (drops physically). Register arg: unit_handle in EAX. */
+void unit_drop_grenades_on_death(int unit_handle)
+{
+  char *unit;
+  char *grenade_count_ptr;
+  int grenade_type;
+  int globals;
+  int grenade_tag;
+  int new_handle;
+  char placement[136];
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  grenade_count_ptr = unit + 0x2ce;
+
+  /* The binary uses a negative-offset trick to compute the grenade type index:
+   * ESI = 0xFFFFFD32 - unit_addr; index = ESI + grenade_count_ptr
+   * Since 0xFFFFFD32 + 0x2CE = 0 (mod 2^32), this yields index = type (0 or 1).
+   * We compute the type directly. */
+  for (grenade_type = 0; grenade_type < NUMBER_OF_UNIT_GRENADE_TYPES; grenade_type++) {
+    globals = (int)game_globals_get();
+    grenade_tag = (int)tag_block_get_element(
+        (void *)(globals + 0x128), grenade_type, 0x44);
+
+    while (*grenade_count_ptr > 0) {
+      object_placement_data_new(placement, *(int *)(grenade_tag + 0x30), unit_handle);
+      new_handle = object_new(placement);
+      if (new_handle != -1) {
+        object_disconnect_from_map(new_handle);
+        unit_detach_weapon(unit_handle, new_handle);
+      }
+      *grenade_count_ptr = *grenade_count_ptr - 1;
+    }
+    grenade_count_ptr++;
+  }
+}
+
+/* unit_drop_weapons_on_death (0x1abbd0)
+ * Iterates over all 4 weapon slots and drops weapons not connected to the
+ * map. For map-connected weapons, asserts with an error message. Updates
+ * the next-weapon index if needed, clears the slot, and deletes the weapon
+ * if it cannot be fired. Register arg: unit_handle in EAX. */
+void unit_drop_weapons_on_death(int unit_handle)
+{
+  char *unit;
+  int weapon_handle;
+  char *weapon_data;
+  int slot;
+  int *weapon_slot_ptr;
+  const char *unit_name;
+  const char *weapon_name;
+  const char *msg;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  slot = 0;
+  weapon_slot_ptr = (int *)(unit + 0x2a8);
+
+  do {
+    weapon_handle = *weapon_slot_ptr;
+    if (weapon_handle != -1 &&
+        (int16_t)slot != *(int16_t *)(unit + 0x2a2)) {
+      weapon_data = (char *)object_get_and_verify_type(weapon_handle, 4);
+      if ((*(uint32_t *)(weapon_data + 4) & 0x800) != 0) {
+        weapon_name = tag_get_name(*(int *)weapon_data);
+        unit_name = tag_get_name(*(int *)unit);
+        msg = csprintf(error_string_buffer,
+            "a %s tried to drop a %s which was connected to the map.",
+            unit_name, weapon_name);
+        display_assert(msg, "c:\\halo\\SOURCE\\units\\units.c", 0x2132, 1);
+        system_exit(-1);
+      }
+      unit_detach_weapon(unit_handle, weapon_handle);
+      if ((int16_t)slot == *(int16_t *)(unit + 0x2a4)) {
+        *(int16_t *)(unit + 0x2a4) = *(int16_t *)(unit + 0x2a2);
+      }
+      *weapon_slot_ptr = -1;
+      if (!weapon_can_be_fired(weapon_handle)) {
+        object_delete(weapon_handle);
+      }
+    }
+    slot++;
+    weapon_slot_ptr++;
+  } while ((int16_t)slot < 4);
+}
+
+/* unit_get_weapon_name (0x1ae700)
+ * Returns the name string of the unit's currently selected weapon.
+ * If no weapon is equipped, returns "unarmed".
+ * Register arg: unit_handle in ESI.
+ * Stack arg: 1 cdecl param (unused in function body, always 1 from callers). */
+char *unit_get_weapon_name(int unit_handle, int unused)
+{
+  char *unit;
+  int weapon_handle;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  weapon_handle = unit_get_weapon(unit_handle,
+      *(int16_t *)(unit + 0x2a2));
+  if (weapon_handle == -1) {
+    return "unarmed";
+  }
+  return weapon_get_label(weapon_handle);
+}
+
+/* unit_has_night_vision_weapon (0x1b13a0)
+ * Checks whether the unit's current weapon has the night-vision flag
+ * (bit 0x4000 at weapon tag offset 0x308). Returns true if zoom_level
+ * is not 0xFF, a weapon exists, and the flag is set.
+ * Register arg: unit_handle in ESI. */
+char unit_has_night_vision_weapon(int unit_handle)
+{
+  char *unit;
+  int weapon_handle;
+  char *weapon_data;
+  int tag_data;
+  char result;
+
+  result = 0;
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  if (*(uint8_t *)(unit + 0x2d0) == 0xff) {
+    return result;
+  }
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  weapon_handle = unit_get_weapon(unit_handle,
+      *(int16_t *)(unit + 0x2a2));
+  if (weapon_handle == -1) {
+    return result;
+  }
+  weapon_data = (char *)object_get_and_verify_type(weapon_handle, 4);
+  tag_data = (int)tag_get(0x77656170, *(int *)weapon_data);
+  if (*(uint32_t *)(tag_data + 0x308) & 0x4000) {
+    return 1;
+  }
+  return result;
+}
+
+/* unit_solo_player_integrated_night_vision_is_active (0x1b2610)
+ * Returns true if there is exactly one local player, that player has a
+ * valid unit, and that unit's current weapon has the night-vision flag. */
+char unit_solo_player_integrated_night_vision_is_active(void)
+{
+  int16_t count;
+  int16_t local_idx;
+  int player_index;
+  char *player;
+  int unit_handle;
+  char result;
+
+  result = 0;
+  count = local_player_count();
+  if (count != 1) {
+    return result;
+  }
+  local_idx = local_player_get_next(-1);
+  player_index = local_player_get_player_index(local_idx);
+  if (player_index == -1) {
+    return result;
+  }
+  player = (char *)datum_get(player_data, player_index);
+  unit_handle = *(int *)(player + 0x34);
+  if (unit_handle == -1) {
+    return result;
+  }
+  return unit_has_night_vision_weapon(unit_handle);
+}
+
+/* scripting_magic_melee_attack (0x1b2260)
+ * Triggers a melee attack on the first player's unit. Gets player 0's
+ * unit handle from player_data, then calls unit_melee_attack_begin. */
+void scripting_magic_melee_attack(void)
+{
+  char *player;
+  int unit_handle;
+
+  player = (char *)datum_get(player_data, 0);
+  unit_handle = *(int *)(player + 0x34);
+  FUN_001b1b60(unit_handle, 0, 0);
+}
+
+/* unit_select_weapon_after_vehicle_exit (0x1b2740)
+ * After exiting a vehicle, selects the next available weapon and updates
+ * weapon readiness. Reads current weapon index, finds the next weapon,
+ * stores it as the next weapon index, then calls unit_update_weapon_readiness.
+ * Register arg: unit_handle in EAX. */
+void unit_select_weapon_after_vehicle_exit(int unit_handle)
+{
+  char *unit;
+  uint16_t current_idx;
+  int16_t next_idx;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  current_idx = *(uint16_t *)(unit + 0x2a2);
+  next_idx = unit_next_weapon_index(unit_handle, (int16_t)current_idx, 0);
+  *(int16_t *)(unit + 0x2a4) = next_idx;
+  unit_update_weapon_readiness(unit_handle, 1);
+}

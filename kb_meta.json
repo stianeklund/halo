@@ -9169,6 +9169,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1ab410": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1ab7c0": {
       "kind": "function",
       "status": "ported",
@@ -9190,6 +9194,14 @@
       "uncertain": [
         "The exact name of 0x1a9240 (unit_set_seat_state) is uncertain; it receives the unit handle and the root position vector."
       ]
+    },
+    "0x1abb20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1abbd0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1abcd0": {
       "kind": "function",
@@ -9316,6 +9328,10 @@
         "FUN_001ae490 computes next weapon index; FUN_000fd360 attempts weapon placement; FUN_000de360 fires a unit event; FUN_001ab990 is a weapon-stow notification; FUN_000faf50 checks if weapon should be kept alive."
       ]
     },
+    "0x1ae700": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1ae730": {
       "kind": "function",
       "status": "ported"
@@ -9387,6 +9403,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1b13a0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1b1a20": {
       "kind": "function",
       "status": "ported",
@@ -9419,6 +9439,18 @@
         "The weapon attachment markers come from the animation sub-element at mode+0x58: parent marker at sub_anim+0x40, weapon marker at sub_anim+0x20.",
         "When weapon readiness transitions to a new weapon, unk_696[weapon_index] records game_time_get() as a timestamp."
       ]
+    },
+    "0x1b2260": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1b2610": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1b2740": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1b2b80": {
       "kind": "function",
