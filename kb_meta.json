@@ -9055,6 +9055,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1aa240": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1aa3c0": {
       "kind": "function",
       "status": "ported",
