@@ -6628,7 +6628,7 @@
         {
           "addr": "0x9ca70",
           "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
           "ported": true
         },
         {
@@ -6689,7 +6689,7 @@
         {
           "addr": "0x9dcf0",
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -26002,7 +26002,9 @@
         },
         {
           "addr": "0x1aaf40",
-          "decl": "void FUN_001aaf40(void);"
+          "decl": "void FUN_001aaf40(int unit_handle@<edi>);",
+          "name": "FUN_001aaf40",
+          "ported": true
         },
         {
           "addr": "0x1ab110",
@@ -26082,7 +26084,9 @@
         },
         {
           "addr": "0x1abd90",
-          "decl": "void FUN_001abd90(void);"
+          "decl": "void FUN_001abd90(int unit_handle@<edi>);",
+          "name": "FUN_001abd90",
+          "ported": true
         },
         {
           "addr": "0x1ac3f0",
@@ -26118,7 +26122,8 @@
         {
           "addr": "0x1acb70",
           "decl": "void unit_adjust_plan_overlap(void *plan_a@<ecx>, void *plan_b@<eax>, int dummy, float delta_time);",
-          "name": "unit_adjust_plan_overlap"
+          "name": "unit_adjust_plan_overlap",
+          "ported": true
         },
         {
           "addr": "0x1acd70",
@@ -26252,12 +26257,14 @@
         },
         {
           "addr": "0x1ae840",
-          "decl": "void unit_cause_melee_damage(int unit_handle, char melee_hit, int target_handle, int param_4, int param_5, int param_6, float *damage_position);",
-          "name": "unit_cause_melee_damage"
+          "decl": "void unit_cause_melee_damage(int unit_handle, char melee_hit, int target_handle, int param_4, int param_5, int param_6, int param_7);",
+          "name": "unit_cause_melee_damage",
+          "ported": true
         },
         {
           "addr": "0x1aea90",
-          "decl": "void unit_cause_player_melee_damage(void);"
+          "decl": "void unit_cause_player_melee_damage(int unit_handle);",
+          "name": "unit_cause_player_melee_damage"
         },
         {
           "addr": "0x1af0d0",
@@ -26282,7 +26289,8 @@
         {
           "addr": "0x1af340",
           "decl": "void unit_update_running_blind(int unit_handle@<eax>, float *run_vector@<esi>);",
-          "name": "unit_update_running_blind"
+          "name": "unit_update_running_blind",
+          "ported": true
         },
         {
           "addr": "0x1af620",
@@ -26318,7 +26326,8 @@
         },
         {
           "addr": "0x1b0d90",
-          "decl": "void unit_update_animation(void);"
+          "decl": "void FUN_001b0d90(int unit_handle, void *anim_data);",
+          "name": "FUN_001b0d90"
         },
         {
           "addr": "0x1b1290",
@@ -26438,11 +26447,14 @@
         {
           "addr": "0x1b2dd0",
           "decl": "void unit_exit_seat_end(int unit_handle);",
-          "name": "unit_exit_seat_end"
+          "name": "unit_exit_seat_end",
+          "ported": true
         },
         {
           "addr": "0x1b3060",
-          "decl": "void unit_died(void);"
+          "decl": "void unit_died(int unit_handle, char feign_death);",
+          "name": "unit_died",
+          "ported": true
         },
         {
           "addr": "0x1b32d0",
@@ -30037,7 +30049,7 @@
         },
         {
           "addr": "0xfc4b0",
-          "decl": "void weapon_owner_update(void);"
+          "decl": "void weapon_owner_update(int weapon_handle);"
         },
         {
           "addr": "0xfc550",
