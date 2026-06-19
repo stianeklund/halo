@@ -9368,6 +9368,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1aea90": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1af0d0": {
       "kind": "function",
       "status": "ported"
