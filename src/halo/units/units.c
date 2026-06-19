@@ -10811,7 +10811,7 @@ void FUN_00122e50(int animation, float *blend_params, float direction,
     return;
   }
 
-  is_compressed = (char)((int (*)(void))FUN_00120620)();
+  is_compressed = FUN_00120620(animation);
 
   /* Direction axis */
   if (direction >= *(float *)0x2533c0) {
@@ -11592,15 +11592,19 @@ void FUN_001afd30(int unit_handle, int node_output)
   char seat_anim_idx;
   float *aiming_vec;
   char valid;
-  float identity_scale;
-  float forward[3];
-  float up[3];
-  float right[3];
+  /* local_matrix is a real_matrix4x3 (13 floats):
+   *   [0]    scale
+   *   [1..3] forward (object_get_orientation out_forward)
+   *   [4..6] left    (cross product of forward x up)
+   *   [7..9] up      (object_get_orientation out_up)
+   *  [10..12] position (from global 0x31fc1c)
+   * MSVC lays these contiguous on the stack; separate locals in clang
+   * would break the matrix passed to real_matrix4x3_transform_point. */
+  float local_matrix[13];
   float rel_aim_vec[3];
   float rel_look_vec[3];
   float aim_angles[2];
   float look_angles[2];
-  float matrix[3];
   float *steering_ptr;
   float max_frame;
   float temp;
@@ -11739,14 +11743,14 @@ void FUN_001afd30(int unit_handle, int node_output)
             system_exit(-1);
           }
 
-          identity_scale = 1.0f;
-          object_get_orientation(unit_handle, forward, right);
-          cross_product3d(forward, right, up);
-          matrix[0] = *(float *)*(int *)0x31fc1c;
-          matrix[1] = *(float *)(*(int *)0x31fc1c + 4);
-          matrix[2] = *(float *)(*(int *)0x31fc1c + 8);
+          local_matrix[0] = 1.0f;
+          object_get_orientation(unit_handle, &local_matrix[1], &local_matrix[7]);
+          cross_product3d(&local_matrix[1], &local_matrix[7], &local_matrix[4]);
+          local_matrix[10] = *(float *)*(int *)0x31fc1c;
+          local_matrix[11] = *(float *)(*(int *)0x31fc1c + 4);
+          local_matrix[12] = *(float *)(*(int *)0x31fc1c + 8);
           real_matrix4x3_transform_point(
-              &identity_scale, aiming_vec,
+              local_matrix, aiming_vec,
               rel_aim_vec);
 
           valid = real_vector3d_valid(rel_aim_vec);
@@ -11815,14 +11819,14 @@ void FUN_001afd30(int unit_handle, int node_output)
             *(short *)(unit + 0x24c) != -1) {
           float *look_ptr;
           look_ptr = (float *)(seat_block + 0x20);
-          identity_scale = 1.0f;
-          object_get_orientation(unit_handle, forward, right);
-          cross_product3d(forward, right, up);
-          matrix[0] = *(float *)*(int *)0x31fc1c;
-          matrix[1] = *(float *)(*(int *)0x31fc1c + 4);
-          matrix[2] = *(float *)(*(int *)0x31fc1c + 8);
+          local_matrix[0] = 1.0f;
+          object_get_orientation(unit_handle, &local_matrix[1], &local_matrix[7]);
+          cross_product3d(&local_matrix[1], &local_matrix[7], &local_matrix[4]);
+          local_matrix[10] = *(float *)*(int *)0x31fc1c;
+          local_matrix[11] = *(float *)(*(int *)0x31fc1c + 4);
+          local_matrix[12] = *(float *)(*(int *)0x31fc1c + 8);
           real_matrix4x3_transform_point(
-              &identity_scale, (void *)(unit + 0x210),
+              local_matrix, (void *)(unit + 0x210),
               rel_look_vec);
 
           valid = real_vector3d_valid(rel_look_vec);
@@ -12292,7 +12296,7 @@ short FUN_001b0d90(int unit_handle, char *anim_state)
         const char *seat_label;
         weapon_name = unit_get_weapon_name(unit_handle, 1);
         seat_label = FUN_001ab6e0(base_seat);
-        FUN_001acd70(unit_handle, seat_label, weapon_name, 0);
+        FUN_001acd70(unit_handle, seat_label, weapon_name, 1);
       }
     }
   }
@@ -12309,7 +12313,7 @@ short FUN_001b0d90(int unit_handle, char *anim_state)
   if (*(short *)(unit + 0x20) != -1) {
     anim_status = FUN_001ab870(
         (void *)((int)unit + 0x80),
-        *(int *)(unit[0x1f]), unit_handle);
+        (int)unit[0x1f], unit_handle);
     if (anim_status == 1) {
       unit_anim_byte = *(char *)((int)unit + 0x253);
       if (unit_anim_byte >= 0x1e && unit_anim_byte <= 0x29) {

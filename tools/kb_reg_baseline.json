@@ -335,6 +335,7 @@
     "0x11f070": "void stack_memory_pool_mark_used(void *block_hdr@<esi>, void *pool@<ecx>);",
     "0x11f1e0": "void *stack_memory_pool_alloc_internal(int alloc_size@<eax>, void *pool, const char *file, unsigned int line);",
     "0x11f750": "void *stack_memory_pool_alloc_or_resize(int new_size@<eax>, void *pool@<ecx>, void *block_hdr, const char *file, unsigned int line);",
+    "0x120620": "char FUN_00120620(int animation@<esi>);",
     "0x120d10": "short FUN_00120d10(unsigned short *keyframe_frame_indices, short target_frame_index, short keyframe_count@<edi>);",
     "0x126000": "void FUN_00126000(void *server /* @<ebx> */);",
     "0x1260c0": "bool FUN_001260c0(void *server /* @<esi> */);",
