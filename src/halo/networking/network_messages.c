@@ -926,8 +926,8 @@ int FUN_0011ba50(short *table, void *key, unsigned short *slot_index_out)
     else {
       element_ptr = array_get_element((int *)(table + 0xe), (int)slot,
                                       (int)table[1]);
-      found = (char)(*(int (**)(int, int))(table + 10))(
-        *(int *)(table + 6), element_ptr);
+      found = (char)(*(int (**)(int, int, void *))(table + 10))(
+        *(int *)(table + 6), element_ptr, key);
     }
     if (found != '\0') {
       *slot_index_out = hash_val;
