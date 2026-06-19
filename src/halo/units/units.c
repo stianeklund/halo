@@ -472,6 +472,183 @@ void FUN_001a6ef0(int unit_handle, short priority, void *speech_item)
   }
 }
 
+/* FUN_001a71c0 (0x1a71c0) — unit_dialogue_activation
+ *
+ * Complex dialogue activation function. Determines the appropriate
+ * dialogue type based on the unit's combat situation (seeing enemy,
+ * taking damage, proximity to threats). Handles both voluntary (param_3=0)
+ * and involuntary (param_3=1) dialogue with different priority systems.
+ *
+ * For voluntary speech: checks cooldown timers at +0x39e/0x39c/0x39a,
+ * random suppression, and maps vehicle/threat state to dialogue type.
+ * For involuntary speech: checks weapon projectile data to determine
+ * if the projectile is fast, uses AI actor state for threat level.
+ *
+ * On success, builds a speech item (0x30 bytes) and queues it via
+ * FUN_001a6ef0. Also optionally fires an AI unit effect via FUN_00040860.
+ *
+ * Returns 1 on success, 0 on failure.
+ *
+ * Confirmed: cdecl, 5 stack params.
+ * Confirmed: object_get_and_verify_type(unit_handle, 3).
+ * Confirmed: dialogue tag at unit+0x334.
+ * Confirmed: 0x253f3c = 0.6f, 0x253524 = 0.4f, 0x2549d4 = 0.2f.
+ * Confirmed: speech_buf at [EBP-0x44] (0x30 bytes).
+ * Confirmed: DAT_005ac9ca = dialogue mute flag.
+ * Confirmed: DAT_006325a4 = actor data pointer.
+ */
+char FUN_001a71c0(int unit_handle, int *param_2, char param_3, char param_4,
+                  float param_5)
+{
+  char *unit;
+  char result;
+  char is_above_zero;
+  char is_above_threshold;
+  int dialogue_type;
+  int dialogue_obj_handle;
+  int16_t ai_effect_type;
+  int ai_effect_count;
+  char speech_buf[0x30];
+  char *tag_data;
+  int actor_handle;
+  char is_fast_projectile;
+  char has_threat;
+  char urgent;
+  int16_t priority;
+  short speech_count;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  result = 0;
+
+  if (*(int *)(unit + 0x334) == -1)
+    return 0;
+
+  dialogue_type = 0;
+  is_above_zero = *(float *)(unit + 0xa8) > *(float *)0x2533c0;
+  is_above_threshold = *(float *)(unit + 0xa8) >= *(float *)0x253f3c;
+
+  urgent = 0;
+  ai_effect_type = -1;
+  ai_effect_count = 0;
+
+  if (param_2 != NULL && *param_2 != -1) {
+    tag_data = (char *)tag_get(0x6a707421, *param_2);
+    dialogue_type = (int)*(int16_t *)(tag_data + 0x1c6);
+  }
+
+  if (param_3 != '\0') {
+    /* Involuntary dialogue (being shot at) */
+    actor_handle = *(int *)(unit + 0x1a8);
+    if (actor_handle == -1)
+      actor_handle = *(int *)(unit + 0x1a4);
+
+    has_threat = 0;
+    is_fast_projectile = 0;
+    if (*param_2 != -1) {
+      tag_data = (char *)tag_get(0x6a707421, *param_2);
+      is_fast_projectile = 1;
+      if (*(float *)(tag_data + 0x1f4) < *(float *)0x253f40)
+        is_fast_projectile = 0;
+    }
+
+    if (actor_handle == -1) {
+      has_threat = param_5 + *(float *)0x2549d4 < *(float *)(unit + 0xa8);
+    } else {
+      tag_data = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+      has_threat = *(int16_t *)(tag_data + 0x6e) >= 3;
+    }
+
+    if ((int16_t)dialogue_type == 1) {
+      dialogue_type = 0x10;
+    } else if ((int16_t)dialogue_type == 7) {
+      dialogue_type = 0x11;
+    } else if (is_fast_projectile != 0) {
+      dialogue_type = 0x13;
+    } else if (!has_threat) {
+      dialogue_type = 0xe;
+    } else {
+      dialogue_type = (param_4 != '\0' ? 3 : 0) + 0xf;
+    }
+
+    unit = (char *)object_get_and_verify_type(unit_handle, 3);
+    urgent = 1;
+
+    if ((int16_t)dialogue_type != 0xe) {
+      ai_effect_type = 2;
+      ai_effect_count = ((int16_t)dialogue_type == 0x12) ? 4 : 1;
+    }
+
+    if ((int16_t)dialogue_type == -1)
+      goto ai_effect;
+  } else {
+    /* Voluntary dialogue (spotting enemy) */
+    if (*(int16_t *)(unit + 0x39e) != 0)
+      return result;
+
+    if ((int16_t)dialogue_type == 1) {
+      urgent = 1;
+      dialogue_type = 9;
+    } else if (is_above_threshold) {
+      urgent = 1;
+      dialogue_type = 7;
+    } else {
+      if (*(int16_t *)(unit + 0x39c) != 0)
+        return result;
+
+      if (*(int16_t *)(unit + 0x39a) > 2)
+        return result;
+
+      if (*(int16_t *)(unit + 0x338) != 0) {
+        if (random_math_real(
+                (unsigned int *)get_global_random_seed_address()) >=
+            *(float *)0x253524)
+          return result;
+      }
+
+      dialogue_type = (is_above_zero == 0 ? 2 : 0) + 6;
+    }
+
+    if ((int16_t)dialogue_type == -1)
+      goto ai_effect;
+  }
+
+  dialogue_obj_handle = -1;
+  if (param_3 == '\0') {
+    priority = (int16_t)(urgent ? 7 : 2);
+  } else {
+    priority = 10;
+  }
+
+  speech_count = FUN_001a68d0(unit_handle, (int)priority, 1, 0, 0,
+                              (short *)&dialogue_type, &dialogue_obj_handle);
+
+  if (*(char *)0x5ac9ca == '\0' && speech_count > 0) {
+    csmemset(speech_buf, 0, 0x30);
+    *(int16_t *)(speech_buf + 0x00) = priority;
+    *(int16_t *)(speech_buf + 0x02) = (int16_t)dialogue_type;
+    *(int *)(speech_buf + 0x04) = dialogue_obj_handle;
+    *(int16_t *)(speech_buf + 0x0c) = 7;
+    ai_communication_packet_new(speech_buf + 0x10);
+    FUN_001a6ef0(unit_handle, speech_count, speech_buf);
+    result = 1;
+
+    if (is_above_threshold == 0) {
+      *(int16_t *)(unit + 0x39a) += 1;
+      *(int16_t *)(unit + 0x39c) = 0x1e;
+      *(int16_t *)(unit + 0x398) = 0x16;
+    } else {
+      *(int16_t *)(unit + 0x39e) = 0x3c;
+    }
+  }
+
+ai_effect:
+  if (ai_effect_type != -1) {
+    ai_handle_unit_effect(unit_handle, (int)ai_effect_type, ai_effect_count);
+  }
+
+  return result;
+}
+
 /* FUN_001a74d0 (0x1a74d0) — unit_dialogue_scream
  *
  * Triggers a unit scream dialogue event. Maps scream_type [0..5] to a
@@ -563,6 +740,75 @@ char FUN_001a74d0(int unit_handle, int scream_type)
     }
   }
   return 0;
+}
+
+/* FUN_001a7650 (0x1a7650) — dialogue_definition_get_variant
+ *
+ * Searches the dialogue variants tag block at tag_data+0x2b4 for entries
+ * matching the given dialogue_type. Collects up to 16 matching variant
+ * indices into a local array. If exactly one match, returns that variant's
+ * dialogue tag index. If multiple matches, picks one at random using
+ * get_global_random_seed_address. Asserts if the chosen variant's dialogue
+ * tag (0x75646c67 = "udlg") fails to load.
+ *
+ * Returns the dialogue tag index, or -1 if no matching variant found.
+ *
+ * Confirmed: thiscall — @ecx = tag_data pointer (MOV ESI,ECX at 0x1a7658).
+ * Confirmed: 1 stack param = dialogue_type (int16_t).
+ * Confirmed: tag_block at tag_data+0x2b4, element_size=0x18.
+ * Confirmed: variant dialogue ref at element+0x14.
+ * Confirmed: assert string "dialogue_definition_get(dialogue_index)" at 0x2b6874.
+ * Confirmed: line 0x408 in unit_dialogue.c.
+ */
+int FUN_001a7650(void *tag_data, int dialogue_type)
+{
+  int *block;
+  int count;
+  int match_count;
+  int16_t match_indices[16];
+  int i;
+  short *element;
+  int16_t chosen;
+  int chosen_element;
+  int dialogue_tag_index;
+
+  block = (int *)((char *)tag_data + 0x2b4);
+  count = *block;
+  match_count = 0;
+
+  if (count > 0) {
+    for (i = 0; i < count; i++) {
+      element = (short *)tag_block_get_element(block, i, 0x18);
+      if ((int16_t)dialogue_type == -1 || *element == (int16_t)dialogue_type) {
+        match_indices[match_count] = (int16_t)i;
+        match_count++;
+      }
+    }
+
+    if ((int16_t)match_count > 0) {
+      if ((int16_t)match_count == 1) {
+        chosen = match_indices[0];
+      } else {
+        chosen = random_range(
+            (unsigned int *)get_global_random_seed_address(),
+            0, (int16_t)match_count);
+        chosen = match_indices[chosen];
+      }
+
+      chosen_element = (int)tag_block_get_element(block, (int)chosen, 0x18);
+      dialogue_tag_index = *(int *)(chosen_element + 0x14);
+
+      if (tag_get(0x75646c67, dialogue_tag_index) == NULL) {
+        display_assert("dialogue_definition_get(dialogue_index)",
+                       "c:\\halo\\SOURCE\\units\\unit_dialogue.c", 0x408, 1);
+        system_exit(-1);
+      }
+
+      return dialogue_tag_index;
+    }
+  }
+
+  return -1;
 }
 
 /* FUN_001a7730 (0x1a7730) — unit_dialogue_select_variant
@@ -747,6 +993,84 @@ int unit_get_seat_enter_position(int unit_handle, int target_unit_handle,
   }
 
   return 0;
+}
+
+/* FUN_001a8550 (0x1a8550) — acceleration plan evaluator
+ *
+ * Evaluates a 3-phase acceleration plan (accelerate, coast, decelerate)
+ * over a given time delta. Each phase consumes time from delta_time and
+ * updates position and velocity accordingly:
+ *   Phase 1 (acceleration): v += accel*t, pos += (0.5*accel*t + vel)*t
+ *   Phase 2 (coast):        pos += vel*t
+ *   Phase 3 (deceleration): v += accel*t, pos += (0.5*accel*t + vel)*t
+ *
+ * Returns 1 if all time was consumed (plan still active), 0 if plan
+ * complete or flag was already set.
+ *
+ * Confirmed: thiscall — @ecx = plan struct pointer.
+ * Confirmed: 5 stack params: delta_time, position, out_pos*, velocity, out_vel*.
+ * Confirmed: 0x253398 = 0.5f, 0x2533c0 = 0.0f.
+ * Confirmed: plan+0x0c = accel1, +0x10 = dur1, +0x14 = dur2.
+ * Confirmed: plan+0x18 = accel3, +0x1c = dur3.
+ */
+char FUN_001a8550(void *plan, float delta_time, float position, float *out_position,
+                  float velocity, float *out_velocity)
+{
+  char done;
+  float t;
+  float vel;
+
+  done = *(char *)plan;
+  vel = velocity;
+
+  if (done != 0 || !(*(float *)0x2533c0 < delta_time))
+    goto store_out;
+
+  /* Phase 1: acceleration */
+  if (*(float *)0x2533c0 < *(float *)((char *)plan + 0x10)) {
+    t = delta_time;
+    if (*(float *)((char *)plan + 0x10) < delta_time)
+      t = *(float *)((char *)plan + 0x10);
+    position = (t * *(float *)((char *)plan + 0xc) * 0.5f + vel) * t + position;
+    vel = t * *(float *)((char *)plan + 0xc) + vel;
+    delta_time = delta_time - t;
+  }
+
+  if (!(*(float *)0x2533c0 < delta_time))
+    goto store_out;
+
+  /* Phase 2: coast */
+  if (*(float *)0x2533c0 < *(float *)((char *)plan + 0x14)) {
+    t = delta_time;
+    if (*(float *)((char *)plan + 0x14) < delta_time)
+      t = *(float *)((char *)plan + 0x14);
+    position = vel * t + position;
+    delta_time = delta_time - t;
+  }
+
+  if (!(*(float *)0x2533c0 < delta_time))
+    goto store_out;
+
+  /* Phase 3: deceleration */
+  if (*(float *)0x2533c0 < *(float *)((char *)plan + 0x1c)) {
+    t = delta_time;
+    if (*(float *)((char *)plan + 0x1c) < delta_time)
+      t = *(float *)((char *)plan + 0x1c);
+    position = (0.5f * t * *(float *)((char *)plan + 0x18) + vel) * t + position;
+    vel = t * *(float *)((char *)plan + 0x18) + vel;
+    delta_time = delta_time - t;
+  }
+
+  if (*(float *)0x2533c0 < delta_time) {
+    *out_position = position;
+    *out_velocity = vel;
+    return 1;
+  }
+
+store_out:
+  *out_position = position;
+  *out_velocity = vel;
+  return done;
 }
 
 /* unit_animation_start_action (0x1a8990)
@@ -1799,6 +2123,59 @@ bool unit_is_busy(int unit_handle)
   }
 }
 
+/* FUN_001AA170 (0x1aa170) — find nearest biped
+ *
+ * Iterates all biped objects (type_mask=1) to find the nearest biped
+ * to the given unit, excluding the unit itself and any biped with
+ * bit 2 of byte +0xb6 set. Uses 3D Euclidean distance (SQRT).
+ * If unit_handle is -1, uses FLT_MAX (0x7f7fffff) as distance for all
+ * candidates, effectively selecting the first valid biped.
+ *
+ * Returns the nearest biped's datum handle, or -1 if none found.
+ *
+ * Confirmed: cdecl, 1 stack param (unit_handle).
+ * Confirmed: object_iterator_new(iter, 1, 0) — biped type only.
+ * Confirmed: FLOAT_002533c0 = 0.0f (used when unit_handle == -1).
+ * Confirmed: initial best_dist = FLT_MAX (0x7f7fffff).
+ */
+int FUN_001AA170(int unit_handle)
+{
+  int best_handle;
+  float best_dist;
+  int iter[4];
+  char *obj;
+  float pos_a[3];
+  float pos_b[3];
+  float dx, dy, dz, dist;
+
+  best_handle = -1;
+  best_dist = 3.4028235e+38f;
+
+  object_iterator_new(iter, 1, 0);
+  obj = (char *)object_iterator_next(iter);
+  while (obj != NULL) {
+    if (iter[2] != unit_handle &&
+        (*(uint8_t *)(obj + 0xb6) & 4) == 0) {
+      if (unit_handle == -1) {
+        dist = *(float *)0x2533c0;
+      } else {
+        object_get_world_position(unit_handle, (vector3_t *)pos_a);
+        object_get_world_position(iter[2], (vector3_t *)pos_b);
+        dx = pos_b[0] - pos_a[0];
+        dy = pos_b[1] - pos_a[1];
+        dz = pos_b[2] - pos_a[2];
+        dist = sqrtf(dx * dx + dy * dy + dz * dz);
+      }
+      if (dist < best_dist) {
+        best_handle = iter[2];
+        best_dist = dist;
+      }
+    }
+    obj = (char *)object_iterator_next(iter);
+  }
+  return best_handle;
+}
+
 /* FUN_001aa360 (0x1aa360) — unit_set_user_animation
  *
  * Validates a user animation index against the range
@@ -1918,6 +2295,74 @@ bool any_unit_is_dangerous(void)
   }
 
   return false;
+}
+
+/* unit_detach_from_parent (0x1aa5c0)
+ *
+ * Detaches a unit from its parent vehicle. Computes a direction vector
+ * from parent to child position, normalizes it, and scales by 0.02f
+ * (the eject velocity factor at 0x2b6af4). Detaches the object from
+ * its parent, finds a safe spawn location (scenario_location_underwater),
+ * sets the new position, clears flags, adds the ejection velocity, and
+ * recomputes node matrices.
+ *
+ * Confirmed: cdecl, 1 stack param (object_handle).
+ * Confirmed: calls object_get_and_verify_type twice (child and parent).
+ * Confirmed: normalize3d returns 0.0 when vector is zero.
+ * Confirmed: 0x2b6af4 = 0.02f (ejection velocity scale).
+ * Confirmed: clears bit 5 (0x20) of flags at +0x4.
+ * Confirmed: clears bit 15 (0x8000) of flags at +0x1b4.
+ */
+void unit_detach_from_parent(int object_handle)
+{
+  char *unit;
+  int parent_handle;
+  float parent_pos[3];
+  float child_pos[3];
+  float dir[3];
+  float len;
+
+  unit = (char *)object_get_and_verify_type(object_handle, 3);
+  parent_handle = *(int *)(unit + 0xcc);
+  if (parent_handle == -1)
+    return;
+
+  object_get_and_verify_type(parent_handle, 3);
+  object_get_world_position(parent_handle, (vector3_t *)parent_pos);
+  object_get_world_position(object_handle, (vector3_t *)child_pos);
+
+  dir[0] = child_pos[0] - parent_pos[0];
+  dir[1] = child_pos[1] - parent_pos[1];
+  dir[2] = child_pos[2] - parent_pos[2];
+
+  len = normalize3d(dir);
+  if (len == *(float *)0x2533c0) {
+    dir[0] = *(float *)(unit + 0x24);
+    dir[1] = *(float *)(unit + 0x28);
+    dir[2] = *(float *)(unit + 0x2c);
+  }
+
+  dir[0] = dir[0] * *(float *)0x2b6af4;
+  dir[1] = dir[1] * *(float *)0x2b6af4;
+  dir[2] = dir[2] * *(float *)0x2b6af4;
+
+  object_detach_from_parent(object_handle);
+
+  child_pos[0] = *(float *)(unit + 0xc);
+  child_pos[1] = *(float *)(unit + 0x10);
+  child_pos[2] = *(float *)(unit + 0x14);
+  scenario_location_underwater(child_pos);
+  object_set_position(object_handle, child_pos, NULL, NULL);
+
+  *(uint32_t *)(unit + 0x4) &= ~0x20u;
+  *(uint32_t *)(unit + 0x1b4) &= ~0x8000u;
+
+  *(float *)(unit + 0x18) += dir[0];
+  *(float *)(unit + 0x1c) += dir[1];
+  *(float *)(unit + 0x20) += dir[2];
+
+  object_set_garbage(object_handle, 1);
+  object_compute_node_matrices(object_handle);
 }
 
 /* unit_update_seat_occupancy (0x1aa890)
@@ -2353,6 +2798,37 @@ int16_t unit_get_grenade_count(int unit_handle, int16_t grenade_type)
   return (int16_t)unit[grenade_type + 0x2ce];
 }
 
+/* unit_get_current_grenade_type (0x1aaee0)
+ *
+ * Returns the current grenade type index for the given unit. Validates
+ * that the stored index at unit+0x2cc is NONE (-1) or in [0, 2).
+ * Returns -1 (NONE) or 0/1 as a sign-extended int16_t.
+ *
+ * Confirmed: cdecl, 1 stack param (unit_handle).
+ * Confirmed: object_get_and_verify_type(param_1, 3).
+ * Confirmed: assert string at 0x2b6c98, line 0x1eb8.
+ * Confirmed: sign-extends byte at +0x2cc to int16_t return.
+ */
+int16_t unit_get_current_grenade_type(int unit_handle)
+{
+  char *unit;
+  char grenade_index;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  grenade_index = *(char *)(unit + 0x2cc);
+
+  if (grenade_index != -1 && (grenade_index < 0 || grenade_index > 1)) {
+    display_assert(
+        "unit->unit.current_grenade_index==NONE || "
+        "(unit->unit.current_grenade_index>=0 && "
+        "unit->unit.current_grenade_index<NUMBER_OF_UNIT_GRENADE_TYPES)",
+        "c:\\halo\\SOURCE\\units\\units.c", 0x1eb8, 1);
+    system_exit(-1);
+  }
+
+  return (int16_t)(signed char)*(char *)(unit + 0x2cc);
+}
+
 /* unit_set_animation (0x1ab7c0)
  *
  * Sets the current animation on a unit object. Writes the animation graph
@@ -2702,6 +3178,264 @@ bool unit_try_animation_state(int unit_handle, int seat_label, int weapon_label,
   }
 
   return found;
+}
+
+/* FUN_001ad260 (0x1ad260) — unit animation state transition
+ *
+ * Sets the unit's animation state (unk_595 at offset 0x253). Looks up the
+ * correct animation from the unit tag's animation graph hierarchy based on
+ * the desired state (param_2). There are two lookup paths:
+ *
+ *   1. Mode-relative: looks up in the mode's animation block at mode+0x98/0x9c
+ *      using a "mode animation index" (EBX path).
+ *   2. Overlay-relative: looks up in the unit mode's overlay block at
+ *      unit_mode+0x40/0x44 using an "overlay index" (local_c path).
+ *
+ * After lookup, calls FUN_00120f20 (model_animation_choose_random) and
+ * unit_set_animation to apply. Handles developer-mode missing-animation
+ * warnings. Also resolves the "weapon idle" overlay and stores it.
+ *
+ * Called by unit_abort_animation, unit_open, unit_close, and others.
+ *
+ * Returns 1 on success, 0 on failure (animation not found for certain states).
+ *
+ * Confirmed: cdecl, 2 stack params (unit_handle, anim_state as int16_t).
+ * Confirmed: jump table at 0x1ad714 (44 entries for states 0..0x2b).
+ * Confirmed: calls unit_set_animation(@eax,@edi,@bx).
+ * Confirmed: calls FUN_001a88b0(@ecx = anim_state).
+ * Confirmed: DAT_005054fb = developer mode flag.
+ * Confirmed: 0x322308 = mode anim name table, 0x322450 = overlay anim name table.
+ */
+char FUN_001ad260(int unit_handle, int16_t anim_state)
+{
+  int *unit;
+  char *unit_tag;
+  char *antr_tag;
+  char *unit_mode;
+  char *mode_block;
+  int anim_graph_tag_index;
+  int16_t mode_anim_index;
+  int16_t overlay_index;
+  int16_t anim_index;
+  int16_t old_state;
+  char was_none;
+  char did_change;
+  int16_t weapon_idle_anim;
+  int16_t transition_speed;
+
+  unit = (int *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag = (char *)tag_get(0x756e6974, *unit);
+  anim_graph_tag_index = *(int *)(unit_tag + 0x44);
+  antr_tag = (char *)tag_get(0x616e7472, anim_graph_tag_index);
+
+  unit_mode = (char *)tag_block_get_element(antr_tag + 0xc,
+      (int)*(signed char *)((char *)unit + 0x250), 100);
+  mode_block = (char *)tag_block_get_element(unit_mode + 0x58,
+      (int)*(signed char *)((char *)unit + 0x251), 0xbc);
+  tag_block_get_element(mode_block + 0xb0,
+      (int)*(signed char *)((char *)unit + 0x252), 0x3c);
+
+  old_state = (int16_t)(signed char)*((char *)unit + 0x253);
+  was_none = (old_state == -1);
+  did_change = 0;
+
+  if (!was_none && anim_state == old_state)
+    goto resolve_weapon_idle;
+
+  mode_anim_index = -1;
+  overlay_index = -1;
+
+  if (old_state == 0x21) {
+    FUN_001ab110(unit_handle, 1);
+  }
+
+  /* Map anim_state to either a mode animation index or overlay index */
+  if ((int)anim_state > 0x2b)
+    goto set_not_found;
+
+  switch ((int)anim_state) {
+  case 0:  mode_anim_index = 0; break;
+  case 1:  mode_anim_index = 1; break;
+  case 2:  mode_anim_index = 2; break;
+  case 3:  mode_anim_index = 3; break;
+  case 4:  mode_anim_index = 8; break;
+  case 5:  mode_anim_index = 9; break;
+  case 6:  mode_anim_index = 10; break;
+  case 7:  mode_anim_index = 11; break;
+  case 8:  mode_anim_index = 0x23; break;
+  case 9:  mode_anim_index = 0x24; break;
+  case 10: mode_anim_index = 0x25; break;
+  case 11: mode_anim_index = 0x26; break;
+  case 12: mode_anim_index = 12; break;
+  case 13: mode_anim_index = 13; break;
+  case 14: mode_anim_index = 14; break;
+  case 15: mode_anim_index = 15; break;
+  case 0x14: mode_anim_index = 0x10; break;
+  case 0x15: mode_anim_index = 0x11; break;
+  case 0x16: mode_anim_index = 0x12; break;
+  case 0x1e: mode_anim_index = 0x27; break;
+  case 0x1f: mode_anim_index = 0x2a; break;
+  case 0x20: mode_anim_index = 0x2e; break;
+  case 0x21: mode_anim_index = 0x14; break;
+  case 0x22: mode_anim_index = 0x2c; break;
+  case 0x23: mode_anim_index = 0x2d; break;
+  case 0x24: mode_anim_index = 0x2f; break;
+  case 0x27: mode_anim_index = 0x30; break;
+  case 0x28: mode_anim_index = 0x31; break;
+  case 0x29: mode_anim_index = 0x32; break;
+  case 0x10: overlay_index = 0x17; goto overlay_path;
+  case 0x11: overlay_index = 0x18; goto overlay_path;
+  case 0x12: overlay_index = 0x19; goto overlay_path;
+  case 0x13: overlay_index = 0x1a; goto overlay_path;
+  case 0x18: overlay_index = 0; goto overlay_path;
+  case 0x19: overlay_index = 1; goto overlay_path;
+  case 0x25: overlay_index = 0x1b; goto overlay_path;
+  case 0x26: overlay_index = 0x1c; goto overlay_path;
+  case 0x2b: overlay_index = 0x1d; goto overlay_path;
+  default:
+    goto set_not_found;
+  }
+
+  /* Mode animation lookup path */
+  if ((int)mode_anim_index < *(int *)(mode_block + 0x98)) {
+    anim_index = *(int16_t *)(*(int *)(mode_block + 0x9c) +
+                              (int)mode_anim_index * 2);
+  } else {
+    goto set_not_found;
+  }
+  goto check_found;
+
+overlay_path:
+  /* Overlay animation lookup path */
+  if ((int)overlay_index >= *(int *)(unit_mode + 0x40))
+    goto set_not_found;
+  anim_index = *(int16_t *)(*(int *)(unit_mode + 0x44) +
+                            (int)overlay_index * 2);
+  goto check_found;
+
+set_not_found:
+  anim_index = -1;
+
+check_found:
+  /* Check if animation was found */
+  if (*(uint8_t *)0x5054fb != 0 && *(int16_t *)((char *)unit + 0x64) == 0) {
+    /* Developer mode: warn about missing animations */
+    if (anim_index == -1) {
+      const char *mn;
+      const char *on;
+      if (mode_anim_index != -1) {
+        mn = FUN_001205f0((void *)0x322308, mode_anim_index);
+      } else {
+        mn = (const char *)0x25386f;
+      }
+      if (overlay_index != -1) {
+        on = (const char *)FUN_001205f0((void *)0x322450, overlay_index);
+      } else {
+        on = (const char *)mode_block;
+      }
+      console_warning("MISSING: %s \'%s %s %s\'",
+          tag_name_strip_path(*(const char **)(unit_tag + 0x3c)),
+          unit_mode, on, mn);
+      goto check_early_return;
+    }
+  } else {
+    if (anim_index == -1)
+      goto check_early_return;
+  }
+  goto apply_animation;
+
+check_early_return:
+  /* For certain states, return 0 if animation not found */
+  switch ((int)anim_state) {
+  case 0x1e:
+  case 0x1f:
+  case 0x20:
+  case 0x21:
+  case 0x27:
+  case 0x29:
+    return 0;
+  }
+
+apply_animation:
+  anim_index = (int16_t)model_animation_choose_random(1, anim_graph_tag_index,
+                                                       anim_index);
+  unit_set_animation(unit_handle, anim_graph_tag_index, anim_index);
+
+  old_state = (int16_t)(signed char)*((char *)unit + 0x253);
+
+  /* Determine transition speed */
+  transition_speed = 6;
+  if ((anim_state == 0 || anim_state == 2 || anim_state == 3) &&
+      (old_state == 0 || old_state == 2 || old_state == 3)) {
+    transition_speed = 1;
+  }
+  if (anim_state == 0x16 || anim_state == 0x15) {
+    transition_speed = 2;
+  }
+
+  did_change = 1;
+
+resolve_weapon_idle:
+  {
+    int16_t new_weapon_idle;
+
+    new_weapon_idle = FUN_001a88b0(anim_state);
+
+    if (was_none || new_weapon_idle != FUN_001a88b0(old_state)) {
+      /* Resolve weapon idle animation */
+      if (new_weapon_idle >= 0 &&
+          (int)new_weapon_idle < *(int *)(mode_block + 0x98)) {
+        weapon_idle_anim = *(int16_t *)(*(int *)(mode_block + 0x9c) +
+                                        (int)new_weapon_idle * 2);
+      } else {
+        weapon_idle_anim = -1;
+      }
+
+      weapon_idle_anim = (int16_t)model_animation_choose_random(
+          1, anim_graph_tag_index, weapon_idle_anim);
+      *(int16_t *)((char *)unit + 0x24a) = weapon_idle_anim;
+
+      if (*(uint8_t *)0x5054fb != 0 &&
+          *(int16_t *)((char *)unit + 0x64) == 0 &&
+          weapon_idle_anim == -1 && new_weapon_idle != -1) {
+        const char *wn = FUN_001205f0((void *)0x322308, (int16_t)new_weapon_idle);
+        console_warning("MISSING: %s \'%s %s %s\'",
+            tag_name_strip_path(*(const char **)(unit_tag + 0x3c)),
+            unit_mode, mode_block, wn);
+      }
+
+      if (was_none) {
+        /* Resolve base weapon overlay (index 9) */
+        if (*(int *)(unit_mode + 0x40) > 9) {
+          weapon_idle_anim = *(int16_t *)(*(int *)(unit_mode + 0x44) + 0x12);
+        } else {
+          weapon_idle_anim = -1;
+        }
+        weapon_idle_anim = (int16_t)model_animation_choose_random(
+            1, anim_graph_tag_index, weapon_idle_anim);
+        *(int16_t *)((char *)unit + 0x24c) = weapon_idle_anim;
+
+        if (*(uint8_t *)0x5054fb != 0 &&
+            *(int16_t *)((char *)unit + 0x64) == 0 &&
+            weapon_idle_anim == -1) {
+          const char *oln = FUN_001205f0((void *)0x322450, 9);
+          console_warning("MISSING: %s \'%s %s\'",
+              tag_name_strip_path(*(const char **)(unit_tag + 0x3c)),
+              unit_mode, oln);
+        }
+
+        transition_speed = 6;
+      }
+    } else if (did_change == 0) {
+      goto skip_transition;
+    }
+
+    object_set_region_count(unit_handle, transition_speed);
+  }
+
+skip_transition:
+  *((char *)unit + 0x253) = (char)anim_state;
+  return 1;
 }
 
 /* unit_find_best_enter_seat (0x1ad800)
