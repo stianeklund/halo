@@ -7,6 +7,9 @@
 #include "../../x87_math.h"
 
 #define NUMBER_OF_UNIT_BASE_SEATS 6
+#define NUMBER_OF_UNIT_BASE_WEAPONS 1
+#define MAXIMUM_WEAPONS_PER_UNIT 4
+#define MAXIMUM_COLLISION_USER_STACK_DEPTH 32
 
 char *FUN_0008dc30(char *destination, const char *source)
 {
@@ -2176,6 +2179,59 @@ int FUN_001AA170(int unit_handle)
   return best_handle;
 }
 
+/* unit_debug_ninja_rope (0x1aa240)
+ * Collision-based ninja rope debug function.
+ * Casts a ray from the unit's aim position along a scaled facing direction.
+ * If the ray hits geometry with a fraction above 0.95, translates the unit
+ * to the hit point offset upward by 0.25.
+ * Uses the collision stack depth guard to prevent reentrant collision. */
+void unit_debug_ninja_rope(int unit_handle)
+{
+  char *unit;
+  float origin[3];
+  float direction[3];
+  char collision_result[80];
+  int16_t depth;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  unit_set_seat_state(unit_handle, origin);
+
+  direction[0] = *(float *)(unit + 0x1ec) * 25.0f;
+  direction[1] = *(float *)(unit + 0x1f0) * 25.0f;
+  direction[2] = *(float *)(unit + 0x1f4) * 25.0f;
+
+  if (global_current_collision_user_depth >= MAXIMUM_COLLISION_USER_STACK_DEPTH) {
+    display_assert(
+        "global_current_collision_user_depth < "
+        "MAXIMUM_COLLISION_USER_STACK_DEPTH",
+        "c:\\halo\\SOURCE\\units\\units.c", 0x19f8, 1);
+    system_exit(-1);
+  }
+
+  depth = global_current_collision_user_depth;
+  global_current_collision_user_depth = depth + 1;
+  collision_user_stack[depth] = 0x15;
+
+  if (FUN_0014df70(0x22, origin, direction, unit_handle,
+                   (int16_t *)collision_result)) {
+    /* collision_result + 0x2c = fraction, compare > 0.95 */
+    if (*(float *)(collision_result + 0x2c) > 0.95f) {
+      /* collision_result + 0x20 = hit y-coordinate, add 0.25 */
+      *(float *)(collision_result + 0x20) += 0.25f;
+      /* collision_result + 0x18 = hit position */
+      object_translate(unit_handle,
+                       (float *)(collision_result + 0x18), 0);
+    }
+  }
+
+  if (global_current_collision_user_depth < 2) {
+    display_assert("global_current_collision_user_depth > 1",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x1a01, 1);
+    system_exit(-1);
+  }
+  global_current_collision_user_depth -= 1;
+}
+
 /* FUN_001aa360 (0x1aa360) — unit_set_user_animation
  *
  * Validates a user animation index against the range
@@ -2829,6 +2885,58 @@ int16_t unit_get_current_grenade_type(int unit_handle)
   return (int16_t)(signed char)*(char *)(unit + 0x2cc);
 }
 
+/* FUN_001ab6e0 (0x1ab6e0)
+ * Returns a pointer to the base seat name string given a base_seat_index.
+ * Asserts that the index is in [0, NUMBER_OF_UNIT_BASE_SEATS).
+ * The seat name table at 0x32e484 contains: asleep, alert, stand, crouch, flee, flaming. */
+const char *FUN_001ab6e0(int16_t base_seat_index)
+{
+  if (base_seat_index < 0 || base_seat_index >= NUMBER_OF_UNIT_BASE_SEATS) {
+    display_assert(
+        "base_seat_index>=0 && base_seat_index<NUMBER_OF_UNIT_BASE_SEATS",
+        "c:\\halo\\SOURCE\\units\\units.c", 0x200f, 1);
+    system_exit(-1);
+  }
+  return *(const char **)(0x32e484 + (int)base_seat_index * 4);
+}
+
+/* FUN_001ab730 (0x1ab730)
+ * Searches the base seat name table for a matching name (case-insensitive).
+ * Returns the index [0..5] if found, or -1 if no match.
+ * @edi = seat_name string to search for. */
+int16_t FUN_001ab730(const char *seat_name)
+{
+  int16_t i;
+
+  for (i = 0; i < NUMBER_OF_UNIT_BASE_SEATS; i++) {
+    if (crt_stricmp(seat_name,
+                    *(const char **)(0x32e484 + (int)i * 4)) == 0) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+/* FUN_001ab770 (0x1ab770)
+ * Returns a pointer to the base weapon name string given a base_weapon_index.
+ * Asserts that the index is in [0, NUMBER_OF_UNIT_BASE_WEAPONS).
+ * The weapon name table is a local array containing just "unarmed". */
+const char *FUN_001ab770(int16_t base_weapon_index)
+{
+  const char *weapon_names[1];
+
+  weapon_names[0] = "unarmed";
+
+  if (base_weapon_index < 0 || base_weapon_index >= NUMBER_OF_UNIT_BASE_WEAPONS) {
+    display_assert(
+        "base_weapon_index>=0 && "
+        "base_weapon_index<NUMBER_OF_UNIT_BASE_WEAPONS",
+        "c:\\halo\\SOURCE\\units\\units.c", 0x2043, 1);
+    system_exit(-1);
+  }
+  return weapon_names[base_weapon_index];
+}
+
 /* unit_set_animation (0x1ab7c0)
  *
  * Sets the current animation on a unit object. Writes the animation graph
@@ -2872,6 +2980,70 @@ void unit_set_animation(int unit_handle, int anim_graph_tag_index,
                      anim_name);
     }
   }
+}
+
+/* FUN_001ab870 (0x1ab870)
+ * Updates an animation state and optionally triggers an impulse sound.
+ * Calls animation_update_internal with update_kind=1, using the animation
+ * graph tag index and state pointer passed via @ecx/@edx.
+ * If the update produces a sound index (!= -1), plays it via
+ * object_impulse_sound_new with scale 1.0. Returns the animation result. */
+int16_t FUN_001ab870(void *animation_state, int animation_graph_tag_index,
+                     int unit_handle)
+{
+  int16_t result;
+  int sound_index;
+
+  result = (int16_t)animation_update_internal(
+      1, animation_graph_tag_index, (short *)animation_state, &sound_index);
+  if (sound_index != -1) {
+    object_impulse_sound_new(unit_handle, sound_index, 0,
+                             *(float **)0x31fc1c,
+                             *(float **)0x31fc3c, 1.0f);
+  }
+  return result;
+}
+
+/* FUN_001ab8c0 (0x1ab8c0)
+ * Computes or copies lighting data for a unit.
+ * If the unit has a parent unit (at +0xcc), copies the parent's lighting
+ * values from +0x290 and +0x294. Otherwise, computes an ambient RGB color
+ * brightness and self-illumination value from the unit's position and
+ * orientation. */
+void FUN_001ab8c0(int unit_handle)
+{
+  char *unit;
+  void *parent;
+  float color[3];
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  parent = object_try_and_get_and_verify_type(
+      *(int *)(unit + 0xcc), 3);
+  if (parent == NULL) {
+    FUN_0013a740((int)(unit + 0xc), (int)(unit + 0x48), color);
+    *(float *)(unit + 0x290) = real_rgb_color_brightness(color);
+    *(float *)(unit + 0x294) = object_get_self_illumination(unit_handle);
+    return;
+  }
+  *(float *)(unit + 0x290) = *(float *)((char *)parent + 0x290);
+  *(float *)(unit + 0x294) = *(float *)((char *)parent + 0x294);
+}
+
+/* FUN_001ab940 (0x1ab940)
+ * Returns the weapon handle at the given weapon slot index for a unit.
+ * The index is validated against [0, MAXIMUM_WEAPONS_PER_UNIT).
+ * Returns -1 (NONE) if the index is -1. */
+int FUN_001ab940(int16_t weapon_index, char *unit_data)
+{
+  if (weapon_index == -1) {
+    return -1;
+  }
+  if (weapon_index < 0 || weapon_index >= MAXIMUM_WEAPONS_PER_UNIT) {
+    display_assert("index>=0 && index<MAXIMUM_WEAPONS_PER_UNIT",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x20ac, 1);
+    system_exit(-1);
+  }
+  return *(int *)(unit_data + 0x2a8 + (int)weapon_index * 4);
 }
 
 /* unit_detach_weapon (0x1ab990)
@@ -6275,7 +6447,7 @@ void units_set_desired_flashlight_state(int object_list, char desired)
 
 /* unit_scripting_set_seat (0x1ae750)
  * Sets the unit's seat override from a seat name string. */
-void unit_scripting_set_seat(int unit_handle, int seat_name)
+void unit_scripting_set_seat(int unit_handle, const char *seat_name)
 {
   char *unit;
   char seat;
@@ -6528,7 +6700,7 @@ uint32_t unit_test_spawning(int unit_handle)
 
 /* scripting_set_magic_base_seat (0x1ae730)
  * Sets the global magic base seat from a seat name string. */
-void scripting_set_magic_base_seat(int param_1)
+void scripting_set_magic_base_seat(const char *param_1)
 {
   *(int16_t *)0x32de80 = FUN_001ab730(param_1);
 }
