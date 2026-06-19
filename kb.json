@@ -25870,7 +25870,8 @@
         },
         {
           "addr": "0x1aa240",
-          "decl": "void unit_debug_ninja_rope(void);"
+          "decl": "void unit_debug_ninja_rope(int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1aa360",
@@ -26011,15 +26012,18 @@
         },
         {
           "addr": "0x1ab6e0",
-          "decl": "void FUN_001ab6e0(void);"
+          "decl": "const char *FUN_001ab6e0(int16_t base_seat_index@<si>);",
+          "ported": true
         },
         {
           "addr": "0x1ab730",
-          "decl": "int16_t FUN_001ab730(int seat_name@<edi>);"
+          "decl": "int16_t FUN_001ab730(const char *seat_name@<edi>);",
+          "ported": true
         },
         {
           "addr": "0x1ab770",
-          "decl": "void FUN_001ab770(void);"
+          "decl": "const char *FUN_001ab770(int16_t base_weapon_index@<si>);",
+          "ported": true
         },
         {
           "addr": "0x1ab7c0",
@@ -26028,15 +26032,18 @@
         },
         {
           "addr": "0x1ab870",
-          "decl": "void FUN_001ab870(void);"
+          "decl": "int16_t FUN_001ab870(void *animation_state@<ecx>, int animation_graph_tag_index@<edx>, int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x1ab8c0",
-          "decl": "void FUN_001ab8c0(void);"
+          "decl": "void FUN_001ab8c0(int unit_handle@<edi>);",
+          "ported": true
         },
         {
           "addr": "0x1ab940",
-          "decl": "void FUN_001ab940(void);"
+          "decl": "int FUN_001ab940(int16_t weapon_index@<si>, char *unit_data);",
+          "ported": true
         },
         {
           "addr": "0x1ab990",
@@ -26204,12 +26211,12 @@
         },
         {
           "addr": "0x1ae730",
-          "decl": "void scripting_set_magic_base_seat(int param_1);",
+          "decl": "void scripting_set_magic_base_seat(const char *param_1);",
           "ported": true
         },
         {
           "addr": "0x1ae750",
-          "decl": "void unit_scripting_set_seat(int unit_handle, int seat_name);",
+          "decl": "void unit_scripting_set_seat(int unit_handle, const char *seat_name);",
           "ported": true
         },
         {
@@ -34766,7 +34773,7 @@
         },
         {
           "addr": "0x1393b0",
-          "decl": "void object_get_self_illumination(void);"
+          "decl": "float object_get_self_illumination(int object_handle);"
         }
       ],
       "name": "object_lights.obj",
