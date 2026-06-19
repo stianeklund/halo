@@ -516,6 +516,12 @@
     "0x1a6e20": "void FUN_001a6e20(int unit_handle@<eax>, void *speech_item@<ecx>, short priority);",
     "0x1a7650": "int FUN_001a7650(void *tag_data@<ecx>, int dialogue_type);",
     "0x1a7730": "void FUN_001a7730(int unit_handle@<eax>);",
-    "0x1a8550": "char FUN_001a8550(void *plan@<ecx>, float delta_time, float position, float *out_position, float velocity, float *out_velocity);"
+    "0x1a8550": "char FUN_001a8550(void *plan@<ecx>, float delta_time, float position, float *out_position, float velocity, float *out_velocity);",
+    "0x1ab6e0": "const char *FUN_001ab6e0(int16_t base_seat_index@<si>);",
+    "0x1ab730": "int16_t FUN_001ab730(const char *seat_name@<edi>);",
+    "0x1ab770": "const char *FUN_001ab770(int16_t base_weapon_index@<si>);",
+    "0x1ab870": "int16_t FUN_001ab870(void *animation_state@<ecx>, int animation_graph_tag_index@<edx>, int unit_handle);",
+    "0x1ab8c0": "void FUN_001ab8c0(int unit_handle@<edi>);",
+    "0x1ab940": "int FUN_001ab940(int16_t weapon_index@<si>, char *unit_data);"
   }
 }
