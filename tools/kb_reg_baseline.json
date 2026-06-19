@@ -558,6 +558,21 @@
       "regs": [
         "eax"
       ]
+    },
+    "0x1abd10": {
+      "name": "FUN_001abd10",
+      "regs": [
+        "eax",
+        "esi",
+        "edi"
+      ]
+    },
+    "0x1a6280": {
+      "name": "FUN_001a6280",
+      "regs": [
+        "edi",
+        "ebx"
+      ]
     }
   }
 }
