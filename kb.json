@@ -7454,7 +7454,7 @@
         },
         {
           "addr": "0xde360",
-          "decl": "void first_person_weapon_message_from_unit(void);"
+          "decl": "void first_person_weapon_message_from_unit(int unit_handle, int message_type);"
         },
         {
           "addr": "0xde3f0",
@@ -21076,7 +21076,7 @@
         },
         {
           "addr": "0x189150",
-          "decl": "void FUN_00189150(void);"
+          "decl": "void FUN_00189150(int flag, float *position, float scale, void *color);"
         },
         {
           "addr": "0x189270",
@@ -25482,8 +25482,9 @@
         },
         {
           "addr": "0x1a68d0",
-          "decl": "short FUN_001a68d0(int actor, int mode, int a3, int a4, int a5, short *seat_out, int *obj_out);",
-          "ported": false
+          "decl": "short FUN_001a68d0(int unit_handle, short priority, char param_3, char param_4, int *param_5, short *vocalization_type_ref, int *sound_definition_index_ref);",
+          "ported": true,
+          "name": "FUN_001a68d0"
         },
         {
           "addr": "0x1a6bc0",
@@ -26110,7 +26111,9 @@
         },
         {
           "addr": "0x1ac680",
-          "decl": "void FUN_001ac680(void);"
+          "decl": "void FUN_001ac680(float initial_p, float initial_v, float max_v, float max_a, int plan);",
+          "name": "FUN_001ac680",
+          "ported": true
         },
         {
           "addr": "0x1acb70",
@@ -26123,11 +26126,15 @@
         },
         {
           "addr": "0x1acf90",
-          "decl": "void unit_adjust_projectile_ray(void);"
+          "decl": "void unit_adjust_projectile_ray(int unit_handle, float *origin, float *direction, float *velocity_out, char adjust_origin, char use_unit_forward);",
+          "name": "unit_adjust_projectile_ray",
+          "ported": true
         },
         {
           "addr": "0x1ad060",
-          "decl": "void unit_render_debug(void);"
+          "decl": "void unit_render_debug(int unit_handle);",
+          "name": "unit_render_debug",
+          "ported": true
         },
         {
           "addr": "0x1ad260",
@@ -26161,7 +26168,9 @@
         },
         {
           "addr": "0x1adfc0",
-          "decl": "int16_t vehicle_scripting_find_available_seats(int param_1, int param_2, int param_3, int16_t *seat_indices, int max_seats);"
+          "decl": "int16_t vehicle_scripting_find_available_seats(int unit_handle, int seat_substring, int16_t seat_desire_type, int16_t *seat_indices, int16_t max_seats);",
+          "name": "vehicle_scripting_find_available_seats",
+          "ported": true
         },
         {
           "addr": "0x1ae160",
@@ -26345,7 +26354,9 @@
         },
         {
           "addr": "0x1b1c70",
-          "decl": "char unit_leap_begin(int unit_handle, float *forward);"
+          "decl": "char unit_leap_begin(int unit_handle, float *forward);",
+          "name": "unit_leap_begin",
+          "ported": true
         },
         {
           "addr": "0x1b1d00",
@@ -26364,7 +26375,9 @@
         },
         {
           "addr": "0x1b2090",
-          "decl": "void unit_throw_grenade_begin(void);"
+          "decl": "char unit_throw_grenade_begin(int unit_handle, float *alignment_vector);",
+          "name": "unit_throw_grenade_begin",
+          "ported": true
         },
         {
           "addr": "0x1b2260",
@@ -30104,7 +30117,7 @@
         },
         {
           "addr": "0xfd510",
-          "decl": "void weapon_stop_reload(void);"
+          "decl": "void weapon_stop_reload(int weapon_handle);"
         },
         {
           "addr": "0xfd520",
