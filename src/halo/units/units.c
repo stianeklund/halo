@@ -10533,3 +10533,3396 @@ void FUN_001b04b0(int unit_handle, int node_matrices)
     }
   }
 }
+
+/* -----------------------------------------------------------------------
+ * FUN_00122a50 — animation 1D overlay frame apply
+ *
+ * For animation type 1 (overlay), interpolates rotation, translation, and
+ * scale between the current frame and next frame for each node.  The result
+ * is blended into the node output buffer using blend_weight.
+ *
+ * Disassembly range: 0x122a50 – 0x122e43.
+ * Source: c:\halo\SOURCE\models\model_animations.c
+ * ----------------------------------------------------------------------- */
+void FUN_00122a50(int animation, float frame_pos, float blend_weight,
+                  int node_output)
+{
+  short *data;
+  short *next_data;
+  unsigned short frame_count_u;
+  int compressed;
+  short *data_cursor;
+  short *next_cursor;
+  int frame_index;
+  int next_frame_index;
+  int node_output_ptr;
+  float weight_complement;
+  float frac;
+  float floor_val;
+  int frame_idx_int;
+  int rotation_counter;
+  int translation_counter;
+  int scale_counter;
+  unsigned int node_idx;
+  unsigned int has_translation;
+  unsigned int has_rotation;
+  unsigned int has_scale;
+  float rot_a[4];
+  float rot_b[4];
+  float interp_rot[4];
+  float interp_trans[3];
+  float interp_scale;
+  int temp_scale_a;
+  int temp_scale_b;
+
+  weight_complement = *(float *)0x2533c8 - blend_weight;
+  frac = (float)x87_fmod(frame_pos, 1.0);
+  floor_val = (float)floor((double)frame_pos);
+  frame_idx_int = (int)floor_val;
+
+  if (frame_pos < *(float *)0x2533c0 ||
+      frame_pos > (float)(int)*(short *)(animation + 0x22)) {
+    error(2,
+      "### ERROR animation frame index out of bounds B(%f,%x) -- tell Bernie!!",
+      (double)frame_pos, *(int *)&frame_pos);
+  }
+
+  frame_count_u = *(unsigned short *)(animation + 0x22);
+  if ((short)frame_idx_int >= (short)frame_count_u) {
+    frame_idx_int = (int)(unsigned short)(frame_count_u - 1);
+    frac = 1.0f;
+    frame_pos = (float)(int)(short)frame_idx_int;
+  }
+
+  if (*(short *)(animation + 0x20) == 1) {
+    if ((*(unsigned char *)(animation + 0x3a) & 1) == 0 ||
+        (*(char *)0x322600 == '\0' &&
+         *(int *)(animation + 0x88) != 0)) {
+      compressed = 0;
+    } else {
+      compressed = 1;
+    }
+
+    frame_index = (int)(short)frame_idx_int;
+    if (frame_index == (int)(short)frame_count_u - 1) {
+      next_frame_index = 0;
+    } else {
+      next_frame_index = frame_index + 1;
+    }
+
+    data = (short *)FUN_00120500((void *)animation, (short)frame_idx_int);
+    next_data = (short *)FUN_00120500((void *)animation,
+                                      (short)next_frame_index);
+
+    rotation_counter = 0;
+    translation_counter = 0;
+    scale_counter = 0;
+    node_idx = 0;
+    if (0 < *(short *)(animation + 0x2c)) {
+      do {
+        node_output_ptr = (short)node_idx * 0x20 + node_output;
+        if ((node_idx & 0x1f) == 0) {
+          int bit_idx = (int)(short)((short)node_idx >> 5);
+          has_translation = *(unsigned int *)(animation + 0x5c + bit_idx * 4);
+          has_rotation = *(unsigned int *)(animation + 0x6c + bit_idx * 4);
+          has_scale = *(unsigned int *)(animation + 0x7c + bit_idx * 4);
+        }
+
+        data_cursor = data;
+        next_cursor = next_data;
+
+        if ((has_rotation & 1) != 0) {
+          if (compressed) {
+            FUN_00121330((void *)animation, (float)frame_index,
+                         (unsigned short)rotation_counter,
+                         (short)node_idx, interp_rot);
+            rotation_counter = rotation_counter + 1;
+          } else {
+            rot_a[0] = (float)(int)data[0] * *(float *)0x290dd8;
+            rot_a[1] = (float)(int)data[1] * *(float *)0x290dd8;
+            rot_a[2] = (float)(int)data[2] * *(float *)0x290dd8;
+            rot_a[3] = (float)(int)data[3] * *(float *)0x290dd8;
+            rot_b[0] = (float)(int)next_data[0] * *(float *)0x290dd8;
+            rot_b[1] = (float)(int)next_data[1] * *(float *)0x290dd8;
+            rot_b[2] = (float)(int)next_data[2] * *(float *)0x290dd8;
+            rot_b[3] = (float)(int)next_data[3] * *(float *)0x290dd8;
+            data = data + 4;
+            next_data = next_data + 4;
+            quaternions_interpolate_and_normalize(rot_a, rot_b, frac,
+                                                  interp_rot);
+          }
+          quaternions_interpolate_and_normalize(*(float **)0x31fc5c,
+                                                interp_rot, blend_weight,
+                                                interp_rot);
+          FUN_0010b9c0(interp_rot, (float *)node_output_ptr,
+                       (float *)node_output_ptr);
+          data_cursor = data;
+        }
+        has_rotation = has_rotation >> 1;
+        next_cursor = next_data;
+        data = data_cursor;
+
+        if ((has_translation & 1) != 0) {
+          if (compressed) {
+            animation_get_node_orientations(
+              (void *)animation, frame_pos,
+              (unsigned short)translation_counter,
+              (short)node_idx, interp_trans);
+            translation_counter = translation_counter + 1;
+          } else {
+            points_interpolate((float *)data_cursor, (float *)next_cursor,
+                               frac, interp_trans);
+            data = data_cursor + 6;
+            next_data = next_cursor + 6;
+          }
+          *(float *)(node_output_ptr + 0x10) =
+            interp_trans[0] * blend_weight +
+            *(float *)(node_output_ptr + 0x10);
+          *(float *)(node_output_ptr + 0x14) =
+            interp_trans[1] * blend_weight +
+            *(float *)(node_output_ptr + 0x14);
+          *(float *)(node_output_ptr + 0x18) =
+            interp_trans[2] * blend_weight +
+            *(float *)(node_output_ptr + 0x18);
+        }
+        has_translation = has_translation >> 1;
+
+        if ((has_scale & 1) != 0) {
+          if (compressed) {
+            overlay_animation_apply_continuous_scaled(
+              (void *)animation, frame_pos,
+              (unsigned short)scale_counter,
+              (short)node_idx, &interp_scale);
+            scale_counter = scale_counter + 1;
+          } else {
+            temp_scale_a = *(int *)data;
+            temp_scale_b = *(int *)next_data;
+            data = data + 2;
+            next_data = next_data + 2;
+            scalars_interpolate(*(float *)&temp_scale_a,
+                                *(float *)&temp_scale_b,
+                                frac, &interp_scale);
+          }
+          *(float *)(node_output_ptr + 0x1c) =
+            (interp_scale * blend_weight + weight_complement) *
+            *(float *)(node_output_ptr + 0x1c);
+        }
+        has_scale = has_scale >> 1;
+        node_idx = node_idx + 1;
+      } while ((short)node_idx < *(short *)(animation + 0x2c));
+    }
+
+    if (!compressed) {
+      int check_base;
+      check_base = (int)FUN_00120500((void *)animation,
+                                      (short)frame_idx_int);
+      if ((int)data - check_base !=
+          (int)*(short *)(animation + 0x24)) {
+        display_assert(
+          "compressed || ((byte *)data-(byte *)animation_get_frame_data"
+          "(animation, frame_index)==animation->frame_size)",
+          "c:\\halo\\SOURCE\\models\\model_animations.c", 0x334, 1);
+        system_exit(-1);
+      }
+      check_base = (int)FUN_00120500((void *)animation,
+                                      (short)next_frame_index);
+      if ((int)next_data - check_base !=
+          (int)*(short *)(animation + 0x24)) {
+        display_assert(
+          "compressed || ((byte *)next_data-(byte *)"
+          "animation_get_frame_data(animation, next_frame_index)"
+          "==animation->frame_size)",
+          "c:\\halo\\SOURCE\\models\\model_animations.c", 0x335, 1);
+        system_exit(-1);
+      }
+    }
+  }
+}
+
+/* -----------------------------------------------------------------------
+ * FUN_00122e50 — animation 2D blend
+ *
+ * Performs 2D bilinear interpolation of 4 corner animation frames,
+ * blending rotation (quaternion slerp) and translation for each node
+ * based on direction and throttle parameters.
+ *
+ * Disassembly range: 0x122e50 – 0x123462.
+ * Source: c:\halo\SOURCE\models\model_animations.c
+ * ----------------------------------------------------------------------- */
+void FUN_00122e50(int animation, float *blend_params, float direction,
+                  float throttle, int node_output)
+{
+  int direction_count;
+  int throttle_count;
+  int throttle_count_s;
+  short dir_count_s;
+  char is_compressed;
+  float yaw_range;
+  float ratio;
+  int dir_frame;
+  float dir_frac;
+  unsigned short neg_dir_offset;
+  unsigned short neg_thr_offset;
+  int thr_frame;
+  float thr_frac;
+  short thr_s;
+  short dir_s;
+  int frame_00;
+  int frame_10;
+  int frame_01;
+  int frame_11;
+  short *data_00;
+  short *data_10;
+  short *data_01;
+  short *data_11;
+  int rotation_counter;
+  unsigned int node_idx;
+  int node_out_ptr;
+  unsigned int has_translation;
+  unsigned int has_rotation;
+  int translation_counter;
+  float dir_complement;
+  float thr_complement;
+  float rot_00[4];
+  float rot_10[4];
+  float rot_01[4];
+  float rot_11[4];
+  float blend_a[4];
+  float blend_b[4];
+  float final_rot[4];
+  float trans_00[3];
+  float trans_10[3];
+  float trans_01[3];
+  float trans_11[3];
+  int temp_int;
+
+  direction_count = (unsigned short)(*(short *)(blend_params + 2) +
+                    *(short *)((int)blend_params + 10)) + 1;
+  throttle_count = (unsigned short)(*(short *)(blend_params + 5) +
+                   *(short *)((int)blend_params + 0x16)) + 1;
+
+  if (*(short *)(animation + 0x20) != 1) {
+    return;
+  }
+
+  throttle_count_s = (int)(short)throttle_count;
+  dir_count_s = (short)direction_count;
+  if (dir_count_s * throttle_count_s > (int)*(short *)(animation + 0x22)) {
+    return;
+  }
+
+  is_compressed = (char)((int (*)(void))FUN_00120620)();
+
+  /* Direction axis */
+  if (direction >= *(float *)0x2533c0) {
+    yaw_range = blend_params[1];
+  } else {
+    yaw_range = blend_params[0];
+  }
+  if (yaw_range == *(float *)0x2533c0) {
+    ratio = 0.0f;
+  } else {
+    ratio = direction / yaw_range;
+  }
+
+  dir_frame = (int)ratio;
+  dir_frac = (float)x87_fmod(ratio, 1.0);
+  if (dir_frac < *(float *)0x2533c0) {
+    dir_frame = dir_frame - 1;
+    dir_frac = dir_frac + *(float *)0x2533c8;
+  }
+
+  neg_dir_offset = *(unsigned short *)((int)blend_params + 10);
+  if ((short)dir_frame >= (short)neg_dir_offset) {
+    dir_frame = (int)(unsigned short)(neg_dir_offset - 1);
+    dir_frac = 1.0f;
+  }
+
+  neg_dir_offset = *(unsigned short *)(blend_params + 2);
+  if ((int)(short)dir_frame < -(int)(short)neg_dir_offset) {
+    dir_frame = -(int)(unsigned int)neg_dir_offset;
+    dir_frac = 0.0f;
+  }
+  dir_frame = dir_frame + (unsigned int)neg_dir_offset;
+
+  if (dir_frac < *(float *)0x2533c0 ||
+      !(dir_frac < *(float *)0x2533c8 || dir_frac == *(float *)0x2533c8)) {
+    csprintf((char *)0x5ab100,
+      "d0==%f direction(%f) yaw_delta(%f,%f)",
+      (double)dir_frac, (double)direction,
+      (double)blend_params[0], (double)blend_params[1]);
+    display_assert((char *)0x5ab100,
+      "c:\\halo\\SOURCE\\models\\model_animations.c", 0x365, 1);
+    system_exit(-1);
+  }
+
+  /* Throttle axis */
+  if (throttle >= *(float *)0x2533c0) {
+    yaw_range = blend_params[4];
+  } else {
+    yaw_range = blend_params[3];
+  }
+  if (yaw_range == *(float *)0x2533c0) {
+    ratio = 0.0f;
+  } else {
+    ratio = throttle / yaw_range;
+  }
+
+  thr_frame = (int)ratio;
+  thr_frac = (float)x87_fmod(ratio, 1.0);
+  if (thr_frac < *(float *)0x2533c0) {
+    thr_frame = thr_frame - 1;
+    thr_frac = thr_frac + *(float *)0x2533c8;
+  }
+
+  neg_thr_offset = *(unsigned short *)((int)blend_params + 0x16);
+  if ((short)thr_frame >= (short)neg_thr_offset) {
+    thr_frame = (int)(unsigned short)(neg_thr_offset - 1);
+    thr_frac = 1.0f;
+  }
+
+  neg_thr_offset = *(unsigned short *)(blend_params + 5);
+  if ((int)(short)thr_frame < -(int)(short)neg_thr_offset) {
+    thr_frame = -(int)(unsigned int)neg_thr_offset;
+    thr_frac = 0.0f;
+  }
+  thr_frame = thr_frame + (unsigned int)neg_thr_offset;
+
+  thr_s = (short)thr_frame;
+  dir_s = (short)dir_frame;
+
+  if (thr_s < 0 || thr_s >= (short)throttle_count ||
+      dir_s < 0 || dir_s >= dir_count_s) {
+    return;
+  }
+
+  {
+    int next_dir;
+    int next_thr;
+    next_dir = (int)(short)dir_s + 1;
+    if (next_dir == (int)(short)dir_count_s) {
+      next_dir = (int)(short)dir_s;
+    }
+    next_thr = (int)(short)thr_s + 1;
+    if (next_thr == throttle_count_s) {
+      next_thr = (int)(short)thr_s;
+    }
+
+    frame_00 = thr_frame * direction_count + dir_frame;
+    frame_10 = thr_frame * direction_count + next_dir;
+    frame_01 = dir_frame + next_thr * direction_count;
+    frame_11 = next_thr * direction_count + next_dir;
+
+    data_00 = (short *)FUN_00120500((void *)animation, (short)frame_00);
+    data_10 = (short *)FUN_00120500((void *)animation, (short)frame_10);
+    data_01 = (short *)FUN_00120500((void *)animation, (short)frame_01);
+    data_11 = (short *)FUN_00120500((void *)animation, (short)frame_11);
+
+    translation_counter = 0;
+    node_idx = 0;
+    rotation_counter = 0;
+
+    if (0 >= *(short *)(animation + 0x2c)) {
+      return;
+    }
+
+    do {
+      node_out_ptr = (short)node_idx * 0x20 + node_output;
+      if ((node_idx & 0x1f) == 0) {
+        int bit_idx = (int)(short)((short)node_idx >> 5);
+        has_translation = *(unsigned int *)(animation + 0x5c + bit_idx * 4);
+        has_rotation = *(unsigned int *)(animation + 0x6c + bit_idx * 4);
+      }
+
+      if ((has_rotation & 1) != 0) {
+        if (is_compressed != '\0') {
+          temp_int = (int)(short)frame_00;
+          FUN_00121330((void *)animation, (float)temp_int,
+                       (unsigned short)rotation_counter,
+                       (short)node_idx, rot_00);
+          temp_int = (int)(short)frame_10;
+          FUN_00121330((void *)animation, (float)temp_int,
+                       (unsigned short)rotation_counter,
+                       (short)node_idx, rot_10);
+          temp_int = (int)(short)frame_01;
+          FUN_00121330((void *)animation, (float)temp_int,
+                       (unsigned short)rotation_counter,
+                       (short)node_idx, rot_01);
+          temp_int = (int)(short)frame_11;
+          FUN_00121330((void *)animation, (float)temp_int,
+                       (unsigned short)rotation_counter,
+                       (short)node_idx, rot_11);
+          rotation_counter = rotation_counter + 1;
+        } else {
+          quaternion_decompress_8byte(data_00, rot_00);
+          data_00 = data_00 + 4;
+          quaternion_decompress_8byte(data_10, rot_10);
+          data_10 = data_10 + 4;
+          quaternion_decompress_8byte(data_01, rot_01);
+          data_01 = data_01 + 4;
+          quaternion_decompress_8byte(data_11, rot_11);
+          data_11 = data_11 + 4;
+        }
+        quaternions_interpolate_and_normalize(rot_00, rot_10, dir_frac,
+                                              blend_a);
+        quaternions_interpolate_and_normalize(rot_01, rot_11, dir_frac,
+                                              blend_b);
+        quaternions_interpolate_and_normalize(blend_a, blend_b, thr_frac,
+                                              final_rot);
+        FUN_0010b9c0(final_rot, (float *)node_out_ptr,
+                     (float *)node_out_ptr);
+      }
+      has_rotation = has_rotation >> 1;
+
+      if ((has_translation & 1) != 0) {
+        dir_complement = *(float *)0x2533c8 - dir_frac;
+        thr_complement = *(float *)0x2533c8 - thr_frac;
+
+        if (is_compressed != '\0') {
+          temp_int = (int)(short)frame_00;
+          animation_get_node_orientations(
+            (void *)animation, (float)temp_int,
+            (unsigned short)translation_counter,
+            (short)node_idx, trans_00);
+          temp_int = (int)(short)frame_10;
+          animation_get_node_orientations(
+            (void *)animation, (float)temp_int,
+            (unsigned short)translation_counter,
+            (short)node_idx, trans_10);
+          temp_int = (int)(short)frame_01;
+          animation_get_node_orientations(
+            (void *)animation, (float)temp_int,
+            (unsigned short)translation_counter,
+            (short)node_idx, trans_01);
+          temp_int = (int)(short)frame_11;
+          animation_get_node_orientations(
+            (void *)animation, (float)temp_int,
+            (unsigned short)translation_counter,
+            (short)node_idx, trans_11);
+          translation_counter = translation_counter + 1;
+        } else {
+          trans_00[0] = *(float *)data_00;
+          trans_00[1] = *((float *)data_00 + 1);
+          trans_00[2] = *((float *)data_00 + 2);
+          data_00 = data_00 + 6;
+          trans_10[0] = *(float *)data_10;
+          trans_10[1] = *((float *)data_10 + 1);
+          trans_10[2] = *((float *)data_10 + 2);
+          data_10 = data_10 + 6;
+          trans_01[0] = *(float *)data_01;
+          trans_01[1] = *((float *)data_01 + 1);
+          trans_01[2] = *((float *)data_01 + 2);
+          data_01 = data_01 + 6;
+          trans_11[0] = *(float *)data_11;
+          trans_11[1] = *((float *)data_11 + 1);
+          trans_11[2] = *((float *)data_11 + 2);
+          data_11 = data_11 + 6;
+        }
+
+        *(float *)(node_out_ptr + 0x10) =
+          (trans_10[0] * dir_frac + trans_00[0] * dir_complement) *
+            thr_complement +
+          (trans_11[0] * dir_frac + trans_01[0] * dir_complement) *
+            thr_frac +
+          *(float *)(node_out_ptr + 0x10);
+        *(float *)(node_out_ptr + 0x14) =
+          (trans_10[1] * dir_frac + trans_00[1] * dir_complement) *
+            thr_complement +
+          (trans_11[1] * dir_frac + trans_01[1] * dir_complement) *
+            thr_frac +
+          *(float *)(node_out_ptr + 0x14);
+        *(float *)(node_out_ptr + 0x18) =
+          (trans_10[2] * dir_frac + trans_00[2] * dir_complement) *
+            thr_complement +
+          (trans_11[2] * dir_frac + trans_01[2] * dir_complement) *
+            thr_frac +
+          *(float *)(node_out_ptr + 0x18);
+      }
+      has_translation = has_translation >> 1;
+      node_idx = node_idx + 1;
+    } while ((short)node_idx < *(short *)(animation + 0x2c));
+  }
+}
+
+/* -----------------------------------------------------------------------
+ * FUN_00123560 — model render geometry (multi-pass)
+ *
+ * Iterates over model geometry groups and parts, performing up to 3
+ * rendering passes (opaque, environment-mapped, transparent).  For each
+ * shader part, dispatches to the appropriate render function based on
+ * shader type and pass index.
+ *
+ * Disassembly range: 0x123560 – 0x12398b.
+ * Source: c:\halo\SOURCE\models\models.c
+ * ----------------------------------------------------------------------- */
+void FUN_00123560(int model_tag, int permutation_data, int *node_matrices,
+                  int render_data, short shader_permutation,
+                  short detail_level, unsigned char flags)
+{
+  char shader_valid;
+  char shader_transparent;
+  short shader_perm_idx;
+  int geometry;
+  unsigned char *part;
+  int shader_ref;
+  int shader_tag;
+  int pass;
+  unsigned int pass_limit;
+  int geom_idx;
+  int part_idx;
+  int *parts_block;
+  int typed_shader;
+  short actual_detail;
+  unsigned int env_count;
+  int env_slot;
+  /* Local array for environment map cross-referencing.
+   * Each entry is 16 bytes: [0]=ptr(2b), [2]=short, [4]=short, [6]=short.
+   * Max 32 entries. */
+  unsigned char env_data[32 * 16];
+  float transformed_centroid[3];
+
+  pass = 0;
+  pass_limit = (unsigned int)((unsigned char)~flags & 2);
+
+  do {
+    geom_idx = 0;
+    env_count = 0;
+
+    if (0 < *(int *)(model_tag + 0xc4)) {
+      do {
+        geometry = (int)tag_block_get_element(
+          (void *)(model_tag + 0xc4), geom_idx, 0x4c);
+
+        if (*(char *)(geom_idx + permutation_data) != -1) {
+          int perm_block;
+          perm_block = (int)tag_block_get_element(
+            (void *)(geometry + 0x40),
+            (int)*(char *)(geom_idx + permutation_data), 0x58);
+          shader_perm_idx =
+            *(short *)(perm_block + 0x40 + shader_permutation * 2);
+
+          if (*(char *)0x5aa250 == '\0' && shader_perm_idx != -1) {
+            int section;
+            section = (int)tag_block_get_element(
+              (void *)(model_tag + 0xd0),
+              (int)shader_perm_idx, 0x30);
+            part_idx = 0;
+            parts_block = (int *)(section + 0x24);
+
+            if (0 < *(int *)(section + 0x24)) {
+              int pi;
+              pi = 0;
+              do {
+                part = (unsigned char *)tag_block_get_element(
+                  (void *)parts_block, pi, 0x68);
+                shader_ref = (int)tag_block_get_element(
+                  (void *)(model_tag + 0xdc),
+                  (int)*(short *)(part + 4), 0x20);
+                shader_tag = (int)tag_get(0x73686472,
+                  *(int *)(shader_ref + 0xc));
+
+                shader_valid = ((char (*)(int))shader_type_is_valid_for_model)(
+                  (int)*(unsigned short *)(shader_tag + 0x24));
+
+                if (shader_valid != '\0' && (part[0] & 1) == 0) {
+                  shader_transparent = shader_type_is_transparent(
+                    *(short *)(shader_tag + 0x24));
+
+                  if (shader_transparent != '\0') {
+                    /* Transparent shader — pass 2 */
+                    if ((short)pass == 2) {
+                      if ((flags & 2) != 0) {
+                        display_assert(
+                          "!TEST_FLAG(flags, _render_model_shadow_bit)",
+                          "c:\\halo\\SOURCE\\models\\models.c", 0x1ba, 1);
+                        system_exit(-1);
+                      }
+                      if (*(short *)(part + 8) < 0 ||
+                          (int)*(short *)(part + 8) >=
+                            *(int *)(model_tag + 0xb8)) {
+                        display_assert(
+                          "part->centroid_primary_node_index>=0 && "
+                          "part->centroid_primary_node_index<"
+                          "model->nodes.count",
+                          "c:\\halo\\SOURCE\\models\\models.c", 0x1bd, 1);
+                        system_exit(-1);
+                      }
+                      if (*(short *)(part + 10) < 0 ||
+                          (int)*(short *)(part + 10) >=
+                            *(int *)(model_tag + 0xb8)) {
+                        display_assert(
+                          "part->centroid_secondary_node_index>=0 && "
+                          "part->centroid_secondary_node_index<"
+                          "model->nodes.count",
+                          "c:\\halo\\SOURCE\\models\\models.c", 0x1be, 1);
+                        system_exit(-1);
+                      }
+                      matrix_transform_point(
+                        (float *)((int)*(short *)(part + 8) * 0x34 +
+                                  *node_matrices),
+                        (float *)(part + 0x14),
+                        transformed_centroid);
+                      actual_detail = detail_level;
+                      if (detail_level == 0) {
+                        actual_detail = *(short *)(shader_ref + 0x10);
+                      }
+
+                      env_slot = (int)(short)env_count;
+                      FUN_0017cbd0(shader_tag, (int)actual_detail,
+                                   (int)(part + 0x44), -1,
+                                   *(int *)(part + 0x48),
+                                   (int)(part + 0x54), -1,
+                                   transformed_centroid,
+                                   (int)&env_data[env_slot * 16]);
+
+                      if ((short)env_count < 0x20 &&
+                          *(short *)&env_data[env_slot * 16 + 8] != -1 &&
+                          (flags & 1) == 0 &&
+                          ((char)part[7] > '\0' || (char)part[6] > '\0')) {
+                        *(short *)&env_data[env_slot * 16 + 12] =
+                          (short)part_idx;
+                        *(short *)&env_data[env_slot * 16 + 10] =
+                          (short)(char)part[7];
+                        env_count = env_count + 1;
+                      }
+                    }
+                  } else {
+                    /* Non-transparent shader */
+                    if (*(short *)(shader_tag + 0x24) == 4) {
+                      typed_shader = ((int (*)(int, int))FUN_001906b0)(
+                        shader_tag, 4);
+                      if ((*(unsigned char *)(typed_shader + 0x28) & 8) != 0) {
+                        /* Environment-mapped shader — pass 1 */
+                        if ((short)pass == 1) {
+                          if ((flags & 2) != 0) {
+                            display_assert(
+                              "!TEST_FLAG(flags, _render_model_shadow_bit)",
+                              "c:\\halo\\SOURCE\\models\\models.c",
+                              0x1eb, 1);
+                            system_exit(-1);
+                          }
+                          actual_detail = detail_level;
+                          if (detail_level == 0) {
+                            actual_detail = *(short *)(shader_ref + 0x10);
+                          }
+                          FUN_0017cbc0(shader_tag, (int)actual_detail,
+                                       (int)(part + 0x44), -1,
+                                       *(int *)(part + 0x48),
+                                       (int)(part + 0x54), -1);
+                        }
+                        goto next_part;
+                      }
+                    }
+
+                    /* Opaque shader — pass 0 */
+                    if ((short)pass == 0) {
+                      if ((flags & 2) == 0) {
+                        actual_detail = detail_level;
+                        if (detail_level == 0) {
+                          actual_detail = *(short *)(shader_ref + 0x10);
+                        }
+                        FUN_0017cbc0(shader_tag, (int)actual_detail,
+                                     (int)(part + 0x44), -1,
+                                     *(int *)(part + 0x48),
+                                     (int)(part + 0x54), -1);
+                        ((void (*)(int, int *, unsigned char *))FUN_0017d2b0)(
+                          render_data, node_matrices, part);
+                      } else {
+                        actual_detail = detail_level;
+                        if (detail_level == 0) {
+                          actual_detail = *(short *)(shader_ref + 0x10);
+                        }
+                        FUN_0017ccd0((void *)shader_tag, (int)actual_detail,
+                                     (void *)(part + 0x44),
+                                     (void *)(part + 0x54));
+                      }
+                    }
+                  }
+                }
+next_part:
+                part_idx = part_idx + 1;
+                pi = (int)(short)part_idx;
+              } while (pi < *parts_block);
+            }
+          }
+        }
+
+        geom_idx = (int)(short)((short)geom_idx + 1);
+      } while (geom_idx < *(int *)(model_tag + 0xc4));
+
+      /* Post-pass: cross-reference environment map entries.
+       * Each 16-byte entry:
+       *   [0..3] = ptr_a (int), [4..7] = ptr_b (int),
+       *   [8..9] = short val, [10..11] = (short)(char)part[7],
+       *   [12..13] = (short)part_idx */
+      if (0 < (short)env_count) {
+        unsigned int i;
+        unsigned int env_total;
+        env_total = env_count & 0xffff;
+        for (i = 0; i < env_total; i++) {
+          short j;
+          short match_field = *(short *)&env_data[i * 16 + 10];
+          for (j = 0; j < (short)env_count; j++) {
+            if (match_field == *(short *)&env_data[j * 16 + 12] &&
+                0 < match_field) {
+              *(short *)(*(int *)&env_data[i * 16 + 4]) =
+                *(short *)&env_data[j * 16 + 8];
+              *(short *)(*(int *)&env_data[j * 16]) =
+                *(short *)&env_data[i * 16 + 8];
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    pass = pass + 1;
+    if ((short)pass_limit < (short)pass) {
+      return;
+    }
+  } while (1);
+}
+
+/* unit_cause_player_melee_damage (0x1aea90) — Player melee damage sweep
+ *
+ * Performs a 5x5 raycast sweep in the unit's facing direction to find
+ * melee collision targets. Applies melee damage to the best candidate,
+ * accelerates hit bipeds, and plays clang sound effects on material hits.
+ *
+ * Confirmed: cdecl, 1 stack param (unit_handle).
+ * Confirmed: uses global_current_collision_user_depth at 0x4761d8.
+ * Confirmed: 0x2533f0 = 0.8f, 0x25496c = 0.1f.
+ * Confirmed: 0x2b7204 = 0.035f, 0x253394 = 30.0f.
+ */
+void unit_cause_player_melee_damage(int unit_handle)
+{
+  unsigned int *unit;
+  int unit_tag_data;
+  int best_object;
+  int hit_target;
+  unsigned int *weapon_data;
+  int weapon_tag_data;
+  int melee_damage_effect;
+  int melee_response_effect;
+  float *facing;
+  float perp[3];
+  float cross_vec[3];
+  float ray_dir[3];
+  float ray_origin[3];
+  char collision_result[80];
+  char marker_buf[24];
+  int16_t depth;
+  int outer_i;
+  int outer_count;
+  int inner_i;
+  int inner_count;
+  float fi;
+  float fj;
+  char hit;
+  char *obj_data;
+  int parent_handle;
+  short best_type;
+  float best_fraction;
+  int16_t material_idx;
+  unsigned int material_surface;
+  int16_t current_weapon_idx;
+  int globals;
+  char *globals_element_ptr;
+  float dot_product;
+  float melee_scale;
+  float kick_vec[3];
+  int16_t hit_material;
+  int weapon_handle;
+  char damage_data[80];
+
+  unit = (unsigned int *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag_data = (int)tag_get(0x756e6974, *unit);
+  best_object = -1;
+  hit_material = -1;
+  material_idx = -1;
+  melee_response_effect = -1;
+
+  object_get_markers_by_string_id(unit_handle, (void *)0x2909e4,
+                                  marker_buf, 1);
+
+  ray_origin[0] = *(float *)(marker_buf + 0x08);
+  ray_origin[1] = *(float *)(marker_buf + 0x0c);
+  ray_origin[2] = *(float *)(marker_buf + 0x10);
+
+  if (global_current_collision_user_depth >=
+      MAXIMUM_COLLISION_USER_STACK_DEPTH) {
+    display_assert(
+        "global_current_collision_user_depth < "
+        "MAXIMUM_COLLISION_USER_STACK_DEPTH",
+        "c:\\halo\\SOURCE\\units\\units.c", 0x2212, 1);
+    system_exit(-1);
+  }
+  depth = global_current_collision_user_depth;
+  global_current_collision_user_depth = depth + 1;
+  collision_user_stack[depth] = 8;
+
+  facing = (float *)((char *)unit + 0x1ec);
+  perpendicular3d(facing, perp);
+  normalize3d(perp);
+
+  best_type = 0;
+  best_fraction = 0.0f;
+
+  cross_vec[0] = perp[2] * facing[1] - perp[1] * facing[2];
+  cross_vec[1] = perp[0] * facing[2] - perp[2] * facing[0];
+  cross_vec[2] = perp[1] * facing[0] - perp[0] * facing[1];
+
+  outer_i = -2;
+  outer_count = 5;
+  do {
+    fi = (float)outer_i;
+    inner_i = -2;
+    inner_count = 5;
+    do {
+      fj = (float)inner_i;
+
+      ray_dir[0] = facing[0] * 0.8f +
+                   (fi * perp[0] + cross_vec[0] * fj) * 0.1f;
+      ray_dir[1] = facing[1] * 0.8f +
+                   (fi * perp[1] + cross_vec[1] * fj) * 0.1f;
+      ray_dir[2] = facing[2] * 0.8f +
+                   (fi * perp[2] + fj * cross_vec[2]) * 0.1f;
+
+      hit = FUN_0014df70(0x1000e9, ray_origin, ray_dir,
+                         unit_handle, (int16_t *)collision_result);
+
+      if (hit != 0) {
+        if (*(short *)collision_result == 2) {
+          if (best_object == -1) {
+            hit_material = *(short *)(collision_result + 0x10);
+            if ((*(unsigned int *)(collision_result + 0x24) & 8) != 0) {
+              material_idx =
+                  (int16_t)(unsigned char)
+                  (*(unsigned int *)(collision_result + 0x24) >> 8);
+              material_surface =
+                  *(unsigned int *)(collision_result + 0x18);
+            }
+          }
+        } else if (*(short *)collision_result == 3) {
+          hit_target = *(int *)(collision_result + 0x34);
+          obj_data = (char *)object_get_and_verify_type(hit_target, -1);
+
+          if (*(short *)(obj_data + 100) != 2) {
+            parent_handle = *(int *)(obj_data + 0xcc);
+            if (parent_handle != -1) {
+              hit_target = parent_handle;
+              obj_data = (char *)object_get_and_verify_type(
+                  parent_handle, -1);
+            }
+          }
+
+          if (best_object == -1 ||
+              (*(short *)(obj_data + 100) == 0 &&
+               ((best_type == 0 &&
+                 *(float *)(collision_result + 0x28) <
+                     best_fraction) ||
+                best_type != 0))) {
+            best_type = *(short *)(obj_data + 100);
+            hit_material = *(short *)(collision_result + 0x10);
+            best_fraction = *(float *)(collision_result + 0x28);
+            best_object = hit_target;
+          }
+        }
+      }
+      inner_i = inner_i + 1;
+      inner_count = inner_count - 1;
+    } while (inner_count != 0);
+    outer_i = outer_i + 1;
+    outer_count = outer_count - 1;
+  } while (outer_count != 0);
+
+  if (global_current_collision_user_depth < 2) {
+    display_assert("global_current_collision_user_depth > 1",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x2256, 1);
+    system_exit(-1);
+  }
+  global_current_collision_user_depth -= 1;
+
+  {
+    char *re_unit;
+    re_unit = (char *)object_get_and_verify_type(unit_handle, 3);
+    current_weapon_idx = *(short *)(re_unit + 0x2a2);
+    re_unit = (char *)object_get_and_verify_type(unit_handle, 3);
+
+    melee_damage_effect = -1;
+    if (current_weapon_idx != -1) {
+      if (current_weapon_idx < 0 || current_weapon_idx >= 4) {
+        display_assert(
+            "index>=0 && index<MAXIMUM_WEAPONS_PER_UNIT",
+            "c:\\halo\\SOURCE\\units\\units.c", 0x20ac, 1);
+        system_exit(-1);
+      }
+      weapon_handle = *(int *)(re_unit + 0x2a8 +
+                               current_weapon_idx * 4);
+      if (weapon_handle != -1) {
+        weapon_data = (unsigned int *)object_get_and_verify_type(
+            weapon_handle, 4);
+        weapon_tag_data = (int)tag_get(0x77656170, *weapon_data);
+        melee_damage_effect = *(int *)(weapon_tag_data + 0x3a0);
+        melee_response_effect = *(int *)(weapon_tag_data + 0x3b0);
+        if (melee_damage_effect != -1)
+          goto got_damage_effect;
+      }
+    }
+    melee_damage_effect = *(int *)(unit_tag_data + 0x294);
+  }
+
+got_damage_effect:
+  if (best_object != -1) {
+    char *hit_obj_data;
+    hit_obj_data = (char *)object_get_and_verify_type(best_object, -1);
+    if (*(short *)(hit_obj_data + 0x64) == 1) {
+      char *hit_obj_tag;
+      hit_obj_tag = (char *)tag_get(0x6f626a65,
+                            *(unsigned int *)hit_obj_data);
+      melee_scale = *(float *)(hit_obj_tag + 0x20) * 0.035f;
+      kick_vec[0] = melee_scale * facing[0];
+      kick_vec[1] = melee_scale * facing[1];
+      kick_vec[2] = melee_scale * facing[2];
+      vehicle_accelerate(best_object, kick_vec);
+    }
+  }
+
+  if (melee_damage_effect != -1) {
+    damage_data_new(damage_data, melee_damage_effect);
+    *(unsigned int *)(damage_data + 0x14) = unit[0x12];
+    *(float *)(damage_data + 0x18) = (float)unit[0x13];
+    *(unsigned int *)(damage_data + 0x10) |= 1;
+    *(short *)(damage_data + 0x12) = *(short *)((char *)unit + 0x68);
+    *(unsigned int *)(damage_data + 0x08) = unit[0x72];
+    *(unsigned int *)(damage_data + 0x0c) = unit_handle;
+    *(unsigned int *)(damage_data + 0x1c) = *(unsigned int *)&ray_origin[0];
+    *(unsigned int *)(damage_data + 0x20) = *(unsigned int *)&ray_origin[1];
+    *(unsigned int *)(damage_data + 0x24) = *(unsigned int *)&ray_origin[2];
+    *(unsigned int *)(damage_data + 0x28) = unit[0x14];
+    *(unsigned int *)(damage_data + 0x2c) = unit[0x15];
+    *(unsigned int *)(damage_data + 0x30) = unit[0x16];
+    *(float *)(damage_data + 0x34) = facing[0];
+    *(float *)(damage_data + 0x38) = facing[1];
+    *(float *)(damage_data + 0x3c) = facing[2];
+    *(short *)(damage_data + 0x04) = hit_material;
+
+    if (best_object == -1) {
+      if ((short)material_idx != -1) {
+        FUN_00146a90(material_idx, damage_data,
+                     material_surface);
+      }
+    } else {
+      char *hit_type_data;
+      hit_type_data = (char *)object_get_and_verify_type(best_object, -1);
+      if (*(short *)(hit_type_data + 100) == 7) {
+        ((void (*)(int))0x95c10)(best_object);
+      }
+
+      globals = (int)game_globals_get();
+      globals_element_ptr = (char *) (int)tag_block_get_element(
+          (void *)(globals + 0x170), 0, 0xf4);
+
+      dot_product = 0.0f;
+      if (0.0f < *(float *)(globals_element_ptr + 0x34)) {
+        dot_product =
+            ((float)unit[9] * (float)unit[6] +
+             (float)unit[10] * (float)unit[7] +
+             (float)unit[0xb] * (float)unit[8]) * 30.0f;
+        dot_product = dot_product /
+                      *(float *)(globals_element_ptr + 0x34);
+        if (dot_product < 0.0f) {
+          dot_product = 0.0f;
+        } else if (dot_product > 1.0f) {
+          dot_product = 1.0f;
+        }
+      }
+
+      if (*(short *)((char *)unit + 0x64) == 0) {
+        char *biped_check;
+        biped_check = (char *)object_get_and_verify_type(unit_handle, 1);
+        if (*(char *)(biped_check + 0x459) > 0x0f) {
+          dot_product = 1.5f;
+        }
+      }
+
+      hit_type_data = (char *)object_get_and_verify_type(best_object, -1);
+      if (*(short *)(hit_type_data + 100) == 0) {
+        object_cause_damage(damage_data, best_object,
+                            -1, -1, -1, 0);
+      }
+    }
+  }
+
+  if ((short)hit_material != -1) {
+    FUN_001abd10((short)hit_material, unit_handle, unit[0x72]);
+    if (melee_response_effect != -1) {
+      damage_data_new(damage_data, melee_response_effect);
+      *(float *)(damage_data + 0x34) = -facing[0];
+      *(unsigned int *)(damage_data + 0x28) = unit[0x14];
+      *(float *)(damage_data + 0x38) = -facing[1];
+      *(unsigned int *)(damage_data + 0x2c) = unit[0x15];
+      *(unsigned int *)(damage_data + 0x30) = unit[0x16];
+      *(float *)(damage_data + 0x3c) = -facing[2];
+      *(unsigned int *)(damage_data + 0x1c) = unit[0x14];
+      *(unsigned int *)(damage_data + 0x20) = unit[0x15];
+      *(unsigned int *)(damage_data + 0x24) = unit[0x16];
+      *(unsigned int *)(damage_data + 0x10) |= 8;
+      object_cause_damage(damage_data, unit_handle,
+                          -1, -1, -1, 0);
+    }
+  }
+
+  *(char *)((int)unit + 0x239) = 0;
+}
+
+/* FUN_001afd30 (0x1afd30) — unit_preprocess_nodes
+ *
+ * Applies animation overlay processing to unit nodes.
+ * Confirmed: cdecl, 2 stack params (unit_handle, node_output).
+ */
+void FUN_001afd30(int unit_handle, int node_output)
+{
+  int unit;
+  int unit_tag_data;
+  int anim_tag_data;
+  int seat_block;
+  short anim_index;
+  int anim_entry;
+  char seat_anim_idx;
+  float *aiming_vec;
+  char valid;
+  float identity_scale;
+  float forward[3];
+  float up[3];
+  float right[3];
+  float rel_aim_vec[3];
+  float rel_look_vec[3];
+  float aim_angles[2];
+  float look_angles[2];
+  float matrix[3];
+  float *steering_ptr;
+  float max_frame;
+  float temp;
+
+  unit = (int)object_get_and_verify_type(unit_handle, 3);
+  unit_tag_data = (int)tag_get(0x756e6974, *(unsigned int *)unit);
+  anim_tag_data = (int)tag_get(0x616e7472,
+                          *(unsigned int *)(unit_tag_data + 0x44));
+
+  if (*(short *)(unit + 0x25a) != -1) {
+    int repl_anim;
+    repl_anim = (int)tag_block_get_element(
+        (void *)(anim_tag_data + 0x74),
+        (int)*(short *)(unit + 0x25a), 0xb4);
+    ((void (*)(int, short, int))0x122060)(repl_anim,
+        *(short *)(unit + 0x25c), node_output);
+  }
+
+  if (*(short *)(unit + 0x25e) != -1) {
+    int ovl_anim;
+    ovl_anim = (int)tag_block_get_element(
+        (void *)(anim_tag_data + 0x74),
+        (int)*(short *)(unit + 0x25e), 0xb4);
+    ((void (*)(int, short, int))0x122240)(ovl_anim,
+        *(short *)(unit + 0x260), node_output);
+  }
+
+  if (*(short *)(unit + 0x262) != -1) {
+    int ovl_anim2;
+    ovl_anim2 = (int)tag_block_get_element(
+        (void *)(anim_tag_data + 0x74),
+        (int)*(short *)(unit + 0x262), 0xb4);
+    ((void (*)(int, short, int))0x122240)(ovl_anim2,
+        *(short *)(unit + 0x264), node_output);
+  }
+
+  unit_control_trace(unit_handle, "unit-preprocess-nodes");
+  *(char *)(unit + 0x266) = 0;
+  *(char *)(unit + 0x267) = 0;
+
+  if ((*(unsigned int *)(unit_tag_data + 0x17c) & 0x800) == 0 &&
+      *(char *)(unit + 0x250) != -1) {
+    seat_block = (int)tag_block_get_element(
+        (void *)(anim_tag_data + 0xc),
+        (int)*(char *)(unit + 0x250), 100);
+
+    if (*(char *)(unit + 600) != -1) {
+      if (*(int *)(seat_block + 0x40) < 0xc) {
+        anim_index = -1;
+      } else {
+        anim_index = *(short *)(*(int *)(seat_block + 0x44) + 0x16);
+      }
+      if (*(short *)(unit + 0x1ce) != -1) {
+        anim_index = *(short *)(unit + 0x1ce);
+      }
+      if (anim_index != -1) {
+        anim_entry = (int)tag_block_get_element(
+        (void *)(anim_tag_data + 0x74), (int)anim_index, 0xb4);
+        seat_anim_idx = *(char *)(unit + 600);
+        if (seat_anim_idx >= 0 &&
+            (short)seat_anim_idx < *(short *)(anim_entry + 0x22)) {
+          ((void (*)(int, short, int))0x122240)(anim_entry, (short)seat_anim_idx,
+                                  node_output);
+        }
+      }
+    }
+
+    if (0.0f < *(float *)(unit + 0x298) &&
+        *(int *)(seat_block + 0x40) > 10) {
+      anim_index = *(short *)(*(int *)(seat_block + 0x44) + 0x14);
+      if (anim_index != -1) {
+        int throttle_anim;
+        throttle_anim = (int)tag_block_get_element(
+        (void *)(anim_tag_data + 0x74), (int)anim_index, 0xb4);
+        ((void (*)(int, int, unsigned int, int))0x122450)(throttle_anim, 0,
+            *(unsigned int *)(unit + 0x298), node_output);
+      }
+    }
+
+    if ((*(unsigned char *)(unit + 0x248) & 2) != 0) {
+      int steer_idx;
+      int steer_offset;
+      int steering_count;
+      steering_count = 4;
+      steer_idx = 2;
+      steer_offset = 4;
+      steering_ptr = (float *)(unit + 0x314);
+      do {
+        if (steer_idx >= 0 &&
+            steer_idx < *(int *)(seat_block + 0x40)) {
+          anim_index = *(short *)(steer_offset +
+                                  *(int *)(seat_block + 0x44));
+          if (anim_index != -1) {
+            anim_entry = (int)tag_block_get_element(
+        (void *)(anim_tag_data + 0x74), (int)anim_index, 0xb4);
+            max_frame =
+                (float)(*(short *)(anim_entry + 0x22) - 1);
+            ((void (*)(int, float, int))0x122690)(anim_entry,
+                         max_frame * *steering_ptr,
+                         node_output);
+          }
+        }
+        steer_offset = steer_offset + 2;
+        steering_ptr = steering_ptr + 1;
+        steer_idx = steer_idx + 1;
+        steering_count = steering_count - 1;
+      } while (steering_count != 0);
+    }
+
+    if ((*(unsigned int *)(unit_tag_data + 0x17c) & 0x400) == 0) {
+      char anim_state_byte;
+      anim_state_byte = *(char *)(unit + 0x253);
+      if ((anim_state_byte < 0x17 ||
+           (anim_state_byte > 0x23 && anim_state_byte != 0x29)) &&
+          *(char *)(unit + 0x254) == 0) {
+        int unit_anim_block;
+        unit_anim_block = (int)tag_block_get_element(
+            (void *)(seat_block + 0x58),
+            (int)*(char *)(unit + 0x251), 0xbc);
+
+        aim_angles[0] = *(float *)*(int *)0x31fc54;
+        aim_angles[1] = *(float *)(*(int *)0x31fc54 + 4);
+
+        if (*(short *)(unit + 0x24a) != -1) {
+          aiming_vec = (float *)(unit + 0x1ec);
+          valid = valid_real_normal3d(aiming_vec);
+          if (valid == 0) {
+            csprintf((char *)0x5ab100,
+                "%s: assert_valid_real_normal3d(%f, %f, %f)",
+                "&unit->unit.aiming_vector",
+                (double)*aiming_vec,
+                (double)*(float *)(unit + 0x1f0),
+                (double)*(float *)(unit + 500));
+            display_assert(0,
+                "c:\\halo\\SOURCE\\units\\units.c", 0x670, 1);
+            system_exit(-1);
+          }
+
+          identity_scale = 1.0f;
+          object_get_orientation(unit_handle, forward, right);
+          cross_product3d(forward, right, up);
+          matrix[0] = *(float *)*(int *)0x31fc1c;
+          matrix[1] = *(float *)(*(int *)0x31fc1c + 4);
+          matrix[2] = *(float *)(*(int *)0x31fc1c + 8);
+          real_matrix4x3_transform_point(
+              &identity_scale, aiming_vec,
+              rel_aim_vec);
+
+          valid = real_vector3d_valid(rel_aim_vec);
+          if (valid == 0) {
+            csprintf((char *)0x5ab100,
+                "%s: assert_valid_real_vector2d(%f, %f, %f)",
+                "&relative_aiming_vector",
+                (double)rel_aim_vec[0],
+                (double)rel_aim_vec[1],
+                (double)rel_aim_vec[2]);
+            display_assert(0,
+                "c:\\halo\\SOURCE\\units\\units.c", 0x67d, 1);
+            system_exit(-1);
+          }
+
+          vector_to_angles(aim_angles, rel_aim_vec);
+
+          temp = aim_angles[1];
+          if ((*(unsigned int *)&temp & 0x7f800000) == 0x7f800000) {
+            csprintf((char *)0x5ab100,
+                "%s: assert_valid_real(0x%08X %f)",
+                "relative_aiming_angles.pitch",
+                *(unsigned int *)&temp, (double)temp);
+            display_assert(0,
+                "c:\\halo\\SOURCE\\units\\units.c", 0x680, 1);
+            system_exit(-1);
+          }
+          temp = aim_angles[0];
+          if ((*(unsigned int *)&temp & 0x7f800000) == 0x7f800000) {
+            csprintf((char *)0x5ab100,
+                "%s: assert_valid_real(0x%08X %f)",
+                "relative_aiming_angles.yaw",
+                *(unsigned int *)&temp, (double)temp);
+            display_assert(0,
+                "c:\\halo\\SOURCE\\units\\units.c", 0x681, 1);
+            system_exit(-1);
+          }
+
+          *(char *)(unit + 0x266) = 1;
+          *(float *)(unit + 0x268) =
+              -((float)(int)*(short *)(unit_anim_block + 0x68) *
+                *(float *)(unit_anim_block + 0x60));
+          *(float *)(unit + 0x26c) =
+              (float)(int)*(short *)(unit_anim_block + 0x6a) *
+              *(float *)(unit_anim_block + 0x64);
+          *(float *)(unit + 0x270) =
+              -((float)(int)*(short *)(unit_anim_block + 0x74) *
+                *(float *)(unit_anim_block + 0x6c));
+          *(float *)(unit + 0x274) =
+              (float)(int)*(short *)(unit_anim_block + 0x76) *
+              *(float *)(unit_anim_block + 0x70);
+
+          {
+            int aim_overlay;
+            aim_overlay = (int)tag_block_get_element(
+                (void *)(anim_tag_data + 0x74),
+                (int)*(short *)(unit + 0x24a), 0xb4);
+            FUN_00122e50(aim_overlay,
+                (float *)(unit_anim_block + 0x60),
+                aim_angles[0], aim_angles[1], node_output);
+          }
+        }
+
+        if ((*(short *)(unit + 0x2a2) != -1 ||
+             *(int *)(unit + 0x1c8) != -1) &&
+            *(short *)(unit + 0x24c) != -1) {
+          float *look_ptr;
+          look_ptr = (float *)(seat_block + 0x20);
+          identity_scale = 1.0f;
+          object_get_orientation(unit_handle, forward, right);
+          cross_product3d(forward, right, up);
+          matrix[0] = *(float *)*(int *)0x31fc1c;
+          matrix[1] = *(float *)(*(int *)0x31fc1c + 4);
+          matrix[2] = *(float *)(*(int *)0x31fc1c + 8);
+          real_matrix4x3_transform_point(
+              &identity_scale, (void *)(unit + 0x210),
+              rel_look_vec);
+
+          valid = real_vector3d_valid(rel_look_vec);
+          if (valid == 0) {
+            csprintf((char *)0x5ab100,
+                "%s: assert_valid_real_vector2d(%f, %f, %f)",
+                "&relative_looking_vector",
+                (double)rel_look_vec[0],
+                (double)rel_look_vec[1],
+                (double)rel_look_vec[2]);
+            display_assert(0,
+                "c:\\halo\\SOURCE\\units\\units.c", 0x6a7, 1);
+            system_exit(-1);
+          }
+
+          vector_to_angles(look_angles, rel_look_vec);
+          look_angles[0] = look_angles[0] - aim_angles[0];
+          look_angles[1] = look_angles[1] - aim_angles[1];
+
+          temp = look_angles[1];
+          if ((*(unsigned int *)&temp & 0x7f800000) == 0x7f800000) {
+            csprintf((char *)0x5ab100,
+                "%s: assert_valid_real(0x%08X %f)",
+                "relative_looking_angles.pitch",
+                *(unsigned int *)&temp, (double)temp);
+            display_assert(0,
+                "c:\\halo\\SOURCE\\units\\units.c", 0x6ae, 1);
+            system_exit(-1);
+          }
+          temp = look_angles[0];
+          if ((*(unsigned int *)&temp & 0x7f800000) == 0x7f800000) {
+            csprintf((char *)0x5ab100,
+                "%s: assert_valid_real(0x%08X %f)",
+                "relative_looking_angles.yaw",
+                *(unsigned int *)&temp, (double)temp);
+            display_assert(0,
+                "c:\\halo\\SOURCE\\units\\units.c", 0x6af, 1);
+            system_exit(-1);
+          }
+
+          *(char *)(unit + 0x267) = 1;
+          *(float *)(unit + 0x278) =
+              -((float)(int)*(short *)(seat_block + 0x28) *
+                *look_ptr);
+          *(float *)(unit + 0x27c) =
+              (float)(int)*(short *)(seat_block + 0x2a) *
+              *(float *)(seat_block + 0x24);
+          *(float *)(unit + 0x280) =
+              -((float)(int)*(short *)(seat_block + 0x34) *
+                *(float *)(seat_block + 0x2c));
+          *(float *)(unit + 0x284) =
+              (float)(int)*(short *)(seat_block + 0x36) *
+              *(float *)(seat_block + 0x30);
+
+          {
+            int look_overlay;
+            look_overlay = (int)tag_block_get_element(
+                (void *)(anim_tag_data + 0x74),
+                (int)*(short *)(unit + 0x24c), 0xb4);
+            FUN_00122e50(look_overlay,
+                look_ptr, look_angles[0], look_angles[1],
+                node_output);
+          }
+        }
+      }
+    }
+  }
+}
+
+/* FUN_001b0630 (0x1b0630) — euler aiming vector update
+ *
+ * Updates aiming/desired vectors with angular velocity constraints,
+ * motion planning, and bounds clamping.
+ * Confirmed: cdecl, 7 stack params.
+ */
+void FUN_001b0630(int transform_matrix, float *aiming_vector,
+                  float *desired_vector, float *angular_velocity,
+                  float *aiming_bounds, float angular_velocity_limit,
+                  float angular_acceleration_limit)
+{
+  float local_aim[3];
+  float local_desired[3];
+  float desired_clamped[3];
+  float end_aim[3];
+  float aim_angles[2];
+  float desired_angles[2];
+  float end_angles[2];
+  float vel_yaw;
+  float vel_pitch;
+  float vel_vec[3];
+  float rotated[3];
+  float rot_angles[2];
+  char plan_yaw[32];
+  char plan_pitch[32];
+  float cos_v;
+  float sin_v;
+  char wrapping;
+  char yaw_ok;
+  float norm_len;
+  float delta_yaw;
+  float delta_pitch;
+  char pitch_ok;
+
+  if (angular_velocity_limit < 0.0f) {
+    display_assert("angular_velocity_limit >= 0.0f",
+                   "c:\\halo\\SOURCE\\units\\units.c", 0x962, 1);
+    system_exit(-1);
+  }
+  if (angular_acceleration_limit <= 0.0f ||
+      angular_acceleration_limit >= 10000.0f) {
+    display_assert(
+        "(angular_acceleration_limit > 0.0f) && "
+        "(angular_acceleration_limit < 10000.0f)",
+        "c:\\halo\\SOURCE\\units\\units.c", 0x963, 1);
+    system_exit(-1);
+  }
+
+  if (transform_matrix == 0) {
+    local_aim[0] = aiming_vector[0];
+    local_aim[1] = aiming_vector[1];
+    local_aim[2] = aiming_vector[2];
+    local_desired[0] = desired_vector[0];
+    local_desired[1] = desired_vector[1];
+    local_desired[2] = desired_vector[2];
+  } else {
+    real_matrix4x3_transform_point((void *)transform_matrix, aiming_vector,
+                                   local_aim);
+    real_matrix4x3_transform_point((void *)transform_matrix, desired_vector,
+                                   local_desired);
+  }
+
+  wrapping = (aiming_bounds[1] - aiming_bounds[0]) - 6.2831853f >
+             -1.0e-4f;
+
+  vector_to_angles(aim_angles, local_aim);
+  vector_to_angles(desired_angles, local_desired);
+
+  yaw_ok = 1;
+  if (wrapping == 0) {
+    if (desired_angles[0] < aiming_bounds[0]) {
+      desired_angles[0] = aiming_bounds[0];
+      yaw_ok = 0;
+    } else if (desired_angles[0] > aiming_bounds[1]) {
+      desired_angles[0] = aiming_bounds[1];
+      yaw_ok = 0;
+    }
+  } else {
+    if (desired_angles[0] >= aiming_bounds[0]) {
+      if (desired_angles[0] > aiming_bounds[1]) {
+        desired_angles[0] = desired_angles[0] - 6.2831853f;
+        if (desired_angles[0] < aiming_bounds[0]) {
+          display_assert(
+              "desired_aiming_angles.yaw >= aiming_bounds->x0",
+              "c:\\halo\\SOURCE\\units\\units.c", 0x986, 1);
+          system_exit(-1);
+        }
+      }
+    } else {
+      desired_angles[0] = desired_angles[0] + 6.2831853f;
+      if (desired_angles[0] <= aiming_bounds[1]) {
+        display_assert(
+            "desired_aiming_angles.yaw <= aiming_bounds->x1",
+            "c:\\halo\\SOURCE\\units\\units.c", 0x981, 1);
+        system_exit(-1);
+      }
+    }
+  }
+
+  if (desired_angles[1] < aiming_bounds[2]) {
+    desired_angles[1] = aiming_bounds[2];
+    goto clamp_and_reconstruct;
+  } else if (desired_angles[1] > aiming_bounds[3]) {
+    desired_angles[1] = aiming_bounds[3];
+    goto clamp_and_reconstruct;
+  } else if (yaw_ok) {
+    desired_clamped[0] = desired_vector[0];
+    desired_clamped[1] = desired_vector[1];
+    desired_clamped[2] = desired_vector[2];
+    goto done_clamp;
+  }
+
+clamp_and_reconstruct:
+  angles_to_vector(desired_clamped, desired_angles);
+  if (transform_matrix != 0) {
+    matrix_transform_vector((float *)transform_matrix, desired_clamped,
+                            desired_clamped);
+    normalize3d(desired_clamped);
+  }
+
+done_clamp:
+  vel_vec[0] = angular_velocity[0];
+  vel_vec[1] = angular_velocity[1];
+  vel_vec[2] = angular_velocity[2];
+  norm_len = normalize3d(vel_vec);
+  if (norm_len == 0.0f) {
+    vel_yaw = 0.0f;
+    vel_pitch = 0.0f;
+  } else {
+    cos_v = x87_fcos(norm_len);
+    rotated[0] = local_aim[0];
+    rotated[1] = local_aim[1];
+    rotated[2] = local_aim[2];
+    sin_v = x87_fsin(norm_len);
+    rotate_vector3d_by_sincos(rotated, vel_vec, sin_v, cos_v);
+    vector_to_angles(rot_angles, rotated);
+    vel_yaw = rot_angles[0] - aim_angles[0];
+    vel_pitch = rot_angles[1] - aim_angles[1];
+  }
+
+  delta_yaw = aim_angles[0] - desired_angles[0];
+  delta_pitch = aim_angles[1] - desired_angles[1];
+
+  if (wrapping != 0) {
+    if (delta_yaw > 3.1415927f) {
+      delta_yaw = delta_yaw - 6.2831853f;
+    } else if (delta_yaw < -3.1415927f) {
+      delta_yaw = delta_yaw + 6.2831853f;
+    }
+  }
+
+  FUN_001ac680(delta_yaw, vel_yaw, angular_velocity_limit,
+               angular_acceleration_limit, (int)plan_yaw);
+  FUN_001ac680(delta_pitch, vel_pitch, angular_velocity_limit,
+               angular_acceleration_limit, (int)plan_pitch);
+  unit_adjust_plan_overlap(plan_yaw, plan_pitch,
+                           angular_velocity_limit,
+                           angular_acceleration_limit);
+
+  pitch_ok = FUN_001a8550(plan_yaw, 1.0f, delta_yaw, &delta_yaw,
+                          vel_yaw, &rot_angles[0]);
+  yaw_ok = FUN_001a8550(plan_pitch, 1.0f, delta_pitch, &delta_pitch,
+                        vel_pitch, &rot_angles[1]);
+
+  if (pitch_ok == 0 || yaw_ok == 0) {
+    end_angles[0] = delta_yaw + desired_angles[0];
+    end_angles[1] = delta_pitch + desired_angles[1];
+
+    if (wrapping == 0) {
+      if (end_angles[0] < aiming_bounds[0]) {
+        end_angles[0] = aiming_bounds[0];
+      } else if (end_angles[0] > aiming_bounds[1]) {
+        end_angles[0] = aiming_bounds[1];
+      }
+    } else {
+      if (end_angles[0] >= aiming_bounds[0]) {
+        if (end_angles[0] > aiming_bounds[1]) {
+          end_angles[0] = end_angles[0] - 6.2831853f;
+          if (end_angles[0] < aiming_bounds[0]) {
+            display_assert(
+                "end_aiming_angles.yaw >= aiming_bounds->x0",
+                "c:\\halo\\SOURCE\\units\\units.c", 0xaaa, 1);
+            system_exit(-1);
+          }
+        }
+      } else {
+        end_angles[0] = end_angles[0] + 6.2831853f;
+        if (end_angles[0] <= aiming_bounds[1]) {
+          display_assert(
+              "end_aiming_angles.yaw <= aiming_bounds->x1",
+              "c:\\halo\\SOURCE\\units\\units.c", 0xaa5, 1);
+          system_exit(-1);
+        }
+      }
+    }
+
+    if (end_angles[1] < aiming_bounds[2]) {
+      end_angles[1] = aiming_bounds[2];
+    } else if (end_angles[1] > aiming_bounds[3]) {
+      end_angles[1] = aiming_bounds[3];
+    }
+
+    if (end_angles[0] < aiming_bounds[0] ||
+        !(end_angles[0] <= aiming_bounds[1])) {
+      display_assert(
+          "(end_aiming_angles.yaw >= aiming_bounds->x0) && "
+          "(end_aiming_angles.yaw <= aiming_bounds->x1)",
+          "c:\\halo\\SOURCE\\units\\units.c", 0xab3, 1);
+      system_exit(-1);
+    }
+    if (end_angles[1] < aiming_bounds[2] ||
+        !(end_angles[1] <= aiming_bounds[3])) {
+      display_assert(
+          "(end_aiming_angles.pitch >= aiming_bounds->y0) && "
+          "(end_aiming_angles.pitch <= aiming_bounds->y1)",
+          "c:\\halo\\SOURCE\\units\\units.c", 0xab4, 1);
+      system_exit(-1);
+    }
+
+    angles_to_vector(end_aim, end_angles);
+
+    {
+      float total_yaw;
+      float total_pitch;
+      float vel_end[3];
+      total_yaw = rot_angles[0] + end_angles[0];
+      total_pitch = rot_angles[1] + end_angles[1];
+      (void)total_pitch;
+      angles_to_vector(vel_end, &total_yaw);
+
+      angular_velocity[0] =
+          rot_angles[1] * end_aim[1] -
+          vel_end[2] * rot_angles[0];
+      angular_velocity[1] =
+          vel_end[2] * end_aim[2] -
+          rot_angles[1] * end_aim[0];
+      angular_velocity[2] =
+          rot_angles[0] * end_aim[0] -
+          end_aim[1] * vel_end[2];
+    }
+    normalize3d(angular_velocity);
+
+    {
+      float speed;
+      speed = ((float (*)(void))0x1d94f0)();
+      if (speed > angular_velocity_limit) {
+        speed = angular_velocity_limit;
+      }
+      angular_velocity[0] = speed * angular_velocity[0];
+      angular_velocity[1] = speed * angular_velocity[1];
+      angular_velocity[2] = speed * angular_velocity[2];
+    }
+
+    if (transform_matrix != 0) {
+      matrix_transform_vector((float *)transform_matrix, end_aim,
+                              aiming_vector);
+      normalize3d(aiming_vector);
+      goto final_validate;
+    }
+    aiming_vector[0] = end_aim[0];
+    aiming_vector[1] = end_aim[1];
+  } else {
+    aiming_vector[0] = desired_clamped[0];
+    aiming_vector[1] = desired_clamped[1];
+    aiming_vector[2] = desired_clamped[2];
+    {
+      float *zero_vec;
+      zero_vec = *(float **)0x31fc38;
+      angular_velocity[0] = zero_vec[0];
+      angular_velocity[1] = zero_vec[1];
+      end_aim[2] = zero_vec[2];
+    }
+  }
+  angular_velocity[2] = end_aim[2];
+
+final_validate:
+  {
+    char aim_valid;
+    aim_valid = valid_real_normal3d(aiming_vector);
+    if (aim_valid == 0) {
+      csprintf((char *)0x5ab100,
+          "%s: assert_valid_real_normal3d(%f, %f, %f)",
+          "aiming_vector",
+          (double)aiming_vector[0],
+          (double)aiming_vector[1],
+          (double)aiming_vector[2]);
+      display_assert(0, "c:\\halo\\SOURCE\\units\\units.c",
+                     0xae9, 1);
+      system_exit(-1);
+    }
+  }
+}
+
+/* FUN_001b0d90 (0x1b0d90) — animation state update
+ *
+ * Evaluates the current unit animation state and applies transitions.
+ * Confirmed: cdecl, 2 stack params.
+ * Returns: int16_t (animation flags bitmask).
+ */
+short FUN_001b0d90(int unit_handle, char *anim_state)
+{
+  unsigned int *unit;
+  int unit_tag_data;
+  short desired_state;
+  short base_seat;
+  short anim_status;
+  unsigned short result;
+  char apply_flag;
+  short global_seat;
+  char unit_anim_byte;
+  unsigned int *vehicle_unit;
+  int vehicle_tag;
+  unsigned char *seat_element;
+  int mode_tag;
+  int anim_graph;
+  int anim_element;
+  float delta[3];
+  char out_matrix[52];
+  void *world_matrix;
+  int biped_data;
+  int biped_tag;
+
+  unit = (unsigned int *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag_data = (int)tag_get(0x756e6974, *unit);
+  desired_state = (short)*anim_state;
+  result = 0;
+  apply_flag = 0;
+
+  if (desired_state < 0 || desired_state >= 0x2c) {
+    display_assert(
+        "desired_state>=0 && desired_state<NUMBER_OF_UNIT_STATES",
+        "c:\\halo\\SOURCE\\units\\units.c", 0xb61, 1);
+    system_exit(-1);
+  }
+
+  base_seat = -1;
+  if (unit[0x33] == (unsigned int)-1 &&
+      (*(unsigned char *)((int)unit + 0xb6) & 4) == 0) {
+    switch (*(unsigned char *)((int)unit + 0x256)) {
+    case 0:
+      base_seat = 0;
+      break;
+    case 1:
+    case 2:
+      base_seat = 1;
+      break;
+    case 3:
+      base_seat = (anim_state[1] != 0) + 2;
+      if (base_seat == -1) goto seat_assert;
+      break;
+    case 4:
+      base_seat = 2;
+      break;
+    case 5:
+      base_seat = 4;
+      break;
+    case 6:
+      base_seat = 5;
+      break;
+    default:
+    seat_assert:
+      display_assert("desired_base_seat_index!=NONE",
+                     "c:\\halo\\SOURCE\\units\\units.c", 0xb73, 1);
+      system_exit(-1);
+      break;
+    }
+
+    if (unit[0x72] != (unsigned int)-1) {
+      global_seat = *(short *)0x32de80;
+      if (global_seat != -1) {
+        if (global_seat < 0) {
+          base_seat = 0;
+        } else {
+          base_seat = 6;
+          if (global_seat < 7) {
+            base_seat = global_seat;
+          }
+        }
+      }
+    }
+
+    if (*(char *)((int)unit + 0x1bf) != -1) {
+      base_seat = (short)*(char *)((int)unit + 0x1bf);
+    }
+    if ((unit[0x6e] & 0x200) != 0) {
+      base_seat = 1;
+    }
+    if (*(char *)((int)unit + 0x23b) != 0) {
+      base_seat = 5;
+    }
+
+    if (*(char *)((int)unit + 599) != (char)base_seat) {
+      char can_change;
+      can_change = FUN_001a86b0((void *)((int)unit + 0x248),
+                                desired_state);
+      if (can_change != 0) {
+        char *weapon_name;
+        const char *seat_label;
+        weapon_name = unit_get_weapon_name(unit_handle, 1);
+        seat_label = FUN_001ab6e0(base_seat);
+        FUN_001acd70(unit_handle, seat_label, weapon_name, 0);
+      }
+    }
+  }
+
+  if (*(short *)((int)unit + 0x262) != -1) {
+    anim_status = FUN_001ab870(
+        (void *)((int)unit + 0x262),
+        *(int *)(unit_tag_data + 0x44), unit_handle);
+    if (anim_status == 2) {
+      *(short *)((int)unit + 0x262) = -1;
+    }
+  }
+
+  if (*(short *)(unit + 0x20) != -1) {
+    anim_status = FUN_001ab870(
+        (void *)((int)unit + 0x80),
+        *(int *)(unit[0x1f]), unit_handle);
+    if (anim_status == 1) {
+      unit_anim_byte = *(char *)((int)unit + 0x253);
+      if (unit_anim_byte >= 0x1e && unit_anim_byte <= 0x29) {
+        switch (unit_anim_byte) {
+        case 0x1e:
+        case 0x1f:
+        case 0x29:
+          unit_cause_melee_damage(unit_handle, 0, -1, -1, -1, -1, 0);
+          break;
+        case 0x21:
+          FUN_001ab110(unit_handle, 0);
+          break;
+        default:
+          break;
+        }
+      }
+    } else if (anim_status == 2) {
+      unit_anim_byte = *(char *)((int)unit + 0x253);
+      switch (unit_anim_byte) {
+      case 0x19:
+        if ((*(unsigned char *)(unit_tag_data + 0x17c) & 2) == 0) {
+          goto start_limp;
+        }
+        if ((*(unsigned char *)((int)unit + 4) & 0x20) != 0) {
+          goto destroy_unit;
+        }
+        if (*(short *)(unit + 0x19) != 0) {
+          goto set_garbage_flag;
+        }
+        biped_data = (int)object_get_and_verify_type(unit_handle, 1);
+        biped_tag = (int)tag_get(0x62697064,
+                            *(unsigned int *)biped_data);
+        if ((*(unsigned char *)(biped_data + 0x424) & 1) != 0 &&
+            (*(unsigned int *)(biped_tag + 0x2f4) & 0x400) == 0) {
+          goto start_limp;
+        }
+      destroy_unit:
+        unit_destroy(unit_handle);
+        break;
+      start_limp:
+        if (*(short *)(unit + 0x19) == 0) {
+          biped_start_limp_body_physics(unit_handle);
+        }
+      set_garbage_flag:
+        *(unsigned char *)((int)unit + 0x248) =
+            *(unsigned char *)((int)unit + 0x248) | 4;
+        *(short *)((int)unit + 0x82) =
+            *(short *)((int)unit + 0x82) - 1;
+        break;
+
+      case 0x1a:
+        vehicle_unit = (unsigned int *)object_get_and_verify_type(
+            unit[0x33], 3);
+        vehicle_tag = (int)tag_get(0x756e6974, *vehicle_unit);
+        seat_element = (unsigned char *)tag_block_get_element(
+            (void *)(vehicle_tag + 0x2e4),
+            (int)*(short *)(unit + 0xa8), 0x11c);
+        object_set_garbage(unit_handle, (~*seat_element) & 1);
+        if (vehicle_unit[0xb5] == (unsigned int)unit_handle) {
+          unit_close((int)unit[0x33]);
+        }
+        break;
+
+      case 0x1b:
+        mode_tag = (int)tag_get(0x6d6f6465,
+                           *(unsigned int *)(unit_tag_data + 0x34));
+        anim_graph = (int)tag_get(0x616e7472, unit[0x1f]);
+        anim_element = (int)tag_block_get_element(
+            (void *)(anim_graph + 0x74),
+            (int)*(short *)(unit + 0x20), 0xb4);
+        FUN_001234b0((void *)mode_tag, (void *)anim_element,
+                     *(unsigned short *)((int)unit + 0x82), delta);
+        world_matrix = (void *)object_get_world_matrix(unit_handle,
+                                               out_matrix);
+        matrix_scale_transform_vector((float *)world_matrix,
+                                      delta, delta);
+        unit_exit_seat_end(unit_handle);
+        vector3d_add((float *)(unit + 6), delta, (float *)(unit + 6));
+        break;
+
+      case 0x25:
+      case 0x26:
+        *(short *)((int)unit + 0x82) =
+            *(short *)((int)unit + 0x82) - 1;
+        break;
+
+      case 0x27:
+        result = 1;
+        desired_state = 0x28;
+        break;
+
+      default:
+        break;
+      }
+
+      {
+        char anim_ok;
+        anim_ok = FUN_001a8790((void *)((int)unit + 0x248));
+        if (anim_ok == 0) {
+          apply_flag = 1;
+        }
+      }
+    }
+  }
+
+  if (*(short *)((int)unit + 0x25a) != -1) {
+    anim_status = FUN_001ab870(
+        (void *)((int)unit + 0x25a),
+        *(int *)(unit_tag_data + 0x44), unit_handle);
+    if (anim_status == 2) {
+      int refreshed_unit;
+      object_set_region_count(unit_handle, 6);
+      refreshed_unit = (int)object_get_and_verify_type(unit_handle, 3);
+      *(char *)(refreshed_unit + 0x254) = 0;
+      *(short *)(refreshed_unit + 0x25a) = -1;
+    }
+  }
+
+  if (*(short *)((int)unit + 0x25e) != -1) {
+    anim_status = FUN_001ab870(
+        (void *)((int)unit + 0x25e),
+        *(int *)(unit_tag_data + 0x44), unit_handle);
+    if (anim_status == 2 || anim_status == 4) {
+      unit_anim_byte = *(char *)((int)unit + 0x253);
+      if (unit_anim_byte < 3 || unit_anim_byte > 4) {
+        *(char *)((int)unit + 0x255) = 0;
+        *(short *)((int)unit + 0x25e) = -1;
+      }
+    }
+  }
+
+  if (apply_flag == 0) {
+    if ((short)desired_state ==
+        (short)*(char *)((int)unit + 0x253)) {
+      goto done;
+    }
+    {
+      char can_apply;
+      can_apply = FUN_001a86b0((void *)((int)unit + 0x248),
+                               desired_state);
+      if (can_apply == 0) goto done;
+    }
+  }
+  FUN_001ad260(unit_handle, desired_state);
+
+done:
+  return (short)(result & 0xffff);
+}
+
+/* FUN_001b1400 (0x1b1400) — animation impulse
+ *
+ * Selects movement or attack animation based on unit state.
+ * Confirmed: cdecl, 9 stack params.
+ */
+void FUN_001b1400(int unit_handle, char is_melee, char is_throw,
+                  char is_airborne, char is_ground, char is_ping,
+                  float throttle_magnitude, int weapon_class,
+                  int alignment_vector)
+{
+  unsigned int *unit;
+  int unit_tag;
+  int anim_graph;
+  char moving;
+  char fast_moving;
+  short throttle_dir;
+  char engine_running;
+  short anim_idx;
+  short chosen_anim;
+  int16_t anim_entry_idx;
+  char anim_state;
+  char movement_type;
+  char must_apply;
+  int biped_data;
+  int biped_tag;
+  int anim_element;
+  short frame_count;
+  short random_frame;
+  float align_out[2];
+
+  unit = (unsigned int *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag = (int)tag_get(0x756e6974, *unit);
+
+  if (is_melee != 0) {
+    is_throw = 0;
+    moving = 1;
+    if (*(float *)(unit_tag + 0x228) <= 0.0f ||
+        (float)unit[0x27] <= *(float *)(unit_tag + 0x228)) {
+      fast_moving = 0;
+    } else {
+      fast_moving = 1;
+      goto check_ping;
+    }
+  } else if (is_throw != 0) {
+    is_melee = 1;
+    moving = 1;
+  } else {
+    if ((float)unit[0x27] >= *(float *)(unit_tag + 0x218) ||
+        (float)unit[0x26] >= *(float *)(unit_tag + 0x218)) {
+      moving = 1;
+    } else {
+      moving = 0;
+    }
+    fast_moving = (float)unit[0x27] >= *(float *)(unit_tag + 0x220);
+
+    if (is_ground == 0 && *(char *)(unit + 0x6d) >= 0) {
+      goto check_ping;
+    }
+  }
+  fast_moving = 0;
+
+check_ping:
+  if (is_ping != 0) {
+    fast_moving = 1;
+    moving = 1;
+  }
+
+  if ((short)weapon_class == -1) {
+    weapon_class = 0;
+  }
+
+  {
+    float abs_throttle;
+    abs_throttle = throttle_magnitude;
+    if (abs_throttle < 0.0f) abs_throttle = -abs_throttle;
+
+    if ((double)abs_throttle < *(double *)0x25b3f0) {
+      throttle_dir = 3;
+    } else if ((double)abs_throttle > *(double *)0x2b7a98) {
+      throttle_dir = 0;
+    } else {
+      throttle_dir = 1;
+      if (throttle_magnitude <= 0.0f) {
+        throttle_dir = 2;
+      }
+    }
+  }
+
+  engine_running = game_engine_running();
+  if (engine_running != 0 && (short)weapon_class == 2 &&
+      fast_moving && is_melee != 0) {
+    throttle_dir = 1;
+  }
+
+  if (!moving && is_melee == 0) {
+    return;
+  }
+
+  unit_tag = (int)tag_get(0x756e6974, *unit);
+  anim_graph = (int)tag_get(0x616e7472, *(unsigned int *)(unit_tag + 0x44));
+
+  if (!fast_moving && is_melee == 0) {
+    if (*(short *)((int)unit + 0x262) != -1 &&
+        *(short *)(unit + 0x99) <= *(short *)(unit_tag + 0x2c8)) {
+      return;
+    }
+    anim_idx = ((short (*)(int, short, int))0x120670)(0, throttle_dir,
+                                            weapon_class);
+    if (anim_idx < 0 || anim_idx >= *(int *)(anim_graph + 0x3c)) {
+      anim_entry_idx = -1;
+    } else {
+      anim_entry_idx =
+          *(short *)(*(int *)(anim_graph + 0x40) + anim_idx * 2);
+    }
+    chosen_anim = (short)model_animation_choose_random(
+        1, *(unsigned int *)(unit_tag + 0x44), anim_entry_idx);
+    if (chosen_anim == -1) {
+      return;
+    }
+    *(short *)((int)unit + 0x262) = chosen_anim;
+    *(short *)(unit + 0x99) = 0;
+    return;
+  }
+
+  anim_state = (is_melee != 0) * 2 + 0x17;
+
+  if (is_melee == 0) {
+    movement_type = 1;
+    {
+      char can_change;
+      can_change = FUN_001a86b0((void *)((int)unit + 0x248),
+                                (short)anim_state);
+      if (can_change != 0) goto force_apply;
+    }
+    must_apply = 0;
+  } else {
+    movement_type = fast_moving + 2;
+  force_apply:
+    must_apply = 1;
+  }
+
+  if (*(char *)((int)unit + 0x253) == 0x17 &&
+      *(short *)((int)unit + 0x82) >
+          *(short *)(unit_tag + 0x2ca)) {
+    must_apply = 1;
+  }
+
+  if (is_melee == 0) {
+    if ((*(unsigned char *)((int)unit + 0xb6) & 4) != 0) {
+      must_apply = 0;
+    }
+    if (unit[0x33] != (unsigned int)-1) {
+      return;
+    }
+  }
+
+  if (!must_apply) {
+    return;
+  }
+
+  if (is_melee != 0) {
+    char *weapon_name;
+    weapon_name = unit_get_weapon_name(unit_handle, 1);
+    FUN_001acd70(unit_handle, *(char **)0x32e48c, weapon_name, 0);
+  }
+
+  if ((short)anim_state == 0x19 && *(short *)(unit + 0x19) == 0) {
+    biped_data = (int)object_get_and_verify_type(unit_handle, 1);
+    biped_tag = (int)tag_get(0x62697064, *(unsigned int *)biped_data);
+    if ((*(unsigned char *)(biped_data + 0x424) & 1) != 0 &&
+        (*(unsigned int *)(biped_tag + 0x2f4) & 0x400) == 0) {
+      char transition_ok;
+      anim_state = 0x18;
+      transition_ok = FUN_001ad260(unit_handle, 0x18);
+      if (transition_ok != 0) goto alignment_section;
+    }
+  }
+
+  anim_idx = ((short (*)(int, short, int))0x120670)((int)movement_type, throttle_dir,
+                                          weapon_class);
+  if (anim_idx < 0 || anim_idx >= *(int *)(anim_graph + 0x3c)) {
+    anim_entry_idx = -1;
+  } else {
+    anim_entry_idx =
+        *(short *)(*(int *)(anim_graph + 0x40) + anim_idx * 2);
+  }
+
+  chosen_anim = model_animation_choose_random(
+      1, *(unsigned int *)(unit_tag + 0x44), anim_entry_idx);
+
+  if (chosen_anim == -1) {
+    if (is_melee != 0) {
+      unsigned short flags;
+      flags = *(unsigned short *)((int)unit + 0x248);
+      flags = (flags & 0xfff7) | 4;
+      *(unsigned short *)((int)unit + 0x248) = flags;
+      if ((*(unsigned char *)(unit_tag + 0x17c) & 2) != 0) {
+        unit_destroy(unit_handle);
+      }
+    }
+  } else {
+    if (*(char *)((int)unit + 0x253) == 0x21) {
+      FUN_001ab110(unit_handle, 1);
+    }
+    object_set_region_count(unit_handle, 3);
+    *(char *)((int)unit + 0x253) = anim_state;
+    unit_set_animation(unit_handle,
+                       *(unsigned int *)(unit_tag + 0x44),
+                       chosen_anim);
+    *(unsigned char *)((int)unit + 0x248) =
+        *(unsigned char *)((int)unit + 0x248) | 1;
+
+    if (is_melee != 0) {
+      if (is_airborne == 0 && is_throw == 0) {
+        short quarter;
+        short half;
+        anim_element = (int)tag_block_get_element(
+            (void *)(anim_graph + 0x74), (int)chosen_anim, 0xb4);
+        frame_count = *(short *)(anim_element + 0x22);
+        quarter = frame_count >> 2;
+        half = (frame_count >> 1) + quarter;
+        random_frame = FUN_00017940(quarter, half);
+        *(char *)((int)unit + 0x23c) = (char)random_frame;
+        if ((char)random_frame < 2) {
+          *(char *)((int)unit + 0x23c) = 1;
+        }
+      } else {
+        *(char *)((int)unit + 0x23c) = 0;
+      }
+    }
+
+    if (throttle_dir != 0) {
+      short standing_idx;
+      short standing_ref;
+      anim_element = (int)tag_block_get_element(
+            (void *)(anim_graph + 0x74), (int)chosen_anim, 0xb4);
+      standing_idx = ((short (*)(int, short, int))0x120670)(
+          (int)movement_type, 0, weapon_class);
+      if (standing_idx < 0 ||
+          standing_idx >= *(int *)(anim_graph + 0x3c)) {
+        standing_ref = -1;
+      } else {
+        standing_ref = *(short *)(*(int *)(anim_graph + 0x40) +
+                                  standing_idx * 2);
+      }
+      if (*(short *)(anim_element + 0x42) == standing_ref) {
+        throttle_dir = 0;
+      }
+    }
+
+    if (is_melee != 0) {
+      if (throttle_dir == 3) {
+        *(unsigned char *)((int)unit + 0x248) =
+            *(unsigned char *)((int)unit + 0x248) | 8;
+      } else {
+        *(unsigned char *)((int)unit + 0x248) =
+            *(unsigned char *)((int)unit + 0x248) & 0xf7;
+      }
+    }
+  }
+
+alignment_section:
+  if (alignment_vector != 0 &&
+      (*(unsigned int *)(unit_tag + 0x17c) & 0x200) == 0 &&
+      *(short *)(unit + 0x19) == 0 &&
+      unit[0x33] == (unsigned int)-1 &&
+      (fast_moving || is_melee != 0)) {
+    float *avec;
+    avec = (float *)alignment_vector;
+    switch (throttle_dir) {
+    case 0:
+      align_out[0] = -avec[0];
+      align_out[1] = -avec[1];
+      unit_apply_alignment_vector(unit_handle, align_out);
+      return;
+    case 1:
+      align_out[0] = -avec[1];
+      align_out[1] = avec[0];
+      unit_apply_alignment_vector(unit_handle, align_out);
+      return;
+    case 2:
+      align_out[0] = avec[1];
+      align_out[1] = -avec[0];
+      unit_apply_alignment_vector(unit_handle, align_out);
+      return;
+    case 3:
+      align_out[0] = avec[0];
+      align_out[1] = avec[1];
+      unit_apply_alignment_vector(unit_handle, align_out);
+      return;
+    default:
+      display_assert(0, "c:\\halo\\SOURCE\\units\\units.c",
+                     0x11d2, 1);
+      system_exit(-1);
+      align_out[0] = avec[0];
+      align_out[1] = avec[1];
+      unit_apply_alignment_vector(unit_handle, align_out);
+      return;
+    }
+  }
+}
+/* FUN_001b3690 (0x1b3690) — unit_update
+ *
+ * Main per-tick update for a unit (biped or vehicle). This is one of the
+ * largest functions in units.obj (~5900 bytes, ~1600 instructions).
+ *
+ * Sections:
+ *   1.  Debug tracing enter/exit
+ *   2.  Animation frame counter increment
+ *   3.  Running blind / aiming vector initialization
+ *   4.  Effect flags and flashlight timer
+ *   5.  Parent weapon holder aiming vector propagation
+ *   6.  Melee timer, firing timer, vehicle enter countdown
+ *   7.  Seat exit, death, vehicle exit
+ *   8.  Weapon slot switch, grenade type switch, zoom level, heat sounds
+ *   9.  Aiming/looking angular interpolation (instant / smooth / euler)
+ *  10.  Combat state: grenade throw, melee, firing
+ *  11.  Weapon firing effects and weapon power update
+ *  12.  Forward/up axis validation asserts
+ *  13.  Aim assist blending, weapon seat interpolation loop
+ *  14.  Effect cooldown, melee collision, post-update calls
+ *  15.  Steering decay, integrated light toggle, camo/flash effect
+ *  16.  Per-weapon integrated light power decay/ramp
+ *
+ * Stack frame: SUB ESP, 0x58. Returns char (always 1).
+ * Confirmed: cdecl, 1 stack param. All offsets from disassembly.
+ */
+char FUN_001b3690(int unit_handle)
+{
+    /* --- All variable declarations (C89) --- */
+    int *unit;
+    int tag_data;
+    char local_7;
+    char local_5;
+    char local_8;
+    char local_9;
+    char local_6;
+    char cVar6;
+    int iVar10;
+    uint32_t uVar15;
+    uint32_t unit_flags;
+    float fVar1;
+    float fVar20;
+    float local_14;
+    float aim_vel_limit;
+    float aim_accel_limit;
+    float *aim_vec;
+    float saved_aim[3];
+    float local_5c;
+    float local_58[3];
+    float local_40[3];
+    float local_4c, local_48, local_44;
+    float local_34[3];
+    float zoom_interp;
+    int zoom_sound_ref;
+    char zoom_level_new;
+    short grenade_idx;
+    short *anim_ptr;
+    short anim_counter;
+    unsigned char anim_byte;
+    int holder;
+    int wpn_tag;
+    int game_glob;
+    int fp_iface;
+    int elem;
+    float delta_angle;
+    float ratio;
+    short seat_i;
+    int seat_off;
+    char is_held;
+    float flash_mod;
+    int eff_timer_val;
+    int eff_handle;
+    int eff_data;
+    int16_t eff_anim;
+    short wpn_idx;
+    int unit_data_tmp;
+
+    /* === Entry === */
+    (void)local_4c; (void)local_48; (void)local_44;
+    unit = (int *)object_get_and_verify_type(unit_handle, 3);
+    tag_data = (int)tag_get(0x756e6974, *unit);
+    local_7 = 0;
+    local_5 = 0;
+    local_8 = 0;
+    local_9 = FUN_000ab9e0();
+
+    /* [1] Debug trace enter */
+    if (*(char *)0x449ef1 != 0 && *(char *)0x32de90 != 0) {
+        ((void (*)(void *))0x8fa40)((void *)0x32de88);
+    }
+    unit_control_trace(unit_handle, (const char *)0x2b7c98);
+
+    /* [2] Animation frame counter */
+    anim_ptr = *(short **)0x4e4cf8;
+    *(short *)((char *)unit + 0x1bc) = *(short *)((char *)unit + 0x1bc) + 1;
+    anim_counter = *(short *)((char *)unit + 0x1bc);
+
+    if (*(char *)((char *)anim_ptr + 4) == 0 && *anim_ptr < anim_counter) {
+        *(char *)((char *)anim_ptr + 4) = 1;
+        local_7 = 1;
+        *(short *)((char *)unit + 0x1bc) = 0;
+    } else {
+        if (anim_ptr[1] > anim_counter) {
+            anim_counter = anim_ptr[1];
+        }
+        anim_ptr[1] = anim_counter;
+    }
+
+    /* [3] Running blind vs static initialization */
+    if ((unit[0x6d] & 0x2000000) != 0) {
+        /* Running blind */
+        unit_update_running_blind(unit_handle, (float *)((char *)unit + 0x1d4));
+        /* Copy aiming -> looking, desired */
+        *(float *)((char *)unit + 0x1e0) = *(float *)((char *)unit + 0x1d4);
+        *(float *)((char *)unit + 0x1e4) = *(float *)((char *)unit + 0x1d8);
+        *(float *)((char *)unit + 0x1e8) = *(float *)((char *)unit + 0x1dc);
+        *(float *)((char *)unit + 0x204) = *(float *)((char *)unit + 0x1d4);
+        *(float *)((char *)unit + 0x208) = *(float *)((char *)unit + 0x1d8);
+        *(float *)((char *)unit + 0x20c) = *(float *)((char *)unit + 0x1dc);
+        /* Up from global 0x31fc3c */
+        {
+            float *g = *(float **)0x31fc3c;
+            *(float *)((char *)unit + 0x228) = g[0];
+            *(float *)((char *)unit + 0x22c) = g[1];
+            *(float *)((char *)unit + 0x230) = g[2];
+        }
+        unit[0x6e] = 0;
+    } else if ((unit[0x6d] & 1) == 0) {
+        /* Static: copy object forward -> all aiming slots */
+        float *fwd = (float *)((char *)unit + 0x24);
+        *(float *)((char *)unit + 0x204) = fwd[0];
+        *(float *)((char *)unit + 0x208) = fwd[1];
+        *(float *)((char *)unit + 0x20c) = fwd[2];
+        *(float *)((char *)unit + 0x1e0) = fwd[0];
+        *(float *)((char *)unit + 0x1e4) = fwd[1];
+        *(float *)((char *)unit + 0x1e8) = fwd[2];
+        *(float *)((char *)unit + 0x1d4) = fwd[0];
+        *(float *)((char *)unit + 0x1d8) = fwd[1];
+        *(float *)((char *)unit + 0x1dc) = fwd[2];
+        /* Up from global 0x31fc38 */
+        {
+            float *g = *(float **)0x31fc38;
+            *(float *)((char *)unit + 0x228) = g[0];
+            *(float *)((char *)unit + 0x22c) = g[1];
+            *(float *)((char *)unit + 0x230) = g[2];
+        }
+        unit[0x6e] = 0;
+    }
+
+    /* [4-7] Main update block (unless tag has interlocked flag 0x800) */
+    if ((*(uint32_t *)(tag_data + 0x17c) & 0x800) == 0) {
+        eff_timer_val = unit[0x70];
+        local_6 = 0;
+
+        /* [4] Effect timer countdown */
+        if (eff_timer_val > 0) {
+            uVar15 = (uint32_t)unit[0x6e] | (uint32_t)unit[0x71];
+            unit[0x6e] = (int)uVar15;
+            if ((unit[0x71] & 0x800) == 0) {
+                unit[0x8d] = 0;
+            } else {
+                if (eff_timer_val % 7 == 0) {
+                    uVar15 = uVar15 | 0x800;
+                } else {
+                    uVar15 = uVar15 & 0xfffff7ff;
+                }
+                unit[0x6e] = (int)uVar15;
+                unit[0x8d] = 0x3f800000;
+            }
+            unit[0x70] = eff_timer_val - 1;
+            if (eff_timer_val - 1 == 0) {
+                unit[0x71] = 0;
+            }
+        }
+
+        /* [5] Parent weapon holder aiming vectors */
+        if ((unit[0x6d] & 0x8000000) == 0) {
+            /* Primary holder (+0x2D4) */
+            if (unit[0xb5] != -1 &&
+                (*(unsigned char *)((char *)unit + 0xb6) & 4) == 0) {
+                holder = (int)object_get_and_verify_type(unit[0xb5], 3);
+                *(short *)((char *)unit + 0x68) = *(short *)(holder + 0x68);
+                local_6 = 1;
+
+                if (*(int *)(holder + 0x1c8) != -1 ||
+                    (*(char *)(holder + 0x253) != 0x1b &&
+                     *(char *)(holder + 0x253) != 0x1a)) {
+                    assert_halt(valid_real_normal3d((float *)(holder + 0x1d4)));
+                    unit[0x6e] = (int)((uint32_t)unit[0x6e] |
+                                 (*(uint32_t *)(holder + 0x1b8) & 0x3f));
+                    *(float *)((char *)unit + 0x1d4) = *(float *)(holder + 0x1d4);
+                    *(float *)((char *)unit + 0x1d8) = *(float *)(holder + 0x1d8);
+                    *(float *)((char *)unit + 0x1dc) = *(float *)(holder + 0x1dc);
+                    *(float *)((char *)unit + 0x228) = *(float *)(holder + 0x228);
+                    *(float *)((char *)unit + 0x22c) = *(float *)(holder + 0x22c);
+                    *(float *)((char *)unit + 0x230) = *(float *)(holder + 0x230);
+                }
+            }
+            /* Secondary holder (+0x2D8) */
+            if (unit[0xb6] != -1 &&
+                (*(unsigned char *)((char *)unit + 0xb6) & 4) == 0) {
+                holder = (int)object_get_and_verify_type(unit[0xb6], 3);
+                if (local_6 == 0) {
+                    *(short *)((char *)unit + 0x68) = *(short *)(holder + 0x68);
+                }
+                if (*(int *)(holder + 0x1c8) != -1 ||
+                    (*(char *)(holder + 0x253) != 0x1b &&
+                     *(char *)(holder + 0x253) != 0x1a)) {
+                    assert_halt(valid_real_normal3d((float *)(holder + 0x1e0)));
+                    *(float *)((char *)unit + 0x1e0) = *(float *)(holder + 0x1e0);
+                    *(float *)((char *)unit + 0x1e4) = *(float *)(holder + 0x1e4);
+                    *(float *)((char *)unit + 0x1e8) = *(float *)(holder + 0x1e8);
+                    *(float *)((char *)unit + 0x204) = *(float *)(holder + 0x1e0);
+                    *(float *)((char *)unit + 0x208) = *(float *)(holder + 0x1e4);
+                    *(float *)((char *)unit + 0x20c) = *(float *)(holder + 0x1e8);
+                    unit[0x6e] = (int)((uint32_t)unit[0x6e] |
+                                 (*(uint32_t *)(holder + 0x1b8) & 0x7c00));
+                    unit[0x8d] = *(int *)(holder + 0x234);
+                }
+            }
+            /* Flashlight-held counter */
+            if (((uint32_t)unit[0x6e] & 0x7c00) == 0) {
+                if (*(char *)((char *)unit + 0x2d2) < 0x7f) {
+                    *(char *)((char *)unit + 0x2d2) =
+                        *(char *)((char *)unit + 0x2d2) + 1;
+                }
+            } else {
+                *(char *)((char *)unit + 0x2d2) = 0;
+            }
+        }
+
+        /* Flashlight + firing combined check */
+        if (*(char *)0x5aa891 != 0 &&
+            ((uint32_t)unit[0x6e] & 0x800) != 0 &&
+            ((uint32_t)unit[0x6e] & 0x2000) != 0) {
+            local_5 = 1;
+        }
+
+        /* [6a] Melee timer (+0x32C) */
+        if ((*(unsigned char *)((char *)unit + 0x1b4) & 0x10) == 0) {
+            fVar20 = *(float *)((char *)unit + 0x32c) - *(float *)0x28ac20;
+            *(float *)((char *)unit + 0x32c) = fVar20;
+            if (fVar20 < 0.0f) {
+                *(float *)((char *)unit + 0x32c) = 0.0f;
+            }
+        } else {
+            cVar6 = ((char (*)(void))0xa8e30)();
+            fVar20 = *(float *)0x28ac20;
+            if (cVar6 != 0 && *(short *)((char *)unit + 0x3d2) != 0 &&
+                *(short *)((char *)unit + 0x3d2) == 1) {
+                iVar10 = (int)object_get_and_verify_type(unit_handle, 3);
+                iVar10 = unit_get_weapon(unit_handle,
+                             *(int16_t *)(iVar10 + 0x2a2));
+                fVar20 = *(float *)0x28ac20;
+                if (iVar10 != -1) {
+                    int *wo = (int *)object_get_and_verify_type(iVar10, 4);
+                    iVar10 = (int)tag_get(0x77656170, *wo);
+                    fVar20 = *(float *)0x28ac20;
+                    if (*(float *)(iVar10 + 0x4d0) != 0.0f) {
+                        fVar20 = *(float *)(iVar10 + 0x4d0);
+                    }
+                }
+            }
+            fVar1 = *(float *)((char *)unit + 0x32c);
+            *(float *)((char *)unit + 0x32c) = fVar20 + fVar1;
+            if (fVar20 + fVar1 > 1.0f) {
+                *(float *)((char *)unit + 0x32c) = 1.0f;
+                *(short *)((char *)unit + 0x3d2) = 0;
+            }
+        }
+
+        /* [6b] Firing timer (+0x330) */
+        if ((*(unsigned char *)((char *)unit + 0x1b4) & 0x20) == 0) {
+            fVar20 = *(float *)((char *)unit + 0x330) - *(float *)0x26f2e0;
+            *(float *)((char *)unit + 0x330) = fVar20;
+            if (fVar20 < 0.0f) {
+                *(float *)((char *)unit + 0x330) = 0.0f;
+            }
+        } else {
+            fVar20 = *(float *)((char *)unit + 0x330) + *(float *)0x26f2e0;
+            *(float *)((char *)unit + 0x330) = fVar20;
+            if (fVar20 > 1.0f) {
+                *(float *)((char *)unit + 0x330) = 1.0f;
+            }
+        }
+
+        /* [6c] Vehicle enter countdown (+0x3D8) */
+        {
+            int16_t t = *(int16_t *)((char *)unit + 0x3d8);
+            if (t > 0) {
+                t--;
+                *(int16_t *)((char *)unit + 0x3d8) = t;
+                if (t == 0) { unit[0xf5] = 0; }
+            }
+        }
+
+        /* [7a] Seat exit timer (+0x23C) */
+        {
+            char st = *(char *)((char *)unit + 0x23c);
+            if (st > 0) {
+                st--;
+                *(char *)((char *)unit + 0x23c) = st;
+                if (st == 0) { unit_set_in_vehicle(unit_handle, 1); }
+            }
+        }
+
+        /* [7b] Death / vehicle exit (+0x3D0) */
+        {
+            int16_t et = *(int16_t *)((char *)unit + 0x3d0);
+            if (et > 0 && (*(unsigned char *)((char *)unit + 4) & 0x20) != 0) {
+                et--;
+                *(int16_t *)((char *)unit + 0x3d0) = et;
+                if (et == 0) {
+                    if (*(float *)((char *)unit + 0x90) <= 0.0f) {
+                        unit_died(unit_handle, 0);
+                    } else {
+                        *(unsigned char *)((char *)unit + 0xb6) =
+                            *(unsigned char *)((char *)unit + 0xb6) & 0xfb;
+                        anim_byte = *(unsigned char *)((char *)unit + 0x248);
+                        unit_set_actively_controlled(unit_handle, 1);
+                        unit_try_animation_state(unit_handle,
+                            (int)*(int **)0x32e48c, 0, 1);
+                        FUN_001ad260(unit_handle,
+                            (int16_t)((~(anim_byte >> 3) & 1) | 0x22));
+                        *(unsigned char *)((char *)unit + 0x248) =
+                            *(unsigned char *)((char *)unit + 0x248) & 0xfb;
+                        if (*(short *)((char *)unit + 0x64) == 0) {
+                            biped_stop_limp_body_physics(unit_handle);
+                        }
+                        FUN_001a74d0(unit_handle, 5);
+                    }
+                }
+            }
+        }
+    } /* end tag 0x800 check */
+
+    /* ================================================================
+     * [8-10] Weapon management, aiming, combat state
+     * (unless tag has "interlocked weapons" flag 0x400)
+     * ================================================================ */
+    if ((*(uint32_t *)(tag_data + 0x17c) & 0x400) == 0) {
+        if ((*(unsigned short *)((char *)unit + 0xb6) & 4) == 0) {
+            /* [8a] Weapon slot switch */
+            if ((*(unsigned short *)((char *)unit + 0xb6) & 0x400) == 0) {
+                if (*(short *)((char *)unit + 0x2a4) !=
+                    *(short *)((char *)unit + 0x2a2)) {
+                    cVar6 = FUN_001a8730((void *)((char *)unit + 0x248));
+                    if (cVar6 == 0) {
+                        iVar10 = (int)object_get_and_verify_type(unit_handle, 3);
+                        iVar10 = unit_get_weapon(unit_handle,
+                                     *(int16_t *)(iVar10 + 0x2a4));
+                        if (iVar10 != -1) {
+                            cVar6 = unit_can_enter_seat(unit_handle, iVar10);
+                            if (cVar6 != 0) {
+                                unit_update_weapon_readiness(unit_handle, 1);
+                            }
+                        }
+                    }
+                }
+            } else {
+                unit_set_in_vehicle(unit_handle, 1);
+            }
+
+            /* [8b] Grenade type switch */
+            if (*(char *)((char *)unit + 0x2cd) !=
+                *(char *)((char *)unit + 0x2cc)) {
+                cVar6 = FUN_001a8730((void *)((char *)unit + 0x248));
+                if (cVar6 == 0) {
+                    grenade_idx = unit_inventory_next_grenade(unit_handle,
+                        (short)(signed char)*(char *)((char *)unit + 0x2cd), 0);
+                    if (grenade_idx != -1) {
+                        *(char *)((char *)unit + 0x2cc) = (char)grenade_idx;
+                    }
+                }
+            }
+
+            /* [8c] Grenade count enforcement */
+            if (*(char *)0x5aa892 != 0 && unit[0x72] != -1) {
+                char *gc = (char *)((char *)unit + 0x2ce);
+                int gi;
+                for (gi = 2; gi != 0; gi--) {
+                    signed char gv = *gc;
+                    if (gv < 2) { gv = 1; }
+                    *gc = gv;
+                    gc++;
+                }
+                if (*(char *)((char *)unit + 0x2cd) == (char)-1) {
+                    *(char *)((char *)unit + 0x2cd) = 0;
+                }
+            }
+
+            /* [8d] Zoom level change + weapon heat sound */
+            zoom_level_new = *(char *)((char *)unit + 0x2d1);
+            if (zoom_level_new != *(char *)((char *)unit + 0x2d0)) {
+                *(char *)((char *)unit + 0x2d0) = zoom_level_new;
+                if (zoom_level_new == (char)-1) {
+                    unit[0xbe] = 0;
+                }
+                iVar10 = ((int (*)(int))0xba500)(unit_handle);
+                if (iVar10 != -1) {
+                    int pi = ((int (*)(int))0xba500)(unit_handle);
+                    int pd = (int)datum_get(*(void **)0x5aa6d4, pi);
+                    if (*(short *)(pd + 2) != -1) {
+                        iVar10 = (int)object_get_and_verify_type(unit_handle, 3);
+                        iVar10 = unit_get_weapon(unit_handle,
+                                     *(int16_t *)(iVar10 + 0x2a2));
+                        if (iVar10 != -1) {
+                            int *wo = (int *)object_get_and_verify_type(iVar10, 4);
+                            wpn_tag = (int)tag_get(0x77656170, *wo);
+                            zoom_level_new = *(char *)((char *)unit + 0x2d0);
+                            if (zoom_level_new == (char)-1) {
+                                zoom_sound_ref = *(int *)(wpn_tag + 0x4bc);
+                            } else {
+                                zoom_sound_ref = *(int *)(wpn_tag + 0x4ac);
+                            }
+                            zoom_interp = 1.0f;
+                            if (zoom_level_new != (char)-1 &&
+                                *(short *)(wpn_tag + 0x3da) > 1) {
+                                int denom = (int)*(short *)(wpn_tag + 0x3da) - 1;
+                                zoom_interp =
+                                    (float)(int)(signed char)zoom_level_new /
+                                    (float)denom;
+                            }
+                            if (zoom_sound_ref != -1) {
+                                ((void (*)(int, float))0x1c7480)(
+                                    zoom_sound_ref, zoom_interp);
+                            }
+                        }
+                    }
+                }
+            }
+        } /* end seat-held check */
+
+        /* [9] Aiming and looking update */
+        unit_control_trace(unit_handle, (const char *)0x2b7c28);
+
+        if (*(char *)((char *)unit + 0x238) == 1) {
+            local_14 = *(float *)(tag_data + 0x26c);
+        } else {
+            local_14 = 1.0f;
+        }
+
+        aim_vec = (float *)((char *)unit + 0x1ec);
+        aim_vel_limit = local_14 * *(float *)(tag_data + 0x264) *
+                        *(float *)0x2546a4;
+        saved_aim[0] = aim_vec[0];
+        saved_aim[1] = aim_vec[1];
+        saved_aim[2] = aim_vec[2];
+        aim_accel_limit = local_14 * *(float *)(tag_data + 0x268) *
+                          *(float *)0x25620c;
+
+        /* [9a] Aiming: 3 paths */
+        if (aim_vel_limit == 0.0f && aim_accel_limit == 0.0f) {
+            /* Instant */
+            float *des = (float *)((char *)unit + 0x1e0);
+            assert_halt(valid_real_normal3d(des));
+            aim_vec[0] = des[0]; aim_vec[1] = des[1]; aim_vec[2] = des[2];
+            unit_clip_to_aiming_bounds(unit_handle, aim_vec, 1);
+            {
+                float *g = *(float **)0x31fc38;
+                *(float *)((char *)unit + 0x1f8) = g[0];
+                *(float *)((char *)unit + 0x1fc) = g[1];
+                *(float *)((char *)unit + 0x200) = g[2];
+            }
+            unit_control_trace(unit_handle, (const char *)0x2b7bf0);
+        } else if (*(char *)((char *)unit + 0x266) == 0) {
+            /* Smooth */
+            ((void (*)(float*,float*,float*,float,float))0x10f770)(
+                aim_vec,
+                (float *)((char *)unit + 0x1e0),
+                (float *)((char *)unit + 0x1f8),
+                aim_vel_limit, aim_accel_limit);
+            unit_control_trace(unit_handle, (const char *)0x2b7bc4);
+        } else {
+            /* Euler */
+            float *grav;
+            local_5c = 1.0f;
+            object_get_orientation(unit_handle, local_58, local_40);
+            local_4c = local_58[2] * local_40[1] - local_40[2] * local_58[1];
+            local_48 = local_40[2] * local_58[0] - local_58[2] * local_40[0];
+            local_44 = local_58[1] * local_40[0] - local_40[1] * local_58[0];
+            grav = *(float **)0x31fc1c;
+            local_34[0] = grav[0]; local_34[1] = grav[1]; local_34[2] = grav[2];
+            FUN_001b0630((int)&local_5c, aim_vec,
+                (float *)((char *)unit + 0x1e0),
+                (float *)((char *)unit + 0x1f8),
+                (float *)((char *)unit + 0x268),
+                aim_vel_limit, aim_accel_limit);
+            unit_control_trace(unit_handle, (const char *)0x2b7bd8);
+        }
+
+        /* Delta angle + steering byte */
+        FUN_0010c510(aim_vec, saved_aim);
+        iVar10 = tag_data;
+        delta_angle = FUN_0010c510(aim_vec, saved_aim);
+        ratio = delta_angle / (*(float *)(iVar10 + 0x264) * *(float *)0x2546a4);
+        if (ratio < 0.0f) { ratio = 0.0f; }
+        else if (ratio > 1.0f) { ratio = 1.0f; }
+        ratio = ratio * *(float *)0x2602c8;
+        *(char *)((char *)unit + 0x2d3) = (char)(int)ratio;
+
+        /* Assert aim vector */
+        assert_halt(valid_real_normal3d(aim_vec));
+
+        /* [9c] Looking direction */
+        aim_vel_limit = local_14 * *(float *)(iVar10 + 0x270) *
+                        *(float *)0x2546a4;
+        aim_accel_limit = local_14 * *(float *)(iVar10 + 0x274) *
+                          *(float *)0x25620c;
+
+        if (aim_vel_limit == 0.0f && aim_accel_limit == 0.0f) {
+            float *des = (float *)((char *)unit + 0x204);
+            float *lk = (float *)((char *)unit + 0x210);
+            lk[0] = des[0]; lk[1] = des[1]; lk[2] = des[2];
+            unit_clip_to_aiming_bounds(unit_handle, lk, 0);
+            {
+                float *g = *(float **)0x31fc38;
+                *(float *)((char *)unit + 0x21c) = g[0];
+                *(float *)((char *)unit + 0x220) = g[1];
+                *(float *)((char *)unit + 0x224) = g[2];
+            }
+            unit_control_trace(unit_handle, (const char *)0x2b7bac);
+        } else if (*(char *)((char *)unit + 0x267) == 0) {
+            float *lk = (float *)((char *)unit + 0x210);
+            ((void (*)(float*,float*,float*,float,float))0x10f770)(
+                lk,
+                (float *)((char *)unit + 0x204),
+                (float *)((char *)unit + 0x21c),
+                aim_vel_limit, aim_accel_limit);
+            unit_control_trace(unit_handle, (const char *)0x2b7b80);
+        } else {
+            float *lk = (float *)((char *)unit + 0x210);
+            float *grav;
+            local_5c = 1.0f;
+            object_get_orientation(unit_handle, local_58, local_40);
+            local_4c = local_58[2] * local_40[1] - local_40[2] * local_58[1];
+            local_48 = local_40[2] * local_58[0] - local_58[2] * local_40[0];
+            local_44 = local_58[1] * local_40[0] - local_40[1] * local_58[0];
+            grav = *(float **)0x31fc1c;
+            local_34[0] = grav[0]; local_34[1] = grav[1]; local_34[2] = grav[2];
+            FUN_001b0630((int)&local_5c, lk,
+                (float *)((char *)unit + 0x204),
+                (float *)((char *)unit + 0x21c),
+                (float *)((char *)unit + 0x278),
+                aim_vel_limit, aim_accel_limit);
+            unit_control_trace(unit_handle, (const char *)0x2b7b94);
+        }
+
+        /* Assert look vector */
+        assert_halt(valid_real_normal3d((float *)((char *)unit + 0x210)));
+        unit_control_trace(unit_handle, (const char *)0x2b7b4c);
+
+        /* [10] Combat state switch */
+        if (local_5 == 0) {
+            uint32_t ff = (uint32_t)unit[0x6e] >> 0xd;
+            switch (*(signed char *)((char *)unit + 0x23d)) {
+            case 0:
+                if ((ff & 1) != 0) {
+                    unit_throw_grenade_begin(unit_handle, 0);
+                }
+                break;
+            case 1:
+                if (*(short *)((char *)unit + 0x82) > 1) {
+                    FUN_001aaf40(unit_handle);
+                }
+                break;
+            case 2:
+                *(short *)((char *)unit + 0x23e) =
+                    *(short *)((char *)unit + 0x23e) + 1;
+                if (*(char *)((char *)unit + 0x253) != 0x21) {
+                    FUN_001ab110(unit_handle, 1);
+                }
+                break;
+            case 3:
+                if (*(char *)((char *)unit + 0x253) != 0x21 &&
+                    (ff & 1) == 0) {
+                    *(char *)((char *)unit + 0x23d) = (char)(ff & 1);
+                }
+                break;
+            }
+        }
+
+        /* [11] Weapon firing effects */
+        if (*(short *)((char *)unit + 0x2a2) != -1) {
+            flash_mod = *(float *)((char *)unit + 0x234);
+            uVar15 = 0;
+
+            if (*(short *)((char *)unit + 0x2a2) ==
+                *(short *)((char *)unit + 0x2a4)) {
+                /* Current = desired weapon */
+                if (unit[0x70] > 0 && (unit[0x71] & 0x800) != 0) {
+                    local_6 = 1;
+                } else {
+                    local_6 = 0;
+                }
+                if (local_5 == 0) {
+                    if (local_9 != 0 &&
+                        (*(unsigned char *)((char *)unit + 0x1b8) & 0x10) != 0) {
+                        uVar15 = 1;
+                    }
+                    if (((uint32_t)unit[0x6e] & 0x800) != 0) { uVar15 |= 2; }
+                    if (((uint32_t)unit[0x6e] & 0x1000) != 0) { uVar15 |= 4; }
+                }
+                {
+                    int ut = (int)tag_get(0x756e6974, *unit);
+                    if ((*(uint32_t *)(ut + 0x17c) & 0x800000) != 0) {
+                        int ud2 = (int)object_get_and_verify_type(unit_handle, 3);
+                        int w = unit_get_weapon(unit_handle,
+                                    *(int16_t *)(ud2 + 0x2a2));
+                        ((void (*)(int))0xfaeb0)(w);
+                    }
+                }
+                if (((uint32_t)unit[0x6e] & 0x400) != 0) { uVar15 |= 8; }
+                cVar6 = FUN_001a8730((void *)((char *)unit + 0x248));
+                if (cVar6 != 0 && local_6 == 0) { uVar15 |= 0x10; }
+                if (*(short *)((char *)unit + 0x64) == 0 &&
+                    *(char *)((char *)unit + 0x45d) > 0) {
+                    uVar15 |= 0x10;
+                }
+                if (*(char *)((char *)unit + 0x2d0) != (char)-1) {
+                    uVar15 |= 0x40;
+                }
+            } else {
+                uVar15 = 0x20;
+            }
+
+            {
+                int ud3 = (int)object_get_and_verify_type(unit_handle, 3);
+                int w2 = unit_get_weapon(unit_handle,
+                             *(int16_t *)(ud3 + 0x2a2));
+                ((void (*)(int, uint32_t, float))0xfc4b0)(
+                    w2, uVar15, flash_mod);
+            }
+        }
+    } /* end tag 0x400 check */
+
+    /* [12] Assert forward/up axes valid */
+    {
+        float *obj_fwd = (float *)((char *)unit + 0x24);
+        float *obj_up = (float *)((char *)unit + 0x30);
+        cVar6 = (char)valid_real_normal3d_perpendicular(obj_fwd, obj_up);
+        if (cVar6 == 0) {
+            char *msg = csprintf(*(char **)0x5ab100,
+                "%s, %s: assert_valid_real_vector3d_axes2(%f, %f, %f / %f, %f, %f)",
+                "&unit->object.forward", "&unit->object.up",
+                (double)obj_fwd[0], (double)obj_fwd[1], (double)obj_fwd[2],
+                (double)obj_up[0], (double)obj_up[1], (double)obj_up[2]);
+            display_assert(msg, "c:\\halo\\SOURCE\\units\\units.c", 0x483, 1);
+            system_exit(-1);
+        }
+    }
+    assert_halt(valid_real_normal3d((float *)((char *)unit + 0x1ec)));
+    assert_halt(valid_real_normal3d((float *)((char *)unit + 0x210)));
+
+    /* [13] Aim assist blending + weapon seat loop */
+    if ((*(uint32_t *)(tag_data + 0x17c) & 0x800) == 0) {
+        if ((*(unsigned char *)((char *)unit + 0x248) & 2) != 0) {
+            unit_aiming_vector(unit_handle);
+            *(float *)((char *)unit + 0x314) =
+                *(float *)((char *)unit + 0x314) * 0.7f +
+                *(float *)((char *)unit + 0x320) * 0.3f;
+            *(float *)((char *)unit + 0x318) =
+                *(float *)((char *)unit + 0x318) * 0.7f +
+                *(float *)((char *)unit + 0x324) * 0.3f;
+            *(float *)((char *)unit + 0x31c) =
+                *(float *)((char *)unit + 0x31c) * 0.7f +
+                *(float *)((char *)unit + 0x328) * 0.3f;
+        }
+
+        /* Weapon seat interpolation loop */
+        {
+            int *tb = (int *)(tag_data + 0x2cc);
+            seat_i = 0;
+            if (*tb > 0) {
+                seat_off = 0;
+                do {
+                    elem = (int)tag_block_get_element(tb, seat_off, 0x44);
+                    if (seat_i == 0) {
+                        if (unit[0xb5] == -1 &&
+                            (*(unsigned char *)((char *)unit + 0x1b4) & 1) == 0) {
+                            is_held = 0;
+                        } else {
+                            is_held = 1;
+                        }
+                    } else {
+                        if (unit[0xb6] == -1 || unit[0xb6] == unit[0xb5]) {
+                            is_held = 0;
+                        } else {
+                            is_held = 1;
+                        }
+                    }
+                    if ((*(unsigned char *)((char *)unit + 0xb6) & 4) == 0 &&
+                        is_held) {
+                        if (*(int *)((char *)unit + seat_off * 4 + 0x2e8) !=
+                            0x3f800000) {
+                            fVar20 = 1.0f /
+                                (*(float *)(elem + 4) * TICKS_PER_SECOND) +
+                                *(float *)((char *)unit + seat_off * 4 + 0x2e8);
+                            *(float *)((char *)unit + seat_off * 4 + 0x2e8) =
+                                fVar20;
+                            if (fVar20 > 1.0f) {
+                                *(float *)((char *)unit + seat_off * 4 + 0x2e8) =
+                                    1.0f;
+                            }
+                        }
+                    } else {
+                        if (*(float *)((char *)unit + seat_off * 4 + 0x2e8) !=
+                            0.0f) {
+                            fVar20 =
+                                *(float *)((char *)unit + seat_off * 4 + 0x2e8) -
+                                1.0f /
+                                (*(float *)(elem + 8) * TICKS_PER_SECOND);
+                            *(float *)((char *)unit + seat_off * 4 + 0x2e8) =
+                                fVar20;
+                            if (fVar20 < 0.0f) {
+                                *(float *)((char *)unit + seat_off * 4 + 0x2e8) =
+                                    0.0f;
+                            }
+                        }
+                    }
+                    seat_i++;
+                    seat_off = (int)seat_i;
+                } while (seat_off < *tb);
+            }
+        }
+    }
+
+    /* [14] Effect cooldown timer (+0x3B6) */
+    {
+        int16_t et2 = *(int16_t *)((char *)unit + 0x3b6);
+        if (et2 > 0) {
+            et2--;
+            *(int16_t *)((char *)unit + 0x3b6) = et2;
+            if (et2 == 0) {
+                eff_handle = *(int *)((char *)unit + 0x3bc);
+                eff_data = *(int *)((char *)unit + 0x3b8);
+                eff_anim = *(int16_t *)((char *)unit + 0x3b4);
+                ((void (*)(int, int, int16_t, int, int, int))0x40460)(
+                    unit_handle, eff_handle, eff_anim, eff_data, 0, 1);
+                *(int16_t *)((char *)unit + 0x3b4) = 0;
+                unit[0xef] = -1;
+                unit[0xee] = 0;
+            }
+        }
+    }
+
+    /* Post-update calls */
+    FUN_001abd90(unit_handle);
+    FUN_001a7790(unit_handle);
+
+    /* Weapon alert sound */
+    if ((local_7 != 0 || unit[0x72] != -1) &&
+        (FUN_001ab8c0(unit_handle),
+         *(char *)0x5054fa != 0) &&
+        unit[0x72] != -1) {
+        iVar10 = ((int (*)(void))0xb5aa0)();
+        if (iVar10 >= *(int *)0x32e480 + 0x1e) {
+            ((void (*)(int, const char *, ...))0x8f390)(
+                2, (const char *)0x2b7b20,
+                (double)*(float *)((char *)unit + 0x290),
+                (double)*(float *)((char *)unit + 0x294));
+            *(int *)0x32e480 = iVar10;
+        }
+    }
+
+    /* Flame-to-death timer (+0x23B) */
+    {
+        char ft = *(char *)((char *)unit + 0x23b);
+        if (ft > 0) {
+            ft--;
+            *(char *)((char *)unit + 0x23b) = ft;
+            if (ft == 0) { unit_flame_to_death(unit_handle); }
+        }
+    }
+
+    /* [15] Steering decay */
+    {
+        float neg = -(*(float *)((char *)unit + 0x298));
+        float cl;
+        if (*(float *)0x25e884 <= neg) {
+            cl = neg;
+            if (neg > *(float *)0x25496c) { cl = *(float *)0x25496c; }
+        } else {
+            cl = *(float *)0x25e884;
+        }
+        *(float *)((char *)unit + 0x298) = cl + *(float *)((char *)unit + 0x298);
+    }
+
+    /* Integrated light toggle flags */
+    unit_flags = (uint32_t)unit[0x6d];
+    cVar6 = local_8;
+    if ((unit_flags & 0x10000000) != 0) {
+        cVar6 = 1;
+        if ((unit_flags & 0x80000) != 0) { cVar6 = local_8; }
+        unit[0x6d] = (int)(unit_flags & 0xefffffff);
+    }
+    unit_flags = (uint32_t)unit[0x6d];
+    if ((unit_flags & 0x20000000) != 0) {
+        if ((unit_flags & 0x80000) != 0) { cVar6 = 1; }
+        unit[0x6d] = (int)(unit_flags & 0xdfffffff);
+    }
+
+    /* [17] Weapon flash/camo effect */
+    if ((local_9 != 0 &&
+         (*(unsigned char *)((char *)unit + 0x1b8) & 0x10) != 0) ||
+        *(float *)((char *)unit + 0x2f4) < 0.0f ||
+        cVar6 != 0) {
+
+        iVar10 = (int)object_get_and_verify_type(unit_handle, 3);
+        if (*(char *)(iVar10 + 0x2d0) != (char)-1) {
+            iVar10 = (int)object_get_and_verify_type(unit_handle, 3);
+            iVar10 = unit_get_weapon(unit_handle,
+                         *(int16_t *)(iVar10 + 0x2a2));
+            if (iVar10 != -1) {
+                int *wo = (int *)object_get_and_verify_type(iVar10, 4);
+                wpn_tag = (int)tag_get(0x77656170, *wo);
+                if ((*(uint32_t *)(wpn_tag + 0x308) & 0x4000) != 0 &&
+                    (*(unsigned char *)((char *)unit + 0x1b8) & 0x10) != 0) {
+                    game_glob = (int)game_globals_get();
+                    assert_halt_msg(game_glob != 0, "game_globals");
+                    fp_iface = (int)tag_block_get_element(
+                        (void *)(game_glob + 0x17c), 0, 0xc0);
+                    assert_halt_msg(fp_iface != 0,
+                        "game_globals_first_person_interface");
+                    if ((unit[0x6d] & 0x4000000) == 0) {
+                        iVar10 = *(int *)(fp_iface + 0x54);
+                    } else {
+                        iVar10 = *(int *)(fp_iface + 0x64);
+                    }
+                    if (iVar10 != -1) {
+                        FUN_0009ec30(iVar10, unit_handle, unit_handle,
+                            -1, 0.0f, 0.0f, 0, 0);
+                    }
+                    unit[0x6d] = unit[0x6d] ^ 0x4000000;
+                    if ((*(unsigned char *)((char *)unit + 0x1b8) & 0x10) != 0) {
+                        goto label_flashlight_done;
+                    }
+                }
+            }
+        }
+        /* Normal flashlight toggle */
+        if (((unit[0x6d] & 0x80000) != 0 ||
+             *(float *)((char *)unit + 0x2f4) > *(float *)0x2549d4) &&
+            unit[0x33] == -1) {
+            FUN_0009ec30(*(int *)(tag_data + 0x194), unit_handle, unit_handle,
+                -1, 0.0f, 0.0f, 0, 0);
+            unit[0x6d] = unit[0x6d] ^ 0x80000;
+        }
+    }
+label_flashlight_done:
+
+    /* [18] Camo/weapon power timers */
+    if ((unit[0x6d] & 0x80000) == 0) {
+        if (*(float *)((char *)unit + 0x2f4) < 1.0f) {
+            *(float *)((char *)unit + 0x2f4) =
+                *(float *)((char *)unit + 0x2f4) + *(float *)0x25620c;
+        }
+        if (*(float *)((char *)unit + 0x2f0) != 0.0f) {
+            fVar20 = *(float *)((char *)unit + 0x2f0) - *(float *)0x28af18;
+            *(float *)((char *)unit + 0x2f0) = fVar20;
+            if (fVar20 < 0.0f) {
+                *(float *)((char *)unit + 0x2f0) = 0.0f;
+            }
+        }
+    } else {
+        if ((*(uint32_t *)(tag_data + 0x17c) & 0x1000000) == 0) {
+            *(float *)((char *)unit + 0x2f4) =
+                *(float *)((char *)unit + 0x2f4) - *(float *)0x253f2c;
+        }
+        if (unit[0x33] != -1 ||
+            (*(unsigned char *)((char *)unit + 0xb6) & 4) != 0) {
+            unit[0x6d] = unit[0x6d] & (int)0xfff7ffff;
+        }
+        if (*(int *)((char *)unit + 0x2f0) != 0x3f800000) {
+            fVar20 = *(float *)((char *)unit + 0x2f0) + *(float *)0x2647d4;
+            *(float *)((char *)unit + 0x2f0) = fVar20;
+            if (fVar20 > 1.0f) {
+                *(float *)((char *)unit + 0x2f0) = 1.0f;
+            }
+        }
+    }
+
+    /* [19] Per-weapon integrated light power */
+    iVar10 = (int)object_get_and_verify_type(unit_handle, 3);
+    if (*(char *)(iVar10 + 0x2d0) != (char)-1) {
+        unit_data_tmp = (int)object_get_and_verify_type(unit_handle, 3);
+        wpn_idx = *(int16_t *)(unit_data_tmp + 0x2a2);
+        unit_data_tmp = (int)object_get_and_verify_type(unit_handle, 3);
+        if (wpn_idx != -1) {
+            if (wpn_idx < 0 || wpn_idx >= 4) {
+                display_assert(
+                    "index>=0 && index<MAXIMUM_WEAPONS_PER_UNIT",
+                    "c:\\halo\\SOURCE\\units\\units.c", 0x20ac, 1);
+                system_exit(-1);
+            }
+            iVar10 = *(int *)(unit_data_tmp + 0x2a8 + wpn_idx * 4);
+            if (iVar10 != -1) {
+                int *wo = (int *)object_get_and_verify_type(iVar10, 4);
+                wpn_tag = (int)tag_get(0x77656170, *wo);
+                if ((*(uint32_t *)(wpn_tag + 0x308) & 0x4000) != 0) {
+                    if ((unit[0x6d] & 0x4000000) == 0) {
+                        if (*(float *)((char *)unit + 0x2f8) != 0.0f) {
+                            fVar20 = *(float *)((char *)unit + 0x2f8) -
+                                     *(float *)0x28af18;
+                            *(float *)((char *)unit + 0x2f8) = fVar20;
+                            if (fVar20 < 0.0f) {
+                                *(float *)((char *)unit + 0x2f8) = 0.0f;
+                            }
+                        }
+                    } else {
+                        if (*(int *)((char *)unit + 0x2f8) != 0x3f800000) {
+                            fVar20 = *(float *)((char *)unit + 0x2f8) +
+                                     *(float *)0x255960;
+                            *(float *)((char *)unit + 0x2f8) = fVar20;
+                            if (fVar20 > 1.0f) {
+                                *(float *)((char *)unit + 0x2f8) = 1.0f;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /* [20] Debug trace exit */
+    unit_control_trace(unit_handle, (const char *)0x2b7aec);
+    if (*(char *)0x449ef1 != 0 && *(char *)0x32de90 != 0) {
+        ((void (*)(void *))0x8fac0)((void *)0x32de88);
+    }
+
+    return 1;
+}
+
+/* FUN_001a6350 (0x1a6350)
+ * Biped per-tick update dispatcher. Called each tick for biped-type units.
+ * If the biped is free (no parent object), runs the full update chain:
+ *   - FUN_001a4440: pre-update setup
+ *   - normalize forward vector at +0x1D4, set animation state byte at +0x42a
+ *   - clamp/reset velocity at +0x228, melee counters at +0x459/+0x45a
+ *   - FUN_001a4c50: turning, FUN_001a5300: moving
+ *   - FUN_001a2900/FUN_001a2a60/FUN_001a2b10/FUN_001a6280: death/air/land/slip
+ *   - melee damage timer at +0x45d/+0x45e
+ *   - FUN_001a2440, FUN_001a1e70, FUN_001a0b30: footstep/marker events
+ * If seated in a vehicle (parent +0xCC != -1), handles ejection and exit.
+ * FUN_001b0d90 runs at the end in both cases; tracks suspension ticks at +0x6C.
+ * Always returns 1 (via CONCAT31).
+ * Confirmed: cdecl, 1 stack param, returns char. */
+char FUN_001a6350(int unit_handle)
+{
+    unsigned int *biped;
+    char *biped_tag;
+    char *parent;
+    char *vehicle;
+    char *weapon_unit;
+    int weapon_handle;
+    int weapon_handle_saved;
+    char result1;
+    char result2;
+    char shifted;
+    signed char anim_state;
+    float mag_sq;
+    char *fwd_ptr;
+    float *vec;
+    short anim_result;
+    unsigned char state_pair[2]; /* [0]=local_8 (flags), [1]=local_7 (ground contact) */
+
+    biped = (unsigned int *)object_get_and_verify_type(unit_handle, 1);
+    biped_tag = (char *)tag_get(0x62697064, *(int *)biped);
+
+    if (*(char *)0x004e4cf1 != 0) {
+        return 1;
+    }
+
+    /* Debug trace enter */
+    if (*(char *)0x00449ef1 != 0 && *(char *)0x0032d1d8 != 0) {
+        profile_enter_private((void *)0x0032d1d0);
+    }
+
+    FUN_001a2800(unit_handle, "pre-update");
+
+    state_pair[0] = 0;
+    state_pair[1] = 0;
+
+    if (*(int *)((char *)biped + 0xcc) != -1) {
+        /* Biped is seated in a parent object */
+        parent = (char *)object_get_and_verify_type(
+            *(int *)((char *)biped + 0xcc), -1);
+
+        if (*(short *)(parent + 0x64) == 1) {
+            /* Parent is a vehicle */
+            vehicle = (char *)object_get_and_verify_type(
+                *(int *)((char *)biped + 0xcc), 2);
+
+            FUN_001a1fb0(unit_handle);
+
+            if ((*(unsigned char *)((char *)biped + 0x1b8) & 0x40) != 0) {
+                unit_try_and_exit_seat(unit_handle);
+            }
+
+            if (*(char *)0x0032d1c8 != 0 &&
+                *(float *)(vehicle + 0x38) < 0.0f &&
+                (*(unsigned char *)(vehicle + 0x4) & 0x2) != 0) {
+                unit_exit_seat_end(unit_handle);
+            }
+        } else if (*(short *)(parent + 0x64) == 0) {
+            state_pair[0] = (*(unsigned char *)(parent + 0xb6) & 0x4) | 0x20;
+        }
+    } else {
+        /* Biped is free (not seated) */
+        FUN_001a4440(unit_handle);
+
+        if ((*(unsigned char *)((char *)biped + 0xb6) & 0x4) != 0 ||
+            (*(unsigned char *)(biped_tag + 0x2f4) & 0x44) == 0) {
+            /* Normalize the forward vector at +0x1D4 */
+            vec = (float *)((char *)biped + 0x1d4);
+            *(float *)((char *)biped + 0x1dc) = 0.0f;
+            if (normalize3d(vec) == 0.0f) {
+                fwd_ptr = *(char **)0x0031fc3c;
+                vec[0] = *(float *)(fwd_ptr);
+                vec[1] = *(float *)(fwd_ptr + 4);
+                vec[2] = *(float *)(fwd_ptr + 8);
+            }
+        }
+
+        /* Set animation mode byte at +0x42a from anim state at +0x253 */
+        anim_state = *(signed char *)((char *)biped + 0x253);
+        switch (anim_state) {
+        case 0:
+        case 2:
+        case 3:
+            *(unsigned char *)((char *)biped + 0x42a) = 0;
+            break;
+        case 4:
+        case 5:
+        case 6:
+        case 7:
+            *(unsigned char *)((char *)biped + 0x42a) = 1;
+            break;
+        default:
+            *(unsigned char *)((char *)biped + 0x42a) = 2;
+            break;
+        }
+
+        /* Clamp velocity vector at +0x228 if magnitude squared < threshold */
+        mag_sq = *(float *)((char *)biped + 0x228) *
+                     *(float *)((char *)biped + 0x228) +
+                 *(float *)((char *)biped + 0x22c) *
+                     *(float *)((char *)biped + 0x22c) +
+                 *(float *)((char *)biped + 0x230) *
+                     *(float *)((char *)biped + 0x230);
+        if (mag_sq < *(float *)0x00255d1c) {
+            fwd_ptr = *(char **)0x0031fc38;
+            *(float *)((char *)biped + 0x228) = *(float *)(fwd_ptr);
+            *(float *)((char *)biped + 0x22c) = *(float *)(fwd_ptr + 4);
+            *(float *)((char *)biped + 0x230) = *(float *)(fwd_ptr + 8);
+        }
+
+        /* Melee counter at +0x459 (primary) */
+        if ((*(int *)((char *)biped + 0x424) & 1) == 0) {
+            *(unsigned char *)((char *)biped + 0x459) = 0;
+        } else if (*(signed char *)((char *)biped + 0x459) < 0x7f) {
+            *(unsigned char *)((char *)biped + 0x459) =
+                *(unsigned char *)((char *)biped + 0x459) + 1;
+        }
+
+        /* Melee counter at +0x45a (secondary) */
+        if ((*(int *)((char *)biped + 0x424) & 2) == 0) {
+            *(unsigned char *)((char *)biped + 0x45a) = 0;
+        } else if (*(signed char *)((char *)biped + 0x45a) < 0x7f) {
+            *(unsigned char *)((char *)biped + 0x45a) =
+                *(unsigned char *)((char *)biped + 0x45a) + 1;
+        }
+
+        state_pair[0] = 0;
+        state_pair[1] = *(unsigned char *)((char *)biped + 0x1b8) & 1;
+
+        FUN_001a2800(unit_handle, "pre-turning");
+
+        if ((*(unsigned char *)((char *)biped + 0xb6) & 0x4) == 0) {
+            FUN_001a4c50(unit_handle, state_pair);
+            FUN_001a2800(unit_handle, "post-turning");
+        }
+
+        FUN_001a5300(unit_handle, state_pair);
+        FUN_001a2800(unit_handle, "post-moving");
+
+        if ((*(unsigned char *)((char *)biped + 0xb6) & 0x4) != 0) {
+            FUN_001a6280(unit_handle, (char *)state_pair);
+        } else {
+            if ((*(int *)((char *)biped + 0x424) & 1) != 0) {
+                FUN_001a2900(unit_handle, (char *)state_pair);
+            } else if (*(short *)((char *)biped + 0x460) != -1) {
+                FUN_001a2a60(unit_handle, (char *)state_pair);
+            } else if ((*(int *)((char *)biped + 0x424) & 2) != 0) {
+                FUN_001a2b10(unit_handle);
+            }
+        }
+
+        FUN_001a2800(unit_handle, "post-dead/air/land/slip");
+
+        /* Melee damage timer */
+        if (*(signed char *)((char *)biped + 0x45d) != 0) {
+            if (*(unsigned char *)((char *)biped + 0x45d) ==
+                *(unsigned char *)((char *)biped + 0x45e)) {
+                unit_cause_player_melee_damage(unit_handle);
+            }
+            *(signed char *)((char *)biped + 0x45d) =
+                *(signed char *)((char *)biped + 0x45d) - 1;
+        } else {
+            /* Check if weapon can initiate melee */
+            if (*(int *)((char *)biped + 0x1c8) != -1 &&
+                (*(signed char *)((char *)biped + 0x1b8) < 0)) {
+                weapon_unit = (char *)object_get_and_verify_type(unit_handle, 3);
+                weapon_handle = unit_get_weapon(unit_handle,
+                    *(short *)(weapon_unit + 0x2a2));
+                weapon_handle_saved = weapon_handle;
+
+                if (!weapon_prevents_melee_attack(weapon_handle) &&
+                    *(signed char *)((char *)biped + 0x2d0) == -1) {
+                    unit_animation_start_action(unit_handle, 7);
+                    weapon_stop_reload(weapon_handle_saved);
+                    first_person_weapon_message_from_unit(unit_handle, 4);
+
+                    result1 = weapon_get_animation_frame(
+                        weapon_handle_saved, 0, 0xd, -1);
+                    result2 = weapon_get_animation_frame(
+                        weapon_handle_saved, 1, 0xd, -1);
+
+                    shifted = (signed char)result1 >> 2;
+                    *(signed char *)((char *)biped + 0x45d) =
+                        result1 - shifted;
+                    *(signed char *)((char *)biped + 0x45e) =
+                        (result1 - result2) - shifted;
+                }
+            }
+        }
+
+        FUN_001a2440(unit_handle);
+        FUN_001a1e70(unit_handle);
+        FUN_001a0b30(unit_handle);
+    }
+
+    /* Post-section: animation state update */
+    anim_result = FUN_001b0d90(unit_handle, (char *)state_pair);
+    if (anim_result == 1) {
+        FUN_001a2290(unit_handle);
+    }
+
+    /* Suspension tick counter at +0x6C */
+    if ((*(unsigned char *)((char *)biped + 0xb6) & 0x4) != 0 &&
+        (*(unsigned char *)((char *)biped + 0x4) & 0x20) != 0) {
+        *(short *)((char *)biped + 0x6c) =
+            *(short *)((char *)biped + 0x6c) + 1;
+    } else {
+        *(short *)((char *)biped + 0x6c) = 0;
+    }
+
+    FUN_001a2800(unit_handle, "post-update");
+
+    /* Debug trace exit */
+    if (*(char *)0x00449ef1 != 0 && *(char *)0x0032d1d8 != 0) {
+        profile_exit_private((void *)0x0032d1d0);
+    }
+
+    return 1;
+}
