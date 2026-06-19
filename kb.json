@@ -13893,7 +13893,7 @@
           "addr": "0x11a430",
           "decl": "int FUN_0011a430(int *state, short count, int element_size);",
           "name": "FUN_0011a430",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x11a560",
@@ -13917,7 +13917,7 @@
           "addr": "0x11a6d0",
           "decl": "int64_t FUN_0011a6d0(int *state);",
           "name": "FUN_0011a6d0",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x11a700",
@@ -13952,7 +13952,7 @@
           "addr": "0x11b2a0",
           "decl": "void FUN_0011b2a0(int definition, int *decode_state, unsigned short version, unsigned short *output, short *decoded_size_out, short *field_defs, short *field_count_out);",
           "name": "FUN_0011b2a0",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x11b540",
@@ -13999,7 +13999,7 @@
           "addr": "0x11ba50",
           "decl": "int FUN_0011ba50(short *table @<esi>, void *key, unsigned short *slot_index_out);",
           "name": "FUN_0011ba50",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x11bb70",
@@ -14011,19 +14011,19 @@
           "addr": "0x11bc20",
           "decl": "void FUN_0011bc20(short *table, void *key);",
           "name": "FUN_0011bc20",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x11be10",
           "decl": "int FUN_0011be10(short *table @<eax>, void *key);",
           "name": "FUN_0011be10",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x11beb0",
           "decl": "int FUN_0011beb0(short *table, short growth_bits);",
           "name": "FUN_0011beb0",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x11c0f0",
@@ -14047,7 +14047,7 @@
           "addr": "0x11c1e0",
           "decl": "void FUN_0011c1e0(int *ptr);",
           "name": "FUN_0011c1e0",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x11c210",
@@ -14065,7 +14065,7 @@
           "addr": "0x11c310",
           "decl": "int FUN_0011c310(const char *name, int size, void (*lock_proc)(void *, int), void (*unlock_proc)(void *), void *base_address);",
           "name": "FUN_0011c310",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x11c430",
@@ -14077,13 +14077,13 @@
           "addr": "0x11c480",
           "decl": "void FUN_0011c480(int cache);",
           "name": "FUN_0011c480",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x11c4d0",
           "decl": "void FUN_0011c4d0(int cache, void *pointer);",
           "name": "FUN_0011c4d0",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x12b640",
