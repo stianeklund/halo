@@ -7343,7 +7343,7 @@ void scripting_magic_melee_attack(void)
 
   player = (char *)datum_get(player_data, 0);
   unit_handle = *(int *)(player + 0x34);
-  FUN_001b1b60(unit_handle, 0, 0);
+  unit_melee_attack_begin(unit_handle, 0, 0);
 }
 
 /* unit_select_weapon_after_vehicle_exit (0x1b2740)
@@ -8412,4 +8412,625 @@ char unit_throw_grenade_begin(int unit_handle, float *alignment_vector)
                  0.0f, 0.0f, 0, 0);
   }
   return 1;
+}
+
+/* unit_melee_attack_begin (0x1b1b60) — begin a melee attack animation.
+ *
+ * Checks the unit's animation state via a switch table; if the state is one
+ * of the dying/dead/special states (0x17-0x23,0x27,0x29), the attack is
+ * blocked. Otherwise, determines the target animation state based on
+ * param_2 (forced hit), melee readiness, and unit flags. Requests the
+ * animation via FUN_001ad260. On success (or forced), sets melee flags
+ * and optionally applies alignment vector.
+ *
+ * param_2: if non-zero, force melee hit (animation state 0x20, type=4).
+ * param_3: if non-zero, pointer to float[3] alignment vector.
+ *
+ * Returns 1 on success, 0 if blocked.
+ */
+char unit_melee_attack_begin(int unit_handle, char param_2, int param_3)
+{
+  char *unit;
+  int unit_tag;
+  char anim_state;
+  char result;
+  uint8_t melee_ready;
+  char anim_ok;
+  int16_t new_state;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag = (int)tag_get(0x756e6974, *(int *)unit);
+  result = 0;
+
+  switch (*(uint8_t *)(unit + 0x253)) {
+  case 0x17: case 0x18: case 0x19: case 0x1a: case 0x1b:
+  case 0x1d: case 0x1e: case 0x1f: case 0x20: case 0x21:
+  case 0x22: case 0x23: case 0x27: case 0x29:
+    /* These animation states block melee attacks */
+    break;
+  default:
+    /* Check if melee is ready: either unit is in a vehicle (seat != 0)
+     * or the melee-ready bit (unit+0x424, bit 0) is set */
+    melee_ready = 0;
+    if (*(short *)(unit + 0x64) == 0) {
+      melee_ready = *(uint8_t *)(unit + 0x424) & 1;
+    }
+
+    if (param_2 != '\0') {
+      new_state = 0x20;  /* forced melee hit */
+    } else {
+      anim_state = *(char *)(unit + 0x253);
+      if (anim_state == 0x28) {
+        new_state = 0x29;  /* melee continuation */
+      } else {
+        new_state = (int16_t)((melee_ready != 0) + 0x1e);
+      }
+    }
+
+    anim_ok = FUN_001ad260(unit_handle, new_state);
+
+    if (anim_ok != '\0' || param_2 != '\0') {
+      /* Check unit tag flag bit 8 at offset 0x17c */
+      if ((*(uint32_t *)(unit_tag + 0x17c) & 0x100) != 0) {
+        *(uint8_t *)(unit + 0x253) = 0x19;
+      }
+      /* Apply alignment vector if provided */
+      if (param_3 != 0) {
+        unit_apply_alignment_vector(unit_handle, (float *)param_3);
+      }
+      if (param_2 != '\0') {
+        *(uint8_t *)(unit + 0x239) = 4;
+        *(uint8_t *)(unit + 0x23a) = 0;
+        return 1;
+      }
+      *(uint8_t *)(unit + 0x239) = 1;
+      result = 1;
+    }
+    break;
+  }
+  return result;
+}
+
+/* unit_place (0x1b24d0) — place a unit with placement data.
+ *
+ * Applies placement body vitality if > 0.0f, and if the "dead" flag
+ * (placement+4, bit 0) is set, kills the unit: sets animation state,
+ * clears weapons, clears grenade state, deletes weapon object,
+ * marks as dead, and sets up the death animation frame.
+ *
+ * Source: units.c
+ */
+void unit_place(int unit_handle, void *placement)
+{
+  char *unit;
+  int unit_tag;
+  int antr_tag;
+  int anim_element;
+  int death_frame;
+  int flags;
+  int obj_flags;
+  float *place;
+
+  place = (float *)placement;
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag = (int)tag_get(0x756e6974, *(int *)unit);
+
+  /* Apply body vitality from placement if positive */
+  if (place[0] > 0.0f) {
+    *(float *)(unit + 0x90) = place[0];
+  }
+
+  /* Check the "dead" flag: bit 0 of the second dword (placement+4) */
+  if ((*(int *)((char *)placement + 4) & 1) != 0) {
+    /* Kill: set animation state and make dead */
+    FUN_001b1400(unit_handle, 1, 0, 0, 0, 0, 0, -1, 0);
+
+    if (*(char *)(unit + 0x253) == 0x19) {
+      /* Clear weapons and grenade state */
+      unit_clear_weapons(unit_handle);
+      csmemset((void *)(unit + 0x2ce), 0, 2);
+
+      /* Delete weapon object if one exists */
+      if (*(int *)(unit + 0x2c8) != NONE) {
+        object_delete(*(int *)(unit + 0x2c8));
+        *(int *)(unit + 0x2c8) = NONE;
+      }
+
+      /* Look up the death animation frame count */
+      antr_tag = (int)tag_get(0x616e7472, *(int *)(unit_tag + 0x44));
+      anim_element = (int)tag_block_get_element(
+        (void *)(antr_tag + 0x74),
+        (int)*(short *)(unit + 0x80),
+        0xb4);
+      death_frame = (int)*(short *)(anim_element + 0x22) - 4;
+
+      /* Mark as dead: set object flag bits */
+      *(uint8_t *)(unit + 0xb6) = *(uint8_t *)(unit + 0xb6) | 4;
+      obj_flags = *(int *)(unit + 0x4);
+      *(int *)(unit + 0x4) = obj_flags | 0x20000;
+
+      /* Clamp death frame to >= 0 (branchless: mask with sign) */
+      *(uint16_t *)(unit + 0x82) = (uint16_t)(death_frame & ((death_frame < 0) - 1));
+
+      /* Set additional unit flags */
+      flags = *(int *)(unit + 0x1b4);
+      *(int *)(unit + 0x1b4) = flags | 0x200;
+
+      /* Record game time and clear body vitality */
+      *(int *)(unit + 0x3cc) = game_time_get();
+      *(float *)(unit + 0x90) = 0.0f;
+      *(float *)(unit + 0x94) = 0.0f;
+
+      /* Update position and children */
+      FUN_00136b40(unit_handle);
+      object_update_children_recursive(unit_handle);
+    }
+  }
+}
+
+/* unit_create_initial_weapons (0x1b2660) — create initial weapons for a unit.
+ *
+ * Iterates the unit tag's initial weapons tag block (at tag+0x2d8, element
+ * size 0x24), and for each weapon tag index that is not NONE, creates an
+ * object via object_placement_data_new + object_new. Then tries to pick
+ * it up: if the game engine is running and the unit already has that weapon
+ * definition, delete the duplicate; otherwise attempt unit_enter_seat and
+ * delete on failure.
+ *
+ * Source: units.c
+ */
+void unit_create_initial_weapons(int unit_handle)
+{
+  char *unit;
+  int unit_tag;
+  int *initial_weapons_block;
+  int loop_counter;
+  int element;
+  int weapon_tag_index;
+  int weapon_handle;
+  char *weapon_data;
+  char engine_running;
+  char has_weapon;
+  char enter_ok;
+  uint8_t placement[136]; /* 0x88 bytes for object_placement_data */
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag = (int)tag_get(0x756e6974, *(int *)unit);
+  initial_weapons_block = (int *)(unit_tag + 0x2d8);
+  loop_counter = 0;
+
+  if (*initial_weapons_block > 0) {
+    element = 0;
+    do {
+      element = (int)tag_block_get_element(initial_weapons_block, element, 0x24);
+      weapon_tag_index = *(int *)(element + 0xc);
+      if (weapon_tag_index != NONE) {
+        object_placement_data_new(placement, weapon_tag_index, unit_handle);
+        weapon_handle = object_new(placement);
+        if (weapon_handle != NONE) {
+          weapon_data = (char *)object_get_and_verify_type(weapon_handle, 4);
+          engine_running = game_engine_running();
+          if (engine_running != '\0') {
+            has_weapon = unit_has_weapon_definition_index(unit_handle, *(int *)weapon_data);
+            if (has_weapon != '\0') {
+              goto delete_weapon;
+            }
+          }
+          enter_ok = unit_enter_seat(unit_handle, weapon_handle, 0);
+          if (enter_ok != '\0') {
+            goto next_weapon;
+          }
+delete_weapon:
+          object_delete(weapon_handle);
+        }
+      }
+next_weapon:
+      loop_counter = loop_counter + 1;
+      element = (int)(short)loop_counter;
+    } while (element < *initial_weapons_block);
+  }
+}
+
+/* unit_scripting_enter_vehicle (0x1b32d0) — scripted vehicle entry.
+ *
+ * Makes a unit enter a specific seat of a vehicle by seat name.
+ * Validates both handles, checks the seat name length, verifies the
+ * unit is not dying/dead, handles existing vehicle occupancy by
+ * calling unit_exit_seat_end, then iterates the vehicle's seats
+ * tag block looking for a matching seat name. Checks seat availability
+ * and type compatibility before calling unit_board_vehicle.
+ *
+ * Source: units.c
+ */
+void unit_scripting_enter_vehicle(int unit_handle, int vehicle_handle,
+                                  char *seat_name)
+{
+  char *unit_data;
+  char *vehicle_unit;
+  int vehicle_tag;
+  int *seats_block;
+  int seat_idx;
+  int seat_element;
+  int stricmp_result;
+  char seat_filled;
+
+  if (unit_handle == NONE) {
+    return;
+  }
+  if (vehicle_handle == NONE) {
+    return;
+  }
+  /* Validate seat name is a non-empty string */
+  if (csstrlen(seat_name) == 0) {
+    return;
+  }
+
+  unit_data = (char *)object_get_and_verify_type(unit_handle, 3);
+  /* Check if unit is dying/dead (bit 2 of byte at +0xb6) */
+  if ((*(uint8_t *)(unit_data + 0xb6) & 4) != 0) {
+    return;
+  }
+
+  /* If unit is already in a vehicle, try to exit first */
+  if (*(int *)(unit_data + 0xcc) != NONE) {
+    if (*(short *)(unit_data + 0x2a0) != -1) {
+      unit_exit_seat_end(unit_handle);
+    }
+    /* If still in a vehicle after attempting exit, abort */
+    if (*(int *)(unit_data + 0xcc) != NONE) {
+      return;
+    }
+  }
+
+  /* Get the vehicle's unit tag and iterate seats */
+  vehicle_unit = (char *)object_get_and_verify_type(vehicle_handle, 3);
+  vehicle_tag = (int)tag_get(0x756e6974, *(int *)vehicle_unit);
+  seats_block = (int *)(vehicle_tag + 0x2e4);
+  seat_idx = 0;
+
+  if (*seats_block > 0) {
+    seat_element = 0;
+    while (1) {
+      seat_element = (int)tag_block_get_element(seats_block, seat_element, 0x11c);
+      stricmp_result = csstricmp(seat_name, (char *)(seat_element + 4));
+
+      if (stricmp_result == 0) {
+        /* Seat name matches - check availability */
+        seat_filled = unit_seat_filled(vehicle_handle, (int16_t)seat_idx);
+        if (seat_filled == '\0') {
+          /* Seat is available - check type compatibility */
+          if (*(short *)(unit_data + 0x64) == 1 ||
+              FUN_001acd70(seat_element + 4, 0, 0) != '\0') {
+            /* Compatible - board the vehicle */
+            unit_board_vehicle(unit_handle, vehicle_handle, (int16_t)seat_idx);
+            return;
+          }
+        }
+      }
+
+      seat_idx = seat_idx + 1;
+      seat_element = (int)(short)seat_idx;
+      if (seat_element >= *seats_block) {
+        return;
+      }
+    }
+  }
+}
+
+/* vehicle_scripting_load_magic (0x1b3400) — load units into vehicle seats.
+ *
+ * Iterates child objects of the given group_handle. For each child that is
+ * a biped/vehicle type and not dying/dead, tries to seat it in the vehicle.
+ * Finds available seats via vehicle_scripting_find_available_seats, checks
+ * seat type compatibility, handles existing vehicle occupancy, and calls
+ * unit_board_vehicle. Returns the count of successfully seated units.
+ *
+ * Source: units.c
+ */
+uint16_t vehicle_scripting_load_magic(int vehicle_handle, int seat_substring,
+                                      int group_handle)
+{
+  char *vehicle_unit;
+  int vehicle_tag;
+  int child_handle;
+  char *child_data;
+  int16_t seat_count;
+  short seat_indices[16];
+  int iter_state[1];
+  int inner_idx;
+  int16_t seat_idx;
+  int seat_element;
+  char seat_type_ok;
+  char board_ok;
+  uint16_t loaded_count;
+
+  loaded_count = 0;
+  if (vehicle_handle == NONE) {
+    return 0;
+  }
+
+  vehicle_unit = (char *)object_get_and_verify_type(vehicle_handle, 3);
+  vehicle_tag = (int)tag_get(0x756e6974, *(int *)vehicle_unit);
+
+  /* Find available seats matching the seat substring */
+  seat_count = vehicle_scripting_find_available_seats(
+    vehicle_handle, seat_substring, -1, seat_indices, 0x10);
+
+  /* Get first child of group */
+  child_handle = FUN_000ce450(group_handle, iter_state);
+  if (child_handle == NONE) {
+    return 0;
+  }
+
+  do {
+    child_data = (char *)object_get_and_verify_type(child_handle, -1);
+
+    /* Check if child is a biped or vehicle type (bit 0 or 1 of object_type) */
+    if (((1 << (*(uint8_t *)(child_data + 0x64) & 0x1f)) & 3) != 0 &&
+        (*(uint8_t *)(vehicle_unit + 0xb6) & 4) == 0) {
+      inner_idx = 0;
+      if ((short)seat_count > 0) {
+        do {
+          seat_idx = seat_indices[(short)inner_idx];
+          if (seat_idx != -1) {
+            seat_element = (int)tag_block_get_element(
+              (void *)(vehicle_tag + 0x2e4), (int)seat_idx, 0x11c);
+
+            /* Check seat type compatibility */
+            if (*(short *)(child_data + 0x64) != 1) {
+              seat_type_ok = FUN_001acd70(seat_element + 4, 0, 0);
+              if (seat_type_ok == '\0') {
+                goto next_seat;
+              }
+            }
+
+            /* Handle existing vehicle occupancy */
+            if (*(int *)(child_data + 0xcc) != NONE) {
+              if (*(short *)(child_data + 0x2a0) != -1) {
+                unit_exit_seat_end(child_handle);
+              }
+              if (*(int *)(child_data + 0xcc) != NONE) {
+                goto next_seat;
+              }
+            }
+
+            /* Board the vehicle */
+            board_ok = unit_board_vehicle(child_handle, vehicle_handle, seat_idx);
+            if (board_ok != '\0') {
+              seat_indices[(short)inner_idx] = -1;
+              loaded_count = loaded_count + 1;
+              break;
+            }
+          }
+next_seat:
+          inner_idx = inner_idx + 1;
+        } while ((short)inner_idx < (short)seat_count);
+      }
+    }
+
+    /* Get next child */
+    child_handle = FUN_000ce320(group_handle, iter_state);
+  } while (child_handle != NONE);
+
+  return loaded_count;
+}
+
+/* unit_try_and_exit_seat (0x1b3580) — attempt to exit the current seat.
+ *
+ * Checks if the unit is in a vehicle seat and meets the conditions to exit:
+ * not a player type (seat type != 1), animation state allows exit, and
+ * the seat has exit animation data. If the vehicle's driver matches this
+ * unit, opens the vehicle. Sets garbage flag, updates animation state to
+ * 0x1b (exiting), and notifies AI.
+ *
+ * Returns 1 on success, 0 if exit is blocked.
+ *
+ * Source: units.c
+ */
+char unit_try_and_exit_seat(int unit_handle)
+{
+  char *unit;
+  int vehicle_handle;
+  int unit_tag;
+  int antr_tag;
+  int mode_element;
+  int anim_block_count;
+  int16_t exit_anim;
+  char *vehicle_data;
+  int anim_graph_tag_index;
+  int16_t animation_index;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+
+  /* Must be in a vehicle and have a powered seat */
+  if (*(int *)(unit + 0xcc) == NONE || *(short *)(unit + 0x2a0) == -1) {
+    return 0;
+  }
+
+  /* Player-type units (seat type 1) use a direct exit */
+  if (*(short *)(unit + 0x64) == 1) {
+    unit_exit_seat_end(unit_handle);
+    return 0;
+  }
+
+  /* Check if animation state blocks exit */
+  if (FUN_001a8730((void *)(unit + 0x248)) != '\0') {
+    return 0;
+  }
+
+  /* Look up unit and animation tags */
+  unit_tag = (int)tag_get(0x756e6974, *(int *)unit);
+  antr_tag = (int)tag_get(0x616e7472, *(int *)(unit_tag + 0x44));
+
+  /* Get the mode element for this unit's current seat */
+  mode_element = (int)tag_block_get_element(
+    (void *)(antr_tag + 0xc),
+    (int)*(int8_t *)(unit + 0x250),
+    100);
+
+  /* Check if the mode has exit animations (block count > 8) */
+  anim_block_count = *(int *)(mode_element + 0x40);
+  if (anim_block_count <= 8) {
+    return 0;
+  }
+
+  /* Get the exit animation index from sub-block element 0, offset 0x10 */
+  exit_anim = *(short *)(*(int *)(mode_element + 0x44) + 0x10);
+  if (exit_anim == -1) {
+    return 0;
+  }
+
+  /* If this unit is the vehicle's driver, open the vehicle */
+  vehicle_handle = *(int *)(unit + 0xcc);
+  vehicle_data = (char *)object_get_and_verify_type(vehicle_handle, 3);
+  if (*(int *)(vehicle_data + 0x2d4) == unit_handle) {
+    unit_open(vehicle_handle);
+  }
+
+  /* Start exit animation: look up via FUN_000fad00, then set */
+  anim_graph_tag_index = *(int *)(unit_tag + 0x44);
+  animation_index = FUN_000fad00(anim_graph_tag_index, exit_anim);
+  unit_set_animation(unit_handle, anim_graph_tag_index, animation_index);
+
+  /* Mark unit as garbage and set exit animation state */
+  object_set_garbage(unit_handle, 1);
+  *(uint8_t *)(unit + 0x253) = 0x1b;
+
+  /* Notify AI subsystem of vehicle exit */
+  ai_handle_exit_vehicle(unit_handle);
+
+  return 1;
+}
+
+/* unit_impact_melee_damage (0x1b2290) — apply melee damage at impact point.
+ *
+ * When the unit has the "melee causes instant kill" flag (tag+0x17c bit 13),
+ * and the target is a seated unit with body vitality, and the target's unit
+ * tag has the "instant kill on melee" flag (tag+0x17c bit 22): performs
+ * unit_cause_melee_damage, resets sound, and deletes the attacking unit.
+ *
+ * Otherwise, when the unit has the "melee causes boarding" flag (bit 12),
+ * and the target is a biped/vehicle that is not dying/dead: walks up the
+ * parent chain to ensure the attacker is not boarding its own hierarchy,
+ * then copies the global forward/up vectors, negates the damage direction,
+ * computes a cross product to derive orientation, translates the unit, and
+ * starts a forced melee attack.
+ *
+ * Source: units.c
+ */
+void unit_impact_melee_damage(int unit_handle, int param_2, int param_3,
+                              int param_4, int param_5, int param_6,
+                              float *param_7, int param_8)
+{
+  char *unit;
+  int unit_tag;
+  char *target_data;
+  int target_tag;
+  int parent_handle;
+  int parent_obj;
+  char *fwd_ptr;
+  char *up_ptr;
+  float *impact_dir;
+  float local_vec[3];
+  float mag;
+  int flags;
+  int unit_flags;
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  unit_tag = (int)tag_get(0x756e6974, *(int *)unit);
+  target_data = (char *)object_get_and_verify_type(param_2, -1);
+
+  /* Check instant-kill melee path: unit has bit 13 of tag flags */
+  if ((*(uint32_t *)(unit_tag + 0x17c) & 0x2000) != 0 &&
+      *(short *)(target_data + 0x64) == 0 &&
+      *(float *)(target_data + 0x94) > 0.0f) {
+    target_tag = (int)tag_get(0x756e6974, *(int *)target_data);
+    if ((*(uint32_t *)(target_tag + 0x17c) & 0x400000) != 0) {
+      unit_cause_melee_damage(unit_handle, 1, param_2, param_3, param_4,
+                              param_5, param_7);
+      FUN_00137540(unit_handle);
+      object_delete(unit_handle);
+      return;
+    }
+  }
+
+  /* Check boarding melee path: unit has bit 12 of tag flags */
+  if ((*(uint32_t *)(unit_tag + 0x17c) & 0x1000) == 0) {
+    return;
+  }
+  /* Target must be a biped or vehicle (object type 0 or 1) */
+  if (((1 << (*(uint8_t *)(target_data + 0x64) & 0x1f)) & 3) == 0) {
+    return;
+  }
+  /* Target must not be dying/dead */
+  if ((*(uint8_t *)(target_data + 0xb6) & 4) != 0) {
+    return;
+  }
+
+  /* Walk up the target's parent chain to ensure we're not boarding ourself */
+  parent_handle = *(int *)(target_data + 0xcc);
+  while (parent_handle != NONE) {
+    parent_obj = (int)object_get_and_verify_type(parent_handle, -1);
+    if (parent_handle == unit_handle) {
+      return;
+    }
+    if (*(short *)(parent_obj + 0x64) != 1) {
+      return;
+    }
+    parent_handle = *(int *)(parent_obj + 0xcc);
+  }
+
+  /* Copy global forward vector to unit position (obj+0x18) */
+  fwd_ptr = *(char **)0x0031fc38;
+  *(float *)(unit + 0x18) = *(float *)fwd_ptr;
+  *(float *)(unit + 0x1c) = *(float *)(fwd_ptr + 4);
+  *(float *)(unit + 0x20) = *(float *)(fwd_ptr + 8);
+
+  /* Copy global forward vector to unit up (obj+0x3c) */
+  fwd_ptr = *(char **)0x0031fc38;
+  *(float *)(unit + 0x3c) = *(float *)fwd_ptr;
+  *(float *)(unit + 0x40) = *(float *)(fwd_ptr + 4);
+  *(float *)(unit + 0x44) = *(float *)(fwd_ptr + 8);
+
+  /* Copy and negate damage direction as the impact vector (obj+0x24) */
+  impact_dir = (float *)(unit + 0x24);
+  impact_dir[0] = param_7[0];
+  impact_dir[1] = param_7[1];
+  impact_dir[2] = param_7[2];
+  impact_dir[0] = -impact_dir[0];
+  impact_dir[1] = -impact_dir[1];
+  impact_dir[2] = -impact_dir[2];
+
+  /* Derive left vector via cross product: forward = cross(up, impact_dir) */
+  cross_product3d((float *)(unit + 0x30), impact_dir, local_vec);
+  mag = normalize3d(local_vec);
+  if (mag == 0.0f) {
+    /* Impact direction parallel to up — use global up as fallback */
+    up_ptr = *(char **)0x0031fc44;
+    cross_product3d((float *)up_ptr, impact_dir, local_vec);
+    mag = normalize3d(local_vec);
+    if (mag == 0.0f) {
+      /* Still degenerate — use global left vector */
+      fwd_ptr = *(char **)0x0031fc3c;
+      local_vec[0] = *(float *)fwd_ptr;
+      local_vec[1] = *(float *)(fwd_ptr + 4);
+      local_vec[2] = *(float *)(fwd_ptr + 8);
+    }
+  }
+
+  /* Recompute up from impact_dir and local_vec */
+  cross_product3d(impact_dir, local_vec, (float *)(unit + 0x30));
+
+  /* Translate unit to damage position and attach to target */
+  object_translate(unit_handle, (float *)param_6, (void *)param_8);
+  object_attach_to_parent(param_2, unit_handle, param_3);
+
+  /* Set object flags for boarding */
+  flags = *(int *)(unit + 0x4);
+  *(int *)(unit + 0x4) = flags | 0x20;
+  unit_flags = *(int *)(unit + 0x1b4);
+  *(int *)(unit + 0x1b4) = unit_flags | 0x8000;
+
+  /* Start forced melee attack (param_2=1 for forced, param_3=0 for no alignment) */
+  unit_melee_attack_begin(unit_handle, 1, 0);
 }
