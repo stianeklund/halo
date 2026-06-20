@@ -120,6 +120,23 @@ static __inline float x87_fptan(float val) {
   return r;
 }
 
+/* Round a float to the nearest 32-bit integer using the FPU's current
+ * rounding mode (round-to-nearest by default): a bare FLD; FISTP, with no
+ * control-word change. This differs from a C (int) cast, which MSVC/clang
+ * compile to a truncating conversion (_ftol2 / round-toward-zero). */
+static __inline int x87_round_to_int(float val) {
+  int r;
+#if defined(_MSC_VER) && !defined(__clang__)
+  __asm {
+    fld DWORD PTR [val]
+    fistp DWORD PTR [r]
+  }
+#else
+  __asm__ __volatile__("fistpl %0" : "=m"(r) : "t"(val) : "st");
+#endif
+  return r;
+}
+
 static __inline float x87_sqrt(float val) {
   float r;
 #if defined(_MSC_VER) && !defined(__clang__)
