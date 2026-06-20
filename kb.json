@@ -15495,17 +15495,17 @@
         {
           "addr": "0x13fea0",
           "decl": "void *object_get_child_marker_definition(int object_handle, int16_t marker_index);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13fef0",
           "decl": "bool object_has_node(int object_handle, int16_t node_index);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13ff50",
           "decl": "void object_set_automatic_deactivation(int object_handle, char param_2);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13ffc0",
@@ -15516,7 +15516,7 @@
           "addr": "0x140070",
           "comment": "Walk the parent chain to the root object and copy its position/forward vector.",
           "decl": "void object_get_root_location(int object_handle, float *position_out, float *direction_out);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x140130",
@@ -15531,7 +15531,7 @@
         {
           "addr": "0x140230",
           "decl": "void object_adjust_interpolation_position(int object_handle, vector3_t *delta);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1402c0",
@@ -15541,7 +15541,7 @@
         {
           "addr": "0x1403a0",
           "decl": "bool object_get_function_value(int object_handle, short function_index, void *out_value);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x140420",
