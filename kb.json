@@ -15188,7 +15188,7 @@
         {
           "addr": "0x13d6f0",
           "decl": "void object_iterator_new(void *iter, int type_mask, int flags);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13d730",
@@ -15198,7 +15198,7 @@
         {
           "addr": "0x13d7f0",
           "decl": "int object_get_root_parent(int object_handle);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13d870",

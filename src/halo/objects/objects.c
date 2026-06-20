@@ -25,8 +25,6 @@ double pow(double x, double y);
 #define CALL_FUN_000b5c30() XCALL(0xb5c30, char(*)(void))()
 #define CALL_FUN_000b5aa0() XCALL(0xb5aa0, int(*)(void))()
 #define CALL_FUN_0013d640(a,b) XCALL(0x13d640, int(*)(int,int))(a,b)
-#define CALL_FUN_0013d7f0(a) XCALL(0x13d7f0, int(*)(int))(a)
-#define CALL_FUN_0013d730(a) XCALL(0x13d730, int(*)(void*))(a)
 /* real_rgb_color_brightness (0x7a750) — call by name, no XCALL needed */
 #define CALL_FUN_00198cb0(a,b,c,d,e,f,g,h) XCALL(0x198cb0, char(*)(int,void*,void*,void*,void*,void*,void*,void*))(a,b,c,d,e,f,g,h)
 #define CALL_FUN_001bf570(a,b,c) XCALL(0x1bf570, int(*)(int,int,int))(a,b,c)
@@ -2411,16 +2409,24 @@ int object_get_root_parent(int object_handle)
 {
   int current;
   int result;
+  object_header_data_t *header;
+  object_data_t *obj;
+  int16_t type;
 
-  if (object_handle == -1)
-    return -1;
-
-  current = object_handle;
   result = -1;
+  current = object_handle;
   while (current != -1) {
-    object_header_data_t *header =
-      (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, current);
-    object_data_t *obj = header->object;
+    header = (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, current);
+    obj = header->object;
+    type = obj->type;
+    if ((1 << (type & 0x1f)) == 0) {
+      display_assert(csprintf((char *)0x5ab100,
+                              "got an object type we didn't expect (expected "
+                              "one of 0x%08x but got #%d).",
+                              -1, (int)type),
+                     "c:\\halo\\SOURCE\\objects\\objects.c", 0x69a, 1);
+      system_exit(-1);
+    }
     result = current;
     current = obj->parent_object_index.value;
   }
@@ -9277,7 +9283,7 @@ void FUN_0013b380(void)
         CALL_thunk_FUN_001029a0(-1);
       }
       if (local_14 != 0) {
-        uVar11 = CALL_FUN_0013d7f0(*(int *)(iVar5 + 0x2c));
+        uVar11 = object_get_root_parent(*(int *)(iVar5 + 0x2c));
         iVar6 = (int)object_get_and_verify_type(uVar11, -1);
         if ((1 << (*(unsigned char *)(iVar6 + 100) & 0x1f) & 3u) != 0) {
           iVar6 = (int)object_get_and_verify_type(uVar11, 3);
