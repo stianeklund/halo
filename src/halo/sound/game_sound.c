@@ -457,8 +457,8 @@ void game_sound_update(float dt)
       /* No object attached — remove the entry outright. */
       ((void (*)(int, void *))0x1c77a0)(looping_sounds_handle, (void *)0);
     } else if ((*(uint8_t *)((char *)entry + 4) & 1) == 0 ||
-               ((int (*)(int, int))0x13d640)(*(int *)((char *)entry + 0x10),
-                                             -1) != 0) {
+               object_try_and_get_and_verify_type(
+                 *(int *)((char *)entry + 0x10), -1) != NULL) {
       /* Object exists or scripted: check if it lives in an audible cluster.
        * FUN_0013d680 = object_get_and_verify_type(handle, type_mask=-1) */
       object = object_get_and_verify_type(*(int *)((char *)entry + 0x10), -1);
