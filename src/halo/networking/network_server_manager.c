@@ -16,8 +16,8 @@ bool FUN_0012bce0(int param_1, int param_2, short *param_3, short *param_4,
       "c:\\halo\\SOURCE\\networking\\network_messages.c", 0x139, 1);
     system_exit(-1);
   }
-  cVar1 = FUN_0011aa40((int)0x323510, param_1, param_2, param_3, param_4,
-                       param_5, param_6);
+  cVar1 = FUN_0011aa40((int)0x323510, (void *)param_1, (char *)param_2,
+                       param_3, param_4, param_5, (short)param_6);
   if (!cVar1) {
     network_game_log("decode_network_game_message() failed");
   }

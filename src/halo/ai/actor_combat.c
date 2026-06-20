@@ -199,7 +199,7 @@ int actor_combat_check_fire_target(int actor_handle /* @<edi> */, short mode)
 
   {
     short result = 0;
-    FUN_00021ae0(actor_handle, 6.0f, 0, encounter + 0xbc, &result);
+    FUN_00021ae0(actor_handle, 6.0f, 0.0f, (float *)(encounter + 0xbc), &result);
     return result >= 3;
   }
 }
