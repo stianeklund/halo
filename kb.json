@@ -14593,7 +14593,7 @@
         {
           "addr": "0x84a70",
           "decl": "int valid_real_normal3d_perpendicular(float *a, float *b);",
-          "ported": false,
+          "ported": true,
           "source": "src/halo/objects/objects.c",
           "status": "ported"
         },
@@ -14671,7 +14671,7 @@
         {
           "addr": "0x9eb40",
           "decl": "int FUN_0009eb40(int param_1, int param_2, short param_3, short param_4, short param_5);",
-          "ported": false,
+          "ported": true,
           "source_path": "effects/effects.c"
         },
         {
@@ -15678,7 +15678,7 @@
         {
           "addr": "0x143510",
           "decl": "void objects_scripting_detach(int param_1, int param_2);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x143550",
@@ -15689,17 +15689,17 @@
         {
           "addr": "0x143a00",
           "decl": "void attachments_delete(int object_handle);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x143ae0",
           "decl": "void object_set_position(int object_handle, float *position, float *forward, float *up);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x143be0",
           "decl": "void object_translate(int object_handle, float *position, void *location);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x143c80",
