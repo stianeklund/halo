@@ -15551,7 +15551,7 @@
         {
           "addr": "0x140720",
           "decl": "int object_name_list_get_handle(int16_t index);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x140750",
@@ -15568,7 +15568,7 @@
         {
           "addr": "0x1409d0",
           "decl": "void object_pvs_activate(int param_1);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x140a00",
@@ -15586,7 +15586,7 @@
         {
           "addr": "0x140b80",
           "decl": "void objects_scripting_set_scale(int param_1, int param_2, int16_t param_3);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x140bc0",
@@ -15606,17 +15606,17 @@
         {
           "addr": "0x140eb0",
           "decl": "void *object_get_node_matrix(int object_handle, int16_t node_index);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x140f10",
           "decl": "int16_t object_get_markers_by_string_id(int object_handle, void *marker_name, void *out_markers, int max_count);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x141020",
           "decl": "void object_compute_child_marker_position(void *object, void *child_marker, void *dest_matrix);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1411c0",
@@ -15626,17 +15626,17 @@
         {
           "addr": "0x1412f0",
           "decl": "vector3_t *object_get_world_position(int object_handle, vector3_t *out_position);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x141360",
           "decl": "void object_get_orientation(int object_handle, float *out_forward, float *out_up);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x141480",
           "decl": "void *object_get_world_matrix(int object_handle, void *out_matrix);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1414e0",
