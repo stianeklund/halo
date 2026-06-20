@@ -175,8 +175,7 @@ void interface_initialize_for_new_map(void)
     element = 0;
   } else {
     globals = (char *)game_globals_get();
-    element =
-      (char *)((int (*)(void *, int, int))0x19b210)(globals + 0x140, 0, 0x130);
+    element = (char *)tag_block_get_element(globals + 0x140, 0, 0x130);
   }
 
   ((void (*)(int, int, int, int, void *))0x19b8b0)(*(int *)(element + 0x1c), -1,

@@ -1656,8 +1656,8 @@ void effect_update(int effect_index, float elapsed)
     void *parent_obj;
 
     /* if object was deleted, delete the effect too */
-    object =
-      ((void *(*)(int, int))0x13d640)(*(int *)((char *)effect + 0x3c), NONE);
+    object = object_try_and_get_and_verify_type(
+      *(int *)((char *)effect + 0x3c), NONE);
     if (object == NULL)
       goto delete_effect;
 
