@@ -12813,11 +12813,15 @@ char FUN_001b3690(int unit_handle)
     float aim_accel_limit;
     float *aim_vec;
     float saved_aim[3];
-    float local_5c;
-    float local_58[3];
-    float local_40[3];
-    float local_4c, local_48, local_44;
-    float local_34[3];
+    /* Euler-aim transform (real_matrix4x3): scale + forward/left/up rows +
+     * translation. MUST be one contiguous 13-float block — it is passed by
+     * address to FUN_001b0630, which does real_matrix4x3_transform_point on it.
+     * The decompiler split it into separate stack locals (local_5c/58/4c/48/44/
+     * 40/34) that MSVC happened to place contiguously; clang scatters separate
+     * locals, so passing &local_5c yielded a garbage matrix and the AI aim
+     * vector collapsed to world-up (0,0,1). An explicit aggregate fixes it. */
+    struct { float scale; float forward[3]; float left[3]; float up[3];
+             float translation[3]; } em;
     float zoom_interp;
     int zoom_sound_ref;
     char zoom_level_new;
@@ -12844,7 +12848,6 @@ char FUN_001b3690(int unit_handle)
     int unit_data_tmp;
 
     /* === Entry === */
-    (void)local_4c; (void)local_48; (void)local_44;
     unit = (int *)object_get_and_verify_type(unit_handle, 3);
     tag_data = (int)tag_get(0x756e6974, *unit);
     local_7 = 0;
@@ -13242,14 +13245,15 @@ char FUN_001b3690(int unit_handle)
         } else {
             /* Euler */
             float *grav;
-            local_5c = 1.0f;
-            object_get_orientation(unit_handle, local_58, local_40);
-            local_4c = local_58[2] * local_40[1] - local_40[2] * local_58[1];
-            local_48 = local_40[2] * local_58[0] - local_58[2] * local_40[0];
-            local_44 = local_58[1] * local_40[0] - local_40[1] * local_58[0];
+            em.scale = 1.0f;
+            object_get_orientation(unit_handle, em.forward, em.up);
+            em.left[0] = em.forward[2] * em.up[1] - em.up[2] * em.forward[1];
+            em.left[1] = em.up[2] * em.forward[0] - em.forward[2] * em.up[0];
+            em.left[2] = em.forward[1] * em.up[0] - em.up[1] * em.forward[0];
             grav = *(float **)0x31fc1c;
-            local_34[0] = grav[0]; local_34[1] = grav[1]; local_34[2] = grav[2];
-            FUN_001b0630((int)&local_5c, aim_vec,
+            em.translation[0] = grav[0]; em.translation[1] = grav[1];
+            em.translation[2] = grav[2];
+            FUN_001b0630((int)&em, aim_vec,
                 (float *)((char *)unit + 0x1e0),
                 (float *)((char *)unit + 0x1f8),
                 (float *)((char *)unit + 0x268),
@@ -13299,14 +13303,15 @@ char FUN_001b3690(int unit_handle)
         } else {
             float *lk = (float *)((char *)unit + 0x210);
             float *grav;
-            local_5c = 1.0f;
-            object_get_orientation(unit_handle, local_58, local_40);
-            local_4c = local_58[2] * local_40[1] - local_40[2] * local_58[1];
-            local_48 = local_40[2] * local_58[0] - local_58[2] * local_40[0];
-            local_44 = local_58[1] * local_40[0] - local_40[1] * local_58[0];
+            em.scale = 1.0f;
+            object_get_orientation(unit_handle, em.forward, em.up);
+            em.left[0] = em.forward[2] * em.up[1] - em.up[2] * em.forward[1];
+            em.left[1] = em.up[2] * em.forward[0] - em.forward[2] * em.up[0];
+            em.left[2] = em.forward[1] * em.up[0] - em.up[1] * em.forward[0];
             grav = *(float **)0x31fc1c;
-            local_34[0] = grav[0]; local_34[1] = grav[1]; local_34[2] = grav[2];
-            FUN_001b0630((int)&local_5c, lk,
+            em.translation[0] = grav[0]; em.translation[1] = grav[1];
+            em.translation[2] = grav[2];
+            FUN_001b0630((int)&em, lk,
                 (float *)((char *)unit + 0x204),
                 (float *)((char *)unit + 0x21c),
                 (float *)((char *)unit + 0x278),
