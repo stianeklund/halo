@@ -93,14 +93,19 @@ def _trim_unlabeled_bleed(insns: list, label_positions: set[int]) -> list:
     """Trim unlabeled trailing code that bleeds into a function's parsed output.
 
     When an unlabeled helper sits between two named symbols, the parser lumps
-    it under the preceding symbol.  MSVC emits 3+ NOP alignment padding between
-    functions, so: RET + 3+ NOPs (no internal label in the sled) + code = bleed.
-    Scans backward so the last qualifying RET is treated as the true epilogue.
+    it under the preceding symbol.  Two-pass approach:
+    1. Backward scan for RET + 3+ NOPs (safe for all functions — 3+ NOPs
+       never appear inside a function body).
+    2. If pass 1 didn't trim: forward scan for RET + 2+ NOPs, but only when
+       the trailing code is > 40% of the total.  This catches 2-NOP bleed
+       (e.g., small 6-insn functions followed by a helper) while avoiding
+       over-trimming large functions with out-of-line blocks padded with 2 NOPs.
     """
     if not insns:
         return insns
     n = len(insns)
 
+    # Pass 1: backward scan, 3+ NOPs (original safe heuristic)
     for i in range(n - 1, -1, -1):
         if mnemonic(insns[i]).lower() not in _RET_MNEMS:
             continue
@@ -115,6 +120,33 @@ def _trim_unlabeled_bleed(insns: list, label_positions: set[int]) -> list:
             continue
 
         if j >= n:
+            continue
+
+        has_label_in_sled = any(pos > i and pos <= j for pos in label_positions)
+        if has_label_in_sled:
+            continue
+
+        return insns[:i + 1]
+
+    # Pass 2: forward scan, 2+ NOPs — only if trailing code is > 40% of total
+    for i in range(n):
+        if mnemonic(insns[i]).lower() not in _RET_MNEMS:
+            continue
+
+        j = i + 1
+        nop_count = 0
+        while j < n and mnemonic(insns[j]).lower() in _NOP_MNEMS:
+            nop_count += 1
+            j += 1
+
+        if nop_count < 2:
+            continue
+
+        if j >= n:
+            continue
+
+        trailing_count = n - j
+        if trailing_count <= n * 4 // 10:
             continue
 
         has_label_in_sled = any(pos > i and pos <= j for pos in label_positions)
