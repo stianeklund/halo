@@ -8993,9 +8993,16 @@ LAB_00029e6d:
   }
 
 LAB_0002a0c3:
-  *(float *)(actor + 0x6fc) = ((float *)pfVar14)[0];
-  *(float *)(actor + 0x700) = ((float *)pfVar14)[1];
-  *(float *)(actor + 0x704) = ((float *)pfVar14)[2];
+  /* Output facing is always desired_facing (the vector the on-foot z-flatten
+   * above normalizes in place), NOT pfVar14. Original stores [EBP-0x14] =
+   * actor+0x5a4 unconditionally at 0x2a0c3 (all paths converge here). pfVar14
+   * aliases desired_aiming on the look_type==1 and snap paths, which is never
+   * flattened — storing it here left a raw 3D vector in the 2D facing slot and
+   * tripped assert_valid_real_normal2d in actor_apply_control_data on campaign
+   * load. */
+  *(float *)(actor + 0x6fc) = desired_facing[0];
+  *(float *)(actor + 0x700) = desired_facing[1];
+  *(float *)(actor + 0x704) = desired_facing[2];
   *(float *)(actor + 0x708) = desired_aiming[0];
   *(float *)(actor + 0x70c) = desired_aiming[1];
   *(float *)(actor + 0x710) = desired_aiming[2];
