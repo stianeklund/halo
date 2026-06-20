@@ -27,6 +27,35 @@ int actor_combat_check_mode(int actor_handle /* @<eax> */, short mode)
   return 0;
 }
 
+/* 0x21010 — Begin a fixed-duration ("type 4") firing state for an actor.
+ * Sets the fire_state enum (actor+0x5f2) to 4 and stores the supplied
+ * duration in ticks (actor+0x5f4). cdecl: actor_handle in arg1 (EDI at the
+ * call site), ticks is the truncated float result the caller pushes (arg2).
+ * The field at +0x5f4 is a short, so the duration is narrowed. */
+void FUN_00021010(int actor_handle, int ticks)
+{
+  char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
+
+  *(short *)(actor + 0x5f2) = 4;
+  *(short *)(actor + 0x5f4) = (short)ticks;
+}
+
+/* 0x21040 — Raise an actor's "hold burst" timer (actor+0x5f6) to at least
+ * the requested number of ticks: field_5f6 = max(field_5f6, ticks).
+ * The original compares the requested value against the current short and,
+ * when the request is smaller, leaves the field unchanged (a no-op
+ * self-assignment in the original codegen); otherwise it stores the new
+ * value (narrowed to short). */
+void FUN_00021040(int actor_handle, int ticks)
+{
+  char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
+
+  if (ticks < *(short *)(actor + 0x5f6))
+    *(short *)(actor + 0x5f6) = *(short *)(actor + 0x5f6);
+  else
+    *(short *)(actor + 0x5f6) = (short)ticks;
+}
+
 /* 0x21130 — Get the weapon/aim direction for an actor.
  * If the actor is in a vehicle with flag 0x100 set in the vehicle tag,
  * copies the vehicle's position (offset 0x24). Otherwise falls back to
@@ -93,6 +122,14 @@ void actor_combat_get_burst_parameters(int actor_handle /* @<eax> */,
   assert_halt(burst_ref != NULL && firing_ref != NULL);
   *burst_ref = burst;
   *firing_ref = firing;
+}
+
+/* 0x21350 — Round a float to the nearest integer using the FPU's current
+ * rounding mode (FLD; FISTP). cdecl helper, single float argument, returns
+ * the rounded value in EAX. */
+int FUN_00021350(float value)
+{
+  return x87_round_to_int(value);
 }
 
 /* 0x21590 — Compute and set the fire delay timer for an actor.
@@ -245,6 +282,50 @@ bool actor_combat_compute_ballistic_solution(int actor_handle, int param_2)
   *(float *)(actor + 0x6c4) = dir[2];
   *(float *)(actor + 0x6c8) = aim_speed;
   return 1;
+}
+
+/* 0x219e0 — Find a grenade aim target from the actor's current encounter.
+ *
+ * cdecl: actor_handle (EDI) plus three output pointers. When the actor has a
+ * live encounter (actor+0x270 != -1) whose datum is active (+0x60 set) and
+ * not suppressed (+0x127 clear), and whose type (+0x24) is 2..4, and whose
+ * range value (+0x11c) lies within the actv's grenade band
+ * (actv+0x194 < range < actv+0x198), it copies the encounter's target point
+ * (+0xbc/+0xc0/+0xc4) into out_pos with a fixed Z bias (*0x2549d4), reports
+ * the encounter handle in out_handle and the target prop index (+0x110) in
+ * out_extra, and returns 1. If the actor is flagged for aim refinement
+ * (actor+0x1ca), it nudges out_pos toward the actor via FUN_00021430 with a
+ * 1.5 weight. Returns 0 when no suitable target exists. */
+char actor_combat_find_grenade_target(int actor_handle, float *out_pos,
+                                      int *out_handle, int *out_extra)
+{
+  char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
+  char *actv = (char *)tag_get(0x61637476 /* 'actv' */, *(int *)(actor + 0x5c));
+  char result = 0;
+  char *enc;
+  short type;
+
+  if (*(int *)(actor + 0x270) != -1) {
+    enc = (char *)datum_get(*(void **)0x5ab23c, *(int *)(actor + 0x270));
+    if (*(char *)(enc + 0x60) != 0 && *(char *)(enc + 0x127) == 0) {
+      type = *(short *)(enc + 0x24);
+      if ((type > 1 && type < 4) || type == 4) {
+        if (*(float *)(actv + 0x194) < *(float *)(enc + 0x11c) &&
+            *(float *)(enc + 0x11c) < *(float *)(actv + 0x198)) {
+          out_pos[0] = *(float *)(enc + 0xbc);
+          out_pos[1] = *(float *)(enc + 0xc0);
+          out_pos[2] = *(float *)(enc + 0xc4);
+          result = 1;
+          out_pos[2] = out_pos[2] + *(float *)0x2549d4;
+          *out_handle = *(int *)(actor + 0x270);
+          *out_extra = *(int *)(enc + 0x110);
+          if (*(char *)(actor + 0x1ca) != 0)
+            FUN_00021430(out_pos, 1.5f);
+        }
+      }
+    }
+  }
+  return result;
 }
 
 /* 0x22010 — Check whether the current fire target is still valid.
