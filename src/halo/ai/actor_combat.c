@@ -170,6 +170,83 @@ bool actor_combat_evaluate_firing(int actor_handle /* @<eax> */,
   return 1;
 }
 
+/* 0x21710 — Compute a ballistic firing solution toward the actor's current
+ * impact point and validate the line of fire.
+ *
+ * Looks up the actor's firing-variant projectile definition (actv tag
+ * +0x180 -> globals weapon block element +0x40 -> 'proj' tag), aborts via
+ * projectile_aim to get the aim direction, aim speed, target handle and a
+ * gating flag. Rejects the shot when the planar aim magnitude is zero or the
+ * forward alignment (dir . actor-facing) falls at/below cos(30deg) = 0.866.
+ * On success it scales the direction by the aim speed into a desired-impact
+ * delta, runs ai_test_ballistic_line_of_fire, and on a positive result caches
+ * the aim direction at actor+0x6bc and the aim speed at actor+0x6c8.
+ * Returns true when a valid firing solution was produced. */
+bool actor_combat_compute_ballistic_solution(int actor_handle, int param_2)
+{
+  char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
+  char *actv = (char *)tag_get(0x61637476 /* 'actv' */, *(int *)(actor + 0x5c));
+  short proj_index = *(short *)(actv + 0x180);
+  void *globals = game_globals_get();
+  int *weapon_elem =
+    (int *)tag_block_get_element((char *)globals + 0x128, proj_index, 0x44);
+  int projectile_tag = 0;
+
+  float dir[3];     /* [ebp-0x20..-0x18]  aim direction (projectile_aim out) */
+  float aim_speed;  /* [ebp-8]            aim speed (projectile_aim out)     */
+  int target;       /* [ebp-0x14]         target handle (projectile_aim out) */
+  char gate;        /* [ebp-1]            gating flag (projectile_aim out)   */
+  float impact[3];  /* [ebp-0x2c..-0x24]  desired-impact delta              */
+  float mag_vec[3]; /* [ebp-0x10..-8]     planar dir + speed scratch        */
+  float accel;      /* [ebp-0xc]          ballistic acceleration            */
+
+  if (weapon_elem != 0 && weapon_elem[0x40 / 4] != -1)
+    projectile_tag = (int)tag_get(0x70726f6a /* 'proj' */, weapon_elem[0x40 / 4]);
+
+  if (projectile_tag == 0) {
+    display_assert("projectile_definition",
+                   "c:\\halo\\SOURCE\\ai\\actor_combat.c", 0x6c3, 1);
+    system_exit(-1);
+  }
+
+  if (!projectile_aim(projectile_tag, param_2,
+                      (int)(actor + 0x6a8), 0, 0, 0,
+                      (int)(actor + 0x6c8), *(unsigned char *)(actor + 0x6a1),
+                      (int)&dir[0], (int)&aim_speed, (int)&target, 0,
+                      (void *)&gate))
+    return 0;
+
+  mag_vec[0] = dir[0];
+  mag_vec[1] = dir[1];
+  mag_vec[2] = aim_speed;
+  if (magnitude3d(mag_vec) <= 0.0f)
+    return 0;
+
+  if (dir[1] * *(float *)(actor + 0x178) + dir[0] * *(float *)(actor + 0x174)
+        <= 0.8660254f)
+    return 0;
+
+  impact[0] = dir[0] * aim_speed;
+  impact[1] = dir[1] * aim_speed;
+  impact[2] = dir[2] * aim_speed;
+
+  if (gate == 0)
+    accel = 0.0f;
+  else
+    accel = projectile_get_ballistic_acceleration(projectile_tag);
+
+  if (!ai_test_ballistic_line_of_fire(actor_handle, param_2, target, impact,
+                                      accel, *(int *)(actor + 0x6b8),
+                                      *(int *)(actor + 0x158) != -1))
+    return 0;
+
+  *(float *)(actor + 0x6bc) = dir[0];
+  *(float *)(actor + 0x6c0) = dir[1];
+  *(float *)(actor + 0x6c4) = dir[2];
+  *(float *)(actor + 0x6c8) = aim_speed;
+  return 1;
+}
+
 /* 0x22010 — Check whether the current fire target is still valid.
  * Only applies when mode==3 (prop targeting). Checks encounter data
  * and falls back to FUN_00021ae0 distance-based search. */
@@ -503,4 +580,100 @@ void FUN_00022390(int actor_handle)
     }
     FUN_00046f10(sound_type, *(int *)(actor + 0x18), enc_handle, 3, -1, -1, 0);
   }
+}
+
+/* 0x22ba0 — Compute an actor's grenade-throw aim vector.
+ *
+ * Looks up the actor (0x6325a4). If the actor belongs to an encounter
+ * (actor+0x6b4 != -1), reads that encounter (0x5ab23c): when its type
+ * (enc+0x24) is 2 or 3 the encounter datum (enc+0x18) becomes the return
+ * value, and when the type is outside [0,1] a seed aim point is built from
+ * enc+0xbc/0xc0/0xc4 (with a Z bias of *0x2549d4) and fed to the helper
+ * FUN_00022b40 (actor_handle in EBX, &aim point in ESI).
+ *
+ * It then runs the ballistic firing solution (actor_combat_compute_ballistic_
+ * solution), and if the actor currently has no live grenade target
+ * (actor+0x158 == -1), derives the throw direction from the cached aim
+ * (actor+0x6bc/0x6c0/0x6c4): it normalizes the planar (x,y) part, and when
+ * that planar direction points far enough off the actor facing
+ * (actor+0x174/0x178), it rotates the actor-facing normal by a fixed cos
+ * (0x3f5db3d7) and a +/- sin (*0x253398, sign from the planar cross sign),
+ * rescales by the original planar magnitude, asserts the result is a valid
+ * real normal, and adopts it as the new aim vector.
+ *
+ * Finally the chosen vector is scaled by the throw speed (actor+0x6c8) and
+ * written to out_aim_vector. Returns the encounter datum (or -1). */
+int actor_aim_grenade(int actor_handle, void *aim_params, float *out_aim_vector)
+{
+  char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
+  float aim_x, aim_y, aim_z;   /* [ebp-0x24/-0x20/-0x1c] chosen aim vector  */
+  float nrm_x, nrm_y, nrm_z;   /* [ebp-0x18/-0x14/-0x10] rotated facing nrm  */
+  float planar[2];             /* [ebp-0xc/-0x8] planar dir for normalize    */
+  int result;                  /* [ebp-0x4] encounter datum / -1             */
+  char *enc;
+  short enc_type;
+  float aim_vec[3];            /* contiguous buffer for FUN_00022b40 (ESI)   */
+  float speed;
+  float planar_mag;
+  float t;
+  int sign;
+  float sin_a;
+
+  result = -1;
+  if (*(int *)(actor + 0x6b4) != -1) {
+    enc = (char *)datum_get(*(void **)0x5ab23c, *(int *)(actor + 0x6b4));
+    enc_type = *(short *)(enc + 0x24);
+    if (enc_type > 1 && enc_type < 4)
+      result = *(int *)(enc + 0x18);
+    if (enc_type < 0 || enc_type > 1) {
+      aim_vec[0] = *(float *)(enc + 0xbc);
+      aim_vec[1] = *(float *)(enc + 0xc0);
+      aim_vec[2] = *(float *)(enc + 0xc4) + *(float *)0x2549d4;
+      FUN_00022b40(actor_handle, aim_vec);
+    }
+  }
+
+  actor_combat_compute_ballistic_solution(actor_handle, (int)aim_params);
+
+  aim_x = *(float *)(actor + 0x6bc);
+  aim_y = *(float *)(actor + 0x6c0);
+  aim_z = *(float *)(actor + 0x6c4);
+  if (*(int *)(actor + 0x158) == -1) {
+    planar[0] = aim_x;
+    planar[1] = aim_y;
+    if (magnitude3d(planar) > *(float *)0x2533c0 &&
+        planar[0] * *(float *)(actor + 0x174) +
+            planar[1] * *(float *)(actor + 0x178) < *(float *)0x2533dc) {
+      nrm_x = *(float *)(actor + 0x174);
+      nrm_y = *(float *)(actor + 0x178);
+      nrm_z = *(float *)(actor + 0x17c);
+      t = planar[1] * *(float *)(actor + 0x174) -
+          planar[0] * *(float *)(actor + 0x178);
+      sign = (t > *(float *)0x2533c0) ? 1 : -1;
+      sin_a = (float)sign * *(float *)0x253398;
+      nrm_z = aim_z;
+      rotate_vector3d_by_sincos(&nrm_x, *(float **)0x31fc44, sin_a,
+                                0.857651889f /* 0x3f5db3d7 */);
+      planar_mag = (float)x87_sqrt(aim_x * aim_x + aim_y * aim_y);
+      nrm_x = nrm_x * planar_mag;
+      nrm_y = planar_mag * nrm_y;
+      if (!valid_real_normal3d(&nrm_x)) {
+        csprintf((char *)0x5ab100,
+                 "%s: assert_valid_real_normal3d(%f, %f, %f)", "&new_aim_vector",
+                 (double)nrm_x, (double)nrm_y, (double)aim_z);
+        display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\ai\\actor_combat.c",
+                       0x749, 1);
+        system_exit(-1);
+      }
+      aim_x = nrm_x;
+      aim_y = nrm_y;
+      aim_z = nrm_z;
+    }
+  }
+
+  speed = *(float *)(actor + 0x6c8);
+  out_aim_vector[0] = aim_x * speed;
+  out_aim_vector[1] = aim_y * speed;
+  out_aim_vector[2] = speed * aim_z;
+  return result;
 }
