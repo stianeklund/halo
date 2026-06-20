@@ -288,8 +288,8 @@ bool scenario_switch_structure_bsp(__int16 bsp_index)
   if ((int)bsp_index >= *(int *)(scenario_tag + 0x5a4))
     return result;
 
-  bsp_ref = (char *)((int (*)(void *, int, int))0x19b210)(scenario_tag + 0x5a4,
-                                                          (int)bsp_index, 0x20);
+  bsp_ref =
+    (char *)tag_block_get_element(scenario_tag + 0x5a4, (int)bsp_index, 0x20);
 
   assert_halt(*(char **)0x5064e4);
 
@@ -307,7 +307,7 @@ bool scenario_switch_structure_bsp(__int16 bsp_index)
 
     /* unload old BSP tag */
     {
-      char *old_bsp = (char *)((int (*)(void *, int, int))0x19b210)(
+      char *old_bsp = (char *)tag_block_get_element(
         *(char **)0x5064e4 + 0x5a4, (int)*(int16_t *)0x326a0c, 0x20);
       ((void (*)(void *))0x1ba0c0)(old_bsp);
     }
@@ -323,9 +323,9 @@ bool scenario_switch_structure_bsp(__int16 bsp_index)
     *(char **)0x5064e0 = bsp_tag;
 
     *(char **)0x5064dc =
-      (char *)((int (*)(void *, int, int))0x19b210)(bsp_tag + 0xb0, 0, 0x60);
+      (char *)tag_block_get_element(bsp_tag + 0xb0, 0, 0x60);
     *(char **)0x5064d8 =
-      (char *)((int (*)(void *, int, int))0x19b210)(bsp_tag + 0xb0, 0, 0x60);
+      (char *)tag_block_get_element(bsp_tag + 0xb0, 0, 0x60);
 
     *(int16_t *)(*(char **)0x5064d0) = bsp_index;
     *(int16_t *)0x326a0c = bsp_index;

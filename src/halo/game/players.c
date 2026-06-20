@@ -280,8 +280,8 @@ bool any_player_is_in_the_air(void)
 
     if (*(int *)(unit_obj + 0xCC) != NONE) {
       /* Unit is in a vehicle -- ESI becomes the vehicle object */
-      vehicle_obj =
-        (char *)((void *(*)(int, int))0x13d640)(*(int *)(unit_obj + 0xCC), 2);
+      vehicle_obj = (char *)object_try_and_get_and_verify_type(
+        *(int *)(unit_obj + 0xCC), 2);
       if (vehicle_obj == NULL)
         continue;
       vehi_tag = (char *)tag_get(0x76656869, *(int *)vehicle_obj);
@@ -941,7 +941,7 @@ void player_spawn(int player_handle)
     if (new_unit == NONE) {
       goto common_tail;
     }
-    unit_obj = (char *)((void *(*)(int, int))0x13d640)(new_unit, 3);
+    unit_obj = (char *)object_try_and_get_and_verify_type(new_unit, 3);
     if (unit_obj == NULL) {
       goto common_tail;
     }
@@ -1306,15 +1306,15 @@ bool players_respawn_coop(void)
       int root = ((int (*)(int))0x13d7f0)(*(int *)(player + 0x34));
       if (root == *(int *)(player + 0x34)) {
         /* No parent: check unit data at +0x424. */
-        char *udata =
-          (char *)((void *(*)(int, int))0x13d640)(*(int *)(player + 0x34), 1);
+        char *udata = (char *)object_try_and_get_and_verify_type(
+          *(int *)(player + 0x34), 1);
         if (udata != NULL) {
           bVar1 = (udata[0x424] & 1) != 0;
           goto check_live;
         }
       } else {
         /* Has parent (seated): check vehicle data at +0x428. */
-        char *vdata = (char *)((void *(*)(int, int))0x13d640)(root, 2);
+        char *vdata = (char *)object_try_and_get_and_verify_type(root, 2);
         if (vdata != NULL) {
           bVar1 = (unsigned char)vdata[0x428] > 0;
           goto check_live;
