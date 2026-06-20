@@ -21558,8 +21558,8 @@
         },
         {
           "addr": "0x18eab0",
-          "decl": "int FUN_0018EAB0(int16_t bsp3d_node_index);",
-          "ported": false
+          "decl": "int scenario_get_structure_reference_index_from_tag_index(int16_t bsp3d_node_index);",
+          "ported": true
         },
         {
           "addr": "0x18eb40",
