@@ -63,7 +63,7 @@ void input_abstraction_update(void)
   uint8_t *puVar12;
 
   iVar10 = ((int (*)(void))0x18e450)();
-  ((void (*)(int *, int, int))0x19b210)((int *)(iVar10 + 0x110), 0, 0x80);
+  tag_block_get_element((void *)(iVar10 + 0x110), 0, 0x80);
 
   for (local_18 = 0; local_18 <= 3; local_18++) {
     iVar10 = (int)input_get_gamepad_state(local_18);

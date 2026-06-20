@@ -67,7 +67,7 @@ void recorded_animations_update(void)
   data_iterator_new(&iter, *(data_t **)0x44df04);
   thread = (char *)data_iterator_next(&iter);
   while (thread != NULL) {
-    if (((int (*)(int, int))0x13d640)(*(int *)(thread + 4), 3) == 0) {
+    if (object_try_and_get_and_verify_type(*(int *)(thread + 4), 3) == NULL) {
       datum_delete(*(data_t **)0x44df04, iter.datum_handle);
     } else {
       flags = *(uint16_t *)(thread + 0xa);
