@@ -353,7 +353,7 @@ void *FUN_0011a770(int *state, int element_size_type, unsigned int *element_coun
 
 /* decode_string_read — scan for NUL-terminated string in buffer (0x11a8e0).
  * Source: data_encoding.c. */
-__declspec(noinline) char *FUN_0011a8e0(int *state)
+__declspec(noinline) char *FUN_0011a8e0(int *state, unsigned short max_length)
 {
   int offset;
   short scan_count;
@@ -561,11 +561,8 @@ void FUN_0011b2a0(int definition, int *decode_state, unsigned short version,
   cur_output = output;
   if (*cur_field == 9) goto loop_done;
   do {
-    if ((short)version < cur_field[2] ||
-        (cur_field[3] < (short)version && cur_field[3] != 0)) {
-      csmemset(cur_output, 0, (int)cur_field[4]);
-    }
-    else {
+    if ((short)version >= cur_field[2] &&
+        ((short)version <= cur_field[3] || cur_field[3] == 0)) {
       switch (*cur_field) {
       case 1:
         raw_ptr = FUN_0011a430(decode_state, cur_field[1], 1);
@@ -592,7 +589,7 @@ void FUN_0011b2a0(int definition, int *decode_state, unsigned short version,
         }
         break;
       case 5:
-        raw_ptr = (int)FUN_0011a8e0(decode_state);
+        raw_ptr = (int)FUN_0011a8e0(decode_state, cur_field[1]);
         if (raw_ptr != 0) {
           csstrcpy((char *)cur_output, (const char *)raw_ptr);
         }
@@ -639,6 +636,9 @@ void FUN_0011b2a0(int definition, int *decode_state, unsigned short version,
         }
         break;
       }
+    }
+    else {
+      csmemset(cur_output, 0, (int)cur_field[4]);
     }
     cur_output = (unsigned short *)((int)cur_output + (int)cur_field[4]);
     cur_field = cur_field + 5;
@@ -1026,24 +1026,36 @@ void FUN_0011bc20(short *table, void *key)
         *(int *)(psVar3 + 6), next_element);
     }
     key_hash = (unsigned short)(psVar3[0x10] - 1) & key_hash;
-    {
-      short s_next = (short)next_slot;
-      short s_hash = (short)key_hash;
-      short s_removed = removed_slot;
-      if (((s_hash < s_next && s_hash <= s_removed && s_removed < s_next) ||
-           (s_next < s_hash &&
-            (s_hash <= s_removed || s_removed < s_next)))) {
-        int src_element;
-        int dst_element;
-        src_element = array_get_element((int *)(psVar3 + 0xe), cur_pos,
-                                        (int)psVar3[1]);
-        dst_element = array_get_element((int *)(psVar3 + 0xe), (int)removed_slot,
-                                        (int)psVar3[1]);
-        csmemcpy((void *)dst_element, (void *)src_element,
-                 *(int *)(psVar3 + 0xe));
-        removed_slot = (short)next_slot;
+    if ((short)key_hash < (short)next_slot) {
+      if ((short)removed_slot < (short)key_hash) {
+        goto no_shift;
+      }
+      if ((short)removed_slot < (short)next_slot) {
+        goto do_shift;
+      }
+    } else if ((short)key_hash > (short)next_slot) {
+      if ((short)removed_slot >= (short)key_hash) {
+        goto do_shift;
+      }
+      if ((short)removed_slot < (short)next_slot) {
+        goto do_shift;
       }
     }
+    goto no_shift;
+    do_shift:
+    {
+      int src_element;
+      int dst_element;
+      src_element = array_get_element((int *)(psVar3 + 0xe), cur_pos,
+                                      (int)psVar3[1]);
+      dst_element = array_get_element((int *)(psVar3 + 0xe), (int)removed_slot,
+                                      (int)psVar3[1]);
+      csmemcpy((void *)dst_element, (void *)src_element,
+               *(int *)(psVar3 + 0xe));
+      removed_slot = (short)next_slot;
+    }
+    no_shift:
+    (void)0;
     next_slot = (unsigned short)((int)(next_slot + 1) &
                 (int)(unsigned short)(psVar3[0x10] - 1));
     cur_pos = (int)(short)next_slot;
