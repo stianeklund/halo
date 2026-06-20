@@ -6542,7 +6542,10 @@ short FUN_00025c10(int actor_handle, void *eval_ctx, int *out_record,
   char records[0x200 * 0x3c]; /* EBP-0x8890 candidate records */
   int order[0x200]; /* EBP-0x1090 sort order indices */
   int owner_indices[0x200]; /* EBP-0x890 fp owner actor indices */
-  char path_input[0x44]; /* EBP-0x90 path-input scratch */
+  char path_input[0x48]; /* EBP-0x90 path-input scratch. MUST be >= 0x48:
+                          * path_input_new / actor_path_input_new do
+                          * csmemset(buf, 0, 0x48). Original reserved -0x90..-0x48
+                          * (0x48 bytes); a too-small [0x44] overflows by 4 bytes. */
   int prop_iter[2]; /* EBP-0x14 prop iterator */
   float vtmp[3]; /* EBP-0x3c scratch vector */
   float dir[3]; /* EBP-0x18 aim direction */
