@@ -117,10 +117,12 @@ SRC_INC="$(wsl_to_win "${SRC_INC_OVERRIDE:-$REPO_ROOT/src}")"
 
 # --------------------------------------------------------------------------
 # Invoke CL.Exe — same flags as vc71_verify.py:compile_vc71()
+# VC71_OPT/VC71_FP overridable for size-optimized library TUs (XAPILIB/CRT were
+# built /O1 frameless): export VC71_OPT=/O1 VC71_FP=/Oy for cseries/xbox_crt.c.
 # --------------------------------------------------------------------------
 "$VC71_CL_WSL" \
     /nologo /c /TC \
-    /O2 /Oy- /GF /Gy /Gd \
+    "${VC71_OPT:-/O2}" "${VC71_FP:-/Oy-}" /GF /Gy /Gd \
     /W0 /Zl /X \
     /DMSVC /DXDK_BUILD /DHDATA= \
     "/FI${FI_WIN}" \
