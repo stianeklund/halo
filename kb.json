@@ -30298,7 +30298,7 @@
         {
           "addr": "0x21ae0",
           "decl": "char FUN_00021ae0(int actor_handle, float range, float param3, float *encounter_pos, short *out_count);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x22010",
