@@ -1296,56 +1296,80 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     addr_int = int(addr, 16) if addr.startswith("0x") else int(addr, 16)
     delinked_sym = f"FUN_{addr_int:08x}"
 
-    try:
-        oracle_slice = extract_function(str(delinked_path), delinked_sym)
-    except CoffParseError as e:
-        # Try without leading underscore / with function name
+    # Prefer per-function delinked refs — they isolate callees as external
+    # stubs, avoiding intra-object call resolution issues.
+    per_func_ref = _per_function_ref(func_name)
+    if per_func_ref:
         try:
-            oracle_slice = extract_function(str(delinked_path), func_name)
-        except CoffParseError as e2:
-            per_func_ref = _per_function_ref(func_name)
-            if per_func_ref:
-                try:
-                    oracle_slice = extract_function(str(per_func_ref), delinked_sym)
-                    delinked_path = per_func_ref
-                except CoffParseError as e3:
-                    log(f"ERROR extracting oracle: {e}")
-                    log(f"  (also tried '{func_name}': {e2})")
-                    log(f"  (also tried split ref '{per_func_ref.name}': {e3})")
-                    return finish("not_applicable", False, "oracle_extract_failed", 2)
-            else:
-                # Chunked-fallback: scan sibling chunked delinked refs in same dir
-                base_stem = delinked_path.stem  # e.g. "real_math"
-                chunked_match = None
-                for chunked in delinked_path.parent.glob(f"{base_stem}_*.obj"):
+            oracle_slice = extract_function(str(per_func_ref), delinked_sym)
+            delinked_path = per_func_ref
+            info(f"  (using per-function delinked ref: {per_func_ref.name})")
+        except CoffParseError:
+            per_func_ref = None  # fall through to main delinked
+    if not per_func_ref:
+        try:
+            oracle_slice = extract_function(str(delinked_path), delinked_sym)
+        except CoffParseError as e:
+            # Try without leading underscore / with function name
+            try:
+                oracle_slice = extract_function(str(delinked_path), func_name)
+            except CoffParseError as e2:
+                per_func_ref2 = _per_function_ref(func_name)
+                if per_func_ref2:
                     try:
-                        result = subprocess.run(
-                            ["llvm-objdump", "-t", str(chunked)],
-                            capture_output=True, text=True
-                        )
-                        if delinked_sym in result.stdout or delinked_sym.upper() in result.stdout:
-                            chunked_match = chunked
-                            break
-                    except Exception:
-                        pass
-                if chunked_match:
-                    try:
-                        oracle_slice = extract_function(str(chunked_match), delinked_sym)
-                        delinked_path = chunked_match
+                        oracle_slice = extract_function(str(per_func_ref2), delinked_sym)
+                        delinked_path = per_func_ref2
                     except CoffParseError as e3:
                         log(f"ERROR extracting oracle: {e}")
-                        log(f"  (also tried chunked '{chunked_match.name}': {e3})")
+                        log(f"  (also tried '{func_name}': {e2})")
+                        log(f"  (also tried split ref '{per_func_ref2.name}': {e3})")
                         return finish("not_applicable", False, "oracle_extract_failed", 2)
                 else:
-                    log(f"ERROR extracting oracle: {e}")
-                    log(f"  (also tried '{func_name}': {e2})")
-                    return finish("not_applicable", False, "oracle_extract_failed", 2)
+                    base_stem = delinked_path.stem
+                    chunked_match = None
+                    for chunked in delinked_path.parent.glob(f"{base_stem}_*.obj"):
+                        try:
+                            result = subprocess.run(
+                                ["llvm-objdump", "-t", str(chunked)],
+                                capture_output=True, text=True
+                            )
+                            if delinked_sym in result.stdout or delinked_sym.upper() in result.stdout:
+                                chunked_match = chunked
+                                break
+                        except Exception:
+                            pass
+                    if chunked_match:
+                        try:
+                            oracle_slice = extract_function(str(chunked_match), delinked_sym)
+                            delinked_path = chunked_match
+                        except CoffParseError as e3:
+                            log(f"ERROR extracting oracle: {e}")
+                            log(f"  (also tried chunked '{chunked_match.name}': {e3})")
+                            return finish("not_applicable", False, "oracle_extract_failed", 2)
+                    else:
+                        log(f"ERROR extracting oracle: {e}")
+                        log(f"  (also tried '{func_name}': {e2})")
+                        return finish("not_applicable", False, "oracle_extract_failed", 2)
 
     try:
         lifted_slice = extract_function(str(build_path), func_name)
     except CoffParseError as e:
-        log(f"ERROR extracting lifted: {e}")
-        return finish("not_applicable", False, "lifted_extract_failed", 2)
+        try:
+            lifted_slice = extract_function(str(build_path), delinked_sym)
+        except CoffParseError as e2:
+            kb_name = entry.get("name", "")
+            if kb_name and kb_name != func_name:
+                try:
+                    lifted_slice = extract_function(str(build_path), kb_name)
+                except CoffParseError as e3:
+                    log(f"ERROR extracting lifted: {e}")
+                    log(f"  (also tried '{delinked_sym}': {e2})")
+                    log(f"  (also tried '{kb_name}': {e3})")
+                    return finish("not_applicable", False, "lifted_extract_failed", 2)
+            else:
+                log(f"ERROR extracting lifted: {e}")
+                log(f"  (also tried '{delinked_sym}': {e2})")
+                return finish("not_applicable", False, "lifted_extract_failed", 2)
 
     info(f"  oracle code: {len(oracle_slice.code)} bytes, {len(oracle_slice.relocs)} relocs")
     info(f"  lifted code: {len(lifted_slice.code)} bytes, {len(lifted_slice.relocs)} relocs")
