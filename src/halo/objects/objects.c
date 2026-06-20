@@ -944,6 +944,27 @@ void FUN_001398d0(int *param_1)
   cluster_partition_iter_next((void *)0x5a90b0, param_1);
 }
 
+/* Light analog of object_markers_need_update: return whether this light's
+ * cached marker generation (light+0xc) differs from the global marker counter
+ * (lights_globals at 0x5a8d64). Unlike its sibling FUN_00139990, this is a
+ * pure getter and does NOT write the cached value back. Asserts that the
+ * lights marker system has been initialized (0x5a8d60). The result is a bool
+ * (CONCAT31/SETNZ).
+ * 0x139930 / objects.obj
+ */
+int FUN_00139930(int light_handle)
+{
+  int light;
+
+  light = (int)datum_get(*(data_t **)0x5a90bc, light_handle);
+  if (*(char *)0x5a8d60 == '\0') {
+    display_assert("lights_globals.marker_initialized",
+                   "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x66f, 1);
+    system_exit(-1);
+  }
+  return *(int *)(light + 0xc) != *(int *)0x5a8d64;
+}
+
 /* Check if the lights marker global has changed; update it and return 1 if so.
  * 0x139990 / objects.obj
  */
