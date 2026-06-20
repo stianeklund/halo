@@ -9,32 +9,18 @@
  *   [3] = overflow flag (byte at low byte of word [3])
  * ======================================================================== */
 
-#define byte_swap_raw \
-  ((void (*)(void *, int, int))0x118620)
-
-#define byte_swap_structures \
-  ((void (*)(void *, void *, int))0x118be0)
-
-#define encode_state_new \
-  ((void (*)(int *, int, int))0x119c50)
-
-#define encode_raw_data \
-  ((int (*)(int *, int, short, int))0x119cc0)
-
-#define encode_packet_fields \
-  ((void (*)(int, int *, short, void *, short, int, short *))0x11afa0)
-
-#define csstrcpy \
-  ((char *(*)(char *, const char *))0x8dff0)
-
-#define array_get_element \
-  ((int (*)(int *, int, int))0x117ee0)
-
-#define array_reset \
-  ((void (*)(int *, int))0x117b20)
-
-#define array_dispose \
-  ((void (*)(int *))0x117cf0)
+/* These call original engine routines by name (declared in kb.json) instead of
+ * via raw function-pointer casts to hex addresses. The semantic macro names are
+ * kept as aliases over the kb.json symbol names. */
+#define byte_swap_raw        FUN_00118620
+#define byte_swap_structures FUN_00118be0
+#define encode_state_new     FUN_00119c50
+#define encode_raw_data      FUN_00119cc0
+#define encode_packet_fields FUN_0011afa0
+/* csstrcpy (0x8dff0) is declared by name in kb.json — no macro needed. */
+#define array_get_element    FUN_00117ee0
+#define array_reset          array_new
+#define array_dispose        FUN_00117cf0
 
 /* packet_header byte-swap definition at 0x3220c0 */
 #define packet_header_bs_def ((void *)0x3220c0)
@@ -421,8 +407,7 @@ void verify_packet_group_definitions(group_definition *group)
  */
 
 /* compute_packet_field_sizes at 0x11add0 — not yet ported (data_packets.c) */
-#define compute_packet_field_sizes \
-  ((void (*)(packet_definition *, short *, short *, short *))0x11add0)
+#define compute_packet_field_sizes FUN_0011add0
 
 void verify_packet_definition(packet_definition *def)
 {
