@@ -2103,7 +2103,12 @@ char actor_path_refresh(int actor_handle, char store_distance,
   float saved_pos[3]; /* [EBP-0x18..-0x10]: copy of old actor[0x488..0x490] */
   char *tag; /* [EBP-0xc]: actor tag pointer from tag_get */
   float dist; /* [EBP-0x8]: 3D distance actor→destination */
-  char local_nav[44]; /* [EBP-0x60]: nav-state struct (waypoint init output) */
+  char local_nav[0x48]; /* [EBP-0x60]: nav-state struct (waypoint init output).
+                         * MUST be >= 0x48: actor_path_input_new -> path_input_new
+                         * does csmemset(buf, 0, 0x48). Original reserved -0x60..-0x18
+                         * (0x48 bytes); a too-small [44] overflowed and zeroed the
+                         * cached actor+0x4a8 nav_state_out pointer -> NULL write in
+                         * path_state_build_path -> PoA campaign access-violation. */
   static char
     large_buf[0x1408c]; /* [EBP+0xfffebf14]: path-build scratch 82060 bytes */
   void
