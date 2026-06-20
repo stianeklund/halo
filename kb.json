@@ -15259,7 +15259,7 @@
         {
           "addr": "0x13dda0",
           "decl": "void object_definition_predict(int param_1);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13ddd0",
@@ -15270,7 +15270,7 @@
         {
           "addr": "0x13de80",
           "decl": "void object_beautify(int param_1, char param_2);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13ded0",
@@ -15340,7 +15340,7 @@
         {
           "addr": "0x13eb30",
           "decl": "void object_scripting_set_collideable(int param_1, char param_2);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13eb70",
@@ -15350,7 +15350,7 @@
         {
           "addr": "0x13ebc0",
           "decl": "void object_marker_end(void);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13ec00",
@@ -15362,7 +15362,7 @@
         {
           "addr": "0x13ec50",
           "decl": "int object_mark(int object_handle);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13ecb0",
