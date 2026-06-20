@@ -182,11 +182,19 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x21710": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x21fb0": {
       "kind": "function",
       "status": "ported"
     },
     "0x22010": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x22ba0": {
       "kind": "function",
       "status": "ported"
     },
