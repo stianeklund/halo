@@ -7601,10 +7601,10 @@ void unit_select_weapon_after_vehicle_exit(int unit_handle)
 
 /* FUN_001abd10 (0x1abd10)
  * Plays impact sounds for melee damage. Looks up the unit's material type
- * sound via FUN_0018e500 and plays it on the unit. If a weapon tag is
- * provided, also plays the weapon's melee impact sound (tag 'jpt!'+0x120).
+ * sound via FUN_0018e500 and plays it on the unit. If a damage effect tag is
+ * provided, also plays the effect's melee impact sound (tag 'jpt!'+0x120).
  * Register args: @eax = material_type, @esi = unit_handle,
- *                @edi = weapon_tag_index (or -1).
+ *                @edi = damage_effect_tag (or -1).
  * Confirmed from callers 0x1ae840 @001aea76, 0x1aea90 @001af016. */
 void FUN_001abd10(int16_t material_type, int unit_handle, int weapon_tag_index)
 {
@@ -7614,8 +7614,8 @@ void FUN_001abd10(int16_t material_type, int unit_handle, int weapon_tag_index)
   float *position;
   float *forward;
 
-  position = *(float **)0x31fc3c;
-  forward = *(float **)0x31fc1c;
+  position = *(float **)0x31fc1c;
+  forward = *(float **)0x31fc3c;
 
   material_effects = (char *)FUN_0018e500(material_type);
   sound_tag = *(int *)(material_effects + 0x370);
@@ -11310,7 +11310,7 @@ void unit_cause_player_melee_damage(int unit_handle)
   float ray_dir[3];
   float ray_origin[3];
   char collision_result[80];
-  char marker_buf[24];
+  char marker_buf[0x6c];
   int16_t depth;
   int outer_i;
   int outer_count;
@@ -11333,7 +11333,7 @@ void unit_cause_player_melee_damage(int unit_handle)
   float kick_vec[3];
   int16_t hit_material;
   int weapon_handle;
-  char damage_data[80];
+  char damage_data[0x54];
 
   unit = (unsigned int *)object_get_and_verify_type(unit_handle, 3);
   unit_tag_data = (int)tag_get(0x756e6974, *unit);
@@ -11345,9 +11345,9 @@ void unit_cause_player_melee_damage(int unit_handle)
   object_get_markers_by_string_id(unit_handle, (void *)0x2909e4,
                                   marker_buf, 1);
 
-  ray_origin[0] = *(float *)(marker_buf + 0x08);
-  ray_origin[1] = *(float *)(marker_buf + 0x0c);
-  ray_origin[2] = *(float *)(marker_buf + 0x10);
+  ray_origin[0] = *(float *)(marker_buf + 0x60);
+  ray_origin[1] = *(float *)(marker_buf + 0x64);
+  ray_origin[2] = *(float *)(marker_buf + 0x68);
 
   if (global_current_collision_user_depth >=
       MAXIMUM_COLLISION_USER_STACK_DEPTH) {
@@ -11394,17 +11394,17 @@ void unit_cause_player_melee_damage(int unit_handle)
       if (hit != 0) {
         if (*(short *)collision_result == 2) {
           if (best_object == -1) {
-            hit_material = *(short *)(collision_result + 0x10);
-            if ((*(unsigned int *)(collision_result + 0x24) & 8) != 0) {
+            hit_material = *(short *)(collision_result + 0x34);
+            if ((*(unsigned int *)(collision_result + 0x4c) & 8) != 0) {
               material_idx =
                   (int16_t)(unsigned char)
-                  (*(unsigned int *)(collision_result + 0x24) >> 8);
+                  (*(unsigned int *)(collision_result + 0x4c) >> 8);
               material_surface =
-                  *(unsigned int *)(collision_result + 0x18);
+                  *(unsigned int *)(collision_result + 0x44);
             }
           }
         } else if (*(short *)collision_result == 3) {
-          hit_target = *(int *)(collision_result + 0x34);
+          hit_target = *(int *)(collision_result + 0x38);
           obj_data = (char *)object_get_and_verify_type(hit_target, -1);
 
           if (*(short *)(obj_data + 100) != 2) {
@@ -11419,12 +11419,12 @@ void unit_cause_player_melee_damage(int unit_handle)
           if (best_object == -1 ||
               (*(short *)(obj_data + 100) == 0 &&
                ((best_type == 0 &&
-                 *(float *)(collision_result + 0x28) <
+                 *(float *)(collision_result + 0x14) <
                      best_fraction) ||
                 best_type != 0))) {
             best_type = *(short *)(obj_data + 100);
-            hit_material = *(short *)(collision_result + 0x10);
-            best_fraction = *(float *)(collision_result + 0x28);
+            hit_material = *(short *)(collision_result + 0x34);
+            best_fraction = *(float *)(collision_result + 0x14);
             best_object = hit_target;
           }
         }
@@ -11490,10 +11490,10 @@ got_damage_effect:
 
   if (melee_damage_effect != -1) {
     damage_data_new(damage_data, melee_damage_effect);
+    *(unsigned int *)(damage_data + 0x04) |= 1;
+    *(short *)(damage_data + 0x10) = *(short *)((char *)unit + 0x68);
     *(unsigned int *)(damage_data + 0x14) = unit[0x12];
-    *(float *)(damage_data + 0x18) = (float)unit[0x13];
-    *(unsigned int *)(damage_data + 0x10) |= 1;
-    *(short *)(damage_data + 0x12) = *(short *)((char *)unit + 0x68);
+    *(unsigned int *)(damage_data + 0x18) = unit[0x13];
     *(unsigned int *)(damage_data + 0x08) = unit[0x72];
     *(unsigned int *)(damage_data + 0x0c) = unit_handle;
     *(unsigned int *)(damage_data + 0x1c) = *(unsigned int *)&ray_origin[0];
@@ -11505,7 +11505,7 @@ got_damage_effect:
     *(float *)(damage_data + 0x34) = facing[0];
     *(float *)(damage_data + 0x38) = facing[1];
     *(float *)(damage_data + 0x3c) = facing[2];
-    *(short *)(damage_data + 0x04) = hit_material;
+    *(short *)(damage_data + 0x4c) = hit_material;
 
     if (best_object == -1) {
       if ((short)material_idx != -1) {
@@ -11526,9 +11526,9 @@ got_damage_effect:
       dot_product = 0.0f;
       if (0.0f < *(float *)(globals_element_ptr + 0x34)) {
         dot_product =
-            ((float)unit[9] * (float)unit[6] +
-             (float)unit[10] * (float)unit[7] +
-             (float)unit[0xb] * (float)unit[8]) * 30.0f;
+            (*(float *)&unit[9] * *(float *)&unit[6] +
+             *(float *)&unit[10] * *(float *)&unit[7] +
+             *(float *)&unit[0xb] * *(float *)&unit[8]) * 30.0f;
         dot_product = dot_product /
                       *(float *)(globals_element_ptr + 0x34);
         if (dot_product < 0.0f) {
@@ -11546,6 +11546,8 @@ got_damage_effect:
         }
       }
 
+      *(float *)(damage_data + 0x40) = dot_product;
+
       hit_type_data = (char *)object_get_and_verify_type(best_object, -1);
       if (*(short *)(hit_type_data + 100) == 0) {
         object_cause_damage(damage_data, best_object,
@@ -11555,7 +11557,7 @@ got_damage_effect:
   }
 
   if ((short)hit_material != -1) {
-    FUN_001abd10((short)hit_material, unit_handle, unit[0x72]);
+    FUN_001abd10((short)hit_material, unit_handle, melee_damage_effect);
     if (melee_response_effect != -1) {
       damage_data_new(damage_data, melee_response_effect);
       *(float *)(damage_data + 0x34) = -facing[0];
@@ -11567,7 +11569,7 @@ got_damage_effect:
       *(unsigned int *)(damage_data + 0x1c) = unit[0x14];
       *(unsigned int *)(damage_data + 0x20) = unit[0x15];
       *(unsigned int *)(damage_data + 0x24) = unit[0x16];
-      *(unsigned int *)(damage_data + 0x10) |= 8;
+      *(unsigned int *)(damage_data + 0x04) |= 8;
       object_cause_damage(damage_data, unit_handle,
                           -1, -1, -1, 0);
     }
