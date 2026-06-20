@@ -15152,22 +15152,22 @@
         {
           "addr": "0x13d570",
           "decl": "void cluster_get_first_noncollideable_object(int *param_1, int param_2);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13d590",
           "decl": "void cluster_get_next_noncollideable_object(int *param_1);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13d5b0",
           "decl": "int cluster_partition_object_iter_first(int *state, int16_t cluster_idx);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13d5d0",
           "decl": "int cluster_partition_object_iter_next(int *state);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13d5f0",
@@ -15183,7 +15183,7 @@
         {
           "addr": "0x13d680",
           "decl": "void *object_get_and_verify_type(int datum_handle, int type_mask);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13d6f0",
