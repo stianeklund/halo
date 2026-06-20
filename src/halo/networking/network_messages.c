@@ -355,23 +355,23 @@ void *FUN_0011a770(int *state, int element_size_type, unsigned int *element_coun
  * Source: data_encoding.c. */
 __declspec(noinline) char *FUN_0011a8e0(int *state)
 {
-  int start_offset;
+  int offset;
   short scan_count;
-  int scan_pos;
+  char *base;
 
-  start_offset = state[1];
+  offset = state[1];
+  base = (char *)(*state + offset);
   scan_count = 0;
-  if (start_offset < state[2]) {
-    scan_pos = 0;
-    do {
-      if (*(char *)(scan_pos + *state + start_offset) == '\0') {
-        state[1] = (int)scan_count + 1 + start_offset;
-        return (char *)(*state + start_offset);
-      }
-      scan_count = scan_count + 1;
-      scan_pos = (int)scan_count;
-    } while (state[1] + scan_pos < state[2]);
+  if (offset >= state[2])
+    goto overflow;
+  while (state[1] + (int)scan_count < state[2]) {
+    if (base[(int)scan_count] == '\0') {
+      state[1] = (int)scan_count + 1 + offset;
+      return base;
+    }
+    scan_count = scan_count + 1;
   }
+overflow:
   *(unsigned char *)(state + 3) = 1;
   return NULL;
 }
@@ -549,7 +549,6 @@ void FUN_0011b2a0(int definition, int *decode_state, unsigned short version,
                   unsigned short *output, short *decoded_size_out,
                   short *field_defs, short *field_count_out)
 {
-  short field_type;
   short *cur_field;
   unsigned short *cur_output;
   int raw_ptr;
@@ -560,8 +559,8 @@ void FUN_0011b2a0(int definition, int *decode_state, unsigned short version,
 
   cur_field = field_defs;
   cur_output = output;
-  field_type = *cur_field;
-  while (field_type != 9) {
+  if (*cur_field == 9) goto loop_done;
+  do {
     if ((short)version < cur_field[2] ||
         (cur_field[3] < (short)version && cur_field[3] != 0)) {
       csmemset(cur_output, 0, (int)cur_field[4]);
@@ -643,8 +642,8 @@ void FUN_0011b2a0(int definition, int *decode_state, unsigned short version,
     }
     cur_output = (unsigned short *)((int)cur_output + (int)cur_field[4]);
     cur_field = cur_field + 5;
-    field_type = *cur_field;
-  }
+  } while (*cur_field != 9);
+loop_done:
   if (field_count_out != NULL) {
     int byte_diff;
     byte_diff = (int)cur_field - (int)field_defs;
