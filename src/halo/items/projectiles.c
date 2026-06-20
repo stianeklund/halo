@@ -577,13 +577,20 @@ int projectile_aim_linear(float speed, float *origin, float *target,
  * trajectory.  Otherwise the simpler straight-line aim helper
  * projectile_aim_linear is used.  param_13, when non-NULL, receives 0 for the
  * arc path and 1 for the straight-line path. */
-void projectile_aim(int projectile_tag, int param_2, int param_3, void *param_4,
+/* Returns the inner aim-solver's success flag in EAX (void-EAX implicit
+ * return). The original is declared void and writes the arc/linear selector
+ * through param_13, but it leaks the residual EAX of projectile_aim_ballistic
+ * / projectile_aim_linear (neither path resets AL/EAX before RET). Callers such
+ * as actor_combat firing-solution (FUN_00021710) test this AL to decide whether
+ * a valid aim solution exists; return-ignoring callers are unaffected. */
+char projectile_aim(int projectile_tag, int param_2, int param_3, void *param_4,
                     int param_5, int param_6, int param_7, int param_8,
                     int param_9, int param_10, int param_11, int param_12,
                     void *param_13)
 {
   float speed;
   char *out;
+  char result;
 
   if (param_4 == NULL) {
     speed = *(float *)(projectile_tag + 0x1e4);
@@ -595,22 +602,24 @@ void projectile_aim(int projectile_tag, int param_2, int param_3, void *param_4,
 
   if ((*(unsigned char *)(projectile_tag + 0x17c) & 2) &&
       (*(float *)(projectile_tag + 0x1cc) > *(float *)0x2533c0)) {
-    projectile_aim_ballistic(speed, *(float *)(projectile_tag + 0x1cc),
-                             (float *)param_2, (float *)param_3, param_5,
-                             (float *)param_6, (float *)param_7, (char)param_8,
-                             (float *)param_9, (float *)param_10,
-                             (float *)param_11, (float *)param_12, 0, 0);
+    result = projectile_aim_ballistic(
+        speed, *(float *)(projectile_tag + 0x1cc), (float *)param_2,
+        (float *)param_3, param_5, (float *)param_6, (float *)param_7,
+        (char)param_8, (float *)param_9, (float *)param_10, (float *)param_11,
+        (float *)param_12, 0, 0);
     if (out != NULL) {
       *out = 0;
     }
   } else {
-    projectile_aim_linear(speed, (float *)param_2, (float *)param_3,
-                          (float *)param_9, (float *)param_10,
-                          (float *)param_11, (float *)param_12);
+    result = (char)projectile_aim_linear(
+        speed, (float *)param_2, (float *)param_3, (float *)param_9,
+        (float *)param_10, (float *)param_11, (float *)param_12);
     if (out != NULL) {
       *out = 1;
     }
   }
+
+  return result;
 }
 
 /* Compute projectile velocity direction and speed angle from the velocity

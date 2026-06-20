@@ -3931,7 +3931,7 @@
         },
         {
           "addr": "0x41ad0",
-          "decl": "void ai_test_ballistic_line_of_fire(void);"
+          "decl": "char ai_test_ballistic_line_of_fire(int actor_handle, int param_2, int target, float *impact_point, float accel, int param_6, char param_7);"
         },
         {
           "addr": "0x41e80",
@@ -18366,7 +18366,7 @@
         },
         {
           "addr": "0xf84d0",
-          "decl": "void projectile_aim(int projectile_tag, int param_2, int param_3, void *param_4, int param_5, int param_6, int param_7, int param_8, int param_9, int param_10, int param_11, int param_12, void *param_13);",
+          "decl": "char projectile_aim(int projectile_tag, int param_2, int param_3, void *param_4, int param_5, int param_6, int param_7, int param_8, int param_9, int param_10, int param_11, int param_12, void *param_13);",
           "ported": true
         },
         {
@@ -30325,7 +30325,8 @@
         },
         {
           "addr": "0x21710",
-          "decl": "void FUN_00021710(void);"
+          "decl": "bool actor_combat_compute_ballistic_solution(int actor_handle, int param_2);",
+          "ported": true
         },
         {
           "addr": "0x218d0",
@@ -30341,11 +30342,12 @@
         },
         {
           "addr": "0x22b40",
-          "decl": "void FUN_00022b40(void);"
+          "decl": "void FUN_00022b40(int actor_handle @<ebx>, float *aim_vector @<esi>);"
         },
         {
           "addr": "0x22ba0",
-          "decl": "void actor_aim_grenade(int actor_handle, float *position, float *velocity);"
+          "decl": "int actor_aim_grenade(int actor_handle, void *aim_params, float *out_aim_vector);",
+          "ported": true
         }
       ],
       "name": "actor_combat.obj",

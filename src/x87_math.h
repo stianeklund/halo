@@ -120,4 +120,18 @@ static __inline float x87_fptan(float val) {
   return r;
 }
 
+static __inline float x87_sqrt(float val) {
+  float r;
+#if defined(_MSC_VER) && !defined(__clang__)
+  __asm {
+    fld DWORD PTR [val]
+    fsqrt
+    fstp DWORD PTR [r]
+  }
+#else
+  __asm__ __volatile__("fsqrt" : "=t"(r) : "0"(val));
+#endif
+  return r;
+}
+
 #endif /* X87_MATH_H */
