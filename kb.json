@@ -20497,7 +20497,8 @@
         },
         {
           "addr": "0x110a10",
-          "decl": "int FUN_00110a10(int adler, int buf, int len);"
+          "decl": "unsigned int FUN_00110a10(unsigned int adler, unsigned char *buf, unsigned int len);",
+          "ported": true
         },
         {
           "addr": "0x110b40",

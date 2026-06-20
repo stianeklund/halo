@@ -1254,7 +1254,7 @@ int FUN_00115a00(int z, int dictionary, unsigned int dictLength)
   new_var = (int *)0;
   n = dictLength;
   if (z != 0 && *(int **)(z + 0x1c) != new_var && **(int **)(z + 0x1c) == 6) {
-    adler_check = FUN_00110a10(1, dictionary, (int)dictLength);
+    adler_check = FUN_00110a10(1, (unsigned char *)dictionary, dictLength);
     if (adler_check != *(int *)(z + 0x30))
       return (int)0xfffffffd;
     *(int *)(z + 0x30) = 1;
