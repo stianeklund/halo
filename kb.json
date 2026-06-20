@@ -14869,7 +14869,7 @@
           "name": "FUN_00139930",
           "addr": "0x139930",
           "decl": "int FUN_00139930(int param_1);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x139990",
@@ -15107,7 +15107,7 @@
         },
         {
           "addr": "0x13c9e0",
-          "decl": "short FUN_0013c9e0(int param_1);",
+          "decl": "unsigned int FUN_0013c9e0(int param_1);",
           "ported": false,
           "source_path": "objects/objects.c"
         },
