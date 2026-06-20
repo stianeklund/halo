@@ -15459,22 +15459,22 @@
         {
           "addr": "0x13fb30",
           "decl": "void object_activate(int object_handle);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13fb80",
           "decl": "void object_deactivate(int object_handle);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13fbc0",
           "decl": "void object_reset(int object_handle);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13fc20",
           "decl": "void object_placement_data_new(void *placement, int tag_index, int parent_handle);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13fd00",
@@ -15490,7 +15490,7 @@
         {
           "addr": "0x13fe70",
           "decl": "void *object_get_node_matrices(int object_handle);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13fea0",
