@@ -204,6 +204,19 @@ A hook (`tools/audit/token_discipline_hook.py`, wired in `.claude/settings.json`
 - **`tools/analysis/punpckhdq_import.py`** — Imports PDB-derived TU/symbol corpus from punpckhdq/halo (debug-build PDB) and proposes real names for our `FUN_<addr>` placeholders. `tools/analysis/apply_punpckhdq_renames.py` performs textual renames across kb.json/baseline/src after dry-run review.
 
 ## Architecture and Skills
+
+**Skill-first discipline (MANDATORY — applies to every Claude/agent/subagent instance in this repo):** Before doing lift, score-recovery, call-site verification, hazard, or crash/regression work, FIND and APPLY the matching skill under `.claude/skills/`. Do NOT default to raw `docs/lift-learnings.md` or a hand-rolled approach — the skills are the indexed, trigger-keyed front door to that doctrine and must be used actively. Discover with `rtk fd -e md . .claude/skills` (or grep the skill name), read the skill's **"Invoke this skill when"** block, and follow its checklist. Invoke via the Skill tool when it is surfaced as user-invocable; when it is NOT surfaced (the `lift-*` task skills frequently aren't loaded per session), READ the `SKILL.md` and apply it directly — being unlisted is not a reason to skip it. When delegating to a subagent, NAME the relevant skill(s) in the brief so the subagent runs the same doctrine. Trigger → skill map:
+
+| Situation | Skill |
+|-----------|-------|
+| VC71 65–84% and the gap "looks structural" (before writing "structural ceiling") | `lift-score-improve` |
+| Any new/changed lift, before commit or deploy (non-crashing correctness; box is the only oracle) | `lift-silent-bugs` + `bug-hunt` |
+| Verifying a call site against disassembly | `lift-decompiler-traps` + `lift-arg-hazards` |
+| Calling an UNPORTED callee (implicit `@<reg>` args) | `check-callee-regs` |
+| Sizing a local buffer / `_chkstk` frame / stack aliasing | `lift-frame-hazards` |
+| Any Xbox crash / hang / assert / visual regression / toggle-bisect | `crash-triage` → `lift-crash-signals` |
+
+Broad doctrine skills:
 - `halo-xbox-re`: RE doctrine and evidence rules.
 - `halo-re-lift`: Lift workflow and ABI-specific execution.
 - `halo-verify-debug`: Verification lanes, delink comparison, and regression debugging.
