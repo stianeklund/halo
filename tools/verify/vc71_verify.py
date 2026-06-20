@@ -314,7 +314,7 @@ def _preprocess_regcall(source: Path, callees: dict[str, str]) -> Path:
     return tmp
 
 
-def compile_vc71(source: Path, output: Path, regcall_elide: bool = False) -> bool:
+def compile_vc71(source: Path, output: Path, regcall_elide: bool = False, opt: str = "/O2") -> bool:
     """Compile a source file with VC++ 7.1 cl.exe. Returns True on success.
 
     When regcall_elide=True, preprocesses the source to cast register-arg
@@ -338,7 +338,7 @@ def compile_vc71(source: Path, output: Path, regcall_elide: bool = False) -> boo
     cmd = [
         VC71_CL_WSL,
         "/nologo", "/c", "/TC",
-        "/O2", "/Oy-", "/GF", "/Gy", "/Gd",
+        opt, "/Oy-", "/GF", "/Gy", "/Gd",
         "/W0", "/Zl", "/X",
         "/DMSVC", "/DXDK_BUILD", "/DHDATA=",
         f"/FI{fi_win}",
@@ -590,6 +590,9 @@ def main():
                     help="Drop existing cache entries for this source before run")
     ap.add_argument("--reg-normalize", "-r", action="store_true",
                     help="Use register-alias normalization for operand-level comparison")
+    ap.add_argument("--opt", default="/O2",
+                    help="MSVC optimization flag (default /O2 speed; use /O1 for size-optimized "
+                         "prebuilt libs like XAPILIB/CRT that use compact push-imm8/leave idioms)")
     ap.add_argument("--regcall-elide", action="store_true",
                     help="Cast register-arg callee calls so VC71 generates matching "
                          "call-site sequences (mov+call instead of push+call+add)")
@@ -619,6 +622,16 @@ def main():
     if not source.exists():
         print(f"Source file not found: {source}", file=sys.stderr)
         sys.exit(1)
+
+    # Size-optimized prebuilt library TUs (XAPILIB / CRT) were compiled /O1, so
+    # they use compact idioms (push imm8/pop, leave) that /O2 never emits.
+    # Auto-select /O1 for those when the caller didn't override it. Verified:
+    # xbox_crt timer fns jump 81-82% (/O2) -> 100% (/O1).
+    _O1_TUS = ("cseries/xbox_crt.c",)
+    if args.opt == "/O2" and any(str(source).replace("\\", "/").endswith(t) for t in _O1_TUS):
+        args.opt = "/O1"
+        if not args.quiet:
+            print(f"[opt] size-optimized library TU detected -> using /O1", flush=True)
 
     unit = choose_unit(str(source), units, args.function)
     if not unit:
@@ -677,7 +690,7 @@ def main():
         if not args.quiet:
             print(f"Compiling {source.name} with VC71 cl.exe...", flush=True)
         t0 = time.perf_counter()
-        if not compile_vc71(source, vc71_obj, regcall_elide=args.regcall_elide):
+        if not compile_vc71(source, vc71_obj, regcall_elide=args.regcall_elide, opt=args.opt):
             sys.exit(1)
         if not args.quiet:
             elapsed = time.perf_counter() - t0
@@ -690,7 +703,7 @@ def main():
         if not args.quiet:
             print(f"Compiling {source.name} with VC71 cl.exe...", flush=True)
         t0 = time.perf_counter()
-        if not compile_vc71(source, vc71_obj, regcall_elide=args.regcall_elide):
+        if not compile_vc71(source, vc71_obj, regcall_elide=args.regcall_elide, opt=args.opt):
             sys.exit(1)
         if not args.quiet:
             print(f"Compiled in {time.perf_counter() - t0:.1f}s", flush=True)
