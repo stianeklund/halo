@@ -14839,7 +14839,7 @@
         {
           "addr": "0x1396e0",
           "decl": "void object_wake(int object_handle);",
-          "ported": false
+          "ported": true
         },
         {
           "name": "FUN_001397f0",
@@ -15226,7 +15226,7 @@
         {
           "addr": "0x13db50",
           "decl": "void garbage_collect_now(void);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13db60",
@@ -15410,7 +15410,7 @@
         {
           "addr": "0x13f380",
           "decl": "int sort_dumps(int param_1, int param_2);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13f3b0",
@@ -15647,7 +15647,7 @@
         {
           "addr": "0x1415f0",
           "decl": "int16_t object_find_in_radius(int flags, unsigned int type_mask, void *cluster_info, float *position, float radius, int *out_handles, int16_t max_count);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1417c0",
