@@ -13873,47 +13873,69 @@
       "functions": [
         {
           "addr": "0x11a230",
-          "decl": "void FUN_0011a230(void);"
+          "decl": "bool FUN_0011a230(int *state, const char *source, short max_length);",
+          "name": "FUN_0011a230",
+          "ported": true
         },
         {
           "addr": "0x11a2d0",
-          "decl": "void FUN_0011a2d0(void);"
+          "decl": "void FUN_0011a2d0(int *state, void *buffer, int buffer_size);",
+          "name": "FUN_0011a2d0",
+          "ported": true
         },
         {
           "addr": "0x11a340",
-          "decl": "void FUN_0011a340(void);"
+          "decl": "int FUN_0011a340(int *state, short count, void *bs_definition);",
+          "name": "FUN_0011a340",
+          "ported": true
         },
         {
           "addr": "0x11a430",
-          "decl": "void FUN_0011a430(void);"
+          "decl": "int FUN_0011a430(int *state, short count, int element_size);",
+          "name": "FUN_0011a430",
+          "ported": true
         },
         {
           "addr": "0x11a560",
-          "decl": "void FUN_0011a560(void);"
+          "decl": "unsigned char FUN_0011a560(int *state);",
+          "name": "FUN_0011a560",
+          "ported": true
         },
         {
           "addr": "0x11a5d0",
-          "decl": "void FUN_0011a5d0(void);"
+          "decl": "short FUN_0011a5d0(int *state);",
+          "name": "FUN_0011a5d0",
+          "ported": true
         },
         {
           "addr": "0x11a650",
-          "decl": "void FUN_0011a650(void);"
+          "decl": "int FUN_0011a650(int *state);",
+          "name": "FUN_0011a650",
+          "ported": true
         },
         {
           "addr": "0x11a6d0",
-          "decl": "void FUN_0011a6d0(void);"
+          "decl": "int64_t FUN_0011a6d0(int *state);",
+          "name": "FUN_0011a6d0",
+          "ported": true
         },
         {
           "addr": "0x11a700",
-          "decl": "void FUN_0011a700(void);"
+          "decl": "unsigned int FUN_0011a700(int *state, int maximum_value);",
+          "name": "FUN_0011a700",
+          "ported": true
         },
         {
           "addr": "0x11a770",
-          "decl": "void FUN_0011a770(void);"
+          "decl": "void *FUN_0011a770(int *state, int element_size_type, unsigned int *element_count_ref, int maximum_element_count, void *bs_definition);",
+          "name": "FUN_0011a770",
+          "ported": true
         },
         {
           "addr": "0x11a8e0",
-          "decl": "void FUN_0011a8e0(void);"
+          "decl": "char *FUN_0011a8e0(int *state, unsigned short max_length);",
+          "name": "FUN_0011a8e0",
+          "ported": true
         },
         {
           "addr": "0x11a930",
@@ -13922,11 +13944,15 @@
         },
         {
           "addr": "0x11aa40",
-          "decl": "bool FUN_0011aa40(int group, int param_2, int param_3, short *param_4, short *param_5, short *param_6, int param_7);"
+          "decl": "bool FUN_0011aa40(int group, void *decoded_packet, char *encoded_packet, short *encoded_packet_size, short *packet_type, short *packet_version, short expected_packet_class);",
+          "name": "FUN_0011aa40",
+          "ported": true
         },
         {
           "addr": "0x11b2a0",
-          "decl": "void FUN_0011b2a0(void);"
+          "decl": "void FUN_0011b2a0(int definition, int *decode_state, unsigned short version, unsigned short *output, short *decoded_size_out, short *field_defs, short *field_count_out);",
+          "name": "FUN_0011b2a0",
+          "ported": true
         },
         {
           "addr": "0x11b540",
@@ -13935,11 +13961,15 @@
         },
         {
           "addr": "0x11b650",
-          "decl": "void FUN_0011b650(void);"
+          "decl": "bool FUN_0011b650(int definition, short version, void *data, char *buffer, short *buffer_size_out, short maximum_buffer_size);",
+          "name": "FUN_0011b650",
+          "ported": true
         },
         {
           "addr": "0x11b750",
-          "decl": "void FUN_0011b750(void);"
+          "decl": "bool FUN_0011b750(int definition, int encoded_packet, short encoded_packet_size, int decoded_packet, unsigned short *version_out, short *bytes_consumed_out);",
+          "name": "FUN_0011b750",
+          "ported": true
         },
         {
           "addr": "0x11b850",
@@ -13961,67 +13991,99 @@
         },
         {
           "addr": "0x11ba00",
-          "decl": "void FUN_0011ba00(void);"
+          "decl": "int FUN_0011ba00(unsigned char *key, unsigned int key_size);",
+          "name": "FUN_0011ba00",
+          "ported": true
         },
         {
           "addr": "0x11ba50",
-          "decl": "void FUN_0011ba50(void);"
+          "decl": "int FUN_0011ba50(short *table @<esi>, void *key, unsigned short *slot_index_out);",
+          "name": "FUN_0011ba50",
+          "ported": true
         },
         {
           "addr": "0x11bb70",
-          "decl": "void FUN_0011bb70(void);"
+          "decl": "int FUN_0011bb70(short *table, void *key);",
+          "name": "FUN_0011bb70",
+          "ported": true
         },
         {
           "addr": "0x11bc20",
-          "decl": "void FUN_0011bc20(void);"
+          "decl": "void FUN_0011bc20(short *table, void *key);",
+          "name": "FUN_0011bc20",
+          "ported": true
         },
         {
           "addr": "0x11be10",
-          "decl": "void FUN_0011be10(void);"
+          "decl": "int FUN_0011be10(short *table @<eax>, void *key);",
+          "name": "FUN_0011be10",
+          "ported": true
         },
         {
           "addr": "0x11beb0",
-          "decl": "void FUN_0011beb0(void);"
+          "decl": "int FUN_0011beb0(short *table, short growth_bits);",
+          "name": "FUN_0011beb0",
+          "ported": true
         },
         {
           "addr": "0x11c0f0",
-          "decl": "void FUN_0011c0f0(void);"
+          "decl": "int FUN_0011c0f0(short *table, void *key);",
+          "name": "FUN_0011c0f0",
+          "ported": true
         },
         {
           "addr": "0x11c1b0",
-          "decl": "void FUN_0011c1b0(void);"
+          "decl": "int FUN_0011c1b0(int cache);",
+          "name": "FUN_0011c1b0",
+          "ported": true
         },
         {
           "addr": "0x11c1d0",
-          "decl": "void FUN_0011C1D0(void);"
+          "decl": "void FUN_0011c1d0(int *ptr, int user_data);",
+          "name": "FUN_0011c1d0",
+          "ported": true
         },
         {
           "addr": "0x11c1e0",
-          "decl": "void FUN_0011c1e0(void);"
+          "decl": "void FUN_0011c1e0(int *ptr);",
+          "name": "FUN_0011c1e0",
+          "ported": true
         },
         {
           "addr": "0x11c210",
-          "decl": "void FUN_0011c210(void);"
+          "decl": "void FUN_0011c210(int cache @<ebx>, int block @<esi>);",
+          "name": "FUN_0011c210",
+          "ported": true
         },
         {
           "addr": "0x11c290",
-          "decl": "void FUN_0011c290(void);"
+          "decl": "void FUN_0011c290(int cache @<eax>);",
+          "name": "FUN_0011c290",
+          "ported": true
         },
         {
           "addr": "0x11c310",
-          "decl": "void FUN_0011c310(void);"
+          "decl": "int FUN_0011c310(const char *name, int size, void (*lock_proc)(void *, int), void (*unlock_proc)(void *), void *base_address);",
+          "name": "FUN_0011c310",
+          "ported": true
         },
         {
           "addr": "0x11c430",
-          "decl": "void network_event(void);"
+          "decl": "void FUN_0011c430(int cache);",
+          "name": "FUN_0011c430",
+          "ported": true
         },
         {
           "addr": "0x11c480",
-          "decl": "void FUN_0011c480(void);"
+          "decl": "void FUN_0011c480(int cache);",
+          "name": "FUN_0011c480",
+          "ported": true
         },
         {
           "addr": "0x11c4d0",
-          "decl": "void FUN_0011c4d0(void);"
+          "decl": "void FUN_0011c4d0(int cache, void *pointer);",
+          "name": "FUN_0011c4d0",
+          "ported": true
         },
         {
           "addr": "0x12b640",
@@ -30235,7 +30297,8 @@
         },
         {
           "addr": "0x21ae0",
-          "decl": "void FUN_00021ae0(int actor_handle, float range, int param3, void *encounter_pos, short *out_count);"
+          "decl": "char FUN_00021ae0(int actor_handle, float range, float param3, float *encounter_pos, short *out_count);",
+          "ported": true
         },
         {
           "addr": "0x22010",
