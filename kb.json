@@ -15002,7 +15002,7 @@
         {
           "addr": "0x13c1b0",
           "decl": "short FUN_0013c1b0(short param_1);",
-          "ported": false,
+          "ported": true,
           "source_path": "objects/objects.c"
         },
         {
@@ -15356,7 +15356,7 @@
           "addr": "0x13ec00",
           "decl": "int object_markers_need_update(int object_handle);",
           "name": "object_markers_need_update",
-          "ported": false,
+          "ported": true,
           "source_path": "objects/objects.c"
         },
         {

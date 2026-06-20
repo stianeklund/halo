@@ -592,9 +592,6 @@ int weapon_definition_index_to_list_index(int param_1);
  * Confirmed: CALL 0x140ce0 (object_connect_to_map) with (handle, 0).
  * Confirmed: FCOMP against *(float*)0x2533c0 (0.0f) for degenerate check.
  */
-/* Find widget type index by group tag. Returns 0-4 on match, 0xffff if not
- * found. 0x135f20 / objects.obj
- */
 /* Allocate widget data pool, then call each widget type's initialize function.
  * 0x135f90 / objects.obj
  */
@@ -1637,6 +1634,38 @@ void *FUN_0013c100(int16_t object_type)
     system_exit(-1);
   }
   return ((void **)0x324608)[iVar1];
+}
+
+/* 0x13c1b0 / objects.obj — object type definition field accessor.
+ *
+ * Validates the object type is in [0, 0xc) and that its definition pointer in
+ * the object_type_definitions table (0x324608) is non-NULL, then returns the
+ * int16_t at definition+8. Same validation shape as sibling FUN_0013c250
+ * (two asserts: bounds at object_types.c:0x282, NULL at object_types.c:0x283).
+ *
+ * Confirmed: bounds check param_1 < 0 || 0xb < param_1.
+ * Confirmed: table object_type_definitions at 0x324608 (array of pointers).
+ * Confirmed: csprintf assert uses file "object_types.c" (NOT objects.c).
+ * Confirmed: returns *(short *)(definition + 8).
+ */
+short FUN_0013c1b0(short param_1)
+{
+  int iVar1;
+
+  if (param_1 < 0 || 0xb < param_1) {
+    display_assert(csprintf((char *)0x5ab100,
+                            "#%d isn't a valid object type in [#0,#%d)",
+                            (int)param_1, 0xc),
+                   "c:\\halo\\SOURCE\\objects\\object_types.c", 0x282, 1);
+    system_exit(-1);
+  }
+  iVar1 = (int)param_1;
+  if (((void **)0x324608)[iVar1] == (void *)0) {
+    display_assert("object_type_definitions[object_type]",
+                   "c:\\halo\\SOURCE\\objects\\object_types.c", 0x283, 1);
+    system_exit(-1);
+  }
+  return *(short *)((char *)((void **)0x324608)[iVar1] + 8);
 }
 
 int FUN_0013c490(int object_handle);
@@ -2964,6 +2993,36 @@ void object_marker_end(void)
     system_exit(-1);
   }
   object_globals->object_marker_initialized = 0;
+}
+
+/*
+ * object_markers_need_update (0x13ec00) — query whether an object still needs
+ * marking in the current sweep.
+ *
+ * Looks up the object (any type), asserts a marker sweep is in progress, then
+ * returns whether the object's marker_generation (obj+0x08) differs from the
+ * global marker generation counter at 0x5a8d28. Returns nonzero (true) when
+ * the object has not yet been stamped this sweep. The read-only predicate
+ * counterpart to object_mark (0x13ec50), which performs the same comparison
+ * and then stamps the object.
+ *
+ * Confirmed: object_get_and_verify_type(handle, -1).
+ * Confirmed: assert "object_globals->object_marker_initialized" at line 0xdc6.
+ * Confirmed: compares obj->marker_generation (obj+0x08) against [0x5a8d28].
+ * Confirmed: CONCAT31 => char/bool-width return of (generation != counter).
+ */
+int object_markers_need_update(int object_handle)
+{
+  object_data_t *obj =
+    (object_data_t *)object_get_and_verify_type(object_handle, -1);
+
+  if (!object_globals->object_marker_initialized) {
+    display_assert("object_globals->object_marker_initialized",
+                   "c:\\halo\\SOURCE\\objects\\objects.c", 0xdc6, 1);
+    system_exit(-1);
+  }
+
+  return obj->marker_generation != *(uint32_t *)0x5a8d28;
 }
 
 /*
