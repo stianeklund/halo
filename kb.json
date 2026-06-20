@@ -30297,8 +30297,7 @@
         },
         {
           "addr": "0x21ae0",
-          "decl": "char FUN_00021ae0(int actor_handle, float range, float param3, float *encounter_pos, short *out_count);",
-          "ported": false
+          "decl": "char FUN_00021ae0(int actor_handle, float range, float param3, float *encounter_pos, short *out_count);"
         },
         {
           "addr": "0x22010",
@@ -30313,15 +30312,18 @@
         },
         {
           "addr": "0x21010",
-          "decl": "void FUN_00021010(int actor_handle, int ticks);"
+          "decl": "void FUN_00021010(int actor_handle, int ticks);",
+          "ported": true
         },
         {
           "addr": "0x21040",
-          "decl": "void FUN_00021040(int actor_handle, int ticks);"
+          "decl": "void FUN_00021040(int actor_handle, int ticks);",
+          "ported": true
         },
         {
           "addr": "0x21350",
-          "decl": "void FUN_00021350(void);"
+          "decl": "int FUN_00021350(float value);",
+          "ported": true
         },
         {
           "addr": "0x21710",
@@ -30334,7 +30336,8 @@
         },
         {
           "addr": "0x219e0",
-          "decl": "void actor_combat_find_grenade_target(void);"
+          "decl": "char actor_combat_find_grenade_target(int actor_handle, float *out_pos, int *out_handle, int *out_extra);",
+          "ported": true
         },
         {
           "addr": "0x220c0",
