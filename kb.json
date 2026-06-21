@@ -15709,12 +15709,12 @@
         {
           "addr": "0x144240",
           "decl": "void object_attach_to_parent(int parent_handle, int child_handle, int parent_node_index);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1443f0",
           "decl": "bool object_try_place(int object_handle, float *position);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1444f0",
@@ -15735,7 +15735,7 @@
         {
           "addr": "0x144860",
           "decl": "void object_attach_to_marker(int parent_handle, void *marker_name, int child_handle, void *child_marker_name);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x144940",
@@ -15746,7 +15746,7 @@
         {
           "addr": "0x1449b0",
           "decl": "void object_delete_recursive(int object_handle, int delete_sibling);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x144ae0",
@@ -15757,7 +15757,7 @@
         {
           "addr": "0x144b30",
           "decl": "void objects_garbage_collection(int object_handle);",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void objects_garbage_collect_tick(void);",
