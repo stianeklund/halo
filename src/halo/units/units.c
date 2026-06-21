@@ -2327,9 +2327,7 @@ char FUN_001aa430(int unit_handle, float *point, float half_angle)
   char *unit;
   char marker_buf[0x78];
   float *marker_pos;
-  float dir_x;
-  float dir_y;
-  float dir_z;
+  float dir[3];
   float dot;
 
   if (unit_handle == -1) {
@@ -2340,16 +2338,23 @@ char FUN_001aa430(int unit_handle, float *point, float half_angle)
   object_get_markers_by_string_id(unit_handle, (void *)0x2909e4,
                                   marker_buf, 1);
 
+  /* dir = point - head_marker_position. The original keeps dir as a single
+   * contiguous 3-float vector ([ebp-0xc/-0x8/-0x4]) and passes its base to
+   * normalize3d, which reads all three components in place. dir MUST be an
+   * array, not three separate float locals: clang scatters separate locals
+   * across non-adjacent (and reordered) stack slots, so normalize3d(&dir_x)
+   * would read uninitialized stack for components [1] and [2] -> huge garbage
+   * -> normalize collapse -> assert_valid_real_normal3d crash (PoA marines). */
   marker_pos = (float *)(marker_buf + 0x60);
-  dir_x = point[0] - marker_pos[0];
-  dir_y = point[1] - marker_pos[1];
-  dir_z = point[2] - marker_pos[2];
+  dir[0] = point[0] - marker_pos[0];
+  dir[1] = point[1] - marker_pos[1];
+  dir[2] = point[2] - marker_pos[2];
 
-  normalize3d(&dir_x);
+  normalize3d(dir);
 
-  dot = dir_x * *(float *)(unit + 0x210) +
-        dir_y * *(float *)(unit + 0x214) +
-        dir_z * *(float *)(unit + 0x218);
+  dot = dir[0] * *(float *)(unit + 0x210) +
+        dir[1] * *(float *)(unit + 0x214) +
+        dir[2] * *(float *)(unit + 0x218);
 
   if (dot > x87_fcos(half_angle)) {
     return 1;
@@ -11747,7 +11752,11 @@ void FUN_001afd30(int unit_handle, int node_output)
 
           local_matrix[0] = 1.0f;
           object_get_orientation(unit_handle, &local_matrix[1], &local_matrix[7]);
-          cross_product3d(&local_matrix[1], &local_matrix[7], &local_matrix[4]);
+          /* left = up x forward (verified vs original 0x1afd30: cross_product3d
+             pushes a=up[ebp-0x48], b=forward[ebp-0x60]).  A prior lift passed
+             (forward, up) which negates the left basis vector, flipping the
+             aim/look matrix -> wrong relative aim angles -> biped aims up/down. */
+          cross_product3d(&local_matrix[7], &local_matrix[1], &local_matrix[4]);
           local_matrix[10] = *(float *)*(int *)0x31fc1c;
           local_matrix[11] = *(float *)(*(int *)0x31fc1c + 4);
           local_matrix[12] = *(float *)(*(int *)0x31fc1c + 8);
@@ -11823,7 +11832,11 @@ void FUN_001afd30(int unit_handle, int node_output)
           look_ptr = (float *)(seat_block + 0x20);
           local_matrix[0] = 1.0f;
           object_get_orientation(unit_handle, &local_matrix[1], &local_matrix[7]);
-          cross_product3d(&local_matrix[1], &local_matrix[7], &local_matrix[4]);
+          /* left = up x forward (verified vs original 0x1afd30: cross_product3d
+             pushes a=up[ebp-0x48], b=forward[ebp-0x60]).  A prior lift passed
+             (forward, up) which negates the left basis vector, flipping the
+             aim/look matrix -> wrong relative aim angles -> biped aims up/down. */
+          cross_product3d(&local_matrix[7], &local_matrix[1], &local_matrix[4]);
           local_matrix[10] = *(float *)*(int *)0x31fc1c;
           local_matrix[11] = *(float *)(*(int *)0x31fc1c + 4);
           local_matrix[12] = *(float *)(*(int *)0x31fc1c + 8);
