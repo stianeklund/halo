@@ -1137,3 +1137,25 @@ void scenario_get_fog_region_index(int region_a, int region_b)
   bit_vector_and(*(unsigned short *)(bsp + 0x134), pvs_a, pvs_b, 0);
 }
 
+/* 0x18c0b0 — fetch an object's cached cluster-lighting datum data pointer.
+ * Resolves the object's cluster-lighting record index via FUN_0018bf80
+ * (object_handle, lod). On success returns the datum's data + 0x14 from the
+ * cluster-lighting pool (*(data_t**)0x50652c). On the NONE (-1) path, falls
+ * back to the global lighting-state buffer at 0x4d8258: rebuilds its baseline
+ * lighting (FUN_0013bce0) and its dynamic light markers (FUN_0013aa10), then
+ * returns &DAT_004d8258. cdecl: object_handle [EBP+8], lod [EBP+0xc] (float,
+ * forwarded bitwise to FUN_0018bf80). NOTE: kb name 'scenario_leaf_index_from
+ * _point' appears to be a misnomer (object-handle arg, pointer return). */
+void *scenario_leaf_index_from_point(int object_handle, float lod)
+{
+  int index;
+
+  index = FUN_0018bf80(object_handle, lod);
+  if (index != -1) {
+    return (void *)((int)datum_get(*(data_t **)0x50652c, index) + 0x14);
+  }
+  FUN_0013bce0(object_handle, (float *)0x4d8258);
+  FUN_0013aa10(object_handle, 0x4d8258);
+  return (void *)0x4d8258;
+}
+
