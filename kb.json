@@ -14956,7 +14956,7 @@
         {
           "addr": "0x13b150",
           "decl": "void FUN_0013b150(void);",
-          "ported": false,
+          "ported": true,
           "source_path": "objects/objects.c"
         },
         {
@@ -15139,8 +15139,8 @@
         },
         {
           "addr": "0x13ce90",
-          "decl": "void FUN_0013ce90(int param_1, int param_2);",
-          "ported": false,
+          "decl": "void FUN_0013ce90(int scenario, char editor_flag);",
+          "ported": true,
           "source_path": "objects/objects.c"
         },
         {
@@ -15263,8 +15263,8 @@
         },
         {
           "addr": "0x13ddd0",
-          "decl": "void FUN_0013ddd0(int param_1);",
-          "ported": false,
+          "decl": "void FUN_0013ddd0(int object_handle);",
+          "ported": true,
           "source_path": "objects/objects.c"
         },
         {
