@@ -15659,7 +15659,7 @@
         {
           "addr": "0x141900",
           "decl": "void FUN_00141900(void);",
-          "ported": false,
+          "ported": true,
           "source_path": "objects/objects.c",
           "name": "FUN_00141900"
         },
@@ -15773,7 +15773,7 @@
         {
           "addr": "0x145490",
           "decl": "void FUN_00145490(void);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1a9520",
