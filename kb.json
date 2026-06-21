@@ -14588,7 +14588,7 @@
         {
           "addr": "0x84a10",
           "decl": "int real_vector3d_valid(float *vector);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x84a70",
@@ -15454,7 +15454,7 @@
         {
           "addr": "0x13fac0",
           "decl": "void objects_dispose(void);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13fb30",
