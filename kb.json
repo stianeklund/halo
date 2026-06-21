@@ -3600,7 +3600,7 @@
         {
           "addr": "0x25c10",
           "decl": "short FUN_00025c10(int actor_handle, void *eval_ctx, int *out_record, int *out_owner, void *huge_buf, int *out_found);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x27090",
