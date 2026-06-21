@@ -4000,7 +4000,7 @@ bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
   short command_priority;
   float range;
   float dot;
-  float diff_x, diff_y, diff_z;
+  float diff[3];
   float local_vec[3];
   float threat_position[3];
   float actor_position[3];
@@ -4078,16 +4078,18 @@ bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
           system_exit(-1);
         }
         if (*(char *)(actor + 0x99) == '\0') {
-          diff_x =
+          diff[0] =
             *(float *)((char *)command + 0x1c) - *(float *)(actor + 0x12c);
-          diff_y =
+          diff[1] =
             *(float *)((char *)command + 0x20) - *(float *)(actor + 0x130);
-          diff_z = 0.0f;
-          (void)diff_y;
-          (void)diff_z;
-          if (magnitude3d(&diff_x) > 0.0f) {
-            range = diff_y * *(float *)(actor + 0x178);
-            local_vec[0] = diff_x;
+          diff[2] = 0.0f;
+          /* magnitude3d is 2D (reads v[0],v[1]) and normalizes them IN PLACE.
+           * The original stored diff_x/diff_y in adjacent stack floats
+           * ([ebp-8]/[ebp-4]) so both got normalized. Scattered scalar locals
+           * made it normalize garbage and leave diff_y raw. */
+          if (magnitude3d(diff) > 0.0f) {
+            range = diff[1] * *(float *)(actor + 0x178);
+            local_vec[0] = diff[0];
           }
         } else {
           FUN_00012140((float *)(actor + 0x12c),
@@ -4458,7 +4460,7 @@ void FUN_00019370(int actor_handle)
   char *actor;
   int mode;
   int tmp;
-  float tmp_x, tmp_y;
+  float tmp_v[2]; /* contiguous: magnitude3d (2D) reads/normalizes [0],[1] */
   float len_sq;
 
   actor = (char *)datum_get(actor_data, actor_handle);
@@ -4536,13 +4538,13 @@ LAB_done:
 
   if (*(char *)(actor + 0xf8) != '\0' && !FUN_0002a360(actor_handle)) {
     if (*(short *)(actor + 0xfa) != -1) {
-      tmp_y = *(float *)(actor + 0x5a8);
-      tmp_x = *(float *)(actor + 0x5a4);
-      magnitude3d(&tmp_x);
+      tmp_v[1] = *(float *)(actor + 0x5a8);
+      tmp_v[0] = *(float *)(actor + 0x5a4);
+      magnitude3d(tmp_v); /* normalizes tmp_v[0],tmp_v[1] in place (2D) */
       (void)actor_move_animation_impulse(
         actor_handle, *(short *)(actor + 0xfa),
-        (int *)&tmp_x); /* hazard-ok: intentional-discard (output via pointer
-                           param; return val = success bool not needed here) */
+        (int *)tmp_v); /* hazard-ok: intentional-discard (output via pointer
+                          param; return val = success bool not needed here) */
     }
     if (*(short *)(actor + 0xfc) != -1) {
       (void)FUN_00046f10(*(short *)(actor + 0xfc), *(int *)(actor + 0x18), -1,
@@ -4563,12 +4565,12 @@ LAB_done:
     if ((*(char *)(actor + 0xa9) & 8) == 0) {
       if (*(short *)(actor + 0xac) == 0 && *(char *)(actor + 0x15c) == '\0' &&
           !unit_is_busy(*(int *)(actor + 0x18))) {
-        tmp_x = *(float *)(actor + 0x174);
-        tmp_y = *(float *)(actor + 0x178);
-        len_sq = magnitude3d(&tmp_x);
+        tmp_v[0] = *(float *)(actor + 0x174);
+        tmp_v[1] = *(float *)(actor + 0x178);
+        len_sq = magnitude3d(tmp_v);
         if (len_sq == *(float *)0x2533c0) {
-          tmp_x = **(float **)0x31fc0c;
-          tmp_y = *(float *)(*(int *)0x31fc0c + 4);
+          tmp_v[0] = **(float **)0x31fc0c;
+          tmp_v[1] = *(float *)(*(int *)0x31fc0c + 4);
         }
         *(char *)(actor + 0x440) = 1;
         *(char *)(actor + 0x441) =
@@ -4576,8 +4578,8 @@ LAB_done:
                  *(float *)(actor + 0xb0) * *(float *)0x2533c4);
         *(char *)(actor + 0x442) =
           (char)((*(unsigned char *)(actor + 0xa9) >> 4) & 1);
-        *(float *)(actor + 0x444) = tmp_x;
-        *(float *)(actor + 0x448) = tmp_y;
+        *(float *)(actor + 0x444) = tmp_v[0];
+        *(float *)(actor + 0x448) = tmp_v[1];
         *(float *)(actor + 0x44c) = *(float *)(actor + 0xb0);
         *(float *)(actor + 0x450) = *(float *)(actor + 0xb4);
         *(unsigned char *)(actor + 0xa9) |= 8;
