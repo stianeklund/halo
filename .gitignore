@@ -82,6 +82,19 @@ stabbed.txt
 # Local capture artifacts
 /screenshots/
 /xemu-screenshot.ppm
+/_qmpcap/
+/delinked/
+/input-recordings/
+/*.bin
+*.dump
+*.dmp
+*.raw
+ram*.bin
+tmp*.bin
+cap_test*.bin
+artifacts/**/*.bin
+artifacts/snapshots/
+artifacts/*snapshot*.json
 
 # Ephemeral repo-local state
 /.claude/scheduled_tasks.lock
