@@ -3202,3 +3202,28 @@ unsigned int FUN_00110a10(unsigned int param_1, unsigned char *param_2,
   }
   return param_1 << 0x10 | uVar2;
 }
+
+/* zlib gzwrite: forwards to FUN_00110b40 with a -1 (end-of-stream) flag. */
+void FUN_00110be0(unsigned int *param_1, int *param_2, int param_3, unsigned int param_4)
+{
+  FUN_00110b40(param_1, param_2, param_3, param_4, 0xffffffff);
+  return;
+}
+
+/* zlib gzputs: writes the C string param_2 to stream param_1, computing its length first. */
+void FUN_00112ee0(void *param_1, const char *param_2)
+{
+  int iVar1;
+
+  iVar1 = csstrlen(param_2);
+  FUN_00112db0(param_1, (int)param_2, iVar1);
+  return;
+}
+
+/* zlib deflateInit_: forwards to deflateInit2_ (FUN_00112590) with method=8,
+   windowBits=15, memLevel=8, strategy=0. */
+void FUN_001127b0(int param_1, int param_2, char *param_3, int param_4)
+{
+  FUN_00112590(param_1, param_2, 8, 0xf, 8, 0, param_3, param_4);
+  return;
+}

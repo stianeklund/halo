@@ -15752,7 +15752,7 @@
           "addr": "0x144ae0",
           "decl": "void objects_scripting_attach(int param_1, int param_2, int param_3, int param_4);",
           "name": "objects_scripting_attach",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x144b30",
@@ -20506,7 +20506,8 @@
         },
         {
           "addr": "0x110be0",
-          "decl": "void FUN_00110be0(void);"
+          "decl": "void FUN_00110be0(unsigned int *param_1, int *param_2, int param_3, unsigned int param_4);",
+          "ported": true
         },
         {
           "addr": "0x110c10",
@@ -20578,11 +20579,12 @@
         },
         {
           "addr": "0x112590",
-          "decl": "void FUN_00112590(void);"
+          "decl": "int FUN_00112590(int param_1, int param_2, int param_3, int param_4, int param_5, int param_6, char *param_7, int param_8);"
         },
         {
           "addr": "0x1127b0",
-          "decl": "void FUN_001127b0(void);"
+          "decl": "void FUN_001127b0(int param_1, int param_2, char *param_3, int param_4);",
+          "ported": true
         },
         {
           "addr": "0x1127e0",
@@ -20602,7 +20604,7 @@
         },
         {
           "addr": "0x112db0",
-          "decl": "void FUN_00112db0(void);"
+          "decl": "int FUN_00112db0(void *param_1, int param_2, int param_3);"
         },
         {
           "addr": "0x112e50",
@@ -20614,7 +20616,8 @@
         },
         {
           "addr": "0x112ee0",
-          "decl": "void FUN_00112ee0(void);"
+          "decl": "void FUN_00112ee0(void *param_1, const char *param_2);",
+          "ported": true
         },
         {
           "addr": "0x112f00",
