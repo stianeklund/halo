@@ -907,3 +907,85 @@ short FUN_0018ed20(int param_1, int param_2)
   }
   return -1;
 }
+
+/* 0x18d2c0 — render_sprite builder init: populate a sprite-build record
+ * (param_1) from a shader/geometry source. Asserts the shader pointer is
+ * non-NULL (render_sprite.c:0x14f) and that the _build_sprites_valid_bit
+ * (flags & 4) is clear on entry (render_sprite.c:0x150). Stores fields then
+ * snapshots the current view origin from *0x31fc1c (3 dwords) into +0x14..+0x1c,
+ * and finally re-sets +0x10 to flags | _build_sprites_valid_bit. The +0x10
+ * store happens twice (param_5 then param_5|4), matching the original. cdecl. */
+void FUN_0018d2c0(uint32_t *param_1, int16_t param_2, uint32_t param_3,
+                  int param_4, uint32_t param_5)
+{
+  uint32_t *view;
+
+  if (param_4 == 0) {
+    display_assert("shader", "c:\\halo\\SOURCE\\render\\render_sprite.c", 0x14f,
+                   1);
+    system_exit(-1);
+  }
+  if ((param_5 & 4) != 0) {
+    display_assert("!TEST_FLAG(flags, _build_sprites_valid_bit)",
+                   "c:\\halo\\SOURCE\\render\\render_sprite.c", 0x150, 1);
+    system_exit(-1);
+  }
+  param_1[0] = param_3;          /* +0x00 */
+  param_1[4] = param_5;          /* +0x10 (overwritten below) */
+  param_1[2] = (uint32_t)param_4; /* +0x08 */
+  *(int16_t *)((char *)param_1 + 0x20) = 0;
+  *(int16_t *)((char *)param_1 + 0x0c) = 0;
+  *(int16_t *)((char *)param_1 + 0x04) = param_2;
+  view = *(uint32_t **)0x31fc1c;
+  param_1[5] = view[0]; /* +0x14 */
+  param_1[6] = view[1]; /* +0x18 */
+  param_1[4] = param_5 | 4; /* +0x10 set _build_sprites_valid_bit */
+  param_1[7] = view[2]; /* +0x1c */
+}
+
+/* 0x18e800 — scenario_ensure_point_within_world: test whether a cluster is
+ * audible/visible by checking bit cluster_index1 in the current structure
+ * BSP's per-cluster sound-data bitvector for source cluster_index. Asserts the
+ * BSP is loaded (*0x5064e0, scenario.c:0xc5) and that cluster_index1 is in
+ * range [0, structure_bsp->clusters.count) (bsp+0x134, scenario.c:0x1d4).
+ * Returns the tested bit as 0/1. cdecl: cluster_index [EBP+8] (int, passed as
+ * the callee's int16_t arg), cluster_index1 [EBP+0xc] (MOVSX int16_t). */
+bool scenario_ensure_point_within_world(int cluster_index,
+                                        int16_t cluster_index1)
+{
+  void *bsp;
+  uint32_t *sound_data;
+
+  if (*(int *)0x5064e0 == 0) {
+    display_assert("global_structure_bsp",
+                   "c:\\halo\\SOURCE\\scenario\\scenario.c", 0xc5, 1);
+    system_exit(-1);
+  }
+  bsp = *(void **)0x5064e0;
+  sound_data = structure_bsp_get_cluster_sound_data(bsp, (int16_t)cluster_index);
+  if (cluster_index1 < 0 || (int)cluster_index1 >= *(int *)((char *)bsp + 0x134)) {
+    display_assert(
+        "cluster_index1>=0 && cluster_index1<structure_bsp->clusters.count",
+        "c:\\halo\\SOURCE\\scenario\\scenario.c", 0x1d4, 1);
+    system_exit(-1);
+  }
+  return (sound_data[(int)cluster_index1 >> 5] & (1u << ((int)cluster_index1 & 0x1f))) != 0;
+}
+
+/* 0x18ef00 — test an object's physics position against cluster volume
+ * cluster_index. Resolves the object handle (no type restriction) and forwards
+ * the object's physics-position vector (object_data + 0x50) to the cluster
+ * point-in-volume test FUN_0018ed90. Returns false (AL=0) when the handle is
+ * -1. cdecl: cluster_index [EBP+8], object_handle [EBP+0xc]; byte (AL) return. */
+char FUN_0018ef00(int cluster_index, int object_handle)
+{
+  char result;
+  int obj;
+
+  result = 0;
+  if (object_handle != -1) {
+    obj = (int)object_get_and_verify_type(object_handle, 0xffffffff);
+    result = FUN_0018ed90((short)cluster_index, (float *)(obj + 0x50));
+  }
+  return result;
+}
