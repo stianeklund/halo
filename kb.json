@@ -14641,7 +14641,7 @@
         {
           "addr": "0x85260",
           "decl": "void FUN_00085260(short param_1, short param_2);",
-          "ported": false,
+          "ported": true,
           "source_path": "objects/objects.c"
         },
         {
@@ -14845,7 +14845,7 @@
           "name": "FUN_001397f0",
           "addr": "0x1397f0",
           "decl": "float FUN_001397f0(float param_1, float param_2);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x139810",

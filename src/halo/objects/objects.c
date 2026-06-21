@@ -10763,3 +10763,16 @@ int FUN_0009ec30(int param_1, int param_2, int param_3, short param_4,
   }
   return iVar3;
 }
+
+/* Forwards (param1, param2, -1) to FUN_00085180. */
+void FUN_00085260(short param_1, short param_2)
+{
+  FUN_00085180(param_1, param_2, -1);
+  return;
+}
+
+/* Returns 1.0 minus the ratio of param_2 squared to param_1 squared. */
+float FUN_001397f0(float param_1, float param_2)
+{
+  return 1.0f - (param_2 * param_2) / (param_1 * param_1);
+}
