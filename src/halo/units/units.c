@@ -6831,15 +6831,24 @@ int unit_inventory_next_weapon(int unit_handle, int slot, int direction)
 }
 
 /* FUN_001a7a90 (0x1a7a90)
- * Applies damage to an object if it's not dead (bit 2 of +0xB6 clear). */
-void FUN_001a7a90(int param_1, float *body_dmg, float *shield_dmg)
+ * Applies damage to an object if it's not dead (bit 2 of +0xB6 clear).
+ *
+ * body_dmg/shield_dmg are passed BY VALUE. The original (delinked) takes three
+ * 4-byte stack args at [ebp+8]/[ebp+0xc]/[ebp+0x10] and does
+ *   lea ecx,[ebp+0xc]  (&body_dmg) / lea eax,[ebp+0x10] (&shield_dmg)
+ * to box the by-value floats into the pointers FUN_001365d0 expects (1365d0
+ * dereferences arg2/arg3). Declaring them as float* and forwarding the pointers
+ * reinterprets the float bit-pattern (1.0f == 0x3f800000) as an address and
+ * dereferences it — an infinite page-fault storm that froze PoA after the intro
+ * (FUN_000bf380 calls this with floats pushed by value). */
+void FUN_001a7a90(int param_1, float body_dmg, float shield_dmg)
 {
   char *obj;
 
   if (param_1 != -1) {
     obj = (char *)object_get_and_verify_type(param_1, -1);
     if ((*(uint8_t *)(obj + 0xb6) & 4) == 0) {
-      FUN_001365d0(param_1, body_dmg, shield_dmg);
+      FUN_001365d0(param_1, &body_dmg, &shield_dmg);
     }
   }
 }
@@ -9289,7 +9298,14 @@ void unit_cause_melee_damage(int unit_handle, char melee_hit, int target_handle,
   char *unit;
   char *unit_tag;
   int16_t marker_count;
-  int16_t collision_result[2];
+  /* FUN_0014df70 (collision raycast) writes an 80-byte result struct through
+   * this pointer (stores at +0..+0x4e, derived from disasm). The original
+   * allocates 0x50 bytes (lea [ebp-0x68], direction at [ebp-0x18]); a 4-byte
+   * buffer here overflowed the saved EBX/EDI/ESI/EBP slots, corrupting the
+   * caller's `unit` pointer to NONE (0xffffffff) -> [unit+0x25a] page fault
+   * (CR2=0x259) when an elite melees in PoA. Matches the correct siblings at
+   * units.c:2233 and units.c:11326. */
+  char collision_result[80];
   float *position;
   float melee_pos[3];
   float direction[3];
@@ -9339,7 +9355,7 @@ void unit_cause_melee_damage(int unit_handle, char melee_hit, int target_handle,
     direction[2] = melee_pos[2] - position[2];
 
     coll_hit = (char)FUN_0014df70(0x1000e9, position, direction, -1,
-                                  collision_result);
+                                  (int16_t *)collision_result);
     if (coll_hit != 0) {
       /* collision hit — snap melee position to unit center */
       melee_pos[0] = position[0];
