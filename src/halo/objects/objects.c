@@ -853,6 +853,47 @@ void FUN_001362d0(int object_handle)
   *(int *)((char *)obj + 0x11c) = -1;
 }
 
+/* FUN_001363d0 (0x1363d0 / objects.obj) — walk a widget's chain looking for
+ * a widget whose type is flagged in the widget_types table, returning a
+ * one-byte status.
+ *
+ * Starting from the widget handle in param_1, follows the chain link at
+ * widget+0x8 until either a flagged widget is found or the chain reaches
+ * NONE (-1). For each widget the type (int16_t at widget+0x2) is asserted to
+ * be in [0, NUMBER_OF_WIDGET_TYPES) and used to index the widget_types table
+ * at 0x323528 (5 entries, 0x28 bytes each); the byte at entry+0x4 is the
+ * flag tested.
+ *
+ * Returns 1 (low byte set) on the first widget whose type flag is non-zero.
+ * Returns 0xffffff00 (low byte clear) when the chain ends at NONE without a
+ * match — matches the original's EAX: the leftover -1 chain handle in the
+ * high three bytes with AL cleared to 0.
+ */
+int FUN_001363d0(int param_1)
+{
+  char *widget;
+  int16_t type;
+
+  while (param_1 != -1) {
+    widget = (char *)datum_get(*(data_t **)0x5a90c4, param_1);
+    type = *(int16_t *)(widget + 0x2);
+
+    /* Assert: type is in valid range [0, NUMBER_OF_WIDGET_TYPES). */
+    if (type < 0 || type >= 5) {
+      display_assert("type>=0 && type<NUMBER_OF_WIDGET_TYPES",
+                     "c:\\halo\\source\\objects\\widgets\\widget_types.h", 0x96,
+                     1);
+      system_exit(-1);
+    }
+
+    if (*(char *)(0x323528 + (int)type * 0x28 + 0x4) != '\0') {
+      return 1;
+    }
+    param_1 = *(int *)(widget + 0x8);
+  }
+  return (int)0xffffff00;
+}
+
 /*
  * object_wake — disconnect a point light from the cluster partition.
  * (from c:\halo\SOURCE\objects\object_lights.c, line 0x4d0)
