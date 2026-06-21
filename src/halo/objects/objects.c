@@ -1687,6 +1687,34 @@ void FUN_0013bce0(int object_handle, float *lighting)
   }
 }
 
+/*
+ * FUN_0013b150 (0x13b150 / objects.obj) — flush all lights flagged for limbo.
+ *
+ * Walks the light data table (global at 0x5a90bc) via the data-table forward
+ * iterator data_next_index (-1 seed -> first index, -1 return -> end). For each
+ * live light whose flags word (light+0x2) has bit 0x4 set, clears that bit and
+ * moves the light to limbo via object_move_to_limbo (0x13aed0).
+ *
+ * Confirmed (disasm 0x13b150): the table global is re-read each iteration;
+ * flags are a 16-bit word at +0x2; bit 0x4 tested via TEST CL,0x4; cleared via
+ * AND ECX,0xfffb.
+ */
+void FUN_0013b150(void)
+{
+  int index;
+  int light;
+
+  index = data_next_index(*(data_t **)0x5a90bc, -1);
+  while (index != -1) {
+    light = (int)datum_get(*(data_t **)0x5a90bc, index);
+    if ((*(unsigned short *)(light + 2) & 4) != 0) {
+      *(unsigned short *)(light + 2) &= 0xfffb;
+      object_move_to_limbo(index);
+    }
+    index = data_next_index(*(data_t **)0x5a90bc, index);
+  }
+}
+
 /* 0x13c100 / objects.obj */
 void *FUN_0013c100(int16_t object_type)
 {
@@ -2385,6 +2413,67 @@ void FUN_0013cdd0(int scenario)
   FUN_0013cb80(1);
 }
 
+/*
+ * FUN_0013ce90 (0x13ce90 / object_types.c) — build the object->cluster
+ * back-reference table for the loaded scenario.
+ *
+ * No-op when editor_flag is nonzero. Otherwise iterates object types 0..0xb.
+ * For each type whose definition (FUN_0013c100) has a valid placement tag-block
+ * offset (def+0xa != NONE) and palette tag-block offset (def+0xc != NONE):
+ * fetches the scenario placement block via FUN_0013ca30 (which also writes the
+ * block element size to a local). For each element whose cluster reference word
+ * (element+0x2) is not NONE, indexes the scenario cluster block at scenario+0x204
+ * (stride 0x24) by that reference and stamps the placement's (type, element
+ * index) back into it at +0x20 / +0x22.
+ *
+ * Confirmed (disasm 0x13ce90): editor early-out via byte [EBP+0xc]; type loop
+ * counter (EBX) is the value stamped at +0x20; element counter (ESI) is stamped
+ * at +0x22; both are 16-bit stores (MOV word). FUN_0013ca30's 3rd arg is the
+ * out element-size (original literally reuses the [EBP+0xc] slot; a separate
+ * local is used here). Cluster block stride confirmed 0x24 (PUSH 0x24 before
+ * tag_block_get_element 0x19b210).
+ */
+void FUN_0013ce90(int scenario, char editor_flag)
+{
+  int type;
+  void *def;
+  int *block;
+  int element_size; /* out from FUN_0013ca30 */
+  int16_t element_index;
+  int e;
+  int ref;
+  int target;
+
+  if (editor_flag != 0)
+    return;
+
+  type = 0;
+  do {
+    def = FUN_0013c100((int16_t)type);
+    if (*(int16_t *)((char *)def + 0xa) != -1 &&
+        *(int16_t *)((char *)def + 0xc) != -1) {
+      block = (int *)FUN_0013ca30(scenario, type, &element_size);
+      element_index = 0;
+      if (*block > 0) {
+        e = 0;
+        do {
+          e = (int)tag_block_get_element(block, e, element_size);
+          ref = *(int16_t *)(e + 2);
+          if (ref != -1) {
+            target = (int)tag_block_get_element((void *)(scenario + 0x204),
+                                                ref, 0x24);
+            *(int16_t *)(target + 0x20) = (int16_t)type;
+            *(int16_t *)(target + 0x22) = element_index;
+          }
+          element_index++;
+          e = (int)element_index;
+        } while (e < *block);
+      }
+    }
+    type++;
+  } while ((int16_t)type < 0xc);
+}
+
 /* Wrap cluster_partition_iter_first for the non-collideable partition
  * (0x5a8d30). 0x13d570 / objects.obj
  */
@@ -2624,6 +2713,54 @@ void FUN_0013d8b0(int object_handle)
       *(int *)((char *)obj + 0xa0) = -1;
     FUN_0013c680(it.last_handle, object_handle);
     obj = (object_data_t *)object_iterator_next(&it);
+  }
+}
+
+/*
+ * FUN_0013ddd0 (0x13ddd0 / objects.obj) — recursively precache the predicted
+ * resources for an object and its attachment tree.
+ *
+ * Iterative+recursive walk over the object datum (table at 0x5a8d50). For each
+ * object: resolves its definition pointer (obj+0x8), reads the 16-bit object
+ * type at def+0x64, and asserts that (1 << type) is non-zero (i.e. the type is
+ * in range; the original message reports the unexpected type). If the object's
+ * tag index (def+0x0) is valid, fetches the 'obje' tag (0x6f626a65) and
+ * precaches its predicted-resources block at tag+0x170. Then recurses into the
+ * first child (def+0xc8) and tail-iterates to the next sibling (def+0xc4) via
+ * the enclosing while loop.
+ *
+ * Confirmed (disasm 0x13ddd0): type is a signed 16-bit load (MOVSX ECX, word
+ * ptr [ESI+0x64]); shift mask test is TEST EDX,EDX after SHL EDX,CL; assert
+ * uses csprintf(0x5ab100, fmt, -1, type) then display_assert(reason,
+ * "...objects.c", 0x69a, 1) then system_exit(-1); child at +0xc8, sibling at
+ * +0xc4; precache arg is tag+0x170.
+ */
+void FUN_0013ddd0(int object_handle)
+{
+  object_data_t *obj;
+  int *defn;
+  int type;
+  int tag;
+
+  while (object_handle != -1) {
+    obj = (object_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+    defn = *(int **)((char *)obj + 8);
+    type = *(int16_t *)((char *)defn + 0x64);
+    if ((1 << (type & 0x1f)) == 0) {
+      display_assert(
+        csprintf((char *)0x5ab100,
+                 "got an object type we didn't expect "
+                 "(expected one of 0x%08x but got #%d).",
+                 0xffffffff, type),
+        "c:\\halo\\SOURCE\\objects\\objects.c", 0x69a, 1);
+      system_exit(-1);
+    }
+    if (defn[0] != -1) {
+      tag = (int)tag_get(0x6f626a65, defn[0]);
+      predicted_resources_precache((void *)(tag + 0x170));
+    }
+    FUN_0013ddd0(defn[0x32]);
+    object_handle = defn[0x31];
   }
 }
 
