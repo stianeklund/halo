@@ -3030,6 +3030,51 @@ void FUN_0013dcb0(void)
   *(short *)(*(int *)0x46f084 + 0x90) = 0;
 }
 
+/*
+ * FUN_0013dc10 (0x13dc10 / objects.obj) — object_pvs_set_camera_point: set the
+ * object-PVS source to a scenario camera point.
+ *
+ * If the camera point index is NONE (-1), clears the PVS mode (object_globals
+ * +0x90 = 0).  Otherwise resolves the camera point element from the scenario
+ * camera-point block (scenario+0x4f0, element size 0x68), converts its position
+ * (element+0x28) to a scenario location, and reads the resulting leaf/cluster
+ * index (short) from the location struct (+4).  A leaf index of -1 means the
+ * camera point is outside the map: emit error() and clear the PVS mode.
+ * Otherwise set mode = 2 and store the leaf index in object_globals +0x94.
+ *
+ * §7 note: Ghidra groups (idx, 0x68) onto global_scenario_get(); they actually
+ * belong to the following tag_block_get_element(scenario+0x4f0, idx, 0x68).
+ *
+ * Confirmed (disasm 0x13dc10): CMP AX,-1 early-out writes word [og+0x90]=0;
+ * MOVSX ECX,AX then PUSH 0x68/PUSH ECX/CALL global_scenario_get(0x18e380);
+ * ADD EAX,0x4f0 then CALL tag_block_get_element(0x19b210); ESI=element;
+ * scenario_location_from_point(&loc, element+0x28); CMP word [EBP-4],-1;
+ * error(2, "...%s...", element+4); else word[og+0x90]=2, word[og+0x94]=leaf.
+ */
+void FUN_0013dc10(short camera_point_index)
+{
+  int iVar1;
+  int cam;
+  char location[8]; /* scenario_location_from_point output; +4 = leaf index (short) */
+
+  if (camera_point_index == -1) {
+    *(short *)(*(int *)0x46f084 + 0x90) = 0;
+    return;
+  }
+  cam = (int)tag_block_get_element((char *)global_scenario_get() + 0x4f0,
+                                   (int)camera_point_index, 0x68);
+  scenario_location_from_point(location, (void *)(cam + 0x28));
+  iVar1 = *(int *)0x46f084;
+  if (*(short *)(location + 4) == -1) {
+    error(2, "object_pvs_set_camera_point: camera point %s is outside the map",
+          (char *)(cam + 4));
+    *(short *)(iVar1 + 0x90) = 0;
+    return;
+  }
+  *(short *)(iVar1 + 0x90) = 2;
+  *(short *)(iVar1 + 0x94) = *(short *)(location + 4);
+}
+
 void object_definition_predict(int param_1)
 {
   void *tag;
@@ -5018,6 +5063,49 @@ int object_name_list_get_handle(int16_t index)
     return name_table[(int)index];
   }
   return 0xffffffff;
+}
+
+/*
+ * FUN_00140750 (0x140750 / objects.obj) — disconnect every map-connected,
+ * childless object from the map.
+ *
+ * Walks all objects via an inlined object iterator (type_mask = -1, flags = 0;
+ * the binary inlines object_iterator_new's five field stores rather than
+ * calling it).  For each object that is connected to the map (flags bit 0x800)
+ * and has no parent (object+0xcc == NONE), it calls object_disconnect_from_map
+ * on the iterator's last_handle and re-asserts the 0x800 flag (a redundant
+ * store the original preserves).  FUN_0013c8c0 (vtable +0x50 dispatch) is then
+ * invoked for every iterated object, unconditionally.
+ *
+ * Confirmed (disasm 0x140750): data_verify(*(data_t**)0x5a8d50) first; iterator
+ * inlined at EBP-0x10 with EAX=-1 written to type_mask(+0)/last_handle(+8),
+ * byte flags(+4)=0, word current_index(+6)=0, cookie(+0xc)=0x86868686; object
+ * pointer returned in EAX (ESI); EDI reloaded from [EBP-8]=last_handle each
+ * iteration; TEST [ESI+4],0x800 then CMP [ESI+0xcc],-1; both callees take EDI.
+ */
+void FUN_00140750(void)
+{
+  object_iter_t it;
+  object_data_t *obj;
+
+  data_verify(*(data_t **)0x5a8d50);
+
+  it.type_mask = -1;
+  it.flags = 0;
+  it.current_index = 0;
+  it.last_handle = -1;
+  it.cookie = 0x86868686;
+
+  obj = (object_data_t *)object_iterator_next(&it);
+  while (obj != (object_data_t *)0) {
+    if ((*(unsigned int *)((char *)obj + 4) & 0x800) != 0 &&
+        *(int *)((char *)obj + 0xcc) == -1) {
+      object_disconnect_from_map(it.last_handle);
+      *(unsigned int *)((char *)obj + 4) |= 0x800;
+    }
+    FUN_0013c8c0(it.last_handle);
+    obj = (object_data_t *)object_iterator_next(&it);
+  }
 }
 
 /*

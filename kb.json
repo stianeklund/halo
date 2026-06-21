@@ -15241,8 +15241,8 @@
         },
         {
           "addr": "0x13dc10",
-          "decl": "void FUN_0013dc10(short param_1);",
-          "ported": false,
+          "decl": "void FUN_0013dc10(short camera_point_index);",
+          "ported": true,
           "source_path": "objects/objects.c"
         },
         {
@@ -15556,7 +15556,7 @@
         {
           "addr": "0x140750",
           "decl": "void FUN_00140750(void);",
-          "ported": false,
+          "ported": true,
           "source_path": "objects/objects.c",
           "name": "FUN_00140750"
         },
