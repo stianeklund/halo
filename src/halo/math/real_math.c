@@ -3227,3 +3227,18 @@ void FUN_001127b0(int param_1, int param_2, char *param_3, int param_4)
   FUN_00112590(param_1, param_2, 8, 0xf, 8, 0, param_3, param_4);
   return;
 }
+
+/* zlib gzgetc: read a single byte from stream param_1 via FUN_00112db0
+   (gzread, count=1). Returns the byte (zero-extended) on success, or -1 (EOF)
+   if the read did not yield exactly one byte. */
+unsigned int FUN_00112eb0(void *param_1, unsigned char param_2)
+{
+  unsigned char buf;
+  int n;
+
+  buf = param_2;
+  n = FUN_00112db0(param_1, (int)&buf, 1);
+  if (n == 1)
+    return (unsigned int)buf;
+  return 0xffffffff;
+}

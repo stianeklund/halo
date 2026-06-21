@@ -1977,6 +1977,41 @@ void FUN_0013c560(int param_1)
   }
 }
 
+/* 0x13c5c0 / objects.obj — dispatch the type-extension vtable callback at
+ * +0x30 for every registered extension of an object's type, accumulating a
+ * boolean OR of the callback results. Walks the extension table (base +0x5c)
+ * obtained from the object's type via FUN_0013c100, calling each non-NULL
+ * fn-ptr at *(extension+0x30) with the object handle until a NULL slot ends
+ * the list. Returns AL (1 if any callback returned non-zero, else 0).
+ *
+ * Confirmed: cdecl, 1 arg (object_handle at [EBP+8]).
+ * Confirmed: returns bool in AL (MOV AL,BL at exit).
+ * Confirmed: 16-bit loop index (MOVSX EAX,SI), stride 4, base +0x5c.
+ */
+int FUN_0013c5c0(int param_1)
+{
+  int *slot;
+  int extensions;
+  int type_def;
+  char result;
+  short index;
+  char (*callback)(int);
+
+  type_def = (int)object_get_and_verify_type(param_1, -1);
+  extensions = (int)FUN_0013c100(*(int16_t *)(type_def + 0x64));
+  slot = (int *)(extensions + 0x5c);
+  result = 0;
+  index = 0;
+  while (*(int *)(extensions + 0x5c + index * 4) != 0) {
+    callback = *(char (**)(int))(*slot + 0x30);
+    if (callback != (char (*)(int))0 && (*callback)(param_1) != 0)
+      result = 1;
+    index = index + 1;
+    slot = (int *)(extensions + 0x5c + index * 4);
+  }
+  return result;
+}
+
 /* Dispatch object type extension callback at vtable +0x34 for all extensions.
  * 0x13c620 / objects.obj
  */
@@ -2519,6 +2554,34 @@ int cluster_partition_object_iter_first(int *state, int16_t cluster_idx)
 int cluster_partition_object_iter_next(int *state)
 {
   return cluster_partition_iter_next((void *)0x5a8d40, state);
+}
+
+/*
+ * FUN_0013d5f0 (0x13d5f0 / objects.obj) — advance an object's per-object
+ * cluster iterator to the next cluster. The iterator state (param_1) holds
+ * the cluster partition pointer at +0x00 (must be the collideable
+ * 0x5a8d40 or noncollideable 0x5a8d30 partition) and the current cluster
+ * handle at +0x04. Asserts the partition pointer is valid, then forwards to
+ * FUN_001916d0(partition, &cluster_handle), which returns the next cluster
+ * index and advances the handle. Returns the cluster index (or -1 at end).
+ *
+ * Confirmed: cdecl, param_2 ([EBP+0xc]) is UNUSED in the body.
+ * Confirmed: assert string at 0x29b890, file at 0x29b91c, line 0x419.
+ * Confirmed: void-EAX return (returns FUN_001916d0's result).
+ */
+int16_t FUN_0013d5f0(void *param_1, int param_2)
+{
+  int *iter = (int *)param_1;
+  (void)param_2;
+  if ((void *)iter[0] != (void *)0x5a8d40 &&
+      (void *)iter[0] != (void *)0x5a8d30) {
+    display_assert(
+        "iterator->cluster_partition==&collideable_object_cluster_partition || "
+        "iterator->cluster_partition==&noncollideable_object_cluster_partition",
+        "c:\\halo\\SOURCE\\objects\\objects.c", 0x419, 1);
+    CALL_thunk_FUN_001029a0(-1);
+  }
+  return (int16_t)FUN_001916d0(iter[0], &iter[1]);
 }
 
 /*

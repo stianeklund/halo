@@ -15053,7 +15053,7 @@
         {
           "decl": "int FUN_0013c5c0(int param_1);",
           "addr": "0x13c5c0",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13c620",
@@ -15172,7 +15172,7 @@
         {
           "addr": "0x13d5f0",
           "decl": "int16_t FUN_0013d5f0(void *param_1, int param_2);",
-          "ported": false,
+          "ported": true,
           "source_path": "objects/objects.c"
         },
         {
@@ -20612,7 +20612,8 @@
         },
         {
           "addr": "0x112eb0",
-          "decl": "void FUN_00112eb0(void);"
+          "decl": "unsigned int FUN_00112eb0(void *param_1, unsigned char param_2);",
+          "ported": true
         },
         {
           "addr": "0x112ee0",
@@ -23228,7 +23229,7 @@
         },
         {
           "addr": "0x1916d0",
-          "decl": "void FUN_001916d0(void);"
+          "decl": "int FUN_001916d0(int param_1, int *param_2);"
         },
         {
           "addr": "0x191700",
