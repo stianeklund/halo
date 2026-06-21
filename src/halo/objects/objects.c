@@ -889,6 +889,62 @@ void object_wake(int object_handle)
   *(uint8_t *)(light + 0x2) &= ~0x4;
 }
 
+/*
+ * FUN_001365d0 (0x1365d0 / objects.obj) — initialise an object's maximum body
+ * vitality and maximum shield vitality from its collision-model tag, with
+ * optional caller overrides.
+ *
+ * Reads the object's 'obje' definition (object+0); if the definition has a
+ * collision model ('coll') tag (objtag+0x7c != NONE), pulls the default body
+ * vitality from coll+0x8 and the default shield vitality from coll+0xcc.
+ * Either default may be replaced by a non-NULL override pointer argument.
+ *
+ * The four float results are stored into the object data:
+ *   object+0x88 = max body vitality
+ *   object+0x8c = max shield vitality
+ *   object+0x90 = 1.0 if body vitality > 0 else 0.0   (has-body flag, as float)
+ *   object+0x94 = 1.0 if shield vitality > 0 else 0.0  (has-shield flag, float)
+ *
+ * Confirmed (disasm 0x1365d0): tag_get(0x6f626a65 'obje', *obj); coll tag from
+ * objtag+0x7c; vit from coll+0x8 (ECX store to +0x88), shield from coll+0xcc
+ * (FST to +0x8c); compares against FLOAT 0.0 (0x2533c0) using AH&0x41 (<=0 set).
+ */
+void FUN_001365d0(int object_handle, float *body_vitality_override,
+                  float *shield_vitality_override)
+{
+  int *obj;
+  int objtag;
+  int coll;
+  float body_vitality;
+  float shield_vitality;
+
+  obj = (int *)object_get_and_verify_type(object_handle, 0xffffffff);
+  objtag = (int)tag_get(0x6f626a65, obj[0]);
+
+  shield_vitality = 0.0f;
+  body_vitality = 0.0f;
+  if (*(int *)(objtag + 0x7c) != -1) {
+    coll = (int)tag_get(0x636f6c6c, *(int *)(objtag + 0x7c));
+    if (coll != 0) {
+      body_vitality = *(float *)(coll + 0x8);
+      shield_vitality = *(float *)(coll + 0xcc);
+    }
+  }
+
+  if (body_vitality_override != (float *)0)
+    body_vitality = *body_vitality_override;
+  if (shield_vitality_override != (float *)0)
+    shield_vitality = *shield_vitality_override;
+
+  *(float *)((char *)obj + 0x8c) = shield_vitality;
+  *(float *)((char *)obj + 0x88) = body_vitality;
+  *(float *)((char *)obj + 0x90) = (body_vitality > 0.0f) ? 1.0f : 0.0f;
+  if (shield_vitality > 0.0f)
+    *(float *)((char *)obj + 0x94) = 1.0f;
+  else
+    *(int *)((char *)obj + 0x94) = 0;
+}
+
 /* 0x139810 / objects.obj — Scale a light color (RGB float triple) by a delta.
  * Finds the max component, computes a scale factor clamped between
  * DAT_002533c8 (epsilon) and the input scale, then multiplies all 3.
@@ -1712,6 +1768,69 @@ void *FUN_0013c250(int16_t param_1)
   return *(void **)((void **)0x324608)[iVar1];
 }
 
+/*
+ * FUN_0013c2e0 (0x13c2e0 / object_types.c) — build the object-type definition
+ * dependency list and run each definition's initialize procedure.
+ *
+ * Threads a singly-linked list through definition+0x9c ('next') in dependency
+ * order: for each object type 0..0xb, FUN_0013c100(type) yields the definition;
+ * it is appended to the list (asserting its 'next' is still NONE), then each of
+ * its up to 16 child-type definitions (def+0x5c[i], stopping at the first 0) is
+ * appended if not already linked. The list head is kept at 0x5a8d54. After the
+ * list is terminated with a NULL next, it is walked head-to-tail and each
+ * definition's initialize callback at def+0x10 (if non-NULL) is invoked.
+ *
+ * Confirmed (disasm 0x13c2e0): head at DAT_005a8d54; assert "!definition->next"
+ * (object_types.c:0x2ea) when def+0x9c != 0; inner child scan def+0x5c+i*4 for
+ * i in [0,0x10); outer type loop AX<0xc; tail walk via def+0x9c calling
+ * (*def+0x10)() when non-zero.
+ */
+void FUN_0013c2e0(void)
+{
+  int type;
+  int *next_slot;  /* where the next definition pointer is written */
+  int *child_slot; /* inner cursor for appending children */
+  int16_t i;
+  int def;
+  int child;
+
+  type = 0;
+  next_slot = (int *)0x5a8d54;
+  do {
+    def = (int)FUN_0013c100((int16_t)type);
+    child_slot = (int *)(def + 0x9c);
+    if (*(int *)(def + 0x9c) != 0) {
+      display_assert("!definition->next",
+                     "c:\\halo\\SOURCE\\objects\\object_types.c", 0x2ea, 1);
+      system_exit(-1);
+    }
+    *next_slot = def;
+
+    i = 0;
+    do {
+      child = *(int *)(def + 0x5c + i * 4);
+      if (child == 0)
+        break;
+      if (*(int *)(child + 0x9c) == 0) {
+        *child_slot = child;
+        child_slot = (int *)(child + 0x9c);
+      }
+      i++;
+    } while (i < 0x10);
+
+    type++;
+    next_slot = child_slot;
+    if ((int16_t)type >= 0xc) {
+      *child_slot = 0;
+      for (def = *(int *)0x5a8d54; def != 0; def = *(int *)(def + 0x9c)) {
+        if (*(void (**)(void))(def + 0x10) != (void (*)(void))0)
+          (**(void (**)(void))(def + 0x10))();
+      }
+      return;
+    }
+  } while (1);
+}
+
 /* Walk the object type definition list and call dispose at +0x14 on each.
  * 0x13c3a0 / objects.obj
  */
@@ -2205,6 +2324,67 @@ int FUN_0013cab0(int param_1, int param_2)
   return *(short *)(iVar1 + 0xc) + param_1;
 }
 
+/*
+ * FUN_0013cdd0 (0x13cdd0 / object_types.c) — place every scenario palette
+ * object for all eligible object types.
+ *
+ * No-op when the game is in the editor (game_in_editor() != 0). Otherwise
+ * iterates object types 0..0xb, skipping types in the mask 0x240 (bits 6 and
+ * 9). For each remaining type whose definition (FUN_0013c100) has both a valid
+ * placement tag-block offset (def+0xa != NONE) and palette tag-block offset
+ * (def+0xc != NONE): fetches the scenario placement block via FUN_0013ca30
+ * (writing element_size to a local) and the palette base index via FUN_0013cab0,
+ * then for each element in the block calls object_new_from_scenario
+ * (FUN_00144770) on the element with that palette base, followed by
+ * objects_garbage_collect_tick (FUN_00144b50). A final FUN_0013cb80(1) runs
+ * after all types are placed.
+ *
+ * Confirmed (disasm 0x13cdd0): game_in_editor early-out via AL; type/shift
+ * dual-counter always equal (both INC each pass) so mask test is (1<<type)&0x240;
+ * tag_block_get_element(block, index, element_size);
+ * object_new_from_scenario(element, base); element count re-read from *block
+ * each pass; tail FUN_0013cb80(1).
+ */
+void FUN_0013cdd0(int scenario)
+{
+  int type;
+  int def;
+  int *block;       /* scenario placement tag block (count at *block) */
+  int palette_base;
+  int element_size; /* written by FUN_0013ca30 via &element_size */
+  int16_t index;
+  int i;
+  void *element;
+
+  if (game_in_editor())
+    return;
+
+  type = 0;
+  do {
+    if (((1 << (type & 0x1f)) & 0x240) == 0) {
+      def = (int)FUN_0013c100((int16_t)type);
+      if (*(int16_t *)(def + 0xa) != -1 && *(int16_t *)(def + 0xc) != -1) {
+        block = (int *)FUN_0013ca30(scenario, type, &element_size);
+        palette_base = FUN_0013cab0(scenario, type);
+        index = 0;
+        if (*block > 0) {
+          i = 0;
+          do {
+            element = tag_block_get_element(block, i, element_size);
+            object_new_from_scenario(element, palette_base);
+            objects_garbage_collect_tick();
+            index++;
+            i = (int)index;
+          } while (i < *block);
+        }
+      }
+    }
+    type++;
+  } while ((int16_t)type < 0xc);
+
+  FUN_0013cb80(1);
+}
+
 /* Wrap cluster_partition_iter_first for the non-collideable partition
  * (0x5a8d30). 0x13d570 / objects.obj
  */
@@ -2407,6 +2587,44 @@ void *object_iterator_next(void *iter)
   }
   it->current_index = idx;
   return NULL;
+}
+
+/*
+ * FUN_0013d8b0 (0x13d8b0 / objects.obj) — detach an object handle from every
+ * other object that references it.
+ *
+ * Walks all objects via an inlined object iterator (type_mask = all, flags = 0)
+ * and, for each object whose "referenced object" field (object+0xa0) equals the
+ * target handle, resets that field to NONE (-1). FUN_0013c680 is then called
+ * for every iterated object with (iterator.last_handle, target_handle) to run
+ * any per-object detach side effects.
+ *
+ * Confirmed (disasm 0x13d8b0): data_verify(*(data_t**)0x5a8d50) first; iterator
+ * struct inlined at EBP-0x10 (type_mask=-1, flags=0, current_index=0,
+ * last_handle=-1, cookie=0x86868686 — matching object_iter_t); object pointer
+ * returned by object_iterator_next (0x13d730) in EAX; CMP [EAX+0xa0],ESI then
+ * conditional MOV [EAX+0xa0],-1; FUN_0013c680([EBP-0x8]=last_handle, ESI=handle).
+ */
+void FUN_0013d8b0(int object_handle)
+{
+  object_iter_t it;
+  object_data_t *obj;
+
+  data_verify(*(data_t **)0x5a8d50);
+
+  it.type_mask = -1;
+  it.flags = 0;
+  it.current_index = 0;
+  it.last_handle = -1;
+  it.cookie = 0x86868686;
+
+  obj = (object_data_t *)object_iterator_next(&it);
+  while (obj != (object_data_t *)0) {
+    if (*(int *)((char *)obj + 0xa0) == object_handle)
+      *(int *)((char *)obj + 0xa0) = -1;
+    FUN_0013c680(it.last_handle, object_handle);
+    obj = (object_data_t *)object_iterator_next(&it);
+  }
 }
 
 /*
@@ -3197,7 +3415,7 @@ void objects_place(void)
 
   /* Get the scenario pointer and pass it to the object placer */
   scenario = global_scenario_get();
-  ((pfn_int_t)0x13cdd0)((int)scenario);
+  FUN_0013cdd0((int)scenario);
 
   /* Clear object_is_being_placed */
   object_globals->object_is_being_placed = 0;
@@ -3551,7 +3769,7 @@ void objects_initialize(void)
   /* Initialise sub-systems (order confirmed from disasm) */
   ((pfn_void_t)0x136580)();
   ((pfn_void_t)0x135f90)();
-  ((pfn_void_t)0x13c2e0)();
+  FUN_0013c2e0();
   ((pfn_void_t)0x1391e0)();
 
   if (!game_in_editor()) {
@@ -8829,6 +9047,131 @@ camera_invalid:
  *
  * Source: c:\halo\SOURCE\objects\object_lights.c
  */
+/*
+ * FUN_00139c20 (0x139c20 / object_lights.c) — gather the strongest point
+ * lights influencing a position and accumulate the brightest up to max_count
+ * into three parallel caller arrays.
+ *
+ * Iterates the connected-light cluster partition (0x5a90b0) for the cluster of
+ * the query position (cluster_idx = marker_index). For each light datum:
+ *   - skip if already visited this frame (light+0xc == lights_globals.frame_id
+ *     at 0x5a8d64), marking it visited afterward;
+ *   - skip if disconnected (light+0x8 == NONE);
+ *   - skip self-shadowing: if the light belongs to the excluding object
+ *     (light+0x2c == object_handle) and its 'ligh' tag has flag bit 2 set;
+ *   - skip if outside falloff: distance(position, light+0x30) >=
+ *     bias + light_radius (light+0x54).
+ * The attenuation is 1.0 - dist^2 / radius^2, and the weight is
+ * brightness(light+0x14) * attenuation.
+ *
+ * Selection (priority insertion with eviction):
+ *   - if the array is not yet full (*count < max_count) take the next slot and
+ *     increment *count;
+ *   - otherwise scan the existing weights (out_weights) for the dimmest entry;
+ *     if the new weight exceeds that minimum, evict it (slot = argmin),
+ *     else slot stays == *count and the store is skipped.
+ * On a kept slot: out_index[slot]=light_index, out_weights[slot]=weight,
+ * out_atten[slot]=attenuation.
+ *
+ * NOTE: out_index_base and out_atten_base alias the same caller buffer at
+ * different word offsets (caller passes local_28+2 and local_28); preserved as
+ * separate base pointers indexed by slot*4.
+ *
+ * Confirmed (disasm 0x139c20): cdecl 9 stack args; FSQRT distance; atten via
+ * 1.0(0x2533c8) - dist^2/radius^2; eviction slot register (ECX) ends at *count
+ * after the min-search loop and is only reassigned to argmin on evict; final
+ * CMP CX,max_count / JGE skips the store when no eviction occurs.
+ */
+void FUN_00139c20(int object_handle, int16_t marker_index, float *position,
+                  float bias, int out_index_base, float *out_weights,
+                  int out_atten_base, int16_t *count, int16_t max_count)
+{
+  int state;
+  float attenuation;
+  int light_index;
+  int light;
+  int16_t i;
+  int16_t slot;
+  int16_t argmin;
+  int16_t cur_count;
+  float dx, dy, dz, dist, radius;
+  float brightness, min_weight;
+  int slot_offset;
+
+  if (*(char *)0x5a8d60 == '\0') {
+    display_assert("lights_globals.marker_initialized",
+                   "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x544, 1);
+    system_exit(-1);
+  }
+
+  light_index = cluster_partition_iter_first((void *)0x5a90b0, &state,
+                                             marker_index);
+  while (light_index != -1) {
+    light = (int)datum_get(*(data_t **)0x5a90bc, light_index);
+    if (*(char *)0x5a8d60 == '\0') {
+      display_assert("lights_globals.marker_initialized",
+                     "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x66f, 1);
+      system_exit(-1);
+    }
+    if (*(int *)(light + 0xc) != *(int *)0x5a8d64) {
+      light = (int)datum_get(*(data_t **)0x5a90bc, light_index);
+      if (*(int *)(light + 0x8) != -1 &&
+          ((*(int *)(light + 0x2c) != object_handle ||
+            (*(unsigned char *)tag_get(0x6c696768, *(int *)(light + 0x4)) & 4)
+                == 0))) {
+        dx = position[0] - *(float *)(light + 0x30);
+        dy = position[1] - *(float *)(light + 0x34);
+        dz = position[2] - *(float *)(light + 0x38);
+        dist = sqrtf(dx * dx + dy * dy + dz * dz);
+        radius = *(float *)(light + 0x54);
+        if (dist < bias + radius) {
+          attenuation = 1.0f - (dist * dist) / (radius * radius);
+          brightness = real_rgb_color_brightness((float *)(light + 0x14));
+
+          cur_count = *count;
+          if (cur_count < max_count) {
+            *count = cur_count + 1;
+            slot = cur_count;
+          } else {
+            min_weight = *(float *)0x2548fc;
+            argmin = -1;
+            slot = 0;
+            if (cur_count > 0) {
+              i = 0;
+              do {
+                if (out_weights[i] < min_weight) {
+                  min_weight = out_weights[i];
+                  argmin = i;
+                }
+                i++;
+              } while (i < *count);
+              slot = i; /* slot ends at *count after the search loop */
+            }
+            if (min_weight < brightness * attenuation)
+              slot = argmin;
+          }
+
+          if (slot < max_count) {
+            slot_offset = slot * 4;
+            *(int *)(out_index_base + slot_offset) = light_index;
+            out_weights[slot] = brightness * attenuation;
+            *(float *)(out_atten_base + slot_offset) = attenuation;
+          }
+        }
+      }
+      light = (int)datum_get(*(data_t **)0x5a90bc, light_index);
+      if (*(char *)0x5a8d60 == '\0') {
+        display_assert("lights_globals.marker_initialized",
+                       "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x67f, 1);
+        system_exit(-1);
+      }
+      if (*(int *)(light + 0xc) != *(int *)0x5a8d64)
+        *(int *)(light + 0xc) = *(int *)0x5a8d64;
+    }
+    light_index = cluster_partition_iter_next((void *)0x5a90b0, &state);
+  }
+}
+
 /* 0x139e50 */
 void FUN_00139e50(unsigned int param_1, float *param_2, float *param_3,
                   float param_4,
@@ -9037,9 +9380,9 @@ void FUN_0013a740(int param_1, int param_2, float *param_3)
     }
     *(int *)0x5a8d64 = *(int *)0x5a8d64 + 1;
     *(char *)0x5a8d60 = '\x01';
-    ((void (*)(int, unsigned short, int, int, void *, void *, void *, void *, int))FUN_00139c20)
-      (-1, *(unsigned short *)(param_2 + 4), param_1, 0, local_28 + 2,
-       local_18, local_28, &param_3, 2);
+    FUN_00139c20(-1, (int16_t) * (unsigned short *)(param_2 + 4),
+                 (float *)param_1, 0.0f, (int)(local_28 + 2),
+                 (float *)local_18, (int)local_28, (int16_t *)&param_3, 2);
     if (*(char *)0x5a8d60 == '\0') {
       display_assert("lights_globals.marker_initialized",
                      "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x68e, 1);

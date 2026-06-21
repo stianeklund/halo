@@ -14827,8 +14827,8 @@
         {
           "name": "FUN_001365d0",
           "addr": "0x1365d0",
-          "decl": "void FUN_001365d0(int object_handle, float *body_damage, float *shield_damage);",
-          "ported": false
+          "decl": "void FUN_001365d0(int object_handle, float *body_vitality_override, float *shield_vitality_override);",
+          "ported": true
         },
         {
           "addr": "0x1366b0",
@@ -14890,8 +14890,8 @@
         },
         {
           "addr": "0x139c20",
-          "decl": "void FUN_00139c20(int param_1, int param_2, float *param_3, float param_4, int param_5, void *param_6, void *param_7, short *param_8, int param_9);",
-          "ported": false
+          "decl": "void FUN_00139c20(int object_handle, int16_t marker_index, float *position, float bias, int out_index_base, float *out_weights, int out_atten_base, int16_t *count, int16_t max_count);",
+          "ported": true
         },
         {
           "addr": "0x139e50",
@@ -15013,7 +15013,7 @@
         {
           "decl": "void FUN_0013c2e0(void);",
           "addr": "0x13c2e0",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13c3a0",
@@ -15133,9 +15133,9 @@
           "ported": false
         },
         {
-          "decl": "void FUN_0013cdd0(int param_1);",
+          "decl": "void FUN_0013cdd0(int scenario);",
           "addr": "0x13cdd0",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13ce90",
@@ -15215,7 +15215,7 @@
         {
           "addr": "0x13d8b0",
           "decl": "void FUN_0013d8b0(int param_1);",
-          "ported": false,
+          "ported": true,
           "source_path": "objects/objects.c"
         },
         {
