@@ -10986,3 +10986,63 @@ void object_new_by_name(short param_1)
                                          elem_size);
   object_new_from_scenario((void *)placement, pal_base);
 }
+
+/* 0x13aa10: gather the light markers that illuminate an object.  Computes the
+ * object's bounding sphere (center local_2c, radius local_8) via FUN_0001aae0,
+ * then iterates the object's cluster set (object_get_first_cluster /
+ * FUN_0013d5f0 over iter_state local_10).  For each cluster it calls
+ * FUN_00139c20 to select the strongest point lights into the caller's marker
+ * array (param_2+0x44), capped at 2 (count at param_2+0x40).  Finally it
+ * converts each stored light datum handle into the light's object field
+ * (light+0x8) in place.  Guarded by lights_globals.marker_initialized
+ * (0x5a8d60) and a recursion/use counter (0x5a8d64). */
+void FUN_0013aa10(int param_1, int param_2)
+{
+  float center[3];
+  float radius;
+  unsigned int iter_state[2];
+  float weights[2];
+  float atten[2];
+  short *count;
+  short marker;
+  short i;
+  int light;
+
+  FUN_0001aae0(param_1, center, &radius);
+  count = (short *)(param_2 + 0x40);
+  *count = 0;
+
+  if (*(char *)0x5a8d60 != '\0') {
+    display_assert("!lights_globals.marker_initialized",
+                   "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x664, 1);
+    CALL_thunk_FUN_001029a0(-1);
+  }
+  *(int *)0x5a8d64 = *(int *)0x5a8d64 + 1;
+  *(char *)0x5a8d60 = '\x01';
+
+  marker = object_get_first_cluster(iter_state, param_1);
+  if (marker != -1) {
+    do {
+      FUN_00139c20(param_1, marker, center, radius, param_2 + 0x44,
+                   weights, (int)atten, count, 2);
+      marker = FUN_0013d5f0(iter_state, param_1);
+    } while (marker != -1);
+  }
+
+  if (*(char *)0x5a8d60 == '\0') {
+    display_assert("lights_globals.marker_initialized",
+                   "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x68e, 1);
+    CALL_thunk_FUN_001029a0(-1);
+  }
+  i = 0;
+  *(char *)0x5a8d60 = '\0';
+
+  if (*count > 0) {
+    do {
+      light = (int)datum_get(*(data_t **)0x5a90bc,
+                             *(int *)(param_2 + 0x44 + (int)i * 4));
+      *(int *)(param_2 + 0x44 + (int)i * 4) = *(int *)(light + 8);
+      i++;
+    } while (i < *count);
+  }
+}
