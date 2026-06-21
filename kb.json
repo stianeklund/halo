@@ -14962,7 +14962,7 @@
         {
           "addr": "0x13b1b0",
           "decl": "int FUN_0013b1b0(int tag_index, int object_handle, short attachment_index, short marker_index, short secondary_marker_index);",
-          "ported": false,
+          "ported": true,
           "source_path": "objects/objects.c"
         },
         {
