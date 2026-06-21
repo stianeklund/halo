@@ -1183,6 +1183,98 @@ def _collect_c_files(changed_only=False, staged_only=False):
     return c_files
 
 
+# Vector helpers that read 2-3 CONTIGUOUS float components through a single
+# pointer argument. Passing &<scalar_local> makes them read the bytes that
+# happen to follow that scalar on the stack — which clang may place
+# non-adjacently / reordered vs MSVC, so components [1]/[2] read garbage.
+# (unit_can_see_point / FUN_001aa430: float dir_x,dir_y,dir_z; normalize3d(&dir_x)
+#  -> overflow -> assert_valid_real_normal3d crash, PoA marines.)
+_VEC_CONTIG_FNS = (
+    'normalize3d', 'normalize2d', 'magnitude3d', 'magnitude2d',
+    'cross_product3d', 'dot_product3d', 'scale_vector3d',
+    'add_vectors3d', 'subtract_vectors3d', 'perpendicular3d',
+)
+_VEC_CONTIG_CALL_RE = re.compile(
+    r'\b(' + '|'.join(_VEC_CONTIG_FNS) + r')\s*\(([^;{}]*)\)'
+)
+# &<id> NOT followed by [ . -> (so &arr[0], &s.x, &p->v are excluded as safe:
+# those address a known-contiguous aggregate element).
+_VEC_CONTIG_ARG_RE = re.compile(r'&\s*([A-Za-z_]\w*)\b(?!\s*(?:\[|\.|->))')
+# A bare scalar float local: "float x;" or "float x, y, z;" but NOT "float x[3];"
+# and NOT a typedef'd vector (vector3_t v;), which is contiguous and safe.
+_SCALAR_FLOAT_DECL_RE = re.compile(
+    r'^\s*(?:float|real)\s+([A-Za-z_][\w,\s]*?)\s*;\s*$'
+)
+
+
+def _scalar_float_locals(chunk_lines):
+    """Names declared as bare scalar floats (no [] array) in a function body."""
+    names = set()
+    for line in chunk_lines:
+        if '[' in line:  # array decl -> contiguous, safe
+            continue
+        m = _SCALAR_FLOAT_DECL_RE.match(line)
+        if not m:
+            continue
+        for nm in m.group(1).split(','):
+            nm = nm.strip()
+            if nm and re.match(r'^[A-Za-z_]\w*$', nm):
+                names.add(nm)
+    return names
+
+
+def check_vector_arg_contiguity(filepath, content, lines):
+    """Flag a contiguous-vector helper called with &<scalar_float_local>.
+
+    The helper reads 2-3 components past the pointer; a scalar local gives it
+    no contiguity guarantee under clang. Use a float[N] array (or pass an
+    existing array/struct) so all components are adjacent. Safe forms
+    (&arr[idx], &struct.field, vector3_t locals) are not flagged.
+    """
+    errors = []
+    blanked = _blank_comments_and_literals(content)
+    blanked_lines = blanked.split('\n')
+    chunks = _split_functions(lines)
+    relpath = os.path.relpath(filepath, ROOT_DIR)
+    # Precompute line start offsets to map a char index -> line number.
+    line_starts = [0]
+    for ln in lines:
+        line_starts.append(line_starts[-1] + len(ln) + 1)
+
+    def offset_to_line(off):
+        lo, hi = 0, len(line_starts) - 1
+        while lo < hi:
+            mid = (lo + hi + 1) // 2
+            if line_starts[mid] <= off:
+                lo = mid
+            else:
+                hi = mid - 1
+        return lo + 1
+
+    for start, end in chunks:
+        scalars = _scalar_float_locals(blanked_lines[start:end])
+        if not scalars:
+            continue
+        chunk_start_off = line_starts[start]
+        chunk_end_off = line_starts[end] if end < len(line_starts) else len(blanked)
+        segment = blanked[chunk_start_off:chunk_end_off]
+        for cm in _VEC_CONTIG_CALL_RE.finditer(segment):
+            fn = cm.group(1)
+            args = cm.group(2)
+            for am in _VEC_CONTIG_ARG_RE.finditer(args):
+                ident = am.group(1)
+                if ident in scalars:
+                    abs_off = chunk_start_off + cm.start()
+                    lineno = offset_to_line(abs_off)
+                    errors.append(
+                        f'  {relpath}:{lineno}: {fn}(&{ident}) — {ident} is a '
+                        f'scalar float local; the helper reads adjacent '
+                        f'components. Use a float[N] array so they are '
+                        f'contiguous (clang may scatter separate locals).'
+                    )
+    return errors
+
+
 def main():
     frame_audit = '--frame-size-audit' in sys.argv
     quiet = '-q' in sys.argv or '--quiet' in sys.argv or os.environ.get('LOG_LEVEL') == 'WARNING'
@@ -1208,6 +1300,7 @@ def main():
     all_param_loop_errors = []
     all_discard_result_errors = []
     all_inplace_mut_errors = []
+    all_contiguity_errors = []
 
     for fpath in c_files:
         with open(fpath, 'r', errors='replace') as f:
@@ -1227,6 +1320,7 @@ def main():
         all_param_loop_errors.extend(check_param_loop_corruption(fpath, content, lines))
         all_discard_result_errors.extend(check_discarded_result(fpath, content, lines))
         all_inplace_mut_errors.extend(check_inplace_mutator_misuse(fpath, content, lines))
+        all_contiguity_errors.extend(check_vector_arg_contiguity(fpath, content, lines))
         if frame_audit:
             all_frame_errors.extend(check_frame_sizes(fpath, content, lines))
 
@@ -1245,7 +1339,8 @@ def main():
             f'addr_value_add: {len(all_addr_value_add_errors)}, '
             f'param_loop: {len(all_param_loop_errors)}, '
             f'discard_result: {len(all_discard_result_errors)}, '
-            f'inplace_mutator: {len(all_inplace_mut_errors)}'
+            f'inplace_mutator: {len(all_inplace_mut_errors)}, '
+            f'vec_contiguity: {len(all_contiguity_errors)}'
         )
         if frame_audit:
             counts += f', frame_sizes: {len(all_frame_errors)}'
@@ -1255,7 +1350,8 @@ def main():
                  len(all_output_size_errors) + len(all_x87_math_errors) +
                  len(all_concat_errors) + len(all_float_smuggle_errors) +
                  len(all_addr_value_add_errors) + len(all_param_loop_errors) +
-                 len(all_discard_result_errors) + len(all_inplace_mut_errors))
+                 len(all_discard_result_errors) + len(all_inplace_mut_errors) +
+                 len(all_contiguity_errors))
         if total:
             print(counts, file=sys.stderr)
     else:
@@ -1428,6 +1524,19 @@ def main():
                 file=sys.stderr,
             )
             for e in all_inplace_mut_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
+
+        if all_contiguity_errors:
+            print(
+                'WARNING: contiguous-vector helper called with &<scalar_float>.\n'
+                'normalize3d/cross_product3d/magnitude3d/... read 2-3 components\n'
+                'past the pointer; separate float locals are not guaranteed\n'
+                'contiguous under clang (it reordered/scattered them in\n'
+                'unit_can_see_point -> overflow -> assert). Use a float[N] array:\n',
+                file=sys.stderr,
+            )
+            for e in all_contiguity_errors:
                 print(e, file=sys.stderr)
             print(file=sys.stderr)
 
