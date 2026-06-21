@@ -21909,7 +21909,8 @@
         },
         {
           "addr": "0x18d0b0",
-          "decl": "void scenario_fog_region_get_fog_index(void);"
+          "decl": "void scenario_fog_region_get_fog_index(void);",
+          "ported": true
         },
         {
           "addr": "0x18d140",
@@ -22012,7 +22013,8 @@
         },
         {
           "addr": "0x18ed20",
-          "decl": "void FUN_0018ed20(void);"
+          "decl": "short FUN_0018ed20(int param_1, int param_2);",
+          "ported": true
         },
         {
           "addr": "0x18ed90",
