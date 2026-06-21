@@ -10776,3 +10776,19 @@ float FUN_001397f0(float param_1, float param_2)
 {
   return 1.0f - (param_2 * param_2) / (param_1 * param_1);
 }
+
+/* Scripting hook: attaches child object param_3 to parent param_1 at a marker,
+   but only when both handles are valid and the child is not already attached
+   (object+0xcc == -1). */
+void objects_scripting_attach(int param_1, int param_2, int param_3, int param_4)
+{
+  int object_ptr;
+
+  if ((param_1 != -1) && (param_3 != -1)) {
+    object_ptr = (int)object_get_and_verify_type(param_3, 0xffffffff);
+    if (*(int *)(object_ptr + 0xcc) == -1) {
+      object_attach_to_marker(param_1, (void *)param_2, param_3, (void *)param_4);
+    }
+  }
+  return;
+}
