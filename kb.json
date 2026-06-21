@@ -21828,7 +21828,8 @@
         },
         {
           "addr": "0x18b010",
-          "decl": "void FUN_0018B010(void);"
+          "decl": "int FUN_0018b010(int object_handle @<esi>);",
+          "ported": false
         },
         {
           "addr": "0x18b080",
@@ -21869,11 +21870,12 @@
         },
         {
           "addr": "0x18bc60",
-          "decl": "void FUN_0018bc60(void);"
+          "decl": "void FUN_0018bc60(int object_handle, float lod, char force_rebuild);"
         },
         {
           "addr": "0x18bf80",
-          "decl": "int FUN_0018bf80(int object_handle, float lod);"
+          "decl": "int FUN_0018bf80(int object_handle, float lod);",
+          "ported": false
         },
         {
           "addr": "0x18c0b0",
@@ -21947,7 +21949,8 @@
         },
         {
           "addr": "0x18d670",
-          "decl": "void scenario_reload_structure_bsp_if_necessary(void);"
+          "decl": "float FUN_0018d670(short mode, float *v1, float *v2);",
+          "ported": true
         },
         {
           "addr": "0x18d6e0",
@@ -21988,7 +21991,8 @@
         },
         {
           "addr": "0x18e5c0",
-          "decl": "void FUN_0018E5C0(void);"
+          "decl": "char FUN_0018e5c0(int location);",
+          "ported": true
         },
         {
           "addr": "0x18e690",
@@ -22022,7 +22026,9 @@
         },
         {
           "addr": "0x18e9b0",
-          "decl": "void FUN_0018e9b0(void);"
+          "decl": "bool scenario_location_potentially_visible(void *location);",
+          "name": "scenario_location_potentially_visible",
+          "ported": true
         },
         {
           "addr": "0x18ea50",
@@ -22041,7 +22047,8 @@
         },
         {
           "addr": "0x18ed90",
-          "decl": "char FUN_0018ed90(short cluster_index, float *point);"
+          "decl": "char FUN_0018ed90(short cluster_index, float *point);",
+          "ported": true
         },
         {
           "addr": "0x18ef00",

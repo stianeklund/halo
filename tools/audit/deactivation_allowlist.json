@@ -1265,5 +1265,19 @@
     "object": "real_math.obj",
     "reason": "unverified: equiv vacuous (table-init early-exit); VC71 70.7% x87 stack-chaining; disasm-reviewed correct; pending curve-table state snapshot",
     "since": "2026-06-21"
+  },
+  {
+    "addr": "0x18b010",
+    "name": "FUN_0018b010",
+    "object": "scenario.obj",
+    "reason": "unverified: @<esi>-defined predicate. VC71 capped at 75.6% by frameless register-arg prologue (4 unmatched prologue insns); logic faithful to disasm. Equivalence vacuous: stub-arg diff fails on datum_get arg0 because candidate reads global 0x5aa6d4 from zero-filled harness memory (oracle resolves it via reloc) - harness data-seeding artifact, not a logic divergence. Verifiable only via true dual-oracle-by-address (asm thunk) or golden-master harness.",
+    "since": "2026-06-21"
+  },
+  {
+    "addr": "0x18bf80",
+    "name": "FUN_0018bf80",
+    "object": "scenario.obj",
+    "reason": "unverified: cached-object-render-state slot resolver/evictor. VC71 79.8% capped by x87 ST0-chaining (age threaded on FPU stack across the FCOM in the eviction loop; clean C reloads) plus MSVC split-epilogue control-flow shape. Equivalence vacuous: weak confidence, 55.7% coverage, all 100 seeds returned identical 0x0 (only early-exit path exercised); stub-arg differential clean (200 calls, 0 mismatch). Faithful to decompiler structure; ABI correct cdecl.",
+    "since": "2026-06-21"
   }
 ]
