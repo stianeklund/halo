@@ -12195,6 +12195,11 @@ done_clamp:
     }
     aiming_vector[0] = end_aim[0];
     aiming_vector[1] = end_aim[1];
+    /* transform_matrix==0 reconstruct path: the original's shared "+8" store
+       (delinked 0x668, reached via 0x657 with eax=aiming_vector) writes
+       aiming_vector[2]; angular_velocity[2] retains its scaled cross-product
+       value. The old single trailing store conflated the two LHS pointers. */
+    aiming_vector[2] = end_aim[2];
   } else {
     aiming_vector[0] = desired_clamped[0];
     aiming_vector[1] = desired_clamped[1];
@@ -12204,10 +12209,11 @@ done_clamp:
       zero_vec = *(float **)0x31fc38;
       angular_velocity[0] = zero_vec[0];
       angular_velocity[1] = zero_vec[1];
-      end_aim[2] = zero_vec[2];
+      /* else path: the shared "+8" store targets angular_velocity here
+         (eax=angular_velocity via 0x3b4 -> jmp 0x668). */
+      angular_velocity[2] = zero_vec[2];
     }
   }
-  angular_velocity[2] = end_aim[2];
 
 final_validate:
   {
