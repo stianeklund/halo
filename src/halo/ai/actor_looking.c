@@ -640,8 +640,9 @@ unsigned int FUN_00014770(int actor_handle)
   static char large_buf[0x670];
   static char huge_buf[0x1474c];
   int local_14;
-  int local_50[12]; /* FUN_00027090 writes 12 ints (48 bytes); was float[3]=12
-                       bytes causing overflow */
+  int local_50[15]; /* FUN_00027090 -> FUN_00025c10 memcpy's 0xf*4 = 60 bytes
+                       (0x3c) here; FUN_000272d0 reads it. Was [12] (48 bytes)
+                       -> 12-byte stack overflow. */
   char local_c;
 
   actor = (char *)datum_get(actor_data, actor_handle);
@@ -885,7 +886,10 @@ void FUN_00014c10(int actor_handle, void *state_data, int param_3)
   char *actor;
   char *tag;
   char *sec_target;
-  void *fp_result_ptr;
+  int fp_result_ptr[15]; /* 0x3c-byte record buffer: FUN_00025c10 memcpy's
+                          * 0xf*4 = 60 bytes here and FUN_000272d0 reads it.
+                          * Was void* (4 bytes) -> 56-byte stack overflow.
+                          * Original reserves [ebp-0x50]..[ebp-0x14] = 0x3c. */
   short fp_index_tmp;
   short fp_index;
   int out2;
@@ -951,7 +955,7 @@ void FUN_00014c10(int actor_handle, void *state_data, int param_3)
    * Writes out3 int via *out3 (EBP-0x5); low byte = exclusion flag.
    */
   fp_index_tmp = (short)FUN_00025c10(
-    actor_handle, query_buf, (int *)&fp_result_ptr, &out2, huge_buf, &out3_int);
+    actor_handle, query_buf, fp_result_ptr, &out2, huge_buf, &out3_int);
 
   /* Temporary write (0x14d54); overwritten by FUN_000272d0 return */
   *(short *)((char *)state_data + 0x8) = fp_index_tmp;
@@ -961,7 +965,7 @@ void FUN_00014c10(int actor_handle, void *state_data, int param_3)
    *   param_3 = &fp_result_ptr (address of pointer storage, void **)
    *   param_5 = (unsigned int) address of huge_buf (pointer as uint)
    */
-  fp_index = FUN_000272d0(actor_handle, fp_index_tmp, &fp_result_ptr, out2,
+  fp_index = FUN_000272d0(actor_handle, fp_index_tmp, fp_result_ptr, out2,
                           (unsigned int)(int)huge_buf, (char)out3_int);
   *(short *)((char *)state_data + 0x8) = fp_index;
 
@@ -2222,7 +2226,9 @@ unsigned int FUN_000163d0(int actor_handle)
     int ret_24a60;
     int local_10;
     int local_c;
-    int local_50[12]; /* FUN_00025c10 writes 12 ints (48 bytes) */
+    int local_50[15]; /* FUN_00025c10 memcpy's 0xf*4 = 60 bytes (0x3c) here;
+                       * original reserves [ebp-0x4c]..[ebp-0x10] = 0x3c bytes.
+                       * Was [12] (48 bytes) -> 12-byte stack overflow. */
     int ret_25c10;
 
     if (*(short *)(actor + 0xc0) == 3 &&
@@ -7522,7 +7528,7 @@ void FUN_00027410(int actor_handle, void *ctx, unsigned short fp_count,
                           *(float *)(av + 0x274) * *(float *)(av + 0x274) -
                           *(float *)0x2533c8;
               if (((*(unsigned int *)&len_sq_m1 & 0x7f800000) == 0x7f800000) ||
-                  *(float *)0x2549d8 <= fabsf(len_sq_m1)) {
+                  *(double *)0x2549d8 <= fabsf(len_sq_m1)) {
                 display_assert(
                   csprintf((char *)0x5ab100,
                            "%s: assert_valid_real_normal3d(%f, %f, %f)",
