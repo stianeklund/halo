@@ -10855,3 +10855,31 @@ void objects_scripting_attach(int param_1, int param_2, int param_3, int param_4
   }
   return;
 }
+
+/* Fills the bounding-box-style output struct param_3 from object param_1's tag
+   model bounds, then recurses into child/attached objects via FUN_0013c030,
+   which accumulates into the struct. Returns 1 if the count field
+   (param_3[7] low word) ended up > 0, else 0. */
+char FUN_0013c080(int param_1, int param_2, int *param_3)
+{
+  int *obj;
+  int t;
+
+  obj = (int *)object_get_and_verify_type(param_1, 0xffffffff);
+  t = (int)tag_get(0x6f626a65, *obj);
+  param_3[0] = *(int *)(t + 4);
+  param_3[2] = 0xff7fffff;
+  param_3[4] = 0xff7fffff;
+  param_3[6] = 0xff7fffff;
+  param_3[1] = 0x7f7fffff;
+  param_3[3] = 0x7f7fffff;
+  param_3[5] = 0x7f7fffff;
+  *(short *)(param_3 + 7) = 0;
+  *(short *)((char *)param_3 + 0x1e) = 0;
+  object_get_and_verify_type(param_1, 0xffffffff);
+  FUN_0013c030(obj[0x32], param_2, (int)param_3);
+  if (*(short *)(param_3 + 7) > 0) {
+    return 1;
+  }
+  return 0;
+}
