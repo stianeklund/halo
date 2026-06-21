@@ -1508,6 +1508,46 @@ done:
   FUN_0017cc90();
 }
 
+/* Create a light-instance datum attached to an object marker (0x13b1b0).
+ * Validates the 'ligh' tag (dynamic flag bit 0, or attachment field +0xb8
+ * set), allocates from the light data table (0x5a90bc), and stores the tag
+ * index, owning object handle, attachment/marker indices, and a flag word
+ * derived from the tag's dynamic state. Returns the new datum handle, or -1
+ * if the tag is static/unattached or the table is full. */
+int FUN_0013b1b0(int tag_index, int object_handle, int16_t p3, int16_t p4,
+                 int16_t p5)
+{
+  unsigned char *light;
+  int handle;
+  char *datum;
+  uint16_t flag;
+
+  light = (unsigned char *)tag_get(0x6c696768, tag_index);
+  handle = -1;
+  if (((*light & 1) != 0 || *(int *)(light + 0xb8) != -1) &&
+      (handle = data_new_at_index(*(data_t **)0x5a90bc), handle != -1)) {
+    datum = (char *)datum_get(*(data_t **)0x5a90bc, handle);
+    *(int *)(datum + 0x04) = tag_index;
+    *(int *)(datum + 0x2c) = object_handle;
+    *(int16_t *)(datum + 0x5e) = p4;
+    *(int16_t *)(datum + 0x02) = 0;
+    *(int16_t *)(datum + 0x5c) = p3;
+    *(int16_t *)(datum + 0x60) = p5;
+    *(uint16_t *)(datum + 0x02) = (uint16_t)(*light & 1);
+    flag = *(uint16_t *)(datum + 0x02);
+    if ((flag & 1) == 0 && *(int *)(light + 0xb8) == -1)
+      flag &= 0xfffd;
+    else
+      flag |= 2;
+    *(uint16_t *)(datum + 0x02) = flag;
+    *(int *)(datum + 0x10) = -1;
+    *(int *)(datum + 0x58) = -1;
+    object_move_to_limbo(handle);
+    *(int *)(datum + 0x0c) = *(int *)0x5a8d64 - 1;
+  }
+  return handle;
+}
+
 /* Create a new point light datum from a light tag (0x13b290).
  * Allocates from the light data table (0x5a90bc), validates the 'ligh' tag,
  * initializes fields, then calls object_move_to_limbo to resolve world-space
