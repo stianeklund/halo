@@ -26388,7 +26388,7 @@
         {
           "addr": "0x1b0630",
           "decl": "void FUN_001b0630(int transform_matrix, float *aiming_vector, float *desired_vector, float *angular_velocity, float *aiming_bounds, float angular_velocity_limit, float angular_acceleration_limit);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1b0d00",
