@@ -1190,13 +1190,6 @@
     "since": "2026-06-10"
   },
   {
-    "addr": "0x1b0630",
-    "name": "FUN_001b0630",
-    "object": "units.obj",
-    "reason": "euler aiming helper: own lift drops acos() arg (units.c:12145) + cross block needs faithful re-lift; runs original until re-lifted. Caller FUN_001b3690 matrix-build fixed separately (contiguous 13-float struct) \u2014 confirmed fixes AI biped aim-up at runtime 2026-06-20.",
-    "since": "2026-06-20"
-  },
-  {
     "addr": "0x25c10",
     "name": "FUN_00025c10",
     "object": "actor_looking.obj",
