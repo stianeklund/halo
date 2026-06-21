@@ -637,8 +637,8 @@ unsigned int FUN_00014770(int actor_handle)
   float dist_sq;
   float timer;
   short result;
-  static char large_buf[0x670];
-  static char huge_buf[0x1474c];
+  char large_buf[0x670];
+  char huge_buf[0x1474c];
   int local_14;
   int local_50[15]; /* FUN_00027090 -> FUN_00025c10 memcpy's 0xf*4 = 60 bytes
                        (0x3c) here; FUN_000272d0 reads it. Was [12] (48 bytes)
@@ -897,9 +897,9 @@ void FUN_00014c10(int actor_handle, void *state_data, int param_3)
   char local_byte;
   int target_pos;
   unsigned char valid;
-  static char path_buf[0x98];
-  static char path_state_buf[0x146fc];
-  static char huge_buf[0x1408c];
+  char path_buf[0x98];
+  char path_state_buf[0x146fc];
+  char huge_buf[0x1408c];
   char query_buf[0x670];
   short group_type;
 
@@ -2191,13 +2191,11 @@ unsigned int FUN_000163d0(int actor_handle)
 {
   char *actor;
   char *tag;
-#if defined(_MSC_VER) && !defined(__clang__)
+  /* Stack (per original/MSVC): the `static` clang workaround for the broken
+     _chkstk (bare-ret) is obsolete now that _chkstk reserves the frame, and
+     `static` shared these buffers across actors -> re-entrancy aliasing. */
   char large_buf[0x670];
   char huge_buf[0x1474c];
-#else
-  static char large_buf[0x670];
-  static char huge_buf[0x1474c];
-#endif
   short result;
   int seed_ret;
   float timer;
@@ -5183,8 +5181,8 @@ int FUN_0001a100(int actor_handle, short param_2, char *state_data)
 char FUN_0001a200(int actor_handle)
 {
   char *actor;
-  static char state_buf[0x670];
-  static char big_buf[0x14840];
+  char state_buf[0x670];
+  char big_buf[0x14840];
   char local_48[0x44];
   int local_4;
   int local_8;

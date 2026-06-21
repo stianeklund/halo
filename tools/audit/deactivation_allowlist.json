@@ -1190,13 +1190,6 @@
     "since": "2026-06-10"
   },
   {
-    "addr": "0x25c10",
-    "name": "FUN_00025c10",
-    "object": "actor_looking.obj",
-    "reason": "actor firing-position evaluator: OUR lift produces a self-referential garbage tag_block pointer (encounter_atoms slot -> code addr 0x64f348) -> access violation in tag_block_get_element -> PoA campaign freeze (2nd crash after path_input_new overflow fix e08861fe). Not a simple buffer overflow (clean neighbor slots); subtle clang codegen/state bug resisting static analysis. Runs original until a focused re-lift. Confirmed crash site via xemu KTHREAD stack forensics 2026-06-20.",
-    "since": "2026-06-20"
-  },
-  {
     "addr": "0x12f990",
     "name": "FUN_0012f990",
     "object": "network_server_manager.obj",
