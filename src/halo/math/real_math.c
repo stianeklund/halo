@@ -3252,3 +3252,82 @@ unsigned int FUN_00113080(int param_1)
   }
   return 0;
 }
+
+/* 0x112db0 — zlib gzwrite: deflate up to len bytes from buf through the gz_stream
+ * s (write mode only). Drains the deflate output via fread-fill of the input
+ * buffer, updates the running crc32, and returns the number of bytes consumed
+ * (len - remaining avail_in). s modelled as unsigned int* (dword fields). */
+int FUN_00112db0(void *param_1, int param_2, int param_3)
+{
+  unsigned int *s;
+  unsigned int r;
+  int n;
+
+  s = (unsigned int *)param_1;
+  if (s == 0 || *(char *)(s + 0x17) != 'w') {
+    return -2;
+  }
+  s[0] = (unsigned int)param_2;   /* stream.next_in  = buf */
+  s[1] = (unsigned int)param_3;   /* stream.avail_in = len */
+  n = param_3;
+  do {
+    if (n == 0) {
+      s[0x13] = FUN_00110c10(s[0x13], (void *)param_2, param_3);  /* crc32 */
+      return param_3 - (int)s[1];
+    }
+    if (s[4] == 0) {
+      s[3] = s[0x12];
+      r = FUN_001db2b3((void *)s[0x12], 1, 0x4000, (void *)s[0x10]);  /* fread */
+      if (r != 0x4000) {
+        s[0xe] = 0xffffffff;
+        s[0x13] = FUN_00110c10(s[0x13], (void *)param_2, param_3);  /* crc32 */
+        return param_3 - (int)s[1];
+      }
+      s[4] = 0x4000;
+    }
+    n = FUN_00110ed0(s, 0);   /* deflate */
+    s[0xe] = (unsigned int)n;
+    if (n != 0) {
+      s[0x13] = FUN_00110c10(s[0x13], (void *)param_2, param_3);  /* crc32 */
+      return param_3 - (int)s[1];
+    }
+    n = (int)s[1];
+  } while (1);
+}
+
+/* 0x113930 — zlib inflate_blocks_reset: reset the inflate_blocks_state param_1
+ * for a fresh block stream. Optionally writes the pending byte count to the OUT
+ * param param_3, releases the current decoder mode (codes/codes-with-tree), then
+ * clears window pointers, mode/bytes counters, and re-seeds the running check
+ * value via the stream's check function (z_stream at param_2). */
+void FUN_00113930(int s, int param_2, int last)
+{
+  int *param_1 = (int *)s;
+  int *param_3 = (int *)last;
+  int iVar1;
+
+  if (param_3 != 0) {
+    *param_3 = param_1[0xf];
+  }
+  if (param_1[0] == 4 || param_1[0] == 5) {
+    (*(void (**)(int, int))(param_2 + 0x24))(*(int *)(param_2 + 0x28), param_1[3]);
+  }
+  if (param_1[0] == 6) {
+    FUN_00114f60(param_1[1], param_2);
+  }
+  param_1[0xd] = param_1[10];
+  param_1[0xc] = param_1[10];
+  param_1[0] = 0;
+  param_1[7] = 0;
+  param_1[8] = 0;
+  if (param_1[0xe] != 0) {
+    iVar1 = ((int (*)(int, int, int))param_1[0xe])(0, 0, 0);
+    param_1[0xf] = iVar1;
+    *(int *)(param_2 + 0x30) = iVar1;
+  }
+  if (*(int *)0x320e30 > 0) {
+    crt_fprintf(*(void **)0x331070, "inflate:   blocks reset\n");
+  }
+  return;
+}
+
