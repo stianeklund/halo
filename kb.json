@@ -21918,7 +21918,8 @@
         },
         {
           "addr": "0x18d2c0",
-          "decl": "void FUN_0018d2c0(void);"
+          "decl": "void FUN_0018d2c0(uint32_t *param_1, int16_t param_2, uint32_t param_3, int param_4, uint32_t param_5);",
+          "ported": true
         },
         {
           "addr": "0x18d360",
@@ -21991,7 +21992,8 @@
         },
         {
           "addr": "0x18e800",
-          "decl": "void scenario_ensure_point_within_world(void);"
+          "decl": "bool scenario_ensure_point_within_world(int cluster_index, int16_t cluster_index1);",
+          "ported": true
         },
         {
           "addr": "0x18e8a0",
@@ -22018,11 +22020,12 @@
         },
         {
           "addr": "0x18ed90",
-          "decl": "void FUN_0018ed90(void);"
+          "decl": "char FUN_0018ed90(short cluster_index, float *point);"
         },
         {
           "addr": "0x18ef00",
-          "decl": "void FUN_0018ef00(void);"
+          "decl": "char FUN_0018ef00(int cluster_index, int object_handle);",
+          "ported": true
         },
         {
           "addr": "0x18ef30",
