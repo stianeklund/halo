@@ -20512,11 +20512,13 @@
         },
         {
           "addr": "0x110c10",
-          "decl": "unsigned int FUN_00110c10(unsigned int crc, void *buf, int len);"
+          "decl": "unsigned int FUN_00110c10(unsigned int crc, void *buf, int len);",
+          "ported": false
         },
         {
           "addr": "0x110d40",
-          "decl": "void FUN_00110d40(void);"
+          "decl": "int FUN_00110d40(int param_1, int param_2, unsigned int param_3);",
+          "ported": false
         },
         {
           "addr": "0x110e40",
@@ -20532,7 +20534,8 @@
         },
         {
           "addr": "0x111170",
-          "decl": "void FUN_00111170(void);"
+          "decl": "int FUN_00111170(int param_1);",
+          "ported": false
         },
         {
           "addr": "0x111220",
@@ -20677,7 +20680,8 @@
         },
         {
           "addr": "0x113710",
-          "decl": "void FUN_00113710(void);"
+          "decl": "unsigned int FUN_00113710(int *file);",
+          "ported": true
         },
         {
           "addr": "0x113740",
