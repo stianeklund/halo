@@ -21880,19 +21880,21 @@
         },
         {
           "addr": "0x18c100",
-          "decl": "void FUN_0018c100(void);"
+          "decl": "void FUN_0018c100(void *buf@<edi>);"
         },
         {
           "addr": "0x18c370",
-          "decl": "void scenario_get_sky(void);"
+          "decl": "void scenario_get_sky(void *buf@<eax>);"
         },
         {
           "addr": "0x18c3a0",
-          "decl": "void scenario_test_pvs(void);"
+          "decl": "void scenario_test_pvs(void);",
+          "ported": false
         },
         {
           "addr": "0x18c460",
-          "decl": "void scenario_test_pas(void);"
+          "decl": "void scenario_test_pas(void);",
+          "ported": true
         },
         {
           "addr": "0x18c4d0",
@@ -21969,7 +21971,8 @@
         },
         {
           "addr": "0x18e1d0",
-          "decl": "void scenario_debug_to_file(void);"
+          "decl": "int scenario_debug_to_file(int param_1, char *param_2, unsigned int param_3);",
+          "ported": false
         },
         {
           "addr": "0x18e3b0",

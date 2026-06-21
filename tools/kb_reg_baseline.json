@@ -301,6 +301,7 @@
     "0x10a830": "void FUN_0010a830(float *buf@<ebx>);",
     "0x10a930": "void FUN_0010a930(int16_t type_index@<bx>, void *buffer);",
     "0x10b300": "float *random_direction_table_get_element(int16_t index@<si>, float *result@<ebx>);",
+    "0x113230": "void * FUN_00113230(char *path, int fd, char *mode@<eax>);",
     "0x115ba0": "int FUN_00115ba0(unsigned int *bb@<eax>, int *param_1, unsigned int param_2, unsigned int param_3, int param_4, int param_5, int *param_6, int param_7, unsigned int *param_8, unsigned int *param_9);",
     "0x116390": "void FUN_00116390(int value @<eax>, int length @<ebx>, int state @<esi>);",
     "0x116460": "void FUN_00116460(int state @<edx>);",
@@ -434,6 +435,8 @@
     "0x18b610": "void FUN_0018b610(float *param_1 @<ecx>, float *param_2 @<edx>, float param_3);",
     "0x18b6b0": "void FUN_0018b6b0(float *param_1 @<ecx>, float *param_2 @<edx>, float param_3);",
     "0x18b780": "void FUN_0018b780(float *param_1 @<ecx>, float *param_2 @<edx>, float param_3);",
+    "0x18c100": "void FUN_0018c100(void *buf@<edi>);",
+    "0x18c370": "void scenario_get_sky(void *buf@<eax>);",
     "0x193a80": "int FUN_00193a80(int param_1 /* @<ecx> */, short *param_2, int in_EAX /* @<eax> */);",
     "0x193b00": "int FUN_00193b00(int param_1 /* @<ecx> */, short *param_2, int in_EAX /* @<eax> */);",
     "0x19a450": "void file_error(file_ref_t *info@<eax>, const char *function_name);",
@@ -543,7 +546,6 @@
     "0x1d8750": "unsigned int FUN_001d8750(unsigned int val@<ecx>);",
     "0x1e9350": "void D3DDevice_SetRenderState_Simple(uint32_t reg@<ecx>, uint32_t value@<edx>);",
     "0x1e9380": "void D3DDevice_SetRenderState_Deferred(uint32_t reg_index@<ecx>, uint32_t value@<edx>);",
-    "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);",
-    "0x113230": "void * FUN_00113230(char *path, int fd, char *mode@<eax>);"
+    "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);"
   }
 }
