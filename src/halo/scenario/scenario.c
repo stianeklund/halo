@@ -859,3 +859,51 @@ void FUN_0018fef0(void)
 {
   *(char *)0x5057c0 = 0;
 }
+
+/* 0x18d0b0 — per-frame coverage/big-sprite stats reset (kb name is a
+ * misnomer). If the debug flag at 0x5064e8 is set, format the accumulated
+ * coverage (float @0x506504) and big-sprite count (short @0x506508) into a
+ * line and emit it via FUN_00189c40(0, ...). Then zero both accumulators and
+ * run two matrix_transform_vector passes over the 0x5065b4 matrix using the
+ * pointers at *0x31fc44 / *0x31fc40 into the 0x506510 / 0x50651c buffers.
+ * cdecl, void(void). */
+void scenario_fog_region_get_fog_index(void)
+{
+  char line[512];
+
+  if (*(char *)0x5064e8 != 0) {
+    crt_sprintf(line, "   coverage: %.1f big sprites: %d",
+                (double)*(float *)0x506504,
+                (int)*(short *)0x506508);
+    FUN_00189c40(0, line);
+  }
+  *(float *)0x506504 = 0.0f;
+  *(short *)0x506508 = 0;
+  matrix_transform_vector((float *)0x5065b4, *(float **)0x31fc44,
+                          (float *)0x506510);
+  matrix_transform_vector((float *)0x5065b4, *(float **)0x31fc40,
+                          (float *)0x50651c);
+}
+
+/* 0x18ed20 — find a scenario structure-BSP reference index by tag name.
+ * Resolves param_2 (a tag index) to its name via tag_get_name, then linearly
+ * scans the structure_bsp block (scenario_tag+0x5a4, 0x20-byte elements),
+ * csstrcmp'ing each element's tag-name pointer (+0x14) against it. Returns the
+ * 0-based index of the first match, or -1 if none. Count is re-read from
+ * [param_1+0x5a4] each iteration, matching the original. cdecl; returns short
+ * (only AX is written on the match path). */
+short FUN_0018ed20(int param_1, int param_2)
+{
+  const char *target_name;
+  char *element;
+  short i;
+
+  target_name = tag_get_name(param_2);
+  for (i = 0; i < *(int *)(param_1 + 0x5a4); i++) {
+    element = (char *)tag_block_get_element((void *)(param_1 + 0x5a4), i, 0x20);
+    if (csstrcmp(target_name, *(const char **)(element + 0x14)) == 0) {
+      return i;
+    }
+  }
+  return -1;
+}
