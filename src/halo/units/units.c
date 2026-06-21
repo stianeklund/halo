@@ -12017,7 +12017,11 @@ void FUN_001b0630(int transform_matrix, float *aiming_vector,
       }
     } else {
       desired_angles[0] = desired_angles[0] + 6.2831853f;
-      if (desired_angles[0] <= aiming_bounds[1]) {
+      /* assert(yaw <= x1): fires when the +2pi wrap OVERSHOOT past x1, i.e.
+         desired > x1 (symmetric with the -2pi path's `< x0` check). The Ghidra
+         decompile inverted this branch (`<=`), which passes VC71 but trips a
+         spurious halt at runtime on the common in-bounds case. */
+      if (desired_angles[0] > aiming_bounds[1]) {
         display_assert(
             "desired_aiming_angles.yaw <= aiming_bounds->x1",
             "c:\\halo\\SOURCE\\units\\units.c", 0x981, 1);
@@ -12114,7 +12118,11 @@ done_clamp:
         }
       } else {
         end_angles[0] = end_angles[0] + 6.2831853f;
-        if (end_angles[0] <= aiming_bounds[1]) {
+        /* assert(yaw <= x1): fires on +2pi wrap OVERSHOOT (end > x1), symmetric
+           with the -2pi path's `< x0` check. Ghidra inverted this branch (`<=`)
+           -> spurious EXCEPTION halt at units.c:0xaa5 at runtime (caught when
+           0x1b0630 was reactivated on a10). */
+        if (end_angles[0] > aiming_bounds[1]) {
           display_assert(
               "end_aiming_angles.yaw <= aiming_bounds->x1",
               "c:\\halo\\SOURCE\\units\\units.c", 0xaa5, 1);
