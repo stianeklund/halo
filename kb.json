@@ -20441,7 +20441,7 @@
         {
           "addr": "0x10fd90",
           "decl": "unsigned char *quantize_real_to_byte_rectangle3d(float *bounds, int *rect, unsigned char *out);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x10fe80",
