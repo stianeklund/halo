@@ -343,7 +343,7 @@ void FUN_00109500(float *out, float *qsp)
  * Confirmed: reads 9 floats from fixed offsets, writes to three
  * separate output vectors. No scale component is returned.
  */
-void matrix4x3_decompose(float *matrix, float *out_pos, float *out_forward,
+__declspec(noinline) void matrix4x3_decompose(float *matrix, float *out_pos, float *out_forward,
                          float *out_up)
 {
   out_forward[0] = *(float *)((char *)matrix + 0x04);
@@ -858,6 +858,44 @@ void FUN_00109e90(float *out, float yaw, float pitch, float roll)
   out[7] = -sp;
   out[8] = -(cp_f * sr);
   out[9] = cp_f * cr;
+}
+
+/* 0x109f40 — Extract yaw/pitch/roll euler angles from a 4x3 matrix's
+ * rotation part (the inverse of FUN_00109e90).
+ *
+ * Matrix rows (row-major, +0x04..+0x24): row0 (forward) m[1..3],
+ * row1 m[4..6], row2 (up) m[7..9]. Output euler[0]=yaw, [1]=pitch,
+ * [2]=roll.
+ *
+ * pitch = -asin(m[7])  (m[7] = -sin(pitch) in the forward transform).
+ * When cos(pitch) exceeds a small epsilon the normal branch recovers
+ * yaw and roll via atan2 of the off-axis rotation terms divided by
+ * cos(pitch); otherwise (gimbal lock) roll is forced to 0 and yaw is
+ * recovered from a degenerate pair. The +/-1.0 scale constants and the
+ * 1/cos divisions are kept explicit to preserve the original codegen. */
+void FUN_00109f40(float *matrix, float *euler)
+{
+  float pitch;
+  float cos_pitch;
+  float inv_neg; /* -1.0 / cos_pitch  (FLD [0x255e94] / cos) */
+  float inv_pos; /*  1.0 / cos_pitch  (FLD [0x2533c8] / cos) */
+
+  pitch = -(float)asin((double)matrix[7]);
+  euler[1] = pitch;
+  cos_pitch = x87_fcos(pitch);
+
+  if ((double)*(float *)0x28c728 < (double)cos_pitch) {
+    inv_neg = *(float *)0x255e94 / cos_pitch;
+    inv_pos = *(float *)0x2533c8 / cos_pitch;
+    euler[2] = (float)atan2((double)(inv_neg * matrix[8]),
+                            (double)(inv_pos * matrix[9]));
+    euler[0] = (float)atan2((double)(inv_neg * matrix[4]),
+                            (double)(inv_pos * matrix[1]));
+    return;
+  }
+
+  euler[2] = 0.0f;
+  euler[0] = (float)atan2((double)matrix[2], (double)matrix[5]);
 }
 
 /* Convert a 4x3 matrix rotation part to a unit quaternion (Shepperd's method).
@@ -3601,3 +3639,121 @@ int FUN_00110d40(int param_1, int param_2, unsigned int param_3)
 }
 
 
+
+/* 0x10a710 — transition_function_evaluate: evaluate one of the built-in
+ * transition curves (function_type 0..5) at parameter t in [0,1].
+ *
+ * t is first clamped to [0,1]. function_type 0 is the identity (returns
+ * the clamped t directly). Otherwise the curve is sampled from a runtime
+ * byte table (TRANSITION_FUNCTION_TABLES at 0x46e3a0, indexed by type),
+ * each entry a byte[1024] of values normalised by 1/255. The clamped t is
+ * scaled by 1023.0, the integer sample index is the FISTP round-to-nearest
+ * of (scaled - 0.5) == floor(scaled), and the fractional weight is
+ * fmod(scaled, 1.0). The result is a linear interpolation between
+ * table[idx] and table[idx+1]. When idx hits the last slot (0x3ff) the
+ * top sample is returned directly. If the tables are not yet initialised
+ * (flag at 0x46e39c == 0) it returns 0.0. */
+float transition_function_evaluate(short function_type, float t)
+{
+  unsigned char *table;
+  float scaled;
+  float weight;
+  int idx;
+
+  if (t < *(float *)0x2533c0) {
+    t = 0.0f;
+  } else if (*(float *)0x2533c8 < t) {
+    t = 1.0f;
+  }
+
+  if (function_type == 0) {
+    return t;
+  }
+
+  if (function_type < 0 || function_type > 5) {
+    display_assert(
+        "function_type>=0 && function_type<NUMBER_OF_TRANSITION_FUNCTIONS",
+        "c:\\halo\\SOURCE\\math\\periodic_functions.c", 0xd8, 1);
+    system_exit(-1);
+  }
+
+  if (*(char *)0x46e39c == '\0') {
+    return *(float *)0x2533c0;
+  }
+
+  table = ((unsigned char **)0x46e3a0)[function_type];
+  scaled = t * *(float *)0x28c87c;
+  weight = x87_fmod(scaled, *(double *)0x2573d8);
+  idx = x87_round_to_int(scaled - *(float *)0x253398);
+
+  if ((short)idx == 0x3ff) {
+    return (float)table[0x3ff] * *(float *)0x261518;
+  }
+
+  return (float)table[idx] * *(float *)0x261518 * (*(float *)0x2533c8 - weight) +
+         (float)table[idx + 1] * *(float *)0x261518 * weight;
+}
+
+/* 0x10a5e0 — evaluate one of the built-in periodic functions
+ * (function_type 0..11) at the given input.
+ *
+ * function_type 0 returns 1.0 unconditionally. Otherwise the curve is
+ * sampled from a runtime byte table (PERIODIC_FUNCTION_TABLES at 0x46e3b8,
+ * indexed by type), each a byte[1024] normalised by 1/255. The input is
+ * scaled by 25.6 (0x28c838); the fractional weight is fmod(scaled, 1.0)
+ * and the integer index is FISTP(scaled - weight), masked to [0,0x3ff].
+ * Both the index and index+1 wrap modulo 1024. The result is the linear
+ * interpolation table[idx]*(1-weight) + table[idx+1]*weight.
+ *
+ * For function_types 6 and 7 (bit mask 0xc0) a discontinuity fix-up is
+ * applied: when the first sample is above 0.75 and the next is below 0.25
+ * (a wrap from ~1 down through 0) the next sample is bumped by +1.0 before
+ * interpolating, and any result exceeding 1.0 is brought back by -1.0 so
+ * the output stays in [0,1). If the tables are not yet initialised
+ * (flag at 0x46e39c == 0) it returns 0.0. */
+float FUN_0010a5e0(int16_t function_type, float input)
+{
+  unsigned char *table;
+  float scaled;
+  float weight;
+  unsigned int idx;
+  float v0;
+  float v1;
+  float result;
+
+  if (function_type == 0) {
+    return *(float *)0x2533c8;
+  }
+
+  if (function_type < 0 || function_type > 0xb) {
+    display_assert(
+        "function_type>=0 && function_type<NUMBER_OF_PERIODIC_FUNCTIONS",
+        "c:\\halo\\SOURCE\\math\\periodic_functions.c", 0x9d, 1);
+    system_exit(-1);
+  }
+
+  if (*(char *)0x46e39c == '\0') {
+    return *(float *)0x2533c0;
+  }
+
+  scaled = input * *(float *)0x28c838;
+  weight = x87_fmod(scaled, *(double *)0x2573d8);
+  idx = (unsigned int)x87_round_to_int(scaled - weight) & 0x3ff;
+
+  table = ((unsigned char **)0x46e3b8)[function_type];
+  v0 = (float)table[idx] * *(float *)0x261518;
+  v1 = (float)table[(idx + 1) & 0x3ff] * *(float *)0x261518;
+
+  if ((1 << function_type & 0xc0) == 0) {
+    return (*(float *)0x2533c8 - weight) * v0 + v1 * weight;
+  }
+
+  if (*(float *)0x25afcc < v0 && v1 < *(float *)0x25337c) {
+    v1 = v1 + *(float *)0x2533c8;
+  }
+  result = (*(float *)0x2533c8 - weight) * v0 + v1 * weight;
+  if (*(float *)0x2533c8 < result) {
+    return result - *(float *)0x2533c8;
+  }
+  return result;
+}

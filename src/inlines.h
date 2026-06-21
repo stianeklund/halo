@@ -38,6 +38,7 @@
 
 #ifdef _XBOX_PROVIDE_DECLS
 double atan2(double y, double x);
+double asin(double x);
 double pow(double base, double exponent);
 void *memcpy(void *s1, const void *s2, size_t n);
 size_t strlen(const char *s);
@@ -170,6 +171,19 @@ static float __attribute__((noinline, unused)) xbox_acosf(float x)
   return (float)xbox_atan2((double)s, (double)x);
 }
 
+/* asin via the same _CIasin-style identity the original MSVC CRT uses
+ * (0x1da0e9): asin(x) = atan2(x, sqrt((1-x)(1+x))). Endpoint guards return
+ * +/-pi/2 for |x| >= 1, matching the CRT's saturating behaviour. noinline to
+ * present a clean FPU stack at the cdecl boundary, mirroring xbox_acosf. */
+static double __attribute__((noinline, unused)) xbox_asin(double x)
+{
+  double s;
+  if (x >= 1.0) return 1.57079632679489661923;
+  if (x <= -1.0) return -1.57079632679489661923;
+  s = (double)xbox_sqrtf((float)((1.0 - x) * (1.0 + x)));
+  return xbox_atan2(x, s);
+}
+
 static inline double xbox_fmod(double a, double b)
 {
   double result;
@@ -259,6 +273,7 @@ static inline size_t xbox_strlen(const char *s)
   #define sqrtf   xbox_sqrtf
   #define fabsf   xbox_fabsf
   #define acosf   xbox_acosf
+  #define asin    xbox_asin
   #define fmod    xbox_fmod
   #define atan2   xbox_atan2
   #define log10   xbox_log10
