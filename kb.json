@@ -14659,7 +14659,7 @@
         {
           "addr": "0x853a0",
           "decl": "int FUN_000853a0(void);",
-          "ported": false,
+          "ported": true,
           "source_path": "objects/objects.c"
         },
         {
@@ -14785,7 +14785,7 @@
         {
           "name": "FUN_00135f20",
           "addr": "0x135f20",
-          "decl": "int FUN_00135f20(int param_1);",
+          "decl": "short FUN_00135f20(int group_tag);",
           "ported": false
         },
         {
@@ -14832,7 +14832,7 @@
         },
         {
           "addr": "0x1366b0",
-          "decl": "float FUN_001366b0(int param_1, char param_2);",
+          "decl": "float FUN_001366b0(int object_handle, char use_raw_max);",
           "ported": false,
           "source_path": "objects/objects.c"
         },
@@ -15036,7 +15036,7 @@
           "ported": true
         },
         {
-          "decl": "int FUN_0013c490(int param_1);",
+          "decl": "int FUN_0013c490(int object_handle);",
           "addr": "0x13c490",
           "ported": false
         },
@@ -15107,8 +15107,8 @@
         },
         {
           "addr": "0x13c9e0",
-          "decl": "unsigned int FUN_0013c9e0(int param_1);",
-          "ported": false,
+          "decl": "unsigned short FUN_0013c9e0(int tag_index);",
+          "ported": true,
           "source_path": "objects/objects.c"
         },
         {
@@ -15288,7 +15288,7 @@
         {
           "addr": "0x13dfc0",
           "decl": "void *object_header_block_reference_get(int object_handle, void *reference);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13e050",
@@ -15521,7 +15521,7 @@
         {
           "addr": "0x140130",
           "decl": "void object_get_location(int object_handle, void *location_out);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x140160",
