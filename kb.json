@@ -14822,7 +14822,7 @@
           "name": "FUN_001363d0",
           "addr": "0x1363d0",
           "decl": "int FUN_001363d0(int param_1);",
-          "ported": false
+          "ported": true
         },
         {
           "name": "FUN_001365d0",
