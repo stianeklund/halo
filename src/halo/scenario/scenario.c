@@ -1268,3 +1268,294 @@ int scenario_debug_to_file(int param_1, char *param_2, unsigned int param_3)
   return 1;
 }
 
+/* 0x18bf80 — resolve/allocate the cached object render-state datum index for
+ * an object. The object stores its render-state index at object_data+0x120.
+ *   1. If that index is valid (!= -1) and the pooled datum at that index still
+ *      references this object (datum+0x4 == object_handle) and the object's
+ *      stored index is still valid, refresh that render-state (FUN_0018bc60,
+ *      force_rebuild=0) and return the existing index.
+ *   2. Otherwise allocate a new datum slot (data_new_at_index). If the pool is
+ *      full (-1), evict the entry with the greatest "age" score: for each active
+ *      datum, age = (float)(DAT_00506544 - datum+0xc); a negative age is clamped
+ *      to 1000.0f (0x254cb8). The slot with the maximum age wins; start the
+ *      search at -FLT_MAX (0xff7fffff). If nothing is found, return -1.
+ *   3. Build the chosen render-state (FUN_0018bc60, force_rebuild=1) and store
+ *      the index at object_data+0x120.
+ * cdecl: object_handle [EBP+8], lod [EBP+0xc] (float, forwarded bitwise to
+ * FUN_0018bc60). Pool is *(data_t**)0x50652c (cached object render states).
+ * Confirmed: 0x2533c0 = 0.0f, 0x254cb8 = 1000.0f, -FLT_MAX init = 0xff7fffff. */
+int FUN_0018bf80(int object_handle, float lod)
+{
+  char *obj;
+  int existing_index;
+  char *datum;
+  int new_index;
+  int iter_index;
+  float best_age;
+  float age;
+
+  obj = (char *)object_get_and_verify_type(object_handle, 0xffffffff);
+  existing_index = *(int *)(obj + 0x120);
+  if (existing_index != -1) {
+    datum = (char *)datum_get(*(data_t **)0x50652c, existing_index);
+    if (*(int *)(datum + 4) == object_handle) {
+      existing_index = *(int *)(obj + 0x120);
+      if (existing_index != -1) {
+        FUN_0018bc60(object_handle, lod, 0);
+        return existing_index;
+      }
+    }
+  }
+
+  new_index = data_new_at_index(*(data_t **)0x50652c);
+  if (new_index == -1) {
+    best_age = -3.4028235e+38f;
+    for (iter_index = data_next_index(*(data_t **)0x50652c, 0xffffffff);
+         iter_index != -1;
+         iter_index = data_next_index(*(data_t **)0x50652c, iter_index)) {
+      datum = (char *)datum_get(*(data_t **)0x50652c, iter_index);
+      age = (float)(*(int *)0x506544 - *(int *)(datum + 0xc));
+      if (age < *(float *)0x2533c0) {
+        age = *(float *)0x254cb8;
+      }
+      if (best_age < age) {
+        new_index = iter_index;
+        best_age = age;
+      }
+    }
+    if (new_index == -1) {
+      return -1;
+    }
+  }
+
+  FUN_0018bc60(object_handle, lod, 1);
+  *(int *)(obj + 0x120) = new_index;
+  return new_index;
+}
+
+/* 0x18ed90 — test whether a world-space point lies inside a scenario cluster's
+ * shape volume. The cluster element (0x60 bytes) comes from the global scenario
+ * tag's cluster block (global_scenario + 0x360, element size 0x60), indexed by
+ * cluster_index. The shape type is the int16 at offset +0:
+ *   - type 0 (axis-aligned box): the point is inside iff each component lies
+ *     strictly within the half-open bounds box[+0x48..+0x4c] (x),
+ *     box[+0x50..+0x54] (y), box[+0x58..+0x5c] (z); the low bound uses '<='
+ *     (must be strictly greater) and the high bound uses '>=' (must be strictly
+ *     less). Any out-of-range component returns 0.
+ *   - type 1 (oriented box): build a 4x3 transform from the box basis
+ *     (position box+0x48, forward box+0x30, up box+0x3c), transform the point
+ *     into box-local space, then require each local component to be in
+ *     (0, box+0x54), (0, box+0x58), (0, box+0x5c) respectively.
+ * Any other type asserts. Returns 1 if inside, 0 otherwise.
+ * cdecl: cluster_index [EBP+8] (int16, MOVSX), point [EBP+0xc] (float*). */
+char FUN_0018ed90(short cluster_index, float *point)
+{
+  char *box;
+  float local[16];
+  float transformed[3];
+  float z;
+
+  if (*(int *)0x5064e4 == 0) {
+    display_assert("global_scenario",
+                   "c:\\halo\\SOURCE\\scenario\\scenario.c", 0xb7, 1);
+    system_exit(-1);
+  }
+
+  box = (char *)tag_block_get_element(
+    (void *)(*(int *)0x5064e4 + 0x360), (int)cluster_index, 0x60);
+
+  switch (*(int16_t *)box) {
+  case 0:
+    if (point[0] <= *(float *)(box + 0x48)) {
+      return 0;
+    }
+    if (point[1] <= *(float *)(box + 0x50)) {
+      return 0;
+    }
+    if (point[2] <= *(float *)(box + 0x58)) {
+      return 0;
+    }
+    if (!(point[0] < *(float *)(box + 0x4c))) {
+      return 0;
+    }
+    if (!(point[1] < *(float *)(box + 0x54))) {
+      return 0;
+    }
+    z = point[2];
+    break;
+  case 1:
+    matrix4x3_from_forward_up_position(
+      local, (float *)(box + 0x48), (float *)(box + 0x30),
+      (float *)(box + 0x3c));
+    real_matrix3x3_transform_point(local, point, transformed);
+    if (transformed[0] <= *(float *)0x2533c0) {
+      return 0;
+    }
+    if (transformed[1] <= *(float *)0x2533c0) {
+      return 0;
+    }
+    if (transformed[2] <= *(float *)0x2533c0) {
+      return 0;
+    }
+    if (!(transformed[0] < *(float *)(box + 0x54))) {
+      return 0;
+    }
+    if (!(transformed[1] < *(float *)(box + 0x58))) {
+      return 0;
+    }
+    z = transformed[2];
+    break;
+  default:
+    display_assert(0, "c:\\halo\\SOURCE\\scenario\\scenario.c", 0x331, 1);
+    system_exit(-1);
+    z = 0.0f;
+    break;
+  }
+
+  if (!(z < *(float *)(box + 0x5c))) {
+    return 0;
+  }
+  return 1;
+}
+
+/* 0x18b010 — predicate: should the given object be treated as the local
+ * player's first-person view subject? Resolves the local player's player
+ * index (local_player_get_player_index of the local-player index global at
+ * 0x506548). If valid, fetches that player's controlled unit handle from the
+ * players data pool (*(int*)0x5aa6d4) at player_data+0x34. The object qualifies
+ * (returns 1) when it is that unit AND the director perspective for the local
+ * player (director_get_perspective) is 0 (first-person). Otherwise it falls
+ * back to FUN_00085150(object_handle) (observer/cinematic check) and returns 1
+ * if that is set, else 0.
+ * ABI: object_handle in ESI (@<esi>), frameless. Returns int bool. Sole caller
+ * FUN_0018c100 sets ESI = *buf (the object handle). */
+int FUN_0018b010(int object_handle)
+{
+  int unit_handle;
+
+  if (local_player_get_player_index(*(int16_t *)0x506548) == -1) {
+    unit_handle = -1;
+  } else {
+    unit_handle = *(int *)((int)datum_get(
+      *(data_t **)0x5aa6d4,
+      local_player_get_player_index(*(int16_t *)0x506548)) + 0x34);
+  }
+
+  if (unit_handle == object_handle &&
+      director_get_perspective(*(int16_t *)0x506548) == 0) {
+    return 1;
+  }
+
+  if (FUN_00085150(object_handle)) {
+    return 1;
+  }
+  return 0;
+}
+
+/* 0x18e9b0 — test whether a BSP location's cluster is in the combined
+ * potentially-visible set for all players. Asserts the location's cluster_index
+ * (location+4, int16) is in [0, global_structure_bsp->clusters.count). Then
+ * fetches the combined PVS bit vector (players_get_combined_pvs) and returns
+ * the cluster's bit. This is the all-players variant of
+ * scenario_location_potentially_visible_local (which uses the local-player PVS);
+ * its assert line is 0x1ef vs 0x1e7. cdecl: location [EBP+8]. Returns bool. */
+bool scenario_location_potentially_visible(void *location)
+{
+  int16_t cluster_index;
+  void *pvs;
+
+  if (*(int16_t *)((char *)location + 4) >= 0) {
+    if (!global_structure_bsp) {
+      display_assert("global_structure_bsp",
+                     "c:\\halo\\SOURCE\\scenario\\scenario.c", 0xc5, 1);
+      system_exit(-1);
+    }
+    if ((int)*(int16_t *)((char *)location + 4) <
+        *(int *)((char *)global_structure_bsp + 0x134))
+      goto valid;
+  }
+  display_assert(
+    "location->cluster_index>=0 && "
+    "location->cluster_index<global_structure_bsp_get()->clusters.count",
+    "c:\\halo\\SOURCE\\scenario\\scenario.c", 0x1ef, 1);
+  system_exit(-1);
+
+valid:
+  cluster_index = *(int16_t *)((char *)location + 4);
+  pvs = players_get_combined_pvs();
+  return (*(uint32_t *)((char *)pvs + ((int)cluster_index >> 5) * 4) &
+          (1u << (cluster_index & 0x1f))) != 0;
+}
+
+/* 0x18e5c0 — does the BSP location's cluster have a "stop" background-sound
+ * (sound environment) flag set? Looks up the cluster element
+ * (global_structure_bsp + 0x134, element size 0x68) by location->cluster_index
+ * (location+4), reads the cluster's background-sound reference (cluster+4,
+ * int16). If valid (!= -1) and in range of the BSP background-sound block
+ * (bsp + 0x1fc, element size 0x74), reads that block element's sound tag index
+ * (+0x2c); if valid, resolves the 'lsnd' tag (tag_get 0x6c736e64) and returns
+ * its first byte's bit 0. Returns 0 on any missing reference.
+ * cdecl: location [EBP+8]. Returns char (bool). */
+char FUN_0018e5c0(int location)
+{
+  char *cluster;
+  char *sound_element;
+  int tag_index;
+  char result;
+
+  if (!global_structure_bsp) {
+    display_assert("global_structure_bsp",
+                   "c:\\halo\\SOURCE\\scenario\\scenario.c", 0xc5, 1);
+    system_exit(-1);
+  }
+
+  cluster = (char *)tag_block_get_element(
+    (char *)global_structure_bsp + 0x134,
+    (int)*(int16_t *)(location + 4), 0x68);
+
+  result = 0;
+  if (*(int16_t *)(cluster + 4) != -1) {
+    if (!global_structure_bsp) {
+      display_assert("global_structure_bsp",
+                     "c:\\halo\\SOURCE\\scenario\\scenario.c", 0xc5, 1);
+      system_exit(-1);
+    }
+
+    if ((int)*(int16_t *)(cluster + 4) <
+        *(int *)((char *)global_structure_bsp + 0x1fc)) {
+      sound_element = (char *)tag_block_get_element(
+        (char *)global_structure_bsp + 0x1fc, (int)*(int16_t *)(cluster + 4),
+        0x74);
+      tag_index = *(int *)(sound_element + 0x2c);
+      if (tag_index != -1) {
+        return *(char *)tag_get(0x6c736e64 /* 'lsnd' */, tag_index) & 1;
+      }
+    }
+  }
+  return result;
+}
+
+/* 0x18d670 — projection-cosine helper (pure FPU leaf, no callees). For mode 0
+ * returns 1.0f. For non-zero mode, returns the magnitude of the normalized
+ * projection of v2 onto v1's direction: |dot(v1, v2) / |v1||. For mode 2 the
+ * result is complemented as (1.0f - that). Used to score how aligned two
+ * direction vectors are. NOTE: the kb name "scenario_reload_structure_bsp_if_
+ * necessary" is a mis-attribution; this is a vector-angle helper.
+ * cdecl: mode [EBP+8] (int16), v1 [EBP+0xc] (float*), v2 [EBP+0x10] (float*).
+ * Returns float. Confirmed: 0x2533c8 = 1.0f; FSQRT over v1 only; FABS; FSUBR
+ * for the mode-2 complement. */
+float FUN_0018d670(short mode, float *v1, float *v2)
+{
+  float result;
+
+  result = *(float *)0x2533c8;
+  if (mode != 0) {
+    result = fabsf((v1[0] * v2[0] + v2[1] * v1[1] + v2[2] * v1[2]) /
+                   sqrtf(v1[2] * v1[2] + v1[1] * v1[1] + v1[0] * v1[0]));
+    if (mode == 2) {
+      result = *(float *)0x2533c8 - result;
+    }
+  }
+  return result;
+}
+
