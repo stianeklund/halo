@@ -1064,7 +1064,7 @@
         },
         {
           "addr": "0x1db88b",
-          "decl": "void FUN_001db88b(void);"
+          "decl": "int FUN_001db88b(void *stream, int offset, int whence);"
         },
         {
           "addr": "0x1db8ca",
@@ -1072,7 +1072,7 @@
         },
         {
           "addr": "0x1db8d4",
-          "decl": "void FUN_001db8d4(void);"
+          "decl": "void FUN_001db8d4(void *stream);"
         },
         {
           "addr": "0x1db953",
@@ -20422,7 +20422,8 @@
         },
         {
           "addr": "0x10f9b0",
-          "decl": "void FUN_0010f9b0(void);"
+          "decl": "char FUN_0010f9b0(float *param_1, float *param_2, float max_length);",
+          "ported": true
         },
         {
           "addr": "0x10fa30",
@@ -20633,7 +20634,8 @@
         },
         {
           "addr": "0x113000",
-          "decl": "void FUN_00113000(void);"
+          "decl": "int FUN_00113000(int *param_1);",
+          "ported": true
         },
         {
           "addr": "0x113080",

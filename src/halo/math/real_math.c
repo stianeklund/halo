@@ -3383,4 +3383,53 @@ int FUN_00112e50(void *param_1, const char *param_2, ...)
   return FUN_00112db0(param_1, (int)local_buf, len);
 }
 
+/* Move point param_1 toward point param_2 by at most max_length (vector clamp).
+   Computes delta = param_2 - param_1, asks FUN_000a57b0 to clamp its length to
+   max_length; if it clamped (returns nonzero), advances param_1 by the clamped
+   delta and returns 0 (not arrived); otherwise snaps param_1 to param_2 and
+   returns 1 (arrived). */
+char FUN_0010f9b0(float *param_1, float *param_2, float max_length)
+{
+  float delta[3];
+
+  delta[0] = param_2[0] - param_1[0];
+  delta[1] = param_2[1] - param_1[1];
+  delta[2] = param_2[2] - param_1[2];
+  if (FUN_000a57b0(delta, max_length) != 0) {
+    param_1[0] = delta[0] + param_1[0];
+    param_1[1] = delta[1] + param_1[1];
+    param_1[2] = delta[2] + param_1[2];
+    return 0;
+  }
+  param_1[0] = param_2[0];
+  param_1[1] = param_2[1];
+  param_1[2] = param_2[2];
+  return 1;
+}
+
+/* zlib gzrewind: reset a gzip read-stream (param_1[0x17]/+0x5c byte == 'r') to
+   the start. Clears decode state, reinitializes crc, then either rewinds the
+   underlying FILE* (+0x40) when there is no gzip header start offset (+0x60),
+   or re-inits inflate (FUN_001153c0) and seeks to the header start. */
+int FUN_00113000(int *param_1)
+{
+  int ret;
+
+  if ((param_1 != (int *)0) && (*((char *)param_1 + 0x5c) == 'r')) {
+    param_1[0xe] = 0;
+    param_1[0xf] = 0;
+    param_1[1] = 0;
+    param_1[0] = param_1[0x11];
+    param_1[0x13] = (int)FUN_00110c10(0, (void *)0, 0);  /* crc32(0, Z_NULL, 0) */
+    if (param_1[0x18] == 0) {
+      FUN_001db8d4((void *)param_1[0x10]);  /* rewind(FILE*) */
+      return 0;
+    }
+    FUN_001153c0((int)param_1);  /* inflateReset */
+    ret = FUN_001db88b((void *)param_1[0x10], param_1[0x18], 0);  /* fseek(FILE*, off, SEEK_SET) */
+    return ret;
+  }
+  return -1;
+}
+
 
