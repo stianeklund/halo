@@ -5109,6 +5109,55 @@ void FUN_00140750(void)
 }
 
 /*
+ * FUN_00141900 (0x141900 / objects.obj) — delete every object flagged for
+ * deletion (object flags bit 0x400000).
+ *
+ * Mirrors FUN_00140750's structure: data_verify the object table, then walk all
+ * objects with an inlined iterator (type_mask = -1, flags = 0, the binary inlines
+ * object_iterator_new's five field stores).  Each object whose flags carry bit
+ * 0x400000 is removed via object_delete_internal(handle, 0).
+ *
+ * Confirmed (disasm 0x141900): data_verify(*(data_t**)0x5a8d50); iterator at
+ * EBP-0x10 with EAX=-1 written to type_mask(+0)/last_handle(+8), byte flags(+4)=0,
+ * word index(+6)=0, cookie(+0xc)=0x86868686; TEST [EAX+4],0x400000 then
+ * object_delete_internal(it.last_handle, 0) with PUSH 0 / PUSH last_handle.
+ */
+void FUN_00141900(void)
+{
+  object_iter_t it;
+  object_data_t *obj;
+
+  data_verify(*(data_t **)0x5a8d50);
+
+  it.type_mask = -1;
+  it.flags = 0;
+  it.current_index = 0;
+  it.last_handle = -1;
+  it.cookie = 0x86868686;
+
+  obj = (object_data_t *)object_iterator_next(&it);
+  while (obj != (object_data_t *)0) {
+    if ((*(unsigned int *)((char *)obj + 4) & 0x400000) != 0) {
+      object_delete_internal(it.last_handle, 0);
+    }
+    obj = (object_data_t *)object_iterator_next(&it);
+  }
+}
+
+/*
+ * FUN_00145490 (0x145490 / objects.obj) — flush deferred object work: run one
+ * garbage-collect tick, then compact the global objects memory pool (0x46f080).
+ *
+ * Confirmed (disasm 0x145490): CALL objects_garbage_collect_tick (0x144b50);
+ * MOV EAX,[0x46f080]; PUSH EAX; CALL memory_pool_compact (0x11e840); POP ECX.
+ */
+void FUN_00145490(void)
+{
+  objects_garbage_collect_tick();
+  memory_pool_compact(*(void **)0x46f080);
+}
+
+/*
  * object_visible_to_any_player — check if an object is visible to any player.
  *
  * Returns true (1) if the object occupies a PVS-visible cluster AND is within
