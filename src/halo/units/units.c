@@ -12149,35 +12149,42 @@ done_clamp:
     angles_to_vector(end_aim, end_angles);
 
     {
-      float total_yaw;
-      float total_pitch;
+      float total_angles[2]; /* contiguous yaw/pitch pair for angles_to_vector */
       float vel_end[3];
-      total_yaw = rot_angles[0] + end_angles[0];
-      total_pitch = rot_angles[1] + end_angles[1];
-      (void)total_pitch;
-      angles_to_vector(vel_end, &total_yaw);
+      float dot;
+      float angle;
 
-      angular_velocity[0] =
-          rot_angles[1] * end_aim[1] -
-          vel_end[2] * rot_angles[0];
-      angular_velocity[1] =
-          vel_end[2] * end_aim[2] -
-          rot_angles[1] * end_aim[0];
-      angular_velocity[2] =
-          rot_angles[0] * end_aim[0] -
-          end_aim[1] * vel_end[2];
-    }
-    normalize3d(angular_velocity);
+      total_angles[0] = rot_angles[0] + end_angles[0];
+      total_angles[1] = rot_angles[1] + end_angles[1];
+      angles_to_vector(vel_end, total_angles);
 
-    {
-      float speed;
-      speed = ((float (*)(void))0x1d94f0)();
-      if (speed > angular_velocity_limit) {
-        speed = angular_velocity_limit;
+      /* dot = vel_end . end_aim. Read vel_end AFTER the call: angles_to_vector
+         overwrote the stack slots the decompiler mislabeled rot_angles[1..2]
+         (buffer aliasing). Original stores the dot, then clamps to [-1,1]. */
+      dot = vel_end[0] * end_aim[0] + vel_end[1] * end_aim[1] +
+            vel_end[2] * end_aim[2];
+      if (dot < -1.0f) {
+        dot = -1.0f;
+      } else if (dot > 1.0f) {
+        dot = 1.0f;
       }
-      angular_velocity[0] = speed * angular_velocity[0];
-      angular_velocity[1] = speed * angular_velocity[1];
-      angular_velocity[2] = speed * angular_velocity[2];
+
+      /* angular_velocity = cross(end_aim, vel_end) */
+      angular_velocity[0] = end_aim[1] * vel_end[2] - end_aim[2] * vel_end[1];
+      angular_velocity[1] = end_aim[2] * vel_end[0] - end_aim[0] * vel_end[2];
+      angular_velocity[2] = end_aim[0] * vel_end[1] - end_aim[1] * vel_end[0];
+
+      normalize3d(angular_velocity);
+
+      /* angle = acos(clamped dot) (orig 0x1d94f0 = MSVC CRT acos, arg in ST0),
+         clamped to the angular-velocity limit, then scales the axis. */
+      angle = acosf(dot);
+      if (angle > angular_velocity_limit) {
+        angle = angular_velocity_limit;
+      }
+      angular_velocity[0] *= angle;
+      angular_velocity[1] *= angle;
+      angular_velocity[2] *= angle;
     }
 
     if (transform_matrix != 0) {
