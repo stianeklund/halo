@@ -21784,7 +21784,8 @@
       "functions": [
         {
           "addr": "0x18aef0",
-          "decl": "void FUN_0018aef0(void);"
+          "decl": "void FUN_0018aef0(int object_handle, float *center, float *radius);",
+          "ported": true
         },
         {
           "addr": "0x18af90",
@@ -21823,15 +21824,15 @@
         },
         {
           "addr": "0x18b610",
-          "decl": "void scenario_material_definition_get(void);"
+          "decl": "void FUN_0018b610(float *param_1 @<ecx>, float *param_2 @<edx>, float param_3);"
         },
         {
           "addr": "0x18b6b0",
-          "decl": "void scenario_location_deafening(void);"
+          "decl": "void FUN_0018b6b0(float *param_1 @<ecx>, float *param_2 @<edx>, float param_3);"
         },
         {
           "addr": "0x18b780",
-          "decl": "void FUN_0018b780(void);"
+          "decl": "void FUN_0018b780(float *param_1 @<ecx>, float *param_2 @<edx>, float param_3);"
         },
         {
           "addr": "0x18b830",

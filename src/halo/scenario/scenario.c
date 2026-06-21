@@ -1,3 +1,30 @@
+/* 0x18aef0 — object bounding-sphere accessor: fetch an object's world-space
+ * center (object_data + 0x50/0x54/0x58, three contiguous floats) and the
+ * bounding radius from its 'obje' definition tag (+0x104). The object handle
+ * is resolved with no type restriction (0xffffffff). Asserts that both output
+ * pointers are non-NULL. cdecl: handle [EBP+8], center [EBP+0xc] (-> ESI),
+ * radius [EBP+0x10] (-> EBX); plain MOV dword copies reinterpreted as float. */
+void FUN_0018aef0(int object_handle, float *center, float *radius)
+{
+  char *obj;
+  char *def_tag;
+
+  obj = (char *)object_get_and_verify_type(object_handle, 0xffffffff);
+  if (center == 0) {
+    display_assert("center", "..\\objects\\objects.h", 0x227, 1);
+    system_exit(-1);
+  }
+  if (radius == 0) {
+    display_assert("radius", "..\\objects\\objects.h", 0x228, 1);
+    system_exit(-1);
+  }
+  center[0] = *(float *)(obj + 0x50);
+  center[1] = *(float *)(obj + 0x54);
+  center[2] = *(float *)(obj + 0x58);
+  def_tag = (char *)tag_get(0x6f626a65 /* 'obje' */, *(int *)obj);
+  *radius = *(float *)(def_tag + 0x104);
+}
+
 /* 0x18af90 — cached object render-states pool: allocate the game-state
  * data array (0x100 entries x 0x100 bytes) and store it at the global
  * pool pointer; assert on allocation failure. */
