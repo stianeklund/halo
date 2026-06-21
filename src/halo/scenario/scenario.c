@@ -760,3 +760,32 @@ float FUN_0018f510(void *location, void *position)
 
   return 3.4028235e+38f;
 }
+
+/* Probes whether the global BSP3D leaf at the given position is solid (no leaf
+   found). Steps the position up in Z by 0.05 up to 0x96 times until a leaf is
+   located. Returns 1 if a leaf was found on the very first probe (position was
+   immediately above geometry / "underwater"), 0 otherwise. */
+char scenario_location_underwater(float *position)
+{
+  short count;
+  uint32_t leaf;
+
+  count = 0;
+  while (1) {
+    if (*(int *)0x5064d8 == 0) {
+      display_assert("global_bsp3d",
+                     "c:\\halo\\SOURCE\\scenario\\scenario.c", 0xd5, 1);
+      system_exit(-1);
+    }
+    leaf = bsp3d_find_leaf(*(void **)0x5064d8, 0, (void *)position);
+    if (leaf != 0xffffffff) {
+      break;
+    }
+    if (count >= 0x96) {
+      break;
+    }
+    position[2] += 0.05f;
+    count = count + 1;
+  }
+  return count == 0;
+}

@@ -14989,8 +14989,8 @@
         },
         {
           "addr": "0x13c080",
-          "decl": "int FUN_0013c080(int param_1, int param_2, int *param_3);",
-          "ported": false,
+          "decl": "char FUN_0013c080(int param_1, int param_2, int *param_3);",
+          "ported": true,
           "source_path": "objects/objects.c"
         },
         {
@@ -22027,7 +22027,8 @@
         },
         {
           "addr": "0x18f250",
-          "decl": "char scenario_location_underwater(float *position);"
+          "decl": "char scenario_location_underwater(float *position);",
+          "ported": true
         },
         {
           "addr": "0x18f3e0",
