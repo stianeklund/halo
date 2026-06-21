@@ -20128,11 +20128,13 @@
         },
         {
           "addr": "0x10a5e0",
-          "decl": "float FUN_0010a5e0(int16_t function_type, float input);"
+          "decl": "float FUN_0010a5e0(int16_t function_type, float input);",
+          "ported": false
         },
         {
           "addr": "0x10a710",
-          "decl": "float transition_function_evaluate(short function_type, float t);"
+          "decl": "float transition_function_evaluate(short function_type, float t);",
+          "ported": false
         },
         {
           "addr": "0x10a830",
@@ -20207,7 +20209,7 @@
         {
           "addr": "0x10bbc0",
           "decl": "void vectors3d_from_euler_angles3d(float *forward, float *up, float *angles);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x10bc70",
