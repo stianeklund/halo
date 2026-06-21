@@ -21888,7 +21888,8 @@
         },
         {
           "addr": "0x18c580",
-          "decl": "void FUN_0018c580(void);"
+          "decl": "int FUN_0018c580(int param_1, int param_2);",
+          "ported": true
         },
         {
           "addr": "0x18c5b0",
@@ -22001,11 +22002,13 @@
         },
         {
           "addr": "0x18ea50",
-          "decl": "void FUN_0018ea50(void);"
+          "decl": "int16_t FUN_0018ea50(void *param_1, const char *name);",
+          "ported": true
         },
         {
           "addr": "0x18ecd0",
-          "decl": "void FUN_0018ecd0(void);"
+          "decl": "void FUN_0018ecd0(void);",
+          "ported": true
         },
         {
           "addr": "0x18ed20",
@@ -22025,7 +22028,8 @@
         },
         {
           "addr": "0x18f230",
-          "decl": "void FUN_0018f230(void);"
+          "decl": "void FUN_0018f230(void *param_1, void *param_2, void *param_3, void *param_4);",
+          "ported": true
         },
         {
           "addr": "0x18f250",
@@ -22051,7 +22055,8 @@
         },
         {
           "addr": "0x18fef0",
-          "decl": "void FUN_0018fef0(void);"
+          "decl": "void FUN_0018fef0(void);",
+          "ported": true
         },
         {
           "addr": "0x18ff00",
@@ -22860,7 +22865,7 @@
         },
         {
           "addr": "0x1ba0c0",
-          "decl": "void FUN_001ba0c0(void);"
+          "decl": "void FUN_001ba0c0(void *element);"
         },
         {
           "addr": "0x1ba140",

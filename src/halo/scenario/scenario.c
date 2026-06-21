@@ -63,6 +63,23 @@ void FUN_0018B000(void)
   *(data_t **)0x50652c = 0;
 }
 
+/* 0x18c580 — 3-key record comparator: compares two records by signed int16 at
+ * +2, then signed int16 at +4, then unsigned byte at +6; returns the first
+ * non-zero difference (qsort/bsearch-style ordering). */
+int FUN_0018c580(int param_1, int param_2)
+{
+  int diff;
+
+  diff = (int)*(short *)(param_1 + 2) - (int)*(short *)(param_2 + 2);
+  if (diff == 0) {
+    diff = (int)*(short *)(param_1 + 4) - (int)*(short *)(param_2 + 4);
+    if (diff == 0)
+      diff = (int)*(unsigned char *)(param_1 + 6) -
+             (int)*(unsigned char *)(param_2 + 6);
+  }
+  return diff;
+}
+
 void scenario_initialize(void)
 {
   *(void **)0x5064d0 = game_state_malloc("scenario globals", 0, 0x100);
@@ -294,6 +311,27 @@ valid:
           (1u << (cluster_index & 0x1f))) != 0;
 }
 
+/* 0x18ea50 — find a named entry in a scenario tag's name block (param_1+0x204,
+ * element size 0x24) by csstrcmp against `name`; returns the 0-based index or
+ * -1 (NONE) if no match. Block count is re-read from *(int*)(param_1+0x204)
+ * each iteration. */
+int16_t FUN_0018ea50(void *param_1, const char *name)
+{
+  int16_t i;
+  void *element;
+
+  i = 0;
+  if (*(int *)((char *)param_1 + 0x204) > 0) {
+    do {
+      element = tag_block_get_element((char *)param_1 + 0x204, i, 0x24);
+      if (csstrcmp(element, name) == 0)
+        return i;
+      i = i + 1;
+    } while ((int)i < *(int *)((char *)param_1 + 0x204));
+  }
+  return -1;
+}
+
 /*
  * scenario_get_structure_reference_index_from_tag_index — resolve a BSP3D node
  * index to its fog tag index.
@@ -428,6 +466,24 @@ short global_structure_bsp_index_get(void)
   return *(int16_t *)0x326a0c;
 }
 
+/* 0x18ecd0 — unload the currently-loaded structure BSP if one is active.
+ * If the cached BSP index (*(int16_t*)0x326a0c) differs from the index stored
+ * at *(int16_t*)(*0x5064d0), frees the active BSP's structure-references block
+ * element (scenario+0x5a4, size 0x20) via FUN_001ba0c0, marks the cached index
+ * NONE, and re-switches to the index held at *0x5064d0. */
+void FUN_0018ecd0(void)
+{
+  void *element;
+
+  if (*(int16_t *)(*(char **)0x5064d0) != *(int16_t *)0x326a0c) {
+    element = tag_block_get_element(*(char **)0x5064e4 + 0x5a4,
+                                   (int)*(int16_t *)0x326a0c, 0x20);
+    FUN_001ba0c0(element);
+    *(int16_t *)0x326a0c = -1;
+    scenario_switch_structure_bsp(*(int16_t *)(*(char **)0x5064d0));
+  }
+}
+
 /* Load a scenario from the map cache. Opens the cache file, loads the
  * scenario and game globals tags, and switches to BSP 0. */
 bool scenario_load(const char *map_name)
@@ -520,6 +576,14 @@ void scenario_location_from_point(void *location_out, void *point)
   element = (char *)tag_block_get_element((char *)*(void **)0x5064e0 + 0xe0,
                                           leaf & 0x7fffffff, 0x10);
   *(int16_t *)&loc[1] = *(int16_t *)(element + 8);
+}
+
+/* 0x18f230 — thin wrapper that forwards to scenario_location_from_point using
+ * its 1st and 4th arguments (location_out=param_1, point=param_4); params 2
+ * and 3 are received but unused. */
+void FUN_0018f230(void *param_1, void *param_2, void *param_3, void *param_4)
+{
+  scenario_location_from_point(param_1, param_4);
 }
 
 /*
@@ -788,4 +852,10 @@ char scenario_location_underwater(float *position)
     count = count + 1;
   }
   return count == 0;
+}
+
+/* 0x18fef0 — reset a scenario module's global byte flag at 0x5057c0 to 0. */
+void FUN_0018fef0(void)
+{
+  *(char *)0x5057c0 = 0;
 }
