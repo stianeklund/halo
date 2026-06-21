@@ -3349,3 +3349,38 @@ int FUN_00113910(void *file)
   return FUN_001137a0(file, 0, 1);
 }
 
+/* zlib gzread: read up to len bytes from gzFile into buf via deflate state; returns byte count or <0 on error. */
+int FUN_001127e0(int *param_1, int param_2, int param_3)
+{
+  size_t sVar1;
+
+  if ((param_1 != (int *)0) && (*(char *)((int)param_1 + 0x5c) == 'w')) {
+    if (*(int *)((int)param_1 + 0x10) == 0) {
+      *(void **)((int)param_1 + 0xc) = *(void **)((int)param_1 + 0x48);
+      sVar1 = FUN_001db2b3(*(void **)((int)param_1 + 0x48), 1, 0x4000,
+                           *(void **)((int)param_1 + 0x40));
+      if (sVar1 != 0x4000) {
+        *(int *)((int)param_1 + 0x38) = -1;
+      }
+      *(int *)((int)param_1 + 0x10) = 0x4000;
+    }
+    return FUN_001122e0(param_1, param_2, param_3);
+  }
+  return -2;
+}
+
+/* zlib gzprintf: vsprintf into a 4 KB stack buffer, then write strlen bytes to the gzFile. */
+int FUN_00112e50(void *param_1, const char *param_2, ...)
+{
+  char local_buf[4096];
+  int len;
+
+  vsprintf(local_buf, param_2, (char *)((char **)&param_2 + 1));
+  len = csstrlen(local_buf);
+  if (len < 1) {
+    return 0;
+  }
+  return FUN_00112db0(param_1, (int)local_buf, len);
+}
+
+
