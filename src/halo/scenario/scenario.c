@@ -39,6 +39,13 @@ void FUN_0018AF90(void)
   }
 }
 
+/* 0x18afd0 — cached object render-states pool free: delete all entries in the
+ * cached_object_render_states data pool. */
+void FUN_0018afd0(void)
+{
+  data_delete_all(*(data_t **)0x50652c);
+}
+
 /* 0x18afe0 — cached object render-states pool dispose: if the pool exists
  * and is initialized (+0x24 valid flag set), invalidate its data array. */
 void FUN_0018afe0(void)
@@ -195,6 +202,12 @@ void *FUN_0018e500(int16_t material_type)
     *(uint8_t *)0x4d8a74 = 1;
   }
   return (void *)0x4d8700;
+}
+
+/* 0x18e690 — returns a constant float (0.0f at 0x2533c0). */
+float FUN_0018e690(void)
+{
+  return 0.0f;
 }
 
 /* FUN_0018e720 (0x18e720) — bsp3d_find_leaf_point

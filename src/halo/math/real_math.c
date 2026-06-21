@@ -3242,3 +3242,13 @@ unsigned int FUN_00112eb0(void *param_1, unsigned char param_2)
     return (unsigned int)buf;
   return 0xffffffff;
 }
+
+/* 0x113080 — zlib gz stream accessor: if the stream is non-null and in read
+ * mode (mode byte at +0x5c == 'r'), return the field at +0x3c; else 0. */
+unsigned int FUN_00113080(int param_1)
+{
+  if (param_1 != 0 && *(char *)(param_1 + 0x5c) == 'r') {
+    return *(unsigned int *)(param_1 + 0x3c);
+  }
+  return 0;
+}
