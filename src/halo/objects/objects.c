@@ -178,6 +178,22 @@ void FUN_00085180(short param_1, short param_2, int param_3)
 }
 
 /*
+ * FUN_000853a0 (0x853a0 / objects.obj) — convert the cutscene-camera time
+ * (seconds, at 0x2ee5a8) back to a tick count by multiplying by 30.0 and
+ * truncating to int.
+ *
+ * The camera time global at 0x2ee5a8 is stored as ticks/30 (see FUN_00085180,
+ * which writes (float)(param_2 / 30)); this reverses that to recover ticks.
+ *
+ * Confirmed: FLD [0x2ee5a8]; FMUL [0x253394 = 30.0f]; JMP _ftol2 (tail-call).
+ * Confirmed: return value is the truncated int product (EAX from _ftol2).
+ */
+int FUN_000853a0(void)
+{
+  return (int)(*(float *)0x2ee5a8 * *(float *)0x253394);
+}
+
+/*
  * FUN_000adf70 — equipment tag-index remapper for game engine mode 3.
  *
  * Called from FUN_000ae0a0 when the 'obje' type word is 3 (equipment).
@@ -474,6 +490,25 @@ void FUN_00134c20(int param_1)
   }
 }
 
+/*
+ * FUN_00134e50 (0x134e50 / objects.obj) — wrap a value into the range of a
+ * period, skipping the modulo when the period is exactly 1.0.
+ *
+ * Returns value (param_1) unchanged when period (param_2) == 1.0f; otherwise
+ * returns fmod(value, period). The 1.0 special-case avoids a redundant modulo
+ * when the period is unit-length.
+ *
+ * Confirmed: FCOMP param_2 against [0x2533c8 = 1.0f]; equal -> return param_1.
+ * Confirmed: not-equal -> tail-call fmod(param_1, param_2) (JMP 0x1d9e70).
+ */
+float FUN_00134e50(float value, float period)
+{
+  if (period == 1.0f) {
+    return value;
+  }
+  return x87_fmod(value, (double)period);
+}
+
 /* Allocates a new entry in the 0x46f024 data table and stores param_1 at +4.
  * Returns the datum handle, or -1 on failure.
  * 0x1353b0 / objects.obj
@@ -678,6 +713,36 @@ void FUN_001360a0(void)
     ppuVar2 = ppuVar2 + 10;
   } while (sVar1 < 5);
   data_make_invalid(*(data_t **)0x5a90c4);
+}
+
+/*
+ * FUN_00135f20 (0x135f20 / objects.obj) — find the widget_types table index
+ * whose group_tag (entry+0x00) matches the requested group tag.
+ *
+ * Linear search of the 5-entry widget_types table at 0x323528 (stride 0x28
+ * bytes). Returns the matching index in [0,4], or -1 (0xffff) if no entry
+ * matches.
+ *
+ * Confirmed: CMP dword ptr [ECX*8 + 0x323528], EDX where ECX = idx*5
+ *            -> compares the 4-byte group_tag at 0x323528 + idx*0x28.
+ * Confirmed: loop bound CMP AX,0x5 (int16_t counter).
+ * Confirmed: miss path MOV AX,SI where SI was OR'd to -1 -> returns (short)-1.
+ */
+short FUN_00135f20(int group_tag)
+{
+  short result;
+  short i;
+
+  result = -1;
+  i = 0;
+  do {
+    if (*(int *)(0x323528 + (int)i * 0x28) == group_tag) {
+      return i;
+    }
+    i = i + 1;
+  } while (i < 5);
+
+  return result;
 }
 
 /* Call each widget type's dispose function.
@@ -984,6 +1049,39 @@ void FUN_001365d0(int object_handle, float *body_vitality_override,
     *(float *)((char *)obj + 0x94) = 1.0f;
   else
     *(int *)((char *)obj + 0x94) = 0;
+}
+
+/*
+ * FUN_001366b0 (0x1366b0 / objects.obj) — return an object's effective maximum
+ * body vitality.
+ *
+ * Resolves the object and reads its stored max body vitality (object+0x88,
+ * set by FUN_001365d0). If use_raw_max (param_2) is non-zero, returns that
+ * value unmodified. Otherwise scales it by the per-team / game-mode vitality
+ * multiplier returned by FUN_000b55b0(1, object->team@+0x68).
+ *
+ * §7 note: Ghidra mis-groups object_get_and_verify_type as taking 3 args; the
+ * disassembly shows PUSH -1, PUSH handle -> (handle, -1); the char flag stays
+ * in [EBP+0xc].
+ *
+ * Confirmed: CALL 0x13d680 (object_get_and_verify_type, mask -1).
+ * Confirmed: float load from object+0x88 (max body vitality).
+ * Confirmed: flag byte at [EBP+0xc]; non-zero -> return raw object+0x88.
+ * Confirmed: zero -> FUN_000b55b0(1, (uint16)object+0x68) * object+0x88.
+ */
+float FUN_001366b0(int object_handle, char use_raw_max)
+{
+  char *obj;
+  float max_vitality;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  max_vitality = *(float *)(obj + 0x88);
+
+  if (use_raw_max != 0) {
+    return max_vitality;
+  }
+
+  return FUN_000b55b0(1, (int)*(unsigned short *)(obj + 0x68)) * max_vitality;
 }
 
 /* 0x139810 / objects.obj — Scale a light color (RGB float triple) by a delta.
@@ -1854,7 +1952,55 @@ short FUN_0013c1b0(short param_1)
   return *(short *)((char *)((void **)0x324608)[iVar1] + 8);
 }
 
-int FUN_0013c490(int object_handle);
+/*
+ * FUN_0013c490 (0x13c490 / objects.obj) — run an object type's "can delete?"
+ * predicate chain.
+ *
+ * Resolves the object, looks up its type definition via FUN_0013c100(type),
+ * and walks the NULL-terminated array of type-handler vtable pointers at
+ * type_def+0x5c. For each non-NULL handler, if it has a predicate at +0x24,
+ * calls predicate(object_handle); if the predicate returns false the whole
+ * function returns false. If the list is empty (first entry NULL) or every
+ * predicate passes, returns true.
+ *
+ * Confirmed: PUSH -1, PUSH handle -> object_get_and_verify_type(handle, -1).
+ * Confirmed: MOVSX EAX,[obj+0x64] -> object type, passed to FUN_0013c100.
+ * Confirmed: handler list at type_def+0x5c, dword-stride, NULL-terminated.
+ * Confirmed: handler predicate at handler+0x24; called handler-less as
+ *            predicate(handle) (one cdecl arg, ADD ESP,4).
+ * Confirmed: empty list -> return 1 (CL=1 path); predicate false -> return 0.
+ */
+int FUN_0013c490(int object_handle)
+{
+  char *obj;
+  char *type_def;
+  int *handler_slot;
+  short i;
+  int (*predicate)(int);
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  type_def = (char *)FUN_0013c100(*(short *)(obj + 0x64));
+  handler_slot = (int *)(type_def + 0x5c);
+
+  i = 0;
+  if (*(int *)(type_def + 0x5c) == 0) {
+    return 1;
+  }
+
+  for (;;) {
+    predicate = *(int (**)(int))(*handler_slot + 0x24);
+    if (predicate != 0) {
+      if ((char)predicate(object_handle) == 0) {
+        return 0;
+      }
+    }
+    i = i + 1;
+    handler_slot = (int *)(type_def + 0x5c + (int)i * 4);
+    if (*handler_slot == 0) {
+      return 1;
+    }
+  }
+}
 
 /* 0x13c250 / objects.obj */
 void *FUN_0013c250(int16_t param_1)
@@ -2412,6 +2558,40 @@ void FUN_0013c980(int param_1, int param_2, int param_3)
     piVar1 = (int *)(iVar3 + 0x5c + (int)sVar4 * 4);
     iVar2 = *(int *)(iVar3 + 0x5c + (int)sVar4 * 4);
   }
+}
+
+/*
+ * FUN_0013c9e0 (0x13c9e0 / objects.obj) — find the object type definition
+ * index whose group tag matches the given tag index's group tag.
+ *
+ * Resolves the tag's group tag via tag_get_group_tag(tag_index), then scans
+ * the 12 object type definitions (FUN_0013c100(i) for i in 0..0xb), comparing
+ * each definition's group_tag field at +0x4. Returns the matching index, or
+ * -1 (0xffff) if none match.
+ *
+ * Confirmed: CALL 0x1ba210 (tag_get_group_tag) with tag_index.
+ * Confirmed: loop CALL 0x13c100 (object type definition get) per index.
+ * Confirmed: CMP [def+0x4], group_tag.
+ * Confirmed: loop bound CMP SI,0xc (int16_t counter); miss -> MOV AX,BX (-1).
+ */
+unsigned short FUN_0013c9e0(int tag_index)
+{
+  int group_tag;
+  char *def;
+  short i;
+
+  group_tag = tag_get_group_tag(tag_index);
+
+  i = 0;
+  do {
+    def = (char *)FUN_0013c100(i);
+    if (*(int *)(def + 4) == group_tag) {
+      return (unsigned short)i;
+    }
+    i = i + 1;
+  } while (i < 0xc);
+
+  return 0xffff;
 }
 
 /* Return a pointer into the scenario's placement block for an object type.
@@ -3284,6 +3464,82 @@ void FUN_0013dc10(short camera_point_index)
   *(short *)(iVar1 + 0x94) = *(short *)(location + 4);
 }
 
+/*
+ * FUN_0013dcc0 (0x13dcc0 / objects.obj) — object_pvs_get_cluster_index:
+ * resolve the PVS/observer camera point to a structure-BSP cluster index.
+ *
+ * object_globals (*0x46f084) holds a small state machine at +0x90:
+ *   state 1 -> the +0x94 field is an object handle; resolve its root object,
+ *              verify it is "connected to map" (object flags +0x4 bit 0x800),
+ *              and return its location cluster_index (object+0x4c). If the
+ *              object is stale/freed, reset state to 0 and return -1.
+ *   state 2 -> the +0x94 field is already a cluster index; return it directly.
+ *   else    -> return -1.
+ *
+ * Confirmed: state at *(short*)(*0x46f084 + 0x90); DEC/DEC dispatch (1 then 2).
+ * Confirmed: CALL 0x119270 (datum_absolute_index_to_index) with
+ *            (*0x5a8d50, *(int*)(*0x46f084 + 0x94)) for the staleness check.
+ * Confirmed: staleness reject if entry==0 || (1<<(entry[3]&0x1f))==0 ||
+ *            *(int*)(entry+8)==0 -> reset +0x90=0, return 0xffff.
+ * Confirmed: CALL 0x13d7f0 (object_get_root_parent), CALL 0x13d680
+ *            (object_get_and_verify_type, mask -1).
+ * Confirmed: TEST [obj+0x4] bit 0x800 (connected-to-map) -> else return -1.
+ * Confirmed: cluster_index at object+0x4c; -1 -> return -1.
+ * Confirmed: assert cluster_index in [0, scenario_get()->[+0x134]) at 0x8e7,
+ *            followed by system_exit(-1).
+ */
+short FUN_0013dcc0(void)
+{
+  int globals;
+  int entry;
+  char *obj;
+  void *scenario;
+
+  globals = *(int *)0x46f084;
+
+  if (*(short *)(globals + 0x90) != 1) {
+    if (*(short *)(globals + 0x90) != 2) {
+      return -1;
+    }
+    return *(short *)(globals + 0x94);
+  }
+
+  entry = (int)datum_absolute_index_to_index(*(data_t **)0x5a8d50,
+                                             *(int *)(globals + 0x94));
+  if (entry == 0 || (1 << (*(unsigned char *)(entry + 3) & 0x1f)) == 0 ||
+      *(int *)(entry + 8) == 0) {
+    *(short *)(*(int *)0x46f084 + 0x90) = 0;
+    return -1;
+  }
+
+  obj = (char *)object_get_and_verify_type(
+      object_get_root_parent(*(int *)(*(int *)0x46f084 + 0x94)), -1);
+
+  if ((*(unsigned int *)(obj + 4) & 0x800) == 0) {
+    return -1;
+  }
+
+  if (*(short *)(obj + 0x4c) == -1) {
+    return -1;
+  }
+
+  /* Bounds-check the cluster index: must be >= 0 and < clusters.count.
+   * The original branches to the assert directly when cluster_index < 0
+   * (scenario_get() is only evaluated for the upper-bound comparison). */
+  if (*(short *)(obj + 0x4c) < 0 ||
+      (scenario = scenario_get(),
+       *(int *)((char *)scenario + 0x134) <= (int)*(short *)(obj + 0x4c))) {
+    display_assert(
+      "parent_object->object.location.cluster_index>=0 && "
+      "parent_object->object.location.cluster_index<global_structure_bsp_get"
+      "()->clusters.count",
+      "c:\\halo\\SOURCE\\objects\\objects.c", 0x8e7, 1);
+    system_exit(-1);
+  }
+
+  return *(short *)(obj + 0x4c);
+}
+
 void object_definition_predict(int param_1)
 {
   void *tag;
@@ -3378,23 +3634,24 @@ void *object_header_block_reference_get(int object_handle, void *reference)
   object_header_data_t *header =
     (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
   char *object = (char *)object_get_and_verify_type(object_handle, -1);
-  int16_t ref_size = *(int16_t *)reference;
-  int16_t ref_offset = *(int16_t *)((char *)reference + 2);
+  short *ref = (short *)reference;
 
-  if (ref_offset < 1) {
+  /* reference layout: [+0] = size, [+2] = offset (both signed 16-bit). The
+   * fields are re-read inline (not cached) to match the original's codegen. */
+  if (ref[1] <= 0) {
     display_assert("reference->offset>0",
                    "c:\\halo\\SOURCE\\objects\\objects.c", 0x98b, 1);
     system_exit(-1);
   }
 
-  if ((int)header->data_size < (int)ref_size + (int)ref_offset) {
+  if ((int)(short)header->data_size < (int)ref[0] + (int)ref[1]) {
     display_assert(
       "reference->offset+reference->size<=object_header->data_size",
       "c:\\halo\\SOURCE\\objects\\objects.c", 0x98c, 1);
     system_exit(-1);
   }
 
-  return object + ref_offset;
+  return object + ref[1];
 }
 
 /*
@@ -4895,9 +5152,11 @@ void object_get_root_location(int object_handle, float *position_out,
  */
 void object_get_location(int object_handle, void *location_out)
 {
-  int root_handle = object_get_root_parent(object_handle);
-  object_data_t *obj =
-    (object_data_t *)object_get_and_verify_type(root_handle, -1);
+  /* Single nested cdecl expression so MSVC pre-pushes the -1 type_mask before
+   * evaluating object_get_root_parent (matches the original's interleaved push
+   * scheduling). */
+  object_data_t *obj = (object_data_t *)object_get_and_verify_type(
+      object_get_root_parent(object_handle), -1);
   uint32_t *out = (uint32_t *)location_out;
 
   out[0] = obj->unk_72;

@@ -259,6 +259,41 @@
     "since": "2026-06-10"
   },
   {
+    "addr": "0x134e50",
+    "name": "FUN_00134e50",
+    "object": "objects.obj",
+    "reason": "unverified: fmod-guard, VC71 57.1% (x87 fmod tail-call ceiling); equivalence vacuous (DAT/fmod relocs cannot emulate). Lift faithful, dormant pending live oracle.",
+    "since": "2026-06-21"
+  },
+  {
+    "addr": "0x135f20",
+    "name": "FUN_00135f20",
+    "object": "objects.obj",
+    "reason": "unverified: widget-type group_tag index search, VC71 82.4% (MSVC callee-saved -1 sentinel register codegen unmatched; 2/18 insns). Not a useful zero-fill equiv leaf (table at 0x323528 unpopulated). Lift faithful, dormant.",
+    "since": "2026-06-21"
+  },
+  {
+    "addr": "0x1366b0",
+    "name": "FUN_001366b0",
+    "object": "objects.obj",
+    "reason": "unverified: effective body-vitality getter, VC71 60.4% (x87 float-return ceiling, helper-mul). Equivalence reloc-blocked. Lift faithful, dormant pending live oracle.",
+    "since": "2026-06-21"
+  },
+  {
+    "addr": "0x13c490",
+    "name": "FUN_0013c490",
+    "object": "objects.obj",
+    "reason": "unverified: object can-delete predicate vtable-walk, VC71 84.0% (MSVC CL=1 sentinel register codegen + indexed-addr reuse unmatched). Calls type-def function pointers, not a zero-fill equiv leaf. Lift faithful, dormant.",
+    "since": "2026-06-21"
+  },
+  {
+    "addr": "0x13dcc0",
+    "name": "FUN_0013dcc0",
+    "object": "objects.obj",
+    "reason": "unverified: object_pvs_get_cluster_index, VC71 81.2% (multi-call MSVC scheduling). Stateful (object_globals state machine + scenario clusters), not a zero-fill equiv leaf. Lift faithful, dormant pending live oracle.",
+    "since": "2026-06-21"
+  },
+  {
     "addr": "0x1396e0",
     "name": "object_wake",
     "object": "objects.obj",
