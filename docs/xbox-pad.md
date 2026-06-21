@@ -48,6 +48,29 @@ python.exe tools/xbox/xbox_pad.py serve
 The server prints a self-test confirmation and waits for connections. Leave it
 running for the duration of the xemu session.
 
+### Agent bootstrap
+
+Claude, OpenCode, or any other agent should start with:
+
+```bash
+rtk python3 tools/xbox/xbox_pad.py ensure
+```
+
+`ensure` checks the TCP controller server and starts it if needed. From WSL it
+launches Windows Python via the repo's local environment helpers, so the server
+can hold the `vgamepad` device while the agent keeps using the Linux CLI.
+
+For one-shot commands, agents can also pass `--auto-start`:
+
+```bash
+rtk python3 tools/xbox/xbox_pad.py --auto-start tap A
+rtk python3 tools/xbox/xbox_pad.py --auto-start dpad down
+```
+
+If startup fails, inspect the JSON response's `log` path. Common causes are a
+missing ViGEmBus driver, missing Windows `vgamepad`, or xemu not mapped to the
+virtual controller.
+
 ## Commands
 
 All commands accept `--host` and `--port` flags (defaults: `127.0.0.1`, `27000`).
@@ -136,6 +159,57 @@ Returns the full controller state as JSON:
   "lt": 0.0, "rt": 0.0
 }
 ```
+
+### `ensure` — check or start server
+
+```bash
+rtk python3 tools/xbox/xbox_pad.py ensure
+rtk python3 tools/xbox/xbox_pad.py ensure --no-start
+```
+
+Returns JSON with `running`, `started`, and when autostart was attempted, a
+server `log` path.
+
+### `sequence` — play JSON input sequence
+
+```bash
+rtk python3 tools/xbox/xbox_pad.py --auto-start sequence artifacts/input/menu.json
+```
+
+Sequence files are agent-neutral JSON. They can be a list or an object with a
+`steps` list:
+
+```json
+{
+  "steps": [
+    {"tap": "Start", "duration": 0.2},
+    {"wait": 0.5},
+    {"dpad": "down"},
+    {"action": "tap", "button": "A", "duration": 0.1},
+    {"action": "stick", "which": "left", "x": 0.0, "y": -1.0},
+    {"wait": 1.0},
+    {"action": "reset"}
+  ]
+}
+```
+
+Any raw protocol command accepted by the TCP server can be used as a sequence
+step. `wait`/`sleep`, `tap`, and `dpad` have shorthand forms for readability.
+
+## Debug Keyboard
+
+For Xbox debug-key or keyboard automation, use QMP instead of the virtual
+controller:
+
+```bash
+rtk python3 tools/xbox/xemu_key.py tap grave_accent
+rtk python3 tools/xbox/xemu_key.py tap f1
+rtk python3 tools/xbox/xemu_key.py tap ctrl+alt+f1
+rtk python3 tools/xbox/xemu_key.py sequence artifacts/input/debug_keys.json
+```
+
+`xemu_key.py` uses xemu QMP `send-key`; it does not require ViGEmBus or
+`vgamepad`. It is keyboard-only and cannot drive analog gamepad state.
 
 ## Button names
 
