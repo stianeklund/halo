@@ -2221,7 +2221,6 @@ void FUN_0013c7a0(int param_1, int param_2)
   }
 }
 
-int object_header_block_allocate(int object_handle, int offset, int size);
 /*
  * FUN_0013c800 — dispatch an animation-block initializer callback through the
  * object type definition's extension table.
@@ -2939,6 +2938,72 @@ int object_get_root_parent(int object_handle)
     current = obj->parent_object_index.value;
   }
   return result;
+}
+
+/*
+ * object_header_block_allocate — grow an object's variable-length header data
+ * region by `size` bytes and stamp a block_reference record at `offset`.
+ *
+ * Validates size>=0, data_size+size<=SHORT_MAX, offset>=0, and
+ * offset+sizeof(block_reference)<=data_size, then resizes the object's pooled
+ * data block (memory_pool_block_resize) to data_size+size. On success it bumps
+ * data_size, writes the 4-byte block_reference {size, old_data_size} at
+ * obj_base+offset, zero-fills the newly appended region, and returns 1.
+ *
+ * Confirmed: 3 cdecl args. params read as short via MOVSX (handle is int).
+ * Confirmed: data_size at header+0x06 (uint16_t), object at header+0x08.
+ * Confirmed: memory_pool_block_resize(*0x46f080, &header->object, new_size).
+ * Confirmed: block_reference at obj_base+offset: [+0]=size, [+2]=old_data_size.
+ * Confirmed: csmemset(header->object + old_data_size, 0, size).
+ * Confirmed: asserts at objects.c lines 0x99b, 0x99c, 0x99e, 0x99f.
+ */
+int object_header_block_allocate(int object_handle, int offset, int size)
+{
+  object_header_data_t *header;
+  short ssize;
+  short soffset;
+  short old_data_size;
+  char *obj_base;
+  short *block_ref;
+
+  header =
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  ssize = (short)size;
+  if (ssize < 0) {
+    display_assert("size>=0", "c:\\halo\\SOURCE\\objects\\objects.c", 0x99b, 1);
+    system_exit(-1);
+  }
+  if (0x7fff < (int)(short)header->data_size + (int)ssize) {
+    display_assert("object_header->data_size+size<=SHORT_MAX",
+                   "c:\\halo\\SOURCE\\objects\\objects.c", 0x99c, 1);
+    system_exit(-1);
+  }
+  soffset = (short)offset;
+  if (soffset < 0) {
+    display_assert("block_reference_offset>=0",
+                   "c:\\halo\\SOURCE\\objects\\objects.c", 0x99e, 1);
+    system_exit(-1);
+  }
+  if ((unsigned int)(int)(short)header->data_size < (unsigned int)((int)soffset + 4)) {
+    display_assert(
+      "block_reference_offset+sizeof(struct "
+      "object_header_block_reference)<=object_header->data_size",
+      "c:\\halo\\SOURCE\\objects\\objects.c", 0x99f, 1);
+    system_exit(-1);
+  }
+
+  if (memory_pool_block_resize(*(void **)0x46f080, (void **)&header->object,
+                               (int)(short)header->data_size + (int)ssize)) {
+    old_data_size = (short)header->data_size;
+    header->data_size = (uint16_t)(old_data_size + ssize);
+    obj_base = (char *)object_get_and_verify_type(object_handle, -1);
+    block_ref = (short *)(obj_base + soffset);
+    block_ref[1] = old_data_size;
+    block_ref[0] = ssize;
+    csmemset((char *)header->object + (int)old_data_size, 0, (int)ssize);
+    return 1;
+  }
+  return 0;
 }
 
 void FUN_0013d870(int unit_handle, void *data)

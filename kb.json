@@ -15293,7 +15293,7 @@
         {
           "addr": "0x13e050",
           "decl": "int object_header_block_allocate(int object_handle, int offset, int size);",
-          "ported": false,
+          "ported": true,
           "source_path": "objects/objects.c"
         },
         {
@@ -15479,7 +15479,7 @@
         {
           "addr": "0x13fd00",
           "decl": "void object_disconnect_from_map(int object_handle);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13fe10",
@@ -15621,7 +15621,7 @@
         {
           "addr": "0x1411c0",
           "decl": "void object_detach_from_parent(int object_handle);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1412f0",
