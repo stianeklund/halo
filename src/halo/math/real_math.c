@@ -3331,3 +3331,21 @@ void FUN_00113930(int s, int param_2, int last)
   return;
 }
 
+/* zlib gzdopen(fd, mode): wrap an existing fd; synthesizes a "<fd:%d>" name. */
+void *FUN_001134a0(int fd, char *mode)
+{
+  char name[20];
+
+  if (fd < 0) {
+    return (void *)0;
+  }
+  crt_sprintf(name, "<fd:%d>", fd);
+  return FUN_00113230(name, fd, mode);
+}
+
+/* zlib gzseek wrapper: seek file to offset 0 with whence=1 (relative). */
+int FUN_00113910(void *file)
+{
+  return FUN_001137a0(file, 0, 1);
+}
+

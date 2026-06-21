@@ -20656,7 +20656,7 @@
         },
         {
           "addr": "0x113230",
-          "decl": "void FUN_00113230(void);"
+          "decl": "void * FUN_00113230(char *path, int fd, char *mode@<eax>);"
         },
         {
           "addr": "0x113480",
@@ -20664,7 +20664,8 @@
         },
         {
           "addr": "0x1134a0",
-          "decl": "void FUN_001134a0(void);"
+          "decl": "void * FUN_001134a0(int fd, char *mode);",
+          "ported": true
         },
         {
           "addr": "0x1134e0",
@@ -20680,11 +20681,12 @@
         },
         {
           "addr": "0x1137a0",
-          "decl": "void sphere_intersects_sector3d(void);"
+          "decl": "unsigned int FUN_001137a0(int *file, unsigned int offset, int whence);"
         },
         {
           "addr": "0x113910",
-          "decl": "void FUN_00113910(void);"
+          "decl": "int FUN_00113910(void *file);",
+          "ported": true
         },
         {
           "addr": "0x113930",
