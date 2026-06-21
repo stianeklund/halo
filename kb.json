@@ -20513,7 +20513,7 @@
         {
           "addr": "0x110c10",
           "decl": "unsigned int FUN_00110c10(unsigned int crc, void *buf, int len);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x110d40",
