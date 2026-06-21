@@ -1190,13 +1190,6 @@
     "since": "2026-06-10"
   },
   {
-    "addr": "0x110c10",
-    "name": "FUN_00110c10",
-    "object": "real_math.obj",
-    "reason": "crc32: behaviorally-faithful pure leaf; VC71 45% is MSVC EAX/EDX register-ping-pong unroll divergence not a bug; pending real_math.obj full-delink equivalence (>=90% lane)",
-    "since": "2026-06-21"
-  },
-  {
     "addr": "0x111170",
     "name": "FUN_00111170",
     "object": "real_math.obj",
