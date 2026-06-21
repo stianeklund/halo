@@ -21867,11 +21867,12 @@
         },
         {
           "addr": "0x18bf80",
-          "decl": "void FUN_0018bf80(void);"
+          "decl": "int FUN_0018bf80(int object_handle, float lod);"
         },
         {
           "addr": "0x18c0b0",
-          "decl": "void scenario_leaf_index_from_point(void);"
+          "decl": "void *scenario_leaf_index_from_point(int object_handle, float lod);",
+          "ported": true
         },
         {
           "addr": "0x18c100",
