@@ -1,3 +1,34 @@
+/* 0x18af90 — cached object render-states pool: allocate the game-state
+ * data array (0x100 entries x 0x100 bytes) and store it at the global
+ * pool pointer; assert on allocation failure. */
+void FUN_0018AF90(void)
+{
+  *(data_t **)0x50652c =
+      game_state_data_new("cached object render states", 0x100, 0x100);
+  if (*(data_t **)0x50652c == 0) {
+    display_assert("cached_object_render_states",
+                   "c:\\halo\\SOURCE\\render\\render_objects.c", 0x7d, 1);
+    system_exit(-1);
+  }
+}
+
+/* 0x18afe0 — cached object render-states pool dispose: if the pool exists
+ * and is initialized (+0x24 valid flag set), invalidate its data array. */
+void FUN_0018afe0(void)
+{
+  if (*(data_t **)0x50652c != 0 &&
+      *(char *)((char *)*(data_t **)0x50652c + 0x24) != 0) {
+    data_make_invalid(*(data_t **)0x50652c);
+  }
+}
+
+/* 0x18b000 — cached object render-states pool clear: reset the global pool
+ * pointer to NULL. */
+void FUN_0018B000(void)
+{
+  *(data_t **)0x50652c = 0;
+}
+
 void scenario_initialize(void)
 {
   *(void **)0x5064d0 = game_state_malloc("scenario globals", 0, 0x100);
