@@ -21951,7 +21951,8 @@
         },
         {
           "addr": "0x18e140",
-          "decl": "void FUN_0018e140(void);"
+          "decl": "int FUN_0018e140(short *out_short);",
+          "ported": true
         },
         {
           "addr": "0x18e1d0",
@@ -21978,7 +21979,8 @@
         },
         {
           "addr": "0x18e6a0",
-          "decl": "void FUN_0018E6A0(void);"
+          "decl": "char FUN_0018e6a0(int unused, float *out_up, float *out_left, float *out_d, float *out_e);",
+          "ported": true
         },
         {
           "addr": "0x18e770",

@@ -989,3 +989,73 @@ char FUN_0018ef00(int cluster_index, int object_handle)
   }
   return result;
 }
+
+/* 0x18e140 — look up the multiplayer scenario-description tag and return its
+ * scenario count. Asserts the out-param is non-NULL, then resolves the
+ * 'mply' tag "ui\multiplayer_scenarios". When loaded, writes the tag's int16
+ * at +0x0 into *out_short and returns the int32 count at +0x4. When the tag
+ * is not loaded, writes 0 to *out_short and returns 0. cdecl: out_short
+ * [EBP+8] (-> EDI). */
+int FUN_0018e140(short *out_short)
+{
+  int count;
+  void *tag;
+
+  if (out_short == 0) {
+    display_assert("count",
+        "c:\\halo\\SOURCE\\scenario\\multiplayer_scenario_description.c", 0x3d, 1);
+    system_exit(-1);
+  }
+  count = tag_loaded(0x6d706c79, "ui\\multiplayer_scenarios");
+  if (count != -1) {
+    tag = tag_get(0x6d706c79, count);
+    if (tag == 0) {
+      display_assert("scenario_list",
+          "c:\\halo\\SOURCE\\scenario\\multiplayer_scenario_description.c", 0x43, 1);
+      system_exit(-1);
+    }
+    count = *(int *)((char *)tag + 4);
+    *out_short = *(short *)tag;
+    return count;
+  }
+  *out_short = 0;
+  return 0;
+}
+
+/* 0x18e6a0 — copy three world basis/origin vectors into up to four caller
+ * buffers. The globals are POINTERS to 3-float vectors (double-deref): up
+ * vector (*0x31fc44), left vector (*0x31fc40), and a third vector (*0x2ee708)
+ * delivered to BOTH out_d and out_e. Each out-param is optional (skipped when
+ * NULL). Always returns 1. param_1 [EBP+8] is unused. cdecl. */
+char FUN_0018e6a0(int unused, float *out_up, float *out_left, float *out_d,
+                  float *out_e)
+{
+  float *src;
+
+  src = *(float **)0x0031fc44;
+  if (out_up != 0) {
+    out_up[0] = src[0];
+    out_up[1] = src[1];
+    out_up[2] = src[2];
+  }
+  src = *(float **)0x0031fc40;
+  if (out_left != 0) {
+    out_left[0] = src[0];
+    out_left[1] = src[1];
+    out_left[2] = src[2];
+  }
+  src = *(float **)0x002ee708;
+  if (out_d != 0) {
+    out_d[0] = src[0];
+    out_d[1] = src[1];
+    out_d[2] = src[2];
+  }
+  src = *(float **)0x002ee708;
+  if (out_e != 0) {
+    out_e[0] = src[0];
+    out_e[1] = src[1];
+    out_e[2] = src[2];
+  }
+  return 1;
+}
+
