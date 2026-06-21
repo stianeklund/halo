@@ -20575,7 +20575,7 @@
         },
         {
           "addr": "0x1122e0",
-          "decl": "void FUN_001122e0(void);"
+          "decl": "int FUN_001122e0(int *param_1, int param_2, int param_3);"
         },
         {
           "addr": "0x112590",
@@ -20588,7 +20588,8 @@
         },
         {
           "addr": "0x1127e0",
-          "decl": "void FUN_001127e0(void);"
+          "decl": "int FUN_001127e0(int *param_1, int param_2, int param_3);",
+          "ported": true
         },
         {
           "addr": "0x112850",
@@ -20609,7 +20610,8 @@
         },
         {
           "addr": "0x112e50",
-          "decl": "void FUN_00112e50(void);"
+          "decl": "int FUN_00112e50(void *param_1, const char *param_2, ...);",
+          "ported": true
         },
         {
           "addr": "0x112eb0",
@@ -20669,7 +20671,7 @@
         },
         {
           "addr": "0x1134e0",
-          "decl": "void FUN_001134e0(void);"
+          "decl": "int FUN_001134e0(int *param_1, void *param_2, int param_3);"
         },
         {
           "addr": "0x113710",
