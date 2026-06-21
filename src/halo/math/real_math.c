@@ -3432,4 +3432,172 @@ int FUN_00113000(int *param_1)
   return -1;
 }
 
+/* zlib crc32(crc, buf, len): accumulate a CRC-32 over a byte buffer using the
+   static 256-entry lookup table at 0x28ce48. The CRC is inverted on entry and
+   exit (the standard zlib convention). The bulk loop is unrolled by 8; each
+   step chains the running CRC through one table lookup. A trailing per-byte
+   loop handles len % 8. Returns 0 if buf is NULL. */
+unsigned int FUN_00110c10(unsigned int crc, void *buf, int len)
+{
+  unsigned char *p = (unsigned char *)buf;
+  unsigned int rem = (unsigned int)len;
+  unsigned int n8;
+
+  if (p == (unsigned char *)0) {
+    return 0;
+  }
+  crc = ~crc;
+  if (7 < rem) {
+    n8 = rem >> 3;
+    do {
+      rem = rem - 8;
+      crc = *(unsigned int *)(0x28ce48 + ((p[0] ^ crc) & 0xff) * 4) ^ (crc >> 8);
+      crc = *(unsigned int *)(0x28ce48 + ((p[1] ^ crc) & 0xff) * 4) ^ (crc >> 8);
+      crc = *(unsigned int *)(0x28ce48 + ((p[2] ^ crc) & 0xff) * 4) ^ (crc >> 8);
+      crc = *(unsigned int *)(0x28ce48 + ((p[3] ^ crc) & 0xff) * 4) ^ (crc >> 8);
+      crc = *(unsigned int *)(0x28ce48 + ((p[4] ^ crc) & 0xff) * 4) ^ (crc >> 8);
+      crc = *(unsigned int *)(0x28ce48 + ((p[5] ^ crc) & 0xff) * 4) ^ (crc >> 8);
+      crc = *(unsigned int *)(0x28ce48 + ((p[6] ^ crc) & 0xff) * 4) ^ (crc >> 8);
+      crc = (crc >> 8) ^ *(unsigned int *)(0x28ce48 + ((p[7] ^ crc) & 0xff) * 4);
+      p = p + 8;
+      n8 = n8 - 1;
+    } while (n8 != 0);
+  }
+  for (; rem != 0; rem = rem - 1) {
+    crc = (crc >> 8) ^ *(unsigned int *)(0x28ce48 + ((*p ^ crc) & 0xff) * 4);
+    p = p + 1;
+  }
+  return ~crc;
+}
+
+/* zlib gzgetc(file): read a single byte from a gzip read-stream. Reads 1 byte
+   into a stack buffer via the gzread helper (FUN_001134e0); returns the byte
+   zero-extended, or -1 on EOF/error (read count != 1). */
+unsigned int FUN_00113710(int *file)
+{
+  unsigned char c;
+
+  if (FUN_001134e0(file, &c, 1) == 1) {
+    return (unsigned int)c;
+  }
+  return 0xffffffff;
+}
+
+/* zlib deflateEnd(strm): tear down a deflate stream. Validates the stream and
+   its internal state (status must be 0x2a / 0x71 / 0x29a), then frees the
+   pending, head, prev, and window buffers (when present) via the stream's
+   zfree callback at strm+0x24 with opaque at strm+0x28, finally frees the
+   state object itself and clears strm+0x1c. Returns Z_STREAM_ERROR (-2) on a
+   bad stream, Z_DATA_ERROR (-3) if state was 0x71, else Z_OK (0). */
+int FUN_00111170(int param_1)
+{
+  void (*zfree)(int, int);
+  int state;
+  int status;
+  int ptr;
+
+  if (param_1 == 0) {
+    return -2;
+  }
+  state = *(int *)(param_1 + 0x1c);
+  if (state == 0) {
+    return -2;
+  }
+  status = *(int *)(state + 4);
+  if (status != 0x2a && status != 0x71 && status != 0x29a) {
+    return -2;
+  }
+
+  zfree = (void (*)(int, int)) * (void **)(param_1 + 0x24);
+
+  ptr = *(int *)(state + 8);
+  if (ptr != 0) {
+    zfree(*(int *)(param_1 + 0x28), ptr);
+  }
+  ptr = *(int *)(*(int *)(param_1 + 0x1c) + 0x3c);
+  if (ptr != 0) {
+    zfree(*(int *)(param_1 + 0x28), ptr);
+  }
+  ptr = *(int *)(*(int *)(param_1 + 0x1c) + 0x38);
+  if (ptr != 0) {
+    zfree(*(int *)(param_1 + 0x28), ptr);
+  }
+  ptr = *(int *)(*(int *)(param_1 + 0x1c) + 0x30);
+  if (ptr != 0) {
+    zfree(*(int *)(param_1 + 0x28), ptr);
+  }
+  zfree(*(int *)(param_1 + 0x28), *(int *)(param_1 + 0x1c));
+  *(int *)(param_1 + 0x1c) = 0;
+
+  return ((status != 0x71) - 1) & 0xfffffffd;
+}
+
+/* zlib read_buf + hash insertion: copy up to (window_size - MIN_LOOKAHEAD)
+   bytes from the input into the deflate window via csmemcpy, update the adler
+   checksum (FUN_00110a10), then for runs of 3+ bytes rebuild the hash chain:
+   roll the rolling hash ins_h (+0x40) over each byte and link head (+0x38) /
+   prev (+0x3c) using the window mask (+0x2c). The shift (+0x50) and hash mask
+   (+0x4c) drive the rolling hash. Returns Z_OK (0), or Z_STREAM_ERROR (-2) on
+   a bad stream. */
+int FUN_00110d40(int param_1, int param_2, unsigned int param_3)
+{
+  int state;
+  unsigned int more;
+  unsigned int n;
+  unsigned int count;
+  unsigned int ins_h;
+
+  if (param_1 == 0) {
+    return -2;
+  }
+  state = *(int *)(param_1 + 0x1c);
+  if (state == 0) {
+    return -2;
+  }
+  if (param_2 == 0) {
+    return -2;
+  }
+  if (*(int *)(state + 4) != 0x2a) {
+    return -2;
+  }
+
+  *(int *)(param_1 + 0x30) =
+      (int)FUN_00110a10(*(unsigned int *)(param_1 + 0x30),
+                        (unsigned char *)param_2, param_3);
+
+  if (2 < param_3) {
+    count = param_3;
+    more = *(int *)(state + 0x24) - 0x106;
+    if (more < param_3) {
+      param_2 = param_2 + (param_3 - more);
+      param_3 = more;
+      count = more;
+    }
+    csmemcpy(*(void **)(state + 0x30), (void *)param_2, param_3);
+    *(unsigned int *)(state + 0x64) = count;
+    *(unsigned int *)(state + 0x54) = count;
+
+    ins_h = (unsigned int)**(unsigned char **)(state + 0x30);
+    *(unsigned int *)(state + 0x40) = ins_h;
+    ins_h = ((ins_h << ((unsigned char)*(int *)(state + 0x50) & 0x1f)) ^
+             (unsigned int)(*(unsigned char **)(state + 0x30))[1]) &
+            *(unsigned int *)(state + 0x4c);
+    *(unsigned int *)(state + 0x40) = ins_h;
+
+    n = 0;
+    do {
+      ins_h = ((unsigned int)*(unsigned char *)(*(int *)(state + 0x30) + 2 + n) ^
+               (*(int *)(state + 0x40) << ((unsigned char)*(int *)(state + 0x50) & 0x1f))) &
+              *(unsigned int *)(state + 0x4c);
+      *(unsigned int *)(state + 0x40) = ins_h;
+      *(unsigned short *)(*(int *)(state + 0x38) + (*(unsigned int *)(state + 0x2c) & n) * 2) =
+          *(unsigned short *)(*(int *)(state + 0x3c) + ins_h * 2);
+      *(unsigned short *)(*(int *)(state + 0x3c) + *(unsigned int *)(state + 0x40) * 2) =
+          (unsigned short)n;
+      n = n + 1;
+    } while (n <= param_3 - 3);
+  }
+  return 0;
+}
+
 
