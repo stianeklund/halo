@@ -1159,3 +1159,112 @@ void *scenario_leaf_index_from_point(int object_handle, float lod)
   return (void *)0x4d8258;
 }
 
+/* 0x18c3a0 — scenario_test_pvs: per-frame potentially-visible-set debug draw.
+ * Optionally brackets the work in a 'render_objects' profile section (when both
+ * the global debug-enable byte 0x449ef1 and the section-enable byte 0x325810
+ * are set). Resets the sprite/decal draw state (FUN_0017d1a0(0)) and primes the
+ * object iteration list (FUN_0018b080), then runs the body loop exactly twice:
+ * the first pass (BL toggle 0->1) and the second. On the pass whose toggle byte
+ * BL equals the global char at 0x3256c6 it walks the visible-object table at
+ * 0x4d82d4 (count is the signed short at 0x4d82d0), seeding a 0x48-byte stack
+ * record per entry (record[0] = table[i]) and processing it via FUN_0018c100
+ * (record passed in EDI); on the other pass it draws first-person weapons
+ * (first_person_weapon_draw). Finishes by flushing geometry (FUN_0017cbf0).
+ * void(void). */
+void scenario_test_pvs(void)
+{
+  char pass;
+  short i;
+  bool again;
+  char record[0x48];
+
+  if (*(char *)0x449ef1 != 0 && *(char *)0x325810 != 0) {
+    profile_enter_private((void *)0x325808);
+  }
+  FUN_0017d1a0(0);
+  FUN_0018b080();
+  pass = 0;
+  record[8] = 0;
+  do {
+    if (pass == *(char *)0x3256c6) {
+      i = 0;
+      if (0 < *(short *)0x4d82d0) {
+        do {
+          *(int *)record = *(int *)(0x4d82d4 + (int)i * 4);
+          FUN_0018c100(record);
+          i = i + 1;
+        } while (i < *(short *)0x4d82d0);
+      }
+    } else {
+      first_person_weapon_draw();
+    }
+    again = (pass == 0);
+    pass = 1;
+  } while (again);
+  FUN_0017cbf0();
+  if (*(char *)0x449ef1 != 0 && *(char *)0x325810 != 0) {
+    profile_exit_private((void *)0x325808);
+  }
+}
+
+/* 0x18c460 — scenario_test_pas: per-frame potentially-audible-set debug draw.
+ * Optionally brackets the work in a 'render_object_shadows' profile section
+ * (when both the global debug-enable byte 0x449ef1 and the section-enable byte
+ * 0x325e08 are set). When the master enable byte 0x325800 is set, it brackets
+ * a sky/object iteration pass between two decal helpers (FUN_0017cca0 ...
+ * FUN_0017cd10): a 0x48-byte stack record is primed (record[8] = 1) and passed
+ * in EAX to scenario_get_sky, which drives the per-object iteration loop and
+ * processing internally. void(void). */
+void scenario_test_pas(void)
+{
+  char record[0x48];
+
+  if (*(char *)0x449ef1 != 0 && *(char *)0x325e08 != 0) {
+    profile_enter_private((void *)0x325e00);
+  }
+  if (*(char *)0x325800 != 0) {
+    FUN_0017cca0();
+    record[8] = 1;
+    scenario_get_sky(record);
+    FUN_0017cd10();
+  }
+  if (*(char *)0x449ef1 != 0 && *(char *)0x325e08 != 0) {
+    profile_exit_private((void *)0x325e00);
+  }
+}
+
+/* 0x18e1d0 — scenario_debug_to_file: split a scenario's name (at scenario+0x20)
+ * on its last backslash and format "<name>\<tail>" into the caller's output
+ * buffer. Asserts the scenario pointer (param_1) is non-NULL. Walks backward
+ * from the end of the name (strlen via csstrlen) to the last '\\'; if none is
+ * found returns 1 with the buffer left empty. On success formats via snprintf
+ * (out, size, "%s\\%s", name, tail) where tail = name + (offset_of_backslash +
+ * 1). Always returns 1. cdecl: scenario [EBP+8], out_buf [EBP+0xc], buf_size
+ * [EBP+0x10]. From multiplayer_scenario_description.c:0x59. */
+int scenario_debug_to_file(int param_1, char *param_2, unsigned int param_3)
+{
+  int name;
+  int idx;
+
+  if (param_1 == 0) {
+    display_assert("item",
+                   "c:\\halo\\SOURCE\\scenario\\multiplayer_scenario_description.c",
+                   0x59, 1);
+    system_exit(-1);
+  }
+  name = param_1 + 0x20;
+  *param_2 = 0;
+  idx = csstrlen((const char *)name);
+  if (-1 < idx) {
+    while (*(char *)(name + idx) != '\\') {
+      idx = idx - 1;
+      if (idx < 0) {
+        return 1;
+      }
+    }
+    snprintf(param_2, param_3, "%s\\%s", (char *)name,
+             (char *)(idx + 0x21 + param_1));
+  }
+  return 1;
+}
+
