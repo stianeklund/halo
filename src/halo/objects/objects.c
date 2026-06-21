@@ -10923,3 +10923,66 @@ char FUN_0013c080(int param_1, int param_2, int *param_3)
   }
   return 0;
 }
+
+/* 0x13a340: compute a light's effective world position and radius from its
+ * datum (pool 0x5a90bc) and 'ligh' tag.  Intensity v scales by cutoff/falloff
+ * angles; near lights return the raw position + radius, others project along
+ * the light's forward axis (+0x3c..+0x44). */
+void FUN_0013a340(int param_1, float *param_2, float *param_3)
+{
+  int e;
+  unsigned char *L;
+  float v;
+
+  e = (int)datum_get(*(data_t **)0x5a90bc, param_1);
+  L = (unsigned char *)tag_get(0x6c696768, *(int *)(e + 4));
+  v = *(float *)(L + 0xc) * *(float *)(L + 4);
+  if ((*L & 2) == 0) {
+    v = v * *(float *)(L + 0x24);
+  }
+  if (v < *(float *)(L + 0x18)) {
+    param_2[0] = *(float *)(e + 0x30);
+    param_2[1] = *(float *)(e + 0x34);
+    param_2[2] = *(float *)(e + 0x38);
+    param_3[0] = *(float *)(L + 0x18);
+    return;
+  }
+  if (*(float *)(L + 0x14) < 1.5707964f) {
+    if (0.7853982f <= *(float *)(L + 0x14)) {
+      param_3[0] = v * *(float *)(L + 0x28);
+      v = v * *(float *)(L + 0x20);
+    } else {
+      v = v / *(float *)(L + 0x20);
+      param_3[0] = v;
+    }
+    param_2[0] = v * *(float *)(e + 0x3c) + *(float *)(e + 0x30);
+    param_2[1] = v * *(float *)(e + 0x40) + *(float *)(e + 0x34);
+    param_2[2] = v * *(float *)(e + 0x44) + *(float *)(e + 0x38);
+    return;
+  }
+  param_2[0] = *(float *)(e + 0x30);
+  param_2[1] = *(float *)(e + 0x34);
+  param_2[2] = *(float *)(e + 0x38);
+  param_3[0] = v;
+}
+
+/* 0x144940: spawn a scenario object by name index — resolve the name entry in
+ * scenario+0x204 (0x24 stride), look up its palette block and base, fetch the
+ * placement element, and hand it to object_new_from_scenario. */
+void object_new_by_name(short param_1)
+{
+  int scn;
+  int e;
+  int palette;
+  int pal_base;
+  int placement;
+  int elem_size;
+
+  scn = (int)global_scenario_get();
+  e = (int)tag_block_get_element((void *)(scn + 0x204), param_1, 0x24);
+  palette = FUN_0013ca30(scn, *(short *)(e + 0x20), &elem_size);
+  pal_base = FUN_0013cab0(scn, *(short *)(e + 0x20));
+  placement = (int)tag_block_get_element((void *)palette, *(short *)(e + 0x22),
+                                         elem_size);
+  object_new_from_scenario((void *)placement, pal_base);
+}
