@@ -15596,7 +15596,7 @@
         {
           "addr": "0x140cc0",
           "decl": "void object_delete(int object_handle);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x140ce0",
