@@ -15178,7 +15178,7 @@
         {
           "addr": "0x13d640",
           "decl": "void *object_try_and_get_and_verify_type(int datum_handle, int type_mask);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13d680",
@@ -15345,7 +15345,7 @@
         {
           "addr": "0x13eb70",
           "decl": "void object_reset_markers(void);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13ebc0",
