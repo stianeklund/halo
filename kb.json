@@ -573,7 +573,7 @@
         },
         {
           "addr": "0x196c90",
-          "decl": "void FUN_00196c90(void);"
+          "decl": "short FUN_00196c90(int out_handles, short max_count, void *iter_first, void *iter_next, void *get_bounds, void *needs_update, void *mark);"
         },
         {
           "addr": "0x196d60",
@@ -21820,7 +21820,8 @@
         },
         {
           "addr": "0x18b080",
-          "decl": "void FUN_0018b080(void);"
+          "decl": "void FUN_0018b080(void);",
+          "ported": true
         },
         {
           "addr": "0x18b130",
@@ -21943,7 +21944,8 @@
         },
         {
           "addr": "0x18df70",
-          "decl": "void FUN_0018DF70(void);"
+          "decl": "void FUN_0018df70(short *iterator, int index_buffer, short count);",
+          "ported": true
         },
         {
           "addr": "0x18dfe0",
@@ -21999,7 +22001,8 @@
         },
         {
           "addr": "0x18e8a0",
-          "decl": "void scenario_get_fog_region_index(void);"
+          "decl": "void scenario_get_fog_region_index(int region_a, int region_b);",
+          "ported": true
         },
         {
           "addr": "0x18e9b0",

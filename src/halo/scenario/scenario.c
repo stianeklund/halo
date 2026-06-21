@@ -63,6 +63,38 @@ void FUN_0018B000(void)
   *(data_t **)0x50652c = 0;
 }
 
+/* 0x18b080 — rebuild the per-frame rendered-object list. Resets the object
+ * marker pass, gathers up to 0x100 collideable then noncollideable objects
+ * across all clusters into the int[256] table at 0x4d82d4 (count tracked in
+ * the int16 counter at 0x4d82d0), ends the marker pass, then errors once if
+ * the table filled to MAXIMUM_RENDERED_OBJECTS (0x100). cdecl, void(void). */
+void FUN_0018b080(void)
+{
+  short count;
+
+  object_reset_markers();
+  count = (short)FUN_00196c90((int)0x4d82d4, 0x100,
+                              (void *)cluster_partition_object_iter_first,
+                              (void *)cluster_partition_object_iter_next,
+                              (void *)FUN_0018aef0,
+                              (void *)object_markers_need_update,
+                              (void *)object_mark);
+  *(short *)0x4d82d0 = count;
+  count = (short)FUN_00196c90(0x4d82d4 + (int)count * 4,
+                              0x100 - *(unsigned short *)0x4d82d0,
+                              (void *)cluster_get_first_noncollideable_object,
+                              (void *)cluster_get_next_noncollideable_object,
+                              (void *)FUN_0018aef0,
+                              (void *)object_markers_need_update,
+                              (void *)object_mark);
+  *(short *)0x4d82d0 = (short)(*(short *)0x4d82d0 + count);
+  object_marker_end();
+  if (*(unsigned short *)0x4d82d0 == 0x100 && *(char *)0x4d86d5 == 0) {
+    error(2, "MAXIMUM_RENDERED_OBJECTS exceeded.");
+    *(char *)0x4d86d5 = 1;
+  }
+}
+
 /* 0x18c580 — 3-key record comparator: compares two records by signed int16 at
  * +2, then signed int16 at +4, then unsigned byte at +6; returns the first
  * non-zero difference (qsort/bsearch-style ordering). */
@@ -79,6 +111,7 @@ int FUN_0018c580(int param_1, int param_2)
   }
   return diff;
 }
+
 
 void scenario_initialize(void)
 {
@@ -943,6 +976,29 @@ void FUN_0018d2c0(uint32_t *param_1, int16_t param_2, uint32_t param_3,
   param_1[7] = view[2]; /* +0x1c */
 }
 
+/* 0x18df70 — triangle_strip iterator init (render/triangle_strips.c:0x16-0x17).
+ * Asserts both the iterator (param_1) and the vertex-index buffer (param_2) are
+ * non-NULL, then stores: +0x4 = index buffer ptr, +0x0 = vertex/index count
+ * (int16 param_3), +0x2 = 0 (current position), +0x9 = 0x73 ('s' state tag).
+ * cdecl, void. */
+void FUN_0018df70(short *iterator, int index_buffer, short count)
+{
+  if (iterator == (short *)0) {
+    display_assert("iterator", "c:\\halo\\SOURCE\\render\\triangle_strips.c",
+                   0x16, 1);
+    system_exit(-1);
+  }
+  if (index_buffer == 0) {
+    display_assert("triangle_strip_vertex_indices",
+                   "c:\\halo\\SOURCE\\render\\triangle_strips.c", 0x17, 1);
+    system_exit(-1);
+  }
+  *(int *)(iterator + 2) = index_buffer;
+  *iterator = count;
+  iterator[1] = 0;
+  *((char *)iterator + 9) = 0x73;
+}
+
 /* 0x18e800 — scenario_ensure_point_within_world: test whether a cluster is
  * audible/visible by checking bit cluster_index1 in the current structure
  * BSP's per-cluster sound-data bitvector for source cluster_index. Asserts the
@@ -1057,5 +1113,27 @@ char FUN_0018e6a0(int unused, float *out_up, float *out_left, float *out_d,
     out_e[2] = src[2];
   }
   return 1;
+}
+
+/* 0x18e8a0 — AND the two clusters' PVS (potentially-visible-set) bit vectors.
+ * Asserts the structure BSP global (0x5064e0) is loaded, fetches each region's
+ * cluster sound-data PVS bitfield via structure_bsp_get_cluster_sound_data,
+ * then bit_vector_and's them, size = cluster count (uint16 @bsp+0x134), into a
+ * NULL result buffer (in-place / dry-run, result discarded). cdecl, void. */
+void scenario_get_fog_region_index(int region_a, int region_b)
+{
+  int bsp;
+  int pvs_a;
+  int pvs_b;
+
+  if (*(int *)0x5064e0 == 0) {
+    display_assert("global_structure_bsp",
+                   "c:\\halo\\SOURCE\\scenario\\scenario.c", 0xc5, 1);
+    system_exit(-1);
+  }
+  bsp = *(int *)0x5064e0;
+  pvs_a = (int)structure_bsp_get_cluster_sound_data((void *)bsp, region_a);
+  pvs_b = (int)structure_bsp_get_cluster_sound_data((void *)bsp, region_b);
+  bit_vector_and(*(unsigned short *)(bsp + 0x134), pvs_a, pvs_b, 0);
 }
 
