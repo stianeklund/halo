@@ -8380,9 +8380,12 @@ void FUN_00028ed0(float *look_vectors, float *idle_direction, int actor_handle)
    28660-returned-0 path disarms the look gate and falls through to the
    snap-to-original handling, which is the intended no-look behaviour.
 
-   NOTE (upstream): the root reason +0x570 is left (0,0,0) is FUN_000283b0 /
-   FUN_0014df70 reporting every idle-look candidate blocked at activation;
-   that raycast lift should be re-validated separately. */
+   NOTE (upstream): the root reason +0x570 carries a bad vector (live: an
+   uninitialized X = 0xffffffff with valid Y/Z, i.e. NaN; sometimes (0,0,0))
+   is FUN_000283b0 / FUN_0014df70 reporting every idle-look candidate blocked
+   at activation and returning 0 without writing +0x570, leaving its prior /
+   uninitialized contents; that raycast lift should be re-validated
+   separately. */
 static char look_spec_28660_safe(int actor_handle, char *actor,
                                  short *look_spec, float *out_vec)
 {
@@ -8402,7 +8405,13 @@ static char look_spec_28660_safe(int actor_handle, char *actor,
   }
   if (tgt != 0) {
     m2 = tgt[0] * tgt[0] + tgt[1] * tgt[1] + tgt[2] * tgt[2];
-    if (m2 < 1e-8f)
+    /* !(m2 >= eps) also rejects NaN. A blocked idle-look raycast can leave a
+       look-spec component uninitialized (live: +0x570 X = 0xffffffff, the
+       stack sentinel) while Y/Z stay valid; that makes m2 NaN. A plain
+       `m2 < eps` is FALSE for NaN (unordered compare), so the NaN would pass
+       through to FUN_00028660 and trip assert_valid_real_normal3d at #529.
+       The negated `>=` form fires on NaN, (0,0,0), and tiny vectors alike. */
+    if (!(m2 >= 1e-8f))
       return 0;
   }
   return FUN_00028660(actor_handle, look_spec, out_vec);
