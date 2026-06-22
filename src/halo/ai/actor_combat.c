@@ -651,9 +651,12 @@ int actor_aim_grenade(int actor_handle, void *aim_params, float *out_aim_vector)
           planar[0] * *(float *)(actor + 0x178);
       sign = (t > *(float *)0x2533c0) ? 1 : -1;
       sin_a = (float)sign * *(float *)0x253398;
-      nrm_z = aim_z;
+      /* orig 0x22cc2: rotate input z is the facing z (actor+0x17c), set at
+         line 649 above. Do NOT clobber it with aim_z before the rotate. */
       rotate_vector3d_by_sincos(&nrm_x, *(float **)0x31fc44, sin_a,
                                 0.857651889f /* 0x3f5db3d7 */);
+      /* orig 0x22d1b: overwrite the rotated z with aim_z AFTER the rotate. */
+      nrm_z = aim_z;
       planar_mag = (float)x87_sqrt(aim_x * aim_x + aim_y * aim_y);
       nrm_x = nrm_x * planar_mag;
       nrm_y = planar_mag * nrm_y;
