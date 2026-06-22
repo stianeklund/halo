@@ -1235,14 +1235,14 @@
     "addr": "0x18c3a0",
     "name": "scenario_test_pvs",
     "object": "scenario.obj",
-    "reason": "83.8% VC71; reg-arg-caller ceiling (@<edi> FUN_0018c100 loop setup) \u2014 pending equivalence",
+    "reason": "83.8% VC71; reg-arg-caller ceiling (@<edi> FUN_0018c100 loop setup) — pending equivalence",
     "since": "2026-06-21"
   },
   {
     "addr": "0x18e1d0",
     "name": "scenario_debug_to_file",
     "object": "scenario.obj",
-    "reason": "72.9% VC71; variadic snprintf + assert idiom gap \u2014 deferred",
+    "reason": "72.9% VC71; variadic snprintf + assert idiom gap — deferred",
     "since": "2026-06-21"
   },
   {
@@ -1291,7 +1291,7 @@
     "addr": "0x135210",
     "name": "FUN_00135210",
     "object": "objects.obj",
-    "reason": "Faithful lift kept dormant: VC71 80.7% (FPU view-depth dot product computed/kept on the x87 stack across a branch then conditionally discarded \u2014 clang single-expression cannot reproduce the FSTP ST0 cleanup; marker-buffer/float-local overlap). x87 temps-across-branch ceiling. References FUN_00134e80 (also dormant) as render callback. Equivalence vacuous (zero-fill early-exits tag gate; unported FUN_0017cfb0).",
+    "reason": "Faithful lift kept dormant: VC71 80.7% (FPU view-depth dot product computed/kept on the x87 stack across a branch then conditionally discarded — clang single-expression cannot reproduce the FSTP ST0 cleanup; marker-buffer/float-local overlap). x87 temps-across-branch ceiling. References FUN_00134e80 (also dormant) as render callback. Equivalence vacuous (zero-fill early-exits tag gate; unported FUN_0017cfb0).",
     "since": "2026-06-22"
   },
   {
@@ -1305,14 +1305,14 @@
     "addr": "0x13cb80",
     "name": "FUN_0013cb80",
     "object": "objects.obj",
-    "reason": "Faithful lift kept dormant by Gate B cluster coupling (NOT a score failure: VC71 86.7%). Calls object_new_from_scenario (0x144770) and objects_garbage_collect_tick (0x144b50) \u2014 both GC/lifecycle cluster members \u2014 and mutates streaming state (DAT_0046f078 BSP-loaded mask + per-placement flags element+0x20). Scenario object spawner for a BSP slot; piecemeal cluster activation is unsafe. Activate only as part of a coordinated object-lifecycle cluster activation.",
+    "reason": "Faithful lift kept dormant by Gate B cluster coupling (NOT a score failure: VC71 86.7%). Calls object_new_from_scenario (0x144770) and objects_garbage_collect_tick (0x144b50) — both GC/lifecycle cluster members — and mutates streaming state (DAT_0046f078 BSP-loaded mask + per-placement flags element+0x20). Scenario object spawner for a BSP slot; piecemeal cluster activation is unsafe. Activate only as part of a coordinated object-lifecycle cluster activation.",
     "since": "2026-06-22"
   },
   {
     "addr": "0x13ecb0",
     "name": "attachments_new",
     "object": "objects.obj",
-    "reason": "Faithful lift kept dormant by Gate B cluster coupling (NOT a score failure: VC71 92.1% vs fresh per-function ref delinked/functions/0013ecb0.obj \u2014 note vc71_verify auto-selects a stale chunk 0013dda0.obj giving a false 42.6%). Caller edge from object_new (0x143c80, lifecycle cluster member) at 0x144147, AND object-lifecycle mutation: fills the object attachment table (object+0xf4 type bytes, object+0xfc handles) and sets creation flags (object+0x4 |= 0x100/0x400). Part of the object creation path; activate only with the lifecycle cluster.",
+    "reason": "Faithful lift kept dormant by Gate B cluster coupling (NOT a score failure: VC71 92.1% vs fresh per-function ref delinked/functions/0013ecb0.obj — note vc71_verify auto-selects a stale chunk 0013dda0.obj giving a false 42.6%). Caller edge from object_new (0x143c80, lifecycle cluster member) at 0x144147, AND object-lifecycle mutation: fills the object attachment table (object+0xf4 type bytes, object+0xfc handles) and sets creation flags (object+0x4 |= 0x100/0x400). Part of the object creation path; activate only with the lifecycle cluster.",
     "since": "2026-06-22"
   },
   {
@@ -1327,6 +1327,34 @@
     "name": "FUN_00139b40",
     "object": "objects.obj",
     "reason": "Faithful lift kept dormant by score gate. VC71 86.3% (73 candidate vs 66 reference insns) measured against fresh per-function ref delinked/functions/00139b40.obj. Gate B passes (condition holds): callees {0x99530 real_a_rgb_color_to_pixel32, 0x180770, 0x1ba140 tag_get, 0x180b10} and sole caller 0x18ca40 are all outside the GC/lifecycle cluster; function only appends a record to the per-frame light-marker array at 0x5a8f6c (count 0x5a90ac, max 8, 0x28 stride) -- no object garbage/lifecycle mutation. Score gap (~7 insns) is the float-inequality guard: original emits per-component memory-operand FCOMP (FLD [color+N]; FCOMP [0x2533c0]) while VC71 on the C || chain hoists *(float*)0x2533c0 to a register and emits register fucompp; plus tail integer-codegen scheduling (orl $-1 vs movl, count/+0x20 store order). A correctly-pinned permuter run (delinked/functions/00139b40.obj, 300s/4 threads, 2026-06-22) found lower-score candidates; none confirmed to cross the 88% activation bar this pass (an earlier 367-iter run was vacuous -- it mis-selected stale ref 00085110.obj). Re-evaluate in a dedicated permuter-apply session before activation. Equivalence is the wrong lane: two callees are XCALL literal-address casts -> --allow-stubs makes the side-effect store diff stub-vs-stub (vacuous, per feedback_equivalence_hardcoded_import). param_6 confirmed float (caller MOV+PUSH no FILD; callee 0x180770 FLD [EBP+8]); kb decl updated int->float param_6.",
+    "since": "2026-06-22"
+  },
+  {
+    "addr": "0x13e1f0",
+    "name": "object_choose_random_change_colors",
+    "object": "objects.obj",
+    "reason": "Faithful @<eax>-defined lift kept dormant. VC71 67.0% (190 candidate vs 168 reference insns) via objcopy-bridged compare_obj against fresh per-function ref delinked/functions/0013e1f0.obj (vc71_verify auto-path cannot bridge the real-name<->FUN_ symbol map on this 12k-line TU; symbol _object_choose_random_change_colors is present in the compiled candidate, confirmed by objdump). Two caps stack: (1) @<eax>-defined prologue cannot be emitted by cl.exe to match (feedback_eax_defining_fn_vc71_ceiling), (2) x87 RNG (x87_fmod on a basis-vector dot) plus per-slot CDF blend produce extra FPU spills, inflating the candidate by ~22 insns. Gate B passes: callees {FUN_0007c270 color-blend cdecl, x87_fmod} are pure math with no GC/lifecycle edge; writes only the object change-color slots and their +0x30 mirror. Equivalence is the only activation lane but is vacuous on zero-fill (permutation count comes from tag data = 0, so the CDF loop body never runs); needs a live object-appearance state snapshot not currently captured. Disasm-derived (FABS-on-input not output, push-then-fstp arg5 recovered). Safe dormant.",
+    "since": "2026-06-22"
+  },
+  {
+    "addr": "0x13e5d0",
+    "name": "object_compute_change_colors",
+    "object": "objects.obj",
+    "reason": "Faithful @<eax>-defined lift kept dormant. VC71 61.3% (129 candidate vs 145 reference insns -- candidate SMALLER) via objcopy-bridged compare_obj against fresh per-function ref delinked/functions/0013e5d0.obj. Caps: (1) @<eax> prologue ceiling, (2) the lift collapses a CMP 0x5; JL vestigial dual-branch bounds-check to a single obj+0xd0+idx*4 read (both arms emit identical loads per disasm), which drops the duplicate-load insns and accounts for most of the 16-insn shortfall vs reference. Reads the precomputed function-value array at obj+0xd0, blends via FUN_0007c270, clamps [0,1], gated on obj_tag+0x24 bit0. Gate B passes (no GC/lifecycle edge; writes only obj+0x168 change-color slots). Equivalence vacuous on zero-fill (anim-entry count from tag = 0). Branch-collapse flagged for a future re-lift if activation is ever pursued. Safe dormant.",
+    "since": "2026-06-22"
+  },
+  {
+    "addr": "0x13e7b0",
+    "name": "object_compute_function_values",
+    "object": "objects.obj",
+    "reason": "Faithful @<eax>-defined lift kept dormant. VC71 81.0% (266 candidate vs 277 reference insns) via objcopy-bridged compare_obj against fresh per-function ref delinked/functions/0013e7b0.obj. Caps: @<eax> prologue ceiling + non-leaf x87 pipeline (game_time_get, FUN_0010a5e0 waveform, transition_function_evaluate, floor, x87_fmod x3) whose 80-bit-vs-float rounding and spill scheduling cl.exe cannot reproduce. Ghidra decompiler was structurally untrustworthy here; whole body written from disassembly (output array obj+0xe4 not 0xd0, active bitmask obj+0xd3, FDIVP-vs-discard gated on fv>0, TEST AH,0x44 = !=0.0). Gate B passes (read-mostly per-frame function evaluator; writes only obj+0xe4 / obj+0xd3, no GC/lifecycle mutation). Equivalence vacuous on zero-fill (per-frame tag-function loop count = 0). Safe dormant.",
+    "since": "2026-06-22"
+  },
+  {
+    "addr": "0x140ad0",
+    "name": "object_choose_random_region_permutations",
+    "object": "objects.obj",
+    "reason": "Faithful @<edi>-defined lift kept dormant. VC71 81.9% (56 candidate vs 49 reference insns) via objcopy-bridged compare_obj against fresh per-function ref delinked/functions/00140ad0.obj. @<edi> confirmed from entry disasm (PUSH EDI before object_get_and_verify_type; EDI live across all calls). Orchestrator: resolves the model tag, picks per-region permutation indices honoring the variant at obj+0x6e, falls back to variant -1 then determines and records the actual variant. Callees object_select_random_region_permutations_by_variant(@<eax>) and object_determine_variant_number(@<eax>) are themselves dormant. Caps: @<edi> prologue ceiling + cdecl-shift cascade on the call sites. Gate B passes (no GC/lifecycle edge). Equivalence vacuous on zero-fill (object_get_and_verify_type + tag reads early-exit; the two @<eax> callees would be stubbed). Safe dormant.",
     "since": "2026-06-22"
   }
 ]
