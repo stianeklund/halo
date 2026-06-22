@@ -1235,14 +1235,14 @@
     "addr": "0x18c3a0",
     "name": "scenario_test_pvs",
     "object": "scenario.obj",
-    "reason": "83.8% VC71; reg-arg-caller ceiling (@<edi> FUN_0018c100 loop setup) — pending equivalence",
+    "reason": "83.8% VC71; reg-arg-caller ceiling (@<edi> FUN_0018c100 loop setup) \u2014 pending equivalence",
     "since": "2026-06-21"
   },
   {
     "addr": "0x18e1d0",
     "name": "scenario_debug_to_file",
     "object": "scenario.obj",
-    "reason": "72.9% VC71; variadic snprintf + assert idiom gap — deferred",
+    "reason": "72.9% VC71; variadic snprintf + assert idiom gap \u2014 deferred",
     "since": "2026-06-21"
   },
   {
@@ -1291,7 +1291,7 @@
     "addr": "0x135210",
     "name": "FUN_00135210",
     "object": "objects.obj",
-    "reason": "Faithful lift kept dormant: VC71 80.7% (FPU view-depth dot product computed/kept on the x87 stack across a branch then conditionally discarded — clang single-expression cannot reproduce the FSTP ST0 cleanup; marker-buffer/float-local overlap). x87 temps-across-branch ceiling. References FUN_00134e80 (also dormant) as render callback. Equivalence vacuous (zero-fill early-exits tag gate; unported FUN_0017cfb0).",
+    "reason": "Faithful lift kept dormant: VC71 80.7% (FPU view-depth dot product computed/kept on the x87 stack across a branch then conditionally discarded \u2014 clang single-expression cannot reproduce the FSTP ST0 cleanup; marker-buffer/float-local overlap). x87 temps-across-branch ceiling. References FUN_00134e80 (also dormant) as render callback. Equivalence vacuous (zero-fill early-exits tag gate; unported FUN_0017cfb0).",
     "since": "2026-06-22"
   },
   {
@@ -1305,14 +1305,14 @@
     "addr": "0x13cb80",
     "name": "FUN_0013cb80",
     "object": "objects.obj",
-    "reason": "Faithful lift kept dormant by Gate B cluster coupling (NOT a score failure: VC71 86.7%). Calls object_new_from_scenario (0x144770) and objects_garbage_collect_tick (0x144b50) — both GC/lifecycle cluster members — and mutates streaming state (DAT_0046f078 BSP-loaded mask + per-placement flags element+0x20). Scenario object spawner for a BSP slot; piecemeal cluster activation is unsafe. Activate only as part of a coordinated object-lifecycle cluster activation.",
+    "reason": "Faithful lift kept dormant by Gate B cluster coupling (NOT a score failure: VC71 86.7%). Calls object_new_from_scenario (0x144770) and objects_garbage_collect_tick (0x144b50) \u2014 both GC/lifecycle cluster members \u2014 and mutates streaming state (DAT_0046f078 BSP-loaded mask + per-placement flags element+0x20). Scenario object spawner for a BSP slot; piecemeal cluster activation is unsafe. Activate only as part of a coordinated object-lifecycle cluster activation.",
     "since": "2026-06-22"
   },
   {
     "addr": "0x13ecb0",
     "name": "attachments_new",
     "object": "objects.obj",
-    "reason": "Faithful lift kept dormant by Gate B cluster coupling (NOT a score failure: VC71 92.1% vs fresh per-function ref delinked/functions/0013ecb0.obj — note vc71_verify auto-selects a stale chunk 0013dda0.obj giving a false 42.6%). Caller edge from object_new (0x143c80, lifecycle cluster member) at 0x144147, AND object-lifecycle mutation: fills the object attachment table (object+0xf4 type bytes, object+0xfc handles) and sets creation flags (object+0x4 |= 0x100/0x400). Part of the object creation path; activate only with the lifecycle cluster.",
+    "reason": "Faithful lift kept dormant by Gate B cluster coupling (NOT a score failure: VC71 92.1% vs fresh per-function ref delinked/functions/0013ecb0.obj \u2014 note vc71_verify auto-selects a stale chunk 0013dda0.obj giving a false 42.6%). Caller edge from object_new (0x143c80, lifecycle cluster member) at 0x144147, AND object-lifecycle mutation: fills the object attachment table (object+0xf4 type bytes, object+0xfc handles) and sets creation flags (object+0x4 |= 0x100/0x400). Part of the object creation path; activate only with the lifecycle cluster.",
     "since": "2026-06-22"
   },
   {
@@ -1361,7 +1361,7 @@
     "addr": "0x10ce10",
     "name": "vector_to_line_distance_squared3d",
     "object": "real_math.obj",
-    "reason": "Faithful cdecl lift kept dormant pending clean behavioral verification (NOT yet positively verified). vector_to_line_distance_squared3d: squared distance between two 3D line segments (p1/p2 = segment A start/dir, p3/p4 = segment B start/dir). Body is disasm-faithful: every FPU operand order traced against the decompile of FUN_0010ce10 (dir_a x dir_b cross direction, delta subtraction, d0_d1/d0_sq/d1_sq, projection s_start/t_start signs incl. t negation, decompile-exact clamp branch structure, scalar-triple-product non-parallel s/t, and the two FUN_0010cd40 point-segment-distance calls). 2nd FUN_0010cd40 arg = start_a (p1): decompile's extraout_EDX is the same register-aliasing trap the reviewer verified clean for the activated sibling 0x10dcb0 (FUN_0010cd40 preserves EDX, which holds p1 from entry). closest_a/closest_b made float[3] arrays to guarantee the contiguity the callee reads (also silences a false -Wunused-but-set-variable). VERIFICATION STATUS: VC71 byte-match is a structural TU cap (positive control: shipping ported FUN_0010cc90 = 64.7% via the same path). Equivalence is the intended gate but currently FAILS 0/60 -- the lifted candidate returns the x87 indefinite NaN on every seed while the oracle returns finite values, with unicorn_diff reporting 'lifted class: 0 data refs' (the candidate's absolute-address float-constant loads at 0x2533c0/c8/d0, 0x253398/f44, 0x2548fc are not seeded, so the parallel-vs-nonparallel epsilon reads 0 and the function degenerates). Strong evidence this is a harness constant-seeding limitation (with seeded constants the traced logic has no unguarded division and cannot produce NaN), but it is NOT positively confirmed: the same-family sibling vector_intersects_pill2d (0x10dcb0) passed equiv 100/100, so this function's universal-NaN warrants a state-snapshot equiv run (real globals) before activation. Gate B passes: pure geometry; callee FUN_0010cd40 is ported geometry; no GC/lifecycle cluster edge. Activation deferred to a state-snapshot or harness-constant-seeding fix.",
+    "reason": "Faithful cdecl lift, dormant pending a fix for a REAL residual divergence. CORRECTION 2026-06-22: the earlier 'equiv unverifiable via harness' was WRONG. The harness IS usable -- with a constants snapshot (static .rdata float consts 0.0/0.5/1.0/parallel-eps/len-eps/REAL_MAX seeded byte-exact from cachebeta.xbe; recipe regenerates artifacts/snapshots/real_math_consts.json) AND invoking unicorn_diff BY NAME not address (the candidate .obj symbol is the decl name, not FUN_<addr>), the universal-NaN ('0 data refs') is GONE and equiv runs 15/60 pass with real finite divergences (67.9% cov, high conf; INSN 245 oracle vs 273 lifted). So ce10 has a REAL lift bug, NOT a harness artifact. VERIFIED CORRECT: n = p2 x p4 (cross), non-parallel s,t = (delta x d2).n/|n|^2 and (delta x d1).n/|n|^2 (standard line-line closest-point), FUN_0010cd40 is plain cdecl(point,seg_start,seg_dir) and call arg-order is right. Bug is ISOLATED to the non-parallel s_oob/t_oob clamp classification (or the parallel projection): seed-56 oracle 0.00097 vs lifted 6.5e18 = an in-range-vs-out-of-range misclassification picking a far clamp endpoint. Activation pending that clamp-path fix; harness now ready to debug it.",
     "since": "2026-06-22"
   }
 ]
