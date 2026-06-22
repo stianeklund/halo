@@ -1275,6 +1275,82 @@ def check_vector_arg_contiguity(filepath, content, lines):
     return errors
 
 
+# ---------------------------------------------------------------------------
+# §23: NaN-blind degenerate-vector guard (WARN)
+# ---------------------------------------------------------------------------
+# A guard that rejects a degenerate vector with `if (<mag/dot> < EPS) return`
+# is FALSE when the operand is NaN (an unordered float compare), so a NaN
+# component slips past the guard into a normalize/assert path.  Use the
+# negated form `!(expr >= EPS)`, which is TRUE for NaN as well as
+# (0,0,0)/tiny.  (actor_looking.c:529 NaN-X aim HALT, 2026-06-22: an
+# uninitialized look-spec X = 0xffffffff made m2 NaN; `m2 < 1e-8f` was false
+# so the NaN reached assert_valid_real_normal3d.)
+_NAN_GUARD_CMP = re.compile(
+    r'\bif\s*\(\s*(?P<lhs>[A-Za-z0-9_.\[\]>*\s()-]+?)\s*(?P<op><=?)\s*'
+    r'(?P<rhs>(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?[fF]?)\s*\)'
+)
+_MAG_NAME = re.compile(
+    r'^(?:m2|mag|mag2|magsq|magnitude2?|len|len2|lensq|length2?|dist|dist2|'
+    r'distance|d2|dot|dotp|dotprod|sq|sqr|sqmag|sqlen|norm|norm2)$',
+    re.IGNORECASE,
+)
+_MAG_CALL = re.compile(
+    r'\b(?:magnitude\w*|dot_product\w*|vector_dot\w*|length\w*|distance\w*|'
+    r'squared?_?(?:magnitude|length|distance)\w*)\s*\(',
+    re.IGNORECASE,
+)
+_PRODUCT = re.compile(r'\w\s*\*\s*\w')
+
+
+def check_nan_blind_guard(filepath, content, lines):
+    """Flag `if (<mag/dot> < EPS) reject` guards that silently pass NaN through.
+
+    A degenerate-vector guard that rejects with `<` (or `<=`) against a small
+    epsilon is FALSE for a NaN operand (an unordered float compare), so a NaN
+    component slips past it into a normalize/assert path.  Use the negated
+    `!(expr >= EPS)` form, which is TRUE for NaN as well as (0,0,0)/tiny.
+    See lift-learnings §23.  Suppress with /* hazard-ok: nan-checked */ on the
+    same line.
+    """
+    errors = []
+    flat_lines = _blank_comments_and_literals(content).split('\n')
+    for i, fline in enumerate(flat_lines):
+        m = _NAN_GUARD_CMP.search(fline)
+        if not m:
+            continue
+        lhs = m.group('lhs').strip()
+        rhs_raw = m.group('rhs')
+        try:
+            eps = float(rhs_raw.rstrip('fF'))
+        except ValueError:
+            continue
+        # Only epsilon-sized positive thresholds (degenerate-reject), not real
+        # thresholds (0.1, 0.5, ...) or integer/loop bounds.
+        if not (0.0 < eps <= 0.01):
+            continue
+        # LHS must look like a magnitude / dot / length quantity.
+        mag_like = (bool(_MAG_NAME.match(lhs)) or bool(_MAG_CALL.search(lhs))
+                    or len(_PRODUCT.findall(lhs)) >= 2)
+        if not mag_like:
+            continue
+        # The guard must REJECT the degenerate case (return/continue/break/goto)
+        # on the same line or within the next two lines.
+        window = ' '.join(flat_lines[i:i + 3])
+        if not re.search(r'\b(?:return|continue|break|goto)\b', window):
+            continue
+        src_line = lines[i] if i < len(lines) else ''
+        if 'hazard-ok' in src_line:
+            continue
+        relpath = os.path.relpath(filepath, ROOT_DIR)
+        errors.append(
+            f'  {relpath}:{i + 1}: if ({lhs} {m.group("op")} {rhs_raw}) — '
+            f'`{m.group("op")}` is FALSE for NaN, so a NaN {lhs} slips this '
+            f'degenerate-vector guard. Use !({lhs} >= {rhs_raw}) to also '
+            f'reject NaN (see lift-learnings §23)'
+        )
+    return errors
+
+
 def main():
     frame_audit = '--frame-size-audit' in sys.argv
     quiet = '-q' in sys.argv or '--quiet' in sys.argv or os.environ.get('LOG_LEVEL') == 'WARNING'
@@ -1301,6 +1377,7 @@ def main():
     all_discard_result_errors = []
     all_inplace_mut_errors = []
     all_contiguity_errors = []
+    all_nan_guard_errors = []
 
     for fpath in c_files:
         with open(fpath, 'r', errors='replace') as f:
@@ -1321,6 +1398,7 @@ def main():
         all_discard_result_errors.extend(check_discarded_result(fpath, content, lines))
         all_inplace_mut_errors.extend(check_inplace_mutator_misuse(fpath, content, lines))
         all_contiguity_errors.extend(check_vector_arg_contiguity(fpath, content, lines))
+        all_nan_guard_errors.extend(check_nan_blind_guard(fpath, content, lines))
         if frame_audit:
             all_frame_errors.extend(check_frame_sizes(fpath, content, lines))
 
@@ -1340,7 +1418,8 @@ def main():
             f'param_loop: {len(all_param_loop_errors)}, '
             f'discard_result: {len(all_discard_result_errors)}, '
             f'inplace_mutator: {len(all_inplace_mut_errors)}, '
-            f'vec_contiguity: {len(all_contiguity_errors)}'
+            f'vec_contiguity: {len(all_contiguity_errors)}, '
+            f'nan_guard: {len(all_nan_guard_errors)}'
         )
         if frame_audit:
             counts += f', frame_sizes: {len(all_frame_errors)}'
@@ -1351,7 +1430,7 @@ def main():
                  len(all_concat_errors) + len(all_float_smuggle_errors) +
                  len(all_addr_value_add_errors) + len(all_param_loop_errors) +
                  len(all_discard_result_errors) + len(all_inplace_mut_errors) +
-                 len(all_contiguity_errors))
+                 len(all_contiguity_errors) + len(all_nan_guard_errors))
         if total:
             print(counts, file=sys.stderr)
     else:
@@ -1537,6 +1616,20 @@ def main():
                 file=sys.stderr,
             )
             for e in all_contiguity_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
+
+        if all_nan_guard_errors:
+            print(
+                'WARNING: NaN-blind degenerate-vector guard.\n'
+                'A guard rejecting a degenerate vector with `if (mag < EPS)`\n'
+                'is FALSE for a NaN operand (unordered compare), so a NaN\n'
+                'component slips through into normalize/assert. Use the\n'
+                'negated `!(mag >= EPS)` form, which is TRUE for NaN too\n'
+                '(see lift-learnings §23):\n',
+                file=sys.stderr,
+            )
+            for e in all_nan_guard_errors:
                 print(e, file=sys.stderr)
             print(file=sys.stderr)
 
