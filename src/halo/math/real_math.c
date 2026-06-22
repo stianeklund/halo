@@ -2287,6 +2287,156 @@ distance_check:
   return 1;
 }
 
+/* 0x10ce10 — squared distance between two 3D line segments.
+ * p1/p2 = segment A (start, dir); p3/p4 = segment B (start, dir). Returns the
+ * squared distance between the closest points of the two segments.
+ *   Parallel case (|dir_a x dir_b|^2 < epsilon): closest-point parameters s,t
+ *     via projection + clamp-midpoint, then fall through to the distance.
+ *   Non-parallel: scalar-triple-product params s,t; if either is out of [0,1]
+ *     the closest approach is at an endpoint -> clamp it onto its line and take
+ *     the min of point-vs-segment squared distances via FUN_0010cd40 (asserting
+ *     at least one is finite); else both in [0,1] (asserted) -> fall through.
+ * Constants: 0x2533c0=0.0f, 0x2533c8=1.0f, 0x253398=0.5f, 0x253f44=len eps,
+ * 0x2533d0=double parallel eps, 0x2548fc=REAL_MAX (FLT_MAX). */
+float vector_to_line_distance_squared3d(float *p1, float *p2, float *p3,
+                                        float *p4)
+{
+  float delta_x, delta_y, delta_z;
+  float nx, ny, nz;
+  float cross_sq;
+  float d0_d1, d0_sq, d1_sq;
+  float inv;
+  float s, t;
+  float s_start, s_end, t_start, t_end;
+  float clamped_s, clamped_t;
+  float d0, d1;
+  float closest_a[3];
+  float closest_b[3];
+  float diff_x, diff_y, diff_z;
+  char s_oob, t_oob;
+
+  delta_x = p3[0] - p1[0];
+  delta_y = p3[1] - p1[1];
+  delta_z = p3[2] - p1[2];
+
+  /* n = dir_a x dir_b */
+  nx = p2[1] * p4[2] - p4[1] * p2[2];
+  ny = p2[2] * p4[0] - p2[0] * p4[2];
+  nz = p4[1] * p2[0] - p2[1] * p4[0];
+  cross_sq = nx * nx + ny * ny + nz * nz;
+
+  if (fabsf(cross_sq) < (float)*(double *)0x2533d0) {
+    /* parallel: closest-point parameters via projection + clamp-midpoint */
+    d0_d1 = p2[1] * p4[1] + p2[2] * p4[2] + p2[0] * p4[0];
+    d0_sq = p2[1] * p2[1] + p2[2] * p2[2] + p2[0] * p2[0];
+    if (d0_sq <= *(float *)0x253f44) {
+      s = *(float *)0x2533c0;
+    } else {
+      inv = *(float *)0x2533c8 / d0_sq;
+      s_start = (delta_x * p2[0] + delta_y * p2[1] + delta_z * p2[2]) * inv;
+      s_end = inv * d0_d1 + s_start;
+      clamped_s = *(float *)0x2533c0;
+      if (*(float *)0x2533c0 <= s_start) {
+        clamped_s = s_start;
+        if (*(float *)0x2533c8 < s_start)
+          clamped_s = *(float *)0x2533c8;
+      }
+      if (*(float *)0x2533c0 <= s_end) {
+        if (s_end <= *(float *)0x2533c8)
+          s = (s_end + clamped_s) * *(float *)0x253398;
+        else
+          s = (*(float *)0x2533c8 + clamped_s) * *(float *)0x253398;
+      } else {
+        s = (*(float *)0x2533c0 + clamped_s) * *(float *)0x253398;
+      }
+    }
+    d1_sq = p4[2] * p4[2] + p4[1] * p4[1] + p4[0] * p4[0];
+    if (d1_sq <= *(float *)0x253f44) {
+      t = *(float *)0x2533c0;
+    } else {
+      inv = *(float *)0x2533c8 / d1_sq;
+      t_start = -((delta_z * p4[2] + delta_x * p4[0] + delta_y * p4[1]) * inv);
+      t_end = inv * d0_d1 + t_start;
+      clamped_t = *(float *)0x2533c0;
+      if (*(float *)0x2533c0 <= t_start) {
+        clamped_t = t_start;
+        if (*(float *)0x2533c8 < t_start)
+          clamped_t = *(float *)0x2533c8;
+      }
+      if (*(float *)0x2533c0 <= t_end) {
+        if (t_end <= *(float *)0x2533c8)
+          t = (t_end + clamped_t) * *(float *)0x253398;
+        else
+          t = (*(float *)0x2533c8 + clamped_t) * *(float *)0x253398;
+      } else {
+        t = (*(float *)0x2533c0 + clamped_t) * *(float *)0x253398;
+      }
+    }
+    /* fall through to closest-point distance */
+  } else {
+    inv = *(float *)0x2533c8 / cross_sq;
+    s = (delta_y * p4[2] - delta_z * p4[1]) * nx * inv +
+        (delta_z * p4[0] - delta_x * p4[2]) * ny * inv +
+        (delta_x * p4[1] - delta_y * p4[0]) * nz * inv;
+    t = (delta_y * p2[2] - delta_z * p2[1]) * nx * inv +
+        (delta_z * p2[0] - delta_x * p2[2]) * ny * inv +
+        (delta_x * p2[1] - delta_y * p2[0]) * nz * inv;
+
+    s_oob = (s < *(float *)0x2533c0 || *(float *)0x2533c8 < s);
+    t_oob = (t < *(float *)0x2533c0 || *(float *)0x2533c8 < t);
+
+    if (s_oob || t_oob) {
+      d0 = 3.4028235e+38f; /* REAL_MAX */
+      d1 = 3.4028235e+38f;
+      if (s_oob) {
+        clamped_s = *(float *)0x2533c8;
+        if (s < *(float *)0x2533c0)
+          clamped_s = *(float *)0x2533c0;
+        closest_a[0] = clamped_s * p2[0] + p1[0];
+        closest_a[1] = clamped_s * p2[1] + p1[1];
+        closest_a[2] = clamped_s * p2[2] + p1[2];
+        d0 = FUN_0010cd40(closest_a, p3, p4);
+      }
+      if (t_oob) {
+        clamped_t = *(float *)0x2533c8;
+        if (t < *(float *)0x2533c0)
+          clamped_t = *(float *)0x2533c0;
+        closest_b[0] = clamped_t * p4[0] + p3[0];
+        closest_b[1] = clamped_t * p4[1] + p3[1];
+        closest_b[2] = clamped_t * p4[2] + p3[2];
+        /* 2nd arg is start_a (p1): decompile shows extraout_EDX, but
+         * FUN_0010cd40 preserves EDX which still holds p1 from entry. */
+        d1 = FUN_0010cd40(closest_b, p1, p2);
+      }
+      if (*(float *)0x2548fc <= d0 && *(float *)0x2548fc <= d1) {
+        display_assert("(d0 < REAL_MAX) || (d1 < REAL_MAX)",
+                       "c:\\halo\\SOURCE\\math\\real_math.c", 0x3ae, 1);
+        system_exit(-1);
+      }
+      if (d0 <= d1)
+        return d0;
+      return d1;
+    }
+  }
+
+  /* both params in [0, 1] (parallel clamped, or non-parallel in-range):
+   * sanity-assert then return the closest-point squared distance */
+  if (s < *(float *)0x2533c0 || *(float *)0x2533c8 < s) {
+    display_assert("(t0 >= 0.0f) && (t0 <= 1.0f)",
+                   "c:\\halo\\SOURCE\\math\\real_math.c", 0x3da, 1);
+    system_exit(-1);
+  }
+  if (t < *(float *)0x2533c0 || *(float *)0x2533c8 < t) {
+    display_assert("(t1 >= 0.0f) && (t1 <= 1.0f)",
+                   "c:\\halo\\SOURCE\\math\\real_math.c", 0x3db, 1);
+    system_exit(-1);
+  }
+  diff_x = (t * p4[0] + p3[0]) - (s * p2[0] + p1[0]);
+  diff_y = (t * p4[1] + p3[1]) - (s * p2[1] + p1[1]);
+  diff_z = (t * p4[2] + p3[2]) - (s * p2[2] + p1[2]);
+  return diff_x * diff_x + diff_y * diff_y + diff_z * diff_z;
+}
+
 /* 0x10dcb0 — 2D segment vs pill (capsule) intersection.
  * line_start/line_dir = segment A; pill_center/pill_dir = pill spine segment B;
  * pill_radius = capsule radius. Returns 1 if segment A comes within pill_radius

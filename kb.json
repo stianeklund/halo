@@ -20305,7 +20305,8 @@
         },
         {
           "addr": "0x10ce10",
-          "decl": "float vector_to_line_distance_squared3d(float *p1, float *p2, float *p3, float *p4);"
+          "decl": "float vector_to_line_distance_squared3d(float *p1, float *p2, float *p3, float *p4);",
+          "ported": false
         },
         {
           "addr": "0x10d380",
