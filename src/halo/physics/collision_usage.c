@@ -848,7 +848,6 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
   void *pg;
   void *fog_tag;
   void *fog;
-  int cur_zone;
   int object_handle;
   char bsp_hit;
   short pg_idx;
@@ -1136,60 +1135,26 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
     saved_dist * direction[1] + origin[1];
   ((float *)((char *)collision_result + 0x18))[2] =
     saved_dist * direction[2] + origin[2];
-  /* NOTE: the original does NOT call scenario_location_from_point here.
-   * collision_result+0xc retains the obj_ref_last value from the BSP
-   * extraction (line 989).  The scenario_location_from_point call that
-   * was here previously overwrote obj_ref_last with a scenario location,
-   * destroying BSP cluster data that downstream detonation code needs. */
-
-  /* Handle zone tracking */
-  if ((collision_flags & 0x100000) && result &&
-      *(int *)((char *)collision_result + 0xc) != -1) {
-    cur_zone = FUN_0018e720((int)((char *)collision_result + 0x18));
-    if (cur_zone != *(int *)((char *)collision_result + 0xc)) {
-      vector3d_scale_add((float *)((char *)collision_result + 0x24),
-                         (float *)((char *)collision_result + 0x18),
-                         0.001953125f,
-                         (float *)((char *)collision_result + 0x18));
-      scenario_location_from_point((char *)collision_result + 0xc,
-                                   (char *)collision_result + 0x18);
-      if (*(int *)((char *)collision_result + 0xc) == -1) {
-        float dir_len =
-          FUN_00013070(direction, (float *)((char *)collision_result + 0x24));
-        float step;
-        if (dir_len == 0.0f)
-          step = *(double *)0x29d588;
-        else
-          step = *(double *)0x29d590 / fabsf(dir_len);
-
-        while (*(float *)((char *)collision_result + 0x14) >= 0.0f) {
-          *(float *)((char *)collision_result + 0x14) -= step;
-          if (*(float *)((char *)collision_result + 0x14) <= 0.0f)
-            *(float *)((char *)collision_result + 0x14) = 0.0f;
-          ((float *)((char *)collision_result + 0x18))[0] =
-            *(float *)((char *)collision_result + 0x14) * direction[0] +
-            origin[0];
-          ((float *)((char *)collision_result + 0x18))[1] =
-            *(float *)((char *)collision_result + 0x14) * direction[1] +
-            origin[1];
-          ((float *)((char *)collision_result + 0x18))[2] =
-            *(float *)((char *)collision_result + 0x14) * direction[2] +
-            origin[2];
-          scenario_location_from_point((char *)collision_result + 0xc,
-                                       (char *)collision_result + 0x18);
-          if (*(float *)((char *)collision_result + 0x14) < 0.0f)
-            break;
-          if (*(int *)((char *)collision_result + 0xc) != -1)
-            return result;
-        }
-      }
-    }
-  }
-
-  /* No cluster clamp needed: the spurious scenario_location_from_point
-   * call that overwrote +0xc with -1 has been removed.  The original
-   * XBE has no such clamp — +0xc retains obj_ref_last from the BSP
-   * extraction, which downstream code handles correctly. */
+  /* FREEZE FIX: the invented zone-tracking frac-step retry loop that used to
+   * be here was the PoA a10 collision-raycast freeze.  Its clamp
+   * `if (frac <= 0) frac = 0` made the `if (frac < 0) break` dead, so when
+   * scenario_location_from_point returned -1 at the origin (frac==0) it spun
+   * forever (bsp3d_find_leaf called endlessly on the same origin point via
+   * FUN_001443f0 -> FUN_0014df70).  The original has NO such loop — it just
+   * computes the point and returns.
+   *
+   * The original ALSO calls scenario_location_from_point(+0xc, +0x18) here
+   * (0x14e928).  That call is left REMOVED (a9b30524): in our build the final
+   * hit point can land on a BSP boundary where it returns -1, and the ported
+   * structure-render consumers FUN_0013ab20 / FUN_0013bce0 index scenario
+   * clusters with (+0xc & 0x7fffffff) and HALT on 0x7fffffff (tag_groups.c
+   * #3089) — the original render path tolerates -1, our lift does not yet.
+   * Keeping +0xc = obj_ref_last (valid BSP data from the extraction above)
+   * avoids that render-time assert.
+   *
+   * TODO(faithful): restore the original scenario_location_from_point call and
+   * make FUN_0013ab20 / FUN_0013bce0 handle a -1 cluster index the way the
+   * original does, removing this divergence. */
 
   return result;
 }
