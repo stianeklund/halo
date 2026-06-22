@@ -2287,6 +2287,145 @@ distance_check:
   return 1;
 }
 
+/* 0x10dcb0 — 2D segment vs pill (capsule) intersection.
+ * line_start/line_dir = segment A; pill_center/pill_dir = pill spine segment B;
+ * pill_radius = capsule radius. Returns 1 if segment A comes within pill_radius
+ * of the pill spine, else 0. 2D analog of the 3D pill-pill test above.
+ *   Parallel case (|cross| < epsilon): closest-point parameters s,t via
+ *     projection + clamp-midpoint, then one distance check.
+ *   Non-parallel case: 2D line-intersection params s,t; if both in [0,1] the
+ *     segments cross; otherwise clamp the out-of-range endpoint onto its line
+ *     and delegate to FUN_0010cc90 (point vs segment within radius).
+ * Constants: 0x2533c0=0.0f, 0x2533c8=1.0f, 0x253398=0.5f, 0x253f44=len epsilon,
+ * 0x2533d0=double cross-parallel epsilon. */
+char vector_intersects_pill2d(float *line_start, float *line_dir,
+                              float *pill_center, float *pill_dir,
+                              float pill_radius)
+{
+  float delta_x, delta_y;
+  float cross2d;
+  float d0_d1, d0_sq, d1_sq;
+  float inv;
+  float s, t;
+  float s_start, s_end, t_start, t_end;
+  float clamped_s, clamped_t;
+  float closest_a_x, closest_a_y;
+  float closest_b_x, closest_b_y;
+  float diff_x, diff_y;
+  char s_oob, t_oob;
+
+  delta_x = pill_center[0] - line_start[0];
+  delta_y = pill_center[1] - line_start[1];
+
+  /* 2D cross of the two directions */
+  cross2d = line_dir[0] * pill_dir[1] - line_dir[1] * pill_dir[0];
+
+  if (fabsf(cross2d) < (float)*(double *)0x2533d0) {
+    /* parallel or nearly parallel lines */
+    d0_d1 = line_dir[0] * pill_dir[0] + line_dir[1] * pill_dir[1];
+    d0_sq = line_dir[0] * line_dir[0] + line_dir[1] * line_dir[1];
+
+    if (d0_sq <= *(float *)0x253f44) {
+      s = *(float *)0x2533c0;
+    } else {
+      inv = *(float *)0x2533c8 / d0_sq;
+      s_start = (delta_y * line_dir[1] + delta_x * line_dir[0]) * inv;
+      s_end = inv * d0_d1 + s_start;
+
+      /* clamp s_start to [0, 1] (decompile branch shape: default 0, take
+       * value if >=0, cap at 1 if >1 — comparison directions preserved) */
+      clamped_s = *(float *)0x2533c0;
+      if (*(float *)0x2533c0 <= s_start) {
+        clamped_s = s_start;
+        if (*(float *)0x2533c8 < s_start)
+          clamped_s = *(float *)0x2533c8;
+      }
+
+      /* clamp s_end to [0, 1], average with clamped s_start */
+      if (*(float *)0x2533c0 <= s_end) {
+        if (s_end <= *(float *)0x2533c8)
+          s = (s_end + clamped_s) * *(float *)0x253398;
+        else
+          s = (*(float *)0x2533c8 + clamped_s) * *(float *)0x253398;
+      } else {
+        s = (*(float *)0x2533c0 + clamped_s) * *(float *)0x253398;
+      }
+    }
+
+    d1_sq = pill_dir[1] * pill_dir[1] + pill_dir[0] * pill_dir[0];
+
+    if (d1_sq <= *(float *)0x253f44) {
+      t = *(float *)0x2533c0;
+    } else {
+      inv = *(float *)0x2533c8 / d1_sq;
+      t_start = -((delta_y * pill_dir[1] + delta_x * pill_dir[0]) * inv);
+      t_end = inv * d0_d1 + t_start;
+
+      /* clamp t_start to [0, 1] */
+      clamped_t = *(float *)0x2533c0;
+      if (*(float *)0x2533c0 <= t_start) {
+        clamped_t = t_start;
+        if (*(float *)0x2533c8 < t_start)
+          clamped_t = *(float *)0x2533c8;
+      }
+
+      /* clamp t_end to [0, 1], average with clamped t_start */
+      if (*(float *)0x2533c0 <= t_end) {
+        if (t_end <= *(float *)0x2533c8)
+          t = (t_end + clamped_t) * *(float *)0x253398;
+        else
+          t = (*(float *)0x2533c8 + clamped_t) * *(float *)0x253398;
+      } else {
+        t = (*(float *)0x2533c0 + clamped_t) * *(float *)0x253398;
+      }
+    }
+
+    closest_a_x = s * line_dir[0] + line_start[0];
+    closest_a_y = s * line_dir[1] + line_start[1];
+    closest_b_x = t * pill_dir[0] + pill_center[0];
+    closest_b_y = t * pill_dir[1] + pill_center[1];
+    diff_x = closest_b_x - closest_a_x;
+    diff_y = closest_b_y - closest_a_y;
+    if (pill_radius * pill_radius < diff_x * diff_x + diff_y * diff_y)
+      return 0;
+    return 1;
+  }
+
+  /* non-parallel: solve the 2D line intersection */
+  inv = *(float *)0x2533c8 / cross2d;
+  s = (delta_x * pill_dir[1] - delta_y * pill_dir[0]) * inv;
+  t = (delta_x * line_dir[1] - delta_y * line_dir[0]) * inv;
+
+  s_oob = (s < *(float *)0x2533c0 || *(float *)0x2533c8 < s);
+  t_oob = (t < *(float *)0x2533c0 || *(float *)0x2533c8 < t);
+
+  if (s_oob) {
+    clamped_s = *(float *)0x2533c8;
+    if (s < *(float *)0x2533c0)
+      clamped_s = *(float *)0x2533c0;
+    closest_a_x = clamped_s * line_dir[0] + line_start[0];
+    closest_a_y = clamped_s * line_dir[1] + line_start[1];
+    if (!t_oob)
+      goto point_segment_checks;
+  } else if (!t_oob) {
+    return 1;
+  }
+
+  clamped_t = *(float *)0x2533c8;
+  if (t < *(float *)0x2533c0)
+    clamped_t = *(float *)0x2533c0;
+  closest_b_x = clamped_t * pill_dir[0] + pill_center[0];
+  closest_b_y = clamped_t * pill_dir[1] + pill_center[1];
+
+point_segment_checks:
+  if ((!s_oob ||
+       FUN_0010cc90(&closest_a_x, pill_center, pill_dir, pill_radius) == 0) &&
+      (!t_oob ||
+       FUN_0010cc90(&closest_b_x, line_start, line_dir, pill_radius) == 0))
+    return 0;
+  return 1;
+}
+
 /* 0x10e6f0 — 3D ray vs triangle intersection (Möller–Trumbore-like).
  * p1=ray_origin, p2=ray_direction, p3,p4,p5=triangle vertices,
  * p6=out_t. Returns 1 if ray hits triangle. */
