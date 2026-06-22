@@ -1135,36 +1135,70 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
     saved_dist * direction[1] + origin[1];
   ((float *)((char *)collision_result + 0x18))[2] =
     saved_dist * direction[2] + origin[2];
-  /* NOTE (corrected 2026-06-22, disasm-verified): an earlier note here claimed
-   * the original has "no loop" and that ported render consumers
-   * FUN_0013ab20 / FUN_0013bce0 mask collision_result+0xc with 0x7fffffff and
-   * HALT (tag_groups.c#3089).  BOTH were misidentifications:
-   *   - FUN_0014df70 spans 0x14df70..~0x14e640; the 0x14e928 call cited before
-   *     belongs to the SEPARATE function FUN_0014e7d0 (0x14e7d0..0x14e938).
-   *   - FUN_0013ab20 / FUN_0013bce0 are object dynamic-lighting functions; they
-   *     do NOT read collision_result.  The scenario cluster lookup lives in the
-   *     UNPORTED structure_render_surface_from_point_and_leaf (0x198580) /
-   *     structure_test_vector (0x198cb0), which run original code.
+  /* Zone-tracking refinement (original 0x14e500-0x14e631), gated on
+   * (collision_flags & 0x100000) — i.e. the detonation/effects callers
+   * (0x1000e9 / 0x100061), never the render path (0xfff80, no 0x100000 bit, so
+   * this block is render-safe by construction).  When the hit point's BSP leaf
+   * disagrees with the recorded surface ref, nudge the point off the surface by
+   * 1/4096 along the plane normal (collision_result+0x24) and re-resolve its
+   * scenario location into collision_result+0xc.  If that lands in void (-1),
+   * step the hit fraction (collision_result+0x14) back toward the ray origin
+   * until a valid leaf is found or the fraction reaches 0.
    *
-   * The original FUN_0014df70 does NOT call scenario_location_from_point on the
-   * plain BSP-hit path: it returns with collision_result+0xc = obj_ref_last (a
-   * valid surface ref set by the extraction above).  The pre-a9b30524 code's
-   * UNCONDITIONAL tail call was the real defect — it overwrote that obj_ref with
-   * a leaf index that is -1 on a BSP boundary, and the unported cluster lookup
-   * then faulted on the -1.  Leaving +0xc = obj_ref_last (current behavior) is
-   * therefore the FAITHFUL result here, and is correct for the render caller
-   * FUN_0017d1a0, which passes collision_flags 0xfff80 (no 0x100000 bit) and
-   * reads only collision_result+0x38.
-   *
-   * The original DOES run a zone-tracking block — a same-zone check
-   * (FUN_0018e720), a vector3d_scale_add refine, a conditional
-   * scenario_location_from_point, and a frac-step retry loop that terminates on
-   * `frac <= 0` AFTER the call — but ONLY when (collision_flags & 0x100000) is
-   * set, i.e. for the detonation/effects callers (0x1000e9 / 0x100061), never
-   * for the render path.  That block is currently omitted.  Re-introducing it
-   * faithfully (gated on 0x100000, with the correct post-call `frac <= 0`
-   * terminator — NOT the dead `if (frac < 0) break` that caused the original
-   * freeze) is a low-priority fidelity TODO and is render-safe by construction. */
+   * Disasm-verified faithful reconstruction (analyst, 2026-06-22): refine =
+   * 1/4096 (0x39800000), step = (1/4096)/|dot(direction, normal)| with a 1/32
+   * fallback when the ray is parallel to the surface.  The retry is the
+   * original's do/while with the live `frac <= 0` terminator checked AFTER the
+   * scenario_location_from_point call (clamp `frac = max(frac-step, 0)` keeps it
+   * >= 0, so the loop always terminates).  This REPLACES the prior lift that
+   * used a wrong 1/512 refine, a swapped base/dir, and a top-tested
+   * `while (frac >= 0)` whose clamp made `if (frac < 0) break` dead — the PoA
+   * a10 collision-raycast freeze (removed in 59ac3322, now restored correctly).
+   * Only refines collision_result+0xc/+0x14/+0x18; does not touch the hit type
+   * (+0), the material (+0x34), or the AL return value. */
+  if (collision_flags & 0x100000) {
+    if (result && *(int *)((char *)collision_result + 0xc) != -1) {
+      int cur_zone;
+      cur_zone = FUN_0018e720((int)((char *)collision_result + 0x18));
+      if (cur_zone != *(int *)((char *)collision_result + 0xc)) {
+        vector3d_scale_add((float *)((char *)collision_result + 0x18),
+                           (float *)((char *)collision_result + 0x24),
+                           0.000244140625f,
+                           (float *)((char *)collision_result + 0x18));
+        scenario_location_from_point((char *)collision_result + 0xc,
+                                     (char *)collision_result + 0x18);
+        if (*(int *)((char *)collision_result + 0xc) == -1) {
+          float d;
+          float step;
+          d = FUN_00013070(direction,
+                           (float *)((char *)collision_result + 0x24));
+          if (d != 0.0f)
+            step = (float)(0.000244140625 / fabs((double)d));
+          else
+            step = 0.03125f;
+          for (;;) {
+            float frac;
+            frac = *(float *)((char *)collision_result + 0x14) - step;
+            if (!(frac > 0.0f))
+              frac = 0.0f;
+            *(float *)((char *)collision_result + 0x14) = frac;
+            ((float *)((char *)collision_result + 0x18))[0] =
+              frac * direction[0] + origin[0];
+            ((float *)((char *)collision_result + 0x18))[1] =
+              frac * direction[1] + origin[1];
+            ((float *)((char *)collision_result + 0x18))[2] =
+              frac * direction[2] + origin[2];
+            scenario_location_from_point((char *)collision_result + 0xc,
+                                         (char *)collision_result + 0x18);
+            if (*(float *)((char *)collision_result + 0x14) <= 0.0f)
+              break;
+            if (*(int *)((char *)collision_result + 0xc) != -1)
+              return result;
+          }
+        }
+      }
+    }
+  }
 
   return result;
 }
