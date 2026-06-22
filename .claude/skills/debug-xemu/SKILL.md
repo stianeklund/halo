@@ -15,6 +15,7 @@ description: >-
 - Attach GDB to the running VM
 - Capture screenshots
 - Dump live memory for equivalence testing
+- Drive xemu with scripted controller input or replay native `state.data`
 - Work around xemu MCP connection issues
 
 Argument: `$ARGUMENTS` (what you need to inspect or capture)
@@ -235,6 +236,20 @@ For a single quick shot via MCP (when it's healthy):
 ```
 mcp__xemu__xemu_screenshot()
 ```
+
+---
+
+## D2 — Controller Input and Replay
+
+For agent-driven controller input, use `tools/xbox/xbox_pad.py` rather than
+`xbox_keyboard_pad.py`. `xbox_pad.py` exposes a TCP-backed ViGEmBus controller
+and supports JSON `sequence` playback for Claude/OpenCode/Codex automation.
+
+For exact replay of human gameplay, use Halo's native input recorder:
+`D:\write.xts` records `D:\state.data`, `D:\read.xts` plays it once, and
+`D:\loop.xts` loops it. Store reusable per-level recordings under
+`input-recordings/` with `tools/xbox/input_recordings.py add`. Full workflow:
+`docs/xbox-pad.md`.
 
 ---
 

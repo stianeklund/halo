@@ -27,6 +27,14 @@ to a real Xbox. Do not build an ISO unless the user explicitly asks for xemu.
 - Prefer real Xbox via XBDM over xemu+ISO whenever a console is available.
 - Do not switch to ISO/xemu unless the user asks for it or the Xbox is unavailable.
 
+## Input recording deploy files
+
+The running title opens startup/control files as `D:\...`; in practice upload
+them to the deployed title root, e.g. `E:\GAMES\halo-patched\init.txt`,
+`write.xts`, `read.xts`, `loop.xts`, and `state.data`. Use
+`docs/xbox-pad.md` for the record/replay workflow and `input-recordings/` for
+local per-level captures.
+
 ## Report format
 
 Report:
