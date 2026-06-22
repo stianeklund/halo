@@ -2417,7 +2417,10 @@ LAB_check_dest:
       path_input_set_attractor(
         local_nav, (float *)(actor + 0x2b0), *(float *)(actor + 0x294),
         *(unsigned int *)(actor + 0x28c),
-        (unsigned int)0x41200000); /* 10.0f as bit pattern */
+        10.0f); /* original PUSHes bits 0x41200000 = 10.0f attractor weight.
+                   param_5 is float: an (unsigned int) cast here would do an
+                   int->float NUMERIC conversion (1.09e9), not a bit-reinterpret,
+                   corrupting the A* attractor weight -> path.c:1005 cost assert. */
     }
     path_state = ai_debug_get_path_storage(actor_handle);
     path_state_new(local_nav, large_buf, path_state);
