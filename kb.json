@@ -14885,7 +14885,7 @@
         },
         {
           "addr": "0x139b40",
-          "decl": "void FUN_00139b40(int param_1, int *param_2, int param_3, int param_4, float *param_5, int param_6);",
+          "decl": "void FUN_00139b40(int param_1, int *param_2, int param_3, int param_4, float *param_5, float param_6);",
           "ported": false,
           "source_path": "objects/objects.c"
         },
