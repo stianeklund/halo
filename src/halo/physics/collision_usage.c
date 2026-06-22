@@ -1135,26 +1135,36 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
     saved_dist * direction[1] + origin[1];
   ((float *)((char *)collision_result + 0x18))[2] =
     saved_dist * direction[2] + origin[2];
-  /* FREEZE FIX: the invented zone-tracking frac-step retry loop that used to
-   * be here was the PoA a10 collision-raycast freeze.  Its clamp
-   * `if (frac <= 0) frac = 0` made the `if (frac < 0) break` dead, so when
-   * scenario_location_from_point returned -1 at the origin (frac==0) it spun
-   * forever (bsp3d_find_leaf called endlessly on the same origin point via
-   * FUN_001443f0 -> FUN_0014df70).  The original has NO such loop — it just
-   * computes the point and returns.
+  /* NOTE (corrected 2026-06-22, disasm-verified): an earlier note here claimed
+   * the original has "no loop" and that ported render consumers
+   * FUN_0013ab20 / FUN_0013bce0 mask collision_result+0xc with 0x7fffffff and
+   * HALT (tag_groups.c#3089).  BOTH were misidentifications:
+   *   - FUN_0014df70 spans 0x14df70..~0x14e640; the 0x14e928 call cited before
+   *     belongs to the SEPARATE function FUN_0014e7d0 (0x14e7d0..0x14e938).
+   *   - FUN_0013ab20 / FUN_0013bce0 are object dynamic-lighting functions; they
+   *     do NOT read collision_result.  The scenario cluster lookup lives in the
+   *     UNPORTED structure_render_surface_from_point_and_leaf (0x198580) /
+   *     structure_test_vector (0x198cb0), which run original code.
    *
-   * The original ALSO calls scenario_location_from_point(+0xc, +0x18) here
-   * (0x14e928).  That call is left REMOVED (a9b30524): in our build the final
-   * hit point can land on a BSP boundary where it returns -1, and the ported
-   * structure-render consumers FUN_0013ab20 / FUN_0013bce0 index scenario
-   * clusters with (+0xc & 0x7fffffff) and HALT on 0x7fffffff (tag_groups.c
-   * #3089) — the original render path tolerates -1, our lift does not yet.
-   * Keeping +0xc = obj_ref_last (valid BSP data from the extraction above)
-   * avoids that render-time assert.
+   * The original FUN_0014df70 does NOT call scenario_location_from_point on the
+   * plain BSP-hit path: it returns with collision_result+0xc = obj_ref_last (a
+   * valid surface ref set by the extraction above).  The pre-a9b30524 code's
+   * UNCONDITIONAL tail call was the real defect — it overwrote that obj_ref with
+   * a leaf index that is -1 on a BSP boundary, and the unported cluster lookup
+   * then faulted on the -1.  Leaving +0xc = obj_ref_last (current behavior) is
+   * therefore the FAITHFUL result here, and is correct for the render caller
+   * FUN_0017d1a0, which passes collision_flags 0xfff80 (no 0x100000 bit) and
+   * reads only collision_result+0x38.
    *
-   * TODO(faithful): restore the original scenario_location_from_point call and
-   * make FUN_0013ab20 / FUN_0013bce0 handle a -1 cluster index the way the
-   * original does, removing this divergence. */
+   * The original DOES run a zone-tracking block — a same-zone check
+   * (FUN_0018e720), a vector3d_scale_add refine, a conditional
+   * scenario_location_from_point, and a frac-step retry loop that terminates on
+   * `frac <= 0` AFTER the call — but ONLY when (collision_flags & 0x100000) is
+   * set, i.e. for the detonation/effects callers (0x1000e9 / 0x100061), never
+   * for the render path.  That block is currently omitted.  Re-introducing it
+   * faithfully (gated on 0x100000, with the correct post-call `frac <= 0`
+   * terminator — NOT the dead `if (frac < 0) break` that caused the original
+   * freeze) is a low-priority fidelity TODO and is render-safe by construction. */
 
   return result;
 }
