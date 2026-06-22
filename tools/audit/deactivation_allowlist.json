@@ -640,8 +640,8 @@
     "addr": "0x1402c0",
     "name": "object_permute_region",
     "object": "objects.obj",
-    "reason": "pre-gate baseline 2026-06-10",
-    "since": "2026-06-10"
+    "reason": "Faithful lift kept dormant by score gate: VC71 87.6% (90 candidate vs 88 reference insns) measured against fresh per-function ref delinked/functions/001402c0.obj (~2-insn gap = float/int codegen scheduling). Reads object model-tag region/permutation blocks via object_get_and_verify_type + tag_get. A correctly-pinned permuter run (300s/4 threads, 2026-06-22) found lower-score candidates but none confirmed to cross the 88% activation bar this pass; re-evaluate in a dedicated permuter-apply session, and run a Gate-B GC/lifecycle-cluster edge check, before activation.",
+    "since": "2026-06-22"
   },
   {
     "addr": "0x1403a0",
@@ -1320,6 +1320,13 @@
     "name": "FUN_00141970",
     "object": "objects.obj",
     "reason": "Faithful lift kept dormant by score gate (Gate B passes: read-only function-value evaluator, writes only object+0xd4 cache, no GC/lifecycle mutation). VC71 77.5% vs fresh per-function ref (ref denominator includes ~10 jump-table data bytes mis-disassembled as popl %es; true match ~80%). Candidate ~157 insns vs ~122 real reference: FPU-heavy (FPATAN/FABS) + non-contiguous switch dispatch (codes 1-5/0x12/0x13/region-default via two-level jump table) that clang/VC71 cannot reproduce as the compact byte-indexed table. Equivalence vacuous on zero-fill (object_get_and_verify_type + tag reads early-exit). Push-then-fstp recovered: FUN_000b6dd0(scenario+0x4c, atan2_result).",
+    "since": "2026-06-22"
+  },
+  {
+    "addr": "0x139b40",
+    "name": "FUN_00139b40",
+    "object": "objects.obj",
+    "reason": "Faithful lift kept dormant by score gate. VC71 86.3% (73 candidate vs 66 reference insns) measured against fresh per-function ref delinked/functions/00139b40.obj. Gate B passes (condition holds): callees {0x99530 real_a_rgb_color_to_pixel32, 0x180770, 0x1ba140 tag_get, 0x180b10} and sole caller 0x18ca40 are all outside the GC/lifecycle cluster; function only appends a record to the per-frame light-marker array at 0x5a8f6c (count 0x5a90ac, max 8, 0x28 stride) -- no object garbage/lifecycle mutation. Score gap (~7 insns) is the float-inequality guard: original emits per-component memory-operand FCOMP (FLD [color+N]; FCOMP [0x2533c0]) while VC71 on the C || chain hoists *(float*)0x2533c0 to a register and emits register fucompp; plus tail integer-codegen scheduling (orl $-1 vs movl, count/+0x20 store order). A correctly-pinned permuter run (delinked/functions/00139b40.obj, 300s/4 threads, 2026-06-22) found lower-score candidates; none confirmed to cross the 88% activation bar this pass (an earlier 367-iter run was vacuous -- it mis-selected stale ref 00085110.obj). Re-evaluate in a dedicated permuter-apply session before activation. Equivalence is the wrong lane: two callees are XCALL literal-address casts -> --allow-stubs makes the side-effect store diff stub-vs-stub (vacuous, per feedback_equivalence_hardcoded_import). param_6 confirmed float (caller MOV+PUSH no FILD; callee 0x180770 FLD [EBP+8]); kb decl updated int->float param_6.",
     "since": "2026-06-22"
   }
 ]
