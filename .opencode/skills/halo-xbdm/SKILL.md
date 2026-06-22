@@ -21,6 +21,18 @@ Use this skill whenever work talks to a real Xbox through XBDM or RDCP via
 - `202` means multiline text; the tool collects it automatically.
 - `203` means binary data; provide `--binary-length` and `--output` when needed.
 - When reading memory, the binary length must match the requested length.
+- For `getfile` downloads, first query `getfileattributes`, then request size
+  `N` with `--binary-length N+4`; RDCP prepends a 4-byte little-endian payload
+  size. Use `tools/xbox/input_recordings.py add --strip-rdcp-prefix` when
+  promoting native input recordings.
+
+## Input recording files
+
+Halo's title root is the practical location for files opened as `D:\...` by the
+running game. `write.xts` records `state.data`; `read.xts` and `loop.xts` replay
+it. Use these with `tools/xbox/xbdm_rdcp.py --sendfile` / `getfile` and store
+reusable per-level captures under `input-recordings/`. Full workflow:
+`docs/xbox-pad.md`.
 
 ## magicboot — title launch
 
