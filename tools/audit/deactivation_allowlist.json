@@ -1279,5 +1279,47 @@
     "object": "scenario.obj",
     "reason": "unverified: cached-object-render-state slot resolver/evictor. VC71 79.8% capped by x87 ST0-chaining (age threaded on FPU stack across the FCOM in the eviction loop; clean C reloads) plus MSVC split-epilogue control-flow shape. Equivalence vacuous: weak confidence, 55.7% coverage, all 100 seeds returned identical 0x0 (only early-exit path exercised); stub-arg differential clean (200 calls, 0 mismatch). Faithful to decompiler structure; ABI correct cdecl.",
     "since": "2026-06-21"
+  },
+  {
+    "addr": "0x134e80",
+    "name": "FUN_00134e80",
+    "object": "objects.obj",
+    "reason": "Faithful lift kept dormant: VC71 71.0% (FPU-heavy light-volume render + fmod density + marker-buffer/float-local overlap that clang cannot reproduce); dormant register-arg callee FUN_00134c40 @<ebx>; equivalence vacuous (zero-fill early-exits tag+0x6e gate, unported sprite callees 0x17cfc0/cfd0/d010/d020 stub out). Below activation score gate.",
+    "since": "2026-06-22"
+  },
+  {
+    "addr": "0x135210",
+    "name": "FUN_00135210",
+    "object": "objects.obj",
+    "reason": "Faithful lift kept dormant: VC71 80.7% (FPU view-depth dot product computed/kept on the x87 stack across a branch then conditionally discarded \u2014 clang single-expression cannot reproduce the FSTP ST0 cleanup; marker-buffer/float-local overlap). x87 temps-across-branch ceiling. References FUN_00134e80 (also dormant) as render callback. Equivalence vacuous (zero-fill early-exits tag gate; unported FUN_0017cfb0).",
+    "since": "2026-06-22"
+  },
+  {
+    "addr": "0x13c030",
+    "name": "FUN_0013c030",
+    "object": "objects.obj",
+    "reason": "Faithful lift kept dormant: VC71 56.1% (candidate 76 vs ref 31 insns, consistent with same-TU MSVC 7.1 inlining of object_get_and_verify_type 0x13d680, which the original compiled as out-of-line CALLs in a separate TU). Forcing the shared 92.8%-matching callee out-of-line would be invasive churn affecting all its TU callers. Unverifiable by any oracle: void return, param_2/param_3 forwarded-unused, no memory side effects (recursive child-hierarchy walk). No positive correctness evidence available.",
+    "since": "2026-06-22"
+  },
+  {
+    "addr": "0x13cb80",
+    "name": "FUN_0013cb80",
+    "object": "objects.obj",
+    "reason": "Faithful lift kept dormant by Gate B cluster coupling (NOT a score failure: VC71 86.7%). Calls object_new_from_scenario (0x144770) and objects_garbage_collect_tick (0x144b50) \u2014 both GC/lifecycle cluster members \u2014 and mutates streaming state (DAT_0046f078 BSP-loaded mask + per-placement flags element+0x20). Scenario object spawner for a BSP slot; piecemeal cluster activation is unsafe. Activate only as part of a coordinated object-lifecycle cluster activation.",
+    "since": "2026-06-22"
+  },
+  {
+    "addr": "0x13ecb0",
+    "name": "attachments_new",
+    "object": "objects.obj",
+    "reason": "Faithful lift kept dormant by Gate B cluster coupling (NOT a score failure: VC71 92.1% vs fresh per-function ref delinked/functions/0013ecb0.obj \u2014 note vc71_verify auto-selects a stale chunk 0013dda0.obj giving a false 42.6%). Caller edge from object_new (0x143c80, lifecycle cluster member) at 0x144147, AND object-lifecycle mutation: fills the object attachment table (object+0xf4 type bytes, object+0xfc handles) and sets creation flags (object+0x4 |= 0x100/0x400). Part of the object creation path; activate only with the lifecycle cluster.",
+    "since": "2026-06-22"
+  },
+  {
+    "addr": "0x141970",
+    "name": "FUN_00141970",
+    "object": "objects.obj",
+    "reason": "Faithful lift kept dormant by score gate (Gate B passes: read-only function-value evaluator, writes only object+0xd4 cache, no GC/lifecycle mutation). VC71 77.5% vs fresh per-function ref (ref denominator includes ~10 jump-table data bytes mis-disassembled as popl %es; true match ~80%). Candidate ~157 insns vs ~122 real reference: FPU-heavy (FPATAN/FABS) + non-contiguous switch dispatch (codes 1-5/0x12/0x13/region-default via two-level jump table) that clang/VC71 cannot reproduce as the compact byte-indexed table. Equivalence vacuous on zero-fill (object_get_and_verify_type + tag reads early-exit). Push-then-fstp recovered: FUN_000b6dd0(scenario+0x4c, atan2_result).",
+    "since": "2026-06-22"
   }
 ]

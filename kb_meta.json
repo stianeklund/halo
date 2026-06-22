@@ -7099,6 +7099,16 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x134ae0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The second datum_get return value (object datum pointer in EAX) flows directly into FUN_001345b0's glow_widget@<eax> register slot, reproducing the original register-aliasing where datum_get's EAX is consumed by the immediately-following register-arg call."
+      ],
+      "uncertain": [
+        "The function is a glow-widget initializer for an object (widget tag 0x676c7721 = 'glw!'), but the exact subsystem name is unconfirmed so the FUN_ name is retained rather than a speculative object_glow_initialize."
+      ]
+    },
     "0x136150": {
       "kind": "function",
       "status": "ported"
@@ -7502,7 +7512,11 @@
     },
     "0x13fe10": {
       "kind": "function",
-      "status": "ported"
+      "status": "ported",
+      "inferred": [
+        "The function returns FUN_00191690's EAX (the first cluster marker, treated as int16_t by callers) via an implicit fall-through, which the decompiler hid by reporting a void return.",
+        "The cluster-partition table is selected as global 0x5a8d40 when the root object flag bit 0x2000000 is set, otherwise global 0x5a8d30, and only the caller's 8-byte iter_state buffer is written (table pointer at offset 0, iterator state at offset 4)."
+      ]
     },
     "0x13fe70": {
       "kind": "function",
