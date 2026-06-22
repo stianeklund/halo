@@ -1107,3 +1107,21 @@ A "cleanup" that mistakes the helper for pure and deletes the `else`-restore mak
 **Prevention:**
 - Treat `magnitude3d`/`normalize3d`/`normalize2d` as in-place mutators. If a later branch needs the pre-call vector, save a raw copy first and restore it — never reuse the post-call vector as if it were unchanged.
 - The detector fires only on the dangerous shape: the captured length is compared with a relational clamp (`>`,`<`,`>=`,`<=`), a branch scales `v[i]` in place (`v[i] = <…v[i]…> * …`), and **no sibling branch restores `v[i]` from a non-`v` source**. The common legitimate idioms (`normalize3d(v); v[i] = -v[i];` sign-flip with the return ignored, or `len = normalize3d(v); if (len != eps) v[i] = len*v[i];` intentional rescale on a validity check) do not match and are not flagged.
+
+## 23. NaN-Blind Degenerate-Vector Guard (`<` Lets NaN Through)
+
+**Automation:** RESOLVED — `check_lift_hazards.py::check_nan_blind_guard` (WARN), shipped in this commit. Suppress a verified-legitimate hit with `/* hazard-ok: nan-checked */`.
+
+**What happens:** A guard meant to reject a degenerate (zero/tiny) vector tests its squared magnitude against a small epsilon with a relational `<` (or `<=`):
+```c
+m2 = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
+if (m2 < 1e-8f) return 0;          /* reject (0,0,0)/tiny — but NOT NaN */
+```
+IEEE-754 comparisons involving NaN are **unordered**: `NaN < 1e-8f`, `NaN <= 1e-8f`, `NaN > x`, and `NaN == x` are all **FALSE**. So if any component of `v` is NaN, `m2` is NaN, the guard does **not** fire, and the NaN vector flows straight into the path the guard was supposed to protect — typically a `normalize`/`assert_valid_real_normal*` that then HALTs (debug build) or produces garbage (release).
+
+**Example (actor_looking.c:529, PoA a10, 2026-06-22 — commit 2ccb9a1f):** `look_spec_28660_safe` rejected the `(0,0,0)` copy-case look-spec with `if (m2 < 1e-8f) return 0;`. A raycast-blocked idle-look made `FUN_000283b0` return without writing its out-vector at `actor+0x570`, leaving an uninitialized X = `0xffffffff` (the stack sentinel) with valid Y/Z. The type-4 look-spec carried `{NaN, -0.821730, 0.066777}`; `m2` was NaN; `NaN < 1e-8f` was false; the guard fell through to `FUN_00028660`, which copied the NaN verbatim into the direction vector → `assert_valid_real_normal3d(-1.#QNAN0, …)` HALT. Live proof: before the fix the guard's emitted compare routed NaN to *proceed*; after, it emits `fucompi`/`jb` routing NaN to the reject branch. The original release engine reaches the same NaN here but does not HALT only because its assert is compiled out.
+
+**Prevention:**
+- Reject with the **negated** form so NaN is also caught: `if (!(m2 >= 1e-8f)) return 0;`. `NaN >= eps` is false, so `!(…)` is true → the guard fires on NaN as well as `(0,0,0)`/tiny. Verify the codegen uses an unordered-aware compare (`fucomi`/`fucompi`) routing NaN to the reject branch.
+- The detector fires only on the dangerous shape: an `if (<lhs> < EPS)` / `<= EPS` where `<lhs>` is magnitude-like (a `m2`/`mag`/`len`/`dist`/`dot`-style name, a `magnitude*/dot_product*/length*/distance*` call, or an inline sum-of-products) **and** `EPS` is a small positive literal (`0 < eps <= 0.01`) **and** the guard rejects (`return`/`continue`/`break`/`goto`) within two lines. Real thresholds (`0.1`, `0.5`), integer/loop bounds, and the fixed `!(x >= EPS)` form do not match.
+- The deeper fix is to not let the NaN/uninitialized value exist in the first place: zero-initialize vector slots at creation and ensure a builder that returns "no result" does not leave a stale out-vector. The guard is the safety net; prefer fixing the source when the producing path is yours.
