@@ -10464,6 +10464,70 @@ camera_invalid:
   }
 }
 
+/* 0x139b40 (object_lights.c) — register one lens-flare/light marker record
+ * into the per-frame light marker array at 0x5a8f6c (count at 0x5a90ac, max 8
+ * entries, 0x28-byte stride).
+ *
+ * Early-out if the array is already full (count >= 8) OR if all three color
+ * components in param_5 equal 0 (the FCOMP vs FLOAT_002533c0 == 0.0 guard:
+ * when color[0]==0 && color[1]==0 && color[2]==0 the record is skipped).
+ *
+ * Record layout filled at base = 0x5a8f6c + count*0x28:
+ *   +0x00 : tag_get('lens', param_1)               (lens tag definition)
+ *   +0x04 : param_2[0]                              (vec3 word 0)
+ *   +0x08 : param_2[1]                              (vec3 word 1)
+ *   +0x0c : param_2[2]                              (vec3 word 2)
+ *   +0x10 : FUN_00180b10(param_3)                   (compressed normal)
+ *   +0x14 : FUN_00180b10(param_4)                   (compressed normal)
+ *   +0x18 : real_a_rgb_color_to_pixel32(1.0f, param_5)  (pixel32 color)
+ *   +0x1c : 0xffff (short)
+ *   +0x1e : 0xffff (short)
+ *   +0x20 : (short)count                            (this record's index)
+ *   +0x22 : byte at global 0x50654a (0x506548+2)
+ *   +0x23 : (byte)FUN_00180770(param_6)             (alpha/intensity quantized)
+ * Then count++ at 0x5a90ac.
+ *
+ * Confirmed (disasm 0x139b40): cdecl 6 stack args, RET (no RET N); ADD ESP,0x1c
+ * = 8(rgb)+4(180770)+8(tag_get)+4(180b10)+4(180b10). param_6 is a float passed
+ * raw to FUN_00180770 (caller MOV+PUSH, no FILD; callee FLD [EBP+8]). param_3
+ * and param_4 are vec3 pointers passed as int (FUN_00180b10 derefs them);
+ * kept as int to match the existing int(*)(int) thunk.
+ */
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-but-set-variable"
+#pragma clang diagnostic ignored "-Wunused-variable"
+/* 0x139b40 */
+void FUN_00139b40(int param_1, int *param_2, int param_3, int param_4,
+                  float *param_5, float param_6)
+{
+  int iVar1;
+  char *base;
+  int *vec;
+
+  if ((*(short *)0x5a90ac < 8) &&
+      ((param_5[0] != *(float *)0x2533c0 || param_5[1] != *(float *)0x2533c0)
+       || param_5[2] != *(float *)0x2533c0)) {
+    iVar1 = *(short *)0x5a90ac * 0x28;
+    base = (char *)0x5a8f6c + iVar1;
+
+    *(unsigned int *)(base + 0x18) =
+        real_a_rgb_color_to_pixel32(1.0f, param_5);
+    base[0x23] = (char)CALL_FUN_00180770(param_6);
+    *(void **)(base + 0x00) = tag_get(0x6c656e73, param_1);
+    vec = (int *)(base + 0x04);
+    vec[0] = param_2[0];
+    vec[1] = param_2[1];
+    vec[2] = param_2[2];
+    *(int *)(base + 0x10) = CALL_FUN_00180b10(param_3);
+    *(int *)(base + 0x14) = CALL_FUN_00180b10(param_4);
+    base[0x22] = *(char *)0x50654a;
+    *(short *)(base + 0x1e) = (short)0xffff;
+    *(short *)(base + 0x1c) = (short)0xffff;
+    *(short *)(base + 0x20) = *(short *)0x5a90ac;
+    *(short *)0x5a90ac = *(short *)0x5a90ac + 1;
+  }
+}
+
 /* 0x139e50 — light_fill_structure: fills a light output structure from
  * intensity, color, and position data. Heavy FPU with many clamp operations.
  *
