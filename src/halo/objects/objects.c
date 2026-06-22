@@ -12159,3 +12159,84 @@ void FUN_0013aa10(int param_1, int param_2)
     } while (i < *count);
   }
 }
+
+/*
+ * FUN_001414e0 — inverse-kinematics matrix adjustment between two object markers.
+ *
+ * Resolves two named markers (marker A on object param_1, marker B on object
+ * param_3) into local marker buffers via object_get_markers_by_string_id, then
+ * walks marker A's animation-node parent chain (self -> parent -> grandparent)
+ * using the model tag's node block (mode tag, 'mode' = 0x6d6f6465). It composes
+ * inverse(markerA_matrix) * markerB_matrix into a local 4x3 matrix and hands that
+ * plus the three node matrices (self/parent/grandparent, indexed into the caller's
+ * node-matrix array at param_5 with a 0x34-byte stride) to the IK solver
+ * (inverse_kinematics_adjust_matrices @ 0x120fd0).
+ *
+ * Early-exits (returns) if either marker lookup fails or a parent index is NONE
+ * (-1). param_5 is the caller-owned node-matrix array (node_matrices).
+ *
+ * ABI: cdecl, 5 stack args (confirmed: MOV ESP,EBP / caller cleanup ADD ESP,...).
+ *
+ * Decompiler traps resolved:
+ *  - Ghidra's local_a4/local_a0 and local_d8 names were systematically off by 4;
+ *    the marker buffers are single contiguous 0x6c-byte objects (matrix_identity
+ *    fills +4, the node-matrix copy fills +0x38; the short node index is at +0).
+ *    Declared as char[0x6c] so MSVC's full-buffer write cannot overflow.
+ *  - EBX register reuse: it holds the node block pointer (mode_tag + 0xb8) across
+ *    both tag_block_get_element calls, then its low word is reused as the
+ *    grandparent index. Kept as two distinct C variables (nodes_block,
+ *    grandparent_index) to avoid aliasing.
+ *  - markerA matrix is read at bufA+4 (matrix_inverse); markerB matrix is read at
+ *    bufB+0x38 (matrix4x3_multiply). Asymmetric on purpose — preserved.
+ *  - matrix4x3_multiply aliases b == out (&composed_matrix twice). Faithful.
+ *  - Node indices are signed shorts via MOVSX; NONE test is == -1.
+ */
+void FUN_001414e0(int param_1, int param_2, int param_3, int param_4, int param_5)
+{
+  char marker_a[0x6c];
+  char marker_b[0x6c];
+  char composed_matrix[0x34];
+  void *obj_datum;
+  int obje_tag;
+  int mode_tag;
+  int nodes_block;
+  void *node_element;
+  short self_index;
+  short parent_index;
+  short grandparent_index;
+
+  obj_datum = object_get_and_verify_type(param_1, -1);
+  obje_tag = (int)tag_get(0x6f626a65, *(int *)obj_datum);
+  mode_tag = (int)tag_get(0x6d6f6465, *(int *)(obje_tag + 0x34));
+
+  if (object_get_markers_by_string_id(param_1, (void *)param_2, marker_a, 1) == 0) {
+    return;
+  }
+  if (object_get_markers_by_string_id(param_3, (void *)param_4, marker_b, 1) == 0) {
+    return;
+  }
+
+  nodes_block = mode_tag + 0xb8;
+  self_index = *(short *)marker_a;
+
+  node_element = tag_block_get_element((void *)nodes_block, (int)self_index, 0x9c);
+  parent_index = *(short *)((char *)node_element + 0x24);
+  if (parent_index == -1) {
+    return;
+  }
+
+  node_element = tag_block_get_element((void *)nodes_block, (int)parent_index, 0x9c);
+  grandparent_index = *(short *)((char *)node_element + 0x24);
+  if (grandparent_index == -1) {
+    return;
+  }
+
+  matrix_inverse((float *)(marker_a + 4), (float *)composed_matrix);
+  matrix4x3_multiply((float *)(marker_b + 0x38), (float *)composed_matrix,
+                     (float *)composed_matrix);
+
+  inverse_kinematics_adjust_matrices((float *)composed_matrix,
+                                     (int)grandparent_index * 0x34 + param_5,
+                                     (int)parent_index * 0x34 + param_5,
+                                     (int)self_index * 0x34 + param_5);
+}

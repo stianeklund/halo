@@ -15642,7 +15642,7 @@
         {
           "addr": "0x1414e0",
           "decl": "void FUN_001414e0(int param_1, int param_2, int param_3, int param_4, int param_5);",
-          "ported": false,
+          "ported": true,
           "source_path": "objects/objects.c"
         },
         {
@@ -33771,7 +33771,7 @@
         },
         {
           "addr": "0x120fd0",
-          "decl": "void inverse_kinematics_adjust_matrices(void);"
+          "decl": "void inverse_kinematics_adjust_matrices(float *composed_matrix, int node_matrix_b, int node_matrix_c, int node_matrix_d);"
         },
         {
           "addr": "0x121330",
