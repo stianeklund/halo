@@ -104,6 +104,7 @@ def restore_normal_mode(output_dir: Path, skip_deploy: bool) -> dict:
         ("configure", [
             "cmake", "-B", "build", "-S", str(ROOT),
             "-DHALO_TEST_HARNESS=OFF",
+            "-DHALO_DUAL_ORACLE_TARGET=",
             "-DCMAKE_TOOLCHAIN_FILE=toolchains/llvm.cmake",
         ]),
         ("build", ["cmake", "--build", "build", "--target", "patched_xbe", "--", "--quiet"]),
@@ -129,7 +130,8 @@ def restore_normal_mode(output_dir: Path, skip_deploy: bool) -> dict:
     return restore
 
 
-def run_target(entry: dict, batch_id: str, skip_build: bool, skip_deploy: bool) -> tuple[dict, str]:
+def run_target(entry: dict, batch_id: str, skip_build: bool, skip_deploy: bool,
+               per_target_restore: bool) -> tuple[dict, str]:
     target = entry["target"]
     run_id = f"{batch_id}-{sanitize_target(target)}"
     summary_path = ROOT / "artifacts" / "runtime_oracle" / run_id / "summary.json"
@@ -145,6 +147,8 @@ def run_target(entry: dict, batch_id: str, skip_build: bool, skip_deploy: bool) 
         cmd.append("--skip-build")
     if skip_deploy:
         cmd.append("--skip-deploy")
+    if not per_target_restore:
+        cmd.append("--skip-restore")
     cmd.extend(entry.get("flags", []))
 
     started = time.time()
@@ -183,6 +187,8 @@ def main() -> int:
                         help="Pass --skip-build through to run_golden_tests.py")
     parser.add_argument("--skip-deploy", action="store_true",
                         help="Pass --skip-deploy through to run_golden_tests.py")
+    parser.add_argument("--per-target-restore", action="store_true",
+                        help="Restore HALO_TEST_HARNESS=OFF after every target instead of once at batch end")
     parser.add_argument("--baseline", type=Path, default=None,
                         help="Previous batch summary.json for comparison")
     parser.add_argument("--fail-on-new", action="store_true",
@@ -226,7 +232,8 @@ def main() -> int:
             if interrupted:
                 break
             print(f"[{index}/{len(targets)}] {entry['target']:32s} ", end="", flush=True)
-            summary, output = run_target(entry, batch_id, args.skip_build, args.skip_deploy)
+            summary, output = run_target(entry, batch_id, args.skip_build,
+                                         args.skip_deploy, args.per_target_restore)
             status = summary_status(summary)
             results[status] += 1
             row = {

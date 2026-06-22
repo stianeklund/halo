@@ -48,6 +48,7 @@ def build_variant(label: str, overlay: Path, artifact_dir: Path, skip_build: boo
     env["HALO_KB_OVERLAY"] = str(overlay)
     run_command(
         ["cmake", "-B", "build", "-S", str(ROOT), "-DHALO_TEST_HARNESS=ON",
+         "-DHALO_DUAL_ORACLE_TARGET=",
          "-DCMAKE_TOOLCHAIN_FILE=toolchains/llvm.cmake"],
         ROOT,
         env,
@@ -72,6 +73,7 @@ def restore_harness_off(artifact_dir: Path, skip_build: bool,
         ("configure", [
             "cmake", "-B", "build", "-S", str(ROOT),
             "-DHALO_TEST_HARNESS=OFF",
+            "-DHALO_DUAL_ORACLE_TARGET=",
             "-DCMAKE_TOOLCHAIN_FILE=toolchains/llvm.cmake",
         ]),
         ("build", [
@@ -256,6 +258,8 @@ def build_parser() -> argparse.ArgumentParser:
                         help="Reuse the current XBE instead of rebuilding each variant.")
     parser.add_argument("--skip-deploy", action="store_true",
                         help="Reuse the deployed XBE instead of deploying each variant.")
+    parser.add_argument("--skip-restore", action="store_true",
+                        help="Do not restore HALO_TEST_HARNESS=OFF after this target; caller must restore later.")
     parser.add_argument("--self-test-parser", action="store_true",
                         help="Run structured output parser self-test and exit.")
     return parser
@@ -339,9 +343,16 @@ def main() -> int:
             "finished_utc": datetime.now(timezone.utc).isoformat(),
         })
     finally:
-        summary["restore_harness_off"] = restore_harness_off(artifact_dir,
-                                                              args.skip_build,
-                                                              args.skip_deploy)
+        if args.skip_restore:
+            summary["restore_harness_off"] = {
+                "ok": True,
+                "skipped": True,
+                "reason": "deferred by --skip-restore",
+            }
+        else:
+            summary["restore_harness_off"] = restore_harness_off(artifact_dir,
+                                                                  args.skip_build,
+                                                                  args.skip_deploy)
 
     summary_path = artifact_dir / "summary.json"
     summary_path.write_text(json.dumps(summary, indent=2) + "\n",

@@ -157,21 +157,31 @@ def apply_kb_overlay(kb, overlay_path):
 
     applied = []
     for selector, value in functions.items():
+        dual_oracle = False
         if isinstance(value, dict):
+            dual_oracle = bool(value.get('dual_oracle', False))
             ported = value.get('ported')
         else:
             ported = value
-        if not isinstance(ported, bool):
+        if not dual_oracle and not isinstance(ported, bool):
             raise ValueError(f'{overlay_path}: {selector} must set boolean ported')
 
         matches = by_selector.get(str(selector).lower(), [])
         if not matches:
             raise ValueError(f'{overlay_path}: no function matches {selector}')
         for sym in matches:
-            sym.ported = ported
-            applied.append(f'{sym.name}:ported={ported}')
+            if dual_oracle:
+                sym.dual_oracle = True
+                applied.append(f'{sym.name}:dual_oracle=True')
+            else:
+                sym.ported = ported
+                applied.append(f'{sym.name}:ported={ported}')
 
     log.info('Applied kb overlay %s: %s', overlay_path, ', '.join(applied))
+
+
+def is_dual_oracle_symbol(sym):
+    return bool(getattr(sym, 'dual_oracle', False))
 
 
 def find_reg_annotation_mismatches(kb, baseline_path=KB_REG_BASELINE_PATH, baseline_funcs=None):
@@ -1437,7 +1447,8 @@ def main():
     # If a source file is missing from CMakeLists.txt the function compiles to
     # nothing, the XBE patch is silently skipped, and the original (crashing)
     # code runs.  Catch that here so the build fails loudly instead.
-    ported_kb_names = {s.name for s in kb.symbols if getattr(s, 'ported', None) is True}
+    ported_kb_names = {s.name for s in kb.symbols
+                       if getattr(s, 'ported', None) is True or is_dual_oracle_symbol(s)}
     exported_kb_names = set(export_to_kb_name.values())
     missing_exports = ported_kb_names - exported_kb_names
     if missing_exports:
@@ -1464,7 +1475,7 @@ def main():
         if thunk_section_bounds and thunk_section_bounds[0] <= impl_addr < thunk_section_bounds[1]:
             # Still just the forward-thunk weak symbol — no real impl.
             continue
-        if getattr(sym, 'ported', None) is False:
+        if getattr(sym, 'ported', None) is False or is_dual_oracle_symbol(sym):
             # Deactivated by kb.json; no original→our_impl path needed because
             # the original-address redirect is also skipped below.
             continue
@@ -1497,6 +1508,10 @@ def main():
             log.info('Skipping thunk "%s" export', n)
             continue
         sym = name_to_symbol.get(kb_name)
+        if sym is not None and is_dual_oracle_symbol(sym):
+            log.info('Dual-oracle "%s": leaving original %x intact; candidate impl remains at %x',
+                     n, addr_of_original_in_xbe, addr_of_reimplementation)
+            continue
         if sym is not None and getattr(sym, 'ported', None) is False:
             # Deactivation: leave the original XBE bytes intact, and overwrite
             # our impl entry with a redirect to the original. Both original
