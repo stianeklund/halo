@@ -14728,7 +14728,8 @@
         {
           "addr": "0x134ae0",
           "decl": "void FUN_00134ae0(int object_handle, int widget_datum);",
-          "ported": false
+          "ported": true,
+          "name": null
         },
         {
           "addr": "0x134be0",
@@ -15484,7 +15485,7 @@
         {
           "addr": "0x13fe10",
           "decl": "int16_t object_get_first_cluster(void *iter_state, int object_handle);",
-          "ported": false,
+          "ported": true,
           "source_path": "objects/objects.c"
         },
         {
