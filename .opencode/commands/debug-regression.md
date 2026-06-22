@@ -15,10 +15,24 @@ Argument: $ARGUMENTS (description of the regression symptom or failing test)
 
 ## Investigation priority
 
-**Always start with git history.** Most regressions are introduced by a recent
-commit. Static analysis is fast, free, and usually sufficient.
+**Always start with prior-fix lookup, then git history.** Most regressions are
+introduced by a recent commit. Static analysis is fast, free, and usually
+sufficient. The prior-fix lookup is cheaper and runs first; it informs the
+bisect but does not replace it.
 
-### Phase 1 — Git bisection (always first)
+### Phase 0 — Prior-Fix Lookup (near-free, do first)
+
+Run:
+
+```bash
+rtk python3 tools/memory/prior_fixes.py "$ARGUMENTS"
+```
+
+This searches source-controlled docs/skills, `.claude/agent-memory`, recent
+git commits, and retrieval outcome metadata. Load any recommended skill(s), and
+carry matching prior fixes into Phase 1 as hypotheses to confirm or refute.
+
+### Phase 1 — Git bisection (the investigation backbone)
 
 1. `git log --oneline -20` — identify recent commits touching `kb.json`, C
    source, or types.
