@@ -7329,7 +7329,13 @@ short FUN_00027090(int actor_handle, void *param_2, void *param_3,
         ((int *)param_3)[0xb] = (int)distance_squared3d(
           (const float *)((char *)param_2 + 0x604), (const float *)iVar8);
       }
-      if (!FUN_00025970(param_2, actor_handle, actor)) {
+      /* Original 0x2728d: MOV EAX,EDI (state@eax = param_3, the firing-position
+       * record just built above) and ESI = param_2 (the eval ctx) is the
+       * actor@esi pass-through.  The prior lift wrongly passed param_2 as the
+       * record and the local `actor` datum as the ctx, so FUN_00024cf0 scored
+       * the ctx buffer (whose [0] = group bitmask = total) as a firing-position
+       * record and dereferenced total (=1) as a position pointer -> PoA AV. */
+      if (!FUN_00025970(param_3, actor_handle, (char *)param_2)) {
         existing_fp = -1;
         *(short *)(actor + 0x3b8) = -1;
       }
