@@ -8323,14 +8323,23 @@ void FUN_00028ed0(float *look_vectors, float *idle_direction, int actor_handle)
     if (pfVar4[1] < az_range) {
       az_max = pfVar4[1];
     }
-    if (FUN_000283b0((float *)(actor + 0x120), 0, az_min, az_max, -el_range,
-                     el_range, out_vec3, idle_direction)) {
-      *(float *)(actor + 0x580) = out_vec3[0];
-      *(float *)(actor + 0x584) = out_vec3[1];
-      *(float *)(actor + 0x588) = out_vec3[2];
-      *(short *)(actor + 0x57c) = 4;
-      flag_byte = 0;
+    if (!FUN_000283b0((float *)(actor + 0x120), 0, az_min, az_max, -el_range,
+                      el_range, out_vec3, idle_direction)) {
+      /* Original 0x28fe7 `je 0x29033`: when no idle look direction is found,
+         RETURN early — do NOT call FUN_00028250 or arm the look gate. The
+         prior lift dropped this early-out and fell through, arming +0x55f
+         over a stale +0x57c==4 / (0,0,0) +0x580. That degenerate look-spec
+         was later copied by FUN_00028660 case 4 (actor_looking.c:8894),
+         bypassing its magnitude gate, and halted at
+         actor_looking.c:529 assert_valid_real_normal3d(0,0,0) during PoA
+         combat actor activation. */
+      return;
     }
+    *(float *)(actor + 0x580) = out_vec3[0];
+    *(float *)(actor + 0x584) = out_vec3[1];
+    *(float *)(actor + 0x588) = out_vec3[2];
+    *(short *)(actor + 0x57c) = 4;
+    flag_byte = 0;
   }
 
   *(int *)(actor + 0x568) =
@@ -8338,6 +8347,59 @@ void FUN_00028ed0(float *look_vectors, float *idle_direction, int actor_handle)
   if (*(int *)(actor + 0x568) != 0) {
     *(char *)(actor + 0x55f) = 1;
   }
+}
+
+/* look_spec_28660_safe — wrapper around FUN_00028660 that guards against the
+   actor_looking.c:529 halt on a degenerate (0,0,0) look-spec.
+
+   FUN_00028660 builds a look direction from a look-spec. Its NORMALIZE cases
+   (type 0/1/3/5/6) pass a (0,0,0) through normalize3d, whose magnitude gate
+   makes 28660 silently return 0. But its COPY cases — type 2 (actor+0x68c /
+   actor+0x63c) and type 4 (look_spec+4) — copy the stored vector directly,
+   bypassing that gate, and a (0,0,0) there reaches assert_valid_real_normal3d
+   and HALTS at line 529.
+
+   Such a degenerate copy-case look-spec arises during actor activation: the
+   idle look producer FUN_00028cc0 sets the look-spec type (e.g. +0x56c=4)
+   BEFORE calling FUN_000283b0, which writes the look vector ONLY on success.
+   When 283b0's collision raycast (FUN_0014df70) finds no clear direction in
+   any of its attempts it returns false and leaves the vector unwritten — so a
+   never-initialised (0,0,0) survives with the type already armed. The slot is
+   then copied (+0x56c -> +0x57c) and consumed by 28660 case 4 (line 8894).
+
+   In a RELEASE build 28660 would simply return 0 here (valid_real_normal3d
+   fails, asserts compiled out); we replicate exactly that — return 0 ("no
+   valid look this tick") for a degenerate copy-case vector — so the debug
+   build does not halt on a state the shipping engine tolerates. The caller's
+   28660-returned-0 path disarms the look gate and falls through to the
+   snap-to-original handling, which is the intended no-look behaviour.
+
+   NOTE (upstream): the root reason +0x570 is left (0,0,0) is FUN_000283b0 /
+   FUN_0014df70 reporting every idle-look candidate blocked at activation;
+   that raycast lift should be re-validated separately. */
+static char look_spec_28660_safe(int actor_handle, char *actor,
+                                 short *look_spec, float *out_vec)
+{
+  int cs;
+  float *tgt;
+  float m2;
+
+  cs = (int)*look_spec;
+  tgt = 0;
+  if (cs == 2) {
+    if (*(short *)(actor + 0x5f2) == 2)
+      tgt = (float *)(actor + 0x68c);
+    else if (*(char *)(actor + 0x628) != '\0')
+      tgt = (float *)(actor + 0x63c);
+  } else if (cs == 4) {
+    tgt = (float *)((char *)look_spec + 4);
+  }
+  if (tgt != 0) {
+    m2 = tgt[0] * tgt[0] + tgt[1] * tgt[1] + tgt[2] * tgt[2];
+    if (m2 < 1e-8f)
+      return 0;
+  }
+  return FUN_00028660(actor_handle, look_spec, out_vec);
 }
 
 /* actor_look_update (0x29040)
@@ -8458,7 +8520,7 @@ void actor_look_update(int actor_handle)
   /* Determine primary look mode */
   if (FUN_000210b0(actor_handle) && !*(char *)(actor + 0x456)) {
     look_spec_type = 2;
-    if (FUN_00028660(actor_handle, &look_spec_type, primary_vec)) {
+    if (look_spec_28660_safe(actor_handle, actor, &look_spec_type, primary_vec)) {
       look_mode = 7;
       strict_look = 1;
     } else {
@@ -8468,7 +8530,7 @@ void actor_look_update(int actor_handle)
   LAB_look_mode_from_actor:
     look_mode = (int)(unsigned short)(*(unsigned short *)(actor + 0x3e8));
     if (look_mode != 0 && look_mode != 1) {
-      if (FUN_00028660(actor_handle, (short *)(actor + 0x3ec), primary_vec)) {
+      if (look_spec_28660_safe(actor_handle, actor, (short *)(actor + 0x3ec), primary_vec)) {
         strict_look = (char)(*(short *)(actor + 0x3ec) == 2);
       } else {
         look_mode = 0;
@@ -8479,7 +8541,7 @@ void actor_look_update(int actor_handle)
   /* Secondary look mode */
   secondary_mode = 0;
   if (*(short *)(actor + 0x544) >= 0 && *(short *)(actor + 0x548) > 0) {
-    if (FUN_00028660(actor_handle, (short *)(actor + 0x54c), secondary_vec)) {
+    if (look_spec_28660_safe(actor_handle, actor, (short *)(actor + 0x54c), secondary_vec)) {
       secondary_mode = (int)(*(short *)(actor + 0x546));
     }
   }
@@ -8778,7 +8840,7 @@ LAB_000297c7:
 
   *(int *)(actor + 0x564) -= 1;
 
-  if (!FUN_00028660(actor_handle, (short *)(actor + 0x56c), primary_vec))
+  if (!look_spec_28660_safe(actor_handle, actor, (short *)(actor + 0x56c), primary_vec))
     goto LAB_00029ccc;
 
   if (!valid_real_normal3d(primary_vec)) {
@@ -8856,7 +8918,7 @@ LAB_00029b75:
     }
     *(int *)(actor + 0x568) -= 1;
     if (*(char *)(actor + 0x55f)) {
-      cVar7 = FUN_00028660(actor_handle, (short *)(actor + 0x57c), primary_vec);
+      cVar7 = look_spec_28660_safe(actor_handle, actor, (short *)(actor + 0x57c), primary_vec);
       cVar5 = want_secondary;
       if (cVar7) {
         if (!want_secondary)
