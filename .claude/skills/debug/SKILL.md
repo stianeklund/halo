@@ -21,6 +21,15 @@ Argument: `$ARGUMENTS` (symptom description)
 
 ## A — Symptom Router
 
+Before routing, run prior-fix lookup once:
+
+```bash
+rtk python3 tools/memory/prior_fixes.py "$ARGUMENTS"
+```
+
+Load any recommended skill(s) from the output. Treat matches as leads only;
+confirm against binary/disassembly/runtime evidence before fixing code.
+
 Read the symptom, then follow the matching row:
 
 | Symptom | Action |

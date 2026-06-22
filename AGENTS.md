@@ -46,6 +46,7 @@ A hook (`tools/audit/token_discipline_hook.py`, wired in `.claude/settings.json`
 
 ### 1. Research & Analysis
 - **Scope-first:** Start tasks with exact path(s), symbol(s), and line range(s).
+- **Prior-fix lookup:** Before debugging any regression, crash, hang, assert, visual bug, wrong behavior, or build/deploy failure, run `rtk python3 tools/memory/prior_fixes.py "<symptom or target>"`. Treat matches as hypotheses only; confirm against binary/disassembly/runtime evidence before fixing code.
 - **Token Discipline:** See the [Token Discipline](#token-discipline) section above. Use line-ranged reads (`rtk read -o <start> -l <limit>`). Never re-read a file after a successful edit.
 - **Large files:** For files >300 lines, always read with `rtk read -o <start> -l <limit>`. Cap at 100 lines per read. See the File-Specific Bans & Caps table.
 - **kb.json:** `rtk jq` ONLY — never use the Read tool. See the File-Specific Bans & Caps table.
