@@ -4900,6 +4900,416 @@ char object_select_random_region_permutations_by_variant(
   return all_ok;
 }
 
+/* 0x13e1f0 / objects.obj — Seed the object's four change-color slots during
+ * spawn. For each of the 4 slots, copies the base RGB triple from the
+ * placement color_data, then (if the model tag declares a change-color
+ * animation for this slot index, block at obj_tag+0x164, element size 0x2c)
+ * derives a deterministic pseudo-random blend value from the object's basis
+ * vectors (obj+0xc/0x10/0x14) and the slot index, walks the slot's permutation
+ * sub-block (element+0x20, element size 0x1c) as a cumulative distribution,
+ * and on the first permutation whose threshold (perm[0]) is >= the blend
+ * value, blends an RGB pair (perm+0x4 .. perm+0x10) into the slot color via
+ * FUN_0007c270. Finally clamps each RGB component of the slot to [0,1] and
+ * writes the clamped triple to the +0x30 mirror (obj+0x138 slot layout:
+ * base RGB at +0, clamped RGB at +0x30).
+ * Role: object spawn-appearance setup; establishes per-object tinting.
+ * object_handle in EAX (register arg); color_data is first stack argument.
+ * Confirmed: PUSH -1; PUSH EAX; CALL object_get_and_verify_type.
+ * Confirmed: pseudo-random frac via x87_fmod(|dot|, 1.0) (CALL 0x1daf7e).
+ * Confirmed: clamp lo/hi = *(float*)0x2533c0 (0.0) / 0x2533c8 (1.0).
+ * Confirmed: 4 iterations; dest stride 0xc bytes, color_data stride 0xc. */
+void object_choose_random_change_colors(int object_handle /* @<eax> */,
+                                        void *color_data)
+{
+  char *obj;
+  int obj_tag;
+  float *src;
+  float *dst;
+  int i;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  obj_tag = (int)tag_get(0x6f626a65, *(int *)obj);
+  src = (float *)color_data;
+  dst = (float *)(obj + 0x138);
+
+  for (i = 0; i < 4; i = i + 1) {
+    float frac;
+    float c;
+
+    /* base RGB triple from placement data */
+    dst[0] = src[0];
+    dst[1] = src[1];
+    dst[2] = src[2];
+
+    if (i < *(int *)(obj_tag + 0x164)) {
+      char *cc_elem = (char *)tag_block_get_element(
+          (void *)(obj_tag + 0x164), i, 0x2c);
+
+      /* deterministic pseudo-random selector from object basis + slot index;
+       * the FABS is applied to the dot sum before the modulo */
+      frac = *(float *)(obj + 0x14) * *(float *)0x29bbe0 +
+             *(float *)(obj + 0xc) * *(float *)0x29bbdc +
+             *(float *)(obj + 0x10) * *(float *)0x29bbd8 +
+             (float)i * *(float *)0x29bbd4;
+      if (frac < 0.0f) {
+        frac = -frac;
+      }
+      frac = x87_fmod(frac, 1.0);
+
+      if (*(int *)(cc_elem + 0x20) > 0) {
+        int16_t j = 0;
+        do {
+          float *perm = (float *)tag_block_get_element(
+              (void *)(cc_elem + 0x20), (int)j, 0x1c);
+          if (frac <= perm[0]) {
+            float blend;
+            /* FABS applies only to obj+0x10 here, before adding index term */
+            blend = *(float *)(obj + 0x10);
+            if (blend < 0.0f) {
+              blend = -blend;
+            }
+            blend = blend + (float)i * *(float *)0x29bbd0;
+            blend = x87_fmod(blend, 1.0);
+            FUN_0007c270(dst, 1, perm + 1, perm + 4, blend);
+            break;
+          }
+          j = j + 1;
+        } while ((int)j < *(int *)(cc_elem + 0x20));
+      }
+    }
+
+    /* clamp each component to [0,1] and store in the +0x30 mirror */
+    c = *(float *)0x2533c0;
+    if (*(float *)0x2533c0 <= dst[0] && (c = *(float *)0x2533c8, dst[0] <= *(float *)0x2533c8)) {
+      c = dst[0];
+    }
+    dst[0xc] = c;
+    c = *(float *)0x2533c0;
+    if (*(float *)0x2533c0 <= dst[1] && (c = *(float *)0x2533c8, dst[1] <= *(float *)0x2533c8)) {
+      c = dst[1];
+    }
+    dst[0xd] = c;
+    c = *(float *)0x2533c0;
+    if (*(float *)0x2533c0 <= dst[2] && (c = *(float *)0x2533c8, dst[2] <= *(float *)0x2533c8)) {
+      c = dst[2];
+    }
+    dst[0xe] = c;
+
+    src = src + 3;
+    dst = dst + 3;
+  }
+}
+
+/* 0x13e5d0 / objects.obj — Recompute the object's live change colors from its
+ * current animation-function values. Gated on the object tag flag bit 0 at
+ * obj_tag+0x24. For each change-color animation entry (block obj_tag+0x164,
+ * element size 0x2c): if its blend-function index (entry+0x2) is nonzero,
+ * blends an RGB pair (entry+0x8 .. entry+0x14) into the computed color slot
+ * (obj+0x168 + i*0xc) using the precomputed function value as the blend
+ * weight; if its scale-function index (entry+0x0) is nonzero, multiplies all
+ * three components of the slot by that function value; finally clamps each
+ * component to [0,1] in place. Function values are read directly from the
+ * precomputed array at obj+0xd0 (filled by object_compute_function_values).
+ * Role: object spawn-appearance / per-frame appearance update.
+ * object_handle in EAX (register arg).
+ * Confirmed: PUSH -1; PUSH EAX; CALL object_get_and_verify_type.
+ * Confirmed: gate on (*(uint8_t*)(obj_tag+0x24) & 1).
+ * Confirmed: function value = *(float*)(obj + 0xd0 + fn_idx*4).
+ * Confirmed: computed color slot base obj+0x168 (the +0x30 change-color mirror).
+ * Confirmed: clamp lo/hi = *(float*)0x2533c0 / 0x2533c8. */
+void object_compute_change_colors(int object_handle /* @<eax> */)
+{
+  char *obj;
+  int obj_tag;
+  int16_t i;
+  int16_t counter;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  obj_tag = (int)tag_get(0x6f626a65, *(int *)obj);
+  if ((*(unsigned char *)(obj_tag + 0x24) & 1) == 0) {
+    return;
+  }
+
+  i = 0;
+  counter = 0;
+  if (*(int *)(obj_tag + 0x164) <= 0) {
+    return;
+  }
+  do {
+    char *entry = (char *)tag_block_get_element(
+        (void *)(obj_tag + 0x164), (int)i, 0x2c);
+    float *slot = (float *)(obj + 0x168 + (int)i * 0xc);
+    int16_t blend_fn;
+    int16_t scale_fn;
+    float c;
+
+    /* blend-function: blend the entry RGB pair into the slot */
+    blend_fn = *(int16_t *)(entry + 0x2);
+    if (blend_fn != 0) {
+      float fn_val = *(float *)(obj + 0xd0 + (int)blend_fn * 4);
+      FUN_0007c270(slot, *(int *)(entry + 0x4),
+                   (float *)(entry + 0x8), (float *)(entry + 0x14), fn_val);
+    }
+
+    /* scale-function: multiply all three components by the function value */
+    scale_fn = *(int16_t *)entry;
+    if (scale_fn != 0) {
+      float fn_val = *(float *)(obj + 0xd0 + (int)scale_fn * 4);
+      slot[0] = fn_val * slot[0];
+      slot[1] = fn_val * slot[1];
+      slot[2] = fn_val * slot[2];
+    }
+
+    /* clamp each component to [0,1] in place */
+    c = *(float *)0x2533c0;
+    if (*(float *)0x2533c0 <= slot[0] && (c = *(float *)0x2533c8, slot[0] <= *(float *)0x2533c8)) {
+      c = slot[0];
+    }
+    slot[0] = c;
+    c = *(float *)0x2533c0;
+    if (*(float *)0x2533c0 <= slot[1] && (c = *(float *)0x2533c8, slot[1] <= *(float *)0x2533c8)) {
+      c = slot[1];
+    }
+    slot[1] = c;
+    c = *(float *)0x2533c0;
+    if (*(float *)0x2533c0 <= slot[2] && (c = *(float *)0x2533c8, slot[2] <= *(float *)0x2533c8)) {
+      c = slot[2];
+    }
+    slot[2] = c;
+
+    counter = counter + 1;
+    i = counter;
+  } while ((int)i < *(int *)(obj_tag + 0x164));
+}
+
+/* 0x140ad0 / objects.obj — Choose random region permutations for an object's
+ * model during spawn, honoring the object's requested variant (obj+0x6e).
+ * Resolves the model tag (group 'mode') from the object tag (group 'obje'),
+ * then asks object_select_random_region_permutations_by_variant to populate
+ * the per-region permutation indices at obj+0x130. If the requested variant
+ * is not positive, or selection by that variant fails for any region, falls
+ * back to variant -1 (any), then determines an actual variant number via
+ * object_determine_variant_number, records it in obj+0x6e, and (if positive)
+ * re-selects permutations for that resolved variant.
+ * Role: part of the object spawn-appearance setup chain in object_new.
+ * object_handle in EDI (register arg).
+ * Confirmed: PUSH -1; PUSH EDI; CALL object_get_and_verify_type.
+ * Confirmed: tag_get('obje', obj->tag_index) then tag_get('mode', tag+0x34).
+ * Confirmed: variant read as int16_t from obj+0x6e (sign-extended; <=0 path).
+ * Confirmed: callees receive object_handle in EAX (MOV EAX,EDI before CALL). */
+void object_choose_random_region_permutations(int object_handle /* @<edi> */)
+{
+  char *obj;
+  int obj_tag;
+  void *model_tag;
+  int16_t variant;
+  int16_t resolved;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  obj_tag = (int)tag_get(0x6f626a65, *(int *)obj);
+  if (*(int *)(obj_tag + 0x34) == -1) {
+    return;
+  }
+
+  model_tag = tag_get(0x6d6f6465, *(int *)(obj_tag + 0x34));
+  variant = *(int16_t *)(obj + 0x6e);
+  if (variant < 1 ||
+      object_select_random_region_permutations_by_variant(
+          object_handle, model_tag, variant) == 0) {
+    object_select_random_region_permutations_by_variant(
+        object_handle, model_tag, -1);
+    resolved = object_determine_variant_number(object_handle, model_tag);
+    *(int16_t *)(obj + 0x6e) = resolved;
+    if (resolved > 0) {
+      object_select_random_region_permutations_by_variant(
+          object_handle, model_tag, resolved);
+    }
+  }
+}
+
+/* 0x13e7b0 / objects.obj — Evaluate all of the object tag's animation
+ * functions for the current frame and store the results into the object's
+ * function-value array (obj+0xe4 onward), updating the per-function active
+ * bitmask byte at obj+0xd3.
+ *
+ * For each function definition (block obj_tag+0x158, element size 0x168):
+ *   - Builds a per-object time input: (game_time_get() + (handle&0xffff)*0x39)
+ *     scaled by a global constant (0x2546a4).
+ *   - Evaluates a periodic waveform (FUN_0010a5e0) over that time, optionally
+ *     scaled by a referenced function value, then applies inversion (flag 1),
+ *     a secondary sinusoidal offset term, a step threshold, an exponent/floor
+ *     stage, a modulo wrap, an additive function with clamp-to-1, a final
+ *     multiplier function, a transition remap (transition_function_evaluate),
+ *     a scale, and a range remap with min/max clamping (modes 1/2).
+ *   - Computes an "active" bit from flag bit 2 and a dependency function's
+ *     active bit (obj+0xd3 & (1<<elem[+0x36])).
+ *   - With flag bit 1, wraps the result by adding the prior slot value and
+ *     taking fmod(.,1.0) (accumulator).
+ *   - Writes the result to obj+0xe4+i*4 and updates obj+0xd3 bit i.
+ *
+ * Role: object spawn / per-frame appearance; feeds object_compute_change_colors
+ * and node/marker animation. Function values 0-4 (obj+0xd0) are engine
+ * built-ins; indices 5+ written here begin at obj+0xe4 (=obj+0xd0+5*4).
+ * object_handle in EAX (register arg).
+ * Confirmed: ESI=object_handle saved before object_get_and_verify_type(EAX,-1).
+ * Confirmed: time scale const *(float*)0x2546a4; output array obj+0xe4.
+ * Confirmed: CMP 0x5;JL branches are vestigial bounds checks (identical loads).
+ * Uncertain: many field offsets within the 0x168-byte element (see inline). */
+void object_compute_function_values(int object_handle /* @<eax> */)
+{
+  char *obj;
+  int obj_tag;
+  float time_base;
+  int func_count;
+  int16_t i;
+  int16_t counter;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  obj_tag = (int)tag_get(0x6f626a65, *(int *)obj);
+
+  /* per-object time input, scaled to seconds */
+  time_base = (float)(game_time_get() + (object_handle & 0xffff) * 0x39) *
+              *(float *)0x2546a4;
+
+  func_count = *(int *)(obj_tag + 0x158);
+  i = 0;
+  counter = 0;
+  if (func_count <= 0) {
+    return;
+  }
+  do {
+    char *elem = (char *)tag_block_get_element(
+        (void *)(obj_tag + 0x158), (int)i, 0x168);
+    unsigned char active;
+    float value;
+    float t;
+    int16_t fn;
+    int16_t mode;
+
+    active = 1;
+
+    /* --- primary periodic waveform --- */
+    t = *(float *)(elem + 0x144);
+    fn = *(int16_t *)(elem + 0x8);
+    if (fn != 0) {
+      float fv = *(float *)(obj + 0xd0 + (int)fn * 4);
+      if (fv > *(float *)0x2533c0) {
+        t = t / fv;
+      }
+    }
+    t = t * time_base;
+    value = FUN_0010a5e0(*(int16_t *)(elem + 0xa), t);
+
+    /* --- optional amplitude function --- */
+    fn = *(int16_t *)(elem + 0xc);
+    if (fn != 0) {
+      value = *(float *)(obj + 0xd0 + (int)fn * 4) * value;
+    }
+
+    /* --- inversion (flag bit 0) --- */
+    if ((*(unsigned char *)elem & 1) != 0) {
+      value = *(float *)0x2533c8 - value;
+    }
+
+    /* --- secondary sinusoidal offset term (when elem+0x14 != 0) --- */
+    if (*(float *)(elem + 0x14) != *(float *)0x2533c0) {
+      float w = FUN_0010a5e0(*(int16_t *)(elem + 0xe),
+                             time_base * *(float *)(elem + 0x10));
+      w = (w - *(float *)0x253398) * *(float *)(elem + 0x14);
+      value = w + w + value;
+    }
+
+    /* --- step threshold (when elem+0x18 != 0): 1.0 if value>thr else 0.0 --- */
+    if (*(float *)(elem + 0x18) != *(float *)0x2533c0) {
+      float prev = value;
+      value = 1.0f;
+      if (prev <= *(float *)(elem + 0x18)) {
+        value = 0.0f;
+      }
+    }
+
+    /* --- exponent/floor stage (when elem+0x1c > 1) --- */
+    if (*(int16_t *)(elem + 0x1c) > 1) {
+      value = (float)floor((double)((float)*(int16_t *)(elem + 0x1c) * value)) *
+              *(float *)(elem + 0x140);
+    }
+
+    /* --- modulo wrap (when elem+0x13c > 0) --- */
+    if (*(float *)(elem + 0x13c) > *(float *)0x2533c0) {
+      value = x87_fmod(value, (double)*(float *)(elem + 0x13c));
+    }
+
+    /* --- additive function with clamp-to-1 --- */
+    fn = *(int16_t *)(elem + 0x22);
+    if (fn != 0) {
+      value = *(float *)(obj + 0xd0 + (int)fn * 4) + value;
+      if (value > *(float *)0x2533c8) {
+        value = *(float *)0x2533c8;
+      }
+    }
+
+    /* --- final multiplier function --- */
+    fn = *(int16_t *)(elem + 0x24);
+    if (fn != 0) {
+      value = *(float *)(obj + 0xd0 + (int)fn * 4) * value;
+    }
+
+    /* --- transition remap --- */
+    value = transition_function_evaluate(*(int16_t *)(elem + 0x1e), value);
+
+    /* --- scale (when elem+0x38 > 0) --- */
+    if (*(float *)(elem + 0x38) > *(float *)0x2533c0) {
+      value = value * *(float *)(elem + 0x38);
+    }
+
+    /* --- range remap (modes 1/2) --- */
+    mode = *(int16_t *)(elem + 0x26);
+    if (mode == 2) {
+      value = (*(float *)(elem + 0x2c) - *(float *)(elem + 0x28)) * value +
+              *(float *)(elem + 0x28);
+      if (*(float *)(elem + 0x28) + *(float *)0x253f44 >= value) {
+        active = (unsigned char)(*(unsigned int *)elem >> 2) & 1;
+      }
+    } else {
+      if (*(float *)(elem + 0x28) + *(float *)0x253f44 >= value) {
+        value = *(float *)(elem + 0x28);
+        active = (unsigned char)(*(unsigned int *)elem >> 2) & 1;
+      }
+      if (value > *(float *)(elem + 0x2c)) {
+        value = *(float *)(elem + 0x2c);
+      }
+      if (mode == 1) {
+        value = (value - *(float *)(elem + 0x28)) * *(float *)(elem + 0x138);
+      }
+    }
+
+    /* --- dependency on another function's active bit --- */
+    if (*(int16_t *)(elem + 0x36) != -1 &&
+        (*(unsigned char *)(obj + 0xd3) &
+         (unsigned char)(1 << (*(int16_t *)(elem + 0x36) & 0x1f))) == 0) {
+      active = 0;
+    }
+
+    /* --- accumulator wrap (flag bit 1), using prior slot value --- */
+    if ((*(unsigned char *)elem & 2) != 0) {
+      value = x87_fmod(value + *(float *)(obj + 0xe4 + (int)i * 4), 1.0);
+    }
+
+    /* --- store result and update active bitmask --- */
+    *(float *)(obj + 0xe4 + (int)i * 4) = value;
+    if (active != 0) {
+      *(unsigned char *)(obj + 0xd3) =
+          *(unsigned char *)(obj + 0xd3) | (unsigned char)(1 << ((int)i & 0x1f));
+    } else {
+      *(unsigned char *)(obj + 0xd3) =
+          *(unsigned char *)(obj + 0xd3) & ~(unsigned char)(1 << ((int)i & 0x1f));
+    }
+
+    counter = counter + 1;
+    i = counter;
+  } while ((int)i < *(int *)(obj_tag + 0x158));
+}
+
 /*
  * objects_initialize — one-time initialisation of the object subsystem.
  *
