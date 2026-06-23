@@ -158,9 +158,8 @@ void actor_combat_set_fire_timer(int actor_handle /* @<esi> */)
     FUN_000b55b0(0xe, (int)*(unsigned short *)(actor + 0x3e)) * random_time;
 
   if (firing_ref != NULL) {
-    float mod = *(float *)((char *)firing_ref + 4);
-    if (mod != 0.0f)
-      result *= mod;
+    if (*(float *)((char *)firing_ref + 4) != 0.0f)
+      result *= *(float *)((char *)firing_ref + 4);
   }
 
   if (*(char *)(actor + 0x1ca) != 0)
@@ -599,10 +598,19 @@ void FUN_00022390(int actor_handle)
     }
   }
 
+#if defined(_MSC_VER) && !defined(__clang__)
+  /* VC71 /Oi inlines cos/sin as FCOS/FSIN sharing ST0, matching the original
+   * codegen; the clang runtime build keeps the explicit x87 helpers. */
+  cos_yaw_v = (float)cos((double)yaw_angle);
+  sin_yaw_v = (float)sin((double)yaw_angle);
+  cos_comb = (float)cos((double)combined_angle);
+  sin_comb = (float)sin((double)combined_angle);
+#else
   cos_yaw_v = x87_fcos(yaw_angle);
   sin_yaw_v = x87_fsin(yaw_angle);
   cos_comb = x87_fcos(combined_angle);
   sin_comb = x87_fsin(combined_angle);
+#endif
 
   primary_err[0] =
       (perp[0] * cos_yaw_v + 0.0f * sin_yaw_v) * error_primary;
