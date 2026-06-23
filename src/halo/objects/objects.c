@@ -390,7 +390,17 @@ char FUN_000ae110(int param_1, int param_2, int param_3)
 }
 
 /* Default player-win check used when no game-engine vtable slot 0x84 is set.
- * Returns 1 (won), 0 (not won), or -1 (invalid/undecided). */
+ * Returns 1 (won), 0 (not won), or -1 (invalid/undecided).
+ *
+ * VC71 whole-file score 2.3% is a MEASUREMENT ARTIFACT, not a lift defect:
+ * FUN_000ae250 is the LAST function in objects.obj's delinked range, which
+ * batch_delink.py's compute_truncated_range() deliberately ends at the last
+ * function's START (BFT COFF relocation-bug workaround), truncating this
+ * body to 1 instruction in the reference. True match is 92.9% (87/81 insns)
+ * against the per-function ref delinked/functions/000ae250.obj (verified via
+ * `vc71_verify --function FUN_000ae250` 2026-06-23). Do NOT bump the committed
+ * whole-file floor or re-export objects.obj — both reintroduce the COFF bug /
+ * a false regression. See [[reference_inline_delinked_export_when_live_down]]. */
 int FUN_000ae250(int param_1)
 {
     int iVar2;
@@ -2928,6 +2938,39 @@ int FUN_0013cab0(int param_1, int param_2)
     system_exit(-1);
   }
   return *(short *)(iVar1 + 0xc) + param_1;
+}
+
+/*
+ * FUN_0013cb30 (0x13cb30 / object_types.c) — delete all unnamed scenery and
+ * light-fixture objects.
+ *
+ * Walks the object table for type_mask 0x240 (scenery | light_fixture) via an
+ * object_iter_t and deletes every matching object whose name_index (obj+0x6a)
+ * is -1 (NONE) — i.e. transient placements with no scenario name; named ones
+ * are left intact. Called by scenario_switch_structure_bsp (0x18eb40) during a
+ * structure-BSP switch; the sibling FUN_0013cb80 below refreshes/respawns the
+ * placements for the new BSP cluster.
+ *
+ * Confirmed (disasm 0x13cb30): object_iterator_new(&iter,0x240,0); first
+ * object_iterator_next(&iter); while EAX!=0 { CMP word ptr [EAX+0x6a],-1
+ * (name_index); JNZ skip; MOV EDX,[EBP-0x8]; object_delete(EDX); skip:
+ * object_iterator_next(&iter) }. [EBP-0x8] is iter.last_handle (iterator+0x8,
+ * EBP-0x10 base) — the handle written by object_iterator_next, NOT a separate
+ * local (Ghidra split it as `local_c`; buffer-alias trap).
+ */
+void FUN_0013cb30(void)
+{
+  object_iter_t iter;
+  short *object;
+
+  object_iterator_new(&iter, 0x240, 0);
+  object = (short *)object_iterator_next(&iter);
+  while (object != (short *)0) {
+    if (*(short *)((char *)object + 0x6a) == -1) {
+      object_delete(iter.last_handle);
+    }
+    object = (short *)object_iterator_next(&iter);
+  }
 }
 
 /*
@@ -12312,7 +12355,15 @@ int FUN_0009eb40(int definition_index, int object_index, short marker_index,
  * stores the attached object handle and first-person-weapon index, optionally
  * marks as "violent" (via FUN_0009c700), performs debug logging if enabled,
  * memsets the per-event slot array, runs marker-resolve callbacks, and fires
- * the initial effect_update tick. Returns the new datum index or NONE (-1). */
+ * the initial effect_update tick. Returns the new datum index or NONE (-1).
+ *
+ * VC71 ceiling 82.9% (180 compiled vs 165 ref insns) is STRUCTURAL, not a
+ * defect: the delinked boundary is correct (Ghidra body 0x9ec30-0x9ee32 =
+ * 514 bytes vs the 528-byte next-FUN span is only 14 bytes of NOP padding),
+ * and the +15 insns come from a callee our monolithic objects.c inlines that
+ * the original kept out-of-line as a separate-TU CALL. The residual diffs are
+ * FPU compare-direction (jnp/jne) and 16-bit store (orb/orw) idioms. Verified
+ * 2026-06-23; do not chase — no re-bounded export will close it. */
 int FUN_0009ec30(int param_1, int param_2, int param_3, short param_4,
                  float param_5, float param_6, int param_7, int param_8)
 {

@@ -15125,7 +15125,7 @@
         {
           "addr": "0x13cb30",
           "decl": "void FUN_0013cb30(void);",
-          "ported": false,
+          "ported": true,
           "source_path": "objects/objects.c"
         },
         {
