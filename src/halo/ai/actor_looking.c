@@ -8393,7 +8393,6 @@ static char look_spec_28660_safe(int actor_handle, char *actor,
 {
   int cs;
   float *tgt;
-  float m2;
 
   cs = (int)*look_spec;
   tgt = 0;
@@ -8406,14 +8405,17 @@ static char look_spec_28660_safe(int actor_handle, char *actor,
     tgt = (float *)((char *)look_spec + 4);
   }
   if (tgt != 0) {
-    m2 = tgt[0] * tgt[0] + tgt[1] * tgt[1] + tgt[2] * tgt[2];
-    /* !(m2 >= eps) also rejects NaN. A blocked idle-look raycast can leave a
-       look-spec component uninitialized (live: +0x570 X = 0xffffffff, the
-       stack sentinel) while Y/Z stay valid; that makes m2 NaN. A plain
-       `m2 < eps` is FALSE for NaN (unordered compare), so the NaN would pass
-       through to FUN_00028660 and trip assert_valid_real_normal3d at #529.
-       The negated `>=` form fires on NaN, (0,0,0), and tiny vectors alike. */
-    if (!(m2 >= 1e-8f))
+    /* Replicate FUN_00028660's own valid_real_normal3d (0x21fb0) gate exactly:
+       skip (return 0, "no valid look this tick") unless the copy-case vector is
+       a true unit normal -- |dot(v,v) - 1| < 0.001 and not NaN/Inf. The earlier
+       `!(m2 >= 1e-8f)` form only closed the LOWER bound: it rejected
+       (0,0,0)/tiny/NaN but PASSED a finite-but-huge uninitialized component
+       (live: +0x570 X = -3.5e31), whose squared length overflows to +inf,
+       satisfies `inf >= 1e-8f`, and reached assert_valid_real_normal3d at #529
+       -> HALT. Any vector this predicate rejects, 28660 itself rejects (it
+       calls the same check), so this is byte-faithful to the release path and
+       value-agnostic to whatever garbage the stale slot carries. */
+    if (!valid_real_normal3d(tgt))
       return 0;
   }
   return FUN_00028660(actor_handle, look_spec, out_vec);
