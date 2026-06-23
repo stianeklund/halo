@@ -6070,6 +6070,10 @@
         "Semantic name is uncertain: could be matrix4x3_angular_delta, matrix_rotation_difference_as_axis_angle, or similar; the name was inferred from the observer caller context."
       ]
     },
+    "0x10a710": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x10ad10": {
       "kind": "function",
       "status": "ported"
@@ -6271,6 +6275,14 @@
       ]
     },
     "0x10cc70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x10ce10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x10dcb0": {
       "kind": "function",
       "status": "ported"
     },
@@ -7409,6 +7421,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x13ec00": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x13ec50": {
       "kind": "function",
       "status": "ported"
@@ -7744,7 +7760,15 @@
         "In the else branch, the destination matrix for object_compute_child_marker_position aliases parent_markers+0x38."
       ]
     },
+    "0x144940": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1449b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x144ae0": {
       "kind": "function",
       "status": "ported"
     },
@@ -8211,6 +8235,26 @@
         "The FPTAN instruction behavior and FPU stack management in the inv_tan_x/inv_tan_y computation may not be perfectly reproduced by the C version since the compiler may use different FPU instruction sequences."
       ]
     },
+    "0x18c0b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x18c3a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x18c460": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x18d0b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x18e1d0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x18e280": {
       "kind": "function",
       "status": "ported"
@@ -8259,7 +8303,19 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x18e800": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x18e8a0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x18e910": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x18e9b0": {
       "kind": "function",
       "status": "ported"
     },
@@ -8280,6 +8336,10 @@
       "status": "ported"
     },
     "0x18f180": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x18f250": {
       "kind": "function",
       "status": "ported"
     },

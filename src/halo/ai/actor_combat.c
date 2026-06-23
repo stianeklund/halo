@@ -134,7 +134,14 @@ int FUN_00021350(float value)
 
 /* 0x21590 — Compute and set the fire delay timer for an actor.
  * Uses burst/firing rate data from the actv tag, random timing,
- * and combat property scaling. Result stored in actor.field_5f4. */
+ * and combat property scaling. Result stored in actor.field_5f4.
+ *
+ * VC71 72.1% (61/61 insns) is a STRUCTURAL ceiling, not a defect: the @<esi>
+ * actor_handle is register-received by the original, but VC71 compiles our
+ * annotation as cdecl (adds a [ebp+8] load); burst_ref/firing_ref are
+ * address-taken out-params forced onto the stack here while the original keeps
+ * them in registers. Residual diffs are FPU store/compare ordering. No recovery
+ * lever remains. Verified 2026-06-23 [[project_sub80_vc71_audit_2026-06-23]]. */
 void actor_combat_set_fire_timer(int actor_handle /* @<esi> */)
 {
   char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
@@ -172,7 +179,13 @@ void actor_combat_set_fire_timer(int actor_handle /* @<esi> */)
 /* 0x21640 — Evaluate whether the actor should fire and compute delay.
  * Returns false if encounter is in retreat state (field_24==4 or 5)
  * or if actor.field_457 is set. Otherwise computes a random delay
- * from timing_data and returns true. */
+ * from timing_data and returns true.
+ *
+ * VC71 78.1% (58/70 insns) is a STRUCTURAL ceiling: @<eax>/@<edi> args are
+ * register-received by the original (VC71 adds a cdecl [ebp+8] load), and the
+ * bool returns compile to branchy movb/xorb here vs the original's `sete %al`.
+ * Field offsets (0x3bc/0x457/0x5f4/0x60c) and control flow match exactly — no
+ * dropped branch. Verified 2026-06-23 [[project_sub80_vc71_audit_2026-06-23]]. */
 bool actor_combat_evaluate_firing(int actor_handle /* @<eax> */,
                                   void *timing_data /* @<edi> */)
 {
@@ -367,7 +380,13 @@ int actor_combat_check_fire_target(int actor_handle /* @<edi> */, short mode)
  * weapon damage, applies encounter suppression, then calculates the aim
  * error vectors (primary lateral + secondary elevation) using trig rotation
  * of a perpendicular vector with random angular offsets. Dispatches a
- * combat vocalization sound when the actor's rank is high enough. */
+ * combat vocalization sound when the actor's rank is high enough.
+ *
+ * VC71 79.6% (590/613 insns) is a STRUCTURAL ceiling: a 613-insn body whose
+ * cos/sin intrinsification (below) is already applied; the residual is many
+ * small MSVC<->clang idiom diffs (branch encodings, register allocation)
+ * accumulated over the function's length, not one defect. Verified 2026-06-23
+ * [[project_sub80_vc71_audit_2026-06-23]]. */
 void FUN_00022390(int actor_handle)
 {
   char *actor;
@@ -691,7 +710,13 @@ void FUN_00022390(int actor_handle)
  * real normal, and adopts it as the new aim vector.
  *
  * Finally the chosen vector is scaled by the throw speed (actor+0x6c8) and
- * written to out_aim_vector. Returns the encounter datum (or -1). */
+ * written to out_aim_vector. Returns the encounter datum (or -1).
+ *
+ * VC71 75.0% (168/176 insns) is a STRUCTURAL ceiling: x87 op scheduling
+ * (faddp/fsqrt order), register allocation (ebx vs edi for the arg, reg-vs-stack
+ * -1 init), and byte/dword compare idioms (jle/jl, testl/testb). The
+ * display_assert(...,0x749,1) is present and aligned; no FPU operand swap.
+ * Verified 2026-06-23 [[project_sub80_vc71_audit_2026-06-23]]. */
 int actor_aim_grenade(int actor_handle, void *aim_params, float *out_aim_vector)
 {
   char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);

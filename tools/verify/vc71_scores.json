@@ -636,9 +636,37 @@
       "score": 75.9,
       "source": "src/halo/ai/actions.c"
     },
+    "FUN_00020f80": {
+      "score": 87.9,
+      "source": "src/halo/ai/actor_combat.c"
+    },
+    "FUN_00021010": {
+      "score": 100.0,
+      "source": "src/halo/ai/actor_combat.c"
+    },
+    "FUN_00021040": {
+      "score": 84.8,
+      "source": "src/halo/ai/actor_combat.c"
+    },
     "FUN_000210f0": {
       "score": 9.1,
       "source": "src/halo/common.c"
+    },
+    "FUN_00021130": {
+      "score": 91.3,
+      "source": "src/halo/ai/actor_combat.c"
+    },
+    "FUN_000211f0": {
+      "score": 100.0,
+      "source": "src/halo/ai/actor_combat.c"
+    },
+    "FUN_00021270": {
+      "score": 82.2,
+      "source": "src/halo/ai/actor_combat.c"
+    },
+    "FUN_00021350": {
+      "score": 100.0,
+      "source": "src/halo/ai/actor_combat.c"
     },
     "FUN_00021370": {
       "score": 75.0,
@@ -664,6 +692,30 @@
       "score": 90.0,
       "source": "src/halo/math/vector_math.c"
     },
+    "FUN_00021590": {
+      "score": 72.1,
+      "source": "src/halo/ai/actor_combat.c"
+    },
+    "FUN_00021640": {
+      "score": 78.1,
+      "source": "src/halo/ai/actor_combat.c"
+    },
+    "FUN_00021710": {
+      "score": 82.8,
+      "source": "src/halo/ai/actor_combat.c"
+    },
+    "FUN_000218d0": {
+      "score": 83.5,
+      "source": "src/halo/ai/actor_combat.c"
+    },
+    "FUN_000219e0": {
+      "score": 91.2,
+      "source": "src/halo/ai/actor_combat.c"
+    },
+    "FUN_00021ae0": {
+      "score": 71.3,
+      "source": "src/halo/ai/actor_combat.c"
+    },
     "FUN_00021f70": {
       "score": 81.8,
       "source": "src/halo/math/vector_math.c"
@@ -671,6 +723,26 @@
     "FUN_00021fb0": {
       "score": 80.6,
       "source": "src/halo/math/vector_math.c"
+    },
+    "FUN_00022010": {
+      "score": 90.8,
+      "source": "src/halo/ai/actor_combat.c"
+    },
+    "FUN_000220c0": {
+      "score": 82.3,
+      "source": "src/halo/ai/actor_combat.c"
+    },
+    "FUN_00022390": {
+      "score": 79.6,
+      "source": "src/halo/ai/actor_combat.c"
+    },
+    "FUN_00022b40": {
+      "score": 80.6,
+      "source": "src/halo/ai/actor_combat.c"
+    },
+    "FUN_00022ba0": {
+      "score": 75.0,
+      "source": "src/halo/ai/actor_combat.c"
     },
     "FUN_00024ca0": {
       "score": 97.0,
@@ -2352,6 +2424,14 @@
       "score": 91.7,
       "source": "src/halo/objects/objects.c"
     },
+    "FUN_00085260": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_000853a0": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
     "FUN_000853c0": {
       "score": 53.7,
       "source": "src/halo/objects/objects.c"
@@ -3003,6 +3083,14 @@
     "FUN_0009e610": {
       "score": 81.7,
       "source": "src/halo/effects/effects.c"
+    },
+    "FUN_0009eb40": {
+      "score": 89.9,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0009ec30": {
+      "score": 82.9,
+      "source": "src/halo/objects/objects.c"
     },
     "FUN_0009ee40": {
       "score": 80.7,
@@ -6200,6 +6288,10 @@
       "score": 92.9,
       "source": "src/halo/math/rectangles.c"
     },
+    "FUN_0010a1c0": {
+      "score": 100.0,
+      "source": "src/halo/math/real_math.c"
+    },
     "FUN_0010a930": {
       "score": 91.2,
       "source": "src/halo/math/random_math.c"
@@ -8012,6 +8104,78 @@
       "score": 80.5,
       "source": "src/halo/render/render.c"
     },
+    "FUN_0018aef0": {
+      "score": 99.0,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018af90": {
+      "score": 100.0,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018afd0": {
+      "score": 100.0,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018afe0": {
+      "score": 100.0,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018b000": {
+      "score": 100.0,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018b010": {
+      "score": 75.6,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018b080": {
+      "score": 88.0,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018bf80": {
+      "score": 79.8,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018c0b0": {
+      "score": 100.0,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018c3a0": {
+      "score": 83.8,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018c460": {
+      "score": 97.0,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018c580": {
+      "score": 100.0,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018d0b0": {
+      "score": 94.4,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018d2c0": {
+      "score": 92.8,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018d670": {
+      "score": 81.4,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018df70": {
+      "score": 100.0,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018e140": {
+      "score": 97.9,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018e1d0": {
+      "score": 83.0,
+      "source": "src/halo/scenario/scenario.c"
+    },
     "FUN_0018e280": {
       "score": 100.0,
       "source": "src/halo/scenario/scenario.c"
@@ -8029,15 +8193,27 @@
       "source": "src/halo/scenario/scenario.c"
     },
     "FUN_0018e3f0": {
-      "score": 88.9,
+      "score": 100.0,
       "source": "src/halo/scenario/scenario.c"
     },
     "FUN_0018e4d0": {
-      "score": 57.1,
+      "score": 100.0,
       "source": "src/halo/scenario/scenario.c"
     },
     "FUN_0018e500": {
       "score": 98.2,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018e5c0": {
+      "score": 92.4,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018e690": {
+      "score": 100.0,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018e6a0": {
+      "score": 91.1,
       "source": "src/halo/scenario/scenario.c"
     },
     "FUN_0018e720": {
@@ -8052,12 +8228,48 @@
       "score": 91.4,
       "source": "src/halo/scenario/scenario.c"
     },
+    "FUN_0018e800": {
+      "score": 100.0,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018e8a0": {
+      "score": 100.0,
+      "source": "src/halo/scenario/scenario.c"
+    },
     "FUN_0018e910": {
-      "score": 89.4,
+      "score": 94.6,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018e9b0": {
+      "score": 94.6,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018ea50": {
+      "score": 100.0,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018eab0": {
+      "score": 100.0,
       "source": "src/halo/scenario/scenario.c"
     },
     "FUN_0018eb40": {
-      "score": 78.6,
+      "score": 83.1,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018ecd0": {
+      "score": 95.2,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018ed20": {
+      "score": 93.5,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018ed90": {
+      "score": 90.0,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018ef00": {
+      "score": 100.0,
       "source": "src/halo/scenario/scenario.c"
     },
     "FUN_0018f080": {
@@ -8072,16 +8284,28 @@
       "score": 91.1,
       "source": "src/halo/scenario/scenario.c"
     },
+    "FUN_0018f230": {
+      "score": 100.0,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018f250": {
+      "score": 96.3,
+      "source": "src/halo/scenario/scenario.c"
+    },
     "FUN_0018f2d0": {
-      "score": 75.1,
+      "score": 76.6,
       "source": "src/halo/scenario/scenario.c"
     },
     "FUN_0018f3e0": {
-      "score": 91.1,
+      "score": 91.5,
       "source": "src/halo/scenario/scenario.c"
     },
     "FUN_0018f510": {
-      "score": 80.0,
+      "score": 81.7,
+      "source": "src/halo/scenario/scenario.c"
+    },
+    "FUN_0018fef0": {
+      "score": 100.0,
       "source": "src/halo/scenario/scenario.c"
     },
     "FUN_00190db0": {
@@ -9401,7 +9625,7 @@
       "source": "src/halo/game/game_engine.c"
     },
     "game_globals_get": {
-      "score": 54.2,
+      "score": 92.3,
       "source": "src/halo/scenario/scenario.c"
     },
     "game_predicting": {
@@ -9709,7 +9933,7 @@
       "source": "src/halo/math/rectangles.c"
     },
     "scenario_get": {
-      "score": 88.9,
+      "score": 100.0,
       "source": "src/halo/scenario/scenario.c"
     },
     "scripted_hud_messages_clear": {

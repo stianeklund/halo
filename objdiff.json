@@ -7694,6 +7694,22 @@
       "metadata": {
         "source_path": "src/halo/math/real_math.c"
       }
+    },
+    {
+      "name": "halo/FUN_0018e1d0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/scenario/scenario.c.obj",
+      "base_path": "delinked/functions/0018e1d0.obj",
+      "metadata": {
+        "source_path": "src/halo/scenario/scenario.c"
+      }
+    },
+    {
+      "name": "halo/FUN_000ae250",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/functions/000ae250.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
     }
   ]
 }
