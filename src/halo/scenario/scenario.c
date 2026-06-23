@@ -1550,8 +1550,17 @@ float FUN_0018d670(short mode, float *v1, float *v2)
 
   result = *(float *)0x2533c8;
   if (mode != 0) {
+#if defined(_MSC_VER) && !defined(__clang__)
+    /* VC71 /Oi inlines fabs((double)x) as the x87 FABS instruction, matching
+     * the original's inline FABS on ST. clang (shipped build) takes the #else
+     * branch below, so the binary is unchanged. Analog of lift-score-improve
+     * technique 1 (cos/sin intrinsification) applied to fabsf. */
+    result = (float)fabs((double)((v1[0] * v2[0] + v2[1] * v1[1] + v2[2] * v1[2]) /
+                   sqrtf(v1[2] * v1[2] + v1[1] * v1[1] + v1[0] * v1[0])));
+#else
     result = fabsf((v1[0] * v2[0] + v2[1] * v1[1] + v2[2] * v1[2]) /
                    sqrtf(v1[2] * v1[2] + v1[1] * v1[1] + v1[0] * v1[0]));
+#endif
     if (mode == 2) {
       result = *(float *)0x2533c8 - result;
     }
