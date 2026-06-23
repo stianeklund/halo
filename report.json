@@ -9,13 +9,13 @@
   "summary": {
     "functions": {
       "total": 7553,
-      "ported": 3083,
-      "percent": 40.82
+      "ported": 3084,
+      "percent": 40.83
     },
     "bytes": {
       "total": 1795009,
-      "ported": 675246,
-      "percent": 37.62
+      "ported": 676981,
+      "percent": 37.71
     },
     "match": {
       "average": 86.9,
@@ -34,14 +34,14 @@
     }
   },
   "meta": {
-    "timestamp": "2026-06-23T02:37:06.122779+02:00",
-    "commit": "8157d5740b",
+    "timestamp": "2026-06-23T08:31:04.269788+02:00",
+    "commit": "026ffdc43f",
     "branch": "main",
     "tool_version": "1.0.0"
   },
   "consistency": {
     "ported_source_of_truth": "kb.json",
-    "kb_ported_missing_meta": 1011,
+    "kb_ported_missing_meta": 1012,
     "meta_ported_missing_kb": 174
   },
   "units": [
@@ -22329,157 +22329,6 @@
       }
     },
     {
-      "name": "widgets",
-      "source_path": "src/halo/objects/widgets/widgets.c",
-      "obj_path": "delinked/widgets.obj",
-      "functions": [
-        {
-          "address": "0x136450",
-          "name": "widgets_render_object_widgets",
-          "size": 206,
-          "status": "ported",
-          "ported": true,
-          "match_percent": 100.0,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
-          "equiv_status": null,
-          "equiv_proven": false,
-          "equiv_reason": null,
-          "snapshot_passed": null,
-          "snapshot_coverage": null,
-          "snapshot_confidence": null,
-          "runtime_oracle_tested": null,
-          "runtime_oracle_passed": null,
-          "runtime_oracle_run_id": null,
-          "runtime_oracle_finished_utc": null,
-          "runtime_oracle_artifact": null,
-          "runtime_oracle_summary": null
-        },
-        {
-          "address": "0x136520",
-          "name": "widgets_update",
-          "size": 86,
-          "status": "ported",
-          "ported": true,
-          "match_percent": 97.1,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
-          "equiv_status": null,
-          "equiv_proven": false,
-          "equiv_reason": null,
-          "snapshot_passed": null,
-          "snapshot_coverage": null,
-          "snapshot_confidence": null,
-          "runtime_oracle_tested": null,
-          "runtime_oracle_passed": null,
-          "runtime_oracle_run_id": null,
-          "runtime_oracle_finished_utc": null,
-          "runtime_oracle_artifact": null,
-          "runtime_oracle_summary": null
-        },
-        {
-          "address": "0x136580",
-          "name": "widgets_initialize_for_new_map",
-          "size": 1,
-          "status": "ported",
-          "ported": true,
-          "match_percent": 100.0,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
-          "equiv_status": null,
-          "equiv_proven": false,
-          "equiv_reason": null,
-          "snapshot_passed": null,
-          "snapshot_coverage": null,
-          "snapshot_confidence": null,
-          "runtime_oracle_tested": null,
-          "runtime_oracle_passed": null,
-          "runtime_oracle_run_id": null,
-          "runtime_oracle_finished_utc": null,
-          "runtime_oracle_artifact": null,
-          "runtime_oracle_summary": null
-        },
-        {
-          "address": "0x1365a0",
-          "name": "widgets_dispose",
-          "size": 11,
-          "status": "ported",
-          "ported": true,
-          "match_percent": 100.0,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
-          "equiv_status": null,
-          "equiv_proven": false,
-          "equiv_reason": null,
-          "snapshot_passed": null,
-          "snapshot_coverage": null,
-          "snapshot_confidence": null,
-          "runtime_oracle_tested": null,
-          "runtime_oracle_passed": null,
-          "runtime_oracle_run_id": null,
-          "runtime_oracle_finished_utc": null,
-          "runtime_oracle_artifact": null,
-          "runtime_oracle_summary": null
-        },
-        {
-          "address": "0x1365b0",
-          "name": "widgets_dispose_from_old_map",
-          "size": 1,
-          "status": "ported",
-          "ported": true,
-          "match_percent": 100.0,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
-          "equiv_status": null,
-          "equiv_proven": false,
-          "equiv_reason": null,
-          "snapshot_passed": null,
-          "snapshot_coverage": null,
-          "snapshot_confidence": null,
-          "runtime_oracle_tested": null,
-          "runtime_oracle_passed": null,
-          "runtime_oracle_run_id": null,
-          "runtime_oracle_finished_utc": null,
-          "runtime_oracle_artifact": null,
-          "runtime_oracle_summary": null
-        }
-      ],
-      "summary": {
-        "total": 5,
-        "ported": 5,
-        "percent": 100.0,
-        "bytes_total": 305,
-        "bytes_ported": 305,
-        "bytes_percent": 100.0,
-        "match_avg": 99.4,
-        "match_weighted": 99.2,
-        "has_delinked_ref": false
-      },
-      "equivalence": {
-        "tested": 0,
-        "high_confidence": 0,
-        "avg_coverage": null,
-        "classes": {
-          "uncached": 5
-        }
-      },
-      "snapshot": {
-        "tested": 0,
-        "passed": 0,
-        "avg_coverage": null,
-        "high_confidence": 0
-      },
-      "runtime_oracle": {
-        "tested": 0,
-        "passed": 0
-      }
-    },
-    {
       "name": "units",
       "source_path": "src/halo/units/units.c",
       "obj_path": "delinked/units.obj",
@@ -26491,7 +26340,7 @@
           "name": "FUN_001b0630",
           "size": 1735,
           "status": "unknown",
-          "ported": false,
+          "ported": true,
           "match_percent": null,
           "equiv_class": null,
           "equiv_coverage": null,
@@ -27179,11 +27028,11 @@
       ],
       "summary": {
         "total": 204,
-        "ported": 203,
-        "percent": 99.51,
+        "ported": 204,
+        "percent": 100.0,
         "bytes_total": 60247,
-        "bytes_ported": 58512,
-        "bytes_percent": 97.12,
+        "bytes_ported": 60247,
+        "bytes_percent": 100.0,
         "match_avg": 85.5,
         "match_weighted": 81.3,
         "has_delinked_ref": false
@@ -27194,6 +27043,157 @@
         "avg_coverage": null,
         "classes": {
           "uncached": 204
+        }
+      },
+      "snapshot": {
+        "tested": 0,
+        "passed": 0,
+        "avg_coverage": null,
+        "high_confidence": 0
+      },
+      "runtime_oracle": {
+        "tested": 0,
+        "passed": 0
+      }
+    },
+    {
+      "name": "widgets",
+      "source_path": "src/halo/objects/widgets/widgets.c",
+      "obj_path": "delinked/widgets.obj",
+      "functions": [
+        {
+          "address": "0x136450",
+          "name": "widgets_render_object_widgets",
+          "size": 206,
+          "status": "ported",
+          "ported": true,
+          "match_percent": 100.0,
+          "equiv_class": null,
+          "equiv_coverage": null,
+          "equiv_confidence": null,
+          "equiv_status": null,
+          "equiv_proven": false,
+          "equiv_reason": null,
+          "snapshot_passed": null,
+          "snapshot_coverage": null,
+          "snapshot_confidence": null,
+          "runtime_oracle_tested": null,
+          "runtime_oracle_passed": null,
+          "runtime_oracle_run_id": null,
+          "runtime_oracle_finished_utc": null,
+          "runtime_oracle_artifact": null,
+          "runtime_oracle_summary": null
+        },
+        {
+          "address": "0x136520",
+          "name": "widgets_update",
+          "size": 86,
+          "status": "ported",
+          "ported": true,
+          "match_percent": 97.1,
+          "equiv_class": null,
+          "equiv_coverage": null,
+          "equiv_confidence": null,
+          "equiv_status": null,
+          "equiv_proven": false,
+          "equiv_reason": null,
+          "snapshot_passed": null,
+          "snapshot_coverage": null,
+          "snapshot_confidence": null,
+          "runtime_oracle_tested": null,
+          "runtime_oracle_passed": null,
+          "runtime_oracle_run_id": null,
+          "runtime_oracle_finished_utc": null,
+          "runtime_oracle_artifact": null,
+          "runtime_oracle_summary": null
+        },
+        {
+          "address": "0x136580",
+          "name": "widgets_initialize_for_new_map",
+          "size": 1,
+          "status": "ported",
+          "ported": true,
+          "match_percent": 100.0,
+          "equiv_class": null,
+          "equiv_coverage": null,
+          "equiv_confidence": null,
+          "equiv_status": null,
+          "equiv_proven": false,
+          "equiv_reason": null,
+          "snapshot_passed": null,
+          "snapshot_coverage": null,
+          "snapshot_confidence": null,
+          "runtime_oracle_tested": null,
+          "runtime_oracle_passed": null,
+          "runtime_oracle_run_id": null,
+          "runtime_oracle_finished_utc": null,
+          "runtime_oracle_artifact": null,
+          "runtime_oracle_summary": null
+        },
+        {
+          "address": "0x1365a0",
+          "name": "widgets_dispose",
+          "size": 11,
+          "status": "ported",
+          "ported": true,
+          "match_percent": 100.0,
+          "equiv_class": null,
+          "equiv_coverage": null,
+          "equiv_confidence": null,
+          "equiv_status": null,
+          "equiv_proven": false,
+          "equiv_reason": null,
+          "snapshot_passed": null,
+          "snapshot_coverage": null,
+          "snapshot_confidence": null,
+          "runtime_oracle_tested": null,
+          "runtime_oracle_passed": null,
+          "runtime_oracle_run_id": null,
+          "runtime_oracle_finished_utc": null,
+          "runtime_oracle_artifact": null,
+          "runtime_oracle_summary": null
+        },
+        {
+          "address": "0x1365b0",
+          "name": "widgets_dispose_from_old_map",
+          "size": 1,
+          "status": "ported",
+          "ported": true,
+          "match_percent": 100.0,
+          "equiv_class": null,
+          "equiv_coverage": null,
+          "equiv_confidence": null,
+          "equiv_status": null,
+          "equiv_proven": false,
+          "equiv_reason": null,
+          "snapshot_passed": null,
+          "snapshot_coverage": null,
+          "snapshot_confidence": null,
+          "runtime_oracle_tested": null,
+          "runtime_oracle_passed": null,
+          "runtime_oracle_run_id": null,
+          "runtime_oracle_finished_utc": null,
+          "runtime_oracle_artifact": null,
+          "runtime_oracle_summary": null
+        }
+      ],
+      "summary": {
+        "total": 5,
+        "ported": 5,
+        "percent": 100.0,
+        "bytes_total": 305,
+        "bytes_ported": 305,
+        "bytes_percent": 100.0,
+        "match_avg": 99.4,
+        "match_weighted": 99.2,
+        "has_delinked_ref": false
+      },
+      "equivalence": {
+        "tested": 0,
+        "high_confidence": 0,
+        "avg_coverage": null,
+        "classes": {
+          "uncached": 5
         }
       },
       "snapshot": {
