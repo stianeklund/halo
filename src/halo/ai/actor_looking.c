@@ -5991,9 +5991,7 @@ void FUN_00024cf0(int actor_handle, char *eval_state, unsigned short fp_count,
 
             LAB_24cf0_fp2_score:
               los_score = 15.0f;
-              if (cos_angle >= 0.866025f) {
-                /* max score; no assertion needed */
-              } else if (cos_angle < 0.0f) {
+              if (cos_angle < 0.0f) {
                 los_score = 15.0f - cos_angle * -15.0f;
                 if (!(los_score >= 0.0f && los_score < 1000.0f)) {
                   display_assert(
@@ -6001,7 +5999,9 @@ void FUN_00024cf0(int actor_handle, char *eval_state, unsigned short fp_count,
                     "c:\\halo\\SOURCE\\ai\\actor_firing_position.c", 0x81, 1);
                   system_exit(-1);
                 }
-              } else {
+              } else if (cos_angle > 0.866025f) {
+                /* well-aligned (forward-facing) firing positions earn the cone
+                 * bonus (15..30); pristine 0x252c1..0x252d6. */
                 los_score = (cos_angle - 0.866025f) * 111.9619f + 15.0f;
                 if (!(los_score >= 0.0f && los_score < 1000.0f)) {
                   display_assert(
@@ -6009,6 +6009,8 @@ void FUN_00024cf0(int actor_handle, char *eval_state, unsigned short fp_count,
                     "c:\\halo\\SOURCE\\ai\\actor_firing_position.c", 0x81, 1);
                   system_exit(-1);
                 }
+              } else {
+                /* 0 <= cos <= 0.866: flat max-cone score (preset 15); no assert */
               }
               *(float *)(fp2_ptr + 8) += los_score;
             }
