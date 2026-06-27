@@ -9,6 +9,7 @@ Format:
     {
       "description": "multiplayer lobby, 4 teams",
       "captured_at": "2026-05-15T12:00:00",
+      "build_label": "patched" | "original" | "commit abc123",
       "regions": {
         "0x00456600": "aabbccdd...",
         "0x00480000": "00112233..."
@@ -38,6 +39,11 @@ def load_snapshot(path: str) -> tuple[dict, dict]:
     with open(path, encoding="utf-8") as f:
         data = json.load(f)
 
+    build_label = data.get("build_label", "unknown")
+    captured = data.get("captured_at", "unknown")
+    desc = data.get("description", "")
+    print(f"  [snapshot] {desc}  build={build_label}  captured={captured}")
+
     regions = data.get("regions", {})
     mem = {}
     for addr_hex, val_hex in regions.items():
@@ -48,7 +54,8 @@ def load_snapshot(path: str) -> tuple[dict, dict]:
     return mem, arg_overrides
 
 
-def save_snapshot(regions: dict, path: str, description: str = ""):
+def save_snapshot(regions: dict, path: str, description: str = "",
+                  build_label: str = ""):
     """Save memory regions to a snapshot JSON file.
 
     regions: {int_address: bytes}
@@ -58,6 +65,8 @@ def save_snapshot(regions: dict, path: str, description: str = ""):
         "captured_at": datetime.now(timezone.utc).isoformat(),
         "regions": {},
     }
+    if build_label:
+        out["build_label"] = build_label
     for addr in sorted(regions):
         out["regions"][f"0x{addr:08x}"] = regions[addr].hex()
 

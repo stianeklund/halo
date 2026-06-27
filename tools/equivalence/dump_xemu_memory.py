@@ -55,7 +55,29 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 ARTIFACTS = REPO_ROOT / "artifacts"
+MEMORY_DUMPS = ARTIFACTS / "memory_dumps"
+# Default dump path for xemu captures — lands in unknown/ until classified via detect.
+MEMORY_DUMPS_DEFAULT = MEMORY_DUMPS / "unknown" / "unknown_build_state" / "xbox_full_memory.bin"
+EQUIVALENCE_DIR = ARTIFACTS / "equivalence"
 XBOX_RAM_SIZE = 128 * 1024 * 1024  # 128 MB
+KB_JSON = REPO_ROOT / "kb.json"
+
+
+def _snapshot_output(target: str, build_label: str | None) -> Path:
+    """Determine the output path for a snapshot, routing into build-type subdir."""
+    subdir = build_label if build_label in ("original", "patched") else "unknown"
+    out_dir = EQUIVALENCE_DIR / subdir
+    out_dir.mkdir(parents=True, exist_ok=True)
+    return out_dir / f"snapshot_{target}.json"
+
+# Byte written by patch.py at each ported function's original XBE address.
+# The patcher writes:  PUSH <hook_target>; RET  (6 bytes, first byte 0x68).
+# Original MSVC functions start with a variety of prologues (0x55, 0x83, etc.)
+# but never with PUSH imm32 as the first instruction.
+PATCH_SIGNATURE_BYTE = 0x68  # PUSH imm32
+
+# How many ported functions to sample when auto-detecting build provenance.
+_FINGERPRINT_SAMPLE = 40
 
 
 def virt_to_phys(vaddr: int) -> int | None:
@@ -88,6 +110,61 @@ def read_u32(dump: bytes, vaddr: int) -> int | None:
     if raw is None:
         return None
     return struct.unpack("<I", raw)[0]
+
+
+def detect_build_label(dump: bytes) -> str | None:
+    """Auto-detect whether a dump came from a patched or original XBE.
+
+    Reads the first byte at a sample of ported-function addresses from kb.json.
+    The patched build writes PUSH imm32 (0x68) at each ported function's
+    original address; the original never starts with PUSH imm32.
+
+    Returns "patched", "original", or None if the dump is unreadable/ambiguous.
+    """
+    if not KB_JSON.exists():
+        return None
+
+    with open(KB_JSON) as f:
+        kb = json.load(f)
+
+    # Collect ported function addresses in the identity-mapped range.
+    addrs = []
+    for obj in kb.get("objects", []):
+        for fn in obj.get("functions", []):
+            a = fn.get("addr")
+            if not a:
+                continue
+            vaddr = int(a, 16)
+            if virt_to_phys(vaddr) is not None and fn.get("ported") is True:
+                addrs.append(vaddr)
+
+    if not addrs:
+        return None
+
+    # Sample evenly across the address space.
+    addrs.sort()
+    step = max(1, len(addrs) // _FINGERPRINT_SAMPLE)
+    sample = addrs[::step]
+
+    patched = 0
+    total = 0
+    for vaddr in sample:
+        raw = read_virt(dump, vaddr, 1)
+        if raw is None:
+            continue
+        total += 1
+        if raw[0] == PATCH_SIGNATURE_BYTE:
+            patched += 1
+
+    if total < 5:
+        return None
+
+    pct = patched * 100 // total
+    if pct >= 90:
+        return "patched"
+    if pct <= 10:
+        return "original"
+    return None
 
 
 def dump_xemu(output: Path) -> bool:
@@ -281,7 +358,8 @@ def get_function_memory_regions(dump: bytes, target: str) -> dict:
 
 
 def build_full_snapshot(dump: bytes, target: str, output: Path,
-                        arg_overrides: dict | None = None) -> Path:
+                        arg_overrides: dict | None = None,
+                        build_label: str | None = None) -> Path:
     """Build a comprehensive snapshot by mapping ALL non-zero pages."""
     PAGE = 4096
     regions = {}
@@ -309,6 +387,8 @@ def build_full_snapshot(dump: bytes, target: str, output: Path,
         "captured_at": datetime.now(timezone.utc).isoformat(),
         "regions": regions,
     }
+    if build_label:
+        snapshot["build_label"] = build_label
     if arg_overrides:
         snapshot["arg_overrides"] = arg_overrides
 
@@ -320,7 +400,8 @@ def build_full_snapshot(dump: bytes, target: str, output: Path,
 
 
 def build_targeted_snapshot(dump: bytes, target: str, output: Path,
-                            arg_overrides: dict | None = None) -> Path:
+                           arg_overrides: dict | None = None,
+                           build_label: str | None = None) -> Path:
     """Build a targeted snapshot with only the regions the function needs."""
     print(f"  Analyzing {target} memory dependencies...")
     regions = get_function_memory_regions(dump, target)
@@ -330,6 +411,8 @@ def build_targeted_snapshot(dump: bytes, target: str, output: Path,
         "captured_at": datetime.now(timezone.utc).isoformat(),
         "regions": regions,
     }
+    if build_label:
+        snapshot["build_label"] = build_label
     if arg_overrides:
         snapshot["arg_overrides"] = arg_overrides
 
@@ -347,11 +430,13 @@ def main():
 
     p_dump = sub.add_parser("dump", help="Dump Xbox memory")
     p_dump.add_argument("--output", "-o", type=Path,
-                        default=ARTIFACTS / "xbox_full_memory.bin")
+                        default=MEMORY_DUMPS_DEFAULT)
     p_dump.add_argument("--xbdm", action="store_true",
                         help="Use XBDM (real Xbox) instead of xemu QMP")
     p_dump.add_argument("--xbox-ip", default="192.168.1.20",
                         help="Xbox IP for XBDM (default: 192.168.1.20)")
+    p_dump.add_argument("--build-label", "-B",
+                        help="Label describing the build dumped (e.g. 'patched', 'original', commit hash)")
 
     p_snap = sub.add_parser("snapshot", help="Build snapshot from existing dump")
     p_snap.add_argument("--dump", "-d", type=Path, required=True)
@@ -361,11 +446,19 @@ def main():
                         help="Map all non-zero pages (large file, best coverage)")
     p_snap.add_argument("--arg", action="append", nargs=2, metavar=("NAME", "VALUE"),
                         help="Argument override (e.g. --arg dead_handle 0xec700000)")
+    p_snap.add_argument("--build-label", "-B",
+                        help="Label describing the build the dump came from")
 
     p_cap = sub.add_parser("capture", help="Dump + snapshot in one step")
     p_cap.add_argument("--target", "-t", required=True)
     p_cap.add_argument("--output", "-o", type=Path)
     p_cap.add_argument("--full", action="store_true")
+    p_cap.add_argument("--build-label", "-B",
+                       help="Label describing the build dumped (e.g. 'patched', 'original')")
+
+    p_detect = sub.add_parser("detect", help="Auto-detect build label from a dump")
+    p_detect.add_argument("--dump", "-d", type=Path, required=True,
+                          help="Path to raw memory dump (.bin)")
 
     args = parser.parse_args()
 
@@ -390,16 +483,23 @@ def main():
             for name, val in args.arg:
                 arg_overrides[name] = int(val, 0) if val.startswith("0x") else int(val)
 
-        out = args.output or (ARTIFACTS / f"snapshot_{args.target}.json")
+        build_label = getattr(args, "build_label", None)
+        if not build_label:
+            build_label = detect_build_label(dump)
+            if build_label:
+                print(f"  Auto-detected build: {build_label}")
+        out = args.output or _snapshot_output(args.target, build_label)
 
         if args.full:
-            build_full_snapshot(dump, args.target, out, arg_overrides or None)
+            build_full_snapshot(dump, args.target, out, arg_overrides or None,
+                               build_label=build_label)
         else:
-            build_targeted_snapshot(dump, args.target, out, arg_overrides or None)
+            build_targeted_snapshot(dump, args.target, out, arg_overrides or None,
+                                   build_label=build_label)
 
     elif args.command == "capture":
         print("Step 1: Ensure xemu dump exists")
-        dump_path = ARTIFACTS / "xbox_full_memory.bin"
+        dump_path = MEMORY_DUMPS_DEFAULT
         if not dump_path.exists():
             print(f"  Dump not found at {dump_path}")
             print("  Pause xemu and run:")
@@ -408,13 +508,32 @@ def main():
             sys.exit(1)
 
         dump = dump_path.read_bytes()
-        out = args.output or (ARTIFACTS / f"snapshot_{args.target}.json")
         arg_overrides = {}
+        build_label = getattr(args, "build_label", None)
+        if not build_label:
+            build_label = detect_build_label(dump)
+            if build_label:
+                print(f"  Auto-detected build: {build_label}")
+        out = args.output or _snapshot_output(args.target, build_label)
 
         if args.full:
-            build_full_snapshot(dump, args.target, out, arg_overrides or None)
+            build_full_snapshot(dump, args.target, out, arg_overrides or None,
+                               build_label=build_label)
         else:
-            build_targeted_snapshot(dump, args.target, out, arg_overrides or None)
+            build_targeted_snapshot(dump, args.target, out, arg_overrides or None,
+                                   build_label=build_label)
+
+    elif args.command == "detect":
+        dump_path = args.dump
+        if not dump_path.exists():
+            print(f"ERROR: dump file not found: {dump_path}", file=sys.stderr)
+            sys.exit(1)
+        dump = dump_path.read_bytes()
+        label = detect_build_label(dump)
+        if label:
+            print(f"build_label: {label}")
+        else:
+            print("build_label: unknown (dump unreadable or mixed signatures)")
     else:
         parser.print_help()
 
