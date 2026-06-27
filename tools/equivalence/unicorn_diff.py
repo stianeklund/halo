@@ -188,6 +188,38 @@ def _load_known_globals():
 
 _KNOWN_GLOBAL_BYTES = _load_known_globals()
 
+# Delinked COFF switch tables sometimes keep the table label but lose the table
+# entries themselves (all zeroes, no internal relocations).  Seed only tables we
+# have binary-backed evidence for; entries below are from cachebeta.xbe memory.
+_ORACLE_SWITCH_TABLE_FIXUPS = {
+    0x0002CDB0: {
+        "switchD_0002ce68::switchdataD_0002d334": (
+            0x0002CE6F, 0x0002CF62, 0x0002CEC7, 0x0002CFC9,
+        ),
+    },
+}
+
+
+def _apply_oracle_switch_table_fixups(func_addr: int, function_slice,
+                                      rdata_map: dict,
+                                      maps_full_text: bool) -> dict:
+    """Add binary-backed switch table bytes missing from delinked COFF."""
+    fixups = _ORACLE_SWITCH_TABLE_FIXUPS.get(func_addr)
+    if not fixups:
+        return rdata_map
+
+    patched = dict(rdata_map)
+    section_base_delta = (func_addr - function_slice.section_offset
+                          if maps_full_text else func_addr)
+    for symbol_name, target_vas in fixups.items():
+        if symbol_name in patched:
+            continue
+        data = bytearray()
+        for target_va in target_vas:
+            data.extend(struct.pack("<I", CODE_BASE + target_va - section_base_delta))
+        patched[symbol_name] = bytes(data)
+    return patched
+
 # ---------------------------------------------------------------------------
 # kb.json helpers
 # ---------------------------------------------------------------------------
@@ -1420,7 +1452,9 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         # Patch DIR32 relocations for both, with non-overlapping slot ranges
         orc_defined = getattr(oracle_slice, 'defined_symbols', set())
         lft_defined = getattr(lifted_slice, 'defined_symbols', set())
-        orc_rdata = getattr(oracle_slice, 'rdata_map', {})
+        orc_rdata = _apply_oracle_switch_table_fixups(
+            int(addr, 16), oracle_slice, getattr(oracle_slice, 'rdata_map', {}),
+            oracle_text is not None)
         lft_rdata = getattr(lifted_slice, 'rdata_map', {})
         oracle_code_patched, orc_data_slots, orc_rdata_seeds = patch_dir32_relocs(
             oracle_slice.code, oracle_slice.relocs, orc_defined,
