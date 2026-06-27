@@ -125,6 +125,11 @@ def _is_stack_ptr(v: int) -> bool:
     return _STACK_BASE <= v < _STACK_TOP
 
 
+def _is_chkstk_name(name: str) -> bool:
+    """Return True for MSVC stack-probe aliases that are not semantic calls."""
+    return name.lstrip("_").lower() in ("chkstk", "fun_001d90e0")
+
+
 def compare_stub_arg_traces(oracle_tracer: StubArgTracer,
                              cand_tracer: StubArgTracer,
                              seed_label: str = "") -> StubArgDiff:
@@ -137,8 +142,8 @@ def compare_stub_arg_traces(oracle_tracer: StubArgTracer,
         to legitimate frame-layout differences and count as soft matches.
       - Varargs callees: only fixed args (those recorded) are compared.
     """
-    oc = oracle_tracer.records
-    cc = cand_tracer.records
+    oc = [r for r in oracle_tracer.records if not _is_chkstk_name(r.callee_name)]
+    cc = [r for r in cand_tracer.records if not _is_chkstk_name(r.callee_name)]
 
     total_calls = len(oc)
     seq_diverged = False
@@ -272,10 +277,10 @@ def patch_dir32_relocs(code: bytes, relocs: list, defined_symbols: set,
         if r.reloc_type != IMAGE_REL_I386_DIR32:
             continue
         sym = r.symbol_name
-        if sym.startswith(".text") or sym.startswith(".rdata"):
-            continue
-
         is_rdata_ref = sym in rdata_map
+        if ((sym.startswith(".text") or sym.startswith(".rdata"))
+                and not is_rdata_ref):
+            continue
         if sym in defined_symbols and not is_rdata_ref:
             continue
 
@@ -664,6 +669,8 @@ class StubManager:
         "csmemcpy", "memcpy", "csstrncpy", "csmemset", "memset",
         "crt_sprintf", "debug_string_to_display",
         "system_exit", "display_assert", "halt_and_catch_fire",
+        "_chkstk", "__chkstk", "chkstk", "fun_001d90e0",
+        "global_scenario_get", "scenario_get", "tag_block_get_element",
         "ciacos", "ciasin", "ciatan2", "cisin", "cicos",
         "cisqrt", "cilog", "cilog10", "cipow", "cifmod", "citan",
         "datum_get",
@@ -788,7 +795,8 @@ class StubManager:
             symbol_name = self._resolve_name(address)
 
             # --- Stub argument capture (depth==1 only: top-level callee) ---
-            if self._tracer is not None and self._depth == 1:
+            if (self._tracer is not None and self._depth == 1
+                    and not _is_chkstk_name(symbol_name)):
                 _reg_map = {
                     "eax": UC_X86_REG_EAX, "ecx": UC_X86_REG_ECX,
                     "edx": UC_X86_REG_EDX, "ebp": UC_X86_REG_EBP,
@@ -837,6 +845,15 @@ class StubManager:
                     is_varargs=_is_varargs,
                 ))
             # --- end arg capture ---
+
+            if symbol_name in ("_chkstk", "__chkstk", "chkstk", "fun_001d90e0"):
+                size = uc.reg_read(UC_X86_REG_EAX) & 0xFFFFFFFF
+                ret_addr = int.from_bytes(bytes(uc.mem_read(caller_esp, 4)),
+                                          "little")
+                new_esp = (caller_esp - size) & 0xFFFFFFFF
+                _safe_write(new_esp, ret_addr.to_bytes(4, "little"))
+                uc.reg_write(UC_X86_REG_ESP, new_esp)
+                return True
 
             if symbol_name in ("csmemcpy", "memcpy"):
                 dst = int.from_bytes(bytes(uc.mem_read(caller_esp + 4, 4)), "little")
@@ -996,6 +1013,45 @@ class StubManager:
                 except Exception:
                     pass
                 uc.reg_write(UC_X86_REG_EAX, 0)
+                return True
+
+            if symbol_name == "global_scenario_get":
+                try:
+                    uc.reg_write(UC_X86_REG_EAX,
+                                 int.from_bytes(_safe_read(0x5064E4, 4),
+                                                "little"))
+                except Exception:
+                    uc.reg_write(UC_X86_REG_EAX, 0)
+                return True
+
+            if symbol_name == "scenario_get":
+                try:
+                    uc.reg_write(UC_X86_REG_EAX,
+                                 int.from_bytes(_safe_read(0x5064E0, 4),
+                                                "little"))
+                except Exception:
+                    uc.reg_write(UC_X86_REG_EAX, 0)
+                return True
+
+            if symbol_name == "tag_block_get_element":
+                result = 0
+                try:
+                    block = int.from_bytes(_safe_read(caller_esp + 4, 4),
+                                           "little")
+                    index = int.from_bytes(_safe_read(caller_esp + 8, 4),
+                                           "little", signed=True)
+                    element_size = int.from_bytes(
+                        _safe_read(caller_esp + 12, 4), "little", signed=True)
+                    count = int.from_bytes(_safe_read(block, 4), "little",
+                                           signed=True)
+                    address_ptr = int.from_bytes(_safe_read(block + 4, 4),
+                                                 "little")
+                    if (block and address_ptr and element_size > 0
+                            and 0 <= index < count):
+                        result = (address_ptr + index * element_size) & 0xFFFFFFFF
+                except Exception:
+                    pass
+                uc.reg_write(UC_X86_REG_EAX, result)
                 return True
 
             if symbol_name == "tag_get":

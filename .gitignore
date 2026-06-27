@@ -95,6 +95,9 @@ cap_test*.bin
 artifacts/**/*.bin
 artifacts/snapshots/
 artifacts/*snapshot*.json
+# Equivalence-test artifacts — must NEVER be committed (game-state snapshots, logs, dumps)
+artifacts/equivalence/
+artifacts/memory_dumps/
 
 # Ephemeral repo-local state
 /.claude/scheduled_tasks.lock
