@@ -2370,9 +2370,17 @@ LAB_check_dest:
      * Caller provided a pre-computed path override.
      * Assert: actor[0x480] (dest_object) must be NONE (-1).
      * Then set up override_path as the navigation state:
-     *   FUN_0005e0d0(override_path, &actor[0x494], actor[0x498], 0)
+     *   FUN_0005e0d0(override_path, &actor[0x488], actor[0x494], actor[0x498])
      *   path_state_build_path(override_path, &actor[0x4a8])
-     * Confirmed at 0x0002d164-0x0002d1bb.
+     * Confirmed at 0x0002d194: MOV ECX,[ESI+0x498]; MOV EDX,[ESI+0x494];
+     *   PUSH ECX; PUSH EDX; PUSH EDI(&actor[0x488]); PUSH EBX(override_path);
+     *   CALL FUN_0005e0d0 -> args (override_path, &actor[0x488], actor[0x494],
+     *   actor[0x498]) — same destination/facing setup as the on-foot branch,
+     *   only the path-build buffer differs (override_path vs large_buf). The
+     *   prior lift passed (override_path, &actor[0x494], actor[0x498], 0),
+     *   which seeded the override path-build state with the FACING field as
+     *   the destination -> path_state_build_path failed -> scripted a10 door
+     *   grunts could not advance to their firing positions.
      */
     if (*(int *)(actor + 0x480) != -1) {
       display_assert("actor->control.path.destination_orders."
@@ -2380,8 +2388,8 @@ LAB_check_dest:
                      "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0xbbc, 1);
       system_exit(-1);
     }
-    FUN_0005e0d0(override_path, (float *)(actor + 0x494),
-                 *(int *)(actor + 0x498), 0);
+    FUN_0005e0d0(override_path, (float *)(actor + 0x488),
+                 *(int *)(actor + 0x494), *(int *)(actor + 0x498));
     path_found = path_state_build_path((unsigned int)override_path,
                                        (unsigned int *)(actor + 0x4a8));
   } else {
