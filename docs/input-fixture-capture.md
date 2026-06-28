@@ -173,7 +173,7 @@ For replay-based testing this does not matter: you reset by re-running `replay`
 (reboot into the core), not by dying. Only tests that *involve* dying and want to
 land back on the core need the hook below.
 
-## Die-to-core debug hook (investigated & verified — NOT yet implemented)
+## Die-to-core debug hook (IMPLEMENTED & runtime-verified — commit 102a89df)
 
 Goal: optionally make a player death reload the fixture core instead of the
 campaign checkpoint, so a death-involving test loops without a reboot.
@@ -220,16 +220,18 @@ global.) Therefore, after a fixture boots via `core_load_at_startup`, the global
 `core_name` still points at the fixture core at the moment of death. The hook needs
 **no extra name wiring**.
 
-**Proposed design (gated, off by default — preserves faithful behavior):**
-- A `DECOMP_CUSTOM` debug flag `g_die_to_core_enabled`, set at startup iff a
-  sentinel `d:\die_to_core.xts` exists (same pattern/checkpoint as the `*.xts`
-  recorder sentinels in `input_xbox.c`).
-- In the death-revert block at `main.c:2280`, replace the bare
-  `game_state_revert();` with a gated branch:
+**Implementation (shipped in 102a89df — gated, off by default):**
+- A `DECOMP_CUSTOM` `main_loop` local `die_to_core_enabled`, armed in the existing
+  startup banner block via `file_get_full_attributes("d:\\die_to_core.xts") != -1`
+  — the same file-attribute probe the recorder uses for `write/read/loop.xts`. No
+  global plumbing: the startup arm and the death dispatch share the `main_loop`
+  frame.
+- In the death-revert block at `main.c:2280`, the bare `game_state_revert();` is
+  now a gated branch:
 
   ```c
   #ifdef DECOMP_CUSTOM
-      if (g_die_to_core_enabled && core_name[0]) {
+      if (die_to_core_enabled && core_name[0]) {
         game_state_load_core_pending = 1;   /* reload fixture core, not the checkpoint */
       } else
   #endif
@@ -248,10 +250,34 @@ global.) Therefore, after a fixture boots via `core_load_at_startup`, the global
 - When the sentinel is absent (`g_die_to_core_enabled == 0`) the branch compiles to
   the original `game_state_revert()` call — **zero behavioral change**, faithful.
 
-**Status / caveat:** still *new* debug code (a deliberate deviation), so it must
-stay **off by default and sentinel-gated**, exactly like the recorder. Not
-implemented yet; it touches `main.c` death dispatch, so it goes through
-`/lift`-style review before landing.
+**Status:** implemented in commit 102a89df and **runtime-verified on xemu
+(2026-06-28), including repeated deaths.** With `die_to_core.xts` armed and a core
+saved, **three consecutive deaths each fired the hook and reloaded `core.bin`** —
+no clearing of `core_name`, no re-entrancy crash, no reboot (confirmed with
+temporary `error(2,"DTC: …")` markers, now stashed). The earlier "works only once"
+report was **not a bug**: those retry-deaths had no core saved, so `core_name[0]==0`
+and they fell through to the faithful revert.
+
+**Operational prerequisite — `core_save` first.** The hook reloads whatever
+`core_save` (or `core_load`) stored in the global `core_name`. With no core saved,
+`core_name` is empty and a death does the normal level-start revert. The correct
+loop is: in-game → `core_save` → die → reloads the saved spot, repeatably.
+
+**Verdict signal (for a future verify script):** `error(2,…)` *does* reach
+`debug.txt` (the boot banner and the `DTC:` markers both landed there), so an
+instrumented `error(2)` marker in the hook is a grep-able verdict. The engine's own
+`game_state_load_core` line uses `error(0,"loaded '%s'")`, which did **not** appear
+in `debug.txt` — so don't rely on the stock `loaded` line; add an `error(2)` marker
+or check respawn position.
+
+**Caveat:** it remains *new* debug code (a deliberate deviation), kept **off by
+default and sentinel-gated**, exactly like the recorder — faithful behavior is
+preserved whenever `die_to_core.xts` is absent (and in cachebeta, which omits
+`DECOMP_CUSTOM` entirely).
+
+**Boot note:** drive this from a **menu start** (boot to the main menu, start the
+level, then `core_save`), not a direct `core_load_at_startup` boot — the latter was
+observed to stall after the startup banner on 2026-06-28.
 
 ## Troubleshooting
 
