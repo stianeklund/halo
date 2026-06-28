@@ -2354,6 +2354,16 @@ void main_loop(void)
       if (game_state_load_core_pending) {
         game_state_load_core(core_name);
         game_state_load_core_pending = 0;
+#ifdef DECOMP_CUSTOM
+        /* core-loop / die-to-core: re-sync recorded input to the freshly
+         * (re)loaded core — rewind playback to packet 0 so the stored input
+         * re-executes from the same state. Active only when input playback is
+         * on (read.xts / core_loop.xts = mode 4, loop.xts = mode 5). The mode
+         * and handle globals live in input_xbox.c (0x46b818 / 0x46b814). */
+        if (*(int *)0x46b818 == 4 || *(int *)0x46b818 == 5) {
+          SetFilePointer(*(int *)0x46b814, 0, (int *)0, 0);
+        }
+#endif
       }
       if (main_menu_load_pending) {
         main_menu_load();

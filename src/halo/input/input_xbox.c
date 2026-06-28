@@ -368,19 +368,35 @@ static int16_t input_normalize_stick(int16_t value)
   return 0;
 }
 
+#ifdef DECOMP_CUSTOM
+/* core-loop debug mode (d:\core_loop.xts): recorded-input playback reloads the
+ * saved core and restarts from packet 0 each time the recording ends — a
+ * deterministic replay loop that needs no player death. Set in
+ * input_check_state_mode, consumed in input_state_process_packet (mode 4 EOF). */
+static int core_loop_enabled = 0;
+#endif
+
 /* input_check_state_mode (0xce4b0)
  * Probe for sentinel files on the D: drive to select input state recording
  * or playback mode.  Sets the global input_state_mode:
  *   d:\write.xts exists  ->  mode 3 (write/record)
  *   d:\read.xts  exists  ->  mode 4 (read/playback)
  *   d:\loop.xts  exists  ->  mode 5 (loop playback)
- * First match wins; if none exist the mode is left unchanged. */
+ * First match wins; if none exist the mode is left unchanged.
+ * DECOMP_CUSTOM: d:\core_loop.xts -> mode 4 playback + core_loop_enabled. */
 void input_check_state_mode(void)
 {
   if (file_get_full_attributes("d:\\write.xts") != -1) {
     *input_state_mode() = 3;
     return;
   }
+#ifdef DECOMP_CUSTOM
+  if (file_get_full_attributes("d:\\core_loop.xts") != -1) {
+    *input_state_mode() = 4;
+    core_loop_enabled = 1;
+    return;
+  }
+#endif
   if (file_get_full_attributes("d:\\read.xts") != -1) {
     *input_state_mode() = 4;
     return;
@@ -470,6 +486,14 @@ void input_state_process_packet(void *state)
     bytes_transferred = 0;
     ReadFile(*input_state_file_handle(), state, sizeof(input_gamepad_state),
              &bytes_transferred, NULL);
+#ifdef DECOMP_CUSTOM
+    /* core-loop: recording exhausted (EOF) and a core is loaded -> request a
+     * core reload. The load-core dispatch in main_loop then rewinds playback to
+     * packet 0, so the stored input re-executes. No player death required. */
+    if (core_loop_enabled && bytes_transferred == 0 && core_name[0]) {
+      game_state_load_core_pending = 1;
+    }
+#endif
     break;
   case 5:
     FUN_000ce530(state);
