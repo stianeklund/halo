@@ -279,6 +279,35 @@ preserved whenever `die_to_core.xts` is absent (and in cachebeta, which omits
 level, then `core_save`), not a direct `core_load_at_startup` boot — the latter was
 observed to stall after the startup banner on 2026-06-28.
 
+## Self-running replay loop (`core_loop.xts`) — no death needed
+
+For a deterministic loop that does **not** depend on the player dying, use the
+EOF-triggered variant. When recorded-input playback reaches the **end** of
+`state.data`, the engine reloads the core and rewinds playback to packet 0 — so the
+stored input re-executes against the same core state, indefinitely. **Loop period =
+the recording's length.**
+
+Mechanism (DECOMP_CUSTOM, `default.xbe` only):
+- `d:\core_loop.xts` at boot → input playback mode 4 + `core_loop_enabled` (`input_xbox.c`).
+- At input EOF (mode 4) with a core loaded → set `game_state_load_core_pending` (`input_xbox.c`).
+- The load-core dispatch in `main_loop` reloads the core and `SetFilePointer(handle,0,…)`
+  rewinds the input (`main.c`); the rewind also fires for `die_to_core` and the startup load.
+
+Drive it with the tool (`--loop` stages `core_loop.xts` instead of `read.xts`):
+```bash
+python3 tools/xbox/capture_scenario.py replay --level a10 \
+    --scenario a10-checkpoint-5s-action --xbe default.xbe --loop
+```
+
+Verified on xemu 2026-06-28: an a10 fixture looped every **~13 s** (= the recording
+length, 400 ticks) with **zero deaths and zero reboots**.
+
+Notes:
+- The loop resets exactly at the recording's EOF, so a short capture loops early —
+  record a touch longer, or raise `--tail-pad`.
+- Combine with `die_to_core.xts` to also reset the loop on a player death.
+- `default.xbe` only (DECOMP_CUSTOM); `cachebeta.xbe` ignores the sentinel.
+
 ## Troubleshooting
 
 - **"core not found"** — you didn't `core_save`, or saved to a different slot/map.

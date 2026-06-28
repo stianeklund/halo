@@ -21,9 +21,9 @@ Start modes (only the two empirically proven on this dev box are offered):
 
 Subcommands:
     record    interactive: arm -> "play, press Enter" -> finalize -> validate
-    arm       set up the box and reboot into record mode (load-bearing half)
+    arm       set up the box and relaunch the title into record mode (load-bearing half)
     finalize  close + download + trim + store + co-locate (load-bearing half)
-    replay    redeploy an existing fixture and boot it (optionally confirm known_good)
+    replay    redeploy an existing fixture and relaunch the title (optionally confirm known_good)
     selftest  validate analyze()/trim() against raws already on disk (no hardware)
 
 The arm/finalize split is the crash-recovery seam: box state (sentinels + core)
@@ -368,13 +368,14 @@ def cmd_arm(args) -> None:
     sendfile(_empty_xts(), xbox_join(args.title_root, "write.xts"), args.host)
     delete_remote(xbox_join(args.title_root, "read.xts"), args.host)
     delete_remote(xbox_join(args.title_root, "loop.xts"), args.host)
+    delete_remote(xbox_join(args.title_root, "core_loop.xts"), args.host)
 
     sizes = dirlist_sizes(args.title_root, args.host) or {}
     if "write.xts" not in sizes:
-        sys.exit("error: write.xts did not stick — aborting before reboot.")
+        sys.exit("error: write.xts did not stick — aborting before title relaunch.")
     if "read.xts" in sizes or "loop.xts" in sizes:
         sys.exit("error: a playback sentinel survived — would shadow record mode.")
-    print(f"  armed (start={args.start}); rebooting into {args.xbe}...")
+    print(f"  armed (start={args.start}); relaunching the title ({args.xbe})...")
     if not boot_title(args.xbe, args.title_root, args.host):
         sys.exit(f"error: {args.xbe} did not come up to record on. Re-run `arm`.")
     print(f"  confirmed running: {args.xbe} (recording)")
@@ -407,10 +408,10 @@ def cmd_finalize(args) -> None:
     print("  disarming write.xts (truncation guard)...")
     delete_remote(xbox_join(args.title_root, "write.xts"), args.host)
     sizes = dirlist_sizes(args.title_root, args.host) or {}
-    for s in ("write.xts", "read.xts", "loop.xts"):
+    for s in ("write.xts", "read.xts", "loop.xts", "core_loop.xts"):
         if s in sizes:
-            sys.exit(f"error: {s} still present — refusing to reboot (would truncate/replay).")
-    print("  rebooting to close the recording handle...")
+            sys.exit(f"error: {s} still present — refusing to relaunch the title (would truncate/replay).")
+    print("  relaunching the title to close the recording handle...")
     magicboot(args.xbe, args.title_root, args.host)
     size = _wait_handle_closed(args)
     print(f"  handle closed; state.data = {size} bytes ({size // TICK} ticks)")
@@ -484,9 +485,19 @@ def cmd_replay(args, validate: bool = False) -> None:
         sendfile(str(core.relative_to(ROOT)), xbox_join(tr, "core", "core.bin"), args.host)
     sendfile(str((fdir / "state.data").relative_to(ROOT)), xbox_join(tr, "state.data"), args.host)
     sendfile(str((fdir / "init.txt").relative_to(ROOT)), xbox_join(tr, "init.txt"), args.host)
-    sendfile(str((fdir / "read.xts").relative_to(ROOT)), xbox_join(tr, "read.xts"), args.host)
+    if getattr(args, "loop", False):
+        # core_loop.xts: replay the input AND reload the core each time the
+        # recording ends -> self-running deterministic loop, no death needed.
+        # Requires the patched default.xbe (DECOMP_CUSTOM); cachebeta ignores it.
+        sendfile(_empty_xts(), xbox_join(tr, "core_loop.xts"), args.host)
+        delete_remote(xbox_join(tr, "read.xts"), args.host)
+        delete_remote(xbox_join(tr, "loop.xts"), args.host)
+    else:
+        sendfile(str((fdir / "read.xts").relative_to(ROOT)), xbox_join(tr, "read.xts"), args.host)
+        delete_remote(xbox_join(tr, "core_loop.xts"), args.host)
     delete_remote(xbox_join(tr, "write.xts"), args.host)
-    print(f"  deployed {args.level}/{args.scenario}; booting {args.xbe} in playback...")
+    mode = "core-loop replay" if getattr(args, "loop", False) else "playback"
+    print(f"  deployed {args.level}/{args.scenario}; booting {args.xbe} in {mode}...")
     if not boot_title(args.xbe, tr, args.host):
         sys.exit(f"error: {args.xbe} did not come up (the box kept auto-booting a "
                  "different title). Re-run, or check the box's default-boot config.")
@@ -598,6 +609,46 @@ def _set_known_good(level: str, scenario: str, value: bool) -> None:
 # CLI
 # --------------------------------------------------------------------------
 
+_DESCRIPTION = """\
+Per-level controller-input fixture capture & replay for Halo CE Xbox (host-only).
+
+Capture a scenario's controller input once, then replay the EXACT same input on
+demand: to drive a level reproducibly, or to diff the patched (default.xbe) vs
+unpatched (cachebeta.xbe) build on identical input. Fixtures are stored per
+level/scenario under tools/xbox/ and promoted into the recording corpus.
+"""
+
+_EPILOG = """\
+record gameplay input (the common case):
+
+  # all-in-one: arms the box, you play, press Enter, it trims + stores the fixture
+  python3 tools/xbox/capture_scenario.py record --level a10 --scenario cryo-bay-exit
+
+  # record against the patched build and tag the fixture
+  python3 tools/xbox/capture_scenario.py record --level a10 --scenario cryo-bay-exit \\
+      --xbe default.xbe --build patched --difficulty normal
+
+two-step record (decide yourself when to stop playing):
+
+  python3 tools/xbox/capture_scenario.py arm      --level a10 --scenario cryo-bay-exit   # relaunches the title in record mode; play now
+  python3 tools/xbox/capture_scenario.py finalize --level a10 --scenario cryo-bay-exit   # stops, trims, stores the fixture
+
+replay a stored fixture:
+
+  python3 tools/xbox/capture_scenario.py replay --level a10 --scenario a10-checkpoint-5s-action
+  python3 tools/xbox/capture_scenario.py replay --level a10 --scenario a10-checkpoint-5s-action --xbe default.xbe   # patched build, same input
+
+host-only sanity check (no Xbox needed):
+
+  python3 tools/xbox/capture_scenario.py selftest
+
+each step relaunches the title via XBDM magicboot (you see the game reload); the Xbox/xemu is not power-cycled.
+--xbe picks the build: cachebeta.xbe = unpatched/faithful (default), default.xbe = patched.
+--start core (default) replays from a saved core; --start menu is script-faithful from the menu.
+full guide: docs/input-fixture-capture.md
+"""
+
+
 def _add_common(p) -> None:
     p.add_argument("--level", required=True, help="Level key, e.g. a10")
     p.add_argument("--scenario", required=True, help="Scenario id / folder name, e.g. cryo-bay-exit")
@@ -617,11 +668,34 @@ def _add_common(p) -> None:
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="Per-level input fixture capture/replay")
-    sub = ap.add_subparsers(dest="command", required=True)
+    ap = argparse.ArgumentParser(
+        prog="capture_scenario.py",
+        description=_DESCRIPTION,
+        epilog=_EPILOG,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    sub = ap.add_subparsers(dest="command", required=True, metavar="<command>")
+    cmd_help = {
+        "record":   "record gameplay end-to-end: arm -> you play -> press Enter -> finalize (usual way to capture)",
+        "arm":      "arm the recorder and relaunch the title into record mode; then play (pair with finalize)",
+        "finalize": "stop recording, download + trim the input, and store the fixture (run after arm)",
+        "replay":   "replay a stored fixture deterministically (relaunch the title in playback)",
+    }
     for name in ("record", "arm", "finalize", "replay"):
-        _add_common(sub.add_parser(name))
-    sub.add_parser("selftest")
+        sp = sub.add_parser(
+            name, help=cmd_help[name], description=cmd_help[name],
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+        )
+        _add_common(sp)
+        if name == "replay":
+            sp.add_argument(
+                "--loop", action="store_true",
+                help="self-running loop: stage core_loop.xts so the input replays AND "
+                     "the core reloads each time the recording ends (no death needed; "
+                     "requires the patched default.xbe)")
+    sub.add_parser("selftest",
+                   help="host-only analyze/trim sanity check (no Xbox required)",
+                   description="host-only analyze/trim sanity check (no Xbox required)")
 
     args = ap.parse_args(argv)
     if getattr(args, "host", ""):
