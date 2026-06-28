@@ -125,6 +125,70 @@ python3 tools/xbox/capture_scenario.py record --level a10 --scenario cryo-bay-ex
 #    input-recordings/levels/a10/cryo-bay-exit/ with known_good=true.
 ```
 
+## Loading / replaying a saved recording
+
+This is the "reset to the start state" button — every replay reboots fresh into the
+core, so you never rely on in-game death/respawn.
+
+```bash
+# list what's stored for a level
+ls input-recordings/levels/a10/
+python3 tools/xbox/input_recordings.py ls --level a10        # with metadata
+
+# load + boot an existing fixture on the unpatched build
+python3 tools/xbox/capture_scenario.py replay --level a10 --scenario a10-checkpoint-5s-action
+
+# run the SAME input against the patched build (the diff oracle)
+python3 tools/xbox/capture_scenario.py replay --level a10 --scenario a10-checkpoint-5s-action --xbe default.xbe
+```
+
+`replay` uploads the fixture (core + `state.data` + `init.txt` + `read.xts`),
+releases any handle a prior playback left open, and magicboots into playback.
+
+## Why death goes to the level start, not the core
+
+A **core is a debug heap snapshot, not a campaign checkpoint.** When the player
+dies, the engine (`main.c:2274–2283`) sets `byte_46DA3B`, waits ~90 ticks, then
+calls `game_state_revert()` — which reloads the **campaign autosave** (the scripted
+checkpoint, i.e. the level start), *not* your `core.bin`. This is by design and is
+the same family as the `boot-init-and-checkpoints.md` §4 caveat.
+
+For replay-based testing this does not matter: you reset by re-running `replay`
+(reboot into the core), not by dying. Only tests that *involve* dying and want to
+land back on the core need the hook below.
+
+## Die-to-core debug hook (investigated — NOT yet implemented)
+
+Goal: optionally make a player death reload `core.bin` instead of the campaign
+checkpoint, so a death-involving test loops without a reboot.
+
+**Feasibility: small.** The engine already has the core-load machinery next to the
+revert handler:
+
+| Path | Location | Effect |
+|------|----------|--------|
+| death revert | `main.c:2280` `game_state_revert()` (after `byte_46DA3B` + 90-tick fade) | reload campaign checkpoint |
+| core load | `main.c:2335–2337` `game_state_load_core(core_name)` (pending flag) | reload `core_name` heap |
+
+Both run the same structure (validate → restore the `0x345000` heap at `*0x4ea994`
+→ run the 13 init-for-new-map callbacks at `0x32eaa8`), so swapping one for the
+other at the death dispatch point is structurally safe.
+
+**Proposed design (gated, off by default — preserves faithful behavior):**
+- A debug flag `revert_to_core_enabled`, set when a sentinel `d:\die_to_core.xts`
+  exists at startup (same pattern as the `*.xts` recorder sentinels) or via a
+  console command.
+- In the death-revert block, if the flag is set and `core_name` is non-empty, set
+  `game_state_load_core_pending` (reusing the existing global) instead of calling
+  `game_state_revert()`.
+- `core_name` is already populated by `core_load_at_startup` (defaults to
+  `core.bin`), so the fixture's core is the target with no extra wiring.
+
+**Status / caveat:** this is *new* debug code (a deliberate deviation), so it must
+stay **off by default and sentinel-gated** to keep the faithful reimplementation
+intact — exactly how the recorder is gated. Not implemented yet; it would go
+through `/lift`-style review since it touches `main.c` dispatch.
+
 ## Troubleshooting
 
 - **"core not found"** — you didn't `core_save`, or saved to a different slot/map.
