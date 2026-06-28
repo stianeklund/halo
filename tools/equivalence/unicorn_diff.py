@@ -2330,6 +2330,12 @@ def main():
                         help="Enable memory-write trace differential (compare side-effect writes)")
     parser.add_argument("--state-snapshot", type=Path, default=None, metavar="PATH",
                         help="Load state snapshot JSON for memory initialization (replaces zero-fill)")
+    parser.add_argument("--from-halorec", type=Path, default=None, metavar="REC",
+                        help="Convert a .halorec recording frame to a state snapshot "
+                             "(real object/actor/prop heap). Mutually exclusive with --state-snapshot.")
+    parser.add_argument("--halorec-frame", default=None, metavar="SEL",
+                        help="Frame selector for --from-halorec: index (int), 'first', 'last', "
+                             "0.0-1.0 fraction, 't=SECONDS', or 'handle=0xHANDLE' (default: last)")
     parser.add_argument("--no-concolic", action="store_true",
                         help="Disable automatic concolic Phase 2 when coverage is low")
     parser.add_argument("--real-callees", action="store_true",
@@ -2343,6 +2349,33 @@ def main():
     args = parser.parse_args()
     if args.real_callees:
         args.allow_stubs = True
+
+    if args.from_halorec:
+        # Convert a recorded frame into a state snapshot, then reuse the existing
+        # --state-snapshot plumbing (load_snapshot maps regions into Unicorn).
+        if args.state_snapshot:
+            parser.error("--from-halorec and --state-snapshot are mutually exclusive")
+        import json as _json
+        import tempfile
+        from halorec_to_snapshot import build_snapshot
+        sel = args.halorec_frame
+        fkw = {}
+        if sel is None or sel in ("last", "first"):
+            fkw["frame"] = sel
+        elif sel.startswith("t="):
+            fkw["t"] = float(sel[2:])
+        elif sel.startswith("handle="):
+            fkw["handle"] = int(sel[7:], 0)
+        else:
+            fkw["frame"] = sel
+        snap, idx, t = build_snapshot(str(args.from_halorec), **fkw)
+        tf = tempfile.NamedTemporaryFile("w", suffix=".json", prefix="halorec_snap_",
+                                         delete=False, encoding="utf-8")
+        _json.dump(snap, tf)
+        tf.close()
+        args.state_snapshot = Path(tf.name)
+        print(f"  [from-halorec] {Path(str(args.from_halorec)).name} frame {idx} "
+              f"(t={t:.3f}s) -> {len(snap['regions'])} regions -> {tf.name}")
 
     if args.batch_classify:
         sys.exit(_run_batch_classify())
