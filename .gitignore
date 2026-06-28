@@ -138,3 +138,7 @@ init.txt
 
 # Halo Memory Viewer recordings (binary; large, re-recordable - never commit)
 *.halorec
+
+# Host-only equivalence snapshots (copyrighted game memory - never commit; keep manifest)
+tools/equivalence/host_snapshots/*.json
+!tools/equivalence/host_snapshots/manifest.json

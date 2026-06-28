@@ -31,12 +31,14 @@ env:
   VENV_PYTHON: /mnt/g/dev/halo/.venv/bin/python3
   DELINKED_DIR: /mnt/g/dev/halo/delinked
   BUILD_DIR: /mnt/g/dev/halo/build
+  # Directory holding the (host-only, never-committed) .halorec recordings.
+  # build_host_snapshots.py reads this; if absent, snapshot-dependent targets SKIP.
+  HALO_HALOREC_DIR: /mnt/g/dev/halo-memory-viewer
 
 jobs:
   regression:
     name: Unicorn regression (quick)
     runs-on: self-hosted
-    if: github.event_name != 'schedule'
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
@@ -45,6 +47,9 @@ jobs:
         run: |
           ln -sf ${{ env.DELINKED_DIR }} delinked
           ln -sf ${{ env.BUILD_DIR }} build
+
+      - name: Build host snapshots (copyrighted game memory stays host-only)
+        run: ${{ env.VENV_PYTHON }} tools/equivalence/build_host_snapshots.py
 
       - name: Verify prerequisites
         run: |
