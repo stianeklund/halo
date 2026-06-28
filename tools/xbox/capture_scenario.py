@@ -188,6 +188,35 @@ def magicboot(xbe: str, title_root: str, host: str | None) -> None:
     rdcp_cmd(f"magicboot title={xbox_join(title_root, xbe)} debug", host)
 
 
+def _running_xbe(title_root: str, host: str | None) -> str | None:
+    cp = rdcp_cmd("xbeinfo running", host)
+    if cp.returncode != 0:
+        return None
+    for line in cp.stdout.splitlines():
+        if "name=" in line.lower():
+            return line.split("\\")[-1].strip().strip('"').lower()
+    return None
+
+
+def boot_title(xbe: str, title_root: str, host: str | None,
+               ready_timeout: float = 90, verify_timeout: float = 45, retries: int = 3) -> bool:
+    """magicboot the requested xbe and VERIFY it is the one actually running.
+
+    A magicboot issued while the box is mid-reboot (e.g. right after a hard reset,
+    when xemu is auto-booting default.xbe) loses the race and is silently ignored,
+    leaving the WRONG build up. This is what makes --xbe (cachebeta vs default)
+    reliable: wait for XBDM to be responsive, magicboot, confirm xbeinfo == target,
+    and retry until it sticks.
+    """
+    target = xbe.lower()
+    for _ in range(max(1, retries)):
+        _poll_until(lambda: dirlist_sizes(title_root, host) is not None, ready_timeout)
+        magicboot(xbe, title_root, host)
+        if _poll_until(lambda: _running_xbe(title_root, host) == target, verify_timeout):
+            return True
+    return False
+
+
 def delete_remote(xbox_path: str, host: str | None) -> None:
     rdcp_cmd(f'delete name="{xbox_path}"', host)
 
@@ -275,9 +304,7 @@ def ensure_state_data_free(args, soft_timeout: float = 60, hard_timeout: float =
     # After a hard reset the box may auto-boot a different title; once XBDM + the
     # file are reachable and free, put the requested xbe back up.
     if _poll_until(lambda: handle_released(tr, host), hard_timeout):
-        magicboot(args.xbe, tr, host)
-        _poll_until(lambda: handle_released(tr, host), soft_timeout)
-        print("  released (hard reset).")
+        print("  released (hard reset).")     # build selection is boot_title's job, in cmd_replay
         return
     sys.exit("error: could not free state.data even after a hard reset. The box may "
              "be at a halt/assert screen — inspect it manually before retrying.")
@@ -348,7 +375,9 @@ def cmd_arm(args) -> None:
     if "read.xts" in sizes or "loop.xts" in sizes:
         sys.exit("error: a playback sentinel survived — would shadow record mode.")
     print(f"  armed (start={args.start}); rebooting into {args.xbe}...")
-    magicboot(args.xbe, args.title_root, args.host)
+    if not boot_title(args.xbe, args.title_root, args.host):
+        sys.exit(f"error: {args.xbe} did not come up to record on. Re-run `arm`.")
+    print(f"  confirmed running: {args.xbe} (recording)")
     print("  >> PLAY your scenario now. When done, run `finalize` "
           "(or press Enter in record mode).")
 
@@ -458,7 +487,10 @@ def cmd_replay(args, validate: bool = False) -> None:
     sendfile(str((fdir / "read.xts").relative_to(ROOT)), xbox_join(tr, "read.xts"), args.host)
     delete_remote(xbox_join(tr, "write.xts"), args.host)
     print(f"  deployed {args.level}/{args.scenario}; booting {args.xbe} in playback...")
-    magicboot(args.xbe, tr, args.host)
+    if not boot_title(args.xbe, tr, args.host):
+        sys.exit(f"error: {args.xbe} did not come up (the box kept auto-booting a "
+                 "different title). Re-run, or check the box's default-boot config.")
+    print(f"  confirmed running: {args.xbe} (playback)")
     if validate:
         ans = input("  did it reproduce the run on screen? [y/N] ").strip().lower()
         if ans == "y":
