@@ -145,6 +145,22 @@ python3 tools/xbox/capture_scenario.py replay --level a10 --scenario a10-checkpo
 `replay` uploads the fixture (core + `state.data` + `init.txt` + `read.xts`),
 releases any handle a prior playback left open, and magicboots into playback.
 
+### Choosing the build (cachebeta vs default)
+
+`--xbe` selects which title replays the input, and the tool **verifies the
+requested build is actually running** before declaring success (retrying if the
+box auto-boots the wrong title after a reset):
+
+| `--xbe` | Build | Use for |
+|---------|-------|---------|
+| `cachebeta.xbe` (default) | unpatched original | capturing/replaying the faithful reference |
+| `default.xbe` | patched (our lifted C) | running the same input against your changes |
+
+The same `core.bin` loads into either build (heap layout is preserved), so the
+diff oracle is: `replay … --xbe cachebeta.xbe` then `replay … --xbe default.xbe`
+and compare. `record`/`arm` honor `--xbe` the same way, so you can capture on the
+unpatched build and replay on the patched one.
+
 ## Why death goes to the level start, not the core
 
 A **core is a debug heap snapshot, not a campaign checkpoint.** When the player
