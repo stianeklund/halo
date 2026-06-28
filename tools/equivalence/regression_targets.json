@@ -10,7 +10,29 @@
         "--state-snapshot", "tools/equivalence/host_snapshots/rec19_grunt6.json",
         "--allow-stubs", "--float-tolerance", "32", "--mem-trace"
       ],
-      "reason": "perception prop-weight scorer; runs on real actor+perception-prop state from host-only Recording 19 (door grunt slot6). Audited faithful (a10) — this guards against future lift drift. SKIPs cleanly when the host recording/snapshot is absent (forks, hosted CI) — no game memory in git."
+      "reason": "perception prop-weight scorer; runs on real actor+perception-prop state from host-only Recording 19 (door grunt slot6, awareness=10). Audited faithful (a10) — this guards against future lift drift. SKIPs cleanly when the host recording/snapshot is absent (forks, hosted CI) — no game memory in git."
+    },
+    {
+      "addr": "0x2fd10",
+      "name": "actor_compute_prop_target_weight",
+      "obj": "actor_perception.obj",
+      "seeds": 8,
+      "flags": [
+        "--state-snapshot", "tools/equivalence/host_snapshots/rec19_grunt10.json",
+        "--allow-stubs", "--float-tolerance", "32", "--mem-trace"
+      ],
+      "reason": "prop-weight scorer on Recording 19 door grunt slot10 (awareness=6) — mid-alertness state covers a different path than grunt6 (52.9% vs 48.6%). SKIPs if host snapshot absent."
+    },
+    {
+      "addr": "0x2fd10",
+      "name": "actor_compute_prop_target_weight",
+      "obj": "actor_perception.obj",
+      "seeds": 8,
+      "flags": [
+        "--state-snapshot", "tools/equivalence/host_snapshots/rec19_grunt11.json",
+        "--allow-stubs", "--float-tolerance", "32", "--mem-trace"
+      ],
+      "reason": "prop-weight scorer on Recording 19 door grunt slot11 (awareness=6) — second mid-alertness grunt for added path coverage. SKIPs if host snapshot absent."
     },
     {
       "addr": "0xb4da0",
