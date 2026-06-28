@@ -173,37 +173,85 @@ For replay-based testing this does not matter: you reset by re-running `replay`
 (reboot into the core), not by dying. Only tests that *involve* dying and want to
 land back on the core need the hook below.
 
-## Die-to-core debug hook (investigated — NOT yet implemented)
+## Die-to-core debug hook (investigated & verified — NOT yet implemented)
 
-Goal: optionally make a player death reload `core.bin` instead of the campaign
-checkpoint, so a death-involving test loops without a reboot.
+Goal: optionally make a player death reload the fixture core instead of the
+campaign checkpoint, so a death-involving test loops without a reboot.
 
-**Feasibility: small.** The engine already has the core-load machinery next to the
-revert handler:
+**Feasibility: small — and now verified against the lifted code.** The engine
+already has the core-load machinery in the same main-loop iteration as the death
+revert. Both blocks live in the main game-loop function (`while (1)` at
+`main.c:2267`); both `if`s run the same iteration:
 
 | Path | Location | Effect |
 |------|----------|--------|
-| death revert | `main.c:2280` `game_state_revert()` (after `byte_46DA3B` + 90-tick fade) | reload campaign checkpoint |
-| core load | `main.c:2335–2337` `game_state_load_core(core_name)` (pending flag) | reload `core_name` heap |
+| death revert | `main.c:2274–2283`: after `byte_46DA3B` + ~90-tick (`word_46DA4C`) fade, calls `game_state_revert()` | reload campaign autosave (level start) |
+| core load | `main.c:2335–2337`: `if (game_state_load_core_pending) game_state_load_core(core_name)` | reload `core_name` heap |
 
-Both run the same structure (validate → restore the `0x345000` heap at `*0x4ea994`
-→ run the 13 init-for-new-map callbacks at `0x32eaa8`), so swapping one for the
-other at the death dispatch point is structurally safe.
+`game_state_load_core` (`game_state.c:319`) and `game_state_revert` run the same
+structure (validate header → restore the `0x345000` heap at `*0x4ea994` → run the
+13 init-for-new-map callbacks at `0x32eaa8`), so swapping one for the other at the
+death dispatch is structurally safe.
+
+**Verified mechanism — what `core_name` actually is (this is the load-bearing fact).**
+`core_name` at `main.c:2332/2336` is a **global** (`HDATA char core_name[]` @
+`0x46dd55`, `build/generated/decl.h`), *not* a local. Its only writers are three
+**unlifted** hs handlers declared in `kb.json`:
+
+- `main_load_core_name_at_startup` — the `core_load_at_startup` /
+  `core_load_name_at_startup` init.txt directive; sets the global `core_name` and
+  the startup pending byte `0x46da3f`.
+- `main_save_core_name` / `main_load_core_name` — the console `core_save` /
+  `core_load` commands.
+
+On a new map, `main_new_map` (`main.c:436–453`) copies `0x46da3f` →
+`game_state_load_core_pending` (`0x46da3e`), so the next loop iteration runs
+`game_state_load_core(core_name)` at 2336. **Nothing in the per-frame path writes
+the global `core_name`** — verified from the binary, not inference: Ghidra xrefs to
+`0x46dd55` are the *complete* reference set (8 refs / 7 functions, covering unlifted
+code). The only per-frame function that touches it is the main loop
+(`FUN_00102e40`, body `0x102e40–0x1034a9`), which references it exactly twice — both
+as the `const char *name` argument to `game_state_save_core` / `game_state_load_core`
+(reads, not writes). The six writers (`0x1003b0–0x1004e1`) are each reached only via
+an hs-command wrapper (`FUN_000c27xx`) — console / startup directive dispatch, never
+per-frame. (The `char core_name[256]` local at `main.c:880` is a *shadow* inside
+`main_frame_rate_debug` for slow-frame diagnostic dumps; it never touches the
+global.) Therefore, after a fixture boots via `core_load_at_startup`, the global
+`core_name` still points at the fixture core at the moment of death. The hook needs
+**no extra name wiring**.
 
 **Proposed design (gated, off by default — preserves faithful behavior):**
-- A debug flag `revert_to_core_enabled`, set when a sentinel `d:\die_to_core.xts`
-  exists at startup (same pattern as the `*.xts` recorder sentinels) or via a
-  console command.
-- In the death-revert block, if the flag is set and `core_name` is non-empty, set
-  `game_state_load_core_pending` (reusing the existing global) instead of calling
-  `game_state_revert()`.
-- `core_name` is already populated by `core_load_at_startup` (defaults to
-  `core.bin`), so the fixture's core is the target with no extra wiring.
+- A `DECOMP_CUSTOM` debug flag `g_die_to_core_enabled`, set at startup iff a
+  sentinel `d:\die_to_core.xts` exists (same pattern/checkpoint as the `*.xts`
+  recorder sentinels in `input_xbox.c`).
+- In the death-revert block at `main.c:2280`, replace the bare
+  `game_state_revert();` with a gated branch:
 
-**Status / caveat:** this is *new* debug code (a deliberate deviation), so it must
-stay **off by default and sentinel-gated** to keep the faithful reimplementation
-intact — exactly how the recorder is gated. Not implemented yet; it would go
-through `/lift`-style review since it touches `main.c` dispatch.
+  ```c
+  #ifdef DECOMP_CUSTOM
+      if (g_die_to_core_enabled && core_name[0]) {
+        game_state_load_core_pending = 1;   /* reload fixture core, not the checkpoint */
+      } else
+  #endif
+        game_state_revert();
+  ```
+
+  Setting the existing `game_state_load_core_pending` makes the core-load block at
+  2335 fire later in the **same iteration** — the faithful core-load path, reused.
+
+**Risks / edge cases (all benign):**
+- If the global `core_name` is empty (booted without any `core_load*` directive),
+  `core_name[0]` is `0` → falls through to `game_state_revert()`. The `&& core_name[0]`
+  guard makes that automatic.
+- If the player runs console `core_save`/`core_load` mid-session, the global is
+  repointed — expected; not part of a death-loop fixture run.
+- When the sentinel is absent (`g_die_to_core_enabled == 0`) the branch compiles to
+  the original `game_state_revert()` call — **zero behavioral change**, faithful.
+
+**Status / caveat:** still *new* debug code (a deliberate deviation), so it must
+stay **off by default and sentinel-gated**, exactly like the recorder. Not
+implemented yet; it touches `main.c` death dispatch, so it goes through
+`/lift`-style review before landing.
 
 ## Troubleshooting
 
