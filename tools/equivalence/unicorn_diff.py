@@ -1163,7 +1163,8 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
              no_concolic: bool = False,
              real_callees: bool = False,
              max_insn: int = None,
-             stub_arg_trace: bool = True) -> int:
+             stub_arg_trace: bool = True,
+             value_corpus: Optional[Path] = None) -> int:
     """Run the differential test.  Returns 0 if all pass, 1 if any diverge."""
 
     # In --allow-stubs mode each callee stub executes real oracle code, consuming
@@ -1858,14 +1859,20 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             and use_stubs and merged_global_reads):
         try:
             from concolic import (disassemble_branches, find_uncovered,
-                                  generate_memory_injections)
+                                  generate_memory_injections, load_value_corpus)
 
             branches = disassemble_branches(oracle_code_patched, oracle_func_base)
             uncovered = find_uncovered(branches, all_visited_pcs, oracle_func_base)
 
             if uncovered:
+                # Step 4: ground residual-branch injection in real frame values.
+                corpus = load_value_corpus(value_corpus)
                 injections = generate_memory_injections(
-                    uncovered, merged_global_reads, oracle_func_base)
+                    uncovered, merged_global_reads, oracle_func_base,
+                    value_corpus=corpus)
+                if corpus:
+                    info(f"  concolic: using real-frame value corpus "
+                         f"({len(corpus)} globals)")
 
                 if injections:
                     info(f"\n  concolic: {len(uncovered)} uncovered branch(es), "
@@ -2083,6 +2090,11 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         error_details=error_details,
         seeds=total_seeds,
         coverage_pct=round(coverage_pct, 1),
+        func_size=oracle_func_size,
+        # {hex pc: instruction size} of every oracle PC visited across all seeds
+        # (post-concolic). Lets a multi-frame sweep union real-state coverage:
+        # union_bytes = sum of sizes over the unioned PC set / func_size.
+        covered_pcs={f"0x{pc:08x}": sz for pc, sz in sorted(all_visited_pcs.items())},
         unique_returns=unique_returns,
         confidence=confidence,
         trace_diffs=trace_diff_count,
@@ -2338,6 +2350,11 @@ def main():
                              "0.0-1.0 fraction, 't=SECONDS', or 'handle=0xHANDLE' (default: last)")
     parser.add_argument("--no-concolic", action="store_true",
                         help="Disable automatic concolic Phase 2 when coverage is low")
+    parser.add_argument("--value-corpus", type=Path, default=None, metavar="PATH",
+                        help="Real-frame value corpus {global: [observed values]} from "
+                             "halorec_frame_sweep.py --emit-value-corpus; concolic Phase 2 "
+                             "injects these feasible engine-produced values for residual "
+                             "uncovered branches instead of invented constants.")
     parser.add_argument("--real-callees", action="store_true",
                         help="Run callees as native oracle code (loops iterate over "
                              "snapshot data) instead of return-0 stubs. Implies --allow-stubs.")
@@ -2415,6 +2432,7 @@ def main():
         real_callees=args.real_callees,
         max_insn=args.max_insn,
         stub_arg_trace=not args.no_stub_arg_trace,
+        value_corpus=args.value_corpus,
     ))
 
 
