@@ -231,6 +231,12 @@ tick even when only controller 0 matters.
 This is separate from `cutscene_recording` / `recorded_animations`, which drives
 scripted unit/cinematic animation streams rather than player controller input.
 
+> **Automated workflow:** `tools/xbox/capture_scenario.py` wraps the entire
+> arm/record/close/download/trim/store flow below into one command and stores the
+> result as a named, self-contained per-level fixture (input + checkpoint core +
+> deploy recipe). See `docs/input-fixture-capture.md`. The manual steps below are
+> the underlying mechanism it drives.
+
 ### Boot Directly Into a Campaign Map
 
 The console startup path evaluates `D:\init.txt` line by line with
