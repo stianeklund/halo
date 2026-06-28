@@ -164,7 +164,12 @@ def remote_size(title_root: str, name: str, host: str | None) -> int | None:
 
 
 def getfile(xbox_path: str, size: int, out_rel: str, host: str | None) -> bytes:
-    """Download `size` bytes, strip the 4-byte RDCP prefix, return clean bytes."""
+    """Download `size` bytes, strip the 4-byte RDCP prefix, return clean bytes.
+
+    The on-disk file at out_rel is rewritten to the CLEAN (stripped) bytes — callers
+    that re-read it (e.g. core co-location) must never see the prefix, which would
+    shift every byte by 4 and corrupt the payload (a heap core, a packet stream, …).
+    """
     (ROOT / out_rel).parent.mkdir(parents=True, exist_ok=True)
     cp = _rdcp(
         [f'getfile name="{xbox_path}" offset=0 size={size}',
@@ -173,7 +178,9 @@ def getfile(xbox_path: str, size: int, out_rel: str, host: str | None) -> bytes:
     )
     if cp.returncode != 0:
         raise RuntimeError(f"getfile {xbox_path} failed:\n{cp.stderr or cp.stdout}")
-    return strip_rdcp_prefix((ROOT / out_rel).read_bytes())
+    clean = strip_rdcp_prefix((ROOT / out_rel).read_bytes())
+    (ROOT / out_rel).write_bytes(clean)   # overwrite raw -> clean on disk
+    return clean
 
 
 def magicboot(xbe: str, title_root: str, host: str | None) -> None:
@@ -186,15 +193,94 @@ def delete_remote(xbox_path: str, host: str | None) -> None:
 
 
 def handle_released(title_root: str, host: str | None) -> bool:
-    """state.data is opened share-mode 0 (exclusive) while recording; a 4-byte
-    getfile only succeeds once the handle is closed."""
-    probe = f"{STAGE}/.probe.bin"
+    """True iff state.data is not held open by the running title.
+
+    state.data is opened share-mode 0 (exclusive) during record/playback; a 4-byte
+    getfile only succeeds once the handle is closed. Three states are distinguished
+    so callers can poll safely across a reboot:
+      * XBDM unreachable (mid-reboot) -> False (not ready; keep waiting)
+      * state.data absent             -> True  (nothing can hold it)
+      * present                       -> probe; True iff it opens
+
+    The local output dir MUST exist first, or the host-side `getfile --output`
+    fails with "No such file or directory" and we would falsely report "locked"
+    forever — the bug that made the release loop spin and look wedged.
+    """
+    (ROOT / STAGE).mkdir(parents=True, exist_ok=True)
+    sizes = dirlist_sizes(title_root, host)
+    if sizes is None:
+        return False
+    if "state.data" not in sizes:
+        return True
     cp = _rdcp(
         [f'getfile name="{xbox_join(title_root, "state.data")}" offset=0 size=4',
-         "--binary-length", "8", "--output", probe],
+         "--binary-length", "8", "--output", f"{STAGE}/.probe.bin"],
         host,
     )
     return cp.returncode == 0
+
+
+def _poll_until(pred, timeout: float, interval: float = 3.0) -> bool:
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if pred():
+            return True
+        time.sleep(interval)
+    return pred()
+
+
+def qmp_reset(port: int = 4444) -> bool:
+    """Hard-reset the emulated machine via xemu QMP (best-effort; xemu only).
+
+    This is the hammer for a genuinely halted box (a bad core header can leave the
+    CPU in a halt loop where magicboot/HalReturnToFirmware never executes). No-op
+    that returns False on a real Xbox or if QMP is unreachable.
+    """
+    import socket
+    try:
+        s = socket.create_connection(("127.0.0.1", port), timeout=5)
+        s.settimeout(5)
+        s.recv(4096)                                      # QMP greeting
+        s.sendall(b'{"execute":"qmp_capabilities"}\n'); s.recv(4096)
+        s.sendall(b'{"execute":"system_reset"}\n'); s.recv(4096)
+        s.close()
+        return True
+    except OSError:
+        return False
+
+
+def ensure_state_data_free(args, soft_timeout: float = 60, hard_timeout: float = 150) -> None:
+    """Guarantee state.data is overwritable, escalating until it is.
+
+    A sendfile over an open state.data returns "413 file cannot be created", so a
+    prior playback/record must be torn down first. Escalation:
+      1. already free            -> return
+      2. soft: disarm + magicboot, poll for release
+      3. hard: QMP system_reset (or XBDM cold reboot), re-magicboot, poll
+      4. give up with actionable guidance
+    """
+    tr, host = args.title_root, args.host
+    if handle_released(tr, host):
+        return
+    print("  state.data is held open — soft release (disarm + magicboot)...")
+    for s in ("read.xts", "write.xts", "loop.xts"):
+        delete_remote(xbox_join(tr, s), host)
+    magicboot(args.xbe, tr, host)
+    if _poll_until(lambda: handle_released(tr, host), soft_timeout):
+        print("  released (soft).")
+        return
+    print("  soft release failed — hard reset...")
+    if not qmp_reset():
+        rdcp_cmd("reboot", host)                          # real-Xbox fallback
+    # After a hard reset the box may auto-boot a different title; once XBDM + the
+    # file are reachable and free, put the requested xbe back up.
+    if _poll_until(lambda: handle_released(tr, host), hard_timeout):
+        magicboot(args.xbe, tr, host)
+        _poll_until(lambda: handle_released(tr, host), soft_timeout)
+        print("  released (hard reset).")
+        return
+    sys.exit("error: could not free state.data even after a hard reset. The box may "
+             "be at a halt/assert screen — inspect it manually before retrying.")
 
 
 # --------------------------------------------------------------------------
@@ -360,8 +446,13 @@ def cmd_replay(args, validate: bool = False) -> None:
     if not (fdir / "state.data").exists():
         sys.exit(f"error: no fixture at {fdir}")
     tr = args.title_root
-    if (fdir / "core.bin").exists():
-        sendfile(str((fdir / "core.bin").relative_to(ROOT)), xbox_join(tr, "core", "core.bin"), args.host)
+    ensure_state_data_free(args)   # bulletproof: soft -> hard-reset escalation until overwritable
+    core = fdir / "core.bin"
+    if core.exists():
+        if core.stat().st_size % 0x1000 != 0:
+            sys.exit(f"error: {core} size {core.stat().st_size} is not page-aligned — "
+                     "core is RDCP-prefix-corrupted (strip 4 leading bytes or re-capture).")
+        sendfile(str(core.relative_to(ROOT)), xbox_join(tr, "core", "core.bin"), args.host)
     sendfile(str((fdir / "state.data").relative_to(ROOT)), xbox_join(tr, "state.data"), args.host)
     sendfile(str((fdir / "init.txt").relative_to(ROOT)), xbox_join(tr, "init.txt"), args.host)
     sendfile(str((fdir / "read.xts").relative_to(ROOT)), xbox_join(tr, "read.xts"), args.host)
