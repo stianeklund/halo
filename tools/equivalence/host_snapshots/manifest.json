@@ -15,6 +15,26 @@
         "clump_item_handle": "0xf7420021"
       },
       "note": "a10 door-grunt slot6 (awareness=10) + its primary perception prop 0xf7420021. Recording 19 captures the full actor pool (stride 0x724) and perception-prop pool (stride 0x138), so prop/actor-reading functions get real state instead of zero-fill."
+    },
+    {
+      "out": "rec19_grunt10.json",
+      "recording": "Recording 19.halorec",
+      "frame": "handle=0xe38c000a",
+      "args": {
+        "actor_handle": "0xe38c000a",
+        "clump_item_handle": "0xf7440024"
+      },
+      "note": "a10 door-grunt slot10 (awareness=6) + its primary perception prop 0xf7440024. Mid-alertness state drives a different scorer path than the fully-aware grunt6."
+    },
+    {
+      "out": "rec19_grunt11.json",
+      "recording": "Recording 19.halorec",
+      "frame": "handle=0xe38d000b",
+      "args": {
+        "actor_handle": "0xe38d000b",
+        "clump_item_handle": "0xf7430023"
+      },
+      "note": "a10 door-grunt slot11 (awareness=6) + its primary perception prop 0xf7430023. Second mid-alertness grunt for additional path coverage."
     }
   ]
 }
