@@ -176,8 +176,10 @@ A hook (`tools/audit/token_discipline_hook.py`, wired in `.claude/settings.json`
 - Need real Xbox probing: `/deploy --xbe-only`, then `/xbdm <mode>`.
 - Need xemu build/load: `/build` or `/xemu build-load`.
 - Need regression investigation: `/debug-regression <symptom>`.
+- Need deterministic input testing (capture gameplay, replay the exact same input repeatedly, or diff patched vs unpatched build on identical input): `rtk python3 tools/xbox/capture_scenario.py replay --level <lvl> --scenario <name> [--xbe cachebeta.xbe|default.xbe]` — skill `input-replay-testing`, doc `docs/input-fixture-capture.md`.
 
 ## Analysis Tools
+- **`tools/xbox/capture_scenario.py`** — Deterministic controller-input record/replay test fixtures (per-level, host-only). `record`/`arm`/`finalize`/`replay`/`selftest`; `--xbe` selects and verifies the build (`cachebeta.xbe`=unpatched faithful, `default.xbe`=patched). Capture gameplay once, replay identical input on demand or in a loop; diff builds on the same input. Skill `input-replay-testing`; doc `docs/input-fixture-capture.md`.
 - **`tools/analysis/frontier.py`** — Decompilation frontier scoring and target recommendations.
 - **`tools/analysis/fun_pipeline.py`** — FUN_ function naming pipeline. Four stages: `reclassify` moves `<common>` FUN_ functions to named objects (feeds frontier.py accuracy); `prioritize` tiers remaining FUN_ functions by evidence quality (P0 = attributed + signature, P3 = unclassified); `propose` outputs a Ghidra work queue for decompile-based naming; `apply` writes proposed names back to kb.json. Run `status` first to gauge naming debt. Prerequisite for accurate frontier scoring when `<common>` is large.
 - **`tools/llm_auto_lift.py`** — Target selection, liftability scoring, and Ghidra context caching. Use `select` for combined frontier/liftability target choice; `cache-context` to pre-cache Ghidra output; code generation delegated to `/lift`.
@@ -213,6 +215,7 @@ A hook (`tools/audit/token_discipline_hook.py`, wired in `.claude/settings.json`
 | Calling an UNPORTED callee (implicit `@<reg>` args) | `check-callee-regs` |
 | Sizing a local buffer / `_chkstk` frame / stack aliasing | `lift-frame-hazards` |
 | Any Xbox crash / hang / assert / visual regression / toggle-bisect | `crash-triage` → `lift-crash-signals` |
+| Deterministic input record/replay testing (capture gameplay, replay over and over, diff patched vs unpatched on identical input) | `input-replay-testing` |
 
 Broad doctrine skills:
 - `halo-xbox-re`: RE doctrine and evidence rules.
@@ -220,6 +223,7 @@ Broad doctrine skills:
 - `halo-verify-debug`: Verification lanes, delink comparison, and regression debugging.
 - `halo-build-xemu`: Build and XBE deployment workflow.
 - `halo-xbdm`: RDCP/XBDM workflow for real Xbox.
+- `input-replay-testing`: deterministic controller-input record/replay for testing (capture_scenario.py; per-level host-only fixtures; cachebeta vs default builds).
 
 <!-- rtk-instructions v2 -->
 # RTK (Rust Token Killer) - Token-Optimized Commands
