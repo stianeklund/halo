@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""A/A determinism gate for trajectory testing (docs/ab-trajectory-testing.md).
+"""A/A determinism check for trajectory testing (docs/ab-trajectory-testing.md).
 
 Replays ONE input fixture twice on the SAME build (cachebeta by default) and
 diffs the two captured state trajectories. The deterministic engine + identical
@@ -11,7 +11,7 @@ A/B oracle is unsound.
 It also exercises the capture loop's pause-perturbation and the diff aligner on a
 real recording pair (untested outside selftest), in one shot.
 
-    python3 tools/equivalence/aa_gate.py --level a10 --scenario a10-checkpoint-5s-action
+    python3 tools/equivalence/aa_check.py --level a10 --scenario a10-checkpoint-5s-action
 
 Each run: capture_scenario.py replay (deterministic input, fresh boot) -> wait
 for gameplay -> capture_trajectory.py (HMRC). Then trajectory_diff.
@@ -61,7 +61,7 @@ def main(argv=None):
     ap.add_argument("--host", default="")
     ap.add_argument("--no-wait-spawn", action="store_true")
     ap.add_argument("--out-dir", type=Path,
-                    default=ROOT / "tmp" / "aa_gate")
+                    default=ROOT / "tmp" / "aa_check")
     ap.add_argument("--reuse", action="store_true",
                     help="skip capture; diff existing run1/run2 halorec in --out-dir")
     a = ap.parse_args(argv)
@@ -83,7 +83,7 @@ def main(argv=None):
     res = td.diff_trajectories(framesA, framesB)
     print()
     print("=" * 78)
-    print(f"A/A GATE: {a.level}/{a.scenario} on {a.xbe} (x2)")
+    print(f"A/A CHECK: {a.level}/{a.scenario} on {a.xbe} (x2)")
     if "error" in res:
         sys.exit(f"error: {res['error']}")
     print(f"  run1={res['ticks_A']} ticks  run2={res['ticks_B']} ticks  "

@@ -37,7 +37,7 @@ diverged. Neither alone gives that.
 
 ## Status — implemented & validated (2026-06-29)
 
-Increments 1–2 are built and the A/A determinism gate has run. Tools (all
+Increments 1–2 are built and the A/A determinism check has run. Tools (all
 host-side Python, no Xbox at diff time):
 
 | Tool | Role |
@@ -45,8 +45,8 @@ host-side Python, no Xbox at diff time):
 | `tools/equivalence/qmp_capture.py` | atomic `stop`/`memsave`/`cont` capture engine + pool resolution + verify-magic |
 | `tools/equivalence/hmrc.py` | `.halorec` writer (viewer-loadable; round-trips with `halorec_to_snapshot`) |
 | `tools/xbox/capture_trajectory.py` | tick-bucketed trajectory loop (gameplay-ready anchor) |
-| `tools/equivalence/trajectory_diff.py` | **strict** byte-diff at exact tick — the A/A determinism gate |
-| `tools/equivalence/aa_gate.py` | orchestrates replay×2 + capture + strict diff |
+| `tools/equivalence/trajectory_diff.py` | **strict** byte-diff at exact tick — the A/A determinism check |
+| `tools/equivalence/aa_check.py` | orchestrates replay×2 + capture + strict diff |
 | `tools/equivalence/behavior_diff.py` | **tolerant** behavioral diff — the A/B regression oracle |
 
 **A/A finding.** Two cachebeta replays of `a10/a10-checkpoint-5s-action` are
@@ -61,7 +61,7 @@ boot, so two core-boots share an absolute-tick timeline — align by absolute ti
 
 **Two comparison tools, two jobs** (this is the load-bearing lesson):
 
-- **A/A determinism gate** → `trajectory_diff` (strict byte, exact tick). Answers
+- **A/A determinism check** → `trajectory_diff` (strict byte, exact tick). Answers
   "does the harness/engine reproduce itself?" Right to be strict; phase counters
   are the only allowed noise.
 - **A/B regression oracle** → `behavior_diff` (tolerant). Strict byte-equality is
@@ -91,7 +91,7 @@ Hard rules (from `reference_xemu_qmp_memsave_capture`, proven again 2026-06-29):
 - HMP `memsave` command-line needs **doubled backslashes** in the Windows path
   (`G:\\dev\\halo\\...`); `G:\` → WSL `/mnt/g/`.
 - Capture only during **active gameplay** (a menu/idle/pre-load pause reads zeros).
-- **Verify-datum-magic gate on every capture**: objtable ptr `*0x5a8d50` must be
+- **Verify-datum-magic check on every capture**: objtable ptr `*0x5a8d50` must be
   `~0x80xxxxxx`, and its target `+0x28` must equal `0x64407440`. A zero-read
   capture is silently garbage — discard, never diff.
 - Never connect to gdbstub `:1234` — it halts the CPU and freezes XBDM:730 + game.
@@ -159,7 +159,7 @@ resist that drift until it crosses a decision threshold.
 
 **Build (new, small):**
 1. Atomic QMP capture helper (`stop`/`memsave`/`cont`, doubled-backslash path,
-   verify-magic gate) — extends `tools/equivalence/state_snapshot.py`. Probe
+   verify-magic check) — extends `tools/equivalence/state_snapshot.py`. Probe
    `tmp/qmp_probe.py` is the seed.
 2. Trajectory capture loop — poll game-tick (cheap 4-byte memsave); on tick-advance
    grab the region set, tag the frame with its tick, dedup → emit HMRC. (This is
@@ -174,7 +174,7 @@ resist that drift until it crosses a decision threshold.
 
 - **Step 0 — viability probe. DONE ✓ (2026-06-29).** `stop/memsave/cont` reads
   live, sane, atomic game memory; tick anchor works.
-- **Step 1 — A/A determinism gate. DONE ✓ (2026-06-29).** Two cachebeta replays
+- **Step 1 — A/A determinism check. DONE ✓ (2026-06-29).** Two cachebeta replays
   of `a10/a10-checkpoint-5s-action`: deterministic (see *Status* above). Strict
   byte-diff flagged only capture-phase counters; the tolerant `behavior_diff`
   reports the pair fully clean. Harness sound.
@@ -199,7 +199,7 @@ resist that drift until it crosses a decision threshold.
 
 - **Time-to-control head alignment.** If a lift shifts how many ticks it takes to
   reach player control, fixed-tick presses land at a different game moment — a
-  desync that looks like a bug. The A/A gate can't catch this; do a one-time A/B
+  desync that looks like a bug. The A/A check can't catch this; do a one-time A/B
   head-alignment check the first time a fixture is reused against `default.xbe`
   (`docs/input-fixture-capture.md`, determinism model).
 - **Verify-datum-magic on every capture** (above).

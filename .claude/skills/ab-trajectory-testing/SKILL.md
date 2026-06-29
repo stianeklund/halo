@@ -7,7 +7,7 @@ description: >-
   time window to detect where the lift strays from the original. Invoke when you
   want a mechanical (low-intervention) regression check across builds, to capture a
   state trajectory from live xemu, to freeze a faithful "golden" trajectory, or to
-  run the A/A determinism gate. Pairs the input oracle (capture_scenario.py replay)
+  run the A/A determinism check. Pairs the input oracle (capture_scenario.py replay)
   with the state oracle (QMP memory capture). Full design: docs/ab-trajectory-testing.md.
 ---
 
@@ -19,7 +19,7 @@ description: >-
   (time + field + entity) instead of an LLM eyeballing two runs.
 - Capture a **game-state trajectory** from live xemu to a `.halorec` while a fixture replays.
 - Freeze a **golden** faithful trajectory for a fixture (capture once, reuse).
-- Run the **A/A determinism gate** before trusting any A/B verdict.
+- Run the **A/A determinism check** before trusting any A/B verdict.
 
 This is the second oracle. The first oracle — deterministic controller input — is
 the `input-replay-testing` skill (`capture_scenario.py`); this skill adds the
@@ -33,7 +33,7 @@ input fixture already captured (`input-recordings/levels/<level>/<scenario>/`).
 
 | Tool | Question | Tolerance | Use for |
 |------|----------|-----------|---------|
-| `trajectory_diff.py` | byte-identical at the exact tick? | STRICT (masks known phase counters) | **A/A determinism gate only** |
+| `trajectory_diff.py` | byte-identical at the exact tick? | STRICT (masks known phase counters) | **A/A determinism check only** |
 | `behavior_diff.py` | same behavior around the same time? | TOLERANT (±W tick, slot match, sustained onset, value eps, handle liveness) | **A/B regression oracle** |
 
 `behavior_diff` is the one you want for "did my lift regress." `trajectory_diff` is
@@ -43,10 +43,10 @@ deterministic (A/A).
 
 ## The flow
 
-### 0. A/A determinism gate (run once per box/fixture, before anything else)
+### 0. A/A determinism check (run once per box/fixture, before anything else)
 
 ```bash
-rtk python3 tools/equivalence/aa_gate.py --level a10 --scenario a10-checkpoint-5s-action
+rtk python3 tools/equivalence/aa_check.py --level a10 --scenario a10-checkpoint-5s-action
 ```
 
 Replays the fixture **twice on cachebeta** and strict-diffs. Must print
@@ -69,19 +69,19 @@ rtk python3 tools/xbox/capture_trajectory.py -o tmp/a10_golden.halorec \
 
 `capture_trajectory` waits for gameplay, anchors on that engine event, and captures
 the full pool set on a **fixed relative-tick grid** so two runs of the same fixture
-land on the same ticks. The orchestrators (`aa_gate`, and the A/B flow below) sequence
+land on the same ticks. The orchestrators (`aa_check`, and the A/B flow below) sequence
 the replay + capture for you.
 
 ### 2. A/B: faithful golden vs patched
 
-The one-command path (`ab_gate` does the replay + capture of BOTH builds + the diff):
+The one-command path (`ab_check` does the replay + capture of BOTH builds + the diff):
 
 ```bash
-rtk python3 tools/equivalence/ab_gate.py --level a10 --scenario a10-checkpoint-5s-action
+rtk python3 tools/equivalence/ab_check.py --level a10 --scenario a10-checkpoint-5s-action
 # reuse a frozen golden (CI tripwire — capture cachebeta once, reuse forever):
-rtk python3 tools/equivalence/ab_gate.py --level a10 --scenario <s> --golden ~/halo-goldens/a10.halorec
+rtk python3 tools/equivalence/ab_check.py --level a10 --scenario <s> --golden ~/halo-goldens/a10.halorec
 # freeze it the first time:  add  --freeze --golden ~/halo-goldens/a10.halorec
-# self-gate determinism first: add  --aa-first
+# self-check determinism first: add  --aa-first
 ```
 
 Or do the diff by hand if you already captured both trajectories (step 1):
@@ -114,7 +114,7 @@ A `.halorec` frame converts to a Unicorn state snapshot via `halorec_to_snapshot
   on raw QMP `:4444`. **VIRTUAL `memsave` only** — `pmemsave` is physical and broken
   on this Cerbios/kernel-irqchip=off box. **Never** open the gdbstub `:1234` — a TCP
   connect there halts the emulated CPU and freezes the box.
-- **Verify-magic gate.** A capture is only trusted if the objtable
+- **Verify-magic check.** A capture is only trusted if the objtable
   (`*0x5A8D50` → `+0x28`) reads datum magic `0x64407440`. A menu/idle pause reads
   zeros — that is an unusable capture, not a divergence.
 - **Align by absolute tick.** The tick (`*0x45708C + 0xC`) resets to the core's saved
