@@ -183,10 +183,18 @@ A hook (`tools/audit/token_discipline_hook.py`, wired in `.claude/settings.json`
 - Need real Xbox probing: `/deploy --xbe-only`, then `/xbdm <mode>`.
 - Need xemu build/load: `/build` or `/xemu build-load`.
 - Need regression investigation: `/debug-regression <symptom>`.
+- Need to replay an existing fixture (quick path — no flags to remember): `/replay-input` — picks level/scenario/build interactively, fires `capture_scenario.py replay`.
 - Need deterministic input testing (capture gameplay, replay the exact same input repeatedly, or diff patched vs unpatched build on identical input): `rtk python3 tools/xbox/capture_scenario.py replay --level <lvl> --scenario <name> [--xbe cachebeta.xbe|default.xbe]` — skill `input-replay-testing`, doc `docs/input-fixture-capture.md`.
+- Need an A/B regression test (does the patched build behave like the original on the same input): replay one fixture on each build while capturing state, then diff. Capture during replay with `rtk python3 tools/xbox/capture_trajectory.py -o run.halorec`, then `rtk python3 tools/equivalence/behavior_diff.py <cachebeta-golden>.halorec <default>.halorec` — skill `ab-trajectory-testing`, doc `docs/ab-trajectory-testing.md`. Always pass the A/A determinism gate first: `rtk python3 tools/equivalence/aa_gate.py --level <lvl> --scenario <name>`.
 
 ## Analysis Tools
 - **`tools/xbox/capture_scenario.py`** — Deterministic controller-input record/replay test fixtures (per-level, host-only). `record`/`arm`/`finalize`/`replay`/`selftest`; `--xbe` selects and verifies the build (`cachebeta.xbe`=unpatched faithful, `default.xbe`=patched). Capture gameplay once, replay identical input on demand or in a loop; diff builds on the same input. Skill `input-replay-testing`; doc `docs/input-fixture-capture.md`.
+- **`tools/equivalence/qmp_capture.py`** — Atomic live-state capture engine for A/B trajectory testing. Wraps raw QMP (`:4444`) `stop`→`memsave`(VIRTUAL — never `pmemsave`, which is broken on this Cerbios/kernel-irqchip=off box)→`cont` so one frame is read coherently; resolves the data_t pools (objects/players/actors/props), reads the game tick (`*0x45708C+0xC`), and verifies the objtable magic (`0x64407440`) before trusting a capture. Never touch the gdbstub (`:1234` halts the CPU). Doc `docs/ab-trajectory-testing.md`.
+- **`tools/equivalence/hmrc.py`** — `.halorec`/HMRC writer. Encodes captured frames into the halo-memory-viewer format (gzip; round-trips with `halorec_to_snapshot.py`), so trajectories are both Python-diffable and viewer-playable. Output is literal game memory — host-only, gitignored, never commit.
+- **`tools/xbox/capture_trajectory.py`** — Captures a game-state trajectory to a `.halorec` while a deterministic fixture replays. Waits for gameplay, anchors on that engine event, captures the full pool set every K **relative** game ticks (fixed bucket grid, so two runs of the same fixture align). Run it alongside `capture_scenario.py replay`. Skill `ab-trajectory-testing`.
+- **`tools/equivalence/trajectory_diff.py`** — STRICT byte-diff of two `.halorec` trajectories at the exact tick. This is the **A/A determinism gate only** (masks the known sub-frame phase counters actor+0x4a/+0x7c, prop+0x26); it is the wrong tool for A/B because it flags benign x87/phase drift. Exit 0 clean / 3 divergent.
+- **`tools/equivalence/behavior_diff.py`** — TOLERANT behavioral diff = the **A/B regression oracle**. Aligns by nearest tick within ±W, matches entities by datum SLOT (salts differ across builds), reports a discrete-field divergence only when SUSTAINED (≥`min_run` samples), compares positions at a value eps and handles by LIVENESS, and checks aggregate invariants. The earliest sustained onset names the time+field+entity to investigate. Built-in watch-list targets a10 AI; override with `--config`. Exit 0 clean / 3 divergent.
+- **`tools/equivalence/aa_gate.py`** — Orchestrates the A/A determinism gate: replays one fixture twice on the same build (cachebeta) and runs `trajectory_diff`. Must be CLEAN before trusting any A/B result. Skill `ab-trajectory-testing`.
 - **`tools/analysis/frontier.py`** — Decompilation frontier scoring and target recommendations.
 - **`tools/analysis/fun_pipeline.py`** — FUN_ function naming pipeline. Four stages: `reclassify` moves `<common>` FUN_ functions to named objects (feeds frontier.py accuracy); `prioritize` tiers remaining FUN_ functions by evidence quality (P0 = attributed + signature, P3 = unclassified); `propose` outputs a Ghidra work queue for decompile-based naming; `apply` writes proposed names back to kb.json. Run `status` first to gauge naming debt. Prerequisite for accurate frontier scoring when `<common>` is large.
 - **`tools/llm_auto_lift.py`** — Target selection, liftability scoring, and Ghidra context caching. Use `select` for combined frontier/liftability target choice; `cache-context` to pre-cache Ghidra output; code generation delegated to `/lift`.
@@ -222,7 +230,9 @@ A hook (`tools/audit/token_discipline_hook.py`, wired in `.claude/settings.json`
 | Calling an UNPORTED callee (implicit `@<reg>` args)                                                                              | `check-callee-regs`                          |
 | Sizing a local buffer / `_chkstk` frame / stack aliasing                                                                         | `lift-frame-hazards`                         |
 | Any Xbox crash / hang / assert / visual regression / toggle-bisect                                                               | `crash-triage` → `lift-crash-signals`        |
+| Replay an existing input fixture (quick path, no flags)                                                                          | `replay-input`                               |
 | Deterministic input record/replay testing (capture gameplay, replay over and over, diff patched vs unpatched on identical input) | `input-replay-testing`                       |
+| A/B trajectory regression test: replay same input on patched+unpatched, capture state, diff behavior over a time window          | `ab-trajectory-testing`                      |
 
 Broad doctrine skills:
 - `halo-xbox-re`: RE doctrine and evidence rules.
@@ -231,6 +241,8 @@ Broad doctrine skills:
 - `halo-build-xemu`: Build and XBE deployment workflow.
 - `halo-xbdm`: RDCP/XBDM workflow for real Xbox.
 - `input-replay-testing`: deterministic controller-input record/replay for testing (capture_scenario.py; per-level host-only fixtures; cachebeta vs default builds).
+- `replay-input`: quick replay wizard — lists fixtures, asks level/scenario/build, fires `capture_scenario.py replay` (no flags needed).
+- `ab-trajectory-testing`: A/B regression testing — replay the same input on patched + unpatched, capture state trajectories (atomic QMP → `.halorec`), diff behavior over a time window (`behavior_diff` = tolerant A/B oracle, `aa_gate` = A/A determinism gate); doc `docs/ab-trajectory-testing.md`.
 
 <!-- rtk-instructions v2 -->
 # RTK (Rust Token Killer) - Token-Optimized Commands
