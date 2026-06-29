@@ -74,7 +74,9 @@ the replay + capture for you.
 
 ### 2. A/B: faithful golden vs patched
 
-The one-command path (`ab_check` does the replay + capture of BOTH builds + the diff):
+The one-command path. `ab_check` **builds+deploys your candidate and gates
+build-liveness first** (see Must-know below), then replays + captures BOTH builds and
+runs the diff:
 
 ```bash
 rtk python3 tools/equivalence/ab_check.py --level a10 --scenario a10-checkpoint-5s-action
@@ -82,6 +84,7 @@ rtk python3 tools/equivalence/ab_check.py --level a10 --scenario a10-checkpoint-
 rtk python3 tools/equivalence/ab_check.py --level a10 --scenario <s> --golden ~/halo-goldens/a10.halorec
 # freeze it the first time:  add  --freeze --golden ~/halo-goldens/a10.halorec
 # self-check determinism first: add  --aa-first
+# box already runs your build (skip the rebuild):  add  --no-deploy  (verdict flagged UNVERIFIED)
 ```
 
 Or do the diff by hand if you already captured both trajectories (step 1):
@@ -110,14 +113,20 @@ A `.halorec` frame converts to a Unicorn state snapshot via `halorec_to_snapshot
 
 ## Must-know facts
 
-- **`ab_check` tests the DEPLOYED build, not your local source — deploy first.**
-  `capture_scenario.py replay --xbe default.xbe` boots whatever `default.xbe` is
-  already on the box and only verifies its *identity* (default vs cachebeta), not that
-  it matches your latest compile. `build.py --target halo` builds only the ELF and does
-  **not** re-patch, so a kb.json-only change (e.g. a `ported` toggle) needs
-  `build.py --target patched_xbe` then `deploy_xbox.py --xbe-only`; a full source change
-  needs `build_deploy_run.sh -q`. For toggle-bisect, hard-gate with `verify_toggles_live.py`
-  (must read `ORIGINAL`) before trusting the A/B. (ab_check does not yet auto-deploy.)
+- **`ab_check` auto-deploys the candidate and gates build-liveness by default —
+  so it tests the build you HAVE, not whatever was on the box.** Before any capture it
+  runs `build_deploy_run.sh -q` (builds ALL targets — `patched_xbe` is an `ALL`
+  custom_target, so `patch.py` ALWAYS re-runs and a kb.json-only `ported` toggle IS
+  re-patched; never use `build.py --target halo`, which is ELF-only and skips the
+  re-patch), uploads `default.xbe`, and `deploy_xbox` proves running == local via the
+  DECOMP BUILD token. Then it runs `verify_toggles_live --all-off`, which asserts the
+  patched build is live AND every `ported=false` function reverted to ORIGINAL (the
+  toggle-bisect gate). Either failure → `INCONCLUSIVE` (exit 2), no diff. `--no-deploy`
+  skips the rebuild (you assert the box is current); add `--verify-live` to still gate
+  it, otherwise the verdict is flagged **BUILD IDENTITY UNVERIFIED**. `--reuse` (diffing
+  existing captures) is always UNVERIFIED. `capture_scenario.py replay --xbe` on its own
+  only checks build *identity* (default vs cachebeta), never freshness — that's why the
+  gate exists.
 - **Capture is atomic by construction.** `qmp_capture` does `stop`→`memsave`→`cont`
   on raw QMP `:4444`. **VIRTUAL `memsave` only** — `pmemsave` is physical and broken
   on this Cerbios/kernel-irqchip=off box. **Never** open the gdbstub `:1234` — a TCP
