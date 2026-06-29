@@ -139,6 +139,10 @@ def main(argv=None):
     ap.add_argument("--window", type=int, default=None, help="behavior_diff +/- tick tolerance")
     ap.add_argument("--min-run", type=int, default=None, help="behavior_diff sustained-onset run")
     ap.add_argument("--config", type=Path, default=None, help="watch-list JSON (default: a10 AI)")
+    ap.add_argument("--report", type=Path, default=None,
+                    help="also write the behavior_diff result JSON here; ingestible by the "
+                         "halo-memory-viewer Compare tab ('Load behavior_diff report') to jump "
+                         "to the onset tick + entity")
     ap.add_argument("--host", default="")
     ap.add_argument("--no-wait-spawn", action="store_true")
     ap.add_argument("--out-dir", type=Path, default=ROOT / "tmp" / "ab_check")
@@ -233,6 +237,11 @@ def main(argv=None):
         cfg["min_run"] = a.min_run
 
     res = _diff_behavior(golden, candidate, cfg)
+    if a.report is not None:
+        import json
+        a.report.parent.mkdir(parents=True, exist_ok=True)
+        a.report.write_text(json.dumps(res, indent=2) + "\n")
+        print(f"  [report] -> {a.report}  (load in halo-memory-viewer Compare tab)")
     print()
     print("=" * 78)
     print(f"A/B CHECK: {a.level}/{a.scenario}  golden={a.golden_xbe}  candidate={a.candidate_xbe}")
