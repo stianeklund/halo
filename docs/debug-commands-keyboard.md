@@ -4,17 +4,17 @@
 
 If you want to know how to fly around and spawn things, here are the most useful commands:
 
-| Action | Command / Key | How to use |
-|--------|---------------|------------|
-| **Open Console** | <kbd>~</kbd> (Tilde) | Press `~` or \` to open the console and type commands. |
-| **Teleport to camera** | `(cheat_teleport_to_camera)` | While flying in freecam, type this to move your player to the camera. |
-| **Give all weapons** | `(cheat_all_weapons)` | Drops every weapon in the game at your feet. |
-| **Give all vehicles** | `(cheat_all_vehicles)` | Spawns one of every vehicle type nearby. |
-| **Give all powerups** | `(cheat_all_powerups)` | Drops overshields and active camo near you. |
-| **Active Camo** | `(cheat_active_camouflage)` | Grants you active camo instantly. |
-| **Erase all AI** | <kbd>F6</kbd> | Deletes every AI actor in the level immediately. |
-| **Cycle AI line-spray** | <kbd>F5</kbd> | Cycles through AI debug drawing modes. |
-| **Free Camera** | `(camera_control 1)` | Detaches the camera from the player. `0` to reattach. |
+| Action                  | Command / Key                | How to use                                                            |
+|-------------------------|------------------------------|-----------------------------------------------------------------------|
+| **Open Console**        | <kbd>~</kbd> (Tilde)         | Press `~` or \` to open the console and type commands.                |
+| **Teleport to camera**  | `(cheat_teleport_to_camera)` | While flying in freecam, type this to move your player to the camera. |
+| **Give all weapons**    | `(cheat_all_weapons)`        | Drops every weapon in the game at your feet.                          |
+| **Give all vehicles**   | `(cheat_all_vehicles)`       | Spawns one of every vehicle type nearby.                              |
+| **Give all powerups**   | `(cheat_all_powerups)`       | Drops overshields and active camo near you.                           |
+| **Active Camo**         | `(cheat_active_camouflage)`  | Grants you active camo instantly.                                     |
+| **Erase all AI**        | <kbd>F6</kbd>                | Deletes every AI actor in the level immediately.                      |
+| **Cycle AI line-spray** | <kbd>F5</kbd>                | Cycles through AI debug drawing modes.                                |
+| **Free Camera**         | `(camera_control 1)`         | Detaches the camera from the player. `0` to reattach.                 |
 
 ---
 
@@ -26,54 +26,54 @@ It walks a definition table loaded from the binary — pointer at `0x31f9c8`, ta
 
 ### Entry Layout
 
-| Offset | Type | Field |
-|--------|------|-------|
-| `+0x00` | int16_t | `key_code` — internal key code (see [Internal Key Codes](#internal-key-codes)) |
-| `+0x02` | int16_t | `modifier_index` — which modifier keys are required (see below) |
-| `+0x04` | void (\*)(uint32_t) | `callback` — called with `1` on key-down, `0` on key-up |
-| `+0x08` | uint8_t | `state_mode` — `0` = mirror key state, `1` = toggle on release |
-| `+0x09` | uint8_t[3] | padding |
-| `+0x0c` | char \* | `state` — optional byte written by dispatcher |
-| `+0x10` | char \* | `description` — human-readable name string (NULL = end of table) |
+| Offset  | Type                | Field                                                                          |
+|---------|---------------------|--------------------------------------------------------------------------------|
+| `+0x00` | int16_t             | `key_code` — internal key code (see [Internal Key Codes](#internal-key-codes)) |
+| `+0x02` | int16_t             | `modifier_index` — which modifier keys are required (see below)                |
+| `+0x04` | void (\*)(uint32_t) | `callback` — called with `1` on key-down, `0` on key-up                        |
+| `+0x08` | uint8_t             | `state_mode` — `0` = mirror key state, `1` = toggle on release                 |
+| `+0x09` | uint8_t[3]          | padding                                                                        |
+| `+0x0c` | char \*             | `state` — optional byte written by dispatcher                                  |
+| `+0x10` | char \*             | `description` — human-readable name string (NULL = end of table)               |
 
 ### Modifier Index
 
 The modifier keys are key codes `0x69` (axis L_X) and `0x6a` (axis L_Y). The index selects:
 
-| Index | Key 0x69 | Key 0x6a | Notes |
-|-------|----------|----------|-------|
-| `0` | not down | not down | No modifier |
-| `1` | down | not down | |
-| `2` | not down | down | |
-| `3` | down | down | Both modifiers |
+| Index | Key 0x69 | Key 0x6a | Notes          |
+|-------|----------|----------|----------------|
+| `0`   | not down | not down | No modifier    |
+| `1`   | down     | not down |                |
+| `2`   | not down | down     |                |
+| `3`   | down     | down     | Both modifiers |
 
 ### Full Key Table (extracted from binary at 0x31f9cc)
 
-| Key | Code | Modifier | Callback | Description | Action |
-|-----|------|----------|----------|-------------|--------|
-| Esc | `0x01` | 0 | 0x000ffdd0 | "Select Prev Encounter" | Cycles to previous AI encounter display |
-| F2 | `0x02` | 0 | 0x000ffe10 | "Select Next Encounter" | Cycles to next AI encounter display |
-| F3 | `0x03` | 0 | 0x000ffdf0 | "Select Next Encounter" | Cycles to next AI encounter display |
-| F4 | `0x04` | 0 | 0x000ffe30 | "Select This Actor" | Selects next actor in current encounter |
-| Ctrl+F4 | `0x04` | 1 | 0x000ffe50 | "Select Prev Actor" | Selects previous actor in current encounter |
-| F5 | `0x05` | 0 | 0x000ffe70 | "Cycle Line-Spray Debug" | Cycles AI line-spray debug visualization mode |
-| F6 | `0x06` | 0 | 0x000ffeb0 | "Erase All Actors" | Calls `ai_erase_all`; deletes all AI actors |
-| `.` | `0x34` | 0 | 0x000ffed0 | "(unknown)" | Unknown — not yet identified |
-| F9 | `0x09` | 0 | 0x000ffe90 | NULL (terminator) | Resets error log (crashes in patched builds) |
+| Key     | Code   | Modifier | Callback   | Description              | Action                                        |
+|---------|--------|----------|------------|--------------------------|-----------------------------------------------|
+| Esc     | `0x01` | 0        | 0x000ffdd0 | "Select Prev Encounter"  | Cycles to previous AI encounter display       |
+| F2      | `0x02` | 0        | 0x000ffe10 | "Select Next Encounter"  | Cycles to next AI encounter display           |
+| F3      | `0x03` | 0        | 0x000ffdf0 | "Select Next Encounter"  | Cycles to next AI encounter display           |
+| F4      | `0x04` | 0        | 0x000ffe30 | "Select This Actor"      | Selects next actor in current encounter       |
+| Ctrl+F4 | `0x04` | 1        | 0x000ffe50 | "Select Prev Actor"      | Selects previous actor in current encounter   |
+| F5      | `0x05` | 0        | 0x000ffe70 | "Cycle Line-Spray Debug" | Cycles AI line-spray debug visualization mode |
+| F6      | `0x06` | 0        | 0x000ffeb0 | "Erase All Actors"       | Calls `ai_erase_all`; deletes all AI actors   |
+| `.`     | `0x34` | 0        | 0x000ffed0 | "(unknown)"              | Unknown — not yet identified                  |
+| F9      | `0x09` | 0        | 0x000ffe90 | NULL (terminator)        | Resets error log (crashes in patched builds)  |
 
 ### Debug Key Callback Source Details
 
-| Address | Name | Behavior |
-|---------|------|----------|
-| `0x000ffdd0` | — | Sets global debug break flag when called with non-zero arg |
-| `0x000ffdf0` | — | Calls `ai_debug_change_selected_encounter(1)` (next) |
-| `0x000ffe10` | — | Calls `ai_debug_change_selected_encounter(-1)` (prev) |
-| `0x000ffe30` | — | Selects next actor in current encounter |
-| `0x000ffe50` | — | Selects previous actor in current encounter |
-| `0x000ffe70` | — | Cycles AI line-spray debug visualization mode |
-| `0x000ffeb0` | — | Sets `*(char *)0x5ac9c1 = 1` (ai_erase_all trigger) |
-| `0x000ffed0` | — | Unknown — needs analysis |
-| `0x000ffe90` | — | Calls error-log reset function (crashes in patched builds) |
+| Address      | Name | Behavior                                                   |
+|--------------|------|------------------------------------------------------------|
+| `0x000ffdd0` | —    | Sets global debug break flag when called with non-zero arg |
+| `0x000ffdf0` | —    | Calls `ai_debug_change_selected_encounter(1)` (next)       |
+| `0x000ffe10` | —    | Calls `ai_debug_change_selected_encounter(-1)` (prev)      |
+| `0x000ffe30` | —    | Selects next actor in current encounter                    |
+| `0x000ffe50` | —    | Selects previous actor in current encounter                |
+| `0x000ffe70` | —    | Cycles AI line-spray debug visualization mode              |
+| `0x000ffeb0` | —    | Sets `*(char *)0x5ac9c1 = 1` (ai_erase_all trigger)        |
+| `0x000ffed0` | —    | Unknown — needs analysis                                   |
+| `0x000ffe90` | —    | Calls error-log reset function (crashes in patched builds) |
 
 The F9 crash is suspected to be a mismatch between the unported reset helper
 and the currently ported error system.
@@ -89,119 +89,119 @@ via `input_vkey_to_keycode_table()` at binary address `0x281160`. The table is
 
 ### VKey → Keycode Mapping (extracted from binary at 0x281160)
 
-| Xbox VKey | Internal Code | Notes |
-|-----------|---------------|-------|
-| 0x00–0x0F (unmapped) | — | Xbox gamepad/misc keys |
-| 0x10 (Shift) | `0x1d` (29) | |
-| 0x11 (Ctrl) | `0x1e` (30) | |
-| 0x12 (Alt) | `0x1f` (31) | |
-| 0x14 (Caps) | `0x38` (56) | |
-| 0x15–0x1F (IME) | — | |
-| 0x20 (Space) | `0x44` (68) | |
-| 0x21 (PgUp) | `0x2c` (44) | |
-| 0x22 (PgDn) | `0x2d` (45) | |
-| 0x23 (End) | `0x2e` (46) | |
-| 0x24 (Home) | `0x2f` (47) | |
-| 0x25 (Left) | `0x30` (48) | |
-| 0x26 (Up) | `0x31` (49) | |
-| 0x27 (Right) | `0x32` (50) | |
-| 0x28 (Down) | `0x33` (51) | |
-| 0x29 (Select) | `0x3a` (58) | |
-| 0x2A (Print) | `0x3b` (59) | |
-| 0x2B (Exec) | `0x3c` (60) | |
-| 0x2C (PrnScrn) | `0x3d` (61) | |
-| 0x2D (Ins) | `0x3e` (62) | |
-| 0x2E (Del) | `0x3f` (63) | |
-| 0x2F (Help) | `0x40` (64) | |
-| 0x30–0x39 (0–9) | `0x0d–0x16` (13–22) | Top-row digits |
-| 0x3A–0x40 | — | Unmapped |
-| 0x41–0x5A (A–Z) | `0x1a–0x33` (26–51) | Uppercase only (lowercase passed via flags) |
-| 0x5B (LWin) | `0x2a` (42) | |
-| 0x5C (RWin) | `0x2b` (43) | |
-| 0x5D (Apps) | `0x31` (49) | |
-| 0x5E–0x5F | — | |
-| 0x60 (Num0) | `0x34` (52) | Numpad keys |
-| 0x61 (Num1) | `0x1c` (28) | |
-| 0x62 (Num2) | `0x41` (65) | |
-| 0x63 (Num3) | `0x1b` (27) | |
-| 0x64 (Num4) | `0x42` (66) | |
-| 0x65 (Num5) | `0x43` (67) | |
-| 0x66 (Num6) | `0x10` (16) | |
-| 0x67–0x69 | — | |
-| 0x6A (Num*) | `0x37` (55) | |
-| 0x6B (Num+) | `0x29` (41) | |
-| 0x6C (NumEnter) | — | |
-| 0x6D (Num-) | `0x2b` (43) | |
-| 0x6E (Num.) | `0x2a` (42) | |
-| 0x6F (Num/) | `0x37` (55) | |
-| 0x70–0x78 (F1–F9) | `0x01–0x09` (1–9) | Function keys 1–9 |
-| 0x79–0x7F | — | F10–F16 generally unmapped |
-| 0x80–0x87 | — | Unmapped |
-| 0x90 (NumLk) | `0x36` (54) | |
-| 0x91 (Scroll) | `0x38` (56) | |
-| 0xA0–0xA5 | — | Left/Right modifiers (remapped elsewhere) |
-| 0xBA (;) | `0x27` (39) | US semicolon |
-| 0xBB (=) | `0x0c` (12) | Equals |
-| 0xBC (,) | `0x23` (35) | Comma |
-| 0xBD (-) | `0x0b` (11) | Minus |
-| 0xBE (.) | `0x34` (52) | Period |
-| 0xBF (/) | `0x25` (37) | Forward slash |
-| 0xC0 (`) | `0x10` (16) | Backtick/tilde |
-| 0xDB ([) | `0x21` (33) | Left bracket |
-| 0xDC (\) | `0x38` (56) | Backslash |
-| 0xDD (]) | `0x22` (34) | Right bracket |
-| 0xDE (') | `0x28` (40) | Apostrophe |
-| 0xDF–0xFF | — | Unmapped |
+| Xbox VKey            | Internal Code       | Notes                                       |
+|----------------------|---------------------|---------------------------------------------|
+| 0x00–0x0F (unmapped) | —                   | Xbox gamepad/misc keys                      |
+| 0x10 (Shift)         | `0x1d` (29)         |                                             |
+| 0x11 (Ctrl)          | `0x1e` (30)         |                                             |
+| 0x12 (Alt)           | `0x1f` (31)         |                                             |
+| 0x14 (Caps)          | `0x38` (56)         |                                             |
+| 0x15–0x1F (IME)      | —                   |                                             |
+| 0x20 (Space)         | `0x44` (68)         |                                             |
+| 0x21 (PgUp)          | `0x2c` (44)         |                                             |
+| 0x22 (PgDn)          | `0x2d` (45)         |                                             |
+| 0x23 (End)           | `0x2e` (46)         |                                             |
+| 0x24 (Home)          | `0x2f` (47)         |                                             |
+| 0x25 (Left)          | `0x30` (48)         |                                             |
+| 0x26 (Up)            | `0x31` (49)         |                                             |
+| 0x27 (Right)         | `0x32` (50)         |                                             |
+| 0x28 (Down)          | `0x33` (51)         |                                             |
+| 0x29 (Select)        | `0x3a` (58)         |                                             |
+| 0x2A (Print)         | `0x3b` (59)         |                                             |
+| 0x2B (Exec)          | `0x3c` (60)         |                                             |
+| 0x2C (PrnScrn)       | `0x3d` (61)         |                                             |
+| 0x2D (Ins)           | `0x3e` (62)         |                                             |
+| 0x2E (Del)           | `0x3f` (63)         |                                             |
+| 0x2F (Help)          | `0x40` (64)         |                                             |
+| 0x30–0x39 (0–9)      | `0x0d–0x16` (13–22) | Top-row digits                              |
+| 0x3A–0x40            | —                   | Unmapped                                    |
+| 0x41–0x5A (A–Z)      | `0x1a–0x33` (26–51) | Uppercase only (lowercase passed via flags) |
+| 0x5B (LWin)          | `0x2a` (42)         |                                             |
+| 0x5C (RWin)          | `0x2b` (43)         |                                             |
+| 0x5D (Apps)          | `0x31` (49)         |                                             |
+| 0x5E–0x5F            | —                   |                                             |
+| 0x60 (Num0)          | `0x34` (52)         | Numpad keys                                 |
+| 0x61 (Num1)          | `0x1c` (28)         |                                             |
+| 0x62 (Num2)          | `0x41` (65)         |                                             |
+| 0x63 (Num3)          | `0x1b` (27)         |                                             |
+| 0x64 (Num4)          | `0x42` (66)         |                                             |
+| 0x65 (Num5)          | `0x43` (67)         |                                             |
+| 0x66 (Num6)          | `0x10` (16)         |                                             |
+| 0x67–0x69            | —                   |                                             |
+| 0x6A (Num*)          | `0x37` (55)         |                                             |
+| 0x6B (Num+)          | `0x29` (41)         |                                             |
+| 0x6C (NumEnter)      | —                   |                                             |
+| 0x6D (Num-)          | `0x2b` (43)         |                                             |
+| 0x6E (Num.)          | `0x2a` (42)         |                                             |
+| 0x6F (Num/)          | `0x37` (55)         |                                             |
+| 0x70–0x78 (F1–F9)    | `0x01–0x09` (1–9)   | Function keys 1–9                           |
+| 0x79–0x7F            | —                   | F10–F16 generally unmapped                  |
+| 0x80–0x87            | —                   | Unmapped                                    |
+| 0x90 (NumLk)         | `0x36` (54)         |                                             |
+| 0x91 (Scroll)        | `0x38` (56)         |                                             |
+| 0xA0–0xA5            | —                   | Left/Right modifiers (remapped elsewhere)   |
+| 0xBA (;)             | `0x27` (39)         | US semicolon                                |
+| 0xBB (=)             | `0x0c` (12)         | Equals                                      |
+| 0xBC (,)             | `0x23` (35)         | Comma                                       |
+| 0xBD (-)             | `0x0b` (11)         | Minus                                       |
+| 0xBE (.)             | `0x34` (52)         | Period                                      |
+| 0xBF (/)             | `0x25` (37)         | Forward slash                               |
+| 0xC0 (`)             | `0x10` (16)         | Backtick/tilde                              |
+| 0xDB ([)             | `0x21` (33)         | Left bracket                                |
+| 0xDC (\)             | `0x38` (56)         | Backslash                                   |
+| 0xDD (])             | `0x22` (34)         | Right bracket                               |
+| 0xDE (')             | `0x28` (40)         | Apostrophe                                  |
+| 0xDF–0xFF            | —                   | Unmapped                                    |
 
 ### Known Important Internal Codes (for debug and console)
 
-| Code | VKey(s) | Usage |
-|------|---------|-------|
-| `0x01` | F1 | Debug key Esc binding |
-| `0x02` | F2 | Debug key F2 binding |
-| `0x03` | F3 | Debug key F3 binding |
-| `0x04` | F4 | Debug key F4 binding |
-| `0x05` | F5 | Debug key F5 binding |
-| `0x06` | F6 | Debug key F6 binding |
-| `0x09` | F9 | Debug key F9 binding |
-| `0x10` | Num6, ` (backtick) | **Console toggle** (tilde/backtick) |
-| `0x1e` | Ctrl | **Console enter/submit** |
-| `0x34` | Numpad0, Period | Debug key `.` binding, also period on main keyboard |
-| `0x38` | Caps, Scroll, \ | **Console escape/close** |
-| `0x4d` | (navigation) | **Console history up** (up arrow) |
-| `0x4e` | (navigation) | **Console history down** (down arrow) |
-| `0x66` | Num6 | **Console cancel/close** (backspace) |
-| `0x69` | (axis) | **Modifier key A** — left stick X-axis as key |
-| `0x6a` | (axis) | **Modifier key B** — left stick Y-axis as key |
+| Code   | VKey(s)            | Usage                                               |
+|--------|--------------------|-----------------------------------------------------|
+| `0x01` | F1                 | Debug key Esc binding                               |
+| `0x02` | F2                 | Debug key F2 binding                                |
+| `0x03` | F3                 | Debug key F3 binding                                |
+| `0x04` | F4                 | Debug key F4 binding                                |
+| `0x05` | F5                 | Debug key F5 binding                                |
+| `0x06` | F6                 | Debug key F6 binding                                |
+| `0x09` | F9                 | Debug key F9 binding                                |
+| `0x10` | Num6, ` (backtick) | **Console toggle** (tilde/backtick)                 |
+| `0x1e` | Ctrl               | **Console enter/submit**                            |
+| `0x34` | Numpad0, Period    | Debug key `.` binding, also period on main keyboard |
+| `0x38` | Caps, Scroll, \    | **Console escape/close**                            |
+| `0x4d` | (navigation)       | **Console history up** (up arrow)                   |
+| `0x4e` | (navigation)       | **Console history down** (down arrow)               |
+| `0x66` | Num6               | **Console cancel/close** (backspace)                |
+| `0x69` | (axis)             | **Modifier key A** — left stick X-axis as key       |
+| `0x6a` | (axis)             | **Modifier key B** — left stick Y-axis as key       |
 
 ### Digit key mapping (top row vs numpad)
 
 | Digit | Top row code | Numpad code |
-|-------|-------------|-------------|
-| 0 | `0x0d` (13) | `0x34` (52) |
-| 1 | `0x0e` (14) | `0x1c` (28) |
-| 2 | `0x0f` (15) | `0x41` (65) |
-| 3 | `0x10` (16) | `0x1b` (27) |
-| 4 | `0x11` (17) | `0x42` (66) |
-| 5 | `0x12` (18) | `0x43` (67) |
-| 6 | `0x13` (19) | `0x10` (16) |
-| 7 | `0x14` (20) | — |
-| 8 | `0x15` (21) | — |
-| 9 | `0x16` (22) | — |
+|-------|--------------|-------------|
+| 0     | `0x0d` (13)  | `0x34` (52) |
+| 1     | `0x0e` (14)  | `0x1c` (28) |
+| 2     | `0x0f` (15)  | `0x41` (65) |
+| 3     | `0x10` (16)  | `0x1b` (27) |
+| 4     | `0x11` (17)  | `0x42` (66) |
+| 5     | `0x12` (18)  | `0x43` (67) |
+| 6     | `0x13` (19)  | `0x10` (16) |
+| 7     | `0x14` (20)  | —           |
+| 8     | `0x15` (21)  | —           |
+| 9     | `0x16` (22)  | —           |
 
 ### Letter key mapping (A–Z)
 
-| Letter | Code | Letter | Code | Letter | Code |
-|--------|------|--------|------|--------|------|
-| A | `0x1a` (26) | J | `0x1a+9` (35) | S | `0x1a+18` (44) |
-| B | `0x1b` (27) | K | `0x1a+10` (36) | T | `0x1a+19` (45) |
-| C | `0x1c` (28) | L | `0x1a+11` (37) | U | `0x1a+20` (46) |
-| D | `0x1d` (29) | M | `0x1a+12` (38) | V | `0x1a+21` (47) |
-| E | `0x1e` (30) | N | `0x1a+13` (39) | W | `0x1a+22` (48) |
-| F | `0x1f` (31) | O | `0x1a+14` (40) | X | `0x1a+23` (49) |
-| G | `0x20` (32) | P | `0x1a+15` (41) | Y | `0x1a+24` (50) |
-| H | `0x21` (33) | Q | `0x1a+16` (42) | Z | `0x1a+25` (51) |
-| I | `0x22` (34) | R | `0x1a+17` (43) | | |
+| Letter | Code        | Letter | Code           | Letter | Code           |
+|--------|-------------|--------|----------------|--------|----------------|
+| A      | `0x1a` (26) | J      | `0x1a+9` (35)  | S      | `0x1a+18` (44) |
+| B      | `0x1b` (27) | K      | `0x1a+10` (36) | T      | `0x1a+19` (45) |
+| C      | `0x1c` (28) | L      | `0x1a+11` (37) | U      | `0x1a+20` (46) |
+| D      | `0x1d` (29) | M      | `0x1a+12` (38) | V      | `0x1a+21` (47) |
+| E      | `0x1e` (30) | N      | `0x1a+13` (39) | W      | `0x1a+22` (48) |
+| F      | `0x1f` (31) | O      | `0x1a+14` (40) | X      | `0x1a+23` (49) |
+| G      | `0x20` (32) | P      | `0x1a+15` (41) | Y      | `0x1a+24` (50) |
+| H      | `0x21` (33) | Q      | `0x1a+16` (42) | Z      | `0x1a+25` (51) |
+| I      | `0x22` (34) | R      | `0x1a+17` (43) |        |                |
 
 Note: Key code `0x1a` = A, code `0x33` = Z. The console `hs_console_evaluate()`
 path uses ASCII, not internal codes, for command text.
@@ -214,49 +214,53 @@ The debug console is handled by `console_update()` in `src/halo/main/console.c`.
 
 ### Opening the Console
 
-| Action | Internal Code | VKey |
-|--------|---------------|------|
-| Toggle open/close | `0x10` | Backtick/tilde (`` ` ``) or Numpad 6 |
+| Action            | Internal Code | VKey                                 |
+|-------------------|---------------|--------------------------------------|
+| Toggle open/close | `0x10`        | Backtick/tilde (`` ` ``) or Numpad 6 |
 
 ### Console Key Bindings (when open)
 
-| Key/Event | Internal Code | Behavior |
-|-----------|---------------|----------|
-| Tilde/backtick | `0x10` | Close the console |
-| Enter | `0x1e` | Submit command — wraps in S-expression and evaluates via `hs_console_evaluate()` |
-| Escape | `0x38` | If input buffer non-empty, submit command then close; if empty, close immediately |
-| Backspace | `0x66` | Same behavior as Escape |
-| Up arrow | `0x4d` | Browse older command history |
-| Down arrow | `0x4e` | Browse newer command history |
+| Key/Event      | Internal Code | Behavior                                                                          |
+|----------------|---------------|-----------------------------------------------------------------------------------|
+| Tilde/backtick | `0x10`        | Close the console                                                                 |
+| Enter          | `0x1e`        | Submit command — wraps in S-expression and evaluates via `hs_console_evaluate()`  |
+| Escape         | `0x38`        | If input buffer non-empty, submit command then close; if empty, close immediately |
+| Backspace      | `0x66`        | Same behavior as Escape                                                           |
+| Up arrow       | `0x4d`        | Browse older command history                                                      |
+| Down arrow     | `0x4e`        | Browse newer command history                                                      |
 
 ### Console History
 
-| Property | Value |
-|----------|-------|
-| Ring size | 8 slots |
-| Slot size | 255 bytes each |
-| Total history | 2040 bytes at `0x46d124` |
-| Navigation | `(head - browse + 8) % 8 * 255` |
+| Property      | Value                           |
+|---------------|---------------------------------|
+| Ring size     | 8 slots                         |
+| Slot size     | 255 bytes each                  |
+| Total history | 2040 bytes at `0x46d124`        |
+| Navigation    | `(head - browse + 8) % 8 * 255` |
 
 ### Input Buffer
 
-| Property | Value |
-|----------|-------|
-| Buffer address | `0x46d018` |
-| Max length | 1024 tokens |
-| Cursor state | At `0x46d118` via `edit_text_set_cursor_to_end` |
+| Property       | Value                                           |
+|----------------|-------------------------------------------------|
+| Buffer address | `0x46d018`                                      |
+| Max length     | 1024 tokens                                     |
+| Cursor state   | At `0x46d118` via `edit_text_set_cursor_to_end` |
 
 ### Console Startup
 
 `console_startup()` reads one of:
 
-| Mode | Path |
-|------|------|
-| Retail/game | `d:\init.txt` |
+| Mode        | Path                 |
+|-------------|----------------------|
+| Retail/game | `d:\init.txt`        |
 | Editor mode | `editor_d:\init.txt` |
 
 Each non-empty line is stored in the history ring, then evaluated with
 `hs_console_evaluate()`. Lines starting with `;` are treated as comments.
+
+For how to use `init.txt` to control what the build boots into (including
+booting straight to a saved checkpoint), see
+`docs/boot-init-and-checkpoints.md`.
 
 ### Tab Completion
 
@@ -284,24 +288,24 @@ Cannot execute cheats attached to the back or start button
 
 ### Cheat Slot → Gamepad Button Mapping
 
-| Slot | Gamepad byte offset `+0x10` | Button | Notes |
-|------|------------------------------|--------|-------|
-| 0 | `+0x10` byte 0 | A | |
-| 1 | `+0x10` byte 1 | B | |
-| 2 | `+0x10` byte 2 | X | |
-| 3 | `+0x10` byte 3 | Y | |
-| 4 | `+0x10` byte 4 | Black | |
-| 5 | `+0x10` byte 5 | White | |
-| 6 | `+0x10` byte 6 | Left Trigger | |
-| 7 | `+0x10` byte 7 | Right Trigger | |
-| 8 | `+0x10` byte 8 | D-Pad Up | |
-| 9 | `+0x10` byte 9 | D-Pad Down | |
-| 10 | `+0x10` byte 10 | D-Pad Left | |
-| 11 | `+0x10` byte 11 | D-Pad Right | |
-| 12 | `+0x10` byte 12 | Back | **Rejected** — cannot bind |
-| 13 | `+0x10` byte 13 | Start | **Rejected** — cannot bind |
-| 14 | `+0x10` byte 14 | Left Thumb | |
-| 15 | `+0x10` byte 15 | Right Thumb | |
+| Slot | Gamepad byte offset `+0x10` | Button        | Notes                      |
+|------|-----------------------------|---------------|----------------------------|
+| 0    | `+0x10` byte 0              | A             |                            |
+| 1    | `+0x10` byte 1              | B             |                            |
+| 2    | `+0x10` byte 2              | X             |                            |
+| 3    | `+0x10` byte 3              | Y             |                            |
+| 4    | `+0x10` byte 4              | Black         |                            |
+| 5    | `+0x10` byte 5              | White         |                            |
+| 6    | `+0x10` byte 6              | Left Trigger  |                            |
+| 7    | `+0x10` byte 7              | Right Trigger |                            |
+| 8    | `+0x10` byte 8              | D-Pad Up      |                            |
+| 9    | `+0x10` byte 9              | D-Pad Down    |                            |
+| 10   | `+0x10` byte 10             | D-Pad Left    |                            |
+| 11   | `+0x10` byte 11             | D-Pad Right   |                            |
+| 12   | `+0x10` byte 12             | Back          | **Rejected** — cannot bind |
+| 13   | `+0x10` byte 13             | Start         | **Rejected** — cannot bind |
+| 14   | `+0x10` byte 14             | Left Thumb    |                            |
+| 15   | `+0x10` byte 15             | Right Thumb   |                            |
 
 ### Pre-defined Cheat Commands
 
@@ -334,11 +338,11 @@ The input system supports recording and playback of controller state for testing
 via sentinel files on the `D:` drive. This effectively allows driving the game using
 prerecorded input.
 
-| Sentinel file | Mode | Behavior |
-|---------------|------|----------|
-| `d:\write.xts` | Mode 3 (Record) | Writes `input_gamepad_state` packets (0x28 bytes each) to `d:\state.data` every tick |
-| `d:\read.xts` | Mode 4 (Playback) | Reads packets from `d:\state.data` every tick, driving the game |
-| `d:\loop.xts` | Mode 5 (Loop) | Reads packets, seeks to start on EOF for continuous loop playback |
+| Sentinel file  | Mode              | Behavior                                                                             |
+|----------------|-------------------|--------------------------------------------------------------------------------------|
+| `d:\write.xts` | Mode 3 (Record)   | Writes `input_gamepad_state` packets (0x28 bytes each) to `d:\state.data` every tick |
+| `d:\read.xts`  | Mode 4 (Playback) | Reads packets from `d:\state.data` every tick, driving the game                      |
+| `d:\loop.xts`  | Mode 5 (Loop)     | Reads packets, seeks to start on EOF for continuous loop playback                    |
 
 Handled by `input_check_state_mode()` in `src/halo/input/input_xbox.c`. This is fully functional and can be used for automation or reproducing precise state.
 
@@ -352,16 +356,16 @@ The built-in HaloScript function table is at `0x2f1588` and has `0x1a2`
 
 ### Descriptor Layout (0x1c bytes each)
 
-| Offset | Size | Field | Source Evidence |
-|--------|------|-------|-----------------|
-| `+0x00` | u32 | `flags` | Return type / classification |
-| `+0x04` | u32 | `name_ptr` | Pointer to function name string |
-| `+0x08` | u32 | `type_check_cb` | Compile-time type-check callback |
-| `+0x0c` | u32 | `eval_cb` | Runtime evaluator callback |
-| `+0x10` | u32 | `help_ptr` | Help/documentation string |
-| `+0x14` | u32 | `syntax_ptr` | Usage/syntax prototype string |
-| `+0x18` | i16 | `arg_count` | Number of typed arguments |
-| `+0x1a` | u8[] | `arg_types` | Variable-length argument type bytes |
+| Offset  | Size | Field           | Source Evidence                     |
+|---------|------|-----------------|-------------------------------------|
+| `+0x00` | u32  | `flags`         | Return type / classification        |
+| `+0x04` | u32  | `name_ptr`      | Pointer to function name string     |
+| `+0x08` | u32  | `type_check_cb` | Compile-time type-check callback    |
+| `+0x0c` | u32  | `eval_cb`       | Runtime evaluator callback          |
+| `+0x10` | u32  | `help_ptr`      | Help/documentation string           |
+| `+0x14` | u32  | `syntax_ptr`    | Usage/syntax prototype string       |
+| `+0x18` | i16  | `arg_count`     | Number of typed arguments           |
+| `+0x1a` | u8[] | `arg_types`     | Variable-length argument type bytes |
 
 Confirmed via reverse-engineering of `hs_find_function_by_name` (name at +4),
 `hs_doc` (help at +0x10), `hs_help` (help at +0x10), `hs_macro_function_evaluate`
@@ -370,39 +374,39 @@ table at 0x2f1588 and descriptor data at 0x26f448–0x272790.
 
 ### Flag Values (Return Type / Classification)
 
-| Flag | Count | Meaning | Examples |
-|------|-------|---------|---------|
-| `3` | 5 | Control flow construct | `begin`, `begin_random`, `if`, `cond`, `set` |
-| `4` | 310 | Statement (void return) | `sleep`, `wake`, `print`, `object_create`, `unit_kill` |
-| `5` | 57 | Boolean predicate | `and`, `or`, `=`, `>`, `<`, `volume_test_object` |
-| `6` | 15 | Arithmetic / numeric | `+`, `-`, `*`, `/`, `min`, `max`, `real_random_range` |
-| `7` | 20 | Mixed / derived | `list_count`, `random_range`, `recording_time` |
-| `8` | 2 | Time-interval | `game_time`, `sound_impulse_time` |
-| `23` | 3 | Object list | `players`, `vehicle_riders`, `ai_actors` |
-| `32` | 2 | Difficulty | `game_difficulty_get`, `game_difficulty_get_real` |
-| `37` | 1 | List element | `list_get` |
-| `38` | 3 | Unit cast | `unit`, `vehicle_driver`, `vehicle_gunner` |
+| Flag | Count | Meaning                 | Examples                                               |
+|------|-------|-------------------------|--------------------------------------------------------|
+| `3`  | 5     | Control flow construct  | `begin`, `begin_random`, `if`, `cond`, `set`           |
+| `4`  | 310   | Statement (void return) | `sleep`, `wake`, `print`, `object_create`, `unit_kill` |
+| `5`  | 57    | Boolean predicate       | `and`, `or`, `=`, `>`, `<`, `volume_test_object`       |
+| `6`  | 15    | Arithmetic / numeric    | `+`, `-`, `*`, `/`, `min`, `max`, `real_random_range`  |
+| `7`  | 20    | Mixed / derived         | `list_count`, `random_range`, `recording_time`         |
+| `8`  | 2     | Time-interval           | `game_time`, `sound_impulse_time`                      |
+| `23` | 3     | Object list             | `players`, `vehicle_riders`, `ai_actors`               |
+| `32` | 2     | Difficulty              | `game_difficulty_get`, `game_difficulty_get_real`      |
+| `37` | 1     | List element            | `list_get`                                             |
+| `38` | 3     | Unit cast               | `unit`, `vehicle_driver`, `vehicle_gunner`             |
 
 ### Console Evaluate Path
 
 `hs_console_evaluate()` in `src/halo/hs/hs.c` handles command input from
 console, cheats, and init files:
 
-| Input starts with | Behavior |
-|-------------------|----------|
-| `(` | Pass through as S-expression |
+| Input starts with       | Behavior                      |
+|-------------------------|-------------------------------|
+| `(`                     | Pass through as S-expression  |
 | Global name + arguments | Wrap as `(set <name> <args>)` |
-| Global name only | Evaluate as global read |
-| Anything else | Wrap as `(<command>)` |
+| Global name only        | Evaluate as global read       |
+| Anything else           | Wrap as `(<command>)`         |
 
 Comments after `;` blank the command before evaluation.
 
 ### Console Help Handlers
 
-| Handler | Evaluator of | Behavior |
-|---------|-------------|----------|
-| `FUN_000c4ff0` (0xc4ff0) | `script_doc` | Calls `hs_doc()` (0xc4e90) to write all command docs to `hs_doc.txt` |
-| `FUN_000c5010` (0xc5010) | `help` | Calls `hs_macro_function_evaluate` then `hs_help()` (0xc4e20) to print help for a named function |
+| Handler                  | Evaluator of | Behavior                                                                                         |
+|--------------------------|--------------|--------------------------------------------------------------------------------------------------|
+| `FUN_000c4ff0` (0xc4ff0) | `script_doc` | Calls `hs_doc()` (0xc4e90) to write all command docs to `hs_doc.txt`                             |
+| `FUN_000c5010` (0xc5010) | `help`       | Calls `hs_macro_function_evaluate` then `hs_help()` (0xc4e20) to print help for a named function |
 
 ### Command Quick Reference by Category
 
@@ -845,12 +849,325 @@ addresses, argument count) is available as JSON at:
 
 ---
 
-## 8. Source Files
+---
 
-| File | Purpose |
-|------|---------|
-| `src/halo/main/debug_keys.c` | Debug keyboard dispatcher and definition table |
-| `src/halo/main/console.c` | Debug console startup, update, and keyboard handling |
-| `src/halo/game/cheats.c` | `d:\cheats.txt` loading and gamepad-button execution |
-| `src/halo/hs/hs.c` | HaloScript console evaluation and function table lookup |
+## 9. AI Debug Rendering & Print Commands
+
+The `ai_render_*`, `ai_print_*`, `ai_show_*`, and `ai_debug_*` commands are **debug
+globals** (not HaloScript functions). They're toggled from the console directly:
+
+```
+ai_render_targets true
+ai_print_speech true
+ai_debug_blind true
+```
+
+They are **not** wrapped in parens — the console evaluate path detects a bare global
+name and wraps it as `(set <name> <value>)` automatically. See §7 "Console Evaluate
+Path" for the dispatch mechanism.
+
+### 9.1 Architecture
+
+The AI debug rendering is orchestrated by **`FUN_000534d0`** (the per-tick AI debug
+dispatcher, called from `FUN_0018ac50` in the main render loop). It checks a set
+of flag bytes/spacedwords at `0x005ACAxx` (within the `actor_debug_array` struct
+starting at `0x005ac9c0`) and dispatches:
+
+| Flag Address     | Function        | Purpose                                            |
+|------------------|-----------------|----------------------------------------------------|
+| `0x5aca65`       | (master switch) | All AI debug rendering enabled (set by `ai_debug`) |
+| `0x5aca69`       | `FUN_000494e0`  | Line-of-fire ray rendering                         |
+| `0x5aca6a`       | `FUN_00049990`  | Line-of-sight geometry rendering                   |
+| `0x5aca6b`       | `FUN_000495b0`  | Idle look vector rendering                         |
+| `0x5ac9f4!=-1`   | `FUN_00052bb0`  | Per-encounter firing-position debug                |
+| `0x5ac9f8!=-1`   | `FUN_0004c920`  | Full actor debug info (huge, 0x5ffc bytes)         |
+| `0x5ac9fc`       | `FUN_0004c890`  | Follow-camera rendering                            |
+| `0x5aca9b`       | `FUN_00052ab0`  | Path debug text overlay                            |
+| `0x5aca88`       | `FUN_00049d60`  | Evaluation/targeting vectors                       |
+| `0x5aca66`       | `FUN_00052b60`  | Print-all-actors (calls FUN_0004c920)              |
+| `0x5aca89/53/93` | `FUN_0004b810`  | Selected-actor highlighting                        |
+| `0x5aca76`       | `FUN_0004a770`  | Props/goal rendering                               |
+| `0x5aca8c`       | `FUN_0004a8c0`  | Recent damage points                               |
+| `0x5aca91`       | `FUN_0004bc70`  | State/behavior rendering                           |
+
+The debug state is a large struct starting at **`0x005ac9c0`**:
+- `0x005ac9c0`: `actor_debug_array` (0x657c00 bytes, allocated at init)
+- `0x00331f58`: pointer to `actor_debug_array`
+- `0x00331f5c`: pointer to `actor_path_debug_array` (0x394f80 bytes)
+
+Both are allocated in `ai_debug_initialize()` / `FUN_00048e90` and freed in
+`ai_debug_dispose()` / `FUN_00048f50`.
+
+### 9.2 `ai_render_*` Commands (78 total)
+
+Console strings in `.rdata` at `0x0027dd64–0x0027e584`. None have direct code refs
+— the game uses **runtime string hashing** to look up the corresponding flag offset.
+
+#### Vector Avoidance (8)
+
+| Command                                   | Description                        |
+|-------------------------------------------|------------------------------------|
+| `ai_render_postcombat`                    | Post-combat vector visualization   |
+| `ai_render_vector_avoidance_intermediate` | Intermediate vectors in avoidance  |
+| `ai_render_vector_avoidance_objects`      | Objects considered for avoidance   |
+| `ai_render_vector_avoidance_weights`      | Avoidance weight visualization     |
+| `ai_render_vector_avoidance_clear_time`   | Clearance time for avoidance       |
+| `ai_render_vector_avoidance_avoid_t`      | Avoidance threshold time           |
+| `ai_render_vector_avoidance_sense_t`      | Sensing threshold time             |
+| `ai_render_vector_avoidance_rays`         | Avoidance raycasts                 |
+| `ai_render_vector_avoidance`              | Master toggle for vector avoidance |
+
+#### Paths (16)
+
+| Command                               | Description                      |
+|---------------------------------------|----------------------------------|
+| `ai_render_paths_nodes_closest`       | Closest pathfinding nodes        |
+| `ai_render_paths_nodes_costs`         | Node cost visualization          |
+| `ai_render_paths_nodes_polygons`      | Node polygon boundaries          |
+| `ai_render_paths_nodes_all`           | All pathfinding nodes            |
+| `ai_render_paths_nodes`               | Pathfinding nodes master toggle  |
+| `ai_render_paths_avoidance_search`    | Avoidance search area            |
+| `ai_render_paths_avoidance_obstacles` | Avoidance obstacle geometry      |
+| `ai_render_paths_avoidance_segment`   | Avoidance segment debug          |
+| `ai_render_paths_avoided`             | Paths that were avoided          |
+| `ai_render_paths_smoothed`            | Smoothed path visualization      |
+| `ai_render_paths_failed`              | Failed path attempts             |
+| `ai_render_paths_current`             | Current active path              |
+| `ai_render_paths_raw`                 | Raw (unsmoothed) path            |
+| `ai_render_paths_destination`         | Path destination marker          |
+| `ai_render_paths_selected_only`       | Only selected actor's paths      |
+| `ai_render_paths`                     | Master toggle for path rendering |
+
+#### Actor/Squad Debug (8)
+
+| Command                        | Description                   |
+|--------------------------------|-------------------------------|
+| `ai_render_activation`         | Activation link visualization |
+| `ai_render_control`            | Control flow debugging        |
+| `ai_render_charge_decisions`   | Charge decision debug         |
+| `ai_render_danger_zones`       | Danger zone visualization     |
+| `ai_render_grenade_decisions`  | Grenade throw decisions       |
+| `ai_render_dialogue_variants`  | Dialogue variant selection    |
+| `ai_render_melee_check`        | Melee range/validity check    |
+| `ai_render_vehicles_enterable` | Vehicles the AI can enter     |
+
+#### Combat/Targeting (12)
+
+| Command                       | Description                     |
+|-------------------------------|---------------------------------|
+| `ai_render_vehicle_avoidance` | Vehicle avoidance visualization |
+| `ai_render_burst_geometry`    | Weapon burst geometry           |
+| `ai_render_gun_positions`     | Gun position debug              |
+| `ai_render_firing_positions`  | Firing position visualization   |
+| `ai_render_spatial_effects`   | Spatial effect debug            |
+| `ai_render_player_ratings`    | Player rating visualization     |
+| `ai_render_teams`             | Team assignment debug           |
+| `ai_render_speech`            | Speech trigger visualization    |
+| `ai_render_aiming_validity`   | Aim validity check rendering    |
+| `ai_render_projectile_aiming` | Projectile aim visualization    |
+| `ai_render_trigger`           | Trigger hold/release debug      |
+| `ai_render_shooting`          | Shooting decision visualization |
+
+#### Actor State (6)
+
+| Command                          | Description                   |
+|----------------------------------|-------------------------------|
+| `ai_render_pursuit`              | Pursuit state debug           |
+| `ai_render_evaluations`          | Behavior evaluation debug     |
+| `ai_render_active_cover_seeking` | Cover-seeking behavior        |
+| `ai_render_vitality`             | Vitality/health visualization |
+| `ai_render_states`               | Current state visualization   |
+| `ai_render_targets_last_visible` | Last known target positions   |
+
+#### Targeting/Perception (10)
+
+| Command                           | Description                    |
+|-----------------------------------|--------------------------------|
+| `ai_render_targets`               | Target selection debug         |
+| `ai_render_secondary_looking`     | Secondary look targets         |
+| `ai_render_aiming_vectors`        | Aiming vector visualization    |
+| `ai_render_audibility`            | Audibility/hearing radius      |
+| `ai_render_emotions`              | Emotion state visualization    |
+| `ai_render_threats`               | Threat assessment debug        |
+| `ai_render_recent_damage`         | Recent damage indicators       |
+| `ai_render_support_surfaces`      | Support surface debug          |
+| `ai_render_idle_look`             | Idle look target visualization |
+| `ai_render_player_aiming_blocked` | Player aim obstruction debug   |
+
+#### Props/Behavior (8)
+
+| Command                         | Description                          |
+|---------------------------------|--------------------------------------|
+| `ai_render_props_target_weight` | Target weight visualization          |
+| `ai_render_props_unopposable`   | Unopposable prop display             |
+| `ai_render_props_unreachable`   | Unreachable prop display             |
+| `ai_render_props_no_friends`    | No-friendly-nearby props             |
+| `ai_render_props_web`           | Prop web/interconnection             |
+| `ai_render_props`               | Master toggle for prop visualization |
+| `ai_render_detailed_state`      | Detailed state info                  |
+| `ai_render_current_state`       | Current state summary                |
+
+#### Vision/LOS (8)
+
+| Command                            | Description               |
+|------------------------------------|---------------------------|
+| `ai_render_vision_cones`           | Vision cone visualization |
+| `ai_render_encounter_activeregion` | Encounter active region   |
+| `ai_render_ballistic_lineoffire`   | Ballistic line-of-fire    |
+| `ai_render_lineofsight`            | Line-of-sight rays        |
+| `ai_render_lineoffire`             | Line-of-fire rays         |
+| `ai_render_lineoffire_crouching`   | Crouching line-of-fire    |
+| `ai_render_inactive_actors`        | Inactive actor display    |
+| `ai_render_all_actors`             | All actor display         |
+
+#### Root Master Toggle
+
+```
+ai_render    (master toggle — enables/disables all ai_render_* sub-commands)
+```
+
+### 9.3 `ai_print_*` Commands (28 total)
+
+Console strings at `0x0027dacc–0x0027dd4c`.
+
+| Command                          | Description                   |
+|----------------------------------|-------------------------------|
+| `ai_print_uncovering`            | AI uncovering from cover      |
+| `ai_print_bsp_transition`        | BSP transition events         |
+| `ai_print_unfinished_paths`      | Pathfinding incomplete        |
+| `ai_print_acknowledgement`       | Acknowledgement responses     |
+| `ai_print_killing_sprees`        | Killing spree events          |
+| `ai_print_conversations`         | AI conversation dialogue      |
+| `ai_print_oversteer`             | Oversteer detection           |
+| `ai_print_secondary_looking`     | Secondary look events         |
+| `ai_print_damage_modifiers`      | Damage modifier application   |
+| `ai_print_command_lists`         | Command list execution        |
+| `ai_print_surprise`              | Surprise reaction events      |
+| `ai_print_scripting`             | Script state transitions      |
+| `ai_print_automatic_migration`   | Auto-migration events         |
+| `ai_print_migration`             | Manual migration events       |
+| `ai_print_lost_speech`           | Lost speech opportunities     |
+| `ai_print_allegiance`            | Allegiance changes            |
+| `ai_print_speech_timers`         | Speech timer state            |
+| `ai_print_speech`                | Speech system events          |
+| `ai_print_placement`             | Placement debug               |
+| `ai_print_vocalizations`         | Vocalization triggers         |
+| `ai_print_communication_player`  | Player-directed communication |
+| `ai_print_communication`         | Inter-AI communication        |
+| `ai_print_evaluation_statistics` | Behavior evaluation stats     |
+| `ai_print_respawn`               | Respawn events                |
+| `ai_print_major_upgrade`         | Major upgrade events          |
+| `ai_print_rule_values`           | Rule value display            |
+| `ai_print_rules`                 | Rule evaluation debug         |
+| `ai_print_pursuit_checks`        | Pursuit check events          |
+
+### 9.4 `ai_show_*` Commands (7 total)
+
+Console strings at `0x0027e590–0x0027e604`.
+
+| Command                  | Description                        |
+|--------------------------|------------------------------------|
+| `ai_show_sound_distance` | Display sound distance information |
+| `ai_show_prop_types`     | Display prop types                 |
+| `ai_show_line_of_sight`  | Display line-of-sight debug        |
+| `ai_show_paths`          | Display pathfinding info           |
+| `ai_show_swarms`         | Display swarm/group info           |
+| `ai_show_actors`         | Display actor list overlay         |
+| `ai_show_stats`          | Display AI statistics              |
+
+### 9.5 `ai_debug_*` Commands (miscellaneous)
+
+Strings from the debug command table at `0x002f2e20+` (see §9.6) and scattered
+through `.rdata`. These are standalone debug toggles, not render/print commands:
+
+| Command                                       | Description                     |
+|-----------------------------------------------|---------------------------------|
+| `ai_debug_blind`                              | Make AI blind                   |
+| `ai_debug_deaf`                               | Make AI deaf                    |
+| `ai_debug_invisible_player`                   | Make player invisible to AI     |
+| `ai_debug_ignore_player`                      | AI ignores player               |
+| `ai_debug_flee_always`                        | AI always flees                 |
+| `ai_debug_force_all_active`                   | Force all AI active             |
+| `ai_debug_force_crouch`                       | Force AI to crouch              |
+| `ai_debug_force_vocalizations`                | Force vocalization playback     |
+| `ai_debug_disable_wounded_sounds`             | Disable wounded sound effects   |
+| `ai_debug_path`                               | AI pathfinding debug            |
+| `ai_debug_path_start_freeze`                  | Freeze path at start            |
+| `ai_debug_path_end_freeze`                    | Freeze path at end              |
+| `ai_debug_path_flood`                         | Flood-fill path visualization   |
+| `ai_debug_path_maximum_radius`                | Max path search radius          |
+| `ai_debug_path_attractor`                     | Path attractor point            |
+| `ai_debug_path_attractor_radius`              | Attractor radius                |
+| `ai_debug_path_attractor_weight`              | Attractor weight                |
+| `ai_debug_path_accept_radius`                 | Path acceptance radius          |
+| `ai_debug_path_disable_smoothing`             | Disable path smoothing          |
+| `ai_debug_path_disable_obstacle_avoidance`    | Disable obstacle avoidance      |
+| `ai_debug_ballistic_lineoffire_freeze`        | Freeze ballistic line-of-fire   |
+| `ai_debug_evaluate_all_positions`             | Evaluate all firing positions   |
+| `ai_debug_oversteer_disable`                  | Disable oversteer               |
+| `ai_debug_fast_los`                           | Fast line-of-sight              |
+| `ai_debug_communication_focus_enable`         | Focus communication debug       |
+| `ai_debug_communication_focus`                | Focus on specific communication |
+| `ai_debug_communication_ignore`               | Ignore specific communication   |
+| `ai_debug_communication_suppress`             | Suppress communication debug    |
+| `ai_debug_communication_unit_repeat_disabled` | Disable unit repeat             |
+| `ai_debug_communication_timeout_disabled`     | Disable comm timeout            |
+| `ai_debug_communication_random_disabled`      | Disable random comm             |
+| `ai_debug_speak_list`                         | Debug speak list                |
+| `ai_debug_speak`                              | Debug speak                     |
+| `ai_debug_teleport_to`                        | Teleport AI to location         |
+| `ai_debug_vocalize`                           | Force vocalization              |
+| `ai_debug_sound_point_set`                    | Set debug sound point           |
+
+### 9.6 Debug Command Pointer Table (`0x002f3aa8`)
+
+Located in `.rdata` at `0x002f3aa8`, this is a **pointer table** to 12-byte
+records at `0x002f2e20+`. Each record:
+
+| Offset  | Size | Field                                               |
+|---------|------|-----------------------------------------------------|
+| `+0x00` | u32  | `name_ptr` — pointer to debug command name string   |
+| `+0x04` | u32  | `type` (always `0x05` observed)                     |
+| `+0x08` | u32  | `handler_or_id` — likely an ID or handler reference |
+
+**Neither the table nor the records have code references** — zero xrefs in Ghidra.
+Dispatch is via runtime string hashing against a table not yet identified.
+
+Strings referenced (record names in the `0x0027e100+` range):
+
+```
+debug_player       debug_bsp           debug_structure
+debug_camera       debug_obstacle_path_goal_surface
+debug_material_effects  debug_collision_skip_vectors
+```
+
+These represent a general "miscellaneous debug options" table distinct from the
+ai_render/ai_print system.
+
+### 9.7 Open Questions
+
+1. **String→flag mapping**: How do the 106+ command strings (ai_render, ai_print,
+   ai_show, ai_debug, debug_*) map to their flag addresses at `0x005ACAxx`?  
+   **Hypothesis**: A string hash function produces a key used to index into a
+   parallel table of `{hash, flag_offset}` entries. Neither the hash function nor
+   the lookup table has been identified.
+
+2. **The 0x002f3aa8 table**: What dispatches through it? Is it a second-tier
+   debug options table for engine-wide globals (not AI-specific)?
+
+3. **FUN_0004c920**: This 0x5ffc-byte function is the per-actor debug info
+   renderer. It's called from the debug dispatcher for all ai_render/ai_print
+   output. It is too large to decompile with the current Ghidra MCP timeout.
+
+---
+
+## 10. Source Files
+
+| File                          | Purpose                                                   |
+|-------------------------------|-----------------------------------------------------------|
+| `src/halo/main/debug_keys.c`  | Debug keyboard dispatcher and definition table            |
+| `src/halo/main/console.c`     | Debug console startup, update, and keyboard handling      |
+| `src/halo/game/cheats.c`      | `d:\cheats.txt` loading and gamepad-button execution      |
+| `src/halo/hs/hs.c`            | HaloScript console evaluation and function table lookup   |
 | `src/halo/input/input_xbox.c` | Xbox input, keyboard device polling, vkey→keycode mapping |
+| `src/halo/ai/ai_debug.c`      | AI debug state initialization, storage, select, update    |

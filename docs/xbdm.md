@@ -701,3 +701,7 @@ xbdm_context_primer:
         - "Use --images or --count to capture a numbered sequence; both flags write into the same count option."
         - "Use --png for normal screenshot capture so only viewable PNG files are saved."
         - "Add --raw alongside --png to save both PNG and raw .bin output."
+
+see_also:
+  - "docs/boot-init-and-checkpoints.md — how to control what the build boots into via init.txt and saved game-state cores (checkpoint replay)"
+  - "docs/debug-commands-keyboard.md — full HaloScript command reference"
