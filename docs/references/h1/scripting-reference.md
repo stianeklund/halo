@@ -5187,14 +5187,18 @@ Toggles if shooting bodies produces additional blood effects.
 
 (find_all_fucked_up_shit)
 
-(force_all_player_views_to_default_player)
-
 (framerate_lock)
 
 (framerate_throttle [boolean])
 
 ```
 Limits rendering to 30 FPS.
+
+```lisp
+(force_all_player_views_to_default_player [boolean])
+
+```
+When set to true, forces all split-screen rendering windows to display the default (first) player's camera view. By default the game allocates one render window per local player; enabling this global shows every window from player 1's perspective. Useful for debugging co-op splitscreen rendering or scripting cutscenes.
 
 ```lisp
 (freeze_flying_camera)
