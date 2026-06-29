@@ -13,9 +13,10 @@ session was burned this way (see docs/plasma-orb-bug.md, EXP-1/EXP-3, and memory
 This tool closes that gap by reading the running image's bytes at each function's
 virtual address via xemu QMP (`x/Nwx`) and classifying what the CPU will actually run:
 
-  * push-ret trampoline  `68 <impl> C3`   -> ACTIVE   (redirected to our C impl; ported=true)
-  * jmp rel32            `E9 <rel->impl>`  -> ACTIVE
-  * anything else (a genuine prologue)     -> ORIGINAL (running original code; ported=false)
+  * push-ret trampoline  `68 <impl> C3`        -> ACTIVE   (redirected to our C impl; ported=true)
+  * jmp rel32 into impl  `E9 <rel->impl>`       -> ACTIVE   (target >= IMPL_REGION_FLOOR)
+  * jmp rel32 within .text `E9 <rel->orig>`     -> ORIGINAL (genuine XBE thunk, e.g. 0x1459d0->0x1458f0)
+  * anything else (a genuine prologue)          -> ORIGINAL (running original code; ported=false)
 
 This matches patch.py exactly: ported=true writes `push <hook_target>; ret` at the
 original VA (patch.py ~L1326); ported=false leaves the original XBE bytes intact and
@@ -109,14 +110,26 @@ def read_bytes(va, nwords=3, host=None, port=None):
 
 
 def classify(va, b):
-    """Return (state, target, detail). state is 'ACTIVE' or 'ORIGINAL'."""
+    """Return (state, target, detail). state is 'ACTIVE' or 'ORIGINAL'.
+
+    A patch-injected redirect always jumps UP into our reimplementation, which is
+    appended ABOVE the original image (target >= IMPL_REGION_FLOOR). The original
+    XBE itself contains genuine JMP-thunks whose `E9 rel32` targets a nearby address
+    WITHIN the original .text (target < floor) -- e.g. 0x1459d0 = `E9 1B FF FF FF`
+    -> 0x1458f0. That is original code, NOT our redirect. The old heuristic ("any
+    E9 at entry == active") FALSE-FAILED `--all-off` on every such thunk, so we
+    require the jmp target to land in the impl region before calling it ACTIVE.
+    (push-ret keeps its C3 tell -- that is the ported=true trampoline form.)
+    """
     if len(b) >= 6 and b[0] == 0x68 and b[5] == 0xC3:
         target = int.from_bytes(b[1:5], "little")
         return "ACTIVE", target, f"push-ret -> 0x{target:x}"
     if len(b) >= 5 and b[0] == 0xE9:
         rel = int.from_bytes(b[1:5], "little", signed=True)
         target = (va + 5 + rel) & 0xFFFFFFFF
-        return "ACTIVE", target, f"jmp -> 0x{target:x}"
+        if target >= IMPL_REGION_FLOOR:
+            return "ACTIVE", target, f"jmp -> 0x{target:x}"
+        return "ORIGINAL", target, f"jmp-thunk(orig) -> 0x{target:x}"
     return "ORIGINAL", None, "prologue " + " ".join(f"{x:02x}" for x in b[:4])
 
 
