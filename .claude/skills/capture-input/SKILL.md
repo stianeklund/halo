@@ -6,7 +6,7 @@ description: >-
   to record gameplay, capture a scenario / playthrough, build an input fixture,
   or replay an existing one — and doesn't want to remember the
   capture_scenario.py flags. Prompts for level, scenario, start mode, build,
-  tail-pad, title, and purpose, then drives the capture. Wraps
+  difficulty, tail-pad, title, and purpose, then drives the capture. Wraps
   tools/xbox/capture_scenario.py; deeper doctrine in the input-replay-testing
   skill and docs/input-fixture-capture.md.
 ---
@@ -40,11 +40,14 @@ Instead drive the load-bearing split across conversation turns:
 
 ## Step 1 — collect the arguments
 
-Use **AskUserQuestion** for the enumerable choices; for free-text fields propose
-a default and let the user accept or override. Don't ask for values the user
-already gave in their message.
+Collect the enumerable arguments with **AskUserQuestion**. `AskUserQuestion`
+caps at **4 questions per call**, so a Record/Arm flow needs **two calls in
+sequence** — Round 1 then Round 2. **Both rounds are mandatory** for Record new /
+Arm only; do not skip Round 2 or wait for the user to remind you. Don't re-ask
+values the user already gave in their message. For free-text fields, propose a
+default and let the user accept or override.
 
-**Round 1 (one AskUserQuestion call — the choices):**
+**Round 1 — first AskUserQuestion call (4 choices):**
 
 | Question | Header | Options |
 |----------|--------|---------|
@@ -53,21 +56,26 @@ already gave in their message.
 | Start mode? | Start | **mapreset** (recommended) — boots straight into the level via `map_name`+`map_reset`, fresh from the start, **no menu nav**, immune to any stale savegame · **core** — boot a saved checkpoint (needs `core_save` first) · **menu** — genuine New Game *including* menu navigation (use only if you specifically want the menu captured) |
 | Which build? | Build | **cachebeta.xbe** — unpatched / faithful (recommended) · default.xbe — patched (your lifted C) |
 
-**Round 2 (only for Record new / Arm only) — the rest:**
-- **scenario id** (free text) — default `<level>-play-from-start`. This is the
-  folder name under `input-recordings/levels/<level>/`.
-- **difficulty** (AskUserQuestion) — `impossible` (Legendary) · `hard` (Heroic) ·
-  `normal` · `easy`. Defines the difficulty **per recording**. For `--start
-  mapreset` it is pinned via `game_difficulty_set` in `init.txt`; for `menu` the
-  user picks it in-game (so skip the question); for `core` it's baked into the
-  core (skip). Always ask it for a mapreset capture.
-- **tail-pad** (AskUserQuestion) — `90` (long playthrough, recommended) · `36`
-  (default, short scenario) · *Other*. Ticks of idle kept past the last input.
-- **title** / **purpose** (free text) — default title `"<level> playthrough"`,
-  purpose `"<level> playthrough"`. Override if the user described something
-  specific.
-- **overwrite?** (AskUserQuestion yes/no) — only ask if a `known_good` fixture
-  already exists at that level/scenario; "yes" adds `--force`.
+**Round 2 — REQUIRED second AskUserQuestion call (Record new / Arm only).**
+After Round 1 returns, immediately make a second AskUserQuestion call with these
+enumerable questions (do not narrate first, do not assume defaults — ask):
+
+| Question | Header | Options | Applies when |
+|----------|--------|---------|--------------|
+| Which **difficulty** should the level run at? | Difficulty | **impossible** (Legendary) · **hard** (Heroic) · **normal** · **easy** | **mapreset** (pinned via `game_difficulty_set`). `menu` → user picks in-game; `core` → baked into the core. Omit the question only for `menu`/`core`. |
+| How much **tail-pad** (idle ticks kept past the last input)? | Tail-pad | **90** (long playthrough, recommended) · **36** (default, short scenario) · *Other* | always |
+| **Overwrite** the existing `known_good` fixture? | Overwrite | Yes (adds `--force`) · No | **only** if a `known_good` fixture already exists at that level/scenario |
+
+> The difficulty question is the load-bearing one — for a `mapreset` capture it
+> is **always asked** and pins `game_difficulty_set` in `init.txt`, so the fixture
+> records the difficulty it was captured at. Never silently default it.
+
+**Free-text fields (no AskUserQuestion needed — propose a default in prose and
+let the user override):**
+- **scenario id** — default `<level>-play-from-start`. Folder name under
+  `input-recordings/levels/<level>/`.
+- **title** / **purpose** — default both to `"<level> playthrough"`. Override if
+  the user described something specific.
 
 **For Replay**, list what exists first so the user picks a real one:
 `rtk ls input-recordings/levels/<level>/`. Then ask build, and whether to
