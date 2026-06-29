@@ -20,6 +20,10 @@ CodeBurn analysis: **~1.7M tokens wasted in 7 days** (~$0.64). The root causes a
 - **The Edit tool confirms success.** Do not re-read to verify your edit worked.
 - **Failure exception only:** If an edit fails, re-read *only* the failing line range (≤20 lines), never the full file.
 
+### Wording and language
+- Be brief and concise. Don't use words as "This is the smoking gun", "Honestly", "I'll be honest".
+- Use natural normal concise language.
+
 ### Research Ratio Gate (4:1 minimum)
 - **Target: 4+ reads per edit.** CodeBurn measured 2.2:1 (1,958 reads vs. 878 edits), causing ~932K wasted tokens from edit-without-research retries.
 - Before editing any function, perform at least these research steps:
@@ -30,12 +34,12 @@ CodeBurn analysis: **~1.7M tokens wasted in 7 days** (~$0.64). The root causes a
 - If you have not done 4 reads, do more research before editing.
 
 ### File-Specific Bans & Caps
-| File / Directory | Action | Max Lines | Why |
-|------------------|--------|-----------|-----|
-| `kb.json` | `rtk jq` ONLY | **0** | 6,000+ lines; 239 redundant reads = ~143K tokens |
-| `objects.c`, `units.c`, `sound_manager.c` | `rtk read -o -l` | **100** | 100+ redundant reads each = ~300K tokens |
-| `build/`, `build_debug/`, `node_modules/`, `.git/`, `halo-patched/`, `__pycache__/`, `dist/` | **NEVER** | **0** | Generated artifacts; 7 reads = ~4K tokens for zero value |
-| Any `*.log` | **NEVER** | **0** | Run the command instead of reading output |
+| File / Directory                                                                             | Action           | Max Lines | Why                                                      |
+|----------------------------------------------------------------------------------------------|------------------|-----------|----------------------------------------------------------|
+| `kb.json`                                                                                    | `rtk jq` ONLY    | **0**     | 6,000+ lines; 239 redundant reads = ~143K tokens         |
+| `objects.c`, `units.c`, `sound_manager.c`                                                    | `rtk read -o -l` | **100**   | 100+ redundant reads each = ~300K tokens                 |
+| `build/`, `build_debug/`, `node_modules/`, `.git/`, `halo-patched/`, `__pycache__/`, `dist/` | **NEVER**        | **0**     | Generated artifacts; 7 reads = ~4K tokens for zero value |
+| Any `*.log`                                                                                  | **NEVER**        | **0**     | Run the command instead of reading output                |
 
 ### Session Memory
 Maintain a mental ledger of files already read in this conversation. If you need a fact from a file you've already read, recall it from context or `rtk rg` for the specific string — do not re-read the file.
@@ -67,16 +71,16 @@ A hook (`tools/audit/token_discipline_hook.py`, wired in `.claude/settings.json`
 - **Auto-lift delegates to `/lift`:** `tools/llm_auto_lift.py` provides target selection, liftability scoring, and Ghidra context caching. Code generation is delegated to `/lift` which has full agent context. Legacy `review`/`promote` subcommands exist for old batch artifacts.
 - **Never transcribe MSVC intrinsics as C function calls.** Ghidra shows them as regular calls but they have non-standard ABIs that corrupt the stack or registers when called from C. Use the equivalent C idiom — the compiler generates the intrinsic automatically:
 
-  | Address | Intrinsic | Refs | Ghidra shows | Write in C instead |
-  |---------|-----------|------|--------------|-------------------|
-  | 0x1d90e0 | `_chkstk` | 71 | `regparm(1)` call | declare locals normally (or `static` for large buffers) |
-  | 0x1d9068 | `_ftol2` | 228 | `_ftol2(var)` or cast | `(int)float_expr` |
-  | 0x1dd5c8 | `__SEH_prolog` | 74 | mangled params | `__try/__except` — clang supports this natively on `-target i386-pc-win32`; see `docs/seh-handling.md` |
-  | 0x1dd601 | `__SEH_epilog` | 73 | mangled return | (paired with prolog — handled automatically by `__try/__except`) |
-  | 0x1dd620 | `_allmul` | 10 | 4-arg call | `(int64_t)a * b` |
-  | 0x1dd660 | `_aullshr` | 1 | register call | `(uint64_t)val >> shift` |
-  | 0x1dd680 | `_aullrem` | 1 | 4-arg call | `(uint64_t)a % b` |
-  | 0x1dd770 | `_aulldiv` | 1 | 4-arg call | `(uint64_t)a / b` |
+  | Address  | Intrinsic      | Refs | Ghidra shows          | Write in C instead                                                                                     |
+  |----------|----------------|------|-----------------------|--------------------------------------------------------------------------------------------------------|
+  | 0x1d90e0 | `_chkstk`      | 71   | `regparm(1)` call     | declare locals normally (or `static` for large buffers)                                                |
+  | 0x1d9068 | `_ftol2`       | 228  | `_ftol2(var)` or cast | `(int)float_expr`                                                                                      |
+  | 0x1dd5c8 | `__SEH_prolog` | 74   | mangled params        | `__try/__except` — clang supports this natively on `-target i386-pc-win32`; see `docs/seh-handling.md` |
+  | 0x1dd601 | `__SEH_epilog` | 73   | mangled return        | (paired with prolog — handled automatically by `__try/__except`)                                       |
+  | 0x1dd620 | `_allmul`      | 10   | 4-arg call            | `(int64_t)a * b`                                                                                       |
+  | 0x1dd660 | `_aullshr`     | 1    | register call         | `(uint64_t)val >> shift`                                                                               |
+  | 0x1dd680 | `_aullrem`     | 1    | 4-arg call            | `(uint64_t)a % b`                                                                                      |
+  | 0x1dd770 | `_aulldiv`     | 1    | 4-arg call            | `(uint64_t)a / b`                                                                                      |
 
   Never add these to kb.json. They are compiler runtime, not game functions.
 
@@ -210,15 +214,15 @@ A hook (`tools/audit/token_discipline_hook.py`, wired in `.claude/settings.json`
 
 **Skill-first discipline (MANDATORY — applies to every Claude/agent/subagent instance in this repo):** Before doing lift, score-recovery, call-site verification, hazard, or crash/regression work, FIND and APPLY the matching skill under `.claude/skills/`. Do NOT default to raw `docs/lift-learnings.md` or a hand-rolled approach — the skills are the indexed, trigger-keyed front door to that doctrine and must be used actively. Discover with `rtk fd -e md . .claude/skills` (or grep the skill name), read the skill's **"Invoke this skill when"** block, and follow its checklist. Invoke via the Skill tool when it is surfaced as user-invocable; when it is NOT surfaced (the `lift-*` task skills frequently aren't loaded per session), READ the `SKILL.md` and apply it directly — being unlisted is not a reason to skip it. When delegating to a subagent, NAME the relevant skill(s) in the brief so the subagent runs the same doctrine. Trigger → skill map:
 
-| Situation | Skill |
-|-----------|-------|
-| VC71 65–84% and the gap "looks structural" (before writing "structural ceiling") | `lift-score-improve` |
-| Any new/changed lift, before commit or deploy (non-crashing correctness; box is the only oracle) | `lift-silent-bugs` + `bug-hunt` |
-| Verifying a call site against disassembly | `lift-decompiler-traps` + `lift-arg-hazards` |
-| Calling an UNPORTED callee (implicit `@<reg>` args) | `check-callee-regs` |
-| Sizing a local buffer / `_chkstk` frame / stack aliasing | `lift-frame-hazards` |
-| Any Xbox crash / hang / assert / visual regression / toggle-bisect | `crash-triage` → `lift-crash-signals` |
-| Deterministic input record/replay testing (capture gameplay, replay over and over, diff patched vs unpatched on identical input) | `input-replay-testing` |
+| Situation                                                                                                                        | Skill                                        |
+|----------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------|
+| VC71 65–84% and the gap "looks structural" (before writing "structural ceiling")                                                 | `lift-score-improve`                         |
+| Any new/changed lift, before commit or deploy (non-crashing correctness; box is the only oracle)                                 | `lift-silent-bugs` + `bug-hunt`              |
+| Verifying a call site against disassembly                                                                                        | `lift-decompiler-traps` + `lift-arg-hazards` |
+| Calling an UNPORTED callee (implicit `@<reg>` args)                                                                              | `check-callee-regs`                          |
+| Sizing a local buffer / `_chkstk` frame / stack aliasing                                                                         | `lift-frame-hazards`                         |
+| Any Xbox crash / hang / assert / visual regression / toggle-bisect                                                               | `crash-triage` → `lift-crash-signals`        |
+| Deterministic input record/replay testing (capture gameplay, replay over and over, diff patched vs unpatched on identical input) | `input-replay-testing`                       |
 
 Broad doctrine skills:
 - `halo-xbox-re`: RE doctrine and evidence rules.
@@ -238,13 +242,13 @@ Broad doctrine skills:
 
 ## RTK Commands by Workflow
 
-| Category | Typical Savings | Examples |
-|----------|-----------------|----------|
-| **Build** | 70-90% | `rtk cmake`, `rtk tsc`, `rtk lint` |
-| **Test** | 90-99% | `rtk pytest`, `rtk cargo test`, `rtk vitest` |
-| **Git** | 60-80% | `rtk git status`, `rtk git diff`, `rtk git log` |
-| **Files** | 60-75% | `rtk read`, `rtk grep`, `rtk find`, `rtk ls` |
-| **Ghidra**| 70-90% | `rtk python3 tools/audit/check_ghidra_mcp.py` |
+| Category   | Typical Savings | Examples                                        |
+|------------|-----------------|-------------------------------------------------|
+| **Build**  | 70-90%          | `rtk cmake`, `rtk tsc`, `rtk lint`              |
+| **Test**   | 90-99%          | `rtk pytest`, `rtk cargo test`, `rtk vitest`    |
+| **Git**    | 60-80%          | `rtk git status`, `rtk git diff`, `rtk git log` |
+| **Files**  | 60-75%          | `rtk read`, `rtk grep`, `rtk find`, `rtk ls`    |
+| **Ghidra** | 70-90%          | `rtk python3 tools/audit/check_ghidra_mcp.py`   |
 
 Use `rtk gain` to view savings statistics.
 <!-- /rtk-instructions -->
