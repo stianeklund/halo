@@ -38,6 +38,26 @@
         "prop_handle": "0xf7430023"
       },
       "note": "a10 door-grunt slot11 (awareness=6) + its primary perception prop 0xf7430023. Second mid-alertness grunt for additional path coverage."
+    },
+    {
+      "out": "rec19_grunt10_ack.json",
+      "recording": "Recording 19.halorec",
+      "frame": "handle=0xe38c000a",
+      "args": {
+        "actor_handle": "0xe38c000a",
+        "prop_handle": "0xf7480029"
+      },
+      "note": "a10 door-grunt slot10 with an acknowledgeable perception prop. The slot10 primary prop is type 4 / non-acknowledgeable, so this pins a same-frame valid alternate prop for actor_perception_acknowledge."
+    },
+    {
+      "out": "rec19_grunt11_ack.json",
+      "recording": "Recording 19.halorec",
+      "frame": "handle=0xe38d000b",
+      "args": {
+        "actor_handle": "0xe38d000b",
+        "prop_handle": "0xf7460026"
+      },
+      "note": "a10 door-grunt slot11 with an acknowledgeable perception prop. The slot11 primary prop is type 4 / non-acknowledgeable, so this pins a same-frame valid alternate prop for actor_perception_acknowledge."
     }
   ]
 }
