@@ -197,16 +197,21 @@ resist that drift until it crosses a decision threshold.
 
 ## Preconditions / risks (none blocking, do not skip)
 
-- **`ab_check` tests the DEPLOYED build, not local source — deploy first.**
+- **Build liveness — CLOSED by `ab_check` auto-deploy + gate (2026-06-29).** The hazard:
   `capture_scenario.py replay --xbe default.xbe` boots whatever `default.xbe` is on the
   box and only verifies its *identity* (default vs cachebeta), not that it equals your
-  latest compile. `build.py --target halo` builds only the ELF and does **not** re-patch,
-  so a kb.json-only change (a `ported` toggle) needs `build.py --target patched_xbe` then
-  `deploy_xbox.py --xbe-only`; a full source change needs `build_deploy_run.sh -q`. For
-  toggle-bisect, hard-gate with `verify_toggles_live.py` (must read `ORIGINAL`) before
-  trusting the verdict. (Confirmed the hard way during the slot-33 bisect, 2026-06-29 —
-  two vacuous A/B cycles before the gate was added. Candidate enhancement: have
-  `ab_check` deploy the local build and assert the liveness gate itself.)
+  latest compile; and `build.py --target halo` is ELF-only and does **not** re-patch.
+  `ab_check` now defends against this itself: by default it runs `build_deploy_run.sh -q`
+  first (no `--target` → builds ALL targets; `patched_xbe` is an `ALL` custom_target so
+  `patch.py` ALWAYS re-runs and a kb.json-only toggle IS re-patched), uploads `default.xbe`,
+  and `deploy_xbox` proves running == local via the DECOMP BUILD token; then it runs
+  `verify_toggles_live --all-off` (positive control = patched build live; every
+  `ported=false` must read ORIGINAL = the toggle-bisect gate). Either failure → exit 2
+  `INCONCLUSIVE`, no diff. `--no-deploy` skips the rebuild; `--verify-live` still gates;
+  otherwise the verdict is flagged `BUILD IDENTITY UNVERIFIED`. (The gap was found the hard
+  way during the slot-33 bisect — two vacuous A/B cycles before the gate existed. The
+  `--all-off` flag matters: without it the positive control passes on a stale patch because
+  the *old* ports are still ACTIVE; `--all-off` is what notices YOUR toggle didn't revert.)
 - **Time-to-control head alignment.** If a lift shifts how many ticks it takes to
   reach player control, fixed-tick presses land at a different game moment — a
   desync that looks like a bug. The A/A check can't catch this; do a one-time A/B
