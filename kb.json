@@ -25679,7 +25679,7 @@
         },
         {
           "addr": "0x1a7a90",
-          "decl": "void FUN_001a7a90(int param_1, float *body_dmg, float *shield_dmg);",
+          "decl": "void FUN_001a7a90(int param_1, float body_dmg, float shield_dmg);",
           "ported": true
         },
         {

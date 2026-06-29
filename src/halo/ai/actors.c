@@ -170,7 +170,11 @@ void FUN_00036a20(int actor_handle, int encounter_handle, char param_3)
 
 /* FUN_00036a90 (0x36a90) — actor seek-prop approach: record timestamp,
  * find pathfinding location, post priority-2 move stimulus toward prop+0xf0.
- * Stack args to FUN_00036890: prop->0xec, 1.5, prop_handle, 90, 90, 1. */
+ * Stack args to FUN_00036890 (orig 0x36a90 push order, right-to-left):
+ *   param5=prop->0xec, param6=1.5f, param7=90 (0x5a), param8=prop_handle,
+ *   param9=90, param10=1.  param7->actor+0x33c, param8->actor+0x340
+ *   (combat_transition_prop_index). Disasm: 0x36adb push 0x5a (param7);
+ *   0x36ada push edi=prop_handle (param8). */
 void FUN_00036a90(int actor_handle, int prop_handle)
 {
   char *actor;
@@ -183,7 +187,7 @@ void FUN_00036a90(int actor_handle, int prop_handle)
   *(int *)(actor + 0x3a0) = game_time;
   actor_perception_find_prop_pathfinding_location(actor_handle, prop_handle);
   FUN_00036890(actor_handle, (int *)(prop + 0xf0), 2, NULL,
-               *(int *)(prop + 0xec), 0x3fc00000, prop_handle, 0x5a, 0x5a, 1);
+               *(int *)(prop + 0xec), 0x3fc00000, 0x5a, prop_handle, 0x5a, 1);
 }
 
 /* FUN_00036b10 (0x36b10) — actor prop-approach stimulus, priority 6.
@@ -7305,9 +7309,15 @@ LAB_3e02c:
     ux = ly * world_up[0] - world_up[1] * lx;
     uy = world_up[2] * lx - lz * world_up[0];
     uz = lz * world_up[1] - world_up[2] * ly;
-    *(float *)(actor + 0x198) = ux;
+    /* FPU LIFO store order (orig 0x3e332-0x3e337): the three sub-products are
+     * pushed ux,uy,uz then fstp'd into +0x198,+0x19c,+0x1a0 — popping in REVERSE,
+     * so +0x198 receives the LAST-pushed (uz) and +0x1a0 the FIRST (ux). The prior
+     * lift stored in computation order, swapping the X and Z components (§4 cross-
+     * product / FPU-stack hazard). Invisible when ux==uz (e.g. horizontal look) but
+     * corrupts the look-frame basis the perception cone test (0x314f0) reads. */
+    *(float *)(actor + 0x198) = uz;
     *(float *)(actor + 0x19c) = uy;
-    *(float *)(actor + 0x1a0) = uz;
+    *(float *)(actor + 0x1a0) = ux;
     normalize3d((float *)(actor + 0x198));
   }
 
@@ -7325,9 +7335,15 @@ LAB_3e02c:
     ax = lx * uy - ly * ux;
     ay = ux * lz - lx * uz;
     az = ly * uz - lz * uy;
-    *(float *)(actor + 0x1a4) = ax;
+    /* FPU LIFO store order (orig 0x3e36e-0x3e37a): products pushed ax,ay,az then
+     * fstp'd into +0x1a4,+0x1a8,+0x1ac — popping in REVERSE, so +0x1a4 receives the
+     * LAST-pushed (az) and +0x1ac the FIRST (ax). The prior lift stored in computation
+     * order, swapping the right-vector X and Z components -> a degenerate look frame
+     * (right ~= look) that fails the perception vision-cone test (0x314f0 reads +0x1a4),
+     * so grunts never visually perceive their target. §4 cross-product / FPU-stack hazard. */
+    *(float *)(actor + 0x1a4) = az;
     *(float *)(actor + 0x1a8) = ay;
-    *(float *)(actor + 0x1ac) = az;
+    *(float *)(actor + 0x1ac) = ax;
   }
 
   /* Assert vector validity.

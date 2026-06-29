@@ -1183,6 +1183,174 @@ def _collect_c_files(changed_only=False, staged_only=False):
     return c_files
 
 
+# Vector helpers that read 2-3 CONTIGUOUS float components through a single
+# pointer argument. Passing &<scalar_local> makes them read the bytes that
+# happen to follow that scalar on the stack — which clang may place
+# non-adjacently / reordered vs MSVC, so components [1]/[2] read garbage.
+# (unit_can_see_point / FUN_001aa430: float dir_x,dir_y,dir_z; normalize3d(&dir_x)
+#  -> overflow -> assert_valid_real_normal3d crash, PoA marines.)
+_VEC_CONTIG_FNS = (
+    'normalize3d', 'normalize2d', 'magnitude3d', 'magnitude2d',
+    'cross_product3d', 'dot_product3d', 'scale_vector3d',
+    'add_vectors3d', 'subtract_vectors3d', 'perpendicular3d',
+)
+_VEC_CONTIG_CALL_RE = re.compile(
+    r'\b(' + '|'.join(_VEC_CONTIG_FNS) + r')\s*\(([^;{}]*)\)'
+)
+# &<id> NOT followed by [ . -> (so &arr[0], &s.x, &p->v are excluded as safe:
+# those address a known-contiguous aggregate element).
+_VEC_CONTIG_ARG_RE = re.compile(r'&\s*([A-Za-z_]\w*)\b(?!\s*(?:\[|\.|->))')
+# A bare scalar float local: "float x;" or "float x, y, z;" but NOT "float x[3];"
+# and NOT a typedef'd vector (vector3_t v;), which is contiguous and safe.
+_SCALAR_FLOAT_DECL_RE = re.compile(
+    r'^\s*(?:float|real)\s+([A-Za-z_][\w,\s]*?)\s*;\s*$'
+)
+
+
+def _scalar_float_locals(chunk_lines):
+    """Names declared as bare scalar floats (no [] array) in a function body."""
+    names = set()
+    for line in chunk_lines:
+        if '[' in line:  # array decl -> contiguous, safe
+            continue
+        m = _SCALAR_FLOAT_DECL_RE.match(line)
+        if not m:
+            continue
+        for nm in m.group(1).split(','):
+            nm = nm.strip()
+            if nm and re.match(r'^[A-Za-z_]\w*$', nm):
+                names.add(nm)
+    return names
+
+
+def check_vector_arg_contiguity(filepath, content, lines):
+    """Flag a contiguous-vector helper called with &<scalar_float_local>.
+
+    The helper reads 2-3 components past the pointer; a scalar local gives it
+    no contiguity guarantee under clang. Use a float[N] array (or pass an
+    existing array/struct) so all components are adjacent. Safe forms
+    (&arr[idx], &struct.field, vector3_t locals) are not flagged.
+    """
+    errors = []
+    blanked = _blank_comments_and_literals(content)
+    blanked_lines = blanked.split('\n')
+    chunks = _split_functions(lines)
+    relpath = os.path.relpath(filepath, ROOT_DIR)
+    # Precompute line start offsets to map a char index -> line number.
+    line_starts = [0]
+    for ln in lines:
+        line_starts.append(line_starts[-1] + len(ln) + 1)
+
+    def offset_to_line(off):
+        lo, hi = 0, len(line_starts) - 1
+        while lo < hi:
+            mid = (lo + hi + 1) // 2
+            if line_starts[mid] <= off:
+                lo = mid
+            else:
+                hi = mid - 1
+        return lo + 1
+
+    for start, end in chunks:
+        scalars = _scalar_float_locals(blanked_lines[start:end])
+        if not scalars:
+            continue
+        chunk_start_off = line_starts[start]
+        chunk_end_off = line_starts[end] if end < len(line_starts) else len(blanked)
+        segment = blanked[chunk_start_off:chunk_end_off]
+        for cm in _VEC_CONTIG_CALL_RE.finditer(segment):
+            fn = cm.group(1)
+            args = cm.group(2)
+            for am in _VEC_CONTIG_ARG_RE.finditer(args):
+                ident = am.group(1)
+                if ident in scalars:
+                    abs_off = chunk_start_off + cm.start()
+                    lineno = offset_to_line(abs_off)
+                    errors.append(
+                        f'  {relpath}:{lineno}: {fn}(&{ident}) — {ident} is a '
+                        f'scalar float local; the helper reads adjacent '
+                        f'components. Use a float[N] array so they are '
+                        f'contiguous (clang may scatter separate locals).'
+                    )
+    return errors
+
+
+# ---------------------------------------------------------------------------
+# §23: NaN-blind degenerate-vector guard (WARN)
+# ---------------------------------------------------------------------------
+# A guard that rejects a degenerate vector with `if (<mag/dot> < EPS) return`
+# is FALSE when the operand is NaN (an unordered float compare), so a NaN
+# component slips past the guard into a normalize/assert path.  Use the
+# negated form `!(expr >= EPS)`, which is TRUE for NaN as well as
+# (0,0,0)/tiny.  (actor_looking.c:529 NaN-X aim HALT, 2026-06-22: an
+# uninitialized look-spec X = 0xffffffff made m2 NaN; `m2 < 1e-8f` was false
+# so the NaN reached assert_valid_real_normal3d.)
+_NAN_GUARD_CMP = re.compile(
+    r'\bif\s*\(\s*(?P<lhs>[A-Za-z0-9_.\[\]>*\s()-]+?)\s*(?P<op><=?)\s*'
+    r'(?P<rhs>(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?[fF]?)\s*\)'
+)
+_MAG_NAME = re.compile(
+    r'^(?:m2|mag|mag2|magsq|magnitude2?|len|len2|lensq|length2?|dist|dist2|'
+    r'distance|d2|dot|dotp|dotprod|sq|sqr|sqmag|sqlen|norm|norm2)$',
+    re.IGNORECASE,
+)
+_MAG_CALL = re.compile(
+    r'\b(?:magnitude\w*|dot_product\w*|vector_dot\w*|length\w*|distance\w*|'
+    r'squared?_?(?:magnitude|length|distance)\w*)\s*\(',
+    re.IGNORECASE,
+)
+_PRODUCT = re.compile(r'\w\s*\*\s*\w')
+
+
+def check_nan_blind_guard(filepath, content, lines):
+    """Flag `if (<mag/dot> < EPS) reject` guards that silently pass NaN through.
+
+    A degenerate-vector guard that rejects with `<` (or `<=`) against a small
+    epsilon is FALSE for a NaN operand (an unordered float compare), so a NaN
+    component slips past it into a normalize/assert path.  Use the negated
+    `!(expr >= EPS)` form, which is TRUE for NaN as well as (0,0,0)/tiny.
+    See lift-learnings §23.  Suppress with /* hazard-ok: nan-checked */ on the
+    same line.
+    """
+    errors = []
+    flat_lines = _blank_comments_and_literals(content).split('\n')
+    for i, fline in enumerate(flat_lines):
+        m = _NAN_GUARD_CMP.search(fline)
+        if not m:
+            continue
+        lhs = m.group('lhs').strip()
+        rhs_raw = m.group('rhs')
+        try:
+            eps = float(rhs_raw.rstrip('fF'))
+        except ValueError:
+            continue
+        # Only epsilon-sized positive thresholds (degenerate-reject), not real
+        # thresholds (0.1, 0.5, ...) or integer/loop bounds.
+        if not (0.0 < eps <= 0.01):
+            continue
+        # LHS must look like a magnitude / dot / length quantity.
+        mag_like = (bool(_MAG_NAME.match(lhs)) or bool(_MAG_CALL.search(lhs))
+                    or len(_PRODUCT.findall(lhs)) >= 2)
+        if not mag_like:
+            continue
+        # The guard must REJECT the degenerate case (return/continue/break/goto)
+        # on the same line or within the next two lines.
+        window = ' '.join(flat_lines[i:i + 3])
+        if not re.search(r'\b(?:return|continue|break|goto)\b', window):
+            continue
+        src_line = lines[i] if i < len(lines) else ''
+        if 'hazard-ok' in src_line:
+            continue
+        relpath = os.path.relpath(filepath, ROOT_DIR)
+        errors.append(
+            f'  {relpath}:{i + 1}: if ({lhs} {m.group("op")} {rhs_raw}) — '
+            f'`{m.group("op")}` is FALSE for NaN, so a NaN {lhs} slips this '
+            f'degenerate-vector guard. Use !({lhs} >= {rhs_raw}) to also '
+            f'reject NaN (see lift-learnings §23)'
+        )
+    return errors
+
+
 def main():
     frame_audit = '--frame-size-audit' in sys.argv
     quiet = '-q' in sys.argv or '--quiet' in sys.argv or os.environ.get('LOG_LEVEL') == 'WARNING'
@@ -1208,6 +1376,8 @@ def main():
     all_param_loop_errors = []
     all_discard_result_errors = []
     all_inplace_mut_errors = []
+    all_contiguity_errors = []
+    all_nan_guard_errors = []
 
     for fpath in c_files:
         with open(fpath, 'r', errors='replace') as f:
@@ -1227,6 +1397,8 @@ def main():
         all_param_loop_errors.extend(check_param_loop_corruption(fpath, content, lines))
         all_discard_result_errors.extend(check_discarded_result(fpath, content, lines))
         all_inplace_mut_errors.extend(check_inplace_mutator_misuse(fpath, content, lines))
+        all_contiguity_errors.extend(check_vector_arg_contiguity(fpath, content, lines))
+        all_nan_guard_errors.extend(check_nan_blind_guard(fpath, content, lines))
         if frame_audit:
             all_frame_errors.extend(check_frame_sizes(fpath, content, lines))
 
@@ -1245,7 +1417,9 @@ def main():
             f'addr_value_add: {len(all_addr_value_add_errors)}, '
             f'param_loop: {len(all_param_loop_errors)}, '
             f'discard_result: {len(all_discard_result_errors)}, '
-            f'inplace_mutator: {len(all_inplace_mut_errors)}'
+            f'inplace_mutator: {len(all_inplace_mut_errors)}, '
+            f'vec_contiguity: {len(all_contiguity_errors)}, '
+            f'nan_guard: {len(all_nan_guard_errors)}'
         )
         if frame_audit:
             counts += f', frame_sizes: {len(all_frame_errors)}'
@@ -1255,7 +1429,8 @@ def main():
                  len(all_output_size_errors) + len(all_x87_math_errors) +
                  len(all_concat_errors) + len(all_float_smuggle_errors) +
                  len(all_addr_value_add_errors) + len(all_param_loop_errors) +
-                 len(all_discard_result_errors) + len(all_inplace_mut_errors))
+                 len(all_discard_result_errors) + len(all_inplace_mut_errors) +
+                 len(all_contiguity_errors) + len(all_nan_guard_errors))
         if total:
             print(counts, file=sys.stderr)
     else:
@@ -1428,6 +1603,33 @@ def main():
                 file=sys.stderr,
             )
             for e in all_inplace_mut_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
+
+        if all_contiguity_errors:
+            print(
+                'WARNING: contiguous-vector helper called with &<scalar_float>.\n'
+                'normalize3d/cross_product3d/magnitude3d/... read 2-3 components\n'
+                'past the pointer; separate float locals are not guaranteed\n'
+                'contiguous under clang (it reordered/scattered them in\n'
+                'unit_can_see_point -> overflow -> assert). Use a float[N] array:\n',
+                file=sys.stderr,
+            )
+            for e in all_contiguity_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
+
+        if all_nan_guard_errors:
+            print(
+                'WARNING: NaN-blind degenerate-vector guard.\n'
+                'A guard rejecting a degenerate vector with `if (mag < EPS)`\n'
+                'is FALSE for a NaN operand (unordered compare), so a NaN\n'
+                'component slips through into normalize/assert. Use the\n'
+                'negated `!(mag >= EPS)` form, which is TRUE for NaN too\n'
+                '(see lift-learnings §23):\n',
+                file=sys.stderr,
+            )
+            for e in all_nan_guard_errors:
                 print(e, file=sys.stderr)
             print(file=sys.stderr)
 

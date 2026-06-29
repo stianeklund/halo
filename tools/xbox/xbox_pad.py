@@ -36,9 +36,13 @@ Protocol: newline-delimited JSON over TCP.
 import argparse
 import json
 import socket
+import subprocess
 import sys
+import tempfile
 import threading
 import time
+
+from internal.local_env import build_windows_python_command, is_wsl
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 27000
@@ -76,18 +80,20 @@ def normalize_button(name):
     return aliases.get(n)
 
 
-def send_command(host, port, command):
+def send_command(host, port, command, quiet=False):
     try:
         sock = socket.create_connection((host, port), timeout=5)
     except ConnectionRefusedError:
-        print(
-            "error: controller server not running. "
-            "Start with: python.exe tools/xbox_pad.py serve",
-            file=sys.stderr,
-        )
+        if not quiet:
+            print(
+                "error: controller server not running. "
+                "Start with: python.exe tools/xbox/xbox_pad.py serve",
+                file=sys.stderr,
+            )
         return None
     except OSError as exc:
-        print(f"error: cannot connect to {host}:{port}: {exc}", file=sys.stderr)
+        if not quiet:
+            print(f"error: cannot connect to {host}:{port}: {exc}", file=sys.stderr)
         return None
 
     payload = json.dumps(command, separators=(",", ":")) + "\n"
@@ -113,6 +119,84 @@ def send_command(host, port, command):
         return json.loads(data.decode("utf-8").strip())
     except json.JSONDecodeError:
         return None
+
+
+def server_status(host, port):
+    return send_command(host, port, {"action": "status"}, quiet=True)
+
+
+def server_command(host, port):
+    script_path = os.path.abspath(__file__)
+    script_args = ["--host", host, "--port", str(port), "serve"]
+    if is_wsl():
+        return build_windows_python_command(script_path, script_args)
+    return [sys.executable, script_path] + script_args
+
+
+def start_server_process(host, port):
+    command = server_command(host, port)
+    if command is None:
+        return None, "could not locate Windows Python for controller server startup"
+
+    log_path = os.path.join(tempfile.gettempdir(), f"xbox_pad_{port}.log")
+    log = open(log_path, "ab", buffering=0)
+    try:
+        subprocess.Popen(
+            command,
+            stdout=log,
+            stderr=subprocess.STDOUT,
+            stdin=subprocess.DEVNULL,
+            close_fds=True,
+            start_new_session=(os.name != "nt"),
+        )
+    except OSError as exc:
+        log.close()
+        return None, f"failed to start controller server: {exc}"
+    log.close()
+    return log_path, None
+
+
+def ensure_server(host, port, start=True, timeout=8.0):
+    status = server_status(host, port)
+    if status and status.get("ok"):
+        status["running"] = True
+        status["started"] = False
+        return status
+
+    if not start:
+        return {"ok": False, "running": False, "started": False}
+
+    log_path, error = start_server_process(host, port)
+    if error:
+        return {"ok": False, "running": False, "started": False, "error": error}
+
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        time.sleep(0.25)
+        status = server_status(host, port)
+        if status and status.get("ok"):
+            status["running"] = True
+            status["started"] = True
+            status["log"] = log_path
+            return status
+
+    return {
+        "ok": False,
+        "running": False,
+        "started": True,
+        "error": "controller server did not become ready before timeout",
+        "log": log_path,
+    }
+
+
+def maybe_auto_start(args):
+    if not getattr(args, "auto_start", False):
+        return True
+    result = ensure_server(args.host, args.port, start=True)
+    if result.get("ok"):
+        return True
+    print(json.dumps(result, indent=2), file=sys.stderr)
+    return False
 
 
 # ─── Server ───────────────────────────────────────────────────────────
@@ -346,6 +430,13 @@ def cmd_status(args):
     return 0 if resp.get("ok") else 1
 
 
+def cmd_ensure(args):
+    resp = ensure_server(args.host, args.port, start=not args.no_start,
+                         timeout=args.timeout)
+    print(json.dumps(resp, indent=2))
+    return 0 if resp.get("ok") else 1
+
+
 def cmd_tap(args):
     resp = send_command(
         args.host,
@@ -424,12 +515,83 @@ def cmd_reset(args):
     return 0 if resp.get("ok") else 1
 
 
+def load_sequence(path):
+    with open(path, "r", encoding="utf-8") as handle:
+        data = json.load(handle)
+    if isinstance(data, dict):
+        data = data.get("steps", [])
+    if not isinstance(data, list):
+        raise ValueError("sequence must be a JSON list or an object with a steps list")
+    return data
+
+
+def normalize_step(step):
+    if not isinstance(step, dict):
+        raise ValueError(f"sequence step must be an object: {step!r}")
+    if "wait" in step:
+        return {"action": "wait", "duration": float(step["wait"])}
+    if "sleep" in step:
+        return {"action": "wait", "duration": float(step["sleep"])}
+    if "tap" in step:
+        return {
+            "action": "tap",
+            "button": step["tap"],
+            "duration": float(step.get("duration", 0.1)),
+        }
+    if "dpad" in step:
+        return {
+            "action": "dpad",
+            "direction": step["dpad"],
+            "duration": float(step.get("duration", 0.15)),
+        }
+    return step
+
+
+def cmd_sequence(args):
+    try:
+        steps = load_sequence(args.path)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(f"error: failed to load sequence: {exc}", file=sys.stderr)
+        return 1
+
+    responses = []
+    for index, raw_step in enumerate(steps):
+        try:
+            step = normalize_step(raw_step)
+        except ValueError as exc:
+            print(f"error: step {index}: {exc}", file=sys.stderr)
+            return 1
+        action = step.get("action", "")
+        if action in ("wait", "sleep"):
+            duration = float(step.get("duration", 0.0))
+            time.sleep(max(0.0, duration))
+            responses.append({"ok": True, "waited": duration})
+            continue
+        resp = send_command(args.host, args.port, step)
+        if resp is None:
+            return 1
+        responses.append(resp)
+        if not resp.get("ok") and not args.keep_going:
+            print(json.dumps({"ok": False, "failed_step": index, "responses": responses}, indent=2))
+            return 1
+        if args.step_delay > 0:
+            time.sleep(args.step_delay)
+
+    print(json.dumps({"ok": True, "steps": len(steps), "responses": responses}, indent=2))
+    return 0
+
+
 def build_parser():
     p = argparse.ArgumentParser(
         description="Virtual Xbox 360 controller for xemu (client/server).",
     )
     p.add_argument("--host", default=DEFAULT_HOST)
     p.add_argument("--port", type=int, default=DEFAULT_PORT)
+    p.add_argument(
+        "--auto-start",
+        action="store_true",
+        help="Start the controller server if a client command cannot reach it",
+    )
 
     sub = p.add_subparsers(dest="command", required=True)
 
@@ -438,6 +600,11 @@ def build_parser():
 
     st = sub.add_parser("status", help="Query controller state")
     st.set_defaults(func=cmd_status)
+
+    ens = sub.add_parser("ensure", help="Ensure the controller server is running")
+    ens.add_argument("--no-start", action="store_true", help="Only check; do not start")
+    ens.add_argument("--timeout", type=float, default=8.0, help="Seconds to wait after start")
+    ens.set_defaults(func=cmd_ensure)
 
     tap = sub.add_parser("tap", help="Press and release a button")
     tap.add_argument(
@@ -476,12 +643,22 @@ def build_parser():
     rst = sub.add_parser("reset", help="Release all inputs, center sticks")
     rst.set_defaults(func=cmd_reset)
 
+    seq = sub.add_parser("sequence", help="Play an agent-neutral JSON input sequence")
+    seq.add_argument("path", help="JSON list or object with a steps list")
+    seq.add_argument("--step-delay", type=float, default=0.0,
+                     help="Extra delay after each non-wait step")
+    seq.add_argument("--keep-going", action="store_true",
+                     help="Continue after a failed controller command")
+    seq.set_defaults(func=cmd_sequence)
+
     return p
 
 
 def main():
     parser = build_parser()
     args = parser.parse_args()
+    if args.command not in ("serve", "ensure") and not maybe_auto_start(args):
+        return 1
     return args.func(args)
 
 

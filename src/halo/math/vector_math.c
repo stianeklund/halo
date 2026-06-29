@@ -114,17 +114,22 @@ float normalize3d(float *v)
   float scale;
 
   mag = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
-  /* _DAT_002533d0 = -3.69e19: original condition (-3.69e19 <= ABS(mag)) is
-     always true for non-NaN. Guard against zero/NaN to avoid Inf/NaN in
-     components; callers check the 0.0f return. */
-  if (mag == 0.0f || v[0] != v[0] || v[1] != v[1] || v[2] != v[2]) {
-    return 0.0f;
+  /* Original (0x13010): FCOMP ABS(mag) against the *double* 0.0001 at 0x2533d0
+     and normalize only when |mag| >= 0.0001, otherwise return 0.0 (0x2533c0)
+     leaving v unchanged.  A prior lift mis-read 0x2533d0 as a float
+     (-3.69e19) — making the threshold always-true — and substituted a
+     `mag == 0.0f` guard.  That let denormalized / near-zero (but nonzero)
+     vectors be divided into a non-unit result that later tripped
+     assert_valid_real_normal3d (actor_looking.c:529 via FUN_00028660).  Read
+     the threshold as a double to restore the original early-out. */
+  if (fabsf(mag) >= *(double *)0x2533d0) {
+    scale = 1.0f / mag;
+    v[0] = v[0] * scale;
+    v[1] = v[1] * scale;
+    v[2] = v[2] * scale;
+    return mag;
   }
-  scale = 1.0f / mag;
-  v[0] = v[0] * scale;
-  v[1] = v[1] * scale;
-  v[2] = v[2] * scale;
-  return mag;
+  return 0.0f;
 }
 
 /* FUN_00013070 (0x13070) — Dot product of two 3D vectors.

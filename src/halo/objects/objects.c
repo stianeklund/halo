@@ -8181,7 +8181,7 @@ void object_compute_node_matrices(int object_handle)
                                    parent_node_mat[2] * parent_node_mat[5] +
                                    parent_node_mat[3] * parent_node_mat[6];
                     if ((*(uint32_t *)&dot_fl & 0x7f800000) == 0x7f800000 ||
-                        (dot_fl < 0 ? -dot_fl : dot_fl) >= *(float *)0x2549d8) {
+                        (dot_fl < 0 ? -dot_fl : dot_fl) >= *(double *)0x2549d8) {
                       char *msg = csprintf(
                         (char *)0x5ab100,
                         "%s had a forward (%f,%f,%f) not perpendicular "
@@ -8200,7 +8200,7 @@ void object_compute_node_matrices(int object_handle)
                                    parent_node_mat[8] * parent_node_mat[5] +
                                    parent_node_mat[9] * parent_node_mat[6];
                     if ((*(uint32_t *)&dot_ul & 0x7f800000) == 0x7f800000 ||
-                        (dot_ul < 0 ? -dot_ul : dot_ul) >= *(float *)0x2549d8) {
+                        (dot_ul < 0 ? -dot_ul : dot_ul) >= *(double *)0x2549d8) {
                       char *msg = csprintf(
                         (char *)0x5ab100,
                         "%s had a up (%f,%f,%f) not perpendicular to "
@@ -8219,7 +8219,7 @@ void object_compute_node_matrices(int object_handle)
                                    parent_node_mat[2] * parent_node_mat[8] +
                                    parent_node_mat[3] * parent_node_mat[9];
                     if ((*(uint32_t *)&dot_uf & 0x7f800000) == 0x7f800000 ||
-                        (dot_uf < 0 ? -dot_uf : dot_uf) >= *(float *)0x2549d8) {
+                        (dot_uf < 0 ? -dot_uf : dot_uf) >= *(double *)0x2549d8) {
                       char *msg = csprintf(
                         (char *)0x5ab100,
                         "%s had a forward (%f,%f,%f) not perpendicular "
@@ -8368,7 +8368,7 @@ void object_compute_node_matrices(int object_handle)
                                     fwd[2] * fwd[2] - *(float *)0x2533c8;
                     if ((*(uint32_t *)&mag_fwd & 0x7f800000) == 0x7f800000 ||
                         (mag_fwd < 0 ? -mag_fwd : mag_fwd) >=
-                          *(float *)0x2549d8) {
+                          *(double *)0x2549d8) {
                       char *msg = csprintf(
                         (char *)0x5ab100, "%s had a bad forward (%f,%f,%f)",
                         "object_compute_node_matrices root node matrix",
@@ -8383,7 +8383,7 @@ void object_compute_node_matrices(int object_handle)
                                      left[2] * left[2] - *(float *)0x2533c8;
                     if ((*(uint32_t *)&mag_left & 0x7f800000) == 0x7f800000 ||
                         (mag_left < 0 ? -mag_left : mag_left) >=
-                          *(float *)0x2549d8) {
+                          *(double *)0x2549d8) {
                       char *msg = csprintf(
                         (char *)0x5ab100, "%s had a bad left (%f,%f,%f)",
                         "object_compute_node_matrices root node matrix",
@@ -8399,7 +8399,7 @@ void object_compute_node_matrices(int object_handle)
                                    node_matrices[7] * node_matrices[7] -
                                    *(float *)0x2533c8;
                     if ((*(uint32_t *)&mag_up & 0x7f800000) == 0x7f800000 ||
-                        (mag_up < 0 ? -mag_up : mag_up) >= *(float *)0x2549d8) {
+                        (mag_up < 0 ? -mag_up : mag_up) >= *(double *)0x2549d8) {
                       char *msg = csprintf(
                         (char *)0x5ab100, "%s had a bad up (%f,%f,%f)",
                         "object_compute_node_matrices root node matrix",
@@ -8429,7 +8429,7 @@ void object_compute_node_matrices(int object_handle)
                     float dot_fl =
                       fwd[0] * left[0] + fwd[1] * left[1] + fwd[2] * left[2];
                     if ((*(uint32_t *)&dot_fl & 0x7f800000) == 0x7f800000 ||
-                        (dot_fl < 0 ? -dot_fl : dot_fl) >= *(float *)0x2549d8) {
+                        (dot_fl < 0 ? -dot_fl : dot_fl) >= *(double *)0x2549d8) {
                       char *msg = csprintf(
                         (char *)0x5ab100,
                         "%s had a forward (%f,%f,%f) not perpendicular "
@@ -8447,7 +8447,7 @@ void object_compute_node_matrices(int object_handle)
                                    node_matrices[8] * left[1] +
                                    node_matrices[9] * left[2];
                     if ((*(uint32_t *)&dot_ul & 0x7f800000) == 0x7f800000 ||
-                        (dot_ul < 0 ? -dot_ul : dot_ul) >= *(float *)0x2549d8) {
+                        (dot_ul < 0 ? -dot_ul : dot_ul) >= *(double *)0x2549d8) {
                       char *msg = csprintf(
                         (char *)0x5ab100,
                         "%s had a up (%f,%f,%f) not perpendicular to "
@@ -8466,7 +8466,7 @@ void object_compute_node_matrices(int object_handle)
                                    node_matrices[8] * fwd[1] +
                                    node_matrices[9] * fwd[2];
                     if ((*(uint32_t *)&dot_uf & 0x7f800000) == 0x7f800000 ||
-                        (dot_uf < 0 ? -dot_uf : dot_uf) >= *(float *)0x2549d8) {
+                        (dot_uf < 0 ? -dot_uf : dot_uf) >= *(double *)0x2549d8) {
                       char *msg = csprintf(
                         (char *)0x5ab100,
                         "%s had a forward (%f,%f,%f) not perpendicular "
@@ -8519,7 +8519,7 @@ void object_compute_node_matrices(int object_handle)
                 float mag_fwd = fwd2[0] * fwd2[0] + fwd2[1] * fwd2[1] +
                                 fwd2[2] * fwd2[2] - *(float *)0x2533c8;
                 if ((*(uint32_t *)&mag_fwd & 0x7f800000) == 0x7f800000 ||
-                    (mag_fwd < 0 ? -mag_fwd : mag_fwd) >= *(float *)0x2549d8) {
+                    (mag_fwd < 0 ? -mag_fwd : mag_fwd) >= *(double *)0x2549d8) {
                   char *msg = csprintf(
                     (char *)0x5ab100, "%s had a bad forward (%f,%f,%f)", name2,
                     (double)fwd2[0], (double)fwd2[1], (double)fwd2[2]);
@@ -8533,7 +8533,7 @@ void object_compute_node_matrices(int object_handle)
                                  left2[2] * left2[2] - *(float *)0x2533c8;
                 if ((*(uint32_t *)&mag_left & 0x7f800000) == 0x7f800000 ||
                     (mag_left < 0 ? -mag_left : mag_left) >=
-                      *(float *)0x2549d8) {
+                      *(double *)0x2549d8) {
                   char *msg = csprintf(
                     (char *)0x5ab100, "%s had a bad left (%f,%f,%f)", name2,
                     (double)left2[0], (double)left2[1], (double)left2[2]);
@@ -8548,7 +8548,7 @@ void object_compute_node_matrices(int object_handle)
                                node_matrices[7] * node_matrices[7] -
                                *(float *)0x2533c8;
                 if ((*(uint32_t *)&mag_up & 0x7f800000) == 0x7f800000 ||
-                    (mag_up < 0 ? -mag_up : mag_up) >= *(float *)0x2549d8) {
+                    (mag_up < 0 ? -mag_up : mag_up) >= *(double *)0x2549d8) {
                   char *msg = csprintf(
                     (char *)0x5ab100, "%s had a bad up (%f,%f,%f)", name2,
                     (double)node_matrices[7], (double)node_matrices[8],
@@ -8576,7 +8576,7 @@ void object_compute_node_matrices(int object_handle)
                 float dot_fl =
                   fwd2[0] * left2[0] + fwd2[1] * left2[1] + fwd2[2] * left2[2];
                 if ((*(uint32_t *)&dot_fl & 0x7f800000) == 0x7f800000 ||
-                    (dot_fl < 0 ? -dot_fl : dot_fl) >= *(float *)0x2549d8) {
+                    (dot_fl < 0 ? -dot_fl : dot_fl) >= *(double *)0x2549d8) {
                   char *msg = csprintf(
                     (char *)0x5ab100,
                     "%s had a forward (%f,%f,%f) not perpendicular "
@@ -8593,7 +8593,7 @@ void object_compute_node_matrices(int object_handle)
                                node_matrices[8] * left2[1] +
                                node_matrices[9] * left2[2];
                 if ((*(uint32_t *)&dot_ul & 0x7f800000) == 0x7f800000 ||
-                    (dot_ul < 0 ? -dot_ul : dot_ul) >= *(float *)0x2549d8) {
+                    (dot_ul < 0 ? -dot_ul : dot_ul) >= *(double *)0x2549d8) {
                   char *msg = csprintf(
                     (char *)0x5ab100,
                     "%s had a up (%f,%f,%f) not perpendicular to "
@@ -8611,7 +8611,7 @@ void object_compute_node_matrices(int object_handle)
                                fwd2[1] * node_matrices[8] +
                                fwd2[2] * node_matrices[9];
                 if ((*(uint32_t *)&dot_uf & 0x7f800000) == 0x7f800000 ||
-                    (dot_uf < 0 ? -dot_uf : dot_uf) >= *(float *)0x2549d8) {
+                    (dot_uf < 0 ? -dot_uf : dot_uf) >= *(double *)0x2549d8) {
                   char *msg = csprintf(
                     (char *)0x5ab100,
                     "%s had a forward (%f,%f,%f) not perpendicular "
