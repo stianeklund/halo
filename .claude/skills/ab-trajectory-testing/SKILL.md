@@ -74,8 +74,17 @@ the replay + capture for you.
 
 ### 2. A/B: faithful golden vs patched
 
-Capture the patched build the same way (`--xbe default.xbe` →
-`tmp/a10_default.halorec`), then:
+The one-command path (`ab_gate` does the replay + capture of BOTH builds + the diff):
+
+```bash
+rtk python3 tools/equivalence/ab_gate.py --level a10 --scenario a10-checkpoint-5s-action
+# reuse a frozen golden (CI tripwire — capture cachebeta once, reuse forever):
+rtk python3 tools/equivalence/ab_gate.py --level a10 --scenario <s> --golden ~/halo-goldens/a10.halorec
+# freeze it the first time:  add  --freeze --golden ~/halo-goldens/a10.halorec
+# self-gate determinism first: add  --aa-first
+```
+
+Or do the diff by hand if you already captured both trajectories (step 1):
 
 ```bash
 rtk python3 tools/equivalence/behavior_diff.py tmp/a10_golden.halorec tmp/a10_default.halorec
