@@ -14,7 +14,7 @@ and feeds trajectory_diff.py / halorec_to_snapshot.py.
     python3 tools/xbox/capture_trajectory.py -o run.halorec --ticks 300 --quantum 4
 
 Typical use (A/A or A/B): start the replay, then run this; see trajectory_diff.py
-and the aa_gate orchestrator.
+and the aa_check orchestrator.
 """
 import argparse
 import sys
