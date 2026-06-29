@@ -15,9 +15,12 @@ gitignored; ``core.bin`` is a copyrighted game-state heap snapshot — never com
     recording.json  metadata (written by input_recordings.py)
     REPLAY.md       one-shot deploy recipe
 
-Start modes (only the two empirically proven on this dev box are offered):
+Start modes (all empirically proven on this dev box):
+    mapreset          init.txt = [game_difficulty_set] + map_name + map_reset; boots
+                      straight into the level fresh from the start (map_reset overrides
+                      any campaign savegame). No menu nav; recommended per-level mode.
     core   (default)  verify d:\\core\\core.bin exists, boot map then overlay it
-    menu              empty init.txt; record menu navigation + gameplay (script-faithful AI)
+    menu              empty init.txt; record menu navigation + gameplay (genuine New Game)
 
 Subcommands:
     record    interactive: arm -> "play, press Enter" -> finalize -> validate
@@ -326,11 +329,23 @@ def _empty_xts() -> str:
     return f"{STAGE}/empty.xts"
 
 
-def _init_txt_content(start: str, mapname: str) -> str:
+def _init_txt_content(start: str, mapname: str, difficulty: str = "") -> str:
+    """Boot recipe (init.txt body) for the chosen start mode.
+
+    difficulty (easy/normal/hard/impossible) is pinned via game_difficulty_set
+    ONLY for `mapreset`: that mode boots straight into the level, so nothing else
+    sets it. `menu` ignores it (you pick difficulty in the New Game UI); `core`
+    ignores it (a core restores the difficulty it was saved at).
+    """
+    diff_line = f"game_difficulty_set {difficulty}\n" if difficulty else ""
     if start == "core":
         return f"map_name {mapname}\ncore_load_at_startup\n"
+    if start == "mapreset":
+        # map_name loads the scenario; map_reset restarts it from the beginning,
+        # overriding any campaign savegame (a plain load resumes into the save).
+        return f"{diff_line}map_name {mapname}\nmap_reset\n"
     if start == "menu":
-        return ""  # empty -> boot to main menu
+        return ""  # empty -> boot to main menu (difficulty chosen in New Game)
     raise ValueError(f"unknown start mode {start!r}")
 
 
@@ -357,11 +372,58 @@ def preflight(args) -> None:
     print(f"  preflight: XBDM ok, title root has {len(sizes)} entries")
 
 
+# Campaign save/pointer files on Z: that make a `menu` New Game resume into a
+# checkpoint instead of starting the level fresh.
+_Z_SAVE_FILES = ("savegame.bin", "last_solo.txt", "lastprof.txt",
+                 "lastmpvr.txt", "lastmpmp.txt")
+
+
+def clear_campaign_save_state(args) -> None:
+    """Best-effort wipe of the campaign save state before a `menu` New Game, so it
+    starts the level fresh instead of resuming a checkpoint.
+
+    Save-files-only (no map-cache churn): deletes the known Z: files directly. A
+    single-line `delete` is far more reliable than clear_cache.py's recursive scan,
+    which was observed returning an empty Z: listing under XBDM load and silently
+    skipping the real savegame.
+
+    Honest about the hard limit: `savegame.bin` is held open (locked, XBDM 414)
+    while the title runs and CANNOT be deleted live. If it survives, this WARNS and
+    points at `--start mapreset` (which restarts from the beginning via map_reset
+    and is immune to the savegame) rather than falsely reporting success.
+
+    Only the `menu` start needs this; `core` and `mapreset` callers skip it.
+    """
+    if getattr(args, "no_clear_saves", False):
+        print("  --no-clear-saves: leaving campaign save state untouched")
+        return
+    print("  clearing campaign save state (menu start): deleting Z: save/pointer files...")
+    for name in _Z_SAVE_FILES:
+        delete_remote(f"Z:\\{name}", args.host)
+    sizes = dirlist_sizes("Z:\\", args.host)
+    if sizes is None:
+        print("    note: could not list Z: to verify — relying on the direct deletes")
+        return
+    leftover = [f for f in _Z_SAVE_FILES if f in sizes]
+    if leftover:
+        print(f"    WARNING: {leftover} survived — savegame.bin is locked while the "
+              "title runs, so a menu New Game may resume into it. Use "
+              "`--start mapreset` for a guaranteed fresh level start.")
+    else:
+        print("    verify: Z: campaign save state clear")
+
+
 def cmd_arm(args) -> None:
     preflight(args)
+    # Menu start only: a genuine New Game resumes into a stale campaign savegame.
+    # Clear it BEFORE staging the sentinels. (core boots into its core; mapreset
+    # uses map_reset to restart from the beginning, so neither needs this.)
+    if args.start == "menu":
+        clear_campaign_save_state(args)
     stage = _stage_dir()
     init_rel = f"{STAGE}/{args.level}__{args.scenario}.init.txt"
-    (stage / Path(init_rel).name).write_text(_init_txt_content(args.start, args.map), encoding="ascii")
+    (stage / Path(init_rel).name).write_text(
+        _init_txt_content(args.start, args.map, args.difficulty), encoding="ascii")
 
     print("  arming recorder...")
     sendfile(init_rel, xbox_join(args.title_root, "init.txt"), args.host)
@@ -439,10 +501,12 @@ def cmd_finalize(args) -> None:
                 f"{STAGE}/{args.level}__{args.scenario}.core.bin", args.host)
 
     # 4. Promote into the corpus via input_recordings.py (manifest + sha + ticks).
-    start_cond = (f"magicboot {args.xbe}; init.txt={_init_txt_content(args.start, args.map)!r}; "
+    start_cond = (f"magicboot {args.xbe}; init.txt={_init_txt_content(args.start, args.map, args.difficulty)!r}; "
                   + ("core.bin at d:\\core\\core.bin; " if args.start == "core" else "")
                   + "read.xts to play")
-    notes = (f"{'CORE-ANCHORED' if args.start == 'core' else 'MENU-START'}, host-only. "
+    _start_label = {"core": "CORE-ANCHORED", "mapreset": "MAP-RESET (fresh level start)",
+                    "menu": "MENU-START"}.get(args.start, args.start.upper())
+    notes = (f"{_start_label}, host-only. "
              f"Self-contained fixture; see REPLAY.md. Captured on {args.xbe}.")
     add_cmd = [
         "python3", RECORDINGS, "add",
@@ -461,7 +525,8 @@ def cmd_finalize(args) -> None:
     fdir.mkdir(parents=True, exist_ok=True)
     if args.start == "core":
         (fdir / "core.bin").write_bytes((ROOT / f"{STAGE}/{args.level}__{args.scenario}.core.bin").read_bytes())
-    (fdir / "init.txt").write_text(_init_txt_content(args.start, args.map), encoding="ascii")
+    (fdir / "init.txt").write_text(
+        _init_txt_content(args.start, args.map, args.difficulty), encoding="ascii")
     (fdir / "read.xts").write_bytes(b"")
     _write_replay_md(fdir, args, info, core_size)
     print(f"  stored fixture -> {fdir.relative_to(ROOT)} (known_good=false, pending replay confirm)")
@@ -496,6 +561,12 @@ def cmd_replay(args, validate: bool = False) -> None:
         sendfile(str((fdir / "read.xts").relative_to(ROOT)), xbox_join(tr, "read.xts"), args.host)
         delete_remote(xbox_join(tr, "core_loop.xts"), args.host)
     delete_remote(xbox_join(tr, "write.xts"), args.host)
+    # Menu fixture only (empty init.txt, no core.bin): a New Game resumes into a
+    # stale savegame, so clear it first. A mapreset fixture (map_name+map_reset in
+    # init.txt) restarts from the beginning itself; a core boots into the core.
+    init_txt = (fdir / "init.txt").read_text() if (fdir / "init.txt").exists() else ""
+    if not core.exists() and not init_txt.strip():
+        clear_campaign_save_state(args)
     mode = "core-loop replay" if getattr(args, "loop", False) else "playback"
     print(f"  deployed {args.level}/{args.scenario}; booting {args.xbe} in {mode}...")
     if not boot_title(args.xbe, tr, args.host):
@@ -555,7 +626,7 @@ gitignored and `core.bin` is copyrighted game memory; never commit these bytes.
 | File | |
 |------|--|
 | `state.data` | trimmed input — {len(sd)} B / {info['kept_ticks']} ticks (slot 0, ticks {info['first_input_tick']}..{info['last_input_tick']}) |
-{core_line}| `init.txt` | boot recipe ({'map_name + core_load_at_startup' if args.start == 'core' else 'empty -> menu'}) |
+{core_line}| `init.txt` | boot recipe ({'map_name + core_load_at_startup' if args.start == 'core' else ('map_name + map_reset' if args.start == 'mapreset' else 'empty -> menu')}) |
 | `read.xts` | playback sentinel |
 
 state.data sha256: `{sha}`
@@ -652,8 +723,11 @@ full guide: docs/input-fixture-capture.md
 def _add_common(p) -> None:
     p.add_argument("--level", required=True, help="Level key, e.g. a10")
     p.add_argument("--scenario", required=True, help="Scenario id / folder name, e.g. cryo-bay-exit")
-    p.add_argument("--start", choices=["core", "menu"], default="core",
-                   help="core (default, needs a saved core) or menu (script-faithful)")
+    p.add_argument("--start", choices=["core", "menu", "mapreset"], default="core",
+                   help="mapreset (recommended for per-level fixtures: boots straight "
+                        "into the level via map_name+map_reset, fresh from the start, "
+                        "no menu nav, savegame-immune); core (needs a saved core); "
+                        "menu (genuine New Game including menu navigation)")
     p.add_argument("--map", default="", help="map_name arg (default = level)")
     p.add_argument("--xbe", default=DEFAULT_XBE, help="title XBE to boot (default cachebeta.xbe = unpatched)")
     p.add_argument("--title-root", default=DEFAULT_TITLE_ROOT)
@@ -662,9 +736,18 @@ def _add_common(p) -> None:
     p.add_argument("--title", default="")
     p.add_argument("--purpose", default="")
     p.add_argument("--build", default="cachebeta-unpatched")
-    p.add_argument("--difficulty", default="")
+    p.add_argument("--difficulty", default="",
+                   choices=["", "easy", "normal", "hard", "impossible"],
+                   help="easy|normal|hard|impossible (impossible = Legendary). For "
+                        "--start mapreset this is pinned via game_difficulty_set in "
+                        "init.txt AND recorded as metadata; menu picks difficulty "
+                        "in-game; core keeps the core's. Invalid tokens are rejected "
+                        "so a typo can't silently boot at the wrong difficulty.")
     p.add_argument("--force", action="store_true", help="overwrite a known_good fixture")
     p.add_argument("--no-validate", action="store_true", help="skip the post-store replay validation")
+    p.add_argument("--no-clear-saves", action="store_true",
+                   help="do NOT wipe the campaign saved game before a menu start/replay "
+                        "(only affects --start menu; core and mapreset never clear)")
 
 
 def main(argv=None) -> int:
