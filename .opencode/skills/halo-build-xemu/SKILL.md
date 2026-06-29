@@ -38,6 +38,15 @@ The real-hardware wrapper sets `XBOX_HOST` to `10.0.0.29` by default.
 - Use MCP xemu tools only if `tools/xbox/xemu_qmp.py` cannot do the required
   action.
 
+## Controller automation
+
+- Use `rtk python3 tools/xbox/xbox_pad.py ensure` to start/check the
+  LLM-controllable virtual controller server.
+- Use `tools/xbox/xbox_pad.py sequence <json>` for agent-readable controller
+  scripts.
+- Use native `state.data` playback for exact route replays. Reusable per-level
+  recordings live under `input-recordings/`; see `docs/xbox-pad.md`.
+
 ## Report format
 
 Report:

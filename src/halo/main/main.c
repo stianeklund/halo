@@ -2245,6 +2245,11 @@ void main_loop(void)
   float a2_4a; // [esp+8h] [ebp-10h]
   char v9[4]; // [esp+10h] [ebp-8h] BYREF
   int x;
+#ifdef DECOMP_CUSTOM
+  /* die-to-core debug hook enable flag; armed from the d:\die_to_core.xts
+   * sentinel at startup below (mirrors the recorder *.xts sentinel checks). */
+  int die_to_core_enabled = 0;
+#endif
 
   if (!game_in_editor()) {
     csstrncpy(map_name, "levels\\b30\\b30", 0xFFu);
@@ -2260,6 +2265,9 @@ void main_loop(void)
 
 #ifdef DECOMP_CUSTOM
   print_startup_banner();
+  /* Arm the die-to-core debug hook if the sentinel exists (same file-attribute
+   * probe the input recorder uses for write/read/loop.xts). */
+  die_to_core_enabled = (file_get_full_attributes("d:\\die_to_core.xts") != -1);
 #endif
 
   main_setup_connection();
@@ -2277,7 +2285,18 @@ void main_loop(void)
           if (!v0) {
             byte_46DA3B = 0;
             word_46DA4C = 0;
-            game_state_revert();
+#ifdef DECOMP_CUSTOM
+            /* die-to-core debug hook (d:\die_to_core.xts): reload the fixture
+             * core instead of the campaign checkpoint, so death-loops don't
+             * need a reboot. Reuses the existing load-core dispatch at the
+             * bottom of this same loop iteration (game_state_load_core_pending,
+             * checked below). Falls through to the faithful revert when the
+             * sentinel is absent or no core name is loaded. */
+            if (die_to_core_enabled && core_name[0]) {
+              game_state_load_core_pending = 1;
+            } else
+#endif
+              game_state_revert();
           }
         }
       }
@@ -2335,6 +2354,16 @@ void main_loop(void)
       if (game_state_load_core_pending) {
         game_state_load_core(core_name);
         game_state_load_core_pending = 0;
+#ifdef DECOMP_CUSTOM
+        /* core-loop / die-to-core: re-sync recorded input to the freshly
+         * (re)loaded core — rewind playback to packet 0 so the stored input
+         * re-executes from the same state. Active only when input playback is
+         * on (read.xts / core_loop.xts = mode 4, loop.xts = mode 5). The mode
+         * and handle globals live in input_xbox.c (0x46b818 / 0x46b814). */
+        if (*(int *)0x46b818 == 4 || *(int *)0x46b818 == 5) {
+          SetFilePointer(*(int *)0x46b814, 0, (int *)0, 0);
+        }
+#endif
       }
       if (main_menu_load_pending) {
         main_menu_load();

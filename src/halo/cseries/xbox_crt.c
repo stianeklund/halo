@@ -281,11 +281,27 @@ double fabs(double x)
 }
 
 /* __chkstk (exported as __chkstk after Windows x86 name-mangling of _chkstk).
- * Clang (i386-pc-win32) emits `mov eax, N; call __chkstk` before `sub esp, eax`
- * for stack frames larger than one page.  On Xbox the kernel fully commits the
- * thread stack at creation time, so page-probing is unnecessary.  EAX is
- * preserved by RET so the caller's `sub esp, eax` still gets the frame size. */
+ * Clang (i386-pc-win32) emits `mov eax, <framesize>; call __chkstk` for any
+ * function whose stack frame exceeds one page and — contrary to a long-held
+ * assumption — emits NO following `sub esp, eax`.  __chkstk itself must reserve
+ * the frame, exactly as the original MSVC runtime does (cachebeta.xbe 0x1d90e0):
+ * subtract the size from ESP and relocate the return address.  A bare `ret` here
+ * left the frame UNALLOCATED, so a function's locals/spills aliased live ESP and
+ * were clobbered by the next argument push — manifested as a NULL+0x99 fault in
+ * actor_has_accessible_firing_position (0x25a00) and as corrupted firing-position
+ * records driving AI aim in FUN_00025c10 (0x25c10).  Byte-faithful to 0x1d90e0;
+ * Xbox fully commits the thread stack, so no page-probing is needed. */
 __attribute__((naked)) void _chkstk(void)
 {
-  __asm__("ret\n\t");
+  __asm__(
+    "test %eax, %eax\n\t"  /* frame size == 0? nothing to do */
+    "je 1f\n\t"
+    "neg %eax\n\t"         /* eax = -size */
+    "add %esp, %eax\n\t"   /* eax = esp - size */
+    "add $4, %eax\n\t"     /* account for the return-address slot */
+    "xchg %eax, %esp\n\t"  /* esp = new frame top; eax = old esp */
+    "mov (%eax), %eax\n\t" /* eax = saved return address */
+    "push %eax\n\t"        /* re-push it at the new top */
+    "1:\n\t"
+    "ret\n\t");
 }

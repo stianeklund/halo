@@ -2103,7 +2103,12 @@ char actor_path_refresh(int actor_handle, char store_distance,
   float saved_pos[3]; /* [EBP-0x18..-0x10]: copy of old actor[0x488..0x490] */
   char *tag; /* [EBP-0xc]: actor tag pointer from tag_get */
   float dist; /* [EBP-0x8]: 3D distance actor→destination */
-  char local_nav[44]; /* [EBP-0x60]: nav-state struct (waypoint init output) */
+  char local_nav[0x48]; /* [EBP-0x60]: nav-state struct (waypoint init output).
+                         * MUST be >= 0x48: actor_path_input_new -> path_input_new
+                         * does csmemset(buf, 0, 0x48). Original reserved -0x60..-0x18
+                         * (0x48 bytes); a too-small [44] overflowed and zeroed the
+                         * cached actor+0x4a8 nav_state_out pointer -> NULL write in
+                         * path_state_build_path -> PoA campaign access-violation. */
   static char
     large_buf[0x1408c]; /* [EBP+0xfffebf14]: path-build scratch 82060 bytes */
   void
@@ -2365,9 +2370,17 @@ LAB_check_dest:
      * Caller provided a pre-computed path override.
      * Assert: actor[0x480] (dest_object) must be NONE (-1).
      * Then set up override_path as the navigation state:
-     *   FUN_0005e0d0(override_path, &actor[0x494], actor[0x498], 0)
+     *   FUN_0005e0d0(override_path, &actor[0x488], actor[0x494], actor[0x498])
      *   path_state_build_path(override_path, &actor[0x4a8])
-     * Confirmed at 0x0002d164-0x0002d1bb.
+     * Confirmed at 0x0002d194: MOV ECX,[ESI+0x498]; MOV EDX,[ESI+0x494];
+     *   PUSH ECX; PUSH EDX; PUSH EDI(&actor[0x488]); PUSH EBX(override_path);
+     *   CALL FUN_0005e0d0 -> args (override_path, &actor[0x488], actor[0x494],
+     *   actor[0x498]) — same destination/facing setup as the on-foot branch,
+     *   only the path-build buffer differs (override_path vs large_buf). The
+     *   prior lift passed (override_path, &actor[0x494], actor[0x498], 0),
+     *   which seeded the override path-build state with the FACING field as
+     *   the destination -> path_state_build_path failed -> scripted a10 door
+     *   grunts could not advance to their firing positions.
      */
     if (*(int *)(actor + 0x480) != -1) {
       display_assert("actor->control.path.destination_orders."
@@ -2375,8 +2388,8 @@ LAB_check_dest:
                      "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0xbbc, 1);
       system_exit(-1);
     }
-    FUN_0005e0d0(override_path, (float *)(actor + 0x494),
-                 *(int *)(actor + 0x498), 0);
+    FUN_0005e0d0(override_path, (float *)(actor + 0x488),
+                 *(int *)(actor + 0x494), *(int *)(actor + 0x498));
     path_found = path_state_build_path((unsigned int)override_path,
                                        (unsigned int *)(actor + 0x4a8));
   } else {
@@ -2412,7 +2425,10 @@ LAB_check_dest:
       path_input_set_attractor(
         local_nav, (float *)(actor + 0x2b0), *(float *)(actor + 0x294),
         *(unsigned int *)(actor + 0x28c),
-        (unsigned int)0x41200000); /* 10.0f as bit pattern */
+        10.0f); /* original PUSHes bits 0x41200000 = 10.0f attractor weight.
+                   param_5 is float: an (unsigned int) cast here would do an
+                   int->float NUMERIC conversion (1.09e9), not a bit-reinterpret,
+                   corrupting the A* attractor weight -> path.c:1005 cost assert. */
     }
     path_state = ai_debug_get_path_storage(actor_handle);
     path_state_new(local_nav, large_buf, path_state);

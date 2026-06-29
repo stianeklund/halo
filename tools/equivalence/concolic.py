@@ -215,8 +215,31 @@ def _is_spurious_address(addr: int) -> bool:
     return False
 
 
+def load_value_corpus(path) -> dict:
+    """Load a real-frame value corpus {int_addr: [int values]}.
+
+    Produced by halorec_frame_sweep.py --emit-value-corpus: for each global the
+    sweep saw read, the distinct real values that global actually held across the
+    recording's frames. Keys may be hex strings ("0x...") or ints; values ints or
+    hex strings. Returns {} on missing/empty.
+    """
+    import json
+    from pathlib import Path
+    if not path:
+        return {}
+    p = Path(path)
+    if not p.exists():
+        return {}
+    raw = json.loads(p.read_text(encoding="utf-8"))
+    out = {}
+    for k, vals in raw.items():
+        addr = int(k, 0) if isinstance(k, str) else int(k)
+        out[addr] = [int(v, 0) if isinstance(v, str) else int(v) for v in vals]
+    return out
+
+
 def generate_memory_injections(uncovered: list, global_reads: dict,
-                               code_base: int) -> list:
+                               code_base: int, value_corpus: dict = None) -> list:
     """Generate memory override dicts that might force untaken branches.
 
     For each uncovered branch:
@@ -224,10 +247,25 @@ def generate_memory_injections(uncovered: list, global_reads: dict,
        the branch, inject values that flip the condition.
     2. Fallback: for all zero-valued global reads, try small non-zero values.
 
+    `value_corpus` (Step 4: real-frame leverage) maps a global address to the real
+    values it held across recorded frames. When present for a target address, those
+    feasible engine-produced values are injected ALONGSIDE the synthetic
+    condition-flip values — grounding the residual-branch search in states the game
+    actually reached instead of invented constants. Empty corpus => unchanged.
+
     Returns list of {int_address: bytes} override dicts.
     """
     if not uncovered:
         return []
+
+    corpus = value_corpus or {}
+
+    def _pack(addr, sz, val):
+        fmt = {1: '<B', 2: '<H', 4: '<I'}.get(sz, '<I')
+        try:
+            return {addr: struct.pack(fmt, val & ((1 << (sz * 8)) - 1))}
+        except struct.error:
+            return None
 
     zero_reads = {addr: (sz, val) for addr, (sz, val) in global_reads.items()
                   if val == 0 and not _is_spurious_address(addr)}
@@ -244,23 +282,20 @@ def generate_memory_injections(uncovered: list, global_reads: dict,
             for read_addr, (read_sz, _) in matched_reads:
                 if _is_spurious_address(read_addr):
                     continue
-                for val in values[:3]:
-                    fmt = {1: '<B', 2: '<H', 4: '<I'}.get(read_sz, '<I')
-                    try:
-                        data = struct.pack(fmt, val & ((1 << (read_sz * 8)) - 1))
-                    except struct.error:
-                        continue
-                    injections.append({read_addr: data})
+                # synthetic condition-flip values, then real observed values
+                for val in list(values[:3]) + corpus.get(read_addr, []):
+                    inj = _pack(read_addr, read_sz, val)
+                    if inj is not None:
+                        injections.append(inj)
 
     if not injections and zero_reads:
         for addr, (sz, _) in sorted(zero_reads.items())[:16]:
-            fmt = {1: '<B', 2: '<H', 4: '<I'}.get(sz, '<I')
-            for val in (1, 2, 5, 0x10):
-                try:
-                    data = struct.pack(fmt, val & ((1 << (sz * 8)) - 1))
-                except struct.error:
-                    continue
-                injections.append({addr: data})
+            # prefer real values for this global if the corpus has them
+            candidates = corpus.get(addr) or (1, 2, 5, 0x10)
+            for val in candidates:
+                inj = _pack(addr, sz, val)
+                if inj is not None:
+                    injections.append(inj)
             if len(injections) >= 32:
                 break
 

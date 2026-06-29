@@ -18,7 +18,8 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from stubs import (
     StubArgTracer, StubCallRecord, compare_stub_arg_traces,
-    _STACK_BASE, _STACK_TOP,
+    patch_dir32_relocs, IMAGE_REL_I386_DIR32,
+    GLOBALS_BASE, _STACK_BASE, _STACK_TOP,
 )
 
 # A stack address that should be treated as a soft match
@@ -28,6 +29,13 @@ _SP2 = _STACK_BASE + 0x200   # candidate stack pointer (different frame layout)
 # Sentinel addresses
 _SENTINEL_A = 0x40000000
 _SENTINEL_B = 0x40004000
+
+
+class _FakeReloc:
+    def __init__(self, reloc_type, symbol_name, virtual_address):
+        self.reloc_type = reloc_type
+        self.symbol_name = symbol_name
+        self.virtual_address = virtual_address
 
 
 def _make_tracer(*records):
@@ -145,10 +153,39 @@ def test_sequence_callee_diverged():
     print("  PASS  test_sequence_callee_diverged")
 
 
+def test_chkstk_ignored():
+    oracle = _make_tracer(
+        _rec(0, _SENTINEL_A, "FUN_001d90e0", 0x00, 0x00),
+        _rec(1, _SENTINEL_B, "datum_get", 0x10, 0x20),
+    )
+    cand = _make_tracer(
+        _rec(0, _SENTINEL_B, "datum_get", 0x10, 0x20),
+    )
+    d = compare_stub_arg_traces(oracle, cand, seed_label="s6")
+    assert not d.has_differences(), f"expected _chkstk to be ignored, got: {d}"
+    assert d.total_calls == 1
+    print("  PASS  test_chkstk_ignored")
+
+
+def test_rdata_dir32_patched():
+    relocs = [_FakeReloc(IMAGE_REL_I386_DIR32, ".rdata$switch", 0)]
+    patched, slots, seeds = patch_dir32_relocs(
+        b"\x00" * 8,
+        relocs,
+        defined_symbols=set(),
+        return_slots=True,
+        rdata_map={".rdata$switch": b"\x11\x22\x33\x44"},
+    )
+    assert int.from_bytes(patched[:4], "little") == GLOBALS_BASE
+    assert slots[".rdata$switch"] == GLOBALS_BASE
+    assert seeds[GLOBALS_BASE] == b"\x11\x22\x33\x44"
+    print("  PASS  test_rdata_dir32_patched")
+
+
 def test_empty_traces():
     oracle = StubArgTracer()
     cand = StubArgTracer()
-    d = compare_stub_arg_traces(oracle, cand, seed_label="s6")
+    d = compare_stub_arg_traces(oracle, cand, seed_label="s7")
     assert not d.has_differences()
     assert d.total_calls == 0
     print("  PASS  test_empty_traces")
@@ -162,6 +199,8 @@ def main():
     test_stack_ptr_one_side_only()
     test_sequence_length_diverged()
     test_sequence_callee_diverged()
+    test_chkstk_ignored()
+    test_rdata_dir32_patched()
     test_empty_traces()
     print("\nAll tests passed.")
     return 0
