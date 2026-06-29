@@ -7309,9 +7309,15 @@ LAB_3e02c:
     ux = ly * world_up[0] - world_up[1] * lx;
     uy = world_up[2] * lx - lz * world_up[0];
     uz = lz * world_up[1] - world_up[2] * ly;
-    *(float *)(actor + 0x198) = ux;
+    /* FPU LIFO store order (orig 0x3e332-0x3e337): the three sub-products are
+     * pushed ux,uy,uz then fstp'd into +0x198,+0x19c,+0x1a0 — popping in REVERSE,
+     * so +0x198 receives the LAST-pushed (uz) and +0x1a0 the FIRST (ux). The prior
+     * lift stored in computation order, swapping the X and Z components (§4 cross-
+     * product / FPU-stack hazard). Invisible when ux==uz (e.g. horizontal look) but
+     * corrupts the look-frame basis the perception cone test (0x314f0) reads. */
+    *(float *)(actor + 0x198) = uz;
     *(float *)(actor + 0x19c) = uy;
-    *(float *)(actor + 0x1a0) = uz;
+    *(float *)(actor + 0x1a0) = ux;
     normalize3d((float *)(actor + 0x198));
   }
 
@@ -7329,9 +7335,15 @@ LAB_3e02c:
     ax = lx * uy - ly * ux;
     ay = ux * lz - lx * uz;
     az = ly * uz - lz * uy;
-    *(float *)(actor + 0x1a4) = ax;
+    /* FPU LIFO store order (orig 0x3e36e-0x3e37a): products pushed ax,ay,az then
+     * fstp'd into +0x1a4,+0x1a8,+0x1ac — popping in REVERSE, so +0x1a4 receives the
+     * LAST-pushed (az) and +0x1ac the FIRST (ax). The prior lift stored in computation
+     * order, swapping the right-vector X and Z components -> a degenerate look frame
+     * (right ~= look) that fails the perception vision-cone test (0x314f0 reads +0x1a4),
+     * so grunts never visually perceive their target. §4 cross-product / FPU-stack hazard. */
+    *(float *)(actor + 0x1a4) = az;
     *(float *)(actor + 0x1a8) = ay;
-    *(float *)(actor + 0x1ac) = az;
+    *(float *)(actor + 0x1ac) = ax;
   }
 
   /* Assert vector validity.
