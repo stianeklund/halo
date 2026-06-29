@@ -34,8 +34,8 @@
     }
   },
   "meta": {
-    "timestamp": "2026-06-29T22:35:55.805270+02:00",
-    "commit": "8379287375",
+    "timestamp": "2026-06-29T23:01:34.113080+02:00",
+    "commit": "a40741d70d",
     "branch": "main",
     "tool_version": "1.0.0"
   },
@@ -2879,7 +2879,7 @@
         "bytes_percent": 100.0,
         "match_avg": 92.0,
         "match_weighted": 85.6,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "equivalence": {
         "tested": 0,
@@ -5738,7 +5738,7 @@
         "bytes_percent": 100.0,
         "match_avg": 91.5,
         "match_weighted": 86.2,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "equivalence": {
         "tested": 0,
@@ -6533,7 +6533,7 @@
         "bytes_percent": 100.0,
         "match_avg": 84.3,
         "match_weighted": 53.5,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "equivalence": {
         "tested": 0,
@@ -7295,7 +7295,7 @@
         "bytes_percent": 100.0,
         "match_avg": 87.6,
         "match_weighted": 84.8,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "equivalence": {
         "tested": 0,
@@ -9177,7 +9177,7 @@
         "bytes_percent": 100.0,
         "match_avg": 91.7,
         "match_weighted": 91.1,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "equivalence": {
         "tested": 0,
@@ -10609,7 +10609,7 @@
         "bytes_percent": 100.0,
         "match_avg": 80.0,
         "match_weighted": 77.0,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "equivalence": {
         "tested": 0,
@@ -11243,7 +11243,7 @@
         "bytes_percent": 100.0,
         "match_avg": 92.0,
         "match_weighted": 88.1,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "equivalence": {
         "tested": 0,
@@ -11670,7 +11670,7 @@
         "bytes_percent": 100.0,
         "match_avg": 83.7,
         "match_weighted": 74.6,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "equivalence": {
         "tested": 0,
@@ -17157,7 +17157,7 @@
         "bytes_percent": 100.0,
         "match_avg": 78.7,
         "match_weighted": 77.7,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "equivalence": {
         "tested": 3,
@@ -19030,7 +19030,7 @@
         "bytes_percent": 100.0,
         "match_avg": 95.3,
         "match_weighted": 93.1,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "equivalence": {
         "tested": 0,
@@ -20035,7 +20035,7 @@
         "bytes_percent": 100.0,
         "match_avg": 94.3,
         "match_weighted": 83.2,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "equivalence": {
         "tested": 0,
@@ -21539,7 +21539,7 @@
         "bytes_percent": 100.0,
         "match_avg": 94.7,
         "match_weighted": 94.6,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "equivalence": {
         "tested": 0,
@@ -29315,7 +29315,7 @@
         "bytes_percent": 84.2,
         "match_avg": 90.0,
         "match_weighted": 81.9,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "equivalence": {
         "tested": 0,
@@ -31283,7 +31283,7 @@
         "bytes_percent": 93.7,
         "match_avg": 88.2,
         "match_weighted": 83.0,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "equivalence": {
         "tested": 16,
@@ -37309,7 +37309,7 @@
         "bytes_percent": 99.96,
         "match_avg": 83.9,
         "match_weighted": 73.6,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "equivalence": {
         "tested": 1,
@@ -38624,7 +38624,7 @@
         "bytes_percent": 92.86,
         "match_avg": 91.9,
         "match_weighted": 88.3,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "equivalence": {
         "tested": 0,
@@ -41275,7 +41275,7 @@
         "bytes_percent": 84.8,
         "match_avg": 91.5,
         "match_weighted": 84.9,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "equivalence": {
         "tested": 12,
@@ -41749,7 +41749,7 @@
         "bytes_percent": 40.43,
         "match_avg": 86.8,
         "match_weighted": 81.8,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "equivalence": {
         "tested": 5,
@@ -107580,7 +107580,7 @@
         "bytes_percent": 8.14,
         "match_avg": 35.9,
         "match_weighted": 35.0,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "equivalence": {
         "tested": 0,
