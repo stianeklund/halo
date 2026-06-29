@@ -4,6 +4,7 @@
 # Explicitly mark binary files to avoid corruption
 *.iso binary
 *.bin binary
+*.data binary
 *.png binary
 *.jpg binary
 *.jpeg binary

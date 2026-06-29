@@ -112,10 +112,123 @@ static void dump_u32_case(const char *group, const char *name,
   debug_string_to_display(buf, 0);
 }
 
+#ifdef DUAL_ORACLE_HARNESS
+typedef float (*dual_normalize3d_fn)(float *v);
+typedef float *(*dual_vector3d_scale_add_fn)(float *base, float *direction,
+                                             float scale, float *out);
+typedef void (*dual_scalars_interpolate_fn)(float a, float b, float blend,
+                                            float *out);
+
+static void run_dual_oracle_tests(void)
+{
+  char buf[128];
+  int passed = 0;
+  int total = 0;
+
+  debug_string_to_display("RUN|BEGIN|suite=xbox_dual_oracle\n", 0);
+
+#ifdef DUAL_ORACLE_TARGET_normalize3d
+  {
+    dual_normalize3d_fn original = (dual_normalize3d_fn)0x13010;
+    float oracle_v[3] = { 10.5f, -4.2f, 3.14f };
+    float candidate_v[3] = { 10.5f, -4.2f, 3.14f };
+    float oracle_ret;
+    float candidate_ret;
+
+    oracle_ret = original(oracle_v);
+    candidate_ret = normalize3d(candidate_v);
+
+    total += 4;
+    passed += check("dual normalize3d ret", *(uint32_t *)&candidate_ret,
+                    *(uint32_t *)&oracle_ret, buf);
+    passed += check("dual normalize3d x", *(uint32_t *)&candidate_v[0],
+                    *(uint32_t *)&oracle_v[0], buf);
+    passed += check("dual normalize3d y", *(uint32_t *)&candidate_v[1],
+                    *(uint32_t *)&oracle_v[1], buf);
+    passed += check("dual normalize3d z", *(uint32_t *)&candidate_v[2],
+                    *(uint32_t *)&oracle_v[2], buf);
+  }
+#elif defined(DUAL_ORACLE_TARGET_vector3d_scale_add)
+  {
+    dual_vector3d_scale_add_fn original = (dual_vector3d_scale_add_fn)0x12f80;
+    float base[3] = { 1.5f, 2.0f, -3.2f };
+    float direction[3] = { 0.5f, -1.0f, 2.0f };
+    float oracle_out[3];
+    float candidate_out[3];
+    float *oracle_ret;
+    float *candidate_ret;
+
+    oracle_ret = original(base, direction, 2.5f, oracle_out);
+    candidate_ret = vector3d_scale_add(base, direction, 2.5f, candidate_out);
+
+    total += 4;
+    passed += check("dual v3d_scale_add ret",
+                    (uint32_t)(oracle_ret == oracle_out &&
+                               candidate_ret == candidate_out),
+                    1, buf);
+    passed += check("dual v3d_scale_add x", *(uint32_t *)&candidate_out[0],
+                    *(uint32_t *)&oracle_out[0], buf);
+    passed += check("dual v3d_scale_add y", *(uint32_t *)&candidate_out[1],
+                    *(uint32_t *)&oracle_out[1], buf);
+    passed += check("dual v3d_scale_add z", *(uint32_t *)&candidate_out[2],
+                    *(uint32_t *)&oracle_out[2], buf);
+  }
+#elif defined(DUAL_ORACLE_TARGET_scalars_interpolate)
+  {
+    dual_scalars_interpolate_fn original =
+      (dual_scalars_interpolate_fn)0x10b820;
+    float oracle_out;
+    float candidate_out;
+
+    original(10.0f, 20.0f, 0.75f, &oracle_out);
+    scalars_interpolate(10.0f, 20.0f, 0.75f, &candidate_out);
+
+    total += 1;
+    passed += check("dual scalars_interpolate out",
+                    *(uint32_t *)&candidate_out, *(uint32_t *)&oracle_out, buf);
+  }
+#elif defined(DUAL_ORACLE_TARGET_scalars_interpolate_and_clamp_0_to_1)
+  {
+    dual_scalars_interpolate_fn original =
+      (dual_scalars_interpolate_fn)0x10b840;
+    float oracle_low;
+    float oracle_high;
+    float candidate_low;
+    float candidate_high;
+
+    original(-5.0f, 5.0f, -0.25f, &oracle_low);
+    original(-5.0f, 5.0f, 1.25f, &oracle_high);
+    scalars_interpolate_and_clamp_0_to_1(-5.0f, 5.0f, -0.25f,
+                                         &candidate_low);
+    scalars_interpolate_and_clamp_0_to_1(-5.0f, 5.0f, 1.25f,
+                                         &candidate_high);
+
+    total += 2;
+    passed += check("dual scalars_clamp low", *(uint32_t *)&candidate_low,
+                    *(uint32_t *)&oracle_low, buf);
+    passed += check("dual scalars_clamp high", *(uint32_t *)&candidate_high,
+                    *(uint32_t *)&oracle_high, buf);
+  }
+#else
+  total += 1;
+  passed += check("dual_oracle unsupported target", 0, 1, buf);
+#endif
+
+  crt_sprintf(buf, "RUN|END|passed=%d|failed=%d|total=%d\n", passed,
+              total - passed, total);
+  debug_string_to_display(buf, 0);
+}
+#endif
+
 void run_tests(void)
 {
   char buf[128];
   int passed = 0, total = 0;
+
+#ifdef DUAL_ORACLE_HARNESS
+  run_dual_oracle_tests();
+  return;
+#endif
 
   debug_string_to_display("RUN|BEGIN|suite=xbox_harness\n", 0);
 

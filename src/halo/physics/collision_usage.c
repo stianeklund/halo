@@ -848,7 +848,6 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
   void *pg;
   void *fog_tag;
   void *fog;
-  int cur_zone;
   int object_handle;
   char bsp_hit;
   short pg_idx;
@@ -1136,60 +1135,70 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
     saved_dist * direction[1] + origin[1];
   ((float *)((char *)collision_result + 0x18))[2] =
     saved_dist * direction[2] + origin[2];
-  /* NOTE: the original does NOT call scenario_location_from_point here.
-   * collision_result+0xc retains the obj_ref_last value from the BSP
-   * extraction (line 989).  The scenario_location_from_point call that
-   * was here previously overwrote obj_ref_last with a scenario location,
-   * destroying BSP cluster data that downstream detonation code needs. */
-
-  /* Handle zone tracking */
-  if ((collision_flags & 0x100000) && result &&
-      *(int *)((char *)collision_result + 0xc) != -1) {
-    cur_zone = FUN_0018e720((int)((char *)collision_result + 0x18));
-    if (cur_zone != *(int *)((char *)collision_result + 0xc)) {
-      vector3d_scale_add((float *)((char *)collision_result + 0x24),
-                         (float *)((char *)collision_result + 0x18),
-                         0.001953125f,
-                         (float *)((char *)collision_result + 0x18));
-      scenario_location_from_point((char *)collision_result + 0xc,
-                                   (char *)collision_result + 0x18);
-      if (*(int *)((char *)collision_result + 0xc) == -1) {
-        float dir_len =
-          FUN_00013070(direction, (float *)((char *)collision_result + 0x24));
-        float step;
-        if (dir_len == 0.0f)
-          step = *(double *)0x29d588;
-        else
-          step = *(double *)0x29d590 / fabsf(dir_len);
-
-        while (*(float *)((char *)collision_result + 0x14) >= 0.0f) {
-          *(float *)((char *)collision_result + 0x14) -= step;
-          if (*(float *)((char *)collision_result + 0x14) <= 0.0f)
-            *(float *)((char *)collision_result + 0x14) = 0.0f;
-          ((float *)((char *)collision_result + 0x18))[0] =
-            *(float *)((char *)collision_result + 0x14) * direction[0] +
-            origin[0];
-          ((float *)((char *)collision_result + 0x18))[1] =
-            *(float *)((char *)collision_result + 0x14) * direction[1] +
-            origin[1];
-          ((float *)((char *)collision_result + 0x18))[2] =
-            *(float *)((char *)collision_result + 0x14) * direction[2] +
-            origin[2];
-          scenario_location_from_point((char *)collision_result + 0xc,
-                                       (char *)collision_result + 0x18);
-          if (*(float *)((char *)collision_result + 0x14) < 0.0f)
-            break;
-          if (*(int *)((char *)collision_result + 0xc) != -1)
-            return result;
+  /* Zone-tracking refinement (original 0x14e500-0x14e631), gated on
+   * (collision_flags & 0x100000) — i.e. the detonation/effects callers
+   * (0x1000e9 / 0x100061), never the render path (0xfff80, no 0x100000 bit, so
+   * this block is render-safe by construction).  When the hit point's BSP leaf
+   * disagrees with the recorded surface ref, nudge the point off the surface by
+   * 1/4096 along the plane normal (collision_result+0x24) and re-resolve its
+   * scenario location into collision_result+0xc.  If that lands in void (-1),
+   * step the hit fraction (collision_result+0x14) back toward the ray origin
+   * until a valid leaf is found or the fraction reaches 0.
+   *
+   * Disasm-verified faithful reconstruction (analyst, 2026-06-22): refine =
+   * 1/4096 (0x39800000), step = (1/4096)/|dot(direction, normal)| with a 1/32
+   * fallback when the ray is parallel to the surface.  The retry is the
+   * original's do/while with the live `frac <= 0` terminator checked AFTER the
+   * scenario_location_from_point call (clamp `frac = max(frac-step, 0)` keeps it
+   * >= 0, so the loop always terminates).  This REPLACES the prior lift that
+   * used a wrong 1/512 refine, a swapped base/dir, and a top-tested
+   * `while (frac >= 0)` whose clamp made `if (frac < 0) break` dead — the PoA
+   * a10 collision-raycast freeze (removed in 59ac3322, now restored correctly).
+   * Only refines collision_result+0xc/+0x14/+0x18; does not touch the hit type
+   * (+0), the material (+0x34), or the AL return value. */
+  if (collision_flags & 0x100000) {
+    if (result && *(int *)((char *)collision_result + 0xc) != -1) {
+      int cur_zone;
+      cur_zone = FUN_0018e720((int)((char *)collision_result + 0x18));
+      if (cur_zone != *(int *)((char *)collision_result + 0xc)) {
+        vector3d_scale_add((float *)((char *)collision_result + 0x18),
+                           (float *)((char *)collision_result + 0x24),
+                           0.000244140625f,
+                           (float *)((char *)collision_result + 0x18));
+        scenario_location_from_point((char *)collision_result + 0xc,
+                                     (char *)collision_result + 0x18);
+        if (*(int *)((char *)collision_result + 0xc) == -1) {
+          float d;
+          float step;
+          d = FUN_00013070(direction,
+                           (float *)((char *)collision_result + 0x24));
+          if (d != 0.0f)
+            step = (float)(0.000244140625 / fabs((double)d));
+          else
+            step = 0.03125f;
+          for (;;) {
+            float frac;
+            frac = *(float *)((char *)collision_result + 0x14) - step;
+            if (!(frac > 0.0f))
+              frac = 0.0f;
+            *(float *)((char *)collision_result + 0x14) = frac;
+            ((float *)((char *)collision_result + 0x18))[0] =
+              frac * direction[0] + origin[0];
+            ((float *)((char *)collision_result + 0x18))[1] =
+              frac * direction[1] + origin[1];
+            ((float *)((char *)collision_result + 0x18))[2] =
+              frac * direction[2] + origin[2];
+            scenario_location_from_point((char *)collision_result + 0xc,
+                                         (char *)collision_result + 0x18);
+            if (*(float *)((char *)collision_result + 0x14) <= 0.0f)
+              break;
+            if (*(int *)((char *)collision_result + 0xc) != -1)
+              return result;
+          }
         }
       }
     }
   }
-
-  /* No cluster clamp needed: the spurious scenario_location_from_point
-   * call that overwrote +0xc with -1 has been removed.  The original
-   * XBE has no such clamp — +0xc retains obj_ref_last from the BSP
-   * extraction, which downstream code handles correctly. */
 
   return result;
 }

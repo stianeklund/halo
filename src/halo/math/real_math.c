@@ -3179,7 +3179,7 @@ int FUN_0010fe80(float x, float y)
 {
   float diff = (y * y + x * x) - 1.0f;
   if ((*(unsigned int *)&diff & 0x7f800000) != 0x7f800000 &&
-      fabsf(diff) < *(float *)0x2549d8) {
+      fabsf(diff) < *(double *)0x2549d8) {
     return 1;
   }
   return 0;

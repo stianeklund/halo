@@ -2327,9 +2327,7 @@ char FUN_001aa430(int unit_handle, float *point, float half_angle)
   char *unit;
   char marker_buf[0x78];
   float *marker_pos;
-  float dir_x;
-  float dir_y;
-  float dir_z;
+  float dir[3];
   float dot;
 
   if (unit_handle == -1) {
@@ -2340,16 +2338,23 @@ char FUN_001aa430(int unit_handle, float *point, float half_angle)
   object_get_markers_by_string_id(unit_handle, (void *)0x2909e4,
                                   marker_buf, 1);
 
+  /* dir = point - head_marker_position. The original keeps dir as a single
+   * contiguous 3-float vector ([ebp-0xc/-0x8/-0x4]) and passes its base to
+   * normalize3d, which reads all three components in place. dir MUST be an
+   * array, not three separate float locals: clang scatters separate locals
+   * across non-adjacent (and reordered) stack slots, so normalize3d(&dir_x)
+   * would read uninitialized stack for components [1] and [2] -> huge garbage
+   * -> normalize collapse -> assert_valid_real_normal3d crash (PoA marines). */
   marker_pos = (float *)(marker_buf + 0x60);
-  dir_x = point[0] - marker_pos[0];
-  dir_y = point[1] - marker_pos[1];
-  dir_z = point[2] - marker_pos[2];
+  dir[0] = point[0] - marker_pos[0];
+  dir[1] = point[1] - marker_pos[1];
+  dir[2] = point[2] - marker_pos[2];
 
-  normalize3d(&dir_x);
+  normalize3d(dir);
 
-  dot = dir_x * *(float *)(unit + 0x210) +
-        dir_y * *(float *)(unit + 0x214) +
-        dir_z * *(float *)(unit + 0x218);
+  dot = dir[0] * *(float *)(unit + 0x210) +
+        dir[1] * *(float *)(unit + 0x214) +
+        dir[2] * *(float *)(unit + 0x218);
 
   if (dot > x87_fcos(half_angle)) {
     return 1;
@@ -6826,15 +6831,24 @@ int unit_inventory_next_weapon(int unit_handle, int slot, int direction)
 }
 
 /* FUN_001a7a90 (0x1a7a90)
- * Applies damage to an object if it's not dead (bit 2 of +0xB6 clear). */
-void FUN_001a7a90(int param_1, float *body_dmg, float *shield_dmg)
+ * Applies damage to an object if it's not dead (bit 2 of +0xB6 clear).
+ *
+ * body_dmg/shield_dmg are passed BY VALUE. The original (delinked) takes three
+ * 4-byte stack args at [ebp+8]/[ebp+0xc]/[ebp+0x10] and does
+ *   lea ecx,[ebp+0xc]  (&body_dmg) / lea eax,[ebp+0x10] (&shield_dmg)
+ * to box the by-value floats into the pointers FUN_001365d0 expects (1365d0
+ * dereferences arg2/arg3). Declaring them as float* and forwarding the pointers
+ * reinterprets the float bit-pattern (1.0f == 0x3f800000) as an address and
+ * dereferences it — an infinite page-fault storm that froze PoA after the intro
+ * (FUN_000bf380 calls this with floats pushed by value). */
+void FUN_001a7a90(int param_1, float body_dmg, float shield_dmg)
 {
   char *obj;
 
   if (param_1 != -1) {
     obj = (char *)object_get_and_verify_type(param_1, -1);
     if ((*(uint8_t *)(obj + 0xb6) & 4) == 0) {
-      FUN_001365d0(param_1, body_dmg, shield_dmg);
+      FUN_001365d0(param_1, &body_dmg, &shield_dmg);
     }
   }
 }
@@ -9284,7 +9298,14 @@ void unit_cause_melee_damage(int unit_handle, char melee_hit, int target_handle,
   char *unit;
   char *unit_tag;
   int16_t marker_count;
-  int16_t collision_result[2];
+  /* FUN_0014df70 (collision raycast) writes an 80-byte result struct through
+   * this pointer (stores at +0..+0x4e, derived from disasm). The original
+   * allocates 0x50 bytes (lea [ebp-0x68], direction at [ebp-0x18]); a 4-byte
+   * buffer here overflowed the saved EBX/EDI/ESI/EBP slots, corrupting the
+   * caller's `unit` pointer to NONE (0xffffffff) -> [unit+0x25a] page fault
+   * (CR2=0x259) when an elite melees in PoA. Matches the correct siblings at
+   * units.c:2233 and units.c:11326. */
+  char collision_result[80];
   float *position;
   float melee_pos[3];
   float direction[3];
@@ -9334,7 +9355,7 @@ void unit_cause_melee_damage(int unit_handle, char melee_hit, int target_handle,
     direction[2] = melee_pos[2] - position[2];
 
     coll_hit = (char)FUN_0014df70(0x1000e9, position, direction, -1,
-                                  collision_result);
+                                  (int16_t *)collision_result);
     if (coll_hit != 0) {
       /* collision hit — snap melee position to unit center */
       melee_pos[0] = position[0];
@@ -11747,7 +11768,11 @@ void FUN_001afd30(int unit_handle, int node_output)
 
           local_matrix[0] = 1.0f;
           object_get_orientation(unit_handle, &local_matrix[1], &local_matrix[7]);
-          cross_product3d(&local_matrix[1], &local_matrix[7], &local_matrix[4]);
+          /* left = up x forward (verified vs original 0x1afd30: cross_product3d
+             pushes a=up[ebp-0x48], b=forward[ebp-0x60]).  A prior lift passed
+             (forward, up) which negates the left basis vector, flipping the
+             aim/look matrix -> wrong relative aim angles -> biped aims up/down. */
+          cross_product3d(&local_matrix[7], &local_matrix[1], &local_matrix[4]);
           local_matrix[10] = *(float *)*(int *)0x31fc1c;
           local_matrix[11] = *(float *)(*(int *)0x31fc1c + 4);
           local_matrix[12] = *(float *)(*(int *)0x31fc1c + 8);
@@ -11823,7 +11848,11 @@ void FUN_001afd30(int unit_handle, int node_output)
           look_ptr = (float *)(seat_block + 0x20);
           local_matrix[0] = 1.0f;
           object_get_orientation(unit_handle, &local_matrix[1], &local_matrix[7]);
-          cross_product3d(&local_matrix[1], &local_matrix[7], &local_matrix[4]);
+          /* left = up x forward (verified vs original 0x1afd30: cross_product3d
+             pushes a=up[ebp-0x48], b=forward[ebp-0x60]).  A prior lift passed
+             (forward, up) which negates the left basis vector, flipping the
+             aim/look matrix -> wrong relative aim angles -> biped aims up/down. */
+          cross_product3d(&local_matrix[7], &local_matrix[1], &local_matrix[4]);
           local_matrix[10] = *(float *)*(int *)0x31fc1c;
           local_matrix[11] = *(float *)(*(int *)0x31fc1c + 4);
           local_matrix[12] = *(float *)(*(int *)0x31fc1c + 8);
@@ -11988,7 +12017,11 @@ void FUN_001b0630(int transform_matrix, float *aiming_vector,
       }
     } else {
       desired_angles[0] = desired_angles[0] + 6.2831853f;
-      if (desired_angles[0] <= aiming_bounds[1]) {
+      /* assert(yaw <= x1): fires when the +2pi wrap OVERSHOOT past x1, i.e.
+         desired > x1 (symmetric with the -2pi path's `< x0` check). The Ghidra
+         decompile inverted this branch (`<=`), which passes VC71 but trips a
+         spurious halt at runtime on the common in-bounds case. */
+      if (desired_angles[0] > aiming_bounds[1]) {
         display_assert(
             "desired_aiming_angles.yaw <= aiming_bounds->x1",
             "c:\\halo\\SOURCE\\units\\units.c", 0x981, 1);
@@ -12085,7 +12118,11 @@ done_clamp:
         }
       } else {
         end_angles[0] = end_angles[0] + 6.2831853f;
-        if (end_angles[0] <= aiming_bounds[1]) {
+        /* assert(yaw <= x1): fires on +2pi wrap OVERSHOOT (end > x1), symmetric
+           with the -2pi path's `< x0` check. Ghidra inverted this branch (`<=`)
+           -> spurious EXCEPTION halt at units.c:0xaa5 at runtime (caught when
+           0x1b0630 was reactivated on a10). */
+        if (end_angles[0] > aiming_bounds[1]) {
           display_assert(
               "end_aiming_angles.yaw <= aiming_bounds->x1",
               "c:\\halo\\SOURCE\\units\\units.c", 0xaa5, 1);
@@ -12120,35 +12157,42 @@ done_clamp:
     angles_to_vector(end_aim, end_angles);
 
     {
-      float total_yaw;
-      float total_pitch;
+      float total_angles[2]; /* contiguous yaw/pitch pair for angles_to_vector */
       float vel_end[3];
-      total_yaw = rot_angles[0] + end_angles[0];
-      total_pitch = rot_angles[1] + end_angles[1];
-      (void)total_pitch;
-      angles_to_vector(vel_end, &total_yaw);
+      float dot;
+      float angle;
 
-      angular_velocity[0] =
-          rot_angles[1] * end_aim[1] -
-          vel_end[2] * rot_angles[0];
-      angular_velocity[1] =
-          vel_end[2] * end_aim[2] -
-          rot_angles[1] * end_aim[0];
-      angular_velocity[2] =
-          rot_angles[0] * end_aim[0] -
-          end_aim[1] * vel_end[2];
-    }
-    normalize3d(angular_velocity);
+      total_angles[0] = rot_angles[0] + end_angles[0];
+      total_angles[1] = rot_angles[1] + end_angles[1];
+      angles_to_vector(vel_end, total_angles);
 
-    {
-      float speed;
-      speed = ((float (*)(void))0x1d94f0)();
-      if (speed > angular_velocity_limit) {
-        speed = angular_velocity_limit;
+      /* dot = vel_end . end_aim. Read vel_end AFTER the call: angles_to_vector
+         overwrote the stack slots the decompiler mislabeled rot_angles[1..2]
+         (buffer aliasing). Original stores the dot, then clamps to [-1,1]. */
+      dot = vel_end[0] * end_aim[0] + vel_end[1] * end_aim[1] +
+            vel_end[2] * end_aim[2];
+      if (dot < -1.0f) {
+        dot = -1.0f;
+      } else if (dot > 1.0f) {
+        dot = 1.0f;
       }
-      angular_velocity[0] = speed * angular_velocity[0];
-      angular_velocity[1] = speed * angular_velocity[1];
-      angular_velocity[2] = speed * angular_velocity[2];
+
+      /* angular_velocity = cross(end_aim, vel_end) */
+      angular_velocity[0] = end_aim[1] * vel_end[2] - end_aim[2] * vel_end[1];
+      angular_velocity[1] = end_aim[2] * vel_end[0] - end_aim[0] * vel_end[2];
+      angular_velocity[2] = end_aim[0] * vel_end[1] - end_aim[1] * vel_end[0];
+
+      normalize3d(angular_velocity);
+
+      /* angle = acos(clamped dot) (orig 0x1d94f0 = MSVC CRT acos, arg in ST0),
+         clamped to the angular-velocity limit, then scales the axis. */
+      angle = acosf(dot);
+      if (angle > angular_velocity_limit) {
+        angle = angular_velocity_limit;
+      }
+      angular_velocity[0] *= angle;
+      angular_velocity[1] *= angle;
+      angular_velocity[2] *= angle;
     }
 
     if (transform_matrix != 0) {
@@ -12159,6 +12203,11 @@ done_clamp:
     }
     aiming_vector[0] = end_aim[0];
     aiming_vector[1] = end_aim[1];
+    /* transform_matrix==0 reconstruct path: the original's shared "+8" store
+       (delinked 0x668, reached via 0x657 with eax=aiming_vector) writes
+       aiming_vector[2]; angular_velocity[2] retains its scaled cross-product
+       value. The old single trailing store conflated the two LHS pointers. */
+    aiming_vector[2] = end_aim[2];
   } else {
     aiming_vector[0] = desired_clamped[0];
     aiming_vector[1] = desired_clamped[1];
@@ -12168,10 +12217,11 @@ done_clamp:
       zero_vec = *(float **)0x31fc38;
       angular_velocity[0] = zero_vec[0];
       angular_velocity[1] = zero_vec[1];
-      end_aim[2] = zero_vec[2];
+      /* else path: the shared "+8" store targets angular_velocity here
+         (eax=angular_velocity via 0x3b4 -> jmp 0x668). */
+      angular_velocity[2] = zero_vec[2];
     }
   }
-  angular_velocity[2] = end_aim[2];
 
 final_validate:
   {
@@ -12813,11 +12863,15 @@ char FUN_001b3690(int unit_handle)
     float aim_accel_limit;
     float *aim_vec;
     float saved_aim[3];
-    float local_5c;
-    float local_58[3];
-    float local_40[3];
-    float local_4c, local_48, local_44;
-    float local_34[3];
+    /* Euler-aim transform (real_matrix4x3): scale + forward/left/up rows +
+     * translation. MUST be one contiguous 13-float block — it is passed by
+     * address to FUN_001b0630, which does real_matrix4x3_transform_point on it.
+     * The decompiler split it into separate stack locals (local_5c/58/4c/48/44/
+     * 40/34) that MSVC happened to place contiguously; clang scatters separate
+     * locals, so passing &local_5c yielded a garbage matrix and the AI aim
+     * vector collapsed to world-up (0,0,1). An explicit aggregate fixes it. */
+    struct { float scale; float forward[3]; float left[3]; float up[3];
+             float translation[3]; } em;
     float zoom_interp;
     int zoom_sound_ref;
     char zoom_level_new;
@@ -12844,7 +12898,6 @@ char FUN_001b3690(int unit_handle)
     int unit_data_tmp;
 
     /* === Entry === */
-    (void)local_4c; (void)local_48; (void)local_44;
     unit = (int *)object_get_and_verify_type(unit_handle, 3);
     tag_data = (int)tag_get(0x756e6974, *unit);
     local_7 = 0;
@@ -13242,14 +13295,15 @@ char FUN_001b3690(int unit_handle)
         } else {
             /* Euler */
             float *grav;
-            local_5c = 1.0f;
-            object_get_orientation(unit_handle, local_58, local_40);
-            local_4c = local_58[2] * local_40[1] - local_40[2] * local_58[1];
-            local_48 = local_40[2] * local_58[0] - local_58[2] * local_40[0];
-            local_44 = local_58[1] * local_40[0] - local_40[1] * local_58[0];
+            em.scale = 1.0f;
+            object_get_orientation(unit_handle, em.forward, em.up);
+            em.left[0] = em.forward[2] * em.up[1] - em.up[2] * em.forward[1];
+            em.left[1] = em.up[2] * em.forward[0] - em.forward[2] * em.up[0];
+            em.left[2] = em.forward[1] * em.up[0] - em.up[1] * em.forward[0];
             grav = *(float **)0x31fc1c;
-            local_34[0] = grav[0]; local_34[1] = grav[1]; local_34[2] = grav[2];
-            FUN_001b0630((int)&local_5c, aim_vec,
+            em.translation[0] = grav[0]; em.translation[1] = grav[1];
+            em.translation[2] = grav[2];
+            FUN_001b0630((int)&em, aim_vec,
                 (float *)((char *)unit + 0x1e0),
                 (float *)((char *)unit + 0x1f8),
                 (float *)((char *)unit + 0x268),
@@ -13299,14 +13353,15 @@ char FUN_001b3690(int unit_handle)
         } else {
             float *lk = (float *)((char *)unit + 0x210);
             float *grav;
-            local_5c = 1.0f;
-            object_get_orientation(unit_handle, local_58, local_40);
-            local_4c = local_58[2] * local_40[1] - local_40[2] * local_58[1];
-            local_48 = local_40[2] * local_58[0] - local_58[2] * local_40[0];
-            local_44 = local_58[1] * local_40[0] - local_40[1] * local_58[0];
+            em.scale = 1.0f;
+            object_get_orientation(unit_handle, em.forward, em.up);
+            em.left[0] = em.forward[2] * em.up[1] - em.up[2] * em.forward[1];
+            em.left[1] = em.up[2] * em.forward[0] - em.forward[2] * em.up[0];
+            em.left[2] = em.forward[1] * em.up[0] - em.up[1] * em.forward[0];
             grav = *(float **)0x31fc1c;
-            local_34[0] = grav[0]; local_34[1] = grav[1]; local_34[2] = grav[2];
-            FUN_001b0630((int)&local_5c, lk,
+            em.translation[0] = grav[0]; em.translation[1] = grav[1];
+            em.translation[2] = grav[2];
+            FUN_001b0630((int)&em, lk,
                 (float *)((char *)unit + 0x204),
                 (float *)((char *)unit + 0x21c),
                 (float *)((char *)unit + 0x278),

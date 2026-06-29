@@ -3486,12 +3486,14 @@ LAB_001a36a4:
       } else {
         want = 1;
       }
-      /* BISECT 2026-06-18: reverted .surface_handle->.flags pending grounded-path
-       * verification (walking velocity regression). 0x1a3e8a movswl best_index;
-       * cmp physics+0xa8 vs the selected best entry. */
+      /* same-as-cached test: physics+0xa8 (cached surface_handle) vs the best
+       * entry's surface_handle (+0x24). Confirmed original 0x1a3dd1
+       * cmp [ebp+ecx-0x354],eax with buffer base ebp-0x378 and ecx=n*0x2c =>
+       * entry+0x24 = surface_handle. The 2026-06-18 bisect wrongly used .flags
+       * (+0x28); restored to match the binary (see +0xa4 fix below). */
       if (*(int *)((char *)physics + 0xa8) != -1 &&
           *(int *)((char *)physics + 0xa8) ==
-              results[(short)best_index].flags) {
+              results[(short)best_index].surface_handle) {
         same = 1;
       } else {
         same = 0;
@@ -3570,7 +3572,15 @@ LAB_001a36a4:
      * the selected entry, then +0xc4 from the normal dot. EDI = &entry.normal
      */
     {
-      int sel_surface = e->flags; /* BISECT 2026-06-18: reverted .surface_handle pending grounded-path verify */
+      /* +0xa4 surface index = e->surface_handle (entry+0x24), NOT .flags (+0x28).
+       * Confirmed original 0x1a3fb9 mov ebx,[ebp+ebx-0x354] with buffer base
+       * ebp-0x378 (edi=entry+0x10) and ebx=best_index*0x2c => entry+0x24, stored
+       * to physics+0xa4 at 0x1a3fe6 -> biped+0x430. The 2026-06-18 bisect wrongly
+       * reverted to .flags, writing a flags bitfield (e.g. 0x30000) into the
+       * pathfinding last_good_surface field, so biped_find_pathfinding_surface_index
+       * passed it to collision_surface_find_closest_point2d and asserted
+       * (tag_groups.c:3089) on AI-spawned bipeds. Restored to match the binary. */
+      int sel_surface = e->surface_handle;
       *(unsigned char *)((char *)physics + 0xa0) &= 0xfe;
       *(int *)((char *)physics + 0x80) = *(int *)&e->normal[0];
       *(int *)((char *)physics + 0x84) = *(int *)&e->normal[1];

@@ -17,19 +17,27 @@ void structure_visibility_find_camera(void *param_1)
 
   if (leaf == 0xffffffff) {
     leaf = *(uint32_t *)0x506780;
+    /* Faithful to original 0x1965f0: the cached-leaf path (jl LAB_00196637)
+     * jumps to the RESET block, not past it. Jumping straight to do_cluster
+     * leaves visible_sky_model (0x506789) at a stale 1 while visible_sky_index
+     * (0x50678a) gets a -1 cluster sky -> render_sky.c:38 asserts
+     * (!visible_sky_model || scenario_get_sky(visible_sky_index)). Only the
+     * 0x506780 store is skipped on this path. */
     if ((int)leaf < *(int *)(scenario + 0xe0))
-      goto do_cluster;
+      goto reset_sky;
     leaf = 0xffffffff;
   }
 
   *(uint32_t *)0x506780 = leaf;
+reset_sky:
   *(int *)0x506784 = -1;
   *(short *)0x50678a = -1;
   *(uint8_t *)0x506789 = 0;
   if (leaf == 0xffffffff)
     return;
 
-do_cluster:
+  /* fall-through (was label do_cluster): also reached from the cached-leaf
+   * path via `goto reset_sky` above. */
   cluster_elem = (char *)tag_block_get_element(scenario + 0xe0,
                                                (int)(leaf & 0x7fffffff), 0x10);
   *(int *)0x506784 = (int)*(short *)(cluster_elem + 8);

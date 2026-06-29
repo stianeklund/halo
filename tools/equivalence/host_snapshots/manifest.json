@@ -1,0 +1,40 @@
+{
+  "_comment": "METADATA ONLY -- contains no game memory. The .halorec recordings and the *.json snapshots built from them contain raw, copyrighted Halo runtime memory and are gitignored / host-only (see ../../../.gitignore and host_snapshots/README.md). This manifest is our own metadata describing how to regenerate the host-only snapshots. Build with: python3 tools/equivalence/build_host_snapshots.py (set $HALO_HALOREC_DIR to the directory holding the .halorec files).",
+  "recordings_dir_env": "HALO_HALOREC_DIR",
+  "recordings_dir_defaults": [
+    "/mnt/g/dev/halo-memory-viewer",
+    "../halo-memory-viewer"
+  ],
+  "snapshots": [
+    {
+      "out": "rec19_grunt6.json",
+      "recording": "Recording 19.halorec",
+      "frame": "handle=0xe3610000",
+      "args": {
+        "actor_handle": "0xe38b0006",
+        "clump_item_handle": "0xf7420021"
+      },
+      "note": "a10 door-grunt slot6 (awareness=10) + its primary perception prop 0xf7420021. Recording 19 captures the full actor pool (stride 0x724) and perception-prop pool (stride 0x138), so prop/actor-reading functions get real state instead of zero-fill."
+    },
+    {
+      "out": "rec19_grunt10.json",
+      "recording": "Recording 19.halorec",
+      "frame": "handle=0xe38c000a",
+      "args": {
+        "actor_handle": "0xe38c000a",
+        "clump_item_handle": "0xf7440024"
+      },
+      "note": "a10 door-grunt slot10 (awareness=6) + its primary perception prop 0xf7440024. Mid-alertness state drives a different scorer path than the fully-aware grunt6."
+    },
+    {
+      "out": "rec19_grunt11.json",
+      "recording": "Recording 19.halorec",
+      "frame": "handle=0xe38d000b",
+      "args": {
+        "actor_handle": "0xe38d000b",
+        "clump_item_handle": "0xf7430023"
+      },
+      "note": "a10 door-grunt slot11 (awareness=6) + its primary perception prop 0xf7430023. Second mid-alertness grunt for additional path coverage."
+    }
+  ]
+}

@@ -188,6 +188,38 @@ def _load_known_globals():
 
 _KNOWN_GLOBAL_BYTES = _load_known_globals()
 
+# Delinked COFF switch tables sometimes keep the table label but lose the table
+# entries themselves (all zeroes, no internal relocations).  Seed only tables we
+# have binary-backed evidence for; entries below are from cachebeta.xbe memory.
+_ORACLE_SWITCH_TABLE_FIXUPS = {
+    0x0002CDB0: {
+        "switchD_0002ce68::switchdataD_0002d334": (
+            0x0002CE6F, 0x0002CF62, 0x0002CEC7, 0x0002CFC9,
+        ),
+    },
+}
+
+
+def _apply_oracle_switch_table_fixups(func_addr: int, function_slice,
+                                      rdata_map: dict,
+                                      maps_full_text: bool) -> dict:
+    """Add binary-backed switch table bytes missing from delinked COFF."""
+    fixups = _ORACLE_SWITCH_TABLE_FIXUPS.get(func_addr)
+    if not fixups:
+        return rdata_map
+
+    patched = dict(rdata_map)
+    section_base_delta = (func_addr - function_slice.section_offset
+                          if maps_full_text else func_addr)
+    for symbol_name, target_vas in fixups.items():
+        if symbol_name in patched:
+            continue
+        data = bytearray()
+        for target_va in target_vas:
+            data.extend(struct.pack("<I", CODE_BASE + target_va - section_base_delta))
+        patched[symbol_name] = bytes(data)
+    return patched
+
 # ---------------------------------------------------------------------------
 # kb.json helpers
 # ---------------------------------------------------------------------------
@@ -1131,7 +1163,8 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
              no_concolic: bool = False,
              real_callees: bool = False,
              max_insn: int = None,
-             stub_arg_trace: bool = True) -> int:
+             stub_arg_trace: bool = True,
+             value_corpus: Optional[Path] = None) -> int:
     """Run the differential test.  Returns 0 if all pass, 1 if any diverge."""
 
     # In --allow-stubs mode each callee stub executes real oracle code, consuming
@@ -1420,7 +1453,9 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         # Patch DIR32 relocations for both, with non-overlapping slot ranges
         orc_defined = getattr(oracle_slice, 'defined_symbols', set())
         lft_defined = getattr(lifted_slice, 'defined_symbols', set())
-        orc_rdata = getattr(oracle_slice, 'rdata_map', {})
+        orc_rdata = _apply_oracle_switch_table_fixups(
+            int(addr, 16), oracle_slice, getattr(oracle_slice, 'rdata_map', {}),
+            oracle_text is not None)
         lft_rdata = getattr(lifted_slice, 'rdata_map', {})
         oracle_code_patched, orc_data_slots, orc_rdata_seeds = patch_dir32_relocs(
             oracle_slice.code, oracle_slice.relocs, orc_defined,
@@ -1824,14 +1859,20 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             and use_stubs and merged_global_reads):
         try:
             from concolic import (disassemble_branches, find_uncovered,
-                                  generate_memory_injections)
+                                  generate_memory_injections, load_value_corpus)
 
             branches = disassemble_branches(oracle_code_patched, oracle_func_base)
             uncovered = find_uncovered(branches, all_visited_pcs, oracle_func_base)
 
             if uncovered:
+                # Step 4: ground residual-branch injection in real frame values.
+                corpus = load_value_corpus(value_corpus)
                 injections = generate_memory_injections(
-                    uncovered, merged_global_reads, oracle_func_base)
+                    uncovered, merged_global_reads, oracle_func_base,
+                    value_corpus=corpus)
+                if corpus:
+                    info(f"  concolic: using real-frame value corpus "
+                         f"({len(corpus)} globals)")
 
                 if injections:
                     info(f"\n  concolic: {len(uncovered)} uncovered branch(es), "
@@ -2049,6 +2090,11 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         error_details=error_details,
         seeds=total_seeds,
         coverage_pct=round(coverage_pct, 1),
+        func_size=oracle_func_size,
+        # {hex pc: instruction size} of every oracle PC visited across all seeds
+        # (post-concolic). Lets a multi-frame sweep union real-state coverage:
+        # union_bytes = sum of sizes over the unioned PC set / func_size.
+        covered_pcs={f"0x{pc:08x}": sz for pc, sz in sorted(all_visited_pcs.items())},
         unique_returns=unique_returns,
         confidence=confidence,
         trace_diffs=trace_diff_count,
@@ -2296,8 +2342,19 @@ def main():
                         help="Enable memory-write trace differential (compare side-effect writes)")
     parser.add_argument("--state-snapshot", type=Path, default=None, metavar="PATH",
                         help="Load state snapshot JSON for memory initialization (replaces zero-fill)")
+    parser.add_argument("--from-halorec", type=Path, default=None, metavar="REC",
+                        help="Convert a .halorec recording frame to a state snapshot "
+                             "(real object/actor/prop heap). Mutually exclusive with --state-snapshot.")
+    parser.add_argument("--halorec-frame", default=None, metavar="SEL",
+                        help="Frame selector for --from-halorec: index (int), 'first', 'last', "
+                             "0.0-1.0 fraction, 't=SECONDS', or 'handle=0xHANDLE' (default: last)")
     parser.add_argument("--no-concolic", action="store_true",
                         help="Disable automatic concolic Phase 2 when coverage is low")
+    parser.add_argument("--value-corpus", type=Path, default=None, metavar="PATH",
+                        help="Real-frame value corpus {global: [observed values]} from "
+                             "halorec_frame_sweep.py --emit-value-corpus; concolic Phase 2 "
+                             "injects these feasible engine-produced values for residual "
+                             "uncovered branches instead of invented constants.")
     parser.add_argument("--real-callees", action="store_true",
                         help="Run callees as native oracle code (loops iterate over "
                              "snapshot data) instead of return-0 stubs. Implies --allow-stubs.")
@@ -2309,6 +2366,33 @@ def main():
     args = parser.parse_args()
     if args.real_callees:
         args.allow_stubs = True
+
+    if args.from_halorec:
+        # Convert a recorded frame into a state snapshot, then reuse the existing
+        # --state-snapshot plumbing (load_snapshot maps regions into Unicorn).
+        if args.state_snapshot:
+            parser.error("--from-halorec and --state-snapshot are mutually exclusive")
+        import json as _json
+        import tempfile
+        from halorec_to_snapshot import build_snapshot
+        sel = args.halorec_frame
+        fkw = {}
+        if sel is None or sel in ("last", "first"):
+            fkw["frame"] = sel
+        elif sel.startswith("t="):
+            fkw["t"] = float(sel[2:])
+        elif sel.startswith("handle="):
+            fkw["handle"] = int(sel[7:], 0)
+        else:
+            fkw["frame"] = sel
+        snap, idx, t = build_snapshot(str(args.from_halorec), **fkw)
+        tf = tempfile.NamedTemporaryFile("w", suffix=".json", prefix="halorec_snap_",
+                                         delete=False, encoding="utf-8")
+        _json.dump(snap, tf)
+        tf.close()
+        args.state_snapshot = Path(tf.name)
+        print(f"  [from-halorec] {Path(str(args.from_halorec)).name} frame {idx} "
+              f"(t={t:.3f}s) -> {len(snap['regions'])} regions -> {tf.name}")
 
     if args.batch_classify:
         sys.exit(_run_batch_classify())
@@ -2348,6 +2432,7 @@ def main():
         real_callees=args.real_callees,
         max_insn=args.max_insn,
         stub_arg_trace=not args.no_stub_arg_trace,
+        value_corpus=args.value_corpus,
     ))
 
 

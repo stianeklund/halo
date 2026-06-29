@@ -15,12 +15,24 @@ Argument: $ARGUMENTS (description of the regression symptom or failing test)
 
 ## Investigation priority
 
-**Always start with git history.** Most regressions are introduced by a recent
-commit. Static analysis is fast, free, and usually sufficient. One thing is even
-cheaper and runs first: a doc lookup (Phase 0). It *informs* the bisect — it
-does not replace it.
+**Always start with prior-fix lookup, then git history.** Most regressions are
+introduced by a recent commit. Static analysis is fast, free, and usually
+sufficient. The prior-fix lookup is cheaper and runs first; it informs the
+bisect but does not replace it.
 
-### Phase 0 — Consult prior learnings (near-free, do first)
+### Phase 0 — Prior-Fix Lookup (near-free, do first)
+
+Run:
+
+```bash
+rtk python3 tools/memory/prior_fixes.py "$ARGUMENTS"
+```
+
+This searches source-controlled docs/skills, `.claude/agent-memory`, recent
+git commits, and retrieval outcome metadata. Load any recommended skill(s), and
+carry matching prior fixes into Phase 1 as hypotheses to confirm or refute.
+
+### Phase 0b — Consult QMD Doc Learnings If Needed
 
 Many regressions match a documented bug class. `docs/lift-learnings.md` catalogs
 recurring failure modes — packed-field (CONCAT) mistranslation, vertex-stride

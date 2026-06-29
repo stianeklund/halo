@@ -179,6 +179,8 @@ Do not save the Ghidra project after a delink export run.
 4. Cross-check suspects in Ghidra disassembly.
 5. Use live probing only when static evidence is insufficient.
 6. Prefer XBDM probing on real Xbox over xemu whenever possible.
+7. For reproducible runtime regressions, prefer replaying a matching per-level
+   input recording from `input-recordings/` before manually driving the level.
 
 Useful probes (XBDM preferred):
 
@@ -186,6 +188,7 @@ Useful probes (XBDM preferred):
 - `/xbdm context` — read registers after a crash
 - `/xbdm mem <addr> <len>` — inspect memory at a suspect address
 - visual check via `rtk python3 tools/xbox/xdbm_screenshot.py --host <ip> --images 5 --png`
+- input replay via native `state.data` sentinels; see `docs/xbox-pad.md`
 
 Useful xemu probes (fallback only):
 

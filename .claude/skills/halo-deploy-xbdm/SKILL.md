@@ -27,6 +27,21 @@ to a real Xbox. Do not build an ISO unless the user explicitly asks for xemu.
 - Prefer real Xbox via XBDM over xemu+ISO whenever a console is available.
 - Do not switch to ISO/xemu unless the user asks for it or the Xbox is unavailable.
 
+## Boot control: init.txt and saved states
+
+The deploy script automatically uploads `/mnt/g/dev/halo/init.txt` to
+`E:\GAMES\halo-patched\init.txt` on every deploy. Edit that file to control
+what map loads and whether to restore a saved game-state checkpoint (core).
+See `docs/boot-init-and-checkpoints.md` for the full workflow.
+
+## Input recording deploy files
+
+The running title opens startup/control files as `D:\...`; in practice upload
+them to the deployed title root, e.g. `E:\GAMES\halo-patched\init.txt`,
+`write.xts`, `read.xts`, `loop.xts`, and `state.data`. Use
+`docs/xbox-pad.md` for the record/replay workflow and `input-recordings/` for
+local per-level captures.
+
 ## Report format
 
 Report:

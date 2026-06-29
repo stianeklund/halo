@@ -637,11 +637,12 @@ unsigned int FUN_00014770(int actor_handle)
   float dist_sq;
   float timer;
   short result;
-  static char large_buf[0x670];
-  static char huge_buf[0x1474c];
+  char large_buf[0x670];
+  char huge_buf[0x1474c];
   int local_14;
-  int local_50[12]; /* FUN_00027090 writes 12 ints (48 bytes); was float[3]=12
-                       bytes causing overflow */
+  int local_50[15]; /* FUN_00027090 -> FUN_00025c10 memcpy's 0xf*4 = 60 bytes
+                       (0x3c) here; FUN_000272d0 reads it. Was [12] (48 bytes)
+                       -> 12-byte stack overflow. */
   char local_c;
 
   actor = (char *)datum_get(actor_data, actor_handle);
@@ -885,7 +886,10 @@ void FUN_00014c10(int actor_handle, void *state_data, int param_3)
   char *actor;
   char *tag;
   char *sec_target;
-  void *fp_result_ptr;
+  int fp_result_ptr[15]; /* 0x3c-byte record buffer: FUN_00025c10 memcpy's
+                          * 0xf*4 = 60 bytes here and FUN_000272d0 reads it.
+                          * Was void* (4 bytes) -> 56-byte stack overflow.
+                          * Original reserves [ebp-0x50]..[ebp-0x14] = 0x3c. */
   short fp_index_tmp;
   short fp_index;
   int out2;
@@ -893,9 +897,9 @@ void FUN_00014c10(int actor_handle, void *state_data, int param_3)
   char local_byte;
   int target_pos;
   unsigned char valid;
-  static char path_buf[0x98];
-  static char path_state_buf[0x146fc];
-  static char huge_buf[0x1408c];
+  char path_buf[0x98];
+  char path_state_buf[0x146fc];
+  char huge_buf[0x1408c];
   char query_buf[0x670];
   short group_type;
 
@@ -951,7 +955,7 @@ void FUN_00014c10(int actor_handle, void *state_data, int param_3)
    * Writes out3 int via *out3 (EBP-0x5); low byte = exclusion flag.
    */
   fp_index_tmp = (short)FUN_00025c10(
-    actor_handle, query_buf, (int *)&fp_result_ptr, &out2, huge_buf, &out3_int);
+    actor_handle, query_buf, fp_result_ptr, &out2, huge_buf, &out3_int);
 
   /* Temporary write (0x14d54); overwritten by FUN_000272d0 return */
   *(short *)((char *)state_data + 0x8) = fp_index_tmp;
@@ -961,7 +965,7 @@ void FUN_00014c10(int actor_handle, void *state_data, int param_3)
    *   param_3 = &fp_result_ptr (address of pointer storage, void **)
    *   param_5 = (unsigned int) address of huge_buf (pointer as uint)
    */
-  fp_index = FUN_000272d0(actor_handle, fp_index_tmp, &fp_result_ptr, out2,
+  fp_index = FUN_000272d0(actor_handle, fp_index_tmp, fp_result_ptr, out2,
                           (unsigned int)(int)huge_buf, (char)out3_int);
   *(short *)((char *)state_data + 0x8) = fp_index;
 
@@ -2187,13 +2191,11 @@ unsigned int FUN_000163d0(int actor_handle)
 {
   char *actor;
   char *tag;
-#if defined(_MSC_VER) && !defined(__clang__)
+  /* Stack (per original/MSVC): the `static` clang workaround for the broken
+     _chkstk (bare-ret) is obsolete now that _chkstk reserves the frame, and
+     `static` shared these buffers across actors -> re-entrancy aliasing. */
   char large_buf[0x670];
   char huge_buf[0x1474c];
-#else
-  static char large_buf[0x670];
-  static char huge_buf[0x1474c];
-#endif
   short result;
   int seed_ret;
   float timer;
@@ -2222,7 +2224,9 @@ unsigned int FUN_000163d0(int actor_handle)
     int ret_24a60;
     int local_10;
     int local_c;
-    int local_50[12]; /* FUN_00025c10 writes 12 ints (48 bytes) */
+    int local_50[15]; /* FUN_00025c10 memcpy's 0xf*4 = 60 bytes (0x3c) here;
+                       * original reserves [ebp-0x4c]..[ebp-0x10] = 0x3c bytes.
+                       * Was [12] (48 bytes) -> 12-byte stack overflow. */
     int ret_25c10;
 
     if (*(short *)(actor + 0xc0) == 3 &&
@@ -3994,7 +3998,7 @@ bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
   short command_priority;
   float range;
   float dot;
-  float diff_x, diff_y, diff_z;
+  float diff[3];
   float local_vec[3];
   float threat_position[3];
   float actor_position[3];
@@ -4072,16 +4076,18 @@ bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
           system_exit(-1);
         }
         if (*(char *)(actor + 0x99) == '\0') {
-          diff_x =
+          diff[0] =
             *(float *)((char *)command + 0x1c) - *(float *)(actor + 0x12c);
-          diff_y =
+          diff[1] =
             *(float *)((char *)command + 0x20) - *(float *)(actor + 0x130);
-          diff_z = 0.0f;
-          (void)diff_y;
-          (void)diff_z;
-          if (magnitude3d(&diff_x) > 0.0f) {
-            range = diff_y * *(float *)(actor + 0x178);
-            local_vec[0] = diff_x;
+          diff[2] = 0.0f;
+          /* magnitude3d is 2D (reads v[0],v[1]) and normalizes them IN PLACE.
+           * The original stored diff_x/diff_y in adjacent stack floats
+           * ([ebp-8]/[ebp-4]) so both got normalized. Scattered scalar locals
+           * made it normalize garbage and leave diff_y raw. */
+          if (magnitude3d(diff) > 0.0f) {
+            range = diff[1] * *(float *)(actor + 0x178);
+            local_vec[0] = diff[0];
           }
         } else {
           FUN_00012140((float *)(actor + 0x12c),
@@ -4452,7 +4458,7 @@ void FUN_00019370(int actor_handle)
   char *actor;
   int mode;
   int tmp;
-  float tmp_x, tmp_y;
+  float tmp_v[2]; /* contiguous: magnitude3d (2D) reads/normalizes [0],[1] */
   float len_sq;
 
   actor = (char *)datum_get(actor_data, actor_handle);
@@ -4530,13 +4536,13 @@ LAB_done:
 
   if (*(char *)(actor + 0xf8) != '\0' && !FUN_0002a360(actor_handle)) {
     if (*(short *)(actor + 0xfa) != -1) {
-      tmp_y = *(float *)(actor + 0x5a8);
-      tmp_x = *(float *)(actor + 0x5a4);
-      magnitude3d(&tmp_x);
+      tmp_v[1] = *(float *)(actor + 0x5a8);
+      tmp_v[0] = *(float *)(actor + 0x5a4);
+      magnitude3d(tmp_v); /* normalizes tmp_v[0],tmp_v[1] in place (2D) */
       (void)actor_move_animation_impulse(
         actor_handle, *(short *)(actor + 0xfa),
-        (int *)&tmp_x); /* hazard-ok: intentional-discard (output via pointer
-                           param; return val = success bool not needed here) */
+        (int *)tmp_v); /* hazard-ok: intentional-discard (output via pointer
+                          param; return val = success bool not needed here) */
     }
     if (*(short *)(actor + 0xfc) != -1) {
       (void)FUN_00046f10(*(short *)(actor + 0xfc), *(int *)(actor + 0x18), -1,
@@ -4557,12 +4563,12 @@ LAB_done:
     if ((*(char *)(actor + 0xa9) & 8) == 0) {
       if (*(short *)(actor + 0xac) == 0 && *(char *)(actor + 0x15c) == '\0' &&
           !unit_is_busy(*(int *)(actor + 0x18))) {
-        tmp_x = *(float *)(actor + 0x174);
-        tmp_y = *(float *)(actor + 0x178);
-        len_sq = magnitude3d(&tmp_x);
+        tmp_v[0] = *(float *)(actor + 0x174);
+        tmp_v[1] = *(float *)(actor + 0x178);
+        len_sq = magnitude3d(tmp_v);
         if (len_sq == *(float *)0x2533c0) {
-          tmp_x = **(float **)0x31fc0c;
-          tmp_y = *(float *)(*(int *)0x31fc0c + 4);
+          tmp_v[0] = **(float **)0x31fc0c;
+          tmp_v[1] = *(float *)(*(int *)0x31fc0c + 4);
         }
         *(char *)(actor + 0x440) = 1;
         *(char *)(actor + 0x441) =
@@ -4570,8 +4576,8 @@ LAB_done:
                  *(float *)(actor + 0xb0) * *(float *)0x2533c4);
         *(char *)(actor + 0x442) =
           (char)((*(unsigned char *)(actor + 0xa9) >> 4) & 1);
-        *(float *)(actor + 0x444) = tmp_x;
-        *(float *)(actor + 0x448) = tmp_y;
+        *(float *)(actor + 0x444) = tmp_v[0];
+        *(float *)(actor + 0x448) = tmp_v[1];
         *(float *)(actor + 0x44c) = *(float *)(actor + 0xb0);
         *(float *)(actor + 0x450) = *(float *)(actor + 0xb4);
         *(unsigned char *)(actor + 0xa9) |= 8;
@@ -5175,8 +5181,8 @@ int FUN_0001a100(int actor_handle, short param_2, char *state_data)
 char FUN_0001a200(int actor_handle)
 {
   char *actor;
-  static char state_buf[0x670];
-  static char big_buf[0x14840];
+  char state_buf[0x670];
+  char big_buf[0x14840];
   char local_48[0x44];
   int local_4;
   int local_8;
@@ -5985,9 +5991,7 @@ void FUN_00024cf0(int actor_handle, char *eval_state, unsigned short fp_count,
 
             LAB_24cf0_fp2_score:
               los_score = 15.0f;
-              if (cos_angle >= 0.866025f) {
-                /* max score; no assertion needed */
-              } else if (cos_angle < 0.0f) {
+              if (cos_angle < 0.0f) {
                 los_score = 15.0f - cos_angle * -15.0f;
                 if (!(los_score >= 0.0f && los_score < 1000.0f)) {
                   display_assert(
@@ -5995,7 +5999,9 @@ void FUN_00024cf0(int actor_handle, char *eval_state, unsigned short fp_count,
                     "c:\\halo\\SOURCE\\ai\\actor_firing_position.c", 0x81, 1);
                   system_exit(-1);
                 }
-              } else {
+              } else if (cos_angle > 0.866025f) {
+                /* well-aligned (forward-facing) firing positions earn the cone
+                 * bonus (15..30); pristine 0x252c1..0x252d6. */
                 los_score = (cos_angle - 0.866025f) * 111.9619f + 15.0f;
                 if (!(los_score >= 0.0f && los_score < 1000.0f)) {
                   display_assert(
@@ -6003,6 +6009,8 @@ void FUN_00024cf0(int actor_handle, char *eval_state, unsigned short fp_count,
                     "c:\\halo\\SOURCE\\ai\\actor_firing_position.c", 0x81, 1);
                   system_exit(-1);
                 }
+              } else {
+                /* 0 <= cos <= 0.866: flat max-cone score (preset 15); no assert */
               }
               *(float *)(fp2_ptr + 8) += los_score;
             }
@@ -6542,7 +6550,10 @@ short FUN_00025c10(int actor_handle, void *eval_ctx, int *out_record,
   char records[0x200 * 0x3c]; /* EBP-0x8890 candidate records */
   int order[0x200]; /* EBP-0x1090 sort order indices */
   int owner_indices[0x200]; /* EBP-0x890 fp owner actor indices */
-  char path_input[0x44]; /* EBP-0x90 path-input scratch */
+  char path_input[0x48]; /* EBP-0x90 path-input scratch. MUST be >= 0x48:
+                          * path_input_new / actor_path_input_new do
+                          * csmemset(buf, 0, 0x48). Original reserved -0x90..-0x48
+                          * (0x48 bytes); a too-small [0x44] overflows by 4 bytes. */
   int prop_iter[2]; /* EBP-0x14 prop iterator */
   float vtmp[3]; /* EBP-0x3c scratch vector */
   float dir[3]; /* EBP-0x18 aim direction */
@@ -7320,7 +7331,13 @@ short FUN_00027090(int actor_handle, void *param_2, void *param_3,
         ((int *)param_3)[0xb] = (int)distance_squared3d(
           (const float *)((char *)param_2 + 0x604), (const float *)iVar8);
       }
-      if (!FUN_00025970(param_2, actor_handle, actor)) {
+      /* Original 0x2728d: MOV EAX,EDI (state@eax = param_3, the firing-position
+       * record just built above) and ESI = param_2 (the eval ctx) is the
+       * actor@esi pass-through.  The prior lift wrongly passed param_2 as the
+       * record and the local `actor` datum as the ctx, so FUN_00024cf0 scored
+       * the ctx buffer (whose [0] = group bitmask = total) as a firing-position
+       * record and dereferenced total (=1) as a position pointer -> PoA AV. */
+      if (!FUN_00025970(param_3, actor_handle, (char *)param_2)) {
         existing_fp = -1;
         *(short *)(actor + 0x3b8) = -1;
       }
@@ -7519,7 +7536,7 @@ void FUN_00027410(int actor_handle, void *ctx, unsigned short fp_count,
                           *(float *)(av + 0x274) * *(float *)(av + 0x274) -
                           *(float *)0x2533c8;
               if (((*(unsigned int *)&len_sq_m1 & 0x7f800000) == 0x7f800000) ||
-                  *(float *)0x2549d8 <= fabsf(len_sq_m1)) {
+                  *(double *)0x2549d8 <= fabsf(len_sq_m1)) {
                 display_assert(
                   csprintf((char *)0x5ab100,
                            "%s: assert_valid_real_normal3d(%f, %f, %f)",
@@ -8314,14 +8331,23 @@ void FUN_00028ed0(float *look_vectors, float *idle_direction, int actor_handle)
     if (pfVar4[1] < az_range) {
       az_max = pfVar4[1];
     }
-    if (FUN_000283b0((float *)(actor + 0x120), 0, az_min, az_max, -el_range,
-                     el_range, out_vec3, idle_direction)) {
-      *(float *)(actor + 0x580) = out_vec3[0];
-      *(float *)(actor + 0x584) = out_vec3[1];
-      *(float *)(actor + 0x588) = out_vec3[2];
-      *(short *)(actor + 0x57c) = 4;
-      flag_byte = 0;
+    if (!FUN_000283b0((float *)(actor + 0x120), 0, az_min, az_max, -el_range,
+                      el_range, out_vec3, idle_direction)) {
+      /* Original 0x28fe7 `je 0x29033`: when no idle look direction is found,
+         RETURN early — do NOT call FUN_00028250 or arm the look gate. The
+         prior lift dropped this early-out and fell through, arming +0x55f
+         over a stale +0x57c==4 / (0,0,0) +0x580. That degenerate look-spec
+         was later copied by FUN_00028660 case 4 (actor_looking.c:8894),
+         bypassing its magnitude gate, and halted at
+         actor_looking.c:529 assert_valid_real_normal3d(0,0,0) during PoA
+         combat actor activation. */
+      return;
     }
+    *(float *)(actor + 0x580) = out_vec3[0];
+    *(float *)(actor + 0x584) = out_vec3[1];
+    *(float *)(actor + 0x588) = out_vec3[2];
+    *(short *)(actor + 0x57c) = 4;
+    flag_byte = 0;
   }
 
   *(int *)(actor + 0x568) =
@@ -8329,6 +8355,70 @@ void FUN_00028ed0(float *look_vectors, float *idle_direction, int actor_handle)
   if (*(int *)(actor + 0x568) != 0) {
     *(char *)(actor + 0x55f) = 1;
   }
+}
+
+/* look_spec_28660_safe — wrapper around FUN_00028660 that guards against the
+   actor_looking.c:529 halt on a degenerate (0,0,0) look-spec.
+
+   FUN_00028660 builds a look direction from a look-spec. Its NORMALIZE cases
+   (type 0/1/3/5/6) pass a (0,0,0) through normalize3d, whose magnitude gate
+   makes 28660 silently return 0. But its COPY cases — type 2 (actor+0x68c /
+   actor+0x63c) and type 4 (look_spec+4) — copy the stored vector directly,
+   bypassing that gate, and a (0,0,0) there reaches assert_valid_real_normal3d
+   and HALTS at line 529.
+
+   Such a degenerate copy-case look-spec arises during actor activation: the
+   idle look producer FUN_00028cc0 sets the look-spec type (e.g. +0x56c=4)
+   BEFORE calling FUN_000283b0, which writes the look vector ONLY on success.
+   When 283b0's collision raycast (FUN_0014df70) finds no clear direction in
+   any of its attempts it returns false and leaves the vector unwritten — so a
+   never-initialised (0,0,0) survives with the type already armed. The slot is
+   then copied (+0x56c -> +0x57c) and consumed by 28660 case 4 (line 8894).
+
+   In a RELEASE build 28660 would simply return 0 here (valid_real_normal3d
+   fails, asserts compiled out); we replicate exactly that — return 0 ("no
+   valid look this tick") for a degenerate copy-case vector — so the debug
+   build does not halt on a state the shipping engine tolerates. The caller's
+   28660-returned-0 path disarms the look gate and falls through to the
+   snap-to-original handling, which is the intended no-look behaviour.
+
+   NOTE (upstream): the root reason +0x570 carries a bad vector (live: an
+   uninitialized X = 0xffffffff with valid Y/Z, i.e. NaN; sometimes (0,0,0))
+   is FUN_000283b0 / FUN_0014df70 reporting every idle-look candidate blocked
+   at activation and returning 0 without writing +0x570, leaving its prior /
+   uninitialized contents; that raycast lift should be re-validated
+   separately. */
+static char look_spec_28660_safe(int actor_handle, char *actor,
+                                 short *look_spec, float *out_vec)
+{
+  int cs;
+  float *tgt;
+
+  cs = (int)*look_spec;
+  tgt = 0;
+  if (cs == 2) {
+    if (*(short *)(actor + 0x5f2) == 2)
+      tgt = (float *)(actor + 0x68c);
+    else if (*(char *)(actor + 0x628) != '\0')
+      tgt = (float *)(actor + 0x63c);
+  } else if (cs == 4) {
+    tgt = (float *)((char *)look_spec + 4);
+  }
+  if (tgt != 0) {
+    /* Replicate FUN_00028660's own valid_real_normal3d (0x21fb0) gate exactly:
+       skip (return 0, "no valid look this tick") unless the copy-case vector is
+       a true unit normal -- |dot(v,v) - 1| < 0.001 and not NaN/Inf. The earlier
+       `!(m2 >= 1e-8f)` form only closed the LOWER bound: it rejected
+       (0,0,0)/tiny/NaN but PASSED a finite-but-huge uninitialized component
+       (live: +0x570 X = -3.5e31), whose squared length overflows to +inf,
+       satisfies `inf >= 1e-8f`, and reached assert_valid_real_normal3d at #529
+       -> HALT. Any vector this predicate rejects, 28660 itself rejects (it
+       calls the same check), so this is byte-faithful to the release path and
+       value-agnostic to whatever garbage the stale slot carries. */
+    if (!valid_real_normal3d(tgt))
+      return 0;
+  }
+  return FUN_00028660(actor_handle, look_spec, out_vec);
 }
 
 /* actor_look_update (0x29040)
@@ -8449,7 +8539,7 @@ void actor_look_update(int actor_handle)
   /* Determine primary look mode */
   if (FUN_000210b0(actor_handle) && !*(char *)(actor + 0x456)) {
     look_spec_type = 2;
-    if (FUN_00028660(actor_handle, &look_spec_type, primary_vec)) {
+    if (look_spec_28660_safe(actor_handle, actor, &look_spec_type, primary_vec)) {
       look_mode = 7;
       strict_look = 1;
     } else {
@@ -8459,7 +8549,7 @@ void actor_look_update(int actor_handle)
   LAB_look_mode_from_actor:
     look_mode = (int)(unsigned short)(*(unsigned short *)(actor + 0x3e8));
     if (look_mode != 0 && look_mode != 1) {
-      if (FUN_00028660(actor_handle, (short *)(actor + 0x3ec), primary_vec)) {
+      if (look_spec_28660_safe(actor_handle, actor, (short *)(actor + 0x3ec), primary_vec)) {
         strict_look = (char)(*(short *)(actor + 0x3ec) == 2);
       } else {
         look_mode = 0;
@@ -8470,7 +8560,7 @@ void actor_look_update(int actor_handle)
   /* Secondary look mode */
   secondary_mode = 0;
   if (*(short *)(actor + 0x544) >= 0 && *(short *)(actor + 0x548) > 0) {
-    if (FUN_00028660(actor_handle, (short *)(actor + 0x54c), secondary_vec)) {
+    if (look_spec_28660_safe(actor_handle, actor, (short *)(actor + 0x54c), secondary_vec)) {
       secondary_mode = (int)(*(short *)(actor + 0x546));
     }
   }
@@ -8769,7 +8859,7 @@ LAB_000297c7:
 
   *(int *)(actor + 0x564) -= 1;
 
-  if (!FUN_00028660(actor_handle, (short *)(actor + 0x56c), primary_vec))
+  if (!look_spec_28660_safe(actor_handle, actor, (short *)(actor + 0x56c), primary_vec))
     goto LAB_00029ccc;
 
   if (!valid_real_normal3d(primary_vec)) {
@@ -8847,7 +8937,7 @@ LAB_00029b75:
     }
     *(int *)(actor + 0x568) -= 1;
     if (*(char *)(actor + 0x55f)) {
-      cVar7 = FUN_00028660(actor_handle, (short *)(actor + 0x57c), primary_vec);
+      cVar7 = look_spec_28660_safe(actor_handle, actor, (short *)(actor + 0x57c), primary_vec);
       cVar5 = want_secondary;
       if (cVar7) {
         if (!want_secondary)
