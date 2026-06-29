@@ -211,7 +211,11 @@ resist that drift until it crosses a decision threshold.
   otherwise the verdict is flagged `BUILD IDENTITY UNVERIFIED`. (The gap was found the hard
   way during the slot-33 bisect — two vacuous A/B cycles before the gate existed. The
   `--all-off` flag matters: without it the positive control passes on a stale patch because
-  the *old* ports are still ACTIVE; `--all-off` is what notices YOUR toggle didn't revert.)
+  the *old* ports are still ACTIVE; `--all-off` is what notices YOUR toggle didn't revert.
+  `classify()` distinguishes our redirect (a jmp UP into the appended impl, `>= 0x642000`)
+  from a genuine XBE JMP-thunk (a jmp WITHIN the original .text, e.g. `0x1459d0 -> 0x1458f0`),
+  so legitimate thunks among the ~175 `ported=false` functions read ORIGINAL instead of
+  false-failing the gate — see `tools/xbox/test_verify_toggles_live.py`.)
 - **Time-to-control head alignment.** If a lift shifts how many ticks it takes to
   reach player control, fixed-tick presses land at a different game moment — a
   desync that looks like a bug. The A/A check can't catch this; do a one-time A/B
