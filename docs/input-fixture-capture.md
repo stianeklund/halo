@@ -49,11 +49,39 @@ checkpoints, so the core travels with the recording.
 
 | `--start` | init.txt | Captures | Use when | Caveat |
 |-----------|----------|----------|----------|--------|
+| `mapreset` (recommended) | `[game_difficulty_set]` + `map_name <lvl>` + `map_reset` | gameplay from the level start | per-level fixtures; **no menu nav**; fresh & savegame-immune | starts the level fresh — verify the scenario script behaviour you need is present (it boots the scripted intro; `map_reset` re-runs the scenario, unlike a bare `map_name`). |
 | `core` (default) | `map_name <lvl>` + `core_load_at_startup` | gameplay from your checkpoint | tight, fast-to-action fixtures | core does **not** re-run the scenario script thread — scripted squad orders won't re-issue (`boot-init-and-checkpoints.md` §4). Fine for movement/physics/weapons; wrong for scripted-AI-intro behavior. |
-| `menu` | empty (boot to menu) | menu navigation **+** gameplay | script-faithful AI (real New Game) | long dead head (menu + cutscene); replay must start from the identical menu. |
+| `menu` | empty (boot to menu) | menu navigation **+** gameplay | you specifically want the menu captured | long dead head; replay must start from the identical menu; **cannot fully clear a locked savegame** (see below) — prefer `mapreset`. |
 
-(`map_name`-without-core is intentionally **not** offered — it was never validated
-on this box, and the repo's rule is no unproven modes.)
+### `mapreset` is the clean-slate mode (savegame-immune)
+
+`map_reset` restarts the current scenario **from the beginning**, overriding any
+campaign savegame — so a `mapreset` capture starts fresh every run with **no file
+deletion at all**. Verified on the box: it boots straight to the level start
+(cryo bay on a10) and ignores even a freshly-saved checkpoint. `init.txt` for this
+mode is `game_difficulty_set <d>` (if `--difficulty` set) + `map_name <lvl>` +
+`map_reset`. This is why it's the recommended per-level mode and needs no clearing.
+
+> `init.txt` runs at startup in sequence; `map_name` then `map_reset` is the proven
+> pairing (the map loads and `map_reset` restarts it from the beginning). `map_reset`
+> alone, or before `map_name`, has nothing to reset.
+
+### `menu` start can only best-effort clear the save
+
+A `menu` New Game **resumes into a stale savegame** if one exists (there is no
+"Resume" prompt — loading the level loads straight into the save). The tool tries
+to delete the save before a menu `arm`/`replay`, but `savegame.bin` is **held open
+(locked, XBDM 414)** while the title runs and cannot be deleted live; only the
+unlocked pointer files go. If the save survives, the tool **warns** (it does not
+falsely report success) and you should use `--start mapreset` instead.
+`--no-clear-saves` skips the attempt.
+
+### Difficulty is pinned per recording (`mapreset`)
+
+`--difficulty <easy|normal|hard|impossible>` writes `game_difficulty_set` into the
+`mapreset` `init.txt` **and** stores it in the fixture metadata, so every replay
+runs at the captured difficulty. (`menu` picks difficulty in the New Game UI;
+`core` keeps the difficulty baked into the core.)
 
 ## Commands
 
