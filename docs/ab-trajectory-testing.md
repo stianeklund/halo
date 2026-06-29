@@ -197,6 +197,16 @@ resist that drift until it crosses a decision threshold.
 
 ## Preconditions / risks (none blocking, do not skip)
 
+- **`ab_check` tests the DEPLOYED build, not local source — deploy first.**
+  `capture_scenario.py replay --xbe default.xbe` boots whatever `default.xbe` is on the
+  box and only verifies its *identity* (default vs cachebeta), not that it equals your
+  latest compile. `build.py --target halo` builds only the ELF and does **not** re-patch,
+  so a kb.json-only change (a `ported` toggle) needs `build.py --target patched_xbe` then
+  `deploy_xbox.py --xbe-only`; a full source change needs `build_deploy_run.sh -q`. For
+  toggle-bisect, hard-gate with `verify_toggles_live.py` (must read `ORIGINAL`) before
+  trusting the verdict. (Confirmed the hard way during the slot-33 bisect, 2026-06-29 —
+  two vacuous A/B cycles before the gate was added. Candidate enhancement: have
+  `ab_check` deploy the local build and assert the liveness gate itself.)
 - **Time-to-control head alignment.** If a lift shifts how many ticks it takes to
   reach player control, fixed-tick presses land at a different game moment — a
   desync that looks like a bug. The A/A check can't catch this; do a one-time A/B
