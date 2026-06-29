@@ -134,6 +134,39 @@
       "reason": "Recording 19 door grunt slot11 actor+clump state; confirmed PASS 20/20 seeds with 40.3% weak real-state coverage. SKIPs if host snapshot absent."
     },
     {
+      "addr": "0x2f2b0",
+      "name": "actor_perception_acknowledge",
+      "obj": "actor_perception.obj",
+      "seeds": 20,
+      "flags": [
+        "--state-snapshot", "tools/equivalence/host_snapshots/rec19_grunt6.json",
+        "--allow-stubs", "--float-tolerance", "32", "--mem-trace", "--no-concolic", "--no-leaf-cache"
+      ],
+      "reason": "Recording 19 door grunt slot6 actor+acknowledgeable prop state; confirmed PASS 20/20 seeds with 52.2% moderate real-state coverage. Separate a10-checkpoint high-cadence sweep also confirmed 176/176 active frames. SKIPs if host snapshot absent."
+    },
+    {
+      "addr": "0x2f2b0",
+      "name": "actor_perception_acknowledge",
+      "obj": "actor_perception.obj",
+      "seeds": 20,
+      "flags": [
+        "--state-snapshot", "tools/equivalence/host_snapshots/rec19_grunt10_ack.json",
+        "--allow-stubs", "--float-tolerance", "32", "--mem-trace", "--no-concolic", "--no-leaf-cache"
+      ],
+      "reason": "Recording 19 door grunt slot10 with valid alternate ack prop 0xf7480029; confirmed PASS 20/20 seeds with 52.2% moderate real-state coverage. SKIPs if host snapshot absent."
+    },
+    {
+      "addr": "0x2f2b0",
+      "name": "actor_perception_acknowledge",
+      "obj": "actor_perception.obj",
+      "seeds": 20,
+      "flags": [
+        "--state-snapshot", "tools/equivalence/host_snapshots/rec19_grunt11_ack.json",
+        "--allow-stubs", "--float-tolerance", "32", "--mem-trace", "--no-concolic", "--no-leaf-cache"
+      ],
+      "reason": "Recording 19 door grunt slot11 with valid alternate ack prop 0xf7460026; confirmed PASS 20/20 seeds with 52.2% moderate real-state coverage. SKIPs if host snapshot absent."
+    },
+    {
       "addr": "0xb4da0",
       "name": "FUN_000b4da0",
       "obj": "game.obj",
