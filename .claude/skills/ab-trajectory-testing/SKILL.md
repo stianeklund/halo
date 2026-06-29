@@ -110,6 +110,14 @@ A `.halorec` frame converts to a Unicorn state snapshot via `halorec_to_snapshot
 
 ## Must-know facts
 
+- **`ab_check` tests the DEPLOYED build, not your local source — deploy first.**
+  `capture_scenario.py replay --xbe default.xbe` boots whatever `default.xbe` is
+  already on the box and only verifies its *identity* (default vs cachebeta), not that
+  it matches your latest compile. `build.py --target halo` builds only the ELF and does
+  **not** re-patch, so a kb.json-only change (e.g. a `ported` toggle) needs
+  `build.py --target patched_xbe` then `deploy_xbox.py --xbe-only`; a full source change
+  needs `build_deploy_run.sh -q`. For toggle-bisect, hard-gate with `verify_toggles_live.py`
+  (must read `ORIGINAL`) before trusting the A/B. (ab_check does not yet auto-deploy.)
 - **Capture is atomic by construction.** `qmp_capture` does `stop`→`memsave`→`cont`
   on raw QMP `:4444`. **VIRTUAL `memsave` only** — `pmemsave` is physical and broken
   on this Cerbios/kernel-irqchip=off box. **Never** open the gdbstub `:1234` — a TCP
