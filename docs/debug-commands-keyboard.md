@@ -1171,3 +1171,132 @@ ai_render/ai_print system.
 | `src/halo/hs/hs.c`            | HaloScript console evaluation and function table lookup   |
 | `src/halo/input/input_xbox.c` | Xbox input, keyboard device polling, vkey→keycode mapping |
 | `src/halo/ai/ai_debug.c`      | AI debug state initialization, storage, select, update    |
+
+---
+
+## 11. HaloScript Function Table (Console Commands)
+
+The Xbox Halo CE binary defines all HaloScript built-in functions (console commands)
+in a flat table at `PTR_DAT_002f1588` (`.rdata`). The table has **0x1A2 (418)** entries,
+each a 4-byte pointer to a 0x1C-byte (28-byte) record.
+
+### Entry Layout (0x1C bytes)
+
+| Offset | Type    | Field        | Description                                   |
+|--------|---------|--------------|-----------------------------------------------|
+| `+0x00`| uint32  | `type`       | Function type ID (1=variable, 3=flow, 4=unit, 5=test, 6=unit2, etc.) |
+| `+0x04`| char\*  | `name`       | Command name string (e.g. `"map_reset"`)      |
+| `+0x08`| void(\*)| `exec_fn`    | Execute function (called for side-effect cmds) |
+| `+0x0C`| void(\*)| `eval_fn`    | Evaluate function (returns a value)           |
+| `+0x10`| char\*  | `description`| Help text (e.g. `"starts the map from the beginning."`) |
+| `+0x14`| char\*  | `usage`      | Usage text (e.g. `"<expression(s)>"`)         |
+| `+0x18`| uint32  | `reserved`   | Zero                                       |
+
+Lookup is via `hs_find_function_by_name` (`0x000C3FC0`), which does a linear scan
+comparing each entry's `name` against the input using `__stricmp`. Entry 0 is
+`"begin"` (a flow-control type 3). The command indices determine argument count
+and type expectations stored in a parallel type-check table.
+
+### Xbox vs PC Differences
+
+| Command          | Xbox Halo CE                  | PC Halo CE / H1A               |
+|------------------|-------------------------------|--------------------------------|
+| `map_reset`      | Exists (entry @ `0x00271710`) | Exists (same semantics)        |
+| `sv_map_reset`   | **NOT present**               | Server-only; resets MP game    |
+
+The `sv_*` prefix commands (`sv_map_reset`, `sv_map_next`, etc.) are **Halo PC
+multiplayer server** commands. The Xbox version uses a peer-to-peer networking
+model without a dedicated server, so these commands are not in the binary.
+
+### `map_reset` — Internals
+
+**Entry:** `0x00271710` (table index ~318)
+**Name:** `"map_reset"` (`0x00274E98`)
+**Description:** `"starts the map from the beginning."` (`0x00274E74`)
+**exec_fn:** `FUN_000c7e50` — generic argument type/count validation
+**eval_fn:** `FUN_000c1cf0` → `FUN_001002a0`
+
+The eval function `FUN_001002a0` (`0x001002A0`) sets engine globals to trigger
+a full map reload on the next frame:
+
+```c
+void FUN_001002a0(void)
+{
+    DAT_0046da40 = 0xFFFF;   // signals main loop to reload
+    DAT_0046da28 = 0;        // suppress save
+    DAT_0046da24 = 1;        // trigger map re-init
+    DAT_0046da3b = 0;        // clear any load-in-progress
+}
+```
+
+The main loop (`FUN_00102e40` at `0x00102E40`) detects `DAT_0046da24 != 0`
+and runs: `FUN_0018eb40()` (clear state) → `FUN_000a7050()` (unload) →
+`FUN_000cf500()` (re-init) → `FUN_000a7780()` (load) →
+`create_local_players()` → `FUN_000b5f40()` (setup) → `FUN_000e46b0(0x1e)` (fade).
+
+Note: `map_reset` is a **void** command — it always writes `0` (false) to its
+output via `FUN_000cbf80(param_2, 0)`.
+
+---
+
+### `player_action_test_*` — Bitmask System
+
+All `player_action_test_*` commands (type=5 entries) share a common exec_fn
+(`FUN_000c7e50`, argument validation) and each has its own eval_fn that reads
+from a **player action bitmask** stored in game state.
+
+**Data structure:** A `0x110`-byte block allocated by `game_state_malloc("player control globals")`
+at `FUN_000b63d0` (`0x000B63D0`). Pointer stored at `DAT_00457090`.
+
+```
+offset +0x00: uint32 action_flags    — bitmask of current inputs
+offset +0x04: uint32 prev_edge       — edge-detect bits for "just pressed"
+offset +0x08: uint32 secondary_edge  — secondary edge tracking
+```
+
+The 32-bit `action_flags` word at `DAT_00457090[0]` tracks player input:
+
+| Bit | Hex Mask | Test Function              | Description                 |
+|-----|----------|----------------------------|-----------------------------|
+|  0  | `0x01`   | `player_action_test_action`| Action key pressed          |
+|  1  | `0x02`   | `player_action_test_jump`  | Jump pressed                |
+|  2  | `0x04`   | `player_action_test_accept`| Accept pressed              |
+|  3  | `0x08`   | `player_action_test_back`  | Back pressed                |
+|  4  | `0x10`   | `player_action_test_primary_trigger` | Primary trigger    |
+|  5  | `0x20`   | `player_action_test_grenade_trigger`  | Grenade trigger   |
+|  6  | `0x40`   | `player_action_test_zoom`  | Zoom button                 |
+|  7  | `0x80`   | `player_action_test_look_relative_up`  | Look up (negative Y)|
+|  8  | `0x100`  | `player_action_test_look_relative_down`| Look down (positive Y)|
+|  9  | `0x200`  | `player_action_test_look_relative_left`| Look left (negative X)|
+| 10  | `0x400`  | `player_action_test_look_relative_right`| Look right (positive X)|
+|11-14|`0x7800`  | `player_action_test_move_relative_all_directions` | All move directions|
+|11  | `0x800`  | (move forward)             | Move forward (negative Z)   |
+|12  | `0x1000` | (move backward)            | Move backward (positive Z)  |
+|13  | `0x2000` | (move left)                | Move left (negative X)      |
+|14  | `0x4000` | (move right)               | Move right (positive X)     |
+
+**Edge detection (action/accept/back):** `player_action_test_action`,
+`player_action_test_accept`, and `player_action_test_back` have side effects
+beyond reading the bitmask:
+- They set a corresponding bit in `DAT_00457090[1]` (prev_edge) to track
+  that the action was observed.
+- They set a corresponding bit in `DAT_00457090[2]` (secondary_edge) as a
+  second tracking mechanism.
+- The edge-tracking bits are cleared by `FUN_000b6bd0` when the matching
+  physical input is no longer active.
+
+**`player_action_test_reset`:** Sets the entire `action_flags` word to `0`,
+clearing all input state. Called at the start of each script evaluation
+cycle to reset and re-sample inputs.
+
+**All-directions tests:** `player_action_test_look_relative_all_directions`
+returns `(~action_flags & 0x780) == 0` (all four look direction bits set).
+`player_action_test_move_relative_all_directions` returns
+`(~action_flags & 0x7800) == 0` (all four movement direction bits set).
+
+**Input sampling:** The bitmask is populated each frame by `FUN_000b6bd0`
+(`0x000B6BD0`), which reads raw controller thumbstick axes and button flags
+from the player's input state structure (a float array passed in ESI).
+Stick axes are compared against the deadzone threshold at `FLOAT_002533C0`.<｜end▁of▁thinking｜>
+
+<｜｜DSML｜｜parameter name="replaceAll" string="false">false
