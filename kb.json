@@ -653,7 +653,7 @@
         },
         {
           "addr": "0x1e68bb",
-          "decl": "void FUN_001e68bb(void);"
+          "decl": "void ___loctotime_t(void);"
         }
       ],
       "name": "<common>"
@@ -675,7 +675,7 @@
         },
         {
           "addr": "0x1da700",
-          "decl": "void FUN_001da700(void);"
+          "decl": "void _strncmp(void);"
         }
       ],
       "name": "LIBCMT:strncpy.obj"
@@ -713,11 +713,11 @@
         },
         {
           "addr": "0x1dbcf4",
-          "decl": "void FUN_001dbcf4(void);"
+          "decl": "void __global_unwind2(void);"
         },
         {
           "addr": "0x1dbd36",
-          "decl": "void FUN_001dbd36(void);"
+          "decl": "void __local_unwind2(void);"
         },
         {
           "addr": "0x1dbdca",
@@ -725,15 +725,15 @@
         },
         {
           "addr": "0x1dbea9",
-          "decl": "void FUN_001dbea9(void);"
+          "decl": "void __seh_longjmp_unwind@4(void);"
         },
         {
           "addr": "0x1dbed0",
-          "decl": "void FUN_001dbed0(void);"
+          "decl": "void _memchr(void);"
         },
         {
           "addr": "0x1dbf75",
-          "decl": "void FUN_001dbf75(void);"
+          "decl": "void _wcscmp(void);"
         },
         {
           "addr": "0x1dbfa7",
@@ -741,35 +741,35 @@
         },
         {
           "addr": "0x1dbfac",
-          "decl": "void FUN_001dbfac(void);"
+          "decl": "void _wcscspn(void);"
         },
         {
           "addr": "0x1dbfef",
-          "decl": "void FUN_001dbfef(void);"
+          "decl": "void _wcsncat(void);"
         },
         {
           "addr": "0x1dc02c",
-          "decl": "void FUN_001dc02c(void);"
+          "decl": "void _wcsncmp(void);"
         },
         {
           "addr": "0x1dc09e",
-          "decl": "void FUN_001dc09e(void);"
+          "decl": "void _wcspbrk(void);"
         },
         {
           "addr": "0x1dc0de",
-          "decl": "void FUN_001dc0de(void);"
+          "decl": "void _wcsrchr(void);"
         },
         {
           "addr": "0x1dc10e",
-          "decl": "void FUN_001dc10e(void);"
+          "decl": "void _wcsspn(void);"
         },
         {
           "addr": "0x1dc154",
-          "decl": "void FUN_001dc154(void);"
+          "decl": "void _wcsstr(void);"
         },
         {
           "addr": "0x1dc1b2",
-          "decl": "void FUN_001dc1b2(void);"
+          "decl": "void _wcstok(void);"
         },
         {
           "addr": "0x1dc257",
@@ -781,11 +781,11 @@
         },
         {
           "addr": "0x1dc2c3",
-          "decl": "void FUN_001dc2c3(void);"
+          "decl": "void __wcsicmp(void);"
         },
         {
           "addr": "0x1dc34b",
-          "decl": "void FUN_001dc34b(void);"
+          "decl": "void __wcsnicmp(void);"
         },
         {
           "addr": "0x1dc3e9",
@@ -793,11 +793,11 @@
         },
         {
           "addr": "0x1dc41e",
-          "decl": "void FUN_001dc41e(void);"
+          "decl": "void __getwc_lk(void);"
         },
         {
           "addr": "0x1dc512",
-          "decl": "void FUN_001dc512(void);"
+          "decl": "void _fgetwc(void);"
         },
         {
           "addr": "0x1dc54a",
@@ -818,15 +818,15 @@
         },
         {
           "addr": "0x1db134",
-          "decl": "void FUN_001db134(void);"
+          "decl": "void _wcschr(void);"
         },
         {
           "addr": "0x1db156",
-          "decl": "void FUN_001db156(void);"
+          "decl": "void _wcscat(void);"
         },
         {
           "addr": "0x1db180",
-          "decl": "void FUN_001db180(void);"
+          "decl": "void _wcscpy(void);"
         },
         {
           "addr": "0x1db19c",
@@ -834,7 +834,7 @@
         },
         {
           "addr": "0x1db2b3",
-          "decl": "unsigned int FUN_001db2b3(void *ptr, unsigned int size, unsigned int count, void *stream);"
+          "decl": "unsigned int _fread(void *ptr, unsigned int size, unsigned int count, void *stream);"
         },
         {
           "addr": "0x1db2f5",
@@ -855,7 +855,7 @@
         },
         {
           "addr": "0x1dc61e",
-          "decl": "void FUN_001dc61e(void);"
+          "decl": "void _fputwc(void);"
         },
         {
           "addr": "0x1dc65c",
@@ -867,7 +867,7 @@
         },
         {
           "addr": "0x1dc766",
-          "decl": "void FUN_001dc766(void);"
+          "decl": "void _ungetwc(void);"
         },
         {
           "addr": "0x1dc7a2",
@@ -875,7 +875,7 @@
         },
         {
           "addr": "0x1dc7ac",
-          "decl": "void FUN_001dc7ac(void);"
+          "decl": "void _fgetws(void);"
         },
         {
           "addr": "0x1dc822",
@@ -883,7 +883,7 @@
         },
         {
           "addr": "0x1dc82c",
-          "decl": "void FUN_001dc82c(void);"
+          "decl": "void _fputws(void);"
         },
         {
           "addr": "0x1dc890",
@@ -891,7 +891,7 @@
         },
         {
           "addr": "0x1dc89a",
-          "decl": "void FUN_001dc89a(void);"
+          "decl": "void __getws(void);"
         },
         {
           "addr": "0x1dc909",
@@ -899,7 +899,7 @@
         },
         {
           "addr": "0x1dc914",
-          "decl": "void FUN_001dc914(void);"
+          "decl": "void __putws(void);"
         },
         {
           "addr": "0x1dc998",
@@ -907,7 +907,7 @@
         },
         {
           "addr": "0x1dc9a3",
-          "decl": "void FUN_001dc9a3(void);"
+          "decl": "void _vfwprintf(void);"
         },
         {
           "addr": "0x1dc9f6",
@@ -915,7 +915,7 @@
         },
         {
           "addr": "0x1dca00",
-          "decl": "void FUN_001dca00(void);"
+          "decl": "void _vprintf(void);"
         },
         {
           "addr": "0x1dca55",
@@ -939,7 +939,7 @@
         },
         {
           "addr": "0x1dcc99",
-          "decl": "void FUN_001dcc99(void);"
+          "decl": "void __wfsopen(void);"
         },
         {
           "addr": "0x1dcceb",
@@ -951,7 +951,7 @@
         },
         {
           "addr": "0x1dcd08",
-          "decl": "void FUN_001dcd08(void);"
+          "decl": "void __wfreopen(void);"
         },
         {
           "addr": "0x1dcd64",
@@ -971,7 +971,7 @@
         },
         {
           "addr": "0x1dce9c",
-          "decl": "void FUN_001dce9c(void);"
+          "decl": "void _winit_namebuf(void);"
         },
         {
           "addr": "0x1dcf08",
@@ -979,7 +979,7 @@
         },
         {
           "addr": "0x1dcf51",
-          "decl": "void FUN_001dcf51(void);"
+          "decl": "void __wtmpnam(void);"
         },
         {
           "addr": "0x1dd003",
@@ -1008,7 +1008,7 @@
         },
         {
           "addr": "0x1db443",
-          "decl": "void FUN_001db443(void);"
+          "decl": "void _wprintf(void);"
         },
         {
           "addr": "0x1db49e",
@@ -1020,19 +1020,19 @@
         },
         {
           "addr": "0x1db501",
-          "decl": "void FUN_001db501(void);"
+          "decl": "void __abstract_cw(void);"
         },
         {
           "addr": "0x1db593",
-          "decl": "void FUN_001db593(void);"
+          "decl": "void __hw_cw(void);"
         },
         {
           "addr": "0x1db6b1",
-          "decl": "void FUN_001db6b1(void);"
+          "decl": "void __controlfp(void);"
         },
         {
           "addr": "0x1db6c7",
-          "decl": "void FUN_001db6c7(void);"
+          "decl": "void _fputc(void);"
         },
         {
           "addr": "0x1db717",
@@ -1040,7 +1040,7 @@
         },
         {
           "addr": "0x1db71f",
-          "decl": "void FUN_001db71f(void);"
+          "decl": "void FID_conflict:FUN_001db71f(void);"
         },
         {
           "addr": "0x1db76f",
@@ -1056,15 +1056,15 @@
         },
         {
           "addr": "0x1db789",
-          "decl": "void FUN_001db789(void);"
+          "decl": "void __dosmaperr(void);"
         },
         {
           "addr": "0x1db7fc",
-          "decl": "void FUN_001db7fc(void);"
+          "decl": "void __fseek_lk(void);"
         },
         {
           "addr": "0x1db88b",
-          "decl": "int FUN_001db88b(void *stream, int offset, int whence);"
+          "decl": "int _fseek(void *stream, int offset, int whence);"
         },
         {
           "addr": "0x1db8ca",
@@ -1072,7 +1072,7 @@
         },
         {
           "addr": "0x1db8d4",
-          "decl": "void FUN_001db8d4(void *stream);"
+          "decl": "void _rewind(void *stream);"
         },
         {
           "addr": "0x1db953",
@@ -1080,11 +1080,11 @@
         },
         {
           "addr": "0x1db95d",
-          "decl": "void FUN_001db95d(void);"
+          "decl": "void __ftell_lk(void);"
         },
         {
           "addr": "0x1dbabf",
-          "decl": "void FUN_001dbabf(void);"
+          "decl": "void _ftell(void);"
         },
         {
           "addr": "0x1dbaf6",
@@ -1109,7 +1109,7 @@
         },
         {
           "addr": "0x1da081",
-          "decl": "void FUN_001da081(void);"
+          "decl": "void _fscanf(void);"
         },
         {
           "addr": "0x1da0c1",
@@ -1146,35 +1146,35 @@
         },
         {
           "addr": "0x1d8ebe",
-          "decl": "void FUN_001d8ebe(void);"
+          "decl": "void DbgPrint(void);"
         },
         {
           "addr": "0x1d8f06",
-          "decl": "void FUN_001d8f06(void);"
+          "decl": "void XcRC4Crypt(void);"
         },
         {
           "addr": "0x1d8f0c",
-          "decl": "void FUN_001d8f0c(void);"
+          "decl": "void XcRC4Key(void);"
         },
         {
           "addr": "0x1d8f18",
-          "decl": "void FUN_001d8f18(void);"
+          "decl": "void XcBlockCryptCBC(void);"
         },
         {
           "addr": "0x1d8f1e",
-          "decl": "void FUN_001d8f1e(void);"
+          "decl": "void XcKeyTable(void);"
         },
         {
           "addr": "0x1d8f24",
-          "decl": "void FUN_001d8f24(void);"
+          "decl": "void XcDESKeyParity(void);"
         },
         {
           "addr": "0x1d8f2a",
-          "decl": "void FUN_001d8f2a(void);"
+          "decl": "void XcHMAC(void);"
         },
         {
           "addr": "0x1d8f30",
-          "decl": "void FUN_001d8f30(void);"
+          "decl": "void XcModExp(void);"
         },
         {
           "addr": "0x1d8ff0",
@@ -1240,7 +1240,7 @@
         },
         {
           "addr": "0x1d9dfd",
-          "decl": "void FUN_001d9dfd(void);"
+          "decl": "void __fsopen(void);"
         },
         {
           "addr": "0x1d9e4f",
@@ -1253,11 +1253,11 @@
       "functions": [
         {
           "addr": "0x1deba0",
-          "decl": "void FUN_001deba0(void);"
+          "decl": "void __trandisp1(void);"
         },
         {
           "addr": "0x1dec07",
-          "decl": "void FUN_001dec07(void);"
+          "decl": "void __trandisp2(void);"
         },
         {
           "addr": "0x1ded6c",
@@ -1265,7 +1265,7 @@
         },
         {
           "addr": "0x1ded83",
-          "decl": "void FUN_001ded83(void);"
+          "decl": "void __startOneArgErrorHandling(void);"
         },
         {
           "addr": "0x1dedc0",
@@ -1281,7 +1281,7 @@
         },
         {
           "addr": "0x1dee05",
-          "decl": "void FUN_001dee05(void);"
+          "decl": "void __fload_withFB(void);"
         },
         {
           "addr": "0x1dee48",
@@ -1293,7 +1293,7 @@
         },
         {
           "addr": "0x1dee6b",
-          "decl": "void FUN_001dee6b(void);"
+          "decl": "void __math_exit(void);"
         },
         {
           "addr": "0x1deea9",
@@ -1317,11 +1317,11 @@
         },
         {
           "addr": "0x1df083",
-          "decl": "void FUN_001df083(void);"
+          "decl": "void __stbuf(void);"
         },
         {
           "addr": "0x1df10b",
-          "decl": "void FUN_001df10b(void);"
+          "decl": "void __ftbuf(void);"
         },
         {
           "addr": "0x1df1bd",
@@ -1341,7 +1341,7 @@
         },
         {
           "addr": "0x1df419",
-          "decl": "void FUN_001df419(void);"
+          "decl": "void __write(void);"
         },
         {
           "addr": "0x1df4a0",
@@ -1365,23 +1365,23 @@
         },
         {
           "addr": "0x1dfa0d",
-          "decl": "void FUN_001dfa0d(void);"
+          "decl": "void __set_errno_from_matherr(void);"
         },
         {
           "addr": "0x1dfa55",
-          "decl": "void FUN_001dfa55(void);"
+          "decl": "void __errcode(void);"
         },
         {
           "addr": "0x1dfa82",
-          "decl": "void FUN_001dfa82(void);"
+          "decl": "void __umatherr(void);"
         },
         {
           "addr": "0x1dfb20",
-          "decl": "void FUN_001dfb20(void);"
+          "decl": "void __handle_qnan1(void);"
         },
         {
           "addr": "0x1dfb73",
-          "decl": "void FUN_001dfb73(void);"
+          "decl": "void __handle_qnan2(void);"
         },
         {
           "addr": "0x1dfbd2",
@@ -1397,15 +1397,15 @@
         },
         {
           "addr": "0x1dfd36",
-          "decl": "void FUN_001dfd36(void);"
+          "decl": "void __set_exp(void);"
         },
         {
           "addr": "0x1dfd9f",
-          "decl": "void FUN_001dfd9f(void);"
+          "decl": "void __set_bexp(void);"
         },
         {
           "addr": "0x1dfdc4",
-          "decl": "void FUN_001dfdc4(void);"
+          "decl": "void __sptype(void);"
         },
         {
           "addr": "0x1dfe1f",
@@ -1421,7 +1421,7 @@
         },
         {
           "addr": "0x1dfeec",
-          "decl": "void FUN_001dfeec(void);"
+          "decl": "void __ctrlfp(void);"
         },
         {
           "addr": "0x1dff10",
@@ -1457,15 +1457,15 @@
         },
         {
           "addr": "0x1e02b3",
-          "decl": "void FUN_001e02b3(void);"
+          "decl": "void __freebuf(void);"
         },
         {
           "addr": "0x1e02de",
-          "decl": "void FUN_001e02de(void);"
+          "decl": "void __openfile(void);"
         },
         {
           "addr": "0x1e0446",
-          "decl": "void FUN_001e0446(void);"
+          "decl": "void __getstream(void);"
         },
         {
           "addr": "0x1e055f",
@@ -1481,11 +1481,11 @@
         },
         {
           "addr": "0x1e0912",
-          "decl": "void FUN_001e0912(void);"
+          "decl": "void __hextodec(void);"
         },
         {
           "addr": "0x1e0944",
-          "decl": "void FUN_001e0944(void);"
+          "decl": "void __inc(void);"
         },
         {
           "addr": "0x1e0984",
@@ -1501,7 +1501,7 @@
         },
         {
           "addr": "0x1e1610",
-          "decl": "void FUN_001e1610(void);"
+          "decl": "void _cvtdate(void);"
         },
         {
           "addr": "0x1e17c8",
@@ -1517,23 +1517,23 @@
         },
         {
           "addr": "0x1e19b7",
-          "decl": "void FUN_001e19b7(void);"
+          "decl": "void _gmtime(void);"
         },
         {
           "addr": "0x1e1abe",
-          "decl": "void FUN_001e1abe(void);"
+          "decl": "void __filbuf(void);"
         },
         {
           "addr": "0x1e1ba0",
-          "decl": "void FUN_001e1ba0(void);"
+          "decl": "void __cintrindisp2(void);"
         },
         {
           "addr": "0x1e1bde",
-          "decl": "void FUN_001e1bde(void);"
+          "decl": "void __cintrindisp1(void);"
         },
         {
           "addr": "0x1e1c1b",
-          "decl": "void FUN_001e1c1b(void);"
+          "decl": "void __ctrandisp2(void);"
         },
         {
           "addr": "0x1e1c63",
@@ -1545,11 +1545,11 @@
         },
         {
           "addr": "0x1e1db1",
-          "decl": "void FUN_001e1db1(void);"
+          "decl": "void __ctrandisp1(void);"
         },
         {
           "addr": "0x1e1de4",
-          "decl": "void FUN_001e1de4(void);"
+          "decl": "void __fload(void);"
         },
         {
           "addr": "0x1e1e20",
@@ -1565,7 +1565,7 @@
         },
         {
           "addr": "0x1e209e",
-          "decl": "void FUN_001e209e(void);"
+          "decl": "void __read(void);"
         },
         {
           "addr": "0x1e2125",
@@ -1577,7 +1577,7 @@
         },
         {
           "addr": "0x1e24d2",
-          "decl": "void FUN_001e24d2(void);"
+          "decl": "void __lseek(void);"
         },
         {
           "addr": "0x1e2559",
@@ -1585,7 +1585,7 @@
         },
         {
           "addr": "0x1e257d",
-          "decl": "void FUN_001e257d(void);"
+          "decl": "void __filwbuf(void);"
         },
         {
           "addr": "0x1e2669",
@@ -1593,11 +1593,11 @@
         },
         {
           "addr": "0x1e26a0",
-          "decl": "void FUN_001e26a0(void);"
+          "decl": "void __ungetc_lk(void);"
         },
         {
           "addr": "0x1e270c",
-          "decl": "void FUN_001e270c(void);"
+          "decl": "void _ungetc(void);"
         },
         {
           "addr": "0x1e2747",
@@ -1605,7 +1605,7 @@
         },
         {
           "addr": "0x1e2751",
-          "decl": "void FUN_001e2751(void);"
+          "decl": "void __flswbuf(void);"
         },
         {
           "addr": "0x1e2879",
@@ -1613,19 +1613,19 @@
         },
         {
           "addr": "0x1e28a4",
-          "decl": "void FUN_001e28a4(void);"
+          "decl": "void __getbuf(void);"
         },
         {
           "addr": "0x1e28e8",
-          "decl": "void FUN_001e28e8(void);"
+          "decl": "void _write_char(void);"
         },
         {
           "addr": "0x1e290d",
-          "decl": "void FUN_001e290d(void);"
+          "decl": "void _write_multi_char(void);"
         },
         {
           "addr": "0x1e2932",
-          "decl": "void FUN_001e2932(void);"
+          "decl": "void _write_string(void);"
         },
         {
           "addr": "0x1e2984",
@@ -1633,7 +1633,7 @@
         },
         {
           "addr": "0x1e3110",
-          "decl": "void FUN_001e3110(void);"
+          "decl": "void __wopenfile(void);"
         },
         {
           "addr": "0x1e327f",
@@ -1645,7 +1645,7 @@
         },
         {
           "addr": "0x1e330e",
-          "decl": "void FUN_001e330e(void);"
+          "decl": "void __get_osfhandle(void);"
         },
         {
           "addr": "0x1e334f",
@@ -1653,7 +1653,7 @@
         },
         {
           "addr": "0x1e33c2",
-          "decl": "void FUN_001e33c2(void);"
+          "decl": "void __unlock_fhandle(void);"
         },
         {
           "addr": "0x1e33e4",
@@ -1697,7 +1697,7 @@
         },
         {
           "addr": "0x1e38d1",
-          "decl": "void FUN_001e38d1(void);"
+          "decl": "void __wchartodigit(void);"
         },
         {
           "addr": "0x1e3a50",
@@ -1713,23 +1713,23 @@
         },
         {
           "addr": "0x1e3c81",
-          "decl": "void FUN_001e3c81(void);"
+          "decl": "void __callnewh(void);"
         },
         {
           "addr": "0x1e3c9c",
-          "decl": "void FUN_001e3c9c(void);"
+          "decl": "void __ZeroTail(void);"
         },
         {
           "addr": "0x1e3cce",
-          "decl": "void FUN_001e3cce(void);"
+          "decl": "void __IncMan(void);"
         },
         {
           "addr": "0x1e3d1b",
-          "decl": "void FUN_001e3d1b(void);"
+          "decl": "void __RoundMan(void);"
         },
         {
           "addr": "0x1e3d8d",
-          "decl": "void FUN_001e3d8d(void);"
+          "decl": "void __CopyMan(void);"
         },
         {
           "addr": "0x1e3da8",
@@ -1737,27 +1737,27 @@
         },
         {
           "addr": "0x1e3db4",
-          "decl": "void FUN_001e3db4(void);"
+          "decl": "void __IsZeroMan(void);"
         },
         {
           "addr": "0x1e3dcd",
-          "decl": "void FUN_001e3dcd(void);"
+          "decl": "void __ShrMan(void);"
         },
         {
           "addr": "0x1e3e48",
-          "decl": "void FUN_001e3e48(void);"
+          "decl": "void __ld12cvt(void);"
         },
         {
           "addr": "0x1e3fa0",
-          "decl": "void FUN_001e3fa0(void);"
+          "decl": "void __ld12tod(void);"
         },
         {
           "addr": "0x1e3fb6",
-          "decl": "void FUN_001e3fb6(void);"
+          "decl": "void FID_conflict:FUN_001e3fb6(void);"
         },
         {
           "addr": "0x1e3fcc",
-          "decl": "void FUN_001e3fcc(void);"
+          "decl": "void __ld12told(void);"
         },
         {
           "addr": "0x1e4048",
@@ -1777,7 +1777,7 @@
         },
         {
           "addr": "0x1e414f",
-          "decl": "void FUN_001e414f(void);"
+          "decl": "void ___dtold(void);"
         },
         {
           "addr": "0x1e4209",
@@ -1789,11 +1789,11 @@
         },
         {
           "addr": "0x1e4278",
-          "decl": "void FUN_001e4278(void);"
+          "decl": "void __isatty(void);"
         },
         {
           "addr": "0x1e42b0",
-          "decl": "void FUN_001e42b0(void);"
+          "decl": "void __aulldvrm(void);"
         },
         {
           "addr": "0x1e4345",
@@ -1833,7 +1833,7 @@
         },
         {
           "addr": "0x1e4eb2",
-          "decl": "void FUN_001e4eb2(void);"
+          "decl": "void __open(void);"
         },
         {
           "addr": "0x1e4ef7",
@@ -1841,7 +1841,7 @@
         },
         {
           "addr": "0x1e4f07",
-          "decl": "void FUN_001e4f07(void);"
+          "decl": "void __sopen(void);"
         },
         {
           "addr": "0x1e4f4c",
@@ -1861,7 +1861,7 @@
         },
         {
           "addr": "0x1e56fe",
-          "decl": "void FUN_001e56fe(void);"
+          "decl": "void __wsopen(void);"
         },
         {
           "addr": "0x1e5743",
@@ -1877,11 +1877,11 @@
         },
         {
           "addr": "0x1e57d2",
-          "decl": "void FUN_001e57d2(void);"
+          "decl": "void __itoa(void);"
         },
         {
           "addr": "0x1e57fc",
-          "decl": "void FUN_001e57fc(void);"
+          "decl": "void __ltoa(void);"
         },
         {
           "addr": "0x1e5823",
@@ -1917,19 +1917,19 @@
         },
         {
           "addr": "0x1e59e3",
-          "decl": "void FUN_001e59e3(void);"
+          "decl": "void ___addl(void);"
         },
         {
           "addr": "0x1e5a04",
-          "decl": "void FUN_001e5a04(void);"
+          "decl": "void ___add_12(void);"
         },
         {
           "addr": "0x1e5a62",
-          "decl": "void FUN_001e5a62(void);"
+          "decl": "void ___shl_12(void);"
         },
         {
           "addr": "0x1e5a90",
-          "decl": "void FUN_001e5a90(void);"
+          "decl": "void ___shr_12(void);"
         },
         {
           "addr": "0x1e5abd",
@@ -1969,7 +1969,7 @@
         },
         {
           "addr": "0x1e64ec",
-          "decl": "void FUN_001e64ec(void);"
+          "decl": "void KeQuerySystemTime(void);"
         },
         {
           "addr": "0x1e6520",
@@ -1977,11 +1977,11 @@
         },
         {
           "addr": "0x1e6584",
-          "decl": "void FUN_001e6584(void);"
+          "decl": "void RtlUnwind(void);"
         },
         {
           "addr": "0x1e6596",
-          "decl": "void FUN_001e6596(void);"
+          "decl": "void __strnicmp(void);"
         },
         {
           "addr": "0x1e65eb",
@@ -3772,7 +3772,7 @@
         },
         {
           "addr": "0x42390",
-          "decl": "bool FUN_00042390(char param_1);",
+          "decl": "bool ai_clump(char param_1);",
           "ported": true
         },
         {
@@ -5785,19 +5785,19 @@
         },
         {
           "addr": "0x1cf944",
-          "decl": "void FUN_001cf944(void);"
+          "decl": "void XapiCallThreadNotifyRoutines(void);"
         },
         {
           "addr": "0x1cf97c",
-          "decl": "void FUN_001cf97c(void);"
+          "decl": "void UnhandledExceptionFilter(void);"
         },
         {
           "addr": "0x1cf999",
-          "decl": "void FUN_001cf999(void);"
+          "decl": "void SetThreadPriority(void);"
         },
         {
           "addr": "0x1cf9eb",
-          "decl": "void FUN_001cf9eb(void);"
+          "decl": "void GetThreadPriority(void);"
         }
       ],
       "name": "d3d_intimacy.obj",
@@ -6130,17 +6130,17 @@
         },
         {
           "addr": "0x17ca80",
-          "decl": "void FUN_0017ca80(void);",
+          "decl": "void rasterizer_decals_initialize(void);",
           "ported": true
         },
         {
           "addr": "0x17caa0",
-          "decl": "void FUN_0017caa0(void);",
+          "decl": "void rasterizer_decals_initialize_for_new_map(void);",
           "ported": true
         },
         {
           "addr": "0x17cab0",
-          "decl": "void FUN_0017cab0(void);",
+          "decl": "void rasterizer_decals_dispose_from_old_map(void);",
           "ported": true
         },
         {
@@ -6150,7 +6150,7 @@
         },
         {
           "addr": "0x17cad0",
-          "decl": "void FUN_0017cad0(void);",
+          "decl": "void rasterizer_decals_dispose(void);",
           "ported": true
         },
         {
@@ -6628,7 +6628,7 @@
         {
           "addr": "0x9ca70",
           "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
           "ported": true
         },
         {
@@ -6689,7 +6689,7 @@
         {
           "addr": "0x9dcf0",
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -8850,7 +8850,7 @@
         },
         {
           "addr": "0xb0990",
-          "decl": "void FUN_000b0990(int weapon_handle@<edi>);",
+          "decl": "void cheats_apply(int weapon_handle@<edi>);",
           "ported": true,
           "src": "src/halo/game/game_engine.c"
         },
@@ -17052,11 +17052,11 @@
         },
         {
           "addr": "0xbae10",
-          "decl": "void FUN_000bae10(void);"
+          "decl": "void player_examine_nearby_unit(void);"
         },
         {
           "addr": "0xbae20",
-          "decl": "bool player_examine_nearby_unit(int player_unit_handle, int nearby_unit_handle);",
+          "decl": "bool FUN_000bae20(int player_unit_handle, int nearby_unit_handle);",
           "ported": true
         },
         {
@@ -17300,7 +17300,7 @@
         },
         {
           "addr": "0xbe400",
-          "decl": "void FUN_000be400(void);"
+          "decl": "void player_rumble_initialize(void);"
         },
         {
           "addr": "0xbe440",
@@ -17356,7 +17356,7 @@
         },
         {
           "addr": "0xbe770",
-          "decl": "void FUN_000be770(void);"
+          "decl": "void player_rumble_set_effect(void);"
         },
         {
           "addr": "0xbe7c0",
@@ -19350,12 +19350,12 @@
         },
         {
           "addr": "0x15b190",
-          "decl": "void rasterizer_decals_initialize_for_new_map(void);",
+          "decl": "void FUN_0015b190(void);",
           "ported": true
         },
         {
           "addr": "0x15b1a0",
-          "decl": "void rasterizer_decals_dispose_from_old_map(void);",
+          "decl": "void FUN_0015b1a0(void);",
           "ported": true
         },
         {
@@ -19397,12 +19397,12 @@
         },
         {
           "addr": "0x15b6d0",
-          "decl": "void rasterizer_decals_initialize(void);",
+          "decl": "void FUN_0015b6d0(void);",
           "ported": true
         },
         {
           "addr": "0x15b7e0",
-          "decl": "void rasterizer_decals_dispose(void);",
+          "decl": "void FUN_0015b7e0(void);",
           "ported": true
         },
         {
@@ -23206,7 +23206,7 @@
         },
         {
           "addr": "0x105c80",
-          "decl": "void FUN_00105c80(void);"
+          "decl": "void shell_update(void);"
         },
         {
           "addr": "0x105d20",
@@ -28274,7 +28274,7 @@
         },
         {
           "addr": "0x1daaaa",
-          "decl": "void FUN_001daaaa(void);"
+          "decl": "void _isalpha(void);"
         },
         {
           "addr": "0x1dab2a",
@@ -28310,7 +28310,7 @@
         },
         {
           "addr": "0x1d9d60",
-          "decl": "void FUN_001d9d60(void);"
+          "decl": "void __fclose_lk(void);"
         }
       ],
       "name": "LIBCMT:time.obj"
@@ -28348,7 +28348,7 @@
         },
         {
           "addr": "0x1d9911",
-          "decl": "void FUN_001d9911(void);"
+          "decl": "void ___initstdio(void);"
         },
         {
           "addr": "0x1d99ba",
@@ -28356,15 +28356,15 @@
         },
         {
           "addr": "0x1d99ce",
-          "decl": "void FUN_001d99ce(void);"
+          "decl": "void __lock_file(void);"
         },
         {
           "addr": "0x1d99fd",
-          "decl": "void FUN_001d99fd(void);"
+          "decl": "void __lock_file2(void);"
         },
         {
           "addr": "0x1d9a20",
-          "decl": "void FUN_001d9a20(void);"
+          "decl": "void __unlock_file(void);"
         }
       ],
       "name": "LIBCMT:fprintf.obj"
@@ -28377,19 +28377,19 @@
         },
         {
           "addr": "0x1d9a4f",
-          "decl": "void FUN_001d9a4f(void);"
+          "decl": "void __unlock_file2(void);"
         },
         {
           "addr": "0x1d9a72",
-          "decl": "void FUN_001d9a72(void);"
+          "decl": "void __flush(void);"
         },
         {
           "addr": "0x1d9acf",
-          "decl": "void FUN_001d9acf(void);"
+          "decl": "void __fflush_lk(void);"
         },
         {
           "addr": "0x1d9afd",
-          "decl": "void FUN_001d9afd(void);"
+          "decl": "void _flsall(void);"
         },
         {
           "addr": "0x1d9b9d",
@@ -28405,7 +28405,7 @@
         },
         {
           "addr": "0x1d9c22",
-          "decl": "void FUN_001d9c22(void);"
+          "decl": "void __flushall(void);"
         },
         {
           "addr": "0x1d9c2b",
@@ -28453,7 +28453,7 @@
         },
         {
           "addr": "0x1daff2",
-          "decl": "void FUN_001daff2(void);"
+          "decl": "void _atol(void);"
         },
         {
           "addr": "0x1db04a",
@@ -28478,7 +28478,7 @@
         },
         {
           "addr": "0x1dd375",
-          "decl": "void FUN_001dd375(void);"
+          "decl": "void __wtol(void);"
         },
         {
           "addr": "0x1dd3d4",
@@ -28486,19 +28486,19 @@
         },
         {
           "addr": "0x1dd3d9",
-          "decl": "void FUN_001dd3d9(void);"
+          "decl": "void __wtoi64(void);"
         },
         {
           "addr": "0x1dd467",
-          "decl": "void FUN_001dd467(void);"
+          "decl": "void __wctime(void);"
         },
         {
           "addr": "0x1dd480",
-          "decl": "void FUN_001dd480(void);"
+          "decl": "void _store_dt(void);"
         },
         {
           "addr": "0x1dd49a",
-          "decl": "void FUN_001dd49a(void);"
+          "decl": "void __wasctime(void);"
         },
         {
           "addr": "0x1dd576",
@@ -28510,19 +28510,19 @@
         },
         {
           "addr": "0x1dd601",
-          "decl": "void FUN_001dd601(void);"
+          "decl": "void __SEH_epilog(void);"
         },
         {
           "addr": "0x1dd620",
-          "decl": "void FUN_001dd620(void);"
+          "decl": "void __allmul(void);"
         },
         {
           "addr": "0x1dd660",
-          "decl": "void FUN_001dd660(void);"
+          "decl": "void __aullshr(void);"
         },
         {
           "addr": "0x1dd680",
-          "decl": "void FUN_001dd680(void);"
+          "decl": "void __aullrem(void);"
         },
         {
           "addr": "0x1dd6f5",
@@ -28530,11 +28530,11 @@
         },
         {
           "addr": "0x1dd770",
-          "decl": "void FUN_001dd770(void);"
+          "decl": "void __aulldiv(void);"
         },
         {
           "addr": "0x1dd7e0",
-          "decl": "void FUN_001dd7e0(void);"
+          "decl": "void __allshr(void);"
         },
         {
           "addr": "0x1dd801",
@@ -28542,15 +28542,15 @@
         },
         {
           "addr": "0x1dd850",
-          "decl": "void FUN_001dd850(void);"
+          "decl": "void __alldiv(void);"
         },
         {
           "addr": "0x1dd8fa",
-          "decl": "void FUN_001dd8fa(void);"
+          "decl": "void __copysign(void);"
         },
         {
           "addr": "0x1dd91b",
-          "decl": "void FUN_001dd91b(void);"
+          "decl": "void __chgsign(void);"
         },
         {
           "addr": "0x1dd957",
@@ -28574,7 +28574,7 @@
         },
         {
           "addr": "0x1ddda8",
-          "decl": "void FUN_001ddda8(void);"
+          "decl": "void ??2@YAPAXI@Z(void);"
         },
         {
           "addr": "0x1dddbf",
@@ -28582,11 +28582,11 @@
         },
         {
           "addr": "0x1ddde6",
-          "decl": "void FUN_001ddde6(void);"
+          "decl": "void __nh_malloc(void);"
         },
         {
           "addr": "0x1dde12",
-          "decl": "void FUN_001dde12(void);"
+          "decl": "void _malloc(void);"
         },
         {
           "addr": "0x1dde24",
@@ -28598,11 +28598,11 @@
         },
         {
           "addr": "0x1dde7c",
-          "decl": "void FUN_001dde7c(void);"
+          "decl": "void __forcdecpt(void);"
         },
         {
           "addr": "0x1ddf39",
-          "decl": "void FUN_001ddf39(void);"
+          "decl": "void __fassign(void);"
         },
         {
           "addr": "0x1ddf77",
@@ -28630,7 +28630,7 @@
         },
         {
           "addr": "0x1de229",
-          "decl": "void FUN_001de229(void);"
+          "decl": "void __cfltcvt(void);"
         },
         {
           "addr": "0x1de27a",
@@ -28638,7 +28638,7 @@
         },
         {
           "addr": "0x1de28c",
-          "decl": "void FUN_001de28c(void);"
+          "decl": "void __flsbuf(void);"
         },
         {
           "addr": "0x1de3a5",
@@ -29213,7 +29213,7 @@
         },
         {
           "addr": "0x1d91f0",
-          "decl": "void FUN_001d91f0(void);"
+          "decl": "void _shortsort(void);"
         }
       ],
       "name": "LIBCMT:snprintf.obj"
@@ -29234,7 +29234,7 @@
         },
         {
           "addr": "0x1d0f63",
-          "decl": "void FUN_001d0f63(void);"
+          "decl": "void MoveFileA(void);"
         },
         {
           "addr": "0x1d0ff9",
@@ -29355,7 +29355,7 @@
         },
         {
           "addr": "0x1d23d9",
-          "decl": "void FUN_001d23d9(void);"
+          "decl": "void GetOverlappedResult(void);"
         },
         {
           "addr": "0x1d243e",
@@ -29363,7 +29363,7 @@
         },
         {
           "addr": "0x1d2518",
-          "decl": "void FUN_001d2518(void);"
+          "decl": "void XGetLaunchInfo(void);"
         },
         {
           "addr": "0x1d259b",
@@ -29488,19 +29488,19 @@
         },
         {
           "addr": "0x1d3a91",
-          "decl": "void FUN_001d3a91(void);"
+          "decl": "void XapiSelectCachePartition(void);"
         },
         {
           "addr": "0x1d3c95",
-          "decl": "void FUN_001d3c95(void);"
+          "decl": "void XMountUtilityDrive(void);"
         },
         {
           "addr": "0x1d3d80",
-          "decl": "void FUN_001d3d80(void);"
+          "decl": "void XMountAlternateTitleA(void);"
         },
         {
           "addr": "0x1d3ee5",
-          "decl": "void FUN_001d3ee5(void);"
+          "decl": "void XUnmountAlternateTitleA(void);"
         },
         {
           "addr": "0x1d3f42",
@@ -29512,7 +29512,7 @@
         },
         {
           "addr": "0x1d407c",
-          "decl": "void FUN_001d407c(void);"
+          "decl": "void XMUNameFromDriveLetter(void);"
         },
         {
           "addr": "0x1d4157",
@@ -29528,7 +29528,7 @@
         },
         {
           "addr": "0x1d426b",
-          "decl": "void FUN_001d426b(void);"
+          "decl": "void XCalculateSignatureBegin(void);"
         },
         {
           "addr": "0x1d42a9",
@@ -29540,15 +29540,15 @@
         },
         {
           "addr": "0x1d4345",
-          "decl": "void FUN_001d4345(void);"
+          "decl": "void xbe_main_thread(void);"
         },
         {
           "addr": "0x1d43b4",
-          "decl": "void FUN_001d43b4(void);"
+          "decl": "void entry(void);"
         },
         {
           "addr": "0x1d440e",
-          "decl": "void FUN_001d440e(void);"
+          "decl": "void XapiFormatObjectAttributes(void);"
         },
         {
           "addr": "0x1d4436",
@@ -29677,7 +29677,7 @@
         },
         {
           "addr": "0x1d08aa",
-          "decl": "void FUN_001d08aa(void);"
+          "decl": "void GetTimeZoneInformation(void);"
         },
         {
           "addr": "0x1d0a06",
@@ -29754,7 +29754,7 @@
       "functions": [
         {
           "addr": "0x1d8259",
-          "decl": "void FUN_001d8259(void);"
+          "decl": "void XapiInitProcess(void);"
         },
         {
           "addr": "0x1d8368",
@@ -29762,11 +29762,11 @@
         },
         {
           "addr": "0x1d86c3",
-          "decl": "void FUN_001d86c3(void);"
+          "decl": "void _cinit(void);"
         },
         {
           "addr": "0x1d871b",
-          "decl": "void FUN_001d871b(void);"
+          "decl": "void _rtinit(void);"
         },
         {
           "addr": "0x1d8750",
@@ -29794,7 +29794,7 @@
         },
         {
           "addr": "0x1d8b64",
-          "decl": "void FUN_001d8b64(void);"
+          "decl": "void XGetSectionSize(void);"
         },
         {
           "addr": "0x1d8b76",
@@ -29802,19 +29802,19 @@
         },
         {
           "addr": "0x1d8df8",
-          "decl": "void FUN_001d8df8(void);"
+          "decl": "void XcSHAUpdate(void);"
         },
         {
           "addr": "0x1d8dfe",
-          "decl": "void FUN_001d8dfe(void);"
+          "decl": "void XcSHAInit(void);"
         },
         {
           "addr": "0x1d8e04",
-          "decl": "void FUN_001d8e04(void);"
+          "decl": "void XcSHAFinal(void);"
         },
         {
           "addr": "0x1d8e0a",
-          "decl": "void FUN_001d8e0a(void);"
+          "decl": "void ExQueryNonVolatileSetting(void);"
         }
       ],
       "name": "XNET:xnet.obj"
@@ -34998,7 +34998,7 @@
       "functions": [
         {
           "addr": "0x1cfa3f",
-          "decl": "void FUN_001cfa3f(void);"
+          "decl": "void SetThreadPriorityBoost(void);"
         },
         {
           "addr": "0x1cfa85",
@@ -35014,7 +35014,7 @@
         },
         {
           "addr": "0x1cfb12",
-          "decl": "void FUN_001cfb12(void);"
+          "decl": "void RaiseException(void);"
         },
         {
           "addr": "0x1cfb98",
@@ -35022,7 +35022,7 @@
         },
         {
           "addr": "0x1cfbbd",
-          "decl": "void FUN_001cfbbd(void);"
+          "decl": "void GetExitCodeThread(void);"
         },
         {
           "addr": "0x1cfc1b",
@@ -35030,7 +35030,7 @@
         },
         {
           "addr": "0x1cfca4",
-          "decl": "void FUN_001cfca4(void);"
+          "decl": "void XRegisterThreadNotifyRoutine(void);"
         },
         {
           "addr": "0x1cfd8c",
@@ -35046,7 +35046,7 @@
         },
         {
           "addr": "0x1cfe4e",
-          "decl": "void FUN_001cfe4e(void);"
+          "decl": "void OpenEventA(void);"
         },
         {
           "addr": "0x1cfeaa",
@@ -35054,7 +35054,7 @@
         },
         {
           "addr": "0x1cfeca",
-          "decl": "void FUN_001cfeca(void);"
+          "decl": "void ResetEvent(void);"
         },
         {
           "addr": "0x1cff08",
@@ -35066,7 +35066,7 @@
         },
         {
           "addr": "0x1cffe5",
-          "decl": "void FUN_001cffe5(void);"
+          "decl": "void CreateMutexA(void);"
         },
         {
           "addr": "0x1d003d",
@@ -35082,7 +35082,7 @@
         },
         {
           "addr": "0x1d00fd",
-          "decl": "void FUN_001d00fd(void);"
+          "decl": "void SignalObjectAndWait(void);"
         },
         {
           "addr": "0x1d0144",
@@ -35118,11 +35118,11 @@
         },
         {
           "addr": "0x1d0370",
-          "decl": "void FUN_001d0370(void);"
+          "decl": "void OutputDebugStringA(void);"
         },
         {
           "addr": "0x1d03a2",
-          "decl": "void FUN_001d03a2(void);"
+          "decl": "void OutputDebugStringW(void);"
         },
         {
           "addr": "0x1d03ee",
@@ -35471,7 +35471,7 @@
         },
         {
           "addr": "0x11add0",
-          "decl": "void FUN_0011add0(packet_definition *def, short *param_2, short *param_3, short *param_4);"
+          "decl": "void compute_packet_field_sizes(packet_definition *def, short *param_2, short *param_3, short *param_4);"
         },
         {
           "addr": "0x11afa0",
@@ -36003,7 +36003,7 @@
         },
         {
           "addr": "0x1d771c",
-          "decl": "void FUN_001d771c(void);"
+          "decl": "void XAutoPowerDownResetTimer(void);"
         },
         {
           "addr": "0x1d7749",
@@ -36047,7 +36047,7 @@
         },
         {
           "addr": "0x1d7e6b",
-          "decl": "void FUN_001d7e6b(void);"
+          "decl": "void XapiMapLetterToDirectory(void);"
         },
         {
           "addr": "0x1d819f",
@@ -36055,7 +36055,7 @@
         },
         {
           "addr": "0x1d81f4",
-          "decl": "void FUN_001d81f4(void);"
+          "decl": "void XapiBootToDash(void);"
         }
       ],
       "name": "XAPILIB:xbox_crt.obj",
@@ -36094,6 +36094,2164 @@
           "ported": true
         }
       ]
+    },
+    {
+      "functions": [
+        {
+          "addr": "0x001cfb73",
+          "decl": "void QueueUserAPC(void);"
+        },
+        {
+          "addr": "0x001cfbab",
+          "decl": "void ExitThread(void);"
+        },
+        {
+          "addr": "0x001cfcf4",
+          "decl": "void XapiThreadStartup(void);"
+        },
+        {
+          "addr": "0x001cfee8",
+          "decl": "void PulseEvent(void);"
+        },
+        {
+          "addr": "0x001d3717",
+          "decl": "void MmQueryAllocationSize(void);"
+        },
+        {
+          "addr": "0x001d8bca",
+          "decl": "void NtClose(void);"
+        },
+        {
+          "addr": "0x001d8bd0",
+          "decl": "void NtDuplicateObject(void);"
+        },
+        {
+          "addr": "0x001d8bd6",
+          "decl": "void RtlLeaveCriticalSection(void);"
+        },
+        {
+          "addr": "0x001d8bdc",
+          "decl": "void RtlEnterCriticalSection(void);"
+        },
+        {
+          "addr": "0x001d8be2",
+          "decl": "void ObfDereferenceObject(void);"
+        },
+        {
+          "addr": "0x001d8be8",
+          "decl": "void KeSetBasePriorityThread(void);"
+        },
+        {
+          "addr": "0x001d8bee",
+          "decl": "void ObReferenceObjectByHandle(void);"
+        },
+        {
+          "addr": "0x001d8bf4",
+          "decl": "void KeQueryBasePriorityThread(void);"
+        },
+        {
+          "addr": "0x001d8bfa",
+          "decl": "void KeSetDisableBoostThread(void);"
+        },
+        {
+          "addr": "0x001d8c00",
+          "decl": "void NtSuspendThread(void);"
+        },
+        {
+          "addr": "0x001d8c06",
+          "decl": "void NtResumeThread(void);"
+        },
+        {
+          "addr": "0x001d8c0c",
+          "decl": "void RtlRaiseException(void);"
+        },
+        {
+          "addr": "0x001d8c12",
+          "decl": "void NtQueueApcThread(void);"
+        },
+        {
+          "addr": "0x001d8c18",
+          "decl": "void NtYieldExecution(void);"
+        },
+        {
+          "addr": "0x001d8c1e",
+          "decl": "void PsTerminateSystemThread(void);"
+        },
+        {
+          "addr": "0x001d8c24",
+          "decl": "void PsCreateSystemThreadEx(void);"
+        },
+        {
+          "addr": "0x001d8c2a",
+          "decl": "void NtCreateEvent(void);"
+        },
+        {
+          "addr": "0x001d8c30",
+          "decl": "void ObOpenObjectByName(void);"
+        },
+        {
+          "addr": "0x001d8c36",
+          "decl": "void RtlInitAnsiString(void);"
+        },
+        {
+          "addr": "0x001d8c3c",
+          "decl": "void NtSetEvent(void);"
+        },
+        {
+          "addr": "0x001d8c42",
+          "decl": "void NtClearEvent(void);"
+        },
+        {
+          "addr": "0x001d8c48",
+          "decl": "void NtPulseEvent(void);"
+        },
+        {
+          "addr": "0x001d8c4e",
+          "decl": "void NtCreateSemaphore(void);"
+        },
+        {
+          "addr": "0x001d8c54",
+          "decl": "void NtReleaseSemaphore(void);"
+        },
+        {
+          "addr": "0x001d8c5a",
+          "decl": "void NtCreateMutant(void);"
+        },
+        {
+          "addr": "0x001d8c60",
+          "decl": "void NtReleaseMutant(void);"
+        },
+        {
+          "addr": "0x001d8c66",
+          "decl": "void NtWaitForSingleObjectEx(void);"
+        },
+        {
+          "addr": "0x001d8c6c",
+          "decl": "void NtSignalAndWaitForSingleObjectEx(void);"
+        },
+        {
+          "addr": "0x001d8c72",
+          "decl": "void NtWaitForMultipleObjectsEx(void);"
+        },
+        {
+          "addr": "0x001d8c78",
+          "decl": "void KeDelayExecutionThread(void);"
+        },
+        {
+          "addr": "0x001d8c7e",
+          "decl": "void NtCreateTimer(void);"
+        },
+        {
+          "addr": "0x001d8c84",
+          "decl": "void NtSetTimerEx(void);"
+        },
+        {
+          "addr": "0x001d8c8a",
+          "decl": "void NtCancelTimer(void);"
+        },
+        {
+          "addr": "0x001d8c90",
+          "decl": "void RtlFreeAnsiString(void);"
+        },
+        {
+          "addr": "0x001d8c96",
+          "decl": "void RtlUnicodeStringToAnsiString(void);"
+        },
+        {
+          "addr": "0x001d8c9c",
+          "decl": "void RtlInitUnicodeString(void);"
+        },
+        {
+          "addr": "0x001d8ca2",
+          "decl": "void RtlTimeToTimeFields(void);"
+        },
+        {
+          "addr": "0x001d8cae",
+          "decl": "void RtlTimeFieldsToTime(void);"
+        },
+        {
+          "addr": "0x001d8cb4",
+          "decl": "void NtAllocateVirtualMemory(void);"
+        },
+        {
+          "addr": "0x001d8cba",
+          "decl": "void NtFreeVirtualMemory(void);"
+        },
+        {
+          "addr": "0x001d8cc0",
+          "decl": "void NtProtectVirtualMemory(void);"
+        },
+        {
+          "addr": "0x001d8cc6",
+          "decl": "void NtQueryVirtualMemory(void);"
+        },
+        {
+          "addr": "0x001d8ccc",
+          "decl": "void MmQueryStatistics(void);"
+        },
+        {
+          "addr": "0x001d8cd2",
+          "decl": "void NtSetInformationFile(void);"
+        },
+        {
+          "addr": "0x001d8cd8",
+          "decl": "void NtOpenFile(void);"
+        },
+        {
+          "addr": "0x001d8cde",
+          "decl": "void NtQueryFullAttributesFile(void);"
+        },
+        {
+          "addr": "0x001d8ce4",
+          "decl": "void FscSetCacheSize(void);"
+        },
+        {
+          "addr": "0x001d8cea",
+          "decl": "void FscGetCacheSize(void);"
+        },
+        {
+          "addr": "0x001d8cf0",
+          "decl": "void NtQueryDirectoryFile(void);"
+        },
+        {
+          "addr": "0x001d8cf6",
+          "decl": "void NtWaitForSingleObject(void);"
+        },
+        {
+          "addr": "0x001d8cfc",
+          "decl": "void NtReadFile(void);"
+        },
+        {
+          "addr": "0x001d8d02",
+          "decl": "void NtWriteFile(void);"
+        },
+        {
+          "addr": "0x001d8d08",
+          "decl": "void NtQueryInformationFile(void);"
+        },
+        {
+          "addr": "0x001d8d0e",
+          "decl": "void NtQueryVolumeInformationFile(void);"
+        },
+        {
+          "addr": "0x001d8d14",
+          "decl": "void NtFlushBuffersFile(void);"
+        },
+        {
+          "addr": "0x001d8d1a",
+          "decl": "void NtUserIoApcDispatcher(void);"
+        },
+        {
+          "addr": "0x001d8d20",
+          "decl": "void NtFsControlFile(void);"
+        },
+        {
+          "addr": "0x001d8d26",
+          "decl": "void NtDeviceIoControlFile(void);"
+        },
+        {
+          "addr": "0x001d8d2c",
+          "decl": "void NtReadFileScatter(void);"
+        },
+        {
+          "addr": "0x001d8d32",
+          "decl": "void NtWriteFileGather(void);"
+        },
+        {
+          "addr": "0x001d8d38",
+          "decl": "void NtCreateFile(void);"
+        },
+        {
+          "addr": "0x001d8d3e",
+          "decl": "void MmFreeSystemMemory(void);"
+        },
+        {
+          "addr": "0x001d8d44",
+          "decl": "void MmAllocateSystemMemory(void);"
+        },
+        {
+          "addr": "0x001d8d4a",
+          "decl": "void KeWaitForSingleObject(void);"
+        },
+        {
+          "addr": "0x001d8d50",
+          "decl": "void KfLowerIrql(void);"
+        },
+        {
+          "addr": "0x001d8d56",
+          "decl": "void KeRaiseIrqlToDpcLevel(void);"
+        },
+        {
+          "addr": "0x001d8d5c",
+          "decl": "void IoCreateDevice(void);"
+        },
+        {
+          "addr": "0x001d8d62",
+          "decl": "void ExAllocatePool(void);"
+        },
+        {
+          "addr": "0x001d8d68",
+          "decl": "void KeSetEvent(void);"
+        },
+        {
+          "addr": "0x001d8d6e",
+          "decl": "void KeInitializeTimerEx(void);"
+        },
+        {
+          "addr": "0x001d8d74",
+          "decl": "void KeInitializeDpc(void);"
+        },
+        {
+          "addr": "0x001d8d7a",
+          "decl": "void IoInvalidDeviceRequest(void);"
+        },
+        {
+          "addr": "0x001d8d80",
+          "decl": "void RtlNtStatusToDosError(void);"
+        },
+        {
+          "addr": "0x001d8d86",
+          "decl": "void NtCreateIoCompletion(void);"
+        },
+        {
+          "addr": "0x001d8d8c",
+          "decl": "void NtSetIoCompletion(void);"
+        },
+        {
+          "addr": "0x001d8d92",
+          "decl": "void NtRemoveIoCompletion(void);"
+        },
+        {
+          "addr": "0x001d8d98",
+          "decl": "void KeSetTimer(void);"
+        },
+        {
+          "addr": "0x001d8d9e",
+          "decl": "void KeCancelTimer(void);"
+        },
+        {
+          "addr": "0x001d8da4",
+          "decl": "void MmPersistContiguousMemory(void);"
+        },
+        {
+          "addr": "0x001d8daa",
+          "decl": "void MmAllocateContiguousMemory(void);"
+        },
+        {
+          "addr": "0x001d8db6",
+          "decl": "void HalReturnToFirmware(void);"
+        },
+        {
+          "addr": "0x001d8dbc",
+          "decl": "void NtQuerySymbolicLinkObject(void);"
+        },
+        {
+          "addr": "0x001d8dc2",
+          "decl": "void NtOpenSymbolicLinkObject(void);"
+        },
+        {
+          "addr": "0x001d8dc8",
+          "decl": "void KeQueryPerformanceCounter(void);"
+        },
+        {
+          "addr": "0x001d8dce",
+          "decl": "void KeQueryPerformanceFrequency(void);"
+        },
+        {
+          "addr": "0x001d8dd4",
+          "decl": "void MmAllocateContiguousMemoryEx(void);"
+        },
+        {
+          "addr": "0x001d8de0",
+          "decl": "void MmSetAddressProtect(void);"
+        },
+        {
+          "addr": "0x001d8dec",
+          "decl": "void IoCreateSymbolicLink(void);"
+        },
+        {
+          "addr": "0x001d8df2",
+          "decl": "void IoDeleteSymbolicLink(void);"
+        },
+        {
+          "addr": "0x001d8e10",
+          "decl": "void RtlFillMemoryUlong(void);"
+        },
+        {
+          "addr": "0x001d8e16",
+          "decl": "void RtlCompareMemoryUlong(void);"
+        },
+        {
+          "addr": "0x001d8e1c",
+          "decl": "void RtlCompareMemory(void);"
+        },
+        {
+          "addr": "0x001d8e22",
+          "decl": "void RtlInitializeCriticalSection(void);"
+        },
+        {
+          "addr": "0x001d8e28",
+          "decl": "void IoStartPacket(void);"
+        },
+        {
+          "addr": "0x001d8e2e",
+          "decl": "void IofCompleteRequest(void);"
+        },
+        {
+          "addr": "0x001d8e34",
+          "decl": "void IoStartNextPacket(void);"
+        },
+        {
+          "addr": "0x001d8e3a",
+          "decl": "void ExFreePool(void);"
+        },
+        {
+          "addr": "0x001d8e40",
+          "decl": "void IoMarkIrpMustComplete(void);"
+        },
+        {
+          "addr": "0x001d8e46",
+          "decl": "void HalIsResetOrShutdownPending(void);"
+        },
+        {
+          "addr": "0x001d8e4c",
+          "decl": "void KeQueryInterruptTime(void);"
+        },
+        {
+          "addr": "0x001d8e52",
+          "decl": "void HalInitiateShutdown(void);"
+        },
+        {
+          "addr": "0x001d8e58",
+          "decl": "void HalGetInterruptVector(void);"
+        },
+        {
+          "addr": "0x001d8e5e",
+          "decl": "void KfRaiseIrql(void);"
+        },
+        {
+          "addr": "0x001d8e64",
+          "decl": "void HalRegisterShutdownNotification(void);"
+        },
+        {
+          "addr": "0x001d8e6a",
+          "decl": "void KeConnectInterrupt(void);"
+        },
+        {
+          "addr": "0x001d8e70",
+          "decl": "void KeInitializeInterrupt(void);"
+        },
+        {
+          "addr": "0x001d8e76",
+          "decl": "void KeStallExecutionProcessor(void);"
+        },
+        {
+          "addr": "0x001d8e7c",
+          "decl": "void RtlEqualString(void);"
+        },
+        {
+          "addr": "0x001d8e82",
+          "decl": "void XeLoadSection(void);"
+        },
+        {
+          "addr": "0x001d8e88",
+          "decl": "void XeUnloadSection(void);"
+        },
+        {
+          "addr": "0x001d8e8e",
+          "decl": "void MmGetPhysicalAddress(void);"
+        },
+        {
+          "addr": "0x001d8e94",
+          "decl": "void MmLockUnlockBufferPages(void);"
+        },
+        {
+          "addr": "0x001d8e9a",
+          "decl": "void KeInsertQueueDpc(void);"
+        },
+        {
+          "addr": "0x001d8ea0",
+          "decl": "void MmLockUnlockPhysicalPage(void);"
+        },
+        {
+          "addr": "0x001d8ea6",
+          "decl": "void AvGetSavedDataAddress(void);"
+        },
+        {
+          "addr": "0x001d8eac",
+          "decl": "void AvSendTVEncoderOption(void);"
+        },
+        {
+          "addr": "0x001d8eb2",
+          "decl": "void AvSetDisplayMode(void);"
+        },
+        {
+          "addr": "0x001d8eb8",
+          "decl": "void AvSetSavedDataAddress(void);"
+        },
+        {
+          "addr": "0x001d8ec4",
+          "decl": "void KeDisconnectInterrupt(void);"
+        },
+        {
+          "addr": "0x001d8eca",
+          "decl": "void MmClaimGpuInstanceMemory(void);"
+        },
+        {
+          "addr": "0x001d8ed0",
+          "decl": "void ExQueryPoolBlockSize(void);"
+        },
+        {
+          "addr": "0x001d8ed6",
+          "decl": "void ExAllocatePoolWithTag(void);"
+        },
+        {
+          "addr": "0x001d8edc",
+          "decl": "void KeRemoveQueueDpc(void);"
+        },
+        {
+          "addr": "0x001d8ee2",
+          "decl": "void KeSynchronizeExecution(void);"
+        },
+        {
+          "addr": "0x001d8ee8",
+          "decl": "void KeSaveFloatingPointState(void);"
+        },
+        {
+          "addr": "0x001d8eee",
+          "decl": "void KeRestoreFloatingPointState(void);"
+        },
+        {
+          "addr": "0x001d8ef4",
+          "decl": "void PhyGetLinkState(void);"
+        },
+        {
+          "addr": "0x001d8efa",
+          "decl": "void PhyInitialize(void);"
+        },
+        {
+          "addr": "0x001d8f00",
+          "decl": "void KeWaitForMultipleObjects(void);"
+        },
+        {
+          "addr": "0x001d8f12",
+          "decl": "void KeSetTimerEx(void);"
+        },
+        {
+          "addr": "0x001e64e7",
+          "decl": "void DbgBreakPoint(void);"
+        },
+        {
+          "addr": "0x001e657e",
+          "decl": "void KeBugCheck(void);"
+        },
+        {
+          "addr": "0x001e658a",
+          "decl": "void RtlAnsiStringToUnicodeString(void);"
+        },
+        {
+          "addr": "0x001e69f0",
+          "decl": "void D3DDevice_GetDeviceCaps(void);"
+        },
+        {
+          "addr": "0x001e6a10",
+          "decl": "void D3DDevice_GetCreationParameters(void);"
+        },
+        {
+          "addr": "0x001e6a50",
+          "decl": "void D3DDevice_SetGammaRamp(void);"
+        },
+        {
+          "addr": "0x001e6ab0",
+          "decl": "void D3DDevice_GetGammaRamp(void);"
+        },
+        {
+          "addr": "0x001e6b10",
+          "decl": "void D3DDevice_CreateVolumeTexture(void);"
+        },
+        {
+          "addr": "0x001e6b40",
+          "decl": "void D3DDevice_CreateCubeTexture(void);"
+        },
+        {
+          "addr": "0x001e6ba0",
+          "decl": "void D3DDevice_CreateImageSurface(void);"
+        },
+        {
+          "addr": "0x001e6bc0",
+          "decl": "void D3DDevice_SetRenderState(void);"
+        },
+        {
+          "addr": "0x001e6d10",
+          "decl": "void D3DDevice_MultiplyTransform(void);"
+        },
+        {
+          "addr": "0x001e6d60",
+          "decl": "void D3DDevice_GetViewport(void);"
+        },
+        {
+          "addr": "0x001e6d80",
+          "decl": "void D3DDevice_SetMaterial(void);"
+        },
+        {
+          "addr": "0x001e6db0",
+          "decl": "void D3DDevice_GetMaterial(void);"
+        },
+        {
+          "addr": "0x001e6dd0",
+          "decl": "void D3DDevice_SetBackMaterial(void);"
+        },
+        {
+          "addr": "0x001e6e00",
+          "decl": "void D3DDevice_GetBackMaterial(void);"
+        },
+        {
+          "addr": "0x001e6e30",
+          "decl": "void D3DDevice_GetLight(void);"
+        },
+        {
+          "addr": "0x001e6e60",
+          "decl": "void D3DDevice_GetLightEnable(void);"
+        },
+        {
+          "addr": "0x001e6ed0",
+          "decl": "void D3DDevice_SwitchTexture(void);"
+        },
+        {
+          "addr": "0x001e6f30",
+          "decl": "void D3DDevice_AddRef(void);"
+        },
+        {
+          "addr": "0x001e6f50",
+          "decl": "void D3DDevice_Release(void);"
+        },
+        {
+          "addr": "0x001e6fa0",
+          "decl": "void D3DDevice_BlockOnFence(void);"
+        },
+        {
+          "addr": "0x001e6fb0",
+          "decl": "void D3DDevice_KickPushBuffer(void);"
+        },
+        {
+          "addr": "0x001e7030",
+          "decl": "void D3DDevice_GetVisibilityTestResult(void);"
+        },
+        {
+          "addr": "0x001e70e0",
+          "decl": "void D3DDevice_SetVerticalBlankCallback(void);"
+        },
+        {
+          "addr": "0x001e7140",
+          "decl": "void D3DDevice_GetProjectionViewportMatrix(void);"
+        },
+        {
+          "addr": "0x001e7180",
+          "decl": "void D3DDevice_GetModelView(void);"
+        },
+        {
+          "addr": "0x001e7200",
+          "decl": "void D3DDevice_GetTile(void);"
+        },
+        {
+          "addr": "0x001e7230",
+          "decl": "void D3DDevice_GetScissors(void);"
+        },
+        {
+          "addr": "0x001e72a0",
+          "decl": "void D3DDevice_SetFlickerFilter(void);"
+        },
+        {
+          "addr": "0x001e72c0",
+          "decl": "void D3DDevice_SetSoftDisplayFilter(void);"
+        },
+        {
+          "addr": "0x001e73a0",
+          "decl": "void D3DDevice_InsertFence(void);"
+        },
+        {
+          "addr": "0x001e73b0",
+          "decl": "void D3DResource_AddRef(void);"
+        },
+        {
+          "addr": "0x001e76b0",
+          "decl": "void D3DBaseTexture_GetLevelCount(void);"
+        },
+        {
+          "addr": "0x001e79d0",
+          "decl": "void D3DDevice_GetDisplayMode(void);"
+        },
+        {
+          "addr": "0x001e7a30",
+          "decl": "void D3DDevice_Reset(void);"
+        },
+        {
+          "addr": "0x001e7de0",
+          "decl": "void D3DDevice_CopyRects(void);"
+        },
+        {
+          "addr": "0x001e8250",
+          "decl": "void D3DDevice_GetRenderTarget(void);"
+        },
+        {
+          "addr": "0x001e82a0",
+          "decl": "void D3DDevice_SetViewport(void);"
+        },
+        {
+          "addr": "0x001e8400",
+          "decl": "void D3DDevice_SetLight(void);"
+        },
+        {
+          "addr": "0x001e85e0",
+          "decl": "void D3DDevice_LightEnable(void);"
+        },
+        {
+          "addr": "0x001e86c0",
+          "decl": "void D3DDevice_GetTexture2(void);"
+        },
+        {
+          "addr": "0x001e88a0",
+          "decl": "void D3DDevice_SetPalette(void);"
+        },
+        {
+          "addr": "0x001e8920",
+          "decl": "void D3DDevice_SetIndices(void);"
+        },
+        {
+          "addr": "0x001e8a00",
+          "decl": "void D3DDevice_IsBusy(void);"
+        },
+        {
+          "addr": "0x001e8a40",
+          "decl": "void D3DDevice_BeginVisibilityTest(void);"
+        },
+        {
+          "addr": "0x001e8a70",
+          "decl": "void D3DDevice_EndVisibilityTest(void);"
+        },
+        {
+          "addr": "0x001e8ad0",
+          "decl": "void D3DDevice_GetDisplayFieldStatus(void);"
+        },
+        {
+          "addr": "0x001e8b10",
+          "decl": "void D3DDevice_FlushVertexCache(void);"
+        },
+        {
+          "addr": "0x001e8b40",
+          "decl": "void D3DDevice_SetModelView(void);"
+        },
+        {
+          "addr": "0x001e8d30",
+          "decl": "void D3DDevice_SetTile(void);"
+        },
+        {
+          "addr": "0x001e9000",
+          "decl": "void D3DDevice_SetScissors(void);"
+        },
+        {
+          "addr": "0x001e92f0",
+          "decl": "void D3DDevice_SetRenderState_MultiSampleType(void);"
+        },
+        {
+          "addr": "0x001e9320",
+          "decl": "void D3DDevice_SetRenderState_PSTextureModes(void);"
+        },
+        {
+          "addr": "0x001e93a0",
+          "decl": "void D3DDevice_SetRenderStateNotInline(void);"
+        },
+        {
+          "addr": "0x001e9400",
+          "decl": "void D3DDevice_SetRenderState2(void);"
+        },
+        {
+          "addr": "0x001e9620",
+          "decl": "void D3DDevice_SetRenderState_EdgeAntiAlias(void);"
+        },
+        {
+          "addr": "0x001e9650",
+          "decl": "void D3DDevice_SetRenderState_ShadowFunc(void);"
+        },
+        {
+          "addr": "0x001e9680",
+          "decl": "void D3DDevice_SetRenderState_FogColor(void);"
+        },
+        {
+          "addr": "0x001e9740",
+          "decl": "void D3DDevice_SetRenderState_FrontFace(void);"
+        },
+        {
+          "addr": "0x001e9780",
+          "decl": "void D3DDevice_SetRenderState_NormalizeNormals(void);"
+        },
+        {
+          "addr": "0x001e97b0",
+          "decl": "void D3DDevice_SetRenderState_TextureFactor(void);"
+        },
+        {
+          "addr": "0x001e9800",
+          "decl": "void D3DDevice_SetRenderState_LineWidth(void);"
+        },
+        {
+          "addr": "0x001e9860",
+          "decl": "void D3DDevice_SetRenderState_Dxt1NoiseEnable(void);"
+        },
+        {
+          "addr": "0x001e98e0",
+          "decl": "void D3DDevice_SetRenderState_ZBias(void);"
+        },
+        {
+          "addr": "0x001e9960",
+          "decl": "void D3DDevice_SetRenderState_LogicOp(void);"
+        },
+        {
+          "addr": "0x001e99b0",
+          "decl": "void D3DDevice_SetRenderState_FillMode(void);"
+        },
+        {
+          "addr": "0x001e99f0",
+          "decl": "void D3DDevice_SetRenderState_BackFillMode(void);"
+        },
+        {
+          "addr": "0x001e9a40",
+          "decl": "void D3DDevice_SetRenderState_TwoSidedLighting(void);"
+        },
+        {
+          "addr": "0x001e9aa0",
+          "decl": "void D3DDevice_SetRenderState_VertexBlend(void);"
+        },
+        {
+          "addr": "0x001e9ae0",
+          "decl": "void D3DDevice_SetTextureState_TexCoordIndex(void);"
+        },
+        {
+          "addr": "0x001e9bc0",
+          "decl": "void D3DDevice_SetTextureState_BumpEnv(void);"
+        },
+        {
+          "addr": "0x001e9c60",
+          "decl": "void D3DDevice_SetTextureState_ColorKeyColor(void);"
+        },
+        {
+          "addr": "0x001e9cb0",
+          "decl": "void D3DDevice_SetTextureStageStateNotInline(void);"
+        },
+        {
+          "addr": "0x001ea1c0",
+          "decl": "void D3D_CommonSetDebugRegisters(void);"
+        },
+        {
+          "addr": "0x001ea300",
+          "decl": "void D3DDevice_SetRenderState_StencilEnable(void);"
+        },
+        {
+          "addr": "0x001ea380",
+          "decl": "void D3DDevice_SetRenderState_StencilFail(void);"
+        },
+        {
+          "addr": "0x001ea3f0",
+          "decl": "void D3DDevice_SetRenderState_YuvEnable(void);"
+        },
+        {
+          "addr": "0x001ea420",
+          "decl": "void D3DDevice_SetRenderState_OcclusionCullEnable(void);"
+        },
+        {
+          "addr": "0x001ea480",
+          "decl": "void D3DDevice_SetRenderState_StencilCullEnable(void);"
+        },
+        {
+          "addr": "0x001ea4e0",
+          "decl": "void D3DDevice_SetRenderState_RopZCmpAlwaysRead(void);"
+        },
+        {
+          "addr": "0x001ea500",
+          "decl": "void D3DDevice_SetRenderState_RopZRead(void);"
+        },
+        {
+          "addr": "0x001ea520",
+          "decl": "void D3DDevice_SetRenderState_DoNotCullUncompressed(void);"
+        },
+        {
+          "addr": "0x001ea540",
+          "decl": "void D3DDevice_SetRenderState_MultiSampleAntiAlias(void);"
+        },
+        {
+          "addr": "0x001ea590",
+          "decl": "void D3DDevice_SetRenderState_MultiSampleMask(void);"
+        },
+        {
+          "addr": "0x001eac90",
+          "decl": "void D3DDevice_GetShaderConstantMode(void);"
+        },
+        {
+          "addr": "0x001eaf70",
+          "decl": "void D3DDevice_CreateVertexShader(void);"
+        },
+        {
+          "addr": "0x001eb0b0",
+          "decl": "void D3DDevice_GetVertexShader(void);"
+        },
+        {
+          "addr": "0x001eb0d0",
+          "decl": "void D3DDevice_GetVertexShaderConstant(void);"
+        },
+        {
+          "addr": "0x001eb110",
+          "decl": "void D3DDevice_GetVertexShaderInput(void);"
+        },
+        {
+          "addr": "0x001eb2d0",
+          "decl": "void D3DDevice_SetStreamSource(void);"
+        },
+        {
+          "addr": "0x001eb3b0",
+          "decl": "void D3DDevice_RunVertexStateShader(void);"
+        },
+        {
+          "addr": "0x001eb400",
+          "decl": "void D3DDevice_LoadVertexShader(void);"
+        },
+        {
+          "addr": "0x001eb460",
+          "decl": "void D3DDevice_LoadVertexShaderProgram(void);"
+        },
+        {
+          "addr": "0x001eb4d0",
+          "decl": "void D3DDevice_SelectVertexShader(void);"
+        },
+        {
+          "addr": "0x001eb540",
+          "decl": "void D3DDevice_GetVertexShaderSize(void);"
+        },
+        {
+          "addr": "0x001eb560",
+          "decl": "void D3DDevice_GetVertexShaderType(void);"
+        },
+        {
+          "addr": "0x001eb590",
+          "decl": "void D3DDevice_SetShaderConstantMode(void);"
+        },
+        {
+          "addr": "0x001eb6d0",
+          "decl": "void D3DDevice_DeleteVertexShader(void);"
+        },
+        {
+          "addr": "0x001eb8d0",
+          "decl": "void D3DDevice_SetVertexShaderConstant(void);"
+        },
+        {
+          "addr": "0x001eb970",
+          "decl": "void D3DDevice_GetVertexShaderDeclaration(void);"
+        },
+        {
+          "addr": "0x001ebda0",
+          "decl": "void D3DDevice_GetVertexShaderFunction(void);"
+        },
+        {
+          "addr": "0x001ebe60",
+          "decl": "void D3DDevice_SetVertexShaderInput(void);"
+        },
+        {
+          "addr": "0x001ec0b0",
+          "decl": "void D3DDevice_CreatePixelShader(void);"
+        },
+        {
+          "addr": "0x001ec100",
+          "decl": "void D3DDevice_DeletePixelShader(void);"
+        },
+        {
+          "addr": "0x001ec160",
+          "decl": "void D3DDevice_GetPixelShader(void);"
+        },
+        {
+          "addr": "0x001ec5c0",
+          "decl": "void D3DDevice_SetPixelShader(void);"
+        },
+        {
+          "addr": "0x001ec780",
+          "decl": "void D3DDevice_SetPixelShaderConstant(void);"
+        },
+        {
+          "addr": "0x001ecc70",
+          "decl": "void D3DDevice_DrawVerticesUP(void);"
+        },
+        {
+          "addr": "0x001ecdb0",
+          "decl": "void D3DDevice_DrawIndexedVerticesUP(void);"
+        },
+        {
+          "addr": "0x001ecef0",
+          "decl": "void D3DDevice_DrawVertices(void);"
+        },
+        {
+          "addr": "0x001ecf90",
+          "decl": "void D3DDevice_DrawIndexedVertices(void);"
+        },
+        {
+          "addr": "0x001ed200",
+          "decl": "void D3DDevice_PrimeVertexCache(void);"
+        },
+        {
+          "addr": "0x001ed360",
+          "decl": "void D3DDevice_SetVertexData4s(void);"
+        },
+        {
+          "addr": "0x001ed3b0",
+          "decl": "void D3DDevice_SetVertexData4ub(void);"
+        },
+        {
+          "addr": "0x001ed570",
+          "decl": "void D3DResource_GetType(void);"
+        },
+        {
+          "addr": "0x001edc20",
+          "decl": "void D3DTexture_GetSurfaceLevel(void);"
+        },
+        {
+          "addr": "0x001edcb0",
+          "decl": "void D3DCubeTexture_GetCubeMapSurface(void);"
+        },
+        {
+          "addr": "0x001edd10",
+          "decl": "void D3DCubeTexture_LockRect(void);"
+        },
+        {
+          "addr": "0x001edd80",
+          "decl": "void D3DVolumeTexture_LockBox(void);"
+        },
+        {
+          "addr": "0x001eddd0",
+          "decl": "void D3D_CreateTexture(void);"
+        },
+        {
+          "addr": "0x001edea0",
+          "decl": "void D3D_SetPushBufferSize(void);"
+        },
+        {
+          "addr": "0x001edec0",
+          "decl": "void Direct3D_CreateDevice(void);"
+        },
+        {
+          "addr": "0x001ee920",
+          "decl": "void D3DDevice_Present(void);"
+        },
+        {
+          "addr": "0x001eeac0",
+          "decl": "void D3D_GetAdapterIdentifier(void);"
+        },
+        {
+          "addr": "0x001eeaf0",
+          "decl": "void D3D_GetAdapterModeCount(void);"
+        },
+        {
+          "addr": "0x001eeb90",
+          "decl": "void D3D_EnumAdapterModes(void);"
+        },
+        {
+          "addr": "0x001eecf0",
+          "decl": "void D3D_GetDeviceCaps(void);"
+        },
+        {
+          "addr": "0x001eed40",
+          "decl": "void D3D_GetAdapterDisplayMode(void);"
+        },
+        {
+          "addr": "0x001eee20",
+          "decl": "void D3D_CheckDeviceFormat(void);"
+        },
+        {
+          "addr": "0x001eeea0",
+          "decl": "void Direct3D_CheckDeviceMultiSampleType(void);"
+        },
+        {
+          "addr": "0x001eef80",
+          "decl": "void D3DDevice_CreateIndexBuffer(void);"
+        },
+        {
+          "addr": "0x001eefe0",
+          "decl": "void D3DPalette_Lock(void);"
+        },
+        {
+          "addr": "0x001ef0a0",
+          "decl": "void D3DDevice_CreateVertexBuffer(void);"
+        },
+        {
+          "addr": "0x001ef100",
+          "decl": "void D3DVertexBuffer_Lock(void);"
+        },
+        {
+          "addr": "0x001ef150",
+          "decl": "void D3DVertexBuffer_GetDesc(void);"
+        },
+        {
+          "addr": "0x001ef170",
+          "decl": "void D3DDevice_CreatePalette(void);"
+        },
+        {
+          "addr": "0x001ef1e0",
+          "decl": "void D3DSurface_GetDesc(void);"
+        },
+        {
+          "addr": "0x001ef200",
+          "decl": "void D3DSurface_LockRect(void);"
+        },
+        {
+          "addr": "0x001ef890",
+          "decl": "void D3DDevice_IsFencePending(void);"
+        },
+        {
+          "addr": "0x001ef8c0",
+          "decl": "void D3DDevice_InsertCallback(void);"
+        },
+        {
+          "addr": "0x001ef930",
+          "decl": "void CDevice_KickOff(void);"
+        },
+        {
+          "addr": "0x001ef9e0",
+          "decl": "void D3D_SetFence(void);"
+        },
+        {
+          "addr": "0x001efb70",
+          "decl": "void CDevice_MakeSpace(void);"
+        },
+        {
+          "addr": "0x001efd80",
+          "decl": "void D3D_BlockOnResource(void);"
+        },
+        {
+          "addr": "0x001efe10",
+          "decl": "void XMETAL_StartPush(void);"
+        },
+        {
+          "addr": "0x001f02d0",
+          "decl": "void D3D_UpdateProjectionViewportTransform(void);"
+        },
+        {
+          "addr": "0x001f05e0",
+          "decl": "void D3D_LazySetPointParams(void);"
+        },
+        {
+          "addr": "0x001f1bc0",
+          "decl": "void CDevice_SetStateVB(void);"
+        },
+        {
+          "addr": "0x001f1eb0",
+          "decl": "void CDevice_SetStateUP(void);"
+        },
+        {
+          "addr": "0x001f30c0",
+          "decl": "void CDevice_FreeFrameBuffers(void);"
+        },
+        {
+          "addr": "0x001f31c0",
+          "decl": "void CDevice_InitializeFrameBuffers(void);"
+        },
+        {
+          "addr": "0x001f4590",
+          "decl": "void Lock3DSurface(void);"
+        },
+        {
+          "addr": "0x001f4880",
+          "decl": "void CMiniport_GetDisplayCapabilities(void);"
+        },
+        {
+          "addr": "0x001f4aa0",
+          "decl": "void CMiniport_IsFlipPending(void);"
+        },
+        {
+          "addr": "0x001f5390",
+          "decl": "void D3D_AllocContiguousMemory(void);"
+        },
+        {
+          "addr": "0x001f5b5b",
+          "decl": "void CMiniport_CreateCtxDmaObject(void);"
+        },
+        {
+          "addr": "0x001f5d4d",
+          "decl": "void CMiniport_InitHardware(void);"
+        },
+        {
+          "addr": "0x001f9165",
+          "decl": "void D3D_ClearStateBlockFlags(void);"
+        },
+        {
+          "addr": "0x001f91a1",
+          "decl": "void D3DDevice_BeginStateBlock(void);"
+        },
+        {
+          "addr": "0x001f91af",
+          "decl": "void D3DDevice_Suspend(void);"
+        },
+        {
+          "addr": "0x001f92f0",
+          "decl": "void D3D_RecordStateBlock(void);"
+        },
+        {
+          "addr": "0x001f971e",
+          "decl": "void D3DDevice_ApplyStateBlock(void);"
+        },
+        {
+          "addr": "0x001f98a6",
+          "decl": "void D3DDevice_CaptureStateBlock(void);"
+        },
+        {
+          "addr": "0x001f9b53",
+          "decl": "void D3DDevice_DeleteStateBlock(void);"
+        },
+        {
+          "addr": "0x001f9be4",
+          "decl": "void D3DDevice_CreateStateBlock(void);"
+        },
+        {
+          "addr": "0x001f9d0f",
+          "decl": "void D3DDevice_EndStateBlock(void);"
+        },
+        {
+          "addr": "0x0020368b",
+          "decl": "void DirectSoundEnterCriticalSection(void);"
+        },
+        {
+          "addr": "0x0020380b",
+          "decl": "void CMcpxAPU_ServiceDeferredCommandsLow(void);"
+        },
+        {
+          "addr": "0x00203810",
+          "decl": "void CMcpxVoiceClient_SetVolume(void);"
+        },
+        {
+          "addr": "0x0020384b",
+          "decl": "void IDirectSound_AddRef(void);"
+        },
+        {
+          "addr": "0x00203861",
+          "decl": "void IDirectSound_Release(void);"
+        },
+        {
+          "addr": "0x00203877",
+          "decl": "void IDirectSoundBuffer_Unlock(void);"
+        },
+        {
+          "addr": "0x00203881",
+          "decl": "void IDirectSoundBuffer_AddRef(void);"
+        },
+        {
+          "addr": "0x00203897",
+          "decl": "void IDirectSoundBuffer_Release(void);"
+        },
+        {
+          "addr": "0x002038d9",
+          "decl": "void DirectSoundGetSampleTime(void);"
+        },
+        {
+          "addr": "0x002038df",
+          "decl": "void DirectSoundUseFullHRTF(void);"
+        },
+        {
+          "addr": "0x002038fe",
+          "decl": "void DirectSoundUseLightHRTF(void);"
+        },
+        {
+          "addr": "0x00203936",
+          "decl": "void DSound_CRefCount_AddRef(void);"
+        },
+        {
+          "addr": "0x0020395b",
+          "decl": "void DSound_CRefCount_Release(void);"
+        },
+        {
+          "addr": "0x002039b7",
+          "decl": "void CDirectSound_GetCaps(void);"
+        },
+        {
+          "addr": "0x00203a07",
+          "decl": "void CDirectSound_GetSpeakerConfig(void);"
+        },
+        {
+          "addr": "0x00203a21",
+          "decl": "void CDirectSound_DownloadEffectsImage(void);"
+        },
+        {
+          "addr": "0x00203a65",
+          "decl": "void CDirectSound_SetEffectData(void);"
+        },
+        {
+          "addr": "0x00203ab0",
+          "decl": "void CDirectSound_GetEffectData(void);"
+        },
+        {
+          "addr": "0x00203af2",
+          "decl": "void CDirectSound_CommitEffectData(void);"
+        },
+        {
+          "addr": "0x00203b25",
+          "decl": "void CDirectSound_SetMixBinHeadroom(void);"
+        },
+        {
+          "addr": "0x00203b5a",
+          "decl": "void CDirectSound_SetAllParameters(void);"
+        },
+        {
+          "addr": "0x00203b95",
+          "decl": "void CDirectSound_SetDistanceFactor(void);"
+        },
+        {
+          "addr": "0x00203bd4",
+          "decl": "void CDirectSound_SetDopplerFactor(void);"
+        },
+        {
+          "addr": "0x00203c13",
+          "decl": "void CDirectSound_SetRolloffFactor(void);"
+        },
+        {
+          "addr": "0x00203c52",
+          "decl": "void CDirectSound_SetOrientation(void);"
+        },
+        {
+          "addr": "0x00203cba",
+          "decl": "void CDirectSound_SetPosition(void);"
+        },
+        {
+          "addr": "0x00203d0c",
+          "decl": "void CDirectSound_SetVelocity(void);"
+        },
+        {
+          "addr": "0x00203d5e",
+          "decl": "void CDirectSound_SetI3DL2Listener(void);"
+        },
+        {
+          "addr": "0x00203da9",
+          "decl": "void CDirectSound_CommitDeferredSettings(void);"
+        },
+        {
+          "addr": "0x00203dd4",
+          "decl": "void CDirectSound_GetTime(void);"
+        },
+        {
+          "addr": "0x00203de3",
+          "decl": "void CDirectSound_DoWork(void);"
+        },
+        {
+          "addr": "0x00203e0a",
+          "decl": "void CDirectSound_EnableHeadphones(void);"
+        },
+        {
+          "addr": "0x00203f32",
+          "decl": "void CDirectSoundVoice_SetPitch(void);"
+        },
+        {
+          "addr": "0x00203f69",
+          "decl": "void CDirectSoundVoice_SetVolume(void);"
+        },
+        {
+          "addr": "0x00203fa3",
+          "decl": "void CDirectSoundVoice_SetLFO(void);"
+        },
+        {
+          "addr": "0x00203fd4",
+          "decl": "void CDirectSoundVoice_SetEG(void);"
+        },
+        {
+          "addr": "0x00204005",
+          "decl": "void CDirectSoundVoice_SetFilter(void);"
+        },
+        {
+          "addr": "0x00204036",
+          "decl": "void CDirectSoundVoice_SetHeadroom(void);"
+        },
+        {
+          "addr": "0x00204075",
+          "decl": "void CDirectSoundVoice_SetMixBinVolumes(void);"
+        },
+        {
+          "addr": "0x002040e9",
+          "decl": "void CDirectSoundVoice_SetAllParameters(void);"
+        },
+        {
+          "addr": "0x00204124",
+          "decl": "void CDirectSoundVoice_SetConeAngles(void);"
+        },
+        {
+          "addr": "0x00204163",
+          "decl": "void CDirectSoundVoice_SetConeOrientation(void);"
+        },
+        {
+          "addr": "0x002041b5",
+          "decl": "void CDirectSoundVoice_SetConeOutsideVolume(void);"
+        },
+        {
+          "addr": "0x002041f0",
+          "decl": "void CDirectSoundVoice_SetMaxDistance(void);"
+        },
+        {
+          "addr": "0x0020422f",
+          "decl": "void CDirectSoundVoice_SetMinDistance(void);"
+        },
+        {
+          "addr": "0x0020426e",
+          "decl": "void CDirectSoundVoice_SetMode(void);"
+        },
+        {
+          "addr": "0x002042a9",
+          "decl": "void CDirectSoundVoice_SetPosition(void);"
+        },
+        {
+          "addr": "0x002042fb",
+          "decl": "void CDirectSoundVoice_SetVelocity(void);"
+        },
+        {
+          "addr": "0x0020434d",
+          "decl": "void CDirectSoundVoice_SetI3DL2Source(void);"
+        },
+        {
+          "addr": "0x002043a4",
+          "decl": "void CDirectSoundBuffer_PlayEx(void);"
+        },
+        {
+          "addr": "0x002043e1",
+          "decl": "void CDirectSoundBuffer_StopEx(void);"
+        },
+        {
+          "addr": "0x00204437",
+          "decl": "void CDirectSoundBuffer_GetStatus(void);"
+        },
+        {
+          "addr": "0x00204468",
+          "decl": "void CDirectSoundBuffer_SetLoopRegion(void);"
+        },
+        {
+          "addr": "0x002044b5",
+          "decl": "void CDirectSoundBuffer_GetCurrentPosition(void);"
+        },
+        {
+          "addr": "0x002044ea",
+          "decl": "void CDirectSoundBuffer_Lock(void);"
+        },
+        {
+          "addr": "0x00204590",
+          "decl": "void CDirectSoundBuffer_SetCurrentPosition(void);"
+        },
+        {
+          "addr": "0x0020466c",
+          "decl": "void CDirectSoundStream_GetInfo(void);"
+        },
+        {
+          "addr": "0x002046b7",
+          "decl": "void CDirectSoundStream_Discontinuity(void);"
+        },
+        {
+          "addr": "0x002046e4",
+          "decl": "void CDirectSoundStream_Flush(void);"
+        },
+        {
+          "addr": "0x00204711",
+          "decl": "void CDirectSoundStream_GetStatus__r1(void);"
+        },
+        {
+          "addr": "0x00204746",
+          "decl": "void CDirectSoundStream_Process(void);"
+        },
+        {
+          "addr": "0x0020476e",
+          "decl": "void CDirectSoundStream_Pause(void);"
+        },
+        {
+          "addr": "0x0020497d",
+          "decl": "void CDirectSoundBuffer_SetVolume(void);"
+        },
+        {
+          "addr": "0x00204982",
+          "decl": "void CDirectSoundBuffer_SetPitch(void);"
+        },
+        {
+          "addr": "0x00204987",
+          "decl": "void CDirectSoundBuffer_SetLFO(void);"
+        },
+        {
+          "addr": "0x0020498c",
+          "decl": "void CDirectSoundBuffer_SetEG(void);"
+        },
+        {
+          "addr": "0x00204991",
+          "decl": "void CDirectSoundBuffer_SetFilter(void);"
+        },
+        {
+          "addr": "0x00204996",
+          "decl": "void CDirectSoundBuffer_SetHeadroom(void);"
+        },
+        {
+          "addr": "0x0020499b",
+          "decl": "void CDirectSoundBuffer_SetMixBinVolumes(void);"
+        },
+        {
+          "addr": "0x002049a0",
+          "decl": "void CDirectSoundBuffer_SetAllParameters(void);"
+        },
+        {
+          "addr": "0x002049a5",
+          "decl": "void CDirectSoundBuffer_SetConeAngles(void);"
+        },
+        {
+          "addr": "0x002049aa",
+          "decl": "void CDirectSoundBuffer_SetConeOrientation(void);"
+        },
+        {
+          "addr": "0x002049d3",
+          "decl": "void CDirectSoundBuffer_SetConeOutsideVolume(void);"
+        },
+        {
+          "addr": "0x002049d8",
+          "decl": "void CDirectSoundBuffer_SetMaxDistance(void);"
+        },
+        {
+          "addr": "0x002049f0",
+          "decl": "void CDirectSoundBuffer_SetMinDistance(void);"
+        },
+        {
+          "addr": "0x00204a08",
+          "decl": "void CDirectSoundBuffer_SetMode(void);"
+        },
+        {
+          "addr": "0x00204a0d",
+          "decl": "void CDirectSoundBuffer_SetPosition(void);"
+        },
+        {
+          "addr": "0x00204a36",
+          "decl": "void CDirectSoundBuffer_SetVelocity(void);"
+        },
+        {
+          "addr": "0x00204a5f",
+          "decl": "void CDirectSoundBuffer_SetI3DL2Source(void);"
+        },
+        {
+          "addr": "0x00204a64",
+          "decl": "void CDirectSoundStream_SetPitch(void);"
+        },
+        {
+          "addr": "0x00204a78",
+          "decl": "void CDirectSoundStream_SetVolume(void);"
+        },
+        {
+          "addr": "0x00204a8c",
+          "decl": "void CDirectSoundStream_SetLFO(void);"
+        },
+        {
+          "addr": "0x00204aa0",
+          "decl": "void CDirectSoundStream_SetEG(void);"
+        },
+        {
+          "addr": "0x00204ab4",
+          "decl": "void CDirectSoundStream_SetFilter(void);"
+        },
+        {
+          "addr": "0x00204ac8",
+          "decl": "void CDirectSoundStream_SetHeadroom(void);"
+        },
+        {
+          "addr": "0x00204adc",
+          "decl": "void CDirectSoundStream_SetMixBinVolumes_12(void);"
+        },
+        {
+          "addr": "0x00204af4",
+          "decl": "void CDirectSoundStream_SetAllParameters(void);"
+        },
+        {
+          "addr": "0x00204b0c",
+          "decl": "void CDirectSoundStream_SetConeAngles(void);"
+        },
+        {
+          "addr": "0x00204b28",
+          "decl": "void CDirectSoundStream_SetConeOrientation(void);"
+        },
+        {
+          "addr": "0x00204b55",
+          "decl": "void CDirectSoundStream_SetConeOutsideVolume(void);"
+        },
+        {
+          "addr": "0x00204b6d",
+          "decl": "void CDirectSoundStream_SetMaxDistance(void);"
+        },
+        {
+          "addr": "0x00204b89",
+          "decl": "void CDirectSoundStream_SetMinDistance(void);"
+        },
+        {
+          "addr": "0x00204ba5",
+          "decl": "void CDirectSoundStream_SetMode(void);"
+        },
+        {
+          "addr": "0x00204bbd",
+          "decl": "void CDirectSoundStream_SetPosition(void);"
+        },
+        {
+          "addr": "0x00204bea",
+          "decl": "void CDirectSoundStream_SetVelocity(void);"
+        },
+        {
+          "addr": "0x00204c17",
+          "decl": "void CDirectSoundStream_SetI3DL2Source(void);"
+        },
+        {
+          "addr": "0x00204c5d",
+          "decl": "void IDirectSound_GetCaps(void);"
+        },
+        {
+          "addr": "0x00204c79",
+          "decl": "void IDirectSound_GetSpeakerConfig(void);"
+        },
+        {
+          "addr": "0x00204c95",
+          "decl": "void IDirectSound_DownloadEffectsImage(void);"
+        },
+        {
+          "addr": "0x00204cbc",
+          "decl": "void IDirectSound_GetEffectData(void);"
+        },
+        {
+          "addr": "0x00204ce3",
+          "decl": "void IDirectSound_SetEffectData(void);"
+        },
+        {
+          "addr": "0x00204d0d",
+          "decl": "void IDirectSound_CommitEffectData(void);"
+        },
+        {
+          "addr": "0x00204d25",
+          "decl": "void IDirectSound_EnableHeadphones(void);"
+        },
+        {
+          "addr": "0x00204d41",
+          "decl": "void IDirectSound_SetMixBinHeadroom(void);"
+        },
+        {
+          "addr": "0x00204d61",
+          "decl": "void IDirectSound_SetAllParameters(void);"
+        },
+        {
+          "addr": "0x00204d81",
+          "decl": "void IDirectSound_SetDistanceFactor(void);"
+        },
+        {
+          "addr": "0x00204da5",
+          "decl": "void IDirectSound_SetDopplerFactor(void);"
+        },
+        {
+          "addr": "0x00204dc9",
+          "decl": "void IDirectSound_SetOrientation(void);"
+        },
+        {
+          "addr": "0x00204e13",
+          "decl": "void IDirectSound_SetPosition(void);"
+        },
+        {
+          "addr": "0x00204e48",
+          "decl": "void IDirectSound_SetRolloffFactor(void);"
+        },
+        {
+          "addr": "0x00204e6c",
+          "decl": "void IDirectSound_SetVelocity(void);"
+        },
+        {
+          "addr": "0x00204ea1",
+          "decl": "void IDirectSound_CommitDeferredSettings(void);"
+        },
+        {
+          "addr": "0x00204eb9",
+          "decl": "void IDirectSound_GetTime(void);"
+        },
+        {
+          "addr": "0x00204ed5",
+          "decl": "void IDirectSound_SetI3DL2Listener(void);"
+        },
+        {
+          "addr": "0x00204f5b",
+          "decl": "void IDirectSoundBuffer_SetLFO(void);"
+        },
+        {
+          "addr": "0x00204f77",
+          "decl": "void IDirectSoundBuffer_SetEG(void);"
+        },
+        {
+          "addr": "0x00204f93",
+          "decl": "void IDirectSoundBuffer_SetFilter(void);"
+        },
+        {
+          "addr": "0x00204faf",
+          "decl": "void IDirectSoundBuffer_SetHeadroom(void);"
+        },
+        {
+          "addr": "0x00204fcb",
+          "decl": "void IDirectSoundBuffer_SetMixBinVolumes_12(void);"
+        },
+        {
+          "addr": "0x00204feb",
+          "decl": "void IDirectSoundBuffer_SetAllParameters(void);"
+        },
+        {
+          "addr": "0x0020500b",
+          "decl": "void IDirectSoundBuffer_SetConeAngles(void);"
+        },
+        {
+          "addr": "0x0020502f",
+          "decl": "void IDirectSoundBuffer_SetConeOrientation(void);"
+        },
+        {
+          "addr": "0x00205064",
+          "decl": "void IDirectSoundBuffer_SetConeOutsideVolume(void);"
+        },
+        {
+          "addr": "0x00205084",
+          "decl": "void IDirectSoundBuffer_SetMaxDistance(void);"
+        },
+        {
+          "addr": "0x002050a8",
+          "decl": "void IDirectSoundBuffer_SetMinDistance(void);"
+        },
+        {
+          "addr": "0x002050cc",
+          "decl": "void IDirectSoundBuffer_SetMode(void);"
+        },
+        {
+          "addr": "0x002050ec",
+          "decl": "void IDirectSoundBuffer_SetPosition(void);"
+        },
+        {
+          "addr": "0x00205121",
+          "decl": "void IDirectSoundBuffer_SetVelocity(void);"
+        },
+        {
+          "addr": "0x00205156",
+          "decl": "void IDirectSoundBuffer_PlayEx(void);"
+        },
+        {
+          "addr": "0x0020517a",
+          "decl": "void IDirectSoundBuffer_StopEx(void);"
+        },
+        {
+          "addr": "0x002051be",
+          "decl": "void IDirectSoundBuffer_GetStatus(void);"
+        },
+        {
+          "addr": "0x002051da",
+          "decl": "void IDirectSoundBuffer_GetCurrentPosition(void);"
+        },
+        {
+          "addr": "0x00205216",
+          "decl": "void IDirectSoundBuffer_Lock(void);"
+        },
+        {
+          "addr": "0x00205246",
+          "decl": "void IDirectSoundBuffer_SetI3DL2Source(void);"
+        },
+        {
+          "addr": "0x0020527a",
+          "decl": "void IDirectSoundStream_SetPitch(void);"
+        },
+        {
+          "addr": "0x0020528e",
+          "decl": "void IDirectSoundStream_SetLFO(void);"
+        },
+        {
+          "addr": "0x002052a2",
+          "decl": "void IDirectSoundStream_SetEG(void);"
+        },
+        {
+          "addr": "0x002052b6",
+          "decl": "void IDirectSoundStream_SetFilter(void);"
+        },
+        {
+          "addr": "0x002052ca",
+          "decl": "void IDirectSoundStream_SetHeadroom(void);"
+        },
+        {
+          "addr": "0x002052de",
+          "decl": "void IDirectSoundStream_SetMixBinVolumes_12(void);"
+        },
+        {
+          "addr": "0x002052ed",
+          "decl": "void IDirectSoundStream_SetConeOrientation(void);"
+        },
+        {
+          "addr": "0x0020534b",
+          "decl": "void IDirectSoundStream_SetMode(void);"
+        },
+        {
+          "addr": "0x00205350",
+          "decl": "void IDirectSoundStream_SetPosition(void);"
+        },
+        {
+          "addr": "0x00205379",
+          "decl": "void IDirectSoundStream_SetVelocity(void);"
+        },
+        {
+          "addr": "0x002053a2",
+          "decl": "void IDirectSoundStream_Pause(void);"
+        },
+        {
+          "addr": "0x002053ac",
+          "decl": "void DirectSoundDoWork(void);"
+        },
+        {
+          "addr": "0x002055a1",
+          "decl": "void CDirectSoundVoice_SetFrequency(void);"
+        },
+        {
+          "addr": "0x002055e4",
+          "decl": "void CDirectSoundVoice_SetOutputBuffer(void);"
+        },
+        {
+          "addr": "0x00205650",
+          "decl": "void CDirectSoundVoice_SetMixBins(void);"
+        },
+        {
+          "addr": "0x002056a8",
+          "decl": "void CDirectSoundBufferSettings_SetBufferData(void);"
+        },
+        {
+          "addr": "0x00205768",
+          "decl": "void CDirectSoundBuffer_SetBufferData(void);"
+        },
+        {
+          "addr": "0x002057dd",
+          "decl": "void CDirectSoundBuffer_Play(void);"
+        },
+        {
+          "addr": "0x0020580f",
+          "decl": "void CDirectSoundBuffer_Stop(void);"
+        },
+        {
+          "addr": "0x0020583f",
+          "decl": "void CDirectSoundBuffer_SetNotificationPositions(void);"
+        },
+        {
+          "addr": "0x00205894",
+          "decl": "void CDirectSoundBuffer_SetOutputBuffer(void);"
+        },
+        {
+          "addr": "0x002059f9",
+          "decl": "void CDirectSoundStream_AddRef(void);"
+        },
+        {
+          "addr": "0x00205a09",
+          "decl": "void CDirectSoundStream_Release(void);"
+        },
+        {
+          "addr": "0x00205a19",
+          "decl": "void CDirectSoundStream_SetOutputBuffer(void);"
+        },
+        {
+          "addr": "0x00205aa8",
+          "decl": "void CDirectSoundBuffer_SetFrequency(void);"
+        },
+        {
+          "addr": "0x00205aad",
+          "decl": "void CDirectSoundBuffer_SetMixBins(void);"
+        },
+        {
+          "addr": "0x00205ac7",
+          "decl": "void CDirectSoundStream_SetFrequency(void);"
+        },
+        {
+          "addr": "0x00205adb",
+          "decl": "void CDirectSoundStream_SetMixBins(void);"
+        },
+        {
+          "addr": "0x00205aef",
+          "decl": "void IDirectSoundBuffer_SetFrequency(void);"
+        },
+        {
+          "addr": "0x00205b0b",
+          "decl": "void IDirectSoundBuffer_SetOutputBuffer(void);"
+        },
+        {
+          "addr": "0x00205b27",
+          "decl": "void IDirectSoundBuffer_SetMixBins(void);"
+        },
+        {
+          "addr": "0x00205b67",
+          "decl": "void IDirectSoundBuffer_Stop(void);"
+        },
+        {
+          "addr": "0x00205b9f",
+          "decl": "void IDirectSoundBuffer_SetNotificationPositions(void);"
+        },
+        {
+          "addr": "0x00205bd3",
+          "decl": "void IDirectSoundStream_SetOutputBuffer(void);"
+        },
+        {
+          "addr": "0x00205bd8",
+          "decl": "void IDirectSoundStream_SetMixBins(void);"
+        },
+        {
+          "addr": "0x00205e69",
+          "decl": "void CDirectSoundStream_Constructor(void);"
+        },
+        {
+          "addr": "0x00205f6d",
+          "decl": "void CDirectSound_CreateSoundBuffer(void);"
+        },
+        {
+          "addr": "0x00205fed",
+          "decl": "void CDirectSound_CreateSoundStream(void);"
+        },
+        {
+          "addr": "0x002060d4",
+          "decl": "void IDirectSound_CreateSoundBuffer(void);"
+        },
+        {
+          "addr": "0x002060f8",
+          "decl": "void IDirectSound_CreateSoundStream(void);"
+        },
+        {
+          "addr": "0x00206232",
+          "decl": "void DirectSoundCreate(void);"
+        },
+        {
+          "addr": "0x0020630e",
+          "decl": "void DirectSoundCreateStream(void);"
+        },
+        {
+          "addr": "0x00206a5e",
+          "decl": "void CMcpxAPU_Commit3dSettings(void);"
+        },
+        {
+          "addr": "0x00206dc4",
+          "decl": "void CMcpxAPU_SetMixBinHeadroom(void);"
+        },
+        {
+          "addr": "0x00207234",
+          "decl": "void CMcpxAPU_Set3dParameters(void);"
+        },
+        {
+          "addr": "0x00207265",
+          "decl": "void CMcpxAPU_Set3dDistanceFactor(void);"
+        },
+        {
+          "addr": "0x00207289",
+          "decl": "void CMcpxAPU_Set3dDopplerFactor(void);"
+        },
+        {
+          "addr": "0x002072ad",
+          "decl": "void CMcpxAPU_Set3dRolloffFactor(void);"
+        },
+        {
+          "addr": "0x00207309",
+          "decl": "void CMcpxAPU_Set3dPosition(void);"
+        },
+        {
+          "addr": "0x00207334",
+          "decl": "void CMcpxAPU_Set3dVelocity(void);"
+        },
+        {
+          "addr": "0x0020735f",
+          "decl": "void CMcpxAPU_SetI3DL2Listener(void);"
+        },
+        {
+          "addr": "0x00208da2",
+          "decl": "void CMcpxVoiceClient_SetFilter(void);"
+        },
+        {
+          "addr": "0x002097a9",
+          "decl": "void CMcpxVoiceClient_SetMixBins(void);"
+        },
+        {
+          "addr": "0x00209961",
+          "decl": "void CMcpxVoiceClient_SetPitch(void);"
+        },
+        {
+          "addr": "0x00209c05",
+          "decl": "void CMcpxVoiceClient_SetLFO(void);"
+        },
+        {
+          "addr": "0x00209d16",
+          "decl": "void CMcpxVoiceClient_SetEG(void);"
+        },
+        {
+          "addr": "0x00209e6d",
+          "decl": "void CMcpxVoiceClient_Commit3dSettings(void);"
+        },
+        {
+          "addr": "0x0020a0ef",
+          "decl": "void CMcpxVoiceClient_Set3dParameters(void);"
+        },
+        {
+          "addr": "0x0020a145",
+          "decl": "void CMcpxVoiceClient_Set3dConeOrientation(void);"
+        },
+        {
+          "addr": "0x0020a16d",
+          "decl": "void CMcpxVoiceClient_Set3dConeOutsideVolume(void);"
+        },
+        {
+          "addr": "0x0020a18e",
+          "decl": "void CMcpxVoiceClient_Set3dMaxDistance(void);"
+        },
+        {
+          "addr": "0x0020a1af",
+          "decl": "void CMcpxVoiceClient_Set3dMinDistance(void);"
+        },
+        {
+          "addr": "0x0020a1d0",
+          "decl": "void CMcpxVoiceClient_Set3dMode(void);"
+        },
+        {
+          "addr": "0x0020a1f1",
+          "decl": "void CMcpxVoiceClient_Set3dPosition(void);"
+        },
+        {
+          "addr": "0x0020a219",
+          "decl": "void CMcpxVoiceClient_Set3dVelocity(void);"
+        },
+        {
+          "addr": "0x0020a241",
+          "decl": "void CMcpxVoiceClient_SetI3DL2Source(void);"
+        },
+        {
+          "addr": "0x0020a2f5",
+          "decl": "void CSensaura3d_GetFullHRTFFilterPair(void);"
+        },
+        {
+          "addr": "0x0020a431",
+          "decl": "void CSensaura3d_GetLiteHRTFFilterPair(void);"
+        },
+        {
+          "addr": "0x0020b0ac",
+          "decl": "void CMcpxBuffer_GetStatus(void);"
+        },
+        {
+          "addr": "0x0020b0f7",
+          "decl": "void CMcpxBuffer_GetCurrentPosition(void);"
+        },
+        {
+          "addr": "0x0020b873",
+          "decl": "void CMcpxBuffer_Stop(void);"
+        },
+        {
+          "addr": "0x0020b8d7",
+          "decl": "void CMcpxBuffer_SetCurrentPosition(void);"
+        },
+        {
+          "addr": "0x0020ba90",
+          "decl": "void CMcpxBuffer_SetBufferData(void);"
+        },
+        {
+          "addr": "0x0020baa4",
+          "decl": "void CMcpxBuffer_Play(void);"
+        },
+        {
+          "addr": "0x0020c050",
+          "decl": "void CMcpxStream_Pause(void);"
+        },
+        {
+          "addr": "0x0020c3fe",
+          "decl": "void CMcpxStream_Flush(void);"
+        },
+        {
+          "addr": "0x0020c752",
+          "decl": "void CMcpxStream_Discontinuity(void);"
+        },
+        {
+          "addr": "0x0020c857",
+          "decl": "void XAudioCalculatePitch(void);"
+        },
+        {
+          "addr": "0x0020ca62",
+          "decl": "void XAudioCreatePcmFormat(void);"
+        },
+        {
+          "addr": "0x0020caac",
+          "decl": "void XAudioCreateAdpcmFormat(void);"
+        },
+        {
+          "addr": "0x0020cbad",
+          "decl": "void IsValidFormat(void);"
+        },
+        {
+          "addr": "0x002235c4",
+          "decl": "void GetLastError(void);"
+        },
+        {
+          "addr": "0x00223be7",
+          "decl": "void ioctlsocket(void);"
+        },
+        {
+          "addr": "0x002240c3",
+          "decl": "void listen(void);"
+        },
+        {
+          "addr": "0x00224881",
+          "decl": "void bind(void);"
+        },
+        {
+          "addr": "0x00224904",
+          "decl": "void connect(void);"
+        },
+        {
+          "addr": "0x00225021",
+          "decl": "void socket(void);"
+        },
+        {
+          "addr": "0x002256bb",
+          "decl": "void recv(void);"
+        },
+        {
+          "addr": "0x002258a4",
+          "decl": "void send(void);"
+        },
+        {
+          "addr": "0x0024b4e4",
+          "decl": "void MU_Init(void);"
+        },
+        {
+          "addr": "0x0024b724",
+          "decl": "void IUsbInit_GetMaxDeviceTypeCount(void);"
+        },
+        {
+          "addr": "0x0024ba93",
+          "decl": "void ??_H@YGXPAXIHP6EPAX0@Z@FUN_0024ba93(void);"
+        },
+        {
+          "addr": "0x0024bb54",
+          "decl": "void XInitDevices(void);"
+        },
+        {
+          "addr": "0x0024c143",
+          "decl": "void XInputOpen(void);"
+        },
+        {
+          "addr": "0x0024c1b8",
+          "decl": "void XInputClose(void);"
+        },
+        {
+          "addr": "0x0024c1c4",
+          "decl": "void XInputGetCapabilities(void);"
+        },
+        {
+          "addr": "0x0024c3b6",
+          "decl": "void XInputGetState(void);"
+        },
+        {
+          "addr": "0x0024c45f",
+          "decl": "void XInputPoll(void);"
+        },
+        {
+          "addr": "0x0024c932",
+          "decl": "void XGetDevices(void);"
+        },
+        {
+          "addr": "0x0024c954",
+          "decl": "void XGetDeviceChanges(void);"
+        },
+        {
+          "addr": "0x0024d009",
+          "decl": "void XID_fCloseDevice(void);"
+        }
+      ],
+      "data": [],
+      "name": "<xdk_stubs>"
     }
   ],
   "0x1a080": {
