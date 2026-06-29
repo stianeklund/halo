@@ -8,39 +8,8 @@
 
 ## Content
 
-General information
-Halo 1
-H1 Editing Kit
-Community tools
-Halo Custom Edition
-Guides
-Source data
-Tags
-Scripting
-Gotchas and limits
-Advanced techniques
-Maps
-Engine systems
-Halo 2
-Halo 3
-Halo 3 ODST
-Halo Reach
-Halo 4
-Halo 2 Anniversary MP
-Contributing to c20
-The Reclaimers LibraryHalo 1
-Scripting
-
-h1/hsc
-
-Second edition.
-
-To h1/scenario with
-H1-Sapien
-OS_Sapien
-From h1/scenario with
-invader-recover
-Mozzarilla
+This is a reference for HaloScript built-in functions. See
+[Halo 1 Scripting Reference](scripting-reference.md) for the full reference.
 
 HaloScript is a scripting language that H1 map designers can use to have greater control over how their map works. It is primarily used in controlling the mission structure of singleplayer maps, but can also be used to achieve certain effects in multiplayer, though AI is not synchronized.
 
@@ -692,20 +661,16 @@ Display a list of maps, matching an optional substring.
 
 (sv_map_next)
 
-(Server Only) Abort the current game and begin the next game in the playlist
+(Server Only — Halo PC / H1CE only) Abort the current game and begin the next game in the playlist. Not present in Xbox Halo CE.
 
 (sv_map_reset)
 
-(Server Only) Reset the current game
+(Server Only — Halo PC / H1CE only) Reset the current game. **Not present in Xbox Halo CE** — use `map_reset` instead.
 
 (sv_maxplayers [short])
 (sv_maxplayers 10)
 
 Sets the maximum number of players (between 1 and 16). If no value is given, displays the current value.
-
-(sv_motd [motd file name])
-
-Sets the server message of the day file name. If no name is given, displays thecurrent motd file name. Set to "" to turn motd off.
 
 (sv_name [name])
 (sv_name)
@@ -733,7 +698,7 @@ Sets the server password. If no password is given, displays the current password
 
 (sv_rcon_password [remote console password])
 
-Sets the server remote console password. If no password is given, displays thecurrent password. Enter "" to disable rcon.
+Sets the server remote console password. If no password is given, displays the current password. Enter "" to disable rcon.
 
 (sv_say <string>)
 
@@ -3867,7 +3832,9 @@ Toggles if shooting bodies produces additional blood effects.
 
 (find_all_fucked_up_shit)
 
-(force_all_player_views_to_default_player)
+(force_all_player_views_to_default_player [boolean])
+
+When set to true, forces all split-screen rendering windows to display the default (first) player's camera view. By default the game allocates one render window per local player; enabling this global shows every window from player 1's perspective. Useful for debugging co-op splitscreen rendering or scripting cutscenes.
 
 (framerate_lock)
 
