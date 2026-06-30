@@ -694,8 +694,8 @@ void progress_bar_screen_initialize(void)
  * intensity. Confirmed: D3D transforms saved to 0x46c258/0x46c298/0x46c218,
  *   loading bar transforms set from 0x46c358/0x46c398/0x46c318.
  * Confirmed: render states: alpha blend enable, src/dst blend 0x302, blend
- * op 1. Confirmed: FUN_000e2040 called with (0, 0, fade_alpha) cdecl.
- * Confirmed: FUN_000e26c0 called with EAX=rect, ECX=color, stack=(1.0f,
+ * op 1. Confirmed: progress_bar_draw_fullscreen_overlay called with (0, 0, fade_alpha) cdecl.
+ * Confirmed: progress_bar_draw_loading_bar called with EAX=rect, ECX=color, stack=(1.0f,
  * progress) cdecl. Confirmed: system_milliseconds stored to 0x5aa670 for
  * timeout tracking.
  */

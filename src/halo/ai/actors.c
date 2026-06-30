@@ -658,7 +658,7 @@ void FUN_00037240(int actor_handle, int prop_handle, int unused_param_3,
  *      with five trailing -1 placeholders and a trailing 0 byte.
  *
  *   2) Otherwise, build delta = (broadcast_position - actor_position@0x120).
- *      Run normalize3d (FUN_00013010); if the resulting length magnitude is
+ *      Run normalize3d (normalize3d); if the resulting length magnitude is
  *      below the epsilon double at 0x002533d0 (~1e-4) — i.e. the actor is
  *      essentially on top of the broadcast — the direction is replaced
  *      with the actor's facing vector at actor+0x174..0x17c.
@@ -755,7 +755,7 @@ void FUN_000373b0(int actor_handle, int object_handle, float *position,
  * Confirmed: 4 cdecl args matching dispatch in actors_handle_spatial_effect;
  * ESP cleanup ADD ESP,0x14 after datum_get+tag_get; ADD ESP,0x10 after
  * FUN_00036960; ADD ESP,0x18 after FUN_00036890; ADD ESP,0x10 after
- * FUN_000a7a30; ADD ESP,0xc after FUN_000369c0; ADD ESP,0x10 after
+ * game_allegiance_get_team_is_friendly; ADD ESP,0xc after FUN_000369c0; ADD ESP,0x10 after
  * FUN_00027a60. Confirmed: FUN_00036890 reg ABI — @ecx=vec1, @eax=actor,
  * @edx=priority,
  *   @ebx=vec2; verified against sibling FUN_000373b0 call site at 0x374b4.
@@ -911,7 +911,7 @@ lab_a2:
  *   (0x37879); JZ at 0x3787f returns without writing when prop+0x1c == -1.
  * Confirmed: nested datum_get(actor_data, prop+0x1c); CMP word [EAX+0x6c],4
  *   then CMP [EAX+0xb8],-1; datum_get(prop_data, EAX+0xb8); push
- *   *(other_prop+0x18) then actor_handle to FUN_00064ab0
+ *   *(other_prop+0x18) then actor_handle to prop_get_active_by_unit_index
  *   (prop_get_active_by_unit_index).
  * Confirmed: writes word 2 at ESI+0x308 and dword EBX at ESI+0x30c. */
 void FUN_000377d0(int actor_handle, int prop_handle)
@@ -6894,15 +6894,15 @@ char FUN_0003d9f0(int actor_handle)
  * Confirmed: encounter data (player table) at *(data_t**)0x5ab270.
  * Confirmed: scenario player table base via *(int*)0x331f58 * 0x657c stride.
  * Confirmed: global_scenario_get at 0x3e057; tag_block_get_element at 0x3e062.
- * Confirmed: FUN_001ba1f0 = tag_get_for_object (two calls at 0x3e0b2/0x3e0cf).
- * Confirmed: FUN_0008f390 = error_display_string (two calls at
+ * Confirmed: tag_get_name = tag_get_for_object (two calls at 0x3e0b2/0x3e0cf).
+ * Confirmed: error = error_display_string (two calls at
  * 0x3e0c2/0x3e0e0). Confirmed: encounter_get_squad = encounter_get_squad at
  * 0x3df6d/0x3df83. Confirmed: actor_combat_get_firing_variant_definition =
- * actor_get_unit_speed_record at 0x3ded2. Confirmed: FUN_00021fb0 =
+ * actor_get_unit_speed_record at 0x3ded2. Confirmed: valid_real_normal3d =
  * assert_valid_real_normal3d (3 calls at 0x3e380..0x3e447). Confirmed:
- * FUN_00028610 = assert_valid_real_normal2d at 0x3e4ac. Confirmed: FUN_000a7a30
- * = object_is_in_team at 0x3e145. Confirmed: FUN_00012f10 =
- * real_vector3d_length at 0x3e22e. Confirmed: FUN_00013010 =
+ * valid_real_normal2d = assert_valid_real_normal2d at 0x3e4ac. Confirmed: game_allegiance_get_team_is_friendly
+ * = object_is_in_team at 0x3e145. Confirmed: magnitude3d =
+ * real_vector3d_length at 0x3e22e. Confirmed: normalize3d =
  * real_vector3d_normalize (in-place) at 0x3e33a. Confirmed: world_up constant
  * pointer at *(float**)0x31fc44 (x,y,z). Confirmed: zero-vector pointer at
  * *(float**)0x31fc1c. Confirmed: forward-vector pointer at *(float**)0x31fc3c.
@@ -6924,7 +6924,7 @@ char FUN_0003d9f0(int actor_handle)
  * active_grenade_handle (or -1). Inferred: actor+0x1b4 = has_weapon_in_team
  * flag. Inferred: actor+0x1b5 = crouching flag from biped+0x23b. Inferred:
  * actor+0x1b8..0x1c4 = speed/velocity/motion fields from biped. Uncertain:
- * exact semantics of FUN_0008f390 args (priority/event type). Uncertain: player
+ * exact semantics of error args (priority/event type). Uncertain: player
  * record stride 0x657c and field +0x657a (proximity counter). */
 void FUN_0003dc20(int actor_handle)
 {
@@ -6972,8 +6972,8 @@ void FUN_0003dc20(int actor_handle)
      * Confirmed: component object handle array at swarm+0x18 (4 bytes each).
      * Confirmed: datum_get(swarm_component_data, comp_handle) called TWICE per
      *   iteration (faithful transcription of binary; first result = swarm_comp
-     *   for centroid accumulation, second = dat for FUN_001412f0 / weapon
-     * handle). Confirmed: FUN_001412f0(obj_h, dat+4) at 0x3dd01. Confirmed:
+     *   for centroid accumulation, second = dat for object_get_world_position / weapon
+     * handle). Confirmed: object_get_world_position(obj_h, dat+4) at 0x3dd01. Confirmed:
      * dat+0x10 = no_return (preferred weapon handle or -1). Confirmed: centroid
      * += swarm_comp+4/+8/+0xc (FPU loads from ECX). Confirmed: averaging: 1.0f
      * / count at [0x2533c8] / FILD count. Confirmed: csmemset(actor+0x120, 0,
@@ -7141,9 +7141,9 @@ LAB_3e02c:
    * *(int*)0x331f58. Confirmed: global_scenario_get() takes 0 args (0x3e057);
    * encounter_idx and 0xb0 remain on stack as args to tag_block_get_element
    * (0x3e062). Confirmed: proximity counter at player_base + 0x657a (short).
-   * Confirmed: FUN_001ba1f0(actor+0x58, scenario_elem) at 0x3e0b2 / 0x3e0cf.
+   * Confirmed: tag_get_name(actor+0x58, scenario_elem) at 0x3e0b2 / 0x3e0cf.
    *   ADD ESP,4 after call cleans 1 arg; scenario_elem stays on stack for
-   *   FUN_0008f390(2, string, tag, scenario_elem) ADD ESP,0x10 cleanup.
+   *   error(2, string, tag, scenario_elem) ADD ESP,0x10 cleanup.
    * Confirmed: 0x3e074 JZ: vehicle case (0x99!=0) increments when bit 5 clear;
    *   on-foot case (0x99==0) increments when bit 5 set. */
   if (*(unsigned int *)(actor + 0x34) != 0xffffffff) {
@@ -7186,7 +7186,7 @@ LAB_3e02c:
   /* Walk child object chain to find equipped weapon and grenade.
    * Confirmed: chain starts at biped+0xc8; next ptr at obj+0xc4.
    * Confirmed: obj+0x64 == 0 → weapon; obj+0x64 == 5 → equipment/grenade.
-   * Confirmed: FUN_000a7a30(actor+0x3e, obj+0x68) for team membership check.
+   * Confirmed: game_allegiance_get_team_is_friendly(actor+0x3e, obj+0x68) for team membership check.
    * Confirmed: grenade condition: obj+0x1dc < 0 OR (actor+0x280==2 AND
    *   child == actor+0x28c). */
   {
@@ -7244,7 +7244,7 @@ LAB_3e02c:
 
   /* On foot: if facing vector is zero-length, use default forward vector.
    * Otherwise clear facing_vector.z (force 2D). Vehicle: skip.
-   * Confirmed: FUN_00012f10(actor+0x174) length check at 0x3e22e.
+   * Confirmed: magnitude3d(actor+0x174) length check at 0x3e22e.
    * Confirmed: FCOMP [0x2533c0] (0.0f) at 0x3e233; if length <= 0 copy fwd_vec.
    * Confirmed: else case: MOV dword[ESI+0x17c],0 at 0x3e243 (clears .z). */
   if (*(char *)(actor + 0x99) == 0) {
@@ -7348,11 +7348,11 @@ LAB_3e02c:
 
   /* Assert vector validity.
    * Pattern: csprintf fills error_string_buffer with the formatted message,
-   * then display_assert(buffer, file, line, halt) is called as FUN_0008d9f0.
+   * then display_assert(buffer, file, line, halt) is called as display_assert.
    * The file/line/halt args are pre-pushed before csprintf; csprintf result
    * (pointer to buffer) is then pushed as arg1. See disasm 0x3e38c–0x3e3d8.
-   * Confirmed: FUN_00021fb0 = assert_valid_real_normal3d (3-component).
-   * Confirmed: FUN_00028610 = assert_valid_real_normal2d (2-component). */
+   * Confirmed: valid_real_normal3d = assert_valid_real_normal3d (3-component).
+   * Confirmed: valid_real_normal2d = assert_valid_real_normal2d (2-component). */
   if (!valid_real_normal3d((float *)(actor + 0x174))) {
     csprintf(error_string_buffer, "%s: assert_valid_real_normal3d(%f, %f, %f)",
              "&actor->input.facing_vector", (double)*(float *)(actor + 0x174),
@@ -7537,15 +7537,15 @@ void actors_handle_unit_effect(int unit_handle, short unit_effect, int param_3)
  *   player_input_enabled(); return early if returns non-zero at 0x3ea2a.
  * Confirmed: actor+7 != 0 → unit_set_actively_controlled(actor+0x18, 1) + clear
  * actor+7 at 0x3ea2e..0x3ea43. Confirmed: unit_set_control(actor+0x18,
- * &control) at 0x3ea4f. Confirmed: actor+0x6ec != -1 → FUN_001b1a20(actor+0x18,
+ * &control) at 0x3ea4f. Confirmed: actor+0x6ec != -1 → unit_apply_animation_impulse(actor+0x18,
  * (int)(uint16)(actor+0x6ec), actor+0x6f0) at 0x3ea65; XOR EAX,EAX; MOV
  * AX,word[ESI+0x6ec] = zero-extend. Confirmed: actor+0x6d4 > 0 →
  * unit_persistent_control(actor+0x18, MOVSX(actor+0x6d4), actor+0x6d8) at
  * 0x3ea85; MOVSX EDX,AX sign-extends the short. Inferred: actor+0x6dc =
  * animation_state_index (maps through 0x256c94 table). Inferred: actor+0x6f0 =
- * pointer/data block passed as 3rd arg to FUN_001b1a20. Inferred: actor+0x6d4 =
+ * pointer/data block passed as 3rd arg to unit_apply_animation_impulse. Inferred: actor+0x6d4 =
  * animation_tick_count (short); actor+0x6d8 = animation control flags dword for
- * unit_persistent_control. Uncertain: exact semantics of FUN_001b1a20's 2nd arg
+ * unit_persistent_control. Uncertain: exact semantics of unit_apply_animation_impulse's 2nd arg
  * (zero-extended index).
  */
 void FUN_0003e7a0(int actor_handle /* @<eax> */)

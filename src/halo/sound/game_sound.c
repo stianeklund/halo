@@ -387,7 +387,7 @@ void game_sound_update(float dt)
                            by 0x18f600 */
   uint8_t env_changed; /* [EBP-0x1]  non-zero if env changed */
 
-  /* 8-byte location struct returned by FUN_00140130 (cluster_index etc.) */
+  /* 8-byte location struct returned by object_get_location (cluster_index etc.) */
   int location[2]; /* [EBP-0x14] */
 
   int looping_sounds_handle;
@@ -460,7 +460,7 @@ void game_sound_update(float dt)
                object_try_and_get_and_verify_type(
                  *(int *)((char *)entry + 0x10), -1) != NULL) {
       /* Object exists or scripted: check if it lives in an audible cluster.
-       * FUN_0013d680 = object_get_and_verify_type(handle, type_mask=-1) */
+       * object_get_and_verify_type = object_get_and_verify_type(handle, type_mask=-1) */
       object = object_get_and_verify_type(*(int *)((char *)entry + 0x10), -1);
       if ((*(uint32_t *)((char *)object + 4) & 0x800) != 0) {
         /* Object is in a visible cluster — get its location and maybe

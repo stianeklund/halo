@@ -2049,7 +2049,7 @@ void FUN_00079630(float bump_height, void *bitmap /* @<esi> */)
 }
 
 /*
- * FUN_0007a750 -- real_rgb_color_brightness: compute luminance of an RGB color.
+ * real_rgb_color_brightness -- real_rgb_color_brightness: compute luminance of an RGB color.
  *
  * Returns the dot product of the color with standard luminance coefficients
  * (0.299, 0.587, 0.114) stored at globals 0x2647c0-c8.
@@ -2210,7 +2210,7 @@ float *real_hsv_color_to_real_rgb_color(float *hsv, float *rgb_out)
 }
 
 /*
- * FUN_0007ae70 -- argb_color_to_real_argb_color: convert 4 unsigned shorts
+ * argb_color_to_real_argb_color -- argb_color_to_real_argb_color: convert 4 unsigned shorts
  * to 4 floats, scaled by 1/65535.
  *
  * Each component is zero-extended from ushort to int, then converted to float
@@ -2231,7 +2231,7 @@ void argb_color_to_real_argb_color(unsigned short *src, float *dst)
 }
 
 /*
- * FUN_0007aed0 -- rgb_color_to_real_rgb_color: convert 3 unsigned shorts
+ * rgb_color_to_real_rgb_color -- rgb_color_to_real_rgb_color: convert 3 unsigned shorts
  * to 3 floats, scaled by 1/65535.
  *
  * Same pattern as argb_color_to_real_argb_color but only 3 components.
@@ -2249,7 +2249,7 @@ void rgb_color_to_real_rgb_color(unsigned short *src, float *dst)
 }
 
 /*
- * FUN_0007af20 -- pixel32_to_real_argb_color: extract ARGB from a packed
+ * pixel32_to_real_argb_color -- pixel32_to_real_argb_color: extract ARGB from a packed
  * uint32 into 4 floats, scaled by 1/255.
  *
  * Byte layout: bits 31-24 = A, 23-16 = R, 15-8 = G, 7-0 = B.
@@ -2270,7 +2270,7 @@ void pixel32_to_real_argb_color(unsigned int color, float *dst)
 }
 
 /*
- * FUN_0007afb0 -- pixel32_to_real_rgb_color: extract RGB from a packed
+ * pixel32_to_real_rgb_color -- pixel32_to_real_rgb_color: extract RGB from a packed
  * uint32 into 3 floats, scaled by 1/255.
  *
  * Byte layout: bits 23-16 = R, 15-8 = G, 7-0 = B (alpha ignored).
@@ -2313,7 +2313,7 @@ bool valid_real_rgb_color(float *rgb)
 }
 
 /*
- * FUN_0007b0e0 -- bitmap_shrink: dispatcher for bitmap mipmap shrinking.
+ * bitmap_shrink -- bitmap_shrink: dispatcher for bitmap mipmap shrinking.
  *
  * Validates the bitmap. If mipmap_count < 2, delegates to FUN_00077590.
  * Otherwise dispatches based on bitmap->type: 2D -> FUN_00077720,
@@ -2421,7 +2421,7 @@ void bitmap_smooth(void *pixel_data, float smooth_factor)
 }
 
 /*
- * FUN_0007b470 -- bitmap_alpha_bleed: dispatcher for alpha bleed by bitmap
+ * bitmap_alpha_bleed -- bitmap_alpha_bleed: dispatcher for alpha bleed by bitmap
  * type.
  *
  * Validates the bitmap, checks that passes > 0, then dispatches based on

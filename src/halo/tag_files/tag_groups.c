@@ -183,7 +183,7 @@ void FUN_0019b320(void)
  * as a long integer, and set it as the language code. If the tag is missing
  * (index == -1), logs an error.
  * 0x19b330 / tag_groups.obj */
-void FUN_0019b330(void)
+void FUN_0019B330(void)
 {
   int tag_index;
   char *str;

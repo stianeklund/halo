@@ -295,7 +295,7 @@ short FUN_001a6cd0(const char *param_1)
  * Returns the output buffer pointer.
  *
  * Confirmed: cdecl, 4 stack params (ADD ESP cleanup at callers).
- * Confirmed: FUN_001d9179 = snprintf, FUN_001ba1f0 = tag_get_name.
+ * Confirmed: snprintf = snprintf, tag_get_name = tag_get_name.
  * Confirmed: 0x257984 = "%s", 0x259f40 = "%s %s", 0x25ad08 = "<none>".
  */
 char *FUN_001a6d10(int unit_handle, char full_path, int16_t max_len,
@@ -528,7 +528,7 @@ void FUN_001a6ef0(int unit_handle, short priority, void *speech_item)
  * if the projectile is fast, uses AI actor state for threat level.
  *
  * On success, builds a speech item (0x30 bytes) and queues it via
- * FUN_001a6ef0. Also optionally fires an AI unit effect via FUN_00040860.
+ * FUN_001a6ef0. Also optionally fires an AI unit effect via ai_handle_unit_effect.
  *
  * Returns 1 on success, 0 on failure.
  *
@@ -712,7 +712,7 @@ ai_effect:
  * Confirmed: cdecl, 2 stack params.
  * Confirmed: switch table at 0x1a7638 (6 entries).
  * Confirmed: 0x253398 = 0.5f for random threshold.
- * Confirmed: FUN_00042d20 = ai_communication_packet_new.
+ * Confirmed: ai_communication_packet_new = ai_communication_packet_new.
  * Confirmed: merged ADD ESP,0x1c cleans csmemset(3)+packet_new(1)+6ef0(3).
  */
 char FUN_001a74d0(int unit_handle, int scream_type)
@@ -1478,8 +1478,8 @@ void unit_handle_weapon_state_change(int object_handle, int16_t state)
  * Confirmed: LEA EAX,[EDI+0x3E4] — damage array starts at +0x3E4 (per-slot +0x4).
  * Confirmed: IMUL/FCOMP loop with 4 iterations.
  * Confirmed: assert "best_new_attacker_index!=NONE" at line 0x136C, file units.c.
- * Confirmed: FUN_000b5aa0 = game_time_get, FUN_000a7a30 = game_allegiance check.
- * Confirmed: FUN_0003ff40 = ai_handle_killing_spree.
+ * Confirmed: game_time_get = game_time_get, game_allegiance_get_team_is_friendly = game_allegiance check.
+ * Confirmed: ai_handle_killing_spree = ai_handle_killing_spree.
  */
 void unit_record_damage(int unit_handle, float damage_amount, int16_t damage_type,
                         char notify_ai, int attacker_object, int16_t attacker_team,
@@ -1674,7 +1674,7 @@ void unit_get_head_position(int object_handle, float *out_position)
  *
  * 2. Unit has no parent and no special flags:
  *    If unit flags byte (0xB6) bit 2 is clear AND object type is 0 (biped),
- *    delegates to FUN_001a1140 with zeroed optional parameters.
+ *    delegates to biped_estimate_position with zeroed optional parameters.
  *
  * 3. Unit has no parent but has flags/non-zero type:
  *    If unk_728 is NONE, gets the "head" marker on the unit itself. Otherwise,
@@ -3408,7 +3408,7 @@ bool unit_try_animation_state(int unit_handle, int seat_label, int weapon_label,
  *   2. Overlay-relative: looks up in the unit mode's overlay block at
  *      unit_mode+0x40/0x44 using an "overlay index" (local_c path).
  *
- * After lookup, calls FUN_00120f20 (model_animation_choose_random) and
+ * After lookup, calls model_animation_choose_random (model_animation_choose_random) and
  * unit_set_animation to apply. Handles developer-mode missing-animation
  * warnings. Also resolves the "weapon idle" overlay and stores it.
  *
@@ -4316,8 +4316,8 @@ int16_t unit_next_weapon_index(int unit_handle, int16_t weapon_index,
  * 4. Skips if weapon is NONE, or if next index equals current and flag is
  * false.
  * 5. Checks the weapon object's flags byte (bit 0 must be clear).
- * 6. Calls FUN_000fd360(weapon_handle, flag) to attempt the placement.
- * 7. On success: fires unit event 0xd, calls FUN_001ab990, clears the weapon
+ * 6. Calls weapon_try_place(weapon_handle, flag) to attempt the placement.
+ * 7. On success: fires unit event 0xd, calls unit_detach_weapon, clears the weapon
  *    slot, resets current/next weapon indices, and optionally deletes the
  *    weapon object if weapon_can_be_fired returns false.
  */
@@ -4372,13 +4372,13 @@ bool unit_set_in_vehicle(int unit_handle, bool flag)
  * Steps:
  *   1. Resolves unit via object_get_and_verify_type (type_mask=3, @<eax>).
  *   2. If parent_object_index != -1 (unit is mounted), returns immediately.
- *   3. Asserts alignment_vector is a valid 2D normal via FUN_00028610.
+ *   3. Asserts alignment_vector is a valid 2D normal via valid_real_normal2d.
  *   4. Copies alignment_vector[0] -> unit+0x24 (object forward x),
  *      alignment_vector[1] -> unit+0x28 (object forward y),
  *      0.0f               -> unit+0x2c (object forward z).
  *   5. Loads the canonical "up" vector from the pointer at 0x31fc44 and
  *      writes it to unit+0x30, +0x34, +0x38.
- *   6. Asserts the forward/up pair are valid axes via FUN_00084a70.
+ *   6. Asserts the forward/up pair are valid axes via valid_real_normal3d_perpendicular.
  *
  * Register args: unit_handle @<eax>, alignment_vector @<ecx>.
  *
@@ -4838,15 +4838,15 @@ void unit_reset_weapon_state(int unit_handle)
  *
  * Attempts to apply an animation impulse to a unit. The impulse is an index
  * in [0, NUMBER_OF_UNIT_ANIMATION_IMPULSES) that maps to an animation kind
- * index and an update_kind via FUN_001a9560. The function:
+ * index and an update_kind via unit_impulse_to_animation_kind. The function:
  *
  *   1. Checks whether the unit's current animation state allows impulses
- *      (FUN_001a96f0 @<eax>=unit_handle). Returns false immediately if not.
+ *      (unit_animation_state_allows_impulse @<eax>=unit_handle). Returns false immediately if not.
  *   2. Resolves unit tag -> antr tag at unit_tag+0x44. Uses the unit's
  *      current mode (unk_592 at +0x250) and sub-anim (unk_593 at +0x251)
  *      to reach the sub-animation block at mode+0x58 (element size 0xbc).
  *   3. Maps the impulse index to an animation kind index (AX) and an
- *      update_kind (written to *out_update_kind) via FUN_001a9560.
+ *      update_kind (written to *out_update_kind) via unit_impulse_to_animation_kind.
  *   4. Looks up the animation kind index in the sub-anim's kind table at
  *      sub_anim+0x98 (count) / sub_anim+0x9c (int16[] ptr). Returns false
  *      if out of range or the slot is -1.
@@ -4858,13 +4858,13 @@ void unit_reset_weapon_state(int unit_handle)
  *      @<bx>=chosen_anim).
  *   8. Sets unk_584 (0x248) bit 0 and unk_595 (0x253) = 0x1d.
  *   9. If anim_data is non-NULL, the unit type is 0 (biped), and the unit
- *      has no parent, calls FUN_001af180(@<eax>=unit_handle, @<ecx>=anim_data)
+ *      has no parent, calls unit_apply_alignment_vector(@<eax>=unit_handle, @<ecx>=anim_data)
  *      to apply an alignment vector.
  *   10. Returns true on success.
  *
- * Register args: FUN_001a96f0 takes unit_handle @<eax>.
- *                FUN_001a9560 takes impulse_index @<ax>, out_update_kind
- * @<ebx>. FUN_001af180 takes unit_handle @<eax>, anim_data @<ecx>.
+ * Register args: unit_animation_state_allows_impulse takes unit_handle @<eax>.
+ *                unit_impulse_to_animation_kind takes impulse_index @<ax>, out_update_kind
+ * @<ebx>. unit_apply_alignment_vector takes unit_handle @<eax>, anim_data @<ecx>.
  *
  * Confirmed: PUSH EBX (unit_handle) / PUSH 0x3 -> object_get_and_verify_type.
  * Confirmed: MOV EAX,EBX -> CALL 0x1a96f0 (register arg).
@@ -4881,7 +4881,7 @@ void unit_reset_weapon_state(int unit_handle)
  * (unit_set_animation @<eax>,@<edi>,@<bx>). Confirmed: OR byte ptr
  * [ESI+0x248],0x1; MOV byte ptr [ESI+0x253],0x1d. Confirmed: CMP word ptr
  * [ESI+0x64],0x0 (type field == 0); CMP [ESI+0xcc],-1 (parent_object_index).
- * Confirmed: MOV EAX,[EBP+0x8]; CALL 0x1af180 (FUN_001af180 @<eax>,@<ecx>).
+ * Confirmed: MOV EAX,[EBP+0x8]; CALL 0x1af180 (unit_apply_alignment_vector @<eax>,@<ecx>).
  */
 bool unit_apply_animation_impulse(int unit_handle, int anim_index,
                                   void *anim_data)
@@ -4899,7 +4899,7 @@ bool unit_apply_animation_impulse(int unit_handle, int anim_index,
   unit = (unit_data_t *)object_get_and_verify_type(unit_handle, 3);
 
   /* Check if the unit's animation state allows applying an impulse.
-   * FUN_001a96f0 takes @<eax>=unit_handle, @<edi>=impulse_index (leaked).
+   * unit_animation_state_allows_impulse takes @<eax>=unit_handle, @<edi>=impulse_index (leaked).
    * Confirmed disassembly: MOV EDI,[EBP+0xc] at 0x1a34, MOV EAX,EBX at 0x1a3c,
    * CALL 0x1a96f0 at 0x1a42 — EDI = anim_index at call time.
    */
@@ -4920,7 +4920,7 @@ bool unit_apply_animation_impulse(int unit_handle, int anim_index,
                                            (int)(int8_t)unit->unk_593, 0xbc);
 
   /* Map the impulse index to an animation kind index.
-   * FUN_001a9560 takes impulse_index @<ax> and &update_kind @<ebx>;
+   * unit_impulse_to_animation_kind takes impulse_index @<ax> and &update_kind @<ebx>;
    * writes update_kind (3 or 6) through the pointer, returns kind index in AX.
    * Confirmed: LEA EBX,[EBP-0xc]; MOV EAX,[EBP+0xc]; CALL 0x1a9560.
    */
@@ -4958,7 +4958,7 @@ bool unit_apply_animation_impulse(int unit_handle, int anim_index,
   unit->unk_595 = 0x1d;
 
   /* If anim_data is provided and this is a top-level biped (type==0, no
-   * parent), apply the facing alignment vector. FUN_001af180 takes unit_handle
+   * parent), apply the facing alignment vector. unit_apply_alignment_vector takes unit_handle
    * @<eax>, anim_data @<ecx>. Confirmed: TEST ECX,ECX (param_3); CMP
    * [ESI+0x64],0; CMP [ESI+0xcc],-1.
    */

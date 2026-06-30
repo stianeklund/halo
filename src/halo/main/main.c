@@ -1573,7 +1573,7 @@ void main_vertical_blank_interrupt_handler(void)
  *
  * Uncertain:
  *  - csstrlen is the size-1 strlen at 0x8df60 (confirmed in kb.json).
- *    Ghidra's "FUN_0008df60" stub in the decomp was the same helper.
+ *    Ghidra's "csstrlen" stub in the decomp was the same helper.
  */
 void main_save_current_solo_map(char *map_name)
 {
