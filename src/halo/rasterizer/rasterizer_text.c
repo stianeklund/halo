@@ -875,10 +875,10 @@ void FUN_00181c20(void)
   float anim_g; /* [EBP-0x50] local_54 */
   float anim_b; /* [EBP-0x4c] local_50 */
 
-  /* Animation color: alpha from FUN_0010b820, RGB[3] from FUN_0007c270.
+  /* Animation color: alpha from scalars_interpolate, RGB[3] from FUN_0007c270.
    * In MSVC layout: anim_alpha_out at EBP-0x3c (local_40),
    * anim_rgb[0..2] at EBP-0x38/0x34/0x30 (local_3c/38/34). */
-  float anim_alpha_out; /* [EBP-0x3c] = local_40, from FUN_0010b820 */
+  float anim_alpha_out; /* [EBP-0x3c] = local_40, from scalars_interpolate */
   float anim_rgb[3];    /* [EBP-0x38..0x30] = local_3c/38/34, from FUN_0007c270 */
 
   /* Reflection size and position output */
@@ -1758,7 +1758,7 @@ void rasterizer_text_cache_flush(void)
   }
 }
 
-/* FUN_00183720: dispose hardware character cache (0x183720) */
+/* rasterizer_text_cache_dispose: dispose hardware character cache (0x183720) */
 void rasterizer_text_cache_dispose(void)
 {
   if (*(char *)0x4d04a0 != 0) {
@@ -1791,7 +1791,7 @@ void rasterizer_text_cache_dispose(void)
  *       +0x6 (short):  screen_y
  */
 
-/* FUN_00183770: get hardware character screen position.
+/* rasterizer_text_get_character_position: get hardware character screen position.
  * Original ABI: AX=index, EBX=*out_y, stack=*out_x
  */
 void rasterizer_text_get_character_position(short index, short *out_y,
@@ -1817,7 +1817,7 @@ void rasterizer_text_get_character_position(short index, short *out_y,
   *out_y = *(short *)(0x4d04b6 + index * 8);
 }
 
-/* FUN_00183820: evict a hardware character from the cache.
+/* rasterizer_text_evict_character: evict a hardware character from the cache.
  * Original ABI: ESI=slot (pointer to character pointer in cache)
  */
 void rasterizer_text_evict_character(int **slot)
@@ -1840,7 +1840,7 @@ void rasterizer_text_evict_character(int **slot)
   }
 }
 
-/* FUN_00183880: cache a hardware character into the texture cache.
+/* rasterizer_text_cache_character: cache a hardware character into the texture cache.
  * Original ABI: EDI=character pointer, stack=font pointer
  */
 void rasterizer_text_cache_character(void *font_character, void *font)
@@ -2013,7 +2013,7 @@ void rasterizer_text_cache_character(void *font_character, void *font)
   }
 }
 
-/* FUN_00183c00: draw a single cached character quad.
+/* rasterizer_text_draw_cached_char: draw a single cached character quad.
  * Vertex format is 5 floats each (screen x, screen y, texel u, texel v,
  * packed color) — 4 verts = 20 floats — in winding order TL, TR, BR, BL.
  * cache_offset_x/y (param 7/8) are added to the TEXEL coords (the atlas
@@ -2067,7 +2067,7 @@ void rasterizer_text_draw_cached_char(void *arg0, void *font,
   }
 }
 
-/* FUN_00183cf0: draw character string via hardware cache.
+/* rasterizer_text_draw_cached_chars: draw character string via hardware cache.
  * This is the callback used by the text drawing system. It draws the glyph
  * twice: pass 1 is the drop shadow (offset +1.0 in x/y, shadow color), pass 2
  * is the glyph itself (no offset, actual color). Vertex format is 5 floats

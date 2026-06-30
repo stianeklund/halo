@@ -7771,7 +7771,7 @@ int FUN_000b0ed0(int weapon_handle, int player_handle)
             game_engine_post_event(event); }
           }
         }
-        FUN_000b0990(weapon_handle);
+        cheats_apply(weapon_handle);
         return 0;
       }
       if ((*(uint8_t *)(weapon + 0x1dc) & 0x40) != 0)
@@ -8041,7 +8041,7 @@ void FUN_000b3090(int player_handle)
 }
 
 /* CTF: reset flag to its home position (b0990). EDI = weapon_handle. */
-void FUN_000b0990(int weapon_handle)
+void cheats_apply(int weapon_handle)
 {
   int weapon;
   int16_t team;
@@ -8190,7 +8190,7 @@ void FUN_000b0c10(int weapon_handle, int weapon_obj)
         team_idx = (team_idx - 1 | 0xfffffffe) + 1;
       *(int16_t *)(weapon_obj + 0x68) = (int16_t)team_idx;
       game_engine_post_event(((int16_t)team_idx != 0) + 0x25);
-      FUN_000b0990(weapon_handle);
+      cheats_apply(weapon_handle);
       game_engine_clear_goal_position(2);
       game_engine_clear_goal_position(3);
       variant = (int)game_engine_get_variant();
@@ -8215,7 +8215,7 @@ void FUN_000b0c10(int weapon_handle, int weapon_obj)
         game_show_score_team((int)flag_team, 0x29);
         game_show_score_team(team_idx, 0x2a);
       }
-      FUN_000b0990(weapon_handle);
+      cheats_apply(weapon_handle);
     }
   }
   flag_carrier = FUN_000b0100(weapon_handle);

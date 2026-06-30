@@ -500,7 +500,7 @@ short scripted_hud_get_timer_ticks(void)
   return result;
 }
 
-/* FUN_000d4a20 (0xd4a20)
+/* scripted_hud_time_code_show (0xd4a20)
  * Start or stop the loading screen timer. */
 void scripted_hud_time_code_show(char param_1)
 {
@@ -512,7 +512,7 @@ void scripted_hud_time_code_show(char param_1)
   *(int *)0x2f66e4 = -1;
 }
 
-/* FUN_000d4a50 (0xd4a50)
+/* scripted_hud_time_code_start (0xd4a50)
  * Pause or unpause the loading screen timer. */
 void scripted_hud_time_code_start(char param_1)
 {
@@ -527,7 +527,7 @@ void scripted_hud_time_code_start(char param_1)
   *(int *)0x2f66e8 = game_time_get();
 }
 
-/* FUN_000d4a90 (0xd4a90)
+/* scripted_hud_time_code_reset (0xd4a90)
  * Reset the loading timer start to current tick. */
 void scripted_hud_time_code_reset(void)
 {
@@ -677,7 +677,7 @@ void hud_render_timer(void)
   }
 }
 
-/* FUN_000d4f00 (0xd4f00)
+/* hud_enable_custom_state_message (0xd4f00)
  * Toggle help text display state for a player. */
 void hud_enable_custom_state_message(short param_1, char param_2)
 {
@@ -695,7 +695,7 @@ void hud_enable_custom_state_message(short param_1, char param_2)
   *(char *)(base + 0x45f) = param_2;
 }
 
-/* FUN_000d4f70 (0xd4f70)
+/* hud_set_state_text (0xd4f70)
  * Set help text string for a player. */
 void hud_set_state_text(short param_1, wchar_t *param_2)
 {
@@ -706,7 +706,7 @@ void hud_set_state_text(short param_1, wchar_t *param_2)
   *(short *)(iVar1 + 0x42e) = 0;
 }
 
-/* FUN_000d4fb0 (0xd4fb0)
+/* hud_messaging_get_objective (0xd4fb0)
  * Get the objective text string from the HMT tag. */
 int hud_messaging_get_objective(void)
 {
@@ -740,7 +740,7 @@ int hud_messaging_get_objective(void)
   return result;
 }
 
-/* FUN_000d4d90 (0xd4d90)
+/* hud_set_state_message (0xd4d90)
  * Set a HUD message element reference for a player. */
 void hud_set_state_message(short param_1, short param_2)
 {
@@ -767,7 +767,7 @@ void hud_set_state_message(short param_1, short param_2)
   }
 }
 
-/* FUN_000d4e30 (0xd4e30)
+/* hud_set_state_message_icon (0xd4e30)
  * Set a numeric value for a HUD message element. */
 void hud_set_state_message_icon(short param_1, short param_2, int param_3)
 {
@@ -781,7 +781,7 @@ void hud_set_state_message_icon(short param_1, short param_2, int param_3)
   }
 }
 
-/* FUN_000d4e90 (0xd4e90)
+/* hud_set_state_message_text (0xd4e90)
  * Set a tag reference value for a HUD message element. */
 void hud_set_state_message_text(short param_1, short param_2, short param_3,
                                 unsigned char param_4)

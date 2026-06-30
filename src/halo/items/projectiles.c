@@ -581,7 +581,7 @@ int projectile_aim_linear(float speed, float *origin, float *target,
  * return). The original is declared void and writes the arc/linear selector
  * through param_13, but it leaks the residual EAX of projectile_aim_ballistic
  * / projectile_aim_linear (neither path resets AL/EAX before RET). Callers such
- * as actor_combat firing-solution (FUN_00021710) test this AL to decide whether
+ * as actor_combat firing-solution (actor_combat_compute_ballistic_solution) test this AL to decide whether
  * a valid aim solution exists; return-ignoring callers are unaffected. */
 char projectile_aim(int projectile_tag, int param_2, int param_3, void *param_4,
                     int param_5, int param_6, int param_7, int param_8,
@@ -910,7 +910,7 @@ void FUN_000f8920(int projectile_handle, char has_hit_count, float current_time)
   char damage_params[0xac];
   float fwd2[3]; /* forward buf for area-damage object_get_orientation
                     ([EBP-0x74]) */
-  float pos2[3]; /* world pos for area-damage FUN_001412f0 ([EBP-0x8c]) */
+  float pos2[3]; /* world pos for area-damage object_get_world_position ([EBP-0x8c]) */
 
   /* secondary detonation effect */
   short det_idx; /* proj->detonation_effect_index at proj+0x1e2 */
@@ -2123,7 +2123,7 @@ int FUN_000f9c40(int projectile_handle)
   /* Forward / up vector copies for the orientation update. */
   float fwd_copy[3]; /* copy of proj->forward (local_7c area)             */
 
-  /* Intermediate buffers for FUN_000178d0 / cross_product3d. */
+  /* Intermediate buffers for cross_product3d / cross_product3d. */
   float cross_buf[3]; /* result of cross_product3d (local_10c area)        */
   float cross_buf2[11]; /* second cross buffer / location for unattached_impulse_sound_new (44 bytes) */
 
@@ -2829,7 +2829,7 @@ void FUN_000face0(int animation_graph_tag_index, short *state, int *out_sound)
  * Wrapper: choose a random animation from the given animation graph
  * for the given animation index, using update_kind=1 (normal update).
  * Calls model_animation_choose_random(1, animation_graph_tag_index,
- * animation_index). Called by FUN_001b3580 when transitioning a unit
+ * animation_index). Called by unit_try_and_exit_seat when transitioning a unit
  * to a new animation state after a melee/scripted override.
  */
 int16_t FUN_000fad00(int animation_graph_tag_index, int16_t animation_index)

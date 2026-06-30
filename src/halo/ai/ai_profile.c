@@ -523,7 +523,7 @@ int FUN_000547c0(int encounter_handle)
  * ai_attach / ai_detach / ai_place script-command implementations.
  * The verbose AI-spew flag at 0x5aca59 gates a diagnostic error(2, ...) trace
  * at each entry; the AI-enabled gate at *(0x632574)+1 gates the actual work in
- * the attach path. (FUN_00054a80 keeps its legacy kb name
+ * the attach path. (ai_profile_change_render_spray keeps its legacy kb name
  * ai_profile_change_render_spray; behaviorally it is ai_attach over children.)
  * ------------------------------------------------------------------------- */
 
@@ -626,7 +626,7 @@ bad_squad:
   error(2, (const char *)0x25c3c0, element);
 }
 
-/* FUN_00054a80 (ai_profile_change_render_spray) — ai_attach over the children
+/* ai_profile_change_render_spray (ai_profile_change_render_spray) — ai_attach over the children
  * of a parent object: iterates every child (FUN_000ce450/FUN_000ce320) and
  * attaches the same ai_ref to each. 0x9d0 obj / 0x54a80 XBE. */
 void ai_profile_change_render_spray(int parent_handle, unsigned int ai_ref)
@@ -1650,8 +1650,8 @@ void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
 {
   short target_squad_indices[64]; /* [ebp-0xc8], 0x80 bytes, init 0xffff */
   int squad_iter[5];              /* [ebp-0x34], Layout A (FUN_000544a0) */
-  int actor_iter[3];              /* [ebp-0x2c], FUN_00059a00 (iter[1]=handle) */
-  char enc_iter[0x1c];            /* [ebp-0x3c], FUN_00059b10 */
+  int actor_iter[3];              /* [ebp-0x2c], encounter_actor_iterator_new (iter[1]=handle) */
+  char enc_iter[0x1c];            /* [ebp-0x3c], encounter_iterator_next */
   void *scenario;                 /* [ebp-0x40] */
   void *src_datum;                /* [ebp-0xc]  source encounter datum */
   void *dst_datum;                /* [ebp-0x1c] dest encounter datum   */

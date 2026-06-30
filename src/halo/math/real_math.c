@@ -3604,7 +3604,7 @@ int FUN_00112db0(void *param_1, int param_2, int param_3)
     }
     if (s[4] == 0) {
       s[3] = s[0x12];
-      r = FUN_001db2b3((void *)s[0x12], 1, 0x4000, (void *)s[0x10]);  /* fread */
+      r = _fread((void *)s[0x12], 1, 0x4000, (void *)s[0x10]);  /* fread */
       if (r != 0x4000) {
         s[0xe] = 0xffffffff;
         s[0x13] = FUN_00110c10(s[0x13], (void *)param_2, param_3);  /* crc32 */
@@ -3684,7 +3684,7 @@ int FUN_001127e0(int *param_1, int param_2, int param_3)
   if ((param_1 != (int *)0) && (*(char *)((int)param_1 + 0x5c) == 'w')) {
     if (*(int *)((int)param_1 + 0x10) == 0) {
       *(void **)((int)param_1 + 0xc) = *(void **)((int)param_1 + 0x48);
-      sVar1 = FUN_001db2b3(*(void **)((int)param_1 + 0x48), 1, 0x4000,
+      sVar1 = _fread(*(void **)((int)param_1 + 0x48), 1, 0x4000,
                            *(void **)((int)param_1 + 0x40));
       if (sVar1 != 0x4000) {
         *(int *)((int)param_1 + 0x38) = -1;
@@ -3749,11 +3749,11 @@ int FUN_00113000(int *param_1)
     param_1[0] = param_1[0x11];
     param_1[0x13] = (int)FUN_00110c10(0, (void *)0, 0);  /* crc32(0, Z_NULL, 0) */
     if (param_1[0x18] == 0) {
-      FUN_001db8d4((void *)param_1[0x10]);  /* rewind(FILE*) */
+      _rewind((void *)param_1[0x10]);  /* rewind(FILE*) */
       return 0;
     }
     FUN_001153c0((int)param_1);  /* inflateReset */
-    ret = FUN_001db88b((void *)param_1[0x10], param_1[0x18], 0);  /* fseek(FILE*, off, SEEK_SET) */
+    ret = _fseek((void *)param_1[0x10], param_1[0x18], 0);  /* fseek(FILE*, off, SEEK_SET) */
     return ret;
   }
   return -1;

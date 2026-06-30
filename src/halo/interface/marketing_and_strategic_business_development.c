@@ -166,7 +166,7 @@ unsigned char xbox_demos_available(void)
 /* clean_up_for_image_launch — prepare the engine for XLaunchNewImage().
  *
  * 1. Log a diagnostic via error(2, ...).
- * 2. Call FUN_001c2af0 (saved-game files / sound shutdown helper).
+ * 2. Call saved_game_files_take_mutex (saved-game files / sound shutdown helper).
  * 3. If a map precache is in progress, log and abort it.
  * 4. Call D3DDevice_PersistDisplay() (D3D8 import at 0x1e9190).  On
  *    failure assert and tail-call halt_and_catch_fire via system_exit(-1).

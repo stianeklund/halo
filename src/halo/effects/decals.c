@@ -2022,21 +2022,20 @@ void FUN_0017ca70(void)
   FUN_0015a4e0();
 }
 
-/* Tail-call thunk to rasterizer_decals_initialize (FUN_0015b6d0). */
-void FUN_0017ca80(void)
+/* Tail-call thunk to rasterizer_decals_initialize (0x15b6d0). */
+void thunk_rasterizer_decals_initialize(void)
 {
   rasterizer_decals_initialize();
 }
 
-/* Tail-call thunk to rasterizer_decals_initialize_for_new_map (FUN_0015b190).
- */
-void FUN_0017caa0(void)
+/* Tail-call thunk to rasterizer_decals_initialize_for_new_map (0x15b190). */
+void thunk_rasterizer_decals_initialize_for_new_map(void)
 {
   rasterizer_decals_initialize_for_new_map();
 }
 
-/* Tail-call thunk to rasterizer_decals_dispose_from_old_map (FUN_0015b1a0). */
-void FUN_0017cab0(void)
+/* Tail-call thunk to rasterizer_decals_dispose_from_old_map (0x15b1a0). */
+void thunk_rasterizer_decals_dispose_from_old_map(void)
 {
   rasterizer_decals_dispose_from_old_map();
 }
@@ -2047,8 +2046,8 @@ void FUN_0017cac0(void)
   FUN_0015b1e0();
 }
 
-/* Tail-call thunk to rasterizer_decals_dispose (FUN_0015b7e0). */
-void FUN_0017cad0(void)
+/* Tail-call thunk to rasterizer_decals_dispose (0x15b7e0). */
+void thunk_rasterizer_decals_dispose(void)
 {
   rasterizer_decals_dispose();
 }
