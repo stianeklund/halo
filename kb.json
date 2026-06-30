@@ -17053,7 +17053,7 @@
         {
           "addr": "0xbae20",
           "decl": "bool FUN_000bae20(int player_unit_handle, int nearby_unit_handle);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0xbaeb0",
