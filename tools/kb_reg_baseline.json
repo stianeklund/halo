@@ -185,7 +185,7 @@
     "0xb0000": "void FUN_000b0000(int player_handle@<esi>, int team@<ebx>, int flag_weapon);",
     "0xb00c0": "void FUN_000b00c0(int player_handle@<esi>);",
     "0xb0100": "int FUN_000b0100(int weapon_handle@<edi>);",
-    "0xb0990": "void FUN_000b0990(int weapon_handle@<edi>);",
+    "0xb0990": "void cheats_apply(int weapon_handle@<edi>);",
     "0xb09e0": "void FUN_000b09e0(int player_handle@<eax>, int weapon_handle@<edi>);",
     "0xb0a70": "char FUN_000b0a70(int team_index@<eax>, float *position@<ecx>, float radius);",
     "0xb1570": "char FUN_000b1570(int player_handle@<eax>);",
