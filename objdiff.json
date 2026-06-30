@@ -7710,6 +7710,14 @@
       "metadata": {
         "source_path": "src/halo/objects/objects.c"
       }
+    },
+    {
+      "name": "halo/message_header",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/message_header.c.obj",
+      "base_path": "delinked/message_header.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/message_header.c"
+      }
     }
   ]
 }
