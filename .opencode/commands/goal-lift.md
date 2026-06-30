@@ -16,17 +16,15 @@ Parse from $ARGUMENTS (all optional):
 
 ## /goal harness integration
 
-**Immediately after parsing arguments**, register the session with the `/goal` harness so progress appears in the UI:
+`/goal` is a **UI command** — it cannot be invoked via the Skill tool. Do NOT call it programmatically. Instead:
 
-```
-/goal {N} lift functions at >=90% VC71
-```
-
-Where `{N}` is the parsed `--goal` value (default 20). This must be the **first** action before any candidate selection or lifting. After each successful commit, call `/goal` again with the current committed count to update the harness progress bar.
+1. Print a one-line banner at the start: `Goal: lift {N} functions at >=90% VC71` (where `{N}` is the parsed `--goal` value, default 20).
+2. Proceed directly to candidate selection.
+3. After each commit, print `[{committed}/{N} committed]` inline — no Skill call needed.
 
 **Usage combination:**
-- `/goal-lift` — registers `/goal 20 lift functions at >=90% VC71`, then runs
-- `/goal-lift --goal 50` — registers `/goal 50 lift functions at >=90% VC71`, then runs
+- `/goal-lift` — prints goal banner for 20 functions, then runs
+- `/goal-lift --goal 50` — prints goal banner for 50 functions, then runs
 
 ## Stop conditions (first met wins)
 
