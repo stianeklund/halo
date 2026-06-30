@@ -1610,6 +1610,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x803d0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x80530": {
       "kind": "function",
       "status": "ported"
@@ -1626,6 +1630,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x80940": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x80a40": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x80b40": {
       "kind": "function",
       "status": "ported"
@@ -1639,6 +1651,10 @@
       "status": "ported"
     },
     "0x80d30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x80d50": {
       "kind": "function",
       "status": "ported"
     },
