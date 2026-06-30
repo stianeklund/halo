@@ -535,7 +535,7 @@ void run_tests(void)
    * Locks the "no-clamp ground-tangent" fix in src/halo/units/bipeds.c
    * (FUN_001a2f40, mode flags&1 branch). That branch computes raw tangent
    * deltas (raw0/raw1), copies them into tang[], then calls magnitude3d
-   * (FUN_00012f10) which NORMALIZES tang IN PLACE and returns the
+   * (magnitude3d) which NORMALIZES tang IN PLACE and returns the
    * pre-normalize length. When the length does NOT exceed the clamp
    * (physics[0x14]), the original RESTORES tang[0]=raw0; tang[1]=raw1 before
    * writing new_velocity. A "cleanup" that assumes magnitude3d is pure and

@@ -1,5 +1,5 @@
 /* Local forward declarations for functions not yet in decl.h */
-/* FUN_0018e3f0 = global_collision_bsp_get, declared in decl.h */
+/* global_collision_bsp_get = global_collision_bsp_get, declared in decl.h */
 /* FUN_00106200: declared in generated decl.h via kb.json */
 
 /* floor/ceil: the original calls MSVC CRT floor/ceil (0x1dbc26/0x1d9c2b).
@@ -142,7 +142,7 @@ char breakable_surface_extant(short breakable_surface_index)
  * random perturbation. Sound effects are also triggered at the surface center.
  *
  * Confirmed: _chkstk with 0x1240 bytes stack frame.
- * Confirmed: scenario_get at 0x145adf, FUN_0018e3f0 (global_collision_bsp) at
+ * Confirmed: scenario_get at 0x145adf, global_collision_bsp_get (global_collision_bsp) at
  * 0x145ae6. Confirmed: assert param_2!=NULL via display_assert at 0x145b05.
  * Confirmed: DAT_00324c32 early-out flag check at 0x145b14.
  * Confirmed: BFS queue in local_1244[1024], traversal count local_b4.

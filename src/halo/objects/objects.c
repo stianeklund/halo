@@ -34,8 +34,8 @@ double pow(double x, double y);
 #define CALL_FUN_001919a0(a,b,c) XCALL(0x1919a0, void(*)(void*,int,int))(a,b,c)
 #define CALL_FUN_001403a0(a,b,c) XCALL(0x1403a0, void(*)(int,unsigned short,float*))(a,b,c)
 #define CALL_FUN_0010a710(a,b) XCALL(0x10a710, float(*)(unsigned short,float))(a,b)
-/* FUN_000dd260: replaced XCALL with named call */
-/* FUN_000dd340: replaced XCALL with named call — takes 5 args (MSVC stack-reuse) */
+/* first_person_weapon_center_flashlight: replaced XCALL with named call */
+/* first_person_weapon_adjust_light: replaced XCALL with named call — takes 5 args (MSVC stack-reuse) */
 #define CALL_FUN_000ddb90(a,b,c,d) XCALL(0xddb90, short(*)(int,int,void*,int))(a,b,c,d)
 #define CALL_FUN_0013fea0_2(a,b) XCALL(0x13fea0, int(*)(int,unsigned short))(a,b)
 #define CALL_FUN_0013fea0_5(a,b,c,d,e) XCALL(0x13fea0, int(*)(int,unsigned short,void*,void*,void*))(a,b,c,d,e)
@@ -479,7 +479,7 @@ done_minus1:
  * Given an object handle and a widget datum handle, looks up the object datum,
  * resolves the glow-widget tag ('glw!' = 0x676c7721) referenced at object+0x224,
  * then runs the glow-widget initialization (FUN_001345b0) on the object datum,
- * builds the object's marker set for the widget tag (FUN_00140f10), and refreshes
+ * builds the object's marker set for the widget tag (object_get_markers_by_string_id), and refreshes
  * the widget render batch (FUN_00133520).
  *
  * Confirmed: 2 cdecl args (object_handle @ [EBP+0x8], widget_datum @ [EBP+0xc]),
@@ -489,8 +489,8 @@ done_minus1:
  * Confirmed: FUN_001345b0 is register-arg — glow_widget@<eax> receives the
  * second datum_get's return (object datum ptr); object_handle pushed (the EDI
  * push at 0x134b1f) is its single cdecl stack arg. The trailing ADD ESP,0x1c
- * batch-cleans this push plus FUN_00140f10's 4 args and FUN_00133520's 2 args.
- * Confirmed: FUN_00140f10(object_handle, widget_tag, local_buf[0x6c], 1).
+ * batch-cleans this push plus object_get_markers_by_string_id's 4 args and FUN_00133520's 2 args.
+ * Confirmed: object_get_markers_by_string_id(object_handle, widget_tag, local_buf[0x6c], 1).
  * Confirmed: FUN_00133520(object_handle, widget_datum).
  */
 void FUN_00134ae0(int object_handle, int widget_datum)
@@ -560,12 +560,12 @@ float FUN_00134e50(float value, float period)
  *
  * Resolves the light-volume tag from the light-volume datum, gates on the tag
  * having marker count (+0x6e > 0) and a positive sprite count (+0x120 > 0), then:
- *   - fetches the object's marker buffer for the tag (FUN_00140f10);
+ *   - fetches the object's marker buffer for the tag (object_get_markers_by_string_id);
  *   - computes a view-dependent intensity from the camera forward axis
  *     (globals 0x50655c/0x506560/0x506564) and camera position
  *     (0x506550/0x506554/0x506558), clamped to [0,1];
  *   - applies the tag's distance attenuation (+0x34/+0x38/+0x3c/+0x40) and the
- *     object function value (FUN_001403a0, function index tag+0x44 - 1);
+ *     object function value (object_get_function_value, function index tag+0x44 - 1);
  *   - if visible, emits a sprite strip via the rendering batch
  *     (FUN_0017cfc0/0017cfd0/0017d010/0017ad90).
  *
@@ -573,7 +573,7 @@ float FUN_00134e50(float value, float period)
  * Confirmed: light tag 'lmgs2' = tag_get(0x6d677332, *(light_datum+4)).
  * Confirmed: FUN_00134c40 is register-arg — light_tag@<ebx> (EBX from MOV EBX,EAX
  * at 0x134ebe), object_handle pushed (EDI). Decompiler dropped the @<ebx> arg.
- * Confirmed: marker buffer base EBP-0xa4, size 0x6c; FUN_00140f10 fills it.
+ * Confirmed: marker buffer base EBP-0xa4, size 0x6c; object_get_markers_by_string_id fills it.
  *   Marker position = buf+0x60/+0x64/+0x68 (FLD [EBP-0x44/-0x40/-0x3c]).
  *   Marker forward  = buf+0x3c/+0x40/+0x44 (FLD [EBP-0x68/-0x64/-0x60]).
  * Confirmed: object_handle copied to EDI; the [EBP+0x8] param slot is reused as a
@@ -730,7 +730,7 @@ void FUN_00134e80(int object_handle, int light_volume_datum)
  * and sprite count (+0x120 > 0); additionally, when the tag has a function index
  * (+0x44 != 0) and a function-state pointer (param_4) is supplied, requires the
  * indexed function value (param_4->[+4][index-1]) to be > 0. Then fetches the
- * object marker buffer (FUN_00140f10) and, if the tag's near distance (+0x38) is
+ * object marker buffer (object_get_markers_by_string_id) and, if the tag's near distance (+0x38) is
  * 0 or the camera-relative depth along the view forward axis is within it,
  * submits the volume via FUN_0017cfb0(object_handle, light_volume_datum,
  * &marker_position, FUN_00134e80).
@@ -3123,8 +3123,8 @@ next_type:
  * (def+0xc != NONE): fetches the scenario placement block via FUN_0013ca30
  * (writing element_size to a local) and the palette base index via FUN_0013cab0,
  * then for each element in the block calls object_new_from_scenario
- * (FUN_00144770) on the element with that palette base, followed by
- * objects_garbage_collect_tick (FUN_00144b50). A final FUN_0013cb80(1) runs
+ * (object_new_from_scenario) on the element with that palette base, followed by
+ * objects_garbage_collect_tick (objects_garbage_collect_tick). A final FUN_0013cb80(1) runs
  * after all types are placed.
  *
  * Confirmed (disasm 0x13cdd0): game_in_editor early-out via AL; type/shift
@@ -4520,7 +4520,7 @@ void attachments_new(int object_handle)
 
 /* Propagate flags to all children of an object. For each child slot where
  * the "created" flag at obj+0xf4+i is clear and the child handle is valid,
- * optionally calls FUN_001396e0 (param_1) and/or FUN_0013aed0 (param_2).
+ * optionally calls object_wake (param_1) and/or object_move_to_limbo (param_2).
  * object_handle in EAX (register arg). */
 void object_propagate_flag_to_children(int object_handle /* @<eax> */,
                                        int param_1, int param_2)
@@ -5365,15 +5365,15 @@ void object_compute_function_values(int object_handle /* @<eax> */)
  * structures at 0x5a8d40 and 0x5a8d30 via FUN_00191500.
  *
  * The allocation strategy differs between editor and non-editor modes:
- *   Non-editor: FUN_001bfe10("object", 0x800, 0xc) — data_array_new from
- *               game-state block; FUN_001bfe50("objects", 0x100000) —
+ *   Non-editor: game_state_data_new("object", 0x800, 0xc) — data_array_new from
+ *               game-state block; game_state_memory_pool_new("objects", 0x100000) —
  *               memory-pool_new from game-state block.
- *   Editor:     FUN_001194d0("object", 0x2800, 0xc) — data_array_new from
+ *   Editor:     data_new("object", 0x2800, 0xc) — data_array_new from
  *               main heap; memory_pool_new("objects", &DAT_500000) — memory-
  *               pool_new from main heap using a size read from 0x500000.
  *
  * Sub-system init call order (confirmed from disasm):
- *   FUN_00136580 — unknown object sub-type A init
+ *   widgets_initialize_for_new_map — unknown object sub-type A init
  *   FUN_00135f90 — unknown object sub-type B init
  *   FUN_0013c2e0 — object type definition list init
  *   lights_initialize — object BSP cluster data init
@@ -5384,8 +5384,8 @@ void object_compute_function_values(int object_handle /* @<eax> */)
  *            the editor allocation path.
  * Confirmed: ADD ESP,0x14 after display_assert+system_exit cleans 5 words
  *            (4 for display_assert + 1 for system_exit) in all 3 assert sites.
- * Confirmed: FUN_001bfbf0("object globals", 0, 0x98) allocates object_globals;
- *            FUN_001bfbf0("object name list", 0, 0x800) allocates name list.
+ * Confirmed: game_state_malloc("object globals", 0, 0x98) allocates object_globals;
+ *            game_state_malloc("object name list", 0, 0x800) allocates name list.
  *            Both are game_state_alloc(name, tag?, size) — 3 cdecl args,
  *            ADD ESP,0xc each.
  * Confirmed: FUN_00191500 takes (void *partition, const char *name) — called
@@ -5445,7 +5445,7 @@ void objects_initialize(void)
  * objects_initialize_for_new_map — reset object subsystems when loading a map.
  *
  * Call order (confirmed from disasm):
- *   FUN_001365a0  — resets a global slot index (object type slot reset)
+ *   widgets_dispose  — resets a global slot index (object type slot reset)
  *   FUN_00136040  — iterates 5 object type slots, calls initialize_for_new_map
  *                   vtable entry via [EDI] (slot stride 0x28)
  *   FUN_0013c3d0  — walks the object_type_definition linked list, calls
@@ -5510,7 +5510,7 @@ void objects_initialize_for_new_map(void)
  * (0x13fac0), which is the one-time full teardown.
  *
  * Call order (confirmed from disasm):
- *   FUN_001365b0  — per-map dispose for type-slot array
+ *   widgets_dispose_from_old_map  — per-map dispose for type-slot array
  *   FUN_001360a0  — per-map dispose for 5 object-type slots
  *   FUN_0013c400  — per-map dispose for object type definition list
  *   lights_dispose_from_old_map  — per-map dispose for BSP cluster data
@@ -5991,10 +5991,10 @@ void object_set_automatic_deactivation(int object_handle, char param_2)
  * Reads the object's tag definition via tag_get to check whether the tag
  * has a children block (tag[0x34] != -1). If it does, and the object's
  * bit 0 of obj->flags (active/inactive state) is out of sync with the
- * requested flag, calls FUN_0013ee60 (via EAX register arg) to propagate
+ * requested flag, calls object_propagate_flag_to_children (via EAX register arg) to propagate
  * the state change to child objects before committing the datum update.
  *
- * FUN_0013ee60 (0x13ee60) takes (int object_handle @EAX, char param_1,
+ * object_propagate_flag_to_children (0x13ee60) takes (int object_handle @EAX, char param_1,
  *   char param_2) — 2 stack args, object_handle in EAX register. Uses
  *   args-array inline asm pattern to avoid EAX aliasing.
  *
@@ -6120,7 +6120,7 @@ void object_get_root_location(int object_handle, float *position_out,
 /*
  * object_get_location — returns the root object's 8-byte location pair.
  *
- * Resolves the topmost parent handle via FUN_0013d7f0(handle), verifies that
+ * Resolves the topmost parent handle via object_get_root_parent(handle), verifies that
  * object with object_get_and_verify_type(root_handle, -1), then copies dwords
  * at offsets +0x48 and +0x4c into location_out.
  *
@@ -6954,10 +6954,10 @@ void objects_scripting_set_scale(int param_1, int param_2, int16_t param_3)
  *   3. Sets datum header bit 0x08 (pending deletion).
  *   4. If the object's tag definition has a children block (tag+0x34 != -1)
  *      and obj->flags bit 0 is clear, propagates deletion to attached
- *      children via FUN_0013ee60 (EAX=handle, args 1,0).
+ *      children via object_propagate_flag_to_children (EAX=handle, args 1,0).
  *   5. Sets obj->flags bit 0 (deleted/inactive).
  *   6. Clears datum header bit 0x02 (active).
- *   7. Removes the object from the name list via FUN_0013eff0 (EDI=handle).
+ *   7. Removes the object from the name list via object_remove_from_name_list (EDI=handle).
  *
  * Confirmed: cdecl, 2 stack args (PUSH+PUSH, ADD ESP,0x8 at recursive sites).
  * Confirmed: CALL 0x0013d680 — object_get_and_verify_type(handle, -1).
@@ -6970,7 +6970,7 @@ void objects_scripting_set_scale(int param_1, int param_2, int16_t param_3)
  * Confirmed: [ESI+0xC4] — sibling object handle (conditional on
  * delete_sibling). Confirmed: OR AL,0x8 / MOV [EBX+0x2],AL — sets datum header
  * bit 0x08. Confirmed: MOV EAX,EDI before CALL 0x0013ee60 — EAX register arg =
- * handle. Confirmed: PUSH 0x0 / PUSH 0x1 — FUN_0013ee60 stack args (1, 0).
+ * handle. Confirmed: PUSH 0x0 / PUSH 0x1 — object_propagate_flag_to_children stack args (1, 0).
  * Confirmed: TEST byte ptr [ESI+0x4],0x1 — checks obj->flags bit 0.
  * Confirmed: OR dword ptr [ESI+0x4],0x1 — sets obj->flags bit 0.
  * Confirmed: AND CL,0xfd / MOV [EAX+0x2],CL — clears datum header bit 0x02.
@@ -7561,13 +7561,13 @@ void object_get_orientation(int object_handle, float *out_forward,
  * object_get_world_matrix — build a 4x3 world-space matrix for an object.
  *
  * Constructs the matrix from the object's position (obj+0xc), forward
- * vector (obj+0x24), and up vector (obj+0x30) via FUN_0010a110 (which
+ * vector (obj+0x24), and up vector (obj+0x30) via matrix4x3_from_forward_up_position (which
  * calls matrix_from_forward_and_up then copies position to offset 0x28).
  *
  * If the object has a parent (parent_object_index at obj+0xcc != -1),
- * retrieves the parent's node matrix via FUN_00140eb0 (using the node
+ * retrieves the parent's node matrix via object_get_node_matrix (using the node
  * index byte at obj+0xd0) and multiplies it with the local matrix via
- * FUN_00109850 (matrix_multiply), storing the result in-place.
+ * matrix4x3_multiply (matrix_multiply), storing the result in-place.
  *
  * Confirmed: PUSH -1, PUSH EAX — object_get_and_verify_type(handle, -1).
  * Confirmed: ADD ESP,0x18 cleans 6 args (2 + 4 from two cdecl calls).
@@ -8905,7 +8905,7 @@ void FUN_00143550(int param_1)
  *   Type 0: light_delete (effect cleanup)
  *   Type 1: game_looping_sound_delete (sound cleanup)
  *   Type 2: effect_delete (decal cleanup)
- *   Type 3: FUN_00141b70 + FUN_000986d0 (light cleanup)
+ *   Type 3: object_compute_node_matrices + contrail_set_state_for_object (light cleanup)
  *   Type 4: FUN_0009f6e0 (contrail cleanup)
  *
  * Object attachment structure:

@@ -190,7 +190,7 @@ void ai_debug_select_encounter(int encounter_idx)
 
 /* FUN_000494d0: set debug ray-test success flag.
  *
- * No __FILE__ string. Called from FUN_000493d0 (ray setup) and
+ * No __FILE__ string. Called from ai_debug_get_last_path (ray setup) and
  * FUN_000494e0 (ray render). */
 void FUN_000494d0(char success)
 {
@@ -213,7 +213,7 @@ void FUN_000494d0(char success)
  * Inferred: push-then-fstp float args at 0x4abf3-0x4abf8 (FSTP replaces
  * pushed dummy values with FPU-computed float values).
  * Register aliasing verified: EBX=1 set at 0x4ab44, used as arg to
- * FUN_0013d640 at 0x4ab5d and as byte value 1 for flag stores. */
+ * object_try_and_get_and_verify_type at 0x4ab5d and as byte value 1 for flag stores. */
 void ai_debug_update(void)
 {
   /* camera-reset flag */

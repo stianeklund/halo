@@ -348,7 +348,7 @@ bool any_player_is_dead(void)
  *       - if player+0x3C is valid, OR that cluster's visibility row into
  *         combined_pvs.
  *   - Then OR in the cluster returned by 0x13DCC0 (the "currently focused
- *     parent object" cluster -- see objects.c FUN_0013DCC0) when valid. */
+ *     parent object" cluster -- see objects.c FUN_0013dcc0) when valid. */
 void players_update_pvs(void *combined_pvs /* @<edi> */, bool local_player_only)
 {
   void *structure_bsp;

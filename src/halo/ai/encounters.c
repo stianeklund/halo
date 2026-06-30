@@ -1603,13 +1603,13 @@ void FUN_000586a0(int param_1)
   ai_conversation_advance(param_1);
 }
 
-/* FUN_00058700 (0x58700) — Tail-call wrapper for FUN_000434c0. */
+/* FUN_00058700 (0x58700) — Tail-call wrapper for ai_conversation_line. */
 void FUN_00058700(void)
 {
   ai_conversation_line();
 }
 
-/* FUN_00058710 (0x58710) — Tail-call wrapper for FUN_000433b0. */
+/* FUN_00058710 (0x58710) — Tail-call wrapper for ai_conversation_status. */
 void FUN_00058710(void)
 {
   ai_conversation_status();
@@ -2851,8 +2851,8 @@ char encounter_link_activation(int encounter_handle, short link_encounter_index)
  *   - FUN_00059bf0(encounter_handle @<eax>) called unconditionally.
  *   - actor loop: ai_globals+8 (encounterless head) if handle == -1,
  *     else encounter+0x14; advance via actor+0x2c.
- *   - actor_set_active(handle, 0) via FUN_0003d5f0 for each active actor.
- *   - actor_verify_activation(handle) via FUN_0003aca0 for each actor.
+ *   - actor_set_active(handle, 0) via actor_set_active for each active actor.
+ *   - actor_verify_activation(handle) via actor_verify_activation for each actor.
  */
 void FUN_0005a640(int encounter_handle /* @<eax> */)
 {

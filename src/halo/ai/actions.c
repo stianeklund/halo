@@ -349,7 +349,7 @@ int actor_action_handle_panic_from_surprise(int actor_handle)
  *   (short); actor+0x30c = prop index; actor+0x1c0 = pain boost (float);
  *   actr_tag+0x2ac = pain threshold (float).
  * Confirmed: game_connection() != 0 or !DAT_005ac9c8 enables the check.
- * Confirmed: FUN_0002fa70(actor_handle, 1) = get best target prop.
+ * Confirmed: actor_get_best_damaging_prop(actor_handle, 1) = get best target prop.
  * Confirmed: assert at line 0x228 checks panic state consistency.
  */
 char actor_action_handle_panic_from_damage(int actor_handle)

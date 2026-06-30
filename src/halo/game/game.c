@@ -1032,7 +1032,7 @@ float FUN_000b5590(int16_t value_type)
  *     force difficulty=1. Otherwise substitute the override value_type and
  *     use the actual difficulty level.
  *
- * The underlying scale is fetched by FUN_000b54e0 (@BX=value_type,
+ * The underlying scale is fetched by game_globals_difficulty_scale (@BX=value_type,
  * @DI=difficulty) from the game globals tag (matg) difficulty block.
  *
  * Confirmed: CALL 0xa7460 (game_difficulty_level_get) → EDI at 0xb55ba.

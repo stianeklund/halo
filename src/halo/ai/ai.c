@@ -82,7 +82,7 @@ void ai_initialize(void)
 
 /* ai_dispose: shut down all AI subsystems in reverse-init order.
  * Calls eight subsidiary dispose functions and tail-calls the last one.
- * Confirmed: 7 CALL + 1 JMP (tail call to FUN_00048f50) in disassembly. */
+ * Confirmed: 7 CALL + 1 JMP (tail call to ai_debug_dispose) in disassembly. */
 void ai_dispose(void)
 {
   ai_communication_dispose();
@@ -1332,7 +1332,7 @@ bool ai_test_line_of_fire(int actor_handle, int excluded_handle, float *origin,
   return (bool)success;
 }
 
-/* ai_clump (FUN_00042390): scan all active player-actor records to find
+/* ai_clump (ai_clump): scan all active player-actor records to find
  * any actor that should trigger a clump (grouping) response.
  * Iterates via data_iterator_new/data_iterator_next over the data at
  * 0x5ab23c. For each record: checks active/valid flags, verifies the
@@ -1346,7 +1346,7 @@ bool ai_test_line_of_fire(int actor_handle, int excluded_handle, float *origin,
  * return via AL = 0 or 1 (two separate RETs); two exit paths.
  * Inferred: 0x5ab23c = swarm/clump data_t; 0x2533d8, 0x254cc0,
  * 0x254cc8, 0x254e74 are float constants embedded in the game binary. */
-bool FUN_00042390(char param_1)
+bool ai_clump(char param_1)
 {
   int current_time;
   data_iter_t iter; /* standard 0x10-byte data iterator */
@@ -1454,22 +1454,22 @@ bool FUN_00042390(char param_1)
 }
 
 /* ai_enemies_can_see_player: query whether any AI enemy can currently see
- * a player. Delegates entirely to FUN_00042390(0). Returns true if any
+ * a player. Delegates entirely to ai_clump(0). Returns true if any
  * enemy has line-of-sight to a player, false otherwise.
  * Confirmed: PUSH 0 / CALL 0x42390 / ADD ESP,4 / RET; caller (0xa74f0)
  * checks the return value as a bool. */
 bool ai_enemies_can_see_player(void)
 {
-  return FUN_00042390(0);
+  return ai_clump(0);
 }
 
 /* ai_enemies_attacking_player: unconditionally trigger a clump check with
- * flag=1. Thin wrapper around ai_clump (FUN_00042390). Return value is
+ * flag=1. Thin wrapper around ai_clump (ai_clump). Return value is
  * discarded by the caller. Confirmed: PUSH 1 / CALL 0x42390 / ADD ESP,4 / RET.
  */
 void ai_enemies_attacking_player(void)
 {
-  FUN_00042390(1);
+  ai_clump(1);
 }
 
 /* FUN_000425c0: ai_sound_spatial_effect_submit — submit a spatial sound effect

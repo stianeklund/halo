@@ -1968,10 +1968,6 @@
           "decl": "void FUN_001e643e(void);"
         },
         {
-          "addr": "0x1e64ec",
-          "decl": "void KeQuerySystemTime(void);"
-        },
-        {
           "addr": "0x1e6520",
           "decl": "void FUN_001e6520(void);"
         },
@@ -6130,17 +6126,17 @@
         },
         {
           "addr": "0x17ca80",
-          "decl": "void rasterizer_decals_initialize(void);",
+          "decl": "void thunk_rasterizer_decals_initialize(void);",
           "ported": true
         },
         {
           "addr": "0x17caa0",
-          "decl": "void rasterizer_decals_initialize_for_new_map(void);",
+          "decl": "void thunk_rasterizer_decals_initialize_for_new_map(void);",
           "ported": true
         },
         {
           "addr": "0x17cab0",
-          "decl": "void rasterizer_decals_dispose_from_old_map(void);",
+          "decl": "void thunk_rasterizer_decals_dispose_from_old_map(void);",
           "ported": true
         },
         {
@@ -6150,7 +6146,7 @@
         },
         {
           "addr": "0x17cad0",
-          "decl": "void rasterizer_decals_dispose(void);",
+          "decl": "void thunk_rasterizer_decals_dispose(void);",
           "ported": true
         },
         {
@@ -6628,7 +6624,7 @@
         {
           "addr": "0x9ca70",
           "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
           "ported": true
         },
         {
@@ -6689,7 +6685,7 @@
         {
           "addr": "0x9dcf0",
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -17052,7 +17048,7 @@
         },
         {
           "addr": "0xbae10",
-          "decl": "void player_examine_nearby_unit(void);"
+          "decl": "bool player_examine_nearby_unit(int player_unit_handle, int nearby_unit_handle);"
         },
         {
           "addr": "0xbae20",
@@ -19350,12 +19346,12 @@
         },
         {
           "addr": "0x15b190",
-          "decl": "void FUN_0015b190(void);",
+          "decl": "void rasterizer_decals_initialize_for_new_map(void);",
           "ported": true
         },
         {
           "addr": "0x15b1a0",
-          "decl": "void FUN_0015b1a0(void);",
+          "decl": "void rasterizer_decals_dispose_from_old_map(void);",
           "ported": true
         },
         {
@@ -19397,12 +19393,12 @@
         },
         {
           "addr": "0x15b6d0",
-          "decl": "void FUN_0015b6d0(void);",
+          "decl": "void rasterizer_decals_initialize(void);",
           "ported": true
         },
         {
           "addr": "0x15b7e0",
-          "decl": "void FUN_0015b7e0(void);",
+          "decl": "void rasterizer_decals_dispose(void);",
           "ported": true
         },
         {
@@ -36118,10 +36114,6 @@
           "decl": "void MmQueryAllocationSize(void);"
         },
         {
-          "addr": "0x001d8bca",
-          "decl": "void NtClose(void);"
-        },
-        {
           "addr": "0x001d8bd0",
           "decl": "void NtDuplicateObject(void);"
         },
@@ -36188,10 +36180,6 @@
         {
           "addr": "0x001d8c30",
           "decl": "void ObOpenObjectByName(void);"
-        },
-        {
-          "addr": "0x001d8c36",
-          "decl": "void RtlInitAnsiString(void);"
         },
         {
           "addr": "0x001d8c3c",
@@ -36294,10 +36282,6 @@
           "decl": "void NtSetInformationFile(void);"
         },
         {
-          "addr": "0x001d8cd8",
-          "decl": "void NtOpenFile(void);"
-        },
-        {
           "addr": "0x001d8cde",
           "decl": "void NtQueryFullAttributesFile(void);"
         },
@@ -36322,16 +36306,8 @@
           "decl": "void NtReadFile(void);"
         },
         {
-          "addr": "0x001d8d02",
-          "decl": "void NtWriteFile(void);"
-        },
-        {
           "addr": "0x001d8d08",
           "decl": "void NtQueryInformationFile(void);"
-        },
-        {
-          "addr": "0x001d8d0e",
-          "decl": "void NtQueryVolumeInformationFile(void);"
         },
         {
           "addr": "0x001d8d14",
@@ -36342,20 +36318,8 @@
           "decl": "void NtUserIoApcDispatcher(void);"
         },
         {
-          "addr": "0x001d8d20",
-          "decl": "void NtFsControlFile(void);"
-        },
-        {
-          "addr": "0x001d8d26",
-          "decl": "void NtDeviceIoControlFile(void);"
-        },
-        {
           "addr": "0x001d8d2c",
           "decl": "void NtReadFileScatter(void);"
-        },
-        {
-          "addr": "0x001d8d32",
-          "decl": "void NtWriteFileGather(void);"
         },
         {
           "addr": "0x001d8d38",

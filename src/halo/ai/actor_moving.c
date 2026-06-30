@@ -1228,7 +1228,7 @@ char actor_path_3d_available(int actor_handle, float *dest_pos, float *dist_out)
  * The chosen candidate is written to out_vector and its index to out_index,
  * then the result is validated as a unit normal (|len^2 - 1| <= ~0.001).
  *
- * Register args confirmed from caller FUN_0002daa0 @ 0x2dd9a-0x2ddb4:
+ * Register args confirmed from caller actor_move_compute_facing @ 0x2dd9a-0x2ddb4:
  *   ECX = facing_basis (this+0x174), EAX = in_vec (the desired vector),
  *   EDI = weight_vec (this+0x524); cdecl stack: use_3d, out_vector, out_index
  *   (caller cleans 0xc bytes). */
@@ -1345,7 +1345,7 @@ void FUN_0002b830(float *facing_basis /* @<ecx> */, char use_3d,
  * direction in the local frame of the facing direction, writing the result
  * into the caller's output vector.
  *
- * Register args (confirmed from caller FUN_0002daa0 @ 0x2dbeb-0x2dbf7):
+ * Register args (confirmed from caller actor_move_compute_facing @ 0x2dbeb-0x2dbf7):
  *   use_3d              @<al>   : 0 selects the 2D (planar) path, nonzero the
  *                                 full 3D path.
  *   movement_direction  @<esi>  : float[3] unit movement direction.
@@ -1449,7 +1449,7 @@ void FUN_0002bab0(char use_3d /* @<al> */,
  * directions, scores each direction, picks the best, and produces an output
  * velocity direction (vel_out) and emergency turn amount (speed_out).
  *
- * ABI (confirmed from caller FUN_0002e560 @ 0x2e705-0x2e710):
+ * ABI (confirmed from caller actor_move_update @ 0x2e705-0x2e710):
  *   actor_handle @<ecx> : actor datum handle.
  *   facing              : float[3] desired facing / avoidance rotation (read).
  *   vel_out             : float[3] output movement direction.
@@ -2319,7 +2319,7 @@ LAB_check_dest:
      * re-path.
      * Confirmed at 0x0002d0d6-0x0002d0ee:
      *   LEA EDX,[EBP-0x18](saved_pos); PUSH EDI(&actor[0x488]); PUSH EDX
-     *   CALL distance_squared3d  (FUN_000121a0 = 0x000121a0)
+     *   CALL distance_squared3d  (distance_squared3d = 0x000121a0)
      *   FCOMP [0x255d1c]; FNSTSW AX; TEST AH,0x41; JNZ 0x2d32a (return 1)
      * JNZ taken when: AH & 0x41 != 0 → C3|C0 set → FPU flags for <=
      *   So jump to return-1 when dist_sq <= threshold.
@@ -3096,7 +3096,7 @@ char actor_move_to_prop(int actor_handle, int encounter_handle, float distance)
 /* 0x2daa0 — actor_move_compute_facing: Resolve the actor's desired facing
  * vector, movement-direction index, and steering speed for this update.
  *
- * Register args (confirmed from sole caller FUN_0002e560 @ 0x2ed71-0x2edbf):
+ * Register args (confirmed from sole caller actor_move_update @ 0x2ed71-0x2edbf):
  *   ECX = move_dir  (actor's facing-direction selector, actor[0x42e]);
  *   AL  = want_facing (avoidance/facing flag, caller local_5).
  * cdecl stack args (caller cleans 0x3c = 15 dwords) — see below.

@@ -315,8 +315,37 @@ __attribute__((naked)) { decl.replace(name, 'THUNK('+name+')') }
 '''
 		return thunk_functions
 
+	@staticmethod
+	def _xboxkrnl_ntapi_names():
+		"""Return the set of function names declared via XBAPI in xboxkrnl.h."""
+		hdr = os.path.join(root_dir, 'third_party', 'xbox', 'xboxkrnl.h')
+		names = set()
+		try:
+			with open(hdr) as f:
+				for line in f:
+					line = line.rstrip()
+					if not line.startswith('XBAPI '):
+						continue
+					# Skip data declarations (arrays, initialized vars)
+					if re.search(r'\[|\s*=\s*', line):
+						continue
+					# Single-line complete declaration: ends with ');' and contains '('
+					# e.g. XBAPI NTSTATUS NTAPI NtYieldExecution(void);
+					m = re.search(r'\b(\w+)\s*\([^)]*\)\s*;?\s*$', line)
+					if m and m.group(1) not in ('void', 'VOID', 'noreturn', 'attribute'):
+						names.add(m.group(1))
+					elif '(' not in line or re.search(r'__attribute__\s*\(', line):
+						# Multi-line or __attribute__ line: name is last identifier
+						m = re.search(r'\b(\w+)\s*$', line)
+						if m and m.group(1) not in ('void', 'VOID', 'noreturn'):
+							names.add(m.group(1))
+		except OSError:
+			pass
+		return names
+
 	def build_header(self, path: str):
 		log.info('Generating header...')
+		ntapi_names = self._xboxkrnl_ntapi_names()
 		with open(path, 'w') as f:
 			f.write('//\n'
 					'// AUTOMATICALLY GENERATED. DO NOT EDIT.\n'
@@ -338,6 +367,24 @@ __attribute__((naked)) { decl.replace(name, 'THUNK('+name+')') }
 						decl_str = filter_reg_assignments(s.decl)
 						if s.requires_reg_thunk:
 							decl_str = strip_stdcall(decl_str)
+						# Skip decls whose function name is not a valid C identifier:
+						# mangled C++ runtime (??2@YAPAXI@Z), Ghidra FID_conflict:
+						# markers, or stdcall @N decoration. These library/CRT symbols
+						# are never referenced from lifted C and would be hard syntax
+						# errors in the generated header.
+						_m = re.search(r'([A-Za-z_$?@:][\w$?@:.]*)\s*\(', decl_str)
+						_fname = _m.group(1) if _m else ''
+						if not re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', _fname):
+							f.write(f'// skipped non-C-identifier decl: {decl_str.strip()}\n')
+							continue
+						# Skip `void NAME(void);` placeholder decls for functions declared in
+						# xboxkrnl.h. These stubs have no real signature and conflict with the
+						# correct calling-convention prototype from the system header.
+						# Any matching XBAPI name wins regardless of which kb.json object it's in.
+						if (re.match(r'^void\s+[A-Za-z_]\w*\s*\(\s*void\s*\)\s*;?\s*$', decl_str.strip())
+								and _fname in ntapi_names):
+							f.write(f'// skipped xboxkrnl placeholder: {decl_str.strip()}\n')
+							continue
 						f.write(f'HFUNC {decl_str}\n')
 				f.write('\n')
 

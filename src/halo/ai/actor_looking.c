@@ -600,7 +600,7 @@ void FUN_000146f0(int actor_handle)
 /* FUN_00014770 (0x14770) — Combat fight-action state evaluator.
  *
  * Evaluates the actor's combat targeting state. Two execution paths:
- *   PATH A (field_358 && tag_bit5): quick check via FUN_00025a00.
+ *   PATH A (field_358 && tag_bit5): quick check via actor_has_accessible_firing_position.
  *     Success → encounter checks + optional firing position reset → tail.
  *     Failure → fall through to PATH B.
  *   PATH B: evaluation pipeline (csmemset → FUN_00027090 → FUN_000272d0),
@@ -612,10 +612,10 @@ void FUN_000146f0(int actor_handle)
  * Confirmed: datum_get(actor_data, actor_handle) at 0x1478a.
  * Confirmed: assert !actor->meta.swarm at 0x14797.
  * Confirmed: guard on actor->field_4c at 0x147bb.
- * Confirmed: tag_get(actr) at 0x147cc; FUN_000211f0 at 0x147d7.
+ * Confirmed: tag_get(actr) at 0x147cc; actor_combat_get_firing_variant_definition at 0x147d7.
  * Confirmed: field_160 (suppressed) guard at 0x147e8.
  * Confirmed: field_358+tag_bit5 branch at 0x147f0-0x14801.
- * Confirmed: FUN_0003bc90 at 0x14808; FUN_00025a00 at 0x1481e.
+ * Confirmed: actor_find_pathfinding_location at 0x14808; actor_has_accessible_firing_position at 0x1481e.
  * Confirmed: encounter/fp distance check at 0x1484f-0x1489e.
  * Confirmed: field_504/1fc prop check at 0x148a2-0x148ee.
  * Confirmed: evaluation pipeline at 0x14912-0x1496a.
@@ -1452,7 +1452,7 @@ bool FUN_000153e0(int actor_handle)
  *   state block (LEA ESI,[EDI+0x9c] at 0x1553f still live). 14c10 reads
  *   [ESI], [ESI+4], [ESI+0xc] before any ESI write (first use 0x14c7d).
  *   Ghidra missed both register args.
- * Confirmed: FUN_000300b0/302b0 cdecl 1 arg.
+ * Confirmed: actor_situation_update_target_status/302b0 cdecl 1 arg.
  * Confirmed: switch table at 0x15864; cases 9/10 share case 0xb/0xc bodies.
  * Confirmed: assert at action_flee.c:0x12e, 0x98. */
 int FUN_00015520(int actor_handle)
@@ -1821,7 +1821,7 @@ void actor_clear_guard_state(int actor_handle)
  *
  * Confirmed: datum_get at 0x15cfd. MOV EAX,EDI / CALL FUN_00015bb0 at 0x15d4b.
  * Confirmed: CMP/DEC word [ESI+0x9c/0x9e] at 0x15d1d/0x15d7b.
- * Confirmed: FUN_0003ca40 at 0x15e0c. FUN_0003b380+FUN_00046f10 at 0x15e3a. */
+ * Confirmed: actor_set_dormant at 0x15e0c. actor_target_unit_index+FUN_00046f10 at 0x15e3a. */
 void FUN_00015cf0(int actor_handle)
 {
   char *actor;
@@ -2170,7 +2170,7 @@ char FUN_00016210(int actor_handle, int param_2, short *param_3)
  * Evaluates the actor's firing-position combat state and advances the
  * state machine. Three early-exit conditions (swarm, field_160, reset).
  * Main path: if field_4c is active and field_aa is flagged, runs
- * the firing-position evaluation pipeline (FUN_00024be0, FUN_00024a60,
+ * the firing-position evaluation pipeline (FUN_00024be0, actor_get_firing_position_group,
  * FUN_00025c10, FUN_000272d0), then selects a randomized delay timer
  * from the actor tag's min/max range, scaled by 30.0 Hz.
  *
@@ -2180,9 +2180,9 @@ char FUN_00016210(int actor_handle, int param_2, short *param_3)
  * 0x163e4/0x163e9. Confirmed: tag_get('actr', actor->field_58) at
  * 0x163f0/0x163f9. Confirmed: three early-return paths for
  * swarm/field_160/reset at 0x16407/0x16422/0x16443. Confirmed: main evaluation
- * pipeline: FUN_00024be0 at 0x1649b, csmemset(0x670) at 0x164b1, FUN_00024a60
+ * pipeline: FUN_00024be0 at 0x1649b, csmemset(0x670) at 0x164b1, actor_get_firing_position_group
  * at 0x164c4, FUN_00025c10 at 0x164f1, FUN_000272d0 at 0x1650b. Confirmed:
- * random timer: FUN_0010b270(seed, tag_min, tag_max) at 0x16563, FMUL
+ * random timer: random_real_range(seed, tag_min, tag_max) at 0x16563, FMUL
  * [0x253394]=30.0f at 0x16568, _ftol2 at 0x16571, store to actor->field_9c at
  * 0x16576. Inferred: actor+0xc0 = firing-position action state (int16_t).
  *   actor+0xc4 = firing-position target (int16_t).
@@ -2271,7 +2271,7 @@ unsigned int FUN_000163d0(int actor_handle)
  * Sets look-flag bytes actor+0x426/427/428/424/425 from actr tag bits and
  * actor stance (a4/a6). Dispatches:
  *   0/1 → retreat (FUN_0002f1a0)
- *   2   → approach position (FUN_0002d720 or retreat)
+ *   2   → approach position (actor_move_to_point or retreat)
  *   3   → move to firing position (actor_move_to_firing_position)
  * On approach success: fires FUN_00015bb0 if prop-ready (actor+0xa1) and
  * guard state (a3) not set. Then sets nav output (3e8/3ec/3f0/3fc).
@@ -2562,7 +2562,7 @@ void FUN_000169a0(int actor_handle, int unit_handle, short scenario_idx,
   }
 }
 
-/* FUN_00016bd0 / actor_look_secondary_stop (0x16bd0)
+/* actor_look_secondary_stop / actor_look_secondary_stop (0x16bd0)
  * Command-list initialization callback for prop interest dispatch.
  *
  * Clears 0x24 bytes of state_data, sets first byte to 0xff. Asserts
@@ -2711,7 +2711,7 @@ void actor_look_compute_prop_interest(int actor_handle, int param_2,
  * Validates the command-list index against the scenario encounter table,
  * checks BSP compatibility, extracts command flags, optionally stops
  * scripted look, and dispatches initialization via
- * actor_look_compute_prop_interest with the FUN_00016bd0 callback.
+ * actor_look_compute_prop_interest with the actor_look_secondary_stop callback.
  *
  * Confirmed: datum_get(actor_data, actor_handle) → actor.
  * Confirmed: global_scenario_get, tag_block_get_element(scenario+0x438,
@@ -4388,7 +4388,7 @@ void FUN_00019280(int actor_handle)
  *
  * Confirmed: datum_get(actor_data, actor_handle) → actor.
  * Confirmed: LEA ECX,[EBP-1] → address of local_finished byte.
- * Confirmed: FUN_00016d40 callback=FUN_00019110. */
+ * Confirmed: actor_look_compute_prop_interest callback=FUN_00019110. */
 int FUN_000192b0(int actor_handle)
 {
   char *actor;
@@ -4440,7 +4440,7 @@ LAB_done:
  * Post-initialization:
  *   - Copies field_c8 to 426/427, field_ca to 42c.
  *   - If field_f8 is set and FUN_0002a360 passes: dispatches
- *     FUN_0002a7e0 and FUN_00046f10 for firing-position targets.
+ *     actor_move_animation_impulse and FUN_00046f10 for firing-position targets.
  *   - field_a9&1: copies field_b0/ac to 430-43c.
  *   - field_a9&4: evasion/cliff-protection init or maintenance.
  *
@@ -4913,7 +4913,7 @@ void FUN_00019c70(int actor_handle)
  *   2. field_a4==1 && field_a6!=-1: distance/window check with LOS test.
  *   3. field_9e==0 && field_a1==0: iterate nearby actors (field_24 in [2,3])
  *      and count/assess proximity for retreat/support decisions.
- *   4. Fallback: FUN_0002d9b0 for type-0, FUN_0002d900 for type-1.
+ *   4. Fallback: actor_move_to_prop for type-0, actor_move_to_firing_position for type-1.
  *
  * Confirmed: cdecl, single stack arg (actor_handle).
  * Confirmed: datum_get(actor_data, actor_handle) at 0x19d10/0x19d12.
@@ -4924,10 +4924,10 @@ void FUN_00019c70(int actor_handle)
  * at 0x19ddf/0x19de4, FCOM [0x253dd0] / FCOMP [0x253dcc] at 0x19de4/0x19dff,
  *   unit_estimate_position + ai_test_line_of_sight at 0x19e24/0x19e59.
  * Confirmed: actor iteration with FUN_00064540/FUN_00064570 at 0x19e97/0x19ea0,
- *   loop head at 0x19eb2, FUN_00020140 at 0x19ee0, inner datum_get at 0x19ef7.
- * Confirmed: encounter support FUN_0005b5e0 at 0x19fac.
- * Confirmed: fallback FUN_0002d9b0(actor_handle, field_270, 3.0f) at 0x19feb.
- *   or FUN_0002d900(actor_handle, field_a6, 0) at 0x19fa2a.
+ *   loop head at 0x19eb2, actors_searching_same_position at 0x19ee0, inner datum_get at 0x19ef7.
+ * Confirmed: encounter support encounter_mark_examined_pursuit_position at 0x19fac.
+ * Confirmed: fallback actor_move_to_prop(actor_handle, field_270, 3.0f) at 0x19feb.
+ *   or actor_move_to_firing_position(actor_handle, field_a6, 0) at 0x19fa2a.
  * Confirmed: FUN_0002f1a0(actor_handle) call at 0x1a035. */
 int actor_look_secondary(int actor_handle)
 {
@@ -5457,7 +5457,7 @@ void FUN_0001a670(int actor_handle)
  * Manages the actor's "uncover" behavioral state: determines whether
  * the actor should mark a location as uncovered based on actor-tag
  * flags, threat distance, and persistent/timer-based conditions.
- * Handles debug-log output via FUN_00049ac0 and FUN_0008f390.
+ * Handles debug-log output via ai_debug_describe_actor and error.
  *
  * Confirmed: cdecl, single stack arg (actor_handle).
  * Confirmed: datum_get at 0x1a7e0, tag_get('actr') at 0x1a7e0+0x48.
@@ -5471,7 +5471,7 @@ void FUN_0001a670(int actor_handle)
  *   the else path's je jumps past it to the shared decrement at 0x1a974.
  * Confirmed: field_9d receives the flag register once at 0x1aad0
  *   (single MOV [ESI+0x9d],BL at function exit).
- * Confirmed: debug-log FUN_00049ac0 at 0x1a9af, FUN_0008f390 at 0x1aa70. */
+ * Confirmed: debug-log ai_debug_describe_actor at 0x1a9af, error at 0x1aa70. */
 void FUN_0001a7e0(int actor_handle)
 {
   char *actor;
@@ -5752,7 +5752,7 @@ char FUN_00024ca0(int actor_handle, short param_2)
  *
  * Confirmed: datum_get at 0x24d04; CALL FUN_00024ca0 at 0x24d46.
  * Confirmed: stride 0x3c at 0x25138; fp_ptr saved at [EBP-4] (0x24d24).
- * Confirmed: FUN_0010cd40 at 0x24e33, 0x24f3a; FUN_0010ce10 at 0x24fb8.
+ * Confirmed: FUN_0010cd40 at 0x24e33, 0x24f3a; vector_to_line_distance_squared3d at 0x24fb8.
  * Confirmed: object_get_and_verify_type(target,2) at 0x25168.
  * Confirmed: fp->score = fp_ptr+0x24 = fp2_ptr+8 (element_base+0x38).
  * Confirmed: threat stride i*0x10 (SHL EAX,4 at 0x25076). */
@@ -6353,7 +6353,7 @@ char FUN_00025970(void *state, int actor_handle, char *actor)
   return *(char *)((char *)state + 0x30);
 }
 
-/* FUN_00025a00 (0x25a00) — actor_has_accessible_firing_position
+/* actor_has_accessible_firing_position (0x25a00) — actor_has_accessible_firing_position
  * Tests whether the given position is an accessible firing position for the
  * actor.  Checks that the position belongs to the actor's encounter's firing-
  * position list, is within range, and (for non-swarm actors) is reachable via
@@ -6363,8 +6363,8 @@ char FUN_00025970(void *state, int actor_handle, char *actor)
  *   param_3=surface_index (-1 = none), param_4=group_mask (bitfield).
  * Confirmed: actor+0x99 = is_swarm flag; actor+0x34 = encounter handle;
  *   actor+0x3a = firing_position_index (short); actor+0x58 = tag_index.
- * Confirmed: FUN_00024a60 = actor_get_firing_position_group (3 args).
- * Confirmed: FUN_0005f550 = path_state_estimated_distance (6 args cdecl,
+ * Confirmed: actor_get_firing_position_group = actor_get_firing_position_group (3 args).
+ * Confirmed: path_state_estimated_distance = path_state_estimated_distance (6 args cdecl,
  *   ADD ESP,0x18 at 0x25bb6/all sites; output via arg4 float*, args 5/6 are
  *   optional out-pointers — this site shares two PUSH 0 with the 0x5e830
  *   branch, so it passes NULL/NULL); NOT an ESI-output function — unaff_ESI
@@ -7356,11 +7356,11 @@ short FUN_00027090(int actor_handle, void *param_2, void *param_3,
  * If param_2 == -1: clears actor firing position via FUN_0002f1a0, sets
  * actor+0x3b8 = -1. Else: validates encounter, displaces any current
  * holder of the slot (param_4), sets actor+0x3b8 = param_2, updates the
- * platform prop if needed, and calls FUN_0005b370.
+ * platform prop if needed, and calls encounter_verify_firing_position_owner_actor_indices.
  *
  * Confirmed: datum_get(actor_data, actor_handle) at 0x272e3.
  * Confirmed: assert on actor->meta.encounter_index != NONE at 0x27305.
- * Confirmed: FUN_0002d900 = attempt move to position. */
+ * Confirmed: actor_move_to_firing_position = attempt move to position. */
 short FUN_000272d0(int actor_handle, short param_2, void *param_3, int param_4,
                    unsigned int param_5, char param_6)
 {
