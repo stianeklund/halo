@@ -145,6 +145,29 @@ void build_message_header(unsigned short *header, unsigned short length,
   assert_halt_msg(0, "(0<(type)) && ((type)<NUMBER_OF_MESSAGE_TYPES)");
 }
 
+/* 0x80c20 - Byte-swap a 2-byte message header for network byte order.
+ * param_2 == 0: host->network; param_2 == 1: network->host.
+ * Both directions are identical (swap both bytes). */
+void byte_swap_message_header(unsigned short *header, int byte_order)
+{
+  unsigned short v;
+
+  assert_halt_msg(header != (unsigned short *)0, "header");
+
+  if (byte_order == 1) {
+    v = *header;
+    *header = (unsigned short)((v << 8) | (v >> 8));
+    return;
+  }
+  if (byte_order == 0) {
+    v = *header;
+    *header = (unsigned short)((v << 8) | (v >> 8));
+    return;
+  }
+
+  assert_halt_msg(0, "!\"bad value for byte order\"");
+}
+
 /* 0x80ca0 - Allocate (or use a provided buffer) and build a complete message.
  * If param_4 == 0, allocates (length+2) bytes via debug_malloc.
  * Writes the header at offset 0 and copies param_3 bytes of payload from
@@ -174,29 +197,6 @@ int create_message(int type, int payload, unsigned int payload_len, int buffer,
   return buffer;
 }
 
-/* 0x80c20 - Byte-swap a 2-byte message header for network byte order.
- * param_2 == 0: host->network; param_2 == 1: network->host.
- * Both directions are identical (swap both bytes). */
-void byte_swap_message_header(unsigned short *header, int byte_order)
-{
-  unsigned short v;
-
-  assert_halt_msg(header != (unsigned short *)0, "header");
-
-  if (byte_order == 1) {
-    v = *header;
-    *header = (unsigned short)((v << 8) | (v >> 8));
-    return;
-  }
-  if (byte_order == 0) {
-    v = *header;
-    *header = (unsigned short)((v << 8) | (v >> 8));
-    return;
-  }
-
-  assert_halt_msg(0, "!\"bad value for byte order\"");
-}
-
 /* 0x80d30 - Comparator for qsort over unsigned int arrays (ascending).
  * Returns 1 if *a < *b, -1 if *a > *b, 0 if equal. */
 int prime_compare(unsigned int *a, unsigned int *b)
@@ -205,4 +205,216 @@ int prime_compare(unsigned int *a, unsigned int *b)
     return 1;
   }
   return -(int)(*b < *a);
+}
+
+/* Global: pointer to key_agreement_packets group definition at 0x2ee588. */
+#define key_agreement_group ((void *)0x2ee588)
+
+/* 0x803d0 - Encode a key-agreement packet and wrap it in a message.
+ * Encodes the packet data (param_2) into a 128-byte stack buffer using
+ * encode_packet_group with message type param_1, then calls create_message
+ * to allocate and build the network message.  Sets the encrypted-key-exchange
+ * flag (bit 1) in the returned message header and returns the message pointer,
+ * or NULL on failure. */
+unsigned short *key_agreement_build_message(short type, void *data, int buffer,
+                                            unsigned short buffer_size)
+{
+  unsigned char encoded_buf[0x88];
+  int encoded_size;
+  unsigned short *msg;
+  int i;
+
+  encoded_buf[0] = 0;
+  for (i = 0; i < 0x7f; i++) {
+    encoded_buf[1 + i] = 0;
+  }
+  encoded_size = 0x80;
+
+  if (encode_packet_group((group_definition *)key_agreement_group, data,
+                          (char *)encoded_buf, &encoded_size, type, 1)) {
+    msg = (unsigned short *)create_message(
+      3, (int)encoded_buf, (unsigned int)encoded_size, buffer, buffer_size);
+    if (msg != (unsigned short *)0) {
+      *msg = (*msg & 0xfffe) | 2;
+      return msg;
+    }
+  }
+  return (unsigned short *)0;
+}
+
+/* 0x80940 - Encrypt a message in-place using TEA + keystream XOR.
+ * Encrypts full 8-byte TEA blocks followed by any remainder bytes via
+ * key_message_xor_keystream.  Payload byte-count is derived from the
+ * 4-bit-shifted length field minus 2 (the header size).
+ * Sets the encrypted flag (bit 0) in the message header on success.
+ * Asserts if msgptr or key is NULL, or if the resulting flags exceed 2 bits. */
+void message_encrypt(unsigned short *msgptr, unsigned int *key)
+{
+  unsigned short hdr;
+  unsigned int blocks;
+  unsigned int remain;
+  unsigned short *cursor;
+  unsigned int key_copy[4];
+  unsigned int i;
+
+  assert_halt_msg(msgptr != (unsigned short *)0 && key != (unsigned int *)0,
+                  "msgptr && key");
+
+  hdr = *msgptr;
+  if ((hdr & 1) == 0) {
+    blocks = (unsigned int)(((unsigned short)(hdr >> 4) - 2) >> 3);
+    remain = (unsigned int)((unsigned char)((char)((hdr >> 4) - 2)) & 7);
+    cursor = msgptr + 1;
+    key_copy[0] = key[0];
+    key_copy[1] = key[1];
+    key_copy[2] = key_copy[0];
+    key_copy[3] = key_copy[1];
+
+    if ((short)blocks != 0) {
+      i = (unsigned int)(blocks & 0xffff);
+      do {
+        tea_encrypt((unsigned int *)cursor, (unsigned int *)cursor,
+                    (int *)key_copy);
+        cursor = cursor + 4;
+        i = i - 1;
+      } while (i != 0);
+      i = 0;
+    }
+    if ((short)remain != 0) {
+      key_message_xor_keystream((int)cursor, (int)(short)remain, (int)key, 8);
+    }
+    hdr = (unsigned short)(hdr & 3) | 1;
+    assert_halt_msg(!(3 < hdr),
+                    "(0<=flags) && ((flags)<=MESSAGE_FLAG_BITS_MASK)");
+    *msgptr = (*msgptr & 0xfffc) | hdr;
+  }
+}
+
+/* 0x80a40 - Decrypt a message in-place using TEA + keystream XOR.
+ * Mirror of message_encrypt: checks that bit 0 is set (message is encrypted),
+ * decrypts full 8-byte TEA blocks, then XORs any remainder bytes.
+ * Clears the encrypted flag (bit 0) and retains the key-exchange flag (bit 1).
+ */
+void message_decrypt(unsigned short *msgptr, unsigned int *key)
+{
+  unsigned short hdr;
+  unsigned int blocks;
+  unsigned int remain;
+  unsigned short *cursor;
+  unsigned int key_copy[4];
+  unsigned int i;
+
+  assert_halt_msg(msgptr != (unsigned short *)0 && key != (unsigned int *)0,
+                  "msgptr && key");
+
+  hdr = *msgptr;
+  if ((hdr & 1) != 0) {
+    blocks = (unsigned int)(((unsigned short)(hdr >> 4) - 2) >> 3);
+    remain = (unsigned int)((unsigned char)((char)((hdr >> 4) - 2)) & 7);
+    cursor = msgptr + 1;
+    key_copy[0] = key[0];
+    key_copy[1] = key[1];
+    key_copy[2] = key_copy[0];
+    key_copy[3] = key_copy[1];
+
+    if ((short)blocks != 0) {
+      i = (unsigned int)(blocks & 0xffff);
+      do {
+        tea_decrypt((unsigned int *)cursor, (unsigned int *)cursor,
+                    (int *)key_copy);
+        cursor = cursor + 4;
+        i = i - 1;
+      } while (i != 0);
+      i = 0;
+    }
+    if ((short)remain != 0) {
+      key_message_xor_keystream((int)cursor, (int)(short)remain, (int)key, 8);
+    }
+    assert_halt_msg(!(3 < (hdr & 2)),
+                    "(0<=flags) && ((flags)<=MESSAGE_FLAG_BITS_MASK)");
+    *msgptr = (*msgptr & 0xfffc) | (hdr & 2);
+  }
+}
+
+/* 0x80d50 - Sieve of Eratosthenes: return an ascending array of primes <=
+ * limit. Allocates an array of all odd candidates (3, 5, 7, ...) plus 2, runs
+ * the sieve, appends 2, sorts with qsort(prime_compare), then shrinks the
+ * allocation to *num_primes elements via debug_realloc.
+ * Returns NULL if limit < 2 or if malloc fails; *num_primes is set on all
+ * paths. */
+unsigned int *sieve_of_eratosthenes(unsigned int limit,
+                                    unsigned int *num_primes)
+{
+  unsigned int count;
+  unsigned int *primes;
+  unsigned int uVar3;
+  unsigned int p;
+  unsigned int local_c;
+  unsigned int local_8;
+  unsigned int uVar5;
+  unsigned int *puVar6;
+
+  count = limit >> 1;
+  if ((limit & 1) == 0) {
+    count = count - 1;
+  }
+  uVar5 = 0;
+  local_8 = 0;
+
+  assert_halt_msg(num_primes != (unsigned int *)0, "num_primes");
+
+  if (limit < 2) {
+    *num_primes = 0;
+    return (unsigned int *)0;
+  }
+
+  uVar3 = count + 1;
+  *num_primes = uVar3;
+
+  primes =
+    (unsigned int *)debug_malloc(count * 4 + 4, 0, "prime_numbers.c", 0x47);
+  if (primes != (unsigned int *)0) {
+    p = 3;
+    uVar3 = (unsigned int)(int)sqrtf((float)(int)limit);
+    if (count == 0) {
+      local_8 = 0;
+    } else {
+      do {
+        primes[uVar5] = p;
+        uVar5++;
+        p += 2;
+      } while (uVar5 < count);
+      do {
+        if (uVar3 < primes[local_8])
+          break;
+        local_8++;
+      } while (local_8 < count);
+    }
+    if (local_8 != 0) {
+      uVar5 = 1;
+      puVar6 = primes;
+      local_c = local_8;
+      do {
+        if (*puVar6 != 0) {
+          for (p = uVar5; p < count; p++) {
+            if (primes[p] != 0 && primes[p] % *puVar6 == 0) {
+              primes[p] = 0;
+              *num_primes = *num_primes - 1;
+            }
+          }
+        }
+        uVar5++;
+        puVar6++;
+        local_c--;
+      } while (local_c != 0);
+    }
+    primes[count] = 2;
+    qsort(primes, count + 1, 4,
+          (int (*)(const void *, const void *))prime_compare);
+    if (*num_primes < count + 1) {
+      primes = (unsigned int *)debug_realloc(primes, (int)(*num_primes << 2),
+                                             "prime_numbers.c", 0x75);
+    }
+  }
+  return primes;
 }
