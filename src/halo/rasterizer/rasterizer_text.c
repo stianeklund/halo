@@ -821,9 +821,7 @@ void FUN_00181c20(void)
   int definition; /* entry[0] = tag definition ptr (EDI) */
 
   /* Relative position of flare to camera */
-  float delta_x; /* [EBP-0x18] entry_x - camera_x */
-  float delta_y; /* [EBP-0x14] entry_y - camera_y */
-  float delta_z; /* [EBP-0x10] entry_z - camera_z */
+  float delta[3]; /* [EBP-0x18/-0x14/-0x10] entry - camera (contiguous array for normalize3d) */
   float view_dot; /* [EBP-0x1c] dot(fwd, delta) */
 
   /* Reflection billboard offset */
@@ -941,18 +939,18 @@ void FUN_00181c20(void)
         entry_z = *(float *)((char *)entry + 0xc);
 
         /* Compute relative position to camera origin */
-        delta_x = entry_x - *(float *)0x5a5bc8;
-        delta_y = entry_y - *(float *)0x5a5bcc;
-        delta_z = entry_z - *(float *)0x5a5bd0;
+        delta[0] = entry_x - *(float *)0x5a5bc8;
+        delta[1] = entry_y - *(float *)0x5a5bcc;
+        delta[2] = entry_z - *(float *)0x5a5bd0;
 
         /* view_dot = dot(camera_fwd, delta) */
-        view_dot = *(float *)0x5a5bd4 * delta_x + *(float *)0x5a5bd8 * delta_y +
-                   *(float *)0x5a5bdc * delta_z;
+        view_dot = *(float *)0x5a5bd4 * delta[0] + *(float *)0x5a5bd8 * delta[1] +
+                   *(float *)0x5a5bdc * delta[2];
 
         /* Reflection offset: 2*(view_fwd * dot - delta) */
-        refl_off_x = *(float *)0x5a5bd4 * view_dot - delta_x;
-        refl_off_y = *(float *)0x5a5bd8 * view_dot - delta_y;
-        refl_off_z = *(float *)0x5a5bdc * view_dot - delta_z;
+        refl_off_x = *(float *)0x5a5bd4 * view_dot - delta[0];
+        refl_off_y = *(float *)0x5a5bd8 * view_dot - delta[1];
+        refl_off_z = *(float *)0x5a5bdc * view_dot - delta[2];
         refl_off_x = refl_off_x + refl_off_x;
         refl_off_y = refl_off_y + refl_off_y;
         refl_off_z = refl_off_z + refl_off_z;
@@ -987,12 +985,12 @@ void FUN_00181c20(void)
           *(float *)(definition + 0x84);
 
         /* fpatan of screen-space projection */
-        flare_angle = (float)atan2(*(float *)0x5a5c6c * delta_z +
-                                     *(float *)0x5a5c68 * delta_y +
-                                     delta_x * *(float *)0x5a5c64,
-                                   *(float *)0x5a5c78 * delta_z +
-                                     *(float *)0x5a5c74 * delta_y +
-                                     delta_x * *(float *)0x5a5c70) *
+        flare_angle = (float)atan2(*(float *)0x5a5c6c * delta[2] +
+                                     *(float *)0x5a5c68 * delta[1] +
+                                     delta[0] * *(float *)0x5a5c64,
+                                   *(float *)0x5a5c78 * delta[2] +
+                                     *(float *)0x5a5c74 * delta[1] +
+                                     delta[0] * *(float *)0x5a5c70) *
                       *(float *)0x2b073c;
 
         /* depth scale: 1.0 / (far - near) */
@@ -1000,8 +998,8 @@ void FUN_00181c20(void)
                                             *(float *)(definition + 0xc));
         depth_bias = -(depth_scale * *(float *)(definition + 0xc));
 
-        /* Normalize delta (in-place, modifies delta_x/y/z via &delta_x) */
-        normalize3d(&delta_x);
+        /* Normalize delta (in-place, modifies delta[0]/y/z via &delta[0]) */
+        normalize3d(&delta[0]);
 
         /* Visibility array:
          * [0] = 1.0 (always)
@@ -1031,7 +1029,7 @@ void FUN_00181c20(void)
           float v;
           v =
             depth_bias -
-            (dir_x * delta_x + dir_y * delta_y + dir_z * delta_z) * depth_scale;
+            (dir_x * delta[0] + dir_y * delta[1] + dir_z * delta[2]) * depth_scale;
           if (v < *(float *)0x2533c0) {
             vis[2] = 0.0f;
           } else if (*(float *)0x2533c8 < v) {
@@ -1043,8 +1041,8 @@ void FUN_00181c20(void)
 
         {
           float v;
-          v = (*(float *)0x5a5bdc * delta_z + *(float *)0x5a5bd8 * delta_y +
-               delta_x * *(float *)0x5a5bd4) *
+          v = (*(float *)0x5a5bdc * delta[2] + *(float *)0x5a5bd8 * delta[1] +
+               delta[0] * *(float *)0x5a5bd4) *
                 depth_scale +
               depth_bias;
           if (v < *(float *)0x2533c0) {
