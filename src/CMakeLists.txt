@@ -80,6 +80,7 @@
 	halo/networking/network_client_manager.c
 		halo/networking/network_game_globals.c
 		halo/networking/network_game_globals.c
+	halo/networking/message_header.c
 	halo/networking/network_messages.c
 	halo/networking/network_server_manager.c
 	halo/main/console.c

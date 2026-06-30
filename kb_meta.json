@@ -1011,6 +1011,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x493d0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x4ab10": {
       "kind": "function",
       "status": "ported"
@@ -1603,6 +1607,42 @@
       "status": "ported"
     },
     "0x7f5e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x80530": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x807d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x80820": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x808b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x80b40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x80c20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x80ca0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x80d30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x81090": {
       "kind": "function",
       "status": "ported"
     },
@@ -3446,6 +3486,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xb0990": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xb1a60": {
       "kind": "function",
       "status": "ported"
@@ -3957,6 +4001,10 @@
       "kind": "function",
       "status": "ported",
       "name": "players_compute_local_player_count"
+    },
+    "0xbae10": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xbae20": {
       "kind": "function",
@@ -8050,6 +8098,22 @@
       "status": "ported"
     },
     "0x17c950": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17ca80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17caa0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cab0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cad0": {
       "kind": "function",
       "status": "ported"
     },
