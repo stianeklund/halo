@@ -851,7 +851,7 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
   int object_handle;
   char bsp_hit;
   short pg_idx;
-  int pg_surf;
+  short pg_surf;
 
   result = 0;
 
@@ -1019,7 +1019,12 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
       if (*(short *)((char *)pg_list + 2) != -1) {
         pg_idx = *(short *)pg_list;
         pg = tag_block_get_element((char *)scen + 0x184, (int)pg_idx, 0x28);
-        pg_surf = *(int *)((char *)pg + 0x24);
+        /* Original reads pg_surf as a SIGNED 16-bit word (movsx eax,word ptr
+         * [eax+0x24] @0x14e23b), not a dword. Reading *(int*) here combines the
+         * +0x24 surface index with the +0x26 field: when +0x24=0 and +0x26=1 the
+         * dword is 0x00010000 (65536), which overflows the count-1 fog block at
+         * scen+0x190 and halts at tag_groups.c:3089. See feedback_check_disasm. */
+        pg_surf = *(short *)((char *)pg + 0x24);
         fog_tag =
           tag_block_get_element((char *)scen + 0x190, (int)pg_surf, 0x88);
         fog = tag_get(0x666f6720, *(int *)((char *)fog_tag + 0x2c));
