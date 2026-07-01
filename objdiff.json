@@ -7846,6 +7846,14 @@
       "metadata": {
         "source_path": "src/halo/networking/message_header.c"
       }
+    },
+    {
+      "name": "halo/FUN_000d1540",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
+      "base_path": "delinked/hud_FUN_000d1540.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/hud.c"
+      }
     }
   ]
 }
