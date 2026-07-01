@@ -1715,8 +1715,8 @@ size_ok:
   }
 
   {
-    void *msg = create_message(3, encoded_buf, encoded_size,
-                               s_network_game_message_buffer, 0x604);
+    void *msg = (void *)create_message(3, (int)encoded_buf, encoded_size,
+                                       (int)s_network_game_message_buffer, 0x604);
     if (msg == NULL) {
       network_game_log("create_message() failed");
     }
