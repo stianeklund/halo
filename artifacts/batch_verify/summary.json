@@ -1,11 +1,11 @@
 {
   "results": {
-    "pass": 1,
+    "pass": 2,
     "fail": 2,
     "error": 0,
-    "not_applicable": 0,
+    "not_applicable": 1,
     "z3_proven": 1,
-    "total": 3
+    "total": 5
   },
   "failures": [
     [
@@ -47,6 +47,18 @@
       "z3_proven": "0"
     },
     {
+      "addr": "0x84a10",
+      "name": "real_vector3d_valid",
+      "class": "leaf",
+      "obj": "objects.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 40,
+      "seeds_total": 40,
+      "z3_proven": "0"
+    },
+    {
       "addr": "0x12f80",
       "name": "vector3d_scale_add",
       "class": "leaf",
@@ -57,12 +69,32 @@
       "seeds_passed": 0,
       "seeds_total": 0,
       "z3_proven": "1"
+    },
+    {
+      "addr": "0x110a10",
+      "name": "FUN_00110a10",
+      "class": "leaf",
+      "obj": "real_math.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "error_details": [],
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
     }
   ],
   "by_object": {
     "actors.obj": {
       "fail": 2,
       "total": 2
+    },
+    "objects.obj": {
+      "pass": 1,
+      "total": 1
+    },
+    "real_math.obj": {
+      "not_applicable": 1,
+      "total": 1
     },
     "vector_math.obj": {
       "pass": 1,
@@ -100,7 +132,7 @@
     ],
     "allowlisted": []
   },
-  "elapsed_seconds": 0.006531715393066406,
+  "elapsed_seconds": 0.010044574737548828,
   "interrupted": false,
-  "skipped": 3
+  "skipped": 5
 }

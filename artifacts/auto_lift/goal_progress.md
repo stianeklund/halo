@@ -440,3 +440,28 @@ HANDOFF: borderline-sub-bar dormant cdecl impls recoverable via this lane: objec
 - FPU batch (analyst, 4 fns): vectors3d_from_euler_angles3d 0x10bbc0 ACTIVATED (14ce56b6) at 98.4% via __declspec(noinline) on matrix4x3_decompose (inline-vs-call gap). 3 banked DORMANT (unverified): 0x109f40 (equiv-blind: oracle .rdata reloc gap DAT_0028c728/255e94/2533c8 + xbox_asin precision; VC71 52.4%), 0x10a710 + 0x10a5e0 (equiv-vacuous: table-init early-exit on *0x46e39c; VC71 75/71%). real_math 117->119/171.
 - KEY FINDING: equiv lane DISCRIMINATES for self-contained fns (crc32) but goes BLIND on .rdata-constant readers (oracle reloc gap -> fails identically right or wrong) and VACUOUS on runtime-table readers (early-exit) under zero-fill. Much of the FPU/geometry cluster needs a static-constant or live-state snapshot.
 - Pre-existing non-allowlisted deactivation noted (not mine): 0x12f990 FUN_0012f990 (network_server_manager.obj).
+
+---
+
+## Session 2026-06-30: message_header.obj lift campaign
+
+Goal: lift 8 easy + 8 medium functions = 16 total
+
+| function | addr | source_file | screen_result | vc71 | action | reason |
+|---|---|---|---|---|---|---|
+| key_agreement_peek_packet_type | 0x80530 | message_header.c | pass | 94.3% | committed | easy, cdecl |
+| key_message_xor_keystream | 0x807d0 | message_header.c | pass | 95.7% | committed | easy, cdecl |
+| tea_encrypt | 0x80820 | message_header.c | pass | 92.9% | committed | easy, TEA crypto |
+| tea_decrypt | 0x808b0 | message_header.c | pass | 93.1% | committed | easy, TEA crypto |
+| build_message_header | 0x80b40 | message_header.c | pass | 80.3% | ported=false (structural cap) | MSVC7 xorl+movb vs VC71 movzx codegen |
+| byte_swap_message_header | 0x80c20 | message_header.c | pass | 100.0% | committed | easy, trivial bswap |
+| create_message | 0x80ca0 | message_header.c | pass | 80.4% | ported=false (structural cap) | MSVC7 codegen; movswl vs movzwl |
+| prime_compare | 0x80d30 | message_header.c | pass | 93.3% | committed | easy, comparator |
+| key_agreement_build_message | 0x803d0 | message_header.c | pass | 91.7% | committed | medium, cdecl |
+| message_encrypt | 0x80940 | message_header.c | pass | 85.6% | committed (permute: 87.6%) | goal90 PASS 85-89% |
+| message_decrypt | 0x80a40 | message_header.c | pass | 86.0% | committed (permute: 89.5%) | goal90 PASS 85-89% |
+| sieve_of_eratosthenes | 0x80d50 | message_header.c | pass | 91.3% | committed | medium, _ftol2/qsort |
+| FUN_00080380 | 0x80380 | — | skip | — | skipped | __fastcall |
+| FUN_000803b0 | 0x803b0 | — | skip | — | skipped | __fastcall |
+| FUN_000804e0 | 0x804e0 | — | skip | — | skipped | @esi reg arg |
+| FUN_00080470 | 0x80470 | — | skip | — | skipped | @esi/@ebx/@edi reg args |
