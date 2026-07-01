@@ -2332,6 +2332,54 @@
       "score": 63.7,
       "source": "src/halo/bitmaps/tiff_file.c"
     },
+    "FUN_000803d0": {
+      "score": 91.7,
+      "source": "src/halo/networking/message_header.c"
+    },
+    "FUN_00080530": {
+      "score": 94.3,
+      "source": "src/halo/networking/message_header.c"
+    },
+    "FUN_000807d0": {
+      "score": 95.7,
+      "source": "src/halo/networking/message_header.c"
+    },
+    "FUN_00080820": {
+      "score": 92.9,
+      "source": "src/halo/networking/message_header.c"
+    },
+    "FUN_000808b0": {
+      "score": 93.1,
+      "source": "src/halo/networking/message_header.c"
+    },
+    "FUN_00080940": {
+      "score": 85.6,
+      "source": "src/halo/networking/message_header.c"
+    },
+    "FUN_00080a40": {
+      "score": 86.0,
+      "source": "src/halo/networking/message_header.c"
+    },
+    "FUN_00080b40": {
+      "score": 96.1,
+      "source": "src/halo/networking/message_header.c"
+    },
+    "FUN_00080c20": {
+      "score": 100.0,
+      "source": "src/halo/networking/message_header.c"
+    },
+    "FUN_00080ca0": {
+      "score": 97.3,
+      "source": "src/halo/networking/message_header.c"
+    },
+    "FUN_00080d30": {
+      "score": 93.3,
+      "source": "src/halo/networking/message_header.c"
+    },
+    "FUN_00080d50": {
+      "score": 91.3,
+      "source": "src/halo/networking/message_header.c"
+    },
     "FUN_00081630": {
       "score": 80.0,
       "source": "src/halo/bungie_net/thread_win32.c"
@@ -7897,7 +7945,7 @@
       "source": "src/halo/physics/collision_usage.c"
     },
     "FUN_0014df70": {
-      "score": 69.7,
+      "score": 85.6,
       "source": "src/halo/physics/collision_usage.c"
     },
     "FUN_0014ec30": {
