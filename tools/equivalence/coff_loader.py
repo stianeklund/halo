@@ -76,6 +76,7 @@ class FunctionSlice:
     defined_symbols: set = field(default_factory=set)  # symbols defined in this .obj
     section_offset: int = 0  # offset of this function within its section
     rdata_map: dict = field(default_factory=dict)  # {symbol_name: bytes} for .rdata refs
+    rdata_relocs: dict = field(default_factory=dict)  # {symbol_name: [CoffReloc]} relative to rdata_map bytes
 
 
 class CoffParseError(Exception):
@@ -272,6 +273,8 @@ def extract_function(obj_path: str, func_name: str) -> FunctionSlice:
     sym_by_name = {s.name: s for s in symbols if s.section_num > 0}
     text_sec_idx = target_sym.section_num - 1
     rdata_map = {}
+    rdata_relocs = {}
+    section_reloc_cache = {}
     for r in func_relocs:
         if r.reloc_type != IMAGE_REL_I386_DIR32:
             continue
@@ -285,6 +288,17 @@ def extract_function(obj_path: str, func_name: str) -> FunctionSlice:
             chunk = sec.data[off:off + 256]
             if chunk and r.symbol_name not in rdata_map:
                 rdata_map[r.symbol_name] = chunk
+                relocs = section_reloc_cache.get(sec_idx)
+                if relocs is None:
+                    relocs = _section_relocs(sec, symbols, raw_data)
+                    section_reloc_cache[sec_idx] = relocs
+                chunk_relocs = [
+                    CoffReloc(rr.virtual_address - off, rr.symbol_name, rr.reloc_type)
+                    for rr in relocs
+                    if off <= rr.virtual_address < off + len(chunk)
+                ]
+                if chunk_relocs:
+                    rdata_relocs[r.symbol_name] = chunk_relocs
 
     return FunctionSlice(
         name=_canonical(target_sym.name),
@@ -294,6 +308,7 @@ def extract_function(obj_path: str, func_name: str) -> FunctionSlice:
         defined_symbols=defined,
         section_offset=func_offset,
         rdata_map=rdata_map,
+        rdata_relocs=rdata_relocs,
     )
 
 
