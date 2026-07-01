@@ -244,3 +244,12 @@ GREEN (patched default.xbe builds). Fixed pre-existing multi-layer breakage: com
 ## VERIFICATION (combined, byte-exact vs MSVC oracle): main run (valid state, 50 seeds) = 50/50 pass, 95.9% coverage, mem-trace byte-exact across both branches, stub-arg differential clean (50 calls 0 mismatch); insurance run (status=0 via --status 0, 20 seeds) = 20/20 pass on the Z_STREAM_ERROR(-2) guard path. Together both return values + both branches + ~100% body verified. Confidence label = WEAK ONLY because monotonic_return forces WEAK regardless of coverage (deflateSetDictionary returns Z_OK on every valid path); the real evidence is mem-trace+coverage, which is strong. Advisor-confirmed activation (rule "WEAK->park" was guarding low-COVERAGE weak like 0x10a5e0 70.2%, not monotonic-return weak at 95.9%). Function is gameplay-dead (Halo inflates, never deflate-with-dictionary) so activation risk ~nil; equiv+disasm is the practical ceiling (runtime adds nothing).
 ## ACTIVATED: kb.json 0x110d40 ported false->true. Build GREEN ([100%] Built target halo, real_math.c.obj recompiled, raw-cast 411 baseline). Hazard --changed-only clean. real_math.obj 155->156/171.
 ## RECORDINGS NOTE (user asked re /mnt/g/dev/halo-memory-viewer/recordings): .halorec = HMRC datum-pool captures (object/actor/prop), NOT zlib deflate_state — they do NOT contain a deflateSetDictionary call, and deflate-with-dictionary is not a runtime path regardless. The in-game Derelict-MP capture WOULD seed FP-motion-family verification (physics state) once those are lifted — a real future asset for that cluster, not for deflate.
+| FUN_000d8af0 | 0xd8af0 | hud_weapon.c | cdecl | 100.0% | committed | weapon-hud globals alloc |
+| FUN_000d8b30 | 0xd8b30 | hud_weapon.c | cdecl | 100.0% | committed | weapon-hud globals reset |
+| FUN_000d8b70 | 0xd8b70 | hud_weapon.c | cdecl(empty) | 100.0% | committed | no-op old-map dispose |
+| FUN_000d8b80 | 0xd8b80 | hud_weapon.c | cdecl(empty) | 100.0% | committed | no-op dispose |
+| FUN_000d8b90 | 0xd8b90 | hud_weapon.c | cdecl | 100.0% | committed | flags bit0 set/clear (folded-offset fix) |
+| FUN_000d8bc0 | 0xd8bc0 | hud_weapon.c | @esi | 70.4% | committed | per-player accessor; body byte-match, @reg cap |
+| FUN_000d8c30 | 0xd8c30 | hud_weapon.c | @esi | 72.4% | committed | 2nd-region accessor; body byte-match, @reg cap |
+| FUN_000d8ca0 | 0xd8ca0 | hud_weapon.c | @eax+@esi | 82.8% | committed | tracked-weapon refresh; body byte-match, @reg cap |
+| FUN_000d8fd0 | 0xd8fd0 | hud_weapon.c | cdecl | 100.0% | committed | path leaf-name (strrchr) |

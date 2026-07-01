@@ -7854,6 +7854,22 @@
       "metadata": {
         "source_path": "src/halo/interface/hud.c"
       }
+    },
+    {
+      "name": "halo/hud_weapon",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud_weapon.c.obj",
+      "base_path": "delinked/hud_weapon.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/hud_weapon.c"
+      }
+    },
+    {
+      "name": "halo/hud_draw",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud_draw.c.obj",
+      "base_path": "delinked/hud_draw.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/hud_draw.c"
+      }
     }
   ]
 }

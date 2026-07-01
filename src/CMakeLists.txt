@@ -115,6 +115,8 @@
 	halo/render/render_cameras.c
 	"halo/saved games/saved_game_files.c"
 	halo/interface/hud_messaging.c
+	halo/interface/hud_draw.c
+	halo/interface/hud_weapon.c
 	halo/saved_games/game_state.c
 	halo/saved_games/game_state_xbox.c
 	halo/scenario/scenario.c
