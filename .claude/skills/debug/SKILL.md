@@ -262,15 +262,16 @@ Source file not registered in CMakeLists.txt. See Section E linker error.
 **build.py never regenerates `build/halo.map`.** If you symbolize a crash from
 `halo.map`, you WILL get wrong function names.
 
-**Always symbolize from the fresh PE export table** (base 0x642000):
+**Always use the exception symbolizer** (fresh `build/halo` PE exports, not `build/halo.map`):
 
 ```bash
-rtk python3 -c "
-import pefile
-pe = pefile.PE('build/halo-patched/default.xbe')
-for exp in pe.DIRECTORY_ENTRY_EXPORT.symbols:
-    if exp.name: print(f'0x{exp.address:08x} {exp.name.decode()}')" | grep <partial_name>
+rtk python3 tools/xbox/symbolize_exception.py --file /tmp/exception.txt
+rtk python3 tools/xbox/symbolize_exception.py 0x<EIP> 0x<frame0> 0x<frame1>
 ```
+
+The tool auto-derives the appended PE base from `halo-patched/cachebeta.xbe`
+when possible, falling back to `0x642000`, and resolves low original-code frames
+from `kb.json`.
 
 ### Deploy self-verification failure
 
