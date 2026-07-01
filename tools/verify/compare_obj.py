@@ -372,9 +372,103 @@ def compare_fpu_blocks(compiled_blocks: list[list[str]], ref_blocks: list[list[s
     return warnings
 
 
+# --- Load-width mismatch detection (int vs int16_t / int8_t) ---
+#
+# Both the compiled object and the delinked reference are MSVC codegen, so a
+# narrow signed/unsigned memory load (movsx/movzx word/byte) present on one side
+# but not the other -- at the same field offset -- almost always means the C type
+# width is wrong (e.g. `*(int*)(p+off)` where the original does a signed 16-bit
+# read). The aggregate LCS % hides this (one instruction among dozens: the c10
+# fog-zone crash moved the score only 85.5%->85.6%), so we census the narrow
+# memory loads on each side and report the difference. This is the mechanical
+# detector for docs/lift-learnings.md "int vs int16_t" (feedback_check_disasm)
+# and the c10 tag_groups.c:3089 pg_surf regression.
+
+# A narrow (16- or 8-bit) memory READ. The SAME 16-bit field read compiles to
+# two different AT&T forms across builds, so we must recognise both:
+#   fused : movswl/movzwl/movsbl/movzbl  <disp(%reg)>, %r32   (sign/zero-extend from mem)
+#   split : movw/movb                    <disp(%reg)>, %r16    (load, widened separately)
+# Both READ 16 (or 8) bits from memory, so we classify by access WIDTH ('n16'/'n8')
+# and IGNORE the fused-vs-split distinction -- otherwise the split form looks like
+# a "missing" narrow load and false-flags a correct lift. 32-bit reads (plain
+# `mov`, `push mem`, arithmetic) are NOT in these sets, so a field the original
+# reads at 16/8 bits but our lift reads at 32 bits shows up as a census mismatch.
+_NARROW_READ_WIDTH = {
+    'movswl': 'n16', 'movzwl': 'n16', 'movw': 'n16',
+    'movsbl': 'n8',  'movzbl': 'n8',  'movb': 'n8',
+    'movsx': 'nX', 'movzx': 'nX',  # Intel-syntax fallback (defensive)
+}
+
+
+def narrow_mem_load_shape(insn: str):
+    """If `insn` READS 16 or 8 bits FROM MEMORY, return (width_class, operand_key);
+    otherwise None.
+
+    The memory operand must be the SOURCE (first AT&T operand) so 16/8-bit stores
+    (`movw %ax, 0x24(%eax)`) and register-to-register widenings (`movswl %cx,%edx`)
+    are excluded. Only STRUCT-POINTER derefs count: frame-relative accesses
+    (%ebp/%esp) are stack locals whose slot assignment is build-specific noise,
+    not typed field reads, so they are excluded. Absolute addresses (globals) are
+    also excluded -- global access width is confounded by inlining and is a
+    different, rarer bug class. The key keeps the displacement (field offset) but
+    drops the base register, so it is robust to register-allocation differences.
+    """
+    parts = insn.split(None, 1)
+    if not parts:
+        return None
+    wc = _NARROW_READ_WIDTH.get(parts[0].lower())
+    if wc is None or len(parts) < 2:
+        return None
+    src = parts[1].split(',')[0].strip()  # AT&T source operand is first
+    m = re.match(r'^(-?0x[0-9a-f]+|-?\d+)?\((%\w+)\)$', src)  # disp(%reg)
+    if m:
+        base = m.group(2).lower()
+        if base in ('%ebp', '%esp'):
+            return None  # stack local -- build-specific slot, not a field type
+        return (wc, f"disp:{m.group(1) or '0x0'}")
+    return None  # absolute/global, register source, store, or unrecognized
+
+
+def compare_load_widths(compiled: list[str], reference: list[str]) -> list[str]:
+    """Flag fields that one side reads narrow (16/8-bit) and the other does not.
+
+    Compares the SET of (width-class, field-offset) narrow reads -- PRESENCE, not
+    count. Using presence (not a count/Counter) is deliberate: two differently
+    sourced MSVC builds routinely read the same field a different NUMBER of times
+    (common-subexpression elimination, recomputation), which a count-based diff
+    false-flags even though both read it at the correct width. A field present on
+    exactly one side is the real signal: reference-only -> we WIDENED it (the c10
+    crash direction); compiled-only -> we over-narrowed a 32-bit value.
+    """
+    def shapes(insns):
+        out = {}
+        for insn in insns:
+            s = narrow_mem_load_shape(insn)
+            if s is not None:
+                out.setdefault(s, insn.strip())
+        return out
+
+    c_sh = shapes(compiled)
+    r_sh = shapes(reference)
+    warnings = []
+    for shape in sorted(set(r_sh) - set(c_sh)):
+        wc, key = shape
+        warnings.append(
+            f"    LOADW: reference reads a narrow field [{wc} {key}] that our lift "
+            f"does not (ref: `{r_sh[shape]}`) -- likely a narrow field read as a "
+            f"wider type (int vs int16_t/int8_t)")
+    for shape in sorted(set(c_sh) - set(r_sh)):
+        wc, key = shape
+        warnings.append(
+            f"    LOADW: our lift reads a narrow field [{wc} {key}] the reference "
+            f"does not (ours: `{c_sh[shape]}`) -- possible over-narrowed field "
+            f"(reading only the low bits of a wider value)")
+    return warnings
+
+
 def compare_functions(compiled: list[str], reference: list[str],
-                      reg_normalize: bool = False) -> tuple[float, list[str], list[str]]:
-    """Compare two functions. Returns (match_pct, diff_summary, fpu_warnings).
+                      reg_normalize: bool = False) -> tuple[float, list[str], list[str], list[str]]:
+    """Compare two functions. Returns (match_pct, diff_summary, fpu_warnings, loadw_warnings).
 
     When reg_normalize=True, uses full normalized instructions with register
     canonicalization for LCS instead of mnemonic-only. This catches operand-level
@@ -412,14 +506,72 @@ def compare_functions(compiled: list[str], reference: list[str],
     r_fpu = extract_fpu_blocks(reference)
     fpu_warnings = compare_fpu_blocks(c_fpu, r_fpu)
 
-    return ratio * 100, diffs, fpu_warnings
+    # Load-width comparison (int vs int16_t/int8_t)
+    loadw_warnings = compare_load_widths(compiled, reference)
+
+    return ratio * 100, diffs, fpu_warnings, loadw_warnings
+
+
+def _self_test():
+    """Built-in tests for the load-width detector (no external files needed)."""
+    failures = []
+
+    def check(name, cond):
+        print(f"  {'ok  ' if cond else 'FAIL'} {name}")
+        if not cond:
+            failures.append(name)
+
+    # 1. Positive: original reads a 16-bit field at +0x24, our lift reads it
+    #    wider (the c10 pg_surf regression: `push 0x24(%eax)` [32-bit] vs movswl).
+    ours = ["mov %eax, %esi", "push 0x24(%eax)", "call 0x72a1f0"]
+    ref  = ["mov %eax, %esi", "movswl 0x24(%eax), %eax", "push %eax", "call 0x19b210"]
+    w = compare_load_widths(ours, ref)
+    check("widened 16-bit field flagged", any("n16 disp:0x24" in x and "reference reads" in x for x in w))
+
+    # 2. Positive: field read wide via a 32-bit `mov` where original reads 16-bit.
+    w = compare_load_widths(["mov 0x8(%ecx), %eax"], ["movzwl 0x8(%ecx), %eax"])
+    check("widened via mov flagged", any("n16 disp:0x8" in x for x in w))
+
+    # 3. Positive (reverse): we over-narrow a field the reference reads wide.
+    w = compare_load_widths(["movswl 0x10(%eax), %eax"], ["mov 0x10(%eax), %eax"])
+    check("over-narrowed field flagged", any("our lift reads" in x and "n16 disp:0x10" in x for x in w))
+
+    # 4. CRITICAL negative: split-form vs fused form of the SAME 16-bit read must
+    #    NOT flag (`movw mem,%ax` [our build] == `movswl mem,%eax` [reference]).
+    w = compare_load_widths(["movw 0x24(%eax), %ax"], ["movswl 0x24(%eax), %eax"])
+    check("split vs fused 16-bit read not flagged", w == [])
+
+    # 5. CRITICAL negative: same field read a DIFFERENT NUMBER of times (CSE /
+    #    recomputation) must NOT flag -- this was the FUN_0014ec30 false positive
+    #    (reference reads +0x8 twice, our lift once; both 16-bit).
+    w = compare_load_widths(["movw 0x8(%eax), %si"],
+                            ["movw 0x8(%esi), %ax", "movw 0x8(%esi), %cx"])
+    check("differing read COUNT (CSE) not flagged", w == [])
+
+    # 6. Negative: same narrow load, different base register -> no warning.
+    w = compare_load_widths(["movswl 0x24(%ecx), %edx"], ["movswl 0x24(%eax), %eax"])
+    check("reg-alloc difference not flagged", w == [])
+
+    # 7. Negative: register-to-register widening / 16-bit STORE are not field loads.
+    w = compare_load_widths(["movswl %cx, %edx", "movw %ax, 0x8(%esi)"],
+                            ["mov %ecx, %edx", "movw %ax, 0x8(%esi)"])
+    check("reg widen and 16-bit store not flagged", w == [])
+
+    # 8. Negative: identical narrow loads cancel.
+    w = compare_load_widths(["movswl 0x8(%eax), %eax"], ["movswl 0x8(%esi), %ecx"])
+    check("matching narrow loads not flagged", w == [])
+
+    if failures:
+        print(f"\nSELF-TEST FAILED: {len(failures)} case(s)")
+        sys.exit(1)
+    print("\nSELF-TEST PASSED")
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("compiled", help="Compiled .obj file")
-    ap.add_argument("reference", help="Delinked reference .obj file")
+    ap.add_argument("compiled", nargs="?", help="Compiled .obj file")
+    ap.add_argument("reference", nargs="?", help="Delinked reference .obj file")
     ap.add_argument("--function", "-f", help="Compare only this function")
     ap.add_argument("--threshold", "-t", type=float, default=50.0,
                     help="Minimum match %% to pass (default: 50)")
@@ -427,9 +579,20 @@ def main():
                     help="Show instruction-level diffs")
     ap.add_argument("--fpu-only", action="store_true",
                     help="Only report FPU operand warnings")
+    ap.add_argument("--loadw-only", action="store_true",
+                    help="Only report load-width (int vs int16/int8) warnings")
     ap.add_argument("--reg-normalize", "-r", action="store_true",
                     help="Use register-alias normalization for LCS (canonical operands)")
+    ap.add_argument("--self-test", action="store_true",
+                    help="Run built-in detector self-tests and exit")
     args = ap.parse_args()
+
+    if args.self_test:
+        _self_test()
+        return
+
+    if not args.compiled or not args.reference:
+        ap.error("compiled and reference are required (unless --self-test)")
 
     compiled_funcs = disassemble(args.compiled)
     reference_funcs = disassemble(args.reference)
@@ -493,46 +656,60 @@ def main():
 
     any_fail = False
     any_fpu_warn = False
+    any_loadw_warn = False
 
     for fn in sorted(matched):
-        pct, diffs, fpu_warnings = compare_functions(compiled_funcs[fn], reference_funcs[fn],
-                                                      reg_normalize=args.reg_normalize)
+        pct, diffs, fpu_warnings, loadw_warnings = compare_functions(
+            compiled_funcs[fn], reference_funcs[fn], reg_normalize=args.reg_normalize)
         n_c = len(compiled_funcs[fn])
         n_r = len(reference_funcs[fn])
         status = "PASS" if pct >= args.threshold else "FAIL"
         fpu_tag = " [FPU-WARN]" if fpu_warnings else ""
+        loadw_tag = " [LOADW-WARN]" if loadw_warnings else ""
         trunc_tag = " [REF-TRUNCATED?]" if n_r > 0 and n_c > n_r * 1.4 else ""
 
         # When reg-normalize is on, also compute mnemonic % to show the gap
         reg_tag = ""
         if args.reg_normalize:
-            mnem_pct, _, _ = compare_functions(compiled_funcs[fn], reference_funcs[fn],
-                                              reg_normalize=False)
+            mnem_pct = compare_functions(compiled_funcs[fn], reference_funcs[fn],
+                                         reg_normalize=False)[0]
             reg_tag = f" [struct:{mnem_pct:.1f}%]"
 
-        if not args.fpu_only:
-            print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{trunc_tag}")
+        only_mode = args.fpu_only or args.loadw_only
+        if not only_mode:
+            print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{trunc_tag}")
 
         if fpu_warnings:
             any_fpu_warn = True
-            if not args.fpu_only:
+            if not args.loadw_only:
+                if args.fpu_only:
+                    print(f"  {fn}:{fpu_tag}")
                 for w in fpu_warnings:
                     print(w)
-            else:
-                print(f"  {fn}:{fpu_tag}")
-                for w in fpu_warnings:
+
+        if loadw_warnings:
+            any_loadw_warn = True
+            if not args.fpu_only:
+                if args.loadw_only:
+                    print(f"  {fn}:{loadw_tag}")
+                for w in loadw_warnings:
                     print(w)
 
         if status == "FAIL":
             any_fail = True
 
-        if args.show_diffs and diffs and not args.fpu_only:
+        if args.show_diffs and diffs and not only_mode:
             for d in diffs:
                 print(d)
 
-    if any_fpu_warn:
+    if any_fpu_warn and not args.loadw_only:
         print("\nWARNING: FPU operand-order differences detected.")
         print("Check cross-product argument order and FSUB/FSUBR operand direction.")
+
+    if any_loadw_warn and not args.fpu_only:
+        print("\nWARNING: load-width (int vs int16_t/int8_t) differences detected.")
+        print("A field the original narrows (movsx/movzx word/byte) is read wider in our lift,")
+        print("or vice versa. Verify the C type against disassembly. See lift-learnings 'int vs int16_t'.")
 
     sys.exit(1 if any_fail else 0)
 

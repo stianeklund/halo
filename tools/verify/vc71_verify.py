@@ -423,6 +423,7 @@ def run_compare_cached(
     threshold = 50.0
     show_diffs = False
     fpu_only = False
+    loadw_only = False
     reg_normalize = False
     i = 0
     while i < len(extra_args):
@@ -435,6 +436,8 @@ def run_compare_cached(
             show_diffs = True; i += 1
         elif a == "--fpu-only":
             fpu_only = True; i += 1
+        elif a == "--loadw-only":
+            loadw_only = True; i += 1
         elif a in ("--reg-normalize", "-r"):
             reg_normalize = True; i += 1
         else:
@@ -474,6 +477,7 @@ def run_compare_cached(
 
     any_fail = False
     any_fpu_warn = False
+    any_loadw_warn = False
     hits = 0
     misses = 0
 
@@ -486,54 +490,63 @@ def run_compare_cached(
             hits += 1
             pct = cached_result["match_pct"]
             fpu_warnings = cached_result["fpu_warnings"]
+            loadw_warnings = cached_result.get("loadw_warnings") or []
             # diff_lines may be None if we didn't store diffs (e.g. not show_diffs)
             diffs = cached_result["diff_lines"] or []
             cache_tag = " [cache hit]"
         else:
             misses += 1
-            pct, diffs, fpu_warnings = co.compare_functions(
+            pct, diffs, fpu_warnings, loadw_warnings = co.compare_functions(
                 compiled_funcs[fn], reference_funcs[fn],
                 reg_normalize=reg_normalize,
             )
             cache_tag = ""
             # Store result; always save diff_lines so future --show-diffs works
             if cache is not None and not no_cache:
-                cache.put(fn, source, reference, pct, fpu_warnings, diffs)
+                cache.put(fn, source, reference, pct, fpu_warnings, diffs,
+                          loadw_warnings=loadw_warnings)
 
         n_c = len(compiled_funcs[fn])
         n_r = len(reference_funcs[fn])
         status = "PASS" if pct >= threshold else "FAIL"
         fpu_tag = " [FPU-WARN]" if fpu_warnings else ""
+        loadw_tag = " [LOADW-WARN]" if loadw_warnings else ""
 
         reg_tag = ""
         if reg_normalize:
-            mnem_pct, _, _ = co.compare_functions(
-                compiled_funcs[fn], reference_funcs[fn], reg_normalize=False)
+            mnem_pct = co.compare_functions(
+                compiled_funcs[fn], reference_funcs[fn], reg_normalize=False)[0]
             reg_tag = f" [struct:{mnem_pct:.1f}%]"
 
-        if not fpu_only:
+        only_mode = fpu_only or loadw_only
+        if not only_mode:
             if quiet:
-                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}")
+                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}")
             else:
-                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{cache_tag}")
+                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{cache_tag}")
 
         if fpu_warnings:
             any_fpu_warn = True
-            if not fpu_only:
+            if not loadw_only:
+                if fpu_only:
+                    print(f"  {fn}:{fpu_tag}" + ("" if quiet else cache_tag))
                 for w in fpu_warnings:
                     print(w)
-            else:
-                if quiet:
-                    print(f"  {fn}:{fpu_tag}")
-                else:
-                    print(f"  {fn}:{fpu_tag}{cache_tag}")
-                for w in fpu_warnings:
+
+        if loadw_warnings:
+            any_loadw_warn = True
+            # Detail lines are noisy (many benign codegen diffs across the tree),
+            # so only expand them in the dedicated --loadw-only mode. In a normal
+            # run the compact [LOADW-WARN] tag on the status line is the hint.
+            if loadw_only:
+                print(f"  {fn}:{loadw_tag}" + ("" if quiet else cache_tag))
+                for w in loadw_warnings:
                     print(w)
 
         if status == "FAIL":
             any_fail = True
 
-        if show_diffs and diffs and not fpu_only and not quiet:
+        if show_diffs and diffs and not only_mode and not quiet:
             for d in diffs:
                 print(d)
 
@@ -541,9 +554,18 @@ def run_compare_cached(
         total = hits + misses
         print(f"\n  Cache: {hits}/{total} hits ({100*hits//total if total else 0}%)")
 
-    if any_fpu_warn:
+    if any_fpu_warn and not loadw_only:
         print("\nWARNING: FPU operand-order differences detected.")
         print("Check cross-product argument order and FSUB/FSUBR operand direction.")
+
+    if any_loadw_warn and not fpu_only:
+        if loadw_only:
+            print("\nWARNING: load-width (int vs int16_t/int8_t) differences detected.")
+            print("A field the original narrows (movsx/movzx word/byte) is read wider in our lift,")
+            print("or vice versa. Verify the C type against disassembly. See lift-learnings 'int vs int16_t'.")
+        elif not quiet:
+            print("\n[LOADW-WARN] load-width differences found; re-run with --loadw-only for details "
+                  "(int vs int16_t/int8_t; see lift-learnings §24).")
 
     return 1 if any_fail else 0
 
@@ -555,6 +577,8 @@ def main():
     ap.add_argument("--function", "-f", help="Compare only this function")
     ap.add_argument("--show-diffs", "-d", action="store_true")
     ap.add_argument("--fpu-only", action="store_true", help="Only show FPU warnings")
+    ap.add_argument("--loadw-only", action="store_true",
+                    help="Only show load-width (int vs int16/int8) warnings")
     ap.add_argument("--threshold", "-t", type=float, default=50.0)
     ap.add_argument("--list", action="store_true", help="List available units")
     ap.add_argument("--skip-compile", action="store_true", help="Reuse existing VC71 .obj")
@@ -680,6 +704,8 @@ def main():
         extra += ["--show-diffs"]
     if args.fpu_only:
         extra += ["--fpu-only"]
+    if args.loadw_only:
+        extra += ["--loadw-only"]
     if args.reg_normalize:
         extra += ["--reg-normalize"]
     extra += ["--threshold", str(args.threshold)]
