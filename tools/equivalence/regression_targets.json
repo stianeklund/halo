@@ -540,6 +540,21 @@
       "reason": "real-callee + live snapshot: data_iterator loop executes over the 'players' data_array (73.4% weak -> 100% high)"
     },
     {
+      "addr": "0xd04d0",
+      "name": "FUN_000d04d0",
+      "obj": "hud.obj",
+      "seeds": 1,
+      "flags": [
+        "--state-snapshot",
+        "artifacts/snapshots/original/action_8_e271002_multiplayer_fun_d04d0.json",
+        "--allow-stubs",
+        "--mem-trace",
+        "--no-concolic",
+        "--no-leaf-cache"
+      ],
+      "reason": "HUD action-result 8 vehicle-seat prompt with live player handle override; guards player+0x2a seat-index source. SKIPs if the local host snapshot artifact is absent."
+    },
+    {
       "addr": "0xa8220",
       "name": "game_engine_evaluate_game_complexity",
       "obj": "game_engine.obj",

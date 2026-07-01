@@ -64,6 +64,7 @@ class CoffReloc:
     virtual_address: int   # offset from section start
     symbol_name: str
     reloc_type: int
+    symbol_index: int = -1
 
 
 @dataclass
@@ -195,6 +196,7 @@ def _section_relocs(section: CoffSection, symbols: list[CoffSymbol], raw_data: b
             virtual_address=virt_addr,
             symbol_name=sym_name,
             reloc_type=reloc_type,
+            symbol_index=sym_idx,
         ))
     return relocs
 
@@ -263,14 +265,14 @@ def extract_function(obj_path: str, func_name: str) -> FunctionSlice:
     # Collect relocations that fall inside [func_offset, next_offset)
     all_relocs = _section_relocs(section, symbols, raw_data)
     func_relocs = [
-        CoffReloc(r.virtual_address - func_offset, r.symbol_name, r.reloc_type)
+        CoffReloc(r.virtual_address - func_offset, r.symbol_name, r.reloc_type,
+                  r.symbol_index)
         for r in all_relocs
         if func_offset <= r.virtual_address < next_offset
     ]
 
     defined = {s.name for s in symbols if s.section_num > 0}
 
-    sym_by_name = {s.name: s for s in symbols if s.section_num > 0}
     text_sec_idx = target_sym.section_num - 1
     rdata_map = {}
     rdata_relocs = {}
@@ -278,7 +280,7 @@ def extract_function(obj_path: str, func_name: str) -> FunctionSlice:
     for r in func_relocs:
         if r.reloc_type != IMAGE_REL_I386_DIR32:
             continue
-        sym = sym_by_name.get(r.symbol_name)
+        sym = symbols[r.symbol_index] if 0 <= r.symbol_index < len(symbols) else None
         if sym is None or sym.section_num - 1 == text_sec_idx:
             continue
         sec_idx = sym.section_num - 1
@@ -293,7 +295,8 @@ def extract_function(obj_path: str, func_name: str) -> FunctionSlice:
                     relocs = _section_relocs(sec, symbols, raw_data)
                     section_reloc_cache[sec_idx] = relocs
                 chunk_relocs = [
-                    CoffReloc(rr.virtual_address - off, rr.symbol_name, rr.reloc_type)
+                    CoffReloc(rr.virtual_address - off, rr.symbol_name,
+                              rr.reloc_type, rr.symbol_index)
                     for rr in relocs
                     if off <= rr.virtual_address < off + len(chunk)
                 ]
