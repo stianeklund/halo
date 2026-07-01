@@ -2145,12 +2145,20 @@ void FUN_000d6cc0(int param_1)
   short sVar5;
   int loop_count;
   float position[3];
+  /* Save the local_player_index up front (original: uVar1 = param_1 @0xd6cc6).
+   * The case-1 (object waypoint) branch below reuses param_1's stack slot as a
+   * throwaway scratch for FUN_0001aae0's radius out-param, so param_1 itself is
+   * clobbered. The original keeps the real index in uVar1 and uses it for
+   * FUN_000d6660 and game_engine_render_nav_points; the prior lift dropped that
+   * save and reused the clobbered param_1, tripping the players.c#133
+   * local_player_index range assert on object-tracking nav points. */
+  int local_player_index = param_1;
 
   if ((short)param_1 == -1)
     goto done;
   if (local_player_get_player_index((short)param_1) == -1)
     goto done;
-  player = local_player_get_player_index((short)param_1);
+  player = local_player_get_player_index((short)local_player_index);
   player = (int)datum_get(*(data_t **)0x5aa6d4, player);
   unit_handle = *(int *)(player + 0x34);
   if (unit_handle == -1)
@@ -2158,7 +2166,7 @@ void FUN_000d6cc0(int param_1)
   if (*(int *)(*(int *)0x46bd0c + 0x15c) == -1)
     goto done;
 
-  nav_data = hud_get_nav_point_data((short)param_1);
+  nav_data = hud_get_nav_point_data((short)local_player_index);
   puVar6 = (unsigned short *)(nav_data + 8);
   loop_count = 4;
   do {
@@ -2194,7 +2202,7 @@ void FUN_000d6cc0(int param_1)
       }
       position[2] = position[2] + *(float *)((char *)puVar6 - 4);
       FUN_000d6660(
-        param_1, position, (short)puVar6[-4],
+        local_player_index, position, (short)puVar6[-4],
         (short)((unsigned short)(*(unsigned char *)((char *)puVar6 - 6))
                 << 8) >>
           12);
@@ -2205,7 +2213,7 @@ void FUN_000d6cc0(int param_1)
   } while (loop_count != 0);
 
 done:
-  game_engine_render_nav_points(param_1);
+  game_engine_render_nav_points(local_player_index);
 }
 
 /* nav_point_update (0xd6e50)
