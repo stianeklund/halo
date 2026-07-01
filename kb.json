@@ -11827,11 +11827,13 @@
         },
         {
           "addr": "0xd3340",
-          "decl": "void FUN_000d3340(int param_1, int param_2, int param_3, int param_4, int param_5, int param_6, int param_7, float param_8);"
+          "decl": "void FUN_000d3340(int param_1, int param_2, int param_3, int param_4, int param_5, int param_6, int param_7, float param_8);",
+          "ported": true
         },
         {
           "addr": "0xd3860",
-          "decl": "void FUN_000d3860(short local_player, void *element, void *position, int value, int param_5, int flags, int timer_start, float scale);"
+          "decl": "void FUN_000d3860(short local_player, void *element, void *position, int value, int param_5, unsigned int flags, int timer_start, float scale);",
+          "ported": true
         }
       ],
       "name": "hud_draw.obj",
@@ -12374,7 +12376,8 @@
         },
         {
           "addr": "0xd8cf0",
-          "decl": "void FUN_000d8cf0(void);"
+          "decl": "void FUN_000d8cf0(int param_1, int param_2);",
+          "ported": true
         },
         {
           "addr": "0xd8fd0",
@@ -12383,7 +12386,8 @@
         },
         {
           "addr": "0xd8ff0",
-          "decl": "void FUN_000d8ff0(void);"
+          "decl": "void FUN_000d8ff0(int whud_index@<eax>, int *player@<ecx>, int weapon_handle, int buf);",
+          "ported": true
         }
       ],
       "name": "hud_weapon.obj",
