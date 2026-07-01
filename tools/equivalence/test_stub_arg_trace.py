@@ -168,17 +168,26 @@ def test_chkstk_ignored():
 
 
 def test_rdata_dir32_patched():
-    relocs = [_FakeReloc(IMAGE_REL_I386_DIR32, ".rdata$switch", 0)]
+    relocs = [
+        _FakeReloc(IMAGE_REL_I386_DIR32, ".rdata$switch", 0),
+        _FakeReloc(IMAGE_REL_I386_DIR32, ".rdata", 4),
+    ]
     patched, slots, seeds = patch_dir32_relocs(
-        b"\x00" * 8,
+        b"\x00" * 4 + b"\x10\x00\x00\x00",
         relocs,
         defined_symbols=set(),
         return_slots=True,
-        rdata_map={".rdata$switch": b"\x11\x22\x33\x44"},
+        rdata_map={
+            ".rdata$switch": b"\x11\x22\x33\x44",
+            ".rdata": b"\x55" * 32,
+        },
     )
     assert int.from_bytes(patched[:4], "little") == GLOBALS_BASE
+    assert int.from_bytes(patched[4:8], "little") == GLOBALS_BASE + 0x100 + 0x10
     assert slots[".rdata$switch"] == GLOBALS_BASE
+    assert slots[".rdata"] == GLOBALS_BASE + 0x100
     assert seeds[GLOBALS_BASE] == b"\x11\x22\x33\x44"
+    assert seeds[GLOBALS_BASE + 0x100] == b"\x55" * 32
     print("  PASS  test_rdata_dir32_patched")
 
 
