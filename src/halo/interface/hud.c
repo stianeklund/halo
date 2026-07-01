@@ -879,6 +879,38 @@ done:
   }
 }
 
+/* FUN_000d1540 (0xd1540) — return the caller's return address.
+ *
+ * Frameless helper, `mov eax,[ebp+4]; ret` (bytes 8B 45 04 C3). Because it sets
+ * up no prologue, EBP still holds the *caller's* frame pointer at entry, so
+ * [ebp+4] is the caller's return address on the stack. The HUD render functions
+ * capture this at entry and re-check it at exit as a stack-smash canary
+ * ("corrupt return address!"); the value must therefore be constant across both
+ * call sites within one caller invocation.
+ *
+ * This cannot be expressed in portable C: it reads a frame it does not own, so
+ * a naked body is required (necessity exception, like the x87 helpers in
+ * x87_math.h). Note that _ReturnAddress() is NOT equivalent — it would read
+ * this function's own [esp]-at-entry, which differs between the two call sites
+ * and would make every canary check fail. Both branches emit the exact original
+ * bytes; clang defines _MSC_VER under -target i386-pc-win32, so the
+ * !defined(__clang__) guard is required to select the GCC-style asm for the
+ * shipping build. */
+#if defined(_MSC_VER) && !defined(__clang__)
+__declspec(naked) int FUN_000d1540(void)
+{
+  __asm {
+    mov eax, dword ptr [ebp + 4]
+    ret
+  }
+}
+#else
+__attribute__((naked)) int FUN_000d1540(void)
+{
+  __asm__ __volatile__("movl 4(%ebp), %eax\n\tret");
+}
+#endif
+
 /* Scan int array backwards from index 127, return first index where element
  * is not the sentinel 0x62626262 ("bbbb"). Returns -1 if all are sentinel.
  * Loop counter is short (16-bit); OR AX,0xffff sign-extends -1 to int. */
