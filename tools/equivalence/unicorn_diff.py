@@ -197,6 +197,13 @@ _ORACLE_SWITCH_TABLE_FIXUPS = {
             0x0002CE6F, 0x0002CF62, 0x0002CEC7, 0x0002CFC9,
         ),
     },
+    0x000D04D0: {
+        "switchD_000d05d1::switchdataD_000d0b70": (
+            0x000D05D8, 0x000D05D8, 0x000D065C, 0x000D091C,
+            0x000D0607, 0x000D071F, 0x000D07C1, 0x000D0863,
+            0x000D0863, 0x000D06A5, 0x000D08E3,
+        ),
+    },
 }
 
 

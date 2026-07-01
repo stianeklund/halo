@@ -290,9 +290,12 @@ def patch_dir32_relocs(code: bytes, relocs: list, defined_symbols: set,
             if is_rdata_ref:
                 rdata_seeds[symbol_slots[sym]] = rdata_map[sym][:slot_size]
 
-        addr = symbol_slots[sym]
         off = r.virtual_address
         if off + 4 <= len(patched):
+            addend = 0
+            if is_rdata_ref:
+                addend = struct.unpack_from('<I', patched, off)[0]
+            addr = symbol_slots[sym] + addend
             struct.pack_into('<I', patched, off, addr)
 
     if return_slots:
