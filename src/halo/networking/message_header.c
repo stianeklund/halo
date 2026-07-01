@@ -134,15 +134,22 @@ void build_message_header(unsigned short *header, unsigned short length,
 
   *header = ((unsigned char)*header & 0xf) | (length << 4);
 
-  if ((type != 0) && (type < 4)) {
-    *header = ((unsigned short)(type & 3) << 2) | (*header & 0xfff3);
-    assert_halt_msg((0 <= (int)flags) && ((int)flags <= 3),
-                    "(0<=flags) && ((flags)<=MESSAGE_FLAG_BITS_MASK)");
-    *header = (*header & 0xfffc) | (unsigned short)flags;
-    return;
+  if (type == 0) {
+    goto bad_type;
   }
-
+  if (type < 4) {
+    goto good_type;
+  }
+bad_type:
+  /* assert_halt_msg(0,...) is noreturn (system_exit); control never falls
+   * through into good_type. Layout matches the original's forward branches. */
   assert_halt_msg(0, "(0<(type)) && ((type)<NUMBER_OF_MESSAGE_TYPES)");
+
+good_type:
+  *header = ((unsigned short)(type & 3) << 2) | (*header & 0xfff3);
+  assert_halt_msg((0 <= (int)flags) && ((int)flags <= 3),
+                  "(0<=flags) && ((flags)<=MESSAGE_FLAG_BITS_MASK)");
+  *header = (*header & 0xfffc) | (unsigned short)flags;
 }
 
 /* 0x80c20 - Byte-swap a 2-byte message header for network byte order.
@@ -180,13 +187,22 @@ int create_message(int type, int payload, unsigned int payload_len, int buffer,
   msg_size = (short)(payload_len + 2);
 
   if (buffer == 0) {
-    buffer = (int)debug_malloc(
-      (int)msg_size, 0,
-      "c:\\halo\\SOURCE\\bungie_net\\common\\message_header.c", 0x2e);
-  } else if ((int)(unsigned int)buffer_size < (int)msg_size) {
-    assert_halt_msg(0, "buffer_size >= message_size");
+    goto do_malloc;
   }
+  if ((int)(unsigned int)buffer_size >= (int)msg_size) {
+    goto after_malloc;
+  }
+  /* assert_halt_msg(0,...) is noreturn (system_exit); control never falls
+   * through into do_malloc. The malloc block is hoisted after the size check
+   * so buffer==0 forward-jumps to it, matching the original's layout. */
+  assert_halt_msg(0, "buffer_size >= message_size");
 
+do_malloc:
+  buffer = (int)debug_malloc(
+    (int)msg_size, 0,
+    "c:\\halo\\SOURCE\\bungie_net\\common\\message_header.c", 0x2e);
+
+after_malloc:
   if (buffer != 0) {
     build_message_header((unsigned short *)buffer, payload_len + 2,
                          (unsigned char)type, 0);
