@@ -1591,7 +1591,7 @@ void FUN_0012da90(int endpoint, unsigned short reason)
     return;
   }
   msg_len = (*(unsigned short *)msg) >> 4;
-  FUN_00080c20(msg, 1);
+  byte_swap_message_header((unsigned short *)msg, 1);
   send_result = send_endpoint((int *)endpoint, (const char *)msg, msg_len);
   if (send_result != msg_len) {
     const char *err = FUN_00081c80(send_result);
