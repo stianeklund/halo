@@ -306,6 +306,16 @@ def to_db_dict(rec: FunctionRecord) -> dict:
     }
 
 
+def _normalize_addr(addr: Optional[str]) -> Optional[str]:
+    """Strip leading zeros/case so addrs match extract()'s kb.json-derived format."""
+    if not addr:
+        return None
+    try:
+        return hex(int(addr, 16))
+    except ValueError:
+        return None
+
+
 def iter_lift_outcomes() -> Iterator[dict]:
     """Yield outcome records from lift runs, failure records, and batch verify.
 
@@ -316,10 +326,7 @@ def iter_lift_outcomes() -> Iterator[dict]:
 
     for name, score in vc71_scores.items():
         addr_match = re.match(r"FUN_([0-9a-fA-F]+)", name)
-        if addr_match:
-            addr = "0x" + addr_match.group(1).lower()
-        else:
-            addr = None
+        addr = _normalize_addr(addr_match.group(1)) if addr_match else None
         yield {
             "addr": addr,
             "name": name,
@@ -335,9 +342,7 @@ def iter_lift_outcomes() -> Iterator[dict]:
                 data = json.loads(p.read_text(encoding="utf-8"))
             except (OSError, json.JSONDecodeError):
                 continue
-            addr = data.get("address") or data.get("addr")
-            if addr and not addr.startswith("0x"):
-                addr = "0x" + addr
+            addr = _normalize_addr(data.get("address") or data.get("addr"))
             reason = ""
             if data.get("reason"):
                 reason = data["reason"]
@@ -371,7 +376,7 @@ def iter_lift_outcomes() -> Iterator[dict]:
             addr_match = re.match(r"FUN_([0-9a-fA-F]+)", target)
             if not addr_match:
                 continue
-            addr = "0x" + addr_match.group(1).lower()
+            addr = _normalize_addr(addr_match.group(1))
             status = data.get("status", "")
             verdict = "pass" if status == "pass" else ("fail" if status == "fail" else None)
 
