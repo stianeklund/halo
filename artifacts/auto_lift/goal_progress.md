@@ -253,3 +253,5 @@ GREEN (patched default.xbe builds). Fixed pre-existing multi-layer breakage: com
 | FUN_000d8c30 | 0xd8c30 | hud_weapon.c | @esi | 72.4% | committed | 2nd-region accessor; body byte-match, @reg cap |
 | FUN_000d8ca0 | 0xd8ca0 | hud_weapon.c | @eax+@esi | 82.8% | committed | tracked-weapon refresh; body byte-match, @reg cap |
 | FUN_000d8fd0 | 0xd8fd0 | hud_weapon.c | cdecl | 100.0% | committed | path leaf-name (strrchr) |
+| FUN_000d3080 | 0xd3080 | hud_draw.c | @eax+@ecx+@edx canary | 84.0% | committed | crosshair-overlay blit; reg-DEFINED cap, verified body, benign LOADW (&1 widen) |
+| FUN_000d3200 | 0xd3200 | hud_draw.c | cdecl canary | 89.8% | committed | explicit-scale bitmap blit; scheduling-only diffs (permute-eligible) |
