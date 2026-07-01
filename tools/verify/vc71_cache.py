@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS fn_results (
     match_pct   REAL NOT NULL,
     fpu_warnings TEXT NOT NULL,   -- JSON array of strings
     diff_lines  TEXT,             -- JSON array of strings, or NULL
+    loadw_warnings TEXT DEFAULT '[]',  -- JSON array of strings (load-width diffs)
     created_utc TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_source ON fn_results(source_path);
@@ -138,6 +139,13 @@ class Vc71Cache:
             conn = sqlite3.connect(str(self._db_path), timeout=10)
             conn.row_factory = sqlite3.Row
             conn.executescript(_DDL)
+            # Migration: older DBs predate the loadw_warnings column. Add it
+            # idempotently so SELECTs referencing it do not fail. (The cache_key
+            # embeds compare_obj.py's hash, so stale rows recompute anyway.)
+            try:
+                conn.execute("ALTER TABLE fn_results ADD COLUMN loadw_warnings TEXT DEFAULT '[]'")
+            except sqlite3.OperationalError:
+                pass  # column already exists
             conn.commit()
             self._conn = conn
         return self._conn
@@ -157,7 +165,8 @@ class Vc71Cache:
         key = make_cache_key(fn_name, source_path, ref_path)
         conn = self._open()
         row = conn.execute(
-            "SELECT match_pct, fpu_warnings, diff_lines, created_utc FROM fn_results WHERE cache_key = ?",
+            "SELECT match_pct, fpu_warnings, diff_lines, loadw_warnings, created_utc "
+            "FROM fn_results WHERE cache_key = ?",
             (key,),
         ).fetchone()
         if row is None:
@@ -166,6 +175,7 @@ class Vc71Cache:
             "match_pct": row["match_pct"],
             "fpu_warnings": json.loads(row["fpu_warnings"]),
             "diff_lines": json.loads(row["diff_lines"]) if row["diff_lines"] else None,
+            "loadw_warnings": json.loads(row["loadw_warnings"]) if row["loadw_warnings"] else [],
             "created_utc": row["created_utc"],
         }
 
@@ -177,6 +187,7 @@ class Vc71Cache:
         match_pct: float,
         fpu_warnings: list[str],
         diff_lines: list[str] | None,
+        loadw_warnings: list[str] | None = None,
     ) -> None:
         """Insert or replace a cache entry."""
         key = make_cache_key(fn_name, source_path, ref_path)
@@ -186,8 +197,8 @@ class Vc71Cache:
             """
             INSERT OR REPLACE INTO fn_results
               (cache_key, fn_name, source_path, ref_path,
-               match_pct, fpu_warnings, diff_lines, created_utc)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+               match_pct, fpu_warnings, diff_lines, loadw_warnings, created_utc)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 key,
@@ -197,6 +208,7 @@ class Vc71Cache:
                 match_pct,
                 json.dumps(fpu_warnings),
                 json.dumps(diff_lines) if diff_lines is not None else None,
+                json.dumps(loadw_warnings if loadw_warnings is not None else []),
                 created,
             ),
         )
