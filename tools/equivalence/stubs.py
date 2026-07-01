@@ -686,6 +686,8 @@ class StubManager:
     # XBE address → _CI* intrinsic name for FUN_XXXXXXXX symbols
     _CRT_MATH_ADDRS = {
         "fun_001d94f0": "ciacos",
+        "fun_001da0cc": "ciasin",
+        "fun_001daf7e": "cifmod",
     }
 
     def _resolve_name(self, address: int) -> str:
@@ -1179,7 +1181,11 @@ class StubManager:
                 st0_val = _st80_to_double(st0_raw.to_bytes(10, 'little'))
                 st1_val = _st80_to_double(st1_raw.to_bytes(10, 'little'))
                 try:
-                    result = _CI_TWO_ARG[symbol_name](st0_val, st1_val)
+                    # MSVC _CI two-arg convention: the first C argument is pushed
+                    # first (→ ST1) and the second last (→ ST0). So the faithful
+                    # call is func(ST1, ST0): atan2(y=ST1,x=ST0), fmod(x=ST1,y=ST0),
+                    # pow(base=ST1,exp=ST0). (Previously passed (st0,st1) — swapped.)
+                    result = _CI_TWO_ARG[symbol_name](st1_val, st0_val)
                 except (ValueError, OverflowError, ZeroDivisionError):
                     result = 0.0
                 _write_st0_double(uc, result)

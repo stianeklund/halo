@@ -27,7 +27,12 @@ extern "C"
 #define UNALIGNED
 #define OPTIONAL
 // #define XBAPI __declspec(dllimport)
-#define XBAPI
+// Kernel symbols are imports (resolved via xboxkrnl.exe.def). XBAPI must be
+// `extern` so global declarations (XBAPI XBOX_KEY_DATA XboxSignatureKey;) are
+// declarations, not tentative definitions — otherwise every TU including this
+// header defines them and the link fails with duplicate symbols. Harmless for
+// function prototypes (extern is their default).
+#define XBAPI extern
 // #define NTAPI __attribute__((__stdcall__))
 #define NTAPI __stdcall
 // #define CDECL __attribute__((__cdecl__))
@@ -1979,7 +1984,7 @@ XBAPI NTSTATUS NTAPI RtlUnicodeToMultiByteN
     ULONG BytesInUnicodeString
 );
 
-XBAPI NTSTATUS XBAPI RtlUnicodeStringToInteger
+XBAPI NTSTATUS NTAPI RtlUnicodeStringToInteger
 (
     PUNICODE_STRING String,
     ULONG Base,

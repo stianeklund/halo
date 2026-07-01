@@ -1361,7 +1361,7 @@
     "addr": "0x10ce10",
     "name": "vector_to_line_distance_squared3d",
     "object": "real_math.obj",
-    "reason": "Faithful cdecl lift, dormant pending a fix for a REAL residual divergence. CORRECTION 2026-06-22: the earlier 'equiv unverifiable via harness' was WRONG. The harness IS usable -- with a constants snapshot (static .rdata float consts 0.0/0.5/1.0/parallel-eps/len-eps/REAL_MAX seeded byte-exact from cachebeta.xbe; recipe regenerates artifacts/snapshots/real_math_consts.json) AND invoking unicorn_diff BY NAME not address (the candidate .obj symbol is the decl name, not FUN_<addr>), the universal-NaN ('0 data refs') is GONE and equiv runs 15/60 pass with real finite divergences (67.9% cov, high conf; INSN 245 oracle vs 273 lifted). So ce10 has a REAL lift bug, NOT a harness artifact. VERIFIED CORRECT: n = p2 x p4 (cross), non-parallel s,t = (delta x d2).n/|n|^2 and (delta x d1).n/|n|^2 (standard line-line closest-point), FUN_0010cd40 is plain cdecl(point,seg_start,seg_dir) and call arg-order is right. Bug is ISOLATED to the non-parallel s_oob/t_oob clamp classification (or the parallel projection): seed-56 oracle 0.00097 vs lifted 6.5e18 = an in-range-vs-out-of-range misclassification picking a far clamp endpoint. Activation pending that clamp-path fix; harness now ready to debug it.",
+    "reason": "Faithful cdecl lift, dormant pending a fix for a REAL residual divergence. CORRECTION 2026-06-22: the earlier 'equiv unverifiable via harness' was WRONG. The harness IS usable -- with a constants snapshot (static .rdata float consts 0.0/0.5/1.0/parallel-eps/len-eps/REAL_MAX seeded byte-exact from cachebeta.xbe; recipe regenerates artifacts/snapshots/real_math_consts.json) AND invoking unicorn_diff BY NAME not address (the candidate .obj symbol is the decl name, not FUN_<addr>), the universal-NaN ('0 data refs') is GONE and equiv runs 15/60 pass with real finite divergences (67.9% cov, high conf; INSN 245 oracle vs 273 lifted). So ce10 has a REAL lift bug, NOT a harness artifact. VERIFIED CORRECT: n = p2 x p4 (cross), non-parallel s,t = (delta x d2).n/|n|^2 and (delta x d1).n/|n|^2 (standard line-line closest-point), FUN_0010cd40 is plain cdecl(point,seg_start,seg_dir) and call arg-order is right. Bug is ISOLATED to the non-parallel s_oob/t_oob clamp classification (or the parallel projection): seed-56 oracle 0.00097 vs lifted 6.5e18 = an in-range-vs-out-of-range misclassification picking a far clamp endpoint. Activation pending that clamp-path fix; harness now ready to debug it. UPDATE 2026-06-30 (instruction-level disasm verification, advances the above): the 'misclassification' is NOT a clamp-logic or call-arg bug -- ruled out at instruction level. Disassembled 0x10ce10 fully (0x10ce10-0x10d378): entry holds EDX=p1, EBX=p3, ESI=p2, EDI=p4 in registers throughout. s_oob call (0x10cfda) = FUN_0010cd40(closest_a, EBX=p3, EDI=p4); t_oob call (0x10d02d) pushes ECX=&closest_b, EDX, ESI=p2 so arg2=EDX. Disassembled FUN_0010cd40 (0x10cd40-0x10ce01): it clobbers only EAX/ECX+FPU, NEVER touches EDX/EBX/ESI/EDI -- so EDX==p1 still holds at the t_oob call even when s_oob ran first. The C body's flagged assumption (line ~2027 'FUN_0010cd40 preserves EDX which still holds p1') is CONFIRMED CORRECT; both call arg-orders match disasm exactly; s/t formulas + s_oob/t_oob classification match disasm exactly. Therefore the large divergences (seed-56 0.00097 vs 6.5e18) are FP-ORDER BRANCH-FLIPS: clang -mno-sse computes s/t with a different x87 operation order than MSVC's exact FPU sequence (oracle: FDIVR inv first, then nx*inv per term @0x10ce95+; C: (cross)*nx*inv per term), producing sub-ULP s/t differences that straddle the [0,1] clamp boundary and flip in-range<->out-of-range, picking a different endpoint -> amplified output divergence. This is the same x87-rounding structural cap noted for siblings 0x10a5e0/0x10a710. NEXT (lift-score-improve op-order lever, uncertain payoff): reorder the C s/t computation to mirror the oracle FPU sequence and re-run equiv; if pass rate does not materially rise, accept as structural FP cap and keep dormant. Do NOT change clamp logic or call args -- they are byte-faithful.",
     "since": "2026-06-22"
   },
   {
@@ -1377,6 +1377,48 @@
     "object": "network_server_manager.obj",
     "reason": "Pre-existing committed deactivation (HEAD). Ported+fixed at f28a5b6e then deactivated for an unrecorded reason; outside the 0xA0001/biped-aim goal scope. Allowlisted to unblock the commit gate pending dedicated investigation/reactivation.",
     "since": "2026-06-21"
+  },
+  {
+    "addr": "0xbae20",
+    "name": "FUN_000bae20",
+    "object": "players.obj",
+    "reason": "Set ported=false to fix the pre-existing broken branch build (build never reached the patch step before). These were ported=true in kb.json with NO source implementation -> 'symbol absent from EXE exports'. ported=false makes the build emit a thunk to the original, preserving original behavior (no regression). Re-lift properly to reactivate. Build green 2026-06-30.",
+    "since": "2026-06-30"
+  },
+  {
+    "addr": "0x15b190",
+    "name": "FUN_0015b190",
+    "object": "rasterizer_decals.obj",
+    "reason": "Set ported=false to fix the pre-existing broken branch build (build never reached the patch step before). These were ported=true in kb.json with NO source implementation -> 'symbol absent from EXE exports'. ported=false makes the build emit a thunk to the original, preserving original behavior (no regression). Re-lift properly to reactivate. Build green 2026-06-30.",
+    "since": "2026-06-30"
+  },
+  {
+    "addr": "0x15b1a0",
+    "name": "FUN_0015b1a0",
+    "object": "rasterizer_decals.obj",
+    "reason": "Set ported=false to fix the pre-existing broken branch build (build never reached the patch step before). These were ported=true in kb.json with NO source implementation -> 'symbol absent from EXE exports'. ported=false makes the build emit a thunk to the original, preserving original behavior (no regression). Re-lift properly to reactivate. Build green 2026-06-30.",
+    "since": "2026-06-30"
+  },
+  {
+    "addr": "0x15b6d0",
+    "name": "FUN_0015b6d0",
+    "object": "rasterizer_decals.obj",
+    "reason": "Set ported=false to fix the pre-existing broken branch build (build never reached the patch step before). These were ported=true in kb.json with NO source implementation -> 'symbol absent from EXE exports'. ported=false makes the build emit a thunk to the original, preserving original behavior (no regression). Re-lift properly to reactivate. Build green 2026-06-30.",
+    "since": "2026-06-30"
+  },
+  {
+    "addr": "0x15b7e0",
+    "name": "FUN_0015b7e0",
+    "object": "rasterizer_decals.obj",
+    "reason": "Set ported=false to fix the pre-existing broken branch build (build never reached the patch step before). These were ported=true in kb.json with NO source implementation -> 'symbol absent from EXE exports'. ported=false makes the build emit a thunk to the original, preserving original behavior (no regression). Re-lift properly to reactivate. Build green 2026-06-30.",
+    "since": "2026-06-30"
+  },
+  {
+    "addr": "0x1d8368",
+    "name": "XapiFormatFATVolume",
+    "object": "XAPILIB",
+    "reason": "Set ported=false to fix the pre-existing broken branch build (build never reached the patch step before). These were ported=true in kb.json with NO source implementation -> 'symbol absent from EXE exports'. ported=false makes the build emit a thunk to the original, preserving original behavior (no regression). Re-lift properly to reactivate. Build green 2026-06-30.",
+    "since": "2026-06-30"
   },
   {
     "addr": "0x135510",

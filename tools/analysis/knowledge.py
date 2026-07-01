@@ -315,37 +315,43 @@ __attribute__((naked)) { decl.replace(name, 'THUNK('+name+')') }
 '''
 		return thunk_functions
 
-	@staticmethod
-	def _xboxkrnl_ntapi_names():
-		"""Return the set of function names declared via XBAPI in xboxkrnl.h."""
-		hdr = os.path.join(root_dir, 'third_party', 'xbox', 'xboxkrnl.h')
-		names = set()
-		try:
-			with open(hdr) as f:
-				for line in f:
-					line = line.rstrip()
-					if not line.startswith('XBAPI '):
-						continue
-					# Skip data declarations (arrays, initialized vars)
-					if re.search(r'\[|\s*=\s*', line):
-						continue
-					# Single-line complete declaration: ends with ');' and contains '('
-					# e.g. XBAPI NTSTATUS NTAPI NtYieldExecution(void);
-					m = re.search(r'\b(\w+)\s*\([^)]*\)\s*;?\s*$', line)
-					if m and m.group(1) not in ('void', 'VOID', 'noreturn', 'attribute'):
-						names.add(m.group(1))
-					elif '(' not in line or re.search(r'__attribute__\s*\(', line):
-						# Multi-line or __attribute__ line: name is last identifier
-						m = re.search(r'\b(\w+)\s*$', line)
-						if m and m.group(1) not in ('void', 'VOID', 'noreturn'):
-							names.add(m.group(1))
-		except OSError:
-			pass
-		return names
+	# XDK/kernel/RTL import functions that each cseries TU declares locally with
+	# the correct __stdcall prototype (src/halo/cseries/xbox_crt.c, xcontent.c,
+	# src/halo/tag_files/files.c). kb.json only has void(void) placeholders for
+	# them; emitting those into decl.h conflicts with the local prototypes and
+	# breaks the build. Skip emitting decls for exactly these names so the local
+	# prototypes are authoritative. (Genuine void(void) XDK fns like D3DDevice_End
+	# / SwitchToThread have NO local prototype and ARE still emitted.)
+	_LOCAL_STDCALL_IMPORTS = frozenset({
+		'KeQuerySystemTime', 'NtClose', 'NtDeviceIoControlFile', 'NtFsControlFile',
+		'NtOpenFile', 'NtQueryVolumeInformationFile', 'NtWriteFile',
+		'RtlInitAnsiString', 'XapiFormatFATVolume',
+	})
 
 	def build_header(self, path: str):
 		log.info('Generating header...')
-		ntapi_names = self._xboxkrnl_ntapi_names()
+		# Functions the Xbox kernel header (third_party/xbox/xboxkrnl.h) already
+		# declares with the NTAPI/stdcall convention are authoritative there; do not
+		# re-emit kb.json void(void) placeholders for them (would conflict). Union
+		# with the cseries-local __stdcall import set.
+		_skip_names = set(self._LOCAL_STDCALL_IMPORTS)
+		try:
+			_krnl = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+				'..', '..', 'third_party', 'xbox', 'xboxkrnl.h')
+			with open(_krnl) as _kf:
+				_kh = _kf.read()
+			_kh = re.sub(r'/\*.*?\*/', ' ', _kh, flags=re.DOTALL)
+			_kh = re.sub(r'//[^\n]*', ' ', _kh)
+			_kh = re.sub(r'__attribute__\s*\(\([^)]*\)\)', ' ', _kh)
+			for _decl in _kh.split(';'):
+				_i = _decl.find('XBAPI')
+				if _i < 0:
+					continue
+				_pm = re.search(r'([A-Za-z_]\w*)\s*\(', _decl[_i:])
+				if _pm:
+					_skip_names.add(_pm.group(1))
+		except OSError:
+			pass
 		with open(path, 'w') as f:
 			f.write('//\n'
 					'// AUTOMATICALLY GENERATED. DO NOT EDIT.\n'
@@ -371,19 +377,22 @@ __attribute__((naked)) { decl.replace(name, 'THUNK('+name+')') }
 						# mangled C++ runtime (??2@YAPAXI@Z), Ghidra FID_conflict:
 						# markers, or stdcall @N decoration. These library/CRT symbols
 						# are never referenced from lifted C and would be hard syntax
-						# errors in the generated header.
+						# errors in the generated header. @<reg> annotations were
+						# already removed above, so any remaining bad name is non-C.
 						_m = re.search(r'([A-Za-z_$?@:][\w$?@:.]*)\s*\(', decl_str)
 						_fname = _m.group(1) if _m else ''
 						if not re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', _fname):
 							f.write(f'// skipped non-C-identifier decl: {decl_str.strip()}\n')
 							continue
-						# Skip `void NAME(void);` placeholder decls for functions declared in
-						# xboxkrnl.h. These stubs have no real signature and conflict with the
-						# correct calling-convention prototype from the system header.
-						# Any matching XBAPI name wins regardless of which kb.json object it's in.
-						if (re.match(r'^void\s+[A-Za-z_]\w*\s*\(\s*void\s*\)\s*;?\s*$', decl_str.strip())
-								and _fname in ntapi_names):
-							f.write(f'// skipped xboxkrnl placeholder: {decl_str.strip()}\n')
+						# Skip `void NAME(void);` placeholder decls in the <xdk_stubs>
+						# import objects: un-analyzed XDK/kernel import stubs (NtOpenFile,
+						# RtlInitAnsiString, ...) with no real signature. A void(void) decl
+						# conflicts with the correct __stdcall prototype each TU declares
+						# locally (see src/halo/cseries/xbox_crt.c header) and breaks the
+						# build. XDK stubs with a real recovered signature (D3DDevice_*,
+						# CreateThread, ...) are still emitted.
+						if _fname in _skip_names:
+							f.write(f'// skipped xdk_stub placeholder: {decl_str.strip()}\n')
 							continue
 						f.write(f'HFUNC {decl_str}\n')
 				f.write('\n')

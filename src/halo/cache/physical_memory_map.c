@@ -1,3 +1,5 @@
+#include "xbox.h" /* Xbox kernel/XAPI decls (Mm*, XPhysicalAlloc) */
+
 #ifdef HALO_RETAIL64
 #define HALO_TAG_CACHE_SIZE 0x1600000
 #define HALO_TEXTURE_CACHE_SIZE 0x800000
