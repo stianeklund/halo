@@ -1377,5 +1377,12 @@
     "object": "network_server_manager.obj",
     "reason": "Pre-existing committed deactivation (HEAD). Ported+fixed at f28a5b6e then deactivated for an unrecorded reason; outside the 0xA0001/biped-aim goal scope. Allowlisted to unblock the commit gate pending dedicated investigation/reactivation.",
     "since": "2026-06-21"
+  },
+  {
+    "addr": "0x135510",
+    "name": "FUN_00135510",
+    "object": "objects.obj",
+    "reason": "non-faithful mass-lift stub (41b57f52): drops tag_get('bitm', elec+0x40) indirection, reads block from elec+0x60 not bitmap+0x60 -> tag_groups.c:3089 assert on empty block; inner lightning geometry loops empty. Deactivated to restore original faithful 'elec' renderer; needs proper re-lift.",
+    "since": "2026-07-01"
   }
 ]
