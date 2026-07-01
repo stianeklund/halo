@@ -712,7 +712,9 @@ stride from disasm and diff the per-vertex field count.
 
 ## 15. Stale `build/halo.map` Sends Crash Symbolization to the Wrong Function
 
-**Automation:** not mechanically detectable — process/methodology error, not a source-code pattern.  Prevention: symbolize from the PE export table at base 0x642000, not the map file.
+**Automation:** FULL — `tools/xbox/symbolize_exception.py` resolves pasted
+exception text or address lists from the fresh `build/halo` PE export table and
+`kb.json`; use it instead of `build/halo.map`.
 
 **What happens:** `tools/build/build.py` does **not** regenerate `build/halo.map`.
 A runtime crash address symbolized against that stale map resolves to whatever
@@ -732,6 +734,8 @@ nothing to do with the failing feature.
   round_up(max XBE section end, 0x1000)` (= `0x642000` for this build). The
   export table is produced by the same build that was deployed, so it can't be
   stale relative to it.
+- Prefer `rtk python3 tools/xbox/symbolize_exception.py --file /tmp/exception.txt`
+  for pasted exception output, or pass individual EIP/backtrace addresses.
 - Before trusting `build/halo.map` for *anything*, compare its mtime against the
   deployed build, and cross-check the deployed `DECOMP BUILD <hash>` line in
   `xbdm/debug.txt` against the binary you symbolized from. A hash/date mismatch

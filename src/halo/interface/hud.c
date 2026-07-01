@@ -276,7 +276,7 @@ void FUN_000d04d0(int local_player_index)
   case 9:
     unit_obj89 =
       object_get_and_verify_type(*(int *)((char *)player_rec + 0x24), 3);
-    weapon_slot_89 = *(short *)((char *)unit_obj89 + 0x2a);
+    weapon_slot_89 = *(short *)((char *)player_rec + 0x2a);
     hud_set_state_message(*(short *)0x506548, 6);
     seat_block89 = tag_block_get_element(
       (char *)tag_get(0x756e6974, *(int *)unit_obj89) + 0x2e4,
