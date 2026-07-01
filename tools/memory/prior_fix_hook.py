@@ -22,6 +22,29 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 STATE_PATH = REPO_ROOT / ".claude" / "agent-memory" / "prior_fix_hook_state.json"
 MAX_MESSAGE_CHARS = 4200
 
+# Matches prompts about structural ceilings so we can route to lift-score-improve.
+CEILING_RE = re.compile(
+    r"\b("
+    r"structural\s+ceiling|structural\s+cap|codegen\s+ceiling|"
+    r"genuine\s+ceiling|true\s+ceiling|permanent\s+ceiling|permanently\s+capped|"
+    r"maximum\s+achievable\s+(?:match|score)|cannot\s+(?:be\s+)?improved\s+further|"
+    r"hit\s+the\s+ceiling|at\s+(?:the\s+)?ceiling|vc71\s+ceiling|match\s+ceiling"
+    r")\b",
+    re.IGNORECASE,
+)
+
+CEILING_SKILL_MSG = (
+    "[score-improve-router] Structural ceiling detected in prompt. "
+    "Before accepting the verdict, apply the §19 rewrite checklist "
+    "(invoke the `lift-score-improve` skill):\n\n"
+    "1. cos()/sin() intrinsification (x87_fcos/x87_fsin → standard math under #if _MSC_VER)\n"
+    "2. Pointer-base aliasing (3+ consecutive struct stores → single float* base)\n"
+    "3. Early register-load hint (@<reg> param used late → save it early)\n"
+    "4. if-else-if → switch on dense ascending constants (DEC-chain → CMP-chain)\n\n"
+    "Only declare a ceiling after all four steps fail. "
+    "See docs/lift-learnings.md §19 and the `lift-score-improve` skill for the full procedure."
+)
+
 DEBUG_RE = re.compile(
     r"\b("
     r"regression|crash|crashes|crashed|fault|page fault|access[_ -]?violation|"
@@ -148,7 +171,18 @@ def main() -> int:
             payload = {}
         prompt = extract_prompt(payload)
 
-    if not prompt or not DEBUG_RE.search(prompt):
+    if not prompt:
+        return 0
+
+    # Structural-ceiling router: fires regardless of debug routing.
+    if CEILING_RE.search(prompt) and not recently_ran("ceiling:" + prompt, args.dedupe_window):
+        if args.surface == "text":
+            print(CEILING_SKILL_MSG)
+        else:
+            print(json.dumps({"systemMessage": CEILING_SKILL_MSG}))
+        return 0
+
+    if not DEBUG_RE.search(prompt):
         return 0
     if recently_ran(prompt, args.dedupe_window):
         return 0

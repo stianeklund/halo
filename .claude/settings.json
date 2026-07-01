@@ -25,6 +25,12 @@
         "hooks": [
           {
             "type": "command",
+            "command": "cd $(git rev-parse --show-toplevel) && rtk python3 tools/memory/skill_router_hook.py --surface claude",
+            "timeout": 5,
+            "statusMessage": "Skill router: matching local Halo skills"
+          },
+          {
+            "type": "command",
             "command": "cd $(git rev-parse --show-toplevel) && rtk python3 tools/memory/prior_fix_hook.py --surface claude",
             "timeout": 25,
             "statusMessage": "Prior-fix router: checking local bug memory"
@@ -79,6 +85,12 @@
         "hooks": [
           {
             "type": "command",
+            "command": "cd $(git rev-parse --show-toplevel) && rtk python3 tools/audit/structural_ceiling_hook.py",
+            "timeout": 10,
+            "statusMessage": "Structural-ceiling guard: checking for premature ceiling declarations"
+          },
+          {
+            "type": "command",
             "command": "cd $(git rev-parse --show-toplevel) && rtk python3 tools/audit/token_discipline_hook.py",
             "timeout": 10,
             "statusMessage": "Emit token-discipline summary"
@@ -90,6 +102,12 @@
       {
         "matcher": "*",
         "hooks": [
+          {
+            "type": "command",
+            "command": "cd $(git rev-parse --show-toplevel) && rtk python3 tools/audit/structural_ceiling_hook.py",
+            "timeout": 10,
+            "statusMessage": "Structural-ceiling guard: checking for premature ceiling declarations"
+          },
           {
             "type": "command",
             "command": "cd $(git rev-parse --show-toplevel) && rtk python3 tools/audit/token_discipline_hook.py",

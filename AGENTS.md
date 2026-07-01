@@ -213,7 +213,7 @@ A hook (`tools/audit/token_discipline_hook.py`, wired in `.claude/settings.json`
 
 ## Architecture and Skills
 
-**Skill-first discipline (MANDATORY — applies to every Claude/agent/subagent instance in this repo):** Before doing lift, score-recovery, call-site verification, hazard, or crash/regression work, FIND and APPLY the matching skill under `.claude/skills/`. Do NOT default to raw `docs/lift-learnings.md` or a hand-rolled approach — the skills are the indexed, trigger-keyed front door to that doctrine and must be used actively. Discover with `rtk fd -e md . .claude/skills` (or grep the skill name), read the skill's **"Invoke this skill when"** block, and follow its checklist. Invoke via the Skill tool when it is surfaced as user-invocable; when it is NOT surfaced (the `lift-*` task skills frequently aren't loaded per session), READ the `SKILL.md` and apply it directly — being unlisted is not a reason to skip it. When delegating to a subagent, NAME the relevant skill(s) in the brief so the subagent runs the same doctrine. Trigger → skill map:
+**Skill-first discipline (MANDATORY — applies to every Claude/agent/subagent instance in this repo):** Before doing lift, score-recovery, call-site verification, hazard, or crash/regression work, FIND and APPLY the matching skill under `.claude/skills/`. Do NOT default to raw `docs/lift-learnings.md` or a hand-rolled approach — the skills are the indexed, trigger-keyed front door to that doctrine and must be used actively. Discover with `rtk fd -e md . .claude/skills` (or grep the skill name), read the skill's **"Invoke this skill when"** block, and follow its checklist. Invoke via the Skill tool when it is surfaced as user-invocable; when it is NOT surfaced (the `lift-*` task skills frequently aren't loaded per session), READ `.claude/skills/<skill>/SKILL.md` and apply it directly — being unlisted is not a reason to skip it. When delegating to a subagent, NAME the relevant skill(s) in the brief so the subagent runs the same doctrine. Treat literal user words like `crash`, `page fault`, `wrong color`, `@<reg>`, `ADD ESP`, `_chkstk`, `VC71`, `low match`, `permuter`, `trajectory`, and `xemu` as skill triggers, not just ordinary text. Trigger → skill map:
 
 | Situation | Skill |
 |-----------|-------|
@@ -222,6 +222,7 @@ A hook (`tools/audit/token_discipline_hook.py`, wired in `.claude/settings.json`
 | Verifying a call site against disassembly | `lift-decompiler-traps` + `lift-arg-hazards` |
 | Calling an UNPORTED callee (implicit `@<reg>` args) | `check-callee-regs` |
 | Sizing a local buffer / `_chkstk` frame / stack aliasing | `lift-frame-hazards` |
+| VC71 85–98%, "permuter", "batch permute", or "push stuck functions toward 100%" | `permuter-campaign` |
 | Any Xbox crash / hang / assert / visual regression / toggle-bisect | `crash-triage` → `lift-crash-signals` |
 | Deterministic input record/replay testing (capture gameplay, replay over and over, diff patched vs unpatched on identical input) | `input-replay-testing` |
 | A/B trajectory regression test: replay same input on patched+unpatched, capture state, diff behavior over a time window | `ab-trajectory-testing` |

@@ -1,6 +1,6 @@
 ---
 name: halo-xbox-re
-description: Halo CE Xbox reverse-engineering doctrine, evidence rules, and output contract
+description: "Halo CE Xbox reverse engineering, binary evidence, disassembly, Ghidra, ABI, structs, globals, unknowns, output contract: core doctrine for any RE/lift analysis."
 ---
 
 # Halo Xbox RE Doctrine

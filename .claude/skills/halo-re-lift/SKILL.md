@@ -1,6 +1,6 @@
 ---
 name: halo-re-lift
-description: Repo-specific Halo CE Xbox reverse-engineering and lift workflow
+description: "Lift, port, re-lift, FUN_, Ghidra decompile, kb.json, @<reg>, ABI, source_path: repo-specific Halo CE Xbox function lifting workflow from binary evidence through C implementation and verification."
 ---
 
 # Halo RE Lift
