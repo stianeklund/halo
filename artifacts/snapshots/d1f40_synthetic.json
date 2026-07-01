@@ -1,0 +1,18 @@
+{
+  "description": "Synthetic VALID-input state for FUN_000d1f40: local_player=0 matches seeded *0x506548 (passes assert); anchor=0 (anchor<4 branch); valid placement (10,20); offset_struct=0 (skip switch); out is a 4-byte result buffer. Safe-frame rect 0x506584={0,640,0,480}. Exercises anchor<4 path + dual FISTP rounds + stack guard. 60/60 seeds pass, 0 arg mismatches.",
+  "regions": {
+    "0x506548": "0000",
+    "0x506584": "000080020000e001",
+    "0x50657c": "00000000",
+    "0x2533c0": "00000000"
+  },
+  "arg_overrides": {
+    "local_player": 0,
+    "absolute_placement": "0000",
+    "placement": "0a001400",
+    "offset_struct": 0,
+    "flag": 0,
+    "in_scale": 0,
+    "out": "00000000"
+  }
+}

@@ -255,19 +255,31 @@ void FUN_00013090(float *a, float *b, float *out)
 /* 0x21370 — Sine of a float (x87 FSIN). */
 float FUN_00021370(float x)
 {
+#if defined(_MSC_VER) && !defined(__clang__)
+  return (float)sin((double)x);   /* VC71 /Oi inlines as FSIN (matches original) */
+#else
   return x87_fsin(x);
+#endif
 }
 
 /* 0x21380 — Cosine of a float (x87 FCOS). */
 float FUN_00021380(float x)
 {
+#if defined(_MSC_VER) && !defined(__clang__)
+  return (float)cos((double)x);   /* VC71 /Oi inlines as FCOS (matches original) */
+#else
   return x87_fcos(x);
+#endif
 }
 
 /* 0x21390 — Tangent of a float (x87 FPTAN). */
 float FUN_00021390(float x)
 {
+#if defined(_MSC_VER) && !defined(__clang__)
+  return (float)tan((double)x);   /* VC71 /Oi inlines as FPTAN (matches original) */
+#else
   return x87_fsin(x) / x87_fcos(x);
+#endif
 }
 
 /* 0x213a0 — 2D cross product (z-component): a[0]*b[1] - a[1]*b[0]. */

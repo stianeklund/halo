@@ -55,6 +55,32 @@ the upper-EAX garbage that forced the int→char return fix). With mismatch clas
 the brief claimed) consume return strictly as `if (cVar1 != 0) return 1` (AL-only,
 upper EAX dead). Zero edge into GC/lifecycle cluster.
 
+**accelerate_to_position (0x10f5b0) AUTO_ACCEPT 2026-06-30 — second clear, two near-miss reviewer traps:**
+- TRAP 1 (almost forced a wrong REJECT): the per-fn delinked ref lives in
+  `delinked/functions/0010f5b0.obj`, NOT `delinked/`. A bare `fd 10f5b0 delinked/`
+  / `ls delinked/` does NOT descend into `functions/` and reports the oracle
+  "absent" → false "no structural verification data" blocker. ALWAYS check
+  `delinked/functions/<addr>.obj` before concluding the ref is missing.
+- TRAP 2: `leaf_cache.json` labeled 0x10f5b0 `non_leaf`. FALSE. The per-fn obj
+  is a RANGE export (.text 0x2001 = many fns from 0x10f5b0 on); its CALL relocs
+  (FUN_001d94f0/13010/_ftol2 etc.) all sit PAST the function body. Scope relocs
+  to the body extent (here 0x000–0x1b1): only data refs (DAT_00253398=0.5,
+  FLOAT_002533c0=0.0, PTR_DAT_0031fc38), zero CALL → genuine PURE LEAF. The
+  harness misclassifies because it scans the whole range obj. Confirm leaf-ness
+  from body relocs/disasm, not the cache label.
+- Const-snapshot coverage check (the real residual): src derefs hardcoded VAs
+  `*(float*)0x253398` (0.5 half-range) and `*(float*)0x2533c0` (0.0 sign-zero).
+  Verified the equiv snapshot region key `0x00253080` (61312 bytes) spans both
+  (off 0x318/0x340) and holds the TRUE values (0.5, 0.0) — so finite-clean equiv
+  ran on real const data, not zero-fill. ALWAYS confirm hardcoded-VA derefs land
+  in a populated snapshot region with correct values before crediting equivalence.
+- Equiv: 53/100 pass, 93.8% cov HIGH; all 47 fails are oracle NaN/inf corners
+  (tol 16==1024 → not precision drift). VC71 37.9% = fabsf/sqrtf cdecl-CALL vs
+  inline FABS/FSQRT + param-slot reuse (documented TU cap). ABI disasm-confirmed:
+  8-arg cdecl, 32B cleanup, char/AL return (MOV AL,CL all paths; CONCAT return =
+  dead upper-byte). kb.json record had no `name` key (only addr/decl/ported) —
+  BENIGN, name is parsed from decl, not a blocker; do not lead a verdict with it.
+
 How to apply: for real_math.obj (and similar x87-heavy geometry) FPU-leaf
 activations, do NOT reject on low VC71 — confirm the TU-wide cap via a shipping
 positive control. Require: (1) equivalence 100/N HIGH >60% non-vacuous; (2) STATIC

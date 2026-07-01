@@ -7712,6 +7712,134 @@
       }
     },
     {
+      "name": "halo/FUN_001108b0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/real_math.c.obj",
+      "base_path": "delinked/functions/001108b0.obj",
+      "metadata": {
+        "source_path": "src/halo/math/real_math.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00110b40",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/real_math.c.obj",
+      "base_path": "delinked/functions/00110b40.obj",
+      "metadata": {
+        "source_path": "src/halo/math/real_math.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00111220",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/real_math.c.obj",
+      "base_path": "delinked/functions/00111220.obj",
+      "metadata": {
+        "source_path": "src/halo/math/real_math.c"
+      }
+    },
+    {
+      "name": "halo/FUN_001122e0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/real_math.c.obj",
+      "base_path": "delinked/functions/001122e0.obj",
+      "metadata": {
+        "source_path": "src/halo/math/real_math.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00110e40",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/real_math.c.obj",
+      "base_path": "delinked/functions/00110e40.obj",
+      "metadata": {
+        "source_path": "src/halo/math/real_math.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00110e70",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/real_math.c.obj",
+      "base_path": "delinked/functions/00110e70.obj",
+      "metadata": {
+        "source_path": "src/halo/math/real_math.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00110ed0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/real_math.c.obj",
+      "base_path": "delinked/functions/00110ed0.obj",
+      "metadata": {
+        "source_path": "src/halo/math/real_math.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00021370",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/vector_math.c.obj",
+      "base_path": "delinked/functions/00021370_cluster.obj",
+      "metadata": {
+        "source_path": "src/halo/math/vector_math.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00021380",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/vector_math.c.obj",
+      "base_path": "delinked/functions/00021370_cluster.obj",
+      "metadata": {
+        "source_path": "src/halo/math/vector_math.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00021390",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/vector_math.c.obj",
+      "base_path": "delinked/functions/00021370_cluster.obj",
+      "metadata": {
+        "source_path": "src/halo/math/vector_math.c"
+      }
+    },
+    {
+      "name": "halo/FUN_001113c0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/real_math.c.obj",
+      "base_path": "delinked/functions/001113c0.obj",
+      "metadata": {
+        "source_path": "src/halo/math/real_math.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00111910",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/real_math.c.obj",
+      "base_path": "delinked/functions/00111910.obj",
+      "metadata": {
+        "source_path": "src/halo/math/real_math.c"
+      }
+    },
+    {
+      "name": "halo/FUN_001116b0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/real_math.c.obj",
+      "base_path": "delinked/functions/001116b0.obj",
+      "metadata": {
+        "source_path": "src/halo/math/real_math.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00111ba0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/real_math.c.obj",
+      "base_path": "delinked/functions/00111ba0.obj",
+      "metadata": {
+        "source_path": "src/halo/math/real_math.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00111ea0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/real_math.c.obj",
+      "base_path": "delinked/functions/00111ea0.obj",
+      "metadata": {
+        "source_path": "src/halo/math/real_math.c"
+      }
+    },
+    {
+      "name": "halo/FUN_001114a0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/real_math.c.obj",
+      "base_path": "delinked/functions/001114a0.obj",
+      "metadata": {
+        "source_path": "src/halo/math/real_math.c"
+      }
+    },
+    {
       "name": "halo/message_header",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/message_header.c.obj",
       "base_path": "delinked/message_header.obj",

@@ -6370,6 +6370,18 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x10f5b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x10f770": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x10fa30": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x10fb20": {
       "kind": "function",
       "status": "ported"
