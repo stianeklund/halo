@@ -12332,35 +12332,43 @@
       "functions": [
         {
           "addr": "0xd8af0",
-          "decl": "void FUN_000d8af0(void);"
+          "decl": "void FUN_000d8af0(void);",
+          "ported": true
         },
         {
           "addr": "0xd8b30",
-          "decl": "void FUN_000d8b30(void);"
+          "decl": "void FUN_000d8b30(void);",
+          "ported": true
         },
         {
           "addr": "0xd8b70",
-          "decl": "void FUN_000d8b70(void);"
+          "decl": "void FUN_000d8b70(void);",
+          "ported": true
         },
         {
           "addr": "0xd8b80",
-          "decl": "void FUN_000d8b80(void);"
+          "decl": "void FUN_000d8b80(void);",
+          "ported": true
         },
         {
           "addr": "0xd8b90",
-          "decl": "void FUN_000d8b90(void);"
+          "decl": "void FUN_000d8b90(char show);",
+          "ported": true
         },
         {
           "addr": "0xd8bc0",
-          "decl": "void FUN_000d8bc0(void);"
+          "decl": "void *FUN_000d8bc0(int16_t local_player_index@<esi>);",
+          "ported": true
         },
         {
           "addr": "0xd8c30",
-          "decl": "void FUN_000d8c30(void);"
+          "decl": "void *FUN_000d8c30(int16_t local_player_index@<esi>);",
+          "ported": true
         },
         {
           "addr": "0xd8ca0",
-          "decl": "void FUN_000d8ca0(void);"
+          "decl": "void FUN_000d8ca0(int object_handle@<eax>, int16_t local_player_index@<esi>);",
+          "ported": true
         },
         {
           "addr": "0xd8cf0",
@@ -12368,7 +12376,8 @@
         },
         {
           "addr": "0xd8fd0",
-          "decl": "void FUN_000d8fd0(void);"
+          "decl": "char *FUN_000d8fd0(char *path);",
+          "ported": true
         },
         {
           "addr": "0xd8ff0",
