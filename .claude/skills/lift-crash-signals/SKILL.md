@@ -53,9 +53,12 @@ Thread 28 = main game thread. Look for EIP, EBP, ESP, CR2.
 
 ```bash
 # Is EIP in original code (0x10000–0x1Dxxxx) or our compiled code (0x642000+)?
-# For compiled code, find which original function was redirected there:
-python3 tools/xbox/xbdm_rdcp.py "getmem addr=0x<EIP> length=6"
-# 68 XX XX XX XX C3 = PUSH <target>; RET — the target is the original function addr
+rtk python3 tools/xbox/symbolize_exception.py 0x<EIP> 0x<return_addr0> 0x<return_addr1>
+
+# For an original entry-point trampoline, confirm which function is redirected:
+rtk python3 tools/xbox/xbdm_rdcp.py "getmem addr=0x<EIP> length=6"
+# 68 XX XX XX XX C3 = PUSH <target>; RET — the target is the original function addr.
+# Do not use build/halo.map; symbolize compiled frames from build/halo exports.
 ```
 
 ## Step 3 — Walk the call stack
