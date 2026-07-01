@@ -1061,9 +1061,16 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
           collision_result[0] = 0;
 
           if (!fog_side) {
-            vector3d_scale_add((float *)((char *)collision_result + 0x24),
-                               (float *)((char *)collision_result + 0x24), 1.0f,
-                               (float *)((char *)collision_result + 0x24));
+            /* Back-facing fog plane: flip the plane so its normal points
+             * toward the ray origin. The original calls plane_negate
+             * (FUN_000994d0(pfVar2,pfVar2) @0x14e2xx) — the SAME helper the
+             * BSP branch uses above (line ~942). A prior lift mis-transcribed
+             * this 2-arg plane_negate as vector3d_scale_add(n,n,1.0,n), which
+             * computes n + 1.0*n = 2n instead of -n: a unit normal (0,0,1)
+             * became (0,0,2), tripping assert_valid_real_normal3d in the
+             * vehicle thruster effect (effects.c#1121) on checkpoint load. */
+            plane_negate((float *)((char *)collision_result + 0x24),
+                         (float *)((char *)collision_result + 0x24));
             collision_result[0x1a] = 0x1c;
             result = 1;
           } else {
