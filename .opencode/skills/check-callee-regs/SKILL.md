@@ -1,9 +1,15 @@
 ---
 name: check-callee-regs
-description: Scan ported code for calls to unported functions that have implicit register arguments not yet annotated in kb.json. Run before porting any function that calls unported callees.
+description: "@<reg>, register arg, in_EAX/in_ECX, unported callee, XCALL, missing ABI annotation: scan ported code for calls to original functions that pass implicit register arguments not yet annotated in kb.json. Run before porting any function that calls unported callees."
 ---
 
 # Callee Register-Argument Hazard Check
+
+**Invoke this skill when:**
+- A decompile shows `in_EAX`, `in_ECX`, `in_EDX`, `in_ESI`, or `in_EDI`.
+- A ported function calls an unported/original callee that may read register args.
+- You see `@<reg>`, `XCALL`, missing register arguments, or caller setup in EAX/ECX/EDX/ESI/EDI.
+- A build or runtime failure smells like an ABI mismatch but the stack arg count looks correct.
 
 Run this before porting any function to catch callees that pass arguments via
 CPU registers instead of the stack. Missing `@<reg>` annotations cause silent

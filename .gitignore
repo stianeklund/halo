@@ -148,3 +148,6 @@ xemu.log
 
 # Prior-fix memory router runtime state (regenerated)
 .claude/agent-memory/prior_fix_hook_state.json
+
+# Skill router runtime dedup state (regenerated)
+.claude/agent-memory/skill_router_hook_state.json

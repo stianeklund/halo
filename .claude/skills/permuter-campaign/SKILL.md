@@ -1,7 +1,8 @@
 ---
 name: permuter-campaign
 description: >
-  Run a parallel permuter campaign across low-match already-ported functions. Discovers
+  Permuter campaign, batch permute, low-match VC71, push stuck lifts toward 100%:
+  run a parallel permuter campaign across low-match already-ported functions. Discovers
   eligible targets (VC71 match in [85, 98]% with a delinked reference), spawns isolated
   parallel permuter search workers (each with its own output directory), then applies
   improvements serially with a whole-TU regression gate — reverting any candidate that
@@ -87,7 +88,7 @@ Collect into a manifest at `artifacts/permuter_campaign/targets.json`:
     "source_file": "src/halo/game_engine/game_engine.c",
     "delinked_ref": "delinked/game_engine.obj",
     "baseline_pct": 91.2,
-    "tu_functions": ["FUN_0003ac20", "other_func_in_same_file", ...]
+    "tu_functions": ["FUN_0003ac20", "other_func_in_same_file"]
   }
 ]
 ```

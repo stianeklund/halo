@@ -1,6 +1,6 @@
 ---
 name: halo-verify-debug
-description: Verification ladder, delink comparison, and regression debugging workflow
+description: "/verify, VC71, delink, objdiff, lift_pipeline, equivalence, golden tests, dual-oracle, low-match, behavior/runtime failure: verification ladder and regression debugging workflow."
 ---
 
 # Halo Verify And Debug
