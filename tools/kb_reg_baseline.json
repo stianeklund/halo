@@ -265,6 +265,7 @@
     "0xd8bc0": "void *FUN_000d8bc0(int16_t local_player_index@<esi>);",
     "0xd8c30": "void *FUN_000d8c30(int16_t local_player_index@<esi>);",
     "0xd8ca0": "void FUN_000d8ca0(int object_handle@<eax>, int16_t local_player_index@<esi>);",
+    "0xd8ff0": "void FUN_000d8ff0(int whud_index@<eax>, int *player@<ecx>, int weapon_handle, int buf);",
     "0xdc800": "int16_t FUN_000dc800(int event @<eax>);",
     "0xdc8c0": "int16_t FUN_000dc8c0(int16_t state@<eax>);",
     "0xdc9d0": "void FUN_000dc9d0(int param_2@<eax>, int object_handle@<ebx>);",
