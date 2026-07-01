@@ -227,6 +227,34 @@ def _apply_oracle_switch_table_fixups(func_addr: int, function_slice,
         patched[symbol_name] = bytes(data)
     return patched
 
+
+def _relocate_rdata_text_refs(function_slice, rdata_map: dict,
+                              maps_full_text: bool) -> dict:
+    """Relocate .rdata jump-table entries that point back into .text."""
+    reloc_map = getattr(function_slice, "rdata_relocs", {})
+    if not reloc_map:
+        return rdata_map
+
+    patched = dict(rdata_map)
+    base_delta = 0 if maps_full_text else function_slice.section_offset
+    for symbol_name, data in rdata_map.items():
+        relocs = reloc_map.get(symbol_name)
+        if not relocs:
+            continue
+        chunk = bytearray(data)
+        for reloc in relocs:
+            if reloc.reloc_type != 0x0006:  # IMAGE_REL_I386_DIR32
+                continue
+            if not reloc.symbol_name.startswith(".text"):
+                continue
+            off = reloc.virtual_address
+            if off + 4 <= len(chunk):
+                target_offset = struct.unpack_from("<I", chunk, off)[0]
+                struct.pack_into("<I", chunk, off,
+                                 CODE_BASE + target_offset - base_delta)
+        patched[symbol_name] = bytes(chunk)
+    return patched
+
 # ---------------------------------------------------------------------------
 # kb.json helpers
 # ---------------------------------------------------------------------------
@@ -1463,7 +1491,10 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         orc_rdata = _apply_oracle_switch_table_fixups(
             int(addr, 16), oracle_slice, getattr(oracle_slice, 'rdata_map', {}),
             oracle_text is not None)
+        orc_rdata = _relocate_rdata_text_refs(
+            oracle_slice, orc_rdata, oracle_text is not None)
         lft_rdata = getattr(lifted_slice, 'rdata_map', {})
+        lft_rdata = _relocate_rdata_text_refs(lifted_slice, lft_rdata, False)
         oracle_code_patched, orc_data_slots, orc_rdata_seeds = patch_dir32_relocs(
             oracle_slice.code, oracle_slice.relocs, orc_defined,
             return_slots=True, rdata_map=orc_rdata)
