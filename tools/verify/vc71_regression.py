@@ -303,6 +303,90 @@ def cmd_populate(args) -> int:
 
 
 # ---------------------------------------------------------------------------
+# loadw command -- retroactive load-width (int vs int16/int8) sweep
+# ---------------------------------------------------------------------------
+
+def _discover_ref_sources() -> list[str]:
+    """Source files that have a delinked reference (from objdiff.json)."""
+    objdiff = REPO_ROOT / "objdiff.json"
+    if not objdiff.exists():
+        return []
+    data = json.loads(objdiff.read_text())
+    srcs = []
+    for unit in data.get("units", []):
+        src = unit.get("metadata", {}).get("source_path", "")
+        ref = unit.get("base_path", "")
+        if src and ref and (REPO_ROOT / ref).exists():
+            full = REPO_ROOT / src
+            if full.exists() and str(full) not in srcs:
+                srcs.append(str(full))
+    return srcs
+
+
+def run_vc71_loadw(source: Path) -> list[str]:
+    """Run vc71_verify --loadw-only on a source file; return the report lines
+    (function headers + LOADW detail lines). Empty list means no load-width
+    differences (or the file failed to compile/compare)."""
+    cmd = [sys.executable, str(VC71_VERIFY), str(source),
+           "--loadw-only", "--no-cache"]
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=REPO_ROOT)
+    lines = []
+    for line in (result.stdout + result.stderr).splitlines():
+        s = line.rstrip()
+        if "[LOADW-WARN]" in s or s.strip().startswith("LOADW:"):
+            lines.append(s)
+    return lines
+
+
+def cmd_loadw(args) -> int:
+    """Sweep every source file with a delinked reference for load-width
+    (int vs int16_t/int8_t) differences and write a report. This finds the
+    same class as the c10 tag_groups:3089 pg_surf crash across the whole tree.
+    """
+    if args.source:
+        sources = [str(REPO_ROOT / s if not Path(s).is_absolute() else s)
+                   for s in args.source]
+    else:
+        sources = _discover_ref_sources()
+    if not sources:
+        print("No source files with delinked references found.", file=sys.stderr)
+        return 1
+
+    out_path = REPO_ROOT / "artifacts" / "audit" / "loadw_sweep.txt"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    total_hits = 0
+    files_with_hits = 0
+    report = []
+    print(f"Sweeping {len(sources)} source file(s) for load-width differences...\n",
+          flush=True)
+    for src_str in sorted(sources):
+        src = Path(src_str)
+        rel = src.relative_to(REPO_ROOT) if src.is_absolute() and str(src).startswith(str(REPO_ROOT)) else src
+        lines = run_vc71_loadw(src)
+        hits = [l for l in lines if l.strip().startswith("LOADW:")]
+        if lines:
+            files_with_hits += 1
+            total_hits += len(hits)
+            header = f"=== {rel} ({len(hits)} finding(s)) ==="
+            print(header, flush=True)
+            for l in lines:
+                print(l)
+            report.append(header)
+            report.extend(lines)
+            report.append("")
+
+    summary = (f"\nLoad-width sweep: {total_hits} finding(s) across "
+               f"{files_with_hits}/{len(sources)} file(s).")
+    print(summary)
+    out_path.write_text("\n".join(report) + summary + "\n")
+    print(f"Report written to {out_path.relative_to(REPO_ROOT)}")
+    print("NOTE: findings are review items -- verify each against disassembly "
+          "(a narrow field read wide, or vice versa) before any fix.")
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
 
@@ -331,6 +415,11 @@ def main():
 
     sub.add_parser("populate", help="Populate baseline for all objdiff.json source files")
 
+    p_loadw = sub.add_parser("loadw",
+                             help="Sweep for load-width (int vs int16/int8) differences")
+    p_loadw.add_argument("--source", "-s", nargs="+",
+                         help="Limit sweep to these source files (default: all with a ref)")
+
     args = ap.parse_args()
 
     if args.command == "update":
@@ -341,6 +430,8 @@ def main():
         sys.exit(cmd_show(args))
     elif args.command == "populate":
         sys.exit(cmd_populate(args))
+    elif args.command == "loadw":
+        sys.exit(cmd_loadw(args))
     else:
         ap.print_help()
         sys.exit(1)

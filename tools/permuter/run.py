@@ -443,7 +443,7 @@ def get_lcs_score(func_name: str, compiled_obj: Path, ref_obj: Path) -> float | 
         if delinked_name and delinked_name in ref_funcs:
             ref_fn = delinked_name
     if cand_fn and ref_fn:
-        pct, _, _ = co.compare_functions(cand_funcs[cand_fn], ref_funcs[ref_fn])
+        pct, *_ = co.compare_functions(cand_funcs[cand_fn], ref_funcs[ref_fn])
         return pct
     return None
 

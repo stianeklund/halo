@@ -36,13 +36,13 @@ def score_objects(cand_path: str, target_path: str, function: str | None = None)
         fn = function.lstrip("_")
         # Try direct match first
         if fn in cand_funcs and fn in target_funcs:
-            pct, _, _ = co.compare_functions(cand_funcs[fn], target_funcs[fn])
+            pct, *_ = co.compare_functions(cand_funcs[fn], target_funcs[fn])
             return round((100.0 - pct) * 10)
 
         # Try rename: find the first function in target that matches one in cand
         for c_fn in cand_funcs:
             if c_fn in target_funcs:
-                pct, _, _ = co.compare_functions(cand_funcs[c_fn], target_funcs[c_fn])
+                pct, *_ = co.compare_functions(cand_funcs[c_fn], target_funcs[c_fn])
                 return round((100.0 - pct) * 10)
 
         return 10**6  # function not found
@@ -53,12 +53,12 @@ def score_objects(cand_path: str, target_path: str, function: str | None = None)
         # Try first function in each (handles name mismatch)
         c_fn = next(iter(cand_funcs))
         t_fn = next(iter(target_funcs))
-        pct, _, _ = co.compare_functions(cand_funcs[c_fn], target_funcs[t_fn])
+        pct, *_ = co.compare_functions(cand_funcs[c_fn], target_funcs[t_fn])
         return round((100.0 - pct) * 10)
 
     total_score = 0
     for fn in matched:
-        pct, _, _ = co.compare_functions(cand_funcs[fn], target_funcs[fn])
+        pct, *_ = co.compare_functions(cand_funcs[fn], target_funcs[fn])
         total_score += round((100.0 - pct) * 10)
     return total_score // len(matched)
 
