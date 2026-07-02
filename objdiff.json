@@ -7894,6 +7894,62 @@
       "metadata": {
         "source_path": "src/halo/interface/hud_draw.c"
       }
+    },
+    {
+      "name": "halo/objects",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_region_adf70.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_region_84a10.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_region_9eb40.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_region_1a9520.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/units",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/units/units.c.obj",
+      "base_path": "delinked/units_region_8dc30.obj",
+      "metadata": {
+        "source_path": "src/halo/units/units.c"
+      }
+    },
+    {
+      "name": "halo/units",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/units/units.c.obj",
+      "base_path": "delinked/units_region_122a50.obj",
+      "metadata": {
+        "source_path": "src/halo/units/units.c"
+      }
+    },
+    {
+      "name": "halo/bored_camera",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/camera/bored_camera.c.obj",
+      "base_path": "delinked/objects_region_84a10.obj",
+      "metadata": {
+        "source_path": "src/halo/camera/bored_camera.c"
+      }
     }
   ]
 }
