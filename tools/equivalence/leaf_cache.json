@@ -324,7 +324,7 @@
     "coverage_pct": 29.4
   },
   "0x18": {
-    "confidence": "high",
+    "confidence": "weak",
     "coverage_pct": 93.4
   },
   "0x183e60": {
