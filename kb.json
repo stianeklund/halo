@@ -21198,11 +21198,13 @@
         },
         {
           "addr": "0x188970",
-          "decl": "void FUN_00188970(void);"
+          "decl": "void FUN_00188970(char flag, float *point0, float *point1, float *point2, float *point3, void *color);",
+          "ported": true
         },
         {
           "addr": "0x188a90",
-          "decl": "void FUN_00188a90(void);"
+          "decl": "void FUN_00188a90(float *points, short count, void *color);",
+          "ported": true
         },
         {
           "addr": "0x188b20",
