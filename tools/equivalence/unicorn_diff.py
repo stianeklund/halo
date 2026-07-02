@@ -308,9 +308,11 @@ def _find_obj_paths(kb_entry: dict) -> tuple[Optional[Path], Optional[Path]]:
     in delinked/.
     """
     obj_name = kb_entry.get("_obj_name", "")
+    obj_source = kb_entry.get("_obj_source", "")
     addr = kb_entry.get("addr", "")
     # Strip decorations like "halo/" prefix or ".obj" suffix
     bare = obj_name.replace(".obj", "").replace("LIBCMT:", "")
+    source_stem = Path(obj_source).name if obj_source else ""
 
     units = _load_objdiff()
     delinked_path = None
@@ -346,18 +348,35 @@ def _find_obj_paths(kb_entry: dict) -> tuple[Optional[Path], Optional[Path]]:
     import re as _re
     # Match bare name at a word boundary to prevent "ai" matching "actors_ai..."
     _bare_pat = _re.compile(r'(?<![A-Za-z0-9_])' + _re.escape(bare) + r'\.obj')
-    for unit in units:
-        base = unit.get("base_path", "")
-        target = unit.get("target_path", "")
-        if bare and (_bare_pat.search(base) or _bare_pat.search(target)):
-            dp = _REPO_ROOT / base
-            tp = _REPO_ROOT / target
-            if dp.exists():
-                delinked_path = dp
-            if tp.exists() and tp.suffix == ".obj":
-                build_path = tp
-            if delinked_path and build_path:
+    matches = [
+        unit for unit in units
+        if bare and (_bare_pat.search(unit.get("base_path", ""))
+                     or _bare_pat.search(unit.get("target_path", "")))
+    ]
+
+    # Multiple units can share the same delinked base_path (e.g. a combined
+    # multi-TU delinked export used as the oracle for several candidate build
+    # objects), so a bare-name match on base_path alone is ambiguous — it can
+    # pair the right oracle with the WRONG build object. Prefer the unit whose
+    # target_path is actually the function's source TU (kb.json object
+    # "source" field) before falling back to the first bare-name match.
+    chosen = None
+    if source_stem:
+        _source_pat = _re.compile(r'(?<![A-Za-z0-9_])' + _re.escape(source_stem) + r'\.obj$')
+        for unit in matches:
+            if _source_pat.search(unit.get("target_path", "")):
+                chosen = unit
                 break
+    if chosen is None and matches:
+        chosen = matches[0]
+
+    if chosen:
+        dp = _REPO_ROOT / chosen.get("base_path", "")
+        tp = _REPO_ROOT / chosen.get("target_path", "")
+        if dp.exists():
+            delinked_path = dp
+        if tp.exists() and tp.suffix == ".obj":
+            build_path = tp
 
     # Direct fallback: look for <bare>.obj in delinked/
     if not delinked_path:
@@ -566,8 +585,16 @@ def _build_globals_seeds(*slot_maps: dict,
             # supplies the value through that extra deref.  Direct refs (DAT_X)
             # are single-deref and keep value-seeding.
             is_dllimport = sym_name.startswith("__imp_")
-            if is_dllimport and snap is not None:
-                seeds[slot_addr] = _struct.pack("<I", orig_addr)
+            if is_dllimport:
+                # Seed the slot with the target's real ADDRESS whenever we have
+                # data for it — from a live snapshot or from static known-globals
+                # bytes — so the second deref resolves through the same
+                # known-globals auto-map path used for direct (DAT_X) refs.
+                # Seeding with the VALUE here (as the non-dllimport branches do)
+                # would make the second deref read whatever garbage lives at
+                # that value-as-address, which is wrong.
+                if snap is not None or orig_addr in _KNOWN_GLOBAL_BYTES:
+                    seeds[slot_addr] = _struct.pack("<I", orig_addr)
             elif snap is not None:
                 # Direct value reference (DAT_X).  Seed up to 8 bytes so a
                 # constant read as an 8-byte double (e.g. `*(double*)0x2533d0`)
@@ -733,11 +760,15 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
                 if 0x000100 <= _ptr <= 0x01FFFFFF and _ptr not in _known_targets:
                     if CODE_BASE <= _ptr < CODE_BASE + CODE_SIZE:
                         continue
-                    # Skip pointers backed by snapshot memory: these are real
-                    # data addresses (e.g. an __imp__ slot holding &actor_data),
-                    # not code callbacks.  Writing a ret-stub here would clobber
-                    # the live global value the override just mapped.
+                    # Skip pointers backed by snapshot memory or known-globals
+                    # data: these are real data addresses (e.g. an __imp__ slot
+                    # holding &actor_data), not code callbacks.  Writing a
+                    # ret-stub here would clobber the global value that
+                    # _build_globals_seeds / _seed_known_globals expects to
+                    # supply through the resulting double-deref.
                     if any(lo <= _ptr < hi for lo, hi in _override_ranges):
+                        continue
+                    if _ptr in _KNOWN_GLOBAL_BYTES:
                         continue
                     # Skip the page containing FAKE_RET_ADDR stack sentinel
                     _ptr_page = _ptr & ~0xFFFF
