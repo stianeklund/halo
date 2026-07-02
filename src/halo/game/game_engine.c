@@ -6240,42 +6240,40 @@ int FUN_000abd20(int *param_1, int param_2, char param_3)
   return count;
 }
 
-/* Get the local player's stat entry from the sorted buffer. */
+/* One postgame stat entry: 7 dwords (0x1c bytes), 16-entry array on the
+ * stack of FUN_000abf50 (SUB ESP,0x1c0). Struct assignment reproduces the
+ * original's REP MOVSD (ECX=7) copy-out. */
+typedef struct {
+  int32_t w[7];
+} postgame_stat_entry_t;
+
+/* Get the local player's stat entry from the sorted buffer.
+ * Original (0xabf50): FUN_000abd20's return value is IGNORED; the search
+ * runs until the handle matches, asserting fatally
+ * ("place<MULTIPLAYER_MAXIMUM_PLAYERS", line 0x359) once the index
+ * reaches 16 — there is NO zero-fill fallback (the previous lift
+ * invented one for missing players). Copy-out is REP MOVSD of 7 dwords. */
 int *FUN_000abf50(int *param_1, int player_handle)
 {
   int i;
-  int count;
-  int *src;
-  int *dst;
-  int local_1c4[112];
+  int *cursor;
+  postgame_stat_entry_t entries[16];
 
   i = 0;
-  count = FUN_000abd20(local_1c4, 0, 0);
-  if (count > 0 && local_1c4[0] != player_handle) {
-    src = local_1c4;
+  FUN_000abd20((int *)entries, 0, 0);
+  if (entries[0].w[0] != player_handle) {
+    cursor = (int *)entries;
     do {
       i++;
-      src += 7;
-      if (i >= count) {
-        /* player datum inactive (quit) — not in sorted array; zero output */
-        int n;
-        for (n = 0; n < 7; n++) param_1[n] = 0;
-        return param_1;
+      cursor += 7;
+      if (i >= 16) {
+        display_assert("place<MULTIPLAYER_MAXIMUM_PLAYERS",
+                       "c:\\halo\\SOURCE\\game\\game_engine.c", 0x359, 1);
+        system_exit(-1);
       }
-    } while (*src != player_handle);
-  } else if (count == 0) {
-    int n;
-    for (n = 0; n < 7; n++) param_1[n] = 0;
-    return param_1;
+    } while (*cursor != player_handle);
   }
-  src = local_1c4 + i * 7;
-  dst = param_1;
-  { int n;
-  for (n = 7; n != 0; n--) {
-    *dst = *src;
-    src++;
-    dst++;
-  } }
+  *(postgame_stat_entry_t *)param_1 = entries[i];
   return param_1;
 }
 
