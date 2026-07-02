@@ -13430,7 +13430,16 @@ char FUN_001b3690(int unit_handle)
                         int ud2 = (int)object_get_and_verify_type(unit_handle, 3);
                         int w = unit_get_weapon(unit_handle,
                                     *(int16_t *)(ud2 + 0x2a2));
-                        ((void (*)(int))0xfaeb0)(w);
+                        /* Set the held weapon's integrated-light (flashlight)
+                         * power from this unit's power field (unit+0x2f0, a
+                         * float; 0.0 = off). The original passes it as arg2 via
+                         * MSVC stack-arg reuse (MOV ECX,[unit+0x2f0]; PUSH ECX);
+                         * a prior raw 1-arg fn-ptr cast dropped it, leaving
+                         * light_power reading a stale stack slot (a light-cluster
+                         * pointer / -1) that corrupted weapon+0x1f8 -> funcval
+                         * -> flashlight color (over-bright, or NaN -> assert). */
+                        weapon_set_integrated_light_power(
+                            w, *(int *)((char *)unit + 0x2f0));
                     }
                 }
                 if (((uint32_t)unit[0x6e] & 0x400) != 0) { uVar15 |= 8; }
