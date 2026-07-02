@@ -799,6 +799,58 @@ void FUN_001896d0(char flag, void *center, void *height_vec, float radius,
   }
 }
 
+/* Draw or cache a debug capsule/dome (0x189860). type 5. With flag clear,
+ * caches a type-5 primitive. With flag set, calls the cylinder builder
+ * (FUN_00188d00) to fill two 17-vertex main rings plus four 9-vertex dome
+ * half-rings, then draws: each main ring as a 16-segment strip, four vertical
+ * edges connecting the main rings, and the four dome half-rings as 8-segment
+ * strips. */
+void FUN_00189860(char flag, void *center, void *height_vec, float radius,
+                  void *color)
+{
+  float buf1[51];
+  float buf2[51];
+  float buf3[27];
+  float buf4[27];
+  float buf5[27];
+  float buf6[27];
+  int i;
+
+  if (center == 0) {
+    display_assert("base", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x2b5,
+                   1);
+    system_exit(-1);
+  }
+  if (height_vec == 0) {
+    display_assert("height", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x2b6,
+                   1);
+    system_exit(-1);
+  }
+  if (color == 0) {
+    display_assert("color", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x2b7,
+                   1);
+    system_exit(-1);
+  }
+  if (flag == 0) {
+    FUN_00188ec0(5, center, height_vec, (double)radius, color);
+    return;
+  }
+  FUN_00188d00(buf1, buf2, center, height_vec, radius, buf3, buf4, buf5, buf6);
+  for (i = 0; i < 16; i++) {
+    FUN_0017eb10(&buf2[i * 3], &buf2[i * 3 + 3], (int)color);
+    FUN_0017eb10(&buf1[i * 3], &buf1[i * 3 + 3], (int)color);
+  }
+  for (i = 0; i < 4; i++) {
+    FUN_0017eb10(&buf2[i * 12], &buf1[i * 12], (int)color);
+  }
+  for (i = 0; i < 8; i++) {
+    FUN_0017eb10(&buf3[i * 3], &buf3[i * 3 + 3], (int)color);
+    FUN_0017eb10(&buf4[i * 3], &buf4[i * 3 + 3], (int)color);
+    FUN_0017eb10(&buf5[i * 3], &buf5[i * 3 + 3], (int)color);
+    FUN_0017eb10(&buf6[i * 3], &buf6[i * 3 + 3], (int)color);
+  }
+}
+
 /* Draw or cache a debug box (0x189a20). type 6. With flag clear, caches a
  * type-6 primitive (six bounds floats + color). With flag set, expands the
  * bounds {x0,x1,y0,y1,z0,z1} into the eight box corners and draws the six faces
