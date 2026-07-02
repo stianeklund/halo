@@ -714,6 +714,72 @@ void FUN_0018a650(int flag, float *plane, int projection, int sign,
   FUN_00189270(flag, pts + 3, pts, color);
 }
 
+/* Draw a debug coordinate frame built from a forward/up basis (0x18a990).
+ * Builds a 4x3 frame at position from the forward and up vectors, then draws
+ * its axes. */
+void FUN_0018a990(int flag, float *position, float *forward, float *up,
+                  float scale)
+{
+  float matrix[13];
+
+  matrix4x3_from_forward_up_position(matrix, position, forward, up);
+  FUN_001894d0(flag, matrix, scale);
+}
+
+/* Draw a debug coordinate frame built from a surface normal (0x18a9d0).
+ * Derives an orthonormal basis at position from the normal, then draws its
+ * axes. */
+void FUN_0018a9d0(int flag, float *position, float *basis_data, float scale)
+{
+  float matrix[13];
+
+  component_vectors_from_normal3d(matrix, position, basis_data);
+  FUN_001894d0(flag, matrix, scale);
+}
+
+/* Draw a 2D debug box in screen space (0x18aa00). Immediate-mode only (there is
+ * no cache path -- flag == 0 asserts). Expands the {x0,x1,y0,y1} bounds into
+ * four corners at z = -1, transforms each by the debug screen matrix at
+ * 0x5065e8, then draws them as a closed polyline. */
+void FUN_0018aa00(char flag, float *bounds, void *color)
+{
+  float corners[12];
+
+  if (bounds == 0) {
+    display_assert("bounds", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x2e9,
+                   1);
+    system_exit(-1);
+  }
+  if (color == 0) {
+    display_assert("color", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x2ea,
+                   1);
+    system_exit(-1);
+  }
+  if (flag != 0) {
+    corners[0] = bounds[0];
+    corners[1] = bounds[2];
+    corners[2] = -1.0f;
+    corners[3] = bounds[1];
+    corners[4] = bounds[2];
+    corners[5] = -1.0f;
+    corners[6] = bounds[1];
+    corners[7] = bounds[3];
+    corners[8] = -1.0f;
+    corners[9] = bounds[0];
+    corners[10] = bounds[3];
+    corners[11] = -1.0f;
+    matrix_transform_point((float *)0x5065e8, corners, corners);
+    matrix_transform_point((float *)0x5065e8, corners + 3, corners + 3);
+    matrix_transform_point((float *)0x5065e8, corners + 6, corners + 6);
+    matrix_transform_point((float *)0x5065e8, corners + 9, corners + 9);
+    FUN_00189ba0(corners, 4, color);
+    return;
+  }
+  display_assert("can't add box2d to debug cache",
+                 "c:\\halo\\SOURCE\\render\\render_debug.c", 0x2fd, 1);
+  system_exit(-1);
+}
+
 /* Render a debug bounding box (0x18ab30). With wireframe set, expand the six
  * min/max bounds {x0,x1,y0,y1,z0,z1} into the eight box corners and draw the
  * two z-faces as line loops plus the four vertical edges; otherwise submit a

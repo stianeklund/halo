@@ -21332,15 +21332,18 @@
         },
         {
           "addr": "0x18a990",
-          "decl": "void FUN_0018a990(void);"
+          "decl": "void FUN_0018a990(int flag, float *position, float *forward, float *up, float scale);",
+          "ported": true
         },
         {
           "addr": "0x18a9d0",
-          "decl": "void FUN_0018a9d0(void);"
+          "decl": "void FUN_0018a9d0(int flag, float *position, float *basis_data, float scale);",
+          "ported": true
         },
         {
           "addr": "0x18aa00",
-          "decl": "void FUN_0018aa00(void);"
+          "decl": "void FUN_0018aa00(char flag, float *bounds, void *color);",
+          "ported": true
         },
         {
           "addr": "0x18ab30",
