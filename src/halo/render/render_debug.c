@@ -98,10 +98,10 @@ done:
 
 /* Submit a debug primitive to the per-frame cache (0x188ec0). Variadic tagged
  * builder: `type` (0..9) selects how the trailing arguments are interpreted and
- * packed into a fresh 0x38-byte cache record. Float arguments arrive promoted to
- * double (varargs default promotion) and are narrowed back to float on store.
- * When the game frame advances the cache is reset; when it fills (0x200 records)
- * a one-shot overflow warning is emitted and the record is dropped.
+ * packed into a fresh 0x38-byte cache record. Float arguments arrive promoted
+ * to double (varargs default promotion) and are narrowed back to float on
+ * store. When the game frame advances the cache is reset; when it fills (0x200
+ * records) a one-shot overflow warning is emitted and the record is dropped.
  *
  * The trailing arguments are read positionally through `args` (the stack slot
  * just past `type`), matching the original's fixed [ebp+N] accesses. Several
@@ -274,6 +274,63 @@ tail_v4:
   dst[3] = src[3];
 done:
   return;
+}
+
+/* Draw or cache a debug point marker (0x189150). type 1. With flag set, render
+ * a 3D crosshair: three axis-aligned line segments through `position`, each
+ * 2*s long where s = scale * the global debug marker size (0x253398). The
+ * 18-float vertex buffer is a single contiguous block walked in 6-float
+ * (two-endpoint) strides by the line helper. With flag clear, submit a type-1
+ * primitive (position, scale, color) to the per-frame cache. */
+void FUN_00189150(char flag, float *position, float scale, void *color)
+{
+  float v[18];
+  float *p;
+  int i;
+  float s;
+
+  if (position == 0) {
+    display_assert("point", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x147,
+                   1);
+    system_exit(-1);
+  }
+  if (color == 0) {
+    display_assert("color", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x148,
+                   1);
+    system_exit(-1);
+  }
+
+  if (flag != 0) {
+    s = scale * *(float *)0x253398;
+    v[0] = position[0] - s;
+    v[1] = position[1];
+    v[2] = position[2];
+    v[3] = position[0] + s;
+    v[4] = position[1];
+    v[5] = position[2];
+    v[6] = position[0];
+    v[7] = position[1] - s;
+    v[8] = position[2];
+    v[9] = position[0];
+    v[10] = position[1] + s;
+    v[11] = position[2];
+    v[12] = position[0];
+    v[13] = position[1];
+    v[14] = position[2] - s;
+    v[15] = position[0];
+    v[16] = position[1];
+    v[17] = position[2] + s;
+    p = &v[0];
+    i = 3;
+    do {
+      FUN_0017eb10(p, p + 3, (int)color);
+      p = p + 6;
+      i--;
+    } while (i != 0);
+    return;
+  }
+
+  FUN_00188ec0(1, position, (double)scale, color);
 }
 
 /* Render a debug bounding box (0x18ab30). With wireframe set, expand the six
