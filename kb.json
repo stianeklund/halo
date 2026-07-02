@@ -14548,35 +14548,43 @@
       "functions": [
         {
           "addr": "0x130270",
-          "decl": "bool FUN_00130270(void *server, void *buffer, int size, void *addr);"
+          "decl": "bool FUN_00130270(void *server, void *buffer, int size, void *addr);",
+          "ported": true
         },
         {
           "addr": "0x130580",
-          "decl": "bool FUN_00130580(void *server, void *machine, void *buffer, int size);"
+          "decl": "bool FUN_00130580(void *server, void *machine, void *buffer, int size);",
+          "ported": true
         },
         {
           "addr": "0x12fd80",
-          "decl": "void FUN_0012fd80(void);"
+          "decl": "char FUN_0012fd80(int server @<esi>, int machine, void *message_data, int message_size);",
+          "ported": true
         },
         {
           "addr": "0x12fe40",
-          "decl": "void FUN_0012fe40(void);"
+          "decl": "char FUN_0012fe40(int server @<esi>, int machine, void *message_data, int message_size);",
+          "ported": true
         },
         {
           "addr": "0x12ff00",
-          "decl": "void FUN_0012ff00(void);"
+          "decl": "char FUN_0012ff00(int server @<esi>, int machine, void *message_data, int message_size);",
+          "ported": true
         },
         {
           "addr": "0x12ffe0",
-          "decl": "void FUN_0012ffe0(void);"
+          "decl": "char FUN_0012ffe0(int server @<esi>, int machine, void *message_data, int message_size);",
+          "ported": true
         },
         {
           "addr": "0x1300b0",
-          "decl": "void FUN_001300b0(void);"
+          "decl": "char FUN_001300b0(int server @<esi>, int machine, void *message_data, int message_size);",
+          "ported": true
         },
         {
           "addr": "0x130180",
-          "decl": "void FUN_00130180(void);"
+          "decl": "char FUN_00130180(int server @<eax>, int machine, void *message_data, int message_size);",
+          "ported": true
         }
       ],
       "name": "network_server_message_handler.obj",
@@ -34075,7 +34083,7 @@
         },
         {
           "addr": "0x12b1f0",
-          "decl": "void network_game_update_player(void);"
+          "decl": "char network_game_update_player(int game, void *player_settings);"
         },
         {
           "addr": "0x12b290",

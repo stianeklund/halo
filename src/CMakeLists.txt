@@ -83,6 +83,7 @@
 	halo/networking/message_header.c
 	halo/networking/network_messages.c
 	halo/networking/network_server_manager.c
+	halo/networking/network_server_message_handler.c
 	halo/main/console.c
 	halo/main/d3d_intimacy.c
 	halo/main/debug_keys.c
