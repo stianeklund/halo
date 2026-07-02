@@ -73,12 +73,12 @@ double pow(double x, double y);
 /* FUN_00138fd0 and FUN_00138f70 now in kb.json with proper declarations. */
 #define CALL_FUN_00180570(a,b) XCALL(0x180570, void(*)(int,void*))(a,b)
 #define CALL_FUN_00180660(a,b) XCALL(0x180660, void(*)(int,void*))(a,b)
-#define CALL_FUN_00189150(a,b,c,d) XCALL(0x189150, void(*)(int,int,int,void*))(a,b,c,d)
+#define CALL_FUN_00189150(a,b,c,d) XCALL(0x189150, void(*)(int,int,float,void*))(a,b,c,d)
 #define CALL_FUN_001906b0(a,b) XCALL(0x1906b0, int(*)(int,int))(a,b)
 #define CALL_FUN_007c490(a,b,c,d,e,f) XCALL(0x7c490, void(*)(int,int,void*,void*,void*,float))(a,b,c,d,e,f)
 #define CALL_FUN_00196c90(a,b,c,d,e,f,g) XCALL(0x196c90, int(*)(void*,int,void*,void*,void*,void*,void*))(a,b,c,d,e,f,g)
 #define CALL_FUN_00123470(a,b,c,d) XCALL(0x123470, void(*)(void*,void*,int,void*))(a,b,c,d)
-#define CALL_FUN_00189320_5(a,b,c,d,e) XCALL(0x189320, void(*)(int,void*,void*,int,void*))(a,b,c,d,e)
+#define CALL_FUN_00189320_5(a,b,c,d,e) XCALL(0x189320, void(*)(int,void*,void*,float,void*))(a,b,c,d,e)
 #define CALL_FUN_00139c20(a,b,c,d,e,f,g,h,i) XCALL(0x139c20, void(*)(int,unsigned short,float*,float,void*,void*,void*,void*,int))(a,b,c,d,e,f,g,h,i)
 #define CALL_FUN_00180770(a) XCALL(0x180770, unsigned char(*)(float))(a)
 #define CALL_FUN_001812b0() XCALL(0x1812b0, void(*)(void))()
@@ -8715,7 +8715,7 @@ void FUN_00143550(int param_1)
   if (*(char *)0x5a8d27 != '\0') {
     void *nm;
     nm = object_get_node_matrix(param_1, 0);
-    FUN_001894d0(1, nm, 0x3e99999a);
+    FUN_001894d0(1, nm, 0.3f);
   }
 
   if (*(char *)0x5a8d24 != '\0' &&
@@ -8746,9 +8746,9 @@ void FUN_00143550(int param_1)
     FUN_00189cb0(
         0, info_text_buf, name_ptr, *(int *)0x2ee6f0);
     FUN_001894d0(
-        1, world_matrix, obj[0x17]);
+        1, world_matrix, ((float *)obj)[0x17]);
     FUN_00189320(
-        1, info_text_buf, root_pos, 0x3f800000, *(int *)0x2ee6e0);
+        1, info_text_buf, root_pos, 1.0f, *(void **)0x2ee6e0);
     tag_data = (char *)tag_get(0x6f626a65, *obj);
   }
 
@@ -11492,7 +11492,7 @@ char FUN_0013ab20(unsigned int param_1, int param_2, int *param_3)
           local_28 = local_40[1];
           local_24 = local_40[2];
           local_30 = 0x3f800000;
-          CALL_FUN_00189150(1, param_2, 0x3f000000, &local_30);
+          CALL_FUN_00189150(1, param_2, 0.5f, &local_30);
           { int ds_bits; memcpy(&ds_bits, &distance_scale, 4);
           ((void (*)(int, void *, void *, int, void *))FUN_00189320)(1, (void *)param_2, local_70, ds_bits, &local_30); }
         }
