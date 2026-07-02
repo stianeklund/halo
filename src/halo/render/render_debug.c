@@ -93,6 +93,189 @@ done:
   return result;
 }
 
+/* Cache overflow one-shot warning flag (0x4d822a). */
+#define cache_overflow_warned (*(char *)0x4d822a)
+
+/* Submit a debug primitive to the per-frame cache (0x188ec0). Variadic tagged
+ * builder: `type` (0..9) selects how the trailing arguments are interpreted and
+ * packed into a fresh 0x38-byte cache record. Float arguments arrive promoted to
+ * double (varargs default promotion) and are narrowed back to float on store.
+ * When the game frame advances the cache is reset; when it fills (0x200 records)
+ * a one-shot overflow warning is emitted and the record is dropped.
+ *
+ * The trailing arguments are read positionally through `args` (the stack slot
+ * just past `type`), matching the original's fixed [ebp+N] accesses. Several
+ * layouts share the two trailing copy tails: tail_c5/tail_d8 copy a 3-vector
+ * then a 4-vector (shared blocks 0x1890c5/0x1890d8), tail_v4 copies a single
+ * 4-vector (shared block 0x189060). */
+void FUN_00188ec0(short type, ...)
+{
+  int *args;
+  char *rec;
+  float *p1;
+  float *p2;
+  float *q;
+  float *dst3;
+  float *dst6;
+  float *src6;
+  float *dst;
+  float *src;
+  float tmp;
+  char *interned;
+  short frame;
+  int i;
+
+  frame = (short)game_time_get();
+  if (debug_primitive_frame != frame) {
+    debug_primitive_frame = (short)game_time_get();
+    debug_primitive_count = 0;
+    debug_string_pool_count = 0;
+    debug_string_pool[0] = 0;
+  } else if (debug_primitive_count >= 0x200) {
+    if (cache_overflow_warned == 0) {
+      error(2, "render debug cache overflow.");
+      cache_overflow_warned = 1;
+    }
+    return;
+  }
+
+  rec = (char *)&debug_primitives[debug_primitive_count];
+  debug_primitive_count = debug_primitive_count + 1;
+  *(short *)rec = type;
+
+  args = (int *)((char *)&type + 4);
+  switch (type) {
+  case 0:
+    p1 = (float *)args[0];
+    q = (float *)(rec + 0x04);
+    q[0] = p1[0];
+    q[1] = p1[1];
+    q[2] = p1[2];
+    q[3] = p1[3];
+    *(short *)(rec + 0x14) = *(short *)&args[1];
+    *(char *)(rec + 0x16) = *(char *)&args[2];
+    p2 = (float *)args[3];
+    *(float *)(rec + 0x18) = p2[0];
+    *(float *)(rec + 0x1c) = p2[1];
+    *(float *)(rec + 0x20) = (float)*(double *)&args[4];
+    p1 = (float *)args[6];
+    q = (float *)(rec + 0x24);
+    q[0] = p1[0];
+    q[1] = p1[1];
+    q[2] = p1[2];
+    q[3] = p1[3];
+    *(float *)(rec + 0x34) = (float)*(double *)&args[7];
+    goto done;
+  case 1:
+  case 3:
+    p1 = (float *)args[0];
+    q = (float *)(rec + 0x04);
+    q[0] = p1[0];
+    q[1] = p1[1];
+    q[2] = p1[2];
+    *(float *)(rec + 0x10) = (float)*(double *)&args[1];
+    p2 = (float *)args[3];
+    q = (float *)(rec + 0x14);
+    q[0] = p2[0];
+    q[1] = p2[1];
+    q[2] = p2[2];
+    q[3] = p2[3];
+    goto done;
+  case 2:
+    p1 = (float *)args[0];
+    q = (float *)(rec + 0x04);
+    q[0] = p1[0];
+    q[1] = p1[1];
+    q[2] = p1[2];
+    dst3 = (float *)(rec + 0x10);
+    dst6 = (float *)(rec + 0x1c);
+    goto tail_c5;
+  case 4:
+    p1 = (float *)args[0];
+    q = (float *)(rec + 0x04);
+    q[0] = p1[0];
+    q[1] = p1[1];
+    q[2] = p1[2];
+    p2 = (float *)args[1];
+    dst3 = (float *)(rec + 0x10);
+    dst3[0] = p2[0];
+    dst3[1] = p2[1];
+    tmp = p2[2];
+    *(float *)(rec + 0x1c) = (float)*(double *)&args[2];
+    dst6 = (float *)(rec + 0x20);
+    src6 = (float *)args[4];
+    goto tail_d8;
+  case 5:
+    p1 = (float *)args[0];
+    q = (float *)(rec + 0x04);
+    q[0] = p1[0];
+    q[1] = p1[1];
+    q[2] = p1[2];
+    p2 = (float *)args[1];
+    q = (float *)(rec + 0x10);
+    q[0] = p2[0];
+    q[1] = p2[1];
+    *(float *)(rec + 0x1c) = (float)*(double *)&args[2];
+    q[2] = p2[2];
+    dst = (float *)(rec + 0x20);
+    src = (float *)args[4];
+    goto tail_v4;
+  case 6:
+  case 7:
+    p1 = (float *)args[0];
+    dst = (float *)(rec + 0x04);
+    for (i = 6; i != 0; i--) {
+      *dst = *p1;
+      p1++;
+      dst++;
+    }
+    dst = (float *)(rec + 0x1c);
+    src = (float *)args[1];
+    goto tail_v4;
+  case 8:
+    interned = FUN_00188b20((char *)args[0]);
+    if (interned != 0) {
+      *(char **)(rec + 0x04) = interned;
+    } else {
+      debug_primitive_count = debug_primitive_count - 1;
+    }
+    goto done;
+  case 9:
+    interned = FUN_00188b20((char *)args[0]);
+    if (interned == 0) {
+      debug_primitive_count = debug_primitive_count - 1;
+      goto done;
+    }
+    *(char **)(rec + 0x04) = interned;
+    dst3 = (float *)(rec + 0x08);
+    dst6 = (float *)(rec + 0x14);
+    goto tail_c5;
+  default:
+    goto done;
+  }
+
+tail_c5:
+  src = (float *)args[1];
+  dst3[0] = src[0];
+  dst3[1] = src[1];
+  tmp = src[2];
+  src6 = (float *)args[2];
+tail_d8:
+  dst3[2] = tmp;
+  dst6[0] = src6[0];
+  dst6[1] = src6[1];
+  dst6[2] = src6[2];
+  dst6[3] = src6[3];
+  goto done;
+tail_v4:
+  dst[0] = src[0];
+  dst[1] = src[1];
+  dst[2] = src[2];
+  dst[3] = src[3];
+done:
+  return;
+}
+
 /* Render a debug bounding box (0x18ab30). With wireframe set, expand the six
  * min/max bounds {x0,x1,y0,y1,z0,z1} into the eight box corners and draw the
  * two z-faces as line loops plus the four vertical edges; otherwise submit a
