@@ -398,6 +398,7 @@ def run_compare_cached(
     cache,
     no_cache: bool,
     quiet: bool = False,
+    opt: str = "/O2",
 ) -> int:
     """Run per-function comparison with cache integration.
 
@@ -484,7 +485,7 @@ def run_compare_cached(
     for fn in sorted(matched):
         cached_result = None
         if not no_cache and cache is not None:
-            cached_result = cache.get(fn, source, reference)
+            cached_result = cache.get(fn, source, reference, opt=opt)
 
         if cached_result is not None:
             hits += 1
@@ -504,7 +505,7 @@ def run_compare_cached(
             # Store result; always save diff_lines so future --show-diffs works
             if cache is not None and not no_cache:
                 cache.put(fn, source, reference, pct, fpu_warnings, diffs,
-                          loadw_warnings=loadw_warnings)
+                          loadw_warnings=loadw_warnings, opt=opt)
 
         n_c = len(compiled_funcs[fn])
         n_r = len(reference_funcs[fn])
@@ -633,6 +634,20 @@ def main():
         if not args.quiet:
             print(f"[opt] size-optimized library TU detected -> using /O1", flush=True)
 
+    # The original game code was built WITHOUT compiler auto-inlining: the
+    # binary CALLs tiny same-TU helpers everywhere (e.g. 0x13c030 calls
+    # 0x13d680; 0xb1760 calls 0xa95a0) instead of inlining them.  Our merged
+    # TUs make /O2's implied /Ob2 inline those helpers into the candidate,
+    # scrambling scores file-wide.  Auto-select /O2 /Ob1 for the big merged
+    # game TUs.  Verified: FUN_0013c030 56.1% (/Ob2) -> 100.0% (/Ob1);
+    # game_engine.c mean 84.9 -> 86.4 with 22 functions gaining >5pp vs
+    # 4 dropping <7pp.
+    _OB1_TUS = ("game/game_engine.c", "objects/objects.c", "units/units.c")
+    if args.opt == "/O2" and any(str(source).replace("\\", "/").endswith(t) for t in _OB1_TUS):
+        args.opt = "/O2 /Ob1"
+        if not args.quiet:
+            print(f"[opt] merged game TU detected -> using /O2 /Ob1", flush=True)
+
     unit = choose_unit(str(source), units, args.function)
     if not unit:
         print(f"No usable objdiff.json unit found for {source}", file=sys.stderr)
@@ -725,7 +740,7 @@ def main():
 
     rc = run_compare_cached(
         vc71_obj, ref_path, source, extra, cache, no_cache=args.no_cache,
-        quiet=args.quiet,
+        quiet=args.quiet, opt=args.opt,
     )
     sys.exit(rc)
 

@@ -111,14 +111,15 @@ def _load_kb() -> dict[str, str]:
     return _KB_DECL_MAP
 
 
-def make_cache_key(fn_name: str, source_path: Path, ref_path: Path) -> str:
+def make_cache_key(fn_name: str, source_path: Path, ref_path: Path,
+                   opt: str = "/O2") -> str:
     """Build the composite cache key for a single function."""
     src_sha = _sha256_file(source_path)
     ref_sha = _sha256_file(ref_path)
     cc_ver = compiler_version_token()
     decl_sha = fn_decl_sha256(fn_name)
     comparator_sha = _sha256_file(REPO_ROOT / "tools" / "verify" / "compare_obj.py")
-    raw = f"{fn_name}|{src_sha}|{ref_sha}|{cc_ver}|{decl_sha}|{comparator_sha}"
+    raw = f"{fn_name}|{src_sha}|{ref_sha}|{cc_ver}|{decl_sha}|{comparator_sha}|{opt}"
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
@@ -160,9 +161,10 @@ class Vc71Cache:
         fn_name: str,
         source_path: Path,
         ref_path: Path,
+        opt: str = "/O2",
     ) -> dict | None:
         """Return cached result or None on miss."""
-        key = make_cache_key(fn_name, source_path, ref_path)
+        key = make_cache_key(fn_name, source_path, ref_path, opt)
         conn = self._open()
         row = conn.execute(
             "SELECT match_pct, fpu_warnings, diff_lines, loadw_warnings, created_utc "
@@ -188,9 +190,10 @@ class Vc71Cache:
         fpu_warnings: list[str],
         diff_lines: list[str] | None,
         loadw_warnings: list[str] | None = None,
+        opt: str = "/O2",
     ) -> None:
         """Insert or replace a cache entry."""
-        key = make_cache_key(fn_name, source_path, ref_path)
+        key = make_cache_key(fn_name, source_path, ref_path, opt)
         created = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         conn = self._open()
         conn.execute(
