@@ -9100,6 +9100,10 @@
       "score": 93.3,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
+    "FUN_00174d10": {
+      "score": 83.8,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
     "FUN_0017c7e0": {
       "score": 83.5,
       "source": "src/halo/rasterizer/rasterizer.c"

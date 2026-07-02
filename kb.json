@@ -18557,11 +18557,11 @@
     },
     {
      "addr": "0xe2220",
-     "decl": "void SetRenderStateSmart(void);"
+     "decl": "void SetRenderStateSmart(int state, int value);"
     },
     {
      "addr": "0xe2470",
-     "decl": "void SetTextureStageStateSmart(void);"
+     "decl": "void SetTextureStageStateSmart(int stage, int state, int value);"
     },
     {
      "addr": "0xe2650",
@@ -18813,7 +18813,7 @@
    "functions": [
     {
      "addr": "0x16eef0",
-     "decl": "void FUN_0016eef0(void);"
+     "decl": "void FUN_0016eef0(void *group);"
     },
     {
      "addr": "0x16f480",
@@ -18954,7 +18954,7 @@
     },
     {
      "addr": "0x174510",
-     "decl": "void FUN_00174510(void);"
+     "decl": "void FUN_00174510(void *group, int a2);"
     },
     {
      "addr": "0x174980",
@@ -18986,7 +18986,9 @@
     },
     {
      "addr": "0x174d10",
-     "decl": "void FUN_00174d10(void);"
+     "decl": "void rasterizer_transparent_geometry_group_draw(void *group, int dirty);",
+     "name": "rasterizer_transparent_geometry_group_draw",
+     "ported": true
     },
     {
      "addr": "0x178820",
@@ -19002,7 +19004,7 @@
     },
     {
      "addr": "0x178b40",
-     "decl": "void FUN_00178b40(void);"
+     "decl": "void FUN_00178b40(int a1, int a2, int a3);"
     },
     {
      "addr": "0x1792a0",
@@ -19026,7 +19028,7 @@
     },
     {
      "addr": "0x179de0",
-     "decl": "void FUN_00179de0(void);"
+     "decl": "void FUN_00179de0(void *group);"
     },
     {
      "addr": "0x17a8a0",
@@ -19082,7 +19084,7 @@
     },
     {
      "addr": "0x17bca0",
-     "decl": "void FUN_0017bca0(void);"
+     "decl": "char FUN_0017bca0(void *shader, void *state);"
     },
     {
      "addr": "0x17be50",
@@ -19106,7 +19108,7 @@
     },
     {
      "addr": "0x17c2f0",
-     "decl": "void FUN_0017c2f0(void);"
+     "decl": "char FUN_0017c2f0(void *shader, void *state);"
     },
     {
      "addr": "0x17c790",
@@ -19270,7 +19272,7 @@
     },
     {
      "addr": "0x1580b0",
-     "decl": "void FUN_001580b0(void);"
+     "decl": "void FUN_001580b0(int framebuffer_blend_function);"
     },
     {
      "addr": "0x158140",
@@ -19278,7 +19280,7 @@
     },
     {
      "addr": "0x1584f0",
-     "decl": "void FUN_001584f0(void);"
+     "decl": "void FUN_001584f0(int a1, int a2, int a3);"
     },
     {
      "addr": "0x158800",
@@ -19298,7 +19300,7 @@
     },
     {
      "addr": "0x159070",
-     "decl": "void FUN_00159070(void);"
+     "decl": "uint32_t FUN_00159070(float a1);"
     },
     {
      "addr": "0x1592e0",
@@ -19310,7 +19312,7 @@
     },
     {
      "addr": "0x159900",
-     "decl": "void FUN_00159900(void);"
+     "decl": "void FUN_00159900(void *group);"
     },
     {
      "addr": "0x15a290",
@@ -19615,7 +19617,7 @@
     },
     {
      "addr": "0x155c20",
-     "decl": "void rasterizer_set_texture_bitmap_data(void);"
+     "decl": "void rasterizer_set_texture_bitmap_data(int stage, void *bitmap_data);"
     },
     {
      "addr": "0x155cc0",
@@ -19623,7 +19625,7 @@
     },
     {
      "addr": "0x155cf0",
-     "decl": "void rasterizer_set_texture_direct(void);"
+     "decl": "void rasterizer_set_texture_direct(int stage, int bitmap_tag_index, int frame_index);"
     },
     {
      "addr": "0x155da0",
@@ -19631,7 +19633,7 @@
     },
     {
      "addr": "0x155e80",
-     "decl": "void rasterizer_set_texture(void);"
+     "decl": "void rasterizer_set_texture(int stage, int a2, int bitmap_type, int bitmap_index, int frame_index);"
     },
     {
      "addr": "0x156070",
@@ -19651,7 +19653,7 @@
     },
     {
      "addr": "0x156510",
-     "decl": "void rasterizer_set_pixel_shader(void);"
+     "decl": "void rasterizer_set_pixel_shader(void *state);"
     },
     {
      "addr": "0x156710",
@@ -19671,11 +19673,11 @@
     },
     {
      "addr": "0x156ab0",
-     "decl": "void rasterizer_set_model_lighting(void);"
+     "decl": "void rasterizer_set_model_lighting(void *lighting);"
     },
     {
      "addr": "0x156c30",
-     "decl": "void rasterizer_set_frustum_z(void);"
+     "decl": "void rasterizer_set_frustum_z(float near_z, float far_z);"
     },
     {
      "addr": "0x156d80",
@@ -21025,15 +21027,15 @@
     },
     {
      "addr": "0x184570",
-     "decl": "void FUN_00184570(void);"
+     "decl": "char FUN_00184570(void *group);"
     },
     {
      "addr": "0x1845b0",
-     "decl": "void FUN_001845b0(void);"
+     "decl": "void FUN_001845b0(void *group, int a2);"
     },
     {
      "addr": "0x184610",
-     "decl": "void FUN_00184610(void);"
+     "decl": "int FUN_00184610(void *group);"
     },
     {
      "addr": "0x184680",
@@ -21744,11 +21746,11 @@
     },
     {
      "addr": "0x1906b0",
-     "decl": "void FUN_001906b0(void);"
+     "decl": "void *FUN_001906b0(void *shader, int shader_type);"
     },
     {
      "addr": "0x190710",
-     "decl": "void shader_get_vertex_shader_permutation(void);"
+     "decl": "int shader_get_vertex_shader_permutation(void *shader);"
     },
     {
      "addr": "0x190830",
@@ -21756,15 +21758,15 @@
     },
     {
      "addr": "0x1908a0",
-     "decl": "void shader_is_decal(void);"
+     "decl": "char shader_is_decal(void *shader);"
     },
     {
      "addr": "0x190930",
-     "decl": "void shader_is_water_decal(void);"
+     "decl": "char shader_is_water_decal(void *shader);"
     },
     {
      "addr": "0x190980",
-     "decl": "void shader_ignores_effect(void);"
+     "decl": "char shader_ignores_effect(void *shader);"
     },
     {
      "addr": "0x1909d0",
@@ -21800,7 +21802,7 @@
     },
     {
      "addr": "0x190c00",
-     "decl": "void numeric_countdown_timer_get(void);"
+     "decl": "int numeric_countdown_timer_get(int a1);"
     },
     {
      "addr": "0x190d90",
@@ -21817,7 +21819,7 @@
     },
     {
      "addr": "0x190e10",
-     "decl": "void FUN_00190e10(void);"
+     "decl": "void FUN_00190e10(void *map_animation, void *external_animation, float u_scale, float v_scale, float u_offset, float v_offset, float rotation, float time, float *out_u, float *out_v);"
     }
    ],
    "name": "shaders.obj",
@@ -34557,7 +34559,7 @@
     },
     {
      "addr": "0x167ff0",
-     "decl": "void FUN_00167ff0(void);"
+     "decl": "void FUN_00167ff0(int a1, const char *call_text);"
     },
     {
      "addr": "0x168230",
@@ -36977,7 +36979,7 @@
     },
     {
      "addr": "0x001e98e0",
-     "decl": "void D3DDevice_SetRenderState_ZBias(void);"
+     "decl": "void __stdcall D3DDevice_SetRenderState_ZBias(uint32_t value);"
     },
     {
      "addr": "0x001e9960",
@@ -37081,7 +37083,7 @@
     },
     {
      "addr": "0x001eb2d0",
-     "decl": "void D3DDevice_SetStreamSource(void);"
+     "decl": "void __stdcall D3DDevice_SetStreamSource(uint32_t stream, void *vertex_buffer, uint32_t stride);"
     },
     {
      "addr": "0x001eb3b0",
@@ -37117,7 +37119,7 @@
     },
     {
      "addr": "0x001eb8d0",
-     "decl": "void D3DDevice_SetVertexShaderConstant(void);"
+     "decl": "void __stdcall D3DDevice_SetVertexShaderConstant(int register_index, const void *data, uint32_t count);"
     },
     {
      "addr": "0x001eb970",
