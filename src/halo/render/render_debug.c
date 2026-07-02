@@ -535,6 +535,38 @@ void FUN_00189270(char flag, float *point_a, float *point_b, void *color)
   FUN_00188ec0(2, point_a, point_b, color);
 }
 
+/* Draw a closed debug polyline (0x189ba0). Immediate-mode only: with three or
+ * more points draws the closing edge from the last point back to the first,
+ * then a line between each pair of consecutive points, forming a line loop.
+ * Each point is three floats. */
+void FUN_00189ba0(float *points, short count, void *color)
+{
+  unsigned int n;
+
+  if (points == 0) {
+    display_assert("points", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x369,
+                   1);
+    system_exit(-1);
+  }
+  if (color == 0) {
+    display_assert("color", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x36a,
+                   1);
+    system_exit(-1);
+  }
+  if (2 < count) {
+    FUN_00189270(1, points + (count - 1) * 3, points, color);
+    if (1 < count) {
+      points = points + 3;
+      n = (unsigned short)(count - 1);
+      do {
+        FUN_00189270(1, points - 3, points, color);
+        points = points + 3;
+        n = n - 1;
+      } while (n != 0);
+    }
+  }
+}
+
 /* Draw or cache a debug string (0x189c40). type 8. With flag set, prime the
  * debug text state (font 1, style -1, color tag 5) and draw the string
  * immediately; otherwise submit a type-8 primitive (the string, interned by the

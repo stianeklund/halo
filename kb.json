@@ -21273,7 +21273,8 @@
         },
         {
           "addr": "0x189ba0",
-          "decl": "void FUN_00189ba0(void *points, short count, void *color);"
+          "decl": "void FUN_00189ba0(float *points, short count, void *color);",
+          "ported": true
         },
         {
           "addr": "0x189c40",
