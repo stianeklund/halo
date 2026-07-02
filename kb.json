@@ -21304,7 +21304,8 @@
         },
         {
           "addr": "0x18a110",
-          "decl": "void FUN_0018a110(void);"
+          "decl": "void FUN_0018a110(void);",
+          "ported": true
         },
         {
           "addr": "0x18a190",

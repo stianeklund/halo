@@ -960,6 +960,38 @@ void FUN_00189c40(char flag, const char *string)
   FUN_00188ec0(8, string);
 }
 
+/* Draw the collision-BSP portal edges (0x18a110). A debug sub-renderer gated on
+ * the flag at 0x506533. Iterates the portal block of the global collision BSP
+ * (bsp+0x48); for each portal, looks up its two vertices in the vertex block
+ * (bsp+0x54) by the indices stored in the portal element, and draws a line
+ * between them. */
+void FUN_0018a110(void)
+{
+  void *bsp;
+  int *portal_block;
+  void *vertex_block;
+  int i;
+  int *portal;
+  void *v0;
+  void *v1;
+
+  if (*(char *)0x506533 != 0) {
+    bsp = global_collision_bsp_get();
+    portal_block = (int *)((char *)bsp + 0x48);
+    i = 0;
+    if (0 < *portal_block) {
+      vertex_block = (char *)bsp + 0x54;
+      do {
+        portal = (int *)tag_block_get_element(portal_block, i, 0x18);
+        v0 = tag_block_get_element(vertex_block, portal[0], 0x10);
+        v1 = tag_block_get_element(vertex_block, portal[1], 0x10);
+        FUN_00189270(1, v0, v1, *(void **)0x2ee6d4);
+        i++;
+      } while (i < *portal_block);
+    }
+  }
+}
+
 /* Draw a debug point on a plane (0x18a580). Projects a 2D point onto the plane,
  * lifts it off the plane along the projection axis by +/- offset (sign selects
  * the direction), then draws it as a debug point (FUN_00189150). */
