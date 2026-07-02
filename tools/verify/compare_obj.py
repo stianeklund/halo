@@ -399,6 +399,18 @@ _NARROW_READ_WIDTH = {
     'movsx': 'nX', 'movzx': 'nX',  # Intel-syntax fallback (defensive)
 }
 
+# Fused byte/word ALU ops that READ a narrow memory operand. cl.exe (VC71) often
+# folds a byte/word field read into one of these instead of emitting a separate
+# movb/movw load -- e.g. the original's `movb 0xc(%ebx),%cl; mov $1,%eax;
+# test %cl,%al` compiles to a single `testb %cl, 0xc(%eax)`. Both READ the same
+# field at the same width; only the split-vs-fused encoding differs. llvm-objdump
+# emits an explicit b/w size suffix (`testb`, `andw`, ...), which gives the width.
+# These ops read their memory operand in EITHER position (test/cmp read-only;
+# and/or/xor/add/sub/adc/sbb are read-modify-write), so a disp(%reg) in any
+# operand counts. Recognising them lets the fused form cancel the split load in
+# the presence census below (the d3080 hud_draw false positive, 2026-07-02).
+_NARROW_ALU_OPS = {'test', 'cmp', 'and', 'or', 'xor', 'add', 'sub', 'adc', 'sbb'}
+
 
 def narrow_mem_load_shape(insn: str):
     """If `insn` READS 16 or 8 bits FROM MEMORY, return (width_class, operand_key);
@@ -416,17 +428,40 @@ def narrow_mem_load_shape(insn: str):
     parts = insn.split(None, 1)
     if not parts:
         return None
-    wc = _NARROW_READ_WIDTH.get(parts[0].lower())
-    if wc is None or len(parts) < 2:
-        return None
-    src = parts[1].split(',')[0].strip()  # AT&T source operand is first
-    m = re.match(r'^(-?0x[0-9a-f]+|-?\d+)?\((%\w+)\)$', src)  # disp(%reg)
-    if m:
-        base = m.group(2).lower()
-        if base in ('%ebp', '%esp'):
-            return None  # stack local -- build-specific slot, not a field type
-        return (wc, f"disp:{m.group(1) or '0x0'}")
-    return None  # absolute/global, register source, store, or unrecognized
+    mnem = parts[0].lower()
+
+    # Narrow memory LOAD (movb/movw/movsx/movzx family). The memory operand must
+    # be the SOURCE (first AT&T operand) so 16/8-bit stores and reg-to-reg
+    # widenings are excluded.
+    wc = _NARROW_READ_WIDTH.get(mnem)
+    if wc is not None:
+        if len(parts) < 2:
+            return None
+        src = parts[1].split(',')[0].strip()  # AT&T source operand is first
+        m = re.match(r'^(-?0x[0-9a-f]+|-?\d+)?\((%\w+)\)$', src)  # disp(%reg)
+        if m:
+            base = m.group(2).lower()
+            if base in ('%ebp', '%esp'):
+                return None  # stack local -- build-specific slot, not a field type
+            return (wc, f"disp:{m.group(1) or '0x0'}")
+        return None  # absolute/global, register source, store, or unrecognized
+
+    # Fused byte/word ALU op (testb/andw/...) reading a disp(%reg) memory operand
+    # in EITHER position. Same width class + offset key as the split load above,
+    # so a fused `testb %cl, 0xc(%eax)` cancels a split `movb 0xc(%ebx), %cl`.
+    if len(parts) >= 2 and len(mnem) >= 2 and mnem[-1] in ('b', 'w') \
+            and mnem[:-1] in _NARROW_ALU_OPS:
+        wc = 'n8' if mnem[-1] == 'b' else 'n16'
+        # disp(%reg) with the ')' immediately after the base register excludes
+        # SIB/indexed operands (`0xc(%eax,%edi,2)`), whose access width is a
+        # different, rarer analysis.
+        m = re.search(r'(-?0x[0-9a-f]+|-?\d+)?\((%\w+)\)', parts[1])
+        if m:
+            base = m.group(2).lower()
+            if base in ('%ebp', '%esp'):
+                return None  # stack local
+            return (wc, f"disp:{m.group(1) or '0x0'}")
+    return None  # absolute/global, register-only, store, or unrecognized
 
 
 def compare_load_widths(compiled: list[str], reference: list[str]) -> list[str]:
@@ -560,6 +595,30 @@ def _self_test():
     # 8. Negative: identical narrow loads cancel.
     w = compare_load_widths(["movswl 0x8(%eax), %eax"], ["movswl 0x8(%esi), %ecx"])
     check("matching narrow loads not flagged", w == [])
+
+    # 9. CRITICAL negative: fused byte ALU op == split byte load of the same field.
+    #    cl.exe folds `movb 0xc(%ebx),%cl; test %cl,%al` into `testb %cl,0xc(%eax)`;
+    #    both READ byte @0xc, so they must cancel (the d3080 hud_draw false positive).
+    w = compare_load_widths(["testb %cl, 0xc(%eax)"], ["movb 0xc(%ebx), %cl"])
+    check("fused testb vs split movb (same byte field) not flagged", w == [])
+
+    # 10. Positive still holds: a genuine over-widen is NOT masked by the ALU form.
+    #     Candidate reads the field WIDE (32-bit movl), reference narrow -> flags.
+    w = compare_load_widths(["movl 0xc(%eax), %ecx"], ["movb 0xc(%ebx), %cl"])
+    check("wide read vs narrow field still flagged (ALU ext is safe)",
+          any("n8 disp:0xc" in x and "reference reads" in x for x in w))
+
+    # 11. Shape-level checks for the fused ALU recogniser.
+    check("fused andw recognised as n16",
+          narrow_mem_load_shape("andw %ax, 0x8(%eax)") == ('n16', 'disp:0x8'))
+    check("fused testb immediate form recognised",
+          narrow_mem_load_shape("testb $0x1, 0xc(%esi)") == ('n8', 'disp:0xc'))
+    check("fused ALU on stack local excluded",
+          narrow_mem_load_shape("testb %cl, -0xc(%ebp)") is None)
+    check("32-bit ALU (testl) is not a narrow read",
+          narrow_mem_load_shape("testl %ecx, 0xc(%eax)") is None)
+    check("fused ALU with SIB (indexed) not misread as disp(%reg)",
+          narrow_mem_load_shape("testb %cl, 0xc(%eax,%edi,2)") is None)
 
     if failures:
         print(f"\nSELF-TEST FAILED: {len(failures)} case(s)")
