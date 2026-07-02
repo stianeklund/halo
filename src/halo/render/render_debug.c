@@ -84,6 +84,75 @@ void FUN_00188890(char flag, float *point0, float *point1, float *point2,
   FUN_0017eb30(point0, point1, point2, color);
 }
 
+/* Draw a debug quad immediately as two triangles (0x188970). Splits the quad
+ * (point0..point3) into triangles (0,1,2) and (0,2,3), each drawn via the
+ * immediate triangle drawer. Immediate-mode only (asserts flag != 0). */
+void FUN_00188970(char flag, float *point0, float *point1, float *point2,
+                  float *point3, void *color)
+{
+  if (flag == 0) {
+    display_assert("immediate", "c:\\halo\\SOURCE\\render\\render_debug.c",
+                   0x1f3, 1);
+    system_exit(-1);
+  }
+  if (point0 == 0) {
+    display_assert("point0", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x1f4,
+                   1);
+    system_exit(-1);
+  }
+  if (point1 == 0) {
+    display_assert("point1", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x1f5,
+                   1);
+    system_exit(-1);
+  }
+  if (point2 == 0) {
+    display_assert("point2", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x1f6,
+                   1);
+    system_exit(-1);
+  }
+  if (point3 == 0) {
+    display_assert("point3", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x1f7,
+                   1);
+    system_exit(-1);
+  }
+  if (color == 0) {
+    display_assert("color", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x1f8,
+                   1);
+    system_exit(-1);
+  }
+  FUN_00188890(flag, point0, point1, point2, color);
+  FUN_00188890(flag, point0, point2, point3, color);
+}
+
+/* Draw a filled debug polygon immediately as a triangle fan (0x188a90). Fans
+ * from points[0]: for each i in 1..count-2 draws triangle
+ * (points[0], points[i], points[i+1]). Each point is three floats.
+ * Immediate-mode only. */
+void FUN_00188a90(float *points, short count, void *color)
+{
+  short i;
+  float *pi;
+
+  if (points == 0) {
+    display_assert("points", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x357,
+                   1);
+    system_exit(-1);
+  }
+  if (color == 0) {
+    display_assert("color", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x358,
+                   1);
+    system_exit(-1);
+  }
+  i = 1;
+  if (1 < count - 1) {
+    do {
+      pi = points + i * 3;
+      FUN_00188890(1, points, pi, pi + 3, color);
+      i = (short)(i + 1);
+    } while (i < count - 1);
+  }
+}
+
 /* Intern a string into the per-frame debug string arena (0x188b20). Scans the
  * arena for an identical string already present and returns its address;
  * otherwise appends a null-terminated copy and advances the cursor. Returns
