@@ -18,3 +18,12 @@ disown
 
 echo "  [dashboard] Regenerating in background → $LOG"
 exit 0
+
+# >>> codegraph sync hook >>>
+# Keeps the CodeGraph index fresh while the live file watcher is off
+# (e.g. WSL2 /mnt drives). Runs in the background so it never blocks git.
+# Managed by codegraph; remove with `codegraph uninit` or delete this block.
+if command -v codegraph >/dev/null 2>&1; then
+  ( codegraph sync >/dev/null 2>&1 & ) >/dev/null 2>&1
+fi
+# <<< codegraph sync hook <<<
