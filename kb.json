@@ -21241,7 +21241,8 @@
         },
         {
           "addr": "0x189320",
-          "decl": "void FUN_00189320(int flag, void *text_buf, void *position, int scale, int color);"
+          "decl": "void FUN_00189320(int flag, float *point, float *vector, float scale, void *color);",
+          "ported": true
         },
         {
           "addr": "0x1893e0",
@@ -21255,7 +21256,8 @@
         },
         {
           "addr": "0x1894d0",
-          "decl": "void FUN_001894d0(int flag, void *matrix, int scale);"
+          "decl": "void FUN_001894d0(int flag, float *matrix, float scale);",
+          "ported": true
         },
         {
           "addr": "0x189540",

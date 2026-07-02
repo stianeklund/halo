@@ -8336,17 +8336,13 @@ void unit_render_debug(int unit_handle)
     object_get_world_position(unit_handle, (vector3_t *)head_pos);
     head_pos[2] = head_pos[2] + 0.1f;
     /* Draw aim direction line (scale 1.0, yellow) */
-    FUN_00189320(1, eye_pos, (void *)(unit + 0x1ec), 0x3f800000,
-                 *(int *)0x2ee6c4);
+    FUN_00189320(1, eye_pos, (void *)(unit + 0x1ec), 1.0f, *(void **)0x2ee6c4);
     /* Draw aim direction line (scale 0.5, green) */
-    FUN_00189320(1, eye_pos, (void *)(unit + 0x1e0), 0x3f000000,
-                 *(int *)0x2ee6d0);
+    FUN_00189320(1, eye_pos, (void *)(unit + 0x1e0), 0.5f, *(void **)0x2ee6d0);
     /* Draw head position (scale 1.0, yellow) */
-    FUN_00189320(1, head_pos, (void *)(unit + 0x24), 0x3f800000,
-                 *(int *)0x2ee6c4);
+    FUN_00189320(1, head_pos, (void *)(unit + 0x24), 1.0f, *(void **)0x2ee6c4);
     /* Draw body direction (scale 0.5, green) */
-    FUN_00189320(1, head_pos, (void *)(unit + 0x1d4), 0x3f000000,
-                 *(int *)0x2ee6d0);
+    FUN_00189320(1, head_pos, (void *)(unit + 0x1d4), 0.5f, *(void **)0x2ee6d0);
   }
 
   /* Debug seat positions */

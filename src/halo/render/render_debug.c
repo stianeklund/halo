@@ -535,6 +535,35 @@ void FUN_00189270(char flag, float *point_a, float *point_b, void *color)
   FUN_00188ec0(2, point_a, point_b, color);
 }
 
+/* Draw a debug vector as a line from a point along a direction (0x189320).
+ * The line runs from point to point + scale*vector; the cache flag is forwarded
+ * to the line drawer. */
+void FUN_00189320(int flag, float *point, float *vector, float scale,
+                  void *color)
+{
+  float endpoint[3];
+
+  if (point == 0) {
+    display_assert("point", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x184,
+                   1);
+    system_exit(-1);
+  }
+  if (vector == 0) {
+    display_assert("vector", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x185,
+                   1);
+    system_exit(-1);
+  }
+  if (color == 0) {
+    display_assert("color", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x186,
+                   1);
+    system_exit(-1);
+  }
+  endpoint[0] = scale * vector[0] + point[0];
+  endpoint[1] = scale * vector[1] + point[1];
+  endpoint[2] = scale * vector[2] + point[2];
+  FUN_00189270(flag, point, endpoint, color);
+}
+
 /* Draw a debug tick as a line centered on a point (0x1893e0). Extends the line
  * from point + scale*dir to point - scale*dir; the cache flag is forwarded to
  * the line drawer. */
@@ -569,6 +598,21 @@ void FUN_00189450(int flag, float *point_a, float *point_b, void *color,
   pts[4] = scale * v[1] + point_b[1];
   pts[5] = scale * v[2] + point_b[2];
   FUN_00189270(flag, pts, pts + 3, color);
+}
+
+/* Draw a debug coordinate frame as three colored axis lines (0x1894d0). The
+ * frame (as built by FUN_00188c60) stores its length at matrix[0], the side/up/
+ * forward basis vectors at matrix[1..3]/[4..6]/[7..9], and the origin at
+ * matrix[10..12]. Draws each basis vector from the origin, scaled by
+ * scale*matrix[0], in the standard axis colors. */
+void FUN_001894d0(int flag, float *matrix, float scale)
+{
+  float *origin;
+
+  origin = matrix + 10;
+  FUN_00189320(flag, origin, matrix + 1, scale * matrix[0], *(void **)0x2ee6d0);
+  FUN_00189320(flag, origin, matrix + 4, scale * matrix[0], *(void **)0x2ee6d4);
+  FUN_00189320(flag, origin, matrix + 7, scale * matrix[0], *(void **)0x2ee6d8);
 }
 
 /* Draw a closed debug polyline (0x189ba0). Immediate-mode only: with three or
