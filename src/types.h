@@ -88,8 +88,13 @@ typedef struct {
 } game_globals_t;
 
 /// size=0x68
+/* First field is a 2-byte scalar: every variant-default initializer in the
+ * original zeroes a local copy as MOV word [base],DX then REP STOSD from
+ * base+2 (0x19 dwords) + STOSW - MSVC's member-wise {0} zeroing of a struct
+ * whose first member is 16-bit. */
 typedef struct {
-  char unk_0[104];
+  int16_t unk_0;
+  char    unk_2[0x66];
 } game_variant_t;
 
 #define GAME_STATE_CPU_SIZE 0x305000
