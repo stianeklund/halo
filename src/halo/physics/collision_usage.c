@@ -832,7 +832,9 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
   void *scenario_h;
   char local_buf[0x434];
   float saved_dist;
-  float local_18[3];
+  float local_18[4]; /* fog plane {normal[0..2], d} — must stay contiguous so
+                      * &local_18 is a valid real_plane3d for
+                      * plane3d_distance_to_point (matches original EBP-0x1c). */
   float local_10[3];
   float local_c;
   int iter_state;
@@ -1033,10 +1035,16 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
         local_18[0] = *(float *)((char *)pg_list + 4);
         local_18[1] = *(float *)((char *)pg_list + 8);
         local_18[2] = *(float *)((char *)pg_list + 0xc);
-        local_c =
+        local_18[3] = local_c =
           *(float *)((char *)pg_list + 0x10) - *(float *)((char *)fog + 0x74);
 
-        fVar_dist = plane3d_distance_to_point((float *)origin, local_18);
+        /* Reference (0x14df70): FUN_00099500(&plane, origin) passes the fog
+         * plane {normal, d} FIRST and the ray origin SECOND. The prior lift
+         * swapped the arguments (ray origin as the plane) and passed only the
+         * 3-float normal with no d component, so plane3d_distance_to_point read
+         * a garbage plane distance -> a spurious near fog fraction that
+         * collapsed the observer/vehicle chase camera onto the vehicle. */
+        fVar_dist = plane3d_distance_to_point(local_18, (float *)origin);
         fVar_dir_dot = local_18[0] * direction[0] + local_18[1] * direction[1] +
                        local_18[2] * direction[2];
 
@@ -1057,7 +1065,9 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
           *(int *)((char *)collision_result + 0x24) = *(int *)local_10;
           *(int *)((char *)collision_result + 0x28) = *(int *)(local_10 + 1);
           *(int *)((char *)collision_result + 0x2c) = *(int *)(local_10 + 2);
-          *(int *)((char *)collision_result + 0x30) = (int)local_c;
+          /* Reference stores the plane d as a float (*(float*)(param_5+0x18) =
+           * local_10); the prior lift truncated it to int ((int)local_c). */
+          *(float *)((char *)collision_result + 0x30) = local_c;
           collision_result[0] = 0;
 
           if (!fog_side) {
