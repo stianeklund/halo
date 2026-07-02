@@ -7950,6 +7950,14 @@
       "metadata": {
         "source_path": "src/halo/camera/bored_camera.c"
       }
+    },
+    {
+      "name": "halo/rasterizer_FUN_00174d10",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/rasterizer.c.obj",
+      "base_path": "delinked/rasterizer_FUN_00174d10.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/rasterizer.c"
+      }
     }
   ]
 }

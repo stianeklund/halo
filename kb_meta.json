@@ -8101,6 +8101,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x174d10": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x17c7e0": {
       "kind": "function",
       "status": "ported"
