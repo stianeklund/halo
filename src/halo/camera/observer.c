@@ -962,8 +962,14 @@ void FUN_0008c150(float *up, float *focus_distance, float near_plane_dist,
       iterations = iterations - 1;
     } while (iterations != 0);
 
-    /* Determine final_scale from refinement results */
-    if (fraction > best_frac) {
+    /* Determine final_scale from refinement results.
+     * Reference (LAB_0008c3cf in delinked observer.obj): the "test $5,ah; jp"
+     * takes the branch when fraction >= best_frac, selecting
+     * value = (refinement_scale >= C0); the fall-through (fraction < best_frac)
+     * selects value = offset. The comparison was previously inverted (> vs <),
+     * which flipped the sign of the lerp scale below and collapsed the vehicle
+     * chase distance onto the focus point. */
+    if (fraction < best_frac) {
       value = offset;
     } else {
       value = (float)(int)(refinement_scale >= *(float *)0x2533c0);
