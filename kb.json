@@ -21154,7 +21154,7 @@
         },
         {
           "addr": "0x186c70",
-          "decl": "void render_camera_world_to_screen(void);"
+          "decl": "char render_camera_world_to_screen(void *cam1, void *cam2, void *world_pos, float *screen_out);"
         },
         {
           "addr": "0x186d40",
@@ -21292,7 +21292,8 @@
         },
         {
           "addr": "0x189cb0",
-          "decl": "void FUN_00189cb0(int flag, void *position, void *data, int color);"
+          "decl": "void FUN_00189cb0(char flag, void *position, void *string, int color);",
+          "ported": true
         },
         {
           "addr": "0x189de0",
