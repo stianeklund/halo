@@ -338,7 +338,7 @@ def compile_vc71(source: Path, output: Path, regcall_elide: bool = False, opt: s
     cmd = [
         VC71_CL_WSL,
         "/nologo", "/c", "/TC",
-        opt, "/Oy-", "/GF", "/Gy", "/Gd",
+        *opt.split(), "/Oy-", "/GF", "/Gy", "/Gd",
         "/W0", "/Zl", "/X",
         "/DMSVC", "/DXDK_BUILD", "/DHDATA=",
         f"/FI{fi_win}",

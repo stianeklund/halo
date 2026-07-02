@@ -77,6 +77,7 @@ def disassemble(obj_path: str) -> dict[str, list[str]]:
         lines = functions[fn]
         while lines and lines[-1].strip().split()[0].startswith('nop'):
             lines.pop()
+        lines = _trim_trailing_table_data(lines)
         lines = _trim_trailing_thunks(lines)
         functions[fn] = _trim_unlabeled_bleed(lines, _label_positions.get(fn, set()))
 
@@ -156,6 +157,34 @@ def _trim_unlabeled_bleed(insns: list, label_positions: set[int]) -> list:
         return insns[:i + 1]
 
     return insns
+
+_DATA_GARBAGE_MARKERS = ('<unknown>', 'addb\t%al, (%eax)', 'addb %al, (%eax)')
+
+
+def _trim_trailing_table_data(insns: list) -> list:
+    """Trim inline switch-table data disassembled as garbage after the final RET.
+
+    MSVC places jump tables and byte index tables in .text after the
+    function's final RET.  llvm-objdump decodes those bytes as junk
+    instructions (addb %al,(%eax) for 00 00 pairs, <unknown>, etc.),
+    inflating the instruction count and tanking the match score for every
+    function containing a switch jump table.  Detect the artifact by
+    scanning the tail after the LAST ret: if it contains a classic
+    data-decode marker, everything after that ret is table data.
+    """
+    if not insns:
+        return insns
+    last_ret = -1
+    for i, ins in enumerate(insns):
+        if mnemonic(ins).lower() in _RET_MNEMS:
+            last_ret = i
+    if last_ret < 0 or last_ret == len(insns) - 1:
+        return insns
+    tail = insns[last_ret + 1:]
+    if any(any(m in ins for m in _DATA_GARBAGE_MARKERS) for ins in tail):
+        return insns[:last_ret + 1]
+    return insns
+
 
 def _trim_trailing_thunks(insns: list) -> list:
     """Strip NOP padding and push/call/ret thunk stubs after the real function RET.
