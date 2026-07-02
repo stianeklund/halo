@@ -513,7 +513,12 @@ bool game_engine_running(void)
 
 bool game_engine_can_score(void)
 {
-  return *(int *)0x456b60 == 0 || *(int *)0x5aa730 == 0;
+  /* Original preloads AL=1 for the no-engine case and computes
+   * SETZ on the phase word otherwise (single RET). */
+  bool result = 1;
+  if (current_game_engine)
+    result = *(int *)0x5aa730 == 0;
+  return result;
 }
 
 bool game_engine_force_single_screen(void)
@@ -3306,9 +3311,12 @@ int FUN_000a8470(int param_1, int param_2)
  * otherwise returns the incoming AL (0). */
 char FUN_000a9550(void)
 {
-  if ((*(uint32_t *)0x5aa720 & 4) == 0)
-    return (char)(*(uint32_t *)0x456b18 >> 2) & 1;
-  return 0;
+  /* Original: byte load of the complexity flags (MOV CL,[0x5aa720]),
+   * result preloaded 0, single RET. */
+  char result = 0;
+  if ((*(uint8_t *)0x5aa720 & 4) == 0)
+    result = (char)((*(uint32_t *)0x456b18 >> 2) & 1);
+  return result;
 }
 
 /* Return whether friendly fire is enabled for a specific player.
@@ -3463,28 +3471,34 @@ int FUN_000ab290(int param_1)
   return (*(uint32_t *)(weapon_tag + 0x308) >> 13) & 1;
 }
 
-/* Return 1 if the game engine is inactive (no engine), or bit 0 of flags. */
+/* Return 1 if the game engine is inactive (no engine), or bit 0 of flags.
+ * Original preloads AL=1 and overwrites in the engine-active branch
+ * (single RET) — keep the result-variable form. */
 char FUN_000ab9a0(void)
 {
+  char result = 1;
   if (current_game_engine)
-    return *(uint8_t *)0x456b18 & 1;
-  return 1;
+    result = *(uint8_t *)0x456b18 & 1;
+  return result;
 }
 
 /* Return 1 if no engine, or inverted bit 0 of the complexity word. */
 char FUN_000ab9c0(void)
 {
+  char result = 1;
   if (current_game_engine)
-    return ~(*(uint8_t *)0x5aa720) & 1;
-  return 1;
+    result = ~(*(uint8_t *)0x5aa720) & 1;
+  return result;
 }
 
-/* Return 1 if no engine, or inverted bit 1 of the complexity word. */
+/* Return 1 if no engine, or inverted bit 1 of the complexity word.
+ * Original loads the full DWORD at 0x5aa720 then SHR 1. */
 char FUN_000ab9e0(void)
 {
+  char result = 1;
   if (current_game_engine)
-    return ~(*(uint8_t *)0x5aa720 >> 1) & 1;
-  return 1;
+    result = (char)(~(*(uint32_t *)0x5aa720 >> 1) & 1);
+  return result;
 }
 
 /* Initialize a CTF game variant (slayer pro). */
@@ -7292,14 +7306,14 @@ char FUN_000b3630(int weapon_handle, int player_handle)
 char FUN_000b2be0(int param_1)
 {
   int variant;
+  char result = 0;
 
   if (param_1 == 1) {
     variant = (int)game_engine_get_variant();
-    if (*(int *)(variant + 0x5c) - 2 == 0)
-      return 1;
-    return 0;
+    if (*(int *)(variant + 0x5c) == 2)
+      result = 1;
   }
-  return 0;
+  return result;
 }
 
 /* King of the Hill: compute hill geometry from scenario flag positions (b1180). */
