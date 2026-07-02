@@ -2,6 +2,94 @@
   "description": "Curated high-risk ported functions for fast regression testing. Run with: python3 tools/equivalence/regression_test.py",
   "targets": [
     {
+      "addr": "0x130580",
+      "name": "FUN_00130580",
+      "obj": "network_server_message_handler.obj",
+      "seeds": 40,
+      "flags": [
+        "--state-snapshot", "tools/equivalence/host_snapshots/network_server_mp.json",
+        "--allow-stubs", "--mem-trace", "--no-stub-arg-trace"
+      ],
+      "reason": "network_game_server_handle_client_message dispatcher on live MP-host state (server @0x5a90e0). Reachable-path tripwire for @<reg>-marshaling/control-flow/return-value drift (obs 14.3% cov, 50/50 PASS). --no-stub-arg-trace: the only diverging stub args are display_assert/halt_and_catch_fire string-literal pointers (harness artifact). NOT a state-mutation test (state callees stubbed; 0 witnessed server writes). SKIPs when host snapshot absent."
+    },
+    {
+      "addr": "0x130270",
+      "name": "FUN_00130270",
+      "obj": "network_server_message_handler.obj",
+      "seeds": 40,
+      "flags": [
+        "--state-snapshot", "tools/equivalence/host_snapshots/network_server_mp.json",
+        "--allow-stubs", "--mem-trace", "--no-stub-arg-trace"
+      ],
+      "reason": "network_game_server_handle_datagram (broadcast/ping/game-update) on live MP-host state. Reachable-path drift tripwire (obs 10.0% cov, 40/40 PASS). See dispatcher entry for --no-stub-arg-trace rationale. SKIPs when host snapshot absent."
+    },
+    {
+      "addr": "0x12fd80",
+      "name": "FUN_0012fd80",
+      "obj": "network_server_message_handler.obj",
+      "seeds": 40,
+      "flags": [
+        "--state-snapshot", "tools/equivalence/host_snapshots/network_server_mp.json",
+        "--allow-stubs", "--mem-trace", "--no-stub-arg-trace"
+      ],
+      "reason": "add_player_request_pregame handler (server @<esi>) on live MP-host state. Reachable-path drift tripwire (obs 52.4% cov, 40/40 PASS). SKIPs when host snapshot absent."
+    },
+    {
+      "addr": "0x12fe40",
+      "name": "FUN_0012fe40",
+      "obj": "network_server_message_handler.obj",
+      "seeds": 40,
+      "flags": [
+        "--state-snapshot", "tools/equivalence/host_snapshots/network_server_mp.json",
+        "--allow-stubs", "--mem-trace", "--no-stub-arg-trace"
+      ],
+      "reason": "remove_player_request_pregame handler (server @<esi>) on live MP-host state. Reachable-path drift tripwire (obs 52.4% cov, 40/40 PASS). SKIPs when host snapshot absent."
+    },
+    {
+      "addr": "0x12ff00",
+      "name": "FUN_0012ff00",
+      "obj": "network_server_message_handler.obj",
+      "seeds": 40,
+      "flags": [
+        "--state-snapshot", "tools/equivalence/host_snapshots/network_server_mp.json",
+        "--allow-stubs", "--mem-trace", "--no-stub-arg-trace"
+      ],
+      "reason": "settings_request handler (server @<esi>) on live MP-host state. Reachable-path drift tripwire (obs 45.0% cov, 40/40 PASS). SKIPs when host snapshot absent."
+    },
+    {
+      "addr": "0x12ffe0",
+      "name": "FUN_0012ffe0",
+      "obj": "network_server_message_handler.obj",
+      "seeds": 40,
+      "flags": [
+        "--state-snapshot", "tools/equivalence/host_snapshots/network_server_mp.json",
+        "--allow-stubs", "--mem-trace", "--no-stub-arg-trace"
+      ],
+      "reason": "player_settings_request handler (server @<esi>) on live MP-host state. Reachable-path drift tripwire (obs 48.5% cov, 40/40 PASS). SKIPs when host snapshot absent."
+    },
+    {
+      "addr": "0x1300b0",
+      "name": "FUN_001300b0",
+      "obj": "network_server_message_handler.obj",
+      "seeds": 40,
+      "flags": [
+        "--state-snapshot", "tools/equivalence/host_snapshots/network_server_mp.json",
+        "--allow-stubs", "--mem-trace", "--no-stub-arg-trace"
+      ],
+      "reason": "graceful_game_exit_pregame handler (server @<esi>) on live MP-host state. Reachable-path drift tripwire (obs 51.0% cov, 40/40 PASS). SKIPs when host snapshot absent."
+    },
+    {
+      "addr": "0x130180",
+      "name": "FUN_00130180",
+      "obj": "network_server_message_handler.obj",
+      "seeds": 40,
+      "flags": [
+        "--state-snapshot", "tools/equivalence/host_snapshots/network_server_mp.json",
+        "--allow-stubs", "--mem-trace", "--no-stub-arg-trace"
+      ],
+      "reason": "remove_player_request_ingame handler (server @<eax>) on live MP-host state. Reachable-path drift tripwire (obs 21.6% cov, 40/40 PASS). Note: server arrives in EAX not ESI. SKIPs when host snapshot absent."
+    },
+    {
       "addr": "0x2fd10",
       "name": "actor_compute_prop_target_weight",
       "obj": "actor_perception.obj",
