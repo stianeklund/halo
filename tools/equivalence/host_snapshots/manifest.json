@@ -58,6 +58,15 @@
         "prop_handle": "0xf7460026"
       },
       "note": "a10 door-grunt slot11 with an acknowledgeable perception prop. The slot11 primary prop is type 4 / non-acknowledgeable, so this pins a same-frame valid alternate prop for actor_perception_acknowledge."
+    },
+    {
+      "out": "network_server_mp.json",
+      "recording": "network_server_mp.halorec",
+      "frame": "first",
+      "args": {
+        "server": "0x5a90e0"
+      },
+      "note": "network_server_message_handler.obj (0x12fd80-0x130580) server-side message dispatch. Live MP-host state: Slayer Pro 'The Bear' on levels/test/carousel with players joined; server global struct @0x5a90e0 (size 0x4bc) + its connection object @0x8aada0. Handlers take server via @<esi>/@<eax>; this pins the real server pointer so the reachable state-guard/decode paths run on real data instead of zero-fill. Stub-based tripwire (guards ABI/@<reg>-marshaling/control-flow/return-value drift); NOT a state-mutation test (state-applying callees are stubbed). SKIPs cleanly when the host recording is absent."
     }
   ]
 }
