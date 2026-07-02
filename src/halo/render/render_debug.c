@@ -1004,6 +1004,52 @@ void FUN_00189cb0(char flag, void *position, void *string, int color)
   }
 }
 
+/* Draw the local player's vehicle-state debug text (0x18a000). Gated on the
+ * flag at 0x506534. Resolves the local player's unit, and if it is riding an
+ * object (unit+0x42c) shows "riding an elevator"; if the unit is in a vehicle
+ * (unit+0xcc / unit+0x2a0) formats and draws the vehicle's speed/slide/turn
+ * (vehicle+0x42c/0x430/0x434), plus "stuck!" when vehicle+0x478 is set. */
+void FUN_0018a000(void)
+{
+  char buffer[0x400];
+  int player_idx;
+  void *player;
+  int unit_handle;
+  void *unit;
+  void *vehicle;
+  char *stuck_str;
+
+  if (*(char *)0x506534 == 0 || *(short *)0x506548 == -1 ||
+      local_player_get_player_index(*(short *)0x506548) == -1) {
+    return;
+  }
+  player_idx = local_player_get_player_index(*(short *)0x506548);
+  player = datum_get(*(void **)0x5aa6d4, player_idx);
+  unit_handle = *(int *)((char *)player + 0x34);
+  if (unit_handle == -1) {
+    return;
+  }
+  unit = object_try_and_get_and_verify_type(unit_handle, 1);
+  if (unit != 0 && *(int *)((char *)unit + 0x42c) != -1) {
+    FUN_00189c40(1, "riding an elevator");
+  }
+  if (*(int *)((char *)unit + 0xcc) != -1 &&
+      *(short *)((char *)unit + 0x2a0) != -1) {
+    vehicle =
+      object_try_and_get_and_verify_type(*(int *)((char *)unit + 0xcc), 2);
+    if (*(int *)((char *)vehicle + 0x478) != 0) {
+      stuck_str = "|nstuck!";
+    } else {
+      stuck_str = "";
+    }
+    crt_sprintf(buffer, "speed %5f|nslide %5f|nturn  %5f%s",
+                *(float *)((char *)vehicle + 0x42c),
+                *(float *)((char *)vehicle + 0x430),
+                *(float *)((char *)vehicle + 0x434), stuck_str);
+    FUN_00189c40(1, buffer);
+  }
+}
+
 /* Draw the collision-BSP portal edges (0x18a110). A debug sub-renderer gated on
  * the flag at 0x506533. Iterates the portal block of the global collision BSP
  * (bsp+0x48); for each portal, looks up its two vertices in the vertex block
