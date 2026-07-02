@@ -21226,7 +21226,8 @@
         },
         {
           "addr": "0x189150",
-          "decl": "void FUN_00189150(int flag, float *position, float scale, void *color);"
+          "decl": "void FUN_00189150(char flag, float *position, float scale, void *color);",
+          "ported": true
         },
         {
           "addr": "0x189270",
