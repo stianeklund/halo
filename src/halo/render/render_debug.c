@@ -615,6 +615,74 @@ void FUN_001894d0(int flag, float *matrix, float scale)
   FUN_00189320(flag, origin, matrix + 7, scale * matrix[0], *(void **)0x2ee6d8);
 }
 
+/* Draw or cache a debug sphere (0x189540). type 3. With flag clear, caches a
+ * type-3 primitive (center, radius, color). With flag set, first culls
+ * against the debug frustum (render_frustum_sphere_visible); if visible,
+ * builds a 16-segment circle table (FUN_00188bf0) and draws three great
+ * circles (in the XY, XZ and YZ planes) as line segments. Each iteration
+ * walks two adjacent circle points (cp[-3..-2] current, cp[-1..0] next) and
+ * emits one segment per plane into a contiguous six-float endpoint buffer. */
+void FUN_00189540(char flag, void *center, float radius, void *color)
+{
+  float circle[34];
+  float verts[6]; /* verts[3..5] = endpoint A, verts[0..2] = endpoint B */
+  float *c;
+  float *cp;
+  short i;
+  short vis;
+
+  if (center == 0) {
+    display_assert("center", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x206,
+                   1);
+    system_exit(-1);
+  }
+  if (color == 0) {
+    display_assert("color", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x207,
+                   1);
+    system_exit(-1);
+  }
+  if (flag == 0) {
+    FUN_00188ec0(3, center, (double)radius, color);
+    return;
+  }
+  vis = (short)render_frustum_sphere_visible((void *)0x5065a4, center, radius);
+  if (vis == 0) {
+    return;
+  }
+  FUN_00188bf0(circle, radius);
+  c = center;
+  cp = circle + 3;
+  i = 0x10;
+  do {
+    /* XY-plane great circle */
+    verts[3] = c[0] + cp[-3];
+    verts[5] = c[2];
+    verts[2] = c[2];
+    verts[4] = c[1] + cp[-2];
+    verts[0] = c[0] + cp[-1];
+    verts[1] = c[1] + cp[0];
+    FUN_0017eb10(&verts[3], &verts[0], (int)color);
+    /* XZ-plane great circle */
+    verts[3] = c[0] + cp[-2];
+    verts[4] = c[1];
+    verts[5] = c[2] + cp[-3];
+    verts[1] = c[1];
+    verts[0] = c[0] + cp[0];
+    verts[2] = c[2] + cp[-1];
+    FUN_0017eb10(&verts[3], &verts[0], (int)color);
+    /* YZ-plane great circle */
+    verts[4] = c[1] + cp[-3];
+    verts[3] = c[0];
+    verts[5] = c[2] + cp[-2];
+    verts[0] = c[0];
+    verts[1] = c[1] + cp[-1];
+    verts[2] = c[2] + cp[0];
+    FUN_0017eb10(&verts[3], &verts[0], (int)color);
+    cp = cp + 2;
+    i = (short)(i - 1);
+  } while (i != 0);
+}
+
 /* Draw a closed debug polyline (0x189ba0). Immediate-mode only: with three or
  * more points draws the closing edge from the last point back to the first,
  * then a line between each pair of consecutive points, forming a line loop.
@@ -649,8 +717,8 @@ void FUN_00189ba0(float *points, short count, void *color)
 
 /* Draw or cache a debug string (0x189c40). type 8. With flag set, prime the
  * debug text state (font 1, style -1, color tag 5) and draw the string
- * immediately; otherwise submit a type-8 primitive (the string, interned by the
- * cache writer) to the per-frame cache. */
+ * immediately; otherwise submit a type-8 primitive (the string, interned by
+ * the cache writer) to the per-frame cache. */
 void FUN_00189c40(char flag, const char *string)
 {
   if (string == 0) {
@@ -668,10 +736,10 @@ void FUN_00189c40(char flag, const char *string)
   FUN_00188ec0(8, string);
 }
 
-/* Draw one edge of a debug plane as a 3D line segment (0x18a650). Projects two
- * 2D endpoints (point_a, point_b) onto the plane, lifts each off the plane
- * along the projection axis by +/- offset (sign selects the direction), then
- * draws the connecting line. The two projected points share a contiguous
+/* Draw one edge of a debug plane as a 3D line segment (0x18a650). Projects
+ * two 2D endpoints (point_a, point_b) onto the plane, lifts each off the
+ * plane along the projection axis by +/- offset (sign selects the direction),
+ * then draws the connecting line. The two projected points share a contiguous
  * six-float buffer: pts[3..5] is endpoint A, pts[0..2] is endpoint B. */
 void FUN_0018a650(int flag, float *plane, int projection, int sign,
                   float *point_a, float *point_b, void *color, float offset)
@@ -737,9 +805,9 @@ void FUN_0018a9d0(int flag, float *position, float *basis_data, float scale)
   FUN_001894d0(flag, matrix, scale);
 }
 
-/* Draw a 2D debug box in screen space (0x18aa00). Immediate-mode only (there is
- * no cache path -- flag == 0 asserts). Expands the {x0,x1,y0,y1} bounds into
- * four corners at z = -1, transforms each by the debug screen matrix at
+/* Draw a 2D debug box in screen space (0x18aa00). Immediate-mode only (there
+ * is no cache path -- flag == 0 asserts). Expands the {x0,x1,y0,y1} bounds
+ * into four corners at z = -1, transforms each by the debug screen matrix at
  * 0x5065e8, then draws them as a closed polyline. */
 void FUN_0018aa00(char flag, float *bounds, void *color)
 {

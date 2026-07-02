@@ -21150,7 +21150,7 @@
         },
         {
           "addr": "0x186ac0",
-          "decl": "void render_frustum_sphere_visible(void);"
+          "decl": "int render_frustum_sphere_visible(void *frustum, float *center, float radius);"
         },
         {
           "addr": "0x186c70",
@@ -21261,7 +21261,8 @@
         },
         {
           "addr": "0x189540",
-          "decl": "void FUN_00189540(int flag, void *p1, float val, void *ctx);"
+          "decl": "void FUN_00189540(char flag, void *center, float radius, void *color);",
+          "ported": true
         },
         {
           "addr": "0x1896d0",
