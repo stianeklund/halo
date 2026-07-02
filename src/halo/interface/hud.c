@@ -474,8 +474,13 @@ void hud_set_element_digital(float param_1, const void *param_2)
   angle = 0.0f;
   for (i = 0; i < 16; i++) {
     vertices[i][2] = -0.0625f;
+#if defined(_MSC_VER) && !defined(__clang__)
+    vertices[i][0] = (float)cos((double)angle) * radius;
+    vertices[i][1] = (float)sin((double)angle) * radius;
+#else
     vertices[i][0] = x87_fcos(angle) * radius;
     vertices[i][1] = x87_fsin(angle) * radius;
+#endif
     matrix_transform_point((float *)0x5065e8, vertices[i], vertices[i]);
     angle += *(float *)0x26b164;
   }
@@ -1659,8 +1664,13 @@ void FUN_000d2580(float *scale, short *screen_pos, int bitmap_handle,
   return_address = FUN_000d1540();
   csmemset(guard, 0x62, 0x200);
 
+#if defined(_MSC_VER) && !defined(__clang__)
+  sin_a = (float)sin((double)angle);
+  cos_a = (float)cos((double)angle);
+#else
   sin_a = x87_fsin(angle);
   cos_a = x87_fcos(angle);
+#endif
 
   cnt = 1;
   vp = vertex_buf;
@@ -1793,7 +1803,11 @@ void FUN_000d27a0(int element, float *scale, int local_player_index,
   return_addr = FUN_000d1540();
   csmemset(guard, 0x62, 0x200);
 
+#if defined(_MSC_VER) && !defined(__clang__)
+  sin_a = (float)sin((double)angle);
+#else
   sin_a = x87_fsin(angle);
+#endif
 
   /* element+0x4c .. +0x60 -> color_block[0x0 .. 0x14] */
   *(int *)(color_block + 0x0) = *(int *)(element + 0x4c);
@@ -1819,7 +1833,11 @@ void FUN_000d27a0(int element, float *scale, int local_player_index,
   *(int *)(color_block + 0x60) = 0;
   *(int *)(color_block + 0x64) = 0;
 
+#if defined(_MSC_VER) && !defined(__clang__)
+  cos_a = (float)cos((double)angle);
+#else
   cos_a = x87_fcos(angle);
+#endif
 
   player_index = local_player_get_player_index((short)local_player_index);
   hud_globals = datum_get(*(data_t **)0x5aa6d4, player_index);
