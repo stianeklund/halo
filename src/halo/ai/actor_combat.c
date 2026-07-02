@@ -231,68 +231,82 @@ bool actor_combat_evaluate_firing(int actor_handle /* @<eax> */,
  * delta, runs ai_test_ballistic_line_of_fire, and on a positive result caches
  * the aim direction at actor+0x6bc and the aim speed at actor+0x6c8.
  * Returns true when a valid firing solution was produced. */
-bool actor_combat_compute_ballistic_solution(int actor_handle, int param_2)
+char actor_combat_compute_ballistic_solution(int actor_handle, int param_2)
 {
-  char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
-  char *actv = (char *)tag_get(0x61637476 /* 'actv' */, *(int *)(actor + 0x5c));
-  short proj_index = *(short *)(actv + 0x180);
-  void *globals = game_globals_get();
-  int *weapon_elem =
-    (int *)tag_block_get_element((char *)globals + 0x128, proj_index, 0x44);
-  int projectile_tag = 0;
+  int actor;
+  int projectile;
+  void *variant;
+  void *element;
+  short defn_index;
+  float aim_dir[3];
+  float speed;
+  float param_3;
+  char line_of_fire_flag;
+  float ground[3];
+  float scaled[3];
+  float accel;
 
-  float dir[3];     /* [ebp-0x20..-0x18]  aim direction (projectile_aim out) */
-  float aim_speed;  /* [ebp-8]            aim speed (projectile_aim out)     */
-  int target;       /* [ebp-0x14]         target handle (projectile_aim out) */
-  char gate;        /* [ebp-1]            gating flag (projectile_aim out)   */
-  float impact[3];  /* [ebp-0x2c..-0x24]  desired-impact delta              */
-  float mag_vec[3]; /* [ebp-0x10..-8]     planar dir + speed scratch        */
-  float accel;      /* [ebp-0xc]          ballistic acceleration            */
+  actor = (int)datum_get(*(void **)0x6325a4, actor_handle);
+  variant = tag_get(0x61637476, *(int *)(actor + 0x5c));
+  defn_index = *(short *)((int)variant + 0x180);
+  element = tag_block_get_element((char *)game_globals_get() + 0x128,
+                                  defn_index, 0x44);
 
-  if (weapon_elem != 0 && weapon_elem[0x40 / 4] != -1)
-    projectile_tag = (int)tag_get(0x70726f6a /* 'proj' */, weapon_elem[0x40 / 4]);
+  projectile = 0;
+  if (element != (void *)0 && *(int *)((int)element + 0x40) != -1) {
+    projectile = (int)tag_get(0x70726f6a, *(int *)((int)element + 0x40));
+  }
 
-  if (projectile_tag == 0) {
+  if (projectile == 0) {
     display_assert("projectile_definition",
                    "c:\\halo\\SOURCE\\ai\\actor_combat.c", 0x6c3, 1);
     system_exit(-1);
   }
 
-  if (!projectile_aim(projectile_tag, param_2,
-                      (int)(actor + 0x6a8), 0, 0, 0,
-                      (int)(actor + 0x6c8), *(unsigned char *)(actor + 0x6a1),
-                      (int)&dir[0], (int)&aim_speed, (int)&target, 0,
-                      (void *)&gate))
+  if (!projectile_aim(projectile, param_2, actor + 0x6a8, 0, 0, 0,
+                      actor + 0x6c8, (int)*(unsigned char *)(actor + 0x6a1),
+                      (int)aim_dir, (int)&speed, (int)&param_3, 0,
+                      &line_of_fire_flag)) {
     return 0;
+  }
 
-  mag_vec[0] = dir[0];
-  mag_vec[1] = dir[1];
-  mag_vec[2] = aim_speed;
-  if (magnitude3d(mag_vec) <= 0.0f)
+  ground[0] = aim_dir[0];
+  ground[1] = aim_dir[1];
+  /* The original computes magnitude3d over (aim_dir[0], aim_dir[1], aim_speed):
+   * it writes only the first two components into the EBP-0x10 buffer and reads
+   * the third from EBP-0x8, which projectile_aim already filled with aim_speed
+   * (an MSVC stack-overlap). Our clang stack layout does not guarantee that
+   * overlap, so write the speed component explicitly. */
+  ground[2] = speed;
+  if (magnitude3d(ground) <= *(float *)0x2533c0) {
     return 0;
+  }
 
-  if (dir[1] * *(float *)(actor + 0x178) + dir[0] * *(float *)(actor + 0x174)
-        <= 0.8660254f)
+  if (ground[1] * *(float *)(actor + 0x178) +
+        ground[0] * *(float *)(actor + 0x174) <= *(float *)0x2533dc) {
     return 0;
+  }
 
-  impact[0] = dir[0] * aim_speed;
-  impact[1] = dir[1] * aim_speed;
-  impact[2] = dir[2] * aim_speed;
+  scaled[0] = aim_dir[0] * speed;
+  scaled[1] = aim_dir[1] * speed;
+  scaled[2] = aim_dir[2] * speed;
 
-  if (gate == 0)
+  if (line_of_fire_flag != '\0') {
     accel = 0.0f;
-  else
-    accel = projectile_get_ballistic_acceleration(projectile_tag);
+  } else {
+    accel = projectile_get_ballistic_acceleration(projectile);
+  }
 
-  if (!ai_test_ballistic_line_of_fire(actor_handle, param_2, target, impact,
+  if (!ai_test_ballistic_line_of_fire(actor_handle, param_2, param_3, scaled,
                                       accel, *(int *)(actor + 0x6b8),
-                                      *(int *)(actor + 0x158) != -1))
+                                      (char)(*(int *)(actor + 0x158) != -1))) {
     return 0;
+  }
 
-  *(float *)(actor + 0x6bc) = dir[0];
-  *(float *)(actor + 0x6c0) = dir[1];
-  *(float *)(actor + 0x6c4) = dir[2];
-  *(float *)(actor + 0x6c8) = aim_speed;
+  *(float *)(actor + 0x6bc) = aim_dir[0];
+  *(float *)(actor + 0x6c0) = aim_dir[1];
+  *(float *)(actor + 0x6c4) = aim_dir[2];
+  *(float *)(actor + 0x6c8) = speed;
   return 1;
 }
 
@@ -309,7 +323,7 @@ bool actor_combat_compute_ballistic_solution(int actor_handle, int param_2)
  * (actor+0x1ca), it nudges out_pos toward the actor via FUN_00021430 with a
  * 1.5 weight. Returns 0 when no suitable target exists. */
 char actor_combat_find_grenade_target(int actor_handle, float *out_pos,
-                                      int *out_handle, int *out_extra)
+                                       int *out_handle, int *out_extra)
 {
   char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
   char *actv = (char *)tag_get(0x61637476 /* 'actv' */, *(int *)(actor + 0x5c));
@@ -336,6 +350,136 @@ char actor_combat_find_grenade_target(int actor_handle, float *out_pos,
         }
       }
     }
+  }
+  return result;
+}
+
+char FUN_00021ae0(int actor_handle, float range, float param3,
+                  float *encounter_pos, short *out_count)
+{
+  int actor;
+  int candidates[32];
+  int encounter_iter[3];
+  int actor_iter[2];
+  int count;
+  unsigned short candidate_n;
+  char result;
+  int element;
+  int handle;
+  int related;
+  float eps;
+  float dx;
+  float dy;
+  float dz;
+  float ez;
+  short i;
+
+  eps = *(float *)0x2533c0;
+  actor = (int)datum_get(*(void **)0x6325a4, actor_handle);
+  ez = encounter_pos[2];
+  tag_get(0x61637476, *(int *)(actor + 0x5c));
+
+  candidate_n = 0;
+  result = 1;
+  count = 0;
+
+  FUN_00064540(actor_iter, actor_handle);
+  element = FUN_00064570(actor_iter);
+  while (element != 0) {
+    if (*(short *)(element + 0x24) > 1 && *(short *)(element + 0x24) < 4 &&
+        *(char *)(element + 0x127) == '\0') {
+      if (*(char *)(element + 0x60) != '\0') {
+        dx = encounter_pos[0] - *(float *)(element + 0xbc);
+        dy = encounter_pos[1] - *(float *)(element + 0xc0);
+        dz = ez - *(float *)(element + 0xc4);
+        if (dy * dy + dx * dx + dz * dz < range * range) {
+          if (*(char *)(element + 0x12e) != '\0') {
+            count += 10;
+          } else if (*(int *)(element + 0x110) != -1) {
+            count += 5;
+          } else {
+            handle = *(int *)(element + 0x1c);
+            if (handle != -1) {
+              if (candidate_n < 0x20) {
+                candidates[(short)candidate_n] = handle;
+                candidate_n = candidate_n + 1;
+              }
+              if (*(char *)(element + 0x14) == '\0') {
+                count += 1;
+              } else {
+                actor = (int)datum_get(*(void **)0x6325a4, handle);
+                count += *(short *)(actor + 0x1e);
+              }
+            }
+          }
+        }
+      } else if (param3 > eps) {
+        dx = encounter_pos[0] - *(float *)(element + 0xbc);
+        dy = encounter_pos[1] - *(float *)(element + 0xc0);
+        dz = ez - *(float *)(element + 0xc4);
+        if (dz * dz + dy * dy + dx * dx < param3 * param3) {
+          result = 0;
+          break;
+        }
+      }
+    }
+    element = FUN_00064570(actor_iter);
+  }
+
+  actor = (int)datum_get(*(void **)0x6325a4, actor_handle);
+  if (range > eps && *(int *)(actor + 0x270) != -1) {
+    related = (int)datum_get(*(void **)0x5ab23c, *(int *)(actor + 0x270));
+    if (*(int *)(related + 0x1c) != -1) {
+      related = (int)datum_get(*(void **)0x6325a4, *(int *)(related + 0x1c));
+      if (*(int *)(related + 0x34) != -1) {
+        encounter_actor_iterator_new(encounter_iter, *(int *)(related + 0x34));
+        element = encounter_actor_iterator_next(encounter_iter);
+        while (element != 0) {
+          i = 0;
+          if ((short)candidate_n > 0) {
+            do {
+              if (candidates[i] == actor_iter[0]) {
+                goto next_encounter_actor;
+              }
+              i = i + 1;
+            } while (i < (short)candidate_n);
+          }
+          dx = encounter_pos[0] - *(float *)(element + 0x12c);
+          dy = encounter_pos[1] - *(float *)(element + 0x130);
+          dz = ez - *(float *)(element + 0x134);
+          if (dz * dz + dy * dy + dx * dx < param3 * param3) {
+            if (*(char *)(element + 6) == '\0') {
+              count += 1;
+            } else {
+              count += *(short *)(element + 0x1e);
+            }
+          }
+        next_encounter_actor:
+          element = encounter_actor_iterator_next(encounter_iter);
+        }
+      }
+    }
+  }
+
+  if (result != '\0' && *(int *)(actor + 0x34) != -1 && param3 > eps) {
+    encounter_actor_iterator_new(encounter_iter, *(int *)(actor + 0x34));
+    element = encounter_actor_iterator_next(encounter_iter);
+    if (element != 0) {
+      do {
+        dx = encounter_pos[0] - *(float *)(element + 0x12c);
+        dy = encounter_pos[1] - *(float *)(element + 0x130);
+        dz = ez - *(float *)(element + 0x134);
+        if (dz * dz + dy * dy + dx * dx < param3 * param3) {
+          result = 0;
+          break;
+        }
+        element = encounter_actor_iterator_next(encounter_iter);
+      } while (element != 0);
+    }
+  }
+
+  if (out_count != (short *)0) {
+    *out_count = (short)count;
   }
   return result;
 }

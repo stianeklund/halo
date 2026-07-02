@@ -30435,7 +30435,7 @@
         },
         {
           "addr": "0x21710",
-          "decl": "bool actor_combat_compute_ballistic_solution(int actor_handle, int param_2);",
+          "decl": "char actor_combat_compute_ballistic_solution(int actor_handle, int param_2);",
           "ported": true
         },
         {
