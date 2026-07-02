@@ -266,6 +266,77 @@ float FUN_00188c60(float *frame, float *in_vec, float *position)
   return length;
 }
 
+/* Build cylinder/capsule vertex rings for the debug cylinder and cone drawers
+ * (0x188d00). Builds an orthonormal frame from height_vec at center
+ * (FUN_00188c60, returning the height as len) and a unit circle of the given
+ * radius (FUN_00188bf0), then fills the caller's vertex buffers:
+ *   buffer1/buffer2 -- the bottom (z=0) and top (z=len) circle rings, 17 points
+ *     each, transformed into world space by the frame.
+ *   buffer3..buffer6 -- when all four are supplied (type 5 / dome), two half-
+ *     rings of 9 points closing the top, built from opposite circle points.
+ * Every vertex is transformed in place by the frame (matrix_transform_point).
+ * The two ring buffers arrive in ECX/EDX and the center in EAX. */
+void FUN_00188d00(float *buffer1, float *buffer2, float *center,
+                  float *height_vec, float radius, float *buffer3,
+                  float *buffer4, float *buffer5, float *buffer6)
+{
+  float frame[13];
+  float circle[34];
+  float len;
+  float *b1;
+  float *b2;
+  float *cp;
+  int i;
+  int n;
+
+  len = FUN_00188c60(frame, height_vec, center);
+  FUN_00188bf0(circle, radius);
+  if (buffer2 != 0 && buffer1 != 0) {
+    b1 = buffer1;
+    b2 = buffer2;
+    cp = circle;
+    n = 0x11;
+    do {
+      b2[0] = cp[0];
+      b2[1] = cp[1];
+      b2[2] = len;
+      b1[0] = cp[0];
+      b1[1] = cp[1];
+      b1[2] = 0.0f;
+      matrix_transform_point(frame, b2, b2);
+      matrix_transform_point(frame, b1, b1);
+      cp = cp + 2;
+      b1 = b1 + 3;
+      b2 = b2 + 3;
+      n = n - 1;
+    } while (n != 0);
+  }
+  if (buffer3 != 0 && buffer4 != 0 && buffer5 != 0 && buffer6 != 0) {
+    for (i = 0; i < 9; i++) {
+      buffer3[0] = 0.0f;
+      buffer3[1] = circle[i * 2];
+      buffer3[2] = len + circle[i * 2 + 1];
+      buffer4[0] = 0.0f;
+      buffer4[1] = circle[i * 2 + 16];
+      buffer4[2] = circle[i * 2 + 17];
+      buffer5[0] = circle[i * 2];
+      buffer5[1] = 0.0f;
+      buffer5[2] = len + circle[i * 2 + 1];
+      buffer6[0] = circle[i * 2 + 16];
+      buffer6[1] = 0.0f;
+      buffer6[2] = circle[i * 2 + 17];
+      matrix_transform_point(frame, buffer3, buffer3);
+      matrix_transform_point(frame, buffer4, buffer4);
+      matrix_transform_point(frame, buffer5, buffer5);
+      matrix_transform_point(frame, buffer6, buffer6);
+      buffer3 = buffer3 + 3;
+      buffer4 = buffer4 + 3;
+      buffer5 = buffer5 + 3;
+      buffer6 = buffer6 + 3;
+    }
+  }
+}
+
 /* Cache overflow one-shot warning flag (0x4d822a). */
 #define cache_overflow_warned (*(char *)0x4d822a)
 
