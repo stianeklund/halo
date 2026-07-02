@@ -1337,7 +1337,11 @@ unsigned int FUN_000d1dd0(float *color)
   return (unsigned int)packed;
 }
 
-void FUN_000d1e90(float alpha, float intensity)
+/* Returns the packed 0xAARRGGBB pixel32 for a uniform (alpha, intensity,
+ * intensity, intensity) color.  The original tail-calls FUN_000d1c90, so its
+ * EAX (the pixel32) is the return value; the HUD meter builder (FUN_000d3340)
+ * stores it into meter+0x14 as the flash/blend render-state. */
+unsigned int FUN_000d1e90(float alpha, float intensity)
 {
   float color[4];
 
@@ -1355,7 +1359,7 @@ void FUN_000d1e90(float alpha, float intensity)
   color[1] = intensity;
   color[2] = intensity;
   color[3] = intensity;
-  FUN_000d1c90(color);
+  return FUN_000d1c90(color);
 }
 
 /* Resolves an absolute on-screen position (out[0],out[1]) from an anchor-mode

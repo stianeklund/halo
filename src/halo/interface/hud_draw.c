@@ -131,6 +131,27 @@ LAB_000d32c9:
   }
 }
 
+/* Contiguous meter-parameters block that FUN_000d3340 builds on its stack and
+ * passes (as &meter_params) down through FUN_000d3080 -> FUN_000d2580, which
+ * stores it into render_desc[0].  The unported rasterizer FUN_0015f8e0
+ * (rasterizer_xbox_dynavobgeom.c) dereferences render_desc[0] as this struct and
+ * reads fields at +0x10/+0x11 (tint modes) and +0x18 (gradient), which lie past
+ * the four-dword color array.  These MUST be laid out contiguously with the
+ * colors: the original builds them all at EBP-0x2c.  A prior lift declared the
+ * trailing fields as separate C locals and passed only the color array, so C
+ * placed the tint/gradient fields wherever it liked
+ * wherever and the (void)-casts let clang dead-store-eliminate the writes ->
+ * the rasterizer read stack garbage at +0x11 (tint_mode_2, usually 0 -> assert)
+ * and +0x18 (gradient). */
+struct hud_meter_parameters {
+  unsigned int  color[4];     /* +0x00..+0x0c */
+  unsigned char tint_mode_1;  /* +0x10 */
+  unsigned char tint_mode_2;  /* +0x11  (rasterizer asserts != 0) */
+  unsigned char pad[2];       /* +0x12..+0x13 (never read) */
+  int           intensity;    /* +0x14 */
+  float         gradient;     /* +0x18  (rasterizer asserts == 1.0f) */
+};
+
 /* FUN_000d3340 (0xd3340) — draw an animated HUD "meter" element (e.g. a health
  * or shield bar) from a hud meter definition (meter_def at param_3).  Resolves
  * the source bitmap (bitm) via the meter's interface bitmap reference (+0x24),
@@ -152,11 +173,8 @@ void FUN_000d3340(int param_1, int param_2, int meter_def, int param_4,
   int bitmap_data;      /* local_3c */
   int tag_index;        /* local_38 */
   int meter;            /* local_34, = meter_def */
-  unsigned int colors[4]; /* color0..color3 at EBP-0x2c..-0x20, passed to d3080 */
-  unsigned char flag0;  /* local_20 */
-  unsigned char flag1;  /* local_1f */
-  int intensity;        /* local_1c */
-  int one_scale;        /* local_18 */
+  struct hud_meter_parameters meter_params; /* colors + tint modes + gradient,
+                             * contiguous at EBP-0x2c; passed to d3080 */
   float color[3];       /* local_14/local_10/local_c */
   float alpha;          /* local_8 */
   float fade;           /* param_7 reinterpreted as float (caller passes raw bits) */
@@ -269,20 +287,20 @@ void FUN_000d3340(int param_1, int param_2, int meter_def, int param_4,
         pixel32_to_real_rgb_color(*(unsigned int *)(meter + 0x3c), color);
         color[0] = color[0] * alpha;
         color[1] = color[1] * alpha;
-        colors[0] = (*(unsigned int *)(meter + 0x34) & 0xffffff) |
+        meter_params.color[0] = (*(unsigned int *)(meter + 0x34) & 0xffffff) |
                     ((int)(short)meter_alpha << 0x18);
-        colors[1] = *(unsigned int *)(meter + 0x38) & 0xffffff;
+        meter_params.color[1] = *(unsigned int *)(meter + 0x38) & 0xffffff;
         color[2] = color[2] * alpha;
-        colors[3] = (FUN_000d1dd0(color) & 0xffffff) |
+        meter_params.color[3] = (FUN_000d1dd0(color) & 0xffffff) |
                     ((int)(short)meter_empty_alpha << 0x18);
       } else if ((flags & 1) == 0) {
-        colors[3] = (int)(short)meter_alpha << 0x18;
-        colors[1] = *(unsigned int *)(meter + 0x34) & 0xffffff;
-        colors[0] = colors[3] | colors[1];
+        meter_params.color[3] = (int)(short)meter_alpha << 0x18;
+        meter_params.color[1] = *(unsigned int *)(meter + 0x34) & 0xffffff;
+        meter_params.color[0] = meter_params.color[3] | meter_params.color[1];
       } else if ((*(unsigned char *)(meter + 0x44) & 2) == 0) {
-        colors[1] = *(unsigned int *)(meter + 0x38) & 0xffffff;
-        colors[3] = (int)(short)meter_alpha << 0x18;
-        colors[0] = colors[1] | colors[3];
+        meter_params.color[1] = *(unsigned int *)(meter + 0x38) & 0xffffff;
+        meter_params.color[3] = (int)(short)meter_alpha << 0x18;
+        meter_params.color[0] = meter_params.color[1] | meter_params.color[3];
       } else {
         pixel32_to_real_rgb_color(*(unsigned int *)(meter + 0x34), rgb_lower);
         pixel32_to_real_rgb_color(*(unsigned int *)(meter + 0x38), rgb_upper);
@@ -292,28 +310,27 @@ void FUN_000d3340(int param_1, int param_2, int meter_def, int param_4,
           alpha = *(float *)0x2533c8 - param_8;
         }
         FUN_0007c270(color, 0, rgb_lower, rgb_upper, alpha);
-        colors[0] = FUN_000d1dd0(color);
-        colors[0] = colors[0] | (int)(short)meter_alpha << 0x18;
-        colors[1] = FUN_000d1dd0(color);
-        colors[3] = (int)(short)meter_alpha << 0x18;
+        meter_params.color[0] = FUN_000d1dd0(color);
+        meter_params.color[0] = meter_params.color[0] | (int)(short)meter_alpha << 0x18;
+        meter_params.color[1] = FUN_000d1dd0(color);
+        meter_params.color[3] = (int)(short)meter_alpha << 0x18;
       }
     } else {
-      colors[1] = 0;
-      colors[0] = 0;
-      colors[3] = 0;
+      meter_params.color[1] = 0;
+      meter_params.color[0] = 0;
+      meter_params.color[3] = 0;
     }
-    colors[2] = ((-1 - (*(unsigned int *)(meter + 0x40) >> 0x18)) * 0x1000000) |
+    meter_params.color[2] = ((-1 - (*(unsigned int *)(meter + 0x40) >> 0x18)) * 0x1000000) |
                 (*(unsigned int *)(meter + 0x40) & 0xffffff);
-    FUN_000d1e90(*(float *)(meter + 0x50), *(float *)0x2533c8 - *(float *)(meter + 0x4c));
-    intensity = 0;
-    one_scale = 0x3f800000;
-    flag0 = 0;
-    flag1 = 1;
-    (void)intensity;
-    (void)one_scale;
-    (void)flag0;
-    (void)flag1;
-    FUN_000d3080(tag_index, meter_def, bitmap_data, (int)&colors[0], (short *)param_2,
+    /* meter+0x14: packed ARGB flash/blend color the rasterizer copies into its
+     * render-state (_DAT_001fb7c4).  Original stores FUN_000d1e90's EAX here;
+     * zeroing it rendered the meter black (secondary a30 HUD regression). */
+    meter_params.intensity   = (int)FUN_000d1e90(
+        *(float *)(meter + 0x50), *(float *)0x2533c8 - *(float *)(meter + 0x4c));
+    meter_params.gradient    = 1.0f;   /* +0x18, rasterizer asserts == 1.0f */
+    meter_params.tint_mode_1 = 0;      /* +0x10 */
+    meter_params.tint_mode_2 = 1;      /* +0x11, rasterizer asserts != 0 */
+    FUN_000d3080(tag_index, meter_def, bitmap_data, (int)&meter_params, (short *)param_2,
                  1.0f, 0, -1, (flags >> 2) & 0xffffff01, (char)color_use_bitmap, 0);
   }
 

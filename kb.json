@@ -11764,7 +11764,7 @@
         },
         {
           "addr": "0xd1e90",
-          "decl": "void FUN_000d1e90(float alpha, float intensity);",
+          "decl": "unsigned int FUN_000d1e90(float alpha, float intensity);",
           "ported": true,
           "src": "src/halo/interface/hud.c"
         },
