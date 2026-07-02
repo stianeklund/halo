@@ -21218,7 +21218,8 @@
         },
         {
           "addr": "0x188c60",
-          "decl": "void FUN_00188c60(void);"
+          "decl": "float FUN_00188c60(float *frame@<ecx>, float *in_vec@<eax>, float *position);",
+          "ported": true
         },
         {
           "addr": "0x188d00",

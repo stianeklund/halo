@@ -233,6 +233,39 @@ void FUN_00188bf0(float *table, float radius)
   table[0x21] = table[1];
 }
 
+/* Build a debug coordinate frame from a direction vector (0x188c60). Given a
+ * forward direction (EAX) and an origin position, fills a 13-float frame:
+ *   frame[0]      = 1.0
+ *   frame[1..3]   = side    = cross(up, forward)
+ *   frame[4..6]   = up      = perpendicular3d(forward), normalized
+ *   frame[7..9]   = forward = the input direction, normalized
+ *   frame[10..12] = position
+ * Returns the length of the input direction before normalization. The frame
+ * pointer arrives in ECX and the direction in EAX. */
+float FUN_00188c60(float *frame, float *in_vec, float *position)
+{
+  float *fwd;
+  float *up;
+  float length;
+
+  frame[0] = 1.0f;
+  fwd = frame + 7;
+  fwd[0] = in_vec[0];
+  fwd[1] = in_vec[1];
+  fwd[2] = in_vec[2];
+  up = frame + 4;
+  perpendicular3d(fwd, up);
+  length = normalize3d(fwd);
+  normalize3d(up);
+  frame[1] = up[1] * fwd[2] - fwd[1] * up[2];
+  frame[2] = fwd[0] * up[2] - up[0] * fwd[2];
+  frame[3] = up[0] * fwd[1] - fwd[0] * up[1];
+  frame[10] = position[0];
+  frame[11] = position[1];
+  frame[12] = position[2];
+  return length;
+}
+
 /* Cache overflow one-shot warning flag (0x4d822a). */
 #define cache_overflow_warned (*(char *)0x4d822a)
 
