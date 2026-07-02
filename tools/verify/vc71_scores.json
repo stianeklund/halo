@@ -7940,6 +7940,10 @@
       "score": 91.2,
       "source": "src/halo/text/draw_string.c"
     },
+    "FUN_00134ae0": {
+      "score": 98.9,
+      "source": "src/halo/objects/objects.c"
+    },
     "FUN_00134be0": {
       "score": 100.0,
       "source": "src/halo/objects/objects.c"
@@ -7948,12 +7952,32 @@
       "score": 100.0,
       "source": "src/halo/objects/objects.c"
     },
+    "FUN_00134e50": {
+      "score": 57.1,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00134e80": {
+      "score": 71.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00135210": {
+      "score": 80.7,
+      "source": "src/halo/objects/objects.c"
+    },
     "FUN_001353b0": {
       "score": 100.0,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_001353f0": {
       "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00135510": {
+      "score": 14.7,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00135f20": {
+      "score": 82.4,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00135f90": {
@@ -7980,6 +8004,10 @@
       "score": 90.4,
       "source": "src/halo/objects/objects.c"
     },
+    "FUN_001363d0": {
+      "score": 88.2,
+      "source": "src/halo/objects/objects.c"
+    },
     "FUN_00136450": {
       "score": 100.0,
       "source": "src/halo/objects/widgets/widgets.c"
@@ -7999,6 +8027,14 @@
     "FUN_001365b0": {
       "score": 100.0,
       "source": "src/halo/objects/widgets/widgets.c"
+    },
+    "FUN_001365d0": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_001366b0": {
+      "score": 60.4,
+      "source": "src/halo/objects/objects.c"
     },
     "FUN_00136750": {
       "score": 100.0,
@@ -8103,6 +8139,674 @@
     "FUN_001390d0": {
       "score": 98.1,
       "source": "src/halo/objects/damage.c"
+    },
+    "FUN_001396e0": {
+      "score": 97.2,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_001397f0": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00139810": {
+      "score": 70.5,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_001398b0": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_001398d0": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00139930": {
+      "score": 96.4,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00139990": {
+      "score": 93.9,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00139a30": {
+      "score": 92.3,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00139b40": {
+      "score": 86.3,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00139c20": {
+      "score": 93.2,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00139e50": {
+      "score": 66.7,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013a250": {
+      "score": 87.8,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013a340": {
+      "score": 92.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013a420": {
+      "score": 88.7,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013a5f0": {
+      "score": 88.2,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013a740": {
+      "score": 83.5,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013aa10": {
+      "score": 96.4,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013ab20": {
+      "score": 78.6,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013aed0": {
+      "score": 80.8,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013b150": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013b1b0": {
+      "score": 92.9,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013b290": {
+      "score": 90.6,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013b380": {
+      "score": 83.4,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013bce0": {
+      "score": 91.5,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013c030": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013c080": {
+      "score": 89.4,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013c100": {
+      "score": 98.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013c1b0": {
+      "score": 97.8,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013c250": {
+      "score": 97.8,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013c2e0": {
+      "score": 98.4,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013c3a0": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013c3d0": {
+      "score": 92.9,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013c400": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013c430": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013c490": {
+      "score": 84.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013c500": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013c560": {
+      "score": 96.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013c5c0": {
+      "score": 97.7,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013c620": {
+      "score": 96.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013c680": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013c6e0": {
+      "score": 96.3,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013c740": {
+      "score": 95.3,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013c7a0": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013c800": {
+      "score": 96.1,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013c860": {
+      "score": 93.2,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013c8c0": {
+      "score": 96.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013c920": {
+      "score": 96.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013c980": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013c9e0": {
+      "score": 88.9,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013ca30": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013cab0": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013cb30": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013cb80": {
+      "score": 90.9,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013cdd0": {
+      "score": 94.6,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013ce90": {
+      "score": 92.7,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013cf50": {
+      "score": 74.7,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013d570": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013d590": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013d5b0": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013d5d0": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013d5f0": {
+      "score": 98.1,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013d640": {
+      "score": 80.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013d6f0": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013d730": {
+      "score": 80.6,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013d7f0": {
+      "score": 91.8,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013d870": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013d880": {
+      "score": 84.8,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013d8b0": {
+      "score": 97.4,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013d920": {
+      "score": 91.8,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013db50": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013db60": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013dbe0": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013dc10": {
+      "score": 93.9,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013dcb0": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013dcc0": {
+      "score": 81.2,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013dda0": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013ddd0": {
+      "score": 98.1,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013de80": {
+      "score": 96.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013ded0": {
+      "score": 64.1,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013dfc0": {
+      "score": 97.9,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013e050": {
+      "score": 96.4,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013e1a0": {
+      "score": 89.3,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013e1f0": {
+      "score": 67.2,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013e3f0": {
+      "score": 98.9,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013e460": {
+      "score": 93.5,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013e510": {
+      "score": 88.7,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013e5d0": {
+      "score": 61.8,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013e7b0": {
+      "score": 81.5,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013eb30": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013eb70": {
+      "score": 87.2,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013ebc0": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013ec00": {
+      "score": 96.4,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013ec50": {
+      "score": 93.9,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013ecb0": {
+      "score": 92.1,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013ee60": {
+      "score": 90.3,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013ef70": {
+      "score": 62.7,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013eff0": {
+      "score": 82.8,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013f060": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013f080": {
+      "score": 91.4,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013f120": {
+      "score": 86.8,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013f380": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013f3b0": {
+      "score": 84.8,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013f440": {
+      "score": 86.7,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013f4b0": {
+      "score": 72.4,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013f810": {
+      "score": 91.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013f950": {
+      "score": 79.1,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013f9f0": {
+      "score": 88.7,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013fac0": {
+      "score": 87.3,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013fb30": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013fb80": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013fbc0": {
+      "score": 88.9,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013fc20": {
+      "score": 96.6,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013fd00": {
+      "score": 88.4,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013fe10": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013fe70": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013fea0": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013fef0": {
+      "score": 89.9,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013ff50": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_0013ffc0": {
+      "score": 63.4,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00140070": {
+      "score": 88.2,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00140130": {
+      "score": 97.1,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00140160": {
+      "score": 83.3,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00140230": {
+      "score": 91.1,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_001402c0": {
+      "score": 87.6,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_001403a0": {
+      "score": 88.4,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00140420": {
+      "score": 91.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00140720": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00140750": {
+      "score": 98.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_001407e0": {
+      "score": 84.4,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_001409d0": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00140a00": {
+      "score": 87.3,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00140ad0": {
+      "score": 82.7,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00140b80": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00140bc0": {
+      "score": 96.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00140cc0": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00140ce0": {
+      "score": 87.6,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00140eb0": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00140f10": {
+      "score": 90.9,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00141020": {
+      "score": 88.4,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_001411c0": {
+      "score": 99.1,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_001412f0": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00141360": {
+      "score": 93.3,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00141480": {
+      "score": 98.6,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_001414e0": {
+      "score": 98.9,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_001415f0": {
+      "score": 90.4,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_001417c0": {
+      "score": 83.1,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00141900": {
+      "score": 97.2,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00141970": {
+      "score": 78.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00141b70": {
+      "score": 73.5,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00143510": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00143550": {
+      "score": 90.4,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00143a00": {
+      "score": 90.9,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00143ae0": {
+      "score": 88.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00143be0": {
+      "score": 88.9,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00143c80": {
+      "score": 87.8,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00144240": {
+      "score": 95.2,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_001443f0": {
+      "score": 88.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_001446a0": {
+      "score": 85.4,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00144770": {
+      "score": 83.2,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00144860": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00144940": {
+      "score": 88.4,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_001449b0": {
+      "score": 99.5,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00144ae0": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00144b30": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00144b50": {
+      "score": 65.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00145170": {
+      "score": 87.8,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00145490": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
     },
     "FUN_001457f0": {
       "score": 100.0,
@@ -9132,6 +9836,86 @@
       "score": 75.9,
       "source": "src/halo/units/bipeds.c"
     },
+    "FUN_001a6280": {
+      "score": 82.1,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a6350": {
+      "score": 88.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a67b0": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a67e0": {
+      "score": 86.7,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a6820": {
+      "score": 93.1,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a6870": {
+      "score": 97.2,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a68d0": {
+      "score": 91.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a6bc0": {
+      "score": 92.3,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a6bf0": {
+      "score": 95.5,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a6ca0": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a6cd0": {
+      "score": 90.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a6d10": {
+      "score": 83.3,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a6e20": {
+      "score": 97.9,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a6ef0": {
+      "score": 95.8,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a70d0": {
+      "score": 94.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a71c0": {
+      "score": 83.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a74d0": {
+      "score": 90.9,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a7650": {
+      "score": 81.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a7730": {
+      "score": 81.6,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a7790": {
+      "score": 89.1,
+      "source": "src/halo/units/units.c"
+    },
     "FUN_001a7a90": {
       "score": 100.0,
       "source": "src/halo/units/units.c"
@@ -9145,12 +9929,660 @@
       "source": "src/halo/units/units.c"
     },
     "FUN_001a7c70": {
-      "score": 5.3,
+      "score": 88.6,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a7cc0": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a7d00": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a7d40": {
+      "score": 95.5,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a7d80": {
+      "score": 92.5,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a7df0": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a7e70": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a7ea0": {
+      "score": 82.1,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a7f80": {
+      "score": 90.9,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a7fa0": {
+      "score": 90.9,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a7fc0": {
+      "score": 90.9,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a8010": {
+      "score": 85.7,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a8190": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a8200": {
+      "score": 92.4,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a83e0": {
+      "score": 85.4,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a84c0": {
+      "score": 90.9,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a8550": {
+      "score": 65.8,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a8690": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a86b0": {
+      "score": 52.2,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a8730": {
+      "score": 66.7,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a8790": {
+      "score": 66.7,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a87f0": {
+      "score": 64.7,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a8850": {
+      "score": 66.7,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a88b0": {
+      "score": 69.2,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a8990": {
+      "score": 74.7,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a8b20": {
+      "score": 83.1,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a8ce0": {
+      "score": 87.7,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a8da0": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a8e10": {
+      "score": 89.1,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a8ee0": {
+      "score": 91.1,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a9130": {
+      "score": 94.2,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a91e0": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a9200": {
+      "score": 85.7,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a9240": {
+      "score": 93.4,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a93e0": {
+      "score": 94.2,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a9560": {
+      "score": 89.5,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a96f0": {
+      "score": 78.1,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a97c0": {
+      "score": 83.1,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a9880": {
+      "score": 89.6,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a9900": {
+      "score": 90.9,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a9930": {
+      "score": 90.9,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a9960": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a9980": {
+      "score": 83.6,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a9a30": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a9a50": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a9a90": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a9ad0": {
+      "score": 81.1,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a9b30": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a9b80": {
+      "score": 93.5,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a9c00": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a9c40": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a9c90": {
+      "score": 80.8,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a9da0": {
+      "score": 91.5,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a9e40": {
+      "score": 84.8,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a9ec0": {
+      "score": 90.3,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a9ef0": {
+      "score": 90.3,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a9f20": {
+      "score": 93.6,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001aa080": {
+      "score": 85.9,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001aa170": {
+      "score": 96.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001aa240": {
+      "score": 96.3,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001aa360": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001aa430": {
+      "score": 80.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001aa4d0": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001aa510": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001aa550": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001aa590": {
+      "score": 81.2,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001aa5c0": {
+      "score": 93.7,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001aa700": {
+      "score": 81.4,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001aa770": {
+      "score": 83.1,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001aa7d0": {
+      "score": 83.1,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001aa830": {
+      "score": 83.1,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001aa890": {
+      "score": 95.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001aa970": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001aa990": {
+      "score": 73.9,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001aaa90": {
+      "score": 97.7,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001aab20": {
+      "score": 89.1,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001aac80": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001aad00": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001aad60": {
+      "score": 80.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001aad90": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001aae00": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001aae70": {
+      "score": 80.6,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001aaee0": {
+      "score": 96.4,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001aaf40": {
+      "score": 91.2,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ab110": {
+      "score": 83.3,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ab410": {
+      "score": 72.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ab6e0": {
+      "score": 81.8,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ab730": {
+      "score": 83.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ab770": {
+      "score": 92.9,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ab7c0": {
+      "score": 93.1,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ab870": {
+      "score": 93.8,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ab8c0": {
+      "score": 95.5,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ab940": {
+      "score": 80.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ab990": {
+      "score": 91.5,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001abb20": {
+      "score": 79.1,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001abbd0": {
+      "score": 87.1,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001abcd0": {
+      "score": 91.3,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001abd10": {
+      "score": 78.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001abd90": {
+      "score": 81.3,
       "source": "src/halo/units/units.c"
     },
     "FUN_001ac2f0": {
       "score": 100.0,
       "source": "src/halo/sound/sound_manager.c"
+    },
+    "FUN_001ac3f0": {
+      "score": 93.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ac450": {
+      "score": 90.8,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ac520": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ac550": {
+      "score": 93.6,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ac650": {
+      "score": 92.7,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ac680": {
+      "score": 46.1,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001acb70": {
+      "score": 86.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001acd70": {
+      "score": 77.4,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001acf90": {
+      "score": 91.4,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ad060": {
+      "score": 94.1,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ad260": {
+      "score": 55.9,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ad7e0": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ad800": {
+      "score": 84.7,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ada90": {
+      "score": 92.1,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001adeb0": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001adf10": {
+      "score": 90.1,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001adfc0": {
+      "score": 93.1,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ae160": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ae180": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ae1a0": {
+      "score": 79.2,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ae1e0": {
+      "score": 66.7,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ae210": {
+      "score": 98.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ae290": {
+      "score": 93.8,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ae330": {
+      "score": 88.4,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ae370": {
+      "score": 89.2,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ae3c0": {
+      "score": 69.2,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ae490": {
+      "score": 77.4,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ae700": {
+      "score": 80.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ae730": {
+      "score": 77.8,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ae750": {
+      "score": 86.5,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ae780": {
+      "score": 95.7,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001ae840": {
+      "score": 89.4,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001aea90": {
+      "score": 86.4,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001af0d0": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001af100": {
+      "score": 93.5,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001af180": {
+      "score": 61.6,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001af2a0": {
+      "score": 95.7,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001af340": {
+      "score": 73.1,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001af620": {
+      "score": 64.7,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001af6b0": {
+      "score": 97.6,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001afd30": {
+      "score": 80.1,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001b04b0": {
+      "score": 90.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001b0630": {
+      "score": 76.1,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001b0d00": {
+      "score": 84.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001b0d90": {
+      "score": 76.9,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001b1290": {
+      "score": 97.6,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001b1350": {
+      "score": 85.2,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001b13a0": {
+      "score": 74.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001b1400": {
+      "score": 73.6,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001b1a20": {
+      "score": 74.6,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001b1b40": {
+      "score": 84.6,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001b1c70": {
+      "score": 85.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001b1d00": {
+      "score": 71.1,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001b1db0": {
+      "score": 87.3,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001b1ee0": {
+      "score": 91.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001b2090": {
+      "score": 85.9,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001b2260": {
+      "score": 78.3,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001b2610": {
+      "score": 73.5,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001b2740": {
+      "score": 82.6,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001b2780": {
+      "score": 87.5,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001b2b80": {
+      "score": 84.7,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001b2dd0": {
+      "score": 97.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001b3060": {
+      "score": 73.8,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001b3690": {
+      "score": 80.4,
+      "source": "src/halo/units/units.c"
     },
     "FUN_001b9a90": {
       "score": 100.0,
@@ -9916,6 +11348,10 @@
       "score": 78.5,
       "source": "src/halo/ai/ai.c"
     },
+    "any_unit_is_dangerous": {
+      "score": 87.2,
+      "source": "src/halo/units/units.c"
+    },
     "ascii_to_wide": {
       "score": 85.2,
       "source": "src/halo/text/unicode.c"
@@ -10304,6 +11740,10 @@
       "score": 100.0,
       "source": "src/halo/networking/network_game_globals.c"
     },
+    "object_get_and_verify_type": {
+      "score": 92.8,
+      "source": "src/halo/objects/objects.c"
+    },
     "observer_apply_acceleration": {
       "score": 68.3,
       "source": "src/halo/camera/observer.c"
@@ -10452,9 +11892,53 @@
       "score": 100.0,
       "source": "src/halo/text/international_strings.c"
     },
+    "unit_clear_seat_tag": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "unit_create_initial_weapons": {
+      "score": 95.8,
+      "source": "src/halo/units/units.c"
+    },
+    "unit_impact_melee_damage": {
+      "score": 90.0,
+      "source": "src/halo/units/units.c"
+    },
+    "unit_melee_attack_begin": {
+      "score": 95.9,
+      "source": "src/halo/units/units.c"
+    },
+    "unit_place": {
+      "score": 94.8,
+      "source": "src/halo/units/units.c"
+    },
+    "unit_scripting_enter_vehicle": {
+      "score": 95.4,
+      "source": "src/halo/units/units.c"
+    },
+    "unit_set_control": {
+      "score": 97.6,
+      "source": "src/halo/units/units.c"
+    },
+    "unit_set_in_vehicle": {
+      "score": 79.1,
+      "source": "src/halo/units/units.c"
+    },
+    "unit_try_and_exit_seat": {
+      "score": 83.1,
+      "source": "src/halo/units/units.c"
+    },
+    "units_update": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
     "ustrncpy": {
       "score": 98.8,
       "source": "src/halo/text/unicode.c"
+    },
+    "vehicle_scripting_load_magic": {
+      "score": 85.7,
+      "source": "src/halo/units/units.c"
     },
     "verify_packet_definition": {
       "score": 98.3,

@@ -344,49 +344,52 @@ char FUN_000ae110(int param_1, int param_2, int param_3)
 
   player = (int)datum_get(*(data_t **)0x5aa6d4, param_1);
   field_74 = *(int *)(player + 0x74);
-  if (field_74 > 0x16 && field_74 < 0x1b) {
+  if (field_74 >= 0x17 && field_74 <= 0x1a) {
     *(int *)(player + 0x74) = -1;
   }
 
-  if (*(int *)(player + 0x34) != -1) {
-    /* Live player: both aceb0 paths RETURN the dispatcher's AL ("text was
-     * produced"), per original 0xae205-0xae21c and 0xae21d-0xae23d -- there is
-     * no xor al,al before those rets. The unported caller FUN_000d04d0 only
-     * draws the buffer when this returns nonzero (test al,al at 0xd0931). */
-    time = game_time_get();
-    if (time < 0x1c2) {
-      return FUN_000aceb0(param_2, param_3, -1, param_1, 0x1d);
+  if (*(int *)(player + 0x34) == -1) {
+    /* Dead player: choose a respawn/status HUD message. This is the
+     * fall-through branch in the original (CMP [ESI+0x34],EBX; JNZ 0xae1f9
+     * sends the live case out of line to 0xae1f9). */
+    local_8 = 0;
+    if (*(char *)(player + 0xd1) == '\x01') {
+      respawn_state = 0x1b;
+    } else if (game_engine_player_is_out_of_lives(param_1)) {
+      respawn_state = 0x18;
+    } else if (game_engine_is_player_leading(param_1)) {
+      respawn_state = 0x17;
+    } else if (*(int *)(player + 0x2c) > 0) {
+      local_8 = *(int *)(player + 0x2c) / 30;
+      respawn_state = 0x19;
+    } else {
+      respawn_state = 0x1a;
     }
-    if (*(int *)(player + 0x74) != -1) {
-      return FUN_000aceb0(param_2, param_3, *(int *)(player + 0x78), param_1,
-                          *(int *)(player + 0x74));
-    }
-    return 0;
+
+    { void *vtable_fn = *(void **)((char *)current_game_engine + 0x64);
+    if (vtable_fn != NULL) {
+      char handled = ((char (*)(int, int, int, int, int))vtable_fn)(
+          param_1, respawn_state, local_8, param_2, param_3);
+      if (handled)
+        return handled;
+    } }
+    return (char)game_engine_get_score_hud_text(
+        param_1, respawn_state, local_8, (wchar_t *)param_2, param_3);
   }
 
-  local_8 = 0;
-  if (*(char *)(player + 0xd1) == '\x01') {
-    respawn_state = 0x1b;
-  } else if (game_engine_player_is_out_of_lives(param_1)) {
-    respawn_state = 0x18;
-  } else if (game_engine_is_player_leading(param_1)) {
-    respawn_state = 0x17;
-  } else if (*(int *)(player + 0x2c) > 0) {
-    local_8 = *(int *)(player + 0x2c) / 30;
-    respawn_state = 0x19;
-  } else {
-    respawn_state = 0x1a;
+  /* Live player: both aceb0 paths RETURN the dispatcher's AL ("text was
+   * produced"), per original 0xae205-0xae21c and 0xae21d-0xae23d -- there is
+   * no xor al,al before those rets. The unported caller FUN_000d04d0 only
+   * draws the buffer when this returns nonzero (test al,al at 0xd0931). */
+  time = game_time_get();
+  if (time < 0x1c2) {
+    return FUN_000aceb0(param_2, param_3, -1, param_1, 0x1d);
   }
-
-  { void *vtable_fn = *(void **)((char *)current_game_engine + 0x64);
-  if (vtable_fn != NULL) {
-    char handled = ((char (*)(int, int, int, int, int))vtable_fn)(
-        param_1, respawn_state, local_8, param_2, param_3);
-    if (handled)
-      return handled;
-  } }
-  return (char)game_engine_get_score_hud_text(
-      param_1, respawn_state, local_8, (wchar_t *)param_2, param_3);
+  if (*(int *)(player + 0x74) != -1) {
+    return FUN_000aceb0(param_2, param_3, *(int *)(player + 0x78), param_1,
+                        *(int *)(player + 0x74));
+  }
+  return 0;
 }
 
 /* Default player-win check used when no game-engine vtable slot 0x84 is set.
