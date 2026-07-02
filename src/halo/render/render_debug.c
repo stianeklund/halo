@@ -1092,6 +1092,40 @@ void FUN_0018a650(int flag, float *plane, int projection, int sign,
   FUN_00189270(flag, pts + 3, pts, color);
 }
 
+/* Draw a debug vector on a plane (0x18a770). Computes the 2D endpoint
+ * point + scale*vector, then draws a plane-edge line from point to that
+ * endpoint (FUN_0018a650, which projects both onto the plane). */
+void FUN_0018a770(int flag, float *plane, int projection, int sign,
+                  float *point, float *vector, float scale, void *color,
+                  float offset)
+{
+  float endpoint[2];
+
+  if (plane == 0) {
+    display_assert("plane", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x10d,
+                   1);
+    system_exit(-1);
+  }
+  if (point == 0) {
+    display_assert("point", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x10e,
+                   1);
+    system_exit(-1);
+  }
+  if (vector == 0) {
+    display_assert("vector", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x10f,
+                   1);
+    system_exit(-1);
+  }
+  if (color == 0) {
+    display_assert("color", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x110,
+                   1);
+    system_exit(-1);
+  }
+  endpoint[0] = scale * vector[0] + point[0];
+  endpoint[1] = scale * vector[1] + point[1];
+  FUN_0018a650(flag, plane, projection, sign, point, endpoint, color, offset);
+}
+
 /* Draw or cache a debug plane disc (0x18a860). type 0. With flag clear, caches
  * a type-0 primitive. With flag set, builds a 16-segment circle table
  * (FUN_00188bf0) and, for each segment, offsets two adjacent circle points by
