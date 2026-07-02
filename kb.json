@@ -3387,7 +3387,7 @@
         },
         {
           "addr": "0x178d0",
-          "decl": "float *cross_product3d(float *a, float *b, float *out);",
+          "decl": "void cross_product3d(float *a, float *b, float *out);",
           "ported": true
         },
         {
