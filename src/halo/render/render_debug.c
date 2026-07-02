@@ -838,6 +838,53 @@ void FUN_0018a650(int flag, float *plane, int projection, int sign,
   FUN_00189270(flag, pts + 3, pts, color);
 }
 
+/* Draw or cache a debug plane disc (0x18a860). type 0. With flag clear, caches
+ * a type-0 primitive. With flag set, builds a 16-segment circle table
+ * (FUN_00188bf0) and, for each segment, offsets two adjacent circle points by
+ * the center, then hands them to the plane-edge drawer (FUN_0018a650) which
+ * projects them onto the plane and draws the connecting 3D line. */
+void FUN_0018a860(char flag, float *plane, int projection, int sign,
+                  float *center, float radius, void *color, float offset)
+{
+  float circle[34];
+  float pts[4]; /* pts[2..3] = current circle point, pts[0..1] = next */
+  float *cp;
+  short i;
+
+  if (plane == 0) {
+    display_assert("plane", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x122,
+                   1);
+    system_exit(-1);
+  }
+  if (center == 0) {
+    display_assert("center", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x123,
+                   1);
+    system_exit(-1);
+  }
+  if (color == 0) {
+    display_assert("color", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x124,
+                   1);
+    system_exit(-1);
+  }
+  if (flag == 0) {
+    FUN_00188ec0(0, plane, (short)projection, (unsigned char)sign, center,
+                 (double)radius, color);
+    return;
+  }
+  FUN_00188bf0(circle, radius);
+  cp = circle + 3;
+  i = 0x10;
+  do {
+    pts[2] = center[0] + cp[-3];
+    pts[3] = center[1] + cp[-2];
+    pts[0] = center[0] + cp[-1];
+    pts[1] = center[1] + cp[0];
+    FUN_0018a650(1, plane, projection, sign, &pts[2], &pts[0], color, offset);
+    cp = cp + 2;
+    i = (short)(i - 1);
+  } while (i != 0);
+}
+
 /* Draw a debug coordinate frame built from a forward/up basis (0x18a990).
  * Builds a 4x3 frame at position from the forward and up vectors, then draws
  * its axes. */
@@ -1002,8 +1049,8 @@ void FUN_0018ac50(void)
     rec = &debug_primitives[i];
     switch (rec->type) {
     case 0:
-      FUN_0018a860(1, &rec->f04, rec->s14, rec->b16, &rec->f18,
-                   *(int *)&rec->f20, &rec->f24, *(int *)&rec->f34);
+      FUN_0018a860(1, &rec->f04, rec->s14, rec->b16, &rec->f18, rec->f20,
+                   &rec->f24, rec->f34);
       break;
     case 1:
       FUN_00189150(1, &rec->f04, rec->f10, &rec->s14);

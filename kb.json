@@ -21330,7 +21330,8 @@
         },
         {
           "addr": "0x18a860",
-          "decl": "void FUN_0018a860(int wireframe, void *plane, int p3, int p4, void *center, int scale_bits, void *color, int p8);"
+          "decl": "void FUN_0018a860(char flag, float *plane, int projection, int sign, float *center, float radius, void *color, float offset);",
+          "ported": true
         },
         {
           "addr": "0x18a990",
