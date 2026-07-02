@@ -5617,6 +5617,14 @@
       }
     },
     {
+      "name": "halo/network_server_message_handler",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_server_message_handler.c.obj",
+      "base_path": "delinked/network_server_message_handler.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_server_message_handler.c"
+      }
+    },
+    {
       "name": "halo/network_server_manager",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_server_manager.c.obj",
       "base_path": "delinked/network_server_manager.obj",

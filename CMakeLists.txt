@@ -126,6 +126,7 @@ if(ENABLE_XDK_HYBRID AND NOT MSVC)
 		halo/main/main.c
 		halo/math/real_math.c
 		halo/networking/network_server_manager.c
+		halo/networking/network_server_message_handler.c
 		halo/objects/objects.c
 		halo/physics/point_physics.c
 		halo/saved_games/game_state.c
