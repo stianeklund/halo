@@ -1890,30 +1890,71 @@ apply_delta:
  * Confirmed: assert "animation_impulse>=0 &&
  * animation_impulse<NUMBER_OF_UNIT_ANIMATION_IMPULSES" file
  * "c:\\halo\\SOURCE\\units\\units.c", line 0x14f4.
+ * Confirmed: kind init to -1 at entry (OR ESI,-1); two jump-table switches
+ * (0x1a969c kind, 0x1a96d4/0x1a96dc update) each with a NULL-message assert
+ * default (lines 0x1507, 0x1524).
  */
 int16_t unit_impulse_to_animation_kind(int16_t impulse_index,
                                        int16_t *out_update_kind)
 {
-  static const int16_t kind_table[14] = { 0x1d, 0x20, 0x21, 0x22, 0x1b,
-                                          0x1c, 0x1e, 0x1f, 0x04, 0x05,
-                                          0x06, 0x07, 0x28, 0x29 };
-  /* update 3 for impulses 4,5,8,9,10,11; update 6 for all others. */
-  static const int16_t update_table[14] = { 6, 6, 6, 6, 3, 3, 6,
-                                            6, 3, 3, 3, 3, 6, 6 };
-  int16_t kind;
+  int idx;
+  int16_t kind = -1;
 
   if (impulse_index < 0 || impulse_index >= 14) {
     display_assert("animation_impulse>=0 && "
                    "animation_impulse<NUMBER_OF_UNIT_ANIMATION_IMPULSES",
                    "c:\\halo\\SOURCE\\units\\units.c", 0x14f4, 1);
     system_exit(-1);
-    return -1;
   }
 
-  kind = kind_table[impulse_index];
+  idx = impulse_index;
+  switch (idx) {
+  case 0:  kind = 0x1d; break;
+  case 1:  kind = 0x20; break;
+  case 2:  kind = 0x21; break;
+  case 3:  kind = 0x22; break;
+  case 4:  kind = 0x1b; break;
+  case 5:  kind = 0x1c; break;
+  case 6:  kind = 0x1e; break;
+  case 7:  kind = 0x1f; break;
+  case 8:  kind = 0x04; break;
+  case 9:  kind = 0x05; break;
+  case 10: kind = 0x06; break;
+  case 11: kind = 0x07; break;
+  case 12: kind = 0x28; break;
+  case 13: kind = 0x29; break;
+  default:
+    display_assert(NULL, "c:\\halo\\SOURCE\\units\\units.c", 0x1507, 1);
+    system_exit(-1);
+    break;
+  }
 
-  if (out_update_kind != NULL)
-    *out_update_kind = update_table[impulse_index];
+  if (out_update_kind != NULL) {
+    switch (idx) {
+    case 4:
+    case 5:
+    case 8:
+    case 9:
+    case 10:
+    case 11:
+      *out_update_kind = 3;
+      break;
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 6:
+    case 7:
+    case 12:
+    case 13:
+      *out_update_kind = 6;
+      break;
+    default:
+      display_assert(NULL, "c:\\halo\\SOURCE\\units\\units.c", 0x1524, 1);
+      system_exit(-1);
+      break;
+    }
+  }
 
   return kind;
 }
@@ -3466,10 +3507,19 @@ char FUN_001ad260(int unit_handle, int16_t anim_state)
     FUN_001ab110(unit_handle, 1);
   }
 
-  /* Map anim_state to either a mode animation index or overlay index */
   if ((int)anim_state > 0x2b)
     goto set_not_found;
 
+  /* Map anim_state to either a mode animation index or overlay index.
+   *
+   * NOTE: the original (0x1ad331) lowers this as a jump table whose per-case
+   * bodies are "MOV <index>,imm; JMP <shared lookup>". VC71 /O2 instead lowers
+   * this "switch selects a constant" pattern as a value-lookup array (compact
+   * data table) regardless of whether the cases use break or goto to a shared
+   * label; forcing distinct per-case blocks (inline lookups) makes VC71 emit
+   * un-merged duplicate lookups, which matches even less. This is a codegen
+   * selection difference, not a semantic one: the case->index mapping below is
+   * byte-verified against the jump-table bodies at 0x1ad338-0x1ad4a2. */
   switch ((int)anim_state) {
   case 0:  mode_anim_index = 0; break;
   case 1:  mode_anim_index = 1; break;
@@ -5887,7 +5937,7 @@ int unit_get_animation_frames_remaining(int unit_handle, int16_t *animation_stat
  * Returns 1 for vehicle-related animation states. @ecx = anim state ptr. */
 char FUN_001a8730(void *anim_state)
 {
-  switch (*(uint8_t *)((char *)anim_state + 0xb)) {
+  switch (*(int8_t *)((char *)anim_state + 0xb)) {
   case 0x17: case 0x18: case 0x19: case 0x1a: case 0x1b:
   case 0x1d: case 0x1e: case 0x1f: case 0x20: case 0x21:
   case 0x22: case 0x23: case 0x27: case 0x29:
@@ -5900,7 +5950,7 @@ char FUN_001a8730(void *anim_state)
  * Returns 0 for vehicle/combat animation states. @ecx = anim state ptr. */
 char FUN_001a8790(void *anim_state)
 {
-  switch (*(uint8_t *)((char *)anim_state + 0xb)) {
+  switch (*(int8_t *)((char *)anim_state + 0xb)) {
   case 1: case 2: case 3:
   case 0x17: case 0x1a: case 0x1b: case 0x1c:
   case 0x1d: case 0x1e: case 0x1f:
@@ -5920,7 +5970,7 @@ char FUN_001a87f0(void *anim_state)
 
   result = *(char *)((char *)anim_state + 0xc) == '\0' &&
            *(int16_t *)((char *)anim_state + 0x1a) == -1;
-  switch (*(uint8_t *)((char *)anim_state + 0xb)) {
+  switch (*(int8_t *)((char *)anim_state + 0xb)) {
   case 0x14: case 0x15: case 0x16:
   case 0x24: case 0x25: case 0x26:
     result = 0;
@@ -5933,7 +5983,7 @@ char FUN_001a87f0(void *anim_state)
  * @ecx = anim state ptr. */
 char FUN_001a8850(void *anim_state)
 {
-  switch (*(uint8_t *)((char *)anim_state + 0xb)) {
+  switch (*(int8_t *)((char *)anim_state + 0xb)) {
   case 0x17: case 0x18: case 0x19: case 0x1a: case 0x1b:
   case 0x1d: case 0x22: case 0x23:
     return 0;
@@ -5963,7 +6013,7 @@ int FUN_001a88b0(int16_t anim_state)
  * Animation state transition check. @ecx = anim state ptr, @edx = target state. */
 char FUN_001a86b0(void *anim_state, int16_t target_state)
 {
-  switch (*(uint8_t *)((char *)anim_state + 0xb)) {
+  switch (*(int8_t *)((char *)anim_state + 0xb)) {
   case 0x2: case 0x3: case 0x25: case 0x26:
     if (target_state != 0) {
       return 1;
@@ -8074,9 +8124,6 @@ void FUN_001ac680(float initial_p, float initial_v, float max_v,
   float fVar1;        /* |initial_v| / max_a */
   float fVar4;        /* discriminant / intermediate */
   float neg_max_a;
-  float doubled_v;
-  float t;
-  float actual_t;
   float coasting_vel;
   float coast_diff;
   char bVar;          /* initial_v <= 0 */
@@ -8090,7 +8137,7 @@ void FUN_001ac680(float initial_p, float initial_v, float max_v,
   *(float *)(plan + 8) = initial_v;
 
   /* Check if effectively at rest (MSVC intrinsic fabs → inline FABS) */
-  if (fabs(initial_p) < 0.001 && fabs(initial_v) < 0.001) {
+  if (fabs(initial_p) < 0.001f && fabs(initial_v) < 0.001f) {
     *(uint8_t *)plan = 1;
     *(int *)(plan + 0x0c) = 0;
     *(int *)(plan + 0x10) = 0;
@@ -8139,29 +8186,38 @@ void FUN_001ac680(float initial_p, float initial_v, float max_v,
     goto validate;
   }
 
-  /* Normal deceleration case */
+  /* Normal deceleration case.
+   *
+   * MSVC reuses the initial_p ([EBP+8]) and initial_v ([EBP+0xc]) parameter
+   * stack slots as scratch once the parameters are dead. We mirror that by
+   * assigning into the parameters themselves:
+   *   initial_v -> doubled_v, then the second quadratic root, then the
+   *                selected raw time t
+   *   initial_p -> discriminant, then the first quadratic root, then the
+   *                velocity-clamped time (actual_t) */
   if (!bVar) {
     /* Decelerating (initial_v <= 0): quadratic formula */
     neg_max_a = -max_a;
-    doubled_v = initial_v + initial_v;
-    fVar4 = doubled_v * doubled_v - neg_max_a * fVar4 * 4.0f;
-    if (fVar4 < 0.0f) {
+    initial_v = initial_v + initial_v;                        /* doubled_v */
+    initial_p = initial_v * initial_v - neg_max_a * fVar4 * 4.0f;  /* disc */
+    if (initial_p < 0.0f) {
       display_assert("disc >= 0",
                      "c:\\halo\\SOURCE\\units\\units.c", 0x7eb, 1);
       system_exit(-1);
     }
-    fVar4 = sqrtf(fVar4);
-    t = (-doubled_v - fVar4) / (neg_max_a + neg_max_a);
-    actual_t = (fVar4 - doubled_v) / (neg_max_a + neg_max_a);
-    if (t >= 0.0f && (actual_t < 0.0f || t < actual_t)) {
-      /* use t */
-    } else if (actual_t >= 0.0f) {
-      t = actual_t;
+    fVar4 = sqrtf(initial_p);
+    initial_p = (-initial_v - fVar4) / (neg_max_a + neg_max_a);   /* root t */
+    initial_v = (fVar4 - initial_v) / (neg_max_a + neg_max_a);    /* root actual_t */
+    if (initial_p >= 0.0f && (initial_v < 0.0f || initial_p < initial_v)) {
+      initial_v = initial_p;                                  /* use t */
+    } else if (initial_v >= 0.0f) {
+      /* use actual_t: already selected in initial_v */
     } else {
-      t = 0.0f;
-      goto check_t;
+      /* Both roots negative: clamp coast time to 0 and skip the "t >= 0"
+       * assert (matches 0x1ac9d9/0x1ac9e0: MOV [ebp+0xc],0; JMP 0x1aca18). */
+      initial_v = 0.0f;
+      goto velocity_constraint;
     }
-    initial_v = t;
     goto check_t;
   } else {
     /* Accelerating (initial_v > 0): direct sqrt */
@@ -8174,19 +8230,21 @@ check_t:
     system_exit(-1);
   }
 
-  /* Apply maximum velocity constraint */
+velocity_constraint:
+  /* Apply maximum velocity constraint. initial_v = raw time t;
+   * initial_p = velocity-clamped time (actual_t). */
   if (max_v <= 0.0f) {
-    actual_t = initial_v;
+    initial_p = initial_v;
   } else {
     if (!bVar) {
       max_v = max_v + *(float *)(plan + 8);
     }
-    actual_t = max_v / max_a;
-    if (actual_t < 0.0f) {
-      actual_t = 0.0f;
+    initial_p = max_v / max_a;
+    if (initial_p < 0.0f) {
+      initial_p = 0.0f;
     }
-    if (initial_v <= actual_t) {
-      actual_t = initial_v;
+    if (initial_v <= initial_p) {
+      initial_p = initial_v;
     }
   }
 
@@ -8195,18 +8253,18 @@ check_t:
   *(float *)(plan + 0x18) = max_a;
   if (bVar) {
     /* initial_v > 0: accel_t = actual_t + fVar1, decel_t = actual_t */
-    *(float *)(plan + 0x10) = actual_t + fVar1;
-    *(float *)(plan + 0x1c) = actual_t;
+    *(float *)(plan + 0x10) = initial_p + fVar1;
+    *(float *)(plan + 0x1c) = initial_p;
   } else {
     /* initial_v <= 0: accel_t = actual_t, decel_t = actual_t + fVar1 */
-    *(float *)(plan + 0x1c) = actual_t + fVar1;
-    *(float *)(plan + 0x10) = actual_t;
+    *(float *)(plan + 0x1c) = initial_p + fVar1;
+    *(float *)(plan + 0x10) = initial_p;
   }
 
-  /* Check if we need a coasting phase */
-  if (actual_t < initial_v) {
+  /* Check if we need a coasting phase (actual_t < t) */
+  if (initial_p < initial_v) {
     coasting_vel = -max_a * *(float *)(plan + 0x10) + *(float *)(plan + 8);
-    coast_diff = initial_v - actual_t;
+    coast_diff = initial_v - initial_p;
     if (coasting_vel >= 0.0f) {
       display_assert("coasting_vel < 0",
                      "c:\\halo\\SOURCE\\units\\units.c", 0x850, 1);
@@ -8220,7 +8278,7 @@ check_t:
                      "c:\\halo\\SOURCE\\units\\units.c", 0x852, 1);
       system_exit(-1);
     }
-    if (actual_t + *(float *)(plan + 0x14) < initial_v) {
+    if (initial_p + *(float *)(plan + 0x14) < initial_v) {
       display_assert("plan->coast_t + actual_t >= t",
                      "c:\\halo\\SOURCE\\units\\units.c", 0x853, 1);
       system_exit(-1);
