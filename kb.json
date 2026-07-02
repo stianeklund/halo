@@ -21267,7 +21267,8 @@
         },
         {
           "addr": "0x1896d0",
-          "decl": "void FUN_001896d0(int flag, void *p1, void *p2, int val, void *ctx);"
+          "decl": "void FUN_001896d0(char flag, void *center, void *height_vec, float radius, void *color);",
+          "ported": true
         },
         {
           "addr": "0x189860",
