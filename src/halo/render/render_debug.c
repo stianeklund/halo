@@ -754,6 +754,51 @@ void FUN_00189540(char flag, void *center, float radius, void *color)
   } while (i != 0);
 }
 
+/* Draw or cache a debug cylinder (0x1896d0). type 4. With flag clear, caches a
+ * type-4 primitive (base, height vector, radius, color). With flag set, builds
+ * the two circle rings via the cylinder builder (FUN_00188d00) into a pair of
+ * 17-vertex buffers, then draws the wireframe: each ring as a 16-segment strip,
+ * four vertical edges connecting the rings, and two diameter cross-lines per
+ * ring. */
+void FUN_001896d0(char flag, void *center, void *height_vec, float radius,
+                  void *color)
+{
+  float buffers[102]; /* buf1 = [0..50], buf2 = [51..101]; 17 vertices each */
+  int i;
+
+  if (center == 0) {
+    display_assert("base", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x285,
+                   1);
+    system_exit(-1);
+  }
+  if (height_vec == 0) {
+    display_assert("height", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x286,
+                   1);
+    system_exit(-1);
+  }
+  if (color == 0) {
+    display_assert("color", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x287,
+                   1);
+    system_exit(-1);
+  }
+  if (flag == 0) {
+    FUN_00188ec0(4, center, height_vec, (double)radius, color);
+    return;
+  }
+  FUN_00188d00(buffers, buffers + 51, center, height_vec, radius, 0, 0, 0, 0);
+  for (i = 0; i < 16; i++) {
+    FUN_0017eb10(&buffers[i * 3], &buffers[i * 3 + 3], (int)color);
+    FUN_0017eb10(&buffers[i * 3 + 51], &buffers[i * 3 + 54], (int)color);
+  }
+  for (i = 0; i < 4; i++) {
+    FUN_0017eb10(&buffers[i * 12], &buffers[i * 12 + 51], (int)color);
+  }
+  for (i = 0; i < 2; i++) {
+    FUN_0017eb10(&buffers[i * 12], &buffers[i * 12 + 24], (int)color);
+    FUN_0017eb10(&buffers[i * 12 + 51], &buffers[i * 12 + 75], (int)color);
+  }
+}
+
 /* Draw or cache a debug box (0x189a20). type 6. With flag clear, caches a
  * type-6 primitive (six bounds floats + color). With flag set, expands the
  * bounds {x0,x1,y0,y1,z0,z1} into the eight box corners and draws the six faces
@@ -1133,7 +1178,7 @@ void FUN_0018ac50(void)
       FUN_00189540(1, &rec->f04, rec->f10, &rec->s14);
       break;
     case 4:
-      FUN_001896d0(1, &rec->f04, &rec->f10, *(int *)&rec->f1c, &rec->f20);
+      FUN_001896d0(1, &rec->f04, &rec->f10, rec->f1c, &rec->f20);
       break;
     case 5:
       FUN_00189860(1, &rec->f04, &rec->f10, rec->f1c, &rec->f20);

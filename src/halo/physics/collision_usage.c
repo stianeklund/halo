@@ -89,7 +89,7 @@ void FUN_0014c7b0(int16_t *param_1)
       iVar1 = (int)sVar2;
       FUN_001896d0(
         1, param_1 + iVar1 * 0x14 + 0xe0a, param_1 + iVar1 * 0x14 + 0xe10,
-        *(int *)(param_1 + iVar1 * 0x14 + 0xe16), *(void **)0x2ee6d4);
+        *(float *)(param_1 + iVar1 * 0x14 + 0xe16), *(void **)0x2ee6d4);
       sVar2 = sVar2 + 1;
     } while (sVar2 < param_1[1]);
   }
