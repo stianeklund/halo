@@ -1647,8 +1647,16 @@ void FUN_000d6180(int type_value, short team, int param_3, short nav_type,
   datum = (int)data_iterator_next((void *)iter);
   while (datum != 0) {
     if (*(short *)(datum + 2) != -1 && (int)team == *(int *)(datum + 0x20)) {
-      FUN_000d6030(iter[2], (short)type_value, nav_type,
-                   (int)(short)object_handle, extra);
+      /* Pass the FULL 32-bit object handle. The original pushes EDI whole
+       * (000d61c7: PUSH EDI); a prior lift truncated it via (int)(short),
+       * dropping the datum salt (e.g. 0xeaab000d -> 0x0000000d). For object/
+       * enemy navs (nav_type 0/1) that corrupts the tracked handle, so
+       * nav_point_visibility_test's hit-object compare (collision_result+0x38
+       * == handle) never matches and the nav never hides when you board or
+       * look at the tracked object. NOTE: the sibling FUN_000d6280 genuinely
+       * truncates in the original (000d62ba: MOVSX EAX,DI), so its (short)
+       * cast is faithful and is deliberately left untouched. */
+      FUN_000d6030(iter[2], (short)type_value, nav_type, object_handle, extra);
     }
     datum = (int)data_iterator_next((void *)iter);
   }
