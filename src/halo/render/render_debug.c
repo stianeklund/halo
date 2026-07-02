@@ -535,6 +535,42 @@ void FUN_00189270(char flag, float *point_a, float *point_b, void *color)
   FUN_00188ec0(2, point_a, point_b, color);
 }
 
+/* Draw a debug tick as a line centered on a point (0x1893e0). Extends the line
+ * from point + scale*dir to point - scale*dir; the cache flag is forwarded to
+ * the line drawer. */
+void FUN_001893e0(int flag, float *point, float *dir, float scale, void *color)
+{
+  float pts[6];
+
+  pts[0] = scale * dir[0] + point[0];
+  pts[1] = scale * dir[1] + point[1];
+  pts[2] = scale * dir[2] + point[2];
+  scale = -scale;
+  pts[3] = scale * dir[0] + point[0];
+  pts[4] = scale * dir[1] + point[1];
+  pts[5] = scale * dir[2] + point[2];
+  FUN_00189270(flag, pts, pts + 3, color);
+}
+
+/* Draw a debug line between two points, each offset by scale times a shared
+ * vector (0x189450). The offset vector is *(float **)0x31fc44 (a camera basis
+ * vector); the line runs from point_a + scale*V to point_b + scale*V. */
+void FUN_00189450(int flag, float *point_a, float *point_b, void *color,
+                  float scale)
+{
+  float pts[6];
+  float *v;
+
+  v = *(float **)0x31fc44;
+  pts[0] = scale * v[0] + point_a[0];
+  pts[1] = scale * v[1] + point_a[1];
+  pts[2] = scale * v[2] + point_a[2];
+  pts[3] = scale * v[0] + point_b[0];
+  pts[4] = scale * v[1] + point_b[1];
+  pts[5] = scale * v[2] + point_b[2];
+  FUN_00189270(flag, pts, pts + 3, color);
+}
+
 /* Draw a closed debug polyline (0x189ba0). Immediate-mode only: with three or
  * more points draws the closing edge from the last point back to the first,
  * then a line between each pair of consecutive points, forming a line loop.
