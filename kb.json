@@ -21297,7 +21297,8 @@
         },
         {
           "addr": "0x189de0",
-          "decl": "void FUN_00189de0(void);"
+          "decl": "void FUN_00189de0(void);",
+          "ported": true
         },
         {
           "addr": "0x18a000",
@@ -21311,7 +21312,8 @@
         },
         {
           "addr": "0x18a190",
-          "decl": "void FUN_0018a190(void);"
+          "decl": "void FUN_0018a190(void);",
+          "ported": true
         },
         {
           "addr": "0x18a370",
@@ -21320,7 +21322,8 @@
         },
         {
           "addr": "0x18a3e0",
-          "decl": "void FUN_0018a3e0(void);"
+          "decl": "void FUN_0018a3e0(void);",
+          "ported": true
         },
         {
           "addr": "0x18a580",
@@ -23687,7 +23690,7 @@
         },
         {
           "addr": "0x198cb0",
-          "decl": "void structure_test_vector(void);"
+          "decl": "char structure_test_vector(int p1, void *p2, void *p3, void *p4, void *p5, void *p6, void *p7, void *p8);"
         },
         {
           "addr": "0x198f10",
