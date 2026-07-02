@@ -960,6 +960,50 @@ void FUN_00189c40(char flag, const char *string)
   FUN_00188ec0(8, string);
 }
 
+/* Draw or cache a debug string at a 3D position (0x189cb0). type 9. With flag
+ * clear, caches a type-9 primitive (string, position, color). With flag set,
+ * projects the world position to screen space (render_camera_world_to_screen);
+ * if on screen, converts the screen coordinates to integer text coordinates
+ * (relative to the viewport size at 0x50657c/0x50657e), primes the debug text
+ * state, sets the text color, and draws the string. */
+void FUN_00189cb0(char flag, void *position, void *string, int color)
+{
+  float proj[2];
+  short text_pos[4];
+  char visible;
+
+  if (position == 0) {
+    display_assert("point", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x392,
+                   1);
+    system_exit(-1);
+  }
+  if (string == 0) {
+    display_assert("string", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x393,
+                   1);
+    system_exit(-1);
+  }
+  if (color == 0) {
+    display_assert("color", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x394,
+                   1);
+    system_exit(-1);
+  }
+  if (flag == 0) {
+    FUN_00188ec0(9, string, position, color);
+    return;
+  }
+  visible = render_camera_world_to_screen((void *)0x506550, (void *)0x5065a4,
+                                          position, proj);
+  if (visible != 0) {
+    text_pos[1] = (short)(int)(proj[0] - (float)*(short *)0x50657e);
+    text_pos[0] = (short)(int)(proj[1] - (float)*(short *)0x50657c);
+    text_pos[2] = 0x7fff;
+    text_pos[3] = 0x7fff;
+    interface_draw_text(1, -1, 0, 0, 5, 0);
+    draw_string_set_color((void *)color);
+    rasterizer_text_draw(text_pos, 0, 0, 0, string);
+  }
+}
+
 /* Draw the collision-BSP portal edges (0x18a110). A debug sub-renderer gated on
  * the flag at 0x506533. Iterates the portal block of the global collision BSP
  * (bsp+0x48); for each portal, looks up its two vertices in the vertex block
