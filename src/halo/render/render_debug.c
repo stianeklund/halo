@@ -683,6 +683,62 @@ void FUN_00189540(char flag, void *center, float radius, void *color)
   } while (i != 0);
 }
 
+/* Draw or cache a debug box (0x189a20). type 6. With flag clear, caches a
+ * type-6 primitive (six bounds floats + color). With flag set, expands the
+ * bounds {x0,x1,y0,y1,z0,z1} into the eight box corners and draws the six faces
+ * as quads (FUN_00188970). Corners are held in one contiguous 24-float buffer.
+ */
+void FUN_00189a20(char flag, float *bounds, void *color)
+{
+  float corners[24];
+
+  if (bounds == 0) {
+    display_assert("bounds", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x308,
+                   1);
+    system_exit(-1);
+  }
+  if (color == 0) {
+    display_assert("color", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x309,
+                   1);
+    system_exit(-1);
+  }
+  if (flag == 0) {
+    FUN_00188ec0(6, bounds, color);
+    return;
+  }
+  corners[0] = bounds[0]; /* c0 (x0,y0,z0) */
+  corners[1] = bounds[2];
+  corners[2] = bounds[4];
+  corners[3] = bounds[1]; /* c1 (x1,y0,z0) */
+  corners[4] = bounds[2];
+  corners[5] = bounds[4];
+  corners[6] = bounds[0]; /* c2 (x0,y0,z1) */
+  corners[7] = bounds[2];
+  corners[8] = bounds[5];
+  corners[9] = bounds[1]; /* c3 (x1,y0,z1) */
+  corners[10] = bounds[2];
+  corners[11] = bounds[5];
+  corners[12] = bounds[0]; /* c4 (x0,y1,z1) */
+  corners[13] = bounds[3];
+  corners[14] = bounds[5];
+  corners[15] = bounds[1]; /* c5 (x1,y1,z1) */
+  corners[16] = bounds[3];
+  corners[17] = bounds[5];
+  corners[18] = bounds[0]; /* c6 (x0,y1,z0) */
+  corners[19] = bounds[3];
+  corners[20] = bounds[4];
+  corners[21] = bounds[1]; /* c7 (x1,y1,z0) */
+  corners[22] = bounds[3];
+  corners[23] = bounds[4];
+  FUN_00188970(1, &corners[0], &corners[6], &corners[12], &corners[18], color);
+  FUN_00188970(1, &corners[3], &corners[9], &corners[15], &corners[21], color);
+  FUN_00188970(1, &corners[0], &corners[3], &corners[9], &corners[6], color);
+  FUN_00188970(1, &corners[12], &corners[15], &corners[21], &corners[18],
+               color);
+  FUN_00188970(1, &corners[0], &corners[3], &corners[21], &corners[18], color);
+  FUN_00188970(1, &corners[6], &corners[9], &corners[15], &corners[12], color);
+}
+
 /* Draw a closed debug polyline (0x189ba0). Immediate-mode only: with three or
  * more points draws the closing edge from the last point back to the first,
  * then a line between each pair of consecutive points, forming a line loop.
