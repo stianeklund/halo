@@ -9,6 +9,8 @@
  * its draw routine, then clears the cache when the game frame advances.
  */
 
+#include "x87_math.h"
+
 /* Per-frame debug primitive cache record (0x38 bytes, array based at 0x4d1220).
  * The payload is a tagged union keyed by `type`; individual offsets are reused
  * per primitive kind, so the fields carry raw-offset names. */
@@ -91,6 +93,39 @@ char *FUN_00188b20(const char *str)
   }
 done:
   return result;
+}
+
+/* Build the debug circle vertex table (0x188bf0). Fills a 17-point table of
+ * (x,y) vertices approximating a circle of the given radius in a plane, shared
+ * by the sphere, cylinder and plane debug drawers. Point 0 is seeded at
+ * (radius, 0); each following point is the previous one rotated by pi/8
+ * (2*pi/16, so 16 segments span the full circle). The final entry (table[16],
+ * float offset 0x20) duplicates point 0 to close the ring. `table` arrives in
+ * ECX; the step is the standard CCW rotation x' = x*cos - y*sin,
+ * y' = x*sin + y*cos, computed in double and narrowed to float on store. */
+#define debug_circle_angle (*(double *)0x2b17e8) /* pi/8 = 2*pi/16 */
+
+void FUN_00188bf0(float *table, float radius)
+{
+  double sn;
+  double cs;
+  short i;
+  int idx;
+
+  sn = x87_fsin_d(debug_circle_angle);
+  table[0] = radius;
+  table[1] = 0.0f;
+  idx = 0;
+  cs = x87_fcos_d(debug_circle_angle);
+  i = 0;
+  do {
+    i = (short)(i + 1);
+    table[idx * 2 + 2] = (float)(cs * table[idx * 2] - sn * table[idx * 2 + 1]);
+    table[idx * 2 + 3] = (float)(sn * table[idx * 2] + cs * table[idx * 2 + 1]);
+    idx = (int)i;
+  } while (idx + 1 < 0x10);
+  table[0x20] = table[0];
+  table[0x21] = table[1];
 }
 
 /* Cache overflow one-shot warning flag (0x4d822a). */
