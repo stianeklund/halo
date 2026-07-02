@@ -19,6 +19,7 @@ class XemuConfig:
     screenshot_dir: str = ""
     log_level: str = "INFO"
     http_port: int = 4445
+    idle_disconnect_s: float = 20.0
 
     def screenshot_target_dir(self) -> str:
         """Resolved screenshot directory (falls back to the system temp dir)."""
@@ -32,8 +33,12 @@ def load_config() -> XemuConfig:
     except ValueError:
         raise ValueError(f"Invalid XEMU_QMP_PORT: {qmp_port_str}")
 
+    # Default to NO extra args. The original "-s" default armed the QEMU gdbstub
+    # on tcp::1234 — a landmine on this box (connecting to :1234 halts the CPU;
+    # see reference_xemu_gdbstub_halts_cpu_landmine). Opt in explicitly via
+    # XEMU_DEFAULT_ARGS if a gdbstub is ever actually wanted.
     default_args = [
-        arg for arg in os.environ.get("XEMU_DEFAULT_ARGS", "-s").split(" ") if arg
+        arg for arg in os.environ.get("XEMU_DEFAULT_ARGS", "").split(" ") if arg
     ]
 
     return XemuConfig(
@@ -44,4 +49,5 @@ def load_config() -> XemuConfig:
         screenshot_dir=os.environ.get("XEMU_SCREENSHOT_DIR", ""),
         log_level=os.environ.get("LOG_LEVEL", "INFO").upper(),
         http_port=int(os.environ.get("XEMU_MCP_HTTP_PORT", "4445")),
+        idle_disconnect_s=float(os.environ.get("XEMU_IDLE_DISCONNECT_S", "20")),
     )

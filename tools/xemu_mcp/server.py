@@ -19,6 +19,7 @@ Launched by tools/shell/mcp-servers.sh via the repo .venv. Sibling modules
 servers in this repo are launched (direct script path puts this dir on sys.path).
 """
 
+import base64
 import datetime
 import json
 import logging
@@ -32,13 +33,14 @@ from mcp.server.fastmcp import FastMCP
 from config import load_config
 from qmp import QmpClient, QmpError
 from process import XemuProcessManager
+from memcap import read_regions
 
 cfg = load_config()
 logging.basicConfig(level=getattr(logging, cfg.log_level, logging.INFO))
 logger = logging.getLogger("xemu-mcp")
 
 # Shared, process-wide state == one shared VM for all sessions.
-qmp = QmpClient(cfg.qmp_host, cfg.qmp_port)
+qmp = QmpClient(cfg.qmp_host, cfg.qmp_port, idle_disconnect_s=cfg.idle_disconnect_s)
 proc = XemuProcessManager(cfg)
 
 mcp = FastMCP(
@@ -68,33 +70,25 @@ async def health(_request: Request) -> JSONResponse:
 @mcp.tool()
 async def xemu_status() -> str:
     """Get current status of xemu and QMP connection."""
-    connected = qmp.is_connected()
     reachable = False
     vm_status = "unknown"
 
-    if connected:
+    # connect-on-demand: query-status establishes (or reuses) the connection and
+    # tolerates a stale socket via the client's built-in retry. No throwaway
+    # probe connection — that grabbed the single :4444 slot and fought the Rust
+    # viewer / raw-socket tools.
+    try:
+        res = await qmp.execute("query-status")
+        vm_status = res.get("status", vm_status)
         reachable = True
-        try:
-            res = await qmp.execute("query-status")
-            vm_status = res.get("status", vm_status)
-        except Exception:
-            reachable = False
-    else:
-        # Probe reachability with a throwaway connection (mirrors the TS handler).
-        temp = QmpClient(cfg.qmp_host, cfg.qmp_port)
-        try:
-            await temp.connect()
-            reachable = True
-        except Exception:
-            reachable = False
-        finally:
-            temp.disconnect()
+    except Exception:
+        reachable = False
 
     status = {
-        "connected": connected,
+        "connected": qmp.is_connected(),
         "reachable": reachable,
         "status": vm_status,
-        "instanceAttached": connected,
+        "instanceAttached": qmp.is_connected(),
         "launchedByMcp": proc.is_launched_by_us(),
     }
     return json.dumps(status, indent=2)
@@ -222,6 +216,50 @@ async def xemu_send_monitor_command(command: str) -> str:
         )
     res = await qmp.execute("human-monitor-command", {"command-line": command})
     return res if isinstance(res, str) else json.dumps(res)
+
+
+# Cap total bytes per call so the base64 response stays reasonable for the model.
+_READ_MEMORY_MAX_TOTAL = 256 * 1024
+
+
+@mcp.tool()
+async def xemu_read_memory(regions: list) -> str:
+    """Atomically read guest VIRTUAL memory regions in one paused window.
+
+    Pauses the VM, memsaves every region, resumes, then returns the bytes — so
+    all regions are coherent with a single frozen frame (the right primitive for
+    reading object pools / linked structures). Uses virtual `memsave` only
+    (physical `pmemsave` reads wrong bytes on this box).
+
+    Args:
+      regions: list of [address, size] pairs. address may be an int or a hex/dec
+        string (e.g. "0x80146d88" or 2149559176); size is a byte count.
+
+    Returns JSON: {"0x<addr>": "<base64 bytes>", ...} plus a "_meta" entry with
+    the per-region byte counts.
+    """
+    parsed: list[tuple[int, int]] = []
+    total = 0
+    for r in regions:
+        if not isinstance(r, (list, tuple)) or len(r) != 2:
+            raise RuntimeError(f"each region must be [address, size]; got {r!r}")
+        addr_raw, size = r
+        addr = int(addr_raw, 0) if isinstance(addr_raw, str) else int(addr_raw)
+        size = int(size)
+        if size <= 0:
+            raise RuntimeError(f"region size must be positive; got {size}")
+        total += size
+        parsed.append((addr, size))
+    if total > _READ_MEMORY_MAX_TOTAL:
+        raise RuntimeError(
+            f"total requested {total} bytes exceeds cap {_READ_MEMORY_MAX_TOTAL}; "
+            f"split into fewer/smaller regions"
+        )
+
+    data = await read_regions(qmp, parsed)
+    out = {f"0x{addr:08x}": base64.b64encode(data[addr]).decode("ascii") for addr, _ in parsed}
+    out["_meta"] = {f"0x{addr:08x}": len(data[addr]) for addr, _ in parsed}
+    return json.dumps(out)
 
 
 @mcp.tool()

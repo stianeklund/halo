@@ -138,7 +138,7 @@ start_xemu() {
     # xemu-facing env is overridable; defaults match this machine's layout. The
     # daemon now owns these (it spawns xemu), since Claude no longer spawns the MCP.
     XEMU_MCP_HTTP_PORT="$XEMU_PORT" \
-    XEMU_PATH="${XEMU_PATH:-/mnt/g/dev/xemu/build/qemu-system-i386}" \
+    XEMU_PATH="${XEMU_PATH:-/mnt/g/dev/xemu/dist/xemu.exe}" \
     XEMU_SCREENSHOT_DIR="${XEMU_SCREENSHOT_DIR:-/mnt/g/dev/halo/screenshots}" \
         nohup "$PYTHON_VENV" "$XEMU_PY" > /tmp/mcp-xemu.log 2>&1 &
     write_pid xemu $!
