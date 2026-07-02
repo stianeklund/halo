@@ -8504,6 +8504,10 @@
       "score": 80.5,
       "source": "src/halo/render/render.c"
     },
+    "FUN_00188b20": {
+      "score": 80.6,
+      "source": "src/halo/render/render_debug.c"
+    },
     "FUN_0018ab30": {
       "score": 100.0,
       "source": "src/halo/render/render_debug.c"

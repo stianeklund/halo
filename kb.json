@@ -21205,7 +21205,8 @@
         },
         {
           "addr": "0x188b20",
-          "decl": "void FUN_00188b20(void);"
+          "decl": "char *FUN_00188b20(const char *str@<edi>);",
+          "ported": true
         },
         {
           "addr": "0x188bf0",
