@@ -456,6 +456,7 @@
     "0x184ea0": "void render_scene(int16_t player_index@<ebx>, void *render_cam, void *render_frustum, void *rasterizer_cam, void *rasterizer_frustum, int16_t pass_type, char reflected);",
     "0x185290": "void render_window(int16_t *win@<esi>, void *offset_or_null);",
     "0x185770": "void render_camera_check_warning_condition(int16_t id@<ax>, float value);",
+    "0x188b20": "char *FUN_00188b20(const char *str@<edi>);",
     "0x18b010": "int FUN_0018b010(int object_handle @<esi>);",
     "0x18b610": "void FUN_0018b610(float *param_1 @<ecx>, float *param_2 @<edx>, float param_3);",
     "0x18b6b0": "void FUN_0018b6b0(float *param_1 @<ecx>, float *param_2 @<edx>, float param_3);",
