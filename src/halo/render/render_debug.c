@@ -556,6 +556,52 @@ void FUN_00189c40(char flag, const char *string)
   FUN_00188ec0(8, string);
 }
 
+/* Draw one edge of a debug plane as a 3D line segment (0x18a650). Projects two
+ * 2D endpoints (point_a, point_b) onto the plane, lifts each off the plane
+ * along the projection axis by +/- offset (sign selects the direction), then
+ * draws the connecting line. The two projected points share a contiguous
+ * six-float buffer: pts[3..5] is endpoint A, pts[0..2] is endpoint B. */
+void FUN_0018a650(int flag, float *plane, int projection, int sign,
+                  float *point_a, float *point_b, void *color, float offset)
+{
+  float pts[6];
+  float d;
+  int axis;
+
+  if (plane == 0) {
+    display_assert("plane", "c:\\halo\\SOURCE\\render\\render_debug.c", 0xf2,
+                   1);
+    system_exit(-1);
+  }
+  if (point_a == 0) {
+    display_assert("p0", "c:\\halo\\SOURCE\\render\\render_debug.c", 0xf3, 1);
+    system_exit(-1);
+  }
+  if (point_b == 0) {
+    display_assert("p1", "c:\\halo\\SOURCE\\render\\render_debug.c", 0xf4, 1);
+    system_exit(-1);
+  }
+  if (color == 0) {
+    display_assert("color", "c:\\halo\\SOURCE\\render\\render_debug.c", 0xf5,
+                   1);
+    system_exit(-1);
+  }
+  project_point2d(point_a, plane, projection, sign, pts + 3);
+  project_point2d(point_b, plane, projection, sign, pts);
+  d = offset;
+  if ((char)sign == 0) {
+    d = -offset;
+  }
+  axis = (short)projection;
+  pts[axis + 3] = d + pts[axis + 3];
+  d = offset;
+  if ((char)sign == 0) {
+    d = -offset;
+  }
+  pts[axis] = d + pts[axis];
+  FUN_00189270(flag, pts + 3, pts, color);
+}
+
 /* Render a debug bounding box (0x18ab30). With wireframe set, expand the six
  * min/max bounds {x0,x1,y0,y1,z0,z1} into the eight box corners and draw the
  * two z-faces as line loops plus the four vertical edges; otherwise submit a

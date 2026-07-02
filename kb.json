@@ -21314,7 +21314,8 @@
         },
         {
           "addr": "0x18a650",
-          "decl": "void FUN_0018a650(void);"
+          "decl": "void FUN_0018a650(int flag, float *plane, int projection, int sign, float *point_a, float *point_b, void *color, float offset);",
+          "ported": true
         },
         {
           "addr": "0x18a770",
