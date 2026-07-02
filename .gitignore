@@ -67,6 +67,9 @@ desktop.ini
 /tools/xbox/xemu.env
 /tools/xbox/xbox.env
 KrnlDebug.txt
+
+# CodeGraph index (generated locally by `codegraph`)
+/.codegraph/
 debug.txt
 gamestate.txt
 stabbed.txt
