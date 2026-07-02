@@ -48,6 +48,42 @@ typedef char
 #define debug_string_pool_count (*(short *)0x4d8228)
 #define debug_string_overflow_warned (*(char *)0x4d822b)
 
+/* Draw a debug triangle immediately (0x188890). Immediate-mode only: asserts
+ * the caller passed flag != 0 and three non-null vertex pointers plus a color,
+ * then hands them to the sprite-triangle rasterizer (0x17eb30). Unlike the
+ * cached point and line drawers there is no flag == 0 branch -- callers reach
+ * this only on their immediate render path. */
+void FUN_00188890(char flag, float *point0, float *point1, float *point2,
+                  void *color)
+{
+  if (flag == 0) {
+    display_assert("immediate", "c:\\halo\\SOURCE\\render\\render_debug.c",
+                   0x1e0, 1);
+    system_exit(-1);
+  }
+  if (point0 == 0) {
+    display_assert("point0", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x1e1,
+                   1);
+    system_exit(-1);
+  }
+  if (point1 == 0) {
+    display_assert("point1", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x1e2,
+                   1);
+    system_exit(-1);
+  }
+  if (point2 == 0) {
+    display_assert("point2", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x1e3,
+                   1);
+    system_exit(-1);
+  }
+  if (color == 0) {
+    display_assert("color", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x1e4,
+                   1);
+    system_exit(-1);
+  }
+  FUN_0017eb30(point0, point1, point2, color);
+}
+
 /* Intern a string into the per-frame debug string arena (0x188b20). Scans the
  * arena for an identical string already present and returns its address;
  * otherwise appends a null-terminated copy and advances the cursor. Returns

@@ -21193,7 +21193,8 @@
       "functions": [
         {
           "addr": "0x188890",
-          "decl": "void FUN_00188890(void);"
+          "decl": "void FUN_00188890(char flag, float *point0, float *point1, float *point2, void *color);",
+          "ported": true
         },
         {
           "addr": "0x188970",
@@ -28123,7 +28124,7 @@
         },
         {
           "addr": "0x17eb30",
-          "decl": "void FUN_0017eb30(void);"
+          "decl": "void FUN_0017eb30(float *point0, float *point1, float *point2, void *color);"
         },
         {
           "addr": "0x17eb50",
