@@ -679,6 +679,16 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
         from stubs import GLOBALS_BASE, GLOBALS_SIZE
         uc.mem_map(GLOBALS_BASE, GLOBALS_SIZE)
         uc.mem_write(GLOBALS_BASE, b'\x00' * GLOBALS_SIZE)
+        # GLOBALS_BASE..+GLOBALS_SIZE (0x500000-0x600000) overlaps real Xbox
+        # address space, so a candidate's raw-absolute read of a real global
+        # that happens to land in this range (e.g. *(data_t**)0x5ab23c — no
+        # relocation, so it never becomes a slot below) would otherwise read
+        # stale zeros: this region is pre-mapped, so the UC_HOOK_MEM_READ_UNMAPPED
+        # auto-seed path that handles every OTHER known global never fires here.
+        # Seed known-global bytes first so those raw reads resolve correctly;
+        # the explicit slot seeds below are written after and win at their
+        # exact offsets.
+        _seed_known_globals(uc, GLOBALS_BASE, GLOBALS_SIZE)
         if globals_seeds:
             for addr, data in globals_seeds.items():
                 uc.mem_write(addr, data)
