@@ -362,6 +362,27 @@ void FUN_00189270(char flag, float *point_a, float *point_b, void *color)
   FUN_00188ec0(2, point_a, point_b, color);
 }
 
+/* Draw or cache a debug string (0x189c40). type 8. With flag set, prime the
+ * debug text state (font 1, style -1, color tag 5) and draw the string
+ * immediately; otherwise submit a type-8 primitive (the string, interned by the
+ * cache writer) to the per-frame cache. */
+void FUN_00189c40(char flag, const char *string)
+{
+  if (string == 0) {
+    display_assert("string", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x37d,
+                   1);
+    system_exit(-1);
+  }
+
+  if (flag != 0) {
+    interface_draw_text(1, -1, 0, 0, 5, 0);
+    rasterizer_text_draw(0, 0, 0, 0, string);
+    return;
+  }
+
+  FUN_00188ec0(8, string);
+}
+
 /* Render a debug bounding box (0x18ab30). With wireframe set, expand the six
  * min/max bounds {x0,x1,y0,y1,z0,z1} into the eight box corners and draw the
  * two z-faces as line loops plus the four vertical edges; otherwise submit a
