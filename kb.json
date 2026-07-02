@@ -21313,7 +21313,8 @@
         },
         {
           "addr": "0x18a370",
-          "decl": "void FUN_0018a370(void);"
+          "decl": "void FUN_0018a370(void);",
+          "ported": true
         },
         {
           "addr": "0x18a3e0",

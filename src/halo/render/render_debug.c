@@ -992,6 +992,25 @@ void FUN_0018a110(void)
   }
 }
 
+/* Draw the raw controller-input debug overlay (0x18a370). Gated on the flag at
+ * 0x506531. Sets three text tab stops (200, 400, 550), fetches the raw input
+ * data string, primes the debug text state, and draws the string. */
+void FUN_0018a370(void)
+{
+  short tab_stops[3];
+  char buffer[512];
+
+  if (*(char *)0x506531 != 0) {
+    tab_stops[0] = 0xc8;
+    tab_stops[1] = 0x190;
+    tab_stops[2] = 0x226;
+    draw_string_set_tab_stops(tab_stops, 3);
+    input_get_raw_data_string(buffer, 0x1ff);
+    interface_draw_text(1, -1, 0, 0, 5, 0);
+    rasterizer_text_draw(0, 0, 0, 0, buffer);
+  }
+}
+
 /* Draw a debug point on a plane (0x18a580). Projects a 2D point onto the plane,
  * lifts it off the plane along the projection axis by +/- offset (sign selects
  * the direction), then draws it as a debug point (FUN_00189150). */
