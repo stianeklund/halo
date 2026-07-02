@@ -308,7 +308,7 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
   float *uvs;
   int seq_elem;
   int is32bpp;
-  float rx0, rx1, ry0, ry1;
+  float rect2d[4];           /* contiguous rect passed by addr: [0]=rx0 [1]=rx1 [2]=ry0 [3]=ry1 */
   float sx, sy, dx, dy;
   int i;
   char *tag_name;
@@ -577,10 +577,10 @@ LAB_have_frame:
                           sx = 1.0f;
                           sy = 1.0f;
                           if (anim_block == 0) {
-                            rx0 = 0.0f;
-                            rx1 = is32bpp ? (float)(int)*(short *)(bitmap_elem + 4) : (float)1;
-                            ry0 = 0.0f;
-                            ry1 = is32bpp ? (float)(int)*(short *)(bitmap_elem + 6) : (float)1;
+                            rect2d[0] = 0.0f;
+                            rect2d[1] = is32bpp ? (float)(int)*(short *)(bitmap_elem + 4) : (float)1;
+                            rect2d[2] = 0.0f;
+                            rect2d[3] = is32bpp ? (float)(int)*(short *)(bitmap_elem + 6) : (float)1;
                             if (is32bpp) {
                               sx = (float)*(double *)0x2573d8;
                               sy = (float)*(double *)0x2573d8;
@@ -592,10 +592,10 @@ LAB_have_frame:
                             }
                           } else {
                             seq_elem = (int)tag_block_get_element((void *)(anim_block + 0x34), (int)frame, 0x20);
-                            rx0 = *(float *)(seq_elem + 8);
-                            rx1 = *(float *)(seq_elem + 0xc);
-                            ry0 = *(float *)(seq_elem + 0x10);
-                            ry1 = *(float *)(seq_elem + 0x14);
+                            rect2d[0] = *(float *)(seq_elem + 8);
+                            rect2d[1] = *(float *)(seq_elem + 0xc);
+                            rect2d[2] = *(float *)(seq_elem + 0x10);
+                            rect2d[3] = *(float *)(seq_elem + 0x14);
                             sy = 1.0f;
                           }
                           dx = ((float)(int)*(short *)(bitmap_elem + 4) -
@@ -604,11 +604,11 @@ LAB_have_frame:
                           dy = ((float)(int)*(short *)(bitmap_elem + 6) -
                                 (float)((int)*(short *)0x506580 - (int)*(short *)0x50657c) *
                                 (*(float *)0x2533c8 / scale)) * sy * *(float *)0x255964;
-                          rx0 = rx0 - dx;
-                          rx1 = dx + rx1;
-                          ry0 = ry0 - dy;
-                          ry1 = dy + ry1;
-                          FUN_000d3fa0(bitmap_elem, rect, overlay_elem, (int)&rx0,
+                          rect2d[0] = rect2d[0] - dx;
+                          rect2d[1] = dx + rect2d[1];
+                          rect2d[2] = rect2d[2] - dy;
+                          rect2d[3] = dy + rect2d[3];
+                          FUN_000d3fa0(bitmap_elem, rect, overlay_elem, (int)rect2d,
                                        *(int *)&scale, 0, frame_index, stereo_flag, is32bpp, 1);
                         }
                       }
