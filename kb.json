@@ -21207,7 +21207,7 @@
         },
         {
           "addr": "0x188ec0",
-          "decl": "void FUN_00188ec0(void);"
+          "decl": "void FUN_00188ec0(short type, ...);"
         },
         {
           "addr": "0x189150",
@@ -21247,11 +21247,11 @@
         },
         {
           "addr": "0x189a20",
-          "decl": "void FUN_00189a20(void);"
+          "decl": "void FUN_00189a20(int flag, void *p1, void *p2);"
         },
         {
           "addr": "0x189ba0",
-          "decl": "void FUN_00189ba0(void);"
+          "decl": "void FUN_00189ba0(void *points, short count, void *color);"
         },
         {
           "addr": "0x189c40",
@@ -21299,7 +21299,7 @@
         },
         {
           "addr": "0x18a860",
-          "decl": "void FUN_0018a860(void);"
+          "decl": "void FUN_0018a860(int wireframe, void *plane, int p3, int p4, void *center, int scale_bits, void *color, int p8);"
         },
         {
           "addr": "0x18a990",
@@ -21321,11 +21321,13 @@
       "functions": [
         {
           "addr": "0x18ab30",
-          "decl": "void FUN_0018ab30(void);"
+          "decl": "void FUN_0018ab30(char wireframe, float *bounds, void *color);",
+          "ported": true
         },
         {
           "addr": "0x18ac50",
-          "decl": "void FUN_0018ac50(void);"
+          "decl": "void FUN_0018ac50(void);",
+          "ported": true
         }
       ],
       "name": "render_debug.obj",

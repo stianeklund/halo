@@ -113,6 +113,7 @@
 	halo/rasterizer/xbox/rasterizer_xbox_shadows.c
 	halo/render/render.c
 	halo/render/render_cameras.c
+	halo/render/render_debug.c
 	"halo/saved games/saved_game_files.c"
 	halo/interface/hud_messaging.c
 	halo/interface/hud_draw.c

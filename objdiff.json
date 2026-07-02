@@ -6720,6 +6720,14 @@
       }
     },
     {
+      "name": "halo/render_debug",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/render/render_debug.c.obj",
+      "base_path": "delinked/render_debug.obj",
+      "metadata": {
+        "source_path": "src/halo/render/render_debug.c"
+      }
+    },
+    {
       "name": "halo/saved_game_files",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/saved games/saved_game_files.c.obj",
       "base_path": "delinked/saved_game_files.obj",
