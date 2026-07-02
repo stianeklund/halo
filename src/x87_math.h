@@ -168,6 +168,24 @@ static __inline int x87_round_to_int(float val) {
   return r;
 }
 
+/* atan2 via x87 FPATAN: FLD a; FLD b; FPATAN computes atan2(a, b) in ST0.
+ * Matches the original binary's inline fpatan on float inputs rather than a
+ * libm atan2f call. */
+static __inline float x87_fatan2f(float a, float b) {
+  float r;
+#if defined(_MSC_VER) && !defined(__clang__)
+  __asm {
+    fld DWORD PTR [a]
+    fld DWORD PTR [b]
+    fpatan
+    fstp DWORD PTR [r]
+  }
+#else
+  __asm__ __volatile__("fpatan" : "=t"(r) : "0"(b), "u"(a) : "st(1)");
+#endif
+  return r;
+}
+
 static __inline float x87_sqrt(float val) {
   float r;
 #if defined(_MSC_VER) && !defined(__clang__)

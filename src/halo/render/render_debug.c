@@ -1004,6 +1004,67 @@ void FUN_00189cb0(char flag, void *position, void *string, int color)
   }
 }
 
+/* Draw the collision-BSP leaf/cluster info text overlay (0x189de0). Gated on
+ * the debug flag at 0x506535. Formats the debug point's (0x506550) leaf and
+ * cluster indices; probes along the scaled forward vector (0x31fc50) and, on a
+ * surface hit, appends the ground point, facing angle and surface index; if the
+ * structure vector test (0x198cb0) passes, appends the containing structure
+ * material's tag name; then draws the accumulated text. */
+void FUN_00189de0(void)
+{
+  char text[0x800];
+  char collision_result[0x50];
+  float scaled[3];
+  float out40[3];
+  float dir[3];
+  float out34;
+  float out30;
+  float out2c;
+  int out8;
+  int out4;
+  char location[8];
+  float *fwd;
+  void *e1;
+  void *e2;
+
+  if (*(char *)0x506535 == 0) {
+    return;
+  }
+  scenario_location_from_point(location, (void *)0x506550);
+  snprintf(text, 0x800,
+           "point(%01.2f,%01.2f,%01.2f) leaf(#%d [%d]) cluster(#%d [%d])",
+           *(float *)0x506550, *(float *)0x506554, *(float *)0x506558,
+           *(int *)location, *(int *)0x506780, (int)*(short *)(location + 4),
+           *(int *)0x506784);
+  fwd = *(float **)0x31fc50;
+  dir[0] = fwd[0] * *(float *)0x254cb8;
+  dir[1] = fwd[1] * *(float *)0x254cb8;
+  dir[2] = fwd[2] * *(float *)0x254cb8;
+  if (FUN_0014df70(0x21, (float *)0x506550, dir, -1,
+                   (short *)collision_result)) {
+    snprintf(
+      text + csstrlen(text), 0x800 - csstrlen(text),
+      "|nground_point(%01.2f,%01.2f,%01.2f) facing(%01.2f) surface(#%d)",
+      *(float *)(collision_result + 0x18), *(float *)(collision_result + 0x1c),
+      *(float *)(collision_result + 0x20),
+      x87_fatan2f(*(float *)0x506560, *(float *)0x50655c) * *(float *)0x2b073c,
+      *(int *)(collision_result + 0x44));
+  }
+  scaled[0] = *(float *)0x50655c * *(float *)0x25acf0;
+  scaled[1] = *(float *)0x506560 * *(float *)0x25acf0;
+  scaled[2] = *(float *)0x506564 * *(float *)0x25acf0;
+  if (structure_test_vector((int)0x506550, scaled, out40, &out8, &out4, &out2c,
+                            &out30, &out34)) {
+    e1 =
+      tag_block_get_element((char *)scenario_get() + 0x104, (short)out8, 0x20);
+    e2 = tag_block_get_element((char *)e1 + 0x14, (short)out4, 0x100);
+    snprintf(text + csstrlen(text), 0x800 - csstrlen(text), "|n%s",
+             *(void **)((char *)e2 + 4));
+  }
+  interface_draw_text(1, -1, 0, 0, 5, 0);
+  rasterizer_text_draw(0, 0, 0, 0, text);
+}
+
 /* Draw the local player's vehicle-state debug text (0x18a000). Gated on the
  * flag at 0x506534. Resolves the local player's unit, and if it is riding an
  * object (unit+0x42c) shows "riding an elevator"; if the unit is in a vehicle
@@ -1082,6 +1143,84 @@ void FUN_0018a110(void)
   }
 }
 
+/* Dump the collision-BSP descent path for the debug point (0x18a190). Gated on
+ * the debug flag at 0x506532. Walks the structure BSP from the root: at each
+ * node it evaluates the node's plane against the debug point (0x506550),
+ * records the plane index, appends a "node plane side" text token ('+' front /
+ * '-' back), and descends to the child on the point's side. On reaching a leaf
+ * it appends the leaf index, or "solid" for the -1 child. Draws the accumulated
+ * path text, and -- while key 0x3e is held -- writes the recorded plane indices
+ * to d:\debug_bsp.txt. */
+void FUN_0018a190(void)
+{
+  char text[0x800];
+  int plane_stack[0x80];
+  void *root;
+  short node_count;
+  char *cursor;
+  void *node;
+  float *plane;
+  int node_index;
+  int child;
+  char side;
+  int len;
+  void *file;
+  int i;
+
+  if (*(char *)0x506532 == 0) {
+    return;
+  }
+  node_count = 0;
+  root = FUN_0018e420();
+  len = crt_sprintf(text, " node plane|n");
+  cursor = text + len;
+  node_index = 0;
+  for (;;) {
+    node = tag_block_get_element(root, node_index, 0xc);
+    plane =
+      (float *)tag_block_get_element((char *)root + 0xc, *(int *)node, 0x10);
+    if (*(float *)0x506554 * plane[1] + *(float *)0x506558 * plane[2] +
+          *(float *)0x506550 * plane[0] - plane[3] >=
+        *(float *)0x2533c0) {
+      side = 1;
+    } else {
+      side = 0;
+    }
+    if (node_count >= 0x80) {
+      display_assert("plane_count<MAXIMUM_BSP3D_DEPTH",
+                     "c:\\halo\\SOURCE\\render\\render_debug.c", 0x652, 1);
+      system_exit(-1);
+    }
+    plane_stack[node_count] = *(int *)node;
+    node_count = (short)(node_count + 1);
+    len = crt_sprintf(cursor, "%5d %5d %c|n", node_index, *(int *)node,
+                      side != 0 ? '+' : '-');
+    cursor = cursor + len;
+    child = *(int *)((char *)node + 4 + side * 4);
+    if (child < 0) {
+      break;
+    }
+    node_index = child;
+  }
+  if (child == -1) {
+    crt_sprintf(cursor, "solid");
+  } else {
+    crt_sprintf(cursor, " leaf %5d", child & 0x7fffffff);
+  }
+  interface_draw_text(1, -1, 0, 0, 5, 0);
+  rasterizer_text_draw(0, 0, 0, 0, text);
+  if (input_key_is_down(0x3e)) {
+    file = crt_fopen("d:\\debug_bsp.txt", "w");
+    if (file != 0) {
+      crt_fprintf(file, "%d\n", (int)node_count);
+      for (i = 0; i < node_count; i = i + 1) {
+        crt_fprintf(file, "%d\n", plane_stack[i]);
+      }
+      crt_fclose(file);
+    }
+  }
+}
+
 /* Draw the raw controller-input debug overlay (0x18a370). Gated on the flag at
  * 0x506531. Sets three text tab stops (200, 400, 550), fetches the raw input
  * data string, primes the debug text state, and draws the string. */
@@ -1099,6 +1238,84 @@ void FUN_0018a370(void)
     interface_draw_text(1, -1, 0, 0, 5, 0);
     rasterizer_text_draw(0, 0, 0, 0, buffer);
   }
+}
+
+/* Draw encounter/actor firing-position debug markers (0x18a3e0). Gated on the
+ * flag at 0x506530. Iterates the scenario's actor-starting-location block
+ * (scenario+0x258): for each entry it resolves the actor palette tag, probes a
+ * ray from the entry position (FUN_0014df70) built from the entry's two packed
+ * angle bytes (elem+0xe/+0xf), draws a small sphere at the entry (or, on a
+ * surface hit, at the hit point) colored by whether the entry is within its
+ * encounter's active squad range, and labels it with the stripped actor tag
+ * name via the cached text-at-position drawer. */
+void FUN_0018a3e0(void)
+{
+  char collision_result[0x50];
+  float dir[3];
+  float angles[2];
+  int tag_index;
+  int angle_tmp;
+  void *actor_block;
+  int *block;
+  void *scenario;
+  int i;
+  void *elem;
+  void *pal_elem;
+  void *e;
+  void *enc;
+  int actor_idx;
+  void *point;
+  void *color;
+
+  if (*(char *)0x506530 == 0) {
+    return;
+  }
+  scenario = scenario_get();
+  block = (int *)((char *)scenario + 0x258);
+  if (*block <= 0) {
+    return;
+  }
+  actor_block = (char *)scenario + 0x134;
+  i = 0;
+  do {
+    elem = tag_block_get_element(block, i, 0x10);
+    pal_elem =
+      tag_block_get_element((char *)global_scenario_get() + 0x3b4,
+                            *(unsigned char *)((char *)elem + 0xc), 0x10);
+    tag_index = *(int *)((char *)pal_elem + 0xc);
+    tag_get(0x64656361, tag_index);
+    if (FUN_0018e720((int)elem) == -1) {
+      actor_idx = -1;
+    } else {
+      e = tag_block_get_element((char *)scenario_get() + 0xe0,
+                                FUN_0018e720((int)elem) & 0x7fffffff, 0x10);
+      actor_idx = *(short *)((char *)e + 8);
+    }
+    enc = tag_block_get_element(actor_block, actor_idx, 0x68);
+    angle_tmp = *(signed char *)((char *)elem + 0xe);
+    angles[0] = (float)angle_tmp * *(float *)0x2b1958;
+    angle_tmp = *(signed char *)((char *)elem + 0xf);
+    angles[1] = (float)angle_tmp * *(float *)0x2b1954;
+    angles_to_vector(dir, angles);
+    if (FUN_0014df70(0x61, (float *)elem, dir, -1, (short *)collision_result)) {
+      if (*(short *)((char *)enc + 0xc) == -1 ||
+          (int)*(unsigned short *)((char *)enc + 0xe) <=
+            i - *(short *)((char *)enc + 0xc)) {
+        point = (char *)collision_result + 0x18;
+        color = *(void **)0x2ee6f0;
+      } else {
+        point = (char *)collision_result + 0x18;
+        color = *(void **)0x2ee6e0;
+      }
+    } else {
+      point = elem;
+      color = *(void **)0x2ee6d0;
+    }
+    FUN_00189540(1, point, 0.1f, color);
+    FUN_00189cb0(0, elem, (void *)tag_name_strip_path(tag_get_name(tag_index)),
+                 *(int *)0x2ee6d4);
+    i = i + 1;
+  } while (i < *block);
 }
 
 /* Draw a debug point on a plane (0x18a580). Projects a 2D point onto the plane,
