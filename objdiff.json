@@ -5377,6 +5377,14 @@
       }
     },
     {
+      "name": "halo/hud_d1090_d1400",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
+      "base_path": "delinked/hud_d1090_d1400.obj",
+      "metadata": {
+        "source_path": "src/halo/interface/hud.c"
+      }
+    },
+    {
       "name": "halo/hud_d04a0_d04c7",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud.c.obj",
       "base_path": "delinked/hud_d04a0_d04c7.obj",

@@ -3,9 +3,9 @@
     "pass": 2,
     "fail": 2,
     "error": 0,
-    "not_applicable": 1,
+    "not_applicable": 2,
     "z3_proven": 1,
-    "total": 5
+    "total": 6
   },
   "failures": [
     [
@@ -81,6 +81,18 @@
       "seeds_passed": 0,
       "seeds_total": 0,
       "z3_proven": "0"
+    },
+    {
+      "addr": "0x111170",
+      "name": "FUN_00111170",
+      "class": "leaf",
+      "obj": "real_math.obj",
+      "status": "not_applicable",
+      "reason": "oracle_extract_failed",
+      "error_details": [],
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
     }
   ],
   "by_object": {
@@ -93,8 +105,8 @@
       "total": 1
     },
     "real_math.obj": {
-      "not_applicable": 1,
-      "total": 1
+      "not_applicable": 2,
+      "total": 2
     },
     "vector_math.obj": {
       "pass": 1,
@@ -132,7 +144,7 @@
     ],
     "allowlisted": []
   },
-  "elapsed_seconds": 0.010044574737548828,
+  "elapsed_seconds": 0.4973721504211426,
   "interrupted": false,
   "skipped": 5
 }
