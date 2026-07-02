@@ -333,6 +333,35 @@ void FUN_00189150(char flag, float *position, float scale, void *color)
   FUN_00188ec0(1, position, (double)scale, color);
 }
 
+/* Draw or cache a debug line (0x189270). type 2. With flag set, render the line
+ * segment point_a->point_b immediately; otherwise submit a type-2 primitive
+ * (point_a, point_b, color) to the per-frame cache. */
+void FUN_00189270(char flag, float *point_a, float *point_b, void *color)
+{
+  if (point_a == 0) {
+    display_assert("point0", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x16b,
+                   1);
+    system_exit(-1);
+  }
+  if (point_b == 0) {
+    display_assert("point1", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x16c,
+                   1);
+    system_exit(-1);
+  }
+  if (color == 0) {
+    display_assert("color", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x16d,
+                   1);
+    system_exit(-1);
+  }
+
+  if (flag != 0) {
+    FUN_0017eb10(point_a, point_b, (int)color);
+    return;
+  }
+
+  FUN_00188ec0(2, point_a, point_b, color);
+}
+
 /* Render a debug bounding box (0x18ab30). With wireframe set, expand the six
  * min/max bounds {x0,x1,y0,y1,z0,z1} into the eight box corners and draw the
  * two z-faces as line loops plus the four vertical edges; otherwise submit a

@@ -21231,7 +21231,8 @@
         },
         {
           "addr": "0x189270",
-          "decl": "void FUN_00189270(int flag, float *point_a, float *point_b, void *context);"
+          "decl": "void FUN_00189270(char flag, float *point_a, float *point_b, void *color);",
+          "ported": true
         },
         {
           "addr": "0x189320",
