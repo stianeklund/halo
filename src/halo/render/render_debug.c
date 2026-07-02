@@ -960,6 +960,41 @@ void FUN_00189c40(char flag, const char *string)
   FUN_00188ec0(8, string);
 }
 
+/* Draw a debug point on a plane (0x18a580). Projects a 2D point onto the plane,
+ * lifts it off the plane along the projection axis by +/- offset (sign selects
+ * the direction), then draws it as a debug point (FUN_00189150). */
+void FUN_0018a580(int flag, float *plane, int projection, int sign,
+                  float *point, float scale, void *color, float offset)
+{
+  float pos[3];
+  float d;
+  int axis;
+
+  if (plane == 0) {
+    display_assert("plane", "c:\\halo\\SOURCE\\render\\render_debug.c", 0xdb,
+                   1);
+    system_exit(-1);
+  }
+  if (point == 0) {
+    display_assert("point", "c:\\halo\\SOURCE\\render\\render_debug.c", 0xdc,
+                   1);
+    system_exit(-1);
+  }
+  if (color == 0) {
+    display_assert("color", "c:\\halo\\SOURCE\\render\\render_debug.c", 0xdd,
+                   1);
+    system_exit(-1);
+  }
+  project_point2d(point, plane, projection, sign, pos);
+  d = offset;
+  if ((char)sign == 0) {
+    d = -offset;
+  }
+  axis = (short)projection;
+  pos[axis] = d + pos[axis];
+  FUN_00189150(flag, pos, scale, color);
+}
+
 /* Draw one edge of a debug plane as a 3D line segment (0x18a650). Projects
  * two 2D endpoints (point_a, point_b) onto the plane, lifts each off the
  * plane along the projection axis by +/- offset (sign selects the direction),
