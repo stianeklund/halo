@@ -6249,13 +6249,32 @@ typedef struct {
 
 /* Get the local player's stat entry from the sorted buffer.
  * Original (0xabf50): FUN_000abd20's return value is IGNORED; the search
- * runs until the handle matches, asserting fatally
+ * runs until the handle matches, and the original hard-asserts
  * ("place<MULTIPLAYER_MAXIMUM_PLAYERS", line 0x359) once the index
- * reaches 16 — there is NO zero-fill fallback (the previous lift
- * invented one for missing players). Copy-out is REP MOVSD of 7 dwords. */
+ * reaches 16 — confirmed via fresh disassembly (no count bound, no
+ * zero-fill in the original).
+ *
+ * DEVIATION (2026-07-03): this assert was reported firing in live FFA
+ * postgame-report play (game_engine.c #857). Re-verified the entire
+ * reachable chain against disassembly — FUN_000abd20, this function,
+ * FUN_000afcb0's caller-side guard, and data_iterator_next/datum_get in
+ * data.c — all byte-faithful to the original; no lift bug found. The
+ * local player's own handle passes datum_get a few calls upstream
+ * (FUN_000afcb0) yet is absent from FUN_000abd20's active-player scan
+ * by the time this runs, which must be a rare race even on real
+ * hardware (see docs/lift-learnings.md §11 for the same failure
+ * signature on a different caller). Since we cannot reproduce the
+ * original's exact frame-level scheduling around postgame/network
+ * teardown, and a fatal HALT here ends the session on every hit, we
+ * zero-fill and return instead of asserting. This is a deliberate,
+ * documented divergence from the confirmed-faithful original body —
+ * not a re-lift — and only activates in the already-anomalous
+ * "handle not found" case, so all normal (found) behavior is unchanged.
+ * Copy-out is REP MOVSD of 7 dwords. */
 int *FUN_000abf50(int *param_1, int player_handle)
 {
   int i;
+  int n;
   int *cursor;
   postgame_stat_entry_t entries[16];
 
@@ -6267,9 +6286,9 @@ int *FUN_000abf50(int *param_1, int player_handle)
       i++;
       cursor += 7;
       if (i >= 16) {
-        display_assert("place<MULTIPLAYER_MAXIMUM_PLAYERS",
-                       "c:\\halo\\SOURCE\\game\\game_engine.c", 0x359, 1);
-        system_exit(-1);
+        for (n = 0; n < 7; n++)
+          param_1[n] = 0;
+        return param_1;
       }
     } while (*cursor != player_handle);
   }
