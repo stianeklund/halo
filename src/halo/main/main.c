@@ -2132,6 +2132,172 @@ done:
 }
 
 /*
+ * halt_and_catch_fire (0x1029a0) — fatal-error "bluescreen" renderer.
+ * Entered after an unrecoverable engine fault. Guards against re-entrant
+ * invocation with an INT3 breakpoint, then silences rumble on every
+ * connected gamepad and resolves the interface (or fallback system) font.
+ * Loops forever: rebuilds a throwaway camera/frustum from the default
+ * camera globals, mirrors it into the shared render camera, begins the
+ * rasterizer window, draws the build version string and the last
+ * recorded error message, then presents the frame. Never returns.
+ */
+void halt_and_catch_fire(void)
+{
+  void *had_interface;
+  int16_t gamepad_index;
+  char has_gamepad;
+  int tag_index;
+  window_parameters_t window_params;
+  float frame_begin_buf[2];
+  int32_t screen_pos[2];
+  uint8_t text_color[6];
+  float *default_pos;
+  float *default_fwd;
+  float *default_up;
+  float *frustum_extra;
+  double t;
+  double scaled;
+  double angle;
+  const void *default_color;
+  void *error_msg;
+
+  if (*(char *)0x46e392 != 0) {
+    FUN_001d980b(0);
+#if defined(_MSC_VER) && !defined(__clang__)
+    __asm { int 3 }
+#else
+    __asm__ volatile ("int3");
+#endif
+    return;
+  }
+
+  had_interface = FUN_0018e3b0();
+  *(char *)0x46e392 = 1;
+
+  for (gamepad_index = 0; gamepad_index < 4; gamepad_index++) {
+    has_gamepad = input_has_gamepad(gamepad_index);
+    if (has_gamepad != 0) {
+      input_set_rumble(gamepad_index, 0, 0);
+    }
+  }
+
+  tag_index = -1;
+  if (had_interface != NULL) {
+    tag_index = interface_get_tag_index(1);
+  }
+  if (tag_index == -1) {
+    tag_index = tag_loaded(0x666f6e74, "old tags\\internal system plain");
+  }
+
+  for (;;) {
+    _rasterizer_reset_state();
+    csmemset(frame_begin_buf, 0, sizeof(frame_begin_buf));
+    rasterizer_frame_begin(frame_begin_buf);
+    _rasterizer_windows_begin();
+
+    csmemset(&window_params, 0, sizeof(window_params));
+
+    /* Default camera position/forward/up: bare PTR_DAT globals hold the
+     * pointer VALUE to a live 3-float vector each (same idiom already
+     * established above for 0x31fc1c/0x31fc3c/0x31fc44). */
+    default_pos = *(float **)0x31fc1c;
+    window_params.camera.unk_0.x = default_pos[0];
+    window_params.camera.unk_0.y = default_pos[1];
+    window_params.camera.unk_0.z = default_pos[2];
+
+    default_fwd = *(float **)0x31fc3c;
+    window_params.camera.unk_12.x = default_fwd[0];
+    window_params.camera.unk_12.y = default_fwd[1];
+    window_params.camera.unk_12.z = default_fwd[2];
+
+    default_up = *(float **)0x31fc44;
+    window_params.camera.unk_24.x = default_up[0];
+    window_params.camera.unk_24.y = default_up[1];
+    window_params.camera.unk_24.z = default_up[2];
+
+    window_params.camera.unk_36 = 0;
+
+    window_params.camera.viewport_bounds.y0 = 0;
+    window_params.camera.viewport_bounds.x0 = 0;
+    window_params.camera.viewport_bounds.y1 = 0x1e0;
+    window_params.camera.viewport_bounds.x1 = 0x280;
+
+    /* Bit-exact dword copy, not an int->float conversion: the original
+     * stores a raw undefined4 into these float fields. */
+    window_params.camera.z_near = *(float *)0x325694;
+    window_params.camera.z_far = *(float *)0x325698;
+
+    t = render_camera_get_adjusted_field_of_view_tangent(1.3962634f);
+    scaled = t * (double)*(float *)0x25afcc;
+    angle = atan2(scaled, *(double *)0x2573d8);
+    window_params.camera.vertical_field_of_view = (float)(angle + angle);
+
+    render_camera_build_frustum(&window_params.camera, 0, window_params.frustum, 1);
+
+    window_params.unk_0[0] = 0;
+
+    frustum_extra = *(float **)0x2ee71c;
+    window_params.frustum[100] = frustum_extra[0];
+    window_params.frustum[101] = frustum_extra[1];
+    window_params.frustum[102] = frustum_extra[2];
+    window_params.frustum[104] = 0.0f;
+    window_params.frustum[105] = 0.0f;
+    *(int16_t *)&window_params.frustum[106] = 0;
+
+    /* Mirror into the shared render camera used elsewhere in the renderer. */
+    qmemcpy(&unknown_global_camera, &window_params.camera, sizeof(camera_t));
+
+    rasterizer_window_begin(&window_params);
+
+    if (tag_index != -1) {
+      screen_pos[0] = *(int32_t *)0x32565c;
+      screen_pos[1] = *(int32_t *)0x325660;
+
+      /* text_color is not a color: rasterizer_text_draw's 3rd parameter is
+       * an OUT cursor -- draw_string (0x19c5d0) ends with `*param_3 =
+       * CONCAT22(line_y, x_end)`, writing the end-of-text position into
+       * bytes 0..3. The original zeroes only bytes 0..3 (two word stores
+       * of BX at [EBP-0x8]/[EBP-0x6]); bytes 4..5 stay uninitialized and
+       * are only ever read into the discarded high word of a dword load. */
+      *(int16_t *)&text_color[0] = 0;
+      *(int16_t *)&text_color[2] = 0;
+
+      default_color = *(const void **)0x2ee6c4;
+      draw_string_set_font(tag_index, -1, 0, 0, default_color);
+      draw_string_set_tab_stops(0, 0);
+      draw_string_set_color(default_color);
+      rasterizer_text_draw(screen_pos, 0, text_color, -4,
+        "halobeta xbox 01.10.12.2276 built at: Oct 12 2001 16:07:48");
+
+      /* Original (0x102bd5): MOV EDX,[EBP-0x6]; DEC EDX; MOV [EBP-0x14],DX.
+       * [EBP-0x6] bytes 0..1 are the HIGH word of the cursor dword the
+       * first draw wrote at [EBP-0x8] -- the final line Y. The error
+       * message is drawn starting from that line; only the low word of
+       * screen_pos[0] is stored (high word untouched, matching the
+       * original word store). */
+      *(int16_t *)&screen_pos[0] =
+          (int16_t)(*(int32_t *)(text_color + 2) - 1);
+
+      error_msg = error_get();
+      rasterizer_text_draw(screen_pos, 0, text_color, -4, (const char *)error_msg);
+    }
+
+    FUN_00184980(1);
+    FUN_00184980(0);
+    FUN_0017e190();
+    FUN_00158f90();
+    _rasterizer_windows_end();
+    _rasterizer_frame_end();
+    /* Original calls the thunk at 0x17c930 (jmps to 0x157e40) with two null
+     * args -- rasterizer_dynamic_lit_geometry_draw, NOT render_frame_present
+     * (0x184dc0). Both args are used by the callee (edi=[ebp+8], esi=[ebp+c]);
+     * (0,0) selects its null/no-geometry path. */
+    rasterizer_dynamic_lit_geometry_draw(0, 0);
+    input_update();
+  }
+}
+
+/*
  * main_halt_entry — infinite render loop entered after a fatal halt.
  * Continuously processes input, shell idle, event manager, telnet console,
  * UI widgets, pregame rendering, rasterizer throttle, and frame presentation.
