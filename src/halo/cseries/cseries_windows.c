@@ -37,9 +37,8 @@ void display_debug_string(const char *str)
 
 void system_exit(int code)
 {
-  error(2, "system_exit(%d) — spinning instead of halt_and_catch_fire", code);
-  for (;;) {
-  }
+  (void)code;
+  halt_and_catch_fire();
   __builtin_unreachable();
 }
 
