@@ -15,6 +15,12 @@
             "command": "cd $(git rev-parse --show-toplevel) && tools/shell/mcp-servers.sh start xemu 2>/dev/null || true",
             "timeout": 15,
             "statusMessage": "Ensuring xemu MCP daemon is running"
+          },
+          {
+            "type": "command",
+            "command": "cd $(git rev-parse --show-toplevel) && tools/hooks/install.sh --check || true",
+            "timeout": 5,
+            "statusMessage": "Checking git-hook install (prepare-commit-msg, rtk-trust)"
           }
         ]
       }

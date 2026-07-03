@@ -1,13 +1,10 @@
 name: Runtime Oracle Tests
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'src/**'
-      - 'kb.json'
-      - 'tools/verify/**'
-      - '.github/workflows/runtime-oracle.yml'
+  # NOTE: no `push:` trigger by design. This workflow DEPLOYS to the shared
+  # dev Xbox and would poison its state on every push to main (a real incident:
+  # "rogue runner deploys harness builds"). Run it only on the nightly schedule
+  # or via explicit manual dispatch.
   schedule:
     - cron: '0 4 * * *'
   workflow_dispatch:
