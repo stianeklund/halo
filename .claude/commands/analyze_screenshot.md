@@ -13,7 +13,7 @@ Argument: $ARGUMENTS (`<image-path> [question]`)
 Behavior:
 1. Treat the first argument as the screenshot path when provided.
 2. If no path is provided, capture PNG screenshots with
-   `rtk python3 tools/xbox/xdbm_screenshot.py --host 127.0.0.1 --images 5 --png`, then use the newest PNG output.
+   `rtk python3 tools/xbox/xbdm_screenshot.py --host 127.0.0.1 --images 5 --png`, then use the newest PNG output.
 3. Read the image directly and use the configured local model
    `lmstudio/gemma-4-e2b` for OCR and screen understanding.
 4. Output the visible text first, as faithfully as possible:

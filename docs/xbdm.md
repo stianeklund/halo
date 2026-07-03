@@ -685,17 +685,17 @@ xbdm_context_primer:
     - "Maintain separate notes for xemu, real debug kit, and retail+modchip behavior."
 
   helper_scripts:
-    xdbm_screenshot:
-      path: "tools/xbox/xdbm_screenshot.py"
+    xbdm_screenshot:
+      path: "tools/xbox/xbdm_screenshot.py"
       summary: "Capture one or more screenshots over XBDM as raw framebuffer dumps or PNGs."
       defaults:
         host: "127.0.0.1"
         images: 1
         output_dir: "xbdm/screenshots"
       examples:
-        - "rtk python3 tools/xbox/xdbm_screenshot.py --host 127.0.0.1 --images 5 --png"
-        - "rtk python3 tools/xbox/xdbm_screenshot.py --host 192.168.0.10 --images 3 --png"
-        - "rtk python3 tools/xbox/xdbm_screenshot.py --host 192.168.0.10 --count 5 --interval 0.5 --png"
+        - "rtk python3 tools/xbox/xbdm_screenshot.py --host 127.0.0.1 --images 5 --png"
+        - "rtk python3 tools/xbox/xbdm_screenshot.py --host 192.168.0.10 --images 3 --png"
+        - "rtk python3 tools/xbox/xbdm_screenshot.py --host 192.168.0.10 --count 5 --interval 0.5 --png"
       notes:
         - "Use --host to target a specific Xbox or xemu instance reachable over XBDM."
         - "Use --images or --count to capture a numbered sequence; both flags write into the same count option."

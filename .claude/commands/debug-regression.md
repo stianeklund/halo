@@ -89,7 +89,7 @@ Use `mcp__xemu__*` tools directly — daemon auto-starts via SessionStart hook:
 
 - `mcp__xemu__xemu_send_monitor_command("info registers")` — EIP/registers after crash
 - `mcp__xemu__xemu_send_monitor_command("x /16xw 0x<addr>")` — inspect memory
-- `rtk python3 tools/xbox/xdbm_screenshot.py --host 127.0.0.1 --images 5 --png` — capture visible state
+- `rtk python3 tools/xbox/xbdm_screenshot.py --host 127.0.0.1 --images 5 --png` — capture visible state
 - `mcp__xemu__xemu_read_serial()` — assert_halt messages on serial
 - `mcp__xemu__xemu_pause()` / `mcp__xemu__xemu_resume()` — pause/resume VM
 
