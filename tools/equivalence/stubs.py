@@ -121,13 +121,27 @@ class StubArgDiff:
 
 
 def _is_stack_ptr(v: int) -> bool:
-    """Return True when v looks like a pointer into the emulated stack region."""
-    return _STACK_BASE <= v < _STACK_TOP
+    """Return True when v looks like a pointer into the emulated stack region,
+    OR into the synthetic globals/rdata slot region (GLOBALS_BASE..+SIZE).
+    Both are allocator-numbered scratch regions: the oracle and candidate
+    each assign their own slot addresses independently (e.g. two string
+    literal args to display_assert), so the same conceptual pointer differs
+    numerically between the two sides for reasons unrelated to correctness."""
+    return (_STACK_BASE <= v < _STACK_TOP
+            or GLOBALS_BASE <= v < GLOBALS_BASE + GLOBALS_SIZE)
 
 
 def _is_chkstk_name(name: str) -> bool:
-    """Return True for MSVC stack-probe aliases that are not semantic calls."""
-    return name.lstrip("_").lower() in ("chkstk", "fun_001d90e0")
+    """Return True for calls that are not comparable across oracle/candidate:
+    MSVC stack-probe aliases, and the system_exit/halt_and_catch_fire halt
+    path.  The latter is a documented, accepted quirk (see
+    feedback_system_exit_vs_hcf.md): the oracle's assert macro compiles to a
+    direct CALL to halt_and_catch_fire(void) (0x1029a0) with no argument,
+    while correct lifted C calls system_exit(-1) through its thunk at
+    0x8e2f0 — different callee address AND arg count for the same halt
+    intent. Since both are __noreturn, nothing after them is observable."""
+    key = name.lstrip("_").lower()
+    return key in ("chkstk", "fun_001d90e0", "system_exit", "halt_and_catch_fire", "fun_001029a0")
 
 
 def compare_stub_arg_traces(oracle_tracer: StubArgTracer,
