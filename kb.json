@@ -692,7 +692,7 @@
     },
     {
      "addr": "0x1d980b",
-     "decl": "void FUN_001d980b(void);"
+     "decl": "void FUN_001d980b(int param_1);"
     }
    ],
    "name": "LIBCMT:strrchr.obj"
@@ -13278,7 +13278,8 @@
     },
     {
      "addr": "0x1029a0",
-     "decl": "void halt_and_catch_fire(void);"
+     "decl": "void halt_and_catch_fire(void);",
+     "ported": true
     },
     {
      "addr": "0x102c40",
@@ -19158,7 +19159,7 @@
     },
     {
      "addr": "0x17c930",
-     "decl": "void rasterizer_dynamic_lit_geometry_draw(void);"
+     "decl": "void rasterizer_dynamic_lit_geometry_draw(void *param_1, void *param_2);"
     },
     {
      "addr": "0x17c940",
@@ -21059,7 +21060,7 @@
     },
     {
      "addr": "0x184980",
-     "decl": "void FUN_00184980(void);"
+     "decl": "void FUN_00184980(char param_1);"
     },
     {
      "addr": "0x184b60",

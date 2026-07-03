@@ -6003,6 +6003,10 @@
         "Tile coordinate layout in the int16_t[4] array inferred from PUSH order; inner_col/inner_row/outer_col/outer_row mapping may need verification."
       ]
     },
+    "0x1029a0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x102c40": {
       "kind": "function",
       "status": "ported"
