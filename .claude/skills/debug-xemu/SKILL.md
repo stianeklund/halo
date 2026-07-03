@@ -65,7 +65,7 @@ After a redeploy or when the MCP daemon's QMP attachment goes stale, MCP tools
 return connection errors. **This does NOT mean xemu is dead.**
 
 Verify with a raw QMP probe (Section B). If raw QMP works, bypass the MCP:
-- Screenshots: Section D (xdbm_screenshot.py)
+- Screenshots: Section D (xbdm_screenshot.py)
 - Memory: Section B (raw QMP memsave)
 - Registers: `rtk python3 tools/xbox/xemu_qmp.py "info registers"`
 
@@ -226,7 +226,7 @@ timeout -s KILL 10 gdb -batch -nx \
 **Always use the Python script, NOT QMP screendump:**
 
 ```bash
-rtk python3 tools/xbox/xdbm_screenshot.py --host 127.0.0.1 --images 5 --png
+rtk python3 tools/xbox/xbdm_screenshot.py --host 127.0.0.1 --images 5 --png
 ```
 
 This captures 5 frames as PNG. The xemu MCP screenshot can work but resets
@@ -336,7 +336,7 @@ loaded-XBE code pages, invalidating original-vs-candidate comparisons.
 |------|---------|
 | Pause VM | `mcp__xemu__xemu_pause()` |
 | Resume VM | `mcp__xemu__xemu_resume()` |
-| Screenshot | `rtk python3 tools/xbox/xdbm_screenshot.py --host 127.0.0.1 --images 5 --png` |
+| Screenshot | `rtk python3 tools/xbox/xbdm_screenshot.py --host 127.0.0.1 --images 5 --png` |
 | Registers | `mcp__xemu__xemu_send_monitor_command("info registers")` |
 | Memory at addr | `mcp__xemu__xemu_send_monitor_command("x /16xw 0x<addr>")` |
 | Serial/asserts | `mcp__xemu__xemu_read_serial()` |

@@ -35,7 +35,7 @@ The real-hardware wrapper sets `XBOX_HOST` to `10.0.0.29` by default.
   interface (the daemon auto-starts via SessionStart hook):
   - `mcp__xemu__xemu_status` — QMP connection and VM status
   - `mcp__xemu__xemu_pause` / `mcp__xemu__xemu_resume` — pause/resume VM
-  - `rtk python3 tools/xbox/xdbm_screenshot.py --host 127.0.0.1 --images 5 --png` — capture screen over XBDM
+  - `rtk python3 tools/xbox/xbdm_screenshot.py --host 127.0.0.1 --images 5 --png` — capture screen over XBDM
   - `mcp__xemu__xemu_send_monitor_command("info registers")` — HMP passthrough
   - `mcp__xemu__xemu_send_monitor_command("x /16xw 0x<addr>")` — examine memory
 - `tools/xbox/xemu_qmp.py` is a fallback only when the MCP daemon is unavailable.
