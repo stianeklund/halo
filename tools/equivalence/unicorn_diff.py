@@ -528,6 +528,55 @@ def _load_symbol_addrs() -> dict:
     return name2addr
 
 
+_FUNC_ADDR_NAME_CACHE = None
+
+
+def _load_function_addr_to_name() -> dict:
+    """Build {address: kb-registered name} from kb.json function entries only.
+
+    Lets a raw 'FUN_XXXXXXXX' reloc symbol (the delinked oracle's name for a
+    callee kb.json has since given a friendly name, e.g.
+    object_set_automatic_deactivation) canonicalize to the same stub sentinel
+    as the candidate's named reloc to that address — otherwise they get
+    different sentinels for the same real callee and the stub-arg-diff
+    reports a spurious call-sequence divergence."""
+    global _FUNC_ADDR_NAME_CACHE
+    if _FUNC_ADDR_NAME_CACHE is not None:
+        return _FUNC_ADDR_NAME_CACHE
+    addr2name = {}
+    try:
+        kb_path = Path(__file__).resolve().parent.parent.parent / "kb.json"
+        import json as _json
+        kb = _json.loads(kb_path.read_text(encoding="utf-8"))
+        for obj in kb.get("objects", []):
+            if not isinstance(obj, dict):
+                continue
+            for sym in obj.get("functions", []) or []:
+                addr = sym.get("addr")
+                ident = sym.get("name") or _decl_identifier(sym.get("decl") or "")
+                if addr and ident:
+                    try:
+                        addr2name[int(addr, 16)] = ident
+                    except ValueError:
+                        pass
+    except Exception:
+        pass
+    _FUNC_ADDR_NAME_CACHE = addr2name
+    return addr2name
+
+
+def _canonicalize_callee_key(sym_key: str) -> str:
+    """Map a 'FUN_XXXXXXXX' reloc symbol to its kb.json friendly name, if any.
+
+    Leaves already-named symbols (the normal case for both oracle and
+    candidate relocs) unchanged."""
+    m = re.match(r'FUN_([0-9a-fA-F]+)$', sym_key)
+    if not m:
+        return sym_key
+    addr = int(m.group(1), 16)
+    return _load_function_addr_to_name().get(addr, sym_key)
+
+
 def _normalize_global_symbol(sym_name: str) -> str:
     """Strip MSVC/clang decoration to recover the bare C identifier:
     '__imp__actor_data' -> 'actor_data', '_actor_data@8' -> 'actor_data'."""
@@ -1565,6 +1614,39 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         orc_stub_map = {}
         lft_stub_map = {}
 
+        def _canonicalize_relocs(relocs, defined_symbols):
+            """Rewrite 'FUN_XXXXXXXX' reloc symbols to their kb.json friendly
+            name so the oracle and candidate assign the SAME stub sentinel to
+            the same real callee.  The delinked oracle often has no name for
+            a callee (still raw FUN_<addr>) even after kb.json gives it one
+            for the candidate — without this, patch_rel32_calls's name-keyed
+            sentinel map treats them as two different callees, which
+            corrupts the stub-arg-diff call sequence from that point on.
+
+            Skips symbols already in defined_symbols (intra-object siblings):
+            patch_rel32_calls's own "sym in defined_symbols" skip-check
+            compares against the ORIGINAL raw name, so renaming those first
+            would make a real sibling look external."""
+            from coff_loader import CoffReloc
+            out = []
+            for r in relocs:
+                if r.symbol_name in defined_symbols:
+                    out.append(r)
+                    continue
+                stripped = r.symbol_name.lstrip('_')
+                canon = _canonicalize_callee_key(stripped)
+                if canon != stripped:
+                    out.append(CoffReloc(virtual_address=r.virtual_address,
+                                          symbol_name=canon,
+                                          reloc_type=r.reloc_type,
+                                          symbol_index=r.symbol_index))
+                else:
+                    out.append(r)
+            return out
+
+        orc_relocs_canon = _canonicalize_relocs(oracle_slice.relocs, orc_defined)
+        lft_relocs_canon = _canonicalize_relocs(lifted_slice.relocs, lft_defined)
+
         # Patch REL32 calls for oracle.
         # When oracle_text is set the full .text section is mapped at CODE_BASE
         # and the function lives at CODE_BASE+section_offset — use that base.
@@ -1572,7 +1654,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         if orc_cls.call_count > 0:
             orc_code_base = (CODE_BASE + oracle_slice.section_offset) if oracle_text is not None else CODE_BASE
             oracle_code_patched, orc_stub_map = patch_rel32_calls(
-                bytes(oracle_code_patched), oracle_slice.relocs, orc_defined,
+                bytes(oracle_code_patched), orc_relocs_canon, orc_defined,
                 code_base=orc_code_base,
                 symbol_sentinels=shared_stub_sentinels)
 
@@ -1592,7 +1674,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         _sibling_resolve = os.environ.get("BIPED_SIBLING_RESOLVE") == "1"
         if lft_cls.call_count > 0:
             lifted_code_patched, lft_stub_map = patch_rel32_calls(
-                bytes(lifted_code_patched), lifted_slice.relocs, lft_defined,
+                bytes(lifted_code_patched), lft_relocs_canon, lft_defined,
                 symbol_sentinels=shared_stub_sentinels,
                 include_defined=_sibling_resolve)
 
