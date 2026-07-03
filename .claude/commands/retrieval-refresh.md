@@ -18,6 +18,7 @@ rtk python3 tools/retrieval/build_index.py extract
 rtk python3 tools/retrieval/build_index.py outcomes
 rtk python3 tools/retrieval/build_index.py embed
 rtk python3 tools/retrieval/build_index.py stats
+rtk python3 tools/retrieval/usage_report.py
 ```
 
 ## Optional flags
@@ -42,6 +43,7 @@ Report:
 - Outcomes summary (`vc71_score`, `verdict`, `hazard_flags` counts)
 - Embed summary (`rows embedded`, model, batch/chunk settings)
 - Final stats (`total`, `with_pseudocode`, `with_c`, `with_embeddings`, `with_vc71`, `with_verdict`, `with_hazards`, `models`)
+- Usage/adoption report (`retrieval index` rows, `context cache` neighbor-injection stats, `mizuchi` adoption) from `usage_report.py` — measures whether the index is actually being consulted (the only ROI signal for the 95 MB index).
 
 ## Notes
 

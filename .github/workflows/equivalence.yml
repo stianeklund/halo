@@ -193,3 +193,17 @@ jobs:
                           print('  - `' + d + '`')
           " >> "$GITHUB_STEP_SUMMARY"
           fi
+
+      - name: Triage failures
+        if: always()
+        run: |
+          if [ -f artifacts/batch_verify/summary.json ]; then
+            {
+              echo "## Failure Triage (auto-classified)"
+              echo '```'
+              ${{ env.VENV_PYTHON }} tools/equivalence/triage_failures.py \
+                --summary-path artifacts/batch_verify/summary.json \
+                --details 2>&1 || echo "(triage_failures produced no output)"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
