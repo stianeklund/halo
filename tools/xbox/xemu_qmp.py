@@ -139,7 +139,7 @@ def discover_session(host: str, port: int | None = None) -> QmpSession | None:
 
 
 def launch_xemu(iso_path: str | None) -> bool:
-    script = os.path.join(ROOT_DIR, "tools", "xemu.sh")
+    script = os.path.join(ROOT_DIR, "tools", "xbox", "xemu.sh")
     command = ["bash", script, "-q"]
     if iso_path is not None:
         command.append(repo_path(iso_path))

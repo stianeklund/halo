@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """Build, deploy, and capture golden test harness results from Xbox.
 
+LEGACY: no invoker in the repo (no skill/command/CI path calls this). The
+RUN|BEGIN/RUN|END markers it waits for ARE still emitted by src/halo/test_harness.c,
+so it is functional — but it duplicates the real-hardware path that belongs in
+tools/verify/run_golden_tests.py. Slated to be folded into
+`run_golden_tests.py --backend xbdm` (audit P2.11); do not add new callers.
+
 Single command:
     python3 tools/verify/run_golden_xbox.py
 

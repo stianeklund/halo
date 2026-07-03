@@ -232,18 +232,6 @@ def _lookup_vc71_score(addr: str, decl: str, scores: dict):
     return None
 
 
-def _update_regression_baseline(src_files: list[str]) -> None:
-    """Call vc71_regression.py update for the given source files (best-effort)."""
-    regression_tool = REPO_ROOT / "tools" / "verify" / "vc71_regression.py"
-    if not src_files or not regression_tool.exists():
-        return
-    abs_files = [str(REPO_ROOT / f) for f in src_files]
-    subprocess.run(
-        [sys.executable, str(regression_tool), "update", "--source"] + abs_files,
-        capture_output=True, cwd=REPO_ROOT,
-    )
-
-
 _TIMESTAMP_RUN_RE = re.compile(r'^\d{8}-\d{6}$')
 _EQUIV_RESULTS_RE = re.compile(
     r'RESULTS:\s*(\d+)\s+passed,\s*(\d+)\s+(?:failed|diverged),\s*(\d+)\s+errors\s*/\s*(\d+)\s+seeds'
@@ -401,9 +389,10 @@ def generate_message(batch_name=None, since_ref=None, vc71_match=None,
             f"Coverage: {pct_after:.1f}% ({ported_after}/{total_after} symbols)"
         )
 
-    # Update the regression baseline with fresh scores (best-effort, silent)
-    if vc71_scores:
-        _update_regression_baseline(source_files_changed())
+    # NOTE: the VC71 regression floor is refreshed exactly once per commit by the
+    # pre-commit hook (tools/hooks/pre-commit-vc71-regression.sh), which also
+    # re-stages vc71_scores.json. Message generation no longer runs `update` to
+    # avoid a redundant second compile+diff pass on every commit.
 
     return "\n".join(lines)
 

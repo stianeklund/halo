@@ -257,19 +257,28 @@ For exact replay of human gameplay, use Halo's native input recorder:
 
 ### Full 128MB dump
 
-Use `dump_xemu_memory.py` for the full dump workflow:
+**Proven path (virtual memsave):** use `memsave_snapshot.py` or `qmp_capture.py`.
+**Never `dump --method qmp`** — that is physical `pmemsave`, which reads wrong
+bytes on this Cerbios box (see the gotchas table below).
 
 ```bash
-# Via QMP (local xemu):
-rtk python3 tools/equivalence/dump_xemu_memory.py dump --method qmp -o /tmp/full_dump.bin
+# Reloc-driven virtual capture for one target (local xemu):
+rtk python3 tools/equivalence/memsave_snapshot.py plan --target <func> -o artifacts/plan_<func>.json
+rtk python3 tools/equivalence/memsave_snapshot.py capture --plan artifacts/plan_<func>.json -o artifacts/snapshot_<func>.json
+#   add --follow to dereference *_ptr regions, --anchors for player/game-engine anchors
 
-# Via XBDM (real Xbox or xemu with XBDM):
+# Real Xbox / XBDM only (virtual getmem — dump_xemu_memory.py's one kept path):
 rtk python3 tools/equivalence/dump_xemu_memory.py dump --method xbdm -o /tmp/full_dump.bin
 ```
 
-**Verify the dump before proceeding** (see Section B verification gate).
+**Verify the capture before proceeding** (see Section B verification gate;
+`qmp_capture.py` checks the datum magic for you).
 
-### Build a compact snapshot
+### Build a compact snapshot (from an XBDM / real-HW dump)
+
+`memsave_snapshot.py capture` already emits the snapshot JSON directly. If you
+captured a full `dump.bin` via `--method xbdm` on real hardware instead, assemble
+a targeted snapshot with:
 
 ```bash
 rtk python3 tools/equivalence/dump_xemu_memory.py snapshot \
@@ -333,5 +342,5 @@ loaded-XBE code pages, invalidating original-vs-candidate comparisons.
 | Serial/asserts | `mcp__xemu__xemu_read_serial()` |
 | GDB attach | `mcp__xemu__xemu_send_monitor_command("gdbserver tcp::1234")` then gdb connect |
 | GDB cleanup | `gdb -ex "target remote :1234" -ex "delete" -ex "detach" -ex "quit"` |
-| Full mem dump | `rtk python3 tools/equivalence/dump_xemu_memory.py dump --method qmp -o /tmp/dump.bin` |
-| Build snapshot | `rtk python3 tools/equivalence/dump_xemu_memory.py snapshot --dump /tmp/dump.bin --target <func> --full -o snap.json` |
+| Live capture (virtual, proven) | `rtk python3 tools/equivalence/memsave_snapshot.py plan --target <func> -o plan.json` then `... capture --plan plan.json -o snap.json` |
+| Real-HW dump (XBDM getmem) | `rtk python3 tools/equivalence/dump_xemu_memory.py dump --method xbdm -o /tmp/dump.bin` |

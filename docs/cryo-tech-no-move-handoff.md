@@ -126,8 +126,9 @@ mode" from this; that is a stale-state artifact.
   for the raw instruction alignment).
 - **Test C (non-interactive, end-game):** `tools/equivalence/unicorn_diff.py` on `0x5ff70` — but
   it needs a **nav-mesh state snapshot** (zero-fill seeds early-exit; coverage will be ~0). Capture
-  via `tools/equivalence/dump_xemu_memory.py` during live gameplay (read CLAUDE.md "Live Memory
-  Capture" — capture is finicky on this xemu; verify the dump before trusting).
+  via `tools/equivalence/memsave_snapshot.py` (virtual memsave) or the `.halorec` lineage during
+  live gameplay (read CLAUDE.md "Live Memory Capture" — capture is finicky on this xemu; verify the
+  datum magic before trusting; never use physical `pmemsave`).
 
 ### H2 — path is fine; the WALK / movement-type stalls
 - `actor_destination_update` (0x2d350, original) has 3 branches keyed on a "movement type" field
