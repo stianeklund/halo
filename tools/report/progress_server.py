@@ -181,8 +181,28 @@ class SSEHandler(SimpleHTTPRequestHandler):
         if not source_path_rel:
             logging.warning('No source_path in objdiff.json metadata for unit %s', unit_name)
             return None
+
+        same_source_refs = [
+            entry for entry in objdiff_config.get('units', [])
+            if entry.get('metadata', {}).get('source_path') == source_path_rel
+            and entry.get('base_path')
+            and os.path.exists(entry.get('base_path'))
+        ]
         if not base_path or not os.path.exists(base_path):
-            logging.warning('No delinked reference for unit %s (%s)', unit_name, base_path)
+            if same_source_refs:
+                logging.info('No TU delinked reference for unit %s; using per-function refs',
+                             unit_name)
+            else:
+                logging.warning('No delinked reference for unit %s (%s)', unit_name, base_path)
+                return None
+
+        report_unit = None
+        for unit in report.get('units', []):
+            if unit.get('name') == unit_name:
+                report_unit = unit
+                break
+        if report_unit is None:
+            logging.warning('Unit %s not found in report.json', unit_name)
             return None
 
         # Import run_vc71_verify from tools/verify/vc71_regression.py
@@ -208,9 +228,57 @@ class SSEHandler(SimpleHTTPRequestHandler):
             logging.warning('Source file not found for unit %s: %s', unit_name, source_path)
             return None
 
+        def _score_for_result(func, results):
+            addr = func.get('address')
+            addr_int = None
+            if isinstance(addr, str):
+                try:
+                    addr_int = int(addr, 16)
+                except ValueError:
+                    addr_int = None
+            candidates = [func.get('name')]
+            if addr_int is not None:
+                candidates += [f'FUN_{addr_int:08x}', f'FUN_{addr_int:08X}',
+                               f'thunk_FUN_{addr_int:08x}']
+            for key in candidates:
+                if key and key in results:
+                    return results[key]['score']
+            return None
+
+        def _has_function_ref(func):
+            addr = func.get('address')
+            needles = []
+            name = func.get('name')
+            if name:
+                needles.append(str(name).lower())
+            if isinstance(addr, str):
+                try:
+                    addr_hex = f'{int(addr, 16):08x}'
+                    needles += [addr_hex, f'fun_{addr_hex}']
+                    if os.path.exists(os.path.join('delinked', 'functions', f'{addr_hex}.obj')):
+                        return True
+                except ValueError:
+                    pass
+            for entry in same_source_refs:
+                haystack = f"{entry.get('name', '')} {entry.get('base_path', '')}".lower()
+                if any(needle and needle in haystack for needle in needles):
+                    return True
+            return False
+
         logging.info('Running vc71_verify for %s ...', source_path_rel)
         try:
-            vc71_results = _run_vc71_verify(source_path)
+            vc71_results = {}
+            if base_path and os.path.exists(base_path):
+                vc71_results.update(_run_vc71_verify(source_path))
+
+            for func in report_unit.get('functions', []):
+                if not func.get('ported'):
+                    continue
+                if _score_for_result(func, vc71_results) is not None:
+                    continue
+                if not _has_function_ref(func):
+                    continue
+                vc71_results.update(_run_vc71_verify(source_path, function=func.get('name')))
         except Exception as e:
             logging.error('vc71_verify failed for unit %s: %s', unit_name, e)
             return None

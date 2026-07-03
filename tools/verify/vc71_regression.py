@@ -72,7 +72,8 @@ def save_baseline(scores: dict[str, dict]) -> None:
 # vc71_verify runner
 # ---------------------------------------------------------------------------
 
-def run_vc71_verify(source: Path, no_cache: bool = True) -> dict[str, dict]:
+def run_vc71_verify(source: Path, no_cache: bool = True,
+                    function: str | None = None) -> dict[str, dict]:
     """Run vc71_verify on a source file; return {fn_name: {score, n_c, n_r}}.
 
     Defaults to --no-cache so stale .obj files from previous compilations do
@@ -81,6 +82,8 @@ def run_vc71_verify(source: Path, no_cache: bool = True) -> dict[str, dict]:
     The compile step is fast (~0.1s/file) so the accuracy cost is acceptable.
     """
     cmd = [sys.executable, str(VC71_VERIFY), str(source), "--quiet"]
+    if function:
+        cmd.extend(["--function", function])
     if no_cache:
         cmd.append("--no-cache")
     result = subprocess.run(cmd, capture_output=True, text=True, cwd=REPO_ROOT)
