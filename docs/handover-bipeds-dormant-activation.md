@@ -54,9 +54,10 @@ look at next.
 - `src/halo/units/bipeds.c`: 0x1a2f40 full re-lift + NaN-assert refine (dormant).
 - `kb.json`: `FUN_00150550` arg4 `float`→`int` (unported callee of 0x1a2f40 only).
 - `docs/handover-bipeds-dormant.md`: original investigation-planning doc (now stale).
-- `tools/_inject_1430_dualoracle.py`, `tools/equivalence/_assemble_biped_snaps.py`,
-  `_assemble_combat_snaps.py`, `_biped_capture.py`, `_probe_memtrace.py`,
-  `_probe_sideeffects.py`: dual-oracle / equivalence scaffolding for activation.
+- `_inject_1430_dualoracle.py`, `_assemble_biped_snaps.py`, `_assemble_combat_snaps.py`,
+  `_biped_capture.py`, `_probe_memtrace.py`, `_probe_sideeffects.py`: dual-oracle /
+  equivalence scaffolding for activation. **Archived 2026-07-03 to `tools/archive/`**
+  (single-session scaffolding; restore from there if you resume this investigation).
 - `.claude/agent-memory/xbox-halo-re-analyst/` + `xbox-halo-lift-reviewer/`:
   field maps, VC71 ceilings, FILD-vs-FLD rule, equivalence snapshot reference,
   NEEDS_RUNTIME activation-bar notes.
