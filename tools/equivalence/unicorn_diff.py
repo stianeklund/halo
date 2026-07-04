@@ -330,8 +330,11 @@ def _find_obj_paths(kb_entry: dict) -> tuple[Optional[Path], Optional[Path]]:
         addr_hex_bare = f"{addr_int:x}"
         for unit in units:
             base = unit.get("base_path", "")
+            # vc71_verify's per-function convention names refs
+            # delinked/functions/<hex8>.obj without a FUN_ prefix.
             if addr_str_lo in base or addr_str_hi in base or (
-                    addr_hex_bare in base and "FUN_" in base):
+                    addr_hex_bare in base and "FUN_" in base) or (
+                    Path(base).name == f"{addr_int:08x}.obj"):
                 dp = _REPO_ROOT / base
                 if dp.exists():
                     delinked_path = dp
@@ -1914,6 +1917,14 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                 trace_diff_count += 1
                 if verbose:
                     log(f"  {seed_label} TRACE-DIFF: {tdiff.summary()}")
+                    _ovals = {w.address: w.value for w in oracle_state.mem_writes}
+                    _lvals = {w.address: w.value for w in lifted_state.mem_writes}
+                    for _a in sorted(tdiff.oracle_only)[:40]:
+                        log(f"      oracle-only  0x{_a:08x} = {_ovals.get(_a, 0):#010x}")
+                    for _a in sorted(tdiff.lifted_only)[:40]:
+                        log(f"      lifted-only  0x{_a:08x} = {_lvals.get(_a, 0):#010x}")
+                    for _a, _ov, _lv in tdiff.value_diffs[:40]:
+                        log(f"      value-diff   0x{_a:08x}  oracle={_ov:#x} lifted={_lv:#x}")
             if _heap_compare_on:
                 # Accumulate affirmative output evidence (heap = >= 0x20000000,
                 # i.e. the live biped object). Restrict to heap so we do not
