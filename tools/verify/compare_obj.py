@@ -530,9 +530,147 @@ def compare_load_widths(compiled: list[str], reference: list[str]) -> list[str]:
     return warnings
 
 
+# --- Immediate-constant transcription detection (wrong float/magic literal) ---
+#
+# Both objects here are VC71 codegen (delinked reference = original MSVC 7.1;
+# candidate = our source recompiled by the SAME CL.exe). Identical source
+# constants therefore produce identical inline immediates, so a large inline
+# constant present on exactly one side is a genuine SOURCE difference -- almost
+# always a mistyped numeric literal, not compiler noise. The aggregate LCS score
+# hides these: a wrong `push $imm32` aligns against the correct `push $imm32`
+# (same opcode, so the operand delta is buried, never surfaced as actionable).
+# This is the mechanical detector for the actor_aim_grenade cos(30) bug
+# (reference 0x3f5db3d7 = 0.8660254 vs candidate 0x3f5b8f13 = 0.8576519, commit
+# c2866b56) -- see docs/lift-learnings.md "immediate-constant transcription".
+#
+# Only immediates whose SIGNED magnitude is >= 0x01000000 (16 MiB) are censused.
+# The XBE image/data all live below that, so:
+#   - relocated global/string addresses (0x254b58, ...) -- which resolve to a VA
+#     in the delinked reference but to a 0-placeholder relocation in our candidate
+#     -- are excluded (they would false-flag every function otherwise);
+#   - small POSITIVE integers (loop bounds, masks, struct sizes) are excluded as
+#     build-variable noise;
+#   - small NEGATIVE integers, which sign-extend to huge unsigned values
+#     (-1 = 0xffffffff, stack offsets like -100 = 0xffffff9c), are also excluded:
+#     -1 in particular is the MSVC SEH scope-index initializer
+#     (`movl $-1, -0x4(%ebp)`) and a ubiquitous sentinel -- pure frame noise.
+# Using the SIGNED magnitude keeps NEGATIVE float bit-patterns (0xc0490fdb = -pi,
+# signed magnitude ~1.07e9) while dropping small sign-extended integers. What
+# remains is exactly the class a transcription error corrupts: single-precision
+# float bit-patterns (positive and negative), FourCC tag magics
+# ('weap'=0x77656170), and large integer magics.
+_IMM_ADDR_CEILING = 0x01000000
+
+
+def _imm_is_large(v: int) -> bool:
+    """True if the immediate's signed-32 magnitude is >= the address ceiling."""
+    signed = v - 0x100000000 if v >= 0x80000000 else v
+    return abs(signed) >= _IMM_ADDR_CEILING
+
+
+def _imm_is_float(v: int) -> bool:
+    """True if the 32-bit pattern is a finite, non-tiny single-precision float."""
+    exp = (v >> 23) & 0xff
+    return 0 < exp < 0xff  # exclude zero/denormal (exp 0) and inf/nan (exp 0xff)
+
+
+def _imm_as_float(v: int) -> float:
+    import struct
+    return struct.unpack("<f", struct.pack("<I", v & 0xffffffff))[0]
+
+
+def _imm_is_fourcc(v: int) -> bool:
+    """True if all 4 bytes are printable ASCII (a tag/group magic like 'weap').
+
+    Genuine float constants almost always have zero mantissa bytes (0x3f800000,
+    0x41200000, ...), so they fail this test and fall through to the float
+    decode; only true FourCC magics are all-printable. Checked before the float
+    decode because such magics also happen to have a valid float exponent.
+    """
+    b = v.to_bytes(4, "little")
+    return all(0x20 <= c < 0x7f for c in b)
+
+
+def _fmt_imm(v: int) -> str:
+    """Human-readable rendering: FourCC tag, float decode, or raw hex."""
+    if _imm_is_fourcc(v):
+        tag = v.to_bytes(4, "little")[::-1].decode("ascii")  # FourCC reads high byte first
+        return f"0x{v:08x} ('{tag}')"
+    if _imm_is_float(v):
+        return f"0x{v:08x} (~{_imm_as_float(v):.7g}f)"
+    return f"0x{v:08x}"
+
+
+def _iter_immediates(insns: list[str]):
+    """Yield (value_uint32, insn) for every AT&T `$0x..` immediate operand."""
+    for insn in insns:
+        for m in re.finditer(r'\$0x([0-9a-fA-F]+)', insn):
+            try:
+                yield int(m.group(1), 16) & 0xffffffff, insn.strip()
+            except ValueError:
+                continue
+
+
+def compare_immediates(compiled: list[str], reference: list[str]) -> list[str]:
+    """Flag large constant immediates (>= 0x01000000) present on exactly one side.
+
+    Presence-based (SET), not count -- like compare_load_widths -- because VC71
+    may materialize the same constant a different number of times (CSE). A
+    reference-only float whose nearest candidate-only value is within 5% relative
+    error is reported as a paired near-miss (`reference X vs our lift Y`): that is
+    the transcription-error signature (right magnitude, wrong bits). Unpaired
+    constants are reported as absent/introduced. Returns a list of warning lines.
+    """
+    def big_imms(insns):
+        out = {}
+        for v, insn in _iter_immediates(insns):
+            if _imm_is_large(v):
+                out.setdefault(v, insn)
+        return out
+
+    c_imms = big_imms(compiled)
+    r_imms = big_imms(reference)
+    ref_only = sorted(set(r_imms) - set(c_imms))
+    cand_only = sorted(set(c_imms) - set(r_imms))
+
+    warnings = []
+    used_cand = set()
+    for v in ref_only:
+        partner = None
+        best_rel = None
+        if _imm_is_float(v) and not _imm_is_fourcc(v):
+            fv = _imm_as_float(v)
+            for w in cand_only:
+                if w in used_cand or not _imm_is_float(w) or _imm_is_fourcc(w):
+                    continue
+                fw = _imm_as_float(w)
+                rel = abs(fv - fw) / max(abs(fv), 1e-30)
+                if rel < 0.05 and (best_rel is None or rel < best_rel):
+                    best_rel, partner = rel, w
+        if partner is not None:
+            used_cand.add(partner)
+            warnings.append(
+                f"    IMM: near-miss float literal -- reference {_fmt_imm(v)} vs "
+                f"our lift {_fmt_imm(partner)} (rel err {best_rel * 100:.3f}%); a "
+                f"wrong decimal literal the LCS byte-diff aligns away. Verify the "
+                f"source constant against the disassembly immediate.")
+        else:
+            warnings.append(
+                f"    IMM: reference constant {_fmt_imm(v)} absent from our lift "
+                f"(ref: `{r_imms[v]}`) -- missing or altered constant.")
+    for w in cand_only:
+        if w in used_cand:
+            continue
+        warnings.append(
+            f"    IMM: our lift has constant {_fmt_imm(w)} not in the reference "
+            f"(ours: `{c_imms[w]}`) -- introduced or altered constant.")
+    return warnings
+
+
 def compare_functions(compiled: list[str], reference: list[str],
-                      reg_normalize: bool = False) -> tuple[float, list[str], list[str], list[str]]:
-    """Compare two functions. Returns (match_pct, diff_summary, fpu_warnings, loadw_warnings).
+                      reg_normalize: bool = False) -> tuple[float, list[str], list[str], list[str], list[str]]:
+    """Compare two functions.
+    Returns (match_pct, diff_summary, fpu_warnings, loadw_warnings, imm_warnings).
 
     When reg_normalize=True, uses full normalized instructions with register
     canonicalization for LCS instead of mnemonic-only. This catches operand-level
@@ -573,7 +711,10 @@ def compare_functions(compiled: list[str], reference: list[str],
     # Load-width comparison (int vs int16_t/int8_t)
     loadw_warnings = compare_load_widths(compiled, reference)
 
-    return ratio * 100, diffs, fpu_warnings, loadw_warnings
+    # Immediate-constant comparison (wrong float/magic literal)
+    imm_warnings = compare_immediates(compiled, reference)
+
+    return ratio * 100, diffs, fpu_warnings, loadw_warnings, imm_warnings
 
 
 def _self_test():
@@ -649,6 +790,62 @@ def _self_test():
     check("fused ALU with SIB (indexed) not misread as disp(%reg)",
           narrow_mem_load_shape("testb %cl, 0xc(%eax,%edi,2)") is None)
 
+    # --- Immediate-constant detector tests ---
+
+    # I1. The actor_aim_grenade cos(30) bug: reference pushes 0x3f5db3d7
+    #     (0.8660254), our lift pushes 0x3f5b8f13 (0.8576519). Same opcode, so LCS
+    #     aligns them away -- the census must pair them as a near-miss.
+    w = compare_immediates(["pushl $0x3f5b8f13", "call 0x10eaa0"],
+                           ["pushl $0x3f5db3d7", "call 0x10eaa0"])
+    check("cos(30) near-miss float literal flagged",
+          any("near-miss float" in x and "3f5db3d7" in x and "3f5b8f13" in x for x in w))
+
+    # I2. CRITICAL negative: relocated global/string addresses (< 0x01000000)
+    #     resolve to a VA in the delinked ref but a 0-placeholder in the candidate;
+    #     they must NOT be censused (would false-flag every function).
+    w = compare_immediates(["pushl $0x0", "call 0x10eaa0"],
+                           ["pushl $0x254b58", "call 0x10eaa0"])
+    check("relocated address (below ceiling) not flagged", w == [])
+
+    # I3. CRITICAL negative: small integers (stack adj, loop bounds, masks) differ
+    #     between builds as benign noise -- excluded by the ceiling.
+    w = compare_immediates(["subl $0x2c, %esp", "cmpl $0x10, %eax"],
+                           ["subl $0x30, %esp", "cmpl $0x8, %eax"])
+    check("small-int stack/loop noise not flagged", w == [])
+
+    # I4. Negative: identical large constants (present on both sides) cancel even
+    #     if materialized a different NUMBER of times (CSE) -- presence, not count.
+    w = compare_immediates(["pushl $0x3f800000", "pushl $0x3f800000"],
+                           ["pushl $0x3f800000"])
+    check("identical float constant (differing count) not flagged", w == [])
+
+    # I5. Positive: a wrong FourCC tag magic ('weap' vs 'weaX') is flagged as a
+    #     genuine altered constant (not a near-miss float).
+    w = compare_immediates(["pushl $0x77656158"], ["pushl $0x77656170"])
+    check("wrong FourCC magic flagged",
+          any("77656170" in x and "weap" in x for x in w))
+
+    # I6. Formatting: float decode and FourCC rendering.
+    check("float immediate decodes", "0.8660254f" in _fmt_imm(0x3f5db3d7))
+    check("FourCC immediate decodes", "'weap'" in _fmt_imm(0x77656170))
+
+    # I7. CRITICAL negative: 0xffffffff (-1) is the MSVC SEH scope-index init and
+    #     a ubiquitous sentinel -- build-variable frame noise, must NOT flag (this
+    #     was the actor_aim_grenade false positive: `movl $-1, -0x4(%ebp)`).
+    w = compare_immediates(["nop"], ["movl $0xffffffff, -0x4(%ebp)"])
+    check("SEH -1 scope-index initializer not flagged", w == [])
+
+    # I8. Negative: sign-extended small negatives (stack offsets, `add $-100`)
+    #     excluded by signed magnitude.
+    w = compare_immediates(["addl $0xffffff9c, %eax"], ["addl $0xffffff00, %eax"])
+    check("sign-extended small negatives not flagged", w == [])
+
+    # I9. Positive: a NEGATIVE float bit-pattern (-pi = 0xc0490fdb) is still
+    #     censused despite the sign bit -- its signed magnitude is ~1.07e9.
+    w = compare_immediates(["pushl $0xc0490fd0"], ["pushl $0xc0490fdb"])
+    check("negative float (-pi) near-miss flagged",
+          any("near-miss float" in x and "c0490fdb" in x for x in w))
+
     if failures:
         print(f"\nSELF-TEST FAILED: {len(failures)} case(s)")
         sys.exit(1)
@@ -669,6 +866,8 @@ def main():
                     help="Only report FPU operand warnings")
     ap.add_argument("--loadw-only", action="store_true",
                     help="Only report load-width (int vs int16/int8) warnings")
+    ap.add_argument("--imm-only", action="store_true",
+                    help="Only report immediate-constant (wrong float/magic literal) warnings")
     ap.add_argument("--reg-normalize", "-r", action="store_true",
                     help="Use register-alias normalization for LCS (canonical operands)")
     ap.add_argument("--self-test", action="store_true",
@@ -745,15 +944,17 @@ def main():
     any_fail = False
     any_fpu_warn = False
     any_loadw_warn = False
+    any_imm_warn = False
 
     for fn in sorted(matched):
-        pct, diffs, fpu_warnings, loadw_warnings = compare_functions(
+        pct, diffs, fpu_warnings, loadw_warnings, imm_warnings = compare_functions(
             compiled_funcs[fn], reference_funcs[fn], reg_normalize=args.reg_normalize)
         n_c = len(compiled_funcs[fn])
         n_r = len(reference_funcs[fn])
         status = "PASS" if pct >= args.threshold else "FAIL"
         fpu_tag = " [FPU-WARN]" if fpu_warnings else ""
         loadw_tag = " [LOADW-WARN]" if loadw_warnings else ""
+        imm_tag = " [IMM-WARN]" if imm_warnings else ""
         trunc_tag = " [REF-TRUNCATED?]" if n_r > 0 and n_c > n_r * 1.4 else ""
 
         # When reg-normalize is on, also compute mnemonic % to show the gap
@@ -763,13 +964,13 @@ def main():
                                          reg_normalize=False)[0]
             reg_tag = f" [struct:{mnem_pct:.1f}%]"
 
-        only_mode = args.fpu_only or args.loadw_only
+        only_mode = args.fpu_only or args.loadw_only or args.imm_only
         if not only_mode:
-            print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{trunc_tag}")
+            print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{trunc_tag}")
 
         if fpu_warnings:
             any_fpu_warn = True
-            if not args.loadw_only:
+            if not args.loadw_only and not args.imm_only:
                 if args.fpu_only:
                     print(f"  {fn}:{fpu_tag}")
                 for w in fpu_warnings:
@@ -777,10 +978,18 @@ def main():
 
         if loadw_warnings:
             any_loadw_warn = True
-            if not args.fpu_only:
+            if not args.fpu_only and not args.imm_only:
                 if args.loadw_only:
                     print(f"  {fn}:{loadw_tag}")
                 for w in loadw_warnings:
+                    print(w)
+
+        if imm_warnings:
+            any_imm_warn = True
+            if not args.fpu_only and not args.loadw_only:
+                if args.imm_only:
+                    print(f"  {fn}:{imm_tag}")
+                for w in imm_warnings:
                     print(w)
 
         if status == "FAIL":
@@ -790,14 +999,20 @@ def main():
             for d in diffs:
                 print(d)
 
-    if any_fpu_warn and not args.loadw_only:
+    if any_fpu_warn and not args.loadw_only and not args.imm_only:
         print("\nWARNING: FPU operand-order differences detected.")
         print("Check cross-product argument order and FSUB/FSUBR operand direction.")
 
-    if any_loadw_warn and not args.fpu_only:
+    if any_loadw_warn and not args.fpu_only and not args.imm_only:
         print("\nWARNING: load-width (int vs int16_t/int8_t) differences detected.")
         print("A field the original narrows (movsx/movzx word/byte) is read wider in our lift,")
         print("or vice versa. Verify the C type against disassembly. See lift-learnings 'int vs int16_t'.")
+
+    if any_imm_warn and not args.fpu_only and not args.loadw_only:
+        print("\nWARNING: immediate-constant differences detected.")
+        print("A large inline constant (float bit-pattern or magic) differs between our lift and the")
+        print("original. Since both are VC71 codegen, this is a source-literal mismatch -- verify the")
+        print("numeric literal against the disassembly immediate. See lift-learnings 'immediate-constant'.")
 
     sys.exit(1 if any_fail else 0)
 

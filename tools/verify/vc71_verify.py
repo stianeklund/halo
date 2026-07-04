@@ -425,6 +425,7 @@ def run_compare_cached(
     show_diffs = False
     fpu_only = False
     loadw_only = False
+    imm_only = False
     reg_normalize = False
     i = 0
     while i < len(extra_args):
@@ -439,6 +440,8 @@ def run_compare_cached(
             fpu_only = True; i += 1
         elif a == "--loadw-only":
             loadw_only = True; i += 1
+        elif a == "--imm-only":
+            imm_only = True; i += 1
         elif a in ("--reg-normalize", "-r"):
             reg_normalize = True; i += 1
         else:
@@ -479,6 +482,7 @@ def run_compare_cached(
     any_fail = False
     any_fpu_warn = False
     any_loadw_warn = False
+    any_imm_warn = False
     hits = 0
     misses = 0
 
@@ -492,12 +496,13 @@ def run_compare_cached(
             pct = cached_result["match_pct"]
             fpu_warnings = cached_result["fpu_warnings"]
             loadw_warnings = cached_result.get("loadw_warnings") or []
+            imm_warnings = cached_result.get("imm_warnings") or []
             # diff_lines may be None if we didn't store diffs (e.g. not show_diffs)
             diffs = cached_result["diff_lines"] or []
             cache_tag = " [cache hit]"
         else:
             misses += 1
-            pct, diffs, fpu_warnings, loadw_warnings = co.compare_functions(
+            pct, diffs, fpu_warnings, loadw_warnings, imm_warnings = co.compare_functions(
                 compiled_funcs[fn], reference_funcs[fn],
                 reg_normalize=reg_normalize,
             )
@@ -505,13 +510,15 @@ def run_compare_cached(
             # Store result; always save diff_lines so future --show-diffs works
             if cache is not None and not no_cache:
                 cache.put(fn, source, reference, pct, fpu_warnings, diffs,
-                          loadw_warnings=loadw_warnings, opt=opt)
+                          loadw_warnings=loadw_warnings, imm_warnings=imm_warnings,
+                          opt=opt)
 
         n_c = len(compiled_funcs[fn])
         n_r = len(reference_funcs[fn])
         status = "PASS" if pct >= threshold else "FAIL"
         fpu_tag = " [FPU-WARN]" if fpu_warnings else ""
         loadw_tag = " [LOADW-WARN]" if loadw_warnings else ""
+        imm_tag = " [IMM-WARN]" if imm_warnings else ""
 
         reg_tag = ""
         if reg_normalize:
@@ -519,16 +526,16 @@ def run_compare_cached(
                 compiled_funcs[fn], reference_funcs[fn], reg_normalize=False)[0]
             reg_tag = f" [struct:{mnem_pct:.1f}%]"
 
-        only_mode = fpu_only or loadw_only
+        only_mode = fpu_only or loadw_only or imm_only
         if not only_mode:
             if quiet:
-                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}")
+                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}")
             else:
-                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{cache_tag}")
+                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{cache_tag}")
 
         if fpu_warnings:
             any_fpu_warn = True
-            if not loadw_only:
+            if not loadw_only and not imm_only:
                 if fpu_only:
                     print(f"  {fn}:{fpu_tag}" + ("" if quiet else cache_tag))
                 for w in fpu_warnings:
@@ -544,6 +551,18 @@ def run_compare_cached(
                 for w in loadw_warnings:
                     print(w)
 
+        if imm_warnings:
+            any_imm_warn = True
+            # IMM-WARN is a low-false-positive detector (both sides are VC71
+            # codegen, so a large inline-constant diff is a real source-literal
+            # mismatch), so -- unlike LOADW -- expand its detail lines in a normal
+            # run: the specific reference-vs-lift constants are the actionable hint.
+            if not fpu_only and not loadw_only:
+                if imm_only:
+                    print(f"  {fn}:{imm_tag}" + ("" if quiet else cache_tag))
+                for w in imm_warnings:
+                    print(w)
+
         if status == "FAIL":
             any_fail = True
 
@@ -555,11 +574,11 @@ def run_compare_cached(
         total = hits + misses
         print(f"\n  Cache: {hits}/{total} hits ({100*hits//total if total else 0}%)")
 
-    if any_fpu_warn and not loadw_only:
+    if any_fpu_warn and not loadw_only and not imm_only:
         print("\nWARNING: FPU operand-order differences detected.")
         print("Check cross-product argument order and FSUB/FSUBR operand direction.")
 
-    if any_loadw_warn and not fpu_only:
+    if any_loadw_warn and not fpu_only and not imm_only:
         if loadw_only:
             print("\nWARNING: load-width (int vs int16_t/int8_t) differences detected.")
             print("A field the original narrows (movsx/movzx word/byte) is read wider in our lift,")
@@ -567,6 +586,12 @@ def run_compare_cached(
         elif not quiet:
             print("\n[LOADW-WARN] load-width differences found; re-run with --loadw-only for details "
                   "(int vs int16_t/int8_t; see lift-learnings §24).")
+
+    if any_imm_warn and not fpu_only and not loadw_only:
+        print("\nWARNING: immediate-constant differences detected.")
+        print("A large inline constant (float bit-pattern or magic) differs between our lift and the")
+        print("original. Both sides are VC71 codegen, so this is a source-literal mismatch -- verify the")
+        print("numeric literal against the disassembly immediate. See lift-learnings 'immediate-constant'.")
 
     return 1 if any_fail else 0
 
@@ -580,6 +605,8 @@ def main():
     ap.add_argument("--fpu-only", action="store_true", help="Only show FPU warnings")
     ap.add_argument("--loadw-only", action="store_true",
                     help="Only show load-width (int vs int16/int8) warnings")
+    ap.add_argument("--imm-only", action="store_true",
+                    help="Only show immediate-constant (wrong float/magic literal) warnings")
     ap.add_argument("--threshold", "-t", type=float, default=50.0)
     ap.add_argument("--list", action="store_true", help="List available units")
     ap.add_argument("--skip-compile", action="store_true", help="Reuse existing VC71 .obj")
@@ -734,6 +761,8 @@ def main():
         extra += ["--fpu-only"]
     if args.loadw_only:
         extra += ["--loadw-only"]
+    if args.imm_only:
+        extra += ["--imm-only"]
     if args.reg_normalize:
         extra += ["--reg-normalize"]
     extra += ["--threshold", str(args.threshold)]

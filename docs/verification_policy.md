@@ -5,6 +5,8 @@ percentages, using:
 
 - structural match (`vc71_verify.py` / `compare_obj.py`)
 - FPU warning signal (`[FPU-WARN]`)
+- narrow field-width signal (`[LOADW-WARN]`, lift-learnings §24)
+- immediate-constant signal (`[IMM-WARN]`, lift-learnings §25 — wrong float/magic literal)
 - behavior checks (reference behavior harness + runtime checks)
 
 Behavioral fidelity to Xbox is the primary goal. Match % is a signal, not the
@@ -24,6 +26,8 @@ For each target function, capture:
 
 1. Structural score: `P` from `compare_obj.py` / `vc71_verify.py`
 2. FPU warnings: `W` from `vc71_verify.py --fpu-only`
+2a. Immediate-constant warnings: `I` from `vc71_verify.py --imm-only` (and
+   load-width warnings from `--loadw-only`)
 3. Reference behavior test: `G` from an automated harness comparison
    (pass/fail)
 4. Runtime behavior: `R` from Option 3 lane or equivalent targeted scenario
@@ -37,6 +41,10 @@ Reject (or keep unverified) regardless of match % when any are true:
 
 - `B = FAIL` (build or ABI gate fails)
 - FPU-sensitive function and `W > 0`
+- Unresolved `[IMM-WARN]` (`I > 0`): both objects are VC71 codegen, so a large
+  inline-constant divergence is a real source-literal mismatch — resolve it
+  (fix the literal or document why the constant legitimately differs) before
+  accepting. Do not wave it off as scheduling noise.
 - Reference behavior test exists for the function and `G = FAIL`
 - Runtime scenario is required for the subsystem and `R = FAIL`
 
@@ -84,7 +92,8 @@ Treat low score as likely **real drift** when any are true:
 For each target function:
 
 1. Run structural compare and record `P`.
-2. Run `--fpu-only` and record `W`.
+2. Run `--fpu-only` and record `W`; run `--imm-only` and record `I` (and
+   `--loadw-only` for narrow-field mismatches).
 3. Run/refresh reference behavior test for the function (`G`).
 4. Run targeted runtime scenario (`R`) in Option 3 lane or equivalent.
 5. Apply table + hard-fail gates.
@@ -98,6 +107,7 @@ For each target function:
 ```bash
 rtk python3 tools/verify/vc71_verify.py src/path/to/file.c --function FUN_XXXXXXXX
 rtk python3 tools/verify/vc71_verify.py src/path/to/file.c --function FUN_XXXXXXXX --fpu-only
+rtk python3 tools/verify/vc71_verify.py src/path/to/file.c --function FUN_XXXXXXXX --imm-only
 rtk <automated reference-behavior command>
 rtk python3 tools/verify/verify_option3.py --target FUN_XXXXXXXX --skip-iso
 ```

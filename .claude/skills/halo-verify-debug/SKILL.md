@@ -143,6 +143,8 @@ Notes:
 - Build failure: fix the compile error only; do not rewrite the lift from scratch.
 - ABI failure: verify `kb.json` declaration, `@<reg>` annotations, caller setup, and callee thunks.
 - XDK `[FPU-WARN]`: verify x87 operand order, push-then-fstp arguments, and cross-product/subtraction order.
+- `[LOADW-WARN]` (`--loadw-only`): a field narrowed to int16/int8 in the original but read wider in the lift (or vice versa) — verify the C type against disassembly (lift-learnings §24).
+- `[IMM-WARN]` (`--imm-only`): a large inline constant (float bit-pattern or magic) differs between the lift and the original. Both sides are VC71 codegen, so it is a wrong numeric literal the LCS % aligns away — verify the source literal against the disassembly immediate (lift-learnings §25). Very low false-positive; treat as a near-certain source bug.
 - Low match: inspect objdiff/XDK output for branch shape, memory access offsets, and missing side effects.
 - Behavior/runtime failure: prefer XBDM state probes before xemu unless no console is reachable.
 
