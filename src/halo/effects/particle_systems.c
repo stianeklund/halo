@@ -219,6 +219,8 @@ void FUN_0009fd30(void *ps_arg, int type_index, float dt)
   float emit_frac;
   char is_location_resolved;
   short location_valid;
+  typedef void (*creation_physics_fn)(char *ps, short type_idx,
+                                      char *particle, char *marker_buf);
 
   tag_def = (char *)tag_get(0x7063746c, *(int *)(ps + 8));
   type_state = ps + 0x58 + type_index * 0x40;
@@ -334,8 +336,6 @@ void FUN_0009fd30(void *ps_arg, int type_index, float dt)
     {
       random_real_range((int *)random_math_get_local_seed_address(), 0.0f,
                         (float)location_valid);
-      typedef void (*creation_physics_fn)(char *ps, short type_idx,
-                                          char *particle, char *marker_buf);
       ((creation_physics_fn *)(0x26ab10))[creation_func_idx](
         ps, (short)type_index, particle, marker_buf);
     }
