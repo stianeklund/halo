@@ -90,7 +90,11 @@ def load_kb_index() -> tuple[dict[str, Target], dict[str, Target]]:
       name = parse_function_name_from_decl(decl)
       if not addr or not name:
         continue
-      target = Target(addr=addr, name=name, decl=decl, object_name=object_name, source_path=source_path)
+      # Per-function source_path (repo-root relative) overrides the object's
+      # primary TU — needed for objects whose lifts span multiple TUs.
+      fn_source = fn.get("source_path", "")
+      target = Target(addr=addr, name=name, decl=decl, object_name=object_name,
+                      source_path=fn_source if fn_source else source_path)
       by_name[name] = target
       by_addr[addr] = target
   return by_name, by_addr
