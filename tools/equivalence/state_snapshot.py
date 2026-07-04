@@ -27,14 +27,18 @@ from pathlib import Path
 from typing import Optional
 
 
-def load_snapshot(path: str) -> tuple[dict, dict]:
+def load_snapshot(path: str) -> tuple[dict, dict, dict]:
     """Load a snapshot JSON file.
 
-    Returns (memory_overrides, arg_overrides) where:
+    Returns (memory_overrides, arg_overrides, stub_returns) where:
       memory_overrides: {int_address: bytes} for unicorn memory setup
       arg_overrides: {param_name: value_or_range} for seed constraining
         - Fixed: {"eax": 0x500000} — every seed uses this value
         - Range: {"param_1": [1, 10]} — seeder picks from [lo, hi]
+      stub_returns: {callee_name: int} — deterministic EAX for a stubbed
+        callee (applied identically to oracle and candidate); lets a run
+        open paths gated on a stub's pointer/handle result, e.g.
+        {"FUN_0017dc70": 0x780000} with a synthetic block at 0x780000.
     """
     with open(path, encoding="utf-8") as f:
         data = json.load(f)
@@ -51,7 +55,9 @@ def load_snapshot(path: str) -> tuple[dict, dict]:
         mem[addr] = bytes.fromhex(val_hex)
 
     arg_overrides = data.get("arg_overrides", {})
-    return mem, arg_overrides
+    stub_returns = {str(k).lstrip("_").lower(): int(v)
+                    for k, v in data.get("stub_returns", {}).items()}
+    return mem, arg_overrides, stub_returns
 
 
 def save_snapshot(regions: dict, path: str, description: str = "",

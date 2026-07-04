@@ -176,6 +176,17 @@ def compare_stub_arg_traces(oracle_tracer: StubArgTracer,
                 seq_diverge_idx = i
                 break
 
+    if seq_diverged:
+        _i = seq_diverge_idx
+        _on = oc[_i].callee_name if _i < len(oc) else f"<end at {len(oc)}>"
+        _cn = cc[_i].callee_name if _i < len(cc) else f"<end at {len(cc)}>"
+        _oa = [hex(a) for a in oc[_i].args] if _i < len(oc) else []
+        _ca = [hex(a) for a in cc[_i].args] if _i < len(cc) else []
+        print(f"      seq-diverge[{_i}]: oracle={_on}{_oa}  candidate={_cn}{_ca} "
+              f"(lens {len(oc)}/{len(cc)})")
+        print(f"      oracle seq   : {[(r.callee_name, [hex(a) for a in r.args]) for r in oc]}")
+        print(f"      candidate seq: {[(r.callee_name, [hex(a) for a in r.args]) for r in cc]}")
+
     arg_mismatches = 0
     soft_matches = 0
     details = []
@@ -489,6 +500,11 @@ class StubManager:
     # Cap on total real-code callees loaded, to bound a runaway call graph.
     MAX_REAL_CALLEES = 96
 
+    # Deterministic EAX values for named stubbed callees, keyed by lowercase
+    # undecorated symbol name (snapshot "stub_returns"). Applied identically
+    # to oracle and candidate, so gated paths open without --real-callees.
+    stub_return_overrides = {}
+
     def _register_stub(self, sentinel_addr: int, symbol_name: str):
         """Create a trampoline CalleeStub (+ canonical name) for a sentinel.
 
@@ -758,9 +774,19 @@ class StubManager:
             conv = 'cdecl'
             n_stack_params = 0
 
+        _ret_override = None
+        if self.stub_return_overrides:
+            _raw = self._stub_names.get(address, "").lstrip("_").lower()
+            _canon = self._canonical_names.get(address, "").lower()
+            _ret_override = self.stub_return_overrides.get(
+                _canon, self.stub_return_overrides.get(_raw))
+
         code = bytearray()
         if ret_st0:
             code += b"\xD9\xEE"  # FLDZ
+        elif _ret_override is not None:
+            # Snapshot-driven deterministic return (same for oracle+candidate)
+            code += b"\xB8" + int(_ret_override).to_bytes(4, "little")  # MOV EAX, imm32
         elif not ret_void:
             code += b"\x31\xC0"  # XOR EAX, EAX
 
@@ -1228,7 +1254,13 @@ class StubManager:
                 # Push 0.0 onto FPU stack
                 pass  # ST0 is already undefined; caller will use it as-is
             elif not ret_void:
-                uc.reg_write(UC_X86_REG_EAX, 0)
+                _ret = 0
+                if self.stub_return_overrides:
+                    _raw = self._stub_names.get(address, "").lstrip("_").lower()
+                    _canon = self._canonical_names.get(address, "").lower()
+                    _ret = self.stub_return_overrides.get(
+                        _canon, self.stub_return_overrides.get(_raw, 0))
+                uc.reg_write(UC_X86_REG_EAX, _ret)
 
             # Clean up stack based on calling convention
             if conv == 'stdcall':
