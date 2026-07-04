@@ -57,7 +57,13 @@ byte-equality score.
 ## Signal 2: FPU risk warnings
 
 `compare_obj.py` also does extra x87/FPU checks and emits `FPU-WARN` style
-warnings when operand order looks suspicious.
+warnings when operand order looks suspicious. Two sibling presence-census
+detectors run in the same lane: `LOADW-WARN` (a field the original narrows to
+int16/int8 but our lift reads wider, or vice versa — lift-learnings §24) and
+`IMM-WARN` (a large inline constant — float bit-pattern or magic — present on
+exactly one side; since both objects are VC71 codegen this is a wrong numeric
+literal the LCS % aligns away — lift-learnings §25). Run `--fpu-only`,
+`--loadw-only`, or `--imm-only` for focused output.
 
 This matters because two code paths can look similar while still flipping math
 sign/direction (for example with subtraction or cross-product order).
@@ -118,7 +124,7 @@ Think of verification as four questions:
 
 1. **Can it build safely?** (build + ABI)
 2. **Does it look structurally similar?** (sequence match)
-3. **Any math red flags?** (`FPU-WARN`)
+3. **Any math red flags?** (`FPU-WARN`, `LOADW-WARN`, `IMM-WARN`)
 4. **Does behavior agree under tests?** (equivalence/runtime/behavior checks)
 
 A lift is accepted when the relevant gates say "yes" together.
