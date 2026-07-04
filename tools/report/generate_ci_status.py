@@ -556,7 +556,7 @@ def generate_html(out_path, gh_runs, lift_runs, leaf_cache, snapshot_data, oracl
       </div>
       <div class="card">
         <div class="stat-label">Avg Coverage</div>
-        <div class="stat-value">{avg_cov:.1f}%</div>
+        <div class="stat-value">{f'{avg_cov:.1f}%' if avg_cov is not None else 'N/A'}</div>
       </div>
     </div>
     {conf_bar}
