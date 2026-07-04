@@ -426,7 +426,10 @@ class StubManager:
     def _find_callee_in_kb(self, symbol_name: str) -> Optional[dict]:
         """Look up a callee symbol in kb.json."""
         kb = self._load_kb()
-        canon = symbol_name.lstrip("_")
+        # Strip MSVC/clang stdcall decoration ("_Name@12") — candidate-side
+        # relocs carry it, and an unmatched lookup falls back to a no-cleanup
+        # default stub whose missing RET N drifts ESP on stdcall callees.
+        canon = re.sub(r'@\d+$', '', symbol_name.lstrip("_"))
         # Try FUN_XXXXXXXX format
         m = re.match(r'FUN_([0-9a-fA-F]+)', canon)
         if m:
