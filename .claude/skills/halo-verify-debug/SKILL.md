@@ -79,13 +79,19 @@ only reaches early exits or weak coverage:
 
 `rtk python3 tools/equivalence/unicorn_diff.py <target> --allow-stubs --mem-trace --state-snapshot artifacts/snapshots/<name>.json`
 
-Capture selected memory regions from a live xemu engine state with QMP `pmemsave` or XBDM
-`getmem` via `tools/equivalence/state_snapshot.py` or
-`tools/equivalence/capture_snapshot_from_diff.py`. These captures are selected
-memory regions, not QEMU VM snapshots. Prefer QMP `pmemsave` when available;
-use `--backend xbdm` when the running xemu is reachable through XBDM but not
-QMP. Do not use `savevm`/`loadvm` for oracle testing because those restore old
-loaded-XBE code pages and invalidate original-vs-candidate comparisons.
+Capture selected memory regions from a live xemu engine state with the
+VIRTUAL-memsave tools: `tools/equivalence/memsave_snapshot.py` (plan →
+capture) or `tools/equivalence/qmp_capture.py`. These captures are selected
+memory regions, not QEMU VM snapshots. **Never use QMP `pmemsave`
+(physical)** — Cerbios does not identity-map game VA on this dev box, so
+physical reads return wrong bytes (verified 2026-06-07). XBDM `getmem` is the
+fallback on real hardware only. Do not use `savevm`/`loadvm` for oracle
+testing because those restore old loaded-XBE code pages and invalidate
+original-vs-candidate comparisons.
+
+When no live capture reaches the branch you need, hand-craft a snapshot
+instead — see skill `lift-synthetic-equivalence` (regions ≥8B, pointer-param
+content overrides, sibling-asymmetry handling, BIPED_SIBLING_RESOLVE=1).
 
 Report:
 

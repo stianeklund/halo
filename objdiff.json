@@ -8006,6 +8006,46 @@
       "metadata": {
         "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox_shadows.c"
       }
+    },
+    {
+      "name": "halo/FUN_0018b190",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/scenario/scenario.c.obj",
+      "base_path": "delinked/functions/0018b190.obj",
+      "metadata": {
+        "source_path": "src/halo/scenario/scenario.c"
+      }
+    },
+    {
+      "name": "halo/FUN_0018dcf0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/scenario/scenario.c.obj",
+      "base_path": "delinked/functions/0018dcf0.obj",
+      "metadata": {
+        "source_path": "src/halo/scenario/scenario.c"
+      }
+    },
+    {
+      "name": "halo/FUN_0018ef30",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/scenario/scenario.c.obj",
+      "base_path": "delinked/functions/0018ef30.obj",
+      "metadata": {
+        "source_path": "src/halo/scenario/scenario.c"
+      }
+    },
+    {
+      "name": "halo/scenario_get_sound_environment_FUN_0018f600",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/scenario/scenario.c.obj",
+      "base_path": "delinked/functions/0018f600.obj",
+      "metadata": {
+        "source_path": "src/halo/scenario/scenario.c"
+      }
+    },
+    {
+      "name": "scenario/wind_FUN_0018ffe0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/scenario/wind.c.obj",
+      "base_path": "delinked/wind_FUN_0018ffe0.obj",
+      "metadata": {
+        "source_path": "src/halo/scenario/wind.c"
+      }
     }
   ]
 }

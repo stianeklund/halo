@@ -1417,7 +1417,8 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         if addr_int_for_search is not None:
             addr_sym_upper = f"FUN_{addr_int_for_search:08X}"
             addr_sym_lower = f"FUN_{addr_int_for_search:08x}"
-            for d in DELINKED_DIR.glob("*.obj"):
+            for d in list(DELINKED_DIR.glob("*.obj")) + \
+                     sorted(DELINKED_DIR.glob("functions/*.obj")):
                 try:
                     result = subprocess.run(
                         ["llvm-objdump", "-t", str(d)],
@@ -1579,6 +1580,20 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         info(f"  oracle class: {orc_cls.category} ({orc_cls.reason})")
         info(f"  lifted class: {lft_cls.category} ({lft_cls.reason})")
 
+        # Load state snapshot BEFORE the DIR32 patch so (a) identity
+        # relocation can point snapshot-covered DAT_ symbols at their real
+        # addresses and (b) _build_globals_seeds can seed the remaining slots
+        # from real game-state data.  Snapshot regions are {addr: bytes}.
+        if state_snapshot:
+            from state_snapshot import load_snapshot
+            snapshot_overrides, snapshot_arg_overrides, snapshot_stub_returns = \
+                load_snapshot(str(state_snapshot))
+            info(f"  snapshot: {len(snapshot_overrides)} region(s) from {state_snapshot.name}")
+            if snapshot_arg_overrides:
+                info(f"  arg overrides: {list(snapshot_arg_overrides.keys())}")
+            if snapshot_stub_returns:
+                info(f"  stub returns: {snapshot_stub_returns}")
+
         # Patch DIR32 relocations for both, with non-overlapping slot ranges
         orc_defined = getattr(oracle_slice, 'defined_symbols', set())
         lft_defined = getattr(lifted_slice, 'defined_symbols', set())
@@ -1591,27 +1606,16 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         lft_rdata = _relocate_rdata_text_refs(lifted_slice, lft_rdata, False)
         oracle_code_patched, orc_data_slots, orc_rdata_seeds = patch_dir32_relocs(
             oracle_slice.code, oracle_slice.relocs, orc_defined,
-            return_slots=True, rdata_map=orc_rdata)
+            return_slots=True, rdata_map=orc_rdata,
+            snapshot_regions=snapshot_overrides)
         oracle_code_patched = bytes(oracle_code_patched)
         lft_globals_base = GLOBALS_BASE + len(orc_data_slots) * 256
         lifted_code_patched, lft_data_slots, lft_rdata_seeds = patch_dir32_relocs(
             lifted_slice.code, lifted_slice.relocs, lft_defined,
             globals_base=lft_globals_base,
-            return_slots=True, rdata_map=lft_rdata)
+            return_slots=True, rdata_map=lft_rdata,
+            snapshot_regions=snapshot_overrides)
         lifted_code_patched = bytes(lifted_code_patched)
-
-        # Load state snapshot early so _build_globals_seeds can seed
-        # globals slots from real game-state data (e.g. game_state_globals at
-        # 0x4EA990+).  Snapshot regions are {addr: bytes}.
-        if state_snapshot:
-            from state_snapshot import load_snapshot
-            snapshot_overrides, snapshot_arg_overrides, snapshot_stub_returns = \
-                load_snapshot(str(state_snapshot))
-            info(f"  snapshot: {len(snapshot_overrides)} region(s) from {state_snapshot.name}")
-            if snapshot_arg_overrides:
-                info(f"  arg overrides: {list(snapshot_arg_overrides.keys())}")
-            if snapshot_stub_returns:
-                info(f"  stub returns: {snapshot_stub_returns}")
 
         globals_seeds = _build_globals_seeds(orc_data_slots, lft_data_slots,
                                              snapshot_overrides=snapshot_overrides)

@@ -229,6 +229,7 @@ A hook (`tools/audit/token_discipline_hook.py`, wired in `.claude/settings.json`
 | Any Xbox crash / hang / assert / visual regression / toggle-bisect | `crash-triage` → `lift-crash-signals` |
 | Deterministic input record/replay testing (capture gameplay, replay over and over, diff patched vs unpatched on identical input) | `input-replay-testing` |
 | A/B trajectory regression test: replay same input on patched+unpatched, capture state, diff behavior over a time window | `ab-trajectory-testing` |
+| VC71 structurally capped (@<reg>/layout) or equiv coverage weak — need per-branch behavioral proof via hand-crafted snapshots | `lift-synthetic-equivalence` |
 
 Broad doctrine skills:
 - `halo-xbox-re`: RE doctrine and evidence rules.

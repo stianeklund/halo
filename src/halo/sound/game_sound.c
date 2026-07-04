@@ -399,8 +399,8 @@ void game_sound_update(float dt)
 
   /* Determine the current sound environment (BSP cluster the listener is
    * in) and whether it changed since last tick. */
-  ((void (*)(int *, void **, uint8_t *))0x18f600)(
-    &sound_env_tag_index, &sound_env_data, &env_changed);
+  scenario_get_sound_environment(&sound_env_tag_index, &sound_env_data,
+                                 &env_changed);
 
   /* Copy the new environment block into the DirectSound globals area.
    * Original: `MOV EAX, [EBP-0xc]; PUSH EAX` — pass the POINTER VALUE

@@ -116,7 +116,7 @@ def previous_kb_summary():
 
 
 def _load_kb_functions(ref=None):
-    """Load all function declarations from kb.json at a given git ref (or working tree)."""
+    """Load {addr: (decl, ported)} from kb.json at a given git ref (or working tree)."""
     if ref:
         raw = run(["git", "show", f"{ref}:kb.json"])
     else:
@@ -128,23 +128,34 @@ def _load_kb_functions(ref=None):
             addr = fn.get("addr", "")
             decl = fn.get("decl", "")
             if addr and decl:
-                funcs[addr] = decl.replace(";", "").strip()
+                funcs[addr] = (decl.replace(";", "").strip(), bool(fn.get("ported")))
     return funcs
 
 
 def compare_kb_json(old_ref=None, new_ref=None):
-    """Compare two versions of kb.json and return (ports, renames)."""
+    """Compare two versions of kb.json and return (ports, renames).
+
+    A "port" is either a brand-new kb entry OR an existing entry whose
+    `ported` flag flipped to true — the latter is how every modern lift
+    registers (the address was catalogued long before it was lifted).
+    """
     old_funcs = _load_kb_functions(old_ref)
     new_funcs = _load_kb_functions(new_ref)
 
     ports = []
     renames = []
 
-    for addr, new_decl in new_funcs.items():
+    for addr, (new_decl, new_ported) in new_funcs.items():
         if addr not in old_funcs:
             ports.append((addr, new_decl))
-        elif old_funcs[addr] != new_decl:
-            renames.append((addr, old_funcs[addr], new_decl))
+            continue
+        old_decl, old_ported = old_funcs[addr]
+        if new_ported and not old_ported:
+            # The lift itself: any accompanying decl fix is part of the port,
+            # not a separate rename.
+            ports.append((addr, new_decl))
+        elif old_decl != new_decl:
+            renames.append((addr, old_decl, new_decl))
 
     return ports, renames
 
@@ -179,9 +190,12 @@ def kb_meta_change_count():
     return len(re.findall(r'^\+\s*"0x[0-9a-fA-F]+":\s*\{', diff, re.MULTILINE))
 
 
-def source_files_changed():
-    """List .c files changed in the stage."""
-    diff = run(["git", "diff", "--cached", "--name-only"])
+def source_files_changed(since_ref=None):
+    """List changed .c files — staged by default, or since a ref."""
+    if since_ref:
+        diff = run(["git", "diff", "--name-only", since_ref, "HEAD"])
+    else:
+        diff = run(["git", "diff", "--cached", "--name-only"])
     return [l for l in diff.splitlines() if l.endswith(".c")]
 
 
@@ -190,31 +204,56 @@ _VC71_LINE_RE = re.compile(
 )
 
 
-def _run_vc71_on_staged_sources() -> dict:
-    """Run vc71_verify on every staged .c file; return {fn_name: {score, n_c, n_r}}.
+def _port_fn_names(ports) -> list:
+    """Candidate symbol names for each ported function: decl name + FUN_<addr>."""
+    names = []
+    for addr, decl in ports:
+        cand = []
+        m = re.search(r"\b(\w+)\s*\(", decl or "")
+        if m:
+            cand.append(m.group(1))
+        try:
+            cand.append(f"FUN_{int(addr, 16):08x}")
+        except (ValueError, TypeError):
+            pass
+        if cand:
+            names.append(cand)
+    return names
+
+
+def _run_vc71_on_staged_sources(ports=None, since_ref=None) -> dict:
+    """Run vc71_verify on staged .c files; return {fn_name: {score, n_c, n_r}}.
+
+    When the staged ports are known, verify each ported function individually
+    (--function): far faster than a whole-file pass on a large TU and it reuses
+    the lift pipeline's cache entry for that exact function. Falls back to a
+    whole-file pass when no ports are given.
 
     Uses the existing vc71 cache — changed files will miss and recompute
     automatically since the cache key includes the source hash.
     """
     scores: dict = {}
-    for src in source_files_changed():
+    fn_names = sorted({n for cands in _port_fn_names(ports or []) for n in cands})
+    for src in source_files_changed(since_ref):
         src_path = REPO_ROOT / src
         if not src_path.exists():
             continue
-        result = subprocess.run(
-            [sys.executable,
-             str(REPO_ROOT / "tools" / "verify" / "vc71_verify.py"),
-             str(src_path), "--quiet"],
-            capture_output=True, text=True, cwd=REPO_ROOT,
-        )
-        for line in (result.stdout + result.stderr).splitlines():
-            m = _VC71_LINE_RE.search(line)
-            if m:
-                scores[m.group(1)] = {
-                    "score": float(m.group(2)),
-                    "n_c":   int(m.group(3)),
-                    "n_r":   int(m.group(4)),
-                }
+        runs = [["--function", fn] for fn in fn_names] or [[]]
+        for extra in runs:
+            result = subprocess.run(
+                [sys.executable,
+                 str(REPO_ROOT / "tools" / "verify" / "vc71_verify.py"),
+                 str(src_path), "--quiet", *extra],
+                capture_output=True, text=True, cwd=REPO_ROOT,
+            )
+            for line in (result.stdout + result.stderr).splitlines():
+                m = _VC71_LINE_RE.search(line)
+                if m:
+                    scores[m.group(1)] = {
+                        "score": float(m.group(2)),
+                        "n_c":   int(m.group(3)),
+                        "n_r":   int(m.group(4)),
+                    }
     return scores
 
 
@@ -237,11 +276,18 @@ _EQUIV_RESULTS_RE = re.compile(
     r'RESULTS:\s*(\d+)\s+passed,\s*(\d+)\s+(?:failed|diverged),\s*(\d+)\s+errors\s*/\s*(\d+)\s+seeds'
 )
 
-def _find_latest_vc71_match():
-    """Find the VC71 match % from the most recent timestamped lift run summary."""
+def _find_latest_vc71_match(ports=None):
+    """Find the VC71 match % from the most recent timestamped lift run summary.
+
+    When staged ports are known, only accept a summary whose target_pick stage
+    names one of them — otherwise a recent run for a DIFFERENT (e.g. reverted)
+    candidate gets its score stamped onto this commit.
+    """
     runs_dir = REPO_ROOT / "artifacts" / "lift_runs"
     if not runs_dir.exists():
         return None
+    tokens = {n.lower() for cands in _port_fn_names(ports or []) for n in cands}
+    tokens |= {str(addr).lower() for addr, _ in (ports or [])}
     summaries = sorted(
         (s for s in runs_dir.glob("*/summary.json")
          if _TIMESTAMP_RUN_RE.match(s.parent.name)),
@@ -250,6 +296,13 @@ def _find_latest_vc71_match():
     for s in summaries[:10]:
         try:
             data = json.loads(s.read_text())
+            if tokens:
+                picked = " ".join(
+                    stage.get("details", "") for stage in data.get("stages", [])
+                    if stage.get("name") == "target_pick"
+                ).lower()
+                if not any(tok in picked for tok in tokens):
+                    continue
             for stage in data.get("stages", []):
                 if stage.get("name") == "vc71_verify" and stage.get("ok"):
                     m = re.search(r'([\d.]+)%', stage.get("details", ""))
@@ -260,13 +313,21 @@ def _find_latest_vc71_match():
     return None
 
 
-def _find_latest_equivalence():
-    """Find passed/total seed counts from the most recent equivalence smoke log."""
+def _find_latest_equivalence(ports=None):
+    """Find passed/total seed counts from the most recent equivalence smoke log.
+
+    When staged ports are known, only accept a log whose filename names one of
+    them (logs are per-function, e.g. FUN_0018d360_smoke.log) — never attribute
+    another candidate's equivalence run to this commit.
+    """
     equiv_dir = REPO_ROOT / "artifacts" / "equivalence"
     if not equiv_dir.exists():
         return None
+    tokens = {n.lower() for cands in _port_fn_names(ports or []) for n in cands}
     logs = sorted(equiv_dir.glob("*_smoke.log"), key=lambda p: p.stat().st_mtime, reverse=True)
     for log in logs[:5]:
+        if tokens and not any(tok in log.stem.lower() for tok in tokens):
+            continue
         try:
             text = log.read_text(errors="replace")
             m = _EQUIV_RESULTS_RE.search(text)
@@ -309,7 +370,7 @@ def generate_message(batch_name=None, since_ref=None, vc71_match=None,
     prev = previous_kb_summary()
 
     # --- Fresh VC71 scores from staged source files -------------------------
-    vc71_scores = _run_vc71_on_staged_sources()
+    vc71_scores = _run_vc71_on_staged_sources(ports, since_ref)
 
     if vc71_match is None:
         if ports and vc71_scores:
@@ -323,10 +384,10 @@ def generate_message(batch_name=None, since_ref=None, vc71_match=None,
                 avg = sum(port_scores) / len(port_scores)
                 vc71_match = f"{avg:.1f}"
         if vc71_match is None:
-            vc71_match = _find_latest_vc71_match()  # fallback
+            vc71_match = _find_latest_vc71_match(ports)  # fallback, port-scoped
 
     if equivalence is None:
-        equivalence = _find_latest_equivalence()
+        equivalence = _find_latest_equivalence(ports)
 
     match_tag = _build_match_tag(vc71_match, equivalence)
 
