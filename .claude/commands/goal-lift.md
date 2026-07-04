@@ -21,6 +21,13 @@ Parse from $ARGUMENTS (all optional):
 - `--dry-run` — evaluate candidates through the review gate but never commit
   (the working tree is reverted after each candidate either way, so nothing
   is left dirty for a later candidate to build on top of)
+- `--objects obj1,obj2,...` — hard allowlist restricting selection to these
+  `.obj` files (comma-separated, e.g. `real_math.obj,rasterizer.obj`). Split
+  into an array before passing as `args.objects`. Enforced both in the
+  Select prompt and mechanically in code after the agent returns candidates.
+- `--criteria "free text"` — freeform instruction appended to the Select
+  prompt on top of the built-in rules (e.g. "prefer functions under 40
+  instructions"). Agent-interpreted only — not mechanically enforced.
 
 ## Steps
 
@@ -31,8 +38,10 @@ Parse from $ARGUMENTS (all optional):
    this with `/goal` manually.
 2. Call the Workflow tool — do not reimplement any of its steps inline:
    ```
-   Workflow({ name: "goal-lift", args: { goal: N, stopOnFail: M, dryRun: <bool> } })
+   Workflow({ name: "goal-lift", args: { goal: N, stopOnFail: M, dryRun: <bool>, objects: [<obj>, ...], criteria: "<text>" } })
    ```
+   Omit `objects`/`criteria` from the args object entirely when not passed on
+   the command line (don't pass `null` or empty string/array).
 3. The workflow runs in the background. Report the returned task info and
    mention `/workflows` for live progress.
 4. When the workflow completes, relay its final summary verbatim (goal
@@ -45,4 +54,7 @@ Parse from $ARGUMENTS (all optional):
 /goal-lift                      # run until 20 committed or queue exhausted
 /goal-lift --goal 50            # run until 50 committed
 /goal-lift --goal 10 --dry-run  # trial run, no commits
+/goal-lift --goal 20 --objects real_math.obj,rasterizer.obj   # restrict to these objects only
+/goal-lift --goal 15 --criteria "prioritize bipeds.obj and actor_combat.obj; skip anything touching D3D or rasterizer"
+/goal-lift --goal 20 --objects units.obj,actors.obj --criteria "prefer smaller functions (under 40 instructions) first"
 ```
