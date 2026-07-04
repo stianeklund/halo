@@ -52,7 +52,8 @@ def _load_delinked_ref_map(root_dir: str) -> dict:
         base = unit.get('base_path')
         if not src:
             continue
-        ref_map[src] = bool(base and os.path.exists(os.path.join(root_dir, base)))
+        has_ref = bool(base and os.path.exists(os.path.join(root_dir, base)))
+        ref_map[src] = ref_map.get(src, False) or has_ref
     return ref_map
 
 
