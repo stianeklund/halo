@@ -6532,8 +6532,96 @@
       "score": 92.9,
       "source": "src/halo/math/rectangles.c"
     },
+    "FUN_00109010": {
+      "score": 63.7,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_001090e0": {
+      "score": 100.0,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00109120": {
+      "score": 64.7,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00109240": {
+      "score": 85.7,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_001092d0": {
+      "score": 55.8,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_001093b0": {
+      "score": 88.7,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00109500": {
+      "score": 85.7,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_001099a0": {
+      "score": 100.0,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_001099f0": {
+      "score": 82.9,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00109ba0": {
+      "score": 75.5,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00109c70": {
+      "score": 82.2,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00109d90": {
+      "score": 100.0,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00109e90": {
+      "score": 47.9,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00109f40": {
+      "score": 52.4,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00109fc0": {
+      "score": 85.5,
+      "source": "src/halo/math/real_math.c"
+    },
     "FUN_0010a1c0": {
       "score": 100.0,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010a240": {
+      "score": 69.8,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010a2c0": {
+      "score": 52.7,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010a330": {
+      "score": 79.3,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010a4c0": {
+      "score": 95.7,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010a570": {
+      "score": 100.0,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010a5e0": {
+      "score": 70.7,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010a830": {
+      "score": 65.9,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_0010a930": {
@@ -6628,6 +6716,10 @@
       "score": 76.3,
       "source": "src/halo/math/random_math.c"
     },
+    "FUN_0010b8a0": {
+      "score": 100.0,
+      "source": "src/halo/math/real_math.c"
+    },
     "FUN_0010b910": {
       "score": 97.1,
       "source": "src/halo/math/random_math.c"
@@ -6639,6 +6731,18 @@
     "FUN_0010ba90": {
       "score": 100.0,
       "source": "src/halo/math/random_math.c"
+    },
+    "FUN_0010bd70": {
+      "score": 93.3,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010be20": {
+      "score": 41.4,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010bff0": {
+      "score": 47.1,
+      "source": "src/halo/math/real_math.c"
     },
     "FUN_0010c290": {
       "score": 93.3,
@@ -6660,6 +6764,14 @@
       "score": 67.7,
       "source": "src/halo/math/random_math.c"
     },
+    "FUN_0010c690": {
+      "score": 49.5,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010c700": {
+      "score": 81.6,
+      "source": "src/halo/math/real_math.c"
+    },
     "FUN_0010c780": {
       "score": 100.0,
       "source": "src/halo/math/random_math.c"
@@ -6675,6 +6787,266 @@
     "FUN_0010c920": {
       "score": 90.0,
       "source": "src/halo/math/random_math.c"
+    },
+    "FUN_0010cab0": {
+      "score": 57.7,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010caf0": {
+      "score": 77.8,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010cc90": {
+      "score": 64.7,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010cd40": {
+      "score": 83.0,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010d380": {
+      "score": 94.6,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010d4c0": {
+      "score": 57.7,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010d680": {
+      "score": 59.2,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010d770": {
+      "score": 73.1,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010d830": {
+      "score": 99.4,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010da90": {
+      "score": 84.1,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010db50": {
+      "score": 81.7,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010dbf0": {
+      "score": 82.6,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010e4d0": {
+      "score": 60.6,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010e6f0": {
+      "score": 75.1,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010e8a0": {
+      "score": 66.1,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010e930": {
+      "score": 65.4,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010e9f0": {
+      "score": 66.7,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010f310": {
+      "score": 50.6,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010f480": {
+      "score": 51.7,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010f9b0": {
+      "score": 98.0,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_0010fe80": {
+      "score": 84.6,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_001100c0": {
+      "score": 78.4,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00110210": {
+      "score": 79.2,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00110380": {
+      "score": 69.6,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_001104e0": {
+      "score": 66.1,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00110650": {
+      "score": 69.5,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00110730": {
+      "score": 97.0,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00110800": {
+      "score": 100.0,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00110820": {
+      "score": 78.1,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_001108b0": {
+      "score": 82.6,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00110a10": {
+      "score": 53.3,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00110b40": {
+      "score": 94.3,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00110be0": {
+      "score": 90.9,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00110c10": {
+      "score": 45.1,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00110d40": {
+      "score": 75.3,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00110e40": {
+      "score": 87.8,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00110e70": {
+      "score": 70.6,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00110ed0": {
+      "score": 91.6,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00111170": {
+      "score": 88.6,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00111220": {
+      "score": 70.1,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_001113c0": {
+      "score": 94.7,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_001114a0": {
+      "score": 85.5,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_001116b0": {
+      "score": 95.0,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00111910": {
+      "score": 55.2,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00111ba0": {
+      "score": 68.4,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00111ea0": {
+      "score": 91.9,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_001122e0": {
+      "score": 90.3,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_001127b0": {
+      "score": 100.0,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_001127e0": {
+      "score": 51.9,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00112fc0": {
+      "score": 95.8,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00113000": {
+      "score": 81.3,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00113080": {
+      "score": 100.0,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_001130a0": {
+      "score": 82.1,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_001130d0": {
+      "score": 58.2,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00113110": {
+      "score": 83.1,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00113160": {
+      "score": 93.3,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00113480": {
+      "score": 85.7,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_001134a0": {
+      "score": 98.2,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_001134e0": {
+      "score": 75.9,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00113710": {
+      "score": 100.0,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00113740": {
+      "score": 85.4,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_001137a0": {
+      "score": 93.0,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00113910": {
+      "score": 100.0,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00113930": {
+      "score": 100.0,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_001139d0": {
+      "score": 100.0,
+      "source": "src/halo/math/real_math.c"
     },
     "FUN_00114630": {
       "score": 98.7,
@@ -9101,7 +9473,7 @@
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
     "FUN_00174d10": {
-      "score": 83.8,
+      "score": 84.5,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
     "FUN_0017c7e0": {
@@ -9113,7 +9485,7 @@
       "source": "src/halo/rasterizer/rasterizer.c"
     },
     "FUN_0017c950": {
-      "score": 33.3,
+      "score": 66.7,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
     "FUN_0017cae0": {
