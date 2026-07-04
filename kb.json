@@ -2385,7 +2385,8 @@
      "ported": true
     }
    ],
-   "name": "actions.obj"
+   "name": "actions.obj",
+   "source": "ai/actions.c"
   },
   {
    "data": [
@@ -30101,7 +30102,8 @@
     }
    ],
    "name": "international_strings.obj",
-   "source_path": "text/international_strings.c"
+   "source_path": "text/international_strings.c",
+   "source": "text/international_strings.c"
   },
   {
    "functions": [
