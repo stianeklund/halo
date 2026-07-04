@@ -402,7 +402,11 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
       int idx;
 
       env = (char *)FUN_001906b0(sh, 1);
-      if (*(int *)(env + 0x58) != -1 && *(short *)(env + 0x5c) == 2) {
+      /* has_multi = secondary map used as a regular multitexture stage.
+       * A z-sprite secondary map (env+0x5c == 2) is NOT a multitexture
+       * stage — it goes through the dedicated z-sprite final-combiner
+       * path instead (original 0x175830: jne keeps 1, i.e. != 2). */
+      if (*(int *)(env + 0x58) != -1 && *(short *)(env + 0x5c) != 2) {
         has_multi = 1;
       } else {
         has_multi = 0;
