@@ -5509,7 +5509,7 @@
       "target_path": "build/CMakeFiles/halo.dir/src/halo/math/integer_math.c.obj",
       "base_path": "delinked/integer_math.obj",
       "metadata": {
-        "source_path": "halo/math/integer_math.c"
+        "source_path": "src/halo/math/integer_math.c"
       }
     },
     {
@@ -6644,7 +6644,7 @@
       "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/rasterizer_text.c.obj",
       "base_path": "delinked/rasterizer_text.obj",
       "metadata": {
-        "source_path": "halo/rasterizer/rasterizer_text.c"
+        "source_path": "src/halo/rasterizer/rasterizer_text.c"
       }
     },
     {
@@ -7997,6 +7997,14 @@
       "base_path": "delinked/functions/0016fa40.obj",
       "metadata": {
         "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox_profile.c"
+      }
+    },
+    {
+      "name": "halo/rasterizer_xbox_shadows",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox_shadows.c.obj",
+      "base_path": "delinked/rasterizer_xbox_shadows.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox_shadows.c"
       }
     }
   ]
