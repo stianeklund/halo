@@ -21998,7 +21998,7 @@
     },
     {
      "addr": "0x18c4d0",
-     "decl": "char FUN_0018C4D0(int16_t local_player_index);",
+     "decl": "char FUN_0018c4d0(int16_t local_player_index);",
      "ported": true
     },
     {
