@@ -7976,6 +7976,14 @@
       }
     },
     {
+      "name": "halo/FUN_00170c90",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/rasterizer.c.obj",
+      "base_path": "delinked/functions/00170c90.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/rasterizer.c"
+      }
+    },
+    {
       "name": "halo/FUN_0016f910",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox_profile.c.obj",
       "base_path": "delinked/functions/0016f910.obj",
