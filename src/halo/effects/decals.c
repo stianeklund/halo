@@ -2171,14 +2171,18 @@ void FUN_0017cc70(void)
   FUN_00162560();
 }
 
-/* Tail-call thunk to rasterizer decal rendering (FUN_00172a30).
+/* Tail-call thunk to rasterizer shadow-pass begin (FUN_00172a30).
  * 0x17ccb0: PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x172a30 — forwards 5 stack
- * args (ADD ESP,0x14 at 0x18b928): [EBP+8]=param_1, [EBP+C]=decal_set ptr
- * (MOV ESI,[EBP+C] at 0x172a81), [EBP+10]=position ptr (MOV EBX,[EBP+10]),
- * [EBP+14]=radius float (FLD [EBP+14] at 0x172b88), [EBP+18]=result_out. */
-void FUN_0017ccb0(int param_1, void *decal_set, void *position, float radius, int *result_out)
+ * args (ADD ESP,0x14 at 0x18b928): [EBP+8]=param_1 (unused), [EBP+C]=shadow
+ * matrix ptr (MOV ESI,[EBP+C] at 0x172a81), [EBP+10]=shadow color ptr
+ * (MOV EBX,[EBP+10]), [EBP+14]=object_bounding_radius (FLD [EBP+14] at
+ * 0x172b88), [EBP+18]=out_radius. */
+void FUN_0017ccb0(int param_1, const float *shadow_matrix,
+                  const float *shadow_color, float object_bounding_radius,
+                  float *out_radius)
 {
-  FUN_00172a30(param_1, decal_set, position, radius, result_out);
+  FUN_00172a30(param_1, shadow_matrix, shadow_color, object_bounding_radius,
+               out_radius);
 }
 
 /* Tail-call thunk to rasterizer decal rendering (FUN_00172590).

@@ -6281,7 +6281,7 @@
     },
     {
      "addr": "0x17ccb0",
-     "decl": "void FUN_0017ccb0(int param_1, void *decal_set, void *position, float radius, int *result_out);",
+     "decl": "void FUN_0017ccb0(int param_1, const float *shadow_matrix, const float *shadow_color, float object_bounding_radius, float *out_radius);",
      "ported": true
     },
     {
@@ -18914,7 +18914,8 @@
     },
     {
      "addr": "0x172a30",
-     "decl": "void FUN_00172a30(int param_1, void *decal_set, void *position, float radius, int *result_out);"
+     "decl": "char FUN_00172a30(int param_1, const float *shadow_matrix, const float *shadow_color, float object_bounding_radius, float *out_radius);",
+     "ported": true
     },
     {
      "addr": "0x172de0",
@@ -19268,7 +19269,7 @@
     },
     {
      "addr": "0x158140",
-     "decl": "void FUN_00158140(void);"
+     "decl": "void FUN_00158140(int a1, int a2, uint32_t a3, int a4, int a5);"
     },
     {
      "addr": "0x1584f0",
