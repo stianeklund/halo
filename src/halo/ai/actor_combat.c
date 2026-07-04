@@ -918,8 +918,15 @@ int actor_aim_grenade(int actor_handle, void *aim_params, float *out_aim_vector)
       sin_a = (float)sign * *(float *)0x253398;
       /* orig 0x22cc2: rotate input z is the facing z (actor+0x17c), set at
          line 649 above. Do NOT clobber it with aim_z before the rotate. */
+      /* cos(30 deg); paired with sin_a = +/-0.5 (*0x253398 = sin 30 deg) for a
+         length-preserving 30-degree rotation about world-up. The prior literal
+         0.857651889f (0x3f5b8f13, cos 30.95 deg) did NOT match the original
+         immediate 0x3f5db3d7 = 0.866025388: with sin=0.5 that pair has
+         sin^2+cos^2 = 0.9856, so it shrank the rotated facing ~0.7% and tripped
+         assert_valid_real_normal3d at actor_combat.c:1865 on grenade throws
+         whose aim was >30deg off the actor facing (PoA covenant combat). */
       rotate_vector3d_by_sincos(nrm, *(float **)0x31fc44, sin_a,
-                                0.857651889f /* 0x3f5db3d7 */);
+                                0.866025388f /* 0x3f5db3d7 = cos(30 deg) */);
       /* orig 0x22d1b: overwrite the rotated z with aim_z AFTER the rotate. */
       nrm[2] = aim_z;
       planar_mag = (float)x87_sqrt(aim_x * aim_x + aim_y * aim_y);
