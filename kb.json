@@ -18818,7 +18818,7 @@
     },
     {
      "addr": "0x16f480",
-     "decl": "void FUN_0016f480(void);"
+     "decl": "void FUN_0016f480(const char *message@<esi>, int16_t profile_index@<di>, char condition);"
     },
     {
      "addr": "0x16f500",
@@ -18843,15 +18843,6 @@
     {
      "addr": "0x16f8a0",
      "decl": "void FUN_0016f8a0(void);"
-    },
-    {
-     "addr": "0x16f910",
-     "decl": "void FUN_0016f910(int type);",
-     "ported": false
-    },
-    {
-     "addr": "0x16fa40",
-     "decl": "void FUN_0016fa40(int param1);"
     },
     {
      "addr": "0x16fb80",
@@ -36209,6 +36200,22 @@
    ]
   },
   {
+   "name": "rasterizer_xbox_profile.obj",
+   "source": "rasterizer/xbox/rasterizer_xbox_profile.c",
+   "functions": [
+    {
+     "addr": "0x16f910",
+     "decl": "void FUN_0016f910(int16_t profile);",
+     "ported": true
+    },
+    {
+     "addr": "0x16fa40",
+     "decl": "void FUN_0016fa40(int16_t profile);",
+     "ported": true
+    }
+   ]
+  },
+  {
    "functions": [
     {
      "addr": "0x001cfb73",
@@ -37284,7 +37291,7 @@
     },
     {
      "addr": "0x001ef8c0",
-     "decl": "void D3DDevice_InsertCallback(void);"
+     "decl": "void __stdcall D3DDevice_InsertCallback(uint32_t type, void *callback, uint32_t context);"
     },
     {
      "addr": "0x001ef930",

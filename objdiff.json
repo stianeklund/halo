@@ -7958,6 +7958,38 @@
       "metadata": {
         "source_path": "src/halo/rasterizer/rasterizer.c"
       }
+    },
+    {
+      "name": "halo/rasterizer_FUN_0016eef0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/rasterizer.c.obj",
+      "base_path": "delinked/rasterizer_FUN_0016eef0.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/rasterizer.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00172a30",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/rasterizer.c.obj",
+      "base_path": "delinked/functions/00172a30.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/rasterizer.c"
+      }
+    },
+    {
+      "name": "halo/FUN_0016f910",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox_profile.c.obj",
+      "base_path": "delinked/functions/0016f910.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox_profile.c"
+      }
+    },
+    {
+      "name": "halo/FUN_0016fa40",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox_profile.c.obj",
+      "base_path": "delinked/functions/0016fa40.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox_profile.c"
+      }
     }
   ]
 }
