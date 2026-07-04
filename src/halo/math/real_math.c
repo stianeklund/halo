@@ -30,6 +30,14 @@ void FUN_0001ad40(float *in, float *out)
 
 #include "x87_math.h"
 
+#if defined(__clang__)
+#define real_math_fabs_double_from_float(x) __builtin_fabs((double)(x))
+#else
+extern double __cdecl fabs(double);
+#pragma intrinsic(fabs)
+#define real_math_fabs_double_from_float(x) fabs((double)(x))
+#endif
+
 /* FUN_0001ad60 (0x1ad60) — Euclidean distance between two 3D points.
  * Confirmed: cdecl, 2 pointer args. Pure FPU leaf (FSUB/FMUL/FADD/FSQRT). */
 float FUN_0001ad60(float *a, float *b)
@@ -230,12 +238,17 @@ void FUN_001092d0(float *out_matrix, float *axis, float sine, float cosine)
   float z;
   float xx;
   float yy;
-  float zz;
-  float one_minus_cosine;
+  volatile float zz;
+  volatile float one_minus_cosine;
   float xy_term;
   float xz_term;
   float yz_term;
+  volatile float sine_x;
+  volatile float sine_y;
+  float sine_z;
+  volatile float *out;
 
+  out = (volatile float *)out_matrix;
   x = axis[0];
   y = axis[1];
   z = axis[2];
@@ -244,23 +257,29 @@ void FUN_001092d0(float *out_matrix, float *axis, float sine, float cosine)
   yy = y * y;
   zz = z * z;
   one_minus_cosine = 1.0f - cosine;
+  sine_x = sine * x;
+  sine_y = sine * y;
+  sine_z = sine * z;
 
   out_matrix[0] = 1.0f;
   out_matrix[1] = (1.0f - xx) * cosine + xx;
 
   xy_term = y * x * one_minus_cosine;
-  out_matrix[2] = sine * z + xy_term;
-  out_matrix[4] = xy_term - sine * z;
+  out[2] = xy_term;
+  out[4] = xy_term - sine_z;
+  out[2] = sine_z + out[2];
   out_matrix[5] = (1.0f - yy) * cosine + yy;
 
   xz_term = z * x * one_minus_cosine;
-  out_matrix[3] = xz_term - sine * y;
-  out_matrix[7] = xz_term + sine * y;
+  out[3] = xz_term;
+  out[7] = xz_term + sine_y;
+  out[3] = out[3] - sine_y;
   out_matrix[9] = (1.0f - zz) * cosine + zz;
 
   yz_term = z * y * one_minus_cosine;
-  out_matrix[6] = sine * x + yz_term;
-  out_matrix[8] = yz_term - sine * x;
+  out[6] = yz_term;
+  out[8] = yz_term - sine_x;
+  out[6] = sine_x + out[6];
 
   out_matrix[10] = 0.0f;
   out_matrix[11] = 0.0f;
@@ -838,6 +857,8 @@ void FUN_00109e90(float *out, float yaw, float pitch, float roll)
 {
   float cr, sr, sp, cy, sy;
   float cp_f;
+  volatile float sy_cp;
+  volatile float cp_sr;
 
   cr = x87_fcos(roll);
   ((uint32_t *)out)[0] = 0x3f800000;
@@ -849,14 +870,16 @@ void FUN_00109e90(float *out, float yaw, float pitch, float roll)
   sp = x87_fsin(pitch);
   cy = x87_fcos(yaw);
   sy = x87_fsin(yaw);
+  sy_cp = sy * cp_f;
+  cp_sr = cp_f * sr;
   out[1] = cy * cp_f;
   out[2] = sy * cr - (float)(sp * sr) * cy;
   out[3] = sy * sr + sp * cr * cy;
-  out[4] = -(sy * cp_f);
+  out[4] = -sy_cp;
   out[5] = cy * cr + (float)(sp * sr) * sy;
   out[6] = cy * sr - sp * cr * sy;
   out[7] = -sp;
-  out[8] = -(cp_f * sr);
+  out[8] = -cp_sr;
   out[9] = cp_f * cr;
 }
 
@@ -887,15 +910,13 @@ void FUN_00109f40(float *matrix, float *euler)
   if ((double)*(float *)0x28c728 < (double)cos_pitch) {
     inv_neg = *(float *)0x255e94 / cos_pitch;
     inv_pos = *(float *)0x2533c8 / cos_pitch;
-    euler[2] = (float)atan2((double)(inv_neg * matrix[8]),
-                            (double)(inv_pos * matrix[9]));
-    euler[0] = (float)atan2((double)(inv_neg * matrix[4]),
-                            (double)(inv_pos * matrix[1]));
+    euler[2] = x87_fatan2f(inv_neg * matrix[8], inv_pos * matrix[9]);
+    euler[0] = x87_fatan2f(inv_neg * matrix[4], inv_pos * matrix[1]);
     return;
   }
 
   euler[2] = 0.0f;
-  euler[0] = (float)atan2((double)matrix[2], (double)matrix[5]);
+  euler[0] = x87_fatan2f(matrix[2], matrix[5]);
 }
 
 /* Convert a 4x3 matrix rotation part to a unit quaternion (Shepperd's method).
@@ -1014,20 +1035,12 @@ void FUN_0010a240(float *matrix, float *plane, int out)
  * Row 0 = forward, row 1 = cross(forward, up), row 2 = up. */
 void FUN_0010a2c0(float *out, float *forward, float *up)
 {
-  float f0, f1, f2, u0, u1, u2;
-
   out[0] = forward[0];
   out[1] = forward[1];
   out[2] = forward[2];
-  f0 = forward[0];
-  f1 = forward[1];
-  f2 = forward[2];
-  u0 = up[0];
-  u1 = up[1];
-  u2 = up[2];
-  out[3] = u1 * f2 - f1 * u2;
-  out[4] = f0 * u2 - u0 * f2;
-  out[5] = f1 * u0 - u1 * f0;
+  out[5] = forward[1] * up[0] - up[1] * forward[0];
+  out[4] = forward[0] * up[2] - up[0] * forward[2];
+  out[3] = up[1] * forward[2] - forward[1] * up[2];
   out[6] = up[0];
   out[7] = up[1];
   out[8] = up[2];
@@ -1604,7 +1617,7 @@ char FUN_0010be20(float *ray_origin, float *ray_dir, float *aabb)
   float tmax = 3.4028235e+38f;
   float t1, t2;
 
-  if (fabsf(ray_dir[0]) < *(double *)0x2533d0) {
+  if (real_math_fabs_double_from_float(ray_dir[0]) < *(double *)0x2533d0) {
     if (ray_origin[0] < aabb[0])
       return 0;
     if (ray_origin[0] > aabb[1])
@@ -1627,7 +1640,7 @@ char FUN_0010be20(float *ray_origin, float *ray_dir, float *aabb)
       return 0;
   }
 
-  if (fabsf(ray_dir[1]) < *(double *)0x2533d0) {
+  if (real_math_fabs_double_from_float(ray_dir[1]) < *(double *)0x2533d0) {
     if (ray_origin[1] < aabb[2])
       return 0;
     if (ray_origin[1] > aabb[3])
@@ -1663,7 +1676,7 @@ char FUN_0010bff0(float *ray_origin, float *ray_dir, float *aabb)
   float tmax = 3.4028235e+38f;
   float t1, t2;
 
-  if (fabsf(ray_dir[0]) < *(double *)0x2533d0) {
+  if (real_math_fabs_double_from_float(ray_dir[0]) < *(double *)0x2533d0) {
     if (ray_origin[0] < aabb[0])
       return 0;
     if (ray_origin[0] > aabb[1])
@@ -1686,7 +1699,7 @@ char FUN_0010bff0(float *ray_origin, float *ray_dir, float *aabb)
       return 0;
   }
 
-  if (fabsf(ray_dir[1]) < *(double *)0x2533d0) {
+  if (real_math_fabs_double_from_float(ray_dir[1]) < *(double *)0x2533d0) {
     if (ray_origin[1] < aabb[2])
       return 0;
     if (ray_origin[1] > aabb[3])
@@ -1709,7 +1722,7 @@ char FUN_0010bff0(float *ray_origin, float *ray_dir, float *aabb)
       return 0;
   }
 
-  if (fabsf(ray_dir[2]) < *(double *)0x2533d0) {
+  if (real_math_fabs_double_from_float(ray_dir[2]) < *(double *)0x2533d0) {
     if (ray_origin[2] < aabb[4])
       return 0;
     if (ray_origin[2] > aabb[5])
@@ -1766,17 +1779,16 @@ float angle_between_normals3d(float *a, float *b)
  * Uses temporaries for aliasing safety. */
 void FUN_0010c690(float *v1, float *axis, float scale1, float scale2)
 {
-  float a = v1[0];
-  float ax2 = axis[2];
-  float ax0 = axis[0];
-  float b = v1[1];
-  float ax0b = axis[0];
-  float c = v1[0];
-  float ax1 = axis[1];
+  float cross0;
+  float cross1;
+  float cross2;
 
-  v1[0] = (axis[1] * v1[2] - v1[1] * axis[2]) * scale1 + scale2 * v1[0];
-  v1[1] = (a * ax2 - ax0 * v1[2]) * scale1 + scale2 * v1[1];
-  v1[2] = scale2 * v1[2] + (b * ax0b - c * ax1) * scale1;
+  cross0 = axis[1] * v1[2] - v1[1] * axis[2];
+  cross1 = v1[0] * axis[2] - axis[0] * v1[2];
+  cross2 = v1[1] * axis[0] - v1[0] * axis[1];
+  v1[0] = cross0 * scale1 + scale2 * v1[0];
+  v1[1] = cross1 * scale1 + scale2 * v1[1];
+  v1[2] = cross2 * scale1 + scale2 * v1[2];
 }
 
 /* 0x10c700 — Rotate two 3D vectors around an axis: rotate v1 toward v2 and v2
@@ -1825,9 +1837,10 @@ void sphere_intersects_rectangle3d(float *quaternion)
  * out = (axis * sin(angle/2), cos(angle/2)). */
 void FUN_0010cab0(float *out, float angle, float *axis)
 {
-  float s = x87_fsin(angle * 0.5f);
-  float c = x87_fcos(angle * 0.5f);
+  float s;
+  float c;
 
+  x87_fsincos(angle * 0.5f, &s, &c);
   out[3] = c;
   out[0] = s * axis[0];
   out[1] = s * axis[1];
@@ -2122,8 +2135,9 @@ float vector_to_line_distance_squared3d(float *p1, float *p2, float *p3,
 /* 0x10d380 — Ray-sphere intersection.
  * p1=ray_origin, p2=sphere_radius, p3=sphere_center, p4=ray_direction.
  * Returns 1 if intersect, sets *out_t and *out_normal. */
-char FUN_0010d380(float *p1, float p2, float *p3, float *p4, float *out_t,
-                  float *out_normal)
+__declspec(noinline) char FUN_0010d380(float *p1, float p2, float *p3,
+                                       float *p4, float *out_t,
+                                       float *out_normal)
 {
   float dx, dy, dz;
   float dot;
@@ -2134,9 +2148,9 @@ char FUN_0010d380(float *p1, float p2, float *p3, float *p4, float *out_t,
   dx = p3[0] - p1[0];
   dy = p3[1] - p1[1];
   dz = p3[2] - p1[2];
-  dot = dx * p4[0] + dy * p4[1] + dz * p4[2];
+  dot = dz * p4[2] + dy * p4[1] + dx * p4[0];
   if (dot < 0.0f) {
-    dist_sq = dy * dy + dx * dx + dz * dz;
+    dist_sq = dz * dz + dx * dx + dy * dy;
     c = dist_sq - p2 * p2;
     if (c <= 0.0f) {
       *out_t = 0.0f;
@@ -2167,24 +2181,25 @@ char FUN_0010d380(float *p1, float p2, float *p3, float *p4, float *out_t,
 char FUN_0010d4c0(float *p1, float p2, float p3, float *p4, float *p5,
                   float *p6, float *p7)
 {
-  float dx, dy;
+  float local_origin[3];
   float bp, c2;
   float a, t;
   char hit;
-  float local_10;
 
-  dx = p4[0] - p1[0];
-  dy = p4[1] - p1[1];
-  bp = dy * p5[1] + dx * p5[0];
-  c2 = (dx * dx + dy * dy) - p3 * p3;
+  local_origin[1] = p4[0] - p1[0];
+  local_origin[2] = p4[1] - p1[1];
+  bp = local_origin[1] * p5[0] + local_origin[2] * p5[1];
+  c2 = (local_origin[2] * local_origin[2] +
+        local_origin[1] * local_origin[1]) -
+       p3 * p3;
   t = 0.0f;
-  if (c2 <= 0.0f) {
-    a = p5[1] * p5[1] + p5[0] * p5[0];
+  if (!(c2 <= 0.0f)) {
+    a = p5[0] * p5[0] + p5[1] * p5[1];
     c2 = bp * bp - a * c2;
-    if (c2 < 0.0f)
+    if (!(0.0f <= c2))
       return 0;
     c2 = -(sqrtf(c2) + bp);
-    if (c2 <= a)
+    if (!(c2 <= a))
       return 0;
     t = c2 / a;
   }
@@ -2195,29 +2210,23 @@ char FUN_0010d4c0(float *p1, float p2, float p3, float *p4, float *p5,
       if (0.0f <= bp)
         return 0;
       *p6 = t;
-      p7[0] = t * p5[0] + dx;
-      p7[1] = t * p5[1] + dy;
+      p7[0] = t * p5[0] + local_origin[1];
+      p7[1] = t * p5[1] + local_origin[2];
       FUN_0010c290(p7);
       p7[2] = 0.0f;
       goto check;
     }
-    local_10 = p1[0];
-    dy = p2 + p1[2];
-    dx = p1[1];
-    {
-      float local_origin[3];
-      local_origin[0] = local_10;
-      local_origin[1] = dx;
-      local_origin[2] = dy;
-      hit = FUN_0010d380(local_origin, p3, p4, p5, p6, p7);
-    }
+    local_origin[0] = p1[0];
+    local_origin[1] = p1[1];
+    local_origin[2] = p2 + p1[2];
+    hit = FUN_0010d380(local_origin, p3, p4, p5, p6, p7);
   } else {
     hit = FUN_0010d380(p1, p3, p4, p5, p6, p7);
   }
   if (hit == 0)
     return 0;
 check:
-  if (p5[0] * p7[0] + p7[1] * p5[1] + p7[2] * p5[2] <= 0.0f) {
+  if (p7[2] * p5[2] + p7[1] * p5[1] + p5[0] * p7[0] <= 0.0f) {
     return hit;
   }
   return 0;
@@ -2383,62 +2392,62 @@ char FUN_0010da90(float *p1, float *p2, float *p3, float cone_radius,
   dx = p1[0] - p2[0];
   dy = p1[1] - p2[1];
   dz = p1[2] - p2[2];
-  dot = dx * p3[0] + dy * p3[1] + dz * p3[2];
-  if (dot < 0.0f) {
+  dot = dz * p3[2] + dy * p3[1] + dx * p3[0];
+  if (!(0.0f <= dot)) {
     return 0;
   }
-  if (dot > cone_radius) {
+  if (!(dot <= cone_radius)) {
     return 0;
   }
   rsq = dot * dot;
-  dist_sq = (dy * dy + dx * dx + dz * dz) * cosine * cosine;
-  if (dist_sq < rsq) {
+  dist_sq = (dz * dz + dx * dx + dy * dy) * cosine * cosine;
+  if (!(rsq <= dist_sq)) {
     return 0;
   }
   return 1;
 }
 
 /* 0x10db50 — 2D cone vs circle test. */
-char FUN_0010db50(float *p1, float *p2, float *p3, float cone_radius,
-                  float cosine)
+__declspec(noinline) char FUN_0010db50(float *p1, float *p2, float *p3,
+                                       float cone_radius, float cosine)
 {
   float dx, dy;
   float dist_sq;
   float dot;
   float radius_sq;
 
-  if (cosine < 0.0f) {
+  if (!(0.0f <= cosine)) {
     display_assert("cosine>=0.0f", "c:\\halo\\SOURCE\\math\\real_math.c", 0x599,
                    1);
     system_exit(-1);
   }
   dx = p1[0] - p2[0];
   dy = p1[1] - p2[1];
-  dist_sq = dy * dy + dx * dx;
+  dist_sq = dx * dx + dy * dy;
   radius_sq = cone_radius * cone_radius;
-  if (radius_sq < dist_sq) {
+  if (!(dist_sq <= radius_sq)) {
     return 0;
   }
   dot = dx * p3[0] + dy * p3[1];
-  if (dot < 0.0f) {
+  if (!(0.0f <= dot)) {
     return 0;
   }
-  if (dist_sq * cosine * cosine < dot * dot) {
+  if (!(dot * dot <= dist_sq * cosine * cosine)) {
     return 0;
   }
   return 1;
 }
 
 /* 0x10dbf0 — 3D cone vs sphere test (variant). */
-char FUN_0010dbf0(float *p1, float *p2, float *p3, float cone_radius,
-                  float cosine)
+__declspec(noinline) char FUN_0010dbf0(float *p1, float *p2, float *p3,
+                                       float cone_radius, float cosine)
 {
   float dx, dy, dz;
   float dist_sq;
   float dot;
   float radius_sq;
 
-  if (cosine < 0.0f) {
+  if (!(0.0f <= cosine)) {
     display_assert("cosine>=0.0f", "c:\\halo\\SOURCE\\math\\real_math.c", 0x5b6,
                    1);
     system_exit(-1);
@@ -2446,16 +2455,16 @@ char FUN_0010dbf0(float *p1, float *p2, float *p3, float cone_radius,
   dx = p1[0] - p2[0];
   dy = p1[1] - p2[1];
   dz = p1[2] - p2[2];
-  dist_sq = dy * dy + dx * dx + dz * dz;
+  dist_sq = dz * dz + dx * dx + dy * dy;
   radius_sq = cone_radius * cone_radius;
-  if (radius_sq < dist_sq) {
+  if (!(dist_sq <= radius_sq)) {
     return 0;
   }
   dot = dx * p3[0] + dy * p3[1] + dz * p3[2];
-  if (dot < 0.0f) {
+  if (!(0.0f <= dot)) {
     return 0;
   }
-  if (dist_sq * cosine * cosine < dot * dot) {
+  if (!(dot * dot <= dist_sq * cosine * cosine)) {
     return 0;
   }
   return 1;
@@ -2890,22 +2899,22 @@ char FUN_0010e6f0(float *p1, float *p2, float *p3, float *p4, float *p5,
   t =
     (origin_to_v0[0] * n[0] + origin_to_v0[1] * n[1] + origin_to_v0[2] * n[2]) *
     inv_det;
-  if (t < 0.0f)
+  if (!(0.0f <= t))
     return 0;
-  if (t > 1.0f)
+  if (!(t <= 1.0f))
     return 0;
 
   cross_product3d(origin_to_v0, p2, scratch);
   u = (e2[0] * scratch[0] + scratch[1] * e2[1] + scratch[2] * e2[2]) * inv_det;
-  if (u < 0.0f)
+  if (!(0.0f <= u))
     return 0;
-  if (u > 1.0f)
+  if (!(u <= 1.0f))
     return 0;
   v =
     -((e1[0] * scratch[0] + scratch[1] * e1[1] + scratch[2] * e1[2]) * inv_det);
-  if (v < 0.0f)
+  if (!(0.0f <= v))
     return 0;
-  if (u + v > 1.0f)
+  if (!(u + v <= 1.0f))
     return 0;
   *p6 = t;
   return 1;
@@ -2917,7 +2926,7 @@ char FUN_0010e8a0(float *point, float radius, float *rect)
 {
   float dx, dy;
 
-  if (point[0] > rect[1]) {
+  if (!(point[0] <= rect[1])) {
     dx = point[0] - rect[1];
   } else {
     dx = 0.0f;
@@ -2925,7 +2934,7 @@ char FUN_0010e8a0(float *point, float radius, float *rect)
       dx = rect[0] - point[0];
     }
   }
-  if (point[1] > rect[3]) {
+  if (!(point[1] <= rect[3])) {
     dy = point[1] - rect[3];
   } else {
     dy = 0.0f;
@@ -2933,7 +2942,7 @@ char FUN_0010e8a0(float *point, float radius, float *rect)
       dy = rect[2] - point[1];
     }
   }
-  if (radius * radius < dx * dx + dy * dy) {
+  if (!(dx * dx + dy * dy <= radius * radius)) {
     return 0;
   }
   return 1;
@@ -2946,7 +2955,7 @@ char FUN_0010e930(float *point, float radius, float *aabb)
 {
   float dx, dy, dz;
 
-  if (point[0] > aabb[1]) {
+  if (!(point[0] <= aabb[1])) {
     dx = point[0] - aabb[1];
   } else {
     dx = 0.0f;
@@ -2954,7 +2963,7 @@ char FUN_0010e930(float *point, float radius, float *aabb)
       dx = aabb[0] - point[0];
     }
   }
-  if (point[1] > aabb[3]) {
+  if (!(point[1] <= aabb[3])) {
     dy = point[1] - aabb[3];
   } else {
     dy = 0.0f;
@@ -2962,7 +2971,7 @@ char FUN_0010e930(float *point, float radius, float *aabb)
       dy = aabb[2] - point[1];
     }
   }
-  if (point[2] > aabb[5]) {
+  if (!(point[2] <= aabb[5])) {
     dz = point[2] - aabb[5];
   } else {
     dz = 0.0f;
@@ -2970,7 +2979,7 @@ char FUN_0010e930(float *point, float radius, float *aabb)
       dz = aabb[4] - point[2];
     }
   }
-  if (radius * radius <= dx * dx + dy * dy + dz * dz) {
+  if (!(dx * dx + dy * dy + dz * dz < radius * radius)) {
     return 0;
   }
   return 1;
@@ -3275,7 +3284,7 @@ char FUN_0010f310(float *p1, float *p2, float *p3, float *out)
   det = (p2[2] * p1[1] - p1[2] * p2[1]) * p3[0] +
         (p1[2] * p2[0] - p1[0] * p2[2]) * p3[1] +
         (p1[0] * p2[1] - p2[0] * p1[1]) * p3[2];
-  if (fabsf(det) < *(double *)0x2533d0) {
+  if (real_math_fabs_double_from_float(det) < *(double *)0x2533d0) {
     return 0;
   }
 
@@ -3343,9 +3352,11 @@ char FUN_0010f480(float *p1, float *p2, float *out, float *cross_out)
  * *vel. Returns 1 when within reach this step (snapped to target/bound, *vel
  * zeroed), 0 while still accelerating.
  * Constants: 0x2533c0 = 0.0f, 0x253398 = 0.5f. */
-char accelerate_to_position(float *pos, float *vel, float target, float accel,
-                            float max_speed, float wrap_min, float wrap_max,
-                            char wrap_flag)
+__declspec(noinline) char accelerate_to_position(float *pos, float *vel,
+                                                 float target, float accel,
+                                                 float max_speed,
+                                                 float wrap_min, float wrap_max,
+                                                 char wrap_flag)
 {
   float cur_pos;
   float cur_vel;
@@ -3391,7 +3402,7 @@ char accelerate_to_position(float *pos, float *vel, float target, float accel,
       speed = -speed;
     step = speed - cur_vel;
     step_clamped = step;
-    if (accel < fabsf(step)) {
+    if (accel < real_math_fabs_double_from_float(step)) {
       step_clamped = accel;
       if (step < *(float *)0x2533c0)
         step_clamped = -accel;
@@ -3768,9 +3779,9 @@ unsigned char *quantize_real_to_byte_rectangle3d(float *bounds, int *rect,
 /* 0x10fe80 — Validate 2D normal: x²+y² close to 1.0 and not NaN/Inf. */
 int FUN_0010fe80(float x, float y)
 {
-  float diff = (y * y + x * x) - 1.0f;
+  float diff = (x * x + y * y) - 1.0f;
   if ((*(unsigned int *)&diff & 0x7f800000) != 0x7f800000 &&
-      fabsf(diff) < *(double *)0x2549d8) {
+      real_math_fabs_double_from_float(diff) < *(double *)0x2549d8) {
     return 1;
   }
   return 0;
@@ -3855,9 +3866,9 @@ char FUN_001100c0(float *p1, float p2, float *p3, float *p4, float p5,
     system_exit(-1);
   }
   {
-    float diff = (cosine * cosine + sine * sine) - 1.0f;
+    float diff = (sine * sine + cosine * cosine) - 1.0f;
     if ((*(unsigned int *)&diff & 0x7f800000) == 0x7f800000 ||
-        *(double *)0x2549d8 <= fabsf(diff)) {
+        *(double *)0x2549d8 <= real_math_fabs_double_from_float(diff)) {
       csprintf((char *)0x5ab100,
                "%s, %s: assert_valid_real_sine_cosine(%f, %f)", "sine",
                "cosine", "c:\\halo\\SOURCE\\math\\real_math.c", 0x878, 1);
@@ -3867,13 +3878,13 @@ char FUN_001100c0(float *p1, float p2, float *p3, float *p4, float p5,
   }
   dx = p1[0] - p3[0];
   dy = p1[1] - p3[1];
-  dot = dx * p4[0] + dy * p4[1];
+  dot = dy * p4[1] + dx * p4[0];
   far_lim = -p2;
   if (far_lim < dot) {
     far_lim = p2 + p5;
     if (far_lim >= dot) {
-      dist_sq = p2 * p2 + (p2 * sine + p2 * sine + dot) * dot;
-      cosine = (dx * dx + dy * dy) * cosine * cosine;
+      dist_sq = (p2 * sine + p2 * sine + dot) * dot + p2 * p2;
+      cosine = (dy * dy + dx * dx) * cosine * cosine;
       if (cosine < dist_sq) {
         return 1;
       }
@@ -3900,9 +3911,9 @@ char FUN_00110210(float *p1, float p2, float *p3, float *p4, float p5,
     system_exit(-1);
   }
   {
-    float diff = (cosine * cosine + sine * sine) - 1.0f;
+    float diff = (sine * sine + cosine * cosine) - 1.0f;
     if ((*(unsigned int *)&diff & 0x7f800000) == 0x7f800000 ||
-        *(double *)0x2549d8 <= fabsf(diff)) {
+        *(double *)0x2549d8 <= real_math_fabs_double_from_float(diff)) {
       csprintf((char *)0x5ab100,
                "%s, %s: assert_valid_real_sine_cosine(%f, %f)", "sine",
                "cosine", "c:\\halo\\SOURCE\\math\\real_math.c", 0x898, 1);
@@ -3913,13 +3924,13 @@ char FUN_00110210(float *p1, float p2, float *p3, float *p4, float p5,
   dx = p1[0] - p3[0];
   dy = p1[1] - p3[1];
   dz = p1[2] - p3[2];
-  dot = dx * p4[0] + dy * p4[1] + dz * p4[2];
+  dot = dz * p4[2] + dy * p4[1] + dx * p4[0];
   far_lim = -p2;
   if (far_lim < dot) {
     far_lim = p2 + p5;
     if (far_lim >= dot) {
-      dist_sq = p2 * p2 + (p2 * sine + p2 * sine + dot) * dot;
-      cosine = (dx * dx + dy * dy + dz * dz) * cosine * cosine;
+      dist_sq = (p2 * sine + p2 * sine + dot) * dot + p2 * p2;
+      cosine = (dz * dz + dy * dy + dx * dx) * cosine * cosine;
       if (cosine < dist_sq) {
         return 1;
       }
@@ -3943,9 +3954,9 @@ char FUN_00110380(float *p1, float p2, float *p3, float *p4, float p5,
     system_exit(-1);
   }
   {
-    float diff = (cosine * cosine + sine * sine) - 1.0f;
+    float diff = (sine * sine + cosine * cosine) - 1.0f;
     if ((*(unsigned int *)&diff & 0x7f800000) == 0x7f800000 ||
-        *(double *)0x2549d8 <= fabsf(diff)) {
+        *(double *)0x2549d8 <= real_math_fabs_double_from_float(diff)) {
       csprintf((char *)0x5ab100,
                "%s, %s: assert_valid_real_sine_cosine(%f, %f)", "sine",
                "cosine", "c:\\halo\\SOURCE\\math\\real_math.c", 0x8b8, 1);
@@ -3953,7 +3964,7 @@ char FUN_00110380(float *p1, float p2, float *p3, float *p4, float p5,
       system_exit(-1);
     }
   }
-  dot = (p1[1] - p3[1]) * p4[1] + (p1[0] - p3[0]) * p4[0];
+  dot = (p1[0] - p3[0]) * p4[0] + (p1[1] - p3[1]) * p4[1];
   if (-p2 <= dot) {
     if (dot <= p2 + p5 &&
         FUN_0010db50(p1, p3, p4, p2 + p5 - dot + p2, cosine)) {
@@ -3978,9 +3989,9 @@ char FUN_001104e0(float *p1, float p2, float *p3, float *p4, float p5,
     system_exit(-1);
   }
   {
-    float diff = (cosine * cosine + sine * sine) - 1.0f;
+    float diff = (sine * sine + cosine * cosine) - 1.0f;
     if ((*(unsigned int *)&diff & 0x7f800000) == 0x7f800000 ||
-        *(double *)0x2549d8 <= fabsf(diff)) {
+        *(double *)0x2549d8 <= real_math_fabs_double_from_float(diff)) {
       csprintf((char *)0x5ab100,
                "%s, %s: assert_valid_real_sine_cosine(%f, %f)", "sine",
                "cosine", "c:\\halo\\SOURCE\\math\\real_math.c", 0x8de, 1);
@@ -3989,7 +4000,8 @@ char FUN_001104e0(float *p1, float p2, float *p3, float *p4, float p5,
     }
   }
   dot =
-    (p1[1] - p3[1]) * p4[1] + (p1[2] - p3[2]) * p4[2] + (p1[0] - p3[0]) * p4[0];
+    ((p1[0] - p3[0]) * p4[0] + (p1[2] - p3[2]) * p4[2]) +
+    (p1[1] - p3[1]) * p4[1];
   if (-p2 <= dot) {
     if (dot <= p2 + p5 &&
         FUN_0010dbf0(p1, p3, p4, p2 + p5 - dot + p2, cosine)) {
@@ -4038,7 +4050,7 @@ void FUN_00110650(float *p_a, float *p_b, float accel, float value,
 
   if (wrap_flag != '\0') {
     step = value - p_b[0];
-    if (accel < fabsf(step)) {
+    if (accel < real_math_fabs_double_from_float(step)) {
       if (step < *(float *)0x2533c0)
         step = -accel;
       else
@@ -4061,8 +4073,9 @@ void FUN_00110650(float *p_a, float *p_b, float accel, float value,
     target = wrap_max;
   else
     target = wrap_min;
-  accelerate_to_position(p_a, p_b, target, accel, fabsf(value), wrap_min,
-                         wrap_max, 0);
+  accelerate_to_position(p_a, p_b, target, accel,
+                         (float)real_math_fabs_double_from_float(value),
+                         wrap_min, wrap_max, 0);
 }
 
 /* Initialize a vector tree structure (k-d tree for spatial lookups). */
@@ -4235,21 +4248,6 @@ unsigned int FUN_00110a10(unsigned int param_1, unsigned char *param_2,
 {
   unsigned int uVar1;
   unsigned int uVar2;
-  int iVar3;
-  int iVar4;
-  int iVar5;
-  int iVar6;
-  int iVar7;
-  int iVar8;
-  int iVar9;
-  int iVar10;
-  int iVar11;
-  int iVar12;
-  int iVar13;
-  int iVar14;
-  int iVar15;
-  int iVar16;
-  int iVar17;
   unsigned int uVar18;
 
   uVar2 = param_1 & 0xffff;
@@ -4267,25 +4265,38 @@ unsigned int FUN_00110a10(unsigned int param_1, unsigned char *param_2,
       uVar18 = uVar1 >> 4;
       uVar1 = uVar1 + uVar18 * -0x10;
       do {
-        iVar3 = uVar2 + *param_2;
-        iVar4 = iVar3 + (unsigned int)param_2[1];
-        iVar5 = iVar4 + (unsigned int)param_2[2];
-        iVar6 = iVar5 + (unsigned int)param_2[3];
-        iVar7 = iVar6 + (unsigned int)param_2[4];
-        iVar8 = iVar7 + (unsigned int)param_2[5];
-        iVar9 = iVar8 + (unsigned int)param_2[6];
-        iVar10 = iVar9 + (unsigned int)param_2[7];
-        iVar11 = iVar10 + (unsigned int)param_2[8];
-        iVar12 = iVar11 + (unsigned int)param_2[9];
-        iVar13 = iVar12 + (unsigned int)param_2[10];
-        iVar14 = iVar13 + (unsigned int)param_2[0xb];
-        iVar15 = iVar14 + (unsigned int)param_2[0xc];
-        iVar16 = iVar15 + (unsigned int)param_2[0xd];
-        iVar17 = iVar16 + (unsigned int)param_2[0xe];
-        uVar2 = iVar17 + (unsigned int)param_2[0xf];
-        param_1 = param_1 + iVar3 + iVar4 + iVar5 + iVar6 + iVar7 + iVar8 +
-                  iVar9 + iVar10 + iVar11 + iVar12 + iVar13 + iVar14 + iVar15 +
-                  iVar16 + iVar17 + uVar2;
+        uVar2 = uVar2 + (unsigned int)param_2[0];
+        param_1 = param_1 + uVar2;
+        uVar2 = uVar2 + (unsigned int)param_2[1];
+        param_1 = param_1 + uVar2;
+        uVar2 = uVar2 + (unsigned int)param_2[2];
+        param_1 = param_1 + uVar2;
+        uVar2 = uVar2 + (unsigned int)param_2[3];
+        param_1 = param_1 + uVar2;
+        uVar2 = uVar2 + (unsigned int)param_2[4];
+        param_1 = param_1 + uVar2;
+        uVar2 = uVar2 + (unsigned int)param_2[5];
+        param_1 = param_1 + uVar2;
+        uVar2 = uVar2 + (unsigned int)param_2[6];
+        param_1 = param_1 + uVar2;
+        uVar2 = uVar2 + (unsigned int)param_2[7];
+        param_1 = param_1 + uVar2;
+        uVar2 = uVar2 + (unsigned int)param_2[8];
+        param_1 = param_1 + uVar2;
+        uVar2 = uVar2 + (unsigned int)param_2[9];
+        param_1 = param_1 + uVar2;
+        uVar2 = uVar2 + (unsigned int)param_2[10];
+        param_1 = param_1 + uVar2;
+        uVar2 = uVar2 + (unsigned int)param_2[0xb];
+        param_1 = param_1 + uVar2;
+        uVar2 = uVar2 + (unsigned int)param_2[0xc];
+        param_1 = param_1 + uVar2;
+        uVar2 = uVar2 + (unsigned int)param_2[0xd];
+        param_1 = param_1 + uVar2;
+        uVar2 = uVar2 + (unsigned int)param_2[0xe];
+        param_1 = param_1 + uVar2;
+        uVar2 = uVar2 + (unsigned int)param_2[0xf];
+        param_1 = param_1 + uVar2;
         param_2 = param_2 + 0x10;
         uVar18 = uVar18 - 1;
       } while (uVar18 != 0);
@@ -4373,22 +4384,29 @@ unsigned int FUN_00110c10(unsigned int crc, void *buf, int len)
     do {
       rem = rem - 8;
       crc =
-        *(unsigned int *)(0x28ce48 + ((p[0] ^ crc) & 0xff) * 4) ^ (crc >> 8);
+        *(unsigned int *)(0x28ce48 + ((*p ^ crc) & 0xff) * 4) ^ (crc >> 8);
+      p = p + 1;
       crc =
-        *(unsigned int *)(0x28ce48 + ((p[1] ^ crc) & 0xff) * 4) ^ (crc >> 8);
+        *(unsigned int *)(0x28ce48 + ((*p ^ crc) & 0xff) * 4) ^ (crc >> 8);
+      p = p + 1;
       crc =
-        *(unsigned int *)(0x28ce48 + ((p[2] ^ crc) & 0xff) * 4) ^ (crc >> 8);
+        *(unsigned int *)(0x28ce48 + ((*p ^ crc) & 0xff) * 4) ^ (crc >> 8);
+      p = p + 1;
       crc =
-        *(unsigned int *)(0x28ce48 + ((p[3] ^ crc) & 0xff) * 4) ^ (crc >> 8);
+        *(unsigned int *)(0x28ce48 + ((*p ^ crc) & 0xff) * 4) ^ (crc >> 8);
+      p = p + 1;
       crc =
-        *(unsigned int *)(0x28ce48 + ((p[4] ^ crc) & 0xff) * 4) ^ (crc >> 8);
+        *(unsigned int *)(0x28ce48 + ((*p ^ crc) & 0xff) * 4) ^ (crc >> 8);
+      p = p + 1;
       crc =
-        *(unsigned int *)(0x28ce48 + ((p[5] ^ crc) & 0xff) * 4) ^ (crc >> 8);
+        *(unsigned int *)(0x28ce48 + ((*p ^ crc) & 0xff) * 4) ^ (crc >> 8);
+      p = p + 1;
       crc =
-        *(unsigned int *)(0x28ce48 + ((p[6] ^ crc) & 0xff) * 4) ^ (crc >> 8);
+        *(unsigned int *)(0x28ce48 + ((*p ^ crc) & 0xff) * 4) ^ (crc >> 8);
+      p = p + 1;
       crc =
-        (crc >> 8) ^ *(unsigned int *)(0x28ce48 + ((p[7] ^ crc) & 0xff) * 4);
-      p = p + 8;
+        (crc >> 8) ^ *(unsigned int *)(0x28ce48 + ((*p ^ crc) & 0xff) * 4);
+      p = p + 1;
       n8 = n8 - 1;
     } while (n8 != 0);
   }
@@ -5317,8 +5335,8 @@ unsigned char FUN_00111910(int *strm, int flush)
     crt_fprintf((void *)0x331070, (const char *)0x28d394); /* "[FLUSH]" */
 
   if (*(unsigned int *)(z + 0x10) == 0)                 /* avail_out == 0 */
-    return (unsigned char)(flush == 4 ? 2 : 0);         /* finish_started : need_more */
-  return (unsigned char)(flush == 4 ? 3 : 1);           /* finish_done : block_done */
+    return (unsigned char)(((flush != 4) - 1) & 2);     /* finish_started : need_more */
+  return (unsigned char)(((flush == 4) << 1) + 1);      /* finish_done : block_done */
 }
 
 /* 0x110ed0 — zlib deflate(): the compression driver/state machine. Validates
@@ -6455,4 +6473,3 @@ int FUN_00111220(int dest, int source)
 stream_error:
     return 0xfffffffe;
 }
-

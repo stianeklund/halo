@@ -94,6 +94,34 @@ static __inline float x87_fsin_mul(float val, float mul) {
   return r;
 }
 
+static __inline void x87_fsincos(float val, float *sin_out, float *cos_out) {
+#if defined(_MSC_VER) && !defined(__clang__)
+  __asm {
+    fld DWORD PTR [val]
+    fld st(0)
+    fsin
+    fxch st(1)
+    fcos
+    mov eax, DWORD PTR [cos_out]
+    fstp DWORD PTR [eax]
+    mov eax, DWORD PTR [sin_out]
+    fstp DWORD PTR [eax]
+  }
+#else
+  __asm__ __volatile__(
+    "flds %2\n\t"
+    "fld %%st(0)\n\t"
+    "fsin\n\t"
+    "fxch %%st(1)\n\t"
+    "fcos\n\t"
+    "fstps %1\n\t"
+    "fstps %0"
+    : "=m"(*sin_out), "=m"(*cos_out)
+    : "m"(val)
+    : "memory");
+#endif
+}
+
 static __inline float x87_fsin_msub(float val, float mul, float sub) {
   float r;
 #if defined(_MSC_VER) && !defined(__clang__)
