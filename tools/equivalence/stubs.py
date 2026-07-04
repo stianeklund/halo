@@ -144,6 +144,35 @@ def _is_chkstk_name(name: str) -> bool:
     return key in ("chkstk", "fun_001d90e0", "system_exit", "halt_and_catch_fire", "fun_001029a0")
 
 
+# MSVC compiler-runtime intrinsics (see the intrinsic table in CLAUDE.md).
+# The MSVC-built oracle CALLs these; correct lifted C writes the equivalent
+# idiom ((int)expr, (int64_t)a*b, ...) which clang INLINES — so the intrinsic
+# call appears only in the oracle trace and a call-seq compare flags a bogus
+# divergence (falsely failed FUN_0018dcf0 on all 100 seeds, 2026-07-04: oracle
+# called _ftol2 @0x1d9068 after tag_block_get_element; candidate inlined the
+# float->int conversion). Filtering them from BOTH sides is safe: they are pure
+# computation with results in registers/stack, so any wrong inline math still
+# surfaces in the return-value and mem-trace comparison.
+_INLINED_INTRINSIC_KEYS = frozenset((
+    "ftol2",       "fun_001d9068",
+    "allmul",      "fun_001dd620",
+    "aullshr",     "fun_001dd660",
+    "aullrem",     "fun_001dd680",
+    "aulldiv",     "fun_001dd770",
+    "seh_prolog",  "fun_001dd5c8",
+    "seh_epilog",  "fun_001dd601",
+    # CRT two-arg FP intrinsic dispatch thunk: MOV EDX,0x3312d0; JMP
+    # __cintrindisp2 (fmod/atan2/pow dispatcher). MSVC emits a CALL here;
+    # clang inlines the x87 sequence (e.g. FPREM1 for fmod). Sole
+    # __cintrindisp2 thunk in the XBE (verified via Ghidra xrefs 2026-07-04).
+    "fun_001daf7e",
+))
+
+
+def _is_inlined_intrinsic_name(name: str) -> bool:
+    return name.lstrip("_").lower() in _INLINED_INTRINSIC_KEYS
+
+
 def compare_stub_arg_traces(oracle_tracer: StubArgTracer,
                              cand_tracer: StubArgTracer,
                              seed_label: str = "") -> StubArgDiff:
@@ -156,8 +185,12 @@ def compare_stub_arg_traces(oracle_tracer: StubArgTracer,
         to legitimate frame-layout differences and count as soft matches.
       - Varargs callees: only fixed args (those recorded) are compared.
     """
-    oc = [r for r in oracle_tracer.records if not _is_chkstk_name(r.callee_name)]
-    cc = [r for r in cand_tracer.records if not _is_chkstk_name(r.callee_name)]
+    oc = [r for r in oracle_tracer.records
+          if not _is_chkstk_name(r.callee_name)
+          and not _is_inlined_intrinsic_name(r.callee_name)]
+    cc = [r for r in cand_tracer.records
+          if not _is_chkstk_name(r.callee_name)
+          and not _is_inlined_intrinsic_name(r.callee_name)]
 
     total_calls = len(oc)
     seq_diverged = False
@@ -276,7 +309,8 @@ def classify_relocations(relocs: list, defined_symbols: set) -> RelocClassificat
 def patch_dir32_relocs(code: bytes, relocs: list, defined_symbols: set,
                        globals_base: int = GLOBALS_BASE,
                        return_slots: bool = False,
-                       rdata_map: dict = None):
+                       rdata_map: dict = None,
+                       snapshot_regions: dict = None):
     """Rewrite DIR32 relocations to point into the globals memory region.
 
     Each unique external DIR32 symbol gets a 256-byte slot in the globals
@@ -286,10 +320,21 @@ def patch_dir32_relocs(code: bytes, relocs: list, defined_symbols: set,
     Symbols in rdata_map (intra-object cross-section references like .rdata
     constants) also get globals slots, seeded with actual section data.
 
+    snapshot_regions ({addr: bytes} from a --state-snapshot) enables IDENTITY
+    relocation: a DAT_/PTR_/FLOAT_<addr> symbol whose encoded XBE address
+    falls inside a snapshot region is patched to its REAL address instead of
+    a slot.  The region bytes are mapped into emulator memory verbatim, so
+    the oracle then reads the same full-size data the candidate reads via
+    absolute immediates — required for indexed tables larger than the 8-byte
+    slot seed window (e.g. the 2304-byte wind noise table at 0x5057c4, whose
+    slot-relocated indexed reads would otherwise walk into neighboring
+    slots).
+
     Returns a mutable copy of the code with patched addresses.
     If return_slots is True, returns (patched, symbol_slots) where
     symbol_slots maps symbol_name -> slot_address.
     """
+    import re as _re
     patched = bytearray(code)
     slot_size = 256
     symbol_slots = {}
@@ -297,6 +342,19 @@ def patch_dir32_relocs(code: bytes, relocs: list, defined_symbols: set,
     next_slot = 0
     if rdata_map is None:
         rdata_map = {}
+
+    def _snapshot_identity_addr(sym_name):
+        if not snapshot_regions:
+            return None
+        m = _re.match(r'(?:DAT|PTR|PTR_DAT|FLOAT)_([0-9a-fA-F]{4,})$',
+                      sym_name)
+        if not m:
+            return None
+        orig = int(m.group(1), 16)
+        for base, data in snapshot_regions.items():
+            if base <= orig < base + len(data):
+                return orig
+        return None
 
     for r in relocs:
         if r.reloc_type != IMAGE_REL_I386_DIR32:
@@ -308,6 +366,14 @@ def patch_dir32_relocs(code: bytes, relocs: list, defined_symbols: set,
             continue
         if sym in defined_symbols and not is_rdata_ref:
             continue
+
+        if not is_rdata_ref:
+            _ident = _snapshot_identity_addr(sym)
+            if _ident is not None:
+                off = r.virtual_address
+                if off + 4 <= len(patched):
+                    struct.pack_into('<I', patched, off, _ident)
+                continue
 
         if sym not in symbol_slots:
             symbol_slots[sym] = globals_base + next_slot * slot_size
@@ -852,9 +918,12 @@ class StubManager:
                 # Import ESI/EDI lazily (they're in abi._uc_regs but not
                 # imported at the top of execute_stub).
                 try:
-                    from unicorn.x86_const import UC_X86_REG_ESI, UC_X86_REG_EDI
+                    from unicorn.x86_const import (UC_X86_REG_ESI,
+                                                   UC_X86_REG_EDI,
+                                                   UC_X86_REG_EBX)
                     _reg_map["esi"] = UC_X86_REG_ESI
                     _reg_map["edi"] = UC_X86_REG_EDI
+                    _reg_map["ebx"] = UC_X86_REG_EBX
                 except ImportError:
                     pass
 

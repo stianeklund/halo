@@ -65,6 +65,26 @@ try:
 except OSError:
     _XDK_COMMON_SYMBOLS: set = set()
 
+
+def _typedef_names_in_text(txt: str) -> set:
+    """Collect typedef'd identifiers defined in a C text (mirrors strip_dup_typedefs)."""
+    names = {m.group(1) for m in re.finditer(r"\}\s*(\w+)\s*;", txt)}
+    names |= {m.group(1) for m in re.finditer(r"typedef\s+[^;{}]+?\b(\w+)\s*;", txt)}
+    return names
+
+
+# Typedef names supplied by the VC71 /FI environment (types.h via xdk_common.h).
+# File-scope type statics whose name is NOT here are file-local types (e.g. a
+# struct typedef'd inside the target .c) and must stay visible to VC71 — the
+# #ifndef TYPES_H guard hides them when /FI defines TYPES_H (C2065 in base.c
+# pre-compile, aborting the permuter before any iteration).
+_FI_TYPEDEF_NAMES: set = set()
+for _hdr in (REPO_ROOT / "src" / "types.h", _XDK_COMMON_H):
+    try:
+        _FI_TYPEDEF_NAMES |= _typedef_names_in_text(_hdr.read_text(errors="replace"))
+    except OSError:
+        pass
+
 # Typedefs needed by pycparser (which runs with cpp -nostdinc, so sees no system headers)
 PYCPARSER_TYPEDEFS = """\
 /* Types needed by pycparser (cpp -nostdinc cannot see types.h) */
@@ -83,6 +103,7 @@ typedef unsigned long long uint64_t;
 typedef unsigned char _BYTE;
 typedef unsigned short _WORD;
 typedef unsigned int _DWORD;
+typedef struct data_s data_t; /* opaque: pointer-only use in extracted bodies */
 """
 
 
@@ -331,8 +352,21 @@ def build_base_c(func_name: str, func_body: str, file_statics: str = "") -> str:
         brace_depth += line.count('{') - line.count('}')
         # A block ends at a semicolon on a zero-brace line (or a trailing semi)
         if brace_depth <= 0 and stripped.rstrip().endswith(';'):
-            target = type_statics_lines if is_type_block else func_statics_lines
-            target.extend(current_block)
+            if is_type_block:
+                # Guard only typedefs that collide with the /FI environment
+                # (types.h/xdk_common.h) or PYCPARSER_TYPEDEFS. File-local
+                # types must stay UNguarded so VC71 (which defines TYPES_H
+                # via /FI) still sees them.
+                block_text = "".join(current_block)
+                mname = re.search(r"(\w+)\s*;\s*$", block_text.rstrip())
+                name = mname.group(1) if mname else None
+                guard_names = _FI_TYPEDEF_NAMES | _typedef_names_in_text(PYCPARSER_TYPEDEFS)
+                if name and name not in guard_names and '__int64' not in block_text:
+                    func_statics_lines.extend(current_block)
+                else:
+                    type_statics_lines.extend(current_block)
+            else:
+                func_statics_lines.extend(current_block)
             current_block = []
             brace_depth = 0
 

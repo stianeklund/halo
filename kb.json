@@ -6625,7 +6625,7 @@
     {
      "addr": "0x9ca70",
      "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
+     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
      "ported": true
     },
     {
@@ -6686,7 +6686,7 @@
     {
      "addr": "0x9dcf0",
      "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-     "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+     "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
      "ported": true
     },
     {
@@ -16413,7 +16413,7 @@
     },
     {
      "addr": "0xb6e60",
-     "decl": "void interpolate_scalar(void);"
+     "decl": "void interpolate_scalar(float *value, float target, float max_delta);"
     },
     {
      "addr": "0xb70b0",
@@ -21098,7 +21098,7 @@
     },
     {
      "addr": "0x185a70",
-     "decl": "void render_frustum_sphere_diameter_in_pixels(void);"
+     "decl": "float render_frustum_sphere_diameter_in_pixels(void *frustum, float *center, float radius);"
     },
     {
      "addr": "0x185ad0",
@@ -21785,7 +21785,7 @@
     },
     {
      "addr": "0x190a70",
-     "decl": "void shader_type_is_valid_for_modifier(void);"
+     "decl": "char shader_type_is_valid_for_modifier(int16_t shader_type);"
     },
     {
      "addr": "0x190a90",
@@ -21931,11 +21931,13 @@
     },
     {
      "addr": "0x18b130",
-     "decl": "void global_structure_bsp_tag_index_get(void);"
+     "decl": "float FUN_0018b130(int object_handle @<esi>);",
+     "ported": true
     },
     {
      "addr": "0x18b190",
-     "decl": "void FUN_0018b190(void);"
+     "decl": "void FUN_0018b190(void *render_data, void *parent_model_effect, int object_handle);",
+     "ported": true
     },
     {
      "addr": "0x18b610",
@@ -21959,11 +21961,12 @@
     },
     {
      "addr": "0x18b990",
-     "decl": "void FUN_0018b990(void);"
+     "decl": "void FUN_0018b990(void *volume @<ecx>);",
+     "ported": true
     },
     {
      "addr": "0x18bc60",
-     "decl": "void FUN_0018bc60(int object_handle, float lod, char force_rebuild);"
+     "decl": "void FUN_0018bc60(int render_state_index @<eax>, int object_handle, float lod, char force_rebuild);"
     },
     {
      "addr": "0x18bf80",
@@ -21986,7 +21989,7 @@
     {
      "addr": "0x18c3a0",
      "decl": "void scenario_test_pvs(void);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x18c460",
@@ -21995,7 +21998,8 @@
     },
     {
      "addr": "0x18c4d0",
-     "decl": "void FUN_0018C4D0(void);"
+     "decl": "char FUN_0018C4D0(int16_t local_player_index);",
+     "ported": true
     },
     {
      "addr": "0x18c580",
@@ -22034,7 +22038,8 @@
     },
     {
      "addr": "0x18d360",
-     "decl": "void FUN_0018d360(void);"
+     "decl": "void FUN_0018d360(void *sprite_build_data);",
+     "ported": true
     },
     {
      "addr": "0x18d490",
@@ -22060,7 +22065,8 @@
     },
     {
      "addr": "0x18dfe0",
-     "decl": "void scenario_trigger_volume_test_point(void);"
+     "decl": "char triangle_strip_iterator_next(void *iterator, uint16_t *vertices);",
+     "ported": true
     },
     {
      "addr": "0x18e140",
@@ -22069,8 +22075,8 @@
     },
     {
      "addr": "0x18e1d0",
-     "decl": "int scenario_debug_to_file(int param_1, char *param_2, unsigned int param_3);",
-     "ported": false
+     "decl": "char scenario_debug_to_file(int param_1, char *param_2, unsigned int param_3);",
+     "ported": true
     },
     {
      "addr": "0x18e3b0",
@@ -22150,7 +22156,8 @@
     },
     {
      "addr": "0x18ef30",
-     "decl": "void FUN_0018ef30(void);"
+     "decl": "void FUN_0018ef30(void *stream);",
+     "ported": true
     },
     {
      "addr": "0x18f230",
@@ -22169,28 +22176,23 @@
     },
     {
      "addr": "0x18f600",
-     "decl": "void scenario_get_sound_environment(void);"
+     "decl": "void scenario_get_sound_environment(int32_t *out_datum, void **out_env, uint8_t *out_changed);",
+     "ported": true
     },
     {
      "addr": "0x18fb20",
-     "decl": "void FUN_0018fb20(void);"
+     "decl": "void FUN_0018fb20(float *position @<ecx>, const float *target @<edx>, float max_delta);",
+     "ported": true
     },
     {
      "addr": "0x18fbc0",
-     "decl": "void FUN_0018fbc0(void);"
+     "decl": "void FUN_0018fbc0(int16_t window_index, int structure_bsp_index, const float *camera_position, char *out);",
+     "ported": true
     },
     {
      "addr": "0x18fef0",
      "decl": "void FUN_0018fef0(void);",
      "ported": true
-    },
-    {
-     "addr": "0x18ff00",
-     "decl": "void FUN_0018ff00(void);"
-    },
-    {
-     "addr": "0x18ffe0",
-     "decl": "void FUN_0018ffe0(void);"
     }
    ],
    "name": "scenario.obj",
@@ -23553,7 +23555,7 @@
     },
     {
      "addr": "0x196190",
-     "decl": "void FUN_00196190(void);"
+     "decl": "void FUN_00196190(float *center, float radius_x4, float *bounds6, int count, float *planes6);"
     },
     {
      "addr": "0x196290",
@@ -27954,7 +27956,7 @@
     },
     {
      "addr": "0x17cf60",
-     "decl": "void FUN_0017cf60(void);"
+     "decl": "void FUN_0017cf60(uint32_t source, uint32_t param, int arg3, int arg4, uint32_t handle, int subcount2, float *origin, uint32_t widget_flags);"
     },
     {
      "addr": "0x17cf70",
@@ -27962,7 +27964,7 @@
     },
     {
      "addr": "0x17cf80",
-     "decl": "void FUN_0017cf80(void);"
+     "decl": "void FUN_0017cf80(int arg1, int arg2, uint32_t handle, int subcount2);"
     },
     {
      "addr": "0x17cf90",
@@ -33936,7 +33938,7 @@
     },
     {
      "addr": "0x123ed0",
-     "decl": "void FUN_00123ed0(void);"
+     "decl": "void FUN_00123ed0(int model_ref, float distance, void *node_matrices, void *arg4, void *node_transforms, void *node_matrices2, int lighting, void *position, int arg9, void *effect_record, int object_handle, int arg12, int render_flag);"
     }
    ],
    "name": "model_animations.obj",
@@ -38344,6 +38346,23 @@
    ],
    "data": [],
    "name": "<xdk_stubs>"
+  },
+  {
+   "name": "wind.obj",
+   "source": "scenario/wind.c",
+   "source_path": "src/halo/scenario/wind.c",
+   "functions": [
+    {
+     "addr": "0x18ff00",
+     "decl": "void FUN_0018ff00(float *out @<eax>, float *position @<edx>, float scale, float magnitude);",
+     "ported": true
+    },
+    {
+     "addr": "0x18ffe0",
+     "decl": "void wind_update(void);",
+     "ported": true
+    }
+   ]
   }
  ],
  "0x1a080": {

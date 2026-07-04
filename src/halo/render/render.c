@@ -131,9 +131,8 @@ void render_window(int16_t *win, void *offset_or_null)
 
   /* update render globals from scene */
   *(int16_t *)0x506732 = 0;
-  ((void (*)(int, int, void *, void *))0x18fbc0)(
-    (int)(uint16_t) * (int16_t *)esi, (int)(uint16_t) * (int16_t *)0x50678a,
-    render_cam, (void *)0x506730);
+  FUN_0018fbc0(*(int16_t *)esi, (int)(uint16_t) * (int16_t *)0x50678a,
+               (const float *)render_cam, (char *)0x506730);
   ((void (*)(int, void *))0x198f10)((int)(uint16_t) * (int16_t *)0x506784,
                                     (void *)0x506730);
 

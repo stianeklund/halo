@@ -123,6 +123,7 @@
 	halo/saved_games/game_state.c
 	halo/saved_games/game_state_xbox.c
 	halo/scenario/scenario.c
+	halo/scenario/wind.c
 	halo/structures/structure_bsp_definitions.c
 	halo/structures/structure_detail_objects.c
 	halo/structures/structure_runtime_decals.c

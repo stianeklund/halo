@@ -1232,20 +1232,6 @@
     "since": "2026-06-21"
   },
   {
-    "addr": "0x18c3a0",
-    "name": "scenario_test_pvs",
-    "object": "scenario.obj",
-    "reason": "83.8% VC71; reg-arg-caller ceiling (@<edi> FUN_0018c100 loop setup) \u2014 pending equivalence",
-    "since": "2026-06-21"
-  },
-  {
-    "addr": "0x18e1d0",
-    "name": "scenario_debug_to_file",
-    "object": "scenario.obj",
-    "reason": "72.9% VC71; variadic snprintf + assert idiom gap \u2014 deferred",
-    "since": "2026-06-21"
-  },
-  {
     "addr": "0x109f40",
     "name": "FUN_00109f40",
     "object": "real_math.obj",

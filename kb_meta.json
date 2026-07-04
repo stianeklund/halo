@@ -8351,6 +8351,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x18dfe0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x18e1d0": {
       "kind": "function",
       "status": "ported"
@@ -8454,6 +8458,20 @@
     "0x18f510": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x18f600": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x18ffe0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "wind_record at 0x5060c8 has stride 0x20: valid(byte)+0x0, t(float,clamp[0,1])+0x4, pitch_perturbation+0x8, yaw_perturbation+0xc, velocity+0x10, direction[3]+0x14; field semantics inferred from usage (t is lerp param, +0x8/+0xc drive pitch/yaw angle perturbation)."
+      ],
+      "uncertain": [
+        "VC71 reports 86.3% but true fidelity is higher: compare_obj resolves the reference's relocated FPU constant-loads (FLD [const];FSTP) to immediate-store form while the candidate's local const-pool loads stay unresolved, producing ~9 phantom clamp mismatches; direct objdump confirms both objs use the identical fadd;fcom;fst;fstp clamp idiom. Residual real diffs are only MSVC reg-alloc (counter eax vs ecx) and one nop-pad."
+      ]
     },
     "0x190db0": {
       "kind": "function",
