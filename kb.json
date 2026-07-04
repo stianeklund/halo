@@ -18814,7 +18814,8 @@
    "functions": [
     {
      "addr": "0x16eef0",
-     "decl": "void FUN_0016eef0(void *group);"
+     "decl": "void FUN_0016eef0(void *group);",
+     "ported": true
     },
     {
      "addr": "0x16f480",
