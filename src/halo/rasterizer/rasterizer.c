@@ -2109,3 +2109,186 @@ void rasterizer_set_vblank_callback(void *cb)
 {
   ((void (*)(void *))0x155c10)(cb);
 }
+
+/* 0x172a30
+ *
+ * FUN_00172a30
+ *
+ * Shadow-pass begin / shadow-generate setup. Programs the D3D render
+ * states, pixel shader, and vertex-shader constants for the shadow
+ * generation pass, then stashes the shadow projection matrix, RGB color,
+ * and object bounding radius into the module-global shadow parameter block
+ * (0x47e46c..).
+ *
+ * Asserts the D3D device exists. When rendering is enabled
+ * (*(short *)0x5a5bc0 == 0) and the shadow feature flag is set
+ * (*(char *)0x3256ca != 0):
+ *   1. Validates the matrix/color pointers, each RGB component (in [0,1]),
+ *      and the object bounding radius (> 0).
+ *   2. Sets cull mode, four "simple" render states (each mirrored into a
+ *      module global at 0x1fb7a4/784/788/78c), disables Z test and Z bias.
+ *   3. Clears and programs the 0xf0-byte pixel-shader state block at
+ *      0x5a5ac0, then binds it.
+ *   4. Builds five vertex-shader constant registers - a shadow-projection
+ *      transform scaled by 1/radius - and uploads them at register -0x44.
+ *   5. Stashes the 13-dword matrix, RGB color, and radius into the shadow
+ *      parameter block, and clears the associated state bytes.
+ *   6. Optionally writes the radius back through out_radius.
+ *   7. If the render-mode word (*(short *)0x3256ba) == 2, bumps the
+ *      per-frame counter at 0x5a5430.
+ *
+ * param_1:                unused (present for the cdecl caller ABI).
+ * shadow_matrix:          shadow projection matrix (13 dwords / 4x3-ish).
+ * shadow_color:           RGB shadow color (3 floats, each in [0,1]).
+ * object_bounding_radius: bounding radius (> 0); its reciprocal scales the
+ *                         projection transform.
+ * out_radius:             optional; receives object_bounding_radius.
+ *
+ * Returns 1 (AL).
+ */
+char FUN_00172a30(int param_1, const float *shadow_matrix,
+                  const float *shadow_color, float object_bounding_radius,
+                  float *out_radius)
+{
+  float vs_const[20];
+  float inv_r;
+  const unsigned long *src;
+  unsigned long *dst;
+  int i;
+
+  (void)param_1;
+
+  if (*(void **)0x476ab0 == 0) {
+    display_assert(
+      "global_d3d_device",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_shadows.c", 0x93, 1);
+    system_exit(-1);
+  }
+  if (*(short *)0x5a5bc0 == 0 && *(char *)0x3256ca != 0) {
+    if (shadow_matrix == 0) {
+      display_assert(
+        "shadow_matrix",
+        "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_shadows.c", 0x99,
+        1);
+      system_exit(-1);
+    }
+    if (shadow_color == 0) {
+      display_assert(
+        "shadow_color",
+        "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_shadows.c", 0x9a,
+        1);
+      system_exit(-1);
+    }
+    if (!(shadow_color[0] >= 0.0f) || !(shadow_color[0] <= 1.0f)) {
+      display_assert(
+        "shadow_color->red >=0.0f && shadow_color->red <=1.0f",
+        "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_shadows.c", 0x9b,
+        1);
+      system_exit(-1);
+    }
+    if (!(shadow_color[1] >= 0.0f) || !(shadow_color[1] <= 1.0f)) {
+      display_assert(
+        "shadow_color->green>=0.0f && shadow_color->green<=1.0f",
+        "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_shadows.c", 0x9c,
+        1);
+      system_exit(-1);
+    }
+    if (!(shadow_color[2] >= 0.0f) || !(shadow_color[2] <= 1.0f)) {
+      display_assert(
+        "shadow_color->blue >=0.0f && shadow_color->blue <=1.0f",
+        "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_shadows.c", 0x9d,
+        1);
+      system_exit(-1);
+    }
+    if (!(object_bounding_radius > 0.0f)) {
+      display_assert(
+        "object_bounding_radius>0.0f",
+        "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_shadows.c", 0x9e,
+        1);
+      system_exit(-1);
+    }
+
+    /* Render state: cull, four "simple" states (mirrored to module globals),
+     * Z test/bias off. Each mirror store is paired with its state by value;
+     * MSVC schedules the store into the following call's setup window. */
+    D3DDevice_SetRenderState_CullMode(0x901);
+    D3DDevice_SetRenderState_Simple(0x40358, 0x10101);
+    *(unsigned long *)0x1fb7a4 = 0x10101;
+    D3DDevice_SetRenderState_Simple(0x40304, 0);
+    *(unsigned long *)0x1fb784 = 0;
+    D3DDevice_SetRenderState_Simple(0x40300, 1);
+    *(unsigned long *)0x1fb788 = 1;
+    D3DDevice_SetRenderState_Simple(0x40340, 0x7f);
+    *(unsigned long *)0x1fb78c = 0x7f;
+    D3DDevice_SetRenderState_ZEnable(0);
+    D3DDevice_SetRenderState_ZBias(0);
+
+    /* Program and bind the shadow-generation pixel-shader state block. */
+    csmemset((void *)0x5a5ac0, 0, 0xf0);
+    *(int *)0x5a5b98 = 1;
+    *(int *)0x5a5b94 = 1;
+    *(int *)0x5a5ae0 = 0x20;
+    *(int *)0x5a5ae4 = 0x1800;
+    rasterizer_set_pixel_shader((void *)0x5a5ac0);
+
+    /* Vertex-shader constants: rows 0/1 are the shadow projection scaled by
+     * 1/radius; the trailing constants are fixed. All 20 floats form one
+     * contiguous buffer that SetVertexShaderConstant uploads (5 registers). */
+    inv_r = 1.0f / object_bounding_radius;
+    vs_const[8] = 0.0f;
+    vs_const[9] = 0.0f;
+    vs_const[10] = 0.0f;
+    vs_const[11] = 0.5f;
+    vs_const[12] = 0.0f;
+    vs_const[0] = inv_r * shadow_matrix[1];
+    vs_const[1] = inv_r * shadow_matrix[2];
+    vs_const[2] = inv_r * shadow_matrix[3];
+    vs_const[3] = -((shadow_matrix[10] * shadow_matrix[1] +
+                     shadow_matrix[11] * shadow_matrix[2] +
+                     shadow_matrix[12] * shadow_matrix[3]) *
+                    inv_r);
+    vs_const[4] = inv_r * shadow_matrix[4];
+    vs_const[5] = inv_r * shadow_matrix[5];
+    vs_const[6] = inv_r * shadow_matrix[6];
+    vs_const[7] = -((shadow_matrix[10] * shadow_matrix[4] +
+                     shadow_matrix[11] * shadow_matrix[5] +
+                     shadow_matrix[12] * shadow_matrix[6]) *
+                    inv_r);
+    vs_const[13] = 0.0f;
+    vs_const[14] = 0.0f;
+    vs_const[15] = 1.0f;
+    vs_const[16] = 0.0f;
+    vs_const[17] = 0.0f;
+    vs_const[18] = 0.0f;
+    vs_const[19] = 0.0f;
+    D3DDevice_SetVertexShaderConstant(-0x44, vs_const, 5);
+
+    FUN_00158140(2, 0,
+                 (*(unsigned char *)0x3256f7 != 0) ? 0x88888888u : 0u, 1, 0);
+    FUN_00158ae0(0);
+
+    /* Stash the 13-dword matrix, then the RGB color, then the radius. */
+    src = (const unsigned long *)shadow_matrix;
+    dst = (unsigned long *)0x47e47c;
+    for (i = 0xd; i != 0; i--) {
+      *dst = *src;
+      src++;
+      dst++;
+    }
+    *(float *)0x47e46c = shadow_color[0];
+    *(float *)0x47e470 = shadow_color[1];
+    *(float *)0x47e474 = shadow_color[2];
+    *(float *)0x47e478 = object_bounding_radius;
+    if (out_radius != 0) {
+      *out_radius = object_bounding_radius;
+    }
+    *(int *)0x47e4b0 = 0;
+    *(char *)0x47e4b4 = 0;
+    *(char *)0x47e4b5 = 0;
+    *(char *)0x3251fc = 0;
+    if (*(short *)0x3256ba == 2) {
+      *(int *)0x5a5430 = *(int *)0x5a5430 + 1;
+    }
+  }
+  return 1;
+}
