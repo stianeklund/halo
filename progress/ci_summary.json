@@ -1,52 +1,52 @@
 {
-  "generated": "2026-07-03T05:30:36.881727+00:00",
+  "generated": "2026-07-04T02:09:38.645587+00:00",
   "ci_runs": {
     "available": true,
     "total": 60,
-    "last_run_time": "2026-07-03T05:30:25Z",
+    "last_run_time": "2026-07-04T02:09:26Z",
     "last_commit": "dabdae16",
     "workflows": [
       {
-        "name": ".github/workflows/main.yml",
+        "name": "Progress Report",
         "conclusion": "",
+        "created_at": "2026-07-04T02:09:26Z",
+        "head_sha": "dabdae16",
+        "url": "https://github.com/stianeklund/halo/actions/runs/28691726315"
+      },
+      {
+        "name": "Runtime Oracle Tests",
+        "conclusion": "success",
+        "created_at": "2026-07-03T06:57:27Z",
+        "head_sha": "dabdae16",
+        "url": "https://github.com/stianeklund/halo/actions/runs/28644049695"
+      },
+      {
+        "name": "pages-build-deployment",
+        "conclusion": "failure",
+        "created_at": "2026-07-03T05:30:44Z",
+        "head_sha": "9a492669",
+        "url": "https://github.com/stianeklund/halo/actions/runs/28640589482"
+      },
+      {
+        "name": ".github/workflows/main.yml",
+        "conclusion": "failure",
         "created_at": "2026-07-03T05:30:25Z",
         "head_sha": "dabdae16",
         "url": "https://github.com/stianeklund/halo/actions/runs/28640576694"
       },
       {
         "name": "Snapshot Verification",
-        "conclusion": "",
+        "conclusion": "failure",
         "created_at": "2026-07-03T05:30:25Z",
         "head_sha": "dabdae16",
         "url": "https://github.com/stianeklund/halo/actions/runs/28640576692"
       },
       {
-        "name": "Runtime Oracle Tests",
-        "conclusion": "",
-        "created_at": "2026-07-03T05:30:25Z",
-        "head_sha": "dabdae16",
-        "url": "https://github.com/stianeklund/halo/actions/runs/28640576678"
-      },
-      {
-        "name": "Progress Report",
-        "conclusion": "",
-        "created_at": "2026-07-03T05:30:25Z",
-        "head_sha": "dabdae16",
-        "url": "https://github.com/stianeklund/halo/actions/runs/28640576665"
-      },
-      {
         "name": "Equivalence Tests",
-        "conclusion": "",
+        "conclusion": "success",
         "created_at": "2026-07-03T05:30:25Z",
         "head_sha": "dabdae16",
         "url": "https://github.com/stianeklund/halo/actions/runs/28640576659"
-      },
-      {
-        "name": "pages-build-deployment",
-        "conclusion": "success",
-        "created_at": "2026-07-03T02:11:13Z",
-        "head_sha": "7ca79444",
-        "url": "https://github.com/stianeklund/halo/actions/runs/28633861213"
       }
     ]
   },
