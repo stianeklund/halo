@@ -31,8 +31,8 @@ The user-facing command surface is consolidated under `/verify`:
 - `/verify hazards` for `check_lift_hazards.py`.
 - `/verify delink <target>` for delink export and reference mapping.
 - `/verify equivalence <target>` for Unicorn differential testing; use xemu
-  `pmemsave` or XBDM `getmem` live memory captures when zero-filled globals
-  under-cover live paths.
+  virtual `memsave` (never physical `pmemsave`) or XBDM `getmem` live memory
+  captures when zero-filled globals under-cover live paths.
 - `/verify golden <target>` for runtime oracle comparison through
   `tools/verify/run_golden_tests.py`.
 - `/verify dual-oracle <target>` for same-process original-vs-candidate
