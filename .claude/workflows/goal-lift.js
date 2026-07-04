@@ -18,6 +18,19 @@ const GOAL         = (args && args.goal) || 20
 const STOP_ON_FAIL = (args && args.stopOnFail) || 3
 const DRY_RUN      = !!(args && args.dryRun)
 
+// --objects: hard allowlist, enforced in code (not just prompted) — see the
+// filter applied to selection.targets below.
+// --criteria: freeform string appended to the Select prompt; the agent is
+// asked to honor it but nothing in code enforces it.
+const OBJECTS = (() => {
+  const raw = args && args.objects
+  if (!raw) return null
+  const arr = Array.isArray(raw) ? raw : String(raw).split(',')
+  const norm = arr.map(s => s.trim()).filter(Boolean)
+  return norm.length ? norm : null
+})()
+const CRITERIA = (args && args.criteria) ? String(args.criteria).trim() : null
+
 // ── Schemas ───────────────────────────────────────────────────────────────────
 
 const TARGETS_SCHEMA = {
@@ -347,6 +360,8 @@ async function reviewThenCommit(brief, score, srcFile, path, phaseTitle) {
 
 phase('Select')
 log(`Goal: lift ${GOAL} functions at >=90% VC71${DRY_RUN ? ' (dry run — no commits)' : ''}`)
+if (OBJECTS) log(`Object filter (hard): ${OBJECTS.join(', ')}`)
+if (CRITERIA) log(`Extra criteria (soft): ${CRITERIA}`)
 
 const BATCH_LIMIT = Math.min(60, Math.max(30, GOAL * 3))
 
@@ -357,8 +372,11 @@ Run: rtk python3 tools/llm_auto_lift.py select --limit ${BATCH_LIMIT} 2>&1
 Filter: keep "auto-lift" lane only; skip [skip:prior_fail] unless fewer than 10
 non-prior-fail entries remain; skip Reasons containing unaff_/in_EAX/in_ECX/@esi/@eax;
 skip hs_runtime.obj (C99/VC71 violations unfixed) and xbox_crt.obj (NT-import/CRT wrappers).
-Prefer, in order: game_engine.obj, lruv_cache.obj, hud.obj, items.obj, input_xbox.obj —
-sort those to the front, then the rest by score descending.
+${OBJECTS
+    ? `HARD RESTRICTION: only return candidates whose obj is one of: ${OBJECTS.join(', ')}. Discard everything else (this is also enforced in code afterward, so don't waste entries on other objects).`
+    : `Prefer, in order: game_engine.obj, lruv_cache.obj, hud.obj, items.obj, input_xbox.obj —
+sort those to the front, then the rest by score descending.`}
+${CRITERIA ? `\nADDITIONAL USER CRITERIA (apply on top of the rules above): ${CRITERIA}\n` : ''}
 Parse: addr, name, obj, score. Return up to ${BATCH_LIMIT} entries.`,
   { label: 'select', phase: 'Select', schema: TARGETS_SCHEMA }
 )
@@ -367,7 +385,20 @@ if (!selection || !selection.targets || selection.targets.length === 0) {
   log('No viable targets in queue')
   return { committed: 0, goal: GOAL, reached_goal: false, skipped: 0, reverted: 0, reason: 'empty_queue' }
 }
-log(`Selected ${selection.targets.length} candidates across ${new Set(selection.targets.map(t => t.obj)).size} objects`)
+
+// Mechanical enforcement of --objects — don't rely on the agent alone to
+// honor the hard restriction stated in the prompt above.
+let targets = selection.targets
+if (OBJECTS) {
+  const wanted = new Set(OBJECTS.map(o => o.toLowerCase()))
+  targets = targets.filter(t => wanted.has((t.obj || '').toLowerCase()))
+  log(`Object filter kept ${targets.length}/${selection.targets.length} candidates`)
+  if (targets.length === 0) {
+    log('No viable targets in queue after object filter')
+    return { committed: 0, goal: GOAL, reached_goal: false, skipped: 0, reverted: 0, reason: 'empty_queue_after_filter' }
+  }
+}
+log(`Selected ${targets.length} candidates across ${new Set(targets.map(t => t.obj)).size} objects`)
 
 // ── Phase 2: Parallel research (read-only, batched 6) ────────────────────────
 
@@ -375,9 +406,9 @@ phase('Research')
 
 const RESEARCH_BATCH = 6
 const briefs = []
-for (let i = 0; i < selection.targets.length; i += RESEARCH_BATCH) {
-  const batch = selection.targets.slice(i, i + RESEARCH_BATCH)
-  log(`Research batch ${Math.floor(i / RESEARCH_BATCH) + 1}/${Math.ceil(selection.targets.length / RESEARCH_BATCH)}`)
+for (let i = 0; i < targets.length; i += RESEARCH_BATCH) {
+  const batch = targets.slice(i, i + RESEARCH_BATCH)
+  log(`Research batch ${Math.floor(i / RESEARCH_BATCH) + 1}/${Math.ceil(targets.length / RESEARCH_BATCH)}`)
   const bb = await parallel(batch.map(t => () => agent(researchPrompt(t), {
     label: `research:${t.name}`, phase: 'Research', schema: BRIEF_SCHEMA,
   })))
