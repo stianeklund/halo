@@ -1236,6 +1236,17 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
           c[1] = t * dr + *(float *)(stage + 0x10);
           c[2] = dg * t + *(float *)(stage + 0x14);
           c[3] = t * db + *(float *)(stage + 0x18);
+#if !defined(_MSC_VER) || defined(__clang__)
+          /* The original stores each channel to a 32-bit float (FSTP) and the
+           * range asserts below reload the rounded value; clang keeps the
+           * channels in x87 registers (FST + FUCOMI) and compares at 80-bit
+           * extended precision.  When t == 1.0 the lerp lo + round32(hi-lo)*t
+           * can land half a ULP above 1.0 (e.g. needler core stage 6 with the
+           * weapon A-out pegged at 1.0), which passes the original's rounded
+           * compare but trips the extended-precision one.  Force the same
+           * store+reload rounding before comparing. */
+          asm volatile("" : "+m"(c[0]), "+m"(c[1]), "+m"(c[2]), "+m"(c[3]));
+#endif
           if (!(c[1] >= *(float *)0x2533c0 && c[1] <= *(float *)0x2533c8)) {
             display_assert(
               "constant_color0.red >=0.0f && constant_color0.red <=1.0f",
