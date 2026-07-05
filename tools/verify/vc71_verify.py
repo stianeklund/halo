@@ -557,11 +557,10 @@ def run_compare_cached(
                 compiled_funcs[old_name] = compiled_funcs[new_name]
                 matched.add(old_name)
 
-    if not matched:
-        print("No matching functions found between objects")
-        print(f"  compiled:  {sorted(compiled_funcs.keys())[:10]}")
-        print(f"  reference: {sorted(reference_funcs.keys())[:10]}")
-        return 1
+    # NB: the "no matching functions" bail-out is deferred until *after* the
+    # per-function fallback below, so a TU whose whole-object reference has no
+    # symbol overlap (missing/truncated) can still recover functions from valid
+    # per-function chunks instead of returning empty here.
 
     # Per-function reference fallback: when a function's whole-object reference
     # is unusable — truncated (instruction count cannot span its kb.json byte
@@ -622,6 +621,36 @@ def run_compare_cached(
         more = " ..." if len(ref_overrides) > 6 else ""
         print(f"[ref] {len(ref_overrides)} function(s) scored against per-function "
               f"chunk (whole-object reference truncated): {shown}{more}", flush=True)
+
+    # Report compiled, kb.json-tracked functions we could NOT score against any
+    # valid reference (whole-object truncated/absent AND no valid per-function
+    # chunk).  These never produce a score line, so vc71_regression's gate — which
+    # only sees scored functions — would miss them and leave the re-delink queue
+    # incomplete.  Emit a machine-parseable DROP line per function so the runner
+    # can record them.  Only in whole-file mode (a --function run scores exactly
+    # one requested symbol; a miss there is already reported above).
+    if fn_filter is None:
+        for fn in sorted(compiled_funcs.keys()):
+            if fn in matched:
+                continue
+            span = _func_span(fn)
+            if span is None:
+                continue  # not a kb.json-tracked function (helper/thunk/static)
+            chunk = _per_function_ref(fn)
+            if chunk and chunk.exists():
+                reason = ("per-function chunk invalid after boundary cap "
+                          "(stale/truncated) — re-delink")
+            else:
+                reason = ("no reference (whole-object truncated/absent, no "
+                          "per-function chunk) — delink")
+            print(f"  DROP {fn}: no valid reference — {reason} (span {span} bytes)",
+                  flush=True)
+
+    if not matched:
+        print("No matching functions found between objects")
+        print(f"  compiled:  {sorted(compiled_funcs.keys())[:10]}")
+        print(f"  reference: {sorted(reference_funcs.keys())[:10]}")
+        return 1
 
     any_fail = False
     any_fpu_warn = False
