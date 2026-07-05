@@ -23,6 +23,7 @@ Usage examples:
 from __future__ import annotations
 
 import argparse
+import bisect
 import csv
 import json
 import os
@@ -65,8 +66,62 @@ _PAD_STABLE_THRESHOLD = 0.05
 # Maximum pad doublings before we give up (0x200 → 0x400 → 0x800 → 0x1000 → 0x2000).
 _PAD_MAX_DOUBLINGS = 4
 
-# Pad for per-function exports of split TUs — generous enough to cover most functions.
+# Pad for per-function exports of split TUs — only used as a last resort for the
+# final known function (no successor to bound against).  For every other function
+# the export range is bounded at the next function start (see per_func_range).
 RANGE_PAD_PER_FUNC = 0x2000
+
+
+# Cache of every function start address in kb.json, sorted ascending.
+_GLOBAL_FUNC_STARTS: list[int] | None = None
+
+
+def global_func_starts() -> list[int]:
+    """Sorted, de-duplicated list of every function start address in kb.json.
+
+    A per-function delinked chunk must be bounded at the *next* function's start.
+    A fixed byte window (the old RANGE_PAD_PER_FUNC) overshoots for any function
+    smaller than the window, pulling dozens of following functions into the chunk
+    under a single symbol — which compare_obj then attributes wholesale to the one
+    function, inflating its reference instruction count and collapsing VC71 match.
+    """
+    global _GLOBAL_FUNC_STARTS
+    if _GLOBAL_FUNC_STARTS is None:
+        result = subprocess.run(
+            ["jq", "-r", ".objects[].functions[].addr", str(KB_JSON)],
+            capture_output=True, text=True,
+        )
+        starts: set[int] = set()
+        for tok in result.stdout.split():
+            try:
+                starts.add(int(tok, 16))
+            except ValueError:
+                pass
+        _GLOBAL_FUNC_STARTS = sorted(starts)
+    return _GLOBAL_FUNC_STARTS
+
+
+def next_func_start(addr: int) -> int | None:
+    """Smallest function start strictly greater than addr, or None if addr is the
+    last known function (nothing to bound against)."""
+    starts = global_func_starts()
+    i = bisect.bisect_right(starts, addr)
+    return starts[i] if i < len(starts) else None
+
+
+def per_func_range(addr: int) -> tuple[int, int]:
+    """Function-aligned per-function export range (lo, hi), END inclusive.
+
+    Ghidra's DelinkProgram builds the export AddressSet with
+    getAddressSet(start, end) which is inclusive of both endpoints, so hi is set
+    to one byte before the next function start — the chunk then contains exactly
+    this function's bytes.  For the last known function there is no successor, so
+    fall back to a padded window (its own trailing data is the only spill risk,
+    and there is no following function to swallow)."""
+    nxt = next_func_start(addr)
+    if nxt is not None and nxt > addr:
+        return addr, nxt - 1
+    return addr, addr + RANGE_PAD_PER_FUNC
 
 
 # ---------------------------------------------------------------------------
@@ -404,10 +459,18 @@ def export_split_functions(
                 continue
 
             try:
-                pads = [RANGE_PAD_PER_FUNC, 0x100, 0x80, 0x40, 0x30, 0x20, 0x10]
+                lo, hi = per_func_range(addr_int)
+                # Primary: function-aligned range [lo, hi]. Fall back to smaller
+                # ranges only if the aligned export fails (rare relocation-boundary
+                # edge) — never larger, which would swallow the next function again.
+                span = hi - lo + 1
+                candidate_his = [hi]
+                for pad in (0x400, 0x200, 0x100, 0x80, 0x40, 0x20, 0x10):
+                    if pad < span:
+                        candidate_his.append(lo + pad - 1)
                 last_exc = None
-                for pad in pads:
-                    addr_range = range_str(addr_int, addr_int + pad)
+                for chi in candidate_his:
+                    addr_range = range_str(lo, chi)
                     try:
                         if backend == "rpc":
                             export_via_rpc(str(export_path), addr_range)
@@ -464,6 +527,11 @@ def parse_args() -> argparse.Namespace:
                     help="Skip per-function export pass for split TUs")
     ap.add_argument("--per-function-only", action="store_true",
                     help="Only run per-function pass using existing manifest (no main export)")
+    ap.add_argument("--reexport-chunk", metavar="ADDR", action="append", default=[],
+                    help="Re-export a single function-aligned per-function chunk to "
+                         "delinked/functions/<hex>.obj (repeatable, hex addr e.g. 0x1acb0). "
+                         "Overwrites existing; bypasses manifest/split detection. Use to "
+                         "regenerate chunks bloated by the old fixed-window export.")
     return ap.parse_args()
 
 
@@ -478,6 +546,39 @@ def main() -> int:
 
     if args.csv_only:
         return 0
+
+    # --reexport-chunk: targeted regeneration of individual per-function chunks
+    # with function-aligned ranges. Independent of the manifest (which may be
+    # stale/gutted) and of split detection.
+    if args.reexport_chunk:
+        backend = "rpc" if is_ghidra_live_available() else "headless"
+        per_func_dir = out_dir / "functions"
+        per_func_dir.mkdir(parents=True, exist_ok=True)
+        rc = 0
+        for tok in args.reexport_chunk:
+            try:
+                addr_int = int(tok, 16)
+            except ValueError:
+                print(f"  FAIL  bad address: {tok!r}", file=sys.stderr)
+                rc = 1
+                continue
+            lo, hi = per_func_range(addr_int)
+            export_path = per_func_dir / f"{addr_int:08x}.obj"
+            addr_range = range_str(lo, hi)
+            try:
+                if backend == "rpc":
+                    export_via_rpc(str(export_path), addr_range)
+                else:
+                    export_via_headless(
+                        str(export_path), addr_range,
+                        args.ghidra_root, args.project_dir, args.script_dir,
+                    )
+                print(f"  ok  functions/{addr_int:08x}.obj  range={addr_range}  "
+                      f"({export_path.stat().st_size}B)")
+            except Exception as exc:
+                print(f"  FAIL  functions/{addr_int:08x}.obj: {exc}", file=sys.stderr)
+                rc = 1
+        return rc
 
     # --per-function-only: skip main export, use existing manifest, run second pass only
     if getattr(args, "per_function_only", False):
