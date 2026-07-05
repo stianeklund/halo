@@ -117,3 +117,13 @@ bool network_connection_going_stale(int connection)
   assert_halt(connection);
   return (*(unsigned int *)(connection + 0x30) >> 5) & 1;
 }
+
+/* network_connection_keep_alive (0x128d20).
+ * Stamps the connection's last-keep-alive timestamp: samples the current
+ * millisecond clock (system_milliseconds) and stores it into the dword at
+ * connection+0x8, recording the moment the most recent keep-alive was
+ * sent/observed so the going-stale logic can measure elapsed idle time. */
+void network_connection_keep_alive(int connection)
+{
+  *(unsigned int *)(connection + 8) = system_milliseconds();
+}
