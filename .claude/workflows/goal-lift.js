@@ -144,9 +144,10 @@ const LIFT_RESULT_SCHEMA = {
     status:      { type: 'string' },   // needs_verify | skipped | build_failed | infra_blocked
     source_file: { type: 'string' },
     vc71_score:  { type: 'number' },
-    capped:      { type: 'boolean' },  // matches a known structural-cap signature (see liftPrompt)
-    cap_reason:  { type: 'string' },
-    reason:      { type: 'string' },
+    capped:         { type: 'boolean' },  // matches a known structural-cap signature (see liftPrompt)
+    cap_reason:     { type: 'string' },
+    cap_confidence: { type: 'string' },    // high (deterministic classify_cap.py) | inconclusive (agent judgment)
+    reason:         { type: 'string' },
   },
   required: ['addr', 'name', 'status'],
 }
@@ -395,14 +396,22 @@ STEPS:
    build log into your reasoning — quoting large tool output back inflates every
    following turn's re-read. If it timed out, status="needs_review", vc71_score=0.
 
-7. SELF-ASSESS STRUCTURAL CAP (only if vc71_score is in [65,84]):
+7. STRUCTURAL-CAP CLASSIFY (only if vc71_score is in [65,84]) — do NOT eyeball it;
+   run the deterministic classifier (explicit rules: @reg-defining prologue,
+   parked-ledger confirmed/prior cap):
+     rtk python3 tools/analysis/classify_cap.py --name ${brief.name} --addr ${brief.addr} \\
+       --score <vc71_score> --decl '<this function's kb declaration>'
+   - If it returns "cap_confidence":"high" → this is an AUTHORITATIVE cap: report
+     capped=true, cap_reason=its cap_reason, cap_confidence="high". Do NOT escalate.
+   - If it returns "cap_confidence":"inconclusive" → the script cannot prove a cap;
+     apply YOUR OWN judgment against the patterns below, set capped/cap_reason, and
+     report cap_confidence="inconclusive".
 ${CAP_TABLE}
-   Set capped=true + cap_reason if the objdiff output matches one of these
-   patterns. Otherwise capped=false.
 
 8. RETURN (do NOT commit, do NOT run the review gate — that happens later):
    status: "needs_verify" if build passed (regardless of score), else "build_failed".
-   Always report vc71_score, source_file (the actual path written), capped, cap_reason.`
+   Always report vc71_score, source_file (the actual path written), capped,
+   cap_reason, and cap_confidence ("high" | "inconclusive").`
 
 const redelinkPrompt = (name, addr) =>
   `${AGENT_RULES}
@@ -1039,9 +1048,17 @@ for (const brief of okBriefs) {
     }
   }
 
-  // ── 65-84%: check structural cap, one improve-model escalation if not capped ─
-  if (band === 'fail_check_cap' && !a1.capped) {
-    log(`  ${brief.name} ${score}% — not a known cap, escalating (${IMPROVE_MODEL})`)
+  // ── 65-84%: explicit structural-cap gate (P3). The lift agent ran
+  // tools/analysis/classify_cap.py in step 7: a cap_confidence==="high" verdict is
+  // an AUTHORITATIVE deterministic cap (@reg-defining prologue / ledger-confirmed /
+  // prior-cap-no-improvement) — provably futile to retry, so it MUST park and never
+  // escalate. An "inconclusive" verdict falls back to the agent's own CAP_TABLE
+  // judgment. Either way "capped" now decides escalation, but its provenance is
+  // explicit and logged, not an opaque model boolean.
+  const treatAsCapped = a1.capped === true
+  const capProvenance = a1.cap_confidence === 'high' ? 'deterministic(classify_cap.py)' : 'agent-judgment'
+  if (band === 'fail_check_cap' && !treatAsCapped) {
+    log(`  ${brief.name} ${score}% — not a structural cap (${a1.cap_confidence || 'n/a'}), escalating (${IMPROVE_MODEL})`)
     // Preserve the attempt-1 (Opus) work before escalating: park keeps the
     // best-scoring attempt's patch across both, and --revert-tree cleans the
     // tree for the escalation re-lift. Never discard a building lift.
@@ -1060,12 +1077,13 @@ for (const brief of okBriefs) {
       results.push({ ...a2, obj: brief.obj })
       continue
     }
-  } else if (band === 'fail_check_cap' && a1.capped) {
+  } else if (band === 'fail_check_cap' && treatAsCapped) {
     // Structural cap — a future model may still beat it, so PARK (with the cap
     // hypothesis) rather than discard. Not confirm-cap: that would end retries.
+    log(`  ${brief.name} ${score}% capped [${capProvenance}]: ${a1.cap_reason || 'unclassified'} — parked, no escalation`)
     await parkBuilt(brief, srcFile, score, M.reason, 'structural_cap', a1.cap_reason || 'unclassified')
     consecutiveFails++
-    results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'parked', vc71_score: score, reason: `structural_cap: ${a1.cap_reason || 'unclassified'}` })
+    results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'parked', vc71_score: score, reason: `structural_cap[${capProvenance}]: ${a1.cap_reason || 'unclassified'}` })
     continue
   }
 
