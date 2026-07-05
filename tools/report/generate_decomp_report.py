@@ -61,6 +61,18 @@ def _lookup_score(scores_data: dict, name: str, addr: int, source_path: str | No
     return None
 
 
+def _is_synthetic_unit(obj_name: str, source: str | None) -> bool:
+    """Return true for SDK/platform buckets that are not game source TUs."""
+    platform_prefixes = ('D3D8:', 'LIBCMT:', 'XAPILIB:', 'XNET:')
+    return obj_name == '<xdk_stubs>' or obj_name.startswith(platform_prefixes)
+
+
+def _source_path(source: str | None) -> str | None:
+    if source in (None, '?'):
+        return None
+    return f'src/halo/{source}'
+
+
 def _load_delinked_ref_map(root_dir: str) -> dict:
     """Return {source_path: bool} — whether a delinked reference .obj exists on disk.
 
@@ -275,6 +287,7 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
         source = kb.object_to_source.get(obj_name, '?')
         funcs = obj_to_funcs.get(obj_name, [])
         data_syms = obj_to_data.get(obj_name, [])
+        synthetic = _is_synthetic_unit(obj_name, source)
         
         unit_funcs = []
         total_bytes = 0
@@ -283,8 +296,8 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
         match_scores = []
         match_weighted_sum = 0.0
         match_scored_bytes = 0
-        source_path_for_scores = f'src/halo/{source}' if source != '?' else None
-        estimated_sizes = _estimate_missing_sizes(funcs)
+        source_path_for_scores = _source_path(source)
+        estimated_sizes = {} if synthetic else _estimate_missing_sizes(funcs)
         
         for func_info in funcs:
             addr = func_info['addr']
@@ -293,7 +306,7 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
             
             # Get size from cache
             size = 0
-            if addr_hex in functions_data:
+            if not synthetic and addr_hex in functions_data:
                 size = functions_data[addr_hex].get('size', 0)
             if not size:
                 size = estimated_sizes.get(addr, 0)
@@ -461,11 +474,12 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
         tracked_runtime_tested += runtime_tested
         tracked_runtime_passed += runtime_passed
             
-        unit_source_path = f'src/halo/{source}' if source != '?' else None
+        unit_source_path = _source_path(source)
         has_delinked_ref = bool(unit_source_path and delinked_ref_map.get(unit_source_path, False))
 
         unit = {
             'name': obj_name.replace('.obj', ''),
+            'synthetic': synthetic,
             'source_path': unit_source_path,
             'obj_path': f'delinked/{obj_name}',
             'functions': sorted(unit_funcs, key=lambda x: x['address']),
@@ -548,7 +562,13 @@ def generate_report(output_path: str) -> dict:
     
     root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
     cache_path = os.path.join(root_dir, 'build', 'function_sizes.json')
-    vc71_path = os.path.join(root_dir, 'tools', 'verify', 'vc71_scores.json')
+    # Prefer honest current scores (vc71_current.json, gated on reference
+    # validity) so the dashboard shows present truth rather than the floored
+    # high-water-mark tripwire (vc71_scores.json).  Fall back to the floor when
+    # the honest snapshot has not been generated yet.
+    vc71_current = os.path.join(root_dir, 'tools', 'verify', 'vc71_current.json')
+    vc71_floor = os.path.join(root_dir, 'tools', 'verify', 'vc71_scores.json')
+    vc71_path = vc71_current if os.path.exists(vc71_current) else vc71_floor
     leaf_cache_path = os.path.join(root_dir, 'tools', 'equivalence', 'leaf_cache.json')
     
     # Load knowledge base
@@ -593,11 +613,15 @@ def generate_report(output_path: str) -> dict:
     )
     
     # Compute overall stats
-    total_funcs = sum(u['summary']['total'] for u in units)
-    ported_funcs = sum(u['summary']['ported'] for u in units)
-    total_bytes = sum(u['summary']['bytes_total'] for u in units)
-    ported_bytes = sum(u['summary']['bytes_ported'] for u in units)
-    total_data_syms = sum(u['data_summary']['total'] for u in units)
+    progress_units = [u for u in units if not u.get('synthetic')]
+    platform_units = [u for u in units if u.get('synthetic')]
+    total_funcs = sum(u['summary']['total'] for u in progress_units)
+    ported_funcs = sum(u['summary']['ported'] for u in progress_units)
+    total_bytes = sum(u['summary']['bytes_total'] for u in progress_units)
+    ported_bytes = sum(u['summary']['bytes_ported'] for u in progress_units)
+    total_data_syms = sum(u['data_summary']['total'] for u in progress_units)
+    platform_funcs = sum(u['summary']['total'] for u in platform_units)
+    platform_ported = sum(u['summary']['ported'] for u in platform_units)
     
     # Get git info
     commit = 'unknown'
@@ -642,6 +666,11 @@ def generate_report(output_path: str) -> dict:
             'equivalence': overall_equiv,
             'snapshot': overall_snapshot,
             'runtime_oracle': overall_runtime_oracle,
+            'platform': {
+                'units': len(platform_units),
+                'functions': platform_funcs,
+                'ported': platform_ported,
+            },
         },
         'meta': {
             'timestamp': datetime.now().astimezone().isoformat(),
@@ -1474,6 +1503,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             var divergent = 0;
             var byMethod = { vc71: 0, equiv: 0, snap: 0, oracle: 0 };
             for (var ui = 0; ui < REPORT.units.length; ui++) {
+                if (REPORT.units[ui].synthetic) continue;
                 var funcs = REPORT.units[ui].functions || [];
                 for (var fi = 0; fi < funcs.length; fi++) {
                     var f = funcs[fi];
@@ -1503,10 +1533,12 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
         function renderSummary() {
             var s = REPORT.summary;
             var u = REPORT.units;
-            var totalUnits = REPORT.project.total_units;
+            var gameUnits = u.filter(function(unit) { return !unit.synthetic; });
+            var totalUnits = gameUnits.length;
+            var platform = s.platform || { units: 0, functions: 0, ported: 0 };
             var vData = countVerified();
 
-            var completedUnits = u.filter(function(unit) { return unit.summary.percent === 100 && unit.summary.total > 0; }).length;
+            var completedUnits = gameUnits.filter(function(unit) { return unit.summary.percent === 100 && unit.summary.total > 0; }).length;
             var completedPct = Math.round(completedUnits / totalUnits * 100);
 
             var verifiedPct = s.functions.ported > 0 ? (vData.total / s.functions.ported * 100).toFixed(1) : '0';
@@ -1523,6 +1555,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             // verification instead). Honest scope for the Match Quality headline.
             var mScored = 0, mScoreable = 0, mNoRef = 0;
             for (var mui = 0; mui < u.length; mui++) {
+                if (u[mui].synthetic) continue;
                 var hasRef = !!(u[mui].summary && u[mui].summary.has_delinked_ref);
                 var mfuncs = u[mui].functions || [];
                 for (var mfi = 0; mfi < mfuncs.length; mfi++) {
@@ -1540,10 +1573,16 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
 
             document.getElementById('summary-cards').innerHTML =
                 '<div class="card" title="Functions ported out of total.">' +
-                    '<div class="stat-label">Overall Progress</div>' +
+                    '<div class="stat-label">Game Code Progress</div>' +
                     '<div class="stat-value">' + s.functions.percent.toFixed(1) + '%</div>' +
                     '<div class="stat-label">' + fmtNum(s.functions.ported) + ' / ' + fmtNum(s.functions.total) + ' functions</div>' +
                     '<div class="progress-bar"><div class="progress-fill" style="width:' + Math.max(s.functions.percent, 2) + '%"><span class="progress-text">' + s.functions.percent.toFixed(1) + '%</span></div></div>' +
+                '</div>' +
+                '<div class="card" title="SDK/platform/runtime library functions are tracked separately from Halo game source progress.">' +
+                    '<div class="stat-label">Platform / SDK</div>' +
+                    '<div class="stat-value" style="color:#79c0ff">' + fmtNum(platform.functions) + '</div>' +
+                    '<div class="stat-label">' + fmtNum(platform.ported) + ' ported across ' + fmtNum(platform.units) + ' buckets &middot; excluded from game progress</div>' +
+                    '<div class="progress-bar"><div class="progress-fill" style="width:' + (platform.functions > 0 ? Math.max(platform.ported / platform.functions * 100, 0.3) : 0) + '%;background:linear-gradient(90deg,#1f6feb,#58a6ff)"><span class="progress-text">separate</span></div></div>' +
                 '</div>' +
                 '<div class="card" title="Source files where every function has been ported.">' +
                     '<div class="stat-label">Files Complete</div>' +
@@ -1968,6 +2007,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             var items = [];
             for (var i = 0; i < REPORT.units.length; i++) {
                 var u = REPORT.units[i];
+                if (u.synthetic) continue;
                 var bytes = u.summary.bytes_total || 1;
                 items.push({ value: bytes, unit: u });
             }
@@ -2158,7 +2198,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 var u = units[i];
                 var s = u.summary;
                 var name = u.name;
-                var source = u.source_path || '?';
+                var source = u.synthetic ? 'synthetic bucket' : (u.source_path || '?');
                 var fp = s.percent;
 
                 var pctClass = fp >= 100 ? 'pct-complete' : (fp > 0 ? 'pct-partial' : 'pct-none');
@@ -2233,7 +2273,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
 
             var funcs = unit.functions || [];
             var s = unit.summary;
-            currentUnitHasRef = !!s.has_delinked_ref;
+            currentUnitHasRef = !!s.has_delinked_ref && !unit.synthetic;
 
             // Header
             document.getElementById('detail-unit-name').textContent = unit.name;
@@ -2241,12 +2281,13 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             var snap = unit.snapshot || {};
             var golden = unit.runtime_oracle || {};
             var ds = unit.data_summary || { total: 0 };
+            var sourceLabel = unit.synthetic ? 'synthetic bucket' : (unit.source_path || '?');
             document.getElementById('detail-meta').innerHTML =
-                '<span class="unit-meta-item">Source: <strong>' + escHtml(unit.source_path || '?') + '</strong></span>' +
+                '<span class="unit-meta-item">Source: <strong>' + escHtml(sourceLabel) + '</strong></span>' +
                 '<span class="unit-meta-item">Functions: <strong>' + s.total + '</strong></span>' +
                 '<span class="unit-meta-item">Ported: <strong>' + s.ported + '</strong> (' + s.percent.toFixed(1) + '%)</span>' +
                 (ds.total > 0 ? '<span class="unit-meta-item">Data Symbols: <strong>' + ds.total + '</strong></span>' : '') +
-                '<span class="unit-meta-item">Bytes: <strong>' + fmtNum(s.bytes_ported) + ' / ' + fmtNum(s.bytes_total) + '</strong></span>' +
+                (!unit.synthetic ? '<span class="unit-meta-item">Bytes: <strong>' + fmtNum(s.bytes_ported) + ' / ' + fmtNum(s.bytes_total) + '</strong></span>' : '') +
                 (s.match_weighted !== null && s.match_weighted !== undefined ?
                     '<span class="unit-meta-item">Match: <strong style="color:' + matchColor(s.match_weighted) + '">' + s.match_weighted.toFixed(1) + '%</strong></span>' : '') +
                 (s.match_avg !== null && s.match_avg !== undefined ?
@@ -2260,9 +2301,11 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 // VC71 scoring is a whole-translation-unit MSVC compile, so this is a
                 // single unit-level action — not per function. Only offered when a
                 // delinked reference exists; otherwise VC71 byte-match is impossible.
+                (unit.synthetic ?
+                    '<span class="unit-meta-item pct-none" title="Synthetic platform/common bucket, not a real source translation unit.">Synthetic bucket &middot; excluded from source progress</span>' :
                 (currentUnitHasRef ?
                     '<span class="unit-meta-item"><button class="score-btn" data-unit="' + jsEsc(unit.name) + '" onclick="scoreFunction(this)" title="Recompile this unit with MSVC 7.1 and diff against the delinked reference">&#x25B6; Score unit (VC71)</button></span>' :
-                    '<span class="unit-meta-item pct-none" title="No delinked reference object on disk — VC71 byte-match is unavailable for this unit. Verify behaviorally via equivalence or the runtime oracle.">No delinked reference &middot; VC71 unavailable</span>');
+                    '<span class="unit-meta-item pct-none" title="No delinked reference object on disk — VC71 byte-match is unavailable for this unit. Verify behaviorally via equivalence or the runtime oracle.">No delinked reference &middot; VC71 unavailable</span>'));
 
             // Match distribution chart (embedded Chart.js)
             renderDetailChart(funcs);

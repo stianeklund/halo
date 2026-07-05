@@ -49,8 +49,22 @@ def disassemble(obj_path: str) -> dict[str, list[str]]:
                 current_labels.add(len(current_lines))
                 continue
             if sym.startswith("FUN_") and current_func and current_lines:
-                last_mnem = mnemonic(current_lines[-1]).lower()
-                if last_mnem not in _RET_MNEMS:
+                # Look back past trailing padding to the last real instruction.
+                # MSVC pads between functions with nop/int3, so inspecting only
+                # current_lines[-1] sees the padding rather than the terminating
+                # ret — which mis-folds the *next* function into this one and
+                # massively inflates its instruction count (e.g. csmemset read as
+                # 298 insns instead of ~80).  A genuine next function is preceded
+                # by a ret (then optional padding); a spurious mid-function FUN_
+                # label has real code flowing straight into it (no ret, no pad).
+                last_mnem = ""
+                for _prev in reversed(current_lines):
+                    _mn = mnemonic(_prev).lower()
+                    if _mn in _PAD_MNEMS:
+                        continue
+                    last_mnem = _mn
+                    break
+                if last_mnem and last_mnem not in _RET_MNEMS:
                     current_labels.add(len(current_lines))
                     continue
             if current_func and current_lines:
@@ -80,7 +94,7 @@ def disassemble(obj_path: str) -> dict[str, list[str]]:
 
     for fn in functions:
         lines = functions[fn]
-        while lines and lines[-1].strip().split()[0].startswith('nop'):
+        while lines and mnemonic(lines[-1]).lower() in _PAD_MNEMS:
             lines.pop()
         lines = _trim_trailing_table_data(lines)
         lines = _trim_trailing_thunks(lines)
@@ -91,6 +105,10 @@ def disassemble(obj_path: str) -> dict[str, list[str]]:
 
 _RET_MNEMS = {'ret', 'retl', 'retw', 'retq', 'retn'}
 _NOP_MNEMS = {'nop', 'nopl', 'nopw'}
+# Inter-function padding emitted by MSVC (0x90 nop / 0xCC int3).  Never part of a
+# function body; skipped when locating a function's terminating instruction and
+# trimmed from function tails.
+_PAD_MNEMS = _NOP_MNEMS | {'int3'}
 _THUNK_BODY_MNEMS = {'push', 'pushl', 'pushw', 'call', 'calll', 'callw',
                      'add', 'addl', 'nop', 'pop', 'popl'}
 
