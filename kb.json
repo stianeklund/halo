@@ -33965,7 +33965,8 @@
    "functions": [
     {
      "addr": "0x1282f0",
-     "decl": "void network_server_allow_client_connections(int connection, bool open);"
+     "decl": "void network_server_allow_client_connections(int connection, bool open);",
+     "ported": true
     },
     {
      "addr": "0x128360",
