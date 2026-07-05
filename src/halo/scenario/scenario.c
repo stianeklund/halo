@@ -360,6 +360,71 @@ void FUN_0018b190(void *render_data, void *parent_model_effect,
   }
 }
 
+/* 0x18b830 — render an object's blob shadow. ctx is a small shadow
+ * descriptor: +0x0 object handle, +0x4 render-state pointer (forward vector
+ * at +0x5c, ambient rgb at +0x68), +0xc receives the 4x3 shadow basis
+ * matrix, +0x40 is forwarded as the final output block. Builds the object
+ * bounding sphere, derives a basis from a vector perpendicular to the render
+ * forward, fades the shadow color toward white by `fade` (active-camouflage
+ * power at unit+0x32c reduces the fade for units), then hands off to the
+ * decals shadow renderer FUN_0017ccb0. Register arg: ctx @<esi>. */
+void FUN_0018b830(void *ctx, float fade)
+{
+  float center[3];
+  float perp[3];
+  float color[3];
+  float radius;
+  float fade_local;
+  float one_minus;
+  int state;
+  char *obj;
+
+  fade_local = fade;
+  FUN_0001aae0(*(int *)ctx, center, &radius);
+  perpendicular3d((float *)(*(int *)((char *)ctx + 4) + 0x5c), perp);
+  /* length result discarded (FSTP ST0 in the original) */
+  normalize3d(perp);
+  matrix4x3_from_forward_up_position((char *)ctx + 0xc, center, perp,
+                                     (float *)(*(int *)((char *)ctx + 4) +
+                                               0x5c));
+  state = *(int *)((char *)ctx + 4);
+  color[0] = *(float *)(state + 0x68);
+  color[1] = *(float *)(state + 0x6c);
+  color[2] = *(float *)(state + 0x70);
+  obj = (char *)object_get_and_verify_type(*(int *)ctx, -1);
+  if ((1 << (*(uint8_t *)(obj + 0x64) & 0x1f) & 3u) != 0) {
+    obj = (char *)object_get_and_verify_type(*(int *)ctx, 3);
+    if (*(float *)(obj + 0x32c) > *(const float *)0x2533c0) {
+      fade_local =
+        (*(const float *)0x2533c8 - *(float *)(obj + 0x32c)) * fade;
+    }
+  }
+  one_minus = *(const float *)0x2533c8 - fade_local;
+  color[0] = color[0] * fade_local + one_minus;
+  color[1] = color[1] * fade_local + one_minus;
+  color[2] = color[2] * fade_local + one_minus;
+  FUN_0017ccb0(*(int *)ctx, (float *)((char *)ctx + 0xc), color, radius,
+               (float *)((char *)ctx + 0x40));
+}
+
+/* 0x18b930 — build a plane from a normal and a point on the plane, plus the
+ * flipped (negated) plane. plane = {n.x, n.y, n.z, dot(n, point)}; flipped =
+ * -plane. The normal components are copied as raw dwords (integer moves in
+ * the original). No callers in the binary (dead helper). Register args:
+ * plane @<eax>, flipped @<ecx>, normal @<edx>. */
+void FUN_0018b930(float *plane, float *flipped, float *normal, float *point)
+{
+  *(int32_t *)plane = *(int32_t *)normal;
+  *(int32_t *)(plane + 1) = *(int32_t *)(normal + 1);
+  *(int32_t *)(plane + 2) = *(int32_t *)(normal + 2);
+  plane[3] =
+    normal[2] * point[2] + normal[1] * point[1] + normal[0] * point[0];
+  flipped[0] = -plane[0];
+  flipped[1] = -plane[1];
+  flipped[2] = -plane[2];
+  flipped[3] = -plane[3];
+}
+
 /* 0x18b990 — build an oriented-box clip volume for a visibility/portal query.
  *
  * The ECX descriptor holds three axis vectors A (+0x10), B (+0x1c) and a
@@ -659,6 +724,30 @@ int FUN_0018c580(int param_1, int param_2)
              (int)*(unsigned char *)(param_2 + 6);
   }
   return diff;
+}
+
+/* 0x18d040 — resolve a sprite record's default scale then apply the
+ * per-record count multiplier (kb name scenario_object_name_index_from_string
+ * was a misattribution; the body is float scale math, no string handling).
+ * state+0x10 bit0 selects the mode: when set, a sentinel scale
+ * (*value == *(float *)0x2533c0) becomes 1.0 before the multiply; when clear
+ * and p1 == 0, the sentinel becomes -(src+0x8 / global 0x506728). Finally
+ * *value *= (short)(info+0x4). p2 is on the stack but unused (kept for ABI).
+ * Register args: state @<eax>, value @<ecx>. Only caller: FUN_0018d6e0
+ * (build_sprite). */
+void FUN_0018d040(void *state, float *value, int16_t p1, int p2, void *src,
+                  void *info)
+{
+  if ((*(uint8_t *)((char *)state + 0x10) & 1) != 0) {
+    if (*value == *(const float *)0x2533c0) {
+      *value = 1.0f;
+      *value = (float)*(int16_t *)((char *)info + 4) * *value;
+      return;
+    }
+  } else if (p1 == 0 && *value == *(const float *)0x2533c0) {
+    *value = -(*(float *)((char *)src + 8) / *(float *)0x506728);
+  }
+  *value = (float)*(int16_t *)((char *)info + 4) * *value;
 }
 
 /* 0x18d0b0 — per-frame coverage/big-sprite stats reset (kb name is a

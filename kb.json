@@ -21953,11 +21953,13 @@
     },
     {
      "addr": "0x18b830",
-     "decl": "void FUN_0018b830(void);"
+     "decl": "void FUN_0018b830(void *ctx @<esi>, float fade);",
+     "ported": true
     },
     {
      "addr": "0x18b930",
-     "decl": "void scenario_illumination_at_point(void);"
+     "decl": "void FUN_0018b930(float *plane @<eax>, float *flipped @<ecx>, float *normal @<edx>, float *point);",
+     "ported": true
     },
     {
      "addr": "0x18b990",
@@ -22020,7 +22022,8 @@
     },
     {
      "addr": "0x18d040",
-     "decl": "void scenario_object_name_index_from_string(void);"
+     "decl": "void FUN_0018d040(void *state @<eax>, float *value @<ecx>, int16_t p1, int p2, void *src, void *info);",
+     "ported": true
     },
     {
      "addr": "0x18d0b0",
