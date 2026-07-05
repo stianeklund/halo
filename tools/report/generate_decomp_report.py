@@ -1536,6 +1536,12 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             var gameUnits = u.filter(function(unit) { return !unit.synthetic; });
             var totalUnits = gameUnits.length;
             var platform = s.platform || { units: 0, functions: 0, ported: 0 };
+            var platformPct = platform.functions > 0 ? (platform.ported / platform.functions * 100) : 0;
+            var platformPctStr = platformPct.toFixed(1) + '%';
+            var totalAllFuncs = s.functions.total + platform.functions;
+            var totalAllPorted = s.functions.ported + platform.ported;
+            var totalAllPct = totalAllFuncs > 0 ? (totalAllPorted / totalAllFuncs * 100) : 0;
+            var totalAllPctStr = totalAllPct.toFixed(1) + '%';
             var vData = countVerified();
 
             var completedUnits = gameUnits.filter(function(unit) { return unit.summary.percent === 100 && unit.summary.total > 0; }).length;
@@ -1572,7 +1578,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             matchTip += 'No delinked reference (needs equivalence/oracle): ' + mNoRef;
 
             document.getElementById('summary-cards').innerHTML =
-                '<div class="card" title="Functions ported out of total.">' +
+                '<div class="card" title="Functions ported out of total game source functions.">' +
                     '<div class="stat-label">Game Code Progress</div>' +
                     '<div class="stat-value">' + s.functions.percent.toFixed(1) + '%</div>' +
                     '<div class="stat-label">' + fmtNum(s.functions.ported) + ' / ' + fmtNum(s.functions.total) + ' functions</div>' +
@@ -1580,9 +1586,15 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 '</div>' +
                 '<div class="card" title="SDK/platform/runtime library functions are tracked separately from Halo game source progress.">' +
                     '<div class="stat-label">Platform / SDK</div>' +
-                    '<div class="stat-value" style="color:#79c0ff">' + fmtNum(platform.functions) + '</div>' +
-                    '<div class="stat-label">' + fmtNum(platform.ported) + ' ported across ' + fmtNum(platform.units) + ' buckets &middot; excluded from game progress</div>' +
-                    '<div class="progress-bar"><div class="progress-fill" style="width:' + (platform.functions > 0 ? Math.max(platform.ported / platform.functions * 100, 0.3) : 0) + '%;background:linear-gradient(90deg,#1f6feb,#58a6ff)"><span class="progress-text">separate</span></div></div>' +
+                    '<div class="stat-value" style="color:#79c0ff">' + platformPctStr + '</div>' +
+                    '<div class="stat-label">' + fmtNum(platform.ported) + ' / ' + fmtNum(platform.functions) + ' functions &middot; ' + fmtNum(platform.units) + ' buckets (excluded)</div>' +
+                    '<div class="progress-bar"><div class="progress-fill" style="width:' + Math.max(platformPct, platform.ported > 0 ? 2 : 0) + '%;background:linear-gradient(90deg,#1f6feb,#58a6ff)"><span class="progress-text">' + platformPctStr + '</span></div></div>' +
+                '</div>' +
+                '<div class="card" title="Combined progress across both Halo game source code (' + fmtNum(s.functions.total) + ') and SDK/platform libraries (' + fmtNum(platform.functions) + ').">' +
+                    '<div class="stat-label">Total Progress</div>' +
+                    '<div class="stat-value" style="color:#d2a8ff">' + totalAllPctStr + '</div>' +
+                    '<div class="stat-label">' + fmtNum(totalAllPorted) + ' / ' + fmtNum(totalAllFuncs) + ' functions total</div>' +
+                    '<div class="progress-bar"><div class="progress-fill" style="width:' + Math.max(totalAllPct, 2) + '%;background:linear-gradient(90deg,#8957e5,#d2a8ff)"><span class="progress-text">' + totalAllPctStr + '</span></div></div>' +
                 '</div>' +
                 '<div class="card" title="Source files where every function has been ported.">' +
                     '<div class="stat-label">Files Complete</div>' +
