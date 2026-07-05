@@ -538,6 +538,18 @@ class StubManager:
         candidates = list(self.delinked_dir.glob(f"{obj_name}.obj"))
         if not candidates:
             candidates = list(self.delinked_dir.glob("*.obj"))
+        # Per-function delinked refs (delinked/functions/<addr8>.obj) — the
+        # only oracle-side source for intra-object siblings whose TU has no
+        # whole-object delinked export.
+        _addr = kb_entry.get("addr", "")
+        if _addr:
+            try:
+                _fp = (self.delinked_dir / "functions"
+                       / f"{int(_addr, 16):08x}.obj")
+                if _fp.exists():
+                    candidates.insert(0, _fp)
+            except ValueError:
+                pass
 
         # Delinked objects name functions FUN_<addr>, but a call site may use the
         # real name (lifted/clang obj) or the FUN_ form (delinked oracle).  Both
@@ -664,6 +676,14 @@ class StubManager:
             if stub is None:
                 continue  # no decl/abi -> synthetic ret-stub
             kb_entry = self._find_callee_in_kb(symbol_name)
+            # BIPED_REAL_SAME_OBJ=<obj name>: restrict real-code loading to
+            # intra-object siblings. Extern callees stay symmetric stubs —
+            # the candidate (full clang TU) cannot run them either, so
+            # loading them only into the oracle diverges the two sides.
+            _same_obj = os.environ.get("BIPED_REAL_SAME_OBJ")
+            if (_same_obj and kb_entry
+                    and kb_entry.get("_obj_name") != _same_obj):
+                continue
             fs = self._load_callee_code(symbol_name, kb_entry) if kb_entry else None
             if fs is None or not fs.code or len(fs.code) > STUB_SLOT:
                 continue  # not found / too big for a sentinel slot -> trampoline
@@ -699,6 +719,9 @@ class StubManager:
             stub.code = bytes(patched2)
             stub.has_real_code = True
             self._real_code_count += 1
+            if os.environ.get("BIPED_TRACE_REAL") == "1":
+                print(f"  [real-callee] {symbol_name} "
+                      f"({len(stub.code)}B, depth {depth})")
             # Enqueue nested callees discovered in this callee's body.
             for new_sentinel, new_sym in new_map.items():
                 if new_sentinel in processed:

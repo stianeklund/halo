@@ -230,17 +230,22 @@ def setup_args(uc, abi: dict, arg_values: list, scratch_writes: dict,
 
     for i, (param, value) in enumerate(zip(params, arg_values)):
         if param.is_pointer:
-            # Write a dummy scalar or use whatever was passed as bytes
-            slot_base = scratch_ptr
-            if isinstance(value, (bytes, bytearray)):
-                slot_data = bytes(value)[:POINTER_SLOT]
-                slot_data = slot_data.ljust(POINTER_SLOT, b'\x00')
+            if value is None:
+                # Explicit NULL pointer (snapshot arg_overrides JSON null) —
+                # symmetric on oracle and candidate; no scratch slot.
+                packed = struct.pack('<I', 0)
             else:
-                # Treat as an array of floats / ints
-                slot_data = b'\x00' * POINTER_SLOT
-            scratch_writes[slot_base - SCRATCH_BASE] = slot_data
-            scratch_ptr += POINTER_SLOT
-            packed = struct.pack('<I', slot_base)
+                # Write a dummy scalar or use whatever was passed as bytes
+                slot_base = scratch_ptr
+                if isinstance(value, (bytes, bytearray)):
+                    slot_data = bytes(value)[:POINTER_SLOT]
+                    slot_data = slot_data.ljust(POINTER_SLOT, b'\x00')
+                else:
+                    # Treat as an array of floats / ints
+                    slot_data = b'\x00' * POINTER_SLOT
+                scratch_writes[slot_base - SCRATCH_BASE] = slot_data
+                scratch_ptr += POINTER_SLOT
+                packed = struct.pack('<I', slot_base)
         elif param.is_float:
             if isinstance(value, float):
                 packed = struct.pack('<f', value)

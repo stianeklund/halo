@@ -1806,6 +1806,10 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                     sv[idx] = bytes.fromhex(val)
                 elif isinstance(val, list) and len(val) == 2:
                     sv[idx] = _ov_rng.randint(val[0], val[1])
+                elif val is None:
+                    sv[idx] = None   # NULL pointer pin (JSON null)
+                elif isinstance(val, float):
+                    sv[idx] = val    # float pin — setup_args packs '<f'
                 else:
                     sv[idx] = int(val)
 
