@@ -389,7 +389,7 @@
   "0x18b010": {
     "class": "non_leaf",
     "confidence": "weak",
-    "coverage_pct": 73.1
+    "coverage_pct": 81.5
   },
   "0x18b190": {
     "class": "non_leaf"
@@ -432,12 +432,12 @@
   "0x18bf80": {
     "class": "non_leaf",
     "confidence": "weak",
-    "coverage_pct": 33.3
+    "coverage_pct": 36.1
   },
   "0x18c100": {
     "class": "non_leaf",
     "confidence": "moderate",
-    "coverage_pct": 33.2
+    "coverage_pct": 51.4
   },
   "0x18c370": {
     "class": "non_leaf",

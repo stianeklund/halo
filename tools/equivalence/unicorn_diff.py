@@ -713,6 +713,10 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
     last_map_error = [""]
     last_unmapped_access = [""]
     stub_addrs = stub_manager.get_stub_addresses() if stub_manager else set()
+    if stub_manager is not None:
+        # Sequenced stub_returns replay from call #0 in every run so oracle
+        # and candidate (and every seed) see the identical sequence.
+        stub_manager.reset_stub_sequences()
     if verbose and stub_addrs:
         stub_pairs = []
         for addr in sorted(stub_addrs):

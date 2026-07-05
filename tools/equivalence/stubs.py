@@ -485,6 +485,34 @@ class StubManager:
         self._real_code_count = 0
         # Optional stub argument tracer; set via set_tracer() before each run.
         self._tracer: Optional[StubArgTracer] = None
+        # Per-name call counters for list-valued stub_returns (sequenced
+        # returns).  Reset via reset_stub_sequences() before each run so
+        # oracle and candidate see the identical sequence.
+        self._seq_counters: dict[str, int] = {}
+
+    def reset_stub_sequences(self):
+        """Reset the per-name call counters for list-valued stub_returns.
+
+        Call before every emulation run (oracle AND candidate, every seed)
+        so both sides replay the identical return sequence.
+        """
+        self._seq_counters.clear()
+
+    def _lookup_return_override(self, address: int):
+        """Resolve the snapshot stub_returns entry for a sentinel.
+
+        Returns (key, value); value may be an int, a float, or a list
+        (sequenced returns).  (None, None) when no override matches.
+        """
+        if not self.stub_return_overrides:
+            return None, None
+        canon = self._canonical_names.get(address, "").lower()
+        if canon in self.stub_return_overrides:
+            return canon, self.stub_return_overrides[canon]
+        raw = self._stub_names.get(address, "").lstrip("_").lower()
+        if raw in self.stub_return_overrides:
+            return raw, self.stub_return_overrides[raw]
+        return None, None
 
     def set_tracer(self, tracer: Optional["StubArgTracer"]):
         """Attach (or detach) a StubArgTracer for the current emulation run.
@@ -825,6 +853,13 @@ class StubManager:
         return raw
 
     def should_intercept(self, address: int) -> bool:
+        # List-valued stub_returns (sequenced returns) are served dynamically
+        # in execute_stub — the static trampoline can only encode one value.
+        # An explicit snapshot sequence outranks named intercepts and real
+        # loaded code.
+        _k, _v = self._lookup_return_override(address)
+        if isinstance(_v, list):
+            return True
         # Named intercepts always take priority — even if oracle code was loaded.
         name = self._resolve_name(address)
         if name in self._INTERCEPT_NAMES or name in self._FTOL2_ADDRS:
@@ -863,12 +898,12 @@ class StubManager:
             conv = 'cdecl'
             n_stack_params = 0
 
-        _ret_override = None
-        if self.stub_return_overrides:
-            _raw = self._stub_names.get(address, "").lstrip("_").lower()
-            _canon = self._canonical_names.get(address, "").lower()
-            _ret_override = self.stub_return_overrides.get(
-                _canon, self.stub_return_overrides.get(_raw))
+        _, _ret_override = self._lookup_return_override(address)
+        if isinstance(_ret_override, list):
+            # Sequenced returns are served dynamically (should_intercept →
+            # execute_stub); the static bytes below are a never-executed
+            # fallback, so bake the safe default instead of one list element.
+            _ret_override = None
 
         code = bytearray()
         if ret_st0:
@@ -882,7 +917,7 @@ class StubManager:
                 code += b"\xD9\xEE"  # FLDZ
         elif _ret_override is not None:
             # Snapshot-driven deterministic return (same for oracle+candidate)
-            code += b"\xB8" + int(_ret_override).to_bytes(4, "little")  # MOV EAX, imm32
+            code += b"\xB8" + (int(_ret_override) & 0xFFFFFFFF).to_bytes(4, "little")  # MOV EAX, imm32
         elif not ret_void:
             code += b"\x31\xC0"  # XOR EAX, EAX
 
@@ -992,6 +1027,32 @@ class StubManager:
                     is_varargs=_is_varargs,
                 ))
             # --- end arg capture ---
+
+            # --- Sequenced stub returns (list-valued snapshot stub_returns) ---
+            # The per-name counter advances on every call and is reset via
+            # reset_stub_sequences() before each oracle/candidate run, so both
+            # sides replay the identical sequence.  Past the end of the list
+            # the last value repeats (natural for -1 loop terminators).
+            _seq_key, _seq_val = self._lookup_return_override(address)
+            if isinstance(_seq_val, list) and _seq_val:
+                _idx = self._seq_counters.get(_seq_key, 0)
+                self._seq_counters[_seq_key] = _idx + 1
+                _val = _seq_val[_idx] if _idx < len(_seq_val) else _seq_val[-1]
+                if stub is not None:
+                    _seq_st0 = stub.abi.get('ret_st0', False)
+                    _seq_conv = stub.abi.get('conv', 'cdecl')
+                    _seq_nsp = sum(1 for p in stub.abi['params'] if not p.reg)
+                else:
+                    _seq_st0 = isinstance(_val, float)
+                    _seq_conv = 'cdecl'
+                    _seq_nsp = 0
+                if _seq_st0:
+                    _write_st0_double(uc, float(_val))
+                else:
+                    uc.reg_write(UC_X86_REG_EAX, int(_val) & 0xFFFFFFFF)
+                if _seq_conv == 'stdcall':
+                    uc.reg_write(UC_X86_REG_ESP, caller_esp + _seq_nsp * 4)
+                return True
 
             if symbol_name in ("_chkstk", "__chkstk", "chkstk", "fun_001d90e0"):
                 size = uc.reg_read(UC_X86_REG_EAX) & 0xFFFFFFFF
