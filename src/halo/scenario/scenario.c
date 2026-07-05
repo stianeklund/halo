@@ -728,6 +728,190 @@ int FUN_0018c580(int param_1, int param_2)
   return diff;
 }
 
+/* 0x18ca40 — render the sky model (render\render_sky.c, assert line 0x26).
+ * Gated on render.visible_sky_model (0x506789); the sky record comes from
+ * FUN_0018e7d0(render.visible_sky_index @0x50678a). Decompresses the base
+ * node pose from the 'mode' tag (FUN_00123aa0), advances each overlay
+ * animation (sky+0xb8 block, 0x24/elem): phase accumulators live in the
+ * static array 0x4d86d8, stepped by frame-seconds (0x50654c) / period
+ * (elem+0x4) mod 1.0 (double 0x2573d8), applied via FUN_00122690 when the
+ * 'antr' sequence's node count matches the model. Builds world node
+ * matrices (FUN_00123c70 from the camera basis ptrs 0x31fc1c/3c/44), then
+ * for each sky light (sky+0xc4 block, 0x74/elem): direction from the named
+ * model marker's world position minus the camera (0x506550) — the marker
+ * query fills a 0x6c record whose +0x60 position the original read through
+ * overlapping locals — or from the euler angles at elem+0x68 when the
+ * marker name is empty; the light is placed far along that direction
+ * (0x2b1b50) facing back (perpendicular basis), FUN_00139b40. Finally the
+ * node matrices are pulled into a scaled view space (scale 2^-10, position
+ * * 0x2b1b4c), FUN_0017d1a0(1) selects the sky rasterizer mode, and the
+ * model is drawn with unit region scales via the 13-arg FUN_00123ed0,
+ * flushed through FUN_0016b240 (the 0x17cbf0 thunk's target, matching the
+ * scenario_test_pvs reloc lesson). cdecl, void(void), 0x1658-byte frame via
+ * _chkstk. */
+void FUN_0018ca40(void)
+{
+  float node_matrices[832]; /* EBP-0x1658: 64 x 0x34-byte node matrices */
+  float node_buf[512];      /* EBP-0x958: 64 x 0x20-byte node transforms */
+  char record[0x74];        /* EBP-0x158 render-model record */
+  float scales[8];          /* EBP-0xE4 per-region scales */
+  float view_matrix[13];    /* EBP-0xC4 */
+  char marker[0x6c];        /* EBP-0x90; pos2/negdir/perp overlapped its
+                             * dead world matrix in the original frame */
+  float pos2[3];
+  float negdir[3];
+  float perp[3];
+  float delta[3];
+  float phase;
+  float frame;
+  float len;
+  float *defcol;
+  char *rec;
+  char *mode_tag;
+  char *antr_tag;
+  char *elem;
+  char *seq;
+  int counter;
+  int i;
+
+  if (*(char *)0x506789 != 0) {
+    if (FUN_0018e7d0((int)*(uint16_t *)0x50678a) == NULL) {
+      display_assert("!render.visible_sky_model || "
+                     "scenario_get_sky(render.visible_sky_index)",
+                     "c:\\halo\\SOURCE\\render\\render_sky.c", 0x26, 1);
+      system_exit(-1);
+    }
+    if (*(char *)0x506789 != 0) {
+      rec = (char *)FUN_0018e7d0((int)*(uint16_t *)0x50678a);
+      mode_tag = (char *)tag_get(0x6d6f6465, *(int *)(rec + 0xc));
+      FUN_00123aa0(mode_tag, node_buf);
+      if (*(int *)(rec + 0x1c) != -1) {
+        antr_tag = (char *)tag_get(0x616e7472, *(int *)(rec + 0x1c));
+        if (*(int *)(rec + 0xb8) > 0) {
+          counter = 0;
+          i = 0;
+          do {
+            elem = (char *)tag_block_get_element(rec + 0xb8, i, 0x24);
+            if (*(int16_t *)elem >= 0 &&
+                (int)*(int16_t *)elem < *(int *)(antr_tag + 0x74) &&
+                *(float *)(elem + 4) != *(const float *)0x2533c0) {
+              seq = (char *)tag_block_get_element(
+                antr_tag + 0x74, (int)*(int16_t *)elem, 0xb4);
+              if ((int)*(int16_t *)(seq + 0x2c) ==
+                  *(int *)(mode_tag + 0xb8)) {
+#if defined(_MSC_VER) && !defined(__clang__)
+                /* VC71 /Oi lowers fmod to _CIfmod, matching the original;
+                 * clang takes the x87_fmod (FPREM) branch below. */
+                phase = (float)fmod(
+                  (double)(*(float *)0x50654c / *(float *)(elem + 4) +
+                           ((float *)0x4d86d8)[i]),
+                  *(const double *)0x2573d8);
+#else
+                phase =
+                  x87_fmod(*(float *)0x50654c / *(float *)(elem + 4) +
+                             ((float *)0x4d86d8)[i],
+                           *(const double *)0x2573d8);
+#endif
+                ((float *)0x4d86d8)[i] = phase;
+                frame = (float)(int)*(int16_t *)(seq + 0x22) * phase;
+                FUN_00122690(seq, frame, node_buf);
+              }
+            }
+            counter++;
+            i = (int)(int16_t)counter;
+          } while (i < *(int *)(rec + 0xb8));
+        }
+      }
+      FUN_00123c70(mode_tag, node_matrices, node_buf, *(float **)0x31fc1c,
+                   *(float **)0x31fc3c, *(float **)0x31fc44);
+      if (*(int *)(rec + 0xac) > 0) {
+        counter = 0;
+        i = 0;
+        do {
+          tag_block_get_element(rec + 0xac, i, 0x24); /* validation only */
+          counter++;
+          scales[i] = 1.0f;
+          i = (int)(int16_t)counter;
+        } while (i < *(int *)(rec + 0xac));
+      }
+      if (*(int *)(rec + 0xc4) > 0) {
+        counter = 0;
+        i = 0;
+        do {
+          elem = (char *)tag_block_get_element(rec + 0xc4, i, 0x74);
+          if (*(int *)(elem + 0xc) != -1) {
+            if (csstrlen(elem + 0x10) == 0) {
+              angles_to_vector(delta, (float *)(elem + 0x68));
+            } else {
+              if (FUN_00124730(*(int *)(rec + 0xc), elem + 0x10, 0, 0, -1,
+                               node_matrices, 0, marker, 1) == 0)
+                goto next_light;
+              delta[0] = *(float *)(marker + 0x60) - *(float *)0x506550;
+              delta[1] = *(float *)(marker + 0x64) - *(float *)0x506554;
+              delta[2] = *(float *)(marker + 0x68) - *(float *)0x506558;
+              len = sqrtf(delta[2] * delta[2] + delta[0] * delta[0] +
+                          delta[1] * delta[1]);
+              if (fabs((double)len) >= *(const double *)0x2533d0) {
+                len = *(const float *)0x2533c8 / len;
+                delta[0] = delta[0] * len;
+                delta[1] = delta[1] * len;
+                delta[2] = delta[2] * len;
+              }
+            }
+            pos2[0] =
+              delta[0] * *(const float *)0x2b1b50 + *(float *)0x506550;
+            pos2[1] =
+              delta[1] * *(const float *)0x2b1b50 + *(float *)0x506554;
+            pos2[2] =
+              delta[2] * *(const float *)0x2b1b50 + *(float *)0x506558;
+            negdir[0] = -delta[0];
+            negdir[1] = -delta[1];
+            negdir[2] = -delta[2];
+            perpendicular3d(negdir, perp);
+            len = sqrtf(perp[2] * perp[2] + perp[1] * perp[1] +
+                        perp[0] * perp[0]);
+            if (fabs((double)len) >= *(const double *)0x2533d0) {
+              len = *(const float *)0x2533c8 / len;
+              perp[0] = perp[0] * len;
+              perp[1] = perp[1] * len;
+              perp[2] = perp[2] * len;
+            }
+            FUN_00139b40(*(int *)(elem + 0xc), (int *)pos2, (int)negdir,
+                         (int)perp, *(float **)0x2ee708, 1.0f);
+          }
+        next_light:
+          counter++;
+          i = (int)(int16_t)counter;
+        } while (i < *(int *)(rec + 0xc4));
+      }
+      qmemcpy(view_matrix, *(void **)0x31fc60, 0x34);
+      view_matrix[10] = *(float *)0x506550 * *(const float *)0x2b1b4c;
+      view_matrix[11] = *(float *)0x506554 * *(const float *)0x2b1b4c;
+      view_matrix[12] = *(float *)0x506558 * *(const float *)0x2b1b4c;
+      view_matrix[0] = 0.0009765625f; /* 2^-10, immediate store */
+      if (*(int *)(mode_tag + 0xb8) > 0) {
+        counter = 0;
+        i = 0;
+        do {
+          matrix4x3_multiply(view_matrix, node_matrices + i * 13,
+                             node_matrices + i * 13); /* dup-args-ok */
+          counter++;
+          i = (int)(int16_t)counter;
+        } while (i < *(int *)(mode_tag + 0xb8));
+      }
+      FUN_0017d1a0(1);
+      csmemset(record, 0, 0x74);
+      defcol = *(float **)0x2ee708;
+      *(int32_t *)record = *(int32_t *)defcol;
+      *(int32_t *)(record + 4) = *(int32_t *)(defcol + 1);
+      *(int32_t *)(record + 8) = *(int32_t *)(defcol + 2);
+      FUN_00123ed0(*(int *)(rec + 0xc), 0.0f, node_matrices, 0, 0, scales,
+                   (int)record, (void *)0x506550, 0, 0, 0, 0, 1);
+      FUN_0016b240();
+    }
+  }
+}
+
 /* Sort record built by FUN_0018c5b0's gather pass; FUN_0018c580 is the
  * matching qsort comparator (tag, then sort key, then first-person flag). */
 typedef struct particle_sort_record {
