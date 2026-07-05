@@ -34,6 +34,7 @@ Commands:
 
 import argparse
 import bisect
+import hashlib
 import json
 import re
 import subprocess
@@ -52,6 +53,9 @@ CURRENT_PATH = Path(__file__).parent / "vc71_current.json"
 # Functions whose delinked reference failed validation (truncated/absent) and were
 # therefore NOT scored.  These need re-delinking before their score is meaningful.
 VALIDITY_PATH = REPO_ROOT / "artifacts" / "audit" / "reference_validity.json"
+# Per-TU input fingerprints for `populate --incremental` (host-local, gitignored).
+# Lets a dashboard refresh re-verify only the TUs whose inputs changed.
+POPULATE_STATE_PATH = REPO_ROOT / "artifacts" / "audit" / "populate_state.json"
 VC71_VERIFY = REPO_ROOT / "tools" / "verify" / "vc71_verify.py"
 
 _LINE_RE = re.compile(
@@ -101,6 +105,87 @@ def save_validity(flagged: list[dict]) -> None:
     VALIDITY_PATH.parent.mkdir(parents=True, exist_ok=True)
     VALIDITY_PATH.write_text(
         json.dumps({"version": 1, "flagged": flagged}, indent=2, sort_keys=True) + "\n")
+
+
+# ---------------------------------------------------------------------------
+# Incremental populate: per-TU input fingerprints
+# ---------------------------------------------------------------------------
+
+def _sha_bytes(*chunks) -> str:
+    h = hashlib.sha1()
+    for c in chunks:
+        if c is None:
+            continue
+        if isinstance(c, str):
+            c = c.encode("utf-8", "replace")
+        h.update(c)
+        h.update(b"\0")
+    return h.hexdigest()
+
+
+def _sha_file(path: Path) -> str:
+    try:
+        return _sha_bytes(path.read_bytes())
+    except OSError:
+        return ""
+
+
+_TOOL_EPOCH = None
+
+
+def _tool_epoch() -> str:
+    """Hash of every input shared by *all* TUs — the verify/compare tooling,
+    kb.json (spans, names, aliases, ported flags), and the delinked per-function
+    chunk directory (the fallback oracle).  When any of these change, the scoring
+    semantics can move for any function, so a changed epoch forces a full
+    re-verify.  This is what makes today's fold-fix (a tool change) correctly
+    invalidate the whole cache while a lone source edit does not.
+    """
+    global _TOOL_EPOCH
+    if _TOOL_EPOCH is not None:
+        return _TOOL_EPOCH
+    parts = []
+    for rel in ("tools/verify/vc71_verify.py",
+                "tools/verify/compare_obj.py",
+                "tools/verify/vc71_regression.py",
+                "tools/verify/vc71_cache.py",
+                "kb.json"):
+        parts.append(_sha_file(REPO_ROOT / rel))
+    # Per-function chunk directory signature (name+size+mtime): a re-delink of
+    # any fallback chunk must invalidate the cache.
+    fdir = REPO_ROOT / "delinked" / "functions"
+    sig = []
+    if fdir.is_dir():
+        for p in sorted(fdir.glob("*.obj")):
+            try:
+                st = p.stat()
+                sig.append(f"{p.name}:{st.st_size}:{st.st_mtime_ns}")
+            except OSError:
+                continue
+    parts.append(_sha_bytes("\n".join(sig)))
+    _TOOL_EPOCH = _sha_bytes(*parts)
+    return _TOOL_EPOCH
+
+
+def _tu_fingerprint(src: Path, ref: Path) -> str:
+    """Fingerprint one TU by its own inputs (source + whole-object reference).
+    The tool/kb/chunk epoch is tracked separately at the state-file level."""
+    return _sha_bytes(_sha_file(src), _sha_file(ref))
+
+
+def load_populate_state() -> dict:
+    if not POPULATE_STATE_PATH.exists():
+        return {}
+    try:
+        return json.loads(POPULATE_STATE_PATH.read_text())
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def save_populate_state(epoch: str, tus: dict) -> None:
+    POPULATE_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    data = {"version": 1, "tool_epoch": epoch, "tus": tus}
+    POPULATE_STATE_PATH.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
 
 
 # ---------------------------------------------------------------------------
@@ -230,6 +315,81 @@ def run_vc71_verify(source: Path, no_cache: bool = True,
 # update command
 # ---------------------------------------------------------------------------
 
+def _verify_source(src: Path, baseline: dict, force: bool):
+    """Verify one source TU: apply the floor merge into ``baseline`` (in place)
+    and return ``(n_changed, honest_slice, flagged_slice)`` for this TU only.
+
+    - ``honest_slice``: ``{fn: {score, source, n_c, n_r}}`` for functions scored
+      against a valid reference.
+    - ``flagged_slice``: re-delink queue entries for this TU.
+
+    Does not save the baseline — the caller saves once after all TUs.
+    """
+    honest_slice: dict = {}
+    flagged_slice: list = []
+    n_changed = 0
+
+    print(f"Verifying {src.relative_to(REPO_ROOT)} ...", flush=True)
+    drops: list = []
+    results = run_vc71_verify(src, drops_out=drops)
+    src_rel = str(src.relative_to(REPO_ROOT))
+
+    # Functions vc71_verify could not score against any valid reference never
+    # produce a score line, so the gate below never sees them.  Record them
+    # directly in the re-delink queue so it is complete — not just the
+    # gate-flagged (present-but-invalid-reference) subset.
+    for d in sorted(drops, key=lambda x: x["function"]):
+        flagged_slice.append({"function": d["function"], "source": src_rel,
+                              "n_r": None, "span_bytes": d.get("span_bytes"),
+                              "reason": d["reason"]})
+        print(f"  ⚠ {d['function']}: no valid reference — {d['reason']}; "
+              f"skipped (flagged for re-delink)")
+
+    for fn_name, info in sorted(results.items()):
+        new_score = info["score"]
+
+        # Reference-validity gate: never trust a score computed against a
+        # truncated/absent reference — skip it and flag for re-delink so a
+        # broken reference cannot pollute the floor or the dashboard.
+        n_r = info.get("n_r")
+        span = _func_span(fn_name)
+        ok, reason = _reference_valid(n_r, span)
+        if not ok:
+            flagged_slice.append({"function": fn_name, "source": src_rel,
+                                  "n_r": n_r, "span_bytes": span,
+                                  "reason": reason})
+            print(f"  ⚠ {fn_name}: reference invalid — {reason}; "
+                  f"skipped (flagged for re-delink)")
+            continue
+
+        honest_slice[fn_name] = {"score": new_score, "source": src_rel,
+                                 "n_c": info.get("n_c"), "n_r": n_r}
+
+        old_entry = baseline.get(fn_name)
+        old_score = old_entry["score"] if old_entry else None
+
+        if old_score is None:
+            baseline[fn_name] = {"score": new_score, "source": src_rel}
+            print(f"  + {fn_name}: {new_score:.1f}% (new)")
+            n_changed += 1
+        elif new_score > old_score + 0.1:
+            # Improvement: always raise the floor
+            baseline[fn_name] = {"score": new_score, "source": src_rel}
+            print(f"  ↑ {fn_name}: {old_score:.1f}% → {new_score:.1f}%")
+            n_changed += 1
+        elif new_score < old_score - 0.1:
+            if force:
+                baseline[fn_name] = {"score": new_score, "source": src_rel}
+                print(f"  ↓ {fn_name}: {old_score:.1f}% → {new_score:.1f}% (forced lower)")
+                n_changed += 1
+            else:
+                print(f"  ! {fn_name}: {old_score:.1f}% → {new_score:.1f}%"
+                      f" (drop; use --force to lower floor)")
+        # else: unchanged within tolerance, nothing to do
+
+    return n_changed, honest_slice, flagged_slice
+
+
 def cmd_update(args, honest_out: dict | None = None,
                flagged_out: list | None = None) -> int:
     if not args.source:
@@ -247,66 +407,12 @@ def cmd_update(args, honest_out: dict | None = None,
             print(f"  SKIP {src_str} (not found)", file=sys.stderr)
             continue
 
-        print(f"Verifying {src.relative_to(REPO_ROOT)} ...", flush=True)
-        drops: list = []
-        results = run_vc71_verify(src, drops_out=drops)
-        src_rel = str(src.relative_to(REPO_ROOT))
-
-        # Functions vc71_verify could not score against any valid reference never
-        # produce a score line, so the gate below never sees them.  Record them
-        # directly in the re-delink queue so it is complete — not just the
-        # gate-flagged (present-but-invalid-reference) subset.
-        for d in sorted(drops, key=lambda x: x["function"]):
-            if flagged_out is not None:
-                flagged_out.append({"function": d["function"], "source": src_rel,
-                                    "n_r": None, "span_bytes": d.get("span_bytes"),
-                                    "reason": d["reason"]})
-            print(f"  ⚠ {d['function']}: no valid reference — {d['reason']}; "
-                  f"skipped (flagged for re-delink)")
-
-        for fn_name, info in sorted(results.items()):
-            new_score = info["score"]
-
-            # Reference-validity gate: never trust a score computed against a
-            # truncated/absent reference — skip it and flag for re-delink so a
-            # broken reference cannot pollute the floor or the dashboard.
-            n_r = info.get("n_r")
-            span = _func_span(fn_name)
-            ok, reason = _reference_valid(n_r, span)
-            if not ok:
-                if flagged_out is not None:
-                    flagged_out.append({"function": fn_name, "source": src_rel,
-                                        "n_r": n_r, "span_bytes": span,
-                                        "reason": reason})
-                print(f"  ⚠ {fn_name}: reference invalid — {reason}; "
-                      f"skipped (flagged for re-delink)")
-                continue
-
-            if honest_out is not None:
-                honest_out[fn_name] = {"score": new_score, "source": src_rel,
-                                       "n_c": info.get("n_c"), "n_r": n_r}
-
-            old_entry = baseline.get(fn_name)
-            old_score = old_entry["score"] if old_entry else None
-
-            if old_score is None:
-                baseline[fn_name] = {"score": new_score, "source": src_rel}
-                print(f"  + {fn_name}: {new_score:.1f}% (new)")
-                total_changed += 1
-            elif new_score > old_score + 0.1:
-                # Improvement: always raise the floor
-                baseline[fn_name] = {"score": new_score, "source": src_rel}
-                print(f"  ↑ {fn_name}: {old_score:.1f}% → {new_score:.1f}%")
-                total_changed += 1
-            elif new_score < old_score - 0.1:
-                if args.force:
-                    baseline[fn_name] = {"score": new_score, "source": src_rel}
-                    print(f"  ↓ {fn_name}: {old_score:.1f}% → {new_score:.1f}% (forced lower)")
-                    total_changed += 1
-                else:
-                    print(f"  ! {fn_name}: {old_score:.1f}% → {new_score:.1f}%"
-                          f" (drop; use --force to lower floor)")
-            # else: unchanged within tolerance, nothing to do
+        n, honest_slice, flagged_slice = _verify_source(src, baseline, args.force)
+        total_changed += n
+        if honest_out is not None:
+            honest_out.update(honest_slice)
+        if flagged_out is not None:
+            flagged_out.extend(flagged_slice)
 
     save_baseline(baseline)
     if total_changed:
@@ -449,7 +555,16 @@ def cmd_show(args) -> int:
 # ---------------------------------------------------------------------------
 
 def cmd_populate(args) -> int:
-    """Scan objdiff.json to find all source files with ported functions and update."""
+    """Scan objdiff.json for source files with a delinked reference and refresh
+    the floored baseline, the honest current scores, and the re-delink queue.
+
+    With ``--incremental`` only TUs whose inputs changed since the last populate
+    are re-verified; unchanged TUs carry their cached honest/flagged results
+    forward (from ``populate_state.json``).  A change to the verify/compare
+    tooling, kb.json, or the delinked chunk directory bumps the tool epoch and
+    forces a full re-verify.  Without the flag, every TU is re-verified (the
+    conservative default used by CI).
+    """
     objdiff = REPO_ROOT / "objdiff.json"
     if not objdiff.exists():
         print("objdiff.json not found.", file=sys.stderr)
@@ -458,34 +573,86 @@ def cmd_populate(args) -> int:
     data = json.loads(objdiff.read_text())
     units = data.get("units", [])
 
-    # Collect source files that have a delinked reference
-    src_files = []
+    # Collect (src_abs, src_rel, ref_abs) for TUs whose reference exists on disk.
+    tus = []
+    seen = set()
     for unit in units:
         src = unit.get("metadata", {}).get("source_path", "")
         ref = unit.get("base_path", "")
-        if src and ref and (REPO_ROOT / ref).exists():
-            full = REPO_ROOT / src
-            if full.exists() and str(full) not in src_files:
-                src_files.append(str(full))
+        if not (src and ref):
+            continue
+        ref_abs = REPO_ROOT / ref
+        full = REPO_ROOT / src
+        if full.exists() and ref_abs.exists() and str(full) not in seen:
+            seen.add(str(full))
+            tus.append((full, str(Path(src)), ref_abs))
 
-    if not src_files:
+    if not tus:
         print("No source files with delinked references found in objdiff.json.")
         return 1
 
-    print(f"Populating baseline from {len(src_files)} source files...")
+    incremental = getattr(args, "incremental", False)
+    force = getattr(args, "force", False)
+    epoch = _tool_epoch()
+    prev = load_populate_state() if incremental else {}
+    prev_ok = incremental and prev.get("tool_epoch") == epoch
+    prev_tus = prev.get("tus", {}) if prev_ok else {}
+    if incremental and prev and not prev_ok:
+        print("Tool/kb.json/delinked epoch changed → full re-verify "
+              "(incremental cache invalidated).")
+
+    mode = "incremental" if incremental else "full"
+    print(f"Populating baseline from {len(tus)} source files ({mode})...")
+
+    baseline = load_baseline()
     honest: dict[str, dict] = {}
     flagged: list[dict] = []
+    new_state: dict[str, dict] = {}
+    total_changed = 0
+    n_cached = 0
+    n_verified = 0
 
-    class _Args:
-        source = src_files
-        force = getattr(args, "force", False)
+    for src_abs, src_rel, ref_abs in tus:
+        fp = _tu_fingerprint(src_abs, ref_abs)
+        cached = prev_tus.get(src_rel)
+        if cached and cached.get("fp") == fp:
+            # Inputs unchanged since last populate → reuse this TU's results.
+            # The floor is already correct (untouched); we only need to carry
+            # the honest + flagged slices forward so the rewritten current/queue
+            # files stay complete.
+            for fn, rec in cached.get("honest", {}).items():
+                honest[fn] = rec
+            flagged.extend(cached.get("flagged", []))
+            new_state[src_rel] = cached
+            n_cached += 1
+            continue
 
-    rc = cmd_update(_Args(), honest_out=honest, flagged_out=flagged)
+        n, honest_slice, flagged_slice = _verify_source(src_abs, baseline, force)
+        total_changed += n
+        honest.update(honest_slice)
+        flagged.extend(flagged_slice)
+        new_state[src_rel] = {
+            "fp": fp,
+            "ref": str(ref_abs.relative_to(REPO_ROOT)),
+            "honest": honest_slice,
+            "flagged": flagged_slice,
+        }
+        n_verified += 1
+
+    save_baseline(baseline)
+    if total_changed:
+        print(f"\nBaseline updated: {total_changed} function(s) changed → {BASELINE_PATH.name}")
+    else:
+        print("\nBaseline unchanged.")
 
     # Honest current scores drive the dashboard; the floored baseline stays the
     # CI tripwire.  The validity report is the re-delink work queue.
     save_current(honest)
     save_validity(flagged)
+    if incremental:
+        save_populate_state(epoch, new_state)
+        print(f"Incremental: {n_verified} TU(s) re-verified, {n_cached} cached "
+              f"→ {POPULATE_STATE_PATH.relative_to(REPO_ROOT)}")
     print(f"\nHonest current scores: {len(honest)} functions → {CURRENT_PATH.name}")
     if flagged:
         print(f"Reference-validity: {len(flagged)} function(s) skipped "
@@ -495,7 +662,7 @@ def cmd_populate(args) -> int:
             print(f"    {f['function']} ({f['source']}): {f['reason']}")
         if len(flagged) > 12:
             print(f"    ... and {len(flagged) - 12} more (see report)")
-    return rc
+    return 0
 
 
 # ---------------------------------------------------------------------------
@@ -614,6 +781,11 @@ def main():
     p_pop.add_argument("--force", action="store_true",
                        help="Allow lowering floored baseline to honest scores "
                             "(one-time rebaseline after reference/measurement fixes)")
+    p_pop.add_argument("--incremental", action="store_true",
+                       help="Only re-verify TUs whose source or reference changed "
+                            "since the last populate (state in "
+                            "artifacts/audit/populate_state.json). A tooling, "
+                            "kb.json, or delinked-chunk change forces a full pass.")
 
     p_loadw = sub.add_parser("loadw",
                              help="Sweep for load-width (int vs int16/int8) differences")
