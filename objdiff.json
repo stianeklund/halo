@@ -4685,7 +4685,7 @@
       "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/collision_usage.c.obj",
       "base_path": "delinked/collision_usage_FUN_0014db10.obj",
       "metadata": {
-        "source_path": "halo/physics/collision_usage.c"
+        "source_path": "src/halo/physics/collision_usage.c"
       }
     },
     {
@@ -5667,7 +5667,7 @@
     {
       "name": "halo/objects",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
-      "base_path": "delinked/objects.obj",
+      "base_path": "delinked/objects_region_9eb40.obj",
       "metadata": {
         "source_path": "src/halo/objects/objects.c"
       }
@@ -7002,7 +7002,7 @@
     {
       "name": "halo/units",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/units/units.c.obj",
-      "base_path": "delinked/units.obj",
+      "base_path": "delinked/units_region_8dc30.obj",
       "metadata": {
         "source_path": "src/halo/units/units.c"
       }
@@ -7361,10 +7361,10 @@
     },
     {
       "name": "halo/FUN_0001b750",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/real_math.c.obj",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/action_vehicle.c.obj",
       "base_path": "delinked/functions/0001b750.obj",
       "metadata": {
-        "source_path": "src/halo/math/real_math.c"
+        "source_path": "src/halo/ai/action_vehicle.c"
       }
     },
     {
@@ -7898,15 +7898,7 @@
     {
       "name": "halo/objects",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
-      "base_path": "delinked/objects_region_adf70.obj",
-      "metadata": {
-        "source_path": "src/halo/objects/objects.c"
-      }
-    },
-    {
-      "name": "halo/objects",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
-      "base_path": "delinked/objects_region_84a10.obj",
+      "base_path": "delinked/objects_region_9eb40.obj",
       "metadata": {
         "source_path": "src/halo/objects/objects.c"
       }
@@ -7922,7 +7914,15 @@
     {
       "name": "halo/objects",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
-      "base_path": "delinked/objects_region_1a9520.obj",
+      "base_path": "delinked/objects_region_9eb40.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/objects",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects_region_9eb40.obj",
       "metadata": {
         "source_path": "src/halo/objects/objects.c"
       }
@@ -7938,7 +7938,7 @@
     {
       "name": "halo/units",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/units/units.c.obj",
-      "base_path": "delinked/units_region_122a50.obj",
+      "base_path": "delinked/units_region_8dc30.obj",
       "metadata": {
         "source_path": "src/halo/units/units.c"
       }
@@ -7946,7 +7946,7 @@
     {
       "name": "halo/bored_camera",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/camera/bored_camera.c.obj",
-      "base_path": "delinked/objects_region_84a10.obj",
+      "base_path": "delinked/bored_camera.obj",
       "metadata": {
         "source_path": "src/halo/camera/bored_camera.c"
       }
@@ -8045,6 +8045,54 @@
       "base_path": "delinked/wind_FUN_0018ffe0.obj",
       "metadata": {
         "source_path": "src/halo/scenario/wind.c"
+      }
+    },
+    {
+      "name": "halo/FUN_0001beb0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actions.c.obj",
+      "base_path": "delinked/functions/0001beb0.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actions.c"
+      }
+    },
+    {
+      "name": "halo/FUN_0001d180",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actions.c.obj",
+      "base_path": "delinked/functions/0001d180.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actions.c"
+      }
+    },
+    {
+      "name": "halo/FUN_0001b8a0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actions.c.obj",
+      "base_path": "delinked/functions/0001b8a0.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actions.c"
+      }
+    },
+    {
+      "name": "halo/FUN_0001fb80",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actions.c.obj",
+      "base_path": "delinked/functions/0001fb80.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actions.c"
+      }
+    },
+    {
+      "name": "halo/FUN_0001fca0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actions.c.obj",
+      "base_path": "delinked/functions/0001fca0.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actions.c"
+      }
+    },
+    {
+      "name": "halo/FUN_0001d4f0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actions.c.obj",
+      "base_path": "delinked/functions/0001d4f0.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actions.c"
       }
     }
   ]

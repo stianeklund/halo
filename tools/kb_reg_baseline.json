@@ -588,6 +588,9 @@
     "0x1d8750": "unsigned int FUN_001d8750(unsigned int val@<ecx>);",
     "0x1e9350": "void D3DDevice_SetRenderState_Simple(uint32_t reg@<ecx>, uint32_t value@<edx>);",
     "0x1e9380": "void D3DDevice_SetRenderState_Deferred(uint32_t reg_index@<ecx>, uint32_t value@<edx>);",
-    "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);"
+    "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);",
+    "0x1b280": "char FUN_0001b280(int actor_handle@<ecx>, int object_handle@<eax>, float *in_attach0, float *in_attach1, float *in_attach2, int param_6, float *out_position, int *out_handle);",
+    "0x1cb30": "char FUN_0001cb30(int record_index, int datum_handle@<eax>);",
+    "0x1d530": "char FUN_0001d530(int actor_handle @<eax>, char param_1, int actor_index);"
   }
 }

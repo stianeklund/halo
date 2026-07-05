@@ -2035,7 +2035,8 @@
     },
     {
      "addr": "0x1bba0",
-     "decl": "void FUN_0001bba0(void);"
+     "decl": "int FUN_0001bba0(int actor_handle, int vehicle_handle, float *out_attach0, float *out_attach1, float *out_attach2);",
+     "ported": true
     },
     {
      "addr": "0x1bcd0",
@@ -2152,7 +2153,9 @@
     },
     {
      "addr": "0x1cb30",
-     "decl": "void FUN_0001cb30(void);"
+     "decl": "char FUN_0001cb30(int record_index, int datum_handle@<eax>);",
+     "ported": true,
+     "source_path": "src/halo/ai/actions.c"
     },
     {
      "addr": "0x1cb70",
@@ -2162,7 +2165,10 @@
     },
     {
      "addr": "0x1ccc0",
-     "decl": "void actor_action_allow_cover_seeking(void);"
+     "decl": "char actor_action_allow_cover_seeking(int actor_handle, char param_2);",
+     "name": "actor_action_allow_cover_seeking",
+     "ported": true,
+     "source_path": "src/halo/ai/actions.c"
     },
     {
      "addr": "0x1cda0",
@@ -2186,7 +2192,7 @@
     },
     {
      "addr": "0x1d180",
-     "decl": "void actor_action_test_grenade(void);"
+     "decl": "char actor_action_test_grenade(int actor_handle);"
     },
     {
      "addr": "0x1d350",
@@ -2209,7 +2215,8 @@
     },
     {
      "addr": "0x1d530",
-     "decl": "void FUN_0001d530(void);"
+     "decl": "char FUN_0001d530(int actor_handle @<eax>, char param_1, int actor_index);",
+     "ported": true
     },
     {
      "addr": "0x1d5c0",
@@ -2223,7 +2230,9 @@
     },
     {
      "addr": "0x1d620",
-     "decl": "void actor_action_debug_color(void);"
+     "decl": "void *actor_action_debug_color(int actor_handle);",
+     "ported": true,
+     "source_path": "src/halo/ai/actions.c"
     },
     {
      "addr": "0x1d6d0",
@@ -2242,11 +2251,16 @@
     },
     {
      "addr": "0x1d780",
-     "decl": "void set_real_vector3d(void);"
+     "decl": "void set_real_vector3d(float *out, float x, float y, float z);",
+     "ported": true,
+     "source_path": "src/halo/ai/actions.c"
     },
     {
      "addr": "0x1d7a0",
-     "decl": "void point_to_line_distance3d(void);"
+     "decl": "float point_to_line_distance3d(float *p1, float *p2, float *p3);",
+     "name": "point_to_line_distance3d",
+     "ported": true,
+     "source_path": "src/halo/ai/actions.c"
     },
     {
      "addr": "0x1d7c0",
@@ -2278,7 +2292,9 @@
     },
     {
      "addr": "0x1dea0",
-     "decl": "void actor_action_handle_combat_targeting(int actor_handle);"
+     "decl": "char actor_action_handle_combat_targeting(int actor_handle);",
+     "ported": true,
+     "source_path": "src/halo/ai/actions.c"
     },
     {
      "addr": "0x1dfa0",
@@ -2290,7 +2306,8 @@
     },
     {
      "addr": "0x1e700",
-     "decl": "void actor_action_handle_active_cover_seeking(int actor_handle, int param2, int param3);"
+     "decl": "char actor_action_handle_active_cover_seeking(int actor_handle, char param2, int param3);",
+     "ported": true
     },
     {
      "addr": "0x1e8a0",
@@ -2321,29 +2338,38 @@
     },
     {
      "addr": "0x1fa60",
-     "decl": "void actor_action_try_to_throw_grenade(int actor_handle, int flag);",
-     "name": "actor_action_try_to_throw_grenade"
+     "decl": "char actor_action_try_to_throw_grenade(int actor_handle, char flag);",
+     "name": "actor_action_try_to_throw_grenade",
+     "ported": true
     },
     {
      "addr": "0x1fb80",
      "decl": "char actor_action_consider_grenade(int actor_handle);",
-     "name": "actor_action_consider_grenade"
+     "name": "actor_action_consider_grenade",
+     "ported": true
     },
     {
      "addr": "0x1fca0",
-     "decl": "void actor_action_try_to_evade(void);"
+     "decl": "char actor_action_try_to_evade(int actor_handle);",
+     "name": "actor_action_try_to_evade",
+     "ported": true
     },
     {
      "addr": "0x1fe70",
-     "decl": "void actor_action_try_to_dive(void);"
+     "decl": "char actor_action_try_to_dive(int actor_handle, short direction_ref, float param_3, float *direction, float param_5);",
+     "name": "actor_action_try_to_dive",
+     "ported": true
     },
     {
      "addr": "0x20140",
-     "decl": "bool actors_searching_same_position(int actor_handle, int param_2);"
+     "decl": "bool actors_searching_same_position(int actor_handle, int param_2);",
+     "ported": true
     },
     {
      "addr": "0x20280",
-     "decl": "void actor_pursuit_find_nearby_actors(void);"
+     "decl": "int actor_pursuit_find_nearby_actors(int actor_handle, char flag);",
+     "name": "actor_pursuit_find_nearby_actors",
+     "ported": true
     },
     {
      "addr": "0x20470",
@@ -2365,7 +2391,9 @@
     },
     {
      "addr": "0x20670",
-     "decl": "void actor_action_handle_evasion(int actor_handle);"
+     "decl": "char actor_action_handle_evasion(int actor_handle);",
+     "name": "actor_action_handle_evasion",
+     "ported": true
     },
     {
      "addr": "0x20990",
@@ -2373,11 +2401,15 @@
     },
     {
      "addr": "0x21080",
-     "decl": "void FUN_00021080(void);"
+     "decl": "char FUN_00021080(int actor_handle);",
+     "ported": true,
+     "source_path": "src/halo/ai/actions.c"
     },
     {
      "addr": "0x210b0",
-     "decl": "bool FUN_000210b0(int actor_handle);"
+     "decl": "bool FUN_000210b0(int actor_handle);",
+     "ported": true,
+     "source_path": "src/halo/ai/actions.c"
     },
     {
      "addr": "0x210f0",
@@ -19946,18 +19978,6 @@
     {
      "addr": "0x1ada0",
      "decl": "void FUN_0001ada0(void);"
-    },
-    {
-     "addr": "0x1aeb0",
-     "decl": "void FUN_0001aeb0(void);"
-    },
-    {
-     "addr": "0x1b280",
-     "decl": "void FUN_0001b280(void);"
-    },
-    {
-     "addr": "0x1b750",
-     "decl": "char FUN_0001b750(int actor_handle, int param_2, int16_t seat_index, short *action_buf);"
     },
     {
      "addr": "0x109010",
@@ -38377,6 +38397,25 @@
      "addr": "0x18ffe0",
      "decl": "void wind_update(void);",
      "ported": true
+    }
+   ]
+  },
+  {
+   "name": "action_vehicle.obj",
+   "source": "ai/action_vehicle.c",
+   "functions": [
+    {
+     "addr": "0x1b750",
+     "decl": "char FUN_0001b750(int actor_handle, int vehicle_handle, int16_t seat_index, short *state_data);",
+     "ported": true
+    },
+    {
+     "addr": "0x1aeb0",
+     "decl": "char FUN_0001aeb0(int actor_handle, int vehicle_handle, short seat_index, int param_4, float *out_attach0, float *out_attach1, float *out_attach2, int param_8, int param_9, int param_10, int param_11);"
+    },
+    {
+     "addr": "0x1b280",
+     "decl": "char FUN_0001b280(int actor_handle@<ecx>, int object_handle@<eax>, float *in_attach0, float *in_attach1, float *in_attach2, int param_6, float *out_position, int *out_handle);"
     }
    ]
   }
