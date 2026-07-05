@@ -22048,7 +22048,8 @@
     },
     {
      "addr": "0x18d490",
-     "decl": "void FUN_0018d490(void);"
+     "decl": "void FUN_0018d490(float *basis @<eax>, void *data @<ecx>, float *direction @<ebx>, int16_t sprite_type, int unused, float *origin);",
+     "ported": true
     },
     {
      "addr": "0x18d670",

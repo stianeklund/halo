@@ -476,6 +476,7 @@
     "0x18cf10": "void FUN_0018cf10(void *data @<ebx>, float *untransformed_origin @<esi>, float *untransformed_direction @<edi>, uint8_t flags, float *transformed_origin, float *transformed_direction);",
     "0x18d040": "void FUN_0018d040(void *state @<eax>, float *value @<ecx>, int16_t p1, int p2, void *src, void *info);",
     "0x18d140": "int16_t FUN_0018d140(void *data @<esi>, int bitmap);",
+    "0x18d490": "void FUN_0018d490(float *basis @<eax>, void *data @<ecx>, float *direction @<ebx>, int16_t sprite_type, int unused, float *origin);",
     "0x18fb20": "void FUN_0018fb20(float *position @<ecx>, const float *target @<edx>, float max_delta);",
     "0x18ff00": "void FUN_0018ff00(float *out @<eax>, float *position @<edx>, float scale, float magnitude);",
     "0x193a80": "int FUN_00193a80(int param_1 /* @<ecx> */, short *param_2, int in_EAX /* @<eax> */);",
