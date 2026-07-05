@@ -24216,7 +24216,7 @@
         },
         {
           "addr": "0x82700",
-          "decl": "void add_endpoint_to_set(void);"
+          "decl": "int add_endpoint_to_set(int endpoint, void *set);"
         },
         {
           "addr": "0x82940",
@@ -33980,7 +33980,8 @@
         },
         {
           "addr": "0x1285c0",
-          "decl": "bool network_connection_server_accept_client_connection(int connection, int new_connection);"
+          "decl": "bool network_connection_server_accept_client_connection(int connection, int new_connection);",
+          "ported": true
         },
         {
           "addr": "0x128660",
