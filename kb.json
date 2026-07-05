@@ -6282,7 +6282,7 @@
     },
     {
      "addr": "0x17ccb0",
-     "decl": "void FUN_0017ccb0(int param_1, const float *shadow_matrix, const float *shadow_color, float object_bounding_radius, float *out_radius);",
+     "decl": "char FUN_0017ccb0(int param_1, const float *shadow_matrix, const float *shadow_color, float object_bounding_radius, float *out_radius);",
      "ported": true
     },
     {
@@ -6572,7 +6572,7 @@
     },
     {
      "addr": "0x97800",
-     "decl": "bool FUN_00097800(void);",
+     "decl": "bool FUN_00097800(int object_handle, void *lighting);",
      "ported": true
     },
     {
@@ -21922,7 +21922,7 @@
     {
      "addr": "0x18b010",
      "decl": "int FUN_0018b010(int object_handle @<esi>);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x18b080",
@@ -21956,7 +21956,7 @@
     },
     {
      "addr": "0x18b830",
-     "decl": "void FUN_0018b830(void *ctx @<esi>, float fade);",
+     "decl": "char FUN_0018b830(void *ctx @<esi>, float fade);",
      "ported": true
     },
     {
@@ -21986,11 +21986,13 @@
     },
     {
      "addr": "0x18c100",
-     "decl": "void FUN_0018c100(void *buf@<edi>);"
+     "decl": "void FUN_0018c100(void *buf@<edi>);",
+     "ported": true
     },
     {
      "addr": "0x18c370",
-     "decl": "void scenario_get_sky(void *buf@<eax>);"
+     "decl": "void FUN_0018c370(void *record @<eax>);",
+     "ported": true
     },
     {
      "addr": "0x18c3a0",

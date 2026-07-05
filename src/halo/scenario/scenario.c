@@ -369,8 +369,11 @@ void FUN_0018b190(void *render_data, void *parent_model_effect,
  * bounding sphere, derives a basis from a vector perpendicular to the render
  * forward, fades the shadow color toward white by `fade` (active-camouflage
  * power at unit+0x32c reduces the fade for units), then hands off to the
- * decals shadow renderer FUN_0017ccb0. Register arg: ctx @<esi>. */
-void FUN_0018b830(void *ctx, float fade)
+ * decals shadow renderer FUN_0017ccb0, whose char return (drawn/visible)
+ * propagates back to the caller FUN_0018c100, which TESTs AL after the call
+ * (implicit-EAX in the original; made explicit here). Register arg:
+ * ctx @<esi>. */
+char FUN_0018b830(void *ctx, float fade)
 {
   float center[3];
   float perp[3];
@@ -405,8 +408,8 @@ void FUN_0018b830(void *ctx, float fade)
   color[0] = color[0] * fade_local + one_minus;
   color[1] = color[1] * fade_local + one_minus;
   color[2] = color[2] * fade_local + one_minus;
-  FUN_0017ccb0(*(int *)ctx, (float *)((char *)ctx + 0xc), color, radius,
-               (float *)((char *)ctx + 0x40));
+  return FUN_0017ccb0(*(int *)ctx, (float *)((char *)ctx + 0xc), color,
+                      radius, (float *)((char *)ctx + 0x40));
 }
 
 /* 0x18b930 — build a plane from a normal and a point on the plane, plus the
@@ -843,6 +846,145 @@ void *scenario_leaf_index_from_point(int object_handle, float lod)
   return (void *)0x4d8258;
 }
 
+/* 0x18c100 — per-object processor shared by the PVS render pass and the PAS
+ * shadow pass; the record's pass byte (+8) selects the branch (non-zero =
+ * shadow). Shadow pass: skips the local player's first-person subject
+ * (FUN_0018b010) and objects flagged 0x40000 or attached-with-no-child
+ * (flags bit0 && +0xc8 == NONE); resolves the cluster lighting into
+ * record+4 (FUN_0018c0b0 at the screen diameter LOD), then gates on screen
+ * diameter (> 0x253394) and ambient darkness (1 - brightness(lighting+0x68)
+ * > 0x2b1b48); the shadow fade is clamp01(size_fade) * clamp01(dark_fade)
+ * (size fade stored/reloaded through a local with immediate 0/1 stores; dark
+ * fade clamped on the FPU stack against the 0.0/1.0 globals); if the blob
+ * shadow drew (FUN_0018b830 returns non-zero), submits the object tree
+ * (FUN_0018b190 with a NULL effect) and the shadow volume (FUN_0018b990
+ * @<ecx>). Render pass: visibility is false only for attached objects
+ * (flags bit0, +0xc8 == NONE) whose attachment 0x11c fails FUN_001363d0 —
+ * and a NONE 0x11c returns outright; fetches the 'obje' tag def, resolves
+ * lighting (or NULL when invisible), gates on FUN_00097800 (retail stub:
+ * always 1; args passed and ignored), zero-inits the type/modifier/node
+ * fields of a stack render_model_effect_t, computes record+9 = the
+ * plane-side flag (1 unless the clip word 0x50674c == 1 and the object
+ * position's signed distance against the plane at 0x506750..0x50675c is <=
+ * tagdef+4), and submits via FUN_0018b190 with the stack effect record.
+ * Register arg: record @<edi>. */
+void FUN_0018c100(void *record)
+{
+  char *rec;
+  char *obj;
+  uint32_t flags;
+  char visible;
+  int tagdef;
+  float diameter;
+  float darkness;
+  /* volatile: the original homes size_fade in [EBP-8] across the clamp
+   * (FSTP / FLD-compare / MOV-imm stores / FMUL from memory) while dark_fade
+   * stays on the FPU stack; without the memory home VC71 keeps both in ST
+   * and the immediate 0.0/1.0 stores disappear. Also forces the same 32-bit
+   * rounding the original's store+reload performs. */
+  volatile float size_fade;
+  float dark_fade;
+  render_model_effect_t effect;
+
+  rec = (char *)record;
+  if (*(char *)(rec + 8) != 0) {
+    obj = (char *)object_get_and_verify_type(*(int *)rec, -1);
+    if (FUN_0018b010(*(int *)rec)) {
+      return;
+    }
+    flags = *(uint32_t *)(obj + 4);
+    if ((flags & 0x40000) != 0) {
+      return;
+    }
+    if ((flags & 1) != 0 && *(int *)(obj + 0xc8) == -1) {
+      return;
+    }
+    *(int *)(rec + 4) = (int)scenario_leaf_index_from_point(
+      *(int *)rec, FUN_0018b130(*(int *)rec));
+    diameter = FUN_0018b130(*(int *)rec);
+    FADE_ROUND32(diameter);
+    darkness = *(const float *)0x2533c8 -
+               real_rgb_color_brightness(
+                 (float *)(*(int *)(rec + 4) + 0x68));
+    FADE_ROUND32(darkness);
+    if (*(const float *)0x253394 < diameter) {
+      if (*(const float *)0x2b1b48 < darkness) {
+        size_fade = (diameter - *(const float *)0x253394) *
+                    *(const float *)0x253d48;
+        dark_fade = (darkness - *(const float *)0x2b1b48) *
+                    *(const float *)0x2b1b44;
+        if (size_fade < *(const float *)0x2533c0) {
+          size_fade = 0.0f;
+        } else if (*(const float *)0x2533c8 < size_fade) {
+          size_fade = 1.0f;
+        }
+        if (FUN_0018b830(rec,
+                         ((dark_fade < *(const float *)0x2533c0)
+                            ? *(const float *)0x2533c0
+                            : ((*(const float *)0x2533c8 < dark_fade)
+                                 ? *(const float *)0x2533c8
+                                 : dark_fade)) *
+                           size_fade)) {
+          FUN_0018b190(rec, (void *)0, *(int *)rec);
+          FUN_0018b990(rec);
+        }
+      }
+    }
+  } else {
+    obj = (char *)object_get_and_verify_type(*(int *)rec, -1);
+    if ((*(uint8_t *)(obj + 4) & 1) == 0 || *(int *)(obj + 0xc8) != -1 ||
+        (visible = (char)FUN_001363d0(*(int *)(obj + 0x11c))) != 0) {
+      visible = 1;
+    } else if (*(int *)(obj + 0x11c) == -1) {
+      return;
+    }
+    tagdef = (int)tag_get(0x6f626a65 /* 'obje' */, *(int *)obj);
+    if (visible != 0) {
+      *(int *)(rec + 4) = (int)scenario_leaf_index_from_point(
+        *(int *)rec, FUN_0018b130(*(int *)rec));
+    } else {
+      *(int *)(rec + 4) = 0;
+    }
+    if (FUN_00097800(*(int *)rec, *(void **)(rec + 4))) {
+      effect.type = 0;
+      effect.modifier_shader = 0;
+      effect.node_matrices = 0;
+      effect.node_transforms = 0;
+      *(uint8_t *)(rec + 9) =
+        (*(int16_t *)0x50674c != 1 ||
+         *(float *)(tagdef + 4) <
+           *(float *)0x506754 * *(float *)(obj + 0x54) +
+             *(float *)0x506758 * *(float *)(obj + 0x58) +
+             *(float *)0x506750 * *(float *)(obj + 0x50) -
+             *(float *)0x50675c)
+          ? 1
+          : 0;
+      FUN_0018b190(rec, &effect, *(int *)rec);
+    }
+  }
+}
+
+/* 0x18c370 — drive the PAS shadow pass: for each handle in the
+ * visible-object table at 0x4d82d4 (count: the signed short at 0x4d82d0),
+ * store the handle into record[0] and process it via FUN_0018c100 (record
+ * in EDI). Sole caller: scenario_test_pas (record[8] = 1). NOTE: the old kb
+ * name 'scenario_get_sky' was a misnomer (record-buffer arg, object loop
+ * body — same misattribution pattern as 0x18d040/0x18b930). Register arg:
+ * record @<eax>. */
+void FUN_0018c370(void *record)
+{
+  short i;
+
+  i = 0;
+  if (*(short *)0x4d82d0 > 0) {
+    do {
+      *(int *)record = *(int *)((int)i * 4 + 0x4d82d4);
+      FUN_0018c100(record);
+      i = (short)(i + 1);
+    } while (i < *(short *)0x4d82d0);
+  }
+}
+
 /* 0x18c3a0 — scenario_test_pvs: per-frame potentially-visible-set debug draw.
  * Optionally brackets the work in a 'render_objects' profile section (when both
  * the global debug-enable byte 0x449ef1 and the section-enable byte 0x325810
@@ -899,9 +1041,9 @@ void scenario_test_pvs(void)
  * a sky/object iteration pass between FUN_00172520 and FUN_00172720
  * (reloc-verified against the delinked reference; an earlier draft wrongly
  * called the decal helpers FUN_0017cca0/FUN_0017cd10 here): a 0x48-byte stack
- * record is primed (record[8] = 1) and passed in EAX to scenario_get_sky,
- * which drives the per-object iteration loop and processing internally.
- * void(void). */
+ * record is primed (record[8] = 1) and passed in EAX to FUN_0018c370 (the kb
+ * name 'scenario_get_sky' was a misnomer), which drives the per-object
+ * iteration loop and processing internally. void(void). */
 void scenario_test_pas(void)
 {
   char record[0x48];
@@ -912,7 +1054,7 @@ void scenario_test_pas(void)
   if (*(char *)0x325800 != 0) {
     FUN_00172520();
     record[8] = 1;
-    scenario_get_sky(record);
+    FUN_0018c370(record);
     rasterizer_window_get_fog();
   }
   if (*(char *)0x449ef1 != 0 && *(char *)0x325e08 != 0) {

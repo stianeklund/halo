@@ -35,10 +35,12 @@ def load_snapshot(path: str) -> tuple[dict, dict, dict]:
       arg_overrides: {param_name: value_or_range} for seed constraining
         - Fixed: {"eax": 0x500000} — every seed uses this value
         - Range: {"param_1": [1, 10]} — seeder picks from [lo, hi]
-      stub_returns: {callee_name: int} — deterministic EAX for a stubbed
-        callee (applied identically to oracle and candidate); lets a run
-        open paths gated on a stub's pointer/handle result, e.g.
-        {"FUN_0017dc70": 0x780000} with a synthetic block at 0x780000.
+      stub_returns: {callee_name: int_or_float} — deterministic return for a
+        stubbed callee (applied identically to oracle and candidate); lets a
+        run open paths gated on a stub's pointer/handle result, e.g.
+        {"FUN_0017dc70": 0x780000} with a synthetic block at 0x780000. A JSON
+        float value is preserved as float and returned in ST0 by
+        float-returning stubs (PUSH imm32 + FLD trampoline in stubs.py).
     """
     with open(path, encoding="utf-8") as f:
         data = json.load(f)
@@ -55,7 +57,8 @@ def load_snapshot(path: str) -> tuple[dict, dict, dict]:
         mem[addr] = bytes.fromhex(val_hex)
 
     arg_overrides = data.get("arg_overrides", {})
-    stub_returns = {str(k).lstrip("_").lower(): int(v)
+    stub_returns = {str(k).lstrip("_").lower(): (v if isinstance(v, float)
+                                                 else int(v))
                     for k, v in data.get("stub_returns", {}).items()}
     return mem, arg_overrides, stub_returns
 

@@ -2176,13 +2176,15 @@ void FUN_0017cc70(void)
  * args (ADD ESP,0x14 at 0x18b928): [EBP+8]=param_1 (unused), [EBP+C]=shadow
  * matrix ptr (MOV ESI,[EBP+C] at 0x172a81), [EBP+10]=shadow color ptr
  * (MOV EBX,[EBP+10]), [EBP+14]=object_bounding_radius (FLD [EBP+14] at
- * 0x172b88), [EBP+18]=out_radius. */
-void FUN_0017ccb0(int param_1, const float *shadow_matrix,
+ * 0x172b88), [EBP+18]=out_radius. Returns FUN_00172a30's char (drawn/visible
+ * flag) — the caller chain FUN_0018b830 -> FUN_0018c100 tests AL after the
+ * call (implicit-EAX propagation in the original; made explicit here). */
+char FUN_0017ccb0(int param_1, const float *shadow_matrix,
                   const float *shadow_color, float object_bounding_radius,
                   float *out_radius)
 {
-  FUN_00172a30(param_1, shadow_matrix, shadow_color, object_bounding_radius,
-               out_radius);
+  return FUN_00172a30(param_1, shadow_matrix, shadow_color,
+                      object_bounding_radius, out_radius);
 }
 
 /* Tail-call thunk to rasterizer decal rendering (FUN_00172590).
