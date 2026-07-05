@@ -31,6 +31,36 @@ def load_function_sizes(cache_path: str) -> dict:
         return json.load(f)
 
 
+def _estimate_missing_sizes(funcs: list) -> dict[int, int]:
+    """Estimate function sizes from adjacent kb addresses when size cache is absent."""
+    estimates = {}
+    ordered = sorted((f['addr'] for f in funcs if f.get('addr')), key=int)
+    for i, addr in enumerate(ordered[:-1]):
+        next_addr = ordered[i + 1]
+        if next_addr > addr:
+            estimates[addr] = next_addr - addr
+    return estimates
+
+
+def _lookup_score(scores_data: dict, name: str, addr: int, source_path: str | None) -> dict | None:
+    """Find a VC71 score by plain name, FUN alias, or namespace-qualified ref name."""
+    keys = (
+        name,
+        f'FUN_{addr:08x}',
+        f'FUN_{addr:08X}',
+        f'thunk_FUN_{addr:08x}',
+    )
+    for key in keys:
+        score_entry = scores_data.get(key)
+        if score_entry is not None:
+            return score_entry
+    for key, score_entry in scores_data.items():
+        if key.rsplit('::', 1)[-1] == name:
+            if not source_path or score_entry.get('source') == source_path:
+                return score_entry
+    return None
+
+
 def _load_delinked_ref_map(root_dir: str) -> dict:
     """Return {source_path: bool} — whether a delinked reference .obj exists on disk.
 
@@ -253,6 +283,8 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
         match_scores = []
         match_weighted_sum = 0.0
         match_scored_bytes = 0
+        source_path_for_scores = f'src/halo/{source}' if source != '?' else None
+        estimated_sizes = _estimate_missing_sizes(funcs)
         
         for func_info in funcs:
             addr = func_info['addr']
@@ -263,6 +295,8 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
             size = 0
             if addr_hex in functions_data:
                 size = functions_data[addr_hex].get('size', 0)
+            if not size:
+                size = estimated_sizes.get(addr, 0)
             
             # Get status from kb_meta
             meta = store.symbols.get(f'{addr:#x}')
@@ -281,10 +315,7 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
             # ~1100 valid scores; the address is the stable key.
             match_pct = None
             if is_ported:
-                score_entry = (scores_data.get(name)
-                               or scores_data.get(f'FUN_{addr:08x}')
-                               or scores_data.get(f'FUN_{addr:08X}')
-                               or scores_data.get(f'thunk_FUN_{addr:08x}'))
+                score_entry = _lookup_score(scores_data, name, addr, source_path_for_scores)
                 if score_entry is not None:
                     match_pct = score_entry.get('score')
 

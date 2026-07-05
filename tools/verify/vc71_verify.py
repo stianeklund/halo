@@ -451,21 +451,38 @@ def run_compare_cached(
     reference_funcs: dict[str, list[str]] = co.disassemble(str(reference))
 
     matched: set[str] = set(compiled_funcs.keys()) & set(reference_funcs.keys())
+
+    # Delinked XDK objects can keep C++ namespace-qualified symbols while our
+    # C source emits plain function names.
+    namespace_map: dict[str, str] = {}
+    for ref_name in reference_funcs:
+        short_name = ref_name.rsplit("::", 1)[-1]
+        if short_name != ref_name and short_name in compiled_funcs:
+            namespace_map[short_name] = ref_name
+            if ref_name not in matched:
+                compiled_funcs[ref_name] = compiled_funcs[short_name]
+                matched.add(ref_name)
     rename_map = _build_rename_map(set(compiled_funcs.keys()), matched)
 
     if fn_filter:
         fn = fn_filter.lstrip("_")
         if fn not in matched:
-            old_name = rename_map.get(fn)
-            if old_name and old_name in reference_funcs and fn in compiled_funcs:
-                compiled_funcs[old_name] = compiled_funcs[fn]
-                matched = {old_name}
-                fn = old_name
+            namespace_name = namespace_map.get(fn)
+            if namespace_name and namespace_name in reference_funcs and fn in compiled_funcs:
+                compiled_funcs[namespace_name] = compiled_funcs[fn]
+                matched = {namespace_name}
+                fn = namespace_name
             else:
-                print(f"Function {fn} not found in both objects")
-                print(f"  compiled:  {sorted(compiled_funcs.keys())[:10]}")
-                print(f"  reference: {sorted(reference_funcs.keys())[:10]}")
-                return 1
+                old_name = rename_map.get(fn)
+                if old_name and old_name in reference_funcs and fn in compiled_funcs:
+                    compiled_funcs[old_name] = compiled_funcs[fn]
+                    matched = {old_name}
+                    fn = old_name
+                else:
+                    print(f"Function {fn} not found in both objects")
+                    print(f"  compiled:  {sorted(compiled_funcs.keys())[:10]}")
+                    print(f"  reference: {sorted(reference_funcs.keys())[:10]}")
+                    return 1
         matched = {fn}
     else:
         for new_name, old_name in rename_map.items():
