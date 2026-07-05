@@ -573,20 +573,28 @@ def run_compare_cached(
     ref_overrides: set[str] = set()
 
     def _valid_chunk_ref(fn: str):
-        """Instruction list from fn's per-function chunk, or None if unusable."""
+        """Instruction list from fn's per-function chunk, or None if unusable.
+
+        Uses the chunk-aware, boundary-capped disassembly (co.first_function_insns)
+        so a stale 0x2000-window chunk that packed following functions/stub slots
+        under the same symbol collapses to its true first function — which then
+        either scores honestly or fails the byte-span validity gate (and is
+        quarantined for re-delink) rather than producing a false low against
+        swallowed neighbours.
+        """
         chunk = _per_function_ref(fn)
         if not chunk or not chunk.exists():
             return None
+        aliases = set(function_aliases(fn)) | {fn}
+        addr = _func_addr(fn)
+        if addr is not None:
+            aliases.add(f"FUN_{addr & 0xffffffff:08x}")
         try:
-            cf = co.disassemble(str(chunk))
+            cand = co.first_function_insns(str(chunk), aliases)
         except Exception:
             return None
-        csym = next((a for a in function_aliases(fn) if a in cf), None)
-        if csym is None and fn in cf:
-            csym = fn
-        if csym is None:
+        if not cand:
             return None
-        cand = cf[csym]
         return cand if _ref_insns_valid(len(cand), _func_span(fn)) else None
 
     # (1) Override a truncated/invalid whole-object reference with the chunk.

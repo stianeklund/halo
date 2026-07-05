@@ -103,6 +103,84 @@ def disassemble(obj_path: str) -> dict[str, list[str]]:
     return functions
 
 
+def first_function_insns(obj_path: str, aliases) -> list[str] | None:
+    """Instructions of the first matching function in a per-function chunk,
+    capped at the first genuine function boundary.
+
+    A per-function chunk (delinked/functions/<addr>.obj) is meant to hold a
+    single function.  Stale pre-fix (0x2000-byte-window) exports instead packed
+    the following functions into the same .text section, labelling them
+    LAB_/switchD_ (jump-target style) rather than FUN_ — often as ret+nop
+    relocation-stub slots.  disassemble() treats LAB_ as within-function, which
+    is correct for whole objects but here swallows those neighbours and inflates
+    the symbol (e.g. a real 6-insn function read as 102).
+
+    Cap at the first ret-followed-by-a-label boundary: the same ret(+padding)
+    signal disassemble() already trusts for FUN_ boundaries, extended to any
+    label because nothing legitimately follows the sole function's terminating
+    ret in a single-function chunk.  Returns the padding-trimmed instruction
+    list, or None if the symbol is absent.
+    """
+    result = subprocess.run(
+        ["llvm-objdump", "-d", "--no-show-raw-insn", "--no-leading-addr", obj_path],
+        capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        return None
+
+    want = set(aliases)
+    insns: list[str] = []
+    in_target = False
+    found = False
+
+    for raw_line in result.stdout.splitlines():
+        line = raw_line.rstrip()
+        m = re.match(r'^(?:[0-9a-f]+ )?<([^>]+)>:', line)
+        if m:
+            sym = re.sub(r'@\d+$', '', m.group(1).lstrip("_"))
+            if not in_target:
+                in_target = sym in want
+                found = found or in_target
+                continue
+            # Inside the target function.  A real next symbol (FUN_/thunk_/any
+            # non-jump-target) is a hard boundary — stop (handles jmp-terminated
+            # trampolines whose successor carries a proper symbol).  A jump-target
+            # label (LAB_/switchD_/$L/$case/$next) is only a boundary when the
+            # last real instruction was a ret, i.e. a stub/neighbour slot follows;
+            # otherwise real code flows into it (internal jump target).
+            is_label = sym.startswith(("LAB_", "switchD_", "$L", "$case", "$next"))
+            if not is_label:
+                break
+            last = ""
+            for prev in reversed(insns):
+                mn = mnemonic(prev).lower()
+                if mn in _PAD_MNEMS:
+                    continue
+                last = mn
+                break
+            if last in _RET_MNEMS:
+                break
+            continue
+
+        if not in_target:
+            continue
+        stripped = line.strip()
+        if not stripped or stripped.startswith("...") or stripped.startswith("Disassembly of section"):
+            continue
+        parts = stripped.split(None, 1)
+        insn = stripped
+        if parts and re.match(r'^[0-9a-f]+:', parts[0]):
+            insn = parts[1] if len(parts) > 1 else ""
+        if insn:
+            insns.append(insn)
+
+    if not found:
+        return None
+    while insns and mnemonic(insns[-1]).lower() in _PAD_MNEMS:
+        insns.pop()
+    return insns or None
+
+
 _RET_MNEMS = {'ret', 'retl', 'retw', 'retq', 'retn'}
 _NOP_MNEMS = {'nop', 'nopl', 'nopw'}
 # Inter-function padding emitted by MSVC (0x90 nop / 0xCC int3).  Never part of a
