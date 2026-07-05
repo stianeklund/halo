@@ -1,5 +1,7 @@
 ---
 name: halo-xbox-re
+tier: agent
+triggers: ["lift", "lifting", "ported", "porting", "ghidra", "decompile", "decompil", "cachebeta", "kb.json", "binary evidence", "@<reg>", "reverse engineer"]
 description: "Halo CE Xbox reverse engineering, binary evidence, disassembly, Ghidra, ABI, structs, globals, unknowns, output contract: core doctrine for any RE/lift analysis."
 ---
 

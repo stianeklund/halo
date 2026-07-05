@@ -1,5 +1,6 @@
 ---
 name: capture-input
+tier: user
 description: >-
   Interactive wizard to capture (record) or replay a deterministic
   controller-input fixture for a Halo CE Xbox level. Invoke when the user wants

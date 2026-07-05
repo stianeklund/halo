@@ -157,3 +157,9 @@ xemu.log
 
 # Skill router runtime dedup state (regenerated)
 .claude/agent-memory/skill_router_hook_state.json
+
+# Skill router compiled-rules cache (regenerated from SKILL.md frontmatter)
+.claude/agent-memory/skill_router_rules_cache.json
+
+# Action (commit/deploy) skill router dedup state (regenerated)
+.claude/agent-memory/action_skill_router_state.json

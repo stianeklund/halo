@@ -1,5 +1,7 @@
 ---
 name: lift-silent-bugs
+tier: agent
+triggers: ["wrong color", "yellow", "white tint", "invisible", "missing geometry", "no effect", "does nothing", "wrong position", "silent bug", "visual regression", "behavioral regression"]
 description: >-
   Checklist for non-crashing silent correctness bugs — wrong colors, yellow/white
   tint, invisible geometry, missing spawn, no effect, wrong positions, wrong

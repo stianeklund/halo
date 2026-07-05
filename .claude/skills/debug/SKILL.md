@@ -1,5 +1,7 @@
 ---
 name: debug
+tier: agent
+triggers: ["regression", "crash", "fault", "access violation", "access_violation", "broken", "wrong behavior", "build failure", "deploy failure", "symbol absent", "rasterizer", "visual bug", "hang", "freeze", "no draw", "invisible", "missing", "cull"]
 description: >-
   Universal debugging entry point for Halo CE Xbox — invoke on ANY runtime
   problem: crash, page fault, ACCESS_VIOLATION, hang, freeze, deadlock, assert,

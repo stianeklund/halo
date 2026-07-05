@@ -1,5 +1,6 @@
 ---
 name: replay-input
+tier: user
 description: >-
   Quick wizard to replay an existing deterministic controller-input fixture on
   xemu or real Xbox. Invoke when the user wants to replay a stored recording,

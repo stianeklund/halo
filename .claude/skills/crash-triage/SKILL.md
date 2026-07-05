@@ -1,5 +1,7 @@
 ---
 name: crash-triage
+tier: agent
+triggers: ["access_violation", "access violation", "page fault", "page-fault", "assert", "hang", "soft deadlock", "deadlock", "freeze", "crash", "eip", "cr2", "trap frame", "register dump"]
 description: >-
   Automated crash and bug diagnosis for Halo CE Xbox lifting. Invoke whenever
   debugging any crash, page fault, ACCESS_VIOLATION, assert, hang, deadlock,

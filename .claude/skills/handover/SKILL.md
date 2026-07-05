@@ -1,5 +1,6 @@
 ---
 name: handover
+tier: user
 description: Create a concise continuation handover for Halo CE Xbox RE/lift work when the user runs /handover or asks to transfer context to a new agent.
 ---
 

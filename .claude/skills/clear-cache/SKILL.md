@@ -1,5 +1,6 @@
 ---
 name: halo-clear-cache
+tier: user
 description: Clear Halo CE cache files from Xbox devkit cache partitions
 ---
 

@@ -224,30 +224,22 @@ A hook (`tools/audit/token_discipline_hook.py`, wired in `.claude/settings.json`
 
 ## Architecture and Skills
 
-**Skill-first discipline (MANDATORY — applies to every Claude/agent/subagent instance in this repo):** Before doing lift, score-recovery, call-site verification, hazard, or crash/regression work, FIND and APPLY the matching skill under `.claude/skills/`. Do NOT default to raw `docs/lift-learnings.md` or a hand-rolled approach — the skills are the indexed, trigger-keyed front door to that doctrine and must be used actively. Discover with `rtk fd -e md . .claude/skills` (or grep the skill name), read the skill's **"Invoke this skill when"** block, and follow its checklist. Invoke via the Skill tool when it is surfaced as user-invocable; when it is NOT surfaced (the `lift-*` task skills frequently aren't loaded per session), READ the `SKILL.md` and apply it directly — being unlisted is not a reason to skip it. When delegating to a subagent, NAME the relevant skill(s) in the brief so the subagent runs the same doctrine. Trigger → skill map:
+**Skills are agent doctrine the assistant self-invokes — not a menu the user
+picks from.** `tools/memory/skill_router_hook.py` surfaces the relevant skill(s)
+from each `SKILL.md`'s `triggers` every prompt; treat those `[skill-router]`
+picks — and trigger words (`crash`, `page fault`, `@<reg>`, `ADD ESP`, `_chkstk`,
+`VC71`, `low match`, `permuter`, `wrong color`, `trajectory`, `xemu`) — as an
+instruction to load and apply the named skill before acting. Before any lift,
+score-recovery, call-site, hazard, or crash/regression work, apply the matching
+skill via the Skill tool when surfaced, else read `.claude/skills/<skill>/SKILL.md`
+and follow its checklist (`lift-*` are often unsurfaced — not a reason to skip).
+Name the skill(s) in any subagent brief.
 
-| Situation                                                                                                                        | Skill                                        |
-|----------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------|
-| VC71 65–84% and the gap "looks structural" (before writing "structural ceiling")                                                 | `lift-score-improve`                         |
-| Any new/changed lift, before commit or deploy (non-crashing correctness; box is the only oracle)                                 | `lift-silent-bugs` + `bug-hunt`              |
-| Verifying a call site against disassembly                                                                                        | `lift-decompiler-traps` + `lift-arg-hazards` |
-| Calling an UNPORTED callee (implicit `@<reg>` args)                                                                              | `check-callee-regs`                          |
-| Sizing a local buffer / `_chkstk` frame / stack aliasing                                                                         | `lift-frame-hazards`                         |
-| Any Xbox crash / hang / assert / visual regression / toggle-bisect                                                               | `crash-triage` → `lift-crash-signals`        |
-| Replay an existing input fixture (quick path, no flags)                                                                          | `replay-input`                               |
-| Deterministic input record/replay testing (capture gameplay, replay over and over, diff patched vs unpatched on identical input) | `input-replay-testing`                       |
-| A/B trajectory regression test: replay same input on patched+unpatched, capture state, diff behavior over a time window          | `ab-trajectory-testing`                      |
-| VC71 structurally capped (@<reg>/layout) or equiv coverage weak — need per-branch behavioral proof via hand-crafted snapshots       | `lift-synthetic-equivalence`                 |
-
-Broad doctrine skills:
-- `halo-xbox-re`: RE doctrine and evidence rules.
-- `halo-re-lift`: Lift workflow and ABI-specific execution.
-- `halo-verify-debug`: Verification lanes, delink comparison, and regression debugging.
-- `halo-build-xemu`: Build and XBE deployment workflow.
-- `halo-xbdm`: RDCP/XBDM workflow for real Xbox.
-- `input-replay-testing`: deterministic controller-input record/replay for testing (capture_scenario.py; per-level host-only fixtures; cachebeta vs default builds).
-- `replay-input`: quick replay wizard — lists fixtures, asks level/scenario/build, fires `capture_scenario.py replay` (no flags needed).
-- `ab-trajectory-testing`: A/B regression testing — replay the same input on patched + unpatched, capture state trajectories (atomic QMP → `.halorec`), diff behavior over a time window (`behavior_diff` = tolerant A/B oracle, `aa_check` = A/A determinism check); doc `docs/ab-trajectory-testing.md`.
+Full two-tier catalogue (~4 user `/<name>` commands vs ~22 auto-applied doctrine
+skills, with triggers): `.claude/skills/SKILLS.md`, generated from frontmatter by
+`tools/memory/gen_skills_index.py` (on-demand — not loaded each session). To add
+or retier a skill: edit its `SKILL.md` frontmatter (`tier:` + `triggers:`), then
+re-run `migrate_skill_frontmatter.py` + `gen_skills_index.py`.
 
 <!-- rtk-instructions v2 -->
 # RTK (Rust Token Killer) - Token-Optimized Commands

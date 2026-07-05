@@ -1,5 +1,7 @@
 ---
 name: lift-crash-signals
+tier: agent
+triggers: ["crash signal", "eip", "cr2", "trap frame", "register dump", "esp drift", "thunk recursion"]
 description: >-
   Xbox runtime crash diagnosis — key register signals, call-stack walk procedure,
   toggle-bisection for non-crashing regressions and visual bugs. Invoke on any

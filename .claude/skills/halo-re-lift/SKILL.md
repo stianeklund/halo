@@ -1,5 +1,7 @@
 ---
 name: halo-re-lift
+tier: agent
+triggers: ["lift", "lifting", "re-lift", "relift", "abi", "kb.json", "@<reg>", "port function"]
 description: "Lift, port, re-lift, FUN_, Ghidra decompile, kb.json, @<reg>, ABI, source_path: repo-specific Halo CE Xbox function lifting workflow from binary evidence through C implementation and verification."
 ---
 

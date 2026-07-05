@@ -1,5 +1,7 @@
 ---
 name: lift-score-improve
+tier: agent
+triggers: ["structural ceiling", "vc71", "low match", "score improve", "improve match", "65%", "84%", "looks structural"]
 description: Checklist for recovering VC71 match before declaring a structural ceiling. Invoke when score is 65–84% and the gap looks "structural".
 ---
 

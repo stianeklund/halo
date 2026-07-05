@@ -1,5 +1,7 @@
 ---
 name: permuter-campaign
+tier: agent
+triggers: ["permuter", "permute", "permutation", "85%", "98%", "last mile match"]
 description: >
   Permuter campaign, batch permute, low-match VC71, push stuck lifts toward 100%:
   run a parallel permuter campaign across low-match already-ported functions. Discovers

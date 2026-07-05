@@ -44,6 +44,19 @@
         ]
       }
     ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd $(git rev-parse --show-toplevel) && rtk python3 tools/memory/action_skill_router.py",
+            "timeout": 5,
+            "statusMessage": "Action router: commit/deploy skill reminders"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Read|Edit|Write",
