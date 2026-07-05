@@ -543,6 +543,134 @@ void FUN_0018b990(void *volume)
   FUN_0017cd00();
 }
 
+/* 0x18bc60 — refresh a cached object render-state's lighting
+ * (render\render_objects.c, asserts 0x27b/0x2b2). The render-state datum is
+ * fetched from the pool at 0x50652c by index (@<eax>). Staleness is judged
+ * from the frames since the last desired-lighting submit (state+0x8 vs the
+ * frame counter 0x506540) with a LOD-dependent budget (every frame above
+ * 0x254f90, every 3 above 0x253f00, else every 10), but only for
+ * dynamically-lit objects (object flags bit14). A stale state whose
+ * transform also moved (>1 frame since state+0x10) forces a full rebuild.
+ * Rebuild recomputes the desired lighting (FUN_0013bce0 into state+0x88)
+ * and stamps lod/submit-frame; when the tick counter advanced
+ * (0x506544 vs state+0xc) the point lights are re-gathered (FUN_0013aa10).
+ * A forced rebuild copies desired -> current (state+0x14) wholesale
+ * (0x74 bytes); a stale state with smooth lighting on (0x323c04) instead
+ * fades current toward desired per field (ambient/distant colors and
+ * directions via the @ecx/@edx helpers FUN_0018b610/b6b0/b780 at rate
+ * 0.03, the point-light intensities at 0.012) — skipped entirely when the
+ * object sits at the world origin and has no attached 0x80-type check
+ * (object_try...(handle, 0x80) == NULL). Otherwise only the point-light
+ * count/indices trio (+0xc8..+0xd0 -> +0x54..+0x5c) is refreshed when the
+ * tick advanced. Ends validating every point-light index against the
+ * rasterizer light count (signed short 0x5a8d5a) and stamping the
+ * tick/frame counters. Register arg: render_state_index @<eax>. */
+void FUN_0018bc60(int render_state_index, int object_handle, float lod,
+                  char force_rebuild)
+{
+  char *state;
+  char *obj;
+  float *cur;
+  float *des;
+  float pos[3]; /* EBP-0x14 */
+  int ticks;
+  int frames_xform;
+  int frames_submit;
+  int idx;
+  int16_t i;
+  char stale;
+
+  state = (char *)datum_get(*(data_t **)0x50652c, render_state_index);
+  ticks = *(int *)0x506544 - *(int *)(state + 0xc);
+  frames_xform = *(int *)0x506540 - *(int *)(state + 0x10);
+  frames_submit = *(int *)0x506540 - *(int *)(state + 8);
+  stale = 0;
+  if (frames_submit < 0 || ticks < 0) {
+    ticks = 1;
+    frames_submit = 1;
+  }
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  if ((*(uint32_t *)(obj + 4) & 0x4000) != 0) {
+    if (lod > *(const float *)0x254f90) {
+      stale = frames_submit > 0;
+    } else if (lod > *(const float *)0x253f00) {
+      stale = frames_submit > 3;
+    } else {
+      stale = frames_submit > 10;
+    }
+    if (stale != 0 && frames_xform > 1) {
+      obj = (char *)object_get_and_verify_type(object_handle, -1);
+      if ((*(uint32_t *)(obj + 4) & 0x4000) != 0) {
+        force_rebuild = 1;
+        goto rebuild;
+      }
+    }
+  }
+  if (force_rebuild != 0 || stale != 0) {
+  rebuild:
+    *(int *)(state + 4) = object_handle;
+    FUN_0013bce0(object_handle, (float *)(state + 0x88));
+    *(float *)(state + 0xfc) = lod;
+    *(int *)(state + 8) = *(int *)0x506540;
+    if (force_rebuild != 0)
+      goto update_points;
+  }
+  if (ticks > 0) {
+  update_points:
+    FUN_0013aa10(object_handle, (int)(state + 0x88));
+    if (force_rebuild != 0)
+      goto copy_all;
+  }
+  if (stale == 0) {
+    if (ticks > 0) {
+      *(int16_t *)(state + 0x54) = *(int16_t *)(state + 0xc8);
+      *(int32_t *)(state + 0x58) = *(int32_t *)(state + 0xcc);
+      *(int32_t *)(state + 0x5c) = *(int32_t *)(state + 0xd0);
+    }
+  } else if (*(char *)0x323c04 != 0) {
+    cur = (float *)(state + 0x14);
+    des = (float *)(state + 0x88);
+    if (*(int16_t *)(state + 0x94) != 2) {
+      display_assert("state->desired_lighting.distant_light_count==2",
+                     "c:\\halo\\SOURCE\\render\\render_objects.c", 0x27b, 1);
+      system_exit(-1);
+    }
+    object_get_root_location(object_handle, pos, 0);
+    if (pos[0] != *(const float *)0x2533c0 ||
+        pos[1] != *(const float *)0x2533c0 ||
+        pos[2] != *(const float *)0x2533c0 ||
+        object_try_and_get_and_verify_type(object_handle, 0x80) != NULL) {
+      FUN_0018b610(cur, des, 0.03f);
+      FUN_0018b6b0(cur + 19, des + 19, 0.03f);
+      FUN_0018b610(cur + 4, des + 4, 0.03f);
+      FUN_0018b780(cur + 7, des + 7, 0.03f);
+      FUN_0018b610(cur + 10, des + 10, 0.03f);
+      FUN_0018b780(cur + 13, des + 13, 0.03f);
+      FUN_0018b780(cur + 23, des + 23, 0.012f);
+      FUN_0018b610(cur + 26, des + 26, 0.03f);
+    }
+    *(int16_t *)(state + 0x54) = *(int16_t *)(state + 0xc8);
+    *(int32_t *)(state + 0x58) = *(int32_t *)(state + 0xcc);
+    *(int32_t *)(state + 0x5c) = *(int32_t *)(state + 0xd0);
+  } else {
+  copy_all:
+    qmemcpy(state + 0x14, state + 0x88, 0x74);
+  }
+  for (i = 0; i < *(int16_t *)(state + 0x54); i++) {
+    idx = *(int *)(state + 0x58 + (int)i * 4);
+    if (idx < 0 || idx >= (int)*(int16_t *)0x5a8d5a) {
+      display_assert(
+        "state->lighting.point_light_indices[point_light_index]>=0 && "
+        "state->lighting.point_light_indices[point_light_index]<"
+        "debug_rasterizer_light_count",
+        "c:\\halo\\SOURCE\\render\\render_objects.c", 0x2b2, 1);
+      system_exit(-1);
+    }
+  }
+  *(int *)(state + 0xc) = *(int *)0x506544;
+  *(int *)(state + 0x10) = *(int *)0x506540;
+}
+
 /* 0x18bf80 — resolve/allocate the cached object render-state datum index for
  * an object. The object stores its render-state index at object_data+0x120.
  *   1. If that index is valid (!= -1) and the pooled datum at that index still

@@ -21968,7 +21968,8 @@
     },
     {
      "addr": "0x18bc60",
-     "decl": "void FUN_0018bc60(int render_state_index @<eax>, int object_handle, float lod, char force_rebuild);"
+     "decl": "void FUN_0018bc60(int render_state_index @<eax>, int object_handle, float lod, char force_rebuild);",
+     "ported": true
     },
     {
      "addr": "0x18bf80",
