@@ -74,3 +74,14 @@ void network_connection_set_connection_rejection_procedure(int connection,
   assert_halt(connection);
   *(void **)(connection + 0xc) = callback;
 }
+
+/* network_connection_active (0x128660).
+ * Predicate: asserts the connection exists, then reports whether the
+ * "closed/inactive" bit (bit 4, mask 0x10) of the flags dword at +0x30 is
+ * CLEAR.  active == !((flags >> 4) & 1); i.e. the connection is active while
+ * bit 4 has not been set. */
+bool network_connection_active(int connection)
+{
+  assert_halt(connection);
+  return ((*(unsigned int *)(connection + 0x30) >> 4) & 1) == 0;
+}
