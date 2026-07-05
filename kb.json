@@ -24204,7 +24204,7 @@
         },
         {
           "addr": "0x82410",
-          "decl": "void delete_endpoint_set(void);"
+          "decl": "void delete_endpoint_set(int set);"
         },
         {
           "addr": "0x824a0",
@@ -33999,7 +33999,8 @@
         },
         {
           "addr": "0x128d30",
-          "decl": "void network_connection_delete(int connection);"
+          "decl": "void network_connection_delete(int connection);",
+          "ported": true
         },
         {
           "addr": "0x128e00",
@@ -34056,7 +34057,7 @@
         },
         {
           "addr": "0x1288e0",
-          "decl": "void FUN_001288e0(void);"
+          "decl": "void FUN_001288e0(int event@<ecx>, int enable@<eax>, int connection@<esi>);"
         },
         {
           "addr": "0x128d20",
