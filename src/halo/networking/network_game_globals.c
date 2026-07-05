@@ -565,6 +565,29 @@ bool network_game_client_end_frame(void)
   return result;
 }
 
+/* network_game_client_get_local_machine_index (0x12a690)
+ *
+ * Returns the local machine index for the network game client, or -1 if the
+ * client is absent or has no valid machine record. The machine record is
+ * fetched via network_game_client_get_machine(); the index is a signed byte
+ * at machine+0x40, sign-extended to short.
+ * Source: network_game_globals.c
+ */
+short network_game_client_get_local_machine_index(void)
+{
+  void *machine;
+  short result;
+
+  result = -1;
+  if (*(void **)0x0046e8c0 != NULL) {
+    machine = network_game_client_get_machine(*(void **)0x0046e8c0);
+    if (machine != NULL) {
+      result = (short)*(char *)((char *)machine + 0x40);
+    }
+  }
+  return result;
+}
+
 /* network_game_abort (0x12a780)
  *
  * Signals network-game abort by setting the global abort flag byte.
