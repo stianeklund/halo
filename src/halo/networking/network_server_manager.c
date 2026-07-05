@@ -49,7 +49,7 @@ void countdown_timer_update(int *param_1)
 /* Tick a millisecond countdown timer. Subtracts elapsed time from
    time_remaining, clamps to zero, and returns the remaining value.
    countdown[0] = time_remaining, countdown[1] = last_tick_time. */
-int countdown_timer_get_time_remaining(void *countdown)
+__declspec(noinline) int countdown_timer_get_time_remaining(void *countdown)
 {
   int now;
   int elapsed;
@@ -234,7 +234,7 @@ void network_game_server_open_game(void *server)
 /* Close the server's game (0x12c0b0).
  * Clears bit 0 of the flags byte at server+6 (marking the game as closed),
  * then tells the underlying connection to close, and logs "closing game". */
-void network_game_server_close_game(void *server)
+__declspec(noinline) void network_game_server_close_game(void *server)
 {
   if (!server) {
     display_assert("server",
@@ -327,7 +327,7 @@ void FUN_0012c1c0(int server, int client)
  * a type-8 message with a zero payload and broadcasts that too.  On
  * success sets server+0x4b9 (loading flag) to 1.  Always clears
  * server+0x47c and always returns true regardless of success or failure. */
-bool FUN_0012c290(void *server)
+__declspec(noinline) bool FUN_0012c290(void *server)
 {
   int data;
   void *msg;
@@ -764,7 +764,7 @@ char FUN_0012ca00(int param_1, int param_2, int param_3)
  * Sets the server state to 1, clears the timer at +0x484, then copies a
  * "local game data loaded" flag from the client's game-data region into
  * server+0x438.  Asserts if the flag is zero (data not loaded). */
-void network_game_server_all_machines_have_loaded(void *server)
+__declspec(noinline) void network_game_server_all_machines_have_loaded(void *server)
 {
   char *s = (char *)server;
   void *client;
@@ -1055,7 +1055,7 @@ void network_game_server_begin_game_start_countdown(int param_1, int param_2)
 /* Check whether any team (0 or 1) has zero active clients among the 16 client
  * slots at server+0x22E..+0x44C (stride 0x20).  Returns true when at least one
  * team is empty, false when both teams have members (0x12d040). */
-bool get_unique_random_name(void *server)
+__declspec(noinline) bool get_unique_random_name(void *server)
 {
   char *s;
   char *client_ptr;
@@ -1091,7 +1091,7 @@ bool get_unique_random_name(void *server)
  * server+0x448 (stride 0x10) and for each valid slot, searches the 16 client
  * entries at server+0x22e (stride 0x20) for a matching team byte. Returns
  * false if any valid slot has no matching active client. */
-bool get_unique_random_color(void *server)
+__declspec(noinline) bool get_unique_random_color(void *server)
 {
   char *s = (char *)server;
   short *slot = (short *)(s + 0x448);
@@ -1120,7 +1120,7 @@ bool get_unique_random_color(void *server)
  * Counts slots in [0,4) across the 4 machine entries at server+0x448
  * (stride 0x10). If network_game_is_splitscreen_local returns true the
  * threshold is 1, otherwise 2. Returns count >= threshold. */
-bool server_has_enough_machines(void *server)
+__declspec(noinline) bool server_has_enough_machines(void *server)
 {
   char *s = (char *)server;
   int threshold = network_game_is_splitscreen_local() ? 1 : 2;
@@ -1784,7 +1784,7 @@ void FUN_0012de20(void *server)
  * Finds and removes the machine's entry from game data (server+8), then
  * clears the matching machine slot (connection, stall, flags) and sets the
  * machine_index to -1. Returns true if the slot was found. */
-bool FUN_0012df50(void *server, void *machine)
+__declspec(noinline) bool FUN_0012df50(void *server, void *machine)
 {
   char *s = (char *)server;
   char *m = (char *)machine;
@@ -2240,103 +2240,102 @@ bool FUN_0012e750(int server)
   now = system_milliseconds();
   result = true;
 
-  if (*(char *)(s + 0x4b9) != 0) {
-    if (*(int *)(s + 0x484) == 0)
-      return true;
+  if (*(char *)(s + 0x4b9) == 0) {
+    conn_ptr = (int *)(s + 0x43c);
+    for (i = 0; i < 4; i++) {
+      if (*conn_ptr != 0 && !network_connection_active(*conn_ptr)) {
+        network_game_log("booting dead client machine %d", i);
+        FUN_0012df50((void *)server, conn_ptr);
+      }
+      conn_ptr += 4;
+    }
 
-    if ((unsigned int)(system_milliseconds() - *(int *)(s + 0x484)) < 15000)
+    if (*(char *)(s + 0x494) != 1) {
+      if (now <= *(int *)(s + 0x480) + 5000)
+        return result;
+      countdown = 0;
+      FUN_0012f430((void *)server,
+                   encode_network_game_message(0xa, &countdown, 2));
+      *(int *)(s + 0x480) = now;
       return result;
+    }
 
-    flags_ptr = (short *)(s + 0x44a);
-    for (i = 4; i != 0; i--) {
-      if ((*(short *)flags_ptr & 1) && !(*(short *)flags_ptr & 4)) {
-        if (wide_to_ascii(
-              (const wchar_t *)(s + 0x11c +
-                                (int)*(short *)(flags_ptr - 1) * 0x44),
-              name_buf, 0x20)) {
-          name = name_buf;
-        } else {
-          name = "<unknown name>";
-        }
-        network_game_log(
-          "forcibly removing client system '%s' due to timeout while "
-          "loading for game",
-          name);
-        if (!FUN_0012df50((void *)server, (void *)(flags_ptr - 7))) {
-          display_assert(
-            "removed", "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
-            0x94e, 1);
-          system_exit(-1);
+    if (!server_has_enough_machines((void *)server) ||
+        !get_unique_random_color((void *)server) ||
+        get_unique_random_name((void *)server) ||
+        *(short *)(s + 0x22c) < (short)*(char *)(s + 0x115)) {
+      csmemset(s + 0x488, 0, 0x10);
+      i = 0;
+    } else {
+      i = 1;
+      timer_ms = countdown_timer_get_time_remaining(s + 0x488);
+      if (timer_ms == 0) {
+        if (FUN_0012dbb0(server) && *(char *)(s + 0x495) == 0) {
+          network_game_server_close_game((void *)server);
+          result = FUN_0012c290((void *)server);
+          if (result == 1)
+            return true;
+          network_game_log("network_game_server_start_network_game() failed");
+          return result;
         }
       }
-      flags_ptr += 8;
+      if (now - *(int *)(s + 0x490) < 0x3e9)
+        return result;
     }
-    network_game_server_all_machines_have_loaded((void *)server);
-    return result;
-  }
 
-  conn_ptr = (int *)(s + 0x43c);
-  for (i = 0; i < 4; i++) {
-    if (*conn_ptr != 0 && !network_connection_active(*conn_ptr)) {
-      network_game_log("booting dead client machine %d", i);
-      FUN_0012df50((void *)server, conn_ptr);
+    *(char *)(s + 0x496) = 0;
+    if (i) {
+      timer_ms = countdown_timer_get_time_remaining(s + 0x488);
+      countdown = (short)(timer_ms / 1000);
+    } else {
+      countdown = -1;
     }
-    conn_ptr += 4;
-  }
 
-  if (*(char *)(s + 0x494) != 1) {
-    if (now <= *(int *)(s + 0x480) + 5000)
-      return result;
-    countdown = 0;
-    FUN_0012f430((void *)server,
-                 encode_network_game_message(0xa, &countdown, 2));
-    *(int *)(s + 0x480) = now;
-    return result;
-  }
-
-  if (!server_has_enough_machines((void *)server) ||
-      !get_unique_random_color((void *)server) ||
-      get_unique_random_name((void *)server) ||
-      *(short *)(s + 0x22c) < (short)*(char *)(s + 0x115)) {
-    csmemset(s + 0x488, 0, 0x10);
-    i = 0;
-  } else {
-    i = 1;
-    timer_ms = countdown_timer_get_time_remaining(s + 0x488);
-    if (timer_ms == 0) {
-      if (FUN_0012dbb0(server) && *(char *)(s + 0x495) == 0) {
-        network_game_server_close_game((void *)server);
-        result = FUN_0012c290((void *)server);
-        if (result == 1)
-          return true;
-        network_game_log("network_game_server_start_network_game() failed");
+    {
+      void *msg = encode_network_game_message(7, &countdown, 2);
+      if (!msg)
+        return result;
+      if (!FUN_0012f430((void *)server, msg)) {
+        network_game_log(
+          "failed to send a message_server_pregame_countdown to all clients");
         return result;
       }
     }
-    if (now - *(int *)(s + 0x490) < 0x3e9)
-      return result;
+
+    *(int *)(s + 0x490) = now;
+    return result;
   }
 
-  *(char *)(s + 0x496) = 0;
-  if (i) {
-    timer_ms = countdown_timer_get_time_remaining(s + 0x488);
-    countdown = (short)(timer_ms / 1000);
-  } else {
-    countdown = -1;
-  }
+  if (*(int *)(s + 0x484) == 0)
+    return true;
 
-  {
-    void *msg = encode_network_game_message(7, &countdown, 2);
-    if (!msg)
-      return result;
-    if (!FUN_0012f430((void *)server, msg)) {
+  if ((unsigned int)(system_milliseconds() - *(int *)(s + 0x484)) < 15000)
+    return result;
+
+  flags_ptr = (short *)(s + 0x44a);
+  for (i = 0; i < 4; i++) {
+    if ((*(short *)flags_ptr & 1) && !(*(short *)flags_ptr & 4)) {
+      if (wide_to_ascii((const wchar_t *)(s + 0x11c +
+                                          (int)*(short *)(flags_ptr - 1) * 0x44),
+                        name_buf, 0x20)) {
+        name = name_buf;
+      } else {
+        name = "<unknown name>";
+      }
       network_game_log(
-        "failed to send a message_server_pregame_countdown to all clients");
-      return result;
+        "forcibly removing client system '%s' due to timeout while "
+        "loading for game",
+        name);
+      if (!FUN_0012df50((void *)server, (void *)(flags_ptr - 7))) {
+        display_assert("removed",
+                       "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                       0x94e, 1);
+        system_exit(-1);
+      }
     }
+    flags_ptr += 8;
   }
-
-  *(int *)(s + 0x490) = now;
+  network_game_server_all_machines_have_loaded((void *)server);
   return result;
 }
 
@@ -2847,7 +2846,7 @@ int FUN_0012f3f0(int server, int machine, void *message)
 /* Broadcast a message to all connected client machines (0x12f430).
  * Iterates 4 machine slots, checks each is valid and alive, then copies
  * and sends the message. Returns false if any write fails. */
-bool FUN_0012f430(void *server, void *message)
+__declspec(noinline) bool FUN_0012f430(void *server, void *message)
 {
   char local_buf[0x600];
   bool result;
@@ -3068,9 +3067,12 @@ char FUN_0012f990(int server, void *machine, void *message, int message_size)
   char decode_buf[0x50]; /* [0x40]=name(wchar), [0x40..0x4f]=client_token */
   char expected_token[16];
   char addr_buf[16];
+  char host_line[0x20];
   int conn;
+  int in_hosts;
   short machine_idx_out;
   void *msg;
+  void *stream;
   unsigned short msg_len;
   char result;
   short reject_code;
@@ -3105,7 +3107,31 @@ char FUN_0012f990(int server, void *machine, void *message, int message_size)
     /* client token is at decode_buf[0x40..0x4f] */
     if (csmemcmp(decode_buf + 0x40, expected_token, 0x10) == 0) {
       wide_to_ascii((const wchar_t *)decode_buf, decode_buf, 0x40);
-      /* hosts.txt check skipped (file never exists on Xbox) */
+      stream = crt_fopen("d:\\hosts.txt", "r");
+      if (stream) {
+        csmemset(host_line, 0, 0x20);
+        in_hosts = 0;
+        while (crt_fgets(host_line, 0x20, stream) != NULL) {
+          if (csstrncmp(decode_buf, host_line, csstrlen(decode_buf)) == 0) {
+            in_hosts = 1;
+            break;
+          }
+        }
+        crt_fclose(stream);
+        if (!in_hosts) {
+          reject_code = 6;
+          network_game_log(
+            "server refused client '%s' because it is not in your hosts file",
+            decode_buf);
+          msg = encode_network_game_message(5, &reject_code, 2);
+          if (!msg)
+            return false;
+          msg_len = *(unsigned short *)msg;
+          conn = network_game_server_adjust_machine_settings(machine);
+          network_connection_write((void *)conn, msg, msg_len >> 4, 0, 1);
+          return false;
+        }
+      }
       result =
         network_game_server_accept_client_machine_into_game(server, machine);
       if (result) {

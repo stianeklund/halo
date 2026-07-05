@@ -1,5 +1,6 @@
 ---
 description: Two-phase lift — RE analysis then build + verify pipeline
+model: claude-opus-4-8[1m]
 ---
 
 Use `halo-xbox-re` for doctrine and evidence rules, `halo-re-lift` for the

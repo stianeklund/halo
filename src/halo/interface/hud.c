@@ -467,7 +467,10 @@ void hud_set_element_digital(float param_1, const void *param_2)
   float vertices[16][3];
   float radius;
   float angle;
+  float *vertex;
   int i;
+  int index;
+  int remaining;
 
   radius = x87_fptan(param_1 * *(float *)0x253398) * *(float *)0x255d90;
 
@@ -485,9 +488,15 @@ void hud_set_element_digital(float param_1, const void *param_2)
     angle += *(float *)0x26b164;
   }
 
-  for (i = 1; i <= 16; i++) {
-    FUN_0017eb10(vertices[i - 1], vertices[i % 16], (int)(long)param_2);
-  }
+  index = 1;
+  vertex = vertices[0];
+  remaining = 16;
+  do {
+    FUN_0017eb10(vertex, vertices[index % 16], (int)(long)param_2);
+    index++;
+    vertex += 3;
+    remaining--;
+  } while (remaining != 0);
 }
 
 void hud_load(bool a1)
