@@ -2,6 +2,7 @@
   "_comment": "METADATA ONLY -- contains no game memory. The .halorec recordings and the *.json snapshots built from them contain raw, copyrighted Halo runtime memory and are gitignored / host-only (see ../../../.gitignore and host_snapshots/README.md). This manifest is our own metadata describing how to regenerate the host-only snapshots. Build with: python3 tools/equivalence/build_host_snapshots.py (set $HALO_HALOREC_DIR to the directory holding the .halorec files).",
   "recordings_dir_env": "HALO_HALOREC_DIR",
   "recordings_dir_defaults": [
+    "/mnt/g/dev/halo-memory-viewer/recordings/unpatched",
     "/mnt/g/dev/halo-memory-viewer",
     "../halo-memory-viewer"
   ],
@@ -67,6 +68,24 @@
         "server": "0x5a90e0"
       },
       "note": "network_server_message_handler.obj (0x12fd80-0x130580) server-side message dispatch. Live MP-host state: Slayer Pro 'The Bear' on levels/test/carousel with players joined; server global struct @0x5a90e0 (size 0x4bc) + its connection object @0x8aada0. Handlers take server via @<esi>/@<eax>; this pins the real server pointer so the reachable state-guard/decode paths run on real data instead of zero-fill. Stub-based tripwire (guards ABI/@<reg>-marshaling/control-flow/return-value drift); NOT a state-mutation test (state-applying callees are stubbed). SKIPs cleanly when the host recording is absent."
+    },
+    {
+      "out": "unpatched_cartographer_vehicle.json",
+      "recording": "Silent Cartographer - Enter vehicle turrent - passenger - driver side sequence - unpatched.halorec",
+      "frame": "50",
+      "note": "Unpatched Xbox recording of vehicle seats, turret transitions, and biped attachment states."
+    },
+    {
+      "out": "unpatched_poa_ai_grenade.json",
+      "recording": "Pillar of Autumn - AI throwing grenade.halorec",
+      "frame": "30",
+      "note": "Unpatched AI state with 44 active actors and 180 perception props."
+    },
+    {
+      "out": "unpatched_bloodgulch_warthog.json",
+      "recording": "Blood Gultch - Enter exit warthog vehicle.halorec",
+      "frame": "40",
+      "note": "Unpatched Warthog enter/exit and physics state."
     }
   ]
 }
