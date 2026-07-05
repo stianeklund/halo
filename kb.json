@@ -14117,12 +14117,12 @@
         {
           "addr": "0x12c100",
           "decl": "bool network_game_server_game_is_open(void *server);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x12c160",
           "decl": "bool network_game_server_game_is_valid(void *server);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x12c1c0",
@@ -14183,7 +14183,7 @@
         {
           "addr": "0x12d880",
           "decl": "bool FUN_0012d880(int server@<eax>, int new_connection);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x12d9f0",
@@ -14203,7 +14203,7 @@
         {
           "addr": "0x12dc20",
           "decl": "bool FUN_0012dc20(int server@<ebx>);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x12dd20",
@@ -14228,12 +14228,12 @@
         {
           "addr": "0x12e580",
           "decl": "bool FUN_0012e580(int server@<ebx>);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x12e750",
           "decl": "bool FUN_0012e750(int server@<esi>);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x12ea00",
@@ -14243,22 +14243,22 @@
         {
           "addr": "0x12eb20",
           "decl": "bool network_game_server_start(void *server);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x12eca0",
           "decl": "bool network_server_manager_pregame_start(void *server);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x12f430",
           "decl": "bool FUN_0012f430(void *server, void *message);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x12f5d0",
           "decl": "bool FUN_0012f5d0(void *server);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x12bdb0",
@@ -14445,12 +14445,12 @@
         {
           "addr": "0x12da90",
           "decl": "void FUN_0012da90(int endpoint @<ebx>, unsigned short reason @<ax>);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x12db30",
           "decl": "void FUN_0012db30(int endpoint @<ebx>, unsigned short reason @<ax>);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x12e1d0",
@@ -14473,32 +14473,32 @@
         {
           "addr": "0x12f040",
           "decl": "bool FUN_0012f040(int server @<esi>, int machine, void *message_data, int message_size);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x12f0d0",
           "decl": "bool FUN_0012f0d0(int server @<esi>, int machine, void *message_data, int message_size);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x12f170",
           "decl": "bool FUN_0012f170(int server @<esi>, int machine, void *message_data, int message_size);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x12f200",
           "decl": "bool FUN_0012f200(int server @<esi>, int machine, void *message_data, int message_size);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x12f290",
           "decl": "bool FUN_0012f290(int server @<esi>, int machine, void *message_data, int message_size);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x12f330",
           "decl": "char FUN_0012f330(int server @<esi>, int machine, void *message_data, int message_size);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x12f3d0",
@@ -14518,17 +14518,17 @@
         {
           "addr": "0x12f690",
           "decl": "char network_game_server_reset_to_pregame(int server, void *client_message @<ecx>, void *source_address @<eax>);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x12f8d0",
           "decl": "char FUN_0012f8d0(int server @<ecx>, void *decoded_msg @<eax>, void *client_message);",
-          "ported": true
+          "ported": false
         },
         {
           "addr": "0x12f990",
           "decl": "char FUN_0012f990(int server, void *machine @<esi>, void *message, int message_size);",
-          "ported": true
+          "ported": false
         }
       ],
       "name": "network_server_manager.obj",
