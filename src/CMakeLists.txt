@@ -79,8 +79,8 @@
 	halo/units/units.c
 	halo/units/vehicles.c
 	halo/networking/network_client_manager.c
-		halo/networking/network_game_globals.c
-		halo/networking/network_game_globals.c
+	halo/networking/network_connection.c
+	halo/networking/network_game_globals.c
 	halo/networking/message_header.c
 	halo/networking/network_messages.c
 	halo/networking/network_server_manager.c
