@@ -631,7 +631,13 @@ def run_compare_cached(
     # one requested symbol; a miss there is already reported above).
     if fn_filter is None:
         for fn in sorted(compiled_funcs.keys()):
-            if fn in matched:
+            # A renamed function is scored under whichever symbol its reference
+            # carries: if the delinked ref still uses the pre-rename FUN_<addr>,
+            # the rename bridge scores it under that name and adds *it* (not the
+            # source's real name) to `matched`.  So a compiled `magnitude3d` whose
+            # ref symbol is `FUN_00012f10` is NOT literally in `matched` yet is
+            # not a drop — check the function's aliases too.
+            if fn in matched or (function_aliases(fn) & matched):
                 continue
             span = _func_span(fn)
             if span is None:
