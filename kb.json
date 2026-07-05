@@ -13573,7 +13573,9 @@
         },
         {
           "addr": "0x12a830",
-          "decl": "int network_game_get_number_of_games_played(void);"
+          "decl": "int network_game_get_number_of_games_played(void);",
+          "name": "network_game_get_number_of_games_played",
+          "ported": true
         },
         {
           "addr": "0x12a890",

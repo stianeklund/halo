@@ -618,6 +618,32 @@ void FUN_0012a7a0(void)
   }
 }
 
+/* Return the number of games played from the active network game globals.
+ * Resolves the server's game globals if a server exists, otherwise the
+ * client's; asserts a non-null game pointer was resolved, then reads the
+ * field at game+0x428.
+ * 0x12a830 / network_game_globals.obj */
+int network_game_get_number_of_games_played(void)
+{
+  int game;
+
+  if (*(void **)0x0046e8bc != NULL) {
+    game = network_game_server_get_game(*(void **)0x0046e8bc);
+  } else if (*(void **)0x0046e8c0 != NULL) {
+    game = (int)network_game_client_get_machine_index(*(void **)0x0046e8c0);
+  } else {
+    game = 0;
+  }
+
+  if (game == 0) {
+    display_assert(
+      "game", "c:\\halo\\SOURCE\\networking\\network_game_globals.c", 0x73, 1);
+    system_exit(-1);
+  }
+
+  return *(int *)(game + 0x428);
+}
+
 /* Create and initialize the global network game server.
  * Asserts the server slot is empty, allocates via FUN_0012eef0,
  * then seeds both server and client with a random step value.
