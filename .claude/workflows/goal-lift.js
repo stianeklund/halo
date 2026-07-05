@@ -4,8 +4,9 @@ export const meta = {
   phases: [
     { title: 'Select',   detail: 'Frontier scoring + liftability filtering' },
     { title: 'Research', detail: 'Parallel Ghidra context gathering (read-only)' },
-    { title: 'Lift',     detail: 'Serial: lift -> verify (goal90 bands) -> permute/escalate -> review gate -> commit' },
-    { title: 'Report',   detail: 'Summary: committed, skipped, reverted, review-gate holds' },
+    { title: 'Lift',     detail: 'Serial: lift -> verify (goal90 bands) -> permute/escalate -> mechanical/review gate -> commit' },
+    { title: 'Improve',  detail: 'Re-lift parked sub-bar functions with a different model, promote or re-park' },
+    { title: 'Report',   detail: 'Summary: committed, skipped, parked, gate holds' },
   ],
 }
 
@@ -17,6 +18,34 @@ export const meta = {
 const GOAL         = (args && args.goal) || 20
 const STOP_ON_FAIL = (args && args.stopOnFail) || 3
 const DRY_RUN      = !!(args && args.dryRun)
+// --improve: skip Select/Research/Lift over the frontier; instead drain the
+// parked ledger (artifacts/parked/), re-lifting sub-bar functions with the
+// improve model for perspective diversity. This is the payoff of never
+// discarding sub-bar work — see tools/lift/park.py.
+const IMPROVE      = !!(args && args.improve)
+// --cacheContext: also run llm_auto_lift.py cache-context per target so the
+// enrichment_hook injects callee/struct-offset tables during research decompiles.
+// Off by default — it is a per-target Ghidra sweep; the free decompile_hook
+// neighbor/hazard injection is the primary retrieval signal.
+const CACHE_CONTEXT = !!(args && args.cacheContext)
+
+// Model/effort policy (single point of control). Rationale:
+// - Opus-low costs ~the same as Sonnet-low but gives better results, so every
+//   structured-extraction/mechanical-but-consequential stage uses Opus-low
+//   rather than Sonnet at any effort (Sonnet-high costs MORE than Opus-high).
+// - Reasoning stages (lift, review) use Opus-high.
+// - Cheap deterministic tool-runs (revert, permute-run, equiv-run, redelink,
+//   park, report) use Haiku-low.
+// - The escalation / improve pass uses a DIFFERENT model for perspective
+//   diversity: Fable-high, falling back to Opus-xhigh when Fable is unavailable.
+const IMPROVE_MODEL = (args && args.improveModel) || 'fable'
+const M = {
+  mechanical: { model: 'haiku', effort: 'low'  },  // tool-run + parse
+  extract:    { model: 'opus',  effort: 'low'  },  // select, research (schema-shaped)
+  commit:     { model: 'opus',  effort: 'low'  },  // runs the clean-build gate
+  reason:     { model: 'opus',  effort: 'high' },  // lift, review
+  improve:    { model: IMPROVE_MODEL, effort: IMPROVE_MODEL === 'opus' ? 'xhigh' : 'high' },
+}
 
 // --objects: hard allowlist, enforced in code (not just prompted) — see the
 // filter applied to selection.targets below.
@@ -33,6 +62,10 @@ const CRITERIA = (args && args.criteria) ? String(args.criteria).trim() : null
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
 
+// Facts come straight from llm_auto_lift.py select --json (authoritative). The
+// code-side pre-screen below uses has_reg_args / lane / addr to drop unsuitable
+// targets BEFORE research, instead of re-deriving them in 6 Opus research agents
+// (which drift). See LiftTarget/SelectedTarget in tools/llm_auto_lift.py.
 const TARGETS_SCHEMA = {
   type: 'object',
   properties: {
@@ -41,10 +74,14 @@ const TARGETS_SCHEMA = {
       items: {
         type: 'object',
         properties: {
-          addr:  { type: 'string' },
-          name:  { type: 'string' },
-          obj:   { type: 'string' },
-          score: { type: 'number' },
+          addr:          { type: 'string' },
+          name:          { type: 'string' },
+          obj:           { type: 'string' },
+          score:         { type: 'number' },
+          has_reg_args:  { type: 'boolean' },  // target.has_reg_args
+          delinked:      { type: 'boolean' },  // target.score_details.delinked_ref > 0
+          source_exists: { type: 'boolean' },  // target.score_details.source_exists present
+          lane:          { type: 'string' },   // item.lane
         },
         required: ['addr', 'name', 'obj'],
       },
@@ -65,6 +102,11 @@ const BRIEF_SCHEMA = {
     disasm_notes:    { type: 'string' },
     callees:         { type: 'string' },
     hazards:         { type: 'string' },
+    // Worked examples captured from the decompile_hook retrieval injection:
+    // most-similar already-ported function(s) with their VC71 % + C source, and
+    // hazard briefs. Threaded into the lift prompt so the lifter matches the
+    // winning idiom instead of re-deriving. Empty if the server was cold.
+    neighbors:       { type: 'string' },
     delinked_exists: { type: 'boolean' },
     // ok | skip_reg_args | skip_trivial | skip_seh | skip_nt_import | skip_already_in_source | infra_blocked
     pre_screen:      { type: 'string' },
@@ -122,6 +164,46 @@ const REVIEW_SCHEMA = {
   required: ['verdict', 'rationale'],
 }
 
+// Mechanical pre-commit gate — cheap Haiku scan that lets clean high-% lifts
+// commit WITHOUT the Opus-high reviewer (the user cares about VC71 %, not a
+// prose code review). Only ambiguous/flagged lifts still pay for the reviewer.
+const MECH_GATE_SCHEMA = {
+  type: 'object',
+  properties: {
+    hazards_clean: { type: 'boolean' },  // no HIGH-RISK/ERROR hazard in the touched file
+    abi_clean:     { type: 'boolean' },  // audit_reg_abi passes for this function
+    risky_calls:   { type: 'boolean' },  // lift ADDED a raw fn-ptr cast / XCALL-to-ported / inline __asm
+    warns:         { type: 'boolean' },  // any WARN-level hazard in the touched file
+    detail:        { type: 'string' },
+  },
+  required: ['hazards_clean', 'abi_clean'],
+}
+
+// park.py next → the closest-to-bar parked function the improve model hasn't tried.
+const NEXT_SCHEMA = {
+  type: 'object',
+  properties: {
+    found:        { type: 'boolean' },
+    name:         { type: 'string' },
+    addr:         { type: 'string' },
+    obj:          { type: 'string' },
+    source_path:  { type: 'string' },
+    best_score:   { type: 'number' },
+    attempts:     { type: 'number' },
+    tried_models: { type: 'string' },
+  },
+  required: ['found'],
+}
+
+const APPLY_SCHEMA = {
+  type: 'object',
+  properties: {
+    applied: { type: 'boolean' },
+    reason:  { type: 'string' },
+  },
+  required: ['applied'],
+}
+
 // ── Prompt builders ───────────────────────────────────────────────────────────
 
 const AGENT_RULES =
@@ -141,8 +223,9 @@ past 180s and trip the harness stall detector that kills the whole run:
 const researchPrompt = (t) =>
   `Gather Ghidra context for ${t.name} at ${t.addr} (${t.obj}). READ-ONLY — no edits.
 
-1. PREFLIGHT: rtk python3 tools/audit/check_ghidra_mcp.py
-   If it fails → pre_screen="infra_blocked", skip_reason="ghidra_unavailable"
+1. Ghidra MCP preflight already ran globally for this batch — do NOT re-run
+   check_ghidra_mcp.py. If any Ghidra MCP call below errors/times out →
+   pre_screen="infra_blocked", skip_reason="ghidra_unavailable".
 
 2. KB LOOKUP: rtk jq '[.. | objects | select(.addr? == "${t.addr}")] | .[0]' kb.json
 
@@ -155,7 +238,20 @@ const researchPrompt = (t) =>
     → pre_screen="skip_already_in_source", skip_reason="already implemented: <file>"
     Return immediately — no Ghidra call needed.
 
-3. DECOMPILE: Ghidra MCP decompile_function at ${t.addr}
+${CACHE_CONTEXT ? `3a. ENRICH (run BEFORE decompile so the enrichment hook can inject callee/struct tables):
+    timeout 90 rtk python3 tools/llm_auto_lift.py cache-context --target ${t.addr} --force 2>&1 || echo "[cache-context-skip]"
+
+` : ''}3. DECOMPILE: Ghidra MCP decompile_function at ${t.addr}
+   This fires a PostToolUse retrieval hook that injects a system message with
+   similar ALREADY-PORTED functions (worked examples: decl + C source + their
+   VC71 %) and hazard warnings from similar functions that FAILED.
+   CAPTURE the 1-2 most-similar high-VC71 worked examples (decl + C body + VC71 %)
+   and any hazard briefs into the "neighbors" field, VERBATIM. This is the main
+   channel by which the lift agent learns the winning idiom, and it is LOST if you
+   do not copy it into the brief. If NO retrieval system message appeared, the
+   server was cold — you MAY run it once (wrapped; ~75s on a cold model load):
+     printf '%s' "<decompiled body>" > /tmp/${t.addr.replace('0x','')}.decomp.c
+     timeout 120 rtk python3 tools/retrieval/query.py --file /tmp/${t.addr.replace('0x','')}.decomp.c --obj-name ${t.obj} --min-vc71 85 --prompt 2>&1 || echo "[retrieval-timeout]"
 
 4. PRE-SCREEN (return immediately with pre_screen=<reason> if any match):
    - Decompile has unaff_, in_EAX, in_ECX               → "skip_reg_args"
@@ -178,7 +274,8 @@ const researchPrompt = (t) =>
    Return key observations only: push order per CALL, FPU subtraction direction, buffer sizes. Max 400 words.
 
 Return full brief. Use field name "source_path" for the intended source file path
-(create-target guess if the function has no source yet).`
+(create-target guess if the function has no source yet). Populate "neighbors" with
+the captured retrieval worked-examples + hazard briefs (empty string if none).`
 
 const CAP_TABLE =
   `Known structural-cap patterns (report capped=true with cap_reason if the VC71
@@ -202,6 +299,11 @@ CONTEXT — do NOT re-call Ghidra:
   Disasm:   ${brief.disasm_notes || 'none'}
   Callees:  ${brief.callees}
   Hazards:  ${brief.hazards}
+
+WORKED EXAMPLES (similar functions already ported, with their VC71 %; match their
+idioms — casts, x87 order, struct-store shape — and expect a comparable score.
+A near-identical neighbor capped below 90% is evidence THIS one is capped too):
+${brief.neighbors || '  (none — retrieval server was cold)'}
 
 STEPS:
 1. DELINKED — check delinked/functions/<addr_no_0x>.obj first (a prefetch stage
@@ -300,6 +402,23 @@ Gather your own evidence before deciding:
 
 Apply your decision policy and return your verdict.`
 
+// Cheap mechanical gate — runs the same hazard/ABI checks the commit stage will
+// enforce, so a clean high-% lift can skip the Opus-high reviewer entirely.
+// Report booleans ONLY; do not edit or fix anything.
+const mechGatePrompt = (brief, srcFile) =>
+  `Mechanical pre-commit gate for ${brief.name} (${brief.addr}). Report booleans ONLY —
+do NOT edit, fix, build, or commit anything.
+
+1. HAZARDS: rtk python3 tools/audit/check_lift_hazards.py --changed-only 2>&1
+   - hazards_clean=true  iff NO HIGH-RISK / ERROR finding references ${srcFile}
+   - warns=true          iff any WARN-level finding references ${srcFile}
+2. ABI: rtk python3 tools/audit/audit_reg_abi.py 2>&1
+   - abi_clean=true iff it reports no failure for ${brief.name}
+3. RISKY CALLS in the diff: rtk git diff -- ${srcFile}
+   - risky_calls=true iff this lift ADDED any of: a raw function-pointer cast call,
+     an XCALL(0x...) whose target is ported, or inline __asm.
+Return hazards_clean, abi_clean, risky_calls, warns, and a one-line detail per non-clean finding.`
+
 const commitPrompt = (name, sourceFile, reason) =>
   `${AGENT_RULES}
 
@@ -317,6 +436,9 @@ Then commit:
   rtk git add -- ${sourceFile} kb.json tools/kb_reg_baseline.json
   rtk python3 tools/audit/generate_lift_commit.py --batch-name "${name}" > /tmp/commit_msg.txt
   rtk git commit -F /tmp/commit_msg.txt
+Then, if this function had a parked record from an earlier attempt, mark it
+promoted so the improve pass won't re-pick it (ignore errors if none exists):
+  rtk python3 tools/lift/park.py promote --name ${JSON.stringify(name)} --commit "$(git rev-parse --short HEAD)" 2>/dev/null || true
 Return the short commit hash.`
 
 const revertPrompt = (name) =>
@@ -329,21 +451,64 @@ rtk git checkout -- src/ kb.json tools/kb_reg_baseline.json
 rtk git status --short
 (The rtk proxy prefix on the diff is required: plain rtk truncates redirected output.)`
 
-// Near-miss (>=85% but blocked at the review gate): the lift is good work,
-// only runtime/behavioral evidence is missing. Park it in a first-class ledger
-// for a later improve-and-recommit pass instead of burying it in failures/.
-const parkPrompt = (name, addr, score, reason) =>
+// Preserve ANY sub-bar-but-building lift for a later improve pass — never
+// checkout-discard real work. Routes through the workflow-agnostic parked
+// ledger (tools/lift/park.py), shared with manual /lift and the improve pass.
+// attemptME = the {model,effort} of the lift ATTEMPT (recorded for later
+// exclude-model selection), not the park agent's own model.
+const parkToolPrompt = (name, addr, obj, srcFile, score, attemptME, reason, capHyp) =>
   `${AGENT_RULES}
 
-Park the lift of ${name} (${addr}, ${score}% VC71) — near-miss blocked at review
-gate: ${reason}. Save the work to the parked ledger, THEN revert the tree:
-mkdir -p artifacts/auto_lift/parked
-TS=$(date +%s)
-rtk proxy git diff -- src/ kb.json tools/kb_reg_baseline.json > "artifacts/auto_lift/parked/${name}-\$TS.patch"
-echo '{"name":"${name}","addr":"${addr}","vc71_score":${score},"reason":${JSON.stringify(reason)},"patch":"artifacts/auto_lift/parked/${name}-'"\$TS"'.patch"}' >> artifacts/auto_lift/parked/ledger.jsonl
-rtk git checkout -- src/ kb.json tools/kb_reg_baseline.json
-rtk git status --short
-(The rtk proxy prefix on the diff is required: plain rtk truncates redirected output.)`
+Preserve the sub-bar lift of ${name} (${addr}, ${score}% VC71) for a later improve
+pass, then clean the tree. Run exactly this one command:
+rtk python3 tools/lift/park.py park --name ${JSON.stringify(name)} --addr ${JSON.stringify(addr || '')} --obj ${JSON.stringify(obj || '')} --source ${JSON.stringify(srcFile || '')} --score ${score} --model ${JSON.stringify(attemptME.model)} --effort ${JSON.stringify(attemptME.effort)} --reason ${JSON.stringify(reason || '')}${capHyp ? ' --cap-hypothesis ' + JSON.stringify(capHyp) : ''} --revert-tree
+park.py saves the git diff to artifacts/parked/, records the attempt (with
+history), and reverts src/ kb.json tools/kb_reg_baseline.json to HEAD. Return the
+tool's "parked ..." stdout line.`
+
+// Improve pass — pick the closest-to-bar parked function the improve model has
+// NOT already attempted (so repeated improve passes drain the ledger instead of
+// re-trying the same model on the same function).
+const nextPrompt = (excludeModel) =>
+  `Pick the next parked function for the improve pass. Run exactly:
+rtk python3 tools/lift/park.py next --exclude-model ${JSON.stringify(excludeModel)}
+It prints JSON {"found":bool,"record":{...}}.
+- If found=false → return found=false.
+- Else return found=true with the record's name, addr, obj, source_path, best_score,
+  attempts (the length of the attempts array), and tried_models (comma-joined
+  attempts[].model values).`
+
+// Warm-start: restore the parked best patch so the improve model refines real
+// prior work instead of starting cold. A stale patch (HEAD moved past it) fails
+// cleanly → the model re-derives from scratch, which is fine.
+const applyPrompt = (name) =>
+  `${AGENT_RULES}
+
+Warm-start the improve pass for ${name}: restore its parked best patch into the tree.
+Run exactly: rtk python3 tools/lift/park.py apply --name ${JSON.stringify(name)}
+- Prints "applied ..." → applied=true.
+- Errors (patch does not apply cleanly / HEAD moved / best_patch missing) → applied=false
+  with the reason. Do NOT force, --3way, or hand-edit — a cold re-derive is acceptable.
+Return applied, reason.`
+
+// Warm the persistent retrieval server ONCE up front. Every research decompile
+// fires the decompile_hook, which queries this server for worked-example
+// neighbors + hazard briefs. If the server is cold, the hook starts it in the
+// background and the first few queries return nothing (the model takes ~75s to
+// load) — warming it once here means all research agents get warm (~1-2s),
+// non-empty retrieval instead of racing a cold start 6 ways.
+const warmRetrievalPrompt = () =>
+  `${AGENT_RULES}
+
+Ensure the retrieval query server is up (best-effort — research still works if not).
+Run exactly:
+  if [ -S /tmp/retrieval_server.sock ]; then echo "already-up"; else
+    PY=python3; [ -x .venv/bin/python3 ] && PY=.venv/bin/python3;
+    nohup "$PY" tools/retrieval/server.py > /tmp/retrieval_server.log 2>&1 &
+    for i in $(seq 1 16); do sleep 5; [ -S /tmp/retrieval_server.sock ] && break; done;
+  fi
+  [ -S /tmp/retrieval_server.sock ] && echo "up" || echo "cold"
+Return exactly one word: "up" or "cold".`
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -356,7 +521,7 @@ function classifyBand(score) {
 }
 
 async function maybePermute(name, phaseTitle) {
-  const p = await agent(permutePrompt(name), { label: `permute:${name}`, phase: phaseTitle, model: 'haiku', schema: SCORE_SCHEMA })
+  const p = await agent(permutePrompt(name), { label: `permute:${name}`, phase: phaseTitle, ...M.mechanical, schema: SCORE_SCHEMA })
   return p ? p.vc71_score : null
 }
 
@@ -365,12 +530,12 @@ async function maybePermute(name, phaseTitle) {
 async function reviewThenCommit(brief, score, srcFile, path, phaseTitle) {
   let review = await agent(reviewPrompt(brief, score, srcFile, path), {
     label: `review:${brief.name}`, phase: phaseTitle,
-    agentType: 'xbox-halo-lift-reviewer', model: 'opus', schema: REVIEW_SCHEMA,
+    agentType: 'xbox-halo-lift-reviewer', ...M.reason, schema: REVIEW_SCHEMA,
   })
   if (!review) return { committed: false, verdict: 'infra_blocked', rationale: 'review_agent_returned_null' }
 
   if (review.verdict === 'NEEDS_RUNTIME') {
-    const eq = await agent(equivalencePrompt(brief.name), { label: `equiv-for-review:${brief.name}`, phase: phaseTitle, model: 'haiku', schema: EQUIV_SCHEMA })
+    const eq = await agent(equivalencePrompt(brief.name), { label: `equiv-for-review:${brief.name}`, phase: phaseTitle, ...M.mechanical, schema: EQUIV_SCHEMA })
     // Mechanical acceptance rule — no second reviewer pass. A re-review adds no
     // information the first pass didn't have (2026-07-04: FUN_0018ef30 passed
     // equiv 100/100 seeds and was re-rejected on the same structural grounds).
@@ -393,8 +558,171 @@ async function reviewThenCommit(brief, score, srcFile, path, phaseTitle) {
     return { committed: false, verdict: 'AUTO_ACCEPT', rationale: 'dry-run: would have committed', dryRun: true }
   }
 
-  await agent(commitPrompt(brief.name, srcFile, path), { label: `commit:${brief.name}`, phase: phaseTitle, model: 'haiku' })
+  await agent(commitPrompt(brief.name, srcFile, path), { label: `commit:${brief.name}`, phase: phaseTitle, ...M.commit })
   return { committed: true, verdict: 'AUTO_ACCEPT', rationale: path }
+}
+
+// The commit gate. The user cares about VC71 byte-accuracy %, not a prose code
+// review, so a clean high-% lift commits on a cheap mechanical check alone; the
+// Opus-high reviewer fires ONLY for the ambiguous/flagged band. Mechanical
+// fast-path acceptance:
+//   - score >= 95 AND hazards+ABI clean                              → commit
+//   - score >= 90 AND hazards+ABI clean AND no risky calls/WARNs     → commit
+// Anything else (flagged despite high %, or < 90) falls through to the reviewer,
+// which still gets behavioral proof via equivalence on NEEDS_RUNTIME.
+async function gateThenCommit(brief, score, srcFile, path, phaseTitle) {
+  if (score >= 90) {
+    const g = await agent(mechGatePrompt(brief, srcFile), {
+      label: `gate:${brief.name}`, phase: phaseTitle, ...M.mechanical, schema: MECH_GATE_SCHEMA,
+    })
+    const clean   = g && g.hazards_clean && g.abi_clean
+    const mechPass = clean && (score >= 95 || (!g.risky_calls && !g.warns))
+    if (mechPass) {
+      if (DRY_RUN) return { committed: false, verdict: 'AUTO_ACCEPT', rationale: `dry-run: mechanical gate (${score}% clean)`, dryRun: true }
+      await agent(commitPrompt(brief.name, srcFile, `mechanical:${score}% ${path}`), { label: `commit:${brief.name}`, phase: phaseTitle, ...M.commit })
+      return { committed: true, verdict: 'AUTO_ACCEPT', rationale: `mechanical gate: ${score}% clean (${path})` }
+    }
+    // High % but flagged (hazard/ABI/risky/warn) → the reviewer must adjudicate.
+    log(`  ${brief.name} ${score}% flagged by mechanical gate (${g ? (g.detail || 'see hazard/abi') : 'gate_null'}) — escalating to reviewer`)
+  }
+  return await reviewThenCommit(brief, score, srcFile, path, phaseTitle)
+}
+
+// Preserve a sub-bar built lift (any score) via park.py and revert the tree.
+// attemptME = {model,effort} of the lift attempt being preserved.
+async function parkBuilt(brief, srcFile, score, attemptME, reason, capHyp, phaseTitle) {
+  await agent(parkToolPrompt(brief.name, brief.addr, brief.obj, srcFile, score, attemptME, reason, capHyp),
+    { label: `park:${brief.name}`, phase: phaseTitle || 'Lift', ...M.mechanical })
+}
+
+// ── Improve pass ────────────────────────────────────────────────────────────
+// Drain the parked ledger: for each parked sub-bar function the improve model
+// hasn't tried, re-research (context is lost across the agent boundary),
+// warm-start from the parked best patch, re-lift with the improve model, and
+// either promote (>=90 / gate-accepted) or re-park (records the attempt so the
+// ledger drains model-by-model instead of re-trying the same model forever).
+if (IMPROVE) {
+  phase('Improve')
+  const XM = M.improve.model
+  log(`Improve pass: re-lifting up to ${GOAL} parked functions with ${XM}-${M.improve.effort}${DRY_RUN ? ' (dry run — no commits)' : ''}`)
+  if (OBJECTS) log(`(object filter not applied in improve mode — park.py next drains globally by score)`)
+
+  // Warm retrieval so the improve re-research decompiles get worked-example neighbors.
+  await agent(warmRetrievalPrompt(), { label: 'retrieval-warm', phase: 'Improve', ...M.mechanical })
+
+  const improved = []
+  const seen = new Set()
+  let promoted = 0
+  let noProgress = 0
+  let istop = 'ledger_drained'
+
+  while (promoted < GOAL) {
+    if (budget.total && budget.remaining() < 80000) { istop = 'budget_low'; break }
+    if (noProgress >= STOP_ON_FAIL) { istop = 'no_progress'; break }
+
+    const nx = await agent(nextPrompt(XM), { label: 'improve-next', phase: 'Improve', ...M.mechanical, schema: NEXT_SCHEMA })
+    if (!nx || !nx.found || !nx.name) { istop = 'ledger_drained'; break }
+    if (seen.has(nx.name)) { istop = 'ledger_not_advancing'; break }  // cycle guard
+    seen.add(nx.name)
+
+    const rec = { name: nx.name, addr: nx.addr || '', obj: nx.obj || '', source_path: nx.source_path || '', best_score: nx.best_score || 0 }
+    log(`[improve ${promoted}/${GOAL}] ${rec.name} (${rec.addr}) parked at ${rec.best_score}% — tried by: ${nx.tried_models || '?'}`)
+
+    // 1. Fresh Ghidra context (the improve model starts cold).
+    const brief = await agent(researchPrompt(rec), { label: `research:${rec.name}`, phase: 'Improve', ...M.extract, schema: BRIEF_SCHEMA })
+    if (!brief || brief.pre_screen === 'infra_blocked') {
+      istop = 'infra_blocked'; improved.push({ ...rec, status: 'infra_blocked', reason: 'ghidra_unavailable' }); break
+    }
+    if (brief.pre_screen === 'skip_already_in_source') {
+      // It landed via another path since it was parked — mark the record done.
+      await agent(
+        `Mark the parked record for ${rec.name} promoted (it is already implemented in source):
+rtk python3 tools/lift/park.py promote --name ${JSON.stringify(rec.name)} --commit "$(git rev-parse --short HEAD)" 2>/dev/null || true`,
+        { label: `promote-obsolete:${rec.name}`, phase: 'Improve', ...M.mechanical })
+      improved.push({ ...rec, status: 'already_landed', reason: brief.skip_reason || 'already in source' })
+      continue
+    }
+
+    // 2. Warm-start from the parked best patch (stale patch → cold re-derive).
+    const ap = await agent(applyPrompt(rec.name), { label: `apply:${rec.name}`, phase: 'Improve', ...M.mechanical, schema: APPLY_SCHEMA })
+    const warm = !!(ap && ap.applied)
+
+    // 3. Re-lift with the improve model (escalation framing, prior score to beat).
+    const liftBrief = { ...brief, obj: brief.obj || rec.obj, source_path: brief.source_path || rec.source_path }
+    const a = await agent(liftPrompt(liftBrief, true, rec.best_score), {
+      label: `improve-lift:${rec.name}`, phase: 'Improve', agentType: 'xbox-halo-re-analyst', ...M.improve, schema: LIFT_RESULT_SCHEMA,
+    })
+    if (!a || a.status === 'infra_blocked') { istop = 'infra_blocked'; improved.push({ ...rec, status: 'infra_blocked', reason: 'agent_null' }); break }
+    if (a.status !== 'needs_verify') {
+      // build_failed / skipped: re-park records the improve-model attempt (so it
+      // won't be re-picked) and reverts, preserving the prior best patch.
+      await parkBuilt(liftBrief, a.source_file || liftBrief.source_path, a.vc71_score || 0, M.improve, `improve_${a.status}`, a.cap_reason || '', 'Improve')
+      noProgress++; improved.push({ ...rec, status: 're_parked', reason: `improve ${a.status}` }); continue
+    }
+
+    let score   = a.vc71_score || 0
+    let srcFile = a.source_file || liftBrief.source_path
+    let band    = classifyBand(score)
+    log(`  improve-lift ${rec.name}: ${score}% (band=${band}, was ${rec.best_score}%, ${warm ? 'warm' : 'cold'}-start)`)
+
+    if (band !== 'pass') {
+      const rd = await agent(redelinkPrompt(rec.name, rec.addr), { label: `redelink:${rec.name}`, phase: 'Improve', ...M.mechanical, schema: SCORE_SCHEMA })
+      if (rd && rd.vc71_score > score) { score = rd.vc71_score; band = classifyBand(score); log(`  ${rec.name} redelink → ${score}%`) }
+    }
+    if (band === 'pass_permute') {
+      const ps = await maybePermute(rec.name, 'Improve')
+      if (ps !== null) { score = ps; band = classifyBand(score) }
+    }
+
+    if (band === 'pass' || band === 'pass_permute') {
+      const outcome = await gateThenCommit(liftBrief, score, srcFile, `improve:${warm ? 'warm' : 'cold'}`, 'Improve')
+      if (outcome.committed) {
+        promoted++; noProgress = 0
+        improved.push({ ...rec, status: 'promoted', vc71_score: score, reason: outcome.rationale })
+        log(`✓ promoted ${rec.name} ${score}% (was ${rec.best_score}%)`); continue
+      }
+      if (outcome.dryRun) {
+        improved.push({ ...rec, status: 'would_promote', vc71_score: score, reason: outcome.rationale })
+        await agent(revertPrompt(rec.name), { label: `revert-dry-run:${rec.name}`, phase: 'Improve', ...M.mechanical })
+        log(`○ ${rec.name} ${score}% (dry-run, would promote)`); noProgress++; continue
+      }
+      // gate held despite passing band → re-park with the improve attempt recorded.
+    }
+
+    await parkBuilt(liftBrief, srcFile, score, M.improve, `improve_pass_${band}`, a.cap_reason || '', 'Improve')
+    noProgress++
+    improved.push({ ...rec, status: 're_parked', vc71_score: score, reason: `improve→${score}% (${band})` })
+    log(`◐ ${rec.name} re-parked at ${score}% (was ${rec.best_score}%)`)
+  }
+
+  phase('Report')
+  const proms = improved.filter(r => r.status === 'promoted')
+  log(`\n── Improve pass complete (${istop}) ─────────────────`)
+  log(`Promoted:   ${proms.length}${DRY_RUN ? ` (dry-run; ${improved.filter(r => r.status === 'would_promote').length} would-promote)` : ''}${proms.length ? ' — ' + proms.map(p => `${p.name} ${p.vc71_score}%`).join(', ') : ''}`)
+  log(`Re-parked:  ${improved.filter(r => r.status === 're_parked').length}`)
+  log(`Already landed: ${improved.filter(r => r.status === 'already_landed').length}`)
+  if (budget.total) log(`Budget remaining: ~${Math.round(budget.remaining() / 1000)}k tokens`)
+
+  await agent(
+    `Append an improve-pass summary to artifacts/auto_lift/goal_progress.md (create if missing).
+
+## Improve pass — ${proms.length} promoted (${istop}), model=${XM}
+
+| function | addr | was% | now% | action | reason |
+|---|---|---|---|---|---|
+${improved.map(r => `| ${r.name} | ${r.addr || '-'} | ${r.best_score ?? '-'} | ${r.vc71_score ?? '-'} | ${r.status} | ${r.reason || ''} |`).join('\n')}`,
+    { label: 'improve-log', phase: 'Report', ...M.mechanical })
+
+  return {
+    mode: 'improve',
+    improve_model: XM,
+    stop_reason: istop,
+    promoted: proms.length,
+    would_promote: improved.filter(r => r.status === 'would_promote').length,
+    re_parked: improved.filter(r => r.status === 're_parked').length,
+    already_landed: improved.filter(r => r.status === 'already_landed').length,
+    results: improved,
+  }
 }
 
 // ── Phase 1: Select ───────────────────────────────────────────────────────────
@@ -408,18 +736,28 @@ const BATCH_LIMIT = Math.min(60, Math.max(30, GOAL * 3))
 
 const selection = await agent(
   `Select next batch of Halo CE Xbox functions to lift.
-Run: rtk python3 tools/llm_auto_lift.py select --limit ${BATCH_LIMIT} 2>&1
+Run: rtk python3 tools/llm_auto_lift.py -q select --limit ${BATCH_LIMIT} --json 2>&1
+(-q is a GLOBAL flag before the subcommand — it makes the JSON compact.)
+This emits a JSON array; each element has: total_score, lane, and target{addr, name,
+object_name, has_reg_args, source_path, score_details{...}}. For each element parse:
+  addr=target.addr, name=target.name, obj=target.object_name, score=total_score,
+  has_reg_args=target.has_reg_args (boolean, verbatim),
+  delinked=(target.score_details.delinked_ref is present and > 0),
+  source_exists=(target.score_details.source_exists is present),
+  lane=lane.
+Do NOT invent these booleans — copy them from the JSON. (The code-side pre-screen
+depends on has_reg_args/lane being exact.)
 
-Filter: keep "auto-lift" lane only; skip [skip:prior_fail] unless fewer than 10
-non-prior-fail entries remain; skip Reasons containing unaff_/in_EAX/in_ECX/@esi/@eax;
+Filter: keep lane=="auto-lift" (also allow "cache-context"); skip [skip:prior_fail]
+markers unless fewer than 10 non-prior-fail entries remain;
 skip hs_runtime.obj (C99/VC71 violations unfixed) and xbox_crt.obj (NT-import/CRT wrappers).
 ${OBJECTS
     ? `HARD RESTRICTION: only return candidates whose obj is one of: ${OBJECTS.join(', ')}. Discard everything else (this is also enforced in code afterward, so don't waste entries on other objects).`
     : `Prefer, in order: game_engine.obj, lruv_cache.obj, hud.obj, items.obj, input_xbox.obj —
 sort those to the front, then the rest by score descending.`}
 ${CRITERIA ? `\nADDITIONAL USER CRITERIA (apply on top of the rules above): ${CRITERIA}\n` : ''}
-Parse: addr, name, obj, score. Return up to ${BATCH_LIMIT} entries.`,
-  { label: 'select', phase: 'Select', model: 'sonnet', schema: TARGETS_SCHEMA }
+Return up to ${BATCH_LIMIT} entries, each with the parsed fields above.`,
+  { label: 'select', phase: 'Select', ...M.extract, schema: TARGETS_SCHEMA }
 )
 
 if (!selection || !selection.targets || selection.targets.length === 0) {
@@ -440,6 +778,25 @@ if (OBJECTS) {
   }
 }
 log(`Selected ${targets.length} candidates across ${new Set(targets.map(t => t.obj)).size} objects`)
+
+// ── Code-side pre-screen — drop targets the SELECTOR already proved unsuitable,
+// using authoritative facts (has_reg_args / lane / addr) rather than re-deriving
+// them in 6 Opus research agents that drift. Saves the research tokens entirely.
+const CRT_LO = 0x1d0000, CRT_HI = 0x1de000
+const codeSkips = []
+targets = targets.filter(t => {
+  const a = parseInt((t.addr || '0').replace(/^0x/i, ''), 16)
+  if (t.has_reg_args === true) { codeSkips.push({ ...t, status: 'skipped', reason: 'skip_reg_args (selector: @reg-defined prologue → sub-bar)' }); return false }
+  if (Number.isFinite(a) && a >= CRT_LO && a < CRT_HI) { codeSkips.push({ ...t, status: 'skipped', reason: 'skip_nt_import (CRT/SEH region 0x1d0000-0x1de000)' }); return false }
+  if (t.lane && t.lane !== 'auto-lift' && t.lane !== 'cache-context') { codeSkips.push({ ...t, status: 'skipped', reason: `lane=${t.lane} (not auto-liftable)` }); return false }
+  return true
+})
+if (codeSkips.length) log(`Code pre-screen dropped ${codeSkips.length} before research (${codeSkips.filter(s => s.reason.startsWith('skip_reg_args')).length} reg-args, ${codeSkips.filter(s => s.reason.startsWith('skip_nt_import')).length} CRT/SEH, ${codeSkips.filter(s => s.reason.startsWith('lane=')).length} lane)`)
+if (targets.length === 0) {
+  log('No viable targets after code pre-screen')
+  return { committed: 0, goal: GOAL, reached_goal: false, skipped: codeSkips.length, reverted: 0, reason: 'empty_queue_after_prescreen' }
+}
+
 // Reachability check — a 20-goal against a 7-candidate queue burns hours before
 // the ceiling is discovered (scenario.obj run, 2026-07-04). Say it up front.
 if (targets.length < GOAL) {
@@ -450,13 +807,31 @@ if (targets.length < GOAL) {
 
 phase('Research')
 
+// Single global Ghidra preflight — short-circuit the whole run if MCP is down,
+// instead of discovering it in 6 parallel research agents (each of which used to
+// run check_ghidra_mcp.py redundantly).
+const preflight = await agent(
+  `Run: rtk python3 tools/audit/check_ghidra_mcp.py 2>&1
+Return ok=true if it passes, else ok=false with the first error line as reason.`,
+  { label: 'ghidra-preflight', phase: 'Research', ...M.mechanical,
+    schema: { type: 'object', properties: { ok: { type: 'boolean' }, reason: { type: 'string' } }, required: ['ok'] } })
+if (preflight && preflight.ok === false) {
+  log(`Ghidra MCP preflight FAILED (${preflight.reason || 'unavailable'}) — aborting before research`)
+  return { committed: 0, goal: GOAL, reached_goal: false, skipped: codeSkips.length, reverted: 0,
+           infra_blocked: targets.length, reason: 'ghidra_unavailable' }
+}
+
+// Warm the retrieval server before any research decompiles so the auto-firing
+// decompile_hook serves worked-example neighbors warm (not a cold 6-way race).
+await agent(warmRetrievalPrompt(), { label: 'retrieval-warm', phase: 'Research', ...M.mechanical })
+
 const RESEARCH_BATCH = 6
 const briefs = []
 for (let i = 0; i < targets.length; i += RESEARCH_BATCH) {
   const batch = targets.slice(i, i + RESEARCH_BATCH)
   log(`Research batch ${Math.floor(i / RESEARCH_BATCH) + 1}/${Math.ceil(targets.length / RESEARCH_BATCH)}`)
   const bb = await parallel(batch.map(t => () => agent(researchPrompt(t), {
-    label: `research:${t.name}`, phase: 'Research', model: 'opus', schema: BRIEF_SCHEMA,
+    label: `research:${t.name}`, phase: 'Research', ...M.extract, schema: BRIEF_SCHEMA,
   })))
   briefs.push(...bb.filter(Boolean))
 }
@@ -485,7 +860,7 @@ delinked/functions/ if they differ. Verify each with objdump -t.
 ${needDelink.map(b => `- ${b.name} at ${b.addr}`).join('\n')}
 
 Return one line per function: <name> exported|failed <path-or-reason>.`,
-    { label: 'delink-prefetch', phase: 'Research', model: 'haiku' }
+    { label: 'delink-prefetch', phase: 'Research', ...M.mechanical }
   )
 }
 
@@ -494,6 +869,9 @@ Return one line per function: <name> exported|failed <path-or-reason>.`,
 phase('Lift')
 
 const results = []
+for (const s of codeSkips) {
+  results.push({ addr: s.addr, name: s.name, obj: s.obj, status: 'skipped', reason: s.reason })
+}
 for (const brief of skipBriefs) {
   results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'skipped', reason: brief.skip_reason || brief.pre_screen })
 }
@@ -518,7 +896,7 @@ for (const brief of okBriefs) {
 
   // ── Attempt 1: Opus lift (sonnet stall-loops under the workflow watchdog) ─
   const a1 = await agent(liftPrompt(brief, false, null), {
-    label: `lift1:${brief.name}`, phase: 'Lift', agentType: 'xbox-halo-re-analyst', model: 'opus', schema: LIFT_RESULT_SCHEMA,
+    label: `lift1:${brief.name}`, phase: 'Lift', agentType: 'xbox-halo-re-analyst', ...M.reason, schema: LIFT_RESULT_SCHEMA,
   })
 
   if (!a1 || a1.status === 'infra_blocked') {
@@ -539,13 +917,14 @@ for (const brief of okBriefs) {
   let srcFile = a1.source_file || brief.source_path
   let band    = classifyBand(score)
   let path    = 'pass1'
+  let lastME  = M.reason   // {model,effort} of the current attempt (for parked records)
   log(`  lift1 ${brief.name}: ${a1.status} ${score}% (band=${band}${a1.capped ? ', capped: ' + (a1.cap_reason || '?') : ''})`)
 
   // Cheap fix before anything expensive: a fresh per-function delinked
   // reference often recovers VC71 that was falsely low from a stale or
   // whole-object delink boundary artifact.
   if (band !== 'pass') {
-    const rd = await agent(redelinkPrompt(brief.name, brief.addr), { label: `redelink:${brief.name}`, phase: 'Lift', model: 'haiku', schema: SCORE_SCHEMA })
+    const rd = await agent(redelinkPrompt(brief.name, brief.addr), { label: `redelink:${brief.name}`, phase: 'Lift', ...M.mechanical, schema: SCORE_SCHEMA })
     if (rd && rd.vc71_score > score) {
       score = rd.vc71_score
       band  = classifyBand(score)
@@ -554,41 +933,47 @@ for (const brief of okBriefs) {
     }
   }
 
-  // ── 65-84%: check structural cap, one Fable escalation if not capped ────
+  // ── 65-84%: check structural cap, one improve-model escalation if not capped ─
   if (band === 'fail_check_cap' && !a1.capped) {
-    log(`  ${brief.name} ${score}% — not a known cap, escalating to Fable`)
-    await agent(revertPrompt(brief.name), { label: `revert-pre-escalate:${brief.name}`, phase: 'Lift', model: 'haiku' })
+    log(`  ${brief.name} ${score}% — not a known cap, escalating (${IMPROVE_MODEL})`)
+    // Preserve the attempt-1 (Opus) work before escalating: park keeps the
+    // best-scoring attempt's patch across both, and --revert-tree cleans the
+    // tree for the escalation re-lift. Never discard a building lift.
+    await parkBuilt(brief, srcFile, score, M.reason, 'pre_escalation', a1.cap_reason || '')
     const a2 = await agent(liftPrompt(brief, true, score), {
-      label: `lift2:${brief.name}`, phase: 'Lift', agentType: 'xbox-halo-re-analyst', model: 'fable', schema: LIFT_RESULT_SCHEMA,
+      label: `lift2:${brief.name}`, phase: 'Lift', agentType: 'xbox-halo-re-analyst', ...M.improve, schema: LIFT_RESULT_SCHEMA,
     })
     if (a2 && (a2.status === 'needs_verify')) {
       score   = a2.vc71_score || score
       srcFile = a2.source_file || srcFile
       band    = classifyBand(score)
       path    = 'escalated'
+      lastME  = M.improve
     } else if (a2 && a2.status === 'build_failed') {
       consecutiveFails++
       results.push({ ...a2, obj: brief.obj })
       continue
     }
   } else if (band === 'fail_check_cap' && a1.capped) {
-    await agent(revertPrompt(brief.name), { label: `revert:${brief.name}`, phase: 'Lift', model: 'haiku' })
+    // Structural cap — a future model may still beat it, so PARK (with the cap
+    // hypothesis) rather than discard. Not confirm-cap: that would end retries.
+    await parkBuilt(brief, srcFile, score, M.reason, 'structural_cap', a1.cap_reason || 'unclassified')
     consecutiveFails++
-    results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'reverted_verify', vc71_score: score, reason: `structural_cap: ${a1.cap_reason || 'unclassified'}` })
+    results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'parked', vc71_score: score, reason: `structural_cap: ${a1.cap_reason || 'unclassified'}` })
     continue
   }
 
   if (band === 'fail_revert') {
-    await agent(revertPrompt(brief.name), { label: `revert:${brief.name}`, phase: 'Lift', model: 'haiku' })
+    await parkBuilt(brief, srcFile, score, lastME, 'below_65pct', '')
     consecutiveFails++
-    results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'reverted_verify', vc71_score: score, reason: `below_65pct` })
+    results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'parked', vc71_score: score, reason: `below_65pct` })
     continue
   }
   if (band === 'fail_check_cap') {
-    // escalation ran and is still in [65,84) or dropped below 65
-    await agent(revertPrompt(brief.name), { label: `revert:${brief.name}`, phase: 'Lift', model: 'haiku' })
+    // escalation ran and is still in [65,84) — park the best attempt for later.
+    await parkBuilt(brief, srcFile, score, lastME, 'escalation_exhausted', '')
     consecutiveFails++
-    results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'reverted_verify', vc71_score: score, reason: 'escalation_exhausted' })
+    results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'parked', vc71_score: score, reason: 'escalation_exhausted' })
     continue
   }
 
@@ -600,28 +985,30 @@ for (const brief of okBriefs) {
     path = path === 'escalated' ? 'escalated+permute' : 'permute'
   }
 
-  // ── Phase 3: review gate, then commit ───────────────────────────────────
-  const outcome = await reviewThenCommit(brief, score, srcFile, path, 'Lift')
+  // ── Phase 3: commit gate (mechanical fast-path, reviewer on ambiguity) ──
+  const outcome = await gateThenCommit(brief, score, srcFile, path, 'Lift')
   if (outcome.committed) {
     results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'committed', vc71_score: score, source_file: srcFile, reason: outcome.rationale })
     consecutiveFails = 0
     log(`✓ ${brief.name} ${score}% (${outcome.rationale})`)
   } else if (outcome.dryRun) {
     results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'would_commit', vc71_score: score, source_file: srcFile, reason: outcome.rationale })
-    await agent(revertPrompt(brief.name), { label: `revert-dry-run:${brief.name}`, phase: 'Lift', model: 'haiku' })
+    await agent(revertPrompt(brief.name), { label: `revert-dry-run:${brief.name}`, phase: 'Lift', ...M.mechanical })
     log(`○ ${brief.name} ${score}% (dry-run, would commit — reverted for clean state)`)
   } else if (score >= 85) {
     // Near-miss: lift is structurally sound, only runtime evidence blocked it.
     // Park (recoverable ledger) and do NOT count toward the consecutive-fail
     // stop — this is a deferred work item, not a failed lift.
-    await agent(parkPrompt(brief.name, brief.addr, score, `${outcome.verdict}: ${outcome.rationale}`), { label: `park:${brief.name}`, phase: 'Lift', model: 'haiku' })
+    await parkBuilt(brief, srcFile, score, lastME, `${outcome.verdict}: ${outcome.rationale}`, '')
     results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'parked', vc71_score: score, source_file: srcFile, reason: `${outcome.verdict}: ${outcome.rationale}` })
-    log(`◐ ${brief.name} ${score}% parked (review gate: ${outcome.verdict}; patch in artifacts/auto_lift/parked/)`)
+    log(`◐ ${brief.name} ${score}% parked (review gate: ${outcome.verdict}; patch in artifacts/parked/)`)
   } else {
-    await agent(revertPrompt(brief.name), { label: `revert-post-review:${brief.name}`, phase: 'Lift', model: 'haiku' })
+    // Below 85 and review-blocked: still preserve the work (a different model
+    // may push it over later) rather than checkout-discarding it.
+    await parkBuilt(brief, srcFile, score, lastME, `${outcome.verdict}: ${outcome.rationale}`, '')
     consecutiveFails++
-    results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'reverted_review', vc71_score: score, source_file: srcFile, reason: `${outcome.verdict}: ${outcome.rationale}` })
-    log(`✗ ${brief.name} ${score}% (review gate: ${outcome.verdict})`)
+    results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'parked', vc71_score: score, source_file: srcFile, reason: `review<85: ${outcome.verdict}: ${outcome.rationale}` })
+    log(`◐ ${brief.name} ${score}% parked (review gate <85: ${outcome.verdict})`)
   }
 }
 
@@ -654,7 +1041,7 @@ await agent(
 | function | addr | obj | vc71 | action | reason |
 |---|---|---|---|---|---|
 ${results.map(r => `| ${r.name} | ${r.addr} | ${r.obj || '-'} | ${r.vc71_score ?? '-'} | ${r.status} | ${r.reason || ''} |`).join('\n')}`,
-  { label: 'progress-log', phase: 'Report', model: 'haiku' }
+  { label: 'progress-log', phase: 'Report', ...M.mechanical }
 )
 
 return {
