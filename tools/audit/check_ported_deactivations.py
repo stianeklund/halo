@@ -51,9 +51,16 @@ def _build_source_impl_set():
 
     Cheap heuristic: grep for `<name>(...) {` at the start of a line. Misses
     a few corner cases but the false-negative rate is tiny in this codebase.
+
+    An optional leading `__declspec(...)` prefix is skipped so decorated
+    definitions such as `__declspec(noinline) bool FUN_x(...)` are detected —
+    without it, the return-type character class ([\\w\\s\\*], no parens) stalls
+    on the prefix's own parentheses and the impl is silently missed.
     """
     impls = set()
-    func_def_re = re.compile(r'^[A-Za-z_][\w\s\*]*?\b([A-Za-z_]\w*)\s*\([^;]*\)\s*\{', re.MULTILINE)
+    func_def_re = re.compile(
+        r'^(?:__declspec\s*\([^)]*\)\s*)?'          # optional __declspec(...) prefix
+        r'[A-Za-z_][\w\s\*]*?\b([A-Za-z_]\w*)\s*\([^;]*\)\s*\{', re.MULTILINE)
     for root, _, files in os.walk(SRC_DIR):
         for f in files:
             if not f.endswith('.c'):
