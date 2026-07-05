@@ -8094,6 +8094,70 @@
       "metadata": {
         "source_path": "src/halo/ai/actions.c"
       }
+    },
+    {
+      "name": "halo/network_connection",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_connection.c.obj",
+      "base_path": "delinked/network_connection_FUN_001296b0.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_connection.c"
+      }
+    },
+    {
+      "name": "halo/network_connection_write",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_connection.c.obj",
+      "base_path": "delinked/network_connection_FUN_00128e00.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_connection.c"
+      }
+    },
+    {
+      "name": "halo/network_server_manager_FUN_0012e750",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_server_manager.c.obj",
+      "base_path": "delinked/network_server_manager_FUN_0012e750.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_server_manager.c"
+      }
+    },
+    {
+      "name": "halo/network_server_manager_FUN_0012f690",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_server_manager.c.obj",
+      "base_path": "delinked/network_server_manager_FUN_0012f690.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_server_manager.c"
+      }
+    },
+    {
+      "name": "halo/network_server_manager_FUN_0012eb20",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_server_manager.c.obj",
+      "base_path": "delinked/network_server_manager_FUN_0012eb20.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_server_manager.c"
+      }
+    },
+    {
+      "name": "halo/network_server_manager_FUN_0012f990",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_server_manager.c.obj",
+      "base_path": "delinked/network_server_manager_FUN_0012f990.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_server_manager.c"
+      }
+    },
+    {
+      "name": "halo/network_server_manager_FUN_0012f5d0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_server_manager.c.obj",
+      "base_path": "delinked/network_server_manager_FUN_0012f5d0.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_server_manager.c"
+      }
+    },
+    {
+      "name": "halo/network_server_manager_FUN_0012db30",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_server_manager.c.obj",
+      "base_path": "delinked/network_server_manager_FUN_0012db30.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_server_manager.c"
+      }
     }
   ]
 }

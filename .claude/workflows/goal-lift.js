@@ -90,6 +90,27 @@ const TARGETS_SCHEMA = {
   required: ['targets'],
 }
 
+// P2 liftability gate — one cheap mechanical agent stamps each candidate so the
+// workflow can drop non-liftable targets before any research/lift agent spawns.
+const LIFTABILITY_SCHEMA = {
+  type: 'object',
+  properties: {
+    classified: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          addr:           { type: 'string' },
+          liftable_class: { type: 'string' },  // liftable | fragment | known_cap
+          class_reason:   { type: 'string' },
+        },
+        required: ['addr', 'liftable_class'],
+      },
+    },
+  },
+  required: ['classified'],
+}
+
 const BRIEF_SCHEMA = {
   type: 'object',
   properties: {
@@ -123,8 +144,9 @@ const LIFT_RESULT_SCHEMA = {
     status:      { type: 'string' },   // needs_verify | skipped | build_failed | infra_blocked
     source_file: { type: 'string' },
     vc71_score:  { type: 'number' },
-    capped:      { type: 'boolean' },  // matches a known structural-cap signature (see liftPrompt)
-    cap_reason:  { type: 'string' },
+    capped:         { type: 'boolean' },  // matches a known structural-cap signature (see liftPrompt)
+    cap_reason:     { type: 'string' },
+    cap_confidence: { type: 'string' },    // high (deterministic classify_cap.py) | inconclusive (agent judgment)
     // In-agent follow-up stages (liftPrompt steps 6b-6d): the lift agent does
     // redelink, permute, and state-snapshot equivalence itself, in the same
     // context that produced the lift. The loop's separate redelink/permute/
@@ -134,7 +156,7 @@ const LIFT_RESULT_SCHEMA = {
     equiv_passes:     { type: 'boolean' },
     equiv_confidence: { type: 'string' },
     equiv_reason:     { type: 'string' },
-    reason:      { type: 'string' },
+    reason:         { type: 'string' },
   },
   required: ['addr', 'name', 'status'],
 }
@@ -227,7 +249,37 @@ COPY the exported file into THIS worktree instead of cd-ing to main.
 equivalence, a full clean build) MUST be wrapped so it cannot run silently
 past 180s and trip the harness stall detector that kills the whole run:
   timeout 150 <cmd> 2>&1 || echo "[timed-out]"
+[TOKENS] Your ENTIRE context is re-read on every turn, so token cost grows with
+turn count (a long agent costs quadratically; a short one is linear). Minimize
+turns and quoted volume: do NOT re-read a file after a successful edit (the Edit
+tool already confirms success), do NOT re-run a command just to re-check, and do
+NOT paste large tool output (build logs, full objdiff, decompile dumps) back into
+your reasoning — pull out only the specific line or number you need and move on.
 `
+
+// P2: classify candidates as liftable / fragment / known_cap using live Ghidra
+// xref shape (fragment) + the parked ledger (known_cap). One mechanical agent,
+// one batched get_bulk_xrefs call. Fail-open: if Ghidra can't answer, return
+// classified=[] and the workflow proceeds without dropping anything.
+const liftabilityGatePrompt = (targets) =>
+  `Classify goal-lift candidates as liftable / fragment / known_cap so the workflow
+can drop non-liftable ones BEFORE spawning expensive research/lift agents. READ-ONLY.
+
+Candidates (addr — name):
+${targets.map(t => `  ${t.addr} — ${t.name}`).join('\n')}
+
+STEPS:
+1. Get xref shapes for ALL candidate addresses. First try one batched call:
+   mcp__ghidra__get_bulk_xrefs addresses="${targets.map(t => t.addr).join(',')}" program="cachebeta.xbe"
+   If that tool errors, fall back to mcp__ghidra__get_xrefs_to per address.
+   If EVERY Ghidra call fails → return {"classified": []} (fail-open; do not guess).
+2. Build a JSON object mapping each "0x..." addr to its raw xref result text, and
+   write it: printf '%s' '<json>' > /tmp/glift_xrefs.json
+3. Write the candidate array to /tmp/glift_cands.json:
+   printf '%s' '${JSON.stringify(targets.map(t => ({ addr: t.addr, name: t.name })))}' > /tmp/glift_cands.json
+4. Run: rtk python3 tools/analysis/classify_liftability.py --candidates /tmp/glift_cands.json --xrefs /tmp/glift_xrefs.json
+5. Return classified = the script's JSON array verbatim (each element has addr,
+   liftable_class, and class_reason). Do NOT invent classes — copy the script output.`
 
 const researchPrompt = (t) =>
   `Gather Ghidra context for ${t.name} at ${t.addr} (${t.obj}). READ-ONLY — no edits.
@@ -315,11 +367,13 @@ A near-identical neighbor capped below 90% is evidence THIS one is capped too):
 ${brief.neighbors || '  (none — retrieval server was cold)'}
 
 STEPS:
-1. DELINKED — check delinked/functions/<addr_no_0x>.obj first (a prefetch stage
-   usually exported it already). Only if missing: export via
-   mcp__ghidra-live__export_delinked_object for ${brief.addr}. Copy into a
-   worktree's delinked/ + delinked/functions/<addr_no_0x>.obj if you are
-   operating inside one. If export fails → status="skipped", reason="delinked_export_failed"
+1. DELINKED — a prefetch stage already exported delinked/functions/<addr_no_0x>.obj.
+   Do NOT export it yourself and make NO ghidra-live calls here. If the ref is
+   missing, VC71 simply scores low and the workflow's cheap redelink stage exports
+   it and re-verifies afterward. In-lifter export is a multi-turn ghidra-live dance
+   (decompile → find end → export → copy) whose accumulated output is re-read on
+   every later turn of this agent — skipping it keeps this agent short and is the
+   single biggest per-lift token saving.
 
 2. CALLEE PREP — for any callee with has_reg_args=true and in_kb=false:
    add to kb.json with @<reg> + update tools/kb_reg_baseline.json.
@@ -340,9 +394,17 @@ STEPS:
    rtk python3 tools/audit/check_lift_hazards.py
    Fix any HIGH-RISK hazards.
 
-6. BUILD + VC71 (wrap to avoid the 180s stall timer — see [STALL]):
+6. BUILD + VC71 — run the build-fix loop at MOST twice in this agent (initial run,
+   then ONE fix pass if the build fails or a HIGH-RISK hazard flags). Do NOT grind
+   more than one fix pass here, then proceed to the follow-up stages (6b-6d) and the
+   cap classifier (step 7) below. If the score is still short after those, the
+   workflow re-spawns a FRESH escalation agent rather than extending this one (this
+   agent's whole context is re-read every turn, so a long agent costs quadratically
+   in tokens — a short one is linear).
    timeout 165 rtk python3 tools/lift_pipeline.py --target ${brief.name} --no-metadata-update --verify-policy goal90 2>&1 || echo "[lift_pipeline timed-out]"
-   Parse VC71 score and build pass/fail. If it timed out, status="needs_review", vc71_score=0.
+   Parse the VC71 % line and build pass/fail ONLY. Do NOT paste the full objdiff or
+   build log into your reasoning — quoting large tool output back inflates every
+   following turn's re-read. If it timed out, status="needs_review", vc71_score=0.
 
 6b. REDELINK RETRY (only if the build passed and vc71_score < 90): a stale or
    whole-object delink boundary often causes a falsely low score. You already
@@ -374,15 +436,23 @@ STEPS:
    equiv_confidence, and equiv_reason (state whether the live-state snapshot
    was used and which paths were exercised).
 
-7. SELF-ASSESS STRUCTURAL CAP (only if vc71_score is in [65,84]):
+7. STRUCTURAL-CAP CLASSIFY (only if vc71_score is in [65,84]) — do NOT eyeball it;
+   run the deterministic classifier (explicit rules: @reg-defining prologue,
+   parked-ledger confirmed/prior cap):
+     rtk python3 tools/analysis/classify_cap.py --name ${brief.name} --addr ${brief.addr} \\
+       --score <vc71_score> --decl '<this function's kb declaration>'
+   - If it returns "cap_confidence":"high" → this is an AUTHORITATIVE cap: report
+     capped=true, cap_reason=its cap_reason, cap_confidence="high". Do NOT escalate.
+   - If it returns "cap_confidence":"inconclusive" → the script cannot prove a cap;
+     apply YOUR OWN judgment against the patterns below, set capped/cap_reason, and
+     report cap_confidence="inconclusive".
 ${CAP_TABLE}
-   Set capped=true + cap_reason if the objdiff output matches one of these
-   patterns. Otherwise capped=false.
 
 8. RETURN (do NOT commit, do NOT run the review gate — that happens later):
    status: "needs_verify" if build passed (regardless of score), else "build_failed".
-   Always report vc71_score, source_file (the actual path written), capped, cap_reason,
-   plus redelinked/permuted/equiv_passes/equiv_confidence/equiv_reason for whichever
+   Always report vc71_score, source_file (the actual path written), capped,
+   cap_reason, and cap_confidence ("high" | "inconclusive"), plus
+   redelinked/permuted/equiv_passes/equiv_confidence/equiv_reason for whichever
    of steps 6b-6d ran.`
 
 const redelinkPrompt = (name, addr) =>
@@ -397,6 +467,13 @@ This is the primary fix for "badly delinked object" false-low scores.
    Copy the exported .obj into a worktree's delinked/ if you are operating inside one.
 3. Re-run (wrap — see [STALL]):
    timeout 165 rtk python3 tools/lift_pipeline.py --target ${name} --no-metadata-update --verify-policy goal90 2>&1 || echo "[timed-out]"
+
+BOUNDED PASS — this is a mechanical export+verify, NOT a re-lift. Do the three
+steps ONCE each: one decompile to find the end address, one export, one verify.
+Do NOT re-lift, edit source, try alternate ranges, or iterate — if the fresh
+reference does not raise the score, return improved=false with the score you got.
+Do NOT paste the objdiff/build log into your reasoning (it inflates every
+following turn's re-read). At most ~10 turns.
 
 Return: vc71_score, improved (bool), reason.`
 
@@ -809,9 +886,24 @@ if (CRITERIA) log(`Extra criteria (soft): ${CRITERIA}`)
 
 const BATCH_LIMIT = Math.min(60, Math.max(30, GOAL * 3))
 
+// When an --objects allowlist is set, query the selector PER OBJECT
+// (`select --object <name> --min-score 0`) instead of a single global top-N
+// `select --limit N`. The global select ranks by score across ALL objects, so a
+// low-scoring or freshly-started object (no source file yet, no delinked ref →
+// functions score ~30) never appears in the top BATCH_LIMIT, and the code-side
+// object post-filter then yields an empty queue — even though the object has
+// many perfectly liftable functions. Per-object select surfaces every candidate
+// in the allowlisted object(s), so a fresh-object goal-lift actually gets work.
+const RETURN_CAP = OBJECTS ? 200 : BATCH_LIMIT
+const selectCmds = OBJECTS
+  ? OBJECTS.map(o => `rtk python3 tools/llm_auto_lift.py -q select --object ${o} --min-score 0 --limit ${RETURN_CAP} --json 2>&1`)
+  : [`rtk python3 tools/llm_auto_lift.py -q select --limit ${BATCH_LIMIT} --json 2>&1`]
+
 const selection = await agent(
   `Select next batch of Halo CE Xbox functions to lift.
-Run: rtk python3 tools/llm_auto_lift.py -q select --limit ${BATCH_LIMIT} --json 2>&1
+${OBJECTS
+    ? `Run EACH of these commands (one per allowlisted object) and concatenate all their JSON arrays into one combined list before parsing:\n${selectCmds.join('\n')}`
+    : `Run: ${selectCmds[0]}`}
 (-q is a GLOBAL flag before the subcommand — it makes the JSON compact.)
 This emits a JSON array; each element has: total_score, lane, and target{addr, name,
 object_name, has_reg_args, source_path, score_details{...}}. For each element parse:
@@ -831,7 +923,7 @@ ${OBJECTS
     : `Prefer, in order: game_engine.obj, lruv_cache.obj, hud.obj, items.obj, input_xbox.obj —
 sort those to the front, then the rest by score descending.`}
 ${CRITERIA ? `\nADDITIONAL USER CRITERIA (apply on top of the rules above): ${CRITERIA}\n` : ''}
-Return up to ${BATCH_LIMIT} entries, each with the parsed fields above.`,
+Return up to ${RETURN_CAP} entries, each with the parsed fields above.`,
   { label: 'select', phase: 'Select', ...M.extract, schema: TARGETS_SCHEMA }
 )
 
@@ -894,6 +986,37 @@ if (preflight && preflight.ok === false) {
   log(`Ghidra MCP preflight FAILED (${preflight.reason || 'unavailable'}) — aborting before research`)
   return { committed: 0, goal: GOAL, reached_goal: false, skipped: codeSkips.length, reverted: 0,
            infra_blocked: targets.length, reason: 'ghidra_unavailable' }
+}
+
+// ── P2 liftability gate — drop switch-case fragments (non-callable → porting one
+// crashes on the parent's mid-flight stack) and confirmed structural caps BEFORE
+// any research/lift agent spawns. Runs post-preflight because fragment detection
+// needs live Ghidra xref shape. Fail-open: no classification → proceed unchanged.
+if (targets.length) {
+  const lc = await agent(liftabilityGatePrompt(targets), {
+    label: 'liftability-gate', phase: 'Research', ...M.mechanical, schema: LIFTABILITY_SCHEMA,
+  })
+  if (lc && Array.isArray(lc.classified) && lc.classified.length) {
+    const cls = new Map(lc.classified.map(r => [(r.addr || '').toLowerCase(), r]))
+    const kept = []
+    for (const t of targets) {
+      const r = cls.get((t.addr || '').toLowerCase())
+      if (r && (r.liftable_class === 'fragment' || r.liftable_class === 'known_cap')) {
+        codeSkips.push({ ...t, status: 'skipped', reason: `skip_${r.liftable_class} (${r.class_reason || ''})` })
+      } else {
+        kept.push(t)
+      }
+    }
+    const dropped = targets.length - kept.length
+    if (dropped) log(`Liftability gate dropped ${dropped} (${codeSkips.filter(s => s.reason.startsWith('skip_fragment')).length} fragment, ${codeSkips.filter(s => s.reason.startsWith('skip_known_cap')).length} known_cap) before research`)
+    targets = kept
+  } else {
+    log('Liftability gate: no classification returned — proceeding without it (fail-open)')
+  }
+  if (targets.length === 0) {
+    log('No viable targets after liftability gate')
+    return { committed: 0, goal: GOAL, reached_goal: false, skipped: codeSkips.length, reverted: 0, reason: 'empty_queue_after_liftability' }
+  }
 }
 
 // Warm the retrieval server before any research decompiles so the auto-firing
@@ -996,10 +1119,20 @@ for (const brief of okBriefs) {
   let lastME  = M.reason   // {model,effort} of the current attempt (for parked records)
   log(`  lift1 ${brief.name}: ${a1.status} ${score}% (band=${band}${a1.capped ? ', capped: ' + (a1.cap_reason || '?') : ''})`)
 
-  // FALLBACK ONLY — the lift agent normally redelinks in-context (step 6b).
-  // A fresh per-function delinked reference often recovers VC71 that was
-  // falsely low from a stale or whole-object delink boundary artifact.
-  if (band !== 'pass' && !lift.redelinked) {
+  // FALLBACK ONLY — the lift agent normally redelinks in-context (step 6b); this
+  // runs only when it did not (lift.redelinked absent). A fresh per-function
+  // delinked reference can recover VC71 that was falsely low from a stale or
+  // whole-object delink boundary artifact. Two guards keep this fallback from
+  // becoming a sink (wf_927b1d1d: redelink was 50% of the run's tokens, 0 gains):
+  //   - boundary artifacts cost single-digit %, so a sub-65 (fail_revert) score is
+  //     a real structural mismatch, not a delink artifact — re-delinking won't help;
+  //   - if a1 already proved a high-confidence structural cap (classify_cap.py),
+  //     a fresh delink cannot beat a codegen/register-allocation cap.
+  const redelinkWorthwhile =
+    !lift.redelinked &&
+    (band === 'pass_permute' || band === 'fail_check_cap') &&
+    !(a1.capped === true && a1.cap_confidence === 'high')
+  if (redelinkWorthwhile) {
     const rd = await agent(redelinkPrompt(brief.name, brief.addr), { label: `redelink:${brief.name}`, phase: 'Lift', ...M.mechanical, schema: SCORE_SCHEMA })
     if (rd && rd.vc71_score > score) {
       score = rd.vc71_score
@@ -1009,9 +1142,17 @@ for (const brief of okBriefs) {
     }
   }
 
-  // ── 65-84%: check structural cap, one improve-model escalation if not capped ─
-  if (band === 'fail_check_cap' && !a1.capped) {
-    log(`  ${brief.name} ${score}% — not a known cap, escalating (${IMPROVE_MODEL})`)
+  // ── 65-84%: explicit structural-cap gate (P3). The lift agent ran
+  // tools/analysis/classify_cap.py in step 7: a cap_confidence==="high" verdict is
+  // an AUTHORITATIVE deterministic cap (@reg-defining prologue / ledger-confirmed /
+  // prior-cap-no-improvement) — provably futile to retry, so it MUST park and never
+  // escalate. An "inconclusive" verdict falls back to the agent's own CAP_TABLE
+  // judgment. Either way "capped" now decides escalation, but its provenance is
+  // explicit and logged, not an opaque model boolean.
+  const treatAsCapped = a1.capped === true
+  const capProvenance = a1.cap_confidence === 'high' ? 'deterministic(classify_cap.py)' : 'agent-judgment'
+  if (band === 'fail_check_cap' && !treatAsCapped) {
+    log(`  ${brief.name} ${score}% — not a structural cap (${a1.cap_confidence || 'n/a'}), escalating (${IMPROVE_MODEL})`)
     // Preserve the attempt-1 (Opus) work before escalating: park keeps the
     // best-scoring attempt's patch across both, and --revert-tree cleans the
     // tree for the escalation re-lift. Never discard a building lift.
@@ -1031,12 +1172,13 @@ for (const brief of okBriefs) {
       results.push({ ...a2, obj: brief.obj })
       continue
     }
-  } else if (band === 'fail_check_cap' && a1.capped) {
+  } else if (band === 'fail_check_cap' && treatAsCapped) {
     // Structural cap — a future model may still beat it, so PARK (with the cap
     // hypothesis) rather than discard. Not confirm-cap: that would end retries.
+    log(`  ${brief.name} ${score}% capped [${capProvenance}]: ${a1.cap_reason || 'unclassified'} — parked, no escalation`)
     await parkBuilt(brief, srcFile, score, M.reason, 'structural_cap', a1.cap_reason || 'unclassified')
     consecutiveFails++
-    results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'parked', vc71_score: score, reason: `structural_cap: ${a1.cap_reason || 'unclassified'}` })
+    results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'parked', vc71_score: score, reason: `structural_cap[${capProvenance}]: ${a1.cap_reason || 'unclassified'}` })
     continue
   }
 

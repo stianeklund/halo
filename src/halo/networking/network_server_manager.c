@@ -2451,11 +2451,13 @@ bool network_game_server_start(void *server)
         FUN_00129130(*(int *)s, new_conn);
       }
     }
-    if (!FUN_0012d9f0((int)server)) {
+    result = FUN_0012d9f0((int)server);
+    if (!result) {
       network_game_log("network_game_server_handle_public_endpoint() failed");
       return false;
     }
-    if (!FUN_0012e580((int)server)) {
+    result = FUN_0012e580((int)server);
+    if (!result) {
       network_game_log("network_game_server_handle_client_machines() failed");
       return false;
     }
@@ -2463,14 +2465,13 @@ bool network_game_server_start(void *server)
     if (state == 0) {
       return FUN_0012e750((int)server);
     }
-    if (state == 1) {
-      return result;
-    }
-    if (state == 2) {
+    if (state != 1) {
+      if (state != 2) {
+        network_game_log("unknown server state");
+        return false;
+      }
       return FUN_0012db60((int)server);
     }
-    network_game_log("unknown server state");
-    return false;
   }
   return result;
 }
@@ -2601,7 +2602,7 @@ void *FUN_0012eef0(void)
   *(char *)0x46eed4 = 1;
   server = (int *)0x5a90e0;
   csmemset(server, 0, 0x4bc);
-  server[0] = FUN_001296b0(1, 0x141e);
+  server[0] = network_connection_new(1, 0x141e);
   if (!server[0]) {
     error(2, "failed to create the server connection");
     network_game_client_dispose((void *)server);
@@ -2954,23 +2955,22 @@ bool FUN_0012f5d0(void *server)
     network_game_log(
       "failed to handle a message_server_game_settings_update because their "
       "was no server game");
-    return result;
   }
-
-  csmemcpy(local_buf, (void *)game_data, 0x434);
-  msg = encode_network_game_message(6, local_buf, 0x434);
-  if (!msg) {
-    network_game_log(
-      "failed to create a message_server_game_settings_update message");
-    return false;
-  }
-
-  result = FUN_0012f430(server, msg);
-  if (!result) {
-    network_game_log(
-      "failed to send message_server_game_settings_update message to all "
-      "machines");
-    return false;
+  else {
+    csmemcpy(local_buf, (void *)game_data, 0x434);
+    msg = encode_network_game_message(6, local_buf, 0x434);
+    if (!msg) {
+      network_game_log(
+        "failed to create a message_server_game_settings_update message");
+    }
+    else {
+      result = FUN_0012f430(server, msg);
+      if (!result) {
+        network_game_log(
+          "failed to send message_server_game_settings_update message to all "
+          "machines");
+      }
+    }
   }
 
   return result;
@@ -2982,8 +2982,13 @@ char network_game_server_reset_to_pregame(int server, void *client_message,
                                           void *source_address)
 {
   char advertise_buf[0x140];
-  int local_1c[4];
+  int addr_hdr[5];
+  int key_scratch[4];
+  int xnaddr_scratch[3];
+  char *body;
   int game_data;
+  int *key_ptr;
+  int *xnaddr_ptr;
   void *msg;
   unsigned short msg_len;
   int connection;
@@ -3001,11 +3006,53 @@ char network_game_server_reset_to_pregame(int server, void *client_message,
   game_data = network_game_server_get_game((void *)server);
   if (!game_data)
     return true;
+
   csmemset(advertise_buf, 0, sizeof(advertise_buf));
-  local_1c[0] = -1;
-  csmemcpy(advertise_buf, (char *)client_message + 4, 8);
-  network_game_generate_join_game_token((void *)((char *)advertise_buf + 0x38));
-  msg = encode_network_game_message(2, advertise_buf, 0x114);
+  body = advertise_buf;
+
+  addr_hdr[0] = -1;
+  *(short *)((char *)addr_hdr + 0x10) = 4;
+  *(short *)((char *)addr_hdr + 0x12) = 0x141f;
+
+  csmemcpy(body, (char *)client_message + 4, 8);
+  transport_get_nonce(body + 0x08, 8);
+  *(int64_t *)(body + 0x10) = transport_get_key_id();
+
+  key_ptr = (int *)transport_get_key(key_scratch);
+  *(int *)(body + 0x18) = key_ptr[0];
+  *(int *)(body + 0x1c) = key_ptr[1];
+  *(int *)(body + 0x20) = key_ptr[2];
+  *(int *)(body + 0x24) = key_ptr[3];
+
+  xnaddr_ptr = (int *)transport_get_xnaddr(xnaddr_scratch);
+  *(int *)(body + 0x28) = xnaddr_ptr[0];
+  *(int *)(body + 0x2c) = xnaddr_ptr[1];
+  *(int *)(body + 0x30) = xnaddr_ptr[2];
+
+  *(short *)(body + 0x34) = 0x141e;
+  *(short *)(body + 0x36) = 1;
+  *(short *)(body + 0x38) = 0;
+
+  ustrncpy((wchar_t *)(body + 0x3a), (wchar_t *)game_data, 0xf);
+  *(short *)(body + 0xf8) = *(short *)((char *)game_data + 0xbc);
+  csmemcpy(body + 0x74, (char *)game_data + 0x20, 0x84);
+  *(short *)(body + 0xfc) = *(short *)((char *)game_data + 0x224);
+  *(short *)(body + 0xfa) = *(short *)((char *)game_data + 0x112);
+  *(short *)(body + 0xfe) = (short)*(char *)((char *)game_data + 0x10e);
+  *(short *)(body + 0x100) = *(short *)((char *)game_data + 0xe4);
+
+  *(short *)(body + 0x102) = 0;
+  if (*(char *)((char *)game_data + 0xc0) == 1)
+    *(short *)(body + 0x102) = 4;
+  if (*(int *)((char *)game_data + 0xbc) == 3 &&
+      *(int *)((char *)game_data + 0x100) == 2)
+    *(short *)(body + 0x102) |= 8;
+  if (network_game_server_game_is_open((void *)server))
+    *(short *)(body + 0x102) |= 2;
+
+  network_game_generate_join_game_token(body + 0x104);
+
+  msg = encode_network_game_message(2, body, 0x114);
   if (!msg) {
     network_game_log(
       "failed to create a message_server_game_advertise message");
@@ -3014,7 +3061,7 @@ char network_game_server_reset_to_pregame(int server, void *client_message,
   msg_len = *(unsigned short *)msg;
   connection = network_game_server_get_connection((void *)server);
   result = network_connection_write((void *)connection, msg, msg_len >> 4,
-                                    (int)local_1c, 0);
+                                    (int)addr_hdr, 0);
   if (!result)
     network_game_log("network_game_server_write() failed in "
                      "handle_message_client_broadcast_game_search()");
