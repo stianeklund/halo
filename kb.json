@@ -34048,7 +34048,8 @@
         },
         {
           "addr": "0x128580",
-          "decl": "void network_connection_set_connection_rejection_procedure(int connection, void *callback);"
+          "decl": "void network_connection_set_connection_rejection_procedure(int connection, void *callback);",
+          "ported": true
         },
         {
           "addr": "0x1288e0",
