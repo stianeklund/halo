@@ -2686,6 +2686,90 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
         f.write(html)
 
 
+def update_readme_progress(report: dict, readme_path: str = 'README.md') -> bool:
+    """Update README.md Game Code Progress section with data from current report."""
+    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+    target_path = os.path.join(root_dir, readme_path) if not os.path.isabs(readme_path) else readme_path
+    
+    if not os.path.exists(target_path):
+        return False
+
+    summary = report.get('summary', {})
+    funcs = summary.get('functions', {})
+    bytes_data = summary.get('bytes', {})
+    match_data = summary.get('match', {})
+    equiv_data = summary.get('equivalence', {})
+    platform_data = summary.get('platform', {})
+
+    func_ported = funcs.get('ported', 0)
+    func_total = funcs.get('total', 0)
+    func_pct = funcs.get('percent', 0.0)
+
+    bytes_ported = bytes_data.get('ported', 0)
+    bytes_total = bytes_data.get('total', 0)
+    bytes_pct = bytes_data.get('percent', 0.0)
+
+    match_avg = match_data.get('average', 0.0) if match_data else 0.0
+    match_weighted = match_data.get('weighted', 0.0) if match_data else 0.0
+    scored_cnt = match_data.get('scored_count', 0) if match_data else 0
+
+    equiv_tested = equiv_data.get('tested', 0) if equiv_data else 0
+    equiv_hc = equiv_data.get('high_confidence', 0) if equiv_data else 0
+
+    units = report.get('units', [])
+    progress_units_cnt = len([u for u in units if not u.get('synthetic')])
+    platform_units_cnt = platform_data.get('units', 0) if platform_data else 0
+
+    def make_bar(pct, width=40):
+        filled = int(round((max(0.0, min(100.0, pct)) / 100.0) * width))
+        return '█' * filled + '░' * (width - filled)
+
+    def color_badge(pct):
+        if pct >= 90: return 'brightgreen'
+        if pct >= 75: return 'green'
+        if pct >= 50: return 'yellowgreen'
+        if pct >= 25: return 'yellow'
+        if pct >= 10: return 'orange'
+        return 'red'
+
+    badge_color = color_badge(func_pct)
+    func_bar = make_bar(func_pct)
+    bytes_bar = make_bar(bytes_pct)
+
+    progress_content = (
+        "<!-- GAME_CODE_PROGRESS_START -->\n"
+        f"[![Decompilation Progress](https://img.shields.io/badge/decompilation-{func_pct:.2f}%25-{badge_color}.svg)](https://stianeklund.github.io/halo/)\n"
+        f"[![Ported Functions](https://img.shields.io/badge/functions-{func_ported:,}%2F{func_total:,}-blue.svg)](https://stianeklund.github.io/halo/)\n\n"
+        "Progress breakdown from the [Decompilation Progress Dashboard](https://stianeklund.github.io/halo/):\n\n"
+        f"* **Ported Functions:** `{func_ported:,} / {func_total:,}` (`{func_pct:.2f}%`)\n"
+        f"  `[{func_bar}] {func_pct:.2f}%`\n"
+        f"* **Ported Code Bytes:** `{bytes_ported:,} / {bytes_total:,}` (`{bytes_pct:.2f}%`)\n"
+        f"  `[{bytes_bar}] {bytes_pct:.2f}%`\n"
+        f"* **Average VC71 Match Accuracy:** `{match_avg:.2f}%` (`{scored_cnt:,}` scored functions, weighted: `{match_weighted:.2f}%`)\n"
+        f"* **Equivalence Verified:** `{equiv_tested:,}` functions tested (`{equiv_hc:,}` high confidence)\n"
+        f"* **Translation Units:** `{progress_units_cnt}` source units (`{platform_units_cnt}` platform/SDK buckets tracked separately)\n\n"
+        "> Explore the interactive call graph and unit breakdown: **[Decompilation Progress Dashboard](https://stianeklund.github.io/halo/)** (or locally at [`artifacts/progress/index.html`](artifacts/progress/index.html))\n"
+        "<!-- GAME_CODE_PROGRESS_END -->"
+    )
+
+    with open(target_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    start_marker = "<!-- GAME_CODE_PROGRESS_START -->"
+    end_marker = "<!-- GAME_CODE_PROGRESS_END -->"
+
+    if start_marker in content and end_marker in content:
+        before = content.split(start_marker)[0]
+        after = content.split(end_marker)[1]
+        new_content = before + progress_content + after
+    else:
+        return False
+
+    with open(target_path, 'w', encoding='utf-8') as f:
+        f.write(new_content)
+    return True
+
+
 def main():
     ap = argparse.ArgumentParser(description='Generate decomp.dev-style progress report')
     ap.add_argument('-o', '--output', default='artifacts/progress/report.json',
@@ -2696,6 +2780,10 @@ def main():
                     help='Pretty print JSON output')
     ap.add_argument('--history', default='artifacts/progress/history.json',
                     help='Path to history.json for historical charts')
+    ap.add_argument('--readme', metavar='PATH', default='README.md',
+                    help='Path to README.md to update with progress (default: README.md)')
+    ap.add_argument('--no-readme', action='store_true',
+                    help='Skip updating README.md')
     args = ap.parse_args()
     
     print('Generating decomp.dev-compatible report...')
@@ -2711,6 +2799,10 @@ def main():
     if args.html:
         generate_html(report, args.html, args.history)
         print(f'\n✓ HTML dashboard written to: {args.html}')
+
+    if not args.no_readme:
+        if update_readme_progress(report, args.readme):
+            print(f'✓ Updated progress in {args.readme}')
     
     if args.pretty:
         print('\nJSON output:')

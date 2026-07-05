@@ -21,34 +21,28 @@ In practice, that means:
 * Every lift is still treated as untrusted until it passes build, ABI checks, and structural/behavioral verification.
 * Binary-backed review remains mandatory; LLM output speeds iteration, but does not replace reverse-engineering evidence.
 
-Current snapshot (local analysis)
----------------------------------
-The following numbers are from this fork's current checkout (May 2026), using
-repo analysis tools:
+Game Code Progress
+------------------
+<!-- GAME_CODE_PROGRESS_START -->
+[![Decompilation Progress](https://img.shields.io/badge/decompilation-49.85%25-yellow.svg)](https://stianeklund.github.io/halo/)
+[![Ported Functions](https://img.shields.io/badge/functions-3,391%2F6,803-blue.svg)](https://stianeklund.github.io/halo/)
 
-* Ported functions: `1,915 / 7,390` (`25.9%`)
-* Ported function bytes: `366.0 KB / 1.8 MB` (`19.53%`)
-* Functions declared in `kb.json`: `7,371` (`99.7%` of discovered function entries)
-* Retrieval index rows: `2,246` total, `2,212` with embeddings
+Progress breakdown from the [Decompilation Progress Dashboard](https://stianeklund.github.io/halo/):
 
-An alternative view (from `kb_meta` + delinked object analysis) shows:
+* **Ported Functions:** `3,391 / 6,803` (`49.85%`)
+  `[████████████████████░░░░░░░░░░░░░░░░░░░░] 49.85%`
+* **Ported Code Bytes:** `765,067 / 1,731,010` (`44.20%`)
+  `[██████████████████░░░░░░░░░░░░░░░░░░░░░░] 44.20%`
+* **Average VC71 Match Accuracy:** `87.70%` (`2,847` scored functions, weighted: `82.10%`)
+* **Equivalence Verified:** `802` functions tested (`210` high confidence)
+* **Translation Units:** `171` source units (`39` platform/SDK buckets tracked separately)
 
-* Ported functions: `2,203 / 7,534` (`29.24%`)
-* Ported bytes: `413,488 / 1,795,009` (`23.04%`)
-
-These are generated from:
-
-```bash
-rtk python3 tools/analysis/progress.py
-rtk python3 tools/retrieval/usage_report.py
-rtk python3 tools/report/generate_decomp_report.py --html artifacts/progress/index.html
-```
+> Explore the interactive call graph and unit breakdown: **[Decompilation Progress Dashboard](https://stianeklund.github.io/halo/)** (or locally at [`artifacts/progress/index.html`](artifacts/progress/index.html))
+<!-- GAME_CODE_PROGRESS_END -->
 
 Community
 ---------
 The homepage for this project is: https://blam.info/
-
-There is a Discord server for the project: https://discord.gg/wJFfe6c9UB
 
 Current State
 -------------
