@@ -1411,6 +1411,138 @@ void FUN_0018d6e0(void *data, int16_t mode, int16_t sequence_index,
   }
 }
 
+/* 0x18dcf0 — build_sprite dispatcher (render/render_sprite.c). Projects the
+ * sprite into screen space (FUN_0018cf10 fills two scratch vectors from
+ * camera state), scores the view angle against pi/2 to derive a fade factor,
+ * and emits up to two rasterizer sprite records via build_sprite
+ * (FUN_0018d6e0):
+ *   - A "primary" record when the fade lands inside (0.05, 1.0]. Its
+ *     sequence frame is either the caller's frame (param_4) or, when flags
+ *     bit1 is set, an animated frame stepped by param_7 through the bitmap
+ *     sequence's frame count (fmod), with rotation forced to 0. mode
+ *     defaults to 1, becomes 3 when the view distance is negative (mode-2
+ *     style back-face).
+ *   - A "complement" record when (1.0 - fade) > 0.05, always animated with
+ *     a rotation taken from atan2(vec_b[1], vec_b[0]) and mode 1.
+ * Asserts data/untransformed_origin/untransformed_axis_of_rotation at
+ * render_sprite.c:0x286-0x288; param_9 defaults to *(void **)0x2ee6c4.
+ * distance = FUN_0010c510(&vec_a, &vec_b) - pi/2 (0x2568bc); fade =
+ * distance^2 * 0x2b1ef8, clamped to [0, 1] and gated at 0.05 (0x2533e8).
+ * The animated frame is (int)fmod(count * 0x2b1bc4 * param_7 + 0.5, count).
+ * fmod uses the x87_fmod helper (FPREM) to avoid clang's FPREM1
+ * mis-lowering; atan2 matches VC71's inline FPATAN. cdecl, 10 stack args. */
+void FUN_0018dcf0(void *param_1, unsigned int param_2, int param_3,
+                  int param_4, void *param_5, void *param_6, float param_7,
+                  float param_8, void *param_9, float param_10)
+{
+  float vec_a[3];
+  float vec_b[3];
+  float rotation_pre; /* permuter: pre-computed atan2 spill (+0.7pp VC71) */
+  float distance;
+  float fade;
+  float fade2;
+  float rotation;
+  int count;
+  int frame;
+  int mode;
+  void *tag;
+  unsigned char zero_byte; /* permuter: materialized 0 (+0.7pp VC71) */
+  char *elem;
+
+  if (param_1 == (void *)0) {
+    display_assert("data", "c:\\halo\\SOURCE\\render\\render_sprite.c", 0x286,
+                   1);
+    system_exit(-1);
+  }
+  if (param_5 == (void *)0) {
+    display_assert("untransformed_origin",
+                   "c:\\halo\\SOURCE\\render\\render_sprite.c", 0x287, 1);
+    system_exit(-1);
+  }
+  if (param_6 == (void *)0) {
+    display_assert("untransformed_axis_of_rotation",
+                   "c:\\halo\\SOURCE\\render\\render_sprite.c", 0x288, 1);
+    system_exit(-1);
+  }
+  if (param_9 == (void *)0) {
+    param_9 = *(void **)0x2ee6c4;
+  }
+
+  FUN_0018cf10(param_1, (float *)param_5, (float *)param_6,
+               (uint8_t)(param_2 & 1), vec_a, vec_b);
+  distance = FUN_0010c510(vec_a, vec_b) - *(float *)0x2568bc;
+  fade = distance * distance * *(float *)0x2b1ef8;
+
+  if (fade >= *(float *)0x2533c0) {
+    if (fade > *(float *)0x2533c8) {
+      fade = 1.0f; /* immediate store (movl $0x3f800000); 0x2533c8 == 1.0f */
+    } else if (fade <= *(float *)0x2533e8) {
+      goto LAB_0018ded5;
+    }
+
+    tag = tag_get(0x6269746d, *(int *)param_1);
+    elem = (char *)tag_block_get_element((char *)tag + 0x54,
+                                         (short)param_3 + 1, 0x40);
+    count = *(int16_t *)(elem + 0x34);
+    zero_byte = 0;
+    mode = 1;
+    if ((param_2 & 2) != zero_byte) {
+#if defined(_MSC_VER) && !defined(__clang__)
+      /* VC71 /Oi lowers fmod to `call _CIfmod`, matching the original's
+       * FUN_001daf7e dispatch. clang (-mno-sse) mis-lowers fmod to FPREM1,
+       * so the shipping build takes the #else x87_fmod (FPREM) branch; the
+       * binary is unchanged. See feedback_fprem1_fmod. */
+      frame = (int)(fmod((float)count * *(float *)0x2b1bc4 * param_7 +
+                           *(float *)0x253398,
+                         (double)count) +
+                    (short)param_4);
+#else
+      frame = (int)(x87_fmod((float)count * *(float *)0x2b1bc4 * param_7 +
+                               *(float *)0x253398,
+                             (double)count) +
+                    (float)(short)param_4);
+#endif
+      rotation = 0.0f;
+      if (distance < *(float *)0x2533c0) {
+        frame = count - param_4;
+      }
+    } else {
+      rotation = param_7;
+      frame = param_4;
+      if (distance < *(float *)0x2533c0) {
+        mode = 3;
+      }
+    }
+    FUN_0018d6e0(param_1, zero_byte, (int16_t)(param_3 + 1), (int16_t)frame,
+                 vec_a, 0, rotation, param_8, (float *)param_9,
+                 fade * param_10, mode);
+  } else {
+    fade = 0.0f; /* immediate store (MOV [fade],0x0), not a 0x2533c0 load */
+  }
+
+LAB_0018ded5:
+  fade2 = *(float *)0x2533c8 - fade;
+  if (fade2 > *(float *)0x2533e8) {
+    tag = tag_get(0x6269746d, *(int *)param_1);
+    rotation_pre = (float)atan2((double)vec_b[1], (double)vec_b[0]);
+    elem = (char *)tag_block_get_element((char *)tag + 0x54, (short)param_3,
+                                         0x40);
+    count = *(int16_t *)(elem + 0x34);
+    rotation = rotation_pre;
+#if defined(_MSC_VER) && !defined(__clang__)
+    frame = (int)fmod((float)count * *(float *)0x2b1bc4 * param_7 +
+                        *(float *)0x253398,
+                      (double)count);
+#else
+    frame = (int)x87_fmod((float)count * *(float *)0x2b1bc4 * param_7 +
+                            *(float *)0x253398,
+                          (double)count);
+#endif
+    FUN_0018d6e0(param_1, 0, (int16_t)param_3, (int16_t)frame, vec_a, 0,
+                 rotation, param_8, (float *)param_9, fade2 * param_10, 1);
+  }
+}
+
 /* 0x18df70 — triangle_strip iterator init (render/triangle_strips.c:0x16-0x17).
  * Asserts both the iterator (param_1) and the vertex-index buffer (param_2) are
  * non-NULL, then stores: +0x4 = index buffer ptr, +0x0 = vertex/index count

@@ -22063,7 +22063,8 @@
     },
     {
      "addr": "0x18dcf0",
-     "decl": "void FUN_0018dcf0(void);"
+     "decl": "void FUN_0018dcf0(void *param_1, unsigned int param_2, int param_3, int param_4, void *param_5, void *param_6, float param_7, float param_8, void *param_9, float param_10);",
+     "ported": true
     },
     {
      "addr": "0x18df70",

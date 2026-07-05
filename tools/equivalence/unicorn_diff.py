@@ -2031,6 +2031,27 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
 
     info("")
     info(f"  coverage: {covered_bytes}/{oracle_func_size} bytes ({coverage_pct:.1f}%) — confidence: {confidence}")
+    if os.environ.get("BIPED_COVERAGE_GAPS") == "1":
+        _gap_start = None
+        _pc = oracle_func_base
+        _covered_set = set()
+        for _p, _s in all_visited_pcs.items():
+            for _b in range(_p, _p + _s):
+                _covered_set.add(_b)
+        _gaps = []
+        while _pc < oracle_func_end:
+            if _pc not in _covered_set:
+                if _gap_start is None:
+                    _gap_start = _pc
+            else:
+                if _gap_start is not None:
+                    _gaps.append((_gap_start, _pc))
+                    _gap_start = None
+            _pc += 1
+        if _gap_start is not None:
+            _gaps.append((_gap_start, oracle_func_end))
+        for _g0, _g1 in _gaps:
+            info(f"    gap: +0x{_g0 - oracle_func_base:x}..+0x{_g1 - oracle_func_base:x} ({_g1 - _g0}B)")
     if monotonic_return:
         ret_val = next(iter(oracle_returns)) if oracle_returns else 0
         log(f"  WARNING: all {passed} seeds returned identical value (0x{ret_val:08x}) — low path diversity")
