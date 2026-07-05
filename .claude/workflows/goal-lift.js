@@ -239,6 +239,12 @@ COPY the exported file into THIS worktree instead of cd-ing to main.
 equivalence, a full clean build) MUST be wrapped so it cannot run silently
 past 180s and trip the harness stall detector that kills the whole run:
   timeout 150 <cmd> 2>&1 || echo "[timed-out]"
+[TOKENS] Your ENTIRE context is re-read on every turn, so token cost grows with
+turn count (a long agent costs quadratically; a short one is linear). Minimize
+turns and quoted volume: do NOT re-read a file after a successful edit (the Edit
+tool already confirms success), do NOT re-run a command just to re-check, and do
+NOT paste large tool output (build logs, full objdiff, decompile dumps) back into
+your reasoning — pull out only the specific line or number you need and move on.
 `
 
 // P2: classify candidates as liftable / fragment / known_cap using live Ghidra
@@ -351,11 +357,13 @@ A near-identical neighbor capped below 90% is evidence THIS one is capped too):
 ${brief.neighbors || '  (none — retrieval server was cold)'}
 
 STEPS:
-1. DELINKED — check delinked/functions/<addr_no_0x>.obj first (a prefetch stage
-   usually exported it already). Only if missing: export via
-   mcp__ghidra-live__export_delinked_object for ${brief.addr}. Copy into a
-   worktree's delinked/ + delinked/functions/<addr_no_0x>.obj if you are
-   operating inside one. If export fails → status="skipped", reason="delinked_export_failed"
+1. DELINKED — a prefetch stage already exported delinked/functions/<addr_no_0x>.obj.
+   Do NOT export it yourself and make NO ghidra-live calls here. If the ref is
+   missing, VC71 simply scores low and the workflow's cheap redelink stage exports
+   it and re-verifies afterward. In-lifter export is a multi-turn ghidra-live dance
+   (decompile → find end → export → copy) whose accumulated output is re-read on
+   every later turn of this agent — skipping it keeps this agent short and is the
+   single biggest per-lift token saving.
 
 2. CALLEE PREP — for any callee with has_reg_args=true and in_kb=false:
    add to kb.json with @<reg> + update tools/kb_reg_baseline.json.
@@ -376,9 +384,16 @@ STEPS:
    rtk python3 tools/audit/check_lift_hazards.py
    Fix any HIGH-RISK hazards.
 
-6. BUILD + VC71 (wrap to avoid the 180s stall timer — see [STALL]):
+6. BUILD + VC71 — run at MOST twice in this agent (initial run, then ONE fix pass
+   if the build fails or a HIGH-RISK hazard flags), then RETURN whatever you have.
+   Do NOT keep grinding iterations here: if the score is still short, the workflow
+   re-spawns a FRESH escalation agent, which is far cheaper than extending this one
+   (this agent's whole context is re-read every turn, so a long agent costs
+   quadratically in tokens — a short one is linear).
    timeout 165 rtk python3 tools/lift_pipeline.py --target ${brief.name} --no-metadata-update --verify-policy goal90 2>&1 || echo "[lift_pipeline timed-out]"
-   Parse VC71 score and build pass/fail. If it timed out, status="needs_review", vc71_score=0.
+   Parse the VC71 % line and build pass/fail ONLY. Do NOT paste the full objdiff or
+   build log into your reasoning — quoting large tool output back inflates every
+   following turn's re-read. If it timed out, status="needs_review", vc71_score=0.
 
 7. SELF-ASSESS STRUCTURAL CAP (only if vc71_score is in [65,84]):
 ${CAP_TABLE}
