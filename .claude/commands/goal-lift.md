@@ -1,6 +1,6 @@
 ---
 description: Goal-mode auto-lift — run until N functions committed at >=90% VC71 or queue exhausted
-model: sonnet
+model: opus
 subtask: false
 ---
 

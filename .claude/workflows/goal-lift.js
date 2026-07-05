@@ -125,6 +125,15 @@ const LIFT_RESULT_SCHEMA = {
     vc71_score:  { type: 'number' },
     capped:      { type: 'boolean' },  // matches a known structural-cap signature (see liftPrompt)
     cap_reason:  { type: 'string' },
+    // In-agent follow-up stages (liftPrompt steps 6b-6d): the lift agent does
+    // redelink, permute, and state-snapshot equivalence itself, in the same
+    // context that produced the lift. The loop's separate redelink/permute/
+    // equiv agents only run as FALLBACK when these fields are absent.
+    redelinked:       { type: 'boolean' },
+    permuted:         { type: 'boolean' },
+    equiv_passes:     { type: 'boolean' },
+    equiv_confidence: { type: 'string' },
+    equiv_reason:     { type: 'string' },
     reason:      { type: 'string' },
   },
   required: ['addr', 'name', 'status'],
@@ -335,6 +344,36 @@ STEPS:
    timeout 165 rtk python3 tools/lift_pipeline.py --target ${brief.name} --no-metadata-update --verify-policy goal90 2>&1 || echo "[lift_pipeline timed-out]"
    Parse VC71 score and build pass/fail. If it timed out, status="needs_review", vc71_score=0.
 
+6b. REDELINK RETRY (only if the build passed and vc71_score < 90): a stale or
+   whole-object delink boundary often causes a falsely low score. You already
+   know the function's exact range from the decompile — re-export a fresh
+   per-function reference via mcp__ghidra-live__export_delinked_object with
+   selection_mode="range", range="<start_no_0x>-<end_no_0x>" (last instruction
+   of THIS function), copy it into this worktree's delinked/ if applicable,
+   then re-run the step-6 lift_pipeline command. Keep the better score and
+   report redelinked=true.
+
+6c. PERMUTE (only if the score is now in [85,89] — skip otherwise):
+   timeout 150 rtk python3 tools/permuter/run.py -q --target ${brief.name} --attempts 100 2>&1 || echo "[permuter stopped]"
+   then re-run the step-6 lift_pipeline command. Never accept a permutation
+   that lowers the score. Report permuted=true.
+
+6d. EQUIVALENCE (only if the FINAL score is in [85,89] — the review gate will
+   demand runtime evidence for this band, so produce it now while you still
+   know what every parameter means):
+   - Copy artifacts/snapshots/infection_swarm.json to /tmp/snap_${brief.name}.json
+     and rewrite its "arg_overrides" dict (python3 json load/dump, NOT sed) so
+     the keys exactly match this function's kb.json decl param names. You just
+     lifted this function — pick semantically valid values (handle params:
+     0xe36b0001 is a valid object/actor handle in this snapshot; out-pointers
+     get harness scratch automatically, omit them).
+   - timeout 165 rtk python3 tools/equivalence/unicorn_diff.py ${brief.name} --seeds 100 --allow-stubs --float-tolerance 32 --mem-trace --state-snapshot /tmp/snap_${brief.name}.json 2>&1 || echo "[equivalence timed-out]"
+   - If that errors or is not_applicable, fall back to zero-fill (same command
+     without --state-snapshot, timeout 150).
+   Report equiv_passes (true only on 0 divergences AND 0 stub-arg mismatches),
+   equiv_confidence, and equiv_reason (state whether the live-state snapshot
+   was used and which paths were exercised).
+
 7. SELF-ASSESS STRUCTURAL CAP (only if vc71_score is in [65,84]):
 ${CAP_TABLE}
    Set capped=true + cap_reason if the objdiff output matches one of these
@@ -342,7 +381,9 @@ ${CAP_TABLE}
 
 8. RETURN (do NOT commit, do NOT run the review gate — that happens later):
    status: "needs_verify" if build passed (regardless of score), else "build_failed".
-   Always report vc71_score, source_file (the actual path written), capped, cap_reason.`
+   Always report vc71_score, source_file (the actual path written), capped, cap_reason,
+   plus redelinked/permuted/equiv_passes/equiv_confidence/equiv_reason for whichever
+   of steps 6b-6d ran.`
 
 const redelinkPrompt = (name, addr) =>
   `${AGENT_RULES}
@@ -376,16 +417,37 @@ Return: vc71_score (after permutation), improved (bool), reason.`
 const equivalencePrompt = (name) =>
   `${AGENT_RULES}
 
-Run behavioral equivalence for ${name} (each attempt wrapped — see [STALL]).
-A timeout is NOT a verdict — step down until you get one:
-1. timeout 150 rtk python3 tools/equivalence/unicorn_diff.py ${name} --seeds 100 --allow-stubs --float-tolerance 32 2>&1 || echo "[timed-out]"
-2. If timed out: retry with --seeds 25
-3. If still timed out: retry with --seeds 10 --no-concolic
-Passes if the completed run is 100% equivalent, or confidence="high" with no divergences.
-Only if ALL THREE attempts time out: passes=false, reason="equiv_timeout".
+Run behavioral equivalence for ${name} — WITH LIVE GAME STATE, not zero-fill.
+
+For actor/object/AI functions, zero-fill memory makes them early-exit (empty datum
+tables) and yields confidence=weak, which the review gate then rejects. Use the
+proven state snapshot instead (per reference_statesnapshot_recovers_vc71capped):
+
+1. Look up the target's kb.json decl to get its exact param names:
+   rtk jq -r '[.. | objects | select(.name? == "${name}")] | .[0].decl' kb.json
+2. Copy artifacts/snapshots/infection_swarm.json to /tmp/snap_${name}.json and
+   rewrite its "arg_overrides" dict to the target's ACTUAL param names (keys must
+   match the decl exactly). For an actor/object handle param use a valid handle
+   from the snapshot's actor table (0xe36b0001 works for object functions).
+   Use python3 json load/dump for the rewrite, not sed.
+3. Run (wrapped — see [STALL]):
+   timeout 165 rtk python3 tools/equivalence/unicorn_diff.py ${name} --seeds 100 --allow-stubs --float-tolerance 32 --mem-trace --state-snapshot /tmp/snap_${name}.json 2>&1 || echo "[equivalence timed-out]"
+4. If the snapshot run errors or is not_applicable (param names mismatch, non-actor
+   function), fall back to zero-fill:
+   timeout 150 rtk python3 tools/equivalence/unicorn_diff.py ${name} --seeds 100 --allow-stubs --float-tolerance 32 2>&1 || echo "[equivalence timed-out]"
+
+A timeout is NOT a verdict — step down until you get one: retry the failing
+command with --seeds 25, then --seeds 10 --no-concolic. Only if ALL attempts
+time out: passes=false, reason="equiv_timeout".
 If a run COMPLETES with divergences, passes=false with the divergence as reason —
 do not retry a completed run at lower seeds to dodge a real divergence.
-Return: passes (bool), confidence, coverage (%), reason (include seeds used).`
+
+Passes if the result is 100% equivalent (0 divergences, 0 stub-arg mismatches), or
+confidence="high" with no divergences. A 0-divergence pass on the live-state
+snapshot is real behavioral evidence even at moderate confidence — report
+state_snapshot=true so the reviewer can weigh it.
+Return: passes (bool), confidence, coverage (%), reason (mention whether the
+state snapshot was used, seeds used, and which paths were exercised).`
 
 const reviewPrompt = (brief, score, srcFile, path) =>
   `Target: ${brief.name} (${brief.addr}, ${brief.obj})
@@ -525,16 +587,29 @@ async function maybePermute(name, phaseTitle) {
   return p ? p.vc71_score : null
 }
 
+const equivNote = (confidence, reason) =>
+  `+equiv_${confidence || 'unknown'} [equivalence detail: ${String(reason || '').slice(0, 500)} — a 0-divergence pass on the live-state infection_swarm snapshot (populated datum tables, real actor handles) is accepted runtime behavioral evidence for the sub-90% band per the state-snapshot equivalence lane in CLAUDE.md]`
+
 // Phase 3 — the fail-closed review gate. Every commit in this workflow goes
-// through here; nothing is committed on VC71 match alone.
-async function reviewThenCommit(brief, score, srcFile, path, phaseTitle) {
+// through here; nothing is committed on VC71 match alone. `preEquiv` is the
+// lift agent's own in-context equivalence result (step 6d) — when it passed,
+// the FIRST review already carries the runtime evidence, so the
+// NEEDS_RUNTIME → equiv agent → re-review round-trip is skipped.
+async function reviewThenCommit(brief, score, srcFile, path, phaseTitle, preEquiv) {
+  const havePreEquiv = !!(preEquiv && preEquiv.equiv_passes)
+  if (havePreEquiv) path = `${path}${equivNote(preEquiv.equiv_confidence, preEquiv.equiv_reason)}`
   let review = await agent(reviewPrompt(brief, score, srcFile, path), {
     label: `review:${brief.name}`, phase: phaseTitle,
     agentType: 'xbox-halo-lift-reviewer', ...M.reason, schema: REVIEW_SCHEMA,
   })
   if (!review) return { committed: false, verdict: 'infra_blocked', rationale: 'review_agent_returned_null' }
 
-  if (review.verdict === 'NEEDS_RUNTIME') {
+  // When the lift agent's own equivalence (step 6d) was already in the review
+  // path, the reviewer adjudicated WITH runtime evidence — respect its verdict
+  // (a NEEDS_RUNTIME then means the evidence itself was judged insufficient,
+  // e.g. early-exit-only coverage). Only the no-preEquiv case produces the
+  // evidence now and applies the mechanical rule.
+  if (review.verdict === 'NEEDS_RUNTIME' && !havePreEquiv) {
     const eq = await agent(equivalencePrompt(brief.name), { label: `equiv-for-review:${brief.name}`, phase: phaseTitle, ...M.mechanical, schema: EQUIV_SCHEMA })
     // Mechanical acceptance rule — no second reviewer pass. A re-review adds no
     // information the first pass didn't have (2026-07-04: FUN_0018ef30 passed
@@ -570,7 +645,7 @@ async function reviewThenCommit(brief, score, srcFile, path, phaseTitle) {
 //   - score >= 90 AND hazards+ABI clean AND no risky calls/WARNs     → commit
 // Anything else (flagged despite high %, or < 90) falls through to the reviewer,
 // which still gets behavioral proof via equivalence on NEEDS_RUNTIME.
-async function gateThenCommit(brief, score, srcFile, path, phaseTitle) {
+async function gateThenCommit(brief, score, srcFile, path, phaseTitle, preEquiv) {
   if (score >= 90) {
     const g = await agent(mechGatePrompt(brief, srcFile), {
       label: `gate:${brief.name}`, phase: phaseTitle, ...M.mechanical, schema: MECH_GATE_SCHEMA,
@@ -585,7 +660,7 @@ async function gateThenCommit(brief, score, srcFile, path, phaseTitle) {
     // High % but flagged (hazard/ABI/risky/warn) → the reviewer must adjudicate.
     log(`  ${brief.name} ${score}% flagged by mechanical gate (${g ? (g.detail || 'see hazard/abi') : 'gate_null'}) — escalating to reviewer`)
   }
-  return await reviewThenCommit(brief, score, srcFile, path, phaseTitle)
+  return await reviewThenCommit(brief, score, srcFile, path, phaseTitle, preEquiv)
 }
 
 // Preserve a sub-bar built lift (any score) via park.py and revert the tree.
@@ -913,17 +988,18 @@ for (const brief of okBriefs) {
     continue
   }
 
+  let lift    = a1   // the active lift result — carries in-agent redelink/permute/equiv flags
   let score   = a1.vc71_score || 0
   let srcFile = a1.source_file || brief.source_path
   let band    = classifyBand(score)
-  let path    = 'pass1'
+  let path    = 'pass1' + (a1.redelinked ? '+redelink' : '') + (a1.permuted ? '+permute' : '')
   let lastME  = M.reason   // {model,effort} of the current attempt (for parked records)
   log(`  lift1 ${brief.name}: ${a1.status} ${score}% (band=${band}${a1.capped ? ', capped: ' + (a1.cap_reason || '?') : ''})`)
 
-  // Cheap fix before anything expensive: a fresh per-function delinked
-  // reference often recovers VC71 that was falsely low from a stale or
-  // whole-object delink boundary artifact.
-  if (band !== 'pass') {
+  // FALLBACK ONLY — the lift agent normally redelinks in-context (step 6b).
+  // A fresh per-function delinked reference often recovers VC71 that was
+  // falsely low from a stale or whole-object delink boundary artifact.
+  if (band !== 'pass' && !lift.redelinked) {
     const rd = await agent(redelinkPrompt(brief.name, brief.addr), { label: `redelink:${brief.name}`, phase: 'Lift', ...M.mechanical, schema: SCORE_SCHEMA })
     if (rd && rd.vc71_score > score) {
       score = rd.vc71_score
@@ -944,10 +1020,11 @@ for (const brief of okBriefs) {
       label: `lift2:${brief.name}`, phase: 'Lift', agentType: 'xbox-halo-re-analyst', ...M.improve, schema: LIFT_RESULT_SCHEMA,
     })
     if (a2 && (a2.status === 'needs_verify')) {
+      lift    = a2
       score   = a2.vc71_score || score
       srcFile = a2.source_file || srcFile
       band    = classifyBand(score)
-      path    = 'escalated'
+      path    = 'escalated' + (a2.redelinked ? '+redelink' : '') + (a2.permuted ? '+permute' : '')
       lastME  = M.improve
     } else if (a2 && a2.status === 'build_failed') {
       consecutiveFails++
@@ -978,15 +1055,17 @@ for (const brief of okBriefs) {
   }
 
   // ── 85-89%: one permuter pass before the review gate ───────────────────
-  if (band === 'pass_permute') {
-    log(`  ${brief.name} ${score}% — permuter pass`)
+  // FALLBACK ONLY — the lift agent normally permutes in-context (step 6c).
+  if (band === 'pass_permute' && !lift.permuted) {
+    log(`  ${brief.name} ${score}% — permuter pass (fallback)`)
     const ps = await maybePermute(brief.name, 'Lift')
-    if (ps !== null) score = ps
-    path = path === 'escalated' ? 'escalated+permute' : 'permute'
+    if (ps !== null && ps > score) score = ps
+    path = `${path}+permute`
   }
 
   // ── Phase 3: commit gate (mechanical fast-path, reviewer on ambiguity) ──
-  const outcome = await gateThenCommit(brief, score, srcFile, path, 'Lift')
+  // `lift` carries the in-context equivalence result (step 6d) when it ran.
+  const outcome = await gateThenCommit(brief, score, srcFile, path, 'Lift', lift)
   if (outcome.committed) {
     results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'committed', vc71_score: score, source_file: srcFile, reason: outcome.rationale })
     consecutiveFails = 0

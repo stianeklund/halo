@@ -204,6 +204,18 @@ _ORACLE_SWITCH_TABLE_FIXUPS = {
             0x000D0863, 0x000D06A5, 0x000D08E3,
         ),
     },
+    # actor_action_try_to_dive: two 4-entry jump tables (0x20120/0x20130) live
+    # just past the RET (0x2011f); a function-only delinked export keeps the
+    # table labels but drops the entries.  Targets read directly from the
+    # pristine cachebeta.xbe disassembly (JMP [EAX*4+table] case dispatch).
+    0x0001FE70: {
+        "switchD_0001fef4::switchdataD_00020120": (
+            0x0001FEFB, 0x0001FF0D, 0x0001FF1F, 0x0001FF2F,
+        ),
+        "switchD_00020055::switchdataD_00020130": (
+            0x0002005C, 0x0002006C, 0x0002007C, 0x0002008A,
+        ),
+    },
 }
 
 
