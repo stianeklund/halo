@@ -728,6 +728,230 @@ int FUN_0018c580(int param_1, int param_2)
   return diff;
 }
 
+/* Sort record built by FUN_0018c5b0's gather pass; FUN_0018c580 is the
+ * matching qsort comparator (tag, then sort key, then first-person flag). */
+typedef struct particle_sort_record {
+  int16_t datum_index;
+  int16_t tag_index;
+  int16_t sort_key;
+  char first_person;
+  char pad;
+} particle_sort_record_t;
+
+/* 0x18c5b0 — particles_render: gather -> sort -> batched sprite emission.
+ * Bracketed by profile_enter/exit_private(0x3263f8) when profiling is on
+ * (0x449ef1 && 0x326400); gated on the particles-enabled byte 0x32574b.
+ * Pass 1 walks the particle pool (0x5aa8a0) and gathers renderable
+ * particles: the location (particle+0x28) must be in a visible cluster and
+ * the first-person filter bits honored (+0x2 bit4 = hide in first person,
+ * bit5 = only in first person; the local player's first-person state comes
+ * from 0x506548 via FUN_0018c4d0, falling back to window index 4). Records
+ * hold {datum, definition tag index (+0x4), sort key (+0x2c), fp flag}.
+ * Pass 2 qsorts (CRT qsort, comparator FUN_0018c580) and run-length encodes
+ * runs of identical (tag, sort, fp) into up to 0x200 counts. Pass 3 builds
+ * one sprite batch per run: FUN_0018d2c0 begin (shader from 'part' tag+0x10,
+ * geometry tag+0xb0, flags 2 for first-person), per particle resolve the
+ * world position/direction — already-detached particles (+0x8 == -1) copy
+ * +0x30/+0x3c directly (with the original's redundant -1 self-store);
+ * attached ones transform through the first-person weapon node matrix
+ * (flags bit6) or the object node matrix (deleting the particle when the
+ * object is gone) — cull by projected pixel diameter vs tag+0x90, scale by
+ * near-fade (tag+0x68), birth ramp (tag+0x40) and death ramp (tag+0x44),
+ * then FUN_0018d6e0. The batch ends by storing the average particle radius
+ * into the animation record (+0x8 -> +0x98, divides by the emitted count
+ * even when zero, matching the original) and FUN_0018d360. cdecl,
+ * void(void), 0x24e8-byte frame via _chkstk. */
+void FUN_0018c5b0(void)
+{
+  particle_sort_record_t gather[0x400]; /* EBP-0x24E8 */
+  int16_t runs[0x200];                  /* EBP-0x4E8 */
+  char record[0xa4];                    /* EBP-0xE8 build_sprites record */
+  float direction[3];                   /* EBP-0x44 */
+  float position[3];                    /* EBP-0x38 */
+  float life_delta;                     /* EBP-0x2C */
+  float radius;                         /* EBP-0x28 */
+  float radius_accum;                   /* EBP-0x24 */
+  float pixels;                         /* EBP-0x20 */
+  float size;
+  float scale;
+  int emitted;                          /* EBP-0x1C */
+  int count;                            /* EBP-0x4 */
+  int fp_raw;
+  int fp_index;
+  int index;
+  int inner;
+  int remaining_runs;
+  int16_t run_count;
+  int16_t prev_tag;
+  int16_t prev_sort;
+  int16_t tag_index;
+  char prev_fp;                         /* EBP-0x5 */
+  char is_fp;
+  char *part;
+  char *tag;
+  float *marker;
+  int16_t *runp;
+  particle_sort_record_t *rec;
+  uint32_t flags3;
+
+  count = 0;
+  if (*(char *)0x449ef1 != 0 && *(char *)0x326400 != 0) {
+    profile_enter_private((void *)0x3263f8);
+  }
+  if (*(char *)0x32574b != 0) {
+    fp_raw = *(int *)0x506548;
+    if ((int16_t)fp_raw == -1 || FUN_0018c4d0((int16_t)fp_raw) == 0) {
+      fp_raw = 4;
+    }
+    index = data_next_index(*(data_t **)0x5aa8a0, -1);
+    if (index != -1) {
+      fp_index = (int)(int16_t)fp_raw;
+      do {
+        part = (char *)datum_get(*(data_t **)0x5aa8a0, index);
+        is_fp = (int)*(uint8_t *)(part + 0xf) == fp_index;
+        if (render_location_visible(part + 0x28) != 0 &&
+            ((*(uint8_t *)(part + 2) & 0x10) == 0 || !is_fp) &&
+            ((*(uint8_t *)(part + 2) & 0x20) == 0 || is_fp)) {
+          rec = &gather[(int16_t)count];
+          count++;
+          rec->datum_index = (int16_t)index;
+          rec->tag_index = *(int16_t *)(part + 4);
+          rec->sort_key = *(int16_t *)(part + 0x2c);
+          if (is_fp && (*(uint8_t *)(part + 2) & 0x20) != 0) {
+            rec->first_person = 1;
+          } else {
+            rec->first_person = 0;
+          }
+        }
+        index = data_next_index(*(data_t **)0x5aa8a0, index);
+      } while (index != -1);
+      if ((int16_t)count > 0) {
+        qsort(gather, (size_t)(int16_t)count, 8,
+              (int (*)(const void *, const void *))FUN_0018c580);
+        prev_tag = -1;
+        prev_sort = -1;
+        prev_fp = 0;
+        run_count = 0;
+        runp = 0;
+        rec = gather;
+        do {
+          count--;
+          tag_index = rec->tag_index;
+          if (tag_index == prev_tag && rec->sort_key == prev_sort &&
+              rec->first_person == prev_fp) {
+            *runp = *runp + 1;
+          } else {
+            if (run_count >= 0x200)
+              break;
+            prev_tag = tag_index;
+            prev_sort = rec->sort_key;
+            prev_fp = rec->first_person;
+            runp = &runs[run_count];
+            run_count++;
+            *runp = 1;
+          }
+          rec++;
+        } while ((int16_t)count > 0);
+        rec = gather;
+        if (run_count > 0) {
+          runp = runs;
+          remaining_runs = (int)(uint16_t)run_count;
+          do {
+            tag = (char *)tag_get(0x70617274, (int)rec->tag_index);
+            radius_accum = 0.0f;
+            emitted = 0;
+            FUN_0018d2c0((uint32_t *)record, *runp, *(uint32_t *)(tag + 0x10),
+                         (int)(tag + 0xb0),
+                         rec->first_person != 0 ? 2u : 0u);
+            if (*runp > 0) {
+              inner = (int)(uint16_t)*runp;
+              do {
+                part = (char *)datum_get(*(data_t **)0x5aa8a0,
+                                         (int)rec->datum_index);
+                radius = particle_get_radius((int)rec->datum_index);
+                if (*(int *)(part + 8) == -1) {
+                  *(int32_t *)position = *(int32_t *)(part + 0x30);
+                  *(int32_t *)(position + 1) = *(int32_t *)(part + 0x34);
+                  *(int32_t *)(position + 2) = *(int32_t *)(part + 0x38);
+                  *(int32_t *)direction = *(int32_t *)(part + 0x3c);
+                  *(int32_t *)(direction + 1) = *(int32_t *)(part + 0x40);
+                  *(int32_t *)(direction + 2) = *(int32_t *)(part + 0x44);
+                  /* redundant self-store kept from the original */
+                  *(int *)(part + 8) = -1;
+                } else {
+                  if ((*(uint8_t *)(part + 2) & 0x40) != 0) {
+                    marker = (float *)first_person_weapon_get_node_matrix(
+                      (int)*(uint8_t *)(part + 0xf),
+                      (int)*(uint16_t *)(part + 0xc));
+                  } else {
+                    if (object_try_and_get_and_verify_type(
+                          *(int *)(part + 8), -1) == NULL) {
+                      particle_delete((int)rec->datum_index);
+                      goto next_particle;
+                    }
+                    marker = (float *)object_get_node_matrix(
+                      *(int *)(part + 8), *(int16_t *)(part + 0xc));
+                  }
+                  matrix_transform_point(marker, (float *)(part + 0x30),
+                                         position);
+                  matrix_transform_vector(marker, (float *)(part + 0x3c),
+                                          direction);
+                }
+                pixels = render_frustum_sphere_diameter_in_pixels(
+                  (void *)0x5065a4, position, radius);
+                if (pixels > *(float *)(tag + 0x90)) {
+                  emitted++;
+                  scale = 1.0f;
+                  size = (radius + radius) * *(float *)(tag + 0xa8);
+                  life_delta =
+                    *(float *)(part + 0x18) - *(float *)(part + 0x14);
+                  radius_accum = radius + radius_accum;
+                  if (pixels < *(float *)(tag + 0x68)) {
+                    size = (*(float *)(tag + 0x68) / pixels) * size;
+                  }
+                  if (*(float *)(tag + 0x40) > *(const float *)0x2533c0 &&
+                      *(float *)(part + 0x14) < *(float *)(tag + 0x40)) {
+                    scale = *(float *)(part + 0x14) / *(float *)(tag + 0x40);
+                  }
+                  if (*(float *)(tag + 0x44) > *(const float *)0x2533c0 &&
+                      life_delta < *(float *)(tag + 0x44)) {
+                    scale = (life_delta / *(float *)(tag + 0x44)) * scale;
+                  }
+                  flags3 = (uint32_t)((*(uint8_t *)(part + 2) >> 1) & 2);
+                  if ((*(uint8_t *)(part + 2) & 8) != 0) {
+                    flags3 |= 4;
+                  } else {
+                    flags3 &= ~4u; /* redundant AND kept from the original */
+                  }
+                  FUN_0018d6e0(record, (int16_t)*(uint16_t *)(tag + 0xac),
+                               (int16_t)*(uint16_t *)(part + 0x24),
+                               (int16_t)*(uint16_t *)(part + 0x26), position,
+                               direction, *(float *)(part + 0x54), size,
+                               (float *)(part + 0x60), scale, flags3);
+                  *(int *)(part + 0x10) = *(int *)0x506540;
+                }
+              next_particle:
+                rec++;
+                inner--;
+              } while (inner != 0);
+            }
+            /* average radius into the animation record — divides by the
+             * emitted count even when it is zero, as the original does */
+            *(float *)(*(int *)(record + 8) + 0x98) =
+              radius_accum / (float)(int16_t)emitted;
+            FUN_0018d360(record);
+            runp++;
+            remaining_runs--;
+          } while (remaining_runs != 0);
+        }
+      }
+    }
+  }
+  if (*(char *)0x449ef1 != 0 && *(char *)0x326400 != 0) {
+    profile_exit_private((void *)0x3263f8);
+  }
+}
+
 /* 0x18cf10 — render_sprite.c transform helper (asserts at lines 0x4a-0x54):
  * transform a sprite's untransformed origin/direction into view space.
  * data->flags (+0x10) bit0 = screen-space sprite: run
