@@ -22033,7 +22033,8 @@
     },
     {
      "addr": "0x18d140",
-     "decl": "void FUN_0018D140(void);"
+     "decl": "int16_t FUN_0018d140(void *data @<esi>, int bitmap);",
+     "ported": true
     },
     {
      "addr": "0x18d2c0",
