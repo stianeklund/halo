@@ -20,6 +20,7 @@ Usage:
 """
 
 import argparse
+import bisect
 import json
 import os
 import re
@@ -144,6 +145,72 @@ def _per_function_ref(function: str) -> Path | None:
             if candidate.exists():
                 return candidate
     return None
+
+
+_kb_starts_cache: list[int] | None = None
+
+
+def _kb_func_starts() -> list[int]:
+    """Sorted list of all function start addresses in kb.json (cached)."""
+    global _kb_starts_cache
+    if _kb_starts_cache is None:
+        starts: set[int] = set()
+        try:
+            for obj in _load_kb().get("objects", []):
+                for entry in obj.get("functions", []):
+                    a = entry.get("addr")
+                    if not a:
+                        continue
+                    try:
+                        starts.add(int(a, 16))
+                    except (ValueError, TypeError):
+                        pass
+        except (OSError, ValueError, json.JSONDecodeError):
+            pass
+        _kb_starts_cache = sorted(starts)
+    return _kb_starts_cache
+
+
+def _func_addr(function: str) -> int | None:
+    """Resolve a function name/alias to its start address, or None."""
+    for alias in function_aliases(function) | {function}:
+        m = re.match(r"FUN_0*([0-9a-fA-F]+)$", alias or "")
+        if m:
+            return int(m.group(1), 16)
+    return None
+
+
+def _func_span(function: str) -> int | None:
+    """Byte span of a function (next function start - its start), or None."""
+    addr = _func_addr(function)
+    starts = _kb_func_starts()
+    if addr is None or not starts:
+        return None
+    i = bisect.bisect_right(starts, addr)
+    return (starts[i] - addr) if i < len(starts) else None
+
+
+def _ref_insns_valid(n_r: int, span: int | None) -> bool:
+    """Whether a reference's instruction count plausibly matches the function's
+    byte size.  Rejects both truncated and bloated references:
+
+    - n_r * 15 (max x86 instruction length) < span  => truncated (too few insns
+      to cover the function's bytes).
+    - n_r > span                                     => bloated (more insns than
+      bytes is impossible for real code; the reference swallowed neighbours).
+
+    The bloat bound matters here because ~stale per-function chunks (pre-fix,
+    0x2000-byte window) still exist on disk; without it the fallback could pick
+    a bloated chunk over a good whole-object reference.  Mirrors the gate in
+    vc71_regression.py.
+    """
+    if not n_r:
+        return False
+    if span and n_r * 15 < span:
+        return False
+    if span and n_r > span:
+        return False
+    return True
 
 
 def choose_unit(source: str, units: list[dict], function: str | None) -> dict | None:
@@ -496,6 +563,58 @@ def run_compare_cached(
         print(f"  reference: {sorted(reference_funcs.keys())[:10]}")
         return 1
 
+    # Per-function reference fallback: when a function's whole-object reference
+    # is unusable — truncated (instruction count cannot span its kb.json byte
+    # size) or dropped entirely (e.g. a last-function excluded by the BFT COFF
+    # relocation-bug truncation workaround) — score it against its
+    # function-aligned per-function chunk instead, if that chunk's symbol is
+    # present and itself valid.  Gated on byte span in BOTH directions so a
+    # stale (pre-fix, bloated) chunk is never preferred over a good reference.
+    ref_overrides: set[str] = set()
+
+    def _valid_chunk_ref(fn: str):
+        """Instruction list from fn's per-function chunk, or None if unusable."""
+        chunk = _per_function_ref(fn)
+        if not chunk or not chunk.exists():
+            return None
+        try:
+            cf = co.disassemble(str(chunk))
+        except Exception:
+            return None
+        csym = next((a for a in function_aliases(fn) if a in cf), None)
+        if csym is None and fn in cf:
+            csym = fn
+        if csym is None:
+            return None
+        cand = cf[csym]
+        return cand if _ref_insns_valid(len(cand), _func_span(fn)) else None
+
+    # (1) Override a truncated/invalid whole-object reference with the chunk.
+    for fn in list(matched):
+        whole = reference_funcs.get(fn, [])
+        if _ref_insns_valid(len(whole), _func_span(fn)):
+            continue
+        cand = _valid_chunk_ref(fn)
+        if cand is not None and len(cand) > len(whole):
+            reference_funcs[fn] = cand
+            ref_overrides.add(fn)
+
+    # (2) Add candidate functions the whole-object reference dropped entirely.
+    for fn in list(compiled_funcs.keys()):
+        if fn in matched:
+            continue
+        cand = _valid_chunk_ref(fn)
+        if cand is not None:
+            reference_funcs[fn] = cand
+            matched.add(fn)
+            ref_overrides.add(fn)
+
+    if ref_overrides and not quiet:
+        shown = ", ".join(sorted(ref_overrides)[:6])
+        more = " ..." if len(ref_overrides) > 6 else ""
+        print(f"[ref] {len(ref_overrides)} function(s) scored against per-function "
+              f"chunk (whole-object reference truncated): {shown}{more}", flush=True)
+
     any_fail = False
     any_fpu_warn = False
     any_loadw_warn = False
@@ -505,7 +624,9 @@ def run_compare_cached(
 
     for fn in sorted(matched):
         cached_result = None
-        if not no_cache and cache is not None:
+        # Overridden functions were scored against a per-function chunk, not the
+        # whole-object `reference` the cache key is derived from — bypass cache.
+        if not no_cache and cache is not None and fn not in ref_overrides:
             cached_result = cache.get(fn, source, reference, opt=opt)
 
         if cached_result is not None:
@@ -524,8 +645,10 @@ def run_compare_cached(
                 reg_normalize=reg_normalize,
             )
             cache_tag = ""
-            # Store result; always save diff_lines so future --show-diffs works
-            if cache is not None and not no_cache:
+            # Store result; always save diff_lines so future --show-diffs works.
+            # Skip overridden functions — their score is against a per-function
+            # chunk, not the whole-object reference the cache key encodes.
+            if cache is not None and not no_cache and fn not in ref_overrides:
                 cache.put(fn, source, reference, pct, fpu_warnings, diffs,
                           loadw_warnings=loadw_warnings, imm_warnings=imm_warnings,
                           opt=opt)

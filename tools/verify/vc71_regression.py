@@ -154,17 +154,22 @@ def _func_span(fn_name: str):
 def _reference_valid(n_r, span):
     """Whether a delinked reference is a usable byte-match oracle.
 
-    A reference's instruction count must be able to physically span the
-    function's known byte size.  n_r * 15 (max x86 instruction length) < span
-    means the reference is truncated — it cannot represent the whole function
-    (e.g. a 144-byte function whose reference is a single instruction).  This is
-    a hard lower bound with no false positives on legitimately tiny functions
+    A reference's instruction count must plausibly match the function's known
+    byte size:
+    - n_r * 15 (max x86 instruction length) < span  => truncated (too few insns
+      to cover the function's bytes; e.g. a 144-byte function whose reference is
+      a single instruction).
+    - n_r > span                                     => bloated (more insns than
+      bytes is impossible for real code — the reference swallowed neighbours).
+    Both are hard bounds with no false positives on legitimately tiny functions
     (their span is small too).  Returns (ok: bool, reason: str).
     """
     if not n_r:
         return False, "reference symbol empty or absent"
     if span and n_r * 15 < span:
         return False, f"truncated reference: {n_r} insns cannot span {span} bytes"
+    if span and n_r > span:
+        return False, f"bloated reference: {n_r} insns exceed {span} bytes"
     return True, ""
 
 
