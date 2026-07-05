@@ -21114,7 +21114,7 @@
     },
     {
      "addr": "0x186230",
-     "decl": "void render_camera_screen_to_view(void);"
+     "decl": "void render_camera_screen_to_view(void *camera, void *frustum, float *screen_point, float *view_vector);"
     },
     {
      "addr": "0x186330",
@@ -22018,7 +22018,8 @@
     },
     {
      "addr": "0x18cf10",
-     "decl": "void FUN_0018cf10(void);"
+     "decl": "void FUN_0018cf10(void *data @<ebx>, float *untransformed_origin @<esi>, float *untransformed_direction @<edi>, uint8_t flags, float *transformed_origin, float *transformed_direction);",
+     "ported": true
     },
     {
      "addr": "0x18d040",
