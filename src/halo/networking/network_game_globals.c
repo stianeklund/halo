@@ -231,17 +231,17 @@ bool network_game_in_progress(void)
  */
 void network_game_set_number_of_games_played(int games_played)
 {
-    int game;
-    int server = *(int *)0x46e8bc;
-    if (server != 0) {
-        game = network_game_server_get_game((void *)server);
-        *(int *)(game + 0x42c) = games_played;
-    }
-    server = *(int *)0x46e8c0;
-    if (server != 0) {
-        game = (int)network_game_client_get_machine_index((void *)server);
-        *(int *)(game + 0x42c) = games_played;
-    }
+  int game;
+  int server = *(int *)0x46e8bc;
+  if (server != 0) {
+    game = network_game_server_get_game((void *)server);
+    *(int *)(game + 0x42c) = games_played;
+  }
+  server = *(int *)0x46e8c0;
+  if (server != 0) {
+    game = (int)network_game_client_get_machine_index((void *)server);
+    *(int *)(game + 0x42c) = games_played;
+  }
 }
 
 /* Set the random seed in both server and client game globals.
@@ -249,17 +249,17 @@ void network_game_set_number_of_games_played(int games_played)
  */
 void network_game_set_random_seed(int seed)
 {
-    int game;
-    int server = *(int *)0x46e8bc;
-    if (server != 0) {
-        game = network_game_server_get_game((void *)server);
-        *(int *)(game + 0x428) = seed;
-    }
-    server = *(int *)0x46e8c0;
-    if (server != 0) {
-        game = (int)network_game_client_get_machine_index((void *)server);
-        *(int *)(game + 0x428) = seed;
-    }
+  int game;
+  int server = *(int *)0x46e8bc;
+  if (server != 0) {
+    game = network_game_server_get_game((void *)server);
+    *(int *)(game + 0x428) = seed;
+  }
+  server = *(int *)0x46e8c0;
+  if (server != 0) {
+    game = (int)network_game_client_get_machine_index((void *)server);
+    *(int *)(game + 0x428) = seed;
+  }
 }
 
 /* Return the active game object: server's game if server exists,
@@ -278,6 +278,17 @@ int FUN_0012a0a0(void)
     return uVar1;
   }
   return 0;
+}
+
+/* network_game_set_accept_remote_connections (0x12a150)
+ *
+ * Stores the one-byte "accept remote connections" flag to the network game
+ * globals byte at 0x46e8c4 (the byte read back by
+ * network_game_accept_remote_connections at 0x12a160).
+ */
+void network_game_set_accept_remote_connections(char accept)
+{
+  *(char *)0x46e8c4 = accept;
 }
 
 /* network_game_accept_remote_connections (0x12a160)
@@ -314,7 +325,8 @@ void FUN_0012a190(void)
  * 0x12a1a0 / network_game_globals.obj */
 unsigned int FUN_0012a1a0(void)
 {
-  if ((*(void **)0x0046e8bc == NULL) || (*(unsigned char *)0x0046e8c4 != '\0') ||
+  if ((*(void **)0x0046e8bc == NULL) ||
+      (*(unsigned char *)0x0046e8c4 != '\0') ||
       (*(unsigned char *)0x0046e8c5 != '\x01')) {
     return 0;
   }
@@ -553,6 +565,15 @@ bool network_game_client_end_frame(void)
   return result;
 }
 
+/* network_game_abort (0x12a780)
+ *
+ * Signals network-game abort by setting the global abort flag byte.
+ */
+void network_game_abort(void)
+{
+  *(unsigned char *)0x46e8c6 = 1;
+}
+
 /* Request a game start from the network client (request_type=3).
  * Logs a warning if the request fails.
  * 0x12a7a0 / network_game_globals.obj */
@@ -563,15 +584,6 @@ void FUN_0012a7a0(void)
       error(2, "network_game_client_request_start() failed");
     }
   }
-}
-
-/* network_game_abort (0x12a780)
- *
- * Signals network-game abort by setting the global abort flag byte.
- */
-void network_game_abort(void)
-{
-  *(unsigned char *)0x46e8c6 = 1;
 }
 
 /* Create and initialize the global network game server.
@@ -586,8 +598,8 @@ bool FUN_0012a890(void)
 
   if (*(void **)0x0046e8bc != NULL) {
     display_assert("global_network_game_server==NULL",
-                   "c:\\halo\\SOURCE\\networking\\network_game_globals.c",
-                   0xd6, 1);
+                   "c:\\halo\\SOURCE\\networking\\network_game_globals.c", 0xd6,
+                   1);
     system_exit(-1);
   }
   *(void **)0x0046e8bc = FUN_0012eef0();
