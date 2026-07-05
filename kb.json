@@ -13464,7 +13464,7 @@
         {
           "addr": "0x12a1d0",
           "decl": "void *network_game_server_get(void);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x12a1e0",
