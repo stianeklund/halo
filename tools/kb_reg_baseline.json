@@ -473,6 +473,7 @@
     "0x18bc60": "void FUN_0018bc60(int render_state_index @<eax>, int object_handle, float lod, char force_rebuild);",
     "0x18c100": "void FUN_0018c100(void *buf@<edi>);",
     "0x18c370": "void scenario_get_sky(void *buf@<eax>);",
+    "0x18cf10": "void FUN_0018cf10(void *data @<ebx>, float *untransformed_origin @<esi>, float *untransformed_direction @<edi>, uint8_t flags, float *transformed_origin, float *transformed_direction);",
     "0x18d040": "void FUN_0018d040(void *state @<eax>, float *value @<ecx>, int16_t p1, int p2, void *src, void *info);",
     "0x18fb20": "void FUN_0018fb20(float *position @<ecx>, const float *target @<edx>, float max_delta);",
     "0x18ff00": "void FUN_0018ff00(float *out @<eax>, float *position @<edx>, float scale, float magnitude);",

@@ -726,6 +726,74 @@ int FUN_0018c580(int param_1, int param_2)
   return diff;
 }
 
+/* 0x18cf10 — render_sprite.c transform helper (asserts at lines 0x4a-0x54):
+ * transform a sprite's untransformed origin/direction into view space.
+ * data->flags (+0x10) bit0 = screen-space sprite: run
+ * render_camera_screen_to_view into a scratch vector (the result is
+ * discarded; MSVC placed the scratch in the dead param slots) and
+ * hard-assert that no direction was supplied. Otherwise the `flags` byte
+ * bit0 selects raw copy (already view-space) vs
+ * matrix_transform_point/_vector through the view matrix at 0x5065b4.
+ * direction is optional (NULL skips). Register args: data @<ebx>,
+ * untransformed_origin @<esi>, untransformed_direction @<edi>. */
+void FUN_0018cf10(void *data, float *untransformed_origin,
+                  float *untransformed_direction, uint8_t flags,
+                  float *transformed_origin, float *transformed_direction)
+{
+  float view_vector[3];
+
+  if (data == NULL) {
+    display_assert("data", "c:\\halo\\SOURCE\\render\\render_sprite.c", 0x4a,
+                   1);
+    system_exit(-1);
+  }
+  if (untransformed_origin == NULL) {
+    display_assert("untransformed_origin",
+                   "c:\\halo\\SOURCE\\render\\render_sprite.c", 0x4b, 1);
+    system_exit(-1);
+  }
+  if (transformed_origin == NULL) {
+    display_assert("transformed_origin",
+                   "c:\\halo\\SOURCE\\render\\render_sprite.c", 0x4c, 1);
+    system_exit(-1);
+  }
+  if (transformed_direction == NULL) {
+    display_assert("transformed_direction",
+                   "c:\\halo\\SOURCE\\render\\render_sprite.c", 0x4d, 1);
+    system_exit(-1);
+  }
+  if ((*(uint8_t *)((char *)data + 0x10) & 1) != 0) {
+    render_camera_screen_to_view((void *)0x506550, (void *)0x5065a4,
+                                 untransformed_origin, view_vector);
+    if (untransformed_direction != NULL) {
+      display_assert("!untransformed_direction",
+                     "c:\\halo\\SOURCE\\render\\render_sprite.c", 0x54, 1);
+      system_exit(-1);
+    }
+  } else if ((flags & 1) != 0) {
+    *(int32_t *)transformed_origin = *(int32_t *)untransformed_origin;
+    *(int32_t *)(transformed_origin + 1) =
+      *(int32_t *)(untransformed_origin + 1);
+    *(int32_t *)(transformed_origin + 2) =
+      *(int32_t *)(untransformed_origin + 2);
+    if (untransformed_direction != NULL) {
+      *(int32_t *)transformed_direction =
+        *(int32_t *)untransformed_direction;
+      *(int32_t *)(transformed_direction + 1) =
+        *(int32_t *)(untransformed_direction + 1);
+      *(int32_t *)(transformed_direction + 2) =
+        *(int32_t *)(untransformed_direction + 2);
+    }
+  } else {
+    matrix_transform_point((float *)0x5065b4, untransformed_origin,
+                           transformed_origin);
+    if (untransformed_direction != NULL) {
+      matrix_transform_vector((float *)0x5065b4, untransformed_direction,
+                              transformed_direction);
+    }
+  }
+}
+
 /* 0x18d040 — resolve a sprite record's default scale then apply the
  * per-record count multiplier (kb name scenario_object_name_index_from_string
  * was a misattribution; the body is float scale math, no string handling).
