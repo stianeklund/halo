@@ -10,6 +10,8 @@ usage() {
     echo ""
     echo "  --batch       Run batch equivalence tests first (slow)."
     echo "  --skip-vc71   Do not refresh tools/verify/vc71_scores.json."
+    echo "  --full-vc71   Re-verify every TU instead of only changed ones"
+    echo "               (default is incremental: skips unchanged TUs)."
     echo "  --run-id NAME Tag the snapshot with a custom run label."
     echo "               Default: 'local-<timestamp>'"
     echo "  --help        This message."
@@ -19,11 +21,16 @@ usage() {
 RUN_ID="local-$(date +%Y%m%d-%H%M%S)"
 DO_BATCH=false
 DO_VC71=true
+# Incremental by default: only TUs whose source/reference changed are re-verified.
+# A tooling/kb.json/delinked change bumps the epoch inside populate and forces a
+# full pass automatically.  Use --full-vc71 to force a full re-verify.
+VC71_MODE="--incremental"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --batch)    DO_BATCH=true; shift ;;
         --skip-vc71) DO_VC71=false; shift ;;
+        --full-vc71) VC71_MODE=""; shift ;;
         --run-id)   RUN_ID="$2"; shift 2 ;;
         --help|-h)  usage ;;
         *)          echo "Unknown: $1"; usage ;;
@@ -41,8 +48,12 @@ if $DO_BATCH; then
 fi
 
 if $DO_VC71; then
-    echo "=== Refreshing VC71 scores ==="
-    $VENV tools/verify/vc71_regression.py populate
+    if [[ -n "$VC71_MODE" ]]; then
+        echo "=== Refreshing VC71 scores (incremental) ==="
+    else
+        echo "=== Refreshing VC71 scores (full) ==="
+    fi
+    $VENV tools/verify/vc71_regression.py populate $VC71_MODE
 fi
 
 echo "=== Generating CI status page ==="
