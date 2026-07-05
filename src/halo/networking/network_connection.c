@@ -187,3 +187,133 @@ void network_connection_delete(int connection)
   debug_free((void *)connection,
              "c:\\halo\\SOURCE\\networking\\network_connection.c", 0x145);
 }
+
+/* network_connection_new (0x1296b0).
+ * Allocates and initializes a transport connection.  The caller must request
+ * either the server role (flags bit 0) or the clientside-client role (flags
+ * bit 1); anything else asserts.  Server connections get the larger 0x50-byte
+ * block (with the child-connection endpoint set at +0x38 and the accept-clients
+ * flag at +0x4c), an unreliable incoming queue of 0x1900 and no reliable queue;
+ * clientside clients get the 0x38-byte block, a reliable queue of 0x8000 and an
+ * unreliable queue of 0x640.  Both create two transport endpoints (types 0x12
+ * and 0x11) via get_next_endpoint_from_set, stamp the creation time (+0x08),
+ * flags (+0x30) and well-known port (+0x34), bind/prepare each endpoint through
+ * FUN_00083ce0/FUN_00083bd0 (and, for servers, FUN_000843a0 + add the primary
+ * endpoint to the set), then allocate the incoming circular queues at +0x10
+ * (reliable) and +0x14 (unreliable).  Any failure tears the partial connection
+ * down via network_connection_delete and returns 0.  On success it fires the
+ * connection-created traffic event (event 0, enable 1) and returns the block.
+ * FUN_001288e0 takes its args in registers (event=ECX, enable=EAX,
+ * connection=ESI), matching the original MOV EAX,1 / XOR ECX,ECX setup with the
+ * connection live in ESI.  The reliable/unreliable guards compare the full
+ * dword size against zero (original: MOV EAX,[size]; CMP EAX,EBX; JZ) — not a
+ * byte test — so a 0x8000 reliable size still allocates the client queue.
+ * The clientside path deliberately leaves the address scratch fields other than
+ * family/port uninitialized (the server-only setup block that zeroes them is
+ * skipped), matching the original. */
+int network_connection_new(unsigned int flags, unsigned short well_known_port)
+{
+  int connection;
+  int endpoint;
+  short status;
+  int reliable_size;
+  int unreliable_size;
+  int address[6];
+
+  assert_halt_msg((flags & 1) != 0 || (flags & 2) != 0,
+                  "(flags&FLAG(_connection_create_server_bit))|| "
+                  "(flags&FLAG(_connection_create_clientside_client_bit))");
+
+  if ((flags & 1) == 0) {
+    if ((flags & 2) == 0) {
+      return 0;
+    }
+    connection = (int)debug_malloc(
+      0x38, 1, "c:\\halo\\SOURCE\\networking\\network_connection.c", 0xb6);
+    if (connection == 0) {
+      return 0;
+    }
+    reliable_size = 0x8000;
+    unreliable_size = 0x640;
+  } else {
+    assert_halt_msg(well_known_port > 0x3ff,
+                    "well_known_port > MAXIMUM_RESERVED_NETWORK_PORT");
+    connection = (int)debug_malloc(
+      0x50, 1, "c:\\halo\\SOURCE\\networking\\network_connection.c", 0xa5);
+    if (connection == 0) {
+      return 0;
+    }
+    *(uint8_t *)(connection + 0x4c) = 1;
+    endpoint = create_endpoint_set(5);
+    *(int *)(connection + 0x38) = endpoint;
+    if (endpoint == 0) {
+      network_connection_delete(connection);
+      return 0;
+    }
+    reliable_size = 0;
+    unreliable_size = 0x1900;
+  }
+
+  *(int *)(connection + 8) = (int)system_milliseconds();
+  *(int *)(connection + 0x30) = (int)flags;
+  endpoint = get_next_endpoint_from_set(0x12);
+  *(int *)connection = endpoint;
+  if (endpoint == 0) {
+    goto fail;
+  }
+
+  if ((flags & 1) != 0) {
+    address[1] = 0;
+    address[2] = 0;
+    address[3] = 0;
+    address[0] = 0;
+    address[5] = 0;
+    *(short *)((char *)&address[4]) = 4;
+    *(unsigned short *)((char *)&address[4] + 2) = well_known_port;
+    status = FUN_00083ce0((int *)endpoint, address);
+    if (status != 0 || (status = FUN_00083bd0(*(int *)connection, 0)) != 0 ||
+        (status = FUN_000843a0(*(int *)connection)) != 0 ||
+        (status = (short)add_endpoint_to_set(
+           *(int *)connection, (void *)*(int *)(connection + 0x38))) != 0) {
+      goto fail;
+    }
+  }
+
+  endpoint = get_next_endpoint_from_set(0x11);
+  *(int *)(connection + 4) = endpoint;
+  if (endpoint == 0) {
+    goto fail;
+  }
+  address[0] = 0;
+  *(short *)((char *)&address[4]) = 4;
+  *(unsigned short *)((char *)&address[4] + 2) = well_known_port;
+  *(unsigned short *)(connection + 0x34) = well_known_port;
+  status = FUN_00083ce0((int *)endpoint, address);
+  if (status != 0) {
+    goto fail;
+  }
+  status = FUN_00083bd0(*(int *)(connection + 4), 0);
+  if (status != 0) {
+    goto fail;
+  }
+  if (reliable_size != 0) {
+    *(int *)(connection + 0x10) =
+      (int)circular_queue_new((int)"incoming-reliable", reliable_size);
+    if (*(int *)(connection + 0x10) == 0) {
+      goto fail;
+    }
+  }
+  if (unreliable_size != 0) {
+    *(int *)(connection + 0x14) =
+      (int)circular_queue_new((int)"incoming-unreliable", unreliable_size);
+    if (*(int *)(connection + 0x14) == 0) {
+      goto fail;
+    }
+  }
+  FUN_001288e0(0, 1, connection);
+  return connection;
+
+fail:
+  network_connection_delete(connection);
+  return 0;
+}
