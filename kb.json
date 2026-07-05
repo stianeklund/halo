@@ -6625,7 +6625,7 @@
         {
           "addr": "0x9ca70",
           "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
           "ported": true
         },
         {
@@ -6686,7 +6686,7 @@
         {
           "addr": "0x9dcf0",
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -13861,18 +13861,6 @@
         {
           "addr": "0x127df0",
           "decl": "void FUN_00127df0(void);"
-        },
-        {
-          "addr": "0x128017",
-          "decl": "void FUN_00128017(void);"
-        },
-        {
-          "addr": "0x128041",
-          "decl": "void FUN_00128041(void);"
-        },
-        {
-          "addr": "0x1280c3",
-          "decl": "void FUN_001280c3(void);"
         }
       ],
       "name": "network_client_message_handler.obj",
@@ -34019,34 +34007,6 @@
           "decl": "bool FUN_00129a30(int connection@<ebx>, int *output);"
         },
         {
-          "addr": "0x1280ed",
-          "decl": "void FUN_001280ed(void);"
-        },
-        {
-          "addr": "0x128117",
-          "decl": "void FUN_00128117(void);"
-        },
-        {
-          "addr": "0x128141",
-          "decl": "void FUN_00128141(void);"
-        },
-        {
-          "addr": "0x12816b",
-          "decl": "void FUN_0012816b(void);"
-        },
-        {
-          "addr": "0x128195",
-          "decl": "void FUN_00128195(void);"
-        },
-        {
-          "addr": "0x1281bf",
-          "decl": "void FUN_001281bf(void);"
-        },
-        {
-          "addr": "0x1281e9",
-          "decl": "void FUN_001281e9(void);"
-        },
-        {
           "addr": "0x128460",
           "decl": "void network_connection_connect(void);"
         },
@@ -34066,7 +34026,7 @@
         },
         {
           "addr": "0x129270",
-          "decl": "void FUN_00129270(void);"
+          "decl": "void *FUN_00129270(int endpoint@<edi>);"
         },
         {
           "addr": "0x1296b0",
