@@ -1030,6 +1030,94 @@ void FUN_0018d360(void *sprite_build_data)
   *(uint32_t *)(data + 0x10) &= ~4u;
 }
 
+/* 0x18d490 — render_sprite.c: build the 2-vector sprite basis for a sprite
+ * type (asserts at lines 0x74-0x76, 0x7a, 0xac). basis receives right
+ * (+0x4) and up (+0x10) vectors; +0x1c is scratch for the normalized
+ * direction in type 2. Screen-space records (data+0x10 bit0) only allow
+ * type 0 (no basis needed). Type 0: identity basis {1,0,0}/{0,1,0}.
+ * Type 1 (oriented): right = normalize(direction), up =
+ * cross(origin, right) normalized. Type 2 (parallel/beam): pick the view
+ * forward (0x506510) or up (0x50651c) axis — whichever is less parallel to
+ * the direction (threshold const 0x28ace8 vs squared dot) — then right =
+ * cross(direction, axis) normalized, up = right rotated -90 deg around the
+ * normalized direction. The original reuses the dead origin param slot for
+ * the axis pointer and the up-vector pointer; the lift reassigns the origin
+ * param to match. Register args: basis @<eax>, data @<ecx>,
+ * direction @<ebx>. */
+void FUN_0018d490(float *basis, void *data, float *direction,
+                  int16_t sprite_type, int unused, float *origin)
+{
+  float dot;
+  float dot_sq;
+
+  if (data == NULL) {
+    display_assert("data", "c:\\halo\\SOURCE\\render\\render_sprite.c", 0x74,
+                   1);
+    system_exit(-1);
+  }
+  if (origin == NULL) {
+    display_assert("origin", "c:\\halo\\SOURCE\\render\\render_sprite.c",
+                   0x75, 1);
+    system_exit(-1);
+  }
+  if (basis == NULL) {
+    display_assert("basis", "c:\\halo\\SOURCE\\render\\render_sprite.c", 0x76,
+                   1);
+    system_exit(-1);
+  }
+  if ((*(uint8_t *)((char *)data + 0x10) & 1) != 0) {
+    if (sprite_type == 0)
+      return;
+    display_assert("build_sprite only supports normal sprites in screen "
+                   "space.",
+                   "c:\\halo\\SOURCE\\render\\render_sprite.c", 0x7a, 1);
+    system_exit(-1);
+    return;
+  }
+  if (sprite_type == 0) {
+    basis[1] = 1.0f;
+    basis[2] = 0.0f;
+    basis[3] = 0.0f;
+    basis[4] = 0.0f;
+    basis[5] = 1.0f;
+    basis[6] = 0.0f;
+    return;
+  }
+  if (sprite_type == 1) {
+    *(int32_t *)(basis + 1) = *(int32_t *)direction;
+    *(int32_t *)(basis + 2) = *(int32_t *)(direction + 1);
+    *(int32_t *)(basis + 3) = *(int32_t *)(direction + 2);
+    /* length results discarded (FSTP ST0 in the original) */
+    normalize3d(basis + 1);
+    cross_product3d(origin, basis + 1, basis + 4);
+    normalize3d(basis + 4);
+    return;
+  }
+  if (sprite_type == 2) {
+    dot = *(float *)0x506514 * direction[1] +
+          *(float *)0x506518 * direction[2] +
+          *(float *)0x506510 * direction[0];
+    dot_sq = dot * dot;
+    origin = (float *)0x506510;
+    if (FUN_00012170(direction) * *(const float *)0x28ace8 < dot_sq)
+      origin = (float *)0x50651c;
+    cross_product3d(direction, origin, basis + 1);
+    normalize3d(basis + 1);
+    origin = basis + 4;
+    *(int32_t *)origin = *(int32_t *)(basis + 1);
+    *(int32_t *)(origin + 1) = *(int32_t *)(basis + 2);
+    *(int32_t *)(origin + 2) = *(int32_t *)(basis + 3);
+    *(int32_t *)(basis + 7) = *(int32_t *)direction;
+    *(int32_t *)(basis + 8) = *(int32_t *)(direction + 1);
+    *(int32_t *)(basis + 9) = *(int32_t *)(direction + 2);
+    normalize3d(basis + 7);
+    rotate_vector3d_by_sincos(origin, basis + 7, -1.0f, 0.0f);
+    return;
+  }
+  display_assert(0, "c:\\halo\\SOURCE\\render\\render_sprite.c", 0xac, 1);
+  system_exit(-1);
+}
+
 /* 0x18d670 — projection-cosine helper (pure FPU leaf, no callees). For mode 0
  * returns 1.0f. For non-zero mode, returns the magnitude of the normalized
  * projection of v2 onto v1's direction: |dot(v1, v2) / |v1||. For mode 2 the
