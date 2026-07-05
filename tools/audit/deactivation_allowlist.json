@@ -1253,13 +1253,6 @@
     "since": "2026-06-21"
   },
   {
-    "addr": "0x18b010",
-    "name": "FUN_0018b010",
-    "object": "scenario.obj",
-    "reason": "unverified: @<esi>-defined predicate. VC71 capped at 75.6% by frameless register-arg prologue (4 unmatched prologue insns); logic faithful to disasm. Equivalence vacuous: stub-arg diff fails on datum_get arg0 because candidate reads global 0x5aa6d4 from zero-filled harness memory (oracle resolves it via reloc) - harness data-seeding artifact, not a logic divergence. Verifiable only via true dual-oracle-by-address (asm thunk) or golden-master harness.",
-    "since": "2026-06-21"
-  },
-  {
     "addr": "0x18bf80",
     "name": "FUN_0018bf80",
     "object": "scenario.obj",
@@ -1277,7 +1270,7 @@
     "addr": "0x135210",
     "name": "FUN_00135210",
     "object": "objects.obj",
-    "reason": "Faithful lift kept dormant: VC71 80.7% (FPU view-depth dot product computed/kept on the x87 stack across a branch then conditionally discarded \u2014 clang single-expression cannot reproduce the FSTP ST0 cleanup; marker-buffer/float-local overlap). x87 temps-across-branch ceiling. References FUN_00134e80 (also dormant) as render callback. Equivalence vacuous (zero-fill early-exits tag gate; unported FUN_0017cfb0).",
+    "reason": "Faithful lift kept dormant: VC71 80.7% (FPU view-depth dot product computed/kept on the x87 stack across a branch then conditionally discarded — clang single-expression cannot reproduce the FSTP ST0 cleanup; marker-buffer/float-local overlap). x87 temps-across-branch ceiling. References FUN_00134e80 (also dormant) as render callback. Equivalence vacuous (zero-fill early-exits tag gate; unported FUN_0017cfb0).",
     "since": "2026-06-22"
   },
   {
@@ -1291,14 +1284,14 @@
     "addr": "0x13cb80",
     "name": "FUN_0013cb80",
     "object": "objects.obj",
-    "reason": "Faithful lift kept dormant by Gate B cluster coupling (NOT a score failure: VC71 86.7%). Calls object_new_from_scenario (0x144770) and objects_garbage_collect_tick (0x144b50) \u2014 both GC/lifecycle cluster members \u2014 and mutates streaming state (DAT_0046f078 BSP-loaded mask + per-placement flags element+0x20). Scenario object spawner for a BSP slot; piecemeal cluster activation is unsafe. Activate only as part of a coordinated object-lifecycle cluster activation.",
+    "reason": "Faithful lift kept dormant by Gate B cluster coupling (NOT a score failure: VC71 86.7%). Calls object_new_from_scenario (0x144770) and objects_garbage_collect_tick (0x144b50) — both GC/lifecycle cluster members — and mutates streaming state (DAT_0046f078 BSP-loaded mask + per-placement flags element+0x20). Scenario object spawner for a BSP slot; piecemeal cluster activation is unsafe. Activate only as part of a coordinated object-lifecycle cluster activation.",
     "since": "2026-06-22"
   },
   {
     "addr": "0x13ecb0",
     "name": "attachments_new",
     "object": "objects.obj",
-    "reason": "Faithful lift kept dormant by Gate B cluster coupling (NOT a score failure: VC71 92.1% vs fresh per-function ref delinked/functions/0013ecb0.obj \u2014 note vc71_verify auto-selects a stale chunk 0013dda0.obj giving a false 42.6%). Caller edge from object_new (0x143c80, lifecycle cluster member) at 0x144147, AND object-lifecycle mutation: fills the object attachment table (object+0xf4 type bytes, object+0xfc handles) and sets creation flags (object+0x4 |= 0x100/0x400). Part of the object creation path; activate only with the lifecycle cluster.",
+    "reason": "Faithful lift kept dormant by Gate B cluster coupling (NOT a score failure: VC71 92.1% vs fresh per-function ref delinked/functions/0013ecb0.obj — note vc71_verify auto-selects a stale chunk 0013dda0.obj giving a false 42.6%). Caller edge from object_new (0x143c80, lifecycle cluster member) at 0x144147, AND object-lifecycle mutation: fills the object attachment table (object+0xf4 type bytes, object+0xfc handles) and sets creation flags (object+0x4 |= 0x100/0x400). Part of the object creation path; activate only with the lifecycle cluster.",
     "since": "2026-06-22"
   },
   {

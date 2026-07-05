@@ -896,9 +896,16 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
     insn_count = [0]
     stub_trace_count = [0]
     visited_pcs = {}
+    _ring = None
+    if os.environ.get("BIPED_RING_TRACE") == "1":
+        from collections import deque
+        _ring = deque(maxlen=48)
 
     def hook_code(uc, address, size, user_data):
         insn_count[0] += 1
+        if _ring is not None:
+            from unicorn.x86_const import UC_X86_REG_ESP as _ESP_T
+            _ring.append((address, uc.reg_read(_ESP_T)))
         if address not in visited_pcs:
             visited_pcs[address] = size
         if verbose and address in stub_addrs and stub_trace_count[0] < 64:
@@ -1145,6 +1152,10 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
             s.st[i] = fxsave_data[off:off + 10]
     except Exception:
         pass
+    if err_msg and _ring is not None:
+        print("    [ring] last insns (pc, esp):")
+        for _pc, _sp in _ring:
+            print(f"      0x{_pc:08x}  esp=0x{_sp:08x}")
     s.error = err_msg
     s.insn_count = insn_count[0]
     s.visited_pcs = visited_pcs
@@ -1683,7 +1694,12 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         # BOTH sides (same bytes), giving a valid, lift-isolating comparison.
         # Gated (additive) so the rest of the suite is unperturbed.
         _sibling_resolve = os.environ.get("BIPED_SIBLING_RESOLVE") == "1"
-        if lft_cls.call_count > 0:
+        # call_count counts EXTERN calls only; a candidate whose only calls
+        # are defined intra-object siblings (e.g. FUN_0018c370 -> FUN_0018c100)
+        # has call_count == 0 yet still needs sibling-resolve patching, or its
+        # unpatched rel32 (disp 0) falls through leaving the return address on
+        # the stack -> epilogue RETs into the saved-EBP slot.
+        if lft_cls.call_count > 0 or _sibling_resolve:
             lifted_code_patched, lft_stub_map = patch_rel32_calls(
                 bytes(lifted_code_patched), lft_relocs_canon, lft_defined,
                 symbol_sentinels=shared_stub_sentinels,
@@ -1899,6 +1915,9 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         if lifted_state.error:
             log(f"  {seed_label} LIFTED-CRASH: {lifted_state.error}")
             error_details.append(f"{seed_label} LIFTED-CRASH: {lifted_state.error}")
+            if os.environ.get("BIPED_CRASH_PCS") == "1":
+                _pcs = sorted(lifted_state.visited_pcs)[-12:] if lifted_state.visited_pcs else []
+                log(f"    last visited PCs (sorted tail): {[hex(p) for p in _pcs]}")
             errors += 1
             continue
         # If either side hit the instruction limit, the register state is

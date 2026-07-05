@@ -872,7 +872,14 @@ class StubManager:
 
         code = bytearray()
         if ret_st0:
-            code += b"\xD9\xEE"  # FLDZ
+            if _ret_override is not None:
+                # Snapshot-driven float return (same for oracle+candidate):
+                # PUSH imm32 (float bits); FLD dword [ESP]; ADD ESP,4
+                code += b"\x68" + struct.pack('<f', float(_ret_override))
+                code += b"\xD9\x04\x24"
+                code += b"\x83\xC4\x04"
+            else:
+                code += b"\xD9\xEE"  # FLDZ
         elif _ret_override is not None:
             # Snapshot-driven deterministic return (same for oracle+candidate)
             code += b"\xB8" + int(_ret_override).to_bytes(4, "little")  # MOV EAX, imm32
