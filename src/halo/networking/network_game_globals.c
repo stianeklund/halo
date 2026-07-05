@@ -597,6 +597,15 @@ void network_game_abort(void)
   *(unsigned char *)0x46e8c6 = 1;
 }
 
+/* network_game_client_all_local_players_have_quit (0x12a790)
+ *
+ * Sets the network-game abort flag byte when all local players have quit.
+ */
+void network_game_client_all_local_players_have_quit(void)
+{
+  *(unsigned char *)0x46e8c6 = 1;
+}
+
 /* Request a game start from the network client (request_type=3).
  * Logs a warning if the request fails.
  * 0x12a7a0 / network_game_globals.obj */
