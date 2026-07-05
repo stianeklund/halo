@@ -38,10 +38,23 @@ if _CAPSTONE_AVAILABLE:
 _EQUALITY_JCC = set()
 _LESS_JCC = set()
 _GREATER_JCC = set()
+_FPU_INS = set()
 if _CAPSTONE_AVAILABLE:
     _EQUALITY_JCC = {X86.X86_INS_JE, X86.X86_INS_JNE}
     _LESS_JCC = {X86.X86_INS_JL, X86.X86_INS_JLE, X86.X86_INS_JB, X86.X86_INS_JBE}
     _GREATER_JCC = {X86.X86_INS_JG, X86.X86_INS_JGE, X86.X86_INS_JA, X86.X86_INS_JAE}
+    _FPU_INS = {
+        getattr(X86, 'X86_INS_COMISS', -1),
+        getattr(X86, 'X86_INS_COMISD', -1),
+        getattr(X86, 'X86_INS_UCOMISS', -1),
+        getattr(X86, 'X86_INS_UCOMISD', -1),
+        getattr(X86, 'X86_INS_FCOMI', -1),
+        getattr(X86, 'X86_INS_FCOMPI', -1),
+        getattr(X86, 'X86_INS_FCOM', -1),
+        getattr(X86, 'X86_INS_FCOMP', -1),
+        getattr(X86, 'X86_INS_FUCOMI', -1),
+        getattr(X86, 'X86_INS_FUCOMPI', -1),
+    }
 
 
 @dataclass
@@ -56,6 +69,7 @@ class BranchInfo:
     has_mem_operand: bool = False
     mem_base_reg: int = 0
     mem_disp: int = 0
+    is_fpu: bool = False
 
 
 @dataclass
@@ -97,23 +111,30 @@ def disassemble_branches(code: bytes, code_base: int) -> list:
 
         for j in range(i - 1, max(i - 5, -1), -1):
             prev = insns[j]
-            if prev.id == X86.X86_INS_CMP and len(prev.operands) == 2:
-                op0 = prev.operands[0]
-                op1 = prev.operands[1]
-                if op1.type == X86.X86_OP_IMM:
-                    info.cmp_imm = op1.imm
-                    info.cmp_op_size = op0.size * 8
-                elif op0.type == X86.X86_OP_IMM:
-                    info.cmp_imm = op0.imm
-                    info.cmp_op_size = op1.size * 8
-                if op0.type == X86.X86_OP_MEM:
+            if (prev.id == X86.X86_INS_CMP or prev.id in _FPU_INS) and len(prev.operands) >= 1:
+                if prev.id in _FPU_INS:
+                    info.is_fpu = True
+                if len(prev.operands) == 2:
+                    op0 = prev.operands[0]
+                    op1 = prev.operands[1]
+                    if op1.type == X86.X86_OP_IMM:
+                        info.cmp_imm = op1.imm
+                        info.cmp_op_size = op0.size * 8
+                    elif op0.type == X86.X86_OP_IMM:
+                        info.cmp_imm = op0.imm
+                        info.cmp_op_size = op1.size * 8
+                    if op0.type == X86.X86_OP_MEM:
+                        info.has_mem_operand = True
+                        info.mem_base_reg = op0.mem.base
+                        info.mem_disp = op0.mem.disp
+                    elif op1.type == X86.X86_OP_MEM:
+                        info.has_mem_operand = True
+                        info.mem_base_reg = op1.mem.base
+                        info.mem_disp = op1.mem.disp
+                elif len(prev.operands) == 1 and prev.operands[0].type == X86.X86_OP_MEM:
                     info.has_mem_operand = True
-                    info.mem_base_reg = op0.mem.base
-                    info.mem_disp = op0.mem.disp
-                elif op1.type == X86.X86_OP_MEM:
-                    info.has_mem_operand = True
-                    info.mem_base_reg = op1.mem.base
-                    info.mem_disp = op1.mem.disp
+                    info.mem_base_reg = prev.operands[0].mem.base
+                    info.mem_disp = prev.operands[0].mem.disp
                 break
             elif prev.id == X86.X86_INS_TEST and len(prev.operands) == 2:
                 op1 = prev.operands[1]
@@ -152,11 +173,16 @@ def find_uncovered(branches: list, visited_pcs: dict,
 
 
 def _value_for_branch(jcc_id: int, cmp_imm: int, untaken_is_target: bool,
-                      op_size: int) -> list:
+                      op_size: int, is_fpu: bool = False) -> list:
     """Generate values that would force the untaken branch direction.
 
-    Returns a list of candidate integer values to inject.
+    Returns a list of candidate integer/float bit-pattern values to inject.
     """
+    if is_fpu:
+        # Standard float candidate values encoded as 32-bit uints
+        float_vals = [0.0, 1.0, -1.0, 0.5, -0.5, 100.0, 1e-5, -100.0]
+        return [struct.unpack('<I', struct.pack('<f', fv))[0] for fv in float_vals]
+
     if cmp_imm is None:
         return [1, 2, 5, 0xFF, 0x10]
 
@@ -275,7 +301,8 @@ def generate_memory_injections(uncovered: list, global_reads: dict,
     for ub in uncovered:
         br = ub.branch
         values = _value_for_branch(br.jcc_id, br.cmp_imm,
-                                   ub.untaken_is_target, br.cmp_op_size)
+                                   ub.untaken_is_target, br.cmp_op_size,
+                                   is_fpu=br.is_fpu)
 
         matched_reads = _find_relevant_reads(br, global_reads)
         if matched_reads:
