@@ -75,6 +75,27 @@ void network_connection_set_connection_rejection_procedure(int connection,
   *(void **)(connection + 0xc) = callback;
 }
 
+/* network_connection_server_accept_client_connection (0x1285c0).
+ * Registers a newly-accepted client connection's transport endpoint into the
+ * server connection's endpoint set.  Asserts the server connection exists, is
+ * a server-role connection (flags bit 0 = _connection_create_server_bit), and
+ * that the client connection pointer is non-null.  Forwards the client's
+ * endpoint handle (*client_connection) and the server's endpoint-set handle
+ * (server_connection+0x38) to add_endpoint_to_set, then returns true when the
+ * add reported success (a zero result; the compare is 16-bit, matching the
+ * original NEG AX/SBB/INC idiom). */
+bool network_connection_server_accept_client_connection(int server_connection,
+                                                        int client_connection)
+{
+  assert_halt(server_connection);
+  assert_halt_msg(
+    *(uint8_t *)(server_connection + 0x30) & 1,
+    "server_connection->flags&FLAG(_connection_create_server_bit)");
+  assert_halt(client_connection);
+  return (short)add_endpoint_to_set(*(int *)client_connection,
+                                    *(void **)(server_connection + 0x38)) == 0;
+}
+
 /* network_connection_active (0x128660).
  * Predicate: asserts the connection exists, then reports whether the
  * "closed/inactive" bit (bit 4, mask 0x10) of the flags dword at +0x30 is
