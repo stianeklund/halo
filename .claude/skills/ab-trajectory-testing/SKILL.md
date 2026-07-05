@@ -1,5 +1,7 @@
 ---
 name: ab-trajectory-testing
+tier: agent
+triggers: ["halorec", "trajectory", "a/b", "ab check", "ab_check", "behavior_diff", "aa check", "trajectory diff", "regression oracle"]
 description: >-
   A/B regression testing for the reimplementation: replay the SAME deterministic
   input on the patched (default.xbe) and unpatched (cachebeta.xbe) builds, capture

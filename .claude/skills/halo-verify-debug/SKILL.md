@@ -1,5 +1,7 @@
 ---
 name: halo-verify-debug
+tier: agent
+triggers: ["vc71", "vc71_verify", "low match", "low-match", "match percent", "objdiff", "delink", "delinked", "verify lane"]
 description: "/verify, VC71, delink, objdiff, lift_pipeline, equivalence, golden tests, dual-oracle, low-match, behavior/runtime failure: verification ladder and regression debugging workflow."
 ---
 

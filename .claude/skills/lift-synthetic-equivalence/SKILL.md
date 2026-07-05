@@ -1,5 +1,7 @@
 ---
 name: lift-synthetic-equivalence
+tier: agent
+triggers: ["synthetic equivalence", "state snapshot", "per-branch", "equivalence", "capped lift", "snapshot equivalence"]
 description: >-
   Hand-crafted state-snapshot equivalence for lifts whose VC71 score is
   structurally capped (@<reg> params, layout ceilings) or whose branches need

@@ -1,5 +1,7 @@
 ---
 name: check-callee-regs
+tier: agent
+triggers: ["register arg", "reg arg", "in_eax", "in_ecx", "in_edx", "in_esi", "in_edi", "callee regs", "unported callee", "xcall", "missing @", "@<reg>", "@<"]
 description: "@<reg>, register arg, in_EAX/in_ECX, unported callee, XCALL, missing ABI annotation: scan ported code for calls to original functions that pass implicit register arguments not yet annotated in kb.json. Run before porting any function that calls unported callees."
 ---
 

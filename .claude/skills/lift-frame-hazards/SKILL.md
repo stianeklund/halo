@@ -1,5 +1,7 @@
 ---
 name: lift-frame-hazards
+tier: agent
+triggers: ["_chkstk", "stack frame", "frame size", "buffer size", "undersized buffer", "local_", "memset", "memcpy", "stack alias", "buffer alias", "&local_"]
 description: Buffer sizing from _chkstk frames, stack aliasing detection, and contiguous-buffer rules. Invoke when sizing a local buffer, seeing _chkstk in a frame, or passing &local to a callee that indexes param[N].
 ---
 

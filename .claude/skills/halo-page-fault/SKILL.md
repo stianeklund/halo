@@ -1,5 +1,7 @@
 ---
 name: halo-page-fault
+tier: agent
+triggers: ["page fault", "page-fault", "access_violation", "trap frame", "cr2", "pe export", "symbolize"]
 description: >-
   Investigate page faults during lift/reimplementation — typically caused by
   ABI/signature mismatches in kb.json. Invoke when: page fault with garbage

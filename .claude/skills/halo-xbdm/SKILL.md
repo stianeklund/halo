@@ -1,5 +1,7 @@
 ---
 name: halo-xbdm
+tier: agent
+triggers: ["xbdm", "rdcp", "real xbox", "getmem"]
 description: Standard RDCP and XBDM command handling for real Xbox debugging
 ---
 

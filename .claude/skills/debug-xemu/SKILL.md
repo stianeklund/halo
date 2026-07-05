@@ -1,5 +1,7 @@
 ---
 name: debug-xemu
+tier: agent
+triggers: ["xemu", "qmp", "gdb", "screenshot", "serial", "memory dump", "state snapshot", "live memory"]
 description: >-
   xemu-specific debugging cookbook — MCP tools, raw QMP socket recipe, GDB via
   QMP gdbserver, screenshot capture, memory examination, serial monitoring, and

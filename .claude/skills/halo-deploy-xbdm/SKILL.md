@@ -1,5 +1,7 @@
 ---
 name: halo-deploy-xbdm
+tier: agent
+triggers: ["xbdm", "deploy", "real xbox", "getmem", "hot patch", "hot-patch"]
 description: Build and deploy patched files to a real Xbox via XBDM/XBCP
 ---
 

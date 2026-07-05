@@ -4,6 +4,13 @@
 Reads a prompt from stdin JSON (Claude hook payload) or --prompt, matches Halo
 RE/lift trigger phrases, and emits a compact system message. Silence means
 "no route". This is the Claude-side counterpart to OpenCode's skill router.
+
+Routing rules are the SINGLE SOURCE OF TRUTH in each skill's own frontmatter:
+`.claude/skills/<name>/SKILL.md` declares `tier:` (user|agent) and, for agent
+skills, `triggers: [...]`. Only `tier: agent` skills are auto-routed. Compiled
+rules are cached (keyed on the newest SKILL.md mtime) so the hook stays fast and
+adding a skill needs no edit here. Seed frontmatter with
+tools/memory/migrate_skill_frontmatter.py.
 """
 
 from __future__ import annotations
@@ -19,8 +26,11 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+SKILLS_DIR = REPO_ROOT / ".claude" / "skills"
 STATE_PATH = REPO_ROOT / ".claude" / "agent-memory" / "skill_router_hook_state.json"
+RULES_CACHE_PATH = REPO_ROOT / ".claude" / "agent-memory" / "skill_router_rules_cache.json"
 MAX_SYMBOLIZER_CHARS = 3600
+MAX_ROUTES = 6
 
 
 EXCEPTION_RE = re.compile(
@@ -30,98 +40,129 @@ EXCEPTION_RE = re.compile(
 )
 
 
-SKILL_RULES: list[tuple[re.Pattern[str], list[str], str]] = [
-    (
-        re.compile(
-            r"\b(lift|lifting|ported|porting|re[- ]?lift|FUN_[0-9a-f]{8}|"
-            r"0x[0-9a-f]{5,}|ghidra|decompil|cachebeta|kb\.json)\b|@<[a-z]+>",
-            re.IGNORECASE,
-        ),
-        ["halo-xbox-re", "halo-re-lift"],
-        "Halo RE/lift workflow, binary evidence rules, ABI and kb.json discipline",
-    ),
-    (
-        re.compile(
-            r"\b(call[ -]?site|add esp|push|fstp|x87|cross[- ]?product|_ftol2|"
-            r"_chkstk|__seh|_allmul|intrinsic|decompiler trap|ghidra.*wrong)\b",
-            re.IGNORECASE,
-        ),
-        ["lift-decompiler-traps", "lift-arg-hazards"],
-        "call-site verification, cdecl cleanup tells, FSTP float args, intrinsics, register aliasing",
-    ),
-    (
-        re.compile(
-            r"\b(register arg|reg arg|in_eax|in_ecx|in_edx|in_esi|in_edi|"
-            r"callee regs?|unported callee|xcall|missing @)\b|@<",
-            re.IGNORECASE,
-        ),
-        ["check-callee-regs", "lift-arg-hazards"],
-        "implicit @<reg> ABI hazards and caller register setup checks",
-    ),
-    (
-        re.compile(
-            r"\b(_chkstk|stack frame|frame size|buffer size|undersized buffer|"
-            r"local_[0-9a-f]+|memset|memcpy|stack alias|buffer alias)\b|&local_",
-            re.IGNORECASE,
-        ),
-        ["lift-frame-hazards", "lift-decompiler-traps"],
-        "stack-frame sizing, contiguous buffer rules, local_XX buffer-alias reads",
-    ),
-    (
-        re.compile(
-            r"\b(vc71|vc71_verify|low[- ]?match|match percent|structural ceiling|"
-            r"objdiff|permuter|permute|permutation campaign)\b|85%|98%",
-            re.IGNORECASE,
-        ),
-        ["halo-verify-debug", "lift-score-improve", "permuter-campaign"],
-        "verification lanes, score recovery before declaring a ceiling, safe permuter campaign rules",
-    ),
-    (
-        re.compile(
-            r"\b(regression|crash|crashes|crashed|fault|page fault|access[_ -]?violation|"
-            r"assert|hang|freeze|deadlock|wrong|broken|bug|visual|tint|color|"
-            r"invisible|missing|no[- ]?draw|cull|spawn|position|build failure|"
-            r"deploy failure|symbol absent|eip|cr2|trap frame|rasterizer)\b",
-            re.IGNORECASE,
-        ),
-        ["debug", "crash-triage", "lift-crash-signals"],
-        "runtime symptom router, crash signal table, toggle-bisect and liveness gates",
-    ),
-    (
-        re.compile(
-            r"\b(wrong color|yellow|white tint|invisible|missing geometry|no effect|"
-            r"does nothing|wrong position|wrong scalar|silent bug|visual regression|"
-            r"behavioral regression)\b",
-            re.IGNORECASE,
-        ),
-        ["lift-silent-bugs", "bug-hunt"],
-        "non-crashing correctness checks and automated hazard/silent-bug scans",
-    ),
-    (
-        re.compile(
-            r"\b(bug[- ]?hunt|hazard scan|check_lift_hazards|before deploy|"
-            r"pre[- ]?deploy|pre[- ]?commit|safety scan|audit)\b",
-            re.IGNORECASE,
-        ),
-        ["bug-hunt"],
-        "tiered automated checks after edits, before deploy, and before commit",
-    ),
-    (
-        re.compile(
-            r"\b(input replay|deterministic input|capture scenario|halorec|trajectory|"
-            r"a/b|ab check|behavior_diff|aa check)\b",
-            re.IGNORECASE,
-        ),
-        ["input-replay-testing", "ab-trajectory-testing"],
-        "deterministic input replay and A/B trajectory regression oracle",
-    ),
-    (
-        re.compile(r"\b(xemu|qmp|gdb|screenshot|serial|memory dump|state snapshot)\b", re.IGNORECASE),
-        ["debug-xemu"],
-        "xemu QMP/GDB/screenshot/live-memory probing workflow",
-    ),
-]
+# ── Frontmatter-driven rule loading ─────────────────────────────────────────
 
+def _kw_to_regex(kw: str) -> str:
+    """Escape a trigger keyword, adding \\b only where an edge is a word char.
+
+    Leading/trailing '_' and symbols (e.g. `_ftol2`, `@<`, `local_`, `65%`) get
+    no boundary on that side, so prefix matches like `local_` -> `local_44` work.
+    """
+    esc = re.escape(kw)
+    pre = r"\b" if kw[:1].isalnum() else ""
+    post = r"\b" if kw[-1:].isalnum() else ""
+    return pre + esc + post
+
+
+def _parse_frontmatter(text: str) -> dict:
+    """Extract tier/triggers/description from a SKILL.md frontmatter block.
+
+    Only single-line `tier:` and `triggers:` are needed (the migration writes them
+    that way). `description` may be inline or a folded (`>-`) block; we grab a short
+    one-liner for the route hint.
+    """
+    if not text.startswith("---"):
+        return {}
+    end = text.find("\n---", 3)
+    if end == -1:
+        return {}
+    lines = text[3:end].splitlines()
+    out: dict = {"tier": "", "triggers": [], "description": ""}
+    for i, ln in enumerate(lines):
+        s = ln.strip()
+        if s.startswith("tier:"):
+            out["tier"] = s[len("tier:"):].strip()
+        elif s.startswith("triggers:"):
+            val = s[len("triggers:"):].strip()
+            try:
+                parsed = json.loads(val)
+                if isinstance(parsed, list):
+                    out["triggers"] = [str(x) for x in parsed]
+            except (json.JSONDecodeError, ValueError):
+                pass
+        elif s.startswith("description:") and not out["description"]:
+            val = s[len("description:"):].strip()
+            if val and val not in (">", ">-", "|", "|-"):
+                out["description"] = val
+            else:
+                # folded/blocked — take the first non-empty continuation line
+                for cont in lines[i + 1:]:
+                    c = cont.strip()
+                    if c:
+                        out["description"] = c
+                        break
+    return out
+
+
+def _short_why(description: str) -> str:
+    """First clause of the description, capped — keeps the injected message lean."""
+    d = description.strip()
+    for sep in (". ", " — ", "; "):
+        if sep in d:
+            d = d.split(sep, 1)[0]
+            break
+    return (d[:90].rstrip() + "…") if len(d) > 90 else d
+
+
+def _skill_mtimes() -> tuple[float, list[Path]]:
+    paths = sorted(SKILLS_DIR.glob("*/SKILL.md"))
+    newest = max((p.stat().st_mtime for p in paths), default=0.0)
+    return newest, paths
+
+
+def _build_rules(paths: list[Path]) -> list[dict]:
+    rules: list[dict] = []
+    for p in paths:
+        try:
+            fm = _parse_frontmatter(p.read_text(encoding="utf-8"))
+        except OSError:
+            continue
+        if fm.get("tier") != "agent":
+            continue
+        triggers = fm.get("triggers") or []
+        if not triggers:
+            continue
+        pattern = "|".join(_kw_to_regex(k) for k in triggers if k)
+        if not pattern:
+            continue
+        rules.append({
+            "skill": p.parent.name,
+            "pattern": pattern,
+            "why": _short_why(fm.get("description", "")),
+        })
+    return rules
+
+
+def load_rules() -> list[tuple[re.Pattern[str], str, str]]:
+    """Return [(compiled_pattern, skill, why)], rebuilding the cache if stale."""
+    newest, paths = _skill_mtimes()
+    raw_rules: list[dict] | None = None
+    try:
+        cached = json.loads(RULES_CACHE_PATH.read_text(encoding="utf-8"))
+        if isinstance(cached, dict) and cached.get("mtime") == newest:
+            raw_rules = cached.get("rules")
+    except (OSError, json.JSONDecodeError):
+        raw_rules = None
+    if raw_rules is None:
+        raw_rules = _build_rules(paths)
+        try:
+            RULES_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+            RULES_CACHE_PATH.write_text(
+                json.dumps({"mtime": newest, "rules": raw_rules}, indent=2),
+                encoding="utf-8",
+            )
+        except OSError:
+            pass
+    compiled: list[tuple[re.Pattern[str], str, str]] = []
+    for r in raw_rules:
+        try:
+            compiled.append((re.compile(r["pattern"], re.IGNORECASE), r["skill"], r.get("why", "")))
+        except (re.error, KeyError):
+            continue
+    return compiled
+
+
+# ── Prompt extraction / dedupe ──────────────────────────────────────────────
 
 def message_text(message: dict) -> str:
     content = message.get("content")
@@ -186,12 +227,12 @@ def recently_ran(prompt: str, window_seconds: int) -> bool:
     return False
 
 
-def matching_rules(prompt: str) -> list[tuple[list[str], str]]:
-    matches = []
-    for pattern, skills, why in SKILL_RULES:
+def matching_rules(prompt: str) -> list[tuple[str, str]]:
+    matches: list[tuple[str, str]] = []
+    for pattern, skill, why in load_rules():
         if pattern.search(prompt):
-            matches.append((skills, why))
-            if len(matches) >= 6:
+            matches.append((skill, why))
+            if len(matches) >= MAX_ROUTES:
                 break
     return matches
 
@@ -227,25 +268,16 @@ def run_exception_symbolizer(prompt: str) -> str:
     return report
 
 
-def build_message(matches: list[tuple[list[str], str]], symbolizer_report: str = "") -> str:
-    seen = set()
-    ordered_skills = []
-    route_lines = []
-    for skills, why in matches:
-        for skill in skills:
-            if skill not in seen:
-                seen.add(skill)
-                ordered_skills.append(skill)
-        route_lines.append(f"- {' + '.join(f'`{skill}`' for skill in skills)}: {why}")
+def build_message(matches: list[tuple[str, str]], symbolizer_report: str = "") -> str:
+    skills = [skill for skill, _ in matches]
+    route_lines = [f"- `{skill}`: {why}" if why else f"- `{skill}`" for skill, why in matches]
     message = (
-        "[skill-router] Local Halo trigger words matched. Before acting, load/use these "
-        "skills if the Skill tool exposes them; otherwise read "
-        "`.claude/skills/<skill>/SKILL.md` and follow its checklist. When delegating "
-        "to a subagent, name these skills in the brief.\n\n"
-        "Recommended skills: "
-        + ", ".join(f"`{skill}`" for skill in ordered_skills)
-        + "\n\nMatched routes:\n"
-        + "\n".join(route_lines)
+        "[skill-router] Local Halo trigger words matched. These are agent doctrine "
+        "you self-invoke — load/use them via the Skill tool if surfaced, else read "
+        "`.claude/skills/<skill>/SKILL.md` and follow its checklist. Name them in any "
+        "subagent brief.\n\n"
+        "Recommended: " + ", ".join(f"`{s}`" for s in skills)
+        + "\n\nWhy:\n" + "\n".join(route_lines)
     )
     if symbolizer_report:
         message += (
@@ -264,7 +296,11 @@ def main() -> int:
     parser.add_argument("--prompt", help="prompt text; otherwise read hook JSON from stdin")
     parser.add_argument("--surface", default="claude", help="claude or text")
     parser.add_argument("--dedupe-window", type=int, default=180)
+    parser.add_argument("--self-test", action="store_true", help="run built-in checks and exit")
     args = parser.parse_args()
+
+    if args.self_test:
+        return _self_test()
 
     prompt = args.prompt or ""
     if not prompt:
@@ -290,6 +326,39 @@ def main() -> int:
     else:
         print(json.dumps({"systemMessage": message}))
     return 0
+
+
+def _self_test() -> int:
+    rules = load_rules()
+    ok = True
+
+    def check(cond: bool, msg: str) -> None:
+        nonlocal ok
+        ok = ok and cond
+        print(("PASS" if cond else "FAIL") + ": " + msg)
+
+    check(len(rules) >= 15, f"loaded {len(rules)} agent rules from frontmatter")
+    skills = {s for _, s, _ in rules}
+    check("crash-triage" in skills, "crash-triage routed")
+    check("check-callee-regs" in skills, "check-callee-regs routed")
+    # user-tier skills must NOT be routed
+    check("handover" not in skills, "handover (user tier) not routed")
+    check("replay-input" not in skills, "replay-input (user tier) not routed")
+
+    def routes(prompt: str) -> set[str]:
+        return {s for s, _ in matching_rules(prompt)}
+
+    check("check-callee-regs" in routes("the decompile shows in_EAX for the callee"),
+          "in_EAX -> check-callee-regs")
+    check("lift-frame-hazards" in routes("passing &local_44 into the callee"),
+          "local_44 -> lift-frame-hazards")
+    check("crash-triage" in routes("got an ACCESS_VIOLATION at boot"),
+          "ACCESS_VIOLATION -> crash-triage")
+    check("permuter-campaign" in routes("stuck at 92% VC71, run the permuter"),
+          "permuter -> permuter-campaign")
+    check(routes("please refactor the readme wording") == set(),
+          "unrelated prompt routes nothing")
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":

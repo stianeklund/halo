@@ -1,5 +1,7 @@
 ---
 name: halo-build-xemu
+tier: agent
+triggers: ["build load", "build-load", "xbe deploy", "build_deploy_run", "xemu build"]
 description: Standard project build, deploy, and run workflow
 ---
 

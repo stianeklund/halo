@@ -1,5 +1,7 @@
 ---
 name: input-replay-testing
+tier: agent
+triggers: ["input replay", "deterministic input", "capture scenario", "capture_scenario", "replay fixture", "input fixture"]
 description: >-
   Deterministic controller-input record/replay for testing on real engine
   (xemu/XBDM). Invoke when you want to capture gameplay once and replay the EXACT
