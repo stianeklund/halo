@@ -1,31 +1,38 @@
 {
-  "generated": "2026-07-04T02:09:38.645587+00:00",
+  "generated": "2026-07-05T02:25:14.838276+00:00",
   "ci_runs": {
     "available": true,
     "total": 60,
-    "last_run_time": "2026-07-04T02:09:26Z",
+    "last_run_time": "2026-07-05T02:25:02Z",
     "last_commit": "dabdae16",
     "workflows": [
       {
         "name": "Progress Report",
         "conclusion": "",
-        "created_at": "2026-07-04T02:09:26Z",
+        "created_at": "2026-07-05T02:25:02Z",
         "head_sha": "dabdae16",
-        "url": "https://github.com/stianeklund/halo/actions/runs/28691726315"
+        "url": "https://github.com/stianeklund/halo/actions/runs/28726898666"
       },
       {
         "name": "Runtime Oracle Tests",
-        "conclusion": "success",
-        "created_at": "2026-07-03T06:57:27Z",
+        "conclusion": "failure",
+        "created_at": "2026-07-04T06:43:09Z",
         "head_sha": "dabdae16",
-        "url": "https://github.com/stianeklund/halo/actions/runs/28644049695"
+        "url": "https://github.com/stianeklund/halo/actions/runs/28698076779"
+      },
+      {
+        "name": "Equivalence Tests",
+        "conclusion": "success",
+        "created_at": "2026-07-04T04:33:27Z",
+        "head_sha": "dabdae16",
+        "url": "https://github.com/stianeklund/halo/actions/runs/28695022867"
       },
       {
         "name": "pages-build-deployment",
         "conclusion": "failure",
-        "created_at": "2026-07-03T05:30:44Z",
-        "head_sha": "9a492669",
-        "url": "https://github.com/stianeklund/halo/actions/runs/28640589482"
+        "created_at": "2026-07-04T02:09:45Z",
+        "head_sha": "708ebc5d",
+        "url": "https://github.com/stianeklund/halo/actions/runs/28691733093"
       },
       {
         "name": ".github/workflows/main.yml",
@@ -40,13 +47,6 @@
         "created_at": "2026-07-03T05:30:25Z",
         "head_sha": "dabdae16",
         "url": "https://github.com/stianeklund/halo/actions/runs/28640576692"
-      },
-      {
-        "name": "Equivalence Tests",
-        "conclusion": "success",
-        "created_at": "2026-07-03T05:30:25Z",
-        "head_sha": "dabdae16",
-        "url": "https://github.com/stianeklund/halo/actions/runs/28640576659"
       }
     ]
   },
