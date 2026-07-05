@@ -106,3 +106,14 @@ bool network_connection_active(int connection)
   assert_halt(connection);
   return ((*(unsigned int *)(connection + 0x30) >> 4) & 1) == 0;
 }
+
+/* network_connection_going_stale (0x1286a0).
+ * Predicate: asserts the connection exists, then reports whether the
+ * "going stale" bit (bit 5, mask 0x20) of the flags dword at +0x30 is SET.
+ * A connection is flagged going-stale once bit 5 has been raised (e.g. when
+ * traffic has lapsed and the transport is about to be torn down). */
+bool network_connection_going_stale(int connection)
+{
+  assert_halt(connection);
+  return (*(unsigned int *)(connection + 0x30) >> 5) & 1;
+}

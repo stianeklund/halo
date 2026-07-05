@@ -33990,7 +33990,8 @@
         },
         {
           "addr": "0x1286a0",
-          "decl": "bool network_connection_going_stale(int connection);"
+          "decl": "bool network_connection_going_stale(int connection);",
+          "ported": true
         },
         {
           "addr": "0x1286e0",
