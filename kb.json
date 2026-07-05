@@ -21062,7 +21062,7 @@
     },
     {
      "addr": "0x184de0",
-     "decl": "void render_location_visible(void);"
+     "decl": "char render_location_visible(void *location);"
     },
     {
      "addr": "0x184e50",
@@ -22010,7 +22010,8 @@
     },
     {
      "addr": "0x18c5b0",
-     "decl": "void FUN_0018c5b0(void);"
+     "decl": "void FUN_0018c5b0(void);",
+     "ported": true
     },
     {
      "addr": "0x18ca40",
