@@ -2601,7 +2601,7 @@ void *FUN_0012eef0(void)
   *(char *)0x46eed4 = 1;
   server = (int *)0x5a90e0;
   csmemset(server, 0, 0x4bc);
-  server[0] = FUN_001296b0(1, 0x141e);
+  server[0] = network_connection_new(1, 0x141e);
   if (!server[0]) {
     error(2, "failed to create the server connection");
     network_game_client_dispose((void *)server);

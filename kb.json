@@ -24188,7 +24188,7 @@
         },
         {
           "addr": "0x82310",
-          "decl": "void create_endpoint_set(void);"
+          "decl": "int create_endpoint_set(int count);"
         },
         {
           "addr": "0x82410",
@@ -24236,7 +24236,7 @@
         },
         {
           "addr": "0x82d70",
-          "decl": "void get_next_endpoint_from_set(void);"
+          "decl": "int get_next_endpoint_from_set(int type);"
         },
         {
           "addr": "0x82df0",
@@ -24268,7 +24268,7 @@
         },
         {
           "addr": "0x83bd0",
-          "decl": "void FUN_00083bd0(void);"
+          "decl": "short FUN_00083bd0(int endpoint, int flag);"
         },
         {
           "addr": "0x83e20",
@@ -24284,7 +24284,7 @@
         },
         {
           "addr": "0x843a0",
-          "decl": "void FUN_000843a0(void);"
+          "decl": "short FUN_000843a0(int endpoint);"
         },
         {
           "addr": "0x84450",
@@ -34030,7 +34030,8 @@
         },
         {
           "addr": "0x1296b0",
-          "decl": "int FUN_001296b0(int type, int max_size);"
+          "decl": "int network_connection_new(unsigned int flags, unsigned short well_known_port);",
+          "ported": true
         }
       ],
       "name": "network_connection.obj",

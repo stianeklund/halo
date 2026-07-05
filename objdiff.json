@@ -5601,6 +5601,14 @@
       }
     },
     {
+      "name": "halo/network_connection",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_connection.c.obj",
+      "base_path": "delinked/network_connection_FUN_001296b0.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_connection.c"
+      }
+    },
+    {
       "name": "halo/network_game_globals",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_game_globals.c.obj",
       "base_path": "delinked/network_game_globals.obj",
