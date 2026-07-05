@@ -13479,7 +13479,7 @@
         {
           "addr": "0x12a240",
           "decl": "void *network_game_client_get(void);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x12a2a0",
