@@ -369,6 +369,7 @@
     "0x126db0": "bool FUN_00126db0(void *server /* @<eax> */);",
     "0x126f40": "bool network_game_client_idle(void *server /* @<eax> */);",
     "0x1286e0": "bool FUN_001286e0(int connection@<esi>, void *buffer, int *size, void *addr);",
+    "0x1288e0": "void FUN_001288e0(int event@<ecx>, int enable@<eax>, int connection@<esi>);",
     "0x1292f0": "bool FUN_001292f0(int connection@<edi>, void *buffer, int *size, void *addr);",
     "0x1294d0": "bool FUN_001294d0(int connection@<esi>);",
     "0x129a30": "bool FUN_00129a30(int connection@<ebx>, int *output);",

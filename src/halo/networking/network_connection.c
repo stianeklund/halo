@@ -127,3 +127,63 @@ void network_connection_keep_alive(int connection)
 {
   *(unsigned int *)(connection + 8) = system_milliseconds();
 }
+
+/* network_connection_delete (0x128d30).
+ * Tears a connection and all of its child connections down.  Returns
+ * immediately for a null connection.  Otherwise it fires the "connection
+ * closing" traffic event (event 1, enable 1) to flush and close the
+ * connection's traffic log, destroys the two transport endpoint handles
+ * (+0x00, +0x04), deletes the two circular queues (+0x10, +0x14), and — only
+ * for server-role connections (flags bit 0 at +0x30) — walks the four
+ * child-connection slots at +0x3c: for each live child it removes the child's
+ * endpoint from the server's endpoint set (+0x38) and recursively deletes the
+ * child, then deletes the endpoint set itself.  Finally the connection block
+ * is freed.  FUN_001288e0 takes its arguments in registers (event=ECX,
+ * enable=EAX, connection=ESI), matching the original MOV EAX,1 / MOV ECX,EAX
+ * setup with the connection already live in ESI. */
+void network_connection_delete(int connection)
+{
+  int *children;
+  int i;
+  int child;
+
+  if (connection == 0) {
+    return;
+  }
+  FUN_001288e0(1, 1, connection);
+  if (*(int *)connection != 0) {
+    destroy_endpoint(*(int **)connection);
+  }
+  if (*(int *)(connection + 4) != 0) {
+    destroy_endpoint(*(int **)(connection + 4));
+  }
+  if (*(int *)(connection + 0x10) != 0) {
+    circular_queue_delete(*(int *)(connection + 0x10));
+  }
+  if (*(int *)(connection + 0x14) != 0) {
+    circular_queue_delete(*(int *)(connection + 0x14));
+  }
+  if ((*(uint8_t *)(connection + 0x30) & 1) != 0) {
+    children = (int *)(connection + 0x3c);
+    if (children != (int *)0) {
+      i = 4;
+      do {
+        child = *children;
+        if (child != 0) {
+          if (*(int *)(connection + 0x38) != 0) {
+            remove_endpoint_from_set(*(int **)child,
+                                     *(uint32_t **)(connection + 0x38));
+          }
+          network_connection_delete(child);
+        }
+        children = children + 1;
+        i = i - 1;
+      } while (i != 0);
+    }
+    if (*(int *)(connection + 0x38) != 0) {
+      delete_endpoint_set(*(int *)(connection + 0x38));
+    }
+  }
+  debug_free((void *)connection,
+             "c:\\halo\\SOURCE\\networking\\network_connection.c", 0x145);
+}
