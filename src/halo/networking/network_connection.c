@@ -36,3 +36,31 @@ bool network_connection_connected(int connection)
   }
   return false;
 }
+
+/* FUN_001283c0 (0x1283c0).
+ * Refreshes up to two per-endpoint network-address out-buffers from the
+ * connection.  connection+0x00 and connection+0x04 are the two transport
+ * endpoint handles.  For each supplied out-buffer (buf, flag): if the matching
+ * endpoint is null, or FUN_00083a60(endpoint, buffer) reports a mismatch
+ * (non-zero), the 0x18-byte buffer is reset to zero and its address-type field
+ * at +0x10 is set to 4.  Asserts the connection exists.  Current callers pass
+ * flag==0, so only the first buffer is refreshed. */
+void FUN_001283c0(int connection, void *buf, int flag)
+{
+  int *conn;
+
+  assert_halt(connection);
+  conn = (int *)connection;
+  if (buf != (void *)0 &&
+      (conn[0] == 0 || FUN_00083a60((int *)conn[0], buf) != 0)) {
+    csmemset(buf, 0, 0x18);
+    *(short *)((char *)buf + 0x10) = 4;
+  }
+  if (flag != 0) {
+    if (conn[1] != 0 && FUN_00083a60((int *)conn[1], (void *)flag) == 0) {
+      return;
+    }
+    csmemset((void *)flag, 0, 0x18);
+    *(short *)(flag + 0x10) = 4;
+  }
+}
