@@ -6105,11 +6105,11 @@
       "source": "src/halo/interface/ui_widget.c"
     },
     "FUN_000e4480": {
-      "score": 34.5,
+      "score": 100.0,
       "source": "src/halo/interface/ui_widget.c"
     },
     "FUN_000e44d0": {
-      "score": 94.1,
+      "score": 100.0,
       "source": "src/halo/interface/ui_widget.c"
     },
     "FUN_000e45d0": {
@@ -6125,7 +6125,7 @@
       "source": "src/halo/interface/ui_widget.c"
     },
     "FUN_000e46b0": {
-      "score": 85.7,
+      "score": 100.0,
       "source": "src/halo/interface/ui_widget.c"
     },
     "FUN_000e4890": {
@@ -6173,7 +6173,7 @@
       "source": "src/halo/interface/ui_widget.c"
     },
     "FUN_000e9080": {
-      "score": 77.9,
+      "score": 78.4,
       "source": "src/halo/interface/ui_widget.c"
     },
     "FUN_000e9450": {
@@ -9556,6 +9556,14 @@
       "score": 93.3,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
+    "FUN_0016eef0": {
+      "score": 71.1,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "FUN_00172a30": {
+      "score": 89.3,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
     "FUN_00174d10": {
       "score": 84.5,
       "source": "src/halo/rasterizer/rasterizer.c"
@@ -12273,7 +12281,7 @@
       "source": "src/halo/main/main.c"
     },
     "main_screen_shell_load": {
-      "score": 37.8,
+      "score": 56.3,
       "source": "src/halo/interface/ui_widget.c"
     },
     "main_skip_private": {
