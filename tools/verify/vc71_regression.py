@@ -57,6 +57,13 @@ VC71_VERIFY = REPO_ROOT / "tools" / "verify" / "vc71_verify.py"
 _LINE_RE = re.compile(
     r"(?:PASS|FAIL)\s+(\S+):\s+([\d.]+)%\s+match\s+\((\d+)/(\d+)\s+insns\)"
 )
+# vc71_verify emits one of these per compiled, kb.json-tracked function it could
+# not score against any valid reference (no whole-object symbol and no valid
+# per-function chunk).  These never produce a _LINE_RE score line, so the runner
+# surfaces them separately to keep the re-delink queue complete.
+_DROP_RE = re.compile(
+    r"DROP\s+(\S+):\s+no valid reference\s+—\s+(.+?)\s+\(span\s+(\d+)\s+bytes\)"
+)
 
 
 # ---------------------------------------------------------------------------
@@ -178,13 +185,19 @@ def _reference_valid(n_r, span):
 # ---------------------------------------------------------------------------
 
 def run_vc71_verify(source: Path, no_cache: bool = True,
-                    function: str | None = None) -> dict[str, dict]:
+                    function: str | None = None,
+                    drops_out: list | None = None) -> dict[str, dict]:
     """Run vc71_verify on a source file; return {fn_name: {score, n_c, n_r}}.
 
     Defaults to --no-cache so stale .obj files from previous compilations do
     not mask source changes: vc71_verify's fast-path will read a stale .obj
     when the source hash misses the SQLite cache, producing phantom cache hits.
     The compile step is fast (~0.1s/file) so the accuracy cost is acceptable.
+
+    If ``drops_out`` is provided, functions vc71_verify reported it could not
+    score against any valid reference (DROP lines) are appended to it as
+    ``{"function", "reason", "span_bytes"}`` dicts.  These never appear in the
+    returned score dict — they exist only in ``drops_out``.
     """
     cmd = [sys.executable, str(VC71_VERIFY), str(source), "--quiet"]
     if function:
@@ -201,6 +214,15 @@ def run_vc71_verify(source: Path, no_cache: bool = True,
                 "n_c": int(m.group(3)),
                 "n_r": int(m.group(4)),
             }
+            continue
+        if drops_out is not None:
+            d = _DROP_RE.search(line)
+            if d:
+                drops_out.append({
+                    "function": d.group(1),
+                    "reason": d.group(2).strip(),
+                    "span_bytes": int(d.group(3)),
+                })
     return out
 
 
@@ -226,8 +248,21 @@ def cmd_update(args, honest_out: dict | None = None,
             continue
 
         print(f"Verifying {src.relative_to(REPO_ROOT)} ...", flush=True)
-        results = run_vc71_verify(src)
+        drops: list = []
+        results = run_vc71_verify(src, drops_out=drops)
         src_rel = str(src.relative_to(REPO_ROOT))
+
+        # Functions vc71_verify could not score against any valid reference never
+        # produce a score line, so the gate below never sees them.  Record them
+        # directly in the re-delink queue so it is complete — not just the
+        # gate-flagged (present-but-invalid-reference) subset.
+        for d in sorted(drops, key=lambda x: x["function"]):
+            if flagged_out is not None:
+                flagged_out.append({"function": d["function"], "source": src_rel,
+                                    "n_r": None, "span_bytes": d.get("span_bytes"),
+                                    "reason": d["reason"]})
+            print(f"  ⚠ {d['function']}: no valid reference — {d['reason']}; "
+                  f"skipped (flagged for re-delink)")
 
         for fn_name, info in sorted(results.items()):
             new_score = info["score"]
