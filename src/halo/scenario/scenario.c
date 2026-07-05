@@ -543,6 +543,87 @@ void FUN_0018b990(void *volume)
   FUN_0017cd00();
 }
 
+/* The original FSTPs each FSUB delta to a 32-bit local and reloads it for
+ * the clamp compares, so they see the float-rounded value; clang keeps the
+ * delta in x87 ST and compares at 80-bit extended precision, which can take
+ * a different branch on overflow/NaN edges (rasterizer.c:1248 precedent).
+ * Force the same store+reload rounding. No-op under VC71, which spills. */
+#if !defined(_MSC_VER) || defined(__clang__)
+#define FADE_ROUND32(x) asm volatile("" : "+m"(x))
+#else
+#define FADE_ROUND32(x) ((void)0)
+#endif
+
+/* 0x18b610 — fade a 3-float lighting vector toward its desired values: each
+ * component steps by its delta clamped to [-step, +step]. Used by
+ * FUN_0018bc60 smooth lighting for the ambient/distant color triples.
+ * Register args: cur @<ecx>, des @<edx>; step on the stack. */
+void FUN_0018b610(float *cur, float *des, float step)
+{
+  float delta;
+
+  delta = des[0] - cur[0];
+  FADE_ROUND32(delta);
+  cur[0] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) +
+           cur[0];
+  delta = des[1] - cur[1];
+  FADE_ROUND32(delta);
+  cur[1] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) +
+           cur[1];
+  delta = des[2] - cur[2];
+  FADE_ROUND32(delta);
+  cur[2] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) +
+           cur[2];
+}
+
+/* 0x18b6b0 — 4-float variant of FUN_0018b610 (delta clamped to
+ * [-step, +step] per component). Register args: cur @<ecx>, des @<edx>. */
+void FUN_0018b6b0(float *cur, float *des, float step)
+{
+  float delta;
+
+  delta = des[0] - cur[0];
+  FADE_ROUND32(delta);
+  cur[0] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) +
+           cur[0];
+  delta = des[1] - cur[1];
+  FADE_ROUND32(delta);
+  cur[1] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) +
+           cur[1];
+  delta = des[2] - cur[2];
+  FADE_ROUND32(delta);
+  cur[2] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) +
+           cur[2];
+  delta = des[3] - cur[3];
+  FADE_ROUND32(delta);
+  cur[3] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) +
+           cur[3];
+}
+
+/* 0x18b780 — direction variant of FUN_0018b610: fades a 3-float direction
+ * toward its desired values (delta clamped to [-step, +step] per component),
+ * then renormalizes the result via normalize3d (float length return
+ * discarded — FSTP ST0 at 0x18b818). Register args: cur @<ecx>,
+ * des @<edx>. */
+void FUN_0018b780(float *cur, float *des, float step)
+{
+  float delta;
+
+  delta = des[0] - cur[0];
+  FADE_ROUND32(delta);
+  cur[0] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) +
+           cur[0];
+  delta = des[1] - cur[1];
+  FADE_ROUND32(delta);
+  cur[1] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) +
+           cur[1];
+  delta = des[2] - cur[2];
+  FADE_ROUND32(delta);
+  cur[2] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) +
+           cur[2];
+  normalize3d(cur);
+}
+
 /* 0x18bc60 — refresh a cached object render-state's lighting
  * (render\render_objects.c, asserts 0x27b/0x2b2). The render-state datum is
  * fetched from the pool at 0x50652c by index (@<eax>). Staleness is judged
