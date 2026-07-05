@@ -24164,7 +24164,7 @@
         },
         {
           "addr": "0x81ec0",
-          "decl": "void transport_get_nonce(void);"
+          "decl": "void transport_get_nonce(void *dst, int bytes);"
         },
         {
           "addr": "0x81f30",
@@ -24176,15 +24176,15 @@
         },
         {
           "addr": "0x82060",
-          "decl": "void transport_get_xnaddr(void);"
+          "decl": "void *transport_get_xnaddr(void *dst);"
         },
         {
           "addr": "0x82090",
-          "decl": "void transport_get_key_id(void);"
+          "decl": "int64_t transport_get_key_id(void);"
         },
         {
           "addr": "0x820d0",
-          "decl": "void transport_get_key(void);"
+          "decl": "void *transport_get_key(void *dst);"
         },
         {
           "addr": "0x82310",
