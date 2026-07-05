@@ -21977,7 +21977,7 @@
     {
      "addr": "0x18bf80",
      "decl": "int FUN_0018bf80(int object_handle, float lod);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x18c0b0",
