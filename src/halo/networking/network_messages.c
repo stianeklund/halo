@@ -892,52 +892,49 @@ int FUN_0011ba00(unsigned char *key, unsigned int key_size)
 int FUN_0011ba50(short *table, void *key, unsigned short *slot_index_out)
 {
   unsigned short hash_val;
-  unsigned int slot;
-  short probe_count;
+  short slot;
+  int probe_count;
   int element_ptr;
   int cmp_result;
-  char found;
+  int found;
 
   probe_count = 0;
-  if (*(int *)(table + 8) == 0) {
-    hash_val = (unsigned short)FUN_0011ba00((unsigned char *)key,
-                                            (unsigned int)*table);
-  }
-  else {
+  if (*(int *)(table + 8) != 0) {
     hash_val = (unsigned short)(*(int (**)(int, void *))(table + 8))(
       *(int *)(table + 6), key);
   }
-  hash_val = (unsigned short)(table[0x10] - 1) & hash_val;
-  slot = (unsigned int)(short)hash_val;
+  else {
+    hash_val = (unsigned short)FUN_0011ba00((unsigned char *)key,
+                                            (unsigned int)*table);
+  }
+  slot = (short)((unsigned short)(table[0x10] - 1) & hash_val);
   while (1) {
     if ((*(unsigned int *)(*(int *)(table + 0xc) + ((int)slot >> 5) * 4) &
-         (1 << ((unsigned char)hash_val & 0x1f))) == 0) {
-      *slot_index_out = hash_val;
+         (1 << ((unsigned char)slot & 0x1f))) == 0) {
+      *slot_index_out = (unsigned short)slot;
       return 0;
     }
-    if (table[2] <= probe_count) break;
-    if (*(int *)(table + 10) == 0) {
+    if (table[2] <= (short)probe_count) break;
+    if (*(int *)(table + 10) != 0) {
       element_ptr = array_get_element((int *)(table + 0xe), (int)slot,
                                       (int)table[1]);
-      cmp_result = csmemcmp((void *)element_ptr, key, (int)*table);
-      found = (cmp_result == 0);
+      found = (*(int (**)(int, int, void *))(table + 10))(
+        *(int *)(table + 6), element_ptr, key);
     }
     else {
       element_ptr = array_get_element((int *)(table + 0xe), (int)slot,
                                       (int)table[1]);
-      found = (char)(*(int (**)(int, int, void *))(table + 10))(
-        *(int *)(table + 6), element_ptr, key);
+      cmp_result = csmemcmp((void *)element_ptr, key, (int)*table);
+      found = cmp_result == 0;
     }
-    if (found != '\0') {
-      *slot_index_out = hash_val;
+    if (found != 0) {
+      *slot_index_out = (unsigned short)slot;
       return 1;
     }
-    hash_val = (unsigned short)((int)(hash_val + 1) &
-                                (int)(table[0x10] - 1));
-    slot = (unsigned int)(short)hash_val;
     probe_count = probe_count + 1;
+    slot = (short)((int)(slot + 1) & (int)(table[0x10] - 1));
   }
-  *slot_index_out = hash_val;
+  *slot_index_out = (unsigned short)slot;
   return 0;
 }
 
@@ -991,7 +988,7 @@ void FUN_0011bc20(short *table, void *key)
        ((*(float *)(table + 4) <= 0.0f) ||
         (*(float *)(table + 4) > 1.0f))) ||
       ((table[3] != -1 &&
-        ((1 << ((unsigned char)table[3] & 0x1f)) !=
+        ((1 << ((unsigned short)table[3] & 0x1f)) !=
          *(int *)(table + 0x10))))) {
     display_assert("hashtable_valid(table)",
                    "c:\\halo\\SOURCE\\memory\\hashtable.c", 0xc3, 1);
@@ -1453,6 +1450,8 @@ void *encode_network_game_message(int type, void *data,
 {
   char encoded_buf[0x600];
   int32_t encoded_size;
+  const char *assertion;
+  int assertion_line;
 
   encoded_size = 0x600;
 
@@ -1460,244 +1459,237 @@ void *encode_network_game_message(int type, void *data,
   case 0:
     if (message_struct_size == 0xc)
       goto size_ok;
-    display_assert(
-      "message_struct_size==sizeof(message_client_broadcast_game_search)",
-      "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xa0, 1);
-    system_exit(-1);
+    assertion =
+      "message_struct_size==sizeof(message_client_broadcast_game_search)";
+    assertion_line = 0xa0;
+    break;
   case 1:
     if (message_struct_size == 8)
       goto size_ok;
-    display_assert("message_struct_size==sizeof(message_client_ping)",
-                   "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xa1, 1);
-    system_exit(-1);
+    assertion = "message_struct_size==sizeof(message_client_ping)";
+    assertion_line = 0xa1;
+    break;
   case 2:
     if (message_struct_size == 0x114)
       goto size_ok;
-    display_assert("message_struct_size==sizeof(message_server_game_advertise)",
-                   "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xa4, 1);
-    system_exit(-1);
+    assertion = "message_struct_size==sizeof(message_server_game_advertise)";
+    assertion_line = 0xa4;
+    break;
   case 3:
     if (message_struct_size == 4)
       goto size_ok;
-    display_assert("message_struct_size==sizeof(message_server_pong)",
-                   "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xa5, 1);
-    system_exit(-1);
+    assertion = "message_struct_size==sizeof(message_server_pong)";
+    assertion_line = 0xa5;
+    break;
   case 4:
     if (message_struct_size == 8)
       goto size_ok;
-    display_assert(
-      "message_struct_size==sizeof(message_server_machine_accepted)",
-      "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xa8, 1);
-    system_exit(-1);
+    assertion = "message_struct_size==sizeof(message_server_machine_accepted)";
+    assertion_line = 0xa8;
+    break;
   case 5:
     if (message_struct_size == 2)
       goto size_ok;
-    display_assert(
-      "message_struct_size==sizeof(message_server_machine_rejected)",
-      "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xa9, 1);
-    system_exit(-1);
+    assertion = "message_struct_size==sizeof(message_server_machine_rejected)";
+    assertion_line = 0xa9;
+    break;
   case 6:
     if (message_struct_size == 0x434)
       goto size_ok;
-    display_assert(
-      "message_struct_size==sizeof(message_server_game_settings_update)",
-      "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xaa, 1);
-    system_exit(-1);
+    assertion =
+      "message_struct_size==sizeof(message_server_game_settings_update)";
+    assertion_line = 0xaa;
+    break;
   case 7:
     if (message_struct_size == 2)
       goto size_ok;
-    display_assert(
-      "message_struct_size==sizeof(message_server_pregame_countdown)",
-      "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xab, 1);
-    system_exit(-1);
+    assertion = "message_struct_size==sizeof(message_server_pregame_countdown)";
+    assertion_line = 0xab;
+    break;
   case 8:
     if (message_struct_size == 4)
       goto size_ok;
-    display_assert("message_struct_size==sizeof(message_server_begin_game)",
-                   "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xad, 1);
-    system_exit(-1);
+    assertion = "message_struct_size==sizeof(message_server_begin_game)";
+    assertion_line = 0xad;
+    break;
   case 9:
     if (message_struct_size == 4)
       goto size_ok;
-    display_assert(
-      "message_struct_size==sizeof(message_server_graceful_game_exit_pregame)",
-      "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xae, 1);
-    system_exit(-1);
+    assertion =
+      "message_struct_size==sizeof(message_server_graceful_game_exit_pregame)";
+    assertion_line = 0xae;
+    break;
   case 10:
     if (message_struct_size == 2)
       goto size_ok;
-    display_assert(
-      "message_struct_size==sizeof(message_server_pregame_keep_alive)",
-      "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xac, 1);
-    system_exit(-1);
+    assertion = "message_struct_size==sizeof(message_server_pregame_keep_alive)";
+    assertion_line = 0xac;
+    break;
   case 11:
     if (message_struct_size == 2)
       goto size_ok;
-    display_assert(
-      "message_struct_size==sizeof(message_server_postgame_keep_alive)",
-      "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xb1, 1);
-    system_exit(-1);
+    assertion = "message_struct_size==sizeof(message_server_postgame_keep_alive)";
+    assertion_line = 0xb1;
+    break;
   case 12:
     if (message_struct_size == 0x50)
       goto size_ok;
-    display_assert(
-      "message_struct_size==sizeof(message_client_join_game_request)",
-      "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xb4, 1);
-    system_exit(-1);
+    assertion = "message_struct_size==sizeof(message_client_join_game_request)";
+    assertion_line = 0xb4;
+    break;
   case 13:
     if (message_struct_size == 0x20)
       goto size_ok;
-    display_assert(
-      "message_struct_size==sizeof(message_client_add_player_request_pregame)",
-      "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xb5, 1);
-    system_exit(-1);
+    assertion =
+      "message_struct_size==sizeof(message_client_add_player_request_pregame)";
+    assertion_line = 0xb5;
+    break;
   case 14:
     if (message_struct_size == 0x20)
       goto size_ok;
-    display_assert("message_struct_size==sizeof(message_client_remove_player_"
-                   "request_pregame)",
-                   "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xb6, 1);
-    system_exit(-1);
+    assertion = "message_struct_size==sizeof(message_client_remove_player_"
+                "request_pregame)";
+    assertion_line = 0xb6;
+    break;
   case 15:
     if (message_struct_size == 0x44)
       goto size_ok;
-    display_assert(
-      "message_struct_size==sizeof(message_client_settings_request)",
-      "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xb7, 1);
-    system_exit(-1);
+    assertion = "message_struct_size==sizeof(message_client_settings_request)";
+    assertion_line = 0xb7;
+    break;
   case 16:
     if (message_struct_size == 0x20)
       goto size_ok;
-    display_assert(
-      "message_struct_size==sizeof(message_client_player_settings_request)",
-      "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xb8, 1);
-    system_exit(-1);
+    assertion =
+      "message_struct_size==sizeof(message_client_player_settings_request)";
+    assertion_line = 0xb8;
+    break;
   case 17:
     if (message_struct_size == 2)
       goto size_ok;
-    display_assert(
-      "message_struct_size==sizeof(message_client_game_start_request)",
-      "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xb9, 1);
-    system_exit(-1);
+    assertion = "message_struct_size==sizeof(message_client_game_start_request)";
+    assertion_line = 0xb9;
+    break;
   case 18:
     if (message_struct_size == 4)
       goto size_ok;
-    display_assert(
-      "message_struct_size==sizeof(message_client_graceful_game_exit_pregame)",
-      "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xba, 1);
-    system_exit(-1);
+    assertion =
+      "message_struct_size==sizeof(message_client_graceful_game_exit_pregame)";
+    assertion_line = 0xba;
+    break;
   case 19:
     if (message_struct_size == 0x100)
       goto size_ok;
-    display_assert(
-      "message_struct_size==sizeof(message_client_map_is_precached_pregame)",
-      "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xbb, 1);
-    system_exit(-1);
+    assertion =
+      "message_struct_size==sizeof(message_client_map_is_precached_pregame)";
+    assertion_line = 0xbb;
+    break;
   case 20:
     if (message_struct_size == 0x210)
       goto size_ok;
-    display_assert("message_struct_size==sizeof(message_server_game_update)",
-                   "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xbe, 1);
-    system_exit(-1);
+    assertion = "message_struct_size==sizeof(message_server_game_update)";
+    assertion_line = 0xbe;
+    break;
   case 21:
     if (message_struct_size == 0x20)
       goto size_ok;
-    display_assert(
-      "message_struct_size==sizeof(message_server_add_player_ingame)",
-      "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xbf, 1);
-    system_exit(-1);
+    assertion = "message_struct_size==sizeof(message_server_add_player_ingame)";
+    assertion_line = 0xbf;
+    break;
   case 22:
     if (message_struct_size == 0x24)
       goto size_ok;
-    display_assert(
-      "message_struct_size==sizeof(message_server_remove_player_ingame)",
-      "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xc0, 1);
-    system_exit(-1);
+    assertion =
+      "message_struct_size==sizeof(message_server_remove_player_ingame)";
+    assertion_line = 0xc0;
+    break;
   case 23:
     if (message_struct_size == 4)
       goto size_ok;
-    display_assert("message_struct_size==sizeof(message_server_game_over)",
-                   "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xc1, 1);
-    system_exit(-1);
+    assertion = "message_struct_size==sizeof(message_server_game_over)";
+    assertion_line = 0xc1;
+    break;
   case 24:
     if (message_struct_size == 4)
       goto size_ok;
-    display_assert("message_struct_size==sizeof(message_client_loaded)",
-                   "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xc4, 1);
-    system_exit(-1);
+    assertion = "message_struct_size==sizeof(message_client_loaded)";
+    assertion_line = 0xc4;
+    break;
   case 25:
     if (message_struct_size == 0x88)
       goto size_ok;
-    display_assert("message_struct_size==sizeof(message_client_game_update)",
-                   "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xc5, 1);
-    system_exit(-1);
+    assertion = "message_struct_size==sizeof(message_client_game_update)";
+    assertion_line = 0xc5;
+    break;
   case 26:
     if (message_struct_size == 0x20)
       goto size_ok;
-    display_assert(
-      "message_struct_size==sizeof(message_client_add_player_request_ingame)",
-      "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xc6, 1);
-    system_exit(-1);
+    assertion =
+      "message_struct_size==sizeof(message_client_add_player_request_ingame)";
+    assertion_line = 0xc6;
+    break;
   case 27:
     if (message_struct_size == 0x20)
       goto size_ok;
-    display_assert("message_struct_size==sizeof(message_client_remove_player_"
-                   "request_ingame)",
-                   "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xc7, 1);
-    system_exit(-1);
+    assertion = "message_struct_size==sizeof(message_client_remove_player_"
+                "request_ingame)";
+    assertion_line = 0xc7;
+    break;
   case 28:
     if (message_struct_size == 0x10)
       goto size_ok;
-    display_assert(
-      "message_struct_size==sizeof(message_client_host_crashed_cry_for_help)",
-      "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xc9, 1);
-    system_exit(-1);
+    assertion =
+      "message_struct_size==sizeof(message_client_host_crashed_cry_for_help)";
+    assertion_line = 0xc9;
+    break;
   case 29:
     if (message_struct_size == 0x10)
       goto size_ok;
-    display_assert("message_struct_size==sizeof(message_client_join_new_host)",
-                   "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xca, 1);
-    system_exit(-1);
+    assertion = "message_struct_size==sizeof(message_client_join_new_host)";
+    assertion_line = 0xca;
+    break;
   case 30:
     if (message_struct_size == 4)
       goto size_ok;
-    display_assert(
-      "message_struct_size==sizeof(message_server_switch_to_pregame)",
-      "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xcd, 1);
-    system_exit(-1);
+    assertion = "message_struct_size==sizeof(message_server_switch_to_pregame)";
+    assertion_line = 0xcd;
+    break;
   case 31:
     if (message_struct_size == 4)
       goto size_ok;
-    display_assert(
-      "message_struct_size==sizeof(message_server_graceful_game_exit_postgame)",
-      "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xce, 1);
-    system_exit(-1);
+    assertion =
+      "message_struct_size==sizeof(message_server_graceful_game_exit_postgame)";
+    assertion_line = 0xce;
+    break;
   case 32:
     if (message_struct_size == 0x20)
       goto size_ok;
-    display_assert("message_struct_size==sizeof(message_client_remove_player_"
-                   "request_postgame)",
-                   "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xd1, 1);
-    system_exit(-1);
+    assertion = "message_struct_size==sizeof(message_client_remove_player_"
+                "request_postgame)";
+    assertion_line = 0xd1;
+    break;
   case 33:
     if (message_struct_size == 4)
       goto size_ok;
-    display_assert(
-      "message_struct_size==sizeof(message_client_switch_to_pregame)",
-      "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xd2, 1);
-    system_exit(-1);
+    assertion = "message_struct_size==sizeof(message_client_switch_to_pregame)";
+    assertion_line = 0xd2;
+    break;
   case 34:
     if (message_struct_size == 4)
       goto size_ok;
-    display_assert(
-      "message_struct_size==sizeof(message_client_graceful_game_exit_postgame)",
-      "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xd3, 1);
-    system_exit(-1);
+    assertion =
+      "message_struct_size==sizeof(message_client_graceful_game_exit_postgame)";
+    assertion_line = 0xd3;
+    break;
   default:
-    display_assert("unknown network game message structure type",
-                   "c:\\halo\\SOURCE\\networking\\network_messages.c", 0xd5, 1);
-    system_exit(-1);
+    assertion = "unknown network game message structure type";
+    assertion_line = 0xd5;
+    break;
   }
+
+  display_assert(assertion, "c:\\halo\\SOURCE\\networking\\network_messages.c",
+                 assertion_line, 1);
+  system_exit(-1);
 
 size_ok:
   if (data == NULL || (int16_t)encoded_size < 1) {

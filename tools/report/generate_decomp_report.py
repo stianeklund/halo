@@ -19,7 +19,7 @@ _root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 sys.path.insert(0, _root_dir)
 sys.path.insert(0, os.path.join(_root_dir, 'tools'))
 
-from analysis.knowledge import KnowledgeBase
+from analysis.knowledge import KnowledgeBase, Function, Data
 from analysis.kb_meta import MetadataStore
 
 
@@ -222,21 +222,29 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
     tracked_runtime_tested = 0
     tracked_runtime_passed = 0
     
-    # Group functions by object file
+    # Group functions and data by object file, split by Symbol subclass
     obj_to_funcs = defaultdict(list)
+    obj_to_data = defaultdict(list)
     
     for addr_str, symbol in kb.addr_to_symbol.items():
         addr = int(addr_str)
         obj = kb.symbol_to_object.get(symbol)
-        if obj and symbol.name:
-            obj_to_funcs[obj].append({
-                'addr': addr,
-                'name': symbol.name,
-                'symbol': symbol
-            })
+        if not obj or not symbol.name:
+            continue
+        entry = {
+            'addr': addr,
+            'name': symbol.name,
+            'symbol': symbol
+        }
+        if isinstance(symbol, Function):
+            obj_to_funcs[obj].append(entry)
+        elif isinstance(symbol, Data):
+            obj_to_data[obj].append(entry)
     
-    for obj_name, funcs in sorted(obj_to_funcs.items()):
+    for obj_name in sorted(set(list(obj_to_funcs.keys()) + list(obj_to_data.keys()))):
         source = kb.object_to_source.get(obj_name, '?')
+        funcs = obj_to_funcs.get(obj_name, [])
+        data_syms = obj_to_data.get(obj_name, [])
         
         unit_funcs = []
         total_bytes = 0
@@ -361,8 +369,20 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
                     match_weighted_sum += match_pct * size
                     match_scored_bytes += size
         
+        # Build per-unit data symbol array
+        unit_data = []
+        for data_info in data_syms:
+            addr = data_info['addr']
+            addr_hex = f'0x{addr:x}'
+            unit_data.append({
+                'address': addr_hex,
+                'name': data_info['name'],
+                'decl': data_info['symbol'].decl,
+            })
+        data_count = len(unit_data)
+        
         # Skip empty units
-        if not unit_funcs:
+        if not unit_funcs and not data_syms:
             continue
         
         match_avg = round(sum(match_scores) / len(match_scores), 1) if match_scores else None
@@ -418,6 +438,7 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
             'source_path': unit_source_path,
             'obj_path': f'delinked/{obj_name}',
             'functions': sorted(unit_funcs, key=lambda x: x['address']),
+            'data': sorted(unit_data, key=lambda x: x['address']),
             'summary': {
                 'total': len(unit_funcs),
                 'ported': ported_count,
@@ -428,6 +449,9 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
                 'match_avg': match_avg,
                 'match_weighted': match_weighted,
                 'has_delinked_ref': has_delinked_ref,
+            },
+            'data_summary': {
+                'total': data_count,
             },
             'equivalence': {
                 'tested': equiv_tested,
@@ -542,6 +566,7 @@ def generate_report(output_path: str) -> dict:
     ported_funcs = sum(u['summary']['ported'] for u in units)
     total_bytes = sum(u['summary']['bytes_total'] for u in units)
     ported_bytes = sum(u['summary']['bytes_ported'] for u in units)
+    total_data_syms = sum(u['data_summary']['total'] for u in units)
     
     # Get git info
     commit = 'unknown'
@@ -565,9 +590,13 @@ def generate_report(output_path: str) -> dict:
             'display_name': 'Halo: Combat Evolved (Xbox)',
             'version': '01.10.12.2276',
             'total_units': len(units),
-            'total_functions': total_funcs
+            'total_functions': total_funcs,
+            'total_data_symbols': total_data_syms,
         },
         'summary': {
+            'data_symbols': {
+                'total': total_data_syms,
+            },
             'functions': {
                 'total': total_funcs,
                 'ported': ported_funcs,
@@ -1223,6 +1252,23 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                             </tr>
                         </thead>
                         <tbody id="func-table-body"></tbody>
+                    </table>
+                    </div>
+                </div>
+
+                <!-- Data Symbols -->
+                <div id="data-section" style="margin-top:24px;display:none;">
+                    <h2>Data Symbols <span id="data-count" style="color:var(--text-secondary);font-weight:400;"></span></h2>
+                    <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Address</th>
+                                <th>Name</th>
+                                <th>Declaration</th>
+                            </tr>
+                        </thead>
+                        <tbody id="data-table-body"></tbody>
                     </table>
                     </div>
                 </div>
@@ -2163,10 +2209,12 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             var eq = unit.equivalence || {};
             var snap = unit.snapshot || {};
             var golden = unit.runtime_oracle || {};
+            var ds = unit.data_summary || { total: 0 };
             document.getElementById('detail-meta').innerHTML =
                 '<span class="unit-meta-item">Source: <strong>' + escHtml(unit.source_path || '?') + '</strong></span>' +
                 '<span class="unit-meta-item">Functions: <strong>' + s.total + '</strong></span>' +
                 '<span class="unit-meta-item">Ported: <strong>' + s.ported + '</strong> (' + s.percent.toFixed(1) + '%)</span>' +
+                (ds.total > 0 ? '<span class="unit-meta-item">Data Symbols: <strong>' + ds.total + '</strong></span>' : '') +
                 '<span class="unit-meta-item">Bytes: <strong>' + fmtNum(s.bytes_ported) + ' / ' + fmtNum(s.bytes_total) + '</strong></span>' +
                 (s.match_weighted !== null && s.match_weighted !== undefined ?
                     '<span class="unit-meta-item">Match: <strong style="color:' + matchColor(s.match_weighted) + '">' + s.match_weighted.toFixed(1) + '%</strong></span>' : '') +
@@ -2190,6 +2238,9 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
 
             // Function table
             renderFuncTable(funcs);
+
+            // Data symbol table
+            renderDataTable(unit);
         }
 
         function renderDetailChart(funcs) {
@@ -2339,6 +2390,30 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 case 5: return isVerified(func) ? 1 : (func.ported ? 0 : -1);
                 default: return '';
             }
+        }
+
+        /* ===== DATA SYMBOLS ===== */
+        function renderDataTable(unit) {
+            var dataSyms = unit.data || [];
+            var section = document.getElementById('data-section');
+            var tbody = document.getElementById('data-table-body');
+            var countEl = document.getElementById('data-count');
+            if (dataSyms.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+            section.style.display = '';
+            countEl.textContent = '\u2014 ' + dataSyms.length + ' symbol' + (dataSyms.length !== 1 ? 's' : '');
+            var html = '';
+            for (var i = 0; i < dataSyms.length; i++) {
+                var d = dataSyms[i];
+                html += '<tr>' +
+                    '<td class="func-address">' + escHtml(d.address) + '</td>' +
+                    '<td class="func-name">' + escHtml(d.name) + '</td>' +
+                    '<td><code style="font-size:0.82em;color:var(--text-secondary);">' + escHtml(d.decl) + '</code></td>' +
+                '</tr>';
+            }
+            tbody.innerHTML = html;
         }
 
         /* ===== HELPERS ===== */

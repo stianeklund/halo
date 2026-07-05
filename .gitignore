@@ -96,6 +96,9 @@ ram*.bin
 tmp*.bin
 cap_test*.bin
 artifacts/**/*.bin
+# Halo saved-game heap cores + fixture binaries (copyrighted game state) — never commit
+**/core.bin
+tools/xbox/fixtures/**/*.bin
 artifacts/snapshots/
 artifacts/*snapshot*.json
 # Equivalence-test artifacts — must NEVER be committed (game-state snapshots, logs, dumps)

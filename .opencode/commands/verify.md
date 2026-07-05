@@ -1,6 +1,5 @@
 ---
 description: Run lift verification, delink export, hazard scans, and runtime fallback lanes
-agent: deep
 subtask: true
 ---
 
