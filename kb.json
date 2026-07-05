@@ -33970,7 +33970,8 @@
     },
     {
      "addr": "0x128360",
-     "decl": "bool network_connection_connected(int connection);"
+     "decl": "bool network_connection_connected(int connection);",
+     "ported": true
     },
     {
      "addr": "0x1283c0",
