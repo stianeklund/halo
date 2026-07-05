@@ -48,6 +48,11 @@ def disassemble(obj_path: str) -> dict[str, list[str]]:
             if sym.startswith("LAB_") or sym.startswith("switchD_") or sym.startswith("$L") or sym.startswith("$case") or sym.startswith("$next"):
                 current_labels.add(len(current_lines))
                 continue
+            if sym.startswith("FUN_") and current_func and current_lines:
+                last_mnem = mnemonic(current_lines[-1]).lower()
+                if last_mnem not in _RET_MNEMS:
+                    current_labels.add(len(current_lines))
+                    continue
             if current_func and current_lines:
                 functions[current_func] = current_lines
                 _label_positions[current_func] = current_labels
@@ -885,6 +890,17 @@ def main():
     reference_funcs = disassemble(args.reference)
 
     matched = set(compiled_funcs.keys()) & set(reference_funcs.keys())
+
+    # Delinked XDK objects may preserve C++ namespace-qualified names while
+    # our C implementations use the unqualified function name.
+    namespace_map = {}
+    for ref_name in reference_funcs:
+        short_name = ref_name.rsplit("::", 1)[-1]
+        if short_name != ref_name and short_name in compiled_funcs:
+            namespace_map[short_name] = ref_name
+            if ref_name not in matched:
+                compiled_funcs[ref_name] = compiled_funcs[short_name]
+                matched.add(ref_name)
     # Build rename map: when a function was renamed from FUN_xxx, map
     # the new name to the old FUN_xxx name for matching against references.
     rename_map = {}
@@ -914,17 +930,23 @@ def main():
     if args.function:
         fn = args.function.lstrip("_")
         if fn not in matched:
-            # Try rename fallback: look up old FUN_xxx name in reference
-            old_name = rename_map.get(fn)
-            if old_name and old_name in reference_funcs and fn in compiled_funcs:
-                compiled_funcs[old_name] = compiled_funcs[fn]
-                matched = {old_name}
-                fn = old_name
+            namespace_name = namespace_map.get(fn)
+            if namespace_name and namespace_name in reference_funcs and fn in compiled_funcs:
+                compiled_funcs[namespace_name] = compiled_funcs[fn]
+                matched = {namespace_name}
+                fn = namespace_name
             else:
-                print(f"Function {fn} not found in both objects")
-                print(f"  compiled:  {sorted(compiled_funcs.keys())[:10]}")
-                print(f"  reference: {sorted(reference_funcs.keys())[:10]}")
-                sys.exit(1)
+            # Try rename fallback: look up old FUN_xxx name in reference
+                old_name = rename_map.get(fn)
+                if old_name and old_name in reference_funcs and fn in compiled_funcs:
+                    compiled_funcs[old_name] = compiled_funcs[fn]
+                    matched = {old_name}
+                    fn = old_name
+                else:
+                    print(f"Function {fn} not found in both objects")
+                    print(f"  compiled:  {sorted(compiled_funcs.keys())[:10]}")
+                    print(f"  reference: {sorted(reference_funcs.keys())[:10]}")
+                    sys.exit(1)
         matched = {fn}
 
     # Apply rename map for unmatched compiled functions only for whole-object

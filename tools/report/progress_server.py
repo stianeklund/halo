@@ -167,13 +167,25 @@ class SSEHandler(SimpleHTTPRequestHandler):
             logging.error('Cannot read report.json: %s', e)
             return None
 
+        report_unit = None
+        for unit in report.get('units', []):
+            if unit.get('name') == unit_name:
+                report_unit = unit
+                break
+        if report_unit is None:
+            logging.warning('Unit %s not found in report.json', unit_name)
+            return None
+
         # Look up unit in objdiff.json to get the source file path and delinked ref.
+        # Some delinked references are tracked only through delinked/manifest.json
+        # and the generated report, so objdiff.json is a preferred source, not a
+        # hard requirement.
         try:
             with open('objdiff.json') as f:
                 objdiff_config = json.load(f)
         except Exception as e:
-            logging.error('Cannot read objdiff.json: %s', e)
-            return None
+            logging.warning('Cannot read objdiff.json: %s', e)
+            objdiff_config = {'units': []}
 
         unit_config = None
         for entry in objdiff_config.get('units', []):
@@ -181,12 +193,13 @@ class SSEHandler(SimpleHTTPRequestHandler):
                 unit_config = entry
                 break
 
-        if not unit_config:
-            logging.warning('Unit %s not found in objdiff.json', unit_name)
-            return None
-
-        source_path_rel = unit_config.get('metadata', {}).get('source_path')
-        base_path = unit_config.get('base_path')
+        source_path_rel = None
+        base_path = None
+        if unit_config:
+            source_path_rel = unit_config.get('metadata', {}).get('source_path')
+            base_path = unit_config.get('base_path')
+        if not source_path_rel:
+            source_path_rel = report_unit.get('source_path')
 
         if not source_path_rel:
             logging.warning('No source_path in objdiff.json metadata for unit %s', unit_name)
@@ -198,24 +211,19 @@ class SSEHandler(SimpleHTTPRequestHandler):
             and entry.get('base_path')
             and os.path.exists(entry.get('base_path'))
         ]
+        has_report_ref = bool(report_unit.get('summary', {}).get('has_delinked_ref'))
         if not base_path or not os.path.exists(base_path):
             if same_source_refs:
                 logging.info('No TU delinked reference for unit %s; using per-function refs',
+                             unit_name)
+            elif has_report_ref:
+                logging.info('No objdiff unit for %s; using report/delinked manifest ref',
                              unit_name)
             else:
                 logging.warning('No delinked reference for unit %s (%s)', unit_name, base_path)
                 return None
         else:
             logging.info('Using whole-TU delinked reference for unit %s: %s', unit_name, base_path)
-
-        report_unit = None
-        for unit in report.get('units', []):
-            if unit.get('name') == unit_name:
-                report_unit = unit
-                break
-        if report_unit is None:
-            logging.warning('Unit %s not found in report.json', unit_name)
-            return None
 
         # Import run_vc71_verify from tools/verify/vc71_regression.py
         import sys as _sys
@@ -255,6 +263,10 @@ class SSEHandler(SimpleHTTPRequestHandler):
             for key in candidates:
                 if key and key in results:
                     return results[key]['score']
+            name = func.get('name')
+            for key, info in results.items():
+                if key.rsplit('::', 1)[-1] == name:
+                    return info['score']
             return None
 
         def _has_function_ref(func):
@@ -282,7 +294,7 @@ class SSEHandler(SimpleHTTPRequestHandler):
         try:
             vc71_results = {}
             fallback_funcs = []
-            if base_path and os.path.exists(base_path):
+            if (base_path and os.path.exists(base_path)) or has_report_ref:
                 vc71_results.update(_run_vc71_verify(source_path))
 
             for func in report_unit.get('functions', []):
@@ -351,6 +363,10 @@ class SSEHandler(SimpleHTTPRequestHandler):
             for key in candidates:
                 if key and key in vc71_results:
                     return vc71_results[key]['score']
+            name = func.get('name')
+            for key, info in vc71_results.items():
+                if key.rsplit('::', 1)[-1] == name:
+                    return info['score']
             return None
 
         updated_funcs = {}

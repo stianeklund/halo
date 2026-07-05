@@ -348,7 +348,7 @@ def export_split_functions(
     verbose: bool,
     args,
 ) -> tuple:
-    """Second pass: export each unported function of split TUs individually.
+    """Second pass: export functions needing standalone refs from split TUs.
 
     Stores each function as delinked/functions/<hex8>.obj so vc71_verify can
     find a reference even when the parent TU is non-contiguous in the binary.
@@ -366,11 +366,25 @@ def export_split_functions(
         obj = obj_by_name.get(name)
         if not obj:
             continue
-        funcs = [f for f in (obj.get("functions") or []) if not f.get("ported") and f.get("addr")]
+        covered_hi = None
+        addr_range = entry.get("addr_range", "")
+        if isinstance(addr_range, str) and "-" in addr_range:
+            try:
+                covered_hi = int(addr_range.split("-", 1)[1], 16)
+            except ValueError:
+                covered_hi = None
+
+        funcs = []
+        for fn in obj.get("functions") or []:
+            if not fn.get("addr"):
+                continue
+            addr_int = int(fn["addr"], 16)
+            if not fn.get("ported") or (covered_hi is not None and addr_int >= covered_hi):
+                funcs.append(fn)
         if not funcs:
             continue
 
-        print(f"\n  per-function pass for split TU: {name} ({len(funcs)} unported)")
+        print(f"\n  per-function pass for split TU: {name} ({len(funcs)} needed)")
         for fn in funcs:
             addr_int = int(fn["addr"], 16)
             addr_hex = f"{addr_int:08x}"
@@ -389,15 +403,25 @@ def export_split_functions(
                 })
                 continue
 
-            addr_range = range_str(addr_int, addr_int + RANGE_PAD_PER_FUNC)
             try:
-                if backend == "rpc":
-                    export_via_rpc(str(export_path), addr_range)
-                else:
-                    export_via_headless(
-                        str(export_path), addr_range,
-                        args.ghidra_root, args.project_dir, args.script_dir,
-                    )
+                pads = [RANGE_PAD_PER_FUNC, 0x100, 0x80, 0x40, 0x30, 0x20, 0x10]
+                last_exc = None
+                for pad in pads:
+                    addr_range = range_str(addr_int, addr_int + pad)
+                    try:
+                        if backend == "rpc":
+                            export_via_rpc(str(export_path), addr_range)
+                        else:
+                            export_via_headless(
+                                str(export_path), addr_range,
+                                args.ghidra_root, args.project_dir, args.script_dir,
+                            )
+                        last_exc = None
+                        break
+                    except Exception as exc:
+                        last_exc = exc
+                if last_exc is not None:
+                    raise last_exc
                 decl = fn.get("decl", "").split("(")[0].strip() if fn.get("decl") else addr_hex
                 print(f"    ok  functions/{addr_hex}.obj  ({decl})")
                 manifest[manifest_key] = {
