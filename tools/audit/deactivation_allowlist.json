@@ -1405,5 +1405,145 @@
     "object": "objects.obj",
     "reason": "non-faithful mass-lift stub (41b57f52): drops tag_get('bitm', elec+0x40) indirection, reads block from elec+0x60 not bitmap+0x60 -> tag_groups.c:3089 assert on empty block; inner lightning geometry loops empty. Deactivated to restore original faithful 'elec' renderer; needs proper re-lift.",
     "since": "2026-07-01"
+  },
+  {
+    "addr": "0x12c100",
+    "name": "FUN_0012c100",
+    "object": "network_server_manager.obj",
+    "reason": "sub-80% VC71 lift; deactivated pending lift-score-improve (integrate-scenario-20260704). Runs original binary behavior until the lift is improved past the 80% ship threshold.",
+    "since": "2026-07-05"
+  },
+  {
+    "addr": "0x12c160",
+    "name": "FUN_0012c160",
+    "object": "network_server_manager.obj",
+    "reason": "sub-80% VC71 lift; deactivated pending lift-score-improve (integrate-scenario-20260704). Runs original binary behavior until the lift is improved past the 80% ship threshold.",
+    "since": "2026-07-05"
+  },
+  {
+    "addr": "0x12d880",
+    "name": "FUN_0012d880",
+    "object": "network_server_manager.obj",
+    "reason": "sub-80% VC71 lift; deactivated pending lift-score-improve (integrate-scenario-20260704). Runs original binary behavior until the lift is improved past the 80% ship threshold.",
+    "since": "2026-07-05"
+  },
+  {
+    "addr": "0x12dc20",
+    "name": "FUN_0012dc20",
+    "object": "network_server_manager.obj",
+    "reason": "sub-80% VC71 lift; deactivated pending lift-score-improve (integrate-scenario-20260704). Runs original binary behavior until the lift is improved past the 80% ship threshold.",
+    "since": "2026-07-05"
+  },
+  {
+    "addr": "0x12e580",
+    "name": "FUN_0012e580",
+    "object": "network_server_manager.obj",
+    "reason": "sub-80% VC71 lift; deactivated pending lift-score-improve (integrate-scenario-20260704). Runs original binary behavior until the lift is improved past the 80% ship threshold.",
+    "since": "2026-07-05"
+  },
+  {
+    "addr": "0x12e750",
+    "name": "FUN_0012e750",
+    "object": "network_server_manager.obj",
+    "reason": "sub-80% VC71 lift; deactivated pending lift-score-improve (integrate-scenario-20260704). Runs original binary behavior until the lift is improved past the 80% ship threshold.",
+    "since": "2026-07-05"
+  },
+  {
+    "addr": "0x12eb20",
+    "name": "FUN_0012eb20",
+    "object": "network_server_manager.obj",
+    "reason": "sub-80% VC71 lift; deactivated pending lift-score-improve (integrate-scenario-20260704). Runs original binary behavior until the lift is improved past the 80% ship threshold.",
+    "since": "2026-07-05"
+  },
+  {
+    "addr": "0x12eca0",
+    "name": "FUN_0012eca0",
+    "object": "network_server_manager.obj",
+    "reason": "sub-80% VC71 lift; deactivated pending lift-score-improve (integrate-scenario-20260704). Runs original binary behavior until the lift is improved past the 80% ship threshold.",
+    "since": "2026-07-05"
+  },
+  {
+    "addr": "0x12f430",
+    "name": "FUN_0012f430",
+    "object": "network_server_manager.obj",
+    "reason": "sub-80% VC71 lift; deactivated pending lift-score-improve (integrate-scenario-20260704). Runs original binary behavior until the lift is improved past the 80% ship threshold.",
+    "since": "2026-07-05"
+  },
+  {
+    "addr": "0x12f5d0",
+    "name": "FUN_0012f5d0",
+    "object": "network_server_manager.obj",
+    "reason": "sub-80% VC71 lift; deactivated pending lift-score-improve (integrate-scenario-20260704). Runs original binary behavior until the lift is improved past the 80% ship threshold.",
+    "since": "2026-07-05"
+  },
+  {
+    "addr": "0x12da90",
+    "name": "FUN_0012da90",
+    "object": "network_server_manager.obj",
+    "reason": "sub-80% VC71 lift; deactivated pending lift-score-improve (integrate-scenario-20260704). Runs original binary behavior until the lift is improved past the 80% ship threshold.",
+    "since": "2026-07-05"
+  },
+  {
+    "addr": "0x12db30",
+    "name": "FUN_0012db30",
+    "object": "network_server_manager.obj",
+    "reason": "sub-80% VC71 lift; deactivated pending lift-score-improve (integrate-scenario-20260704). Runs original binary behavior until the lift is improved past the 80% ship threshold.",
+    "since": "2026-07-05"
+  },
+  {
+    "addr": "0x12f040",
+    "name": "FUN_0012f040",
+    "object": "network_server_manager.obj",
+    "reason": "sub-80% VC71 lift; deactivated pending lift-score-improve (integrate-scenario-20260704). Runs original binary behavior until the lift is improved past the 80% ship threshold.",
+    "since": "2026-07-05"
+  },
+  {
+    "addr": "0x12f0d0",
+    "name": "FUN_0012f0d0",
+    "object": "network_server_manager.obj",
+    "reason": "sub-80% VC71 lift; deactivated pending lift-score-improve (integrate-scenario-20260704). Runs original binary behavior until the lift is improved past the 80% ship threshold.",
+    "since": "2026-07-05"
+  },
+  {
+    "addr": "0x12f170",
+    "name": "FUN_0012f170",
+    "object": "network_server_manager.obj",
+    "reason": "sub-80% VC71 lift; deactivated pending lift-score-improve (integrate-scenario-20260704). Runs original binary behavior until the lift is improved past the 80% ship threshold.",
+    "since": "2026-07-05"
+  },
+  {
+    "addr": "0x12f200",
+    "name": "FUN_0012f200",
+    "object": "network_server_manager.obj",
+    "reason": "sub-80% VC71 lift; deactivated pending lift-score-improve (integrate-scenario-20260704). Runs original binary behavior until the lift is improved past the 80% ship threshold.",
+    "since": "2026-07-05"
+  },
+  {
+    "addr": "0x12f290",
+    "name": "FUN_0012f290",
+    "object": "network_server_manager.obj",
+    "reason": "sub-80% VC71 lift; deactivated pending lift-score-improve (integrate-scenario-20260704). Runs original binary behavior until the lift is improved past the 80% ship threshold.",
+    "since": "2026-07-05"
+  },
+  {
+    "addr": "0x12f330",
+    "name": "FUN_0012f330",
+    "object": "network_server_manager.obj",
+    "reason": "sub-80% VC71 lift; deactivated pending lift-score-improve (integrate-scenario-20260704). Runs original binary behavior until the lift is improved past the 80% ship threshold.",
+    "since": "2026-07-05"
+  },
+  {
+    "addr": "0x12f690",
+    "name": "FUN_0012f690",
+    "object": "network_server_manager.obj",
+    "reason": "sub-80% VC71 lift; deactivated pending lift-score-improve (integrate-scenario-20260704). Runs original binary behavior until the lift is improved past the 80% ship threshold.",
+    "since": "2026-07-05"
+  },
+  {
+    "addr": "0x12f8d0",
+    "name": "FUN_0012f8d0",
+    "object": "network_server_manager.obj",
+    "reason": "sub-80% VC71 lift; deactivated pending lift-score-improve (integrate-scenario-20260704). Runs original binary behavior until the lift is improved past the 80% ship threshold.",
+    "since": "2026-07-05"
   }
 ]
