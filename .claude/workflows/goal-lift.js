@@ -90,6 +90,27 @@ const TARGETS_SCHEMA = {
   required: ['targets'],
 }
 
+// P2 liftability gate — one cheap mechanical agent stamps each candidate so the
+// workflow can drop non-liftable targets before any research/lift agent spawns.
+const LIFTABILITY_SCHEMA = {
+  type: 'object',
+  properties: {
+    classified: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          addr:           { type: 'string' },
+          liftable_class: { type: 'string' },  // liftable | fragment | known_cap
+          class_reason:   { type: 'string' },
+        },
+        required: ['addr', 'liftable_class'],
+      },
+    },
+  },
+  required: ['classified'],
+}
+
 const BRIEF_SCHEMA = {
   type: 'object',
   properties: {
@@ -219,6 +240,30 @@ equivalence, a full clean build) MUST be wrapped so it cannot run silently
 past 180s and trip the harness stall detector that kills the whole run:
   timeout 150 <cmd> 2>&1 || echo "[timed-out]"
 `
+
+// P2: classify candidates as liftable / fragment / known_cap using live Ghidra
+// xref shape (fragment) + the parked ledger (known_cap). One mechanical agent,
+// one batched get_bulk_xrefs call. Fail-open: if Ghidra can't answer, return
+// classified=[] and the workflow proceeds without dropping anything.
+const liftabilityGatePrompt = (targets) =>
+  `Classify goal-lift candidates as liftable / fragment / known_cap so the workflow
+can drop non-liftable ones BEFORE spawning expensive research/lift agents. READ-ONLY.
+
+Candidates (addr — name):
+${targets.map(t => `  ${t.addr} — ${t.name}`).join('\n')}
+
+STEPS:
+1. Get xref shapes for ALL candidate addresses. First try one batched call:
+   mcp__ghidra__get_bulk_xrefs addresses="${targets.map(t => t.addr).join(',')}" program="cachebeta.xbe"
+   If that tool errors, fall back to mcp__ghidra__get_xrefs_to per address.
+   If EVERY Ghidra call fails → return {"classified": []} (fail-open; do not guess).
+2. Build a JSON object mapping each "0x..." addr to its raw xref result text, and
+   write it: printf '%s' '<json>' > /tmp/glift_xrefs.json
+3. Write the candidate array to /tmp/glift_cands.json:
+   printf '%s' '${JSON.stringify(targets.map(t => ({ addr: t.addr, name: t.name })))}' > /tmp/glift_cands.json
+4. Run: rtk python3 tools/analysis/classify_liftability.py --candidates /tmp/glift_cands.json --xrefs /tmp/glift_xrefs.json
+5. Return classified = the script's JSON array verbatim (each element has addr,
+   liftable_class, and class_reason). Do NOT invent classes — copy the script output.`
 
 const researchPrompt = (t) =>
   `Gather Ghidra context for ${t.name} at ${t.addr} (${t.obj}). READ-ONLY — no edits.
@@ -734,9 +779,24 @@ if (CRITERIA) log(`Extra criteria (soft): ${CRITERIA}`)
 
 const BATCH_LIMIT = Math.min(60, Math.max(30, GOAL * 3))
 
+// When an --objects allowlist is set, query the selector PER OBJECT
+// (`select --object <name> --min-score 0`) instead of a single global top-N
+// `select --limit N`. The global select ranks by score across ALL objects, so a
+// low-scoring or freshly-started object (no source file yet, no delinked ref →
+// functions score ~30) never appears in the top BATCH_LIMIT, and the code-side
+// object post-filter then yields an empty queue — even though the object has
+// many perfectly liftable functions. Per-object select surfaces every candidate
+// in the allowlisted object(s), so a fresh-object goal-lift actually gets work.
+const RETURN_CAP = OBJECTS ? 200 : BATCH_LIMIT
+const selectCmds = OBJECTS
+  ? OBJECTS.map(o => `rtk python3 tools/llm_auto_lift.py -q select --object ${o} --min-score 0 --limit ${RETURN_CAP} --json 2>&1`)
+  : [`rtk python3 tools/llm_auto_lift.py -q select --limit ${BATCH_LIMIT} --json 2>&1`]
+
 const selection = await agent(
   `Select next batch of Halo CE Xbox functions to lift.
-Run: rtk python3 tools/llm_auto_lift.py -q select --limit ${BATCH_LIMIT} --json 2>&1
+${OBJECTS
+    ? `Run EACH of these commands (one per allowlisted object) and concatenate all their JSON arrays into one combined list before parsing:\n${selectCmds.join('\n')}`
+    : `Run: ${selectCmds[0]}`}
 (-q is a GLOBAL flag before the subcommand — it makes the JSON compact.)
 This emits a JSON array; each element has: total_score, lane, and target{addr, name,
 object_name, has_reg_args, source_path, score_details{...}}. For each element parse:
@@ -756,7 +816,7 @@ ${OBJECTS
     : `Prefer, in order: game_engine.obj, lruv_cache.obj, hud.obj, items.obj, input_xbox.obj —
 sort those to the front, then the rest by score descending.`}
 ${CRITERIA ? `\nADDITIONAL USER CRITERIA (apply on top of the rules above): ${CRITERIA}\n` : ''}
-Return up to ${BATCH_LIMIT} entries, each with the parsed fields above.`,
+Return up to ${RETURN_CAP} entries, each with the parsed fields above.`,
   { label: 'select', phase: 'Select', ...M.extract, schema: TARGETS_SCHEMA }
 )
 
@@ -819,6 +879,37 @@ if (preflight && preflight.ok === false) {
   log(`Ghidra MCP preflight FAILED (${preflight.reason || 'unavailable'}) — aborting before research`)
   return { committed: 0, goal: GOAL, reached_goal: false, skipped: codeSkips.length, reverted: 0,
            infra_blocked: targets.length, reason: 'ghidra_unavailable' }
+}
+
+// ── P2 liftability gate — drop switch-case fragments (non-callable → porting one
+// crashes on the parent's mid-flight stack) and confirmed structural caps BEFORE
+// any research/lift agent spawns. Runs post-preflight because fragment detection
+// needs live Ghidra xref shape. Fail-open: no classification → proceed unchanged.
+if (targets.length) {
+  const lc = await agent(liftabilityGatePrompt(targets), {
+    label: 'liftability-gate', phase: 'Research', ...M.mechanical, schema: LIFTABILITY_SCHEMA,
+  })
+  if (lc && Array.isArray(lc.classified) && lc.classified.length) {
+    const cls = new Map(lc.classified.map(r => [(r.addr || '').toLowerCase(), r]))
+    const kept = []
+    for (const t of targets) {
+      const r = cls.get((t.addr || '').toLowerCase())
+      if (r && (r.liftable_class === 'fragment' || r.liftable_class === 'known_cap')) {
+        codeSkips.push({ ...t, status: 'skipped', reason: `skip_${r.liftable_class} (${r.class_reason || ''})` })
+      } else {
+        kept.push(t)
+      }
+    }
+    const dropped = targets.length - kept.length
+    if (dropped) log(`Liftability gate dropped ${dropped} (${codeSkips.filter(s => s.reason.startsWith('skip_fragment')).length} fragment, ${codeSkips.filter(s => s.reason.startsWith('skip_known_cap')).length} known_cap) before research`)
+    targets = kept
+  } else {
+    log('Liftability gate: no classification returned — proceeding without it (fail-open)')
+  }
+  if (targets.length === 0) {
+    log('No viable targets after liftability gate')
+    return { committed: 0, goal: GOAL, reached_goal: false, skipped: codeSkips.length, reverted: 0, reason: 'empty_queue_after_liftability' }
+  }
 }
 
 // Warm the retrieval server before any research decompiles so the auto-firing
