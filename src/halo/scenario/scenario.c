@@ -1,3 +1,5 @@
+#include "x87_math.h"
+
 /* 0x18aef0 — object bounding-sphere accessor: fetch an object's world-space
  * center (object_data + 0x50/0x54/0x58, three contiguous floats) and the
  * bounding radius from its 'obje' definition tag (+0x104). The object handle
@@ -1150,6 +1152,263 @@ float FUN_0018d670(short mode, float *v1, float *v2)
     }
   }
   return result;
+}
+
+/* 0x18d6e0 — build_sprite (render_sprite.c, asserts 0x1a2/0x1a3/0x1b3): emit
+ * one 4-corner sprite into the build_sprites record. Resolves the 'bitm' tag,
+ * validates sequence/sprite indices, finds/allocates the vertex group
+ * (FUN_0018d140), transforms origin/direction into view space
+ * (FUN_0018cf10), builds the 2-vector basis (FUN_0018d490), resolves the
+ * default scale (FUN_0018d040 writes through the scale param slot), fades
+ * intensity by the animation view-angle term (FUN_0018d670), packs the
+ * 32-bit color (alpha from intensity or the fixed 0x2602c8 factor), then
+ * writes 4 vertices (screen-space stride 0x14: x,y,u,v,color; world stride
+ * 0x18: x,y,z,u,v,color with rotation, mirroring, and bounds tracking).
+ * Afterwards accumulates the view origin, bumps counts, adds the screen
+ * coverage fraction (render_frustum_cube_view_fraction) with the big-sprite
+ * clamp (>10 oversized sprites get dropped again), and draws the debug quad
+ * outline when 0x5064e8 is set. cdecl, 11 stack args. */
+void FUN_0018d6e0(void *data, int16_t mode, int16_t sequence_index,
+                  int16_t sprite_index, float *untransformed_origin,
+                  float *untransformed_direction, float angle, float scale,
+                  float *color, float intensity, uint32_t flags)
+{
+  float transformed_direction[3]; /* EBP-0xB0 */
+  float basis[10];                /* EBP-0xA4; [1..3] right, [4..6] up,
+                                   * [7..9] forward scratch */
+  float dbg_b[3];                 /* EBP-0x70 */
+  float dbg_d[3];                 /* EBP-0x64 */
+  float dbg_c[3];                 /* EBP-0x58 */
+  uint32_t mirror_y;              /* EBP-0x4C */
+  float bounds[6];                /* EBP-0x48: minx,maxx,miny,maxy,minz,maxz */
+  float sin_a;                    /* EBP-0x30 */
+  float sin_dx;                   /* EBP-0x2C (after elem ptr dies) */
+  float cos_a;                    /* EBP-0x28 */
+  float transformed_origin[3];    /* EBP-0x24 */
+  char *elem;                     /* EBP-0x18 */
+  char *bitm;                     /* EBP-0x14, then group ptr */
+  int vertex_index;               /* EBP-0x10 (read back as int16) */
+  float wpoint[3];                /* EBP-0xC: world vertex / debug p0 */
+  char *seq_elem;
+  char *bitmap_elem;
+  char *group;
+  char *anim;
+  uint32_t pixel;
+  uint32_t final_color;
+  uint32_t mirror_x;
+  float alpha_f;
+  float area;
+  int16_t group_index;
+  int16_t old_count;
+  int corner;
+  float u;
+  float v;
+  float dx;
+  float dy;
+  float rot_x;
+  float rot_y;
+  float *vtx;
+  int verts;
+  int idx;
+
+  bitm = (char *)tag_get(0x6269746d, *(int *)data);
+  if (untransformed_origin == NULL) {
+    display_assert("untransformed_origin",
+                   "c:\\halo\\SOURCE\\render\\render_sprite.c", 0x1a2, 1);
+    system_exit(-1);
+  }
+  if (mode != 0 &&
+      (untransformed_direction == NULL ||
+       untransformed_direction[0] * untransformed_direction[0] +
+           untransformed_direction[1] * untransformed_direction[1] +
+           untransformed_direction[2] * untransformed_direction[2] ==
+         *(const float *)0x2533c0)) {
+    display_assert("mode==_build_sprite_normal || (untransformed_direction "
+                   "&& magnitude_squared3d(untransformed_direction))",
+                   "c:\\halo\\SOURCE\\render\\render_sprite.c", 0x1a3, 1);
+    system_exit(-1);
+  }
+  if (color == NULL) {
+    color = *(float **)0x2ee6c4;
+  }
+  if (*(int16_t *)((char *)data + 0xc) < *(int16_t *)((char *)data + 4)) {
+    if (sequence_index >= 0 && (int)sequence_index < *(int *)(bitm + 0x54)) {
+      seq_elem = (char *)tag_block_get_element(bitm + 0x54,
+                                               (int)sequence_index, 0x40);
+      if (*(int16_t *)(seq_elem + 0x20) != -1 && sprite_index >= 0 &&
+          (int)sprite_index < *(int *)(seq_elem + 0x34)) {
+        elem = (char *)tag_block_get_element(seq_elem + 0x34,
+                                             (int)sprite_index, 0x20);
+        if (*(int16_t *)elem == -1) {
+          display_assert(
+            csprintf((char *)0x5ab100,
+                     "the bitmap group %s sequence %d sprite %d references "
+                     "bitmap -1 (tell matt).",
+                     tag_get_name(*(int *)data), sequence_index,
+                     sprite_index),
+            "c:\\halo\\SOURCE\\render\\render_sprite.c", 0x1b3, 1);
+          system_exit(-1);
+        }
+        bitmap_elem = (char *)tag_block_get_element(
+          bitm + 0x60, (int)*(int16_t *)elem, 0x30);
+        group_index = FUN_0018d140(data, (int)bitmap_elem);
+        if (group_index != -1) {
+          group = (char *)data + (int)group_index * 0x10 + 0x24;
+          if (*(int16_t *)(group + 8) < *(int16_t *)((char *)data + 4)) {
+            vertex_index = (int)*(int16_t *)(group + 8) * 4;
+            sin_a = 0.0f;
+            cos_a = 1.0f;
+            qmemcpy(bounds, *(void **)0x31fc6c, 0x18);
+            if (angle != *(const float *)0x2533c0) {
+              sin_a = x87_fsin(angle);
+              cos_a = x87_fcos(angle);
+            }
+            FUN_0018cf10(data, untransformed_origin,
+                         untransformed_direction, (uint8_t)flags,
+                         transformed_origin, transformed_direction);
+            FUN_0018d490(basis, data, transformed_direction, mode,
+                         (int)flags, transformed_origin);
+            FUN_0018d040(data, &scale, mode, (int)flags, transformed_origin,
+                         bitmap_elem);
+            anim = (char *)*(int *)((char *)data + 8);
+            if (anim != NULL && *(int16_t *)(anim + 0x2c) != 0 &&
+                mode != 0) {
+              cross_product3d(basis + 1, basis + 4, basis + 7);
+              intensity = FUN_0018d670(*(uint16_t *)(anim + 0x2c),
+                                       transformed_origin, basis + 7) *
+                          intensity;
+            }
+            pixel = FUN_000d1c90(color);
+            anim = (char *)*(int *)((char *)data + 8);
+            if (anim != NULL && *(int16_t *)(anim + 0x2a) != 0 &&
+                (*(uint8_t *)(anim + 0x28) & 2) == 0) {
+              alpha_f = intensity * *(const float *)0x2602c8;
+            } else {
+              alpha_f = (float)(pixel >> 24) * intensity;
+            }
+            final_color = ((uint32_t)(uint8_t)(int)alpha_f << 24) |
+                          (pixel & 0xffffff);
+            mirror_x = flags & 2;
+            mirror_y = flags & 4;
+            corner = 0;
+            do {
+              if ((((corner >> 1) ^ corner) & 1) == 0) {
+                u = *(float *)(elem + 8);
+              } else {
+                u = *(float *)(elem + 0xc);
+              }
+              if ((corner & 2) == 0) {
+                v = *(float *)(elem + 0x14);
+              } else {
+                v = *(float *)(elem + 0x10);
+              }
+              dx = u - (*(float *)(elem + 8) + *(float *)(elem + 0x18));
+              dy = (*(float *)(elem + 0x1c) + *(float *)(elem + 0x10)) - v;
+              sin_dx = sin_a * dx;
+              rot_x = dx * cos_a - dy * sin_a;
+              rot_y = dy * cos_a + sin_dx;
+              if (mirror_x != 0) {
+                rot_x = -rot_x;
+              }
+              if (mirror_y != 0) {
+                rot_y = -rot_y;
+              }
+              if ((*(uint8_t *)((char *)data + 0x10) & 1) != 0) {
+                vtx = (float *)(*(int *)(group + 4) +
+                                (int)(int16_t)vertex_index * 0x14);
+                vtx[0] = rot_x * scale + transformed_origin[0];
+                vtx[1] = rot_y * scale + transformed_origin[1];
+                vtx[2] = u;
+                vtx[3] = v;
+                *(uint32_t *)(vtx + 4) = final_color;
+              } else {
+                vtx = (float *)(*(int *)(group + 4) +
+                                (int)(int16_t)vertex_index * 0x18);
+                wpoint[0] = (basis[4] * rot_y + basis[1] * rot_x) * scale +
+                            transformed_origin[0];
+                wpoint[1] = (basis[5] * rot_y + basis[2] * rot_x) * scale +
+                            transformed_origin[1];
+                wpoint[2] = (basis[6] * rot_y + basis[3] * rot_x) * scale +
+                            transformed_origin[2];
+                if (wpoint[0] < bounds[0]) {
+                  bounds[0] = wpoint[0];
+                }
+                if (bounds[1] < wpoint[0]) {
+                  bounds[1] = wpoint[0];
+                }
+                if (wpoint[1] < bounds[2]) {
+                  bounds[2] = wpoint[1];
+                }
+                if (bounds[3] < wpoint[1]) {
+                  bounds[3] = wpoint[1];
+                }
+                if (wpoint[2] < bounds[4]) {
+                  bounds[4] = wpoint[2];
+                }
+                if (bounds[5] < wpoint[2]) {
+                  bounds[5] = wpoint[2];
+                }
+                vtx[3] = u;
+                vtx[0] = wpoint[0];
+                vtx[4] = v;
+                vtx[1] = wpoint[1];
+                vtx[2] = wpoint[2];
+                *(uint32_t *)(vtx + 5) = final_color;
+              }
+              vertex_index = vertex_index + 1;
+              corner = corner + 1;
+            } while ((int16_t)corner < 4);
+            *(float *)((char *)data + 0x14) =
+              transformed_origin[0] + *(float *)((char *)data + 0x14);
+            *(float *)((char *)data + 0x18) =
+              transformed_origin[1] + *(float *)((char *)data + 0x18);
+            *(float *)((char *)data + 0x1c) =
+              transformed_origin[2] + *(float *)((char *)data + 0x1c);
+            *(int16_t *)(group + 8) = *(int16_t *)(group + 8) + 1;
+            *(int16_t *)((char *)data + 0xc) =
+              *(int16_t *)((char *)data + 0xc) + 1;
+            if ((*(uint8_t *)((char *)data + 0x10) & 1) == 0) {
+              area = render_frustum_cube_view_fraction((void *)0x5065a4,
+                                                       bounds);
+              *(float *)0x506504 = *(float *)0x506504 + area;
+              if (area > *(const float *)0x253398) {
+                old_count = *(int16_t *)0x506508;
+                *(int16_t *)0x506508 = old_count + 1;
+                if (old_count > 10) {
+                  *(int16_t *)(group + 8) = *(int16_t *)(group + 8) - 1;
+                  *(int16_t *)((char *)data + 0xc) =
+                    *(int16_t *)((char *)data + 0xc) - 1;
+                }
+              }
+              if (*(char *)0x5064e8 != 0) {
+                idx = (int)(int16_t)vertex_index;
+                verts = *(int *)(group + 4);
+                matrix_transform_point((float *)0x5065e8,
+                                       (float *)(verts +
+                                                 (idx * 3 - 12) * 8),
+                                       wpoint);
+                matrix_transform_point((float *)0x5065e8,
+                                       (float *)(verts + (idx * 3 - 9) * 8),
+                                       dbg_b);
+                matrix_transform_point((float *)0x5065e8,
+                                       (float *)(verts + (idx * 3 - 6) * 8),
+                                       dbg_c);
+                matrix_transform_point((float *)0x5065e8,
+                                       (float *)(verts + idx * 0x18 - 0x18),
+                                       dbg_d);
+                FUN_0017eb10(wpoint, dbg_b, *(int *)0x2ee6c4);
+                FUN_0017eb10(wpoint, dbg_c, *(int *)0x2ee6c4);
+                FUN_0017eb10(dbg_c, dbg_d, *(int *)0x2ee6c4);
+                FUN_0017eb10(dbg_d, dbg_b, *(int *)0x2ee6c4);
+              }
+            }
+          }
+        }
+      }
+    }
+  } else {
+    error(2, "build_sprite sprite count exceeded.");
+  }
 }
 
 /* 0x18df70 — triangle_strip iterator init (render/triangle_strips.c:0x16-0x17).

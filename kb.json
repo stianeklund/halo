@@ -21102,7 +21102,7 @@
     },
     {
      "addr": "0x185ad0",
-     "decl": "void render_frustum_cube_view_fraction(void);"
+     "decl": "float render_frustum_cube_view_fraction(void *frustum, float *bounds);"
     },
     {
      "addr": "0x185f80",
@@ -22058,7 +22058,8 @@
     },
     {
      "addr": "0x18d6e0",
-     "decl": "void FUN_0018d6e0(void);"
+     "decl": "void FUN_0018d6e0(void *data, int16_t mode, int16_t sequence_index, int16_t sprite_index, float *untransformed_origin, float *untransformed_direction, float angle, float scale, float *color, float intensity, uint32_t flags);",
+     "ported": true
     },
     {
      "addr": "0x18dcf0",
