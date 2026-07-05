@@ -64,3 +64,13 @@ void FUN_001283c0(int connection, void *buf, int flag)
     *(short *)(flag + 0x10) = 4;
   }
 }
+
+/* network_connection_set_connection_rejection_procedure (0x128580).
+ * Trivial setter: asserts the connection exists, then stores the rejection
+ * callback pointer at connection+0xc. */
+void network_connection_set_connection_rejection_procedure(int connection,
+                                                           void *callback)
+{
+  assert_halt(connection);
+  *(void **)(connection + 0xc) = callback;
+}
