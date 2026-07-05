@@ -43,8 +43,8 @@
     }
   },
   "meta": {
-    "timestamp": "2026-07-05T19:44:14.199381+02:00",
-    "commit": "7c078e5777",
+    "timestamp": "2026-07-05T20:05:14.614396+02:00",
+    "commit": "adc8ecc27f",
     "branch": "main",
     "tool_version": "1.0.0"
   },
@@ -2831,7 +2831,7 @@
         "bytes_percent": 100.0,
         "match_avg": 91.0,
         "match_weighted": 83.2,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 0
@@ -5741,7 +5741,7 @@
         "bytes_percent": 100.0,
         "match_avg": 90.9,
         "match_weighted": 86.1,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 3
@@ -6993,7 +6993,7 @@
         "bytes_percent": 100.0,
         "match_avg": 100.0,
         "match_weighted": 100.0,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 0
@@ -8621,7 +8621,7 @@
         "bytes_percent": 100.0,
         "match_avg": 91.5,
         "match_weighted": 86.2,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 0
@@ -9421,7 +9421,7 @@
         "bytes_percent": 100.0,
         "match_avg": 84.6,
         "match_weighted": 55.2,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 0
@@ -10193,7 +10193,7 @@
         "bytes_percent": 100.0,
         "match_avg": 91.1,
         "match_weighted": 86.2,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 0
@@ -12100,7 +12100,7 @@
         "bytes_percent": 100.0,
         "match_avg": 94.4,
         "match_weighted": 94.1,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 0
@@ -13552,7 +13552,7 @@
         "bytes_percent": 100.0,
         "match_avg": 82.7,
         "match_weighted": 78.5,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 0
@@ -14191,7 +14191,7 @@
         "bytes_percent": 100.0,
         "match_avg": 89.9,
         "match_weighted": 88.6,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 0
@@ -14623,7 +14623,7 @@
         "bytes_percent": 100.0,
         "match_avg": 87.7,
         "match_weighted": 78.5,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 0
@@ -20115,7 +20115,7 @@
         "bytes_percent": 100.0,
         "match_avg": 84.8,
         "match_weighted": 81.1,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 0
@@ -21671,7 +21671,7 @@
         "bytes_percent": 100.0,
         "match_avg": 84.2,
         "match_weighted": 73.9,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 1
@@ -21805,7 +21805,7 @@
         "bytes_percent": 100.0,
         "match_avg": 86.5,
         "match_weighted": 86.5,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 0
@@ -22099,7 +22099,7 @@
         "bytes_percent": 100.0,
         "match_avg": 87.9,
         "match_weighted": 64.3,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 0
@@ -23367,7 +23367,7 @@
         "bytes_percent": 100.0,
         "match_avg": 95.3,
         "match_weighted": 93.1,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 0
@@ -26261,7 +26261,7 @@
         "bytes_percent": 100.0,
         "match_avg": 88.4,
         "match_weighted": 84.2,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 0
@@ -27081,7 +27081,7 @@
         "bytes_percent": 100.0,
         "match_avg": 88.3,
         "match_weighted": 86.5,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 0
@@ -27623,7 +27623,7 @@
         "bytes_percent": 100.0,
         "match_avg": 94.3,
         "match_weighted": 83.2,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 0
@@ -31179,7 +31179,7 @@
         "bytes_percent": 100.0,
         "match_avg": 94.7,
         "match_weighted": 94.6,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 0
@@ -37119,7 +37119,7 @@
         "bytes_percent": 100.0,
         "match_avg": 85.7,
         "match_weighted": 82.1,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 0
@@ -39496,7 +39496,7 @@
         "bytes_percent": 84.23,
         "match_avg": 90.1,
         "match_weighted": 82.0,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 0
@@ -41074,7 +41074,7 @@
         "bytes_percent": 78.83,
         "match_avg": 84.5,
         "match_weighted": 78.9,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 0
@@ -44980,7 +44980,7 @@
         "bytes_percent": 82.21,
         "match_avg": 76.7,
         "match_weighted": 69.1,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 0
@@ -46398,7 +46398,7 @@
         "bytes_percent": 92.86,
         "match_avg": 89.7,
         "match_weighted": 83.0,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 0
@@ -48937,7 +48937,7 @@
         "bytes_percent": 84.8,
         "match_avg": 92.4,
         "match_weighted": 85.3,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 0
@@ -53963,7 +53963,7 @@
         "bytes_percent": 52.58,
         "match_avg": 91.1,
         "match_weighted": 83.5,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 3
@@ -54443,7 +54443,7 @@
         "bytes_percent": 40.43,
         "match_avg": 82.5,
         "match_weighted": 79.8,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 0
@@ -58138,7 +58138,7 @@
         "bytes_percent": 45.55,
         "match_avg": 92.9,
         "match_weighted": 93.0,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 1
@@ -69172,7 +69172,7 @@
         "bytes_percent": 49.35,
         "match_avg": 90.9,
         "match_weighted": 84.6,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 0
@@ -111033,7 +111033,7 @@
         "bytes_percent": 0,
         "match_avg": 35.9,
         "match_weighted": null,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 0
@@ -139032,7 +139032,7 @@
         "bytes_percent": 37.87,
         "match_avg": 73.0,
         "match_weighted": 83.6,
-        "has_delinked_ref": true
+        "has_delinked_ref": false
       },
       "data_summary": {
         "total": 0
