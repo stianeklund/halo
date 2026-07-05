@@ -460,6 +460,23 @@ def patch_rel32_calls(code: bytes, relocs: list, defined_symbols: set,
     return bytes(patched), stub_map
 
 
+DEFAULT_STUB_RETURNS = {
+    "createfilea": 0x100,
+    "readfile": 1,
+    "writefile": 1,
+    "closehandle": 1,
+    "getfileattributesa": 0x80,
+    "file_exists": 1,
+    "file_open": 1,
+    "file_close": 1,
+    "file_read": 1,
+    "display_assert": 0,
+    "system_exit": 0,
+    "debug_malloc": 0x10000000,
+    "csmemcpy": 0x10000000,
+}
+
+
 class StubManager:
     """Manages callee stubs for non-leaf function emulation.
 
@@ -502,16 +519,22 @@ class StubManager:
         """Resolve the snapshot stub_returns entry for a sentinel.
 
         Returns (key, value); value may be an int, a float, or a list
-        (sequenced returns).  (None, None) when no override matches.
+        (sequenced returns). (None, None) when no override matches.
         """
-        if not self.stub_return_overrides:
-            return None, None
         canon = self._canonical_names.get(address, "").lower()
-        if canon in self.stub_return_overrides:
-            return canon, self.stub_return_overrides[canon]
         raw = self._stub_names.get(address, "").lstrip("_").lower()
-        if raw in self.stub_return_overrides:
-            return raw, self.stub_return_overrides[raw]
+
+        if self.stub_return_overrides:
+            if canon in self.stub_return_overrides:
+                return canon, self.stub_return_overrides[canon]
+            if raw in self.stub_return_overrides:
+                return raw, self.stub_return_overrides[raw]
+
+        if canon in DEFAULT_STUB_RETURNS:
+            return canon, DEFAULT_STUB_RETURNS[canon]
+        if raw in DEFAULT_STUB_RETURNS:
+            return raw, DEFAULT_STUB_RETURNS[raw]
+
         return None, None
 
     def set_tracer(self, tracer: Optional["StubArgTracer"]):
@@ -1414,12 +1437,8 @@ class StubManager:
                 # Push 0.0 onto FPU stack
                 pass  # ST0 is already undefined; caller will use it as-is
             elif not ret_void:
-                _ret = 0
-                if self.stub_return_overrides:
-                    _raw = self._stub_names.get(address, "").lstrip("_").lower()
-                    _canon = self._canonical_names.get(address, "").lower()
-                    _ret = self.stub_return_overrides.get(
-                        _canon, self.stub_return_overrides.get(_raw, 0))
+                _key, _ret_val = self._lookup_return_override(address)
+                _ret = _ret_val if _ret_val is not None else 0
                 uc.reg_write(UC_X86_REG_EAX, _ret)
 
             # Clean up stack based on calling convention
