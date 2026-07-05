@@ -426,6 +426,13 @@ This is the primary fix for "badly delinked object" false-low scores.
 3. Re-run (wrap — see [STALL]):
    timeout 165 rtk python3 tools/lift_pipeline.py --target ${name} --no-metadata-update --verify-policy goal90 2>&1 || echo "[timed-out]"
 
+BOUNDED PASS — this is a mechanical export+verify, NOT a re-lift. Do the three
+steps ONCE each: one decompile to find the end address, one export, one verify.
+Do NOT re-lift, edit source, try alternate ranges, or iterate — if the fresh
+reference does not raise the score, return improved=false with the score you got.
+Do NOT paste the objdiff/build log into your reasoning (it inflates every
+following turn's re-read). At most ~10 turns.
+
 Return: vc71_score, improved (bool), reason.`
 
 const permutePrompt = (name) =>
@@ -1035,10 +1042,18 @@ for (const brief of okBriefs) {
   let lastME  = M.reason   // {model,effort} of the current attempt (for parked records)
   log(`  lift1 ${brief.name}: ${a1.status} ${score}% (band=${band}${a1.capped ? ', capped: ' + (a1.cap_reason || '?') : ''})`)
 
-  // Cheap fix before anything expensive: a fresh per-function delinked
-  // reference often recovers VC71 that was falsely low from a stale or
-  // whole-object delink boundary artifact.
-  if (band !== 'pass') {
+  // Cheap fix before anything expensive: a fresh per-function delinked reference
+  // can recover VC71 that was falsely low from a stale/whole-object delink
+  // boundary artifact. Two guards keep it from becoming a sink (wf_927b1d1d:
+  // redelink was 50% of the run's tokens, 0 improvements):
+  //   - boundary artifacts cost single-digit %, so a sub-65 (fail_revert) score is
+  //     a real structural mismatch, not a delink artifact — re-delinking won't help;
+  //   - if a1 already proved a high-confidence structural cap (classify_cap.py),
+  //     a fresh delink cannot beat a codegen/register-allocation cap.
+  const redelinkWorthwhile =
+    (band === 'pass_permute' || band === 'fail_check_cap') &&
+    !(a1.capped === true && a1.cap_confidence === 'high')
+  if (redelinkWorthwhile) {
     const rd = await agent(redelinkPrompt(brief.name, brief.addr), { label: `redelink:${brief.name}`, phase: 'Lift', ...M.mechanical, schema: SCORE_SCHEMA })
     if (rd && rd.vc71_score > score) {
       score = rd.vc71_score
