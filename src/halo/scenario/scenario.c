@@ -794,6 +794,92 @@ void FUN_0018cf10(void *data, float *untransformed_origin,
   }
 }
 
+/* 0x18d140 — render_sprite.c: find or allocate the sprite group slot for a
+ * bitmap. data (@<esi>) is the build_sprites record: +0x4 sprite capacity
+ * (short), +0x10 flags (bit0 = screen-space -> vertex type 8 else 6), +0x20
+ * group count (short), +0x24 group array (8 entries x 0x10: +0x0 vertex
+ * buffer handle, +0x4 vertices pointer, +0x8 used count, +0xc bitmap).
+ * Scans for an existing group with this bitmap; if absent, asserts the 8-slot
+ * cap (render_sprite.c:0x113, csprintf into the 0x5ab100 scratch), then
+ * allocates: registers the bitmap with the texture cache and creates a
+ * dynamic vertex buffer (capacity*4 vertices) with the pointer resolved via
+ * 0x17c9d0. Returns the group index, or -1 when the table is full or the
+ * group has no vertices (+0x28 NULL). Global 0x325652 (short) brackets the
+ * allocation; 0x4d86f8 is the warn-once latch. */
+int16_t FUN_0018d140(void *data, int bitmap)
+{
+  int16_t count;
+  int16_t index;
+  char *group;
+  void *fmt;
+  int vb;
+  int verts;
+
+  count = *(int16_t *)((char *)data + 0x20);
+  index = 0;
+  if (count > 0) {
+    do {
+      if (*(int *)((char *)data + ((int)index + 3) * 0x10) == bitmap)
+        break;
+      index++;
+    } while (index < *(int16_t *)((char *)data + 0x20));
+  }
+  if (index >= count && count > 7) {
+    display_assert(
+      csprintf((char *)0x5ab100,
+               "a build_sprites_begin call can accomodate at most %d bitmaps",
+               8),
+      "c:\\halo\\SOURCE\\render\\render_sprite.c", 0x113, 1);
+    system_exit(-1);
+  }
+  count = *(int16_t *)((char *)data + 0x20);
+  if (index >= count) {
+    if (count > 7)
+      return -1;
+    if (index >= count) {
+      group = (char *)data + (int)index * 0x10 + 0x24;
+      *(int16_t *)((char *)data + 0x20) = count + 1;
+      *(int *)(group + 0xc) = bitmap;
+      fmt = xbox_texture_cache_get_hardware_format((void *)bitmap, 0, 1);
+      if (fmt != NULL) {
+        *(uint16_t *)0x325652 = 0x10;
+        vb = rasterizer_widget_set_zbuffer_enable(
+          (*(uint32_t *)((char *)data + 0x10) & 1) != 0 ? 8 : 6,
+          (int)*(int16_t *)((char *)data + 4) << 2);
+        *(int *)group = vb;
+        if (vb != -1) {
+          verts = rasterizer_widget_draw_sprite3d(vb);
+          *(int *)(group + 4) = verts;
+          if (verts == 0) {
+            display_assert("group->vertices",
+                           "c:\\halo\\SOURCE\\render\\render_sprite.c", 0x126,
+                           1);
+            system_exit(-1);
+            /* the original assert path stores its own bracket-close then
+             * jumps past the shared store */
+            *(uint16_t *)0x325652 = 0;
+            goto reset_count;
+          }
+        } else {
+          if (*(char *)0x4d86f8 == 0) {
+            error(2, "build_sprite failed to allocate dynamic vertices");
+            *(char *)0x4d86f8 = 1;
+          }
+          *(int *)(group + 4) = 0;
+        }
+        *(uint16_t *)0x325652 = 0;
+      } else {
+        *(int *)(group + 4) = 0;
+      }
+    reset_count:
+      *(int16_t *)(group + 8) = 0;
+    }
+  }
+  if (index != -1 && *(int *)((char *)data + (int)index * 0x10 + 0x28) == 0)
+    return -1;
+  return index;
+}
+
 /* 0x18d040 — resolve a sprite record's default scale then apply the
  * per-record count multiplier (kb name scenario_object_name_index_from_string
  * was a misattribution; the body is float scale math, no string handling).
