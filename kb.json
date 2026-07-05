@@ -21221,7 +21221,7 @@
     {
      "addr": "0x188d00",
      "decl": "void FUN_00188d00(float *buffer1@<ecx>, float *buffer2@<edx>, float *center@<eax>, float *height_vec, float radius, float *buffer3, float *buffer4, float *buffer5, float *buffer6);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x188ec0",
@@ -22955,7 +22955,7 @@
     {
      "addr": "0x19b330",
      "decl": "void FUN_0019B330(void);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x19b3a0",
