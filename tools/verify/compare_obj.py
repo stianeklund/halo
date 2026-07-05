@@ -54,17 +54,27 @@ def disassemble(obj_path: str) -> dict[str, list[str]]:
                 # current_lines[-1] sees the padding rather than the terminating
                 # ret — which mis-folds the *next* function into this one and
                 # massively inflates its instruction count (e.g. csmemset read as
-                # 298 insns instead of ~80).  A genuine next function is preceded
-                # by a ret (then optional padding); a spurious mid-function FUN_
-                # label has real code flowing straight into it (no ret, no pad).
+                # 298 insns instead of ~80).
+                #
+                # Fold a FUN_ label into the current function ONLY when real code
+                # flows straight into it: the last real instruction is not a ret
+                # AND there is no inter-function padding before the label.  A
+                # genuine next function is preceded either by a ret or by
+                # alignment padding — and MSVC pads (nop/int3) only *between*
+                # functions, never mid-body — so padding before a FUN_ symbol
+                # marks a real boundary even when the predecessor ends in a
+                # tail-call jmp rather than a ret (which would otherwise fold the
+                # successor away and drop it from the reference entirely).
                 last_mnem = ""
+                had_padding = False
                 for _prev in reversed(current_lines):
                     _mn = mnemonic(_prev).lower()
                     if _mn in _PAD_MNEMS:
+                        had_padding = True
                         continue
                     last_mnem = _mn
                     break
-                if last_mnem and last_mnem not in _RET_MNEMS:
+                if last_mnem and last_mnem not in _RET_MNEMS and not had_padding:
                     current_labels.add(len(current_lines))
                     continue
             if current_func and current_lines:
