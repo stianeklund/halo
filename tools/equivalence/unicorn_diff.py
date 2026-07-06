@@ -161,12 +161,17 @@ FAKE_RET_ADDR  = 0xDEADC0DE   # fake return address pushed on stack
 MAX_INSN       = 100_000      # hard limit on emulated instructions
 TIMEOUT_MS     = 5_000        # 5 second timeout
 
-# Hard cap on the per-run --mem-trace write list. An unbounded trace on a loop
-# that writes memory (e.g. a pool initializer) can accumulate millions of
-# MemoryWrite objects and OOM the host (>11 GB observed 2026-07-06, which OOM-
-# killed the CI runner and canceled the nightly). Past the cap we stop appending
-# and mark the trace truncated; the write-differential still compares the first
-# CAP writes. Override with HALO_EQUIV_MEM_TRACE_CAP (0 disables the cap).
+# Backstop cap on the number of DISTINCT (address, size) keys retained by the
+# --mem-trace differential. The write hook coalesces writes into a final-value
+# map keyed by (address, size) — the exact form compare_mem_traces() consumes —
+# so a rep-stosd loop (a single instruction whose count comes from a random
+# seed) collapses to the handful of addresses it touches instead of appending a
+# MemoryWrite per iteration. That unbounded append accumulated >11 GB and OOM-
+# killed the CI runner (2026-07-06). Coalescing makes memory scale with the
+# working set, not the write count. This cap only engages if a run touches an
+# absurd number of DISTINCT addresses; past it we stop adding new keys (existing
+# keys still update) and mark the trace truncated. Override with
+# HALO_EQUIV_MEM_TRACE_CAP (0 disables the cap).
 try:
     MEM_TRACE_CAP = int(os.environ.get("HALO_EQUIV_MEM_TRACE_CAP", "500000"))
 except ValueError:
@@ -972,7 +977,7 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
     uc.hook_add(UC_HOOK_MEM_INVALID, hook_mem_invalid)
 
     # Memory trace and global reads collection
-    mem_writes = []
+    mem_writes = {}  # (address, size) -> final value; coalesced, see MEM_TRACE_CAP
     mem_trace_truncated = [False]
     global_reads = {}
     _mapped_regions = set()
@@ -1002,11 +1007,12 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
                 # region (shared by oracle and candidate -> same addresses).
                 if not any(lo <= address < hi for lo, hi in _override_ranges):
                     return
-            if MEM_TRACE_CAP and len(mem_writes) >= MEM_TRACE_CAP:
+            key = (address, size)
+            if (key not in mem_writes and MEM_TRACE_CAP
+                    and len(mem_writes) >= MEM_TRACE_CAP):
                 mem_trace_truncated[0] = True
                 return
-            mem_writes.append(state_mod.MemoryWrite(
-                address=address, size=size, value=value))
+            mem_writes[key] = value  # last write wins (matches _build_finals)
 
         def hook_mem_read(uc, access, address, size, value, user_data):
             page = address & ~0xFFFF
@@ -1190,11 +1196,14 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
     s.error = err_msg
     s.insn_count = insn_count[0]
     s.visited_pcs = visited_pcs
-    s.mem_writes = mem_writes
+    # Materialize the coalesced map back into the list[MemoryWrite] interface
+    # that compare_mem_traces() and the debug fallbacks expect.
+    s.mem_writes = [state_mod.MemoryWrite(address=a, size=sz, value=v)
+                    for (a, sz), v in mem_writes.items()]
     if mem_trace_truncated[0]:
-        print(f"    [mem-trace] WARNING: write trace hit cap "
-              f"({MEM_TRACE_CAP}); truncated — comparison covers first "
-              f"{MEM_TRACE_CAP} writes only")
+        print(f"    [mem-trace] WARNING: distinct-address cap "
+              f"({MEM_TRACE_CAP}) hit; trace truncated — writes to addresses "
+              f"beyond the cap are not compared")
     s.global_reads = global_reads
     s.auto_mapped_pages = set(_mapped_regions)
     return s
