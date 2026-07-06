@@ -20,6 +20,7 @@ jobs:
       VENV_PYTHON: /mnt/g/dev/halo/.venv/bin/python3
       BUILD_DIR: /mnt/g/dev/halo/build
       ARTIFACTS_DIR: /mnt/g/dev/halo/artifacts
+      DELINKED_DIR: /mnt/g/dev/halo/delinked
     
     steps:
       - name: Clone Repository
@@ -32,12 +33,31 @@ jobs:
           if [ ! -e build ] && [ -d "$BUILD_DIR" ]; then
             ln -s "$BUILD_DIR" build
           fi
+          # VC71 populate needs the delinked reference objects (objdiff base_paths
+          # and the per-function chunk dir all live under delinked/, which is
+          # gitignored and wiped by the clean checkout).  Symlink it from the dev
+          # tree so populate can score.
+          if [ ! -e delinked ] && [ -d "$DELINKED_DIR" ]; then
+            ln -s "$DELINKED_DIR" delinked
+          fi
           mkdir -p artifacts
           for dir in batch_verify equivalence runtime_oracle runtime_oracle_batch; do
             if [ ! -e "artifacts/$dir" ] && [ -d "$ARTIFACTS_DIR/$dir" ]; then
               ln -s "$ARTIFACTS_DIR/$dir" "artifacts/$dir"
             fi
           done
+
+      - name: Refresh VC71 Scores
+        run: |
+          # Recompute honest VC71 match scores + the compile-fail / no-reference
+          # attention queue here on the self-hosted runner — the only one with the
+          # VC71 CL.Exe toolchain.  Full pass (the clean checkout wipes the
+          # incremental state each run, and a parallel full populate is fast).
+          # populate regenerates build/generated/decl.h from kb.json first, so no
+          # TU is scored against a stale header, then writes vc71_current.json +
+          # reference_validity.json, which the report step bakes into the published
+          # dashboard (honest % and the compile-fail / no-ref badges).
+          "$VENV_PYTHON" tools/verify/vc71_regression.py populate
 
       - name: Generate CI Status
         run: |

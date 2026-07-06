@@ -4,14 +4,22 @@ NAME="${0##*/}"
 VENV="${VENV_PYTHON:-.venv/bin/python3}"
 
 usage() {
-    echo "Usage: $NAME [--batch] [--skip-vc71] [--run-id NAME]"
+    echo "Usage: $NAME [--batch] [--vc71|--full-vc71] [--run-id NAME]"
     echo ""
     echo "Refresh the local progress dashboard from the latest build."
     echo ""
+    echo "By default this ONLY re-renders the dashboard from the existing"
+    echo "scores — it does NOT run VC71 verification.  Verification is expensive"
+    echo "and now happens at lift time (the lift pipeline runs an incremental"
+    echo "populate for the TU it just changed) and via the pre-commit hook, so a"
+    echo "dashboard refresh no longer needs to re-verify anything.  Opt in with"
+    echo "--vc71 / --full-vc71 when you explicitly want to recompute scores."
+    echo ""
     echo "  --batch       Run batch equivalence tests first (slow)."
-    echo "  --skip-vc71   Do not refresh tools/verify/vc71_scores.json."
-    echo "  --full-vc71   Re-verify every TU instead of only changed ones"
-    echo "               (default is incremental: skips unchanged TUs)."
+    echo "  --vc71        Refresh VC71 scores incrementally before rendering"
+    echo "               (only TUs whose inputs changed are re-verified)."
+    echo "  --full-vc71   Refresh VC71 scores, re-verifying every TU (full pass)."
+    echo "  --skip-vc71   Accepted for back-compat; now the default (no-op)."
     echo "  --run-id NAME Tag the snapshot with a custom run label."
     echo "               Default: 'local-<timestamp>'"
     echo "  --help        This message."
@@ -20,20 +28,20 @@ usage() {
 
 RUN_ID="local-$(date +%Y%m%d-%H%M%S)"
 DO_BATCH=false
-DO_VC71=true
-# Incremental by default: only TUs whose source/reference changed are re-verified.
-# A tooling/kb.json/delinked change bumps the epoch inside populate and forces a
-# full pass automatically.  Use --full-vc71 to force a full re-verify.
+# Render-only by default: verification is decoupled from dashboard rendering.
+# --vc71 (incremental) or --full-vc71 (full) opt back in to running populate.
+DO_VC71=false
 VC71_MODE="--incremental"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --batch)    DO_BATCH=true; shift ;;
+        --batch)     DO_BATCH=true; shift ;;
+        --vc71)      DO_VC71=true; VC71_MODE="--incremental"; shift ;;
+        --full-vc71) DO_VC71=true; VC71_MODE=""; shift ;;
         --skip-vc71) DO_VC71=false; shift ;;
-        --full-vc71) VC71_MODE=""; shift ;;
-        --run-id)   RUN_ID="$2"; shift 2 ;;
-        --help|-h)  usage ;;
-        *)          echo "Unknown: $1"; usage ;;
+        --run-id)    RUN_ID="$2"; shift 2 ;;
+        --help|-h)   usage ;;
+        *)           echo "Unknown: $1"; usage ;;
     esac
 done
 

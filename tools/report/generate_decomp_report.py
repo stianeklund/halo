@@ -211,17 +211,43 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
                        snapshot_data: dict = None,
                        runtime_oracle_data: dict = None,
                        delinked_ref_map: dict = None,
-                       equiv_verdicts: dict = None) -> list[dict]:
+                       equiv_verdicts: dict = None,
+                       validity_data: dict = None) -> list[dict]:
     """Compute per-unit statistics in decomp.dev format.
 
     delinked_ref_map: {source_path: bool} — whether a delinked reference object
     exists on disk for that source file. Drives the dashboard's distinction
     between "scoreable, not yet run" and "no reference (VC71 impossible)".
+
+    validity_data: the VC71 attention queue (reference_validity.json). Functions
+    listed there were not scored; each carries a state (compile_failed |
+    no_reference) surfaced as ``vc71_flagged`` so the dashboard shows a distinct
+    badge rather than a blank "—".
     """
 
     if vc71_scores is None:
         vc71_scores = {}
     scores_data = vc71_scores.get('scores', {})
+
+    # Build a flagged-function lookup keyed by every alias we might join on:
+    # the vc71-emitted function string, and FUN_<addr>/0x<addr> when an address
+    # is recorded (compile_failed entries carry one).  no_reference wins over
+    # compile_failed only if both somehow appear (compile_failed is set first).
+    flagged_map: dict = {}
+    if validity_data:
+        for e in validity_data.get('flagged', []):
+            st = e.get('state') or 'no_reference'
+            fn = e.get('function')
+            if fn:
+                flagged_map.setdefault(fn, st)
+            a = e.get('addr')
+            if a:
+                try:
+                    ai = int(a, 16)
+                    flagged_map.setdefault(f'FUN_{ai:08x}', st)
+                    flagged_map.setdefault(f'0x{ai:x}', st)
+                except (ValueError, TypeError):
+                    pass
 
     if delinked_ref_map is None:
         delinked_ref_map = {}
@@ -332,6 +358,16 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
                 if score_entry is not None:
                     match_pct = score_entry.get('score')
 
+            # If unscored, see whether the attention queue explains why (a whole-TU
+            # VC71 compile failure, or a broken/absent delinked reference).  Only
+            # surface for ported functions with no score — a scored function is fine.
+            vc71_flagged = None
+            if is_ported and match_pct is None:
+                vc71_flagged = (flagged_map.get(name)
+                                or flagged_map.get(f'FUN_{addr:08x}')
+                                or flagged_map.get(f'FUN_{addr:08X}')
+                                or flagged_map.get(addr_hex))
+
             # Look up equivalence COVERAGE data from leaf_cache. NOTE: confidence
             # and coverage describe how thoroughly the function was tested — they
             # are NOT a pass/fail verdict. A divergent (buggy) function can have
@@ -386,6 +422,7 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
                 'status': status,
                 'ported': is_ported,
                 'match_percent': match_pct,
+                'vc71_flagged': vc71_flagged,
                 'equiv_class': equiv_class,
                 'equiv_coverage': equiv_coverage,
                 'equiv_confidence': equiv_confidence,
@@ -605,11 +642,24 @@ def generate_report(output_path: str) -> dict:
     # Load equivalence pass/fail verdicts (correctness, distinct from coverage)
     equiv_verdicts = _load_equiv_verdicts(root_dir)
 
+    # Load the VC71 attention queue: functions not scored, with a state
+    # (compile_failed | no_reference).  Lets the dashboard show a distinct badge
+    # instead of a blank "—" that is indistinguishable from "not yet run".
+    validity_data = {}
+    validity_path = os.path.join(root_dir, 'artifacts', 'audit', 'reference_validity.json')
+    if os.path.exists(validity_path):
+        try:
+            with open(validity_path) as f:
+                validity_data = json.load(f)
+        except (OSError, ValueError):
+            validity_data = {}
+
     # Compute unit stats
     units, drift, overall_match, overall_equiv, overall_snapshot, overall_runtime_oracle = compute_unit_stats(
         kb, store, function_cache, vc71_scores, leaf_cache, snapshot_data, runtime_oracle_data,
         delinked_ref_map=delinked_ref_map,
         equiv_verdicts=equiv_verdicts,
+        validity_data=validity_data,
     )
     
     # Compute overall stats
@@ -2429,6 +2479,10 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 var matchDisplay;
                 if (f.match_percent !== null && f.match_percent !== undefined) {
                     matchDisplay = '<span class="num"><span class="match-dot ' + mClass + '"></span>' + f.match_percent.toFixed(1) + '%</span>';
+                } else if (f.vc71_flagged === 'compile_failed') {
+                    matchDisplay = '<span class="func-status" style="background:#da363322;color:#f85149;border-color:#f85149" title="VC71 compile FAILED for this translation unit (often a clang-ism the C89 CL.Exe rejects: __attribute__, inline in a header, C99 mixed decls). No byte-match evidence until the TU compiles under VC71.">compile fail</span>';
+                } else if (f.vc71_flagged === 'no_reference') {
+                    matchDisplay = '<span class="func-status" style="background:#d2992222;color:#d29922;border-color:#d29922" title="Delinked reference broken / truncated / absent \u2014 re-delink before this score can be trusted.">no ref</span>';
                 } else if (f.ported && !currentUnitHasRef) {
                     matchDisplay = '<span class="pct-none" title="No delinked reference \u2014 verify via equivalence or the runtime oracle">n/a</span>';
                 } else {
