@@ -13523,7 +13523,8 @@
         },
         {
           "addr": "0x12a0d0",
-          "decl": "void network_game_player_is_local(void);"
+          "decl": "bool network_game_player_is_local(void *player);",
+          "ported": true
         },
         {
           "addr": "0x12a150",
