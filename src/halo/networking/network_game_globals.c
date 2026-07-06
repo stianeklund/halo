@@ -280,6 +280,49 @@ int FUN_0012a0a0(void)
   return 0;
 }
 
+/* network_game_player_is_local (0x12a0d0)
+ *
+ * Returns whether the given player is local to this machine.
+ *
+ * If the player is valid and a network game client exists, the player is
+ * local when the client's active machine index (machine byte at +0x40)
+ * matches the player's machine index (player byte at +0x1c).
+ *
+ * Otherwise, when not connected as a client (game_connection() != 3, i.e.
+ * single-player or host), every player is treated as local. When connected
+ * as a client, machine index 0 (player byte +0x1c == 0) is the local machine.
+ * A NULL player in the client case triggers an assert/halt.
+ *
+ * Source: network_game_globals.c line 0x9b (155).
+ */
+bool network_game_player_is_local(void *player)
+{
+  void *machine;
+
+  if (player != NULL && network_player_is_valid(player) &&
+      *(void **)0x0046e8c0 != NULL) {
+    machine = network_game_client_get_machine(*(void **)0x0046e8c0);
+    if (machine != NULL &&
+        *(char *)((char *)machine + 0x40) == *(char *)((char *)player + 0x1c)) {
+      return true;
+    }
+    return false;
+  }
+
+  if (game_connection() != 3) {
+    return true;
+  }
+
+  if (player == NULL) {
+    display_assert("player",
+                   "c:\\halo\\SOURCE\\networking\\network_game_globals.c", 0x9b,
+                   1);
+    system_exit(-1);
+  }
+
+  return *(char *)((char *)player + 0x1c) == '\0';
+}
+
 /* network_game_set_accept_remote_connections (0x12a150)
  *
  * Stores the one-byte "accept remote connections" flag to the network game
