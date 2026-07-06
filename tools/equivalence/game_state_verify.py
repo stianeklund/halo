@@ -31,6 +31,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import signal
 import subprocess
 import sys
 import struct
@@ -41,6 +42,27 @@ from pathlib import Path
 from typing import Optional
 
 ROOT = Path(__file__).resolve().parent.parent.parent
+
+# Per-child resident-memory (RSS) ceiling for unicorn_diff. --allow-stubs
+# enables the --mem-trace write hook on non-leaf targets, which can balloon a
+# child past 11 GB (see batch_verify.py); the watchdog SIGKILLs it cleanly
+# before it OOMs the host. RSS (not RLIMIT_AS) because Unicorn's TCG
+# over-reserves virtual space. Override with HALO_EQUIV_MEM_LIMIT_GB (0 off).
+try:
+    MEM_LIMIT_GB = float(os.environ.get("HALO_EQUIV_MEM_LIMIT_GB", "6"))
+except ValueError:
+    MEM_LIMIT_GB = 6.0
+
+_PAGE_SIZE = os.sysconf("SC_PAGE_SIZE") if hasattr(os, "sysconf") else 4096
+
+
+def _child_rss_bytes(pid: int) -> int:
+    """Resident set size of a process in bytes (0 if unavailable)."""
+    try:
+        with open(f"/proc/{pid}/statm", "r") as fh:
+            return int(fh.read().split()[1]) * _PAGE_SIZE
+    except (OSError, ValueError, IndexError):
+        return 0
 
 
 # ── unicorn_diff runner ────────────────────────────────────────────────
@@ -68,13 +90,45 @@ def run_unicorn_diff(func_name: str, snapshot_path: str,
         if verbose:
             cmd.append("--verbose")
 
+        limit_bytes = int(MEM_LIMIT_GB * (1024 ** 3)) if MEM_LIMIT_GB > 0 else 0
+
+        def _kill(p):
+            try:
+                os.killpg(os.getpgid(p.pid), signal.SIGKILL)
+            except (OSError, ProcessLookupError):
+                p.kill()
+            try:
+                p.wait(timeout=5)
+            except Exception:
+                pass
+
         try:
-            proc = subprocess.run(
-                cmd, cwd=str(ROOT), capture_output=True, text=True,
-                timeout=timeout,
+            # Own process group + discarded output (result read from JSON);
+            # poll RSS so a runaway --mem-trace child is killed, not OOM'd.
+            proc = subprocess.Popen(
+                cmd, cwd=str(ROOT), stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL, start_new_session=True,
             )
-        except subprocess.TimeoutExpired:
-            return {"func": func_name, "error": "timeout", "coverage": 0.0}
+            deadline = time.time() + timeout
+            reason = None
+            while True:
+                try:
+                    proc.wait(timeout=0.5)
+                    break
+                except subprocess.TimeoutExpired:
+                    pass
+                if time.time() > deadline:
+                    _kill(proc)
+                    reason = "timeout"
+                    break
+                if limit_bytes and _child_rss_bytes(proc.pid) > limit_bytes:
+                    _kill(proc)
+                    reason = "mem-limit"
+                    break
+            if reason:
+                return {"func": func_name, "error": reason, "coverage": 0.0}
+        except Exception as e:
+            return {"func": func_name, "error": str(e), "coverage": 0.0}
 
         if not os.path.exists(output_json):
             return {"func": func_name, "error": "no output", "coverage": 0.0}
