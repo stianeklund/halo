@@ -16,12 +16,39 @@ Usage:
 import argparse
 import csv
 import json
+import os
 import re
+import signal
 import subprocess
 import sys
 import time
 from collections import Counter, defaultdict
 from pathlib import Path
+
+# Per-child resident-memory (RSS) ceiling. A runaway unicorn_diff (e.g. an
+# unbounded --mem-trace on a pool initializer) can balloon to >11 GB and get
+# OOM-killed, thrashing the whole self-hosted box into swap and causing GitHub
+# to cancel the nightly job (observed 2026-07-06). run_verify polls the child's
+# RSS and SIGKILLs it cleanly (reason "mem-limit") before it can OOM the host,
+# so the batch continues. RSS (real memory) is used rather than RLIMIT_AS
+# because Unicorn's TCG over-reserves virtual address space (a 4 GB RLIMIT_AS
+# breaks normal runs with "Could not allocate dynamic translator buffer").
+# Override with HALO_EQUIV_MEM_LIMIT_GB (0 disables the watchdog).
+try:
+    MEM_LIMIT_GB = float(os.environ.get("HALO_EQUIV_MEM_LIMIT_GB", "6"))
+except ValueError:
+    MEM_LIMIT_GB = 6.0
+
+_PAGE_SIZE = os.sysconf("SC_PAGE_SIZE") if hasattr(os, "sysconf") else 4096
+
+
+def _child_rss_bytes(pid: int) -> int:
+    """Resident set size of a process in bytes (0 if unavailable)."""
+    try:
+        with open(f"/proc/{pid}/statm", "r") as fh:
+            return int(fh.read().split()[1]) * _PAGE_SIZE
+    except (OSError, ValueError, IndexError):
+        return 0
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 KB_JSON = ROOT / "kb.json"
@@ -258,15 +285,46 @@ def run_verify(name: str, output_dir: Path, seeds: int = 50, timeout: int = 60,
         cmd.extend(["--float-tolerance", str(float_tolerance)])
     if skip_esp:
         cmd.append("--skip-esp")
+    limit_bytes = int(MEM_LIMIT_GB * (1024 ** 3)) if MEM_LIMIT_GB > 0 else 0
+
+    def _kill(p):
+        try:
+            os.killpg(os.getpgid(p.pid), signal.SIGKILL)
+        except (OSError, ProcessLookupError):
+            p.kill()
+        try:
+            p.wait(timeout=5)
+        except Exception:
+            pass
+
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True,
-                              timeout=timeout, cwd=str(ROOT))
+        # Own process group so we can kill the whole child tree; output is
+        # discarded (batch reads result_json), so DEVNULL avoids a pipe stall.
+        proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL, cwd=str(ROOT),
+                                start_new_session=True)
+        deadline = time.time() + timeout
+        reason = None
+        while True:
+            try:
+                proc.wait(timeout=0.5)
+                break
+            except subprocess.TimeoutExpired:
+                pass
+            if time.time() > deadline:
+                _kill(proc)
+                reason = "timeout"
+                break
+            if limit_bytes and _child_rss_bytes(proc.pid) > limit_bytes:
+                _kill(proc)
+                reason = "mem-limit"
+                break
+        if reason:
+            return {"status": "error", "reason": reason, "target": name}
         if result_json.exists():
             return json.loads(result_json.read_text(encoding="utf-8"))
         return {"status": "error", "reason": f"exit={proc.returncode}",
                 "target": name}
-    except subprocess.TimeoutExpired:
-        return {"status": "error", "reason": "timeout", "target": name}
     except Exception as e:
         return {"status": "error", "reason": str(e), "target": name}
 

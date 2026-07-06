@@ -161,6 +161,17 @@ FAKE_RET_ADDR  = 0xDEADC0DE   # fake return address pushed on stack
 MAX_INSN       = 100_000      # hard limit on emulated instructions
 TIMEOUT_MS     = 5_000        # 5 second timeout
 
+# Hard cap on the per-run --mem-trace write list. An unbounded trace on a loop
+# that writes memory (e.g. a pool initializer) can accumulate millions of
+# MemoryWrite objects and OOM the host (>11 GB observed 2026-07-06, which OOM-
+# killed the CI runner and canceled the nightly). Past the cap we stop appending
+# and mark the trace truncated; the write-differential still compares the first
+# CAP writes. Override with HALO_EQUIV_MEM_TRACE_CAP (0 disables the cap).
+try:
+    MEM_TRACE_CAP = int(os.environ.get("HALO_EQUIV_MEM_TRACE_CAP", "500000"))
+except ValueError:
+    MEM_TRACE_CAP = 500_000
+
 # Frequently used scalar globals that appear as hardcoded absolute addresses in
 # lifted C. Preload them so Unicorn sees the same canonical values as the XBE
 # instead of faulting or reading synthetic zero pages.
@@ -962,6 +973,7 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
 
     # Memory trace and global reads collection
     mem_writes = []
+    mem_trace_truncated = [False]
     global_reads = {}
     _mapped_regions = set()
 
@@ -990,6 +1002,9 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
                 # region (shared by oracle and candidate -> same addresses).
                 if not any(lo <= address < hi for lo, hi in _override_ranges):
                     return
+            if MEM_TRACE_CAP and len(mem_writes) >= MEM_TRACE_CAP:
+                mem_trace_truncated[0] = True
+                return
             mem_writes.append(state_mod.MemoryWrite(
                 address=address, size=size, value=value))
 
@@ -1176,6 +1191,10 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
     s.insn_count = insn_count[0]
     s.visited_pcs = visited_pcs
     s.mem_writes = mem_writes
+    if mem_trace_truncated[0]:
+        print(f"    [mem-trace] WARNING: write trace hit cap "
+              f"({MEM_TRACE_CAP}); truncated — comparison covers first "
+              f"{MEM_TRACE_CAP} writes only")
     s.global_reads = global_reads
     s.auto_mapped_pages = set(_mapped_regions)
     return s
