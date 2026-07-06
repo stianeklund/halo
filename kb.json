@@ -13489,12 +13489,12 @@
         {
           "addr": "0x12a2d0",
           "decl": "bool network_game_client_start_frame(void);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x12a500",
           "decl": "bool network_game_client_end_frame(void);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x12a780",
