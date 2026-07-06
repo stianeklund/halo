@@ -74,6 +74,56 @@ bool FUN_001298f0(int connection, void *buffer, int *size, void *addr)
   return result;
 }
 
+/* FUN_00129980 (0x129980)
+ *
+ * Resets a network connection's endpoints. Called from network_game_client_reset
+ * (0x1267c0) and network_game_client_leave_game (0x126140).
+ *
+ * If the connection is currently connected, runs the FUN_001294d0 teardown when
+ * the connection's +0x30 flag byte has bit 1 or 2 set, then closes the active
+ * endpoint stored at +0x00.
+ *
+ * If the connection has a secondary endpoint (+0x04) and a non-zero bound port
+ * (+0x34), it destroys that endpoint and recreates one from endpoint set 0x11,
+ * rebinding it to an address record { address = 0, type = 4, port }. Returns
+ * true on success (or when there is nothing to rebind), false if the endpoint
+ * could not be recreated or rebound.
+ */
+bool FUN_00129980(int connection)
+{
+  int addr[6];
+  int new_endpoint;
+  short port;
+
+  if (network_connection_connected(connection)) {
+    if ((*(uint8_t *)(connection + 0x30) & 6) != 0) {
+      FUN_001294d0(connection);
+    }
+    close_endpoint(*(int **)connection);
+  }
+
+  if (*(int *)(connection + 4) != 0) {
+    port = *(short *)(connection + 0x34);
+    if (port != 0) {
+      *(short *)((char *)addr + 0x10) = 4;
+      addr[0] = 0;
+      *(short *)((char *)addr + 0x12) = port;
+      destroy_endpoint(*(int **)(connection + 4));
+      new_endpoint = get_next_endpoint_from_set(0x11);
+      *(int *)(connection + 4) = new_endpoint;
+      if (new_endpoint != 0) {
+        if (FUN_00083ce0((int *)new_endpoint, addr) == 0) {
+          if (FUN_00083bd0(*(int *)(connection + 4), 0) == 0) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+  }
+  return true;
+}
+
 /* FUN_00129cf0 (0x129cf0)
  *
  * Network connection idle processing. Handles timeout detection, reliable and

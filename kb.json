@@ -13503,7 +13503,8 @@
         },
         {
           "addr": "0x129980",
-          "decl": "void FUN_00129980(void);"
+          "decl": "bool FUN_00129980(int connection);",
+          "ported": true
         },
         {
           "addr": "0x12a020",
