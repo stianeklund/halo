@@ -188,6 +188,127 @@ void network_connection_delete(int connection)
              "c:\\halo\\SOURCE\\networking\\network_connection.c", 0x145);
 }
 
+/* network_connection_write (0x128e00).
+ * Serializes and transmits a message over a connection.  Validates the message,
+ * byte-swaps its header to network order, then dispatches on the connection's
+ * flags byte (+0x30): bit 0 selects the loopback/datagram path, otherwise the
+ * normal transport-endpoint path (which further splits on the reliable flag).
+ *
+ *  - Loopback (flags&1): must be unreliable, carry a destination address, and
+ *    fit a datagram (size<=400).  Hands the message to the addressed datagram
+ *    writer FUN_00084740(endpoint(+0x04), message, size, dest) and fires the
+ *    traffic-accounting event.  The writer's result is stored but the call
+ *    always reports success (reliable is 0 here).
+ *  - Normal reliable (flags&1==0, reliable!=0): size<=0x800 and the connection
+ *    must be client- or server-side (flags&6).  Repeatedly calls
+ *    send_endpoint(connection->[0x00], message, size), retrying while the
+ *    endpoint returns -4 (would-block).  On success sets the success flag,
+ *    bumps the sent counter (+0x28) and — only when a debug log FILE* (+0x18)
+ *    is open — appends a timing record; on a hard error reports the endpoint
+ *    error string.  Returns whether the send succeeded.
+ *  - Normal unreliable (flags&1==0, reliable==0): no-op when the endpoint
+ *    (+0x04) is null; else size<=400.  With no destination it sends to the
+ *    bound peer via send_endpoint, gated by the endpoint-connected predicate
+ *    FUN_000831a0; with a destination it uses the addressed writer
+ *    FUN_00084740 (result discarded).  Always returns true.
+ *
+ * FUN_001288e0 (traffic-event notifier) takes its args in registers
+ * (event=ECX, enable=EAX, connection=ESI); every call site passes event=2,
+ * enable=size, connection=connection.  The +0x18 debug-log block is dead in
+ * shipping builds (no log file is ever opened) but is preserved faithfully:
+ * _DAT_00265d40 (2^32) folds the signed tick delta back to unsigned before
+ * scaling by _DAT_00294bf0, and the record is emitted with fwprintf/fflush. */
+bool network_connection_write(void *connection, void *message,
+                              unsigned short size, int dest_address,
+                              bool reliable)
+{
+  int conn;
+  int result;
+  int send_result;
+  const char *err;
+
+  conn = (int)connection;
+  result = 0;
+
+  assert_halt(message);
+  assert_halt(size);
+  assert_halt(connection);
+  assert_halt_msg((*(unsigned short *)message >> 4) == size,
+                  "(message->message_size >> 4) == buffer_size");
+
+  byte_swap_message_header((unsigned short *)message, 1);
+
+  if ((*(uint8_t *)(conn + 0x30) & 1) != 0) {
+    /* loopback / datagram path */
+    assert_halt_msg(reliable == 0, "!reliable");
+    assert_halt_msg(dest_address != 0, "dest_address");
+    if (size > 400) {
+      error(2, "buffer size was %d max is %d", size, 400);
+      assert_halt_msg(size <= 400, "buffer_size <= DATAGRAM_MAXIMUM_SIZE");
+    }
+    result = FUN_00084740(*(int *)(conn + 4), message, size, dest_address);
+    FUN_001288e0(2, size, conn);
+    goto finish;
+  }
+
+  if (reliable != 0) {
+    /* normal reliable path */
+    assert_halt_msg(size <= 0x800, "message size exceeds maximum allowed size");
+    assert_halt_msg((*(uint8_t *)(conn + 0x30) & 6) != 0,
+                    "(flags & clientside) || (flags & serverside)");
+    do {
+      send_result = send_endpoint(*(int **)conn, (const char *)message, size);
+    } while (send_result <= 0 && send_result == -4);
+    if (send_result > 0) {
+      result = 1;
+      if (*(int *)(conn + 0x18) != 0) {
+        int ticks;
+        int delta;
+        double elapsed;
+
+        ticks = FUN_001d0581();
+        delta = ticks - *(int *)(conn + 0x1c);
+        elapsed = (double)delta;
+        if (delta < 0) {
+          elapsed += *(double *)0x265d40;
+        }
+        elapsed = elapsed * *(double *)0x294bf0;
+        crt_fprintf(*(void **)(conn + 0x18),
+                    (const char *)L"%g\t%ld\t%ld\t%ld\t%ld\n", elapsed, 0, 0,
+                    send_result, 0);
+        crt_fflush(*(void **)(conn + 0x18));
+      }
+      *(int *)(conn + 0x28) += 1;
+    } else {
+      err = FUN_00081c80(send_result);
+      error(2, "client call to write_endpoint() returned error '%s'", err);
+    }
+    goto finish;
+  }
+
+  /* normal unreliable path */
+  if (*(int *)(conn + 4) == 0) {
+    return true;
+  }
+  assert_halt_msg(size <= 400, "message size exceeds maximum allowed size");
+  if (dest_address == 0) {
+    if (FUN_000831a0(*(int *)(conn + 4))) {
+      send_endpoint(*(int **)(conn + 4), (const char *)message, size);
+      FUN_001288e0(2, size, conn);
+    }
+    return true;
+  }
+  FUN_00084740(*(int *)(conn + 4), message, size, dest_address);
+  FUN_001288e0(2, size, conn);
+  return true;
+
+finish:
+  if (reliable == 0) {
+    return true;
+  }
+  return result > 0;
+}
+
 /* network_connection_new (0x1296b0).
  * Allocates and initializes a transport connection.  The caller must request
  * either the server role (flags bit 0) or the clientside-client role (flags
