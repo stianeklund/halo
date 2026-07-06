@@ -115,7 +115,8 @@ def disassemble(obj_path: str) -> dict[str, list[str]]:
 
 def first_function_insns(obj_path: str, aliases) -> list[str] | None:
     """Instructions of the first matching function in a per-function chunk,
-    capped at the first genuine function boundary.
+    capped at the first genuine *neighbour* boundary (not at internal control
+    flow).
 
     A per-function chunk (delinked/functions/<addr>.obj) is meant to hold a
     single function.  Stale pre-fix (0x2000-byte-window) exports instead packed
@@ -125,11 +126,17 @@ def first_function_insns(obj_path: str, aliases) -> list[str] | None:
     is correct for whole objects but here swallows those neighbours and inflates
     the symbol (e.g. a real 6-insn function read as 102).
 
-    Cap at the first ret-followed-by-a-label boundary: the same ret(+padding)
-    signal disassemble() already trusts for FUN_ boundaries, extended to any
-    label because nothing legitimately follows the sole function's terminating
-    ret in a single-function chunk.  Returns the padding-trimmed instruction
-    list, or None if the symbol is absent.
+    Boundary rule: a following FUN_/thunk_ symbol is always a hard boundary.  A
+    jump-target label (LAB_/switchD_/$L/$case/$next) ends the function only when
+    the last real instruction was a `ret` AND the label is NOT internal control
+    flow — i.e. it is neither a branch target referenced earlier in the body nor
+    a case/default sub-label of a switch we already fell into.  This keeps the
+    stale-neighbour protection while no longer truncating multi-return functions
+    (each `return;` is a mid-body `ret` followed by the alternate-path label) or
+    switch dispatch tables (each `case: return;` is a `ret` before the next
+    caseD_ label, which is reached only through the indirect jump table).
+    Returns the padding-trimmed instruction list, or None if the symbol is
+    absent.
     """
     result = subprocess.run(
         ["llvm-objdump", "-d", "--no-show-raw-insn", "--no-leading-addr", obj_path],
@@ -137,13 +144,32 @@ def first_function_insns(obj_path: str, aliases) -> list[str] | None:
     )
     if result.returncode != 0:
         return None
+    return _first_function_insns_from_text(result.stdout, aliases)
 
+
+def _first_function_insns_from_text(stdout: str, aliases) -> list[str] | None:
+    """Pure-text core of first_function_insns (see its docstring). Parses
+    `llvm-objdump -d --no-show-raw-insn --no-leading-addr` output. Split out so
+    the neighbour-vs-internal boundary logic is unit-testable without an .obj."""
     want = set(aliases)
     insns: list[str] = []
     in_target = False
     found = False
+    # Labels targeted by a branch/jump seen so far in this function.  An early-
+    # return `ret` inside a multi-return function is followed by the alternate-
+    # path block's label (e.g. the `je <LAB_x>` target): that label is INTERNAL
+    # code, not a neighbour slot, so it must not end the function.  A genuine
+    # neighbour stub's entry label is never referenced by one of our jumps.
+    referenced: set[str] = set()
+    # Switch ids (switchD_<addr>) whose dispatch we have already fallen into.
+    # Every caseD_/default sub-label of an entered switch is internal even when
+    # the previous case body ends in `ret` (each `case:` `return;`s and the next
+    # case is reached only through the indirect jump table, never a direct
+    # branch — so `referenced` cannot see it).  A *neighbour's* switch appears
+    # with a new id after our terminating ret, so it still hard-breaks.
+    seen_switches: set[str] = set()
 
-    for raw_line in result.stdout.splitlines():
+    for raw_line in stdout.splitlines():
         line = raw_line.rstrip()
         m = re.match(r'^(?:[0-9a-f]+ )?<([^>]+)>:', line)
         if m:
@@ -156,11 +182,20 @@ def first_function_insns(obj_path: str, aliases) -> list[str] | None:
             # non-jump-target) is a hard boundary — stop (handles jmp-terminated
             # trampolines whose successor carries a proper symbol).  A jump-target
             # label (LAB_/switchD_/$L/$case/$next) is only a boundary when the
-            # last real instruction was a ret, i.e. a stub/neighbour slot follows;
-            # otherwise real code flows into it (internal jump target).
+            # last real instruction was a ret AND the label is not an internal
+            # branch target of this function; otherwise real code flows into it
+            # (early-return ret + alternate-path block, or fall-through target).
             is_label = sym.startswith(("LAB_", "switchD_", "$L", "$case", "$next"))
             if not is_label:
                 break
+            sw = re.match(r'switchD_([0-9a-f]+)::', sym)
+            swid = sw.group(1) if sw else None
+            if swid and swid in seen_switches:
+                continue
+            if sym in referenced:
+                if swid:
+                    seen_switches.add(swid)
+                continue
             last = ""
             for prev in reversed(insns):
                 mn = mnemonic(prev).lower()
@@ -170,6 +205,8 @@ def first_function_insns(obj_path: str, aliases) -> list[str] | None:
                 break
             if last in _RET_MNEMS:
                 break
+            if swid:
+                seen_switches.add(swid)
             continue
 
         if not in_target:
@@ -183,6 +220,11 @@ def first_function_insns(obj_path: str, aliases) -> list[str] | None:
             insn = parts[1] if len(parts) > 1 else ""
         if insn:
             insns.append(insn)
+            # Record any label this instruction jumps to (operand `<name>`), so a
+            # later ret+label boundary check can tell internal targets from
+            # neighbour slots.
+            for ref in re.findall(r'<([^>]+)>', insn):
+                referenced.add(re.sub(r'@\d+$', '', ref.lstrip("_")))
 
     if not found:
         return None
@@ -956,6 +998,55 @@ def _self_test():
     w = compare_immediates(["pushl $0xc0490fd0"], ["pushl $0xc0490fdb"])
     check("negative float (-pi) near-miss flagged",
           any("near-miss float" in x and "c0490fdb" in x for x in w))
+
+    # --- Per-function chunk boundary detection (first_function_insns) ---
+    # These guard the 2026-07-06 fix: vc71 was truncating multi-return and
+    # switch functions at the first mid-body ret+label, understating match by
+    # 27-50pp (network_connection FUN_001288e0 40.5% -> 90.3%).
+
+    # B1. Multi-return: an early-return `ret` is followed by the alternate-path
+    #     block whose label the earlier `je` targets -> INTERNAL, must not cut.
+    txt = ("<_FUN_00001000>:\n"
+           "   0: test %edi, %edi\n"
+           "   2: je 0x8 <LAB_00001008>\n"
+           "   4: mov (%edi), %eax\n"
+           "   6: ret\n"
+           "<LAB_00001008>:\n"
+           "   8: xor %eax, %eax\n"
+           "   a: ret\n")
+    ins = _first_function_insns_from_text(txt, {"FUN_00001000"})
+    check("multi-return ret+referenced-label not truncated", ins is not None and len(ins) == 6)
+
+    # B2. Switch: each `case: return;` is a `ret` before the next caseD_ label,
+    #     reached only via the indirect jump table -> INTERNAL once the switch is
+    #     entered, must not cut.
+    txt = ("<_FUN_00002000>:\n"
+           "   0: cmp $0x2, %eax\n"
+           "   3: ja 0x30 <switchD_00002010::default>\n"
+           "   5: jmp *0x100(,%eax,4)\n"
+           "<switchD_00002010::caseD_0>:\n"
+           "   c: mov $0x1, %eax\n"
+           "  11: ret\n"
+           "<switchD_00002010::caseD_1>:\n"
+           "  13: mov $0x2, %eax\n"
+           "  18: ret\n"
+           "<switchD_00002010::default>:\n"
+           "  30: xor %eax, %eax\n"
+           "  32: ret\n")
+    ins = _first_function_insns_from_text(txt, {"FUN_00002000"})
+    check("switch case ret+caseD label not truncated", ins is not None and len(ins) == 9)
+
+    # B3. CRITICAL negative: a GENUINE neighbour slot (unreferenced label, no
+    #     entered switch) after our terminating ret MUST still cut -- preserves
+    #     the stale-0x2000-export protection.
+    txt = ("<_FUN_00003000>:\n"
+           "   0: mov (%edi), %eax\n"
+           "   2: ret\n"
+           "<LAB_00003008>:\n"
+           "   8: xor %eax, %eax\n"
+           "   a: ret\n")
+    ins = _first_function_insns_from_text(txt, {"FUN_00003000"})
+    check("genuine neighbour slot still truncated", ins is not None and len(ins) == 2)
 
     if failures:
         print(f"\nSELF-TEST FAILED: {len(failures)} case(s)")
