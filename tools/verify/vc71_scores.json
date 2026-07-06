@@ -8148,6 +8148,10 @@
       "score": 95.5,
       "source": "src/halo/networking/network_game_globals.c"
     },
+    "FUN_00129980": {
+      "score": 89.1,
+      "source": "src/halo/networking/network_game_globals.c"
+    },
     "FUN_00129cf0": {
       "score": 85.9,
       "source": "src/halo/networking/network_game_globals.c"
@@ -8165,6 +8169,14 @@
       "source": "src/halo/networking/network_game_globals.c"
     },
     "FUN_0012a0a0": {
+      "score": 100.0,
+      "source": "src/halo/networking/network_game_globals.c"
+    },
+    "FUN_0012a0d0": {
+      "score": 88.9,
+      "source": "src/halo/networking/network_game_globals.c"
+    },
+    "FUN_0012a150": {
       "score": 100.0,
       "source": "src/halo/networking/network_game_globals.c"
     },
@@ -8196,12 +8208,28 @@
       "score": 95.2,
       "source": "src/halo/networking/network_game_globals.c"
     },
+    "FUN_0012a690": {
+      "score": 100.0,
+      "source": "src/halo/networking/network_game_globals.c"
+    },
+    "FUN_0012a6c0": {
+      "score": 94.9,
+      "source": "src/halo/networking/network_game_globals.c"
+    },
     "FUN_0012a780": {
+      "score": 100.0,
+      "source": "src/halo/networking/network_game_globals.c"
+    },
+    "FUN_0012a790": {
       "score": 100.0,
       "source": "src/halo/networking/network_game_globals.c"
     },
     "FUN_0012a7a0": {
       "score": 92.9,
+      "source": "src/halo/networking/network_game_globals.c"
+    },
+    "FUN_0012a830": {
+      "score": 100.0,
       "source": "src/halo/networking/network_game_globals.c"
     },
     "FUN_0012a890": {
@@ -8489,7 +8517,7 @@
       "source": "src/halo/networking/network_server_manager.c"
     },
     "FUN_0012eb20": {
-      "score": 60.5,
+      "score": 61.6,
       "source": "src/halo/networking/network_server_manager.c"
     },
     "FUN_0012eca0": {
@@ -8541,11 +8569,11 @@
       "source": "src/halo/networking/network_server_manager.c"
     },
     "FUN_0012f5d0": {
-      "score": 62.8,
+      "score": 67.1,
       "source": "src/halo/networking/network_server_manager.c"
     },
     "FUN_0012f690": {
-      "score": 50.4,
+      "score": 79.5,
       "source": "src/halo/networking/network_server_manager.c"
     },
     "FUN_0012f8d0": {
@@ -13164,8 +13192,12 @@
       "score": 96.4,
       "source": "src/halo/memory/memory_pool.c"
     },
+    "network_connection_new": {
+      "score": 80.7,
+      "source": "src/halo/networking/network_connection.c"
+    },
     "network_game_client_end_frame": {
-      "score": 65.9,
+      "score": 81.9,
       "source": "src/halo/networking/network_game_globals.c"
     },
     "network_game_client_start_frame": {
