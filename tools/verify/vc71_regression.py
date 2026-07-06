@@ -36,9 +36,11 @@ import argparse
 import bisect
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -57,6 +59,12 @@ VALIDITY_PATH = REPO_ROOT / "artifacts" / "audit" / "reference_validity.json"
 # Lets a dashboard refresh re-verify only the TUs whose inputs changed.
 POPULATE_STATE_PATH = REPO_ROOT / "artifacts" / "audit" / "populate_state.json"
 VC71_VERIFY = REPO_ROOT / "tools" / "verify" / "vc71_verify.py"
+# Generated header the VC71 compile includes; produced from kb.json by knowledge.py.
+# Nothing on the populate path used to regenerate it, so a stale header (disagreeing
+# with kb.json) silently failed the compile and dropped the whole TU.  cmd_populate
+# now regenerates it up front and folds its per-TU content into the fingerprint.
+KNOWLEDGE_PY = REPO_ROOT / "tools" / "analysis" / "knowledge.py"
+DECL_H = REPO_ROOT / "build" / "generated" / "decl.h"
 
 _LINE_RE = re.compile(
     r"(?:PASS|FAIL)\s+(\S+):\s+([\d.]+)%\s+match\s+\((\d+)/(\d+)\s+insns\)"
@@ -130,6 +138,100 @@ def _sha_file(path: Path) -> str:
         return ""
 
 
+def regen_decl_header() -> bool:
+    """Regenerate build/generated/decl.h from kb.json (the actual VC71 compile input).
+
+    The CMake build only regenerates this header when kb.json/knowledge.py change,
+    so a manual `populate` could compile every TU against a stale header — the
+    class of failure that silently blanked network_game_globals on the dashboard.
+    Running the generator here (cheap, idempotent, deterministic for an unchanged
+    kb.json) pins decl.h == kb.json before any TU is fingerprinted or compiled.
+
+    Returns True on success; on failure prints a warning and returns False so
+    populate still runs (against whatever header exists).
+    """
+    DECL_H.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        r = subprocess.run(
+            [sys.executable, str(KNOWLEDGE_PY), "--gen-header", str(DECL_H)],
+            capture_output=True, text=True, cwd=REPO_ROOT)
+    except OSError as e:
+        print(f"  ⚠ could not regenerate decl.h ({e}); using existing header",
+              file=sys.stderr)
+        return False
+    if r.returncode != 0:
+        tail = (r.stderr or r.stdout or "").strip().splitlines()[-3:]
+        print("  ⚠ decl.h regeneration failed; using existing header:",
+              file=sys.stderr)
+        for l in tail:
+            print(f"      {l}", file=sys.stderr)
+        return False
+    return True
+
+
+# Parsed decl.h index: {symbol_name: declaration_line}.  Rebuilt once per process
+# (after regen_decl_header, so it reflects the freshly generated header).
+_DECL_INDEX: dict[str, str] | None = None
+_IDENT_RE = re.compile(r"[A-Za-z_]\w*")
+
+
+def _decl_index() -> dict[str, str]:
+    global _DECL_INDEX
+    if _DECL_INDEX is not None:
+        return _DECL_INDEX
+    idx: dict[str, str] = {}
+    try:
+        text = DECL_H.read_text(errors="replace")
+    except OSError:
+        _DECL_INDEX = idx
+        return idx
+    for line in text.splitlines():
+        s = line.strip()
+        if not s or s.startswith("#") or s.startswith("//"):
+            continue
+        # A prototype line: capture the declared symbol (identifier before "(").
+        m = re.search(r"([A-Za-z_]\w*)\s*\(", s)
+        if m:
+            idx.setdefault(m.group(1), s)
+    _DECL_INDEX = idx
+    return idx
+
+
+def _tu_decl_digest(src: Path) -> str:
+    """Digest of the decl.h lines this TU actually compiles against.
+
+    We must fingerprint the *header content*, not kb.json: the header can drift
+    from kb.json (stale generation), and only the header is the compile input.
+    We subset to the symbols the source textually references so a lift that
+    changes one function's signature invalidates only the TUs that define or
+    call it — the TU's own defined functions are always textually present
+    (their definitions), so a self-signature mismatch is always caught.
+    """
+    idx = _decl_index()
+    if not idx:
+        return ""
+    try:
+        text = src.read_text(errors="replace")
+    except OSError:
+        return ""
+    referenced = {tok for tok in _IDENT_RE.findall(text) if tok in idx}
+    lines = sorted(idx[name] for name in referenced)
+    return _sha_bytes("\n".join(lines))
+
+
+def _kb_addr_signature() -> str:
+    """Hash of the sorted kb.json function-address set only.
+
+    The full kb.json changes on every lift (decls), so hashing it into the tool
+    epoch defeats incrementality.  Per-TU decl content is captured by
+    _tu_decl_digest instead; the only remaining kb input to *scoring* is the
+    address layout feeding the reference-validity span gate (_func_span), which
+    changes rarely (a re-address implies a re-delink → chunk-dir epoch bump too).
+    """
+    addrs, _ = _kb_maps()
+    return _sha_bytes(",".join(f"{a:x}" for a in addrs))
+
+
 _TOOL_EPOCH = None
 
 
@@ -148,18 +250,22 @@ def _tool_epoch() -> str:
     for rel in ("tools/verify/vc71_verify.py",
                 "tools/verify/compare_obj.py",
                 "tools/verify/vc71_regression.py",
-                "tools/verify/vc71_cache.py",
-                "kb.json"):
+                "tools/verify/vc71_cache.py"):
         parts.append(_sha_file(REPO_ROOT / rel))
-    # Per-function chunk directory signature (name+size+mtime): a re-delink of
-    # any fallback chunk must invalidate the cache.
+    # kb.json is deliberately NOT hashed whole here: it changes on every lift
+    # (decls), which would force a full re-verify each time.  Its per-TU-relevant
+    # content is captured elsewhere — decls via _tu_decl_digest (from the generated
+    # header), address layout via the light signature below (span gate input).
+    parts.append(_kb_addr_signature())
+    # Per-function chunk directory signature by *content* (name+size+sha), not
+    # mtime: a re-delink of any fallback chunk must invalidate the cache, but a
+    # bare `touch`/checkout of an unchanged .obj must not force a full pass.
     fdir = REPO_ROOT / "delinked" / "functions"
     sig = []
     if fdir.is_dir():
         for p in sorted(fdir.glob("*.obj")):
             try:
-                st = p.stat()
-                sig.append(f"{p.name}:{st.st_size}:{st.st_mtime_ns}")
+                sig.append(f"{p.name}:{p.stat().st_size}:{_sha_file(p)}")
             except OSError:
                 continue
     parts.append(_sha_bytes("\n".join(sig)))
@@ -168,9 +274,13 @@ def _tool_epoch() -> str:
 
 
 def _tu_fingerprint(src: Path, ref: Path) -> str:
-    """Fingerprint one TU by its own inputs (source + whole-object reference).
-    The tool/kb/chunk epoch is tracked separately at the state-file level."""
-    return _sha_bytes(_sha_file(src), _sha_file(ref))
+    """Fingerprint one TU by its own compile inputs: source, whole-object
+    reference, and the subset of the generated decl.h it references.  Including
+    the decl digest is what makes a regenerated/stale header invalidate this TU's
+    cached slice (the network_game_globals blank), while keeping incrementality —
+    a lift only invalidates TUs that reference the changed signature.
+    The tool/kb-addr/chunk epoch is tracked separately at the state-file level."""
+    return _sha_bytes(_sha_file(src), _sha_file(ref), _tu_decl_digest(src))
 
 
 def load_populate_state() -> dict:
@@ -229,6 +339,65 @@ def _kb_maps():
     return _KB_MAPS
 
 
+_KB_SOURCE_FUNCS = None
+
+
+def _kb_source_funcs() -> dict[str, list[dict]]:
+    """Map a normalized source path → list of that TU's ported functions.
+
+    Keyed by the object's ``source`` (e.g. ``networking/network_game_globals.c``)
+    and, when present, a function's own ``source_path`` override.  Each entry is
+    ``{"name", "addr"}`` for a ported function, where name is the declared symbol
+    (matching how vc71_verify labels its score lines) or ``FUN_<addr>``.
+    Used to enumerate the functions a TU was expected to score, so a whole-TU
+    compile failure can be flagged per function rather than vanishing silently.
+    """
+    global _KB_SOURCE_FUNCS
+    if _KB_SOURCE_FUNCS is not None:
+        return _KB_SOURCE_FUNCS
+    out: dict[str, list[dict]] = {}
+    try:
+        data = json.loads((REPO_ROOT / "kb.json").read_text())
+    except (OSError, json.JSONDecodeError):
+        _KB_SOURCE_FUNCS = out
+        return out
+    for obj in data.get("objects", []):
+        obj_src = obj.get("source") or ""
+        for fn in obj.get("functions") or []:
+            if not fn.get("ported"):
+                continue
+            a = fn.get("addr")
+            if not a:
+                continue
+            try:
+                ai = int(a, 16)
+            except (ValueError, TypeError):
+                continue
+            name = f"FUN_{ai:08x}"
+            m = re.search(r"([A-Za-z_]\w*)\s*\(", fn.get("decl", "") or "")
+            if m:
+                name = m.group(1)
+            src = fn.get("source_path") or obj_src
+            if not src:
+                continue
+            out.setdefault(src, []).append({"name": name, "addr": f"0x{ai:x}"})
+    _KB_SOURCE_FUNCS = out
+    return out
+
+
+def _expected_ported_functions(src_rel: str) -> list[dict]:
+    """Ported functions expected from a TU, matched by suffix on the kb source
+    (src_rel is repo-root-relative, e.g. ``src/halo/networking/x.c``; kb sources
+    are src/halo-relative, e.g. ``networking/x.c``)."""
+    table = _kb_source_funcs()
+    norm = src_rel.replace("\\", "/")
+    for key, fns in table.items():
+        k = key.replace("\\", "/")
+        if norm == k or norm.endswith("/" + k) or norm.endswith(k):
+            return fns
+    return []
+
+
 def _func_span(fn_name: str):
     """Byte span of a function (next function start - its start), or None."""
     addrs, name2addr = _kb_maps()
@@ -271,7 +440,8 @@ def _reference_valid(n_r, span):
 
 def run_vc71_verify(source: Path, no_cache: bool = True,
                     function: str | None = None,
-                    drops_out: list | None = None) -> dict[str, dict]:
+                    drops_out: list | None = None,
+                    meta_out: dict | None = None) -> dict[str, dict]:
     """Run vc71_verify on a source file; return {fn_name: {score, n_c, n_r}}.
 
     Defaults to --no-cache so stale .obj files from previous compilations do
@@ -290,6 +460,10 @@ def run_vc71_verify(source: Path, no_cache: bool = True,
     if no_cache:
         cmd.append("--no-cache")
     result = subprocess.run(cmd, capture_output=True, text=True, cwd=REPO_ROOT)
+    if meta_out is not None:
+        combined = (result.stderr or result.stdout or "")
+        meta_out["returncode"] = result.returncode
+        meta_out["stderr_tail"] = [l for l in combined.strip().splitlines()[-6:]]
     out = {}
     for line in (result.stdout + result.stderr).splitlines():
         m = _LINE_RE.search(line)
@@ -315,24 +489,51 @@ def run_vc71_verify(source: Path, no_cache: bool = True,
 # update command
 # ---------------------------------------------------------------------------
 
-def _verify_source(src: Path, baseline: dict, force: bool):
-    """Verify one source TU: apply the floor merge into ``baseline`` (in place)
-    and return ``(n_changed, honest_slice, flagged_slice)`` for this TU only.
+def _measure_source(src: Path):
+    """Measure one source TU with no shared-state mutation and no live printing.
 
+    Returns ``(src_rel, honest_slice, flagged_slice, scored, log)``:
     - ``honest_slice``: ``{fn: {score, source, n_c, n_r}}`` for functions scored
       against a valid reference.
-    - ``flagged_slice``: re-delink queue entries for this TU.
+    - ``flagged_slice``: re-delink/attention queue entries for this TU.
+    - ``scored``: ``[(fn_name, score)]`` valid scored functions, for the caller's
+      serial floor merge.
+    - ``log``: status lines to print (drops / invalid-reference / compile-fail).
 
-    Does not save the baseline — the caller saves once after all TUs.
+    Thread-safe: only reads module caches that the caller pre-warms.  The floor
+    merge and all baseline mutation happen serially in ``_apply_floor``.
     """
     honest_slice: dict = {}
     flagged_slice: list = []
-    n_changed = 0
-
-    print(f"Verifying {src.relative_to(REPO_ROOT)} ...", flush=True)
+    scored: list = []
+    log: list = []
     drops: list = []
-    results = run_vc71_verify(src, drops_out=drops)
+    meta: dict = {}
+    results = run_vc71_verify(src, drops_out=drops, meta_out=meta)
     src_rel = str(src.relative_to(REPO_ROOT))
+
+    # Compile-failure gate: a TU that produced neither a score line nor a DROP
+    # line, yet was expected to score ported functions, almost certainly failed
+    # to compile (e.g. a stale decl.h C2371).  Such a TU used to vanish silently
+    # from vc71_current.json and render as a blank "—".  Flag each expected
+    # function loudly into the re-delink/attention queue instead.
+    if not results and not drops:
+        expected = _expected_ported_functions(src_rel)
+        if expected:
+            rc = meta.get("returncode")
+            tail = meta.get("stderr_tail") or []
+            reason = f"vc71 compile/score failed (rc={rc})"
+            log.append(f"  ✗ {src_rel}: {reason}; {len(expected)} function(s) "
+                       f"flagged (compile_failed)")
+            for l in tail:
+                log.append(f"      {l}")
+            for fn in sorted(expected, key=lambda x: x["name"]):
+                flagged_slice.append({
+                    "function": fn["name"], "source": src_rel,
+                    "addr": fn.get("addr"), "n_r": None, "span_bytes": None,
+                    "state": "compile_failed", "reason": reason,
+                })
+            return src_rel, honest_slice, flagged_slice, scored, log
 
     # Functions vc71_verify could not score against any valid reference never
     # produce a score line, so the gate below never sees them.  Record them
@@ -341,9 +542,9 @@ def _verify_source(src: Path, baseline: dict, force: bool):
     for d in sorted(drops, key=lambda x: x["function"]):
         flagged_slice.append({"function": d["function"], "source": src_rel,
                               "n_r": None, "span_bytes": d.get("span_bytes"),
-                              "reason": d["reason"]})
-        print(f"  ⚠ {d['function']}: no valid reference — {d['reason']}; "
-              f"skipped (flagged for re-delink)")
+                              "state": "no_reference", "reason": d["reason"]})
+        log.append(f"  ⚠ {d['function']}: no valid reference — {d['reason']}; "
+                   f"skipped (flagged for re-delink)")
 
     for fn_name, info in sorted(results.items()):
         new_score = info["score"]
@@ -357,36 +558,61 @@ def _verify_source(src: Path, baseline: dict, force: bool):
         if not ok:
             flagged_slice.append({"function": fn_name, "source": src_rel,
                                   "n_r": n_r, "span_bytes": span,
-                                  "reason": reason})
-            print(f"  ⚠ {fn_name}: reference invalid — {reason}; "
-                  f"skipped (flagged for re-delink)")
+                                  "state": "no_reference", "reason": reason})
+            log.append(f"  ⚠ {fn_name}: reference invalid — {reason}; "
+                       f"skipped (flagged for re-delink)")
             continue
 
         honest_slice[fn_name] = {"score": new_score, "source": src_rel,
                                  "n_c": info.get("n_c"), "n_r": n_r}
+        scored.append((fn_name, new_score))
 
+    return src_rel, honest_slice, flagged_slice, scored, log
+
+
+def _apply_floor(baseline: dict, src_rel: str, scored: list, force: bool):
+    """Apply the raise-only floor merge for one TU's scored functions into
+    ``baseline`` (in place).  Serial and order-independent for distinct
+    functions.  Returns ``(n_changed, log)``."""
+    n_changed = 0
+    log: list = []
+    for fn_name, new_score in scored:
         old_entry = baseline.get(fn_name)
         old_score = old_entry["score"] if old_entry else None
 
         if old_score is None:
             baseline[fn_name] = {"score": new_score, "source": src_rel}
-            print(f"  + {fn_name}: {new_score:.1f}% (new)")
+            log.append(f"  + {fn_name}: {new_score:.1f}% (new)")
             n_changed += 1
         elif new_score > old_score + 0.1:
             # Improvement: always raise the floor
             baseline[fn_name] = {"score": new_score, "source": src_rel}
-            print(f"  ↑ {fn_name}: {old_score:.1f}% → {new_score:.1f}%")
+            log.append(f"  ↑ {fn_name}: {old_score:.1f}% → {new_score:.1f}%")
             n_changed += 1
         elif new_score < old_score - 0.1:
             if force:
                 baseline[fn_name] = {"score": new_score, "source": src_rel}
-                print(f"  ↓ {fn_name}: {old_score:.1f}% → {new_score:.1f}% (forced lower)")
+                log.append(f"  ↓ {fn_name}: {old_score:.1f}% → {new_score:.1f}% (forced lower)")
                 n_changed += 1
             else:
-                print(f"  ! {fn_name}: {old_score:.1f}% → {new_score:.1f}%"
-                      f" (drop; use --force to lower floor)")
+                log.append(f"  ! {fn_name}: {old_score:.1f}% → {new_score:.1f}%"
+                           f" (drop; use --force to lower floor)")
         # else: unchanged within tolerance, nothing to do
+    return n_changed, log
 
+
+def _verify_source(src: Path, baseline: dict, force: bool):
+    """Verify one source TU serially: measure, print, apply the floor merge into
+    ``baseline`` (in place), and return ``(n_changed, honest_slice, flagged_slice)``.
+    Used by ``update`` (single-file, live output).  ``populate`` uses the
+    ``_measure_source`` / ``_apply_floor`` split directly for parallelism."""
+    print(f"Verifying {src.relative_to(REPO_ROOT)} ...", flush=True)
+    src_rel, honest_slice, flagged_slice, scored, log = _measure_source(src)
+    for l in log:
+        print(l)
+    n_changed, floor_log = _apply_floor(baseline, src_rel, scored, force)
+    for l in floor_log:
+        print(l)
     return n_changed, honest_slice, flagged_slice
 
 
@@ -565,6 +791,13 @@ def cmd_populate(args) -> int:
     forces a full re-verify.  Without the flag, every TU is re-verified (the
     conservative default used by CI).
     """
+    # Pin decl.h == kb.json before fingerprinting or compiling any TU.  The
+    # per-TU decl digest (in _tu_fingerprint) reads this freshly generated
+    # header, so a header that was stale on disk is corrected here and the
+    # affected TUs are re-verified rather than reusing a stale/empty slice.
+    print("Regenerating build/generated/decl.h from kb.json ...", flush=True)
+    regen_decl_header()
+
     objdiff = REPO_ROOT / "objdiff.json"
     if not objdiff.exists():
         print("objdiff.json not found.", file=sys.stderr)
@@ -612,6 +845,8 @@ def cmd_populate(args) -> int:
     n_cached = 0
     n_verified = 0
 
+    # Partition into unchanged (reuse cached slice) and changed (re-verify).
+    to_verify: list = []
     for src_abs, src_rel, ref_abs in tus:
         fp = _tu_fingerprint(src_abs, ref_abs)
         cached = prev_tus.get(src_rel)
@@ -626,8 +861,36 @@ def cmd_populate(args) -> int:
             new_state[src_rel] = cached
             n_cached += 1
             continue
+        to_verify.append((src_abs, src_rel, ref_abs, fp))
 
-        n, honest_slice, flagged_slice = _verify_source(src_abs, baseline, force)
+    # Measure changed TUs concurrently (each verify is subprocess-bound, so the
+    # GIL is released during the compile+compare).  The floor merge and all
+    # baseline mutation happen serially below in deterministic TU order, so the
+    # result is byte-identical to a serial run.
+    measured: dict = {}
+    if to_verify:
+        # Pre-warm lazy module caches so worker threads never race on first init.
+        _kb_maps(); _kb_source_funcs(); _decl_index()
+        n_workers = min(len(to_verify), max(1, (os.cpu_count() or 4) - 2), 8)
+        print(f"Re-verifying {len(to_verify)} changed TU(s) "
+              f"({n_workers} workers)...", flush=True)
+        with ThreadPoolExecutor(max_workers=n_workers) as ex:
+            futs = {ex.submit(_measure_source, item[0]): item[1]
+                    for item in to_verify}
+            for fut, key in futs.items():
+                measured[key] = fut.result()
+
+    for src_abs, src_rel, ref_abs, fp in to_verify:
+        res = measured.get(src_rel)
+        if res is None:
+            continue
+        _msrc_rel, honest_slice, flagged_slice, scored, log = res
+        print(f"Verifying {Path(src_rel)} ...", flush=True)
+        for l in log:
+            print(l)
+        n, floor_log = _apply_floor(baseline, src_rel, scored, force)
+        for l in floor_log:
+            print(l)
         total_changed += n
         honest.update(honest_slice)
         flagged.extend(flagged_slice)
@@ -655,13 +918,25 @@ def cmd_populate(args) -> int:
               f"→ {POPULATE_STATE_PATH.relative_to(REPO_ROOT)}")
     print(f"\nHonest current scores: {len(honest)} functions → {CURRENT_PATH.name}")
     if flagged:
-        print(f"Reference-validity: {len(flagged)} function(s) skipped "
-              f"(broken/truncated reference) → {VALIDITY_PATH.relative_to(REPO_ROOT)}")
-        print("  Re-delink these before their scores can be trusted:")
-        for f in flagged[:12]:
-            print(f"    {f['function']} ({f['source']}): {f['reason']}")
-        if len(flagged) > 12:
-            print(f"    ... and {len(flagged) - 12} more (see report)")
+        n_compile = sum(1 for f in flagged if f.get("state") == "compile_failed")
+        n_ref = len(flagged) - n_compile
+        print(f"Attention queue: {len(flagged)} function(s) not scored "
+              f"→ {VALIDITY_PATH.relative_to(REPO_ROOT)}")
+        if n_ref:
+            print(f"  {n_ref} with broken/truncated delinked reference "
+                  f"(re-delink before their scores can be trusted).")
+        if n_compile:
+            # A whole-TU VC71 compile failure (often a clang-ism the C89 CL.Exe
+            # rejects: __attribute__, inline in a header, C99 mixed decls).  These
+            # have NO byte-match evidence until the TU compiles under VC71.
+            compile_srcs = sorted({f["source"] for f in flagged
+                                   if f.get("state") == "compile_failed"})
+            print(f"  {n_compile} in {len(compile_srcs)} TU(s) that FAIL to "
+                  f"compile under VC71 (no byte-match evidence):")
+            for s in compile_srcs[:12]:
+                print(f"    {s}")
+            if len(compile_srcs) > 12:
+                print(f"    ... and {len(compile_srcs) - 12} more (see report)")
     return 0
 
 

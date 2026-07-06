@@ -1175,7 +1175,14 @@ def finalize(summary: dict[str, object], stages: list[StageResult], artifact_dir
 
 
 def _update_dashboard(quiet: bool = False) -> None:
-  """Kick off a background dashboard regeneration after a successful lift."""
+  """Kick off a background dashboard regeneration after a successful lift.
+
+  This only re-renders the report from the existing scores; it does NOT run VC71
+  populate.  Honest VC71 scores + the attention-queue badges are refreshed by the
+  nightly self-hosted `progress-report.yml` job (the only runner with the VC71
+  CL.Exe toolchain), which is the sole consumer of those numbers.  A lift's own
+  VC71 match is still reported by the pipeline's vc71_verify stage, and the
+  decision-driving floor (vc71_scores.json) is maintained by the commit hooks."""
   repo_root = Path(__file__).resolve().parent.parent
   ci_script = repo_root / "tools" / "report" / "generate_ci_status.py"
   report_script = repo_root / "tools" / "report" / "generate_decomp_report.py"
