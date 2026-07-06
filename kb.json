@@ -24232,7 +24232,7 @@
         },
         {
           "addr": "0x824d0",
-          "decl": "void poll_endpoint_set(void);"
+          "decl": "int poll_endpoint_set(int endpoint_set, unsigned short timeout);"
         },
         {
           "addr": "0x82700",
@@ -24240,15 +24240,15 @@
         },
         {
           "addr": "0x82940",
-          "decl": "void rewind_endpoint_set(void);"
+          "decl": "void rewind_endpoint_set(int endpoint_set);"
         },
         {
           "addr": "0x829b0",
-          "decl": "void FUN_000829b0(void);"
+          "decl": "int FUN_000829b0(int endpoint_set);"
         },
         {
           "addr": "0x82a30",
-          "decl": "void FUN_00082a30(void);"
+          "decl": "int FUN_00082a30(int endpoint_set);"
         },
         {
           "addr": "0x82a90",
@@ -24276,7 +24276,7 @@
         },
         {
           "addr": "0x83040",
-          "decl": "void FUN_00083040(void);"
+          "decl": "char FUN_00083040(int endpoint, unsigned short timeout);"
         },
         {
           "addr": "0x83100",
@@ -24304,7 +24304,7 @@
         },
         {
           "addr": "0x83e20",
-          "decl": "void FUN_00083e20(void);"
+          "decl": "short FUN_00083e20(int endpoint, int address);"
         },
         {
           "addr": "0x84080",
@@ -24312,7 +24312,7 @@
         },
         {
           "addr": "0x841b0",
-          "decl": "void FUN_000841b0(void);"
+          "decl": "short FUN_000841b0(int endpoint, int address, int process_ref);"
         },
         {
           "addr": "0x843a0",
@@ -24320,7 +24320,7 @@
         },
         {
           "addr": "0x84450",
-          "decl": "void FUN_00084450(void);"
+          "decl": "int FUN_00084450(int listening_endpoint);"
         },
         {
           "addr": "0x84740",
@@ -24328,7 +24328,7 @@
         },
         {
           "addr": "0x84940",
-          "decl": "void FUN_00084940(void);"
+          "decl": "int FUN_00084940(int listening_endpoint);"
         },
         {
           "addr": "0x84970",
@@ -34015,7 +34015,8 @@
         },
         {
           "addr": "0x1286e0",
-          "decl": "bool FUN_001286e0(int connection@<esi>, void *buffer, int *size, void *addr);"
+          "decl": "bool FUN_001286e0(int connection@<esi>, void *buffer, int *size, void *addr);",
+          "ported": true
         },
         {
           "addr": "0x128d30",
@@ -34029,19 +34030,23 @@
         },
         {
           "addr": "0x1292f0",
-          "decl": "bool FUN_001292f0(int connection@<edi>, void *buffer, int *size, void *addr);"
+          "decl": "bool FUN_001292f0(int connection@<edi>, void *buffer, int *size, void *addr);",
+          "ported": true
         },
         {
           "addr": "0x1294d0",
-          "decl": "bool FUN_001294d0(int connection@<esi>);"
+          "decl": "bool FUN_001294d0(int connection@<esi>);",
+          "ported": true
         },
         {
           "addr": "0x129a30",
-          "decl": "bool FUN_00129a30(int connection@<ebx>, int *output);"
+          "decl": "bool FUN_00129a30(int connection@<ebx>, int *output);",
+          "ported": true
         },
         {
           "addr": "0x128460",
-          "decl": "void network_connection_connect(void);"
+          "decl": "bool network_connection_connect(int connection, int remote_address, int async_process_ref);",
+          "ported": true
         },
         {
           "addr": "0x128580",
@@ -34050,7 +34055,8 @@
         },
         {
           "addr": "0x1288e0",
-          "decl": "void FUN_001288e0(int event@<ecx>, int enable@<eax>, int connection@<esi>);"
+          "decl": "void FUN_001288e0(int event@<ecx>, int enable@<eax>, int connection@<esi>);",
+          "ported": true
         },
         {
           "addr": "0x128d20",
@@ -34059,7 +34065,8 @@
         },
         {
           "addr": "0x129270",
-          "decl": "void *FUN_00129270(int endpoint@<edi>);"
+          "decl": "void *FUN_00129270(int endpoint@<edi>);",
+          "ported": true
         },
         {
           "addr": "0x1296b0",
