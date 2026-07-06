@@ -24324,7 +24324,7 @@
         },
         {
           "addr": "0x84740",
-          "decl": "void FUN_00084740(void);"
+          "decl": "int FUN_00084740(int endpoint, void *message, int size, int dest_address);"
         },
         {
           "addr": "0x84940",
@@ -29785,7 +29785,7 @@
         },
         {
           "addr": "0x1d0581",
-          "decl": "void FUN_001d0581(void);"
+          "decl": "int FUN_001d0581(void);"
         },
         {
           "addr": "0x1d0589",
@@ -34024,7 +34024,8 @@
         },
         {
           "addr": "0x128e00",
-          "decl": "bool network_connection_write(void *connection, void *message, unsigned short size, int dest_address, int reliable);"
+          "decl": "bool network_connection_write(void *connection, void *message, unsigned short size, int dest_address, bool reliable);",
+          "ported": true
         },
         {
           "addr": "0x1292f0",
