@@ -13449,17 +13449,17 @@
         {
           "addr": "0x12a000",
           "decl": "bool network_game_in_progress(void);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x12a160",
           "decl": "bool network_game_accept_remote_connections(void);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x12a170",
           "decl": "bool network_game_is_splitscreen_local(void);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x12a1d0",
@@ -13469,7 +13469,7 @@
         {
           "addr": "0x12a1e0",
           "decl": "void dispose_global_network_game_client(void);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x12a210",
@@ -13499,7 +13499,7 @@
         {
           "addr": "0x12a780",
           "decl": "void network_game_abort(void);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x129980",

@@ -140,48 +140,6 @@
     "since": "2026-06-10"
   },
   {
-    "addr": "0x12a000",
-    "name": "network_game_in_progress",
-    "object": "network_game_globals.obj",
-    "reason": "pre-gate baseline 2026-06-10",
-    "since": "2026-06-10"
-  },
-  {
-    "addr": "0x12a160",
-    "name": "network_game_accept_remote_connections",
-    "object": "network_game_globals.obj",
-    "reason": "pre-gate baseline 2026-06-10",
-    "since": "2026-06-10"
-  },
-  {
-    "addr": "0x12a170",
-    "name": "network_game_is_splitscreen_local",
-    "object": "network_game_globals.obj",
-    "reason": "pre-gate baseline 2026-06-10",
-    "since": "2026-06-10"
-  },
-  {
-    "addr": "0x12a1d0",
-    "name": "network_game_server_get",
-    "object": "network_game_globals.obj",
-    "reason": "pre-gate baseline 2026-06-10",
-    "since": "2026-06-10"
-  },
-  {
-    "addr": "0x12a1e0",
-    "name": "dispose_global_network_game_client",
-    "object": "network_game_globals.obj",
-    "reason": "pre-gate baseline 2026-06-10",
-    "since": "2026-06-10"
-  },
-  {
-    "addr": "0x12a240",
-    "name": "network_game_client_get",
-    "object": "network_game_globals.obj",
-    "reason": "pre-gate baseline 2026-06-10",
-    "since": "2026-06-10"
-  },
-  {
     "addr": "0x12a2d0",
     "name": "network_game_client_start_frame",
     "object": "network_game_globals.obj",
@@ -191,13 +149,6 @@
   {
     "addr": "0x12a500",
     "name": "network_game_client_end_frame",
-    "object": "network_game_globals.obj",
-    "reason": "pre-gate baseline 2026-06-10",
-    "since": "2026-06-10"
-  },
-  {
-    "addr": "0x12a780",
-    "name": "network_game_abort",
     "object": "network_game_globals.obj",
     "reason": "pre-gate baseline 2026-06-10",
     "since": "2026-06-10"
