@@ -140,20 +140,6 @@
     "since": "2026-06-10"
   },
   {
-    "addr": "0x12a2d0",
-    "name": "network_game_client_start_frame",
-    "object": "network_game_globals.obj",
-    "reason": "pre-gate baseline 2026-06-10",
-    "since": "2026-06-10"
-  },
-  {
-    "addr": "0x12a500",
-    "name": "network_game_client_end_frame",
-    "object": "network_game_globals.obj",
-    "reason": "pre-gate baseline 2026-06-10",
-    "since": "2026-06-10"
-  },
-  {
     "addr": "0x84a10",
     "name": "real_vector3d_valid",
     "object": "objects.obj",

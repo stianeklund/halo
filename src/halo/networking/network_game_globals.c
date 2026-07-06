@@ -543,11 +543,15 @@ bool network_game_client_start_frame(void)
   }
 
   result = FUN_00127070(*(void **)0x46e8c0);
-  if (!result)
+  if (!result) {
+    network_game_log("internal networking error [network_game_client_idle() failed]");
     return false;
+  }
 
-  if (FUN_00124cc0(*(void **)0x46e8c0) != 0)
+  if (FUN_00124cc0(*(void **)0x46e8c0) != 0) {
+    network_game_log("internal networking error [network_game_client_get_error()!=0]");
     return false;
+  }
 
   state = network_game_client_get_state(*(void **)0x46e8c0, &local_4);
 
@@ -643,8 +647,13 @@ bool network_game_client_end_frame(void)
         result = false;
       } else {
         network_game_client_switch_to_postgame(*(void **)0x46e8c0, local_1c);
-        result =
-          FUN_00124d40(*(void **)0x46e8c0, msg, *msg >> 4, *(int *)local_1c, 0);
+        /* arg1 is the client's connection handle at +0x82c, fetched via the
+         * 0x125710 getter (its kb name is a misnomer; it returns *(client+0x82c),
+         * the same send channel FUN_001263a0 passes to FUN_00128e00). arg4 is the
+         * address of the local_1c record filled by switch_to_postgame. */
+        result = FUN_00124d40(
+          (void *)network_game_client_get_seconds_to_game_start(*(void **)0x46e8c0),
+          msg, *msg >> 4, (int)local_1c, 0);
         if (!result) {
           network_game_log("failed to send a game update to the server");
           *(int *)0x46e8c8 = now;
