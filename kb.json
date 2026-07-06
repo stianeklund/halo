@@ -13559,7 +13559,8 @@
         },
         {
           "addr": "0x12a6c0",
-          "decl": "void network_game_client_local_player_quit(void);"
+          "decl": "void network_game_client_local_player_quit(short player);",
+          "ported": true
         },
         {
           "addr": "0x12a790",
@@ -13803,7 +13804,7 @@
         },
         {
           "addr": "0x1263a0",
-          "decl": "void network_game_client_request_remove_player(void);"
+          "decl": "char network_game_client_request_remove_player(void *client, void *record);"
         },
         {
           "addr": "0x126590",

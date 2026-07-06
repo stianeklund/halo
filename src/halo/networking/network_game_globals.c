@@ -631,6 +631,49 @@ short network_game_client_get_local_machine_index(void)
   return result;
 }
 
+/* network_game_client_local_player_quit (0x12a6c0)
+ *
+ * Handles a local player quitting an in-progress network game. Walks the
+ * client's 16-slot player table (records at index_base + 0x226, stride 0x20)
+ * looking for the valid player record whose machine index (+0x40 on the
+ * machine object) matches this client's machine and whose controller index
+ * (record byte +1) matches the requested player. On a match, requests that
+ * player's removal via the network client; logs an error if the request fails.
+ */
+void network_game_client_local_player_quit(short player)
+{
+  void *machine;
+  void *index_base;
+  char *slot;
+  char *record;
+  int i;
+
+  if (*(void **)0x0046e8c0 != NULL) {
+    machine = network_game_client_get_machine(*(void **)0x0046e8c0);
+    index_base = network_game_client_get_machine_index(*(void **)0x0046e8c0);
+    if (machine != NULL) {
+      i = 0;
+      slot = (char *)index_base + 0x242;
+      while (!network_player_is_valid(slot - 0x1c) ||
+             *slot != *((char *)machine + 0x40) ||
+             slot[1] != player) {
+        i = i + 1;
+        slot = slot + 0x20;
+        if (0xf < i) {
+          return;
+        }
+      }
+      record = (char *)index_base + i * 0x20 + 0x226;
+      if (record != NULL &&
+          !network_game_client_request_remove_player(*(void **)0x0046e8c0,
+                                                     record)) {
+        error(2, "failed to request player removal in-game for player #%d",
+              (int)*(char *)(record + 0x1d));
+      }
+    }
+  }
+}
+
 /* network_game_abort (0x12a780)
  *
  * Signals network-game abort by setting the global abort flag byte.
