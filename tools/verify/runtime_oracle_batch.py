@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import signal
 import subprocess
 import sys
@@ -151,11 +152,41 @@ def run_target(entry: dict, batch_id: str, skip_build: bool, skip_deploy: bool,
         cmd.append("--skip-restore")
     cmd.extend(entry.get("flags", []))
 
+    # Outer wall-clock cap: the child's --timeout only bounds the on-console
+    # run, not the surrounding build/deploy/restore. If any of those hang, this
+    # backstops the 180m job cap. The child spawns grandchildren (cmake, xbcp,
+    # xemu), so run it in its own process group and kill the whole group on
+    # timeout — a leaked xemu would hold the HDD lock and break later runs.
+    try:
+        margin = int(os.environ.get("HALO_ORACLE_BUILD_MARGIN", "900"))
+    except ValueError:
+        margin = 900
+    outer_timeout = int(entry["timeout"]) + margin
+
     started = time.time()
-    proc = subprocess.run(cmd, capture_output=True, text=True, cwd=str(ROOT))
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            text=True, cwd=str(ROOT), start_new_session=True)
+    timed_out = False
+    try:
+        out, err = proc.communicate(timeout=outer_timeout)
+    except subprocess.TimeoutExpired:
+        timed_out = True
+        try:
+            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+        except (OSError, ProcessLookupError):
+            proc.kill()
+        out, err = proc.communicate()
     elapsed = time.time() - started
 
-    if summary_path.exists():
+    if timed_out:
+        summary = {
+            "target": target,
+            "run_id": run_id,
+            "artifact_dir": str(summary_path.parent),
+            "ok": False,
+            "error": f"outer timeout after {outer_timeout}s (build/deploy/run hang)",
+        }
+    elif summary_path.exists():
         summary = load_json(summary_path)
     else:
         summary = {
@@ -166,7 +197,7 @@ def run_target(entry: dict, batch_id: str, skip_build: bool, skip_deploy: bool,
             "error": f"missing summary.json (exit {proc.returncode})",
         }
     summary["_batch_elapsed_seconds"] = elapsed
-    return summary, proc.stdout + proc.stderr
+    return summary, (out or "") + (err or "")
 
 
 def main() -> int:
