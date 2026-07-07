@@ -28967,7 +28967,8 @@
         },
         {
           "addr": "0x11d8d0",
-          "decl": "void lruv_idle(void *cache);"
+          "decl": "void lruv_idle(void *cache);",
+          "ported": true
         },
         {
           "addr": "0x11d8f0",
