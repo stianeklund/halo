@@ -34,8 +34,9 @@ use `rtk jq`. All lifted C is C89; the tools below are Python and unaffected.
   (manual invocation only) and is documented false-positive-prone (§9).
 - Skill duplication: `/auto-lift` and `/goal-lift` carry near-identical copies of
   the Opus escalation flow (~90 lines), Phase-1 subagent prompt, and pass/fail
-  thresholds. `/mass-lift` is listed in the session skill registry but has **no
-  definition** in `.claude/skills/`, `.claude/commands/`, or `~/.claude/`.
+  thresholds. `/mass-lift` (backed by `.claude/workflows/mass-lift.js`) was
+  **retired 2026-07-07** — unwired, no reviewer gate, no model/effort policy;
+  `goal-lift.js` is the sole governed orchestrator.
 - Cruft: `.claude/commands/frontier.md~`; legacy `review`/`promote` subcommands
   documented in `auto-lift.md`; the retired Option 3 verification path has been
   archived in favor of `lift_pipeline.py`, `run_golden_tests.py`, and
@@ -324,11 +325,10 @@ expressed as divergent prose).
    as a policy preset rather than skill prose.
 4. While editing: remove or clearly mark the legacy `review`/`promote`
    subcommand docs in `auto-lift.md`; delete `.claude/commands/frontier.md~`.
-5. Resolve `/mass-lift`: it appears in the session skill registry with a detailed
-   description but has no definition in the repo or `~/.claude`. Determine its
-   origin (likely a plugin); either implement it as a thin orchestration doc over
-   the now-shared policy presets, or note in `docs/lift-policy.md` that it is
-   unimplemented so nobody invokes it expecting the described behavior.
+5. Resolve `/mass-lift`: **DONE (2026-07-07)** — `.claude/workflows/mass-lift.js`
+   was deleted (unwired, no reviewer gate, no model/effort policy) and
+   `docs/lift-policy.md` marks it retired. `goal-lift.js` is the sole governed
+   orchestrator.
 
 **Acceptance:** both skill files shrink materially; a grep for threshold numbers
 (`65%`, `90%`, `85`) in the two skill files returns only policy-preset names or
