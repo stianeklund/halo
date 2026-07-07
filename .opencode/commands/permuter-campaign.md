@@ -1,6 +1,6 @@
 ---
 description: Run or plan a VC71 permuter campaign for 85-98% low-match lifted functions
-agent: deep
+agent: Xbox-Halo-Lift-Reviewer
 ---
 
 Load the `permuter-campaign` skill and follow it exactly. If the Skill tool does not expose it, read `.claude/skills/permuter-campaign/SKILL.md` first.
