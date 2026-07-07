@@ -98,6 +98,23 @@ void *lrar_cache_new(const char *name, unsigned int minimum_address,
   return cache;
 }
 
+/* 0x11ca20: Dispose of an lrar_cache. Refreshes the cache's function-pointer
+ * table (lruv_update_function_pointers, cache passed in EAX), then frees the
+ * block sub-buffer stored at cache+0x30 and finally the cache header itself,
+ * each via debug_free. Asserts against c:\halo\SOURCE\memory\lrar_cache.c
+ * lines 0x98/0x99. NOTE: the kb placeholder name "lruv_has_locked_proc" is a
+ * stale misnomer; this routine is a destructor, not a predicate. Disasm:
+ * mov esi,[ebp+8]; mov eax,esi; call 0x11c820; mov eax,[esi+0x30];
+ * push 0x98; push <file>; push eax; call debug_free; push 0x99; push <file>;
+ * push esi; call debug_free. */
+void lruv_has_locked_proc(void *cache)
+{
+  lruv_update_function_pointers((int)cache);
+  debug_free(*(void **)((char *)cache + 0x30),
+             "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x98);
+  debug_free(cache, "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x99);
+}
+
 /* 0x11cf00: lrar_cache block getter. Returns the data pointer stored at
  * offset 8 of block_array[block_index]. This belongs to the sibling
  * "lrar_cache" (asserts against c:\halo\SOURCE\memory\lrar_cache.c) that
