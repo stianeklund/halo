@@ -6848,6 +6848,73 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x11c5f0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Block header flags and magic share offset +0x4: alloc stamps the full dword to 0x41626c68 ('hlbA'), while bit0 (in-use) and bit1 (0x2 purged/marked) are tested/set on that same word; eviction clears bit0 and sets bit1."
+      ],
+      "uncertain": [
+        "Per original disasm, the two consecutive FUN_0011c210 validate calls in the next!=NULL branch both pass the next block (ESI loaded once with puVar3 at 0x11c676, then two CALLs); Ghidra's decompile suggested local_10 then next but the register trace shows next twice."
+      ]
+    },
+    "0x11c870": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11ca20": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Real signature is void(void*): disasm mov esi,[ebp+8]; mov eax,esi; call 0x11c820 passes the cache pointer in EAX to lruv_update_function_pointers (Ghidra dropped the @eax arg), then debug_free frees *(cache+0x30) at line 0x98 and the cache header itself at line 0x99."
+      ],
+      "uncertain": [
+        "kb placeholder name lruv_has_locked_proc is a stale misnomer; this routine is an lrar_cache destructor (asserts against lrar_cache.c), not a has-locked-proc predicate. Name kept only to preserve pipeline target resolution."
+      ]
+    },
+    "0x11cab0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11cbf0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "CONCAT22 in the decompile (last_block_index packed with size>>16) is a register-width artifact: only the low 16 bits are ever consumed (all reads are (short)local_c or return local_c & 0xffff), so the high bits are dead and the lift computes new_block_index = last_block_index + 1.",
+        "Both FUN_0011ca60 call sites pass cache in EDI and a block index in AX: the first uses last_block_index (cache+0x36) to compute the ring tail address; the second uses the current scan index. Faithful per the @reg decl and end-address math (block+8 address + block+0xc size)."
+      ]
+    },
+    "0x11cf60": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Placed in src/halo/memory/lruv_cache.c (lruv_cache.obj) beside sibling FUN_0011cf00, not a new lrar_cache.c: the adjacent lrar-family block getter already lives in this TU using raw-offset access, so the whole lrar/lruv cluster shares lruv_cache.obj."
+      ],
+      "uncertain": [
+        "VC71 caps at 87.5% (41 cand vs 39 ref insns); permuter over 90s could not beat baseline; residual gap is codegen scheduling of the call-through-pointer at cache+0x40 plus the doubled lruv_update_function_pointers entry calls, not a correctness defect (equivalence 100/100 seeds, high confidence)."
+      ]
+    },
+    "0x11d010": {
+      "kind": "function",
+      "status": "unknown",
+      "uncertain": [
+        "The CALL at 0x11d031 targets 0x11d010 (self-address) with cdecl args (cache, entry); verified in disassembly. Any block passing the header checks re-satisfies them on re-entry, so this cannot be functional recursion - it is almost certainly MSVC /OPT:ICF COMDAT folding of a byte-identical sibling validator onto this address, reproduced as a self-call for byte fidelity (VC71 100% 47/47)."
+      ]
+    },
+    "0x11d250": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11d3f0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "FUN_0011d3f0 is an lru_cache entry-commit helper: refreshes cache fn-pointers via FUN_0011d090(cache in EAX), validates the block header via FUN_0011d010(cache, block-0x10), then sets bit0 of the status word at block-0xc. Belongs to lru_cache.c per assert string c:\\halo\\SOURCE\\memory\\lru_cache.c line 0x156, but maintain.py places it in lruv_cache.c (the lruv_cache.obj canonical source)."
+      ],
+      "uncertain": [
+        "VC71 caps at 85.0% (20/20 instructions, exact count) due to the reg-arg keystone pattern: clang's mov eax,edi setup for the FUN_0011d090 cache@<eax> call schedules differently than the original. Permuter found no improvement; equivalence 100/100 seeds high-confidence confirms behavioral correctness."
+      ]
+    },
     "0x11d480": {
       "kind": "function",
       "status": "ported"
@@ -6872,6 +6939,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x11d8d0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x11d8f0": {
       "kind": "function",
       "status": "ported"
@@ -6880,11 +6951,27 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x11da00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11da30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11da60": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x11db00": {
       "kind": "function",
       "status": "ported"
     },
     "0x11db90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11dd60": {
       "kind": "function",
       "status": "ported"
     },

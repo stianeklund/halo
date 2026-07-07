@@ -28801,11 +28801,15 @@
       "functions": [
         {
           "addr": "0x11c530",
-          "decl": "void FUN_0011c530(void);"
+          "name": "FUN_0011c530",
+          "decl": "void FUN_0011c530(int cache, int block);",
+          "ported": true
         },
         {
           "addr": "0x11c580",
-          "decl": "void FUN_0011c580(void);"
+          "name": "FUN_0011c580",
+          "decl": "void FUN_0011c580(int cache, void *pointer);",
+          "ported": true
         },
         {
           "addr": "0x11c5d0",
@@ -28855,11 +28859,14 @@
         },
         {
           "addr": "0x11cab0",
-          "decl": "void FUN_0011cab0(int cache);"
+          "name": "lrar_cache_dispose",
+          "decl": "void lrar_cache_dispose(int cache);",
+          "ported": true
         },
         {
           "addr": "0x11cbf0",
-          "decl": "short FUN_0011cbf0(int cache, int size, void *data);"
+          "decl": "short FUN_0011cbf0(int cache, int size, void *data);",
+          "ported": true
         },
         {
           "addr": "0x11cf00",
