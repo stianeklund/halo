@@ -29513,7 +29513,7 @@
         },
         {
           "addr": "0x1d26f3",
-          "decl": "void FUN_001d26f3(void);"
+          "decl": "int __stdcall FUN_001d26f3(void *param_1, int param_2);"
         },
         {
           "addr": "0x1d292e",
@@ -29521,7 +29521,7 @@
         },
         {
           "addr": "0x1d29eb",
-          "decl": "void FUN_001d29eb(void);"
+          "decl": "int __stdcall FUN_001d29eb(int param_1, void *param_2, int param_3);"
         },
         {
           "addr": "0x1d2ad3",
@@ -29574,7 +29574,7 @@
         },
         {
           "addr": "0x1d33a2",
-          "decl": "void FUN_001d33a2(void);"
+          "decl": "void __stdcall FUN_001d33a2(int param_1);"
         },
         {
           "addr": "0x1d33e6",
@@ -34096,79 +34096,92 @@
         },
         {
           "addr": "0x12ab80",
-          "decl": "void network_game_end_and_load_ui(int reason);"
+          "decl": "void network_game_end_and_load_ui(void *game);",
+          "ported": true
         },
         {
           "addr": "0x12abc0",
-          "decl": "void network_game_reset_for_next_round(void *settings, int flag);"
+          "decl": "void network_game_reset_for_next_round(void *game, bool flag);",
+          "ported": true
         },
         {
           "addr": "0x12ac80",
-          "decl": "bool network_player_is_valid(void *client);"
+          "decl": "bool network_player_is_valid(void *client);",
+          "ported": true
         },
         {
           "addr": "0x12acb0",
-          "decl": "void network_game_invalidate_machine(void *game_connection, int machine_index);"
+          "decl": "void network_game_invalidate_machine(void *game, uint16_t machine_index);",
+          "ported": true
         },
         {
           "addr": "0x12b500",
-          "decl": "bool FUN_0012b500(int game, int machine);"
+          "decl": "bool network_game_remove_machine(void *game, void *machine);",
+          "ported": true
         },
         {
           "addr": "0x12b650",
-          "decl": "void network_game_log(const char *fmt, ...);"
+          "decl": "void network_game_log(const char *fmt, ...);",
+          "ported": true
         },
         {
           "addr": "0x12a960",
-          "decl": "char network_game_add_machine(int game_data, void *machine_data);"
+          "decl": "bool network_game_add_machine(void *game, void *machine);",
+          "ported": true
         },
         {
           "addr": "0x12a9f0",
-          "decl": "char network_game_update_machine(int game, int machine_description);"
+          "decl": "bool network_game_update_machine(void *game, void *machine);"
         },
         {
           "addr": "0x12aa80",
-          "decl": "void xbox_set_machine_name(void);"
+          "decl": "void xbox_set_machine_name(const char *name);"
         },
         {
           "addr": "0x12ad60",
-          "decl": "char network_game_add_player(int game_data, void *player);"
+          "decl": "bool network_game_add_player(void *game, void *player);"
         },
         {
           "addr": "0x12af00",
-          "decl": "void FUN_0012af00(void);"
+          "decl": "int FUN_0012af00(void *p1, void *p2);"
         },
         {
           "addr": "0x12b040",
-          "decl": "void network_game_spawn_player(void);"
+          "decl": "bool network_game_spawn_player(void *player);",
+          "ported": true
         },
         {
           "addr": "0x12b0c0",
-          "decl": "void network_game_player_is_valid(void);"
+          "decl": "bool network_game_player_is_valid(void *player, void *game);"
         },
         {
           "addr": "0x12b150",
-          "decl": "void network_game_invalidate(void *game_data);"
+          "decl": "void network_game_invalidate(void *game);",
+          "ported": true
         },
         {
           "addr": "0x12b1f0",
-          "decl": "char network_game_update_player(int game, void *player_settings);"
+          "decl": "bool network_game_update_player(void *game, void *player);",
+          "ported": true
         },
         {
           "addr": "0x12b290",
-          "decl": "char network_game_remove_player(int game, int player);"
+          "decl": "bool network_game_remove_player(void *game, void *player);",
+          "ported": true
         },
         {
           "addr": "0x12b350",
-          "decl": "void network_game_create_game_objects(void);"
+          "decl": "bool network_game_create_game_objects(void *game);"
         },
         {
           "addr": "0x12b5e0",
-          "decl": "wchar_t *FUN_0012b5e0(void);"
+          "decl": "wchar_t *network_game_get_random_player_name(void);",
+          "ported": true
         },
         {
           "addr": "0x12b6b0",
-          "decl": "void FUN_0012b6b0(void);"
+          "decl": "bool network_game_message_encode(void *message_struct @<edi>, char *encoded_message @<ebx>, int16_t *encoded_message_size @<esi>, int16_t type, int one);",
+          "name": "network_game_message_encode"
         }
       ],
       "name": "network_game_manager.obj",

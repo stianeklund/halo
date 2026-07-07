@@ -138,17 +138,261 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1c530": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c5a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c660": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c750": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c7f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c880": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c8d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c940": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1ca00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1ca90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1cb70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1ccc0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Return type is char (epilogue: mov al,bl / xor al,al), not int; param_2 read as byte (mov al,[ebp+0xc]; test al,al) so typed char.",
+        "Hazard-3 branch: fresh disasm 14bd-14d0 (flds [esi+0x1c0]; fcomps [edi+0x324]; test ah,5; jp) is standard MSVC codegen for 'if (actor+0x1c0 < tag+0x324) result=0' \u2014 Ghidra's < is correct; the lift-context 'inverted, use >=' warning was a parity mis-read, refuted by 100/100 equivalence."
+      ],
+      "uncertain": [
+        "actr_tag+0x2d8 = cover cooldown seconds (*30 -> ticks); actr_tag+0x324 = threat threshold; actor+0x1c0 = current threat scalar; actor+0x26c = last-seek game time (-1=none); actor+0x6e short state >=7 denies. Field meanings inferred from usage, not tag-struct confirmed."
+      ]
+    },
+    "0x1cf10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1cfa0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1d030": {
       "kind": "function",
       "status": "ported"
     },
+    "0x1d180": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Field semantics inferred from usage: tag+0x1a8 is a float throw-power scale, encounter+2 is the team index (arg to FUN_000b55b0 0x18), encounter+0x5c is a cooldown-until game-tick; computed delay is in game ticks.",
+        "Doubling flag at actor+0x1ca (byte) is read from the ACTOR datum (EDI), disasm-confirmed not the tag block; when nonzero the delay is doubled."
+      ],
+      "uncertain": [
+        "VC71 76.7% is a structural cap: MSVC cold-block outlining of tail return blocks (reasons 6/8/7 placed after 10/9) plus the original reusing the incoming param stack slot (EBP+0xa) as out_count scratch, which portable C cannot replicate; 162/164 instructions recovered, equivalence 100/100."
+      ]
+    },
+    "0x1d350": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1d420": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1d4f0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Return type is void* (pointer to actor+0xa4 pursuit-location sub-record) or NULL; disasm shows ADD EAX,0xa4 on match and XOR EDX/MOV EAX,EDX (NULL) otherwise."
+      ],
+      "uncertain": [
+        "VC71 caps at 76.9% (19/20 insns) due to an MSVC branch-scheduling idiom: original hoists XOR EDX,EDX before a JNE to the pointer block and returns 0 via MOV EAX,EDX on fall-through, which clang will not reproduce from clean C; behavior verified equivalent (100/100 seeds)."
+      ]
+    },
     "0x1d5c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1d5f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1d620": {
       "kind": "function",
       "status": "ported"
     },
     "0x1d6d0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x1d730": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1d760": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1d780": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1d7a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1d7c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1dab0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1daf0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1db90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1dd40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1dea0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Return type is char (bool in AL): both callers (actors.c:1234, actors.c:1994) discard the result, but the epilogue returns AL=1 on the success path and AL=0 on all failure paths; kb.json decl was corrected from void to char to preserve the AL byte-match against the delinked reference."
+      ],
+      "uncertain": [
+        "Field semantics are structural only: prop+0x11c and firing_variant+0x16c are the first probability-gate operands (prop < variant), actr_tag+0x3a8 is the random-roll threshold, and actor+0x310 is a retry/timer field clamped to a minimum of 4; exact meanings are inferred from the combat-targeting context, not confirmed from tag definitions."
+      ]
+    },
+    "0x1dfa0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "FUN_0001bcd0 signature corrected from placeholder void(void) to char(int actor,int target,float near,float far,void*out): decompile shows csmemset(out,0,0x4c), out[8]=near, out[9]=far used as capture radius in far*far<=dist2; arg3/arg4 pushed as float bits (8.0/10.0 in Path A, radius+DAT_254644/254640 in Path B).",
+        "FUN_0001cb30 (ported, @<eax>) called in both paths as FUN_0001cb30(*(int*)(prop_or_record+0x110 / +0), actor_handle): the referenced object handle is the stack record_index arg and actor_handle is the @<eax> datum_handle arg (mov eax,ebx before CALL)."
+      ],
+      "uncertain": [
+        "distance_squared3d arg order differs by path: Path A distance_squared3d(actor+0x12c, target_pos); Path B distance_squared3d(target_pos, actor+0x12c). Symmetric so behaviorally identical; preserved as-disassembled for byte fidelity. Path A best_dist stores radius^2 (prop+0x11c) not measured distance, reused as the running-best bound in Path B."
+      ]
+    },
+    "0x1e700": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1ef90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1f6e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1f770": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "param2 supplies the initial disposition when (char)param3==0; param3 non-zero forces disposition to 1 and enables the lost-contact fallback tail. Only the low byte of param2/param3 is used (kb decl types them int but the binary byte-tests them).",
+        "The default-case display_assert passes a NULL reason string (Ghidra literal 0), consistent with an unreachable/HALT assert rather than the expression-string form (e.g. \"success\") used by other asserts in actions.c."
+      ]
+    },
+    "0x1f920": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1f9a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1fa60": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The facing-arc threshold at global 0x2533dc is the exact float 0x3f5db3d7 = 0.866025388 = cos(30 deg); referenced as *(float*)0x2533dc rather than a literal because the rounded literal 0.857651889f encodes to 0x3f5b8f13 and would corrupt the bit pattern (same class of bug as the actor_aim_grenade cos-literal fix c2866b56).",
+        "On a committed throw, when actor+0x34 (encounter handle) is not NONE, the encounter record field +0x5c is stamped with game_time_get(), acting as a last-grenade-throw timestamp on the encounter/squad record (pool *0x5ab270)."
+      ],
+      "uncertain": [
+        "actor+0x18 object is fetched via object_get_and_verify_type(...,3) before the unit_is_busy early-out and is only used for the object+0x9c cooldown float; the exact object type meaning of mask 3 and the semantic of the +0x9c timer (assumed throw cooldown, compared <= 0.0) are inferred from context, not confirmed by a field definition."
+      ]
+    },
+    "0x1fb80": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Cooldown gate returns 0 when expiry > game_time where expiry = tag[0x1a4]*30.0f + (float)actor[0x6a4] cooldown stamp; roll gate returns 0 when (team_mult*tag[0x1a0]) <= random_math_real(); both FPU comparison directions confirmed by zero FPU-WARN at 88.8% VC71.",
+        "Stale callee decl 0x1d180 actor_action_test_grenade corrected from void(void) to char(int actor_handle) \u2014 disasm shows single PUSH actor_handle and TEST AL,AL after call. Global 0x632574 is a pointer to AI globals struct; grenade-enable flag at +0x3b4 read as *(char*)(*(char**)0x632574+0x3b4)."
+      ]
+    },
+    "0x1fca0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1fe70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x20140": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x20280": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x20470": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x204f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x205a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x20670": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Both datum_get lookups (actor+0x3ac grenade-avoid target and actor+0x270 combat prop) resolve via prop_data (DAT_005ab23c); the decompiler's 'unit table' label is spurious.",
+        "Radius select: actr_tag+0x314 is used only when actor+0x374!=0 AND actor+0x378==0, otherwise actr_tag+0x310 (the decompile paraphrase had this condition inverted; disasm at 0x20777 is authoritative).",
+        "actor+0x354 is a float evasion-range field (fcomps at 0x207cb); stored as int 0 via movl in three places. actor+0x36c is a 0x1e-tick dodge cooldown timestamp."
+      ],
+      "uncertain": [
+        "Corrected callee 0x1fca0 (actor_action_try_to_evade) decl from void(void) to char(int) based on this call site (pushes actor_handle, cleans 4 bytes, tests AL); 0x1fca0 remains unported so its own body has not been verified against this signature."
+      ]
     },
     "0x20f80": {
       "kind": "function",
@@ -6832,7 +7076,51 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1282f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x128360": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x128460": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x128580": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1285c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x128660": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1286a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x128d20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x128d30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x128e00": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x129130": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1296b0": {
       "kind": "function",
       "status": "ported"
     },
@@ -6853,6 +7141,14 @@
       "status": "ported"
     },
     "0x12a060": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12a0d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12a150": {
       "kind": "function",
       "status": "ported"
     },
@@ -6892,7 +7188,23 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x12a690": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12a6c0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x12a780": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12a790": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12a830": {
       "kind": "function",
       "status": "ported"
     },
@@ -6900,7 +7212,83 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x12a960": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12a9f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12aa80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12aaf0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12ab80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12abc0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12ac80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12acb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12ad60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12b040": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12b0c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12b150": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12b1f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12b290": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12b350": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12b500": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12b5e0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x12b640": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12b650": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12b6b0": {
       "kind": "function",
       "status": "ported"
     },
@@ -10771,250 +11159,6 @@
     "0x5065a4": {
       "kind": "data",
       "status": "ported"
-    },
-    "0x1c530": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1c5a0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1c660": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1c750": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1c7f0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1c880": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1c8d0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1c940": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1ca00": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1ca90": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1cb70": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1ccc0": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "Return type is char (epilogue: mov al,bl / xor al,al), not int; param_2 read as byte (mov al,[ebp+0xc]; test al,al) so typed char.",
-        "Hazard-3 branch: fresh disasm 14bd-14d0 (flds [esi+0x1c0]; fcomps [edi+0x324]; test ah,5; jp) is standard MSVC codegen for 'if (actor+0x1c0 < tag+0x324) result=0' \u2014 Ghidra's < is correct; the lift-context 'inverted, use >=' warning was a parity mis-read, refuted by 100/100 equivalence."
-      ],
-      "uncertain": [
-        "actr_tag+0x2d8 = cover cooldown seconds (*30 -> ticks); actr_tag+0x324 = threat threshold; actor+0x1c0 = current threat scalar; actor+0x26c = last-seek game time (-1=none); actor+0x6e short state >=7 denies. Field meanings inferred from usage, not tag-struct confirmed."
-      ]
-    },
-    "0x1cf10": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1cfa0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1d180": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "Field semantics inferred from usage: tag+0x1a8 is a float throw-power scale, encounter+2 is the team index (arg to FUN_000b55b0 0x18), encounter+0x5c is a cooldown-until game-tick; computed delay is in game ticks.",
-        "Doubling flag at actor+0x1ca (byte) is read from the ACTOR datum (EDI), disasm-confirmed not the tag block; when nonzero the delay is doubled."
-      ],
-      "uncertain": [
-        "VC71 76.7% is a structural cap: MSVC cold-block outlining of tail return blocks (reasons 6/8/7 placed after 10/9) plus the original reusing the incoming param stack slot (EBP+0xa) as out_count scratch, which portable C cannot replicate; 162/164 instructions recovered, equivalence 100/100."
-      ]
-    },
-    "0x1d350": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1d420": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1d4f0": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Return type is void* (pointer to actor+0xa4 pursuit-location sub-record) or NULL; disasm shows ADD EAX,0xa4 on match and XOR EDX/MOV EAX,EDX (NULL) otherwise."
-      ],
-      "uncertain": [
-        "VC71 caps at 76.9% (19/20 insns) due to an MSVC branch-scheduling idiom: original hoists XOR EDX,EDX before a JNE to the pointer block and returns 0 via MOV EAX,EDX on fall-through, which clang will not reproduce from clean C; behavior verified equivalent (100/100 seeds)."
-      ]
-    },
-    "0x1d5f0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1d620": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1d730": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1d760": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1d780": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1d7a0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1d7c0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1dab0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1daf0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1db90": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1dd40": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1dea0": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "Return type is char (bool in AL): both callers (actors.c:1234, actors.c:1994) discard the result, but the epilogue returns AL=1 on the success path and AL=0 on all failure paths; kb.json decl was corrected from void to char to preserve the AL byte-match against the delinked reference."
-      ],
-      "uncertain": [
-        "Field semantics are structural only: prop+0x11c and firing_variant+0x16c are the first probability-gate operands (prop < variant), actr_tag+0x3a8 is the random-roll threshold, and actor+0x310 is a retry/timer field clamped to a minimum of 4; exact meanings are inferred from the combat-targeting context, not confirmed from tag definitions."
-      ]
-    },
-    "0x1dfa0": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "FUN_0001bcd0 signature corrected from placeholder void(void) to char(int actor,int target,float near,float far,void*out): decompile shows csmemset(out,0,0x4c), out[8]=near, out[9]=far used as capture radius in far*far<=dist2; arg3/arg4 pushed as float bits (8.0/10.0 in Path A, radius+DAT_254644/254640 in Path B).",
-        "FUN_0001cb30 (ported, @<eax>) called in both paths as FUN_0001cb30(*(int*)(prop_or_record+0x110 / +0), actor_handle): the referenced object handle is the stack record_index arg and actor_handle is the @<eax> datum_handle arg (mov eax,ebx before CALL)."
-      ],
-      "uncertain": [
-        "distance_squared3d arg order differs by path: Path A distance_squared3d(actor+0x12c, target_pos); Path B distance_squared3d(target_pos, actor+0x12c). Symmetric so behaviorally identical; preserved as-disassembled for byte fidelity. Path A best_dist stores radius^2 (prop+0x11c) not measured distance, reused as the running-best bound in Path B."
-      ]
-    },
-    "0x1e700": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1ef90": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1f6e0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1f770": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "param2 supplies the initial disposition when (char)param3==0; param3 non-zero forces disposition to 1 and enables the lost-contact fallback tail. Only the low byte of param2/param3 is used (kb decl types them int but the binary byte-tests them).",
-        "The default-case display_assert passes a NULL reason string (Ghidra literal 0), consistent with an unreachable/HALT assert rather than the expression-string form (e.g. \"success\") used by other asserts in actions.c."
-      ]
-    },
-    "0x1f920": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1f9a0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1fa60": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "The facing-arc threshold at global 0x2533dc is the exact float 0x3f5db3d7 = 0.866025388 = cos(30 deg); referenced as *(float*)0x2533dc rather than a literal because the rounded literal 0.857651889f encodes to 0x3f5b8f13 and would corrupt the bit pattern (same class of bug as the actor_aim_grenade cos-literal fix c2866b56).",
-        "On a committed throw, when actor+0x34 (encounter handle) is not NONE, the encounter record field +0x5c is stamped with game_time_get(), acting as a last-grenade-throw timestamp on the encounter/squad record (pool *0x5ab270)."
-      ],
-      "uncertain": [
-        "actor+0x18 object is fetched via object_get_and_verify_type(...,3) before the unit_is_busy early-out and is only used for the object+0x9c cooldown float; the exact object type meaning of mask 3 and the semantic of the +0x9c timer (assumed throw cooldown, compared <= 0.0) are inferred from context, not confirmed by a field definition."
-      ]
-    },
-    "0x1fb80": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "Cooldown gate returns 0 when expiry > game_time where expiry = tag[0x1a4]*30.0f + (float)actor[0x6a4] cooldown stamp; roll gate returns 0 when (team_mult*tag[0x1a0]) <= random_math_real(); both FPU comparison directions confirmed by zero FPU-WARN at 88.8% VC71.",
-        "Stale callee decl 0x1d180 actor_action_test_grenade corrected from void(void) to char(int actor_handle) \u2014 disasm shows single PUSH actor_handle and TEST AL,AL after call. Global 0x632574 is a pointer to AI globals struct; grenade-enable flag at +0x3b4 read as *(char*)(*(char**)0x632574+0x3b4)."
-      ]
-    },
-    "0x1fca0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1fe70": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x20140": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x20280": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x20470": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x204f0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x205a0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x20670": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "Both datum_get lookups (actor+0x3ac grenade-avoid target and actor+0x270 combat prop) resolve via prop_data (DAT_005ab23c); the decompiler's 'unit table' label is spurious.",
-        "Radius select: actr_tag+0x314 is used only when actor+0x374!=0 AND actor+0x378==0, otherwise actr_tag+0x310 (the decompile paraphrase had this condition inverted; disasm at 0x20777 is authoritative).",
-        "actor+0x354 is a float evasion-range field (fcomps at 0x207cb); stored as int 0 via movl in three places. actor+0x36c is a 0x1e-tick dodge cooldown timestamp."
-      ],
-      "uncertain": [
-        "Corrected callee 0x1fca0 (actor_action_try_to_evade) decl from void(void) to char(int) based on this call site (pushes actor_handle, cleans 4 bytes, tests AL); 0x1fca0 remains unported so its own body has not been verified against this signature."
-      ]
     }
   }
 }

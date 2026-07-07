@@ -393,6 +393,7 @@
     "0x1292f0": "bool FUN_001292f0(int connection@<edi>, void *buffer, int *size, void *addr);",
     "0x1294d0": "bool FUN_001294d0(int connection@<esi>);",
     "0x129a30": "bool FUN_00129a30(int connection@<ebx>, int *output);",
+    "0x12b6b0": "bool network_game_message_encode(void *message_struct @<edi>, char *encoded_message @<ebx>, int16_t *encoded_message_size @<esi>, int16_t type, int one);",
     "0x12c690": "bool FUN_0012c690(int server @<eax>, int player @<ebx>);",
     "0x12d880": "bool FUN_0012d880(int server@<eax>, int new_connection);",
     "0x12d9f0": "bool FUN_0012d9f0(int server@<esi>);",

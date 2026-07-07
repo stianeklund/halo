@@ -152,7 +152,7 @@ char FUN_0012ffe0(int server, int machine, void *message_data, int message_size)
     return 1;
   }
   game = network_game_server_get_game((void *)server);
-  if (!network_game_update_player(game, decoded_buf)) {
+  if (!network_game_update_player((void *)game, decoded_buf)) {
     network_game_log("network_game_update_player() failed in network_game_"
                      "server_handle_message_client_player_settings_request()");
     return 1;
@@ -235,7 +235,7 @@ char FUN_00130180(int server, int machine, void *message_data, int message_size)
     return 1;
   }
   game = network_game_server_get_game((void *)server);
-  if (network_game_remove_player(game, (int)decoded_buf)) {
+  if (network_game_remove_player((void *)game, (void *)decoded_buf)) {
     csmemcpy(notify_buf, decoded_buf, 0x20);
     *(int *)(notify_buf + 0x20) = game_time_get() + 0x21;
     message = encode_network_game_message(0x16, notify_buf, 0x24);
