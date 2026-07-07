@@ -14,6 +14,37 @@ void plane_negate(float *plane_in, float *plane_out)
   plane_out[3] = -plane_in[3];
 }
 
+/* 0x106390 — Perimeter of a closed 2D polygon.
+ * vertices is a flat array of (x,y) pairs; vertex_count is the vertex count.
+ * Seeds the accumulator with the closing edge dist(vertex[0], vertex[last]),
+ * then walks the vertex[i] -> vertex[i+1] edges (vertex_count-1 of them).
+ * Term ordering under each sqrt matches the original codegen: x-term first for
+ * the closing edge, y-term first inside the loop. Source:
+ * c:\halo\SOURCE\math\geometry.c */
+float convex_hull2d_perimeter(int16_t vertex_count, float *vertices)
+{
+  float perimeter;
+  uint16_t remaining;
+
+  perimeter = sqrtf((vertices[0] - vertices[vertex_count * 2 + -2]) *
+                      (vertices[0] - vertices[vertex_count * 2 + -2]) +
+                    (vertices[1] - vertices[vertex_count * 2 + -1]) *
+                      (vertices[1] - vertices[vertex_count * 2 + -1]));
+
+  if (1 < vertex_count) {
+    remaining = (uint16_t)(vertex_count - 1);
+    do {
+      remaining = remaining - 1;
+      perimeter =
+        sqrtf((vertices[3] - vertices[1]) * (vertices[3] - vertices[1]) +
+              (vertices[2] - vertices[0]) * (vertices[2] - vertices[0])) +
+        perimeter;
+      vertices = vertices + 2;
+    } while (remaining != 0);
+  }
+  return perimeter;
+}
+
 /* Sutherland-Hodgman 2D polygon clip against a line.
  * Source: c:\halo\SOURCE\math\geometry.c */
 int16_t convex_polygon2d_clip_to_plane(int16_t count, float *points,
