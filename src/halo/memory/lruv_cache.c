@@ -211,6 +211,121 @@ typedef struct {
   char unk_14[8]; ///< offset=0x14
 } lruv_cache_block_t;
 
+/* 0x11d010: lru_cache block-header integrity validator.
+ * lruv_cache.obj (asserts against c:\halo\SOURCE\memory\lru_cache.c line
+ * 0x156=342). cdecl(cache, entry). Verified against disassembly.
+ *
+ * Passes silently when the block header is intact:
+ *   - signature word at entry+4, low bit (used/free flag) masked off, equals
+ *     0x55626c6a,
+ *   - the next-block link at entry+0xc is 0,
+ *   - the byte offset (entry - cache+0x34) is >= 0 and cache+0x24 plus that
+ *     offset does not exceed cache+0x28 (block lies inside the data region),
+ * and
+ *   - the page/count field at entry+8 is (unsigned) below cache+0x3c.
+ * On any failure it formats the "appears to be corrupt" message into the shared
+ * scratch buffer at 0x5ab100 and hits display_assert + system_exit(-1). Note
+ * the assert nesting: the file/line/halt args (line 0x156, halt 1) belong to
+ * display_assert and are pushed before csprintf's 5 args (Ghidra cdecl arg
+ * mis-grouping); the trailing ADD ESP,0x14 confirms the split.
+ *
+ * The call inside the OK branch is a literal CALL 0x11d010 (self-address) with
+ * cdecl args (cache, entry) — verified at 0x11d031. A block that passes the
+ * header checks re-satisfies them on re-entry, so this cannot be functional
+ * recursion; it is MSVC /OPT:ICF COMDAT folding of a byte-identical sibling
+ * validator onto this address. Reproduced as a self-call to match the bytes. */
+void FUN_0011d010(int cache, void *entry)
+{
+  int offset;
+
+  if (((*(unsigned int *)((char *)entry + 4) & 0xfffffffe) == 0x55626c6a) &&
+      (*(int *)((char *)entry + 0xc) == 0)) {
+    FUN_0011d010(cache, entry);
+    offset = (int)entry - *(int *)(cache + 0x34);
+    if ((offset >= 0) &&
+        (*(int *)(cache + 0x24) + offset <= *(int *)(cache + 0x28)) &&
+        (*(unsigned int *)((char *)entry + 8) <
+         *(unsigned int *)(cache + 0x3c))) {
+      return;
+    }
+  }
+  display_assert(csprintf((char *)0x5ab100,
+                          "lru cache %s @%p block @%p appears to be corrupt",
+                          cache, cache, entry),
+                 "c:\\halo\\SOURCE\\memory\\lru_cache.c", 0x156, 1);
+  system_exit(-1);
+}
+
+/* 0x11d110: Allocate and initialize an lru_cache. Rounds the per-element size
+ * (block_size + 0x10 block header) up to a 4-byte multiple, derives the
+ * element count from total_size, and allocates the 0x48-byte cache header. If
+ * the caller supplies no backing buffer, allocates the data buffer itself and
+ * records ownership in the byte at +0x38 (freed by lru_cache_dispose). NULL
+ * callbacks default to the file-local stubs FUN_0011cfd0 / FUN_0011cfe0.
+ * Writes the 'curl' signature (0x6c727563) at +0x44 and copies the name into
+ * name[0x20] at +0 (NUL-terminated at +0x1f). Runs the pointer-refresh helper
+ * (FUN_0011d090, cache in @eax) before returning the cache pointer, or 0 if
+ * the data-buffer allocation failed. Both assert-fail paths halt via
+ * halt_and_catch_fire. Source: c:\halo\SOURCE\memory\lru_cache.c */
+void *FUN_0011d110(const char *name, int total_size, int block_size,
+                   void *delete_callback, void *query_callback, void *buffer)
+{
+  char *cache;
+  unsigned int element_size;
+  int element_count;
+  char owns_buffer;
+
+  if (block_size < 0) {
+    display_assert("block_size>=0", "c:\\halo\\SOURCE\\memory\\lru_cache.c",
+                   0x5e, 1);
+    halt_and_catch_fire();
+  }
+  if (total_size < block_size) {
+    display_assert("total_size>=block_size",
+                   "c:\\halo\\SOURCE\\memory\\lru_cache.c", 0x5f, 1);
+    halt_and_catch_fire();
+  }
+  if ((delete_callback == (void *)0) || (query_callback == (void *)0)) {
+    delete_callback = (void *)FUN_0011cfd0;
+    query_callback = (void *)FUN_0011cfe0;
+  }
+  element_size = (unsigned int)block_size + 0x10;
+  if ((element_size & 3) != 0) {
+    element_size = (element_size | 3) + 1;
+  }
+  element_count = total_size / (int)element_size;
+  cache = (char *)debug_malloc(0x48, 0, "c:\\halo\\SOURCE\\memory\\lru_cache.c",
+                               0x6e);
+  if (cache != (char *)0) {
+    owns_buffer = 0;
+    if (buffer == (void *)0) {
+      buffer = debug_malloc(element_count * element_size, 0,
+                            "c:\\halo\\SOURCE\\memory\\lru_cache.c", 0x75);
+      owns_buffer = 1;
+      if (buffer == (void *)0) {
+        debug_free(cache, "c:\\halo\\SOURCE\\memory\\lru_cache.c", 0x8e);
+        return (void *)0;
+      }
+    }
+    csmemset(cache, 0, 0x48);
+    *(int *)(cache + 0x20) = element_count;
+    *(void **)(cache + 0x2c) = delete_callback;
+    *(void **)(cache + 0x34) = buffer;
+    *(int *)(cache + 0x3c) = 0;
+    *(int *)(cache + 0x40) = 0;
+    *(unsigned int *)(cache + 0x24) = element_size;
+    *(unsigned int *)(cache + 0x28) =
+      (unsigned int)element_count * element_size;
+    *(unsigned int *)(cache + 0x44) = 0x6c727563;
+    *(void **)(cache + 0x30) = query_callback;
+    *(unsigned char *)(cache + 0x38) = (unsigned char)owns_buffer;
+    csstrncpy(cache, name, 0x1f);
+    *(char *)(cache + 0x1f) = 0;
+    FUN_0011d090((int)cache);
+  }
+  return cache;
+}
+
 /* 0x11d250: Dispose of an lru_cache. Runs the teardown helper
  * (FUN_0011d090), frees the backing buffer stored at cache+0x34 when the
  * ownership flag byte at cache+0x38 is set, then frees the cache struct
