@@ -3,7 +3,7 @@
  */
 void FUN_0011c780(short *param_1, short param_2)
 {
-    *param_1 = param_2;
+  *param_1 = param_2;
 }
 
 /* Store 0xffff into a short through a pointer.
@@ -11,7 +11,31 @@ void FUN_0011c780(short *param_1, short param_2)
  */
 void FUN_0011c790(short *param_1)
 {
-    *param_1 = (short)0xffff;
+  *param_1 = (short)0xffff;
+}
+
+/* 0x11cf00: lrar_cache block getter. Returns the data pointer stored at
+ * offset 8 of block_array[block_index]. This belongs to the sibling
+ * "lrar_cache" (asserts against c:\halo\SOURCE\memory\lrar_cache.c) that
+ * shares this TU with the lruv_cache; its header layout differs from
+ * lruv_cache_t (cache+0x30 = block array base ptr, cache+0x38 = int16
+ * block_count, block entry stride = 0x10), so raw offset access is used to
+ * avoid conflating the two structures. FUN_0011c820 refreshes the function
+ * pointers on entry and FUN_0011c7c0 is the matching helper before return.
+ */
+void *FUN_0011cf00(int cache, short block_index)
+{
+  int block_array;
+
+  lruv_update_function_pointers(cache);
+  if ((block_index < 0) || (*(short *)(cache + 0x38) <= block_index)) {
+    display_assert("block_index>=0 && block_index<cache->block_count",
+                   "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x16e, true);
+    system_exit(-1);
+  }
+  block_array = *(int *)(cache + 0x30);
+  FUN_0011c7c0(cache);
+  return *(void **)(block_index * 0x10 + block_array + 8);
 }
 
 /* LRU-V (Least Recently Used - Virtual) cache management.
