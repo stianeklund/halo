@@ -111,6 +111,218 @@ void FUN_0011d090(int cache)
   system_exit(-1);
 }
 
+/* 0x11d300: Return an lru_cache's remaining free capacity: page_size(+0x20)
+ * minus the used page count (+0x40), after validating the cache header
+ * (FUN_0011d090, cache in EAX). cdecl(cache).
+ * Source: c:\halo\SOURCE\memory\lru_cache.c */
+int FUN_0011d300(int cache)
+{
+  FUN_0011d090(cache);
+  return *(int *)(cache + 0x20) - *(int *)(cache + 0x40);
+}
+
+/* 0x11d320: lru_cache new-block allocator ('jblU' variant, magic 0x55626c6a).
+ * cdecl(cache, value) -> payload pointer (Ghidra's __thiscall/ECX guess is
+ * wrong: prologue does MOV ESI,[EBP+8] (cache) and MOV EAX,[EBP+0xc] (value),
+ * the epilog is a plain RET, and PUSH ECX at 0x11d323 only reserves the local
+ * LRU-serial slot).
+ *
+ * Validates the 'curl' header (FUN_0011d090, cache in EAX). If the live count
+ * (cache+0x40) is below capacity (cache+0x20), it appends a fresh record at
+ * cache+0x34 + count*stride(cache+0x24) and bumps the count. Once full it walks
+ * all `count` records, validating each (FUN_0011d010), and picks the unlocked
+ * block (block+4 bit0 == 0) with the smallest LRU serial (block+8, unsigned) as
+ * the eviction victim; if every block is locked it returns NULL. The victim's
+ * user pointer (block[0]) is passed to the evict callback (cache+0x30) before
+ * reuse.
+ *
+ * The selected/new block is then initialised: +0x00 = value, +0x04 = magic
+ * (bit0 clear/unlocked), +0x08 = next LRU serial (cache+0x3c, post-increment),
+ * +0x0c = 0. The init callback (cache+0x2c) is invoked with (value, payload)
+ * and the payload pointer (block+0x10) is returned (NULL on failure).
+ * Source: c:\halo\SOURCE\memory\lru_cache.c */
+void *FUN_0011d320(int cache, int value)
+{
+  int count;
+  int block;
+  int victim;
+  unsigned int victim_serial;
+  int i;
+
+  victim = 0;
+  FUN_0011d090(cache);                     /* validate 'curl' header (cache@eax) */
+  count = *(int *)(cache + 0x40);          /* +0x40 live block count */
+  if (count == *(int *)(cache + 0x20)) {   /* +0x20 capacity: cache full -> evict LRU */
+    block = *(int *)(cache + 0x34);        /* +0x34 first block record */
+    victim_serial = 0;                     /* dead init; only read once victim != 0 */
+    if (count < 1) {
+      return (void *)0;
+    }
+    i = 0;
+    do {
+      FUN_0011d010(cache, (void *)block);  /* validate block header */
+      if (((*(unsigned char *)(block + 4) & 1) == 0) &&   /* +0x04 bit0 == unlocked */
+          ((victim == 0) ||
+           (*(unsigned int *)(block + 8) < victim_serial))) {  /* +0x08 older serial */
+        victim_serial = *(unsigned int *)(block + 8);
+        victim = block;
+      }
+      i = i + 1;
+      block = block + *(int *)(cache + 0x24);   /* +0x24 stride advance */
+    } while (i < *(int *)(cache + 0x40));        /* re-read count each iter (faithful) */
+    if (victim == 0) {
+      return (void *)0;                          /* all blocks locked */
+    }
+    (*(void (**)(int))(cache + 0x30))(*(int *)victim);  /* +0x30 evict callback(user_ptr) */
+    block = victim;
+  }
+  else {                                   /* room to append */
+    block = *(int *)(cache + 0x24) * count + *(int *)(cache + 0x34);
+    *(int *)(cache + 0x40) = count + 1;
+  }
+
+  if (block == 0) {
+    return (void *)0;
+  }
+  *(int *)block = value;                    /* +0x00 user value */
+  *(int *)(block + 4) = 0x55626c6a;         /* +0x04 'jblU' magic, unlocked */
+  *(int *)(block + 8) = *(int *)(cache + 0x3c);           /* +0x08 LRU serial */
+  *(int *)(cache + 0x3c) = *(int *)(cache + 0x3c) + 1;    /* +0x3c serial clock++ */
+  *(int *)(block + 0xc) = 0;                /* +0x0c link */
+  (*(void (**)(int, void *))(cache + 0x2c))(*(int *)block,
+                                            (void *)(block + 0x10));  /* +0x2c init cb(value,payload) */
+  return (void *)(block + 0x10);            /* +0x10 payload */
+}
+
+/* 0x11c5f0: 'hlbA' least-recently-used contiguous block allocator. Runs the
+ * cache post-touch bookkeeping (FUN_0011c290, cache in @eax), grows the request
+ * by the 0x10-byte block header and rounds it up to 4 bytes, then rejects it if
+ * it cannot fit under the cache capacity (+0x20). It walks the forward-linked
+ * block list (head @cache+0x2c, next @block+0xc), touching each visited block
+ * (FUN_0011c210, cache in @ebx + block in @esi) and remembering the first free
+ * (bit0-clear) block. When the running placement offset leaves room before the
+ * next block -- or the list end is reached -- it checks the region capacity:
+ * on a fit it evicts every not-yet-marked block in [free_block, cursor) via the
+ * free callback (cache+0x34), writes a fresh block record (data @+0, 'hlbA'
+ * magic 0x41626c68 @+4, byte size @+8, next @+0xc), invokes the allocate/init
+ * callback (cache+0x30)(data, user_ptr), relinks the record as the new head
+ * (cache+0x2c) and returns its user area (block+0x10); on a capacity miss it
+ * resets the cursor to the region base (cache+0x24), clears the placement
+ * state and retries the whole list once (16-bit wrap counter) before giving up.
+ * Returns NULL on an oversized request or after the single retry fails. Block
+ * flags share the magic dword: bit0 = in-use, bit1 = already-freed/marked.
+ * cdecl(cache, size, data). This function contains no integrity asserts, so no
+ * source file/line is fixed by the binary; it lives in the memory-cache TU.
+ * Source: c:\halo\SOURCE\memory (lru allocator; exact file/line not pinned). */
+void *FUN_0011c5f0(int cache, int size, void *data)
+{
+  void *result;
+  int *prev_block;
+  int *cur;
+  int *free_block;
+  int *evict;
+  int *new_block;
+  int base_offset;
+  short wrap_count;
+  int prev_wrapped;
+
+  result = (void *)0x0;
+  FUN_0011c290(cache);
+
+  size = size + 0x10;
+  if ((size & 3) != 0) {
+    size = (size | 3) + 1;
+  }
+  if ((size < 0) || (*(int *)(cache + 0x20) < size)) {
+    return (void *)0x0;
+  }
+
+  prev_block = *(int **)(cache + 0x2c);   /* head@+0x2c */
+  free_block = (int *)0x0;
+  wrap_count = 0;
+  if (prev_block == (int *)0x0) {
+    cur = (int *)0x0;
+  } else {
+    cur = (int *)prev_block[3];           /* head->next */
+  }
+
+  do {
+    if (prev_block == (int *)0x0) {
+      base_offset = 0;
+    } else {
+      FUN_0011c210(cache, (int)prev_block);
+      base_offset =
+        (prev_block[2] - *(int *)(cache + 0x24)) + (int)prev_block;
+    }
+
+    if (cur == (int *)0x0) {
+      goto cap_check;
+    }
+
+    FUN_0011c210(cache, (int)cur);
+    FUN_0011c210(cache, (int)cur);
+    if ((base_offset + size) <=
+        (int)((int)cur - *(int *)(cache + 0x24))) {
+      goto cap_check;   /* candidate fits before this block */
+    }
+
+    /* current block overlaps the candidate range */
+    if ((*(unsigned char *)((int)cur + 4) & 1) != 0) {
+      /* in-use: step past it and restart the free run */
+      prev_block = cur;
+      cur = (int *)cur[3];
+      free_block = (int *)0x0;
+    } else {
+      /* free: remember the first free block, keep scanning */
+      if (free_block == (int *)0x0) {
+        free_block = cur;
+      }
+      cur = (int *)cur[3];
+    }
+    goto cont;
+
+  cap_check:
+    if (*(int *)(cache + 0x20) < (base_offset + size)) {
+      /* no room before region end: reset cursor to base and wrap once */
+      cur = *(int **)(cache + 0x24);
+      prev_block = (int *)0x0;
+      free_block = (int *)0x0;
+      prev_wrapped = (wrap_count != 0);
+      wrap_count = (short)(wrap_count + 1);
+      if (prev_wrapped) {
+        return result;
+      }
+    } else {
+      /* fits: evict unmarked blocks in [free_block, cur), then write record */
+      for (evict = free_block;
+           (evict != (int *)0x0) && (evict != cur);
+           evict = (int *)evict[3]) {
+        if ((*(unsigned char *)((int)evict + 4) & 2) == 0) {
+          (*(void (**)(int))(cache + 0x34))(evict[0]);
+          *(int *)((int)evict + 4) =
+            (*(int *)((int)evict + 4) & 0xfffffffeU) | 2;
+        }
+      }
+      new_block = (int *)(*(int *)(cache + 0x24) + base_offset);
+      result = (void *)((int)new_block + 0x10);
+      new_block[2] = size;                /* size   @+0x8 */
+      new_block[1] = 0x41626c68;          /* 'hlbA' @+0x4 */
+      new_block[0] = (int)data;           /* data   @+0x0 */
+      new_block[3] = (int)cur;            /* next   @+0xc */
+      (*(void (**)(void *, void *))(cache + 0x30))(data, result);
+      if (prev_block != (int *)0x0) {
+        prev_block[3] = (int)new_block;
+      }
+      *(int **)(cache + 0x2c) = new_block;
+    }
+
+  cont:
+    if (result != (void *)0x0) {
+      return result;
+    }
+  } while (1);
+}
+
 /* 0x11c530: Mark a cached block dirty / most-recently-used. Requires a
  * non-NULL user pointer (asserted, line 0x12a). Runs the cache post-touch
  * bookkeeping (FUN_0011c290, cache in EAX) then the block-relink step
@@ -1275,4 +1487,299 @@ void *lruv_cache_new(const char *name, int capacity, int max_locked,
                         delete_cb, query_cb);
 
   return cache;
+}
+
+/* FUN_0011de10  (0x11de10)  lruv_cache.obj  -  lru_cache "new block" allocator.
+ *
+ * int FUN_0011de10(lruv_cache_t *cache, unsigned int size)
+ *
+ * Allocates a cache block large enough to hold `size` bytes and returns its
+ * datum handle, or NONE(-1) if no room could be made / the datum pool is full.
+ * param_2 is a BYTE COUNT, not a block index (Ghidra's kb decl was wrong):
+ * desired_page_count = ceil(size / (1 << cache->page_size_bits)).
+ *
+ * Walks the LRU list treating cache page space as alternating gap/block
+ * segments, folds each segment into a 256-entry ring of candidate "holes",
+ * picks the least-recently-used contiguous run of desired_page_count pages
+ * (min usage-stamp, tie-broken by smaller span), evicts every block
+ * overlapping the chosen run (plus the tracked oldest-unlocked block when the
+ * datum pool is exhausted), allocates a new datum, links it into the LRU list,
+ * stamps it with cache->field_30 and returns the new handle.
+ *
+ * A block is "locked" (not reclaimable) if cache->query_cb(handle) is true OR
+ * its usage stamp (block+0x14) equals cache->field_30. NONE = -1. All stamp
+ * compares are unsigned; all page-count compares signed. Verified against
+ * disassembly 0x11de10-0x11e325. Asserts: c:\halo\SOURCE\memory\lruv_cache.c.
+ * Frame is > 0x1000 (int holes[1024]) so MSVC emits _chkstk; clang covers it. */
+int FUN_0011de10(void *cache, unsigned int size)
+{
+  lruv_cache_t *c = (lruv_cache_t *)cache;
+  int holes[1024];              /* 256 holes x {block_index,max_stamp,start_page,page_count} */
+  data_iter_t iter;
+  lruv_cache_block_t *block;
+  lruv_cache_block_t *rec;
+  lruv_cache_block_t *next_rec;
+  lruv_cache_block_t *head_rec;
+  lruv_cache_block_t *new_rec;
+
+  int shift;
+  int desired_page_count;
+  int accumulator;              /* current page position along the walk (EDI) */
+  int walk_cursor;              /* current block datum handle, or NONE (EBP-0xc) */
+  int pending_hole_block_index; /* block that will own the next opened hole (EBP-0x20) */
+
+  int hole_write;               /* ring write cursor (EBP-0x8) */
+  int hole_read;                /* ring finalize/read cursor (EBP-0x4) */
+  int read_cursor;              /* per-segment accumulate cursor (SI) */
+  int saved_read;
+  int next_write;
+  int base;                     /* holes[] element base = cursor*4 */
+
+  unsigned int segment_stamp;   /* EBP-0x1c */
+  int segment_page_count;       /* EBP-0x10 */
+  int locked;
+  int skip_accumulate;
+
+  int oldest_unlocked_block;    /* EBP-0x18 */
+  unsigned int oldest_unlocked_stamp; /* EBP-0x38 */
+  unsigned int block_stamp;
+
+  int have_best;                /* EBP+0xf */
+  int best_block_index;         /* EBP-0x30 */
+  unsigned int best_max_stamp;  /* EBP-0x2c */
+  int best_start_page;          /* EBP-0x28 */
+  int best_page_count;          /* EBP-0x24 */
+
+  int new_block_index;
+  int region_end;
+  int block_end;
+
+  shift = (int)((unsigned char)c->page_size_bits) & 0x1f;
+  desired_page_count = (int)size >> shift;
+  if ((size & ((1u << shift) - 1u)) != 0) {
+    desired_page_count = desired_page_count + 1;
+  }
+  if (desired_page_count <= 0) {
+    display_assert("desired_page_count>0",
+                   "c:\\halo\\SOURCE\\memory\\lruv_cache.c", 0xe1, 1);
+    system_exit(-1);
+  }
+
+  have_best = 0;
+  accumulator = 0;
+  hole_write = 0;
+  hole_read = 0;
+  pending_hole_block_index = -1;
+  walk_cursor = c->first_block_index;
+  oldest_unlocked_block = -1;
+  oldest_unlocked_stamp = 0;
+  best_block_index = 0;
+  best_max_stamp = 0;
+  best_start_page = 0;
+  best_page_count = 0;
+  segment_stamp = 0;
+  segment_page_count = 0;
+
+  if (c->page_count < 1) {
+    return -1;
+  }
+
+  for (;;) {
+    skip_accumulate = 0;
+
+    /* open a fresh hole at the current page position, unless advancing the
+     * write cursor would collide with the read side. */
+    next_write = (hole_write == 0xff) ? 0 : (hole_write + 1);
+    if (next_write != hole_read) {
+      base = hole_write * 4;
+      holes[base + 0] = pending_hole_block_index; /* owning block, or NONE */
+      holes[base + 2] = accumulator;              /* start_page */
+      holes[base + 1] = 0;                        /* max_stamp  */
+      holes[base + 3] = 0;                        /* page_count */
+      hole_write = (hole_write == 0xff) ? 0 : (hole_write + 1);
+    }
+
+    if (walk_cursor == -1) {
+      /* trailing free region after the last block */
+      segment_page_count = c->page_count - accumulator;
+      segment_stamp = 0;
+      accumulator = c->page_count;
+    } else {
+      block = (lruv_cache_block_t *)datum_get(c->blocks, walk_cursor);
+      if (accumulator == block->first_page_index) {
+        /* contiguous block segment */
+        block_stamp = *(unsigned int *)&block->unk_14[0]; /* usage stamp @ +0x14 */
+        segment_stamp = block_stamp;
+        segment_page_count = block->page_count;
+        locked = 0;
+        if (c->query_cb != 0) {
+          if (c->query_cb(walk_cursor) != 0) {
+            locked = 1;
+          }
+        }
+        if (block_stamp == (unsigned int)c->field_30) {
+          locked = 1;
+        } else if (!locked) {
+          if (oldest_unlocked_block == -1 || block_stamp < oldest_unlocked_stamp) {
+            oldest_unlocked_block = walk_cursor;
+            oldest_unlocked_stamp = block_stamp;
+          }
+        }
+        pending_hole_block_index = walk_cursor;
+        walk_cursor = block->next_block_index;
+        accumulator = block->first_page_index + block->page_count; /* block end */
+        if (locked) {
+          hole_read = hole_write;     /* a locked block breaks contiguity: flush ring */
+          skip_accumulate = 1;
+        }
+      } else {
+        /* gap segment before this block; block re-processed next iteration */
+        segment_page_count = block->first_page_index - accumulator;
+        segment_stamp = 0;
+        if (segment_page_count <= 0) {
+          display_assert("page_count>0",
+                         "c:\\halo\\SOURCE\\memory\\lruv_cache.c", 0x137, 1);
+          system_exit(-1);
+        }
+        accumulator = block->first_page_index;
+      }
+    }
+
+    /* fold this segment into every open hole; finalize candidates FIFO. */
+    if (!skip_accumulate) {
+      read_cursor = hole_read;
+      while (read_cursor != hole_write) {
+        saved_read = read_cursor;
+        base = read_cursor * 4;
+        if (segment_stamp > (unsigned int)holes[base + 1]) {
+          holes[base + 1] = (int)segment_stamp;
+        }
+        holes[base + 3] = holes[base + 3] + segment_page_count;
+        if (holes[base + 3] >= desired_page_count) {
+          if (!have_best
+              || (unsigned int)holes[base + 1] < best_max_stamp
+              || ((unsigned int)holes[base + 1] == best_max_stamp
+                  && holes[base + 3] < best_page_count)) {
+            best_block_index = holes[base + 0];
+            best_max_stamp   = (unsigned int)holes[base + 1];
+            best_start_page  = holes[base + 2];
+            best_page_count  = holes[base + 3];
+            have_best = 1;
+          }
+          if (hole_read != read_cursor) {
+            display_assert("hole_read_index==hole_index",
+                           "c:\\halo\\SOURCE\\memory\\lruv_cache.c", 0x15f, 1);
+            system_exit(-1);
+          }
+          hole_read = (hole_read == 0xff) ? 0 : (hole_read + 1);
+        }
+        read_cursor = (saved_read == 0xff) ? 0 : (saved_read + 1);
+      }
+    }
+
+    if (accumulator < c->page_count) {
+      continue;
+    }
+    break;
+  }
+
+  if (!have_best) {
+    return -1;
+  }
+
+  /* evict every block overlapping the chosen region. */
+  region_end = desired_page_count + best_start_page;
+  data_iterator_new(&iter, c->blocks);
+  rec = (lruv_cache_block_t *)data_iterator_next(&iter);
+  while (rec != 0) {
+    block_end = rec->first_page_index + rec->page_count;
+    if (rec->first_page_index < region_end && block_end > best_start_page) {
+      if (c->query_cb != 0) {
+        if (c->query_cb(iter.datum_handle) != 0) {
+          display_assert(
+              "!cache->locked_block_proc || !cache->locked_block_proc(iterator.index)",
+              "c:\\halo\\SOURCE\\memory\\lruv_cache.c", 0x177, 1);
+          system_exit(-1);
+        }
+      }
+      lruv_block_delete(c, iter.datum_handle);
+    }
+    rec = (lruv_cache_block_t *)data_iterator_next(&iter);
+  }
+
+  /* datum pool exhausted: also evict the tracked oldest-unlocked block. */
+  if (c->blocks->unk_48 == c->blocks->maximum_count && oldest_unlocked_block != -1) {
+    if (best_block_index == oldest_unlocked_block) {
+      rec = (lruv_cache_block_t *)datum_get(c->blocks, oldest_unlocked_block);
+      best_block_index = rec->previous_block_index;
+    }
+    if (datum_get(c->blocks, oldest_unlocked_block) == 0) {
+      display_assert("lruv_cache_block_get(cache, oldest_unlocked_block_index)",
+                     "c:\\halo\\SOURCE\\memory\\lruv_cache.c", 0x188, 1);
+      system_exit(-1);
+    }
+    if (c->query_cb != 0) {
+      if (c->query_cb(oldest_unlocked_block) != 0) {
+        display_assert(
+            "!cache->locked_block_proc || !cache->locked_block_proc(oldest_unlocked_block_index)",
+            "c:\\halo\\SOURCE\\memory\\lruv_cache.c", 0x189, 1);
+        system_exit(-1);
+      }
+    }
+    lruv_block_delete(c, oldest_unlocked_block);
+  }
+
+  /* allocate the new block datum and link it into the LRU list. */
+  new_block_index = data_new_at_index(c->blocks);
+  if (new_block_index == -1) {
+    return -1;
+  }
+  new_rec = (lruv_cache_block_t *)datum_get(c->blocks, new_block_index);
+
+  if (best_block_index == -1) {
+    if (c->first_block_index == -1) {
+      /* empty list */
+      if (c->last_block_index != -1) {
+        display_assert("cache->last_block_index==NONE",
+                       "c:\\halo\\SOURCE\\memory\\lruv_cache.c", 0x198, 1);
+        system_exit(-1);
+      }
+      new_rec->previous_block_index = -1;
+      c->last_block_index = new_block_index;
+      new_rec->next_block_index = c->first_block_index;
+      c->first_block_index = new_block_index;
+    } else {
+      /* insert before the current head */
+      head_rec = (lruv_cache_block_t *)datum_get(c->blocks, c->first_block_index);
+      if (head_rec->previous_block_index != -1) {
+        display_assert("next_block->previous_block_index==NONE",
+                       "c:\\halo\\SOURCE\\memory\\lruv_cache.c", 0x1a0, 1);
+        system_exit(-1);
+      }
+      new_rec->previous_block_index = -1;
+      head_rec->previous_block_index = new_block_index;
+      new_rec->next_block_index = c->first_block_index;
+      c->first_block_index = new_block_index;
+    }
+  } else {
+    /* insert immediately after best_block_index */
+    rec = (lruv_cache_block_t *)datum_get(c->blocks, best_block_index);
+    if (rec->next_block_index != -1) {
+      next_rec = (lruv_cache_block_t *)datum_get(c->blocks, rec->next_block_index);
+      new_rec->previous_block_index = next_rec->previous_block_index;
+      next_rec->previous_block_index = new_block_index;
+    } else {
+      new_rec->previous_block_index = c->last_block_index;
+      c->last_block_index = new_block_index;
+    }
+    rec = (lruv_cache_block_t *)datum_get(c->blocks, best_block_index);
+    new_rec->next_block_index = rec->next_block_index;
+    rec->next_block_index = new_block_index;
+  }
+
+  new_rec->first_page_index = best_start_page;
+  new_rec->page_count = desired_page_count;
+  *(int *)&new_rec->unk_14[0] = c->field_30;
+  lruv_cache_verify(c, 1);
+  return new_block_index;
 }

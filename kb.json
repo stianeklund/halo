@@ -28818,7 +28818,9 @@
         },
         {
           "addr": "0x11c5f0",
-          "decl": "void FUN_0011c5f0(void);"
+          "name": "FUN_0011c5f0",
+          "decl": "void *FUN_0011c5f0(int cache, int size, void *data);",
+          "ported": true
         },
         {
           "addr": "0x11c780",
@@ -28924,11 +28926,14 @@
         },
         {
           "addr": "0x11d300",
-          "decl": "void FUN_0011d300(void);"
+          "decl": "int FUN_0011d300(int cache);",
+          "ported": true
         },
         {
           "addr": "0x11d320",
-          "decl": "void FUN_0011d320(void);"
+          "name": "FUN_0011d320",
+          "decl": "void *FUN_0011d320(int cache, int value);",
+          "ported": true
         },
         {
           "addr": "0x11d3f0",
@@ -29033,7 +29038,9 @@
         },
         {
           "addr": "0x11de10",
-          "decl": "int FUN_0011de10(void *lruv, int block_index);"
+          "name": "FUN_0011de10",
+          "decl": "int FUN_0011de10(void *cache, unsigned int size);",
+          "ported": true
         },
         {
           "addr": "0x1bfe90",
