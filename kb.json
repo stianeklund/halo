@@ -34200,7 +34200,9 @@
         },
         {
           "addr": "0x146db0",
-          "decl": "uint32_t bsp3d_find_leaf(void *bsp3d, int root, void *point);"
+          "decl": "uint32_t bsp3d_find_leaf(void *bsp3d, int root, void *point);",
+          "name": "bsp3d_find_leaf",
+          "ported": true
         },
         {
           "addr": "0x146d40",
@@ -34216,7 +34218,8 @@
         }
       ],
       "name": "bsp3d.obj",
-      "source": "physics/bsp3d.c"
+      "source": "physics/bsp3d.c",
+      "source_path": "src/halo/physics/bsp3d.c"
     },
     {
       "data": [],
