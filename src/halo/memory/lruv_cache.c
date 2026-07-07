@@ -110,6 +110,21 @@ typedef struct {
   char unk_14[8]; ///< offset=0x14
 } lruv_cache_block_t;
 
+/* 0x11d250: Dispose of an lru_cache. Runs the teardown helper
+ * (FUN_0011d090), frees the backing buffer stored at cache+0x34 when the
+ * ownership flag byte at cache+0x38 is set, then frees the cache struct
+ * itself. debug_free line args 0x9c/0x9d are the MSVC debug-allocator
+ * call-site tracking. Source: c:\halo\SOURCE\memory\lru_cache.c */
+void lru_cache_dispose(void *cache)
+{
+  FUN_0011d090();
+  if (*(char *)((char *)cache + 0x38) != '\0') {
+    debug_free(*(void **)((char *)cache + 0x34),
+               "c:\\halo\\SOURCE\\memory\\lru_cache.c", 0x9c);
+  }
+  debug_free(cache, "c:\\halo\\SOURCE\\memory\\lru_cache.c", 0x9d);
+}
+
 /* 0x11d480: Compute the total allocation size needed for an lruv_cache
  * with the given maximum block count. Returns sizeof(lruv_cache_t) + data
  * allocation for the block datums. */

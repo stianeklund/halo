@@ -28890,7 +28890,10 @@
         },
         {
           "addr": "0x11d250",
-          "decl": "void FUN_0011d250(void);"
+          "decl": "void lru_cache_dispose(void *cache);",
+          "name": "lru_cache_dispose",
+          "ported": true,
+          "source_path": "src/halo/memory/lruv_cache.c"
         },
         {
           "addr": "0x11d2a0",
