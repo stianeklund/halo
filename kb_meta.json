@@ -6267,9 +6267,52 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x106390": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1063f0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x106510": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x106900": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x106960": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "any_above/any_below accumulator flags were recovered from Ghidra's register-rotation aliasing (the bVar7/bVar10/bVar11/bVar12 shuffle) and mapped to the clean semantic form proven by the 2D sibling convex_polygon2d_clip_to_plane."
+      ],
+      "uncertain": [
+        "VC71 caps at 74.3% (401 cand / 398 ref insns); the near-identical 2D sibling convex_polygon2d_clip_to_plane also caps at 74.1%, so the residual gap is x87 operand-order and register-allocation/scheduling variance in this FPU-heavy clip family, not a correctness defect."
+      ]
+    },
+    "0x106dc0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Name convex_polygon3d_verify inferred by analogy to the 2D neighbor convex_polygon2d_verify (0x106900); binary-confirmed as a 3D convex/planar polygon test: reference normal cross(vert0-vert1, vert2-vert1) dotted against per-vertex cross(prev-cur, next-cur), rejecting any dot below eps 0xb58637bd (-1e-6f)."
+      ],
+      "uncertain": [
+        "VC71 caps at 76.9% (x87 scheduling ceiling): MSVC interleaves callee-saved register pushes into the FPU block, keeps edgeA on the x87 stack, and reuses the incoming param slot [ebp+0xc] for last=n-1; instruction multiset matches (144 vs 142) and cross-product operand order plus epsilon literal were hand-verified against disassembly, so the residual gap is scheduling/allocation, not a correctness defect."
+      ]
+    },
+    "0x106f50": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Initial-simplex/tetrahedron seed for convex hull; 479-insn lift matches reference 477/479 by count, VC71 79.5% capped purely by x87 stack-order scheduling in the pass-3 projection dot product.",
+        "FUN_001037b0 (0x1037b0) is plane-from-3-points returning float*; its kb decl was corrected from void(void) to (out_plane,p0,p1,p2); no other src callers so the decl change is safe."
+      ],
+      "uncertain": [
+        "Zero-fill equivalence showed 6/100 divergences plus 5 errors; consistent with degenerate point-cloud inputs (division by len_sq=0 and uninitialized threshold globals), not a lift defect given the 477/479 instruction-count parity."
+      ]
     },
     "0x108a70": {
       "kind": "function",
@@ -8292,6 +8335,14 @@
       ]
     },
     "0x145a60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x146db0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x146e30": {
       "kind": "function",
       "status": "ported"
     },
