@@ -513,7 +513,7 @@ char network_game_server_accept_client_machine_into_game(int server,
   }
   csmemcpy(buf, (char *)server + 0x11c + i * 0x44, 0x44);
   buf[0x40] = (char)i;
-  result = network_game_add_machine(server + 8, buf);
+  result = network_game_add_machine((void *)(server + 8), (void *)buf);
   if (result == 1) {
     csmemset(addr_buf, 0, sizeof(addr_buf));
     FUN_001283c0(*(int *)machine, addr_buf, 0);
@@ -567,7 +567,7 @@ void FUN_0012c6d0(int param_1, int param_2)
   int slot_count;
 
   do {
-    name = FUN_0012b5e0();
+    name = network_game_get_random_player_name();
     player_slot = (char *)param_1 + 0x22e;
     match_count = 0;
     slot_count = 0x10;
@@ -669,7 +669,7 @@ char network_game_server_add_player_to_game(int server, int machine,
     if (*(short *)(p + 0x18) == -1) {
       FUN_0012c750(server, (int)player);
     }
-    result = network_game_add_player(server + 8, player);
+    result = network_game_add_player((void *)(server + 8), (void *)player);
     if (result == 1) {
       network_game_log("server added player from machine #%d at controller "
                        "index #%d to the game",
@@ -713,7 +713,7 @@ char network_game_server_remove_player_from_game(int param_1, int param_2,
     system_exit(-1);
   }
   if (*(short *)(param_2 + 0xc) == (short)*(char *)(param_3 + 0x1c)) {
-    cVar1 = network_game_remove_player(param_1 + 8, param_3);
+    cVar1 = network_game_remove_player((void *)(param_1 + 8), (void *)param_3);
     if (cVar1 == '\x01') {
       network_game_log("server removed player from machine #%d at controller "
                        "index #%d from the game",
@@ -745,7 +745,7 @@ char FUN_0012ca00(int param_1, int param_2, int param_3)
     system_exit(-1);
   }
   if (*(short *)(param_2 + 0xc) == (short)*(char *)(param_3 + 0x40)) {
-    cVar1 = network_game_update_machine(param_1 + 8, param_3);
+    cVar1 = network_game_update_machine((void *)(param_1 + 8), (void *)param_3);
     if (cVar1 == '\x01') {
       network_game_log("server updated machine #%d settings",
                        (int)*(char *)(param_3 + 0x40));
@@ -1810,7 +1810,7 @@ __declspec(noinline) bool FUN_0012df50(void *server, void *machine)
   ptr = s + 0x15c;
   for (i = 0; i < 4; i++) {
     if ((short)*(signed char *)ptr == *(short *)(m + 0xc)) {
-      if (!FUN_0012b500((int)(s + 8), (int)(s + 0x11c + i * 0x44))) {
+      if (!network_game_remove_machine((void *)(s + 8), (void *)(s + 0x11c + i * 0x44))) {
         error(
           2, "network_game_server_remove_client_machine_from_game() failed to "
              "remove the offending machine from the server's copy of the game");
@@ -1903,7 +1903,7 @@ bool FUN_0012e090(void *server, void *player_data)
   }
 
   if (*(signed char *)(pd + 0x40) != -1) {
-    result = FUN_0012b500((int)(s + 8), (int)player_data);
+    result = network_game_remove_machine((void *)(s + 8), (void *)player_data);
     if (!result) {
       network_game_log("network_game_remove_machine() failed in "
                        "network_game_server_remove_machine_from_game()");

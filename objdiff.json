@@ -8,6 +8,14 @@
   ],
   "units": [
     {
+      "name": "halo/network_game_manager",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_game_manager.c.obj",
+      "base_path": "delinked/network_game_manager.obj",
+      "metadata": {
+        "source_path": "src/halo/networking/network_game_manager.c"
+      }
+    },
+    {
       "name": "XAPILIB/xbox_crt",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/cseries/xbox_crt.c.obj",
       "base_path": "delinked/XAPILIB/FUN_001d789a.obj",

@@ -526,7 +526,7 @@ bool network_game_client_start_frame(void)
     } else {
       reason = 0;
     }
-    network_game_end_and_load_ui(reason);
+    network_game_end_and_load_ui((void *)reason);
 
     if (*(void **)0x46e8c0 != NULL) {
       network_game_server_dispose(*(void **)0x46e8c0);
