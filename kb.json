@@ -13727,11 +13727,11 @@
         },
         {
           "addr": "0x124d50",
-          "decl": "void network_game_client_address_matches_server(void);"
+          "decl": "char network_game_client_address_matches_server(void *client, void *source_address);"
         },
         {
           "addr": "0x124e20",
-          "decl": "void network_game_client_game_out_of_sync(void);"
+          "decl": "void network_game_client_game_out_of_sync(void *client);"
         },
         {
           "addr": "0x124e90",
@@ -13751,15 +13751,15 @@
         },
         {
           "addr": "0x1251e0",
-          "decl": "void network_game_client_game_has_started(void);"
+          "decl": "char network_game_client_game_has_started(void *client);"
         },
         {
           "addr": "0x125380",
-          "decl": "void network_game_client_handle_game_update(void);"
+          "decl": "char network_game_client_handle_game_update(void *client, void *message);"
         },
         {
           "addr": "0x125510",
-          "decl": "void network_game_client_add_player_to_game(void);"
+          "decl": "char network_game_client_add_player_to_game(void *client, void *message);"
         },
         {
           "addr": "0x125610",
@@ -13769,7 +13769,7 @@
         },
         {
           "addr": "0x125660",
-          "decl": "void network_game_client_switch_to_pregame(void);"
+          "decl": "char network_game_client_switch_to_pregame(void *client);"
         },
         {
           "addr": "0x1258a0",
@@ -13809,7 +13809,7 @@
         },
         {
           "addr": "0x126590",
-          "decl": "void network_game_client_remove_player(void);"
+          "decl": "char network_game_client_remove_player(void *client, void *message, int arg3);"
         },
         {
           "addr": "0x126700",
@@ -13817,7 +13817,7 @@
         },
         {
           "addr": "0x126750",
-          "decl": "void network_game_client_game_shutdown(void);"
+          "decl": "void network_game_client_game_shutdown(void *client);"
         },
         {
           "addr": "0x1267c0",
@@ -13833,31 +13833,31 @@
         },
         {
           "addr": "0x127260",
-          "decl": "void FUN_00127260(void);"
+          "decl": "char FUN_00127260(void *client @<esi>, void *message, int message_size, void *source_address);"
         },
         {
           "addr": "0x127310",
-          "decl": "void network_game_client_create(void);"
+          "decl": "char FUN_00127310(void *client @<esi>, void *message, int message_size, void *source_address);"
         },
         {
           "addr": "0x1273a0",
-          "decl": "void FUN_001273a0(void);"
+          "decl": "char FUN_001273a0(void *client @<esi>, void *source_address @<edi>, void *message, int message_size);"
         },
         {
           "addr": "0x127440",
-          "decl": "void FUN_00127440(void);"
+          "decl": "char FUN_00127440(void *client @<esi>, void *source_address @<edi>, void *message, int message_size);"
         },
         {
           "addr": "0x1274e0",
-          "decl": "void FUN_001274E0(void);"
+          "decl": "char FUN_001274E0(void *client @<esi>, void *source_address @<eax>, void *message, int message_size);"
         },
         {
           "addr": "0x127610",
-          "decl": "void FUN_00127610(void);"
+          "decl": "char FUN_00127610(void *client @<esi>, void *source_address @<eax>, void *message, int message_size);"
         },
         {
           "addr": "0x127710",
-          "decl": "void FUN_00127710(void);"
+          "decl": "char FUN_00127710(void *client @<esi>, void *source_address @<edi>, void *message, int message_size);"
         }
       ],
       "name": "network_client_manager.obj",
@@ -13868,43 +13868,53 @@
       "functions": [
         {
           "addr": "0x127ea0",
-          "decl": "bool FUN_00127ea0(void *client, void *message, int message_size, void *source_address);"
+          "decl": "bool FUN_00127ea0(void *client, void *message, int message_size, void *source_address);",
+          "ported": true
         },
         {
           "addr": "0x1277f0",
-          "decl": "void FUN_001277f0(void);"
+          "decl": "char FUN_001277f0(void *client @<esi>, void *source_address @<edi>, void *message, int message_size);",
+          "ported": true
         },
         {
           "addr": "0x1278d0",
-          "decl": "void FUN_001278d0(void);"
+          "decl": "char FUN_001278d0(void *client @<esi>, void *source_address @<eax>, void *message, int message_size);",
+          "ported": true
         },
         {
           "addr": "0x1279a0",
-          "decl": "void FUN_001279a0(void);"
+          "decl": "char FUN_001279a0(void *client @<esi>, void *source_address @<eax>, void *message, int message_size);",
+          "ported": true
         },
         {
           "addr": "0x127a50",
-          "decl": "void FUN_00127a50(void);"
+          "decl": "char FUN_00127a50(void *client @<esi>, void *source_address @<eax>, void *message, int message_size);",
+          "ported": true
         },
         {
           "addr": "0x127b10",
-          "decl": "void FUN_00127b10(void);"
+          "decl": "char FUN_00127b10(void *client @<esi>, void *source_address @<eax>, void *message, int message_size);",
+          "ported": true
         },
         {
           "addr": "0x127bd0",
-          "decl": "void FUN_00127bd0(void);"
+          "decl": "char FUN_00127bd0(void *client @<esi>, void *source_address @<eax>, void *message, int message_size);",
+          "ported": true
         },
         {
           "addr": "0x127c90",
-          "decl": "void FUN_00127c90(void);"
+          "decl": "char FUN_00127c90(void *client @<esi>, void *source_address @<eax>, void *message, int message_size);",
+          "ported": true
         },
         {
           "addr": "0x127d30",
-          "decl": "void FUN_00127d30(void);"
+          "decl": "char FUN_00127d30(void *client @<esi>, void *source_address @<eax>, void *message, int message_size);",
+          "ported": true
         },
         {
           "addr": "0x127df0",
-          "decl": "void FUN_00127df0(void);"
+          "decl": "char FUN_00127df0(void *client @<esi>, void *source_address @<eax>, void *message, int message_size);",
+          "ported": true
         }
       ],
       "name": "network_client_message_handler.obj",
