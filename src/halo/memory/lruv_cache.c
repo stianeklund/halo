@@ -623,6 +623,23 @@ void lruv_debug_to_file(void *cache, int datum_handle)
   *(int *)((char *)block + 0x14) = c->field_30;
 }
 
+/* lruv_block_get_address (0x11da00)
+ *
+ * Return the base page address of a cache block: the block's
+ * first_page_index (entry+0x8) shifted left by the cache's
+ * page_size_bits (cache+0x2c, masked to the low 5 bits).  Runs the
+ * fast integrity check before the datum lookup.
+ */
+int lruv_block_get_address(void *lruv, int block_index)
+{
+  lruv_cache_t *c = (lruv_cache_t *)lruv;
+  lruv_cache_block_t *block;
+
+  lruv_cache_verify(lruv, 0);
+  block = (lruv_cache_block_t *)datum_get(c->blocks, block_index);
+  return block->first_page_index << (c->page_size_bits & 0x1f);
+}
+
 /* lruv_resize (0x11db00)
  *
  * Resize the lruv_cache to new_page_count pages.  Any block whose
