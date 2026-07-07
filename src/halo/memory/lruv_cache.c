@@ -117,12 +117,41 @@ typedef struct {
  * call-site tracking. Source: c:\halo\SOURCE\memory\lru_cache.c */
 void lru_cache_dispose(void *cache)
 {
-  FUN_0011d090();
+  FUN_0011d090((int)cache);
   if (*(char *)((char *)cache + 0x38) != '\0') {
     debug_free(*(void **)((char *)cache + 0x34),
                "c:\\halo\\SOURCE\\memory\\lru_cache.c", 0x9c);
   }
   debug_free(cache, "c:\\halo\\SOURCE\\memory\\lru_cache.c", 0x9d);
+}
+
+/* 0x11d2a0: Flush all cached entries. Runs the teardown helper
+ * (FUN_0011d090, cache in @eax), then iterates the fixed-stride element
+ * array whose base is at cache+0x34, count at cache+0x40, element stride at
+ * cache+0x24. For each element it calls FUN_0011d010(cache, entry) and then
+ * the per-entry callback (cdecl fn ptr at cache+0x30) with the first dword
+ * of the element (*entry). Finally resets the element count at cache+0x40 to
+ * zero. Raw offset access matches the sibling cache accessors in this TU
+ * (lruv_cache_t offsets 0x24/0x30/0x40 differ from this cache header). */
+void FUN_0011d2a0(int cache)
+{
+  int index;
+  int *entry;
+
+  FUN_0011d090(cache);
+  entry = *(int **)(cache + 0x34);
+  index = 0;
+  if (*(int *)(cache + 0x40) < 1) {
+    *(int *)(cache + 0x40) = 0;
+    return;
+  }
+  do {
+    FUN_0011d010(cache, entry);
+    (*(void (**)(int))(cache + 0x30))(*entry);
+    index = index + 1;
+    entry = (int *)((int)entry + *(int *)(cache + 0x24));
+  } while (index < *(int *)(cache + 0x40));
+  *(int *)(cache + 0x40) = 0;
 }
 
 /* 0x11d480: Compute the total allocation size needed for an lruv_cache

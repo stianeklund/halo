@@ -28878,11 +28878,11 @@
         },
         {
           "addr": "0x11d010",
-          "decl": "void FUN_0011d010(void);"
+          "decl": "void FUN_0011d010(int cache, void *entry);"
         },
         {
           "addr": "0x11d090",
-          "decl": "void FUN_0011d090(void);"
+          "decl": "void FUN_0011d090(int cache@<eax>);"
         },
         {
           "addr": "0x11d110",
@@ -28897,7 +28897,9 @@
         },
         {
           "addr": "0x11d2a0",
-          "decl": "void FUN_0011d2a0(void);"
+          "decl": "void FUN_0011d2a0(int cache);",
+          "ported": true,
+          "source_path": "src/halo/memory/lruv_cache.c"
         },
         {
           "addr": "0x11d300",
