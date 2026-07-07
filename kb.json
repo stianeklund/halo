@@ -28846,7 +28846,8 @@
         },
         {
           "addr": "0x11ca20",
-          "decl": "void lruv_has_locked_proc(void);"
+          "decl": "void lruv_has_locked_proc(void *cache);",
+          "ported": true
         },
         {
           "addr": "0x11ca60",
