@@ -28987,7 +28987,9 @@
         },
         {
           "addr": "0x11da30",
-          "decl": "void lruv_block_touched(void);"
+          "decl": "bool lruv_block_touched(void *lruv, int block_index);",
+          "name": "lruv_block_touched",
+          "ported": true
         },
         {
           "addr": "0x11da60",

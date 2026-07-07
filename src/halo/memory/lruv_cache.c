@@ -640,6 +640,24 @@ int lruv_block_get_address(void *lruv, int block_index)
   return block->first_page_index << (c->page_size_bits & 0x1f);
 }
 
+/* lruv_block_touched (0x11da30)
+ *
+ * Return true if the given cache block was stamped during the current
+ * cache cycle: compares the block's stamp field (block+0x14) against
+ * the cache's current generation counter (cache+0x30, field_30).  Runs
+ * the fast integrity check before the datum lookup.  Sibling of
+ * lruv_block_get_address (0x11da00).
+ */
+bool lruv_block_touched(void *lruv, int block_index)
+{
+  lruv_cache_t *c = (lruv_cache_t *)lruv;
+  lruv_cache_block_t *block;
+
+  lruv_cache_verify(lruv, 0);
+  block = (lruv_cache_block_t *)datum_get(c->blocks, block_index);
+  return *(int *)block->unk_14 == c->field_30;
+}
+
 /* lruv_resize (0x11db00)
  *
  * Resize the lruv_cache to new_page_count pages.  Any block whose
