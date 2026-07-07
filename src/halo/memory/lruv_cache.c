@@ -135,7 +135,7 @@ void *FUN_0011cf00(int cache, short block_index)
     system_exit(-1);
   }
   block_array = *(int *)(cache + 0x30);
-  FUN_0011c7c0(cache);
+  FUN_0011c7c0(cache, block_index * 0x10 + block_array);
   return *(void **)(block_index * 0x10 + block_array + 8);
 }
 
@@ -161,7 +161,7 @@ void FUN_0011cf60(int cache, short block_index)
     system_exit(-1);
   }
   block_ptr = (int *)(block_index * 0x10 + *(int *)(cache + 0x30));
-  FUN_0011c7c0(cache);
+  FUN_0011c7c0(cache, (int)block_ptr);
   data = *block_ptr;
   if (data != 0) {
     (*(void (**)(int))(cache + 0x40))(data);

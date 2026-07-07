@@ -346,6 +346,12 @@
     "0x11be10": "int FUN_0011be10(short *table @<eax>, void *key);",
     "0x11c210": "void FUN_0011c210(int cache @<ebx>, int block @<esi>);",
     "0x11c290": "void FUN_0011c290(int cache @<eax>);",
+    "0x11c5d0": "int FUN_0011c5d0(int block @<eax>, int cache @<ecx>);",
+    "0x11c7a0": "void lruv_allocation_size(int block @<esi>, int cache);",
+    "0x11c7c0": "void FUN_0011c7c0(int cache @<eax>, int block @<esi>);",
+    "0x11c820": "void lruv_update_function_pointers(int cache@<eax>);",
+    "0x11ca60": "int FUN_0011ca60(short block_index @<ax>, int cache @<edi>);",
+    "0x11d090": "void FUN_0011d090(int cache@<eax>);",
     "0x11e400": "unsigned int FUN_0011e400(void *pool @<eax>, int size);",
     "0x11e430": "void FUN_0011e430(void *pool @<edi>);",
     "0x11e5a0": "void *FUN_0011e5a0(void *pool @<eax>, void **block_reference @<esi>);",
@@ -610,9 +616,6 @@
     "0x1d8750": "unsigned int FUN_001d8750(unsigned int val@<ecx>);",
     "0x1e9350": "void D3DDevice_SetRenderState_Simple(uint32_t reg@<ecx>, uint32_t value@<edx>);",
     "0x1e9380": "void D3DDevice_SetRenderState_Deferred(uint32_t reg_index@<ecx>, uint32_t value@<edx>);",
-    "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);",
-    "0x11c820": "void lruv_update_function_pointers(int cache@<eax>);",
-    "0x11c7c0": "void FUN_0011c7c0(int cache@<eax>);",
-    "0x11d090": "void FUN_0011d090(int cache@<eax>);"
+    "0x1e9410": "void __stdcall D3DDevice_SetTextureStageState(uint32_t stage@<ecx>, uint32_t state@<edx>, uint32_t value);"
   }
 }
