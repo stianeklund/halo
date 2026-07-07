@@ -195,6 +195,30 @@ void FUN_0011d420(int cache, int block)
   *(unsigned int *)(block - 0xc) &= 0xfffffffe;
 }
 
+/* 0x11d450: lru_cache entry acquire/stamp helper. Sibling of FUN_0011d420.
+ * lruv_cache.obj.
+ *
+ * Refreshes the cache's function pointers (FUN_0011d090, cache passed in EAX),
+ * validates the block-header integrity (FUN_0011d010, header at block-0x10),
+ * then stamps the block header field at block-8 with the cache's current
+ * sequence counter (cache+0x3c) and post-increments that counter.
+ *
+ * param_1 (cache) = lru cache ptr. param_2 (block) = pointer just past a block
+ * header; header base is block-0x10 (passed to the validator), the stamp field
+ * is block-8 (= (block-0x10)+8). Disasm: mov eax,esi (cache->EAX);
+ * add edi,-0x10 (edi=block-0x10); call 0x11d090; push edi; push esi;
+ * call 0x11d010; mov eax,[esi+0x3c]; mov [edi+8],eax; mov eax,[esi+0x3c];
+ * inc eax; mov [esi+0x3c],eax. The counter is loaded twice (old value stored,
+ * then reloaded and incremented).
+ */
+void FUN_0011d450(int cache, int block)
+{
+  FUN_0011d090(cache);
+  FUN_0011d010(cache, (void *)(block - 0x10));
+  *(int *)(block - 8) = *(int *)(cache + 0x3c);
+  *(int *)(cache + 0x3c) = *(int *)(cache + 0x3c) + 1;
+}
+
 /* 0x11d480: Compute the total allocation size needed for an lruv_cache
  * with the given maximum block count. Returns sizeof(lruv_cache_t) + data
  * allocation for the block datums. */
