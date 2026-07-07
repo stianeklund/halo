@@ -28831,11 +28831,11 @@
         },
         {
           "addr": "0x11c7c0",
-          "decl": "void FUN_0011c7c0(void);"
+          "decl": "void FUN_0011c7c0(int cache@<eax>);"
         },
         {
           "addr": "0x11c820",
-          "decl": "void lruv_update_function_pointers(void);"
+          "decl": "void lruv_update_function_pointers(int cache@<eax>);"
         },
         {
           "addr": "0x11c870",
@@ -28859,7 +28859,8 @@
         },
         {
           "addr": "0x11cf00",
-          "decl": "void FUN_0011cf00(void);"
+          "decl": "void *FUN_0011cf00(int cache, short block_index);",
+          "ported": true
         },
         {
           "addr": "0x11cf60",
