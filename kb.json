@@ -28982,7 +28982,8 @@
         },
         {
           "addr": "0x11da00",
-          "decl": "int lruv_block_get_address(void *lruv, int block_index);"
+          "decl": "int lruv_block_get_address(void *lruv, int block_index);",
+          "ported": true
         },
         {
           "addr": "0x11da30",
