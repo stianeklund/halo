@@ -24,8 +24,11 @@ DEFAULT_ORIGINAL_XBE = ROOT / "halo-patched" / "cachebeta.xbe"
 FALLBACK_RUNTIME_BASE = 0x642000
 
 ADDRESS_TOKEN_RE = re.compile(r"0x[0-9a-fA-F]{5,8}\b")
+# `^.*?` (not `^\s*`) tolerates a leading timestamp/prefix, e.g. real Xbox
+# dumps: "07.07.26 17:38:10    [0] 0x0067dcd8". `.` never crosses a newline so
+# the match stays anchored to the frame's own line.
 FRAME_RE = re.compile(
-    r"^\s*(\[[0-9]+\]|#[0-9]+)\s*[:=]?\s*"
+    r"^.*?(\[[0-9]+\]|#[0-9]+)\s*[:=]?\s*"
     r"(0x[0-9a-fA-F]{5,8}|[0-9a-fA-F]{5,8})\b",
     re.MULTILINE,
 )
@@ -69,11 +72,62 @@ class KbFunction:
 
 
 class PeSymbolIndex:
-    def __init__(self, runtime_base: int, symbols: list[ExportSymbol], sections: list[PeSection]):
+    def __init__(
+        self,
+        runtime_base: int,
+        symbols: list[ExportSymbol],
+        sections: list[PeSection],
+        image: bytes | None = None,
+    ):
         self.runtime_base = runtime_base
         self.symbols = sorted(symbols, key=lambda sym: sym.address)
         self.addresses = [sym.address for sym in self.symbols]
         self.sections = sorted(sections, key=lambda sec: sec.start)
+        # RVA-indexed mapped image bytes (from pe.get_memory_mapped_image()),
+        # used to disassemble the CALL that a return address points just past.
+        self.image = image
+
+    def preceding_call(self, ret_addr: int) -> tuple[str, Any] | None:
+        """Resolve the CALL instruction whose return site is ``ret_addr``.
+
+        A return address on the stack points immediately after a CALL. We try
+        each plausible call length and keep the decode that exactly fills
+        ``[ret_addr - size, ret_addr)`` as a single ``call``. Direct near calls
+        (``E8 rel32``) resolve to an absolute target; indirect calls report
+        their operand text. Returns ``None`` when nothing decodes cleanly.
+        """
+        if self.image is None:
+            return None
+        try:
+            from capstone import Cs, CS_ARCH_X86, CS_MODE_32, CS_OP_IMM
+        except Exception:
+            return None
+        rva = ret_addr - self.runtime_base
+        if rva <= 0 or rva > len(self.image):
+            return None
+        md = Cs(CS_ARCH_X86, CS_MODE_32)
+        md.detail = True
+        indirect: tuple[str, Any] | None = None
+        # E8 rel32 is 5 bytes; FF /2 forms are 2-7. Iterate lengths and require
+        # a single instruction that exactly fills the gap and is a `call`.
+        for size in range(2, 8):
+            start_rva = rva - size
+            if start_rva < 0:
+                continue
+            code = bytes(self.image[start_rva:rva])
+            if len(code) != size:
+                continue
+            insns = list(md.disasm(code, ret_addr - size))
+            if len(insns) != 1:
+                continue
+            insn = insns[0]
+            if insn.size != size or not insn.mnemonic.startswith("call"):
+                continue
+            if insn.operands and insn.operands[0].type == CS_OP_IMM:
+                # Direct call — strongest signal, take it immediately.
+                return ("call", insn.operands[0].imm)
+            indirect = ("call-indirect", insn.op_str)
+        return indirect
 
     def section_for(self, address: int) -> PeSection | None:
         for section in self.sections:
@@ -195,6 +249,10 @@ def load_pe_symbols(path: Path, runtime_base: int) -> PeSymbolIndex | None:
     pe.parse_data_directories(
         directories=[pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_EXPORT"]]
     )
+    try:
+        image = pe.get_memory_mapped_image()
+    except Exception:
+        image = None
 
     symbols: list[ExportSymbol] = []
     for export in getattr(pe, "DIRECTORY_ENTRY_EXPORT", []).symbols:
@@ -225,7 +283,7 @@ def load_pe_symbols(path: Path, runtime_base: int) -> PeSymbolIndex | None:
                 executable=executable,
             )
         )
-    return PeSymbolIndex(runtime_base, symbols, sections)
+    return PeSymbolIndex(runtime_base, symbols, sections, image=image)
 
 
 def load_kb_symbols(path: Path) -> KbSymbolIndex | None:
@@ -264,6 +322,21 @@ def extract_address_hits(text: str, all_hex: bool = False) -> list[AddressHit]:
     return hits
 
 
+def _resolve_ret_from(pe_index: PeSymbolIndex, ret_addr: int) -> str | None:
+    """Name the callee of the CALL that ``ret_addr`` returns to, if resolvable."""
+    call = pe_index.preceding_call(ret_addr)
+    if call is None:
+        return None
+    kind, target = call
+    if kind == "call-indirect":
+        return f"[{target}]"
+    callee = pe_index.nearest(target)
+    if callee is None:
+        return f"0x{target:x}"
+    coff = target - callee.address
+    return callee.name if coff == 0 else f"{callee.name}+0x{coff:x}"
+
+
 def resolve_address(
     address: int,
     pe_index: PeSymbolIndex | None,
@@ -285,6 +358,9 @@ def resolve_address(
         symbol = pe_index.nearest(address)
         if symbol:
             offset = address - symbol.address
+            ret_from = None
+            if section and section.executable:
+                ret_from = _resolve_ret_from(pe_index, address)
             return {
                 "address": address,
                 "space": "compiled",
@@ -296,6 +372,7 @@ def resolve_address(
                 "section": section.name if section else None,
                 "section_executable": section.executable if section else None,
                 "rva": address - pe_index.runtime_base,
+                "ret_from": ret_from,
                 "detail": "PE export table",
             }
         return {
@@ -369,6 +446,8 @@ def format_result(hit: AddressHit, result: dict[str, Any]) -> str:
     if result.get("space") == "compiled":
         extra.append(f"section={result.get('section')}")
         extra.append(f"rva=0x{result.get('rva'):x}")
+        if result.get("ret_from"):
+            extra.append(f"ret-from=CALL {result['ret_from']}")
     if result.get("space") == "original":
         extra.append(f"object={result.get('object')}")
         extra.append(f"ported={result.get('ported')}")
