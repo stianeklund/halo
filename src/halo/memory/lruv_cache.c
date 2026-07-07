@@ -560,6 +560,16 @@ void lruv_cache_dispose(void *cache)
   csmemset(cache, 0, 0x44);
 }
 
+/* 0x11d8d0: Idle tick for an lruv_cache. Runs the fast integrity check
+ * (do_full_check=0) and increments the counter at offset 0x30. */
+void lruv_idle(void *cache)
+{
+  lruv_cache_t *c = (lruv_cache_t *)cache;
+
+  lruv_cache_verify(cache, 0);
+  c->field_30 = c->field_30 + 1;
+}
+
 /* 0x11d8f0: Remove a single block from the cache's linked list and
  * delete the datum. Calls the delete callback if set. Relinks neighbors. */
 void lruv_block_delete(void *cache, int block_index)
