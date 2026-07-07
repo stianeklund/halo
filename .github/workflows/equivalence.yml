@@ -13,8 +13,10 @@ on:
       - 'kb.json'
       - 'tools/equivalence/**'
   schedule:
-    # Nightly at 01:00 UTC
-    - cron: '0 1 * * *'
+    # Nightly at 00:00 UTC (midnight). This is the first nightly job; the
+    # Progress Report workflow chains off this run's completion (workflow_run)
+    # because it reads the artifacts/batch_verify/summary.json produced here.
+    - cron: '0 0 * * *'
   workflow_dispatch:
     inputs:
       mode:

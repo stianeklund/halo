@@ -6,13 +6,25 @@ on:
       - main
       - master
   workflow_dispatch:
-  schedule:
-    # Run daily at 00:00 UTC
-    - cron: '0 0 * * *'
+  # Chain off the nightly Equivalence Tests run instead of a fixed clock: this
+  # report reads the fresh artifacts/batch_verify/summary.json that Equivalence
+  # produces, so it must run *after* Equivalence finishes. workflow_run fires on
+  # Equivalence completion (any conclusion) so the dashboard updates even when
+  # equivalence is red.
+  workflow_run:
+    workflows: ["Equivalence Tests"]
+    types:
+      - completed
 
 jobs:
   generate-progress-report:
     name: Generate decomp.dev-style Progress Report
+    # Push and manual dispatch always run. The workflow_run path is gated to the
+    # *scheduled* Equivalence run so ordinary pushes — which also trigger
+    # Equivalence Tests — don't double-fire this report.
+    if: >-
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.event == 'schedule'
     runs-on: self-hosted
     permissions:
       contents: write
