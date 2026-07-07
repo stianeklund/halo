@@ -154,6 +154,47 @@ void FUN_0011d2a0(int cache)
   *(int *)(cache + 0x40) = 0;
 }
 
+/* 0x11d3f0: lru_cache entry commit helper.
+ * lruv_cache.obj (asserts against c:\halo\SOURCE\memory\lru_cache.c, line
+ * 0x156).
+ *
+ * Refreshes the cache's function pointers (FUN_0011d090, cache passed in EAX),
+ * validates the block-header integrity (FUN_0011d010, which checks magic
+ * 0x55626c6a and asserts "lru cache ... appears to be corrupt"), then sets
+ * bit 0 (valid/in-use flag) in the block-header status word.
+ *
+ * param_1 (cache) = lru cache ptr. param_2 (block) = pointer just past a block
+ * header; header fields live at block-0x10 (block base, passed to the
+ * validator) and block-0xc (status word that receives the |1).
+ */
+void FUN_0011d3f0(int cache, int block)
+{
+  FUN_0011d090(cache);
+  FUN_0011d010(cache, (void *)(block - 0x10));
+  *(unsigned int *)(block - 0xc) |= 1;
+}
+
+/* 0x11d420: lru_cache entry release helper (mirror of FUN_0011d3f0).
+ * lruv_cache.obj.
+ *
+ * Refreshes the cache's function pointers (FUN_0011d090, cache passed in EAX),
+ * validates the block-header integrity (FUN_0011d010, which checks magic
+ * 0x55626c6a and asserts "lru cache ... appears to be corrupt"), then clears
+ * bit 0 (valid/in-use flag) in the block-header status word.
+ *
+ * param_1 (cache) = lru cache ptr. param_2 (block) = pointer just past a block
+ * header; header fields live at block-0x10 (block base, passed to the
+ * validator) and block-0xc (status word that receives the &= ~1). Disasm:
+ * mov eax,edi (cache->EAX); call 0x11d090; push (block-0x10); push cache;
+ * call 0x11d010; mov eax,[esi+4]; and eax,0xfffffffe; mov [esi+4],eax.
+ */
+void FUN_0011d420(int cache, int block)
+{
+  FUN_0011d090(cache);
+  FUN_0011d010(cache, (void *)(block - 0x10));
+  *(unsigned int *)(block - 0xc) &= 0xfffffffe;
+}
+
 /* 0x11d480: Compute the total allocation size needed for an lruv_cache
  * with the given maximum block count. Returns sizeof(lruv_cache_t) + data
  * allocation for the block datums. */
@@ -482,22 +523,4 @@ void *lruv_cache_new(const char *name, int capacity, int max_locked,
                         delete_cb, query_cb);
 
   return cache;
-}
-/* 0x11d3f0: lru_cache entry commit helper.
- * lruv_cache.obj (asserts against c:\halo\SOURCE\memory\lru_cache.c, line 0x156).
- *
- * Refreshes the cache's function pointers (FUN_0011d090, cache passed in EAX),
- * validates the block-header integrity (FUN_0011d010, which checks magic
- * 0x55626c6a and asserts "lru cache ... appears to be corrupt"), then sets
- * bit 0 (valid/in-use flag) in the block-header status word.
- *
- * param_1 (cache) = lru cache ptr. param_2 (block) = pointer just past a block
- * header; header fields live at block-0x10 (block base, passed to the
- * validator) and block-0xc (status word that receives the |1).
- */
-void FUN_0011d3f0(int cache, int block)
-{
-  FUN_0011d090(cache);
-  FUN_0011d010(cache, (void *)(block - 0x10));
-  *(unsigned int *)(block - 0xc) |= 1;
 }
