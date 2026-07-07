@@ -82,14 +82,17 @@ void xbox_set_machine_name(const char *name)
   wchar_t local_44[32];
 
   if (name != NULL && *name != '\0') {
-    if (ascii_to_wide(name, local_44, 0x40) == NULL) {
-      error(2, "'%s' is not a valid machine name (max. name length= %d characters)", (const char *)local_44, 0x1f);
-    }
-    else {
+    /* Success path is the inline fall-through; MSVC places the ascii_to_wide
+     * failure branch out of line after the return, so test != NULL and keep
+     * the error() call in the else. */
+    if (ascii_to_wide(name, local_44, 0x40) != NULL) {
       local_44[31] = 0;
       if (!FUN_001d26f3(local_44, 1)) {
         error(2, "XSetNickname() failed");
       }
+    }
+    else {
+      error(2, "'%s' is not a valid machine name (max. name length= %d characters)", (const char *)local_44, 0x1f);
     }
   }
 }
@@ -107,11 +110,15 @@ int FUN_0012af00(void *p1, void *p2)
   if (!network_player_is_valid(player1) && !network_player_is_valid(player2)) {
     return 0;
   }
+  /* qsort comparator: valid players sort ahead of invalid ones. cmp(p1,p2)
+   * returns -1 when p1 should precede p2. Reference (0x12af00): valid(p1) with
+   * invalid(p2) jumps to the -1 return (683); invalid(p1) with valid(p2) jumps
+   * to the +1 return (645). */
   if (network_player_is_valid(player1) && !network_player_is_valid(player2)) {
-    return 1;
+    return -1;
   }
   if (!network_player_is_valid(player1) && network_player_is_valid(player2)) {
-    return -1;
+    return 1;
   }
 
   /* Both are valid, compare machine indices first */
@@ -519,8 +526,9 @@ bool network_game_create_game_objects(void *game)
     system_exit(-1);
   }
 
-  /* Clear game options */
-  csmemset(&options, 0, sizeof(options));
+  /* Initialize game options. 0x12b350 calls game_options_new (the game_options_t
+   * constructor), not a plain memset — it seeds non-zero option defaults. */
+  game_options_new(&options);
   csstrncpy(options.map_name, g + 0x24, 0x7f);
   options.difficulty = *(int16_t *)(g + 0x110);
 
@@ -531,6 +539,11 @@ bool network_game_create_game_objects(void *game)
     }
     else if (conn == 3) {
       options.random_seed = *(uint32_t *)(g + 0x428);
+    }
+    else {
+      /* Reference asserts on any connection type > 3 (cmp 3 / jne assert). */
+      display_assert("!\"bad game connection\"", "c:\\halo\\SOURCE\\networking\\network_game_manager.c", 0x17f, 1);
+      system_exit(-1);
     }
   }
   else {
