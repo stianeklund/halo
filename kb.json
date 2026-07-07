@@ -38858,5 +38858,8 @@
     "decl": "unsigned int *sieve_of_eratosthenes(unsigned int limit, unsigned int *num_primes);",
     "ported": true,
     "source_path": "src/halo/networking/message_header.c"
+  },
+  "0x11cfd0": {
+    "ported": true
   }
 }

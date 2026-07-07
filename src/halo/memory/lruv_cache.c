@@ -169,6 +169,15 @@ void FUN_0011cf60(int cache, short block_index)
   }
 }
 
+/* 0x11cfd0: Store a 4-byte value through the pointer arg. Trivial default
+ * delete callback: writes the supplied value into the first field of the
+ * record. Sibling of FUN_0011cfe0. Source: c:\halo\SOURCE\memory\lrar_cache.c
+ */
+void FUN_0011cfd0(int *ptr, int value)
+{
+  *ptr = value;
+}
+
 /* 0x11cfe0: Zero the first 4-byte field of the pointed-to record. Trivial
  * setter that clears a cache head/count word through the stack pointer arg.
  * Source: c:\halo\SOURCE\memory\lrar_cache.c */
