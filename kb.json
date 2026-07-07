@@ -34206,7 +34206,9 @@
         },
         {
           "addr": "0x146d40",
-          "decl": "void FUN_00146d40(void);"
+          "decl": "uint32_t FUN_00146d40(void *bsp2d_nodes, float *point2d, int node_index);",
+          "name": "FUN_00146d40",
+          "ported": true
         },
         {
           "addr": "0x146e30",
