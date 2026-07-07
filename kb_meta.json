@@ -6858,6 +6858,14 @@
         "Per original disasm, the two consecutive FUN_0011c210 validate calls in the next!=NULL branch both pass the next block (ESI loaded once with puVar3 at 0x11c676, then two CALLs); Ghidra's decompile suggested local_10 then next but the register trace shows next twice."
       ]
     },
+    "0x11c7a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x11c820": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x11c870": {
       "kind": "function",
       "status": "ported"
