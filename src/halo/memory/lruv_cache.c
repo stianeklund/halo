@@ -1,3 +1,275 @@
+/* 0x11c530: Mark a cached block dirty / most-recently-used. Requires a
+ * non-NULL user pointer (asserted, line 0x12a). Runs the cache post-touch
+ * bookkeeping (FUN_0011c290, cache in EAX) then the block-relink step
+ * (FUN_0011c210, cache in EBX + block header in ESI, header = pointer-0x10),
+ * and finally SETS bit0 of the dword at pointer-0xc (header+4), marking the
+ * block in-use. Source: c:\halo\SOURCE\memory\lra_cache.c */
+void FUN_0011c530(int cache, int block)
+{
+  int header = block - 0x10;
+  if (block == 0) {
+    display_assert("pointer", "c:\\halo\\SOURCE\\memory\\lra_cache.c", 0x12a, 1);
+    system_exit(-1);
+  }
+  FUN_0011c290(cache);
+  FUN_0011c210(cache, header);
+  *(unsigned int *)(header + 4) |= 1;
+}
+
+/* 0x11c580: Release a cached block back to its cache. Requires a non-NULL user
+ * pointer (asserted, line 0x13a). The block header sits 0x10 bytes before the
+ * user pointer. Runs the cache post-touch bookkeeping (FUN_0011c290, cache in
+ * EAX) then the block-release step (FUN_0011c210, cache in EBX + header in
+ * ESI), and finally CLEARS bit0 of the dword at pointer-0xc (header+4),
+ * marking the block not-in-use. Source: c:\halo\SOURCE\memory\lra_cache.c */
+void FUN_0011c580(int cache, void *pointer)
+{
+  char *block = (char *)pointer - 0x10;
+  if (pointer == NULL) {
+    display_assert("pointer", "c:\\halo\\SOURCE\\memory\\lra_cache.c", 0x13a, 1);
+    system_exit(-1);
+  }
+  FUN_0011c290(cache);
+  FUN_0011c210(cache, (int)block);
+  *(unsigned int *)(block + 4) &= 0xfffffffe;
+}
+
+/* 0x11cab0: Dispose of every live block in an lrar_cache. Refreshes the
+ * function-pointer table (lruv_update_function_pointers, cache passed in EAX),
+ * then walks the ring buffer from head(+0x34) to tail(+0x36), wrapping at
+ * block_count(+0x38). For each block it validates the cache header ('lrar'
+ * magic @+0x44, base<end, size>=1, count>=1; line 0x199), the block index
+ * (line 0x16e) and the block record ('klbR' magic @block+4, size in range,
+ * offset inside the data region; line 0x186) -- each failure formats the
+ * "appears to be corrupt" message into the shared scratch buffer at 0x5ab100
+ * and hits display_assert + system_exit(-1). When a block holds a non-NULL
+ * user pointer (block[0]) it is passed to the free callback at cache+0x40 and
+ * the slot is cleared. Finally head/tail are reset to -1 (0xffff). The
+ * file/line/halt assert args are pushed before csprintf's args (Ghidra cdecl
+ * arg mis-grouping). Source: c:\halo\SOURCE\memory\lrar_cache.c */
+void lrar_cache_dispose(int cache)
+{
+  short block_index;
+  int *block;
+  int block_size;
+
+  lruv_update_function_pointers(cache);
+  block_index = *(short *)(cache + 0x34);
+  while (block_index != -1) {
+    while (1) {
+      if ((*(int *)(cache + 0x44) != 0x6c726172) ||
+          (*(unsigned int *)(cache + 0x28) <= *(unsigned int *)(cache + 0x24)) ||
+          (*(int *)(cache + 0x2c) < 1) ||
+          (*(short *)(cache + 0x38) <= 0)) {
+        display_assert(csprintf((char *)0x5ab100,
+                                "lrar cache %s @%p appears to be corrupt",
+                                cache, cache),
+                       "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x199, 1);
+        system_exit(-1);
+      }
+      if ((block_index < 0) || (*(short *)(cache + 0x38) <= block_index)) {
+        display_assert("block_index>=0 && block_index<cache->block_count",
+                       "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x16e, 1);
+        system_exit(-1);
+      }
+      block = (int *)(block_index * 0x10 + *(int *)(cache + 0x30));
+      block_size = block[3];
+      if ((block[1] != 0x52626c6b) ||
+          (block_size < 0) ||
+          (*(int *)(cache + 0x2c) <= block_size) ||
+          ((unsigned int)block[2] < *(unsigned int *)(cache + 0x24)) ||
+          (*(unsigned int *)(cache + 0x28) <
+           (unsigned int)(block[2] + block_size))) {
+        display_assert(csprintf((char *)0x5ab100,
+                                "lrar cache %s @%p block @%p appears to be corrupt",
+                                cache, cache, block),
+                       "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x186, 1);
+        system_exit(-1);
+      }
+      if (*block != 0) {
+        (*(void (**)(int))(cache + 0x40))(*block);
+        *block = 0;
+      }
+      if (block_index == *(short *)(cache + 0x36)) {
+        goto done;
+      }
+      block_index = block_index + 1;
+      if (block_index != *(short *)(cache + 0x38)) {
+        break;
+      }
+      block_index = 0;
+    }
+  }
+done:
+  *(short *)(cache + 0x34) = (short)0xffff;
+  *(short *)(cache + 0x36) = (short)0xffff;
+}
+
+/* 0x11cbf0: lrar_cache block allocator. Refreshes the cache's function-pointer
+ * table (lruv_update_function_pointers, cache in @eax), rounds the request up
+ * to the primary alignment (cache+0x20), then walks the block ring to find a
+ * contiguous address range >= size that fits under cache->maximum_address
+ * (+0x28), evicting overlapping blocks via the free callback (cache+0x40) as it
+ * goes. Applies an optional secondary boundary alignment (cache+0x22, -1=none).
+ * On a fit it writes a fresh block record (data ptr +0, 'lRbk' magic +4,
+ * address +8, size +0xc), registers it via the insert callback
+ * (cache+0x3c(data, index)), and links it as the new last/head block. Returns
+ * the new block index (or 0xffff on reject). Integrity asserts reference
+ * c:\halo\SOURCE\memory\lrar_cache.c. The @reg callee FUN_0011ca60 fetches a
+ * block record (block_index @<ax>, cache @<edi>). */
+short FUN_0011cbf0(int cache, int size, void *data)
+{
+  int new_block_index;
+  unsigned int new_block_address;
+  unsigned int search_address;
+  unsigned int align_mask;
+  int boundary;
+  unsigned int boundary_mask;
+  unsigned int aligned_base;
+  short block_index;
+  short next_index;
+  int *block;
+  unsigned int *new_block;
+  int end;
+
+  new_block_index = -1;
+  lruv_update_function_pointers(cache);
+
+  align_mask = (1 << (*(unsigned char *)(cache + 0x20) & 0x1f)) - 1;
+  if (((unsigned int)size & align_mask) != 0) {
+    size = (align_mask | (unsigned int)size) + 1;
+  }
+
+  if ((size >= 0) && (size <= *(int *)(cache + 0x2c))) {
+    block_index = *(short *)(cache + 0x34);
+    if (*(short *)(cache + 0x36) == -1) {
+      new_block_index = 0;
+    } else {
+      new_block_index = *(short *)(cache + 0x36) + 1;
+    }
+    next_index = block_index;
+    if (*(short *)(cache + 0x38) <= (short)new_block_index) {
+      new_block_index = 0;
+    }
+
+    while (1) {
+      if (*(short *)(cache + 0x36) == -1) {
+        search_address = *(unsigned int *)(cache + 0x24);
+      } else {
+        block = (int *)FUN_0011ca60(*(short *)(cache + 0x36), cache);
+        search_address = block[3] + block[2];
+      }
+      new_block_address = search_address;
+
+      if (*(short *)(cache + 0x22) != -1) {
+        boundary = 1 << (*(short *)(cache + 0x22) & 0x1f);
+        boundary_mask = ~((unsigned int)boundary - 1U);
+        aligned_base = boundary_mask & search_address;
+        block_index = next_index;
+        if (aligned_base != ((search_address + size) & boundary_mask)) {
+          new_block_address = aligned_base + boundary;
+        }
+      }
+
+      if (block_index != -1) {
+        block = (int *)FUN_0011ca60(block_index, cache);
+        while ((block_index == (short)new_block_index) ||
+               ((search_address <= (unsigned int)block[2]) &&
+                ((unsigned int)block[2] < new_block_address + size))) {
+          if (block[0] != 0) {
+            (*(void (**)(void *))(cache + 0x40))((void *)block[0]);
+            block[0] = 0;
+          }
+          block[1] = -1;
+          next_index = block_index + 1;
+          if (*(short *)(cache + 0x38) <= next_index) {
+            next_index = 0;
+          }
+          if ((*(int *)(cache + 0x44) != 0x6c726172) ||
+              (*(unsigned int *)(cache + 0x28) <=
+               *(unsigned int *)(cache + 0x24)) ||
+              (*(int *)(cache + 0x2c) < 1) || (*(short *)(cache + 0x38) < 1)) {
+            display_assert(csprintf((char *)0x5ab100,
+                                    "lrar cache %s @%p appears to be corrupt",
+                                    cache, cache),
+                           "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x199, 1);
+            system_exit(-1);
+          }
+          if ((next_index < 0) || (*(short *)(cache + 0x38) <= next_index)) {
+            display_assert("block_index>=0 && block_index<cache->block_count",
+                           "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x16e, 1);
+            system_exit(-1);
+          }
+          block = (int *)(next_index * 0x10 + *(int *)(cache + 0x30));
+          block_index = next_index;
+          if ((*(int *)(next_index * 0x10 + 4 + *(int *)(cache + 0x30)) !=
+               0x52626c6b) ||
+              (block[3] < 0) || (*(int *)(cache + 0x2c) <= block[3]) ||
+              ((unsigned int)block[2] < *(unsigned int *)(cache + 0x24)) ||
+              (*(unsigned int *)(cache + 0x28) <
+               (unsigned int)(block[2] + block[3]))) {
+            display_assert(
+              csprintf((char *)0x5ab100,
+                       "lrar cache %s @%p block @%p appears to be corrupt",
+                       cache, cache, block),
+              "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x186, 1);
+            system_exit(-1);
+          }
+        }
+      }
+
+      if (new_block_address + size <= *(unsigned int *)(cache + 0x28)) {
+        break;
+      }
+      *(short *)(cache + 0x36) = -1;
+    }
+
+    new_block =
+      (unsigned int *)((short)new_block_index * 0x10 + *(int *)(cache + 0x30));
+    if ((new_block_address < *(unsigned int *)(cache + 0x24)) ||
+        (*(unsigned int *)(cache + 0x28) < new_block_address + size)) {
+      display_assert("adjusted_new_block_address>=cache->minimum_address && "
+                     "adjusted_new_block_address+size<=cache->maximum_address",
+                     "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x111, 1);
+      system_exit(-1);
+    }
+
+    block_index = 0;
+    if (0 < *(short *)(cache + 0x38)) {
+      do {
+        end = block_index * 0x10 + *(int *)(cache + 0x30);
+        if ((*(int *)(block_index * 0x10 + 4 + *(int *)(cache + 0x30)) ==
+             0x52626c6b) &&
+            (search_address = *(unsigned int *)(end + 8),
+             new_block_address <
+               (unsigned int)(*(int *)(end + 0xc) + search_address)) &&
+            (search_address < new_block_address + size)) {
+          display_assert(
+            "adjusted_new_block_address>=test_block->address+test_block->size "
+            "|| adjusted_new_block_address+size<=test_block->address",
+            "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x11c, 1);
+          system_exit(-1);
+        }
+        block_index = block_index + 1;
+      } while (block_index < *(short *)(cache + 0x38));
+    }
+
+    new_block[3] = size;
+    new_block[1] = 0x52626c6b;
+    new_block[2] = new_block_address;
+    new_block[0] = (unsigned int)data;
+    (*(void (**)(void *, int))(cache + 0x3c))(data, new_block_index);
+    *(short *)(cache + 0x36) = (short)new_block_index;
+    if (next_index == -1) {
+      *(short *)(cache + 0x34) = (short)new_block_index;
+    } else {
+      *(short *)(cache + 0x34) = next_index;
+    }
+  }
+
+  return (short)new_block_index;
+}
+
 /* Store a short value through a pointer.
  * 0x11c780 / lruv_cache.obj
  */
