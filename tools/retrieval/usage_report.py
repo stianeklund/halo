@@ -138,7 +138,73 @@ def _summarize_mizuchi() -> dict:
     }
 
 
-def _summarize_lift_outcomes(context_summary: dict) -> dict:
+def _load_pack_meta() -> dict:
+    """name -> {has_neighbors, difficulty} from the context-cache packs.
+
+    `difficulty` is the decompiled-C character length — a non-circular proxy for
+    function complexity (an *input* to the lift, unlike the VC71 match, which is
+    an outcome). Used to stratify the neighbor-vs-no-neighbor comparison so
+    "neighbors surface on harder functions" is separable from "neighbors help".
+    Only packs that carry decompile_c get a difficulty."""
+    meta: dict[str, dict] = {}
+    if not CONTEXT_CACHE_DIR.exists():
+        return meta
+    for path in CONTEXT_CACHE_DIR.glob("*.json"):
+        data = _read_json(path)
+        if not isinstance(data, dict):
+            continue
+        neighbors = data.get("similar_neighbors")
+        has_neighbors = bool(isinstance(neighbors, list) and neighbors)
+        decompile_c = data.get("decompile_c")
+        difficulty = len(decompile_c) if isinstance(decompile_c, str) and decompile_c else None
+        meta[path.stem] = {"has_neighbors": has_neighbors, "difficulty": difficulty}
+    return meta
+
+
+def _tercile_bounds(values: list[float]) -> tuple[float, float] | None:
+    """Return the (lower, upper) cut points splitting values into three buckets."""
+    vals = sorted(v for v in values if v is not None)
+    if len(vals) < 3:
+        return None
+    lo = vals[len(vals) // 3]
+    hi = vals[(2 * len(vals)) // 3]
+    if lo == hi:  # degenerate (heavy ties) — cannot form 3 distinct buckets
+        return None
+    return lo, hi
+
+
+def _matched_difficulty(records: list[dict]) -> dict:
+    """Stratify lift records by difficulty tercile, then compare neighbor vs
+    non-neighbor pass-rate / VC71 WITHIN each bucket. `records` items:
+    {difficulty, has_neighbors, ok, vc71}."""
+    usable = [r for r in records if r.get("difficulty") is not None]
+    bounds = _tercile_bounds([r["difficulty"] for r in usable])
+    if bounds is None:
+        return {"usable_targets": len(usable), "note": "too few difficulty-tagged targets to stratify"}
+    lo, hi = bounds
+
+    def _bucket(d: float) -> str:
+        return "small" if d <= lo else ("large" if d > hi else "medium")
+
+    out: dict = {"usable_targets": len(usable), "tercile_bounds_chars": [lo, hi], "buckets": {}}
+    for label in ("small", "medium", "large"):
+        rows = [r for r in usable if _bucket(r["difficulty"]) == label]
+        grp: dict = {}
+        for key, want in (("with_neighbors", True), ("no_neighbors", False)):
+            sub = [r for r in rows if r["has_neighbors"] is want]
+            n = len(sub)
+            passes = sum(1 for r in sub if r["ok"])
+            vc = [r["vc71"] for r in sub if r["vc71"] is not None]
+            grp[key] = {
+                "n": n,
+                "pass_rate": (passes / n if n else None),
+                "avg_vc71": (statistics.mean(vc) if vc else None),
+            }
+        out["buckets"][label] = grp
+    return out
+
+
+def _summarize_lift_outcomes(context_summary: dict, pack_meta: dict | None = None) -> dict:
     summaries = sorted(LIFT_RUNS_DIR.glob("*/summary.json")) if LIFT_RUNS_DIR.exists() else []
     if not summaries:
         return {
@@ -146,12 +212,9 @@ def _summarize_lift_outcomes(context_summary: dict) -> dict:
             "note": "No artifacts/lift_runs/*/summary.json found; cannot correlate retrieval with lift outcomes yet.",
         }
 
-    neighbor_targets = set()
-    if CONTEXT_CACHE_DIR.exists():
-        for path in CONTEXT_CACHE_DIR.glob("*.json"):
-            data = _read_json(path)
-            if isinstance(data, dict) and data.get("similar_neighbors"):
-                neighbor_targets.add(path.stem)
+    if pack_meta is None:
+        pack_meta = _load_pack_meta()
+    neighbor_targets = {name for name, m in pack_meta.items() if m.get("has_neighbors")}
 
     match_values = []
     match_values_with_neighbors = []
@@ -159,6 +222,7 @@ def _summarize_lift_outcomes(context_summary: dict) -> dict:
     pass_with_neighbors = 0
     targets_seen = 0
     targets_with_neighbors = 0
+    records: list[dict] = []
 
     for summary_path in summaries:
         data = _read_json(summary_path)
@@ -200,6 +264,13 @@ def _summarize_lift_outcomes(context_summary: dict) -> dict:
             if has_neighbors:
                 match_values_with_neighbors.append(vc71_match)
 
+        records.append({
+            "difficulty": pack_meta.get(name, {}).get("difficulty"),
+            "has_neighbors": has_neighbors,
+            "ok": ok,
+            "vc71": vc71_match,
+        })
+
     return {
         "lift_run_summaries_found": len(summaries),
         "targets_seen": targets_seen,
@@ -217,6 +288,7 @@ def _summarize_lift_outcomes(context_summary: dict) -> dict:
             else None
         ),
         "context_nonempty_neighbors": context_summary.get("with_nonempty_similar_neighbors", 0),
+        "matched_difficulty": _matched_difficulty(records),
     }
 
 
@@ -293,10 +365,29 @@ def print_human(report: dict) -> None:
     else:
         print(f"  targets seen: {out.get('targets_seen', 0)}")
         print(f"  targets with neighbors: {out.get('targets_with_neighbors', 0)}")
-        print(f"  pass rate: {_fmt_float(out.get('pass_rate'))}")
-        print(f"  pass rate with neighbors: {_fmt_float(out.get('pass_rate_with_neighbors'))}")
-        print(f"  avg vc71 match: {_fmt_float(out.get('avg_vc71_match'))}")
-        print(f"  avg vc71 match with neighbors: {_fmt_float(out.get('avg_vc71_match_with_neighbors'))}")
+        print("  aggregate (SELECTION-BIASED — neighbors surface on harder functions;")
+        print("             compare within a difficulty bucket below, not these numbers):")
+        print(f"    pass rate: {_fmt_float(out.get('pass_rate'))}")
+        print(f"    pass rate with neighbors: {_fmt_float(out.get('pass_rate_with_neighbors'))}")
+        print(f"    avg vc71 match: {_fmt_float(out.get('avg_vc71_match'))}")
+        print(f"    avg vc71 match with neighbors: {_fmt_float(out.get('avg_vc71_match_with_neighbors'))}")
+        md = out.get("matched_difficulty") or {}
+        print("  matched-difficulty (neighbor vs no-neighbor within a decompile-size bucket):")
+        if md.get("note"):
+            print(f"    {md['note']} (usable targets: {md.get('usable_targets', 0)})")
+        else:
+            b = md.get("tercile_bounds_chars") or []
+            if len(b) == 2:
+                print(f"    difficulty = decompile_c chars; tercile cuts at {int(b[0])} / {int(b[1])}")
+            for label in ("small", "medium", "large"):
+                grp = (md.get("buckets") or {}).get(label, {})
+                wn = grp.get("with_neighbors", {})
+                nn = grp.get("no_neighbors", {})
+                print(f"    [{label}]")
+                print(f"      with neighbors: n={wn.get('n', 0)} "
+                      f"pass={_fmt_float(wn.get('pass_rate'))} vc71={_fmt_float(wn.get('avg_vc71'))}")
+                print(f"      no  neighbors: n={nn.get('n', 0)} "
+                      f"pass={_fmt_float(nn.get('pass_rate'))} vc71={_fmt_float(nn.get('avg_vc71'))}")
 
     print("\nauto-lift failures")
     print(f"  failure records: {fail.get('failure_records', 0)}")
@@ -311,11 +402,12 @@ def main() -> int:
     args = ap.parse_args()
 
     context_summary = _summarize_context_cache()
+    pack_meta = _load_pack_meta()
     report = {
         "retrieval_index": _summarize_retrieval_index(),
         "context_cache": context_summary,
         "mizuchi": _summarize_mizuchi(),
-        "lift_outcomes": _summarize_lift_outcomes(context_summary),
+        "lift_outcomes": _summarize_lift_outcomes(context_summary, pack_meta),
         "auto_lift_failures": _summarize_failures_with_neighbors(),
     }
 
