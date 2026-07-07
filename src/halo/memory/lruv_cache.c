@@ -825,6 +825,34 @@ void FUN_0011db90(const char *path, const char *tag_name, int alloc_size,
   crt_fclose(stream);
 }
 
+/* 0x11dd60: Allocate and initialize a new lruv_cache on the debug heap.
+ * Computes the datum-array allocation for maximum_block_count records of
+ * 0x1c bytes (data_allocation_size), adds the 0x44-byte cache header, and
+ * allocates via debug_malloc. If allocation succeeds, initializes the cache
+ * with the caller's parameters and callbacks. Returns the cache pointer, or
+ * NULL on allocation failure.
+ *
+ * Disasm note: Ghidra mis-groups the cdecl args here — MSVC pushes the outer
+ * debug_malloc args (zero=0, __FILE__, __LINE__=0x52) before evaluating the
+ * inner data_allocation_size(param_4, 0x1c) call, so the decompiler wrongly
+ * shows those three as extra data_allocation_size arguments.
+ * data_allocation_size is 2-arg (count, size); debug_malloc is 4-arg (size,
+ * zero, file, line). */
+void *lruv_new(int name, int page_count, int page_size_bits,
+               int maximum_block_count, void (*delete_cb)(int),
+               int (*query_cb)(int))
+{
+  void *cache;
+
+  cache = debug_malloc(data_allocation_size(maximum_block_count, 0x1c) + 0x44,
+                       0, "c:\\halo\\SOURCE\\memory\\lruv_cache.c", 0x52);
+  if (cache != NULL) {
+    lruv_cache_initialize(cache, name, page_count, page_size_bits,
+                          maximum_block_count, delete_cb, query_cb);
+  }
+  return cache;
+}
+
 /* 0x11ddc0: Dispose all blocks from the cache by iterating the data_t
  * and removing each block individually via lruv_block_delete. */
 void lruv_cache_dispose_all(void *cache)
