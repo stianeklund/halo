@@ -3,6 +3,12 @@
 extern double __cdecl fabs(double);
 #if defined(_MSC_VER) && !defined(__clang__)
 #pragma intrinsic(fabs)
+#else
+/* clang builds with -fno-builtin, which ignores the intrinsic pragma above and
+ * emits a real CRT call to fabs. The original inlines a single x87 FABS. Force
+ * clang to inline via the always-available builtin so the codegen matches the
+ * binary (and so equivalence harnesses don't see an external fabs stub). */
+#define fabs __builtin_fabs
 #endif
 
 /* 0x994d0 — Negate all four components of a plane */
@@ -428,4 +434,273 @@ bool convex_polygon3d_verify(int16_t vertex_count, float *vertices)
     }
   }
   return 1;
+}
+
+/* 0x106f50 — Build an initial simplex (tetrahedron) from a point cloud: the
+ * seed step of a convex-hull/quickhull. Selects four extremal points, emits
+ * 4 vertices (stride 0xc), 6 edges (stride 0x20) and 4 surfaces (stride 0x1c)
+ * with their connectivity constants, then marks the remaining capacity slots
+ * as unused (byte-0 at each slot start). Returns 1 on success, 0 on a
+ * degenerate/failed seed. Point selection:
+ *   p0 = min-X point; p1 = point farthest from p0;
+ *   p2 = point farthest from the p0-p1 line; p3 = point farthest from the
+ *   (p0,p1,p2) plane (with a winding swap when p3 is on the plane front).
+ * Surface planes come from FUN_001037b0 (plane-from-3-points).
+ * Source: c:\halo\SOURCE\math\geometry.c:1710 */
+bool FUN_00106f50(int16_t point_count, float *points, int16_t vertices_capacity,
+                  char *vertices, int16_t edges_capacity, char *edges,
+                  int16_t surfaces_capacity, char *surfaces)
+{
+  char *vbase;
+  float *p0;
+  float *p1;
+  float *p2;
+  float *p3;
+  float *pfVar5;
+  float *scan;
+  float plane[4];
+  float edge_x;
+  float edge_y;
+  float edge_z;
+  float len_sq;
+  float dz;
+  float t;
+  float proj_y;
+  float proj_z;
+  float perp_x;
+  float perp_y;
+  float perp_dist;
+  float best;
+  float best_dist;
+  unsigned int n;
+  int i;
+  int min_x_index;
+  int far_index;
+  int line_index;
+  int plane_index;
+  int saved_far;
+
+  vbase = vertices;
+  min_x_index = -1;
+  far_index = -1;
+  line_index = -1;
+  plane_index = -1;
+
+  if (points == (float *)0) {
+    display_assert("points", "c:\\halo\\SOURCE\\math\\geometry.c", 0x6ae, 1);
+    halt_and_catch_fire();
+  }
+  if (vertices == (char *)0) {
+    display_assert("vertices", "c:\\halo\\SOURCE\\math\\geometry.c", 0x6af, 1);
+    halt_and_catch_fire();
+  }
+  if (edges == (char *)0) {
+    display_assert("edges", "c:\\halo\\SOURCE\\math\\geometry.c", 0x6b0, 1);
+    halt_and_catch_fire();
+  }
+  if (surfaces == (char *)0) {
+    display_assert("surfaces", "c:\\halo\\SOURCE\\math\\geometry.c", 0x6b1, 1);
+    halt_and_catch_fire();
+  }
+
+  if (3 < vertices_capacity && 5 < edges_capacity && 3 < surfaces_capacity &&
+      0 < point_count) {
+    /* Pass 1: find the point with the minimum X coordinate. */
+    i = 0;
+    scan = points;
+    best = 3.402823466e+38f;
+    do {
+      if (*scan < best) {
+        best = *scan;
+        min_x_index = i;
+      }
+      i = i + 1;
+      scan = scan + 3;
+    } while ((int16_t)i < point_count);
+
+    if ((int16_t)min_x_index != -1) {
+      p0 = points + (int16_t)min_x_index * 3;
+
+      /* Pass 2: find the point farthest (squared distance) from p0. */
+      i = 0;
+      scan = points + 2;
+      best = 0.0f;
+      do {
+        if (best < (*p0 - scan[-2]) * (*p0 - scan[-2]) +
+                     (p0[1] - scan[-1]) * (p0[1] - scan[-1]) +
+                     (p0[2] - *scan) * (p0[2] - *scan)) {
+          far_index = i;
+          best = (*p0 - scan[-2]) * (*p0 - scan[-2]) +
+                 (p0[1] - scan[-1]) * (p0[1] - scan[-1]) +
+                 (p0[2] - *scan) * (p0[2] - *scan);
+        }
+        i = i + 1;
+        scan = scan + 3;
+      } while ((int16_t)i < point_count);
+
+      if ((int16_t)far_index != -1 && 0.01f <= best) {
+        p1 = points + (int16_t)far_index * 3;
+
+        /* Pass 3: find the point farthest from the p0-p1 line. */
+        i = 0;
+        scan = points + 2;
+        edge_x = *p1 - *p0;
+        edge_y = p1[1] - p0[1];
+        edge_z = p1[2] - p0[2];
+        len_sq = edge_x * edge_x + edge_y * edge_y + edge_z * edge_z;
+        best = 0.0f;
+        do {
+          dz = *scan - p0[2];
+          t = ((scan[-2] - *p0) * edge_x + (scan[-1] - p0[1]) * edge_y +
+               dz * edge_z) /
+              len_sq;
+          proj_y = edge_y * t;
+          proj_z = edge_z * t;
+          perp_x = (scan[-2] - *p0) - edge_x * t;
+          perp_y = (scan[-1] - p0[1]) - proj_y;
+          perp_dist =
+            perp_x * perp_x + perp_y * perp_y + (dz - proj_z) * (dz - proj_z);
+          if (best < perp_dist) {
+            line_index = i;
+            best = perp_dist;
+          }
+          i = i + 1;
+          scan = scan + 3;
+        } while ((int16_t)i < point_count);
+
+        if ((int16_t)line_index != -1 && 0.01f <= best) {
+          /* Pass 4: plane through (p0,p1,p2); find the farthest point. */
+          best_dist = 0.0f;
+          FUN_001037b0(plane, p0, p1, points + (int16_t)line_index * 3);
+          saved_far = far_index;
+          i = 0;
+          scan = points + 2;
+          do {
+            perp_dist =
+              (plane[2] * *scan + plane[1] * scan[-1] + plane[0] * scan[-2]) -
+              plane[3];
+            if (fabs(best_dist) < fabs(perp_dist)) {
+              best_dist = perp_dist;
+              plane_index = i;
+            }
+            i = i + 1;
+            scan = scan + 3;
+          } while ((int16_t)i < point_count);
+
+          if ((int16_t)plane_index != -1 && 0.01f <= fabs(best_dist)) {
+            if (0.0f < best_dist) {
+              far_index = line_index;
+              line_index = saved_far;
+            }
+
+            /* Emit 4 vertices (stride 0xc). */
+            *(int *)(vbase + 4) = 0;
+            *(int *)(vbase + 0x10) = 0;
+            *(int16_t *)(vbase + 2) = (int16_t)min_x_index;
+            *vbase = 1;
+            vbase[0xc] = 1;
+            vbase[0x18] = 1;
+            *(int16_t *)(vbase + 0x1a) = (int16_t)line_index;
+            *(int16_t *)(vbase + 0xe) = (int16_t)far_index;
+            *(int16_t *)(vbase + 0x26) = (int16_t)plane_index;
+            *(int *)(vbase + 0x1c) = 1;
+            vbase[0x24] = 1;
+            *(int *)(vbase + 0x28) = 3;
+
+            /* Emit 6 edges (stride 0x20). */
+            *(int *)(edges + 0x10) = 3;
+            *(int *)(edges + 0x58) = 3;
+            *(int *)(edges + 0x68) = 3;
+            *(int *)(edges + 0x78) = 3;
+            *(int *)(edges + 0x84) = 3;
+            *(int *)(edges + 0xa4) = 3;
+            *(int *)(edges + 0xb0) = 3;
+            *(int *)(edges + 0xb8) = 3;
+            *(int *)(edges + 4) = 0;
+            *(int *)(edges + 0x14) = 0;
+            *(int *)(edges + 0x34) = 0;
+            *(int *)(edges + 0x48) = 0;
+            *(int *)(edges + 0x4c) = 0;
+            *(int *)(edges + 0x54) = 0;
+            *(int *)(edges + 100) = 0;
+            *(int *)(edges + 0x8c) = 0;
+            *(int *)(edges + 0x98) = 2;
+            *(int *)(edges + 0xa8) = 2;
+            *(int *)(edges + 0xb4) = 2;
+            *edges = 1;
+            *(int *)(edges + 8) = 1;
+            *(int *)(edges + 0xc) = 1;
+            *(int *)(edges + 0x18) = 1;
+            edges[0x20] = 1;
+            *(int *)(edges + 0x24) = 1;
+            edges[0x40] = 1;
+            edges[0x60] = 1;
+            *(int *)(edges + 0x74) = 1;
+            edges[0x80] = 1;
+            *(int *)(edges + 0x88) = 1;
+            *(int *)(edges + 0x94) = 1;
+            edges[0xa0] = 1;
+            *(int *)(edges + 0xac) = 1;
+            *(int *)(edges + 0x28) = 2;
+            *(int *)(edges + 0x2c) = 2;
+            *(int *)(edges + 0x30) = 4;
+            *(int *)(edges + 0x38) = 2;
+            *(int *)(edges + 0x44) = 2;
+            *(int *)(edges + 0x50) = 5;
+            *(int *)(edges + 0x6c) = 4;
+            *(int *)(edges + 0x70) = 2;
+            *(int *)(edges + 0x90) = 5;
+
+            /* Emit 4 surfaces (stride 0x1c); planes via FUN_001037b0. */
+            *surfaces = 1;
+            pfVar5 = points + (int16_t)line_index * 3;
+            p2 = points + (int16_t)far_index * 3;
+            FUN_001037b0((float *)(surfaces + 4), p0, p2, pfVar5);
+            *(int *)(surfaces + 0x14) = 0;
+            surfaces[0x1c] = 1;
+            p3 = points + (int16_t)plane_index * 3;
+            FUN_001037b0((float *)(surfaces + 0x20), p0, p3, p2);
+            *(int *)(surfaces + 0x30) = 0;
+            surfaces[0x38] = 1;
+            FUN_001037b0((float *)(surfaces + 0x3c), p2, p3, pfVar5);
+            *(int *)(surfaces + 0x4c) = 1;
+            surfaces[0x54] = 1;
+            FUN_001037b0((float *)(surfaces + 0x58), p0, pfVar5, p3);
+            *(int *)(surfaces + 0x68) = 2;
+
+            /* Mark remaining capacity slots as unused. */
+            if (4 < vertices_capacity) {
+              vbase = vbase + 0x30;
+              n = (unsigned int)(unsigned short)(vertices_capacity - 4);
+              do {
+                *vbase = 0;
+                vbase = vbase + 0xc;
+                n = n - 1;
+              } while (n != 0);
+            }
+            if (6 < edges_capacity) {
+              edges = edges + 0xc0;
+              n = (unsigned int)(unsigned short)(edges_capacity - 6);
+              do {
+                *edges = 0;
+                edges = edges + 0x20;
+                n = n - 1;
+              } while (n != 0);
+            }
+            if (4 < surfaces_capacity) {
+              surfaces = surfaces + 0x70;
+              n = (unsigned int)(unsigned short)(surfaces_capacity - 4);
+              do {
+                *surfaces = 0;
+                surfaces = surfaces + 0x1c;
+                n = n - 1;
+              } while (n != 0);
+            }
+            return 1;
+          }
+        }
+      }
+    }
+  }
+  return 0;
 }
