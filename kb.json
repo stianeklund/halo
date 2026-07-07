@@ -34218,7 +34218,8 @@
         },
         {
           "addr": "0x1470b0",
-          "decl": "void FUN_001470b0(void);"
+          "decl": "int FUN_001470b0(int tag_base, uint32_t node_index, uint32_t flags, float *verts, int counts, float epsilon, void (*callback)(float *, int, unsigned int, unsigned int, void *), void *ctx);",
+          "ported": true
         }
       ],
       "name": "bsp3d.obj",
@@ -34916,7 +34917,7 @@
         },
         {
           "addr": "0x106960",
-          "decl": "void convex_polygon3d_clip_to_plane(void);"
+          "decl": "int16_t convex_polygon3d_clip_to_plane(int16_t count, float *verts, float *plane, int16_t max_count, float *out_verts, uint32_t *out_bitmask, float epsilon, void *changed);"
         },
         {
           "addr": "0x106dc0",
