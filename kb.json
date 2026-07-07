@@ -34923,7 +34923,9 @@
         },
         {
           "addr": "0x106dc0",
-          "decl": "void FUN_00106dc0(void);"
+          "name": "convex_polygon3d_verify",
+          "decl": "bool convex_polygon3d_verify(int16_t vertex_count, float *vertices);",
+          "ported": true
         },
         {
           "addr": "0x106f50",
