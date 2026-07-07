@@ -14,6 +14,90 @@ void FUN_0011c790(short *param_1)
   *param_1 = (short)0xffff;
 }
 
+/* 0x11c870: Allocate and initialize an lrar_cache.
+ * Reserves the 0x48-byte cache header (debug_malloc) plus a block_count*0x10
+ * block array, validates the address-range / alignment / boundary / block-count
+ * invariants (each a display_assert + system_exit(-1) on failure), rounds the
+ * minimum address up to the alignment_bit granularity, installs the caller's
+ * lock/unlock callbacks (or the default FUN_0011c780/FUN_0011c790 pair when
+ * either is NULL), fills the header fields, stamps the 'lrar' signature at
+ * +0x44, and refreshes the function-pointer table before returning the cache.
+ * Returns NULL if the block-array allocation fails (frees the header first).
+ * Source: c:\halo\SOURCE\memory\lrar_cache.c */
+void *lrar_cache_new(const char *name, unsigned int minimum_address,
+                     unsigned int maximum_address, short block_count,
+                     short alignment_bit, short boundary_bit,
+                     void (*lock_proc)(short *, short),
+                     void (*unlock_proc)(short *))
+{
+  char *cache;
+  unsigned int alignment_mask;
+  void *blocks;
+
+  cache = (char *)debug_malloc(0x48, 0,
+                               "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x56);
+
+  if (maximum_address <= minimum_address) {
+    display_assert("minimum_address<maximum_address",
+                   "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x58, 1);
+    system_exit(-1);
+  }
+
+  alignment_mask = (1 << ((unsigned char)alignment_bit & 0x1f)) - 1;
+  if ((minimum_address & alignment_mask) != 0) {
+    minimum_address = (alignment_mask | minimum_address) + 1;
+  }
+
+  if (lock_proc == 0 || unlock_proc == 0) {
+    lock_proc = FUN_0011c780;
+    unlock_proc = FUN_0011c790;
+  }
+
+  if (alignment_bit < 0) {
+    display_assert("alignment_bit>=0", "c:\\halo\\SOURCE\\memory\\lrar_cache.c",
+                   0x66, 1);
+    system_exit(-1);
+  }
+  if (boundary_bit != -1 && boundary_bit < 0) {
+    display_assert("boundary_bit==NONE || boundary_bit>=0",
+                   "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x67, 1);
+    system_exit(-1);
+  }
+  if (block_count < 1) {
+    display_assert("block_count>0", "c:\\halo\\SOURCE\\memory\\lrar_cache.c",
+                   0x68, 1);
+    system_exit(-1);
+  }
+
+  if (cache != 0) {
+    blocks = debug_malloc((int)block_count << 4, 0,
+                          "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x6c);
+    if (blocks == 0) {
+      debug_free(cache, "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x8a);
+      return 0;
+    }
+    csmemset(cache, 0, 0x48);
+    csmemset(blocks, 0, (int)block_count << 4);
+    csstrncpy(cache, name, 0x1f);
+    *(unsigned int *)(cache + 0x24) = minimum_address;
+    *(unsigned int *)(cache + 0x28) = maximum_address;
+    *(short *)(cache + 0x22) = boundary_bit;
+    *(unsigned short *)(cache + 0x34) = 0xffff;
+    *(unsigned short *)(cache + 0x36) = 0xffff;
+    *(short *)(cache + 0x20) = alignment_bit;
+    *(void (**)(short *, short))(cache + 0x3c) = lock_proc;
+    *(unsigned char *)(cache + 0x1f) = 0;
+    *(unsigned int *)(cache + 0x2c) = maximum_address - minimum_address;
+    *(void **)(cache + 0x30) = blocks;
+    *(short *)(cache + 0x38) = block_count;
+    *(void (**)(short *))(cache + 0x40) = unlock_proc;
+    *(unsigned int *)(cache + 0x44) = 0x6c726172;
+    lruv_update_function_pointers((int)cache);
+  }
+
+  return cache;
+}
+
 /* 0x11cf00: lrar_cache block getter. Returns the data pointer stored at
  * offset 8 of block_array[block_index]. This belongs to the sibling
  * "lrar_cache" (asserts against c:\halo\SOURCE\memory\lrar_cache.c) that
