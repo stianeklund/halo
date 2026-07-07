@@ -1669,6 +1669,15 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
           (int16_t) * (int16_t *)((char *)tag_elem + 0x24); /* buf-alias-ok */
         /* raw int copy: effect tag handle from alt result */
         tag_idx = *(int *)((char *)tag_elem + 0x48); /* buf-alias-ok */
+      } else {
+        /* Random gate failed: fall back to the DEFAULT result effect.
+         * Original: `if (fVar11 < *(puVar4+0x28)) goto LAB_000f9408;` where
+         * LAB_000f9408 sets local_8 = *(puVar4+0x10). Without this fallback
+         * tag_idx keeps the raw material index (e.g. 0x1d, no salt) and is
+         * passed as an effect handle → tag_get('effe', idx) asserts with the
+         * absolute tag at that index (a 'mode' model), halting in
+         * cache_files.c:247. */
+        tag_idx = *(int *)((char *)tag_elem + 0x10);
       }
     } else {
       /* raw int copy: effect tag handle from default result */
