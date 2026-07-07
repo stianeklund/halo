@@ -68,6 +68,14 @@ void FUN_0011cf60(int cache, short block_index)
   }
 }
 
+/* 0x11cfe0: Zero the first 4-byte field of the pointed-to record. Trivial
+ * setter that clears a cache head/count word through the stack pointer arg.
+ * Source: c:\halo\SOURCE\memory\lrar_cache.c */
+void FUN_0011cfe0(void *param_1)
+{
+  *(int *)param_1 = 0;
+}
+
 /* LRU-V (Least Recently Used - Virtual) cache management.
  * Manages a block-based cache with linked list ordering, delete/query
  * callbacks, and page-granularity allocation tracking. Source:
