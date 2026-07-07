@@ -5,6 +5,7 @@ Each check has one positive fixture (should fire) and one negative fixture
 (should be silent).  Run with:  python3 -m pytest tools/audit/tests/
 """
 import sys, os
+from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from check_lift_hazards import (
@@ -16,6 +17,17 @@ from check_lift_hazards import (
 )
 
 _FAKE = '/fake/src/halo/test.c'
+
+
+def test_actor_move_avoidance_state_tail_scale_initializers():
+    """FUN_0002bd80 relies on MSVC stack locals overlapping avoidance_state."""
+    repo_root = Path(__file__).resolve().parents[3]
+    src = (repo_root / 'src/halo/ai/actor_moving.c').read_text()
+    call_index = src.index('FUN_0002ade0((int)state);')
+    before_call = src[:call_index]
+
+    assert '((char *)state + 0x6040) = *(float *)0x2533c8' in before_call
+    assert '((char *)state + 0x6044) = *(float *)0x253f78' in before_call
 
 
 def _run(func, src):
