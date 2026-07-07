@@ -13351,7 +13351,7 @@
         },
         {
           "addr": "0x1037b0",
-          "decl": "void FUN_001037b0(void);"
+          "decl": "float * FUN_001037b0(float *out_plane, float *p0, float *p1, float *p2);"
         },
         {
           "addr": "0x103860",
@@ -34929,7 +34929,8 @@
         },
         {
           "addr": "0x106f50",
-          "decl": "void FUN_00106f50(void);"
+          "decl": "bool FUN_00106f50(int16_t point_count, float *points, int16_t vertices_capacity, char *vertices, int16_t edges_capacity, char *edges, int16_t surfaces_capacity, char *surfaces);",
+          "ported": true
         }
       ],
       "name": "geometry.obj",

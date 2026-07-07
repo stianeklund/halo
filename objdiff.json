@@ -8166,6 +8166,14 @@
       "metadata": {
         "source_path": "src/halo/networking/network_server_manager.c"
       }
+    },
+    {
+      "name": "halo/bsp3d_FUN_00146e30",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/bsp3d.c.obj",
+      "base_path": "delinked/functions/146e30.obj",
+      "metadata": {
+        "source_path": "halo/physics/bsp3d.c"
+      }
     }
   ]
 }
