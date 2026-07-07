@@ -45,6 +45,91 @@ float convex_hull2d_perimeter(int16_t vertex_count, float *vertices)
   return perimeter;
 }
 
+/* 0x1063f0 — Liang-Barsky ray/segment clip against a convex 2D polygon.
+ * Walks each polygon edge (index i -> next, with wrap), classifies the edge
+ * as entering or leaving by the sign of the edge/ray-direction cross product,
+ * and tightens the parametric interval [tmin,tmax]. Rejects (returns 0) when
+ * the ray runs parallel to an edge on its outside, or when the interval
+ * becomes empty (tmax < tmin). On acceptance writes the clipped interval.
+ * Source: c:\halo\SOURCE\math\geometry.c */
+bool convex_hull2d_test_vector(int16_t num_verts, float *polygon2d,
+                               float *ray_origin, float *ray_dir,
+                               float *out_tmin, float *out_tmax)
+{
+  float tmin;
+  float tmax;
+  float dx;
+  float dy;
+  float denom;
+  float num;
+  float t;
+  float new_tmin;
+  float new_tmax;
+  float *pts_iy;
+  int16_t i;
+  int cur;
+  int next;
+
+  tmin = -3.4028235e38f; /* -FLT_MAX */
+  tmax = 3.4028235e38f; /* +FLT_MAX */
+
+  if (num_verts > 0) {
+    i = 0;
+    do {
+      cur = (int)i;
+      next = (((int)num_verts <= i + 1) - 1) & (i + 1); /* wrap to 0 */
+
+      pts_iy = polygon2d + cur * 2 + 1; /* &pts[i].y */
+      dx = polygon2d[next * 2] - polygon2d[cur * 2];
+      dy = polygon2d[next * 2 + 1] - *pts_iy;
+
+      denom = dy * ray_dir[0] - dx * ray_dir[1];
+      num = (ray_origin[1] - *pts_iy) * dx -
+            (ray_origin[0] - polygon2d[cur * 2]) * dy;
+
+      if (fabs(denom) < *(double *)0x2533d0) {
+        /* ray parallel to this edge: reject if strictly outside */
+        if (num < *(float *)0x253f44) {
+          return 0;
+        }
+      } else {
+        t = num / denom;
+        if (denom <= *(float *)0x2533c0) {
+          /* entering half-plane -> candidate tmax */
+          new_tmax = t;
+          new_tmin = tmin;
+          if (tmax <= t) {
+            new_tmax = tmax;
+            new_tmin = tmin;
+          }
+        } else {
+          /* leaving half-plane -> candidate tmin */
+          new_tmax = tmax;
+          new_tmin = t;
+          if (t <= tmin) {
+            new_tmax = tmax;
+            new_tmin = tmin;
+          }
+        }
+        tmin = new_tmin;
+        tmax = new_tmax;
+        if (tmax < tmin) {
+          return 0;
+        }
+      }
+      i = i + 1;
+    } while (i < num_verts);
+  }
+
+  if (out_tmin != NULL) {
+    *out_tmin = tmin;
+  }
+  if (out_tmax != NULL) {
+    *out_tmax = tmax;
+  }
+  return 1;
+}
+
 /* Sutherland-Hodgman 2D polygon clip against a line.
  * Source: c:\halo\SOURCE\math\geometry.c */
 int16_t convex_polygon2d_clip_to_plane(int16_t count, float *points,

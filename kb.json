@@ -34902,7 +34902,9 @@
         },
         {
           "addr": "0x1063f0",
-          "decl": "void convex_hull2d_test_vector(void);"
+          "decl": "bool convex_hull2d_test_vector(int16_t num_verts, float *polygon2d, float *ray_origin, float *ray_dir, float *out_tmin, float *out_tmax);",
+          "ported": true,
+          "name": "convex_hull2d_test_vector"
         },
         {
           "addr": "0x106510",
