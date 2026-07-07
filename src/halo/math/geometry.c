@@ -348,3 +348,84 @@ bool convex_polygon2d_verify(int16_t vertex_count, uint32_t *vertices)
   }
   return 1;
 }
+
+/* 0x106dc0 — Verify that a 3D polygon is convex and (near-)planar.
+ * vertices is a flat array of (x,y,z) triples (12 bytes each); vertex_count is
+ * the vertex count. A reference plane normal is built from the first three
+ * vertices as cross(vert0 - vert1, vert2 - vert1). For every vertex the corner
+ * normal cross(prev - cur, next - cur) is dotted against that reference normal;
+ * if any dot falls below a small negative epsilon (0xb58637bd = -1e-6) the
+ * winding has reversed and the function returns 0. The current vertex is also
+ * rejected if any component is IEEE 754 infinity or NaN (all exponent bits
+ * set). prev wraps to the last vertex on the first iteration; next wraps to
+ * vertex 0 on the last. The reference-normal setup runs unconditionally before
+ * the count guard, and the loop counter stays 16-bit, matching the original
+ * codegen. Returns a byte (bool). Source: c:\halo\SOURCE\math\geometry.c */
+bool convex_polygon3d_verify(int16_t vertex_count, float *vertices)
+{
+  float edge_a0, edge_a1, edge_a2;
+  float edge_b0, edge_b1, edge_b2;
+  float ref0, ref1, ref2;
+  float a0, a1, a2, b0, b1, b2, c0, c1, c2, dot;
+  float cx, cy, cz;
+  float *prev, *cur, *next;
+  int last;
+  int16_t i;
+
+  edge_a0 = vertices[0] - vertices[3];
+  edge_a1 = vertices[1] - vertices[4];
+  edge_a2 = vertices[2] - vertices[5];
+  edge_b0 = vertices[6] - vertices[3];
+  edge_b1 = vertices[7] - vertices[4];
+  edge_b2 = vertices[8] - vertices[5];
+  ref0 = edge_a1 * edge_b2 - edge_a2 * edge_b1;
+  ref1 = edge_a2 * edge_b0 - edge_a0 * edge_b2;
+  ref2 = edge_a0 * edge_b1 - edge_a1 * edge_b0;
+
+  if (vertex_count <= 0) {
+    return 1;
+  }
+
+  last = vertex_count - 1;
+  for (i = 0; i < vertex_count; i++) {
+    if (i == 0) {
+      prev = vertices + vertex_count * 3 - 3;
+    } else {
+      prev = vertices + i * 3 - 3;
+    }
+    cur = vertices + i * 3;
+    if (i == last) {
+      next = vertices;
+    } else {
+      next = cur + 3;
+    }
+
+    cx = cur[0];
+    if ((*(uint32_t *)&cx & 0x7f800000) == 0x7f800000) {
+      return 0;
+    }
+    cy = cur[1];
+    if ((*(uint32_t *)&cy & 0x7f800000) == 0x7f800000) {
+      return 0;
+    }
+    cz = cur[2];
+    if ((*(uint32_t *)&cz & 0x7f800000) == 0x7f800000) {
+      return 0;
+    }
+
+    a0 = prev[0] - cur[0];
+    a1 = prev[1] - cur[1];
+    a2 = prev[2] - cur[2];
+    b0 = next[0] - cur[0];
+    b1 = next[1] - cur[1];
+    b2 = next[2] - cur[2];
+    c0 = a1 * b2 - a2 * b1;
+    c1 = a2 * b0 - a0 * b2;
+    c2 = a0 * b1 - a1 * b0;
+    dot = ref0 * c0 + ref1 * c1 + ref2 * c2;
+    if (dot < -9.99999997e-07f) {
+      return 0;
+    }
+  }
+  return 1;
+}
