@@ -28873,7 +28873,8 @@
         },
         {
           "addr": "0x11cfe0",
-          "decl": "void FUN_0011cfe0(void);"
+          "decl": "void FUN_0011cfe0(void *param_1);",
+          "ported": true
         },
         {
           "addr": "0x11d010",
