@@ -28864,7 +28864,8 @@
         },
         {
           "addr": "0x11cf60",
-          "decl": "void FUN_0011cf60(void);"
+          "decl": "void FUN_0011cf60(int cache, short block_index);",
+          "ported": true
         },
         {
           "addr": "0x11cfd0",
