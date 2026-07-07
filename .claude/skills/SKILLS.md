@@ -16,6 +16,7 @@ The only skills meant for you to invoke directly.
 - **`/capture-input`** — Interactive wizard to capture (record) or replay a deterministic
 - **`/clear-cache`** — Clear Halo CE cache files from Xbox devkit cache partitions
 - **`/handover`** — Create a concise continuation handover for Halo CE Xbox RE/lift work when the user runs /handover or asks to transfer context to a new agen…
+- **`/reintegrate-to-main`** — Safely re-integrate a lift/session worktree branch into main — bring the branch up to date, rebase, gate (whole-object kb.json partition +…
 - **`/replay-input`** — Quick wizard to replay an existing deterministic controller-input fixture on
 
 ## Auto-applied doctrine (agent self-invokes)
