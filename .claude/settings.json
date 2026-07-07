@@ -55,6 +55,17 @@
             "statusMessage": "Action router: commit/deploy skill reminders"
           }
         ]
+      },
+      {
+        "matcher": "mcp__ghidra",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd $(git rev-parse --show-toplevel) && bash tools/hooks/ghidra_preflight_hook.sh",
+            "timeout": 10,
+            "statusMessage": "Ghidra preflight: checking MCP endpoints"
+          }
+        ]
       }
     ],
     "PostToolUse": [

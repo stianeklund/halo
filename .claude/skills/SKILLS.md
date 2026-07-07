@@ -40,9 +40,9 @@ words in your message. Listed for transparency, not as a to-do.
 | `halo-xbdm` | Standard RDCP and XBDM command handling for real Xbox debugging | `xbdm`, `rdcp`, `real xbox`, `getmem` |
 | `halo-xbox-re` | "Halo CE Xbox reverse engineering, binary evidence, disassembly, Ghidra, ABI, structs, globals, unknowns, output contract: core doctrine fo… | `lift`, `lifting`, `ported`, `porting`, `ghidra` |
 | `input-replay-testing` | Deterministic controller-input record/replay for testing on real engine | `input replay`, `deterministic input`, `capture scenario`, `capture_scenario`, `replay fixture` |
-| `lift-arg-hazards` | Argument hazard detection for lifted functions — cdecl mis-grouping (ADD ESP tell), NULL register args, and caller-site register order swap… | `call site`, `call-site`, `add esp`, `push`, `fstp` |
+| `lift-arg-hazards` | Argument hazard detection for lifted functions — cdecl mis-grouping (ADD ESP tell), NULL register args, and caller-site register order swap… | `call site`, `call-site`, `add esp`, `fstp`, `cdecl` |
 | `lift-crash-signals` | Xbox runtime crash diagnosis — key register signals, call-stack walk procedure, | `crash signal`, `eip`, `cr2`, `trap frame`, `register dump` |
-| `lift-decompiler-traps` | Ghidra decompiler traps at call sites — register aliasing, push-then-fstp floats, struct field rotation, cross-product operand swap, buffer… | `call site`, `call-site`, `add esp`, `push`, `fstp` |
+| `lift-decompiler-traps` | Ghidra decompiler traps at call sites — register aliasing, push-then-fstp floats, struct field rotation, cross-product operand swap, buffer… | `call site`, `call-site`, `add esp`, `fstp`, `x87` |
 | `lift-frame-hazards` | Buffer sizing from _chkstk frames, stack aliasing detection, and contiguous-buffer rules. Invoke when sizing a local buffer, seeing _chkstk… | `_chkstk`, `stack frame`, `frame size`, `buffer size`, `undersized buffer` |
 | `lift-score-improve` | Checklist for recovering VC71 match before declaring a structural ceiling. Invoke when score is 65–84% and the gap looks "structural". | `structural ceiling`, `vc71`, `low match`, `score improve`, `improve match` |
 | `lift-silent-bugs` | Checklist for non-crashing silent correctness bugs — wrong colors, yellow/white | `wrong color`, `yellow`, `white tint`, `invisible`, `missing geometry` |

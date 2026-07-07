@@ -1,7 +1,7 @@
 ---
 name: lift-decompiler-traps
 tier: agent
-triggers: ["call site", "call-site", "add esp", "push", "fstp", "x87", "cross product", "cross-product", "_ftol2", "_chkstk", "__seh", "_allmul", "intrinsic", "decompiler trap", "ghidra wrong", "struct field rotation"]
+triggers: ["call site", "call-site", "add esp", "fstp", "x87", "cross product", "cross-product", "_ftol2", "_chkstk", "__seh", "_allmul", "intrinsic", "decompiler trap", "ghidra wrong", "struct field rotation"]
 description: Ghidra decompiler traps at call sites — register aliasing, push-then-fstp floats, struct field rotation, cross-product operand swap, buffer-alias confusion, and MSVC intrinsics mistaken for real calls. Consult before verifying any call site in a new lift.
 ---
 

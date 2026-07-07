@@ -27,10 +27,11 @@ SKILLS_DIR = REPO_ROOT / ".claude" / "skills"
 # tier:user skills get no triggers (invoked explicitly by the user).
 CATALOG: dict[str, tuple[str, list[str]]] = {
     # ── user commands (invoked by the user, never auto-routed) ──────────────
-    "capture-input": ("user", []),
-    "clear-cache":   ("user", []),
-    "handover":      ("user", []),
-    "replay-input":  ("user", []),
+    "capture-input":       ("user", []),
+    "clear-cache":         ("user", []),
+    "handover":            ("user", []),
+    "reintegrate-to-main": ("user", []),
+    "replay-input":        ("user", []),
     # ── agent doctrine (self-invoked; auto-routed from triggers) ────────────
     "halo-xbox-re": ("agent", [
         "lift", "lifting", "ported", "porting", "ghidra", "decompile", "decompil",
@@ -40,12 +41,12 @@ CATALOG: dict[str, tuple[str, list[str]]] = {
         "lift", "lifting", "re-lift", "relift", "abi", "kb.json", "@<reg>", "port function",
     ]),
     "lift-decompiler-traps": ("agent", [
-        "call site", "call-site", "add esp", "push", "fstp", "x87", "cross product",
+        "call site", "call-site", "add esp", "fstp", "x87", "cross product",
         "cross-product", "_ftol2", "_chkstk", "__seh", "_allmul", "intrinsic",
         "decompiler trap", "ghidra wrong", "struct field rotation",
     ]),
     "lift-arg-hazards": ("agent", [
-        "call site", "call-site", "add esp", "push", "fstp", "cdecl", "arg hazard",
+        "call site", "call-site", "add esp", "fstp", "cdecl", "arg hazard",
         "argument order", "arg order", "operand swap",
     ]),
     "check-callee-regs": ("agent", [
@@ -73,9 +74,9 @@ CATALOG: dict[str, tuple[str, list[str]]] = {
     ]),
     "debug": ("agent", [
         "regression", "crash", "fault", "access violation", "access_violation",
-        "broken", "wrong behavior", "build failure", "deploy failure",
+        "wrong behavior", "build failure", "deploy failure",
         "symbol absent", "rasterizer", "visual bug", "hang", "freeze", "no draw",
-        "invisible", "missing", "cull",
+        "invisible", "cull",
     ]),
     "crash-triage": ("agent", [
         "access_violation", "access violation", "page fault", "page-fault", "assert",
@@ -97,7 +98,7 @@ CATALOG: dict[str, tuple[str, list[str]]] = {
     ]),
     "bug-hunt": ("agent", [
         "bug hunt", "bug-hunt", "hazard scan", "check_lift_hazards", "before deploy",
-        "pre-deploy", "pre-commit", "safety scan", "audit",
+        "pre-deploy", "pre-commit", "safety scan",
     ]),
     "input-replay-testing": ("agent", [
         "input replay", "deterministic input", "capture scenario", "capture_scenario",

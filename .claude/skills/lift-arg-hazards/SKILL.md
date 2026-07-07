@@ -1,7 +1,7 @@
 ---
 name: lift-arg-hazards
 tier: agent
-triggers: ["call site", "call-site", "add esp", "push", "fstp", "cdecl", "arg hazard", "argument order", "arg order", "operand swap"]
+triggers: ["call site", "call-site", "add esp", "fstp", "cdecl", "arg hazard", "argument order", "arg order", "operand swap"]
 description: Argument hazard detection for lifted functions — cdecl mis-grouping (ADD ESP tell), NULL register args, and caller-site register order swaps. Invoke when an arg count looks wrong, a 0-arg getter is followed by an outer call, or a @<reg> function produces silent wrong output.
 ---
 

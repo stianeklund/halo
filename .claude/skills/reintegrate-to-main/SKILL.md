@@ -1,7 +1,6 @@
 ---
 name: reintegrate-to-main
 tier: user
-triggers: ["reintegrate", "integrate to main", "integrate into main", "merge to main", "rebase to main", "bring branch up to date", "worktree into main", "land branch", "ff main", "kb.json merge"]
 description: Safely re-integrate a lift/session worktree branch into main — bring the branch up to date, rebase, gate (whole-object kb.json partition + build + no-drop), and fast-forward main. Encodes the kb.json branch-integration recipe and the shared-worktree footguns.
 ---
 
