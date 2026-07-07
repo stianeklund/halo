@@ -1,7 +1,7 @@
 """State snapshot capture and replay for Unicorn differential testing.
 
-Captures memory regions from a running xemu instance (via QMP pmemsave)
-and saves them as JSON.  Snapshots can be loaded into Unicorn as initial
+Captures memory regions from a running xemu instance (via QMP virtual memsave)
+or XBDM getmem and saves them as JSON. Snapshots can be loaded into Unicorn as initial
 memory state, replacing the default zero-fill for game-state-dependent
 functions.
 
@@ -25,6 +25,12 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
+
+OBJECT_TABLE_PTR = 0x5A8D50
+DATA_T_MAGIC = 0x64407440
+DATA_T_MAGIC_OFFSET = 0x28
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+_SCRATCH_DIR = _REPO_ROOT / "tmp" / "state_snapshot"
 
 
 def load_snapshot(path: str) -> tuple[dict, dict, dict]:
@@ -75,14 +81,20 @@ def load_snapshot(path: str) -> tuple[dict, dict, dict]:
 
 
 def save_snapshot(regions: dict, path: str, description: str = "",
-                  build_label: str = ""):
+                  build_label: str = "", verified: bool = False):
     """Save memory regions to a snapshot JSON file.
 
     regions: {int_address: bytes}
     """
+    if not verified:
+        raise RuntimeError(
+            "refusing to write unverified state snapshot; capture must pass "
+            "the active-gameplay datum magic check"
+        )
     out = {
         "description": description,
         "captured_at": datetime.now(timezone.utc).isoformat(),
+        "verified": True,
         "regions": {},
     }
     if build_label:
@@ -96,24 +108,89 @@ def save_snapshot(regions: dict, path: str, description: str = "",
         f.write("\n")
 
 
+def _win_path(path: str) -> str:
+    p = Path(path).resolve()
+    parts = p.parts
+    if len(parts) >= 3 and parts[0] == "/" and parts[1] == "mnt" and len(parts[2]) == 1:
+        drive = parts[2].upper()
+        rest = "\\".join(parts[3:])
+        return f"{drive}:\\{rest}"
+    return str(p)
+
+
+def _qmp_memsave(session, base_addr: int, size: int) -> bytes:
+    _SCRATCH_DIR.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(suffix=".bin", dir=str(_SCRATCH_DIR), delete=False) as tmp:
+        tmp_path = tmp.name
+    try:
+        cmd = f"memsave {base_addr:#x} {size} {_win_path(tmp_path)}"
+        session.command("human-monitor-command", {"command-line": cmd})
+        with open(tmp_path, "rb") as f:
+            return f.read()
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+
+
+def _xbdm_getmem(rdcp_script: Path, root: Path, host: str, port: int,
+                 timeout: float, base_addr: int, size: int) -> bytes:
+    proc = subprocess.run(
+        [
+            "python3",
+            str(rdcp_script),
+            "--host",
+            host,
+            "--port",
+            str(port),
+            "--timeout",
+            str(timeout),
+            "--json",
+            f"getmem addr={base_addr:#x} length={size:#x}",
+        ],
+        cwd=str(root),
+        capture_output=True,
+        text=True,
+    )
+    if proc.returncode != 0:
+        raise RuntimeError(proc.stderr.strip() or proc.stdout.strip())
+    response = json.loads(proc.stdout)
+    return bytes.fromhex("".join(response.get("lines", [])))
+
+
+def _verify_object_table_magic(read_mem) -> None:
+    ptr_bytes = read_mem(OBJECT_TABLE_PTR, 4)
+    if len(ptr_bytes) < 4:
+        raise RuntimeError("active-gameplay magic check failed: object table pointer unreadable")
+    object_table = struct.unpack_from("<I", ptr_bytes, 0)[0]
+    if object_table == 0:
+        raise RuntimeError("active-gameplay magic check failed: object table pointer is zero")
+    magic_bytes = read_mem(object_table + DATA_T_MAGIC_OFFSET, 4)
+    if len(magic_bytes) < 4:
+        raise RuntimeError("active-gameplay magic check failed: object table header unreadable")
+    magic = struct.unpack_from("<I", magic_bytes, 0)[0]
+    if magic != DATA_T_MAGIC:
+        raise RuntimeError(
+            f"active-gameplay magic check failed: object table magic "
+            f"0x{magic:08x} != 0x{DATA_T_MAGIC:08x}"
+        )
+
+
 def capture_from_xemu(addresses: list,
                       output_path: Optional[str] = None,
                       description: str = "") -> dict:
-    """Capture memory from a running xemu instance via QMP pmemsave.
+    """Capture memory from a running xemu instance via QMP virtual memsave.
 
     addresses: list of (virtual_addr, size) tuples to capture.
     output_path: if set, also save to this JSON file.
 
     Returns {int_address: bytes}.
 
-    Requires xemu to be running with QMP enabled. Uses the QMP
-    'human-monitor-command' to issue pmemsave, which dumps physical
-    memory to a host file that we then read back.
-
-    Note: pmemsave uses *physical* addresses.  For Xbox, virtual == physical
-    in the flat memory model used by the game (identity-mapped first 64MB).
+    Requires xemu to be running with QMP enabled. Uses HMP `memsave`, which
+    dumps the guest virtual address space. Physical `pmemsave` is intentionally
+    not used here because it reads the wrong bytes on this setup.
     """
-    _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
     qmp_mod = _REPO_ROOT / "tools" / "xbox" / "xemu_qmp.py"
 
     if not qmp_mod.exists():
@@ -137,27 +214,16 @@ def capture_from_xemu(addresses: list,
     if session is None:
         raise RuntimeError("No running xemu QMP session found")
 
+    _verify_object_table_magic(lambda addr, size: _qmp_memsave(session, addr, size))
+
     regions = {}
     for base_addr, size in addresses:
-        with tempfile.NamedTemporaryFile(suffix=".bin", delete=False) as tmp:
-            tmp_path = tmp.name
-
-        try:
-            cmd = f"pmemsave {base_addr:#x} {size} {tmp_path}"
-            session.command("human-monitor-command",
-                            {"command-line": cmd})
-            with open(tmp_path, "rb") as f:
-                data = f.read()
-            if len(data) >= size:
-                regions[base_addr] = data[:size]
-        finally:
-            try:
-                os.unlink(tmp_path)
-            except OSError:
-                pass
+        data = _qmp_memsave(session, base_addr, size)
+        if len(data) >= size:
+            regions[base_addr] = data[:size]
 
     if output_path:
-        save_snapshot(regions, output_path, description=description)
+        save_snapshot(regions, output_path, description=description, verified=True)
 
     return regions
 
@@ -172,40 +238,23 @@ def capture_from_xbdm(addresses: list,
 
     This is a transport fallback for environments where xemu is reachable via
     XBDM but was not launched with QMP. Prefer capture_from_xemu for xemu
-    pmemsave captures when QMP is available.
+    virtual memsave captures when QMP is available.
     """
-    _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
     tools_dir = _REPO_ROOT / "tools"
 
     rdcp_script = tools_dir / "xbox" / "xbdm_rdcp.py"
 
+    _verify_object_table_magic(
+        lambda addr, size: _xbdm_getmem(rdcp_script, _REPO_ROOT, host, port, timeout, addr, size)
+    )
+
     regions = {}
     for base_addr, size in addresses:
-        proc = subprocess.run(
-            [
-                "python3",
-                str(rdcp_script),
-                "--host",
-                host,
-                "--port",
-                str(port),
-                "--timeout",
-                str(timeout),
-                "--json",
-                f"getmem addr={base_addr:#x} length={size:#x}",
-            ],
-            cwd=str(_REPO_ROOT),
-            capture_output=True,
-            text=True,
-        )
-        if proc.returncode != 0:
-            raise RuntimeError(proc.stderr.strip() or proc.stdout.strip())
-        response = json.loads(proc.stdout)
-        data = bytes.fromhex("".join(response.get("lines", [])))
+        data = _xbdm_getmem(rdcp_script, _REPO_ROOT, host, port, timeout, base_addr, size)
         if len(data) >= size:
             regions[base_addr] = data[:size]
 
     if output_path:
-        save_snapshot(regions, output_path, description=description)
+        save_snapshot(regions, output_path, description=description, verified=True)
 
     return regions

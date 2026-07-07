@@ -37,18 +37,16 @@ Open questions:
 Next smallest step:
 ```
 
-## Option 3 quick lane
+## Verification report lane
 
-Use this when you want fast structural + runtime sanity checks after a lift:
+Use this when you want a quick inventory of verification coverage, missing
+delinked references, and blocked runtime/equivalence categories:
 
 ```bash
-python3 tools/verify/verify_option3.py --target <function_name_or_0xaddr>
+python3 tools/verify/test_inventory.py
 ```
 
-Common add-ons:
+For runtime evidence, use `/verify golden <target>` or `/verify dual-oracle
+<target>` instead of the retired Option 3 fallback.
 
-- Add objdiff: `--objdiff-reference <ref.o> --objdiff-candidate <candidate.obj>`
-- Load/reset xemu: `--load-into-xemu`
-- Fast re-run: `--skip-build --skip-iso`
-
-Artifacts are written under `artifacts/verify_option3/<run-id>/summary.json`.
+Artifacts are written under `artifacts/test_inventory/`.

@@ -131,7 +131,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--backend",
         choices=("qmp", "xbdm"),
         default="qmp",
-        help="Capture backend: qmp uses xemu pmemsave, xbdm uses RDCP getmem",
+        help="Capture backend: qmp uses xemu virtual memsave, xbdm uses RDCP getmem",
     )
     parser.add_argument(
         "--xbdm-host",

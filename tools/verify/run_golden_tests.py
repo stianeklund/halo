@@ -62,8 +62,18 @@ def build_variant(label: str, overlay: Path, artifact_dir: Path, skip_build: boo
     )
 
 
+def target_host(args: argparse.Namespace) -> str:
+    if args.xbox_host:
+        return args.xbox_host
+    if getattr(args, "xemu", False):
+        return "localhost"
+    if args.backend == "xemu":
+        return "localhost"
+    return ""
+
+
 def restore_harness_off(artifact_dir: Path, skip_build: bool,
-                        skip_deploy: bool = False) -> dict:
+                        skip_deploy: bool = False, host: str = "") -> dict:
     restore = {"ok": False, "skipped": skip_build, "steps": []}
     if skip_build:
         restore["ok"] = True
@@ -81,11 +91,14 @@ def restore_harness_off(artifact_dir: Path, skip_build: bool,
         ]),
     ]
     if not skip_deploy:
-        commands.append(("deploy", [
+        deploy_cmd = [
             sys.executable,
             str(ROOT / "tools" / "xbox" / "deploy_xbox.py"),
             "--xbe-only", "--skip-build", "--skip-verify",
-        ]))
+        ]
+        if host:
+            deploy_cmd.extend(["--xbox", host])
+        commands.append(("deploy", deploy_cmd))
 
     for label, cmd in commands:
         log_path = artifact_dir / f"restore_harness_off_{label}.txt"
@@ -101,17 +114,19 @@ def restore_harness_off(artifact_dir: Path, skip_build: bool,
     return restore
 
 
-def deploy_variant(label: str, artifact_dir: Path, skip_deploy: bool) -> None:
-    if skip_deploy:
+def deploy_variant(label: str, artifact_dir: Path, args: argparse.Namespace) -> None:
+    if args.skip_deploy:
         return
-    run_command(
-        # --skip-verify: golden variants may be harness builds (no DECOMP BUILD banner);
-        # this runner captures harness output itself.
-        [sys.executable, "tools/xbox/deploy_xbox.py", "--xbe-only", "--skip-verify"],
-        ROOT,
-        os.environ.copy(),
-        artifact_dir / f"{label}_deploy.txt",
-    )
+    cmd = [
+        sys.executable,
+        "tools/xbox/deploy_xbox.py",
+        "--xbe-only",
+        "--skip-verify",
+    ]
+    host = target_host(args)
+    if host:
+        cmd.extend(["--xbox", host])
+    run_command(cmd, ROOT, os.environ.copy(), artifact_dir / f"{label}_deploy.txt")
 
 
 def extract_harness_lines(debug_text: str) -> list[str]:
@@ -212,9 +227,16 @@ def parse_structured_lines(lines: list[str]) -> dict:
 def capture_variant(label: str, args: argparse.Namespace, overlay: Path,
                     artifact_dir: Path) -> dict:
     build_variant(label, overlay, artifact_dir, args.skip_build)
-    deploy_variant(label, artifact_dir, args.skip_deploy)
+    deploy_variant(label, artifact_dir, args)
 
     fetch_cmd = [sys.executable, "tools/xbox/xbdm_debug_txt.py"]
+    host = target_host(args)
+    if host:
+        fetch_cmd.extend(["--host", host])
+    if args.xbdm_port:
+        fetch_cmd.extend(["--port", str(args.xbdm_port)])
+    if args.xbdm_timeout:
+        fetch_cmd.extend(["--timeout", str(args.xbdm_timeout)])
     deadline = time.time() + args.timeout
     last_output = ""
     while time.time() < deadline:
@@ -260,6 +282,16 @@ def build_parser() -> argparse.ArgumentParser:
                         help="Reuse the deployed XBE instead of deploying each variant.")
     parser.add_argument("--skip-restore", action="store_true",
                         help="Do not restore HALO_TEST_HARNESS=OFF after this target; caller must restore later.")
+    parser.add_argument("--xbox-host", "--host", default="", dest="xbox_host",
+                        help="XBDM host/IP for deploy and debug capture. Use localhost/127.0.0.1 for xemu, or the console IP for real hardware.")
+    parser.add_argument("--xemu", action="store_true",
+                        help="Shortcut for --xbox-host localhost when running against local xemu.")
+    parser.add_argument("--backend", choices=("xbdm", "xemu"), default="xbdm",
+                        help=argparse.SUPPRESS)
+    parser.add_argument("--xbdm-port", type=int, default=0,
+                        help="Explicit XBDM port for debug capture.")
+    parser.add_argument("--xbdm-timeout", type=float, default=0.0,
+                        help="Explicit XBDM timeout for debug capture.")
     parser.add_argument("--self-test-parser", action="store_true",
                         help="Run structured output parser self-test and exit.")
     return parser
@@ -309,6 +341,8 @@ def main() -> int:
         "run_id": run_id,
         "artifact_dir": str(artifact_dir),
         "started_utc": datetime.now(timezone.utc).isoformat(),
+        "transport": "xbdm",
+        "xbox_host": target_host(args),
         "oracle_overlay": str(oracle_overlay),
         "candidate_overlay": str(candidate_overlay),
         "ok": False,
@@ -352,7 +386,8 @@ def main() -> int:
         else:
             summary["restore_harness_off"] = restore_harness_off(artifact_dir,
                                                                   args.skip_build,
-                                                                  args.skip_deploy)
+                                                                  args.skip_deploy,
+                                                                  target_host(args))
 
     summary_path = artifact_dir / "summary.json"
     summary_path.write_text(json.dumps(summary, indent=2) + "\n",

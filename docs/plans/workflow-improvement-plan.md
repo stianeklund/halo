@@ -37,7 +37,9 @@ use `rtk jq`. All lifted C is C89; the tools below are Python and unaffected.
   thresholds. `/mass-lift` is listed in the session skill registry but has **no
   definition** in `.claude/skills/`, `.claude/commands/`, or `~/.claude/`.
 - Cruft: `.claude/commands/frontier.md~`; legacy `review`/`promote` subcommands
-  documented in `auto-lift.md`; `tools/verify/verify_option3.py` likely stale.
+  documented in `auto-lift.md`; the retired Option 3 verification path has been
+  archived in favor of `lift_pipeline.py`, `run_golden_tests.py`, and
+  `test_inventory.py`.
 
 ---
 
@@ -436,9 +438,8 @@ keying pattern), `tools/llm_auto_lift.py` (call-site audit).
 2. Cache call-site audit output keyed by `(disasm_sha256, kb_decl_map_sha256)`.
 3. Skip re-ranking the frontier per-target inside batch loops when kb.json's
    mtime/hash is unchanged (cache the ranking for the batch).
-4. Investigate `tools/verify/verify_option3.py` and `vc71_regression.py`:
-   delete if dead (git log + grep for callers), or add a docstring stating their
-   role.
+4. Keep `vc71_regression.py` cache/report behavior documented; the stale
+   `verify_option3.py` lane has been archived.
 
 **Acceptance:** second consecutive pipeline run on an unchanged target shows the
 cached stages as instant in the stage timing output; stale-tool decision recorded

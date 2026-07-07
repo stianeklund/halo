@@ -5,7 +5,7 @@ description: "/verify, VC71, delink, objdiff, lift_pipeline, equivalence, golden
 
 # Halo Verify And Debug
 
-Use this skill for lift verification, XDK/delink comparison, Option 3 fallback,
+Use this skill for lift verification, XDK/delink comparison, runtime oracle checks,
 or regression investigation. Doctrine and evidence rules live in
 `halo-xbox-re`; this skill covers the operational verification and debugging
 procedures.
@@ -31,13 +31,13 @@ The user-facing command surface is consolidated under `/verify`:
 - `/verify hazards` for `check_lift_hazards.py`.
 - `/verify delink <target>` for delink export and reference mapping.
 - `/verify equivalence <target>` for Unicorn differential testing; use xemu
-  `pmemsave` or XBDM `getmem` live memory captures when zero-filled globals
-  under-cover live paths.
+  virtual `memsave` or XBDM `getmem` live memory captures when zero-filled
+  globals under-cover live paths.
 - `/verify golden <target>` for runtime oracle comparison through
   `tools/verify/run_golden_tests.py`.
 - `/verify dual-oracle <target>` for same-process original-vs-candidate
   runtime comparison once a target has a dual-oracle harness case.
-- `/verify option3 <target>` for legacy runtime/xemu fallback.
+- `/verify report` for current verification inventory and blocked coverage categories.
 - `/verify failure <artifact_dir>` for failed artifact triage.
 
 ### Normal post-lift validation
@@ -79,13 +79,15 @@ only reaches early exits or weak coverage:
 
 `rtk python3 tools/equivalence/unicorn_diff.py <target> --allow-stubs --mem-trace --state-snapshot artifacts/snapshots/<name>.json`
 
-Capture selected memory regions from a live xemu engine state with QMP `pmemsave` or XBDM
+Capture selected memory regions from a live xemu engine state with QMP virtual `memsave` or XBDM
 `getmem` via `tools/equivalence/state_snapshot.py` or
 `tools/equivalence/capture_snapshot_from_diff.py`. These captures are selected
-memory regions, not QEMU VM snapshots. Prefer QMP `pmemsave` when available;
-use `--backend xbdm` when the running xemu is reachable through XBDM but not
-QMP. Do not use `savevm`/`loadvm` for oracle testing because those restore old
-loaded-XBE code pages and invalidate original-vs-candidate comparisons.
+memory regions, not QEMU VM snapshots. Prefer QMP virtual `memsave` when
+available; use `--backend xbdm` when the running xemu is reachable through XBDM
+but not QMP. Physical `pmemsave` is intentionally avoided on this setup because
+it reads the wrong bytes. Do not use `savevm`/`loadvm` for oracle testing because
+those restore old loaded-XBE code pages and invalidate original-vs-candidate
+comparisons.
 
 Report:
 
@@ -114,29 +116,25 @@ Report:
 - first structured mismatch, memory mismatch, crash, or assertion
 - whether real Xbox XBDM confirmation is still required
 
-### Option 3 fallback ladder
+### Verification inventory report
 
-Use Option 3 for runtime/xemu fallback only. Prefer the lift pipeline and XDK
-verify for structural proof.
+Use report mode when you need an inventory of current verification coverage,
+missing delinked references, and blocked runtime/equivalence categories.
 
 Run:
 
-`rtk python3 tools/verify/verify_option3.py --target <target> <extra_flags>`
+`rtk python3 tools/verify/test_inventory.py <extra_flags>`
 
 Report:
 
-- stage results for `build`, `build_iso`, `objdiff`, `xemu_load_reset`,
-  and `assert_tripwire`
-- PASS or FAIL verdict
-- summary path under `artifacts/verify_option3/.../summary.json`
+- artifact paths under `artifacts/test_inventory/`
+- blocked or missing coverage categories
+- object-level summaries relevant to the next verification pass
 
 Notes:
 
-- Add `--objdiff-reference <path>` and `--objdiff-candidate <path>` when a
-  delinked reference object exists.
-- Add `--load-into-xemu` to hot-load and reset via `tools/xbox/xemu_qmp.py`.
-- Use `--skip-build` or `--skip-iso` for quick reruns when artifacts already
-  exist.
+- Use `/verify golden <target>` or `/verify dual-oracle <target>` when the next
+  step needs runtime evidence.
 
 ### Failure classification
 

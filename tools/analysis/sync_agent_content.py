@@ -73,10 +73,6 @@ COMMAND_OUTPUTS = {
         "claude": OutputSpec("commands/xemu.md"),
         "opencode": OutputSpec("commands/xemu.md"),
     },
-    "verify-all.md": {
-        "claude": OutputSpec("commands/verify-all.md"),
-        "opencode": OutputSpec("commands/verify-all.md"),
-    },
 }
 
 SKILL_OUTPUTS = {

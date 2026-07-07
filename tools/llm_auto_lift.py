@@ -9,8 +9,6 @@ Usage:
     python3 tools/llm_auto_lift.py score              # Rank unported functions
     python3 tools/llm_auto_lift.py select             # Combine frontier + liftability
     python3 tools/llm_auto_lift.py cache-context ...  # Build Ghidra context packs
-    python3 tools/llm_auto_lift.py review             # Show legacy batch results
-    python3 tools/llm_auto_lift.py promote            # Apply legacy batch results
 """
 
 from __future__ import annotations
@@ -53,11 +51,6 @@ INTRINSIC_RE = re.compile(
 DISQUALIFIED_OBJECTS = {"<xdk_stubs>", "<common>"}
 
 FAILURES_DIR = ARTIFACT_ROOT / "failures"
-
-# States (used by legacy review/promote)
-AUTO_ACCEPT = "auto_accept"
-NEEDS_REVIEW = "needs_review"
-REJECT = "reject"
 
 # Known callee buffer requirements (synced with tools/audit/check_lift_hazards.py)
 KNOWN_BUFFER_SIZES = {
@@ -1516,108 +1509,6 @@ class GhidraMCPClient:
 
 
 # ---------------------------------------------------------------------------
-# Legacy review/promote (reads artifacts from old SDK-based generate runs)
-# ---------------------------------------------------------------------------
-
-def cmd_review(args: argparse.Namespace):
-    if not ARTIFACT_ROOT.exists():
-        print("No artifacts found.")
-        return
-
-    batch_dirs = sorted(ARTIFACT_ROOT.glob("batch_*"), reverse=True)
-    if not batch_dirs:
-        print("No batch runs found.")
-        return
-
-    for bd in batch_dirs[:args.limit]:
-        summary_path = bd / "summary.json"
-        if not summary_path.exists():
-            continue
-        summary = json.loads(summary_path.read_text(encoding="utf-8"))
-        print(f"\n{'=' * 60}")
-        print(f"Batch: {summary.get('batch_id', bd.name)}")
-        print(f"Provider: {summary.get('llm_provider', '?')}")
-        print(f"Results: {summary.get('auto_accept', 0)} accept, "
-              f"{summary.get('needs_review', 0)} review, "
-              f"{summary.get('reject', 0)} reject "
-              f"/ {summary.get('candidates_attempted', 0)} total")
-        print(f"Tokens: {summary.get('total_input_tokens', 0)} in, "
-              f"{summary.get('total_output_tokens', 0)} out")
-
-        for r in summary.get("results", []):
-            icon = {"auto_accept": "+", "needs_review": "?", "reject": "x"}.get(r.get("state", ""), " ")
-            vc71 = f"{r['vc71_match_pct']:.0f}%" if r.get("vc71_match_pct") is not None else "n/a"
-            print(f"  [{icon}] {r.get('name', '?'):30s}  {r.get('state', '?'):15s}  "
-                  f"vc71={vc71}  attempts={r.get('attempts', 0)}")
-
-
-def cmd_promote(args: argparse.Namespace):
-    if not ARTIFACT_ROOT.exists():
-        print("No artifacts found.")
-        return
-
-    batch_dirs = sorted(ARTIFACT_ROOT.glob("batch_*"), reverse=True)
-    if args.batch:
-        batch_dir = ARTIFACT_ROOT / args.batch
-    elif batch_dirs:
-        batch_dir = batch_dirs[0]
-    else:
-        print("No batch runs found.")
-        return
-
-    summary_path = batch_dir / "summary.json"
-    if not summary_path.exists():
-        print(f"No summary in {batch_dir}")
-        return
-
-    summary = json.loads(summary_path.read_text(encoding="utf-8"))
-    accepted = [r for r in summary.get("results", []) if r.get("state") == AUTO_ACCEPT]
-
-    if not accepted:
-        print("No auto_accept results to promote.")
-        return
-
-    print(f"Found {len(accepted)} auto_accept result(s):")
-    for r in accepted:
-        name = r.get("name", "?")
-        func_dir = batch_dir / name
-        final = func_dir / "candidate_final.c"
-        if final.exists():
-            print(f"  {name} -> {final}")
-        else:
-            print(f"  {name} -> MISSING candidate_final.c")
-
-    if not args.apply:
-        print("\nDry run. Use --apply to apply these candidates via maintain.py.")
-        return
-
-    for r in accepted:
-        name = r.get("name", "?")
-        func_dir = batch_dir / name
-        final = func_dir / "candidate_final.c"
-        if not final.exists():
-            continue
-
-        ctx_path = func_dir / "context.json"
-        if not ctx_path.exists():
-            continue
-        ctx = json.loads(ctx_path.read_text(encoding="utf-8"))
-        source_path = ctx["target"]["source_path"]
-
-        maintain_cmd = [
-            sys.executable,
-            str(ROOT / "tools" / "analysis" / "maintain.py"),
-            "--update-from", str(final),
-            source_path,
-        ]
-        proc = subprocess.run(maintain_cmd, cwd=str(ROOT), capture_output=True, text=True)
-        if proc.returncode == 0:
-            print(f"  Applied {name} to {source_path}")
-        else:
-            print(f"  FAILED {name}: {(proc.stderr or proc.stdout)[:200]}")
-
-
-# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -1658,15 +1549,6 @@ def main():
     p_cache.add_argument("--force", action="store_true", help="Re-cache even if pack already exists")
     p_cache.add_argument("--stats", action="store_true", help="Print cache coverage and exit")
 
-    # -- review (legacy) --
-    p_review = sub.add_parser("review", help="Show legacy batch results")
-    p_review.add_argument("--limit", type=int, default=5, help="Max batches to show")
-
-    # -- promote (legacy) --
-    p_promote = sub.add_parser("promote", help="Apply legacy batch results")
-    p_promote.add_argument("--batch", default="", help="Specific batch directory name")
-    p_promote.add_argument("--apply", action="store_true", help="Actually apply (default: dry run)")
-
     args = ap.parse_args()
     if args.mode is None:
         args.mode = "select"
@@ -1687,10 +1569,6 @@ def main():
         cmd_select(args)
     elif args.mode == "cache-context":
         cmd_cache_context(args)
-    elif args.mode == "review":
-        cmd_review(args)
-    elif args.mode == "promote":
-        cmd_promote(args)
 
 
 def cmd_score(args: argparse.Namespace):
