@@ -29,6 +29,19 @@ index 0x10000 count 1
         hits = s.extract_address_hits("index 0x10000", all_hex=True)
         self.assertEqual([(hit.label, hit.address) for hit in hits], [("hex", 0x10000)])
 
+    def test_frames_with_leading_timestamp_prefix(self):
+        # Real Xbox dumps prefix every line with a timestamp; the frame regex
+        # must still anchor on the `[N] 0xADDR` marker, not only leading space.
+        text = """07.07.26 17:38:10  EXCEPTION halt in cache_files.c,#247
+07.07.26 17:38:10    [0] 0x0067dcd8
+07.07.26 17:38:10    [4] 0x006bdd31
+"""
+        got = [(hit.label, hit.address) for hit in s.extract_address_hits(text)]
+        self.assertIn(("[0]", 0x0067DCD8), got)
+        self.assertIn(("[4]", 0x006BDD31), got)
+        # The bare `#247` source-line ref must not be mistaken for a frame.
+        self.assertFalse(any(label == "#247" for label, _ in got))
+
 
 class SymbolContract(unittest.TestCase):
     def test_compiled_address_uses_nearest_export(self):
