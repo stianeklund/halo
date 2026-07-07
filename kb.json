@@ -28809,7 +28809,7 @@
         },
         {
           "addr": "0x11c5d0",
-          "decl": "void FUN_0011c5d0(void);"
+          "decl": "int FUN_0011c5d0(int block @<eax>, int cache @<ecx>);"
         },
         {
           "addr": "0x11c5f0",
@@ -28827,11 +28827,11 @@
         },
         {
           "addr": "0x11c7a0",
-          "decl": "void lruv_allocation_size(void);"
+          "decl": "void lruv_allocation_size(int block @<esi>, int cache);"
         },
         {
           "addr": "0x11c7c0",
-          "decl": "void FUN_0011c7c0(int cache@<eax>);"
+          "decl": "void FUN_0011c7c0(int cache @<eax>, int block @<esi>);"
         },
         {
           "addr": "0x11c820",
@@ -28851,15 +28851,15 @@
         },
         {
           "addr": "0x11ca60",
-          "decl": "void FUN_0011ca60(void);"
+          "decl": "int FUN_0011ca60(short block_index @<ax>, int cache @<edi>);"
         },
         {
           "addr": "0x11cab0",
-          "decl": "void FUN_0011cab0(void);"
+          "decl": "void FUN_0011cab0(int cache);"
         },
         {
           "addr": "0x11cbf0",
-          "decl": "void FUN_0011cbf0(void);"
+          "decl": "short FUN_0011cbf0(int cache, int size, void *data);"
         },
         {
           "addr": "0x11cf00",
@@ -28873,7 +28873,7 @@
         },
         {
           "addr": "0x11cfd0",
-          "decl": "void FUN_0011cfd0(void);"
+          "decl": "void FUN_0011cfd0(int *ptr, int value);"
         },
         {
           "addr": "0x11cfe0",
