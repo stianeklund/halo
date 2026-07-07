@@ -34,6 +34,11 @@ TARGET_RATIO = 4.0
 MIN_EDITS_BEFORE_RATIO_WARN = 5
 RATIO_WARN_COOLDOWN = 5
 
+# Retention for per-session state files. Left unbounded, STATE_DIR grew to
+# hundreds of files / MBs over a couple of months. Keep recent sessions only.
+STATE_RETENTION_DAYS = 14
+STATE_KEEP_MAX = 200
+
 # Files we never want to count as "research reads" — generated artifacts,
 # logs, and binaries that CLAUDE.md already bans. Reading them is the
 # problem, so they should not credit the read/edit ratio.
@@ -72,12 +77,40 @@ def _load_state(session_id: str) -> dict:
     }
 
 
+def _prune_state_dir() -> None:
+    """Bound STATE_DIR growth: drop files older than the retention window, then
+    cap the total count by keeping the newest STATE_KEEP_MAX. Best-effort — any
+    OS error is swallowed so pruning never breaks the hook."""
+    try:
+        import time as _time
+
+        files = list(STATE_DIR.glob("*.json"))
+        cutoff = _time.time() - STATE_RETENTION_DAYS * 86400
+        survivors = []
+        for f in files:
+            try:
+                mtime = f.stat().st_mtime
+            except OSError:
+                continue
+            if mtime < cutoff:
+                f.unlink(missing_ok=True)
+            else:
+                survivors.append((mtime, f))
+        if len(survivors) > STATE_KEEP_MAX:
+            survivors.sort(reverse=True)  # newest first
+            for _mtime, f in survivors[STATE_KEEP_MAX:]:
+                f.unlink(missing_ok=True)
+    except OSError:
+        pass
+
+
 def _save_state(session_id: str, state: dict) -> None:
     STATE_DIR.mkdir(parents=True, exist_ok=True)
     p = _state_path(session_id)
     tmp = p.with_suffix(".tmp")
     tmp.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
     tmp.replace(p)
+    _prune_state_dir()
 
 
 def _is_noisy(path: str) -> bool:

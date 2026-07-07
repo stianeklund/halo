@@ -235,7 +235,7 @@ skill via the Skill tool when surfaced, else read `.claude/skills/<skill>/SKILL.
 and follow its checklist (`lift-*` are often unsurfaced — not a reason to skip).
 Name the skill(s) in any subagent brief.
 
-Full two-tier catalogue (~4 user `/<name>` commands vs ~22 auto-applied doctrine
+Full two-tier catalogue (~5 user `/<name>` commands vs ~22 auto-applied doctrine
 skills, with triggers): `.claude/skills/SKILLS.md`, generated from frontmatter by
 `tools/memory/gen_skills_index.py` (on-demand — not loaded each session). To add
 or retier a skill: edit its `SKILL.md` frontmatter (`tier:` + `triggers:`), then

@@ -169,3 +169,8 @@ tools/verify/vc71_current.json
 
 # Waveform lookup tables captured from the original binary (proprietary) — regenerate locally
 tests/golden/periodic_tables/*.bin
+
+# Stray artifacts that kept polluting `git status` (arch review 2026-07-07)
+/-
+/kb_functions.txt
+/ci/snapshot_unicorn_verify.json

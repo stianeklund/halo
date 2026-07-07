@@ -1,7 +1,7 @@
 ---
 name: bug-hunt
 tier: agent
-triggers: ["bug hunt", "bug-hunt", "hazard scan", "check_lift_hazards", "before deploy", "pre-deploy", "pre-commit", "safety scan", "audit"]
+triggers: ["bug hunt", "bug-hunt", "hazard scan", "check_lift_hazards", "before deploy", "pre-deploy", "pre-commit", "safety scan"]
 description: >-
   Tiered automated bug scanner for Halo CE Xbox lifts. Run after editing source
   files, before deploying to Xbox, before committing, as a pre-commit check, as

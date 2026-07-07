@@ -42,6 +42,21 @@ ACTIONS: list[tuple[str, re.Pattern[str], str]] = [
         "(hazard + ABI + reg-arg scan) ran clean on the changed files; amend if it "
         "surfaces anything.",
     ),
+    (
+        # The lift-* hazard skills are keyed on mid-analysis jargon (`add esp`,
+        # `fstp`, `&local_`) that never appears in an opening prompt, so the
+        # prompt-side router almost never surfaces them. Verifying a lift is the
+        # action-time moment they matter — when VC71 comes back low, the fix is a
+        # call-site / arg / buffer-frame audit. Surface them here as a backstop.
+        "lift-verify",
+        re.compile(r"vc71_verify|lift_pipeline\.py|objdiff_lift|/verify\b", re.IGNORECASE),
+        "[skill-router:lift-verify] Verifying a lift. If the match is low or a call "
+        "site looks off, apply the hazard family before declaring a ceiling: "
+        "`lift-arg-hazards` (cdecl mis-group / ADD ESP / @<reg> order), "
+        "`lift-decompiler-traps` (register aliasing, push-then-fstp, struct rotation, "
+        "cross-product swap, buffer-alias), and `lift-frame-hazards` (_chkstk buffer "
+        "sizing, stack aliasing).",
+    ),
 ]
 
 
