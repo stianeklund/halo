@@ -34135,15 +34135,18 @@
         },
         {
           "addr": "0x12aa80",
-          "decl": "void xbox_set_machine_name(const char *name);"
+          "decl": "void xbox_set_machine_name(const char *name);",
+          "ported": true
         },
         {
           "addr": "0x12ad60",
-          "decl": "bool network_game_add_player(void *game, void *player);"
+          "decl": "bool network_game_add_player(void *game, void *player);",
+          "ported": true
         },
         {
           "addr": "0x12af00",
-          "decl": "int FUN_0012af00(void *p1, void *p2);"
+          "decl": "int FUN_0012af00(void *p1, void *p2);",
+          "ported": true
         },
         {
           "addr": "0x12b040",
@@ -34171,7 +34174,8 @@
         },
         {
           "addr": "0x12b350",
-          "decl": "bool network_game_create_game_objects(void *game);"
+          "decl": "bool network_game_create_game_objects(void *game);",
+          "ported": true
         },
         {
           "addr": "0x12b5e0",
