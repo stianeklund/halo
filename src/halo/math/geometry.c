@@ -239,3 +239,27 @@ done:
 
   return out_count;
 }
+
+/* 0x106900 — Reject a 2D polygon whose vertex coordinates are not finite.
+ * Walks vertex_count (x,y) pairs (8 bytes each) and returns 0 as soon as any
+ * x or y float has all exponent bits set (IEEE 754 infinity or NaN); returns
+ * 1 when every coordinate is finite. Returns a byte (bool): the original sets
+ * AL only for the true path, leaving the loop's last-read dword in the upper
+ * bytes of EAX. Loop counter stays 16-bit to match the original codegen.
+ * Source: c:\halo\SOURCE\math\geometry.c */
+bool convex_polygon2d_verify(int16_t vertex_count, uint32_t *vertices)
+{
+  int16_t i;
+
+  i = 0;
+  if (0 < vertex_count) {
+    do {
+      if ((vertices[i * 2] & 0x7f800000) == 0x7f800000 ||
+          (vertices[i * 2 + 1] & 0x7f800000) == 0x7f800000) {
+        return 0;
+      }
+      i = i + 1;
+    } while (i < vertex_count);
+  }
+  return 1;
+}
