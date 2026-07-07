@@ -38,6 +38,36 @@ void *FUN_0011cf00(int cache, short block_index)
   return *(void **)(block_index * 0x10 + block_array + 8);
 }
 
+/* 0x11cf60: lrar_cache block free/clear. Sibling of FUN_0011cf00 (same
+ * lrar_cache layout, asserts against c:\halo\SOURCE\memory\lrar_cache.c;
+ * distinct from lruv_cache_t so raw offset access is used). Refreshes the
+ * cache function pointers on entry (called twice, matching the original),
+ * bounds-checks block_index against cache->block_count (int16 at cache+0x38,
+ * signed), then reads the block's data pointer (first dword of the 0x10-byte
+ * entry at cache+0x30). If non-NULL, invokes the cache free callback (cdecl
+ * fn ptr at cache+0x40, one arg) with that pointer and nulls the slot.
+ */
+void FUN_0011cf60(int cache, short block_index)
+{
+  int *block_ptr;
+  int data;
+
+  lruv_update_function_pointers(cache);
+  lruv_update_function_pointers(cache);
+  if ((block_index < 0) || (*(short *)(cache + 0x38) <= block_index)) {
+    display_assert("block_index>=0 && block_index<cache->block_count",
+                   "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x16e, true);
+    system_exit(-1);
+  }
+  block_ptr = (int *)(block_index * 0x10 + *(int *)(cache + 0x30));
+  FUN_0011c7c0(cache);
+  data = *block_ptr;
+  if (data != 0) {
+    (*(void (**)(int))(cache + 0x40))(data);
+    *block_ptr = 0;
+  }
+}
+
 /* LRU-V (Least Recently Used - Virtual) cache management.
  * Manages a block-based cache with linked list ordering, delete/query
  * callbacks, and page-granularity allocation tracking. Source:
