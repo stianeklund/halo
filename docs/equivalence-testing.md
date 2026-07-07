@@ -104,12 +104,13 @@ tables, game state structs), zero-filled memory won't exercise real code
 paths even with concolic feedback.
 
 Live memory captures record selected real memory regions from a running xemu
-instance via QMP/HMP `pmemsave` or XBDM `getmem`. They are JSON memory-region
-captures for Unicorn replay, not QEMU VM snapshots. Prefer QMP `pmemsave` when
-available; use `capture_snapshot_from_diff.py --backend xbdm` when the running
-xemu is reachable through XBDM but not QMP. Do not use `savevm`/`loadvm` for
-oracle testing because it restores old loaded-XBE code pages and invalidates
-original-vs-candidate comparisons.
+instance via QMP/HMP virtual `memsave` or XBDM `getmem`. They are JSON
+memory-region captures for Unicorn replay, not QEMU VM snapshots. Prefer QMP
+virtual `memsave`; use `capture_snapshot_from_diff.py --backend xbdm` when the
+running xemu is reachable through XBDM but not QMP. Physical `pmemsave` is
+intentionally avoided on this setup because it reads the wrong bytes. Do not use
+`savevm`/`loadvm` for oracle testing because it restores old loaded-XBE code
+pages and invalidates original-vs-candidate comparisons.
 
 ### Capture explicit regions
 

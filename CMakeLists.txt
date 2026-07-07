@@ -62,8 +62,8 @@ set_source_files_properties("${gen_dir}/build_info.c" PROPERTIES GENERATED TRUE)
 
 add_custom_command(
 	OUTPUT "${gen_dir}/typechecks.c"
-	COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/archive/gen-struct-checks.py" "${CMAKE_SOURCE_DIR}/src/types.h" > "${gen_dir}/typechecks.c"
-	DEPENDS "${CMAKE_CURRENT_LIST_DIR}/tools/archive/gen-struct-checks.py" "${CMAKE_SOURCE_DIR}/src/types.h" create_gen_dir
+	COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/tools/build/gen-struct-checks.py" "${CMAKE_SOURCE_DIR}/src/types.h" > "${gen_dir}/typechecks.c"
+	DEPENDS "${CMAKE_CURRENT_LIST_DIR}/tools/build/gen-struct-checks.py" "${CMAKE_SOURCE_DIR}/src/types.h" create_gen_dir
 	VERBATIM
 )
 

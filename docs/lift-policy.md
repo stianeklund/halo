@@ -142,9 +142,9 @@ the described behavior.  Implement it as a thin orchestration document over the
 
 ---
 
-## Notes on legacy subcommands
+## Auto-lift helper subcommands
 
-`/auto-lift review` and `/auto-lift promote` are legacy subcommands for old
-batch-artifact workflows.  They still exist in the code (`tools/llm_auto_lift.py`)
-but are not part of the standard lift loop.  Use `/auto-lift cache-context` and
-`/auto-lift select` instead.
+`/auto-lift select`, `/auto-lift score`, and `/auto-lift cache-context` are the
+supported helper subcommands. Old batch-artifact review/promote flows have been
+retired; use the failure records under `artifacts/auto_lift/failures/` and the
+standard `/lift` verification loop for follow-up work.

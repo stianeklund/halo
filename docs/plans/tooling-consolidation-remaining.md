@@ -61,28 +61,27 @@ The audit had several inaccurate "0 refs / dead" claims — verified false durin
 
 ## Remaining work
 
-### P2.10 — Retire the /verify-all + verify_option3 legacy chain
-Superseded by `tools/lift_pipeline.py`. Reference map (verified; excludes worktrees/pycache/token_discipline):
-- **Archive** `tools/verify/verify_option3.py`, `tools/verify/verify_all.py`, and
-  `tools/build/build_iso.py` (build_iso's only live consumer is verify_option3).
-- **Delete** `.claude/commands/verify-all.md`.
-- **Edit** `.claude/commands/verify.md`: remove mode 8 `option3` + its command line; add a
-  `report` mode wrapping `tools/verify/test_inventory.py` (keep test_inventory — it is
-  standalone: reads kb.json / leaf_cache / delinked manifest).
-- **Edit** `.claude/skills/halo-verify-debug/SKILL.md` (references verify_option3 + build_iso).
-- **Edit** docs referencing the chain: `docs/testing_plan.md` (this doc *is* the /verify-all
-  spec — deprecate or rewrite), `docs/agent_workflow.md`, `docs/verification_policy.md`,
-  `docs/plans/workflow-improvement-plan.md`.
-- **Check** `tools/analysis/sync_agent_content.py` (references "verify-all" — it may regenerate
-  agent content; confirm it won't re-introduce the removed refs).
-- CAUTION: the `verify_all` substring collides with `batch_verify_allowlist.json` in
-  equivalence.yml / run_local_equiv.sh / update_dashboard.sh — those are NOT verify_all.py refs.
-- Also retire `llm_auto_lift.py` `review`/`promote` subcommands + AUTO_ACCEPT/NEEDS_REVIEW/REJECT
-  machinery **carefully** (core file, 22 commits) — smoke-test `select` + `cache-context` after.
+### P2.10 — Retire the /verify-all + verify_option3 legacy chain (done 2026-07-07)
+Superseded by `tools/lift_pipeline.py`.
+- Archived `tools/verify/verify_option3.py`, `tools/verify/verify_all.py`, and
+  `tools/build/build_iso.py` into `tools/archive/`.
+- Deleted `.claude/commands/verify-all.md`, `.opencode/commands/verify-all.md`,
+  and `.agents/skills/opencode-command-verify-all/SKILL.md`.
+- Replaced `/verify option3` with `/verify report`, backed by
+  `tools/verify/test_inventory.py`.
+- Removed the `verify-all.md` generator entry from
+  `tools/analysis/sync_agent_content.py`.
+
+Also retired `llm_auto_lift.py` `review`/`promote` subcommands and removed the
+old batch-artifact state constants after smoke-testing the retained helper
+subcommands.
 
 ### P2.11 — Fold run_golden_xbox → run_golden_tests
-Merge into `run_golden_tests.py --backend {xemu,xbdm}`; archive `run_golden_xbox.py`.
-**Needs a real-Xbox parity run** (`--backend xbdm`) before archiving — box-dependent.
+Merge into `run_golden_tests.py` as one XBDM deploy/debug flow parameterized by
+host address. Use `--xemu`/`--host localhost` for local xemu and `--host <ip>`
+for real hardware. Archive `run_golden_xbox.py` after parity.
+**Needs a real-Xbox parity run** (`--host <console-ip>`) before archiving —
+box-dependent.
 
 ### P2.12 — Schedule ab_check frozen-golden CI tripwire
 Nightly self-hosted job: `ab_check.py --golden <frozen>.halorec`.
@@ -124,7 +123,7 @@ De-dup `enrichment_hook.render_enrichment_markdown` (self-documented inlined cop
 ## Verification checklist (per remaining phase)
 - P2.10: `/verify` help has no option3; one full `/lift` pipeline run green; `test_inventory.py`
   still runs standalone via the new `report` mode.
-- P2.11: real-Xbox `--backend xbdm` golden run matches prior behavior before archiving.
+- P2.11: real-Xbox `--host <console-ip>` golden run matches prior behavior before archiving.
 - P3.13/P3.14: `regression_test.py --quick` green + (P3.14) one `batch_verify` diff with no new
   failures + `ab_check --aa-first` clean.
 - P3.15: one scratch commit still regenerates the dashboard and runs codegraph sync.

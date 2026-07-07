@@ -109,7 +109,8 @@ rtk python3 tools/verify/vc71_verify.py src/path/to/file.c --function FUN_XXXXXX
 rtk python3 tools/verify/vc71_verify.py src/path/to/file.c --function FUN_XXXXXXXX --fpu-only
 rtk python3 tools/verify/vc71_verify.py src/path/to/file.c --function FUN_XXXXXXXX --imm-only
 rtk <automated reference-behavior command>
-rtk python3 tools/verify/verify_option3.py --target FUN_XXXXXXXX --skip-iso
+rtk python3 tools/verify/run_golden_tests.py --target FUN_XXXXXXXX
+rtk python3 tools/verify/test_inventory.py --no-write
 ```
 
 ## Automated Enforcement in lift_pipeline.py

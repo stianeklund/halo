@@ -16,11 +16,12 @@ The repo already has the right foundations:
 - `tools/equivalence/batch_verify.py` for scalable batch equivalence.
 - `tools/verify/vc71_verify.py` and `tools/verify/compare_obj.py` for delinked
   structural comparison.
-- `tools/verify/verify_option3.py` for runtime/xemu fallback.
+- `tools/verify/test_inventory.py` for verification coverage inventory.
 - `src/halo/test_harness.c` for Xbox-context runtime checks.
-- `tools/equivalence/state_snapshot.py` and
-  `tools/equivalence/capture_snapshot_from_diff.py` for xemu QMP `pmemsave` or
-  XBDM `getmem` memory captures that seed Unicorn with real engine state.
+- `tools/equivalence/memsave_snapshot.py` and
+  `tools/equivalence/capture_snapshot_from_diff.py` for xemu QMP virtual
+  `memsave` or XBDM `getmem` memory captures that seed Unicorn with real
+  engine state.
 - `agent-content` as the canonical source for generated Claude and OpenCode
   workflow surfaces.
 
@@ -31,7 +32,7 @@ The weak points are repeatability and reporting:
 - there is no single inventory of which ported functions are Unicorn/Z3-ready
 - batch equivalence needs no-regression baseline comparison
 - runtime oracle capture should be noninteractive and machine-readable
-- xemu/XBDM live memory capture should use selected `pmemsave`/`getmem` regions,
+- xemu/XBDM live memory capture should use selected virtual `memsave`/`getmem` regions,
   not QEMU `savevm`/`loadvm`, because VM snapshots restore old loaded-XBE code pages
 - high-value stateful targets need a same-process dual-oracle harness path, not
   just two separate oracle/candidate emulator runs
@@ -48,7 +49,7 @@ The weak points are repeatability and reporting:
 | VC71/delink compare | structural lift quality and FPU warning triage | delinked reference object | `vc71_verify.py`, `compare_obj.py` |
 | Runtime oracle | functions needing live engine state | original Xbox behavior | `run_golden_tests.py`, XBDM debug capture |
 | Dual-oracle runtime harness | high-value stateful functions needing same-state comparison | original and candidate in one initialized engine state | `src/halo/test_harness.c`, future dual-oracle runner |
-| Option 3 fallback | xemu/runtime smoke fallback | boot/load/assert behavior | `verify_option3.py` |
+| Coverage report | current verification inventory | kb/leaf-cache/delink metadata | `test_inventory.py` |
 | Host deterministic tests | narrow pure helpers with binary-backed expected values | fixed captures or math identities | focused Python/C helpers only |
 
 Do not add Unity. Do not broaden host unit tests to engine-stateful lifted code.
@@ -72,24 +73,24 @@ Acceptance:
 - no stale `*~` backup files in either tree
 - safety-critical review/no-commit policy is not weakened
 
-## Phase 2: Repair Runtime Fallback Health
+## Phase 2: Keep Verification Inventory Healthy
 
-`verify_option3.py` must compile and support a minimal smoke path before it is
-used for broader runtime verification.
+`test_inventory.py` must run standalone so agents can classify the current
+verification surface without guessing.
 
 Commands:
 
 ```bash
-rtk python3 -m py_compile tools/verify/verify_option3.py
-rtk python3 tools/verify/verify_option3.py --target smoke --skip-build --skip-iso
+rtk python3 -m py_compile tools/verify/test_inventory.py
+rtk python3 tools/verify/test_inventory.py --no-write
 ```
 
 Acceptance:
 
 - Python syntax check passes
-- skip/dry smoke path writes `artifacts/verify_option3/<run-id>/summary.json`
-- later live runs can report build, ISO, objdiff, xemu load/reset, and assert
-  tripwire stages
+- inventory classifies the current surface without writing artifacts
+- live runtime evidence continues through `run_golden_tests.py` or dual-oracle
+  harness cases
 
 ## Phase 3: Add Coverage Inventory
 
@@ -184,6 +185,10 @@ Command:
 rtk python3 tools/verify/run_golden_tests.py --target FUN_00106510
 ```
 
+By default the runner uses the same XBDM host defaults as the deploy/debug
+tools. Use `--xemu` or `--host localhost` for local xemu, and
+`--host <console-ip>` for a real Xbox.
+
 The command:
 
 - writes oracle and candidate overlay JSON files
@@ -203,9 +208,11 @@ Acceptance:
 ## Phase 7: Promote Live Memory Replay
 
 Use xemu/XBDM as live memory samplers for functions that Unicorn can execute but
-cannot cover meaningfully from zero-filled globals. Prefer QMP `pmemsave` when
-available; use `--backend xbdm` when the running xemu is reachable through XBDM
-but not QMP. This is not a VM snapshot lane: QEMU `savevm`/`loadvm` restores
+cannot cover meaningfully from zero-filled globals. Prefer QMP virtual `memsave`
+via `memsave_snapshot.py` / `capture_snapshot_from_diff.py`; use `--backend xbdm`
+when the running xemu is reachable through XBDM but not QMP. Physical `pmemsave`
+is intentionally avoided on this setup because it reads the wrong bytes. This is
+not a VM snapshot lane: QEMU `savevm`/`loadvm` restores
 loaded-XBE code pages and is not suitable for original-vs-candidate oracle
 testing.
 
@@ -297,8 +304,7 @@ These are useful, but they should not block the verification lanes above:
 Run the narrowest meaningful checks first:
 
 ```bash
-rtk python3 -m py_compile tools/verify/verify_option3.py tools/verify/test_inventory.py tools/equivalence/batch_verify.py tools/verify/run_golden_tests.py tools/build/patch.py
-rtk python3 tools/verify/verify_option3.py --target smoke --skip-build --skip-iso
+rtk python3 -m py_compile tools/verify/test_inventory.py tools/equivalence/batch_verify.py tools/verify/run_golden_tests.py tools/build/patch.py
 rtk python3 tools/verify/test_inventory.py --no-write
 rtk python3 tools/equivalence/batch_verify.py --dry-run
 ```

@@ -20,7 +20,7 @@ Use `halo-verify-debug` for verification gates, delink triage, and failure
 classification.
 
 Consolidated verification command. Prefer this over separate structural,
-delink, hazard, or Option 3 commands.
+delink, hazard, or legacy runtime fallback commands.
 
 Argument: $ARGUMENTS (`[mode] <target> [extra flags]`)
 
@@ -32,7 +32,7 @@ Modes:
 5. `equivalence <target> [extra unicorn_diff flags]` — Unicorn behavioral differential; use `--state-snapshot` for xemu/XBDM memory captures.
 6. `golden <target> [extra run_golden_tests flags]` — runtime oracle comparison through the Xbox harness.
 7. `dual-oracle <target>` — same-process original-vs-candidate harness case when implemented for the target.
-8. `option3 <target> [extra verify_option3 flags]` — legacy runtime/xemu fallback.
+8. `report [extra test_inventory flags]` — classify current verification coverage.
 9. `failure <artifact_dir>` — classify a failed lift pipeline or auto-lift artifact and recommend the next narrow action.
 
 If no mode is supplied, treat the first token as `<target>` and run `normal`.
@@ -45,13 +45,13 @@ rtk python3 tools/audit/check_lift_hazards.py
 rtk python3 tools/audit/batch_delink.py --object <object>
 rtk python3 tools/equivalence/unicorn_diff.py <target> --allow-stubs --mem-trace <extra_flags>
 rtk python3 tools/verify/run_golden_tests.py --target <target> <extra_flags>
-rtk python3 tools/verify/verify_option3.py --target <target> <extra_flags>
+rtk python3 tools/verify/test_inventory.py <extra_flags>
 ```
 
 Equivalence mode:
 1. Use regular seeded/mem-trace equivalence first for leaf, data-only, or stubbable targets.
 2. If coverage/confidence is weak because globals are zero-filled, capture selected live xemu memory with `tools/equivalence/state_snapshot.py` or `tools/equivalence/capture_snapshot_from_diff.py`, then rerun with `--state-snapshot artifacts/snapshots/<name>.json`.
-3. Prefer QMP `pmemsave`; use `capture_snapshot_from_diff.py --backend xbdm` when xemu is reachable through XBDM but not QMP. Do not use QEMU `savevm`/`loadvm` for oracle testing because it restores old loaded-XBE code pages.
+3. Prefer QMP virtual `memsave`; use `capture_snapshot_from_diff.py --backend xbdm` when xemu is reachable through XBDM but not QMP. Physical `pmemsave` reads the wrong bytes on this setup. Do not use QEMU `savevm`/`loadvm` for oracle testing because it restores old loaded-XBE code pages.
 
 Golden and dual-oracle modes:
 1. Use `golden` for two-build original-vs-candidate runtime captures through `run_golden_tests.py`.
@@ -71,6 +71,10 @@ Failure mode:
 4. For XDK/FPU failures, inspect x87 operand order and push-then-fstp callsites.
 5. For low-match failures, inspect branch shape, memory offsets, and missing side effects.
 6. For behavior/runtime failures, prefer XBDM state probes before xemu unless no console is reachable.
+
+Report mode:
+1. Run `rtk python3 tools/verify/test_inventory.py <extra_flags>`.
+2. Report the inventory artifact paths and any blocked/missing coverage categories.
 
 Report:
 - mode and target

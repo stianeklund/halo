@@ -15,8 +15,8 @@ Parse the following from $ARGUMENTS (all optional, flags and subcommands):
 - `--batch N` — lift up to N functions sequentially (default: 1)
 - `--stop-on-fail N` — stop after N consecutive failures (default: 3)
 - `--dry-run` — do everything except commit (leave changes for review)
-- Subcommands: `select`, `score`, `cache-context`, `review`, `promote` — if one
-  of these is the first word, run it directly instead of the lift loop.
+- Subcommands: `select`, `score`, `cache-context` — if one of these is the
+  first word, run it directly instead of the lift loop.
 
 ## Lift loop
 
@@ -124,4 +124,4 @@ Write failure record to `artifacts/auto_lift/failures/<target_name>.json`:
 3. Always revert on failure — never leave broken state in the working tree.
 4. Skip targets that already have failure records (don't retry known failures).
 5. `--stop-on-fail` prevents runaway failures from burning tokens.
-6. `review` and `promote` are legacy subcommands (see `docs/lift-policy.md` §Legacy-subcommands).
+6. Only `select`, `score`, and `cache-context` are supported helper subcommands.

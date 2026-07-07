@@ -143,7 +143,7 @@ Notes:
   pipeline runs — never skip it and then offer a second pass.
 - **Prefer XBDM verification on real Xbox** whenever a console is available.
   Use `/deploy --xbe-only` then `/xbdm <mode>` commands to probe.
-- Use `/verify option3 <target>` only as a runtime/xemu fallback lane, not as primary structural proof.
+- Use `/verify golden <target>` or `/verify dual-oracle <target>` for runtime evidence; do not use the retired Option 3 fallback.
 - Use `/verify structural <target> <new_address>` for explicit verify payload runs with a known lifted function address.
 - `/auto-lift` auto-commits on success and reverts+logs on failure. See `artifacts/auto_lift/failures/` for failure records.
 - Use `/maintain` for a standalone sort + format pass.

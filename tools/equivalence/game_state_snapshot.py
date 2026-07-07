@@ -12,12 +12,15 @@ Usage:
 The captured snapshot can then be loaded into a different XBE build
 (patched vs unpatched) for regression comparison.
 
-Physical address model:
+Legacy physical-address model:
   Xbox identity-maps the first 64 MB of physical RAM to virtual 0x80000000.
   The game-state pool is at physical 0x00061000 (virtual 0x80061000).
   System globals (game_state_globals at 0x4ea990) live in Xbox system RAM
   which xemu maps differently; we read them via GDB RSP using virtual
-  addresses and use pmemsave for bulk captures.
+  addresses and this legacy path uses physical pmemsave for bulk captures.
+  Do not use this as the default live-state capture route on the current
+  Cerbios/kernel-irqchip=off setup; prefer qmp_capture.py or state_snapshot.py,
+  which use QMP virtual memsave and validate datum magic before trusting data.
 """
 
 from __future__ import annotations
