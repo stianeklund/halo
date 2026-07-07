@@ -34212,7 +34212,9 @@
         },
         {
           "addr": "0x146e30",
-          "decl": "void bsp3d_clip_line_to_leaves(void);"
+          "decl": "int bsp3d_clip_line_to_leaves(void *nodes, int node_index, float *p0, float *p1, void (*callback)(float *, float *, unsigned int, void *), void *data);",
+          "name": "bsp3d_clip_line_to_leaves",
+          "ported": true
         },
         {
           "addr": "0x1470b0",
