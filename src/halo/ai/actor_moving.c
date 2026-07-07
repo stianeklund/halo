@@ -1553,6 +1553,11 @@ void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
   *(float *)((char *)state + 0x28) = fwd[0] * up[2] - up[0] * fwd[2];
   *(float *)((char *)state + 0x2c) = up[0] * fwd[1] - fwd[0] * up[1];
 
+  /* Original MSVC stack layout overlaps these scale locals with the tail of
+   * avoidance_state: [EBP-0xa0]/[EBP-0x9c] == state+0x6040/+0x6044. */
+  *(float *)((char *)state + 0x6040) = *(float *)0x2533c8;
+  *(float *)((char *)state + 0x6044) = *(float *)0x253f78;
+
   FUN_0002ade0((int)state);
 
   /* zero the 8-direction weight array, reset running max. */
