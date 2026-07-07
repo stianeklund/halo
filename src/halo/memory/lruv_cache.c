@@ -1,3 +1,116 @@
+/* 0x11c820: Validate an lrar_cache header ('lrar' magic @+0x44, minimum<maximum
+ * address, block_size(+0x2c)>=1, block_count(+0x38)>=1). On corruption formats
+ * the standard message into the shared scratch buffer (0x5ab100) and hits
+ * display_assert + system_exit(-1). cache passed in EAX.
+ * Source: c:\halo\SOURCE\memory\lrar_cache.c line 0x199. */
+void lruv_update_function_pointers(int cache)
+{
+  if ((*(int *)(cache + 0x44) != 0x6c726172) ||
+      (*(unsigned int *)(cache + 0x28) <= *(unsigned int *)(cache + 0x24)) ||
+      (*(int *)(cache + 0x2c) < 1) ||
+      (*(short *)(cache + 0x38) < 1)) {
+    display_assert(csprintf((char *)0x5ab100,
+                            "lrar cache %s @%p appears to be corrupt",
+                            cache, cache),
+                   "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x199, 1);
+    system_exit(-1);
+  }
+}
+
+/* 0x11c7c0: Validate an lrar_cache block record ('klbR' magic @block+4, size
+ * (block+0xc) in [0, cache->block_size@+0x2c), address (block+8) within the
+ * cache's [minimum@+0x24, maximum@+0x28) range). On corruption formats
+ * "... block @%p appears to be corrupt" and hits display_assert +
+ * system_exit(-1). cache in EAX, block in ESI. Source: lrar_cache.c 0x186. */
+void FUN_0011c7c0(int cache, int block)
+{
+  int size = *(int *)(block + 0xc);
+  if ((*(int *)(block + 4) != 0x52626c6b) ||
+      (size < 0) ||
+      (*(int *)(cache + 0x2c) <= size) ||
+      (*(unsigned int *)(block + 8) < *(unsigned int *)(cache + 0x24)) ||
+      (*(unsigned int *)(cache + 0x28) < *(unsigned int *)(block + 8) + size)) {
+    display_assert(csprintf((char *)0x5ab100,
+                            "lrar cache %s @%p block @%p appears to be corrupt",
+                            cache, cache, block),
+                   "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x186, 1);
+    system_exit(-1);
+  }
+}
+
+/* 0x11ca60: Look up and validate an lrar_cache block record by index. Validates
+ * the cache header (lruv_update_function_pointers), bounds-checks block_index
+ * against block_count (+0x38; line 0x16e), computes the record pointer
+ * (block_index*0x10 + block_array@+0x30), validates it (FUN_0011c7c0), and
+ * returns it. block_index in AX, cache in EDI. Source: lrar_cache.c. */
+int FUN_0011ca60(short block_index, int cache)
+{
+  int block;
+
+  lruv_update_function_pointers(cache);
+  if ((block_index < 0) || (*(short *)(cache + 0x38) <= block_index)) {
+    display_assert("block_index>=0 && block_index<cache->block_count",
+                   "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x16e, 1);
+    system_exit(-1);
+  }
+  block = (int)block_index * 0x10 + *(int *)(cache + 0x30);
+  FUN_0011c7c0(cache, block);
+  return block;
+}
+
+/* 0x11c5d0: Touch an lrar_cache block (FUN_0011c210 relink bookkeeping) and
+ * return its byte offset from the cache's minimum address
+ * (block - cache->minimum_address@+0x24). block in EAX, cache in ECX. */
+int FUN_0011c5d0(int block, int cache)
+{
+  FUN_0011c210(cache, block);
+  return block - *(int *)(cache + 0x24);
+}
+
+/* 0x11c7a0: Free an lrar_cache block's user allocation. If the block's user
+ * pointer (block[0]) is non-NULL, invokes the cache free callback (cache+0x40)
+ * on it and clears the slot. block in ESI, cache on the stack.
+ * (kb name lruv_allocation_size is a punpckhdq PDB misnomer; this is the
+ * per-block free helper.) */
+void lruv_allocation_size(int block, int cache)
+{
+  if (*(int *)block != 0) {
+    (*(void (**)(int))(cache + 0x40))(*(int *)block);
+    *(int *)block = 0;
+  }
+}
+
+/* 0x11d090: Validate an lru_cache header ('curl' magic @+0x44; head@+0x34,
+ * block_size@+0x2c, block_array@+0x30 non-zero; maximum@+0x28 ==
+ * page_size(+0x20) * page_count(+0x24); page_count>=0x10; used(+0x40) in
+ * [0, page_size]). On corruption formats "lru cache %s @%p appears to be
+ * corrupt" and hits display_assert + system_exit(-1). cache in EAX.
+ * Source: c:\halo\SOURCE\memory\lru_cache.c line 0x16b. */
+void FUN_0011d090(int cache)
+{
+  int page_size;
+
+  if ((*(int *)(cache + 0x44) == 0x6c727563) &&
+      (*(int *)(cache + 0x34) != 0) &&
+      (*(int *)(cache + 0x2c) != 0) &&
+      (*(int *)(cache + 0x30) != 0)) {
+    page_size = *(int *)(cache + 0x20);
+    if ((*(int *)(cache + 0x28) ==
+         page_size * *(unsigned int *)(cache + 0x24)) &&
+        (0xf < *(unsigned int *)(cache + 0x24)) &&
+        (-1 < page_size) &&
+        (-1 < *(int *)(cache + 0x40)) &&
+        (*(int *)(cache + 0x40) <= page_size)) {
+      return;
+    }
+  }
+  display_assert(csprintf((char *)0x5ab100,
+                          "lru cache %s @%p appears to be corrupt",
+                          cache, cache),
+                 "c:\\halo\\SOURCE\\memory\\lru_cache.c", 0x16b, 1);
+  system_exit(-1);
+}
+
 /* 0x11c530: Mark a cached block dirty / most-recently-used. Requires a
  * non-NULL user pointer (asserted, line 0x12a). Runs the cache post-touch
  * bookkeeping (FUN_0011c290, cache in EAX) then the block-relink step
