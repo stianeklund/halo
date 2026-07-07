@@ -28993,7 +28993,10 @@
         },
         {
           "addr": "0x11da60",
-          "decl": "void lruv_cache_get_page_usage(void);"
+          "decl": "void lruv_cache_get_page_usage(void *cache, unsigned char *usage);",
+          "name": "lruv_cache_get_page_usage",
+          "ported": true,
+          "source_path": "src/halo/memory/lruv_cache.c"
         },
         {
           "addr": "0x11db00",
