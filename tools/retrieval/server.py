@@ -21,11 +21,51 @@ import json
 import os
 import signal
 import socket
+import subprocess
 import sys
 import threading
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+
+def _canonical_repo_root() -> Path:
+    """Resolve the canonical repo root that actually holds .venv + the index.
+
+    `__file__`-relative resolution breaks when this script runs from a linked
+    git worktree (or a sibling checkout): the worktree has no `.venv`, so the
+    interpreter falls back to bare `python3` and numpy import fails. Prefer, in
+    order: an explicit HALO_REPO_ROOT override, the git common dir's parent
+    (the main worktree, shared by every linked worktree), the file-relative
+    root, then the pinned dev-box path — accepting the first that carries both
+    `.venv/bin/python3` and `tools/retrieval/`."""
+    here = Path(__file__).resolve()
+    candidates: list[Path] = []
+    env = os.environ.get("HALO_REPO_ROOT")
+    if env:
+        candidates.append(Path(env))
+    try:
+        r = subprocess.run(
+            ["git", "rev-parse", "--git-common-dir"],
+            cwd=here.parent, capture_output=True, text=True, timeout=3,
+        )
+        if r.returncode == 0 and r.stdout.strip():
+            common = Path(r.stdout.strip())
+            if not common.is_absolute():
+                common = (here.parent / common).resolve()
+            candidates.append(common.parent)
+    except Exception:
+        pass
+    candidates.append(here.parent.parent.parent)
+    candidates.append(Path("/mnt/g/dev/halo"))
+    for c in candidates:
+        try:
+            if (c / ".venv" / "bin" / "python3").exists() and (c / "tools" / "retrieval").is_dir():
+                return c
+        except OSError:
+            pass
+    return here.parent.parent.parent
+
+
+REPO_ROOT = _canonical_repo_root()
 SOCK_PATH = Path("/tmp/retrieval_server.sock")
 PID_PATH = Path("/tmp/retrieval_server.pid")
 
