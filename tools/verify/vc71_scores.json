@@ -7848,12 +7848,116 @@
       "score": 86.1,
       "source": "src/halo/networking/network_messages.c"
     },
+    "FUN_0011c530": {
+      "score": 87.3,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011c580": {
+      "score": 87.3,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011c5d0": {
+      "score": 71.4,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011c5f0": {
+      "score": 60.9,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
     "FUN_0011c780": {
       "score": 100.0,
       "source": "src/halo/memory/lruv_cache.c"
     },
     "FUN_0011c790": {
       "score": 100.0,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011c7a0": {
+      "score": 88.9,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011c7c0": {
+      "score": 75.8,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011c820": {
+      "score": 74.1,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011c870": {
+      "score": 82.9,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011ca20": {
+      "score": 94.7,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011ca60": {
+      "score": 74.6,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011cab0": {
+      "score": 91.4,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011cbf0": {
+      "score": 83.8,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011cf00": {
+      "score": 83.1,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011cf60": {
+      "score": 86.4,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011cfd0": {
+      "score": 100.0,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011cfe0": {
+      "score": 100.0,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011d010": {
+      "score": 100.0,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011d090": {
+      "score": 84.4,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011d110": {
+      "score": 85.1,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011d250": {
+      "score": 93.6,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011d2a0": {
+      "score": 76.9,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011d300": {
+      "score": 83.3,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011d320": {
+      "score": 66.7,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011d3f0": {
+      "score": 85.0,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011d420": {
+      "score": 85.0,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011d450": {
+      "score": 86.4,
       "source": "src/halo/memory/lruv_cache.c"
     },
     "FUN_0011d480": {
@@ -7869,7 +7973,7 @@
       "source": "src/halo/memory/lruv_cache.c"
     },
     "FUN_0011d550": {
-      "score": 99.7,
+      "score": 100.0,
       "source": "src/halo/memory/lruv_cache.c"
     },
     "FUN_0011d780": {
@@ -7880,11 +7984,27 @@
       "score": 90.0,
       "source": "src/halo/memory/lruv_cache.c"
     },
+    "FUN_0011d8d0": {
+      "score": 100.0,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
     "FUN_0011d8f0": {
       "score": 84.0,
       "source": "src/halo/memory/lruv_cache.c"
     },
     "FUN_0011d9d0": {
+      "score": 100.0,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011da00": {
+      "score": 97.4,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011da30": {
+      "score": 100.0,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011da60": {
       "score": 100.0,
       "source": "src/halo/memory/lruv_cache.c"
     },
@@ -7896,8 +8016,16 @@
       "score": 71.6,
       "source": "src/halo/memory/lruv_cache.c"
     },
+    "FUN_0011dd60": {
+      "score": 100.0,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
     "FUN_0011ddc0": {
       "score": 100.0,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "FUN_0011de10": {
+      "score": 62.1,
       "source": "src/halo/memory/lruv_cache.c"
     },
     "FUN_0011e330": {
@@ -13168,7 +13296,35 @@
       "score": 100.0,
       "source": "src/halo/game/game_time.c"
     },
+    "lrar_cache_dispose": {
+      "score": 91.4,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "lrar_cache_new": {
+      "score": 82.9,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "lru_cache_dispose": {
+      "score": 93.6,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "lruv_allocation_size": {
+      "score": 88.9,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "lruv_block_get_address": {
+      "score": 97.4,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "lruv_block_touched": {
+      "score": 100.0,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
     "lruv_cache_allocation_size": {
+      "score": 100.0,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "lruv_cache_get_page_usage": {
       "score": 100.0,
       "source": "src/halo/memory/lruv_cache.c"
     },
@@ -13184,8 +13340,24 @@
       "score": 100.0,
       "source": "src/halo/memory/lruv_cache.c"
     },
+    "lruv_has_locked_proc": {
+      "score": 94.7,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "lruv_idle": {
+      "score": 100.0,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "lruv_new": {
+      "score": 100.0,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
     "lruv_resize": {
       "score": 100.0,
+      "source": "src/halo/memory/lruv_cache.c"
+    },
+    "lruv_update_function_pointers": {
+      "score": 74.1,
       "source": "src/halo/memory/lruv_cache.c"
     },
     "main_change_map_name": {
