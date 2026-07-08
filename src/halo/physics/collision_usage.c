@@ -337,7 +337,11 @@ bool FUN_0014cc80(int param_1, int param_2, int param_3, float param_4,
       if (*(int16_t *)(local_14 + 0x20) != -1) {
         bVar1 = *(uint8_t *)(*(int *)(param_1 + 8) +
                              (int)*(int16_t *)(local_14 + 0x20));
-        if (bVar1 != 0xff) {
+        /* Original: MOVZX AX, byte; CMP AX,0xffff — a zero-extended byte is
+         * never 0xffff, so the skip is never taken (same idiom as 14c950).
+         * Comparing against 0xff here skipped destroyed-region permutations
+         * the original still tests. */
+        if ((uint16_t)bVar1 != 0xffff) {
           iVar4 = *(int *)(local_14 + 0x34);
           if (0 < iVar4) {
             iVar5 = (int)(short)(unsigned short)bVar1;

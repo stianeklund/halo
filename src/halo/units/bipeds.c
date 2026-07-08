@@ -1385,7 +1385,13 @@ char biped_fix_position(int unit_handle, int seat_handle,
   char box[16]; /* local_74 — 14c8e0 out, reused as 14cc80 arg1 */
   char location[16]; /* local_58/54/50 — scenario_location_from_point */
   char surf_result[80]; /* local_114 — 14e7d0 result */
-  char los_result[56]; /* local_c4 — 130d0 result; +0x38 = hit handle */
+  char los_result[80]; /* local_c4 — 130d0 result; +0x38 = hit handle.
+                        * 130d0 delegates to 14df70, which writes an 0x50-byte
+                        * result (units.c:9404, projectiles.c collision_result
+                        * [0x50]); original frame gap local_c4..local_74 is
+                        * exactly 0x50. At 56 bytes it overflowed into box[],
+                        * corrupting the 14cc80 context (tag_groups.c:3086
+                        * element_size assert on seat exit). */
   static char obstruction[1064]; /* local_53c — 14cc80 working buffer */
 
   success = 0;
