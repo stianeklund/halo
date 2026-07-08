@@ -14,6 +14,7 @@ nothing — describe the problem and the agent routes itself.
 The only skills meant for you to invoke directly.
 
 - **`/capture-input`** — Interactive wizard to capture (record) or replay a deterministic
+- **`/cleanup`** — Readability-rewrite orchestrator for already-lifted code — /cleanup <file|function|object>. Runs the cleanup ladder in risk order (baseline…
 - **`/clear-cache`** — Clear Halo CE cache files from Xbox devkit cache partitions
 - **`/handover`** — Create a concise continuation handover for Halo CE Xbox RE/lift work when the user runs /handover or asks to transfer context to a new agen…
 - **`/reintegrate-to-main`** — Safely re-integrate a lift/session worktree branch into main — bring the branch up to date, rebase, gate (whole-object kb.json partition +…
@@ -29,9 +30,16 @@ words in your message. Listed for transparency, not as a to-do.
 | `ab-trajectory-testing` | A/B regression testing for the reimplementation: replay the SAME deterministic | `halorec`, `trajectory`, `a/b`, `ab check`, `ab_check` |
 | `bug-hunt` | Tiered automated bug scanner for Halo CE Xbox lifts. Run after editing source | `bug hunt`, `bug-hunt`, `hazard scan`, `check_lift_hazards`, `before deploy` |
 | `check-callee-regs` | "@<reg>, register arg, in_EAX/in_ECX, unported callee, XCALL, missing ABI annotation: scan ported code for calls to original functions that… | `register arg`, `reg arg`, `in_eax`, `in_ecx`, `in_edx` |
+| `cleanup-baseline` | Record the verification baseline BEFORE any cleanup/refactor of already-lifted code — VC71 match %, object-diff state, harness/equivalence… | `cleanup baseline`, `record baseline`, `before cleanup`, `baseline snapshot`, `match floor` |
+| `cleanup-gap-audit` | Before a cleanup campaign, audit whether the infrastructure needed to do it SAFELY exists — a detector/gate for every invariant the cleanup… | `tooling gap`, `gap audit`, `missing detector`, `missing tooling`, `no detector` |
+| `cleanup-regression-triage` | Isolate and explain a VC71-match or test regression caused by cleanup work — localize to the ladder category and unit via per-category comm… | `cleanup regression`, `match dropped`, `score dropped`, `match regression`, `score regression` |
+| `cleanup-report` | Produce the standard before/after report closing a cleanup session — baseline, per-category commits, verification evidence, match table (be… | `cleanup report`, `before/after report`, `before after report`, `cleanup pr`, `cleanup summary` |
+| `const-enum-recovery` | Convert PROVEN magic numbers, flag bits, modes, and sentinel values into named constants/enums — value fidelity guaranteed bit-for-bit, nam… | `magic number`, `named constant`, `enum recovery`, `recover enum`, `flag bits` |
+| `control-flow-cleanup` | Simplify gotos, loop forms, branch nesting, and early exits in lifted code — the HIGHEST-risk cleanup category, allowed only behind behavio… | `control flow cleanup`, `simplify goto`, `goto cleanup`, `restructure loop`, `loop restructure` |
 | `crash-triage` | Automated crash and bug diagnosis for Halo CE Xbox lifting. Invoke whenever | `access_violation`, `access violation`, `page fault`, `page-fault`, `assert` |
 | `debug` | Universal debugging entry point for Halo CE Xbox — invoke on ANY runtime | `regression`, `crash`, `fault`, `access violation`, `access_violation` |
 | `debug-xemu` | xemu-specific debugging cookbook — MCP tools, raw QMP socket recipe, GDB via | `xemu`, `qmp`, `gdb`, `screenshot`, `serial` |
+| `expr-simplify` | Carefully simplify casts, temporaries, and arithmetic in lifted code — with hard bans around float reassociation, signedness/width changes,… | `simplify expression`, `expression simplification`, `redundant cast`, `simplify cast`, `collapse temporaries` |
 | `halo-build-xemu` | Standard project build, deploy, and run workflow | `build load`, `build-load`, `xbe deploy`, `build_deploy_run`, `xemu build` |
 | `halo-deploy-xbdm` | Build and deploy patched files to a real Xbox via XBDM/XBCP | `xbdm`, `deploy`, `real xbox`, `getmem`, `hot patch` |
 | `halo-page-fault` | Investigate page faults during lift/reimplementation — typically caused by | `page fault`, `page-fault`, `access_violation`, `trap frame`, `cr2` |
@@ -47,4 +55,10 @@ words in your message. Listed for transparency, not as a to-do.
 | `lift-score-improve` | Checklist for recovering VC71 match before declaring a structural ceiling. Invoke when score is 65–84% and the gap looks "structural". | `structural ceiling`, `vc71`, `low match`, `score improve`, `improve match` |
 | `lift-silent-bugs` | Checklist for non-crashing silent correctness bugs — wrong colors, yellow/white | `wrong color`, `yellow`, `white tint`, `invisible`, `missing geometry` |
 | `lift-synthetic-equivalence` | Hand-crafted state-snapshot equivalence for lifts whose VC71 score is | `synthetic equivalence`, `state snapshot`, `per-branch`, `equivalence`, `capped lift` |
+| `local-var-cleanup` | Rename decompiler-style locals (local_NN, uVar3, fVar1, iVar7) into useful MECHANICAL names without inventing unsupported semantics. Rename… | `rename locals`, `local variable cleanup`, `local cleanup`, `uvar`, `ivar` |
+| `naming-confidence` | Rules for renaming fields, locals, functions, constants, and types according to evidence strength — string/PDB evidence earns semantic name… | `rename field`, `rename function`, `rename type`, `rename global`, `naming confidence` |
+| `offset-to-struct` | Replace verified raw pointer arithmetic (*(T*)(base+0xNN)) with struct field access, preserving behavior and VC71 match. Requires the struc… | `raw offset`, `pointer arithmetic`, `offset replacement`, `replace offsets`, `struct field access` |
 | `permuter-campaign` | Permuter campaign, batch permute, low-match VC71, push stuck lifts toward 100%: | `permuter`, `permute`, `permutation`, `85%`, `98%` |
+| `re-comment-capture` | Write comments that preserve reverse-engineering knowledge — evidence citations, uncertainty markers, match-sensitive constructs, and hard-… | `comment capture`, `knowledge capture`, `document evidence`, `evidence comment`, `uncertainty comment` |
+| `struct-assert` | Turn a struct-recovery evidence table into a conservative C89 struct — explicit padding, exact field widths/signedness, field_XX for unknow… | `offsetof`, `static_assert`, `sizeof check`, `define struct`, `struct definition` |
+| `struct-recovery` | Identify structs, arrays of structs, unions, packed layouts, tag blocks, and object-pool strides from binary/disassembly evidence — produci… | `struct recovery`, `recover struct`, `identify struct`, `tag block`, `pool stride` |
