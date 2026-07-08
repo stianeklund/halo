@@ -680,6 +680,21 @@ unsigned char FUN_001926a0(int descriptor, int src, int dst)
   return 1;
 }
 
+/* FUN_00194360 (0x194360)
+ * qsort/bsort comparator. Two cdecl stack args are pointers to records.
+ * Reads a signed int16 field at offset +0x10 of each record and orders
+ * descending by that field: returns +1 when the second record's field is
+ * strictly less than the first's (first sorts earlier), -1 otherwise. The
+ * equal case also falls into -1, matching the original (cond*2 - 1) shape.
+ */
+int FUN_00194360(int param_1, int param_2)
+{
+  return (unsigned int)(*(short *)(param_2 + 0x10) <
+                        *(short *)(param_1 + 0x10)) *
+           2 +
+         -1;
+}
+
 void structures_initialize(void)
 {
   structure_detail_objects_initialize();
