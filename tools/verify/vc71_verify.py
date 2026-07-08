@@ -381,12 +381,121 @@ def _preprocess_regcall(source: Path, callees: dict[str, str]) -> Path:
     return tmp
 
 
+# Register sets whose kb.json @<reg> annotations map exactly onto __fastcall's
+# argument registers (byte/word aliases included).
+_FASTCALL_ECX = {"ecx", "cx", "cl"}
+_FASTCALL_EDX = {"edx", "dx", "dl"}
+
+
+def _get_fastcall_mappable() -> set[str]:
+    """kb.json functions whose register-arg ABI maps exactly onto __fastcall.
+
+    Returns the names of functions whose parameter list is exactly
+    [@<ecx>] or [@<ecx>, @<edx>] (byte/word aliases included) with no stack
+    parameters.  For these, compiling as __fastcall makes VC71 read the
+    argument registers directly (no cdecl stack-load prologue) and emit the
+    original's call-site sequence (mov ecx[, edx]; call — no push/add esp).
+    Functions with any stack parameter are excluded: __fastcall would steal
+    the first stack parameter into a register.  @<eax>/@<esi>/etc. cannot be
+    expressed in VC71 at all (known permanent ceiling).
+    """
+    kb = _load_kb()
+    result: set[str] = set()
+    for obj in kb.get("objects", []):
+        for fn in obj.get("functions", []):
+            decl = fn.get("decl", "") or ""
+            if "@<" not in decl:
+                continue
+            m = re.search(r"\b(\w+)\s*\(", decl)
+            if not m:
+                continue
+            try:
+                params_str = decl[decl.index("(") + 1 : decl.rindex(")")]
+            except ValueError:
+                continue
+            params = [p.strip() for p in params_str.split(",")
+                      if p.strip() and p.strip() != "void"]
+            regs = []
+            for p in params:
+                rm = re.search(r"@<(\w+)>", p)
+                if not rm:
+                    regs = None  # stack param present -> not fastcall-mappable
+                    break
+                regs.append(rm.group(1).lower())
+            if regs is None or not regs:
+                continue
+            if (len(regs) == 1 and regs[0] in _FASTCALL_ECX) or (
+                len(regs) == 2
+                and regs[0] in _FASTCALL_ECX
+                and regs[1] in _FASTCALL_EDX
+            ):
+                result.add(m.group(1))
+    return result
+
+
+def _fastcall_sig_re(name: str) -> "re.Pattern[str]":
+    """Match a top-level definition/prototype line of `name` (return type at
+    column 0, then the name, then the parameter list opener)."""
+    return re.compile(rf"^([\w][\w \t\*]*[ \t\*])({re.escape(name)})(\s*\()",
+                      re.MULTILINE)
+
+
+def _preprocess_fastcall_defs(source: Path, names: set[str],
+                              orig_source: Path) -> Path:
+    """Insert __fastcall into top-level definitions/prototypes of
+    fastcall-mappable functions.  Returns the (possibly new) source path."""
+    text = source.read_text()
+    changed = False
+    for name in names:
+        if name not in text:
+            continue
+        new_text, n = _fastcall_sig_re(name).subn(
+            lambda m: f"{m.group(1)}__fastcall {m.group(2)}{m.group(3)}", text)
+        if n:
+            text = new_text
+            changed = True
+    if not changed:
+        return source
+    tmp = orig_source.parent / f".vc71_fastcall_{orig_source.name}"
+    tmp.write_text(text)
+    return tmp
+
+
+def _make_fastcall_decl_shadow(names: set[str]) -> Path | None:
+    """Write a decl.h copy with __fastcall on mappable prototypes into a
+    shadow include dir (searched before build/generated), so prototypes agree
+    with the rewritten definitions and call sites compile as fastcall."""
+    decl_path = BUILD_DIR / "generated" / "decl.h"
+    if not decl_path.exists():
+        return None
+    text = decl_path.read_text()
+    changed = False
+    for name in names:
+        if name not in text:
+            continue
+        new_text, n = _fastcall_sig_re(name).subn(
+            lambda m: f"{m.group(1)}__fastcall {m.group(2)}{m.group(3)}", text)
+        if n:
+            text = new_text
+            changed = True
+    if not changed:
+        return None
+    shadow_dir = VC71_OUT_DIR / "fastcall_inc"
+    shadow_dir.mkdir(parents=True, exist_ok=True)
+    (shadow_dir / "decl.h").write_text(text)
+    return shadow_dir
+
+
 def compile_vc71(source: Path, output: Path, regcall_elide: bool = False, opt: str = "/O2") -> bool:
     """Compile a source file with VC++ 7.1 cl.exe. Returns True on success.
 
     When regcall_elide=True, preprocesses the source to cast register-arg
     callee invocations so VC71 generates matching call-site instruction
     sequences (mov+call instead of push+call+add).
+
+    Always applies the __fastcall rewrite for @<ecx>[/@<edx>]-only functions
+    (definitions, prototypes, and the decl.h shadow) — this models the
+    kb.json-documented register ABI that VC71 cannot express via cdecl.
     """
     output.parent.mkdir(parents=True, exist_ok=True)
 
@@ -395,6 +504,12 @@ def compile_vc71(source: Path, output: Path, regcall_elide: bool = False, opt: s
         callees = _get_regarg_callees(source)
         if callees:
             actual_source = _preprocess_regcall(source, callees)
+
+    fastcall_names = _get_fastcall_mappable()
+    shadow_inc = None
+    if fastcall_names:
+        actual_source = _preprocess_fastcall_defs(actual_source, fastcall_names, source)
+        shadow_inc = _make_fastcall_decl_shadow(fastcall_names)
 
     src_win = wsl_to_win(actual_source)
     out_win = wsl_to_win(output)
@@ -409,6 +524,7 @@ def compile_vc71(source: Path, output: Path, regcall_elide: bool = False, opt: s
         "/W0", "/Zl", "/X",
         "/DMSVC", "/DXDK_BUILD", "/DHDATA=",
         f"/FI{fi_win}",
+        *([f"/I{wsl_to_win(shadow_inc)}"] if shadow_inc else []),
         f"/I{gen_inc}",
         f"/I{src_inc}",
         f"/I{RXDK_INC}",
@@ -416,7 +532,18 @@ def compile_vc71(source: Path, output: Path, regcall_elide: bool = False, opt: s
         src_win,
     ]
 
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True)
+    finally:
+        # Preprocessed temps live next to the source (so relative includes
+        # resolve) — remove them so repo scans (raw-cast baseline, hazard
+        # scan, grep) never see duplicated source under src/.
+        if actual_source != source:
+            actual_source.unlink(missing_ok=True)
+        regcall_tmp = source.parent / f".vc71_regcall_{source.name}"
+        if regcall_tmp != actual_source:
+            regcall_tmp.unlink(missing_ok=True)
+
     if result.returncode != 0:
         diag = result.stdout + result.stderr
         print(f"VC71 compilation failed:\n{diag}", file=sys.stderr)
