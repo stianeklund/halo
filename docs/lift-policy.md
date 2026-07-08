@@ -41,13 +41,13 @@ column.  Use it to choose the Phase-1 model:
 | oracle_strength | Meaning | Suggested Phase-1 model |
 |-----------------|---------|------------------------|
 | `strong` | Delinked ref + pure-leaf or stubbable (leaf_cache) + no @\<reg\> args | Haiku (cheap, deterministic oracle catches mistakes) |
-| `medium` | Delinked ref only | Sonnet → Opus escalation |
-| `weak` | No delinked ref, or reg-args, or known structural-ceiling class | Sonnet → Opus (never Haiku) |
+| `medium` | Delinked ref only | Opus → Fable escalation |
+| `weak` | No delinked ref, or reg-args, or known structural-ceiling class | Opus → Fable (never Haiku) |
 
 **Pilot status:** Haiku lane not yet adopted.  Run 10 strong-oracle targets with
 `model="haiku"` in Phase 1, record VC71 pass rate + escalation rate, and commit
 results to `artifacts/auto_lift/haiku_pilot_report.md`.  Adopt only if first-pass
-≥90% rate is within ~15pp of Sonnet's baseline.
+≥90% rate is within ~15pp of the Opus first-pass baseline.
 
 ---
 
@@ -89,7 +89,7 @@ File-write instructions (write directly to the repo, do not output code blocks):
 
 Applied identically in both `/auto-lift` and `/goal-lift`.
 
-**Escalate to Opus when:**
+**Escalate to Fable when:**
 - VC71 match < 65% (control flow / structure wrong)
 - ABI audit fails (calling convention reasoning)
 - FPU-WARN present (operand order requires careful disasm reading)
@@ -101,15 +101,15 @@ Applied identically in both `/auto-lift` and `/goal-lift`.
 - Build fails on an unrelated file (repo state issue, not lift quality)
 
 **Escalation steps:**
-1. Revert the Sonnet attempt:
+1. Revert the Opus attempt:
    ```bash
    rtk git checkout -- src/ kb.json tools/kb_reg_baseline.json
    ```
-2. Re-run Phase 1 using `Agent(subagent_type="xbox-halo-re-analyst")` without
-   the `model: "sonnet"` override — the agent's default model (Opus) kicks in.
+2. Re-run Phase 1 using `Agent(subagent_type="xbox-halo-re-analyst", model="fable")`
+   — a *different* model from the Opus base gives perspective diversity.
    Include the same Phase-1 briefing prompt as the original attempt.
 3. Re-run Phase 2 (`lift_pipeline.py`).
-4. If Opus also fails → revert+log with both attempts recorded; skip target.
+4. If Fable also fails → revert+log with both attempts recorded; skip target.
 
 ---
 
@@ -124,8 +124,8 @@ Write to `artifacts/auto_lift/failures/<target_name>.json`:
   "object": "<object_name>",
   "timestamp": "<ISO 8601>",
   "attempts": [
-    {"model": "sonnet", "failure_stage": "<stage>", "error_summary": "<msg>"},
-    {"model": "opus",   "failure_stage": "<stage>", "error_summary": "<msg>"}
+    {"model": "opus",  "failure_stage": "<stage>", "error_summary": "<msg>"},
+    {"model": "fable", "failure_stage": "<stage>", "error_summary": "<msg>"}
   ],
   "pipeline_output": "<full pipeline stderr/stdout from last attempt>"
 }
