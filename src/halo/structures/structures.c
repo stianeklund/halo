@@ -641,6 +641,45 @@ void FUN_00191ff0(int base, unsigned int index)
   }
 }
 
+/* FUN_001926a0 (0x1926a0)
+ *
+ * Copies a tag-block bitset from src to dst (word-granular), then for
+ * every bit set in the destination bitset invokes FUN_00191de0 to
+ * propagate/traverse the corresponding element.
+ *
+ * Confirmed from disassembly at 0x1926a0:
+ * - descriptor at param_1; element count at *(param_1+4)
+ * - if src != dst: csmemcpy(dst, src, ((count+0x1f)>>5)<<2) bytes
+ *   (word-granular rounded copy of the bitset)
+ * - for each bit index i in [0,count) that is set in the dst bitset:
+ *     FUN_00191de0(descriptor, dst, i)
+ * - count is re-read from *(param_1+4) every iteration (not cached)
+ * - returns byte-bool true (AL=1; CONCAT31 high bytes are incidental)
+ * All calls cdecl, args pushed right-to-left. No FPU.
+ */
+unsigned char FUN_001926a0(int descriptor, int src, int dst)
+{
+  int count;
+  int i;
+
+  if (src != dst) {
+    csmemcpy((void *)dst, (void *)src,
+             (size_t)(((*(int *)(descriptor + 4) + 0x1f) >> 5) << 2));
+  }
+  count = *(int *)(descriptor + 4);
+  i = 0;
+  if (0 < count) {
+    do {
+      if ((*(unsigned int *)(dst + (i >> 5) * 4) & (1 << (i & 0x1f))) != 0) {
+        FUN_00191de0(descriptor, dst, i);
+      }
+      count = *(int *)(descriptor + 4);
+      i = i + 1;
+    } while (i < count);
+  }
+  return 1;
+}
+
 void structures_initialize(void)
 {
   structure_detail_objects_initialize();
