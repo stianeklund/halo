@@ -10281,8 +10281,15 @@ apply_angle:
   }
 
   /* Rotate run_vector by the angle around the global up axis */
+#if defined(_MSC_VER) && !defined(__clang__)
+  /* VC71 /Oi inlines cos/sin as FCOS/FSIN sharing ST0, matching the original
+   * codegen; the clang runtime build keeps the explicit x87 helpers. */
+  cos_angle = (float)cos((double)*(float *)(unit + 0x3c4));
+  sin_angle = (float)sin((double)*(float *)(unit + 0x3c4));
+#else
   cos_angle = x87_fcos(*(float *)(unit + 0x3c4));
   sin_angle = x87_fsin(*(float *)(unit + 0x3c4));
+#endif
   up_axis = *(float **)0x31fc44;
   rotate_vector3d_by_sincos(run_vector, up_axis, sin_angle, cos_angle);
 
