@@ -15,11 +15,14 @@
  * exists and is a server-role connection, then stores the requested state. */
 void network_server_allow_client_connections(int server_connection, bool open)
 {
+  network_server_connection *server;
+
+  server = (network_server_connection *)server_connection;
   assert_halt(server_connection);
   assert_halt_msg(
-    *(uint8_t *)(server_connection + 0x30) & FLAG(_connection_create_server_bit),
+    *(uint8_t *)&server->connection.flags & FLAG(_connection_create_server_bit),
     "server_connection->flags&FLAG(_connection_create_server_bit)");
-  *(bool *)(server_connection + 0x4c) = open;
+  server->allow_client_connections = open;
 }
 
 /* network_connection_connected (0x128360).
@@ -30,11 +33,15 @@ void network_server_allow_client_connections(int server_connection, bool open)
  * endpoint-connected predicate FUN_000831a0 for the final answer. */
 bool network_connection_connected(int connection)
 {
+  network_connection *conn;
+
+  conn = (network_connection *)connection;
   assert_halt(connection);
-  if ((*(uint8_t *)(connection + 0x30) &
+  if ((*(uint8_t *)&conn->flags &
        (FLAG(_connection_create_clientside_client_bit) |
-        FLAG(_connection_create_serverside_client_bit))) != 0 && *(int *)connection != 0) {
-    if (FUN_000831a0(*(int *)connection)) {
+        FLAG(_connection_create_serverside_client_bit))) != 0 &&
+      conn->reliable_endpoint != 0) {
+    if (FUN_000831a0(conn->reliable_endpoint)) {
       return true;
     }
   }
@@ -51,17 +58,19 @@ bool network_connection_connected(int connection)
  * flag==0, so only the first buffer is refreshed. */
 void network_connection_get_address(int connection, void *buf, int flag)
 {
-  int *conn;
+  network_connection *conn;
 
   assert_halt(connection);
-  conn = (int *)connection;
+  conn = (network_connection *)connection;
   if (buf != (void *)0 &&
-      (conn[0] == 0 || FUN_00083a60((int *)conn[0], buf) != 0)) {
+      (conn->reliable_endpoint == 0 ||
+       FUN_00083a60((int *)conn->reliable_endpoint, buf) != 0)) {
     csmemset(buf, 0, 0x18);
     *(short *)((char *)buf + 0x10) = 4;
   }
   if (flag != 0) {
-    if (conn[1] != 0 && FUN_00083a60((int *)conn[1], (void *)flag) == 0) {
+    if (conn->unreliable_endpoint != 0 &&
+        FUN_00083a60((int *)conn->unreliable_endpoint, (void *)flag) == 0) {
       return;
     }
     csmemset((void *)flag, 0, 0x18);
@@ -75,8 +84,11 @@ void network_connection_get_address(int connection, void *buf, int flag)
 void network_connection_set_connection_rejection_procedure(int connection,
                                                            void *callback)
 {
+  network_connection *conn;
+
+  conn = (network_connection *)connection;
   assert_halt(connection);
-  *(void **)(connection + 0xc) = callback;
+  conn->rejection_procedure = (connection_rejection_procedure)callback;
 }
 
 /* network_connection_server_accept_client_connection (0x1285c0).
@@ -91,13 +103,18 @@ void network_connection_set_connection_rejection_procedure(int connection,
 bool network_connection_server_accept_client_connection(int server_connection,
                                                         int client_connection)
 {
+  network_server_connection *server;
+  network_connection *client;
+
+  server = (network_server_connection *)server_connection;
+  client = (network_connection *)client_connection;
   assert_halt(server_connection);
   assert_halt_msg(
-    *(uint8_t *)(server_connection + 0x30) & FLAG(_connection_create_server_bit),
+    *(uint8_t *)&server->connection.flags & FLAG(_connection_create_server_bit),
     "server_connection->flags&FLAG(_connection_create_server_bit)");
   assert_halt(client_connection);
-  return (short)add_endpoint_to_set(*(int *)client_connection,
-                                    *(void **)(server_connection + 0x38)) == 0;
+  return (short)add_endpoint_to_set(client->reliable_endpoint,
+                                    (void *)server->endpoint_set) == 0;
 }
 
 /* network_connection_active (0x128660).
@@ -107,8 +124,11 @@ bool network_connection_server_accept_client_connection(int server_connection,
  * bit 4 has not been set. */
 bool network_connection_active(int connection)
 {
+  network_connection *conn;
+
+  conn = (network_connection *)connection;
   assert_halt(connection);
-  return ((*(unsigned int *)(connection + 0x30) >> _connection_closed_bit) & 1) == 0;
+  return ((conn->flags >> _connection_closed_bit) & 1) == 0;
 }
 
 /* network_connection_going_stale (0x1286a0).
@@ -118,8 +138,11 @@ bool network_connection_active(int connection)
  * traffic has lapsed and the transport is about to be torn down). */
 bool network_connection_going_stale(int connection)
 {
+  network_connection *conn;
+
+  conn = (network_connection *)connection;
   assert_halt(connection);
-  return (*(unsigned int *)(connection + 0x30) >> _connection_going_stale_bit) & 1;
+  return (conn->flags >> _connection_going_stale_bit) & 1;
 }
 
 /* network_connection_keep_alive (0x128d20).
@@ -129,7 +152,10 @@ bool network_connection_going_stale(int connection)
  * sent/observed so the going-stale logic can measure elapsed idle time. */
 void network_connection_keep_alive(int connection)
 {
-  *(unsigned int *)(connection + 8) = system_milliseconds();
+  network_connection *conn;
+
+  conn = (network_connection *)connection;
+  conn->last_keep_alive_milliseconds = system_milliseconds();
 }
 
 /* network_connection_delete (0x128d30).
@@ -147,45 +173,49 @@ void network_connection_keep_alive(int connection)
  * setup with the connection already live in ESI. */
 void network_connection_delete(int connection)
 {
-  int *children;
+  network_connection *conn;
+  network_server_connection *server;
+  network_connection **children;
   int i;
-  int child;
+  network_connection *child;
 
   if (connection == 0) {
     return;
   }
+  conn = (network_connection *)connection;
+  server = (network_server_connection *)connection;
   network_connection_notify_traffic_event(1, 1, connection);
-  if (*(int *)connection != 0) {
-    destroy_endpoint(*(int **)connection);
+  if (conn->reliable_endpoint != 0) {
+    destroy_endpoint((int *)conn->reliable_endpoint);
   }
-  if (*(int *)(connection + 4) != 0) {
-    destroy_endpoint(*(int **)(connection + 4));
+  if (conn->unreliable_endpoint != 0) {
+    destroy_endpoint((int *)conn->unreliable_endpoint);
   }
-  if (*(int *)(connection + 0x10) != 0) {
-    circular_queue_delete(*(int *)(connection + 0x10));
+  if (conn->reliable_incoming_queue != 0) {
+    circular_queue_delete(conn->reliable_incoming_queue);
   }
-  if (*(int *)(connection + 0x14) != 0) {
-    circular_queue_delete(*(int *)(connection + 0x14));
+  if (conn->unreliable_incoming_queue != 0) {
+    circular_queue_delete(conn->unreliable_incoming_queue);
   }
-  if ((*(uint8_t *)(connection + 0x30) & FLAG(_connection_create_server_bit)) != 0) {
-    children = (int *)(connection + 0x3c);
-    if (children != (int *)0) {
+  if ((*(uint8_t *)&conn->flags & FLAG(_connection_create_server_bit)) != 0) {
+    children = server->client_connections;
+    if (children != (network_connection **)0) {
       i = 4;
       do {
         child = *children;
-        if (child != 0) {
-          if (*(int *)(connection + 0x38) != 0) {
-            remove_endpoint_from_set(*(int **)child,
-                                     *(uint32_t **)(connection + 0x38));
+        if (child != (network_connection *)0) {
+          if (server->endpoint_set != 0) {
+            remove_endpoint_from_set((int *)child->reliable_endpoint,
+                                     (uint32_t *)server->endpoint_set);
           }
-          network_connection_delete(child);
+          network_connection_delete((int)child);
         }
         children = children + 1;
         i = i - 1;
       } while (i != 0);
     }
-    if (*(int *)(connection + 0x38) != 0) {
-      delete_endpoint_set(*(int *)(connection + 0x38));
+    if (server->endpoint_set != 0) {
+      delete_endpoint_set(server->endpoint_set);
     }
   }
   debug_free((void *)connection,
@@ -226,12 +256,12 @@ bool network_connection_write(void *connection, void *message,
                               unsigned short size, int dest_address,
                               bool reliable)
 {
-  int conn;
+  network_connection *conn;
   int result;
   int send_result;
   const char *err;
 
-  conn = (int)connection;
+  conn = (network_connection *)connection;
   result = 0;
 
   assert_halt(message);
@@ -242,7 +272,7 @@ bool network_connection_write(void *connection, void *message,
 
   byte_swap_message_header((unsigned short *)message, 1);
 
-  if ((*(uint8_t *)(conn + 0x30) & FLAG(_connection_create_server_bit)) != 0) {
+  if ((*(uint8_t *)&conn->flags & FLAG(_connection_create_server_bit)) != 0) {
     /* loopback / datagram path */
     assert_halt_msg(reliable == 0, "!reliable");
     assert_halt_msg(dest_address != 0, "dest_address");
@@ -251,41 +281,43 @@ bool network_connection_write(void *connection, void *message,
       assert_halt_msg(size <= DATAGRAM_MAXIMUM_SIZE,
                       "buffer_size <= DATAGRAM_MAXIMUM_SIZE");
     }
-    result = FUN_00084740(*(int *)(conn + 4), message, size, dest_address);
-    network_connection_notify_traffic_event(2, size, conn);
+    result = FUN_00084740(conn->unreliable_endpoint, message, size,
+                          dest_address);
+    network_connection_notify_traffic_event(2, size, (int)conn);
     goto finish;
   }
 
   if (reliable != 0) {
     /* normal reliable path */
     assert_halt_msg(size <= 0x800, "message size exceeds maximum allowed size");
-    assert_halt_msg((*(uint8_t *)(conn + 0x30) &
+    assert_halt_msg((*(uint8_t *)&conn->flags &
                    (FLAG(_connection_create_clientside_client_bit) |
                     FLAG(_connection_create_serverside_client_bit))) != 0,
                     "(flags & clientside) || (flags & serverside)");
     do {
-      send_result = send_endpoint(*(int **)conn, (const char *)message, size);
+      send_result = send_endpoint((int *)conn->reliable_endpoint,
+                                  (const char *)message, size);
     } while (send_result <= 0 && send_result == -4);
     if (send_result > 0) {
       result = 1;
-      if (*(int *)(conn + 0x18) != 0) {
+      if (conn->traffic_log_file != (void *)0) {
         int ticks;
         int delta;
         double elapsed;
 
         ticks = FUN_001d0581();
-        delta = ticks - *(int *)(conn + 0x1c);
+        delta = ticks - conn->traffic_log_start_milliseconds;
         elapsed = (double)delta;
         if (delta < 0) {
           elapsed += *(double *)0x265d40;
         }
         elapsed = elapsed * *(double *)0x294bf0;
-        crt_fprintf(*(void **)(conn + 0x18),
+        crt_fprintf(conn->traffic_log_file,
                     (const char *)L"%g\t%ld\t%ld\t%ld\t%ld\n", elapsed, 0, 0,
                     send_result, 0);
-        crt_fflush(*(void **)(conn + 0x18));
+        crt_fflush(conn->traffic_log_file);
       }
-      *(int *)(conn + 0x28) += 1;
+      conn->stream_messages_sent += 1;
     } else {
       err = FUN_00081c80(send_result);
       error(2, "client call to write_endpoint() returned error '%s'", err);
@@ -294,20 +326,21 @@ bool network_connection_write(void *connection, void *message,
   }
 
   /* normal unreliable path */
-  if (*(int *)(conn + 4) == 0) {
+  if (conn->unreliable_endpoint == 0) {
     return true;
   }
   assert_halt_msg(size <= DATAGRAM_MAXIMUM_SIZE,
                   "message size exceeds maximum allowed size");
   if (dest_address == 0) {
-    if (FUN_000831a0(*(int *)(conn + 4))) {
-      send_endpoint(*(int **)(conn + 4), (const char *)message, size);
-      network_connection_notify_traffic_event(2, size, conn);
+    if (FUN_000831a0(conn->unreliable_endpoint)) {
+      send_endpoint((int *)conn->unreliable_endpoint, (const char *)message,
+                    size);
+      network_connection_notify_traffic_event(2, size, (int)conn);
     }
     return true;
   }
-  FUN_00084740(*(int *)(conn + 4), message, size, dest_address);
-  network_connection_notify_traffic_event(2, size, conn);
+  FUN_00084740(conn->unreliable_endpoint, message, size, dest_address);
+  network_connection_notify_traffic_event(2, size, (int)conn);
   return true;
 
 finish:
@@ -343,6 +376,8 @@ finish:
 int network_connection_new(unsigned int flags, unsigned short well_known_port)
 {
   int connection;
+  network_connection *conn;
+  network_server_connection *server;
   int endpoint;
   short status;
   int reliable_size;
@@ -373,9 +408,9 @@ int network_connection_new(unsigned int flags, unsigned short well_known_port)
     if (connection == 0) {
       return 0;
     }
-    *(uint8_t *)(connection + 0x4c) = 1;
+    ((network_server_connection *)connection)->allow_client_connections = 1;
     endpoint = create_endpoint_set(5);
-    *(int *)(connection + 0x38) = endpoint;
+    ((network_server_connection *)connection)->endpoint_set = endpoint;
     if (endpoint == 0) {
       network_connection_delete(connection);
       return 0;
@@ -384,10 +419,12 @@ int network_connection_new(unsigned int flags, unsigned short well_known_port)
     unreliable_size = 0x1900;
   }
 
-  *(int *)(connection + 8) = (int)system_milliseconds();
-  *(int *)(connection + 0x30) = (int)flags;
+  conn = (network_connection *)connection;
+  server = (network_server_connection *)connection;
+  conn->last_keep_alive_milliseconds = system_milliseconds();
+  conn->flags = flags;
   endpoint = get_next_endpoint_from_set(0x12);
-  *(int *)connection = endpoint;
+  conn->reliable_endpoint = endpoint;
   if (endpoint == 0) {
     goto fail;
   }
@@ -401,42 +438,43 @@ int network_connection_new(unsigned int flags, unsigned short well_known_port)
     *(short *)((char *)&address[4]) = 4;
     *(unsigned short *)((char *)&address[4] + 2) = well_known_port;
     status = FUN_00083ce0((int *)endpoint, address);
-    if (status != 0 || (status = FUN_00083bd0(*(int *)connection, 0)) != 0 ||
-        (status = FUN_000843a0(*(int *)connection)) != 0 ||
+    if (status != 0 ||
+        (status = FUN_00083bd0(conn->reliable_endpoint, 0)) != 0 ||
+        (status = FUN_000843a0(conn->reliable_endpoint)) != 0 ||
         (status = (short)add_endpoint_to_set(
-           *(int *)connection, (void *)*(int *)(connection + 0x38))) != 0) {
+           conn->reliable_endpoint, (void *)server->endpoint_set)) != 0) {
       goto fail;
     }
   }
 
   endpoint = get_next_endpoint_from_set(0x11);
-  *(int *)(connection + 4) = endpoint;
+  conn->unreliable_endpoint = endpoint;
   if (endpoint == 0) {
     goto fail;
   }
   address[0] = 0;
   *(short *)((char *)&address[4]) = 4;
   *(unsigned short *)((char *)&address[4] + 2) = well_known_port;
-  *(unsigned short *)(connection + 0x34) = well_known_port;
+  conn->well_known_port = well_known_port;
   status = FUN_00083ce0((int *)endpoint, address);
   if (status != 0) {
     goto fail;
   }
-  status = FUN_00083bd0(*(int *)(connection + 4), 0);
+  status = FUN_00083bd0(conn->unreliable_endpoint, 0);
   if (status != 0) {
     goto fail;
   }
   if (reliable_size != 0) {
-    *(int *)(connection + 0x10) =
+    conn->reliable_incoming_queue =
       (int)circular_queue_new((int)"incoming-reliable", reliable_size);
-    if (*(int *)(connection + 0x10) == 0) {
+    if (conn->reliable_incoming_queue == 0) {
       goto fail;
     }
   }
   if (unreliable_size != 0) {
-    *(int *)(connection + 0x14) =
+    conn->unreliable_incoming_queue =
       (int)circular_queue_new((int)"incoming-unreliable", unreliable_size);
-    if (*(int *)(connection + 0x14) == 0) {
+    if (conn->unreliable_incoming_queue == 0) {
       goto fail;
     }
   }
@@ -464,19 +502,21 @@ fail:
 bool network_connection_connect(int connection, int remote_address,
                                 int async_process_ref)
 {
+  network_connection *conn;
   int reliable;
   short status;
   const char *err;
 
+  conn = (network_connection *)connection;
   assert_halt(connection);
   assert_halt(remote_address);
 
-  if (*(int *)connection == 0 && *(int *)(connection + 4) == 0) {
+  if (conn->reliable_endpoint == 0 && conn->unreliable_endpoint == 0) {
     return false;
   }
 
-  if (*(int *)(connection + 4) != 0) {
-    status = FUN_00083e20(*(int *)(connection + 4), remote_address);
+  if (conn->unreliable_endpoint != 0) {
+    status = FUN_00083e20(conn->unreliable_endpoint, remote_address);
     if (status != 0) {
       err = FUN_00081c80(status);
       error(2, "connect_endpoint() on unreliable endpoint returned error '%s'",
@@ -485,7 +525,7 @@ bool network_connection_connect(int connection, int remote_address,
     }
   }
 
-  reliable = *(int *)connection;
+  reliable = conn->reliable_endpoint;
   if (reliable != 0) {
     if (async_process_ref != 0) {
       status = FUN_000841b0(reliable, remote_address, async_process_ref);
@@ -522,17 +562,19 @@ bool network_connection_connect(int connection, int remote_address,
  * an error, resets the queue, and returns false. */
 bool network_connection_read_unreliable(int connection, void *buffer, int *size, void *addr)
 {
+  network_connection *conn;
   unsigned short header;
   int source_addr;
   unsigned short *buf_size;
   unsigned short packet_size;
   unsigned int available;
 
+  conn = (network_connection *)connection;
   buf_size = (unsigned short *)size;
 
   assert_halt_msg(
-    connection != 0 && *(int *)(connection + 0x14) != 0 &&
-      (*(uint8_t *)(connection + 0x30) &
+    connection != 0 && conn->unreliable_incoming_queue != 0 &&
+      (*(uint8_t *)&conn->flags &
        FLAG(_connection_create_serverside_client_bit)) == 0,
     "connection && connection->unreliable_incoming_queue && "
     "!(connection->flags&FLAG(_connection_create_serverside_client_bit))");
@@ -540,7 +582,7 @@ bool network_connection_read_unreliable(int connection, void *buffer, int *size,
   assert_halt(size);
   assert_halt_msg(*buf_size > 2, "*buffer_size>sizeof(message_header)");
 
-  if (!circular_queue_try_read(*(int *)(connection + 0x14), &header, 2, 0)) {
+  if (!circular_queue_try_read(conn->unreliable_incoming_queue, &header, 2, 0)) {
     return false;
   }
   byte_swap_message_header(&header, 0);
@@ -549,21 +591,21 @@ bool network_connection_read_unreliable(int connection, void *buffer, int *size,
   if (packet_size > DATAGRAM_MAXIMUM_SIZE) {
     error(2, "got an unusually large datagram (#d bytes); resetting unreliable incoming queue",
           packet_size);
-    circular_queue_reset(*(int *)(connection + 0x14));
+    circular_queue_reset(conn->unreliable_incoming_queue);
     return false;
   }
 
   if (packet_size > *buf_size) {
     error(2, "packet in queue is #%d bytes, but we can only handle #%d bytes!; resetting unreliable incoming queue",
           packet_size, *buf_size);
-    circular_queue_reset(*(int *)(connection + 0x14));
+    circular_queue_reset(conn->unreliable_incoming_queue);
     return false;
   }
 
-  available = circular_queue_size(*(int *)(connection + 0x14));
+  available = circular_queue_size(conn->unreliable_incoming_queue);
   if ((unsigned int)packet_size + 4 <= available &&
-      circular_queue_try_read(*(int *)(connection + 0x14), buffer, packet_size, 1) &&
-      circular_queue_try_read(*(int *)(connection + 0x14), &source_addr, 4, 1)) {
+      circular_queue_try_read(conn->unreliable_incoming_queue, buffer, packet_size, 1) &&
+      circular_queue_try_read(conn->unreliable_incoming_queue, &source_addr, 4, 1)) {
     *(unsigned short *)buffer = header;
     assert_halt_msg((header & 1) == 0, "encryption should not be active");
     if (addr != (void *)0) {
@@ -575,10 +617,10 @@ bool network_connection_read_unreliable(int connection, void *buffer, int *size,
     return true;
   }
 
-  available = circular_queue_size(*(int *)(connection + 0x14));
+  available = circular_queue_size(conn->unreliable_incoming_queue);
   error(2, "partial datagram in queue (#%d of #%d bytes); resetting queue",
         available, packet_size);
-  circular_queue_reset(*(int *)(connection + 0x14));
+  circular_queue_reset(conn->unreliable_incoming_queue);
   return false;
 }
 
@@ -595,20 +637,22 @@ bool network_connection_read_unreliable(int connection, void *buffer, int *size,
  * stream-messages-received counter (+0x2c), and returns true. */
 bool network_connection_read_reliable(int connection, void *buffer, int *size, void *addr)
 {
+  network_connection *conn;
   unsigned short header;
   unsigned short *buf_size;
   unsigned short packet_size;
   int available;
 
+  conn = (network_connection *)connection;
   buf_size = (unsigned short *)size;
 
-  assert_halt_msg(connection != 0 && *(int *)(connection + 0x10) != 0,
+  assert_halt_msg(connection != 0 && conn->reliable_incoming_queue != 0,
                   "connection && connection->reliable_incoming_queue");
   assert_halt(buffer);
   assert_halt(size);
   assert_halt_msg(*buf_size > 2, "*buffer_size>sizeof(message_header)");
 
-  if (!circular_queue_try_read(*(int *)(connection + 0x10), &header, 2, 0)) {
+  if (!circular_queue_try_read(conn->reliable_incoming_queue, &header, 2, 0)) {
     return false;
   }
   byte_swap_message_header(&header, 0);
@@ -617,30 +661,30 @@ bool network_connection_read_reliable(int connection, void *buffer, int *size, v
   if (packet_size > 0x800) {
     error(2, "got an unusually large message (#d bytes); resetting reliable incoming queue",
           packet_size);
-    circular_queue_reset(*(int *)(connection + 0x10));
+    circular_queue_reset(conn->reliable_incoming_queue);
     return false;
   }
 
   if (packet_size > *buf_size) {
     error(2, "packet in queue is #%d bytes, but we can only handle #%d bytes!; resetting reliable incoming queue",
           packet_size, *buf_size);
-    circular_queue_reset(*(int *)(connection + 0x10));
+    circular_queue_reset(conn->reliable_incoming_queue);
     return false;
   }
 
-  available = circular_queue_size(*(int *)(connection + 0x10));
+  available = circular_queue_size(conn->reliable_incoming_queue);
   if ((int)(unsigned int)packet_size <= available &&
-      circular_queue_try_read(*(int *)(connection + 0x10), buffer, packet_size, 1)) {
+      circular_queue_try_read(conn->reliable_incoming_queue, buffer, packet_size, 1)) {
     *(unsigned short *)buffer = header;
     assert_halt_msg((header & 1) == 0, "encryption should not be active");
     if (addr != (void *)0) {
-      if (FUN_00083a60(*(int **)connection, addr) != 0) {
+      if (FUN_00083a60((int *)conn->reliable_endpoint, addr) != 0) {
         csmemset(addr, 0, 0x18);
         *(unsigned short *)((char *)addr + 0x10) = 4;
       }
     }
     *buf_size = packet_size;
-    *(int *)(connection + 0x2c) += 1;
+    conn->stream_messages_received += 1;
     return true;
   }
   return false;
@@ -663,6 +707,7 @@ bool network_connection_read_reliable(int connection, void *buffer, int *size, v
 bool network_connection_idle_client_reliable_endpoint(int connection)
 {
   uint8_t buffer[2048];
+  network_connection *conn;
   int start_time;
   int avail;
   int received;
@@ -671,25 +716,27 @@ bool network_connection_idle_client_reliable_endpoint(int connection)
   bool ok;
   const char *err;
 
+  conn = (network_connection *)connection;
   start_time = (int)system_milliseconds();
   ok = true;
 
   assert_halt(connection);
-  assert_halt_msg(*(int *)connection != 0, "connection->reliable_endpoint");
-  assert_halt_msg(*(int *)(connection + 0x10) != 0,
+  assert_halt_msg(conn->reliable_endpoint != 0,
+                  "connection->reliable_endpoint");
+  assert_halt_msg(conn->reliable_incoming_queue != 0,
                   "connection->reliable_incoming_queue");
 
-  avail = (int)circular_queue_free_space(*(int *)(connection + 0x10));
+  avail = (int)circular_queue_free_space(conn->reliable_incoming_queue);
 
-  while (FUN_00083040(*(int *)connection, 0) != 0 && avail > 0) {
+  while (FUN_00083040(conn->reliable_endpoint, 0) != 0 && avail > 0) {
     if (avail > 0x7ff) {
       avail = 0x800;
     }
-    received = recv_endpoint(*(int **)connection, buffer, avail);
+    received = recv_endpoint((int *)conn->reliable_endpoint, buffer, avail);
     if (received <= 0) {
       if (received != -4) {
         if (received == -3) {
-          *(unsigned int *)(connection + 0x30) |= FLAG(_connection_closed_bit);
+          conn->flags |= FLAG(_connection_closed_bit);
         } else if (received == 0) {
           error(2, "client reliable connection lost");
         } else {
@@ -700,24 +747,24 @@ bool network_connection_idle_client_reliable_endpoint(int connection)
       }
       goto finish;
     }
-    *(int *)(connection + 8) = (int)system_milliseconds();
-    if (*(int *)(connection + 0x18) != 0) {
+    conn->last_keep_alive_milliseconds = system_milliseconds();
+    if (conn->traffic_log_file != (void *)0) {
       now = (int)system_milliseconds();
-      elapsed = (double)(now - *(int *)(connection + 0x1c));
-      if (now - *(int *)(connection + 0x1c) < 0) {
+      elapsed = (double)(now - conn->traffic_log_start_milliseconds);
+      if (now - conn->traffic_log_start_milliseconds < 0) {
         elapsed += *(double *)0x265d40;
       }
       elapsed = elapsed * *(double *)0x294bf0;
-      crt_fprintf(*(void **)(connection + 0x18),
+      crt_fprintf(conn->traffic_log_file,
                   (const char *)L"%g\t%ld\t%ld\t%ld\t%ld\n", elapsed, 0, 0, 0,
                   received);
-      crt_fflush(*(void **)(connection + 0x18));
+      crt_fflush(conn->traffic_log_file);
     }
-    if (!FUN_00118ec0(*(int *)(connection + 0x10), buffer, received)) {
+    if (!FUN_00118ec0(conn->reliable_incoming_queue, buffer, received)) {
       error(2, "circular_queue_queue_data() failed");
       ok = false;
     }
-    avail = (int)circular_queue_free_space(*(int *)(connection + 0x10));
+    avail = (int)circular_queue_free_space(conn->reliable_incoming_queue);
     if (!ok) {
       goto finish;
     }
@@ -750,31 +797,33 @@ finish:
  * running success flag. */
 bool network_connection_idle(int connection, int *output)
 {
+  network_server_connection *server;
   short poll_result;
   int endpoint;
   int accepted;
   int new_conn;
-  int child;
+  network_connection *child;
   int i;
-  int *slot;
+  network_connection **slot;
   bool ok;
   const char *err;
 
+  server = (network_server_connection *)connection;
   ok = true;
 
   assert_halt(connection);
-  assert_halt_msg(*(int *)connection != 0,
+  assert_halt_msg(server->connection.reliable_endpoint != 0,
                   "connection->connection.reliable_endpoint");
-  assert_halt_msg(*(int *)(connection + 0x38) != 0, "connection->endpoint_set");
+  assert_halt_msg(server->endpoint_set != 0, "connection->endpoint_set");
   assert_halt(output);
 
   *output = 0;
-  poll_result = (short)poll_endpoint_set(*(int *)(connection + 0x38), 0);
+  poll_result = (short)poll_endpoint_set(server->endpoint_set, 0);
 
   if (poll_result == 0) {
-    rewind_endpoint_set(*(int *)(connection + 0x38));
+    rewind_endpoint_set(server->endpoint_set);
     do {
-      endpoint = FUN_000829b0(*(int *)(connection + 0x38));
+      endpoint = FUN_000829b0(server->endpoint_set);
       if (endpoint == 0) {
         return ok;
       }
@@ -782,21 +831,22 @@ bool network_connection_idle(int connection, int *output)
         return ok;
       }
       if (FUN_00083040(endpoint, 0) != 0) {
-        if (endpoint == *(int *)connection) {
-          if (*(uint8_t *)(connection + 0x4c) != 0 &&
-              FUN_00082a30(*(int *)(connection + 0x38)) < 5) {
+        if (endpoint == server->connection.reliable_endpoint) {
+          if (server->allow_client_connections != 0 &&
+              FUN_00082a30(server->endpoint_set) < 5) {
             /* accept a new client */
             accepted = FUN_00084450(endpoint);
             if (accepted == 0 || FUN_00083bd0(accepted, 0) != 0 ||
                 (new_conn = (int)network_connection_new_serverside_client(accepted)) == 0) {
               error(2, "accept_endpoint() returned NULL");
             } else {
-              slot = (int *)(connection + 0x3c);
+              slot = server->client_connections;
               i = 0;
               do {
                 if (*slot == 0) {
                   *output = new_conn;
-                  *(int *)(connection + 0x3c + i * 4) = new_conn;
+                  server->client_connections[i] =
+                    (network_connection *)new_conn;
                   if (i >= 4) {
                     error(2, "error adding new client");
                   }
@@ -809,12 +859,12 @@ bool network_connection_idle(int connection, int *output)
             }
           } else {
             /* reject: not accepting, or set is full */
-            if (*(int *)(connection + 0xc) == 0) {
+            if (server->connection.rejection_procedure == 0) {
               poll_result = (short)FUN_00084940(endpoint);
             } else {
               accepted = FUN_00084450(endpoint);
               if (accepted != 0) {
-                (*(void (*)(int))*(int *)(connection + 0xc))(accepted);
+                server->connection.rejection_procedure(accepted);
                 destroy_endpoint((int *)accepted);
               }
             }
@@ -822,18 +872,19 @@ bool network_connection_idle(int connection, int *output)
         } else {
           /* activity on an existing client endpoint */
           i = 0;
-          slot = (int *)(connection + 0x3c);
+          slot = server->client_connections;
           do {
-            if (*slot != 0 && *(int *)*slot == endpoint) {
-              child = *(int *)(connection + 0x3c + i * 4);
-              ok = network_connection_idle_client_reliable_endpoint(child);
+            if (*slot != 0 && (*slot)->reliable_endpoint == endpoint) {
+              child = server->client_connections[i];
+              ok = network_connection_idle_client_reliable_endpoint(
+                (int)child);
               if (!ok) {
                 if ((short)remove_endpoint_from_set(
-                        *(int **)child,
-                        *(uint32_t **)(connection + 0x38)) != 0) {
+                        (int *)child->reliable_endpoint,
+                        (uint32_t *)server->endpoint_set) != 0) {
                   error(2, "failed to remove a client endpoint from the server's endpoint set");
                 }
-                *(unsigned int *)(child + 0x30) |= FLAG(_connection_closed_bit);
+                child->flags |= FLAG(_connection_closed_bit);
                 ok = true;
               }
               if (i < 4) {
@@ -882,11 +933,13 @@ void network_connection_notify_traffic_event(int event, int enable, int connecti
 {
   uint8_t addr_buf[24];
   char name_buf[256];
+  network_connection *conn;
   int now;
   int i;
   double elapsed;
   const char *addr_str;
 
+  conn = (network_connection *)connection;
   assert_halt(connection);
 
   if (enable <= 0) {
@@ -895,8 +948,8 @@ void network_connection_notify_traffic_event(int event, int enable, int connecti
 
   switch (event) {
   case 0:
-    if (FUN_00083a60(*(int **)connection, addr_buf) != 0 &&
-        FUN_00083a60(*(int **)(connection + 4), addr_buf) != 0) {
+    if (FUN_00083a60((int *)conn->reliable_endpoint, addr_buf) != 0 &&
+        FUN_00083a60((int *)conn->unreliable_endpoint, addr_buf) != 0) {
       csmemset(addr_buf, 0, 0x18);
       *(unsigned short *)(addr_buf + 0x10) = 4;
     }
@@ -910,115 +963,114 @@ void network_connection_notify_traffic_event(int event, int enable, int connecti
       }
     }
     FUN_0008dc30(name_buf, (const char *)0x294d58);
-    *(void **)(connection + 0x18) =
-      crt_fopen(name_buf, (const char *)0x265938);
-    if (*(void **)(connection + 0x18) != 0) {
-      crt_fprintf(*(void **)(connection + 0x18), (const char *)0x294d10);
-      crt_fflush(*(void **)(connection + 0x18));
+    conn->traffic_log_file = crt_fopen(name_buf, (const char *)0x265938);
+    if (conn->traffic_log_file != (void *)0) {
+      crt_fprintf(conn->traffic_log_file, (const char *)0x294d10);
+      crt_fflush(conn->traffic_log_file);
     }
-    *(int *)(connection + 0x1c) = (int)system_milliseconds();
+    conn->traffic_log_start_milliseconds = (int)system_milliseconds();
     return;
 
   case 1:
-    if (*(void **)(connection + 0x18) == 0) {
+    if (conn->traffic_log_file == (void *)0) {
       break;
     }
-    if (FUN_00083a60(*(int **)connection, addr_buf) != 0) {
+    if (FUN_00083a60((int *)conn->reliable_endpoint, addr_buf) != 0) {
       csmemset(addr_buf, 0, 0x18);
       *(unsigned short *)(addr_buf + 0x10) = 4;
     }
-    crt_fprintf(*(void **)(connection + 0x18), (const char *)0x294d08);
-    crt_fprintf(*(void **)(connection + 0x18), (const char *)0x294cf4,
-                *(int *)(connection + 0x20));
-    crt_fprintf(*(void **)(connection + 0x18), (const char *)0x294cdc,
-                *(int *)(connection + 0x24));
-    crt_fprintf(*(void **)(connection + 0x18), (const char *)0x294cc0,
-                *(int *)(connection + 0x28));
-    crt_fprintf(*(void **)(connection + 0x18), (const char *)0x294ca0,
-                *(int *)(connection + 0x2c));
-    crt_fprintf(*(void **)(connection + 0x18), (const char *)0x294c6c, 0x1c);
-    crt_fprintf(*(void **)(connection + 0x18), (const char *)0x294c3c, 0x28);
-    crt_fprintf(*(void **)(connection + 0x18), (const char *)0x294bf8);
+    crt_fprintf(conn->traffic_log_file, (const char *)0x294d08);
+    crt_fprintf(conn->traffic_log_file, (const char *)0x294cf4,
+                conn->datagrams_sent);
+    crt_fprintf(conn->traffic_log_file, (const char *)0x294cdc,
+                conn->datagrams_received);
+    crt_fprintf(conn->traffic_log_file, (const char *)0x294cc0,
+                conn->stream_messages_sent);
+    crt_fprintf(conn->traffic_log_file, (const char *)0x294ca0,
+                conn->stream_messages_received);
+    crt_fprintf(conn->traffic_log_file, (const char *)0x294c6c, 0x1c);
+    crt_fprintf(conn->traffic_log_file, (const char *)0x294c3c, 0x28);
+    crt_fprintf(conn->traffic_log_file, (const char *)0x294bf8);
     now = (int)system_milliseconds();
-    elapsed = (double)(now - *(int *)(connection + 0x1c));
-    if (now - *(int *)(connection + 0x1c) < 0) {
+    elapsed = (double)(now - conn->traffic_log_start_milliseconds);
+    if (now - conn->traffic_log_start_milliseconds < 0) {
       elapsed += *(double *)0x265d40;
     }
     elapsed = elapsed * *(double *)0x294bf0;
-    crt_fprintf(*(void **)(connection + 0x18), (const char *)0x294bcc, elapsed);
+    crt_fprintf(conn->traffic_log_file, (const char *)0x294bcc, elapsed);
     addr_str = transport_address_to_string(addr_buf);
-    crt_fprintf(*(void **)(connection + 0x18), (const char *)0x294ba4,
+    crt_fprintf(conn->traffic_log_file, (const char *)0x294ba4,
                 addr_str);
-    crt_fclose(*(void **)(connection + 0x18));
-    *(void **)(connection + 0x18) = 0;
+    crt_fclose(conn->traffic_log_file);
+    conn->traffic_log_file = 0;
     return;
 
   case 2:
-    if (*(void **)(connection + 0x18) != 0) {
+    if (conn->traffic_log_file != (void *)0) {
       now = (int)system_milliseconds();
-      elapsed = (double)(now - *(int *)(connection + 0x1c));
-      if (now - *(int *)(connection + 0x1c) < 0) {
+      elapsed = (double)(now - conn->traffic_log_start_milliseconds);
+      if (now - conn->traffic_log_start_milliseconds < 0) {
         elapsed += *(double *)0x265d40;
       }
       elapsed = elapsed * *(double *)0x294bf0;
-      crt_fprintf(*(void **)(connection + 0x18), (const char *)0x294b90,
+      crt_fprintf(conn->traffic_log_file, (const char *)0x294b90,
                   elapsed, enable, 0, 0, 0);
-      crt_fflush(*(void **)(connection + 0x18));
+      crt_fflush(conn->traffic_log_file);
     }
-    *(int *)(connection + 0x20) += 1;
+    conn->datagrams_sent += 1;
     return;
 
   case 3:
-    if (*(void **)(connection + 0x18) != 0) {
+    if (conn->traffic_log_file != (void *)0) {
       now = (int)system_milliseconds();
-      elapsed = (double)(now - *(int *)(connection + 0x1c));
-      if (now - *(int *)(connection + 0x1c) < 0) {
+      elapsed = (double)(now - conn->traffic_log_start_milliseconds);
+      if (now - conn->traffic_log_start_milliseconds < 0) {
         elapsed += *(double *)0x265d40;
       }
       elapsed = elapsed * *(double *)0x294bf0;
-      crt_fprintf(*(void **)(connection + 0x18), (const char *)0x294b90,
+      crt_fprintf(conn->traffic_log_file, (const char *)0x294b90,
                   elapsed, 0, enable, 0, 0);
-      crt_fflush(*(void **)(connection + 0x18));
+      crt_fflush(conn->traffic_log_file);
     }
-    *(int *)(connection + 0x24) += 1;
+    conn->datagrams_received += 1;
     return;
 
   case 4:
-    if (*(void **)(connection + 0x18) != 0) {
+    if (conn->traffic_log_file != (void *)0) {
       now = (int)system_milliseconds();
-      elapsed = (double)(now - *(int *)(connection + 0x1c));
-      if (now - *(int *)(connection + 0x1c) < 0) {
+      elapsed = (double)(now - conn->traffic_log_start_milliseconds);
+      if (now - conn->traffic_log_start_milliseconds < 0) {
         elapsed += *(double *)0x265d40;
       }
       elapsed = elapsed * *(double *)0x294bf0;
-      crt_fprintf(*(void **)(connection + 0x18), (const char *)0x294b90,
+      crt_fprintf(conn->traffic_log_file, (const char *)0x294b90,
                   elapsed, 0, 0, enable, 0);
-      crt_fflush(*(void **)(connection + 0x18));
+      crt_fflush(conn->traffic_log_file);
       return;
     }
     break;
 
   case 5:
-    if (*(void **)(connection + 0x18) != 0) {
+    if (conn->traffic_log_file != (void *)0) {
       now = (int)system_milliseconds();
-      elapsed = (double)(now - *(int *)(connection + 0x1c));
-      if (now - *(int *)(connection + 0x1c) < 0) {
+      elapsed = (double)(now - conn->traffic_log_start_milliseconds);
+      if (now - conn->traffic_log_start_milliseconds < 0) {
         elapsed += *(double *)0x265d40;
       }
       elapsed = elapsed * *(double *)0x294bf0;
-      crt_fprintf(*(void **)(connection + 0x18), (const char *)0x294b90,
+      crt_fprintf(conn->traffic_log_file, (const char *)0x294b90,
                   elapsed, 0, 0, 0, enable);
-      crt_fflush(*(void **)(connection + 0x18));
+      crt_fflush(conn->traffic_log_file);
       return;
     }
     break;
 
   case 6:
-    *(int *)(connection + 0x28) += 1;
+    conn->stream_messages_sent += 1;
     return;
 
   case 7:
-    *(int *)(connection + 0x2c) += 1;
+    conn->stream_messages_received += 1;
     return;
 
   default:
@@ -1037,17 +1089,18 @@ void network_connection_notify_traffic_event(int event, int enable, int connecti
  * returns the new connection block. */
 void *network_connection_new_serverside_client(int endpoint)
 {
-  int *connection;
+  network_connection *connection;
 
   assert_halt(endpoint);
 
-  connection = (int *)debug_malloc(
+  connection = (network_connection *)debug_malloc(
     0x38, 1, "c:\\halo\\SOURCE\\networking\\network_connection.c", 0x347);
-  if (connection != (int *)0) {
-    connection[0xc] = FLAG(_connection_create_serverside_client_bit);
-    connection[0] = endpoint;
-    connection[4] = (int)circular_queue_new((int)"incoming-reliable", 0x8000);
-    if (connection[4] == 0) {
+  if (connection != (network_connection *)0) {
+    connection->flags = FLAG(_connection_create_serverside_client_bit);
+    connection->reliable_endpoint = endpoint;
+    connection->reliable_incoming_queue =
+      (int)circular_queue_new((int)"incoming-reliable", 0x8000);
+    if (connection->reliable_incoming_queue == 0) {
       network_connection_delete((int)connection);
       return (void *)0;
     }
