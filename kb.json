@@ -23217,7 +23217,8 @@
       "functions": [
         {
           "addr": "0x61ca0",
-          "decl": "void FUN_00061ca0(void);"
+          "decl": "void FUN_00061ca0(void);",
+          "ported": true
         },
         {
           "addr": "0x61d80",
@@ -36132,7 +36133,7 @@
         },
         {
           "addr": "0x609e0",
-          "decl": "void FUN_000609e0(void);"
+          "decl": "void FUN_000609e0(void *path);"
         }
       ],
       "name": "path.obj",
@@ -36143,7 +36144,7 @@
       "functions": [
         {
           "addr": "0x62960",
-          "decl": "void FUN_00062960(void);"
+          "decl": "void FUN_00062960(void *obstacles, float radius);"
         },
         {
           "addr": "0x62b20",
@@ -36202,7 +36203,7 @@
         },
         {
           "addr": "0x60ea0",
-          "decl": "void FUN_00060ea0(void);"
+          "decl": "void FUN_00060ea0(void *avoidance_record @<ecx>, float *end_point @<eax>, void *param_2, void *scenario, unsigned char param_4, float radius, float *start_point, int param_7, float param_8, unsigned char param_9, unsigned char param_10);"
         },
         {
           "addr": "0x61080",
@@ -36214,7 +36215,7 @@
         },
         {
           "addr": "0x615b0",
-          "decl": "void FUN_000615b0(void);"
+          "decl": "int FUN_000615b0(void *avoidance_record @<eax>);"
         },
         {
           "addr": "0x616e0",
