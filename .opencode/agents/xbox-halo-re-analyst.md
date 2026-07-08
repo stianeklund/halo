@@ -144,7 +144,7 @@ Ask only when a binary fact cannot be checked directly. If needed, ask for:
 
 Memory:
 Store durable RE findings at:
-`/mnt/g/dev/halo/.claude/agent-memory/xbox-halo-re-analyst/`
+`/mnt/g/dev/halo-clean-main/.opencode/agent-memory/xbox-halo-re-analyst/`
 
 Save recurring RE patterns, confirmed global meanings/types, Ghidra pitfalls,
 register-argument conventions, subsystem boundaries, and explicit user

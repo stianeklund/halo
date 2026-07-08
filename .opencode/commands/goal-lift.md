@@ -107,7 +107,7 @@ source file path, and these file-write instructions:
 ### Phase 2 — build + verify (orchestrator)
 
 After the agent returns, ensure a delinked reference exists (export via
-`mcp__ghidra-live__export_delinked_object` if missing), then run:
+`ghidra-live export_delinked_object` if missing), then run:
 ```bash
 rtk python3 tools/lift_pipeline.py --target FUNCNAME --no-metadata-update --verify-policy auto
 ```
@@ -128,7 +128,7 @@ rtk python3 tools/lift_pipeline.py --target FUNCNAME --no-metadata-update --veri
 ### Per-function delink fallback (boundary artifact suspicion only)
 
 1. Export per-function `.obj`:
-   `mcp__ghidra-live__export_delinked_object` with `selection_mode=range`
+   `ghidra-live export_delinked_object` with `selection_mode=range`
 2. Add to `objdiff.json`
 3. Re-run:
    ```bash

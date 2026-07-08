@@ -42,7 +42,7 @@ failures), repeat:
    - Report: RESOLVED_TARGET, Confirmed/Inferred/Uncertain, kb.json updates made
 5. **Phase 2 — build + verify (orchestrator):**
    After the agent returns, ensure a delinked reference exists (export via
-   `mcp__ghidra-live__export_delinked_object` if missing), then run:
+   `ghidra-live export_delinked_object` if missing), then run:
    ```bash
    rtk python3 tools/lift_pipeline.py --target <name> --no-metadata-update --verify-policy auto
    ```

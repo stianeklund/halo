@@ -1,6 +1,6 @@
 ---
 name: halo-build-xemu
-description: Standard project build, deploy, and run workflow
+description: "build load, build-load, xbe deploy, build_deploy_run, xemu build: Standard project build, deploy, and run workflow"
 ---
 
 # Halo Build, Deploy & Run
@@ -31,12 +31,14 @@ The real-hardware wrapper sets `XBOX_HOST` to `10.0.0.29` by default.
 ## xemu control notes
 
 - Default xemu host is `127.0.0.1` (override via `XBOX_HOST` or `--xbox`).
-- For monitor-only control, use `tools/xbox/xemu_qmp.py` subcommands:
-  `status`, `reset`, `stop`, `cont`, `eject`, `hmp`.
-- If monitor mode is relevant, remind the user that `tools/xbox/xemu-mon.py`
-  can run commands like `info registers`.
-- Use MCP xemu tools only if `tools/xbox/xemu_qmp.py` cannot do the required
-  action.
+- Use `xemu_*` tools directly for monitor control — they are the primary
+  interface (the daemon auto-starts via SessionStart hook):
+  - `xemu_xemu_status` — QMP connection and VM status
+  - `xemu_xemu_pause` / `xemu_xemu_resume` — pause/resume VM
+  - `rtk python3 tools/xbox/xbdm_screenshot.py --host 127.0.0.1 --images 5 --png` — capture screen over XBDM
+  - `xemu_xemu_send_monitor_command("info registers")` — HMP passthrough
+  - `xemu_xemu_send_monitor_command("x /16xw 0x<addr>")` — examine memory
+- `tools/xbox/xemu_qmp.py` is a fallback only when the MCP daemon is unavailable.
 
 ## Controller automation
 
