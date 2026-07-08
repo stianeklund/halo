@@ -1,5 +1,5 @@
 {
-  "description": "Allowlist for batch_verify.py \u2014 functions that structurally cannot pass with random-integer register seeds. Wire in with --allowlist tools/equivalence/batch_verify_allowlist.json.",
+  "description": "Allowlist for batch_verify.py \u2014 functions that structurally cannot pass with random-integer register seeds, plus harness-unmappable (oracle crashes in zero-fill Unicorn), non-terminating (instruction-budget), and no-delinked-ref cases. The last three are infra/harness limits, not lift bugs; re-enable a function by removing it here once a --state-snapshot or delinked-ref makes it runnable. Wire in with --allowlist tools/equivalence/batch_verify_allowlist.json --skip-allowlisted.",
   "targets": {
     "FUN_00116390": {
       "statuses": [
@@ -223,6 +223,2846 @@
       ],
       "reasons": [
         "chronic timeout (bsp3d.obj @ 0x146db0): does not terminate under differential harness within per-fn timeout; excluded to protect batch wall-clock budget"
+      ]
+    },
+    "actor_action_deny_transition": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "actor_action_handle_combat_targeting": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0003a740": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0003a760": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0003a770": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0003a790": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0003a7b0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0003a7d0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0003a7f0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0003a800": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0003a810": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0003a840": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0003a8a0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0003a920": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "actors_initialize": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "actor_verify_activation": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "actor_has_ranged_weapon": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0003baa0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0003be90": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "actor_set_dormant": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0003cb50": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "actor_delete_props": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "actor_died": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "actor_set_active": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "actor_erase": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0003d9f0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0003dc20": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "actor_attach_unit": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0003ec80": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0003f030": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000153e0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "actor_look_compute_prop_interest": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_00016ff0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_00017090": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_00028ed0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "ai_enemies_attacking_player": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000425c0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_001c6170": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "bink_playback_update": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_001bc850": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "cache_files_precache_map_loaded": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_001bdb10": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0014cb00": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0014cfe0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "collision_log_add_time": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "collision_log_add_call": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "display_debug_string": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "system_malloc": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "system_get_used_memory_size": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "memory_pool_delete": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "stack_memory_pool_allocate": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "data_dispose": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "data_new_datum": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "data_new_at_index": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "datum_delete": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "data_iterator_new": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "data_next_index": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "data_prev_index": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "director_initialize_for_new_map": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "director_update": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "file_error": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0019a490": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "file_delete": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "first_person_weapon_message_from_weapon": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "game_initialize": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "game_engine_dispose": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "game_engine_statistics_append": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "game_engine_handle_client_message": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "game_engine_handle_server_message": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "sort_statistic_buffer": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "get_postgame_hilite_colors": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "game_engine_start_over": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "game_engine_allow_weapon_pick_up": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "game_engine_get_place": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000a9fd0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000a9ff0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000abfd0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "game_engine_get_score_hud_text": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "game_engine_update_player_always_invis": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000aceb0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "game_engine_hud_update_player": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000ad140": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "game_engine_postspawn_player_update": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000adc40": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "game_engine_did_player_win": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "game_engine_player_added": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "game_engine_post_rasterize_post_game": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000af9a0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000afdf0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000afe50": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000aff20": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000b0ac0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "game_engine_post_event": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000b2740": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000b2bc0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000b3020": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000b3770": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000b39a0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "game_state_call_after_load_procs": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "game_state_save": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "game_state_memory_pool_new": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000c4ff0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000c73a0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000c7be0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000c7ca0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "hs_thread_stack_alloc": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "hs_runtime_get_executing_thread_name": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "hs_return": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000cc1d0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000cc340": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000cc3a0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "hs_macro_function_evaluate": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "hs_evaluate_begin": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "hs_evaluate_begin_random": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "hs_evaluate_if": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "hs_evaluate_set": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "hs_evaluate_logical": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "hs_evaluate_arithmetic": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "hs_evaluate_sleep": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "hs_evaluate_sleep_until": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "hs_evaluate_inspect": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "hs_evaluate_object_cast_up": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "hs_evaluate_debug_string": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000cd840": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000d1540": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000d1550": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000d27a0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000d6120": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000d6140": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000d6160": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000d6390": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000d63b0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000d63d0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000d6490": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000d64c0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000d64f0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000d6520": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000d6e50": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000d7080": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000d7800": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000d7cd0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000d7d10": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000d7d40": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000d8cf0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "input_open_state_file": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "input_update": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "input_initialize": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_00127070": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0011a6d0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0011c430": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0011c480": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0011c4d0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "encode_network_game_message": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0012e090": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0012d5b0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "sort_dumps": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000a1910": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000a1a90": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "player_control_update": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "update_server_apply_actions": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "point_physics_definition_get_mass": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "profile_enter_private": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "projectile_new": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000f90d0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "progress_bar_set_quad_texcoords": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "random_seed_get_direction3d": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "random_direction3d": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_001550c0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "render_window": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_00189450": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_001894d0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_001896d0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_00189860": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0018a770": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0018a990": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0018a9d0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0018ab30": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "update_loaded_module_section_attributes": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "main": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "scenario_leaf_index_from_point": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0018c580": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0018e7d0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "sound_dsound_channel_update_3d": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "sound_dsound_channel_stop_check": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "sound_dsound_channel_try_resolve": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "sound_dsound_update_channel_properties": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "sound_get_default_priority": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "sound_class_get_min_distance": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "sound_can_play": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "sound_check_promotion": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "sound_collect_like_sounds": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "sound_stop_channel": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "sound_find_oldest_channel": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "sound_start_next_looping_permutation": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "sound_create_looping_entry": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "sound_start": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "sound_update_music": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "sound_idle": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0019B330": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "thread_new": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "thread_is_done": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "take_mutex": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "release_mutex": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "ui_widget_display_error": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "ui_widget_load_error_screen": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_001a2900": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "unit_handle_deleted_object": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "unit_exit_seat_end": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "vehicle_get_estimated_position": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "xbox_texture_cache_request": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "rasterizer_text_draw_cached_char": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "rasterizer_text_draw_cached_chars": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0019c0a0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "lruv_allocation_size": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0011ca60": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "lruv_block_delete": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "lruv_debug_to_file": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_000fc990": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "weapon_activate": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "weapon_try_place": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "actor_move_to_point": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "actor_move_to_move_position": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "actor_move_to_prop": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "actor_move_compute_facing": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0002f5b0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "ai_debug_initialize_for_new_map": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_00055620": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_00055640": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_00055660": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_00055680": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_00056830": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "prop_iterator_next": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_00114630": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_001146e0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_00114f60": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_00117250": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_001173f0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "circular_queue_delete": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_0014b620": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "object_destroy": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "FUN_00138eb0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "path_state_new": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: reference crashes in zero-fill Unicorn harness (unmapped callee code page / missing reloc); needs --state-snapshot to run"
+      ]
+    },
+    "effects_update": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "non-terminating within instruction budget (assert->stub loop); needs live-state or higher budget"
+      ]
+    },
+    "FUN_000b23b0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "non-terminating within instruction budget (assert->stub loop); needs live-state or higher budget"
+      ]
+    },
+    "FUN_000e0570": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "non-terminating within instruction budget (assert->stub loop); needs live-state or higher budget"
+      ]
+    },
+    "FUN_0013aa10": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "non-terminating within instruction budget (assert->stub loop); needs live-state or higher budget"
+      ]
+    },
+    "FUN_00140750": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "non-terminating within instruction budget (assert->stub loop); needs live-state or higher budget"
+      ]
+    },
+    "objects_reconnect_to_structure_bsp": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "non-terminating within instruction budget (assert->stub loop); needs live-state or higher budget"
+      ]
+    },
+    "FUN_00141900": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "non-terminating within instruction budget (assert->stub loop); needs live-state or higher budget"
+      ]
+    },
+    "FUN_001a7d80": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "non-terminating within instruction budget (assert->stub loop); needs live-state or higher budget"
+      ]
+    },
+    "FUN_001a7df0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "non-terminating within instruction budget (assert->stub loop); needs live-state or higher budget"
+      ]
+    },
+    "unit_scripting_doesnt_drop_items": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "non-terminating within instruction budget (assert->stub loop); needs live-state or higher budget"
+      ]
+    },
+    "units_set_desired_flashlight_state": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "non-terminating within instruction budget (assert->stub loop); needs live-state or higher budget"
+      ]
+    },
+    "ai_communication_initialize": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "non-terminating within instruction budget (assert->stub loop); needs live-state or higher budget"
+      ]
+    },
+    "ai_profile_change_render_spray": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "non-terminating within instruction budget (assert->stub loop); needs live-state or higher budget"
+      ]
+    },
+    "FUN_000551e0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "non-terminating within instruction budget (assert->stub loop); needs live-state or higher budget"
+      ]
+    },
+    "FUN_00056a20": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "non-terminating within instruction budget (assert->stub loop); needs live-state or higher budget"
+      ]
+    },
+    "FUN_00056b20": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "non-terminating within instruction budget (assert->stub loop); needs live-state or higher budget"
+      ]
+    },
+    "FUN_00056bc0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "non-terminating within instruction budget (assert->stub loop); needs live-state or higher budget"
+      ]
+    },
+    "FUN_000576a0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "non-terminating within instruction budget (assert->stub loop); needs live-state or higher budget"
+      ]
+    },
+    "bsp3d_clip_line_to_leaves": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "non-terminating within instruction budget (assert->stub loop); needs live-state or higher budget"
+      ]
+    },
+    "encounter_get_squad": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: lifted_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_000210f0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: lifted_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "actor_unit_control_exact_facing": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_00015bb0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: lifted_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_00028660": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: lifted_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "bink_memory_pool_free": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: lifted_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_001bc860": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: lifted_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_001bc8f0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: lifted_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "system_calloc": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "file_open": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: lifted_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "file_close": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: lifted_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "file_read": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: lifted_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "file_read_from_position": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: lifted_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "valid_real_normal3d_perpendicular": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_00084ae0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_00085110": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: lifted_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_000ae0a0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_001362d0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_00139930": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "objects_place": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "object_pvs_activate": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "object_get_markers_by_string_id": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "object_compute_child_marker_position": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "object_detach_from_parent": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "object_find_in_radius": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "object_set_position": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_0010a480": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "real_math_dispose": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_0010bdc0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "angles_to_vector": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_00110a10": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_00111170": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_00188890": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_00188970": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_00188a90": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_00188bf0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_00188c60": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_00188d00": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_0018AF90": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: lifted_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_0018afd0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: lifted_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_0018afe0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: lifted_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_0018B000": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: lifted_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_00092370": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: lifted_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "structures_initialize": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_0008dc30": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_001a6e20": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_001a6ef0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_001a74d0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_001ab6e0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_001ab730": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_001ab770": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "unit_set_animation": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_001ab940": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "unit_drop_grenades_on_death": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "unit_has_weapon_with_flag": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "unit_start_running_blindly": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "unit_close": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "unit_impact_melee_damage": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "draw_string_set_tab_stops": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "draw_string_set_color": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "draw_string_set_style_justify_flags": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "draw_string_set_font": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "lruv_resize": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: lifted_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_00075630": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_00076a70": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_00076bb0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_00076bd0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_00076ff0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_00077120": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_00077510": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_00077540": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_00077590": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_00077720": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_000779b0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "bitmap_fade": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_00077ff0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_00079590": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_00079630": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "real_rgb_color_brightness": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "bitmap_clone": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "real_hsv_color_to_real_rgb_color": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "argb_color_to_real_argb_color": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "rgb_color_to_real_rgb_color": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "pixel32_to_real_argb_color": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "pixel32_to_real_rgb_color": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "valid_real_rgb_color": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "bitmap_shrink": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "bitmap_smooth": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "bitmap_alpha_bleed": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: oracle_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_00137170": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: lifted_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "FUN_001d7cb4": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "no-delinked-ref: lifted_extract_failed could not be extracted for diff (registration/export gap)"
+      ]
+    },
+    "game_engine_clear_goal_position": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle-unmappable: ORACLE-CRASH (UC_ERR_FETCH_UNMAPPED eip=0x43ff3d) on some seeds; leaked into divergence bucket. Harness limit, not a lift bug."
+      ]
+    },
+    "game_engine_get_starting_location_rating": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "non-terminating within instruction budget (INSN-LIMIT oracle=1000001); leaked into divergence bucket. Harness limit, not a lift bug."
+      ]
+    },
+    "FUN_000b1f00": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "harness artifact, not a lift bug (adjudicated 2026-07-08 vs live KotH snapshot). Oracle assert-string reloc s_king_globals.hill_point_count_!=_0026d5d4 is un-emulatable (logged as trace-end); candidate stub-string is emulatable (logged as display_assert). Calls 0..80 byte-identical across all seeds. 0x456c38==0 in both because find_netgame_flags (2nd-level callee in b1180) is stubbed->0 and --real-callees does not recurse. Live gameplay reads hill_point_count=4, proving the real path returns 1. Faithful port; VC71/source is the evidence."
       ]
     }
   }
