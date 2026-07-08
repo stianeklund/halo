@@ -8147,12 +8147,19 @@ done:
 void FUN_001ac680(float initial_p, float initial_v, float max_v,
                   float max_a, int plan)
 {
-  float fVar1;        /* |initial_v| / max_a */
-  float fVar4;        /* discriminant / intermediate */
-  float neg_max_a;
-  float coasting_vel;
-  float coast_diff;
-  char bVar;          /* initial_v <= 0 */
+  int at_rest;
+  volatile float fVar1; /* |initial_v| / max_a, later the coasting velocity.
+                       * volatile forces the store-once/reload-each-use
+                       * pattern of the original (fstps [EBP+0x18] + FLDS),
+                       * which is also the faithful x87 float narrowing. */
+  float fVar4;        /* discriminated stop distance — FPU-stack resident in
+                       * the original (FCOMS keeps it live into both time
+                       * branches), never stored to memory */
+  float sq;           /* sqrt(disc) — FPU-stack resident */
+  float vmax_t;       /* velocity-limit time — FPU-stack resident */
+  float scratch;      /* -max_a in the quadratic, later the coast-time
+                       * numerator (shares the single [EBP-4] local slot) */
+  char bVar;          /* initial_v > 0 */
 
   *(int *)(plan + 0x0c) = 0x7f7fffff;
   *(int *)(plan + 0x10) = 0x7f7fffff;
@@ -8162,9 +8169,12 @@ void FUN_001ac680(float initial_p, float initial_v, float max_v,
   *(float *)(plan + 4) = initial_p;
   *(float *)(plan + 8) = initial_v;
 
-  /* Check if effectively at rest (MSVC intrinsic fabs → inline FABS) */
-  if (fabs(initial_p) < 0.001f && fabs(initial_v) < 0.001f) {
-    *(uint8_t *)plan = 1;
+  /* At-rest test computed as a value (MOV EAX,1 / XOR EAX,EAX) and stored
+   * once via AL, then re-tested — not two constant stores. fabs is the
+   * inline FABS intrinsic; the compare is done at double width (FCOMPL). */
+  at_rest = fabs(initial_p) < 0.001f && fabs(initial_v) < 0.001f;
+  *(uint8_t *)plan = (uint8_t)at_rest;
+  if ((uint8_t)at_rest) {
     *(int *)(plan + 0x0c) = 0;
     *(int *)(plan + 0x10) = 0;
     *(int *)(plan + 0x14) = 0;
@@ -8172,7 +8182,6 @@ void FUN_001ac680(float initial_p, float initial_v, float max_v,
     *(int *)(plan + 0x1c) = 0;
     return;
   }
-  *(uint8_t *)plan = 0;
 
   fVar1 = (float)(fabs(initial_v) / max_a);
   bVar = (initial_v > 0.0f) ? 1 : 0;
@@ -8188,131 +8197,144 @@ void FUN_001ac680(float initial_p, float initial_v, float max_v,
     goto validate;
   }
 
+  /* fVar4 stays on the FPU stack across this branch in the original
+   * (non-popping FCOMS at 0x1ac7ab). VC71 sinks the large else block past
+   * the validate join, reproducing the original layout where the main
+   * time computation sits after the epilogue (0x1ac90c..0x1acbea) and
+   * jumps back to validate. */
   fVar4 = initial_v * 0.5f * fVar1 + initial_p;
-
   if (fVar4 < 0.0f) {
-    /* Overshoot case: initial_p near zero, velocity away from target */
-    if (initial_p <= -0.001f) {
+    /* Overshoot case: initial_p near zero, velocity away from target.
+     * All asserts use the !(cond) macro form so the unordered (NaN) path
+     * faithfully falls into the assert, matching the original masks. */
+    if (!(initial_p > -0.001f)) {
       display_assert("plan->initial_p > -1e-03f",
                      "c:\\halo\\SOURCE\\units\\units.c", 0x7b7, 1);
       system_exit(-1);
     }
-    if (*(float *)(plan + 8) >= 0.0f) {
+    if (!(*(float *)(plan + 8) < 0.0f)) {
       display_assert("plan->initial_v < 0",
                      "c:\\halo\\SOURCE\\units\\units.c", 0x7b8, 1);
       system_exit(-1);
     }
     *(int *)(plan + 0x0c) = 0;
     *(int *)(plan + 0x10) = 0;
-    fVar4 = *(float *)(plan + 8) * *(float *)(plan + 8) /
-            (*(float *)(plan + 4) + *(float *)(plan + 4));
-    *(float *)(plan + 0x18) = fVar4;
-    *(float *)(plan + 0x1c) = -(*(float *)(plan + 8) / fVar4);
+    *(float *)(plan + 0x18) = *(float *)(plan + 8) * *(float *)(plan + 8) /
+                            (*(float *)(plan + 4) + *(float *)(plan + 4));
+    *(float *)(plan + 0x1c) = -(*(float *)(plan + 8) / *(float *)(plan + 0x18));
     *(int *)(plan + 0x14) = 0;
-    goto validate;
-  }
+  } else {
+    /* Main time computation.
+     *
+     * MSVC reuses the initial_p ([EBP+8]) and initial_v ([EBP+0xc]) param
+     * stack slots as scratch once the parameters are dead. We mirror that
+     * by assigning into the parameters themselves:
+     *   initial_v -> doubled_v, then the second quadratic root, then the
+     *                selected raw time t
+     *   initial_p -> discriminant, then the first quadratic root, then
+     *                the velocity-clamped time (actual_t) */
+    if (bVar) {
+      /* Accelerating (initial_v > 0): direct sqrt on the live fVar4 */
+      initial_v = sqrtf(fVar4 / max_a);
+    } else {
+      /* Decelerating (initial_v <= 0): quadratic formula */
+      scratch = -max_a;
+      initial_v = initial_v + initial_v;                      /* doubled_v */
+      initial_p = initial_v * initial_v - scratch * fVar4 * 4.0f; /* disc */
+      if (!(initial_p >= 0.0f)) {
+        display_assert("disc >= 0",
+                       "c:\\halo\\SOURCE\\units\\units.c", 0x7eb, 1);
+        system_exit(-1);
+      }
+      sq = sqrtf(initial_p);
+      initial_p = (-initial_v - sq) / (scratch + scratch);    /* root t */
+      initial_v = (sq - initial_v) / (scratch + scratch);     /* root actual_t */
+      if (initial_p >= 0.0f && (initial_v < 0.0f || initial_p < initial_v)) {
+        initial_v = initial_p;                                /* use t */
+      } else if (0.0f <= initial_v) {
+        /* use actual_t: already in initial_v. The original's t = actual_t
+         * became a stack-slot self-move (0x1ac9e2: MOV EDX,[ebp+0xc];
+         * MOV [ebp+0xc],EDX) — VC71 elides it from C we can write, a
+         * 2-insn residual. */
+      } else {
+        /* Both roots negative: clamp coast time to 0 and skip the
+         * "t >= 0" assert (0x1ac9d9: MOV [ebp+0xc],0; JMP 0x1aca18). */
+        initial_v = 0.0f;
+        goto velocity_constraint;
+      }
+    }
 
-  /* Normal deceleration case.
-   *
-   * MSVC reuses the initial_p ([EBP+8]) and initial_v ([EBP+0xc]) parameter
-   * stack slots as scratch once the parameters are dead. We mirror that by
-   * assigning into the parameters themselves:
-   *   initial_v -> doubled_v, then the second quadratic root, then the
-   *                selected raw time t
-   *   initial_p -> discriminant, then the first quadratic root, then the
-   *                velocity-clamped time (actual_t) */
-  if (!bVar) {
-    /* Decelerating (initial_v <= 0): quadratic formula */
-    neg_max_a = -max_a;
-    initial_v = initial_v + initial_v;                        /* doubled_v */
-    initial_p = initial_v * initial_v - neg_max_a * fVar4 * 4.0f;  /* disc */
-    if (initial_p < 0.0f) {
-      display_assert("disc >= 0",
-                     "c:\\halo\\SOURCE\\units\\units.c", 0x7eb, 1);
+    if (!(initial_v >= 0.0f)) {
+      display_assert("t >= 0", "c:\\halo\\SOURCE\\units\\units.c", 0x7fa, 1);
       system_exit(-1);
     }
-    fVar4 = sqrtf(initial_p);
-    initial_p = (-initial_v - fVar4) / (neg_max_a + neg_max_a);   /* root t */
-    initial_v = (fVar4 - initial_v) / (neg_max_a + neg_max_a);    /* root actual_t */
-    if (initial_p >= 0.0f && (initial_v < 0.0f || initial_p < initial_v)) {
-      initial_v = initial_p;                                  /* use t */
-    } else if (initial_v >= 0.0f) {
-      /* use actual_t: already selected in initial_v */
-    } else {
-      /* Both roots negative: clamp coast time to 0 and skip the "t >= 0"
-       * assert (matches 0x1ac9d9/0x1ac9e0: MOV [ebp+0xc],0; JMP 0x1aca18). */
-      initial_v = 0.0f;
-      goto velocity_constraint;
-    }
-    goto check_t;
-  } else {
-    /* Accelerating (initial_v > 0): direct sqrt */
-    initial_v = sqrtf(fVar4 / max_a);
-  }
-
-check_t:
-  if (initial_v < 0.0f) {
-    display_assert("t >= 0", "c:\\halo\\SOURCE\\units\\units.c", 0x7fa, 1);
-    system_exit(-1);
-  }
 
 velocity_constraint:
-  /* Apply maximum velocity constraint. initial_v = raw time t;
-   * initial_p = velocity-clamped time (actual_t). */
-  if (max_v <= 0.0f) {
-    initial_p = initial_v;
-  } else {
-    if (!bVar) {
-      max_v = max_v + *(float *)(plan + 8);
-    }
-    initial_p = max_v / max_a;
-    if (initial_p < 0.0f) {
-      initial_p = 0.0f;
-    }
-    if (initial_v <= initial_p) {
+    /* Apply maximum velocity constraint. initial_v = raw time t;
+     * initial_p = velocity-clamped time (actual_t). vmax_t stays on the
+     * FPU stack in the original (never stored), through clamp and pick. */
+    if (max_v > 0.0f) {
+      vmax_t = (bVar ? max_v : max_v + *(float *)(plan + 8)) / max_a;
+      if (0.0f > vmax_t) {
+        vmax_t = 0.0f;
+      }
+      if (initial_v > vmax_t) {
+        initial_p = vmax_t;
+      } else {
+        initial_p = initial_v;
+      }
+    } else {
       initial_p = initial_v;
     }
-  }
 
-  /* Fill plan fields */
-  *(float *)(plan + 0x0c) = -max_a;
-  *(float *)(plan + 0x18) = max_a;
-  if (bVar) {
-    /* initial_v > 0: accel_t = actual_t + fVar1, decel_t = actual_t */
-    *(float *)(plan + 0x10) = initial_p + fVar1;
-    *(float *)(plan + 0x1c) = initial_p;
-  } else {
-    /* initial_v <= 0: accel_t = actual_t, decel_t = actual_t + fVar1 */
-    *(float *)(plan + 0x1c) = initial_p + fVar1;
-    *(float *)(plan + 0x10) = initial_p;
-  }
+    /* Fill plan fields */
+    *(float *)(plan + 0x0c) = -max_a;
+    *(float *)(plan + 0x18) = max_a;
+    if (bVar) {
+      /* initial_v > 0: accel_t = actual_t + fVar1, decel_t = actual_t */
+      *(float *)(plan + 0x10) = initial_p + fVar1;
+      *(float *)(plan + 0x1c) = initial_p;
+    } else {
+      /* initial_v <= 0: accel_t = actual_t, decel_t = actual_t + fVar1 */
+      *(float *)(plan + 0x1c) = initial_p + fVar1;
+      *(float *)(plan + 0x10) = initial_p;
+    }
 
-  /* Check if we need a coasting phase (actual_t < t) */
-  if (initial_p < initial_v) {
-    coasting_vel = -max_a * *(float *)(plan + 0x10) + *(float *)(plan + 8);
-    coast_diff = initial_v - initial_p;
-    if (coasting_vel >= 0.0f) {
-      display_assert("coasting_vel < 0",
-                     "c:\\halo\\SOURCE\\units\\units.c", 0x850, 1);
-      system_exit(-1);
+    /* Check if we need a coasting phase (actual_t < t). fVar1 is dead
+     * here; the original reuses its slot for the coasting velocity, and
+     * the coast difference (t - actual_t) lives only on the FPU stack. */
+    if (initial_p < initial_v) {
+      /* Original reuses the -max_a still on the FPU stack from the
+       * accel_a store; reading accel_a back expresses that reuse. */
+      fVar1 = *(float *)(plan + 0x0c) * *(float *)(plan + 0x10) +
+              *(float *)(plan + 8);
+      /* sq holds (diff * coasting_vel) so the volatile coasting
+       * velocity is loaded once, doubled on the FPU stack (FADD ST,ST0)
+       * as in the original. */
+      sq = (initial_v - initial_p) * fVar1;
+      scratch = (sq + sq) -
+                (initial_v - initial_p) * (initial_v - initial_p) * max_a;
+      if (!(fVar1 < 0.0f)) {
+        display_assert("coasting_vel < 0",
+                       "c:\\halo\\SOURCE\\units\\units.c", 0x850, 1);
+        system_exit(-1);
+      }
+      *(float *)(plan + 0x14) = scratch / fVar1;
+      if (!(*(float *)(plan + 0x14) >= 0.0f)) {
+        display_assert("plan->coast_t >= 0",
+                       "c:\\halo\\SOURCE\\units\\units.c", 0x852, 1);
+        system_exit(-1);
+      }
+      if (!(initial_p + *(float *)(plan + 0x14) >= initial_v)) {
+        display_assert("plan->coast_t + actual_t >= t",
+                       "c:\\halo\\SOURCE\\units\\units.c", 0x853, 1);
+        system_exit(-1);
+      }
+      goto validate;
     }
-    *(float *)(plan + 0x14) =
-      ((coast_diff * coasting_vel + coast_diff * coasting_vel) -
-       coast_diff * coast_diff * max_a) / coasting_vel;
-    if (*(float *)(plan + 0x14) < 0.0f) {
-      display_assert("plan->coast_t >= 0",
-                     "c:\\halo\\SOURCE\\units\\units.c", 0x852, 1);
-      system_exit(-1);
-    }
-    if (initial_p + *(float *)(plan + 0x14) < initial_v) {
-      display_assert("plan->coast_t + actual_t >= t",
-                     "c:\\halo\\SOURCE\\units\\units.c", 0x853, 1);
-      system_exit(-1);
-    }
-    goto validate;
-  }
 
-  *(int *)(plan + 0x14) = 0;
+    *(int *)(plan + 0x14) = 0;
+  }
 
 validate:
   if (*(int *)(plan + 0x0c) == 0x7f7fffff) {
@@ -8341,6 +8363,7 @@ validate:
     system_exit(-1);
   }
 }
+
 
 /* unit_adjust_projectile_ray (0x1acf90) — adjust projectile ray origin
  * and direction based on unit state.
