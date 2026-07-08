@@ -1182,15 +1182,15 @@ each a 4-byte pointer to a 0x1C-byte (28-byte) record.
 
 ### Entry Layout (0x1C bytes)
 
-| Offset | Type    | Field        | Description                                   |
-|--------|---------|--------------|-----------------------------------------------|
-| `+0x00`| uint32  | `type`       | Function type ID (1=variable, 3=flow, 4=unit, 5=test, 6=unit2, etc.) |
-| `+0x04`| char\*  | `name`       | Command name string (e.g. `"map_reset"`)      |
-| `+0x08`| void(\*)| `exec_fn`    | Execute function (called for side-effect cmds) |
-| `+0x0C`| void(\*)| `eval_fn`    | Evaluate function (returns a value)           |
-| `+0x10`| char\*  | `description`| Help text (e.g. `"starts the map from the beginning."`) |
-| `+0x14`| char\*  | `usage`      | Usage text (e.g. `"<expression(s)>"`)         |
-| `+0x18`| uint32  | `reserved`   | Zero                                       |
+| Offset  | Type     | Field         | Description                                                          |
+|---------|----------|---------------|----------------------------------------------------------------------|
+| `+0x00` | uint32   | `type`        | Function type ID (1=variable, 3=flow, 4=unit, 5=test, 6=unit2, etc.) |
+| `+0x04` | char\*   | `name`        | Command name string (e.g. `"map_reset"`)                             |
+| `+0x08` | void(\*) | `exec_fn`     | Execute function (called for side-effect cmds)                       |
+| `+0x0C` | void(\*) | `eval_fn`     | Evaluate function (returns a value)                                  |
+| `+0x10` | char\*   | `description` | Help text (e.g. `"starts the map from the beginning."`)              |
+| `+0x14` | char\*   | `usage`       | Usage text (e.g. `"<expression(s)>"`)                                |
+| `+0x18` | uint32   | `reserved`    | Zero                                                                 |
 
 Lookup is via `hs_find_function_by_name` (`0x000C3FC0`), which does a linear scan
 comparing each entry's `name` against the input using `__stricmp`. Entry 0 is
@@ -1256,24 +1256,24 @@ offset +0x08: uint32 secondary_edge  — secondary edge tracking
 
 The 32-bit `action_flags` word at `DAT_00457090[0]` tracks player input:
 
-| Bit | Hex Mask | Test Function              | Description                 |
-|-----|----------|----------------------------|-----------------------------|
-|  0  | `0x01`   | `player_action_test_action`| Action key pressed          |
-|  1  | `0x02`   | `player_action_test_jump`  | Jump pressed                |
-|  2  | `0x04`   | `player_action_test_accept`| Accept pressed              |
-|  3  | `0x08`   | `player_action_test_back`  | Back pressed                |
-|  4  | `0x10`   | `player_action_test_primary_trigger` | Primary trigger    |
-|  5  | `0x20`   | `player_action_test_grenade_trigger`  | Grenade trigger   |
-|  6  | `0x40`   | `player_action_test_zoom`  | Zoom button                 |
-|  7  | `0x80`   | `player_action_test_look_relative_up`  | Look up (negative Y)|
-|  8  | `0x100`  | `player_action_test_look_relative_down`| Look down (positive Y)|
-|  9  | `0x200`  | `player_action_test_look_relative_left`| Look left (negative X)|
-| 10  | `0x400`  | `player_action_test_look_relative_right`| Look right (positive X)|
-|11-14|`0x7800`  | `player_action_test_move_relative_all_directions` | All move directions|
-|11  | `0x800`  | (move forward)             | Move forward (negative Z)   |
-|12  | `0x1000` | (move backward)            | Move backward (positive Z)  |
-|13  | `0x2000` | (move left)                | Move left (negative X)      |
-|14  | `0x4000` | (move right)               | Move right (positive X)     |
+| Bit   | Hex Mask | Test Function                                     | Description                |
+|-------|----------|---------------------------------------------------|----------------------------|
+| 0     | `0x01`   | `player_action_test_action`                       | Action key pressed         |
+| 1     | `0x02`   | `player_action_test_jump`                         | Jump pressed               |
+| 2     | `0x04`   | `player_action_test_accept`                       | Accept pressed             |
+| 3     | `0x08`   | `player_action_test_back`                         | Back pressed               |
+| 4     | `0x10`   | `player_action_test_primary_trigger`              | Primary trigger            |
+| 5     | `0x20`   | `player_action_test_grenade_trigger`              | Grenade trigger            |
+| 6     | `0x40`   | `player_action_test_zoom`                         | Zoom button                |
+| 7     | `0x80`   | `player_action_test_look_relative_up`             | Look up (negative Y)       |
+| 8     | `0x100`  | `player_action_test_look_relative_down`           | Look down (positive Y)     |
+| 9     | `0x200`  | `player_action_test_look_relative_left`           | Look left (negative X)     |
+| 10    | `0x400`  | `player_action_test_look_relative_right`          | Look right (positive X)    |
+| 11-14 | `0x7800` | `player_action_test_move_relative_all_directions` | All move directions        |
+| 11    | `0x800`  | (move forward)                                    | Move forward (negative Z)  |
+| 12    | `0x1000` | (move backward)                                   | Move backward (positive Z) |
+| 13    | `0x2000` | (move left)                                       | Move left (negative X)     |
+| 14    | `0x4000` | (move right)                                      | Move right (positive X)    |
 
 **Edge detection (action/accept/back):** `player_action_test_action`,
 `player_action_test_accept`, and `player_action_test_back` have side effects
