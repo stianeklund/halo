@@ -1,0 +1,43 @@
+{
+  "mcpServers": {
+    "ghidra": {
+      "command": "npm",
+      "args": [
+        "exec",
+        "--yes",
+        "--package=mcp-remote",
+        "--",
+        "mcp-remote",
+        "http://127.0.0.1:8090/sse"
+      ]
+    },
+    "ghidra-live": {
+      "command": "npm",
+      "args": [
+        "exec",
+        "--yes",
+        "--package=mcp-remote",
+        "--",
+        "mcp-remote",
+        "http://127.0.0.1:8091/sse"
+      ]
+    },
+    "xemu": {
+      "transport": "http",
+      "url": "http://127.0.0.1:4445/mcp"
+    },
+    "qmd": {
+      "command": "qmd",
+      "args": [
+        "mcp"
+      ]
+    },
+    "codegraph": {
+      "command": "codegraph",
+      "args": [
+        "serve",
+        "--mcp"
+      ]
+    }
+  }
+}
