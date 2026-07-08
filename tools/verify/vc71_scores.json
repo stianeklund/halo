@@ -8280,7 +8280,7 @@
       "score": 93.8,
       "source": "src/halo/networking/network_connection.c"
     },
-    "network_connection_get_address": {
+    "FUN_001283c0": {
       "score": 95.6,
       "source": "src/halo/networking/network_connection.c"
     },
@@ -8300,11 +8300,11 @@
       "score": 100.0,
       "source": "src/halo/networking/network_connection.c"
     },
-    "network_connection_read_unreliable": {
+    "FUN_001286e0": {
       "score": 89.8,
       "source": "src/halo/networking/network_connection.c"
     },
-    "network_connection_notify_traffic_event": {
+    "FUN_001288e0": {
       "score": 90.2,
       "source": "src/halo/networking/network_connection.c"
     },
@@ -8324,15 +8324,15 @@
       "score": 95.6,
       "source": "src/halo/networking/network_game_globals.c"
     },
-    "network_connection_new_serverside_client": {
+    "FUN_00129270": {
       "score": 76.9,
       "source": "src/halo/networking/network_connection.c"
     },
-    "network_connection_read_reliable": {
+    "FUN_001292f0": {
       "score": 92.8,
       "source": "src/halo/networking/network_connection.c"
     },
-    "network_connection_idle_client_reliable_endpoint": {
+    "FUN_001294d0": {
       "score": 89.1,
       "source": "src/halo/networking/network_connection.c"
     },
@@ -8344,7 +8344,7 @@
       "score": 89.1,
       "source": "src/halo/networking/network_game_globals.c"
     },
-    "network_connection_idle": {
+    "FUN_00129a30": {
       "score": 89.1,
       "source": "src/halo/networking/network_connection.c"
     },
@@ -13536,8 +13536,36 @@
       "score": 77.7,
       "source": "src/halo/networking/network_connection.c"
     },
+    "network_connection_get_address": {
+      "score": 95.6,
+      "source": "src/halo/networking/network_connection.c"
+    },
+    "network_connection_idle": {
+      "score": 89.1,
+      "source": "src/halo/networking/network_connection.c"
+    },
+    "network_connection_idle_client_reliable_endpoint": {
+      "score": 89.1,
+      "source": "src/halo/networking/network_connection.c"
+    },
     "network_connection_new": {
       "score": 80.7,
+      "source": "src/halo/networking/network_connection.c"
+    },
+    "network_connection_new_serverside_client": {
+      "score": 76.9,
+      "source": "src/halo/networking/network_connection.c"
+    },
+    "network_connection_notify_traffic_event": {
+      "score": 90.2,
+      "source": "src/halo/networking/network_connection.c"
+    },
+    "network_connection_read_reliable": {
+      "score": 92.8,
+      "source": "src/halo/networking/network_connection.c"
+    },
+    "network_connection_read_unreliable": {
+      "score": 89.8,
       "source": "src/halo/networking/network_connection.c"
     },
     "network_game_client_end_frame": {
