@@ -1,6 +1,6 @@
 ---
 description: Target selection, Ghidra context caching, and lift delegation
-model: sonnet
+model: opus
 subtask: false
 ---
 
@@ -31,7 +31,7 @@ failures), repeat:
    Gather lightweight context for the target (KB entry via `rtk jq`, decompilation
    via Ghidra MCP, source file path). Then spawn a subagent:
    ```
-   Agent(subagent_type="xbox-halo-re-analyst", model="sonnet", prompt=<brief>)
+   Agent(subagent_type="xbox-halo-re-analyst", model="opus", prompt=<brief>)
    ```
    The prompt must follow the **Phase-1 subagent briefing template** in
    `docs/lift-policy.md`, filling in the target address, decompilation output,
@@ -44,7 +44,7 @@ failures), repeat:
    ```
 6. Evaluate pipeline result (see pass/fail criteria below).
 7. **On pass**: auto-commit (unless `--dry-run`), reset consecutive failure counter.
-8. **On fail**: attempt Opus escalation or revert+log (see escalation below),
+8. **On fail**: attempt escalation (Fable) or revert+log (see escalation below),
    increment consecutive failure counter.
 9. If consecutive failures reach `--stop-on-fail`, stop and report.
 
@@ -66,9 +66,12 @@ See `docs/lift-policy.md` §Verify-policy-presets for the canonical threshold ta
 Use `--verify-policy auto` (default) for this skill.  The `/lift` skill uses
 `auto` which accepts when no VC71 data is available but build and ABI audit pass.
 
-## Opus escalation
+## Escalation
 
-This skill runs on **Sonnet** by default for cost efficiency.
+This skill runs the lift subagent on **Opus** by default. Opus is pinned (rather
+than Sonnet) because Sonnet lift agents stall-loop under the workflow watchdog.
+Escalation retries on a *different* model — **Fable** — for perspective diversity,
+matching `goal-lift`'s escalation. (A same-model Opus→Opus retry buys nothing.)
 See `docs/lift-policy.md` §Escalation-flow for the canonical escalation rules and
 pass/fail thresholds.  Summary: escalate on VC71 <65%, ABI fail, FPU-WARN, or
 second build failure; do not escalate on SEH, >3 reg-args, or unrelated build fail.
@@ -99,8 +102,8 @@ Write failure record to `artifacts/auto_lift/failures/<target_name>.json`:
   "object": "<object_name>",
   "timestamp": "<ISO 8601>",
   "attempts": [
-    {"model": "sonnet", "failure_stage": "<stage>", "error_summary": "<msg>"},
-    {"model": "opus", "failure_stage": "<stage>", "error_summary": "<msg>"}
+    {"model": "opus", "failure_stage": "<stage>", "error_summary": "<msg>"},
+    {"model": "fable", "failure_stage": "<stage>", "error_summary": "<msg>"}
   ],
   "pipeline_output": "<full pipeline stderr/stdout from last attempt>"
 }
