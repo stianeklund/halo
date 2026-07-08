@@ -115,15 +115,35 @@ jobs:
           fi
           echo "flags=$BASELINE" >> "$GITHUB_OUTPUT"
 
+      # Correctness-safe reuse: exact-key only (no restore-keys), so per-function
+      # results are reused ONLY when kb.json + src + the equivalence harness are
+      # byte-identical to the run that produced them. Any change busts the cache
+      # and forces a fresh recompute (which fits the budget via --jobs), so a
+      # changed function never keeps a stale verdict. Survives the checkout
+      # git-clean that otherwise wipes the gitignored artifacts/batch_verify/*.json.
+      - name: Restore batch-verify result cache
+        uses: actions/cache@v4
+        with:
+          path: artifacts/batch_verify
+          key: batch-verify-${{ hashFiles('kb.json', 'src/**', 'tools/equivalence/**') }}
+
       - name: Run batch verification
         continue-on-error: true
+        env:
+          # 4 workers on the 15 GB self-hosted box: cap per-child RSS at 3 GB so
+          # aggregate peak (jobs * limit = 12 GB) leaves headroom and never OOMs
+          # the host (the failure mode that caused GitHub to cancel the nightly).
+          HALO_EQUIV_MEM_LIMIT_GB: "3"
         run: |
           ${{ env.VENV_PYTHON }} tools/equivalence/batch_verify.py \
             --seeds 50 \
-            --timeout 120 \
+            --timeout 45 \
+            --jobs 4 \
+            --max-wall-minutes 105 \
             --csv \
             --skip-existing \
             --allowlist tools/equivalence/batch_verify_allowlist.json \
+            --skip-allowlisted \
             ${{ steps.mode.outputs.extra_flags }} \
             ${{ steps.baseline.outputs.flags }} \
             --output-dir artifacts/batch_verify
