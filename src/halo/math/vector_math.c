@@ -175,7 +175,7 @@ void vector3d_add(float *a, float *b, float *out)
  * Confirmed: FSUB [0x2533c8] subtracts 1.0f.
  * Confirmed: FABS / FCOMP double ptr [0x2549d8] compares against
  * (double)0.001f. */
-int valid_real_normal3d(float *v)
+bool valid_real_normal3d(float *v)
 {
   float sq_len = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
   float diff = sq_len - 1.0f;
