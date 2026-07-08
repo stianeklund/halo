@@ -135,9 +135,14 @@ jobs:
           # the host (the failure mode that caused GitHub to cancel the nightly).
           HALO_EQUIV_MEM_LIMIT_GB: "3"
         run: |
+          # timeout 120 (not lower): --jobs parallelism alone brings a cold run to
+          # ~40 min, far under the 105-min wall budget, so the per-function ceiling
+          # can stay generous. A shorter ceiling manufactures false "timeout"
+          # failures on legitimately slow-but-passing functions (e.g. actor_delete
+          # passes at 120 s). --max-wall-minutes is the real hard stop.
           ${{ env.VENV_PYTHON }} tools/equivalence/batch_verify.py \
             --seeds 50 \
-            --timeout 45 \
+            --timeout 120 \
             --jobs 4 \
             --max-wall-minutes 105 \
             --csv \
