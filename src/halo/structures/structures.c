@@ -338,13 +338,30 @@ int FUN_00191690(void *cluster_list, int *out_cluster, int cluster_handle)
 int FUN_001916d0(int partition, int *state)
 {
   if (*state != -1) {
-    char *cluster_reference =
-      datum_get(*(void **)(partition + 8), *state);
+    char *cluster_reference = datum_get(*(void **)(partition + 8), *state);
     *state = *(int *)(cluster_reference + 8);
     return *(int *)(cluster_reference + 4);
   }
 
   return -1;
+}
+
+/* Copy a cluster partition (0x191700).
+ * Both operands are 3-pointer structs (see cluster_partition_add_object):
+ *   [0] -> cluster head array (one dword per cluster)
+ *   [1] -> reference_list (per-cluster object references)
+ *   [2] -> reference_list (per-object cluster references)
+ * The head array holds scenario->0x134 (cluster tag_block count) dwords, so
+ * csmemcpy moves count*4 bytes (the <<2 converts the dword count to bytes).
+ * Copy order: element [2] BEFORE [1] -- preserve for codegen match.
+ */
+void cluster_partition_copy(void **destination, void **source)
+{
+  void *scenario = scenario_get();
+
+  csmemcpy(destination[0], source[0], *(int *)((char *)scenario + 0x134) << 2);
+  reference_list_copy(destination[2], source[2]);
+  reference_list_copy(destination[1], source[1]);
 }
 
 /* Add an object to a cluster partition (0x1917a0).

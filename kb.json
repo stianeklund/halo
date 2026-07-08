@@ -23387,7 +23387,9 @@
         },
         {
           "addr": "0x191440",
-          "decl": "void FUN_00191440(void);"
+          "decl": "void reference_list_copy(void *result, void *source);",
+          "name": "reference_list_copy",
+          "source_path": "src/halo/structures/structures.c"
         },
         {
           "addr": "0x191500",
@@ -23431,7 +23433,10 @@
         },
         {
           "addr": "0x191700",
-          "decl": "void FUN_00191700(void);"
+          "decl": "void cluster_partition_copy(void **destination, void **source);",
+          "name": "cluster_partition_copy",
+          "ported": true,
+          "source_path": "src/halo/structures/structures.c"
         },
         {
           "addr": "0x191750",
