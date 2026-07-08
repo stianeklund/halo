@@ -1272,8 +1272,9 @@ void FUN_001a8b20(int object_handle, int16_t state)
     return;
   }
 
-  /* bail for specific animation states that are already active */
-  switch ((uint8_t)unit->unk_595) {
+  /* bail for specific animation states that are already active
+   * (original sign-extends the state byte: movsbl 0x253(%esi)) */
+  switch ((int8_t)unit->unk_595) {
   case 0x17:
   case 0x18:
   case 0x19:
@@ -3475,6 +3476,7 @@ char FUN_001ad260(int unit_handle, int16_t anim_state)
   int16_t mode_anim_index;
   int16_t overlay_index;
   int16_t anim_index;
+  char old_state_byte;
   int16_t old_state;
   char was_none;
   char did_change;
@@ -3493,8 +3495,9 @@ char FUN_001ad260(int unit_handle, int16_t anim_state)
   tag_block_get_element(mode_block + 0xb0,
       (int)*(signed char *)((char *)unit + 0x252), 0x3c);
 
-  old_state = (int16_t)(signed char)*((char *)unit + 0x253);
-  was_none = (old_state == -1);
+  old_state_byte = *((char *)unit + 0x253);
+  old_state = (int16_t)old_state_byte;
+  was_none = (old_state_byte == -1);
   did_change = 0;
 
   if (!was_none && anim_state == old_state)
@@ -3503,7 +3506,7 @@ char FUN_001ad260(int unit_handle, int16_t anim_state)
   mode_anim_index = -1;
   overlay_index = -1;
 
-  if (old_state == 0x21) {
+  if (old_state_byte == 0x21) {
     FUN_001ab110(unit_handle, 1);
   }
 
@@ -4515,18 +4518,18 @@ bool unit_verify_vectors(int unit_handle)
   obj = (char *)object_get_and_verify_type(unit_handle, 3);
 
   /* Single short-circuit && chain matches the original's one-setne exit
-   * structure (0x1af6a2), recovering ~15pp over an if/return ladder which VC71
-   * lowered to a two-exit mov/xor. The residual testb-vs-testl / al-vs-eax
-   * width deltas are a compiler-flag codegen artifact (identical across ladder,
-   * && chain, and int-return forms) — not source-addressable.
-   * Runtime-identical: && short-circuits exactly like the early returns. */
-  return valid_real_normal3d((float *)(obj + 0x1d4)) &&
-         valid_real_normal3d((float *)(obj + 0x1e0)) &&
-         valid_real_normal3d((float *)(obj + 0x204)) &&
-         valid_real_normal3d_perpendicular((float *)(obj + 0x24),
-                                           (float *)(obj + 0x30)) &&
-         valid_real_normal3d((float *)(obj + 0x1ec)) &&
-         valid_real_normal3d((float *)(obj + 0x210));
+   * structure (0x1af6a2). The validators return bool (byte contract:
+   * original callers testb %al), and the (bool) cast on the chain result
+   * yields the original's movb $1,%al / xorb %al,%al return. Residual 5-insn
+   * gap is the @<eax> register-arg prologue VC71 cannot express (permanent
+   * ceiling). Runtime-identical: && short-circuits like the early returns. */
+  return (bool)(valid_real_normal3d((float *)(obj + 0x1d4)) &&
+                valid_real_normal3d((float *)(obj + 0x1e0)) &&
+                valid_real_normal3d((float *)(obj + 0x204)) &&
+                valid_real_normal3d_perpendicular((float *)(obj + 0x24),
+                                                  (float *)(obj + 0x30)) &&
+                valid_real_normal3d((float *)(obj + 0x1ec)) &&
+                valid_real_normal3d((float *)(obj + 0x210)));
 }
 
 /* unit_control_trace (0x1af6b0)

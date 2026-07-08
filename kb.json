@@ -14657,7 +14657,7 @@
         },
         {
           "addr": "0x84a70",
-          "decl": "int valid_real_normal3d_perpendicular(float *a, float *b);",
+          "decl": "bool valid_real_normal3d_perpendicular(float *a, float *b);",
           "ported": true,
           "source": "src/halo/objects/objects.c",
           "status": "ported"
@@ -19770,7 +19770,7 @@
         },
         {
           "addr": "0x21fb0",
-          "decl": "int valid_real_normal3d(float *v);",
+          "decl": "bool valid_real_normal3d(float *v);",
           "ported": true,
           "source": "src/halo/math/vector_math.c",
           "status": "ported"

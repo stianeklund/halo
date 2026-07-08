@@ -127,7 +127,7 @@ int real_vector3d_valid(float *vector)
  * Confirmed: FABS / FCOMPL double ptr [0x2549d8] compares against
  * (double)0.001f. Confirmed: FNSTSW AX / TEST AH,5 / JP pattern — returns true
  * when fabsf(dot) < 0.001f. */
-int valid_real_normal3d_perpendicular(float *a, float *b)
+bool valid_real_normal3d_perpendicular(float *a, float *b)
 {
   float dot;
   char ok;
