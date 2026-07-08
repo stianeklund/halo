@@ -23,6 +23,7 @@ import subprocess
 import sys
 import time
 from collections import Counter, defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 # Per-child resident-memory (RSS) ceiling. A runaway unicorn_diff (e.g. an
@@ -339,6 +340,16 @@ def main():
                         help="Seeds per function (default: 50)")
     parser.add_argument("--timeout", type=int, default=60,
                         help="Timeout per function in seconds (default: 60)")
+    parser.add_argument("--jobs", "-j", type=int, default=1,
+                        help="Parallel verification workers (default: 1 = serial). "
+                             "Each worker spawns a unicorn_diff subprocess; peak RAM "
+                             "is jobs * HALO_EQUIV_MEM_LIMIT_GB (default 6). On a "
+                             "15 GB box use e.g. --jobs 4 with HALO_EQUIV_MEM_LIMIT_GB=3.")
+    parser.add_argument("--max-wall-minutes", type=float, default=0,
+                        help="Global wall-clock budget in minutes. When exceeded, stop "
+                             "dispatching, write a partial summary, and exit cleanly "
+                             "(0 = unlimited). Set below the CI job cap so the run is "
+                             "never SIGKILLed with no summary.")
     parser.add_argument("--dry-run", action="store_true",
                         help="List candidates without running verification")
     parser.add_argument("--float-tolerance", type=int, default=32, metavar="ULP",
@@ -355,6 +366,11 @@ def main():
                         help="Previous summary.json to compare against")
     parser.add_argument("--allowlist", type=Path, default=None,
                         help="JSON allowlist for known failures or not_applicable reasons")
+    parser.add_argument("--skip-allowlisted", action="store_true",
+                        help="Do not execute functions named in --allowlist at all "
+                             "(they structurally cannot pass); excludes them from the "
+                             "run to reclaim wall-clock time. Off by default so "
+                             "allowlisted funcs still get fresh results.")
     parser.add_argument("--fail-on-new", action="store_true",
                         help="Exit non-zero when baseline comparison finds new failures")
     parser.add_argument("--skip-existing", action="store_true",
@@ -391,6 +407,16 @@ def main():
         ranked = [(c, _target_rank(c)) for c in candidates]
         candidates = [c for c, r in sorted(
             (rc for rc in ranked if rc[1] is not None), key=lambda rc: rc[1])]
+
+    if args.skip_allowlisted and args.allowlist:
+        allowlist = load_allowlist(args.allowlist)
+        before = len(candidates)
+        candidates = [c for c in candidates
+                      if c["name"] not in allowlist and c["addr"] not in allowlist]
+        dropped = before - len(candidates)
+        if dropped:
+            print(f"Skipping {dropped} allowlisted function(s) "
+                  f"(structurally cannot pass; not executed)")
 
     if args.limit > 0:
         candidates = candidates[:args.limit]
@@ -464,13 +490,31 @@ def main():
 
     prev_handler = signal.signal(signal.SIGINT, _sigint_handler)
 
+    total = len(candidates)
+    completed = {}    # idx -> (candidate, result, reused); tallied in order below
+    done_count = [0]  # list for closure mutation
+    deadline = (t0 + args.max_wall_minutes * 60) if args.max_wall_minutes > 0 else None
+
+    def _progress(name: str, result: dict, reused: bool):
+        done_count[0] += 1
+        status = result.get("status", "error")
+        if status == "pass":
+            tag = ("Z3 PROVEN" if result.get("z3_proven")
+                   else f"PASS ({result.get('passed', 0)}/{result.get('seeds', 0)} seeds)")
+        elif status == "fail":
+            tag = f"FAIL ({result.get('failed', 0)} diverged)"
+        elif status == "not_applicable":
+            tag = f"N/A ({result.get('reason', '')})"
+        else:
+            tag = f"ERROR ({result.get('reason', '')})"
+        marker = " (reused)" if reused else ""
+        print(f"[{done_count[0]}/{total}] {name:40s} {tag}{marker}", flush=True)
+
     try:
+        # Reuse pass: cheap cache-hit disk reads, never subject to the budget.
+        compute = []
         for i, c in enumerate(candidates):
-            if interrupted:
-                break
-
             name = c["name"]
-
             if name in existing:
                 result_path = output_dir / f"{name}.json"
                 try:
@@ -478,76 +522,84 @@ def main():
                 except (OSError, json.JSONDecodeError):
                     result = None
                 if result:
-                    status = result.get("status", "error")
-                    results[status] = results.get(status, 0) + 1
-                    if result.get("z3_proven"):
-                        results["z3_proven"] += 1
-                        proven.append(name)
-                    if status == "fail":
-                        failures.append((name, result.get("reason", "")))
-                    elif status == "error":
-                        error_failures.append((name, result.get("reason", "")))
-                    rows.append({
-                        "addr": c["addr"], "name": name, "class": c["class"],
-                        "obj": c["obj"], "status": status,
-                        "reason": result.get("reason", ""),
-                        "error_details": result.get("error_details", []),
-                        "seeds_passed": result.get("passed", 0),
-                        "seeds_total": result.get("seeds", 0),
-                        "z3_proven": "1" if result.get("z3_proven") else "0",
-                    })
-                    csv_rows.append(rows[-1])
-                    skipped += 1
+                    completed[i] = (c, result, True)
+                    _progress(name, result, True)
                     continue
+            compute.append((i, c))
 
-            elapsed = time.time() - t0
-            rate = ((i - skipped) / elapsed) if elapsed > 0 and (i - skipped) > 0 else 0
-            eta = ((len(candidates) - i) / rate) if rate > 0 else 0
-            print(f"[{i+1}/{len(candidates)}] {name:40s} ", end="", flush=True)
-
-            result = run_verify(name, output_dir, seeds=args.seeds, timeout=args.timeout,
-                                float_tolerance=args.float_tolerance,
-                                skip_esp=args.skip_esp,
-                                update_leaf_cache=args.update_leaf_cache)
-            status = result.get("status", "error")
-
-            if status == "pass":
-                results["pass"] += 1
-                if result.get("z3_proven"):
-                    results["z3_proven"] += 1
-                    proven.append(name)
-                    print(f"Z3 PROVEN")
-                else:
-                    seeds_run = result.get("seeds", 0)
-                    print(f"PASS ({result.get('passed', 0)}/{seeds_run} seeds)")
-            elif status == "fail":
-                results["fail"] += 1
-                failures.append((name, result.get("reason", "")))
-                print(f"FAIL ({result.get('failed', 0)} diverged)")
-            elif status == "not_applicable":
-                results["not_applicable"] += 1
-                print(f"N/A ({result.get('reason', '')})")
-            else:
-                results["error"] += 1
-                error_failures.append((name, result.get("reason", "")))
-                print(f"ERROR ({result.get('reason', '')})")
-
-            row = {
-                "addr": c["addr"],
-                "name": name,
-                "class": c["class"],
-                "obj": c["obj"],
-                "status": status,
-                "reason": result.get("reason", ""),
-                "error_details": result.get("error_details", []),
-                "seeds_passed": result.get("passed", 0),
-                "seeds_total": result.get("seeds", 0),
-                "z3_proven": "1" if result.get("z3_proven") else "0",
-            }
-            csv_rows.append(row)
-            rows.append(row)
+        # Compute pass: parallel unicorn_diff subprocesses bounded by --jobs, with
+        # a wall-clock budget so we stop and write a partial summary before a CI
+        # job cap SIGKILLs the process (which would lose the summary entirely).
+        if deadline and time.time() > deadline:
+            interrupted = True
+        if compute and not interrupted:
+            workers = max(1, args.jobs)
+            with ThreadPoolExecutor(max_workers=workers) as ex:
+                fut_map = {
+                    ex.submit(run_verify, c["name"], output_dir, seeds=args.seeds,
+                              timeout=args.timeout,
+                              float_tolerance=args.float_tolerance,
+                              skip_esp=args.skip_esp,
+                              update_leaf_cache=args.update_leaf_cache): (i, c)
+                    for i, c in compute
+                }
+                try:
+                    for fut in as_completed(fut_map):
+                        i, c = fut_map[fut]
+                        try:
+                            result = fut.result()
+                        except Exception as e:  # defensive: never drop a slot
+                            result = {"status": "error", "reason": str(e),
+                                      "target": c["name"]}
+                        completed[i] = (c, result, False)
+                        _progress(c["name"], result, False)
+                        if interrupted:
+                            break
+                        if deadline and time.time() > deadline:
+                            interrupted = True
+                            print(f"\nWall-clock budget ({args.max_wall_minutes:g} "
+                                  f"min) reached — stopping, writing partial summary.")
+                            break
+                finally:
+                    # Cancel queued-but-unstarted work; in-flight children (<=
+                    # workers) drain on pool shutdown, each bounded by --timeout.
+                    for f in fut_map:
+                        if not f.done():
+                            f.cancel()
     finally:
         signal.signal(signal.SIGINT, prev_handler)
+
+    # Tally in candidate order for deterministic rows / CSV / diffs, independent
+    # of the order results completed in under parallelism.
+    for idx in sorted(completed):
+        c, result, reused = completed[idx]
+        name = c["name"]
+        status = result.get("status", "error")
+        results[status] = results.get(status, 0) + 1
+        if result.get("z3_proven"):
+            results["z3_proven"] += 1
+            proven.append(name)
+        if status == "fail":
+            failures.append((name, result.get("reason", "")))
+        elif status == "error":
+            error_failures.append((name, result.get("reason", "")))
+        if reused:
+            skipped += 1
+        row = {
+            "addr": c["addr"],
+            "name": name,
+            "class": c["class"],
+            "obj": c["obj"],
+            "status": status,
+            "reason": result.get("reason", ""),
+            "error_details": result.get("error_details", []),
+            "seeds_passed": result.get("passed", 0),
+            "seeds_total": result.get("seeds", 0),
+            "z3_proven": "1" if result.get("z3_proven") else "0",
+        }
+        rows.append(row)
+        # CSV fieldnames omit error_details (a list); keep it only in summary rows.
+        csv_rows.append({k: v for k, v in row.items() if k != "error_details"})
 
     summary_path, elapsed, comparison = _write_summary()
 

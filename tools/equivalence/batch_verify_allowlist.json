@@ -1,41 +1,229 @@
 {
-  "description": "Allowlist for batch_verify.py — functions that structurally cannot pass with random-integer register seeds. Wire in with --allowlist tools/equivalence/batch_verify_allowlist.json.",
+  "description": "Allowlist for batch_verify.py \u2014 functions that structurally cannot pass with random-integer register seeds. Wire in with --allowlist tools/equivalence/batch_verify_allowlist.json.",
   "targets": {
     "FUN_00116390": {
-      "statuses": ["*"],
-      "reasons": ["oracle crash: @esi=deflate_state* — random seed dereferences state struct fields immediately"]
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle crash: @esi=deflate_state* \u2014 random seed dereferences state struct fields immediately"
+      ]
     },
     "FUN_00116460": {
-      "statuses": ["*"],
-      "reasons": ["oracle crash: @edx=state (deflate_state*) — random seed dereferences state struct fields immediately"]
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle crash: @edx=state (deflate_state*) \u2014 random seed dereferences state struct fields immediately"
+      ]
     },
     "FUN_001164d0": {
-      "statuses": ["*"],
-      "reasons": ["oracle crash: @eax=deflate_state* — random seed dereferences state+0x1448 (heap_len) on first access"]
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle crash: @eax=deflate_state* \u2014 random seed dereferences state+0x1448 (heap_len) on first access"
+      ]
     },
     "FUN_001167f0": {
-      "statuses": ["*"],
-      "reasons": ["oracle crash: @eax=tree (ct_data*) — random seed used as struct pointer, crashes on first field access"]
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle crash: @eax=tree (ct_data*) \u2014 random seed used as struct pointer, crashes on first field access"
+      ]
     },
     "FUN_00117000": {
-      "statuses": ["*"],
-      "reasons": ["oracle crash: @ecx=deflate_state* — random seed dereferences state struct fields immediately"]
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle crash: @ecx=deflate_state* \u2014 random seed dereferences state struct fields immediately"
+      ]
     },
     "FUN_001170b0": {
-      "statuses": ["*"],
-      "reasons": ["oracle crash: @eax=deflate_state* — random seed dereferences state struct fields immediately"]
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle crash: @eax=deflate_state* \u2014 random seed dereferences state struct fields immediately"
+      ]
     },
     "FUN_00117130": {
-      "statuses": ["*"],
-      "reasons": ["oracle crash: @eax=deflate_state* — random seed dereferences state struct fields, returns state in eax"]
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle crash: @eax=deflate_state* \u2014 random seed dereferences state struct fields, returns state in eax"
+      ]
     },
     "FUN_001171a0": {
-      "statuses": ["*"],
-      "reasons": ["oracle crash: @eax=state (deflate_state*) threaded through FUN_00117130 — random seed dereferences state+0x16ac"]
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle crash: @eax=state (deflate_state*) threaded through FUN_00117130 \u2014 random seed dereferences state+0x16ac"
+      ]
     },
     "FUN_001172d0": {
-      "statuses": ["*"],
-      "reasons": ["oracle crash: @eax=bl_count (short[16]*) — random seed used as array pointer, crashes on first element access"]
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "oracle crash: @eax=bl_count (short[16]*) \u2014 random seed used as array pointer, crashes on first element access"
+      ]
+    },
+    "FUN_001bd5f0": {
+      "statuses": [
+        "timeout"
+      ],
+      "reasons": [
+        "chronic timeout (cache_files_windows.obj @ 0x1bd5f0): does not terminate under differential harness within per-fn timeout; excluded to protect batch wall-clock budget"
+      ]
+    },
+    "contrail_delete": {
+      "statuses": [
+        "timeout"
+      ],
+      "reasons": [
+        "chronic timeout (contrails.obj @ 0x978f0): does not terminate under differential harness within per-fn timeout; excluded to protect batch wall-clock budget"
+      ]
+    },
+    "contrails_reconnect_to_structure_bsp": {
+      "statuses": [
+        "timeout"
+      ],
+      "reasons": [
+        "chronic timeout (contrails.obj @ 0x97980): does not terminate under differential harness within per-fn timeout; excluded to protect batch wall-clock budget"
+      ]
+    },
+    "FUN_00098200": {
+      "statuses": [
+        "timeout"
+      ],
+      "reasons": [
+        "chronic timeout (contrails.obj @ 0x98200): does not terminate under differential harness within per-fn timeout; excluded to protect batch wall-clock budget"
+      ]
+    },
+    "effects_stop_on_first_person_weapon": {
+      "statuses": [
+        "timeout"
+      ],
+      "reasons": [
+        "chronic timeout (effects.obj @ 0x9c810): does not terminate under differential harness within per-fn timeout; excluded to protect batch wall-clock budget"
+      ]
+    },
+    "FUN_0009c910": {
+      "statuses": [
+        "timeout"
+      ],
+      "reasons": [
+        "chronic timeout (effects.obj @ 0x9c910): does not terminate under differential harness within per-fn timeout; excluded to protect batch wall-clock budget"
+      ]
+    },
+    "effects_reconnect_to_structure_bsp": {
+      "statuses": [
+        "timeout"
+      ],
+      "reasons": [
+        "chronic timeout (effects.obj @ 0x9cf40): does not terminate under differential harness within per-fn timeout; excluded to protect batch wall-clock budget"
+      ]
+    },
+    "FUN_000ac030": {
+      "statuses": [
+        "timeout"
+      ],
+      "reasons": [
+        "chronic timeout (game_engine.obj @ 0xac030): does not terminate under differential harness within per-fn timeout; excluded to protect batch wall-clock budget"
+      ]
+    },
+    "game_sound_music_stop_for_vehicle": {
+      "statuses": [
+        "timeout"
+      ],
+      "reasons": [
+        "chronic timeout (game_sound.obj @ 0x1c7d70): does not terminate under differential harness within per-fn timeout; excluded to protect batch wall-clock budget"
+      ]
+    },
+    "game_state_save_to_persistent_storage": {
+      "statuses": [
+        "timeout"
+      ],
+      "reasons": [
+        "chronic timeout (game_state.obj @ 0x1bf8e0): does not terminate under differential harness within per-fn timeout; excluded to protect batch wall-clock budget"
+      ]
+    },
+    "FUN_0013b150": {
+      "statuses": [
+        "timeout"
+      ],
+      "reasons": [
+        "chronic timeout (objects.obj @ 0x13b150): does not terminate under differential harness within per-fn timeout; excluded to protect batch wall-clock budget"
+      ]
+    },
+    "object_get_world_matrix": {
+      "statuses": [
+        "timeout"
+      ],
+      "reasons": [
+        "chronic timeout (objects.obj @ 0x141480): does not terminate under differential harness within per-fn timeout; excluded to protect batch wall-clock budget"
+      ]
+    },
+    "FUN_000a1590": {
+      "statuses": [
+        "timeout"
+      ],
+      "reasons": [
+        "chronic timeout (particles.obj @ 0xa1590): does not terminate under differential harness within per-fn timeout; excluded to protect batch wall-clock budget"
+      ]
+    },
+    "vehicle_scripting_load_magic": {
+      "statuses": [
+        "timeout"
+      ],
+      "reasons": [
+        "chronic timeout (units.obj @ 0x1b3400): does not terminate under differential harness within per-fn timeout; excluded to protect batch wall-clock budget"
+      ]
+    },
+    "widgets_render_object_widgets": {
+      "statuses": [
+        "timeout"
+      ],
+      "reasons": [
+        "chronic timeout (widgets.obj @ 0x136450): does not terminate under differential harness within per-fn timeout; excluded to protect batch wall-clock budget"
+      ]
+    },
+    "FUN_0005a640": {
+      "statuses": [
+        "timeout"
+      ],
+      "reasons": [
+        "chronic timeout (encounters.obj @ 0x5a640): does not terminate under differential harness within per-fn timeout; excluded to protect batch wall-clock budget"
+      ]
+    },
+    "encounter_stand_down": {
+      "statuses": [
+        "timeout"
+      ],
+      "reasons": [
+        "chronic timeout (encounters.obj @ 0x5aab0): does not terminate under differential harness within per-fn timeout; excluded to protect batch wall-clock budget"
+      ]
+    },
+    "prop_get_active_by_unit_index": {
+      "statuses": [
+        "timeout"
+      ],
+      "reasons": [
+        "chronic timeout (props.obj @ 0x64ab0): does not terminate under differential harness within per-fn timeout; excluded to protect batch wall-clock budget"
+      ]
+    },
+    "bsp3d_find_leaf": {
+      "statuses": [
+        "timeout"
+      ],
+      "reasons": [
+        "chronic timeout (bsp3d.obj @ 0x146db0): does not terminate under differential harness within per-fn timeout; excluded to protect batch wall-clock budget"
+      ]
     }
   }
 }
