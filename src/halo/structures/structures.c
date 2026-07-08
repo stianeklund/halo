@@ -310,6 +310,25 @@ int cluster_partition_iter_next(void *partition, int *state)
   return -1;
 }
 
+/* Seed-and-advance a cluster iterator (0x191690).
+ * Stores cluster_handle into *out_cluster unconditionally; if the handle is
+ * valid (!= -1), fetches the cluster reference datum from the pool at
+ * cluster_list+8, overwrites *out_cluster with the next link (ref+8), and
+ * returns the reference value (ref+4). Returns -1 for an exhausted handle.
+ */
+int FUN_00191690(void *cluster_list, int *out_cluster, int cluster_handle)
+{
+  *out_cluster = cluster_handle;
+  if (cluster_handle != -1) {
+    char *cluster_reference =
+      datum_get(*(void **)((char *)cluster_list + 8), cluster_handle);
+    *out_cluster = *(int *)(cluster_reference + 8);
+    return *(int *)(cluster_reference + 4);
+  }
+
+  return -1;
+}
+
 /* Add an object to a cluster partition (0x1917a0).
  * Finds all clusters overlapping position+radius via structure_find_in_cluster,
  * then for each cluster: allocates a per-object cluster reference
