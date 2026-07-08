@@ -1,18 +1,22 @@
 ---
 name: lift-score-improve
 tier: agent
-triggers: ["structural ceiling", "vc71", "low match", "score improve", "improve match", "65%", "84%", "looks structural"]
-description: Checklist for recovering VC71 match before declaring a structural ceiling. Invoke when score is 65–84% and the gap looks "structural".
+triggers: ["structural ceiling", "vc71", "low match", "score improve", "improve match", "65%", "84%", "looks structural", "store reload", "volatile local", "code after epilogue", "frame size"]
+description: Checklist for recovering VC71 match before declaring a structural ceiling. Invoke when score is 65–84% and the gap looks "structural", or at ANY score when the diff shows systematic frame/layout divergence rather than wrong logic.
 ---
 
 # Lift Score Improvement Checklist
 
 **Invoke this skill when:**
 - VC71 score is 65–84% and you are about to write "structural ceiling"
+- ANY score (even <50%) where the diff shows systematic frame/layout divergence
+  (wrong frame size, whole blocks relocated, store/reload vs ST-resident values)
+  rather than wrong logic — FUN_001ac680 went 46.1% → 97.3% purely on shape
+  levers (Step 3d)
 - Permuter returned no improvement (may be vacuous — see §12 of lift-learnings)
 - A function with `static` large buffers has a suspiciously low score
 
-Source: `docs/lift-learnings.md` §19 + §20.
+Source: `docs/lift-learnings.md` §19 + §20 + §27.
 
 ---
 
@@ -135,6 +139,52 @@ shipping compiler) applies strict IEEE C semantics — `x <= 1.0f` and
 `!(1.0f < x)` differ for NaN. Trace the original's unordered path (which
 branch does TEST AH,…/JP|JNE take on NaN?) and keep the C form whose CLANG
 codegen preserves it, even at a 1-insn VC71 cost.
+
+---
+
+## Step 3d — VC71 shape levers: store/reload, `&param` poison, block layout, assert masks (§27)
+
+Apply when the diff shows the candidate has the right instructions in the
+wrong *shape*: different frame size, values held in ST where the reference
+stores/reloads, or whole blocks in a different order. All four proven on
+FUN_001ac680 (46.1% → 97.3%).
+
+**1. `volatile float` local = store-once / reload-each-use.** If the
+reference does `FSTP [slot]` + `FLD [slot]` at every use but your candidate
+keeps the value FPU-enregistered (in ST across branches), declare the local
+`volatile float`. This is also the numerically faithful choice — each reload
+rounds to float where ST would keep double precision. VC71's allocator may
+even place it in a dead param home slot ([EBP+0x18]) exactly like the
+original. Caveat: two reads of the volatile in one expression = two loads;
+factor `x = d*cv; return x + x;` to get the original's single-load
+`FADD ST,ST0` doubling.
+
+**2. NEVER take `&param`** (or alias a param through `uint8_t *p = ...`) to
+smuggle a value into a param slot: VC71 then assumes every store through the
+derived pointer clobbers the base, so it pre-computes and SPILLS every field
+address (`lea; mov [ebp-N]` barrage), blows the frame (4 → 0x18 bytes
+observed, ~25pp loss), and spills char flags out of BL. Keep field access as
+`*(int *)(param + 0xN)` on the int-typed param for `[esi+N]` addressing.
+
+**3. Code placed after the epilogue** (main path after validate+RET, backward
+jmp) comes from `if (c) {small} else {huge}` — VC71 sinks the huge else past
+the join. Writing `if (!c) goto L;` moves blocks the OPPOSITE way (goto
+target inlined, fallthrough sunk). Bonus: a value tested in the condition and
+used in both arms stays ST-resident (non-popping FCOMS) if it is a
+single-assignment non-volatile local.
+
+**4. Assert form `if (!(cond))`** with the condition spelled exactly as the
+assert string: `!(x >= 0)` → TEST AH,1;JE-skip; `!(x < 0)` → TEST 5;JNP-skip
+— and NaN faithfully falls into the assert (plain `x < 0` spellings give
+wrong masks AND wrong unordered behavior). FCOM operand order mirrors source
+operand order (`0.0f > x` loads the const first). This is the assert-macro
+companion to Step 3c's NaN caution — same rule: verify the clang NaN path,
+don't just chase the VC71 mask bits.
+
+**Not source-controllable (document, don't chase):** VC71-elided `x = x;`
+slot self-moves (two originals coalesced into one slot; clang blocks the
+workaround with -Werror,-Wself-assign), operand preload hoisting into both
+branch successors, FDIV vs FDIVR selection, FLD/FXCH scheduling — ~2pp.
 
 ---
 
