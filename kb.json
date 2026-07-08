@@ -23490,7 +23490,7 @@
         },
         {
           "addr": "0x191de0",
-          "decl": "void FUN_00191de0(void);"
+          "decl": "void FUN_00191de0(int param_1, int param_2, unsigned int param_3);"
         },
         {
           "addr": "0x191e90",
@@ -23511,7 +23511,9 @@
         },
         {
           "addr": "0x1926a0",
-          "decl": "void FUN_001926a0(void);"
+          "decl": "unsigned char FUN_001926a0(int descriptor, int src, int dst);",
+          "ported": true,
+          "source_path": "src/halo/structures/structures.c"
         },
         {
           "addr": "0x192710",
