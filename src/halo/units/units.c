@@ -5937,28 +5937,34 @@ int unit_get_animation_frames_remaining(int unit_handle, int16_t *animation_stat
  * Returns 1 for vehicle-related animation states. @ecx = anim state ptr. */
 char FUN_001a8730(void *anim_state)
 {
+  char result;
+
+  result = 0;
   switch (*(int8_t *)((char *)anim_state + 0xb)) {
   case 0x17: case 0x18: case 0x19: case 0x1a: case 0x1b:
   case 0x1d: case 0x1e: case 0x1f: case 0x20: case 0x21:
   case 0x22: case 0x23: case 0x27: case 0x29:
-    return 1;
+    result = 1;
   }
-  return 0;
+  return result;
 }
 
 /* FUN_001a8790 (0x1a8790)
  * Returns 0 for vehicle/combat animation states. @ecx = anim state ptr. */
 char FUN_001a8790(void *anim_state)
 {
+  char result;
+
+  result = 1;
   switch (*(int8_t *)((char *)anim_state + 0xb)) {
   case 1: case 2: case 3:
   case 0x17: case 0x1a: case 0x1b: case 0x1c:
   case 0x1d: case 0x1e: case 0x1f:
   case 0x21: case 0x22: case 0x23:
   case 0x27: case 0x29:
-    return 0;
+    result = 0;
   }
-  return 1;
+  return result;
 }
 
 /* FUN_001a87f0 (0x1a87f0)
@@ -5968,8 +5974,10 @@ char FUN_001a87f0(void *anim_state)
 {
   char result;
 
-  result = *(char *)((char *)anim_state + 0xc) == '\0' &&
-           *(int16_t *)((char *)anim_state + 0x1a) == -1;
+  result = *(int16_t *)((char *)anim_state + 0x1a) == -1;
+  if (*(char *)((char *)anim_state + 0xc) != '\0') {
+    result = 0;
+  }
   switch (*(int8_t *)((char *)anim_state + 0xb)) {
   case 0x14: case 0x15: case 0x16:
   case 0x24: case 0x25: case 0x26:
@@ -5983,62 +5991,75 @@ char FUN_001a87f0(void *anim_state)
  * @ecx = anim state ptr. */
 char FUN_001a8850(void *anim_state)
 {
+  char result;
+
+  result = 1;
   switch (*(int8_t *)((char *)anim_state + 0xb)) {
   case 0x17: case 0x18: case 0x19: case 0x1a: case 0x1b:
   case 0x1d: case 0x22: case 0x23:
-    return 0;
+    result = 0;
   }
-  return 1;
+  return result;
 }
 
 /* FUN_001a88b0 (0x1a88b0)
  * Maps animation state to animation index. @ecx = anim state value. */
 int FUN_001a88b0(int16_t anim_state)
 {
+  int result;
+
+  result = -1;
   switch ((int)anim_state) {
   case 0x0: case 0x2: case 0x3:
   case 0x10: case 0x11: case 0x12: case 0x13:
   case 0x14: case 0x15: case 0x16:
   case 0x25: case 0x26:
-    return 0x19;
+    result = 0x19;
+    break;
   case 0x4: case 0x5: case 0x6: case 0x7:
   case 0x8: case 0x9: case 0xa: case 0xb:
   case 0xc: case 0xd: case 0xe: case 0xf:
-    return 0x1a;
+    result = 0x1a;
+    break;
   }
-  return -1;
+  return result;
 }
 
 /* FUN_001a86b0 (0x1a86b0)
  * Animation state transition check. @ecx = anim state ptr, @edx = target state. */
 char FUN_001a86b0(void *anim_state, int16_t target_state)
 {
+  char result;
+
+  result = 1;
   switch (*(int8_t *)((char *)anim_state + 0xb)) {
-  case 0x2: case 0x3: case 0x25: case 0x26:
-    if (target_state != 0) {
-      return 1;
-    }
-    break;
-  case 0x17: case 0x1a: case 0x1b: case 0x1c:
-    break;
-  case 0x18: case 0x19:
-    if (target_state > 0x17 && target_state < 0x1a) {
-      return 1;
-    }
-    break;
   case 0x1d: case 0x1e: case 0x1f:
   case 0x21: case 0x22: case 0x23:
   case 0x27: case 0x29:
-    if (target_state != 0x17) {
-      return 0;
+    if (target_state == 0x17) {
+      break;
     }
-    goto default_return;
-  default:
-    goto default_return;
+    return 0;
+  case 0x18: case 0x19: {
+    int target;
+
+    target = target_state;
+    if (target < 0x18 || target > 0x19) {
+      goto not_allowed;
+    }
+    return 1;
   }
-  return 0;
-default_return:
-  return 1;
+  case 0x2: case 0x3: case 0x25: case 0x26:
+    if (target_state != 0) {
+      break;
+    }
+    /* FALLTHROUGH */
+  case 0x17: case 0x1a: case 0x1b: case 0x1c:
+  not_allowed:
+    result = 0;
+    break;
+  }
+  return result;
 }
 
 /* unit_impulse (0x1a8da0)
