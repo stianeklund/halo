@@ -278,6 +278,26 @@ void cluster_partition_dispose(void *partition)
   }
 }
 
+/* Null a cluster partition's three references (0x191630).
+ * Zeroes the head-array pointer (partition[0]), the per-object cluster
+ * references pool (partition[2]), then the per-cluster object references pool
+ * (partition[1]) -- same [2]-before-[1] pool order as the clear/dispose
+ * helpers. Each store is guarded by a test against 0 (if (f != 0) f = 0);
+ * this conditional-store shape is preserved verbatim from the original.
+ */
+void cluster_partition_null_references(int *partition)
+{
+  if (partition[0] != 0) {
+    partition[0] = 0;
+  }
+  if (partition[2] != 0) {
+    partition[2] = 0;
+  }
+  if (partition[1] != 0) {
+    partition[1] = 0;
+  }
+}
+
 int cluster_partition_iter_next(void *partition, int *state)
 {
   if (*state != -1) {
