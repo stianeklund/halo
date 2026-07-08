@@ -772,3 +772,29 @@ int16_t structure_find_in_cluster(uint16_t cluster_count, float *position,
 
   return 0;
 }
+/* leaf_map_node_stack_push (FUN_00191ad0, 0x191ad0)
+ *
+ * Bounds-checked push onto the global leaf-map node stack.  If the stack is
+ * already full (count > MAXIMUM_NODE_STACK_COUNT-1 = 0xff), fires the engine
+ * assert then system_exit(-1); otherwise stores the node value at
+ * node_stack[count] and increments count.
+ *
+ * Confirmed from disassembly at 0x191ad0:
+ *   - node_stack_count : int16 @ 0x4d8e90 (cmpw $0x100 / movswl / incw prove
+ *     a 16-bit signed counter, not int32)
+ *   - node_stack       : int32[256] @ 0x4d8a90 (0x400 bytes, ends at 0x4d8e90)
+ *   - MAXIMUM_NODE_STACK_COUNT = 0x100; guard fires when count >= 0x100.
+ *   - display_assert(reason, "c:\\halo\\SOURCE\\structures\\leaf_map.c", 0x2a, 1)
+ *     then system_exit(-1) (thunk_FUN_001029a0 resolves to system_exit @0x8e2f0).
+ *   - Single cdecl stack arg (the pushed node value); kb decl was void(void).
+ */
+void leaf_map_node_stack_push(int32_t node)
+{
+  if (*(int16_t *)0x4d8e90 >= 0x100) {
+    display_assert("leaf_map_globals.node_stack_count<MAXIMUM_NODE_STACK_COUNT",
+                   "c:\\halo\\SOURCE\\structures\\leaf_map.c", 0x2a, 1);
+    system_exit(-1);
+  }
+  *(int32_t *)(0x4d8a90 + *(int16_t *)0x4d8e90 * 4) = node;
+  *(int16_t *)0x4d8e90 = *(int16_t *)0x4d8e90 + 1;
+}
