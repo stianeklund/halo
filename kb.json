@@ -23419,7 +23419,9 @@
         },
         {
           "addr": "0x191690",
-          "decl": "int FUN_00191690(void *cluster_list, int *out_cluster, int cluster_handle);"
+          "decl": "int FUN_00191690(void *cluster_list, int *out_cluster, int cluster_handle);",
+          "ported": true,
+          "source_path": "src/halo/structures/structures.c"
         },
         {
           "addr": "0x1916d0",
