@@ -23402,7 +23402,9 @@
         },
         {
           "addr": "0x191600",
-          "decl": "void FUN_00191600(void);"
+          "decl": "void cluster_partition_dispose(void *partition);",
+          "name": "cluster_partition_dispose",
+          "ported": true
         },
         {
           "addr": "0x191630",

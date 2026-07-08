@@ -259,6 +259,25 @@ void cluster_partition_clear(void *partition)
   data_delete_all((data_t *)part[1]);
 }
 
+/* Dispose both datum pools of a cluster partition (0x191600).
+ * Mirrors cluster_partition_clear's pool layout: the per-object cluster
+ * references (partition[2]) are disposed first, then the per-cluster object
+ * references (partition[1]). Each pool is a data_t whose signature byte at
+ * +0x24 is non-zero only while allocated; disposal is skipped otherwise.
+ * Callee (data_make_invalid) and disposal order confirmed from disassembly.
+ */
+void cluster_partition_dispose(void *partition)
+{
+  data_t **part = (data_t **)partition;
+
+  if (*((char *)part[2] + 0x24) != '\0') {
+    data_make_invalid(part[2]);
+  }
+  if (*((char *)part[1] + 0x24) != '\0') {
+    data_make_invalid(part[1]);
+  }
+}
+
 int cluster_partition_iter_next(void *partition, int *state)
 {
   if (*state != -1) {
