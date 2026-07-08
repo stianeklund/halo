@@ -58,7 +58,7 @@ bool FUN_001298f0(int connection, void *buffer, int *size, void *addr)
   bool result;
 
   if ((*(uint32_t *)(connection + 0x30) & 1) != 0) {
-    return FUN_001286e0(connection, buffer, size, addr);
+    return network_connection_read_unreliable(connection, buffer, size, addr);
   }
 
   if ((*(uint32_t *)(connection + 0x30) & 6) == 0) {
@@ -67,9 +67,9 @@ bool FUN_001298f0(int connection, void *buffer, int *size, void *addr)
          "connection->flags&FLAG(_connection_create_serverside_client_bit)");
   }
 
-  result = FUN_001292f0(connection, buffer, size, addr);
+  result = network_connection_read_reliable(connection, buffer, size, addr);
   if (!result && (*(uint8_t *)(connection + 0x30) & 2) != 0) {
-    result = FUN_001286e0(connection, buffer, size, addr);
+    result = network_connection_read_unreliable(connection, buffer, size, addr);
   }
   return result;
 }
@@ -79,7 +79,7 @@ bool FUN_001298f0(int connection, void *buffer, int *size, void *addr)
  * Resets a network connection's endpoints. Called from network_game_client_reset
  * (0x1267c0) and network_game_client_leave_game (0x126140).
  *
- * If the connection is currently connected, runs the FUN_001294d0 teardown when
+ * If the connection is currently connected, runs the network_connection_idle_client_reliable_endpoint teardown when
  * the connection's +0x30 flag byte has bit 1 or 2 set, then closes the active
  * endpoint stored at +0x00.
  *
@@ -97,7 +97,7 @@ bool FUN_00129980(int connection)
 
   if (network_connection_connected(connection)) {
     if ((*(uint8_t *)(connection + 0x30) & 6) != 0) {
-      FUN_001294d0(connection);
+      network_connection_idle_client_reliable_endpoint(connection);
     }
     close_endpoint(*(int **)connection);
   }
@@ -174,13 +174,13 @@ bool FUN_00129cf0(int connection, int timeout, int *output)
   }
 
   if ((*(uint32_t *)(connection + 0x30) & 1) != 0) {
-    ok = FUN_00129a30(connection, output);
+    ok = network_connection_idle(connection, output);
     if (!ok) {
       error(2, "network_connection_idle_server_reliable_endpoint failed");
       return false;
     }
   } else if ((*(uint32_t *)(connection + 0x30) & 6) != 0) {
-    ok = FUN_001294d0(connection);
+    ok = network_connection_idle_client_reliable_endpoint(connection);
     if (!ok) {
       error(2, "network_connection_idle_client_reliable_endpoint failed");
       return false;

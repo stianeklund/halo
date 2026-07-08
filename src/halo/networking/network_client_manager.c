@@ -112,12 +112,12 @@ int network_game_client_get_seconds_to_game_start(void *client)
   return *(int *)((char *)client + 0x82c);
 }
 
-/* 0x125750 — Asserts client is non-null, then calls FUN_001283c0 with the
+/* 0x125750 — Asserts client is non-null, then calls network_connection_get_address with the
  * connection handle at offset 0x82c, the output buffer, and flag 0. */
 void network_game_client_switch_to_postgame(void *server, void *out)
 {
   assert_halt(server);
-  FUN_001283c0(*(int *)((char *)server + 0x82c), out, 0);
+  network_connection_get_address(*(int *)((char *)server + 0x82c), out, 0);
 }
 
 /* network_game_client_get_machine_index (0x1257a0)
