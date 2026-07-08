@@ -23461,7 +23461,9 @@
         },
         {
           "addr": "0x191ad0",
-          "decl": "void FUN_00191ad0(void);"
+          "decl": "void leaf_map_node_stack_push(int32_t node);",
+          "ported": true,
+          "source_path": "src/halo/structures/structures.c"
         },
         {
           "addr": "0x191ba0",
