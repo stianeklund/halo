@@ -605,6 +605,42 @@ char FUN_00191d80(int base, unsigned int index)
   return *(char *)count_block;
 }
 
+/* FUN_00191ff0 (0x191ff0)
+ *
+ * Tag-block iterator. Fetches the tag-block element at
+ * (index & 0x7fffffff) with stride 0x18 from the block at base+4,
+ * then walks the nested tag-block at element+0xc (count@0, elements@+4),
+ * passing each 4-byte element's first dword to FUN_00191e90(base, *elem).
+ *
+ * Confirmed from disassembly at 0x191ff0:
+ * - outer tag_block_get_element(base+4, index & 0x7fffffff, 0x18)
+ * - nested block pointer = element + 0xc
+ * - inner tag_block_get_element(nested, i, 4)
+ * - loop counter is a 16-bit short widened to int each iteration (movsx)
+ * All calls cdecl, args pushed right-to-left. No FPU.
+ */
+void FUN_00191ff0(int base, unsigned int index)
+{
+  int *count_block;
+  int i_idx;
+  int *inner;
+  short i;
+
+  count_block = (int *)((int)tag_block_get_element((void *)(base + 4),
+                                                   index & 0x7fffffff, 0x18) +
+                        0xc);
+  i = 0;
+  if (0 < *count_block) {
+    i_idx = 0;
+    do {
+      inner = (int *)tag_block_get_element(count_block, i_idx, 4);
+      FUN_00191e90(base, *inner);
+      i = i + 1;
+      i_idx = (int)i;
+    } while (i_idx < *count_block);
+  }
+}
+
 void structures_initialize(void)
 {
   structure_detail_objects_initialize();
