@@ -329,6 +329,24 @@ int FUN_00191690(void *cluster_list, int *out_cluster, int cluster_handle)
   return -1;
 }
 
+/* Advance a cluster iterator over the pool at offset +8 (0x1916d0).
+ * Advance-only counterpart to FUN_00191690 (which seeds *state first). If the
+ * current handle (*state) is exhausted (-1) returns -1; otherwise fetches the
+ * reference datum from the pool at partition+8, advances *state to the next
+ * link (ref+8), and returns the reference value (ref+4).
+ */
+int FUN_001916d0(int partition, int *state)
+{
+  if (*state != -1) {
+    char *cluster_reference =
+      datum_get(*(void **)(partition + 8), *state);
+    *state = *(int *)(cluster_reference + 8);
+    return *(int *)(cluster_reference + 4);
+  }
+
+  return -1;
+}
+
 /* Add an object to a cluster partition (0x1917a0).
  * Finds all clusters overlapping position+radius via structure_find_in_cluster,
  * then for each cluster: allocates a per-object cluster reference
