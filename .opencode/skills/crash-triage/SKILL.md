@@ -1,13 +1,12 @@
 ---
 name: crash-triage
-description: Automated crash and bug diagnosis for Halo CE Xbox lifting. Invoke whenever debugging any crash, page fault, ACCESS_VIOLATION, assert, hang, deadlock, freeze, regression, wrong behavior, broken feature, incorrect output, runtime problem, register dump, EIP, CR2, or PE export symbolization. Parses crash registers, matches signal table, identifies root cause, proposes fix. Use before halo-page-fault for first-response triage.
+description: "access_violation, access violation, page fault, page-fault, assert, hang, soft deadlock, deadlock: Automated crash and bug diagnosis for Halo CE Xbox lifting. Invoke whenever debugging any crash, page fault, ACCESS_VIOLATION, assert, hang, deadlock, freeze, regression, wrong behavior, broken feature, incorrect output, runtime problem, register dump, EIP analysis, CR2 interpretation, trap frame parsing, PE export symbolization, ESP drift, or thunk recursion. Parses crash registers, matches signal table (13 patterns), identifies root cause, proposes fix. Use before halo-page-fault for first-response triage. For non-crash problems (visual bugs, hangs, build errors), use the `debug` skill instead."
 ---
 
 # Crash Triage — Automated First-Response Diagnosis
 
-**Auto-invoke** whenever the user reports or you observe: a crash, page fault,
-ACCESS_VIOLATION, assert failure, hang, soft deadlock, wrong behavior (wrong
-colors, missing geometry, features doing nothing), or any runtime regression.
+**Auto-triggered** on any message containing `ACCESS_VIOLATION`, `page fault`,
+`assert`, `hang`, or `soft deadlock`.
 
 Delegates detailed investigation to `halo-page-fault` and `lift-crash-signals`.
 
@@ -27,10 +26,15 @@ Parse the crash output for: EIP, EAX, EBX, ECX, EDX, ESI, EDI, EBP, ESP, CR2.
 | EAX=0, `FLD [EAX]`/`MOV [EAX]` | NULL pointer from missing `@<reg>` arg | `check-callee-regs` skill |
 | ESI/EDI = float bit-pattern (0x3E–0x3F…) | Loop parameter corruption | Check loop bounds, pointer arithmetic |
 | EBP == ESP | Stack exhaustion / infinite recursion | Walk call stack for cycle |
-| CR2 = 0, EIP in 0x8001exxx | Soft deadlock (not lift arg bug) | Toggle-bisect sync path |
+| CR2 = 0, EIP in 0x8001exxx | Soft deadlock (not lift arg bug) | `debug` skill Section C (hang investigation) |
 | CR2 = float bit-pattern | Float-as-pointer (register used as address) | `lift-silent-bugs` check 1 |
-| EIP in 0x10000–0x1Dxxxx | Deactivation stub re-push | `patch.py --test-thunks` |
-| EIP in 0x642000+ range | Crash in our compiled code; `build/halo.map` is stale | Symbolize with `tools/xbox/symbolize_exception.py` |
+| EIP in 0x10000–0x1Dxxxx, reg holds datum handle | Deactivation stub re-push (clobbered callee-saved regs) | `lift-crash-signals` stub diagnosis |
+| EIP = `0x4` exactly | `__stdcall` fn-ptr cast missing → ESP drift after RET N | Add `__stdcall` to function pointer cast |
+| EBX/ESI/EDI = garbage after a call to deactivated fn | Deactivation stub clobbered callee-saved registers (CALL-based stub pushes extra) | Check stub at `<impl_export>` with `getmem`; rebuild with CALL-based stubs |
+| Assert `tag_groups.c:3089` (NONE-leaf index) | Collision raycast returned uninitialized leaf from bad upstream physics state | `debug` skill Section B (assert triage) |
+| Stack backtrace contains `BinkDoFrame` | **PRE-EXISTING** attract-mode crash in NV2A emulation — not our regression | Document and skip. Does NOT repro on real Xbox. |
+| EIP in 0x642000+ range | Crash in our compiled code (not original). `build/halo.map` is stale. | Symbolize with `tools/xbox/symbolize_exception.py` (fresh PE export table) |
+| Assert from `cseries/errors.c` HALT | `system_exit(-1)` macro. Verify assert uses `system_exit` thunk, not `halt_and_catch_fire()`. | Fix assert macro to call `system_exit(-1)` |
 
 ---
 
@@ -77,3 +81,26 @@ Based on signal match + signature check, output one:
 - **Uncertain:** [symptoms only] → load `halo-page-fault` skill for full investigation
 
 When uncertain, do NOT guess. Load `halo-page-fault` and follow its step-by-step workflow.
+
+---
+
+## Step 6 — Check for pre-existing Xbox bugs
+
+Before deep investigation, rule out known pre-existing bugs:
+
+- **BinkDoFrame crash** after 2+ attract cycles → NV2A emulation issue, not ours
+- **Intermittent collision asserts on specific maps** → test with all ported functions disabled
+- **`physical_memory_protect` page fault** → original XBE behavior
+
+Test: set all recently ported functions to `ported=false`, rebuild, reproduce.
+If crash persists → pre-existing. See `debug` skill Section G for full checklist.
+
+---
+
+## Routing to other skills
+
+- **Not a crash?** (hang, visual bug, wrong behavior) → Load `debug` skill
+- **Page fault specifically?** → Load `halo-page-fault` for deep ABI investigation
+- **Need toggle-bisect?** → Load `debug` skill Section D
+- **Need xemu probing?** → Load `debug-xemu` skill
+- **Need real Xbox probing?** → Load `halo-xbdm` skill

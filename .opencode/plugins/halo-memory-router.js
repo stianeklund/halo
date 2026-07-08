@@ -9,6 +9,32 @@ const MAX_MESSAGE_CHARS = 4200
 const MAX_SYMBOLIZER_CHARS = 3600
 
 const SKILL_RULES = [
+
+  {
+    re: /\b(cleanup|readability rewrite|cleanup baseline|cleanup report|match floor|rename locals|local variable cleanup|magic number|enum recovery|named constant|raw offset|pointer arithmetic|struct field access|simplify expression|control flow cleanup|comment capture|knowledge capture)\b/i,
+    skills: ["cleanup", "cleanup-baseline", "cleanup-gap-audit", "local-var-cleanup", "naming-confidence", "const-enum-recovery", "struct-recovery", "struct-assert", "offset-to-struct", "expr-simplify", "control-flow-cleanup", "re-comment-capture", "cleanup-report"],
+    why: "cleanup ladder, evidence-preserving renames, constants, structs, offset rewrites, expression/control-flow gates",
+  },
+  {
+    re: /\b(capture input|record gameplay|record fixture|controller fixture|replay input|replay fixture|capture_scenario|input-recordings)\b/i,
+    skills: ["capture-input", "replay-input", "input-replay-testing"],
+    why: "deterministic controller-input capture and replay workflow",
+  },
+  {
+    re: /\b(reintegrate|re-integrate|worktree branch|bring branch up to date|fast-forward main|branch integration)\b/i,
+    skills: ["reintegrate-to-main"],
+    why: "safe worktree branch reintegration gates",
+  },
+  {
+    re: /\b(core\.bin|core_save|getfile|grab the core|pull the core|xbdm getfile)\b/i,
+    skills: ["xbdm-getfile", "halo-xbdm"],
+    why: "pulling files from xemu/Xbox HDD over XBDM",
+  },
+  {
+    re: /\b(qmd|markdown search|find notes|retrieve documents|inspect a wiki|indexed local markdown)\b/i,
+    skills: ["qmd"],
+    why: "querying indexed local markdown through qmd",
+  },
   {
     re: /\b(lift|lifting|ported|porting|re[- ]?lift|FUN_[0-9a-f]{8}|0x[0-9a-f]{5,}|ghidra|decompil|cachebeta|kb\.json)\b|@<[a-z]+>/i,
     skills: ["halo-xbox-re", "halo-re-lift"],

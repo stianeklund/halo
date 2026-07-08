@@ -1,6 +1,6 @@
 ---
 name: halo-verify-debug
-description: "/verify, VC71, delink, objdiff, lift_pipeline, equivalence, golden tests, dual-oracle, low-match, behavior/runtime failure: verification ladder and regression debugging workflow."
+description: "vc71, vc71_verify, low match, low-match, match percent, objdiff, delink, delinked: /verify, VC71, delink, objdiff, lift_pipeline, equivalence, golden tests, dual-oracle, low-match, behavior/runtime failure: verification ladder and regression debugging workflow."
 ---
 
 # Halo Verify And Debug
@@ -31,8 +31,8 @@ The user-facing command surface is consolidated under `/verify`:
 - `/verify hazards` for `check_lift_hazards.py`.
 - `/verify delink <target>` for delink export and reference mapping.
 - `/verify equivalence <target>` for Unicorn differential testing; use xemu
-  `pmemsave` or XBDM `getmem` live memory captures when zero-filled globals
-  under-cover live paths.
+  virtual `memsave` (never physical `pmemsave`) or XBDM `getmem` live memory
+  captures when zero-filled globals under-cover live paths.
 - `/verify golden <target>` for runtime oracle comparison through
   `tools/verify/run_golden_tests.py`.
 - `/verify dual-oracle <target>` for same-process original-vs-candidate
@@ -79,13 +79,19 @@ only reaches early exits or weak coverage:
 
 `rtk python3 tools/equivalence/unicorn_diff.py <target> --allow-stubs --mem-trace --state-snapshot artifacts/snapshots/<name>.json`
 
-Capture selected memory regions from a live xemu engine state with QMP `pmemsave` or XBDM
-`getmem` via `tools/equivalence/state_snapshot.py` or
-`tools/equivalence/capture_snapshot_from_diff.py`. These captures are selected
-memory regions, not QEMU VM snapshots. Prefer QMP `pmemsave` when available;
-use `--backend xbdm` when the running xemu is reachable through XBDM but not
-QMP. Do not use `savevm`/`loadvm` for oracle testing because those restore old
-loaded-XBE code pages and invalidate original-vs-candidate comparisons.
+Capture selected memory regions from a live xemu engine state with the
+VIRTUAL-memsave tools: `tools/equivalence/memsave_snapshot.py` (plan →
+capture) or `tools/equivalence/qmp_capture.py`. These captures are selected
+memory regions, not QEMU VM snapshots. **Never use QMP `pmemsave`
+(physical)** — Cerbios does not identity-map game VA on this dev box, so
+physical reads return wrong bytes (verified 2026-06-07). XBDM `getmem` is the
+fallback on real hardware only. Do not use `savevm`/`loadvm` for oracle
+testing because those restore old loaded-XBE code pages and invalidate
+original-vs-candidate comparisons.
+
+When no live capture reaches the branch you need, hand-craft a snapshot
+instead — see skill `lift-synthetic-equivalence` (regions ≥8B, pointer-param
+content overrides, sibling-asymmetry handling, BIPED_SIBLING_RESOLVE=1).
 
 Report:
 
@@ -143,6 +149,8 @@ Notes:
 - Build failure: fix the compile error only; do not rewrite the lift from scratch.
 - ABI failure: verify `kb.json` declaration, `@<reg>` annotations, caller setup, and callee thunks.
 - XDK `[FPU-WARN]`: verify x87 operand order, push-then-fstp arguments, and cross-product/subtraction order.
+- `[LOADW-WARN]` (`--loadw-only`): a field narrowed to int16/int8 in the original but read wider in the lift (or vice versa) — verify the C type against disassembly (lift-learnings §24).
+- `[IMM-WARN]` (`--imm-only`): a large inline constant (float bit-pattern or magic) differs between the lift and the original. Both sides are VC71 codegen, so it is a wrong numeric literal the LCS % aligns away — verify the source literal against the disassembly immediate (lift-learnings §25). Very low false-positive; treat as a near-certain source bug.
 - Low match: inspect objdiff/XDK output for branch shape, memory access offsets, and missing side effects.
 - Behavior/runtime failure: prefer XBDM state probes before xemu unless no console is reachable.
 
@@ -187,15 +195,15 @@ Useful probes (XBDM preferred):
 - `/xbdm status` — check stop state before context reads
 - `/xbdm context` — read registers after a crash
 - `/xbdm mem <addr> <len>` — inspect memory at a suspect address
-- visual check via `rtk python3 tools/xbox/xdbm_screenshot.py --host <ip> --images 5 --png`
+- visual check via `rtk python3 tools/xbox/xbdm_screenshot.py --host <ip> --images 5 --png`
 - input replay via native `state.data` sentinels; see `docs/xbox-pad.md`
 
 Useful xemu probes (fallback only):
 
-- `rtk python3 tools/xbox/xdbm_screenshot.py --host 127.0.0.1 --images 5 --png` — visible state
-- serial output for assertions
-- `hmp "info registers"`
-- `hmp "x /Nx 0x<addr>"`
+- `rtk python3 tools/xbox/xbdm_screenshot.py --host 127.0.0.1 --images 5 --png` — visible state
+- `xemu_xemu_read_serial()` — serial assertions
+- `xemu_xemu_send_monitor_command("info registers")` — register state
+- `xemu_xemu_send_monitor_command("x /16xw 0x<addr>")` — memory inspection
 
 ## Debugging guardrails
 

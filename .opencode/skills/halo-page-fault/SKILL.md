@@ -1,6 +1,6 @@
 ---
 name: halo-page-fault
-description: Investigate page faults during lift/reimplementation, typically caused by ABI/signature mismatches in kb.json
+description: "page fault, page-fault, access_violation, trap frame, cr2, pe export, symbolize: Investigate page faults during lift/reimplementation — typically caused by ABI/signature mismatches in kb.json. Invoke when: page fault with garbage pointer or uninitialized data as fault address, EIP points outside valid game code, crash after recently porting a function or modifying kb.json, or signature mismatch between callers and ported implementation. Deep workflow for tracing the caller, checking kb.json drift, and applying fix patterns (wrong @<reg>, missing HDATA, wrong return type). Use `crash-triage` first for initial signal-table triage."
 ---
 
 # Halo Page Fault Investigation

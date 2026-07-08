@@ -1,26 +1,18 @@
 ---
 name: bug-hunt
-description: >-
-  Tiered automated bug scanner for Halo CE Xbox lifts. Run after editing source
-  files, before deploying to Xbox, before committing, as a pre-commit check, as
-  a safety scan, or as an audit. Checks for silent correctness bugs
-  (float-as-pointer, void-EAX, address-offset misreads, accumulator misreads,
-  discarded builder counts), lift hazards (duplicate args, undersized buffers,
-  intrinsic calls, CONCAT survival), register argument mismatches, ABI drift,
-  and visual/behavioral regressions. Delegates to check_lift_hazards.py,
-  check_callee_reg_args.py, batch_equivalence.py, and extract_reg_args.py.
+description: "bug hunt, bug-hunt, hazard scan, check_lift_hazards, before deploy, pre-deploy, pre-commit, safety scan: Tiered automated bug scanner for Halo CE Xbox lifts. Run after editing source files, before deploying to Xbox, before committing, as a pre-commit check, as a safety scan, or as an audit. Checks for silent correctness bugs (float-as-pointer, void-EAX, address-offset misreads, accumulator misreads, discarded builder counts), lift hazards (duplicate args, undersized buffers, intrinsic calls, CONCAT survival), register argument mismatches, ABI drift, and visual/behavioral regressions. Delegates to check_lift_hazards.py, check_callee_reg_args.py, batch_equivalence.py, and extract_reg_args.py."
 ---
 
 # Bug Hunt — Tiered Automated Bug Scanning
 
-**Auto-triggered** after any `Write`/`Edit` to `src/` or `kb.json`.  
+**Auto-triggered** after edits to `src/` or `kb.json`.  
 **Manual:** `/bug-hunt [--all]` runs T0+T1; `--full` adds T3.
 
 Every check delegates to an existing script — this skill is the decision tree.
 
 ---
 
-## Tier 0 — Edit-time (<5s, after every Write/Edit to src/)
+## Tier 0 — Edit-time (<5s, runs after edits to src/)
 
 ```bash
 rtk python3 tools/audit/check_lift_hazards.py --changed-only 2>&1 | head -60
@@ -31,7 +23,7 @@ from pre-existing noise in untouched files are suppressed by `--changed-only`.
 
 ---
 
-## Tier 1 — Build-time (<30s, after cmake --build)
+## Tier 1 — Build-time (<30s, runs after cmake --build)
 
 ```bash
 rtk python3 tools/audit/check_callee_reg_args.py 2>&1 | tail -20

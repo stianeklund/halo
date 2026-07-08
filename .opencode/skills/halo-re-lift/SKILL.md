@@ -1,6 +1,6 @@
 ---
 name: halo-re-lift
-description: "Lift, port, re-lift, FUN_, Ghidra decompile, kb.json, @<reg>, ABI, source_path: repo-specific Halo CE Xbox function lifting workflow from binary evidence through C implementation and verification."
+description: "lift, lifting, re-lift, relift, abi, kb.json, @<reg>, port function: Lift, port, re-lift, FUN_, Ghidra decompile, kb.json, @<reg>, ABI, source_path: repo-specific Halo CE Xbox function lifting workflow from binary evidence through C implementation and verification."
 ---
 
 # Halo RE Lift
@@ -17,7 +17,7 @@ At the start of every lift session, determine the actual repo root:
 rtk git rev-parse --show-toplevel
 ```
 
-All file edits, `rtk git` commands, and tool invocations must target **that path**, not a hardcoded `/mnt/g/dev/halo`. When running as a subagent spawned from a worktree, the "Primary working directory" in your system prompt tells you where you are — trust it over any hardcoded path. Never commit or stage changes to a path outside your working directory.
+All file edits, `rtk git` commands, and tool invocations must target **that path**, not a hardcoded repo path. When running as an OpenCode subagent spawned from a worktree, the primary working directory in your system prompt tells you where you are — trust it over any hardcoded path. Never commit or stage changes to a path outside your working directory.
 
 ## When to use
 
@@ -36,28 +36,28 @@ All file edits, `rtk git` commands, and tool invocations must target **that path
    for full ABI rules). **Mandatory call-site verification:** for every CALL in
    the disassembly, trace each PUSH backward and confirm the decompiler mapped
    it to the correct variable. Watch for:
-    - Register aliasing: EBX/ESI/EDI set far from the call site
-    - Push-then-fstp: `PUSH <dummy>; FSTP [ESP]` replaces arg with float
-    - Struct field rotation: MSVC interleaved stores do not imply decompiler offsets
-    - **→ Use `lift-decompiler-traps` skill** for full guidance on these + cross-product swap, buffer-alias confusion, and MSVC intrinsics
+   - Register aliasing: EBX/ESI/EDI set far from the call site
+   - Push-then-fstp: `PUSH <dummy>; FSTP [ESP]` replaces arg with float
+   - Struct field rotation: MSVC interleaved stores do not imply decompiler offsets
+   - **→ Use `lift-decompiler-traps` skill** for full guidance on these + cross-product swap, buffer-alias confusion, and MSVC intrinsics
 4. Infer the narrowest defensible prototype (see
-    `docs/references/prototype-inference.md`).
+   `docs/references/prototype-inference.md`).
 5. **Pre-implementation pattern check** — before writing C, scan for crash classes
-   `check_lift_hazards.py` does NOT flag:
-   - XCALLs to targets being ported
-   - `&local_XX` args to callees that index `param[N]`
+   `check_lift_hazards.py` does NOT flag (full detail in `docs/lift-learnings.md`):
+   - XCALLs to targets being ported: `grep -oP 'XCALL\(0x\K[0-9a-f]+' src/<file>.c`
+   - `&local_XX` args to callees that index `param[N]` (stack aliasing → must be contiguous buffer)
    - Loops that advance a parameter pointer when original uses a copy register post-loop
-   - After writing C: `grep -n '(float)(int)' src/<file>.c`
-   - After writing C: `grep -n '(float \*)0\|(void \*)0\|(int \*)0' src/<file>.c`
+   - After writing C: `grep -n '(float)(int)' src/<file>.c` (float-as-pointer smuggling)
+   - After writing C: `grep -n '(float \*)0\|(void \*)0\|(int \*)0' src/<file>.c` (NULL @<reg> args)
    - **→ Use `lift-arg-hazards` skill** for ADD ESP mismatch suspicion, 0-arg getter patterns, or @<reg> order questions
    - **→ Use `lift-frame-hazards` skill** when the decompile has `_chkstk`, you need to size a buffer from the frame, or you see `&local` passed to an indexing callee
 6. Produce a structurally faithful C lift:
-    - preserve control-flow shape
-    - preserve side-effect order
-    - preserve pointer arithmetic and odd logic unless disproven
+   - preserve control-flow shape
+   - preserve side-effect order
+   - preserve pointer arithmetic and odd logic unless disproven
 7. Write implementation in address-ordered position.
 8. Update kb.json conservatively (see
-    `docs/references/kb-update-policy.md`).
+   `docs/references/kb-update-policy.md`).
 9. Run `rtk python3 tools/analysis/maintain.py <source_file>`.
 10. Run `rtk python3 tools/audit/check_lift_hazards.py` and fix any target-relevant hazards.
     - **→ Use `lift-silent-bugs` skill** before deploying to Xbox — catches float-as-pointer, accumulator misread, builder-count ignored, void-EAX, address-offset bugs that `check_lift_hazards.py` does NOT detect

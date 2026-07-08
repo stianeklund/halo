@@ -87,8 +87,8 @@ After Phase 1 completes:
    rtk jq '[.units[] | select(.name | contains("<ADDR>"))] | length' objdiff.json
    ```
    If the result is `0`, export it before running the pipeline:
-   - Get the function body range: `mcp__ghidra__get_function_by_address` at target address
-   - Export: `mcp__ghidra-live__export_delinked_object` to
+   - Get the function body range: `ghidra_get_function_by_address` at target address
+   - Export: `ghidra-live export_delinked_object` to
      `G:\dev\halo\delinked\<obj>_FUN_<ADDR>.obj` with `selection_mode=range`
    - Add entry to `objdiff.json` under `.units`:
      ```json

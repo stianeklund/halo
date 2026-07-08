@@ -1,6 +1,6 @@
 ---
 name: halo-xbdm
-description: Standard RDCP and XBDM command handling for real Xbox debugging
+description: "xbdm, rdcp, real xbox, getmem: Standard RDCP and XBDM command handling for real Xbox debugging"
 ---
 
 # Halo XBDM
