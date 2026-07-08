@@ -4512,21 +4512,19 @@ bool unit_verify_vectors(int unit_handle)
 
   obj = (char *)object_get_and_verify_type(unit_handle, 3);
 
-  if (!valid_real_normal3d((float *)(obj + 0x1d4)))
-    return false;
-  if (!valid_real_normal3d((float *)(obj + 0x1e0)))
-    return false;
-  if (!valid_real_normal3d((float *)(obj + 0x204)))
-    return false;
-  if (!valid_real_normal3d_perpendicular((float *)(obj + 0x24),
-                                         (float *)(obj + 0x30)))
-    return false;
-  if (!valid_real_normal3d((float *)(obj + 0x1ec)))
-    return false;
-  if (!valid_real_normal3d((float *)(obj + 0x210)))
-    return false;
-
-  return true;
+  /* Single short-circuit && chain matches the original's one-setne exit
+   * structure (0x1af6a2), recovering ~15pp over an if/return ladder which VC71
+   * lowered to a two-exit mov/xor. The residual testb-vs-testl / al-vs-eax
+   * width deltas are a compiler-flag codegen artifact (identical across ladder,
+   * && chain, and int-return forms) — not source-addressable.
+   * Runtime-identical: && short-circuits exactly like the early returns. */
+  return valid_real_normal3d((float *)(obj + 0x1d4)) &&
+         valid_real_normal3d((float *)(obj + 0x1e0)) &&
+         valid_real_normal3d((float *)(obj + 0x204)) &&
+         valid_real_normal3d_perpendicular((float *)(obj + 0x24),
+                                           (float *)(obj + 0x30)) &&
+         valid_real_normal3d((float *)(obj + 0x1ec)) &&
+         valid_real_normal3d((float *)(obj + 0x210));
 }
 
 /* unit_control_trace (0x1af6b0)
@@ -7306,7 +7304,9 @@ char unit_get_melee_range_and_ticks(int unit_handle, char is_secondary,
  * Attempts to set the unit's seat via animation lookup. */
 char unit_set_seat(int unit_handle, int seat_name)
 {
-  return FUN_001acd70(unit_handle, (const char *)seat_name, 0, 1) != '\0';
+  /* `!!` triggers VC71's branchless neg/sbb/neg bool-normalize (matching the
+   * original at 0x1ae1f8) rather than a test/setne branch. Runtime-identical. */
+  return (char)!!FUN_001acd70(unit_handle, (const char *)seat_name, 0, 1);
 }
 
 /* unit_start_flaming_to_death (0x1af2a0)
