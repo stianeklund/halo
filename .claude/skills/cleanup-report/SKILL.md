@@ -62,12 +62,13 @@ Everything in it comes from artifacts the session already produced — no new an
   `generate_lift_commit.py`; plain scoped messages
   (`cleanup(objects.c): mechanical local renames, match unchanged`) with the report as
   the PR body.
-- **Always commit with `git -c core.hooksPath=/dev/null commit -F <msg>`** (after
-  running the pre-commit checks manually: `extract_reg_args.py --check`,
-  `check_lift_hazards.py --staged-only`). The repo's prepare-commit-msg hook rewrites
-  plain messages on `src/halo` commits into generated lift-style messages ("Port
-  functions (N% VC71...)") — this silently destroyed two category messages in the
-  2026-07-08 pilot and they had to be restored with `filter-branch --msg-filter`.
+- The prepare-commit-msg hook (fixed 2026-07-08) skips explicit `-m`/`-F` messages
+  and only prepopulates interactive editor commits. If the installed
+  `.git/hooks/prepare-commit-msg` predates the fix (a stale copy instead of the
+  symlink to `tools/hooks/prepare-commit-msg-hook.sh`), it will rewrite plain
+  cleanup messages into lift-style ones — verify the symlink, or commit with
+  `git -c core.hooksPath=/dev/null commit -F <msg>` after running the pre-commit
+  checks manually (`extract_reg_args.py --check`, `check_lift_hazards.py --staged-only`).
 - If floors were raised (`vc71_regression.py update`), say so and include the diff of
   `tools/verify/vc71_scores.json` in the same PR.
 - File the report where the session artifacts live (PR body; long-form copy under
