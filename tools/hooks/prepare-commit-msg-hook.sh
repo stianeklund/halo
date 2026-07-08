@@ -9,8 +9,12 @@
 COMMIT_MSG_FILE=$1
 COMMIT_SOURCE=$2
 
-# Skip if amending or merging
-if [ "$COMMIT_SOURCE" = "merge" ] || [ "$COMMIT_SOURCE" = "squash" ]; then
+# Only prepopulate when the user is about to get an EDITOR with no message:
+# COMMIT_SOURCE is empty for plain `git commit`, and set for every explicit
+# source — "message" (-m/-F), "commit" (--amend/-c/-C), "template" (-t),
+# "merge", "squash". Overwriting an explicit -m/-F message silently replaced
+# real cleanup/maintenance messages with generated lift messages (2026-07-08).
+if [ -n "$COMMIT_SOURCE" ]; then
     exit 0
 fi
 
