@@ -8,6 +8,8 @@
  * connections" bool, gating whether the server accepts new client joins.
  */
 
+#include "network_connection.h"
+
 /* network_server_allow_client_connections (0x1282f0).
  * Sets the server connection's accept-clients flag.  Asserts the connection
  * exists and is a server-role connection, then stores the requested state. */
@@ -15,7 +17,7 @@ void network_server_allow_client_connections(int server_connection, bool open)
 {
   assert_halt(server_connection);
   assert_halt_msg(
-    *(uint8_t *)(server_connection + 0x30) & 1,
+    *(uint8_t *)(server_connection + 0x30) & FLAG(_connection_create_server_bit),
     "server_connection->flags&FLAG(_connection_create_server_bit)");
   *(bool *)(server_connection + 0x4c) = open;
 }
@@ -29,7 +31,9 @@ void network_server_allow_client_connections(int server_connection, bool open)
 bool network_connection_connected(int connection)
 {
   assert_halt(connection);
-  if ((*(uint8_t *)(connection + 0x30) & 6) != 0 && *(int *)connection != 0) {
+  if ((*(uint8_t *)(connection + 0x30) &
+       (FLAG(_connection_create_clientside_client_bit) |
+        FLAG(_connection_create_serverside_client_bit))) != 0 && *(int *)connection != 0) {
     if (FUN_000831a0(*(int *)connection)) {
       return true;
     }
@@ -89,7 +93,7 @@ bool network_connection_server_accept_client_connection(int server_connection,
 {
   assert_halt(server_connection);
   assert_halt_msg(
-    *(uint8_t *)(server_connection + 0x30) & 1,
+    *(uint8_t *)(server_connection + 0x30) & FLAG(_connection_create_server_bit),
     "server_connection->flags&FLAG(_connection_create_server_bit)");
   assert_halt(client_connection);
   return (short)add_endpoint_to_set(*(int *)client_connection,
@@ -104,7 +108,7 @@ bool network_connection_server_accept_client_connection(int server_connection,
 bool network_connection_active(int connection)
 {
   assert_halt(connection);
-  return ((*(unsigned int *)(connection + 0x30) >> 4) & 1) == 0;
+  return ((*(unsigned int *)(connection + 0x30) >> _connection_closed_bit) & 1) == 0;
 }
 
 /* network_connection_going_stale (0x1286a0).
@@ -115,7 +119,7 @@ bool network_connection_active(int connection)
 bool network_connection_going_stale(int connection)
 {
   assert_halt(connection);
-  return (*(unsigned int *)(connection + 0x30) >> 5) & 1;
+  return (*(unsigned int *)(connection + 0x30) >> _connection_going_stale_bit) & 1;
 }
 
 /* network_connection_keep_alive (0x128d20).
@@ -163,7 +167,7 @@ void network_connection_delete(int connection)
   if (*(int *)(connection + 0x14) != 0) {
     circular_queue_delete(*(int *)(connection + 0x14));
   }
-  if ((*(uint8_t *)(connection + 0x30) & 1) != 0) {
+  if ((*(uint8_t *)(connection + 0x30) & FLAG(_connection_create_server_bit)) != 0) {
     children = (int *)(connection + 0x3c);
     if (children != (int *)0) {
       i = 4;
@@ -238,13 +242,14 @@ bool network_connection_write(void *connection, void *message,
 
   byte_swap_message_header((unsigned short *)message, 1);
 
-  if ((*(uint8_t *)(conn + 0x30) & 1) != 0) {
+  if ((*(uint8_t *)(conn + 0x30) & FLAG(_connection_create_server_bit)) != 0) {
     /* loopback / datagram path */
     assert_halt_msg(reliable == 0, "!reliable");
     assert_halt_msg(dest_address != 0, "dest_address");
-    if (size > 400) {
-      error(2, "buffer size was %d max is %d", size, 400);
-      assert_halt_msg(size <= 400, "buffer_size <= DATAGRAM_MAXIMUM_SIZE");
+    if (size > DATAGRAM_MAXIMUM_SIZE) {
+      error(2, "buffer size was %d max is %d", size, DATAGRAM_MAXIMUM_SIZE);
+      assert_halt_msg(size <= DATAGRAM_MAXIMUM_SIZE,
+                      "buffer_size <= DATAGRAM_MAXIMUM_SIZE");
     }
     result = FUN_00084740(*(int *)(conn + 4), message, size, dest_address);
     network_connection_notify_traffic_event(2, size, conn);
@@ -254,7 +259,9 @@ bool network_connection_write(void *connection, void *message,
   if (reliable != 0) {
     /* normal reliable path */
     assert_halt_msg(size <= 0x800, "message size exceeds maximum allowed size");
-    assert_halt_msg((*(uint8_t *)(conn + 0x30) & 6) != 0,
+    assert_halt_msg((*(uint8_t *)(conn + 0x30) &
+                   (FLAG(_connection_create_clientside_client_bit) |
+                    FLAG(_connection_create_serverside_client_bit))) != 0,
                     "(flags & clientside) || (flags & serverside)");
     do {
       send_result = send_endpoint(*(int **)conn, (const char *)message, size);
@@ -290,7 +297,8 @@ bool network_connection_write(void *connection, void *message,
   if (*(int *)(conn + 4) == 0) {
     return true;
   }
-  assert_halt_msg(size <= 400, "message size exceeds maximum allowed size");
+  assert_halt_msg(size <= DATAGRAM_MAXIMUM_SIZE,
+                  "message size exceeds maximum allowed size");
   if (dest_address == 0) {
     if (FUN_000831a0(*(int *)(conn + 4))) {
       send_endpoint(*(int **)(conn + 4), (const char *)message, size);
@@ -341,12 +349,13 @@ int network_connection_new(unsigned int flags, unsigned short well_known_port)
   int unreliable_size;
   int address[6];
 
-  assert_halt_msg((flags & 1) != 0 || (flags & 2) != 0,
+  assert_halt_msg((flags & FLAG(_connection_create_server_bit)) != 0 ||
+                    (flags & FLAG(_connection_create_clientside_client_bit)) != 0,
                   "(flags&FLAG(_connection_create_server_bit))|| "
                   "(flags&FLAG(_connection_create_clientside_client_bit))");
 
-  if ((flags & 1) == 0) {
-    if ((flags & 2) == 0) {
+  if ((flags & FLAG(_connection_create_server_bit)) == 0) {
+    if ((flags & FLAG(_connection_create_clientside_client_bit)) == 0) {
       return 0;
     }
     connection = (int)debug_malloc(
@@ -357,7 +366,7 @@ int network_connection_new(unsigned int flags, unsigned short well_known_port)
     reliable_size = 0x8000;
     unreliable_size = 0x640;
   } else {
-    assert_halt_msg(well_known_port > 0x3ff,
+    assert_halt_msg(well_known_port > MAXIMUM_RESERVED_NETWORK_PORT,
                     "well_known_port > MAXIMUM_RESERVED_NETWORK_PORT");
     connection = (int)debug_malloc(
       0x50, 1, "c:\\halo\\SOURCE\\networking\\network_connection.c", 0xa5);
@@ -383,7 +392,7 @@ int network_connection_new(unsigned int flags, unsigned short well_known_port)
     goto fail;
   }
 
-  if ((flags & 1) != 0) {
+  if ((flags & FLAG(_connection_create_server_bit)) != 0) {
     address[1] = 0;
     address[2] = 0;
     address[3] = 0;
@@ -523,7 +532,8 @@ bool network_connection_read_unreliable(int connection, void *buffer, int *size,
 
   assert_halt_msg(
     connection != 0 && *(int *)(connection + 0x14) != 0 &&
-      (*(uint8_t *)(connection + 0x30) & 4) == 0,
+      (*(uint8_t *)(connection + 0x30) &
+       FLAG(_connection_create_serverside_client_bit)) == 0,
     "connection && connection->unreliable_incoming_queue && "
     "!(connection->flags&FLAG(_connection_create_serverside_client_bit))");
   assert_halt(buffer);
@@ -536,7 +546,7 @@ bool network_connection_read_unreliable(int connection, void *buffer, int *size,
   byte_swap_message_header(&header, 0);
   packet_size = header >> 4;
 
-  if (packet_size > 400) {
+  if (packet_size > DATAGRAM_MAXIMUM_SIZE) {
     error(2, "got an unusually large datagram (#d bytes); resetting unreliable incoming queue",
           packet_size);
     circular_queue_reset(*(int *)(connection + 0x14));
@@ -679,7 +689,7 @@ bool network_connection_idle_client_reliable_endpoint(int connection)
     if (received <= 0) {
       if (received != -4) {
         if (received == -3) {
-          *(unsigned int *)(connection + 0x30) |= 0x10;
+          *(unsigned int *)(connection + 0x30) |= FLAG(_connection_closed_bit);
         } else if (received == 0) {
           error(2, "client reliable connection lost");
         } else {
@@ -823,7 +833,7 @@ bool network_connection_idle(int connection, int *output)
                         *(uint32_t **)(connection + 0x38)) != 0) {
                   error(2, "failed to remove a client endpoint from the server's endpoint set");
                 }
-                *(unsigned int *)(child + 0x30) |= 0x10;
+                *(unsigned int *)(child + 0x30) |= FLAG(_connection_closed_bit);
                 ok = true;
               }
               if (i < 4) {
@@ -1034,7 +1044,7 @@ void *network_connection_new_serverside_client(int endpoint)
   connection = (int *)debug_malloc(
     0x38, 1, "c:\\halo\\SOURCE\\networking\\network_connection.c", 0x347);
   if (connection != (int *)0) {
-    connection[0xc] = 4;
+    connection[0xc] = FLAG(_connection_create_serverside_client_bit);
     connection[0] = endpoint;
     connection[4] = (int)circular_queue_new((int)"incoming-reliable", 0x8000);
     if (connection[4] == 0) {
