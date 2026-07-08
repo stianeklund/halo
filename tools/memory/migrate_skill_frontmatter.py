@@ -121,6 +121,61 @@ CATALOG: dict[str, tuple[str, list[str]]] = {
     "halo-xbdm": ("agent", [
         "xbdm", "rdcp", "real xbox", "getmem",
     ]),
+    # ── cleanup family (readability rewrites of already-lifted code) ────────
+    "cleanup": ("user", []),
+    "cleanup-baseline": ("agent", [
+        "cleanup baseline", "record baseline", "before cleanup", "baseline snapshot",
+        "match floor", "score floor", "vc71_regression",
+    ]),
+    "cleanup-gap-audit": ("agent", [
+        "tooling gap", "gap audit", "missing detector", "missing tooling",
+        "no detector", "tooling audit",
+    ]),
+    "struct-recovery": ("agent", [
+        "struct recovery", "recover struct", "identify struct", "tag block",
+        "pool stride", "object stride", "packed layout", "array of structs",
+        "union layout",
+    ]),
+    "struct-assert": ("agent", [
+        "offsetof", "static_assert", "sizeof check", "define struct",
+        "struct definition", "new struct", "struct assert",
+    ]),
+    "naming-confidence": ("agent", [
+        "rename field", "rename function", "rename type", "rename global",
+        "naming confidence", "evidence strength", "confidence tier", "name fields",
+    ]),
+    "offset-to-struct": ("agent", [
+        "raw offset", "pointer arithmetic", "offset replacement", "replace offsets",
+        "struct field access", "field access rewrite",
+    ]),
+    "local-var-cleanup": ("agent", [
+        "rename locals", "local variable cleanup", "local cleanup", "uvar", "ivar",
+        "fvar", "decompiler locals", "mechanical names",
+    ]),
+    "const-enum-recovery": ("agent", [
+        "magic number", "named constant", "enum recovery", "recover enum",
+        "flag bits", "sentinel value", "magic constant",
+    ]),
+    "expr-simplify": ("agent", [
+        "simplify expression", "expression simplification", "redundant cast",
+        "simplify cast", "collapse temporaries", "simplify arithmetic",
+    ]),
+    "control-flow-cleanup": ("agent", [
+        "control flow cleanup", "simplify goto", "goto cleanup", "restructure loop",
+        "loop restructure", "simplify branches", "flatten nesting",
+    ]),
+    "re-comment-capture": ("agent", [
+        "comment capture", "knowledge capture", "document evidence",
+        "evidence comment", "uncertainty comment", "re knowledge",
+    ]),
+    "cleanup-regression-triage": ("agent", [
+        "cleanup regression", "match dropped", "score dropped", "match regression",
+        "score regression", "vc71 drop", "match fell",
+    ]),
+    "cleanup-report": ("agent", [
+        "cleanup report", "before/after report", "before after report", "cleanup pr",
+        "cleanup summary",
+    ]),
 }
 
 
