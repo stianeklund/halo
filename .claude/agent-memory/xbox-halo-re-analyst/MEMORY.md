@@ -58,3 +58,5 @@
 - [Unported @reg/cdecl callee thunk mechanism](reference_unported_regarg_thunk_mechanism.md) — cdecl unported→halo.xbe.lib orig; @reg unported→weak naked thunk calls RAW literal addr; baseline in functions dict; FUN_0001b280 first-of-kind
 - [geometry 0x106f50 hull builder FAITHFUL (x87 tie-break artifact)](reference_geometry_106f50_hull_faithful_x87_tiebreak.md) — FUN_00106f50 simplex seed matches disasm everywhere; "return 0 vs 1" NOT a bug: default-stub equiv INVALID (plane-builder FUN_001037b0 writes the plane[] the loop reads → use --real-callees) + x87 argmax tie-break on symmetric-cube snapshot; asymmetric cloud=30/30 PASS; kept fabs→__builtin_fabs
 - [XBE section-header field offsets](reference_xbe_section_header_field_offsets.md) — VA→file: vaddr=+0x04, vsize=+0x08, raw=+0x0c (0x38/hdr); validate via known float const
+
+- [lruv/lrar cache helpers @eax](reference_lruv_lrar_cache_helpers_eax.md) — FUN_0011c820/0011c7c0 take cache in @eax (not void); TU also hosts distinct lrar_cache struct (0x30=ptr,0x38=int16 count,stride 0x10); missing per-fn delink for 0x11cf00 gap
