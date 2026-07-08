@@ -45,7 +45,9 @@ def disassemble(obj_path: str) -> dict[str, list[str]]:
         m = re.match(r'^(?:[0-9a-f]+ )?<([^>]+)>:', line)
         if m:
             sym = m.group(1)
-            if sym.startswith("LAB_") or sym.startswith("switchD_") or sym.startswith("$L") or sym.startswith("$case") or sym.startswith("$next"):
+            # Any $-prefixed symbol is a VC71 local label ($L33383, $caseD_...,
+            # and user-goto labels like $not_allowed$33397), never a function.
+            if sym.startswith("LAB_") or sym.startswith("switchD_") or sym.startswith("$"):
                 current_labels.add(len(current_lines))
                 continue
             if sym.startswith("FUN_") and current_func and current_lines:
@@ -80,7 +82,7 @@ def disassemble(obj_path: str) -> dict[str, list[str]]:
             if current_func and current_lines:
                 functions[current_func] = current_lines
                 _label_positions[current_func] = current_labels
-            current_func = re.sub(r'@\d+$', '', sym.lstrip("_"))
+            current_func = re.sub(r'@\d+$', '', sym.lstrip("_@"))
             current_lines = []
             current_labels = set()
             continue
@@ -173,7 +175,7 @@ def _first_function_insns_from_text(stdout: str, aliases) -> list[str] | None:
         line = raw_line.rstrip()
         m = re.match(r'^(?:[0-9a-f]+ )?<([^>]+)>:', line)
         if m:
-            sym = re.sub(r'@\d+$', '', m.group(1).lstrip("_"))
+            sym = re.sub(r'@\d+$', '', m.group(1).lstrip("_@"))
             if not in_target:
                 in_target = sym in want
                 found = found or in_target
@@ -185,7 +187,7 @@ def _first_function_insns_from_text(stdout: str, aliases) -> list[str] | None:
             # last real instruction was a ret AND the label is not an internal
             # branch target of this function; otherwise real code flows into it
             # (early-return ret + alternate-path block, or fall-through target).
-            is_label = sym.startswith(("LAB_", "switchD_", "$L", "$case", "$next"))
+            is_label = sym.startswith(("LAB_", "switchD_", "$"))
             if not is_label:
                 break
             sw = re.match(r'switchD_([0-9a-f]+)::', sym)
@@ -224,7 +226,7 @@ def _first_function_insns_from_text(stdout: str, aliases) -> list[str] | None:
             # later ret+label boundary check can tell internal targets from
             # neighbour slots.
             for ref in re.findall(r'<([^>]+)>', insn):
-                referenced.add(re.sub(r'@\d+$', '', ref.lstrip("_")))
+                referenced.add(re.sub(r'@\d+$', '', ref.lstrip("_@")))
 
     if not found:
         return None
