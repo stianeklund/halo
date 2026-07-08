@@ -3515,11 +3515,13 @@ char FUN_001ad260(int unit_handle, int16_t anim_state)
    * NOTE: the original (0x1ad331) lowers this as a jump table whose per-case
    * bodies are "MOV <index>,imm; JMP <shared lookup>". VC71 /O2 instead lowers
    * this "switch selects a constant" pattern as a value-lookup array (compact
-   * data table) regardless of whether the cases use break or goto to a shared
-   * label; forcing distinct per-case blocks (inline lookups) makes VC71 emit
-   * un-merged duplicate lookups, which matches even less. This is a codegen
-   * selection difference, not a semantic one: the case->index mapping below is
-   * byte-verified against the jump-table bodies at 0x1ad338-0x1ad4a2. */
+   * data table) regardless of whether the cases use break OR goto to a shared
+   * label (confirmed 2026-07-08: rewriting all 29 mode cases as `goto mode_path`
+   * produced byte-identical 160-insn codegen). The original's jump-table shape
+   * came from different build flags, not source structure; it is unreachable
+   * from C here. This is a codegen selection difference, not a semantic one:
+   * the case->index mapping below is byte-verified against the jump-table
+   * bodies at 0x1ad338-0x1ad4a2. */
   switch ((int)anim_state) {
   case 0:  mode_anim_index = 0; break;
   case 1:  mode_anim_index = 1; break;
