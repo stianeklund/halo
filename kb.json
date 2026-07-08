@@ -23408,7 +23408,9 @@
         },
         {
           "addr": "0x191630",
-          "decl": "void FUN_00191630(void);"
+          "decl": "void cluster_partition_null_references(int *partition);",
+          "name": "cluster_partition_null_references",
+          "ported": true
         },
         {
           "addr": "0x191660",
