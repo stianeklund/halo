@@ -23467,7 +23467,8 @@
         },
         {
           "addr": "0x191ba0",
-          "decl": "void FUN_00191ba0(void);"
+          "decl": "void FUN_00191ba0(void *base);",
+          "ported": true
         },
         {
           "addr": "0x191bd0",
