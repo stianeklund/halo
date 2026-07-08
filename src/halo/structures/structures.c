@@ -636,3 +636,28 @@ int16_t structure_find_in_cluster(uint16_t cluster_count, float *position,
 
   return 0;
 }
+
+/* 0x1056e0 — Dispose of a sphere geometry object.
+ * Asserts the sphere handle and its two allocated arrays (vertices at +0x4,
+ * triangle_strip_vertex_indices at +0x8) are non-NULL, then frees the two
+ * arrays followed by the sphere structure itself.
+ * Source: c:\halo\SOURCE\math\geometry.c (lines 0x75-0x7b). */
+void FUN_001056e0(void *handle)
+{
+  if (handle == 0) {
+    display_assert("sphere", "c:\\halo\\SOURCE\\math\\geometry.c", 0x75, 1);
+    halt_and_catch_fire();
+  }
+  if (*(int *)((char *)handle + 4) == 0) {
+    display_assert("sphere->vertices", "c:\\halo\\SOURCE\\math\\geometry.c", 0x76, 1);
+    halt_and_catch_fire();
+  }
+  if (*(int *)((char *)handle + 8) == 0) {
+    display_assert("sphere->triangle_strip_vertex_indices",
+                   "c:\\halo\\SOURCE\\math\\geometry.c", 0x77, 1);
+    halt_and_catch_fire();
+  }
+  debug_free(*(void **)((char *)handle + 4), "c:\\halo\\SOURCE\\math\\geometry.c", 0x79);
+  debug_free(*(void **)((char *)handle + 8), "c:\\halo\\SOURCE\\math\\geometry.c", 0x7a);
+  debug_free(handle, "c:\\halo\\SOURCE\\math\\geometry.c", 0x7b);
+}
