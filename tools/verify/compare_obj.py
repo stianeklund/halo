@@ -230,6 +230,13 @@ def _first_function_insns_from_text(stdout: str, aliases) -> list[str] | None:
         return None
     while insns and mnemonic(insns[-1]).lower() in _PAD_MNEMS:
         insns.pop()
+    # Mirror the whole-object disassemble() path (see its trims below): strip
+    # inline switch-table data — the jump/byte tables MSVC emits in .text after
+    # the function's final RET, which llvm-objdump decodes as garbage insns
+    # (addb %al,(%eax) etc.).  The per-function chunk path previously skipped
+    # this, counting ~20 phantom "instructions" per jump-table function and
+    # tanking the score (e.g. FUN_001a88b0 read 31 insns vs a real 10).
+    insns = _trim_trailing_table_data(insns)
     return insns or None
 
 

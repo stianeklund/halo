@@ -26749,6 +26749,26 @@
           "addr": "0x1b3690",
           "decl": "char FUN_001b3690(int unit_handle);",
           "ported": true
+        },
+        {
+          "addr": "0x1a8770",
+          "decl": "char FUN_001a8770(void *anim_state@<ecx>);",
+          "ported": false
+        },
+        {
+          "addr": "0x1a8890",
+          "decl": "char FUN_001a8890(void *anim_state@<ecx>);",
+          "ported": false
+        },
+        {
+          "addr": "0x1a8910",
+          "decl": "char FUN_001a8910(int16_t anim_state@<ecx>);",
+          "ported": false
+        },
+        {
+          "addr": "0x1a8950",
+          "decl": "int FUN_001a8950(int16_t anim_state@<ecx>, int16_t target_state@<edx>);",
+          "ported": false
         }
       ],
       "name": "units.obj",
