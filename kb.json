@@ -23395,7 +23395,10 @@
         },
         {
           "addr": "0x1915d0",
-          "decl": "void FUN_001915d0(void);"
+          "decl": "void cluster_partition_clear(void *partition);",
+          "name": "cluster_partition_clear",
+          "ported": true,
+          "source_path": "src/halo/structures/structures.c"
         },
         {
           "addr": "0x191600",
