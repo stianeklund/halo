@@ -1,3 +1,54 @@
+/* FUN_00061ca0 (0x61ca0)
+ *
+ * Per-tick debug path-obstacle-avoidance key handler.  When the debug enable
+ * byte (0x3340a9) is set and the developer console is not active, polls debug
+ * keys and toggles the mode/enable bytes, optionally (re)builds the obstacle
+ * avoidance record and advances it, then draws the current obstacle discs and
+ * path steps.  Runs the two draw calls whenever the enable byte is set,
+ * regardless of console state.
+ *
+ * Confirmed from disassembly at 0x61ca0:
+ *   - scenario_get() is 0-arg (returns the current scenario tag base; 50+
+ *     ported callers).  The 7 pushes Ghidra attributed to scenario_get are
+ *     actually FUN_00060ea0's stack args (cdecl arg mis-grouping, §7).
+ *   - FUN_00060ea0 is __thiscall + @eax: ECX=0x331f68 (avoidance record),
+ *     EAX=0x5ab250 (end point2d), plus 9 cdecl stack args.  ADD ESP,0x24
+ *     (36 bytes = 9 args) proves the split is 0 (scenario_get) + 9, not 7+2.
+ *   - FUN_000615b0 takes @eax=0x331f68 (the record); its return is discarded.
+ *   - FUN_00062960(&0x3334a0 obstacles, 0x5ab240 radius) and
+ *     FUN_000609e0(&0x331f68 path) are clean cdecl (ADD ESP,0xc = 2+1).
+ */
+void FUN_00061ca0(void)
+{
+  void *scenario;
+
+  if (*(char *)0x3340a9 != 0) {
+    if (!console_is_active()) {
+      if (input_key_is_down(0x22)) {
+        *(char *)0x3340a8 = 1;
+        *(char *)0x3340a9 = 0;
+      }
+      if (input_key_is_down(0x31)) {
+        *(char *)0x3340a8 = 0;
+        *(char *)0x3340a9 = 0;
+      }
+      if (input_key_is_down(0x3f)) {
+        scenario = scenario_get();
+        FUN_00060ea0((void *)0x331f68, (float *)0x5ab250, (void *)0x3334a0,
+                     scenario, *(unsigned char *)0x5ab244, *(float *)0x5ab240,
+                     (float *)0x5ab260, *(int *)0x5ab25c, *(float *)0x5ab248,
+                     *(unsigned char *)0x5ab245, 0);
+      }
+      if (input_key_is_down(0x26)) {
+        FUN_000615b0((void *)0x331f68);
+      }
+    }
+    FUN_00062960((void *)0x3334a0, *(float *)0x5ab240);
+    FUN_000609e0((void *)0x331f68);
+  }
+  return;
+}
+
 /* FUN_00099220 (0x99220)
  *
  * Determine the dominant axis of a plane normal.  Returns the index
