@@ -1,4 +1,7 @@
 {
+  "env": {
+    "CODEGRAPH_NO_PROMPT_HOOK": "1"
+  },
   "mcpServers": {
     "qmd": {
       "command": "qmd",
@@ -40,6 +43,12 @@
             "command": "cd $(git rev-parse --show-toplevel) && rtk python3 tools/memory/prior_fix_hook.py --surface claude",
             "timeout": 25,
             "statusMessage": "Prior-fix router: checking local bug memory"
+          },
+          {
+            "type": "command",
+            "command": "$(git rev-parse --show-toplevel)/tools/hooks/codegraph_prompt_gate.sh",
+            "timeout": 15,
+            "statusMessage": "CodeGraph: frontloading context for debug-shaped prompt"
           }
         ]
       }

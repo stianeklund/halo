@@ -174,3 +174,6 @@ tests/golden/periodic_tables/*.bin
 /-
 /kb_functions.txt
 /ci/snapshot_unicorn_verify.json
+
+# host-local scratch (probes, memory dumps, capture artifacts)
+tmp/
