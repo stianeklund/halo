@@ -23494,11 +23494,12 @@
         },
         {
           "addr": "0x191e90",
-          "decl": "void FUN_00191e90(void);"
+          "decl": "void FUN_00191e90(int param_1, int param_2);"
         },
         {
           "addr": "0x191ff0",
-          "decl": "void FUN_00191ff0(void);"
+          "decl": "void FUN_00191ff0(int base, unsigned int index);",
+          "ported": true
         },
         {
           "addr": "0x192050",
