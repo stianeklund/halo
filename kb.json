@@ -34055,7 +34055,7 @@
         },
         {
           "addr": "0x1283c0",
-          "decl": "void FUN_001283c0(int connection, void *buf, int flag);",
+          "decl": "void network_connection_get_address(int connection, void *buf, int flag);",
           "ported": true
         },
         {
@@ -34075,7 +34075,7 @@
         },
         {
           "addr": "0x1286e0",
-          "decl": "bool FUN_001286e0(int connection@<esi>, void *buffer, int *size, void *addr);",
+          "decl": "bool network_connection_read_unreliable(int connection@<esi>, void *buffer, int *size, void *addr);",
           "ported": true
         },
         {
@@ -34090,17 +34090,17 @@
         },
         {
           "addr": "0x1292f0",
-          "decl": "bool FUN_001292f0(int connection@<edi>, void *buffer, int *size, void *addr);",
+          "decl": "bool network_connection_read_reliable(int connection@<edi>, void *buffer, int *size, void *addr);",
           "ported": true
         },
         {
           "addr": "0x1294d0",
-          "decl": "bool FUN_001294d0(int connection@<esi>);",
+          "decl": "bool network_connection_idle_client_reliable_endpoint(int connection@<esi>);",
           "ported": true
         },
         {
           "addr": "0x129a30",
-          "decl": "bool FUN_00129a30(int connection@<ebx>, int *output);",
+          "decl": "bool network_connection_idle(int connection@<ebx>, int *output);",
           "ported": true
         },
         {
@@ -34115,7 +34115,7 @@
         },
         {
           "addr": "0x1288e0",
-          "decl": "void FUN_001288e0(int event@<ecx>, int enable@<eax>, int connection@<esi>);",
+          "decl": "void network_connection_notify_traffic_event(int event@<ecx>, int enable@<eax>, int connection@<esi>);",
           "ported": true
         },
         {
@@ -34125,7 +34125,7 @@
         },
         {
           "addr": "0x129270",
-          "decl": "void *FUN_00129270(int endpoint@<edi>);",
+          "decl": "void *network_connection_new_serverside_client(int endpoint@<edi>);",
           "ported": true
         },
         {

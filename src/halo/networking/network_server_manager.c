@@ -516,7 +516,7 @@ char network_game_server_accept_client_machine_into_game(int server,
   result = network_game_add_machine((void *)(server + 8), (void *)buf);
   if (result == 1) {
     csmemset(addr_buf, 0, sizeof(addr_buf));
-    FUN_001283c0(*(int *)machine, addr_buf, 0);
+    network_connection_get_address(*(int *)machine, addr_buf, 0);
     network_game_log("server added machine @ %s to the game at machine index "
                      "#%d",
                      transport_address_to_string((void *)addr_buf), i);
@@ -1317,7 +1317,7 @@ int network_game_server_get_client_machine_at_address(int server,
                        0x755, 1);
         system_exit(-1);
       }
-      FUN_001283c0(*slot, addr_buf, 0);
+      network_connection_get_address(*slot, addr_buf, 0);
       if (addr_buf[0] == ip_address) {
         result = i * 0x10 + 0x43c + server;
         goto done;
@@ -1492,7 +1492,7 @@ bool FUN_0012d880(int server, int new_connection)
   do {
     if (*slot == -1) {
       csmemset(addr_buf, 0, 24);
-      FUN_001283c0(new_connection, addr_buf, 0);
+      network_connection_get_address(new_connection, addr_buf, 0);
       if (*(int *)addr_buf == 0) {
         network_game_log(
           "network_connection_get_address() failed to get a valid address "
@@ -2442,7 +2442,7 @@ bool network_game_server_start(void *server)
     }
     if (new_conn != 0) {
       if (FUN_0012d880((int)server, new_conn)) {
-        FUN_001283c0(new_conn, addr_buf, 0);
+        network_connection_get_address(new_conn, addr_buf, 0);
         addr_str = transport_address_to_string(addr_buf);
         network_game_log("new client connected from ip %s (validation pending)",
                          addr_str);
@@ -3147,7 +3147,7 @@ char FUN_0012f990(int server, void *machine, void *message, int message_size)
     return false;
   }
   conn = network_game_server_adjust_machine_settings(machine);
-  FUN_001283c0(conn, (void *)addr_buf, 0);
+  network_connection_get_address(conn, (void *)addr_buf, 0);
   if (network_game_server_get_state(server, (short *)0) == 0 &&
       network_game_server_game_is_open((void *)server)) {
     network_game_generate_join_game_token(expected_token);
