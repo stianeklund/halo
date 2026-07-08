@@ -561,6 +561,50 @@ void FUN_00191ba0(void *base)
   tag_block_resize((char *)base + 0x10, 0);
 }
 
+/* FUN_00191d80 (0x191d80)
+ *
+ * Fetches an outer tag_block element (block = base+4, index masked to
+ * 31 bits, stride 0x18), then scans the nested tag_block located at
+ * outer_element+0xc (stride 4). Returns false (0) as soon as any inner
+ * element's leading int is non-negative; otherwise returns the low byte
+ * of the nested element count.
+ *
+ * Confirmed from disassembly at 0x191d80:
+ *   - two cdecl calls to tag_block_get_element (ADD ESP,0xc each);
+ *     push order gives (block, index, element_size).
+ *   - the nested block pointer (outer_element+0xc) is held in ESI for
+ *     the whole function; *ESI is the element count (int at offset 0).
+ *   - inner loop counter is a signed short: INC EDI; MOVSX EAX,DI;
+ *     CMP EAX,ECX; JL — kept as `short` so codegen emits the MOVSX.
+ *   - both RET sites return AL only: early XOR AL,AL (false), and
+ *     fall-through MOV AL,byte ptr [ESI] (low byte of the count).
+ */
+char FUN_00191d80(int base, unsigned int index)
+{
+  int *count_block;
+  int count;
+  int *inner;
+  short i;
+
+  count_block = (int *)((int)tag_block_get_element((void *)(base + 4),
+                                                   index & 0x7fffffff, 0x18) +
+                        0xc);
+  count = *count_block;
+  i = 0;
+  if (0 < count) {
+    count = 0;
+    do {
+      inner = (int *)tag_block_get_element(count_block, count, 4);
+      if (-1 < *inner) {
+        return 0;
+      }
+      i = i + 1;
+      count = (int)i;
+    } while (count < *count_block);
+  }
+  return *(char *)count_block;
+}
+
 void structures_initialize(void)
 {
   structure_detail_objects_initialize();
