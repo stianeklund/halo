@@ -1788,7 +1788,6 @@ void FUN_000d27a0(int element, float *scale, int local_player_index,
   char *vp;
 
   /* icon loop locals */
-  int icon_handles[3];
   int present_flag;
   int ki;
   int *icon;
@@ -1889,49 +1888,73 @@ void FUN_000d27a0(int element, float *scale, int local_player_index,
   present_flag = (local_player_count() == 1) ? 1 : 0;
   render_desc[0x8a] = (char)present_flag;
 
-  icon_handles[0] = (int)FUN_00077040(*(int *)(element + 0x70), 0, 0);
-  icon_handles[1] = (int)FUN_00077040(*(int *)(element + 0x80), 0, 0);
-  icon_handles[2] = (int)FUN_00077040(*(int *)(element + 0x90), 0, 0);
+  /* Resolve the three icon bitmap handles directly into the render
+   * descriptor's map[] slots (render_desc+0x0C/0x10/0x14).  The original aliases
+   * the icon-handle array with the descriptor (local_108 == render_desc+0x0C);
+   * the rasterizer (FUN_0015f8e0) asserts parameters->map[0] != 0
+   * unconditionally, so these MUST be written into render_desc, not a separate
+   * local array. */
+  *(int *)(render_desc + 0xc)  = (int)FUN_00077040(*(int *)(element + 0x70), 0, 0); /* map[0] */
+  *(int *)(render_desc + 0x10) = (int)FUN_00077040(*(int *)(element + 0x80), 0, 0); /* map[1] */
+  *(int *)(render_desc + 0x14) = (int)FUN_00077040(*(int *)(element + 0x90), 0, 0); /* map[2] */
 
   /* Per-icon scale and texture-normalization reciprocals.
    * element+0x34+8k = scale.x, element+0x38+8k = scale.y -> normalize slots
-   *   render_desc+0x28+8k (1/scale.y), render_desc+0x2c+8k (1/scale.x).
+   *   render_desc+0x28+8k (1/scale.x), render_desc+0x2c+8k (1/scale.y).
    * icon bitmap dims at icon+4 (w) / icon+6 (h): when NOT both power-of-two,
-   *   store 1/w, 1/h to render_desc+0x44+8k / render_desc+0x48+8k, else 1.0.
+   *   store 1/w, 1/h to render_desc+0x40+8k / render_desc+0x44+8k, else 1.0.
    * Pointer table render_desc+0x1c+4k points at color_block+8k. */
   for (ki = 0; ki < 3; ki++) {
-    icon = (int *)icon_handles[ki];
-    if (icon == NULL) {
-      continue;
+    icon = (int *)*(int *)(render_desc + 0xc + 4 * ki); /* map[ki] */
+    if (icon != NULL) {
+      recip_x = *(float *)0x2533c8; /* 1.0 */
+      if (*(float *)(element + 0x34 + 8 * ki) != *(float *)0x2533c0) {
+        recip_x = recip_x / *(float *)(element + 0x34 + 8 * ki);
+      }
+      recip_y = *(float *)0x2533c8;
+      if (*(float *)(element + 0x38 + 8 * ki) != *(float *)0x2533c0) {
+        recip_y = recip_y / *(float *)(element + 0x38 + 8 * ki);
+      }
+
+      if (((int)*(short *)((char *)icon + 4) &
+           ((int)*(short *)((char *)icon + 4) - 1)) != 0 ||
+          ((int)*(short *)((char *)icon + 6) &
+           ((int)*(short *)((char *)icon + 6) - 1)) != 0) {
+        *(float *)(render_desc + 0x40 + 8 * ki) =
+          *(float *)0x2533c8 / (float)(int)*(short *)((char *)icon + 4); /* 1/w */
+        *(float *)(render_desc + 0x44 + 8 * ki) =
+          *(float *)0x2533c8 / (float)(int)*(short *)((char *)icon + 6); /* 1/h */
+      } else {
+        *(int *)(render_desc + 0x40 + 8 * ki) = 0x3f800000;
+        *(int *)(render_desc + 0x44 + 8 * ki) = 0x3f800000;
+      }
+
+      /* FXCH swaps the two scale reciprocals so recip_x (1/scale.x) is on top
+       * and stored first at +0x28; recip_y (1/scale.y) follows at +0x2c. */
+      *(float *)(render_desc + 0x28 + 8 * ki) = recip_x;
+      *(float *)(render_desc + 0x2c + 8 * ki) = recip_y;
+      *(int *)(render_desc + 0x1c + 4 * ki) = (int)(color_block + 8 * ki);
+      render_desc[0x18 + ki] = *(char *)(element + 0x94 + 2 * ki);
     }
 
-    recip_x = *(float *)0x2533c8; /* 1.0 */
-    if (*(float *)(element + 0x34 + 8 * ki) != *(float *)0x2533c0) {
-      recip_x = recip_x / *(float *)(element + 0x34 + 8 * ki);
-    }
-    recip_y = *(float *)0x2533c8;
-    if (*(float *)(element + 0x38 + 8 * ki) != *(float *)0x2533c0) {
-      recip_y = recip_y / *(float *)(element + 0x38 + 8 * ki);
-    }
-
-    if (((int)*(short *)((char *)icon + 4) &
-         ((int)*(short *)((char *)icon + 4) - 1)) != 0 ||
-        ((int)*(short *)((char *)icon + 6) &
-         ((int)*(short *)((char *)icon + 6) - 1)) != 0) {
-      *(float *)(render_desc + 0x44 + 8 * ki) =
-        *(float *)0x2533c8 / (float)(int)*(short *)((char *)icon + 4);
-      *(float *)(render_desc + 0x48 + 8 * ki) =
-        *(float *)0x2533c8 / (float)(int)*(short *)((char *)icon + 6);
+    /* Per-icon render-mode selector — runs even when the icon is absent (the
+     * original keeps it outside the icon!=0 guard).  element+0x2e+2k maps to
+     * render_desc+0x84 (k=0, fill direction) / +0x86 (k=1, bar type) with a
+     * 1<->2 remap and no write for values >4; the third icon (k=2) instead
+     * stores element+0x4 at +0x88 (vertex format, read by the rasterizer's
+     * FUN_001580b0).  Missing these left the rasterizer in mode 0 -> solid
+     * white bars. */
+    if (ki < 2) {
+      switch ((int)*(short *)(element + 0x2e + 2 * ki)) {
+      case 0: *(short *)(render_desc + 0x84 + 2 * ki) = 0; break;
+      case 1: *(short *)(render_desc + 0x84 + 2 * ki) = 2; break;
+      case 2: *(short *)(render_desc + 0x84 + 2 * ki) = 1; break;
+      case 3: *(short *)(render_desc + 0x84 + 2 * ki) = 3; break;
+      case 4: *(short *)(render_desc + 0x84 + 2 * ki) = 4; break;
+      }
     } else {
-      *(int *)(render_desc + 0x44 + 8 * ki) = 0x3f800000;
-      *(int *)(render_desc + 0x48 + 8 * ki) = 0x3f800000;
+      *(short *)(render_desc + 0x88) = *(short *)(element + 4);
     }
-
-    /* FXCH leaves the y reciprocal on top: it is stored first (+0x28). */
-    *(float *)(render_desc + 0x28 + 8 * ki) = recip_y;
-    *(float *)(render_desc + 0x2c + 8 * ki) = recip_x;
-    *(int *)(render_desc + 0x1c + 4 * ki) = (int)(color_block + 8 * ki);
-    render_desc[0x18 + ki] = *(char *)(element + 0x94 + 2 * ki);
   }
 
   /* Evaluate each meter widget (element+0x154 tag-block, 0xdc stride). */
@@ -1985,10 +2008,15 @@ void FUN_000d27a0(int element, float *scale, int local_player_index,
         break;
       }
 
-      /* lerp/clamp only when widget+0x4c > widget+0x48 AND widget+0x54 >
-       * widget+0x50 */
-      if (*(float *)(widget + 0x4c) > *(float *)(widget + 0x48) &&
-          *(float *)(widget + 0x54) > *(float *)(widget + 0x50)) {
+      /* Interpolate unless either range is degenerate.  The original skips the
+       * lerp when in_hi==in_lo OR out_hi==out_lo (FCOM/JE), i.e. it interpolates
+       * when in_hi!=in_lo AND out_hi!=out_lo.  A prior lift used '>' here, which
+       * wrongly skipped interpolation for widgets with an INVERTED output range
+       * (out_lo=1, out_hi=0 — e.g. the sniper elevation needle): out_hi>out_lo
+       * is false, so out_scalar stuck at out_lo=1.0 and the angle_ticks texture
+       * scrolled off the rail (needle invisible).  Must be '!='. */
+      if (*(float *)(widget + 0x4c) != *(float *)(widget + 0x48) &&
+          *(float *)(widget + 0x54) != *(float *)(widget + 0x50)) {
         clamp_value = (dest_value - *(float *)(widget + 0x48)) /
                       (*(float *)(widget + 0x4c) - *(float *)(widget + 0x48));
         if (clamp_value <= *(float *)0x2533c0) {
