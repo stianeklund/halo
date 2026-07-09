@@ -695,6 +695,37 @@ int FUN_00194360(int param_1, int param_2)
          -1;
 }
 
+/* FUN_00194380 (0x194380)
+ * Collision-BSP point query. Fetches the structure's bsp3d root element
+ * (tag_block at param_1+0xb0, element 0, stride 0x60), locates the leaf that
+ * contains point param_2 via bsp3d_find_leaf(root, node=0, point), then returns
+ * the signed int16 field at +0x8 of the matching leaf element (tag_block at
+ * param_1+0xe0, stride 0x10). Returns -1 on the 0xffffffff not-found sentinel.
+ *
+ * NOTE: Ghidra mis-groups the two calls. MSVC evaluates and pushes
+ * bsp3d_find_leaf's 2nd arg (0) and 3rd arg (param_2) BEFORE the inner
+ * tag_block_get_element call, so the decompiler folded them into
+ * tag_block_get_element as a bogus 5-arg call and showed bsp3d_find_leaf with
+ * a single arg. Both callees are proven 3-arg cdecl: 0x19b210 reads only
+ * [ebp+8]/[ebp+0xc]/[ebp+0x10], and the third call site is a clean
+ * 3-push / add esp,0xc. The nested call form reproduces the push interleave.
+ * The leaf index has its high bit stripped (& 0x7fffffff) before use.
+ */
+int FUN_00194380(int param_1, void *param_2)
+{
+  void *leaf_element;
+  unsigned int leaf;
+
+  leaf = bsp3d_find_leaf(
+    tag_block_get_element((void *)(param_1 + 0xb0), 0, 0x60), 0, param_2);
+  if (leaf != 0xffffffff) {
+    leaf_element = tag_block_get_element((void *)(param_1 + 0xe0),
+                                         (int)(leaf & 0x7fffffff), 0x10);
+    return (int)*(short *)((char *)leaf_element + 8);
+  }
+  return -1;
+}
+
 void structures_initialize(void)
 {
   structure_detail_objects_initialize();
