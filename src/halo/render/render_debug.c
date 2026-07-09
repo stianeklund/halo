@@ -1053,8 +1053,9 @@ void FUN_00189de0(void)
   scaled[0] = *(float *)0x50655c * *(float *)0x25acf0;
   scaled[1] = *(float *)0x506560 * *(float *)0x25acf0;
   scaled[2] = *(float *)0x506564 * *(float *)0x25acf0;
-  if (structure_test_vector((int)0x506550, scaled, out40, &out8, &out4, &out2c,
-                            &out30, &out34)) {
+  if (structure_test_vector((float *)0x506550, scaled, out40, (int16_t *)&out8,
+                            (int16_t *)&out4, (int32_t *)&out2c, &out30,
+                            &out34)) {
     e1 =
       tag_block_get_element((char *)scenario_get() + 0x104, (short)out8, 0x20);
     e2 = tag_block_get_element((char *)e1 + 0x14, (short)out4, 0x100);
