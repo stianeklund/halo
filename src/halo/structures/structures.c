@@ -366,6 +366,74 @@ void FUN_00198f10(int index, void *fog)
 #include "../../common.h"
 #include "../../x87_math.h"
 
+/* 0x0062410 — FUN_00062410
+ *
+ * Obstacle-disc overlap query: given an obstacle-disc set (obstacles), a disc
+ * index to skip (disc_index_skip), a 2D query centre (position_xy[0]=x,
+ * position_xy[1]=y), and a radius pad, returns the index of the FIRST disc
+ * (other than the skipped one) whose inflated circle contains/overlaps the
+ * query point, or -1 (NONE) if none do.
+ *
+ * Per disc, using the obstacle-set layout shared with FUN_00062020 /
+ * FUN_00062680 (base+2 = int16 disc_count; disc[] base at +8, stride 0x18;
+ * disc +8 = float x, +0xc = float y, +0x10 = float radius):
+ *     dx = disc.x - position_xy[0]
+ *     dy = disc.y - position_xy[1]
+ *     sum_radius = disc.radius + radius
+ *   overlap when  NOT( sum_radius^2 < dy^2 + dx^2 )
+ * i.e. the disc is returned when its inflated radius squared is >= the squared
+ * centre distance.  Loop scans discs in order and returns the first match.
+ *
+ * FPU order is disassembly-authoritative: sum_radius is disc.radius + radius,
+ * the subtractions are disc-field MINUS position, and the distance term is
+ * evaluated dy*dy + dx*dx (matching the decompile's fVar4*fVar4 + fVar3*fVar3);
+ * the comparison primitive is `<`.  disc_count is re-read from memory each
+ * iteration exactly as the original does.
+ *
+ * Bounds assert (c:\halo\source\ai\path.h:0x18c): disc index in
+ * [0, disc_count) and disc_count <= MAXIMUM_DISC_COUNT (0x80); the assert
+ * macro is display_assert + system_exit(-1) (do NOT lift as hcf).
+ *
+ * ABI: cdecl, 4 stack args, short return (disc index or -1).
+ */
+short FUN_00062410(void *obstacles, short disc_index_skip, float *position_xy,
+                   float radius)
+{
+  char *base;
+  short i;
+  short disc_count;
+  char *disc;
+  float sum_radius;
+  float dx;
+  float dy;
+
+  base = (char *)obstacles;
+  disc_count = *(short *)(base + 2);
+  i = 0;
+  if (disc_count > 0) {
+    do {
+      if (i != disc_index_skip) {
+        if (i < 0 || disc_count <= i || disc_count > 0x80) {
+          display_assert("disc_index>=0 && disc_index<obstacles->disc_count && "
+                         "obstacles->disc_count<=MAXIMUM_DISC_COUNT",
+                         "c:\\halo\\source\\ai\\path.h", 0x18c, 1);
+          system_exit(-1);
+        }
+        disc = base + 8 + i * 0x18;
+        sum_radius = *(float *)(disc + 0x10) + radius;
+        dx = *(float *)(disc + 8) - position_xy[0];
+        dy = *(float *)(disc + 0xc) - position_xy[1];
+        if (!(sum_radius * sum_radius < dy * dy + dx * dx)) {
+          return i;
+        }
+      }
+      disc_count = *(short *)(base + 2);
+      i = i + 1;
+    } while (i < disc_count);
+  }
+  return -1;
+}
+
 /* 0x0062680 — FUN_00062680
  *
  * Given an obstacle-disc set (obstacles), a shared radius pad (arg2, an
