@@ -23818,7 +23818,10 @@
         },
         {
           "addr": "0x199360",
-          "decl": "void FUN_00199360(void);"
+          "decl": "void set_file_location_volume_name(int16_t location, const char *volume_name);",
+          "name": "set_file_location_volume_name",
+          "source_path": "src/halo/structures/structures.c",
+          "ported": true
         }
       ],
       "name": "structures.obj",
