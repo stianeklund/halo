@@ -875,6 +875,54 @@ void FUN_001959f0(void)
   *(int *)0x4d8ec4 = *(int *)(fwd + 8);
 }
 
+/* FUN_00195b10 (0x195b10)
+ *
+ * render_structure_lightmaps: thin render-orchestration wrapper (string ref
+ * "render_structure_lightmaps" @0x327bb8).  Profiles the scope, and when the
+ * map has a valid lightmap (byte at 0x4d8eb0 != 0) it briefly forces the 16-bit
+ * word at 0x3256b0 to 1 -- only when the scenario has no bsp switch pending
+ * (scenario+0xc == -1) and the word is currently 0 -- brackets a rasterizer
+ * setup/teardown pair (FUN_0017cc00 / FUN_0017cc40) around the per-surface
+ * lightmap draw walk (FUN_00195790), then restores the saved low word.
+ *
+ * Notes from disasm/decompile:
+ *  - 0x3256b0 is a 16-bit word: the save reads the full dword (MOV ESI,dword),
+ *    but the conditional set and the restore are word-sized (MOV word,1 /
+ *    MOV word,SI), and the "==0" test is a word compare (CMP word,0).  Do NOT
+ *    transcribe as a 32-bit store.
+ *  - FUN_00195790 takes an @eax pointer (=0x5937d4, surface->material offset
+ *    table) plus 6 stack args (confirmed: its decompile uses int *in_EAX as
+ *    in_EAX + param_1).  arg1 is the zero-extended uint16 at 0x5937d0.
+ */
+void FUN_00195b10(void)
+{
+  int scenario;
+  int saved_flag;
+
+  if (*(char *)0x449ef1 != 0 && *(char *)0x327bc0 != 0) {
+    profile_enter_private((void *)0x327bb8);
+  }
+
+  saved_flag = *(int *)0x3256b0;
+
+  if (*(char *)0x4d8eb0 != 0) {
+    scenario = (int)scenario_get();
+    if (*(int *)(scenario + 0xc) == -1 && *(short *)0x3256b0 == 0) {
+      *(short *)0x3256b0 = 1;
+    }
+    FUN_0017cc00();
+    FUN_00195790((int *)0x5937d4, *(unsigned short *)0x5937d0, *(int *)0x4d8eb4,
+                 (void *)FUN_0017cc10, (void *)FUN_0017cc20, (void *)0x17cc30,
+                 0);
+    FUN_0017cc40();
+    *(short *)0x3256b0 = (short)saved_flag;
+  }
+
+  if (*(char *)0x449ef1 != 0 && *(char *)0x327bc0 != 0) {
+    profile_exit_private((void *)0x327bb8);
+  }
+}
+
 void structures_initialize(void)
 {
   structure_detail_objects_initialize();

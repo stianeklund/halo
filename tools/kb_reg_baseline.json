@@ -511,6 +511,7 @@
     "0x18ff00": "void FUN_0018ff00(float *out @<eax>, float *position @<edx>, float scale, float magnitude);",
     "0x193a80": "int FUN_00193a80(int param_1 /* @<ecx> */, short *param_2, int in_EAX /* @<eax> */);",
     "0x193b00": "int FUN_00193b00(int param_1 /* @<ecx> */, short *param_2, int in_EAX /* @<eax> */);",
+    "0x195790": "void FUN_00195790(int *surface_material_offsets@<eax>, unsigned short surface_count, int lightmap_pass_index, void *material_begin_cb, void *surface_draw_cb, void *pass_end_cb, int param_7);",
     "0x19a450": "void file_error(file_ref_t *info@<eax>, const char *function_name);",
     "0x19bcc0": "void *FUN_0019bcc0(int16_t style@<si>, int font_index@<edi>);",
     "0x19c0a0": "int16_t FUN_0019c0a0(void *state@<eax>);",
