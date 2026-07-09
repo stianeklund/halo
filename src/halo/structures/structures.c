@@ -81,6 +81,32 @@ void FUN_00061da0(void *out, float value0, int value1)
   return;
 }
 
+/* FUN_00061dc0 (0x61dc0)
+ *
+ * 2D rotation / complex multiply.  Rotates the 2D vector (point[0], point[1])
+ * by an angle whose sine is rot_sin and cosine is rot_cos, writing the result
+ * to out[0..1]:
+ *   out[0] = rot_cos*point[0] - rot_sin*point[1]   (real part, FSUBP)
+ *   out[1] = rot_sin*point[0] + rot_cos*point[1]   (imag part, FADDP)
+ * cdecl, four stack args, void return; leaf, no calls.  Disassembly verified:
+ * each product uses a memory-operand FMUL in the exact binary order, and the
+ * real part is evaluated first (FSUBRP st1-st0 = cos*x - sin*y, NOT inverted)
+ * then the imag part (FADDP), storing real then imag.  Computing both into
+ * named temps (real before imag) before the two stores reproduces that
+ * evaluation order exactly -- 100% VC71 (18/18 insns).
+ */
+void FUN_00061dc0(float *point, float rot_sin, float rot_cos, float *out)
+{
+  float real;
+  float imag;
+
+  real = rot_cos * point[0] - rot_sin * point[1];
+  imag = rot_sin * point[0] + rot_cos * point[1];
+  out[0] = real;
+  out[1] = imag;
+  return;
+}
+
 /* Projection axis remapping table at 0x28cb10.
  * Indexed as [projection_axis * 2 + projection_sign][component].
  * Maps a 3D projection basis + sign to two axis indices for 2D projection.
