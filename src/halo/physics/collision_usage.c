@@ -1145,7 +1145,7 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
     }
 
     object_marker_end();
-    structure_cluster_marker_end();
+    structures_cluster_marker_end();
     /* collision_log_add_time(1, ...); — IAT crash via QueryPerformanceCounter
      */
   }
@@ -1317,7 +1317,7 @@ bool FUN_0014ec30(int flags, float *pos, float search_radius, float dist_b,
       }
 
       object_marker_end();
-      structure_cluster_marker_end();
+      structures_cluster_marker_end();
     }
 
     collision_log_add_time(2, *(unsigned int *)0x4761e0, *(int *)0x4761e4);
