@@ -23284,7 +23284,8 @@
         {
           "addr": "0x62680",
           "decl": "void FUN_00062680(int16_t *partition, uint32_t arg2, int16_t index, uint32_t *out_mask);",
-          "name": "FUN_00062680"
+          "name": "FUN_00062680",
+          "ported": true
         },
         {
           "addr": "0x628b0",
