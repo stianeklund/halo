@@ -2716,6 +2716,70 @@ void FUN_00196060(int object_handle, float *position, float radius,
   }
 }
 
+/*
+ * FUN_00196190 (0x196190) — structures.obj
+ *
+ * render_structure_shadows: structure shadow render entry.  Sibling of
+ * FUN_00196060 (diffuse lights) / FUN_00195f30 (specular): identical shape, but
+ * with shadow-specific profiler scopes, NO per-gel branch (always builds the
+ * surface set from the passed center/radius/bounds/count/planes), a single
+ * surface-draw callback (FUN_0017ccf0), and rasterizer_widget_set_tint_factor
+ * as the post-draw thunk (no HUD-end call).  Allocates a 0x4000-byte
+ * surface-material scratch table on the stack, builds the shadow surface set
+ * via FUN_00197e90, resolves the lightmap/pass index via FUN_001956d0, and when
+ * valid (!= -1) walks the surfaces through FUN_00195790.  Outer profiler scope:
+ * 0x449ef1 && 0x32b178 ("render_structure_shadows" @0x32b170); draw scope:
+ * 0x449ef1 && 0x32b770 ("render_structure_shadows_draw" @0x32b768).
+ *
+ * Confirmed from disassembly at 0x196190 (delinked obj):
+ *   - Frame: _chkstk(0x4000) -> 0x4000-byte scratch @[EBP-0x4000]. Callee-saved
+ *     ESI/EDI hold surface_count / pass_index across the body (EBX unused; no
+ *     gel branch).  The PUSH ESI / PUSH EDI scheduled after the outer
+ *     profile_enter are register SAVES, not call arguments (popped at
+ * epilogue); confirmed by ADD ESP,0x2C == 9+2 stack args cleaning both calls
+ * below.
+ *   - FUN_00197e90(buffer, 0x1000, center, radius, bounds, count, planes, 0, 0)
+ *     returns short (MOVSX AX -> ESI = surface_count); FUN_001956d0(buffer, 0)
+ *     returns int (EAX -> EDI = pass_index).  Skip draw when pass_index == -1.
+ *   - draw section: FUN_00195790 @eax = buffer + 6 stack args (surface_count,
+ *     pass_index, 0, FUN_0017ccf0 surface-draw cb, 0, 0) [the 5-byte PUSH at
+ *     +0x95 is a reloc-stripped PUSH 0x17ccf0]; then
+ *     rasterizer_widget_set_tint_factor(pass_index).  ADD ESP,0x1C == 6+1 args.
+ *   - center/bounds/planes are pointers passed through as dwords; radius is a
+ *     float by value.  All calls cdecl, args pushed right-to-left.
+ */
+void FUN_00196190(float *center, float radius_x4, float *bounds6, int count,
+                  float *planes6)
+{
+  char buffer[0x4000];
+  short surface_count;
+  int pass_index;
+
+  if (*(char *)0x449ef1 != 0 && *(char *)0x32b178 != 0) {
+    profile_enter_private((void *)0x32b170);
+  }
+
+  surface_count = FUN_00197e90(buffer, 0x1000, center, radius_x4, (int)bounds6,
+                               count, (int)planes6, 0, 0);
+  pass_index = FUN_001956d0(buffer, (void *)0);
+
+  if (pass_index != -1) {
+    if (*(char *)0x449ef1 != 0 && *(char *)0x32b770 != 0) {
+      profile_enter_private((void *)0x32b768);
+    }
+    FUN_00195790((int *)buffer, surface_count, pass_index, 0,
+                 (void *)FUN_0017ccf0, 0, 0);
+    rasterizer_widget_set_tint_factor(pass_index);
+    if (*(char *)0x449ef1 != 0 && *(char *)0x32b770 != 0) {
+      profile_exit_private((void *)0x32b768);
+    }
+  }
+
+  if (*(char *)0x449ef1 != 0 && *(char *)0x32b178 != 0) {
+    profile_exit_private((void *)0x32b170);
+  }
+}
+
 void structure_runtime_decals_initialize(void)
 {
   *(void **)0x4d8ec8 = game_state_malloc("structure decals", 0, 4);
