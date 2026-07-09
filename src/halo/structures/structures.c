@@ -323,6 +323,7 @@ void FUN_00198f10(int index, void *fog)
  */
 
 #include "../../common.h"
+#include "../../x87_math.h"
 
 /* 0x0062680 — FUN_00062680
  *
@@ -2759,4 +2760,150 @@ void set_file_location_volume_name(int16_t location, const char *volume_name)
   }
   csstrncpy(file_location_volume_names + location * 0x100, volume_name, 0xff);
   file_location_volume_names[location * 0x100 + 0xff] = '\0';
+}
+
+/* 0x105980 — Build a ring/cylinder (torus-like) mesh.
+ * Sweeps ring_segment_count rings around a cross-section of
+ * cylinder_segment_count segments. For each ring the ring angle drives a
+ * cos/sin pair (scaled by param_8) that offsets a cross-section built by
+ * rotating a base radius (param_10) about the ring normal, then transforms
+ * each vertex by the caller's matrix.
+ * Outputs: vertex positions (out_positions, stride 3 floats), tex coords
+ * (out_texcoords, stride 2 floats), a triangle-strip index buffer
+ * (out_indices), the emitted vertex count (*out_vertex_count) and the number
+ * of strip index-runs (*out_index_run_count).
+ * The ring normal is the cross product of the cross-section direction
+ * (cos*param_8, sin*param_8, 0) with the global axis vector at *0x31fc44,
+ * normalized when its length is >= the epsilon at 0x2533d0.
+ * Constants: 0x255a54 = 6.2831855f (2*pi), 0x2533c0 = 0.0f, 0x2533c8 = 1.0f,
+ * 0x2533d0 = double epsilon. Asserts at geometry.c:0x15a/0x15b.
+ * Source: c:\halo\SOURCE\math\geometry.c:346 */
+void FUN_00105980(float *matrix, short *out_vertex_count,
+                  short *out_index_run_count, float *out_positions,
+                  float *out_texcoords, short *out_indices,
+                  short ring_segment_count, float param_8,
+                  int cylinder_segment_count, float param_10)
+{
+  float fVar1, fVar2, fVar4, angle;
+  float fVar9, fVar10, fVar11, fVar12, fVar_sin;
+  int iVar5;
+  float *pfVar6;
+  float *pfVar7;
+  short sVar8;
+  /* normal[0]=local_38, normal[1]=local_34, normal[2]=local_30; the three
+   * must be contiguous+ascending because &normal[0] is passed as the axis
+   * argument to rotate_vector3d_by_sincos (stack-aliasing hazard). */
+  float normal[3];
+  int local_2c;
+  float local_28, local_24;
+  int local_20, local_1c, local_18, local_14, local_10, local_c, local_8;
+
+  local_1c = 0;
+  local_8 = 0;
+  if (ring_segment_count <= 2) {
+    display_assert("ring_segment_count>2",
+                   "c:\\halo\\SOURCE\\math\\geometry.c", 0x15a, 1);
+    system_exit(-1);
+  }
+  if ((short)cylinder_segment_count <= 2) {
+    display_assert("cylinder_segment_count>2",
+                   "c:\\halo\\SOURCE\\math\\geometry.c", 0x15b, 1);
+    system_exit(-1);
+  }
+  local_10 = 0;
+  if (ring_segment_count < 0) {
+    *out_vertex_count = 0;
+    *out_index_run_count = 0;
+    return;
+  }
+  local_20 = (int)ring_segment_count;
+  local_18 = 0;
+  local_24 = (float)local_20;
+  pfVar6 = *(float **)0x0031fc44;
+  pfVar7 = out_texcoords;
+  do {
+    fVar9 = (float)local_18 / local_24;
+    angle = *(float *)0x00255a54 * fVar9;
+    fVar10 = x87_fcos(angle);
+    fVar1 = fVar10 * param_8;
+    fVar11 = x87_fsin(angle);
+    fVar2 = param_8 * fVar11;
+    /* ring normal = (fVar1, fVar2, 0) x axis[]; 0x2533c0 == 0.0f.
+     * normal[2]=A, normal[1]=B, normal[0]=C; length sum is (C^2+B^2)+A^2 to
+     * match the original's x87 add order. */
+    normal[2] = fVar1 * pfVar6[1] - fVar2 * pfVar6[0];
+    normal[1] = pfVar6[0] * *(float *)0x002533c0 - fVar1 * pfVar6[2];
+    normal[0] = fVar2 * pfVar6[2] - pfVar6[1] * *(float *)0x002533c0;
+    fVar4 = sqrtf(normal[0] * normal[0] + normal[1] * normal[1] +
+                  normal[2] * normal[2]);
+    if (fabsf(fVar4) >= (float)*(double *)0x002533d0) {
+      fVar4 = *(float *)0x002533c8 / fVar4;
+      normal[0] = normal[0] * fVar4;
+      normal[1] = normal[1] * fVar4;
+      normal[2] = fVar4 * normal[2];
+    }
+    sVar8 = 0;
+    if (-1 < (short)cylinder_segment_count) {
+      local_c = (int)(short)cylinder_segment_count;
+      local_14 = (local_8 - cylinder_segment_count) + -1;
+      local_28 = (float)(fVar9 + fVar9);
+      do {
+        pfVar7[1] = local_28;
+        if (0 < (short)local_10) {
+          if (sVar8 == 0) {
+            *out_indices = (short)cylinder_segment_count * 2 + 2;
+            out_indices = out_indices + 1;
+            local_1c = local_1c + 1;
+          }
+          *out_indices = (short)local_8;
+          out_indices[1] = (short)local_14;
+          out_indices = out_indices + 2;
+        }
+        if ((short)local_10 == ring_segment_count) {
+          /* last ring: copy the vertex/texcoord from the first ring */
+          iVar5 = (local_c + 1) * local_20;
+          pfVar6 = out_positions + iVar5 * -3;
+          *out_positions = *pfVar6;
+          out_positions[1] = pfVar6[1];
+          out_positions[2] = pfVar6[2];
+          *out_texcoords = out_texcoords[iVar5 * -2];
+          pfVar7 = out_texcoords;
+        } else {
+          local_2c = (int)sVar8;
+          fVar9 = (float)local_2c / (float)local_c;
+          *pfVar7 = (float)(fVar9 + fVar9);
+          if (sVar8 == (short)cylinder_segment_count) {
+            /* seam: copy from the start of this ring */
+            pfVar6 = out_positions + local_c * -3;
+            *out_positions = *pfVar6;
+            out_positions[1] = pfVar6[1];
+            out_positions[2] = pfVar6[2];
+          } else {
+            angle = *(float *)0x00255a54 * fVar9;
+            fVar12 = x87_fcos(angle);
+            *out_positions = fVar10 * param_10;
+            out_positions[1] = fVar11 * param_10;
+            out_positions[2] = 0.0f;
+            fVar_sin = x87_fsin(angle);
+            rotate_vector3d_by_sincos(out_positions, normal, fVar_sin, fVar12);
+            *out_positions = fVar1 + *out_positions;
+            out_positions[2] = out_positions[2];
+            out_positions[1] = fVar2 + out_positions[1];
+            matrix_transform_point(matrix, out_positions, out_positions);
+          }
+        }
+        pfVar7 = pfVar7 + 2;
+        out_positions = out_positions + 3;
+        local_8 = local_8 + 1;
+        local_14 = local_14 + 1;
+        sVar8 = sVar8 + 1;
+        pfVar6 = *(float **)0x0031fc44;
+        out_texcoords = pfVar7;
+      } while (sVar8 <= (short)cylinder_segment_count);
+    }
+    local_10 = local_10 + 1;
+    local_18 = local_18 + 1;
+  } while ((short)local_10 <= ring_segment_count);
+  *out_vertex_count = (short)local_8;
+  *out_index_run_count = (short)local_1c;
 }
