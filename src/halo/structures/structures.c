@@ -726,6 +726,25 @@ int FUN_00194380(int param_1, void *param_2)
   return -1;
 }
 
+/* FUN_00195530 (0x195530)
+ * Integer greater-than comparator, likely a qsort/bsearch comparison callback.
+ * Two cdecl stack int args, bool/AL return. Returns true only when
+ * param_1 > param_2 (the equal case returns false). The two-branch shape
+ * (early-return false on param_2 > param_1, then param_2 < param_1) is the
+ * original MSVC codegen shape (cmp param_2,param_1 / jle / xor al,al / setl al)
+ * and is preserved verbatim; collapsing it to a single param_1 > param_2 would
+ * change the emitted branch structure. VC71 recomputes the compare for the
+ * trailing setl (clean-bool-via-edx idiom) where the original reused the
+ * branch's flags directly, a ~3-insn small-function idiom gap (88.9% VC71).
+ */
+char FUN_00195530(int param_1, int param_2)
+{
+  if (param_2 > param_1) {
+    return 0;
+  }
+  return param_2 < param_1;
+}
+
 void structures_initialize(void)
 {
   structure_detail_objects_initialize();
