@@ -49,6 +49,22 @@ void FUN_00061ca0(void)
   return;
 }
 
+/* FUN_00061d80 (0x61d80)
+ *
+ * Zero-clear three consecutive int16 fields (6 bytes) at the pointer arg.
+ * Disassembly: XOR ECX,ECX then MOV WORD PTR [EAX+{0,2,4}],CX -- the 0x66
+ * operand-size prefix confirms 16-bit store width (LOADW), so the target is
+ * a short[3] / small struct of three int16 fields, not int[3].  cdecl, one
+ * stack pointer arg; leaf, no calls, no FPU.
+ */
+void FUN_00061d80(int16_t *out)
+{
+  out[0] = 0;
+  out[1] = 0;
+  out[2] = 0;
+  return;
+}
+
 /* FUN_00099220 (0x99220)
  *
  * Determine the dominant axis of a plane normal.  Returns the index
