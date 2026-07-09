@@ -23572,7 +23572,7 @@
         },
         {
           "addr": "0x1956d0",
-          "decl": "void FUN_001956d0(void);"
+          "decl": "int FUN_001956d0(void *param_1, void *param_2);"
         },
         {
           "addr": "0x195790",
@@ -23580,7 +23580,9 @@
         },
         {
           "addr": "0x1959f0",
-          "decl": "void FUN_001959f0(void);"
+          "decl": "void FUN_001959f0(void);",
+          "ported": true,
+          "source_path": "src/halo/structures/structures.c"
         },
         {
           "addr": "0x195b10",
