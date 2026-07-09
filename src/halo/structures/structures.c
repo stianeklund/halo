@@ -299,6 +299,75 @@ float FUN_001057a0(float *param_1, float *param_2)
   return (param_1[0] * param_2[0] + param_1[1] * param_2[1]) - param_1[2];
 }
 
+/* FUN_00106030 (0x106030)
+ *
+ * Validate a 2D polygon (given as an index list into a shared vertex array)
+ * for convexity and a closed interior-angle sum.  Vertices are 2D (x, y
+ * pairs, stride 8 bytes); param_4 is a short[] index array, param_2 the
+ * vertex-array base, param_3 the vertex count.  For each vertex it forms the
+ * two incident edge vectors (cur-prev, next-cur), rejects the polygon
+ * (return 0) if the signed 2D cross product is below a threshold (reflex /
+ * wrong-winding vertex), and otherwise accumulates the angle between the
+ * edges (via FUN_0010c440).  Succeeds (return 1) only if the accumulated
+ * angle matches the expected total within a tolerance.
+ *
+ * Confirmed from disassembly at 0x106030:
+ *   - cdecl; param_1 (EBP+0x8) is unused but preserved for stack ABI.
+ *   - Returns int 0/1 in EAX (the Ghidra CONCAT22 early-return is XOR AL,AL).
+ *   - prev index uses a real branch (wrap to count-1); next index uses a
+ *     branchless SETcc/SBB/AND wrap to 0 (asymmetry preserved).
+ *   - cross = edge1.y*edge0.x - edge1.x*edge0.y (FSUBP ST1-ST0, verified).
+ *   - FUN_0010c440(&edge0, &edge1): 2 float* args, angle returned in ST0;
+ *     kept in the x87 stack across the counter increment (no round-trip).
+ *   - 0x2533c0 threshold (float, '<'); 0x255a54 expected sum (float FSUB);
+ *     0x2549d8 tolerance (loaded as DOUBLE via FCOMP m64).
+ */
+int FUN_00106030(void *param_1, int param_2, short param_3, int param_4)
+{
+  float edge0[2]; /* local_1c=x, local_18=y : cur - prev  (contiguous) */
+  float edge1[2]; /* local_14=x, local_10=y : next - cur  (contiguous) */
+  float cross; /* fVar3 */
+  float sum; /* local_8 : accumulated interior angle */
+  int i; /* local_c : loop counter (16-bit compared) */
+  int cur16; /* iVar5 = (short)i */
+  int prev_idx; /* iVar4 (prev), reused for next */
+  int cur_idx;
+  int next_idx;
+  float *prev; /* pfVar1 */
+  float *cur; /* pfVar2 */
+  float *next; /* pfVar1 reused */
+
+  (void)param_1;
+
+  sum = 0.0f;
+  i = 0;
+  if (param_3 > 0) {
+    do {
+      cur16 = (int)(short)i;
+      prev_idx = cur16 - 1;
+      if (prev_idx < 0)
+        prev_idx = param_3 - 1;
+      prev = (float *)(param_2 + (int)*(short *)(param_4 + prev_idx * 2) * 8);
+      cur_idx = (int)*(short *)(param_4 + cur16 * 2);
+      cur = (float *)(param_2 + cur_idx * 8);
+      edge0[0] = cur[0] - prev[0];
+      edge0[1] = cur[1] - prev[1];
+      next_idx = ((param_3 <= cur16 + 1) - 1) & (cur16 + 1);
+      next = (float *)(param_2 + (int)*(short *)(param_4 + next_idx * 2) * 8);
+      edge1[0] = next[0] - cur[0];
+      edge1[1] = next[1] - cur[1];
+      cross = edge1[1] * edge0[0] - edge1[0] * edge0[1];
+      if (cross < *(float *)0x2533c0)
+        return 0;
+      sum = FUN_0010c440(edge0, edge1) + sum;
+      i = i + 1;
+    } while ((short)i < param_3);
+  }
+  if (fabsf(sum - *(float *)0x255a54) < *(double *)0x2549d8)
+    return 1;
+  return 0;
+}
+
 /* FUN_00106130 (0x106130)
  *
  * Test whether a query point lies within a given radius of a 2D convex
