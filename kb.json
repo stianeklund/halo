@@ -23749,7 +23749,7 @@
         },
         {
           "addr": "0x1978a0",
-          "decl": "unsigned int FUN_001978a0(int node_index, float *parent_bounds, void *param_3, int *param_4, int param_5, float *center, float radius, float *cull_bounds, int param_9, int param_10, int intersection);",
+          "decl": "uint16_t FUN_001978a0(int node_index, float *parent_bounds, void *param_3, int *param_4, int param_5, float *center, float radius, float *cull_bounds, int param_9, int param_10, int intersection);",
           "ported": true
         },
         {
