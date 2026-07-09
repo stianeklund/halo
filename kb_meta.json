@@ -9083,6 +9083,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x191500": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1915d0": {
       "kind": "function",
       "status": "ported"
@@ -9168,7 +9172,10 @@
       "status": "ported",
       "comments": {
         "summary": "Asserts 0x4d8ea0 is non-null, zeroes the 0xa430-byte detail object block, and clears byte at +0x520e."
-      }
+      },
+      "inferred": [
+        "Per-map reset: csmemset zeroes the full 0xa430-byte detail_object_global_runtime_data block (base at global 0x4d8ea0), then clears a single byte flag at base+0x520e; NULL-block guard tail-calls system_exit(-1) via the display_assert hard-exit (line 109)."
+      ]
     },
     "0x196290": {
       "kind": "function",
