@@ -23544,7 +23544,8 @@
         },
         {
           "addr": "0x194380",
-          "decl": "void FUN_00194380(void);"
+          "decl": "int FUN_00194380(int param_1, void *param_2);",
+          "ported": true
         },
         {
           "addr": "0x1943e0",
