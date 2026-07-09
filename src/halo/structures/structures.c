@@ -117,6 +117,21 @@ void FUN_00061df0(void *point, short projection, unsigned char sign,
   ((float *)out_projected)[1] = tmp;
 }
 
+/* 0x61e80 — 2D point-in-radius test.
+ * Returns 1 when the squared 2D distance between points p0 and p1 (using the
+ * x=[0] and y=[1] lanes only) is <= radius*radius, else 0.  Pure leaf, cdecl,
+ * three stack args (two float*, one float).  The y-term is summed before the
+ * x-term, matching the decompiler's fld ordering; every product is a
+ * self-multiply so there is no operand-order/cross-product hazard. */
+int FUN_00061e80(float *p0, float *p1, float radius)
+{
+  if ((p1[1] - p0[1]) * (p1[1] - p0[1]) + (p1[0] - p0[0]) * (p1[0] - p0[0]) <=
+      radius * radius) {
+    return 1;
+  }
+  return 0;
+}
+
 /* FUN_00062020 (0x62020)  --  add_obstacle (path_obstacles.c)
  *
  * Append one obstacle record to an obstacle-set.  The set header is a small
