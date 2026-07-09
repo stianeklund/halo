@@ -745,6 +745,136 @@ char FUN_00195530(int param_1, int param_2)
   return param_2 < param_1;
 }
 
+/* 0x195550 - gather structure surfaces selected by a per-32-surface bitmask.
+ *
+ * Walks the scenario structure-BSP surfaces tag_block at scenario+0xf8 (first
+ * int = surface element count). mask is an array of uint bitmask words, one
+ * word per 32 surfaces; for each set bit the matching surface index is appended
+ * to out_indices and its 6-byte (short[3]) tag element is copied into
+ * out_surfaces (stride 6 bytes). surface_count bounds the output write index
+ * (asserted).
+ *
+ * A zero mask word skips an entire block of 0x20 surfaces (surface_index +=
+ * 0x20 without touching the tag_block). The loop bound (*count) is re-read
+ * every outer iteration - preserved from the original, not cached. The element
+ * copy is exactly three 16-bit moves (element_size 6); widths are kept at
+ * uint16. */
+void FUN_00195550(short surface_count, int *out_indices, uint32_t *mask,
+                  int out_surfaces)
+{
+  int *block;
+  int scenario;
+  short bit;
+  short write_index;
+  int surface_index;
+  uint16_t *dst;
+  uint16_t *elem;
+
+  scenario = (int)scenario_get();
+  block = (int *)(scenario + 0xf8);
+  write_index = 0;
+  surface_index = 0;
+  if (0 < *(int *)(scenario + 0xf8)) {
+    do {
+      if (*mask == 0) {
+        surface_index = surface_index + 0x20;
+      } else {
+        bit = 0;
+        do {
+          if (*block <= surface_index)
+            break;
+          if ((*mask & 1 << ((uint8_t)bit & 0x1f)) != 0) {
+            elem = (uint16_t *)tag_block_get_element(block, surface_index, 6);
+            if ((write_index < 0) || (surface_count <= write_index)) {
+              display_assert(
+                "surface_index_index>=0 && surface_index_index<surface_count",
+                "c:\\halo\\SOURCE\\structures\\structure_render.c", 0x1a5,
+                true);
+              system_exit(-1);
+            }
+            *out_indices = surface_index;
+            out_indices = out_indices + 1;
+            dst = (uint16_t *)(out_surfaces + write_index * 6);
+            dst[0] = elem[0];
+            dst[1] = elem[1];
+            dst[2] = elem[2];
+            write_index = write_index + 1;
+          }
+          bit = bit + 1;
+          surface_index = surface_index + 1;
+        } while (bit < 0x20);
+      }
+      mask = mask + 1;
+    } while (surface_index < *block);
+  }
+}
+
+/* FUN_001959f0 (0x1959f0)
+ *
+ * Structure render-triangle build entry.  Under the profiler gate
+ * (0x449ef1 && 0x3275c8), brackets the build call in
+ * profile_enter/exit_private("render_structure_build_triangle").  Builds the
+ * triangle set via FUN_001956d0(&0x5937d4, &0x5137d0), stashing the returned
+ * bsp/structure index at 0x4d8eb4 and a validity flag (index != -1) at
+ * 0x4d8eb0.  Then, when the two staged indices (0x3275b8, 0x3275bc) are in
+ * range against the scenario tag-block counts at scenario+0x270 / scenario+
+ * 0x27c, replays them through the tag-block iterators FUN_00191ff0 /
+ * FUN_00191e90 (both operate on scenario+0x26c).  When the rebuild-all byte
+ * 0x505703 is set, walks every element of the scenario+0x27c tag-block
+ * (stride 0x18, element pointer discarded) and reissues FUN_00191e90 for each.
+ * Finally clears 0x4d8eb8 and snapshots the forward vector (3 dwords) from
+ * *(0x31fc38) into 0x4d8ebc/ec0/ec4.
+ *
+ * Confirmed from decompile at 0x1959f0:
+ *   - scenario_get() 0-arg; scenario+0x270 guards 0x3275b8, +0x27c guards
+ *     0x3275bc and the rebuild loop (element count at *(scenario+0x27c)).
+ *   - FUN_001956d0 returns int (EAX -> 0x4d8eb4), two pointer args.
+ *   - loop sets index=0 before the count check (preserved), stride 0x18.
+ *   - forward-vector snapshot copied as raw dwords (no FPU).
+ * All calls cdecl, args pushed right-to-left.
+ */
+void FUN_001959f0(void)
+{
+  int scenario;
+  int index;
+  char *fwd;
+
+  scenario = (int)scenario_get();
+
+  if (*(char *)0x449ef1 != 0 && *(char *)0x3275c8 != 0) {
+    profile_enter_private((void *)0x3275c0);
+  }
+  *(int *)0x4d8eb4 = FUN_001956d0((void *)0x5937d4, (void *)0x5137d0);
+  if (*(char *)0x449ef1 != 0 && *(char *)0x3275c8 != 0) {
+    profile_exit_private((void *)0x3275c0);
+  }
+  *(char *)0x4d8eb0 = (char)(*(int *)0x4d8eb4 != -1);
+
+  if (-1 < *(int *)0x3275b8 && *(int *)0x3275b8 < *(int *)(scenario + 0x270)) {
+    FUN_00191ff0(scenario + 0x26c, *(int *)0x3275b8);
+  }
+  if (-1 < *(int *)0x3275bc && *(int *)0x3275bc < *(int *)(scenario + 0x27c)) {
+    FUN_00191e90(scenario + 0x26c, *(int *)0x3275bc);
+  }
+
+  if (*(char *)0x505703 != 0) {
+    index = 0;
+    if (0 < *(int *)(scenario + 0x27c)) {
+      do {
+        tag_block_get_element((void *)(scenario + 0x27c), index, 0x18);
+        FUN_00191e90(scenario + 0x26c, index);
+        index = index + 1;
+      } while (index < *(int *)(scenario + 0x27c));
+    }
+  }
+
+  *(int *)0x4d8eb8 = 0;
+  fwd = *(char **)0x31fc38;
+  *(int *)0x4d8ebc = *(int *)fwd;
+  *(int *)0x4d8ec0 = *(int *)(fwd + 4);
+  *(int *)0x4d8ec4 = *(int *)(fwd + 8);
+}
+
 void structures_initialize(void)
 {
   structure_detail_objects_initialize();
@@ -1001,64 +1131,4 @@ int16_t structure_find_in_cluster(uint16_t cluster_count, float *position,
   }
 
   return 0;
-}
-/* 0x195550 - gather structure surfaces selected by a per-32-surface bitmask.
- *
- * Walks the scenario structure-BSP surfaces tag_block at scenario+0xf8 (first
- * int = surface element count). mask is an array of uint bitmask words, one word
- * per 32 surfaces; for each set bit the matching surface index is appended to
- * out_indices and its 6-byte (short[3]) tag element is copied into out_surfaces
- * (stride 6 bytes). surface_count bounds the output write index (asserted).
- *
- * A zero mask word skips an entire block of 0x20 surfaces (surface_index +=
- * 0x20 without touching the tag_block). The loop bound (*count) is re-read every
- * outer iteration - preserved from the original, not cached. The element copy is
- * exactly three 16-bit moves (element_size 6); widths are kept at uint16. */
-void FUN_00195550(short surface_count, int *out_indices, uint32_t *mask,
-                  int out_surfaces)
-{
-  int *block;
-  int scenario;
-  short bit;
-  short write_index;
-  int surface_index;
-  uint16_t *dst;
-  uint16_t *elem;
-
-  scenario = (int)scenario_get();
-  block = (int *)(scenario + 0xf8);
-  write_index = 0;
-  surface_index = 0;
-  if (0 < *(int *)(scenario + 0xf8)) {
-    do {
-      if (*mask == 0) {
-        surface_index = surface_index + 0x20;
-      }
-      else {
-        bit = 0;
-        do {
-          if (*block <= surface_index) break;
-          if ((*mask & 1 << ((uint8_t)bit & 0x1f)) != 0) {
-            elem = (uint16_t *)tag_block_get_element(block, surface_index, 6);
-            if ((write_index < 0) || (surface_count <= write_index)) {
-              display_assert(
-                  "surface_index_index>=0 && surface_index_index<surface_count",
-                  "c:\\halo\\SOURCE\\structures\\structure_render.c", 0x1a5, true);
-              system_exit(-1);
-            }
-            *out_indices = surface_index;
-            out_indices = out_indices + 1;
-            dst = (uint16_t *)(out_surfaces + write_index * 6);
-            dst[0] = elem[0];
-            dst[1] = elem[1];
-            dst[2] = elem[2];
-            write_index = write_index + 1;
-          }
-          bit = bit + 1;
-          surface_index = surface_index + 1;
-        } while (bit < 0x20);
-      }
-      mask = mask + 1;
-    } while (surface_index < *block);
-  }
 }
