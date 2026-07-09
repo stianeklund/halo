@@ -275,3 +275,132 @@ void FUN_00197b00(int16_t cluster_index, uint16_t *sound_list)
 
   *(uint32_t *)(bit_offset + *(int *)0x4d8ed8) &= ~bit_mask;
 }
+
+/* FUN_001978a0: recursive bsp3d structure-visibility traversal.
+ *   Original: c:\halo\SOURCE\structures\structure_visibility.c line ~0x2ab.
+ *
+ * Walks the structure BSP3D node tree from `node_index`. At each node it
+ * subdivides the incoming (parent) bounds across the node's fraction record
+ * (FUN_00196eb0 -> child bounds in `bounds`), tests those bounds against the
+ * cull bounds (FUN_00196a60) and the frustum planes (FUN_00196b10) unless the
+ * caller already reported "fully inside" ((short)intersection == 2), then for
+ * each of the node's two child slots that survive the splitting-plane sphere
+ * test recurses into subtrees (child >= 0) or dispatches leaves (child < 0,
+ * child != -1) via FUN_00197130. Returns the accumulated 16-bit count in AX.
+ *
+ * 11 cdecl stack args (recursive tail cleans ADD ESP,0x2c = 44 = 11*4).
+ * ESI is the running accumulator, EDI the propagated intersection mode.
+ *
+ * Verified against disasm 0x1978a0-0x197afa. Notes on decompiler traps fixed
+ * here:
+ *   - The two side flags are independent stack bytes (side[0]/side[1]),
+ *     defaulted to 1 and cleared by the plane test; Ghidra modelled them as a
+ *     CONCAT into param_2. param_2 is really a float* (parent bounds).
+ *   - The value passed to children in slot 7 is the UNCHANGED radius (held in
+ *     EBX across the FPU block), not fVar1; the decompiler mis-aliased EBX.
+ *   - FUN_00196eb0 is a 3-arg call (bounds, fractions, out); its 3rd arg is the
+ *     &local_24 push that tag_block_get_element left on the stack (this is the
+ *     ADD ESP,0xc "anomaly"). FUN_00196b10 takes &bounds in @eax. */
+unsigned int FUN_001978a0(int node_index, float *parent_bounds, void *param_3,
+                          int *param_4, int param_5, float *center,
+                          float radius, float *cull_bounds, int param_9,
+                          int param_10, int intersection)
+{
+  int accum;
+  char *scenario;
+  char *nodes_block;
+  unsigned char *fractions;
+  int mode;
+  int t;
+  int *node;
+  float *plane;
+  float dist;
+  unsigned char side[2];
+  int count;
+  int *child_ptr;
+  unsigned char *side_ptr;
+  int child;
+  float bounds[6];
+
+  accum = 0;
+  scenario = (char *)scenario_get();
+  nodes_block = (char *)tag_block_get_element(scenario + 0xb0, 0, 0x60);
+
+  if (parent_bounds == 0) {
+    display_assert("parent_bounds",
+                   "c:\\halo\\SOURCE\\structures\\structure_visibility.c",
+                   0x2ab, true);
+    system_exit(-1);
+  }
+  if (center == 0) {
+    display_assert("cull_sphere_center",
+                   "c:\\halo\\SOURCE\\structures\\structure_visibility.c",
+                   0x2ac, true);
+    system_exit(-1);
+  }
+  if (cull_bounds == 0) {
+    display_assert("cull_bounds",
+                   "c:\\halo\\SOURCE\\structures\\structure_visibility.c",
+                   0x2ad, true);
+    system_exit(-1);
+  }
+  if ((short)intersection == 0) {
+    display_assert("intersection",
+                   "c:\\halo\\SOURCE\\structures\\structure_visibility.c",
+                   0x2ae, true);
+    system_exit(-1);
+  }
+
+  fractions =
+    (unsigned char *)tag_block_get_element(scenario + 0xbc, node_index, 6);
+  FUN_00196eb0(parent_bounds, fractions, bounds);
+
+  mode = intersection;
+  if ((short)intersection != 2) {
+    mode = FUN_00196a60(cull_bounds, bounds);
+    if ((short)mode == 0)
+      return accum & 0xffff;
+    t = FUN_00196b10(bounds, param_9, param_10);
+    if ((short)t == 2)
+      param_9 = 0;
+    if ((short)t < (short)mode)
+      mode = t;
+  }
+
+  if ((short)mode != 0) {
+    node = (int *)tag_block_get_element(nodes_block, node_index, 0xc);
+    plane = (float *)tag_block_get_element(nodes_block + 0xc, *node, 0x10);
+    dist = plane[2] * center[2] + plane[1] * center[1] + center[0] * plane[0] -
+           plane[3];
+
+    side[0] = 1;
+    if (dist >= radius)
+      side[0] = 0;
+    side[1] = 1;
+    if (dist <= -radius)
+      side[1] = 0;
+
+    child_ptr = node + 1;
+    side_ptr = side;
+    count = 2;
+    do {
+      if (*side_ptr != 0) {
+        child = *child_ptr;
+        if (child < 0) {
+          if (child != -1)
+            accum += FUN_00197130(bounds, param_3, param_4 + (short)accum,
+                                  param_5 - accum, center, radius, cull_bounds,
+                                  param_9, param_10, mode);
+        } else {
+          accum += FUN_001978a0(child, bounds, param_3, param_4 + (short)accum,
+                                param_5 - accum, center, radius, cull_bounds,
+                                param_9, param_10, mode);
+        }
+      }
+      child_ptr++;
+      side_ptr++;
+    } while (--count != 0);
+  }
+
+  return accum & 0xffff;
+}
