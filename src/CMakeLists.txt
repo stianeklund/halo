@@ -131,6 +131,7 @@
 	halo/scenario/wind.c
 	halo/structures/structure_bsp_definitions.c
 	halo/structures/structure_detail_objects.c
+	halo/structures/structure_render.c
 	halo/structures/structure_runtime_decals.c
 	halo/structures/structure_visibility.c
 	halo/structures/structures.c

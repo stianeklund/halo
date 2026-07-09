@@ -2387,7 +2387,10 @@ void FUN_001959f0(void)
   if (*(char *)0x449ef1 != 0 && *(char *)0x3275c8 != 0) {
     profile_enter_private((void *)0x3275c0);
   }
-  *(int *)0x4d8eb4 = FUN_001956d0((void *)0x5937d4, (void *)0x5137d0);
+  /* 0x195a18: MOV ESI,[0x5937d0] before the call — count is an implicit
+   * @<esi> arg (callee tests SI). */
+  *(int *)0x4d8eb4 = FUN_001956d0((void *)0x5937d4, (void *)0x5137d0,
+                                  *(int16_t *)0x5937d0);
   if (*(char *)0x449ef1 != 0 && *(char *)0x3275c8 != 0) {
     profile_exit_private((void *)0x3275c0);
   }
@@ -2707,7 +2710,7 @@ void FUN_00195f30(int object_handle, float *position, float radius,
   if (gel_buffer != 0) {
     surface_count = FUN_00197e90(buffer, 0x1000, position, radius, 0, 0, 0,
                                  gel_count, gel_buffer);
-    material_index = FUN_001956d0(buffer, (void *)0);
+    material_index = FUN_001956d0(buffer, (void *)0, surface_count);
   } else {
     material_index = *(int *)0x4d8eb4;
     surface_count = *(short *)0x5937d0;
@@ -2788,7 +2791,7 @@ void FUN_00196060(int object_handle, float *position, float radius,
   if (gel_buffer != 0) {
     surface_count = FUN_00197e90(buffer, 0x1000, position, radius, 0, 0, 0,
                                  gel_count, gel_buffer);
-    material_index = FUN_001956d0(buffer, (void *)0);
+    material_index = FUN_001956d0(buffer, (void *)0, surface_count);
   } else {
     material_index = *(int *)0x4d8eb4;
     surface_count = *(short *)0x5937d0;
@@ -2861,7 +2864,7 @@ void FUN_00196190(float *center, float radius_x4, float *bounds6, int count,
 
   surface_count = FUN_00197e90(buffer, 0x1000, center, radius_x4, (int)bounds6,
                                count, (int)planes6, 0, 0);
-  pass_index = FUN_001956d0(buffer, (void *)0);
+  pass_index = FUN_001956d0(buffer, (void *)0, surface_count);
 
   if (pass_index != -1) {
     if (*(char *)0x449ef1 != 0 && *(char *)0x32b770 != 0) {

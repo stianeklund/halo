@@ -140,9 +140,13 @@ void FUN_00197b00(int16_t cluster_index, uint16_t *sound_list)
 {
   uint16_t built_list[1026]; /* local_102c([0]=count) + local_1028(elements @
                                 &[2]) -- MUST stay contiguous */
-  uint16_t work_b[1018]; /* local_824 scratch handed to FUN_00108060 */
-  int local_828; /* scratch filled by FUN_001974f0, passed by value to
-                    FUN_00108060 */
+  uint16_t portal_hull[1026]; /* original: ONE hull buffer at EBP-0x824
+                                 ([0]=count word, float pairs @ &[2]).
+                                 FUN_001974f0 -> FUN_00197310 writes up to
+                                 0x100 points (0x804 bytes) through it; the
+                                 prior split into `int local_828` + work_b
+                                 smashed the clang frame (map-load crash,
+                                 read of 0xc0170662 at FUN_00197b00+0x2a9). */
   void *bsp;
   int cluster_index_i;
   char *clusters_block;
@@ -213,7 +217,10 @@ void FUN_00197b00(int16_t cluster_index, uint16_t *sound_list)
   }
 
   *(uint32_t *)(bit_offset + 0x50678c) |= bit_mask;
-  FUN_00196d60();
+  /* 0x197ca9: original sets EDI=[ebp+0xc] (visible_region hull param) and
+   * ESI=rec+4 (rendered-cluster bounds rect) before CALL. Accumulates the
+   * hull's 2D points into the rect (min/max union). */
+  FUN_00196d60((float *)((char *)rec + 4), (int16_t *)sound_list);
 
   if (*(char *)0x505702 != 0) {
     FUN_00196e10(sound_list, *(void **)0x2ee6d0, 0.05f);
@@ -248,7 +255,7 @@ void FUN_00197b00(int16_t cluster_index, uint16_t *sound_list)
       continue;
 
     {
-      int16_t r = FUN_001974f0(conn_index, (char)pick, &local_828);
+      int16_t r = FUN_001974f0(conn_index, (char)pick, (int *)portal_hull);
 
       if (r == 2) {
         FUN_00197b00(neighbor, sound_list);
@@ -260,8 +267,12 @@ void FUN_00197b00(int16_t cluster_index, uint16_t *sound_list)
           if (c == 0)
             continue;
         }
+        /* 0x197dd6: arg3 is the dword loaded from the hull base (count word),
+         * arg4 the hull points at base+4 — both from the ONE buffer 1974f0
+         * filled. */
         built_list[0] =
-          (uint16_t)FUN_00108060(*sound_list, sound_list + 2, local_828, work_b,
+          (uint16_t)FUN_00108060(*sound_list, sound_list + 2,
+                                 *(int *)portal_hull, portal_hull + 2,
                                  0x100, &built_list[2], 0x38d1b717);
         if ((int16_t)built_list[0] > 0) {
           FUN_00197b00(neighbor, built_list);
@@ -388,9 +399,11 @@ unsigned int FUN_001978a0(int node_index, float *parent_bounds, void *param_3,
         child = *child_ptr;
         if (child < 0) {
           if (child != -1)
+            /* 0x19713c: callee reads the leaf ref from EAX (strips the sign
+             * bit itself via AND 0x7fffffff) — implicit @<eax> arg. */
             accum += FUN_00197130(bounds, param_3, param_4 + (short)accum,
                                   param_5 - accum, center, radius, cull_bounds,
-                                  param_9, param_10, mode);
+                                  param_9, param_10, mode, child);
         } else {
           accum += FUN_001978a0(child, bounds, param_3, param_4 + (short)accum,
                                 param_5 - accum, center, radius, cull_bounds,
