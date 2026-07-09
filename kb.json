@@ -23787,7 +23787,9 @@
         },
         {
           "addr": "0x198ad0",
-          "decl": "void structure_clusters_in_cone(void);"
+          "decl": "int16_t structure_clusters_in_cone(int16_t starting_cluster, float *point, float *direction, float length, float sine, float cosine, int16_t max_count, int16_t *out_indices);",
+          "ported": true,
+          "name": "structure_clusters_in_cone"
         },
         {
           "addr": "0x198cb0",
