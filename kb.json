@@ -23228,7 +23228,8 @@
         },
         {
           "addr": "0x61da0",
-          "decl": "void FUN_00061da0(void);"
+          "decl": "void FUN_00061da0(void *out, float value0, int value1);",
+          "ported": true
         },
         {
           "addr": "0x61dc0",

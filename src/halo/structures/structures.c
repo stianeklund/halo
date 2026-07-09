@@ -65,6 +65,22 @@ void FUN_00061d80(int16_t *out)
   return;
 }
 
+/* FUN_00061da0 (0x61da0)
+ *
+ * Store a float/int pair into a structure: value0 (float) -> [out+0x0],
+ * value1 (int) -> [out+0x4].  cdecl, three stack args, void return; leaf,
+ * no calls.  Disassembly: FLDS 0xc(ebp) / FSTPS (eax) proves the first field
+ * is a float copied through the x87 (not a plain MOV); the second field is a
+ * plain MOV of a 32-bit int/handle.  The Ghidra "undefined4" for arg0 masked
+ * the float store.
+ */
+void FUN_00061da0(void *out, float value0, int value1)
+{
+  *(float *)out = value0;
+  *((int *)out + 1) = value1;
+  return;
+}
+
 /* Projection axis remapping table at 0x28cb10.
  * Indexed as [projection_axis * 2 + projection_sign][component].
  * Maps a 3D projection basis + sign to two axis indices for 2D projection.
