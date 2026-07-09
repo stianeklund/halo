@@ -2300,3 +2300,134 @@ void FUN_00198f10(int index, void *fog)
   *(short *)out = *fog_tag;
   *(void **)(out + 0x48) = (char *)fog_tag + 0x84;
 }
+/* path_obstacles.c — AI path obstacle-disc connectivity.
+ *
+ * Corresponds to a routine in structures.obj (its sole ported caller,
+ * cluster_partition_assign_groups / FUN_000628b0 at 0x628b0, lives in
+ * src/halo/structures/structures.c).  __FILE__ evidence for this function is
+ * c:\halo\SOURCE\ai\path_obstacles.c (from its display_assert strings at
+ * lines 0x183, 0x18c, 0x1a5); two interior asserts cite c:\halo\source\ai\path.h
+ * (0x18c) verbatim.
+ *
+ * Ported: FUN_00062680 (0x62680) — flood-fill of the "obstacle disc" set.
+ */
+
+#include "../../common.h"
+
+/* 0x0062680 — FUN_00062680
+ *
+ * Given an obstacle-disc set (obstacles), a shared radius pad (arg2, an IEEE-754
+ * float smuggled through a uint32_t stack slot — the ported caller forwards it
+ * as an opaque dword), a seed disc index, and an output bitvector, marks every
+ * disc reachable from the seed by "inflated-circle overlap" connectivity.
+ *
+ * Two discs A and B are connected when the squared centre distance is <= the
+ * squared sum of their pad-inflated radii:
+ *     dx = B.x - A.x ; dy = B.y - A.y
+ *     dx*dx + dy*dy <= ((pad + B.radius) + (pad + A.radius))^2
+ * The search is an iterative worklist flood-fill seeded at seed_disc_index; the
+ * result is a 1-bit-per-disc membership bitvector (index>>5 dword, 1<<(index&31)
+ * bit).
+ *
+ * Obstacle-set layout (byte offsets from the base pointer, disasm-confirmed):
+ *   +0x02  int16  disc_count           (0 <= disc_count <= 0x80)
+ *   +0x08  disc[] base, stride 0x18 (24 bytes)
+ *     disc +0x08 float x
+ *     disc +0x0c float y
+ *     disc +0x10 float radius
+ * MAXIMUM_DISC_COUNT = 0x80 = 128.
+ *
+ * FPU order is disassembly-authoritative (0x17a-0x1ad): the inflated-radius sum
+ * evaluates the candidate term first, then the current term; the distance
+ * squared evaluates dx*dx before dy*dy.  Preserve the parenthesisation for VC71.
+ *
+ * ABI: cdecl, 4 stack args, void return.
+ */
+void FUN_00062680(int16_t *partition, uint32_t arg2, int16_t index,
+                  uint32_t *out_mask)
+{
+  uint32_t *mask_word;
+  int cand_base;
+  float inflated_sum;
+  float dx;
+  float dy;
+  int top_prev;
+  int16_t disc_idx;
+  int i;
+  int16_t disc_count;
+  uint32_t bit;
+  int16_t stack[128];
+  int cur_base;
+  int top;
+  int base;
+
+  base = (int)partition;
+
+  if ((*(int16_t *)(base + 2) < 0) || (0x80 < *(int16_t *)(base + 2))) {
+    display_assert("obstacles->disc_count>=0 && obstacles->disc_count<=MAXIMUM_DISC_COUNT",
+                   "c:\\halo\\SOURCE\\ai\\path_obstacles.c", 0x183, 1);
+    system_exit(-1);
+  }
+  csmemset(out_mask, 0, ((*(int16_t *)(base + 2) + 0x1f) >> 5) << 2);
+  if (index != -1) {
+    if ((index < 0) || (*(int16_t *)(base + 2) <= index)) {
+      display_assert("seed_disc_index>=0 && seed_disc_index<obstacles->disc_count",
+                     "c:\\halo\\SOURCE\\ai\\path_obstacles.c", 0x18c, 1);
+      system_exit(-1);
+    }
+    mask_word = &out_mask[(int)index >> 5];
+    stack[0] = index;
+    *mask_word = *mask_word | 1 << ((uint8_t)index & 0x1f);
+    i = 1;
+    do {
+      i = i + -1;
+      disc_idx = stack[(int16_t)i];
+      top = i;
+      if (((disc_idx < 0) || (*(int16_t *)(base + 2) <= disc_idx)) ||
+          (0x80 < *(int16_t *)(base + 2))) {
+        display_assert("disc_index>=0 && disc_index<obstacles->disc_count && obstacles->disc_count<=MAXIMUM_DISC_COUNT",
+                       "c:\\halo\\source\\ai\\path.h", 0x18c, 1);
+        system_exit(-1);
+      }
+      disc_count = *(int16_t *)(base + 2);
+      cur_base = base + 8 + disc_idx * 0x18;
+      disc_idx = 0;
+      if (0 < disc_count) {
+        do {
+          i = (int)disc_idx;
+          bit = 1 << ((uint8_t)disc_idx & 0x1f);
+          mask_word = &out_mask[i >> 5];
+          if ((*mask_word & bit) == 0) {
+            if (((disc_idx < 0) || (disc_count <= disc_idx)) ||
+                (0x80 < disc_count)) {
+              display_assert("disc_index>=0 && disc_index<obstacles->disc_count && obstacles->disc_count<=MAXIMUM_DISC_COUNT",
+                             "c:\\halo\\source\\ai\\path.h", 0x18c, 1);
+              system_exit(-1);
+            }
+            top_prev = top;
+            cand_base = base + 8 + i * 0x18;
+            inflated_sum = (*(float *)&arg2 + *(float *)(base + 0x18 + i * 0x18)) +
+                           (*(float *)&arg2 + *(float *)(cur_base + 0x10));
+            dx = *(float *)(cand_base + 8) - *(float *)(cur_base + 8);
+            dy = *(float *)(cand_base + 0xc) - *(float *)(cur_base + 0xc);
+            if (dx * dx + dy * dy <= inflated_sum * inflated_sum) {
+              disc_count = (int16_t)top;
+              *mask_word = *mask_word | bit;
+              if (0x7f < disc_count) {
+                display_assert("stack_top<MAXIMUM_DISC_COUNT",
+                               "c:\\halo\\SOURCE\\ai\\path_obstacles.c", 0x1a5, 1);
+                system_exit(-1);
+              }
+              stack[disc_count] = disc_idx;
+              top = top_prev + 1;
+            }
+          }
+          disc_count = *(int16_t *)(base + 2);
+          disc_idx = disc_idx + 1;
+          i = top;
+        } while (disc_idx < disc_count);
+      }
+    } while (0 < (int16_t)i);
+  }
+  return;
+}
