@@ -23383,7 +23383,9 @@
         },
         {
           "addr": "0x106330",
-          "decl": "void FUN_00106330(void);"
+          "decl": "float FUN_00106330(int16_t count, float *points);",
+          "name": "FUN_00106330",
+          "ported": true
         },
         {
           "addr": "0x18e420",
