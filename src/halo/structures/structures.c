@@ -512,6 +512,119 @@ void FUN_000628b0(int16_t *partition, uint32_t arg2)
   }
 }
 
+/* FUN_00099070 (0x99070)
+ *
+ * Debug overlay for the decal render queue and per-cluster decal labels.
+ * Runs only when the global debug flag at 0x5aa8b4 is set.
+ *
+ * Part 1 (decal queue): for each queue in [0, *0x4547da), walk its
+ * *0x453fda[queue] elements.  Elements are 0x18-byte records in three
+ * parallel arrays: point_a base 0x44dfc0, point_b base 0x44dfd8, and a
+ * flag byte base 0x44dfec, all indexed by (element + base)*0x18.  For each
+ * element FUN_00189270 draws the edge (running point) -> point_b in the
+ * global color at 0x2ee6e0, then FUN_00189150 draws point_b as a 0.0625f
+ * point using color 0x2ee6d0 (flag set) or 0x2ee6c4 (flag clear).  After
+ * each queue a duplicate-surface-index scan over 0x4547dc reports an error.
+ *
+ * Part 2 (cluster labels): for each rendered cluster in [0, *0x5137cc), and
+ * each of its 5 layers, walk the decal linked list (next handle at
+ * record+0x34, -1 terminates) resolved through the decals pool *0x5aa8b8;
+ * label each decal with its surface index (record+0x2a, sign-extended and
+ * <<2) drawn at record+8.
+ *
+ * Confirmed from decompile at 0x99070:
+ *   - loop bound *0x4547da is re-read after every error() and each inner draw.
+ *   - FUN_00189150 scale arg is float 0.0625f (0x3d800000), passed by value.
+ *   - sprintf vararg is (int)(short)*(record+0x2a) << 2.
+ *   - the linked-list "next" is read from the resolved record pointer +0x34.
+ * ABI: cdecl, no args, void return.
+ */
+void FUN_00099070(void)
+{
+  char local_50[64];
+  int base_element;
+  int queue_index;
+  short queue_count_g;
+  short count;
+  short e;
+  short dup;
+  int byte_off;
+  float *point_a;
+  float *point_b;
+  void *color;
+  int ri;
+  void *cluster;
+  short cluster_id;
+  short layer;
+  int node;
+  char *rec;
+
+  if (*(char *)0x5aa8b4 == 0)
+    return;
+
+  base_element = 0;
+  queue_index = 0;
+  queue_count_g = *(short *)0x4547da;
+  if (queue_count_g > 0) {
+    do {
+      count = ((short *)0x453fda)[(short)queue_index];
+      e = 0;
+      point_a = (float *)(0x44dfc0 + (count + (short)base_element) * 0x18);
+      if (count > 0) {
+        do {
+          byte_off = (e + (short)base_element) * 0x18;
+          point_b = (float *)(0x44dfd8 + byte_off);
+          FUN_00189270(1, point_a, point_b, *(void **)0x2ee6e0);
+          color = *(void **)0x2ee6d0;
+          /* flag byte lives at 0x44dfec + byte_off (== point_b + 0x14); both are
+           * byte reads, so the [LOADW-WARN] is a benign addressing-encoding diff. */
+          if (*(char *)(0x44dfec + byte_off) == 0)
+            color = *(void **)0x2ee6c4;
+          FUN_00189150(1, point_b, 0.0625f, color);
+          e = e + 1;
+          point_a = point_b;
+          queue_count_g = *(short *)0x4547da;
+        } while (e < ((short *)0x453fda)[(short)queue_index]);
+      }
+      dup = 0;
+      if (queue_count_g > 0) {
+        do {
+          if (dup != (short)queue_index &&
+              ((short *)0x4547dc)[(short)queue_index] ==
+                ((short *)0x4547dc)[dup]) {
+            error(2, "### ERROR decals: duplicate surface indices in queue -- "
+                     "tell Bernie!!");
+            queue_count_g = *(short *)0x4547da;
+          }
+          dup = dup + 1;
+        } while (dup < queue_count_g);
+      }
+      base_element = base_element + count;
+      queue_index = queue_index + 1;
+    } while ((short)queue_index < queue_count_g);
+  }
+
+  ri = 0;
+  if (*(short *)0x5137cc > 0) {
+    do {
+      cluster = rendered_cluster_get(ri);
+      cluster_id = *(short *)cluster;
+      layer = 0;
+      do {
+        node = FUN_00098fe0(cluster_id, layer);
+        while (node != -1) {
+          rec = (char *)datum_get(*(void **)0x5aa8b8, node);
+          crt_sprintf(local_50, "%d", (int)*(short *)(rec + 0x2a) << 2);
+          FUN_00189cb0(0, rec + 8, local_50, *(int *)0x2ee6d0);
+          node = *(int *)(rec + 0x34);
+        }
+        layer = layer + 1;
+      } while ((short)layer < 5);
+      ri = ri + 1;
+    } while ((short)ri < *(short *)0x5137cc);
+  }
+}
+
 /* FUN_00099220 (0x99220)
  *
  * Determine the dominant axis of a plane normal.  Returns the index
