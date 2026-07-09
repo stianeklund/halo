@@ -23565,7 +23565,7 @@
         {
           "addr": "0x193bb0",
           "decl": "void structure_detail_objects_initialize_for_new_map(void);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x193c00",
