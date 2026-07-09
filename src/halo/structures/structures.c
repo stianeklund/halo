@@ -2894,7 +2894,9 @@ void structure_runtime_decals_initialize(void)
   }
 }
 
-void structure_runtime_decals_initialize_for_new_map(void)
+/* noinline: original build had this in a separate TU (structure_runtime_decals.c),
+ * so callers in structures.c emit real CALLs — keep that shape under VC71 /O2. */
+__declspec(noinline) void structure_runtime_decals_initialize_for_new_map(void)
 {
   uint8_t *runtime_decal_globals = *(uint8_t **)0x4d8ec8;
 
@@ -2955,6 +2957,15 @@ void FUN_00196330(void)
       } while ((int16_t)cluster_index < (int16_t)cluster_count);
     }
   }
+}
+
+/* structure_runtime_decals_dispose (0x1963b0) — structures.obj
+ *
+ * Empty no-op in this build: the disassembly is a single RET (C3) with no
+ * prologue, stack frame, FPU, memory access, or calls. Preserved as an
+ * empty body to keep the address populated and the ABI intact. */
+void structure_runtime_decals_dispose(void)
+{
 }
 
 /* FUN_00198070 (0x198070) — structures.obj
@@ -3147,12 +3158,21 @@ void structures_initialize_for_new_map(void)
   structure_runtime_decals_initialize_for_new_map();
 }
 
+/* structures_dispose_from_old_map (0x1983e0): CALL 0x1963a0 + tail-JMP
+ * 0x1939c0 in the original — decals first, then detail objects (reverse of
+ * the initialize order). Both callees are bare RETs in this build, but the
+ * call shape is preserved. */
 void structures_dispose_from_old_map(void)
 {
+  structure_runtime_decals_dispose_from_old_map();
+  structure_detail_objects_dispose_from_old_map();
 }
 
+/* structures_dispose (0x1983f0): CALL 0x1963b0 + tail-JMP 0x1939d0. */
 void structures_dispose(void)
 {
+  structure_runtime_decals_dispose();
+  structure_detail_objects_dispose();
 }
 
 /* structures_cluster_marker_begin (0x198400)
@@ -3898,7 +3918,8 @@ void set_file_location_volume_name(int16_t location, const char *volume_name)
  * byte at base+0x520e. display_assert lineno 0x6d (109), halt=1; on failure
  * the original tail-calls system_exit(-1) (the assert hard-exit).
  * Global 0x4d8ea0 re-read (not cached) to match the original. */
-void structure_detail_objects_initialize_for_new_map(void)
+/* noinline: original build had this in a separate TU (structure_detail_objects.c). */
+__declspec(noinline) void structure_detail_objects_initialize_for_new_map(void)
 {
   if (*(int *)0x4d8ea0 == 0) {
     display_assert("detail_object_global_runtime_data",

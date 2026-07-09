@@ -23703,13 +23703,13 @@
         },
         {
           "addr": "0x1963a0",
-          "decl": "void structure_detail_objects_dispose_from_old_map(void);",
+          "decl": "void structure_runtime_decals_dispose_from_old_map(void);",
           "ported": false
         },
         {
           "addr": "0x1963b0",
           "decl": "void structure_runtime_decals_dispose(void);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x196fd0",
@@ -23876,6 +23876,16 @@
           "addr": "0x193910",
           "decl": "float FUN_00193910(float param_1, float param_2);",
           "ported": true
+        },
+        {
+          "addr": "0x1939c0",
+          "decl": "void structure_detail_objects_dispose_from_old_map(void);",
+          "ported": false
+        },
+        {
+          "addr": "0x1939d0",
+          "decl": "void structure_detail_objects_dispose(void);",
+          "ported": false
         },
         {
           "addr": "0x1939f0",
