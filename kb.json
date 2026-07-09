@@ -23556,10 +23556,6 @@
           "decl": "void FUN_001954d0(void);"
         },
         {
-          "addr": "0x1954e0",
-          "decl": "void FUN_001954e0(void);"
-        },
-        {
           "addr": "0x195530",
           "decl": "void FUN_00195530(void);"
         },
@@ -23785,6 +23781,17 @@
       ],
       "name": "structures.obj",
       "source": "structures/structures.c"
+    },
+    {
+      "functions": [
+        {
+          "addr": "0x1954e0",
+          "decl": "void FUN_001954e0(void *fog_offset);",
+          "ported": true
+        }
+      ],
+      "name": "structure_render.obj",
+      "source": "structures/structure_render.c"
     },
     {
       "functions": [
