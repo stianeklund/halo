@@ -2474,6 +2474,49 @@ void FUN_00195d40(void)
   }
 }
 
+/* FUN_00195dc0 (0x195dc0)
+ *
+ * render_structure_transparent_geo: thin render-orchestration wrapper (string
+ * ref "render_structure_transparent_geo" @0x328da0).  Profiles the scope, and
+ * when the map has a valid lightmap/material pass (byte at 0x4d8eb0 != 0) it
+ * brackets a scope enter/exit pair (thunks 0x17cea0 / 0x17cec0 forwarding to
+ * FUN_00160c10 / FUN_00160c20) around the per-surface transparent-geometry draw
+ * walk (FUN_00195790).
+ *
+ * Confirmed from disassembly at 0x195dc0:
+ *  - Outer profiler scope: MOV AL,[0x449ef1]; TEST/JZ; MOV AL,[0x328da8];
+ *    TEST/JZ around PUSH 0x328da0; CALL profile_enter_private; ADD ESP,4.
+ *    Mirrored at the tail with profile_exit_private (PUSH 0x328da0; CALL; POP).
+ *  - Middle block gate: MOV AL,[0x4d8eb0]; TEST AL,AL; JZ end.
+ *  - FUN_00195790 takes an @eax pointer (MOV EAX,0x5937d4 = surface->material
+ *    offset table -- passed as an ADDRESS, not a deref) plus 6 stack args;
+ *    ADD ESP,0x18 = 6 stack dwords.  Push order (first push = last C arg):
+ *    0x17ceb0 (param_7 -- fn ptr FUN_0017ceb0), 0 (pass_end_cb), 0
+ *    (surface_draw_cb), 0 (material_begin_cb), *0x4d8eb4 (lightmap_pass_index),
+ *    zero-extended uint16 @0x5937d0 (surface_count, XOR ECX,ECX / MOV CX).
+ *  - Two distinct globals: uint16 count @0x5937d0 vs int[] offsets @0x5937d4.
+ *    The lone callback (FUN_0017ceb0) rides in the param_7 slot, unlike the
+ *    sibling reflection/lightmap passes which use surface_draw_cb.
+ * All calls cdecl, args pushed right-to-left.
+ */
+void FUN_00195dc0(void)
+{
+  if (*(char *)0x449ef1 != 0 && *(char *)0x328da8 != 0) {
+    profile_enter_private((void *)0x328da0);
+  }
+
+  if (*(char *)0x4d8eb0 != 0) {
+    FUN_0017cea0();
+    FUN_00195790((int *)0x5937d4, *(unsigned short *)0x5937d0, *(int *)0x4d8eb4,
+                 (void *)0, (void *)0, (void *)0, (int)FUN_0017ceb0);
+    FUN_0017cec0();
+  }
+
+  if (*(char *)0x449ef1 != 0 && *(char *)0x328da8 != 0) {
+    profile_exit_private((void *)0x328da0);
+  }
+}
+
 /* FUN_00195f30 (0x195f30)
  *
  * render_structure_specular_lights: structure specular-light render entry
