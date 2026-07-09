@@ -3132,3 +3132,59 @@ void leaf_map_mark_portal_designators(void *structure, uint32_t portal_index)
         remaining = remaining - 1;
     } while (remaining != 0);
 }
+
+/* reference_list_copy (0x191440) — Copy a reference_list's entries from source
+ * into result. Both lists must have identical size and maximum_count (asserted).
+ *
+ * For each slot in [0, maximum_count): if the source entry is live (its first
+ * word != 0) the 12-byte (3-dword) entry is copied verbatim; otherwise, if the
+ * result entry is live, it is removed via datum_delete(result, index).
+ *
+ * Struct offsets (reference_lists.h):
+ *   +0x20 maximum_count (int16)   +0x22 size (int16)   +0x34 entry array ptr
+ * Entry stride = 0xc (12 bytes) = 3 dwords; both pointers advance by 0xc/iter.
+ *
+ * Confirmed (disasm): cdecl(result @EBP+8 = EDI, source @EBP+0xc = EBX);
+ * size mismatch asserts at line 0x88 (136), maximum_count mismatch at line 0x89
+ * (137), reason strings shown, halt=1, then system_exit(-1). The loop count
+ * [result+0x20] is RE-READ from memory each iteration (CMP SI,word[EDI+0x20]),
+ * and the index is a signed int16 (JL). datum_delete push order is EDI then
+ * MOVSX-of-SI => datum_delete(result, (int)index). No FPU. */
+void reference_list_copy(void *result, void *source)
+{
+  short *result_entry;
+  short *source_entry;
+  short index;
+
+  if (*(short *)((char *)result + 0x22) != *(short *)((char *)source + 0x22)) {
+    display_assert("result->size==source->size",
+                   "..\\objects\\reference_lists.h", 0x88, 1);
+    system_exit(-1);
+  }
+  if (*(short *)((char *)result + 0x20) != *(short *)((char *)source + 0x20)) {
+    display_assert("result->maximum_count==source->maximum_count",
+                   "..\\objects\\reference_lists.h", 0x89, 1);
+    system_exit(-1);
+  }
+
+  result_entry = *(short **)((char *)result + 0x34);
+  source_entry = *(short **)((char *)source + 0x34);
+  index = 0;
+  if (0 < *(short *)((char *)result + 0x20)) {
+    do {
+      if (*source_entry == 0) {
+        if (*result_entry != 0) {
+          datum_delete((data_t *)result, (int)index);
+        }
+      }
+      else {
+        *(int *)result_entry = *(int *)source_entry;
+        *(int *)(result_entry + 2) = *(int *)(source_entry + 2);
+        *(int *)(result_entry + 4) = *(int *)(source_entry + 4);
+      }
+      index = index + 1;
+      result_entry = result_entry + 6;
+      source_entry = source_entry + 6;
+    } while (index < *(short *)((char *)result + 0x20));
+  }
+}
