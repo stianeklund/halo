@@ -973,6 +973,61 @@ float FUN_00106330(int16_t count, float *points)
   return (float)fabs(area); /* FABS */
 }
 
+/* FUN_00106290 (0x106290)
+ *
+ * Indexed variant of the 2D point-in-polygon winding test (FUN_00106200).
+ * Instead of iterating vertices directly, the polygon boundary is described
+ * by an index array (int16 indices, stride 2) into a shared vertex pool
+ * (float[2] per vertex, x at +0, y at +4).  For every edge
+ * (vert[index[i]] -> vert[index[next]]) computes:
+ *   cross = (P.y - A.y) * (B.x - A.x) - (P.x - A.x) * (B.y - A.y)
+ * and returns 0 as soon as cross < -epsilon for any edge (point is outside
+ * that edge beyond the tolerance).  Returns 1 if the point passes every edge.
+ * Empty polygon (count <= 0) returns 1.  Wrap-around index uses
+ * next = (i+1 >= count) ? 0 : i+1.  Indices are loaded narrow (int16, signed);
+ * the cross-product/subtraction order matches FUN_00106200 and disassembly.
+ */
+int FUN_00106290(int16_t count, void *index_array, void *vertex_base,
+                 float *query_point, float epsilon)
+{
+  int16_t i;
+  float neg_epsilon;
+  int16_t *indices;
+  float *verts;
+  float *qp;
+
+  i = 0;
+  if (count <= 0)
+    return 1;
+
+  neg_epsilon = -epsilon;
+  indices = (int16_t *)index_array;
+  verts = (float *)vertex_base;
+  qp = query_point;
+
+  do {
+    int idx = (int)i;
+    int next = (idx + 1 >= (int)count) ? 0 : idx + 1;
+    int a = (int)indices[idx];
+    int b = (int)indices[next];
+    float *A = &verts[a * 2];
+    float ax = A[0], ay = A[1];
+    float bx = verts[b * 2];
+    float by = verts[b * 2 + 1];
+    float dx = qp[0] - ax;
+    float dy = qp[1] - ay;
+    float ex = bx - ax;
+    float ey = by - ay;
+
+    if (dy * ex - dx * ey < neg_epsilon)
+      return 0;
+
+    i++;
+  } while (i < count);
+
+  return 1;
+}
+
 /* FUN_0018e420 (0x18e420)
  *
  * Returns the global BSP3D pointer (DAT_005064d8). Asserts with a halt if
