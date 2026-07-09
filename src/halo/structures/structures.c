@@ -459,6 +459,52 @@ bool FUN_00106200(int16_t count, void *points, float *query_point,
   return true;
 }
 
+/* FUN_00106330 (0x106330)
+ *
+ * 2D polygon signed-area accumulation (triangle-fan / shoelace) returning the
+ * absolute area. Points are stored as float[2] pairs (x, y) with stride 2;
+ * vertex 0 (points[0], points[1]) is the fan anchor. For each triangle
+ * (anchor, cur = points[i], next = points[i+1]), i running over count-2
+ * iterations, accumulates half the 2D cross product of the two edge vectors
+ * measured from the anchor:
+ *   cross = (next.y - anchor.y) * (cur.x - anchor.x)
+ *         - (next.x - anchor.x) * (cur.y - anchor.y)
+ *   area += 0.5 * cross
+ * Returns fabs(area).
+ *
+ * Confirmed from disasm: seed FLOAT_002533c0 = 0.0f, scale _DAT_00253398 =
+ * 0.5f (both single-precision, byte-verified). Cross-product operand order is
+ * A*B - C*D (hazard #4, verified against FSUBP direction). x87 extended
+ * intermediates are preserved as double; do not reassociate. Loop count is
+ * unsigned 16-bit ((unsigned short)(count - 2)); guarded by count > 2. Leaf,
+ * cdecl, result left in ST0 with a trailing FABS.
+ */
+float FUN_00106330(int16_t count, float *points)
+{
+  float area;
+  float *p;
+  unsigned int n;
+
+  area = 0.0f; /* FLOAT_002533c0 seed */
+  if (count > 2) {
+    n = (unsigned int)(unsigned short)(count - 2);
+    p = points + 2;
+    do {
+      n = n - 1;
+      /* Signed area of triangle (anchor, cur, next), doubled; scaled by 0.5.
+       * Reference computes (next.x-x0)*(cur.y-y0) - (next.y-y0)*(cur.x-x0);
+       * result is negated vs the standard fan cross but fabs() absorbs the
+       * sign. MSVC schedules this as a pairwise x87 multiply. */
+      area = ((p[2] - points[0]) * (p[1] - points[1]) -
+              (p[3] - points[1]) * (p[0] - points[0])) *
+               0.5f /* _DAT_00253398 */
+             + area;
+      p = p + 2;
+    } while (n != 0);
+  }
+  return (float)fabs(area); /* FABS */
+}
+
 /* FUN_0018e420 (0x18e420)
  *
  * Returns the global BSP3D pointer (DAT_005064d8). Asserts with a halt if
