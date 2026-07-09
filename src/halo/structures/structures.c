@@ -576,8 +576,9 @@ void FUN_00099070(void)
           point_b = (float *)(0x44dfd8 + byte_off);
           FUN_00189270(1, point_a, point_b, *(void **)0x2ee6e0);
           color = *(void **)0x2ee6d0;
-          /* flag byte lives at 0x44dfec + byte_off (== point_b + 0x14); both are
-           * byte reads, so the [LOADW-WARN] is a benign addressing-encoding diff. */
+          /* flag byte lives at 0x44dfec + byte_off (== point_b + 0x14); both
+           * are byte reads, so the [LOADW-WARN] is a benign addressing-encoding
+           * diff. */
           if (*(char *)(0x44dfec + byte_off) == 0)
             color = *(void **)0x2ee6c4;
           FUN_00189150(1, point_b, 0.0625f, color);
@@ -695,6 +696,26 @@ void FUN_001056e0(void *handle)
 float FUN_001057a0(float *param_1, float *param_2)
 {
   return (param_1[0] * param_2[0] + param_1[1] * param_2[1]) - param_1[2];
+}
+
+/* FUN_001057c0 (0x1057c0)
+ *
+ * 2D parametric line-intersection solve.  Given plane2d param_1 and param_2
+ * (each normal.x, normal.y with param_1 carrying a distance at +0x8) and a
+ * shared point/direction param_3 (x at +0x0, y at +0x4, offset at +0x8),
+ * returns the negated ratio of two signed 2D evaluations:
+ *   num = param_1[0]*param_3[0] + param_1[1]*param_3[1] - param_3[2]
+ *   den = param_2[0]*param_3[0] + param_2[1]*param_3[1]
+ *   return -(num / den)
+ * Pure x87 leaf; single-expression form keeps intermediates in ST(0) to
+ * match the FLD/FMUL/FADDP/FSUB/FDIVP/FCHS chain (FSUB not FSUBR: the
+ * subtrahend is param_3[2]; FDIVP yields num/den; FCHS negates).
+ * EAX holds param_3 throughout; ECX switches from param_1 to param_2.
+ */
+float FUN_001057c0(float *param_1, float *param_2, float *param_3)
+{
+  return -(((param_1[0] * param_3[0] + param_1[1] * param_3[1]) - param_3[2]) /
+           (param_2[0] * param_3[0] + param_2[1] * param_3[1]));
 }
 
 /* FUN_00106030 (0x106030)
