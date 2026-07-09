@@ -1541,6 +1541,38 @@ void reference_list_copy(void *result, void *source)
   }
 }
 
+/* Allocate the three cluster-partition globals (0x191500).
+ * out[0] = game_state_malloc("<name>"... , "cluster references", 0x800) -- the
+ *          per-cluster head block (0x800 bytes).
+ * out[1] = game_state_data_new("<name> reference", 0x800, 0xc) built from the
+ *          intermediate "cluster <name>" name buffer.
+ * out[2] = game_state_data_new("<name> reference", 0x800, 0xc) built from the
+ *          intermediate "<name> cluster" name buffer.
+ * If any allocation fails, error(0, "couldn't allocate %s cluster partition
+ * globals", name). Confirmed (disasm 0x191500-0x1915cf): cdecl(out @EBP+8=ESI,
+ * name @EBP+0xc=EDI); two 256-byte scratch buffers (local_204/local_104, frame
+ * SUB ESP,0x200, no _chkstk); crt_sprintf/game_state_malloc/game_state_data_new
+ * all cdecl (first push = last arg). Failure test order out[0], out[2], out[1]
+ * matches the TEST sequence; the last data_new result is held for that test. */
+void cluster_partition_globals_new(void **out, const char *name)
+{
+  char buffer[256];
+  char name_buffer[256];
+  void *references;
+
+  out[0] = game_state_malloc(name, "cluster references", 0x800);
+  crt_sprintf(name_buffer, "cluster %s", name);
+  crt_sprintf(buffer, "%s reference", name_buffer);
+  out[1] = game_state_data_new(buffer, 0x800, 0xc);
+  crt_sprintf(name_buffer, "%s cluster", name);
+  crt_sprintf(buffer, "%s reference", name_buffer);
+  references = game_state_data_new(buffer, 0x800, 0xc);
+  out[2] = references;
+  if (out[0] == 0 || references == 0 || out[1] == 0) {
+    error(0, "couldn't allocate %s cluster partition globals", name);
+  }
+}
+
 /* Clear a cluster partition (0x1915d0).
  * Resets the per-cluster head array (partition[0], 0x800 bytes) to the empty
  * sentinel (-1), then empties both datum pools: the per-object cluster
