@@ -2409,6 +2409,36 @@ void FUN_00195c40(void)
   }
 }
 
+/* FUN_00195d00 (0x195d00)
+ *
+ * Sibling of FUN_00195d40 (render_structure_reflections): when the map has a
+ * valid reflection/lightmap pass (byte at 0x4d8eb0 != 0), brackets a scope
+ * enter/exit pair (FUN_0017ce40 / FUN_0017ce60, 1-instr JMP thunks forwarding
+ * to FUN_00160bd0 / FUN_00160be0) around the per-surface draw walk
+ * (FUN_00195790).  No profiler scope.
+ *
+ * Confirmed from disassembly at 0x195d00:
+ *  - Gate: MOV AL,[0x4d8eb0]; TEST AL,AL; JZ end.  When the byte is 0 the
+ *    function does nothing.
+ *  - FUN_00195790 takes an @eax pointer (MOV EAX,0x5937d4 = surface->material
+ *    offset table -- passed as an ADDRESS, not a deref) plus 6 stack args;
+ *    ADD ESP,0x18 = 6 stack dwords.  Push order (first push = last C arg):
+ *    0 (param_7), 0 (pass_end_cb), 0x17ce50 (surface_draw_cb), 0
+ *    (material_begin_cb), *0x4d8eb4 (lightmap_pass_index), zero-extended uint16
+ *    @0x5937d0 (surface_count, XOR ECX,ECX / MOV CX -> unsigned short read).
+ *  - Two distinct globals: uint16 count @0x5937d0 vs int[] offsets @0x5937d4.
+ *  - The teardown FUN_0017ce60 is reached via a tail-call JMP in the original.
+ */
+void FUN_00195d00(void)
+{
+  if (*(char *)0x4d8eb0 != 0) {
+    FUN_0017ce40();
+    FUN_00195790((int *)0x5937d4, *(unsigned short *)0x5937d0, *(int *)0x4d8eb4,
+                 (void *)0, (void *)FUN_0017ce50, (void *)0, 0);
+    FUN_0017ce60();
+  }
+}
+
 /* FUN_00195d40 (0x195d40)
  *
  * render_structure_reflections: thin render-orchestration wrapper (string ref
