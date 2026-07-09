@@ -1865,3 +1865,13 @@ void structure_detail_objects_initialize(void)
   *(int *)0x4d8ea0 = base;
   *(int *)(base + 0xa42c) = 0;
 }
+void structure_runtime_decals_initialize(void)
+{
+  *(void **)0x4d8ec8 = game_state_malloc("structure decals", 0, 4);
+  if (*(void **)0x4d8ec8 == NULL) {
+    display_assert("structure_decals_globals",
+                   "c:\\halo\\SOURCE\\structures\\structure_runtime_decals.c",
+                   0x1c, true);
+    system_exit(-1);
+  }
+}
