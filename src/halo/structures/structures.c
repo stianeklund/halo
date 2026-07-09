@@ -1002,3 +1002,63 @@ int16_t structure_find_in_cluster(uint16_t cluster_count, float *position,
 
   return 0;
 }
+/* 0x195550 - gather structure surfaces selected by a per-32-surface bitmask.
+ *
+ * Walks the scenario structure-BSP surfaces tag_block at scenario+0xf8 (first
+ * int = surface element count). mask is an array of uint bitmask words, one word
+ * per 32 surfaces; for each set bit the matching surface index is appended to
+ * out_indices and its 6-byte (short[3]) tag element is copied into out_surfaces
+ * (stride 6 bytes). surface_count bounds the output write index (asserted).
+ *
+ * A zero mask word skips an entire block of 0x20 surfaces (surface_index +=
+ * 0x20 without touching the tag_block). The loop bound (*count) is re-read every
+ * outer iteration - preserved from the original, not cached. The element copy is
+ * exactly three 16-bit moves (element_size 6); widths are kept at uint16. */
+void FUN_00195550(short surface_count, int *out_indices, uint32_t *mask,
+                  int out_surfaces)
+{
+  int *block;
+  int scenario;
+  short bit;
+  short write_index;
+  int surface_index;
+  uint16_t *dst;
+  uint16_t *elem;
+
+  scenario = (int)scenario_get();
+  block = (int *)(scenario + 0xf8);
+  write_index = 0;
+  surface_index = 0;
+  if (0 < *(int *)(scenario + 0xf8)) {
+    do {
+      if (*mask == 0) {
+        surface_index = surface_index + 0x20;
+      }
+      else {
+        bit = 0;
+        do {
+          if (*block <= surface_index) break;
+          if ((*mask & 1 << ((uint8_t)bit & 0x1f)) != 0) {
+            elem = (uint16_t *)tag_block_get_element(block, surface_index, 6);
+            if ((write_index < 0) || (surface_count <= write_index)) {
+              display_assert(
+                  "surface_index_index>=0 && surface_index_index<surface_count",
+                  "c:\\halo\\SOURCE\\structures\\structure_render.c", 0x1a5, true);
+              system_exit(-1);
+            }
+            *out_indices = surface_index;
+            out_indices = out_indices + 1;
+            dst = (uint16_t *)(out_surfaces + write_index * 6);
+            dst[0] = elem[0];
+            dst[1] = elem[1];
+            dst[2] = elem[2];
+            write_index = write_index + 1;
+          }
+          bit = bit + 1;
+          surface_index = surface_index + 1;
+        } while (bit < 0x20);
+      }
+      mask = mask + 1;
+    } while (surface_index < *block);
+  }
+}

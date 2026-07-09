@@ -23562,7 +23562,9 @@
         },
         {
           "addr": "0x195550",
-          "decl": "void FUN_00195550(void);"
+          "decl": "void FUN_00195550(short surface_count, int *out_indices, unsigned int *mask, int out_surfaces);",
+          "ported": true,
+          "name": "FUN_00195550"
         },
         {
           "addr": "0x195650",
