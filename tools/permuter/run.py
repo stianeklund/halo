@@ -111,18 +111,69 @@ typedef struct data_s data_t; /* opaque: pointer-only use in extracted bodies */
 # helpers
 # ---------------------------------------------------------------------------
 
+_co_module = None
+
+
+def _load_compare_obj():
+    """Load tools/verify/compare_obj.py once and cache the module."""
+    global _co_module
+    if _co_module is None:
+        spec = importlib.util.spec_from_file_location("compare_obj", str(COMPARE_OBJ))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        _co_module = mod
+    return _co_module
+
+
+def _per_function_chunk(func_name: str) -> Path | None:
+    """Return delinked/functions/<hex8>.obj for this function if it exists.
+
+    Mirrors vc71_verify._per_function_ref: resolve the lifted name to its
+    FUN_<addr> alias via kb.json, then look up the per-function chunk export.
+    """
+    fn = func_name.lstrip("_")
+    alias = fn if re.match(r"FUN_[0-9a-fA-F]{8}$", fn) else _resolve_ref_name(fn)
+    if not alias:
+        return None
+    m = re.match(r"FUN_([0-9a-fA-F]{8})$", alias)
+    if not m:
+        return None
+    cand = DELINKED_DIR / "functions" / f"{m.group(1).lower()}.obj"
+    return cand if cand.exists() else None
+
+
+def _ref_has_function(ref_obj: Path, func_name: str) -> bool:
+    """True if the reference object contains the function (by lifted name or
+    FUN_<addr> alias). A missing symbol means the TU reference is truncated
+    for this target and a per-function chunk should be used instead."""
+    try:
+        funcs = _load_compare_obj().disassemble(str(ref_obj))
+    except Exception:
+        return False
+    fn = func_name.lstrip("_")
+    if fn in funcs:
+        return True
+    alias = _resolve_ref_name(fn)
+    return bool(alias and alias in funcs)
+
+
 def find_delinked_reference(source: Path, func_name: str | None = None) -> Path | None:
     """Locate the best delinked .obj reference for a source file via objdiff.json.
 
-    Prefers a per-function delinked object (name contains func_name) over a
-    whole-TU object, so the permuter scores against the tightest available ref.
+    Resolution order (mirrors vc71_verify's reference selection):
+      1. per-function object registered in objdiff.json (name contains func_name)
+      2. whole-TU object, if it actually contains the target function's symbol
+      3. per-function chunk export (delinked/functions/<addr>.obj)
+      4. whole-TU object even without the symbol (legacy last resort)
+    Previously only 1+4 existed, so functions scoreable only via chunks failed
+    every LCS lookup ('LCS lookup failed, skipping' on all candidates).
     """
     try:
         with open(OBJDIFF_JSON) as f:
             data = json.load(f)
     except (OSError, json.JSONDecodeError) as e:
         print(f"[run.py] Cannot load {OBJDIFF_JSON}: {e}", file=sys.stderr)
-        return None
+        data = {}
 
     src_str = str(source).replace("\\", "/")
     matches = []
@@ -134,17 +185,25 @@ def find_delinked_reference(source: Path, func_name: str | None = None) -> Path 
             if candidate.exists():
                 matches.append((unit.get("name", ""), candidate))
 
-    if not matches:
-        return None
-
-    # Prefer the per-function obj if func_name is provided
     if func_name:
+        # 1. per-function obj registered in objdiff.json
         for name, cand in matches:
             if func_name in name:
                 return cand
+        # 2. whole-TU object that actually carries the symbol
+        tu = matches[0][1] if matches else None
+        if tu is not None and _ref_has_function(tu, func_name):
+            return tu
+        # 3. per-function chunk fallback
+        chunk = _per_function_chunk(func_name)
+        if chunk is not None:
+            print(f"[run.py] TU reference {'missing' if tu is None else 'lacks symbol'};"
+                  f" using per-function chunk {chunk.name}")
+            return chunk
+        # 4. legacy: hand back the TU object anyway (caller will fail lookup)
+        return tu
 
-    # Fall back to first existing match
-    return matches[0][1]
+    return matches[0][1] if matches else None
 
 
 def copy_reference_coff(coff: Path, target: Path) -> bool:
@@ -460,24 +519,43 @@ def _resolve_ref_name(func_name: str) -> str | None:
     return None
 
 
-def get_lcs_score(func_name: str, compiled_obj: Path, ref_obj: Path) -> float | None:
-    """Get LCS match % for a function between compiled and reference objects."""
-    spec = importlib.util.spec_from_file_location("compare_obj", str(COMPARE_OBJ))
-    co = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(co)
+def get_lcs_score(func_name: str, compiled_obj: Path, ref_obj: Path,
+                  ref_is_chunk: bool = False) -> float | None:
+    """Get LCS match % for a function between compiled and reference objects.
+
+    ref_is_chunk selects the boundary-capped chunk read (first_function_insns)
+    that vc71_verify uses for delinked/functions/<addr>.obj references, so a
+    stale chunk that swallowed unregistered neighbour functions collapses to
+    its true first function instead of producing a false low.
+    """
+    co = _load_compare_obj()
 
     cand_funcs = co.disassemble(str(compiled_obj))
-    ref_funcs = co.disassemble(str(ref_obj))
 
     fn = func_name.lstrip("_")
     cand_fn = fn if fn in cand_funcs else None
-    ref_fn = fn if fn in ref_funcs else None
-    if ref_fn is None:
-        delinked_name = _resolve_ref_name(fn)
-        if delinked_name and delinked_name in ref_funcs:
-            ref_fn = delinked_name
-    if cand_fn and ref_fn:
-        pct, *_ = co.compare_functions(cand_funcs[cand_fn], ref_funcs[ref_fn])
+    if not cand_fn:
+        return None
+    delinked_name = _resolve_ref_name(fn)
+
+    ref_insns = None
+    if not ref_is_chunk:
+        ref_funcs = co.disassemble(str(ref_obj))
+        if fn in ref_funcs:
+            ref_insns = ref_funcs[fn]
+        elif delinked_name and delinked_name in ref_funcs:
+            ref_insns = ref_funcs[delinked_name]
+    if ref_insns is None:
+        # chunk reference (or TU lookup failed): boundary-capped first-function
+        aliases = {fn, f"_{fn}"}
+        if delinked_name:
+            aliases.add(delinked_name)
+        try:
+            ref_insns = co.first_function_insns(str(ref_obj), aliases)
+        except Exception:
+            ref_insns = None
+    if ref_insns:
+        pct, *_ = co.compare_functions(cand_funcs[cand_fn], ref_insns)
         return pct
     return None
 
@@ -545,7 +623,10 @@ def main():
         print("[run.py] ERROR: No delinked reference found. "
               "Run batch_delink.py to export the reference object.", file=sys.stderr)
         sys.exit(1)
-    _log(f"[run.py] Reference COFF  : {ref_coff}")
+    # Chunk references need the boundary-capped read in get_lcs_score
+    ref_is_chunk = ref_coff.parent.name == "functions"
+    _log(f"[run.py] Reference COFF  : {ref_coff}"
+         + (" (per-function chunk)" if ref_is_chunk else ""))
 
     # ------------------------------------------------------------------
     # Set up work directory (must be on Windows-accessible path)
@@ -606,7 +687,8 @@ def main():
 
         # Get initial score via vc71_verify
         base_o = work_dir / "base.o"
-        init_pct = get_lcs_score(func_name, base_o, target_o)
+        init_pct = get_lcs_score(func_name, base_o, target_o,
+                                 ref_is_chunk=ref_is_chunk)
         if init_pct is not None:
             init_score = round((100.0 - init_pct) * 10)
             _log(f"[run.py] Initial LCS     : {init_pct:.1f}% (LCS loss={init_score})")
@@ -666,7 +748,8 @@ def main():
                 if r.returncode != 0 or not obj_file.exists():
                     _log(f"  penalty={perm_penalty}: compile failed, skipping")
                     continue
-                lcs = get_lcs_score(func_name, obj_file, target_o)
+                lcs = get_lcs_score(func_name, obj_file, target_o,
+                                    ref_is_chunk=ref_is_chunk)
                 if lcs is None:
                     _log(f"  penalty={perm_penalty}: LCS lookup failed, skipping")
                     continue
