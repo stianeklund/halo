@@ -23631,7 +23631,9 @@
         },
         {
           "addr": "0x195f30",
-          "decl": "void FUN_00195f30(int object_handle, float *position, float radius, int gel_count, int gel_buffer);"
+          "decl": "void FUN_00195f30(int object_handle, float *position, float radius, int gel_count, int gel_buffer);",
+          "ported": true,
+          "source_path": "src/halo/structures/structures.c"
         },
         {
           "addr": "0x196060",
@@ -23699,7 +23701,7 @@
         },
         {
           "addr": "0x197e90",
-          "decl": "void FUN_00197e90(void);"
+          "decl": "short FUN_00197e90(void *buffer, int max_count, float *position, float radius, int param_5, int param_6, int param_7, int gel_count, int gel_buffer);"
         },
         {
           "addr": "0x198070",
@@ -27952,7 +27954,7 @@
       "functions": [
         {
           "addr": "0x17cd60",
-          "decl": "void FUN_0017cd60(void);"
+          "decl": "void FUN_0017cd60(int object_handle);"
         },
         {
           "addr": "0x17cd70",

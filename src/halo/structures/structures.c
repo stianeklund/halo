@@ -1455,3 +1455,83 @@ void render_structure_visibility(void)
   }
   FUN_001966b0(scenario);
 }
+/* FUN_00195f30 (0x195f30)
+ *
+ * render_structure_specular_lights: structure specular-light render entry
+ * (string refs "render_structure_specular_lights" @0x329f88 and the outer
+ * scope string @0x329990).  Allocates a 0x4000-byte surface-material scratch
+ * table on the stack, then either builds a per-gel surface set into it
+ * (gel_buffer != 0) or falls back to the globally-built structure surface
+ * table at 0x5937d0/0x5937d4 (gel_buffer == 0).  When the resulting
+ * lightmap/material index is valid (!= -1), sets up the object, walks the
+ * surfaces through FUN_00195790 with a single surface-draw callback
+ * (FUN_0017cd70), ends the rasterizer HUD scope, and (only on the gel path)
+ * commits the tint factor.  The whole body is bracketed by the outer profiler
+ * scope (0x449ef1 && 0x329998); the draw/setup section by the inner scope
+ * (0x449ef1 && 0x329f90).
+ *
+ * Confirmed from disassembly at 0x195f30:
+ *   - Frame: _chkstk(0x4004) -> 0x4000-byte scratch @[EBP-0x4004]; its address
+ *     is stashed to [EBP-4] in the prologue (used later as the FUN_00195790
+ *     @eax argument), and overwritten to the global 0x5937d4 on the fallback
+ *     path.  Callee-saved EBX/ESI/EDI hold gel_buffer / surface_count /
+ *     material_index across the body.
+ *   - gel path: FUN_00197e90(buffer, 0x1000, position, radius, 0, 0, 0,
+ *     gel_count, gel_buffer) returns a short (MOVSX AX -> ESI = surface_count);
+ *     FUN_001956d0(buffer, 0) returns int (EAX -> EDI = material_index).
+ *     Shared ADD ESP,0x2C = 9+2 stack args.
+ *   - fallback: material_index = *(int*)0x4d8eb4, surface_count =
+ *     (short)*(short*)0x5937d0 (MOVSX), material_offsets = 0x5937d4.
+ *   - draw section: FUN_0017cd60(object_handle) [1 arg]; FUN_00195790 takes
+ *     @eax = material_offsets ([EBP-4]) plus 6 stack args (surface_count,
+ *     material_index, 0, FUN_0017cd70 surface-draw cb, 0, 0) -- shared
+ *     ADD ESP,0x1C = 1+6 stack args; _rasterizer_hud_end() via 1-instr JMP
+ *     thunk @0x17cd80 -> 0x160970; rasterizer_widget_set_tint_factor gated on
+ *     gel_buffer != 0.
+ *   - radius is a float passed by value (raw dword push); position is float*.
+ * All calls cdecl, args pushed right-to-left.
+ */
+void FUN_00195f30(int object_handle, float *position, float radius,
+                  int gel_count, int gel_buffer)
+{
+  char buffer[0x4000];
+  int *material_offsets;
+  short surface_count;
+  int material_index;
+
+  material_offsets = (int *)buffer;
+
+  if (*(char *)0x449ef1 != 0 && *(char *)0x329998 != 0) {
+    profile_enter_private((void *)0x329990);
+  }
+
+  if (gel_buffer != 0) {
+    surface_count = FUN_00197e90(buffer, 0x1000, position, radius, 0, 0, 0,
+                                 gel_count, gel_buffer);
+    material_index = FUN_001956d0(buffer, (void *)0);
+  } else {
+    material_index = *(int *)0x4d8eb4;
+    surface_count = *(short *)0x5937d0;
+    material_offsets = (int *)0x5937d4;
+  }
+
+  if (material_index != -1) {
+    if (*(char *)0x449ef1 != 0 && *(char *)0x329f90 != 0) {
+      profile_enter_private((void *)0x329f88);
+    }
+    FUN_0017cd60(object_handle);
+    FUN_00195790(material_offsets, surface_count, material_index, 0,
+                 (void *)FUN_0017cd70, 0, 0);
+    _rasterizer_hud_end();
+    if (gel_buffer != 0) {
+      rasterizer_widget_set_tint_factor(material_index);
+    }
+    if (*(char *)0x449ef1 != 0 && *(char *)0x329f90 != 0) {
+      profile_exit_private((void *)0x329f88);
+    }
+  }
+
+  if (*(char *)0x449ef1 != 0 && *(char *)0x329998 != 0) {
+    profile_exit_private((void *)0x329990);
+  }
+}
