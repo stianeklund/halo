@@ -65,6 +65,42 @@ void FUN_00061d80(int16_t *out)
   return;
 }
 
+/* Projection axis remapping table at 0x28cb10.
+ * Indexed as [projection_axis * 2 + projection_sign][component].
+ * Maps a 3D projection basis + sign to two axis indices for 2D projection.
+ * Component 0 -> out[0], component 1 -> out[1]. */
+static const short g_projection3d_mappings[6][2] = {
+  { 2, 1 }, { 1, 2 }, { 0, 2 }, { 2, 0 }, { 1, 0 }, { 0, 1 },
+};
+
+/* 0x61df0 — Project a 3D point onto a 2D plane.
+ * Selects two of the three float lanes of `point` according to the projection
+ * axis (0..2) and sign (0/1), writing them to out_projected[0] and [1].
+ * real_math.h:0x35b/0x35c assert projection in [_x,_z] and sign in {0,1}. */
+void FUN_00061df0(void *point, short projection, unsigned char sign,
+                  void *out_projected)
+{
+  int idx;
+  float tmp;
+
+  if ((projection < 0) || (projection > 2)) {
+    display_assert("projection>=_x && projection<=_z", "..\\math\\real_math.h",
+                   0x35b, 1);
+    system_exit(-1);
+  }
+  if (!(~(sign & ~1))) {
+    display_assert("~(sign&~1)", "..\\math\\real_math.h", 0x35c, 1);
+    system_exit(-1);
+  }
+  idx = sign + projection * 2;
+  /* out[1] loaded first (FPU), out[0] copied as a raw dword, matching the
+   * original's interleaved fld / integer-mov scheduling. */
+  tmp = ((float *)point)[g_projection3d_mappings[idx][1]];
+  ((unsigned int *)out_projected)[0] =
+    ((unsigned int *)point)[g_projection3d_mappings[idx][0]];
+  ((float *)out_projected)[1] = tmp;
+}
+
 /* FUN_00062020 (0x62020)  --  add_obstacle (path_obstacles.c)
  *
  * Append one obstacle record to an obstacle-set.  The set header is a small
@@ -248,6 +284,19 @@ void FUN_001056e0(void *handle)
   debug_free(*(void **)((char *)handle + 8),
              "c:\\halo\\SOURCE\\math\\geometry.c", 0x7a);
   debug_free(handle, "c:\\halo\\SOURCE\\math\\geometry.c", 0x7b);
+}
+
+/* FUN_001057a0 (0x1057a0)
+ *
+ * Signed-distance evaluation of a 2D point against a plane2d
+ * (normal.x, normal.y, distance).  Computes the 2D dot product of the
+ * first two components of param_1 and param_2, then subtracts the third
+ * component of param_1: (p1[0]*p2[0] + p1[1]*p2[1]) - p1[2].
+ * Pure x87 leaf; operand order preserved to match FADD/FSUBP ordering.
+ */
+float FUN_001057a0(float *param_1, float *param_2)
+{
+  return (param_1[0] * param_2[0] + param_1[1] * param_2[1]) - param_1[2];
 }
 
 /* FUN_00106130 (0x106130)
@@ -1617,40 +1666,4 @@ int16_t structure_find_in_cluster(uint16_t cluster_count, float *position,
   }
 
   return 0;
-}
-
-/* Projection axis remapping table at 0x28cb10.
- * Indexed as [projection_axis * 2 + projection_sign][component].
- * Maps a 3D projection basis + sign to two axis indices for 2D projection.
- * Component 0 -> out[0], component 1 -> out[1]. */
-static const short g_projection3d_mappings[6][2] = {
-  { 2, 1 }, { 1, 2 }, { 0, 2 }, { 2, 0 }, { 1, 0 }, { 0, 1 },
-};
-
-/* 0x61df0 — Project a 3D point onto a 2D plane.
- * Selects two of the three float lanes of `point` according to the projection
- * axis (0..2) and sign (0/1), writing them to out_projected[0] and [1].
- * real_math.h:0x35b/0x35c assert projection in [_x,_z] and sign in {0,1}. */
-void FUN_00061df0(void *point, short projection, unsigned char sign,
-                  void *out_projected)
-{
-  int idx;
-  float tmp;
-
-  if ((projection < 0) || (projection > 2)) {
-    display_assert("projection>=_x && projection<=_z",
-                   "..\\math\\real_math.h", 0x35b, 1);
-    system_exit(-1);
-  }
-  if (!(~(sign & ~1))) {
-    display_assert("~(sign&~1)", "..\\math\\real_math.h", 0x35c, 1);
-    system_exit(-1);
-  }
-  idx = sign + projection * 2;
-  /* out[1] loaded first (FPU), out[0] copied as a raw dword, matching the
-   * original's interleaved fld / integer-mov scheduling. */
-  tmp = ((float *)point)[g_projection3d_mappings[idx][1]];
-  ((unsigned int *)out_projected)[0] =
-      ((unsigned int *)point)[g_projection3d_mappings[idx][0]];
-  ((float *)out_projected)[1] = tmp;
 }
