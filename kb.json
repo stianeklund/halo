@@ -581,7 +581,7 @@
         },
         {
           "addr": "0x196e10",
-          "decl": "void FUN_00196e10(void);"
+          "decl": "void FUN_00196e10(uint16_t *sound_list @<edi>, void *env @<ebx>, float distance);"
         },
         {
           "addr": "0x196eb0",
@@ -6657,7 +6657,7 @@
         {
           "addr": "0x9ca70",
           "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
           "ported": true
         },
         {
@@ -6718,7 +6718,7 @@
         {
           "addr": "0x9dcf0",
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -23700,11 +23700,11 @@
         },
         {
           "addr": "0x1974f0",
-          "decl": "void FUN_001974f0(void);"
+          "decl": "short FUN_001974f0(int16_t connection_index, char pick, int *out);"
         },
         {
           "addr": "0x197570",
-          "decl": "void FUN_00197570(void);"
+          "decl": "char FUN_00197570(float *records @<edx>, int16_t count @<esi>, float threshold);"
         },
         {
           "addr": "0x1975e0",
@@ -23713,10 +23713,6 @@
         {
           "addr": "0x1978a0",
           "decl": "void FUN_001978a0(void);"
-        },
-        {
-          "addr": "0x197b00",
-          "decl": "void FUN_00197b00(void);"
         },
         {
           "addr": "0x197e90",
@@ -23915,6 +23911,11 @@
         {
           "addr": "0x196b10",
           "decl": "void FUN_00196b10(void);"
+        },
+        {
+          "addr": "0x197b00",
+          "decl": "void FUN_00197b00(int16_t cluster_index, uint16_t *sound_list);",
+          "ported": true
         }
       ],
       "name": "structure_visibility.obj",
@@ -28360,7 +28361,7 @@
         },
         {
           "addr": "0x108060",
-          "decl": "void FUN_00108060(void);"
+          "decl": "short FUN_00108060(int16_t count, void *records, int a3, uint16_t *scratch, int max_count, uint16_t *out_list, uint32_t seed);"
         },
         {
           "addr": "0x108270",
@@ -31404,7 +31405,7 @@
         },
         {
           "addr": "0x496c0",
-          "decl": "void ai_debug_highlight_cluster(void);"
+          "decl": "char ai_debug_highlight_cluster(int16_t cluster_index, void *out);"
         },
         {
           "addr": "0x497c0",
