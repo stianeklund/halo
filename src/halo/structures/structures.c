@@ -2431,3 +2431,39 @@ void FUN_00062680(int16_t *partition, uint32_t arg2, int16_t index,
   }
   return;
 }
+/*
+ * file_location_volume_names (0x505500): char[NUMBER_OF_FILE_REFERENCE_LOCATIONS]
+ * [MAXIMUM_FILENAME_LENGTH+1] volume/device-name table, one 256-byte row per
+ * file-reference location, indexed by location * 0x100.
+ */
+#define file_location_volume_names ((char *)0x505500)
+
+/*
+ * set_file_location_volume_name (0x199360) - record the volume/device name for
+ * a file-reference location.
+ *
+ * The original asserts require: location is in (0, NUMBER_OF_FILE_REFERENCE_
+ * LOCATIONS) i.e. exactly 1; the target row is currently empty; and volume_name
+ * fits in MAXIMUM_FILENAME_LENGTH (255) characters. Copies at most 0xff bytes
+ * with csstrncpy and explicitly null-terminates byte 255 of the row.
+ */
+void set_file_location_volume_name(int16_t location, const char *volume_name)
+{
+  if (location < 1 || location > 1) {
+    display_assert("location>0 && location<NUMBER_OF_FILE_REFERENCE_LOCATIONS",
+                   "c:\\halo\\SOURCE\\tag_files\\files.c", 0x4b, true);
+    system_exit(-1);
+  }
+  if (csstrlen(file_location_volume_names + location * 0x100) != 0) {
+    display_assert("strlen(file_location_volume_names[location])==0",
+                   "c:\\halo\\SOURCE\\tag_files\\files.c", 0x4c, true);
+    system_exit(-1);
+  }
+  if ((unsigned int)csstrlen(volume_name) > 0xff) {
+    display_assert("strlen(volume_name)<=MAXIMUM_FILENAME_LENGTH",
+                   "c:\\halo\\SOURCE\\tag_files\\files.c", 0x4d, true);
+    system_exit(-1);
+  }
+  csstrncpy(file_location_volume_names + location * 0x100, volume_name, 0xff);
+  file_location_volume_names[location * 0x100 + 0xff] = '\0';
+}
