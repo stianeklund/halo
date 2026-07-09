@@ -1460,6 +1460,67 @@ void FUN_00191ff0(int base, unsigned int index)
   }
 }
 
+/* FUN_00191de0 (0x191de0)
+ *
+ * Recursive cluster-visibility flood-fill. Given a cluster index, walks that
+ * cluster's portal list (nested tag_block at cluster+0xc). For each portal it
+ * resolves the connection element (descriptor+0x10) to find the neighbouring
+ * cluster: the connection stores its two endpoint cluster indices at +4 and
+ * +8; whichever is not the current cluster is the neighbour. It sets the
+ * neighbour's bit in the destination bitset and, if that bit was newly set,
+ * recurses into the neighbour.
+ *
+ * Confirmed from disassembly at 0x191de0:
+ * - cluster elem = tag_block_get_element(descriptor+4, index&0x7fffffff, 0x18)
+ * - portal block header at cluster+0xc; portal element size 4, its *value is
+ *   the connection index (masked 0x7fffffff)
+ * - connection elem = tag_block_get_element(descriptor+0x10, conn, 0x18)
+ * - neighbour = *(conn+4); if neighbour == index, neighbour = *(conn+8)
+ * - bit_mask = 1 << (neighbour & 0x1f); word = dst + (neighbour>>5)*4
+ * - the loop counter is a signed 16-bit index (MOVSX AX), compared against the
+ *   portal count re-read from *(cluster+0xc) each iteration
+ * All calls cdecl, args pushed right-to-left; self-recursive.
+ */
+void FUN_00191de0(int descriptor, int dst, unsigned int cluster_index)
+{
+  int *portal_block;
+  int connection_elem;
+  unsigned int *portal;
+  unsigned int neighbor;
+  unsigned int bit_mask;
+  unsigned int *word;
+  short i;
+  int i_idx;
+
+  portal_block =
+    (int *)((char *)tag_block_get_element((void *)(descriptor + 4),
+                                          cluster_index & 0x7fffffff, 0x18) +
+            0xc);
+  i = 0;
+  if (0 < *portal_block) {
+    i_idx = 0;
+    do {
+      portal = (unsigned int *)tag_block_get_element(portal_block, i_idx, 4);
+      connection_elem =
+        (int)tag_block_get_element((void *)(descriptor + 0x10),
+                                   *portal & 0x7fffffff, 0x18);
+      neighbor = *(unsigned int *)(connection_elem + 4);
+      if (neighbor == cluster_index) {
+        neighbor = *(unsigned int *)(connection_elem + 8);
+      }
+      bit_mask = 1 << (neighbor & 0x1f);
+      word = (unsigned int *)(dst + ((int)neighbor >> 5) * 4);
+      if ((bit_mask & *word) == 0) {
+        *word = *word | bit_mask;
+        FUN_00191de0(descriptor, dst, neighbor);
+      }
+      i = i + 1;
+      i_idx = (int)i;
+    } while (i_idx < *portal_block);
+  }
+  return;
+}
+
 /* FUN_001926a0 (0x1926a0)
  *
  * Copies a tag-block bitset from src to dst (word-granular), then for

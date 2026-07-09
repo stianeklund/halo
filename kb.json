@@ -23514,7 +23514,8 @@
         },
         {
           "addr": "0x191de0",
-          "decl": "void FUN_00191de0(int param_1, int param_2, unsigned int param_3);"
+          "decl": "void FUN_00191de0(int descriptor, int dst, unsigned int cluster_index);",
+          "ported": true
         },
         {
           "addr": "0x191e90",
