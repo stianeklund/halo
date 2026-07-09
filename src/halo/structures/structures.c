@@ -2155,3 +2155,117 @@ int16_t structure_find_in_cluster(uint16_t cluster_count, float *position,
 
   return 0;
 }
+
+/* FUN_00198f10 (0x198f10) — resolve planar-fog render parameters
+ *
+ * Fills the caller's fog-parameter record (`fog`, ~0x4c bytes; the single
+ * caller FUN_00185290 passes &global 0x506730) for portal/cluster `index`
+ * (uint16 loaded zero-extended from global 0x506784 by the caller).
+ *
+ * Confirmed from decompile + disassembly:
+ *   - NULL `fog` asserts: display_assert("fog", ".../structures.c", 0x1f1, 1)
+ *     then system_exit(-1). String at 0x29dc54 = "fog" (byte-verified).
+ *   - tag_get(0x666f6720='fog ', fog_index) returns the fog tag definition.
+ *   - fog type word at fog+0x1c: 0=none/early-out, 1=planar plane present,
+ *     2=atmospheric.  from_object path (fog came via FUN_0018e7d0 marker,
+ *     not a portal) instead ORs bit0 into fog+0x02.
+ *   - portal element (scenario+0x134, size 0x68): byte+3 & 0x80 == ushort+2
+ *     bit15 (== (short)ushort < 0); both tests reproduced as written.
+ *   - FLOAT_002533c0 = 0.0f (byte-verified at 0x2533c0); reproduced as the
+ *     literal 0.0f (FMUL against a 0.0 rodata constant).
+ *   - vec[3] (decomp local_14/local_10/local_c, contiguous EBP-0x14..-0xc) is
+ *     declared as a float[3] so &vec[0] passed to FUN_001954e0 (normalize) is
+ *     a contiguous buffer; local_c's reuse as the scale temp is mirrored in
+ *     vec[2].
+ *   - Field-copy store order (fog+0x30..0x44 from fog_tag+0x78/0x7c/0x80/
+ *     0x58/0x68/0x60) preserved exactly as MSVC scheduled it (0x3c before
+ *     0x44 before 0x40).
+ *   - Two tag_block_get_element calls have their results discarded (bounds/
+ *     assert side-effect only) — preserved faithfully.
+ *   - cdecl, 2 stack args (no ADD ESP shown at the call site; caller cleans 8).
+ */
+void FUN_00198f10(int index, void *fog)
+{
+  void *scenario;
+  void *marker;
+  char *portal;
+  char *plane;
+  short *fog_tag;
+  char *out;
+  int fog_index;
+  short portal_idx;
+  char from_object;
+  float vec[3];
+
+  out = (char *)fog;
+  scenario = scenario_get();
+  from_object = 0;
+
+  if (fog == NULL) {
+    display_assert("fog", "c:\\halo\\SOURCE\\structures\\structures.c", 0x1f1,
+                   1);
+    system_exit(-1);
+  }
+
+  *(short *)(out + 0x1c) = 0;
+  *(short *)out = 0;
+  *(int *)(out + 0x48) = 0;
+
+  fog_index = structure_get_planar_fog_definition_index(scenario, index, 0);
+  portal_idx = (short)index;
+
+  if (fog_index == -1) {
+    if (portal_idx != -1) {
+      tag_block_get_element((char *)scenario + 0x134, (int)portal_idx, 0x68);
+      marker = FUN_0018e7d0(0);
+      if (marker != NULL) {
+        fog_index = *(int *)((char *)marker + 0xa4);
+      }
+    }
+    from_object = 1;
+    if (fog_index == -1) {
+      return;
+    }
+  }
+
+  scenario = scenario_get();
+  portal = (char *)tag_block_get_element((char *)scenario + 0x134,
+                                         (int)portal_idx, 0x68);
+  fog_tag = (short *)tag_get(0x666f6720, fog_index);
+
+  if (from_object == 0) {
+    if ((*(unsigned char *)(portal + 3) & 0x80) == 0) {
+      *(short *)(out + 0x1c) = 2;
+    } else {
+      *(short *)(out + 0x1c) = 1;
+      plane = (char *)tag_block_get_element(
+        (char *)scenario + 0x178, *(unsigned short *)(portal + 2) & 0x7fff,
+        0x20);
+      *(int *)(out + 0x20) = *(int *)(plane + 4);
+      *(int *)(out + 0x24) = *(int *)(plane + 8);
+      *(int *)(out + 0x28) = *(int *)(plane + 0xc);
+      *(int *)(out + 0x2c) = *(int *)(plane + 0x10);
+    }
+    *(int *)(out + 0x30) = *(int *)((char *)fog_tag + 0x78);
+    *(int *)(out + 0x34) = *(int *)((char *)fog_tag + 0x7c);
+    *(int *)(out + 0x38) = *(int *)((char *)fog_tag + 0x80);
+    *(int *)(out + 0x3c) = *(int *)((char *)fog_tag + 0x58);
+    *(int *)(out + 0x44) = *(int *)((char *)fog_tag + 0x68);
+    *(int *)(out + 0x40) = *(int *)((char *)fog_tag + 0x60);
+    if ((short)*(unsigned short *)(portal + 2) < 0) {
+      tag_block_get_element((char *)scenario + 0x178,
+                            *(unsigned short *)(portal + 2) & 0x7fff, 0x20);
+      vec[2] = *(float *)((char *)fog_tag + 4) * 0.0f; /* FLOAT_002533c0 */
+      *(float *)(out + 0x2c) = vec[2] + *(float *)(out + 0x2c);
+      vec[0] = vec[2] * *(float *)(out + 0x20);
+      vec[1] = vec[2] * *(float *)(out + 0x24);
+      vec[2] = vec[2] * *(float *)(out + 0x28);
+      FUN_001954e0(vec);
+    }
+  } else {
+    *(unsigned char *)(out + 2) |= 1;
+  }
+
+  *(short *)out = *fog_tag;
+  *(void **)(out + 0x48) = (char *)fog_tag + 0x84;
+}
