@@ -577,7 +577,7 @@
         },
         {
           "addr": "0x196d60",
-          "decl": "void FUN_00196d60(void);"
+          "decl": "void FUN_00196d60(float *rect@<esi>, int16_t *hull@<edi>);"
         },
         {
           "addr": "0x196e10",
@@ -23606,11 +23606,11 @@
         },
         {
           "addr": "0x195650",
-          "decl": "void FUN_00195650(void);"
+          "decl": "void FUN_00195650(void *list@<eax>, int16_t count@<edx>);"
         },
         {
           "addr": "0x1956d0",
-          "decl": "int FUN_001956d0(void *param_1, void *param_2);"
+          "decl": "int FUN_001956d0(void *param_1, void *param_2, int16_t count@<esi>);"
         },
         {
           "addr": "0x195790",
@@ -23717,7 +23717,7 @@
         },
         {
           "addr": "0x197130",
-          "decl": "int FUN_00197130(float *bounds, void *param_2, int *param_3, int count, float *center, float radius, float *cull_bounds, int param_8, int param_9, int intersection);"
+          "decl": "int FUN_00197130(float *bounds, void *param_2, int *param_3, int count, float *center, float radius, float *cull_bounds, int param_8, int param_9, int intersection, int leaf@<eax>);"
         },
         {
           "addr": "0x197310",
@@ -23834,7 +23834,7 @@
         },
         {
           "addr": "0x198f10",
-          "decl": "void FUN_00198F10(int index, void *fog);",
+          "decl": "void FUN_00198f10(int index, void *fog);",
           "ported": true,
           "source_path": "src/halo/structures/structures.c"
         },
