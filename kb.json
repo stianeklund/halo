@@ -23536,7 +23536,7 @@
         {
           "addr": "0x193970",
           "decl": "void structure_detail_objects_initialize(void);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x193bb0",

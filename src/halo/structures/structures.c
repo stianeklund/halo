@@ -1853,3 +1853,15 @@ int16_t structure_find_in_cluster(uint16_t cluster_count, float *position,
 
   return 0;
 }
+
+void structure_detail_objects_initialize(void)
+{
+  int base;
+
+  base = (int)game_state_malloc("structure detail objects", 0, 0xa430);
+  *(int *)(base + 0xa420) = 0;
+  *(int *)(base + 0xa424) = 0;
+  *(int *)(base + 0xa428) = 0x3f800000; /* 1.0f */
+  *(int *)0x4d8ea0 = base;
+  *(int *)(base + 0xa42c) = 0;
+}
