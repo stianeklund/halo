@@ -1,3 +1,18 @@
+#include "x87_math.h"   /* x87_fatan2f: inline FPATAN atan2, matches original */
+
+/* MSVC 7.1 FABS intrinsic: declared+pragma here so fabs() inlines to a single
+ * FABS instruction instead of a CRT call. */
+extern double __cdecl fabs(double);
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma intrinsic(fabs)
+#else
+/* clang builds with -fno-builtin, which ignores the intrinsic pragma above and
+ * emits a real CRT call to fabs. The original inlines a single x87 FABS. Force
+ * clang to inline via the always-available builtin so the codegen matches the
+ * binary (and so equivalence harnesses don't see an external fabs stub). */
+#define fabs __builtin_fabs
+#endif
+
 /* FUN_00061ca0 (0x61ca0)
  *
  * Per-tick debug path-obstacle-avoidance key handler.  When the debug enable
@@ -3291,4 +3306,185 @@ void reference_list_copy(void *result, void *source)
       source_entry = source_entry + 6;
     } while (index < *(short *)((char *)result + 0x20));
   }
+}
+
+/* 0x105d20 — Reduce a 2D point set to its convex hull as an index list.
+ * Gift-wrapping (Jarvis march). shell_update (called with the vertex array in
+ * EBX) validates that at least three non-collinear points exist (returns 2);
+ * otherwise nothing is emitted and 0 is returned.
+ *   Phase 1: pick the start vertex (lowest y, then leftmost x) with an epsilon
+ *            tie-break (1e-4f) on both axes.
+ *   Phase 2: from the current vertex, atan2(dy,dx) angle scan against a running
+ *            angle base, wrapping candidate angles into [-1e-4f, ...) by adding
+ *            2*pi; keep the minimum-angle vertex, append its index, and stop
+ *            when the chosen vertex closes back on the first. A collinear/
+ *            degenerate guard uses a double epsilon (=(double)1e-4f) on the
+ *            |component delta| between the chosen and first vertices.
+ *   Phase 3: reached only when the walk fills all slots (index_count reaches
+ *            vertex_count); compacts a trailing duplicate run to the front with
+ *            three bounds asserts (geometry.c 0x279,0x27a,0x282).
+ * param_1 = vertex_count, param_2 = float[2] vertex array (x,y; 8-byte stride),
+ * param_3 = int16 output index list. Returns the emitted index count in AX.
+ * Source: c:\halo\SOURCE\math\geometry.c */
+int16_t convex_hull2d_reduce(int16_t vertex_count, float *vertices,
+                             int16_t *out_indices)
+{
+  int16_t index_count;
+
+  index_count = 0;
+  if (shell_update(vertex_count, vertices) == 2) {
+    float base_angle;
+    float best_x;
+    float best_y;
+    int16_t start_index;
+    int16_t current_index;
+    int16_t next_index;
+    float min_angle;
+    int16_t collinear_flag;
+    int16_t i;
+    int16_t first;
+    float *p;
+    float *ref;
+
+    base_angle = 0.0f;            /* FLOAT_002533c0 = 0.0f, running gift-wrap base */
+    best_x = 3.4028235e38f;       /* FLT_MAX */
+    best_y = 3.4028235e38f;
+    start_index = -1;             /* SI default = low word of FLT_MAX (dead: count>0) */
+    collinear_flag = 0;
+
+    /* Phase 1: lowest y, then leftmost x, with epsilon tie-break. */
+    if (vertex_count > 0) {
+      p = vertices + 1;           /* &vertices[0].y */
+      for (i = 0; i < vertex_count; i = i + 1) {
+        if ((p[0] < best_y - 1e-4f) ||
+            ((p[0] < best_y) && (p[-1] < best_x + 1e-4f)) ||
+            ((p[0] < best_y + 1e-4f) && (p[-1] < best_x - 1e-4f))) {
+          best_x = p[-1];
+          best_y = p[0];
+          start_index = i;
+        }
+        p = p + 2;
+      }
+    }
+
+    current_index = start_index;
+    next_index = start_index;     /* EBX default (dead: inner loop always assigns) */
+    for (;;) {
+      min_angle = 3.4028235e38f;  /* FLT_MAX reset (0x105de9) */
+      if (index_count >= vertex_count) {
+        goto compaction;
+      }
+      out_indices[index_count] = current_index;
+      index_count = index_count + 1;
+
+      /* Phase 2: min-angle gift-wrap scan. */
+      if (vertex_count > 0) {
+        ref = vertices + current_index * 2;
+        p = vertices;
+        for (i = 0; i < vertex_count; i = i + 1) {
+          if ((p[0] != ref[0]) || (p[1] != ref[1])) {
+            float angle;
+
+            angle = x87_fatan2f(p[1] - ref[1], p[0] - ref[0]) - base_angle;
+            if (angle < -1e-4f) {
+              do {
+                angle = angle + 6.2831855f;   /* 2*pi wrap */
+              } while (angle < -1e-4f);
+            }
+            if (angle < min_angle) {
+              min_angle = angle;
+              next_index = i;
+            }
+          }
+          p = p + 2;
+        }
+      }
+
+      base_angle = base_angle + min_angle;
+      current_index = next_index;
+
+      first = out_indices[0];
+      if (collinear_flag == 0) {
+        if ((fabs(vertices[next_index * 2] - vertices[first * 2]) >= 1e-4f) ||
+            (fabs(vertices[next_index * 2 + 1] - vertices[first * 2 + 1]) >= 1e-4f)) {
+          collinear_flag = 1;
+        }
+      }
+
+      first = out_indices[0];
+      if (next_index == first) {
+        return index_count;
+      }
+      if (collinear_flag == 0) {
+        continue;
+      }
+      if ((fabs(vertices[next_index * 2] - vertices[first * 2]) >= 1e-4f) ||
+          (fabs(vertices[next_index * 2 + 1] - vertices[first * 2 + 1]) >= 1e-4f)) {
+        continue;
+      }
+      return index_count;
+    }
+
+  compaction:
+    {
+      int16_t last_hull;
+      int16_t search;
+      int16_t k;
+
+      search = index_count - 2;
+      if (search <= 0) {
+        goto assert_start_positive;
+      }
+      last_hull = out_indices[index_count - 1];
+      for (;;) {
+        if (out_indices[search] == last_hull) {
+          int16_t new_count;
+
+          new_count = (index_count - 1) - search;
+          index_count = new_count;
+          if (new_count > 0) {
+            int src;
+            int16_t *psrc;
+            int16_t *pdst;
+
+            src = search;
+            psrc = out_indices + search;
+            pdst = out_indices;
+            k = 0;
+            do {
+              if (vertex_count <= k) {
+                display_assert("vertex_index<vertex_count",
+                               "c:\\halo\\SOURCE\\math\\geometry.c", 0x279, 1);
+                system_exit(-1);
+              }
+              if (vertex_count <= src) {
+                display_assert("start_vertex_index+vertex_index<vertex_count",
+                               "c:\\halo\\SOURCE\\math\\geometry.c", 0x27a, 1);
+                system_exit(-1);
+              }
+              k = k + 1;
+              *pdst = *psrc;
+              psrc = psrc + 1;
+              pdst = pdst + 1;
+              src = src + 1;
+            } while (k < new_count);
+          }
+          if (search > 0) {
+            return index_count;
+          }
+          goto assert_start_positive;
+        }
+        search = search - 1;
+        if (search < 1) {
+          goto assert_start_positive;
+        }
+      }
+    }
+
+  assert_start_positive:
+    display_assert("start_vertex_index>0",
+                   "c:\\halo\\SOURCE\\math\\geometry.c", 0x282, 1);
+    system_exit(-1);
+  }
+  return index_count;
 }

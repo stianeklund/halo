@@ -7400,7 +7400,7 @@ void FUN_000b1180(void)
       src += 3;
     } while (i < num_flags);
   }
-  hull_count = ((int16_t (*)(int, float *, int16_t *))FUN_00105d20)(num_flags, points_2d, hull_indices);
+  hull_count = convex_hull2d_reduce(num_flags, points_2d, hull_indices);
   *(int *)0x456c38 = (int)hull_count;
   /* Reorder points by hull and store to globals */
   i = 0;
