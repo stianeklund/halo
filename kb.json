@@ -21158,7 +21158,7 @@
         },
         {
           "addr": "0x186480",
-          "decl": "void render_camera_build_clipped_frustum_bounds(void);"
+          "decl": "int render_camera_build_clipped_frustum_bounds(camera_t *camera, float *in_bounds, float *out_bounds);"
         },
         {
           "addr": "0x1865e0",
@@ -23740,7 +23740,10 @@
         },
         {
           "addr": "0x198070",
-          "decl": "void FUN_00198070(void);"
+          "decl": "void FUN_00198070(void);",
+          "ported": true,
+          "name": null,
+          "source_path": "src/halo/structures/structures.c"
         },
         {
           "addr": "0x198180",

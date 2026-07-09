@@ -2517,6 +2517,43 @@ void FUN_00195dc0(void)
   }
 }
 
+/* FUN_00195ec0 (0x195ec0)
+ *
+ * Two-pass structure lightmap draw driver.  Sibling of FUN_00195b10 /
+ * FUN_00195c40 but with no scenario_get / 0x3256b0 save-restore: when the map
+ * has a valid lightmap pass (byte at 0x4d8eb0 != 0) it runs the per-surface
+ * draw walk (FUN_00195790) twice, once per pass -- FUN_0017cf10(0) then
+ * FUN_0017cf10(1) select the pass index -- with a fog emit (FUN_00167920)
+ * after each walk.
+ *
+ * Confirmed from disassembly at 0x195ec0 (delinked/functions/00195ec0.obj):
+ *  - Gate: MOV AL,[0x4d8eb0]; TEST AL,AL; JZ end.
+ *  - FUN_0017cf10 takes one int arg (PUSH 0 / PUSH 1).  Stack cleanup is
+ *    deferred to a single ADD ESP,0x38 at the end (0x38 = 56 = 4 + 24 + 4 + 24:
+ *    the two cf10 args plus two 6-stack-arg FUN_00195790 calls).
+ *  - FUN_00195790 takes an @eax pointer (MOV EAX,0x5937d4 = surface->material
+ *    offset table) plus 6 stack args.  Push order (first push = last C arg):
+ *    0 (param_7), 0 (pass_end_cb), 0x17cf20 (surface_draw_cb), 0
+ *    (material_begin_cb), *0x4d8eb4 (lightmap_pass_index), zero-extended uint16
+ *    @0x5937d0 (surface_count, XOR ECX,ECX / MOV CX read).
+ *  - Two distinct globals: uint16 count @0x5937d0 vs int[] offsets @0x5937d4.
+ *  - FUN_0017cf20 is passed as a raw callback address, not called here.
+ *  - FUN_00167920 (fog emit) takes no args.
+ */
+void FUN_00195ec0(void)
+{
+  if (*(char *)0x4d8eb0 != 0) {
+    FUN_0017cf10(0);
+    FUN_00195790((int *)0x5937d4, *(unsigned short *)0x5937d0, *(int *)0x4d8eb4,
+                 0, (void *)FUN_0017cf20, 0, 0);
+    FUN_00167920();
+    FUN_0017cf10(1);
+    FUN_00195790((int *)0x5937d4, *(unsigned short *)0x5937d0, *(int *)0x4d8eb4,
+                 0, (void *)FUN_0017cf20, 0, 0);
+    FUN_00167920();
+  }
+}
+
 /* FUN_00195f30 (0x195f30)
  *
  * render_structure_specular_lights: structure specular-light render entry
@@ -2749,6 +2786,85 @@ void FUN_00196330(void)
         cluster_index += 1;
         element_index += 1;
       } while ((int16_t)cluster_index < (int16_t)cluster_count);
+    }
+  }
+}
+
+/* FUN_00198070 (0x198070) — structures.obj
+ *
+ * Per-frame rebuild of the active cluster's environment sound/geometry list,
+ * then for every rendered cluster this frame it evaluates the clipped frustum
+ * bounds and builds the camera frustum used to draw that cluster.
+ *
+ * Runs only when the active-cluster handle at 0x506784 is not -1.
+ *
+ * Confirmed from disassembly 0x198070-0x19817d:
+ *   - scenario_get() called first (result kept in ESI across the whole body);
+ *     guard is a dword compare CMP [0x506784],-1 / JZ.
+ *   - render_frustum_get_projection_bounds(0x5065a4, proj_bounds) fills a
+ *     4-dword buffer whose base is [EBP-0x10] (Ghidra's "local_14".."local_4";
+ *     the base is EBP-0x10, NOT EBP-0x14 as the decompiler implied).
+ *   - The 4 bounds dwords are scattered into an int16-tagged struct at
+ *     EBP-0x864 (word 4 at +0x0, then 8 dwords at +0x4). Scatter map derived
+ *     from the raw MOV destination offsets, not the decompiler local names:
+ *       +0x04=b[0] +0x08=b[2] +0x0c=b[1] +0x10=b[2]
+ *       +0x14=b[1] +0x18=b[3] +0x1c=b[0] +0x20=b[3]
+ *   - Global 0x4d8ed8 is set to &cluster_buf (a 0x40-byte stack buffer) BEFORE
+ *     csmemset(cluster_buf,0,0x40); tail store order preserved: set global,
+ *     word=4, memset, then FUN_00197b00((uint16)*0x506784, sound_list).
+ *   - Loop over [0, (int16)*0x5137cc): rendered_cluster_get(i) -> cluster;
+ *     tag_block_get_element(scenario+0x134, (int16)*cluster, 0x68) (result
+ *     discarded); render_camera_build_clipped_frustum_bounds(0x506550,
+ *     cluster+2 shorts, frustum_bounds) (result discarded);
+ *     render_camera_build_frustum(0x506550, frustum_bounds, cluster+10 shorts,
+ *     1). scenario+0x134 is hoisted into EBX before the loop (ESI is reused as
+ *     the cluster pointer) — these are distinct variables in C.
+ *   - Signed int16 loop counter/compare (CMP DI,word[0x5137cc] / JL).
+ * All cdecl; no FPU subtraction, SEH, or intrinsics.
+ */
+void FUN_00198070(void)
+{
+  char *scenario;
+  int16_t *cluster;
+  int cluster_index;
+  float proj_bounds[4];
+  float frustum_bounds[4];
+  unsigned char cluster_buf[0x40];
+  struct {
+    int16_t tag;
+    int16_t pad;
+    float v[8];
+  } sound_list;
+
+  scenario = (char *)scenario_get();
+  if (*(int *)0x506784 != -1) {
+    render_frustum_get_projection_bounds((void *)0x5065a4, proj_bounds);
+
+    sound_list.v[0] = proj_bounds[0]; /* +0x04 */
+    sound_list.v[1] = proj_bounds[2]; /* +0x08 */
+    sound_list.v[2] = proj_bounds[1]; /* +0x0c */
+    sound_list.v[3] = proj_bounds[2]; /* +0x10 */
+    sound_list.v[4] = proj_bounds[1]; /* +0x14 */
+    sound_list.v[5] = proj_bounds[3]; /* +0x18 */
+    sound_list.v[6] = proj_bounds[0]; /* +0x1c */
+    sound_list.v[7] = proj_bounds[3]; /* +0x20 */
+
+    *(void **)0x4d8ed8 = cluster_buf;
+    sound_list.tag = 4;
+    csmemset(cluster_buf, 0, 0x40);
+    FUN_00197b00(*(uint16_t *)0x506784, (uint16_t *)&sound_list);
+
+    cluster_index = 0;
+    if (*(int16_t *)0x5137cc > 0) {
+      do {
+        cluster = (int16_t *)rendered_cluster_get(cluster_index);
+        tag_block_get_element(scenario + 0x134, *cluster, 0x68);
+        render_camera_build_clipped_frustum_bounds(
+          (camera_t *)0x506550, (float *)(cluster + 2), frustum_bounds);
+        render_camera_build_frustum((camera_t *)0x506550, frustum_bounds,
+                                    (float *)(cluster + 10), 1);
+        cluster_index += 1;
+      } while ((int16_t)cluster_index < *(int16_t *)0x5137cc);
     }
   }
 }
@@ -3606,41 +3722,4 @@ void set_file_location_volume_name(int16_t location, const char *volume_name)
   }
   csstrncpy(file_location_volume_names + location * 0x100, volume_name, 0xff);
   file_location_volume_names[location * 0x100 + 0xff] = '\0';
-}
-
-/* FUN_00195ec0 (0x195ec0)
- *
- * Two-pass structure lightmap draw driver.  Sibling of FUN_00195b10 /
- * FUN_00195c40 but with no scenario_get / 0x3256b0 save-restore: when the map
- * has a valid lightmap pass (byte at 0x4d8eb0 != 0) it runs the per-surface
- * draw walk (FUN_00195790) twice, once per pass -- FUN_0017cf10(0) then
- * FUN_0017cf10(1) select the pass index -- with a fog emit (FUN_00167920)
- * after each walk.
- *
- * Confirmed from disassembly at 0x195ec0 (delinked/functions/00195ec0.obj):
- *  - Gate: MOV AL,[0x4d8eb0]; TEST AL,AL; JZ end.
- *  - FUN_0017cf10 takes one int arg (PUSH 0 / PUSH 1).  Stack cleanup is
- *    deferred to a single ADD ESP,0x38 at the end (0x38 = 56 = 4 + 24 + 4 + 24:
- *    the two cf10 args plus two 6-stack-arg FUN_00195790 calls).
- *  - FUN_00195790 takes an @eax pointer (MOV EAX,0x5937d4 = surface->material
- *    offset table) plus 6 stack args.  Push order (first push = last C arg):
- *    0 (param_7), 0 (pass_end_cb), 0x17cf20 (surface_draw_cb), 0
- *    (material_begin_cb), *0x4d8eb4 (lightmap_pass_index), zero-extended uint16
- *    @0x5937d0 (surface_count, XOR ECX,ECX / MOV CX read).
- *  - Two distinct globals: uint16 count @0x5937d0 vs int[] offsets @0x5937d4.
- *  - FUN_0017cf20 is passed as a raw callback address, not called here.
- *  - FUN_00167920 (fog emit) takes no args.
- */
-void FUN_00195ec0(void)
-{
-  if (*(char *)0x4d8eb0 != 0) {
-    FUN_0017cf10(0);
-    FUN_00195790((int *)0x5937d4, *(unsigned short *)0x5937d0, *(int *)0x4d8eb4,
-                 0, (void *)FUN_0017cf20, 0, 0);
-    FUN_00167920();
-    FUN_0017cf10(1);
-    FUN_00195790((int *)0x5937d4, *(unsigned short *)0x5937d0, *(int *)0x4d8eb4,
-                 0, (void *)FUN_0017cf20, 0, 0);
-    FUN_00167920();
-  }
 }
