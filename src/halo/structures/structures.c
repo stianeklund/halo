@@ -1,4 +1,4 @@
-#include "x87_math.h"   /* x87_fatan2f: inline FPATAN atan2, matches original */
+#include "x87_math.h" /* x87_fatan2f: inline FPATAN atan2, matches original */
 
 /* MSVC 7.1 FABS intrinsic: declared+pragma here so fabs() inlines to a single
  * FABS instruction instead of a CRT call. */
@@ -782,6 +782,335 @@ float FUN_001057f0(float *param_1, float *param_2, float *param_3)
              param_2[2] * param_3[2])));
 }
 
+/* 0x105980 — Build a ring/cylinder (torus-like) mesh.
+ * Sweeps ring_segment_count rings around a cross-section of
+ * cylinder_segment_count segments. For each ring the ring angle drives a
+ * cos/sin pair (scaled by param_8) that offsets a cross-section built by
+ * rotating a base radius (param_10) about the ring normal, then transforms
+ * each vertex by the caller's matrix.
+ * Outputs: vertex positions (out_positions, stride 3 floats), tex coords
+ * (out_texcoords, stride 2 floats), a triangle-strip index buffer
+ * (out_indices), the emitted vertex count (*out_vertex_count) and the number
+ * of strip index-runs (*out_index_run_count).
+ * The ring normal is the cross product of the cross-section direction
+ * (cos*param_8, sin*param_8, 0) with the global axis vector at *0x31fc44,
+ * normalized when its length is >= the epsilon at 0x2533d0.
+ * Constants: 0x255a54 = 6.2831855f (2*pi), 0x2533c0 = 0.0f, 0x2533c8 = 1.0f,
+ * 0x2533d0 = double epsilon. Asserts at geometry.c:0x15a/0x15b.
+ * Source: c:\halo\SOURCE\math\geometry.c:346 */
+void FUN_00105980(float *matrix, short *out_vertex_count,
+                  short *out_index_run_count, float *out_positions,
+                  float *out_texcoords, short *out_indices,
+                  short ring_segment_count, float param_8,
+                  int cylinder_segment_count, float param_10)
+{
+  float fVar1, fVar2, fVar4, angle;
+  float fVar9, fVar10, fVar11, fVar12, fVar_sin;
+  int iVar5;
+  float *pfVar6;
+  float *pfVar7;
+  short sVar8;
+  /* normal[0]=local_38, normal[1]=local_34, normal[2]=local_30; the three
+   * must be contiguous+ascending because &normal[0] is passed as the axis
+   * argument to rotate_vector3d_by_sincos (stack-aliasing hazard). */
+  float normal[3];
+  int local_2c;
+  float local_28, local_24;
+  int local_20, local_1c, local_18, local_14, local_10, local_c, local_8;
+
+  local_1c = 0;
+  local_8 = 0;
+  if (ring_segment_count <= 2) {
+    display_assert("ring_segment_count>2", "c:\\halo\\SOURCE\\math\\geometry.c",
+                   0x15a, 1);
+    system_exit(-1);
+  }
+  if ((short)cylinder_segment_count <= 2) {
+    display_assert("cylinder_segment_count>2",
+                   "c:\\halo\\SOURCE\\math\\geometry.c", 0x15b, 1);
+    system_exit(-1);
+  }
+  local_10 = 0;
+  if (ring_segment_count < 0) {
+    *out_vertex_count = 0;
+    *out_index_run_count = 0;
+    return;
+  }
+  local_20 = (int)ring_segment_count;
+  local_18 = 0;
+  local_24 = (float)local_20;
+  pfVar6 = *(float **)0x0031fc44;
+  pfVar7 = out_texcoords;
+  do {
+    fVar9 = (float)local_18 / local_24;
+    angle = *(float *)0x00255a54 * fVar9;
+    fVar10 = x87_fcos(angle);
+    fVar1 = fVar10 * param_8;
+    fVar11 = x87_fsin(angle);
+    fVar2 = param_8 * fVar11;
+    /* ring normal = (fVar1, fVar2, 0) x axis[]; 0x2533c0 == 0.0f.
+     * normal[2]=A, normal[1]=B, normal[0]=C; length sum is (C^2+B^2)+A^2 to
+     * match the original's x87 add order. */
+    normal[2] = fVar1 * pfVar6[1] - fVar2 * pfVar6[0];
+    normal[1] = pfVar6[0] * *(float *)0x002533c0 - fVar1 * pfVar6[2];
+    normal[0] = fVar2 * pfVar6[2] - pfVar6[1] * *(float *)0x002533c0;
+    fVar4 = sqrtf(normal[0] * normal[0] + normal[1] * normal[1] +
+                  normal[2] * normal[2]);
+    if (fabsf(fVar4) >= (float)*(double *)0x002533d0) {
+      fVar4 = *(float *)0x002533c8 / fVar4;
+      normal[0] = normal[0] * fVar4;
+      normal[1] = normal[1] * fVar4;
+      normal[2] = fVar4 * normal[2];
+    }
+    sVar8 = 0;
+    if (-1 < (short)cylinder_segment_count) {
+      local_c = (int)(short)cylinder_segment_count;
+      local_14 = (local_8 - cylinder_segment_count) + -1;
+      local_28 = (float)(fVar9 + fVar9);
+      do {
+        pfVar7[1] = local_28;
+        if (0 < (short)local_10) {
+          if (sVar8 == 0) {
+            *out_indices = (short)cylinder_segment_count * 2 + 2;
+            out_indices = out_indices + 1;
+            local_1c = local_1c + 1;
+          }
+          *out_indices = (short)local_8;
+          out_indices[1] = (short)local_14;
+          out_indices = out_indices + 2;
+        }
+        if ((short)local_10 == ring_segment_count) {
+          /* last ring: copy the vertex/texcoord from the first ring */
+          iVar5 = (local_c + 1) * local_20;
+          pfVar6 = out_positions + iVar5 * -3;
+          *out_positions = *pfVar6;
+          out_positions[1] = pfVar6[1];
+          out_positions[2] = pfVar6[2];
+          *out_texcoords = out_texcoords[iVar5 * -2];
+          pfVar7 = out_texcoords;
+        } else {
+          local_2c = (int)sVar8;
+          fVar9 = (float)local_2c / (float)local_c;
+          *pfVar7 = (float)(fVar9 + fVar9);
+          if (sVar8 == (short)cylinder_segment_count) {
+            /* seam: copy from the start of this ring */
+            pfVar6 = out_positions + local_c * -3;
+            *out_positions = *pfVar6;
+            out_positions[1] = pfVar6[1];
+            out_positions[2] = pfVar6[2];
+          } else {
+            angle = *(float *)0x00255a54 * fVar9;
+            fVar12 = x87_fcos(angle);
+            *out_positions = fVar10 * param_10;
+            out_positions[1] = fVar11 * param_10;
+            out_positions[2] = 0.0f;
+            fVar_sin = x87_fsin(angle);
+            rotate_vector3d_by_sincos(out_positions, normal, fVar_sin, fVar12);
+            *out_positions = fVar1 + *out_positions;
+            out_positions[2] = out_positions[2];
+            out_positions[1] = fVar2 + out_positions[1];
+            matrix_transform_point(matrix, out_positions, out_positions);
+          }
+        }
+        pfVar7 = pfVar7 + 2;
+        out_positions = out_positions + 3;
+        local_8 = local_8 + 1;
+        local_14 = local_14 + 1;
+        sVar8 = sVar8 + 1;
+        pfVar6 = *(float **)0x0031fc44;
+        out_texcoords = pfVar7;
+      } while (sVar8 <= (short)cylinder_segment_count);
+    }
+    local_10 = local_10 + 1;
+    local_18 = local_18 + 1;
+  } while ((short)local_10 <= ring_segment_count);
+  *out_vertex_count = (short)local_8;
+  *out_index_run_count = (short)local_1c;
+}
+
+/* 0x105d20 — Reduce a 2D point set to its convex hull as an index list.
+ * Gift-wrapping (Jarvis march). shell_update (called with the vertex array in
+ * EBX) validates that at least three non-collinear points exist (returns 2);
+ * otherwise nothing is emitted and 0 is returned.
+ *   Phase 1: pick the start vertex (lowest y, then leftmost x) with an epsilon
+ *            tie-break (1e-4f) on both axes.
+ *   Phase 2: from the current vertex, atan2(dy,dx) angle scan against a running
+ *            angle base, wrapping candidate angles into [-1e-4f, ...) by adding
+ *            2*pi; keep the minimum-angle vertex, append its index, and stop
+ *            when the chosen vertex closes back on the first. A collinear/
+ *            degenerate guard uses a double epsilon (=(double)1e-4f) on the
+ *            |component delta| between the chosen and first vertices.
+ *   Phase 3: reached only when the walk fills all slots (index_count reaches
+ *            vertex_count); compacts a trailing duplicate run to the front with
+ *            three bounds asserts (geometry.c 0x279,0x27a,0x282).
+ * param_1 = vertex_count, param_2 = float[2] vertex array (x,y; 8-byte stride),
+ * param_3 = int16 output index list. Returns the emitted index count in AX.
+ * Source: c:\halo\SOURCE\math\geometry.c */
+int16_t convex_hull2d_reduce(int16_t vertex_count, float *vertices,
+                             int16_t *out_indices)
+{
+  int16_t index_count;
+
+  index_count = 0;
+  if (shell_update(vertex_count, vertices) == 2) {
+    float base_angle;
+    float best_x;
+    float best_y;
+    int16_t start_index;
+    int16_t current_index;
+    int16_t next_index;
+    float min_angle;
+    int16_t collinear_flag;
+    int16_t i;
+    int16_t first;
+    float *p;
+    float *ref;
+
+    base_angle = 0.0f; /* FLOAT_002533c0 = 0.0f, running gift-wrap base */
+    best_x = 3.4028235e38f; /* FLT_MAX */
+    best_y = 3.4028235e38f;
+    start_index = -1; /* SI default = low word of FLT_MAX (dead: count>0) */
+    collinear_flag = 0;
+
+    /* Phase 1: lowest y, then leftmost x, with epsilon tie-break. */
+    if (vertex_count > 0) {
+      p = vertices + 1; /* &vertices[0].y */
+      for (i = 0; i < vertex_count; i = i + 1) {
+        if ((p[0] < best_y - 1e-4f) ||
+            ((p[0] < best_y) && (p[-1] < best_x + 1e-4f)) ||
+            ((p[0] < best_y + 1e-4f) && (p[-1] < best_x - 1e-4f))) {
+          best_x = p[-1];
+          best_y = p[0];
+          start_index = i;
+        }
+        p = p + 2;
+      }
+    }
+
+    current_index = start_index;
+    next_index =
+      start_index; /* EBX default (dead: inner loop always assigns) */
+    for (;;) {
+      min_angle = 3.4028235e38f; /* FLT_MAX reset (0x105de9) */
+      if (index_count >= vertex_count) {
+        goto compaction;
+      }
+      out_indices[index_count] = current_index;
+      index_count = index_count + 1;
+
+      /* Phase 2: min-angle gift-wrap scan. */
+      if (vertex_count > 0) {
+        ref = vertices + current_index * 2;
+        p = vertices;
+        for (i = 0; i < vertex_count; i = i + 1) {
+          if ((p[0] != ref[0]) || (p[1] != ref[1])) {
+            float angle;
+
+            angle = x87_fatan2f(p[1] - ref[1], p[0] - ref[0]) - base_angle;
+            if (angle < -1e-4f) {
+              do {
+                angle = angle + 6.2831855f; /* 2*pi wrap */
+              } while (angle < -1e-4f);
+            }
+            if (angle < min_angle) {
+              min_angle = angle;
+              next_index = i;
+            }
+          }
+          p = p + 2;
+        }
+      }
+
+      base_angle = base_angle + min_angle;
+      current_index = next_index;
+
+      first = out_indices[0];
+      if (collinear_flag == 0) {
+        if ((fabs(vertices[next_index * 2] - vertices[first * 2]) >= 1e-4f) ||
+            (fabs(vertices[next_index * 2 + 1] - vertices[first * 2 + 1]) >=
+             1e-4f)) {
+          collinear_flag = 1;
+        }
+      }
+
+      first = out_indices[0];
+      if (next_index == first) {
+        return index_count;
+      }
+      if (collinear_flag == 0) {
+        continue;
+      }
+      if ((fabs(vertices[next_index * 2] - vertices[first * 2]) >= 1e-4f) ||
+          (fabs(vertices[next_index * 2 + 1] - vertices[first * 2 + 1]) >=
+           1e-4f)) {
+        continue;
+      }
+      return index_count;
+    }
+
+  compaction: {
+    int16_t last_hull;
+    int16_t search;
+    int16_t k;
+
+    search = index_count - 2;
+    if (search <= 0) {
+      goto assert_start_positive;
+    }
+    last_hull = out_indices[index_count - 1];
+    for (;;) {
+      if (out_indices[search] == last_hull) {
+        int16_t new_count;
+
+        new_count = (index_count - 1) - search;
+        index_count = new_count;
+        if (new_count > 0) {
+          int src;
+          int16_t *psrc;
+          int16_t *pdst;
+
+          src = search;
+          psrc = out_indices + search;
+          pdst = out_indices;
+          k = 0;
+          do {
+            if (vertex_count <= k) {
+              display_assert("vertex_index<vertex_count",
+                             "c:\\halo\\SOURCE\\math\\geometry.c", 0x279, 1);
+              system_exit(-1);
+            }
+            if (vertex_count <= src) {
+              display_assert("start_vertex_index+vertex_index<vertex_count",
+                             "c:\\halo\\SOURCE\\math\\geometry.c", 0x27a, 1);
+              system_exit(-1);
+            }
+            k = k + 1;
+            *pdst = *psrc;
+            psrc = psrc + 1;
+            pdst = pdst + 1;
+            src = src + 1;
+          } while (k < new_count);
+        }
+        if (search > 0) {
+          return index_count;
+        }
+        goto assert_start_positive;
+      }
+      search = search - 1;
+      if (search < 1) {
+        goto assert_start_positive;
+      }
+    }
+  }
+
+  assert_start_positive:
+    display_assert("start_vertex_index>0", "c:\\halo\\SOURCE\\math\\geometry.c",
+                   0x282, 1);
+    system_exit(-1);
+  }
+  return index_count;
+}
+
 /* FUN_00106030 (0x106030)
  *
  * Validate a 2D polygon (given as an index list into a shared vertex array)
@@ -942,52 +1271,6 @@ bool FUN_00106200(int16_t count, void *points, float *query_point,
   return true;
 }
 
-/* FUN_00106330 (0x106330)
- *
- * 2D polygon signed-area accumulation (triangle-fan / shoelace) returning the
- * absolute area. Points are stored as float[2] pairs (x, y) with stride 2;
- * vertex 0 (points[0], points[1]) is the fan anchor. For each triangle
- * (anchor, cur = points[i], next = points[i+1]), i running over count-2
- * iterations, accumulates half the 2D cross product of the two edge vectors
- * measured from the anchor:
- *   cross = (next.y - anchor.y) * (cur.x - anchor.x)
- *         - (next.x - anchor.x) * (cur.y - anchor.y)
- *   area += 0.5 * cross
- * Returns fabs(area).
- *
- * Confirmed from disasm: seed FLOAT_002533c0 = 0.0f, scale _DAT_00253398 =
- * 0.5f (both single-precision, byte-verified). Cross-product operand order is
- * A*B - C*D (hazard #4, verified against FSUBP direction). x87 extended
- * intermediates are preserved as double; do not reassociate. Loop count is
- * unsigned 16-bit ((unsigned short)(count - 2)); guarded by count > 2. Leaf,
- * cdecl, result left in ST0 with a trailing FABS.
- */
-float FUN_00106330(int16_t count, float *points)
-{
-  float area;
-  float *p;
-  unsigned int n;
-
-  area = 0.0f; /* FLOAT_002533c0 seed */
-  if (count > 2) {
-    n = (unsigned int)(unsigned short)(count - 2);
-    p = points + 2;
-    do {
-      n = n - 1;
-      /* Signed area of triangle (anchor, cur, next), doubled; scaled by 0.5.
-       * Reference computes (next.x-x0)*(cur.y-y0) - (next.y-y0)*(cur.x-x0);
-       * result is negated vs the standard fan cross but fabs() absorbs the
-       * sign. MSVC schedules this as a pairwise x87 multiply. */
-      area = ((p[2] - points[0]) * (p[1] - points[1]) -
-              (p[3] - points[1]) * (p[0] - points[0])) *
-               0.5f /* _DAT_00253398 */
-             + area;
-      p = p + 2;
-    } while (n != 0);
-  }
-  return (float)fabs(area); /* FABS */
-}
-
 /* FUN_00106290 (0x106290)
  *
  * Indexed variant of the 2D point-in-polygon winding test (FUN_00106200).
@@ -1043,6 +1326,52 @@ int FUN_00106290(int16_t count, void *index_array, void *vertex_base,
   return 1;
 }
 
+/* FUN_00106330 (0x106330)
+ *
+ * 2D polygon signed-area accumulation (triangle-fan / shoelace) returning the
+ * absolute area. Points are stored as float[2] pairs (x, y) with stride 2;
+ * vertex 0 (points[0], points[1]) is the fan anchor. For each triangle
+ * (anchor, cur = points[i], next = points[i+1]), i running over count-2
+ * iterations, accumulates half the 2D cross product of the two edge vectors
+ * measured from the anchor:
+ *   cross = (next.y - anchor.y) * (cur.x - anchor.x)
+ *         - (next.x - anchor.x) * (cur.y - anchor.y)
+ *   area += 0.5 * cross
+ * Returns fabs(area).
+ *
+ * Confirmed from disasm: seed FLOAT_002533c0 = 0.0f, scale _DAT_00253398 =
+ * 0.5f (both single-precision, byte-verified). Cross-product operand order is
+ * A*B - C*D (hazard #4, verified against FSUBP direction). x87 extended
+ * intermediates are preserved as double; do not reassociate. Loop count is
+ * unsigned 16-bit ((unsigned short)(count - 2)); guarded by count > 2. Leaf,
+ * cdecl, result left in ST0 with a trailing FABS.
+ */
+float FUN_00106330(int16_t count, float *points)
+{
+  float area;
+  float *p;
+  unsigned int n;
+
+  area = 0.0f; /* FLOAT_002533c0 seed */
+  if (count > 2) {
+    n = (unsigned int)(unsigned short)(count - 2);
+    p = points + 2;
+    do {
+      n = n - 1;
+      /* Signed area of triangle (anchor, cur, next), doubled; scaled by 0.5.
+       * Reference computes (next.x-x0)*(cur.y-y0) - (next.y-y0)*(cur.x-x0);
+       * result is negated vs the standard fan cross but fabs() absorbs the
+       * sign. MSVC schedules this as a pairwise x87 multiply. */
+      area = ((p[2] - points[0]) * (p[1] - points[1]) -
+              (p[3] - points[1]) * (p[0] - points[0])) *
+               0.5f /* _DAT_00253398 */
+             + area;
+      p = p + 2;
+    } while (n != 0);
+  }
+  return (float)fabs(area); /* FABS */
+}
+
 /* FUN_0018e420 (0x18e420)
  *
  * Returns the global BSP3D pointer (DAT_005064d8). Asserts with a halt if
@@ -1086,6 +1415,62 @@ void reference_list_remove(data_t *data, int *head, int value)
              value),
     "..\\objects\\reference_lists.h", 0x6d, 1);
   system_exit(-1);
+}
+
+/* reference_list_copy (0x191440) — Copy a reference_list's entries from source
+ * into result. Both lists must have identical size and maximum_count
+ * (asserted).
+ *
+ * For each slot in [0, maximum_count): if the source entry is live (its first
+ * word != 0) the 12-byte (3-dword) entry is copied verbatim; otherwise, if the
+ * result entry is live, it is removed via datum_delete(result, index).
+ *
+ * Struct offsets (reference_lists.h):
+ *   +0x20 maximum_count (int16)   +0x22 size (int16)   +0x34 entry array ptr
+ * Entry stride = 0xc (12 bytes) = 3 dwords; both pointers advance by 0xc/iter.
+ *
+ * Confirmed (disasm): cdecl(result @EBP+8 = EDI, source @EBP+0xc = EBX);
+ * size mismatch asserts at line 0x88 (136), maximum_count mismatch at line 0x89
+ * (137), reason strings shown, halt=1, then system_exit(-1). The loop count
+ * [result+0x20] is RE-READ from memory each iteration (CMP SI,word[EDI+0x20]),
+ * and the index is a signed int16 (JL). datum_delete push order is EDI then
+ * MOVSX-of-SI => datum_delete(result, (int)index). No FPU. */
+void reference_list_copy(void *result, void *source)
+{
+  short *result_entry;
+  short *source_entry;
+  short index;
+
+  if (*(short *)((char *)result + 0x22) != *(short *)((char *)source + 0x22)) {
+    display_assert("result->size==source->size",
+                   "..\\objects\\reference_lists.h", 0x88, 1);
+    system_exit(-1);
+  }
+  if (*(short *)((char *)result + 0x20) != *(short *)((char *)source + 0x20)) {
+    display_assert("result->maximum_count==source->maximum_count",
+                   "..\\objects\\reference_lists.h", 0x89, 1);
+    system_exit(-1);
+  }
+
+  result_entry = *(short **)((char *)result + 0x34);
+  source_entry = *(short **)((char *)source + 0x34);
+  index = 0;
+  if (0 < *(short *)((char *)result + 0x20)) {
+    do {
+      if (*source_entry == 0) {
+        if (*result_entry != 0) {
+          datum_delete((data_t *)result, (int)index);
+        }
+      } else {
+        *(int *)result_entry = *(int *)source_entry;
+        *(int *)(result_entry + 2) = *(int *)(source_entry + 2);
+        *(int *)(result_entry + 4) = *(int *)(source_entry + 4);
+      }
+      index = index + 1;
+      result_entry = result_entry + 6;
+      source_entry = source_entry + 6;
+    } while (index < *(short *)((char *)result + 0x20));
+  }
 }
 
 /* Clear a cluster partition (0x1915d0).
@@ -1405,6 +1790,77 @@ void FUN_00191ba0(void *base)
   tag_block_resize((char *)base + 0x10, 0);
 }
 
+/* leaf_map_mark_portal_designators (FUN_00191cb0, 0x191cb0)
+ *
+ * structures.obj / c:\halo\SOURCE\structures\leaf_map.c
+ *
+ * Given a portal index, mark the matching portal-designator entry as visited
+ * in each of the portal's two adjacent leaves.
+ *
+ * The portal record (block at structure+0x10, stride 0x18, index = portal
+ * index) carries the two adjacent leaf indices at record offsets +4 and +8
+ * (masked with 0x7fffffff to drop the sign/plane bit).  For each of those two
+ * leaves (block at structure+0x4, stride 0x18) the leaf's portal_designators
+ * block header lives at leaf+0xc (count at [0], stride 4).  That sub-block is
+ * scanned for the designator whose (value & 0x7fffffff) equals this portal
+ * index; when found, the high bit (0x80000000) is set to mark it.  If no
+ * designator references the portal the original asserts
+ *   portal_designator_index != leaf->portal_designators.count
+ * at leaf_map.c:0x2a1 and halt_and_catch_fire()s.
+ *
+ * Confirmed from disassembly at 0x191cb0:
+ *   - tag_block_get_element is cdecl (block, index, element_size); the two
+ *     leaf-block fetches use element_size 0x18, the designator fetch uses 4.
+ *   - the inner designator counter is a 16-bit short (sVar5); the (int)cast
+ *     truncation is deliberate and preserved for VC71 fidelity.
+ *   - the assert-halt path calls halt_and_catch_fire (thunk 0x1029a0); its
+ *     0xffffffff argument in the decompile is dead (callee is void(void)).
+ * Inferred: field semantics (front/back leaf, "visited" meaning of the high
+ * bit) from the leaf_map.c source string; the two-iteration loop and offsets
+ * are Confirmed from the disassembly.
+ */
+void leaf_map_mark_portal_designators(void *structure, uint32_t portal_index)
+{
+  int *designator_count;
+  uint32_t *designator;
+  int block_index;
+  short designator_index;
+  int remaining;
+  uint32_t *portal;
+  int leaves_block;
+
+  portal = (uint32_t *)tag_block_get_element((char *)structure + 0x10,
+                                             portal_index, 0x18);
+  leaves_block = (int)structure + 4;
+  remaining = 2;
+  do {
+    portal = portal + 1;
+    block_index = (int)tag_block_get_element((void *)leaves_block,
+                                             *portal & 0x7fffffff, 0x18);
+    designator_count = (int *)(block_index + 0xc);
+    designator_index = 0;
+    if (0 < *designator_count) {
+      block_index = 0;
+      do {
+        designator =
+          (uint32_t *)tag_block_get_element(designator_count, block_index, 4);
+        if ((*designator & 0x7fffffff) == portal_index) {
+          *designator = *designator | 0x80000000;
+          break;
+        }
+        designator_index = designator_index + 1;
+        block_index = (int)designator_index;
+      } while (block_index < *designator_count);
+    }
+    if ((int)designator_index == *designator_count) {
+      display_assert("portal_designator_index!=leaf->portal_designators.count",
+                     "c:\\halo\\SOURCE\\structures\\leaf_map.c", 0x2a1, 1);
+      halt_and_catch_fire();
+    }
+    remaining = remaining - 1;
+  } while (remaining != 0);
+}
+
 /* FUN_00191d80 (0x191d80)
  *
  * Fetches an outer tag_block element (block = base+4, index masked to
@@ -1447,6 +1903,66 @@ char FUN_00191d80(int base, unsigned int index)
     } while (count < *count_block);
   }
   return *(char *)count_block;
+}
+
+/* FUN_00191de0 (0x191de0)
+ *
+ * Recursive cluster-visibility flood-fill. Given a cluster index, walks that
+ * cluster's portal list (nested tag_block at cluster+0xc). For each portal it
+ * resolves the connection element (descriptor+0x10) to find the neighbouring
+ * cluster: the connection stores its two endpoint cluster indices at +4 and
+ * +8; whichever is not the current cluster is the neighbour. It sets the
+ * neighbour's bit in the destination bitset and, if that bit was newly set,
+ * recurses into the neighbour.
+ *
+ * Confirmed from disassembly at 0x191de0:
+ * - cluster elem = tag_block_get_element(descriptor+4, index&0x7fffffff, 0x18)
+ * - portal block header at cluster+0xc; portal element size 4, its *value is
+ *   the connection index (masked 0x7fffffff)
+ * - connection elem = tag_block_get_element(descriptor+0x10, conn, 0x18)
+ * - neighbour = *(conn+4); if neighbour == index, neighbour = *(conn+8)
+ * - bit_mask = 1 << (neighbour & 0x1f); word = dst + (neighbour>>5)*4
+ * - the loop counter is a signed 16-bit index (MOVSX AX), compared against the
+ *   portal count re-read from *(cluster+0xc) each iteration
+ * All calls cdecl, args pushed right-to-left; self-recursive.
+ */
+void FUN_00191de0(int descriptor, int dst, unsigned int cluster_index)
+{
+  int *portal_block;
+  int connection_elem;
+  unsigned int *portal;
+  unsigned int neighbor;
+  unsigned int bit_mask;
+  unsigned int *word;
+  short i;
+  int i_idx;
+
+  portal_block =
+    (int *)((char *)tag_block_get_element((void *)(descriptor + 4),
+                                          cluster_index & 0x7fffffff, 0x18) +
+            0xc);
+  i = 0;
+  if (0 < *portal_block) {
+    i_idx = 0;
+    do {
+      portal = (unsigned int *)tag_block_get_element(portal_block, i_idx, 4);
+      connection_elem = (int)tag_block_get_element((void *)(descriptor + 0x10),
+                                                   *portal & 0x7fffffff, 0x18);
+      neighbor = *(unsigned int *)(connection_elem + 4);
+      if (neighbor == cluster_index) {
+        neighbor = *(unsigned int *)(connection_elem + 8);
+      }
+      bit_mask = 1 << (neighbor & 0x1f);
+      word = (unsigned int *)(dst + ((int)neighbor >> 5) * 4);
+      if ((bit_mask & *word) == 0) {
+        *word = *word | bit_mask;
+        FUN_00191de0(descriptor, dst, neighbor);
+      }
+      i = i + 1;
+      i_idx = (int)i;
+    } while (i_idx < *portal_block);
+  }
+  return;
 }
 
 /* FUN_00191e90 (0x191e90)
@@ -1554,67 +2070,6 @@ void FUN_00191ff0(int base, unsigned int index)
       i_idx = (int)i;
     } while (i_idx < *count_block);
   }
-}
-
-/* FUN_00191de0 (0x191de0)
- *
- * Recursive cluster-visibility flood-fill. Given a cluster index, walks that
- * cluster's portal list (nested tag_block at cluster+0xc). For each portal it
- * resolves the connection element (descriptor+0x10) to find the neighbouring
- * cluster: the connection stores its two endpoint cluster indices at +4 and
- * +8; whichever is not the current cluster is the neighbour. It sets the
- * neighbour's bit in the destination bitset and, if that bit was newly set,
- * recurses into the neighbour.
- *
- * Confirmed from disassembly at 0x191de0:
- * - cluster elem = tag_block_get_element(descriptor+4, index&0x7fffffff, 0x18)
- * - portal block header at cluster+0xc; portal element size 4, its *value is
- *   the connection index (masked 0x7fffffff)
- * - connection elem = tag_block_get_element(descriptor+0x10, conn, 0x18)
- * - neighbour = *(conn+4); if neighbour == index, neighbour = *(conn+8)
- * - bit_mask = 1 << (neighbour & 0x1f); word = dst + (neighbour>>5)*4
- * - the loop counter is a signed 16-bit index (MOVSX AX), compared against the
- *   portal count re-read from *(cluster+0xc) each iteration
- * All calls cdecl, args pushed right-to-left; self-recursive.
- */
-void FUN_00191de0(int descriptor, int dst, unsigned int cluster_index)
-{
-  int *portal_block;
-  int connection_elem;
-  unsigned int *portal;
-  unsigned int neighbor;
-  unsigned int bit_mask;
-  unsigned int *word;
-  short i;
-  int i_idx;
-
-  portal_block =
-    (int *)((char *)tag_block_get_element((void *)(descriptor + 4),
-                                          cluster_index & 0x7fffffff, 0x18) +
-            0xc);
-  i = 0;
-  if (0 < *portal_block) {
-    i_idx = 0;
-    do {
-      portal = (unsigned int *)tag_block_get_element(portal_block, i_idx, 4);
-      connection_elem =
-        (int)tag_block_get_element((void *)(descriptor + 0x10),
-                                   *portal & 0x7fffffff, 0x18);
-      neighbor = *(unsigned int *)(connection_elem + 4);
-      if (neighbor == cluster_index) {
-        neighbor = *(unsigned int *)(connection_elem + 8);
-      }
-      bit_mask = 1 << (neighbor & 0x1f);
-      word = (unsigned int *)(dst + ((int)neighbor >> 5) * 4);
-      if ((bit_mask & *word) == 0) {
-        *word = *word | bit_mask;
-        FUN_00191de0(descriptor, dst, neighbor);
-      }
-      i = i + 1;
-      i_idx = (int)i;
-    } while (i_idx < *portal_block);
-  }
-  return;
 }
 
 /* FUN_001926a0 (0x1926a0)
@@ -1911,6 +2366,49 @@ void FUN_00195b10(void)
   }
 }
 
+/* FUN_00195c40 (0x195c40)
+ *
+ * Sibling of FUN_00195b10: when the map has a valid lightmap pass (byte at
+ * 0x4d8eb0 != 0), briefly forces the 16-bit word at 0x3256b0 to 1 -- only when
+ * the scenario has no bsp switch pending (scenario+0xc == -1) and the word is
+ * currently 0 -- brackets a rasterizer setup/teardown pair (thunks 0x17cda0 /
+ * 0x17cde0 -> FUN_00163c40 / FUN_001609a0) around the per-surface draw walk
+ * (FUN_00195790), then restores the saved low word.  Unlike FUN_00195b10 this
+ * variant has no profiler scope.
+ *
+ * Confirmed from disassembly at 0x195c40:
+ *  - 0x3256b0 is a 16-bit word: the save reads the full dword
+ *    (MOV ESI,dword ptr [0x3256b0]), but the conditional set and the restore
+ *    are word-sized (MOV word,1 / MOV word,SI), and the "==0" test is a word
+ *    compare (CMP word,0).  The save/restore live inside the gate block (the
+ *    MOV ESI read is after the JZ), not before it.  Do NOT emit a 32-bit store.
+ *  - FUN_00195790 takes an @eax pointer (MOV EAX,0x5937d4 = surface->material
+ *    offset table) plus 6 stack args; ADD ESP,0x18 = 6 stack dwords.  Push
+ *    order (first push = last C arg): 0 (param_7), 0x17cdd0 (pass_end_cb),
+ *    0x17cdc0 (surface_draw_cb), 0x17cdb0 (material_begin_cb), *0x4d8eb4
+ *    (lightmap_pass_index), uint16 @0x5937d0 (surface_count).  0x17cdd0 is a
+ *    bare label, passed as a raw address.
+ */
+void FUN_00195c40(void)
+{
+  int scenario;
+  int saved_flag;
+
+  if (*(char *)0x4d8eb0 != 0) {
+    saved_flag = *(int *)0x3256b0;
+    scenario = (int)scenario_get();
+    if (*(int *)(scenario + 0xc) == -1 && *(short *)0x3256b0 == 0) {
+      *(short *)0x3256b0 = 1;
+    }
+    FUN_0017cda0();
+    FUN_00195790((int *)0x5937d4, *(unsigned short *)0x5937d0, *(int *)0x4d8eb4,
+                 (void *)FUN_0017cdb0, (void *)FUN_0017cdc0, (void *)0x17cdd0,
+                 0);
+    FUN_0017cde0();
+    *(short *)0x3256b0 = (short)saved_flag;
+  }
+}
+
 /* FUN_00195d40 (0x195d40)
  *
  * render_structure_reflections: thin render-orchestration wrapper (string ref
@@ -2133,6 +2631,55 @@ void structure_runtime_decals_initialize_for_new_map(void)
   *runtime_decal_globals = 0;
 }
 
+/*
+ * FUN_00196330  (0x196330) — structures.obj
+ *
+ * Sweeps the current scenario's structure-cluster tag block and deletes
+ * permanent decals from clusters flagged for removal.  Guarded by
+ * scenario+0x258 (an int) being non-zero.  The cluster tag block has its
+ * count word at scenario+0x134 and element stride 0x68.  For each cluster
+ * whose int16 field at +0xc is (!= -1) AND whose int16 field at +0xe is
+ * (!= 0), decals_delete_permanent_from_cluster is called with the loop index.
+ *
+ * Confirmed from disassembly 0x196330-0x196391:
+ *   - scenario_get() 0-arg (leading PUSH ECX is a local-slot reserve).
+ *   - +0x258 is an int guard; early return when zero.
+ *   - block pointer = scenario+0x134 passed to tag_block_get_element
+ *     (PUSH 0x68; PUSH index; PUSH block; cdecl, ADD ESP,0xc).
+ *   - count = uint16 at +0x134; signed compare (MOVSX AX; TEST; JLE).
+ *   - element gate: word[elem+0xc] != -1  AND  word[elem+0xe] != 0 (int16).
+ *   - decals_delete_permanent_from_cluster((int16_t)index) — cdecl 1 arg;
+ *     BX (loop index) compared against count spilled at [EBP-4].
+ * All cdecl; no FPU, SEH, or intrinsics.
+ */
+void FUN_00196330(void)
+{
+  char *scenario;
+  void *block;
+  int cluster_count;
+  int cluster_index;
+  int element_index;
+
+  scenario = (char *)scenario_get();
+  if (*(int *)(scenario + 0x258) != 0) {
+    block = (void *)(scenario + 0x134);
+    cluster_count = (int)*(uint16_t *)block;
+    cluster_index = 0;
+    if ((int16_t)cluster_count > 0) {
+      element_index = 0;
+      do {
+        char *cluster = tag_block_get_element(block, element_index, 0x68);
+        if (*(int16_t *)(cluster + 0xc) != -1 &&
+            *(int16_t *)(cluster + 0xe) != 0) {
+          decals_delete_permanent_from_cluster((int16_t)cluster_index);
+        }
+        cluster_index += 1;
+        element_index += 1;
+      } while ((int16_t)cluster_index < (int16_t)cluster_count);
+    }
+  }
+}
+
 /* FUN_00198180 (0x198180) render_structure_visibility:
  *   Per-frame rebuild of the structure BSP visibility bitvectors, followed by
  *   construction of the rendered-cluster list and dispatch to the fast or
@@ -2230,55 +2777,6 @@ void render_structure_visibility(void)
     return;
   }
   FUN_001966b0(scenario);
-}
-
-/*
- * FUN_00196330  (0x196330) — structures.obj
- *
- * Sweeps the current scenario's structure-cluster tag block and deletes
- * permanent decals from clusters flagged for removal.  Guarded by
- * scenario+0x258 (an int) being non-zero.  The cluster tag block has its
- * count word at scenario+0x134 and element stride 0x68.  For each cluster
- * whose int16 field at +0xc is (!= -1) AND whose int16 field at +0xe is
- * (!= 0), decals_delete_permanent_from_cluster is called with the loop index.
- *
- * Confirmed from disassembly 0x196330-0x196391:
- *   - scenario_get() 0-arg (leading PUSH ECX is a local-slot reserve).
- *   - +0x258 is an int guard; early return when zero.
- *   - block pointer = scenario+0x134 passed to tag_block_get_element
- *     (PUSH 0x68; PUSH index; PUSH block; cdecl, ADD ESP,0xc).
- *   - count = uint16 at +0x134; signed compare (MOVSX AX; TEST; JLE).
- *   - element gate: word[elem+0xc] != -1  AND  word[elem+0xe] != 0 (int16).
- *   - decals_delete_permanent_from_cluster((int16_t)index) — cdecl 1 arg;
- *     BX (loop index) compared against count spilled at [EBP-4].
- * All cdecl; no FPU, SEH, or intrinsics.
- */
-void FUN_00196330(void)
-{
-  char *scenario;
-  void *block;
-  int cluster_count;
-  int cluster_index;
-  int element_index;
-
-  scenario = (char *)scenario_get();
-  if (*(int *)(scenario + 0x258) != 0) {
-    block = (void *)(scenario + 0x134);
-    cluster_count = (int)*(uint16_t *)block;
-    cluster_index = 0;
-    if ((int16_t)cluster_count > 0) {
-      element_index = 0;
-      do {
-        char *cluster = tag_block_get_element(block, element_index, 0x68);
-        if (*(int16_t *)(cluster + 0xc) != -1 &&
-            *(int16_t *)(cluster + 0xe) != 0) {
-          decals_delete_permanent_from_cluster((int16_t)cluster_index);
-        }
-        cluster_index += 1;
-        element_index += 1;
-      } while ((int16_t)cluster_index < (int16_t)cluster_count);
-    }
-  }
 }
 
 void structures_initialize(void)
@@ -2882,6 +3380,75 @@ char structure_test_vector(float *point, float *direction, float *out_point,
   return result;
 }
 
+/*
+ * render_debug_fog_planes (0x1990d0) -- structures.obj
+ *
+ * When fog-plane debug is enabled (byte 0x505700 set, mode word 0x50674c == 1,
+ * and structure-index dword 0x506784 valid), fetch the selected fog plane from
+ * the scenario structure-BSP tag and draw each of its edges. For every edge the
+ * two endpoint vertices are offset inward along the plane normal by the fog
+ * distance (float 0x506770, negated) to build a parallel copy; both the
+ * original edge and the offset edge are emitted through the debug line writer
+ * (0x17eb10) and the two connecting sides through 0x17e5b0, using the pair of
+ * view transforms cached at 0x2ee6c4 / 0x2ee6cc.
+ *
+ * The two 3-float vertex triples live in contiguous stack slots in the original
+ * (EBP-0x14 and EBP-0x20) because their base addresses are passed to callees
+ * that read 3 floats; they are declared as arrays here to guarantee that
+ * contiguity. The (int)(short) narrowing on the edge index / element count is
+ * intentional (original reloads them via MOVSX word) and match-sensitive.
+ */
+void render_debug_fog_planes(void)
+{
+  float fVar1;
+  int iVar2;
+  int iVar3;
+  float *pfVar4;
+  float *pfVar5;
+  float vert_b[3]; /* EBP-0x20 offset triple for pfVar5 */
+  float vert_a[3]; /* EBP-0x14 offset triple for pfVar4 */
+  int local_c;
+  int local_8;
+
+  if ((*(char *)0x505700 != 0) && (*(short *)0x50674c == 1) &&
+      (*(int *)0x506784 != -1)) {
+    iVar2 = (int)scenario_get();
+    iVar3 = (int)tag_block_get_element((void *)(iVar2 + 0x134),
+                                       *(int *)0x506784, 0x68);
+    iVar2 = (int)tag_block_get_element(
+      (void *)(iVar2 + 0x178), *(unsigned short *)(iVar3 + 2) & 0x7fff, 0x20);
+    local_c = *(int *)(iVar2 + 0x14);
+    local_8 = 0;
+    if (0 < local_c) {
+      iVar3 = 0;
+      do {
+        local_c = (iVar3 + 1) % local_c;
+        pfVar4 =
+          (float *)tag_block_get_element((void *)(iVar2 + 0x14), iVar3, 0xc);
+        pfVar5 = (float *)tag_block_get_element((void *)(iVar2 + 0x14),
+                                                (int)(short)local_c, 0xc);
+        fVar1 = -*(float *)0x506770;
+        /* Interleaved by component: the original reuses each
+         * (fVar1 * normal_component) product for both endpoints, so the
+         * six independent stores are grouped in component order. */
+        vert_a[0] = fVar1 * *(float *)(iVar2 + 4) + pfVar4[0];
+        vert_b[0] = fVar1 * *(float *)(iVar2 + 4) + pfVar5[0];
+        vert_a[1] = fVar1 * *(float *)(iVar2 + 8) + pfVar4[1];
+        vert_b[1] = fVar1 * *(float *)(iVar2 + 8) + pfVar5[1];
+        vert_a[2] = fVar1 * *(float *)(iVar2 + 0xc) + pfVar4[2];
+        vert_b[2] = fVar1 * *(float *)(iVar2 + 0xc) + pfVar5[2];
+        FUN_0017eb10(pfVar4, pfVar5, *(int *)0x2ee6c4);
+        FUN_0017eb10(vert_a, vert_b, *(int *)0x2ee6cc);
+        FUN_0017e5b0(pfVar4, vert_a, *(int *)0x2ee6c4, *(int *)0x2ee6cc);
+        FUN_0017e5b0(pfVar5, vert_b, *(int *)0x2ee6c4, *(int *)0x2ee6cc);
+        local_c = *(int *)(iVar2 + 0x14);
+        local_8 = local_8 + 1;
+        iVar3 = (int)(short)local_8;
+      } while (iVar3 < local_c);
+    }
+  }
+}
+
 int16_t structure_find_in_cluster(uint16_t cluster_count, float *position,
                                   float radius, int max_count,
                                   int16_t *intersected_indices)
@@ -2966,525 +3533,4 @@ void set_file_location_volume_name(int16_t location, const char *volume_name)
   }
   csstrncpy(file_location_volume_names + location * 0x100, volume_name, 0xff);
   file_location_volume_names[location * 0x100 + 0xff] = '\0';
-}
-
-/* 0x105980 — Build a ring/cylinder (torus-like) mesh.
- * Sweeps ring_segment_count rings around a cross-section of
- * cylinder_segment_count segments. For each ring the ring angle drives a
- * cos/sin pair (scaled by param_8) that offsets a cross-section built by
- * rotating a base radius (param_10) about the ring normal, then transforms
- * each vertex by the caller's matrix.
- * Outputs: vertex positions (out_positions, stride 3 floats), tex coords
- * (out_texcoords, stride 2 floats), a triangle-strip index buffer
- * (out_indices), the emitted vertex count (*out_vertex_count) and the number
- * of strip index-runs (*out_index_run_count).
- * The ring normal is the cross product of the cross-section direction
- * (cos*param_8, sin*param_8, 0) with the global axis vector at *0x31fc44,
- * normalized when its length is >= the epsilon at 0x2533d0.
- * Constants: 0x255a54 = 6.2831855f (2*pi), 0x2533c0 = 0.0f, 0x2533c8 = 1.0f,
- * 0x2533d0 = double epsilon. Asserts at geometry.c:0x15a/0x15b.
- * Source: c:\halo\SOURCE\math\geometry.c:346 */
-void FUN_00105980(float *matrix, short *out_vertex_count,
-                  short *out_index_run_count, float *out_positions,
-                  float *out_texcoords, short *out_indices,
-                  short ring_segment_count, float param_8,
-                  int cylinder_segment_count, float param_10)
-{
-  float fVar1, fVar2, fVar4, angle;
-  float fVar9, fVar10, fVar11, fVar12, fVar_sin;
-  int iVar5;
-  float *pfVar6;
-  float *pfVar7;
-  short sVar8;
-  /* normal[0]=local_38, normal[1]=local_34, normal[2]=local_30; the three
-   * must be contiguous+ascending because &normal[0] is passed as the axis
-   * argument to rotate_vector3d_by_sincos (stack-aliasing hazard). */
-  float normal[3];
-  int local_2c;
-  float local_28, local_24;
-  int local_20, local_1c, local_18, local_14, local_10, local_c, local_8;
-
-  local_1c = 0;
-  local_8 = 0;
-  if (ring_segment_count <= 2) {
-    display_assert("ring_segment_count>2",
-                   "c:\\halo\\SOURCE\\math\\geometry.c", 0x15a, 1);
-    system_exit(-1);
-  }
-  if ((short)cylinder_segment_count <= 2) {
-    display_assert("cylinder_segment_count>2",
-                   "c:\\halo\\SOURCE\\math\\geometry.c", 0x15b, 1);
-    system_exit(-1);
-  }
-  local_10 = 0;
-  if (ring_segment_count < 0) {
-    *out_vertex_count = 0;
-    *out_index_run_count = 0;
-    return;
-  }
-  local_20 = (int)ring_segment_count;
-  local_18 = 0;
-  local_24 = (float)local_20;
-  pfVar6 = *(float **)0x0031fc44;
-  pfVar7 = out_texcoords;
-  do {
-    fVar9 = (float)local_18 / local_24;
-    angle = *(float *)0x00255a54 * fVar9;
-    fVar10 = x87_fcos(angle);
-    fVar1 = fVar10 * param_8;
-    fVar11 = x87_fsin(angle);
-    fVar2 = param_8 * fVar11;
-    /* ring normal = (fVar1, fVar2, 0) x axis[]; 0x2533c0 == 0.0f.
-     * normal[2]=A, normal[1]=B, normal[0]=C; length sum is (C^2+B^2)+A^2 to
-     * match the original's x87 add order. */
-    normal[2] = fVar1 * pfVar6[1] - fVar2 * pfVar6[0];
-    normal[1] = pfVar6[0] * *(float *)0x002533c0 - fVar1 * pfVar6[2];
-    normal[0] = fVar2 * pfVar6[2] - pfVar6[1] * *(float *)0x002533c0;
-    fVar4 = sqrtf(normal[0] * normal[0] + normal[1] * normal[1] +
-                  normal[2] * normal[2]);
-    if (fabsf(fVar4) >= (float)*(double *)0x002533d0) {
-      fVar4 = *(float *)0x002533c8 / fVar4;
-      normal[0] = normal[0] * fVar4;
-      normal[1] = normal[1] * fVar4;
-      normal[2] = fVar4 * normal[2];
-    }
-    sVar8 = 0;
-    if (-1 < (short)cylinder_segment_count) {
-      local_c = (int)(short)cylinder_segment_count;
-      local_14 = (local_8 - cylinder_segment_count) + -1;
-      local_28 = (float)(fVar9 + fVar9);
-      do {
-        pfVar7[1] = local_28;
-        if (0 < (short)local_10) {
-          if (sVar8 == 0) {
-            *out_indices = (short)cylinder_segment_count * 2 + 2;
-            out_indices = out_indices + 1;
-            local_1c = local_1c + 1;
-          }
-          *out_indices = (short)local_8;
-          out_indices[1] = (short)local_14;
-          out_indices = out_indices + 2;
-        }
-        if ((short)local_10 == ring_segment_count) {
-          /* last ring: copy the vertex/texcoord from the first ring */
-          iVar5 = (local_c + 1) * local_20;
-          pfVar6 = out_positions + iVar5 * -3;
-          *out_positions = *pfVar6;
-          out_positions[1] = pfVar6[1];
-          out_positions[2] = pfVar6[2];
-          *out_texcoords = out_texcoords[iVar5 * -2];
-          pfVar7 = out_texcoords;
-        } else {
-          local_2c = (int)sVar8;
-          fVar9 = (float)local_2c / (float)local_c;
-          *pfVar7 = (float)(fVar9 + fVar9);
-          if (sVar8 == (short)cylinder_segment_count) {
-            /* seam: copy from the start of this ring */
-            pfVar6 = out_positions + local_c * -3;
-            *out_positions = *pfVar6;
-            out_positions[1] = pfVar6[1];
-            out_positions[2] = pfVar6[2];
-          } else {
-            angle = *(float *)0x00255a54 * fVar9;
-            fVar12 = x87_fcos(angle);
-            *out_positions = fVar10 * param_10;
-            out_positions[1] = fVar11 * param_10;
-            out_positions[2] = 0.0f;
-            fVar_sin = x87_fsin(angle);
-            rotate_vector3d_by_sincos(out_positions, normal, fVar_sin, fVar12);
-            *out_positions = fVar1 + *out_positions;
-            out_positions[2] = out_positions[2];
-            out_positions[1] = fVar2 + out_positions[1];
-            matrix_transform_point(matrix, out_positions, out_positions);
-          }
-        }
-        pfVar7 = pfVar7 + 2;
-        out_positions = out_positions + 3;
-        local_8 = local_8 + 1;
-        local_14 = local_14 + 1;
-        sVar8 = sVar8 + 1;
-        pfVar6 = *(float **)0x0031fc44;
-        out_texcoords = pfVar7;
-      } while (sVar8 <= (short)cylinder_segment_count);
-    }
-    local_10 = local_10 + 1;
-    local_18 = local_18 + 1;
-  } while ((short)local_10 <= ring_segment_count);
-  *out_vertex_count = (short)local_8;
-  *out_index_run_count = (short)local_1c;
-}
-
-/*
- * render_debug_fog_planes (0x1990d0) -- structures.obj
- *
- * When fog-plane debug is enabled (byte 0x505700 set, mode word 0x50674c == 1,
- * and structure-index dword 0x506784 valid), fetch the selected fog plane from
- * the scenario structure-BSP tag and draw each of its edges. For every edge the
- * two endpoint vertices are offset inward along the plane normal by the fog
- * distance (float 0x506770, negated) to build a parallel copy; both the
- * original edge and the offset edge are emitted through the debug line writer
- * (0x17eb10) and the two connecting sides through 0x17e5b0, using the pair of
- * view transforms cached at 0x2ee6c4 / 0x2ee6cc.
- *
- * The two 3-float vertex triples live in contiguous stack slots in the original
- * (EBP-0x14 and EBP-0x20) because their base addresses are passed to callees
- * that read 3 floats; they are declared as arrays here to guarantee that
- * contiguity. The (int)(short) narrowing on the edge index / element count is
- * intentional (original reloads them via MOVSX word) and match-sensitive.
- */
-void render_debug_fog_planes(void)
-{
-  float fVar1;
-  int iVar2;
-  int iVar3;
-  float *pfVar4;
-  float *pfVar5;
-  float vert_b[3]; /* EBP-0x20 offset triple for pfVar5 */
-  float vert_a[3]; /* EBP-0x14 offset triple for pfVar4 */
-  int local_c;
-  int local_8;
-
-  if ((*(char *)0x505700 != 0) && (*(short *)0x50674c == 1) &&
-      (*(int *)0x506784 != -1)) {
-    iVar2 = (int)scenario_get();
-    iVar3 = (int)tag_block_get_element((void *)(iVar2 + 0x134),
-                                       *(int *)0x506784, 0x68);
-    iVar2 = (int)tag_block_get_element(
-                   (void *)(iVar2 + 0x178),
-                   *(unsigned short *)(iVar3 + 2) & 0x7fff, 0x20);
-    local_c = *(int *)(iVar2 + 0x14);
-    local_8 = 0;
-    if (0 < local_c) {
-      iVar3 = 0;
-      do {
-        local_c = (iVar3 + 1) % local_c;
-        pfVar4 = (float *)tag_block_get_element((void *)(iVar2 + 0x14),
-                                                iVar3, 0xc);
-        pfVar5 = (float *)tag_block_get_element((void *)(iVar2 + 0x14),
-                                                (int)(short)local_c, 0xc);
-        fVar1 = -*(float *)0x506770;
-        /* Interleaved by component: the original reuses each
-         * (fVar1 * normal_component) product for both endpoints, so the
-         * six independent stores are grouped in component order. */
-        vert_a[0] = fVar1 * *(float *)(iVar2 + 4) + pfVar4[0];
-        vert_b[0] = fVar1 * *(float *)(iVar2 + 4) + pfVar5[0];
-        vert_a[1] = fVar1 * *(float *)(iVar2 + 8) + pfVar4[1];
-        vert_b[1] = fVar1 * *(float *)(iVar2 + 8) + pfVar5[1];
-        vert_a[2] = fVar1 * *(float *)(iVar2 + 0xc) + pfVar4[2];
-        vert_b[2] = fVar1 * *(float *)(iVar2 + 0xc) + pfVar5[2];
-        FUN_0017eb10(pfVar4, pfVar5, *(int *)0x2ee6c4);
-        FUN_0017eb10(vert_a, vert_b, *(int *)0x2ee6cc);
-        FUN_0017e5b0(pfVar4, vert_a, *(int *)0x2ee6c4, *(int *)0x2ee6cc);
-        FUN_0017e5b0(pfVar5, vert_b, *(int *)0x2ee6c4, *(int *)0x2ee6cc);
-        local_c = *(int *)(iVar2 + 0x14);
-        local_8 = local_8 + 1;
-        iVar3 = (int)(short)local_8;
-      } while (iVar3 < local_c);
-    }
-  }
-}
-
-/* leaf_map_mark_portal_designators (FUN_00191cb0, 0x191cb0)
- *
- * structures.obj / c:\halo\SOURCE\structures\leaf_map.c
- *
- * Given a portal index, mark the matching portal-designator entry as visited
- * in each of the portal's two adjacent leaves.
- *
- * The portal record (block at structure+0x10, stride 0x18, index = portal
- * index) carries the two adjacent leaf indices at record offsets +4 and +8
- * (masked with 0x7fffffff to drop the sign/plane bit).  For each of those two
- * leaves (block at structure+0x4, stride 0x18) the leaf's portal_designators
- * block header lives at leaf+0xc (count at [0], stride 4).  That sub-block is
- * scanned for the designator whose (value & 0x7fffffff) equals this portal
- * index; when found, the high bit (0x80000000) is set to mark it.  If no
- * designator references the portal the original asserts
- *   portal_designator_index != leaf->portal_designators.count
- * at leaf_map.c:0x2a1 and halt_and_catch_fire()s.
- *
- * Confirmed from disassembly at 0x191cb0:
- *   - tag_block_get_element is cdecl (block, index, element_size); the two
- *     leaf-block fetches use element_size 0x18, the designator fetch uses 4.
- *   - the inner designator counter is a 16-bit short (sVar5); the (int)cast
- *     truncation is deliberate and preserved for VC71 fidelity.
- *   - the assert-halt path calls halt_and_catch_fire (thunk 0x1029a0); its
- *     0xffffffff argument in the decompile is dead (callee is void(void)).
- * Inferred: field semantics (front/back leaf, "visited" meaning of the high
- * bit) from the leaf_map.c source string; the two-iteration loop and offsets
- * are Confirmed from the disassembly.
- */
-void leaf_map_mark_portal_designators(void *structure, uint32_t portal_index)
-{
-    int *designator_count;
-    uint32_t *designator;
-    int block_index;
-    short designator_index;
-    int remaining;
-    uint32_t *portal;
-    int leaves_block;
-
-    portal = (uint32_t *)tag_block_get_element((char *)structure + 0x10, portal_index, 0x18);
-    leaves_block = (int)structure + 4;
-    remaining = 2;
-    do {
-        portal = portal + 1;
-        block_index = (int)tag_block_get_element((void *)leaves_block, *portal & 0x7fffffff, 0x18);
-        designator_count = (int *)(block_index + 0xc);
-        designator_index = 0;
-        if (0 < *designator_count) {
-            block_index = 0;
-            do {
-                designator = (uint32_t *)tag_block_get_element(designator_count, block_index, 4);
-                if ((*designator & 0x7fffffff) == portal_index) {
-                    *designator = *designator | 0x80000000;
-                    break;
-                }
-                designator_index = designator_index + 1;
-                block_index = (int)designator_index;
-            } while (block_index < *designator_count);
-        }
-        if ((int)designator_index == *designator_count) {
-            display_assert("portal_designator_index!=leaf->portal_designators.count",
-                           "c:\\halo\\SOURCE\\structures\\leaf_map.c", 0x2a1, 1);
-            halt_and_catch_fire();
-        }
-        remaining = remaining - 1;
-    } while (remaining != 0);
-}
-
-/* reference_list_copy (0x191440) — Copy a reference_list's entries from source
- * into result. Both lists must have identical size and maximum_count (asserted).
- *
- * For each slot in [0, maximum_count): if the source entry is live (its first
- * word != 0) the 12-byte (3-dword) entry is copied verbatim; otherwise, if the
- * result entry is live, it is removed via datum_delete(result, index).
- *
- * Struct offsets (reference_lists.h):
- *   +0x20 maximum_count (int16)   +0x22 size (int16)   +0x34 entry array ptr
- * Entry stride = 0xc (12 bytes) = 3 dwords; both pointers advance by 0xc/iter.
- *
- * Confirmed (disasm): cdecl(result @EBP+8 = EDI, source @EBP+0xc = EBX);
- * size mismatch asserts at line 0x88 (136), maximum_count mismatch at line 0x89
- * (137), reason strings shown, halt=1, then system_exit(-1). The loop count
- * [result+0x20] is RE-READ from memory each iteration (CMP SI,word[EDI+0x20]),
- * and the index is a signed int16 (JL). datum_delete push order is EDI then
- * MOVSX-of-SI => datum_delete(result, (int)index). No FPU. */
-void reference_list_copy(void *result, void *source)
-{
-  short *result_entry;
-  short *source_entry;
-  short index;
-
-  if (*(short *)((char *)result + 0x22) != *(short *)((char *)source + 0x22)) {
-    display_assert("result->size==source->size",
-                   "..\\objects\\reference_lists.h", 0x88, 1);
-    system_exit(-1);
-  }
-  if (*(short *)((char *)result + 0x20) != *(short *)((char *)source + 0x20)) {
-    display_assert("result->maximum_count==source->maximum_count",
-                   "..\\objects\\reference_lists.h", 0x89, 1);
-    system_exit(-1);
-  }
-
-  result_entry = *(short **)((char *)result + 0x34);
-  source_entry = *(short **)((char *)source + 0x34);
-  index = 0;
-  if (0 < *(short *)((char *)result + 0x20)) {
-    do {
-      if (*source_entry == 0) {
-        if (*result_entry != 0) {
-          datum_delete((data_t *)result, (int)index);
-        }
-      }
-      else {
-        *(int *)result_entry = *(int *)source_entry;
-        *(int *)(result_entry + 2) = *(int *)(source_entry + 2);
-        *(int *)(result_entry + 4) = *(int *)(source_entry + 4);
-      }
-      index = index + 1;
-      result_entry = result_entry + 6;
-      source_entry = source_entry + 6;
-    } while (index < *(short *)((char *)result + 0x20));
-  }
-}
-
-/* 0x105d20 — Reduce a 2D point set to its convex hull as an index list.
- * Gift-wrapping (Jarvis march). shell_update (called with the vertex array in
- * EBX) validates that at least three non-collinear points exist (returns 2);
- * otherwise nothing is emitted and 0 is returned.
- *   Phase 1: pick the start vertex (lowest y, then leftmost x) with an epsilon
- *            tie-break (1e-4f) on both axes.
- *   Phase 2: from the current vertex, atan2(dy,dx) angle scan against a running
- *            angle base, wrapping candidate angles into [-1e-4f, ...) by adding
- *            2*pi; keep the minimum-angle vertex, append its index, and stop
- *            when the chosen vertex closes back on the first. A collinear/
- *            degenerate guard uses a double epsilon (=(double)1e-4f) on the
- *            |component delta| between the chosen and first vertices.
- *   Phase 3: reached only when the walk fills all slots (index_count reaches
- *            vertex_count); compacts a trailing duplicate run to the front with
- *            three bounds asserts (geometry.c 0x279,0x27a,0x282).
- * param_1 = vertex_count, param_2 = float[2] vertex array (x,y; 8-byte stride),
- * param_3 = int16 output index list. Returns the emitted index count in AX.
- * Source: c:\halo\SOURCE\math\geometry.c */
-int16_t convex_hull2d_reduce(int16_t vertex_count, float *vertices,
-                             int16_t *out_indices)
-{
-  int16_t index_count;
-
-  index_count = 0;
-  if (shell_update(vertex_count, vertices) == 2) {
-    float base_angle;
-    float best_x;
-    float best_y;
-    int16_t start_index;
-    int16_t current_index;
-    int16_t next_index;
-    float min_angle;
-    int16_t collinear_flag;
-    int16_t i;
-    int16_t first;
-    float *p;
-    float *ref;
-
-    base_angle = 0.0f;            /* FLOAT_002533c0 = 0.0f, running gift-wrap base */
-    best_x = 3.4028235e38f;       /* FLT_MAX */
-    best_y = 3.4028235e38f;
-    start_index = -1;             /* SI default = low word of FLT_MAX (dead: count>0) */
-    collinear_flag = 0;
-
-    /* Phase 1: lowest y, then leftmost x, with epsilon tie-break. */
-    if (vertex_count > 0) {
-      p = vertices + 1;           /* &vertices[0].y */
-      for (i = 0; i < vertex_count; i = i + 1) {
-        if ((p[0] < best_y - 1e-4f) ||
-            ((p[0] < best_y) && (p[-1] < best_x + 1e-4f)) ||
-            ((p[0] < best_y + 1e-4f) && (p[-1] < best_x - 1e-4f))) {
-          best_x = p[-1];
-          best_y = p[0];
-          start_index = i;
-        }
-        p = p + 2;
-      }
-    }
-
-    current_index = start_index;
-    next_index = start_index;     /* EBX default (dead: inner loop always assigns) */
-    for (;;) {
-      min_angle = 3.4028235e38f;  /* FLT_MAX reset (0x105de9) */
-      if (index_count >= vertex_count) {
-        goto compaction;
-      }
-      out_indices[index_count] = current_index;
-      index_count = index_count + 1;
-
-      /* Phase 2: min-angle gift-wrap scan. */
-      if (vertex_count > 0) {
-        ref = vertices + current_index * 2;
-        p = vertices;
-        for (i = 0; i < vertex_count; i = i + 1) {
-          if ((p[0] != ref[0]) || (p[1] != ref[1])) {
-            float angle;
-
-            angle = x87_fatan2f(p[1] - ref[1], p[0] - ref[0]) - base_angle;
-            if (angle < -1e-4f) {
-              do {
-                angle = angle + 6.2831855f;   /* 2*pi wrap */
-              } while (angle < -1e-4f);
-            }
-            if (angle < min_angle) {
-              min_angle = angle;
-              next_index = i;
-            }
-          }
-          p = p + 2;
-        }
-      }
-
-      base_angle = base_angle + min_angle;
-      current_index = next_index;
-
-      first = out_indices[0];
-      if (collinear_flag == 0) {
-        if ((fabs(vertices[next_index * 2] - vertices[first * 2]) >= 1e-4f) ||
-            (fabs(vertices[next_index * 2 + 1] - vertices[first * 2 + 1]) >= 1e-4f)) {
-          collinear_flag = 1;
-        }
-      }
-
-      first = out_indices[0];
-      if (next_index == first) {
-        return index_count;
-      }
-      if (collinear_flag == 0) {
-        continue;
-      }
-      if ((fabs(vertices[next_index * 2] - vertices[first * 2]) >= 1e-4f) ||
-          (fabs(vertices[next_index * 2 + 1] - vertices[first * 2 + 1]) >= 1e-4f)) {
-        continue;
-      }
-      return index_count;
-    }
-
-  compaction:
-    {
-      int16_t last_hull;
-      int16_t search;
-      int16_t k;
-
-      search = index_count - 2;
-      if (search <= 0) {
-        goto assert_start_positive;
-      }
-      last_hull = out_indices[index_count - 1];
-      for (;;) {
-        if (out_indices[search] == last_hull) {
-          int16_t new_count;
-
-          new_count = (index_count - 1) - search;
-          index_count = new_count;
-          if (new_count > 0) {
-            int src;
-            int16_t *psrc;
-            int16_t *pdst;
-
-            src = search;
-            psrc = out_indices + search;
-            pdst = out_indices;
-            k = 0;
-            do {
-              if (vertex_count <= k) {
-                display_assert("vertex_index<vertex_count",
-                               "c:\\halo\\SOURCE\\math\\geometry.c", 0x279, 1);
-                system_exit(-1);
-              }
-              if (vertex_count <= src) {
-                display_assert("start_vertex_index+vertex_index<vertex_count",
-                               "c:\\halo\\SOURCE\\math\\geometry.c", 0x27a, 1);
-                system_exit(-1);
-              }
-              k = k + 1;
-              *pdst = *psrc;
-              psrc = psrc + 1;
-              pdst = pdst + 1;
-              src = src + 1;
-            } while (k < new_count);
-          }
-          if (search > 0) {
-            return index_count;
-          }
-          goto assert_start_positive;
-        }
-        search = search - 1;
-        if (search < 1) {
-          goto assert_start_positive;
-        }
-      }
-    }
-
-  assert_start_positive:
-    display_assert("start_vertex_index>0",
-                   "c:\\halo\\SOURCE\\math\\geometry.c", 0x282, 1);
-    system_exit(-1);
-  }
-  return index_count;
 }
