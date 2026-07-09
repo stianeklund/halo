@@ -1192,3 +1192,26 @@ IEEE-754 comparisons involving NaN are **unordered**: `NaN < 1e-8f`, `NaN <= 1e-
 **Not source-controllable** (document, don't chase, ~2pp): VC71-elided `x = x;` slot self-moves (two original variables coalesced into one slot; clang blocks the workaround with `-Werror,-Wself-assign`), operand preload hoisting into both branch successors, FDIV vs FDIVR selection, FLD/FXCH scheduling.
 
 **Lesson:** a sub-50% score with systematic frame/layout divergence is not a structural ceiling — re-derive the shape from the reference disasm before giving up. See `[[reference_vc71_shape_levers_volatile_layout]]`.
+
+## 28. Interpolation Range-Gate Written with `>` Instead of `!=` (Inverted Range Skips the Lerp)
+
+**Automation:** RESOLVED — `check_lift_hazards.py::check_range_gate_relational` (WARN), shipped in this commit. Suppress a verified-legitimate ordered compare with `/* hazard-ok: range-gate */` on the `if` line.
+
+**What happens:** A widget/meter interpolation is gated by a degeneracy test on two lo/hi range pairs. The original binary tests each pair with `FCOM`/`JE` and *skips* the lerp only when a range collapses:
+```c
+/* original: skip-if-degenerate, else interpolate */
+if (in_hi == in_lo || out_hi == out_lo) { /* no interpolation */ }
+else { scalar = out_lo + (in - in_lo) / (in_hi - in_lo) * (out_hi - out_lo); }
+```
+The faithful positive form (what enables the lerp) is the negation of that OR: `in_hi != in_lo && out_hi != out_lo`. A lift that "cleans this up" to a relational operator —
+```c
+if (in_hi > in_lo && out_hi > out_lo) { /* interpolate */ }   /* WRONG */
+```
+looks equivalent for a normal ascending range but is **false for an INVERTED range** (`hi < lo`). Any widget whose output range descends (`out_lo = 1.0`, `out_hi = 0.0`) then never interpolates: the output scalar is pinned to `out_lo` and the driven value is stuck at one end.
+
+**Example (hud.c `FUN_000d27a0`, sniper elevation needle, 2026-07-08 — commit d2e0630f):** the elevation widget maps aim pitch to a texture-V scroll with an inverted output range (`out_lo = 1.0`, `out_hi = 0.0`). A prior lift wrote `out_hi > out_lo` → `0.0 > 1.0` is false → interpolation skipped → `out_scalar` stuck at `1.0` → `angle_ticks` map1 V-offset (`color_block+0xc`) computed to `0.768` instead of `~0.268`, scrolling the tick texture off the visible scope rail. Symptom: the blue elevation-needle triangles (▶◀) never rendered on either scope rail. Confirmed by capturing the real element + oracle `render_desc` via gdb at the rasterizer call (`0x15f8e0`) against a `core_save` checkpoint pulled off the box with `[[xbdm-getfile]]`, from the **faithful cachebeta build** (`[[feedback_snapshot_from_cachebeta_oracle]]`); the fix (`>` → `!=` on both pairs) restored the needle, verified in-game. The reference capture must come from cachebeta, never the reimplementation, so our own defect is not baked into the oracle.
+
+**Prevention:**
+- When a lift's `if` gate is the *negation* of an original OR-of-equalities (`a==b || c==d`), spell it `a != b && c != d`, not `a > b && c > d`. `>` silently drops the inverted-range case.
+- Verify against the original's compare: `FCOM`/`FUCOM` + `JE`/`JNE` (equality) is `==`/`!=`, not `JA`/`JB`/`JAE`/`JBE` (ordered). If the disasm branches on the zero flag alone (`JE`/`JNE`), the source operator is `==`/`!=`.
+- The detector fires only on the dangerous shape: an `if` ANDing two field-pair comparisons `*(float*)(B+o1) <rel> *(float*)(B+o2)` that share one base pointer `B` and use a relational operator (`<`,`>`,`<=`,`>=`). The faithful `!=`/`==` forms do not match, so the fixed source is green.

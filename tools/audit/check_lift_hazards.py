@@ -1301,6 +1301,22 @@ _MAG_CALL = re.compile(
 )
 _PRODUCT = re.compile(r'\w\s*\*\s*\w')
 
+# §28: Interpolation range-gate written with a relational operator instead of
+# `!=`.  A widget/meter lerp is enabled by testing two lo/hi field pairs for
+# degeneracy.  The original does FCOM/JE — `if (in_hi==in_lo || out_hi==out_lo)
+# skip; else interpolate` — which is the negation `in_hi != in_lo && out_hi !=
+# out_lo`.  A lift that writes `>` (or `<`, `>=`, `<=`) wrongly skips the lerp
+# for a widget with an INVERTED range (hi < lo).  (hud.c d27a0, 2026-07-08: the
+# sniper elevation needle has out_lo=1.0/out_hi=0.0, so `out_hi > out_lo` was
+# false, out_scalar stuck at 1.0, and the angle_ticks tick texture scrolled off
+# the rail — the needle triangles vanished.)  Suppress a verified-legitimate
+# ordered compare with /* hazard-ok: range-gate */ on the `if` line.
+_RANGE_GATE_CMP = re.compile(
+    r'\*\s*\(\s*float\s*\*\s*\)\s*\(\s*(?P<b1>\w+)\s*\+\s*(?P<o1>0x[0-9a-fA-F]+)\s*\)'
+    r'\s*(?P<op><=?|>=?)\s*'
+    r'\*\s*\(\s*float\s*\*\s*\)\s*\(\s*(?P<b2>\w+)\s*\+\s*(?P<o2>0x[0-9a-fA-F]+)\s*\)'
+)
+
 
 def check_nan_blind_guard(filepath, content, lines):
     """Flag `if (<mag/dot> < EPS) reject` guards that silently pass NaN through.
@@ -1351,6 +1367,56 @@ def check_nan_blind_guard(filepath, content, lines):
     return errors
 
 
+def check_range_gate_relational(filepath, content, lines):
+    """Flag interpolation range-gates that use `>`/`<` where the faithful
+    condition is `!=`.
+
+    A widget/meter lerp is enabled by testing two lo/hi field pairs for
+    degeneracy.  The original does FCOM/JE (`in_hi==in_lo || out_hi==out_lo`
+    skip; else interpolate) = the negation `in_hi != in_lo && out_hi != out_lo`.
+    A lift that writes a relational operator instead of `!=` wrongly skips the
+    lerp for an INVERTED range (hi < lo).  See lift-learnings §28.  Suppress a
+    verified-legitimate ordered compare with /* hazard-ok: range-gate */ on the
+    `if` line.
+
+    Narrow by design: fires only on an `if` whose condition ANDs two field-pair
+    comparisons `*(float*)(B+o1) <op> *(float*)(B+o2)` that share one base B and
+    use a relational operator (never `!=`/`==`, which do not match).
+    """
+    errors = []
+    flat_lines = _blank_comments_and_literals(content).split('\n')
+    reported = set()
+    for i, fline in enumerate(flat_lines):
+        if 'if' not in fline:
+            continue
+        # Join a small window so a multi-line `if (...)` condition is seen whole.
+        blob = ' '.join(flat_lines[i:i + 3])
+        pairs = [m for m in _RANGE_GATE_CMP.finditer(blob)
+                 if m.group('b1') == m.group('b2')
+                 and m.group('o1') != m.group('o2')]
+        if len(pairs) < 2:
+            continue
+        # The two comparisons must be joined by && (a compound AND gate).
+        if '&&' not in blob[pairs[0].end():pairs[1].start()]:
+            continue
+        if i in reported:
+            continue
+        reported.add(i)
+        src_line = lines[i] if i < len(lines) else ''
+        if 'hazard-ok' in src_line:
+            continue
+        relpath = os.path.relpath(filepath, ROOT_DIR)
+        base = pairs[0].group('b1')
+        errors.append(
+            f'  {relpath}:{i + 1}: range gate `{base}+{pairs[0].group("o1")} '
+            f'{pairs[0].group("op")} {base}+{pairs[0].group("o2")} && ...` uses '
+            f'a relational operator; the faithful degeneracy gate is `!=` (a '
+            f'relational op wrongly skips the lerp for an INVERTED hi<lo range '
+            f'— see lift-learnings §28)'
+        )
+    return errors
+
+
 def main():
     frame_audit = '--frame-size-audit' in sys.argv
     quiet = '-q' in sys.argv or '--quiet' in sys.argv or os.environ.get('LOG_LEVEL') == 'WARNING'
@@ -1378,6 +1444,7 @@ def main():
     all_inplace_mut_errors = []
     all_contiguity_errors = []
     all_nan_guard_errors = []
+    all_range_gate_errors = []
 
     for fpath in c_files:
         with open(fpath, 'r', errors='replace') as f:
@@ -1399,6 +1466,7 @@ def main():
         all_inplace_mut_errors.extend(check_inplace_mutator_misuse(fpath, content, lines))
         all_contiguity_errors.extend(check_vector_arg_contiguity(fpath, content, lines))
         all_nan_guard_errors.extend(check_nan_blind_guard(fpath, content, lines))
+        all_range_gate_errors.extend(check_range_gate_relational(fpath, content, lines))
         if frame_audit:
             all_frame_errors.extend(check_frame_sizes(fpath, content, lines))
 
@@ -1419,7 +1487,8 @@ def main():
             f'discard_result: {len(all_discard_result_errors)}, '
             f'inplace_mutator: {len(all_inplace_mut_errors)}, '
             f'vec_contiguity: {len(all_contiguity_errors)}, '
-            f'nan_guard: {len(all_nan_guard_errors)}'
+            f'nan_guard: {len(all_nan_guard_errors)}, '
+            f'range_gate: {len(all_range_gate_errors)}'
         )
         if frame_audit:
             counts += f', frame_sizes: {len(all_frame_errors)}'
@@ -1430,7 +1499,8 @@ def main():
                  len(all_concat_errors) + len(all_float_smuggle_errors) +
                  len(all_addr_value_add_errors) + len(all_param_loop_errors) +
                  len(all_discard_result_errors) + len(all_inplace_mut_errors) +
-                 len(all_contiguity_errors) + len(all_nan_guard_errors))
+                 len(all_contiguity_errors) + len(all_nan_guard_errors) +
+                 len(all_range_gate_errors))
         if total:
             print(counts, file=sys.stderr)
     else:
@@ -1630,6 +1700,19 @@ def main():
                 file=sys.stderr,
             )
             for e in all_nan_guard_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
+
+        if all_range_gate_errors:
+            print(
+                'WARNING: interpolation range-gate uses a relational operator.\n'
+                'A widget/meter lerp gated by `if (in_hi > in_lo && out_hi >\n'
+                'out_lo)` wrongly skips interpolation for an INVERTED range\n'
+                '(hi < lo). The faithful degeneracy test is `!=` on both pairs\n'
+                '(see lift-learnings §28):\n',
+                file=sys.stderr,
+            )
+            for e in all_range_gate_errors:
                 print(e, file=sys.stderr)
             print(file=sys.stderr)
 
