@@ -1100,6 +1100,267 @@ void FUN_00195d40(void)
   }
 }
 
+/* FUN_00195f30 (0x195f30)
+ *
+ * render_structure_specular_lights: structure specular-light render entry
+ * (string refs "render_structure_specular_lights" @0x329f88 and the outer
+ * scope string @0x329990).  Allocates a 0x4000-byte surface-material scratch
+ * table on the stack, then either builds a per-gel surface set into it
+ * (gel_buffer != 0) or falls back to the globally-built structure surface
+ * table at 0x5937d0/0x5937d4 (gel_buffer == 0).  When the resulting
+ * lightmap/material index is valid (!= -1), sets up the object, walks the
+ * surfaces through FUN_00195790 with a single surface-draw callback
+ * (FUN_0017cd70), ends the rasterizer HUD scope, and (only on the gel path)
+ * commits the tint factor.  The whole body is bracketed by the outer profiler
+ * scope (0x449ef1 && 0x329998); the draw/setup section by the inner scope
+ * (0x449ef1 && 0x329f90).
+ *
+ * Confirmed from disassembly at 0x195f30:
+ *   - Frame: _chkstk(0x4004) -> 0x4000-byte scratch @[EBP-0x4004]; its address
+ *     is stashed to [EBP-4] in the prologue (used later as the FUN_00195790
+ *     @eax argument), and overwritten to the global 0x5937d4 on the fallback
+ *     path.  Callee-saved EBX/ESI/EDI hold gel_buffer / surface_count /
+ *     material_index across the body.
+ *   - gel path: FUN_00197e90(buffer, 0x1000, position, radius, 0, 0, 0,
+ *     gel_count, gel_buffer) returns a short (MOVSX AX -> ESI = surface_count);
+ *     FUN_001956d0(buffer, 0) returns int (EAX -> EDI = material_index).
+ *     Shared ADD ESP,0x2C = 9+2 stack args.
+ *   - fallback: material_index = *(int*)0x4d8eb4, surface_count =
+ *     (short)*(short*)0x5937d0 (MOVSX), material_offsets = 0x5937d4.
+ *   - draw section: FUN_0017cd60(object_handle) [1 arg]; FUN_00195790 takes
+ *     @eax = material_offsets ([EBP-4]) plus 6 stack args (surface_count,
+ *     material_index, 0, FUN_0017cd70 surface-draw cb, 0, 0) -- shared
+ *     ADD ESP,0x1C = 1+6 stack args; _rasterizer_hud_end() via 1-instr JMP
+ *     thunk @0x17cd80 -> 0x160970; rasterizer_widget_set_tint_factor gated on
+ *     gel_buffer != 0.
+ *   - radius is a float passed by value (raw dword push); position is float*.
+ * All calls cdecl, args pushed right-to-left.
+ */
+void FUN_00195f30(int object_handle, float *position, float radius,
+                  int gel_count, int gel_buffer)
+{
+  char buffer[0x4000];
+  int *material_offsets;
+  short surface_count;
+  int material_index;
+
+  material_offsets = (int *)buffer;
+
+  if (*(char *)0x449ef1 != 0 && *(char *)0x329998 != 0) {
+    profile_enter_private((void *)0x329990);
+  }
+
+  if (gel_buffer != 0) {
+    surface_count = FUN_00197e90(buffer, 0x1000, position, radius, 0, 0, 0,
+                                 gel_count, gel_buffer);
+    material_index = FUN_001956d0(buffer, (void *)0);
+  } else {
+    material_index = *(int *)0x4d8eb4;
+    surface_count = *(short *)0x5937d0;
+    material_offsets = (int *)0x5937d4;
+  }
+
+  if (material_index != -1) {
+    if (*(char *)0x449ef1 != 0 && *(char *)0x329f90 != 0) {
+      profile_enter_private((void *)0x329f88);
+    }
+    FUN_0017cd60(object_handle);
+    FUN_00195790(material_offsets, surface_count, material_index, 0,
+                 (void *)FUN_0017cd70, 0, 0);
+    _rasterizer_hud_end();
+    if (gel_buffer != 0) {
+      rasterizer_widget_set_tint_factor(material_index);
+    }
+    if (*(char *)0x449ef1 != 0 && *(char *)0x329f90 != 0) {
+      profile_exit_private((void *)0x329f88);
+    }
+  }
+
+  if (*(char *)0x449ef1 != 0 && *(char *)0x329998 != 0) {
+    profile_exit_private((void *)0x329990);
+  }
+}
+
+/* FUN_00196060 (0x196060)
+ *
+ * render_structure_diffuse_lights: structure diffuse-light render entry.  The
+ * diffuse sibling of FUN_00195f30 (specular): byte-identical shape, differing
+ * only in the diffuse-specific profiler scopes, object-setup/draw callbacks,
+ * and HUD-end thunk.  Allocates a 0x4000-byte surface-material scratch table on
+ * the stack, then either builds a per-gel surface set into it (gel_buffer != 0)
+ * or falls back to the globally-built structure surface table at
+ * 0x5937d0/0x5937d4 (gel_buffer == 0).  When the resulting lightmap/material
+ * index is valid (!= -1), sets up the object, walks the surfaces through
+ * FUN_00195790 with a single surface-draw callback (FUN_0017cc70), commits the
+ * tint factor (gel path only), then ends the rasterizer HUD scope.  The whole
+ * body is bracketed by the outer profiler scope (0x449ef1 && 0x32a588); the
+ * draw/setup section by the inner scope (0x449ef1 && 0x32ab80).
+ *
+ * Confirmed from disassembly at 0x196060:
+ *   - Frame: _chkstk(0x4004) -> 0x4000-byte scratch @[EBP-0x4004]; its address
+ *     is stashed to [EBP-4] in the prologue (used later as the FUN_00195790
+ *     @eax argument), and overwritten to the global 0x5937d4 on the fallback
+ *     path.  Callee-saved EBX/ESI/EDI hold gel_buffer / surface_count /
+ *     material_index across the body.
+ *   - gel path: FUN_00197e90(buffer, 0x1000, position, radius, 0, 0, 0,
+ *     gel_count, gel_buffer) returns a short (MOVSX AX -> ESI = surface_count);
+ *     FUN_001956d0(buffer, 0) returns int (EAX -> EDI = material_index).
+ *     Shared ADD ESP,0x2C = 9+2 stack args.
+ *   - fallback: material_index = *(int*)0x4d8eb4, surface_count =
+ *     (short)*(short*)0x5937d0 (MOVSX), material_offsets = 0x5937d4.
+ *   - draw section: FUN_0017cc60(object_handle) [1 arg]; FUN_00195790 takes
+ *     @eax = material_offsets ([EBP-4]) plus 6 stack args (surface_count,
+ *     material_index, 0, FUN_0017cc70 surface-draw cb, 0, 0) -- shared
+ *     ADD ESP,0x1C = 1+6 stack args; rasterizer_widget_set_tint_factor
+ *     (@0x196139) gated on gel_buffer != 0; FUN_00160930() (HUD end) via
+ *     1-instr JMP thunk @0x17cc80.
+ *   - radius is a float passed by value (raw dword push); position is float*.
+ * All calls cdecl, args pushed right-to-left.
+ */
+void FUN_00196060(int object_handle, float *position, float radius,
+                  int gel_count, int gel_buffer)
+{
+  char buffer[0x4000];
+  int *material_offsets;
+  short surface_count;
+  int material_index;
+
+  material_offsets = (int *)buffer;
+
+  if (*(char *)0x449ef1 != 0 && *(char *)0x32a588 != 0) {
+    profile_enter_private((void *)0x32a580);
+  }
+
+  if (gel_buffer != 0) {
+    surface_count = FUN_00197e90(buffer, 0x1000, position, radius, 0, 0, 0,
+                                 gel_count, gel_buffer);
+    material_index = FUN_001956d0(buffer, (void *)0);
+  } else {
+    material_index = *(int *)0x4d8eb4;
+    surface_count = *(short *)0x5937d0;
+    material_offsets = (int *)0x5937d4;
+  }
+
+  if (material_index != -1) {
+    if (*(char *)0x449ef1 != 0 && *(char *)0x32ab80 != 0) {
+      profile_enter_private((void *)0x32ab78);
+    }
+    FUN_0017cc60(object_handle);
+    FUN_00195790(material_offsets, surface_count, material_index, 0,
+                 (void *)FUN_0017cc70, 0, 0);
+    if (gel_buffer != 0) {
+      rasterizer_widget_set_tint_factor(material_index);
+    }
+    FUN_00160930();
+    if (*(char *)0x449ef1 != 0 && *(char *)0x32ab80 != 0) {
+      profile_exit_private((void *)0x32ab78);
+    }
+  }
+
+  if (*(char *)0x449ef1 != 0 && *(char *)0x32a588 != 0) {
+    profile_exit_private((void *)0x32a580);
+  }
+}
+
+/* FUN_00198180 (0x198180) render_structure_visibility:
+ *   Per-frame rebuild of the structure BSP visibility bitvectors, followed by
+ *   construction of the rendered-cluster list and dispatch to the fast or
+ *   legacy cluster-visibility sweep.
+ *
+ *   scenario = scenario_get(); clusters tag_block at scenario+0x134 (element
+ *   size 0x68, count = *(int*)(scenario+0x134)); scenario+0xf8 sizes the
+ *   per-portal bitvector.  Per-cluster visibility bitvector at 0x50678c is
+ *   memset to 0xffffffff when the active cluster (0x506784) is -1, else 0; the
+ *   per-portal bitvector at 0x5137d0 is zeroed.  0x5137cc = rendered-cluster
+ *   count (int16), 0x4d8edc = cluster_index -> rendered_cluster_index table
+ *   (int16[]).
+ *
+ *   Register-alias note (verified against disasm 0x198180-0x1983b5): ESI holds
+ *   the scenario pointer, but is reused as the loop's bit_index inside the
+ *   sweep and reloaded from [EBP-4] afterward.  Kept as two distinct C locals
+ *   (scenario / bit_index).  The final structure_bsp record at
+ *   tag_block_get_element(clusters,0,0x68)+0x34 selects FUN_001966b0 (!=0, has
+ *   precomputed visibility) vs FUN_00196850 (==0, legacy path that emits the
+ *   reimport warning).
+ *
+ *   __FILE__ = c:\halo\SOURCE\structures\structure_visibility.c */
+void render_structure_visibility(void)
+{
+  int scenario;
+  int *clusters;
+  int bit_index;
+  int cluster_index;
+  short *cluster_rec;
+  void *sound_data;
+  char *first_cluster;
+
+  scenario = (int)scenario_get();
+  if (*(char *)0x449ef1 != '\0' && *(char *)0x32bd70 != '\0') {
+    profile_enter_private((void *)0x32bd68);
+  }
+  clusters = (int *)(scenario + 0x134);
+  csmemset((void *)0x50678c, (*(int *)0x506784 == -1) ? -1 : 0,
+           ((*clusters + 0x1f) >> 5) << 2);
+  *(short *)0x5937d0 = 0;
+  csmemset((void *)0x5137d0, 0, ((*(int *)(scenario + 0xf8) + 0x1f) >> 5) << 2);
+  *(short *)0x5137cc = 0;
+  FUN_00198070();
+  if (*(char *)0x505701 != '\0') {
+    *(short *)0x5137cc = 0;
+    sound_data = structure_bsp_get_cluster_sound_data(
+      (void *)scenario, (int16_t) * (uint16_t *)0x506784);
+    csmemcpy((void *)0x50678c, sound_data, ((*clusters + 0x1f) >> 5) << 2);
+    if (0 < *clusters) {
+      cluster_index = 0;
+      bit_index = 0;
+      do {
+        if ((((unsigned int *)0x50678c)[bit_index >> 5] &
+             (1u << (bit_index & 0x1f))) != 0) {
+          tag_block_get_element(clusters, bit_index, 0x68);
+          if (*(short *)0x5137cc >= 0x80) {
+            display_assert(
+              "raise MAXIMUM_RENDERED_CLUSTERS",
+              "c:\\halo\\SOURCE\\structures\\structure_visibility.c", 0x118, 1);
+            system_exit(-1);
+          }
+          if ((short)cluster_index < 0 || (short)cluster_index >= 0x200) {
+            display_assert(
+              "cluster_index>=0 && "
+              "cluster_index<MAXIMUM_CLUSTERS_PER_STRUCTURE",
+              "c:\\halo\\SOURCE\\structures\\structure_visibility.c", 0x11b, 1);
+            system_exit(-1);
+          }
+          ((short *)0x4d8edc)[bit_index] = *(short *)0x5137cc;
+          *(short *)0x5137cc = *(short *)0x5137cc + 1;
+          cluster_rec = (short *)rendered_cluster_get(
+            ((unsigned short *)0x4d8edc)[bit_index]);
+          *cluster_rec = (short)cluster_index;
+          render_frustum_get_projection_bounds((void *)0x5065a4,
+                                               cluster_rec + 2);
+        }
+        cluster_index = cluster_index + 1;
+        bit_index = (int)(short)cluster_index;
+      } while (bit_index < *clusters);
+    }
+  }
+  if (*(char *)0x449ef1 != '\0' && *(char *)0x32bd70 != '\0') {
+    profile_exit_private((void *)0x32bd68);
+  }
+  first_cluster = (char *)tag_block_get_element(clusters, 0, 0x68);
+  if (*(int *)(first_cluster + 0x34) == 0) {
+    if (*(char *)0x4d8ed0 == '\0') {
+      if (0 < *(int *)(scenario + 0xf8)) {
+        error(2, "### WARNING: this structure_bsp needs to be reimported for "
+                 "new, faster visibility.");
+      }
+      *(char *)0x4d8ed0 = '\x01';
+    }
+    FUN_00196850(scenario);
+    return;
+  }
+  FUN_001966b0(scenario);
+}
+
 void structures_initialize(void)
 {
   structure_detail_objects_initialize();
@@ -1356,182 +1617,4 @@ int16_t structure_find_in_cluster(uint16_t cluster_count, float *position,
   }
 
   return 0;
-}
-
-/* FUN_00198180 (0x198180) render_structure_visibility:
- *   Per-frame rebuild of the structure BSP visibility bitvectors, followed by
- *   construction of the rendered-cluster list and dispatch to the fast or
- *   legacy cluster-visibility sweep.
- *
- *   scenario = scenario_get(); clusters tag_block at scenario+0x134 (element
- *   size 0x68, count = *(int*)(scenario+0x134)); scenario+0xf8 sizes the
- *   per-portal bitvector.  Per-cluster visibility bitvector at 0x50678c is
- *   memset to 0xffffffff when the active cluster (0x506784) is -1, else 0; the
- *   per-portal bitvector at 0x5137d0 is zeroed.  0x5137cc = rendered-cluster
- *   count (int16), 0x4d8edc = cluster_index -> rendered_cluster_index table
- *   (int16[]).
- *
- *   Register-alias note (verified against disasm 0x198180-0x1983b5): ESI holds
- *   the scenario pointer, but is reused as the loop's bit_index inside the
- *   sweep and reloaded from [EBP-4] afterward.  Kept as two distinct C locals
- *   (scenario / bit_index).  The final structure_bsp record at
- *   tag_block_get_element(clusters,0,0x68)+0x34 selects FUN_001966b0 (!=0, has
- *   precomputed visibility) vs FUN_00196850 (==0, legacy path that emits the
- *   reimport warning).
- *
- *   __FILE__ = c:\halo\SOURCE\structures\structure_visibility.c */
-void render_structure_visibility(void)
-{
-  int scenario;
-  int *clusters;
-  int bit_index;
-  int cluster_index;
-  short *cluster_rec;
-  void *sound_data;
-  char *first_cluster;
-
-  scenario = (int)scenario_get();
-  if (*(char *)0x449ef1 != '\0' && *(char *)0x32bd70 != '\0') {
-    profile_enter_private((void *)0x32bd68);
-  }
-  clusters = (int *)(scenario + 0x134);
-  csmemset((void *)0x50678c, (*(int *)0x506784 == -1) ? -1 : 0,
-           ((*clusters + 0x1f) >> 5) << 2);
-  *(short *)0x5937d0 = 0;
-  csmemset((void *)0x5137d0, 0,
-           ((*(int *)(scenario + 0xf8) + 0x1f) >> 5) << 2);
-  *(short *)0x5137cc = 0;
-  FUN_00198070();
-  if (*(char *)0x505701 != '\0') {
-    *(short *)0x5137cc = 0;
-    sound_data = structure_bsp_get_cluster_sound_data(
-        (void *)scenario, (int16_t)*(uint16_t *)0x506784);
-    csmemcpy((void *)0x50678c, sound_data, ((*clusters + 0x1f) >> 5) << 2);
-    if (0 < *clusters) {
-      cluster_index = 0;
-      bit_index = 0;
-      do {
-        if ((((unsigned int *)0x50678c)[bit_index >> 5] &
-             (1u << (bit_index & 0x1f))) != 0) {
-          tag_block_get_element(clusters, bit_index, 0x68);
-          if (*(short *)0x5137cc >= 0x80) {
-            display_assert(
-                "raise MAXIMUM_RENDERED_CLUSTERS",
-                "c:\\halo\\SOURCE\\structures\\structure_visibility.c", 0x118, 1);
-            system_exit(-1);
-          }
-          if ((short)cluster_index < 0 || (short)cluster_index >= 0x200) {
-            display_assert(
-                "cluster_index>=0 && cluster_index<MAXIMUM_CLUSTERS_PER_STRUCTURE",
-                "c:\\halo\\SOURCE\\structures\\structure_visibility.c", 0x11b, 1);
-            system_exit(-1);
-          }
-          ((short *)0x4d8edc)[bit_index] = *(short *)0x5137cc;
-          *(short *)0x5137cc = *(short *)0x5137cc + 1;
-          cluster_rec =
-              (short *)rendered_cluster_get(((unsigned short *)0x4d8edc)[bit_index]);
-          *cluster_rec = (short)cluster_index;
-          render_frustum_get_projection_bounds((void *)0x5065a4, cluster_rec + 2);
-        }
-        cluster_index = cluster_index + 1;
-        bit_index = (int)(short)cluster_index;
-      } while (bit_index < *clusters);
-    }
-  }
-  if (*(char *)0x449ef1 != '\0' && *(char *)0x32bd70 != '\0') {
-    profile_exit_private((void *)0x32bd68);
-  }
-  first_cluster = (char *)tag_block_get_element(clusters, 0, 0x68);
-  if (*(int *)(first_cluster + 0x34) == 0) {
-    if (*(char *)0x4d8ed0 == '\0') {
-      if (0 < *(int *)(scenario + 0xf8)) {
-        error(2, "### WARNING: this structure_bsp needs to be reimported for "
-                 "new, faster visibility.");
-      }
-      *(char *)0x4d8ed0 = '\x01';
-    }
-    FUN_00196850(scenario);
-    return;
-  }
-  FUN_001966b0(scenario);
-}
-/* FUN_00195f30 (0x195f30)
- *
- * render_structure_specular_lights: structure specular-light render entry
- * (string refs "render_structure_specular_lights" @0x329f88 and the outer
- * scope string @0x329990).  Allocates a 0x4000-byte surface-material scratch
- * table on the stack, then either builds a per-gel surface set into it
- * (gel_buffer != 0) or falls back to the globally-built structure surface
- * table at 0x5937d0/0x5937d4 (gel_buffer == 0).  When the resulting
- * lightmap/material index is valid (!= -1), sets up the object, walks the
- * surfaces through FUN_00195790 with a single surface-draw callback
- * (FUN_0017cd70), ends the rasterizer HUD scope, and (only on the gel path)
- * commits the tint factor.  The whole body is bracketed by the outer profiler
- * scope (0x449ef1 && 0x329998); the draw/setup section by the inner scope
- * (0x449ef1 && 0x329f90).
- *
- * Confirmed from disassembly at 0x195f30:
- *   - Frame: _chkstk(0x4004) -> 0x4000-byte scratch @[EBP-0x4004]; its address
- *     is stashed to [EBP-4] in the prologue (used later as the FUN_00195790
- *     @eax argument), and overwritten to the global 0x5937d4 on the fallback
- *     path.  Callee-saved EBX/ESI/EDI hold gel_buffer / surface_count /
- *     material_index across the body.
- *   - gel path: FUN_00197e90(buffer, 0x1000, position, radius, 0, 0, 0,
- *     gel_count, gel_buffer) returns a short (MOVSX AX -> ESI = surface_count);
- *     FUN_001956d0(buffer, 0) returns int (EAX -> EDI = material_index).
- *     Shared ADD ESP,0x2C = 9+2 stack args.
- *   - fallback: material_index = *(int*)0x4d8eb4, surface_count =
- *     (short)*(short*)0x5937d0 (MOVSX), material_offsets = 0x5937d4.
- *   - draw section: FUN_0017cd60(object_handle) [1 arg]; FUN_00195790 takes
- *     @eax = material_offsets ([EBP-4]) plus 6 stack args (surface_count,
- *     material_index, 0, FUN_0017cd70 surface-draw cb, 0, 0) -- shared
- *     ADD ESP,0x1C = 1+6 stack args; _rasterizer_hud_end() via 1-instr JMP
- *     thunk @0x17cd80 -> 0x160970; rasterizer_widget_set_tint_factor gated on
- *     gel_buffer != 0.
- *   - radius is a float passed by value (raw dword push); position is float*.
- * All calls cdecl, args pushed right-to-left.
- */
-void FUN_00195f30(int object_handle, float *position, float radius,
-                  int gel_count, int gel_buffer)
-{
-  char buffer[0x4000];
-  int *material_offsets;
-  short surface_count;
-  int material_index;
-
-  material_offsets = (int *)buffer;
-
-  if (*(char *)0x449ef1 != 0 && *(char *)0x329998 != 0) {
-    profile_enter_private((void *)0x329990);
-  }
-
-  if (gel_buffer != 0) {
-    surface_count = FUN_00197e90(buffer, 0x1000, position, radius, 0, 0, 0,
-                                 gel_count, gel_buffer);
-    material_index = FUN_001956d0(buffer, (void *)0);
-  } else {
-    material_index = *(int *)0x4d8eb4;
-    surface_count = *(short *)0x5937d0;
-    material_offsets = (int *)0x5937d4;
-  }
-
-  if (material_index != -1) {
-    if (*(char *)0x449ef1 != 0 && *(char *)0x329f90 != 0) {
-      profile_enter_private((void *)0x329f88);
-    }
-    FUN_0017cd60(object_handle);
-    FUN_00195790(material_offsets, surface_count, material_index, 0,
-                 (void *)FUN_0017cd70, 0, 0);
-    _rasterizer_hud_end();
-    if (gel_buffer != 0) {
-      rasterizer_widget_set_tint_factor(material_index);
-    }
-    if (*(char *)0x449ef1 != 0 && *(char *)0x329f90 != 0) {
-      profile_exit_private((void *)0x329f88);
-    }
-  }
-
-  if (*(char *)0x449ef1 != 0 && *(char *)0x329998 != 0) {
-    profile_exit_private((void *)0x329990);
-  }
 }
