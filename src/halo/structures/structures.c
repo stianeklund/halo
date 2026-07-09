@@ -491,7 +491,7 @@ void FUN_00062680(int16_t *partition, uint32_t arg2, int16_t index,
       "c:\\halo\\SOURCE\\ai\\path_obstacles.c", 0x183, 1);
     system_exit(-1);
   }
-  csmemset(out_mask, 0, ((*(int16_t *)(base + 2) + 0x1f) >> 5) << 2);
+  csmemset(out_mask, 0, ((*(int16_t *)(base + 2) + 0x1f) >> 5) * 4);
   if (index != -1) {
     if ((index < 0) || (*(int16_t *)(base + 2) <= index)) {
       display_assert(
@@ -2243,7 +2243,7 @@ unsigned char FUN_001926a0(int descriptor, int src, int dst)
 
   if (src != dst) {
     csmemcpy((void *)dst, (void *)src,
-             (size_t)(((*(int *)(descriptor + 4) + 0x1f) >> 5) << 2));
+             (size_t)(((*(int *)(descriptor + 4) + 0x1f) >> 5) * 4));
   }
   count = *(int *)(descriptor + 4);
   i = 0;
@@ -2983,26 +2983,26 @@ void FUN_00196330(void)
 {
   char *scenario;
   void *block;
-  int cluster_count;
-  int cluster_index;
-  int element_index;
+  int16_t cluster_count; /* short local: movw load + full-reg spill to EBP-4 */
+  int16_t cluster_index; /* BX */
+  int element_index;     /* ESI */
 
   scenario = (char *)scenario_get();
   if (*(int *)(scenario + 0x258) != 0) {
     block = (void *)(scenario + 0x134);
-    cluster_count = (int)*(uint16_t *)block;
+    cluster_count = *(int16_t *)block;
     cluster_index = 0;
-    if ((int16_t)cluster_count > 0) {
+    if (cluster_count > 0) {
       element_index = 0;
       do {
         char *cluster = tag_block_get_element(block, element_index, 0x68);
         if (*(int16_t *)(cluster + 0xc) != -1 &&
             *(int16_t *)(cluster + 0xe) != 0) {
-          decals_delete_permanent_from_cluster((int16_t)cluster_index);
+          decals_delete_permanent_from_cluster(cluster_index);
         }
-        cluster_index += 1;
+        cluster_index = (int16_t)(cluster_index + 1);
         element_index += 1;
-      } while ((int16_t)cluster_index < (int16_t)cluster_count);
+      } while (cluster_index < cluster_count);
     }
   }
 }
@@ -3132,17 +3132,23 @@ void render_structure_visibility(void)
     profile_enter_private((void *)0x32bd68);
   }
   clusters = (int *)(scenario + 0x134);
-  csmemset((void *)0x50678c, (*(int *)0x506784 == -1) ? -1 : 0,
-           ((*clusters + 0x1f) >> 5) << 2);
+  /* original branches on the active cluster and duplicates the size
+   * computation per arm (two push sites merged at the call) */
+  if (*(int *)0x506784 != -1) {
+    csmemset((void *)0x50678c, 0, ((*clusters + 0x1f) >> 5) * 4);
+  } else {
+    csmemset((void *)0x50678c, -1, ((*clusters + 0x1f) >> 5) * 4);
+  }
   *(short *)0x5937d0 = 0;
-  csmemset((void *)0x5137d0, 0, ((*(int *)(scenario + 0xf8) + 0x1f) >> 5) << 2);
+  csmemset((void *)0x5137d0, 0, ((*(int *)(scenario + 0xf8) + 0x1f) >> 5) * 4);
   *(short *)0x5137cc = 0;
   FUN_00198070();
   if (*(char *)0x505701 != '\0') {
     *(short *)0x5137cc = 0;
+    /* zero-extended load (XOR ECX + MOV CX) in the original */
     sound_data = structure_bsp_get_cluster_sound_data(
-      (void *)scenario, (int16_t) * (uint16_t *)0x506784);
-    csmemcpy((void *)0x50678c, sound_data, ((*clusters + 0x1f) >> 5) << 2);
+      (void *)scenario, *(uint16_t *)0x506784);
+    csmemcpy((void *)0x50678c, sound_data, ((*clusters + 0x1f) >> 5) * 4);
     if (0 < *clusters) {
       cluster_index = 0;
       bit_index = 0;
@@ -3410,10 +3416,9 @@ char structure_render_surface_from_point_and_leaf(
 int32_t structure_get_planar_fog_definition_index(void *structure_bsp,
                                                   int16_t index, char flag)
 {
-  uint16_t fog_ref;
+  int16_t fog_ref; /* AX-resident through every gate in the original */
   char *element;
-  uint16_t *indirect;
-  int32_t result = -1;
+  int32_t result = -1; /* EDI; all failure paths share the sunk return */
 
   if (index == -1) {
     return result;
@@ -3422,33 +3427,41 @@ int32_t structure_get_planar_fog_definition_index(void *structure_bsp,
   element =
     tag_block_get_element((char *)structure_bsp + 0x134, (int)index, 0x68);
 
-  if (flag == '\0') {
-    fog_ref = *(uint16_t *)(element + 2);
-    if (fog_ref != 0xffff) {
-      if ((int16_t)fog_ref < 0) {
-        indirect = (uint16_t *)tag_block_get_element(
-          (char *)structure_bsp + 0x178, fog_ref & 0x7fff, 0x20);
-        fog_ref = *indirect;
-      } else {
-        fog_ref = fog_ref & 0x7fff;
-      }
-      if (fog_ref != 0xffff) {
-        element = tag_block_get_element((char *)structure_bsp + 0x184,
-                                        (int)(int16_t)fog_ref, 0x28);
-        if (*(int16_t *)(element + 0x24) != -1) {
-          element =
-            tag_block_get_element((char *)structure_bsp + 0x190,
-                                  (int)*(int16_t *)(element + 0x24), 0x88);
-          return *(int32_t *)(element + 0x2c);
-        }
-      }
-    }
-  } else {
+  /* flag != 0 arm falls through first in the original; the cluster path is
+   * the sunk arm at 0x198781 */
+  if (flag != '\0') {
     element = FUN_0018e7d0(0);
-    if (element != 0) {
-      return *(int32_t *)(element + 0xa4);
+    if (element == 0) {
+      goto fail;
     }
+    return *(int32_t *)(element + 0xa4);
   }
+
+  fog_ref = *(int16_t *)(element + 2);
+  if (fog_ref == -1) {
+    goto fail;
+  }
+  if (fog_ref < 0) {
+    element = tag_block_get_element((char *)structure_bsp + 0x178,
+                                    fog_ref & 0x7fff, 0x20);
+    fog_ref = *(int16_t *)element;
+  } else {
+    fog_ref = (int16_t)(fog_ref & 0x7fff);
+  }
+  if (fog_ref == -1) {
+    goto fail;
+  }
+  element = tag_block_get_element((char *)structure_bsp + 0x184, (int)fog_ref,
+                                  0x28);
+  fog_ref = *(int16_t *)(element + 0x24);
+  if (fog_ref == -1) {
+    goto fail;
+  }
+  element =
+    tag_block_get_element((char *)structure_bsp + 0x190, (int)fog_ref, 0x88);
+  return *(int32_t *)(element + 0x2c);
+
+fail:
   return result;
 }
 
@@ -3833,6 +3846,7 @@ void render_debug_fog_planes(void)
   float vert_a[3]; /* EBP-0x14 offset triple for pfVar4 */
   int local_c;
   int local_8;
+  int16_t next; /* (j+1) % count remainder: full-reg spill, MOVSWL reload */
 
   if ((*(char *)0x505700 != 0) && (*(short *)0x50674c == 1) &&
       (*(int *)0x506784 != -1)) {
@@ -3846,11 +3860,11 @@ void render_debug_fog_planes(void)
     if (0 < local_c) {
       iVar3 = 0;
       do {
-        local_c = (iVar3 + 1) % local_c;
+        next = (int16_t)((iVar3 + 1) % local_c);
         pfVar4 =
           (float *)tag_block_get_element((void *)(iVar2 + 0x14), iVar3, 0xc);
-        pfVar5 = (float *)tag_block_get_element((void *)(iVar2 + 0x14),
-                                                (int)(short)local_c, 0xc);
+        pfVar5 =
+          (float *)tag_block_get_element((void *)(iVar2 + 0x14), next, 0xc);
         fVar1 = -*(float *)0x506770;
         /* Interleaved by component: the original reuses each
          * (fVar1 * normal_component) product for both endpoints, so the
