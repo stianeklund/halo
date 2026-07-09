@@ -312,10 +312,10 @@ void FUN_00197b00(int16_t cluster_index, uint16_t *sound_list)
  *   - FUN_00196eb0 is a 3-arg call (bounds, fractions, out); its 3rd arg is the
  *     &local_24 push that tag_block_get_element left on the stack (this is the
  *     ADD ESP,0xc "anomaly"). FUN_00196b10 takes &bounds in @eax. */
-unsigned int FUN_001978a0(int node_index, float *parent_bounds, void *param_3,
-                          int *param_4, int param_5, float *center,
-                          float radius, float *cull_bounds, int param_9,
-                          int param_10, int intersection)
+unsigned short FUN_001978a0(int node_index, float *parent_bounds, void *param_3,
+                            int *param_4, int param_5, float *center,
+                            float radius, float *cull_bounds, int param_9,
+                            int param_10, int intersection)
 {
   int accum;
   char *scenario;
@@ -355,7 +355,10 @@ unsigned int FUN_001978a0(int node_index, float *parent_bounds, void *param_3,
                    0x2ad, true);
     system_exit(-1);
   }
-  if ((short)intersection == 0) {
+  /* the original loads intersection into EDI here and keeps that register as
+   * the running mode for the rest of the function */
+  mode = intersection;
+  if ((short)mode == 0) {
     display_assert("intersection",
                    "c:\\halo\\SOURCE\\structures\\structure_visibility.c",
                    0x2ae, true);
@@ -366,15 +369,14 @@ unsigned int FUN_001978a0(int node_index, float *parent_bounds, void *param_3,
     (unsigned char *)tag_block_get_element(scenario + 0xbc, node_index, 6);
   FUN_00196eb0(parent_bounds, fractions, bounds);
 
-  mode = intersection;
-  if ((short)intersection != 2) {
+  if ((short)mode != 2) {
     mode = FUN_00196a60(cull_bounds, bounds);
     if ((short)mode == 0)
-      return accum & 0xffff;
+      return (unsigned short)accum;
     t = FUN_00196b10(bounds, param_9, param_10);
     if ((short)t == 2)
       param_9 = 0;
-    if ((short)t < (short)mode)
+    if ((short)mode > (short)t)
       mode = t;
   }
 
@@ -385,10 +387,10 @@ unsigned int FUN_001978a0(int node_index, float *parent_bounds, void *param_3,
            plane[3];
 
     side[0] = 1;
-    if (dist >= radius)
+    if (!(dist < radius))
       side[0] = 0;
     side[1] = 1;
-    if (dist <= -radius)
+    if (!(dist > -radius))
       side[1] = 0;
 
     child_ptr = node + 1;
@@ -397,17 +399,18 @@ unsigned int FUN_001978a0(int node_index, float *parent_bounds, void *param_3,
     do {
       if (*side_ptr != 0) {
         child = *child_ptr;
-        if (child < 0) {
-          if (child != -1)
-            /* 0x19713c: callee reads the leaf ref from EAX (strips the sign
-             * bit itself via AND 0x7fffffff) — implicit @<eax> arg. */
-            accum += FUN_00197130(bounds, param_3, param_4 + (short)accum,
-                                  param_5 - accum, center, radius, cull_bounds,
-                                  param_9, param_10, mode, child);
-        } else {
+        /* recurse arm first: original falls through into the self-call and
+         * sinks the leaf arm past the join (JS to it) */
+        if (child >= 0) {
           accum += FUN_001978a0(child, bounds, param_3, param_4 + (short)accum,
                                 param_5 - accum, center, radius, cull_bounds,
                                 param_9, param_10, mode);
+        } else if (child != -1) {
+          /* 0x19713c: callee reads the leaf ref from EAX (strips the sign
+           * bit itself via AND 0x7fffffff) — implicit @<eax> arg. */
+          accum += FUN_00197130(bounds, param_3, param_4 + (short)accum,
+                                param_5 - accum, center, radius, cull_bounds,
+                                param_9, param_10, mode, child);
         }
       }
       child_ptr++;
@@ -415,5 +418,5 @@ unsigned int FUN_001978a0(int node_index, float *parent_bounds, void *param_3,
     } while (--count != 0);
   }
 
-  return accum & 0xffff;
+  return (unsigned short)accum;
 }
