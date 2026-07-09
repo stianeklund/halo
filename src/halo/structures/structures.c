@@ -1057,6 +1057,18 @@ unsigned char FUN_001926a0(int descriptor, int src, int dst)
   return 1;
 }
 
+void structure_detail_objects_initialize(void)
+{
+  int base;
+
+  base = (int)game_state_malloc("structure detail objects", 0, 0xa430);
+  *(int *)(base + 0xa420) = 0;
+  *(int *)(base + 0xa424) = 0;
+  *(int *)(base + 0xa428) = 0x3f800000; /* 1.0f */
+  *(int *)0x4d8ea0 = base;
+  *(int *)(base + 0xa42c) = 0;
+}
+
 /* FUN_00194360 (0x194360)
  * qsort/bsort comparator. Two cdecl stack args are pointers to records.
  * Reads a signed int16 field at offset +0x10 of each record and orders
@@ -1497,6 +1509,31 @@ void FUN_00196060(int object_handle, float *position, float radius,
   }
 }
 
+void structure_runtime_decals_initialize(void)
+{
+  *(void **)0x4d8ec8 = game_state_malloc("structure decals", 0, 4);
+  if (*(void **)0x4d8ec8 == NULL) {
+    display_assert("structure_decals_globals",
+                   "c:\\halo\\SOURCE\\structures\\structure_runtime_decals.c",
+                   0x1c, true);
+    system_exit(-1);
+  }
+}
+
+void structure_runtime_decals_initialize_for_new_map(void)
+{
+  uint8_t *runtime_decal_globals = *(uint8_t **)0x4d8ec8;
+
+  if (runtime_decal_globals == NULL) {
+    display_assert("structure_decals_globals",
+                   "c:\\halo\\SOURCE\\structures\\structure_runtime_decals.c",
+                   0x24, true);
+    system_exit(-1);
+  }
+
+  *runtime_decal_globals = 0;
+}
+
 /* FUN_00198180 (0x198180) render_structure_visibility:
  *   Per-frame rebuild of the structure BSP visibility bitvectors, followed by
  *   construction of the rendered-cluster list and dispatch to the fast or
@@ -1699,6 +1736,100 @@ void structures_cluster_marker_end(void)
   *(uint8_t *)0x4d92e1 = 0;
 }
 
+/* structure_render_surface_from_point_and_leaf (0x198580)
+ *
+ * Walks the surfaces of one BSP leaf (leaf_index into the scenario's leaf tag
+ * block at +0xe0, element 0x10; low 31 bits used as index) looking for one
+ * whose material's first field matches material_type.  For each surface whose
+ * material reference is valid (!= -1) and matches, it resolves the surface's
+ * triangle (indices tag block at +0xf8, element 6 = 3 uint16), finds the
+ * geometry material/section (via structure_bsp_find_material_for_surface, which
+ * writes out_collection_index / out_geometry_index), fetches the three vertex
+ * positions (vertex stride 0x20, vertices base at section+0xf8) into three
+ * vec3 buffers, and hands them to FUN_0010d830 (ray/point-vs-triangle test)
+ * along with the caller's context and the out_u/out_v pointers.  On the first
+ * triangle that passes, it stores the surface index into *out_surface and
+ * returns 1; otherwise 0.
+ *
+ * Confirmed from disassembly at 0x198580:
+ *   - param_2 masked with 0x7fffffff before use as a tag-block index (§7
+ *     datum/handle low-word extraction).
+ *   - CDECL arg mis-group (§7): Ghidra rendered the material lookup as a 5-arg
+ *     call + a 1-arg call.  The disasm (6 pushes, two ADD ESP,0xc) proves TWO
+ *     3-arg tag_block_get_element calls: first resolves the structure_bsp
+ *     reference (scenario+0xb0, index 0, size 0x60); its RESULT is the block
+ *     base of the second call (index surface_ref[1], element size 0xc).
+ *   - Only surface modes 0 and 1 (short at section+0xb0) proceed to rasterize.
+ *   - Return is a bool in AL only (Ghidra's CONCAT31 / (x & 0xffffff00) high
+ *     bytes are garbage EAX residue, not part of the value).
+ *   - FUN_001935f0 (structure_bsp_find_material_for_surface) is invoked with 4
+ *     cdecl args and writes the two short OUT params, which are read back
+ *     immediately.
+ */
+char structure_render_surface_from_point_and_leaf(
+  void *render_context, uint32_t leaf_index, int material_type,
+  int16_t *out_collection_index, int16_t *out_geometry_index,
+  int32_t *out_surface, float *out_u, float *out_v)
+{
+  void *scenario;
+  char *leaf;
+  int start;
+  int end;
+  int surface;
+  int *surface_ref;
+  void *structure_bsp;
+  int *material;
+  uint16_t *tri;
+  char *collection;
+  char *section;
+  char *vertices;
+  float v0[3];
+  float v1[3];
+  float v2[3];
+
+  scenario = scenario_get();
+  leaf = tag_block_get_element((char *)scenario + 0xe0,
+                               (int)(leaf_index & 0x7fffffff), 0x10);
+  start = *(int *)(leaf + 0xc);
+  end = *(int16_t *)(leaf + 0xa) + start;
+  if (end <= start) {
+    return 0;
+  }
+
+  surface = start;
+  do {
+    surface_ref = tag_block_get_element((char *)scenario + 0xec, surface, 8);
+    if (surface_ref[1] != -1) {
+      structure_bsp = tag_block_get_element((char *)scenario + 0xb0, 0, 0x60);
+      material = tag_block_get_element(structure_bsp, surface_ref[1], 0xc);
+      if (*material == material_type) {
+        tri = tag_block_get_element((char *)scenario + 0xf8, *surface_ref, 6);
+        structure_bsp_find_material_for_surface(
+          scenario, *surface_ref, out_collection_index, out_geometry_index);
+        collection = tag_block_get_element((char *)scenario + 0x104,
+                                           (int)*out_collection_index, 0x20);
+        section = tag_block_get_element(collection + 0x14,
+                                        (int)*out_geometry_index, 0x100);
+        if (*(int16_t *)(section + 0xb0) == 0 ||
+            *(int16_t *)(section + 0xb0) == 1) {
+          vertices = *(char **)(section + 0xf8);
+          FUN_00180500((float *)(vertices + (uint32_t)tri[0] * 0x20), v0);
+          FUN_00180500((float *)(vertices + (uint32_t)tri[1] * 0x20), v1);
+          FUN_00180500((float *)(vertices + (uint32_t)tri[2] * 0x20), v2);
+          if (FUN_0010d830((float *)render_context, v0, v1, v2, out_u, out_v) !=
+              0) {
+            *out_surface = *surface_ref;
+            return 1;
+          }
+        }
+      }
+    }
+    surface = surface + 1;
+  } while (surface < end);
+
+  return 0;
+}
+
 bool structure_get_planar_fog(void *scenario, int16_t portal_index,
                               float *position, float radius)
 {
@@ -1852,40 +1983,4 @@ int16_t structure_find_in_cluster(uint16_t cluster_count, float *position,
   }
 
   return 0;
-}
-
-void structure_detail_objects_initialize(void)
-{
-  int base;
-
-  base = (int)game_state_malloc("structure detail objects", 0, 0xa430);
-  *(int *)(base + 0xa420) = 0;
-  *(int *)(base + 0xa424) = 0;
-  *(int *)(base + 0xa428) = 0x3f800000; /* 1.0f */
-  *(int *)0x4d8ea0 = base;
-  *(int *)(base + 0xa42c) = 0;
-}
-void structure_runtime_decals_initialize(void)
-{
-  *(void **)0x4d8ec8 = game_state_malloc("structure decals", 0, 4);
-  if (*(void **)0x4d8ec8 == NULL) {
-    display_assert("structure_decals_globals",
-                   "c:\\halo\\SOURCE\\structures\\structure_runtime_decals.c",
-                   0x1c, true);
-    system_exit(-1);
-  }
-}
-
-void structure_runtime_decals_initialize_for_new_map(void)
-{
-  uint8_t *runtime_decal_globals = *(uint8_t **)0x4d8ec8;
-
-  if (runtime_decal_globals == NULL) {
-    display_assert("structure_decals_globals",
-                   "c:\\halo\\SOURCE\\structures\\structure_runtime_decals.c",
-                   0x24, true);
-    system_exit(-1);
-  }
-
-  *runtime_decal_globals = 0;
 }
