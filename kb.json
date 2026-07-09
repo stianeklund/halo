@@ -23194,7 +23194,7 @@
         },
         {
           "addr": "0x1935f0",
-          "decl": "void structure_bsp_find_material_for_surface(void);"
+          "decl": "void structure_bsp_find_material_for_surface(void *scenario, int surface_index, int16_t *out_collection_index, int16_t *out_geometry_index);"
         },
         {
           "addr": "0x1937a0",
@@ -23764,7 +23764,10 @@
         },
         {
           "addr": "0x198580",
-          "decl": "void structure_render_surface_from_point_and_leaf(void);"
+          "decl": "char structure_render_surface_from_point_and_leaf(void *render_context, uint32_t leaf_index, int material_type, int16_t *out_collection_index, int16_t *out_geometry_index, int32_t *out_surface, float *out_u, float *out_v);",
+          "ported": true,
+          "name": "structure_render_surface_from_point_and_leaf",
+          "source_path": "src/halo/structures/structures.c"
         },
         {
           "addr": "0x198730",
