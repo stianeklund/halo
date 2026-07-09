@@ -1989,6 +1989,125 @@ int16_t FUN_001989b0(uint16_t cluster_count, float *position, float radius,
   return (int16_t)visited_count;
 }
 
+/* structure_clusters_in_cone (0x198ad0)
+ *
+ * Iterative flood-fill over the scenario's structure clusters, collecting
+ * every cluster reachable through portals whose bounding sphere falls inside
+ * a view cone, up to max_count output clusters.  This is the cone analog of
+ * structure_find_in_cluster / FUN_001989b0 (which flood-fill with a sphere
+ * via structure_get_planar_fog); here the portal-vs-cone test is FUN_00110210
+ * against the portal bounding sphere (center at portal+8, radius at
+ * portal+0x14) and the cone (apex `point`, axis `direction`, `length`, and
+ * half-angle sine/cosine).
+ *
+ * Unlike structure_find_in_cluster, MSVC inlined the cluster-marker begin/end
+ * here: the top asserts !cluster_marker_initialized (line 0x103), bumps the
+ * marker generation counter (0x4d92e4) and sets the flag; the tail asserts
+ * cluster_marker_initialized (line 0x130) and clears it.
+ *
+ * Confirmed from decompile:
+ *   - work_stack[MAXIMUM_CLUSTERS_PER_STRUCTURE=512] on the frame, seeded with
+ *     starting_cluster; push bounded by the 0xf5 assert (stack_depth < 512).
+ *   - clusters tag block at scenario+0x134 (stride 0x68); each cluster's
+ *     portal-index block header at cluster+0x5c (count = *(int*)); index
+ *     elements int16 (stride 2).
+ *   - cluster_portals tag block at scenario+0x154 (stride 0x40); portal[0]/
+ *     portal[1] = front/back cluster (int16); if front == current, take back.
+ *   - FUN_00110210 float arg #2 = *(float*)(portal+0x14) (radius), a float,
+ *     NOT a pointer.
+ * Inferred: point/direction/length param semantics from FUN_00110210's
+ *   signature (only forwarded here); return = count of clusters written.
+ */
+int16_t structure_clusters_in_cone(int16_t starting_cluster, float *point,
+                                   float *direction, float length, float sine,
+                                   float cosine, int16_t max_count,
+                                   int16_t *out_indices)
+{
+  int16_t work_stack[512];
+  void *scenario;
+  int stack_depth;
+  int output_count;
+  int work_depth;
+  int next_output;
+
+  if (*(uint8_t *)0x4d92e1 != 0) {
+    display_assert("!structure_globals.cluster_marker_initialized",
+                   "c:\\halo\\SOURCE\\structures\\structures.c", 0x103, true);
+    system_exit(-1);
+  }
+  *(uint32_t *)0x4d92e4 += 1;
+  *(uint8_t *)0x4d92e1 = 1;
+
+  scenario = scenario_get();
+  structure_cluster_mark(starting_cluster);
+  work_stack[0] = starting_cluster;
+  stack_depth = 1;
+  output_count = 0;
+
+  do {
+    int16_t current_cluster;
+    char *cluster;
+    int *portal_count;
+
+    if (max_count <= (int16_t)output_count) {
+      break;
+    }
+
+    stack_depth -= 1;
+    current_cluster = work_stack[(int16_t)stack_depth];
+    work_depth = stack_depth;
+    cluster = tag_block_get_element((char *)scenario + 0x134,
+                                    (int)current_cluster, 0x68);
+    next_output = output_count + 1;
+    portal_count = (int *)(cluster + 0x5c);
+    out_indices[(int16_t)output_count] = current_cluster;
+
+    if (*portal_count > 0) {
+      int16_t portal_iter = 0;
+
+      do {
+        int16_t *portal_index_ptr =
+          tag_block_get_element(portal_count, (int)portal_iter, 2);
+        int16_t *portal = tag_block_get_element((char *)scenario + 0x154,
+                                                (int)*portal_index_ptr, 0x40);
+        int16_t adjacent_cluster = portal[0];
+
+        if (adjacent_cluster == current_cluster) {
+          adjacent_cluster = portal[1];
+        }
+
+        if (structure_cluster_unmarked(adjacent_cluster) &&
+            FUN_00110210((float *)(portal + 4), *(float *)(portal + 10), point,
+                         direction, length, sine, cosine)) {
+          structure_cluster_mark(adjacent_cluster);
+          if ((int16_t)work_depth > 0x1ff) {
+            display_assert("stack_depth<MAXIMUM_CLUSTERS_PER_STRUCTURE",
+                           "c:\\halo\\SOURCE\\structures\\structures.c", 0xf5,
+                           true);
+            system_exit(-1);
+          }
+          work_stack[(int16_t)work_depth] = adjacent_cluster;
+          work_depth += 1;
+        }
+
+        portal_iter += 1;
+        stack_depth = work_depth;
+      } while ((int)portal_iter < *portal_count);
+    }
+
+    output_count = next_output;
+  } while (0 < (int16_t)stack_depth);
+
+  if (*(uint8_t *)0x4d92e1 == 0) {
+    display_assert("structure_globals.cluster_marker_initialized",
+                   "c:\\halo\\SOURCE\\structures\\structures.c", 0x130, true);
+    system_exit(-1);
+  }
+  *(uint8_t *)0x4d92e1 = 0;
+
+  return (int16_t)output_count;
+}
+
 int16_t structure_find_in_cluster(uint16_t cluster_count, float *position,
                                   float radius, int max_count,
                                   int16_t *intersected_indices)
