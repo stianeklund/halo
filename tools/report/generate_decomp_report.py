@@ -602,10 +602,15 @@ def generate_report(output_path: str) -> dict:
     # Prefer honest current scores (vc71_current.json, gated on reference
     # validity) so the dashboard shows present truth rather than the floored
     # high-water-mark tripwire (vc71_scores.json).  Fall back to the floor when
-    # the honest snapshot has not been generated yet.
+    # the honest snapshot has not been generated yet OR is empty: a failed or
+    # partial `populate` (e.g. a CI run where delinked/ was not linked) leaves a
+    # vc71_current.json with no `scores`, and blindly preferring it merely
+    # because the file exists shadows the committed floor and blanks EVERY
+    # match% on the published dashboard (gh-pages 2026-07-09 regression: all
+    # 3474 functions rendered a bare match while the tracked floor held 3689
+    # real scores).  The floor is tracked in git, so it is always available.
     vc71_current = os.path.join(root_dir, 'tools', 'verify', 'vc71_current.json')
     vc71_floor = os.path.join(root_dir, 'tools', 'verify', 'vc71_scores.json')
-    vc71_path = vc71_current if os.path.exists(vc71_current) else vc71_floor
     leaf_cache_path = os.path.join(root_dir, 'tools', 'equivalence', 'leaf_cache.json')
     
     # Load knowledge base
@@ -616,11 +621,29 @@ def generate_report(output_path: str) -> dict:
     # Load function sizes
     function_cache = load_function_sizes(cache_path)
     
-    # Load VC71 match scores
-    vc71_scores = {}
-    if os.path.exists(vc71_path):
-        with open(vc71_path) as f:
-            vc71_scores = json.load(f)
+    # Load VC71 match scores.  Use the current snapshot only when it actually
+    # carries scores; otherwise fall back to the tracked floor (see above).
+    def _load_vc71(path):
+        if not os.path.exists(path):
+            return {}
+        try:
+            with open(path) as f:
+                return json.load(f)
+        except (OSError, ValueError):
+            return {}
+
+    vc71_scores = _load_vc71(vc71_current)
+    if not vc71_scores.get('scores'):
+        floor_scores = _load_vc71(vc71_floor)
+        if floor_scores.get('scores'):
+            if os.path.exists(vc71_current):
+                print(
+                    'WARNING: vc71_current.json has no scores; falling back to '
+                    'the committed floor vc71_scores.json '
+                    f'({len(floor_scores.get("scores", {}))} scores)',
+                    file=sys.stderr,
+                )
+            vc71_scores = floor_scores
     
     # Load equivalence leaf cache
     leaf_cache = {}
