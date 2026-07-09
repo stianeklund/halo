@@ -23656,7 +23656,7 @@
         {
           "addr": "0x196290",
           "decl": "void structure_runtime_decals_initialize(void);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1962d0",
