@@ -23500,6 +23500,18 @@
           "source_path": "src/halo/structures/structures.c"
         },
         {
+          "addr": "0x191b20",
+          "decl": "int32_t leaf_map_node_stack_pop(void);",
+          "ported": true,
+          "source_path": "src/halo/structures/structures.c"
+        },
+        {
+          "addr": "0x191b60",
+          "decl": "int32_t leaf_map_node_stack_peek(int16_t levels_up@<si>);",
+          "ported": true,
+          "source_path": "src/halo/structures/structures.c"
+        },
+        {
           "addr": "0x191ba0",
           "decl": "void FUN_00191ba0(void *base);",
           "ported": true

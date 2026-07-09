@@ -9123,6 +9123,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x191b20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x191b60": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x191cb0": {
       "kind": "function",
       "status": "ported"
