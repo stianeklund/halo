@@ -23661,7 +23661,9 @@
         },
         {
           "addr": "0x195ec0",
-          "decl": "void FUN_00195ec0(void);"
+          "decl": "void FUN_00195ec0(void);",
+          "ported": true,
+          "source_path": "src/halo/structures/structures.c"
         },
         {
           "addr": "0x195f30",
@@ -28108,7 +28110,7 @@
         },
         {
           "addr": "0x17cf10",
-          "decl": "void FUN_0017cf10(void);"
+          "decl": "void FUN_0017cf10(int pass_index);"
         },
         {
           "addr": "0x17cf20",

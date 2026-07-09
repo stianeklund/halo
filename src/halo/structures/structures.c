@@ -3607,3 +3607,40 @@ void set_file_location_volume_name(int16_t location, const char *volume_name)
   csstrncpy(file_location_volume_names + location * 0x100, volume_name, 0xff);
   file_location_volume_names[location * 0x100 + 0xff] = '\0';
 }
+
+/* FUN_00195ec0 (0x195ec0)
+ *
+ * Two-pass structure lightmap draw driver.  Sibling of FUN_00195b10 /
+ * FUN_00195c40 but with no scenario_get / 0x3256b0 save-restore: when the map
+ * has a valid lightmap pass (byte at 0x4d8eb0 != 0) it runs the per-surface
+ * draw walk (FUN_00195790) twice, once per pass -- FUN_0017cf10(0) then
+ * FUN_0017cf10(1) select the pass index -- with a fog emit (FUN_00167920)
+ * after each walk.
+ *
+ * Confirmed from disassembly at 0x195ec0 (delinked/functions/00195ec0.obj):
+ *  - Gate: MOV AL,[0x4d8eb0]; TEST AL,AL; JZ end.
+ *  - FUN_0017cf10 takes one int arg (PUSH 0 / PUSH 1).  Stack cleanup is
+ *    deferred to a single ADD ESP,0x38 at the end (0x38 = 56 = 4 + 24 + 4 + 24:
+ *    the two cf10 args plus two 6-stack-arg FUN_00195790 calls).
+ *  - FUN_00195790 takes an @eax pointer (MOV EAX,0x5937d4 = surface->material
+ *    offset table) plus 6 stack args.  Push order (first push = last C arg):
+ *    0 (param_7), 0 (pass_end_cb), 0x17cf20 (surface_draw_cb), 0
+ *    (material_begin_cb), *0x4d8eb4 (lightmap_pass_index), zero-extended uint16
+ *    @0x5937d0 (surface_count, XOR ECX,ECX / MOV CX read).
+ *  - Two distinct globals: uint16 count @0x5937d0 vs int[] offsets @0x5937d4.
+ *  - FUN_0017cf20 is passed as a raw callback address, not called here.
+ *  - FUN_00167920 (fog emit) takes no args.
+ */
+void FUN_00195ec0(void)
+{
+  if (*(char *)0x4d8eb0 != 0) {
+    FUN_0017cf10(0);
+    FUN_00195790((int *)0x5937d4, *(unsigned short *)0x5937d0, *(int *)0x4d8eb4,
+                 0, (void *)FUN_0017cf20, 0, 0);
+    FUN_00167920();
+    FUN_0017cf10(1);
+    FUN_00195790((int *)0x5937d4, *(unsigned short *)0x5937d0, *(int *)0x4d8eb4,
+                 0, (void *)FUN_0017cf20, 0, 0);
+    FUN_00167920();
+  }
+}
