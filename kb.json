@@ -585,7 +585,7 @@
         },
         {
           "addr": "0x196eb0",
-          "decl": "void FUN_00196eb0(void);"
+          "decl": "float *FUN_00196eb0(float *parent_bounds, unsigned char *fractions, float *out_bounds);"
         },
         {
           "addr": "0x1a4440",
@@ -23696,7 +23696,7 @@
         },
         {
           "addr": "0x197130",
-          "decl": "void FUN_00197130(void);"
+          "decl": "int FUN_00197130(float *bounds, void *param_2, int *param_3, int count, float *center, float radius, float *cull_bounds, int param_8, int param_9, int intersection);"
         },
         {
           "addr": "0x197310",
@@ -23716,7 +23716,8 @@
         },
         {
           "addr": "0x1978a0",
-          "decl": "void FUN_001978a0(void);"
+          "decl": "unsigned int FUN_001978a0(int node_index, float *parent_bounds, void *param_3, int *param_4, int param_5, float *center, float radius, float *cull_bounds, int param_9, int param_10, int intersection);",
+          "ported": true
         },
         {
           "addr": "0x197e90",
@@ -23910,11 +23911,11 @@
         },
         {
           "addr": "0x196a60",
-          "decl": "void FUN_00196a60(void);"
+          "decl": "int FUN_00196a60(float *cull_bounds @<ecx>, float *bounds @<edx>);"
         },
         {
           "addr": "0x196b10",
-          "decl": "void FUN_00196b10(void);"
+          "decl": "int FUN_00196b10(float *bounds @<eax>, int param_2, int param_3);"
         },
         {
           "addr": "0x197b00",
