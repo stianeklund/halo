@@ -3887,3 +3887,22 @@ void set_file_location_volume_name(int16_t location, const char *volume_name)
   csstrncpy(file_location_volume_names + location * 0x100, volume_name, 0xff);
   file_location_volume_names[location * 0x100 + 0xff] = '\0';
 }
+
+/* structure_detail_objects_initialize_for_new_map @ 0x193bb0
+ * Per-map reset of the detail_object_global_runtime_data block. Asserts the
+ * block was allocated (sibling structure_detail_objects_initialize stores the
+ * base at 0x4d8ea0), then zeroes the whole 0xa430-byte block and clears the
+ * byte at base+0x520e. display_assert lineno 0x6d (109), halt=1; on failure
+ * the original tail-calls system_exit(-1) (the assert hard-exit).
+ * Global 0x4d8ea0 re-read (not cached) to match the original. */
+void structure_detail_objects_initialize_for_new_map(void)
+{
+  if (*(int *)0x4d8ea0 == 0) {
+    display_assert("detail_object_global_runtime_data",
+                   "c:\\halo\\SOURCE\\structures\\structure_detail_objects.c",
+                   0x6d, 1);
+    system_exit(-1);
+  }
+  csmemset(*(void **)0x4d8ea0, 0, 0xa430);
+  *(uint8_t *)(*(int *)0x4d8ea0 + 0x520e) = 0;
+}
