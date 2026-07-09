@@ -23233,7 +23233,8 @@
         },
         {
           "addr": "0x61dc0",
-          "decl": "void FUN_00061dc0(void);"
+          "decl": "void FUN_00061dc0(float *point, float rot_sin, float rot_cos, float *out);",
+          "ported": true
         },
         {
           "addr": "0x61df0",
