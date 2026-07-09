@@ -23788,8 +23788,8 @@
         },
         {
           "addr": "0x198540",
-          "decl": "void structure_cluster_marker_end(void);",
-          "ported": false
+          "decl": "void structures_cluster_marker_end(void);",
+          "ported": true
         },
         {
           "addr": "0x198580",
