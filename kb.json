@@ -18829,7 +18829,8 @@
         },
         {
           "addr": "0x10c440",
-          "decl": "void FUN_0010c440(void);"
+          "decl": "float FUN_0010c440(float *param_1, float *param_2);",
+          "name": "FUN_0010c440"
         },
         {
           "addr": "0x10c780",
@@ -23360,7 +23361,11 @@
         },
         {
           "addr": "0x106030",
-          "decl": "void FUN_00106030(void);"
+          "decl": "int FUN_00106030(void *param_1, int param_2, short param_3, int param_4);",
+          "name": "FUN_00106030",
+          "ported": true,
+          "source_path": "src/halo/structures/structures.c",
+          "object": "structures.obj"
         },
         {
           "addr": "0x106130",
