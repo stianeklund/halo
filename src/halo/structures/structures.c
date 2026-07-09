@@ -65,6 +65,71 @@ void FUN_00061d80(int16_t *out)
   return;
 }
 
+/* FUN_00062020 (0x62020)  --  add_obstacle (path_obstacles.c)
+ *
+ * Append one obstacle record to an obstacle-set.  The set header is a small
+ * int16 struct: [+0x00] obstacle_count, [+0x02] disc_count (element count,
+ * MAXIMUM_DISC_COUNT == 0x80), [+0x04] a secondary count bumped only when the
+ * flags low bit is set.  Records begin at +0x08 with a 24-byte (0xc short)
+ * stride; record N lives at (char *)set + N*24 + 8.
+ *
+ * Two bounds asserts (path_obstacles.c lines 0x68/0x69) then a capacity guard
+ * that returns false when the set is full.  On success the new record is
+ * filled and true is returned.
+ *
+ * Field-copy widths are taken from the disassembly (0x62020): rec+0x0c is an
+ * x87 float copy (FLD/FSTP) of vector[j]; rec+0x08 and rec+0x14 are raw 32-bit
+ * dword copies (integer MOV) of vector[i] and vector[2].  DAT_0028cb24 /
+ * DAT_0028cb26 are int16 axis-index selectors (read via MOVSX), i.e. the two
+ * projected components of the vector.  cdecl, five stack args, bool in AL.
+ */
+bool FUN_00062020(int16_t *obstacle_set, uint32_t datum, uint16_t flags,
+                  float *vector, uint32_t param_5)
+{
+  int16_t disc_count;
+  int16_t i;
+  int16_t j;
+  char *rec;
+
+  /* obstacles->disc_count>=0 && obstacles->disc_count<=MAXIMUM_DISC_COUNT */
+  if (obstacle_set[1] < 0 || obstacle_set[1] > 0x80) {
+    display_assert(
+      "obstacles->disc_count>=0 && obstacles->disc_count<=MAXIMUM_DISC_COUNT",
+      "c:\\halo\\SOURCE\\ai\\path_obstacles.c", 0x68, 1);
+    system_exit(-1);
+  }
+  /* obstacles->obstacle_count>=0 &&
+   * obstacles->obstacle_count<=obstacles->disc_count */
+  if (obstacle_set[0] < 0 || obstacle_set[0] > obstacle_set[1]) {
+    display_assert("obstacles->obstacle_count>=0 && "
+                   "obstacles->obstacle_count<=obstacles->disc_count",
+                   "c:\\halo\\SOURCE\\ai\\path_obstacles.c", 0x69, 1);
+    system_exit(-1);
+  }
+
+  disc_count = obstacle_set[1];
+  if (disc_count == 0x80)
+    return false; /* set is full */
+
+  obstacle_set[1] = disc_count + 1;
+  rec = (char *)obstacle_set + disc_count * 24 + 8;
+  if ((flags & 1) != 0)
+    obstacle_set[2] = obstacle_set[2] + 1;
+
+  *(uint16_t *)(rec + 0x00) = flags;
+  *(uint32_t *)(rec + 0x04) = datum;
+  *(uint16_t *)(rec + 0x02) = 0xffff;
+
+  i = *(int16_t *)0x28cb24;
+  j = *(int16_t *)0x28cb26;
+  *(uint32_t *)(rec + 0x08) = *(uint32_t *)&vector[i];
+  *(float *)(rec + 0x0c) = vector[j];
+  *(uint32_t *)(rec + 0x10) = param_5;
+  *(uint32_t *)(rec + 0x14) = *(uint32_t *)&vector[2];
+
+  return true;
+}
+
 /* FUN_00099220 (0x99220)
  *
  * Determine the dominant axis of a plane normal.  Returns the index

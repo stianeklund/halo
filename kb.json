@@ -23256,7 +23256,8 @@
         },
         {
           "addr": "0x62020",
-          "decl": "void FUN_00062020(void);"
+          "decl": "bool FUN_00062020(int16_t *obstacle_set, uint32_t datum, uint16_t flags, float *vector, uint32_t param_5);",
+          "ported": true
         },
         {
           "addr": "0x620f0",
