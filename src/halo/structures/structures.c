@@ -197,6 +197,260 @@ bool FUN_00062020(int16_t *obstacle_set, uint32_t datum, uint16_t flags,
   return true;
 }
 
+/* FUN_00198f10 (0x198f10) — resolve planar-fog render parameters
+ *
+ * Fills the caller's fog-parameter record (`fog`, ~0x4c bytes; the single
+ * caller FUN_00185290 passes &global 0x506730) for portal/cluster `index`
+ * (uint16 loaded zero-extended from global 0x506784 by the caller).
+ *
+ * Confirmed from decompile + disassembly:
+ *   - NULL `fog` asserts: display_assert("fog", ".../structures.c", 0x1f1, 1)
+ *     then system_exit(-1). String at 0x29dc54 = "fog" (byte-verified).
+ *   - tag_get(0x666f6720='fog ', fog_index) returns the fog tag definition.
+ *   - fog type word at fog+0x1c: 0=none/early-out, 1=planar plane present,
+ *     2=atmospheric.  from_object path (fog came via FUN_0018e7d0 marker,
+ *     not a portal) instead ORs bit0 into fog+0x02.
+ *   - portal element (scenario+0x134, size 0x68): byte+3 & 0x80 == ushort+2
+ *     bit15 (== (short)ushort < 0); both tests reproduced as written.
+ *   - FLOAT_002533c0 = 0.0f (byte-verified at 0x2533c0); reproduced as the
+ *     literal 0.0f (FMUL against a 0.0 rodata constant).
+ *   - vec[3] (decomp local_14/local_10/local_c, contiguous EBP-0x14..-0xc) is
+ *     declared as a float[3] so &vec[0] passed to FUN_001954e0 (normalize) is
+ *     a contiguous buffer; local_c's reuse as the scale temp is mirrored in
+ *     vec[2].
+ *   - Field-copy store order (fog+0x30..0x44 from fog_tag+0x78/0x7c/0x80/
+ *     0x58/0x68/0x60) preserved exactly as MSVC scheduled it (0x3c before
+ *     0x44 before 0x40).
+ *   - Two tag_block_get_element calls have their results discarded (bounds/
+ *     assert side-effect only) — preserved faithfully.
+ *   - cdecl, 2 stack args (no ADD ESP shown at the call site; caller cleans 8).
+ */
+void FUN_00198f10(int index, void *fog)
+{
+  void *scenario;
+  void *marker;
+  char *portal;
+  char *plane;
+  short *fog_tag;
+  char *out;
+  int fog_index;
+  short portal_idx;
+  char from_object;
+  float vec[3];
+
+  out = (char *)fog;
+  scenario = scenario_get();
+  from_object = 0;
+
+  if (fog == NULL) {
+    display_assert("fog", "c:\\halo\\SOURCE\\structures\\structures.c", 0x1f1,
+                   1);
+    system_exit(-1);
+  }
+
+  *(short *)(out + 0x1c) = 0;
+  *(short *)out = 0;
+  *(int *)(out + 0x48) = 0;
+
+  fog_index = structure_get_planar_fog_definition_index(scenario, index, 0);
+  portal_idx = (short)index;
+
+  if (fog_index == -1) {
+    if (portal_idx != -1) {
+      tag_block_get_element((char *)scenario + 0x134, (int)portal_idx, 0x68);
+      marker = FUN_0018e7d0(0);
+      if (marker != NULL) {
+        fog_index = *(int *)((char *)marker + 0xa4);
+      }
+    }
+    from_object = 1;
+    if (fog_index == -1) {
+      return;
+    }
+  }
+
+  scenario = scenario_get();
+  portal = (char *)tag_block_get_element((char *)scenario + 0x134,
+                                         (int)portal_idx, 0x68);
+  fog_tag = (short *)tag_get(0x666f6720, fog_index);
+
+  if (from_object == 0) {
+    if ((*(unsigned char *)(portal + 3) & 0x80) == 0) {
+      *(short *)(out + 0x1c) = 2;
+    } else {
+      *(short *)(out + 0x1c) = 1;
+      plane = (char *)tag_block_get_element(
+        (char *)scenario + 0x178, *(unsigned short *)(portal + 2) & 0x7fff,
+        0x20);
+      *(int *)(out + 0x20) = *(int *)(plane + 4);
+      *(int *)(out + 0x24) = *(int *)(plane + 8);
+      *(int *)(out + 0x28) = *(int *)(plane + 0xc);
+      *(int *)(out + 0x2c) = *(int *)(plane + 0x10);
+    }
+    *(int *)(out + 0x30) = *(int *)((char *)fog_tag + 0x78);
+    *(int *)(out + 0x34) = *(int *)((char *)fog_tag + 0x7c);
+    *(int *)(out + 0x38) = *(int *)((char *)fog_tag + 0x80);
+    *(int *)(out + 0x3c) = *(int *)((char *)fog_tag + 0x58);
+    *(int *)(out + 0x44) = *(int *)((char *)fog_tag + 0x68);
+    *(int *)(out + 0x40) = *(int *)((char *)fog_tag + 0x60);
+    if ((short)*(unsigned short *)(portal + 2) < 0) {
+      tag_block_get_element((char *)scenario + 0x178,
+                            *(unsigned short *)(portal + 2) & 0x7fff, 0x20);
+      vec[2] = *(float *)((char *)fog_tag + 4) * 0.0f; /* FLOAT_002533c0 */
+      *(float *)(out + 0x2c) = vec[2] + *(float *)(out + 0x2c);
+      vec[0] = vec[2] * *(float *)(out + 0x20);
+      vec[1] = vec[2] * *(float *)(out + 0x24);
+      vec[2] = vec[2] * *(float *)(out + 0x28);
+      FUN_001954e0(vec);
+    }
+  } else {
+    *(unsigned char *)(out + 2) |= 1;
+  }
+
+  *(short *)out = *fog_tag;
+  *(void **)(out + 0x48) = (char *)fog_tag + 0x84;
+}
+/* path_obstacles.c — AI path obstacle-disc connectivity.
+ *
+ * Corresponds to a routine in structures.obj (its sole ported caller,
+ * cluster_partition_assign_groups / FUN_000628b0 at 0x628b0, lives in
+ * src/halo/structures/structures.c).  __FILE__ evidence for this function is
+ * c:\halo\SOURCE\ai\path_obstacles.c (from its display_assert strings at
+ * lines 0x183, 0x18c, 0x1a5); two interior asserts cite
+ * c:\halo\source\ai\path.h (0x18c) verbatim.
+ *
+ * Ported: FUN_00062680 (0x62680) — flood-fill of the "obstacle disc" set.
+ */
+
+#include "../../common.h"
+
+/* 0x0062680 — FUN_00062680
+ *
+ * Given an obstacle-disc set (obstacles), a shared radius pad (arg2, an
+ * IEEE-754 float smuggled through a uint32_t stack slot — the ported caller
+ * forwards it as an opaque dword), a seed disc index, and an output bitvector,
+ * marks every disc reachable from the seed by "inflated-circle overlap"
+ * connectivity.
+ *
+ * Two discs A and B are connected when the squared centre distance is <= the
+ * squared sum of their pad-inflated radii:
+ *     dx = B.x - A.x ; dy = B.y - A.y
+ *     dx*dx + dy*dy <= ((pad + B.radius) + (pad + A.radius))^2
+ * The search is an iterative worklist flood-fill seeded at seed_disc_index; the
+ * result is a 1-bit-per-disc membership bitvector (index>>5 dword,
+ * 1<<(index&31) bit).
+ *
+ * Obstacle-set layout (byte offsets from the base pointer, disasm-confirmed):
+ *   +0x02  int16  disc_count           (0 <= disc_count <= 0x80)
+ *   +0x08  disc[] base, stride 0x18 (24 bytes)
+ *     disc +0x08 float x
+ *     disc +0x0c float y
+ *     disc +0x10 float radius
+ * MAXIMUM_DISC_COUNT = 0x80 = 128.
+ *
+ * FPU order is disassembly-authoritative (0x17a-0x1ad): the inflated-radius sum
+ * evaluates the candidate term first, then the current term; the distance
+ * squared evaluates dx*dx before dy*dy.  Preserve the parenthesisation for
+ * VC71.
+ *
+ * ABI: cdecl, 4 stack args, void return.
+ */
+void FUN_00062680(int16_t *partition, uint32_t arg2, int16_t index,
+                  uint32_t *out_mask)
+{
+  uint32_t *mask_word;
+  int cand_base;
+  float inflated_sum;
+  float dx;
+  float dy;
+  int top_prev;
+  int16_t disc_idx;
+  int i;
+  int16_t disc_count;
+  uint32_t bit;
+  int16_t stack[128];
+  int cur_base;
+  int top;
+  int base;
+
+  base = (int)partition;
+
+  if ((*(int16_t *)(base + 2) < 0) || (0x80 < *(int16_t *)(base + 2))) {
+    display_assert(
+      "obstacles->disc_count>=0 && obstacles->disc_count<=MAXIMUM_DISC_COUNT",
+      "c:\\halo\\SOURCE\\ai\\path_obstacles.c", 0x183, 1);
+    system_exit(-1);
+  }
+  csmemset(out_mask, 0, ((*(int16_t *)(base + 2) + 0x1f) >> 5) << 2);
+  if (index != -1) {
+    if ((index < 0) || (*(int16_t *)(base + 2) <= index)) {
+      display_assert(
+        "seed_disc_index>=0 && seed_disc_index<obstacles->disc_count",
+        "c:\\halo\\SOURCE\\ai\\path_obstacles.c", 0x18c, 1);
+      system_exit(-1);
+    }
+    mask_word = &out_mask[(int)index >> 5];
+    stack[0] = index;
+    *mask_word = *mask_word | 1 << ((uint8_t)index & 0x1f);
+    i = 1;
+    do {
+      i = i + -1;
+      disc_idx = stack[(int16_t)i];
+      top = i;
+      if (((disc_idx < 0) || (*(int16_t *)(base + 2) <= disc_idx)) ||
+          (0x80 < *(int16_t *)(base + 2))) {
+        display_assert("disc_index>=0 && disc_index<obstacles->disc_count && "
+                       "obstacles->disc_count<=MAXIMUM_DISC_COUNT",
+                       "c:\\halo\\source\\ai\\path.h", 0x18c, 1);
+        system_exit(-1);
+      }
+      disc_count = *(int16_t *)(base + 2);
+      cur_base = base + 8 + disc_idx * 0x18;
+      disc_idx = 0;
+      if (0 < disc_count) {
+        do {
+          i = (int)disc_idx;
+          bit = 1 << ((uint8_t)disc_idx & 0x1f);
+          mask_word = &out_mask[i >> 5];
+          if ((*mask_word & bit) == 0) {
+            if (((disc_idx < 0) || (disc_count <= disc_idx)) ||
+                (0x80 < disc_count)) {
+              display_assert(
+                "disc_index>=0 && disc_index<obstacles->disc_count && "
+                "obstacles->disc_count<=MAXIMUM_DISC_COUNT",
+                "c:\\halo\\source\\ai\\path.h", 0x18c, 1);
+              system_exit(-1);
+            }
+            top_prev = top;
+            cand_base = base + 8 + i * 0x18;
+            inflated_sum =
+              (*(float *)&arg2 + *(float *)(base + 0x18 + i * 0x18)) +
+              (*(float *)&arg2 + *(float *)(cur_base + 0x10));
+            dx = *(float *)(cand_base + 8) - *(float *)(cur_base + 8);
+            dy = *(float *)(cand_base + 0xc) - *(float *)(cur_base + 0xc);
+            if (dx * dx + dy * dy <= inflated_sum * inflated_sum) {
+              disc_count = (int16_t)top;
+              *mask_word = *mask_word | bit;
+              if (0x7f < disc_count) {
+                display_assert("stack_top<MAXIMUM_DISC_COUNT",
+                               "c:\\halo\\SOURCE\\ai\\path_obstacles.c", 0x1a5,
+                               1);
+                system_exit(-1);
+              }
+              stack[disc_count] = disc_idx;
+              top = top_prev + 1;
+            }
+          }
+          disc_count = *(int16_t *)(base + 2);
+          disc_idx = disc_idx + 1;
+          i = top;
+        } while (disc_idx < disc_count);
+      }
+    } while (0 < (int16_t)i);
+  }
+  return;
+}
+
 /* FUN_000628b0 (0x628b0)  --  cluster_partition_assign_groups
  * (cluster_partitions.c)
  *
@@ -2139,6 +2393,132 @@ int16_t structure_clusters_in_cone(int16_t starting_cluster, float *point,
   return (int16_t)output_count;
 }
 
+/* structure_test_vector (0x198cb0)
+ *
+ * Traces a vector (point + direction) through the BSP, iteratively firing a
+ * collision raycast (FUN_0014df70, flags 0x21) from the current working point
+ * and, on each hit, asking structure_render_surface_from_point_and_leaf whether
+ * the hit surface's material matches.  A matching surface whose collection
+ * element (scenario+0x104, stride 0x20) is not the -1 sentinel terminates the
+ * trace with success (returns 1).  If the collision result requests a continued
+ * trace (result byte +0x4c bit0), the working point is nudged forward along the
+ * direction by the tiny constant at 0x29ca28 (2^-12) and the loop repeats;
+ * otherwise the trace ends with 0.
+ *
+ * Confirmed from disassembly at 0x198cb0:
+ *   - Collision result is an 80-byte (0x50) struct written by FUN_0014df70 via
+ *     LEA [EBP-0x54]; read fields: +0x0c leaf/cluster index (dword),
+ * +0x18..0x20 hit point (vec3), +0x48 material ref (masked & 0x7fffffff), +0x4c
+ * status byte (bit0 = continue-trace).  Sized per hazard #5 / units.c:9411
+ * sibling.
+ *   - Collision user-stack depth guard (global at 0x4761d8, int16) is pushed/
+ *     popped each iteration with the 0xf marker on the stack array at 0x5a8c80.
+ *   - FUN_00198580 called cdecl with 8 args (ADD ESP,0x20), char return in AL:
+ *     (out_point, leaf, material&0x7fffffff, p4..p8).  p4
+ * (out_collection_index) is the only out-pointer the caller itself dereferences
+ * (validity check).
+ *   - Assert condition strings (single-letter param names): "p", "v",
+ *     "material_index", "surface_index", "s", "t" at lines 0x188-0x18d.
+ */
+char structure_test_vector(float *point, float *direction, float *out_point,
+                           int16_t *out_collection_index,
+                           int16_t *out_material_index,
+                           int32_t *out_surface_index, float *out_u,
+                           float *out_v)
+{
+  char result;
+  char terminate;
+  int16_t depth;
+  void *scenario;
+  int16_t *plane;
+  char collision_result[80];
+
+  result = 0;
+  if (point == NULL) {
+    display_assert("p", "c:\\halo\\SOURCE\\structures\\structures.c", 0x188,
+                   true);
+    system_exit(-1);
+  }
+  if (direction == NULL) {
+    display_assert("v", "c:\\halo\\SOURCE\\structures\\structures.c", 0x189,
+                   true);
+    system_exit(-1);
+  }
+  if (out_material_index == NULL) {
+    display_assert("material_index",
+                   "c:\\halo\\SOURCE\\structures\\structures.c", 0x18a, true);
+    system_exit(-1);
+  }
+  if (out_surface_index == NULL) {
+    display_assert("surface_index",
+                   "c:\\halo\\SOURCE\\structures\\structures.c", 0x18b, true);
+    system_exit(-1);
+  }
+  if (out_u == NULL) {
+    display_assert("s", "c:\\halo\\SOURCE\\structures\\structures.c", 0x18c,
+                   true);
+    system_exit(-1);
+  }
+  if (out_v == NULL) {
+    display_assert("t", "c:\\halo\\SOURCE\\structures\\structures.c", 0x18d,
+                   true);
+    system_exit(-1);
+  }
+
+  out_point[0] = point[0];
+  out_point[1] = point[1];
+  out_point[2] = point[2];
+
+  do {
+    terminate = 1;
+    if (*(int16_t *)0x4761d8 >= 32) {
+      display_assert("global_current_collision_user_depth < "
+                     "MAXIMUM_COLLISION_USER_STACK_DEPTH",
+                     "c:\\halo\\SOURCE\\structures\\structures.c", 0x196, true);
+      system_exit(-1);
+    }
+    depth = *(int16_t *)0x4761d8;
+    *(int16_t *)0x4761d8 = depth + 1;
+    *(int16_t *)(0x5a8c80 + depth * 2) = 0xf;
+
+    if (FUN_0014df70(0x21, out_point, direction, -1,
+                     (int16_t *)collision_result) != 0) {
+      scenario = scenario_get();
+      out_point[0] = *(float *)(collision_result + 0x18);
+      out_point[1] = *(float *)(collision_result + 0x1c);
+      out_point[2] = *(float *)(collision_result + 0x20);
+      if (structure_render_surface_from_point_and_leaf(
+            out_point, *(uint32_t *)(collision_result + 0xc),
+            *(uint32_t *)(collision_result + 0x48) & 0x7fffffff,
+            out_collection_index, out_material_index, out_surface_index, out_u,
+            out_v) != 0) {
+        plane = (int16_t *)tag_block_get_element(
+          (char *)scenario + 0x104, (int)*out_collection_index, 0x20);
+        if (*plane != -1) {
+          result = 1;
+          goto done;
+        }
+      }
+      if ((collision_result[0x4c] & 1) != 0) {
+        terminate = 0;
+        out_point[0] = direction[0] * *(float *)0x29ca28 + out_point[0];
+        out_point[1] = direction[1] * *(float *)0x29ca28 + out_point[1];
+        out_point[2] = direction[2] * *(float *)0x29ca28 + out_point[2];
+      }
+    }
+
+  done:
+    if (*(int16_t *)0x4761d8 < 2) {
+      display_assert("global_current_collision_user_depth > 1",
+                     "c:\\halo\\SOURCE\\structures\\structures.c", 0x1aa, true);
+      system_exit(-1);
+    }
+    *(int16_t *)0x4761d8 = *(int16_t *)0x4761d8 - 1;
+  } while (terminate == 0);
+
+  return result;
+}
+
 int16_t structure_find_in_cluster(uint16_t cluster_count, float *position,
                                   float radius, int max_count,
                                   int16_t *intersected_indices)
@@ -2187,254 +2567,11 @@ int16_t structure_find_in_cluster(uint16_t cluster_count, float *position,
   return 0;
 }
 
-/* FUN_00198f10 (0x198f10) — resolve planar-fog render parameters
- *
- * Fills the caller's fog-parameter record (`fog`, ~0x4c bytes; the single
- * caller FUN_00185290 passes &global 0x506730) for portal/cluster `index`
- * (uint16 loaded zero-extended from global 0x506784 by the caller).
- *
- * Confirmed from decompile + disassembly:
- *   - NULL `fog` asserts: display_assert("fog", ".../structures.c", 0x1f1, 1)
- *     then system_exit(-1). String at 0x29dc54 = "fog" (byte-verified).
- *   - tag_get(0x666f6720='fog ', fog_index) returns the fog tag definition.
- *   - fog type word at fog+0x1c: 0=none/early-out, 1=planar plane present,
- *     2=atmospheric.  from_object path (fog came via FUN_0018e7d0 marker,
- *     not a portal) instead ORs bit0 into fog+0x02.
- *   - portal element (scenario+0x134, size 0x68): byte+3 & 0x80 == ushort+2
- *     bit15 (== (short)ushort < 0); both tests reproduced as written.
- *   - FLOAT_002533c0 = 0.0f (byte-verified at 0x2533c0); reproduced as the
- *     literal 0.0f (FMUL against a 0.0 rodata constant).
- *   - vec[3] (decomp local_14/local_10/local_c, contiguous EBP-0x14..-0xc) is
- *     declared as a float[3] so &vec[0] passed to FUN_001954e0 (normalize) is
- *     a contiguous buffer; local_c's reuse as the scale temp is mirrored in
- *     vec[2].
- *   - Field-copy store order (fog+0x30..0x44 from fog_tag+0x78/0x7c/0x80/
- *     0x58/0x68/0x60) preserved exactly as MSVC scheduled it (0x3c before
- *     0x44 before 0x40).
- *   - Two tag_block_get_element calls have their results discarded (bounds/
- *     assert side-effect only) — preserved faithfully.
- *   - cdecl, 2 stack args (no ADD ESP shown at the call site; caller cleans 8).
- */
-void FUN_00198f10(int index, void *fog)
-{
-  void *scenario;
-  void *marker;
-  char *portal;
-  char *plane;
-  short *fog_tag;
-  char *out;
-  int fog_index;
-  short portal_idx;
-  char from_object;
-  float vec[3];
-
-  out = (char *)fog;
-  scenario = scenario_get();
-  from_object = 0;
-
-  if (fog == NULL) {
-    display_assert("fog", "c:\\halo\\SOURCE\\structures\\structures.c", 0x1f1,
-                   1);
-    system_exit(-1);
-  }
-
-  *(short *)(out + 0x1c) = 0;
-  *(short *)out = 0;
-  *(int *)(out + 0x48) = 0;
-
-  fog_index = structure_get_planar_fog_definition_index(scenario, index, 0);
-  portal_idx = (short)index;
-
-  if (fog_index == -1) {
-    if (portal_idx != -1) {
-      tag_block_get_element((char *)scenario + 0x134, (int)portal_idx, 0x68);
-      marker = FUN_0018e7d0(0);
-      if (marker != NULL) {
-        fog_index = *(int *)((char *)marker + 0xa4);
-      }
-    }
-    from_object = 1;
-    if (fog_index == -1) {
-      return;
-    }
-  }
-
-  scenario = scenario_get();
-  portal = (char *)tag_block_get_element((char *)scenario + 0x134,
-                                         (int)portal_idx, 0x68);
-  fog_tag = (short *)tag_get(0x666f6720, fog_index);
-
-  if (from_object == 0) {
-    if ((*(unsigned char *)(portal + 3) & 0x80) == 0) {
-      *(short *)(out + 0x1c) = 2;
-    } else {
-      *(short *)(out + 0x1c) = 1;
-      plane = (char *)tag_block_get_element(
-        (char *)scenario + 0x178, *(unsigned short *)(portal + 2) & 0x7fff,
-        0x20);
-      *(int *)(out + 0x20) = *(int *)(plane + 4);
-      *(int *)(out + 0x24) = *(int *)(plane + 8);
-      *(int *)(out + 0x28) = *(int *)(plane + 0xc);
-      *(int *)(out + 0x2c) = *(int *)(plane + 0x10);
-    }
-    *(int *)(out + 0x30) = *(int *)((char *)fog_tag + 0x78);
-    *(int *)(out + 0x34) = *(int *)((char *)fog_tag + 0x7c);
-    *(int *)(out + 0x38) = *(int *)((char *)fog_tag + 0x80);
-    *(int *)(out + 0x3c) = *(int *)((char *)fog_tag + 0x58);
-    *(int *)(out + 0x44) = *(int *)((char *)fog_tag + 0x68);
-    *(int *)(out + 0x40) = *(int *)((char *)fog_tag + 0x60);
-    if ((short)*(unsigned short *)(portal + 2) < 0) {
-      tag_block_get_element((char *)scenario + 0x178,
-                            *(unsigned short *)(portal + 2) & 0x7fff, 0x20);
-      vec[2] = *(float *)((char *)fog_tag + 4) * 0.0f; /* FLOAT_002533c0 */
-      *(float *)(out + 0x2c) = vec[2] + *(float *)(out + 0x2c);
-      vec[0] = vec[2] * *(float *)(out + 0x20);
-      vec[1] = vec[2] * *(float *)(out + 0x24);
-      vec[2] = vec[2] * *(float *)(out + 0x28);
-      FUN_001954e0(vec);
-    }
-  } else {
-    *(unsigned char *)(out + 2) |= 1;
-  }
-
-  *(short *)out = *fog_tag;
-  *(void **)(out + 0x48) = (char *)fog_tag + 0x84;
-}
-/* path_obstacles.c — AI path obstacle-disc connectivity.
- *
- * Corresponds to a routine in structures.obj (its sole ported caller,
- * cluster_partition_assign_groups / FUN_000628b0 at 0x628b0, lives in
- * src/halo/structures/structures.c).  __FILE__ evidence for this function is
- * c:\halo\SOURCE\ai\path_obstacles.c (from its display_assert strings at
- * lines 0x183, 0x18c, 0x1a5); two interior asserts cite c:\halo\source\ai\path.h
- * (0x18c) verbatim.
- *
- * Ported: FUN_00062680 (0x62680) — flood-fill of the "obstacle disc" set.
- */
-
-#include "../../common.h"
-
-/* 0x0062680 — FUN_00062680
- *
- * Given an obstacle-disc set (obstacles), a shared radius pad (arg2, an IEEE-754
- * float smuggled through a uint32_t stack slot — the ported caller forwards it
- * as an opaque dword), a seed disc index, and an output bitvector, marks every
- * disc reachable from the seed by "inflated-circle overlap" connectivity.
- *
- * Two discs A and B are connected when the squared centre distance is <= the
- * squared sum of their pad-inflated radii:
- *     dx = B.x - A.x ; dy = B.y - A.y
- *     dx*dx + dy*dy <= ((pad + B.radius) + (pad + A.radius))^2
- * The search is an iterative worklist flood-fill seeded at seed_disc_index; the
- * result is a 1-bit-per-disc membership bitvector (index>>5 dword, 1<<(index&31)
- * bit).
- *
- * Obstacle-set layout (byte offsets from the base pointer, disasm-confirmed):
- *   +0x02  int16  disc_count           (0 <= disc_count <= 0x80)
- *   +0x08  disc[] base, stride 0x18 (24 bytes)
- *     disc +0x08 float x
- *     disc +0x0c float y
- *     disc +0x10 float radius
- * MAXIMUM_DISC_COUNT = 0x80 = 128.
- *
- * FPU order is disassembly-authoritative (0x17a-0x1ad): the inflated-radius sum
- * evaluates the candidate term first, then the current term; the distance
- * squared evaluates dx*dx before dy*dy.  Preserve the parenthesisation for VC71.
- *
- * ABI: cdecl, 4 stack args, void return.
- */
-void FUN_00062680(int16_t *partition, uint32_t arg2, int16_t index,
-                  uint32_t *out_mask)
-{
-  uint32_t *mask_word;
-  int cand_base;
-  float inflated_sum;
-  float dx;
-  float dy;
-  int top_prev;
-  int16_t disc_idx;
-  int i;
-  int16_t disc_count;
-  uint32_t bit;
-  int16_t stack[128];
-  int cur_base;
-  int top;
-  int base;
-
-  base = (int)partition;
-
-  if ((*(int16_t *)(base + 2) < 0) || (0x80 < *(int16_t *)(base + 2))) {
-    display_assert("obstacles->disc_count>=0 && obstacles->disc_count<=MAXIMUM_DISC_COUNT",
-                   "c:\\halo\\SOURCE\\ai\\path_obstacles.c", 0x183, 1);
-    system_exit(-1);
-  }
-  csmemset(out_mask, 0, ((*(int16_t *)(base + 2) + 0x1f) >> 5) << 2);
-  if (index != -1) {
-    if ((index < 0) || (*(int16_t *)(base + 2) <= index)) {
-      display_assert("seed_disc_index>=0 && seed_disc_index<obstacles->disc_count",
-                     "c:\\halo\\SOURCE\\ai\\path_obstacles.c", 0x18c, 1);
-      system_exit(-1);
-    }
-    mask_word = &out_mask[(int)index >> 5];
-    stack[0] = index;
-    *mask_word = *mask_word | 1 << ((uint8_t)index & 0x1f);
-    i = 1;
-    do {
-      i = i + -1;
-      disc_idx = stack[(int16_t)i];
-      top = i;
-      if (((disc_idx < 0) || (*(int16_t *)(base + 2) <= disc_idx)) ||
-          (0x80 < *(int16_t *)(base + 2))) {
-        display_assert("disc_index>=0 && disc_index<obstacles->disc_count && obstacles->disc_count<=MAXIMUM_DISC_COUNT",
-                       "c:\\halo\\source\\ai\\path.h", 0x18c, 1);
-        system_exit(-1);
-      }
-      disc_count = *(int16_t *)(base + 2);
-      cur_base = base + 8 + disc_idx * 0x18;
-      disc_idx = 0;
-      if (0 < disc_count) {
-        do {
-          i = (int)disc_idx;
-          bit = 1 << ((uint8_t)disc_idx & 0x1f);
-          mask_word = &out_mask[i >> 5];
-          if ((*mask_word & bit) == 0) {
-            if (((disc_idx < 0) || (disc_count <= disc_idx)) ||
-                (0x80 < disc_count)) {
-              display_assert("disc_index>=0 && disc_index<obstacles->disc_count && obstacles->disc_count<=MAXIMUM_DISC_COUNT",
-                             "c:\\halo\\source\\ai\\path.h", 0x18c, 1);
-              system_exit(-1);
-            }
-            top_prev = top;
-            cand_base = base + 8 + i * 0x18;
-            inflated_sum = (*(float *)&arg2 + *(float *)(base + 0x18 + i * 0x18)) +
-                           (*(float *)&arg2 + *(float *)(cur_base + 0x10));
-            dx = *(float *)(cand_base + 8) - *(float *)(cur_base + 8);
-            dy = *(float *)(cand_base + 0xc) - *(float *)(cur_base + 0xc);
-            if (dx * dx + dy * dy <= inflated_sum * inflated_sum) {
-              disc_count = (int16_t)top;
-              *mask_word = *mask_word | bit;
-              if (0x7f < disc_count) {
-                display_assert("stack_top<MAXIMUM_DISC_COUNT",
-                               "c:\\halo\\SOURCE\\ai\\path_obstacles.c", 0x1a5, 1);
-                system_exit(-1);
-              }
-              stack[disc_count] = disc_idx;
-              top = top_prev + 1;
-            }
-          }
-          disc_count = *(int16_t *)(base + 2);
-          disc_idx = disc_idx + 1;
-          i = top;
-        } while (disc_idx < disc_count);
-      }
-    } while (0 < (int16_t)i);
-  }
-  return;
-}
 /*
- * file_location_volume_names (0x505500): char[NUMBER_OF_FILE_REFERENCE_LOCATIONS]
- * [MAXIMUM_FILENAME_LENGTH+1] volume/device-name table, one 256-byte row per
- * file-reference location, indexed by location * 0x100.
+ * file_location_volume_names (0x505500):
+ * char[NUMBER_OF_FILE_REFERENCE_LOCATIONS] [MAXIMUM_FILENAME_LENGTH+1]
+ * volume/device-name table, one 256-byte row per file-reference location,
+ * indexed by location * 0x100.
  */
 #define file_location_volume_names ((char *)0x505500)
 

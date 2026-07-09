@@ -23799,7 +23799,10 @@
         },
         {
           "addr": "0x198cb0",
-          "decl": "char structure_test_vector(int p1, void *p2, void *p3, void *p4, void *p5, void *p6, void *p7, void *p8);"
+          "decl": "char structure_test_vector(float *point, float *direction, float *out_point, int16_t *out_collection_index, int16_t *out_material_index, int32_t *out_surface_index, float *out_u, float *out_v);",
+          "ported": true,
+          "name": "structure_test_vector",
+          "source_path": "src/halo/structures/structures.c"
         },
         {
           "addr": "0x198f10",
