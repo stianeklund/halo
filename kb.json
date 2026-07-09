@@ -21136,7 +21136,7 @@
         },
         {
           "addr": "0x185f80",
-          "decl": "void render_frustum_get_projection_bounds(void);"
+          "decl": "void render_frustum_get_projection_bounds(void *param_1, void *param_2);"
         },
         {
           "addr": "0x186050",
@@ -23707,7 +23707,8 @@
         },
         {
           "addr": "0x198180",
-          "decl": "void FUN_00198180(void);"
+          "decl": "void render_structure_visibility(void);",
+          "ported": true
         },
         {
           "addr": "0x1983c0",
@@ -23869,7 +23870,7 @@
         },
         {
           "addr": "0x196850",
-          "decl": "void FUN_00196850(void);"
+          "decl": "void FUN_00196850(int param_1);"
         },
         {
           "addr": "0x196a60",
