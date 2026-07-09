@@ -15,6 +15,12 @@ Run after `git add` but before `git commit`. Reads staged changes in:
   - kb.json         (to find renames/address changes)
   - kb_meta.json    (to count metadata updates)
 
+Auto-stages cross-TU call-site fixups: when a lift renames a callee, callers in
+OTHER TUs must adopt the new name in the same commit or HEAD fails to build.
+The lift step stages only the primary TU + kb.json, so those fixup edits are
+left unstaged; this tool detects the rename and stages the pending .c edits that
+adopt the new name (and warns on any dangling caller with no pending fix).
+
 Gates on ABI audit: refuses to generate a commit message if any newly ported
 function with register args fails audit_reg_abi.py.
 
@@ -458,6 +464,85 @@ def generate_message(batch_name=None, since_ref=None, vc71_match=None,
     return "\n".join(lines)
 
 
+def _decl_name(decl):
+    """Extract the function name from a decl string."""
+    m = re.search(r"\b(\w+)\s*\(", decl or "")
+    return m.group(1) if m else None
+
+
+def git_add(files):
+    """Stage the given paths (bypasses the rtk shell hook). Returns staged list."""
+    files = [f for f in files if f]
+    if not files:
+        return []
+    subprocess.run(["git", "add", "--", *files],
+                   capture_output=True, text=True, cwd=str(REPO_ROOT))
+    return files
+
+
+def callee_name_changes(ports, renames, old_ref="HEAD"):
+    """[(old_name, new_name), ...] for every ported/renamed fn whose decl NAME
+    changed vs old_ref.
+
+    A name-changing lift is classified as a `port` by compare_kb_json (the decl
+    fix is folded into the port, so it never reaches `renames`); the old name is
+    recovered here from old_ref's kb.json.
+    """
+    old_funcs = _load_kb_functions(old_ref)
+    changes = []
+    for addr, new_decl in ports:
+        old = old_funcs.get(addr)
+        if not old:
+            continue
+        on, nn = _decl_name(old[0]), _decl_name(new_decl)
+        if on and nn and on != nn:
+            changes.append((on, nn))
+    for addr, old_decl, new_decl in renames:
+        on, nn = _decl_name(old_decl), _decl_name(new_decl)
+        if on and nn and on != nn:
+            changes.append((on, nn))
+    return changes
+
+
+def stage_cross_tu_callsites(name_changes):
+    """Stage cross-TU call-site fixups when a lift renames a callee.
+
+    When a lift renames a callee, its call sites in OTHER TUs must adopt the new
+    name in the SAME commit — otherwise the callee's old name no longer resolves
+    and HEAD fails to build. The lift step stages only the primary TU + kb.json,
+    so those cross-TU fixup edits sit unstaged and are lost from the commit. The
+    workflow's pre-commit build passes anyway because it validates the full
+    working tree, not the staged subset — masking the break until the next
+    checkout.
+
+    Stage any unstaged working-tree .c edit that adopts a renamed callee's new
+    name. Also report any committed .c file that still *calls* an old name with
+    no pending fix (a genuine dangling caller — build will break, and there is
+    no working-tree edit to stage).
+
+    Returns (staged, dangling).
+    """
+    if not name_changes:
+        return [], []
+    unstaged = [l for l in run(["git", "diff", "--name-only", "--", "*.c"]).splitlines()
+                if l.endswith(".c")]
+    to_stage = set()
+    dangling = set()
+    for old_name, new_name in name_changes:
+        new_re = re.compile(r"^\+.*(?<![\w])" + re.escape(new_name) + r"(?![\w])",
+                            re.MULTILINE)
+        for f in unstaged:
+            if new_re.search(run(["git", "diff", "--", f])):
+                to_stage.add(f)
+        # Committed files still *calling* the old name with no pending edit.
+        grep = run(["git", "grep", "-lE", re.escape(old_name) + r"\s*\(", "--", "*.c"])
+        for f in grep.splitlines():
+            if f and f not in unstaged and f not in to_stage:
+                dangling.add((f, old_name, new_name))
+    staged = git_add(sorted(to_stage))
+    return staged, sorted(dangling)
+
+
 def main():
     ap = argparse.ArgumentParser(description="Generate standardized lift commit message")
     ap.add_argument("--batch-name", default=None, help="Short batch description (e.g. 'weapon helpers')")
@@ -475,6 +560,22 @@ def main():
         ports, renames = compare_kb_json(old_ref=args.since, new_ref="HEAD")
     else:
         ports, renames = staged_kb_json_changes()
+
+    # Stage cross-TU call-site fixups for any renamed callee (staged-commit mode
+    # only — --since builds a message over an already-committed range and has no
+    # working-tree edits to stage). Runs BEFORE the ABI audit and message so the
+    # commit reflects the full change and HEAD stays buildable.
+    if not args.since:
+        name_changes = callee_name_changes(ports, renames)
+        staged, dangling = stage_cross_tu_callsites(name_changes)
+        for f in staged:
+            print(f"staged cross-TU call-site fixup: {f}", file=sys.stderr)
+        for f, on, nn in dangling:
+            print(
+                f"WARNING: {f} still calls {on}( but the callee was renamed to "
+                f"{nn} and no working-tree fix is pending — HEAD may not build.",
+                file=sys.stderr,
+            )
 
     if ports and not args.skip_abi_audit:
         port_addrs = [addr for addr, _ in ports]
