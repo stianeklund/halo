@@ -23358,7 +23358,9 @@
         },
         {
           "addr": "0x105980",
-          "decl": "void FUN_00105980(void);"
+          "decl": "void FUN_00105980(float *matrix, short *out_vertex_count, short *out_index_run_count, float *out_positions, float *out_texcoords, short *out_indices, short ring_segment_count, float param_8, int cylinder_segment_count, float param_10);",
+          "ported": true,
+          "source_path": "src/halo/structures/structures.c"
         },
         {
           "addr": "0x105c80",
