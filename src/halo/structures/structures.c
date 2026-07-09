@@ -2994,3 +2994,73 @@ void FUN_00105980(float *matrix, short *out_vertex_count,
   *out_vertex_count = (short)local_8;
   *out_index_run_count = (short)local_1c;
 }
+
+/*
+ * render_debug_fog_planes (0x1990d0) -- structures.obj
+ *
+ * When fog-plane debug is enabled (byte 0x505700 set, mode word 0x50674c == 1,
+ * and structure-index dword 0x506784 valid), fetch the selected fog plane from
+ * the scenario structure-BSP tag and draw each of its edges. For every edge the
+ * two endpoint vertices are offset inward along the plane normal by the fog
+ * distance (float 0x506770, negated) to build a parallel copy; both the
+ * original edge and the offset edge are emitted through the debug line writer
+ * (0x17eb10) and the two connecting sides through 0x17e5b0, using the pair of
+ * view transforms cached at 0x2ee6c4 / 0x2ee6cc.
+ *
+ * The two 3-float vertex triples live in contiguous stack slots in the original
+ * (EBP-0x14 and EBP-0x20) because their base addresses are passed to callees
+ * that read 3 floats; they are declared as arrays here to guarantee that
+ * contiguity. The (int)(short) narrowing on the edge index / element count is
+ * intentional (original reloads them via MOVSX word) and match-sensitive.
+ */
+void render_debug_fog_planes(void)
+{
+  float fVar1;
+  int iVar2;
+  int iVar3;
+  float *pfVar4;
+  float *pfVar5;
+  float vert_b[3]; /* EBP-0x20 offset triple for pfVar5 */
+  float vert_a[3]; /* EBP-0x14 offset triple for pfVar4 */
+  int local_c;
+  int local_8;
+
+  if ((*(char *)0x505700 != 0) && (*(short *)0x50674c == 1) &&
+      (*(int *)0x506784 != -1)) {
+    iVar2 = (int)scenario_get();
+    iVar3 = (int)tag_block_get_element((void *)(iVar2 + 0x134),
+                                       *(int *)0x506784, 0x68);
+    iVar2 = (int)tag_block_get_element(
+                   (void *)(iVar2 + 0x178),
+                   *(unsigned short *)(iVar3 + 2) & 0x7fff, 0x20);
+    local_c = *(int *)(iVar2 + 0x14);
+    local_8 = 0;
+    if (0 < local_c) {
+      iVar3 = 0;
+      do {
+        local_c = (iVar3 + 1) % local_c;
+        pfVar4 = (float *)tag_block_get_element((void *)(iVar2 + 0x14),
+                                                iVar3, 0xc);
+        pfVar5 = (float *)tag_block_get_element((void *)(iVar2 + 0x14),
+                                                (int)(short)local_c, 0xc);
+        fVar1 = -*(float *)0x506770;
+        /* Interleaved by component: the original reuses each
+         * (fVar1 * normal_component) product for both endpoints, so the
+         * six independent stores are grouped in component order. */
+        vert_a[0] = fVar1 * *(float *)(iVar2 + 4) + pfVar4[0];
+        vert_b[0] = fVar1 * *(float *)(iVar2 + 4) + pfVar5[0];
+        vert_a[1] = fVar1 * *(float *)(iVar2 + 8) + pfVar4[1];
+        vert_b[1] = fVar1 * *(float *)(iVar2 + 8) + pfVar5[1];
+        vert_a[2] = fVar1 * *(float *)(iVar2 + 0xc) + pfVar4[2];
+        vert_b[2] = fVar1 * *(float *)(iVar2 + 0xc) + pfVar5[2];
+        FUN_0017eb10(pfVar4, pfVar5, *(int *)0x2ee6c4);
+        FUN_0017eb10(vert_a, vert_b, *(int *)0x2ee6cc);
+        FUN_0017e5b0(pfVar4, vert_a, *(int *)0x2ee6c4, *(int *)0x2ee6cc);
+        FUN_0017e5b0(pfVar5, vert_b, *(int *)0x2ee6c4, *(int *)0x2ee6cc);
+        local_c = *(int *)(iVar2 + 0x14);
+        local_8 = local_8 + 1;
+        iVar3 = (int)(short)local_8;
+      } while (iVar3 < local_c);
+    }
+  }
+}

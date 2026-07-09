@@ -23816,7 +23816,8 @@
         },
         {
           "addr": "0x1990d0",
-          "decl": "void render_debug_fog_planes(void);"
+          "decl": "void render_debug_fog_planes(void);",
+          "ported": true
         },
         {
           "addr": "0x199230",
@@ -28296,7 +28297,7 @@
         },
         {
           "addr": "0x17e5b0",
-          "decl": "void FUN_0017e5b0(void);"
+          "decl": "void FUN_0017e5b0(float *vert_ws, float *vert_offset, int transform_a, int transform_b);"
         },
         {
           "addr": "0x17e800",
