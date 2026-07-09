@@ -23661,7 +23661,7 @@
         {
           "addr": "0x1962d0",
           "decl": "void structure_runtime_decals_initialize_for_new_map(void);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x196330",

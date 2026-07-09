@@ -1875,3 +1875,17 @@ void structure_runtime_decals_initialize(void)
     system_exit(-1);
   }
 }
+
+void structure_runtime_decals_initialize_for_new_map(void)
+{
+  uint8_t *runtime_decal_globals = *(uint8_t **)0x4d8ec8;
+
+  if (runtime_decal_globals == NULL) {
+    display_assert("structure_decals_globals",
+                   "c:\\halo\\SOURCE\\structures\\structure_runtime_decals.c",
+                   0x24, true);
+    system_exit(-1);
+  }
+
+  *runtime_decal_globals = 0;
+}
