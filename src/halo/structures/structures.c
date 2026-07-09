@@ -499,9 +499,12 @@ void FUN_00062680(int16_t *partition, uint32_t arg2, int16_t index,
         "c:\\halo\\SOURCE\\ai\\path_obstacles.c", 0x18c, 1);
       system_exit(-1);
     }
-    mask_word = &out_mask[(int)index >> 5];
-    stack[0] = index;
-    *mask_word = *mask_word | 1 << ((uint8_t)index & 0x1f);
+    /* stage index through top (dead until the loop reassigns it) — matches
+     * the original's register flow (permuter-found, byte-verified) */
+    top = index;
+    mask_word = &out_mask[(int)top >> 5];
+    stack[0] = top;
+    *mask_word = *mask_word | 1 << ((uint8_t)top & 0x1f);
     i = 1;
     do {
       i = i + -1;
@@ -1237,6 +1240,9 @@ int FUN_00106030(void *param_1, int param_2, short param_3, int param_4)
       edge1[0] = next[0] - cur[0];
       edge1[1] = next[1] - cur[1];
       cross = edge1[1] * edge0[0] - edge1[0] * edge0[1];
+      /* redundant recompute (same value): the original stores edge0[1] again
+       * here — VC71 keeps the extra FSUB/FSTP (permuter-found, byte-verified) */
+      edge0[1] = cur[1] - prev[1];
       if (cross < *(float *)0x2533c0)
         return 0;
       sum = FUN_0010c440(edge0, edge1) + sum;
@@ -3668,6 +3674,9 @@ int16_t structure_clusters_in_cone(int16_t starting_cluster, float *point,
                            "c:\\halo\\SOURCE\\structures\\structures.c", 0xf5,
                            true);
             system_exit(-1);
+            /* dead at runtime (system_exit never returns): mirrors the
+             * original's register reload on this path (permuter-found) */
+            portal_count = (int *)(cluster + 0x5c);
           }
           work_stack[(int16_t)work_depth] = adjacent_cluster;
           work_depth += 1;
