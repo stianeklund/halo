@@ -923,6 +923,41 @@ void FUN_00195b10(void)
   }
 }
 
+/* FUN_00195d40 (0x195d40)
+ *
+ * render_structure_reflections: thin render-orchestration wrapper (string ref
+ * "render_structure_reflections" @0x3287a8).  Profiles the scope, and when the
+ * map has a valid reflection/lightmap pass (byte at 0x4d8eb0 != 0) it brackets
+ * a scope enter/exit pair (FUN_00160bf0 / FUN_00160c00, reached in the original
+ * via 1-instr JMP thunks at 0x17ce70/0x17ce90) around the per-surface
+ * reflection draw walk (FUN_00195790).
+ *
+ * Notes from disasm/decompile:
+ *  - FUN_00195790 takes an @eax pointer (=0x5937d4, surface->material offset
+ *    table) plus 6 stack args.  arg1 (surface_count) is the zero-extended
+ *    uint16 at 0x5937d0 (MOV CX,word ptr); arg2 (lightmap_pass_index) is the
+ *    dword at 0x4d8eb4.  This variant has a single callback: FUN_0017ce80 is
+ *    the 5th param (surface_draw_cb); material_begin_cb / pass_end_cb / param_7
+ *    are all 0.  (Confirmed via push order: ADD ESP,0x18 = 6 stack dwords.)
+ */
+void FUN_00195d40(void)
+{
+  if (*(char *)0x449ef1 != 0 && *(char *)0x3287b0 != 0) {
+    profile_enter_private((void *)0x3287a8);
+  }
+
+  if (*(char *)0x4d8eb0 != 0) {
+    FUN_00160bf0();
+    FUN_00195790((int *)0x5937d4, *(unsigned short *)0x5937d0, *(int *)0x4d8eb4,
+                 (void *)0, (void *)FUN_0017ce80, (void *)0, 0);
+    FUN_00160c00();
+  }
+
+  if (*(char *)0x449ef1 != 0 && *(char *)0x3287b0 != 0) {
+    profile_exit_private((void *)0x3287a8);
+  }
+}
+
 void structures_initialize(void)
 {
   structure_detail_objects_initialize();
