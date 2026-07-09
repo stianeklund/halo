@@ -60,3 +60,4 @@
 - [XBE section-header field offsets](reference_xbe_section_header_field_offsets.md) — VA→file: vaddr=+0x04, vsize=+0x08, raw=+0x0c (0x38/hdr); validate via known float const
 
 - [lruv/lrar cache helpers @eax](reference_lruv_lrar_cache_helpers_eax.md) — FUN_0011c820/0011c7c0 take cache in @eax (not void); TU also hosts distinct lrar_cache struct (0x30=ptr,0x38=int16 count,stride 0x10); missing per-fn delink for 0x11cf00 gap
+- [per-fn delink 8-digit filename](reference_perfn_delink_8digit_filename.md) — vc71 needs delinked/functions/00105980.obj (8-digit); prefetch writes 6-digit → false "no reference"; cp to 8-digit + --no-cache, don't re-export
