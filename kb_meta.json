@@ -6263,6 +6263,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x105c80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x105d20": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x106130": {
       "kind": "function",
       "status": "ported"
@@ -7222,6 +7230,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1283c0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x128460": {
       "kind": "function",
       "status": "ported"
@@ -7242,6 +7254,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1286e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1288e0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x128d20": {
       "kind": "function",
       "status": "ported"
@@ -7258,11 +7278,27 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x129270": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1292f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1294d0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1296b0": {
       "kind": "function",
       "status": "ported"
     },
     "0x1298f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x129a30": {
       "kind": "function",
       "status": "ported"
     },
@@ -9043,7 +9079,27 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x191440": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1915d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x191600": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x191630": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x191660": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x191700": {
       "kind": "function",
       "status": "ported"
     },
@@ -9056,6 +9112,14 @@
       "status": "ported"
     },
     "0x191a50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x191ad0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x191cb0": {
       "kind": "function",
       "status": "ported"
     },
@@ -9152,6 +9216,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x198180": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1983c0": {
       "kind": "function",
       "status": "ported"
@@ -9193,6 +9261,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x198580": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x198730": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x198800": {
       "kind": "function",
       "status": "ported",
@@ -9207,7 +9283,23 @@
         "summary": "Recursive cluster flood helper for structure_find_in_cluster: records current cluster when space remains, marks it visited, walks connected portals, and recurses into unvisited adjacent clusters whose portal sphere test passes."
       }
     },
+    "0x198ad0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x198cb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1990d0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x199230": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x199360": {
       "kind": "function",
       "status": "ported"
     },
