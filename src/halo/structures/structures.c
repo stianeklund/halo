@@ -130,6 +130,67 @@ bool FUN_00062020(int16_t *obstacle_set, uint32_t datum, uint16_t flags,
   return true;
 }
 
+/* FUN_000628b0 (0x628b0)  --  cluster_partition_assign_groups
+ * (cluster_partitions.c)
+ *
+ * Partitions the elements of a cluster-partition set into connected groups.
+ * The set header is two shorts: [0] = running group-id counter (reset to 0
+ * here and bumped once per new group), [1] = element count.  Each element is
+ * 0xc shorts (0x18 bytes) wide; the short at element-index 5 (byte 0xa) holds
+ * the assigned group id, with -1 meaning "unassigned".
+ *
+ * Pass 1 marks every element unassigned.  Pass 2 walks the elements; for each
+ * still-unassigned element it allocates a new group id, calls FUN_00062680 to
+ * produce a 128-bit membership bitset (out param), then stamps the new group id
+ * into every element whose bit is set.
+ *
+ * ABI: cdecl, 2 stack args, void return (RET, no N).  The single call to
+ * FUN_00062680 pushes ESI(partition), EDX(arg2), EBX(i), ECX(&mask) and is
+ * followed by ADD ESP,0x10 => 4 dword args.  The local frame is only 0x10 bytes
+ * (the 4-dword bitset); Ghidra's auStackY_1014[1017] is a hallucination and is
+ * omitted.
+ */
+void FUN_000628b0(int16_t *partition, uint32_t arg2)
+{
+  int16_t group_id;
+  int16_t i;
+  int16_t j;
+  uint32_t mask[4];
+
+  partition[0] = 0;
+
+  /* Pass 1: mark all elements unassigned. */
+  group_id = 0;
+  if (partition[1] > 0) {
+    do {
+      partition[group_id * 0xc + 5] = -1;
+      group_id = group_id + 1;
+    } while (group_id < partition[1]);
+  }
+
+  /* Pass 2: assign a group id to each connected component. */
+  i = 0;
+  if (partition[1] > 0) {
+    do {
+      if (partition[i * 0xc + 5] == -1) {
+        group_id = partition[0];
+        partition[0] = group_id + 1;
+        FUN_00062680(partition, arg2, i, mask);
+        j = 0;
+        if (partition[1] > 0) {
+          do {
+            if ((mask[(int)j >> 5] & (1 << ((uint8_t)j & 0x1f))) != 0) {
+              partition[j * 0xc + 5] = group_id;
+            }
+            j = j + 1;
+          } while (j < partition[1]);
+        }
+      }
+      i = i + 1;
+    } while (i < partition[1]);
+  }
+}
+
 /* FUN_00099220 (0x99220)
  *
  * Determine the dominant axis of a plane normal.  Returns the index

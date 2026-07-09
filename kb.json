@@ -23277,11 +23277,14 @@
         },
         {
           "addr": "0x62680",
-          "decl": "void FUN_00062680(void);"
+          "decl": "void FUN_00062680(int16_t *partition, uint32_t arg2, int16_t index, uint32_t *out_mask);",
+          "name": "FUN_00062680"
         },
         {
           "addr": "0x628b0",
-          "decl": "void FUN_000628b0(void);"
+          "decl": "void FUN_000628b0(int16_t *partition, uint32_t arg2);",
+          "ported": true,
+          "name": "FUN_000628b0"
         },
         {
           "addr": "0x99070",
