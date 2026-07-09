@@ -23681,7 +23681,8 @@
         },
         {
           "addr": "0x196330",
-          "decl": "void FUN_00196330(void);"
+          "decl": "void FUN_00196330(void);",
+          "ported": true
         },
         {
           "addr": "0x1963a0",

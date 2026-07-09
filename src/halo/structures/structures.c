@@ -2162,6 +2162,55 @@ void render_structure_visibility(void)
   FUN_001966b0(scenario);
 }
 
+/*
+ * FUN_00196330  (0x196330) — structures.obj
+ *
+ * Sweeps the current scenario's structure-cluster tag block and deletes
+ * permanent decals from clusters flagged for removal.  Guarded by
+ * scenario+0x258 (an int) being non-zero.  The cluster tag block has its
+ * count word at scenario+0x134 and element stride 0x68.  For each cluster
+ * whose int16 field at +0xc is (!= -1) AND whose int16 field at +0xe is
+ * (!= 0), decals_delete_permanent_from_cluster is called with the loop index.
+ *
+ * Confirmed from disassembly 0x196330-0x196391:
+ *   - scenario_get() 0-arg (leading PUSH ECX is a local-slot reserve).
+ *   - +0x258 is an int guard; early return when zero.
+ *   - block pointer = scenario+0x134 passed to tag_block_get_element
+ *     (PUSH 0x68; PUSH index; PUSH block; cdecl, ADD ESP,0xc).
+ *   - count = uint16 at +0x134; signed compare (MOVSX AX; TEST; JLE).
+ *   - element gate: word[elem+0xc] != -1  AND  word[elem+0xe] != 0 (int16).
+ *   - decals_delete_permanent_from_cluster((int16_t)index) — cdecl 1 arg;
+ *     BX (loop index) compared against count spilled at [EBP-4].
+ * All cdecl; no FPU, SEH, or intrinsics.
+ */
+void FUN_00196330(void)
+{
+  char *scenario;
+  void *block;
+  int cluster_count;
+  int cluster_index;
+  int element_index;
+
+  scenario = (char *)scenario_get();
+  if (*(int *)(scenario + 0x258) != 0) {
+    block = (void *)(scenario + 0x134);
+    cluster_count = (int)*(uint16_t *)block;
+    cluster_index = 0;
+    if ((int16_t)cluster_count > 0) {
+      element_index = 0;
+      do {
+        char *cluster = tag_block_get_element(block, element_index, 0x68);
+        if (*(int16_t *)(cluster + 0xc) != -1 &&
+            *(int16_t *)(cluster + 0xe) != 0) {
+          decals_delete_permanent_from_cluster((int16_t)cluster_index);
+        }
+        cluster_index += 1;
+        element_index += 1;
+      } while ((int16_t)cluster_index < (int16_t)cluster_count);
+    }
+  }
+}
+
 void structures_initialize(void)
 {
   structure_detail_objects_initialize();
