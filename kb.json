@@ -23365,11 +23365,13 @@
         },
         {
           "addr": "0x105c80",
-          "decl": "void shell_update(void);"
+          "decl": "short shell_update(short vertex_count, float *vertices @<ebx>);"
         },
         {
           "addr": "0x105d20",
-          "decl": "void FUN_00105d20(void);"
+          "decl": "int16_t convex_hull2d_reduce(int16_t vertex_count, float *vertices, int16_t *out_indices);",
+          "name": "convex_hull2d_reduce",
+          "ported": true
         },
         {
           "addr": "0x106030",
