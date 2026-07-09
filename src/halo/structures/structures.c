@@ -718,6 +718,28 @@ float FUN_001057c0(float *param_1, float *param_2, float *param_3)
            (param_2[0] * param_3[0] + param_2[1] * param_3[1]));
 }
 
+/* FUN_001057f0 (0x1057f0)
+ *
+ * 3D ray/plane parametric-t solve (3D twin of FUN_001057c0).  param_3 is a
+ * plane3d (normal.x/y/z at +0x0/+0x4/+0x8, distance at +0xc); param_1 and
+ * param_2 are 3D vectors:
+ *   num = param_1[0]*param_3[0] + param_1[1]*param_3[1] + param_1[2]*param_3[2]
+ * - param_3[3] den = param_2[0]*param_3[0] + param_2[1]*param_3[1] +
+ * param_2[2]*param_3[2] return -(num / den) Pure x87 leaf; single-expression
+ * form keeps intermediates in ST(0) to match the FLD/FMUL/FADDP/FSUB/FDIVP/FCHS
+ * chain (FSUB not FSUBR: the subtrahend is param_3[3]; FDIVP yields num/den;
+ * FCHS negates).  EAX holds param_3 throughout; ECX switches from param_1 to
+ * param_2.
+ */
+float FUN_001057f0(float *param_1, float *param_2, float *param_3)
+{
+  return -((((param_1[0] * param_3[0] + param_1[1] * param_3[1] +
+              param_1[2] * param_3[2]) -
+             param_3[3]) /
+            (param_2[0] * param_3[0] + param_2[1] * param_3[1] +
+             param_2[2] * param_3[2])));
+}
+
 /* FUN_00106030 (0x106030)
  *
  * Validate a 2D polygon (given as an index list into a shared vertex array)
