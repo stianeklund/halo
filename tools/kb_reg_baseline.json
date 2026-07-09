@@ -510,6 +510,7 @@
     "0x18d490": "void FUN_0018d490(float *basis @<eax>, void *data @<ecx>, float *direction @<ebx>, int16_t sprite_type, int unused, float *origin);",
     "0x18fb20": "void FUN_0018fb20(float *position @<ecx>, const float *target @<edx>, float max_delta);",
     "0x18ff00": "void FUN_0018ff00(float *out @<eax>, float *position @<edx>, float scale, float magnitude);",
+    "0x191b60": "int32_t leaf_map_node_stack_peek(int16_t levels_up@<si>);",
     "0x193a80": "int FUN_00193a80(int param_1 /* @<ecx> */, short *param_2, int in_EAX /* @<eax> */);",
     "0x193b00": "int FUN_00193b00(int param_1 /* @<ecx> */, short *param_2, int in_EAX /* @<eax> */);",
     "0x195650": "void FUN_00195650(void *list@<eax>, int16_t count@<edx>);",

@@ -1869,7 +1869,55 @@ void leaf_map_node_stack_push(int32_t node)
     system_exit(-1);
   }
   *(int32_t *)(0x4d8a90 + *(int16_t *)0x4d8e90 * 4) = node;
-  *(int16_t *)0x4d8e90 = *(int16_t *)0x4d8e90 + 1;
+  ++*(int16_t *)0x4d8e90;
+}
+
+/* leaf_map_node_stack_pop (0x191b20)
+ *
+ * Pops and returns the top entry of the global leaf-map node stack.
+ * Asserts the stack is non-empty (leaf_map.c:0x33) then decrements the
+ * 16-bit count and returns node_stack[count].
+ *
+ * Confirmed from disassembly at 0x191b20: 16-bit DEC on AX then MOVSWL of
+ * the same register indexes the int32 array at 0x4d8a90.  No callers exist
+ * in the shipped XBE (editor-era leaf_map code, like its neighbors).
+ */
+int32_t leaf_map_node_stack_pop(void)
+{
+  int16_t count;
+  if (*(int16_t *)0x4d8e90 <= 0) {
+    display_assert("leaf_map_globals.node_stack_count>0",
+                   "c:\\halo\\SOURCE\\structures\\leaf_map.c", 0x33, 1);
+    system_exit(-1);
+  }
+  count = (int16_t)(*(int16_t *)0x4d8e90 - 1);
+  *(int16_t *)0x4d8e90 = count;
+  return *(int32_t *)(0x4d8a90 + count * 4);
+}
+
+/* leaf_map_node_stack_peek (0x191b60)
+ *
+ * Returns the stack entry levels_up below the top without popping:
+ * node_stack[count - levels_up - 1] (levels_up = 0 reads the top).
+ * Asserts 0 <= levels_up < count (leaf_map.c:0x3b).
+ *
+ * Confirmed from disassembly at 0x191b60:
+ *   - levels_up arrives in SI (TESTW SI,SI at entry with no prior write);
+ *     registered as @<si> in kb.json.
+ *   - the load uses base 0x4d8a8c = node_stack - 4 with index
+ *     (count - levels_up), i.e. node_stack[count - levels_up - 1].
+ *   - No callers exist in the shipped XBE.
+ */
+int32_t leaf_map_node_stack_peek(int16_t levels_up)
+{
+  if (!(levels_up >= 0 && levels_up < *(int16_t *)0x4d8e90)) {
+    display_assert(
+        "levels_up>=0 && levels_up<leaf_map_globals.node_stack_count",
+        "c:\\halo\\SOURCE\\structures\\leaf_map.c", 0x3b, 1);
+    system_exit(-1);
+  }
+  return *(int32_t *)(0x4d8a8c +
+                      ((int32_t)*(int16_t *)0x4d8e90 - levels_up) * 4);
 }
 
 /* FUN_00191ba0 (0x191ba0)
