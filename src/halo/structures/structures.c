@@ -911,6 +911,77 @@ char FUN_00191d80(int base, unsigned int index)
   return *(char *)count_block;
 }
 
+/* FUN_00191e90 (0x191e90)
+ *
+ * Draws a debug triangle-fan outline for one element of a tag block.
+ * Fetches the outer tag_block element (block = param_1+0x10, index =
+ * low 31 bits of param_2, stride 0x18); the nested tag_block at
+ * element+0xc holds the fan vertices (count@0, elements@+4, stride 0xc).
+ * The high bit of param_2 selects one of two hard-coded fill colors.
+ *
+ * For each vertex i in [2, count):
+ *   - FUN_00188890 fills the fan triangle (vertex0, vertex(i-1),
+ *     vertex(i)) with the selected color.
+ *   - FUN_00189270 draws the edge line vertex(i-1)->vertex(i) in the
+ *     global debug color pointed to by [0x2ee6d0].
+ * Two trailing FUN_00189270 calls close the fan: edge (0,1) and edge
+ * (0,count-1).
+ *
+ * Confirmed from disassembly at 0x191e90:
+ *   - Ghidra mis-groups the cdecl args (§7): each tag_block_get_element
+ *     cleans only 3 args (ADD ESP,0xc); the surplus pushes belong to the
+ *     outer FUN_00188890 (ADD ESP,0x14) / FUN_00189270 (ADD ESP,0x10).
+ *   - color select: TEST ESI,0x80000000; SETNZ CL; color = colors+CL*0x10.
+ *   - fan index is a signed short widened to int each iteration (INC;MOVSX).
+ *   - the global color [0x2ee6d0] is re-read fresh on every call.
+ *   - MSVC evaluates call args right-to-left, so the tag_block_get_element
+ *     for the higher vertex index fires before the lower one; the arg
+ *     order below reproduces that push sequence.
+ */
+void FUN_00191e90(int param_1, int param_2)
+{
+  int *verts;
+  float colors[8];
+  short i;
+  int idx;
+
+  verts = (int *)((int)tag_block_get_element((void *)(param_1 + 0x10),
+                                             param_2 & 0x7fffffff, 0x18) +
+                  0xc);
+  colors[0] = 0.1f;
+  colors[1] = 0.0f;
+  colors[2] = 1.0f;
+  colors[3] = 0.0f;
+  colors[4] = 0.1f;
+  colors[5] = 1.0f;
+  colors[6] = 0.0f;
+  colors[7] = 0.0f;
+
+  i = 2;
+  idx = 2;
+  if (2 < *verts) {
+    do {
+      FUN_00188890(
+        1, (float *)tag_block_get_element(verts, 0, 0xc),
+        (float *)tag_block_get_element(verts, idx - 1, 0xc),
+        (float *)tag_block_get_element(verts, idx, 0xc),
+        (void *)((char *)colors +
+                 (((unsigned int)param_2 & 0x80000000) != 0) * 0x10));
+      FUN_00189270(1, (float *)tag_block_get_element(verts, idx - 1, 0xc),
+                   (float *)tag_block_get_element(verts, idx, 0xc),
+                   *(void **)0x2ee6d0);
+      i = i + 1;
+      idx = (int)i;
+    } while (idx < *verts);
+  }
+  FUN_00189270(1, (float *)tag_block_get_element(verts, 0, 0xc),
+               (float *)tag_block_get_element(verts, 1, 0xc),
+               *(void **)0x2ee6d0);
+  FUN_00189270(1, (float *)tag_block_get_element(verts, 0, 0xc),
+               (float *)tag_block_get_element(verts, *verts - 1, 0xc),
+               *(void **)0x2ee6d0);
+}
+
 /* FUN_00191ff0 (0x191ff0)
  *
  * Tag-block iterator. Fetches the tag-block element at
