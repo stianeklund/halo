@@ -23235,8 +23235,8 @@
         },
         {
           "addr": "0x61df0",
-          "decl": "void FUN_00061df0(void *point, uint32_t basis, uint8_t axis, void *out_projected);",
-          "ported": false
+          "decl": "void FUN_00061df0(void *point, short projection, unsigned char sign, void *out_projected);",
+          "ported": true
         },
         {
           "addr": "0x61e80",
