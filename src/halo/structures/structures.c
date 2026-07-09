@@ -3064,3 +3064,71 @@ void render_debug_fog_planes(void)
     }
   }
 }
+
+/* leaf_map_mark_portal_designators (FUN_00191cb0, 0x191cb0)
+ *
+ * structures.obj / c:\halo\SOURCE\structures\leaf_map.c
+ *
+ * Given a portal index, mark the matching portal-designator entry as visited
+ * in each of the portal's two adjacent leaves.
+ *
+ * The portal record (block at structure+0x10, stride 0x18, index = portal
+ * index) carries the two adjacent leaf indices at record offsets +4 and +8
+ * (masked with 0x7fffffff to drop the sign/plane bit).  For each of those two
+ * leaves (block at structure+0x4, stride 0x18) the leaf's portal_designators
+ * block header lives at leaf+0xc (count at [0], stride 4).  That sub-block is
+ * scanned for the designator whose (value & 0x7fffffff) equals this portal
+ * index; when found, the high bit (0x80000000) is set to mark it.  If no
+ * designator references the portal the original asserts
+ *   portal_designator_index != leaf->portal_designators.count
+ * at leaf_map.c:0x2a1 and halt_and_catch_fire()s.
+ *
+ * Confirmed from disassembly at 0x191cb0:
+ *   - tag_block_get_element is cdecl (block, index, element_size); the two
+ *     leaf-block fetches use element_size 0x18, the designator fetch uses 4.
+ *   - the inner designator counter is a 16-bit short (sVar5); the (int)cast
+ *     truncation is deliberate and preserved for VC71 fidelity.
+ *   - the assert-halt path calls halt_and_catch_fire (thunk 0x1029a0); its
+ *     0xffffffff argument in the decompile is dead (callee is void(void)).
+ * Inferred: field semantics (front/back leaf, "visited" meaning of the high
+ * bit) from the leaf_map.c source string; the two-iteration loop and offsets
+ * are Confirmed from the disassembly.
+ */
+void leaf_map_mark_portal_designators(void *structure, uint32_t portal_index)
+{
+    int *designator_count;
+    uint32_t *designator;
+    int block_index;
+    short designator_index;
+    int remaining;
+    uint32_t *portal;
+    int leaves_block;
+
+    portal = (uint32_t *)tag_block_get_element((char *)structure + 0x10, portal_index, 0x18);
+    leaves_block = (int)structure + 4;
+    remaining = 2;
+    do {
+        portal = portal + 1;
+        block_index = (int)tag_block_get_element((void *)leaves_block, *portal & 0x7fffffff, 0x18);
+        designator_count = (int *)(block_index + 0xc);
+        designator_index = 0;
+        if (0 < *designator_count) {
+            block_index = 0;
+            do {
+                designator = (uint32_t *)tag_block_get_element(designator_count, block_index, 4);
+                if ((*designator & 0x7fffffff) == portal_index) {
+                    *designator = *designator | 0x80000000;
+                    break;
+                }
+                designator_index = designator_index + 1;
+                block_index = (int)designator_index;
+            } while (block_index < *designator_count);
+        }
+        if ((int)designator_index == *designator_count) {
+            display_assert("portal_designator_index!=leaf->portal_designators.count",
+                           "c:\\halo\\SOURCE\\structures\\leaf_map.c", 0x2a1, 1);
+            halt_and_catch_fire();
+        }
+        remaining = remaining - 1;
+    } while (remaining != 0);
+}

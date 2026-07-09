@@ -23505,7 +23505,9 @@
         },
         {
           "addr": "0x191cb0",
-          "decl": "void FUN_00191cb0(void);"
+          "decl": "void leaf_map_mark_portal_designators(void *structure, uint32_t portal_index);",
+          "name": "leaf_map_mark_portal_designators",
+          "ported": true
         },
         {
           "addr": "0x191d80",
