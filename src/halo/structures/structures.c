@@ -1357,3 +1357,101 @@ int16_t structure_find_in_cluster(uint16_t cluster_count, float *position,
 
   return 0;
 }
+
+/* FUN_00198180 (0x198180) render_structure_visibility:
+ *   Per-frame rebuild of the structure BSP visibility bitvectors, followed by
+ *   construction of the rendered-cluster list and dispatch to the fast or
+ *   legacy cluster-visibility sweep.
+ *
+ *   scenario = scenario_get(); clusters tag_block at scenario+0x134 (element
+ *   size 0x68, count = *(int*)(scenario+0x134)); scenario+0xf8 sizes the
+ *   per-portal bitvector.  Per-cluster visibility bitvector at 0x50678c is
+ *   memset to 0xffffffff when the active cluster (0x506784) is -1, else 0; the
+ *   per-portal bitvector at 0x5137d0 is zeroed.  0x5137cc = rendered-cluster
+ *   count (int16), 0x4d8edc = cluster_index -> rendered_cluster_index table
+ *   (int16[]).
+ *
+ *   Register-alias note (verified against disasm 0x198180-0x1983b5): ESI holds
+ *   the scenario pointer, but is reused as the loop's bit_index inside the
+ *   sweep and reloaded from [EBP-4] afterward.  Kept as two distinct C locals
+ *   (scenario / bit_index).  The final structure_bsp record at
+ *   tag_block_get_element(clusters,0,0x68)+0x34 selects FUN_001966b0 (!=0, has
+ *   precomputed visibility) vs FUN_00196850 (==0, legacy path that emits the
+ *   reimport warning).
+ *
+ *   __FILE__ = c:\halo\SOURCE\structures\structure_visibility.c */
+void render_structure_visibility(void)
+{
+  int scenario;
+  int *clusters;
+  int bit_index;
+  int cluster_index;
+  short *cluster_rec;
+  void *sound_data;
+  char *first_cluster;
+
+  scenario = (int)scenario_get();
+  if (*(char *)0x449ef1 != '\0' && *(char *)0x32bd70 != '\0') {
+    profile_enter_private((void *)0x32bd68);
+  }
+  clusters = (int *)(scenario + 0x134);
+  csmemset((void *)0x50678c, (*(int *)0x506784 == -1) ? -1 : 0,
+           ((*clusters + 0x1f) >> 5) << 2);
+  *(short *)0x5937d0 = 0;
+  csmemset((void *)0x5137d0, 0,
+           ((*(int *)(scenario + 0xf8) + 0x1f) >> 5) << 2);
+  *(short *)0x5137cc = 0;
+  FUN_00198070();
+  if (*(char *)0x505701 != '\0') {
+    *(short *)0x5137cc = 0;
+    sound_data = structure_bsp_get_cluster_sound_data(
+        (void *)scenario, (int16_t)*(uint16_t *)0x506784);
+    csmemcpy((void *)0x50678c, sound_data, ((*clusters + 0x1f) >> 5) << 2);
+    if (0 < *clusters) {
+      cluster_index = 0;
+      bit_index = 0;
+      do {
+        if ((((unsigned int *)0x50678c)[bit_index >> 5] &
+             (1u << (bit_index & 0x1f))) != 0) {
+          tag_block_get_element(clusters, bit_index, 0x68);
+          if (*(short *)0x5137cc >= 0x80) {
+            display_assert(
+                "raise MAXIMUM_RENDERED_CLUSTERS",
+                "c:\\halo\\SOURCE\\structures\\structure_visibility.c", 0x118, 1);
+            system_exit(-1);
+          }
+          if ((short)cluster_index < 0 || (short)cluster_index >= 0x200) {
+            display_assert(
+                "cluster_index>=0 && cluster_index<MAXIMUM_CLUSTERS_PER_STRUCTURE",
+                "c:\\halo\\SOURCE\\structures\\structure_visibility.c", 0x11b, 1);
+            system_exit(-1);
+          }
+          ((short *)0x4d8edc)[bit_index] = *(short *)0x5137cc;
+          *(short *)0x5137cc = *(short *)0x5137cc + 1;
+          cluster_rec =
+              (short *)rendered_cluster_get(((unsigned short *)0x4d8edc)[bit_index]);
+          *cluster_rec = (short)cluster_index;
+          render_frustum_get_projection_bounds((void *)0x5065a4, cluster_rec + 2);
+        }
+        cluster_index = cluster_index + 1;
+        bit_index = (int)(short)cluster_index;
+      } while (bit_index < *clusters);
+    }
+  }
+  if (*(char *)0x449ef1 != '\0' && *(char *)0x32bd70 != '\0') {
+    profile_exit_private((void *)0x32bd68);
+  }
+  first_cluster = (char *)tag_block_get_element(clusters, 0, 0x68);
+  if (*(int *)(first_cluster + 0x34) == 0) {
+    if (*(char *)0x4d8ed0 == '\0') {
+      if (0 < *(int *)(scenario + 0xf8)) {
+        error(2, "### WARNING: this structure_bsp needs to be reimported for "
+                 "new, faster visibility.");
+      }
+      *(char *)0x4d8ed0 = '\x01';
+    }
+    FUN_00196850(scenario);
+    return;
+  }
+  FUN_001966b0(scenario);
+}
