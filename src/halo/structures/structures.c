@@ -1830,6 +1830,58 @@ char structure_render_surface_from_point_and_leaf(
   return 0;
 }
 
+/* Resolve the planar-fog definition index for a BSP cluster/leaf.
+ * index == -1 returns the -1 sentinel. When flag == 0 the fog reference is
+ * read from the cluster element (+0x134, stride 0x68) at +2; a set top bit
+ * indicates indirection through the +0x178 table (stride 0x20). The masked
+ * reference indexes the +0x184 block (stride 0x28); its +0x24 field indexes
+ * the +0x190 fog-definition block (stride 0x88) whose +0x2c dword is the
+ * result. When flag != 0 the global default (FUN_0018e7d0(0)+0xa4) is used. */
+int32_t structure_get_planar_fog_definition_index(void *structure_bsp,
+                                                  int16_t index, char flag)
+{
+  uint16_t fog_ref;
+  char *element;
+  uint16_t *indirect;
+  int32_t result = -1;
+
+  if (index == -1) {
+    return result;
+  }
+
+  element =
+    tag_block_get_element((char *)structure_bsp + 0x134, (int)index, 0x68);
+
+  if (flag == '\0') {
+    fog_ref = *(uint16_t *)(element + 2);
+    if (fog_ref != 0xffff) {
+      if ((int16_t)fog_ref < 0) {
+        indirect = (uint16_t *)tag_block_get_element(
+          (char *)structure_bsp + 0x178, fog_ref & 0x7fff, 0x20);
+        fog_ref = *indirect;
+      } else {
+        fog_ref = fog_ref & 0x7fff;
+      }
+      if (fog_ref != 0xffff) {
+        element = tag_block_get_element((char *)structure_bsp + 0x184,
+                                        (int)(int16_t)fog_ref, 0x28);
+        if (*(int16_t *)(element + 0x24) != -1) {
+          element =
+            tag_block_get_element((char *)structure_bsp + 0x190,
+                                  (int)*(int16_t *)(element + 0x24), 0x88);
+          return *(int32_t *)(element + 0x2c);
+        }
+      }
+    }
+  } else {
+    element = FUN_0018e7d0(0);
+    if (element != 0) {
+      return *(int32_t *)(element + 0xa4);
+    }
+  }
+  return result;
+}
+
 bool structure_get_planar_fog(void *scenario, int16_t portal_index,
                               float *position, float radius)
 {

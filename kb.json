@@ -23771,7 +23771,9 @@
         },
         {
           "addr": "0x198730",
-          "decl": "void structure_get_planar_fog_definition_index(void);"
+          "decl": "int32_t structure_get_planar_fog_definition_index(void *structure_bsp, int16_t index, char flag);",
+          "ported": true,
+          "source_path": "src/halo/structures/structures.c"
         },
         {
           "addr": "0x198800",
