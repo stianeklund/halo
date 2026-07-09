@@ -1,17 +1,24 @@
 {
-  "generated": "2026-07-09T02:28:04.247044+00:00",
+  "generated": "2026-07-09T06:14:33.834630+00:00",
   "ci_runs": {
     "available": true,
     "total": 60,
-    "last_run_time": "2026-07-09T02:27:39Z",
+    "last_run_time": "2026-07-09T06:14:09Z",
     "last_commit": "d805892a",
     "workflows": [
       {
         "name": "Progress Report",
         "conclusion": "",
-        "created_at": "2026-07-09T02:27:39Z",
+        "created_at": "2026-07-09T06:14:09Z",
         "head_sha": "d805892a",
-        "url": "https://github.com/stianeklund/halo/actions/runs/28989754473"
+        "url": "https://github.com/stianeklund/halo/actions/runs/28998151997"
+      },
+      {
+        "name": "pages-build-deployment",
+        "conclusion": "success",
+        "created_at": "2026-07-09T02:28:14Z",
+        "head_sha": "d82d6349",
+        "url": "https://github.com/stianeklund/halo/actions/runs/28989773871"
       },
       {
         "name": "Equivalence Tests",
@@ -19,13 +26,6 @@
         "created_at": "2026-07-09T01:47:53Z",
         "head_sha": "d805892a",
         "url": "https://github.com/stianeklund/halo/actions/runs/28988316396"
-      },
-      {
-        "name": "pages-build-deployment",
-        "conclusion": "success",
-        "created_at": "2026-07-08T19:57:14Z",
-        "head_sha": "46f025da",
-        "url": "https://github.com/stianeklund/halo/actions/runs/28971565557"
       },
       {
         "name": "Snapshot Verification",
