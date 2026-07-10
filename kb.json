@@ -32254,7 +32254,7 @@
         },
         {
           "addr": "0x57380",
-          "decl": "void ai_scripting_command_list_status(void);"
+          "decl": "short FUN_00057380(int value);"
         },
         {
           "addr": "0x575d0",

@@ -1505,7 +1505,7 @@ void FUN_00058550(unsigned int param_1, float param_2)
  *   - ADD ESP,0x10 cleans error() args (4 dwords).
  *   - ADD ESP,0x8 cleans FUN_00046b60 args (2 dwords).
  */
-void FUN_000585d0(int param_1)
+int FUN_000585d0(int param_1)
 {
   scenario_t *scenario;
   short index;
@@ -1524,7 +1524,7 @@ void FUN_000585d0(int param_1)
     error(2, "%s: ai_conversation %s", hs_runtime_get_executing_thread_name(),
           conv_name);
   }
-  FUN_00046b60(param_1, 1);
+  return FUN_00046b60(param_1, 1);
 }
 
 /* 0x00058640 — FUN_00058640 (ai_conversation_stop script command).
@@ -1603,16 +1603,22 @@ void FUN_000586a0(int param_1)
   ai_conversation_advance(param_1);
 }
 
-/* FUN_00058700 (0x58700) — Tail-call wrapper for ai_conversation_line. */
-void FUN_00058700(void)
+/* FUN_00058700 (0x58700) — Tail-call wrapper for ai_conversation_line.
+ * The original is a JMP to 0x434c0, so the arg is forwarded and the callee's
+ * return is this wrapper's return. Disasm at the hs call site 0xc1574 (`xor
+ * edx,edx; mov dx,[eax]; push edx; call 0x58700; mov [ebp-4],ax`) confirms one
+ * zero-extended uint16 stack arg and a 16-bit AX return. */
+int FUN_00058700(int param_1)
 {
-  ai_conversation_line();
+  return ai_conversation_line(param_1);
 }
 
-/* FUN_00058710 (0x58710) — Tail-call wrapper for ai_conversation_status. */
-void FUN_00058710(void)
+/* FUN_00058710 (0x58710) — Frame-forwarding thunk (PUSH EBP;MOV EBP,ESP;POP
+ * EBP;JMP 0x433b0) to ai_conversation_status. Inherits its ABI: a 16-bit stack
+ * arg and a 16-bit AX return (mirror of neighbor FUN_00058700). */
+int16_t FUN_00058710(int16_t param_1)
 {
-  ai_conversation_status();
+  return ai_conversation_status(param_1);
 }
 
 /* 0x00058720 — FUN_00058720 (ai_link_activation script command).
