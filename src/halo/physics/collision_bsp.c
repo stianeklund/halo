@@ -4,6 +4,45 @@
  * from the generated decl.h via kb.json.
  */
 
+/* 0x1473b0 - collision_surface_edge_count
+ *
+ * Counts the edges around one collision-BSP surface by walking its circular
+ * edge loop. Same winged-edge traversal as collision_surface_polygon but
+ * without gathering geometry.
+ *
+ * bsp base holds tag_block headers at fixed offsets:
+ *   +0x3c surfaces (stride 0xc): surface[+4] = first-edge index
+ *   +0x48 edges    (stride 0x18): edge[+0x14] = owning-surface index,
+ *                                 edge[+8]/edge[+0xc] = the two half-edge
+ *                                 next-edge links
+ *
+ * `side` = (edge[+0x14] == surface_index) selects this surface's half-edge
+ * slot: next-edge index at edge[+8 | +0xc]. The do-while increments the count
+ * once per edge and terminates when the next-edge index returns to the
+ * surface's first-edge index. The original returns the count in AX only (high
+ * half of EAX is leftover garbage from the terminator index), so the faithful
+ * return type is short.
+ */
+short collision_surface_edge_count(int bsp, int surface_index)
+{
+  short edge_count;
+  int first_edge;
+  int edge_index;
+  int *edge;
+
+  edge_count = 0;
+  first_edge = *(int *)((char *)tag_block_get_element((void *)(bsp + 0x3c),
+                                                      surface_index, 0xc) +
+                        4);
+  edge_index = first_edge;
+  do {
+    edge = (int *)tag_block_get_element((void *)(bsp + 0x48), edge_index, 0x18);
+    edge_count = (short)(edge_count + 1);
+    edge_index = edge[2 + (edge[5] == surface_index)];
+  } while (edge_index != first_edge);
+  return edge_count;
+}
+
 /* 0x147410 - collision_surface_polygon
  *
  * Walks a collision-BSP surface's circular edge loop and gathers the surface's

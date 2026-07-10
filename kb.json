@@ -36019,7 +36019,9 @@
         },
         {
           "addr": "0x1473b0",
-          "decl": "void collision_surface_edge_count(void);"
+          "decl": "short collision_surface_edge_count(int bsp, int surface_index);",
+          "name": "collision_surface_edge_count",
+          "ported": true
         },
         {
           "addr": "0x147410",
