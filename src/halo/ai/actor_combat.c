@@ -177,7 +177,7 @@ void actor_combat_set_fire_timer(int actor_handle /* @<esi> */)
 }
 
 /* 0x21640 — Evaluate whether the actor should fire and compute delay.
- * Returns false if encounter is in retreat state (field_24==4 or 5)
+ * Returns false if prop is in retreat state (field_24==4 or 5)
  * or if actor.field_457 is set. Otherwise computes a random delay
  * from timing_data and returns true.
  *
@@ -193,10 +193,10 @@ bool actor_combat_evaluate_firing(int actor_handle /* @<eax> */,
   char flag = *(char *)(actor + 0x457);
 
   if (*(short *)(actor + 0x60c) == 1) {
-    char *encounter =
+    char *prop =
       (char *)datum_get(*(void **)0x5ab23c, *(int *)(actor + 0x610));
-    short enc_state = *(short *)(encounter + 0x24);
-    if (enc_state >= 4 && enc_state <= 5) {
+    short prop_state = *(short *)(prop + 0x24);
+    if (prop_state >= 4 && prop_state <= 5) {
       *(char *)(actor + 0x3bc) = 1;
       *(short *)(actor + 0x5f4) = 0;
       return 0;
@@ -310,15 +310,15 @@ char actor_combat_compute_ballistic_solution(int actor_handle, int param_2)
   return 1;
 }
 
-/* 0x219e0 — Find a grenade aim target from the actor's current encounter.
+/* 0x219e0 — Find a grenade aim target from the actor's current prop.
  *
  * cdecl: actor_handle (EDI) plus three output pointers. When the actor has a
- * live encounter (actor+0x270 != -1) whose datum is active (+0x60 set) and
+ * live prop (actor+0x270 != -1) whose datum is active (+0x60 set) and
  * not suppressed (+0x127 clear), and whose type (+0x24) is 2..4, and whose
  * range value (+0x11c) lies within the actv's grenade band
- * (actv+0x194 < range < actv+0x198), it copies the encounter's target point
+ * (actv+0x194 < range < actv+0x198), it copies the prop's target point
  * (+0xbc/+0xc0/+0xc4) into out_pos with a fixed Z bias (*0x2549d4), reports
- * the encounter handle in out_handle and the target prop index (+0x110) in
+ * the prop handle in out_handle and the target prop index (+0x110) in
  * out_extra, and returns 1. If the actor is flagged for aim refinement
  * (actor+0x1ca), it nudges out_pos toward the actor via FUN_00021430 with a
  * 1.5 weight. Returns 0 when no suitable target exists. */
@@ -328,23 +328,23 @@ char actor_combat_find_grenade_target(int actor_handle, float *out_pos,
   char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
   char *actv = (char *)tag_get(0x61637476 /* 'actv' */, *(int *)(actor + 0x5c));
   char result = 0;
-  char *enc;
+  char *prop;
   short type;
 
   if (*(int *)(actor + 0x270) != -1) {
-    enc = (char *)datum_get(*(void **)0x5ab23c, *(int *)(actor + 0x270));
-    if (*(char *)(enc + 0x60) != 0 && *(char *)(enc + 0x127) == 0) {
-      type = *(short *)(enc + 0x24);
+    prop = (char *)datum_get(*(void **)0x5ab23c, *(int *)(actor + 0x270));
+    if (*(char *)(prop + 0x60) != 0 && *(char *)(prop + 0x127) == 0) {
+      type = *(short *)(prop + 0x24);
       if ((type > 1 && type < 4) || type == 4) {
-        if (*(float *)(actv + 0x194) < *(float *)(enc + 0x11c) &&
-            *(float *)(enc + 0x11c) < *(float *)(actv + 0x198)) {
-          out_pos[0] = *(float *)(enc + 0xbc);
-          out_pos[1] = *(float *)(enc + 0xc0);
-          out_pos[2] = *(float *)(enc + 0xc4);
+        if (*(float *)(actv + 0x194) < *(float *)(prop + 0x11c) &&
+            *(float *)(prop + 0x11c) < *(float *)(actv + 0x198)) {
+          out_pos[0] = *(float *)(prop + 0xbc);
+          out_pos[1] = *(float *)(prop + 0xc0);
+          out_pos[2] = *(float *)(prop + 0xc4);
           result = 1;
           out_pos[2] = out_pos[2] + *(float *)0x2549d4;
           *out_handle = *(int *)(actor + 0x270);
-          *out_extra = *(int *)(enc + 0x110);
+          *out_extra = *(int *)(prop + 0x110);
           if (*(char *)(actor + 0x1ca) != 0)
             FUN_00021430(out_pos, 1.5f);
         }
@@ -485,12 +485,12 @@ char FUN_00021ae0(int actor_handle, float range, float param3,
 }
 
 /* 0x22010 — Check whether the current fire target is still valid.
- * Only applies when mode==3 (prop targeting). Checks encounter data
+ * Only applies when mode==3 (prop targeting). Checks prop data
  * and falls back to FUN_00021ae0 distance-based search. */
 int actor_combat_check_fire_target(int actor_handle /* @<edi> */, short mode)
 {
   char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
-  char *encounter;
+  char *prop;
 
   if (mode != 3)
     return 1;
@@ -502,18 +502,18 @@ int actor_combat_check_fire_target(int actor_handle /* @<edi> */, short mode)
     system_exit(-1);
   }
 
-  encounter =
+  prop =
     (char *)datum_get(*(void **)0x5ab23c, *(int *)(actor + 0x610));
 
-  if (*(int *)(encounter + 0x110) != -1)
+  if (*(int *)(prop + 0x110) != -1)
     return 1;
 
-  if (*(char *)(encounter + 0x12e) != 0)
+  if (*(char *)(prop + 0x12e) != 0)
     return 0;
 
   {
     short result = 0;
-    FUN_00021ae0(actor_handle, 6.0f, 0.0f, (float *)(encounter + 0xbc), &result);
+    FUN_00021ae0(actor_handle, 6.0f, 0.0f, (float *)(prop + 0xbc), &result);
     return result >= 3;
   }
 }
@@ -521,7 +521,7 @@ int actor_combat_check_fire_target(int actor_handle /* @<edi> */, short mode)
 /* FUN_00022390 (0x22390) — Update actor combat aiming state each tick.
  * Checks/clears fire-ok flag, determines moving and in-combat status,
  * computes fire timer from burst parameters, rate-of-fire modifier from
- * weapon damage, applies encounter suppression, then calculates the aim
+ * weapon damage, applies prop suppression, then calculates the aim
  * error vectors (primary lateral + secondary elevation) using trig rotation
  * of a perpendicular vector with random angular offsets. Dispatches a
  * combat vocalization sound when the actor's rank is high enough.
@@ -558,10 +558,10 @@ void FUN_00022390(int actor_handle)
   int *vehicle_obj;
   int weapon_handle;
   int *weapon_obj;
-  char *encounter;
-  short enc_state;
-  char enc_flag;
-  int enc_handle;
+  char *prop;
+  short prop_state;
+  char prop_flag;
+  int prop_handle;
   int sound_type;
 
   actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
@@ -677,10 +677,10 @@ void FUN_00022390(int actor_handle)
 
   if (*(float *)(actv + 0x14c) > *(float *)0x2533c0 &&
       *(short *)(actor + 0x60c) == 1) {
-    encounter = (char *)datum_get(*(void **)0x5ab23c,
+    prop = (char *)datum_get(*(void **)0x5ab23c,
                                   *(int *)(actor + 0x610));
-    enc_state = *(short *)(encounter + 0x24);
-    if (enc_state < 2 || enc_state > 3 || *(short *)(encounter + 0x32) == 0) {
+    prop_state = *(short *)(prop + 0x24);
+    if (prop_state < 2 || prop_state > 3 || *(short *)(prop + 0x32) == 0) {
       suppress_flag = 1;
     }
   }
@@ -813,34 +813,35 @@ void FUN_00022390(int actor_handle)
       *(float *)(actor + 0x654) + *(float *)(actor + 0x66c);
 
   if (*(short *)(actor + 0x6e) > 6) {
-    enc_flag = 0;
-    enc_handle = -1;
+    prop_flag = 0;
+    prop_handle = -1;
     if (*(short *)(actor + 0x60c) == 1) {
-      encounter = (char *)datum_get(*(void **)0x5ab23c,
+      prop = (char *)datum_get(*(void **)0x5ab23c,
                                     *(int *)(actor + 0x610));
-      enc_flag = *(char *)(encounter + 0x61);
-      enc_handle = *(int *)(encounter + 0x18);
+      prop_flag = *(char *)(prop + 0x61);
+      prop_handle = *(int *)(prop + 0x18);
     }
     if (*(char *)(actor + 0x378) != 0) {
       sound_type = 0x1c;
-    } else if (enc_flag != 0) {
+    } else if (prop_flag != 0) {
       sound_type = 0x1e;
     } else if (*(char *)(actor + 0x1f8) >= 5) {
       sound_type = 0x1d;
     } else {
       sound_type = (*(char *)(actor + 0x161) != 0) ? 0x1b : 0x1a;
     }
-    FUN_00046f10(sound_type, *(int *)(actor + 0x18), enc_handle, 3, -1, -1, 0);
+    FUN_00046f10(sound_type, *(int *)(actor + 0x18), prop_handle, 3, -1, -1, 0);
   }
 }
 
 /* 0x22ba0 — Compute an actor's grenade-throw aim vector.
  *
- * Looks up the actor (0x6325a4). If the actor belongs to an encounter
- * (actor+0x6b4 != -1), reads that encounter (0x5ab23c): when its type
- * (enc+0x24) is 2 or 3 the encounter datum (enc+0x18) becomes the return
+ * Looks up the actor (0x6325a4). If the actor has a current prop
+ * (actor+0x6b4 != -1), reads its record from the AI prop pool
+ * (prop_data, 0x5ab23c): when its type
+ * (prop+0x24) is 2 or 3 the prop's object datum (prop+0x18) becomes the return
  * value, and when the type is outside [0,1] a seed aim point is built from
- * enc+0xbc/0xc0/0xc4 (with a Z bias of *0x2549d4) and fed to the helper
+ * prop+0xbc/0xc0/0xc4 (with a Z bias of *0x2549d4) and fed to the helper
  * FUN_00022b40 (actor_handle in EBX, &aim point in ESI).
  *
  * It then runs the ballistic firing solution (actor_combat_compute_ballistic_
@@ -854,7 +855,7 @@ void FUN_00022390(int actor_handle)
  * real normal, and adopts it as the new aim vector.
  *
  * Finally the chosen vector is scaled by the throw speed (actor+0x6c8) and
- * written to out_aim_vector. Returns the encounter datum (or -1).
+ * written to out_aim_vector. Returns the prop datum (or -1).
  *
  * VC71 75.0% (168/176 insns) is a STRUCTURAL ceiling: x87 op scheduling
  * (faddp/fsqrt order), register allocation (ebx vs edi for the arg, reg-vs-stack
@@ -874,9 +875,9 @@ int actor_aim_grenade(int actor_handle, void *aim_params, float *out_aim_vector)
                                   reads picked up unrelated locals and a valid
                                   unit normal failed assert_valid_real_normal3d. */
   float planar[2];             /* [ebp-0xc/-0x8] planar dir for normalize    */
-  int result;                  /* [ebp-0x4] encounter datum / -1             */
-  char *enc;
-  short enc_type;
+  int result;                  /* [ebp-0x4] prop datum / -1             */
+  char *prop;
+  short prop_type;
   float aim_vec[3];            /* contiguous buffer for FUN_00022b40 (ESI)   */
   float speed;
   float planar_mag;
@@ -886,14 +887,14 @@ int actor_aim_grenade(int actor_handle, void *aim_params, float *out_aim_vector)
 
   result = -1;
   if (*(int *)(actor + 0x6b4) != -1) {
-    enc = (char *)datum_get(*(void **)0x5ab23c, *(int *)(actor + 0x6b4));
-    enc_type = *(short *)(enc + 0x24);
-    if (enc_type > 1 && enc_type < 4)
-      result = *(int *)(enc + 0x18);
-    if (enc_type < 0 || enc_type > 1) {
-      aim_vec[0] = *(float *)(enc + 0xbc);
-      aim_vec[1] = *(float *)(enc + 0xc0);
-      aim_vec[2] = *(float *)(enc + 0xc4) + *(float *)0x2549d4;
+    prop = (char *)datum_get(*(void **)0x5ab23c, *(int *)(actor + 0x6b4));
+    prop_type = *(short *)(prop + 0x24);
+    if (prop_type > 1 && prop_type < 4)
+      result = *(int *)(prop + 0x18);
+    if (prop_type < 0 || prop_type > 1) {
+      aim_vec[0] = *(float *)(prop + 0xbc);
+      aim_vec[1] = *(float *)(prop + 0xc0);
+      aim_vec[2] = *(float *)(prop + 0xc4) + *(float *)0x2549d4;
       FUN_00022b40(actor_handle, aim_vec);
     }
   }
