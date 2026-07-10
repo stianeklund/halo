@@ -173,6 +173,22 @@ int FUN_00061e80(float *p0, float *p1, float radius)
   return 0;
 }
 
+/* 0x61ec0 — 3D point-in-radius test.
+ * Returns 1 when the squared 3D distance between points p0 and p1 (x=[0],
+ * y=[1], z=[2] lanes) is <= radius*radius, else 0.  Pure leaf, cdecl, three
+ * stack args (two float*, one float).  The sum order is y-term, z-term,
+ * x-term, matching the decompiler's fld ordering at 0x61ed9; every product is
+ * a self-multiply so there is no operand-order/cross-product hazard.  This is
+ * the 3D counterpart to the 2D test at 0x61e80. */
+int FUN_00061ec0(float *p0, float *p1, float radius)
+{
+  if ((p1[1] - p0[1]) * (p1[1] - p0[1]) + (p1[2] - p0[2]) * (p1[2] - p0[2]) +
+      (p1[0] - p0[0]) * (p1[0] - p0[0]) <= radius * radius) {
+    return 1;
+  }
+  return 0;
+}
+
 /* FUN_00062020 (0x62020)  --  add_obstacle (path_obstacles.c)
  *
  * Append one obstacle record to an obstacle-set.  The set header is a small
@@ -655,6 +671,32 @@ uint8_t FUN_00099270(float *plane, uint32_t basis)
   if (plane[basis] > 0.0f)
     return 1;
   return 0;
+}
+
+/* 0x105550 — error_geometry.c: draw a small fixed-size debug marker box at a
+ * point (half-extent _DAT_0025bb10 = 0.01f on each axis).  cdecl, 2 stack args.
+ * Asserts at source lines 0x77-0x78. */
+void FUN_00105550(float *point, float *color)
+{
+  float bounds[6];
+
+  if (point == 0) {
+    display_assert("point", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x77, 1);
+    halt_and_catch_fire();
+  }
+  if (color == 0) {
+    display_assert("color", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x78, 1);
+    halt_and_catch_fire();
+  }
+  if (FUN_00103d30()) {
+    bounds[0] = *point - 0.01f;
+    bounds[1] = *point + 0.01f;
+    bounds[2] = point[1] - 0.01f;
+    bounds[3] = point[1] + 0.01f;
+    bounds[4] = point[2] - 0.01f;
+    bounds[5] = point[2] + 0.01f;
+    FUN_001049d0(bounds, color);
+  }
 }
 
 /* 0x1056e0 — Dispose of a sphere geometry object.
@@ -3140,6 +3182,131 @@ int16_t FUN_00196fd0(int *out_buf, int16_t max_count, int unused_10,
     } while ((short)outer_index < cluster_count);
   }
   return (int16_t)out_count;
+}
+
+/* FUN_00197e90 (0x197e90) — structures.obj
+ *
+ * Cluster-query dispatcher for a bounding sphere.  Gathers the visible
+ * structure surfaces overlapping the sphere (center=position, radius) into
+ * `buffer` (capped at max_count) and returns the count.  Three dispatch paths,
+ * all sharing a per-call visibility bitmask (zeroed once up front):
+ *   - radius < 2.0            -> walk the collision BSP from its root node
+ *                                (scenario+0xc8) via FUN_001978a0.
+ *   - explicit cluster list   -> when gel_buffer != 0, gather directly from the
+ *                                caller-supplied clusters via FUN_00196fd0.
+ *   - else                    -> resolve the point's cluster
+ *                                (scenario_location_from_point); if valid,
+ *                                flood the neighbouring clusters
+ *                                (structure_find_in_cluster) then gather via
+ *                                FUN_00196fd0; otherwise fall back to the BSP
+ *                                walk (FUN_001978a0).
+ *
+ * Confirmed from disassembly 0x197e90-0x19806b:
+ *   - Prologue MOV EAX,0x4424 / CALL _chkstk (0x1d90e0) — triggered by the two
+ *     large stack buffers; NOT emitted as a C call.
+ *   - scenario_get() result kept in EDI across the whole body and homed at
+ *     [EBP-4]; scenario+0xf8 = cluster count (bits), scenario+0xc8 = root
+ *     collision-BSP node passed as FUN_001978a0's parent_bounds arg.
+ *   - assert(bounding_sphere_center)               @ line 0x265 (reason string
+ *       "bounding_sphere_center", 0x2b38b8)
+ *   - assert(!bounding_surface_count || bounding_surfaces) @ line 0x266
+ *       (reason "!bounding_surface_count || bounding_surfaces", 0x2b3888);
+ *       tested as (short)surface_count and surfaces==NULL.  Both asserts are
+ *       display_assert(reason, file, line, 1); system_exit(-1) (0x8e2f0),
+ *       NOT halt_and_catch_fire.
+ *   - visibility_mask (local_4428, 0x4000 bytes) zeroed with
+ *     csmemset(mask, 0, ((clustercount+0x1f)>>5)*4) — one 32-bit word per 32
+ *     clusters; size spelled *4 to match the ref's SAR/SHL codegen.
+ *   - cull_bounds: when param_5 (cull_bounds_in) is NULL, a local 6-float AABB
+ *     is filled {cx-r, cx+r, cy-r, cy+r, cz-r, cz+r} and used as the cull
+ *     region; the subtract operands are (center - radius) and the add operands
+ *     are (radius + center), matching the FLD/FSUB vs FLD/FADD operand order.
+ *   - Radius threshold is the float global at 0x32cf50 (== 2.0f); FCOMP + TEST
+ *     AH,0x5 / JP is the `radius < threshold` primitive (fall-through takes it).
+ *   - loc: scenario_location_from_point writes a dword handle at +0 and a word
+ *     cluster reference at +4; the +4 field is read as a 32-bit int once
+ *     (MOV EAX,[loc+4]) and used for both the (short)!=-1 compare (CMP AX) and
+ *     the structure_find_in_cluster cluster arg (PUSH EAX), so it is modelled
+ *     as an int field.  structure_find_in_cluster's out buffer is 0x200 int16
+ *     indices (local_428, exactly 0x400 bytes).
+ *   - FUN_00196fd0 args 3/4 receive the center pointer and the raw radius dword
+ *     (integer PUSHes); the callee ignores both (unused_10/unused_14), so the
+ *     radius is forwarded as its bit pattern to reproduce the exact push.
+ *
+ * All calls verified push-by-push against the disassembly (cdecl; cleanups
+ * 0x2c for FUN_001978a0, 0x28/0x3c for FUN_00196fd0).  param_5/6/7 kept as int
+ * per kb.json (callers cast pointers to int); cast to the real types locally. */
+short FUN_00197e90(void *buffer, int max_count, float *position, float radius,
+                   int cull_bounds_in, int surface_count, int surfaces,
+                   int gel_count, int gel_buffer)
+{
+  char *scenario;
+  float *cull_bounds;
+  int16_t cluster_count_found;
+  float local_bounds[6];
+  struct {
+    int location_index;
+    int cluster_index;
+  } loc;
+  int16_t cluster_indices[0x200];
+  uint32_t visibility_mask[0x1000];
+
+  scenario = (char *)scenario_get();
+
+  if (position == (float *)0) {
+    display_assert("bounding_sphere_center",
+                   "c:\\halo\\SOURCE\\structures\\structure_visibility.c",
+                   0x265, 1);
+    system_exit(-1);
+  }
+  if ((short)surface_count != 0 && surfaces == 0) {
+    display_assert("!bounding_surface_count || bounding_surfaces",
+                   "c:\\halo\\SOURCE\\structures\\structure_visibility.c",
+                   0x266, 1);
+    system_exit(-1);
+  }
+
+  csmemset(visibility_mask, 0,
+           ((*(int *)(scenario + 0xf8) + 0x1f) >> 5) * 4);
+
+  cull_bounds = (float *)cull_bounds_in;
+  if (cull_bounds == (float *)0) {
+    cull_bounds = local_bounds;
+    local_bounds[0] = position[0] - radius;
+    local_bounds[1] = radius + position[0];
+    local_bounds[2] = position[1] - radius;
+    local_bounds[3] = radius + position[1];
+    local_bounds[4] = position[2] - radius;
+    local_bounds[5] = radius + position[2];
+  }
+
+  if (radius < *(float *)0x32cf50) {
+    return FUN_001978a0(0, (float *)(scenario + 0xc8), visibility_mask,
+                        (int *)buffer, max_count, position, radius, cull_bounds,
+                        surface_count, surfaces, 1);
+  }
+
+  if (gel_buffer != 0) {
+    return FUN_00196fd0((int *)buffer, max_count, (int)position,
+                        *(const int *)&radius, cull_bounds, surface_count,
+                        surfaces, visibility_mask, gel_count,
+                        (int16_t *)gel_buffer);
+  }
+
+  scenario_location_from_point(&loc, position);
+  if ((short)loc.cluster_index != -1) {
+    cluster_count_found = structure_find_in_cluster(loc.cluster_index, position,
+                                                    radius, 0x200,
+                                                    cluster_indices);
+    return FUN_00196fd0((int *)buffer, max_count, (int)position,
+                        *(const int *)&radius, cull_bounds, surface_count,
+                        surfaces, visibility_mask, cluster_count_found,
+                        cluster_indices);
+  }
+
+  return FUN_001978a0(0, (float *)(scenario + 0xc8), visibility_mask,
+                      (int *)buffer, max_count, position, radius, cull_bounds,
+                      surface_count, surfaces, 1);
 }
 
 /* FUN_00198070 (0x198070) — structures.obj
