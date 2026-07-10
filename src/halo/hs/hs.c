@@ -515,6 +515,616 @@ void FUN_000c1190(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc11d0 — HS script function handler, third twin of the 0xc1150 / 0xc1190
+ * evaluate-then-dispatch skeleton (identical shape, differing only in dispatch
+ * target). Evaluates a macro function for the thread; on a non-NULL result
+ * block it reads an int at +0x0 and an 8-bit flag at +0x4 (narrow byte load;
+ * modeled zero-extended like the 0xc1190 twin, matching FUN_000588d0's char
+ * param), forwards both to FUN_000588d0, then acknowledges the command via
+ * hs_return(thread_datum, 0). result is int*, so `result + 1` == byte offset
+ * +4 (NOT +1).
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560 = hs_macro_function_evaluate(int16 function_index, int
+ * thread_datum, char init) 0x588d0 = FUN_000588d0(int param_1, char param_2)
+ *   0xcbf80 = hs_return(int thread_handle, int value)
+ */
+void FUN_000c11d0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != (int *)0x0) {
+    FUN_000588d0(result[0], *(unsigned char *)(result + 1));
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc1210 — HS built-in evaluator: dispatch a macro function call and commit
+ * an AI-reference predicate result to the thread. Evaluates the macro function
+ * via hs_macro_function_evaluate; if it produces a non-null result record,
+ * reads the record's first dword as an AI object reference, tests it with
+ * FUN_000556f0 (ai_ref-valid predicate, returns bool in AL), and returns the
+ * boolean (zero-extended to int) to the thread via hs_return.
+ *
+ * thread_datum is forwarded unchanged as both the thread argument to
+ * hs_macro_function_evaluate and the thread handle to hs_return (the original
+ * reuses the same value for both — consistent).
+ *
+ * Callees:
+ *   0xcc560 = hs_macro_function_evaluate(int16_t, int, char) -> result ptr
+ *   0x556f0 = FUN_000556f0(unsigned int ai_ref) -> bool
+ *   0xcbf80 = hs_return(int thread_handle, int value)
+ */
+void FUN_000c1210(int16_t function_index, int thread_datum, char init)
+{
+  unsigned int *result;
+  /* volatile forces the AL->stack spill+reload MSVC emits for the bool
+   * result (VC71 shape lever; value 0/1 is preserved unchanged). */
+  volatile unsigned char valid;
+
+  result = (unsigned int *)hs_macro_function_evaluate(function_index,
+                                                      thread_datum, init);
+  if (result != NULL) {
+    valid = FUN_000556f0(*result);
+    hs_return(thread_datum, (int)(uint8_t)valid);
+  }
+  do {
+  } while (0);
+}
+
+/* 0xc1260 — HS built-in evaluator: dispatch a macro function call and commit a
+ * 16-bit query result to the thread. Evaluates the macro function via
+ * hs_macro_function_evaluate; if it produces a non-null result record, reads
+ * the record's first dword and passes it to FUN_00057380 (a query returning a
+ * 16-bit value in AX), then commits that value — zero-extended to int — to the
+ * thread via hs_return.
+ *
+ * The original keeps a dword stack temp pre-initialized to 0 (mov dword
+ * [ebp-4],0), stores only the low 16 bits of the AX result into it (mov word
+ * [ebp-4],ax), then reads the full dword back (mov eax,[ebp-4]) so the upper
+ * 16 bits stay 0 (unsigned widen). Modeled here with an int/short union to
+ * preserve that zero-init-then-narrow-store shape (match-sensitive).
+ *
+ * Callees:
+ *   0xcc560 = hs_macro_function_evaluate(int16_t, int, char) -> result ptr
+ *   0x57380 = FUN_00057380(int value) -> 16-bit result in AX
+ *   0xcbf80 = hs_return(int thread_handle, int value)
+ */
+void FUN_000c1260(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+  union {
+    int i;
+    short s;
+  } value;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    value.i = 0;
+    value.s = FUN_00057380(*result);
+    hs_return(thread_datum, value.i);
+  }
+}
+
+/* 0xc12b0 — HS script function handler: evaluate the macro arguments; on
+ * success the result block holds a handle at +0x0 (int). Passes result[0] to
+ * FUN_00056880 (returns short), then returns that short to the HS thread via
+ * hs_return(thread_datum, value). Structurally identical to FUN_000c1260
+ * (0xc1260); the only difference is the callee (FUN_00056880 vs FUN_00057380).
+ * The union preserves the original's int-slot-zeroed-then-16-bit-store shape:
+ * value.i = 0 clears the full 4-byte slot, value.s writes only the low word,
+ * so the value passed to hs_return is the short in the low 16 bits with a
+ * zeroed upper half (NOT a sign-extended short). */
+void FUN_000c12b0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+  union {
+    int i;
+    short s;
+  } value;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    value.i = 0;
+    value.s = FUN_00056880(*result);
+    hs_return(thread_datum, value.i);
+  }
+}
+
+/* 0xc1300 — HS macro-function result commit. Evaluates a built-in HS macro
+ * function via hs_macro_function_evaluate; if it yields a non-NULL result
+ * record, reads the first dword (an AI reference) from that record, resolves
+ * it through FUN_00055660 (count_type 0 "start"/min accessor), and commits
+ * the resulting 16-bit value to the thread via hs_return.
+ *
+ * The thread_datum argument is reused for both the evaluate call (arg 2) and
+ * the hs_return call (arg 1) — a single value flows to both.
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560 = hs_macro_function_evaluate(int16 fn_index, int thread_datum,
+ *             char init) -> int* (result record, NULL on failure)
+ *   0x55660 = FUN_00055660(unsigned int ai_ref) -> int (16-bit count/index)
+ *   0xcbf80 = hs_return(int thread_handle, int value)
+ *
+ * The committed value is a 16-bit quantity zero-extended into a dword: the
+ * disassembly zero-inits the full dword slot ([EBP-4] = 0), stores only the
+ * low word (MOV [EBP-4],AX) from FUN_00055660's return, then reloads the full
+ * dword — so the high 16 bits stay 0. Modeled here with a int/uint16 union.
+ */
+void FUN_000c1300(int16_t function_index, int thread_datum, char init)
+{
+  int *result_ptr;
+  union {
+    int dw;
+    uint16_t w;
+  } value;
+
+  value.dw = 0;
+  result_ptr =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result_ptr != (int *)0) {
+    value.w = (uint16_t)FUN_00055660((unsigned int)*result_ptr);
+    hs_return(thread_datum, value.dw);
+  }
+}
+
+/*
+ * FUN_000c1350 @ 0xc1350 (hs.obj)
+ *
+ * HaloScript macro-function trampoline: evaluate a macro function and, if it
+ * produced a result record, read the record's first dword as an ai_ref,
+ * convert it to a float via FUN_00055680, and commit that float to the calling
+ * HS thread via hs_return.
+ *
+ * The thread_datum argument is reused for both the evaluate call (arg 2) and
+ * the hs_return call (arg 1) — a single value flows to both.
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560 = hs_macro_function_evaluate(int16 fn_index, int thread_datum,
+ *             char init) -> int* (result record, NULL on failure)
+ *   0x55680 = FUN_00055680(unsigned int ai_ref) -> float (returned in ST0)
+ *   0xcbf80 = hs_return(int thread_handle, int value)
+ *
+ * The returned float is committed as its raw 32-bit bit pattern, NOT a numeric
+ * int conversion: the disassembly does FSTP [EBP-4] (store float) then
+ * MOV EAX,[EBP-4] (reload the same dword) before PUSH EAX into hs_return. This
+ * is a type-pun, modeled here with a float/int union — a numeric (int)f cast
+ * would truncate the value and commit the wrong bits.
+ */
+void FUN_000c1350(int16_t function_index, int thread_datum, char init)
+{
+  int *result_ptr;
+  union {
+    float f;
+    int dw;
+  } value;
+
+  result_ptr =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result_ptr != (int *)0) {
+    value.f = FUN_00055680((unsigned int)*result_ptr);
+    hs_return(thread_datum, value.dw);
+  }
+}
+
+/*
+ * FUN_000c1390 @ 0xc1390 (hs.obj)
+ *
+ * HaloScript macro-function trampoline. Twin of FUN_000c1350 (0xc1350):
+ * evaluate a macro function and, if it produced a result record, read the
+ * record's first dword as an ai_ref, convert it to a float via FUN_000556c0,
+ * and commit that float to the calling HS thread via hs_return. The only
+ * difference from the 0xc1350 twin is the float accessor callee
+ * (FUN_000556c0 vs FUN_00055680).
+ *
+ * The thread_datum argument is reused for both the evaluate call (arg 2) and
+ * the hs_return call (arg 1) — a single value flows to both.
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560 = hs_macro_function_evaluate(int16 fn_index, int thread_datum,
+ *             char init) -> int* (result record, NULL on failure)
+ *   0x556c0 = FUN_000556c0(unsigned int ai_ref) -> float (returned in ST0)
+ *   0xcbf80 = hs_return(int thread_handle, int value)
+ *
+ * The returned float is committed as its raw 32-bit bit pattern, NOT a numeric
+ * int conversion: the disassembly does FSTP [EBP-4] (store float) then
+ * MOV EAX,[EBP-4] (reload the same dword) before PUSH EAX into hs_return. This
+ * is a type-pun, modeled here with a float/int union — a numeric (int)f cast
+ * would truncate the value and commit the wrong bits.
+ */
+void FUN_000c1390(int16_t function_index, int thread_datum, char init)
+{
+  int *result_ptr;
+  union {
+    float f;
+    int dw;
+  } value;
+
+  result_ptr =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result_ptr != (int *)0) {
+    value.f = FUN_000556c0((unsigned int)*result_ptr);
+    hs_return(thread_datum, value.dw);
+  }
+}
+
+/* 0xc13d0 — HS built-in evaluator wrapper. Dispatches to the macro-function
+ * evaluator; on a non-null result, reads the first dword of the returned
+ * record as an AI reference, converts it via FUN_00055620 (result narrowed
+ * to 16 bits), and returns that value on the thread. Same evaluator ABI
+ * (function_index, thread_datum, init) as the other hs_evaluate_* handlers.
+ *
+ * Callees:
+ *   0xcc560 = hs_macro_function_evaluate -> void* (record ptr, null on fail)
+ *   0x55620 = FUN_00055620 (unsigned ai_ref) -> int (narrowed to int16)
+ *   0xcbf80 = hs_return (thread_datum, value) */
+void FUN_000c13d0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+  int value = 0;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != (int *)0) {
+    /* Narrow the AI-reference conversion to 16 bits via the low word of a
+     * zero-initialized dword slot (matches original: MOV dword,0 / MOV
+     * word,AX / MOV dword,EAX — a zero-extended int16, not a MOVSX cast). */
+    *(short *)&value = (short)FUN_00055620(*(unsigned int *)result);
+    hs_return(thread_datum, value);
+  }
+}
+
+/* 0xc1420 — HS macro-function call site: evaluate a built-in HS function and,
+ * if it produced a result, commit that value back to the calling thread.
+ *
+ * Forwards (function_index, thread_datum, init) to hs_macro_function_evaluate.
+ * On a non-null result pointer, reads the first dword of the result, passes it
+ * through FUN_00055640 (ai count_type-2 accessor), and delivers the result via
+ * hs_return(thread_datum, value). thread_datum is reused as both the evaluate
+ * arg and the hs_return thread handle.
+ *
+ * The result slot is a 4-byte stack local zero-initialized up front (the
+ * disasm `mov DWORD PTR [ebp-4],0` at entry); only its low 16 bits are then
+ * overwritten from FUN_00055640's AX (`mov WORD PTR [ebp-4],ax`), and the full
+ * dword is read back (`mov eax,[ebp-4]`) — the high word stays 0. A union
+ * reproduces this partial-store / wide-read exactly.
+ *
+ * Callees:
+ *   0xcc560 = hs_macro_function_evaluate -> result pointer (in EAX)
+ *   0x55640 = FUN_00055640(ai_ref) -> int (low 16 bits consumed)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c1420(int16_t function_index, int thread_datum, char init)
+{
+  int result;
+  union {
+    int i;
+    short s;
+  } value;
+
+  value.i = 0;
+  result = hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != 0) {
+    value.s = (short)FUN_00055640(*(unsigned int *)result);
+    hs_return(thread_datum, value.i);
+  }
+}
+
+/* 0xc1470 — HS macro-function call site (encounter-handle variant): evaluate a
+ * built-in HS function and, if it produced a result, commit that value back to
+ * the calling thread.
+ *
+ * Twin of FUN_000c1420 (0xc1420): forwards (function_index, thread_datum, init)
+ * to hs_macro_function_evaluate; on a non-null result pointer, reads the first
+ * dword of the result and passes it through FUN_000547c0 (encounter-handle
+ * accessor), delivering the full-dword result via hs_return(thread_datum,
+ * value). The one difference from the 0xc1420 twin: the accessor result is the
+ * full dword (no 16-bit partial store / wide read here) and the callee is
+ * 0x547c0 rather than 0x55640. thread_datum is reused as both the evaluate arg
+ * and the hs_return thread handle.
+ *
+ * Callees:
+ *   0xcc560 = hs_macro_function_evaluate -> result pointer (in EAX)
+ *   0x547c0 = FUN_000547c0(encounter_handle) -> int
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c1470(int16_t function_index, int thread_datum, char init)
+{
+  int result;
+  int value;
+
+  result = hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != 0) {
+    value = FUN_000547c0(*(unsigned int *)result);
+    hs_return(thread_datum, value);
+  }
+}
+
+/* 0xc14b0 — HS macro-function call site (ai_status short variant): evaluate a
+ * built-in HS function and, if it produced a result, commit that value back to
+ * the calling thread.
+ *
+ * Twin of FUN_000c1420 (0xc1420): forwards (function_index, thread_datum, init)
+ * to hs_macro_function_evaluate; on a non-null result pointer, reads the first
+ * dword of the result and passes it through FUN_00057bc0 (ai_status accessor,
+ * returns a short in AX), delivering the value via hs_return(thread_datum,
+ * value). Like the 0xc1420 twin (and unlike 0xc1470), the accessor result is a
+ * 16-bit value: the result slot is a 4-byte stack local zero-initialized up
+ * front (`mov DWORD PTR [ebp-4],0`), only its low 16 bits are overwritten from
+ * AX (`mov WORD PTR [ebp-4],ax`), then the full dword is read back
+ * (`mov eax,[ebp-4]`) — the high word stays 0. A union reproduces this
+ * partial-store / wide-read exactly. The one difference from the 0xc1420 twin
+ * is the accessor callee: 0x57bc0 rather than 0x55640. thread_datum is reused
+ * as both the evaluate arg and the hs_return thread handle.
+ *
+ * Callees:
+ *   0xcc560 = hs_macro_function_evaluate -> result pointer (in EAX)
+ *   0x57bc0 = FUN_00057bc0(encounter_handle) -> short (low 16 bits consumed)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c14b0(int16_t function_index, int thread_datum, char init)
+{
+  int result;
+  union {
+    int i;
+    short s;
+  } value;
+
+  value.i = 0;
+  result = hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != 0) {
+    value.s = FUN_00057bc0(*(unsigned int *)result);
+    hs_return(thread_datum, value.i);
+  }
+}
+
+/* 0xc1500 — HS macro-function call site (byte-accessor variant): evaluate a
+ * built-in HS function and, if it produced a result, commit that value back to
+ * the calling thread.
+ *
+ * Twin of FUN_000c1420 (0xc1420): forwards (function_index, thread_datum, init)
+ * to hs_macro_function_evaluate; on a non-null result pointer, reads the FIRST
+ * 16-BIT field of the result (disasm `xor edx,edx; mov dx,WORD PTR [eax]` — a
+ * zero-extended uint16 load, NOT the full dword the other twins read) and
+ * passes it through FUN_000585d0, delivering the value via
+ * hs_return(thread_datum, value).
+ *
+ * FUN_000585d0's kb decl is understated as `void`, but it returns a value in
+ * EAX (its body tail-returns FUN_00046b60's int) and this call site consumes
+ * the low byte: `mov BYTE PTR [ebp-4],al`. The result slot is a 4-byte stack
+ * local zero-initialized up front (`mov DWORD PTR [ebp-4],0`); only its low 8
+ * bits are overwritten from AL, then the full dword is read back
+ * (`mov eax,[ebp-4]`) — the high 3 bytes stay 0. A union reproduces this
+ * partial-store / wide-read exactly. thread_datum is reused as both the
+ * evaluate arg and the hs_return thread handle.
+ *
+ * Callees:
+ *   0xcc560 = hs_macro_function_evaluate -> result pointer (in EAX)
+ *   0x585d0 = FUN_000585d0(uint16 field) -> int (low byte consumed in AL)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c1500(int16_t function_index, int thread_datum, char init)
+{
+  int result;
+  union {
+    int i;
+    unsigned char b;
+  } value;
+
+  value.i = 0;
+  result = hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != 0) {
+    value.b = (unsigned char)FUN_000585d0(*(unsigned short *)result);
+    hs_return(thread_datum, value.i);
+  }
+}
+
+/* 0xc1550 — HS macro-function call site (16-bit-accessor variant): evaluate a
+ * built-in HS function and, if it produced a result, commit that value back to
+ * the calling thread.
+ *
+ * Twin of FUN_000c1500 (0xc1500): forwards (function_index, thread_datum, init)
+ * to hs_macro_function_evaluate; on a non-null result pointer, reads the FIRST
+ * 16-BIT field of the result (disasm 0xc1574 `xor edx,edx; mov dx,WORD PTR
+ * [eax]` — a zero-extended uint16 load of offset 0) and passes it through
+ * FUN_00058700, delivering the value via hs_return(thread_datum, value).
+ *
+ * FUN_00058700's kb decl is understated as `void(void)`, but disasm shows one
+ * zero-extended uint16 stack arg (`push edx`) and a value returned in AX that
+ * this call site consumes: `mov WORD PTR [ebp-4],ax` (0xc157f) — a 16-bit
+ * store, wider than the 0xc1500 twin's `mov [ebp-4],al` byte store. The result
+ * slot is a 4-byte stack local zero-initialized up front (`mov DWORD PTR
+ * [ebp-4],0` at 0xc1561); only its low 16 bits are overwritten from AX, then
+ * the full dword is read back for the hs_return arg (high 2 bytes stay 0). A
+ * union reproduces this partial-store / wide-read exactly. thread_datum is
+ * reused as both the evaluate arg and the hs_return thread handle. cdecl
+ * throughout; the trailing ADD ESP,0xc at 0xc158d batch-cleans the outstanding
+ * pushes.
+ *
+ * Callees:
+ *   0xcc560 = hs_macro_function_evaluate -> result pointer (in EAX)
+ *   0x58700 = FUN_00058700(uint16 field) -> int (low word consumed in AX)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c1550(int16_t function_index, int thread_datum, char init)
+{
+  int result;
+  union {
+    int i;
+    unsigned short w;
+  } value;
+
+  value.i = 0;
+  result = hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != 0) {
+    value.w = (unsigned short)FUN_00058700(*(unsigned short *)result);
+    hs_return(thread_datum, value.i);
+  }
+}
+
+/* 0xc15a0 — HS script command: evaluate a macro-function argument and commit
+ * a converted 16-bit result. Dispatches to hs_macro_function_evaluate; if it
+ * yields a non-NULL result record, the first 16-bit word of that record is
+ * passed to ai_conversation_status (via frame thunk FUN_00058710) and the
+ * 16-bit status it returns is committed to the thread with hs_return.
+ *
+ * Confirmed (disasm 0xc15a0):
+ *   - forwards (function_index, thread_datum, init) to
+ * hs_macro_function_evaluate (all three loaded as full dwords: MOV ECX/ESI/EAX
+ * from [EBP+8/0xc/0x10]).
+ *   - result == NULL -> nothing committed.
+ *   - result word read zero-extended (XOR EDX,EDX; MOV DX,[EAX]) -> unsigned.
+ *   - FUN_00058710 is a frame thunk to ai_conversation_status; its 16-bit AX
+ *     return is written low-word (MOV word[EBP-4],AX) into a dword slot that
+ * was pre-initialized to 0, then the full dword is passed to hs_return.
+ * Inferred: param widths treated as int/undefined4 (caller uses dword loads).
+ */
+void FUN_000c15a0(int function_index, int thread_datum, int init)
+{
+  unsigned short *result;
+  int value;
+
+  value = 0;
+  result = (unsigned short *)hs_macro_function_evaluate(function_index,
+                                                        thread_datum, init);
+  if (result != (unsigned short *)0x0) {
+    *(short *)&value = FUN_00058710(*result);
+    hs_return(thread_datum, value);
+  }
+}
+
+/* 0xc15f0 — HS script command: evaluate a macro-function argument pair and
+ * commit a boolean result. Dispatches to hs_macro_function_evaluate; if it
+ * yields a non-NULL result record, the record's first two 16-bit fields are
+ * passed to FUN_000567e0 (a two-team allied/friendly predicate returning a
+ * bool in AL), and that boolean is committed to the thread with hs_return.
+ *
+ * Confirmed (disasm 0xc15f0):
+ *   - forwards (function_index, thread_datum, init) to
+ * hs_macro_function_evaluate (MOV ECX/ESI/EAX from [EBP+8/0xc/0x10]; cdecl, ADD
+ * ESP,0xc).
+ *   - result == NULL -> nothing committed.
+ *   - result +0x0 read SIGN-extended (MOVSX EAX,WORD PTR [EAX]) -> signed
+ * int16.
+ *   - result +0x4 read ZERO-extended (XOR EDX,EDX; MOV DX,WORD PTR [EAX+4]) ->
+ *     unsigned int16.
+ *   - call FUN_000567e0(sign16, zero16); its bool AL is stored as a byte into a
+ *     dword stack slot pre-initialized to 0 (MOV [EBP-4],0 then MOV
+ * [EBP-4],AL), and the full dword is passed to hs_return. A union reproduces
+ * the partial-byte-store / wide-read exactly. The +0x4 read leaves the same
+ * permanent ~1-insn gap (compact movzwl vs the original xor+movw idiom) as the
+ * 0xc1150 int16 cluster.
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560 = hs_macro_function_evaluate(int16 function_index, int
+ * thread_datum, char init) -> result pointer 0x567e0 = FUN_000567e0(int16 a,
+ * int16 b) -> bool (low byte consumed in AL) 0xcbf80 = hs_return(int
+ * thread_handle, int value)
+ */
+void FUN_000c15f0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+  union {
+    int i;
+    unsigned char b;
+  } value;
+
+  value.i = 0;
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != (int *)0x0) {
+    value.b = (unsigned char)FUN_000567e0(*(short *)result,
+                                          *(unsigned short *)(result + 1));
+    hs_return(thread_datum, value.i);
+  }
+}
+
+/* 0xc1640 — HS script function handler: dispatch to director_script_camera.
+ * Twin of the 0xc0c30 dispatch family, but reads a SINGLE zero-extended byte
+ * from OFFSET +0x0 of the macro result block (not +0x4 like the encounter
+ * twins). Verified against disassembly 0xc1640-...: after the NULL check,
+ * XOR EDX,EDX; MOV DL,byte[EAX] (a movzx byte load at +0x0); PUSH EDX;
+ * CALL 0x86cb0. Then PUSH 0; PUSH ESI(thread_datum); CALL 0xcbf80; a single
+ * ADD ESP,0xc cleans all three preceding pushes.
+ *
+ * Callees (all cdecl):
+ *   0xcc560 = hs_macro_function_evaluate(int16 function_index, int
+ * thread_datum, char init) -> result pointer
+ *   0x86cb0 = director_script_camera(int) — receives the +0x0 byte,
+ * zero-extended 0xcbf80 = hs_return(int thread_datum, int value)
+ */
+void FUN_000c1640(int16_t function_index, int thread_datum, char init)
+{
+  unsigned char *result;
+
+  result = (unsigned char *)hs_macro_function_evaluate(function_index,
+                                                       thread_datum, init);
+  if (result != NULL) {
+    director_script_camera(*result);
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc1680 — HS macro-function evaluator that forwards two 16-bit fields.
+ * Evaluates the macro function for this HS function_index. If it produced a
+ * result record (returned as a short* in EAX), invokes FUN_00085260 with the
+ * signed short at offset 0 and the unsigned short at offset 4 of that record,
+ * then commits a 0 result to the thread. Does nothing if the macro returned
+ * NULL.
+ *
+ * Callees:
+ *   0xcc560 = hs_macro_function_evaluate (short, int, char) -> short* (EAX)
+ *   0x85260 = FUN_00085260 (short arg0, short arg1)
+ *   0xcbf80 = hs_return (int thread_datum, int value)
+ */
+void FUN_000c1680(int16_t function_index, int thread_datum, char init)
+{
+  short *result;
+
+  result =
+    (short *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    /* offset 0 read as signed short (MOVSX), offset 4 read as unsigned
+     * short (XOR/MOV DX) per disassembly. */
+    FUN_00085260(result[0], ((unsigned short *)result)[2]);
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc16c0 — HS script function handler: evaluate a macro function and dispatch
+ * its result to FUN_00085180. Twin of the 0xc0c30 evaluate-then-dispatch
+ * family. Evaluates the call via hs_macro_function_evaluate; when it returns a
+ * non-NULL result block, reads three fields and dispatches, then commits 0 to
+ * the calling HS thread via hs_return(thread_datum, 0).
+ *
+ * Field widths (verified against disassembly 0xc16c0-...): after the NULL
+ * check, the +0x0 and +0x4 fields are loaded as zero-extended 16-bit values
+ * (XOR reg,reg; MOV DX,[EAX] and MOV CX,[EAX+4]), and the +0x8 field is a full
+ * 32-bit load (MOV EDX,[EAX+8]). Matches FUN_00085180(short, short, int).
+ * A single ADD ESP,0x14 cleans the two trailing calls' pushes.
+ *
+ * Callees (all cdecl):
+ *   0xcc560 = hs_macro_function_evaluate(int16 function_index, int
+ * thread_datum, char init) -> result pointer
+ *   0x85180 = FUN_00085180(short +0x0, short +0x4, int +0x8)
+ *   0xcbf80 = hs_return(int thread_datum, int value)
+ */
+void FUN_000c16c0(int16_t function_index, int thread_datum, char init)
+{
+  unsigned short *result;
+
+  result = (unsigned short *)hs_macro_function_evaluate(function_index,
+                                                        thread_datum, init);
+  if (result != NULL) {
+    FUN_00085180(result[0], result[2], *(int *)(result + 4));
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
