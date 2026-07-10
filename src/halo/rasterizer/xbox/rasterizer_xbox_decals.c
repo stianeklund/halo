@@ -21,6 +21,154 @@
 static void rasterizer_decals_vertex_cache_delete(int decal_index);
 static int rasterizer_decals_vertex_cache_query(int decal_index);
 
+/* 0x1584f0
+ *
+ * rasterizer_set_target_as_texture  (bind a render-target as a D3D texture)
+ *
+ * Selects one of the engine's render-target texture headers by `target`
+ * index and binds it to D3D sampler `stage`. `max_mipmap` selects the top
+ * mip level of the water target's format word.
+ *
+ * Name/param evidence: assert string "### ERROR
+ * rasterizer_set_target_as_texture failed" and the per-case max_mipmap==0
+ * asserts.  __FILE__ for the asserts is rasterizer_xbox.c (the original TU; the
+ * linker grouped this fn into rasterizer_decals.obj).
+ *
+ * Globals (used by address, not in kb.json):
+ *   0x476a54  void*[2]  render-target texture header pair (backbuffer),
+ *                       indexed by frame parity (*0x325668 & 1)
+ *   0x476a64  void*     target 1 texture header
+ *   0x476a74  void*     target 2 texture header
+ *   0x476a7c  void*     target 3 texture header
+ *   0x476a84  void*     target 4 texture header
+ *   0x476a8c  void*     target 5 texture header
+ *   0x476a94  void*     target 6 (water) texture header; ALSO reused
+ *                       unconditionally as the mip-field patch target
+ *   0x476aa8  void*     target 7 texture header
+ *   0x325668  int       backbuffer frame-parity selector
+ *
+ *   stage       - D3D sampler stage index (used as short)
+ *   target      - render-target index (switch on short)
+ *   max_mipmap  - top mip level (used as short)
+ */
+void FUN_001584f0(int stage, int target, int max_mipmap)
+{
+  void *d3d_texture;
+  void *water_hdr;
+  char success;
+  int hr;
+
+  d3d_texture = 0;
+  success = 1;
+
+  switch ((short)target) {
+  case 0:
+    d3d_texture = ((void **)0x476a54)[*(int *)0x325668 & 1];
+    if ((short)max_mipmap != 0) {
+      display_assert("max_mipmap==0", "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c", 0x96f, 1);
+      system_exit(-1);
+    }
+    if (((uint32_t *)d3d_texture)[1] == 0) {
+      /* Reuse target's stack slot for the backbuffer surface pointer. */
+      D3DDevice_GetBackBuffer(0, 0, (void **)&target);
+      ((uint32_t *)d3d_texture)[0] = 0x40001;
+      ((uint32_t *)d3d_texture)[1] = *(uint32_t *)(target + 4);
+      ((uint32_t *)d3d_texture)[2] = 0;
+      ((uint32_t *)d3d_texture)[4] = 0x271df27f;
+      ((uint32_t *)d3d_texture)[3] = 0x11229;
+      hr = (int)D3DResource_Release((void *)target);
+      if (hr < 0) {
+        success = 0;
+        FUN_00167ff0(hr, "IDirect3DSurface8_Release(d3d_backbuffer)");
+      } else {
+        success = 1;
+      }
+    }
+    d3d_texture = ((void **)0x476a54)[*(int *)0x325668 & 1];
+    break;
+  case 1:
+    if ((short)max_mipmap != 0) {
+      display_assert("max_mipmap==0", "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c", 0x999, 1);
+      system_exit(-1);
+    }
+    d3d_texture = *(void **)0x476a64;
+    break;
+  case 2:
+    if ((short)max_mipmap != 0) {
+      display_assert("max_mipmap==0", "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c", 0x99d, 1);
+      system_exit(-1);
+    }
+    d3d_texture = *(void **)0x476a74;
+    break;
+  case 3:
+    if ((short)max_mipmap != 0) {
+      display_assert("max_mipmap==0", "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c", 0x9a1, 1);
+      system_exit(-1);
+    }
+    d3d_texture = *(void **)0x476a7c;
+    break;
+  case 4:
+    if ((short)max_mipmap != 0) {
+      display_assert("max_mipmap==0", "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c", 0x9a5, 1);
+      system_exit(-1);
+    }
+    d3d_texture = *(void **)0x476a84;
+    break;
+  case 5:
+    if ((short)max_mipmap != 0) {
+      display_assert("max_mipmap==0", "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c", 0x9a9, 1);
+      system_exit(-1);
+    }
+    d3d_texture = *(void **)0x476a8c;
+    break;
+  case 6:
+    if ((short)max_mipmap < 0 || 4 < (short)max_mipmap) {
+      display_assert(
+          "max_mipmap>=0 && max_mipmap<=RASTERIZER_TARGET_WATER_MAX_MIPMAP_LEVELS",
+          "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c", 0x9ad, 1);
+      system_exit(-1);
+    }
+    d3d_texture = *(void **)0x476a94;
+    break;
+  case 7:
+    if ((short)max_mipmap != 0) {
+      display_assert("max_mipmap==0", "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c", 0x9bc, 1);
+      system_exit(-1);
+    }
+    d3d_texture = *(void **)0x476aa8;
+    break;
+  default:
+    display_assert("### ERROR unsupported rasterizer target", "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c", 0x9c0, 1);
+    system_exit(-1);
+  }
+
+  if (d3d_texture == 0) {
+    display_assert("d3d_texture", "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c", 0x9c3, 1);
+    system_exit(-1);
+  }
+
+  water_hdr = *(void **)0x476a94;
+  if ((short)max_mipmap != 0) {
+    if ((short)max_mipmap < 0 || 4 < (short)max_mipmap) {
+      display_assert(
+          "max_mipmap>=0 && max_mipmap<=RASTERIZER_TARGET_WATER_MAX_MIPMAP_LEVELS",
+          "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c", 0x9cc, 1);
+      system_exit(-1);
+    }
+  } else {
+    max_mipmap = 4;
+  }
+  *(uint32_t *)((int)water_hdr + 0xc) =
+      ((int)(short)max_mipmap << 0x10) | (*(uint32_t *)((int)water_hdr + 0xc) & 0xfff0ffff);
+
+  D3DDevice_SetTexture((uint32_t)(short)stage, d3d_texture);
+  if (success == 0) {
+    FUN_00167ff0(0, "IDirect3DDevice8_SetTexture(global_d3d_device, stage, "
+                    "(IDirect3DBaseTexture8*)d3d_texture)");
+    error(2, "### ERROR rasterizer_set_target_as_texture failed");
+  }
+}
+
 /* 0x15abe0
  *
  * rasterizer_debug_draw_line2d  (debug 2D line drawer)
