@@ -3040,6 +3040,108 @@ void structure_runtime_decals_dispose(void)
 {
 }
 
+/* FUN_00196fd0 (0x196fd0) — structures.obj
+ *
+ * Gathers de-duplicated surface/portal indices from a set of clusters into
+ * out_buf, capped at max_count.  For every cluster in cluster_indices[] it
+ * walks the cluster's sub-block (element+0x34), and for each sub-element that
+ * passes both the cull test FUN_00196a60(element, bounds) and the visibility
+ * test FUN_00196b10(element, arg_1c, arg_20) it iterates the element's index
+ * list (element+0x18, dword indices).  Each index is bit-tested against the
+ * allowed-set bitvector at 0x5137d0; if allowed and not yet marked in the
+ * caller-supplied seen_mask bitvector, it is marked and appended to out_buf.
+ * Returns the number of indices written (AX = running EDI counter).
+ *
+ * Cdecl; +0x10/+0x14 are present-but-unused stack slots (kept in the
+ * signature to preserve the stack layout of the arguments after them).
+ * All three loop counters are 32-bit stack homes used with (short) truncation
+ * (matches the disasm's movsx/16-bit-compare pattern).  The bitvector accesses
+ * use raw base+byteoffset arithmetic (byteoffset = (val>>5)*4), NOT [i]
+ * indexing, to match the original codegen.  Ghidra split the single EDI
+ * running counter into two locals and invented a sVar11<->sVar5 swap; the
+ * disassembly shows one variable at [ebp-4] that is both the append index and
+ * the return value. */
+int16_t FUN_00196fd0(int *out_buf, int16_t max_count, int unused_10,
+                     int unused_14, float *bounds, int arg_1c, int arg_20,
+                     uint32_t *seen_mask, int16_t cluster_count,
+                     int16_t *cluster_indices)
+{
+  char *scenario;
+  int out_count; /* [ebp-4]    running append count == EDI == return */
+  int outer_index; /* [ebp-0x14] cluster loop index */
+  int inner_index; /* [ebp-8]    sub-element loop index */
+  int inner2_index; /* [ebp-0xc]  index-list loop index */
+  char *cluster;
+  int *sub_block; /* element+0x34 */
+  char *element;
+  int *idx_block; /* element+0x18 */
+  int *idx_ptr;
+  short cull;
+  int cluster_idx;
+  int val;
+  uint32_t bit;
+  int byteoff;
+
+  (void)unused_10;
+  (void)unused_14;
+
+  scenario = (char *)scenario_get();
+  out_count = 0;
+  outer_index = 0;
+  if (cluster_count > 0) {
+    do {
+      if ((short)out_count >= max_count) {
+        break;
+      }
+      cluster_idx = cluster_indices[(short)outer_index];
+      cluster = (char *)tag_block_get_element((void *)(scenario + 0x134),
+                                              cluster_idx, 0x68);
+      sub_block = (int *)(cluster + 0x34);
+      inner_index = 0;
+      if (*sub_block > 0) {
+        do {
+          if ((short)out_count >= max_count) {
+            break;
+          }
+          element = (char *)tag_block_get_element((void *)sub_block,
+                                                  (short)inner_index, 0x24);
+          cull = (short)FUN_00196a60((float *)element, bounds);
+          if (cull != 0) {
+            cull = (short)FUN_00196b10((float *)element, arg_1c, arg_20);
+            if (cull != 0) {
+              idx_block = (int *)(element + 0x18);
+              idx_ptr = (int *)tag_block_get_element((void *)idx_block, 0, 4);
+              inner2_index = 0;
+              if (*idx_block > 0) {
+                do {
+                  val = *idx_ptr;
+                  bit = 1u << (val & 0x1f);
+                  byteoff = (val >> 5) * 4;
+                  /* allowed-set bitvector at 0x5137d0, raw base+byteoff */
+                  if ((*(uint32_t *)((char *)0x5137d0 + byteoff) & bit) != 0 &&
+                      (bit & *(uint32_t *)((char *)seen_mask + byteoff)) == 0) {
+                    if ((short)out_count >= max_count) {
+                      break;
+                    }
+                    *(uint32_t *)((char *)seen_mask + byteoff) |= bit;
+                    out_buf[(short)out_count] = *idx_ptr;
+                    out_count++;
+                  }
+                  idx_ptr++;
+                  inner2_index++;
+                } while ((short)inner2_index < *idx_block);
+              }
+            }
+          }
+          inner_index++;
+        } while ((short)inner_index < *sub_block);
+      }
+      outer_index++;
+    } while ((short)outer_index < cluster_count);
+  }
+  return (int16_t)out_count;
+}
+
 /* FUN_00198070 (0x198070) — structures.obj
  *
  * Per-frame rebuild of the active cluster's environment sound/geometry list,
