@@ -1,0 +1,32 @@
+{
+  "name": "collision_surface_edge_count",
+  "addr": "0x1473b0",
+  "obj": "collision_bsp.obj",
+  "source_path": "src/halo/physics/collision_bsp.c",
+  "best_score": 97.6,
+  "best_patch": "artifacts/parked/patches/collision_surface_edge_count-20260710-085145.patch",
+  "status": "promoted",
+  "first_parked": "2026-07-10T08:51:45+00:00",
+  "last_updated": "2026-07-10T10:53:46+00:00",
+  "promoted_commit": "e4dacf8a36787a428113d26925214aaaa732f080",
+  "attempts": [
+    {
+      "ts": "2026-07-10T08:51:45+00:00",
+      "model": "opus",
+      "effort": "high",
+      "score": 0.0,
+      "cap_hypothesis": "VC71 unmeasured: no delinked reference could be produced; not a lift failure",
+      "reason": "verify_skipped_no_ref",
+      "patch": "artifacts/parked/patches/collision_surface_edge_count-20260710-085145.patch"
+    },
+    {
+      "ts": "2026-07-10T10:53:46+00:00",
+      "model": "fable",
+      "effort": "high",
+      "score": 97.6,
+      "cap_hypothesis": null,
+      "reason": "promoted: per-fn ref delinked/functions/001473b0.obj existed; vc71 97.6% (41/41)",
+      "patch": null
+    }
+  ]
+}

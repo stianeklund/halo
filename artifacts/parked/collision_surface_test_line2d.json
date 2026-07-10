@@ -1,0 +1,32 @@
+{
+  "name": "collision_surface_test_line2d",
+  "addr": "0x147d10",
+  "obj": "collision_bsp.obj",
+  "source_path": "src/halo/physics/collision_bsp.c",
+  "best_score": 96.0,
+  "best_patch": "artifacts/parked/patches/collision_surface_test_line2d-20260710-101118.patch",
+  "status": "promoted",
+  "first_parked": "2026-07-10T10:11:18+00:00",
+  "last_updated": "2026-07-10T11:21:20+00:00",
+  "promoted_commit": "f958eed17f972cefbc3f4a30cd9e0c2152a470e9",
+  "attempts": [
+    {
+      "ts": "2026-07-10T10:11:18+00:00",
+      "model": "opus",
+      "effort": "high",
+      "score": 67.1,
+      "cap_hypothesis": "Interleaved dual-cross-product x87 scheduling ceiling. The original computes edge_cross and pt_cross interleaved on the FPU stack \u2014 recomputing the shared (v1-v0) subtractions as two separate pairs (0x8e-9b, 0x9e-a8) and chaining ST0 via fld %st(2)/fld %st(4)/fsubrp/fmulp, then spilling edge_cross to [ebp+0x20] and reloading it three times for the vs-0 compares and the fdivs. Clean C89 emits two sequential cross-product computations instead. Branch skeleton (test 0x44 ==0, test 0x5 <0, test 0x41 final fcomps), -1 init via shared or hmtBc1,%eax, and mixed int/float output stores all match; no FPU operand-order warning; near-equal instruction counts (167 vs 164). This is the documented x87 ST0-chaining/interleaved-FPU cap, not a correctness bug.",
+      "reason": "structural_cap",
+      "patch": "artifacts/parked/patches/collision_surface_test_line2d-20260710-101118.patch"
+    },
+    {
+      "ts": "2026-07-10T11:21:20+00:00",
+      "model": "fable",
+      "effort": "high",
+      "score": 96.0,
+      "cap_hypothesis": null,
+      "reason": "promoted 67.1->96.0: NOT a scheduling ceiling. Levers: edge-vector/point diffs as explicit ST-resident locals (ex/ey/cx/cy); volatile edge_cross (spilled once, reloaded 3x: ==0 test, divide, sign test); outer branch spelled edge_cross != 0.0f (divide branch = if-body, parallel = else); inner branch (edge_cross<0.0f) != side (enter = if-body, leave = else, je-to-leave layout); guards pt_cross > out[0] / enter > leave mirror FCOM order; edge_index=first_edge moved before out-record init. NaN paths verified against ref masks (0x44/0x5/0x41). Residual 4 insns = VC71 point-diff load reorder + FLD-const vs FCOMP-const operand choice.",
+      "patch": null
+    }
+  ]
+}

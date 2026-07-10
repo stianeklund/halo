@@ -1,0 +1,32 @@
+{
+  "name": "collision_surface_perimeter",
+  "addr": "0x147710",
+  "obj": "collision_bsp.obj",
+  "source_path": "src/halo/physics/collision_bsp.c",
+  "best_score": 97.6,
+  "best_patch": "artifacts/parked/patches/collision_surface_perimeter-20260710-094820.patch",
+  "status": "promoted",
+  "first_parked": "2026-07-10T09:48:20+00:00",
+  "last_updated": "2026-07-10T11:00:17+00:00",
+  "promoted_commit": "dd4abaaeb85a6752e758e01df8995303624646ca",
+  "attempts": [
+    {
+      "ts": "2026-07-10T09:48:20+00:00",
+      "model": "opus",
+      "effort": "high",
+      "score": 83.1,
+      "cap_hypothesis": "x87 FPU-stack scheduling ceiling: identical instruction count (83/83), no FPU/LOADW/IMM warnings, correct FADD operand order. --show-diffs shows the original keeps the three squared distance terms on the x87 stack (fxch %st(2)/fstp %st(3)) and computes side via sete %bl interleaved with the integer edge[2+side] address arithmetic, while our VC71 codegen serializes the get_element calls and FPU work. Logic is faithful; residual gap is compiler scheduling, not a correctness bug. classify_cap.py was inconclusive; this is agent judgment.",
+      "reason": "structural_cap",
+      "patch": "artifacts/parked/patches/collision_surface_perimeter-20260710-094820.patch"
+    },
+    {
+      "ts": "2026-07-10T11:00:17+00:00",
+      "model": "fable",
+      "effort": "high",
+      "score": 97.6,
+      "cap_hypothesis": null,
+      "reason": "promoted: unsigned char side (sete+movzbl byte-bool) + edge_index=edge[2+side] moved after FPU accumulation (forces -0xc spill) recovered 83.1->97.6; residual = 4-insn fmulp/fxch x87 scheduling",
+      "patch": null
+    }
+  ]
+}
