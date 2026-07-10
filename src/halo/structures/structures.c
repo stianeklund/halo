@@ -2136,6 +2136,26 @@ void cluster_partition_copy(void **destination, void **source)
   reference_list_copy(destination[1], source[1]);
 }
 
+/* 0x191750 - get a pointer to a cluster partition's per-cluster slot.
+ * (TU: c:\halo\SOURCE\structures\cluster_partitions.c)
+ *
+ * Register ABI (prologue at 0x191750): TEST SI,SI and direct use of ESI; the
+ * only register arg is cluster_index@<esi> (short). Stack arg: partition
+ * ([EBP+0x8]), whose first field (partition[0]) is the per-cluster int array
+ * base.  Bounds-checks cluster_index against clusters.count (scenario+0x134)
+ * and returns &partition[0][cluster_index]. */
+int *FUN_00191750(short cluster_index /* @<esi> */, int **partition)
+{
+  if (cluster_index < 0 ||
+      (int)cluster_index >= *(int *)((char *)scenario_get() + 0x134)) {
+    display_assert(
+        "cluster_index>=0 && cluster_index<global_structure_bsp_get()->clusters.count",
+        "c:\\halo\\SOURCE\\structures\\cluster_partitions.c", 0xd5, true);
+    system_exit(-1);
+  }
+  return *partition + cluster_index;
+}
+
 /* Add an object to a cluster partition (0x1917a0).
  * Finds all clusters overlapping position+radius via structure_find_in_cluster,
  * then for each cluster: allocates a per-object cluster reference

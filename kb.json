@@ -23530,7 +23530,9 @@
         },
         {
           "addr": "0x191750",
-          "decl": "void FUN_00191750(void);"
+          "decl": "int *FUN_00191750(short cluster_index@<esi>, int **partition);",
+          "ported": true,
+          "name": "FUN_00191750"
         },
         {
           "addr": "0x1917a0",
