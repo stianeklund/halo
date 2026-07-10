@@ -277,3 +277,40 @@ bool FUN_000638f0(int def, float *point, int surf_a, int surf_b)
   }
   return 0;
 }
+
+/*
+ * FUN_00063970 (0x63970) — interval/segment clamp.
+ * Clamps hi upward to *a and lo downward to *b, then collapses one endpoint:
+ * compares the two gaps (*b - hi) vs (lo - *a) and moves only the
+ * smaller-shortfall side. Returns 1 when the clamp left the interval
+ * inverted/empty (*a > *b), else 0.
+ * (Tail at 0x639c2: FCOMP *a,*b; TEST AH,0x41; JNE -> XOR EAX,EAX (return 0);
+ *  fall-through -> MOV EAX,1 (return 1). So EAX = (*a > *b) ? 1 : 0.)
+ * cdecl, 4 stack args, BOOL return in EAX (Ghidra misread this as void(void)).
+ *
+ * Shape notes (delinked 00063970.obj):
+ *  - Both clamps are TERNARIES with both-arm assignment: the hi clamp's else
+ *    arm is a literal self-store (MOV ECX,[EBP+0x14]; MOV [EBP+0x14],ECX) and
+ *    the taken arm copies the float via integer MOV EAX. Spelling them as
+ *    ternaries (not `if`) reproduces this under VC71; clang folds them to
+ *    selects (same semantics, both predicates false on NaN). VC71 store-merges
+ *    our hi-clamp arms (3-insn ceiling vs the original's distinct-arm copies;
+ *    the self-assign spelling that would split them is clang-hostile).
+ *  - The lo/min select stays ST-resident (FLD lo/FLD *b straight into the
+ *    gap compare) — t_lo is a single-assignment non-volatile local.
+ *  - Gap compare: FCOMPP; TEST AH,0x5; JP => (*b - hi) <= (t_lo - *a) takes
+ *    the *b = t_lo path (NaN also lands there). Equivalence-verified 100/100
+ *    (unicorn, high confidence) on this predicate orientation.
+ */
+int FUN_00063970(float *a, float *b, float lo, float hi)
+{
+  float t_lo;
+
+  hi = (*a > hi) ? *a : hi;
+  t_lo = (lo > *b) ? *b : lo;
+  if (*b - hi > t_lo - *a)
+    *a = hi;
+  else
+    *b = t_lo;
+  return (*a > *b) ? 1 : 0;
+}
