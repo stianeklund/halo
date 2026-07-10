@@ -4372,6 +4372,14 @@
         "summary": "Post-tick player update: ticks double-speed countdown, handles telefrag effect/kill, scans BSP-switch trigger volumes, advances BSP nibble counter, SP all-dead restart. Re-ported after pre-audit verified all 9 direct-address cast calls (0xa2ed0, 0xa2930, 0x1a7f80, 0xbc4b0 EBX-reg, 0x13d7f0, 0x18ef00, 0x100500, 0xbdb00 EBX-reg, 0x100380). Split-screen telefrag verified in xemu."
       }
     },
+    "0xc0e50": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "FUN_000c0e50 belongs to hs.obj (source src/halo/hs/hs.c); placed with its byte-shape twins FUN_000c0d50/FUN_000c0dd0 after 0xc0dd0 in address order.",
+        "Both result-block dwords read as full int32 (result[0], result[1]) matching FUN_000581b0(int,int); second load is a 32-bit load like twin 0xc0dd0, not the 16-bit load seen in twin 0xc0d90."
+      ]
+    },
     "0xc3b60": {
       "kind": "function",
       "status": "ported",
@@ -8477,6 +8485,67 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1473b0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Return type is short: original returns edge count in AX only; CONCAT22 high half of EAX is leftover garbage from the terminator edge index. Struct offsets (surfaces +0x3c stride 0xc first-edge at +4, edges +0x48 stride 0x18, edge+0x14 owning-surface, next-edge at edge[2]/edge[3]) confirmed against already-ported neighbor collision_surface_polygon at 0x147410."
+      ]
+    },
+    "0x147410": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Return narrowed int->short: original emits MOV AX,CX at 0x1474d9 and leaves the high half of EAX as leftover terminator-index garbage (the decompiler's CONCAT22); faithful return is the 16-bit point_count only."
+      ]
+    },
+    "0x147520": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x147570": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1475f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x147660": {
+      "kind": "function",
+      "status": "ported",
+      "uncertain": [
+        "param_2 (matrix_or_flag) is forwarded unchanged as the 3rd arg to render_debug_collision_edge; it is either a transform-matrix pointer (used by FUN_00109590 when non-zero) or a flag, not disambiguated from this caller alone."
+      ]
+    },
+    "0x1476a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x147710": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "SQRT sums squared component differences (vertex_b - vertex_a) in y,z,x order (edge indices 1,2,0); this order matches the delinked reference x87 FADD scheduling with no FPU-WARN."
+      ],
+      "uncertain": [
+        "VC71 caps at 83.1% (83/83 insns, no FPU/LOADW/IMM warn): gap is x87 FPU-stack scheduling (fxch/fstp st(N)) plus sete-byte side computed inline with the integer next-edge address arithmetic edge[2+side]; logic verified faithful, residual is compiler scheduling not a correctness bug."
+      ]
+    },
+    "0x1477f0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "collision_surface_area(int bsp, int surface_index) returns float in ST0 = max(accumulated signed area, 0.0f); cdecl, both callees (tag_block_get_element, bsp3d_get_plane_from_designator) cdecl no reg-args."
+      ],
+      "uncertain": [
+        "VC71 capped at 80.6% (155/160 raw insns match, no FPU/IMM/LOADW warnings, cross-product operand order verified against disasm). Residual gap is pure x87 stack-scheduling (candidate spills reused component-diffs to stack temps where original keeps them on the FPU register stack), bool sete/movzx materialization, and float-compare branch form (original jp vs candidate jne) \u2014 known permanent structural classes, not a correctness bug."
+      ]
+    },
+    "0x147d10": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x14ad40": {
       "kind": "function",
       "status": "ported"
@@ -11412,14 +11481,6 @@
     "0x5065a4": {
       "kind": "data",
       "status": "ported"
-    },
-    "0xc0e50": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "FUN_000c0e50 belongs to hs.obj (source src/halo/hs/hs.c); placed with its byte-shape twins FUN_000c0d50/FUN_000c0dd0 after 0xc0dd0 in address order.",
-        "Both result-block dwords read as full int32 (result[0], result[1]) matching FUN_000581b0(int,int); second load is a 32-bit load like twin 0xc0dd0, not the 16-bit load seen in twin 0xc0d90."
-      ]
     }
   }
 }
