@@ -36474,7 +36474,8 @@
         },
         {
           "addr": "0x63970",
-          "decl": "void FUN_00063970(void);"
+          "decl": "int FUN_00063970(float *a, float *b, float lo, float hi);",
+          "ported": true
         },
         {
           "addr": "0x639e0",
@@ -36489,7 +36490,8 @@
       "functions": [
         {
           "addr": "0x60c40",
-          "decl": "void valid_real_point2d(void);"
+          "decl": "int valid_real_point2d(float *point);",
+          "ported": true
         },
         {
           "addr": "0x60c80",
