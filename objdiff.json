@@ -8174,6 +8174,22 @@
       "metadata": {
         "source_path": "halo/physics/bsp3d.c"
       }
+    },
+    {
+      "name": "halo/FUN_00193c00",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/structures/structure_detail_objects.c.obj",
+      "base_path": "delinked/functions/00193c00.obj",
+      "metadata": {
+        "source_path": "src/halo/structures/structure_detail_objects.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00195bc0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/structures/structures.c.obj",
+      "base_path": "delinked/functions/00195bc0.obj",
+      "metadata": {
+        "source_path": "src/halo/structures/structures.c"
+      }
     }
   ]
 }
