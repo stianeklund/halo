@@ -36084,7 +36084,10 @@
         },
         {
           "addr": "0x147d10",
-          "decl": "void collision_surface_test_line2d(void);"
+          "decl": "int collision_surface_test_line2d(int bsp, int surface_index, int param3, int param4, float *point, float *direction, float *out_result);",
+          "ported": true,
+          "name": "collision_surface_test_line2d",
+          "source_path": "src/halo/physics/collision_bsp.c"
         },
         {
           "addr": "0x147ed0",

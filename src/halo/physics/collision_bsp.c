@@ -440,3 +440,115 @@ float collision_surface_area(int bsp, int surface_index)
   }
   return 0.0f;
 }
+
+/* 0x147d10 - collision_surface_test_line2d
+ *
+ * Clips a 2D line (point + direction) against one collision-BSP surface's
+ * bounding-edge loop, returning whether the line's entering and leaving
+ * parameters bracket a non-empty interval (i.e. the line crosses the surface's
+ * interior). Same tag_block geometry as collision_surface_polygon:
+ *   bsp+0x3c surfaces (stride 0xc): surface[+4] = first-edge index
+ *   bsp+0x48 edges    (stride 0x18)
+ *   bsp+0x54 vertices (stride 0x10): first 0xc bytes = xyz float32
+ *
+ * Winged edge: `side` = (edge[5] == surface_index) tells which half-edge slot
+ * belongs to this surface. Both endpoints (edge[0], edge[1]) are always read;
+ * the next-edge link is edge[2 + side] and the neighbor-surface index across
+ * the edge is edge[!side + 4] (i.e. edge[+0x10] or edge[+0x14]).
+ *
+ * out_result is a MIXED 6-dword record, NOT six floats:
+ *   +0x00 float  enter_t   (max entering parameter; init -FLT_MAX)
+ *   +0x04 int    enter_edge (edge index; init -1)
+ *   +0x08 int    enter_surface (neighbor surface index; init -1)
+ *   +0x0c float  leave_t   (min leaving parameter; init +FLT_MAX)
+ *   +0x10 int    leave_edge (init -1)
+ *   +0x14 int    leave_surface (init -1)
+ * The four index slots are raw dword stores (the current edge index and the
+ * neighbor-surface index). Ghidra prints the index stores as (float)..., but
+ * the disassembly is a plain MOV: they are int32 fields, not int->float
+ * conversions (lift-silent-bugs Check 1). They are written through the
+ * int-aliased pointer.
+ *
+ * Per edge, edge_cross = 2D cross of the edge vector (v1-v0) with the ray
+ * direction; pt_cross = 2D cross of (point-v0) with (v1-v0). FPU load/subtract
+ * order verified against the delinked reference (cross-product operand order,
+ * lift-decompiler-traps Trap 4). When edge_cross==0 (ray parallel to edge) and
+ * the point sits on the inner side, both enter/leave are forced to a crossing
+ * interval. Otherwise t = pt_cross/edge_cross updates the entering or leaving
+ * bound depending on sign(edge_cross) vs side. Returns 1 iff leave_t < enter_t.
+ */
+int collision_surface_test_line2d(int bsp, int surface_index, int param3,
+                                  int param4, float *point, float *direction,
+                                  float *out_result)
+{
+  int first_edge;
+  int edge_index;
+  int *edge;
+  float *v0;
+  float *v1;
+  unsigned char side;         /* sete to a byte slot in the original */
+  volatile float edge_cross;  /* store-once/reload: the original spills it
+                                 to the out_result param home slot and
+                                 reloads it 3x (==0 test, divide, sign) */
+  float pt_cross;
+  float ex, ey; /* v1 - v0 (edge vector), kept ST-resident */
+  float cx, cy; /* point - v0, kept ST-resident */
+  int *out_i;
+
+  out_i = (int *)out_result;
+
+  first_edge = *(int *)((char *)tag_block_get_element((void *)(bsp + 0x3c),
+                                                      surface_index, 0xc) +
+                        4);
+  edge_index = first_edge;
+
+  out_result[0] = -3.4028235e+38f;
+  out_i[1] = -1;
+  out_i[2] = -1;
+  out_result[3] = 3.4028235e+38f;
+  out_i[4] = -1;
+  out_i[5] = -1;
+
+  do {
+    edge = (int *)tag_block_get_element((void *)(bsp + 0x48), edge_index, 0x18);
+    side = (edge[5] == surface_index);
+    v0 = (float *)tag_block_get_element((void *)(bsp + 0x54), edge[0], 0x10);
+    v1 = (float *)tag_block_get_element((void *)(bsp + 0x54), edge[1], 0x10);
+
+    ex = v1[0] - v0[0];
+    ey = v1[1] - v0[1];
+    cx = point[0] - v0[0];
+    cy = point[1] - v0[1];
+    edge_cross = ey * direction[0] - ex * direction[1];
+    pt_cross = ex * cy - cx * ey;
+
+    if (edge_cross != 0.0f) {
+      pt_cross = pt_cross / edge_cross;
+      if ((edge_cross < 0.0f) != side) {
+        if (pt_cross > out_result[0]) {
+          out_result[0] = pt_cross;
+          out_i[1] = edge_index;
+          out_i[2] = edge[!side + 4];
+        }
+      } else if (pt_cross < out_result[3]) {
+        out_result[3] = pt_cross;
+        out_i[4] = edge_index;
+        out_i[5] = edge[!side + 4];
+      }
+    } else if ((pt_cross < 0.0f) != side) {
+      out_result[0] = 3.4028235e+38f;
+      out_i[1] = edge_index;
+      out_i[2] = edge[!side + 4];
+      out_result[3] = -3.4028235e+38f;
+      out_i[4] = edge_index;
+      out_i[5] = edge[!side + 4];
+    }
+
+    edge_index = edge[side + 2];
+  } while (edge_index != first_edge);
+
+  if (out_result[0] > out_result[3]) {
+    return 1;
+  }
+  return 0;
+}
