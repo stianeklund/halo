@@ -23588,7 +23588,9 @@
         },
         {
           "addr": "0x191c70",
-          "decl": "void FUN_00191c70(void);"
+          "decl": "short FUN_00191c70(void *block@<esi>, int search_value@<ebx>);",
+          "ported": true,
+          "name": "FUN_00191c70"
         },
         {
           "addr": "0x191cb0",

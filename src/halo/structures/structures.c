@@ -2444,6 +2444,35 @@ char FUN_00191bd0(int search_value /* @<ebx> */, void **param_1, char *out)
   return 0;
 }
 
+/* 0x191c70 - linear-search a tag_block for the element referencing a value.
+ * (TU: c:\halo\SOURCE\structures\leaf_map.c)
+ *
+ * Register ABI (frameless; direct use of ESI and EBX): block@<esi> (tag_block
+ * pointer; *block is the element count) and search_value@<ebx> (int). Scans
+ * elements 0..count-1 (stride 0x10); returns the index of the first element
+ * whose first field equals search_value, or -1 if none match. */
+short FUN_00191c70(void *block /* @<esi> */, int search_value /* @<ebx> */)
+{
+  int count;
+  short i;
+  int *element;
+
+  count = *(int *)block;
+  if (count <= 0) {
+    return -1;
+  }
+  i = 0;
+  do {
+    element = (int *)tag_block_get_element(block, i, 0x10);
+    if (*element == search_value) {
+      return i;
+    }
+    count = *(int *)block;
+    i = (short)(i + 1);
+  } while ((int)i < count);
+  return -1;
+}
+
 /* leaf_map_mark_portal_designators (FUN_00191cb0, 0x191cb0)
  *
  * structures.obj / c:\halo\SOURCE\structures\leaf_map.c
