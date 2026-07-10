@@ -23667,11 +23667,13 @@
         },
         {
           "addr": "0x1943e0",
-          "decl": "void build_structure_lens_flares(void);"
+          "decl": "void build_structure_lens_flares(void *scenario);"
         },
         {
           "addr": "0x1954d0",
-          "decl": "void FUN_001954d0(void);"
+          "decl": "void FUN_001954d0(void);",
+          "ported": true,
+          "name": "FUN_001954d0"
         },
         {
           "addr": "0x195530",
