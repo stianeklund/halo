@@ -17,8 +17,10 @@
  *   0x32516c  int     – most-recently-queried decal index (debug display)
  */
 
-/* Forward declarations for static callbacks passed to lruv_cache_new */
-static void rasterizer_decals_vertex_cache_delete(int decal_index);
+/* Forward declarations for callbacks passed to lruv_cache_new.
+ * FUN_0015afa0 is the eviction callback (ported at its original address);
+ * the query callback remains a static helper. */
+void FUN_0015afa0(int decal_index);
 static int rasterizer_decals_vertex_cache_query(int decal_index);
 
 /* 0x1584f0
@@ -1008,6 +1010,76 @@ void FUN_0015abe0(short *p0, short *p1, float *color0, float *color1)
   D3DDevice_End();
 }
 
+/* 0x15afa0
+ *
+ * rasterizer_decals_vertex_cache_delete  (LRUV eviction callback)
+ *
+ * Called by the LRUV cache when a cached decal vertex block is evicted.
+ * Validates decal_index is neither 0 nor NONE (-1), then:
+ *   - Warns once if the decal is still locked when evicted (flag bit 0).
+ *   - Warns once if the decal is still permanent when evicted (flag bit 1).
+ *   - Calls decal_delete (0x9a160) to free the underlying decal datum.
+ *
+ * datum_get(g_decals_data at 0x5aa8b8, decal_index) is re-read for each flag
+ * check to match the original (0x15b020 and 0x15b05e); do not hoist.
+ */
+void FUN_0015afa0(int decal_index)
+{
+  char *decal;
+  const char *reason;
+  int line;
+
+  /* lruv_has_locked_proc(local_vertex_cache): cache must have a lock query cb
+   */
+  if (!lruv_cache_has_query_cb(*(void **)0x476adc)) {
+    display_assert(
+      "lruv_has_locked_proc(local_vertex_cache)",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c", 0x1d, 1);
+    system_exit(-1);
+  }
+
+  if (decal_index == 0) {
+    display_assert(
+      "decal_index",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c", 0x1e, 1);
+    system_exit(-1);
+    line = 0x20;
+    reason = "decal_index!=0";
+  } else {
+    if (decal_index != -1)
+      goto LAB_0015b018;
+    line = 0x1f;
+    reason = "decal_index!=NONE";
+  }
+  display_assert(reason,
+                 "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c",
+                 line, 1);
+  system_exit(-1);
+
+LAB_0015b018:
+  decal = (char *)datum_get(*(void **)0x5aa8b8, decal_index);
+  if (((*(unsigned char *)(decal + 2) & 1) != 0) &&
+      (*(char *)0x476ae0 == '\0')) {
+    error(2,
+          "### ERROR decals: deleting locked decal (#%d, queried=#%d) in "
+          "rasterizer -- tell Bernie!!",
+          decal_index, *(int *)0x32516c);
+    *(char *)0x476ae0 = '\x01';
+  }
+
+  decal = (char *)datum_get(*(void **)0x5aa8b8, decal_index);
+  if (((*(unsigned char *)(decal + 2) & 2) != 0) &&
+      (*(char *)0x476ae1 == '\0')) {
+    error(2,
+          "### ERROR decals: deleting permanent decal (#%d, queried=#%d) in "
+          "rasterizer -- tell Bernie!!",
+          decal_index, *(int *)0x32516c);
+    *(char *)0x476ae1 = '\x01';
+  }
+
+  decal_delete(decal_index);
+}
+
 /* 0x15b190
  *
  * rasterizer_decals_initialize_for_new_map
@@ -1123,82 +1195,6 @@ void FUN_0015b530(int decal_index)
   }
 
   lruv_block_delete(*(void **)0x476adc, decal_index);
-}
-
-/* 0x15afa0
- *
- * rasterizer_decals_vertex_cache_delete  (LRUV eviction callback)
- *
- * Called by the LRUV cache when a cached decal vertex block is evicted.
- * Validates decal_index is neither 0 nor NONE (-1), then:
- *   - Warns once if the decal is still locked when evicted.
- *   - Warns once if the decal is still permanent when evicted.
- *   - Calls decal_delete (0x9a160) to free the underlying decal datum.
- */
-static void rasterizer_decals_vertex_cache_delete(int decal_index)
-{
-  char cVar1;
-  char *decal;
-  char *pcVar3;
-  int uVar4;
-
-  /* lruv_has_locked_proc (0x11d4f0): asserts the cache has a lock query cb */
-  cVar1 = ((char (*)(void *))0x11d4f0)(*(void **)0x476adc);
-  if (cVar1 == '\0') {
-    display_assert(
-      "lruv_has_locked_proc(local_vertex_cache)",
-      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c", 0x1d, 1);
-    system_exit(-1);
-  }
-
-  if (decal_index == 0) {
-    display_assert(
-      "decal_index",
-      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c", 0x1e, 1);
-    system_exit(-1);
-    uVar4 = 0x20;
-    pcVar3 = "decal_index!=0";
-  } else {
-    if (decal_index != -1)
-      goto LAB_0015b018;
-    uVar4 = 0x1f;
-    pcVar3 = "decal_index!=NONE";
-  }
-  display_assert(pcVar3,
-                 "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c",
-                 uVar4, 1);
-  system_exit(-1);
-
-LAB_0015b018:
-  decal =
-    (char *)datum_absolute_index_to_index(*(void **)0x5aa8b8, decal_index);
-  if (decal == 0) {
-    error(2,
-          "### ERROR decals: stale cache->decal handle (#%d) in rasterizer -- "
-          "tell Bernie!!",
-          decal_index);
-    return;
-  }
-
-  if (((*(unsigned char *)(decal + 2) & 1) != 0) &&
-      (*(char *)0x476ae0 == '\0')) {
-    error(2,
-          "### ERROR decals: deleting locked decal (#%d, queried=#%d) in "
-          "rasterizer -- tell Bernie!!",
-          decal_index, *(int *)0x32516c);
-    *(char *)0x476ae0 = '\x01';
-  }
-
-  if (((*(unsigned char *)(decal + 2) & 2) != 0) &&
-      (*(char *)0x476ae1 == '\0')) {
-    error(2,
-          "### ERROR decals: deleting permanent decal (#%d, queried=#%d) in "
-          "rasterizer -- tell Bernie!!",
-          decal_index, *(int *)0x32516c);
-    *(char *)0x476ae1 = '\x01';
-  }
-  /* 0x9a160: decal_delete(int index) — not yet in kb.json */
-  ((void (*)(int))0x9a160)(decal_index);
 }
 
 /* 0x15b0c0
@@ -1341,9 +1337,9 @@ void rasterizer_decals_initialize(void)
   D3DResource_Register(*(void **)0x476ad8, 0);
 
   /* Create the LRUV vertex cache */
-  *(void **)0x476adc = lruv_cache_new("decal vertex cache", 0xa00, 6, 0x800,
-                                      rasterizer_decals_vertex_cache_delete,
-                                      rasterizer_decals_vertex_cache_query);
+  *(void **)0x476adc =
+    lruv_cache_new("decal vertex cache", 0xa00, 6, 0x800, FUN_0015afa0,
+                   rasterizer_decals_vertex_cache_query);
 
   if (*(void **)0x476adc == 0) {
     display_assert(
