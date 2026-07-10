@@ -65,7 +65,10 @@ void FUN_001584f0(int stage, int target, int max_mipmap)
   case 0:
     d3d_texture = ((void **)0x476a54)[*(int *)0x325668 & 1];
     if ((short)max_mipmap != 0) {
-      display_assert("max_mipmap==0", "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c", 0x96f, 1);
+      display_assert(
+        "max_mipmap==0",
+        "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c",
+        0x96f, 1);
       system_exit(-1);
     }
     if (((uint32_t *)d3d_texture)[1] == 0) {
@@ -88,35 +91,50 @@ void FUN_001584f0(int stage, int target, int max_mipmap)
     break;
   case 1:
     if ((short)max_mipmap != 0) {
-      display_assert("max_mipmap==0", "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c", 0x999, 1);
+      display_assert(
+        "max_mipmap==0",
+        "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c",
+        0x999, 1);
       system_exit(-1);
     }
     d3d_texture = *(void **)0x476a64;
     break;
   case 2:
     if ((short)max_mipmap != 0) {
-      display_assert("max_mipmap==0", "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c", 0x99d, 1);
+      display_assert(
+        "max_mipmap==0",
+        "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c",
+        0x99d, 1);
       system_exit(-1);
     }
     d3d_texture = *(void **)0x476a74;
     break;
   case 3:
     if ((short)max_mipmap != 0) {
-      display_assert("max_mipmap==0", "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c", 0x9a1, 1);
+      display_assert(
+        "max_mipmap==0",
+        "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c",
+        0x9a1, 1);
       system_exit(-1);
     }
     d3d_texture = *(void **)0x476a7c;
     break;
   case 4:
     if ((short)max_mipmap != 0) {
-      display_assert("max_mipmap==0", "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c", 0x9a5, 1);
+      display_assert(
+        "max_mipmap==0",
+        "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c",
+        0x9a5, 1);
       system_exit(-1);
     }
     d3d_texture = *(void **)0x476a84;
     break;
   case 5:
     if ((short)max_mipmap != 0) {
-      display_assert("max_mipmap==0", "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c", 0x9a9, 1);
+      display_assert(
+        "max_mipmap==0",
+        "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c",
+        0x9a9, 1);
       system_exit(-1);
     }
     d3d_texture = *(void **)0x476a8c;
@@ -124,26 +142,37 @@ void FUN_001584f0(int stage, int target, int max_mipmap)
   case 6:
     if ((short)max_mipmap < 0 || 4 < (short)max_mipmap) {
       display_assert(
-          "max_mipmap>=0 && max_mipmap<=RASTERIZER_TARGET_WATER_MAX_MIPMAP_LEVELS",
-          "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c", 0x9ad, 1);
+        "max_mipmap>=0 && "
+        "max_mipmap<=RASTERIZER_TARGET_WATER_MAX_MIPMAP_LEVELS",
+        "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c",
+        0x9ad, 1);
       system_exit(-1);
     }
     d3d_texture = *(void **)0x476a94;
     break;
   case 7:
     if ((short)max_mipmap != 0) {
-      display_assert("max_mipmap==0", "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c", 0x9bc, 1);
+      display_assert(
+        "max_mipmap==0",
+        "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c",
+        0x9bc, 1);
       system_exit(-1);
     }
     d3d_texture = *(void **)0x476aa8;
     break;
   default:
-    display_assert("### ERROR unsupported rasterizer target", "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c", 0x9c0, 1);
+    display_assert(
+      "### ERROR unsupported rasterizer target",
+      "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c", 0x9c0,
+      1);
     system_exit(-1);
   }
 
   if (d3d_texture == 0) {
-    display_assert("d3d_texture", "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c", 0x9c3, 1);
+    display_assert(
+      "d3d_texture",
+      "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c", 0x9c3,
+      1);
     system_exit(-1);
   }
 
@@ -151,15 +180,18 @@ void FUN_001584f0(int stage, int target, int max_mipmap)
   if ((short)max_mipmap != 0) {
     if ((short)max_mipmap < 0 || 4 < (short)max_mipmap) {
       display_assert(
-          "max_mipmap>=0 && max_mipmap<=RASTERIZER_TARGET_WATER_MAX_MIPMAP_LEVELS",
-          "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c", 0x9cc, 1);
+        "max_mipmap>=0 && "
+        "max_mipmap<=RASTERIZER_TARGET_WATER_MAX_MIPMAP_LEVELS",
+        "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c",
+        0x9cc, 1);
       system_exit(-1);
     }
   } else {
     max_mipmap = 4;
   }
   *(uint32_t *)((int)water_hdr + 0xc) =
-      ((int)(short)max_mipmap << 0x10) | (*(uint32_t *)((int)water_hdr + 0xc) & 0xfff0ffff);
+    ((int)(short)max_mipmap << 0x10) |
+    (*(uint32_t *)((int)water_hdr + 0xc) & 0xfff0ffff);
 
   D3DDevice_SetTexture((uint32_t)(short)stage, d3d_texture);
   if (success == 0) {
@@ -167,6 +199,135 @@ void FUN_001584f0(int stage, int target, int max_mipmap)
                     "(IDirect3DBaseTexture8*)d3d_texture)");
     error(2, "### ERROR rasterizer_set_target_as_texture failed");
   }
+}
+
+/* 0x158ae0
+ *
+ * rasterizer_set_stencil_mode  (select a stencil-buffer render mode)
+ *
+ * Sets the D3D stencil renderstate for one of 6 decal/shadow stencil modes.
+ * Caches the currently-applied mode in DAT_00325168 (int16) and early-outs
+ * when the requested mode is unchanged. DAT_003256c7 is a byte gate: when
+ * clear, the requested mode is forced to 0 (stencil disabled path).
+ *
+ * Modes 1 and 2 apply the stencil renderstate via the fast D3D wrapper
+ * (D3DDevice_SetRenderState_Simple, @ecx=renderstate reg, @edx=value) and
+ * mirror each value into a 6-dword shadow cache at 0x1fb7a8..0x1fb7bc.
+ * Modes 3/4/5 go through SetRenderStateSmart (deferred/tracked renderstate),
+ * which maintains its own cache, so no shadow store is emitted.
+ *
+ * __FILE__ for the asserts is rasterizer_xbox.c (the original TU; the linker
+ * grouped this fn into rasterizer_decals.obj).
+ *
+ * Globals (used by address, not in kb.json):
+ *   0x476ab0  int       global_d3d_device presence (asserted non-NULL)
+ *   0x3256c7  char      stencil-enable gate flag (0 => force mode 0)
+ *   0x325168  int16     currently-applied stencil mode (cache)
+ *   0x1fb7a8  int[6]    shadow renderstate cache (modes 1/2 only)
+ *
+ *   param_1 - requested stencil mode (used as short)
+ */
+void FUN_00158ae0(int param_1)
+{
+  short sVar1;
+
+  if (*(int *)0x476ab0 == 0) {
+    display_assert(
+      "global_d3d_device",
+      "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c", 0xbda,
+      1);
+    system_exit(-1);
+  }
+
+  if (*(char *)0x3256c7 == '\0') {
+    sVar1 = 0;
+  } else {
+    sVar1 = (short)param_1;
+  }
+
+  if (sVar1 != *(short *)0x325168) {
+    switch (sVar1) {
+    case 0:
+      D3DDevice_SetRenderState_StencilEnable();
+      *(short *)0x325168 = sVar1;
+      return;
+    case 1:
+      D3DDevice_SetRenderState_StencilEnable();
+      D3DDevice_SetRenderState_StencilFail();
+      D3DDevice_SetRenderState_Simple(0x40374, 0x1e00);
+      *(int *)0x1fb7a8 = 0x1e00;
+      D3DDevice_SetRenderState_Simple(0x40378, 0x1e01);
+      *(int *)0x1fb7ac = 0x1e01;
+      D3DDevice_SetRenderState_Simple(0x40364, 0x207);
+      *(int *)0x1fb7b0 = 0x207;
+      D3DDevice_SetRenderState_Simple(0x40368, 1);
+      *(int *)0x1fb7b4 = 1;
+      D3DDevice_SetRenderState_Simple(0x4036c, 1);
+      *(int *)0x1fb7b8 = 1;
+      D3DDevice_SetRenderState_Simple(0x40360, 1);
+      *(short *)0x325168 = sVar1;
+      *(int *)0x1fb7bc = 1;
+      return;
+    case 2:
+      D3DDevice_SetRenderState_StencilEnable();
+      D3DDevice_SetRenderState_StencilFail();
+      D3DDevice_SetRenderState_Simple(0x40374, 0x1e00);
+      *(int *)0x1fb7a8 = 0x1e00;
+      D3DDevice_SetRenderState_Simple(0x40378, 0x1e00);
+      *(int *)0x1fb7ac = 0x1e00;
+      D3DDevice_SetRenderState_Simple(0x40364, 0x202);
+      *(int *)0x1fb7b0 = 0x202;
+      D3DDevice_SetRenderState_Simple(0x40368, 0);
+      *(int *)0x1fb7b4 = 0;
+      D3DDevice_SetRenderState_Simple(0x4036c, 1);
+      *(int *)0x1fb7b8 = 1;
+      D3DDevice_SetRenderState_Simple(0x40360, 0);
+      *(short *)0x325168 = sVar1;
+      *(int *)0x1fb7bc = 0;
+      return;
+    case 3:
+      D3DDevice_SetRenderState_StencilEnable();
+      D3DDevice_SetRenderState_StencilFail();
+      SetRenderStateSmart(0x44, 0x1e00);
+      SetRenderStateSmart(0x45, 0x1e00);
+      SetRenderStateSmart(0x46, 0x205);
+      SetRenderStateSmart(0x47, 0);
+      SetRenderStateSmart(0x48, 1);
+      SetRenderStateSmart(0x49, 0);
+      *(short *)0x325168 = sVar1;
+      return;
+    case 4:
+      SetRenderStateSmart(0x7c, 1);
+      SetRenderStateSmart(0x7d, 0x1e00);
+      SetRenderStateSmart(0x44, 0x1e00);
+      SetRenderStateSmart(0x45, 0x1e01);
+      SetRenderStateSmart(0x46, 0x202);
+      SetRenderStateSmart(0x47, 2);
+      SetRenderStateSmart(0x48, 1);
+      SetRenderStateSmart(0x49, 2);
+      *(short *)0x325168 = sVar1;
+      return;
+    case 5:
+      SetRenderStateSmart(0x7c, 1);
+      SetRenderStateSmart(0x7d, 0x1e00);
+      SetRenderStateSmart(0x44, 0x1e00);
+      SetRenderStateSmart(0x45, 0x1e00);
+      SetRenderStateSmart(0x46, 0x202);
+      SetRenderStateSmart(0x47, 0);
+      SetRenderStateSmart(0x48, 3);
+      SetRenderStateSmart(0x49, 0);
+      *(short *)0x325168 = sVar1;
+      return;
+    default:
+      display_assert(
+        "### ERROR unsupported stencil mode",
+        "c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\xbox\\\\rasterizer_xbox.c",
+        0xc1b, 1);
+      system_exit(-1);
+      *(short *)0x325168 = sVar1;
+    }
+  }
+  return;
 }
 
 /* 0x15abe0
