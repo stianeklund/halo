@@ -190,16 +190,18 @@ bool sound_cluster_is_audible(void *location)
   system_exit(-1);
 }
 
-/* Check whether the global lsnd tag's playlist contains any snd! entry
- * whose flags field (int16 at offset 4) equals 0x20.  The 0x20 flag
- * identifies sounds that should play for vehicle-related music contexts.
- * Called by game_sound_music_stop_for_vehicle (0x1c7d70) to decide
+/* Check whether the lsnd tag (index passed in EAX) has a playlist
+ * containing any snd! entry whose flags field (int16 at offset 4)
+ * equals 0x20.  The 0x20 flag identifies sounds that should play for
+ * vehicle-related music contexts.  Called by
+ * game_sound_music_stop_for_vehicle (0x1c7d70) with the current
+ * looping-sound entry's lsnd tag index (entry+0xc) in EAX to decide
  * whether to suppress normal music playback.
  *
  * Returns true if any playlist entry references a 'snd!' tag with
  * flags == 0x20; false otherwise.
  */
-bool game_sound_music_has_vehicle_sound(void)
+bool game_sound_music_has_vehicle_sound(int in_EAX)
 {
   void *lsnd_tag;
   int *playlist; /* pointer to the block at lsnd+0x3c (count, ptr) */
@@ -208,7 +210,9 @@ bool game_sound_music_has_vehicle_sound(void)
   int sound_handle;
   void *snd_tag;
 
-  lsnd_tag = tag_get(0x6c736e64, -1);
+  /* The lsnd tag index arrives in EAX (0x1c7d13: PUSH EAX; PUSH 'lsnd').
+   * The caller (0x1c7d70) loads it from the looping-sound entry+0xc. */
+  lsnd_tag = tag_get(0x6c736e64, in_EAX);
   playlist = (int *)((char *)lsnd_tag + 0x3c);
 
   i = 0;
@@ -255,7 +259,7 @@ void game_sound_music_stop_for_vehicle(void)
     entry = (char *)datum_get(*(data_t **)0x5054e4, handle);
     if (*(int *)(entry + 0x10) != -1)
       continue;
-    if (!game_sound_music_has_vehicle_sound())
+    if (!game_sound_music_has_vehicle_sound(*(int *)(entry + 0xc)))
       continue;
     if (*(int *)(entry + 0xc) == -1)
       continue;

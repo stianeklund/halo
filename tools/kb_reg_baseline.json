@@ -605,6 +605,7 @@
     "0x1c5990": "void *bink_memory_pool_alloc(int alignment@<eax>, int alloc_size@<ecx>);",
     "0x1c6170": "int FUN_001c6170(unsigned int flags@<eax>, void *rect@<ecx>, void *locked_rect@<edx>, void *texture, unsigned int level);",
     "0x1c7c30": "bool sound_cluster_is_audible(void *location@<esi>);",
+    "0x1c7d10": "bool game_sound_music_has_vehicle_sound(int in_EAX /* @<eax> */);",
     "0x1c89d0": "void *sound_class_get(int class_index@<si>);",
     "0x1c9290": "void *sound_dsound_channel_get(short index@<si>);",
     "0x1c92f0": "void *sound_dsound_vchannel_get(short index@<si>);",
