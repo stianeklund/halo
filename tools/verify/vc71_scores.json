@@ -2368,6 +2368,46 @@
       "score": 83.3,
       "source": "src/halo/ai/path.c"
     },
+    "FUN_00061ca0": {
+      "score": 91.1,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00061d80": {
+      "score": 100.0,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00061da0": {
+      "score": 100.0,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00061dc0": {
+      "score": 100.0,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00061df0": {
+      "score": 92.3,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00061e80": {
+      "score": 100.0,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00062020": {
+      "score": 93.1,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00062410": {
+      "score": 93.9,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00062680": {
+      "score": 93.1,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_000628b0": {
+      "score": 97.8,
+      "source": "src/halo/structures/structures.c"
+    },
     "FUN_00064100": {
       "score": 100.0,
       "source": "src/halo/ai/props.c"
@@ -3295,6 +3335,10 @@
     "FUN_00098fe0": {
       "score": 100.0,
       "source": "src/halo/effects/decals.c"
+    },
+    "FUN_00099070": {
+      "score": 91.7,
+      "source": "src/halo/structures/structures.c"
     },
     "FUN_00099220": {
       "score": 53.5,
@@ -5044,6 +5088,98 @@
       "score": 2.2,
       "source": "src/halo/game/player_rumble.c"
     },
+    "FUN_000c0c30": {
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c0c70": {
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c0cb0": {
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c0cd0": {
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c0d10": {
+      "score": 94.1,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c0d50": {
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c0d90": {
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c0dd0": {
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c0e10": {
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c0e50": {
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c0e90": {
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c0ed0": {
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c0f10": {
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c0f50": {
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c0f90": {
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c0fd0": {
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1010": {
+      "score": 94.1,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1050": {
+      "score": 93.6,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1090": {
+      "score": 93.6,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c10d0": {
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1110": {
+      "score": 94.1,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1150": {
+      "score": 94.1,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1190": {
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
     "FUN_000c4b40": {
       "score": 100.0,
       "source": "src/halo/hs/hs.c"
@@ -5609,7 +5745,7 @@
       "source": "src/halo/interface/hud.c"
     },
     "FUN_000d27a0": {
-      "score": 74.7,
+      "score": 81.8,
       "source": "src/halo/interface/hud.c"
     },
     "FUN_000d3080": {
@@ -6788,12 +6924,44 @@
       "score": 82.3,
       "source": "src/halo/main/main.c"
     },
+    "FUN_001056e0": {
+      "score": 80.0,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_001057a0": {
+      "score": 100.0,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_001057c0": {
+      "score": 100.0,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_001057f0": {
+      "score": 100.0,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00105980": {
+      "score": 73.2,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00106030": {
+      "score": 91.1,
+      "source": "src/halo/structures/structures.c"
+    },
     "FUN_00106130": {
       "score": 73.1,
       "source": "src/halo/structures/structures.c"
     },
     "FUN_00106200": {
       "score": 74.0,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00106290": {
+      "score": 71.0,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00106330": {
+      "score": 73.0,
       "source": "src/halo/structures/structures.c"
     },
     "FUN_00106f50": {
@@ -9817,11 +9985,11 @@
       "source": "src/halo/physics/collision_features.c"
     },
     "FUN_0014aee0": {
-      "score": 82.7,
+      "score": 84.8,
       "source": "src/halo/physics/collision_features.c"
     },
     "FUN_0014b220": {
-      "score": 86.2,
+      "score": 88.8,
       "source": "src/halo/physics/collision_features.c"
     },
     "FUN_0014b3d0": {
@@ -9849,7 +10017,7 @@
       "source": "src/halo/physics/collision_features.c"
     },
     "FUN_0014bae0": {
-      "score": 89.4,
+      "score": 91.2,
       "source": "src/halo/physics/collision_features.c"
     },
     "FUN_0014bc10": {
@@ -10884,6 +11052,38 @@
       "score": 34.0,
       "source": "src/halo/shell_xbox.c"
     },
+    "FUN_00191690": {
+      "score": 91.7,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_001916d0": {
+      "score": 91.3,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00191ba0": {
+      "score": 100.0,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00191d80": {
+      "score": 89.7,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00191de0": {
+      "score": 89.5,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00191e90": {
+      "score": 95.6,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00191ff0": {
+      "score": 95.0,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_001926a0": {
+      "score": 100.0,
+      "source": "src/halo/structures/structures.c"
+    },
     "FUN_001937d0": {
       "score": 98.0,
       "source": "src/halo/structures/structure_bsp_definitions.c"
@@ -10908,6 +11108,66 @@
       "score": 100.0,
       "source": "src/halo/structures/structure_detail_objects.c"
     },
+    "FUN_00194360": {
+      "score": 90.9,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00194380": {
+      "score": 95.5,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00195530": {
+      "score": 88.9,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00195550": {
+      "score": 91.0,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_001959f0": {
+      "score": 88.8,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00195b10": {
+      "score": 93.5,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00195c40": {
+      "score": 96.4,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00195d00": {
+      "score": 94.4,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00195d40": {
+      "score": 97.2,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00195dc0": {
+      "score": 97.2,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00195ec0": {
+      "score": 93.9,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00195f30": {
+      "score": 94.0,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00196060": {
+      "score": 94.0,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00196190": {
+      "score": 94.0,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00196330": {
+      "score": 100.0,
+      "source": "src/halo/structures/structures.c"
+    },
     "FUN_001965d0": {
       "score": 100.0,
       "source": "src/halo/structures/structure_visibility.c"
@@ -10920,8 +11180,24 @@
       "score": 96.1,
       "source": "src/halo/structures/structure_visibility.c"
     },
+    "FUN_001978a0": {
+      "score": 92.0,
+      "source": "src/halo/structures/structure_visibility.c"
+    },
+    "FUN_00197b00": {
+      "score": 87.0,
+      "source": "src/halo/structures/structure_visibility.c"
+    },
+    "FUN_00198070": {
+      "score": 92.6,
+      "source": "src/halo/structures/structures.c"
+    },
     "FUN_001989b0": {
       "score": 87.4,
+      "source": "src/halo/structures/structures.c"
+    },
+    "FUN_00198f10": {
+      "score": 90.0,
       "source": "src/halo/structures/structures.c"
     },
     "FUN_001994a0": {
@@ -12920,12 +13196,32 @@
       "score": 87.0,
       "source": "src/halo/structures/structures.c"
     },
+    "cluster_partition_clear": {
+      "score": 100.0,
+      "source": "src/halo/structures/structures.c"
+    },
+    "cluster_partition_copy": {
+      "score": 100.0,
+      "source": "src/halo/structures/structures.c"
+    },
+    "cluster_partition_dispose": {
+      "score": 100.0,
+      "source": "src/halo/structures/structures.c"
+    },
+    "cluster_partition_globals_new": {
+      "score": 100.0,
+      "source": "src/halo/structures/structures.c"
+    },
     "cluster_partition_iter_first": {
       "score": 97.6,
       "source": "src/halo/structures/structures.c"
     },
     "cluster_partition_iter_next": {
       "score": 91.3,
+      "source": "src/halo/structures/structures.c"
+    },
+    "cluster_partition_null_references": {
+      "score": 100.0,
       "source": "src/halo/structures/structures.c"
     },
     "cluster_partition_object_iter_first": {
@@ -12971,6 +13267,10 @@
     "convex_hull2d_perimeter": {
       "score": 92.5,
       "source": "src/halo/math/geometry.c"
+    },
+    "convex_hull2d_reduce": {
+      "score": 65.4,
+      "source": "src/halo/structures/structures.c"
     },
     "convex_hull2d_test_vector": {
       "score": 66.4,
@@ -13356,6 +13656,14 @@
       "score": 92.3,
       "source": "src/halo/input/input_xbox.c"
     },
+    "leaf_map_mark_portal_designators": {
+      "score": 81.9,
+      "source": "src/halo/structures/structures.c"
+    },
+    "leaf_map_node_stack_push": {
+      "score": 43.9,
+      "source": "src/halo/structures/structures.c"
+    },
     "load_symbol_table": {
       "score": 29.8,
       "source": "src/halo/cseries/stack_walk_windows.c"
@@ -13544,12 +13852,20 @@
       "score": 95.6,
       "source": "src/halo/networking/network_connection.c"
     },
+    "network_connection_going_stale": {
+      "score": 100.0,
+      "source": "src/halo/networking/network_connection.c"
+    },
     "network_connection_idle": {
       "score": 89.1,
       "source": "src/halo/networking/network_connection.c"
     },
     "network_connection_idle_client_reliable_endpoint": {
       "score": 89.1,
+      "source": "src/halo/networking/network_connection.c"
+    },
+    "network_connection_keep_alive": {
+      "score": 100.0,
       "source": "src/halo/networking/network_connection.c"
     },
     "network_connection_new": {
@@ -13572,15 +13888,47 @@
       "score": 89.8,
       "source": "src/halo/networking/network_connection.c"
     },
+    "network_connection_server_accept_client_connection": {
+      "score": 93.9,
+      "source": "src/halo/networking/network_connection.c"
+    },
+    "network_connection_write": {
+      "score": 84.0,
+      "source": "src/halo/networking/network_connection.c"
+    },
+    "network_game_client_all_local_players_have_quit": {
+      "score": 100.0,
+      "source": "src/halo/networking/network_game_globals.c"
+    },
     "network_game_client_end_frame": {
       "score": 81.9,
+      "source": "src/halo/networking/network_game_globals.c"
+    },
+    "network_game_client_get_local_machine_index": {
+      "score": 100.0,
+      "source": "src/halo/networking/network_game_globals.c"
+    },
+    "network_game_client_local_player_quit": {
+      "score": 94.9,
       "source": "src/halo/networking/network_game_globals.c"
     },
     "network_game_client_start_frame": {
       "score": 82.4,
       "source": "src/halo/networking/network_game_globals.c"
     },
+    "network_game_get_number_of_games_played": {
+      "score": 100.0,
+      "source": "src/halo/networking/network_game_globals.c"
+    },
+    "network_game_player_is_local": {
+      "score": 88.9,
+      "source": "src/halo/networking/network_game_globals.c"
+    },
     "network_game_server_start_frame": {
+      "score": 100.0,
+      "source": "src/halo/networking/network_game_globals.c"
+    },
+    "network_game_set_accept_remote_connections": {
       "score": 100.0,
       "source": "src/halo/networking/network_game_globals.c"
     },
@@ -14068,8 +14416,16 @@
       "score": 100.0,
       "source": "src/halo/math/rectangles.c"
     },
+    "reference_list_copy": {
+      "score": 81.0,
+      "source": "src/halo/structures/structures.c"
+    },
     "reference_list_remove": {
       "score": 100.0,
+      "source": "src/halo/structures/structures.c"
+    },
+    "render_debug_fog_planes": {
+      "score": 82.3,
       "source": "src/halo/structures/structures.c"
     },
     "render_frame": {
@@ -14083,6 +14439,10 @@
     "render_frame_present": {
       "score": 95.2,
       "source": "src/halo/render/render.c"
+    },
+    "render_structure_visibility": {
+      "score": 91.3,
+      "source": "src/halo/structures/structures.c"
     },
     "render_window": {
       "score": 87.1,
@@ -14139,6 +14499,10 @@
     "send_endpoint": {
       "score": 100.0,
       "source": "src/halo/bungie_net/network/transport_endpoint_set_winsock.c"
+    },
+    "set_file_location_volume_name": {
+      "score": 93.2,
+      "source": "src/halo/structures/structures.c"
     },
     "set_window_camera_values": {
       "score": 81.0,
@@ -14200,16 +14564,52 @@
       "score": 94.3,
       "source": "src/halo/structures/structures.c"
     },
+    "structure_clusters_in_cone": {
+      "score": 87.1,
+      "source": "src/halo/structures/structures.c"
+    },
+    "structure_detail_objects_initialize": {
+      "score": 90.9,
+      "source": "src/halo/structures/structures.c"
+    },
+    "structure_detail_objects_initialize_for_new_map": {
+      "score": 100.0,
+      "source": "src/halo/structures/structures.c"
+    },
+    "structure_get_planar_fog_definition_index": {
+      "score": 79.7,
+      "source": "src/halo/structures/structures.c"
+    },
+    "structure_render_surface_from_point_and_leaf": {
+      "score": 86.9,
+      "source": "src/halo/structures/structures.c"
+    },
+    "structure_runtime_decals_initialize": {
+      "score": 100.0,
+      "source": "src/halo/structures/structures.c"
+    },
+    "structure_runtime_decals_initialize_for_new_map": {
+      "score": 89.7,
+      "source": "src/halo/structures/structures.c"
+    },
+    "structure_test_vector": {
+      "score": 94.4,
+      "source": "src/halo/structures/structures.c"
+    },
     "structures_cluster_marker_begin": {
       "score": 93.3,
       "source": "src/halo/structures/structures.c"
     },
+    "structures_cluster_marker_end": {
+      "score": 100.0,
+      "source": "src/halo/structures/structures.c"
+    },
     "structures_dispose": {
-      "score": 0.0,
+      "score": 66.7,
       "source": "src/halo/structures/structures.c"
     },
     "structures_dispose_from_old_map": {
-      "score": 0.0,
+      "score": 100.0,
       "source": "src/halo/structures/structures.c"
     },
     "structures_initialize_for_new_map": {
