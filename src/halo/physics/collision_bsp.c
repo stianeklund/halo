@@ -168,6 +168,47 @@ void render_debug_collision_edge(int bsp, int edge_index, int matrix_or_flag,
   FUN_00189270(1, point_a, point_b, color);
 }
 
+/* 0x1475f0 - render_debug_collision_surface
+ *
+ * Walks the circular doubly-linked edge list of one collision-BSP surface and
+ * renders each bounding edge via render_debug_collision_edge.
+ *
+ * bsp+0x3c = surfaces tag_block (stride 0xc); surface element field +4 is the
+ * index of the surface's first bounding edge. bsp+0x48 = edges tag_block
+ * (stride 0x18). Per edge: field +0x14 is the edge's "side A" (left) surface
+ * reference; fields +8 and +0xc are the two edge links.
+ *
+ * Link selection: if the edge's +0x14 surface equals this surface_index (we own
+ * the edge on side A) advance via the +0xc link, otherwise via the +8 link.
+ * Encoded exactly as the original: base +8 plus (cond)*4 as a byte offset; kept
+ * verbatim because the (cond)*4 codegen matters for VC71 match.
+ *
+ * Terminator: do-while until the walk wraps back to the first edge. param_3
+ * (matrix-or-flag) and param_4 (debug color) are forwarded to the edge draw
+ * unchanged.
+ */
+void render_debug_collision_surface(int bsp, int surface_index,
+                                    int matrix_or_flag, void *color)
+{
+  int surface;
+  int edge;
+  int first_edge;
+  int edge_index;
+  int left_surface;
+
+  surface =
+    (int)tag_block_get_element((void *)(bsp + 0x3c), surface_index, 0xc);
+  first_edge = *(int *)(surface + 4);
+  edge_index = first_edge;
+  do {
+    edge = (int)tag_block_get_element((void *)(bsp + 0x48), edge_index, 0x18);
+    left_surface = *(int *)(edge + 0x14);
+    render_debug_collision_edge(bsp, edge_index, matrix_or_flag, color);
+    edge_index =
+      *(int *)(edge + 8 + (unsigned int)(left_surface == surface_index) * 4);
+  } while (edge_index != first_edge);
+}
+
 /* 0x147660 - render_debug_collision_bsp
  *
  * Draws every edge of a collision BSP for debug visualization. The edge
