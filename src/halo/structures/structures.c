@@ -238,119 +238,6 @@ bool FUN_00062020(int16_t *obstacle_set, uint32_t datum, uint16_t flags,
   return true;
 }
 
-/* FUN_00198f10 (0x198f10) — resolve planar-fog render parameters
- *
- * Fills the caller's fog-parameter record (`fog`, ~0x4c bytes; the single
- * caller FUN_00185290 passes &global 0x506730) for portal/cluster `index`
- * (uint16 loaded zero-extended from global 0x506784 by the caller).
- *
- * Confirmed from decompile + disassembly:
- *   - NULL `fog` asserts: display_assert("fog", ".../structures.c", 0x1f1, 1)
- *     then system_exit(-1). String at 0x29dc54 = "fog" (byte-verified).
- *   - tag_get(0x666f6720='fog ', fog_index) returns the fog tag definition.
- *   - fog type word at fog+0x1c: 0=none/early-out, 1=planar plane present,
- *     2=atmospheric.  from_object path (fog came via FUN_0018e7d0 marker,
- *     not a portal) instead ORs bit0 into fog+0x02.
- *   - portal element (scenario+0x134, size 0x68): byte+3 & 0x80 == ushort+2
- *     bit15 (== (short)ushort < 0); both tests reproduced as written.
- *   - FLOAT_002533c0 = 0.0f (byte-verified at 0x2533c0); reproduced as the
- *     literal 0.0f (FMUL against a 0.0 rodata constant).
- *   - vec[3] (decomp local_14/local_10/local_c, contiguous EBP-0x14..-0xc) is
- *     declared as a float[3] so &vec[0] passed to FUN_001954e0 (normalize) is
- *     a contiguous buffer; local_c's reuse as the scale temp is mirrored in
- *     vec[2].
- *   - Field-copy store order (fog+0x30..0x44 from fog_tag+0x78/0x7c/0x80/
- *     0x58/0x68/0x60) preserved exactly as MSVC scheduled it (0x3c before
- *     0x44 before 0x40).
- *   - Two tag_block_get_element calls have their results discarded (bounds/
- *     assert side-effect only) — preserved faithfully.
- *   - cdecl, 2 stack args (no ADD ESP shown at the call site; caller cleans 8).
- */
-void FUN_00198f10(int index, void *fog)
-{
-  void *scenario;
-  void *marker;
-  char *portal;
-  char *plane;
-  short *fog_tag;
-  char *out;
-  int fog_index;
-  short portal_idx;
-  char from_object;
-  float vec[3];
-
-  out = (char *)fog;
-  scenario = scenario_get();
-  from_object = 0;
-
-  if (fog == NULL) {
-    display_assert("fog", "c:\\halo\\SOURCE\\structures\\structures.c", 0x1f1,
-                   1);
-    system_exit(-1);
-  }
-
-  *(short *)(out + 0x1c) = 0;
-  *(short *)out = 0;
-  *(int *)(out + 0x48) = 0;
-
-  fog_index = structure_get_planar_fog_definition_index(scenario, index, 0);
-  portal_idx = (short)index;
-
-  if (fog_index == -1) {
-    if (portal_idx != -1) {
-      tag_block_get_element((char *)scenario + 0x134, (int)portal_idx, 0x68);
-      marker = FUN_0018e7d0(0);
-      if (marker != NULL) {
-        fog_index = *(int *)((char *)marker + 0xa4);
-      }
-    }
-    from_object = 1;
-    if (fog_index == -1) {
-      return;
-    }
-  }
-
-  scenario = scenario_get();
-  portal = (char *)tag_block_get_element((char *)scenario + 0x134,
-                                         (int)portal_idx, 0x68);
-  fog_tag = (short *)tag_get(0x666f6720, fog_index);
-
-  if (from_object == 0) {
-    if ((*(unsigned char *)(portal + 3) & 0x80) == 0) {
-      *(short *)(out + 0x1c) = 2;
-    } else {
-      *(short *)(out + 0x1c) = 1;
-      plane = (char *)tag_block_get_element(
-        (char *)scenario + 0x178, *(unsigned short *)(portal + 2) & 0x7fff,
-        0x20);
-      *(int *)(out + 0x20) = *(int *)(plane + 4);
-      *(int *)(out + 0x24) = *(int *)(plane + 8);
-      *(int *)(out + 0x28) = *(int *)(plane + 0xc);
-      *(int *)(out + 0x2c) = *(int *)(plane + 0x10);
-    }
-    *(int *)(out + 0x30) = *(int *)((char *)fog_tag + 0x78);
-    *(int *)(out + 0x34) = *(int *)((char *)fog_tag + 0x7c);
-    *(int *)(out + 0x38) = *(int *)((char *)fog_tag + 0x80);
-    *(int *)(out + 0x3c) = *(int *)((char *)fog_tag + 0x58);
-    *(int *)(out + 0x44) = *(int *)((char *)fog_tag + 0x68);
-    *(int *)(out + 0x40) = *(int *)((char *)fog_tag + 0x60);
-    if ((short)*(unsigned short *)(portal + 2) < 0) {
-      tag_block_get_element((char *)scenario + 0x178,
-                            *(unsigned short *)(portal + 2) & 0x7fff, 0x20);
-      vec[2] = *(float *)((char *)fog_tag + 4) * 0.0f; /* FLOAT_002533c0 */
-      *(float *)(out + 0x2c) = vec[2] + *(float *)(out + 0x2c);
-      vec[0] = vec[2] * *(float *)(out + 0x20);
-      vec[1] = vec[2] * *(float *)(out + 0x24);
-      vec[2] = vec[2] * *(float *)(out + 0x28);
-      FUN_001954e0(vec);
-    }
-  } else {
-    *(unsigned char *)(out + 2) |= 1;
-  }
-
-  *(short *)out = *fog_tag;
-  *(void **)(out + 0x48) = (char *)fog_tag + 0x84;
-}
 /* path_obstacles.c — AI path obstacle-disc connectivity.
  *
  * Corresponds to a routine in structures.obj (its sole ported caller,
@@ -1241,7 +1128,8 @@ int FUN_00106030(void *param_1, int param_2, short param_3, int param_4)
       edge1[1] = next[1] - cur[1];
       cross = edge1[1] * edge0[0] - edge1[0] * edge0[1];
       /* redundant recompute (same value): the original stores edge0[1] again
-       * here — VC71 keeps the extra FSUB/FSTP (permuter-found, byte-verified) */
+       * here — VC71 keeps the extra FSUB/FSTP (permuter-found, byte-verified)
+       */
       edge0[1] = cur[1] - prev[1];
       if (cross < *(float *)0x2533c0)
         return 0;
@@ -1918,12 +1806,12 @@ int32_t leaf_map_node_stack_peek(int16_t levels_up)
 {
   if (!(levels_up >= 0 && levels_up < *(int16_t *)0x4d8e90)) {
     display_assert(
-        "levels_up>=0 && levels_up<leaf_map_globals.node_stack_count",
-        "c:\\halo\\SOURCE\\structures\\leaf_map.c", 0x3b, 1);
+      "levels_up>=0 && levels_up<leaf_map_globals.node_stack_count",
+      "c:\\halo\\SOURCE\\structures\\leaf_map.c", 0x3b, 1);
     system_exit(-1);
   }
   return *(int32_t *)(0x4d8a8c +
-                      ((int32_t)*(int16_t *)0x4d8e90 - levels_up) * 4);
+                      ((int32_t) * (int16_t *)0x4d8e90 - levels_up) * 4);
 }
 
 /* FUN_00191ba0 (0x191ba0)
@@ -2277,6 +2165,27 @@ void structure_detail_objects_initialize(void)
   *(int *)(base + 0xa42c) = 0;
 }
 
+/* structure_detail_objects_initialize_for_new_map @ 0x193bb0
+ * Per-map reset of the detail_object_global_runtime_data block. Asserts the
+ * block was allocated (sibling structure_detail_objects_initialize stores the
+ * base at 0x4d8ea0), then zeroes the whole 0xa430-byte block and clears the
+ * byte at base+0x520e. display_assert lineno 0x6d (109), halt=1; on failure
+ * the original tail-calls system_exit(-1) (the assert hard-exit).
+ * Global 0x4d8ea0 re-read (not cached) to match the original. */
+/* noinline: original build had this in a separate TU
+ * (structure_detail_objects.c). */
+__declspec(noinline) void structure_detail_objects_initialize_for_new_map(void)
+{
+  if (*(int *)0x4d8ea0 == 0) {
+    display_assert("detail_object_global_runtime_data",
+                   "c:\\halo\\SOURCE\\structures\\structure_detail_objects.c",
+                   0x6d, 1);
+    system_exit(-1);
+  }
+  csmemset(*(void **)0x4d8ea0, 0, 0xa430);
+  *(uint8_t *)(*(int *)0x4d8ea0 + 0x520e) = 0;
+}
+
 /* FUN_00194360 (0x194360)
  * qsort/bsort comparator. Two cdecl stack args are pointers to records.
  * Reads a signed int16 field at offset +0x10 of each record and orders
@@ -2443,8 +2352,8 @@ void FUN_001959f0(void)
   }
   /* 0x195a18: MOV ESI,[0x5937d0] before the call — count is an implicit
    * @<esi> arg (callee tests SI). */
-  *(int *)0x4d8eb4 = FUN_001956d0((void *)0x5937d4, (void *)0x5137d0,
-                                  *(int16_t *)0x5937d0);
+  *(int *)0x4d8eb4 =
+    FUN_001956d0((void *)0x5937d4, (void *)0x5137d0, *(int16_t *)0x5937d0);
   if (*(char *)0x449ef1 != 0 && *(char *)0x3275c8 != 0) {
     profile_exit_private((void *)0x3275c0);
   }
@@ -2599,6 +2508,34 @@ void FUN_00195c40(void)
                  0);
     FUN_0017cde0();
     *(short *)0x3256b0 = (short)saved_flag;
+  }
+}
+
+/* FUN_00195cb0 (0x195cb0)
+ *
+ * Sibling of FUN_00195af0: when the map has a valid lightmap pass (byte at
+ * 0x4d8eb0 != 0), brackets a setup/teardown pair (1-instr JMP thunks
+ * FUN_0017cdf0 -> FUN_001643e0 / FUN_0017ce30 -> FUN_00160bc0) around the
+ * per-surface draw walk (FUN_00195790).  This is the simplest variant: no
+ * profiler scope, no scenario/bsp-switch check, no 0x3256b0 word forcing.
+ *
+ * Notes from disasm (0x195cb0):
+ *  - FUN_00195790 takes an @eax pointer (MOV EAX,0x5937d4 = surface->material
+ *    offset table) plus 6 stack args.  Push order (first push = last C arg):
+ *    0 (param_7), 0x17ce20 (pass_end_cb, bare label), FUN_0017ce10
+ *    (surface_draw_cb), FUN_0017ce00 (material_begin_cb), *0x4d8eb4
+ *    (lightmap_pass_index), uint16 @0x5937d0 (surface_count, XOR ECX,ECX;
+ *    MOV CX,word ptr).  ADD ESP,0x18 = 6 stack dwords confirms.
+ *  - The teardown is emitted in the original as a tail JMP 0x17ce30.
+ */
+void FUN_00195cb0(void)
+{
+  if (*(char *)0x4d8eb0 != 0) {
+    FUN_0017cdf0();
+    FUN_00195790((int *)0x5937d4, *(unsigned short *)0x5937d0, *(int *)0x4d8eb4,
+                 (void *)FUN_0017ce00, (void *)FUN_0017ce10, (void *)0x17ce20,
+                 0);
+    FUN_0017ce30();
   }
 }
 
@@ -2984,8 +2921,9 @@ void structure_runtime_decals_initialize(void)
   }
 }
 
-/* noinline: original build had this in a separate TU (structure_runtime_decals.c),
- * so callers in structures.c emit real CALLs — keep that shape under VC71 /O2. */
+/* noinline: original build had this in a separate TU
+ * (structure_runtime_decals.c), so callers in structures.c emit real CALLs —
+ * keep that shape under VC71 /O2. */
 __declspec(noinline) void structure_runtime_decals_initialize_for_new_map(void)
 {
   uint8_t *runtime_decal_globals = *(uint8_t **)0x4d8ec8;
@@ -3027,7 +2965,7 @@ void FUN_00196330(void)
   void *block;
   int16_t cluster_count; /* short local: movw load + full-reg spill to EBP-4 */
   int16_t cluster_index; /* BX */
-  int element_index;     /* ESI */
+  int element_index; /* ESI */
 
   scenario = (char *)scenario_get();
   if (*(int *)(scenario + 0x258) != 0) {
@@ -3188,8 +3126,8 @@ void render_structure_visibility(void)
   if (*(char *)0x505701 != '\0') {
     *(short *)0x5137cc = 0;
     /* zero-extended load (XOR ECX + MOV CX) in the original */
-    sound_data = structure_bsp_get_cluster_sound_data(
-      (void *)scenario, *(uint16_t *)0x506784);
+    sound_data = structure_bsp_get_cluster_sound_data((void *)scenario,
+                                                      *(uint16_t *)0x506784);
     csmemcpy((void *)0x50678c, sound_data, ((*clusters + 0x1f) >> 5) * 4);
     if (0 < *clusters) {
       cluster_index = 0;
@@ -3493,8 +3431,8 @@ int32_t structure_get_planar_fog_definition_index(void *structure_bsp,
   if (fog_ref == -1) {
     goto fail;
   }
-  element = tag_block_get_element((char *)structure_bsp + 0x184, (int)fog_ref,
-                                  0x28);
+  element =
+    tag_block_get_element((char *)structure_bsp + 0x184, (int)fog_ref, 0x28);
   fog_ref = *(int16_t *)(element + 0x24);
   if (fog_ref == -1) {
     goto fail;
@@ -3862,6 +3800,120 @@ char structure_test_vector(float *point, float *direction, float *out_point,
   return result;
 }
 
+/* FUN_00198f10 (0x198f10) — resolve planar-fog render parameters
+ *
+ * Fills the caller's fog-parameter record (`fog`, ~0x4c bytes; the single
+ * caller FUN_00185290 passes &global 0x506730) for portal/cluster `index`
+ * (uint16 loaded zero-extended from global 0x506784 by the caller).
+ *
+ * Confirmed from decompile + disassembly:
+ *   - NULL `fog` asserts: display_assert("fog", ".../structures.c", 0x1f1, 1)
+ *     then system_exit(-1). String at 0x29dc54 = "fog" (byte-verified).
+ *   - tag_get(0x666f6720='fog ', fog_index) returns the fog tag definition.
+ *   - fog type word at fog+0x1c: 0=none/early-out, 1=planar plane present,
+ *     2=atmospheric.  from_object path (fog came via FUN_0018e7d0 marker,
+ *     not a portal) instead ORs bit0 into fog+0x02.
+ *   - portal element (scenario+0x134, size 0x68): byte+3 & 0x80 == ushort+2
+ *     bit15 (== (short)ushort < 0); both tests reproduced as written.
+ *   - FLOAT_002533c0 = 0.0f (byte-verified at 0x2533c0); reproduced as the
+ *     literal 0.0f (FMUL against a 0.0 rodata constant).
+ *   - vec[3] (decomp local_14/local_10/local_c, contiguous EBP-0x14..-0xc) is
+ *     declared as a float[3] so &vec[0] passed to FUN_001954e0 (normalize) is
+ *     a contiguous buffer; local_c's reuse as the scale temp is mirrored in
+ *     vec[2].
+ *   - Field-copy store order (fog+0x30..0x44 from fog_tag+0x78/0x7c/0x80/
+ *     0x58/0x68/0x60) preserved exactly as MSVC scheduled it (0x3c before
+ *     0x44 before 0x40).
+ *   - Two tag_block_get_element calls have their results discarded (bounds/
+ *     assert side-effect only) — preserved faithfully.
+ *   - cdecl, 2 stack args (no ADD ESP shown at the call site; caller cleans 8).
+ */
+void FUN_00198f10(int index, void *fog)
+{
+  void *scenario;
+  void *marker;
+  char *portal;
+  char *plane;
+  short *fog_tag;
+  char *out;
+  int fog_index;
+  short portal_idx;
+  char from_object;
+  float vec[3];
+
+  out = (char *)fog;
+  scenario = scenario_get();
+  from_object = 0;
+
+  if (fog == NULL) {
+    display_assert("fog", "c:\\halo\\SOURCE\\structures\\structures.c", 0x1f1,
+                   1);
+    system_exit(-1);
+  }
+
+  *(short *)(out + 0x1c) = 0;
+  *(short *)out = 0;
+  *(int *)(out + 0x48) = 0;
+
+  fog_index = structure_get_planar_fog_definition_index(scenario, index, 0);
+  portal_idx = (short)index;
+
+  if (fog_index == -1) {
+    if (portal_idx != -1) {
+      tag_block_get_element((char *)scenario + 0x134, (int)portal_idx, 0x68);
+      marker = FUN_0018e7d0(0);
+      if (marker != NULL) {
+        fog_index = *(int *)((char *)marker + 0xa4);
+      }
+    }
+    from_object = 1;
+    if (fog_index == -1) {
+      return;
+    }
+  }
+
+  scenario = scenario_get();
+  portal = (char *)tag_block_get_element((char *)scenario + 0x134,
+                                         (int)portal_idx, 0x68);
+  fog_tag = (short *)tag_get(0x666f6720, fog_index);
+
+  if (from_object == 0) {
+    if ((*(unsigned char *)(portal + 3) & 0x80) == 0) {
+      *(short *)(out + 0x1c) = 2;
+    } else {
+      *(short *)(out + 0x1c) = 1;
+      plane = (char *)tag_block_get_element(
+        (char *)scenario + 0x178, *(unsigned short *)(portal + 2) & 0x7fff,
+        0x20);
+      *(int *)(out + 0x20) = *(int *)(plane + 4);
+      *(int *)(out + 0x24) = *(int *)(plane + 8);
+      *(int *)(out + 0x28) = *(int *)(plane + 0xc);
+      *(int *)(out + 0x2c) = *(int *)(plane + 0x10);
+    }
+    *(int *)(out + 0x30) = *(int *)((char *)fog_tag + 0x78);
+    *(int *)(out + 0x34) = *(int *)((char *)fog_tag + 0x7c);
+    *(int *)(out + 0x38) = *(int *)((char *)fog_tag + 0x80);
+    *(int *)(out + 0x3c) = *(int *)((char *)fog_tag + 0x58);
+    *(int *)(out + 0x44) = *(int *)((char *)fog_tag + 0x68);
+    *(int *)(out + 0x40) = *(int *)((char *)fog_tag + 0x60);
+    if ((short)*(unsigned short *)(portal + 2) < 0) {
+      tag_block_get_element((char *)scenario + 0x178,
+                            *(unsigned short *)(portal + 2) & 0x7fff, 0x20);
+      vec[2] = *(float *)((char *)fog_tag + 4) * 0.0f; /* FLOAT_002533c0 */
+      *(float *)(out + 0x2c) = vec[2] + *(float *)(out + 0x2c);
+      vec[0] = vec[2] * *(float *)(out + 0x20);
+      vec[1] = vec[2] * *(float *)(out + 0x24);
+      vec[2] = vec[2] * *(float *)(out + 0x28);
+      FUN_001954e0(vec);
+    }
+  } else {
+    *(unsigned char *)(out + 2) |= 1;
+  }
+
+  *(short *)out = *fog_tag;
+  *(void **)(out + 0x48) = (char *)fog_tag + 0x84;
+}
+
 /*
  * render_debug_fog_planes (0x1990d0) -- structures.obj
  *
@@ -4016,24 +4068,4 @@ void set_file_location_volume_name(int16_t location, const char *volume_name)
   }
   csstrncpy(file_location_volume_names + location * 0x100, volume_name, 0xff);
   file_location_volume_names[location * 0x100 + 0xff] = '\0';
-}
-
-/* structure_detail_objects_initialize_for_new_map @ 0x193bb0
- * Per-map reset of the detail_object_global_runtime_data block. Asserts the
- * block was allocated (sibling structure_detail_objects_initialize stores the
- * base at 0x4d8ea0), then zeroes the whole 0xa430-byte block and clears the
- * byte at base+0x520e. display_assert lineno 0x6d (109), halt=1; on failure
- * the original tail-calls system_exit(-1) (the assert hard-exit).
- * Global 0x4d8ea0 re-read (not cached) to match the original. */
-/* noinline: original build had this in a separate TU (structure_detail_objects.c). */
-__declspec(noinline) void structure_detail_objects_initialize_for_new_map(void)
-{
-  if (*(int *)0x4d8ea0 == 0) {
-    display_assert("detail_object_global_runtime_data",
-                   "c:\\halo\\SOURCE\\structures\\structure_detail_objects.c",
-                   0x6d, 1);
-    system_exit(-1);
-  }
-  csmemset(*(void **)0x4d8ea0, 0, 0xa430);
-  *(uint8_t *)(*(int *)0x4d8ea0 + 0x520e) = 0;
 }
