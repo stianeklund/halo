@@ -8232,6 +8232,14 @@
       }
     },
     {
+      "name": "halo/FUN_000624b0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/structures/structures.c.obj",
+      "base_path": "delinked/functions/000624b0.obj",
+      "metadata": {
+        "source_path": "src/halo/structures/structures.c"
+      }
+    },
+    {
       "name": "halo/FUN_000625a0",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/structures/structures.c.obj",
       "base_path": "delinked/functions/000625a0.obj",
