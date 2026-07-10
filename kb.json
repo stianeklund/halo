@@ -23796,11 +23796,12 @@
         },
         {
           "addr": "0x197310",
-          "decl": "void FUN_00197310(void);"
+          "decl": "short FUN_00197310(void *verts@<eax>, void *plane@<ecx>, void *ref@<edx>, void *arg1, int16_t count, int sign, short *out);"
         },
         {
           "addr": "0x1974f0",
-          "decl": "short FUN_001974f0(int16_t connection_index, char pick, int *out);"
+          "decl": "short FUN_001974f0(int16_t connection_index, char pick, int *out);",
+          "ported": true
         },
         {
           "addr": "0x197570",

@@ -3594,6 +3594,44 @@ int16_t FUN_00196fd0(int *out_buf, int16_t max_count, int unused_10,
   return (int16_t)out_count;
 }
 
+/* 0x1974f0 - resolve a structure-connection plane and dispatch the edge solve.
+ *
+ * Looks up the scenario structure connection at index connection_index in the
+ * scenario connections tag_block (scenario+0x154, stride 0x40).  The connection
+ * record supplies the plane-block index (*(int*)(conn+4)) and an edge count
+ * (*(short*)(conn+0x34)).  It fetches the shared structure block
+ * (tag_block scenario+0xb0, element 0, stride 0x60), then the plane element
+ * (tag_block block+0xc, index conn+4, stride 0x10 = one plane[4]).  Finally it
+ * calls the edge-solve helper FUN_00197310 with the connection's vertex array
+ * (*(void**)(conn+0x38)) in EAX, the plane in ECX, the fixed global reference
+ * struct 0x506550 in EDX, the fixed global table 0x5065a4 as stack arg1, the
+ * edge count, a +1/-1 sign selected by `pick` ((pick==0)?1:-1), and the caller
+ * out pointer.  Returns FUN_00197310's short result in AX.
+ *
+ * ABI (prologue at 0x1974f0): PUSH EBP/MOV EBP,ESP/PUSH ESI/PUSH EDI with no
+ * entry register moves -> pure cdecl.  connection_index=[EBP+8] (word, MOVSX),
+ * pick=[EBP+0xc] (byte), out=[EBP+0x10] (dword).  scenario_get / the three
+ * tag_block_get_element calls are cdecl; FUN_00197310 is register-arg
+ * (EAX/ECX/EDX + 4 stack args, ADD ESP,0x10 cleanup). */
+short FUN_001974f0(int16_t connection_index, char pick, int *out)
+{
+  int scenario;
+  void *conn;
+
+  scenario = (int)scenario_get();
+  conn = tag_block_get_element((void *)(scenario + 0x154), connection_index,
+                               0x40);
+  return FUN_00197310(
+      *(void **)((char *)conn + 0x38),
+      tag_block_get_element(
+          (void *)((char *)tag_block_get_element((void *)(scenario + 0xb0), 0,
+                                                 0x60) +
+                   0xc),
+          *(int *)((char *)conn + 4), 0x10),
+      (void *)0x506550, (void *)0x5065a4, *(short *)((char *)conn + 0x34),
+      (pick == 0) ? 1 : -1, (short *)out);
+}
+
 /* FUN_00197e90 (0x197e90) — structures.obj
  *
  * Cluster-query dispatcher for a bounding sphere.  Gathers the visible
