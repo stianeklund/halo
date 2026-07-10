@@ -800,10 +800,6 @@
       "score": 88.7,
       "source": "src/halo/ai/actor_combat.c"
     },
-    "FUN_000218d0": {
-      "score": 83.5,
-      "source": "src/halo/ai/actor_combat.c"
-    },
     "FUN_000219e0": {
       "score": 91.2,
       "source": "src/halo/ai/actor_combat.c"
@@ -15155,6 +15151,10 @@
     "xbox_demos_launch": {
       "score": 80.6,
       "source": "src/halo/interface/marketing_and_strategic_business_development.c"
+    },
+    "actor_combat_build_grenade_trajectory": {
+      "score": 83.5,
+      "source": "src/halo/ai/actor_combat.c"
     }
   },
   "version": 1
