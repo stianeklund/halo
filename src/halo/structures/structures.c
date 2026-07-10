@@ -3632,6 +3632,44 @@ short FUN_001974f0(int16_t connection_index, char pick, int *out)
       (pick == 0) ? 1 : -1, (short *)out);
 }
 
+/* 0x197570 - test a run of structure vertices against a stored plane.
+ *
+ * Walks records[count] (stride 3 floats = 0xc bytes) and, for each vertex,
+ * computes the signed distance to the plane whose reference point is the
+ * vector3 at 0x506550 and whose normal is the vector3 at 0x50655c:
+ *   d = n.x*(v.x-p.x) + n.y*(v.y-p.y) + n.z*(v.z-p.z)
+ * Returns 1 as soon as any vertex has d <= threshold (the original's
+ * FCOMP [EBP+8] / TEST AH,0x41 / JNP: jump-to-return-1 on C3|C0, i.e. the
+ * less-or-equal ordered case; unordered/greater continues).  Returns 0 when
+ * no vertex satisfies the test (or count <= 0).
+ *
+ * Register ABI (prologue at 0x197570): no entry moves; EDX is used directly as
+ * the record base (LEA [EDX+EAX*4]) and SI as the loop bound (TEST SI,SI) ->
+ * records=EDX, count=ESI (int16).  threshold is the sole stack arg [EBP+8]
+ * (float).  Return AL (char).  The accumulation order mirrors the original:
+ * normal.z term first, then .y, then .x. */
+char FUN_00197570(float *records, int16_t count, float threshold)
+{
+  int16_t i;
+  float *rec;
+  float d;
+
+  i = 0;
+  if (0 < count) {
+    do {
+      rec = records + i * 3;
+      d = *(float *)0x50655c * (rec[0] - *(float *)0x506550) +
+          *(float *)0x506560 * (rec[1] - *(float *)0x506554) +
+          *(float *)0x506564 * (rec[2] - *(float *)0x506558);
+      if (d <= threshold) {
+        return 1;
+      }
+      i = i + 1;
+    } while (i < count);
+  }
+  return 0;
+}
+
 /* FUN_00197e90 (0x197e90) — structures.obj
  *
  * Cluster-query dispatcher for a bounding sphere.  Gathers the visible
