@@ -36023,7 +36023,8 @@
         },
         {
           "addr": "0x147410",
-          "decl": "int collision_surface_polygon(int param_1, int param_2, void *out_points);"
+          "decl": "short collision_surface_polygon(int bsp, int surface_index, void *out_points);",
+          "ported": true
         },
         {
           "addr": "0x147520",
