@@ -1458,3 +1458,165 @@ void *FUN_0015b890(int cache_index, uint32_t cache_size)
 
   return locked_data;
 }
+
+/*
+ * FUN_0015bc40 — render every decal in one cluster/layer chain.
+ *
+ * Fetches the decal list head via FUN_00098fe0(cluster_index, current_layer),
+ * then walks the singly-linked list (link at decal+0x34, -1 terminates). For
+ * each decal it re-programs the framebuffer blend function + texture-combiner
+ * state and rebinds the decal bitmap only when they change from the cached
+ * values, then emits the decal's quad batch via D3D.
+ *
+ * Register roles in the original: EBX = current decal datum index, EDI = decal
+ * datum pointer, ESI = 'deca' tag pointer (ESI += 0xbc after reading the blend
+ * function at +0xc0; C keeps tag-base-relative offsets +0xc0/+0xe4).
+ *
+ * Render-state globals (raw addresses):
+ *   0x476ab0 global_d3d_device; 0x3256bc word skip-flag; 0x3256cd byte enable;
+ *   0x476ac8 word current layer; 0x476ad4 word cached blend function;
+ *   0x1fb7a4 alpha-test render-state cache; 0x5a5b48/0x5a5b4c/0x5a5ac4
+ *   texture-combiner dwords; 0x5a5ac0 pixel-shader state; 0x3256ba word stats
+ *   mode (==2 accumulates); 0x5a5458/0x5a545c/0x5a5454/0x5a5450/0x5a544c stat
+ *   counters; 0x476acc int cached bitmap; 0x476ad0 word cached frame index
+ *   (sign-extended byte); 0x476adc lruv vertex-cache handle; 0x5aa8b8 decal
+ *   data array pointer.
+ *
+ * Decal datum offsets: +0x1b s8 frame index; +0x24 u32 ARGB color; +0x28 u8
+ *   intensity/alpha; +0x2a s16 vertex count; +0x2c s32 'deca' tag index;
+ *   +0x34 s32 next-in-cluster link.
+ * Decal tag offsets: +0xc0 u16 framebuffer blend function; +0xe4 s32 bitmap.
+ *
+ * Every assert path is display_assert(...); system_exit(-1); (confirmed from
+ * the pristine XBE: each site calls 0x8d9f0 then 0x8e2f0 — there is NO
+ * halt_and_catch_fire call, contrary to the Ghidra draft).
+ *
+ * 0x15bc40 / rasterizer_decals.obj
+ */
+void FUN_0015bc40(int rendered_cluster_data)
+{
+  int decal_index;
+
+  if (*(void **)0x476ab0 == 0) {
+    display_assert(
+      "global_d3d_device",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c", 0x198, 1);
+    system_exit(-1);
+  }
+
+  if (*(uint16_t *)0x3256bc == 0 && *(uint8_t *)0x3256cd != 0) {
+    decal_index =
+      FUN_00098fe0((int16_t)rendered_cluster_data, *(int16_t *)0x476ac8);
+    while (decal_index != -1) {
+      char *decal;
+      char *tag;
+      uint16_t blend;
+      int bitmap_index;
+      uint32_t vertex_data_offset;
+      uint32_t color;
+      uint32_t intensity;
+
+      decal = (char *)datum_get(*(void **)0x5aa8b8, decal_index);
+      tag = (char *)tag_get(0x64656361, *(int *)(decal + 0x2c));
+
+      blend = *(uint16_t *)(tag + 0xc0);
+      if (*(uint16_t *)0x476ad4 != blend) {
+        *(uint16_t *)0x476ad4 = blend;
+        if (blend == 1 || blend == 2) {
+          D3DDevice_SetRenderState_Simple(0x40358, 0x1010101);
+          *(uint32_t *)0x1fb7a4 = 0x1010101;
+        } else {
+          D3DDevice_SetRenderState_Simple(0x40358, 0x10101);
+          *(uint32_t *)0x1fb7a4 = 0x10101;
+        }
+        switch (*(uint16_t *)0x476ad4) {
+        case 0:
+          *(uint32_t *)0x5a5b48 = 0x8040000;
+          *(uint32_t *)0x5a5b4c = 0x200c0000;
+          *(uint32_t *)0x5a5ac4 = 0x34180000;
+          break;
+        case 1:
+        case 5:
+          *(uint32_t *)0x5a5b48 = 0x28240820;
+          *(uint32_t *)0x5a5b4c = 0x340c1420;
+          *(uint32_t *)0x5a5ac4 = 0x341c1420;
+          break;
+        case 2:
+          *(uint32_t *)0x5a5b48 = 0xa8240820;
+          *(uint32_t *)0x5a5b4c = 0x340c14a0;
+          *(uint32_t *)0x5a5ac4 = 0x341c14a0;
+          break;
+        case 3:
+        case 4:
+        case 6:
+          /* NOTE: cases 3/4/6 deliberately leave 0x5a5ac4 unchanged. */
+          *(uint32_t *)0x5a5b48 = 0x8040000;
+          *(uint32_t *)0x5a5b4c = 0x340c0000;
+          break;
+        case 7:
+          *(uint32_t *)0x5a5b48 = 0x8040000;
+          *(uint32_t *)0x5a5b4c = 0x340c0000;
+          *(uint32_t *)0x5a5ac4 = 0x34180000;
+          break;
+        default:
+          display_assert(
+            "### ERROR unsupported framebuffer blend function",
+            "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c",
+            0x1d6, 1);
+          system_exit(-1);
+        }
+        FUN_001580b0(*(uint16_t *)0x476ad4);
+        rasterizer_set_pixel_shader((void *)0x5a5ac0);
+        if (*(uint16_t *)0x3256ba == 2) {
+          *(int *)0x5a5458 += 1;
+        }
+      }
+
+      bitmap_index = *(int *)(tag + 0xe4);
+      if (*(int *)0x476acc != bitmap_index ||
+          *(int16_t *)0x476ad0 != *(int8_t *)(decal + 0x1b)) {
+        *(int16_t *)0x476ad0 = (int16_t) * (int8_t *)(decal + 0x1b);
+        *(int *)0x476acc = bitmap_index;
+        rasterizer_set_texture(0, 0, 1, bitmap_index, *(int16_t *)0x476ad0);
+        if (*(uint16_t *)0x3256ba == 2) {
+          *(int *)0x5a545c += 1;
+        }
+      }
+
+      vertex_data_offset =
+        lruv_block_get_address(*(void **)0x476adc, decal_index);
+      /* Load the ARGB color dword once; the original reuses it for both the
+       * intensity scale (color>>24 = alpha) and the vertex color argument. */
+      color = *(uint32_t *)(decal + 0x24);
+      intensity =
+        ((uint32_t) * (uint8_t *)(decal + 0x28) * (color >> 0x18) + 0x7f) >> 8;
+      if (intensity > 0xff) {
+        display_assert(
+          "intensity<=PIXEL32_COMPONENT_MASK",
+          "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c", 0x1fe,
+          1);
+        system_exit(-1);
+      }
+      if ((vertex_data_offset & 0xf) != 0) {
+        display_assert(
+          "vertex_data_offset%sizeof(struct decal_vertex)==0",
+          "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c", 0x1ff,
+          1);
+        system_exit(-1);
+      }
+
+      D3DDevice_SetVertexData4ub(9, color >> 16, color >> 8, color,
+                                 0xff - intensity);
+      D3DDevice_DrawVertices(8, vertex_data_offset >> 4,
+                             (uint32_t)((int)*(int16_t *)(decal + 0x2a) << 2));
+
+      if (*(uint16_t *)0x3256ba == 2) {
+        *(int *)0x5a5454 += 1;
+        *(int *)0x5a5450 += *(int16_t *)(decal + 0x2a) * 2;
+        *(int *)0x5a544c += *(int16_t *)(decal + 0x2a) * 4;
+      }
+
+      decal_index = *(int *)(decal + 0x34);
+    }
+  }
+}
