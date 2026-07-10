@@ -23445,7 +23445,9 @@
           "addr": "0x1913c0",
           "comment": "Walk a reference list and unlink the entry whose +4 field matches value.",
           "decl": "void reference_list_remove(data_t *data, int *head, int value);",
-          "ported": false
+          "name": "reference_list_remove",
+          "ported": true,
+          "source_path": "src/halo/structures/structures.c"
         },
         {
           "addr": "0x191440",
@@ -23483,7 +23485,9 @@
         {
           "addr": "0x191660",
           "decl": "int cluster_partition_iter_next(void *partition, int *state);",
-          "ported": false
+          "name": "cluster_partition_iter_next",
+          "ported": true,
+          "source_path": "src/halo/structures/structures.c"
         },
         {
           "addr": "0x191690",
@@ -23512,18 +23516,24 @@
           "addr": "0x1917a0",
           "comment": "Find clusters overlapping position+radius and add the object to both per-object and per-cluster reference lists.",
           "decl": "void cluster_partition_add_object(void *partition, int object_handle, void *first_cluster_ref, void *position, uint32_t radius_fp, void *location);",
-          "ported": false
+          "name": "cluster_partition_add_object",
+          "ported": true,
+          "source_path": "src/halo/structures/structures.c"
         },
         {
           "addr": "0x1919a0",
           "comment": "Walk the object's cluster reference chain, removing each cluster-side reference and freeing both datums.",
           "decl": "void cluster_partition_remove_object(void *partition, int object_handle, void *first_cluster_ref);",
-          "ported": false
+          "name": "cluster_partition_remove_object",
+          "ported": true,
+          "source_path": "src/halo/structures/structures.c"
         },
         {
           "addr": "0x191a50",
           "decl": "int cluster_partition_iter_first(void *partition, int *state, int16_t cluster_idx);",
-          "ported": false
+          "name": "cluster_partition_iter_first",
+          "ported": true,
+          "source_path": "src/halo/structures/structures.c"
         },
         {
           "addr": "0x191ad0",
