@@ -6465,7 +6465,7 @@
         },
         {
           "addr": "0x86cb0",
-          "decl": "void director_script_camera(void);"
+          "decl": "void director_script_camera(int value);"
         },
         {
           "addr": "0x86de0",
@@ -6659,7 +6659,7 @@
         {
           "addr": "0x9ca70",
           "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
           "ported": true
         },
         {
@@ -6720,7 +6720,7 @@
         {
           "addr": "0x9dcf0",
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -9894,75 +9894,104 @@
         },
         {
           "addr": "0xc11d0",
-          "decl": "void FUN_000c11d0(void);"
+          "decl": "void FUN_000c11d0(int16_t function_index, int thread_datum, char init);",
+          "name": "FUN_000c11d0",
+          "ported": true,
+          "source_path": "src/halo/hs/hs.c"
         },
         {
           "addr": "0xc1210",
-          "decl": "void FUN_000c1210(void);"
+          "decl": "void FUN_000c1210(int16_t function_index, int thread_datum, char init);",
+          "ported": true,
+          "source_path": "src/halo/hs/hs.c"
         },
         {
           "addr": "0xc1260",
-          "decl": "void FUN_000c1260(void);"
+          "decl": "void FUN_000c1260(int16_t function_index, int thread_datum, char init);",
+          "ported": true
         },
         {
           "addr": "0xc12b0",
-          "decl": "void FUN_000c12b0(void);"
+          "decl": "void FUN_000c12b0(int16_t function_index, int thread_datum, char init);",
+          "ported": true
         },
         {
           "addr": "0xc1300",
-          "decl": "void FUN_000c1300(void);"
+          "decl": "void FUN_000c1300(int16_t function_index, int thread_datum, char init);",
+          "ported": true,
+          "source_path": "src/halo/hs/hs.c"
         },
         {
           "addr": "0xc1350",
-          "decl": "void FUN_000c1350(void);"
+          "decl": "void FUN_000c1350(int16_t function_index, int thread_datum, char init);",
+          "ported": true,
+          "source_path": "src/halo/hs/hs.c"
         },
         {
           "addr": "0xc1390",
-          "decl": "void FUN_000c1390(void);"
+          "decl": "void FUN_000c1390(int16_t function_index, int thread_datum, char init);",
+          "ported": true,
+          "source_path": "src/halo/hs/hs.c"
         },
         {
           "addr": "0xc13d0",
-          "decl": "void FUN_000c13d0(void);"
+          "decl": "void FUN_000c13d0(int16_t function_index, int thread_datum, char init);",
+          "ported": true
         },
         {
           "addr": "0xc1420",
-          "decl": "void FUN_000c1420(void);"
+          "decl": "void FUN_000c1420(int16_t function_index, int thread_datum, char init);",
+          "ported": true
         },
         {
           "addr": "0xc1470",
-          "decl": "void FUN_000c1470(void);"
+          "decl": "void FUN_000c1470(int16_t function_index, int thread_datum, char init);",
+          "ported": true,
+          "source_path": "src/halo/hs/hs.c"
         },
         {
           "addr": "0xc14b0",
-          "decl": "void FUN_000c14b0(void);"
+          "decl": "void FUN_000c14b0(int16_t function_index, int thread_datum, char init);",
+          "ported": true,
+          "source_path": "src/halo/hs/hs.c"
         },
         {
           "addr": "0xc1500",
-          "decl": "void FUN_000c1500(void);"
+          "decl": "void FUN_000c1500(int16_t function_index, int thread_datum, char init);",
+          "ported": true,
+          "source_path": "src/halo/hs/hs.c"
         },
         {
           "addr": "0xc1550",
-          "decl": "void FUN_000c1550(void);"
+          "decl": "void FUN_000c1550(int16_t function_index, int thread_datum, char init);",
+          "ported": true,
+          "source_path": "src/halo/hs/hs.c"
         },
         {
           "addr": "0xc15a0",
-          "decl": "void FUN_000c15a0(void);"
+          "decl": "void FUN_000c15a0(int function_index, int thread_datum, int init);",
+          "ported": true
         },
         {
           "addr": "0xc15f0",
-          "decl": "void FUN_000c15f0(void);"
+          "decl": "void FUN_000c15f0(int16_t function_index, int thread_datum, char init);",
+          "ported": true
         },
         {
           "addr": "0xc1640",
-          "decl": "void FUN_000c1640(void);"
+          "decl": "void FUN_000c1640(int16_t function_index, int thread_datum, char init);",
+          "ported": true,
+          "source_path": "src/halo/hs/hs.c"
         },
         {
           "addr": "0xc1680",
-          "decl": "void FUN_000c1680(void);"
+          "decl": "void FUN_000c1680(int16_t function_index, int thread_datum, char init);",
+          "ported": true
         },
         {
           "addr": "0xc16c0",
-          "decl": "void FUN_000c16c0(void);"
+          "decl": "void FUN_000c16c0(int16_t function_index, int thread_datum, char init);",
+          "ported": true
         },
         {
           "addr": "0xc1700",
@@ -31346,11 +31375,11 @@
         },
         {
           "addr": "0x433b0",
-          "decl": "void ai_conversation_status(void);"
+          "decl": "int16_t ai_conversation_status(int16_t param_1);"
         },
         {
           "addr": "0x434c0",
-          "decl": "void ai_conversation_line(void);"
+          "decl": "int ai_conversation_line(int param_1);"
         },
         {
           "addr": "0x43520",
@@ -32355,7 +32384,7 @@
         },
         {
           "addr": "0x585d0",
-          "decl": "void FUN_000585d0(int param_1);",
+          "decl": "int FUN_000585d0(int param_1);",
           "ported": true
         },
         {
@@ -32370,12 +32399,12 @@
         },
         {
           "addr": "0x58700",
-          "decl": "void FUN_00058700(void);",
+          "decl": "int FUN_00058700(int param_1);",
           "ported": false
         },
         {
           "addr": "0x58710",
-          "decl": "void FUN_00058710(void);",
+          "decl": "int16_t FUN_00058710(int16_t param_1);",
           "ported": false
         },
         {
