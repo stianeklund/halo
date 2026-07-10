@@ -855,6 +855,100 @@ void FUN_0015a700(void)
   rasterizer_set_pixel_shader((void *)0x5a5ac0);
 }
 
+/* 0x15aa40
+ *
+ * rasterizer_debug_setup_screen_projection  (name inferred)
+ *
+ * Configures fixed-function-style render state and uploads a 5-constant
+ * (20-float) vertex-shader constant block that maps 2D screen coordinates
+ * into clip space for the debug-line / debug-geometry pass, then installs
+ * the debug pixel shader state block. Called once per debug draw batch.
+ *
+ * __FILE__ for the device assert is rasterizer_xbox_debug.c (line 0xa7); the
+ * linker grouped this fn into rasterizer_decals.obj.
+ *
+ * The constant block (vs[0..19], 5 vertex-shader constants c[-0x44..-0x40])
+ * is a screen->clip transform. Slots vs[0],vs[3],vs[5],vs[7] are computed
+ * from the current viewport rect; the remaining slots are literal 0.0/0.5/
+ * 1.0 constants.
+ *
+ * Viewport rect globals (16-bit fields; .lo=x, .hi=y):
+ *   0x5a5bf4  int  rect min (x0 at +0, y0 at +2)
+ *   0x5a5bf8  int  rect max (x1 at +0, y1 at +2)
+ *     height = (short)(y1 - y0)   [16-bit .hi fields, sign-extended]
+ *     width  = (short)(x1 - x0)   [full 32-bit dword sub, low16 sign-extended]
+ *
+ * Float constants: [0x2533c8]=1.0f, [0x255e94]=-1.0f, [0x25eeac]=-2.0f.
+ * Render-state cache mirrors: 0x1fb784, 0x1fb788. Pixel-shader state block:
+ * 0x5a5ac0 (0xf0 bytes), fields 0x5a5b98=0, 0x5a5b94=1, 0x5a5ae0=4.
+ */
+void FUN_0015aa40(void)
+{
+  /* 20-float (5 vertex-shader constant) upload block; must stay one
+   * contiguous array so the constants are laid out ebp-0x54..ebp-0x8. */
+  float vs[20];
+  int width;
+  int height;
+  float fVar1;
+  float wdiv;
+
+  if (*(int *)0x476ab0 == 0) {
+    display_assert(
+      "global_d3d_device",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_debug.c", 0xa7, 1);
+    system_exit(-1);
+  }
+
+  D3DDevice_SetRenderState_CullMode(0);
+  D3DDevice_SetRenderState_Simple(0x40304, 0);
+  *(uint32_t *)0x1fb784 = 0;
+  D3DDevice_SetRenderState_Simple(0x40300, 0);
+  *(uint32_t *)0x1fb788 = 0;
+  D3DDevice_SetRenderState_ZEnable(0);
+  D3DDevice_SetRenderState_ZBias(0);
+
+  FUN_00178b40(4, 8, 0);
+
+  /* viewport height from the 16-bit .hi (y) fields, sign-extended */
+  height = (short)(*(short *)0x5a5bfa - *(short *)0x5a5bf6);
+  fVar1 = 1.0f / (float)height;
+  /* viewport width: full 32-bit dword subtract, low 16 bits sign-extended */
+  width = (short)(*(int *)0x5a5bf8 - *(int *)0x5a5bf4);
+
+  /* constant slots (literal bit patterns) */
+  vs[1] = 0.0f;
+  vs[2] = 0.0f;
+  vs[4] = 0.0f;
+  vs[6] = 0.0f;
+  vs[8] = 0.0f;
+  vs[9] = 0.0f;
+  vs[10] = 0.0f;
+  vs[11] = 0.5f;
+  vs[12] = 0.0f;
+  vs[13] = 0.0f;
+  vs[14] = 0.0f;
+  vs[15] = 1.0f;
+  vs[16] = 1.0f;
+  vs[17] = 1.0f;
+  vs[18] = 0.0f;
+  vs[19] = 1.0f;
+
+  /* computed slots (x87 order preserved: see disasm 0x15ab66-0x15ab94) */
+  vs[0] = fVar1 + fVar1;
+  vs[3] = -1.0f - fVar1;
+  wdiv = 1.0f / (float)width;
+  vs[5] = -2.0f * wdiv;
+  vs[7] = wdiv + 1.0f;
+
+  D3DDevice_SetVertexShaderConstant(-0x44, vs, 5);
+
+  csmemset((void *)0x5a5ac0, 0, 0xf0);
+  *(uint32_t *)0x5a5b98 = 0;
+  *(uint32_t *)0x5a5b94 = 1;
+  *(uint32_t *)0x5a5ae0 = 4;
+  rasterizer_set_pixel_shader((void *)0x5a5ac0);
+}
+
 /* 0x15abe0
  *
  * rasterizer_debug_draw_line2d  (debug 2D line drawer)
