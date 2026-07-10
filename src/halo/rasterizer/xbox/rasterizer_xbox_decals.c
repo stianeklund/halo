@@ -818,3 +818,71 @@ void *FUN_0015b890(int cache_index, uint32_t cache_size)
 
   return locked_data;
 }
+
+/*
+ * FUN_00158f90 (0x158f90)
+ *
+ * Per-frame rasterizer render-pass dispatcher.  Asserts the D3D device is
+ * present (assert line 0x61f in rasterizer_xbox.c), optionally clears the
+ * back buffer target (D3DCLEAR_TARGET = 0x80) in split-screen (>1 window)
+ * when the split-screen gate is clear, then runs a fixed sequence of
+ * sub-render passes, each gated by a global flag.
+ *
+ * The FUN_00158800 pass is handed a 4-element uint16 screen-bounds rect
+ * (built on the stack) that FUN_00158800 reads as bounds[0..3] to emit a
+ * screen-space quad.  Store order below matches the original (offsets 2, 6,
+ * 0, 4) for codegen fidelity.
+ *
+ * Globals (hardcoded, not in kb.json):
+ *   0x476ab0  void *  - global_d3d_device (IDirect3DDevice8 pointer)
+ *   0x3256ea  short   - split-screen clear gate (0 => issue the Clear)
+ *   0x5a5bc4  char    - gate for FUN_00158800
+ *   0x5a5bc2  short   - mode sentinel; -1 (0xFFFF) => 0x17ebb0/0x17ef00 passes
+ *   0x476ab8  char    - when non-zero, suppress the main pass sequence
+ *   0x5a5400  void *  - argument passed to FUN_0017ebb0
+ */
+/* 0x158f90 */
+void FUN_00158f90(void)
+{
+  short window_count;
+  unsigned short bounds[4];
+
+  if (*(void **)0x476ab0 == 0) {
+    display_assert("global_d3d_device",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                   0x61f, true);
+    system_exit(-1);
+  }
+
+  window_count = main_get_window_count();
+  if (window_count > 1 && *(short *)0x3256ea == 0) {
+    /* 0x1ea650: D3DDevice_Clear(count, rects, flags, color, float z, stencil).
+     * Z arg is a genuine float (1.0f) pushed via FLD/FSTP, not an int. */
+    D3DDevice_Clear(0, (void *)0, 0x80, 0, 1.0f, 0);
+  }
+
+  if (*(char *)0x5a5bc4 != 0) {
+    bounds[1] = 0x200; /* 512 */
+    bounds[3] = 0x280; /* 640 */
+    bounds[0] = 0x0;
+    bounds[2] = 0x60; /* 96 */
+    FUN_00158800(bounds);
+  }
+
+  if (*(short *)0x5a5bc2 == -1) {
+    FUN_0017ebb0((void *)0x5a5400);
+    FUN_0017ef00();
+  }
+
+  if (*(char *)0x476ab8 == 0) {
+    FUN_001825d0();
+    FUN_0015d160();
+    FUN_00184680();
+    FUN_00165a00();
+    FUN_00181410();
+    FUN_0017e030();
+    FUN_0017e010();
+  }
+
+  FUN_0016FEB0();
+}
