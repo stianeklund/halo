@@ -4390,3 +4390,240 @@ void set_file_location_volume_name(int16_t location, const char *volume_name)
   csstrncpy(file_location_volume_names + location * 0x100, volume_name, 0xff);
   file_location_volume_names[location * 0x100 + 0xff] = '\0';
 }
+
+/* FUN_00104bd0 (0x104bd0)  error_geometry.c:0x237-0x239
+ *
+ * Debug two-point (line segment) axis-aligned bounding box.  Expands the
+ * per-axis min/max of p0 and p1 outward by 'radius', packs the 6-float box and
+ * the 4-float color (red channel scaled by 0.5) into a contiguous scratch
+ * buffer, hands them to FUN_001049d0, then renders the segment via
+ * FUN_00103e80.  Gated on the debug-geometry-enabled predicate FUN_00103d30.
+ *
+ * cdecl, verified from disassembly at 0x104bd0:
+ *   [EBP+0x8]=p0 (ESI), [EBP+0xc]=p1 (EDI), [EBP+0x10]=radius (float),
+ *   [EBP+0x14]=color (EBX).  Both min and max select on (p0<=p1).  Color scale
+ *   const 0x253398 = 0.5f.  0x1029a0 thunk in the decompiler is actually
+ *   system_exit(-1) (CALL 0x8e2f0).  Box buffer EBP-0x28..-0x14, color -0x10..-0x4.
+ */
+void FUN_00104bd0(float *p0, float *p1, float radius, float *color)
+{
+  float box[6];
+  float col[4];
+
+  if (p0 == 0) {
+    display_assert("p0", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x237, true);
+    system_exit(-1);
+  }
+  if (p1 == 0) {
+    display_assert("p1", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x238, true);
+    system_exit(-1);
+  }
+  if (color == 0) {
+    display_assert("color", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x239, true);
+    system_exit(-1);
+  }
+  if (FUN_00103d30()) {
+    if (p0[0] <= p1[0]) box[0] = p0[0]; else box[0] = p1[0];
+    box[0] = box[0] - radius;
+    if (p0[0] <= p1[0]) box[1] = p1[0]; else box[1] = p0[0];
+    box[1] = box[1] + radius;
+    if (p0[1] <= p1[1]) box[2] = p0[1]; else box[2] = p1[1];
+    box[2] = box[2] - radius;
+    if (p0[1] <= p1[1]) box[3] = p1[1]; else box[3] = p0[1];
+    box[3] = box[3] + radius;
+    if (p0[2] <= p1[2]) box[4] = p0[2]; else box[4] = p1[2];
+    box[4] = box[4] - radius;
+    if (p0[2] <= p1[2]) box[5] = p1[2]; else box[5] = p0[2];
+    box[5] = box[5] + radius;
+    col[1] = color[1];
+    col[2] = color[2];
+    col[3] = color[3];
+    col[0] = color[0] * 0.5f;
+    FUN_001049d0(box, col);
+    FUN_00103e80(p0, p1, color);
+  }
+}
+
+/* FUN_00104fa0 (0x104fa0)  error_geometry.c:0x273-0x275
+ *
+ * Debug point-cloud axis-aligned bounding box.  Iterates 'point_count' packed
+ * 3-float points, accumulates per-axis min/max (min uses '<', max uses '<=',
+ * matching the FCOMP polarity), expands by 'radius', and emits the box+color
+ * via FUN_001049d0 then FUN_00104240.  Requires count>=3.  The z-max
+ * accumulator is register-resident (ST0) in the original; modelling it as a
+ * local produces the documented ~84% VC71 structural cap (accepted via
+ * equivalence).  cdecl, verified at 0x104fa0: [EBP+0x8]=count (low 16 bits,
+ * signed; loop count zero-extended), [EBP+0xc]=points (stride 12B),
+ * [EBP+0x10]=radius, [EBP+0x14]=color.  FLT_MAX=0x7f7fffff, -FLT_MAX (z init
+ * const 0x255c98)=0xff7fffff.
+ */
+void FUN_00104fa0(int point_count, float *points, float radius, float *color)
+{
+  float box[6];
+  float col[4];
+  float *p;
+  short count;
+  unsigned int i;
+
+  count = (short)point_count;
+  if (count < 0) {
+    display_assert("point_count>=0", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x273, true);
+    system_exit(-1);
+  }
+  if (points == 0) {
+    display_assert("points", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x274, true);
+    system_exit(-1);
+  }
+  if (color == 0) {
+    display_assert("color", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x275, true);
+    system_exit(-1);
+  }
+  if (count > 2) {
+    if (FUN_00103d30()) {
+      box[0] = 3.4028235e+38f;
+      box[1] = -3.4028235e+38f;
+      box[2] = 3.4028235e+38f;
+      box[3] = -3.4028235e+38f;
+      box[4] = 3.4028235e+38f;
+      box[5] = -3.4028235e+38f;
+      if (count > 0) {
+        p = points + 2;
+        i = (unsigned int)point_count & 0xffff;
+        do {
+          if (p[-2] < box[0]) box[0] = p[-2];
+          if (box[1] <= p[-2]) box[1] = p[-2];
+          if (p[-1] < box[2]) box[2] = p[-1];
+          if (box[3] <= p[-1]) box[3] = p[-1];
+          if (p[0] < box[4]) box[4] = p[0];
+          if (box[5] <= p[0]) box[5] = p[0];
+          p = p + 3;
+          i = i - 1;
+        } while (i != 0);
+      }
+      box[0] = box[0] - radius;
+      col[1] = color[1];
+      col[2] = color[2];
+      col[3] = color[3];
+      box[1] = box[1] + radius;
+      box[2] = box[2] - radius;
+      box[3] = box[3] + radius;
+      box[4] = box[4] - radius;
+      box[5] = box[5] + radius;
+      col[0] = color[0] * 0.5f;
+      FUN_001049d0(box, col);
+      FUN_00104240(point_count, points, color);
+    }
+  }
+}
+
+/* FUN_00105610 (0x105610)  error_geometry.c:0x21b-0x21c
+ *
+ * Debug single-point cube: builds an AABB centered on 'point' with half-extent
+ * 'radius' on every axis, packs box+color (red*0.5), and emits via
+ * FUN_001049d0 then FUN_00105550.  cdecl, verified at 0x105610:
+ *   [EBP+0x8]=point (ESI), [EBP+0xc]=radius (float), [EBP+0x10]=color (EDI).
+ *   Max axes computed as (radius + point[i]) matching the FLD radix/FADD order.
+ */
+void FUN_00105610(float *point, float radius, float *color)
+{
+  float box[6];
+  float col[4];
+
+  if (point == 0) {
+    display_assert("point", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x21b, true);
+    system_exit(-1);
+  }
+  if (color == 0) {
+    display_assert("color", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x21c, true);
+    system_exit(-1);
+  }
+  if (FUN_00103d30()) {
+    box[0] = point[0] - radius;
+    col[1] = color[1];
+    col[2] = color[2];
+    col[3] = color[3];
+    box[1] = radius + point[0];
+    box[2] = point[1] - radius;
+    box[3] = radius + point[1];
+    box[4] = point[2] - radius;
+    box[5] = radius + point[2];
+    col[0] = color[0] * 0.5f;
+    FUN_001049d0(box, col);
+    FUN_00105550(point, color);
+  }
+}
+
+/* FUN_00104d40 (0x104d40)  error_geometry.c:0x255-0x258
+ *
+ * Debug three-point (triangle) axis-aligned bounding box.  Computes the 3-way
+ * per-axis min/max of p0,p1,p2 (min(p1,p2) resolved first, then folded against
+ * p0), expands by 'radius', and emits box+color (red*0.5) via FUN_001049d0
+ * then FUN_00104040.  cdecl, verified at 0x104d40: [EBP+0x8]=p0 (EBX),
+ * [EBP+0xc]=p1 (EDI), [EBP+0x10]=p2 (ESI), [EBP+0x14]=radius, [EBP+0x18]=color.
+ * All comparisons select on '<=' (FCOMP TEST AH,0x41 / TEST AH,0x5 JP idiom).
+ */
+void FUN_00104d40(float *p0, float *p1, float *p2, float radius, float *color)
+{
+  float box[6];
+  float col[4];
+  float m;
+
+  if (p0 == 0) {
+    display_assert("p0", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x255, true);
+    system_exit(-1);
+  }
+  if (p1 == 0) {
+    display_assert("p1", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x256, true);
+    system_exit(-1);
+  }
+  if (p2 == 0) {
+    display_assert("p2", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x257, true);
+    system_exit(-1);
+  }
+  if (color == 0) {
+    display_assert("color", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x258, true);
+    system_exit(-1);
+  }
+  if (FUN_00103d30()) {
+    /* X */
+    if (p1[0] <= p2[0]) m = p1[0]; else m = p2[0];
+    if (p0[0] <= m) box[0] = p0[0];
+    else if (p1[0] <= p2[0]) box[0] = p1[0];
+    else box[0] = p2[0];
+    box[0] = box[0] - radius;
+    if (p1[0] <= p2[0]) m = p2[0]; else m = p1[0];
+    if (p0[0] <= m) {
+      if (p1[0] <= p2[0]) box[1] = p2[0]; else box[1] = p1[0];
+    } else box[1] = p0[0];
+    box[1] = box[1] + radius;
+    /* Y */
+    if (p1[1] <= p2[1]) m = p1[1]; else m = p2[1];
+    if (p0[1] <= m) box[2] = p0[1];
+    else if (p1[1] <= p2[1]) box[2] = p1[1];
+    else box[2] = p2[1];
+    box[2] = box[2] - radius;
+    if (p1[1] <= p2[1]) m = p2[1]; else m = p1[1];
+    if (p0[1] <= m) {
+      if (p1[1] <= p2[1]) box[3] = p2[1]; else box[3] = p1[1];
+    } else box[3] = p0[1];
+    box[3] = box[3] + radius;
+    /* Z */
+    if (p1[2] <= p2[2]) m = p1[2]; else m = p2[2];
+    if (p0[2] <= m) box[4] = p0[2];
+    else if (p1[2] <= p2[2]) box[4] = p1[2];
+    else box[4] = p2[2];
+    box[4] = box[4] - radius;
+    if (p1[2] <= p2[2]) m = p2[2]; else m = p1[2];
+    if (p0[2] <= m) {
+      if (p1[2] <= p2[2]) box[5] = p2[2]; else box[5] = p1[2];
+    } else box[5] = p0[2];
+    box[5] = box[5] + radius;
+    col[1] = color[1];
+    col[2] = color[2];
+    col[0] = color[0] * 0.5f;
+    col[3] = color[3];
+    FUN_001049d0(box, col);
+    FUN_00104040(p0, p1, p2, color);
+  }
+}
+

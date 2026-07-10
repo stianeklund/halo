@@ -13411,15 +13411,15 @@
         },
         {
           "addr": "0x103e80",
-          "decl": "void FUN_00103e80(void);"
+          "decl": "void FUN_00103e80(float *p0, float *p1, float *color);"
         },
         {
           "addr": "0x104040",
-          "decl": "void FUN_00104040(void);"
+          "decl": "void FUN_00104040(float *p0, float *p1, float *p2, float *color);"
         },
         {
           "addr": "0x104240",
-          "decl": "void FUN_00104240(void);"
+          "decl": "void FUN_00104240(int point_count, float *points, float *color);"
         },
         {
           "addr": "0x104430",
@@ -23347,15 +23347,21 @@
         },
         {
           "addr": "0x104bd0",
-          "decl": "void FUN_00104bd0(void);"
+          "decl": "void FUN_00104bd0(float *p0, float *p1, float radius, float *color);",
+          "ported": true,
+          "source_path": "src/halo/structures/structures.c"
         },
         {
           "addr": "0x104d40",
-          "decl": "void FUN_00104d40(void);"
+          "decl": "void FUN_00104d40(float *p0, float *p1, float *p2, float radius, float *color);",
+          "ported": true,
+          "source_path": "src/halo/structures/structures.c"
         },
         {
           "addr": "0x104fa0",
-          "decl": "void FUN_00104fa0(void);"
+          "decl": "void FUN_00104fa0(int point_count, float *points, float radius, float *color);",
+          "ported": true,
+          "source_path": "src/halo/structures/structures.c"
         },
         {
           "addr": "0x105160",
@@ -23369,7 +23375,9 @@
         },
         {
           "addr": "0x105610",
-          "decl": "void FUN_00105610(void);"
+          "decl": "void FUN_00105610(float *point, float radius, float *color);",
+          "ported": true,
+          "source_path": "src/halo/structures/structures.c"
         },
         {
           "addr": "0x1056e0",
