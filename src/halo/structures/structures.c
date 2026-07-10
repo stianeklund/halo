@@ -3073,6 +3073,14 @@ void FUN_00196330(void)
   }
 }
 
+/* structure_runtime_decals_dispose_from_old_map (0x1963a0) — structures.obj
+ *
+ * Empty no-op in this build: the disassembly is a single RET (C3). Preserved
+ * as an empty body to keep the address populated and the ABI intact. */
+void structure_runtime_decals_dispose_from_old_map(void)
+{
+}
+
 /* structure_runtime_decals_dispose (0x1963b0) — structures.obj
  *
  * Empty no-op in this build: the disassembly is a single RET (C3) with no
