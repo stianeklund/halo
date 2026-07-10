@@ -23798,7 +23798,9 @@
         },
         {
           "addr": "0x197130",
-          "decl": "int FUN_00197130(float *bounds, void *param_2, int *param_3, int count, float *center, float radius, float *cull_bounds, int param_8, int param_9, int intersection, int leaf@<eax>);"
+          "decl": "int FUN_00197130(float *bounds, void *param_2, int *param_3, int count, float *center, float radius, float *cull_bounds, int param_8, int param_9, int intersection, int leaf@<eax>);",
+          "ported": true,
+          "name": "FUN_00197130"
         },
         {
           "addr": "0x197310",

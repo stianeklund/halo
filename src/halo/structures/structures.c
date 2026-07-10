@@ -3858,6 +3858,115 @@ void FUN_00195790(int *surface_material_offsets /* @<eax> */,
   }
 }
 
+/* 0x197130 - gather visible clusters referenced by a BSP leaf's surfaces.
+ *
+ * Register ABI (prologue at 0x197130): MOV EBX,[EBP+0x2c] then MOV ESI,EAX; the
+ * only register arg is leaf@<eax> (BSP node/leaf value; its sign bit is a
+ * node/leaf discriminator, masked off with &0x7fffffff for the leaf index).
+ * Stack args: bounds ([EBP+0x8] parent_bounds), param_2 ([EBP+0xc] per-call
+ * visited-cluster bitset base), param_3 ([EBP+0x10] int* out cluster array),
+ * count ([EBP+0x14] out capacity), center ([EBP+0x18] cull-sphere center,
+ * null-checked only), radius ([EBP+0x1c], unused here), cull_bounds
+ * ([EBP+0x20]), param_8 ([EBP+0x24]), param_9 ([EBP+0x28]), intersection
+ * ([EBP+0x2c], mode: the incoming value is read into EBX and the slot is then
+ * reused as the running output accumulator that is returned).
+ *
+ * Resolves the leaf element (scenario+0xe0, stride 0x10), validates it, derives
+ * child bounds via FUN_00196eb0, and (unless intersection==2) culls against the
+ * cull bounds via FUN_00196a60/FUN_00196b10 taking the min classification.  If
+ * the leaf is at all visible it walks the leaf's surface run (scenario+0xec,
+ * stride 8), and for each surface's cluster index sets a bit in the global
+ * cluster visibility set at 0x5137d0 gated bitset and, if newly visible and not
+ * already recorded in the per-call bitset, appends the cluster to the out array
+ * (until count is reached).  Returns the number of clusters appended. */
+int FUN_00197130(float *bounds, void *param_2, int *param_3, int count,
+                 float *center, float radius, float *cull_bounds, int param_8,
+                 int param_9, int intersection, int leaf /* @<eax> */)
+{
+  void *scenario;
+  char *leaf_element;
+  int accumulator;
+  int cull_result;
+  float local_20[6];
+
+  (void)radius;
+  accumulator = 0;
+  scenario = scenario_get();
+  leaf_element = (char *)tag_block_get_element((char *)scenario + 0xe0,
+                                               leaf & 0x7fffffff, 0x10);
+
+  if ((short)intersection == 0) {
+    display_assert("intersection",
+                   "c:\\halo\\SOURCE\\structures\\structure_visibility.c", 0x2f0,
+                   true);
+    system_exit(-1);
+  }
+  if (bounds == (float *)0) {
+    display_assert("parent_bounds",
+                   "c:\\halo\\SOURCE\\structures\\structure_visibility.c", 0x2f1,
+                   true);
+    system_exit(-1);
+  }
+  if (center == (float *)0) {
+    display_assert("cull_sphere_center",
+                   "c:\\halo\\SOURCE\\structures\\structure_visibility.c", 0x2f2,
+                   true);
+    system_exit(-1);
+  }
+  if (cull_bounds == (float *)0) {
+    display_assert("cull_bounds",
+                   "c:\\halo\\SOURCE\\structures\\structure_visibility.c", 0x2f3,
+                   true);
+    system_exit(-1);
+  }
+  if (*(short *)(leaf_element + 8) < 0 ||
+      *(int *)((char *)scenario + 0x134) <= (int)*(short *)(leaf_element + 8)) {
+    display_assert(
+        "leaf->cluster_index>=0 && leaf->cluster_index<structure->clusters.count",
+        "c:\\halo\\SOURCE\\structures\\structure_visibility.c", 0x2f4, true);
+    system_exit(-1);
+  }
+
+  FUN_00196eb0(bounds, (unsigned char *)leaf_element, local_20);
+
+  cull_result = (short)intersection;
+  if ((short)intersection != 2) {
+    int a = FUN_00196a60(cull_bounds, local_20);
+    int b = FUN_00196b10(local_20, param_8, param_9);
+    cull_result = a;
+    if ((short)b < (short)a) {
+      cull_result = b;
+    }
+  }
+
+  if ((short)cull_result != 0) {
+    int i;
+    int first = *(int *)(leaf_element + 0xc);
+    int end = (int)*(short *)(leaf_element + 0xa) + first;
+    char *surface_block = (char *)scenario + 0xec;
+    for (i = first; i < end; i++) {
+      int *elem = (int *)tag_block_get_element(surface_block, i, 8);
+      int cluster = *elem;
+      int word_off = (cluster >> 5) * 4;
+      unsigned int mask = 1u << (cluster & 0x1f);
+      if ((mask & *(unsigned int *)((char *)0x5137d0 + word_off)) != 0) {
+        unsigned int *per_call = (unsigned int *)((char *)param_2 + word_off);
+        if ((mask & *per_call) == 0) {
+          if ((short)count <= (short)accumulator) {
+            break;
+          }
+          *per_call |= mask;
+          param_3[(short)accumulator] = cluster;
+          accumulator = accumulator + 1;
+        }
+      }
+      end = (int)*(short *)(leaf_element + 0xa) + *(int *)(leaf_element + 0xc);
+    }
+  }
+
+  return accumulator;
+}
+
 /* 0x197310 - project a structure surface's vertices to screen and clip.
  *
  * Register ABI (prologue at 0x197310): MOV EBX,EAX / MOV EDI,ECX / MOV ESI,EDX
