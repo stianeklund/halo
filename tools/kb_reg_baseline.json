@@ -515,7 +515,7 @@
     "0x191b60": "int32_t leaf_map_node_stack_peek(int16_t levels_up@<si>);",
     "0x193a80": "int FUN_00193a80(int param_1 /* @<ecx> */, short *param_2, int in_EAX /* @<eax> */);",
     "0x193b00": "int FUN_00193b00(int param_1 /* @<ecx> */, short *param_2, int in_EAX /* @<eax> */);",
-    "0x195650": "void FUN_00195650(void *list@<eax>, int16_t count@<edx>);",
+    "0x195650": "void FUN_00195650(void *out@<eax>, int *indices@<ecx>, int16_t count@<edx>);",
     "0x1956d0": "int FUN_001956d0(void *param_1, void *param_2, int16_t count@<esi>);",
     "0x195790": "void FUN_00195790(int *surface_material_offsets@<eax>, unsigned short surface_count, int lightmap_pass_index, void *material_begin_cb, void *surface_draw_cb, void *pass_end_cb, int param_7);",
     "0x196a60": "int FUN_00196a60(float *cull_bounds @<ecx>, float *bounds @<edx>);",
