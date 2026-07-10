@@ -3672,6 +3672,99 @@ int16_t FUN_00196fd0(int *out_buf, int16_t max_count, int unused_10,
   return (int16_t)out_count;
 }
 
+/* 0x197310 - project a structure surface's vertices to screen and clip.
+ *
+ * Register ABI (prologue at 0x197310): MOV EBX,EAX / MOV EDI,ECX / MOV ESI,EDX
+ *   verts@<eax>  -> float* source vertex array (stride 3 floats)
+ *   plane@<ecx>  -> float* plane {nx,ny,nz,d}
+ *   ref@<edx>    -> float* reference point; byte at ref+0x24 flips winding
+ * Stack args: arg1 (matrix container; transform matrix at arg1+0x10),
+ *   count (int16_t vertex count), sign (winding direction, +/-1),
+ *   out (short* result: [0]=clipped vertex count, then {float x,float y} pairs
+ *   at byte offsets +4,+8,... i.e. 8-byte stride starting at out+4).
+ *
+ * Computes signed distance of ref from plane, scaled by sign; if the magnitude
+ * is below the 0x2674e8 epsilon the surface is coplanar (return 2); if the
+ * signed side is <= 0 the surface faces away (return 1).  Otherwise transforms
+ * each vertex through the matrix into a 3-float scratch buffer, clips the
+ * polygon against 0x2b35c4, perspective-divides each surviving vertex
+ * (ooz = k / z, k at 0x255e94) walking forward (sign==1) or backward, and
+ * writes the 2D coords to out.  Returns 1 if fewer than 3 vertices survive,
+ * else 0.  0x2533c0 == 0.0f threshold. */
+short FUN_00197310(void *verts, void *plane, void *ref, void *arg1,
+                   int16_t count, int sign, short *out)
+{
+  float *v = (float *)verts;
+  float *p = (float *)plane;
+  float *r = (float *)ref;
+  float buf[256][3];
+  float side;
+  float ooz;
+  int orig_sign;
+  int j;
+  short idx;
+  short end;
+  short oidx;
+
+  scenario_get();
+  *out = 0;
+  orig_sign = (short)sign;
+  side = (r[2] * p[2] + r[1] * p[1] + r[0] * p[0] - p[3]) * (float)orig_sign;
+  if (*((char *)ref + 0x24) != '\0') {
+    sign = -sign;
+  }
+  if (fabs(side) < *(double *)0x002674e8) {
+    return 2;
+  }
+  if (side <= *(float *)0x002533c0) {
+    return 1;
+  }
+
+  if (count > 0) {
+    float *mtx = (float *)((char *)arg1 + 0x10);
+    for (j = 0; j < count; j++) {
+      matrix_transform_point(mtx, v + j * 3, &buf[j][0]);
+    }
+  }
+
+  *out = convex_polygon3d_clip_to_plane(count, &buf[0][0], (float *)0x002b35c4,
+                                        0x100, &buf[0][0], (uint32_t *)0,
+                                        0.0001f, (void *)0x1);
+  if (*out == -1) {
+    display_assert("result->vertex_count!=NONE",
+                   "c:\\halo\\SOURCE\\structures\\structure_visibility.c", 0x485,
+                   true);
+    system_exit(-1);
+  }
+
+  if (sign == 1) {
+    idx = 0;
+    end = *out;
+  } else {
+    idx = (short)(*out - 1);
+    end = -1;
+  }
+  oidx = 0;
+  if (idx != end) {
+    do {
+      int e = (int)idx;
+      ooz = *(float *)0x00255e94 / buf[e][2];
+      if (ooz <= *(float *)0x002533c0) {
+        display_assert("ooz>0.f",
+                       "c:\\halo\\SOURCE\\structures\\structure_visibility.c",
+                       0x497, true);
+        system_exit(-1);
+      }
+      *(float *)(out + oidx * 4 + 2) = ooz * buf[e][0];
+      *(float *)(out + oidx * 4 + 4) = ooz * buf[e][1];
+      idx = (short)(idx + sign);
+      oidx = (short)(oidx + 1);
+    } while (idx != end);
+  }
+
+  return (short)(*out < 3);
+}
+
 /* 0x1974f0 - resolve a structure-connection plane and dispatch the edge solve.
  *
  * Looks up the scenario structure connection at index connection_index in the
