@@ -9365,7 +9365,7 @@
         },
         {
           "addr": "0x1c7d10",
-          "decl": "bool game_sound_music_has_vehicle_sound(void);",
+          "decl": "bool game_sound_music_has_vehicle_sound(int in_EAX /* @<eax> */);",
           "ported": true
         },
         {
