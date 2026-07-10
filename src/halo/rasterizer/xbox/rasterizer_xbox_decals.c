@@ -805,6 +805,56 @@ void FUN_0015a560(char additive)
   rasterizer_set_pixel_shader((void *)0x5a5ac0);
 }
 
+/* 0x15a700
+ *
+ * Program the D3D render state for a decal-render pass and install the decal
+ * pixel shader. Unlike the neighbouring FUN_0015a560 this variant takes no
+ * arguments, has no per-frame gate byte, and uses a fixed (single) blend
+ * configuration: CULL off, ALPHABLENDENABLE off (0x40304=0), no separate-alpha
+ * blend (0x40300=0), STENCILFUNC=0x203 (D3DCMP_LESSEQUAL, 0x40354), ZENABLE on,
+ * BLENDOP=1 (D3DBLENDOP_ADD, 0x4035c), then ZBias from the global at 0x32570c.
+ *
+ * Each *(uint32_t *)0x1fbXXX write is the host-side shadow copy of the D3D
+ * renderstate just programmed (same shadow globals as FUN_0015a560); preserve
+ * each store's value and its interleaved position relative to the D3D call.
+ *
+ * After the render-state block it clears the 0xf0-byte decal render-state
+ * block at 0x5a5ac0, seeds three fields (0x5a5b98=0, 0x5a5b94=1, 0x5a5ae0=4),
+ * and installs the decal pixel shader (FUN_00156510).
+ *
+ * Original TU asserts against
+ * c:\halo\SOURCE\rasterizer\xbox\rasterizer_xbox_debug.c (line 0x51); the
+ * linker grouped it into rasterizer_decals.obj. cdecl, no arguments.
+ */
+void FUN_0015a700(void)
+{
+  if (*(int *)0x476ab0 == 0) {
+    display_assert("global_d3d_device",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_"
+                   "debug.c",
+                   0x51, 1);
+    halt_and_catch_fire();
+  }
+
+  D3DDevice_SetRenderState_CullMode(0);
+  D3DDevice_SetRenderState_Simple(0x40304, 0);
+  *(uint32_t *)0x1fb784 = 0;
+  D3DDevice_SetRenderState_Simple(0x40300, 0);
+  *(uint32_t *)0x1fb788 = 0;
+  D3DDevice_SetRenderState_Simple(0x40354, 0x203);
+  *(uint32_t *)0x1fb77c = 0x203;
+  D3DDevice_SetRenderState_ZEnable(1);
+  D3DDevice_SetRenderState_Simple(0x4035c, 1);
+  *(uint32_t *)0x1fb798 = 1;
+  D3DDevice_SetRenderState_ZBias(*(uint32_t *)0x32570c);
+  FUN_00178b40(0, 9, 0);
+  csmemset((void *)0x5a5ac0, 0, 0xf0);
+  *(uint32_t *)0x5a5b98 = 0;
+  *(uint32_t *)0x5a5b94 = 1;
+  *(uint32_t *)0x5a5ae0 = 4;
+  rasterizer_set_pixel_shader((void *)0x5a5ac0);
+}
+
 /* 0x15abe0
  *
  * rasterizer_debug_draw_line2d  (debug 2D line drawer)
