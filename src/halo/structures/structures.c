@@ -2647,6 +2647,50 @@ void FUN_00195dc0(void)
   }
 }
 
+/* FUN_00195e40 (0x195e40)
+ *
+ * render_structure_fog: thin render-orchestration wrapper (string ref
+ * "render_structure_fog" @0x329398).  Profiles the scope, and when the map has
+ * a valid lightmap/material pass (byte at 0x4d8eb0 != 0) it brackets a
+ * rasterizer setup/teardown pair (thunks 0x17ced0 / 0x17cef0 forwarding to
+ * FUN_00166400 / FUN_00165dd0) around the per-surface fog draw walk
+ * (FUN_00195790).  Simpler than FUN_00195b10: no scenario_get / 0x3256b0
+ * save-restore.
+ *
+ * Confirmed from disassembly at 0x195e40:
+ *  - Outer profiler scope: MOV AL,[0x449ef1]; TEST/JZ; MOV AL,[0x3293a0];
+ *    TEST/JZ around PUSH 0x329398; CALL profile_enter_private; ADD ESP,4.
+ *    Mirrored at the tail with profile_exit_private (PUSH 0x329398; CALL; POP).
+ *  - Middle block gate: MOV AL,[0x4d8eb0]; TEST AL,AL; JZ end.
+ *  - FUN_0017ced0 (rasterizer setup) before the walk, FUN_0017cef0 (teardown)
+ *    after; both no-arg thunks.
+ *  - FUN_00195790 takes an @eax pointer (MOV EAX,0x5937d4 = surface->material
+ *    offset table -- passed as an ADDRESS, not a deref) plus 6 stack args;
+ *    ADD ESP,0x18 = 6 stack dwords.  Push order (first push = last C arg):
+ *    0 (param_7), 0 (pass_end_cb), 0x17cee0 (surface_draw_cb FUN_0017cee0), 0
+ *    (material_begin_cb), *0x4d8eb4 (lightmap_pass_index), zero-extended uint16
+ *    @0x5937d0 (surface_count, XOR ECX,ECX / MOV CX read).
+ *  - Two distinct globals: uint16 count @0x5937d0 vs int[] offsets @0x5937d4.
+ * All calls cdecl, args pushed right-to-left.
+ */
+void FUN_00195e40(void)
+{
+  if (*(char *)0x449ef1 != 0 && *(char *)0x3293a0 != 0) {
+    profile_enter_private((void *)0x329398);
+  }
+
+  if (*(char *)0x4d8eb0 != 0) {
+    FUN_0017ced0();
+    FUN_00195790((int *)0x5937d4, *(unsigned short *)0x5937d0, *(int *)0x4d8eb4,
+                 (void *)0, (void *)FUN_0017cee0, (void *)0, 0);
+    FUN_0017cef0();
+  }
+
+  if (*(char *)0x449ef1 != 0 && *(char *)0x3293a0 != 0) {
+    profile_exit_private((void *)0x329398);
+  }
+}
+
 /* FUN_00195ec0 (0x195ec0)
  *
  * Two-pass structure lightmap draw driver.  Sibling of FUN_00195b10 /
