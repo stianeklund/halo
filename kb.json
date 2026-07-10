@@ -36091,7 +36091,10 @@
         },
         {
           "addr": "0x147ed0",
-          "decl": "void FUN_00147ed0(void);"
+          "decl": "void FUN_00147ed0(void *state /* @<eax> */, int surface_index);",
+          "reg_args": {
+            "state": "eax"
+          }
         },
         {
           "addr": "0x148240",
@@ -36131,7 +36134,10 @@
         },
         {
           "addr": "0x1491d0",
-          "decl": "void FUN_001491d0(void);"
+          "decl": "bool FUN_001491d0(void *state /* @<esi> */, int surface_index);",
+          "reg_args": {
+            "state": "esi"
+          }
         },
         {
           "addr": "0x1493b0",

@@ -469,6 +469,8 @@
     "0x13f440": "void object_dump_write(void *stats@<esi>, void *file);",
     "0x140a00": "char object_select_random_region_permutations_by_variant(int object_handle@<eax>, void *model_tag, int16_t variant);",
     "0x140ad0": "void object_choose_random_region_permutations(int object_handle@<edi>);",
+    "0x147ed0": "void FUN_00147ed0(void *state /* @<eax> */, int surface_index);",
+    "0x1491d0": "bool FUN_001491d0(void *state /* @<esi> */, int surface_index);",
     "0x14d080": "void collision_log_period_helper(int time_period@<esi>, int begin_flag);",
     "0x14d1b0": "void collision_log_format_stat(char *buf @<edi>, void *stat @<esi>);",
     "0x14d840": "short FUN_0014d840(short collision_function @<edi>);",
