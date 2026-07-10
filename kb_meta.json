@@ -1646,9 +1646,28 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x60c40": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x61df0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x62960": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x63710": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Prototype recovered from [EBP+N] cdecl disasm: char structure_test_ray2d(void *structure_bsp, char ignore_breakable, float *point, int surface_index, float *direction, float t, void *out_result); returns bool in AL (MOV AL,1 hit / XOR AL,AL miss); kb decl was void(void).",
+        "surface_bsp+0x1e8 dereferences to a per-surface skip-flag byte array; a nonzero flag marks a surface to march past (high bit = breakable candidate gated by breakable_surfaces_get_bsp_surface_data bitmap), a zero flag makes the surface a blocking hit."
+      ],
+      "uncertain": [
+        "out_result layout is {float t; int surface_index; int aux} where aux is buf[1]/buf[4] copied verbatim from collision_surface_test_line2d's 6-float scratch record (enter=buf[0..2], exit=buf[3..5]); the aux field's meaning (leaf index vs plane id) is not confirmed."
+      ]
     },
     "0x64100": {
       "kind": "function",
@@ -6276,6 +6295,10 @@
       "status": "ported"
     },
     "0x102e40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x105830": {
       "kind": "function",
       "status": "ported"
     },

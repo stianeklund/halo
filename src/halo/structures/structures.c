@@ -30,7 +30,7 @@ extern double __cdecl fabs(double);
  *     EAX=0x5ab250 (end point2d), plus 9 cdecl stack args.  ADD ESP,0x24
  *     (36 bytes = 9 args) proves the split is 0 (scenario_get) + 9, not 7+2.
  *   - FUN_000615b0 takes @eax=0x331f68 (the record); its return is discarded.
- *   - FUN_00062960(&0x3334a0 obstacles, 0x5ab240 radius) and
+ *   - path_obstacles_debug_render(&0x3334a0 obstacles, 0x5ab240 radius) and
  *     FUN_000609e0(&0x331f68 path) are clean cdecl (ADD ESP,0xc = 2+1).
  */
 void FUN_00061ca0(void)
@@ -58,7 +58,7 @@ void FUN_00061ca0(void)
         FUN_000615b0((void *)0x331f68);
       }
     }
-    FUN_00062960((void *)0x3334a0, *(float *)0x5ab240);
+    path_obstacles_debug_render((void *)0x3334a0, *(float *)0x5ab240);
     FUN_000609e0((void *)0x331f68);
   }
   return;

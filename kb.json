@@ -36435,7 +36435,8 @@
       "functions": [
         {
           "addr": "0x62960",
-          "decl": "void FUN_00062960(void *obstacles, float radius);"
+          "decl": "void path_obstacles_debug_render(void *obstacles, float radius);",
+          "ported": true
         },
         {
           "addr": "0x62b20",
@@ -36463,11 +36464,13 @@
         },
         {
           "addr": "0x63710",
-          "decl": "void structure_test_ray2d(void);"
+          "decl": "char structure_test_ray2d(void *structure_bsp, char ignore_breakable, float *point, int surface_index, float *direction, float t, void *out_result);",
+          "ported": true
         },
         {
           "addr": "0x638f0",
-          "decl": "void FUN_000638f0(void);"
+          "decl": "bool FUN_000638f0(int def, float *point, int surf_a, int surf_b);",
+          "ported": true
         },
         {
           "addr": "0x63970",
