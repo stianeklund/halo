@@ -36028,7 +36028,8 @@
         },
         {
           "addr": "0x147520",
-          "decl": "void render_debug_collision_vertex(void);"
+          "decl": "void render_debug_collision_vertex(int bsp, int vertex_index, float *matrix, float scale, void *color);",
+          "ported": true
         },
         {
           "addr": "0x147570",
