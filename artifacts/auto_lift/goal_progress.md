@@ -112,6 +112,35 @@ GREEN (patched default.xbe builds). Fixed pre-existing multi-layer breakage: com
 ##   LESSON: NEEDS_RUNTIME / sub-90 caution is JUSTIFIED — LCS hides base-pointer confusion (z_stream vs deflate_state). Self-audit > stalled-agent here. §(new) base-pointer-confusion-hidden-by-LCS.
 ## NOTE: reviewer agents stalled twice today (API mid-stream); committed on thorough self-audit (which caught the bug) + objective VC71-jump confirmation.
 
+---
+
+## Goal-lift run — 9/9 committed (goal_reached) — 2026-07-09
+
+hs.obj cluster (hs.c thread spawning wrappers and harness support). 9 functions committed at ≥90% VC71 or 100% match. 5 trivial wrappers skipped (single-line forwards to ported callees). 3 parked below 65% VC71.
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_000c1f80 | 0xc1f80 | hs.obj | - | skipped | Body is a single-line wrapper: FUN_000c1f80(param_1, param_2) -> FUN_000cbf80(param_2, 0). It drops param_1 and forwards param_2 with a constant 0. Nothing to lift beyond a thunk. |
+| FUN_000c2100 | 0xc2100 | hs.obj | - | skipped | Body is a 1-line thin wrapper forwarding param_2 to hs_return(param_2, 0) unchanged. FUN_000cbf80 = hs_return(int thread_handle, int value), already ported, cdecl (no reg args). No FPU/struct/multi-call complexity. Still cheap to lift if desired (cdecl callee in kb), but matches skip_trivial per screen. |
+| FUN_000c2120 | 0xc2120 | hs.obj | - | skipped | Body is a single line wrapping one call unchanged: FUN_000cbf80(param_2, 0). param_1 is unused/dropped. Trivial wrapper — not worth a standalone lift. |
+| FUN_000c2140 | 0xc2140 | - | - | skipped | Body is a single-line wrapper: forwards param_2 to hs_return(param_2, 0), dropping param_1. Just `FUN_000cbf80(param_2, 0); return;`. Callee hs_return (0xcbf80) is already ported and in kb.json (void hs_return(int thread_handle, int value)), cdecl, no reg args. |
+| FUN_000c3890 | 0xc3890 | hs.obj | - | skipped | 3-line wrapper: calls FUN_000e0cd0 (player_ui_fast_setup_network_server) then hs_return(param_2, 0). Nothing but two unchanged callee calls; no logic to lift. |
+| FUN_000c4010 | 0xc4010 | hs.obj | - | skipped | Body is a 1-line wrapper: __stricmp(*param_1, *param_2). Two-arg qsort/bsearch-style comparator that dereferences both param pointers and forwards to CRT __stricmp (0x1dd801, in the 0x1d0000-0x1de000 CRT region). Nothing to lift beyond the single call. Note: Ghidra decl is void but the function actually returns __stricmp's int in EAX (void-EAX implicit return) — a lift would need "int FUN_000c4010(char **a, char **b) { return __stricmp(*a, *b); }". Not worth porting; also touches CRT (skip_nt_import applies to the callee). |
+| FUN_000c0ed0 | 0xc0ed0 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c0f10 | 0xc0f10 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c0f50 | 0xc0f50 | hs.obj | 0 | parked | below_65pct |
+| FUN_000c0f90 | 0xc0f90 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c0fd0 | 0xc0fd0 | hs.obj | 0 | parked | below_65pct |
+| FUN_000c1010 | 0xc1010 | hs.obj | 94.1 | committed | mechanical gate: 94.1% clean (pass1) |
+| FUN_000c1050 | 0xc1050 | hs.obj | 93.6 | committed | mechanical gate: 93.6% clean (pass1) |
+| FUN_000c1090 | 0xc1090 | hs.obj | 0 | parked | below_65pct |
+| FUN_000c10d0 | 0xc10d0 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c1110 | 0xc1110 | hs.obj | 94.1 | committed | mechanical gate: 94.1% clean (pass1) |
+| FUN_000c1150 | 0xc1150 | - | 94.1 | committed | mechanical gate: 94.1% clean (pass1) |
+| FUN_000c1190 | 0xc1190 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+
+**Summary:** hs.obj 9/9 goal threshold reached. Committed: 5× 100% + 3× 94.1%/93.6%. Parked: 3 parked below_65pct; skipped: 5 trivial single-call wrappers to already-ported callees.
+
 ## deflate_stored FIX COMPLETED (commit db3553c2, amended). Final VC71 = 91.7% (242/242 insns — exact count match), closure-check CLEAN.
 ## CRITICAL PROCESS LESSON (advisor): my first replace_all fixed only the SECOND drain — the two inline drains were NOT byte-identical (first had /* comments */, second didn't), so replace_all matched one. The partial fix left the FIRST drain on `s` base AND its avail-check reading uninitialized `z` -> WORSE than before, and I COMMITTED it (91.7%... no, 90.8% partial). The byte-match % CANNOT prove a base-fix is complete (LCS normalizes MOV reg,[base+off] across base regs; a surviving site = ~1 lost insn, invisible). The DEFINITIVE check is the advisor's grep: in deflate_stored body, `s+0x10`/`s+0x14`/`s+0x1c` MUST be 0 hits, `s+0xc` EXACTLY 1 (pending_buf_size); legit s offsets = 0x24/0x30/0x54/0x64/0x6c. After fixing BOTH drains: clean + 242/242.
 ## STANDING HAZARD (advisor): base confusion (z_stream=*(int*)deflate_state vs deflate_state) is a hazard for EVERY remaining zlib fn that inlines flush_pending/read_buf/get_byte: check_header 0x1128c0, gzread 0x1134e0, inflate_blocks 0x113a90. Cross-check the z_stream-vs-deflate_state base at each inline site BEFORE trusting any VC71 number. When fixing a repeated block with replace_all, VERIFY all occurrences were truly identical or the fix is partial.
@@ -452,3 +481,35 @@ Skills updated (see .claude/skills commit): lift-synthetic-equivalence (new), li
 | structure_detail_objects_initialize_for_new_map | 0x193bb0 | structures.obj | 100 | committed | mechanical gate: 100% clean (pass1+redelink) |
 
 ## Round tally: 10/10 functions committed to goal (structures.obj); goal_reached. Session closed via auto-lift goal pipeline. 9 skipped (register-arg hazards/no-logic/already-impl), 1 parked (below_65pct gate).
+
+---
+
+## Goal-lift run 2026-07-10 — hs.obj probe — 5/20 committed (stop_on_fail_reached)
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_000c1f80 | 0xc1f80 | hs.obj | - | skipped | Body is a single-line wrapper around one FUN_ call, unchanged. Decompile: void FUN_000c1f80(undefined4 param_1, undefined4 param_2) { FUN_000cbf80(param_2, 0); return; } — forwards param_2 to the callee and passes constant 0; param_1 is dropped. Callee FUN_000cbf80 = hs_return(int thread_handle, int value), already ported and in kb.json (no reg args). This is effectively an hs_return-with-zero variant. Not worth a dedicated lift; a 1-3 line wrapper per pre-screen rule. |
+| FUN_000c2100 | 0xc2100 | hs.obj | - | skipped | Body is a single-line wrapper: FUN_000c2100(param_1, param_2) -> hs_return(param_2, 0). Drops param_1, forwards param_2 as thread_handle with a literal 0 value. Only one FUN_ call, no logic. hs script return-value helper. |
+| FUN_000c2120 | 0xc2120 | hs.obj | - | skipped | Body is a single-line wrapper: FUN_000cbf80(param_2, 0). Ghidra shows two params (param_1, param_2) but param_1 is ignored; it forwards param_2 and a constant 0 to FUN_000cbf80 unchanged. No logic to lift. |
+| FUN_000c2140 | 0xc2140 | hs.obj | - | skipped | Body is a single tail-call wrapping one FUN_ unchanged: FUN_000cbf80(param_2, 0). No transformation, 2-line body. |
+| FUN_000c0c30 | 0xc0c30 | - | 100 | committed | mechanical gate: 100% clean (pass1+redelink) |
+| FUN_000c0c70 | 0xc0c70 | hs.obj | 0 | parked | below_65pct |
+| FUN_000c0cb0 | 0xc0cb0 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1+redelink) |
+| FUN_000c0cd0 | 0xc0cd0 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1+redelink) |
+| FUN_000c0d10 | 0xc0d10 | hs.obj | 0 | parked | below_65pct |
+| FUN_000c0d50 | 0xc0d50 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1+redelink) |
+| FUN_000c0d90 | 0xc0d90 | hs.obj | 0 | parked | below_65pct |
+| FUN_000c0dd0 | 0xc0dd0 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1+redelink) |
+| FUN_000c0e10 | 0xc0e10 | hs.obj | 0 | parked | below_65pct |
+| FUN_000c0e50 | 0xc0e50 | hs.obj | 0 | parked | below_65pct |
+| FUN_000c0e90 | 0xc0e90 | hs.obj | 0 | parked | below_65pct |
+
+Session summary: hs.obj exploration. 4 functions pre-screened as trivial 1-3 line wrappers (skipped). 5 commits at 100% VC71 (pass1+redelink pass). 5 parked below 65% VC71 on first pass — these are expected candidates for structural ceiling or @reg discovery on re-probe. Stop_on_fail_reached after parked gate, consistent with goal-lift policy for low-match clusters.
+
+**Postscript 2026-07-10:** all 6 parked 0% entries were verify-infrastructure
+artifacts, not lift failures — hs.obj has no TU-level delinked reference, so
+vc71_verify was skipped and 0.0 recorded. After exporting per-function refs
+(delinked/functions/000c0*.obj) and re-applying the parked patches: 5x 100%
+VC71 + FUN_000c0d10 92.0% (bit-exact float-copy idiom ceiling), 600/600
+equivalence, reviewer AUTO_ACCEPT — committed f8e29209, parked ledger marked
+promoted.

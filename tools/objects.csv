@@ -53,7 +53,7 @@ main.obj,true,0x000E8D20-0x00104630,103
 marketing_and_strategic_business_development.obj,true,0x000E02D0-0x000E0770,5
 network_game_globals.obj,true,0x00129130-0x0012AB20,30
 network_client_manager.obj,true,0x00124730-0x00127910,60
-network_client_message_handler.obj,true,0x001277F0-0x001282C3,13
+network_client_message_handler.obj,true,0x001277F0-0x001280A0,10
 network_messages.obj,true,0x0011A230-0x0012B900,38
 network_server_manager.obj,true,0x0012BCE0-0x0012FB90,84
 network_server_message_handler.obj,true,0x0012FD80-0x00130780,8
@@ -111,7 +111,7 @@ ui_widget_event_handler_functions.obj,true,0x000E9810-0x000E9A10,1
 ui_widget_game_data_input_functions.obj,true,0x000EDCD0-0x000F3BC0,72
 unicode.obj,true,0x0019D810-0x0019FC20,69
 bipeds.obj,true,0x001A01D0-0x001A3140,39
-units.obj,true,0x0008DC30-0x001B3890,204
+units.obj,true,0x0008DC30-0x001B3890,208
 vehicles.obj,true,0x001B4DC0-0x001B8770,32
 weather_particle_systems.obj,true,0x000A3E60-0x000A5020,17
 widgets.obj,true,0x00136450-0x001367B0,5
@@ -155,7 +155,7 @@ tif_write.obj,true,0x0006E740-0x00074C30,81
 bored_camera.obj,true,0x000849F0-0x00084BF0,1
 circular_queue.obj,true,0x00114630-0x001191B0,69
 model_animations.obj,true,0x00120250-0x001240D0,41
-network_connection.obj,true,0x001280ED-0x00129C30,25
+network_connection.obj,true,0x001282F0-0x00129C30,18
 network_game_manager.obj,true,0x0012A960-0x0012B8B0,20
 bsp3d.obj,true,0x00146BE0-0x001472B0,5
 collision_features.obj,true,0x0014AD40-0x0014C6B0,18

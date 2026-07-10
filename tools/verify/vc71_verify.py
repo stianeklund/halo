@@ -136,14 +136,22 @@ def object_symbols(obj_path: Path) -> set[str]:
 
 
 def _per_function_ref(function: str) -> Path | None:
-    """Return delinked/functions/<hex8>.obj if it exists for this function address."""
+    """Return delinked/functions/<hex8>.obj if it exists for this function address.
+
+    Also accepts an unpadded-hex filename (e.g. c0f50.obj for 0x000c0f50) —
+    exporters have produced both forms, and a name-format mismatch silently
+    skips VC71 scoring (goal-lift then records 0% and parks a good lift; see
+    commits f8e29209/daa39ee6).
+    """
     aliases = function_aliases(function)
     for alias in aliases:
         m = re.match(r"FUN_([0-9a-f]{8})$", alias, re.IGNORECASE)
         if m:
-            candidate = DELINKED_DIR / "functions" / f"{m.group(1).lower()}.obj"
-            if candidate.exists():
-                return candidate
+            hex8 = m.group(1).lower()
+            for stem in (hex8, hex8.lstrip("0") or "0"):
+                candidate = DELINKED_DIR / "functions" / f"{stem}.obj"
+                if candidate.exists():
+                    return candidate
     return None
 
 

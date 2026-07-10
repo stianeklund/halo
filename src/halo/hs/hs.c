@@ -1,3 +1,520 @@
+/* 0xc0c30 — HS script function handler: apply an encounter state change.
+ * Evaluates the macro arguments; on success the result block holds an
+ * encounter handle at +0x0 (int) and a state value at +0x4 (int16). Calls
+ * FUN_00057aa0(encounter_handle, state) then returns void to the HS thread
+ * via hs_return(thread_datum, 0). The +0x4 read is a narrow int16 load. */
+void FUN_000c0c30(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_00057aa0(result[0], *(short *)(result + 1));
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc0c70 — HS script function handler: apply an encounter state change.
+ * Evaluates the macro arguments; on success the result block holds an
+ * encounter handle at +0x0 (int) and a byte value at +0x4. Calls
+ * FUN_00057c70(encounter_handle, value) then returns void to the HS thread
+ * via hs_return(thread_datum, 0). The +0x4 read is a narrow byte (char) load
+ * — result is int*, so (result + 1) = +4 bytes, cast to char*. */
+void FUN_000c0c70(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_00057c70(result[0], *(char *)(result + 1));
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc0cb0 — game_time HaloScript function evaluator. Runs the game-time helper
+ * at 0x57c60 for its side effect, then commits a 0 result to the calling
+ * script thread (a void-returning script builtin).
+ *
+ * Callees (both cdecl, ported):
+ *   0x57c60 = FUN_00057c60(void) — game-time side effect
+ *   0xcbf80 = hs_return(thread_handle, value)
+ *
+ * ABI (verified against disassembly 0xc0cb0-0xc0cc7): cdecl, plain RET. The
+ * body reads only [EBP+0xc] = thread_datum (arg 2); function_index and init
+ * complete the standard hs-evaluator signature (matches 0xc0c30) but are
+ * unused in this body. */
+void FUN_000c0cb0(int16_t function_index, int thread_datum, char init)
+{
+  FUN_00057c60();
+  hs_return(thread_datum, 0);
+}
+
+/* 0xc0cd0 — HS script function handler: apply a state change (int value).
+ * Twin of 0xc0c30, but the result block's +0x4 field is read as a full
+ * int32 here (not the narrow int16 the 0xc0c30 twin uses). Evaluates the
+ * macro arguments; on success the result block holds a handle at +0x0 and a
+ * value at +0x4. Calls FUN_00057d00(handle, value) then returns void to the
+ * HS thread via hs_return(thread_datum, 0). */
+void FUN_000c0cd0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_00057d00(result[0], result[1]);
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc0d10 — HS script function handler: set a vehicle entry's enterable
+ * distance. Twin of 0xc0c30/0xc0cd0, but the result block's +0x4 field is a
+ * float (the distance), passed by its raw IEEE-754 bits — NOT an int->float
+ * numeric conversion. Verified against disassembly: the original does
+ * `fld dword [eax+4]; mov edx,[eax]; push ecx; fstp dword [esp]; push edx`
+ * — a true float lvalue read (FLD) at +0x4 and an int handle read (MOV) at
+ * +0x0, i.e. the result block is a {int handle; float distance} pair.
+ * Structural 92% ceiling: our VC71 /O2 build copies the untouched float arg
+ * via integer MOV/PUSH instead of the original's FLD/FSTP — bit-exact either
+ * way (tried int* pun, struct field, volatile local, double round-trip; all
+ * end at MOV or score lower).
+ * Evaluates the macro arguments; on success calls
+ * FUN_00057f90(handle, distance) then returns void to the HS thread via
+ * hs_return(thread_datum, 0). */
+struct hs_handle_distance_result {
+  int handle; /* +0x0 */
+  float distance; /* +0x4 */
+};
+
+void FUN_000c0d10(int16_t function_index, int thread_datum, char init)
+{
+  struct hs_handle_distance_result *result;
+
+  result = (struct hs_handle_distance_result *)hs_macro_function_evaluate(
+    function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_00057f90(result->handle, result->distance);
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc0d50 — HS script function handler: apply a change via FUN_00057fd0.
+ * Twin of 0xc0c30 (identical codegen; differs only in the dispatch callee).
+ * Evaluates the macro arguments; on success the result block holds a handle
+ * at +0x0 (int) and a state value at +0x4 (narrow int16 — verified against
+ * disassembly 0xc0d50-0xc0d88: XOR EDX,EDX; MOV DX,[EAX+0x4], a 16-bit load,
+ * matching FUN_00057fd0's `short` second parameter). Calls
+ * FUN_00057fd0(handle, state) then returns void to the HS thread via
+ * hs_return(thread_datum, 0). */
+void FUN_000c0d50(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_00057fd0(result[0], *(short *)(result + 1));
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc0d90 — HS script function handler: apply a change via FUN_00058020.
+ * Twin of 0xc0cd0/0xc0d50 (identical codegen; differs only in the dispatch
+ * callee). Evaluates the macro arguments; on success the result block holds
+ * a handle at +0x0 (int) and a state value at +0x4 (narrow int16 — matches
+ * FUN_00058020's `short` second parameter, and the decompile reads the field
+ * as a 16-bit load). Calls FUN_00058020(handle, state) then returns void to
+ * the HS thread via hs_return(thread_datum, 0). */
+void FUN_000c0d90(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_00058020(result[0], *(short *)(result + 1));
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc0dd0 — HS script function handler: apply a change via FUN_00058070.
+ * Twin of 0xc0cd0 (identical codegen; differs only in the dispatch callee).
+ * Evaluates the macro arguments; on success the result block holds a handle
+ * at +0x0 (int) and a value at +0x4, both read as full int32 (puVar1[1] on
+ * an undefined4* — a 4-byte load — matching FUN_00058070's `int` second
+ * parameter). Calls FUN_00058070(handle, value) then returns void to the
+ * HS thread via hs_return(thread_datum, 0). */
+void FUN_000c0dd0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_00058070(result[0], result[1]);
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc0e10 — HS script function handler: apply a change via FUN_00058110.
+ * Same evaluate-then-dispatch shape as the 0xc0d50/0xc0dd0 twins, but the
+ * result block is consumed with a single dword load: `MOV EDX,[EAX]; PUSH EDX`
+ * in the original passes only *result (result[0], the first int) to
+ * FUN_00058110 — no second field is read. Evaluates the macro arguments; on
+ * success calls FUN_00058110(*result) then returns void to the HS thread via
+ * hs_return(thread_datum, 0). */
+void FUN_000c0e10(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_00058110(*result);
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc0e50 — HS script function handler: apply a change via FUN_000581b0.
+ * Same family as 0xc0cd0/0xc0dd0 (identical codegen; differs only in the
+ * dispatch callee). Evaluates the macro arguments; on success the result
+ * block holds a handle at +0x0 (int) and a value at +0x4, both read as full
+ * int32 (puVar1[1] on an undefined4* — a 4-byte load — matching
+ * FUN_000581b0's `int` second parameter). Calls FUN_000581b0(handle, value)
+ * then returns void to the HS thread via hs_return(thread_datum, 0). */
+void FUN_000c0e50(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_000581b0(result[0], result[1]);
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc0e90 — HS script function handler: evaluate a macro function and dispose
+ * its result. Twin of 0xc0c30's family (identical evaluator/return skeleton),
+ * but instead of dispatching a handle+value pair it derefs the first dword of
+ * the result block and passes that value to FUN_00058220 (a dispose/release
+ * helper). On success calls FUN_00058220(result[0]) then returns void to the
+ * HS thread via hs_return(thread_datum, 0). */
+void FUN_000c0e90(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_00058220(result[0]);
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc0ed0 — Evaluate an HS macro-function call and post its result to the
+ * calling thread. Dispatches to hs_macro_function_evaluate; when that returns
+ * a non-NULL result record, forwards the record's value (dword @ +0x0) and its
+ * type byte (@ +0x4) to the result-commit helper, then signals the thread to
+ * return with value 0.
+ *
+ * Callees (hardcoded addresses, all ported):
+ *   0xcc560 = hs_macro_function_evaluate(int16 function_index,
+ *                                        int thread_datum, char init)
+ *               -> result record* or NULL
+ *   0x58270 = FUN_00058270(int value, char type) -> void
+ *   0xcbf80 = hs_return(int thread_datum, int value) -> void
+ *
+ * Pointer arith: result is int* (dword-strided), so (result + 1) addresses the
+ * byte at +0x4. The second arg to FUN_00058270 is a single BYTE (char-width),
+ * NOT a dword. thread_datum is forwarded unchanged to both callees.
+ */
+void FUN_000c0ed0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != (int *)0) {
+    FUN_00058270(*result, *(char *)(result + 1));
+    hs_return(thread_datum, 0);
+  }
+  return;
+}
+
+/* Evaluate a script macro function for side effects, discarding its value,
+ * then commit a zero return to the calling thread.
+ *
+ * Calls hs_macro_function_evaluate(function_index, thread_datum, init), which
+ * returns a pointer to the evaluated value block (or NULL). When non-NULL, the
+ * first dword of that block is passed to FUN_00058310 (0x58310), then the
+ * thread result is committed as 0 via hs_return(thread_datum, 0).
+ *
+ * The evaluator's return is declared int in kb.json (0xcc560) but is used here
+ * as a pointer, so it is cast.
+ *
+ * Callees:
+ *   0xcc560 = hs_macro_function_evaluate(short, int, char) -> void* (used as
+ * ptr) 0x58310 = FUN_00058310(uint) -> void 0xcbf80 = hs_return(int
+ * thread_handle, int value) -> void [ported]
+ */
+void FUN_000c0f10(int16_t function_index, int thread_datum, char init)
+{
+  unsigned int *result;
+
+  result = (unsigned int *)hs_macro_function_evaluate(function_index,
+                                                      thread_datum, init);
+  if (result != (unsigned int *)0) {
+    FUN_00058310(*result);
+    hs_return(thread_datum, 0);
+  }
+  return;
+}
+
+/* Evaluate a script macro function for side effects, discarding its value,
+ * then commit a zero return to the calling thread.
+ *
+ * Calls hs_macro_function_evaluate(function_index, thread_datum, init), which
+ * returns a pointer to the evaluated value block (or NULL). When non-NULL, the
+ * first dword of that block is passed to FUN_00058390 (0x58390), then the
+ * thread result is committed as 0 via hs_return(thread_datum, 0).
+ *
+ * Identical in shape to FUN_000c0f10 (0xc0f10); the only difference is the
+ * per-value-block callee (0x58390 here vs 0x58310 there).
+ *
+ * The evaluator's return is declared int in kb.json (0xcc560) but is used here
+ * as a pointer, so it is cast.
+ *
+ * Callees:
+ *   0xcc560 = hs_macro_function_evaluate(short, int, char) -> void* (used as
+ * ptr) 0x58390 = FUN_00058390(uint) -> void 0xcbf80 = hs_return(int
+ * thread_handle, int value) -> void [ported]
+ */
+void FUN_000c0f50(int16_t function_index, int thread_datum, char init)
+{
+  unsigned int *result;
+
+  result = (unsigned int *)hs_macro_function_evaluate(function_index,
+                                                      thread_datum, init);
+  if (result != (unsigned int *)0) {
+    FUN_00058390(*result);
+    hs_return(thread_datum, 0);
+  }
+  return;
+}
+
+/* 0xc0f90 — HS native-function-call evaluator. Drives
+ * hs_macro_function_evaluate to evaluate the call's argument expressions; when
+ * the values array is ready (non-null return), invokes the native builtin
+ * FUN_00058410 with the first two evaluated argument dwords, then commits a
+ * zero result to the thread via hs_return. While arguments are still being
+ * evaluated the return is null and nothing is dispatched this tick. */
+void FUN_000c0f90(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != (int *)0x0) {
+    FUN_00058410((unsigned int)result[0], result[1]);
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc0fd0 — HS script function handler. Twin of 0xc0f90: evaluates the call's
+ * argument expressions via hs_macro_function_evaluate; when the values array is
+ * ready (non-null return), invokes the side-effect helper FUN_000584a0 with the
+ * first two evaluated argument dwords (result[0] as a handle/unsigned,
+ * result[1] as an int value), then commits a zero result to the thread via
+ * hs_return. While arguments are still being evaluated the return is null and
+ * nothing is dispatched this tick.
+ *
+ * Callees (all cdecl, ported): 0xcc560 hs_macro_function_evaluate,
+ * 0x584a0 FUN_000584a0(unsigned int, int), 0xcbf80 hs_return(thread, value).
+ * Both result fields are full dwords here (decompile shows *puVar1 and
+ * puVar1[1] as undefined4) — not a narrow int16/char variant. */
+void FUN_000c0fd0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != (int *)0x0) {
+    FUN_000584a0((unsigned int)result[0], result[1]);
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc1010 — HS native-function-call evaluator (float-argument variant). Drives
+ * hs_macro_function_evaluate to evaluate the call's argument expressions; when
+ * the values array is ready (non-null return), invokes the native builtin
+ * FUN_00058550 with the first evaluated dword as an object/handle and the
+ * second evaluated dword reinterpreted as a float (MSVC passes it via
+ * FLD+FSTP[ESP], so the raw bits must be read as float, not int-converted),
+ * then commits a zero result to the thread via hs_return. While arguments are
+ * still being evaluated the return is null and nothing is dispatched this tick.
+ */
+void FUN_000c1010(int16_t function_index, int thread_datum, char init)
+{
+  unsigned int *result;
+
+  result = (unsigned int *)hs_macro_function_evaluate(function_index,
+                                                      thread_datum, init);
+  if (result != (unsigned int *)0x0) {
+    FUN_00058550(result[0], ((float *)result)[1]);
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc1050 — HS native-function-call evaluator (16-bit result variant). Drives
+ * hs_macro_function_evaluate to evaluate the call's argument expressions; when
+ * the values array is ready (non-null return), reads the first evaluated value
+ * as a zero-extended 16-bit quantity (original: xor edx,edx; mov dx,[result],
+ * so the low 16 bits are the payload and the value widens unsigned to int) and
+ * passes it to the native builtin FUN_00058640, then commits a zero result to
+ * the thread via hs_return. While arguments are still being evaluated the
+ * return is null and nothing is dispatched this tick. */
+void FUN_000c1050(int16_t function_index, int thread_datum, char init)
+{
+  unsigned short *result;
+
+  result = (unsigned short *)hs_macro_function_evaluate(function_index,
+                                                        thread_datum, init);
+  if (result != (unsigned short *)0x0) {
+    FUN_00058640(*result);
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc1090 — HS native-function-call evaluator (16-bit result variant). Twin of
+ * 0xc1050 (identical codegen; differs only in the dispatch callee). Drives
+ * hs_macro_function_evaluate to evaluate the call's argument expressions; when
+ * the values array is ready (non-null return), reads the first evaluated value
+ * as a zero-extended 16-bit quantity and passes it to the native builtin
+ * FUN_000586a0, then commits a zero result to the thread via hs_return. While
+ * arguments are still being evaluated the return is null and nothing is
+ * dispatched this tick. */
+void FUN_000c1090(int16_t function_index, int thread_datum, char init)
+{
+  unsigned short *result;
+
+  result = (unsigned short *)hs_macro_function_evaluate(function_index,
+                                                        thread_datum, init);
+  if (result != (unsigned short *)0x0) {
+    FUN_000586a0(*result);
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc10d0 — Evaluate an HS macro (built-in) function on a thread, then
+ * consume its two-dword result. hs_macro_function_evaluate returns (in EAX)
+ * a pointer to a 2-dword result record when the call produced a value;
+ * dword[0] and dword[1] are forwarded to FUN_00058720, after which
+ * hs_return(thread_datum, 0) commits/cleans up the thread. Returns nothing.
+ *
+ * Callees:
+ *   0xcc560 = hs_macro_function_evaluate(int16 function_index, int
+ * thread_datum, char init) -> int (result-record ptr in EAX) 0x58720 =
+ * FUN_00058720(unsigned int, int) 0xcbf80 = hs_return(int thread_handle, int
+ * value)
+ */
+void FUN_000c10d0(int16_t function_index, int thread_datum, char init)
+{
+  int *result_ptr;
+
+  result_ptr =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result_ptr != (int *)0x0) {
+    FUN_00058720((unsigned int)result_ptr[0], result_ptr[1]);
+    hs_return(thread_datum, 0);
+  }
+  return;
+}
+
+/* 0xc1110 — Evaluate an HS built-in function call, then dispatch the result
+ * to the ai_berserk script command (FUN_000587d0) and commit a 0 result to
+ * the calling thread. hs_macro_function_evaluate returns a pointer to the
+ * evaluated-argument record (int cast); when non-NULL, its dword@+0x0 and
+ * byte@+0x4 are passed to FUN_000587d0, then hs_return(thread_datum, 0)
+ * acknowledges the command.
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560 = hs_macro_function_evaluate(int16 function_index, int
+ * thread_datum, char init) 0x587d0 = FUN_000587d0(int, int)  (ai_berserk script
+ * command) 0xcbf80 = hs_return(int thread_handle, int value)
+ */
+void FUN_000c1110(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != (int *)0x0) {
+    FUN_000587d0(*result, *(unsigned char *)((char *)result + 4));
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc1150 — HS script function handler: evaluate a macro function and dispatch
+ * the result to FUN_00058860. Twin of the 0xc0c30 int16 family (identical
+ * evaluate-then-dispatch skeleton). On success the result block holds an
+ * encounter handle at +0x0 (int) and a team value at +0x4 (int16). The +0x4
+ * read is a narrow 16-bit ZERO-extended load: the original does
+ * `xor edx,edx; mov dx,WORD PTR [eax+0x4]` (disassembly 0xc1150), i.e. the
+ * +0x4 field is treated as an UNSIGNED 16-bit team value, so the faithful
+ * lift is *(unsigned short *)(result + 1). Then FUN_00058860(handle, team)
+ * and hs_return(thread_datum, 0) acknowledges the command.
+ * VC71 emits the compact movzwl for this read where the original used the
+ * two-instruction xor+movw idiom, leaving a permanent 1-insn (~94%) gap
+ * shared by the whole 0xc1050/0xc1110/0xc1150 high-address cluster.
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560 = hs_macro_function_evaluate(int16 function_index, int
+ * thread_datum, char init) 0x58860 = FUN_00058860(int encounter_handle, int
+ * team) 0xcbf80 = hs_return(int thread_handle, int value)
+ */
+void FUN_000c1150(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != (int *)0x0) {
+    FUN_00058860(result[0], *(unsigned short *)(result + 1));
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc1190 — HS script function handler: evaluate a macro function and dispatch
+ * the result to FUN_00057030. Twin of the 0xc1150 skeleton (identical
+ * evaluate-then-dispatch shape), differing only in the +0x4 field width and
+ * the dispatch target. On success the result block holds an int at +0x0 and
+ * an 8-bit flag at +0x4. The +0x4 read is a narrow BYTE ZERO-extended load:
+ * the original does `xor edx,edx; mov dl,BYTE PTR [eax+0x4]` (disassembly
+ * 0xc1190), so the +0x4 field is an UNSIGNED byte and the faithful lift is
+ * *(unsigned char *)(result + 1) (result is int*, so +1 == byte offset +4,
+ * NOT +1). Then FUN_00057030(value, flag) and hs_return(thread_datum, 0)
+ * acknowledges the command.
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560 = hs_macro_function_evaluate(int16 function_index, int
+ * thread_datum, char init) 0x57030 = FUN_00057030(int param_1, char param_2)
+ * 0xcbf80 = hs_return(int thread_handle, int value)
+ */
+void FUN_000c1190(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != (int *)0x0) {
+    FUN_00057030(result[0], *(unsigned char *)(result + 1));
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
