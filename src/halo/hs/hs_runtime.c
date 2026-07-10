@@ -1,3 +1,4 @@
+
 /* Validate the syntax tree after loading a scenario. Iterates all syntax
  * nodes and checks for consistency: valid types, valid source offsets,
  * valid script indices, and correct function references. If any node fails

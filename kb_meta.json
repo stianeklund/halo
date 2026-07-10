@@ -4380,6 +4380,14 @@
         "Both result-block dwords read as full int32 (result[0], result[1]) matching FUN_000581b0(int,int); second load is a 32-bit load like twin 0xc0dd0, not the 16-bit load seen in twin 0xc0d90."
       ]
     },
+    "0xc1500": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "First result field read as zero-extended uint16 (disasm xor edx,edx; mov dx,WORD PTR[eax]), unlike the full-dword twins 0xc1420/0xc1470/0xc14b0.",
+        "FUN_000585d0 return-type corrected void->int (it tail-returns FUN_00046b60's int in EAX); this call site consumes the low byte AL via a zero-init dword local (union partial-store/wide-read)."
+      ]
+    },
     "0xc3b60": {
       "kind": "function",
       "status": "ported",
