@@ -36059,7 +36059,9 @@
         },
         {
           "addr": "0x147710",
-          "decl": "void collision_surface_perimeter(void);"
+          "decl": "float collision_surface_perimeter(int bsp, int surface_index);",
+          "name": "collision_surface_perimeter",
+          "ported": true
         },
         {
           "addr": "0x1477f0",

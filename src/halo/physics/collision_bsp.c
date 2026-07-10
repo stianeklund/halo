@@ -297,3 +297,54 @@ float collision_edge_length(int bsp, int edge_index)
                (vertex_b[1] - vertex_a[1]) * (vertex_b[1] - vertex_a[1]) +
                (vertex_b[2] - vertex_a[2]) * (vertex_b[2] - vertex_a[2]));
 }
+
+/* 0x147710 - collision_surface_perimeter
+ *
+ * Sums the edge lengths around a collision-BSP surface's winged-edge loop and
+ * returns the total perimeter (float in ST0).
+ *
+ * Layout mirrors collision_surface_polygon (same three tag_block headers on the
+ * bsp base): +0x3c surfaces (stride 0xc, surface[+4] = first-edge index),
+ * +0x48 edges (stride 0x18), +0x54 vertices (stride 0x10, xyz float32 at +0).
+ *
+ * Winged-edge orientation: side = (edge[+0x14] == surface_index). side selects
+ * this surface's half-edge slot -> vertex_a at edge[side], vertex_b at
+ * edge[!side], next-edge index at edge[2 + side] (byte +0x8 | +0xc). The loop
+ * is do-while (at least one edge) and terminates when the next-edge index
+ * returns to the surface's first-edge index.
+ *
+ * The per-edge SQRT sums the squared component differences (vertex_b -
+ * vertex_a) in y, z, x order (edge indices [1], [2], [0]) to match the original
+ * x87 FADD scheduling; the running total is accumulated as sqrtf(...) + total.
+ */
+float collision_surface_perimeter(int bsp, int surface_index)
+{
+  int *edge;
+  float *vertex_a;
+  float *vertex_b;
+  int first_edge;
+  int edge_index;
+  unsigned char side;
+  float total;
+  float dx, dy, dz;
+
+  total = 0.0f;
+  first_edge = *(int *)((char *)tag_block_get_element((void *)(bsp + 0x3c),
+                                                      surface_index, 0xc) +
+                        4);
+  edge_index = first_edge;
+  do {
+    edge = (int *)tag_block_get_element((void *)(bsp + 0x48), edge_index, 0x18);
+    side = (edge[5] == surface_index);
+    vertex_a =
+      (float *)tag_block_get_element((void *)(bsp + 0x54), edge[side], 0x10);
+    vertex_b =
+      (float *)tag_block_get_element((void *)(bsp + 0x54), edge[!side], 0x10);
+    dy = vertex_b[1] - vertex_a[1];
+    dz = vertex_b[2] - vertex_a[2];
+    dx = vertex_b[0] - vertex_a[0];
+    total = sqrtf(dy * dy + dz * dz + dx * dx) + total;
+    edge_index = edge[2 + side];
+  } while (edge_index != first_edge);
+  return total;
+}
