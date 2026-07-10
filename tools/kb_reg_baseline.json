@@ -517,6 +517,7 @@
     "0x18ff00": "void FUN_0018ff00(float *out @<eax>, float *position @<edx>, float scale, float magnitude);",
     "0x191750": "int *FUN_00191750(short cluster_index@<esi>, int **partition);",
     "0x191b60": "int32_t leaf_map_node_stack_peek(int16_t levels_up@<si>);",
+    "0x191bd0": "char FUN_00191bd0(int search_value@<ebx>, void **param_1, char *out);",
     "0x193a80": "int FUN_00193a80(int param_1 /* @<ecx> */, short *param_2, int in_EAX /* @<eax> */);",
     "0x193b00": "int FUN_00193b00(int param_1 /* @<ecx> */, short *param_2, int in_EAX /* @<eax> */);",
     "0x195650": "void FUN_00195650(void *out@<eax>, int *indices@<ecx>, int16_t count@<edx>);",
