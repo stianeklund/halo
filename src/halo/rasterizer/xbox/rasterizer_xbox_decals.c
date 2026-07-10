@@ -737,6 +737,74 @@ void FUN_00159900(void *group)
   }
 }
 
+/* 0x15a560
+ *
+ * Set up D3D render state for one decal-render pass. `additive` selects the
+ * blend mode: the additive path leaves SRCBLEND/DESTBLEND untouched and only
+ * flips the blend enable/op shadows, while the alpha path programs the
+ * SRC=SRCALPHA / DEST=INVSRCALPHA blend with BLENDOP=REVSUBTRACT (0x8006).
+ * Both paths clear the 0xf0-byte decal render-state block at 0x5a5ac0, seed a
+ * few of its fields, then install the decal pixel shader (FUN_00156510).
+ *
+ * Each *(uint32_t *)0x1fbXXX write is a host-side shadow copy of the D3D
+ * renderstate just programmed (same globals used by the neighbouring
+ * rasterizer setup functions); preserve each one.
+ *
+ * Original TU asserts against
+ * c:\halo\SOURCE\rasterizer\xbox\rasterizer_xbox_debug.c (line 0x13); grouped
+ * into rasterizer_decals.obj. cdecl, one byte-bool stack arg at [esp+4].
+ */
+void FUN_0015a560(char additive)
+{
+  if (*(int *)0x476ab0 == 0) {
+    display_assert("global_d3d_device",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_"
+                   "debug.c",
+                   0x13, 1);
+    halt_and_catch_fire();
+  }
+  if (*(char *)0x3256dd == 0) {
+    return;
+  }
+
+  FUN_00178b40(0, 9, 0);
+  D3DDevice_SetRenderState_CullMode(0);
+  D3DDevice_SetRenderState_Simple(0x40354, 0x203);
+  *(uint32_t *)0x1fb77c = 0x203;
+  D3DDevice_SetRenderState_ZEnable(1);
+  D3DDevice_SetRenderState_ZBias(*(uint32_t *)0x32570c);
+  csmemset((void *)0x5a5ac0, 0, 0xf0);
+  *(uint32_t *)0x5a5b98 = 0;
+  *(uint32_t *)0x5a5b94 = 1;
+  *(uint32_t *)0x5a5ae0 = 4;
+
+  if (additive != 0) {
+    D3DDevice_SetRenderState_Simple(0x40304, 0);
+    *(uint32_t *)0x1fb784 = 0;
+    D3DDevice_SetRenderState_Simple(0x40300, 0);
+    *(uint32_t *)0x1fb788 = 0;
+    D3DDevice_SetRenderState_Simple(0x4035c, 1);
+    *(uint32_t *)0x1fb798 = 1;
+    rasterizer_set_pixel_shader((void *)0x5a5ac0);
+    return;
+  }
+
+  D3DDevice_SetRenderState_Simple(0x40304, 1);
+  *(uint32_t *)0x1fb784 = 1;
+  D3DDevice_SetRenderState_Simple(0x40300, 0);
+  *(uint32_t *)0x1fb788 = 0;
+  D3DDevice_SetRenderState_Simple(0x40344, 0x302);
+  *(uint32_t *)0x1fb790 = 0x302;
+  D3DDevice_SetRenderState_Simple(0x40348, 0x303);
+  *(uint32_t *)0x1fb794 = 0x303;
+  D3DDevice_SetRenderState_Simple(0x40350, 0x8006);
+  *(uint32_t *)0x1fb7c0 = 0x8006;
+  D3DDevice_SetRenderState_Simple(0x4035c, 0);
+  *(uint32_t *)0x1fb798 = 0;
+  *(uint32_t *)0x5a5ae4 = 0x1400;
+  rasterizer_set_pixel_shader((void *)0x5a5ac0);
+}
+
 /* 0x15abe0
  *
  * rasterizer_debug_draw_line2d  (debug 2D line drawer)
