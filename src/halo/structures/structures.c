@@ -2401,6 +2401,49 @@ void FUN_00191ba0(void *base)
   tag_block_resize((char *)base + 0x10, 0);
 }
 
+/* 0x191bd0 - search the leaf-map node stack for a node referencing a value.
+ * (TU: c:\halo\SOURCE\structures\leaf_map.c)
+ *
+ * Register ABI (prologue at 0x191bd0): direct use of EBX with no entry moves;
+ * the only register arg is search_value@<ebx> (int). Stack args: param_1
+ * ([EBP+0x8], a pointer whose first field is the tag_block searched) and out
+ * ([EBP+0xc], char* flag). Walks the node stack from the top for each level
+ * (levels_up in [0,node_stack_count); count @ 0x4d8e90, stack @ 0x4d8a8c[count]
+ * i.e. node_stack-1). Each stacked node's low 31 bits index a 0xc-stride
+ * tag_block element; when that element's first field equals search_value it
+ * writes the node's sign bit to *out and returns 1. Returns 0 if no level
+ * matches (or the stack is empty). */
+char FUN_00191bd0(int search_value /* @<ebx> */, void **param_1, char *out)
+{
+  short count;
+  short i;
+  int node;
+  int *element;
+
+  count = *(short *)0x004d8e90;
+  i = 0;
+  if (count <= 0) {
+    return 0;
+  }
+  do {
+    if (i < 0 || i >= count) {
+      display_assert(
+          "levels_up>=0 && levels_up<leaf_map_globals.node_stack_count",
+          "c:\\halo\\SOURCE\\structures\\leaf_map.c", 0x3b, true);
+      system_exit(-1);
+    }
+    node = *(int *)(0x004d8a8c + ((int)count - (int)i) * 4);
+    element = (int *)tag_block_get_element(*param_1, node & 0x7fffffff, 0xc);
+    if (*element == search_value) {
+      *out = (char)((node & 0x80000000) != 0);
+      return 1;
+    }
+    count = *(short *)0x004d8e90;
+    i = (short)(i + 1);
+  } while (i < count);
+  return 0;
+}
+
 /* leaf_map_mark_portal_designators (FUN_00191cb0, 0x191cb0)
  *
  * structures.obj / c:\halo\SOURCE\structures\leaf_map.c
