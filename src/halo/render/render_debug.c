@@ -48,6 +48,26 @@ typedef char
 #define debug_string_pool_count (*(short *)0x4d8228)
 #define debug_string_overflow_warned (*(char *)0x4d822b)
 
+/* Draw one collision-BSP vertex as a debug point (0x147520, collision_bsp.obj).
+ * Fetches collision vertex `vertex_index` (0x10-byte record) from the tag_block
+ * at bsp+0x54, optionally transforms it through `matrix` into a local scratch
+ * point, then submits it to the cached debug-point drawer (0x189150) with the
+ * given scale and color. When matrix is NULL the raw vertex position is drawn
+ * directly. */
+void render_debug_collision_vertex(int bsp, int vertex_index, float *matrix,
+                                   float scale, void *color) {
+  float *point;
+  float transformed[3];
+
+  point = (float *)tag_block_get_element((void *)(bsp + 0x54), vertex_index,
+                                         0x10);
+  if (matrix != 0) {
+    matrix_transform_point(matrix, point, transformed);
+    point = transformed;
+  }
+  FUN_00189150(1, point, scale, color);
+}
+
 /* Draw a debug triangle immediately (0x188890). Immediate-mode only: asserts
  * the caller passed flag != 0 and three non-null vertex pointers plus a color,
  * then hands them to the sprite-triangle rasterizer (0x17eb30). Unlike the
