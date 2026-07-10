@@ -1802,3 +1802,89 @@ void FUN_0015c6f0(void)
 
   D3DDevice_SetStreamSource(0, *(void **)0x476ae4, 8);
 }
+/*
+ * rasterizer_xbox_draw_primitives.c
+ *
+ * Xbox rasterizer dynamic-primitive submission.  The linker groups this TU
+ * into rasterizer_decals.obj; the __FILE__ used by its asserts is
+ * c:\halo\SOURCE\rasterizer\xbox\rasterizer_xbox_draw_primitives.c
+ * (confirmed from the pristine XBE assert xref).
+ *
+ * Globals (used by address, not in kb.json):
+ *   0x476ab0  void *  - global_d3d_device (asserted non-NULL)
+ *   0x47dbe8  void *  - dynamic_triangles.d3d_index_buffer (asserted non-NULL)
+ *   0x47dbe0  int     - dynamic_triangles sorted-record count (capped < 0x3ff)
+ *   0x47dbe4  int     - dynamic_triangles running index/vertex cursor (< 0x8000)
+ *   0x47abe0  int[]   - sorted-record array, stride 0xc bytes:
+ *                        +0 start_offset (index cursor snapshot), +4 count
+ *   0x47dbf4  char    - one-shot "too many dynamic triangles" warning latch
+ *   0x3256ba  char    - render-stat mode (==2 -> accumulate submission stats)
+ *   0x5a5538  int     - stat: accumulated dynamic-triangle count
+ *   0x5a553c  int     - stat: accumulated dynamic-triangle batch count
+ */
+
+static const char kDrawPrimitivesFile[] =
+    "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_draw_primitives.c";
+
+/* 0x15d170
+ *
+ * Append a run of `count` dynamic triangles to the sorted-submission table.
+ * Records {start_offset = current vertex/index cursor, count} at
+ * dynamic_triangles.sorted[record_count], then advances the vertex cursor by
+ * `count` and the record count by 1.  Guards: the cursor must stay below
+ * 0x8000 and the record count below 0x3ff; on overflow a one-shot error is
+ * emitted via the 0x47dbf4 latch.  When render-stat mode (0x3256ba) is 2 the
+ * submission is also accumulated into the stat counters.
+ *
+ * cdecl, one int stack arg at [esp+4] (Ghidra draft mis-typed this void(void)
+ * with in_stack_00000004; it is a plain cdecl stack param, NOT a register arg).
+ * Returns the advanced vertex cursor, or -1 on the count<=0 / overflow paths
+ * (edi is seeded to -1 in the prologue and reused as the cursor accumulator;
+ * the pristine XBE returns it via `mov eax,edi` at the early-exit merge).
+ *
+ * NB: every assert path is display_assert(...); system_exit(-1); (confirmed
+ * from the pristine XBE: each site pushes -1 and calls 0x8e2f0 with a combined
+ * `add esp,0x14` — there is NO halt_and_catch_fire call, contrary to the
+ * Ghidra draft).  The 0x3256ba stat-mode gate is a 16-bit compare
+ * (`cmp word ptr [0x3256ba],2`).
+ *
+ * 0x15d170 / rasterizer_decals.obj
+ */
+int FUN_0015d170(int count)
+{
+  int result;
+
+  result = -1;
+  if (count < 0) {
+    display_assert("count>=0", kDrawPrimitivesFile, 0x11c, 1);
+    system_exit(-1);
+  }
+  if (*(int *)0x47dbe8 == 0) {
+    display_assert("dynamic_triangles.d3d_index_buffer", kDrawPrimitivesFile,
+                   0x11d, 1);
+    system_exit(-1);
+  }
+  if (*(int *)0x476ab0 == 0) {
+    display_assert("global_d3d_device", kDrawPrimitivesFile, 0x11e, 1);
+    system_exit(-1);
+  }
+  if (0 < count) {
+    if ((*(int *)0x47dbe4 < 0x8000 - count) && (*(int *)0x47dbe0 < 0x3ff)) {
+      *(int *)(0x47abe0 + *(int *)0x47dbe0 * 0xc) = *(int *)0x47dbe4;
+      *(int *)(0x47abe4 + *(int *)0x47dbe0 * 0xc) = count;
+      result = *(int *)0x47dbe4 + count;
+      *(int *)0x47dbe4 = result;
+      *(int *)0x47dbe0 = *(int *)0x47dbe0 + 1;
+      if (*(short *)0x3256ba == 2) {
+        *(int *)0x5a5538 = *(int *)0x5a5538 + count;
+        *(int *)0x5a553c = *(int *)0x5a553c + 1;
+      }
+      return result;
+    }
+    else if (*(char *)0x47dbf4 == 0) {
+      error(2, "### ERROR too many dynamic triangles requested from rasterizer");
+      *(char *)0x47dbf4 = 1;
+    }
+  }
+  return result;
+}
