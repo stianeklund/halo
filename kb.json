@@ -6657,7 +6657,7 @@
         {
           "addr": "0x9ca70",
           "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
           "ported": true
         },
         {
@@ -6718,7 +6718,7 @@
         {
           "addr": "0x9dcf0",
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -19454,7 +19454,8 @@
         },
         {
           "addr": "0x15b150",
-          "decl": "void FUN_0015b150(void);"
+          "decl": "void FUN_0015b150(void);",
+          "ported": true
         },
         {
           "addr": "0x15b190",

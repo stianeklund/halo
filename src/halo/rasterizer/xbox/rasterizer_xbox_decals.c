@@ -1080,6 +1080,31 @@ LAB_0015b018:
   decal_delete(decal_index);
 }
 
+/* 0x15b150
+ *
+ * rasterizer_decals_register_callbacks
+ *
+ * Registers the LRUV local_vertex_cache delete/query callbacks. Asserts the
+ * cache handle (initialized by rasterizer_decals_initialize) exists, then
+ * installs FUN_0015afa0 as the eviction/delete callback and FUN_0015b0c0 as
+ * the lock-query callback via lruv_cache_set_callbacks.
+ *
+ * The two callbacks are referenced by address only (not called here), so no
+ * push-order or FPU concerns. FUN_0015b0c0 returns bool at its address; the
+ * cast to int(*)(int) matches the lruv_cache_set_callbacks query_cb slot.
+ */
+void FUN_0015b150(void)
+{
+  if (*(void **)0x476adc == 0) {
+    display_assert(
+      "local_vertex_cache",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c", 0x74, 1);
+    system_exit(-1);
+  }
+  lruv_cache_set_callbacks(*(void **)0x476adc, FUN_0015afa0,
+                           (int (*)(int))FUN_0015b0c0);
+}
+
 /* 0x15b190
  *
  * rasterizer_decals_initialize_for_new_map
