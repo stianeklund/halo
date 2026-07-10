@@ -23805,7 +23805,8 @@
         },
         {
           "addr": "0x197570",
-          "decl": "char FUN_00197570(float *records @<edx>, int16_t count @<esi>, float threshold);"
+          "decl": "char FUN_00197570(float *records @<edx>, int16_t count @<esi>, float threshold);",
+          "ported": true
         },
         {
           "addr": "0x1975e0",
