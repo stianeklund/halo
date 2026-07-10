@@ -190,6 +190,84 @@ int FUN_00061ec0(float *p0, float *p1, float radius)
   return 0;
 }
 
+/* 0x61f10 - 2D ray/segment vs circle nearest-hit solve.
+ *
+ * Given the 2D unit direction vec_a, the segment endpoints pt0 and pt1, and a
+ * circle radius, projects the segment vector (pt1-pt0) onto vec_a (dot).  When
+ * dot > 0, forms d = |pt1-pt0|^2 - radius^2: if d <= 0 the origin is inside the
+ * circle and out=0 is returned (hit); otherwise the discriminant dot^2 - d is
+ * tested and, if >= 0, out = dot - sqrt(disc) (the near intersection distance).
+ * Returns 1 when a value was written to out, 0 otherwise (dot <= 0, or negative
+ * discriminant).  Comparisons use the shared 0.0f constant at 0x2533c0 and keep
+ * the original ordered/unordered (NaN) branch behaviour.
+ *
+ * Register ABI (prologue at 0x61f10): no entry moves; EAX read as vec_a
+ * (FMUL [EAX],[EAX+4]), ECX as pt0 (FSUB [ECX],[ECX+4]), EDX as pt1
+ * (FLD [EDX],[EDX+4]), ESI as the out pointer (FSTP [ESI]/MOV [ESI],0).
+ * radius is the sole stack arg [EBP+8] (float).  Return AL (char). */
+char FUN_00061f10(float *vec_a, float *pt0, float *pt1, float *out, float radius)
+{
+  float dx;
+  float dy;
+  float dot;
+  float disc;
+
+  dx = pt1[0] - pt0[0];
+  dy = pt1[1] - pt0[1];
+  dot = dx * vec_a[0] + dy * vec_a[1];
+  if (*(float *)0x002533c0 < dot) {
+    disc = (dx * dx + dy * dy) - radius * radius;
+    if (disc <= *(float *)0x002533c0) {
+      out[0] = 0.0f;
+      return 1;
+    }
+    disc = dot * dot - disc;
+    if (*(float *)0x002533c0 <= disc) {
+      out[0] = dot - sqrtf(disc);
+      return 1;
+    }
+  }
+  return 0;
+}
+
+/* 0x61fa0 - build the two boundary rays of a 2D cone around a direction.
+ *
+ * Given the 2D direction vec and a cone whose sine is num/denom (clamped to the
+ * 1.0f constant at 0x2533c8), computes cos = sqrt(1 - sin^2) and rotates vec by
+ * +/- the cone half-angle:
+ *   out_a = { cos*vx - sin*vy, cos*vy + sin*vx }   (rotate by -angle)
+ *   out_b = { cos*vx + sin*vy, cos*vy - sin*vx }   (rotate by +angle)
+ * and writes out_scalar = cos*denom.  All FPU; no calls but sqrtf (FSQRT).
+ *
+ * Register ABI (prologue at 0x61fa0): no entry moves; ECX read as vec
+ * (FMUL [ECX],[ECX+4]), EDX as out_a (FSTP [EDX],[EDX+4]), ESI as out_b
+ * (FSTP [ESI],[ESI+4]).  Stack args: denom=[EBP+8], num=[EBP+0xc],
+ * out_scalar=[EBP+0x10] (float*).  EAX is loaded from [EBP+0x10] (not an arg).
+ * void return. */
+void FUN_00061fa0(float *vec, float *out_a, float *out_b, float denom, float num,
+                  float *out_scalar)
+{
+  float s;
+  float c;
+  float vx;
+  float vy;
+
+  s = num / denom;
+  if (*(float *)0x002533c8 < s) {
+    s = *(float *)0x002533c8;
+  }
+  c = sqrtf(*(float *)0x002533c8 - s * s);
+  vx = vec[0];
+  vy = vec[1];
+  out_b[0] = c * vec[0] + s * vec[1];
+  out_b[1] = c * vy - s * vx;
+  vx = vec[0];
+  vy = vec[1];
+  out_a[0] = c * vec[0] - s * vec[1];
+  out_a[1] = c * vy + s * vx;
+  out_scalar[0] = c * denom;
+}
+
 /* FUN_00062020 (0x62020)  --  add_obstacle (path_obstacles.c)
  *
  * Append one obstacle record to an obstacle-set.  The set header is a small
