@@ -1,0 +1,32 @@
+{
+  "name": "collision_surface_area",
+  "addr": "0x1477f0",
+  "obj": "collision_bsp.obj",
+  "source_path": "src/halo/physics/collision_bsp.c",
+  "best_score": 91.0,
+  "best_patch": "artifacts/parked/patches/collision_surface_area-20260710-095937.patch",
+  "status": "promoted",
+  "first_parked": "2026-07-10T09:59:37+00:00",
+  "last_updated": "2026-07-10T11:11:11+00:00",
+  "promoted_commit": "e1176c2fd2087c496a9a3e9af1df0de2d5e18b40",
+  "attempts": [
+    {
+      "ts": "2026-07-10T09:59:37+00:00",
+      "model": "opus",
+      "effort": "high",
+      "score": 80.6,
+      "cap_hypothesis": "classify_cap inconclusive; agent judgment = structural x87 cap. 155/160 raw insns match (96.9%); LCS 80.6% from three known permanent-gap classes: (1) x87 stack-scheduling \u2014 candidate spills reused component-differences to stack temps (-0x20/-0x2c/-0x28) where the original keeps them live on the FPU register stack (st(3)/st(5)); (2) bool sete/movzx vs xor+sete materialization of the side/is_owner comparisons; (3) float-compare branch form (original jp, candidate jne) for the 0.0f<area test. Correctness verified: cross-product operand order matches disasm, no FPU-WARN/IMM-WARN/LOADW-WARN. A codegen-neutral CSE-hoist fix pass produced no change, confirming the source structure is not the lever.",
+      "reason": "structural_cap",
+      "patch": "artifacts/parked/patches/collision_surface_area-20260710-095937.patch"
+    },
+    {
+      "ts": "2026-07-10T11:11:11+00:00",
+      "model": "fable",
+      "effort": "high",
+      "score": 91.0,
+      "cap_hypothesis": null,
+      "reason": "promoted 80.6->91.0: byte-bool side/is_owner; body rewritten to ref shape from delinked disasm (pa_* trio ST-resident, qa_x/qa_y + cross_x/cross_y volatile store-once/reload, plane[2]*cz+plane[1]*cy+cx*plane[0]+area accumulation order, area>0.0f compare for jne mask). Residual = VC71 interleaving of next-edge integer loads into FPU region.",
+      "patch": null
+    }
+  ]
+}
