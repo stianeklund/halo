@@ -1194,11 +1194,13 @@
         },
         {
           "addr": "0x1d9068",
-          "decl": "void FUN_001d9068(void);"
+          "decl": "void FUN_001d9068(void);",
+          "note": "MSVC C runtime intrinsic _ftol2 (float->int truncation, ST0 to EAX); compiler-emitted, not a game function. Grouped under LIBCMT:sprintf.obj only by delinker COMDAT adjacency to crt_sprintf. LIBCMT compiler-runtime; never call from C (see src/xdk_rt.c). Attribution corrected per ghidra-groom Next-2 2026-07-10."
         },
         {
           "addr": "0x1d90e0",
-          "decl": "void FUN_001d90e0(void);"
+          "decl": "void FUN_001d90e0(void);",
+          "note": "MSVC C runtime intrinsic _chkstk (stack probe for large frames); compiler-emitted, not a game function. Grouped under LIBCMT:sprintf.obj only by delinker COMDAT adjacency to crt_sprintf. LIBCMT compiler-runtime; never call from C (see src/xdk_rt.c). Attribution corrected per ghidra-groom Next-2 2026-07-10."
         },
         {
           "addr": "0x1d9148",
@@ -23674,7 +23676,9 @@
         },
         {
           "addr": "0x1956d0",
-          "decl": "int FUN_001956d0(void *param_1, void *param_2, int16_t count@<esi>);"
+          "decl": "int FUN_001956d0(void *param_1, void *param_2, int16_t count@<esi>);",
+          "name": "FUN_001956d0",
+          "ported": true
         },
         {
           "addr": "0x195790",
@@ -33000,7 +33004,7 @@
         },
         {
           "addr": "0x68a30",
-          "decl": "void FUN_00068a30(void);"
+          "decl": "void FUN_00068a30(int param_1, const char *format, ...);"
         },
         {
           "addr": "0x68a50",
