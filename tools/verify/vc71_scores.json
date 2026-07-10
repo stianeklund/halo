@@ -7448,7 +7448,7 @@
       "score": 82.1,
       "source": "src/halo/math/real_math.c"
     },
-    "FUN_001130d0": {
+    "D3DX_getLong": {
       "score": 58.2,
       "source": "src/halo/math/real_math.c"
     },

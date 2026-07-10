@@ -1125,11 +1125,11 @@
         },
         {
           "addr": "0x1da19f",
-          "decl": "int FUN_001da19f(int c);"
+          "decl": "int crt_toupper(int c);"
         },
         {
           "addr": "0x1da1d8",
-          "decl": "int crt_toupper(int c);"
+          "decl": "int crt_tolower(int c);"
         },
         {
           "addr": "0x1da260",
@@ -20799,7 +20799,7 @@
         },
         {
           "addr": "0x1130d0",
-          "decl": "int FUN_001130d0(int gz @<eax>);",
+          "decl": "int D3DX_getLong(int gz @<eax>);",
           "ported": true
         },
         {
@@ -29849,7 +29849,7 @@
         },
         {
           "addr": "0x1d26f3",
-          "decl": "int __stdcall FUN_001d26f3(void *param_1, int param_2);"
+          "decl": "int __stdcall XSetNicknameW(void *param_1, int param_2);"
         },
         {
           "addr": "0x1d292e",
@@ -29922,7 +29922,7 @@
         },
         {
           "addr": "0x1d3410",
-          "decl": "int FUN_001d3410(const char *path, int access);"
+          "decl": "int CreateDirectoryA(const char *path, int access);"
         },
         {
           "addr": "0x1d347c",
@@ -30191,7 +30191,7 @@
         },
         {
           "addr": "0x1d0c16",
-          "decl": "void *__stdcall FUN_001d0c16(void *ptr);"
+          "decl": "void *__stdcall LocalFree(void *ptr);"
         },
         {
           "addr": "0x1d0c48",
@@ -30248,7 +30248,7 @@
         },
         {
           "addr": "0x1d8766",
-          "decl": "int __stdcall FUN_001d8766(int flags, const char *a, int a_len, const char *b, int b_len);"
+          "decl": "int __stdcall xCompareStringA(int flags, const char *a, int a_len, const char *b, int b_len);"
         },
         {
           "addr": "0x1d88ef",

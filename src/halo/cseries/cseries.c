@@ -65,7 +65,7 @@ char *strnupr(char *s, int n)
   do {
     if (n-- <= 0)
       break;
-    c = (char)FUN_001da19f((unsigned char)*p);
+    c = (char)crt_toupper((unsigned char)*p);
     *p = c;
     c = p[1];
     p++;
@@ -86,7 +86,7 @@ char *strnlwr(char *s, int n)
   do {
     if (n-- <= 0)
       break;
-    c = (char)crt_toupper((unsigned char)*p);
+    c = (char)crt_tolower((unsigned char)*p);
     *p = c;
     c = p[1];
     p++;
@@ -104,7 +104,7 @@ char *strupr(char *s)
   p = s;
   c = *p;
   while (c != '\0') {
-    c = FUN_001da19f(*p);
+    c = crt_toupper(*p);
     *p = c;
     p++;
     c = *p;
@@ -358,8 +358,8 @@ int csstricmp(const char *s1, const char *s2)
 
   assert_halt(s1 && s2);
 
-  c1 = crt_toupper((unsigned char)*s1);
-  c2 = crt_toupper((unsigned char)*s2);
+  c1 = crt_tolower((unsigned char)*s1);
+  c2 = crt_tolower((unsigned char)*s2);
 
   if (c1 == 0)
     goto check_end;
@@ -372,8 +372,8 @@ int csstricmp(const char *s1, const char *s2)
     if (c2 != c1)
       goto not_equal;
     s2++;
-    c1 = crt_toupper((unsigned char)s2[offset]);
-    c2 = crt_toupper((unsigned char)*s2);
+    c1 = crt_tolower((unsigned char)s2[offset]);
+    c2 = crt_tolower((unsigned char)*s2);
     if (c1 == 0)
       break;
   }

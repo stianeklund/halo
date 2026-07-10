@@ -191,7 +191,11 @@ def _load_known_globals():
         raw = _json.loads(json_path.read_text(encoding="utf-8"))
         result = {}
         for addr_hex, val_hex in raw.items():
-            result[int(addr_hex, 16)] = bytes.fromhex(val_hex)
+            try:
+                addr = int(addr_hex, 16)
+            except (ValueError, TypeError):
+                continue  # skip metadata keys (e.g. "_warning")
+            result[addr] = bytes.fromhex(val_hex)
         return result
     return {
         0x253394: struct.pack("<f", 30.0),

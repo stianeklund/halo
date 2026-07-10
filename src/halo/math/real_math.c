@@ -5931,7 +5931,7 @@ void FUN_001130a0(unsigned int value, void *file)
  * the final (MSB) byte returns EOF (-1), sets z_err (gz+0x38) = Z_DATA_ERROR
  * (-3). Returns b0 | b1<<8 | b2<<16 | b3<<24. @<eax>-defined => VC71 cannot
  * reproduce the EAX-receiving prologue (structural ceiling). */
-int FUN_001130d0(int gz)
+int D3DX_getLong(int gz)
 {
   int b0, b1, b2, b3;
 
@@ -6071,7 +6071,7 @@ void *FUN_001134a0(int fd, char *mode)
  * the FILE* (gz[0x10]); otherwise it refills inbuf (gz[0x11]) via fread when
  * avail_in (gz[1]) is empty and !z_eof (gz[0xf]), runs inflate (FUN_001155e0),
  * and on Z_STREAM_END folds the output run into crc (gz[0x13]), checks the stored
- * CRC32 (get_long FUN_001130d0) + skips ISIZE, then check_header (FUN_001128c0)
+ * CRC32 (get_long D3DX_getLong) + skips ISIZE, then check_header (FUN_001128c0)
  * + inflateReset (FUN_001153c0) to support concatenated members. CRC (crc32
  * FUN_00110c10) is taken over each output run from `start`. cdecl; gz embeds the
  * z_stream at offset 0 so every field is gz-relative (single base). */
@@ -6138,11 +6138,11 @@ int FUN_001134e0(int *gz, void *buf, int len)
       gz[0x13] = (int)FUN_00110c10((unsigned int)gz[0x13],
                                    (void *)start, gz[3] - start);  /* crc the run */
       start = gz[3];
-      if (FUN_001130d0((int)gz) != gz[0x13]) {        /* stored CRC32 mismatch */
+      if (D3DX_getLong((int)gz) != gz[0x13]) {        /* stored CRC32 mismatch */
         gz[0xe] = -3;                                 /* z_err = Z_DATA_ERROR */
         goto finalize;
       }
-      FUN_001130d0((int)gz);                          /* read & discard ISIZE */
+      D3DX_getLong((int)gz);                          /* read & discard ISIZE */
       FUN_001128c0((int)gz);                          /* check_header for next member */
       if (gz[0xe] == 0) {                             /* another member follows */
         saved_in = gz[2];
