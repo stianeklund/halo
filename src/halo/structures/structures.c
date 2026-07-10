@@ -2523,6 +2523,42 @@ void FUN_00195b10(void)
   }
 }
 
+/* FUN_00195bc0 (0x195bc0)
+ *
+ * render_structure_diffuse_texture: thin render-orchestration wrapper (string
+ * ref "render_structure_diffuse_texture" @0x3281b0).  Profiles the scope, and
+ * when the map has a valid diffuse/lightmap pass (byte at 0x4d8eb0 != 0) it
+ * brackets a scope enter/exit pair (FUN_00162790 / FUN_00160950, reached in the
+ * original via 1-instr JMP thunks at 0x17cd20/0x17cd40) around the per-surface
+ * diffuse-texture draw walk (FUN_00195790).
+ *
+ * Notes from disasm/decompile:
+ *  - FUN_00195790 takes an @eax pointer (=0x5937d4, surface->material offset
+ *    table) plus 6 stack args.  arg1 (surface_count) is the zero-extended
+ *    uint16 at 0x5937d0 (XOR ECX,ECX; MOV CX,word ptr); arg2
+ *    (lightmap_pass_index) is the dword at 0x4d8eb4.  This variant has a single
+ *    callback: FUN_0017cd30 is the 5th param (surface_draw_cb);
+ *    material_begin_cb / pass_end_cb / param_7 are all 0.  (Confirmed via push
+ *    order: ADD ESP,0x18 = 6 stack dwords.)
+ */
+void FUN_00195bc0(void)
+{
+  if (*(char *)0x449ef1 != 0 && *(char *)0x3281b8 != 0) {
+    profile_enter_private((void *)0x3281b0);
+  }
+
+  if (*(char *)0x4d8eb0 != 0) {
+    FUN_00162790();
+    FUN_00195790((int *)0x5937d4, *(unsigned short *)0x5937d0, *(int *)0x4d8eb4,
+                 (void *)0, (void *)FUN_0017cd30, (void *)0, 0);
+    FUN_00160950();
+  }
+
+  if (*(char *)0x449ef1 != 0 && *(char *)0x3281b8 != 0) {
+    profile_exit_private((void *)0x3281b0);
+  }
+}
+
 /* FUN_00195c40 (0x195c40)
  *
  * Sibling of FUN_00195b10: when the map has a valid lightmap pass (byte at

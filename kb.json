@@ -23612,10 +23612,6 @@
           "ported": true
         },
         {
-          "addr": "0x193c00",
-          "decl": "void FUN_00193c00(void);"
-        },
-        {
           "addr": "0x194070",
           "decl": "void FUN_00194070(void);"
         },
@@ -23674,7 +23670,8 @@
         },
         {
           "addr": "0x195bc0",
-          "decl": "void FUN_00195bc0(void);"
+          "decl": "void FUN_00195bc0(void);",
+          "ported": true
         },
         {
           "addr": "0x195c40",
@@ -23949,6 +23946,11 @@
         {
           "addr": "0x193b00",
           "decl": "int FUN_00193b00(int param_1 /* @<ecx> */, short *param_2, int in_EAX /* @<eax> */);",
+          "ported": true
+        },
+        {
+          "addr": "0x193c00",
+          "decl": "void FUN_00193c00(void);",
           "ported": true
         }
       ],

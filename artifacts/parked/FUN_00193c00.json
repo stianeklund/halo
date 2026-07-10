@@ -1,0 +1,32 @@
+{
+  "name": "FUN_00193c00",
+  "addr": "0x193c00",
+  "obj": "structure_detail_objects.obj",
+  "source_path": "src/halo/structures/structure_detail_objects.c",
+  "best_score": 87.8,
+  "best_patch": "artifacts/parked/patches/FUN_00193c00-20260709-133935-stash-recovery.patch",
+  "status": "promoted",
+  "first_parked": "2026-07-10T00:00:00+00:00",
+  "last_updated": "2026-07-10T09:20:00+00:00",
+  "promoted_commit": "pending",
+  "attempts": [
+    {
+      "ts": "2026-07-09T13:39:35+02:00",
+      "model": "unknown",
+      "effort": "unknown",
+      "score": null,
+      "cap_hypothesis": "",
+      "reason": "recovered from git stash (WIP on integrate-scenario-20260704, never verified/committed anywhere). ~250-line lift of the per-frame detail-object cell-grid rebuild, with disasm-verified notes (FPU round-trip cell coords, ecx/in_EAX bounds calls, FSTP float at +0xc). Patch also carries kb hunks for 0x191500/0x195bc0/0x195d00 that are superseded or premature on integrate-scenario-20260704 tip - apply ONLY the 0x193c00 parts.",
+      "patch": "artifacts/parked/patches/FUN_00193c00-20260709-133935-stash-recovery.patch"
+    },
+    {
+      "ts": "2026-07-10T09:20:00+00:00",
+      "model": "claude",
+      "effort": "session",
+      "score": 87.8,
+      "cap_hypothesis": "regalloc/scheduling shape ceiling on 340-insn two-pass body; all mismatches classified, LOADW/FPU/IMM clean",
+      "reason": "re-applied onto main; fixed truncating (int) casts to x87_round_to_int (semantic, FISTP round-to-nearest), memset+abs intrinsics, ub_last hoist, loop restructure, pass-2 global re-read. 75.4->87.8. Live A/B on a30: header+compacted+set-0 records byte-identical to cachebeta. Reviewer AUTO_ACCEPT. Also lifted FUN_00195bc0 (97.2%) from the same patch.",
+      "patch": null
+    }
+  ]
+}
