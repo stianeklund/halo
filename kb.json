@@ -23415,7 +23415,9 @@
         },
         {
           "addr": "0x105c80",
-          "decl": "short shell_update(short vertex_count, float *vertices @<ebx>);"
+          "decl": "short shell_update(short vertex_count, float *vertices @<ebx>);",
+          "ported": true,
+          "name": "shell_update"
         },
         {
           "addr": "0x105d20",
