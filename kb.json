@@ -23798,7 +23798,9 @@
         },
         {
           "addr": "0x197310",
-          "decl": "short FUN_00197310(void *verts@<eax>, void *plane@<ecx>, void *ref@<edx>, void *arg1, int16_t count, int sign, short *out);"
+          "decl": "short FUN_00197310(void *verts@<eax>, void *plane@<ecx>, void *ref@<edx>, void *arg1, int16_t count, int sign, short *out);",
+          "ported": true,
+          "name": "FUN_00197310"
         },
         {
           "addr": "0x1974f0",
