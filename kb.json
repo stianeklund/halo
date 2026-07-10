@@ -19383,7 +19383,8 @@
         },
         {
           "addr": "0x1584f0",
-          "decl": "void FUN_001584f0(int a1, int a2, int a3);"
+          "decl": "void FUN_001584f0(int stage, int target, int max_mipmap);",
+          "ported": true
         },
         {
           "addr": "0x158800",
