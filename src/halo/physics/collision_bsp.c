@@ -229,3 +229,32 @@ void render_debug_collision_bsp(int bsp, int matrix_or_flag)
     render_debug_collision_edge(bsp, i, matrix_or_flag, *(void **)0x2ee6d4);
   }
 }
+
+/* 0x1476a0 - collision_edge_length
+ *
+ * Returns the 3D Euclidean length of a collision-BSP edge. The edge element
+ * (bsp+0x48, stride 0x18) holds its two endpoint vertex indices in the first
+ * two dwords. Each vertex (bsp+0x54, stride 0x10) begins with an xyz float32
+ * triple. Result = sqrt(dx^2 + dy^2 + dz^2).
+ *
+ * The original x87 codegen (float10/FSQRT) loads the three component
+ * differences in x, y, z order (offsets 0, 4, 8), each taken as
+ * vertex_b - vertex_a, squares them, and sums; kept inline in that order for
+ * VC71 match (confirmed against the delinked reference: flds 0/4/8).
+ */
+float collision_edge_length(int bsp, int edge_index)
+{
+  unsigned int *edge;
+  float *vertex_a;
+  float *vertex_b;
+
+  edge = (unsigned int *)tag_block_get_element((void *)(bsp + 0x48), edge_index,
+                                               0x18);
+  vertex_a =
+    (float *)tag_block_get_element((void *)(bsp + 0x54), edge[0], 0x10);
+  vertex_b =
+    (float *)tag_block_get_element((void *)(bsp + 0x54), edge[1], 0x10);
+  return sqrtf((vertex_b[0] - vertex_a[0]) * (vertex_b[0] - vertex_a[0]) +
+               (vertex_b[1] - vertex_a[1]) * (vertex_b[1] - vertex_a[1]) +
+               (vertex_b[2] - vertex_a[2]) * (vertex_b[2] - vertex_a[2]));
+}

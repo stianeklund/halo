@@ -36052,7 +36052,8 @@
         },
         {
           "addr": "0x1476a0",
-          "decl": "void collision_edge_length(void);"
+          "decl": "float collision_edge_length(int bsp, int edge_index);",
+          "ported": true
         },
         {
           "addr": "0x147710",
