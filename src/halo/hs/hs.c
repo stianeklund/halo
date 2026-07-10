@@ -1125,6 +1125,41 @@ void FUN_000c16c0(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc1700 — HS script function handler. Evaluates the macro arguments; on
+ * success the result block holds an int at +0x0 (result[0]) and a char*
+ * string pointer at +0x4 (result[1]). Calls FUN_00085000(int, const char*)
+ * with those two fields, then returns void to the HS thread via
+ * hs_return(thread_datum, 0). Matches the byte pattern of the sibling HS
+ * handlers in this TU. */
+void FUN_000c1700(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_00085000(result[0], (const char *)result[1]);
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc1740 — HS script function handler: evaluate a macro function and dispatch
+ * the result's first field to FUN_000850d0. On success the result block holds
+ * an int at +0x0 (result[0]); calls FUN_000850d0(result[0]), then returns void
+ * to the HS thread via hs_return(thread_datum, 0). Matches the byte pattern of
+ * the sibling HS handlers in this TU. */
+void FUN_000c1740(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_000850d0(result[0]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script

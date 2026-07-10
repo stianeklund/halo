@@ -9995,11 +9995,13 @@
         },
         {
           "addr": "0xc1700",
-          "decl": "void FUN_000c1700(void);"
+          "decl": "void FUN_000c1700(int16_t function_index, int thread_datum, char init);",
+          "ported": true
         },
         {
           "addr": "0xc1740",
-          "decl": "void FUN_000c1740(void);"
+          "decl": "void FUN_000c1740(int16_t function_index, int thread_datum, char init);",
+          "ported": true
         },
         {
           "addr": "0xc1780",
