@@ -109,7 +109,7 @@ extern void __stdcall NtClose(HANDLE Handle);
 
 extern void __stdcall KeQuerySystemTime(XAPI_LARGE_INTEGER *CurrentTime);
 
-/* FUN_001d0bb9, FUN_001d0c16, FUN_001d8750, XapiSetLastNTError, SetLastError
+/* FUN_001d0bb9, LocalFree, FUN_001d8750, XapiSetLastNTError, SetLastError
  * are all declared in the generated decl.h (via common.h / kb.json). */
 
 #define FATX_MAGIC 0x58544146UL
@@ -247,7 +247,7 @@ int __stdcall XapiFormatFATVolume(void *device_path)
     if (off_lo < sector_size_aligned)
       off_hi++;
     if (write_status < 0) {
-      FUN_001d0c16(buf);
+      LocalFree(buf);
       goto flush_close;
     }
     p = buf;
@@ -307,7 +307,7 @@ int __stdcall XapiFormatFATVolume(void *device_path)
   } while (remaining != 0);
 
 free_flush:
-  FUN_001d0c16(buf);
+  LocalFree(buf);
 flush_close:
   NtFsControlFile(hdev, 0, 0, 0, &iosb, 0x90020, 0, 0, 0, 0);
   NtClose(hdev);

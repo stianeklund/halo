@@ -267,14 +267,14 @@ void console_process_enter(void)
         cap = match_len;
 
       i = 0;
-      if (crt_toupper((unsigned char)token_array[idx][0]) ==
-          crt_toupper((unsigned char)token_array[0][0])) {
+      if (crt_tolower((unsigned char)token_array[idx][0]) ==
+          crt_tolower((unsigned char)token_array[0][0])) {
         do {
           if ((int16_t)cap < i)
             break;
           i++;
-          next_a = crt_toupper((unsigned char)token_array[0][i]);
-          next_b = crt_toupper((unsigned char)token_array[idx][i]);
+          next_a = crt_tolower((unsigned char)token_array[0][i]);
+          next_b = crt_tolower((unsigned char)token_array[idx][i]);
         } while (next_b == next_a);
       }
       match_len = i - 1;

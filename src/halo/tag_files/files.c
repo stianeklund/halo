@@ -535,7 +535,7 @@ void file_error(file_ref_t *info, const char *function_name)
  *
  * Builds the full path from the file reference.
  * If the write-mode bit (bit 0 of unk_4[0]) is clear, uses the NT
- * NtCreateFile wrapper (FUN_001d3410) with default access flags.
+ * NtCreateFile wrapper (CreateDirectoryA) with default access flags.
  * If the write-mode bit is set, uses CreateFileA (XCreateFile) with
  * GENERIC_WRITE | FILE_ATTRIBUTE_HIDDEN | FILE_FLAG_SEQUENTIAL_SCAN.
  * On success, closes the returned handle. On failure, logs the error and

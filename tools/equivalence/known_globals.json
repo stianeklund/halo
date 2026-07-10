@@ -1,4 +1,5 @@
 {
+  "_warning": "Pool/global NAMES associated with these addresses were derived from a DIFFERENT Halo build and are NOT authoritative for cachebeta.xbe \u2014 three pool names were found mis-mapped. Do NOT use this file as a naming oracle for cachebeta; the cachebeta allocation-site __FILE__ strings are authoritative for naming. The ADDRESSES and their captured byte VALUES below remain valid for equivalence seeding.",
   "0x004566ec": "01000000",
   "0x00456b60": "00009e00",
   "0x0045708c": "01000000",

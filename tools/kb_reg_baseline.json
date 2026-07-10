@@ -327,7 +327,7 @@
     "0x112cd0": "int FUN_00112cd0(int gz @<esi>);",
     "0x112f00": "unsigned int FUN_00112f00(int gz @<eax>, int flush);",
     "0x1130a0": "void FUN_001130a0(unsigned int value @<eax>, void *file @<ebx>);",
-    "0x1130d0": "int FUN_001130d0(int gz @<eax>);",
+    "0x1130d0": "int D3DX_getLong(int gz @<eax>);",
     "0x113230": "void * FUN_00113230(char *path, int fd, char *mode@<eax>);",
     "0x115ba0": "int FUN_00115ba0(unsigned int *bb@<eax>, int *param_1, unsigned int param_2, unsigned int param_3, int param_4, int param_5, int *param_6, int param_7, unsigned int *param_8, unsigned int *param_9);",
     "0x116390": "void FUN_00116390(int value @<eax>, int length @<ebx>, int state @<esi>);",
