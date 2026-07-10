@@ -546,6 +546,51 @@ void FUN_00062680(int16_t *partition, uint32_t arg2, int16_t index,
   return;
 }
 
+/* 0x625a0 - build a 2D cone toward an obstacle disc for path planning.
+ * (TU: c:\halo\source\ai\path.h, inlined into path_obstacles.c)
+ *
+ * Pure cdecl. obstacles (param_1, disc_count at +2, discs at +8 stride 0x18),
+ * disc_index (short), point (float* 2D reference). Bounds-checks disc_index
+ * against disc_count (and disc_count <= MAXIMUM_DISC_COUNT=0x80).  Computes the
+ * 2D direction from the disc center (disc[2],disc[3]) to point, normalizes it
+ * (dividing by the distance unless the distance is below the 0x2533d0 epsilon,
+ * in which case the distance is forced to 0), then hands the direction, the
+ * distance, and (base_value + disc_radius(disc[4]) + 0x25ee6c) to
+ * FUN_00061fa0 to build the two cone boundary rays into out_a/out_b/out_scalar.
+ * 0x2533c8 == 1.0f. */
+void FUN_000625a0(void *obstacles, short disc_index, float *point,
+                  float base_value, float *out_b, float *out_a,
+                  float *out_scalar)
+{
+  float dir[2];
+  float dist;
+  float num;
+  float *disc;
+  short disc_count;
+
+  disc_count = *(short *)((char *)obstacles + 2);
+  if (disc_index < 0 || disc_index >= disc_count || disc_count > 0x80) {
+    display_assert(
+        "disc_index>=0 && disc_index<obstacles->disc_count && "
+        "obstacles->disc_count<=MAXIMUM_DISC_COUNT",
+        "c:\\halo\\source\\ai\\path.h", 0x18c, true);
+    system_exit(-1);
+  }
+  disc = (float *)((char *)obstacles + (int)disc_index * 0x18 + 8);
+  dir[0] = disc[2] - point[0];
+  dir[1] = disc[3] - point[1];
+  dist = sqrtf(dir[1] * dir[1] + dir[0] * dir[0]);
+  if (fabs(dist) < *(double *)0x002533d0) {
+    dist = 0.0f;
+  } else {
+    float inv = *(float *)0x002533c8 / dist;
+    dir[0] = dir[0] * inv;
+    dir[1] = dir[1] * inv;
+  }
+  num = base_value + disc[4] + *(float *)0x0025ee6c;
+  FUN_00061fa0(dir, out_a, out_b, dist, num, out_scalar);
+}
+
 /* FUN_000628b0 (0x628b0)  --  cluster_partition_assign_groups
  * (cluster_partitions.c)
  *
