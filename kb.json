@@ -23797,7 +23797,9 @@
         },
         {
           "addr": "0x197e90",
-          "decl": "short FUN_00197e90(void *buffer, int max_count, float *position, float radius, int param_5, int param_6, int param_7, int gel_count, int gel_buffer);"
+          "decl": "short FUN_00197e90(void *buffer, int max_count, float *position, float radius, int param_5, int param_6, int param_7, int gel_count, int gel_buffer);",
+          "ported": true,
+          "source_path": "src/halo/structures/structures.c"
         },
         {
           "addr": "0x198070",
