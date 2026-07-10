@@ -546,6 +546,65 @@ void FUN_00062680(int16_t *partition, uint32_t arg2, int16_t index,
   return;
 }
 
+/* 0x624b0 - find the nearest obstacle disc a ray/segment intersects.
+ * (TU: c:\halo\source\ai\path.h, inlined into path_obstacles.c)
+ *
+ * Pure cdecl min-find over obstacle discs. obstacles (disc_count at +2, discs
+ * at +8 stride 0x18), skip_index (short, disc to ignore), pt0/vec_a (float*
+ * ray endpoints passed to the intersection predicate), radius_base (float),
+ * max_distance (float, seeds result.distance and is the in/out scratch the
+ * predicate writes its computed distance through), check_extant (byte: when
+ * set, skip discs whose flag bit0 is set), result (out struct: float distance
+ * at +0, short disc_index at +4, short at +6).
+ *
+ * For each disc (except skip_index) the register-arg predicate
+ * FUN_00061f10(vec_a@eax, pt0@ecx, &disc[8]@edx, &max_distance@esi,
+ * radius_base+disc[4]) tests the ray against the disc and WRITES the hit
+ * distance back through &max_distance; when it hits and the new distance is
+ * closer than the best so far, result is updated.  Returns true if any disc
+ * was selected (result.disc_index != -1). */
+char FUN_000624b0(void *obstacles, short skip_index, float *pt0, float *vec_a,
+                  float radius_base, float max_distance, char check_extant,
+                  void *result)
+{
+  short i;
+  short disc_count;
+  float *disc;
+
+  *(float *)result = max_distance;
+  *(short *)((char *)result + 4) = -1;
+  *(short *)((char *)result + 6) = -1;
+  disc_count = *(short *)((char *)obstacles + 2);
+  i = 0;
+  if (disc_count > 0) {
+    do {
+      if (i != skip_index) {
+        if (i < 0 || i >= disc_count || disc_count > 0x80) {
+          display_assert(
+              "disc_index>=0 && disc_index<obstacles->disc_count && "
+              "obstacles->disc_count<=MAXIMUM_DISC_COUNT",
+              "c:\\halo\\source\\ai\\path.h", 0x18c, true);
+          system_exit(-1);
+        }
+        disc = (float *)((char *)obstacles + (int)i * 0x18 + 8);
+        if (check_extant == 0 || (*(char *)disc & 1) == 0) {
+          if (FUN_00061f10(vec_a, pt0, (float *)((char *)disc + 8),
+                           &max_distance, radius_base + disc[4]) != 0) {
+            if (*(float *)result > max_distance) {
+              *(float *)result = max_distance;
+              *(short *)((char *)result + 4) = i;
+              *(short *)((char *)result + 6) = *(short *)((char *)disc + 2);
+            }
+          }
+        }
+      }
+      disc_count = *(short *)((char *)obstacles + 2);
+      i = (short)(i + 1);
+    } while (i < disc_count);
+  }
+  return (char)(*(short *)((char *)result + 4) != -1);
+}
+
 /* 0x625a0 - build a 2D cone toward an obstacle disc for path planning.
  * (TU: c:\halo\source\ai\path.h, inlined into path_obstacles.c)
  *

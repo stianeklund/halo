@@ -23316,7 +23316,9 @@
         },
         {
           "addr": "0x624b0",
-          "decl": "void FUN_000624b0(void);"
+          "decl": "char FUN_000624b0(void *obstacles, short skip_index, float *pt0, float *vec_a, float radius_base, float max_distance, char check_extant, void *result);",
+          "ported": true,
+          "name": "FUN_000624b0"
         },
         {
           "addr": "0x625a0",
