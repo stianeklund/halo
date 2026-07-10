@@ -1321,6 +1321,53 @@ void FUN_00105980(float *matrix, short *out_vertex_count,
   *out_index_run_count = (short)local_1c;
 }
 
+/* 0x105c80 - classify a 2D vertex set as empty/point/collinear/planar.
+ *
+ * Register ABI (prologue at 0x105c80): no entry moves; ESI/EDI are zeroed at
+ * entry, so the only register argument is EBX.
+ *   vertex_count : stack [EBP+0x8] (short, number of 2D vertices)
+ *   vertices@<ebx> : float* array of 2D points, stride 2 floats (8 bytes)
+ *
+ * Runs a small state machine over the points.  state (-1) records the first
+ * point p0 and advances to 0.  state 0 tries to build a 2D line through p0 and
+ * the current point via plane2d_from_points; a non-null result (a real edge)
+ * advances to 1.  state 1 evaluates the line equation nx*x+ny*y-d at each
+ * later point; the first point off the line (|eval| >= 0x2533d0 epsilon)
+ * advances to 2 and terminates the scan.  Returns the final state: -1 (no
+ * vertices), 0 (all coincident), 1 (all collinear), 2 (genuinely planar).
+ * 0x2533d0 is a double epsilon. */
+short shell_update(short vertex_count, float *vertices /* @<ebx> */)
+{
+  float line[3]; /* [EBP-0x14]=nx, [EBP-0x10]=ny, [EBP-0xc]=d */
+  float p0[2];   /* [EBP-0x8], [EBP-0x4] */
+  short state;
+  short i;
+  float eval;
+
+  state = -1;
+  for (i = 0; i < vertex_count; i++) {
+    int s = (int)state;
+    if (s == -1) {
+      p0[0] = vertices[i * 2];
+      p0[1] = vertices[i * 2 + 1];
+      state = 0;
+    } else if (s == 0) {
+      if (plane2d_from_points(line, &vertices[i * 2], p0) != (float *)0) {
+        state = 1;
+      }
+    } else if (s == 1) {
+      eval = line[0] * vertices[i * 2] + line[1] * vertices[i * 2 + 1] - line[2];
+      if (fabs(eval) >= *(double *)0x002533d0) {
+        state = 2;
+      }
+    }
+    if (state >= 2) {
+      break;
+    }
+  }
+  return state;
+}
+
 /* 0x105d20 — Reduce a 2D point set to its convex hull as an index list.
  * Gift-wrapping (Jarvis march). shell_update (called with the vertex array in
  * EBX) validates that at least three non-collinear points exist (returns 2);
