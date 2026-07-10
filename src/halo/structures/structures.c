@@ -1175,6 +1175,73 @@ float FUN_001057f0(float *param_1, float *param_2, float *param_3)
              param_2[2] * param_3[2])));
 }
 
+/* 0x105830 - interpolate a subdivision vertex between two parent vertices.
+ * (TU: c:\halo\SOURCE\math\geometry.c)
+ *
+ * Register ABI (prologue at 0x105830): MOV SI,DX and direct use of AX/CX/BX/EDI
+ * with only ESI preserved. Register args (all low-16 values):
+ *   subdivision_index@<eax>, subdivision_count@<ecx>, parent2@<edx> (copied to
+ *   SI), parent1@<ebx>, sphere@<edi>.  Stack arg: new_vertex ([EBP+0x8]).
+ *
+ * frac = subdivision_index / subdivision_count (FILD/FIDIV); the new vertex is
+ * inv_frac*parent1 + frac*parent2 component-wise (inv_frac = 1.0 - frac; 1.0 at
+ * 0x2533c8), written into sphere->vertices[new_vertex] (vertices at sphere+0x4,
+ * stride 3 floats), then normalized in place via normalize3d (return discarded).
+ * Asserts subdivision_index in (0,count) and each vertex index in
+ * [0,vertex_count] (vertex_count is a short at sphere+0xc). */
+void calculate_vertex(short subdivision_index /* @<eax> */,
+                      short subdivision_count /* @<ecx> */,
+                      short parent2 /* @<edx> */, short parent1 /* @<ebx> */,
+                      void *sphere /* @<edi> */, short new_vertex)
+{
+  float frac;
+  float inv_frac;
+  int itmp;
+  float *verts;
+  float *vp1;
+  float *vp2;
+  float *vout;
+  short vertex_count;
+
+  itmp = subdivision_index;
+  frac = (float)itmp;
+  itmp = subdivision_count;
+  frac = frac / itmp;
+  inv_frac = *(float *)0x002533c8 - frac;
+
+  if (subdivision_index <= 0 || subdivision_index >= subdivision_count) {
+    display_assert(
+        "subdivision_index > 0 && subdivision_index < subdivision_count",
+        "c:\\halo\\SOURCE\\math\\geometry.c", 0x13b, true);
+    system_exit(-1);
+  }
+  vertex_count = *(short *)((char *)sphere + 0xc);
+  if (parent1 < 0 || parent1 > vertex_count) {
+    display_assert("parent1 >=0 && parent1 <= sphere->vertex_count",
+                   "c:\\halo\\SOURCE\\math\\geometry.c", 0x13c, true);
+    system_exit(-1);
+  }
+  if (parent2 < 0 || parent2 > vertex_count) {
+    display_assert("parent2 >=0 && parent2 <= sphere->vertex_count",
+                   "c:\\halo\\SOURCE\\math\\geometry.c", 0x13d, true);
+    system_exit(-1);
+  }
+  if (new_vertex < 0 || new_vertex > vertex_count) {
+    display_assert("new_vertex >=0 && new_vertex <= sphere->vertex_count",
+                   "c:\\halo\\SOURCE\\math\\geometry.c", 0x13e, true);
+    system_exit(-1);
+  }
+
+  verts = *(float **)((char *)sphere + 4);
+  vp1 = verts + (int)parent1 * 3;
+  vp2 = verts + (int)parent2 * 3;
+  vout = verts + (int)new_vertex * 3;
+  vout[0] = inv_frac * vp1[0] + frac * vp2[0];
+  vout[1] = frac * vp2[1] + inv_frac * vp1[1];
+  vout[2] = frac * vp2[2] + inv_frac * vp1[2];
+  normalize3d(vout);
+}
+
 /* 0x105980 — Build a ring/cylinder (torus-like) mesh.
  * Sweeps ring_segment_count rings around a cross-section of
  * cylinder_segment_count segments. For each ring the ring angle drives a

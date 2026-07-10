@@ -309,6 +309,7 @@
     "0xfba20": "int weapon_set_animation_state(int weapon_handle, char param_2, int16_t state @<bx>);",
     "0xfc990": "void FUN_000fc990(int16_t magazine_index@<ax>, int weapon_handle, int param_2);",
     "0x102510": "void screenshot_render(void *a1@<edi>);",
+    "0x105830": "void calculate_vertex(short subdivision_index@<eax>, short subdivision_count@<ecx>, short parent2@<edx>, short parent1@<ebx>, void *sphere@<edi>, short new_vertex);",
     "0x105c80": "short shell_update(short vertex_count, float *vertices @<ebx>);",
     "0x10a830": "void FUN_0010a830(float *buf@<ebx>);",
     "0x10a930": "void FUN_0010a930(int16_t type_index@<bx>, void *buffer);",
