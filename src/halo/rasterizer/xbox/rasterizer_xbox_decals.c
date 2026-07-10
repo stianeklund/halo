@@ -1672,3 +1672,133 @@ char FUN_0015c2d0(void)
   error(2, "### ERROR rasterizer_detail_objects_initialize failed");
   return 0;
 }
+
+/* 0x15c6f0
+ *
+ * rasterizer_detail_objects_begin  (set up D3D render state for the
+ * detail-objects draw pass, then bind the vertex-shader constants, the
+ * detail-object pixel-shader command buffer, and the dynamic vertex buffer).
+ *
+ * Cdecl void(void).  Real TU (from the assert __FILE__):
+ *   c:\halo\SOURCE\rasterizer\xbox\rasterizer_xbox_detail_objects.c
+ * (linker grouped this fn into rasterizer_decals.obj alongside
+ * rasterizer_detail_objects_initialize @ 0x15c2d0).
+ *
+ * Gated on the detail-objects enable byte (@0x3256dc) and single-window mode
+ * (main_get_window_count() <= 1).  Two guard asserts confirm the D3D device
+ * and dynamic vertex buffer are live, then the fixed render-state block is
+ * issued.  Each D3DDevice_SetRenderState_Simple(token,value) is mirrored by a
+ * write to its render-state cache global (DAT_001fb7xx = value); preserve both.
+ *
+ * Call-site notes (verified against disassembly, NOT the decompiler):
+ *  - The vertex-shader-constant upload is
+ *      D3DDevice_SetVertexShaderConstant(-0x51, &vs[0], 6)
+ *    -> Register=-0x51, ConstantCount=6 (six vec4 = 24 dwords).  The
+ *    decompiler mis-reported the count as 0x3b800000 (that value is actually
+ *    vs[0], the first dword stored into the constant block).  vs[7] is a raw
+ *    integer copy of *(int*)0x325708 (MOV EAX,[0x325708]; MOV [ebp-0x44],EAX),
+ *    so the block is typed as unsigned int to keep every store a plain MOV imm
+ *    / MOV reg and avoid FLD/FSTP float codegen.
+ *  - The assert failure path is display_assert(...,1) then system_exit(-1)
+ *    (CALL 0x8e2f0), NOT halt_and_catch_fire.
+ *
+ * Globals (used by address, not in kb.json):
+ *   0x3256dc  bool      detail-objects enable flag
+ *   0x476ae4  void *    local_d3d_vertex_buffer (dynamic detail-object VB)
+ *   0x476ab0  void *    global_d3d_device
+ *   0x325708  int       constant-block dword (copied into vs[7])
+ *   0x1fb7xx  uint32_t  render-state cache mirrors
+ *   0x5a5ac0  0xf0 byte detail-object pixel-shader command buffer
+ */
+void FUN_0015c6f0(void)
+{
+  unsigned int vs[24]; /* ebp-0x60..ebp-0x4: 6 vec4 vertex-shader constants */
+
+  FUN_0016f910(0x15); /* profile begin, id 0x15 */
+
+  if (*(char *)0x3256dc == 0) {
+    return;
+  }
+  if (main_get_window_count() > 1) {
+    return;
+  }
+
+  if (*(void **)0x476ae4 == 0) {
+    display_assert(
+      "local_d3d_vertex_buffer",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_detail_objects.c",
+      0x88, 1);
+    system_exit(-1);
+  }
+  if (*(int *)0x476ab0 == 0) {
+    display_assert(
+      "global_d3d_device",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_detail_objects.c",
+      0x89, 1);
+    system_exit(-1);
+  }
+
+  /* Fixed render-state block (each Simple call mirrored by its cache global).
+   */
+  D3DDevice_SetRenderState_CullMode(0);
+  D3DDevice_SetRenderState_Simple(0x40358, 0x10101);
+  *(uint32_t *)0x1fb7a4 = 0x10101;
+  D3DDevice_SetRenderState_Simple(0x40304, 1);
+  *(uint32_t *)0x1fb784 = 1;
+  D3DDevice_SetRenderState_Simple(0x40344, 0x302);
+  *(uint32_t *)0x1fb790 = 0x302;
+  D3DDevice_SetRenderState_Simple(0x40348, 0x303);
+  *(uint32_t *)0x1fb794 = 0x303;
+  D3DDevice_SetRenderState_Simple(0x40350, 0x8006);
+  *(uint32_t *)0x1fb7c0 = 0x8006;
+  D3DDevice_SetRenderState_Simple(0x40300, 0);
+  *(uint32_t *)0x1fb788 = 0;
+  D3DDevice_SetRenderState_ZEnable(1);
+  D3DDevice_SetRenderState_Simple(0x40354, 0x203);
+  *(uint32_t *)0x1fb77c = 0x203;
+  D3DDevice_SetRenderState_Simple(0x4035c, 0);
+  *(uint32_t *)0x1fb798 = 0;
+  D3DDevice_SetRenderState_ZBias(0);
+
+  /* Six vec4 vertex-shader constants (raw dword bit patterns; vs[7] is a plain
+   * integer copy of *(int*)0x325708). */
+  vs[0] = 0x3b800000;
+  vs[1] = 0x41800000;
+  vs[2] = 0x44074000;
+  vs[3] = 0x4424c000;
+  vs[4] = 0x41000000;
+  vs[5] = 0x41000000;
+  vs[6] = 0x41000000;
+  vs[7] = *(unsigned int *)0x325708;
+  vs[8] = 0x3f800000;
+  vs[9] = 0x3f800000;
+  vs[10] = 0x3f000000;
+  vs[11] = 0;
+  vs[12] = 0;
+  vs[13] = 0x3f800000;
+  vs[14] = 0xbf000000;
+  vs[15] = 0;
+  vs[16] = 0;
+  vs[17] = 0;
+  vs[18] = 0xbf000000;
+  vs[19] = 0x3f800000;
+  vs[20] = 0x3f800000;
+  vs[21] = 0;
+  vs[22] = 0x3f000000;
+  vs[23] = 0x3f800000;
+  D3DDevice_SetVertexShaderConstant(-0x51, vs, 6);
+
+  /* Detail-object pixel-shader command buffer (0xf0 bytes @ 0x5a5ac0). */
+  csmemset((void *)0x5a5ac0, 0, 0xf0);
+  *(uint32_t *)0x5a5b98 = 1;
+  *(uint32_t *)0x5a5b94 = 1;
+  *(uint32_t *)0x5a5b48 = 0x8040000;
+  *(uint32_t *)0x5a5b74 = 0xc0;
+  *(uint32_t *)0x5a5ac0 = 0x18140000;
+  *(uint32_t *)0x5a5b28 = 0xc0;
+  *(uint32_t *)0x5a5ae0 = 0xc;
+  *(uint32_t *)0x5a5ae4 = 0x1c00;
+  rasterizer_set_pixel_shader((void *)0x5a5ac0);
+
+  D3DDevice_SetStreamSource(0, *(void **)0x476ae4, 8);
+}
