@@ -23762,7 +23762,9 @@
         {
           "addr": "0x1963a0",
           "decl": "void structure_runtime_decals_dispose_from_old_map(void);",
-          "ported": false
+          "name": "structure_runtime_decals_dispose_from_old_map",
+          "ported": true,
+          "source_path": "src/halo/structures/structures.c"
         },
         {
           "addr": "0x1963b0",
