@@ -1620,3 +1620,55 @@ void FUN_0015bc40(int rendered_cluster_data)
     }
   }
 }
+
+/*
+ * rasterizer_detail_objects_initialize @ 0x15c2d0
+ *
+ * Real TU: c:\halo\SOURCE\rasterizer\xbox\rasterizer_xbox_detail_objects.c
+ * (__FILE__ assert xref, confirmed). kb.json groups it under
+ * rasterizer_decals.obj, so it lives here for compile/verify locality.
+ *
+ * Allocates the shared dynamic vertex buffer used to draw detail objects.
+ * Asserts the global D3D device exists, then creates a 0x20000-byte vertex
+ * buffer (= RASTERIZER_MAXIMUM_DETAIL_OBJECTS_PER_FRAME *
+ * NUMBER_OF_VERTICES_PER_QUADRILATERAL * sizeof(struct detail_object_vertex))
+ * with usage D3DUSAGE_DYNAMIC|D3DUSAGE_WRITEONLY (0x208), FVF 0, pool
+ * D3DPOOL_DEFAULT (0), storing the pointer at the module-static
+ * local_d3d_vertex_buffer (0x476ae4). Returns true on success, false on
+ * failure (HRESULT test `hr >= 0` == SUCCEEDED(hr), original JL at 0x15c310).
+ *
+ * Globals (hardcoded, not in kb.json):
+ *   0x476ab0  void *  - global_d3d_device (IDirect3DDevice8 pointer)
+ *   0x476ae4  void *  - local_d3d_vertex_buffer (detail-object dynamic VB)
+ *
+ * 0x1ef0a0 D3DDevice_CreateVertexBuffer is a __stdcall D3D8 import: 5 stack
+ * args, HRESULT in EAX, callee-cleans (no ADD ESP after the CALL).
+ */
+/* 0x15c2d0 */
+char FUN_0015c2d0(void)
+{
+  int hr;
+
+  if (*(void **)0x476ab0 == 0) {
+    display_assert(
+      "global_d3d_device",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_detail_objects.c",
+      0x62, 1);
+    system_exit(-1);
+  }
+
+  hr = D3DDevice_CreateVertexBuffer(0x20000, 0x208, 0, 0, (void **)0x476ae4);
+  if (hr >= 0) {
+    return 1;
+  }
+
+  FUN_00167ff0(
+    hr,
+    "IDirect3DDevice8_CreateVertexBuffer(global_d3d_device, "
+    "RASTERIZER_MAXIMUM_DETAIL_OBJECTS_PER_FRAME*NUMBER_OF_VERTICES_PER_"
+    "QUADRILATERAL"
+    "*sizeof(struct detail_object_vertex), RASTERIZER_DYNAMIC_BUFFER_USAGE, 0, "
+    "RASTERIZER_DYNAMIC_BUFFER_POOL, &local_d3d_vertex_buffer)");
+  error(2, "### ERROR rasterizer_detail_objects_initialize failed");
+  return 0;
+}
