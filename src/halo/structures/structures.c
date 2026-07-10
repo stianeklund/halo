@@ -2996,6 +2996,16 @@ char FUN_00195530(int param_1, int param_2)
   return param_2 < param_1;
 }
 
+/* 0x1954d0 - build lens flares for the current structure BSP.
+ * (TU: c:\halo\SOURCE\structures\structure_render.c)
+ *
+ * Pure void(void). Thin wrapper: fetches the scenario structure via
+ * scenario_get() and forwards it to build_structure_lens_flares. */
+void FUN_001954d0(void)
+{
+  build_structure_lens_flares(scenario_get());
+}
+
 /* 0x195550 - gather structure surfaces selected by a per-32-surface bitmask.
  *
  * Walks the scenario structure-BSP surfaces tag_block at scenario+0xf8 (first
