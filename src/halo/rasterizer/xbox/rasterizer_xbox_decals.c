@@ -420,6 +420,323 @@ void FUN_001592e0(char enable)
   }
 }
 
+/* rasterizer_xbox_active_camouflage_draw (FUN_00159900): emit the
+ * active-camouflage transparent draw for one geometry group. The effect has
+ * two regimes selected by the fade intensity (group->effect.intensity at
+ * +0x18):
+ *   - intensity == 1.0f (fully cloaked): a single distortion/noise pass that
+ *     binds the shader distortion map and animates its scroll matrix
+ *     (vs const block, register -0x54), then installs the active-camouflage
+ *     pixel shader and draws.
+ *   - intensity < 1.0f (partially fading in/out): a first pass that renders
+ *     the model geometry (FUN_0017cbc0) so the silhouette shows through,
+ *     followed by the common distortion pass.
+ * Both regimes finish with the "common" second pass which uploads the
+ * screen-space distortion matrix derived from the active camera/view-params
+ * block (*(void **)0x476204) lerped by group->effect fade (+0x1c), then
+ * installs the distortion pixel shader and draws.
+ *
+ * Original TU:
+ * c:\halo\SOURCE\rasterizer\xbox\rasterizer_xbox_active_camouflage.c
+ *
+ * Lift provenance: verified instruction-by-instruction against the delinked
+ * reference delinked/functions/00159900.obj (render-state values, stage-state
+ * triples, vertex-constant formulas, and the slow-path contiguous descriptor
+ * were all decoded from that disassembly, not from the decompiler). */
+
+static const char kActiveCamoFile[] =
+  "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_active_camouflage.c";
+
+/* Slow-path (partial fade) geometry-pass descriptor. In the original this is
+ * ONE contiguous stack block at ebp-0x108 passed whole to FUN_0017cbb0 —
+ * separate locals would break the callee's indexed reads (stack-aliasing
+ * hazard). Offsets derived from the reference disassembly MOV [ebp-N] stores:
+ *   -0x108 flags, -0x100 g+0x60, -0xfc word g+0x64, -0xf8 anim[0x74],
+ *   -0x84 tc pair, -0x7c zeroed 0x28, -0x54 g+0x74/78/7c, -0x44 g+0x3c/0x40 */
+typedef struct {
+  uint32_t flags; /* +0x00: group->geometry_flags & 0x80 */
+  uint32_t field_4; /* +0x04: not written by the original */
+  uint32_t field_8; /* +0x08: *(uint32_t *)(grp + 0x60) */
+  uint16_t field_c; /* +0x0c: *(uint16_t *)(grp + 0x64) */
+  uint16_t field_e; /* +0x0e: pad, not written */
+  uint8_t anim[0x74]; /* +0x10: copy of *(void **)(grp + 0x68) or zeroed */
+  uint32_t tc[2]; /* +0x84: pair from *(uint32_t **)(grp + 0x6c) or 0 */
+  uint8_t zeroed[0x28]; /* +0x8c: csmemset 0 */
+  uint32_t field_b4; /* +0xb4: *(uint32_t *)(grp + 0x74) */
+  uint32_t field_b8; /* +0xb8: *(uint32_t *)(grp + 0x78) */
+  uint32_t field_bc; /* +0xbc: *(uint32_t *)(grp + 0x7c) */
+  uint32_t field_c0; /* +0xc0: not written by the original */
+  uint32_t field_c4; /* +0xc4: *(uint32_t *)(grp + 0x3c) (u scale bits) */
+  uint32_t field_c8; /* +0xc8: *(uint32_t *)(grp + 0x40) (v scale bits) */
+} s_camo_geometry_pass; /* 0xcc bytes */
+
+void FUN_00159900(void *group)
+{
+  char *grp = (char *)group;
+  char *pv; /* FUN_001906b0(shader, 4): resolved shader params base (edi) */
+  char *cam; /* *(char **)0x476204: active camera / view-parameters block */
+  int cull; /* computed CullMode select */
+  float fv; /* 1.0f - group->effect fade (+0x1c) */
+
+  /* Slow-path contiguous descriptor (ebp-0x108 block in the original). */
+  s_camo_geometry_pass desc;
+
+  /* Contiguous 12-float (3 vec4) vertex-shader constant block uploaded via
+   * D3DDevice_SetVertexShaderConstant(-0x54, &vs[0], 3). MUST stay a single
+   * array so the 12 floats are laid out contiguously (ebp-0x30..-0x4 in the
+   * original). */
+  float vs[12];
+
+  /* --- input validation asserts (source lines 0x98..0x9d) --- */
+  if (group == 0) {
+    display_assert("group", kActiveCamoFile, 0x98, 1);
+    system_exit(-1);
+  }
+  if (*(int *)(grp + 0xc) == 0) {
+    display_assert("group->shader", kActiveCamoFile, 0x99, 1);
+    system_exit(-1);
+  }
+  if (*(short *)(grp + 0x14) != 1) {
+    display_assert(
+      "group->effect.type==_render_model_effect_type_active_camouflage",
+      kActiveCamoFile, 0x9a, 1);
+    system_exit(-1);
+  }
+  if (!(*(float *)(grp + 0x18) > 0.0f)) {
+    display_assert("group->effect.intensity>0.0f", kActiveCamoFile, 0x9b, 1);
+    system_exit(-1);
+  }
+  if (!(*(float *)(grp + 0x18) <= 1.0f)) {
+    display_assert("group->effect.intensity<=1.0f", kActiveCamoFile, 0x9c, 1);
+    system_exit(-1);
+  }
+  if (*(int *)0x476ab0 == 0) {
+    display_assert("global_d3d_device", kActiveCamoFile, 0x9d, 1);
+    system_exit(-1);
+  }
+
+  /* Early-out gate: only draw when active-camouflage rendering is enabled
+   * (char @0x3256f9) and the distortion accumulation buffer is idle
+   * (short @0x5a5bc0 == 0). */
+  if (*(char *)0x3256f9 == 0 || *(short *)0x5a5bc0 != 0) {
+    return;
+  }
+
+  pv = (char *)FUN_001906b0(*(void **)(grp + 0xc), 4);
+
+  /* --- debug asserts (source lines 0xa4..0xa5) --- */
+  if (*(char *)0x476ac1 == 0) {
+    display_assert("local_active_camouflage_debug", kActiveCamoFile, 0xa4, 1);
+    system_exit(-1);
+  }
+  if ((*(int *)grp & 2) != 0) {
+    display_assert("!(group->geometry_flags & _no_queue_bit)", kActiveCamoFile,
+                   0xa5, 1);
+    system_exit(-1);
+  }
+
+  /* Constrain the depth range for this group's queue bucket. */
+  if (*(char *)grp < 0) {
+    rasterizer_set_frustum_z(*(float *)0x32569c, *(float *)0x3256a0);
+  }
+
+  /* intensity == 1.0f tested as a bit-exact integer compare (0x3f800000),
+   * NOT a float comparison, to match the original codegen. */
+  if (*(int *)(grp + 0x18) == 0x3f800000) {
+    /* ---- FAST PATH: fully cloaked, distortion pass only ---- */
+    rasterizer_set_texture(0, 0, 1, *(int *)(pv + 0xb0),
+                           *(unsigned short *)(grp + 0x10));
+    D3DDevice_SetTextureStageState(0, 0xa, 1);
+    D3DDevice_SetTextureStageState(0, 0xb, 1);
+    D3DDevice_SetTextureStageState(0, 0xd, 2);
+    D3DDevice_SetTextureStageState(0, 0xe, 2);
+    D3DDevice_SetTextureStageState(0, 0xf, 2);
+
+    /* CullMode select: 0x901 (CW) normally, 0x900&..=0x200-series when the
+     * shader two-sided flag (pv+0x28 & 2) is set. */
+    cull =
+      (-(int)((*(unsigned char *)(pv + 0x28) & 2) != 0) & (int)0xfffff6ff) +
+      0x901;
+    D3DDevice_SetRenderState_CullMode(cull);
+
+    /* Render-state block (values decoded from the delinked reference; each
+     * SetRenderState_Simple is followed by its render-state cache mirror). */
+    D3DDevice_SetRenderState_Simple(0x40358, 0);
+    *(uint32_t *)0x1fb7a4 = 0;
+    D3DDevice_SetRenderState_Simple(0x40304, 0);
+    *(uint32_t *)0x1fb784 = 0;
+    D3DDevice_SetRenderState_Simple(0x40300, 1);
+    *(uint32_t *)0x1fb788 = 1;
+    D3DDevice_SetRenderState_Simple(0x40340, 0x7f);
+    *(uint32_t *)0x1fb78c = 0x7f;
+    D3DDevice_SetRenderState_ZEnable(1);
+    D3DDevice_SetRenderState_Simple(0x4035c, 1);
+    *(uint32_t *)0x1fb798 = 1;
+    D3DDevice_SetRenderState_Simple(0x40354, 0x203);
+    *(uint32_t *)0x1fb77c = 0x203;
+    D3DDevice_SetRenderState_ZBias(0);
+
+    FUN_00178b40(0xd, FUN_00184610(group), 0);
+
+    /* vs row 0: distortion scale (raw copy + product); rows 1-2 hold the
+     * animated scroll matrix filled by FUN_00190e10 (out ptrs &vs[4]/&vs[8]),
+     * seeded with identity. */
+    vs[0] = *(float *)(pv + 0xd8);
+    vs[1] = *(float *)(pv + 0xec) * *(float *)(pv + 0xd8);
+    vs[2] = 1.0f;
+    vs[3] = 1.0f;
+    vs[4] = 1.0f;
+    vs[5] = 0.0f;
+    vs[6] = 0.0f;
+    vs[7] = 0.0f;
+    vs[8] = 0.0f;
+    vs[9] = 1.0f;
+    vs[10] = 0.0f;
+    vs[11] = 0.0f;
+    FUN_00190e10((void *)(pv + 0xfc), *(void **)(grp + 0x6c),
+                 *(float *)(pv + 0x9c) * *(float *)(grp + 0x3c),
+                 *(float *)(pv + 0xa0) * *(float *)(grp + 0x40), 0.0f, 0.0f,
+                 0.0f, *(float *)0x5a5e18, &vs[4], &vs[8]);
+    D3DDevice_SetVertexShaderConstant(-0x54, vs, 3);
+
+    /* Install the active-camouflage pixel shader. */
+    csmemset((void *)0x5a5ac0, 0, 0xf0);
+    *(uint32_t *)0x5a5b98 = 1;
+    *(uint32_t *)0x5a5b94 = 1;
+    *(uint32_t *)0x5a5ae4 = 0x1800;
+    rasterizer_set_pixel_shader((void *)0x5a5ac0);
+    FUN_00174510(group, 0);
+  } else {
+    /* ---- SLOW PATH: partial fade, render silhouette geometry first ---- */
+    desc.flags = *(int *)grp & 0x80;
+    desc.field_8 = *(uint32_t *)(grp + 0x60);
+    desc.field_c = *(uint16_t *)(grp + 0x64);
+    desc.field_b4 = *(uint32_t *)(grp + 0x74);
+    desc.field_b8 = *(uint32_t *)(grp + 0x78);
+    desc.field_bc = *(uint32_t *)(grp + 0x7c);
+    csmemset(desc.zeroed, 0, 0x28);
+    desc.field_c4 = *(uint32_t *)(grp + 0x3c);
+    desc.field_c8 = *(uint32_t *)(grp + 0x40);
+    if (*(void **)(grp + 0x68) != 0) {
+      csmemcpy(desc.anim, *(void **)(grp + 0x68), 0x74);
+    } else {
+      csmemset(desc.anim, 0, 0x74);
+    }
+    if (*(uint32_t **)(grp + 0x6c) != 0) {
+      desc.tc[0] = (*(uint32_t **)(grp + 0x6c))[0];
+      desc.tc[1] = (*(uint32_t **)(grp + 0x6c))[1];
+    } else {
+      csmemset(desc.tc, 0, 8);
+    }
+    rasterizer_psuedo_dynamic_screen_quad_draw(0);
+    FUN_0017d1a0(0);
+    FUN_0017cbb0(&desc, 1);
+    FUN_0017cbc0(*(int *)(grp + 0xc), *(unsigned short *)(grp + 0x10),
+                 *(int *)(grp + 0x48), *(int *)(grp + 0x44),
+                 *(int *)(grp + 0x50), *(int *)(grp + 0x58),
+                 *(int *)(grp + 0x54));
+    FUN_0016b1c0();
+    FUN_0016b240();
+    rasterizer_psuedo_dynamic_screen_quad_draw(1);
+  }
+
+  /* ---- COMMON SECOND PASS: screen-space distortion ---- */
+  rasterizer_set_texture_direct(0, *(int *)(*(char **)0x476204 + 0x5c), 0);
+  /* Stage-state triples decoded from the reference (note (0,0xb,3) really is
+   * issued twice in the original). */
+  D3DDevice_SetTextureStageState(0, 0xa, 3);
+  D3DDevice_SetTextureStageState(0, 0xb, 3);
+  D3DDevice_SetTextureStageState(0, 0xb, 3);
+  D3DDevice_SetTextureStageState(0, 0xd, 2);
+  D3DDevice_SetTextureStageState(0, 0xe, 2);
+  D3DDevice_SetTextureStageState(0, 0xf, 2);
+  FUN_001584f0(2, 1, 0);
+  D3DDevice_SetTextureStageState(2, 0xa, 3);
+  D3DDevice_SetTextureStageState(2, 0xb, 3);
+  D3DDevice_SetTextureStageState(2, 0xd, 2);
+  D3DDevice_SetTextureStageState(2, 0xe, 2);
+  D3DDevice_SetTextureStageState(2, 0xf, 1);
+
+  cull = (-(int)((*(unsigned char *)(pv + 0x28) & 2) != 0) & (int)0xfffff6ff) +
+         0x901;
+  D3DDevice_SetRenderState_CullMode(cull);
+
+  /* Render state for the distortion pass. */
+  D3DDevice_SetRenderState_Simple(0x40358, 0x10101);
+  *(uint32_t *)0x1fb7a4 = 0x10101;
+  D3DDevice_SetRenderState_Simple(0x40300, 0);
+  *(uint32_t *)0x1fb788 = 0;
+  D3DDevice_SetRenderState_ZEnable(1);
+  D3DDevice_SetRenderState_Simple(0x4035c, 0);
+  *(uint32_t *)0x1fb798 = 0;
+  D3DDevice_SetRenderState_Simple(0x40354, 0x202);
+  *(uint32_t *)0x1fb77c = 0x202;
+  D3DDevice_SetRenderState_ZBias(0);
+
+  /* Blend mode: alpha-blend while fading in, opaque when fully cloaked. */
+  if (*(float *)(grp + 0x18) < 1.0f) {
+    SetRenderStateSmart(0x3b, 1);
+    SetRenderStateSmart(0x3e, 0x302);
+    SetRenderStateSmart(0x3f, 0x303);
+    SetRenderStateSmart(0x4a, 0x8006);
+  } else {
+    SetRenderStateSmart(0x3b, 0);
+  }
+
+  FUN_00178b40(0x40, FUN_00184610(group), 0);
+
+  /* Screen-space distortion matrix: lerp camera-matrix rows (view-params
+   * block at *(char **)0x476204, current row at +0x174.. vs target row at
+   * +0x188..) by the effect fade (grp+0x1c). Only vs[0] is additionally
+   * scaled by intensity. Constants 320.0f/240.0f are the half-screen
+   * distortion extents. Formulas decoded from the reference FPU stream. */
+  fv = 1.0f - *(float *)(grp + 0x1c);
+  cam = *(char **)0x476204;
+  vs[1] = fv * *(float *)(cam + 0x178) +
+          *(float *)(cam + 0x18c) * *(float *)(grp + 0x1c);
+  vs[8] = fv * *(float *)(cam + 0x17c) +
+          *(float *)(cam + 0x190) * *(float *)(grp + 0x1c);
+  vs[9] = fv * *(float *)(cam + 0x180) +
+          *(float *)(cam + 0x194) * *(float *)(grp + 0x1c);
+  vs[10] = fv * *(float *)(cam + 0x184) +
+           *(float *)(cam + 0x198) * *(float *)(grp + 0x1c);
+  vs[2] = 320.0f;
+  vs[3] = 240.0f;
+  vs[4] = 0.0f;
+  vs[5] = 0.0f;
+  vs[6] = 0.0f;
+  vs[7] = 0.0f;
+  vs[0] = (fv * *(float *)(cam + 0x174) +
+           *(float *)(cam + 0x188) * *(float *)(grp + 0x1c)) *
+          *(float *)(grp + 0x18);
+  vs[11] = 0.0f;
+  D3DDevice_SetVertexShaderConstant(-0x54, vs, 3);
+
+  /* Install the distortion pixel shader and its combiner state. */
+  csmemset((void *)0x5a5ac0, 0, 0xf0);
+  *(uint32_t *)0x5a5b98 = 0x2623;
+  *(uint32_t *)0x5a5ba0 = 0;
+  *(uint32_t *)0x5a5b9c = 0x11;
+  *(uint32_t *)0x5a5b94 = 2;
+  *(uint32_t *)0x5a5b74 = 0xc00;
+  *(uint32_t *)0x5a5b4c = 0x3420140c;
+  *(uint32_t *)0x5a5b78 = 0xc00;
+  *(uint32_t *)0x5a5b48 =
+    (-(int)((*(unsigned char *)(*(char **)0x476204 + 0x170) & 1) != 0) &
+     (int)0x34001804) +
+    0x4200000;
+  *(uint32_t *)0x5a5b6c = FUN_00159070(*(float *)(grp + 0x18));
+  *(uint32_t *)0x5a5ae0 = 0xa0c0000;
+  *(uint32_t *)0x5a5ae4 = 0x1100;
+  rasterizer_set_pixel_shader((void *)0x5a5ac0);
+  FUN_00174510(group, 0);
+
+  /* Restore the default depth range. */
+  if (*(char *)grp < 0) {
+    rasterizer_set_frustum_z(0.0f, 0.0f);
+  }
+}
+
 /* 0x15abe0
  *
  * rasterizer_debug_draw_line2d  (debug 2D line drawer)
