@@ -19388,7 +19388,7 @@
         },
         {
           "addr": "0x158800",
-          "decl": "void FUN_00158800(void);"
+          "decl": "void FUN_00158800(unsigned short *bounds);"
         },
         {
           "addr": "0x158ae0",
@@ -19403,7 +19403,9 @@
         },
         {
           "addr": "0x158f90",
-          "decl": "void FUN_00158f90(void);"
+          "decl": "void FUN_00158f90(void);",
+          "ported": true,
+          "name": null
         },
         {
           "addr": "0x159070",
@@ -28498,7 +28500,7 @@
         },
         {
           "addr": "0x17ebb0",
-          "decl": "void FUN_0017ebb0(void);"
+          "decl": "void FUN_0017ebb0(void *param);"
         },
         {
           "addr": "0x17ed30",
