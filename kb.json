@@ -23686,7 +23686,9 @@
         },
         {
           "addr": "0x195790",
-          "decl": "void FUN_00195790(int *surface_material_offsets@<eax>, unsigned short surface_count, int lightmap_pass_index, void *material_begin_cb, void *surface_draw_cb, void *pass_end_cb, int param_7);"
+          "decl": "void FUN_00195790(int *surface_material_offsets@<eax>, unsigned short surface_count, int lightmap_pass_index, void *material_begin_cb, void *surface_draw_cb, void *pass_end_cb, int param_7);",
+          "ported": true,
+          "name": "FUN_00195790"
         },
         {
           "addr": "0x1959f0",
