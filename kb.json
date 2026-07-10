@@ -19413,7 +19413,9 @@
         },
         {
           "addr": "0x1592e0",
-          "decl": "void FUN_001592e0(void);"
+          "decl": "void FUN_001592e0(char enable);",
+          "ported": true,
+          "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
         },
         {
           "addr": "0x1595c0",
