@@ -19542,7 +19542,8 @@
         },
         {
           "addr": "0x15c2d0",
-          "decl": "void FUN_0015c2d0(void);"
+          "decl": "char FUN_0015c2d0(void);",
+          "ported": true
         },
         {
           "addr": "0x15c5f0",
@@ -37656,7 +37657,7 @@
         },
         {
           "addr": "0x001ef0a0",
-          "decl": "void D3DDevice_CreateVertexBuffer(void);"
+          "decl": "int __stdcall D3DDevice_CreateVertexBuffer(uint32_t length, uint32_t usage, uint32_t fvf, uint32_t pool, void **ppVertexBuffer);"
         },
         {
           "addr": "0x001ef100",
