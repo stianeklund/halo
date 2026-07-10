@@ -19392,7 +19392,10 @@
         },
         {
           "addr": "0x158ae0",
-          "decl": "void FUN_00158ae0(int param1);"
+          "decl": "void FUN_00158ae0(int mode);",
+          "ported": true,
+          "name": null,
+          "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
         },
         {
           "addr": "0x158df0",
