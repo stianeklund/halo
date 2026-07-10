@@ -23405,7 +23405,9 @@
         },
         {
           "addr": "0x105830",
-          "decl": "void calculate_vertex(void);"
+          "decl": "void calculate_vertex(short subdivision_index@<eax>, short subdivision_count@<ecx>, short parent2@<edx>, short parent1@<ebx>, void *sphere@<edi>, short new_vertex);",
+          "ported": true,
+          "name": "calculate_vertex"
         },
         {
           "addr": "0x105980",
