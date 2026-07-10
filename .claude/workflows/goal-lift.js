@@ -144,6 +144,12 @@ const LIFT_RESULT_SCHEMA = {
     status:      { type: 'string' },   // needs_verify | skipped | build_failed | infra_blocked
     source_file: { type: 'string' },
     vc71_score:  { type: 'number' },
+    // false when vc71_verify never produced a per-function % (no delinked
+    // reference / "No usable objdiff.json unit" / verify skipped). A skipped
+    // verify is an infrastructure gap, NOT a 0% lift — the loop must not park
+    // it as below_65pct or count it toward stop_on_fail (see f8e29209/daa39ee6:
+    // 9 faithful lifts parked at "0%" across two runs).
+    vc71_measured: { type: 'boolean' },
     capped:         { type: 'boolean' },  // matches a known structural-cap signature (see liftPrompt)
     cap_reason:     { type: 'string' },
     cap_confidence: { type: 'string' },    // high (deterministic classify_cap.py) | inconclusive (agent judgment)
@@ -405,15 +411,27 @@ STEPS:
    Parse the VC71 % line and build pass/fail ONLY. Do NOT paste the full objdiff or
    build log into your reasoning — quoting large tool output back inflates every
    following turn's re-read. If it timed out, status="needs_review", vc71_score=0.
+   vc71_measured: report true ONLY if a per-function VC71 % was actually produced.
+   If verify was SKIPPED (no delinked reference, "No usable objdiff.json unit",
+   "no delinked reference existed"), report vc71_measured=false and do NOT invent
+   vc71_score=0 as if it were a real match result — first attempt the redelink
+   in 6b to create the missing reference.
 
-6b. REDELINK RETRY (only if the build passed and vc71_score < 90): a stale or
-   whole-object delink boundary often causes a falsely low score. You already
+6b. REDELINK RETRY (if the build passed and vc71_score < 90 OR verify was
+   skipped for want of a reference): a stale, missing, or whole-object delink
+   boundary often causes a falsely low/absent score. You already
    know the function's exact range from the decompile — re-export a fresh
    per-function reference via mcp__ghidra-live__export_delinked_object with
    selection_mode="range", range="<start_no_0x>-<end_no_0x>" (last instruction
-   of THIS function), copy it into this worktree's delinked/ if applicable,
-   then re-run the step-6 lift_pipeline command. Keep the better score and
-   report redelinked=true.
+   of THIS function). The export MUST land at
+   delinked/functions/<8-hex-lowercase-addr>.obj (zero-padded, e.g.
+   000c0f50.obj — vc71_verify discovers per-function refs by that name; copy
+   it into this worktree's delinked/functions/ if you exported elsewhere),
+   then re-run the step-6 lift_pipeline command; if the pipeline still reports
+   no unit, fall back to: rtk python3 tools/verify/vc71_verify.py <source_file>
+   -f ${brief.name} --no-cache (per-function refs are auto-discovered).
+   Keep the better score and
+   report redelinked=true (and vc71_measured=true once a real % exists).
 
 6c. PERMUTE (only if the score is now in [85,89] — skip otherwise):
    timeout 150 rtk python3 tools/permuter/run.py -q --target ${brief.name} --attempts 100 2>&1 || echo "[permuter stopped]"
@@ -464,7 +482,9 @@ This is the primary fix for "badly delinked object" false-low scores.
 1. Find the function end address in Ghidra: decompile_function at ${addr}, note the last instruction address.
 2. Export via mcp__ghidra-live__export_delinked_object:
    selection_mode="range", range="<start_no_0x>-<end_no_0x>" (exact function body range).
-   Copy the exported .obj into a worktree's delinked/ if you are operating inside one.
+   The file MUST be named delinked/functions/<8-hex-lowercase-addr>.obj (zero-padded,
+   e.g. 000c0f50.obj) — vc71_verify discovers per-function references by that exact
+   name. Copy it into a worktree's delinked/functions/ if you are operating inside one.
 3. Re-run (wrap — see [STALL]):
    timeout 165 rtk python3 tools/lift_pipeline.py --target ${name} --no-metadata-update --verify-policy goal90 2>&1 || echo "[timed-out]"
 
@@ -1118,6 +1138,32 @@ for (const brief of okBriefs) {
   let path    = 'pass1' + (a1.redelinked ? '+redelink' : '') + (a1.permuted ? '+permute' : '')
   let lastME  = M.reason   // {model,effort} of the current attempt (for parked records)
   log(`  lift1 ${brief.name}: ${a1.status} ${score}% (band=${band}${a1.capped ? ', capped: ' + (a1.cap_reason || '?') : ''})`)
+
+  // ── VERIFY-SKIPPED GUARD: a build-passing lift whose VC71 was never measured
+  // (no delinked reference / no objdiff unit) is an INFRASTRUCTURE gap, not a
+  // 0% match. Two runs (f8e29209, daa39ee6) parked 9 faithful lifts as
+  // "below_65pct @ 0%" this way, and the bogus fails tripped stop_on_fail.
+  // Repair path: one redelink agent (exports the per-function reference and
+  // re-scores). If a real % emerges, fall through to normal banding; if not,
+  // park as verify_skipped_no_ref WITHOUT counting a consecutive failure.
+  const verifySkipped =
+    a1.status === 'needs_verify' &&
+    (a1.vc71_measured === false || (score === 0 && a1.vc71_measured !== true))
+  if (verifySkipped) {
+    log(`  ${brief.name}: VC71 never measured (missing reference) — attempting redelink repair`)
+    const rd = await agent(redelinkPrompt(brief.name, brief.addr), { label: `redelink:${brief.name}`, phase: 'Lift', ...M.mechanical, schema: SCORE_SCHEMA })
+    if (rd && rd.vc71_score > 0) {
+      score = rd.vc71_score
+      band  = classifyBand(score)
+      path  = 'redelink'
+      lift  = { ...lift, redelinked: true }
+      log(`  ${brief.name} redelink repaired verify → ${score}%`)
+    } else {
+      await parkBuilt(brief, srcFile, 0, lastME, 'verify_skipped_no_ref', 'VC71 unmeasured: no delinked reference could be produced; not a lift failure')
+      results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'parked', vc71_score: null, reason: 'verify_skipped_no_ref (infrastructure — VC71 never measured; do not treat as below_65pct)' })
+      continue
+    }
+  }
 
   // FALLBACK ONLY — the lift agent normally redelinks in-context (step 6b); this
   // runs only when it did not (lift.redelinked absent). A fresh per-function

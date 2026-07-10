@@ -11412,6 +11412,14 @@
     "0x5065a4": {
       "kind": "data",
       "status": "ported"
+    },
+    "0xc0e50": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "FUN_000c0e50 belongs to hs.obj (source src/halo/hs/hs.c); placed with its byte-shape twins FUN_000c0d50/FUN_000c0dd0 after 0xc0dd0 in address order.",
+        "Both result-block dwords read as full int32 (result[0], result[1]) matching FUN_000581b0(int,int); second load is a 32-bit load like twin 0xc0dd0, not the 16-bit load seen in twin 0xc0d90."
+      ]
     }
   }
 }
