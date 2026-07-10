@@ -36065,7 +36065,10 @@
         },
         {
           "addr": "0x1477f0",
-          "decl": "void collision_surface_area(void);"
+          "decl": "float collision_surface_area(int bsp, int surface_index);",
+          "name": "collision_surface_area",
+          "ported": true,
+          "source_path": "src/halo/physics/collision_bsp.c"
         },
         {
           "addr": "0x147990",

@@ -348,3 +348,95 @@ float collision_surface_perimeter(int bsp, int surface_index)
   } while (edge_index != first_edge);
   return total;
 }
+
+/* 0x1477f0 - collision_surface_area
+ *
+ * Computes the signed projected area of a collision-BSP surface polygon by
+ * fan-triangulating its edge loop from a fixed anchor vertex and summing
+ * dot(cross(e0, e1), plane_normal) over each triangle, where the plane normal
+ * comes from the surface's plane designator. Returns the accumulated area if
+ * positive, else 0.0f (both the >0 branch and the fall-through return 0.0f).
+ *
+ * bsp base tag_block headers (see collision_surface_polygon):
+ *   +0x3c surfaces (stride 0xc): surface[0] = plane designator,
+ *                                surface[+4] = first-edge index
+ *   +0x48 edges    (stride 0x18): +0x14 = owning surface index;
+ *                                 +0/+4 = start/end vertex refs;
+ *                                 +8/+0xc = next-edge refs (winged-edge slots)
+ *   +0x54 vertices (stride 0x10): first 0xc bytes = xyz float32
+ *
+ * `side` = (edge[+0x14] == surface_index) selects this surface's half-edge
+ * slot each iteration. The anchor vertex and plane normal are fetched once
+ * before the loop; each iteration walks the two vertices of the current edge.
+ *
+ * The plane normal is written contiguously into plane[3] by
+ * bsp3d_get_plane_from_designator (out_plane), so it reads back as
+ * plane[0..2]. Cross-product and accumulation operand order preserved exactly
+ * from the disassembly (x87 FLD/FMUL/FSUBP order); getting any subtraction
+ * backwards negates the area.
+ */
+float collision_surface_area(int bsp, int surface_index)
+{
+  float plane[3];
+  volatile float cross_x; /* volatile = store-once/reload-each-use; the
+                             original spills exactly these four to stack
+                             slots and keeps pa_xyz, qa_z, cross_z
+                             ST-resident */
+  volatile float cross_y;
+  float cross_z;
+  float pa_x, pa_y, pa_z;          /* edge[side] vertex - anchor */
+  volatile float qa_x, qa_y;       /* edge[!side] vertex - anchor */
+  float qa_z;
+  float *anchor;
+  float *v0;
+  float *v1;
+  int *surface;
+  int edges_block;
+  int verts_block;
+  int edge;
+  unsigned char side;
+  unsigned char is_owner;
+  float area;
+
+  area = 0.0f;
+  surface =
+    (int *)tag_block_get_element((void *)(bsp + 0x3c), surface_index, 0xc);
+  edges_block = bsp + 0x48;
+  edge = (int)tag_block_get_element((void *)edges_block, surface[1], 0x18);
+  side = (*(int *)(edge + 0x14) == surface_index);
+  verts_block = bsp + 0x54;
+  anchor = (float *)tag_block_get_element((void *)verts_block,
+                                          *(int *)(edge + side * 4), 0x10);
+  bsp3d_get_plane_from_designator(bsp, (unsigned int)surface[0], plane);
+  edge = (int)tag_block_get_element((void *)edges_block,
+                                    *(int *)(edge + 8 + side * 4), 0x18);
+  is_owner = (*(int *)(edge + 0x14) == surface_index);
+  side = is_owner;
+  if (*(int *)(edge + 8 + side * 4) != surface[1]) {
+    do {
+      v1 = (float *)tag_block_get_element((void *)verts_block,
+                                          *(int *)(edge + side * 4), 0x10);
+      v0 = (float *)tag_block_get_element(
+        (void *)verts_block, *(int *)(edge + (!is_owner) * 4), 0x10);
+      pa_x = v1[0] - anchor[0];
+      pa_y = v1[1] - anchor[1];
+      pa_z = v1[2] - anchor[2];
+      qa_x = v0[0] - anchor[0];
+      qa_y = v0[1] - anchor[1];
+      qa_z = v0[2] - anchor[2];
+      cross_x = qa_z * pa_y - qa_y * pa_z;
+      cross_y = pa_z * qa_x - qa_z * pa_x;
+      cross_z = pa_x * qa_y - qa_x * pa_y;
+      area = plane[2] * cross_z + plane[1] * cross_y + cross_x * plane[0] +
+             area;
+      edge = (int)tag_block_get_element((void *)edges_block,
+                                        *(int *)(edge + 8 + side * 4), 0x18);
+      is_owner = (*(int *)(edge + 0x14) == surface_index);
+      side = is_owner;
+    } while (*(int *)(edge + 8 + side * 4) != surface[1]);
+    if (area > 0.0f) {
+      return area;
+    }
+  }
+  return 0.0f;
+}
