@@ -98,6 +98,7 @@
 	halo/memory/memory_pool.c
 	halo/memory/stack_memory_pool.c
 	halo/physics/breakable_surfaces.c
+	halo/physics/collision_bsp.c
 	halo/physics/collision_features.c
 	halo/physics/collision_usage.c
 	halo/physics/point_physics.c
