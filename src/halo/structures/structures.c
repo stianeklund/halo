@@ -2710,6 +2710,55 @@ void FUN_00195650(void *out, int *indices, short count)
   }
 }
 
+/* 0x1956d0 - build a dynamic structure-triangle set for the render pipeline.
+ *
+ * Allocates a widget/triangle slot sized for count triangles
+ * (rasterizer_widget_submit), maps it (rasterizer_widget_begin -> triangles
+ * buffer), then fills it: when param_2 (the per-32-surface bitmask) is NULL the
+ * caller supplies a plain index list in param_1 and FUN_00195650 copies the
+ * sorted elements; otherwise FUN_00195550 gathers the mask-selected surfaces.
+ * Finalizes the slot (rasterizer_widget_set_texture) and returns the slot
+ * handle, or -1 when count <= 0 or the allocation fails.
+ *
+ * Register ABI: count arrives in ESI (int16, TEST SI,SI); param_1 and param_2
+ * are stack args ([EBP+8], [EBP+0xc]).  scenario_get() is called for its side
+ * effect and the result discarded (EAX is immediately reloaded with -1).  A
+ * NULL triangles buffer is a hard assert (structure_render.c:0x1e6).  The
+ * one-shot allocation-failure warning is gated by the word at 0x32bd60. */
+int FUN_001956d0(void *param_1, void *param_2, short param_3)
+{
+  int handle;
+  void *triangles;
+
+  scenario_get();
+  if (0 < param_3) {
+    handle = rasterizer_widget_submit((int)param_3);
+    if (handle != -1) {
+      triangles = rasterizer_widget_begin(handle);
+      if (triangles == NULL) {
+        display_assert("triangles",
+                       "c:\\halo\\SOURCE\\structures\\structure_render.c", 0x1e6,
+                       true);
+        system_exit(-1);
+      }
+      if (param_2 == NULL) {
+        FUN_00195650(triangles, (int *)param_1, param_3);
+        rasterizer_widget_set_texture(handle);
+        return handle;
+      }
+      FUN_00195550(param_3, (int *)param_1, (unsigned int *)param_2,
+                   (int)triangles);
+      rasterizer_widget_set_texture(handle);
+      return handle;
+    }
+    if (*(short *)0x32bd60 != 0) {
+      error(2, "unable to allocate dynamic structure triangles.");
+      *(short *)0x32bd60 = 0;
+    }
+  }
+  return -1;
+}
+
 /* FUN_001959f0 (0x1959f0)
  *
  * Structure render-triangle build entry.  Under the profiler gate
