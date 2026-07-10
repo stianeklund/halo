@@ -58,3 +58,24 @@ short collision_surface_polygon(int bsp, int surface_index, void *out_points)
   } while (edge_index != first_edge);
   return point_count;
 }
+
+/* 0x147660 - render_debug_collision_bsp
+ *
+ * Draws every edge of a collision BSP for debug visualization. The edge
+ * tag_block header lives at bsp+0x48; its element count (bsp+0x48+0 first
+ * dword) is the loop bound. Each edge is rendered by
+ * render_debug_collision_edge, with param_2 forwarded unchanged
+ * (transform-matrix pointer or flag) and the debug color pointer read from the
+ * global at 0x2ee6d4.
+ *
+ * The original is a do-while guarded by an outer `count > 0` test, which is the
+ * canonical MSVC codegen for this for-loop.
+ */
+void render_debug_collision_bsp(int bsp, int matrix_or_flag)
+{
+  int i;
+
+  for (i = 0; i < *(int *)(bsp + 0x48); i++) {
+    render_debug_collision_edge(bsp, i, matrix_or_flag, *(void **)0x2ee6d4);
+  }
+}

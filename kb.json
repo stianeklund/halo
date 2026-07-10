@@ -36032,7 +36032,7 @@
         },
         {
           "addr": "0x147570",
-          "decl": "void render_debug_collision_edge(void);"
+          "decl": "void render_debug_collision_edge(int bsp, int edge_index, int matrix_or_flag, void *color);"
         },
         {
           "addr": "0x1475f0",
@@ -36040,7 +36040,10 @@
         },
         {
           "addr": "0x147660",
-          "decl": "void render_debug_collision_bsp(int param_1, int param_2);"
+          "decl": "void render_debug_collision_bsp(int bsp, int matrix_or_flag);",
+          "ported": true,
+          "name": "render_debug_collision_bsp",
+          "source_path": "src/halo/physics/collision_bsp.c"
         },
         {
           "addr": "0x1476a0",
