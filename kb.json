@@ -23291,11 +23291,13 @@
         },
         {
           "addr": "0x61f10",
-          "decl": "void FUN_00061f10(void);"
+          "decl": "char FUN_00061f10(float *vec_a@<eax>, float *pt0@<ecx>, float *pt1@<edx>, float *out@<esi>, float radius);",
+          "ported": true
         },
         {
           "addr": "0x61fa0",
-          "decl": "void FUN_00061fa0(void);"
+          "decl": "void FUN_00061fa0(float *vec@<ecx>, float *out_a@<edx>, float *out_b@<esi>, float denom, float num, float *out_scalar);",
+          "ported": true
         },
         {
           "addr": "0x62020",

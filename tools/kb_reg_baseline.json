@@ -79,6 +79,8 @@
     "0x5ef80": "char FUN_0005ef80(unsigned int *path_buf @<edi>);",
     "0x60ea0": "void FUN_00060ea0(void *avoidance_record @<ecx>, float *end_point @<eax>, void *param_2, void *scenario, unsigned char param_4, float radius, float *start_point, int param_7, float param_8, unsigned char param_9, unsigned char param_10);",
     "0x615b0": "int FUN_000615b0(void *avoidance_record @<eax>);",
+    "0x61f10": "char FUN_00061f10(float *vec_a@<eax>, float *pt0@<ecx>, float *pt1@<edx>, float *out@<esi>, float radius);",
+    "0x61fa0": "void FUN_00061fa0(float *vec@<ecx>, float *out_a@<edx>, float *out_b@<esi>, float denom, float num, float *out_scalar);",
     "0x64400": "void FUN_00064400(int actor_handle@<eax>, int prop_handle@<edi>);",
     "0x73fd0": "int FUN_00073fd0(void *bitmap /* @<eax> */);",
     "0x75380": "short FUN_00075380(void *bitmap /* @<eax> */);",
