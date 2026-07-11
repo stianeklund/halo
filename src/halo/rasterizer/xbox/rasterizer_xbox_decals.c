@@ -1968,3 +1968,184 @@ void FUN_0015d310(short type, int count)
   }
   return;
 }
+
+/* 0x15d5b0
+ *
+ * Draw a batch of `primitive_count` dynamic primitives that were previously
+ * reserved into group-buffer slot `dynamic_vertex_buffer_index` (an index into
+ * the reservation table filled by FUN_0015d310).  Each primitive consumes
+ * `vertices_per_primitive` vertices.  The D3D primitive type is selected from
+ * vertices_per_primitive: 2->LINELIST(2), 3->TRIANGLELIST(5), 4->QUADLIST(8);
+ * any other value is treated as a single fan/strip run (TRIANGLESTRIP, 6) with
+ * primitive_count re-derived as vertices_per_primitive-2 (this branch asserts
+ * primitive_count==1 and first_primitive_index==0).  The batch is emitted in
+ * chunks of at most RASTERIZER_MAXIMUM_PRIMITIVES_PER_DRAW_COMMAND (0x2710)
+ * primitives per DrawVertices call; first_primitive_index / primitive_count are
+ * advanced/decremented across chunks (the pristine XBE mutates its own [EBP+8]
+ * / [EBP+0xc] param slots -- modelled here as the mutable params themselves).
+ *
+ * The stream vertex size comes from FUN_00180050(group_index).  Group 6's
+ * vertex buffer is overridden to the scratch buffer at 0x47dbf0 when
+ * (*(int *)0x325668 & 1) != 0 (verified against disasm 0x15d755-0x15d771 --
+ * this is the OPPOSITE polarity to a naive reading; the scratch buffer is used
+ * only when the low bit is SET).  DrawVertices' vertex count is
+ * primtype_table[type].mul * clamped_primitive_count + primtype_table[type].add
+ * and its start vertex is vertices_per_primitive*first_primitive_index +
+ * dynamic_vertex_buffer->vertex_start_index.
+ *
+ * local_5 / bl are a two-phase debug HRESULT-check toggle (both initialised to
+ * 1 and mirrored around the two D3D calls -- FUN_00167ff0 only fires when the
+ * toggle is 0, which never happens in the retail path).  Preserved verbatim for
+ * codegen fidelity; do not fold to a plain bool.  On a failed toggle the tail
+ * calls error(2,"### ERROR rasterizer_draw_dynamic_vertices failed").
+ *
+ * cdecl, four stack args (Ghidra draft mis-typed this void(void) with
+ * in_stack_* reassignments -- they are plain cdecl params, NOT register args).
+ * Every assert path is display_assert(...); system_exit(-1); (the combined
+ * `add esp,0x14` after each site proves the second call takes one arg).
+ *
+ * 0x15d5b0 / rasterizer_decals.obj
+ */
+void rasterizer_draw_dynamic_vertices(int first_primitive_index,
+                                      int primitive_count,
+                                      int dynamic_vertex_buffer_index,
+                                      short vertices_per_primitive)
+{
+  int d3d_primitive_type;
+  int vertex_size;
+  int vpp_int;
+  int local_primitive_count;
+  int record;
+  int group;
+  void *d3d_vertex_buffer;
+  char local_5;
+  char bl;
+
+  local_5 = 1;
+  if (*(int *)0x476ab0 == 0) {
+    display_assert("global_d3d_device", kDrawPrimitivesFile, 0x28b, 1);
+    system_exit(-1);
+  }
+  if (0 < primitive_count) {
+    do {
+      if (dynamic_vertex_buffer_index == -1) {
+        break;
+      }
+      if (dynamic_vertex_buffer_index < 0) {
+        display_assert("dynamic_vertex_buffer_index>=0", kDrawPrimitivesFile,
+                       0x29a, 1);
+        system_exit(-1);
+      }
+      if (dynamic_vertex_buffer_index >= *(int *)0x47abd8) {
+        display_assert(
+          "dynamic_vertex_buffer_index<dynamic_vertices.buffer_count",
+          kDrawPrimitivesFile, 0x29b, 1);
+        system_exit(-1);
+      }
+
+      vpp_int = vertices_per_primitive;
+      switch (vertices_per_primitive) {
+      case 2:
+        d3d_primitive_type = 2; /* D3DPT_LINELIST */
+        break;
+      case 3:
+        d3d_primitive_type = 5; /* D3DPT_TRIANGLELIST */
+        break;
+      case 4:
+        d3d_primitive_type = 8; /* D3DPT_QUADLIST */
+        break;
+      default:
+        if (primitive_count != 1) {
+          display_assert("primitive_count==1", kDrawPrimitivesFile, 0x2aa, 1);
+          system_exit(-1);
+        }
+        primitive_count = vertices_per_primitive - 2;
+        if (first_primitive_index != 0) {
+          display_assert("first_primitive_index==0", kDrawPrimitivesFile, 0x2ae,
+                         1);
+          system_exit(-1);
+        }
+        if (vertices_per_primitive > 0x2710) {
+          display_assert("vertices_per_primitive<=RASTERIZER_MAXIMUM_PRIMITIVES"
+                         "_PER_DRAW_COMMAND",
+                         kDrawPrimitivesFile, 0x2af, 1);
+          system_exit(-1);
+        }
+        d3d_primitive_type = 6; /* D3DPT_TRIANGLESTRIP */
+        break;
+      }
+
+      record = 0x476bd8 + dynamic_vertex_buffer_index * 0x10;
+      vertex_size = FUN_00180050(*(short *)record);
+      group = 0x476ae8 + *(short *)record * 0x14;
+      if (group == 0) {
+        display_assert("group", kDrawPrimitivesFile, 0x1f8, 1);
+        system_exit(-1);
+      }
+
+      if (group == 0x476b60) {
+        d3d_vertex_buffer = *(void **)0x47dbf0;
+        if ((*(int *)0x325668 & 1) == 0) {
+          d3d_vertex_buffer = *(void **)(group + 0xc);
+        }
+      } else {
+        d3d_vertex_buffer = *(void **)(group + 0xc);
+      }
+      if (d3d_vertex_buffer == 0) {
+        display_assert("d3d_vertex_buffer", kDrawPrimitivesFile, 0x2bd, 1);
+        system_exit(-1);
+      }
+
+      if (*(int *)(record + 4) < 0) {
+        display_assert("dynamic_vertex_buffer->vertex_start_index>=0",
+                       kDrawPrimitivesFile, 0x2c0, 1);
+        system_exit(-1);
+      }
+      if (*(int *)(record + 4) > *(int *)group - *(int *)(record + 8)) {
+        display_assert("dynamic_vertex_buffer->vertex_start_index<=group->"
+                       "vertex_count - dynamic_vertex_buffer->vertex_count",
+                       kDrawPrimitivesFile, 0x2c1, 1);
+        system_exit(-1);
+      }
+
+      local_primitive_count = primitive_count;
+      if (local_primitive_count > 0x2710) {
+        local_primitive_count = 0x2710;
+      }
+
+      D3DDevice_SetStreamSource(0, d3d_vertex_buffer, (uint32_t)vertex_size);
+      if (local_5 != 0) {
+        bl = 1;
+      } else {
+        FUN_00167ff0(0,
+                     "IDirect3DDevice8_SetStreamSource(global_d3d_device, 0, "
+                     "d3d_vertex_buffer, vertex_size)");
+        bl = 0;
+      }
+
+      D3DDevice_DrawVertices(
+        (uint32_t)d3d_primitive_type,
+        (uint32_t)(vpp_int * first_primitive_index + *(int *)(record + 4)),
+        (uint32_t)(*(int *)(0x29f7e8 + d3d_primitive_type * 8) *
+                     local_primitive_count +
+                   *(int *)(0x29f7ec + d3d_primitive_type * 8)));
+      if (bl != 0) {
+        local_5 = 1;
+      } else {
+        FUN_00167ff0(0,
+                     "IDirect3DDevice8_DrawPrimitive(global_d3d_device, "
+                     "d3d_primitive_type, first_primitive_index*vertices_per_"
+                     "primitive + dynamic_vertex_buffer->vertex_start_index, "
+                     "local_primitive_count)");
+        local_5 = 0;
+      }
+
+      first_primitive_index = first_primitive_index + local_primitive_count;
+      primitive_count = primitive_count - local_primitive_count;
+    } while (0 < primitive_count);
+
+    if (local_5 == 0) {
+      error(2, "### ERROR rasterizer_draw_dynamic_vertices failed");
+    }
+  }
+}
