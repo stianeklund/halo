@@ -110,6 +110,88 @@ bool virtual_keyboard_initialize(void)
   return *(void **)0x46cef4 != (void *)0;
 }
 
+/* virtual_keyboard.c — on-screen (IME-style) text entry state machine.
+ *
+ * TU: c:\halo\SOURCE\interface\virtual_keyboard.c  (per __FILE__ assert
+ * string). kb.json currently files 0xf5500 under items.obj; the assert __FILE__
+ * proves the real translation unit is interface/virtual_keyboard.c.
+ *
+ * The virtual-keyboard state lives in a packed, mixed-width global block based
+ * at 0x46cef0 ("virtual_keyboard_globals"). Field widths are preserved exactly
+ * (u8 / u16 / u32 / ptr / wchar[32]); do NOT promote the narrow stores to int.
+ * Layout used here (offset from 0x46cef0):
+ *   +0x00 u8   active flag
+ *   +0x01 u8   (cleared)
+ *   +0x02 u8   (cleared)
+ *   +0x03 u8   (cleared)
+ *   +0x04 u32  readiness gate (read-only here)
+ *   +0x06 u8   (cleared)
+ *   +0x07 u8   set to 1
+ *   +0x08 u16  cursor/selection lo (cleared)
+ *   +0x0a u16  cursor/selection hi (cleared)
+ *   +0x0c u16  buffer_size, clamped <= 0x40 (unsigned)
+ *   +0x0e u16  0xffff sentinel
+ *   +0x14 u16  caption_index
+ *   +0x16 u8   (cleared)
+ *   +0x18 ptr  text_buffer
+ *   +0x1c ptr  text_buffer end = base + ustrlen(base) (wchar_t* arithmetic)
+ *   +0x20 u32  FUN_001d0581() result
+ *   +0x28 wchar[32]  ustrncpy of caller text
+ *   +0x66 u16  0
+ */
+
+/* virtual_keyboard_set_validation — begin a validated virtual-keyboard entry
+ * session over the caller's wchar_t buffer. Asserts the inputs (non-null
+ * buffer, non-zero even byte size, no session already active) and that
+ * caption_index is a valid virtual-keyboard caption string index. If the
+ * subsystem is not ready (or a session is somehow active), returns false
+ * without changing state. Otherwise flushes pending UI events, initializes the
+ * state block, seeds the edit buffer, plays the forward audio cue and returns
+ * true.
+ *
+ * cdecl, bool return in AL (MOV AL,1 success / XOR AL,AL failure). */
+bool virtual_keyboard_set_validation(wchar_t *text_buffer,
+                                     unsigned short buffer_size,
+                                     short caption_index)
+{
+  int len;
+
+  assert_halt_msg(text_buffer && buffer_size && !(buffer_size & 1) &&
+                    !*(uint8_t *)0x46cef0,
+                  "text_buffer && buffer_size && !(buffer_size&1) && "
+                  "!virtual_keyboard_globals.active");
+  assert_halt_msg((caption_index > 7) && (caption_index < 0xb),
+                  "(caption_index>=FIRST_VIRTUAL_KEYBOARD_CAPTION_STRING_INDEX)"
+                  " && (caption_index<NUMBER_OF_VIRTUAL_KEYBOARD_STRINGS)");
+
+  if (*(uint8_t *)0x46cef0 != 0 || *(uint32_t *)0x46cef4 == 0)
+    return false;
+
+  event_manager_flush();
+
+  *(uint16_t *)0x46cef8 = 0;
+  *(uint16_t *)0x46cefa = 0;
+  *(uint8_t *)0x46cef0 = 1;
+  *(wchar_t **)0x46cf08 = text_buffer;
+  len = ustrlen(text_buffer);
+  *(wchar_t **)0x46cf0c = text_buffer + len;
+  *(uint16_t *)0x46cefc = buffer_size;
+  if (buffer_size >= 0x40)
+    *(uint16_t *)0x46cefc = 0x40;
+  *(uint16_t *)0x46cefe = 0xffff;
+  *(uint32_t *)0x46cf10 = (uint32_t)FUN_001d0581();
+  *(uint16_t *)0x46cf04 = (uint16_t)caption_index;
+  *(uint8_t *)0x46cef1 = 0;
+  *(uint8_t *)0x46cef2 = 0;
+  *(uint8_t *)0x46cef3 = 0;
+  *(uint8_t *)0x46cef7 = 1;
+  ustrncpy((wchar_t *)0x46cf18, text_buffer, 0x20);
+  *(uint16_t *)0x46cf56 = 0;
+  *(uint8_t *)0x46cef6 = 0;
+  ui_play_audio_feedback_sound(2);
+  return true;
+}
+
 /* Virtual keyboard cursor move handler: advance the keymap row cursor
  * downward (0xf5750, virtual_keyboard.obj TU).
  *
@@ -357,6 +439,19 @@ void virtual_keyboard_process_input(void)
       *(short *)0x46cefe = (short)action;
       *(int *)0x46cf10 = now_ms;
     }
+  }
+}
+
+/* items_dispose_from_old_map (0xf6740)
+ * Guarded per-frame virtual-keyboard input pump. If the
+ * virtual_keyboard_globals block at 0x46cef0 is active (byte flag at offset 0
+ * != 0), drain its input queue via virtual_keyboard_process_input; otherwise
+ * no-op. The kb name is a placeholder and does not describe the observed binary
+ * behavior. */
+void items_dispose_from_old_map(void)
+{
+  if (*(uint8_t *)0x46cef0 != 0) {
+    virtual_keyboard_process_input();
   }
 }
 
@@ -835,80 +930,4 @@ void item_set_position(int item_handle, float *position, int flag)
     system_exit(-1);
   }
   *(int16_t *)0x4761d8 = *(int16_t *)0x4761d8 - 1;
-}
-/* virtual_keyboard.c — on-screen (IME-style) text entry state machine.
- *
- * TU: c:\halo\SOURCE\interface\virtual_keyboard.c  (per __FILE__ assert string).
- * kb.json currently files 0xf5500 under items.obj; the assert __FILE__ proves
- * the real translation unit is interface/virtual_keyboard.c.
- *
- * The virtual-keyboard state lives in a packed, mixed-width global block based
- * at 0x46cef0 ("virtual_keyboard_globals"). Field widths are preserved exactly
- * (u8 / u16 / u32 / ptr / wchar[32]); do NOT promote the narrow stores to int.
- * Layout used here (offset from 0x46cef0):
- *   +0x00 u8   active flag
- *   +0x01 u8   (cleared)
- *   +0x02 u8   (cleared)
- *   +0x03 u8   (cleared)
- *   +0x04 u32  readiness gate (read-only here)
- *   +0x06 u8   (cleared)
- *   +0x07 u8   set to 1
- *   +0x08 u16  cursor/selection lo (cleared)
- *   +0x0a u16  cursor/selection hi (cleared)
- *   +0x0c u16  buffer_size, clamped <= 0x40 (unsigned)
- *   +0x0e u16  0xffff sentinel
- *   +0x14 u16  caption_index
- *   +0x16 u8   (cleared)
- *   +0x18 ptr  text_buffer
- *   +0x1c ptr  text_buffer end = base + ustrlen(base) (wchar_t* arithmetic)
- *   +0x20 u32  FUN_001d0581() result
- *   +0x28 wchar[32]  ustrncpy of caller text
- *   +0x66 u16  0
- */
-
-/* virtual_keyboard_set_validation — begin a validated virtual-keyboard entry
- * session over the caller's wchar_t buffer. Asserts the inputs (non-null buffer,
- * non-zero even byte size, no session already active) and that caption_index is
- * a valid virtual-keyboard caption string index. If the subsystem is not ready
- * (or a session is somehow active), returns false without changing state.
- * Otherwise flushes pending UI events, initializes the state block, seeds the
- * edit buffer, plays the forward audio cue and returns true.
- *
- * cdecl, bool return in AL (MOV AL,1 success / XOR AL,AL failure). */
-bool virtual_keyboard_set_validation(wchar_t *text_buffer, unsigned short buffer_size,
-                                     short caption_index)
-{
-  int len;
-
-  assert_halt_msg(text_buffer && buffer_size && !(buffer_size & 1) && !*(uint8_t *)0x46cef0,
-                  "text_buffer && buffer_size && !(buffer_size&1) && !virtual_keyboard_globals.active");
-  assert_halt_msg((caption_index > 7) && (caption_index < 0xb),
-                  "(caption_index>=FIRST_VIRTUAL_KEYBOARD_CAPTION_STRING_INDEX) && (caption_index<NUMBER_OF_VIRTUAL_KEYBOARD_STRINGS)");
-
-  if (*(uint8_t *)0x46cef0 != 0 || *(uint32_t *)0x46cef4 == 0)
-    return false;
-
-  event_manager_flush();
-
-  *(uint16_t *)0x46cef8 = 0;
-  *(uint16_t *)0x46cefa = 0;
-  *(uint8_t *)0x46cef0 = 1;
-  *(wchar_t **)0x46cf08 = text_buffer;
-  len = ustrlen(text_buffer);
-  *(wchar_t **)0x46cf0c = text_buffer + len;
-  *(uint16_t *)0x46cefc = buffer_size;
-  if (buffer_size >= 0x40)
-    *(uint16_t *)0x46cefc = 0x40;
-  *(uint16_t *)0x46cefe = 0xffff;
-  *(uint32_t *)0x46cf10 = (uint32_t)FUN_001d0581();
-  *(uint16_t *)0x46cf04 = (uint16_t)caption_index;
-  *(uint8_t *)0x46cef1 = 0;
-  *(uint8_t *)0x46cef2 = 0;
-  *(uint8_t *)0x46cef3 = 0;
-  *(uint8_t *)0x46cef7 = 1;
-  ustrncpy((wchar_t *)0x46cf18, text_buffer, 0x20);
-  *(uint16_t *)0x46cf56 = 0;
-  *(uint8_t *)0x46cef6 = 0;
-  ui_play_audio_feedback_sound(2);
-  return true;
 }
