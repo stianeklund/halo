@@ -1240,3 +1240,16 @@ looks equivalent for a normal ascending range but is **false for an INVERTED ran
 Original call-site args (from the pristine body): case 0 pushes 0 (disable); cases 1–3 push 1 for StencilEnable and 0x1e00 (D3DSTENCILOP_KEEP) for StencilFail.
 
 **Lesson:** a decl's calling convention is binary evidence, not decompiler output — check the function's actual RET. VC71 verify, equivalence (stubs honor the *declared* convention), and the hazard scan are all blind to it; the box is the only oracle once it's wrong. The full-repo sweep found ~564 more `(void)`-style decls over `RET n` bodies (XAudio/CMcpx, winsock/xnet, XInput...), 13 of them called from lifted C today — triage via `artifacts/audit/stdcall_ret_report.txt` before those TUs' code paths go live.
+
+## 31. Implicit-EAX Return Dropped or Mis-Sourced When Ghidra Sees `void` — Garbage Handles, Downstream Asserts
+
+**Automation:** RESOLVED — `thunk_decl_audit()` in `tools/audit/check_stdcall_ret.py` (runs in every sweep; WARN per trampoline thunk whose void-ness disagrees with its jump target's decl, self-tested on the 0x17c9b0→0x15d310 pair). Also fixable at review time: for any int-returning lift, verify WHERE the original's exit paths last write EAX — VC71's LCS % aligns a `mov eax,<wrong source>` away (both allocators scored 90-93% with the bug in).
+
+**What happens:** two related failure shapes in one TU (both shipped 2026-07-11, both asserted in-game within hours):
+1. **Wrong return VALUE** — `FUN_0015d170` (dynamic-triangle allocator): the original loads `EAX = [0x47dbe0]` (pre-increment record count = the handle) at 0x15d20a, and its success exit takes `jne 0x15d28f`, *skipping* the `mov eax,edi` at 0x15d28d. The lift returned the advanced vertex cursor instead. Callers pass the value to `rasterizer_widget_begin` (0x15ea70), which asserts `handle < record_count` → `dynamic_triangle_buffer_index<dynamic_triangles.buffer_count` (draw_primitives.c:338).
+2. **Return dropped entirely** — `FUN_0015d310` (dynamic-vertex allocator): Ghidra decompiled it `void(void)`; the lift kept `void`. But the impl is only reached through the trampoline thunk 0x17c9b0 (`int rasterizer_widget_set_zbuffer_enable(int,int)` — kb name is a misnomer), whose callers consume EAX as the reservation handle (`mov ecx,[0x47abd8]; mov eax,ecx` at 0x15d3f3, `or eax,-1` at 0x15d472 on failure). The void lift left garbage in EAX → sprite-group handles were stack noise → `dynamic_vertex_buffer_index<dynamic_vertices.buffer_count` (draw_primitives.c:536).
+
+**Lessons:**
+- When exit paths *merge* (`jne` past a `mov eax,reg`), the decompiler often picks the wrong side. Trace EAX's last writer per exit edge in the disassembly before writing `return`.
+- The XBE routes subsystem APIs through 5-byte trampolines (`push ebp; mov ebp,esp; pop ebp; jmp impl` — the rasterizer widget family 0x17c970..0x17c9f0). Callers live on the *thunk* side, so the thunk decl carries the real signature while Ghidra shows the *impl* as `void f(void)` (no direct callers). Before lifting any function reached via such a thunk, diff both decls and trust the caller side.
+- Bisect/boot smoke tests miss this class: the code path (dynamic structure triangles / sprite groups) only runs in specific scenes, hours after a clean boot verification.

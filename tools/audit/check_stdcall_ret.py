@@ -145,6 +145,51 @@ def find_first_ret(addr: int, bound: int) -> RetResult:
         return RetResult("undecidable", 0, 0)
 
 
+_TRAMPOLINE = bytes.fromhex("558bec5de9")  # push ebp; mov ebp,esp; pop ebp; jmp rel32
+_RETTYPE_RE = re.compile(r"\s*([\w\s]+?(?:\s*\*+)?)\s*\b\w+\s*\(")
+
+
+def _decl_rettype(decl: str) -> str:
+    m = _RETTYPE_RE.match(decl)
+    return re.sub(r"\s+", " ", m.group(1)).replace("__cdecl", "").strip() if m else "?"
+
+
+def thunk_decl_audit() -> List[str]:
+    """Cross-check trampoline thunks' decls against their jump targets' decls.
+
+    The XBE routes many subsystem entry points through 5-byte trampolines
+    (``push ebp; mov ebp,esp; pop ebp; jmp impl``) — e.g. the rasterizer
+    widget family at 0x17c970..0x17c9f0.  Ghidra often decompiles the *impl*
+    as ``void f(void)`` while callers only exist on the *thunk* side, so the
+    thunk decl carries the real signature.  A lift of the impl that trusts
+    the impl's void decl silently drops the implicit-EAX return the thunk's
+    callers consume (the 0x15d310 dynamic-vertex allocator returned garbage
+    handles — draw_primitives.c:536 assert in-game, 2026-07-12; sibling
+    0x15d170 had the same class with a wrong return VALUE).  Returns WARN
+    strings for every thunk whose void-ness disagrees with its target.
+    """
+    entries = {e.addr: e for e in _load_kb()}
+    warns: List[str] = []
+    for addr, e in sorted(entries.items()):
+        code = _read_va(addr, 9)
+        if not code or code[:5] != _TRAMPOLINE:
+            continue
+        rel = int.from_bytes(code[5:9], "little", signed=True)
+        target = addr + 9 + rel
+        te = entries.get(target)
+        if not te:
+            continue
+        rt_thunk = _decl_rettype(e.decl)
+        rt_impl = _decl_rettype(te.decl)
+        if (rt_thunk == "void") != (rt_impl == "void"):
+            warns.append(
+                "WARN  0x%06x %-32s returns '%s' but jump target 0x%06x %s "
+                "is declared '%s' — a lift trusting the void side drops/invents "
+                "the implicit-EAX return (see lift-learnings §31)"
+                % (addr, e.name[:32], rt_thunk, target, te.name, rt_impl))
+    return warns
+
+
 class Finding(NamedTuple):
     level: str
     entry: FuncEntry
@@ -219,7 +264,11 @@ def _self_test() -> None:
     # the tail JMP to send's RET 0x10, not decode past it (old false ERROR)
     r = find_first_ret(0x225c20, 0x225cd1)
     assert r.kind == "ret" and r.pop_bytes == 16, r
-    print("self-test OK")
+    # thunk decl audit must parse the widget trampolines (0x17c9b0 -> 0x15d310);
+    # after the 2026-07-12 decl fixes that pair agrees, so it must NOT be listed
+    warns = thunk_decl_audit()
+    assert not any("0x17c9b0" in w for w in warns), warns
+    print("self-test OK (%d thunk-decl warns)" % len(warns))
 
 
 def _load_baseline() -> Dict[str, Dict]:
@@ -283,6 +332,8 @@ def main() -> None:
                 or b.get("observed") != f.observed_pop:
             new_errors.append(f)
 
+    thunk_warns = thunk_decl_audit() if args.addr is None else []
+
     lines: List[str] = []
     for f in sorted(findings, key=lambda f: (f.level != "ERROR", f.entry.addr)):
         tag = " [baselined]" if (f.level == "ERROR" and f not in new_errors) else ""
@@ -290,10 +341,13 @@ def main() -> None:
             "%-5s 0x%06x %-48s expected RET %-3d observed RET %-3d @0x%06x  %s%s"
             % (f.level, f.entry.addr, f.entry.name[:48], f.expected_pop,
                f.observed_pop, f.ret_va, f.note, tag))
+    lines.extend(thunk_warns)
     report = "\n".join(lines) + (
-        "\n\n%d checked, %d ok, %d undecidable, %d ERROR (%d new, %d baselined), %d WARN\n"
+        "\n\n%d checked, %d ok, %d undecidable, %d ERROR (%d new, %d baselined), "
+        "%d WARN, %d thunk-decl WARN\n"
         % (stats["checked"], stats["ok"], stats["undecidable"],
-           len(errors), len(new_errors), len(errors) - len(new_errors), len(warns)))
+           len(errors), len(new_errors), len(errors) - len(new_errors),
+           len(warns), len(thunk_warns)))
     print(report)
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
     REPORT_PATH.write_text(report)
