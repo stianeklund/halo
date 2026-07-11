@@ -1814,17 +1814,17 @@ void FUN_0015c6f0(void)
  *   0x476ab0  void *  - global_d3d_device (asserted non-NULL)
  *   0x47dbe8  void *  - dynamic_triangles.d3d_index_buffer (asserted non-NULL)
  *   0x47dbe0  int     - dynamic_triangles sorted-record count (capped < 0x3ff)
- *   0x47dbe4  int     - dynamic_triangles running index/vertex cursor (< 0x8000)
- *   0x47abe0  int[]   - sorted-record array, stride 0xc bytes:
- *                        +0 start_offset (index cursor snapshot), +4 count
- *   0x47dbf4  char    - one-shot "too many dynamic triangles" warning latch
- *   0x3256ba  char    - render-stat mode (==2 -> accumulate submission stats)
- *   0x5a5538  int     - stat: accumulated dynamic-triangle count
- *   0x5a553c  int     - stat: accumulated dynamic-triangle batch count
+ *   0x47dbe4  int     - dynamic_triangles running index/vertex cursor (<
+ * 0x8000) 0x47abe0  int[]   - sorted-record array, stride 0xc bytes: +0
+ * start_offset (index cursor snapshot), +4 count 0x47dbf4  char    - one-shot
+ * "too many dynamic triangles" warning latch 0x3256ba  char    - render-stat
+ * mode (==2 -> accumulate submission stats) 0x5a5538  int     - stat:
+ * accumulated dynamic-triangle count 0x5a553c  int     - stat: accumulated
+ * dynamic-triangle batch count
  */
 
 static const char kDrawPrimitivesFile[] =
-    "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_draw_primitives.c";
+  "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_draw_primitives.c";
 
 /* 0x15d170
  *
@@ -1880,11 +1880,91 @@ int FUN_0015d170(int count)
         *(int *)0x5a553c = *(int *)0x5a553c + 1;
       }
       return result;
-    }
-    else if (*(char *)0x47dbf4 == 0) {
-      error(2, "### ERROR too many dynamic triangles requested from rasterizer");
+    } else if (*(char *)0x47dbf4 == 0) {
+      error(2,
+            "### ERROR too many dynamic triangles requested from rasterizer");
       *(char *)0x47dbf4 = 1;
     }
   }
   return result;
+}
+
+/* 0x15d310
+ *
+ * Reserve a run of `count` dynamic vertices in group `type` of the
+ * dynamic-vertex buffer.  Appends a {type, current_offset, count} record to
+ * the reservation table at dynamic_vertices.records[record_count] (16-byte
+ * stride), then advances that group's running vertex offset by `count` and the
+ * record count by 1.  Guards: `count >= 0`, `0 <= type < 12`
+ * (NUMBER_OF_RASTERIZER_VERTEX_TYPES), the group's D3D vertex buffer and the
+ * global D3D device must both be non-NULL.  The reservation is skipped (with a
+ * one-shot 0x47dbf5 error latch) when advancing would exceed the group's limit
+ * or the record count would reach 0x3ff.  When render-stat mode (0x3256ba) is
+ * 2 the reservation is also accumulated into the vertex stat counters.
+ *
+ * dynamic_vertices.groups[] is an array of 0x14-byte (5-int) records indexed by
+ * type: +0 current_offset (0x476ae8), +4 limit (0x476aec), +0xc
+ * d3d_vertex_buffer (0x476af4).  The reservation table is an array of 0x10-byte
+ * records indexed by record_count: +0 short type (0x476bd8), +4 u32 offset
+ * (0x476bdc), +8 int count (0x476be0).
+ *
+ * cdecl, two stack args: short type @[esp+4], int count @[esp+8] (Ghidra draft
+ * mis-typed this void(void) with in_stack_00000004/00000008 -- they are plain
+ * cdecl stack params, NOT register args).  void return.
+ *
+ * NB: like the sibling FUN_0015d170, every assert path is
+ * display_assert(...); system_exit(-1); (the pristine XBE's combined
+ * `add esp,0x14` after each site proves the second call takes one arg -- it is
+ * system_exit(-1), NOT the arg-less halt_and_catch_fire the Ghidra draft
+ * named). The 0x3256ba stat-mode gate is a 16-bit compare.
+ *
+ * 0x15d310 / rasterizer_decals.obj
+ */
+void FUN_0015d310(short type, int count)
+{
+  int iType;
+  int rec;
+
+  if (count < 0) {
+    display_assert("count>=0", kDrawPrimitivesFile, 0x1aa, 1);
+    system_exit(-1);
+  }
+  if (type < 0 || type > 0xb) {
+    display_assert("type>=0 && type<NUMBER_OF_RASTERIZER_VERTEX_TYPES",
+                   kDrawPrimitivesFile, 0x1ab, 1);
+    system_exit(-1);
+  }
+  iType = type;
+  if (*(int *)(0x476af4 + iType * 0x14) == 0) {
+    display_assert("dynamic_vertices.groups[type].d3d_vertex_buffer",
+                   kDrawPrimitivesFile, 0x1ad, 1);
+    system_exit(-1);
+  }
+  if (*(int *)0x476ab0 == 0) {
+    display_assert("global_d3d_device", kDrawPrimitivesFile, 0x1ae, 1);
+    system_exit(-1);
+  }
+  if (0 < count) {
+    if ((*(int *)(0x476ae8 + iType * 0x14) <
+         *(int *)(0x476aec + iType * 0x14) - count) &&
+        (*(int *)0x47abd8 < 0x3ff)) {
+      FUN_00180050(type);
+      rec = *(int *)0x47abd8 * 0x10;
+      *(short *)(0x476bd8 + rec) = type;
+      *(unsigned int *)(0x476bdc + rec) = *(int *)(0x476ae8 + iType * 0x14);
+      *(int *)(0x476be0 + rec) = count;
+      *(int *)(0x476ae8 + iType * 0x14) =
+        *(int *)(0x476ae8 + iType * 0x14) + count;
+      *(int *)0x47abd8 = *(int *)0x47abd8 + 1;
+      if (*(short *)0x3256ba == 2) {
+        *(int *)0x5a5530 = *(int *)0x5a5530 + count;
+        *(int *)0x5a5534 = *(int *)0x5a5534 + 1;
+        return;
+      }
+    } else if (*(char *)0x47dbf5 == 0) {
+      error(2, "### ERROR too many dynamic vertices requested from rasterizer");
+      *(char *)0x47dbf5 = 1;
+    }
+  }
+  return;
 }

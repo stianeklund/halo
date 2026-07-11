@@ -19609,7 +19609,8 @@
 				},
 				{
 					"addr": "0x15d310",
-					"decl": "void FUN_0015d310(void);"
+					"decl": "void FUN_0015d310(short type, int count);",
+					"ported": true
 				},
 				{
 					"addr": "0x15d480",
