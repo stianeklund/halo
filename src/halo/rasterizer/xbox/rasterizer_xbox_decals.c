@@ -1673,6 +1673,51 @@ char FUN_0015c2d0(void)
   return 0;
 }
 
+/*
+ * rasterizer_detail_objects_dispose @ 0x15c680
+ *
+ * Real TU: c:\halo\SOURCE\rasterizer\xbox\rasterizer_xbox_detail_objects.c
+ * (__FILE__ assert xref). Disposes the detail-objects dynamic vertex buffer:
+ * asserts both the vertex buffer (0x476ae4) and the global D3D device
+ * (0x476ab0) are non-NULL, then releases the vertex buffer and clears its
+ * pointer. The device assert is purely an invariant check; the device is not
+ * otherwise touched here.
+ *
+ * The trailing `!= NULL` guard on the vertex buffer is effectively always
+ * true on the non-assert path (the first assert already proved it non-NULL)
+ * but is preserved to match the original control-flow shape.
+ *
+ * Assert-terminal is PUSH -1; CALL 0x8e2f0 = system_exit(-1) at BOTH sites
+ * (0x15c69e, 0x15c6c4) — NOT halt_and_catch_fire (review-gate REJECT on the
+ * first lift attempt was exactly this substitution).
+ *
+ * Globals (hardcoded, not in kb.json):
+ *   0x476ae4  void *  - local_d3d_vertex_buffer (detail-object dynamic VB)
+ *   0x476ab0  void *  - global_d3d_device (IDirect3DDevice8 pointer)
+ */
+/* 0x15c680 */
+void FUN_0015c680(void)
+{
+  if (*(void **)0x476ae4 == (void *)0x0) {
+    display_assert(
+      "local_d3d_vertex_buffer",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_detail_objects.c",
+      0x77, 1);
+    system_exit(-1);
+  }
+  if (*(int *)0x476ab0 == 0) {
+    display_assert(
+      "global_d3d_device",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_detail_objects.c",
+      0x78, 1);
+    system_exit(-1);
+  }
+  if (*(void **)0x476ae4 != (void *)0x0) {
+    D3DResource_Release(*(void **)0x476ae4);
+    *(void **)0x476ae4 = (void *)0x0;
+  }
+}
+
 /* 0x15c6f0
  *
  * rasterizer_detail_objects_begin  (set up D3D render state for the
