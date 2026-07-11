@@ -829,6 +829,15 @@ void FUN_00158800(unsigned short *bounds)
  * Modes 3/4/5 go through SetRenderStateSmart (deferred/tracked renderstate),
  * which maintains its own cache, so no shadow store is emitted.
  *
+ * D3DDevice_SetRenderState_StencilEnable / _StencilFail are __stdcall @4
+ * (both end RET 4, arg read at [ESP+8] after an internal PUSH ESI) even
+ * though Ghidra decompiles them as void(void) cdecl. Original call sites:
+ * case 0 pushes 0 (disable); cases 1-3 push ESI=1 for StencilEnable and
+ * 0x1e00 (D3DSTENCILOP_KEEP) for StencilFail, with NO caller cleanup.
+ * Calling them arg-less drifted ESP +4 per call; inlined into FUN_00158df0
+ * this turned the epilogue RET into a jump onto the stack -> boot #PF at
+ * CR2=0xfffffff5 (fixed 2026-07-11).
+ *
  * __FILE__ for the asserts is rasterizer_xbox.c (the original TU; the linker
  * grouped this fn into rasterizer_decals.obj).
  *
@@ -861,12 +870,12 @@ void FUN_00158ae0(int param_1)
   if (sVar1 != *(short *)0x325168) {
     switch (sVar1) {
     case 0:
-      D3DDevice_SetRenderState_StencilEnable();
+      D3DDevice_SetRenderState_StencilEnable(0);
       *(short *)0x325168 = sVar1;
       return;
     case 1:
-      D3DDevice_SetRenderState_StencilEnable();
-      D3DDevice_SetRenderState_StencilFail();
+      D3DDevice_SetRenderState_StencilEnable(1);
+      D3DDevice_SetRenderState_StencilFail(0x1e00);
       D3DDevice_SetRenderState_Simple(0x40374, 0x1e00);
       *(int *)0x1fb7a8 = 0x1e00;
       D3DDevice_SetRenderState_Simple(0x40378, 0x1e01);
@@ -882,8 +891,8 @@ void FUN_00158ae0(int param_1)
       *(int *)0x1fb7bc = 1;
       return;
     case 2:
-      D3DDevice_SetRenderState_StencilEnable();
-      D3DDevice_SetRenderState_StencilFail();
+      D3DDevice_SetRenderState_StencilEnable(1);
+      D3DDevice_SetRenderState_StencilFail(0x1e00);
       D3DDevice_SetRenderState_Simple(0x40374, 0x1e00);
       *(int *)0x1fb7a8 = 0x1e00;
       D3DDevice_SetRenderState_Simple(0x40378, 0x1e00);
@@ -899,8 +908,8 @@ void FUN_00158ae0(int param_1)
       *(int *)0x1fb7bc = 0;
       return;
     case 3:
-      D3DDevice_SetRenderState_StencilEnable();
-      D3DDevice_SetRenderState_StencilFail();
+      D3DDevice_SetRenderState_StencilEnable(1);
+      D3DDevice_SetRenderState_StencilFail(0x1e00);
       SetRenderStateSmart(0x44, 0x1e00);
       SetRenderStateSmart(0x45, 0x1e00);
       SetRenderStateSmart(0x46, 0x205);

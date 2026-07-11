@@ -20,6 +20,10 @@
       "score": 89.7,
       "source": "src/halo/rasterizer/xbox/d3d_resource.c"
     },
+    "D3DX_getLong": {
+      "score": 58.2,
+      "source": "src/halo/math/real_math.c"
+    },
     "FUN_000120e0": {
       "score": 88.9,
       "source": "src/halo/math/vector_math.c"
@@ -7448,10 +7452,6 @@
       "score": 82.1,
       "source": "src/halo/math/real_math.c"
     },
-    "D3DX_getLong": {
-      "score": 58.2,
-      "source": "src/halo/math/real_math.c"
-    },
     "FUN_00113110": {
       "score": 83.1,
       "source": "src/halo/math/real_math.c"
@@ -10196,8 +10196,96 @@
       "score": 26.0,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
     },
+    "FUN_00157e40": {
+      "score": 86.2,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_001580b0": {
+      "score": 97.4,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_00158140": {
+      "score": 96.5,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_001584f0": {
+      "score": 89.9,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_00158800": {
+      "score": 83.3,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_00158ae0": {
+      "score": 95.5,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_00158df0": {
+      "score": 92.0,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_00158f90": {
+      "score": 99.1,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_00159070": {
+      "score": 24.7,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_001592e0": {
+      "score": 8.1,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_001595c0": {
+      "score": 86.3,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_00159900": {
+      "score": 71.9,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015a4f0": {
+      "score": 47.1,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015a560": {
+      "score": 97.8,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015a700": {
+      "score": 95.9,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015a7f0": {
+      "score": 100.0,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015a8f0": {
+      "score": 100.0,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015aa40": {
+      "score": 95.1,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
     "FUN_0015abe0": {
       "score": 92.0,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015acc0": {
+      "score": 43.4,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015afa0": {
+      "score": 92.0,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015b0c0": {
+      "score": 72.5,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015b150": {
+      "score": 100.0,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
     "FUN_0015b1e0": {
@@ -10216,12 +10304,108 @@
       "score": 100.0,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
+    "FUN_0015b5a0": {
+      "score": 96.3,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
     "FUN_0015b5e0": {
       "score": 100.0,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
+    "FUN_0015b650": {
+      "score": 89.7,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015b6a0": {
+      "score": 86.7,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
     "FUN_0015b890": {
       "score": 93.3,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015b970": {
+      "score": 80.1,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015bc40": {
+      "score": 66.3,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015c190": {
+      "score": 86.5,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015c2b0": {
+      "score": 88.9,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015c2d0": {
+      "score": 18.3,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015c5f0": {
+      "score": 100.0,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015c600": {
+      "score": 100.0,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015c650": {
+      "score": 86.7,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015c680": {
+      "score": 100.0,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015c6f0": {
+      "score": 90.3,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015c980": {
+      "score": 93.6,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015cbb0": {
+      "score": 91.8,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015d020": {
+      "score": 88.9,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015d040": {
+      "score": 85.7,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015d060": {
+      "score": 93.6,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015d170": {
+      "score": 84.1,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015d2a0": {
+      "score": 96.3,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015d2d0": {
+      "score": 77.8,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015d310": {
+      "score": 92.8,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015d480": {
+      "score": 76.8,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "FUN_0015d5b0": {
+      "score": 95.3,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
     "FUN_0016eef0": {
@@ -13056,6 +13240,10 @@
       "score": 94.2,
       "source": "src/halo/ai/actors.c"
     },
+    "actor_combat_build_grenade_trajectory": {
+      "score": 83.5,
+      "source": "src/halo/ai/actor_combat.c"
+    },
     "actor_combat_check_fire_target": {
       "score": 90.8,
       "source": "src/halo/ai/actor_combat.c"
@@ -14380,9 +14568,17 @@
       "score": 100.0,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
+    "rasterizer_draw_dynamic_vertices": {
+      "score": 95.3,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
     "rasterizer_initialize_for_new_map": {
       "score": 89.5,
       "source": "src/halo/rasterizer/common/rasterizer_common.c"
+    },
+    "rasterizer_present": {
+      "score": 86.2,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
     "rasterizer_sprites_render": {
       "score": 100.0,
@@ -15151,10 +15347,6 @@
     "xbox_demos_launch": {
       "score": 80.6,
       "source": "src/halo/interface/marketing_and_strategic_business_development.c"
-    },
-    "actor_combat_build_grenade_trajectory": {
-      "score": 83.5,
-      "source": "src/halo/ai/actor_combat.c"
     }
   },
   "version": 1
