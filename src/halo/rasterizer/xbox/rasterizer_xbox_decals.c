@@ -23,6 +23,62 @@
 void FUN_0015afa0(int decal_index);
 static int rasterizer_decals_vertex_cache_query(int decal_index);
 
+/* 0x1580b0
+ *
+ * rasterizer_set_shader_framebuffer_blend_function
+ *
+ * Programs the three D3D alpha-blend render states for a shader framebuffer
+ * blend function, selecting each state value from a parallel dword lookup
+ * table indexed by the blend-function id, and caches the applied values in
+ * the rasterizer shadow globals (read back by other draw paths, cf.
+ * progress_bar.c). Originally defined in rasterizer_xbox.c (the assert
+ * __FILE__ preserves that path); the linker grouped it into
+ * rasterizer_decals.obj.
+ *
+ *   framebuffer_blend_function - shader framebuffer blend function id, [0, 7];
+ *                                read at 16-bit width (mov si, word [ebp+8])
+ *                                and bounds-checked as a signed short BEFORE
+ *                                the movsx widen — keep the short local.
+ *
+ * Render state (reg@<ecx>) / source table / shadow global (value@<edx>):
+ *   0x40344 <- table @0x29da7c, cached at 0x1fb790
+ *   0x40348 <- table @0x29daa0, cached at 0x1fb794
+ *   0x40350 <- table @0x29dac4, cached at 0x1fb7c0   (0x4034C is skipped)
+ *
+ * The assert path calls display_assert then system_exit(-1) and FALLS
+ * THROUGH into the body (combined ADD ESP,0x14 cleanup) — it is the standard
+ * assert macro, not an early return. Tables are indexed via an explicit
+ * index*4 byte offset (movsx; shl esi,2; unscaled [esi+disp32] reused for
+ * all three tables).
+ */
+void FUN_001580b0(int framebuffer_blend_function)
+{
+  short index;
+  int offset;
+  uint32_t value;
+  uint32_t value2;
+
+  index = (short)framebuffer_blend_function;
+  if (index < 0 || index >= 8) {
+    display_assert(
+      "framebuffer_blend_function>=0 && "
+      "framebuffer_blend_function<NUMBER_OF_SHADER_FRAMEBUFFER_BLEND_FUNCTIONS",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c", 0x773, 1);
+    system_exit(-1);
+  }
+
+  offset = index * 4;
+  value = *(uint32_t *)(0x29da7c + offset);
+  D3DDevice_SetRenderState_Simple(0x40344, value);
+  *(uint32_t *)0x1fb790 = value;
+  value = *(uint32_t *)(0x29daa0 + offset);
+  D3DDevice_SetRenderState_Simple(0x40348, value);
+  *(uint32_t *)0x1fb794 = value;
+  value2 = *(uint32_t *)(0x29dac4 + offset);
+  D3DDevice_SetRenderState_Simple(0x40350, value2);
+  *(uint32_t *)0x1fb7c0 = value2;
+}
+
 /* 0x1584f0
  *
  * rasterizer_set_target_as_texture  (bind a render-target as a D3D texture)

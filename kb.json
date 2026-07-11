@@ -19342,7 +19342,8 @@
 				},
 				{
 					"addr": "0x1580b0",
-					"decl": "void FUN_001580b0(int framebuffer_blend_function);"
+					"decl": "void FUN_001580b0(int framebuffer_blend_function);",
+					"ported": true
 				},
 				{
 					"addr": "0x158140",
