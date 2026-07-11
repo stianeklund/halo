@@ -110,6 +110,70 @@ bool virtual_keyboard_initialize(void)
   return *(void **)0x46cef4 != (void *)0;
 }
 
+/* Virtual keyboard cursor move handler: advance the keymap row cursor
+ * downward (0xf5750, virtual_keyboard.obj TU).
+ *
+ * Increments the row cursor at 0x46cef8 modulo 5 (5 keymap rows), skipping
+ * rows whose key character (keymap byte at 0x28a790[col + row*0xb]) equals
+ * the character under the pre-move cursor, so duplicate/merged keys are
+ * stepped over in one press. Stores the new row, plays the UI cursor-move
+ * sound (selector 1), and returns 1 (move accepted -> caller latches
+ * last_move_dir/last_move_time). Sibling of FUN_000f5660/56b0/5700.
+ *
+ * Disasm notes: row is held in AX for the whole loop (16-bit inc/cmp/xor)
+ * and stored to the global once after the loop; the pre-move key byte is
+ * cached in DL before the loop; col (0x46cefa) is MOVSX-loaded once. */
+char FUN_000f5750(void)
+{
+  short row;
+  short col;
+  char original_key;
+
+  row = *(short *)0x46cef8;
+  col = *(short *)0x46cefa;
+  original_key = ((char *)0x28a790)[(int)col + row * 0xb];
+  do {
+    row = (short)(row + 1);
+    if (row == 5) {
+      row = 0;
+    }
+  } while (((char *)0x28a790)[(int)col + row * 0xb] == original_key);
+  *(short *)0x46cef8 = row;
+  ui_play_audio_feedback_sound(1);
+  return 1;
+}
+
+/* Virtual keyboard backspace / delete-char handler (0xf5f30).
+ * Deletes the wide-char (UTF-16) immediately before the cursor from the
+ * edit buffer. If the cursor (0x46cf0c) is past the buffer base (0x46cf08),
+ * shift the tail back by one 2-byte cell via csmemmove, NUL-terminate the
+ * final wchar cell, then back the cursor up by one wchar. The cursor
+ * feedback sound (selector 1) always plays, whether or not a char was
+ * removed.
+ * Globals: 0x46cf08 = buffer base ptr, 0x46cf0c = cursor/end ptr,
+ * 0x46cefc = buffer capacity in bytes (unsigned 16-bit; loaded via MOVZX).
+ * The terminator index uses (capacity >> 1) - 1 to match the original's
+ * SHR + scaled-index store [base + (cap>>1)*2 - 2]. */
+void FUN_000f5f30(void)
+{
+  char *cursor;
+  int remaining;
+
+  cursor = *(char **)0x46cf0c;
+  if (*(char **)0x46cf08 < cursor) {
+    remaining = ((int)*(unsigned short *)0x46cefc - (int)cursor) +
+                (int)*(char **)0x46cf08;
+    if (remaining >= 0) {
+      csmemmove(cursor - 2, cursor, (unsigned int)remaining);
+      ((unsigned short *)*(
+        char **)0x46cf08)[((unsigned int)*(unsigned short *)0x46cefc >> 1) -
+                          1] = 0;
+      *(char **)0x46cf0c -= 2;
+    }
+  }
+  ui_play_audio_feedback_sound(1);
+}
+
 /* Virtual on-screen keyboard input pump (virtual_keyboard.obj).
  * TU: c:\halo\SOURCE\interface\virtual_keyboard.c (__FILE__ assert
  * @0x28a790..).
@@ -200,7 +264,7 @@ void virtual_keyboard_process_input(void)
             csmemset(*(char **)0x46cf08, 0, (unsigned int)*(short *)0x46cefc);
             *(char **)0x46cf0c = *(char **)0x46cf08;
             *(unsigned char *)0x46cf07 = 0;
-            ui_play_audio_feedback_sound();
+            ui_play_audio_feedback_sound(1);
             moved = 1;
           } else {
             FUN_000f5f30();
@@ -214,7 +278,7 @@ void virtual_keyboard_process_input(void)
             *(char **)0x46cf0c -= 1;
         cursor_moved:
           *(unsigned char *)0x46cf07 = 0;
-          ui_play_audio_feedback_sound();
+          ui_play_audio_feedback_sound(1);
           moved = 1;
         }
         break;
