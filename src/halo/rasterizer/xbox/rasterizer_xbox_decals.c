@@ -3834,9 +3834,14 @@ void FUN_0015d160(void)
  *
  * cdecl, one int stack arg at [esp+4] (Ghidra draft mis-typed this void(void)
  * with in_stack_00000004; it is a plain cdecl stack param, NOT a register arg).
- * Returns the advanced vertex cursor, or -1 on the count<=0 / overflow paths
- * (edi is seeded to -1 in the prologue and reused as the cursor accumulator;
- * the pristine XBE returns it via `mov eax,edi` at the early-exit merge).
+ * Returns the record index (the widget HANDLE = pre-increment record count:
+ * EAX is loaded from [0x47dbe0] at 0x15d20a and the success exit takes
+ * `jne 0x15d28f`, SKIPPING the `mov eax,edi` at 0x15d28d), or -1 on the
+ * count<=0 / overflow paths (edi is seeded -1 and reaches EAX only there).
+ * Callers pass this handle to 0x15ea70 (rasterizer_widget_begin), which
+ * asserts handle < record count — an earlier lift returned the advanced
+ * cursor instead, firing that assert (draw_primitives.c:338) in-game
+ * (fixed 2026-07-12).
  *
  * NB: every assert path is display_assert(...); system_exit(-1); (confirmed
  * from the pristine XBE: each site pushes -1 and calls 0x8e2f0 with a combined
@@ -3849,6 +3854,7 @@ void FUN_0015d160(void)
 int FUN_0015d170(int count)
 {
   int result;
+  int handle;
 
   result = -1;
   if (count < 0) {
@@ -3866,16 +3872,16 @@ int FUN_0015d170(int count)
   }
   if (0 < count) {
     if ((*(int *)0x47dbe4 < 0x8000 - count) && (*(int *)0x47dbe0 < 0x3ff)) {
-      *(int *)(0x47abe0 + *(int *)0x47dbe0 * 0xc) = *(int *)0x47dbe4;
-      *(int *)(0x47abe4 + *(int *)0x47dbe0 * 0xc) = count;
-      result = *(int *)0x47dbe4 + count;
-      *(int *)0x47dbe4 = result;
-      *(int *)0x47dbe0 = *(int *)0x47dbe0 + 1;
+      handle = *(int *)0x47dbe0;
+      *(int *)(0x47abe0 + handle * 0xc) = *(int *)0x47dbe4;
+      *(int *)(0x47abe4 + handle * 0xc) = count;
+      *(int *)0x47dbe4 = *(int *)0x47dbe4 + count;
+      *(int *)0x47dbe0 = handle + 1;
       if (*(short *)0x3256ba == 2) {
         *(int *)0x5a5538 = *(int *)0x5a5538 + count;
         *(int *)0x5a553c = *(int *)0x5a553c + 1;
       }
-      return result;
+      return handle;
     } else if (*(char *)0x47dbf4 == 0) {
       error(2,
             "### ERROR too many dynamic triangles requested from rasterizer");
@@ -3950,7 +3956,14 @@ int FUN_0015d2d0(int index, int a2, int s1, int s2, int s3, int s4)
  *
  * cdecl, two stack args: short type @[esp+4], int count @[esp+8] (Ghidra draft
  * mis-typed this void(void) with in_stack_00000004/00000008 -- they are plain
- * cdecl stack params, NOT register args).  void return.
+ * cdecl stack params, NOT register args).  Returns the record index (the
+ * handle = pre-increment record count: `mov ecx,[0x47abd8]; mov eax,ecx` at
+ * 0x15d3f3), or -1 (`or eax,-1` at 0x15d472) on the count<=0 / overflow
+ * paths.  Callers reach this via the 0x17c9b0 thunk (kb name
+ * rasterizer_widget_set_zbuffer_enable, a misnomer) and pass the handle to
+ * 0x15ec50 — a void lift here left garbage in EAX, firing the
+ * dynamic_vertex_buffer_index assert (draw_primitives.c:536) in-game
+ * (fixed 2026-07-12, same class as sibling FUN_0015d170).
  *
  * NB: like the sibling FUN_0015d170, every assert path is
  * display_assert(...); system_exit(-1); (the pristine XBE's combined
@@ -3960,10 +3973,11 @@ int FUN_0015d2d0(int index, int a2, int s1, int s2, int s3, int s4)
  *
  * 0x15d310 / rasterizer_decals.obj
  */
-void FUN_0015d310(short type, int count)
+int FUN_0015d310(short type, int count)
 {
   int iType;
   int rec;
+  int handle;
 
   if (count < 0) {
     display_assert("count>=0", kDrawPrimitivesFile, 0x1aa, 1);
@@ -3989,24 +4003,25 @@ void FUN_0015d310(short type, int count)
          *(int *)(0x476aec + iType * 0x14) - count) &&
         (*(int *)0x47abd8 < 0x3ff)) {
       FUN_00180050(type);
-      rec = *(int *)0x47abd8 * 0x10;
+      handle = *(int *)0x47abd8;
+      rec = handle * 0x10;
       *(short *)(0x476bd8 + rec) = type;
       *(unsigned int *)(0x476bdc + rec) = *(int *)(0x476ae8 + iType * 0x14);
       *(int *)(0x476be0 + rec) = count;
       *(int *)(0x476ae8 + iType * 0x14) =
         *(int *)(0x476ae8 + iType * 0x14) + count;
-      *(int *)0x47abd8 = *(int *)0x47abd8 + 1;
+      *(int *)0x47abd8 = handle + 1;
       if (*(short *)0x3256ba == 2) {
         *(int *)0x5a5530 = *(int *)0x5a5530 + count;
         *(int *)0x5a5534 = *(int *)0x5a5534 + 1;
-        return;
       }
+      return handle;
     } else if (*(char *)0x47dbf5 == 0) {
       error(2, "### ERROR too many dynamic vertices requested from rasterizer");
       *(char *)0x47dbf5 = 1;
     }
   }
-  return;
+  return -1;
 }
 
 /* 0x15d480

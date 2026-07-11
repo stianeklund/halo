@@ -19163,7 +19163,7 @@
         },
         {
           "addr": "0x17b480",
-          "decl": "void FUN_0017b480(void);"
+          "decl": "char FUN_0017b480(int param_1, int param_2, short param_3);"
         },
         {
           "addr": "0x17b540",
@@ -19183,7 +19183,7 @@
         },
         {
           "addr": "0x17ba10",
-          "decl": "void FUN_0017ba10(void);"
+          "decl": "int FUN_0017ba10(float *position, int vis_index, int index);"
         },
         {
           "addr": "0x17bca0",
@@ -19298,7 +19298,7 @@
         },
         {
           "addr": "0x17c9c0",
-          "decl": "void rasterizer_widget_draw_sprite2d(void);"
+          "decl": "short rasterizer_widget_draw_sprite2d(int dynamic_vertex_buffer_index);"
         },
         {
           "addr": "0x17c9d0",
@@ -19705,7 +19705,7 @@
         },
         {
           "addr": "0x15d310",
-          "decl": "void FUN_0015d310(short type, int count);",
+          "decl": "int FUN_0015d310(short type, int count);",
           "ported": true
         },
         {
@@ -34789,7 +34789,7 @@
         },
         {
           "addr": "0x15ea70",
-          "decl": "void FUN_0015ea70(void);"
+          "decl": "void *FUN_0015ea70(int dynamic_triangle_buffer_index);"
         },
         {
           "addr": "0x15eb90",
@@ -34797,7 +34797,7 @@
         },
         {
           "addr": "0x15ec50",
-          "decl": "void FUN_0015ec50(void);"
+          "decl": "int FUN_0015ec50(int dynamic_vertex_buffer_index);"
         },
         {
           "addr": "0x15ee80",
