@@ -12907,7 +12907,9 @@
         },
         {
           "addr": "0xf6820",
-          "decl": "void item_new(void);"
+          "decl": "char item_new(int object_handle);",
+          "name": "item_new",
+          "ported": true
         },
         {
           "addr": "0xf6860",

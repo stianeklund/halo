@@ -110,6 +110,192 @@ bool virtual_keyboard_initialize(void)
   return *(void **)0x46cef4 != (void *)0;
 }
 
+/* Virtual on-screen keyboard input pump (virtual_keyboard.obj).
+ * TU: c:\halo\SOURCE\interface\virtual_keyboard.c (__FILE__ assert
+ * @0x28a790..).
+ *
+ * FUN_000f63f0 (0xf63f0): drains the per-frame input event queue for the
+ * on-screen keyboard and turns controller events into a single move/action
+ * code, then dispatches the matching per-direction handler.
+ *
+ * virtual_keyboard_globals cluster (see items.c virtual_keyboard_initialize):
+ *   0x46cef8  short  cursor row       (keymap row)
+ *   0x46cefa  short  cursor col       (keymap col)
+ *   0x46cefc  short  buffer_size      (edit buffer capacity, bytes)
+ *   0x46cefe  short  last_move_dir    (latched direction for auto-repeat)
+ *   0x46cf00  short  current_char     (keymap-resolved character)
+ *   0x46cf07  byte   buffer_dirty     (0 = pristine, 1 = user has typed)
+ *   0x46cf08  char*  buffer_base      (edit buffer start)
+ *   0x46cf0c  char*  cursor           (edit caret within the buffer)
+ *   0x46cf10  int    last_move_time   (ms timestamp of last accepted move)
+ *   0x46cf58  int    repeat_timer     (ms timestamp gating auto-repeat)
+ * Keymap dispatch table at 0x28a790 is a signed byte array indexed
+ * [row * 0xb + col] (11 columns) yielding the character stored at 0x46cf00.
+ *
+ * Move handlers FUN_000f5660/56b0/5700/5750/5fb0/57a0 return a char in AL
+ * (0/1); the return latches last_move_dir + last_move_time when it is 1.
+ */
+
+/* Controller input event record; event_manager_get_next_event writes 8 bytes
+ * (two dwords) here: a 16-bit event type at +0 and a 32-bit payload at +4.
+ * The payload is reinterpreted per event type (analog word pair / button
+ * id + pressed-flag bytes). */
+struct virtual_keyboard_event {
+  short type; /* +0 : 1 = analog stick, 3 = button */
+  short reserved; /* +2 */
+  int data; /* +4 : analog X (low word) / Y (high word), or
+                    button id (low byte) + pressed flag (byte +1) */
+};
+
+void virtual_keyboard_process_input(void)
+{
+  struct virtual_keyboard_event event;
+  int now_ms;
+  int action; /* selected move/action code, -1 = none */
+  int timer_tmp; /* value stored back into repeat_timer via the shared tail */
+  char moved; /* nonzero once a handler accepted the move */
+  char pressed; /* button pressed-flag byte */
+
+  now_ms = system_milliseconds();
+  action = -1;
+  moved = 0;
+
+  if (!event_manager_get_next_event(&event, -1))
+    return;
+
+  do {
+    if (event.type == 1) {
+      /* analog stick: cardinal only at full deflection */
+      if ((short)(event.data >> 16) == 0x7fff) {
+        action = 2;
+      } else if ((short)(event.data >> 16) == -0x8000) {
+        action = 3;
+      } else if ((short)event.data == -0x8000) {
+        action = 0;
+      } else {
+        timer_tmp = *(int *)0x46cf58;
+        if ((short)event.data == 0x7fff)
+          goto set_dir_right;
+      }
+    } else if (event.type == 3) {
+      /* button: high byte = pressed flag, low byte = button id */
+      pressed = (char)(event.data >> 8);
+      switch (event.data & 0xff) {
+      case 0: /* A: select current character */
+        if (pressed == 1)
+          action = 4;
+        break;
+      case 1: /* B / start: back */
+      case 0xd:
+        if (pressed == 1)
+          action = 5;
+        break;
+      case 2: /* X: accept / clear */
+        if (pressed == 1) {
+          if (*(unsigned char *)0x46cf07 == 1) {
+            if (*(short *)0x46cefc == 0)
+              display_assert("virtual_keyboard_globals.buffer_size>0",
+                             "c:\\halo\\SOURCE\\interface\\virtual_keyboard.c",
+                             0x27a, true);
+            csmemset(*(char **)0x46cf08, 0, (unsigned int)*(short *)0x46cefc);
+            *(char **)0x46cf0c = *(char **)0x46cf08;
+            *(unsigned char *)0x46cf07 = 0;
+            ui_play_audio_feedback_sound();
+            moved = 1;
+          } else {
+            FUN_000f5f30();
+            moved = 1;
+          }
+        }
+        break;
+      case 6: /* cursor left */
+        if (pressed == 1) {
+          if (*(char **)0x46cf08 < *(char **)0x46cf0c)
+            *(char **)0x46cf0c -= 1;
+        cursor_moved:
+          *(unsigned char *)0x46cf07 = 0;
+          ui_play_audio_feedback_sound();
+          moved = 1;
+        }
+        break;
+      case 7: /* cursor right */
+        if (pressed == 1) {
+          if (**(char **)0x46cf0c != 0)
+            *(char **)0x46cf0c += 1;
+          goto cursor_moved;
+        }
+        break;
+      case 8: /* dpad up (auto-repeat gated) */
+        if (*(short *)0x46cefe != 2 ||
+            0xf9 < (unsigned int)(now_ms - *(int *)0x46cf58) || pressed == 1) {
+          action = 2;
+          *(int *)0x46cf58 = now_ms;
+        }
+        break;
+      case 9: /* dpad down */
+        if (*(short *)0x46cefe != 3 ||
+            0xf9 < (unsigned int)(now_ms - *(int *)0x46cf58) || pressed == 1) {
+          action = 3;
+          *(int *)0x46cf58 = now_ms;
+        }
+        break;
+      case 10: /* dpad left */
+        if (*(short *)0x46cefe != 0 ||
+            0xf9 < (unsigned int)(now_ms - *(int *)0x46cf58) || pressed == 1) {
+          action = 0;
+          *(int *)0x46cf58 = now_ms;
+        }
+        break;
+      case 0xb: /* dpad right */
+        timer_tmp = now_ms;
+        if (*(short *)0x46cefe != 1 ||
+            0xf9 < (unsigned int)(now_ms - *(int *)0x46cf58) || pressed == 1) {
+        set_dir_right:
+          *(int *)0x46cf58 = timer_tmp;
+          action = 1;
+        }
+        break;
+      case 0xc: /* home / reset to origin */
+        if (pressed == 1) {
+          *(short *)0x46cef8 = 0;
+          *(short *)0x46cefa = 0;
+          action = 4;
+        }
+        break;
+      }
+    }
+  } while (event_manager_get_next_event(&event, -1));
+
+  if (action != -1) {
+    *(short *)0x46cf00 = (short)(char)((
+      char *)0x28a790)[(int)*(short *)0x46cefa + *(short *)0x46cef8 * 0xb];
+    switch (action) {
+    case 0:
+      moved = FUN_000f5660();
+      break;
+    case 1:
+      moved = FUN_000f56b0();
+      break;
+    case 2:
+      moved = FUN_000f5700();
+      break;
+    case 3:
+      moved = FUN_000f5750();
+      break;
+    case 4:
+      moved = FUN_000f5fb0();
+      break;
+    case 5:
+      moved = FUN_000f57a0();
+      break;
+    }
+    if (moved == 1) {
+      *(short *)0x46cefe = (short)action;
+      *(int *)0x46cf10 = now_ms;
+    }
+  }
+}
+
 #include "x87_math.h"
 
 /* Activate the pickup sound effect for an equipment item.
@@ -137,6 +323,28 @@ void FUN_000f67f0(int equipment_tag_index)
   if (*(int *)(tag_data + 0x31c) != -1) {
     sound_impulse_start(*(int *)(tag_data + 0x31c), 1.0f);
   }
+}
+
+/* Item garbage-collection countdown tick (0xf6820).
+ * Fetches the item object (type mask 0x10), decrements the signed 16-bit
+ * despawn timer at item_obj+0x1dc (seeded to a random [300,600] value by
+ * item_begin_garbage_collection), and deletes the object once the timer
+ * reaches 0. Returns whether the item survived this tick (timer still > 0);
+ * the original latches this into BL via SETG and returns it in AL.
+ * Despite the kb name "item_new", the binary behavior is a per-tick
+ * release/countdown, not allocation. */
+char item_new(int object_handle)
+{
+  char *item_obj;
+  char survived;
+
+  item_obj = (char *)object_get_and_verify_type(object_handle, 0x10);
+  *(int16_t *)(item_obj + 0x1dc) = *(int16_t *)(item_obj + 0x1dc) - 1;
+  survived = *(int16_t *)(item_obj + 0x1dc) > 0;
+  if (!survived) {
+    object_delete(object_handle);
+  }
+  return survived;
 }
 
 /* Mark an item (type mask 0x10 = garbage item type) for garbage collection.
@@ -563,190 +771,4 @@ void item_set_position(int item_handle, float *position, int flag)
     system_exit(-1);
   }
   *(int16_t *)0x4761d8 = *(int16_t *)0x4761d8 - 1;
-}
-/* Virtual on-screen keyboard input pump (virtual_keyboard.obj).
- * TU: c:\halo\SOURCE\interface\virtual_keyboard.c (__FILE__ assert @0x28a790..).
- *
- * FUN_000f63f0 (0xf63f0): drains the per-frame input event queue for the
- * on-screen keyboard and turns controller events into a single move/action
- * code, then dispatches the matching per-direction handler.
- *
- * virtual_keyboard_globals cluster (see items.c virtual_keyboard_initialize):
- *   0x46cef8  short  cursor row       (keymap row)
- *   0x46cefa  short  cursor col       (keymap col)
- *   0x46cefc  short  buffer_size      (edit buffer capacity, bytes)
- *   0x46cefe  short  last_move_dir    (latched direction for auto-repeat)
- *   0x46cf00  short  current_char     (keymap-resolved character)
- *   0x46cf07  byte   buffer_dirty     (0 = pristine, 1 = user has typed)
- *   0x46cf08  char*  buffer_base      (edit buffer start)
- *   0x46cf0c  char*  cursor           (edit caret within the buffer)
- *   0x46cf10  int    last_move_time   (ms timestamp of last accepted move)
- *   0x46cf58  int    repeat_timer     (ms timestamp gating auto-repeat)
- * Keymap dispatch table at 0x28a790 is a signed byte array indexed
- * [row * 0xb + col] (11 columns) yielding the character stored at 0x46cf00.
- *
- * Move handlers FUN_000f5660/56b0/5700/5750/5fb0/57a0 return a char in AL
- * (0/1); the return latches last_move_dir + last_move_time when it is 1.
- */
-
-/* Controller input event record; event_manager_get_next_event writes 8 bytes
- * (two dwords) here: a 16-bit event type at +0 and a 32-bit payload at +4.
- * The payload is reinterpreted per event type (analog word pair / button
- * id + pressed-flag bytes). */
-struct virtual_keyboard_event {
-  short type;     /* +0 : 1 = analog stick, 3 = button */
-  short reserved; /* +2 */
-  int data;       /* +4 : analog X (low word) / Y (high word), or
-                          button id (low byte) + pressed flag (byte +1) */
-};
-
-void virtual_keyboard_process_input(void)
-{
-  struct virtual_keyboard_event event;
-  int now_ms;
-  int action;    /* selected move/action code, -1 = none */
-  int timer_tmp; /* value stored back into repeat_timer via the shared tail */
-  char moved;    /* nonzero once a handler accepted the move */
-  char pressed;  /* button pressed-flag byte */
-
-  now_ms = system_milliseconds();
-  action = -1;
-  moved = 0;
-
-  if (!event_manager_get_next_event(&event, -1))
-    return;
-
-  do {
-    if (event.type == 1) {
-      /* analog stick: cardinal only at full deflection */
-      if ((short)(event.data >> 16) == 0x7fff) {
-        action = 2;
-      } else if ((short)(event.data >> 16) == -0x8000) {
-        action = 3;
-      } else if ((short)event.data == -0x8000) {
-        action = 0;
-      } else {
-        timer_tmp = *(int *)0x46cf58;
-        if ((short)event.data == 0x7fff)
-          goto set_dir_right;
-      }
-    } else if (event.type == 3) {
-      /* button: high byte = pressed flag, low byte = button id */
-      pressed = (char)(event.data >> 8);
-      switch (event.data & 0xff) {
-      case 0: /* A: select current character */
-        if (pressed == 1)
-          action = 4;
-        break;
-      case 1: /* B / start: back */
-      case 0xd:
-        if (pressed == 1)
-          action = 5;
-        break;
-      case 2: /* X: accept / clear */
-        if (pressed == 1) {
-          if (*(unsigned char *)0x46cf07 == 1) {
-            if (*(short *)0x46cefc == 0)
-              display_assert(
-                  "virtual_keyboard_globals.buffer_size>0",
-                  "c:\\halo\\SOURCE\\interface\\virtual_keyboard.c", 0x27a,
-                  true);
-            csmemset(*(char **)0x46cf08, 0, (unsigned int)*(short *)0x46cefc);
-            *(char **)0x46cf0c = *(char **)0x46cf08;
-            *(unsigned char *)0x46cf07 = 0;
-            ui_play_audio_feedback_sound();
-            moved = 1;
-          } else {
-            FUN_000f5f30();
-            moved = 1;
-          }
-        }
-        break;
-      case 6: /* cursor left */
-        if (pressed == 1) {
-          if (*(char **)0x46cf08 < *(char **)0x46cf0c)
-            *(char **)0x46cf0c -= 1;
-        cursor_moved:
-          *(unsigned char *)0x46cf07 = 0;
-          ui_play_audio_feedback_sound();
-          moved = 1;
-        }
-        break;
-      case 7: /* cursor right */
-        if (pressed == 1) {
-          if (**(char **)0x46cf0c != 0)
-            *(char **)0x46cf0c += 1;
-          goto cursor_moved;
-        }
-        break;
-      case 8: /* dpad up (auto-repeat gated) */
-        if (*(short *)0x46cefe != 2 ||
-            0xf9 < (unsigned int)(now_ms - *(int *)0x46cf58) || pressed == 1) {
-          action = 2;
-          *(int *)0x46cf58 = now_ms;
-        }
-        break;
-      case 9: /* dpad down */
-        if (*(short *)0x46cefe != 3 ||
-            0xf9 < (unsigned int)(now_ms - *(int *)0x46cf58) || pressed == 1) {
-          action = 3;
-          *(int *)0x46cf58 = now_ms;
-        }
-        break;
-      case 10: /* dpad left */
-        if (*(short *)0x46cefe != 0 ||
-            0xf9 < (unsigned int)(now_ms - *(int *)0x46cf58) || pressed == 1) {
-          action = 0;
-          *(int *)0x46cf58 = now_ms;
-        }
-        break;
-      case 0xb: /* dpad right */
-        timer_tmp = now_ms;
-        if (*(short *)0x46cefe != 1 ||
-            0xf9 < (unsigned int)(now_ms - *(int *)0x46cf58) || pressed == 1) {
-        set_dir_right:
-          *(int *)0x46cf58 = timer_tmp;
-          action = 1;
-        }
-        break;
-      case 0xc: /* home / reset to origin */
-        if (pressed == 1) {
-          *(short *)0x46cef8 = 0;
-          *(short *)0x46cefa = 0;
-          action = 4;
-        }
-        break;
-      }
-    }
-  } while (event_manager_get_next_event(&event, -1));
-
-  if (action != -1) {
-    *(short *)0x46cf00 =
-        (short)(char)((char *)0x28a790)[(int)*(short *)0x46cefa +
-                                        *(short *)0x46cef8 * 0xb];
-    switch (action) {
-    case 0:
-      moved = FUN_000f5660();
-      break;
-    case 1:
-      moved = FUN_000f56b0();
-      break;
-    case 2:
-      moved = FUN_000f5700();
-      break;
-    case 3:
-      moved = FUN_000f5750();
-      break;
-    case 4:
-      moved = FUN_000f5fb0();
-      break;
-    case 5:
-      moved = FUN_000f57a0();
-      break;
-    }
-    if (moved == 1) {
-      *(short *)0x46cefe = (short)action;
-      *(int *)0x46cf10 = now_ms;
-    }
-  }
 }
