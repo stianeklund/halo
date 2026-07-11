@@ -2855,3 +2855,79 @@ void rasterizer_draw_dynamic_vertices(int first_primitive_index,
     }
   }
 }
+/*
+ * rasterizer_xbox_debug.c
+ *
+ * Xbox rasterizer debug-draw helpers (immediate-mode D3D primitives).
+ * Original TU: c:\halo\SOURCE\rasterizer\xbox\rasterizer_xbox_debug.c
+ * (__FILE__ assert string xref, confirmed).
+ *
+ * Globals (used by address, not in kb.json):
+ *   0x476ab0  void *  – global_d3d_device (IDirect3DDevice8 pointer)
+ */
+
+/* 0x15a8f0 — debug triangle draw (D3DPT_TRIANGLEFAN, 3 vertices).
+ *
+ * Ghidra's decl is void(void) but the binary reads 6 cdecl stack args at
+ * [EBP+8..+0x1c] (verified in disassembly: ESI=[EBP+8]=p0, EBX=[EBP+0xc]=p1,
+ * [EBP+0x10]=p2, EDI=[EBP+0x14]=color0, [EBP+0x18]=color1, [EBP+0x1c]=color2).
+ * Each pointer is a 3-float vector; the 4th component is the literal 1.0f
+ * (push 0x3f800000 in the binary).
+ *
+ * Vertex-register interleave (order verified against disassembly):
+ *   SetVertexData4f(9, color0)   – reg 9 = diffuse
+ *   SetVertexData4f(0, p0)       – reg 0 = position
+ *   if (color1) SetVertexData4f(9, color1)
+ *   SetVertexData4f(0, p1)
+ *   if (color2) SetVertexData4f(9, color2)
+ *   SetVertexData4f(0, p2)
+ * then D3DDevice_End (tail jump in the original).
+ *
+ * Asserts: line 0x8b = "p0 && p1 && p2 && color0", line 0x8c =
+ * "global_d3d_device"; each pairs display_assert with system_exit(-1)
+ * (push -1; call FUN_001029a0) and falls through, matching the binary.
+ */
+void FUN_0015a8f0(float *p0, float *p1, float *p2, float *color0,
+                  float *color1, float *color2)
+{
+  if (p0 == 0 || p1 == 0 || p2 == 0 || color0 == 0) {
+    display_assert("p0 && p1 && p2 && color0",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_debug.c",
+                   0x8b, 1);
+    system_exit(-1);
+  }
+
+  if (*(void **)0x476ab0 == 0) {
+    display_assert("global_d3d_device",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_debug.c",
+                   0x8c, 1);
+    system_exit(-1);
+  }
+
+  D3DDevice_Begin(5); /* D3DPT_TRIANGLEFAN */
+
+  /* The volatile y/z reads are a VC71 codegen shape lever only: they
+   * reproduce the original's hybrid arg push (x via GPR mov+push, y/z via
+   * FLD/FSTP [ESP]) under /O2. A single read either way - semantics are
+   * unchanged. */
+  D3DDevice_SetVertexData4f(9, color0[0], *(volatile float *)(color0 + 1),
+                            *(volatile float *)(color0 + 2), 1.0f);
+  D3DDevice_SetVertexData4f(0, p0[0], *(volatile float *)(p0 + 1),
+                            *(volatile float *)(p0 + 2), 1.0f);
+
+  if (color1 != 0) {
+    D3DDevice_SetVertexData4f(9, color1[0], *(volatile float *)(color1 + 1),
+                              *(volatile float *)(color1 + 2), 1.0f);
+  }
+  D3DDevice_SetVertexData4f(0, p1[0], *(volatile float *)(p1 + 1),
+                            *(volatile float *)(p1 + 2), 1.0f);
+
+  if (color2 != 0) {
+    D3DDevice_SetVertexData4f(9, color2[0], *(volatile float *)(color2 + 1),
+                              *(volatile float *)(color2 + 2), 1.0f);
+  }
+  D3DDevice_SetVertexData4f(0, p2[0], *(volatile float *)(p2 + 1),
+                            *(volatile float *)(p2 + 2), 1.0f);
+
+  D3DDevice_End();
+}
