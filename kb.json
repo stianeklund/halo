@@ -19456,7 +19456,8 @@
         },
         {
           "addr": "0x15b0c0",
-          "decl": "void FUN_0015b0c0(void);"
+          "decl": "bool FUN_0015b0c0(int decal_index);",
+          "ported": true
         },
         {
           "addr": "0x15b150",
