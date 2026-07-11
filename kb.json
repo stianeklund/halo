@@ -12823,7 +12823,8 @@
         },
         {
           "addr": "0xf5500",
-          "decl": "void virtual_keyboard_set_validation(void);"
+          "decl": "bool virtual_keyboard_set_validation(wchar_t *text_buffer, unsigned short buffer_size, short caption_index);",
+          "ported": true
         },
         {
           "addr": "0xf5640",
