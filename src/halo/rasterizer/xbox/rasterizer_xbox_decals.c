@@ -1612,7 +1612,7 @@ void FUN_0015a560(char additive)
                    "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_"
                    "debug.c",
                    0x13, 1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
   if (*(char *)0x3256dd == 0) {
     return;
@@ -1684,7 +1684,7 @@ void FUN_0015a700(void)
                    "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_"
                    "debug.c",
                    0x51, 1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
 
   D3DDevice_SetRenderState_CullMode(0);
@@ -1732,13 +1732,13 @@ void FUN_0015a7f0(float *p0, float *p1, float *color0, float *color1)
     display_assert(
       "p0 && p1 && color0",
       "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_debug.c", 0x74, 1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
   if (*(int *)0x476ab0 == 0) {
     display_assert(
       "global_d3d_device",
       "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_debug.c", 0x75, 1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
 
   D3DDevice_Begin(2);
@@ -2648,7 +2648,7 @@ void FUN_0015b970(short pass_index)
     display_assert(
       "global_d3d_device",
       "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c", 0x11b, 1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
 
   profile_table[0] = 9;
@@ -2674,7 +2674,7 @@ void FUN_0015b970(short pass_index)
     display_assert(
       "layer>=0 && layer<NUMBER_OF_DECAL_LAYERS",
       "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c", 0x133, 1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
 
   *(uint16_t *)0x476ad4 = 0xffff;
@@ -3760,14 +3760,14 @@ void FUN_0015d060(void)
     if (*(short *)0x5a5bc2 < 0) {
       display_assert("global_window_parameters.window_index>=0",
                      kDrawPrimitivesFile, 0xc6, 1);
-      halt_and_catch_fire();
+      system_exit(-1);
     }
     window_count = main_get_window_count();
     if (window_count <= *(short *)0x5a5bc2) {
       display_assert(
         "global_window_parameters.window_index<main_get_window_count()",
         kDrawPrimitivesFile, 0xc7, 1);
-      halt_and_catch_fire();
+      system_exit(-1);
     }
     window_index = *(short *)0x5a5bc2;
     entry = (char *)0x476af8;

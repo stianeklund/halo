@@ -61,7 +61,7 @@ void path_obstacles_debug_render(void *obstacles, float radius)
         display_assert("disc_index>=0 && disc_index<obstacles->disc_count && "
                        "obstacles->disc_count<=MAXIMUM_DISC_COUNT",
                        "c:\\halo\\source\\ai\\path.h", 0x18c, true);
-        halt_and_catch_fire();
+        system_exit(-1);
       }
       disc_off = disc_index * 0x18;
       count =
@@ -70,7 +70,7 @@ void path_obstacles_debug_render(void *obstacles, float radius)
         display_assert("disc->obstacle_index>=0 && "
                        "disc->obstacle_index<obstacles->obstacle_count",
                        "c:\\halo\\SOURCE\\ai\\path_obstacles.c", 0x211, true);
-        halt_and_catch_fire();
+        system_exit(-1);
       }
       point[1] = *(float *)((char *)obstacles + disc_off + 0x14); /* y */
       point[0] = *(float *)((char *)obstacles + disc_off + 0x10); /* x */

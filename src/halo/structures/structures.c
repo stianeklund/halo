@@ -1139,12 +1139,12 @@ void FUN_00105550(float *point, float *color)
   if (point == 0) {
     display_assert("point", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x77,
                    1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
   if (color == 0) {
     display_assert("color", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x78,
                    1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
   if (FUN_00103d30()) {
     bounds[0] = *point - 0.01f;
@@ -1205,17 +1205,17 @@ void FUN_001056e0(void *handle)
 {
   if (handle == 0) {
     display_assert("sphere", "c:\\halo\\SOURCE\\math\\geometry.c", 0x75, 1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
   if (*(int *)((char *)handle + 4) == 0) {
     display_assert("sphere->vertices", "c:\\halo\\SOURCE\\math\\geometry.c",
                    0x76, 1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
   if (*(int *)((char *)handle + 8) == 0) {
     display_assert("sphere->triangle_strip_vertex_indices",
                    "c:\\halo\\SOURCE\\math\\geometry.c", 0x77, 1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
   debug_free(*(void **)((char *)handle + 4),
              "c:\\halo\\SOURCE\\math\\geometry.c", 0x79);
@@ -2642,7 +2642,7 @@ void leaf_map_mark_portal_designators(void *structure, uint32_t portal_index)
     if ((int)designator_index == *designator_count) {
       display_assert("portal_designator_index!=leaf->portal_designators.count",
                      "c:\\halo\\SOURCE\\structures\\leaf_map.c", 0x2a1, 1);
-      halt_and_catch_fire();
+      system_exit(-1);
     }
     remaining = remaining - 1;
   } while (remaining != 0);
