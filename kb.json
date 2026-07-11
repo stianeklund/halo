@@ -19501,7 +19501,7 @@
         },
         {
           "addr": "0x15b5a0",
-          "decl": "void FUN_0015b5a0(void);"
+          "decl": "void FUN_0015b5a0(int index@<eax>, int a1, int a2, int a3);"
         },
         {
           "addr": "0x15b5e0",
@@ -19510,11 +19510,11 @@
         },
         {
           "addr": "0x15b650",
-          "decl": "void FUN_0015b650(void);"
+          "decl": "void FUN_0015b650(int r1@<eax>, int r2@<ecx>, int r3@<edx>, int s1, int s2, int s3);"
         },
         {
           "addr": "0x15b6a0",
-          "decl": "void FUN_0015b6a0(void);"
+          "decl": "void FUN_0015b6a0(int r1@<eax>, int r2@<ecx>, int r3@<edx>, int s1, int s2);"
         },
         {
           "addr": "0x15b6d0",
@@ -19547,11 +19547,11 @@
         },
         {
           "addr": "0x15c190",
-          "decl": "void FUN_0015c190(void);"
+          "decl": "void FUN_0015c190(int count@<eax>, void *base@<ecx>, void *out@<edx>, void *entries);"
         },
         {
           "addr": "0x15c2b0",
-          "decl": "void FUN_0015c2b0(void);"
+          "decl": "void FUN_0015c2b0(int r1@<eax>, int r2@<ecx>, int r3@<edx>, int s1, int s2, int s3);"
         },
         {
           "addr": "0x15c2d0",
@@ -19568,7 +19568,7 @@
         },
         {
           "addr": "0x15c650",
-          "decl": "void FUN_0015c650(void);"
+          "decl": "void FUN_0015c650(int r1@<eax>, int r2@<ecx>, int r3@<edx>, int s1, int s2);"
         },
         {
           "addr": "0x15c680",
@@ -19595,11 +19595,11 @@
         },
         {
           "addr": "0x15d020",
-          "decl": "void FUN_0015d020(void);"
+          "decl": "void FUN_0015d020(int r1@<eax>, int r2@<ecx>, int r3@<edx>, int s1, int s2, int s3);"
         },
         {
           "addr": "0x15d040",
-          "decl": "void FUN_0015d040(void);"
+          "decl": "void FUN_0015d040(int r1@<eax>, int r2@<ecx>, int r3@<edx>, int s1, int s2, int s3);"
         },
         {
           "addr": "0x15d060",
@@ -19620,11 +19620,11 @@
         },
         {
           "addr": "0x15d2a0",
-          "decl": "void FUN_0015d2a0(void);"
+          "decl": "void FUN_0015d2a0(int index@<eax>, int a1, int a2, int a3);"
         },
         {
           "addr": "0x15d2d0",
-          "decl": "void FUN_0015d2d0(void);"
+          "decl": "void FUN_0015d2d0(int index@<eax>, int a2@<ecx>, int s1, int s2, int s3, int s4);"
         },
         {
           "addr": "0x15d310",
