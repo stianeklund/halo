@@ -1073,6 +1073,83 @@ void FUN_0015a700(void)
   rasterizer_set_pixel_shader((void *)0x5a5ac0);
 }
 
+/*
+ * rasterizer_xbox_debug.c
+ *
+ * Xbox rasterizer debug-draw helpers (immediate-mode D3D primitives).
+ * Original TU: c:\halo\SOURCE\rasterizer\xbox\rasterizer_xbox_debug.c
+ * (__FILE__ assert string xref, confirmed).
+ *
+ * Globals (used by address, not in kb.json):
+ *   0x476ab0  void *  – global_d3d_device (IDirect3DDevice8 pointer)
+ */
+
+/* 0x15a8f0 — debug triangle draw (D3DPT_TRIANGLEFAN, 3 vertices).
+ *
+ * Ghidra's decl is void(void) but the binary reads 6 cdecl stack args at
+ * [EBP+8..+0x1c] (verified in disassembly: ESI=[EBP+8]=p0, EBX=[EBP+0xc]=p1,
+ * [EBP+0x10]=p2, EDI=[EBP+0x14]=color0, [EBP+0x18]=color1, [EBP+0x1c]=color2).
+ * Each pointer is a 3-float vector; the 4th component is the literal 1.0f
+ * (push 0x3f800000 in the binary).
+ *
+ * Vertex-register interleave (order verified against disassembly):
+ *   SetVertexData4f(9, color0)   – reg 9 = diffuse
+ *   SetVertexData4f(0, p0)       – reg 0 = position
+ *   if (color1) SetVertexData4f(9, color1)
+ *   SetVertexData4f(0, p1)
+ *   if (color2) SetVertexData4f(9, color2)
+ *   SetVertexData4f(0, p2)
+ * then D3DDevice_End (tail jump in the original).
+ *
+ * Asserts: line 0x8b = "p0 && p1 && p2 && color0", line 0x8c =
+ * "global_d3d_device"; each pairs display_assert with system_exit(-1)
+ * (push -1; call FUN_001029a0) and falls through, matching the binary.
+ */
+void FUN_0015a8f0(float *p0, float *p1, float *p2, float *color0, float *color1,
+                  float *color2)
+{
+  if (p0 == 0 || p1 == 0 || p2 == 0 || color0 == 0) {
+    display_assert(
+      "p0 && p1 && p2 && color0",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_debug.c", 0x8b, 1);
+    system_exit(-1);
+  }
+
+  if (*(void **)0x476ab0 == 0) {
+    display_assert(
+      "global_d3d_device",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_debug.c", 0x8c, 1);
+    system_exit(-1);
+  }
+
+  D3DDevice_Begin(5); /* D3DPT_TRIANGLEFAN */
+
+  /* The volatile y/z reads are a VC71 codegen shape lever only: they
+   * reproduce the original's hybrid arg push (x via GPR mov+push, y/z via
+   * FLD/FSTP [ESP]) under /O2. A single read either way - semantics are
+   * unchanged. */
+  D3DDevice_SetVertexData4f(9, color0[0], *(volatile float *)(color0 + 1),
+                            *(volatile float *)(color0 + 2), 1.0f);
+  D3DDevice_SetVertexData4f(0, p0[0], *(volatile float *)(p0 + 1),
+                            *(volatile float *)(p0 + 2), 1.0f);
+
+  if (color1 != 0) {
+    D3DDevice_SetVertexData4f(9, color1[0], *(volatile float *)(color1 + 1),
+                              *(volatile float *)(color1 + 2), 1.0f);
+  }
+  D3DDevice_SetVertexData4f(0, p1[0], *(volatile float *)(p1 + 1),
+                            *(volatile float *)(p1 + 2), 1.0f);
+
+  if (color2 != 0) {
+    D3DDevice_SetVertexData4f(9, color2[0], *(volatile float *)(color2 + 1),
+                              *(volatile float *)(color2 + 2), 1.0f);
+  }
+  D3DDevice_SetVertexData4f(0, p2[0], *(volatile float *)(p2 + 1),
+                            *(volatile float *)(p2 + 2), 1.0f);
+
+  D3DDevice_End();
+}
+
 /* 0x15aa40
  *
  * rasterizer_debug_setup_screen_projection  (name inferred)
@@ -2453,6 +2530,7 @@ void FUN_0015cbb0(void *detail_object_view_data)
     }
   }
 }
+
 /*
  * rasterizer_xbox_draw_primitives.c
  *
@@ -2476,6 +2554,92 @@ void FUN_0015cbb0(void *detail_object_view_data)
 
 static const char kDrawPrimitivesFile[] =
   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_draw_primitives.c";
+
+/* 0x15d060
+ *
+ * Per-frame reset of the dynamic-primitive submission cursors.  Walks the 12
+ * dynamic_vertices.groups[] records (base 0x476ae8, stride 0x14; +0
+ * current_offset, +4 limit, +8 capacity, +0x10 byte dirty flag) and resets
+ * them, then clears the dynamic-triangle cursor (0x47dbe4) / record count
+ * (0x47dbe0) and sets the byte latch 0x47dbec.  The walk pointer starts at
+ * entry[0]+0x10 (0x476af8, the byte field); offsets -0x10/-0xc/-0x8 reach
+ * current_offset/limit/capacity.  End sentinel (exclusive): 0x476be8.
+ *
+ * Two modes on the flag byte 0x32571b:
+ *  - 0 (cold reset): zero every group's current_offset, set its dirty byte,
+ *    and clear 0x47abd8 (store order after the loop: 0x47dbe4=0, 0x47dbec=1,
+ *    0x47abd8=0, 0x47dbe0=0 -- shared-tail block layout from the disasm).
+ *  - nonzero (windowed): validate global_window_parameters.window_index
+ *    (short @0x5a5bc2) in [0, main_get_window_count()).  window 0 resets
+ *    offset+dirty like the cold path; later windows instead scale the
+ *    group limit: limit = ((window_index+1) * capacity) / window_count,
+ *    with main_get_window_count() re-called and window_index re-read from
+ *    the global EVERY iteration (one load feeds both the multiply and the
+ *    post-loop window_index==0 test -- CX in the disasm).  0x47abd8 is
+ *    cleared only when window_index==0.
+ *
+ * Assert tails here are display_assert(...,1) then `push -1; CALL 0x1029a0`
+ * (halt_and_catch_fire) per the delinked relocs at +0x32/+0x63 -- NOT
+ * system_exit like the 0x15d170+ cluster; the shared void decl cannot emit
+ * the -1 push (known fixed ~2-insn gap per site).  Execution falls through
+ * after the call in the original codegen.  0x47dbec is a BYTE store
+ * (movb $1), not an int.
+ *
+ * 0x15d060 / rasterizer_decals.obj
+ */
+void FUN_0015d060(void)
+{
+  short window_index; /* CX: re-read from 0x5a5bc2 each loop iteration */
+  short window_count;
+  char *entry; /* ESI/EAX: walks entry[i]+0x10 across the group table */
+
+  if (*(char *)0x32571b != 0) {
+    if (*(short *)0x5a5bc2 < 0) {
+      display_assert("global_window_parameters.window_index>=0",
+                     kDrawPrimitivesFile, 0xc6, 1);
+      halt_and_catch_fire();
+    }
+    window_count = main_get_window_count();
+    if (window_count <= *(short *)0x5a5bc2) {
+      display_assert(
+        "global_window_parameters.window_index<main_get_window_count()",
+        kDrawPrimitivesFile, 0xc7, 1);
+      halt_and_catch_fire();
+    }
+    window_index = *(short *)0x5a5bc2;
+    entry = (char *)0x476af8;
+    do {
+      if (window_index == 0) {
+        *(int *)(entry - 0x10) = 0;
+        *entry = 1;
+      } else {
+        window_count = main_get_window_count();
+        window_index = *(short *)0x5a5bc2;
+        *(int *)(entry - 0xc) =
+          ((window_index + 1) * *(int *)(entry - 8)) / (int)window_count;
+      }
+      entry = entry + 0x14;
+    } while ((int)entry < 0x476be8);
+    *(int *)0x47dbe4 = 0;
+    *(char *)0x47dbec = 1;
+    if (window_index == 0) {
+      *(int *)0x47abd8 = 0;
+      *(int *)0x47dbe0 = 0;
+      return;
+    }
+  } else {
+    entry = (char *)0x476af8;
+    do {
+      *(int *)(entry - 0x10) = 0;
+      *entry = 1;
+      entry = entry + 0x14;
+    } while ((int)entry < 0x476be8);
+    *(int *)0x47dbe4 = 0;
+    *(char *)0x47dbec = 1;
+    *(int *)0x47abd8 = 0;
+  }
+  *(int *)0x47dbe0 = 0;
+}
 
 /* 0x15d170
  *
@@ -2854,80 +3018,4 @@ void rasterizer_draw_dynamic_vertices(int first_primitive_index,
       error(2, "### ERROR rasterizer_draw_dynamic_vertices failed");
     }
   }
-}
-/*
- * rasterizer_xbox_debug.c
- *
- * Xbox rasterizer debug-draw helpers (immediate-mode D3D primitives).
- * Original TU: c:\halo\SOURCE\rasterizer\xbox\rasterizer_xbox_debug.c
- * (__FILE__ assert string xref, confirmed).
- *
- * Globals (used by address, not in kb.json):
- *   0x476ab0  void *  – global_d3d_device (IDirect3DDevice8 pointer)
- */
-
-/* 0x15a8f0 — debug triangle draw (D3DPT_TRIANGLEFAN, 3 vertices).
- *
- * Ghidra's decl is void(void) but the binary reads 6 cdecl stack args at
- * [EBP+8..+0x1c] (verified in disassembly: ESI=[EBP+8]=p0, EBX=[EBP+0xc]=p1,
- * [EBP+0x10]=p2, EDI=[EBP+0x14]=color0, [EBP+0x18]=color1, [EBP+0x1c]=color2).
- * Each pointer is a 3-float vector; the 4th component is the literal 1.0f
- * (push 0x3f800000 in the binary).
- *
- * Vertex-register interleave (order verified against disassembly):
- *   SetVertexData4f(9, color0)   – reg 9 = diffuse
- *   SetVertexData4f(0, p0)       – reg 0 = position
- *   if (color1) SetVertexData4f(9, color1)
- *   SetVertexData4f(0, p1)
- *   if (color2) SetVertexData4f(9, color2)
- *   SetVertexData4f(0, p2)
- * then D3DDevice_End (tail jump in the original).
- *
- * Asserts: line 0x8b = "p0 && p1 && p2 && color0", line 0x8c =
- * "global_d3d_device"; each pairs display_assert with system_exit(-1)
- * (push -1; call FUN_001029a0) and falls through, matching the binary.
- */
-void FUN_0015a8f0(float *p0, float *p1, float *p2, float *color0,
-                  float *color1, float *color2)
-{
-  if (p0 == 0 || p1 == 0 || p2 == 0 || color0 == 0) {
-    display_assert("p0 && p1 && p2 && color0",
-                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_debug.c",
-                   0x8b, 1);
-    system_exit(-1);
-  }
-
-  if (*(void **)0x476ab0 == 0) {
-    display_assert("global_d3d_device",
-                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_debug.c",
-                   0x8c, 1);
-    system_exit(-1);
-  }
-
-  D3DDevice_Begin(5); /* D3DPT_TRIANGLEFAN */
-
-  /* The volatile y/z reads are a VC71 codegen shape lever only: they
-   * reproduce the original's hybrid arg push (x via GPR mov+push, y/z via
-   * FLD/FSTP [ESP]) under /O2. A single read either way - semantics are
-   * unchanged. */
-  D3DDevice_SetVertexData4f(9, color0[0], *(volatile float *)(color0 + 1),
-                            *(volatile float *)(color0 + 2), 1.0f);
-  D3DDevice_SetVertexData4f(0, p0[0], *(volatile float *)(p0 + 1),
-                            *(volatile float *)(p0 + 2), 1.0f);
-
-  if (color1 != 0) {
-    D3DDevice_SetVertexData4f(9, color1[0], *(volatile float *)(color1 + 1),
-                              *(volatile float *)(color1 + 2), 1.0f);
-  }
-  D3DDevice_SetVertexData4f(0, p1[0], *(volatile float *)(p1 + 1),
-                            *(volatile float *)(p1 + 2), 1.0f);
-
-  if (color2 != 0) {
-    D3DDevice_SetVertexData4f(9, color2[0], *(volatile float *)(color2 + 1),
-                              *(volatile float *)(color2 + 2), 1.0f);
-  }
-  D3DDevice_SetVertexData4f(0, p2[0], *(volatile float *)(p2 + 1),
-                            *(volatile float *)(p2 + 2), 1.0f);
-
-  D3DDevice_End();
 }
