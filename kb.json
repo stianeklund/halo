@@ -37564,11 +37564,11 @@
         },
         {
           "addr": "0x001ea300",
-          "decl": "void D3DDevice_SetRenderState_StencilEnable(void);"
+          "decl": "void __stdcall D3DDevice_SetRenderState_StencilEnable(uint32_t value);"
         },
         {
           "addr": "0x001ea380",
-          "decl": "void D3DDevice_SetRenderState_StencilFail(void);"
+          "decl": "void __stdcall D3DDevice_SetRenderState_StencilFail(uint32_t value);"
         },
         {
           "addr": "0x001ea3f0",
