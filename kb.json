@@ -19563,7 +19563,9 @@
         },
         {
           "addr": "0x15c190",
-          "decl": "void FUN_0015c190(int count@<eax>, void *base@<ecx>, void *out@<edx>, void *entries);"
+          "decl": "void FUN_0015c190(int count@<eax>, void *base@<ecx>, void *out@<edx>, void *entries);",
+          "ported": true,
+          "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
         },
         {
           "addr": "0x15c2b0",
