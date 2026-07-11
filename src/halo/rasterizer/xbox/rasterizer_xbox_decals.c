@@ -23,6 +23,166 @@
 void FUN_0015afa0(int decal_index);
 static int rasterizer_decals_vertex_cache_query(int decal_index);
 
+/* D3DSURFACE_DESC mirror (Xbox D3D8, 0x1c bytes; desc buffer at EBP-0x30). */
+typedef struct {
+  unsigned int Format; /* +0x00 */
+  unsigned int Type; /* +0x04 */
+  unsigned int Usage; /* +0x08 */
+  unsigned int Size; /* +0x0c  ([EBP-0x24]) */
+  unsigned int MultiSampleType; /* +0x10 */
+  unsigned int Width; /* +0x14  ([EBP-0x1c]) */
+  unsigned int Height; /* +0x18  ([EBP-0x18]) */
+} d3d_surface_desc_t;
+
+/* D3DLOCKED_RECT mirror (Pitch first, then pBits — 8 bytes at EBP-0x14). */
+typedef struct {
+  int Pitch; /* +0x00  ([EBP-0x14]) */
+  void *pBits; /* +0x04  ([EBP-0x10]) */
+} d3d_locked_rect_t;
+
+/* 0x157e40
+ *
+ * rasterizer_present
+ *
+ * Presents the current back buffer to the display.  When a non-NULL
+ * screenshot_bitmap with pixel data (bitmap+0x2c != 0) is supplied, the
+ * back-buffer surface is locked and blitted into the bitmap before Present.
+ *
+ * The capture rectangle comes from two packed-short DWORD globals
+ * (left/top/right/bottom at 0x325654/56/58/5a); the optional 2-element
+ * `point` (short[2]) rescales the base corner within the rect span.
+ *
+ * NOTE the blit is rotated: the copy loop iterates right-left times (BX)
+ * while each row copies Pitch = bpp*(bottom-top)/8 bytes, and
+ * bitmap_2d_address is called with x = top-chain value ([EBP-0xa]) and
+ * y = row + left-chain value ([EBP-0xc]) — verified against disassembly
+ * (0x157fea-0x158024); the Ghidra draft re-homes these slots.
+ *
+ * Globals (hardcoded, not in kb.json):
+ *   0x476ab0  void *   – global_d3d_device
+ *   0x325654  short[2] – capture rect left|top (packed dword)
+ *   0x325658  short[2] – capture rect right|bottom (packed dword)
+ *   0x505728  void *   – window_globals.hWndPresentTarget
+ *   0x325668  uint64   – 64-bit frame/present counter (ADD/ADC pair)
+ */
+void rasterizer_present(void *screenshot_bitmap, short *point)
+{
+  const char *msg;
+  bool ok;
+  short rect_x0; /* lo(0x325654) = left chain   ([EBP-0xc], Ghidra local_10) */
+  short rect_y0; /* hi(0x325654) = top chain    ([EBP-0xa], Ghidra sStack_e) */
+  short rect_x1; /* lo(0x325658) = right chain  ([EBP-0x8], Ghidra local_c) */
+  short rect_y1; /* hi(0x325658) = bottom chain ([EBP-0x6], Ghidra sStack_a) */
+
+  if (*(void **)0x476ab0 == 0) {
+    display_assert("global_d3d_device",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                   0x699, 1);
+    system_exit(-1);
+  }
+
+  ok = true;
+
+  if (screenshot_bitmap != 0 &&
+      *(int *)((char *)screenshot_bitmap + 0x2c) != 0) {
+    /* Seed rect from the two packed-short globals. */
+    rect_x0 = *(short *)0x325654;
+    rect_y0 = *(short *)0x325656;
+    rect_x1 = *(short *)0x325658;
+    rect_y1 = *(short *)0x32565a;
+
+    if (point != 0) {
+      rect_y1 = rect_y1 - rect_y0;
+      rect_x1 = rect_x1 - rect_x0;
+      rect_y0 = point[0] * rect_y1;
+      rect_x0 = point[1] * rect_x1;
+      rect_y1 = rect_y1 + rect_y0;
+      rect_x1 = rect_x0 + rect_x1;
+    }
+
+    if ((*(short *)((char *)screenshot_bitmap + 0xc) == 0xb ||
+         *(short *)((char *)screenshot_bitmap + 0xc) == 10) &&
+        *(short *)((char *)screenshot_bitmap + 0x14) == 0 && rect_y0 >= 0 &&
+        rect_x0 >= 0 && rect_y1 <= *(short *)((char *)screenshot_bitmap + 4) &&
+        rect_x1 <= *(short *)((char *)screenshot_bitmap + 6)) {
+      void *surface;
+      d3d_surface_desc_t desc;
+
+      surface = 0;
+      D3DDevice_GetBackBuffer(0, 0, &surface);
+      D3DSurface_GetDesc(surface, &desc);
+
+      /* Size check loads +0x18 then +0x14 (disasm order). */
+      if (desc.Size == desc.Height * desc.Width * 4) {
+        d3d_locked_rect_t locked;
+
+        D3DSurface_LockRect(surface, &locked, 0, 0xC0);
+
+        if (locked.pBits != 0) {
+          short row;
+          short h; /* SI: bottom - top (per-row byte span source) */
+          short w; /* BX: right - left (row count) */
+          short bpp;
+          int nb;
+
+          h = (short)(*(short *)0x32565a - *(short *)0x325656);
+          w = (short)(*(short *)0x325658 - *(short *)0x325654);
+          bpp = bitmap_format_bits_per_pixel(
+            *(short *)((char *)screenshot_bitmap + 0xc));
+          nb = (int)bpp * (int)h;
+
+          /* signed /8 — VC71 emits the CDQ/AND 7/ADD/SAR 3 idiom. */
+          if (locked.Pitch != nb / 8) {
+            display_assert(
+              "d3d_locked_rect.Pitch==bitmap_format_get_bits_per_pixel("
+              "screenshot_bitmap->format)*screen_width/CHAR_BITS",
+              "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c", 0x6c4,
+              1);
+            system_exit(-1);
+          }
+
+          for (row = 0; row < w; row = (short)(row + 1)) {
+            void *dst = bitmap_2d_address(screenshot_bitmap, rect_y0,
+                                          (short)(row + rect_x0), 0);
+            csmemcpy(dst, (char *)locked.pBits + (int)row * locked.Pitch,
+                     locked.Pitch);
+          }
+
+          ok = true;
+          goto present;
+        } else {
+          msg = "### ERROR rasterizer_present: failed to lock backbuffer "
+                "surface";
+        }
+      } else {
+        msg = "### ERROR rasterizer_present: failed to get backbuffer surface";
+      }
+    } else {
+      msg = "### ERROR rasterizer_present: invalid bitmap";
+    }
+
+    error(2, msg);
+    ok = false;
+  }
+
+present:
+  /* PUSH 0; PUSH EAX=[0x505728]; PUSH 0; PUSH 0 →
+   * Present(NULL, NULL, hWndPresentTarget, NULL). */
+  D3DDevice_Present(0, 0, *(void **)0x505728, 0);
+
+  if (!ok) {
+    FUN_00167ff0(0, "IDirect3DDevice8_Present(global_d3d_device, NULL, NULL, "
+                    "window_globals.hWndPresentTarget, NULL)");
+  }
+
+  /* 64-bit present counter {0x325668 lo, 0x32566c hi} += 1 (ADD/ADC). */
+  *(unsigned __int64 *)0x325668 += 1;
+
+  if (!ok) {
+    error(2, "### ERROR rasterizer_present failed");
+  }
+}
+
 /* 0x1580b0
  *
  * rasterizer_set_shader_framebuffer_blend_function

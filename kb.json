@@ -19338,7 +19338,9 @@
 			"functions": [
 				{
 					"addr": "0x157e40",
-					"decl": "void FUN_00157e40(void);"
+					"decl": "void rasterizer_present(void *screenshot_bitmap, short *point);",
+					"name": "rasterizer_present",
+					"ported": true
 				},
 				{
 					"addr": "0x1580b0",
@@ -37629,7 +37631,7 @@
 				},
 				{
 					"addr": "0x001ee920",
-					"decl": "void D3DDevice_Present(void);"
+					"decl": "void __stdcall D3DDevice_Present(void *source_rect, void *dest_rect, void *window_override, void *dirty_region);"
 				},
 				{
 					"addr": "0x001eeac0",
@@ -37685,11 +37687,11 @@
 				},
 				{
 					"addr": "0x001ef1e0",
-					"decl": "void D3DSurface_GetDesc(void);"
+					"decl": "int __stdcall D3DSurface_GetDesc(void *surface, void *desc);"
 				},
 				{
 					"addr": "0x001ef200",
-					"decl": "void D3DSurface_LockRect(void);"
+					"decl": "int __stdcall D3DSurface_LockRect(void *surface, void *locked_rect, void *rect, uint32_t flags);"
 				},
 				{
 					"addr": "0x001ef890",
