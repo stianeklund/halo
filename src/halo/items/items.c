@@ -193,6 +193,42 @@ bool virtual_keyboard_set_validation(wchar_t *text_buffer,
 }
 
 /* Virtual keyboard cursor move handler: advance the keymap row cursor
+ * upward (0xf5700, virtual_keyboard.obj TU).
+ *
+ * Decrements the row cursor at 0x46cef8 through 5 keymap rows (wrapping
+ * -1 -> 4), skipping rows whose key character (keymap byte at
+ * 0x28a790[col + row*0xb]) equals the character under the pre-move cursor,
+ * so duplicate/merged keys are stepped over in one press. Stores the new
+ * row, plays the UI cursor-move sound (selector 1), and returns 1 (move
+ * accepted -> caller latches last_move_dir/last_move_time). Sibling of
+ * FUN_000f5660/56b0/5750/5fb0.
+ *
+ * Disasm notes: row is held in AX for the whole loop (16-bit dec, signed
+ * jns wrap to 4) and stored to the global once after the loop; the
+ * pre-move key byte is cached in DL before the loop; col (0x46cefa) is
+ * MOVSX-loaded once into ECX. MOV AL,1 before RET -> char return; PUSH 1
+ * is the audio-selector argument. */
+char FUN_000f5700(void)
+{
+  short row;
+  short col;
+  char original_key;
+
+  row = *(short *)0x46cef8;
+  col = *(short *)0x46cefa;
+  original_key = ((char *)0x28a790)[(int)col + row * 0xb];
+  do {
+    row = (short)(row - 1);
+    if (row < 0) {
+      row = 4;
+    }
+  } while (((char *)0x28a790)[(int)col + row * 0xb] == original_key);
+  *(short *)0x46cef8 = row;
+  ui_play_audio_feedback_sound(1);
+  return 1;
+}
+
+/* Virtual keyboard cursor move handler: advance the keymap row cursor
  * downward (0xf5750, virtual_keyboard.obj TU).
  *
  * Increments the row cursor at 0x46cef8 modulo 5 (5 keymap rows), skipping
@@ -222,6 +258,38 @@ char FUN_000f5750(void)
   } while (((char *)0x28a790)[(int)col + row * 0xb] == original_key);
   *(short *)0x46cef8 = row;
   ui_play_audio_feedback_sound(1);
+  return 1;
+}
+
+/* Virtual keyboard edit-buffer commit/flush handler (0xf57a0).
+ * Commits the working edit buffer into the caller's target pointer: if a
+ * target ptr (0x46cf08) is set, copy the working buffer (0x46cf18) into it
+ * as UTF-16 for (capacity>>1) wchars via ustrncpy, then NUL-terminate the
+ * final wchar cell at index (capacity>>1)-1. Afterwards clear the edit
+ * state (active flag 0x46cef0, target ptr 0x46cf08, working buffer word
+ * 0x46cf18, flag byte 0x46cf06) and play the UI "accept" feedback sound
+ * (selector 3). Returns 1 (accepted -> caller latches move state).
+ * Globals: 0x46cf08 = target/dest ptr, 0x46cf18 = working buffer base,
+ * 0x46cefc = capacity in bytes (unsigned 16-bit; loaded via MOVZX), used
+ * both as cap>>1 for the copy count and (cap>>1)-1 for the terminator.
+ * Sibling move handler of FUN_000f5660/56b0/5700/5750/5fb0.
+ * Disasm: MOV AL,1 before RET -> returns char 1; PUSH 3 to the audio call. */
+char FUN_000f57a0(void)
+{
+  wchar_t *dest;
+
+  *(char *)0x46cef0 = 0;
+  dest = *(wchar_t **)0x46cf08;
+  if (dest != (wchar_t *)0x0) {
+    ustrncpy(dest, (wchar_t *)0x46cf18,
+             (unsigned int)*(unsigned short *)0x46cefc >> 1);
+    ((unsigned short *)
+       dest)[((unsigned int)*(unsigned short *)0x46cefc >> 1) - 1] = 0;
+  }
+  *(wchar_t **)0x46cf08 = (wchar_t *)0x0;
+  *(short *)0x46cf18 = 0;
+  *(char *)0x46cf06 = 0;
+  ui_play_audio_feedback_sound(3);
   return 1;
 }
 
@@ -452,6 +520,54 @@ void items_dispose_from_old_map(void)
 {
   if (*(uint8_t *)0x46cef0 != 0) {
     virtual_keyboard_process_input();
+  }
+}
+
+/*
+ * FUN_000f6750 (0xf6750, __cdecl): apply an item definition's flag bits to a
+ * live object instance.
+ *
+ * Resolves the object instance from its datum handle via
+ * object_get_and_verify_type(object_datum, 8) [type_mask 8], then propagates
+ * two flag bits from the definition struct (byte flags at definition+0x22)
+ * into the object:
+ *
+ *   def+0x22 bit0 (0x1): drives the object flags word at obj+0x4 bit5 (0x20) --
+ *       set -> OR 0x20, clear -> AND ~0x20.  In BOTH arms obj+0x4 is then also
+ *       OR'd with 0x60000.  When the bit is CLEAR the object's float at
+ *       obj+0x14 is additionally biased by +0.05f (*(float *)0x2533e8).
+ *   def+0x22 bit2 (0x4): drives the secondary flags word at obj+0x1a4 bit5 with
+ *       INVERTED sense -- clear -> OR 0x20, set -> AND ~0x20.
+ *
+ * The two consecutive stores to obj+0x4 (bare value, then value|0x60000) are
+ * emitted verbatim by the original and are kept split for byte fidelity.
+ *
+ * ABI: two cdecl stack args (no register args). Sole callee
+ * object_get_and_verify_type is cdecl. void return.
+ */
+void FUN_000f6750(int object_datum, void *definition)
+{
+  void *obj;
+  unsigned int flags;
+
+  obj = object_get_and_verify_type(object_datum, 8);
+  if ((*(unsigned char *)((char *)definition + 0x22) & 1) == 0) {
+    flags = *(unsigned int *)((char *)obj + 4) & 0xffffffdf;
+  } else {
+    flags = *(unsigned int *)((char *)obj + 4) | 0x20;
+  }
+  *(unsigned int *)((char *)obj + 4) = flags;
+  *(unsigned int *)((char *)obj + 4) = flags | 0x60000;
+  if ((*(unsigned char *)((char *)definition + 0x22) & 4) == 0) {
+    *(unsigned int *)((char *)obj + 0x1a4) =
+      *(unsigned int *)((char *)obj + 0x1a4) | 0x20;
+  } else {
+    *(unsigned int *)((char *)obj + 0x1a4) =
+      *(unsigned int *)((char *)obj + 0x1a4) & 0xffffffdf;
+  }
+  if ((*(unsigned char *)((char *)definition + 0x22) & 1) == 0) {
+    *(float *)((char *)obj + 0x14) =
+      *(float *)((char *)obj + 0x14) + *(float *)0x2533e8;
   }
 }
 
@@ -930,4 +1046,98 @@ void item_set_position(int item_handle, float *position, int flag)
     system_exit(-1);
   }
   *(int16_t *)0x4761d8 = *(int16_t *)0x4761d8 - 1;
+}
+/*
+ * ui_widget_group.c
+ *
+ * TU: c:\halo\SOURCE\interface\ui_widget_group.c
+ *   (recovered from the __FILE__ assert string passed to display_assert at
+ *    0x000f4f28: "c:\halo\SOURCE\interface\ui_widget_group.c", line 0x1f5.)
+ *
+ * Shell UI tag preload for the current scenario.  Given the scenario tag
+ * index, resolves the 'scnr' tag, force-loads the shared multiplayer game
+ * text and white shell bitmap, then branches on the scenario type field
+ * (scnr + 0x3c, signed int16: 0 = solo, 1 = multiplayer, 2 = main_menu) to
+ * load the matching ui_widget_collection ('Soul') and, for the main menu, a
+ * long list of string-list ('ustr'), sound ('snd!') and music ('lsnd') tags.
+ * Every load is checked against -1 (NONE) and any failure is reported via
+ * error(2, ...).  An unrecognized scenario type asserts and calls
+ * system_exit(-1).
+ *
+ * cachebeta.xbe v01.10.12.2276, FUN_000f4ea0 @ 0x000f4ea0 (items.obj).
+ */
+
+void FUN_000f4ea0(int scenario_tag_index)
+{
+  void *scenario;
+  short scenario_type;
+
+  scenario = tag_get(0x73636e72 /* 'scnr' */, scenario_tag_index);
+
+  if (FUN_001b9b00(0x75737472 /* 'ustr' */, "ui\\multiplayer_game_text", 0) == -1)
+    error(2, "failed to load the multiplayer game text string list tag");
+
+  if (FUN_001b9b00(0x6269746d /* 'bitm' */, "ui\\shell\\bitmaps\\white", 0) == -1)
+    error(2, "generic white texture bitmap");
+
+  /* scnr + 0x3c is a signed int16 scenario type (MOVSX in the original). */
+  scenario_type = *(short *)((char *)scenario + 0x3c);
+
+  switch (scenario_type) {
+  case 0: /* solo */
+    if (FUN_001b9b00(0x536f756c /* 'Soul' */, "ui\\shell\\solo", 0) == -1)
+      error(2, "failed to load the solo scenario ui_widget_collection tag");
+    break;
+
+  case 1: /* multiplayer */
+    if (FUN_001b9b00(0x536f756c, "ui\\shell\\multiplayer", 0) == -1)
+      error(2, "failed to load the multiplayer scenario ui_widget_collection tag");
+    break;
+
+  case 2: /* main_menu */
+    if (FUN_001b9b00(0x536f756c, "ui\\shell\\main_menu", 0) == -1)
+      error(2, "failed to load the main menu scenario ui_widget_collection_tag");
+    if (FUN_001b9b00(0x76636b79 /* 'vcky' */, "ui\\english", 0) == -1)
+      error(2, "failed to load the browser's virtual keyboard tag");
+    if (FUN_001b9b00(0x75737472, "ui\\random_player_names", 0) == -1)
+      error(2, "failed to load random player names string list tag");
+    if (FUN_001b9b00(0x6d706c79 /* 'mply' */, "ui\\multiplayer_scenarios", 0) == -1)
+      error(2, "failed to load the multiplayer scenario description tag");
+    if (FUN_001b9b00(0x75737472, "ui\\saved_game_file_strings", 0) == -1)
+      error(2, "failed to load the default saved game filename string list tag");
+    if (FUN_001b9b00(0x75737472, "ui\\default_multiplayer_game_setting_names", 0) == -1)
+      error(2, "failed to load the default playlist profile names string list tag");
+    if (FUN_001b9b00(0x75737472, "ui\\shell\\strings\\game_variant_descriptions", 0) == -1)
+      error(2, "failed to load the multiplayer variant description string list tag");
+    if (FUN_001b9b00(0x75737472, "ui\\shell\\main_menu\\player_profiles_select\\difficulty_names", 0) == -1)
+      error(2, "failed to load the game difficulty name string list tag");
+    if (FUN_001b9b00(0x75737472, "ui\\shell\\strings\\default_player_profile_names", 0) == -1)
+      error(2, "failed to load the default player profile names string list tag");
+    if (FUN_001b9b00(0x75737472, "ui\\shell\\main_menu\\player_profiles_select\\button_set_long_descriptions", 0) == -1)
+      error(2, "failed to load the button set long descriptions string list tag");
+    if (FUN_001b9b00(0x75737472, "ui\\shell\\main_menu\\player_profiles_select\\button_set_short_descriptions", 0) == -1)
+      error(2, "failed to load the button set short descriptions string list tag");
+    if (FUN_001b9b00(0x75737472, "ui\\shell\\main_menu\\player_profiles_select\\joystick_set_defaults_descriptions", 0) == -1)
+      error(2, "failed to load the default joystick set descriptions string list tag");
+    if (FUN_001b9b00(0x75737472, "ui\\shell\\main_menu\\player_profiles_select\\joystick_set_short_descriptions", 0) == -1)
+      error(2, "failed to load the joystick set short descriptions string list tag");
+    if (FUN_001b9b00(0x75737472, "ui\\shell\\main_menu\\player_profiles_select\\profile_description_labels", 0) == -1)
+      error(2, "failed to load the profile description labels string list tag");
+    if (FUN_001b9b00(0x736e6421 /* 'snd!' */, "sound\\sfx\\ui\\cursor", 0) == -1)
+      error(2, "failed to load ui cursor sound tag");
+    if (FUN_001b9b00(0x736e6421, "sound\\sfx\\ui\\forward", 0) == -1)
+      error(2, "failed to load ui forward sound tag");
+    if (FUN_001b9b00(0x736e6421, "sound\\sfx\\ui\\back", 0) == -1)
+      error(2, "failed to load ui back sound tag");
+    if (FUN_001b9b00(0x736e6421, "sound\\sfx\\ui\\flag_failure", 0) == -1)
+      error(2, "failed to load ui failure sound tag");
+    if (FUN_001b9b00(0x6c736e64 /* 'lsnd' */, "sound\\music\\title1\\title1", 0) == -1)
+      error(2, "failed to load main menu title music");
+    break;
+
+  default:
+    display_assert("unknown scenario type",
+                   "c:\\halo\\SOURCE\\interface\\ui_widget_group.c", 0x1f5, true);
+    system_exit(-1);
+  }
 }

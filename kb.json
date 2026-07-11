@@ -12809,7 +12809,8 @@
         },
         {
           "addr": "0xf4ea0",
-          "decl": "void FUN_000f4ea0(void);"
+          "decl": "void FUN_000f4ea0(int scenario_tag_index);",
+          "ported": true
         },
         {
           "addr": "0xf52f0",
@@ -12844,7 +12845,8 @@
         },
         {
           "addr": "0xf5700",
-          "decl": "char FUN_000f5700(void);"
+          "decl": "char FUN_000f5700(void);",
+          "ported": true
         },
         {
           "addr": "0xf5750",
@@ -12854,7 +12856,8 @@
         },
         {
           "addr": "0xf57a0",
-          "decl": "char FUN_000f57a0(void);"
+          "decl": "char FUN_000f57a0(void);",
+          "ported": true
         },
         {
           "addr": "0xf5800",
@@ -12899,7 +12902,9 @@
         },
         {
           "addr": "0xf6750",
-          "decl": "void FUN_000f6750(void);"
+          "decl": "void FUN_000f6750(int object_datum, void *definition);",
+          "ported": true,
+          "name": "FUN_000f6750"
         },
         {
           "addr": "0xf67b0",
