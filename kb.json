@@ -19349,7 +19349,9 @@
         },
         {
           "addr": "0x158140",
-          "decl": "void FUN_00158140(int a1, int a2, uint32_t a3, int a4, int a5);"
+          "decl": "void FUN_00158140(int target, int mipmap_index, uint32_t color, int do_clear, int zbuffer);",
+          "ported": true,
+          "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
         },
         {
           "addr": "0x1584f0",
@@ -37304,7 +37306,7 @@
         },
         {
           "addr": "0x001e82a0",
-          "decl": "void D3DDevice_SetViewport(void);"
+          "decl": "void __stdcall D3DDevice_SetViewport(void *viewport);"
         },
         {
           "addr": "0x001e8400",
