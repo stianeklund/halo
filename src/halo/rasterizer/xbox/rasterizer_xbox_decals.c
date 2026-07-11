@@ -667,6 +667,153 @@ void FUN_001584f0(int stage, int target, int max_mipmap)
   }
 }
 
+/* 0x158800
+ *
+ * rasterizer_decal_fullscreen_pass  (composite decal buffer to the screen)
+ *
+ * Gated blit that draws one full-screen quad covering the screen-bounds rect
+ * `bounds` (a uint16[4] = {x0, y0, x1, y1}) using a fixed vertex/pixel shader.
+ * The pass only runs when the decal-composite feature byte 0x325703 is set AND
+ * the busy word 0x5a5bc0 is zero; otherwise it early-outs.
+ *
+ * Uploads 5 vertex-shader constants (a 20-float contiguous block, ebp-0x50..
+ * ebp-0x4). Slots 0/3 (x-transform) and 5/7 (y-transform) are computed from
+ * the viewport dimensions:
+ *   height = (short)(*0x5a5bfa - *0x5a5bf6)   [16-bit .hi fields]
+ *   width  = (short)(*0x5a5bf8 - *0x5a5bf4)   [32-bit fields, low 16 used]
+ *   hdiv   = *0x2533c8 / (float)height        (memory-form fdivrs)
+ *   vs[0] = hdiv + hdiv;  vs[3] = *0x255e94 - hdiv;
+ *   vs[7] = *0x2533c8 / (float)width;
+ *   vs[5] = *0x25eeac * vs[7];  vs[7] = vs[7] + *0x2533c8;
+ * The three numerator/offset constants are read as float globals (the original
+ * emits fdivrs/flds/fadds with memory operands, NOT immediates), so they MUST
+ * stay as *(float *)0xADDR reads to reproduce the codegen.
+ *
+ * Pixel-shader state block at 0x5a5ac0 is zeroed (0xf0 bytes) then seeded
+ * (0x5a5b98=1, 0x5a5b94=1, 0x5a5ae0=8) and applied.
+ *
+ * The quad is emitted with D3DDevice_Begin(7 = D3DPT_QUADLIST): 4 vertices,
+ * each preceded by a texcoord register write (reg 4 = D3DVSDE_TEXCOORD0) and a
+ * position write (reg 0 = D3DVSDE_VERTEX). Position components are the uint16
+ * bounds corners; texcoords are the 0/1 unit-square corners.
+ *
+ * __FILE__ for the asserts is rasterizer_xbox.c (the original TU; the linker
+ * grouped this fn into rasterizer_decals.obj). The assert-fail path calls
+ * display_assert then system_exit(-1) (delinked relocs at +0x27/+0x50 call
+ * FUN_001029a0, each preceded by `push $-1`, so the source form is the
+ * arg-passing system_exit(-1), NOT the arg-less halt_and_catch_fire()).
+ *
+ * Globals (used by address, not in kb.json):
+ *   0x476ab0  void*   global_d3d_device (asserted non-NULL)
+ *   0x325703  char    decal-composite feature gate (non-zero enables)
+ *   0x5a5bc0  int16   busy/pending word (must be 0 to run)
+ *   0x5a5bf4/f8  int32   viewport x extents (width)
+ *   0x5a5bf6/fa  int16   viewport y extents (height)
+ *   0x2533c8  float   viewport-scale numerator (used twice)
+ *   0x255e94  float   x-transform offset
+ *   0x25eeac  float   y-transform scale
+ *   0x1fb7a4/784/788  uint32   shadow render-state cache
+ *   0x5a5ac0  ...     pixel-shader state block (0xf0 bytes)
+ *
+ *   bounds - uint16[4] screen rectangle {x0, y0, x1, y1}
+ */
+void FUN_00158800(unsigned short *bounds)
+{
+  /* 20-float (5 vertex-shader constant) upload block; must stay one
+   * contiguous array so the constants lay out ebp-0x50..ebp-0x4. */
+  float vs[20];
+  int width;
+  int height;
+  float hdiv;
+
+  if (bounds == 0) {
+    display_assert("bounds",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                   0x9e4, 1);
+    system_exit(-1);
+  }
+  if (*(int *)0x476ab0 == 0) {
+    display_assert("global_d3d_device",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                   0x9e5, 1);
+    system_exit(-1);
+  }
+
+  if (*(char *)0x325703 != 0 && *(short *)0x5a5bc0 == 0) {
+    FUN_001584f0(0, 1, 0);
+    D3DDevice_SetTextureStageState(0, 0xa, 3);
+    D3DDevice_SetTextureStageState(0, 0xb, 3);
+    D3DDevice_SetTextureStageState(0, 0xd, 2);
+    D3DDevice_SetTextureStageState(0, 0xe, 2);
+    D3DDevice_SetTextureStageState(0, 0xf, 2);
+    D3DDevice_SetRenderState_CullMode(0x901);
+    D3DDevice_SetRenderState_Simple(0x40358, 0x101);
+    *(uint32_t *)0x1fb7a4 = 0x101;
+    D3DDevice_SetRenderState_Simple(0x40304, 0);
+    *(uint32_t *)0x1fb784 = 0;
+    D3DDevice_SetRenderState_Simple(0x40300, 0);
+    *(uint32_t *)0x1fb788 = 0;
+    D3DDevice_SetRenderState_ZEnable(0);
+    D3DDevice_SetRenderState_ZBias(0);
+
+    FUN_00178b40(4, 8, 0);
+
+    /* viewport height from the 16-bit .hi (y) fields, sign-extended */
+    height = (short)(*(short *)0x5a5bfa - *(short *)0x5a5bf6);
+    /* viewport width: 32-bit fields, low 16 bits sign-extended */
+    width = (short)(*(int *)0x5a5bf8 - *(int *)0x5a5bf4);
+
+    vs[1] = 0.0f;
+    vs[2] = 0.0f;
+    vs[4] = 0.0f;
+    vs[6] = 0.0f;
+    vs[8] = 0.0f;
+    vs[9] = 0.0f;
+    vs[10] = 0.0f;
+    vs[11] = 0.5f;
+
+    /* memory-form FPU ops: numerator/offset constants are float globals */
+    hdiv = *(float *)0x2533c8 / (float)height;
+    vs[0] = hdiv + hdiv;
+    vs[3] = *(float *)0x255e94 - hdiv;
+    vs[7] = *(float *)0x2533c8 / (float)width;
+    vs[5] = *(float *)0x25eeac * vs[7];
+    vs[7] = vs[7] + *(float *)0x2533c8;
+
+    vs[12] = 0.0f;
+    vs[13] = 0.0f;
+    vs[14] = 0.0f;
+    vs[15] = 1.0f;
+    vs[16] = 320.0f;
+    vs[17] = 240.0f;
+    vs[18] = 0.0f;
+    vs[19] = 1.0f;
+
+    D3DDevice_SetVertexShaderConstant(-0x44, vs, 5);
+
+    csmemset((void *)0x5a5ac0, 0, 0xf0);
+    *(uint32_t *)0x5a5b98 = 1;
+    *(uint32_t *)0x5a5b94 = 1;
+    *(uint32_t *)0x5a5ae0 = 8;
+    rasterizer_set_pixel_shader((void *)0x5a5ac0);
+
+    D3DDevice_Begin(7);
+    D3DDevice_SetVertexData2s(4, 0, 1);
+    D3DDevice_SetVertexData2s(0, (int)(unsigned short)bounds[1],
+                              (int)(unsigned short)bounds[0]);
+    D3DDevice_SetVertexData2s(4, 1, 1);
+    D3DDevice_SetVertexData2s(0, (int)(unsigned short)bounds[3],
+                              (int)(unsigned short)bounds[0]);
+    D3DDevice_SetVertexData2s(4, 1, 0);
+    D3DDevice_SetVertexData2s(0, (int)(unsigned short)bounds[3],
+                              (int)(unsigned short)bounds[2]);
+    D3DDevice_SetVertexData2s(4, 0, 0);
+    D3DDevice_SetVertexData2s(0, (int)(unsigned short)bounds[1],
+                              (int)(unsigned short)bounds[2]);
+    D3DDevice_End();
+  }
+}
+
 /* 0x158ae0
  *
  * rasterizer_set_stencil_mode  (select a stencil-buffer render mode)
