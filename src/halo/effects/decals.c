@@ -2008,12 +2008,13 @@ void FUN_0017ca50(short *p0, short *p1, float *color0, float *color1)
   FUN_0015abe0(p0, p1, color0, color1);
 }
 
-/* Tail-call thunk to rasterizer decal initialization (FUN_0015acc0).
+/* Tail-call thunk to rasterizer debug 2D polyline drawer (FUN_0015acc0).
  * 0x17ca60: PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x15acc0 — forwards 3 stack
- * args: [EBP+8]=decal_group ptr, [EBP+C]=count (int16_t), [EBP+10]=capacity. */
-void FUN_0017ca60(void *decal_group, int16_t count, int capacity)
+ * args: [EBP+8]=points (short[2] array), [EBP+C]=point_count (int16_t),
+ * [EBP+10]=color (real_rgb_color *). */
+void FUN_0017ca60(short *points, int16_t point_count, float *color)
 {
-  FUN_0015acc0(decal_group, count, capacity);
+  FUN_0015acc0(points, point_count, color);
 }
 
 /* Tail-call thunk to rasterizer decal setup (FUN_0015a4e0). */

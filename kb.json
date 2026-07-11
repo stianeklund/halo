@@ -6149,7 +6149,7 @@
         },
         {
           "addr": "0x17ca60",
-          "decl": "void FUN_0017ca60(void *decal_group, int16_t count, int capacity);",
+          "decl": "void FUN_0017ca60(short *points, int16_t point_count, float *color);",
           "ported": true
         },
         {
@@ -19464,7 +19464,8 @@
         },
         {
           "addr": "0x15acc0",
-          "decl": "void FUN_0015acc0(void *decal_group, int16_t count, int capacity);"
+          "decl": "void FUN_0015acc0(short *points, int16_t point_count, float *color);",
+          "ported": true
         },
         {
           "addr": "0x15afa0",
