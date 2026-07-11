@@ -80,7 +80,14 @@ class RetResult(NamedTuple):
 def find_first_ret(addr: int, bound: int) -> RetResult:
     """Linearly disassemble from addr; return the first RET's pop count.
 
-    Follows up to MAX_THUNK_HOPS leading unconditional direct JMPs (thunks).
+    Follows up to MAX_THUNK_HOPS leading thunks: an unconditional direct JMP
+    within the first few instructions whose target lies OUTSIDE the current
+    body (covers plain ``jmp target`` and reg-loading thunks like the xnet
+    wrappers' ``mov ecx,[glob]; jmp target``).  Any later out-of-body JMP is
+    a tail-call — the RET belongs to the target's convention, so the scan
+    stops as undecidable rather than decoding into the next function (that
+    misattribution produced false ERRORs on xnet_send/xnet_recvfrom).
+    In-body forward JMPs (to the shared epilogue) are passed over linearly.
     Stops as undecidable on decode failure, INT3 padding, or scan overrun —
     a jump table's inline data would derail linear decode, but MSVC places
     tables after the final RET, so the first RET is reached beforehand.
@@ -93,9 +100,10 @@ def find_first_ret(addr: int, bound: int) -> RetResult:
         code = _read_va(addr, size)
         if not code:
             return RetResult("undecidable", 0, 0)
-        first = True
+        entry = addr
+        insn_idx = 0
         pos = 0
-        derailed = True
+        followed = False
         for insn in md.disasm(code, addr):
             pos = insn.address + insn.size - addr
             m = insn.mnemonic
@@ -104,24 +112,28 @@ def find_first_ret(addr: int, bound: int) -> RetResult:
                 return RetResult("ret", imm, insn.address)
             if m == "int3":
                 return RetResult("undecidable", 0, 0)
-            if first and m == "jmp" and re.fullmatch(r"0x[0-9a-f]+", insn.op_str):
-                # leading thunk — follow it
-                hops += 1
-                if hops > MAX_THUNK_HOPS:
-                    return RetResult("undecidable", 0, 0)
-                addr = int(insn.op_str, 16)
-                bound = addr + MAX_BODY
-                derailed = False
-                break
-            first = False
+            if m == "jmp" and re.fullmatch(r"0x[0-9a-f]+", insn.op_str):
+                target = int(insn.op_str, 16)
+                if entry <= target < bound:
+                    insn_idx += 1
+                    continue  # internal flow (epilogue jump) — keep scanning
+                if insn_idx <= 2:
+                    # leading thunk (possibly after reg-arg loads) — follow it
+                    hops += 1
+                    if hops > MAX_THUNK_HOPS:
+                        return RetResult("undecidable", 0, 0)
+                    addr = target
+                    bound = target + MAX_BODY
+                    followed = True
+                    break
+                # mid-body tail-call: RET belongs to the callee's convention
+                return RetResult("undecidable", 0, 0)
+            insn_idx += 1
         else:
-            derailed = pos < len(code)  # decode error mid-buffer
-            if not derailed:
-                return RetResult("undecidable", 0, 0)  # ran off scan window
-        if hops and not derailed:
+            return RetResult("undecidable", 0, 0)  # decode error / ran off window
+        if followed:
             continue
-        if derailed:
-            return RetResult("undecidable", 0, 0)
+        return RetResult("undecidable", 0, 0)
 
 
 class Finding(NamedTuple):
@@ -194,6 +206,10 @@ def _self_test() -> None:
     # FUN_00158ae0: cdecl, plain RET through a switch — first RET is C3
     r = find_first_ret(0x158ae0, 0x158df0)
     assert r.kind == "ret" and r.pop_bytes == 0, r
+    # xnet_send: reg-loading thunk (mov ecx,[glob]; jmp send) — must follow
+    # the tail JMP to send's RET 0x10, not decode past it (old false ERROR)
+    r = find_first_ret(0x225c20, 0x225cd1)
+    assert r.kind == "ret" and r.pop_bytes == 16, r
     print("self-test OK")
 
 

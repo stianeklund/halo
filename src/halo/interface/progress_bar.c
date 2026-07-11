@@ -22,10 +22,6 @@
 
 #include "common.h"
 
-/* XDK SetThreadPriority thunk (stdcall) */
-typedef int(__stdcall *SetThreadPriority_fn)(int handle, int priority);
-#define XSetThreadPriority ((SetThreadPriority_fn)0x1cf999)
-
 /* Progress bar globals */
 static char *progress_bar_suppress(void)
 {
@@ -77,7 +73,7 @@ void progress_bar_begin(bool suppress)
 {
   *progress_bar_suppress() = (suppress == 0);
   *progress_bar_active() = 1;
-  XSetThreadPriority(-2, 2);
+  SetThreadPriority(-2, 2);
 }
 
 /*
@@ -91,7 +87,7 @@ void progress_bar_begin(bool suppress)
 void progress_bar_end(void)
 {
   *progress_bar_active() = 0;
-  XSetThreadPriority(-2, 0);
+  SetThreadPriority(-2, 0);
 }
 
 /*
