@@ -12812,10 +12812,6 @@
           "decl": "void FUN_000f4ea0(void);"
         },
         {
-          "addr": "0xf5290",
-          "decl": "void FUN_000f5290(void);"
-        },
-        {
           "addr": "0xf52f0",
           "decl": "void FUN_000f52f0(void);"
         },
@@ -25547,6 +25543,18 @@
     {
       "functions": [
         {
+          "addr": "0xf5290",
+          "decl": "wchar_t *ui_widget_text_search_and_replace_function_invoke(void *widget, unsigned short function_index);",
+          "name": "ui_widget_text_search_and_replace_function_invoke",
+          "ported": true
+        }
+      ],
+      "name": "ui_widget_text_search_and_replace_functions.obj",
+      "source": "interface/ui_widget_text_search_and_replace_functions.c"
+    },
+    {
+      "functions": [
+        {
           "addr": "0x19dc90",
           "decl": "wchar_t *ustrncpy(wchar_t *dest, wchar_t *src, size_t count);",
           "ported": true
@@ -27385,6 +27393,10 @@
         {
           "addr": "0x31e500",
           "decl": "void (*ui_widget_game_data_function_table[])(void *widget);"
+        },
+        {
+          "addr": "0x31e5a4",
+          "decl": "wchar_t *(*text_search_and_replace_function_table[])(void *widget);"
         },
         {
           "addr": "0x325678",
