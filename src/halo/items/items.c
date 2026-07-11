@@ -1,3 +1,115 @@
+/*
+ * text_search_and_replace_function_table[1]  (0x000f52f0, __cdecl)
+ *
+ * Resolver that renders a single-digit wide replacement string from a widget
+ * field.  Reads a signed 16-bit selector at (widget + 8), then writes the
+ * digit + NUL terminator into a static wchar_t[2] result buffer at 0x0046cee8
+ * and returns a pointer to it (EAX = 0x0046cee8 in every arm of the original).
+ *
+ *   selector -1 / 0 -> L"1"
+ *   selector  1     -> L"2"
+ *   selector  2     -> L"3"
+ *   selector  3     -> L"4"
+ *   otherwise       -> L"?"
+ *
+ * The original biases the selector by +1 and dispatches through a 5-entry jump
+ * table (indices 0..4 for selector -1..3); the switch below reproduces that
+ * dense mapping.  The 0x0046cee8 result buffer lies inside the delinker's
+ * over-sized game_data build-version array, but is a distinct static owned by
+ * this TU, so it is declared as its own symbol (word_46CEE8).
+ *
+ * ABI: sole cdecl stack arg 'widget' (no register args); leaf, no callees.
+ */
+wchar_t *FUN_000f52f0(void *widget)
+{
+  switch (*(short *)((char *)widget + 8)) {
+  case -1:
+  case 0:
+    word_46CEE8[0] = L'1';
+    word_46CEE8[1] = L'\0';
+    return word_46CEE8;
+  case 1:
+    word_46CEE8[0] = L'2';
+    word_46CEE8[1] = L'\0';
+    return word_46CEE8;
+  case 2:
+    word_46CEE8[0] = L'3';
+    word_46CEE8[1] = L'\0';
+    return word_46CEE8;
+  case 3:
+    word_46CEE8[0] = L'4';
+    word_46CEE8[1] = L'\0';
+    return word_46CEE8;
+  default:
+    word_46CEE8[0] = L'?';
+    word_46CEE8[1] = L'\0';
+    return word_46CEE8;
+  }
+}
+
+/* Virtual on-screen keyboard initialization (items.obj).
+ * TU: c:\halo\SOURCE\interface\virtual_keyboard.c (__FILE__ assert @0x28a854).
+ *
+ * virtual_keyboard_globals lives at 0x46cef0:
+ *   +0x00  byte[4]           four separate byte flags (zeroed individually)
+ *   +0x04  void *keyboard    'vcky' tag_get result (asserted non-NULL, l.363)
+ *   +0x08  int16[3] = 0      state words (0x46cef8/cefa/cefc)
+ *   +0x0e  int16 = -1        sentinel (0x46cefe)
+ *   +0x10  int16 = -1        sentinel (0x46cf00)
+ *   +0x12  int16 = 0         (0x46cf02)
+ *   +0x18  int[3] = 0        dwords 0x46cf08/cf0c/cf10
+ *   +0x24  int caret_bitmap  'bitm' tag index (0x46cf14; -1 = load failed)
+ *
+ * Looks up the 'vcky' virtual keyboard tag for "ui\english"; on success
+ * caches the tag definition pointer and resets the keyboard state fields,
+ * else logs a priority-2 error.  Independently resolves the caret bitmap
+ * 'bitm' tag "ui\shell\bitmaps\white" (also error-logged on failure).
+ *
+ * Returns whether the keyboard definition pointer is non-NULL (SETNE AL
+ * from a reload of 0x46cef4; the sole caller at 0xe8809 does TEST AL,AL
+ * and logs an error when it is false).
+ */
+bool virtual_keyboard_initialize(void)
+{
+  int keyboard_tag;
+
+  *(unsigned char *)0x46cef0 = 0;
+  *(unsigned char *)0x46cef1 = 0;
+  *(unsigned char *)0x46cef2 = 0;
+  *(unsigned char *)0x46cef3 = 0;
+
+  keyboard_tag = tag_loaded(0x76636b79, "ui\\english"); /* 'vcky' */
+  if (keyboard_tag != -1) {
+    *(void **)0x46cef4 = tag_get(0x76636b79, keyboard_tag); /* 'vcky' */
+    if (*(void **)0x46cef4 == (void *)0) {
+      display_assert("virtual_keyboard_globals.keyboard",
+                     "c:\\halo\\SOURCE\\interface\\virtual_keyboard.c", 363,
+                     true);
+      system_exit(-1);
+    }
+    *(short *)0x46cef8 = 0;
+    *(short *)0x46cefa = 0;
+    *(short *)0x46cefc = 0;
+    *(short *)0x46cefe = -1;
+    *(short *)0x46cf00 = -1;
+    *(short *)0x46cf02 = 0;
+    *(int *)0x46cf08 = 0;
+    *(int *)0x46cf0c = 0;
+    *(int *)0x46cf10 = 0;
+  } else {
+    error(2, "failed to load virtual keyboard for '%s' language", "<unknown>");
+  }
+
+  *(int *)0x46cf14 =
+    tag_loaded(0x6269746d, "ui\\shell\\bitmaps\\white"); /* 'bitm' */
+  if (*(int *)0x46cf14 == -1) {
+    error(2, "failed to load virtual keyboard caret bitmap '%s'",
+          "ui\\shell\\bitmaps\\white");
+  }
+
+  return *(void **)0x46cef4 != (void *)0;
+}
+
 #include "x87_math.h"
 
 /* Activate the pickup sound effect for an equipment item.
@@ -55,7 +167,8 @@ short FUN_000f68b0(int item_handle)
   return (unsigned char)datum[3];
 }
 
-/* Activate an item: set flags 0x6000, record game time, reset timer (0xf6910). */
+/* Activate an item: set flags 0x6000, record game time, reset timer (0xf6910).
+ */
 char item_activate(int item_handle)
 {
   char *item_obj;
@@ -392,54 +505,4 @@ void item_set_position(int item_handle, float *position, int flag)
     system_exit(-1);
   }
   *(int16_t *)0x4761d8 = *(int16_t *)0x4761d8 - 1;
-}
-
-/*
- * text_search_and_replace_function_table[1]  (0x000f52f0, __cdecl)
- *
- * Resolver that renders a single-digit wide replacement string from a widget
- * field.  Reads a signed 16-bit selector at (widget + 8), then writes the
- * digit + NUL terminator into a static wchar_t[2] result buffer at 0x0046cee8
- * and returns a pointer to it (EAX = 0x0046cee8 in every arm of the original).
- *
- *   selector -1 / 0 -> L"1"
- *   selector  1     -> L"2"
- *   selector  2     -> L"3"
- *   selector  3     -> L"4"
- *   otherwise       -> L"?"
- *
- * The original biases the selector by +1 and dispatches through a 5-entry jump
- * table (indices 0..4 for selector -1..3); the switch below reproduces that
- * dense mapping.  The 0x0046cee8 result buffer lies inside the delinker's
- * over-sized game_data build-version array, but is a distinct static owned by
- * this TU, so it is declared as its own symbol (word_46CEE8).
- *
- * ABI: sole cdecl stack arg 'widget' (no register args); leaf, no callees.
- */
-wchar_t *
-FUN_000f52f0(void *widget)
-{
-  switch (*(short *)((char *)widget + 8)) {
-  case -1:
-  case 0:
-    word_46CEE8[0] = L'1';
-    word_46CEE8[1] = L'\0';
-    return word_46CEE8;
-  case 1:
-    word_46CEE8[0] = L'2';
-    word_46CEE8[1] = L'\0';
-    return word_46CEE8;
-  case 2:
-    word_46CEE8[0] = L'3';
-    word_46CEE8[1] = L'\0';
-    return word_46CEE8;
-  case 3:
-    word_46CEE8[0] = L'4';
-    word_46CEE8[1] = L'\0';
-    return word_46CEE8;
-  default:
-    word_46CEE8[0] = L'?';
-    word_46CEE8[1] = L'\0';
-    return word_46CEE8;
-  }
 }
