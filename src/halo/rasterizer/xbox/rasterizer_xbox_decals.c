@@ -17,6 +17,8 @@
  *   0x32516c  int     – most-recently-queried decal index (debug display)
  */
 
+#include "x87_math.h"
+
 /* Forward declarations for callbacks passed to lruv_cache_new.
  * FUN_0015afa0 is the eviction callback; FUN_0015b0c0 is the lock-query
  * callback (both ported at their original addresses). */
@@ -614,6 +616,46 @@ void FUN_00158f90(void)
   }
 
   FUN_0016FEB0();
+}
+
+/*
+ * FUN_00159070  @ 0x159070  (rasterizer_decals.obj)
+ * -----------------------------------------------------------------------------
+ * real_alpha_to_pixel32-style inline from ..\bitmaps\bitmaps_inlines.h
+ * (line 0x123): converts a [0,1] alpha float to a pixel32 with the alpha
+ * in the top byte. Bounds assert falls through into the body (standard
+ * display_assert + system_exit(-1) macro, combined ADD ESP,0x14 cleanup
+ * at 0x1590ba — NOT an early return).
+ *
+ * Codegen notes (delinked/functions/00159070.obj):
+ *  - 255.0f is materialized as an immediate store to a stack local
+ *    (MOV [EBP-8],0x437F0000) then FLD/FMULP — volatile scale reproduces
+ *    the store+load instead of a pooled-constant FMUL.
+ *  - The int conversion is a bare FISTP (round-to-nearest, /QIfist
+ *    codegen) — NOT C truncation. x87_round_to_int keeps runtime
+ *    behavior faithful (a plain (int) cast diverged 7/100 equivalence
+ *    seeds). Our VC71 harness lacks /QIfist, so the harness emits the
+ *    helper's asm out-of-line-ish — a small structural gap, not a bug.
+ *  - SHL happens in MEMORY ([EBP-4],0x18) then MOV EAX,[EBP-4].
+ *  - Compares: FLD alpha; FCOMP 0.0f (test ah,1; jne assert) then
+ *    FLD alpha; FCOMP 1.0f (test ah,0x41; jnp body) — i.e.
+ *    !(alpha >= 0.0f && alpha <= 1.0f) with the assert as fall-through.
+ */
+uint32_t FUN_00159070(float alpha)
+{
+  volatile float scale;
+  int pixel;
+
+  scale = 255.0f;
+  if (!(alpha >= 0.0f && alpha <= 1.0f)) {
+    display_assert("alpha>=0.0f && alpha<=1.0f",
+                   "..\\bitmaps\\bitmaps_inlines.h", 0x123, true);
+    system_exit(-1);
+  }
+
+  pixel = x87_round_to_int(scale * alpha);
+  pixel <<= 0x18;
+  return (uint32_t)pixel;
 }
 
 /*
