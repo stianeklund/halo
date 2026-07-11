@@ -19611,7 +19611,9 @@
         },
         {
           "addr": "0x15c980",
-          "decl": "void FUN_0015c980(void *decal_group);"
+          "decl": "void FUN_0015c980(void *view_data);",
+          "ported": true,
+          "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
         },
         {
           "addr": "0x15cbb0",
