@@ -1351,6 +1351,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
              real_callees: bool = False,
              max_insn: int = None,
              stub_arg_trace: bool = True,
+             stub_conv_check: bool = True,
              value_corpus: Optional[Path] = None) -> int:
     """Run the differential test.  Returns 0 if all pass, 1 if any diverge."""
 
@@ -1776,6 +1777,21 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                 globals_seeds.update(stub_mgr._extra_rdata_seeds)
                 info(f"  real callees: {stub_mgr._real_code_count} loaded, "
                      f"{len(stub_mgr._callee_dir32_slots)} callee globals seeded")
+            if stub_mgr.convention_mismatches:
+                # Both oracle and candidate stubs honor the declared (wrong)
+                # convention, so the differential is blind to this — but the
+                # box is not (ESP drift, lift-learnings §30). Fail the run.
+                n_mm = len(stub_mgr.convention_mismatches)
+                if stub_conv_check:
+                    log(f"ERROR: {n_mm} stub convention mismatch(es) — "
+                        f"kb.json decl vs binary RET (lift-learnings §30):")
+                    for m in stub_mgr.convention_mismatches:
+                        log(f"  {m}")
+                    log("  Fix the kb.json decl (check_stdcall_ret.py --addr "
+                        "0xADDR); bypass with --no-stub-conv-check.")
+                    return finish("error", True, "stub_convention_mismatch", 2)
+                log(f"WARNING: {n_mm} stub convention mismatch(es) ignored "
+                    f"(--no-stub-conv-check)")
             stub_manager = stub_mgr
             use_stubs = True
 
@@ -2636,6 +2652,12 @@ def main():
                              "--allow-stubs). When enabled, oracle and candidate argument "
                              "values for each callee stub hit are compared and mismatches "
                              "are reported.")
+    parser.add_argument("--no-stub-conv-check", action="store_true",
+                        help="Do not fail when a stubbed callee's kb.json calling "
+                             "convention disagrees with its RET immediate in the "
+                             "pristine XBE (lift-learnings §30). Both stubs honor "
+                             "the declared convention, so the differential cannot "
+                             "see the mismatch — the box crashes instead.")
     args = parser.parse_args()
     if args.real_callees:
         args.allow_stubs = True
@@ -2705,6 +2727,7 @@ def main():
         real_callees=args.real_callees,
         max_insn=args.max_insn,
         stub_arg_trace=not args.no_stub_arg_trace,
+        stub_conv_check=not args.no_stub_conv_check,
         value_corpus=args.value_corpus,
     ))
 

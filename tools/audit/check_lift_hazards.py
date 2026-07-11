@@ -1417,6 +1417,50 @@ def check_range_gate_relational(filepath, content, lines):
     return errors
 
 
+_FNPTR_CONV_CAST = re.compile(
+    r'\(\s*[\w\s\*]+\(\s*(?:__stdcall|__fastcall)\s*\*\s*\)\s*'
+    r'\([^;{]*?\)\s*\)\s*(0x[0-9a-fA-F]{4,})')
+_FNPTR_CONV_TYPEDEF = re.compile(
+    r'typedef\s+[\w\s\*]+\(\s*(?:__stdcall|__fastcall)\s*\*\s*(\w+)\s*\)')
+
+
+def check_raw_fnptr_conv_cast(filepath, content, lines):
+    """Flag __stdcall/__fastcall function-pointer casts of hardcoded addresses.
+
+    A convention asserted in a source-level cast (inline or via typedef) is
+    invisible to every kb.json audit — check_stdcall_ret.py, check_arg_counts,
+    the ABI audit — so a wrong (or later-invalidated) convention claim can only
+    be caught on the box (the 0x158df0 ESP-drift boot crash class, see
+    lift-learnings §30).  Doctrine: add the callee to kb.json with the correct
+    decl and call it by name.  Suppress a verified site with
+    /* hazard-ok: fnptr-conv */ on the line.
+    """
+    errors = []
+    relpath = os.path.relpath(filepath, ROOT_DIR)
+
+    def _flag(m, addr, how):
+        lineno = content.count('\n', 0, m.start()) + 1
+        src_line = lines[lineno - 1] if lineno - 1 < len(lines) else ''
+        if 'hazard-ok' in src_line:
+            return
+        errors.append(
+            f'  {relpath}:{lineno}: {how} cast of {addr} — the convention is '
+            f'invisible to kb.json audits (lift-learnings §30); add the callee '
+            f'to kb.json and call it by name'
+        )
+
+    for m in _FNPTR_CONV_CAST.finditer(content):
+        _flag(m, m.group(1), '__stdcall/__fastcall fn-pointer')
+
+    for tname in set(_FNPTR_CONV_TYPEDEF.findall(content)):
+        for m in re.finditer(
+                r'\(\s*' + re.escape(tname) + r'\s*\)\s*(0x[0-9a-fA-F]{4,})',
+                content):
+            _flag(m, m.group(1), f'typedef `{tname}` (__stdcall/__fastcall)')
+
+    return errors
+
+
 def main():
     frame_audit = '--frame-size-audit' in sys.argv
     quiet = '-q' in sys.argv or '--quiet' in sys.argv or os.environ.get('LOG_LEVEL') == 'WARNING'
@@ -1445,6 +1489,7 @@ def main():
     all_contiguity_errors = []
     all_nan_guard_errors = []
     all_range_gate_errors = []
+    all_fnptr_conv_errors = []
 
     for fpath in c_files:
         with open(fpath, 'r', errors='replace') as f:
@@ -1467,6 +1512,7 @@ def main():
         all_contiguity_errors.extend(check_vector_arg_contiguity(fpath, content, lines))
         all_nan_guard_errors.extend(check_nan_blind_guard(fpath, content, lines))
         all_range_gate_errors.extend(check_range_gate_relational(fpath, content, lines))
+        all_fnptr_conv_errors.extend(check_raw_fnptr_conv_cast(fpath, content, lines))
         if frame_audit:
             all_frame_errors.extend(check_frame_sizes(fpath, content, lines))
 
@@ -1488,7 +1534,8 @@ def main():
             f'inplace_mutator: {len(all_inplace_mut_errors)}, '
             f'vec_contiguity: {len(all_contiguity_errors)}, '
             f'nan_guard: {len(all_nan_guard_errors)}, '
-            f'range_gate: {len(all_range_gate_errors)}'
+            f'range_gate: {len(all_range_gate_errors)}, '
+            f'fnptr_conv: {len(all_fnptr_conv_errors)}'
         )
         if frame_audit:
             counts += f', frame_sizes: {len(all_frame_errors)}'
@@ -1500,7 +1547,7 @@ def main():
                  len(all_addr_value_add_errors) + len(all_param_loop_errors) +
                  len(all_discard_result_errors) + len(all_inplace_mut_errors) +
                  len(all_contiguity_errors) + len(all_nan_guard_errors) +
-                 len(all_range_gate_errors))
+                 len(all_range_gate_errors) + len(all_fnptr_conv_errors))
         if total:
             print(counts, file=sys.stderr)
     else:
@@ -1713,6 +1760,20 @@ def main():
                 file=sys.stderr,
             )
             for e in all_range_gate_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
+
+        if all_fnptr_conv_errors:
+            print(
+                'WARNING: __stdcall/__fastcall fn-pointer cast of a hardcoded\n'
+                'address. The convention claim lives only in source, invisible\n'
+                'to kb.json audits (check_stdcall_ret.py etc.) — a wrong claim\n'
+                'is the 0x158df0 ESP-drift boot-crash class (lift-learnings §30).\n'
+                'Add the callee to kb.json with the verified decl and call it\n'
+                'by name; suppress a verified site with /* hazard-ok: fnptr-conv */:\n',
+                file=sys.stderr,
+            )
+            for e in all_fnptr_conv_errors:
                 print(e, file=sys.stderr)
             print(file=sys.stderr)
 
