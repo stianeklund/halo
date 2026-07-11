@@ -2230,6 +2230,61 @@ void FUN_0015d310(short type, int count)
   return;
 }
 
+/* 0x15d480
+ *
+ * Query the short field at +0 of dynamic-vertices reservation record
+ * `dynamic_vertex_buffer_index` (the 0x10-stride table at 0x476bd8 filled by
+ * FUN_0015d310; +0 is the record's vertex-type short).  Validates the index:
+ * NONE (-1) emits a non-fatal warning and returns NONE; any other
+ * out-of-range value asserts.  Asserts cite
+ * c:\halo\SOURCE\rasterizer\xbox\rasterizer_xbox_draw_primitives.c (grouped
+ * into rasterizer_decals.obj).
+ *
+ * cdecl, one int32 stack arg at [ESP+4]; returns short in AX (kb.json decl
+ * was void(void) - corrected from disasm: MOV ESI,[EBP+8]; SHL ESI,4;
+ * MOV AX,[ESI+0x476bd8]).  The pristine XBE hoists -1 into EDI at the
+ * prologue (OR EDI,0xFFFFFFFF) and returns it via MOV AX,DI on the NONE
+ * path; `none_result` below exists to reproduce that callee-saved
+ * materialization.
+ *
+ * Globals:
+ *   0x476ab0  void *  - global_d3d_device (asserted non-NULL)
+ *   0x47abd8  int     - dynamic_vertices reservation record_count (bound)
+ *   0x476bd8  short   - reservation table base, stride 0x10, +0 short field
+ */
+short FUN_0015d480(int dynamic_vertex_buffer_index)
+{
+  short none_result = -1;
+
+  if (*(void **)0x476ab0 == 0) {
+    display_assert("global_d3d_device",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_"
+                   "draw_primitives.c",
+                   0x1de, 1);
+    system_exit(-1);
+  }
+  if (dynamic_vertex_buffer_index != -1) {
+    if (dynamic_vertex_buffer_index < 0) {
+      display_assert("dynamic_vertex_buffer_index>=0",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_"
+                     "draw_primitives.c",
+                     0x1e4, 1);
+      system_exit(-1);
+    }
+    if (dynamic_vertex_buffer_index >= *(int *)0x47abd8) {
+      display_assert(
+        "dynamic_vertex_buffer_index<dynamic_vertices.buffer_count",
+        "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_"
+        "draw_primitives.c",
+        0x1e5, 1);
+      system_exit(-1);
+    }
+    return *(short *)((dynamic_vertex_buffer_index << 4) + 0x476bd8);
+  }
+  error(2, "### WARNING tried to query dynamic vertices with index=NONE");
+  return none_result;
+}
+
 /* 0x15d5b0
  *
  * Draw a batch of `primitive_count` dynamic primitives that were previously
