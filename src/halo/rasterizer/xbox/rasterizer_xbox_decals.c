@@ -2538,6 +2538,97 @@ void FUN_0015bc40(int rendered_cluster_data)
  * args, HRESULT in EAX, callee-cleans (no ADD ESP after the CALL).
  */
 /*
+ * FUN_0015c190 @ 0x15c190 — detail-objects sprite vertex expansion.
+ * Register args (kb.json f0235d66, caller evidence at 0x15cb3e in
+ * FUN_0015c980): count@EAX, base@ECX, out@EDX; one stack arg = the
+ * 6-byte-stride input entry array.
+ *
+ * For each input entry it stages an 8-byte packed vertex in a local
+ * buffer: bytes 0-2 are the entry's position bytes, bytes 3-5 are
+ * bit-mixed from the entry's 16-bit type word (byte 3 from the high
+ * byte, bytes 4-5 from both halves), and the word at +6 is a packed
+ * sprite reference: sprite slot = (entry[3] >> 4) % type-block count
+ * (signed IDIV), sprite frame = type->byte[0x22] + (entry[3] & 0xF) %
+ * type->byte[0x23], packed as (frame << 8) | (slot << 4). It then emits
+ * FOUR 8-byte copies per entry (one per sprite corner), incrementing
+ * the packed word by 1 for each corner, advancing out by 0x20 and the
+ * entry pointer by 6. The type block is the tag_block at base+0x44
+ * (element size 0x60); the slot index is passed to
+ * tag_block_get_element as a sign-extended int16 (MOVSX BX).
+ *
+ * Store order within each pair follows the original (second dword of
+ * pairs 1-2 written before the first; pairs 3-4 in ascending order).
+ */
+/* 0x15c190 */
+void FUN_0015c190(int count, void *base, void *out, void *entries)
+{
+  uint8_t *src;
+  uint32_t *dst;
+  int remaining;
+  uint16_t w;
+  uint8_t lo;
+  uint8_t hi;
+  int slot;
+  void *elem;
+  uint16_t packed;
+  uint8_t staging[8];
+
+  if (count <= 0) {
+    return;
+  }
+
+  /* The original biases the entry cursor by +2 (EDI = entries + 2) and
+   * addresses fields at EDI-2..EDI+3; mirror that shape. */
+  src = (uint8_t *)entries + 2;
+  dst = (uint32_t *)out;
+  remaining = count;
+  do {
+    /* The original zero-extends the type word via XOR EAX,EAX; MOV AX and
+     * derives the mixed bytes with 32-bit shifts of that register. */
+    w = 0;
+    w = *(uint16_t *)(src + 2);
+    hi = (uint8_t)(w >> 8);
+    lo = (uint8_t)w;
+
+    staging[0] = src[-2];
+    staging[1] = src[-1];
+    staging[2] = src[0];
+    staging[3] = (uint8_t)((((uint8_t)((uint32_t)w >> 13) ^ hi) & 7) ^ hi);
+    staging[4] = (uint8_t)(((((uint8_t)((uint32_t)w >> 9)) ^ (uint8_t)(lo >> 3)) & 3)
+                           ^ (uint8_t)((uint32_t)w >> 3));
+    staging[5] = (uint8_t)(((lo >> 2) & 7) | (uint8_t)(lo << 3));
+
+    slot = (int)(uint32_t)(src[1] >> 4) % *(int *)((uint8_t *)base + 0x44);
+    elem = tag_block_get_element((uint8_t *)base + 0x44, (int16_t)slot, 0x60);
+    packed = (uint16_t)((((src[1] & 0xf)
+                            % (int)*(uint8_t *)((uint8_t *)elem + 0x23)
+                          + (int)*(uint8_t *)((uint8_t *)elem + 0x22)) << 8)
+                        | (slot << 4));
+
+    /* Packed index word runs INC AX-style between the four corners. */
+    *(uint16_t *)(staging + 6) = packed;
+    dst[1] = *(uint32_t *)(staging + 4);
+    dst[0] = *(uint32_t *)(staging + 0);
+    packed++;
+    *(uint16_t *)(staging + 6) = packed;
+    dst[3] = *(uint32_t *)(staging + 4);
+    dst[2] = *(uint32_t *)(staging + 0);
+    packed++;
+    *(uint16_t *)(staging + 6) = packed;
+    dst[4] = *(uint32_t *)(staging + 0);
+    dst[5] = *(uint32_t *)(staging + 4);
+    packed++;
+    *(uint16_t *)(staging + 6) = packed;
+    dst[6] = *(uint32_t *)(staging + 0);
+    dst[7] = *(uint32_t *)(staging + 4);
+
+    dst += 8;
+    src += 6;
+    remaining--;
+  } while (remaining != 0);
+}
+
+/*
  * FUN_0015c2b0 @ 0x15c2b0 — dead register-convention adapter for
  * D3DDevice_CreateVertexBuffer: length (s2) and usage (s3) on the stack,
  * fvf/pool/ppVertexBuffer in EDX/ECX/EAX; s1 is the ignored device
