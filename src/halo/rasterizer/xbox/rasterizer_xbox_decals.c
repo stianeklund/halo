@@ -2885,6 +2885,151 @@ void FUN_0015c6f0(void)
   D3DDevice_SetStreamSource(0, *(void **)0x476ae4, 8);
 }
 
+/*
+ * FUN_0015c980 @ 0x15c980 — rasterizer_detail_objects_begin: expands every
+ * visible detail-object cell's sprites into the detail-objects dynamic
+ * vertex buffer. Same TU as 0x15c2d0 (rasterizer_xbox_detail_objects.c,
+ * __FILE__ assert xref, lines 0xd7-0xd9).
+ *
+ * Gated on the detail-objects enable byte (0x3256dc) and window count
+ * (split-screen with more than one window skips detail objects). Locks the
+ * detail-objects vertex buffer (0x476ae4, 0x20000 bytes, D3D busy flag
+ * 0x325652 = 3 around the D3DVertexBuffer_Lock — raw __stdcall cast, kb.json
+ * stub decl is void(void)). Assert terminals are PUSH -1; CALL 0x8e2f0 =
+ * system_exit(-1) — the DECOMPILER shows thunk_FUN_001029a0 here and prunes
+ * the whole loop body as unreachable; the disassembly is authoritative.
+ *
+ * The 6-byte detail-object entry pool is element 0 of the sub-block at +0xC
+ * of cell block element 0 (scenario_get()+0x24C, element size 0x40); when
+ * that block is empty the original still calls tag_block_get_element on
+ * NULL+0xC — preserved. Per cell (8-byte stride, palette index at +6): looks
+ * up the detail-object-collection palette entry (scenario+0x3C0, element
+ * size 0x30, tag index at +0xC), resolves the 'dobc' tag, then per type
+ * (24-byte stride off the cell's array): clamps the entry count to the
+ * remaining frame budget (0x1000 vertices total), calls FUN_0015c190
+ * (count@EAX, dobc@ECX, out@EDX) to emit 4 packed vertices per entry,
+ * records the first-vertex index at +0x10, advances the write cursor by the
+ * UNCLAMPED count*4 (original quirk — the cursor uses the stored count read
+ * before the clamp is written back), and on overflow clamps the stored
+ * count at +4 and errors once per call ("too many detail object submitted").
+ */
+/* 0x15c980 */
+void FUN_0015c980(void *view_data)
+{
+  void *scenario;
+  void *locked;
+  void *cells0;
+  void *entry_pool;
+  void *palette_elem;
+  void *dobc;
+  uint8_t *cell;
+  uint8_t *sub;
+  int written;
+  int used;
+  int cell_index;
+  int type_index;
+  int count;
+  int budget;
+  int stored;
+  char warned;
+
+  if (*(char *)0x3256dc == 0) {
+    return;
+  }
+  if (main_get_window_count() > 1) {
+    return;
+  }
+
+  scenario = global_scenario_get();
+  locked = (void *)0x0;
+  if (view_data == (void *)0x0) {
+    display_assert(
+      "detail_object_view_data",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_detail_objects.c",
+      0xd7, 1);
+    system_exit(-1);
+  }
+  if (*(void **)0x476ae4 == (void *)0x0) {
+    display_assert(
+      "local_d3d_vertex_buffer",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_detail_objects.c",
+      0xd8, 1);
+    system_exit(-1);
+  }
+  if (*(int *)0x476ab0 == 0) {
+    display_assert(
+      "global_d3d_device",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_detail_objects.c",
+      0xd9, 1);
+    system_exit(-1);
+  }
+
+  *(uint16_t *)0x325652 = 3;
+  ((void(__stdcall *)(void *, uint32_t, uint32_t, void **, uint32_t))0x1ef100)(
+      *(void **)0x476ae4, 0, 0x20000, &locked, 0);
+  *(uint16_t *)0x325652 = 0;
+  if (locked == (void *)0x0) {
+    return;
+  }
+
+  if (*(int *)((uint8_t *)scenario_get() + 0x24c) != 0) {
+    cells0 = tag_block_get_element((uint8_t *)scenario_get() + 0x24c, 0, 0x40);
+  } else {
+    cells0 = (void *)0x0;
+  }
+  entry_pool = tag_block_get_element((uint8_t *)cells0 + 0xc, 0, 6);
+
+  written = 0;
+  used = 0;
+  warned = 0;
+  cell_index = 0;
+  if (*(int16_t *)((uint8_t *)view_data + 4) <= 0) {
+    return;
+  }
+
+  do {
+    cell = *(uint8_t **)view_data + (int16_t)cell_index * 8;
+    palette_elem = tag_block_get_element(
+        (uint8_t *)scenario + 0x3c0, *(int16_t *)(cell + 6), 0x30);
+    dobc = tag_get(0x646f6263, *(int *)((uint8_t *)palette_elem + 0xc));
+
+    type_index = 0;
+    if (*(int16_t *)(cell + 4) > 0) {
+      do {
+        sub = *(uint8_t **)cell + (int16_t)type_index * 24;
+        count = *(int *)(sub + 4);
+        budget = 0x1000 - used;
+        if (count > budget) {
+          count = budget;
+        }
+        FUN_0015c190(
+            count,
+            dobc,
+            (uint8_t *)locked + written * 8,
+            (uint8_t *)entry_pool + *(int *)sub * 6);
+        /* The cursor advances by the stored count read BEFORE the clamp
+         * below writes back — original quirk, preserved. */
+        stored = *(int *)(sub + 4);
+        *(int *)(sub + 0x10) = written;
+        written += stored * 4;
+        if (stored > count) {
+          *(int *)(sub + 4) = count;
+          if (warned == 0) {
+            warned = 1;
+            error(2,
+                  "### ERROR too many detail object submitted for frame "
+                  "(max=#%d)",
+                  0x1000);
+          }
+        }
+        used += count;
+        type_index++;
+      } while ((int16_t)type_index < *(int16_t *)(cell + 4));
+    }
+    cell_index++;
+  } while ((int16_t)cell_index < *(int16_t *)((uint8_t *)view_data + 4));
+}
+
 /* 0x15cbb0
  *
  * rasterizer_detail_objects_draw (assert strings). Same TU as 0x15c2d0
