@@ -12835,23 +12835,23 @@
         },
         {
           "addr": "0xf5660",
-          "decl": "void FUN_000f5660(void);"
+          "decl": "char FUN_000f5660(void);"
         },
         {
           "addr": "0xf56b0",
-          "decl": "void FUN_000f56b0(void);"
+          "decl": "char FUN_000f56b0(void);"
         },
         {
           "addr": "0xf5700",
-          "decl": "void FUN_000f5700(void);"
+          "decl": "char FUN_000f5700(void);"
         },
         {
           "addr": "0xf5750",
-          "decl": "void FUN_000f5750(void);"
+          "decl": "char FUN_000f5750(void);"
         },
         {
           "addr": "0xf57a0",
-          "decl": "void FUN_000f57a0(void);"
+          "decl": "char FUN_000f57a0(void);"
         },
         {
           "addr": "0xf5800",
@@ -12879,11 +12879,13 @@
         },
         {
           "addr": "0xf5fb0",
-          "decl": "void FUN_000f5fb0(void);"
+          "decl": "char FUN_000f5fb0(void);"
         },
         {
           "addr": "0xf63f0",
-          "decl": "void FUN_000f63f0(void);"
+          "decl": "void virtual_keyboard_process_input(void);",
+          "name": "virtual_keyboard_process_input",
+          "ported": true
         },
         {
           "addr": "0xf6740",
