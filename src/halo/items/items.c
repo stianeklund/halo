@@ -299,6 +299,40 @@ void FUN_000f6b80(int item_handle)
   }
 }
 
+/* valid_real_vector3d_axes3 (0xf6c40)
+ *
+ * Validate that three vectors (a, b, c) form a valid orthonormal axis triple:
+ * each must be a unit normal (valid_real_normal3d), and each adjacent pair
+ * must be mutually perpendicular (dot ~= 0). FUN_00021f70 is the two-float
+ * approximate-equality test (dot, 0.0). FUN_00013070(c, a) returns the
+ * scalar (dot) that must also be ~0. Returns 1 if all checks pass, else 0.
+ *
+ * FP term order preserved from disassembly (MSVC scheduling emits the sum
+ * components in 0,2,1 order); the sum is commutative so this is harmless
+ * mathematically but kept for byte-fidelity. */
+char valid_real_vector3d_axes3(float *a, float *b, float *c)
+{
+  float scalar;
+
+  if (valid_real_normal3d(a)) {
+    if (valid_real_normal3d(b)) {
+      if (valid_real_normal3d(c)) {
+        if ((char)FUN_00021f70(a[0] * b[0] + a[2] * b[2] + a[1] * b[1], 0.0f) !=
+            '\0') {
+          if ((char)FUN_00021f70(b[0] * c[0] + c[2] * b[2] + c[1] * b[1],
+                                 0.0f) != '\0') {
+            scalar = FUN_00013070(c, a);
+            if ((char)FUN_00021f70(scalar, 0.0f) != '\0') {
+              return '\x01';
+            }
+          }
+        }
+      }
+    }
+  }
+  return '\0';
+}
+
 /* item_set_position (0xf6d60)
  *
  * Apply a velocity/position delta to an item and update its angular velocity.
