@@ -333,6 +333,30 @@ char valid_real_vector3d_axes3(float *a, float *b, float *c)
   return '\0';
 }
 
+/* valid_real_matrix4x3 (0xf6d00)
+ *
+ * Validate a 4x3 affine matrix: 1 scale scalar @ +0x00, three orthonormal
+ * axis vectors @ +0x04/+0x10/+0x1C, and a translation point @ +0x28.
+ * The scale scalar is finite (not inf/NaN) when its IEEE-754 exponent bits
+ * (mask 0x7f800000) are NOT all set. Then the axis triple and the point are
+ * validated by their respective helpers. Returns 1 only when every check
+ * passes; 0 on any failure or non-finite scale.
+ *
+ * Ghidra mistyped this void(void); it is a bool-returning cdecl fn taking one
+ * float* matrix pointer (proven by the render_cameras.c thunk typedef). Nested
+ * -if shape preserved: single success return, fall-through failure. */
+char valid_real_matrix4x3(float *mat)
+{
+  if ((*(uint32_t *)mat & 0x7f800000) != 0x7f800000) {
+    if (valid_real_vector3d_axes3(mat + 1, mat + 4, mat + 7) != '\0') {
+      if (valid_real_point3d(mat + 10)) {
+        return '\x01';
+      }
+    }
+  }
+  return '\0';
+}
+
 /* item_set_position (0xf6d60)
  *
  * Apply a velocity/position delta to an item and update its angular velocity.

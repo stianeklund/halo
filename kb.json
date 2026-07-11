@@ -12956,7 +12956,9 @@
         },
         {
           "addr": "0xf6d00",
-          "decl": "void valid_real_matrix4x3(void);"
+          "decl": "char valid_real_matrix4x3(float *mat);",
+          "name": "valid_real_matrix4x3",
+          "ported": true
         },
         {
           "addr": "0xf6d60",
