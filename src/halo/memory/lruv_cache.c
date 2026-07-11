@@ -884,12 +884,12 @@ void *FUN_0011d110(const char *name, int total_size, int block_size,
   if (block_size < 0) {
     display_assert("block_size>=0", "c:\\halo\\SOURCE\\memory\\lru_cache.c",
                    0x5e, 1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
   if (total_size < block_size) {
     display_assert("total_size>=block_size",
                    "c:\\halo\\SOURCE\\memory\\lru_cache.c", 0x5f, 1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
   if ((delete_callback == (void *)0) || (query_callback == (void *)0)) {
     delete_callback = (void *)FUN_0011cfd0;

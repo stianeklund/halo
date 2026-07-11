@@ -488,19 +488,19 @@ bool FUN_00106f50(int16_t point_count, float *points, int16_t vertices_capacity,
 
   if (points == (float *)0) {
     display_assert("points", "c:\\halo\\SOURCE\\math\\geometry.c", 0x6ae, 1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
   if (vertices == (char *)0) {
     display_assert("vertices", "c:\\halo\\SOURCE\\math\\geometry.c", 0x6af, 1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
   if (edges == (char *)0) {
     display_assert("edges", "c:\\halo\\SOURCE\\math\\geometry.c", 0x6b0, 1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
   if (surfaces == (char *)0) {
     display_assert("surfaces", "c:\\halo\\SOURCE\\math\\geometry.c", 0x6b1, 1);
-    halt_and_catch_fire();
+    system_exit(-1);
   }
 
   if (3 < vertices_capacity && 5 < edges_capacity && 3 < surfaces_capacity &&
