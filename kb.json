@@ -5824,7 +5824,7 @@
         },
         {
           "addr": "0x1cf999",
-          "decl": "void SetThreadPriority(void);"
+          "decl": "int __stdcall SetThreadPriority(int thread_handle, int priority);"
         },
         {
           "addr": "0x1cf9eb",
@@ -35599,7 +35599,7 @@
         },
         {
           "addr": "0x1cfaec",
-          "decl": "void FUN_001cfaec(void);"
+          "decl": "int __stdcall ResumeThread(int thread_handle);"
         },
         {
           "addr": "0x1cfb12",
@@ -35611,7 +35611,7 @@
         },
         {
           "addr": "0x1cfbbd",
-          "decl": "void GetExitCodeThread(void);"
+          "decl": "int __stdcall GetExitCodeThread(int thread_handle, int *exit_code);"
         },
         {
           "addr": "0x1cfc1b",
@@ -35663,7 +35663,7 @@
         },
         {
           "addr": "0x1d0099",
-          "decl": "void FUN_001d0099(void);"
+          "decl": "int __stdcall ReleaseMutex(int mutex_handle);"
         },
         {
           "addr": "0x1d00b9",
@@ -35679,7 +35679,7 @@
         },
         {
           "addr": "0x1d01c4",
-          "decl": "void SleepEx(unsigned int milliseconds, int alertable);"
+          "decl": "unsigned int __stdcall SleepEx(unsigned int milliseconds, int alertable);"
         },
         {
           "addr": "0x1d0216",
@@ -35695,7 +35695,7 @@
         },
         {
           "addr": "0x1d0336",
-          "decl": "void FUN_001d0336(void);"
+          "decl": "int __stdcall WaitForSingleObject(int handle, int timeout_ms);"
         },
         {
           "addr": "0x1d0348",
@@ -37272,7 +37272,7 @@
         },
         {
           "addr": "0x001e69f0",
-          "decl": "void D3DDevice_GetDeviceCaps(void);"
+          "decl": "void __stdcall D3DDevice_GetDeviceCaps(void *caps);"
         },
         {
           "addr": "0x001e6a10",
@@ -38804,23 +38804,23 @@
         },
         {
           "addr": "0x00224881",
-          "decl": "void bind(void);"
+          "decl": "int __stdcall bind(void *xnet@<ecx>, unsigned int socket, const void *name, int namelen);"
         },
         {
           "addr": "0x00224904",
-          "decl": "void connect(void);"
+          "decl": "int __stdcall connect(void *xnet@<ecx>, unsigned int socket, const void *name, int namelen);"
         },
         {
           "addr": "0x00225021",
-          "decl": "void socket(void);"
+          "decl": "int __stdcall socket(void *xnet@<ecx>, int af, int type, int protocol);"
         },
         {
           "addr": "0x002256bb",
-          "decl": "void recv(void);"
+          "decl": "int __stdcall recv(void *xnet@<ecx>, unsigned int socket, char *buf, int len, int flags);"
         },
         {
           "addr": "0x002258a4",
-          "decl": "void send(void);"
+          "decl": "int __stdcall send(void *xnet@<ecx>, unsigned int socket, const char *buf, int len, int flags);"
         },
         {
           "addr": "0x0024b4e4",

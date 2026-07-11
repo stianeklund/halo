@@ -2701,23 +2701,23 @@
       "source": "src/halo/networking/message_header.c"
     },
     "FUN_00081630": {
-      "score": 80.0,
+      "score": 81.7,
       "source": "src/halo/bungie_net/thread_win32.c"
     },
     "FUN_00081720": {
-      "score": 75.4,
+      "score": 76.7,
       "source": "src/halo/bungie_net/thread_win32.c"
     },
     "FUN_00081770": {
-      "score": 98.5,
+      "score": 100.0,
       "source": "src/halo/bungie_net/thread_win32.c"
     },
     "FUN_00081870": {
-      "score": 81.8,
+      "score": 83.1,
       "source": "src/halo/bungie_net/thread_win32.c"
     },
     "FUN_000818d0": {
-      "score": 97.6,
+      "score": 100.0,
       "source": "src/halo/bungie_net/thread_win32.c"
     },
     "FUN_00082300": {

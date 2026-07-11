@@ -14,24 +14,11 @@
 
 #define MAXIMUM_THREADS 32
 
-/* XDK XAPI import thunks (stdcall) */
-typedef int(__stdcall *CreateThread_fn)(void *attrs, int stack_size,
-                                        void *start, int param,
-                                        int creation_flags, int *thread_id);
-typedef int(__stdcall *SetThreadPriority_fn)(int handle, int priority);
-typedef int(__stdcall *ResumeThread_fn)(int handle);
-typedef void(__stdcall *CloseHandle_fn)(int handle);
-typedef int(__stdcall *GetExitCodeThread_fn)(int handle, int *exit_code);
-typedef int(__stdcall *WaitForSingleObject_fn)(int handle, int timeout_ms);
-typedef int(__stdcall *ReleaseMutex_fn)(int handle);
-
-#define XCreateThread ((CreateThread_fn)0x1cfd8c)
-#define XSetThreadPriority ((SetThreadPriority_fn)0x1cf999)
-#define XResumeThread ((ResumeThread_fn)0x1cfaec)
-#define XCloseHandle ((CloseHandle_fn)0x1cf900)
-#define XGetExitCodeThread ((GetExitCodeThread_fn)0x1cfbbd)
-#define XWaitForSingleObject ((WaitForSingleObject_fn)0x1d0336)
-#define XReleaseMutex ((ReleaseMutex_fn)0x1d0099)
+/* XDK XAPI imports — called by name through kb.json __stdcall decls
+ * (CreateThread 0x1cfd8c, SetThreadPriority 0x1cf999, ResumeThread 0x1cfaec,
+ * CloseHandle 0x1cf900, GetExitCodeThread 0x1cfbbd, WaitForSingleObject
+ * 0x1d0336, ReleaseMutex 0x1d0099). The former raw fn-pointer casts hid the
+ * calling convention from kb.json audits (lift-learnings §30). */
 
 /* WaitForSingleObject return codes */
 #define WAIT_OBJECT_0 0x00
@@ -96,7 +83,7 @@ bool thread_new(int priority_flags, void *function, int param,
   }
 
   if (slot != NULL) {
-    handle = XCreateThread(NULL, 0x4000, function, param, 4, &thread_id);
+    handle = (int)CreateThread(NULL, 0x4000, function, (void *)param, 4, &thread_id);
     slot->handle = handle;
     if (handle != 0) {
       priority = 0;
@@ -105,13 +92,13 @@ bool thread_new(int priority_flags, void *function, int param,
       } else if ((priority_flags & 4) != 0) {
         priority = 1;
       }
-      if (XSetThreadPriority(handle, priority) != 0) {
-        if (XResumeThread(slot->handle) != -1) {
+      if (SetThreadPriority(handle, priority) != 0) {
+        if (ResumeThread(slot->handle) != -1) {
           *thread_reference = slot;
           return true;
         }
       }
-      XCloseHandle(slot->handle);
+      CloseHandle(slot->handle);
       *thread_reference = NULL;
       return false;
     }
@@ -142,7 +129,7 @@ bool thread_is_done(void *thread_reference)
     system_exit(-1);
   }
 
-  if (XGetExitCodeThread(slot->handle, &exit_code) == 0) {
+  if (GetExitCodeThread(slot->handle, &exit_code) == 0) {
     return false;
   }
   if (exit_code == STILL_ACTIVE) {
@@ -175,7 +162,7 @@ void thread_close(void *thread_reference)
     system_exit(-1);
   }
 
-  XCloseHandle(slot->handle);
+  CloseHandle(slot->handle);
   slot->handle = 0;
   slot->in_use = 0;
 }
@@ -200,7 +187,7 @@ bool take_mutex(int *mutex_reference, int timeout_ms)
                    1);
     system_exit(-1);
   }
-  result = XWaitForSingleObject(*mutex_reference, timeout_ms);
+  result = WaitForSingleObject(*mutex_reference, timeout_ms);
   if (result != WAIT_OBJECT_0 && result != WAIT_ABANDONED) {
     return false;
   }
@@ -224,5 +211,5 @@ void release_mutex(int *mutex_reference)
                    1);
     system_exit(-1);
   }
-  XReleaseMutex(*mutex_reference);
+  ReleaseMutex(*mutex_reference);
 }
