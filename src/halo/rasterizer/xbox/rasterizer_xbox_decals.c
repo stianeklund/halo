@@ -747,8 +747,8 @@ void FUN_00158800(unsigned short *bounds)
     D3DDevice_SetTextureStageState(0, 0xe, 2);
     D3DDevice_SetTextureStageState(0, 0xf, 2);
     D3DDevice_SetRenderState_CullMode(0x901);
-    D3DDevice_SetRenderState_Simple(0x40358, 0x101);
-    *(uint32_t *)0x1fb7a4 = 0x101;
+    D3DDevice_SetRenderState_Simple(0x40358, 0x10101);
+    *(uint32_t *)0x1fb7a4 = 0x10101;
     D3DDevice_SetRenderState_Simple(0x40304, 0);
     *(uint32_t *)0x1fb784 = 0;
     D3DDevice_SetRenderState_Simple(0x40300, 0);
@@ -1102,8 +1102,11 @@ static const char kActiveCamoFile[] =
  *     and FUN_00158df0, both review-gate REJECTs).
  *   - Guard bytes: MOV AL,[0x3256f9] / MOV AL,[0x476ac0], both JE end.
  *   - Render-target assert compare is 16-bit: CMP WORD PTR [0x5a5bc0],0.
- *   - SetRenderState_Simple(0x40358, 0x101) — value 0x101
- *     (MOV EDX,0x101), NOT 0x10101; mirror store [0x1fb7a4]=0x101.
+ *   - SetRenderState_Simple(0x40358, 0x10101) — NV2A SET_COLOR_MASK,
+ *     R+G+B write-enabled (MOV EDX,0x10101: BA 01 01 01 00 at 0x15968b);
+ *     mirror store [0x1fb7a4]=0x10101. An earlier 0x101 transcription
+ *     disabled red-channel writes during the capture, garbling the camo
+ *     texture red (2026-07-12 regression).
  *   - Vertex-shader constant block: 5 vec4 at ebp-0x58, exact bit patterns
  *     0x3bcccccd / 0xbf806666 / 0xbc088889 / 0x3f808889 / 0x3f000000 /
  *     0x3f800000 (literals verified to round-trip to these encodings).
@@ -1151,8 +1154,8 @@ void FUN_001595c0(void)
     D3DDevice_SetTextureStageState(0, 0xf, 1);
 
     D3DDevice_SetRenderState_CullMode(0x901);
-    D3DDevice_SetRenderState_Simple(0x40358, 0x101);
-    *(uint32_t *)0x1fb7a4 = 0x101;
+    D3DDevice_SetRenderState_Simple(0x40358, 0x10101);
+    *(uint32_t *)0x1fb7a4 = 0x10101;
     D3DDevice_SetRenderState_Simple(0x40304, 0);
     *(uint32_t *)0x1fb784 = 0;
     D3DDevice_SetRenderState_Simple(0x40300, 0);
