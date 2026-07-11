@@ -196,6 +196,7 @@ A hook (`tools/audit/token_discipline_hook.py`, wired in `.claude/settings.json`
 - **`tools/llm_auto_lift.py`** — Target selection, liftability scoring, and Ghidra context caching. Use `select` for combined frontier/liftability target choice; `cache-context` to pre-cache Ghidra output; code generation delegated to `/lift`.
 - **`tools/analysis/classify_common.py`** — Analyze `<common>` functions for reclassification into proper objects. Uses delinker exports and XBE `__FILE__` strings as evidence. Run with `--delinker-analyze` for full binary-evidence analysis (requires Ghidra), or `--summary` for a quick static overview.
 - **`tools/audit/batch_delink.py`** — Batch-export delinked reference objects for all kb.json objects.
+- **`tools/audit/check_assert_targets.py`** — Assert-tail CALL-target audit (system_exit vs halt_and_catch_fire) of lifted C vs the pristine XBE (lift-learnings §29). Capstone sweep cached in `artifacts/audit/`; `--check` gates ERRORs (swapped flavor), `--staged-only` used by the pre-commit hook, `--target <fn>` after lifting any function with asserts.
 - **`tools/audit/check_lift_hazards.py`** — Build-time hazard scan for common Ghidra/MSVC lifting pitfalls.
 - **`tools/lift_pipeline.py`** — Primary lift validation orchestrator for build, ABI audit, VC71 verify, behavior/runtime checks, and low-match policy.
 - **`tools/analysis/maintain.py`** — Source file organization and function placement checks.

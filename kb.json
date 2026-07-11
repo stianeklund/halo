@@ -19407,7 +19407,7 @@
           "addr": "0x158df0",
           "decl": "void FUN_00158df0(unsigned short *parameters);",
           "ported": true,
-          "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+          "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
         },
         {
           "addr": "0x158f90",
