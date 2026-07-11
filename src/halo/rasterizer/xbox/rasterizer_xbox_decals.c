@@ -42,6 +42,17 @@ typedef struct {
   void *pBits; /* +0x04  ([EBP-0x10]) */
 } d3d_locked_rect_t;
 
+/* D3DVIEWPORT8 mirror (0x18 bytes; viewport buffer at EBP-0x18 in
+ * FUN_00158140). */
+typedef struct {
+  unsigned int X; /* +0x00 */
+  unsigned int Y; /* +0x04 */
+  unsigned int Width; /* +0x08 */
+  unsigned int Height; /* +0x0c */
+  float MinZ; /* +0x10 */
+  float MaxZ; /* +0x14 */
+} d3d_viewport_t;
+
 /* 0x157e40
  *
  * rasterizer_present
@@ -239,6 +250,241 @@ void FUN_001580b0(int framebuffer_blend_function)
   value2 = *(uint32_t *)(0x29dac4 + offset);
   D3DDevice_SetRenderState_Simple(0x40350, value2);
   *(uint32_t *)0x1fb7c0 = value2;
+}
+
+/* 0x158140
+ *
+ * FUN_00158140 — select a render-target surface, bind it (with optional
+ * z-buffer), set the viewport to cover it, and optionally clear.
+ *
+ * Switch cases mirror FUN_001584f0's render-target table one dword later:
+ * per-target D3D *surface* headers at 0x476a5c..0x476aac (vs the texture
+ * headers at 0x476a54..0x476aa8).  Assert reasons: "mipmap_index==0" per
+ * case, "d3d_surface" when the selected surface header is NULL,
+ * "!zbuffer||d3d_surface_z" on the shared apply path, and "### ERROR
+ * unsupported rasterizer target" for the default case.  __FILE__ is
+ * rasterizer_xbox.c (original TU; linker grouped into rasterizer_decals.obj).
+ *
+ * Globals (used by address, not in kb.json):
+ *   0x476a5c  void*    target 0 d3d_surface (backbuffer)
+ *   0x476a60  void*    target 0 d3d_surface_z (shared z fallback)
+ *   0x476a6c  void*    target 1 d3d_surface
+ *   0x476a70  void*    target 1 d3d_surface_z (falls back to 0x476a60)
+ *   0x476a78  void*    target 2 d3d_surface
+ *   0x476a80  void*    target 3 d3d_surface
+ *   0x476a88  void*    target 4 d3d_surface
+ *   0x476a90  void*    target 5 d3d_surface
+ *   0x476a98  void*[4] target 6 (water) per-mip d3d_surface array
+ *   0x476aac  void*    target 7 d3d_surface
+ *   0x5a5bf4  short    target-0 viewport top    (Y)
+ *   0x5a5bf6  short    target-0 viewport left   (X)
+ *   0x5a5bf8  short    target-0 viewport bottom (Y + Height)
+ *   0x5a5bfa  short    target-0 viewport right  (X + Width)
+ *
+ * Call-site facts from the delinked reference (00158140.obj):
+ *   - D3DDevice_SetRenderTarget(surface@ESI, depth@EBX) where EBX is the
+ *     branchless select `neg bl; sbb ebx,ebx; and ebx,edi` =
+ *     (zbuffer ? d3d_surface_z : 0) — written as a plain ternary here.
+ *   - target != 0: D3DSurface_GetDesc(surface, &desc at EBP-0x34); viewport
+ *     X/Y = 0, Width/Height = desc +0x14/+0x18.
+ *   - target == 0: viewport X/Y/W/H from the four movsx'd shorts above
+ *     (Ghidra resolved no args for either call; pushes are in the disasm).
+ *   - D3DDevice_SetViewport takes ONE arg (LEA ECX,[EBP-0x18]; PUSH ECX) —
+ *     the kb.json placeholder decl `void(void)` was corrected to match.
+ *   - clear flags: 0xF3 for targets 0/1 (color+z+stencil), else 0xF0;
+ *     D3DDevice_Clear(0, NULL, flags, color, 1.0f literal, 0).
+ *
+ *   target       - render-target index (switch on short)
+ *   mipmap_index - water target mip level (short; must be 0 elsewhere)
+ *   color        - D3D clear color (raw uint)
+ *   do_clear     - char bool: issue D3DDevice_Clear
+ *   zbuffer      - char bool: bind the target's z surface
+ */
+void FUN_00158140(int target, int mipmap_index, uint32_t color, int do_clear,
+                  int zbuffer)
+{
+  void *d3d_surface;
+  void *d3d_surface_z;
+  d3d_surface_desc_t desc;
+  d3d_viewport_t viewport;
+  short water_mip;
+  short target16;
+  char zb;
+  uint32_t flags;
+
+  d3d_surface = 0;
+  d3d_surface_z = 0;
+
+  switch ((short)target) {
+  case 0:
+    if ((short)mipmap_index != 0) {
+      display_assert("mipmap_index==0",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                     0x8e8, 1);
+      system_exit(-1);
+    }
+    d3d_surface = *(void **)0x476a5c;
+    d3d_surface_z = *(void **)0x476a60;
+    if (d3d_surface == 0) {
+      display_assert("d3d_surface",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                     0x8ec, 1);
+      system_exit(-1);
+    }
+    break;
+  case 1:
+    if ((short)mipmap_index != 0) {
+      display_assert("mipmap_index==0",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                     0x8ef, 1);
+      system_exit(-1);
+    }
+    d3d_surface_z = *(void **)0x476a70;
+    d3d_surface = *(void **)0x476a6c;
+    if (d3d_surface_z == 0) {
+      d3d_surface_z = *(void **)0x476a60;
+    }
+    if (d3d_surface == 0) {
+      display_assert("d3d_surface",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                     0x8f2, 1);
+      system_exit(-1);
+    }
+    break;
+  case 2:
+    if ((short)mipmap_index != 0) {
+      display_assert("mipmap_index==0",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                     0x8f5, 1);
+      system_exit(-1);
+    }
+    d3d_surface = *(void **)0x476a78;
+    if (d3d_surface == 0) {
+      display_assert("d3d_surface",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                     0x8f7, 1);
+      system_exit(-1);
+    }
+    break;
+  case 3:
+    if ((short)mipmap_index != 0) {
+      display_assert("mipmap_index==0",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                     0x8fa, 1);
+      system_exit(-1);
+    }
+    d3d_surface = *(void **)0x476a80;
+    if (d3d_surface == 0) {
+      display_assert("d3d_surface",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                     0x8fc, 1);
+      system_exit(-1);
+    }
+    break;
+  case 4:
+    if ((short)mipmap_index != 0) {
+      display_assert("mipmap_index==0",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                     0x8ff, 1);
+      system_exit(-1);
+    }
+    d3d_surface = *(void **)0x476a88;
+    if (d3d_surface == 0) {
+      display_assert("d3d_surface",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                     0x901, 1);
+      system_exit(-1);
+    }
+    break;
+  case 5:
+    if ((short)mipmap_index != 0) {
+      display_assert("mipmap_index==0",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                     0x904, 1);
+      system_exit(-1);
+    }
+    d3d_surface = *(void **)0x476a90;
+    if (d3d_surface == 0) {
+      display_assert("d3d_surface",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                     0x906, 1);
+      system_exit(-1);
+    }
+    break;
+  case 6:
+    water_mip = (short)mipmap_index;
+    if (water_mip < 0 || water_mip >= 4) {
+      display_assert("mipmap_index>=0 && "
+                     "mipmap_index<RASTERIZER_TARGET_WATER_MAX_MIPMAP_LEVELS",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                     0x909, 1);
+      system_exit(-1);
+    }
+    d3d_surface = ((void **)0x476a98)[water_mip];
+    if (d3d_surface == 0) {
+      display_assert("d3d_surface",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                     0x90b, 1);
+      system_exit(-1);
+    }
+    break;
+  case 7:
+    if ((short)mipmap_index != 0) {
+      display_assert("mipmap_index==0",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                     0x91b, 1);
+      system_exit(-1);
+    }
+    d3d_surface = *(void **)0x476aac;
+    if (d3d_surface == 0) {
+      display_assert("d3d_surface",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                     0x91d, 1);
+      system_exit(-1);
+    }
+    break;
+  default:
+    display_assert("### ERROR unsupported rasterizer target",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                   0x920, 1);
+    system_exit(-1);
+    break;
+  }
+
+  zb = (char)zbuffer;
+  if (zb != 0 && d3d_surface_z == 0) {
+    display_assert("!zbuffer||d3d_surface_z",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                   0x924, 1);
+    system_exit(-1);
+  }
+
+  D3DDevice_SetRenderTarget(d3d_surface, zb != 0 ? d3d_surface_z : 0);
+
+  target16 = *(short *)&target;
+  if (target16 == 0) {
+    viewport.X = *(short *)0x5a5bf6;
+    viewport.Y = *(short *)0x5a5bf4;
+    viewport.Width = *(short *)0x5a5bfa - *(short *)0x5a5bf6;
+    viewport.Height = *(short *)0x5a5bf8 - *(short *)0x5a5bf4;
+  } else {
+    D3DSurface_GetDesc(d3d_surface, &desc);
+    viewport.X = 0;
+    viewport.Y = 0;
+    viewport.Width = desc.Width;
+    viewport.Height = desc.Height;
+  }
+  viewport.MinZ = 0.0f;
+  viewport.MaxZ = 1.0f;
+  D3DDevice_SetViewport(&viewport);
+
+  if ((char)do_clear != 0) {
+    flags = 0xf0;
+    if (target16 == 0 || target16 == 1) {
+      flags = 0xf3;
+    }
+    D3DDevice_Clear(0, 0, flags, color, 1.0f, 0);
+  }
 }
 
 /* 0x1584f0
