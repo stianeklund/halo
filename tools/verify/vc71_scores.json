@@ -6616,6 +6616,10 @@
       "score": 98.8,
       "source": "src/halo/interface/ui_widget_game_data_input_functions.c"
     },
+    "FUN_000f4ea0": {
+      "score": 100.0,
+      "source": "src/halo/items/items.c"
+    },
     "FUN_000f52f0": {
       "score": 100.0,
       "source": "src/halo/items/items.c"
@@ -6628,8 +6632,16 @@
       "score": 92.9,
       "source": "src/halo/items/items.c"
     },
+    "FUN_000f5700": {
+      "score": 75.6,
+      "source": "src/halo/items/items.c"
+    },
     "FUN_000f5750": {
       "score": 82.6,
+      "source": "src/halo/items/items.c"
+    },
+    "FUN_000f57a0": {
+      "score": 83.0,
       "source": "src/halo/items/items.c"
     },
     "FUN_000f5f30": {
@@ -6642,6 +6654,10 @@
     },
     "FUN_000f6740": {
       "score": 100.0,
+      "source": "src/halo/items/items.c"
+    },
+    "FUN_000f6750": {
+      "score": 79.4,
       "source": "src/halo/items/items.c"
     },
     "FUN_000f67b0": {
