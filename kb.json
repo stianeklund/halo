@@ -19360,7 +19360,8 @@
         },
         {
           "addr": "0x158800",
-          "decl": "void FUN_00158800(unsigned short *bounds);"
+          "decl": "void FUN_00158800(unsigned short *bounds);",
+          "ported": true
         },
         {
           "addr": "0x158ae0",
