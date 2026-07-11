@@ -1073,6 +1073,166 @@ void FUN_001592e0(char enable)
   }
 }
 
+static const char kActiveCamoFile[] =
+  "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_active_camouflage.c";
+
+/* 0x1595c0
+ *
+ * Active-camouflage screen-space capture pass. When active camouflage is
+ * enabled for this frame (byte gates 0x3256f9 debug-enable and 0x476ac0
+ * per-frame flag), draws one full-screen 320x240 quad through the
+ * active-camouflage pixel shader into the render target, then hands the
+ * result to the camo texture manager (FUN_00158800) with a bounds rect
+ * derived from the 16-bit frame counter at 0x476ac4.
+ *
+ * All facts below decoded from the delinked reference
+ * delinked/functions/001595c0.obj and the pristine XBE:
+ *   - Both assert tails are PUSH -1; CALL 0x8e2f0 = system_exit(-1)
+ *     (XBE-verified at 0x1595e2/e4 and 0x159623/25; a parked lift twice
+ *     claimed halt_and_catch_fire here — same anti-pattern as FUN_0015c680
+ *     and FUN_00158df0, both review-gate REJECTs).
+ *   - Guard bytes: MOV AL,[0x3256f9] / MOV AL,[0x476ac0], both JE end.
+ *   - Render-target assert compare is 16-bit: CMP WORD PTR [0x5a5bc0],0.
+ *   - SetRenderState_Simple(0x40358, 0x101) — value 0x101
+ *     (MOV EDX,0x101), NOT 0x10101; mirror store [0x1fb7a4]=0x101.
+ *   - Vertex-shader constant block: 5 vec4 at ebp-0x58, exact bit patterns
+ *     0x3bcccccd / 0xbf806666 / 0xbc088889 / 0x3f808889 / 0x3f000000 /
+ *     0x3f800000 (literals verified to round-trip to these encodings).
+ *   - Quad texcoords are 16-bit globals: u from 0x5a5bf6/0x5a5bfa, v from
+ *     0x5a5bf8/0x5a5bf4, all zero-extended (XOR reg,reg; MOV reg16).
+ *   - Second FUN_00158140 first arg is the zero-extended WORD at 0x5a5bc0.
+ *   - Bounds buffer at ebp-0x8, 4x uint16 passed to FUN_00158800:
+ *     [0]=((f*3+3)<<5) low16, [1]=0x200, [2]=((f*3+6)<<5) low16, [3]=0x280,
+ *     f = full 32-bit dword read of 0x476ac4 (LEA [EAX+EAX*2+n]; SHL 5).
+ *   - Frame counter update is INC WORD PTR [0x476ac4] (low 16 bits only),
+ *     and the gate byte 0x3256fa is loaded BEFORE the increment.
+ *
+ * Original TU:
+ * c:\halo\SOURCE\rasterizer\xbox\rasterizer_xbox_active_camouflage.c
+ * (asserts at source lines 0x29 and 0x2e).
+ */
+void FUN_001595c0(void)
+{
+  /* 20-float (5 vertex-shader constant) upload block; must stay one
+   * contiguous array so the constants are laid out ebp-0x58..ebp-0x9. */
+  float vs[20];
+  /* 4x uint16 bounds rect at ebp-0x8, passed whole to FUN_00158800. */
+  unsigned short bounds[4];
+
+  if (*(int *)0x476ab0 == 0) {
+    display_assert("global_d3d_device", kActiveCamoFile, 0x29, 1);
+    system_exit(-1);
+  }
+
+  if (*(char *)0x3256f9 != '\0' && *(char *)0x476ac0 != '\0') {
+    /* 16-bit compare in the original (CMP WORD PTR [0x5a5bc0],0) */
+    if (*(short *)0x5a5bc0 != 0) {
+      display_assert("global_window_parameters.rasterizer_target==_"
+                     "rasterizer_target_render_primary",
+                     kActiveCamoFile, 0x2e, 1);
+      system_exit(-1);
+    }
+
+    FUN_001584f0(0, 0, 0);
+
+    D3DDevice_SetTextureStageState(0, 0xa, 3);
+    D3DDevice_SetTextureStageState(0, 0xb, 3);
+    D3DDevice_SetTextureStageState(0, 0xd, 2);
+    D3DDevice_SetTextureStageState(0, 0xe, 2);
+    D3DDevice_SetTextureStageState(0, 0xf, 1);
+
+    D3DDevice_SetRenderState_CullMode(0x901);
+    D3DDevice_SetRenderState_Simple(0x40358, 0x101);
+    *(uint32_t *)0x1fb7a4 = 0x101;
+    D3DDevice_SetRenderState_Simple(0x40304, 0);
+    *(uint32_t *)0x1fb784 = 0;
+    D3DDevice_SetRenderState_Simple(0x40300, 0);
+    *(uint32_t *)0x1fb788 = 0;
+    D3DDevice_SetRenderState_ZEnable(0);
+    D3DDevice_SetRenderState_ZBias(0);
+
+    FUN_00178b40(4, 8, 0);
+
+    /* 5 vec4 vertex-shader constants (c[-0x44..-0x40]); literal bit
+     * patterns per the reference: see block comment above. */
+    vs[0] = 0.00625f; /* 0x3bcccccd */
+    vs[1] = 0.0f;
+    vs[2] = 0.0f;
+    vs[3] = -1.003125f; /* 0xbf806666 */
+    vs[4] = 0.0f;
+    vs[5] = -0.008333334f; /* 0xbc088889 */
+    vs[6] = 0.0f;
+    vs[7] = 1.0041667f; /* 0x3f808889 */
+    vs[8] = 0.0f;
+    vs[9] = 0.0f;
+    vs[10] = 0.0f;
+    vs[11] = 0.5f; /* 0x3f000000 */
+    vs[12] = 0.0f;
+    vs[13] = 0.0f;
+    vs[14] = 0.0f;
+    vs[15] = 1.0f;
+    vs[16] = 1.0f;
+    vs[17] = 1.0f;
+    vs[18] = 0.0f;
+    vs[19] = 1.0f;
+    D3DDevice_SetVertexShaderConstant(-0x44, vs, 5);
+
+    /* pixel-shader state block (same 0x5a5ac0 block as the other passes in
+     * this TU); combiner-count field 0x5a5ae0 = 8 for this shader. */
+    csmemset((void *)0x5a5ac0, 0, 0xf0);
+    *(uint32_t *)0x5a5b98 = 1;
+    *(uint32_t *)0x5a5b94 = 1;
+    *(uint32_t *)0x5a5ae0 = 8;
+    rasterizer_set_pixel_shader((void *)0x5a5ac0);
+
+    FUN_00158140(1, 0, 0, 0, 0);
+    FUN_00158ae0(0);
+
+    /* full-screen 320x240 quad; texcoords are the 16-bit viewport-rect
+     * globals, zero-extended (order per reference relocations). */
+    D3DDevice_Begin(7);
+    D3DDevice_SetVertexData2s(4, *(unsigned short *)0x5a5bf6,
+                              *(unsigned short *)0x5a5bf8);
+    D3DDevice_SetVertexData2s(0, 0, 0);
+    D3DDevice_SetVertexData2s(4, *(unsigned short *)0x5a5bfa,
+                              *(unsigned short *)0x5a5bf8);
+    D3DDevice_SetVertexData2s(0, 0x140, 0);
+    D3DDevice_SetVertexData2s(4, *(unsigned short *)0x5a5bfa,
+                              *(unsigned short *)0x5a5bf4);
+    D3DDevice_SetVertexData2s(0, 0x140, 0xf0);
+    D3DDevice_SetVertexData2s(4, *(unsigned short *)0x5a5bf6,
+                              *(unsigned short *)0x5a5bf4);
+    D3DDevice_SetVertexData2s(0, 0, 0xf0);
+    D3DDevice_End();
+
+    /* first arg is the zero-extended WORD at 0x5a5bc0 (XOR EAX,EAX;
+     * MOV AX,[0x5a5bc0]) — asserted 0 above, but re-read here. */
+    FUN_00158140(*(unsigned short *)0x5a5bc0, 0, 0, 0, 1);
+    FUN_00158ae0(2);
+
+    {
+      /* bounds math reads the FULL 32-bit dword at 0x476ac4 */
+      int frame = *(int *)0x476ac4;
+      bounds[1] = 0x200;
+      bounds[3] = 0x280;
+      bounds[0] = (unsigned short)((frame * 3 + 3) << 5);
+      bounds[2] = (unsigned short)((frame * 3 + 6) << 5);
+      FUN_00158800(bounds);
+    }
+
+    {
+      /* gate byte loaded BEFORE the 16-bit counter increment */
+      char gate = *(char *)0x3256fa;
+      /* INC WORD PTR [0x476ac4] — increment only the low 16 bits */
+      *(unsigned short *)0x476ac4 += 1;
+      if (gate == '\0') {
+        *(char *)0x476ac0 = 0;
+      }
+      *(char *)0x476ac1 = 1;
+    }
+  }
+}
+
 /* rasterizer_xbox_active_camouflage_draw (FUN_00159900): emit the
  * active-camouflage transparent draw for one geometry group. The effect has
  * two regimes selected by the fade intensity (group->effect.intensity at
@@ -1096,9 +1256,6 @@ void FUN_001592e0(char enable)
  * reference delinked/functions/00159900.obj (render-state values, stage-state
  * triples, vertex-constant formulas, and the slow-path contiguous descriptor
  * were all decoded from that disassembly, not from the decompiler). */
-
-static const char kActiveCamoFile[] =
-  "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_active_camouflage.c";
 
 /* Slow-path (partial fade) geometry-pass descriptor. In the original this is
  * ONE contiguous stack block at ebp-0x108 passed whole to FUN_0017cbb0 —
