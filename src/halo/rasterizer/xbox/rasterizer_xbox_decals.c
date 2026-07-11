@@ -1955,6 +1955,26 @@ void FUN_0015b530(int decal_index)
   lruv_block_delete(*(void **)0x476adc, decal_index);
 }
 
+/*
+ * FUN_0015b5a0 @ 0x15b5a0 — dead register-convention adapter for
+ * IDirect3DDevice8::DrawPrimitive: primitive type arrives in EAX, the
+ * device pointer (a1) is ignored, and the primitive count (a3) is
+ * converted to a vertex count via the per-type {multiplier, addend}
+ * table at 0x29f7e8 before calling D3DDevice_DrawVertices. Falls
+ * through with 0 in EAX (S_OK). No direct call sites; RET 0xC.
+ */
+/* 0x15b5a0 */
+int FUN_0015b5a0(int index, int a1, int a2, int a3)
+{
+  (void)a1;
+  D3DDevice_DrawVertices(
+      index,
+      a2,
+      *(uint32_t *)(0x29f7e8 + index * 8) * a3
+        + *(uint32_t *)(0x29f7ec + index * 8));
+  return 0;
+}
+
 /* 0x15b5e0
  *
  * Sets the appropriate rasterizer blend/render state for decals based on
@@ -1980,6 +2000,36 @@ void FUN_0015b5e0(void)
   if (mode >= 0 && mode < 5) {
     FUN_0016fa40((int)stage_table[mode]);
   }
+}
+
+/*
+ * FUN_0015b650 @ 0x15b650 — dead register-convention adapter for
+ * D3DDevice_SetVertexData4ub: g/b/a components arrive in EDX/ECX/EAX,
+ * the register index (s2) and red component (s3) on the stack; s1 is
+ * the ignored device pointer. Returns S_OK. No direct call sites;
+ * RET 0xC.
+ */
+/* 0x15b650 */
+int FUN_0015b650(int r1, int r2, int r3, int s1, int s2, int s3)
+{
+  (void)s1;
+  D3DDevice_SetVertexData4ub(s2, s3, r3, r2, r1);
+  return 0;
+}
+
+/*
+ * FUN_0015b6a0 @ 0x15b6a0 — dead register-convention adapter for
+ * D3DVertexBuffer_Lock (0x1ef100, kb.json stub decl is void(void) so the
+ * call uses the raw __stdcall cast, matching FUN_0015abe0): vertex buffer
+ * (s1) and offset (s2) on the stack, size/ppbData/flags in EDX/ECX/EAX.
+ * Returns S_OK. No direct call sites; RET 8.
+ */
+/* 0x15b6a0 */
+int FUN_0015b6a0(int r1, int r2, int r3, int s1, int s2)
+{
+  ((void(__stdcall *)(void *, uint32_t, uint32_t, void **, uint32_t))0x1ef100)(
+      (void *)s1, s2, r3, (void **)r2, r1);
+  return 0;
 }
 
 /* 0x15b6d0
@@ -2487,6 +2537,20 @@ void FUN_0015bc40(int rendered_cluster_data)
  * 0x1ef0a0 D3DDevice_CreateVertexBuffer is a __stdcall D3D8 import: 5 stack
  * args, HRESULT in EAX, callee-cleans (no ADD ESP after the CALL).
  */
+/*
+ * FUN_0015c2b0 @ 0x15c2b0 — dead register-convention adapter for
+ * D3DDevice_CreateVertexBuffer: length (s2) and usage (s3) on the stack,
+ * fvf/pool/ppVertexBuffer in EDX/ECX/EAX; s1 is the ignored device
+ * pointer. No XOR EAX before RET — the callee's HRESULT is the implicit
+ * return value. No direct call sites; RET 0xC.
+ */
+/* 0x15c2b0 */
+int FUN_0015c2b0(int r1, int r2, int r3, int s1, int s2, int s3)
+{
+  (void)s1;
+  return D3DDevice_CreateVertexBuffer(s2, s3, r3, r2, (void **)r1);
+}
+
 /* 0x15c2d0 */
 char FUN_0015c2d0(void)
 {
@@ -2538,6 +2602,20 @@ int __stdcall FUN_0015c600(void *device, uint32_t reg, float a, float b, float c
 {
   (void)device;
   D3DDevice_SetVertexData4f(reg, a, b, c, d);
+  return 0;
+}
+
+/*
+ * FUN_0015c650 @ 0x15c650 — dead register-convention adapter for
+ * D3DVertexBuffer_Lock, byte-identical in shape to FUN_0015b6a0 (raw
+ * __stdcall cast for the same reason). Returns S_OK. No direct call
+ * sites; RET 8.
+ */
+/* 0x15c650 */
+int FUN_0015c650(int r1, int r2, int r3, int s1, int s2)
+{
+  ((void(__stdcall *)(void *, uint32_t, uint32_t, void **, uint32_t))0x1ef100)(
+      (void *)s1, s2, r3, (void **)r2, r1);
   return 0;
 }
 
@@ -2983,6 +3061,35 @@ void FUN_0015cbb0(void *detail_object_view_data)
  * dynamic-triangle batch count
  */
 
+/*
+ * FUN_0015d020 @ 0x15d020 — dead register-convention adapter for
+ * D3DDevice_CreateVertexBuffer, byte-identical in shape to FUN_0015c2b0:
+ * length (s2) / usage (s3) on the stack, fvf/pool/ppVertexBuffer in
+ * EDX/ECX/EAX, s1 ignored, callee HRESULT is the implicit return. No
+ * direct call sites; RET 0xC.
+ */
+/* 0x15d020 */
+int FUN_0015d020(int r1, int r2, int r3, int s1, int s2, int s3)
+{
+  (void)s1;
+  return D3DDevice_CreateVertexBuffer(s2, s3, r3, r2, (void **)r1);
+}
+
+/*
+ * FUN_0015d040 @ 0x15d040 — dead register-convention adapter for
+ * D3DDevice_CreateIndexBuffer (0x1eef80, kb.json stub decl is void(void)
+ * so the call uses a raw __stdcall cast): length (s2) / usage (s3) on the
+ * stack, format/pool/ppIndexBuffer in EDX/ECX/EAX, s1 ignored, callee
+ * HRESULT is the implicit return. No direct call sites; RET 0xC.
+ */
+/* 0x15d040 */
+int FUN_0015d040(int r1, int r2, int r3, int s1, int s2, int s3)
+{
+  (void)s1;
+  return ((int(__stdcall *)(uint32_t, uint32_t, uint32_t, uint32_t, void **))0x1eef80)(
+      s2, s3, r3, r2, (void **)r1);
+}
+
 static const char kDrawPrimitivesFile[] =
   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_draw_primitives.c";
 
@@ -3142,6 +3249,50 @@ int FUN_0015d170(int count)
     }
   }
   return result;
+}
+
+/*
+ * FUN_0015d2a0 @ 0x15d2a0 — dead register-convention adapter for
+ * IDirect3DDevice8::DrawPrimitive, byte-identical in shape to
+ * FUN_0015b5a0: primitive type in EAX, device (a1) ignored, primitive
+ * count (a3) converted to a vertex count via the per-type table at
+ * 0x29f7e8, forwarded to D3DDevice_DrawVertices. Returns S_OK. No
+ * direct call sites; RET 0xC.
+ */
+/* 0x15d2a0 */
+int FUN_0015d2a0(int index, int a1, int a2, int a3)
+{
+  (void)a1;
+  D3DDevice_DrawVertices(
+      index,
+      a2,
+      *(uint32_t *)(0x29f7e8 + index * 8) * a3
+        + *(uint32_t *)(0x29f7ec + index * 8));
+  return 0;
+}
+
+/*
+ * FUN_0015d2d0 @ 0x15d2d0 — dead register-convention adapter for
+ * IDirect3DDevice8::DrawIndexedPrimitive: primitive type in EAX, index
+ * offset (in 16-bit indices) in ECX, primitive count (s3) converted to
+ * an index count via the per-type table at 0x29f7e8, index data pointer
+ * built from the global index-buffer base at 0x1fb494. Callee
+ * D3DDevice_DrawIndexedVertices (0x1ecf90) has a void(void) kb.json stub
+ * decl, so the call uses a raw __stdcall cast. Returns S_OK. No direct
+ * call sites; RET 0x10.
+ */
+/* 0x15d2d0 */
+int FUN_0015d2d0(int index, int a2, int s1, int s2, int s3, int s4)
+{
+  (void)s1;
+  (void)s2;
+  (void)s4;
+  ((void(__stdcall *)(int, uint32_t, void *))0x1ecf90)(
+      index,
+      *(uint32_t *)(0x29f7e8 + index * 8) * s3
+        + *(uint32_t *)(0x29f7ec + index * 8),
+      (void *)(*(uint32_t *)0x1fb494 + a2 * 2));
+  return 0;
 }
 
 /* 0x15d310
