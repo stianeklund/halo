@@ -1992,6 +1992,91 @@ void FUN_0015abe0(short *p0, short *p1, float *color0, float *color1)
   D3DDevice_End();
 }
 
+/* 0x15acc0
+ *
+ * rasterizer_debug_draw_polyline2d  (debug 2D multi-point line drawer)
+ *
+ * Draws a screen-space debug line strip through `point_count` 2D points, all
+ * sharing one color, using the D3D inline (Begin/SetVertexData.../End) vertex
+ * stream. Originally defined in rasterizer_xbox_debug.c (the assert __FILE__
+ * string preserves that path); the linker grouped it into
+ * rasterizer_decals.obj.
+ *
+ *   points      - array of short[2] screen coords (x, y), stride 4 bytes/point
+ *   point_count - number of points; must be > 1 (asserted, line 0xf9)
+ *   color       - real_rgb_color, packed to 0x00RRGGBB by FUN_000d1dd0
+ *
+ * D3D primitive: Begin(4 = D3DPT_LINELIST). Vertex register 9 = D3DVSDE_DIFFUSE
+ * (color, set once), register 0 = D3DVSDE_VERTEX (position via SetVertexData2s,
+ * per point). Position components are zero-extended from the 16-bit screen
+ * coords before the call (decl.h SetVertexData2s takes int a/b).
+ *
+ * `success` mirrors the original D3D result-check macro: it stays true, so the
+ * FUN_00167ff0 (report_d3d_call_failed) branches after each SetVertexData2s and
+ * after End are unreachable in practice — preserved to match the binary's
+ * basic-block layout. The per-vertex check emits the reassignment shape
+ * (if(success) success=1; else { success=0; report; }) that the original
+ * compiled to (0x15ad74: mov $1,bl / xor bl,bl); the post-End check is the
+ * plain if(!success) report form (0x15ad8a). The two assert paths call
+ * display_assert (arg check line 0xf9, device-null check line 0xfa, halt=1)
+ * followed by system_exit(-1) — NOT halt_and_catch_fire; the disassembly at
+ * 0x15acde/0x15acfe pushes -1 with a combined ADD ESP,0x14 cleanup, matching
+ * the sibling assert macro. Laid out at the function tail as fall-through
+ * (the original's inverted nesting).
+ */
+void FUN_0015acc0(short *points, int16_t point_count, float *color)
+{
+  unsigned int packed;
+  unsigned int remaining;
+  short *p;
+  /* volatile: the D3D result-check macro's test/branch on the flag is live
+   * in the binary (TEST BL,BL at 0x15ad64/0x15ad8a); a plain local folds to
+   * constant 1 and VC71 dead-codes both report branches (-18 insns). */
+  volatile int success;
+
+  /* Fall-through assert blocks, matching the original layout (asserts first,
+   * body unconditional after them). */
+  if (!(points != 0 && color != 0 && 1 < point_count)) {
+    display_assert("points && color && point_count>1",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_debug.c",
+                   0xf9, 1);
+    system_exit(-1);
+  }
+  if (*(void **)0x476ab0 == 0) {
+    display_assert(
+      "global_d3d_device",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_debug.c", 0xfa, 1);
+    system_exit(-1);
+  }
+
+  packed = FUN_000d1dd0(color);
+  D3DDevice_Begin(4);
+  D3DDevice_SetVertexDataColor(9, packed);
+  success = 1;
+  if (0 < point_count) {
+    p = points;
+    remaining = (unsigned int)(unsigned short)point_count;
+    do {
+      D3DDevice_SetVertexData2s(0, (int)(unsigned short)p[0],
+                                (int)(unsigned short)p[1]);
+      if (success != 0) {
+        success = 1;
+      } else {
+        success = 0;
+        FUN_00167ff0(0,
+                     "IDirect3DDevice8_SetVertexData2s(global_d3d_device, "
+                     "D3DVSDE_VERTEX, point->x, point->y)");
+      }
+      p = p + 2;
+      remaining = remaining - 1;
+    } while (remaining != 0);
+  }
+  D3DDevice_End();
+  if (!success) {
+    FUN_00167ff0(0, "IDirect3DDevice8_End(global_d3d_device)");
+  }
+}
+
 /* 0x15afa0
  *
  * rasterizer_decals_vertex_cache_delete  (LRUV eviction callback)
