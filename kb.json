@@ -19428,7 +19428,10 @@
 				},
 				{
 					"addr": "0x15a8f0",
-					"decl": "void FUN_0015a8f0(void);"
+					"decl": "void FUN_0015a8f0(float *p0, float *p1, float *p2, float *color0, float *color1, float *color2);",
+					"name": "FUN_0015a8f0",
+					"ported": true,
+					"source_path": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
 				},
 				{
 					"addr": "0x15aa40",
