@@ -2063,6 +2063,252 @@ void FUN_0015c6f0(void)
 
   D3DDevice_SetStreamSource(0, *(void **)0x476ae4, 8);
 }
+
+/* 0x15cbb0
+ *
+ * rasterizer_detail_objects_draw (assert strings). Same TU as 0x15c2d0
+ * (rasterizer_xbox_detail_objects.c). Draws every visible detail-object cell
+ * for each detail-object-collection referenced by the view data:
+ *
+ *   detail_object_view_data (param): { void *entries; short entry_count; }
+ *   entry (stride 8): +0 cell array ptr, +4 short cell_count,
+ *                     +6 short palette index (into scenario+0x3c0 block)
+ *   cell (stride 0x18): +4 int detail_object_count, +8/+0xa int16
+ *                     cell_x/cell_y, +0xc float cell_z, +0x10 int
+ *                     internal__first_vertex_index, +0x14 float* z_ref_vector
+ *
+ * Per collection it binds the sprite bitmap, fills two contiguous vec4
+ * constant blocks — type data (16 slots, VSH offset -0x4b) from the
+ * collection's type_definitions (block at collection+0x44, stride 0x60) and
+ * frame data (128 slots, VSH offset -0x24) from the bitmap's sequence/sprite
+ * blocks — then issues one D3DPT_QUADLIST DrawVertices per cell
+ * (detail_object_count * 4 vertices from the shared dynamic VB).
+ *
+ * Disasm-verified details (delinked/functions/0015cbb0.obj):
+ *   - bitmap tag ref at collection+0x40 (Ghidra draft showed +0x20);
+ *     type block at collection+0x44 (draft showed +0x22).
+ *   - FPU subtraction directions: range = [type+0x34] - [type+0x30]
+ *     (FLD 0x34; FSUB 0x30); frame spans = [+0xc]-[+0x8] and
+ *     [+0x14]-[+0x10].
+ *   - reciprocal only when range > 0.0f (FCOMP vs 0.0; TEST AH,0x41; JNE).
+ *   - SetVertexData4f reg 2: int16 cell_x/cell_y <<3 then FILD
+ *     (push-then-fstp floats); cell_z * 8.0f (DAT_00253f78).
+ *   - DrawVertices(8 /-D3DPT_QUADLIST-/, cell+0x10, (cell+4) << 2) — Ghidra
+ *     dropped all three args.
+ *   - loop counters are (short)-truncated each iteration (MOVSX re-loads);
+ *     block counts are re-read from memory every iteration.
+ *   - `success` ([EBP-1]) is the alternating d3d debug-check latch, same
+ *     idiom as rasterizer.c: on the false path FUN_00167ff0(0, call_text).
+ *
+ * Globals: 0x3256dc byte detail-objects-draw enable; 0x476ab0
+ * global_d3d_device; scenario+0x3c0 detail_object_collection_palette block.
+ */
+void FUN_0015cbb0(void *detail_object_view_data)
+{
+  float frame_data[512]; /* 128 vec4 frame slots  (EBP-0x924)          */
+  float type_data[64]; /* 16 vec4 type slots    (EBP-0x124)          */
+  char *scenario;
+  char *palette;
+  char *entry;
+  char *collection;
+  char *bitmap;
+  char *type_elem;
+  char *seq_elem;
+  char *sprite;
+  char *sprite_block;
+  char *cell;
+  short *bitmap_data;
+  float *vsh;
+  float *z_ref;
+  void *type_block;
+  float range;
+  float frame_scale;
+  int i;
+  int j; /* (short)-truncated view of counter (register-resident) */
+  int m;
+  int counter;     /* full loop counter, memory-resident (EBP-0x14)      */
+  int frame_count; /* reused as the cell index in the draw loop (EBP-0x8) */
+  char success;
+
+  success = 1;
+  if (*(char *)0x3256dc == 0) {
+    return;
+  }
+  if (main_get_window_count() > 1) {
+    return;
+  }
+  scenario = (char *)global_scenario_get();
+  if (detail_object_view_data == 0) {
+    display_assert(
+      "detail_object_view_data",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_detail_objects.c",
+      0x132, 1);
+    system_exit(-1);
+  }
+  if (*(int *)0x476ab0 == 0) {
+    display_assert(
+      "global_d3d_device",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_detail_objects.c",
+      0x133, 1);
+    system_exit(-1);
+  }
+  i = 0;
+  if (*(short *)((char *)detail_object_view_data + 4) > 0) {
+    palette = scenario + 0x3c0;
+    do {
+      entry = *(char **)detail_object_view_data + (short)i * 8;
+      type_elem =
+        (char *)tag_block_get_element(palette, *(short *)(entry + 6), 0x30);
+      collection = (char *)tag_get(0x646f6263, *(int *)(type_elem + 0xc));
+      bitmap = (char *)tag_get(0x6269746d, *(int *)(collection + 0x40));
+      rasterizer_set_texture(0, 0, 1, *(int *)(collection + 0x40), 0);
+      D3DDevice_SetTextureStageState(0, 0xa, 3);
+      D3DDevice_SetTextureStageState(0, 0xb, 3);
+      D3DDevice_SetTextureStageState(0, 0xd, 2);
+      D3DDevice_SetTextureStageState(0, 0xe, 2);
+      D3DDevice_SetTextureStageState(0, 0xf, 2);
+      if (*(unsigned short *)collection != 0xffff) {
+        FUN_00178b40(0x21, 0xb, *(unsigned short *)collection);
+      }
+
+      /* Type data: one vec4 per type definition (block at collection+0x44,
+       * stride 0x60). */
+      frame_count = 0;
+      counter = 0;
+      j = 0;
+      type_block = collection + 0x44;
+      if (*(int *)type_block > 0) {
+        do {
+          type_elem = (char *)tag_block_get_element(type_block, j, 0x60);
+          seq_elem = (char *)tag_block_get_element(
+            bitmap + 0x54, *(unsigned char *)(type_elem + 0x20), 0x40);
+          bitmap_data = (short *)tag_block_get_element(
+            bitmap + 0x60, *(short *)(seq_elem + 0x20), 0x30);
+          range = *(float *)(type_elem + 0x34) - *(float *)(type_elem + 0x30);
+          frame_scale = *(float *)(type_elem + 0x38);
+          if (range > 0.0f) {
+            range = 1.0f / range;
+          }
+          vsh = &type_data[j * 4];
+          vsh[0] = range * *(float *)(type_elem + 0x34);
+          vsh[1] = -range;
+          vsh[2] = (float)bitmap_data[2] * frame_scale;
+          vsh[3] = (float)bitmap_data[3] * frame_scale;
+          counter = counter + 1;
+          j = (short)counter;
+        } while (j < *(int *)type_block);
+      }
+
+      /* Frame data: one vec4 per sprite across every sequence of the sprite
+       * bitmap (sequences block at bitmap+0x54, sprites at seq+0x34). */
+      counter = 0;
+      j = 0;
+      if (*(int *)(bitmap + 0x54) > 0) {
+        do {
+          seq_elem = (char *)tag_block_get_element(bitmap + 0x54, j, 0x40);
+          sprite_block = seq_elem + 0x34;
+          m = 0;
+          if (*(int *)sprite_block > 0) {
+            do {
+              sprite =
+                (char *)tag_block_get_element(sprite_block, (short)m, 0x20);
+              /* validation side effect only (bitmap index range check) */
+              tag_block_get_element(bitmap + 0x60, *(short *)sprite, 0x30);
+              vsh = &frame_data[(short)frame_count * 4];
+              frame_count = frame_count + 1;
+              vsh[0] = *(float *)(sprite + 8);
+              vsh[1] = *(float *)(sprite + 0x10);
+              vsh[2] = *(float *)(sprite + 0xc) - *(float *)(sprite + 8);
+              vsh[3] = *(float *)(sprite + 0x14) - *(float *)(sprite + 0x10);
+              m = m + 1;
+            } while ((short)m < *(int *)sprite_block);
+          }
+          counter = counter + 1;
+          j = (short)counter;
+        } while (j < *(int *)(bitmap + 0x54));
+      }
+
+      D3DDevice_SetVertexShaderConstant(-0x4b, type_data, *(int *)type_block);
+      if (success != 0) {
+        success = 1;
+      } else {
+        success = 0;
+        FUN_00167ff0(
+          0, "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_device, "
+             "VSH_CONSTANTS__DETAILOBJ_TYPEDATA_OFFSET, "
+             "vsh_constants__detailobj_typedata, "
+             "collection_definition->type_definitions.count)");
+      }
+      D3DDevice_SetVertexShaderConstant(-0x24, frame_data, (short)frame_count);
+      if (success != 0) {
+        success = 1;
+      } else {
+        success = 0;
+        FUN_00167ff0(
+          0, "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_device, "
+             "VSH_CONSTANTS__DETAILOBJ_FRAMEDATA_OFFSET, "
+             "vsh_constants__detailobj_framedata, frame_count)");
+      }
+
+      /* Draw every cell of this entry: one quad list per cell. */
+      frame_count = 0;
+      if (*(short *)(entry + 4) > 0) {
+        do {
+          cell = *(char **)entry + (short)frame_count * 0x18;
+          if (*(int *)(cell + 0x14) == 0) {
+            display_assert(
+              "cell->z_reference_vector",
+              "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_detail_"
+              "objects.c",
+              0x18a, 1);
+            system_exit(-1);
+          }
+          D3DDevice_SetVertexData4f(2, (float)(*(short *)(cell + 8) << 3),
+                                    (float)(*(short *)(cell + 0xa) << 3),
+                                    *(float *)(cell + 0xc) * 8.0f, 1.0f);
+          if (success != 0) {
+            success = 1;
+          } else {
+            success = 0;
+            FUN_00167ff0(
+              0, "IDirect3DDevice8_SetVertexData4f(global_d3d_device, 2, "
+                 "(real)(cell->cell_x*DETAIL_OBJECT_CELL_SIZE), "
+                 "(real)(cell->cell_y*DETAIL_OBJECT_CELL_SIZE), "
+                 "(cell->cell_z*(real)DETAIL_OBJECT_CELL_SIZE), 1.0f)");
+          }
+          z_ref = *(float **)(cell + 0x14);
+          D3DDevice_SetVertexData4f(3, z_ref[0], z_ref[1], z_ref[2], z_ref[3]);
+          if (success != 0) {
+            success = 1;
+          } else {
+            success = 0;
+            FUN_00167ff0(
+              0, "IDirect3DDevice8_SetVertexData4f(global_d3d_device, 3, "
+                 "cell->z_reference_vector->i, cell->z_reference_vector->j, "
+                 "cell->z_reference_vector->k, cell->z_reference_vector->l)");
+          }
+          D3DDevice_DrawVertices(8, *(uint32_t *)(cell + 0x10),
+                                 *(uint32_t *)(cell + 4) << 2);
+          if (success != 0) {
+            success = 1;
+          } else {
+            success = 0;
+            FUN_00167ff0(0,
+                         "IDirect3DDevice8_DrawVertices(global_d3d_device, "
+                         "D3DPT_QUADLIST, cell->internal__first_vertex_index, "
+                         "cell->detail_object_count*"
+                         "NUMBER_OF_VERTICES_PER_QUADRILATERAL)");
+          }
+          frame_count = frame_count + 1;
+        } while ((short)frame_count < *(short *)(entry + 4));
+      }
+      i = i + 1;
+    } while ((short)i < *(short *)((char *)detail_object_view_data + 4));
+    if (success == 0) {
+      error(2, "### ERROR rasterizer_detail_objects_draw failed");
+    }
+  }
+}
 /*
  * rasterizer_xbox_draw_primitives.c
  *
