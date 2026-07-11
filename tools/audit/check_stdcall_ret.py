@@ -24,10 +24,18 @@ Findings:
     WARN   decl is __stdcall but binary uses plain RET
 
 Usage:
-    python3 tools/audit/check_stdcall_ret.py            # full sweep report
-    python3 tools/audit/check_stdcall_ret.py --check    # exit 1 on any ERROR
+    python3 tools/audit/check_stdcall_ret.py                    # full sweep report
+    python3 tools/audit/check_stdcall_ret.py --check            # exit 1 on non-baselined ERRORs
     python3 tools/audit/check_stdcall_ret.py --addr 0x1ea300
+    python3 tools/audit/check_stdcall_ret.py --update-baseline  # accept current ERRORs
     python3 tools/audit/check_stdcall_ret.py --self-test
+
+Baseline: tools/audit/stdcall_ret_baseline.json holds the pre-existing ERRORs
+(545 latent ``(void)``-decl-over-``RET n`` XDK/D3D functions, none called from
+lifted C as of 2026-07-12).  ``--check`` gates only NEW mismatches — a new bad
+decl, or an existing entry whose expected/observed pops changed (i.e. the decl
+was edited but is still wrong).  Fix the decl instead of baselining whenever
+the function is (about to be) called from lifted C.
 """
 
 from __future__ import annotations
@@ -52,6 +60,7 @@ from check_arg_counts import (  # noqa: E402
 import check_arg_counts as cac  # noqa: E402
 
 REPORT_PATH = REPO_ROOT / "artifacts" / "audit" / "stdcall_ret_report.txt"
+BASELINE_PATH = REPO_ROOT / "tools" / "audit" / "stdcall_ret_baseline.json"
 
 _STDCALL_RE = re.compile(r"\b__stdcall\b")
 _NORETURN_RE = re.compile(r"\b__noreturn\b|\bnoreturn\b")
@@ -213,10 +222,43 @@ def _self_test() -> None:
     print("self-test OK")
 
 
+def _load_baseline() -> Dict[str, Dict]:
+    import json
+    if not BASELINE_PATH.exists():
+        return {}
+    return json.loads(BASELINE_PATH.read_text()).get("entries", {})
+
+
+def _write_baseline(errors: List[Finding]) -> None:
+    import json
+    entries = {
+        "0x%06x" % f.entry.addr: {
+            "name": f.entry.name,
+            "expected": f.expected_pop,
+            "observed": f.observed_pop,
+        }
+        for f in errors
+    }
+    payload = {
+        "_comment": (
+            "Pre-existing stdcall-decl mismatches (lift-learnings §30) accepted "
+            "as latent: not called from lifted C when baselined. --check gates "
+            "only ERRORs absent from this file or whose expected/observed pops "
+            "changed. Fix the kb.json decl (do NOT baseline) for any function "
+            "called from lifted C. Regenerate: check_stdcall_ret.py --update-baseline"
+        ),
+        "entries": dict(sorted(entries.items())),
+    }
+    BASELINE_PATH.write_text(json.dumps(payload, indent=2) + "\n")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[1])
-    ap.add_argument("--check", action="store_true", help="exit 1 on any ERROR")
+    ap.add_argument("--check", action="store_true",
+                    help="exit 1 on ERRORs not covered by the baseline")
     ap.add_argument("--addr", type=lambda s: int(s, 16), help="check one function")
+    ap.add_argument("--update-baseline", action="store_true",
+                    help="write current ERRORs to %s" % BASELINE_PATH.name)
     ap.add_argument("--self-test", action="store_true")
     args = ap.parse_args()
 
@@ -228,22 +270,40 @@ def main() -> None:
     errors = [f for f in findings if f.level == "ERROR"]
     warns = [f for f in findings if f.level == "WARN"]
 
+    if args.update_baseline:
+        _write_baseline(errors)
+        print("baseline written: %s (%d entries)" % (BASELINE_PATH, len(errors)))
+        return
+
+    baseline = _load_baseline()
+    new_errors = []
+    for f in errors:
+        b = baseline.get("0x%06x" % f.entry.addr)
+        if b is None or b.get("expected") != f.expected_pop \
+                or b.get("observed") != f.observed_pop:
+            new_errors.append(f)
+
     lines: List[str] = []
     for f in sorted(findings, key=lambda f: (f.level != "ERROR", f.entry.addr)):
+        tag = " [baselined]" if (f.level == "ERROR" and f not in new_errors) else ""
         lines.append(
-            "%-5s 0x%06x %-48s expected RET %-3d observed RET %-3d @0x%06x  %s"
+            "%-5s 0x%06x %-48s expected RET %-3d observed RET %-3d @0x%06x  %s%s"
             % (f.level, f.entry.addr, f.entry.name[:48], f.expected_pop,
-               f.observed_pop, f.ret_va, f.note))
+               f.observed_pop, f.ret_va, f.note, tag))
     report = "\n".join(lines) + (
-        "\n\n%d checked, %d ok, %d undecidable, %d ERROR, %d WARN\n"
+        "\n\n%d checked, %d ok, %d undecidable, %d ERROR (%d new, %d baselined), %d WARN\n"
         % (stats["checked"], stats["ok"], stats["undecidable"],
-           len(errors), len(warns)))
+           len(errors), len(new_errors), len(errors) - len(new_errors), len(warns)))
     print(report)
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
     REPORT_PATH.write_text(report)
     print("report: %s" % REPORT_PATH)
 
-    if args.check and errors:
+    if args.check and new_errors:
+        print("\n--check FAILED: %d non-baselined stdcall-decl mismatch(es). "
+              "Fix the kb.json decl (see lift-learnings §30); only baseline "
+              "with --update-baseline if the function is provably never "
+              "called from lifted C." % len(new_errors))
         sys.exit(1)
 
 

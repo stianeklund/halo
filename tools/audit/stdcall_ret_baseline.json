@@ -1,0 +1,2730 @@
+{
+  "_comment": "Pre-existing stdcall-decl mismatches (lift-learnings \u00a730) accepted as latent: not called from lifted C when baselined. --check gates only ERRORs absent from this file or whose expected/observed pops changed. Fix the kb.json decl (do NOT baseline) for any function called from lifted C. Regenerate: check_stdcall_ret.py --update-baseline",
+  "entries": {
+    "0x084080": {
+      "name": "FUN_00084080",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x0e19c0": {
+      "name": "tgaLoad",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x0e1a10": {
+      "name": "FUN_000e1a10",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x0e1f00": {
+      "name": "FUN_000e1f00",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x0e1f20": {
+      "name": "FUN_000e1f20",
+      "expected": 0,
+      "observed": 24
+    },
+    "0x0e21b0": {
+      "name": "FUN_000e21b0",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x0e5590": {
+      "name": "FUN_000e5590",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1550c0": {
+      "name": "FUN_001550c0",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x155350": {
+      "name": "FUN_00155350",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x155380": {
+      "name": "FUN_00155380",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x1553a0": {
+      "name": "FUN_001553a0",
+      "expected": 0,
+      "observed": 24
+    },
+    "0x1553d0": {
+      "name": "FUN_001553d0",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x155560": {
+      "name": "FUN_00155560",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x155880": {
+      "name": "FUN_00155880",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x155b60": {
+      "name": "FUN_00155b60",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x155cc0": {
+      "name": "FUN_00155cc0",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x156070": {
+      "name": "FUN_00156070",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x156a90": {
+      "name": "FUN_00156a90",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15b5a0": {
+      "name": "FUN_0015b5a0",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x15b650": {
+      "name": "FUN_0015b650",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x15b6a0": {
+      "name": "FUN_0015b6a0",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x15c2b0": {
+      "name": "FUN_0015c2b0",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x15c650": {
+      "name": "FUN_0015c650",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x15d020": {
+      "name": "FUN_0015d020",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x15d040": {
+      "name": "FUN_0015d040",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x15d2a0": {
+      "name": "FUN_0015d2a0",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x15d2d0": {
+      "name": "FUN_0015d2d0",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x15e770": {
+      "name": "FUN_0015e770",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x15e7a0": {
+      "name": "FUN_0015e7a0",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x15e7d0": {
+      "name": "FUN_0015e7d0",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x15f5e0": {
+      "name": "FUN_0015f5e0",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x165980": {
+      "name": "FUN_00165980",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x168230": {
+      "name": "FUN_00168230",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x168250": {
+      "name": "FUN_00168250",
+      "expected": 0,
+      "observed": 24
+    },
+    "0x168280": {
+      "name": "FUN_00168280",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x1682c0": {
+      "name": "FUN_001682c0",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x168300": {
+      "name": "FUN_00168300",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x168340": {
+      "name": "FUN_00168340",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x168bc0": {
+      "name": "FUN_00168bc0",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x168be0": {
+      "name": "FUN_00168be0",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x168c40": {
+      "name": "FUN_00168c40",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x168c70": {
+      "name": "FUN_00168c70",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x168ca0": {
+      "name": "FUN_00168ca0",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x169650": {
+      "name": "FUN_00169650",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x169670": {
+      "name": "FUN_00169670",
+      "expected": 0,
+      "observed": 24
+    },
+    "0x16de60": {
+      "name": "FUN_0016de60",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x16de80": {
+      "name": "FUN_0016de80",
+      "expected": 0,
+      "observed": 24
+    },
+    "0x1703f0": {
+      "name": "FUN_001703f0",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x172650": {
+      "name": "FUN_00172650",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x173af0": {
+      "name": "FUN_00173af0",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1744f0": {
+      "name": "FUN_001744f0",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x174980": {
+      "name": "FUN_00174980",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x178820": {
+      "name": "FUN_00178820",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x179570": {
+      "name": "FUN_00179570",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x17ad20": {
+      "name": "FUN_0017ad20",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x17ad40": {
+      "name": "FUN_0017ad40",
+      "expected": 0,
+      "observed": 24
+    },
+    "0x1bafa0": {
+      "name": "FUN_001bafa0",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1c15c0": {
+      "name": "FUN_001c15c0",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1c2550": {
+      "name": "playlist_profile_write",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1c6170": {
+      "name": "FUN_001c6170",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1ca970": {
+      "name": "FUN_001ca970",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1cf944": {
+      "name": "XapiCallThreadNotifyRoutines",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1cf97c": {
+      "name": "UnhandledExceptionFilter",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1cf9eb": {
+      "name": "GetThreadPriority",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1cfa3f": {
+      "name": "SetThreadPriorityBoost",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1cfa85": {
+      "name": "FUN_001cfa85",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1cfac6": {
+      "name": "FUN_001cfac6",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1cfb12": {
+      "name": "RaiseException",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x1cfb73": {
+      "name": "QueueUserAPC",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1cfc1b": {
+      "name": "FUN_001cfc1b",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x1cfca4": {
+      "name": "XRegisterThreadNotifyRoutine",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1cfe4e": {
+      "name": "OpenEventA",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1cfeca": {
+      "name": "ResetEvent",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1cfee8": {
+      "name": "PulseEvent",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1cff08": {
+      "name": "FUN_001cff08",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x1cff63": {
+      "name": "FUN_001cff63",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1cffe5": {
+      "name": "CreateMutexA",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d003d": {
+      "name": "FUN_001d003d",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d00b9": {
+      "name": "FUN_001d00b9",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d00fd": {
+      "name": "SignalObjectAndWait",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x1d0144": {
+      "name": "FUN_001d0144",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x1d0216": {
+      "name": "FUN_001d0216",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d0274": {
+      "name": "FUN_001d0274",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d02d0": {
+      "name": "FUN_001d02d0",
+      "expected": 0,
+      "observed": 24
+    },
+    "0x1d0348": {
+      "name": "FUN_001d0348",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x1d0362": {
+      "name": "FUN_001d0362",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1d03a2": {
+      "name": "OutputDebugStringW",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1d03ee": {
+      "name": "FUN_001d03ee",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1d040f": {
+      "name": "FUN_001d040f",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1d0447": {
+      "name": "FUN_001d0447",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1d0589": {
+      "name": "FUN_001d0589",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1d0669": {
+      "name": "FUN_001d0669",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1d06a0": {
+      "name": "FUN_001d06a0",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x1d08aa": {
+      "name": "GetTimeZoneInformation",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1d0a06": {
+      "name": "FUN_001d0a06",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1d0a5c": {
+      "name": "FUN_001d0a5c",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1d0adb": {
+      "name": "FUN_001d0adb",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1d0b06": {
+      "name": "FUN_001d0b06",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1d0b31": {
+      "name": "FUN_001d0b31",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d0b9c": {
+      "name": "FUN_001d0b9c",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d0c02": {
+      "name": "FUN_001d0c02",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1d0c48": {
+      "name": "FUN_001d0c48",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1d0c65": {
+      "name": "FUN_001d0c65",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d0c91": {
+      "name": "FUN_001d0c91",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x1d0cbf": {
+      "name": "FUN_001d0cbf",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d0cfb": {
+      "name": "FUN_001d0cfb",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x1d0df0": {
+      "name": "FUN_001d0df0",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1d0ee1": {
+      "name": "FUN_001d0ee1",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d0f63": {
+      "name": "MoveFileA",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1d10bd": {
+      "name": "FUN_001d10bd",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d11e9": {
+      "name": "FUN_001d11e9",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1d12c1": {
+      "name": "FUN_001d12c1",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x1d170a": {
+      "name": "FUN_001d170a",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x1d17d2": {
+      "name": "FUN_001d17d2",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1d18aa": {
+      "name": "FUN_001d18aa",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x1d1982": {
+      "name": "FUN_001d1982",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1d19a9": {
+      "name": "FUN_001d19a9",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1d19e7": {
+      "name": "FUN_001d19e7",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x1d1a38": {
+      "name": "FUN_001d1a38",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x1d1a89": {
+      "name": "FUN_001d1a89",
+      "expected": 0,
+      "observed": 32
+    },
+    "0x1d1b87": {
+      "name": "FUN_001d1b87",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x1d1c74": {
+      "name": "FUN_001d1c74",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x1d1f10": {
+      "name": "FUN_001d1f10",
+      "expected": 0,
+      "observed": 24
+    },
+    "0x1d21f2": {
+      "name": "FUN_001d21f2",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d22ad": {
+      "name": "FUN_001d22ad",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x1d2367": {
+      "name": "FUN_001d2367",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x1d23d9": {
+      "name": "GetOverlappedResult",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x1d243e": {
+      "name": "FUN_001d243e",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x1d2518": {
+      "name": "XGetLaunchInfo",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1d259b": {
+      "name": "FUN_001d259b",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x1d292e": {
+      "name": "FUN_001d292e",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d2ad3": {
+      "name": "FUN_001d2ad3",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1d2ae7": {
+      "name": "FUN_001d2ae7",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d2b79": {
+      "name": "FUN_001d2b79",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1d2bbd": {
+      "name": "FUN_001d2bbd",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x1d2d48": {
+      "name": "FUN_001d2d48",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d2e48": {
+      "name": "FUN_001d2e48",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1d2ec6": {
+      "name": "FUN_001d2ec6",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1d2f22": {
+      "name": "FUN_001d2f22",
+      "expected": 0,
+      "observed": 24
+    },
+    "0x1d3185": {
+      "name": "FUN_001d3185",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1d3254": {
+      "name": "FUN_001d3254",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1d335b": {
+      "name": "FUN_001d335b",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1d3410": {
+      "name": "CreateDirectoryA",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1d347c": {
+      "name": "FUN_001d347c",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1d350a": {
+      "name": "FUN_001d350a",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1d3576": {
+      "name": "FUN_001d3576",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1d3683": {
+      "name": "FUN_001d3683",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1d3717": {
+      "name": "MmQueryAllocationSize",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d3739": {
+      "name": "FUN_001d3739",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x1d3a91": {
+      "name": "XapiSelectCachePartition",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d3c95": {
+      "name": "XMountUtilityDrive",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1d3d80": {
+      "name": "XMountAlternateTitleA",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d3ee5": {
+      "name": "XUnmountAlternateTitleA",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1d3f42": {
+      "name": "FUN_001d3f42",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1d3fe1": {
+      "name": "FUN_001d3fe1",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1d407c": {
+      "name": "XMUNameFromDriveLetter",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d4157": {
+      "name": "FUN_001d4157",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d41be": {
+      "name": "FUN_001d41be",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x1d4230": {
+      "name": "FUN_001d4230",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d426b": {
+      "name": "XCalculateSignatureBegin",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1d42a9": {
+      "name": "FUN_001d42a9",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d42c3": {
+      "name": "FUN_001d42c3",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1d4345": {
+      "name": "xbe_main_thread",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1d440e": {
+      "name": "XapiFormatObjectAttributes",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d4436": {
+      "name": "FUN_001d4436",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1d4464": {
+      "name": "FUN_001d4464",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x1d46a3": {
+      "name": "FUN_001d46a3",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1d47c3": {
+      "name": "FUN_001d47c3",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1d47e4": {
+      "name": "FUN_001d47e4",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d4877": {
+      "name": "FUN_001d4877",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x1d4a02": {
+      "name": "FUN_001d4a02",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1d4a34": {
+      "name": "FUN_001d4a34",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x1d4cd9": {
+      "name": "FUN_001d4cd9",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d4dd3": {
+      "name": "FUN_001d4dd3",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1d4e37": {
+      "name": "FUN_001d4e37",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1d4ec6": {
+      "name": "FUN_001d4ec6",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x1d52c4": {
+      "name": "FUN_001d52c4",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d52f3": {
+      "name": "FUN_001d52f3",
+      "expected": 0,
+      "observed": 28
+    },
+    "0x1d5411": {
+      "name": "FUN_001d5411",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1d5598": {
+      "name": "FUN_001d5598",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d5c66": {
+      "name": "FUN_001d5c66",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d6ca8": {
+      "name": "FUN_001d6ca8",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d77b3": {
+      "name": "FUN_001d77b3",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1d7d84": {
+      "name": "FUN_001d7d84",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x1d7e6b": {
+      "name": "XapiMapLetterToDirectory",
+      "expected": 0,
+      "observed": 24
+    },
+    "0x1d819f": {
+      "name": "FUN_001d819f",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1d81f4": {
+      "name": "XapiBootToDash",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1d88ef": {
+      "name": "FUN_001d88ef",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x1d8a88": {
+      "name": "FUN_001d8a88",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1d8aef": {
+      "name": "FUN_001d8aef",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1d8b10": {
+      "name": "FUN_001d8b10",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1d8b64": {
+      "name": "XGetSectionSize",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1dbdca": {
+      "name": "FUN_001dbdca",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1dbea9": {
+      "name": "?",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1dd620": {
+      "name": "__allmul",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x1dd680": {
+      "name": "__aullrem",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x1dd770": {
+      "name": "__aulldiv",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x1dd850": {
+      "name": "__alldiv",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x1e42b0": {
+      "name": "__aulldvrm",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x1e4422": {
+      "name": "FUN_001e4422",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1e583d": {
+      "name": "FUN_001e583d",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x1e63a0": {
+      "name": "FUN_001e63a0",
+      "expected": 0,
+      "observed": 24
+    },
+    "0x1e643e": {
+      "name": "FUN_001e643e",
+      "expected": 0,
+      "observed": 32
+    },
+    "0x1e6a10": {
+      "name": "D3DDevice_GetCreationParameters",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e6a50": {
+      "name": "D3DDevice_SetGammaRamp",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1e6ab0": {
+      "name": "D3DDevice_GetGammaRamp",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e6b10": {
+      "name": "D3DDevice_CreateVolumeTexture",
+      "expected": 0,
+      "observed": 32
+    },
+    "0x1e6b40": {
+      "name": "D3DDevice_CreateCubeTexture",
+      "expected": 0,
+      "observed": 24
+    },
+    "0x1e6ba0": {
+      "name": "D3DDevice_CreateImageSurface",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x1e6d10": {
+      "name": "D3DDevice_MultiplyTransform",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1e6d60": {
+      "name": "D3DDevice_GetViewport",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e6d80": {
+      "name": "D3DDevice_SetMaterial",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e6db0": {
+      "name": "D3DDevice_GetMaterial",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e6dd0": {
+      "name": "D3DDevice_SetBackMaterial",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e6e00": {
+      "name": "D3DDevice_GetBackMaterial",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e6e30": {
+      "name": "D3DDevice_GetLight",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1e6e60": {
+      "name": "D3DDevice_GetLightEnable",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1e6ed0": {
+      "name": "D3DDevice_SwitchTexture",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e6fa0": {
+      "name": "D3DDevice_BlockOnFence",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e7030": {
+      "name": "D3DDevice_GetVisibilityTestResult",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1e70e0": {
+      "name": "D3DDevice_SetVerticalBlankCallback",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e7140": {
+      "name": "D3DDevice_GetProjectionViewportMatrix",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e7180": {
+      "name": "D3DDevice_GetModelView",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e7200": {
+      "name": "D3DDevice_GetTile",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1e7230": {
+      "name": "D3DDevice_GetScissors",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1e72a0": {
+      "name": "D3DDevice_SetFlickerFilter",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e72c0": {
+      "name": "D3DDevice_SetSoftDisplayFilter",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e73b0": {
+      "name": "D3DResource_AddRef",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e76b0": {
+      "name": "D3DBaseTexture_GetLevelCount",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e79d0": {
+      "name": "D3DDevice_GetDisplayMode",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e7a30": {
+      "name": "D3DDevice_Reset",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e7de0": {
+      "name": "D3DDevice_CopyRects",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x1e8250": {
+      "name": "D3DDevice_GetRenderTarget",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e8400": {
+      "name": "D3DDevice_SetLight",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1e85e0": {
+      "name": "D3DDevice_LightEnable",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1e86c0": {
+      "name": "D3DDevice_GetTexture2",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1e88a0": {
+      "name": "D3DDevice_SetPalette",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1e8920": {
+      "name": "D3DDevice_SetIndices",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1e8a70": {
+      "name": "D3DDevice_EndVisibilityTest",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e8ad0": {
+      "name": "D3DDevice_GetDisplayFieldStatus",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e8b40": {
+      "name": "D3DDevice_SetModelView",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1e8d30": {
+      "name": "D3DDevice_SetTile",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1e9000": {
+      "name": "D3DDevice_SetScissors",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1e92f0": {
+      "name": "D3DDevice_SetRenderState_MultiSampleType",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e9320": {
+      "name": "D3DDevice_SetRenderState_PSTextureModes",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e93a0": {
+      "name": "D3DDevice_SetRenderStateNotInline",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1e9620": {
+      "name": "D3DDevice_SetRenderState_EdgeAntiAlias",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e9650": {
+      "name": "D3DDevice_SetRenderState_ShadowFunc",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e9680": {
+      "name": "D3DDevice_SetRenderState_FogColor",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e9780": {
+      "name": "D3DDevice_SetRenderState_NormalizeNormals",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e97b0": {
+      "name": "D3DDevice_SetRenderState_TextureFactor",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e9800": {
+      "name": "D3DDevice_SetRenderState_LineWidth",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e9860": {
+      "name": "D3DDevice_SetRenderState_Dxt1NoiseEnable",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e9960": {
+      "name": "D3DDevice_SetRenderState_LogicOp",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e99f0": {
+      "name": "D3DDevice_SetRenderState_BackFillMode",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e9a40": {
+      "name": "D3DDevice_SetRenderState_TwoSidedLighting",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e9aa0": {
+      "name": "D3DDevice_SetRenderState_VertexBlend",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1e9ae0": {
+      "name": "D3DDevice_SetTextureState_TexCoordIndex",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1e9bc0": {
+      "name": "D3DDevice_SetTextureState_BumpEnv",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1e9c60": {
+      "name": "D3DDevice_SetTextureState_ColorKeyColor",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1e9cb0": {
+      "name": "D3DDevice_SetTextureStageStateNotInline",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1ea3f0": {
+      "name": "D3DDevice_SetRenderState_YuvEnable",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1ea420": {
+      "name": "D3DDevice_SetRenderState_OcclusionCullEnable",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1ea480": {
+      "name": "D3DDevice_SetRenderState_StencilCullEnable",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1ea4e0": {
+      "name": "D3DDevice_SetRenderState_RopZCmpAlwaysRead",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1ea500": {
+      "name": "D3DDevice_SetRenderState_RopZRead",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1ea520": {
+      "name": "D3DDevice_SetRenderState_DoNotCullUncompressed",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1ea540": {
+      "name": "D3DDevice_SetRenderState_MultiSampleAntiAlias",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1ea590": {
+      "name": "D3DDevice_SetRenderState_MultiSampleMask",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1eac90": {
+      "name": "D3DDevice_GetShaderConstantMode",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1eaf70": {
+      "name": "D3DDevice_CreateVertexShader",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x1eb0b0": {
+      "name": "D3DDevice_GetVertexShader",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1eb0d0": {
+      "name": "D3DDevice_GetVertexShaderConstant",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1eb110": {
+      "name": "D3DDevice_GetVertexShaderInput",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1eb3b0": {
+      "name": "D3DDevice_RunVertexStateShader",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1eb400": {
+      "name": "D3DDevice_LoadVertexShader",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1eb460": {
+      "name": "D3DDevice_LoadVertexShaderProgram",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1eb4d0": {
+      "name": "D3DDevice_SelectVertexShader",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1eb540": {
+      "name": "D3DDevice_GetVertexShaderSize",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1eb560": {
+      "name": "D3DDevice_GetVertexShaderType",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1eb590": {
+      "name": "D3DDevice_SetShaderConstantMode",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1eb970": {
+      "name": "D3DDevice_GetVertexShaderDeclaration",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1ebda0": {
+      "name": "D3DDevice_GetVertexShaderFunction",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1ebe60": {
+      "name": "D3DDevice_SetVertexShaderInput",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1ec0b0": {
+      "name": "D3DDevice_CreatePixelShader",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1ec160": {
+      "name": "D3DDevice_GetPixelShader",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1ec5c0": {
+      "name": "D3DDevice_SetPixelShader",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1ec780": {
+      "name": "D3DDevice_SetPixelShaderConstant",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1ecc70": {
+      "name": "D3DDevice_DrawVerticesUP",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x1ecdb0": {
+      "name": "D3DDevice_DrawIndexedVerticesUP",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x1ecf90": {
+      "name": "D3DDevice_DrawIndexedVertices",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1ed200": {
+      "name": "D3DDevice_PrimeVertexCache",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1ed360": {
+      "name": "D3DDevice_SetVertexData4s",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x1ed570": {
+      "name": "D3DResource_GetType",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1edc20": {
+      "name": "D3DTexture_GetSurfaceLevel",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1edcb0": {
+      "name": "D3DCubeTexture_GetCubeMapSurface",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x1edd10": {
+      "name": "D3DCubeTexture_LockRect",
+      "expected": 0,
+      "observed": 24
+    },
+    "0x1edd80": {
+      "name": "D3DVolumeTexture_LockBox",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x1eddd0": {
+      "name": "D3D_CreateTexture",
+      "expected": 0,
+      "observed": 36
+    },
+    "0x1edea0": {
+      "name": "D3D_SetPushBufferSize",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1edec0": {
+      "name": "Direct3D_CreateDevice",
+      "expected": 0,
+      "observed": 24
+    },
+    "0x1eeac0": {
+      "name": "D3D_GetAdapterIdentifier",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1eeaf0": {
+      "name": "D3D_GetAdapterModeCount",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1eeb90": {
+      "name": "D3D_EnumAdapterModes",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1eecf0": {
+      "name": "D3D_GetDeviceCaps",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1eed40": {
+      "name": "D3D_GetAdapterDisplayMode",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1eee20": {
+      "name": "D3D_CheckDeviceFormat",
+      "expected": 0,
+      "observed": 24
+    },
+    "0x1eeea0": {
+      "name": "Direct3D_CheckDeviceMultiSampleType",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x1eef80": {
+      "name": "D3DDevice_CreateIndexBuffer",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x1eefe0": {
+      "name": "D3DPalette_Lock",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1ef100": {
+      "name": "D3DVertexBuffer_Lock",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x1ef150": {
+      "name": "D3DVertexBuffer_GetDesc",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1ef170": {
+      "name": "D3DDevice_CreatePalette",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1ef890": {
+      "name": "D3DDevice_IsFencePending",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1ef9e0": {
+      "name": "D3D_SetFence",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1efd80": {
+      "name": "D3D_BlockOnResource",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1efe10": {
+      "name": "XMETAL_StartPush",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1f05e0": {
+      "name": "D3D_LazySetPointParams",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1f1bc0": {
+      "name": "CDevice_SetStateVB",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1f31c0": {
+      "name": "CDevice_InitializeFrameBuffers",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1f4590": {
+      "name": "Lock3DSurface",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x1f5390": {
+      "name": "D3D_AllocContiguousMemory",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1f5b5b": {
+      "name": "CMiniport_CreateCtxDmaObject",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x1f92f0": {
+      "name": "D3D_RecordStateBlock",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1f971e": {
+      "name": "D3DDevice_ApplyStateBlock",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1f98a6": {
+      "name": "D3DDevice_CaptureStateBlock",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1f9b53": {
+      "name": "D3DDevice_DeleteStateBlock",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1f9be4": {
+      "name": "D3DDevice_CreateStateBlock",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1f9d0f": {
+      "name": "D3DDevice_EndStateBlock",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x20384b": {
+      "name": "IDirectSound_AddRef",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x203861": {
+      "name": "IDirectSound_Release",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x203877": {
+      "name": "IDirectSoundBuffer_Unlock",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x203881": {
+      "name": "IDirectSoundBuffer_AddRef",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x203897": {
+      "name": "IDirectSoundBuffer_Release",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x203936": {
+      "name": "DSound_CRefCount_AddRef",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x20395b": {
+      "name": "DSound_CRefCount_Release",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x2039b7": {
+      "name": "CDirectSound_GetCaps",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x203a07": {
+      "name": "CDirectSound_GetSpeakerConfig",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x203a21": {
+      "name": "CDirectSound_DownloadEffectsImage",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x203a65": {
+      "name": "CDirectSound_SetEffectData",
+      "expected": 0,
+      "observed": 24
+    },
+    "0x203ab0": {
+      "name": "CDirectSound_GetEffectData",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x203af2": {
+      "name": "CDirectSound_CommitEffectData",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x203b25": {
+      "name": "CDirectSound_SetMixBinHeadroom",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x203b5a": {
+      "name": "CDirectSound_SetAllParameters",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x203b95": {
+      "name": "CDirectSound_SetDistanceFactor",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x203bd4": {
+      "name": "CDirectSound_SetDopplerFactor",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x203c13": {
+      "name": "CDirectSound_SetRolloffFactor",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x203c52": {
+      "name": "CDirectSound_SetOrientation",
+      "expected": 0,
+      "observed": 32
+    },
+    "0x203cba": {
+      "name": "CDirectSound_SetPosition",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x203d0c": {
+      "name": "CDirectSound_SetVelocity",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x203d5e": {
+      "name": "CDirectSound_SetI3DL2Listener",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x203da9": {
+      "name": "CDirectSound_CommitDeferredSettings",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x203dd4": {
+      "name": "CDirectSound_GetTime",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x203de3": {
+      "name": "CDirectSound_DoWork",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x203e0a": {
+      "name": "CDirectSound_EnableHeadphones",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x203f32": {
+      "name": "CDirectSoundVoice_SetPitch",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x203f69": {
+      "name": "CDirectSoundVoice_SetVolume",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x203fa3": {
+      "name": "CDirectSoundVoice_SetLFO",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x203fd4": {
+      "name": "CDirectSoundVoice_SetEG",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x204005": {
+      "name": "CDirectSoundVoice_SetFilter",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x204036": {
+      "name": "CDirectSoundVoice_SetHeadroom",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x204075": {
+      "name": "CDirectSoundVoice_SetMixBinVolumes",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x2040e9": {
+      "name": "CDirectSoundVoice_SetAllParameters",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x204124": {
+      "name": "CDirectSoundVoice_SetConeAngles",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x204163": {
+      "name": "CDirectSoundVoice_SetConeOrientation",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x2041b5": {
+      "name": "CDirectSoundVoice_SetConeOutsideVolume",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x2041f0": {
+      "name": "CDirectSoundVoice_SetMaxDistance",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x20422f": {
+      "name": "CDirectSoundVoice_SetMinDistance",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x20426e": {
+      "name": "CDirectSoundVoice_SetMode",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x2042a9": {
+      "name": "CDirectSoundVoice_SetPosition",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x2042fb": {
+      "name": "CDirectSoundVoice_SetVelocity",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x20434d": {
+      "name": "CDirectSoundVoice_SetI3DL2Source",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x2043a4": {
+      "name": "CDirectSoundBuffer_PlayEx",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x2043e1": {
+      "name": "CDirectSoundBuffer_StopEx",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x204437": {
+      "name": "CDirectSoundBuffer_GetStatus",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x204468": {
+      "name": "CDirectSoundBuffer_SetLoopRegion",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x2044b5": {
+      "name": "CDirectSoundBuffer_GetCurrentPosition",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x2044ea": {
+      "name": "CDirectSoundBuffer_Lock",
+      "expected": 0,
+      "observed": 32
+    },
+    "0x204590": {
+      "name": "CDirectSoundBuffer_SetCurrentPosition",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x20466c": {
+      "name": "CDirectSoundStream_GetInfo",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x2046b7": {
+      "name": "CDirectSoundStream_Discontinuity",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x2046e4": {
+      "name": "CDirectSoundStream_Flush",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x204711": {
+      "name": "CDirectSoundStream_GetStatus__r1",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x204746": {
+      "name": "CDirectSoundStream_Process",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x20476e": {
+      "name": "CDirectSoundStream_Pause",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x20497d": {
+      "name": "CDirectSoundBuffer_SetVolume",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x204982": {
+      "name": "CDirectSoundBuffer_SetPitch",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x204987": {
+      "name": "CDirectSoundBuffer_SetLFO",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x20498c": {
+      "name": "CDirectSoundBuffer_SetEG",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x204991": {
+      "name": "CDirectSoundBuffer_SetFilter",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x204996": {
+      "name": "CDirectSoundBuffer_SetHeadroom",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x20499b": {
+      "name": "CDirectSoundBuffer_SetMixBinVolumes",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x2049a0": {
+      "name": "CDirectSoundBuffer_SetAllParameters",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x2049a5": {
+      "name": "CDirectSoundBuffer_SetConeAngles",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x2049aa": {
+      "name": "CDirectSoundBuffer_SetConeOrientation",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x2049d3": {
+      "name": "CDirectSoundBuffer_SetConeOutsideVolume",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x2049d8": {
+      "name": "CDirectSoundBuffer_SetMaxDistance",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x2049f0": {
+      "name": "CDirectSoundBuffer_SetMinDistance",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x204a08": {
+      "name": "CDirectSoundBuffer_SetMode",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x204a0d": {
+      "name": "CDirectSoundBuffer_SetPosition",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x204a36": {
+      "name": "CDirectSoundBuffer_SetVelocity",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x204a5f": {
+      "name": "CDirectSoundBuffer_SetI3DL2Source",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x204a64": {
+      "name": "CDirectSoundStream_SetPitch",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x204a78": {
+      "name": "CDirectSoundStream_SetVolume",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x204a8c": {
+      "name": "CDirectSoundStream_SetLFO",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x204aa0": {
+      "name": "CDirectSoundStream_SetEG",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x204ab4": {
+      "name": "CDirectSoundStream_SetFilter",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x204ac8": {
+      "name": "CDirectSoundStream_SetHeadroom",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x204adc": {
+      "name": "CDirectSoundStream_SetMixBinVolumes_12",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x204af4": {
+      "name": "CDirectSoundStream_SetAllParameters",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x204b0c": {
+      "name": "CDirectSoundStream_SetConeAngles",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x204b28": {
+      "name": "CDirectSoundStream_SetConeOrientation",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x204b55": {
+      "name": "CDirectSoundStream_SetConeOutsideVolume",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x204b6d": {
+      "name": "CDirectSoundStream_SetMaxDistance",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x204b89": {
+      "name": "CDirectSoundStream_SetMinDistance",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x204ba5": {
+      "name": "CDirectSoundStream_SetMode",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x204bbd": {
+      "name": "CDirectSoundStream_SetPosition",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x204bea": {
+      "name": "CDirectSoundStream_SetVelocity",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x204c17": {
+      "name": "CDirectSoundStream_SetI3DL2Source",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x204c5d": {
+      "name": "IDirectSound_GetCaps",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x204c79": {
+      "name": "IDirectSound_GetSpeakerConfig",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x204c95": {
+      "name": "IDirectSound_DownloadEffectsImage",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x204cbc": {
+      "name": "IDirectSound_GetEffectData",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x204ce3": {
+      "name": "IDirectSound_SetEffectData",
+      "expected": 0,
+      "observed": 24
+    },
+    "0x204d0d": {
+      "name": "IDirectSound_CommitEffectData",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x204d25": {
+      "name": "IDirectSound_EnableHeadphones",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x204d41": {
+      "name": "IDirectSound_SetMixBinHeadroom",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x204d61": {
+      "name": "IDirectSound_SetAllParameters",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x204d81": {
+      "name": "IDirectSound_SetDistanceFactor",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x204da5": {
+      "name": "IDirectSound_SetDopplerFactor",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x204dc9": {
+      "name": "IDirectSound_SetOrientation",
+      "expected": 0,
+      "observed": 32
+    },
+    "0x204e13": {
+      "name": "IDirectSound_SetPosition",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x204e48": {
+      "name": "IDirectSound_SetRolloffFactor",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x204e6c": {
+      "name": "IDirectSound_SetVelocity",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x204ea1": {
+      "name": "IDirectSound_CommitDeferredSettings",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x204eb9": {
+      "name": "IDirectSound_GetTime",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x204ed5": {
+      "name": "IDirectSound_SetI3DL2Listener",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x204f5b": {
+      "name": "IDirectSoundBuffer_SetLFO",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x204f77": {
+      "name": "IDirectSoundBuffer_SetEG",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x204f93": {
+      "name": "IDirectSoundBuffer_SetFilter",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x204faf": {
+      "name": "IDirectSoundBuffer_SetHeadroom",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x204fcb": {
+      "name": "IDirectSoundBuffer_SetMixBinVolumes_12",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x204feb": {
+      "name": "IDirectSoundBuffer_SetAllParameters",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x20500b": {
+      "name": "IDirectSoundBuffer_SetConeAngles",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x20502f": {
+      "name": "IDirectSoundBuffer_SetConeOrientation",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x205064": {
+      "name": "IDirectSoundBuffer_SetConeOutsideVolume",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x205084": {
+      "name": "IDirectSoundBuffer_SetMaxDistance",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x2050a8": {
+      "name": "IDirectSoundBuffer_SetMinDistance",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x2050cc": {
+      "name": "IDirectSoundBuffer_SetMode",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x2050ec": {
+      "name": "IDirectSoundBuffer_SetPosition",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x205121": {
+      "name": "IDirectSoundBuffer_SetVelocity",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x205156": {
+      "name": "IDirectSoundBuffer_PlayEx",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x20517a": {
+      "name": "IDirectSoundBuffer_StopEx",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x2051be": {
+      "name": "IDirectSoundBuffer_GetStatus",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x2051da": {
+      "name": "IDirectSoundBuffer_GetCurrentPosition",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x205216": {
+      "name": "IDirectSoundBuffer_Lock",
+      "expected": 0,
+      "observed": 32
+    },
+    "0x205246": {
+      "name": "IDirectSoundBuffer_SetI3DL2Source",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x20527a": {
+      "name": "IDirectSoundStream_SetPitch",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x20528e": {
+      "name": "IDirectSoundStream_SetLFO",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x2052a2": {
+      "name": "IDirectSoundStream_SetEG",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x2052b6": {
+      "name": "IDirectSoundStream_SetFilter",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x2052ca": {
+      "name": "IDirectSoundStream_SetHeadroom",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x2052de": {
+      "name": "IDirectSoundStream_SetMixBinVolumes_12",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x2052ed": {
+      "name": "IDirectSoundStream_SetConeOrientation",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x20534b": {
+      "name": "IDirectSoundStream_SetMode",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x205350": {
+      "name": "IDirectSoundStream_SetPosition",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x205379": {
+      "name": "IDirectSoundStream_SetVelocity",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x2053a2": {
+      "name": "IDirectSoundStream_Pause",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x2055a1": {
+      "name": "CDirectSoundVoice_SetFrequency",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x2055e4": {
+      "name": "CDirectSoundVoice_SetOutputBuffer",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x205650": {
+      "name": "CDirectSoundVoice_SetMixBins",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x2056a8": {
+      "name": "CDirectSoundBufferSettings_SetBufferData",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x205768": {
+      "name": "CDirectSoundBuffer_SetBufferData",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x2057dd": {
+      "name": "CDirectSoundBuffer_Play",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x20580f": {
+      "name": "CDirectSoundBuffer_Stop",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x20583f": {
+      "name": "CDirectSoundBuffer_SetNotificationPositions",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x205894": {
+      "name": "CDirectSoundBuffer_SetOutputBuffer",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x2059f9": {
+      "name": "CDirectSoundStream_AddRef",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x205a09": {
+      "name": "CDirectSoundStream_Release",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x205a19": {
+      "name": "CDirectSoundStream_SetOutputBuffer",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x205aa8": {
+      "name": "CDirectSoundBuffer_SetFrequency",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x205aad": {
+      "name": "CDirectSoundBuffer_SetMixBins",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x205ac7": {
+      "name": "CDirectSoundStream_SetFrequency",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x205adb": {
+      "name": "CDirectSoundStream_SetMixBins",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x205aef": {
+      "name": "IDirectSoundBuffer_SetFrequency",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x205b0b": {
+      "name": "IDirectSoundBuffer_SetOutputBuffer",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x205b27": {
+      "name": "IDirectSoundBuffer_SetMixBins",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x205b67": {
+      "name": "IDirectSoundBuffer_Stop",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x205b9f": {
+      "name": "IDirectSoundBuffer_SetNotificationPositions",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x205bd3": {
+      "name": "IDirectSoundStream_SetOutputBuffer",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x205bd8": {
+      "name": "IDirectSoundStream_SetMixBins",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x205e69": {
+      "name": "CDirectSoundStream_Constructor",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x205f6d": {
+      "name": "CDirectSound_CreateSoundBuffer",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x205fed": {
+      "name": "CDirectSound_CreateSoundStream",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x2060d4": {
+      "name": "IDirectSound_CreateSoundBuffer",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x2060f8": {
+      "name": "IDirectSound_CreateSoundStream",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x206232": {
+      "name": "DirectSoundCreate",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x20630e": {
+      "name": "DirectSoundCreateStream",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x206a5e": {
+      "name": "CMcpxAPU_Commit3dSettings",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x206dc4": {
+      "name": "CMcpxAPU_SetMixBinHeadroom",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x207234": {
+      "name": "CMcpxAPU_Set3dParameters",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x207265": {
+      "name": "CMcpxAPU_Set3dDistanceFactor",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x207289": {
+      "name": "CMcpxAPU_Set3dDopplerFactor",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x2072ad": {
+      "name": "CMcpxAPU_Set3dRolloffFactor",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x207309": {
+      "name": "CMcpxAPU_Set3dPosition",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x207334": {
+      "name": "CMcpxAPU_Set3dVelocity",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x20735f": {
+      "name": "CMcpxAPU_SetI3DL2Listener",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x208da2": {
+      "name": "CMcpxVoiceClient_SetFilter",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x209c05": {
+      "name": "CMcpxVoiceClient_SetLFO",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x209d16": {
+      "name": "CMcpxVoiceClient_SetEG",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x209e6d": {
+      "name": "CMcpxVoiceClient_Commit3dSettings",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x20a0ef": {
+      "name": "CMcpxVoiceClient_Set3dParameters",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x20a145": {
+      "name": "CMcpxVoiceClient_Set3dConeOrientation",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x20a16d": {
+      "name": "CMcpxVoiceClient_Set3dConeOutsideVolume",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x20a18e": {
+      "name": "CMcpxVoiceClient_Set3dMaxDistance",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x20a1af": {
+      "name": "CMcpxVoiceClient_Set3dMinDistance",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x20a1d0": {
+      "name": "CMcpxVoiceClient_Set3dMode",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x20a1f1": {
+      "name": "CMcpxVoiceClient_Set3dPosition",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x20a219": {
+      "name": "CMcpxVoiceClient_Set3dVelocity",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x20a241": {
+      "name": "CMcpxVoiceClient_SetI3DL2Source",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x20a2f5": {
+      "name": "CSensaura3d_GetFullHRTFFilterPair",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x20a431": {
+      "name": "CSensaura3d_GetLiteHRTFFilterPair",
+      "expected": 0,
+      "observed": 20
+    },
+    "0x20b0ac": {
+      "name": "CMcpxBuffer_GetStatus",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x20b0f7": {
+      "name": "CMcpxBuffer_GetCurrentPosition",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x20b873": {
+      "name": "CMcpxBuffer_Stop",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x20b8d7": {
+      "name": "CMcpxBuffer_SetCurrentPosition",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x20baa4": {
+      "name": "CMcpxBuffer_Play",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x20c050": {
+      "name": "CMcpxStream_Pause",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x20c857": {
+      "name": "XAudioCalculatePitch",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x20ca62": {
+      "name": "XAudioCreatePcmFormat",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x20caac": {
+      "name": "XAudioCreateAdpcmFormat",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x20cbad": {
+      "name": "IsValidFormat",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x223be7": {
+      "name": "ioctlsocket",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x2240c3": {
+      "name": "listen",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x24b4e4": {
+      "name": "MU_Init",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x24b724": {
+      "name": "IUsbInit_GetMaxDeviceTypeCount",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x24ba93": {
+      "name": "FUN_0024ba93",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x24bb54": {
+      "name": "XInitDevices",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x24c143": {
+      "name": "XInputOpen",
+      "expected": 0,
+      "observed": 16
+    },
+    "0x24c1b8": {
+      "name": "XInputClose",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x24c1c4": {
+      "name": "XInputGetCapabilities",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x24c3b6": {
+      "name": "XInputGetState",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x24c45f": {
+      "name": "XInputPoll",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x24c932": {
+      "name": "XGetDevices",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x24c954": {
+      "name": "XGetDeviceChanges",
+      "expected": 0,
+      "observed": 12
+    }
+  }
+}

@@ -506,6 +506,16 @@ class StubManager:
         # returns).  Reset via reset_stub_sequences() before each run so
         # oracle and candidate see the identical sequence.
         self._seq_counters: dict[str, int] = {}
+        # Stub-convention verification (lift-learnings §30): every registered
+        # stub's declared convention is checked against the real callee's RET
+        # immediate in the pristine XBE.  A mismatch means BOTH oracle and
+        # candidate stubs honor the same wrong convention — invisible to the
+        # differential, fatal on the box (ESP drift, the 0x158df0 boot crash).
+        # Mismatch strings accumulate here; unicorn_diff fails the run on any,
+        # unless --no-stub-conv-check.
+        self.convention_mismatches: list[str] = []
+        self._conv_checked: set[int] = set()
+        self._kb_addrs_sorted: Optional[list[int]] = None
 
     def reset_stub_sequences(self):
         """Reset the per-name call counters for list-valued stub_returns.
@@ -657,7 +667,71 @@ class StubManager:
         stub = CalleeStub(name=symbol_name, code=b"", abi=abi,
                           sentinel_addr=sentinel_addr, has_real_code=False)
         self._stubs[sentinel_addr] = stub
+        self._check_convention(symbol_name, kb_entry, decl, abi)
         return stub, kb_entry
+
+    def _next_kb_addr(self, addr: int) -> int:
+        """Smallest kb.json function address strictly above addr (scan bound)."""
+        if self._kb_addrs_sorted is None:
+            addrs = []
+            for obj in self._load_kb().get("objects", []):
+                for fn in obj.get("functions", []):
+                    try:
+                        addrs.append(int(fn.get("addr", ""), 16))
+                    except ValueError:
+                        pass
+            self._kb_addrs_sorted = sorted(addrs)
+        import bisect
+        i = bisect.bisect_right(self._kb_addrs_sorted, addr)
+        if i < len(self._kb_addrs_sorted):
+            return self._kb_addrs_sorted[i]
+        return addr + 0x2000
+
+    def _check_convention(self, symbol_name: str, kb_entry: Optional[dict],
+                          decl: str, abi: dict) -> None:
+        """Verify the declared convention against the callee's binary RET.
+
+        Both oracle and candidate stubs honor the kb.json decl, so a wrong
+        convention (e.g. Ghidra's ``void f(void)`` over a ``RET 4`` body —
+        lift-learnings §30) drifts ESP identically on both sides and the
+        differential passes while the box crashes.  Reads the real callee's
+        first RET immediate from the pristine XBE and records a mismatch in
+        ``self.convention_mismatches``.  Skips silently when the XBE is
+        unavailable (CI), the callee address is unknown, or the decl is
+        noreturn/varargs.
+        """
+        addr_s = kb_entry.get("addr", "") if kb_entry else ""
+        if not addr_s:
+            return
+        try:
+            addr = int(addr_s, 16)
+        except ValueError:
+            return
+        if addr in self._conv_checked:
+            return
+        self._conv_checked.add(addr)
+        if re.search(r'\bnoreturn\b|\.\.\.', decl):
+            return
+        try:
+            audit_dir = str(Path(__file__).resolve().parent.parent / "audit")
+            if audit_dir not in sys.path:
+                sys.path.insert(0, audit_dir)
+            from check_stdcall_ret import find_first_ret
+            res = find_first_ret(addr, self._next_kb_addr(addr))
+        except Exception:
+            return  # XBE / capstone unavailable — nothing to compare against
+        if res.kind != "ret":
+            return
+        conv = abi.get("conv", "cdecl")
+        n_stack = sum(1 for p in abi["params"] if not p.reg)
+        expected = 4 * n_stack if conv == "stdcall" else 0
+        if res.pop_bytes != expected:
+            msg = (f"{symbol_name} @ {addr:#x}: decl is {conv} with {n_stack} "
+                   f"stack arg(s) (implies RET {expected}) but the binary RETs "
+                   f"{res.pop_bytes} — the stub honors the WRONG convention on "
+                   f"both sides; fix the kb.json decl (lift-learnings §30)")
+            self.convention_mismatches.append(msg)
+            print(f"  [stub-conv MISMATCH] {msg}", file=sys.stderr)
 
     def prepare_stubs(self, stub_map: dict, globals_base: int = None,
                       shared_sentinels: dict = None,
