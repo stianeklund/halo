@@ -1676,6 +1676,150 @@ void *FUN_0015b890(int cache_index, uint32_t cache_size)
 }
 
 /*
+ * FUN_0015b970 (0x15b970)  rasterizer_decals_begin / decal-layer render setup
+ *
+ * Sets up decal render state for a given decal layer (pass_index, 0..4).
+ * Selects a rasterizer texture profile from a 5-entry local table via
+ * FUN_0016f910, records the active layer in the 0x476ac8 shadow, and (when
+ * the two early-out gates pass) resets the cached texture/blend state,
+ * programs texture-stage + cull/z/alpha render state (each mirrored into the
+ * 0x1fb7xx shadow copies), and rebuilds the 0xf0-byte pixel-shader/format
+ * state block at 0x5a5ac0 before binding the decal vertex stream (stride
+ * 0x10).
+ *
+ * pass_index==3 forces alpha-blend on with alpha-ref 0x7f and switches
+ * texture mode via FUN_00158ae0(4). Other layers latch 0x476ae2 from an FPU
+ * equality test (fld 0x5a5db8; fcomp 0x2533c8; test ah,0x44; jp) gated by
+ * byte 0x325719; the latch selects stream format 3 (with extra combiner
+ * dwords) vs 2 in the state block. Branch shape below mirrors the original
+ * layout: latch-set falls to the enable block, the else-if jumps forward to
+ * the disable block (delinked ref 0x1c8-0x22c).
+ *
+ * Both assert tails call halt_and_catch_fire (FUN_001029a0, relocs 0x2f and
+ * 0xb9 in the per-fn delinked ref — NOT system_exit like most of this TU).
+ * The original pushes -1 (EDI) to it; our shared void(void) decl cannot
+ * express that push — fixed 1-insn diff per assert site.
+ *
+ * profile_table is short[6] with only [0..4] initialized: the original frame
+ * is sub esp,0xc and the guard is pass_index<5; do not shrink.
+ *
+ * Globals (by address, widths from the reference disasm):
+ *   0x476ab0  int    global_d3d_device (asserted non-NULL)
+ *   0x476ac8  int16  active decal layer shadow
+ *   0x3256bc  uint16 early-out gate A (!=0 => return)
+ *   0x3256cd  uint8  early-out gate B (==0 => return)
+ *   0x476ad4/0x476ad0 uint16, 0x476acc uint32: cached blend/frame/bitmap
+ *   0x476ae2  char   stream-format latch flag
+ *   0x32570c  uint32 z-bias value
+ *   0x325719  char   FPU-compare enable gate
+ *   0x5a5db8, 0x2533c8 float latch comparands (0x2533c8 is const 1.0f)
+ *   0x1fb784/788/78c/798/77c uint32 render-state shadow copies
+ *   0x5a5ac0  0xf0-byte pixel-shader state block; 0x476ad8 vertex buffer
+ *
+ * 0x15b970 / rasterizer_decals.obj
+ */
+void FUN_0015b970(short pass_index)
+{
+  short profile_table[6];
+
+  if (*(int *)0x476ab0 == 0) {
+    display_assert(
+      "global_d3d_device",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c", 0x11b, 1);
+    halt_and_catch_fire();
+  }
+
+  profile_table[0] = 9;
+  profile_table[1] = 10;
+  profile_table[2] = 6;
+  profile_table[3] = 7;
+  profile_table[4] = 0x14;
+
+  if ((pass_index >= 0) && (pass_index < 5)) {
+    FUN_0016f910(profile_table[pass_index]);
+  }
+
+  *(short *)0x476ac8 = pass_index;
+
+  if (*(uint16_t *)0x3256bc != 0) {
+    return;
+  }
+  if (*(char *)0x3256cd == '\0') {
+    return;
+  }
+
+  if ((pass_index < 0) || (pass_index >= 5)) {
+    display_assert(
+      "layer>=0 && layer<NUMBER_OF_DECAL_LAYERS",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c", 0x133, 1);
+    halt_and_catch_fire();
+  }
+
+  *(uint16_t *)0x476ad4 = 0xffff;
+  *(uint16_t *)0x476ad0 = 0xffff;
+  *(uint32_t *)0x476acc = 0xffffffff;
+  *(char *)0x476ae2 = '\0';
+
+  rasterizer_set_texture(0, 0, 1, -1, 0);
+  D3DDevice_SetTextureStageState(0, 10, 3);
+  D3DDevice_SetTextureStageState(0, 0xb, 3);
+  D3DDevice_SetTextureStageState(0, 0xd, 2);
+  D3DDevice_SetTextureStageState(0, 0xe, 2);
+  D3DDevice_SetTextureStageState(0, 0xf, 2);
+  D3DDevice_SetRenderState_CullMode(0x901);
+  D3DDevice_SetRenderState_Simple(0x40304, 1);
+  *(uint32_t *)0x1fb784 = 1;
+  D3DDevice_SetRenderState_ZEnable(1);
+  D3DDevice_SetRenderState_Simple(0x4035c, 0);
+  *(uint32_t *)0x1fb798 = 0;
+  D3DDevice_SetRenderState_Simple(0x40354, 0x203);
+  *(uint32_t *)0x1fb77c = 0x203;
+  D3DDevice_SetRenderState_ZBias(*(uint32_t *)0x32570c);
+
+  if (pass_index == 3) {
+    D3DDevice_SetRenderState_Simple(0x40300, 1);
+    *(uint32_t *)0x1fb788 = 1;
+    D3DDevice_SetRenderState_Simple(0x40340, 0x7f);
+    *(uint32_t *)0x1fb78c = 0x7f;
+    FUN_00158ae0(4);
+  } else {
+    /* fld [0x5a5db8]; fcomp [0x2533c8]; test ah,0x44; jp — equality test;
+     * the equal path latches 0x476ae2 and falls into the enable block. */
+    if ((*(char *)0x325719 != '\0') &&
+        (*(float *)0x5a5db8 == *(float *)0x2533c8)) {
+      *(char *)0x476ae2 = '\x01';
+    } else if (*(char *)0x476ae2 == '\0') {
+      D3DDevice_SetRenderState_Simple(0x40300, 0);
+      *(uint32_t *)0x1fb788 = 0;
+      goto LAB_0015bb9c;
+    }
+    D3DDevice_SetRenderState_Simple(0x40300, 1);
+    *(uint32_t *)0x1fb788 = 1;
+    D3DDevice_SetRenderState_Simple(0x40340, 0);
+    *(uint32_t *)0x1fb78c = 0;
+  }
+
+LAB_0015bb9c:
+  FUN_00178b40(1, 10, 0);
+  csmemset((void *)0x5a5ac0, 0, 0xf0);
+  *(uint32_t *)0x5a5b98 = 1;
+  *(uint32_t *)0x5a5b74 = 0xc00;
+  *(uint32_t *)0x5a5b2c = 0xc00;
+  *(uint32_t *)0x5a5b78 = 0xc00;
+  if (*(char *)0x476ae2 != '\0') {
+    *(uint32_t *)0x5a5b94 = 3;
+    *(uint32_t *)0x5a5ae8 = 0x1000000;
+    *(uint32_t *)0x5a5ac8 = 0x1c151115;
+    *(uint32_t *)0x5a5b30 = 0xc00;
+  } else {
+    *(uint32_t *)0x5a5b94 = 2;
+  }
+  *(uint32_t *)0x5a5ae0 = 0xc;
+  *(uint32_t *)0x5a5ae4 = 0x1c00;
+  D3DDevice_SetStreamSource(0, *(void **)0x476ad8, 0x10);
+}
+
+/*
  * FUN_0015bc40 — render every decal in one cluster/layer chain.
  *
  * Fetches the decal list head via FUN_00098fe0(cluster_index, current_layer),
@@ -2126,7 +2270,7 @@ void FUN_0015cbb0(void *detail_object_view_data)
   int i;
   int j; /* (short)-truncated view of counter (register-resident) */
   int m;
-  int counter;     /* full loop counter, memory-resident (EBP-0x14)      */
+  int counter; /* full loop counter, memory-resident (EBP-0x14)      */
   int frame_count; /* reused as the cell index in the draw loop (EBP-0x8) */
   char success;
 
