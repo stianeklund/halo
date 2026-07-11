@@ -18,10 +18,10 @@
  */
 
 /* Forward declarations for callbacks passed to lruv_cache_new.
- * FUN_0015afa0 is the eviction callback (ported at its original address);
- * the query callback remains a static helper. */
+ * FUN_0015afa0 is the eviction callback; FUN_0015b0c0 is the lock-query
+ * callback (both ported at their original addresses). */
 void FUN_0015afa0(int decal_index);
-static int rasterizer_decals_vertex_cache_query(int decal_index);
+bool FUN_0015b0c0(int decal_index);
 
 /* D3DSURFACE_DESC mirror (Xbox D3D8, 0x1c bytes; desc buffer at EBP-0x30). */
 typedef struct {
@@ -1373,6 +1373,61 @@ LAB_0015b018:
   decal_delete(decal_index);
 }
 
+/* 0x15b0c0
+ *
+ * rasterizer_decals_vertex_cache_query  (LRUV locked-probe callback)
+ *
+ * Called by the LRUV cache to check whether a cached decal may be evicted.
+ * Returns true (locked / not evictable) if the decal datum has either the
+ * locked (bit 0) or permanent (bit 1) flag set; false otherwise.
+ * Also records decal_index into 0x32516c (last-queried decal index).
+ *
+ * Ghidra reports void(void) — WRONG on both counts (§16 void-EAX): one
+ * stack arg [EBP+8] = decal_index, bool return in AL (XOR AL,AL / MOV AL,1).
+ *
+ * The goto shape mirrors the binary's block layout exactly and is
+ * match-sensitive — do not fold back into sequential ifs:
+ *   check==0 / assert-0x47 body / shared tail 0x15b0f6 (call display_assert;
+ *   push -1; call system_exit) / main path 0x15b105 / check==-1 at 0x15b127
+ *   with its pushes cross-jumping back into the shared tail / mov al,1 ret
+ *   last. The original compiler knew system_exit is noreturn and let the
+ *   assert body fall into the main path; our VC71 shim expands __noreturn
+ *   to nothing under MSVC, so sequential ifs put the -1 check inline after
+ *   the first assert (70.9%). Sequential-if + setne return also replaced
+ *   the branchy XOR AL,AL / MOV AL,1 pair.
+ * Flag load is a single byte: MOV CL, byte ptr [EAX+2] (§24 — do not widen).
+ */
+bool FUN_0015b0c0(int decal_index)
+{
+  char *decal;
+
+  if (decal_index != 0)
+    goto check_none;
+  display_assert(
+    "decal_index",
+    "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c", 0x47, 1);
+  system_exit(-1);
+  /* noreturn fallthrough into the main path, as in the binary */
+
+main_path:
+  decal = (char *)datum_get(*(void **)0x5aa8b8, decal_index);
+  *(int *)0x32516c = decal_index;
+  if (*(unsigned char *)(decal + 2) & 3)
+    goto ret_locked;
+  return 0;
+
+check_none:
+  if (decal_index != -1)
+    goto main_path;
+  display_assert(
+    "decal_index!=NONE",
+    "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c", 0x48, 1);
+  system_exit(-1);
+
+ret_locked:
+  return 1;
+}
+
 /* 0x15b150
  *
  * rasterizer_decals_register_callbacks
@@ -1515,48 +1570,6 @@ void FUN_0015b530(int decal_index)
   lruv_block_delete(*(void **)0x476adc, decal_index);
 }
 
-/* 0x15b0c0
- *
- * rasterizer_decals_vertex_cache_query  (LRUV locked-probe callback)
- *
- * Called by the LRUV cache to check whether a cached decal may be evicted.
- * Returns 1 (locked / not evictable) if the decal datum has either the
- * locked (bit 0) or permanent (bit 1) flag set; 0 otherwise.
- * Also records decal_index into 0x32516c for debug display.
- */
-static int rasterizer_decals_vertex_cache_query(int decal_index)
-{
-  char *iVar1;
-  char *pcVar2;
-  int uVar3;
-
-  if (decal_index == 0) {
-    display_assert(
-      "decal_index",
-      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c", 0x47, 1);
-    system_exit(-1);
-    uVar3 = 0x49;
-    pcVar2 = "decal_index!=0";
-  } else {
-    if (decal_index != -1)
-      goto LAB_0015b105;
-    uVar3 = 0x48;
-    pcVar2 = "decal_index!=NONE";
-  }
-  display_assert(pcVar2,
-                 "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c",
-                 uVar3, 1);
-  system_exit(-1);
-
-LAB_0015b105:
-  iVar1 = datum_get(*(void **)0x5aa8b8, decal_index);
-  *(int *)0x32516c = decal_index;
-  if ((*(unsigned char *)(iVar1 + 2) & 3) == 0) {
-    return 0;
-  }
-  return 1;
-}
-
 /* 0x15b5e0
  *
  * Sets the appropriate rasterizer blend/render state for decals based on
@@ -1657,7 +1670,7 @@ void rasterizer_decals_initialize(void)
   /* Create the LRUV vertex cache */
   *(void **)0x476adc =
     lruv_cache_new("decal vertex cache", 0xa00, 6, 0x800, FUN_0015afa0,
-                   rasterizer_decals_vertex_cache_query);
+                   (int (*)(int))FUN_0015b0c0);
 
   if (*(void **)0x476adc == 0) {
     display_assert(
