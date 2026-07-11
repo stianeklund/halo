@@ -327,6 +327,25 @@ def _get_regarg_callees(source: Path) -> dict[str, str]:
         # All register-args, no stack args: void-cast enables tail-call/bare call
         elif stack_params == 0 and ret_type == "void":
             result[name] = f"((void(*)(void)){name})"
+        # @<ecx>[, @<edx>] prefix followed by integer stack args: maps exactly
+        # onto __fastcall (ecx, edx, remaining args pushed, callee-clean).
+        # e.g. D3DDevice_SetTextureStageState(stage@<ecx>, state@<edx>, value)
+        # -> mov edx, ...; mov/xor ecx, ...; push value; call (no add esp).
+        # Float/double stack params are excluded (int cast would corrupt them).
+        elif (
+            stack_params > 0
+            and len(regs) in (1, 2)
+            and regs[0][0] == 0
+            and regs[0][1] in _FASTCALL_ECX
+            and (len(regs) == 1
+                 or (regs[1][0] == 1 and regs[1][1] in _FASTCALL_EDX))
+            and "float" not in params_str
+            and "double" not in params_str
+        ):
+            base_ret = re.sub(r"__(stdcall|cdecl|fastcall)\b", "",
+                              ret_type).strip()
+            arg_types = ",".join(["int"] * len(params))
+            result[name] = f"(({base_ret}(__fastcall*)({arg_types})){name})"
 
     return result
 
