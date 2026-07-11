@@ -6616,11 +6616,43 @@
       "score": 98.8,
       "source": "src/halo/interface/ui_widget_game_data_input_functions.c"
     },
+    "FUN_000f52f0": {
+      "score": 100.0,
+      "source": "src/halo/items/items.c"
+    },
+    "FUN_000f53a0": {
+      "score": 83.5,
+      "source": "src/halo/items/items.c"
+    },
+    "FUN_000f5500": {
+      "score": 92.9,
+      "source": "src/halo/items/items.c"
+    },
+    "FUN_000f5750": {
+      "score": 82.6,
+      "source": "src/halo/items/items.c"
+    },
+    "FUN_000f5f30": {
+      "score": 96.0,
+      "source": "src/halo/items/items.c"
+    },
+    "FUN_000f63f0": {
+      "score": 63.9,
+      "source": "src/halo/items/items.c"
+    },
+    "FUN_000f6740": {
+      "score": 100.0,
+      "source": "src/halo/items/items.c"
+    },
     "FUN_000f67b0": {
       "score": 100.0,
       "source": "src/halo/items/items.c"
     },
     "FUN_000f67f0": {
+      "score": 100.0,
+      "source": "src/halo/items/items.c"
+    },
+    "FUN_000f6820": {
       "score": 100.0,
       "source": "src/halo/items/items.c"
     },
@@ -6650,6 +6682,14 @@
     },
     "FUN_000f6b80": {
       "score": 55.5,
+      "source": "src/halo/items/items.c"
+    },
+    "FUN_000f6c40": {
+      "score": 92.2,
+      "source": "src/halo/items/items.c"
+    },
+    "FUN_000f6d00": {
+      "score": 90.9,
       "source": "src/halo/items/items.c"
     },
     "FUN_000f6d60": {
@@ -14052,6 +14092,14 @@
       "score": 92.3,
       "source": "src/halo/input/input_xbox.c"
     },
+    "item_new": {
+      "score": 100.0,
+      "source": "src/halo/items/items.c"
+    },
+    "items_dispose_from_old_map": {
+      "score": 100.0,
+      "source": "src/halo/items/items.c"
+    },
     "leaf_map_mark_portal_designators": {
       "score": 84.0,
       "source": "src/halo/structures/structures.c"
@@ -15508,6 +15556,14 @@
       "score": 98.8,
       "source": "src/halo/text/unicode.c"
     },
+    "valid_real_matrix4x3": {
+      "score": 90.9,
+      "source": "src/halo/items/items.c"
+    },
+    "valid_real_vector3d_axes3": {
+      "score": 92.2,
+      "source": "src/halo/items/items.c"
+    },
     "vector3d_from_angle": {
       "score": 66.7,
       "source": "src/halo/math/real_math.c"
@@ -15543,6 +15599,18 @@
     "verify_packet_definition": {
       "score": 98.3,
       "source": "src/halo/networking/network_messages.c"
+    },
+    "virtual_keyboard_initialize": {
+      "score": 96.7,
+      "source": "src/halo/items/items.c"
+    },
+    "virtual_keyboard_process_input": {
+      "score": 63.9,
+      "source": "src/halo/items/items.c"
+    },
+    "virtual_keyboard_set_validation": {
+      "score": 92.9,
+      "source": "src/halo/items/items.c"
     },
     "weapon_preprocess_node_orientations": {
       "score": 100.0,

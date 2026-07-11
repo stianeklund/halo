@@ -12893,7 +12893,9 @@
         },
         {
           "addr": "0xf6740",
-          "decl": "void items_dispose_from_old_map(void);"
+          "decl": "void items_dispose_from_old_map(void);",
+          "name": "items_dispose_from_old_map",
+          "ported": true
         },
         {
           "addr": "0xf6750",
