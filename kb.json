@@ -12818,7 +12818,8 @@
         },
         {
           "addr": "0xf53a0",
-          "decl": "void virtual_keyboard_initialize(void);"
+          "decl": "bool virtual_keyboard_initialize(void);",
+          "ported": true
         },
         {
           "addr": "0xf5500",
