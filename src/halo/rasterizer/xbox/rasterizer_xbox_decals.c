@@ -3846,3 +3846,119 @@ void rasterizer_draw_dynamic_vertices(int first_primitive_index,
     }
   }
 }
+
+/*
+ * FUN_00158df0 (0x158df0) — rasterizer scene render begin
+ *
+ * Ghidra mis-declares this as void(void); the real ABI is a single cdecl
+ * stack pointer parameter (`parameters`, a ushort/struct pointer). Copies the
+ * 600-byte (0x96-dword) parameters block into the global mirror at 0x5a5bc0,
+ * updates the "same render target" flag, resolves the clear color, then drives
+ * the per-frame render-begin call chain and installs the initial frustum-z /
+ * fill-mode state.
+ *
+ * Globals (hardcoded, not in kb.json; widths taken from disasm store/compare
+ * operand sizes, NOT the decompiler):
+ *   0x476ab0  device pointer, global_d3d_device (asserted non-NULL)
+ *   0x476ab8  BYTE same-target flag (mov [..],al — skips heavy setup when 1)
+ *   0x476abc  WORD previous parameters[1] (cmp/mov word; sentinel 0xffff)
+ *   0x3256bc  WORD mode flag (cmp word ptr,1 forces the clear color to 0)
+ *   0x3256be  BYTE wireframe flag (neg/sbb ternary picks D3DFILL_WIREFRAME)
+ *   0x5a5bc0  600-byte mirror of the parameters block
+ *   0x5a5dac  float color at offset 0x1ec inside the mirror, converted to pixel32
+ *
+ * Field offsets (parameters is a ushort pointer):
+ *   parameters[0]  byte +0x00  render target index (only 0 or 1 supported)
+ *   parameters[1]  byte +0x02  target id (0xffff = special/main target)
+ *   byte +0x05                 bool selector for FUN_00158140 arg4
+ *   float +0x44                camera.z_near
+ *
+ * All four assert terminals are PUSH -1 (or PUSH EDI with EDI still -1 from
+ * the OR EDI,-1 at 0x158e54) then CALL 0x8e2f0 = system_exit(-1) — NOT
+ * halt_and_catch_fire (the first parked lift substituted hcf at all four
+ * sites; review-gate REJECT, same anti-pattern as FUN_0015c680).
+ */
+/* 0x158df0 */
+void FUN_00158df0(unsigned short *parameters)
+{
+  unsigned int color_pixel;
+  char same_target;
+
+  if (parameters == 0) {
+    display_assert("parameters",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                   0x547, true);
+    system_exit(-1);
+  }
+  if (*(void **)0x476ab0 == 0) {
+    display_assert("global_d3d_device",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                   0x548, true);
+    system_exit(-1);
+  }
+
+  /* Copy 0x96 dwords (600 bytes) from parameters into the global mirror.
+   * MSVC lowers the constant-size memcpy to `rep movsl` (ECX=0x96). */
+  memcpy((void *)0x5a5bc0, parameters, 0x258);
+
+  /* Same-target detection: flag set only when we have rendered before
+   * (prev word != 0xffff sentinel) and the current target id IS 0xffff.
+   * The flag is computed in AL and branched on directly (test al,al) —
+   * the branch below uses the local, not a re-read of the byte global. */
+  if (*(unsigned short *)0x476abc != 0xffff && parameters[1] == 0xffff) {
+    same_target = 1;
+  } else {
+    same_target = 0;
+  }
+  *(char *)0x476ab8 = same_target;
+  *(unsigned short *)0x476abc = parameters[1];
+
+  if (same_target == 0) {
+    rasterizer_memory_pool_reset();
+    FUN_0015d060();
+    rasterizer_transparent_geometry_begin();
+    FUN_001659f0();
+    FUN_001812b0();
+  }
+  /* Disasm: push 0 before 0x1792c0 and 0x1592e0, no push before 0x16f880,
+   * push 0 before 0x158ae0, push (parameters+0x1e8) before 0x17c8f0;
+   * one deferred ADD ESP,0x10 cleans all four dword args. The decompiler
+   * dropped the first, second and fifth arguments. */
+  FUN_001792C0(0);
+  FUN_001592e0(0);
+  FUN_0016f880();
+  FUN_00158ae0(0);
+  rasterizer_environment_fog_screen_end((char *)parameters + 0x1e8);
+
+  if (*(short *)0x3256bc == 1) {
+    color_pixel = 0;
+  } else {
+    color_pixel = FUN_000d1dd0((float *)0x5a5dac);
+  }
+
+  if (*parameters == 0 || *parameters == 1) {
+    FUN_0016f910(0);
+    /* arg4 is a byte-wide bool; Ghidra's CONCAT31(extraout_EAX>>8,...) is an
+     * artifact of the bool being built in EAX — the upper bytes are garbage. */
+    FUN_00158140((unsigned int)*parameters, 0, color_pixel,
+                 (*((char *)parameters + 5) == 0), 1);
+    FUN_0016fa40(0);
+    if (*parameters == 0 && *(float *)((char *)parameters + 0x44) == 0.0f) {
+      display_assert("parameters->camera.z_near!=0.0f",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                     0x587, true);
+      system_exit(-1);
+    }
+  } else {
+    display_assert(
+      "### ERROR unsupported rasterizer target for scene rendering",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c", 0x58c, true);
+    system_exit(-1);
+  }
+
+  rasterizer_set_frustum_z(-1.0f, -1.0f);
+  /* Fill mode: byte 0x3256be selects D3DFILL_WIREFRAME (0x1b01) over
+   * D3DFILL_SOLID (0x1b02); original lowers this ternary to neg/sbb/add. */
+  D3DDevice_SetRenderState_FillMode(
+    (*(unsigned char *)0x3256be != 0) ? 0x1b01 : 0x1b02);
+}

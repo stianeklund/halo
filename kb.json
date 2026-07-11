@@ -19082,7 +19082,7 @@
         },
         {
           "addr": "0x1792c0",
-          "decl": "void FUN_001792C0(void);"
+          "decl": "void FUN_001792C0(int param_1);"
         },
         {
           "addr": "0x1792d0",
@@ -19209,7 +19209,7 @@
         },
         {
           "addr": "0x17c8f0",
-          "decl": "void rasterizer_environment_fog_screen_end(void);"
+          "decl": "void rasterizer_environment_fog_screen_end(void *screen_fog);"
         },
         {
           "addr": "0x17c900",
@@ -19371,7 +19371,9 @@
         },
         {
           "addr": "0x158df0",
-          "decl": "void FUN_00158df0(void);"
+          "decl": "void FUN_00158df0(unsigned short *parameters);",
+          "ported": true,
+          "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
         },
         {
           "addr": "0x158f90",
@@ -37456,7 +37458,7 @@
         },
         {
           "addr": "0x001e99b0",
-          "decl": "void D3DDevice_SetRenderState_FillMode(void);"
+          "decl": "void __stdcall D3DDevice_SetRenderState_FillMode(uint32_t value);"
         },
         {
           "addr": "0x001e99f0",
