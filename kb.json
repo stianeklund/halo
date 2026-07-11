@@ -19528,7 +19528,8 @@
 				},
 				{
 					"addr": "0x15b970",
-					"decl": "void FUN_0015b970(short pass_index);"
+					"decl": "void FUN_0015b970(short pass_index);",
+					"ported": true
 				},
 				{
 					"addr": "0x15bc40",
