@@ -1243,6 +1243,47 @@ void FUN_00159900(void *group)
   }
 }
 
+/*
+ * FUN_0015a290 @ 0x15a290 — empty function in the binary (single RET;
+ * three live call sites). The faithful lift is an empty body.
+ */
+/* 0x15a290 */
+void FUN_0015a290(void)
+{
+}
+
+/*
+ * FUN_0015a4c0 @ 0x15a4c0 — empty function in the binary (single RET;
+ * no direct call sites).
+ */
+/* 0x15a4c0 */
+void FUN_0015a4c0(void)
+{
+}
+
+/*
+ * FUN_0015a4e0 @ 0x15a4e0 — empty function in the binary (single RET;
+ * reached only via the tail-call thunk at 0x17ca70).
+ */
+/* 0x15a4e0 */
+void FUN_0015a4e0(void)
+{
+}
+
+/*
+ * FUN_0015a4f0 @ 0x15a4f0 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DDevice8::SetVertexData4f. __stdcall (RET 0x18 = 6 stack args),
+ * ignores the device argument, forwards (reg, a, b, c, d) to
+ * D3DDevice_SetVertexData4f, returns S_OK. No direct call sites.
+ */
+/* 0x15a4f0 */
+int __stdcall FUN_0015a4f0(void *device, uint32_t reg, float a, float b, float c, float d)
+{
+  (void)device;
+  D3DDevice_SetVertexData4f(reg, a, b, c, d);
+  return 0;
+}
+
 /* 0x15a560
  *
  * Set up D3D render state for one decal-render pass. `additive` selects the
@@ -2109,6 +2150,15 @@ void *FUN_0015b890(int cache_index, uint32_t cache_size)
 }
 
 /*
+ * FUN_0015b960 @ 0x15b960 — empty function in the binary (single RET;
+ * no direct call sites).
+ */
+/* 0x15b960 */
+void FUN_0015b960(void)
+{
+}
+
+/*
  * FUN_0015b970 (0x15b970)  rasterizer_decals_begin / decal-layer render setup
  *
  * Sets up decal render state for a given decal layer (pass_index, 0..4).
@@ -2463,6 +2513,31 @@ char FUN_0015c2d0(void)
     "*sizeof(struct detail_object_vertex), RASTERIZER_DYNAMIC_BUFFER_USAGE, 0, "
     "RASTERIZER_DYNAMIC_BUFFER_POOL, &local_d3d_vertex_buffer)");
   error(2, "### ERROR rasterizer_detail_objects_initialize failed");
+  return 0;
+}
+
+/*
+ * FUN_0015c5f0 @ 0x15c5f0 — dead wrapper: calls the rasterizer profile
+ * function FUN_0016fa40 with profile id 0x15 and returns. PUSH 0x15;
+ * CALL 0x16fa40; POP ECX; RET. No direct call sites.
+ */
+/* 0x15c5f0 */
+void FUN_0015c5f0(void)
+{
+  FUN_0016fa40(0x15);
+}
+
+/*
+ * FUN_0015c600 @ 0x15c600 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DDevice8::SetVertexData4f, byte-identical in shape to
+ * FUN_0015a4f0 (RET 0x18, device ignored, returns S_OK). No direct
+ * call sites.
+ */
+/* 0x15c600 */
+int __stdcall FUN_0015c600(void *device, uint32_t reg, float a, float b, float c, float d)
+{
+  (void)device;
+  D3DDevice_SetVertexData4f(reg, a, b, c, d);
   return 0;
 }
 
@@ -2995,6 +3070,15 @@ void FUN_0015d060(void)
     *(int *)0x47abd8 = 0;
   }
   *(int *)0x47dbe0 = 0;
+}
+
+/*
+ * FUN_0015d160 @ 0x15d160 — empty function in the binary (single RET;
+ * one live call site in this TU).
+ */
+/* 0x15d160 */
+void FUN_0015d160(void)
+{
 }
 
 /* 0x15d170
