@@ -1073,6 +1073,62 @@ void FUN_0015a700(void)
   rasterizer_set_pixel_shader((void *)0x5a5ac0);
 }
 
+/* 0x15a7f0
+ *
+ * rasterizer_debug_draw_line  (debug 3D line drawer)
+ *
+ * Draws a single world-space debug line between two 3D points with optional
+ * per-vertex color, using the D3D inline (Begin/SetVertexData4f/End) vertex
+ * stream. The 3D counterpart to FUN_0015abe0 (which draws a 2D screen-space
+ * line). Originally defined in rasterizer_xbox_debug.c (the assert __FILE__
+ * string preserves that path); the linker grouped it into
+ * rasterizer_decals.obj.
+ *
+ *   p0     - float[3] world position of the first endpoint  (x, y, z)
+ *   p1     - float[3] world position of the second endpoint (x, y, z)
+ *   color0 - float[3] RGB color for p0
+ *   color1 - optional float[3] RGB color for p1; if NULL, p0's color is reused
+ *
+ * D3D primitive: Begin(2 = D3DPT_LINELIST). Vertex register 9 =
+ * D3DVSDE_DIFFUSE (color), register 0 = D3DVSDE_VERTEX (position). Each
+ * SetVertexData4f pushes the three components plus a hard-coded w = 1.0f.
+ */
+void FUN_0015a7f0(float *p0, float *p1, float *color0, float *color1)
+{
+  if (p0 == 0 || p1 == 0 || color0 == 0) {
+    display_assert(
+      "p0 && p1 && color0",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_debug.c", 0x74, 1);
+    halt_and_catch_fire();
+  }
+  if (*(int *)0x476ab0 == 0) {
+    display_assert(
+      "global_d3d_device",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_debug.c", 0x75, 1);
+    halt_and_catch_fire();
+  }
+
+  D3DDevice_Begin(2);
+
+  /* The volatile y/z reads are a VC71 codegen shape lever only (same as
+   * FUN_0015a8f0): they reproduce the original's hybrid arg push (x via GPR
+   * mov+push, y/z via FLD/FSTP [ESP], 1.0f as an immediate push) under /O2.
+   * A single read either way - semantics are unchanged. */
+  D3DDevice_SetVertexData4f(9, color0[0], *(volatile float *)(color0 + 1),
+                            *(volatile float *)(color0 + 2), 1.0f);
+  D3DDevice_SetVertexData4f(0, p0[0], *(volatile float *)(p0 + 1),
+                            *(volatile float *)(p0 + 2), 1.0f);
+
+  if (color1 != 0) {
+    D3DDevice_SetVertexData4f(9, color1[0], *(volatile float *)(color1 + 1),
+                              *(volatile float *)(color1 + 2), 1.0f);
+  }
+  D3DDevice_SetVertexData4f(0, p1[0], *(volatile float *)(p1 + 1),
+                            *(volatile float *)(p1 + 2), 1.0f);
+
+  D3DDevice_End();
+}
+
 /*
  * rasterizer_xbox_debug.c
  *
@@ -1403,9 +1459,9 @@ bool FUN_0015b0c0(int decal_index)
 
   if (decal_index != 0)
     goto check_none;
-  display_assert(
-    "decal_index",
-    "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c", 0x47, 1);
+  display_assert("decal_index",
+                 "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c",
+                 0x47, 1);
   system_exit(-1);
   /* noreturn fallthrough into the main path, as in the binary */
 
@@ -1419,9 +1475,9 @@ main_path:
 check_none:
   if (decal_index != -1)
     goto main_path;
-  display_assert(
-    "decal_index!=NONE",
-    "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c", 0x48, 1);
+  display_assert("decal_index!=NONE",
+                 "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c",
+                 0x48, 1);
   system_exit(-1);
 
 ret_locked:
@@ -1668,9 +1724,8 @@ void rasterizer_decals_initialize(void)
   D3DResource_Register(*(void **)0x476ad8, 0);
 
   /* Create the LRUV vertex cache */
-  *(void **)0x476adc =
-    lruv_cache_new("decal vertex cache", 0xa00, 6, 0x800, FUN_0015afa0,
-                   (int (*)(int))FUN_0015b0c0);
+  *(void **)0x476adc = lruv_cache_new("decal vertex cache", 0xa00, 6, 0x800,
+                                      FUN_0015afa0, (int (*)(int))FUN_0015b0c0);
 
   if (*(void **)0x476adc == 0) {
     display_assert(
