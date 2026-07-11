@@ -393,3 +393,53 @@ void item_set_position(int item_handle, float *position, int flag)
   }
   *(int16_t *)0x4761d8 = *(int16_t *)0x4761d8 - 1;
 }
+
+/*
+ * text_search_and_replace_function_table[1]  (0x000f52f0, __cdecl)
+ *
+ * Resolver that renders a single-digit wide replacement string from a widget
+ * field.  Reads a signed 16-bit selector at (widget + 8), then writes the
+ * digit + NUL terminator into a static wchar_t[2] result buffer at 0x0046cee8
+ * and returns a pointer to it (EAX = 0x0046cee8 in every arm of the original).
+ *
+ *   selector -1 / 0 -> L"1"
+ *   selector  1     -> L"2"
+ *   selector  2     -> L"3"
+ *   selector  3     -> L"4"
+ *   otherwise       -> L"?"
+ *
+ * The original biases the selector by +1 and dispatches through a 5-entry jump
+ * table (indices 0..4 for selector -1..3); the switch below reproduces that
+ * dense mapping.  The 0x0046cee8 result buffer lies inside the delinker's
+ * over-sized game_data build-version array, but is a distinct static owned by
+ * this TU, so it is declared as its own symbol (word_46CEE8).
+ *
+ * ABI: sole cdecl stack arg 'widget' (no register args); leaf, no callees.
+ */
+wchar_t *
+FUN_000f52f0(void *widget)
+{
+  switch (*(short *)((char *)widget + 8)) {
+  case -1:
+  case 0:
+    word_46CEE8[0] = L'1';
+    word_46CEE8[1] = L'\0';
+    return word_46CEE8;
+  case 1:
+    word_46CEE8[0] = L'2';
+    word_46CEE8[1] = L'\0';
+    return word_46CEE8;
+  case 2:
+    word_46CEE8[0] = L'3';
+    word_46CEE8[1] = L'\0';
+    return word_46CEE8;
+  case 3:
+    word_46CEE8[0] = L'4';
+    word_46CEE8[1] = L'\0';
+    return word_46CEE8;
+  default:
+    word_46CEE8[0] = L'?';
+    word_46CEE8[1] = L'\0';
+    return word_46CEE8;
+  }
+}
