@@ -76,6 +76,48 @@ void FUN_00053da0(void)
   return;
 }
 
+/* 0x00053e20 — FUN_00053e20 (find scenario tag-block element by name).
+ *
+ * Linear "find <thing> by name" scan over a tag_block hanging off the
+ * scenario at offset +0x42c.  The tag_block header is the usual
+ * {int32 count; void *address} pair; each element is a fixed-size 0xb0-byte
+ * record whose leading field (offset 0) is a <=32-byte name string.
+ *
+ * Returns the 0-based index of the first element whose name matches (case
+ * insensitively, first 0x20 bytes), or -1 if none / empty block.
+ *
+ * Confirmed (from disassembly 0x53e20-0x53e72):
+ *   - Two cdecl calls, both cleaned by a single ADD ESP,0x18 (6 dwords).
+ *   - tag_block_get_element(block, index, 0xb0): PUSH 0xb0; PUSH ESI(index);
+ *     PUSH EDI(block=&scenario[0x42c]).  EDI holds the block base throughout.
+ *   - strnicmp(element, name, 0x20): PUSH 0x20; PUSH EBX(=name); PUSH
+ *     EAX(=element ptr returned above).  The element pointer is passed
+ *     straight in as the first arg (name field at element+0).
+ *   - Default return -1 (OR EAX,-1 before loop; also on no-match fall-through).
+ *   - Loop bound re-reads the count from [EDI] each iteration (MOV EAX,[EDI]
+ *     at 0x53e5d) — kept un-hoisted here (volatile-global style).
+ *
+ * Note: 0x1e6596 (_strnicmp) is a CRT helper carrying only a void(void) stub
+ * decl in kb.json; called via the established raw __cdecl cast idiom (see
+ * system_stristr in cseries_windows.c) so all three args are passed correctly.
+ */
+int FUN_00053e20(void *scenario, const char *name)
+{
+  char *block;
+  int i;
+  void *elem;
+
+  block = (char *)scenario + 0x42c;
+  for (i = 0; i < *(int *)block; i++) {
+    elem = tag_block_get_element(block, i, 0xb0);
+    if (((int(__cdecl *)(const char *, const char *, size_t))0x1e6596)(
+          (const char *)elem, name, 0x20) == 0) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 /* 0x00054020 — encounter_get_platoon_ptr (FUN_00054020).
  *
  * Returns a pointer to the platoon record for a given encounter and relative
