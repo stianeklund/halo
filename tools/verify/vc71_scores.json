@@ -9369,7 +9369,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_001366b0": {
-      "score": 61.2,
+      "score": 60.4,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00136750": {
@@ -9501,7 +9501,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00139990": {
-      "score": 90.3,
+      "score": 72.1,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00139a30": {
@@ -9537,7 +9537,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_0013a740": {
-      "score": 84.1,
+      "score": 83.5,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_0013aa10": {
@@ -9569,7 +9569,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_0013bce0": {
-      "score": 90.0,
+      "score": 89.8,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_0013c030": {
@@ -9577,7 +9577,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_0013c080": {
-      "score": 92.3,
+      "score": 89.4,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_0013c100": {
@@ -14585,7 +14585,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_header_new": {
-      "score": 74.1,
+      "score": 64.1,
       "source": "src/halo/objects/objects.c"
     },
     "object_iterator_new": {
@@ -14653,7 +14653,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_reset_markers": {
-      "score": 94.4,
+      "score": 87.2,
       "source": "src/halo/objects/objects.c"
     },
     "object_scripting_set_collideable": {
@@ -14669,7 +14669,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_set_garbage": {
-      "score": 70.5,
+      "score": 63.4,
       "source": "src/halo/objects/objects.c"
     },
     "object_set_region_count": {
@@ -14686,6 +14686,10 @@
     },
     "object_try_place": {
       "score": 88.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "object_update": {
+      "score": 95.7,
       "source": "src/halo/objects/objects.c"
     },
     "object_update_children_recursive": {
@@ -14713,7 +14717,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "objects_garbage_collect_tick": {
-      "score": 66.8,
+      "score": 65.0,
       "source": "src/halo/objects/objects.c"
     },
     "objects_garbage_collection": {

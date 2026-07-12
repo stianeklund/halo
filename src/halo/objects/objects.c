@@ -9668,6 +9668,110 @@ done:
 }
 
 /*
+ * object_update (0x1444f0) — per-tick update for a single object node and its
+ * child/sibling subtree.
+ *
+ * Resolves the object header (datum_get on the object header table at 0x5a8d50)
+ * and the object data (object_get_and_verify_type), plus the 'obje' definition
+ * tag. If the header is not marked deactivated (flag 0x10 at header+0x2):
+ *   - if flags&0x10000, bump the global object-update counter
+ *     (*(int*)0x46f084 -> object_globals, int16 counter at +4).
+ *   - if the interpolation period (obj+0x86) is non-zero, advance the
+ *     interpolation tick (obj+0x84) and clear the period once it elapses.
+ *     Asserts the object type is interpolatable (mask 0xfe0 over 1<<(type&0x1f)).
+ *   - runs FUN_0013c5c0, damage update (if tag+0x7c != -1), FUN_0013c620,
+ *     node matrices (unless flags&0x800000), function values, change colors.
+ *   - propagates a flag to children when flags&0x2000 and either flags&1 is
+ *     clear or the definition's tag+0x34 == -1.
+ *   - recurses into the first child (obj+0xC8) and, when a parent link
+ *     (obj+0xCC) and sibling link (obj+0xC4) both exist, into the next sibling.
+ *   - re-fetches obj/tag after recursion (registers reloaded in the original)
+ *     and, if tag+0x34 and tag+0x44 are both != -1, resolves a header block
+ *     reference (obj+0x1A0) and hands it to FUN_0013c800.
+ * Always returns true (AL=1).
+ *
+ * Confirmed: header via datum_get(*(data_t**)0x5a8d50, handle); obj via
+ * object_get_and_verify_type(handle, -1); tag via tag_get(0x6f626a65, obj[0]).
+ * Confirmed: TEST byte[hdr+2],0x10 gates the whole body (JNE -> return 1).
+ * Confirmed: INC word[*(int*)0x46f084 + 4] under TEST dword[obj+4],0x10000.
+ * Confirmed: interp counter/period are int16 (INC/CMP word [esi+0x84]/[esi+0x86]).
+ * Confirmed: display_assert(...,0x9cc,1) then system_exit(-1) on bad type.
+ * Confirmed: EAX-passed callees (function_values/change_colors/propagate) via
+ *            MOV EAX,EDI before CALL — @<eax> in kb.json.
+ * Confirmed: self-recursion CALL 0x1444f0 for obj+0xC8 and obj+0xC4.
+ * Confirmed: block ref path adds 0x1A0 to obj (obj+0x68 in int* terms).
+ */
+bool object_update(int object_handle)
+{
+  object_header_data_t *header;
+  object_data_t *obj;
+  void *tag_def;
+
+  header = (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  obj = (object_data_t *)object_get_and_verify_type(object_handle, -1);
+  tag_def = tag_get(0x6f626a65, (int)obj->tag_index);
+
+  if ((header->unk_2 & 0x10) == 0) {
+    if ((obj->flags & 0x10000) != 0) {
+      short *counter = (short *)(*(int *)0x46f084 + 4);
+      *counter = (short)(*counter + 1);
+    }
+
+    if (obj->unk_134 != 0) {
+      if ((1 << (obj->type & 0x1f) & 0xfe0) != 0) {
+        display_assert(
+            "!TEST_FLAG(_object_mask_cannot_interpolate, object->object.type)",
+            "c:\\halo\\SOURCE\\objects\\objects.c", 0x9cc, 1);
+        system_exit(-1);
+      }
+      obj->unk_132 = (int16_t)(obj->unk_132 + 1);
+      if (obj->unk_132 >= obj->unk_134) {
+        obj->unk_134 = 0;
+      }
+    }
+
+    FUN_0013c5c0(object_handle);
+    if (*(int *)((char *)tag_def + 0x7c) != -1) {
+      object_damage_update(object_handle);
+    }
+    FUN_0013c620(object_handle);
+    if ((obj->flags & 0x800000) == 0) {
+      object_compute_node_matrices(object_handle);
+    }
+    object_compute_function_values(object_handle);
+    object_compute_change_colors(object_handle);
+
+    if ((obj->flags & 0x2000) != 0) {
+      if ((obj->flags & 1) == 0 ||
+          *(int *)((char *)tag_get(0x6f626a65, (int)obj->tag_index) + 0x34) == -1) {
+        object_propagate_flag_to_children(object_handle, 1, 1);
+      }
+    }
+
+    if (obj->unk_200.value != -1) {
+      object_update(obj->unk_200.value);
+    }
+    if (obj->parent_object_index.value != -1 &&
+        obj->next_object_index.value != -1) {
+      object_update(obj->next_object_index.value);
+    }
+
+    /* Re-fetch obj/tag: the original reloads ESI/EAX after the recursive
+     * calls (object_get_and_verify_type + tag_get) before the block-ref step. */
+    obj = (object_data_t *)object_get_and_verify_type(object_handle, -1);
+    tag_def = tag_get(0x6f626a65, (int)obj->tag_index);
+    if (*(int *)((char *)tag_def + 0x34) != -1 &&
+        *(int *)((char *)tag_def + 0x44) != -1) {
+      void *block_ref =
+          object_header_block_reference_get(object_handle, &obj->unk_416);
+      FUN_0013c800(object_handle, block_ref);
+    }
+  }
+
+  return 1;
+}
+
+/*
  * object_update_children_recursive — recursively compute node matrices for an
  * object and all of its child objects.
  *

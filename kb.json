@@ -15878,9 +15878,9 @@
         },
         {
           "addr": "0x1444f0",
-          "decl": "int object_update(int param_1);",
+          "decl": "bool object_update(int object_handle);",
           "name": "object_update",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x1446a0",
