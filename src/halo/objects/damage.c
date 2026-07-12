@@ -934,9 +934,10 @@ void FUN_00137690(int object_handle, short region_index)
  * 0x137dab. Confirmed: FUN_00136890(@eax=object_handle) at 0x137e2c, 0x137e35.
  * Confirmed: game_engine_get_damage_multiplier(player_a, player_b) at 0x137e3b,
  * 2 cdecl args. Confirmed: ai_adjust_damage(player_index, damage_params,
- * &scale) at 0x137e19, 3 args. Confirmed: game_allegiance_get_team_is_friendly(team_a, team_b) at
- * 0x137e54. Confirmed: FUN_000b5590(0) at 0x137e62, returns float on FPU.
- * Confirmed: object parent chain walk via +0xcc at 0x137ec6. Confirmed:
+ * &scale) at 0x137e19, 3 args. Confirmed:
+ * game_allegiance_get_team_is_friendly(team_a, team_b) at 0x137e54. Confirmed:
+ * FUN_000b5590(0) at 0x137e62, returns float on FPU. Confirmed: object parent
+ * chain walk via +0xcc at 0x137ec6. Confirmed:
  * object_get_and_verify_type(handle, -1) at 0x137eec. Confirmed:
  * tag_get(0x6f626a65, *obj) at 0x137efb for object definition. Confirmed:
  * tag_get(0x636f6c6c, collision_ref) at 0x137f11 for collision model.
@@ -1431,9 +1432,9 @@ after_modifier:
  * Confirmed: normalize3d at CALL 0x13010 normalizes incident direction.
  * Confirmed: FCOMP [0x2533c0] compares magnitude with 0.0f.
  * Confirmed: FMUL [0x255e94] multiplies by -1.0f for negative incident.
- * Confirmed: object_get_world_position at CALL 0x1412f0 = object_get_world_position.
- * Confirmed: FUN_0010c8e0 at CALL 0x10c8e0 = reflect vector.
- * Confirmed: CMP ESI,-1 at 0x1372f9 + CMP AX,0xffff at 0x137303 gate
+ * Confirmed: object_get_world_position at CALL 0x1412f0 =
+ * object_get_world_position. Confirmed: FUN_0010c8e0 at CALL 0x10c8e0 = reflect
+ * vector. Confirmed: CMP ESI,-1 at 0x1372f9 + CMP AX,0xffff at 0x137303 gate
  *            between effect_new_attached_from_markers and
  * effect_new_unattached_from_markers. Confirmed: 12 pushes + ADD ESP,0x30 for
  * both effect calls. Confirmed: *(0x31fc50) = global gravity/down vector
