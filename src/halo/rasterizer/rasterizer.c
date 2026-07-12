@@ -94,7 +94,7 @@ void FUN_0016eef0(void *group)
   /* 0x10101 is correct despite the delinked disasm showing $0x101: the
    * imm carries a dir32 reloc to XBE_FILE_HEADER_00010000, so the real
    * value is 0x10000 (XBE base) + 0x101 addend = 0x10101. */
-  D3DDevice_SetRenderState_Simple(0x40358, 0x10101);
+  D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD, NV097_COLOR_MASK_RGB);
   *(uint32_t *)0x1fb7a4 = 0x10101;
   D3DDevice_SetRenderState_Simple(0x40304, 1);
   *(uint32_t *)0x1fb784 = 1;
@@ -321,7 +321,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
               (unsigned short)vertex_shader_table[(short)vertex_type]),
         vertex_type, 0);
       D3DDevice_SetRenderState_CullMode(0);
-      D3DDevice_SetRenderState_Simple(0x40358, 0x10101);
+      D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD, NV097_COLOR_MASK_RGB);
       *(uint32_t *)0x1fb7a4 = 0x10101;
       D3DDevice_SetRenderState_Simple(0x40304, (unsigned char)solid_color);
       *(uint32_t *)0x1fb784 = (unsigned char)solid_color;
@@ -2439,7 +2439,7 @@ char FUN_00172a30(int param_1, const float *shadow_matrix,
      * Z test/bias off. Each mirror store is paired with its state by value;
      * MSVC schedules the store into the following call's setup window. */
     D3DDevice_SetRenderState_CullMode(0x901);
-    D3DDevice_SetRenderState_Simple(0x40358, 0x10101);
+    D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD, NV097_COLOR_MASK_RGB);
     *(unsigned long *)0x1fb7a4 = 0x10101;
     D3DDevice_SetRenderState_Simple(0x40304, 0);
     *(unsigned long *)0x1fb784 = 0;
