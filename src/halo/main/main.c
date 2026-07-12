@@ -1511,7 +1511,8 @@ void main_vertical_blank_interrupt_handler(void)
   int16_t ring_index;
 
   /* increment 64-bit flip counter with carry */
-  flip_lo = *(uint32_t *)0x325678 + 1; /* hazard-ok: value-arithmetic (counter+1 for carry) */
+  flip_lo = *(uint32_t *)0x325678 +
+            1; /* hazard-ok: value-arithmetic (counter+1 for carry) */
   *(uint32_t *)0x325678 = flip_lo;
   *(uint32_t *)0x32567c = *(uint32_t *)0x32567c + (uint32_t)(flip_lo == 0);
 
@@ -2166,7 +2167,7 @@ void halt_and_catch_fire(void)
 #if defined(_MSC_VER) && !defined(__clang__)
     __asm { int 3 }
 #else
-    __asm__ volatile ("int3");
+    __asm__ volatile("int3");
 #endif
     return;
   }
@@ -2232,7 +2233,8 @@ void halt_and_catch_fire(void)
     angle = atan2(scaled, *(double *)0x2573d8);
     window_params.camera.vertical_field_of_view = (float)(angle + angle);
 
-    render_camera_build_frustum(&window_params.camera, 0, window_params.frustum, 1);
+    render_camera_build_frustum(&window_params.camera, 0, window_params.frustum,
+                                1);
 
     window_params.unk_0[0] = 0;
 
@@ -2266,7 +2268,8 @@ void halt_and_catch_fire(void)
       draw_string_set_font(tag_index, -1, 0, 0, default_color);
       draw_string_set_tab_stops(0, 0);
       draw_string_set_color(default_color);
-      rasterizer_text_draw(screen_pos, 0, text_color, -4,
+      rasterizer_text_draw(
+        screen_pos, 0, text_color, -4,
         "halobeta xbox 01.10.12.2276 built at: Oct 12 2001 16:07:48");
 
       /* Original (0x102bd5): MOV EDX,[EBP-0x6]; DEC EDX; MOV [EBP-0x14],DX.
@@ -2275,11 +2278,11 @@ void halt_and_catch_fire(void)
        * message is drawn starting from that line; only the low word of
        * screen_pos[0] is stored (high word untouched, matching the
        * original word store). */
-      *(int16_t *)&screen_pos[0] =
-          (int16_t)(*(int32_t *)(text_color + 2) - 1);
+      *(int16_t *)&screen_pos[0] = (int16_t)(*(int32_t *)(text_color + 2) - 1);
 
       error_msg = error_get();
-      rasterizer_text_draw(screen_pos, 0, text_color, -4, (const char *)error_msg);
+      rasterizer_text_draw(screen_pos, 0, text_color, -4,
+                           (const char *)error_msg);
     }
 
     FUN_00184980(1);
@@ -2686,4 +2689,37 @@ void main_loop(void)
   game_dispose();
   debug_keys_dispose();
   console_dispose();
+}
+
+/*
+ * FUN_001034e0 - 0x1034e0
+ * Dispose helper for an object carrying three sub-allocations plus an
+ * element table. Walks the element table (base at word offset +3 / byte
+ * 0xC, signed count at word offset +4 / byte 0x10) and, for each index,
+ * resolves the element pointer via the indexer FUN_00117ee0(base, index,
+ * stride=0x1c) and frees it with FUN_00117cf0. After the loop it frees
+ * three tables: the object itself (+0x0), the element table (+0xC), and a
+ * third table (+0x18). Element stride is 28 bytes.
+ *
+ * Ghidra mis-detected the prototype as void(void); the sole parameter is a
+ * normal cdecl stack argument (in_stack_00000004). Pointer arithmetic is in
+ * int-word (4-byte) units.
+ */
+void FUN_001034e0(int *param_1)
+{
+  int *elem;
+  int index;
+
+  index = 0;
+  if (0 < param_1[4]) {
+    do {
+      elem = (int *)FUN_00117ee0(param_1 + 3, index, 0x1c);
+      FUN_00117cf0(elem);
+      index = index + 1;
+    } while (index < param_1[4]);
+  }
+  FUN_00117cf0(param_1);
+  FUN_00117cf0(param_1 + 3);
+  FUN_00117cf0(param_1 + 6);
+  return;
 }
