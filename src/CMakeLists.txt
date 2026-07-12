@@ -74,6 +74,7 @@
 	halo/interface/ui_widget.c
 	halo/interface/ui_widget_event_handler_functions.c
 	halo/interface/ui_widget_game_data_input_functions.c
+	halo/interface/ui_widget_text_search_and_replace_functions.c
 	halo/items/items.c
 	halo/items/projectiles.c
 	halo/items/weapons.c
