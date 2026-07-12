@@ -747,7 +747,7 @@ void FUN_00158800(unsigned short *bounds)
     D3DDevice_SetTextureStageState(0, 0xe, 2);
     D3DDevice_SetTextureStageState(0, 0xf, 2);
     D3DDevice_SetRenderState_CullMode(0x901);
-    D3DDevice_SetRenderState_Simple(0x40358, 0x10101);
+    D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD, NV097_COLOR_MASK_RGB);
     *(uint32_t *)0x1fb7a4 = 0x10101;
     D3DDevice_SetRenderState_Simple(0x40304, 0);
     *(uint32_t *)0x1fb784 = 0;
@@ -1154,7 +1154,7 @@ void FUN_001595c0(void)
     D3DDevice_SetTextureStageState(0, 0xf, 1);
 
     D3DDevice_SetRenderState_CullMode(0x901);
-    D3DDevice_SetRenderState_Simple(0x40358, 0x10101);
+    D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD, NV097_COLOR_MASK_RGB);
     *(uint32_t *)0x1fb7a4 = 0x10101;
     D3DDevice_SetRenderState_Simple(0x40304, 0);
     *(uint32_t *)0x1fb784 = 0;
@@ -1383,7 +1383,7 @@ void FUN_00159900(void *group)
 
     /* Render-state block (values decoded from the delinked reference; each
      * SetRenderState_Simple is followed by its render-state cache mirror). */
-    D3DDevice_SetRenderState_Simple(0x40358, 0);
+    D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD, NV097_COLOR_MASK_NONE);
     *(uint32_t *)0x1fb7a4 = 0;
     D3DDevice_SetRenderState_Simple(0x40304, 0);
     *(uint32_t *)0x1fb784 = 0;
@@ -1484,7 +1484,7 @@ void FUN_00159900(void *group)
   D3DDevice_SetRenderState_CullMode(cull);
 
   /* Render state for the distortion pass. */
-  D3DDevice_SetRenderState_Simple(0x40358, 0x10101);
+  D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD, NV097_COLOR_MASK_RGB);
   *(uint32_t *)0x1fb7a4 = 0x10101;
   D3DDevice_SetRenderState_Simple(0x40300, 0);
   *(uint32_t *)0x1fb788 = 0;
@@ -2817,10 +2817,10 @@ void FUN_0015bc40(int rendered_cluster_data)
       if (*(uint16_t *)0x476ad4 != blend) {
         *(uint16_t *)0x476ad4 = blend;
         if (blend == 1 || blend == 2) {
-          D3DDevice_SetRenderState_Simple(0x40358, 0x1010101);
+          D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD, NV097_COLOR_MASK_RGBA);
           *(uint32_t *)0x1fb7a4 = 0x1010101;
         } else {
-          D3DDevice_SetRenderState_Simple(0x40358, 0x10101);
+          D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD, NV097_COLOR_MASK_RGB);
           *(uint32_t *)0x1fb7a4 = 0x10101;
         }
         switch (*(uint16_t *)0x476ad4) {
@@ -3224,7 +3224,7 @@ void FUN_0015c6f0(void)
   /* Fixed render-state block (each Simple call mirrored by its cache global).
    */
   D3DDevice_SetRenderState_CullMode(0);
-  D3DDevice_SetRenderState_Simple(0x40358, 0x10101);
+  D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD, NV097_COLOR_MASK_RGB);
   *(uint32_t *)0x1fb7a4 = 0x10101;
   D3DDevice_SetRenderState_Simple(0x40304, 1);
   *(uint32_t *)0x1fb784 = 1;

@@ -56,6 +56,17 @@ double __cdecl fabs(double);
 #define PAGE_READWRITE                 0x04
 #define TICKS_PER_SECOND               (*(float *)0x253394) /* 30.0f */
 
+/* NV2A pushbuffer command word for D3DDevice_SetRenderState_Simple(reg, v):
+ * reg = (count 1 << 18) | NV097 method offset. Value bit layout for
+ * SET_COLOR_MASK: one write-enable byte per channel (blue=bit0, green=bit8,
+ * red=bit16, alpha=bit24). A dropped byte silently disables that channel's
+ * writes — 0x101 instead of 0x10101 killed red-channel writes during the
+ * active-camo capture pass (garbled-red camo regression, 2026-07-12). */
+#define NV097_SET_COLOR_MASK_CMD 0x40358
+#define NV097_COLOR_MASK_NONE    0x00000000
+#define NV097_COLOR_MASK_RGB     0x00010101
+#define NV097_COLOR_MASK_RGBA    0x01010101
+
 static const int _scenario_type_main_menu = 2;
 
 #ifdef DEBUG_BUILD
