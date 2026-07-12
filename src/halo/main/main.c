@@ -2839,3 +2839,81 @@ bool FUN_00103d30(void)
   }
   return *(void **)0x46e394 != NULL;
 }
+/* error_geometry.c — debug VRML ("error geometry") output subsystem.
+ *
+ * Source TU proven by the __FILE__ assert xref
+ * "c:\halo\SOURCE\tool\error_geometry.c". Grouped under main.obj alongside its
+ * sibling FUN_00103d30 (debug .wrl lazy-open) at 0x103d30.
+ */
+#include "../../common.h"
+
+/* FUN_00103de0 (0x103de0)  error_geometry.c:0x44
+ *
+ * Retarget the debug error-geometry output file. If 'source' differs from the
+ * currently-cached path (module-global buffer @0x31fac8, compared with
+ * csstrncmp over 0x3b bytes), then:
+ *   - close and clear any open error_geometry_file (FILE* @0x46e394),
+ *   - copy 'source' into the path buffer (csstrncpy, 0x3b),
+ *   - clear the byte flag @0x31fb03,
+ *   - append the ".wrl" extension (FUN_0008dc30 = strcat-like),
+ *   - assert the file handle is now NULL, and
+ *   - run the CRT-region helper FUN_001db4a9.
+ * If 'source' matches the cached path, the call is a no-op.
+ *
+ * cdecl, verified from disassembly at 0x103de0: the sole stack arg
+ * [EBP+0x8]='source' (Ghidra surfaces it as in_stack_00000004 because the
+ * kb.json decl was void(void)). The assert tail's decompiler thunk_FUN_001029a0
+ * resolves in this TU to system_exit(-1) (CALL 0x8e2f0), matching every other
+ * error_geometry.c assert; verified by check_assert_targets.py.
+ */
+void FUN_00103de0(char *source)
+{
+  if (csstrncmp((char *)0x31fac8, source, 0x3b) != 0) {
+    if (*(void **)0x46e394 != NULL) {
+      crt_fclose(*(void **)0x46e394);
+      *(void **)0x46e394 = NULL;
+    }
+    csstrncpy((char *)0x31fac8, source, 0x3b);
+    *(char *)0x31fb03 = 0;
+    FUN_0008dc30((char *)0x31fac8, ".wrl");
+    if (*(void **)0x46e394 != NULL) {
+      display_assert("error_geometry_file==NULL",
+                     "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x44, true);
+      system_exit(-1);
+    }
+    FUN_001db4a9();
+  }
+}
+
+/* ui_widget_display_deferred_errors — flushes the deferred-for-cinematic error
+ * queue (4 records at 0x46cc6c, one per local-player slot, 4 bytes each:
+ * int16 error_handle @+0, uint8 is_modal @+2, uint8 pause_game @+3). Must run
+ * only outside a cinematic; asserts otherwise ("Noooooooooooooooooo!!!",
+ * ui_widget.c line 0x93f, system_exit(-1) flavor). For each valid record
+ * (0 <= handle < 0x28) it re-issues ui_widget_display_error(handle, slot,
+ * is_modal, pause_game), then clears the slot to -1. Ref 0xe8db0. */
+void ui_widget_display_deferred_errors(void)
+{
+  int16_t error_handle;
+  int local_player_index;
+  int16_t *record;
+
+  if (cinematic_in_progress()) {
+    display_assert("Noooooooooooooooooo!!!",
+                   "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x93f, true);
+    system_exit(-1);
+  }
+
+  local_player_index = 0;
+  record = (int16_t *)0x46cc6c;
+  do {
+    error_handle = *record;
+    if (error_handle >= 0 && error_handle < 0x28) {
+      ui_widget_display_error(error_handle, local_player_index, (char)record[1],
+                              *(char *)((int)record + 3));
+    }
+    *record = -1;
+    local_player_index = local_player_index + 1;
+    record = record + 2;
+  } while ((int16_t)local_player_index < 4);
+}

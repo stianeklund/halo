@@ -7100,6 +7100,10 @@
       "score": 93.3,
       "source": "src/halo/main/main.c"
     },
+    "FUN_00103de0": {
+      "score": 93.2,
+      "source": "src/halo/main/main.c"
+    },
     "FUN_00104bd0": {
       "score": 92.5,
       "source": "src/halo/structures/structures.c"
@@ -15139,6 +15143,10 @@
     "transport_initialize": {
       "score": 75.2,
       "source": "src/halo/bungie_net/network/transport_endpoint_set_winsock.c"
+    },
+    "ui_widget_display_deferred_errors": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
     },
     "ui_widget_load_progress_widget": {
       "score": 100.0,

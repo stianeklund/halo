@@ -13023,7 +13023,9 @@
         },
         {
           "addr": "0xe8db0",
-          "decl": "void FUN_000e8db0(void);"
+          "decl": "void ui_widget_display_deferred_errors(void);",
+          "name": "ui_widget_display_deferred_errors",
+          "ported": true
         },
         {
           "addr": "0xe8e20",
@@ -13466,7 +13468,8 @@
         },
         {
           "addr": "0x103de0",
-          "decl": "void FUN_00103de0(void);"
+          "decl": "void FUN_00103de0(char *source);",
+          "ported": true
         },
         {
           "addr": "0x103e80",
