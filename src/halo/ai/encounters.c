@@ -32,6 +32,50 @@
 #include "../../common.h"
 
 
+/* 0x00053da0 — encounters_update dispatcher (FUN_00053da0).
+ *
+ * Master per-frame update tick for the encounter subsystem.  First recomputes
+ * a screen-derived short at 0x5aba80 = (screen_y1 @0x325660) - 0x14, then calls
+ * the frame-setup helper FUN_00053c50.  If the master gate byte at 0x5abaa4 is
+ * set, dispatches the six per-sub-update passes in a fixed order, each guarded
+ * by its own byte flag (0x5abaaa..0x5abaa5).  The final pass (0x5abaa5 ->
+ * FUN_000539c0) carries an early return in the original; reproduced verbatim to
+ * preserve control-flow shape (functionally identical to falling through).
+ *
+ * Globals (raw pointer-cast idiom, matching this TU):
+ *   0x325660 (int16) : screen y1, narrowed to short before the subtract
+ *   0x5aba80 (int16) : derived screen value (store width is short — LOADW)
+ *   0x5abaa4 (uint8) : master enable gate for all sub-passes
+ *   0x5abaa5..0x5abaaa (uint8) : per-pass enable flags
+ */
+void FUN_00053da0(void)
+{
+  *(int16_t *)0x5aba80 = (int16_t)(*(int16_t *)0x325660 - 0x14);
+  FUN_00053c50();
+  if (*(uint8_t *)0x5abaa4 != 0) {
+    if (*(uint8_t *)0x5abaaa != 0) {
+      FUN_00053af0();
+    }
+    if (*(uint8_t *)0x5abaa9 != 0) {
+      FUN_00053b80();
+    }
+    if (*(uint8_t *)0x5abaa8 != 0) {
+      FUN_00053bf0();
+    }
+    if (*(uint8_t *)0x5abaa7 != 0) {
+      FUN_00053a90();
+    }
+    if (*(uint8_t *)0x5abaa6 != 0) {
+      FUN_00053a20();
+    }
+    if (*(uint8_t *)0x5abaa5 != 0) {
+      FUN_000539c0();
+      return;
+    }
+  }
+  return;
+}
+
 /* 0x00054020 — encounter_get_platoon_ptr (FUN_00054020).
  *
  * Returns a pointer to the platoon record for a given encounter and relative
@@ -1036,8 +1080,8 @@ short FUN_00057bc0(int encounter_handle)
   if (*(char *)0x5aca59) {
     scenario = global_scenario_get();
     FUN_00054220(encounter_handle, scenario, local_21c, 0x200);
-    error(2, "%s: ai_status %s",
-          hs_runtime_get_executing_thread_name(), local_21c);
+    error(2, "%s: ai_status %s", hs_runtime_get_executing_thread_name(),
+          local_21c);
   }
   FUN_00054680(encounter_handle, local_1c);
   while (FUN_00054750(local_1c) != 0) {
@@ -1062,13 +1106,15 @@ void FUN_00057c70(int encounter_handle, char param_2)
   char local_204[512];
 
   if (*(char *)0x5aca59 != '\0') {
-    FUN_00054220(encounter_handle, (void *)global_scenario_get(), local_204, 0x200);
-    error(2, "%s: ai_playfight %s %s",
-          hs_runtime_get_executing_thread_name(), local_204,
+    FUN_00054220(encounter_handle, (void *)global_scenario_get(), local_204,
+                 0x200);
+    error(2, "%s: ai_playfight %s %s", hs_runtime_get_executing_thread_name(),
+          local_204,
           param_2 != '\0' ? (const char *)0x25c530 : (const char *)0x25c52c);
   }
   if (encounter_handle != -1) {
-    encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle & 0xffff);
+    encounter =
+      (char *)datum_get(*(data_t **)0x5ab270, encounter_handle & 0xffff);
     *(char *)(encounter + 0x60) = param_2;
   }
 }
@@ -1111,7 +1157,10 @@ int *FUN_00057ef0(int param_1)
       csmemset(piVar3, 0, 0x28);
       *piVar3 = param_1;
       piVar3[1] = 0x41000000;
-      { char *p = *(char **)0x632574; (*(short *)(p + 0x3b6))++; }
+      {
+        char *p = *(char **)0x632574;
+        (*(short *)(p + 0x3b6))++;
+      }
     }
   }
   return piVar3;
@@ -1719,7 +1768,8 @@ void FUN_00058860(int encounter_handle, int team)
   int iter[3];
   char *encounter;
 
-  encounter = (char *)datum_get(*(data_t **)0x5ab270, (int)(encounter_handle & 0xffff));
+  encounter =
+    (char *)datum_get(*(data_t **)0x5ab270, (int)(encounter_handle & 0xffff));
   *(short *)(encounter + 2) = (short)team;
   encounter_actor_iterator_new(iter, (int)(encounter_handle & 0xffff));
   if (encounter_actor_iterator_next(iter)) {
@@ -1745,7 +1795,8 @@ void FUN_00058860(int encounter_handle, int team)
  *   - hs_runtime_get_executing_thread_name returns current script thread name.
  *   - error(2, fmt, ...) logs the trace message.
  *   - FUN_000544a0/FUN_000545a0 = platoon iterator init/step.
- *   - datum+0x14 receives !param_2 (dormant disabled when allowed, and vice versa).
+ *   - datum+0x14 receives !param_2 (dormant disabled when allowed, and vice
+ * versa).
  */
 void FUN_000588d0(int param_1, char param_2)
 {
@@ -1869,20 +1920,20 @@ void FUN_00058a40(int combined_handle)
   }
 }
 
-/* 0x00058fa0 — encounter_dispose stub.
- * Called from ai_dispose (0x3f6f0). No teardown needed at this level.
- * Binary: single RET instruction. */
-void encounters_dispose(void)
-{
-  return;
-}
-
 /* FUN_00058ae0 (0x58ae0) — Tail-call wrapper for FUN_00055870 (ai_maneuver);
  * forwards combined_index. Dormant (ported=false); the original runs at
  * runtime. Signature follows FUN_00055870 now that it is lifted as 1-arg. */
 void FUN_00058ae0(unsigned int combined_index)
 {
   FUN_00055870(combined_index);
+}
+
+/* 0x00058fa0 — encounter_dispose stub.
+ * Called from ai_dispose (0x3f6f0). No teardown needed at this level.
+ * Binary: single RET instruction. */
+void encounters_dispose(void)
+{
+  return;
 }
 
 /* 0x00058fb0 — encounters_dispose_from_old_map.
@@ -2191,6 +2242,35 @@ int encounter_get_by_name(char *name)
   return -1;
 }
 
+/* encounter_iterator_new (0x59990) — Initialize an encounter data iterator
+ * with filter flag at offset +0x14. */
+void encounter_iterator_new(int iter, char param_2)
+{
+  if (*(char *)(*(char **)0x632574 + 1) != '\0') {
+    data_iterator_new((data_iter_t *)iter, *(data_t **)0x5ab270);
+    *(char *)(iter + 0x14) = param_2;
+  }
+}
+
+/* FUN_000599c0 (0x599c0) — Step encounter data iterator, skipping inactive
+ * encounters (datum+0xd == 0) when filter flag (iter+0x14) is set.
+ * Copies iter+0x8 to iter+0x10 after each step. Returns datum or NULL. */
+void *FUN_000599c0(int iter)
+{
+  void *result;
+
+  result = NULL;
+  if (*(char *)(*(char **)0x632574 + 1) != '\0') {
+    do {
+      result = data_iterator_next((data_iter_t *)iter);
+      if (result == NULL || *(char *)(iter + 0x14) == '\0')
+        break;
+    } while (*(char *)((char *)result + 0xd) == '\0');
+    *(int *)(iter + 0x10) = *(int *)(iter + 0x8);
+  }
+  return result;
+}
+
 /* 0x00059a00 — encounter_clump_iter_new.
  * Initialises a 3-slot int iterator for walking an encounter's clump member
  * list.  Guards on ai_active (ai_globals+1).
@@ -2210,7 +2290,8 @@ int encounter_get_by_name(char *name)
  *   ESI+0x0 : param_2 (clump_handle)
  *   ESI+0x4 : 0xffffffff (-1)
  *   ESI+0x8 : encounter->field_0x14 OR ai_globals->field_8 */
-__declspec(noinline) void encounter_actor_iterator_new(int *iter, int clump_handle)
+__declspec(noinline) void encounter_actor_iterator_new(int *iter,
+                                                       int clump_handle)
 {
   char *encounter;
   char *ai_globals;
@@ -2261,6 +2342,39 @@ __declspec(noinline) int encounter_actor_iterator_next(int *iter)
   return (int)actor;
 }
 
+/* encounter_actor_iterator_prev (0x59a90) — Walk the encounter's actor linked
+ * list backward to find the actor preceding iter[1]. Returns actor datum ptr
+ * or 0 if not found. Updates iter[2] = next handle, iter[1] = prev handle. */
+void *encounter_actor_iterator_prev(int *iter)
+{
+  char *encounter;
+  char *actor;
+  int cur;
+  int prev;
+
+  actor = NULL;
+  if (*(char *)(*(char **)0x632574 + 1) != '\0') {
+    encounter = (char *)datum_get(*(data_t **)0x5ab270, iter[0]);
+    cur = *(int *)(encounter + 0x14);
+    prev = -1;
+    if (cur != iter[1]) {
+      while (cur != -1) {
+        prev = cur;
+        actor = (char *)datum_get(*(data_t **)0x6325a4, cur);
+        cur = *(int *)(actor + 0x2c);
+        if (cur == iter[1])
+          break;
+      }
+      if (cur != iter[1]) {
+        return 0;
+      }
+    }
+    iter[2] = cur;
+    iter[1] = prev;
+  }
+  return actor;
+}
+
 /* 0x00059b10 — actor_iterator_new (extended AI actor iterator init).
  * Initialises a 0x1c-byte extended AI actor iterator.  The first 0x10
  * bytes are a standard data_iter_t (initialised by data_iterator_new on
@@ -2291,66 +2405,6 @@ __declspec(noinline) void encounter_iterator_next(void *iter, char flag)
   *(int *)(p + 0x18) = -1;
   *(int *)(p + 0x14) = -1;
   *(char *)(p + 0x11) = flag;
-}
-
-/* encounter_iterator_new (0x59990) — Initialize an encounter data iterator
- * with filter flag at offset +0x14. */
-void encounter_iterator_new(int iter, char param_2)
-{
-  if (*(char *)(*(char **)0x632574 + 1) != '\0') {
-    data_iterator_new((data_iter_t *)iter, *(data_t **)0x5ab270);
-    *(char *)(iter + 0x14) = param_2;
-  }
-}
-
-/* FUN_000599c0 (0x599c0) — Step encounter data iterator, skipping inactive
- * encounters (datum+0xd == 0) when filter flag (iter+0x14) is set.
- * Copies iter+0x8 to iter+0x10 after each step. Returns datum or NULL. */
-void *FUN_000599c0(int iter)
-{
-  void *result;
-
-  result = NULL;
-  if (*(char *)(*(char **)0x632574 + 1) != '\0') {
-    do {
-      result = data_iterator_next((data_iter_t *)iter);
-      if (result == NULL || *(char *)(iter + 0x14) == '\0') break;
-    } while (*(char *)((char *)result + 0xd) == '\0');
-    *(int *)(iter + 0x10) = *(int *)(iter + 0x8);
-  }
-  return result;
-}
-
-/* encounter_actor_iterator_prev (0x59a90) — Walk the encounter's actor linked
- * list backward to find the actor preceding iter[1]. Returns actor datum ptr
- * or 0 if not found. Updates iter[2] = next handle, iter[1] = prev handle. */
-void *encounter_actor_iterator_prev(int *iter)
-{
-  char *encounter;
-  char *actor;
-  int cur;
-  int prev;
-
-  actor = NULL;
-  if (*(char *)(*(char **)0x632574 + 1) != '\0') {
-    encounter = (char *)datum_get(*(data_t **)0x5ab270, iter[0]);
-    cur = *(int *)(encounter + 0x14);
-    prev = -1;
-    if (cur != iter[1]) {
-      while (cur != -1) {
-        prev = cur;
-        actor = (char *)datum_get(*(data_t **)0x6325a4, cur);
-        cur = *(int *)(actor + 0x2c);
-        if (cur == iter[1]) break;
-      }
-      if (cur != iter[1]) {
-        return 0;
-      }
-    }
-    iter[2] = cur;
-    iter[1] = prev;
-  }
-  return actor;
 }
 
 /* 0x00059b50 — actor_iterator_next (extended AI actor iterator advance).
@@ -2821,9 +2875,9 @@ char encounter_link_activation(int encounter_handle, short link_encounter_index)
 
   if (link_encounter_index < 0 ||
       link_encounter_index >= *(int *)((char *)global_scenario_get() + 0x42c)) {
-    display_assert(
-      "(link_encounter_index >= 0) && (link_encounter_index < global_scenario_get()->ai_encounters.count)",
-      "c:\\halo\\SOURCE\\ai\\encounters.c", 0x77c, 1);
+    display_assert("(link_encounter_index >= 0) && (link_encounter_index < "
+                   "global_scenario_get()->ai_encounters.count)",
+                   "c:\\halo\\SOURCE\\ai\\encounters.c", 0x77c, 1);
     system_exit(-1);
   }
 
@@ -2858,7 +2912,8 @@ char encounter_link_activation(int encounter_handle, short link_encounter_index)
  *   - actor loop: ai_globals+8 (encounterless head) if handle == -1,
  *     else encounter+0x14; advance via actor+0x2c.
  *   - actor_set_active(handle, 0) via actor_set_active for each active actor.
- *   - actor_verify_activation(handle) via actor_verify_activation for each actor.
+ *   - actor_verify_activation(handle) via actor_verify_activation for each
+ * actor.
  */
 void FUN_0005a640(int encounter_handle /* @<eax> */)
 {
@@ -3661,26 +3716,6 @@ void encounters_initialize_for_new_map(void)
   }
 }
 
-/* encounter_force_activate (0x5ba70) — Force an encounter active by setting
- * the respawn timer to 150 ticks and calling the activation handler. */
-void encounter_force_activate(int encounter_handle)
-{
-  char *encounter;
-  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
-  *(int16_t *)(encounter + 0xe) = 0x96;
-  FUN_0005a4e0(encounter_handle);
-}
-
-/* encounter_force_deactivate (0x5baa0) — Force an encounter inactive by setting
- * the respawn timer to 0 and calling the deactivation handler. */
-void encounter_force_deactivate(int encounter_handle)
-{
-  char *encounter;
-  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
-  *(int16_t *)(encounter + 0xe) = 0;
-  FUN_0005a640(encounter_handle);
-}
-
 /* 0x0005b2a0 — encounter_increment_unit_tally (encounters_unit_died).
  *
  * For each active encounter whose team is friendly to the given unit's team,
@@ -3756,6 +3791,26 @@ void encounters_unit_died(int unit_handle)
   }
 }
 
+/* encounter_force_activate (0x5ba70) — Force an encounter active by setting
+ * the respawn timer to 150 ticks and calling the activation handler. */
+void encounter_force_activate(int encounter_handle)
+{
+  char *encounter;
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+  *(int16_t *)(encounter + 0xe) = 0x96;
+  FUN_0005a4e0(encounter_handle);
+}
+
+/* encounter_force_deactivate (0x5baa0) — Force an encounter inactive by setting
+ * the respawn timer to 0 and calling the deactivation handler. */
+void encounter_force_deactivate(int encounter_handle)
+{
+  char *encounter;
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+  *(int16_t *)(encounter + 0xe) = 0;
+  FUN_0005a640(encounter_handle);
+}
+
 /* 0x5c940 — encounter_update_platoon_rules.
  * For each platoon in the encounter, evaluates two rule conditions:
  *   1. Maneuvering rule (platoon_def+0x3c): if platoon[1]==0 (not yet set),
@@ -3805,8 +3860,7 @@ void FUN_0005c940(int encounter_handle)
 
   encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
   enc_def_elt = (char *)tag_block_get_element(
-    (char *)global_scenario_get() + 0x42c,
-    (encounter_handle & 0xffff), 0xb0);
+    (char *)global_scenario_get() + 0x42c, (encounter_handle & 0xffff), 0xb0);
   i = 0;
   if (*(short *)(encounter + 0xa) <= 0) {
     return;
