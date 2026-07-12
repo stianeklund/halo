@@ -6986,7 +6986,7 @@ void FUN_001a7b50(int datum_handle, float body_damage, float shield_damage)
   }
   *(float *)(obj + 0x94) = body_ratio;
   if (0.0f < *(float *)(obj + 0x90) && shield_ratio <= 0.0f) {
-    FUN_00137540(datum_handle);
+    object_deplete_body(datum_handle);
   }
   *(float *)(obj + 0x90) = shield_ratio;
 }
@@ -9300,7 +9300,7 @@ void unit_impact_melee_damage(int unit_handle, int param_2, int param_3,
     if ((*(uint32_t *)(target_tag + 0x17c) & 0x400000) != 0) {
       unit_cause_melee_damage(unit_handle, 1, param_2, param_3, param_4,
                               param_5, (int)param_7);
-      FUN_00137540(unit_handle);
+      object_deplete_body(unit_handle);
       object_delete(unit_handle);
       return;
     }
