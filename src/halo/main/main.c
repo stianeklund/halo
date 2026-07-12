@@ -2754,8 +2754,7 @@ void FUN_001034e0(int *param_1)
  * The inner child counter is a 16-bit short widened via MOVSX per iteration;
  * preserved here as `short i` / `(int)i` for codegen fidelity.
  */
-void FUN_00103530(int base,
-                  char (*visit)(uint32_t, int, uint32_t *, uint32_t),
+void FUN_00103530(int base, char (*visit)(uint32_t, int, uint32_t *, uint32_t),
                   uint32_t visit_arg, uint32_t mark, int node_index)
 {
   uint32_t *node;
@@ -2766,14 +2765,13 @@ void FUN_00103530(int base,
 
   node = (uint32_t *)FUN_00117ee0((int *)(base + 0x18), node_index, 0x18);
   if ((node[3] == 0xffffffff) &&
-      ((visit == NULL) ||
-       ((*visit)(mark, base, node, visit_arg) != 0))) {
+      ((visit == NULL) || ((*visit)(mark, base, node, visit_arg) != 0))) {
     node[3] = mark;
     slot = 3;
     do {
       if (*node != 0xffffffff) {
         child_list =
-            (int *)FUN_00117ee0((int *)(base + 0xc), *node & 0x7fffffff, 0x1c);
+          (int *)FUN_00117ee0((int *)(base + 0xc), *node & 0x7fffffff, 0x1c);
         i = 0;
         if (0 < child_list[1]) {
           elem = 0;
@@ -2789,4 +2787,39 @@ void FUN_00103530(int base,
       slot = slot + -1;
     } while (slot != 0);
   }
+}
+
+/*
+ * FUN_00103b80 — resolve a triangle's three vertices and forward them.
+ *
+ * Looks up element `tri` in table A (obj+0x134, stride 0x34) at `index`.
+ * That element holds three vertex indices at word offsets +2/+3/+4
+ * (byte 0x8/0xc/0x10). Each index is resolved against vertex table B
+ * (obj+0x140, stride 0x50); the +8 offset into each 0x50-byte vertex
+ * element is the payload passed downstream (a float* — a position/vertex
+ * pointer). The three resolved pointers plus `base` and `flag` are handed
+ * to FUN_00103860.
+ *
+ * ABI: cdecl, 4 stack params. Ghidra mis-typed this as void(void) and
+ * aliased EDI=[EBP+0xc]/ESI, losing [EBP+0x8]. The true prototype and the
+ * 5-arg call to FUN_00103860 are reconstructed from the disassembly push
+ * sequences, not the decompiler. FUN_00103860 itself is a 5-param cdecl
+ * (verified from its own disasm/decompile): (base, a, b, c, flag).
+ *
+ * The three inner FUN_00117ee0 calls are written as arguments to
+ * FUN_00103860 so MSVC right-to-left evaluation reproduces the original
+ * interleaved push order: flag first, then vertex[tri[4]], vertex[tri[3]],
+ * vertex[tri[2]], then base last.
+ *
+ * FUN_00117ee0(array_base, index, elem_size) returns &array[index].
+ */
+void FUN_00103b80(int base, int obj, int index, int flag)
+{
+  int *tri;
+
+  tri = (int *)FUN_00117ee0((int *)(obj + 0x134), index, 0x34);
+  FUN_00103860(
+    base, (float *)(FUN_00117ee0((int *)(obj + 0x140), tri[2], 0x50) + 8),
+    (float *)(FUN_00117ee0((int *)(obj + 0x140), tri[3], 0x50) + 8),
+    (float *)(FUN_00117ee0((int *)(obj + 0x140), tri[4], 0x50) + 8), flag);
 }
