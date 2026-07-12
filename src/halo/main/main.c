@@ -2723,3 +2723,70 @@ void FUN_001034e0(int *param_1)
   FUN_00117cf0(param_1 + 6);
   return;
 }
+/*
+ * main/main_recursive_tree_walk.c — recursive tree/graph DFS marking helper
+ * XBE source: c:\halo\SOURCE\main\main.c
+ *   (grouped into its own TU for the recursive walk helper)
+ *
+ * Re-implemented functions (by XBE address, ascending):
+ *   0x103530  FUN_00103530  — depth-first marking walk over a node graph
+ */
+
+#include "common.h"
+
+/*
+ * FUN_00103530 — depth-first walk of a node graph.
+ *
+ * Looks up node = base+0x18[node_index] (stride 0x18, 6 dwords). Each node
+ * holds three child-list references at node[0..2] and a visited/mark flag at
+ * node[3] (0xffffffff == unvisited). If the node is unvisited and the optional
+ * caller callback (may be NULL) approves it, the node is stamped with `mark`
+ * and the walk recurses into every child referenced by node[0..2] via the
+ * child-list array at base+0xc (stride 0x1c).
+ *
+ * ABI: cdecl, 5 stack params. Ghidra mis-typed this as void(void); the true
+ * 5-param prototype, the callback's 4-arg char-returning signature (call site
+ * @0x103566), and the recursion's 5th argument (@0x1035c9) are reconstructed
+ * from the disassembly push sequences, not the decompiler.
+ *
+ * FUN_00117ee0(array_base, index, elem_size) returns &array[index].
+ *
+ * The inner child counter is a 16-bit short widened via MOVSX per iteration;
+ * preserved here as `short i` / `(int)i` for codegen fidelity.
+ */
+void FUN_00103530(int base,
+                  char (*visit)(uint32_t, int, uint32_t *, uint32_t),
+                  uint32_t visit_arg, uint32_t mark, int node_index)
+{
+  uint32_t *node;
+  int *child_list;
+  int elem;
+  short i;
+  int slot;
+
+  node = (uint32_t *)FUN_00117ee0((int *)(base + 0x18), node_index, 0x18);
+  if ((node[3] == 0xffffffff) &&
+      ((visit == NULL) ||
+       ((*visit)(mark, base, node, visit_arg) != 0))) {
+    node[3] = mark;
+    slot = 3;
+    do {
+      if (*node != 0xffffffff) {
+        child_list =
+            (int *)FUN_00117ee0((int *)(base + 0xc), *node & 0x7fffffff, 0x1c);
+        i = 0;
+        if (0 < child_list[1]) {
+          elem = 0;
+          do {
+            FUN_00103530(base, visit, visit_arg, mark,
+                         *(int *)FUN_00117ee0(child_list, elem, 4));
+            i = i + 1;
+            elem = (int)i;
+          } while (elem < child_list[1]);
+        }
+      }
+      node = node + 1;
+      slot = slot + -1;
+    } while (slot != 0);
+  }
+}

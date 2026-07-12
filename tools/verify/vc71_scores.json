@@ -7088,6 +7088,10 @@
       "score": 100.0,
       "source": "src/halo/main/main.c"
     },
+    "FUN_00103530": {
+      "score": 98.8,
+      "source": "src/halo/main/main.c"
+    },
     "FUN_00104bd0": {
       "score": 92.5,
       "source": "src/halo/structures/structures.c"
