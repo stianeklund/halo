@@ -1712,6 +1712,14 @@
       "score": 100.0,
       "source": "src/halo/ai/ai_debug.c"
     },
+    "FUN_00053da0": {
+      "score": 93.8,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "FUN_00053e20": {
+      "score": 93.8,
+      "source": "src/halo/ai/encounters.c"
+    },
     "FUN_00054020": {
       "score": 100.0,
       "source": "src/halo/ai/encounters.c"
@@ -6591,6 +6599,10 @@
     "FUN_000e8c90": {
       "score": 42.3,
       "source": "src/halo/interface/ui_widget.c"
+    },
+    "FUN_000e8db0": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
     },
     "FUN_000e9080": {
       "score": 78.4,
@@ -14487,6 +14499,10 @@
     "object_delete_recursive": {
       "score": 99.5,
       "source": "src/halo/objects/objects.c"
+    },
+    "object_deplete_body": {
+      "score": 100.0,
+      "source": "src/halo/objects/damage.c"
     },
     "object_determine_variant_number": {
       "score": 81.3,
