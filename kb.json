@@ -6659,7 +6659,7 @@
         {
           "addr": "0x9ca70",
           "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
           "ported": true
         },
         {
@@ -6720,7 +6720,7 @@
         {
           "addr": "0x9dcf0",
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -13440,7 +13440,7 @@
         },
         {
           "addr": "0x103860",
-          "decl": "void FUN_00103860(void);"
+          "decl": "void FUN_00103860(int base, float *a, float *b, float *c, int flag);"
         },
         {
           "addr": "0x103a00",
@@ -13448,7 +13448,8 @@
         },
         {
           "addr": "0x103b80",
-          "decl": "void FUN_00103b80(void);"
+          "decl": "void FUN_00103b80(int base, int obj, int index, int flag);",
+          "ported": true
         },
         {
           "addr": "0x103c00",
