@@ -2823,3 +2823,19 @@ void FUN_00103b80(int base, int obj, int index, int flag)
     (float *)(FUN_00117ee0((int *)(obj + 0x140), tri[3], 0x50) + 8),
     (float *)(FUN_00117ee0((int *)(obj + 0x140), tri[4], 0x50) + 8), flag);
 }
+/* Lazily opens the debug VRML output file ("debug.wrl") on the first call,
+ * writes the VRML header, flushes it, and caches the FILE* in the global at
+ * 0x46e394. Returns whether the handle is non-NULL (open succeeded). The
+ * open is idempotent: once the handle is cached, subsequent calls skip the
+ * open/write and just report handle-valid status. */
+bool FUN_00103d30(void)
+{
+  if (*(void **)0x46e394 == NULL) {
+    *(void **)0x46e394 = crt_fopen("debug.wrl", "w");
+    if (*(void **)0x46e394 != NULL) {
+      crt_fprintf(*(void **)0x46e394, "#VRML V1.0 ascii\n\n");
+      crt_fflush(*(void **)0x46e394);
+    }
+  }
+  return *(void **)0x46e394 != NULL;
+}
