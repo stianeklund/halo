@@ -1,31 +1,38 @@
 {
-  "generated": "2026-07-11T01:29:56.708453+00:00",
+  "generated": "2026-07-12T01:28:16.077357+00:00",
   "ci_runs": {
     "available": true,
     "total": 60,
-    "last_run_time": "2026-07-11T01:29:44Z",
+    "last_run_time": "2026-07-12T01:28:04Z",
     "last_commit": "88923c89",
     "workflows": [
       {
         "name": "Progress Report",
         "conclusion": "",
-        "created_at": "2026-07-11T01:29:44Z",
+        "created_at": "2026-07-12T01:28:04Z",
         "head_sha": "88923c89",
-        "url": "https://github.com/stianeklund/halo/actions/runs/29134717031"
+        "url": "https://github.com/stianeklund/halo/actions/runs/29175293414"
       },
       {
         "name": "Equivalence Tests",
         "conclusion": "success",
-        "created_at": "2026-07-11T01:25:50Z",
+        "created_at": "2026-07-12T01:27:29Z",
         "head_sha": "88923c89",
-        "url": "https://github.com/stianeklund/halo/actions/runs/29134605452"
+        "url": "https://github.com/stianeklund/halo/actions/runs/29175279735"
+      },
+      {
+        "name": "Runtime Oracle Tests",
+        "conclusion": "success",
+        "created_at": "2026-07-11T06:08:48Z",
+        "head_sha": "88923c89",
+        "url": "https://github.com/stianeklund/halo/actions/runs/29142345315"
       },
       {
         "name": "pages-build-deployment",
         "conclusion": "success",
-        "created_at": "2026-07-10T18:13:15Z",
-        "head_sha": "c64171fb",
-        "url": "https://github.com/stianeklund/halo/actions/runs/29113760096"
+        "created_at": "2026-07-11T01:30:05Z",
+        "head_sha": "46b27e8b",
+        "url": "https://github.com/stianeklund/halo/actions/runs/29134728035"
       },
       {
         "name": ".github/workflows/main.yml",
@@ -40,13 +47,6 @@
         "created_at": "2026-07-10T18:12:41Z",
         "head_sha": "88923c89",
         "url": "https://github.com/stianeklund/halo/actions/runs/29113726005"
-      },
-      {
-        "name": "Runtime Oracle Tests",
-        "conclusion": "success",
-        "created_at": "2026-07-10T07:30:26Z",
-        "head_sha": "3d2be8f1",
-        "url": "https://github.com/stianeklund/halo/actions/runs/29076885233"
       }
     ]
   },
