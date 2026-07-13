@@ -137,6 +137,40 @@ void FUN_000be030(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xbe330 — HS script function handler: evaluate a macro function and, on a
+ * non-null result record, forward the record's first three dwords (at +0x0,
+ * +0x4, +0x8) to FUN_000c9c80, then commit a 0 result to the calling HS
+ * thread. No value is read back from the callee — hs_return always commits 0.
+ * Same evaluator ABI (function_index, thread_datum, init) as the other
+ * hs_evaluate_* handlers.
+ *
+ * ABI (verified against disassembly 0xbe330): cdecl, plain RET. thread_datum
+ * (arg 2, cached in ESI) flows to both the evaluate call (arg 2) and the
+ * hs_return call (arg 1). On a non-null result the call site does
+ * MOV EDX,[result+0x8]; MOV ECX,[result+0x4]; MOV EDX,[result+0x0], then
+ * PUSH EDX(+8); PUSH ECX(+4); PUSH EDX(+0); CALL 0xc9c80 — three cdecl int
+ * args. Ghidra's void(void) decl for 0xc9c80 dropped all three, misled by the
+ * combined ADD ESP,0x14 after the two trailing calls (0xc9c80's 3 args = 0xc
+ * plus hs_return's 2 args = 0x8). kb.json decl for 0xc9c80 corrected to
+ * void(int,int,int) accordingly.
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560 = hs_macro_function_evaluate(int16 fn_index, int thread_datum,
+ *             char init) -> int* (result record, NULL on failure)
+ *   0xc9c80 = FUN_000c9c80(int, int, int) -> void (record 3-dword consumer)
+ *   0xcbf80 = hs_return(int thread_handle, int value) */
+void FUN_000be330(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_000c9c80(result[0], result[1], result[2]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* 0xc0c30 — HS script function handler: apply an encounter state change.
  * Evaluates the macro arguments; on success the result block holds an
  * encounter handle at +0x0 (int) and a state value at +0x4 (int16). Calls
