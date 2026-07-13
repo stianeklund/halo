@@ -1,7 +1,13 @@
 void FUN_000a6a80(void)
 {
-  char local_118[12];
-  int aiStack_10c[61];
+  /* One contiguous placement buffer (matches original frame at EBP-0x114).
+     FUN_000a6930 reads tag indices from base+0xC with a 0x10-byte stride, so
+     the header (12 bytes) and the entry array must share one allocation.
+     Ghidra split this into local_118[12] + aiStack_10c[61]; declaring them as
+     two separate locals let clang place them non-adjacently, so the helper read
+     uninitialized stack (garbage tag index 0xf3c90060 -> cache_files.c:475
+     assert on the cheat_all_weapons path). */
+  char local_118[256];
   char local_18[20];
   int *piVar1;
   int iVar2;
@@ -25,7 +31,7 @@ void FUN_000a6a80(void)
   FUN_001b9b60((int)local_18, 0x77656170);
   iVar4 = FUN_001b9b80((int)local_18);
   while (iVar4 != -1 && (unsigned short)iVar2 < 0x10) {
-    aiStack_10c[(short)(unsigned short)iVar2 * 4] = iVar4;
+    *(int *)(local_118 + 0xc + (short)(unsigned short)iVar2 * 0x10) = iVar4;
     iVar2 = iVar2 + 1;
     iVar4 = FUN_001b9b80((int)local_18);
   }
