@@ -15381,7 +15381,7 @@
         {
           "addr": "0x13d920",
           "decl": "void object_set_garbage_flag(int object_handle, int is_garbage);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13db50",
