@@ -36,6 +36,37 @@ void FUN_000bdf40(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xbdfa0 — HS script function handler: evaluate a macro function and, on a
+ * non-null result record, forward two 16-bit fields to FUN_000ca430, then
+ * commit a 0 result to the calling HS thread. Same evaluator ABI
+ * (function_index, thread_datum, init) as the other hs_evaluate_* handlers.
+ *
+ * ABI (verified against disassembly 0xbdfa0): cdecl, plain RET. thread_datum
+ * (arg 2, cached in ESI) flows to both the evaluate call (arg 2) and the
+ * hs_return call (arg 1). The call site reads MOVSX EAX,word[result+0]
+ * (signed int16 -> int) and MOVZX EDX,word[result+4] (unsigned int16 -> int),
+ * then PUSH EDX; PUSH EAX; CALL 0xca430 — two cdecl int args (Ghidra's
+ * void(void) decl dropped both). The combined ADD ESP,0x10 after the two
+ * trailing calls (ca430's 2 + hs_return's 2) confirms the arg counts. Note
+ * result is int*, so the +0x4 read is at (char *)result + 4, a narrow int16.
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560 = hs_macro_function_evaluate(int16 fn_index, int thread_datum,
+ *             char init) -> int* (result record, NULL on failure)
+ *   0xca430 = FUN_000ca430(int, int) -> void (two-field consumer)
+ *   0xcbf80 = hs_return(int thread_handle, int value) */
+void FUN_000bdfa0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_000ca430(*(short *)result, *(unsigned short *)((char *)result + 4));
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* 0xc0c30 — HS script function handler: apply an encounter state change.
  * Evaluates the macro arguments; on success the result block holds an
  * encounter handle at +0x0 (int) and a state value at +0x4 (int16). Calls
