@@ -15290,7 +15290,7 @@
         {
           "decl": "void FUN_0013cb80(int param_1);",
           "addr": "0x13cb80",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "void FUN_0013cdd0(int scenario);",

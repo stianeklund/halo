@@ -3089,10 +3089,10 @@ void FUN_0013cb30(void)
  *     and runs objects_garbage_collect_tick.
  * After all types: marks this BSP slot processed (sets bit in DAT_0046f078).
  *
- * DORMANT — kept ported=false. Gate B cluster edge: calls object_new_from_scenario
- * (0x144770) and objects_garbage_collect_tick (0x144b50), both GC/lifecycle
- * cluster members, and mutates streaming state (DAT_0046f078 BSP-loaded mask,
- * per-placement flags element+0x20). Piecemeal cluster activation is unsafe.
+ * Lifecycle note: Gate B cluster edge calls object_new_from_scenario (0x144770)
+ * and objects_garbage_collect_tick (0x144b50), both GC/lifecycle cluster
+ * members, and mutates streaming state (DAT_0046f078 BSP-loaded mask and
+ * per-placement flags element+0x20). Keep this edge covered by runtime checks.
  *
  * Confirmed: 1 cdecl arg (do_spawn @ [EBP+0x8], tested as a byte: MOV AL,[EBP+0x8]).
  * Confirmed: 12-iteration type loop (CMP SI,0xc); dual counter type/shift equal.
