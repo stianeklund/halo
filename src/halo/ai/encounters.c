@@ -1027,7 +1027,7 @@ void FUN_00057900(int param_1, char param_2)
         (char *)global_scenario_get() + 0x42c,
         *(unsigned int *)(actor + 0x34) & 0xffff, 0xb0);
       squad_def = (char *)tag_block_get_element(
-        encounter_def + 0x80, (int)*(short *)(actor + 0x3a), 0xe8);
+        &((encounter_definition *)encounter_def)->squads, (int)*(short *)(actor + 0x3a), 0xe8);
       error(2, (const char *)0x25cc88, encounter_def, squad_def);
     }
   }
@@ -2618,7 +2618,7 @@ void FUN_0005a050(int squad_index /* @<eax> */,
   encounter_def = (char *)tag_block_get_element(
     scenario + 0x42c, encounter_handle & 0xffff, 0xb0);
   squad_base = (char *)encounter_get_squad(encounter, (short)squad_index);
-  squad_def = (char *)tag_block_get_element(encounter_def + 0x80,
+  squad_def = (char *)tag_block_get_element(&((encounter_definition *)encounter_def)->squads,
                                             (short)squad_index, 0xe8);
 
   count_ptr = (int *)(squad_def + 0xd0);
@@ -2681,15 +2681,15 @@ void FUN_0005a120(short *squad_counter /* @<eax> */, void *encounter_def,
   }
   encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
 
-  *(short *)(encounter + 0x2) = *(short *)((char *)encounter_def + 0x24);
+  *(short *)(encounter + 0x2) = ((encounter_definition *)encounter_def)->field_24;
   *(int *)(encounter + 0x14) = -1;
   *(int *)(encounter + 0x38) = -1;
   *(unsigned char *)(encounter + 0x40) =
-    (unsigned char)((*(unsigned int *)((char *)encounter_def + 0x20) >> 2) & 1);
+    (unsigned char)((((encounter_definition *)encounter_def)->flags >> 2) & 1);
   *(unsigned char *)(encounter + 0x41) =
-    (unsigned char)((*(unsigned int *)((char *)encounter_def + 0x20) >> 3) & 1);
+    (unsigned char)((((encounter_definition *)encounter_def)->flags >> 3) & 1);
   *(unsigned char *)(encounter + 0x3c) =
-    (unsigned char)((*(unsigned int *)((char *)encounter_def + 0x20) >> 1) & 1);
+    (unsigned char)((((encounter_definition *)encounter_def)->flags >> 1) & 1);
   *(short *)(encounter + 0x3e) = 0;
   *(char *)(encounter + 0x46) = 0;
   *(char *)(encounter + 0x45) = 0;
@@ -2702,7 +2702,7 @@ void FUN_0005a120(short *squad_counter /* @<eax> */, void *encounter_def,
   *(short *)(encounter + 0x20) = 0;
   *(int *)(encounter + 0x10) = -1;
 
-  if (*(int *)((char *)encounter_def + 0x80) > 0x40) {
+  if (((encounter_definition *)encounter_def)->squads.count > 0x40) {
     display_assert(
       "encounter_definition->squads.count <= MAXIMUM_SQUADS_PER_ENCOUNTER",
       "c:\\halo\\SOURCE\\ai\\encounters.c", 0x5a4, 1);
@@ -2725,7 +2725,7 @@ void FUN_0005a120(short *squad_counter /* @<eax> */, void *encounter_def,
   if (*(short *)(encounter + 0x6) > 0) {
     do {
       squad_record = (char *)encounter_get_squad(encounter, (short)i);
-      squad_def = (char *)tag_block_get_element((char *)encounter_def + 0x80,
+      squad_def = (char *)tag_block_get_element((char *)&((encounter_definition *)encounter_def)->squads,
                                                 (int)(short)i, 0xe8);
       *(char *)(squad_record + 0x11) = 0;
       if ((*(unsigned char *)(squad_def + 0x28) & 8) == 0) {
@@ -2749,7 +2749,7 @@ void FUN_0005a120(short *squad_counter /* @<eax> */, void *encounter_def,
     } while ((short)i < *(short *)(encounter + 0x6));
   }
 
-  if (*(int *)((char *)encounter_def + 0x8c) > 0x20) {
+  if (((encounter_definition *)encounter_def)->platoons.count > 0x20) {
     display_assert(
       "encounter_definition->platoons.count <= MAXIMUM_PLATOONS_PER_ENCOUNTER",
       "c:\\halo\\SOURCE\\ai\\encounters.c", 0x5cb, 1);
@@ -2768,7 +2768,7 @@ void FUN_0005a120(short *squad_counter /* @<eax> */, void *encounter_def,
     system_exit(-1);
   }
 
-  platoon_block = (void *)((char *)encounter_def + 0x8c);
+  platoon_block = (void *)&((encounter_definition *)encounter_def)->platoons;
   i = 0;
   if (*(short *)(encounter + 0xa) > 0) {
     do {
@@ -4502,18 +4502,18 @@ void encounter_create(int encounter_handle, short param_2, short param_3)
     if (param_2 == -1 && param_3 == -1) {
       console_printf(0, "ai_place %s", encounter_def);
     } else if (param_2 != -1) {
-      name = (char *)tag_block_get_element((void *)(encounter_def + 0x8c),
+      name = (char *)tag_block_get_element((void *)&((encounter_definition *)encounter_def)->platoons,
                                            param_2, 0xac);
       console_printf(0, "ai_place %s/%s", encounter_def, name);
     } else {
-      name = (char *)tag_block_get_element((void *)(encounter_def + 0x80),
+      name = (char *)tag_block_get_element((void *)&((encounter_definition *)encounter_def)->squads,
                                            param_3, 0xe8);
       console_printf(0, "ai_place %s/%s", encounter_def, name);
     }
   }
 
-  for (i = 0; (int)(int16_t)i < *(int *)(encounter_def + 0x80); i++) {
-    squad_def = (char *)tag_block_get_element((void *)(encounter_def + 0x80),
+  for (i = 0; (int)(int16_t)i < ((encounter_definition *)encounter_def)->squads.count; i++) {
+    squad_def = (char *)tag_block_get_element((void *)&((encounter_definition *)encounter_def)->squads,
                                               (int16_t)i, 0xe8);
 
     if (!do_all && (int16_t)i != (int16_t)param_3 &&
@@ -4700,11 +4700,11 @@ void FUN_0005dc00(int encounter_handle)
 
     if (bVar2) {
       squad_def = (char *)tag_block_get_element(
-        (void *)(encounter_def + 0x80), (int)*(int16_t *)(actor + 0x3a), 0xe8);
+        (void *)&((encounter_definition *)encounter_def)->squads, (int)*(int16_t *)(actor + 0x3a), 0xe8);
       platoon_def = (char *)tag_block_get_element(
-        (void *)(encounter_def + 0x8c), (int)*(int16_t *)(actor + 0x3c), 0xac);
+        (void *)&((encounter_definition *)encounter_def)->platoons, (int)*(int16_t *)(actor + 0x3c), 0xac);
       squad_target_idx = *(int16_t *)(squad_def + 0x4e);
-      squad_count = *(int *)(encounter_def + 0x80);
+      squad_count = ((encounter_definition *)encounter_def)->squads.count;
       if ((int)squad_target_idx >= 0 && (int)squad_target_idx < squad_count) {
         FUN_0003baa0(saved_actor_handle, encounter_handle, squad_target_idx);
         flags_dword = *(unsigned int *)(platoon_def + 0x20);
