@@ -14771,7 +14771,7 @@
         {
           "decl": "void FUN_00085000(int param_1, const char *param_2);",
           "addr": "0x85000",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x850d0",

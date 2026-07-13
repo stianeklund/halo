@@ -142,6 +142,53 @@ bool valid_real_normal3d_perpendicular(float *a, float *b)
   return 0;
 }
 
+/* FUN_00085000 (0x85000 / objects.obj) — select a scripted animation camera
+ * by name from an 'antr' tag and update the camera globals.
+ *
+ * Confirmed: tag block at +0x74, element stride 0xb4, name at element+0,
+ * camera duration at element+0x22, and the matched index at +0x2ee5dc.
+ */
+void FUN_00085000(int animation_tag, const char *camera_name)
+{
+  void *tag;
+  int *block;
+  char *element;
+  short index;
+  int compare;
+
+  if (animation_tag == -1)
+    return;
+
+  tag = tag_get(0x616e7472, animation_tag);
+  if (*(int *)((char *)tag + 0x68) != 1)
+    return;
+
+  block = (int *)((char *)tag + 0x74);
+  index = 0;
+  if (*block <= 0)
+    return;
+
+  while (1) {
+    element = (char *)tag_block_get_element(block, (int)index, 0xb4);
+    compare = crt_stricmp(camera_name, element);
+    if (compare == 0)
+      break;
+    index = index + 1;
+    if (*block <= (int)index)
+      return;
+  }
+
+  *(short *)0x2ee5a4 = -1;
+  *(int *)0x2ee5d4 = -1;
+  *(short *)0x2ee5a2 = 1;
+  *(char *)0x2ee5a1 = 1;
+  *(int *)0x2ee5d8 = animation_tag;
+  *(int *)0x2ee5d0 = 0x3f9c61aa;
+  *(float *)0x2ee5a8 =
+    (float)((int)*(short *)(element + 0x22) / 0x1e);
+  *(short *)0x2ee5dc = index;
+}
+
 /* FUN_00085180 (0x85180) — Configure camera globals from a cutscene-camera
  * entry (param_1) in the scenario, using param_2 as tick-based time and
  * param_3 as unit handle. Triggers director_update and observer_update.
