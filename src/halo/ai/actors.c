@@ -5049,7 +5049,7 @@ void FUN_0003be90(int actor_handle)
     encounter_idx = (int)(*(unsigned int *)(actor + 0x34) & 0xffff);
     encounter_elem = tag_block_get_element(
       (char *)global_scenario_get() + 0x42c, encounter_idx, 0xb0);
-    squad_elem = tag_block_get_element((char *)encounter_elem + 0x80,
+    squad_elem = tag_block_get_element((char *)&((encounter_definition *)encounter_elem)->squads,
                                        (int)*(short *)(actor + 0x3a), 0xe8);
     crt_sprintf(local_114, "%s/%s", encounter_elem, squad_elem);
   }
@@ -8183,7 +8183,7 @@ int FUN_0003f030(int actv_tag_index, int encounter_index, int squad_index,
     encounter_elem = (char *)tag_block_get_element(
       (char *)global_scenario_get() + 0x42c, encounter_index & 0xffff, 0xb0);
     if (encounter_elem != NULL) {
-      tag_block_get_element(encounter_elem + 0x80, squad_index, 0xe8);
+      tag_block_get_element(&((encounter_definition *)encounter_elem)->squads, squad_index, 0xe8);
     }
   }
 
@@ -8198,11 +8198,11 @@ int FUN_0003f030(int actv_tag_index, int encounter_index, int squad_index,
     encounter_elem = (char *)tag_block_get_element(
       (char *)global_scenario_get() + 0x42c, encounter_index & 0xffff, 0xb0);
     squad_elem =
-      (char *)tag_block_get_element(encounter_elem + 0x80, squad_index, 0xe8);
+      (char *)tag_block_get_element(&((encounter_definition *)encounter_elem)->squads, squad_index, 0xe8);
     sVar1 = *(short *)(squad_elem + 0x24);
     sVar7 = *(short *)(squad_elem + 0x26);
     encounter_flag =
-      (char)((*(unsigned int *)(encounter_elem + 0x20) >> 4) & 1);
+      (char)((((encounter_definition *)encounter_elem)->flags >> 4) & 1);
   }
 
   if (*(short *)((char *)starting_location + 0x16) > 0) {
