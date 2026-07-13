@@ -1052,7 +1052,8 @@ char FUN_00014e90(int actor_handle, char *state_data)
       *(unsigned int *)(actor + 0x34) & 0xffff, 0xb0);
     prop = (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(state_data + 0x1c));
     fp_elem = (char *)tag_block_get_element(
-      encounter_elem + 0x98, (int)*(short *)(state_data + 8), 0x18);
+      &((encounter_definition *)encounter_elem)->firing_positions,
+      (int)*(short *)(state_data + 8), 0x18);
     unit_estimate_position(*(int *)(actor + 0x18), 2, (void *)fp_elem, 0, 0,
                            (void *)local_14);
     sVar1 = ai_test_line_of_sight(
@@ -6439,8 +6440,8 @@ char actor_has_accessible_firing_position(int actor_handle, float *position,
   }
 
   /* iterate over encounter's firing positions */
-  fp_block = encounter_elem + 0x98;
-  fp_count = *(int *)(encounter_elem + 0x98);
+  fp_block = (char *)&((encounter_definition *)encounter_elem)->firing_positions;
+  fp_count = ((encounter_definition *)encounter_elem)->firing_positions.count;
   i = 0;
   if (fp_count <= 0) {
     return 0;
