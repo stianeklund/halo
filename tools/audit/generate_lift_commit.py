@@ -265,15 +265,15 @@ def _run_vc71_on_staged_sources(ports=None, since_ref=None) -> dict:
 
 def _lookup_vc71_score(addr: str, decl: str, scores: dict):
     """Return the vc71 score entry for a ported function, or None."""
+    m = re.search(r"\b(\w+)\s*\(", decl)
+    if m and m.group(1) in scores:
+        return scores[m.group(1)]
     try:
         fun_key = f"FUN_{int(addr, 16):08x}"
         if fun_key in scores:
             return scores[fun_key]
     except (ValueError, TypeError):
         pass
-    m = re.search(r"\b(\w+)\s*\(", decl)
-    if m and m.group(1) in scores:
-        return scores[m.group(1)]
     return None
 
 

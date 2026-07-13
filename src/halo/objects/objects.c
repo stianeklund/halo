@@ -539,22 +539,22 @@ void FUN_00134c20(int param_1)
 }
 
 /*
- * FUN_00134e50 (0x134e50 / objects.obj) — wrap a value into the range of a
- * period, skipping the modulo when the period is exactly 1.0.
+ * FUN_00134e50 (0x134e50 / objects.obj) — raise a value to a power, skipping
+ * the power call when the exponent is exactly 1.0.
  *
- * Returns value (param_1) unchanged when period (param_2) == 1.0f; otherwise
- * returns fmod(value, period). The 1.0 special-case avoids a redundant modulo
- * when the period is unit-length.
+ * Returns value (param_1) unchanged when exponent (param_2) == 1.0f; otherwise
+ * returns pow(value, exponent). The 1.0 special-case avoids a redundant power
+ * call.
  *
  * Confirmed: FCOMP param_2 against [0x2533c8 = 1.0f]; equal -> return param_1.
- * Confirmed: not-equal -> tail-call fmod(param_1, param_2) (JMP 0x1d9e70).
+ * Confirmed: not-equal -> tail-call pow(param_1, param_2) (JMP 0x1d9e70).
  */
-float FUN_00134e50(float value, float period)
+float FUN_00134e50(float value, float exponent)
 {
-  if (period == 1.0f) {
-    return value;
+  if (exponent != *(float *)0x2533c8) {
+    return (float)pow((double)value, (double)exponent);
   }
-  return x87_fmod(value, (double)period);
+  return value;
 }
 
 /* FUN_00134e80 (0x134e80 / objects.obj, object_lights.c) — render a light-volume

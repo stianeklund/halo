@@ -14908,7 +14908,7 @@
         {
           "addr": "0x134e50",
           "decl": "float FUN_00134e50(float param_1, float param_2);",
-          "ported": false,
+          "ported": true,
           "source_path": "objects/objects.c"
         },
         {
@@ -15144,7 +15144,7 @@
         {
           "addr": "0x13c030",
           "decl": "void FUN_0013c030(int param_1, int param_2, int param_3);",
-          "ported": false,
+          "ported": true,
           "source_path": "objects/objects.c"
         },
         {
@@ -15472,7 +15472,7 @@
           "reg_args": {
             "region_element": "eax"
           },
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13e460",
@@ -15751,7 +15751,7 @@
         {
           "addr": "0x140bc0",
           "decl": "void object_delete_internal(int object_handle, int delete_sibling);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x140cc0",
