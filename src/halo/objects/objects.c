@@ -4160,7 +4160,19 @@ int object_header_new(data_t *data, int16_t datum_size, int type_hint)
   return handle;
 }
 
-void object_postprocess_node_matrices(data_t *data, int object_handle /* @<ebx> */);
+void object_postprocess_node_matrices(data_t *data, int object_handle /* @<ebx> */)
+{
+  char *header;
+  void **object_ptr;
+
+  header = (char *)datum_get(data, object_handle);
+  object_ptr = (void **)(header + 8);
+  if (*object_ptr != NULL)
+    memory_pool_block_free(*(void **)0x46f080, object_ptr);
+  datum_delete(data, object_handle);
+  *(uint8_t *)(header + 2) = 0;
+  *object_ptr = NULL;
+}
 
 /*
  * object_header_block_reference_get — resolve an object's inline

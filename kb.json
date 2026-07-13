@@ -15440,7 +15440,7 @@
         {
           "addr": "0x13df70",
           "decl": "void object_postprocess_node_matrices(data_t *data, int object_handle@<ebx>);",
-          "ported": false,
+          "ported": true,
           "reg_args": {
             "object_handle": "ebx"
           }
