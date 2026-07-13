@@ -154,13 +154,13 @@ void FUN_00054220(unsigned int combined_index, void *scenario,
     return;
   case 1: {
     /* profile + element+0x8c sub-block (stride 0xac) */
-    void *sub = tag_block_get_element((char *)element + 0x8c, sub_index, 0xac);
+    void *sub = tag_block_get_element((char *)&((encounter_definition *)element)->platoons, sub_index, 0xac);
     snprintf(buffer, buffer_size, (const char *)0x253d30, element, sub);
     return;
   }
   case 2: {
     /* profile + element+0x80 sub-block (stride 0xe8) */
-    void *sub = tag_block_get_element((char *)element + 0x80, sub_index, 0xe8);
+    void *sub = tag_block_get_element((char *)&((encounter_definition *)element)->squads, sub_index, 0xe8);
     snprintf(buffer, buffer_size, (const char *)0x253d30, element, sub);
     return;
   }
@@ -206,17 +206,17 @@ void FUN_00054310(unsigned int combined_index, int *out)
   switch (selector) {
   case 0:
     out[1] = 0;
-    out[2] = *(int *)((char *)element + 0x8c) - 1;
+    out[2] = ((encounter_definition *)element)->platoons.count - 1;
     return;
 
   case 1:
   case 2:
     sub_index = (int)(unsigned char)(combined_index >> 16);
     if (selector == 2) {
-      if (sub_index < 0 || sub_index >= *(int *)((char *)element + 0x80)) {
+      if (sub_index < 0 || sub_index >= ((encounter_definition *)element)->squads.count) {
         out[1] = -1;
       } else {
-        void *sub = tag_block_get_element((char *)element + 0x80,
+        void *sub = tag_block_get_element((char *)&((encounter_definition *)element)->squads,
                                           sub_index, 0xe8);
         out[1] = *(short *)((char *)sub + 0x22);
       }
@@ -230,7 +230,7 @@ void FUN_00054310(unsigned int combined_index, int *out)
     return;
   }
 
-  if (out[1] < 0 || out[1] >= *(int *)((char *)element + 0x8c)) {
+  if (out[1] < 0 || out[1] >= ((encounter_definition *)element)->platoons.count) {
     out[0] = -1;
     return;
   }
@@ -317,7 +317,7 @@ void FUN_000544a0(unsigned int combined_index, void *iter_arg)
     }
 
     sub_index = (short)((unsigned char *)&combined_index)[2];
-    if (sub_index < 0 || sub_index >= *(int *)((char *)element + 0x80)) {
+    if (sub_index < 0 || sub_index >= ((encounter_definition *)element)->squads.count) {
       iter[0] = -1;
       return;
     }
@@ -330,7 +330,7 @@ void FUN_000544a0(unsigned int combined_index, void *iter_arg)
 
   iter[2] = -1;
   iter[3] = 0;
-  iter[4] = *(int *)((char *)element + 0x80) - 1;
+  iter[4] = ((encounter_definition *)element)->squads.count - 1;
   if (selector == 0) {
     iter[1] = -1;
   } else {
@@ -367,7 +367,7 @@ int FUN_000545a0(void *iter_arg)
                                     iter[0] & 0xffff, 0xb0);
 
     if (iter[3] <= iter[4]) {
-      sub_base = (char *)element + 0x80;
+      sub_base = (char *)&((encounter_definition *)element)->squads;
       do {
         iter[2] = iter[3];
         iter[3] = iter[3] + 1;
@@ -575,9 +575,9 @@ void FUN_00054860(int unit_handle, unsigned int ai_ref)
       goto bad_squad;
   } else if (selector == 1) {
     i = 0;
-    if (*(int *)((char *)element + 0x80) > 0) {
+    if (((encounter_definition *)element)->squads.count > 0) {
       do {
-        void *sq = tag_block_get_element((char *)element + 0x80, i, 0xe8);
+        void *sq = tag_block_get_element((char *)&((encounter_definition *)element)->squads, i, 0xe8);
         if (*(short *)((char *)sq + 0x22)
             == *(unsigned char *)((char *)&ai_ref + 2)) {
           sub_index = i;
@@ -586,12 +586,12 @@ void FUN_00054860(int unit_handle, unsigned int ai_ref)
           break;
         }
         i++;
-      } while (i < *(int *)((char *)element + 0x80));
+      } while (i < ((encounter_definition *)element)->squads.count);
     }
   }
 
-  if (sub_index < *(int *)((char *)element + 0x80)) {
-    squad = tag_block_get_element((char *)element + 0x80, sub_index, 0xe8);
+  if (sub_index < ((encounter_definition *)element)->squads.count) {
+    squad = tag_block_get_element((char *)&((encounter_definition *)element)->squads, sub_index, 0xe8);
     if (*(short *)((char *)squad + 0x20) != -1) {
       variant = tag_block_get_element((char *)scenario + 0x420,
                                       *(short *)((char *)squad + 0x20), 0x10);
@@ -607,7 +607,7 @@ void FUN_00054860(int unit_handle, unsigned int ai_ref)
               sub_index,
               0,
               -1,
-              (char)((*(unsigned int *)((char *)element + 0x20) >> 4) & 0x101),
+              (char)((((encounter_definition *)element)->flags >> 4) & 0x101),
               (short)*(unsigned short *)((char *)squad + 0x24),
               (short)*(unsigned short *)((char *)squad + 0x26),
               0xffff,
@@ -1124,20 +1124,20 @@ void FUN_00054e80(unsigned int ai_ref)
 
   element = tag_block_get_element((char *)global_scenario_get() + 0x42c,
                                   profile_index & 0xffff, 0xb0);
-  if (*(int *)((char *)element + 0x80) <= 0)
+  if (((encounter_definition *)element)->squads.count <= 0)
     return;
 
   sub_byte = (int)((ai_ref >> 0x10) & 0xff);
   squad_index = -1;
   i = 0;
   do {
-    sq = tag_block_get_element((char *)element + 0x80, (int)i, 0xe8);
+    sq = tag_block_get_element((char *)&((encounter_definition *)element)->squads, (int)i, 0xe8);
     if ((int)*(short *)((char *)sq + 0x22) == sub_byte) {
       squad_index = i;
       break;
     }
     i++;
-  } while ((int)i < *(int *)((char *)element + 0x80));
+  } while ((int)i < ((encounter_definition *)element)->squads.count);
 
   if (squad_index == -1)
     return;
@@ -1488,7 +1488,7 @@ int16_t FUN_000559a0(unsigned int encounter_handle /* @<eax> */, int field_0x34,
   if (squad == 0)
     goto no_squad_match;
 
-  dest_squads = (char *)dest_element + 0x80;
+  dest_squads = (char *)&((encounter_definition *)dest_element)->squads;
   do {
     cur = iter[2];
     element = tag_block_get_element(dest_squads, cur, 0xe8);
@@ -1609,8 +1609,8 @@ int16_t FUN_000559a0(unsigned int encounter_handle /* @<eax> */, int field_0x34,
   }
 
 no_squad_match:
-  dest_squads = (char *)dest_element + 0x80;
-  if (*(int *)((char *)dest_element + 0x80) <= 0)
+  dest_squads = (char *)&((encounter_definition *)dest_element)->squads;
+  if (((encounter_definition *)dest_element)->squads.count <= 0)
     return -1;
   found = 0;
   if (*(char *)0x5aca57) {
@@ -1705,7 +1705,7 @@ void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
 
     if (*(short *)((char *)squad + 0x18) > 0
         || *(char *)((char *)src_datum + 0x1e) != 0) {
-      sub_element = tag_block_get_element((char *)src_element + 0x80,
+      sub_element = tag_block_get_element((char *)&((encounter_definition *)src_element)->squads,
                                           src_squad, 0xe8);
       actr_tag = 0;
       actv_tag = 0;
@@ -1754,7 +1754,7 @@ void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
     mapped = target_squad_indices[cur_squad];
     if (mapped != (short)0xffff && !(match_flag && mapped == cur_squad)) {
       if (mapped < 0
-          || (int)mapped >= *(int *)((char *)dst_element + 0x80)) {
+          || (int)mapped >= ((encounter_definition *)dst_element)->squads.count) {
         display_assert("(target_squad_indices[current_squad_index] >= 0) && "
                        "(target_squad_indices[current_squad_index] < "
                        "target_encounter_definition->squads.count)",
@@ -1785,7 +1785,7 @@ void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
         if (mapped != (short)0xffff
             && !(match_flag && mapped == cur_squad)) {
           if (mapped < 0
-              || (int)mapped >= *(int *)((char *)dst_element + 0x80)) {
+              || (int)mapped >= ((encounter_definition *)dst_element)->squads.count) {
             display_assert("(target_squad_indices[current_squad_index] >= 0) && "
                            "(target_squad_indices[current_squad_index] < "
                            "target_encounter_definition->squads.count)",
@@ -1821,7 +1821,7 @@ void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
       mapped = target_squad_indices[cur_squad];
       if (mapped != (short)0xffff && !(match_flag && mapped == cur_squad)) {
         if (mapped < 0
-            || (int)mapped >= *(int *)((char *)dst_element + 0x80)) {
+            || (int)mapped >= ((encounter_definition *)dst_element)->squads.count) {
           display_assert("(target_squad_indices[current_squad_index] >= 0) && "
                          "(target_squad_indices[current_squad_index] < "
                          "target_encounter_definition->squads.count)",
