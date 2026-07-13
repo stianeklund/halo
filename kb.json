@@ -14806,13 +14806,13 @@
         {
           "addr": "0x85280",
           "decl": "void FUN_00085280(float *param_1, float *param_2, float *param_3, float param_4, short param_5, int param_6);",
-          "ported": false,
+          "ported": true,
           "source_path": "objects/objects.c"
         },
         {
           "addr": "0x85350",
           "decl": "void FUN_00085350(float *param_1, float *param_2, float *param_3, float param_4, short param_5);",
-          "ported": false,
+          "ported": true,
           "source_path": "objects/objects.c"
         },
         {

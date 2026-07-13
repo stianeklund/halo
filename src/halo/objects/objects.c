@@ -177,6 +177,45 @@ void FUN_00085180(short param_1, short param_2, int param_3)
   observer_update(9.9957275390625e-5f);
 }
 
+/* FUN_00085280 (0x85280 / objects.obj) — set scripted camera globals from
+ * position, forward, up, speed, time, and an optional unit handle.
+ *
+ * Confirmed: the zero-speed comparison uses 0x2533c0; the fallback speed is
+ * the binary constant 0x3f9c61aa, and observer_update receives 0x38d1b717.
+ */
+void FUN_00085280(float *position, float *forward, float *up, float speed,
+                  short ticks, int unit_handle)
+{
+  *(short *)0x2ee5a2 = 0;
+  *(short *)0x2ee5a4 = -1;
+  *(int *)0x2ee5ac = *(int *)position;
+  *(int *)0x2ee5b0 = *(int *)(position + 1);
+  *(int *)0x2ee5b4 = *(int *)(position + 2);
+  *(int *)0x2ee5b8 = *(int *)forward;
+  *(int *)0x2ee5bc = *(int *)(forward + 1);
+  *(int *)0x2ee5c0 = *(int *)(forward + 2);
+  *(int *)0x2ee5c4 = *(int *)up;
+  *(int *)0x2ee5c8 = *(int *)(up + 1);
+  *(int *)0x2ee5cc = *(int *)(up + 2);
+  if (speed != *(float *)0x2533c0) {
+    *(float *)0x2ee5d0 = speed;
+  } else {
+    *(int *)0x2ee5d0 = 0x3f9c61aa;
+  }
+  *(float *)0x2ee5a8 = (float)((int)ticks / 0x1e);
+  *(int *)0x2ee5d4 = unit_handle;
+  director_update(0.0f);
+  observer_update(0.0001f);
+}
+
+/* FUN_00085350 (0x85350 / objects.obj) — scripted camera helper with no
+ * associated unit handle. */
+void FUN_00085350(float *position, float *forward, float *up, float speed,
+                  short ticks)
+{
+  FUN_00085280(position, forward, up, speed, ticks, -1);
+}
+
 /*
  * FUN_000853a0 (0x853a0 / objects.obj) — convert the cutscene-camera time
  * (seconds, at 0x2ee5a8) back to a tick count by multiplying by 30.0 and

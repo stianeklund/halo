@@ -232,6 +232,15 @@ def choose_unit(source: str, units: list[dict], function: str | None) -> dict | 
 
     aliases = function_aliases(function) if function else set()
 
+    # A function-specific export is the authoritative reference for a targeted
+    # comparison; do not let a whole-TU unit shadow it when both are present.
+    per_func = _per_function_ref(function) if function else None
+    if per_func:
+        return {
+            "base_path": str(per_func.relative_to(REPO_ROOT)),
+            "metadata": {"source_path": str(source)},
+        }
+
     def unit_priority(unit: dict) -> tuple[bool, bool, str]:
         name = unit.get("name", "")
         base = Path(unit.get("base_path", "")).name
@@ -250,14 +259,6 @@ def choose_unit(source: str, units: list[dict], function: str | None) -> dict | 
         ref_path = REPO_ROOT / unit["base_path"]
         if object_symbols(ref_path) & aliases:
             return unit
-
-    # Fallback: per-function export from a split TU
-    per_func = _per_function_ref(function)
-    if per_func:
-        return {
-            "base_path": str(per_func.relative_to(REPO_ROOT)),
-            "metadata": {"source_path": str(source)},
-        }
 
     return None
 
