@@ -103,6 +103,40 @@ void FUN_000bdfe0(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xbe030 — HS script function handler: evaluate a macro function and commit a
+ * byte predicate result to the calling HS thread. Evaluates the macro
+ * arguments via hs_macro_function_evaluate; on a non-null result record, reads
+ * a signed int16 at +0x0 (MOVSX word ptr) and an int at +0x4, passes both to
+ * FUN_000ca0f0 (returns a byte in AL), zero-extends that byte and returns it to
+ * the thread via hs_return. The dword result slot is pre-zeroed and only the
+ * low byte is written (zero-init-then-narrow-store idiom) — modeled with a
+ * union so the widened value is the zero-extended byte.
+ *
+ * ABI (verified against disassembly 0xbe030): cdecl, plain RET. thread_datum
+ * (arg 2, cached in ESI) flows to both the evaluate call (arg 2) and the
+ * hs_return call (arg 1). Result record: int16 @ +0x0 (signed load), int @ +0x4.
+ * Callees:
+ *   0xcc560 = hs_macro_function_evaluate(int16 fn_index, int thread_datum,
+ *             char init) -> short* (result record, NULL on failure)
+ *   0xca0f0 = FUN_000ca0f0(int16_t word0, int dword4) -> unsigned char
+ *   0xcbf80 = hs_return(int thread_handle, int value) */
+void FUN_000be030(int16_t function_index, int thread_datum, char init)
+{
+  short *result;
+  union {
+    int i;
+    unsigned char b;
+  } value;
+
+  result =
+    (short *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    value.i = 0;
+    value.b = FUN_000ca0f0(*result, *(int *)(result + 2));
+    hs_return(thread_datum, value.i);
+  }
+}
+
 /* 0xc0c30 — HS script function handler: apply an encounter state change.
  * Evaluates the macro arguments; on success the result block holds an
  * encounter handle at +0x0 (int) and a state value at +0x4 (int16). Calls
