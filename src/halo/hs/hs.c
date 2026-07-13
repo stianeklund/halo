@@ -67,6 +67,42 @@ void FUN_000bdfa0(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xbdfe0 — HS script function handler: evaluate a macro function and, on a
+ * non-null result record, forward a cluster index + object handle to
+ * FUN_0018ef00, then commit that call's boolean result to the calling HS
+ * thread. Same evaluator ABI (function_index, thread_datum, init) as the other
+ * hs_evaluate_* handlers.
+ *
+ * ABI (verified against disassembly 0xbdfe0): cdecl, plain RET. thread_datum
+ * (arg 2, cached in ESI) flows to both the evaluate call (arg 2) and the
+ * hs_return call (arg 1). On a non-null result the call site reads
+ * MOVSX EAX,word[result+0] (SIGNED int16 -> int cluster index) and
+ * MOV EDX,dword[result+4] (full int object handle), then PUSH EDX; PUSH EAX;
+ * CALL 0x18ef00 -> char in AL. AL is MOVZX-widened into local_8 and becomes
+ * hs_return's value arg. The combined ADD ESP,0x10 after the two trailing calls
+ * (18ef00's 2 + hs_return's 2) confirms the arg counts. Note result[+0] is a
+ * SIGNED int16 (MOVSX), so (int)*result on a short* must stay signed; result[+4]
+ * is a full int (dword), unlike the narrow int16 +4 read in FUN_000bdfa0.
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560 = hs_macro_function_evaluate(int16 fn_index, int thread_datum,
+ *             char init) -> int* (result record, NULL on failure)
+ *   0x18ef00 = FUN_0018ef00(int cluster_index, int object_handle) -> char
+ *   0xcbf80 = hs_return(int thread_handle, int value) */
+void FUN_000bdfe0(int16_t function_index, int thread_datum, char init)
+{
+  short *result;
+  unsigned char eval_result;
+
+  result =
+    (short *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    eval_result =
+      (unsigned char)FUN_0018ef00((int)*result, *(int *)(result + 2));
+    hs_return(thread_datum, (int)eval_result);
+  }
+}
+
 /* 0xc0c30 — HS script function handler: apply an encounter state change.
  * Evaluates the macro arguments; on success the result block holds an
  * encounter handle at +0x0 (int) and a state value at +0x4 (int16). Calls
