@@ -1,3 +1,41 @@
+
+/* 0xbdf40 — HS script function handler: evaluate a macro function and, on a
+ * non-null result record, forward the record's first dword to FUN_000c95d0,
+ * then commit a 0 result to the calling HS thread. Unlike the 0xc135x float
+ * trampolines, no value is read back from the callee — hs_return always
+ * commits 0. Same evaluator ABI (function_index, thread_datum, init) as the
+ * other hs_evaluate_* handlers.
+ *
+ * ABI (verified against disassembly 0xbdf40): cdecl, plain RET. thread_datum
+ * (arg 2, cached in ESI) flows to both the evaluate call (arg 2) and the
+ * hs_return call (arg 1). Call site does MOV EDX,[EAX]; PUSH EDX; CALL
+ * 0xc95d0 — passing *result (the record's first dword). The combined
+ * ADD ESP,0xc after the two trailing calls confirms 0xc95d0 takes exactly
+ * one stack arg (Ghidra's void(void) decl dropped it).
+ *
+ * NOTE: kb groups 0xbdf40 under players.obj, but it is a HaloScript
+ * macro-function handler byte-identical in shape to the hs.obj handlers below
+ * and calls hs_macro_function_evaluate/hs_return. Placed in hs.c per lift
+ * directive (players.c does not compile under VC71 — clang-only __attribute__
+ * / raw fnptr casts — so it would be permanently unmeasurable there).
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560 = hs_macro_function_evaluate(int16 fn_index, int thread_datum,
+ *             char init) -> int* (result record, NULL on failure)
+ *   0xc95d0 = FUN_000c95d0(int) -> void (record first-dword consumer)
+ *   0xcbf80 = hs_return(int thread_handle, int value) */
+void FUN_000bdf40(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_000c95d0(result[0]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* 0xc0c30 — HS script function handler: apply an encounter state change.
  * Evaluates the macro arguments; on success the result block holds an
  * encounter handle at +0x0 (int) and a state value at +0x4 (int16). Calls
