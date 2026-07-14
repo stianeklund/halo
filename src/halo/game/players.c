@@ -2675,3 +2675,37 @@ void FUN_000be970(int16_t function_index, int thread_handle)
   objects_dump_memory();
   hs_return(thread_handle, 0);
 }
+
+/* FUN_000bea10 @ 0x000bea10
+ *
+ * HaloScript macro-function trampoline (object scripting-attach). Evaluates the
+ * script function via hs_macro_function_evaluate(function_index, thread_datum,
+ * init), which returns a pointer to a 4-int evaluation record. On a non-NULL
+ * record it forwards the first four dwords to objects_scripting_attach, then
+ * completes the calling script thread with hs_return(thread_datum, 0).
+ *
+ * cdecl frame (PUSH EBP; MOV EBP,ESP; PUSH ESI):
+ *   function_index  int16_t  [EBP+0x08]  -> arg1 of hs_macro_function_evaluate
+ *   thread_datum    int      [EBP+0x0c]  -> arg2; held in ESI, reused for
+ * hs_return init            char     [EBP+0x10]  -> arg3
+ *
+ * Record layout (all full dwords, from delinked disassembly):
+ *   record[0]  int  (offset 0x00)  MOV (EAX),EAX
+ *   record[1]  int  (offset 0x04)  MOV 0x4(EAX),EDX
+ *   record[2]  int  (offset 0x08)  MOV 0x8(EAX),ECX
+ *   record[3]  int  (offset 0x0c)  MOV 0xc(EAX),EDX
+ * -> objects_scripting_attach(record[0], record[1], record[2], record[3]).
+ * ADD ESP,0x18 combines the 16-byte attach cleanup and 8-byte hs_return
+ * cleanup. Ghidra modeled this void(void) and read the three cdecl params as
+ * in_stack_*. */
+void FUN_000bea10(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    objects_scripting_attach(record[0], record[1], record[2], record[3]);
+    hs_return(thread_datum, 0);
+  }
+}
