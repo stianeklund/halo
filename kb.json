@@ -17190,7 +17190,7 @@
         },
         {
           "addr": "0xbaae0",
-          "decl": "void player_get_starting_location(void);"
+          "decl": "void *player_get_starting_location(int index);"
         },
         {
           "addr": "0xbaba0",
@@ -17302,7 +17302,8 @@
         },
         {
           "addr": "0xbbbe0",
-          "decl": "void find_best_starting_location_index(void);"
+          "decl": "int find_best_starting_location_index(int player_index);",
+          "ported": true
         },
         {
           "addr": "0xbbcb0",

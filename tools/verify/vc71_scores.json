@@ -5148,6 +5148,10 @@
       "score": 86.5,
       "source": "src/halo/game/players.c"
     },
+    "FUN_000bbbe0": {
+      "score": 87.1,
+      "source": "src/halo/game/players.c"
+    },
     "FUN_000bbcb0": {
       "score": 92.0,
       "source": "src/halo/game/players.c"
@@ -13995,6 +13999,10 @@
     "file_set_position": {
       "score": 87.8,
       "source": "src/halo/tag_files/files.c"
+    },
+    "find_best_starting_location_index": {
+      "score": 87.1,
+      "source": "src/halo/game/players.c"
     },
     "find_files_next": {
       "score": 80.1,

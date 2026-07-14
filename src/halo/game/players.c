@@ -1020,6 +1020,70 @@ void player_build_action_update(int datum_handle, float *aiming_out,
   matrix_transform_vector(matrix, aiming_out, aiming_out); /* dup-args-ok */
 }
 
+/* 0xbbbe0 — Choose the best-scoring starting location for a player.
+ *
+ * Scores every starting location as pow(random[0,1], 0.5) * rating and
+ * returns the index of the highest-scoring one.  The random weighting
+ * jitters the pick so respawns are not perfectly deterministic.
+ *
+ * The location count comes from scenario+0x354, unless the campaign
+ * encounter selector (DAT 0x5ac9f4) is active, in which case it is
+ * overridden by the selected encounter block element's +0xa4 field
+ * (stride 0xb0, block at scenario+0x42c) when that value is positive.
+ *
+ * Returns the best index (sign-extended 16-bit, MOVSX in the original),
+ * or -1 when there are no locations (count < 1) or none scores above 0.
+ *
+ * Confirmed: cdecl, one stack arg (player_index in EDI at [EBP+8]);
+ *   score = pow(random, 0.5) * rating (FLD double[0x25fea8]=0.5, __CIpow);
+ *   strict > update on best (FCOM/FNSTSW/TEST AH,0x41/JNZ).
+ * Uncertain: param semantics (player/team index fed to the rating fn);
+ *   0xbaae0 (player_get_starting_location) returns a starting-location
+ *   pointer used here as an opaque handle passed to the rating fn. */
+int find_best_starting_location_index(int player_index)
+{
+  char *scenario;
+  char *elem;
+  int16_t count;
+  int best_index;
+  float best_score;
+  float rating;
+  double score;
+  int loc;
+  int i;
+
+  scenario = (char *)global_scenario_get();
+  count = *(int16_t *)(scenario + 0x354);
+  if (*(int *)0x5ac9f4 != NONE) {
+    elem = (char *)tag_block_get_element(scenario + 0x42c,
+                                         *(int *)0x5ac9f4 & 0xffff, 0xb0);
+    if (*(int *)(elem + 0xa4) > 0) {
+      count = (int16_t) * (int *)(elem + 0xa4);
+    }
+  }
+
+  best_index = -1;
+  best_score = 0.0f;
+  if (count >= 1) {
+    i = 0;
+    do {
+      loc = (int)player_get_starting_location(i);
+      rating = game_engine_get_starting_location_rating(player_index, loc);
+      score =
+        pow(random_real_range(get_global_random_seed_address(), 0.0f, 1.0f),
+            *(double *)0x25fea8) *
+        rating;
+      if (best_score < score) {
+        best_score = (float)score;
+        best_index = i;
+      }
+      i++;
+    } while (i < count);
+  }
+
+  return (int16_t)best_index;
+}
+
 /* Spawn (or respawn) a player.
  *
  * Two paths:
