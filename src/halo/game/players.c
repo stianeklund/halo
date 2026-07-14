@@ -2916,3 +2916,22 @@ void FUN_000be080(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, value);
   }
 }
+
+/* 0xbe3b0 — HS built-in evaluator. Evaluates a single macro-function
+ * argument via hs_macro_function_evaluate; while that returns NULL the
+ * evaluation is still pending and nothing is committed this call. Once it
+ * yields a value datum, its first dword is converted through FUN_000ce420
+ * (returns a 16-bit value in AX, zero-extended by the original into the
+ * result slot) and committed with hs_return. Standard evaluator ABI
+ * (function_index, thread_datum, init). */
+void FUN_000be3b0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+  unsigned int value;
+
+  result = (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    value = (uint16_t)FUN_000ce420(*result);
+    hs_return(thread_datum, (int)value);
+  }
+}
