@@ -2622,3 +2622,35 @@ void FUN_000be810(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, result);
   }
 }
+
+/* FUN_000be8f0 @ 0x000be8f0
+ *
+ * HaloScript macro-function trampoline (object ranged-attack-inhibited setter),
+ * structurally simpler than the byte-returning dispatchers above. Evaluates the
+ * script function via hs_macro_function_evaluate(function_index, thread_datum,
+ * init); this returns a pointer to a 2-int evaluation record. On a non-NULL
+ * record it reads two fields and applies them, then completes the calling
+ * script thread with hs_return(thread_datum, 0).
+ *
+ * cdecl frame:
+ *   function_index  int16_t  [EBP+0x08]  -> arg1 of hs_macro_function_evaluate
+ *   thread_datum    int      [EBP+0x0c]  -> arg2; reused for hs_return
+ *   init            char     [EBP+0x10]  -> arg3
+ *
+ * Record layout used (from the Ghidra pseudocode, which correctly modeled the
+ * stack params here):
+ *   record[0]  int   (offset 0x00)  object handle
+ *   record[1]  int   (offset 0x04)  inhibit flag, truncated to char
+ * -> object_set_ranged_attack_inhibited(record[0], (char)record[1]).
+ * The script thread is then resolved with hs_return(thread_datum, 0). */
+void FUN_000be8f0(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    object_set_ranged_attack_inhibited(record[0], (char)record[1]);
+    hs_return(thread_datum, 0);
+  }
+}
