@@ -2528,6 +2528,69 @@ void FUN_000bdf80(int16_t function_index, int thread_handle)
   hs_return(thread_handle, FUN_000c95f0());
 }
 
+/* 0xbe080 — HaloScript macro-function call wrapper. Evaluates a macro
+ * function expression on a thread; if the evaluation yields a result node,
+ * runs it through FUN_000ca050 (a value/cast evaluator returning a byte in
+ * AL) and returns that byte on the calling thread via hs_return.
+ *
+ * players.obj groups this function, but it calls hs_runtime.obj's static
+ * hs_macro_function_evaluate / hs_return, so it is co-located here (in the
+ * original binary those callees have external linkage; the lift marks them
+ * static, so a cross-TU call from players.c would not link). maintain.py
+ * relocates this to players.c — that move must be reverted.
+ *
+ * Plain cdecl (caller cleans, RET no immediate). Three stack params:
+ *   param1 @ EBP+0x8  = function_index (int16_t)
+ *   param2 @ EBP+0xc  = thread_datum
+ *   param3 @ EBP+0x10 = init (char)
+ *
+ * Callees (all in kb.json):
+ *   0xcc560 = hs_macro_function_evaluate(function_index, thread_datum, init)
+ *             -> result node ptr (Ghidra's `int` is really a struct*; NULL
+ *                when there is nothing to return)
+ *   0xca050 = FUN_000ca050(int16 result[+0], int result[+0x4]) -> byte in AL
+ *   0xcbf80 = hs_return(thread_datum, value)
+ *
+ * Result node layout (EAX from call 1, only read when nonzero):
+ *   +0x0 (int16_t) : MOVSX'd and passed as FUN_000ca050 arg1
+ *   +0x4 (int32_t) : passed as FUN_000ca050 arg2
+ * The returned byte is written into a pre-zeroed dword local (only AL stored),
+ * so it is zero-extended (uint8 -> int) before being handed to hs_return.
+ */
+void FUN_000be080(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+  int value;
+
+  value = 0;
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != 0) {
+    *(unsigned char *)&value = FUN_000ca050(*(int16_t *)result, result[1]);
+    hs_return(thread_datum, value);
+  }
+}
+
+/* 0xbe3b0 — HS built-in evaluator. Evaluates a single macro-function
+ * argument via hs_macro_function_evaluate; while that returns NULL the
+ * evaluation is still pending and nothing is committed this call. Once it
+ * yields a value datum, its first dword is converted through FUN_000ce420
+ * (returns a 16-bit value in AX, zero-extended by the original into the
+ * result slot) and committed with hs_return. Standard evaluator ABI
+ * (function_index, thread_datum, init). */
+void FUN_000be3b0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+  unsigned int value;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    value = (uint16_t)FUN_000ce420(*result);
+    hs_return(thread_datum, (int)value);
+  }
+}
+
 /* player_rumble_initialize @ 0x000be400
  *
  * HaloScript function-evaluator wrapper. Evaluates the script function via
@@ -2875,63 +2938,42 @@ void FUN_000bea10(int16_t function_index, int thread_datum, char init)
   }
 }
 
-/* 0xbe080 — HaloScript macro-function call wrapper. Evaluates a macro
- * function expression on a thread; if the evaluation yields a result node,
- * runs it through FUN_000ca050 (a value/cast evaluator returning a byte in
- * AL) and returns that byte on the calling thread via hs_return.
+/* FUN_000bed20 @ 0x000bed20
  *
- * players.obj groups this function, but it calls hs_runtime.obj's static
- * hs_macro_function_evaluate / hs_return, so it is co-located here (in the
- * original binary those callees have external linkage; the lift marks them
- * static, so a cross-TU call from players.c would not link). maintain.py
- * relocates this to players.c — that move must be reverted.
+ * HaloScript macro-function evaluator wrapper (16-bit-valued variant), a direct
+ * sibling of FUN_000be3b0 above. Evaluates the script function via
+ * hs_macro_function_evaluate(function_index, thread_datum, init); while that
+ * returns NULL the evaluation is still pending and nothing is committed. Once a
+ * non-NULL evaluation record is returned, its first dword is converted through
+ * FUN_00145740 (a cdecl helper returning a 16-bit value in AX) and the
+ * zero-extended result is committed to the calling thread with hs_return.
  *
- * Plain cdecl (caller cleans, RET no immediate). Three stack params:
- *   param1 @ EBP+0x8  = function_index (int16_t)
- *   param2 @ EBP+0xc  = thread_datum
- *   param3 @ EBP+0x10 = init (char)
+ * cdecl frame (PUSH EBP; MOV EBP,ESP; PUSH ECX for one local):
+ *   function_index  int16_t  [EBP+0x08]  -> hs_macro_function_evaluate arg1
+ *   thread_datum    int      [EBP+0x0c]  -> arg2; held in ESI, reused for
+ *                                           hs_return arg1
+ *   init            char     [EBP+0x10]  -> arg3
  *
- * Callees (all in kb.json):
- *   0xcc560 = hs_macro_function_evaluate(function_index, thread_datum, init)
- *             -> result node ptr (Ghidra's `int` is really a struct*; NULL
- *                when there is nothing to return)
- *   0xca050 = FUN_000ca050(int16 result[+0], int result[+0x4]) -> byte in AL
- *   0xcbf80 = hs_return(thread_datum, value)
- *
- * Result node layout (EAX from call 1, only read when nonzero):
- *   +0x0 (int16_t) : MOVSX'd and passed as FUN_000ca050 arg1
- *   +0x4 (int32_t) : passed as FUN_000ca050 arg2
- * The returned byte is written into a pre-zeroed dword local (only AL stored),
- * so it is zero-extended (uint8 -> int) before being handed to hs_return.
- */
-void FUN_000be080(int16_t function_index, int thread_datum, char init)
-{
-  int *result;
-  int value;
-
-  value = 0;
-  result = (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
-  if (result != 0) {
-    *(unsigned char *)&value = FUN_000ca050(*(int16_t *)result, result[1]);
-    hs_return(thread_datum, value);
-  }
-}
-
-/* 0xbe3b0 — HS built-in evaluator. Evaluates a single macro-function
- * argument via hs_macro_function_evaluate; while that returns NULL the
- * evaluation is still pending and nothing is committed this call. Once it
- * yields a value datum, its first dword is converted through FUN_000ce420
- * (returns a 16-bit value in AX, zero-extended by the original into the
- * result slot) and committed with hs_return. Standard evaluator ABI
- * (function_index, thread_datum, init). */
-void FUN_000be3b0(int16_t function_index, int thread_datum, char init)
+ * hs_macro_function_evaluate returns the record pointer in EAX. On non-NULL the
+ * original loads its first dword (MOV EDX,[EAX] = *(int *)record, a full-dword
+ * load) and passes it to FUN_00145740 (PUSH EDX; CALL). That callee is plain
+ * cdecl (RET 0 at 0x1457a7, POP ESI/POP EBP/RET) returning 16 bits: the caller
+ * stores only AX (MOV word[EBP-4],AX) and forwards the zero-extended value. The
+ * lone PUSH EDX for FUN_00145740 is not cleaned immediately; its 4-byte cleanup
+ * is folded into the ADD ESP,0xc after hs_return (0xc = 8 for hs_return's two
+ * cdecl args + 4 for FUN_00145740's arg), confirming FUN_00145740 is cdecl.
+ * Ghidra modeled this void(void); the three cdecl params were unmodeled
+ * (in_stack_*) and FUN_00145740's argument/return were mis-declared void(void)
+ * (kb decl for both was previously void(void)). */
+void FUN_000bed20(int16_t function_index, int thread_datum, char init)
 {
   int *result;
   unsigned int value;
 
-  result = (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != NULL) {
-    value = (uint16_t)FUN_000ce420(*result);
+    value = (uint16_t)FUN_00145740(*result);
     hs_return(thread_datum, (int)value);
   }
 }
