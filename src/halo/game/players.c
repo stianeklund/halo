@@ -2874,3 +2874,45 @@ void FUN_000bea10(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, 0);
   }
 }
+
+/* 0xbe080 — HaloScript macro-function call wrapper. Evaluates a macro
+ * function expression on a thread; if the evaluation yields a result node,
+ * runs it through FUN_000ca050 (a value/cast evaluator returning a byte in
+ * AL) and returns that byte on the calling thread via hs_return.
+ *
+ * players.obj groups this function, but it calls hs_runtime.obj's static
+ * hs_macro_function_evaluate / hs_return, so it is co-located here (in the
+ * original binary those callees have external linkage; the lift marks them
+ * static, so a cross-TU call from players.c would not link). maintain.py
+ * relocates this to players.c — that move must be reverted.
+ *
+ * Plain cdecl (caller cleans, RET no immediate). Three stack params:
+ *   param1 @ EBP+0x8  = function_index (int16_t)
+ *   param2 @ EBP+0xc  = thread_datum
+ *   param3 @ EBP+0x10 = init (char)
+ *
+ * Callees (all in kb.json):
+ *   0xcc560 = hs_macro_function_evaluate(function_index, thread_datum, init)
+ *             -> result node ptr (Ghidra's `int` is really a struct*; NULL
+ *                when there is nothing to return)
+ *   0xca050 = FUN_000ca050(int16 result[+0], int result[+0x4]) -> byte in AL
+ *   0xcbf80 = hs_return(thread_datum, value)
+ *
+ * Result node layout (EAX from call 1, only read when nonzero):
+ *   +0x0 (int16_t) : MOVSX'd and passed as FUN_000ca050 arg1
+ *   +0x4 (int32_t) : passed as FUN_000ca050 arg2
+ * The returned byte is written into a pre-zeroed dword local (only AL stored),
+ * so it is zero-extended (uint8 -> int) before being handed to hs_return.
+ */
+void FUN_000be080(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+  int value;
+
+  value = 0;
+  result = (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != 0) {
+    *(unsigned char *)&value = FUN_000ca050(*(int16_t *)result, result[1]);
+    hs_return(thread_datum, value);
+  }
+}

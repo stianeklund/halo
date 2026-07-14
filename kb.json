@@ -11280,7 +11280,7 @@
         },
         {
           "addr": "0xca050",
-          "decl": "void FUN_000ca050(void);"
+          "decl": "unsigned char FUN_000ca050(int16_t a, int b);"
         },
         {
           "addr": "0xca0f0",
@@ -17422,7 +17422,8 @@
         },
         {
           "addr": "0xbe080",
-          "decl": "void FUN_000be080(void);"
+          "decl": "void FUN_000be080(int16_t function_index, int thread_datum, char init);",
+          "ported": true
         },
         {
           "addr": "0xbe0d0",
