@@ -11248,7 +11248,7 @@
         },
         {
           "addr": "0xc9d80",
-          "decl": "void FUN_000c9d80(void);"
+          "decl": "void FUN_000c9d80(int);"
         },
         {
           "addr": "0xc9de0",
@@ -17492,7 +17492,9 @@
         },
         {
           "addr": "0xbe5a0",
-          "decl": "void FUN_000be5a0(void);"
+          "decl": "void FUN_000be5a0(int16_t function_index, int thread_datum, char init);",
+          "ported": true,
+          "source_path": "src/halo/hs/hs.c"
         },
         {
           "addr": "0xbe5e0",
