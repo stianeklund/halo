@@ -5116,6 +5116,34 @@
       "score": 2.2,
       "source": "src/halo/game/player_rumble.c"
     },
+    "FUN_000baf90": {
+      "score": 73.1,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000bb0f0": {
+      "score": 85.7,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000bbcb0": {
+      "score": 91.4,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000bc410": {
+      "score": 86.5,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000bc4b0": {
+      "score": 82.8,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000bcd40": {
+      "score": 55.7,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000be620": {
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
     "FUN_000c0c30": {
       "score": 100.0,
       "source": "src/halo/hs/hs.c"
@@ -14836,9 +14864,73 @@
       "score": 100.0,
       "source": "src/halo/math/geometry.c"
     },
+    "player_apply_overshield_effect": {
+      "score": 73.1,
+      "source": "src/halo/game/players.c"
+    },
+    "player_build_action_update": {
+      "score": 98.4,
+      "source": "src/halo/game/players.c"
+    },
     "player_effect_get": {
       "score": 100.0,
       "source": "src/halo/effects/player_effects.c"
+    },
+    "player_new": {
+      "score": 96.3,
+      "source": "src/halo/game/players.c"
+    },
+    "player_reset_action_result": {
+      "score": 80.0,
+      "source": "src/halo/game/players.c"
+    },
+    "player_rumble_initialize": {
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
+    "player_set_respawn_timer": {
+      "score": 86.5,
+      "source": "src/halo/game/players.c"
+    },
+    "player_spawn": {
+      "score": 91.4,
+      "source": "src/halo/game/players.c"
+    },
+    "player_try_to_enter_vehicle": {
+      "score": 58.8,
+      "source": "src/halo/game/players.c"
+    },
+    "player_try_to_spawn_in_vehicle": {
+      "score": 78.5,
+      "source": "src/halo/game/players.c"
+    },
+    "player_update_nearby_biped": {
+      "score": 77.3,
+      "source": "src/halo/game/players.c"
+    },
+    "player_update_nearby_vehicle": {
+      "score": 93.8,
+      "source": "src/halo/game/players.c"
+    },
+    "player_update_nearby_weapon": {
+      "score": 96.2,
+      "source": "src/halo/game/players.c"
+    },
+    "player_update_spawn_state": {
+      "score": 85.1,
+      "source": "src/halo/game/players.c"
+    },
+    "players_respawn_coop": {
+      "score": 91.0,
+      "source": "src/halo/game/players.c"
+    },
+    "players_update_after_game": {
+      "score": 88.2,
+      "source": "src/halo/game/players.c"
+    },
+    "players_update_before_game": {
+      "score": 80.8,
+      "source": "src/halo/game/players.c"
     },
     "points_interpolate": {
       "score": 100.0,

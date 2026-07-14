@@ -1224,7 +1224,12 @@ void player_update_weapon_timers(int datum_handle)
   }
 }
 
-__attribute__((noinline)) static bool
+#if defined(__clang__) || defined(__GNUC__)
+__attribute__((noinline))
+#else
+__declspec(noinline)
+#endif
+static bool
 players_respawn_coop_teleport(int player_handle, int anchor_unit_handle,
                               void *anchor_position)
 {
@@ -2384,5 +2389,39 @@ void player_rumble_initialize(int16_t function_index, int thread_handle,
   if (record != 0) {
     FUN_000c9de0(*(int *)record, *(uint16_t *)(record + 4));
     hs_return(thread_handle, 0);
+  }
+}
+
+/* FUN_000be620 @ 0x000be620
+ *
+ * HaloScript function-evaluator wrapper (real-valued variant). Evaluates the
+ * script function via hs_macro_function_evaluate(function_index, thread_handle,
+ * init); on a non-NULL evaluation record it dereferences the record's first
+ * dword and passes it to FUN_000ca010, which returns a float in ST0. The float
+ * is stored to a 4-byte stack cell and reloaded as a raw int32, then forwarded
+ * to hs_return.
+ *
+ * cdecl frame (PUSH EBP; MOV EBP,ESP; PUSH ECX):
+ *   function_index  int16_t  [EBP+0x08]
+ *   thread_handle   int      [EBP+0x0c]  (held in ESI)
+ *   init            char     [EBP+0x10]
+ *
+ * The FSTP [EBP-4] / MOV EAX,[EBP-4] / PUSH EAX pattern is a raw 4-byte
+ * reinterpret of the float bits into the hs value cell -- NOT an (int) cast,
+ * which would truncate. FUN_000ca010's 1-arg cdecl float-returning signature is
+ * recovered from this call site (MOV EDX,[EAX]; PUSH EDX; CALL; FSTP [EBP-4]);
+ * its kb decl was previously void(void). */
+void FUN_000be620(int16_t function_index, int thread_handle, char init)
+{
+  int record;
+  union {
+    float f;
+    int i;
+  } cell;
+
+  record = hs_macro_function_evaluate(function_index, thread_handle, init);
+  if (record != 0) {
+    cell.f = FUN_000ca010(*(int *)record);
+    hs_return(thread_handle, cell.i);
   }
 }

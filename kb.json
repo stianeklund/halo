@@ -11272,7 +11272,7 @@
         },
         {
           "addr": "0xca010",
-          "decl": "void FUN_000ca010(void);"
+          "decl": "float FUN_000ca010(int);"
         },
         {
           "addr": "0xca030",
@@ -17502,7 +17502,8 @@
         },
         {
           "addr": "0xbe620",
-          "decl": "void FUN_000be620(void);"
+          "decl": "void FUN_000be620(int16_t function_index, int thread_handle, char init);",
+          "ported": true
         },
         {
           "addr": "0xbe660",
