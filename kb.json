@@ -17256,7 +17256,8 @@
         },
         {
           "addr": "0xbb1c0",
-          "decl": "void FUN_000bb1c0(void);"
+          "decl": "void FUN_000bb1c0(int player_index@<eax>, int16_t param2);",
+          "ported": true
         },
         {
           "addr": "0xbb1f0",

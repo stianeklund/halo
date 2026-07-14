@@ -661,6 +661,7 @@
     "0x2258a4": "int __stdcall send(void *xnet@<ecx>, unsigned int socket, const char *buf, int len, int flags);",
     "0xba890": "void FUN_000ba890(int player_index@<eax>, int param_2);",
     "0xbac10": "int FUN_000bac10(void *record@<edi>, int parent_handle);",
-    "0xbb180": "void player_set_unit_camo_flag(int player_handle@<eax>, int16_t powerup_index);"
+    "0xbb180": "void player_set_unit_camo_flag(int player_handle@<eax>, int16_t powerup_index);",
+    "0xbb1c0": "void FUN_000bb1c0(int player_index@<eax>, int16_t param2);"
   }
 }
