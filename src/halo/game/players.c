@@ -2577,3 +2577,48 @@ void player_rumble_set_effect(int16_t function_index, int thread_datum,
     hs_return(thread_datum, result);
   }
 }
+
+/* FUN_000be810 @ 0x000be810
+ *
+ * HaloScript builtin dispatcher, structurally identical to the recorded-
+ * animation builtin (player_rumble_set_effect) above. Evaluates the script
+ * function via hs_macro_function_evaluate(function_index, thread_datum, init);
+ * on a non-NULL evaluation record it reads two record fields, calls a byte-
+ * returning worker, and completes the calling script thread with
+ * hs_return(thread_datum, <byte>).
+ *
+ * cdecl frame (PUSH EBP; MOV EBP,ESP; PUSH ECX for one local; PUSH ESI):
+ *   function_index  int16_t  [EBP+0x08]
+ *   thread_datum    int      [EBP+0x0c]  -> held in ESI, reused for hs_return
+ *   init            char     [EBP+0x10]
+ *
+ * The disassembly (NOT the supplied Ghidra pseudocode, which wrongly modeled
+ * this void(void) and dropped both worker arguments and the record derefs)
+ * shows: the local [EBP-4] result slot is pre-zeroed (MOVL [EBP-4],0) before
+ * the evaluate call. hs_macro_function_evaluate returns the record pointer in
+ * EAX. When non-NULL the original reads:
+ *   record[0]  int    (offset 0x00, full dword load: MOV EAX,[EAX])
+ *   record.w4  int16  (offset 0x04, zero-extended word: XOR EDX,EDX; MOV
+ * DX,[EAX+4]) and calls FUN_00095680(record[0], (short)record.w4) (PUSH EDX;
+ * PUSH EAX -> arg1=record[0], arg2=word@0x04). The char return in AL is stored
+ * into the pre-zeroed dword slot (MOV [EBP-4],AL), reloaded (MOV ECX,[EBP-4]),
+ * and the zero-extended value forwarded to hs_return(thread_datum, result)
+ * (PUSH value; PUSH thread_datum; CALL; ADD ESP,0x10). */
+void FUN_000be810(int16_t function_index, int thread_datum, char init)
+{
+  volatile unsigned short result_slot;
+  int *record;
+  unsigned int result;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    /* The original pre-zeroes the result dword and then stores only the byte
+     * return (AL) into it. Routing the zero-extended char return through a
+     * volatile stack slot reproduces that store-then-reload codegen shape. */
+    result_slot = (unsigned char)FUN_00095680(
+      record[0], (short)((unsigned short *)record)[2]);
+    result = (unsigned int)result_slot;
+    hs_return(thread_datum, result);
+  }
+}
