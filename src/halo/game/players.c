@@ -2357,3 +2357,32 @@ void players_update_after_game(void)
   if (*(char *)0x449ef1 != 0 && *(char *)0x2f0e90 != 0)
     profile_exit_private((void *)0x2f0e88);
 }
+
+/* player_rumble_initialize @ 0x000be400
+ *
+ * HaloScript function-evaluator wrapper. Evaluates the script function via
+ * hs_macro_function_evaluate(function_index, thread_handle, init); on a
+ * non-NULL evaluation record it forwards the two record fields to FUN_000c9de0
+ * and completes the thread with hs_return(thread_handle, 0).
+ *
+ * cdecl frame (PUSH EBP; MOV EBP,ESP; PUSH ESI):
+ *   function_index  int16_t  [EBP+0x08]
+ *   thread_handle   int      [EBP+0x0c]  (held in ESI)
+ *   init            char     [EBP+0x10]
+ *
+ * hs_macro_function_evaluate returns an evaluation-record pointer in EAX.
+ * When non-NULL the original loads EAX+0x00 as a full dword and EAX+0x04 as a
+ * MOVZX (zero-extended) 16-bit field, then pushes them right-to-left
+ * (PUSH EDX=+0x04; PUSH EAX_val=+0x00). FUN_000c9de0's 2-arg cdecl signature is
+ * recovered from this call site (its kb decl was previously void(void)). */
+void player_rumble_initialize(int16_t function_index, int thread_handle,
+                              char init)
+{
+  int record;
+
+  record = hs_macro_function_evaluate(function_index, thread_handle, init);
+  if (record != 0) {
+    FUN_000c9de0(*(int *)record, *(uint16_t *)(record + 4));
+    hs_return(thread_handle, 0);
+  }
+}

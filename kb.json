@@ -11252,7 +11252,7 @@
         },
         {
           "addr": "0xc9de0",
-          "decl": "void FUN_000c9de0(void);"
+          "decl": "void FUN_000c9de0(int, uint16_t);"
         },
         {
           "addr": "0xc9e50",
@@ -17465,7 +17465,8 @@
         },
         {
           "addr": "0xbe400",
-          "decl": "void player_rumble_initialize(void);"
+          "decl": "void player_rumble_initialize(int16_t function_index, int thread_handle, char init);",
+          "ported": true
         },
         {
           "addr": "0xbe440",
