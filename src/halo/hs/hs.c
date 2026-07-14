@@ -280,6 +280,27 @@ void FUN_000be5a0(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xbea90 — HS script command handler: force a full garbage-collection pass,
+ * then return void to the calling HS thread. This is the `garbage_collect`
+ * scripting command; unlike the hs_evaluate_* handlers it takes no macro
+ * arguments, so it ignores function_index (arg 1) and init (arg 3) and reads
+ * only thread_datum (arg 2) to route the return.
+ *
+ * ABI (verified against delinked disassembly 0xbea90): cdecl, plain RET.
+ * Prologue PUSH EBP;MOV EBP,ESP, then CALL garbage_collect_now (no args),
+ * MOV EAX,[EBP+0xc] (thread_datum, the 2nd cdecl slot), PUSH 0; PUSH EAX;
+ * CALL hs_return; ADD ESP,0x8 (hs_return's 2 args); POP EBP; RET. Side-effect
+ * order preserved: GC runs before the return.
+ *
+ * Callees (both cdecl, in kb.json):
+ *   0x13db50 = garbage_collect_now(void)
+ *   0xcbf80  = hs_return(int thread_handle, int value) */
+void FUN_000bea90(int16_t function_index, int thread_datum, char init)
+{
+  garbage_collect_now();
+  hs_return(thread_datum, 0);
+}
+
 /* 0xc0c30 — HS script function handler: apply an encounter state change.
  * Evaluates the macro arguments; on success the result block holds an
  * encounter handle at +0x0 (int) and a state value at +0x4 (int16). Calls
