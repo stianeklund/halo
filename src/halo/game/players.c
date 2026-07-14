@@ -2654,3 +2654,24 @@ void FUN_000be8f0(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, 0);
   }
 }
+
+/* FUN_000be970 @ 0x000be970
+ *
+ * HaloScript builtin implementation. Dumps the object subsystem's memory
+ * state via objects_dump_memory(), then completes the calling script thread
+ * with hs_return(thread_handle, 0).
+ *
+ * cdecl frame (PUSH EBP; MOV EBP,ESP):
+ *   function_index  int16_t  [EBP+0x08]  (unused -- never loaded)
+ *   thread_handle   int      [EBP+0x0c]  -> hs_return arg1
+ *
+ * objects_dump_memory() takes no args. The second stack param is loaded
+ * (MOV EAX,[EBP+0xc]) and pushed as hs_return's thread_handle; the constant 0
+ * is pushed as hs_return's value (PUSH 0; PUSH EAX; CALL; ADD ESP,8). Ghidra
+ * modeled this void(void) and read only in_stack_00000008 (the second cdecl
+ * param); kb decl was previously void(void). */
+void FUN_000be970(int16_t function_index, int thread_handle)
+{
+  objects_dump_memory();
+  hs_return(thread_handle, 0);
+}
