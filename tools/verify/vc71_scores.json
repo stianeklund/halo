@@ -5116,6 +5116,10 @@
       "score": 2.2,
       "source": "src/halo/game/player_rumble.c"
     },
+    "FUN_000ba890": {
+      "score": 93.9,
+      "source": "src/halo/game/players.c"
+    },
     "FUN_000baf90": {
       "score": 73.1,
       "source": "src/halo/game/players.c"

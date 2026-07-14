@@ -320,6 +320,47 @@ bool any_player_is_dead(void)
   return false;
 }
 
+/*
+ * Tears down a player's currently-controlled unit: records the unit handle in
+ * the per-slot globals array (base +0x14, stride 4), marks the player dead,
+ * then deactivates and garbage-collects the unit and its held weapon.
+ * arg1 (player_index) is passed in EAX; param_2 is a cdecl stack arg whose
+ * meaning is uncertain (stored to player+0x38 when != NONE).
+ */
+void FUN_000ba890(int player_index, int param_2)
+{
+  char *player;
+  int slot;
+  int object_handle;
+  char *object; /* first object_get_and_verify_type result */
+  char *object2; /* second (identical) fetch, used for +0x2a2 read */
+  int weapon_handle;
+
+  player = (char *)datum_get(player_data, player_index);
+  if (*(int *)(player + 0x34) != NONE) {
+    if (game_engine_can_score())
+      FUN_000b56f0(*(int *)(player + 0x34), -1, -1, -1);
+
+    slot = *(int16_t *)(player + 2);
+    *(int *)((char *)players_globals + slot * 4 + 0x14) =
+      *(int *)(player + 0x34);
+    player_died(player_index);
+    object_handle = *(int *)((char *)players_globals + slot * 4 + 0x14);
+    object = (char *)object_get_and_verify_type(object_handle, 3);
+    object2 = (char *)object_get_and_verify_type(object_handle, 3);
+    weapon_handle =
+      unit_get_weapon(object_handle, *(int16_t *)(object2 + 0x2a2));
+    *(int *)(object + 0x1c8) = NONE;
+    object_deactivate(object_handle);
+    object_set_garbage(object_handle, 0);
+    if (weapon_handle != NONE)
+      object_set_garbage(weapon_handle, 0);
+    if (param_2 != NONE)
+      *(int *)(player + 0x38) = param_2;
+    *((char *)players_globals + 0x28) = 0;
+  }
+}
+
 /* Update a combined PVS (potentially-visible-set) bit vector from the current
  * player set (or, in editor mode, from the debug observer camera).
  *
