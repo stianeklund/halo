@@ -5116,6 +5116,10 @@
       "score": 2.2,
       "source": "src/halo/game/player_rumble.c"
     },
+    "FUN_000ba850": {
+      "score": 76.4,
+      "source": "src/halo/game/players.c"
+    },
     "FUN_000ba890": {
       "score": 93.9,
       "source": "src/halo/game/players.c"
@@ -5162,6 +5166,10 @@
     },
     "FUN_000bc4b0": {
       "score": 82.8,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000bc920": {
+      "score": 83.9,
       "source": "src/halo/game/players.c"
     },
     "FUN_000bcd40": {
@@ -15022,6 +15030,10 @@
     },
     "players_update_before_game": {
       "score": 80.8,
+      "source": "src/halo/game/players.c"
+    },
+    "players_update_before_game_client": {
+      "score": 83.9,
       "source": "src/halo/game/players.c"
     },
     "points_interpolate": {

@@ -398,6 +398,31 @@ int FUN_000bac10(void *record, int parent_handle)
   return object_index;
 }
 
+/* Look up an 8-byte record by `index` in the scenario tag_block at offset 0x39C
+ * and test it against `object_handle` via FUN_0018ef00.
+ *
+ * index (AX)     -- element index into the tag_block (8-byte records); the
+ *                   sentinel -1 short-circuits to 0 (false).
+ * object_handle  -- forwarded unchanged as FUN_0018ef00's second argument.
+ *
+ * The record's first 16-bit field (record[0], zero-extended) is passed as
+ * FUN_0018ef00's first argument. Returns a normalized bool: 1 when index is
+ * valid and FUN_0018ef00 returns nonzero, otherwise 0. */
+char FUN_000ba850(int16_t index /* @<ax> */, int object_handle)
+{
+  void *scenario;
+  unsigned short *element;
+
+  if (index != -1) {
+    scenario = global_scenario_get();
+    element = (unsigned short *)tag_block_get_element((char *)scenario + 0x39c,
+                                                      (int)index, 8);
+    if (FUN_0018ef00((int)*element, object_handle) != 0)
+      return 1;
+  }
+  return 0;
+}
+
 /* Update a combined PVS (potentially-visible-set) bit vector from the current
  * player set (or, in editor mode, from the debug observer camera).
  *
@@ -1646,6 +1671,79 @@ bool players_respawn_coop(void)
     *(int16_t *)((char *)players_globals + 0x2c) = 0;
   }
   return bVar2;
+}
+
+/* Update one player's unit before game logic runs on the client (0xbc920).
+ *
+ * @<ebx> = player_index (register arg); object_handle and position are cdecl
+ * stack args (position is asserted non-NULL).  Looks up the player's unit and
+ * decides whether it must be re-seated / repositioned this tick:
+ *   - If the scenario cluster filter (players_globals+0x2a) is active and the
+ *     unit is NOT in that cluster (FUN_0018ef00 == 0), force the update.
+ *   - Else, if the unit is at a valid location (FUN_0018e720 != -1), bail.
+ *   - If the unit holds a seat handle (+0xcc) that differs from the passed
+ *     object's seat, exit the seat; if it still holds one, clear the
+ *     pending-flag (players_globals+0x2e) and return.
+ *   - Otherwise defer to FUN_000bb670 and record its bool result inverted
+ *     into players_globals+0x2e.
+ */
+void players_update_before_game_client(int player_index /* @<ebx> */,
+                                       int object_handle, void *position)
+{
+  char *player;
+  int unit_handle;
+  char *unit;
+  char *other_obj;
+  bool skip;
+  int16_t cluster;
+  int loc;
+  void *scenario;
+  int16_t *element;
+  char in_cluster;
+  char moved;
+
+  player = (char *)datum_get(player_data, player_index);
+  unit_handle = *(int *)(player + 0x34);
+  unit = (char *)object_try_and_get_and_verify_type(unit_handle, 1);
+  if (player_index == -1) {
+    display_assert("player_index!=NONE", "c:\\halo\\SOURCE\\game\\players.c",
+                   0x4c7, 1);
+    system_exit(-1);
+  }
+  if (position == NULL) {
+    display_assert("position", "c:\\halo\\SOURCE\\game\\players.c", 0x4c8, 1);
+    system_exit(-1);
+  }
+  if (unit == NULL)
+    return;
+
+  cluster = *(int16_t *)((char *)players_globals + 0x2a);
+  if (cluster != -1) {
+    scenario = global_scenario_get();
+    element = (int16_t *)tag_block_get_element((char *)scenario + 0x39c,
+                                               (int)cluster, 8);
+    in_cluster = FUN_0018ef00((int)*element, unit_handle);
+    skip = (in_cluster == 0);
+  } else {
+    skip = false;
+  }
+
+  loc = FUN_0018e720((int)(unit + 0x50));
+  if (loc != -1 && !skip)
+    return;
+
+  if (*(int *)(unit + 0xcc) != -1) {
+    other_obj = (char *)object_get_and_verify_type(object_handle, 1);
+    if (*(int *)(unit + 0xcc) != *(int *)(other_obj + 0xcc))
+      unit_exit_seat_end(unit_handle);
+    if (*(int *)(unit + 0xcc) != -1) {
+      *((char *)players_globals + 0x2e) = 0;
+      return;
+    }
+  }
+
+  moved = FUN_000bb670(player_index, object_handle, position);
+  *((char *)players_globals + 0x2e) = (moved == 0);
 }
 
 /* Priority-filtered pending action-result update (matches 0xbbfe0). */

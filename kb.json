@@ -17173,7 +17173,8 @@
         },
         {
           "addr": "0xba850",
-          "decl": "void FUN_000ba850(void);"
+          "decl": "char FUN_000ba850(int16_t index @<ax>, int object_handle);",
+          "ported": true
         },
         {
           "addr": "0xba890",
@@ -17294,7 +17295,7 @@
         },
         {
           "addr": "0xbb670",
-          "decl": "void FUN_000bb670(void);"
+          "decl": "char FUN_000bb670(int player_index @<ebx>, int object_handle, void *position);"
         },
         {
           "addr": "0xbbb80",
@@ -17348,7 +17349,8 @@
         },
         {
           "addr": "0xbc920",
-          "decl": "void players_update_before_game_client(void);"
+          "decl": "void players_update_before_game_client(int player_index @<ebx>, int object_handle, void *position);",
+          "ported": true
         },
         {
           "addr": "0xbca60",
