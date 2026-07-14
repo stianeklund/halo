@@ -2425,3 +2425,34 @@ void FUN_000be620(int16_t function_index, int thread_handle, char init)
     hs_return(thread_handle, cell.i);
   }
 }
+
+/* FUN_000be6a0 @ 0x000be6a0
+ *
+ * HaloScript function-evaluator wrapper (short-valued variant). Evaluates the
+ * script function via hs_macro_function_evaluate(function_index, thread_datum,
+ * init); on a non-NULL evaluation record it reads the record's first uint16
+ * field, passes it (zero-extended) to numeric_countdown_timer_get, masks the
+ * result to 16 bits, and forwards it to hs_return.
+ *
+ * cdecl frame (PUSH EBP; MOV EBP,ESP; PUSH ECX):
+ *   function_index  int16_t  [EBP+0x08]
+ *   thread_datum    int      [EBP+0x0c]
+ *   init            char     [EBP+0x10]
+ *
+ * thread_datum is reused as the first arg to hs_return. The record's first
+ * field is dereferenced as uint16 (*(ushort *)record) then zero-extended to
+ * uint before the countdown-timer lookup; the getter's return is masked
+ * &0xffff before hs_return. kb decl was previously void(void). */
+void FUN_000be6a0(int16_t function_index, int thread_datum, char init)
+{
+  unsigned short *record;
+  int value;
+
+  record = (unsigned short *)hs_macro_function_evaluate(function_index,
+                                                        thread_datum, init);
+  if (record != 0) {
+    value = numeric_countdown_timer_get((unsigned int)*record);
+    value = value & 0xffff;
+    hs_return(thread_datum, value);
+  }
+}
