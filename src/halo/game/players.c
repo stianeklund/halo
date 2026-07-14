@@ -753,6 +753,33 @@ void player_apply_health_effect(int player_handle)
   player_effect_apply(player_handle, &effect, 1.0f);
 }
 
+/* Mark the player's unit with the camo-active flag.
+ *
+ * player_handle (@eax) -- player datum handle.
+ * powerup_index         -- powerup slot; only index 0 is acted on, mirroring
+ *                          the powerup_idx==0 branch of
+ * player_set_respawn_timer.
+ *
+ * Looks up the player datum, fetches its unit object handle (player+0x34) and
+ * verifies it is a unit (object type mask 3, biped/vehicle family).  When
+ * powerup_index is 0, sets bit 0x10 in the unit flags at +0x1b4 (the
+ * camo-active flag, per player_set_respawn_timer) and clears the powerup-type
+ * field at unit+0x3d2.  object_get_and_verify_type is called unconditionally,
+ * before the branch, matching the original. */
+void player_set_unit_camo_flag(int player_handle /* @<eax> */,
+                               int16_t powerup_index)
+{
+  char *player;
+  char *unit_obj;
+
+  player = (char *)datum_get(player_data, player_handle);
+  unit_obj = (char *)object_get_and_verify_type(*(int *)(player + 0x34), 3);
+  if (powerup_index == 0) {
+    *(unsigned int *)(unit_obj + 0x1b4) |= 0x10;
+    *(int16_t *)(unit_obj + 0x3d2) = 0;
+  }
+}
+
 /* Allocate and initialise a new player datum.
  *
  * local_player_index  (a1) -- which local player slot to assign; NONE (-1) is

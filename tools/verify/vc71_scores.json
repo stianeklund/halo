@@ -5132,6 +5132,10 @@
       "score": 85.7,
       "source": "src/halo/game/players.c"
     },
+    "FUN_000bb180": {
+      "score": 97.1,
+      "source": "src/halo/game/players.c"
+    },
     "FUN_000bbcb0": {
       "score": 91.4,
       "source": "src/halo/game/players.c"
@@ -14934,6 +14938,10 @@
     },
     "player_set_respawn_timer": {
       "score": 86.5,
+      "source": "src/halo/game/players.c"
+    },
+    "player_set_unit_camo_flag": {
+      "score": 97.1,
       "source": "src/halo/game/players.c"
     },
     "player_spawn": {
