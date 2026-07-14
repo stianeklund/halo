@@ -2532,3 +2532,48 @@ void FUN_000be730(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, 0);
   }
 }
+
+/* player_rumble_set_effect @ 0x000be770
+ *
+ * Misnomer: this is NOT controller rumble. It is a HaloScript builtin
+ * dispatcher (recorded-animation playback) with the same shape as the
+ * breakable-surfaces builtin above. Evaluates the script function via
+ * hs_macro_function_evaluate(function_index, thread_datum, init); on a
+ * non-NULL evaluation record it plays a recorded animation and completes the
+ * calling script thread with hs_return(thread_datum, <result>).
+ *
+ * cdecl frame (PUSH EBP; MOV EBP,ESP; PUSH ECX for one local):
+ *   function_index  int16_t  [EBP+0x08]
+ *   thread_datum    int      [EBP+0x0c]  -> reused for hs_return arg1
+ *   init            char     [EBP+0x10]
+ *
+ * hs_macro_function_evaluate returns an evaluation-record pointer in EAX
+ * (piVar2). The local [EBP-4] result slot is pre-zeroed (MOV dword[EBP-4],0)
+ * before the call. When the record is non-NULL the original reads:
+ *   record[0]  int    (actor handle, offset 0x00, full dword load)
+ *   record[1]  int16  (anim index,  offset 0x04, zero-extended word load:
+ *                       XOR EDX,EDX; MOV DX,[EAX+4])
+ * and calls recorded_animation_play(record[0], (short)record[1]) (PUSH EDX;
+ * PUSH EAX -> arg1=record[0], arg2=word@0x04). The char return in AL is stored
+ * into the pre-zeroed dword slot, so the full value forwarded is the
+ * zero-extended byte, and hs_return(thread_datum, (uint)result) completes the
+ * thread (PUSH result; PUSH thread_datum; CALL; combined ADD ESP cleanup). */
+void player_rumble_set_effect(int16_t function_index, int thread_datum,
+                              char init)
+{
+  volatile unsigned short result_slot;
+  int *record;
+  unsigned int result;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    /* The original pre-zeroes the result dword and then stores only the byte
+     * return (AL) into it. Routing the zero-extended char return through a
+     * volatile stack slot reproduces that store-then-reload codegen shape. */
+    result_slot = (unsigned char)recorded_animation_play(
+      record[0], (short)((unsigned short *)record)[2]);
+    result = (unsigned int)result_slot;
+    hs_return(thread_datum, result);
+  }
+}

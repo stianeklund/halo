@@ -17531,7 +17531,8 @@
         },
         {
           "addr": "0xbe770",
-          "decl": "void player_rumble_set_effect(void);"
+          "decl": "void player_rumble_set_effect(int16_t function_index, int thread_datum, char init);",
+          "ported": true
         },
         {
           "addr": "0xbe7c0",

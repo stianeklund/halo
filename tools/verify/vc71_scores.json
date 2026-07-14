@@ -14904,6 +14904,10 @@
       "score": 100.0,
       "source": "src/halo/game/players.c"
     },
+    "player_rumble_set_effect": {
+      "score": 93.5,
+      "source": "src/halo/game/players.c"
+    },
     "player_set_respawn_timer": {
       "score": 86.5,
       "source": "src/halo/game/players.c"
