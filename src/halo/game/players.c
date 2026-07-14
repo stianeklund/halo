@@ -2500,3 +2500,35 @@ void FUN_000be710(int16_t function_index, int thread_handle)
   numeric_countdown_timer_restart();
   hs_return(thread_handle, 0);
 }
+
+/* FUN_000be730 @ 0x000be730
+ *
+ * HaloScript builtin implementation (breakable-surfaces toggle). Evaluates the
+ * script function via hs_macro_function_evaluate(function_index, thread_datum,
+ * init); on a non-NULL evaluation record it reads the record's first byte (the
+ * boolean "active" flag) and forwards it to breakable_surfaces_enable(char),
+ * then completes the calling script thread with hs_return(thread_datum, 0).
+ *
+ * cdecl frame (PUSH EBP; MOV EBP,ESP):
+ *   function_index  int16_t  [EBP+0x08]
+ *   thread_datum    int      [EBP+0x0c]  -> hs_return arg1
+ *   init            char     [EBP+0x10]
+ *
+ * hs_macro_function_evaluate returns an evaluation-record pointer in EAX. When
+ * non-NULL the original dereferences the record's first byte (a single-byte
+ * load, NOT a wider read) and passes it to breakable_surfaces_enable; then
+ * pushes 0 and thread_datum for hs_return (PUSH 0; PUSH thread_datum; CALL; ADD
+ * ESP,8). Ghidra modeled this void(void); the three cdecl stack params
+ * (in_stack_00000004/08/0c) are unmodeled there (kb decl was previously
+ * void(void)). */
+void FUN_000be730(int16_t function_index, int thread_datum, char init)
+{
+  char *record;
+
+  record =
+    (char *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    breakable_surfaces_enable(*record);
+    hs_return(thread_datum, 0);
+  }
+}
