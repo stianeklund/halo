@@ -892,6 +892,77 @@ int player_new(unsigned __int16 a1, int a2, unsigned __int16 a3, char *a4)
   return player_handle;
 }
 
+/* Grant a unit its starting equipment from a scenario starting-equipment
+ * definition block (scenario+0x348, element size 0x68).
+ *
+ * unit_handle      -- datum handle of the unit to equip (verified as a type-3
+ *                     unit object; must be alive: unit+0x1c8 != -1).
+ * equipment_index  -- index into the scenario starting_equipment tag block.
+ * reset_flag       -- when nonzero, first strip the unit's weapons and zero
+ *                     the powerup/grenade accumulators before applying, and
+ *                     mark the first attached weapon as the initial weapon.
+ *
+ * Each of the two weapon slots (equip_def+0x34 / +0x48 tag refs) that is set
+ * spawns a weapon object via FUN_000bac10 (record ptr in EDI: equip_def+0x28
+ * for slot 1, equip_def+0x3c for slot 2) parented to the unit, then attaches
+ * it via unit_enter_seat. On attach failure the weapon is deleted and an
+ * error is logged. Finally the definition's two float powerups (+0x24 -> unit
+ * +0x94, +0x20 -> unit+0x90) and two grenade-type counts (+0x50,+0x51 ->
+ * unit+0x2ce,+0x2cf) are accumulated into the unit. */
+void player_add_equipment(int unit_handle, int16_t equipment_index,
+                          char reset_flag)
+{
+  char *unit;
+  char *equip_def;
+  int weapon;
+  char *dst;
+  char *src;
+  int count;
+
+  if ((unit_handle != -1) && (equipment_index != -1) &&
+      (unit = (char *)object_try_and_get_and_verify_type(unit_handle, 3),
+       *(int *)(unit + 0x1c8) != -1)) {
+    equip_def = (char *)tag_block_get_element(
+      (char *)global_scenario_get() + 0x348, (int)equipment_index, 0x68);
+
+    if (reset_flag != '\0') {
+      unit_clear_weapons(unit_handle);
+      *(int *)(unit + 0x94) = 0;
+      *(int *)(unit + 0x90) = 0;
+      *(int16_t *)(unit + 0x2ce) = 0;
+    }
+
+    if ((*(int *)(equip_def + 0x34) != -1) &&
+        (weapon = FUN_000bac10(equip_def + 0x28, unit_handle), weapon != -1) &&
+        !unit_enter_seat(unit_handle, weapon,
+                         (int16_t)(uint16_t)(reset_flag != '\0'))) {
+      error(2, "Could not attach starting weapon to player");
+      object_delete(weapon);
+    }
+
+    if ((*(int *)(equip_def + 0x48) != -1) &&
+        (weapon = FUN_000bac10(equip_def + 0x3c, unit_handle), weapon != -1) &&
+        !unit_enter_seat(unit_handle, weapon, 0)) {
+      error(2, "Could not attach starting weapon to player");
+      object_delete(weapon);
+    }
+
+    *(float *)(unit + 0x94) =
+      *(float *)(equip_def + 0x24) + *(float *)(unit + 0x94);
+    *(float *)(unit + 0x90) =
+      *(float *)(equip_def + 0x20) + *(float *)(unit + 0x90);
+
+    dst = unit + 0x2ce;
+    src = equip_def + 0x50;
+    count = 2;
+    do {
+      *dst = (char)(*dst + *src);
+      src++;
+      dst++;
+    } while (--count != 0);
+  }
+}
+
 /* Build the aiming/facing update for a player's unit when riding in a
  * vehicle.
  *
@@ -1100,9 +1171,9 @@ void player_spawn(int player_handle)
     if (!game_engine_running()) {
       scen_starting_count = *(int *)((char *)global_scenario_get() + 0x348);
       if (scen_starting_count > 1 && *(int16_t *)(player2 + 0xaa) > 0) {
-        ((void (*)(int, char, char))0xbb410)(*(int *)(player2 + 0x34), 1, 1);
+        player_add_equipment(*(int *)(player2 + 0x34), 1, 1);
       } else if (scen_starting_count != 0) {
-        ((void (*)(int, char, char))0xbb410)(*(int *)(player2 + 0x34), 0, 1);
+        player_add_equipment(*(int *)(player2 + 0x34), 0, 1);
       }
     }
     /* Restore EDI (original player ptr) for the common tail. */

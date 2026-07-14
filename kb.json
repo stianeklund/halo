@@ -17283,7 +17283,9 @@
         },
         {
           "addr": "0xbb410",
-          "decl": "void player_add_equipment(void);"
+          "decl": "void player_add_equipment(int unit_handle, int16_t equipment_index, char reset_flag);",
+          "name": "player_add_equipment",
+          "ported": true
         },
         {
           "addr": "0xbb560",

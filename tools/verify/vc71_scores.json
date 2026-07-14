@@ -5144,8 +5144,12 @@
       "score": 97.0,
       "source": "src/halo/game/players.c"
     },
+    "FUN_000bb410": {
+      "score": 86.5,
+      "source": "src/halo/game/players.c"
+    },
     "FUN_000bbcb0": {
-      "score": 91.4,
+      "score": 92.0,
       "source": "src/halo/game/players.c"
     },
     "FUN_000bc410": {
@@ -14932,6 +14936,10 @@
       "score": 100.0,
       "source": "src/halo/math/geometry.c"
     },
+    "player_add_equipment": {
+      "score": 86.5,
+      "source": "src/halo/game/players.c"
+    },
     "player_apply_overshield_effect": {
       "score": 73.1,
       "source": "src/halo/game/players.c"
@@ -14969,7 +14977,7 @@
       "source": "src/halo/game/players.c"
     },
     "player_spawn": {
-      "score": 91.4,
+      "score": 92.0,
       "source": "src/halo/game/players.c"
     },
     "player_try_to_enter_vehicle": {
