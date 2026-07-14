@@ -208,6 +208,44 @@ void FUN_000be370(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xbe500 — HS script function handler: evaluate a macro function and, on a
+ * non-null result record, forward the record's first two dwords (+0x0, +0x4)
+ * and a FLOAT field (+0x8) to FUN_000c9770, then commit that callee's byte
+ * return to the calling HS thread. Same evaluator ABI (function_index,
+ * thread_datum, init) as the other hs_evaluate_* handlers.
+ *
+ * ABI (verified against delinked disassembly 0xbe500): cdecl, plain RET.
+ * thread_datum (arg 2, cached in ESI) flows to both the evaluate call (arg 2)
+ * and the hs_return call (arg 1). On a non-null result the call site loads the
+ * three fields and passes them to FUN_000c9770:
+ *   FLDS [result+0x8]; PUSH <dummy>; FSTP [ESP]   (float arg3, push-then-fstp)
+ *   PUSH [result+0x4] (int arg2); PUSH [result+0x0] (int arg1); CALL 0xc9770
+ * then MOV [EBP-4],AL; PUSH ECX(=zero-extended AL); PUSH ESI(=thread_datum);
+ * CALL hs_return. The combined ADD ESP,0x14 after the two trailing calls =
+ * FUN_000c9770's 3 args (0xc) + hs_return's 2 args (0x8). Ghidra's void(void)
+ * decl for 0xc9770 dropped all three args and its AL return, misled by that
+ * combined cleanup; kb.json decl for 0xc9770 corrected to
+ * unsigned char(int,int,float). The +0x8 field is a FLOAT read via FLDS and
+ * passed as a float argument (hazard #2 push-then-fstp), NOT the pushed dummy.
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560 = hs_macro_function_evaluate(int16 fn_index, int thread_datum,
+ *             char init) -> int* (result record, NULL on failure)
+ *   0xc9770 = FUN_000c9770(int, int, float) -> unsigned char (record consumer)
+ *   0xcbf80 = hs_return(int thread_handle, int value) */
+void FUN_000be500(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+  unsigned char value;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    value = FUN_000c9770(result[0], result[1], *(float *)((char *)result + 8));
+    hs_return(thread_datum, value);
+  }
+}
+
 /* 0xc0c30 — HS script function handler: apply an encounter state change.
  * Evaluates the macro arguments; on success the result block holds an
  * encounter handle at +0x0 (int) and a state value at +0x4 (int16). Calls
