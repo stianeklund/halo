@@ -11176,7 +11176,7 @@
         },
         {
           "addr": "0xc95f0",
-          "decl": "void FUN_000c95f0(void);"
+          "decl": "int FUN_000c95f0(void);"
         },
         {
           "addr": "0xc9650",
@@ -17398,7 +17398,9 @@
         },
         {
           "addr": "0xbdf80",
-          "decl": "void FUN_000bdf80(void);"
+          "decl": "void FUN_000bdf80(int16_t function_index, int thread_handle);",
+          "ported": true,
+          "source_path": "src/halo/game/players.c"
         },
         {
           "addr": "0xbdfa0",

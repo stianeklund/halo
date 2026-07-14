@@ -2506,6 +2506,28 @@ void players_update_after_game(void)
     profile_exit_private((void *)0x2f0e88);
 }
 
+/* FUN_000bdf80 @ 0x000bdf80
+ *
+ * HaloScript builtin implementation. Calls FUN_000c95f0() (a no-arg helper
+ * that returns a value in EAX) and completes the calling script thread with
+ * hs_return(thread_handle, <result>).
+ *
+ * cdecl frame (PUSH EBP; MOV EBP,ESP):
+ *   function_index  int16_t  [EBP+0x08]  (unused -- never loaded)
+ *   thread_handle   int      [EBP+0x0c]  -> hs_return arg1
+ *
+ * FUN_000c95f0() takes no args; its EAX return is pushed directly as
+ * hs_return's value (CALL c95f0; PUSH EAX). The second stack param is then
+ * loaded (MOV EAX,[EBP+0xc]) and pushed as hs_return's thread_handle
+ * (PUSH EAX; CALL hs_return; ADD ESP,8 cleans the two cdecl args). Ghidra
+ * modeled both this function and FUN_000c95f0 as void(void); the EAX return
+ * consumed here and the [EBP+0xc] read of the second cdecl param are
+ * unmodeled there. */
+void FUN_000bdf80(int16_t function_index, int thread_handle)
+{
+  hs_return(thread_handle, FUN_000c95f0());
+}
+
 /* player_rumble_initialize @ 0x000be400
  *
  * HaloScript function-evaluator wrapper. Evaluates the script function via
