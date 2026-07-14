@@ -2456,3 +2456,25 @@ void FUN_000be6a0(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, value);
   }
 }
+
+/* FUN_000be6f0 @ 0x000be6f0
+ *
+ * HaloScript builtin implementation. Unlike the surrounding function-evaluator
+ * wrappers this does not call hs_macro_function_evaluate: it stops the numeric
+ * countdown timer directly, then completes the calling script thread with
+ * hs_return(thread_handle, 0).
+ *
+ * cdecl frame (PUSH EBP; MOV EBP,ESP):
+ *   function_index  int16_t  [EBP+0x08]  (unused -- never loaded)
+ *   thread_handle   int      [EBP+0x0c]  -> hs_return arg1
+ *
+ * numeric_countdown_timer_stop() takes no args. The second stack param is
+ * loaded (MOV EAX,[EBP+0xc]) and pushed as hs_return's thread_handle; the
+ * constant 0 is pushed as hs_return's value (PUSH 0; PUSH EAX; CALL; ADD
+ * ESP,8). Ghidra modeled this void(void); the [EBP+0xc] read of the second
+ * cdecl param is unmodeled there (kb decl was previously void(void)). */
+void FUN_000be6f0(int16_t function_index, int thread_handle)
+{
+  numeric_countdown_timer_stop();
+  hs_return(thread_handle, 0);
+}
