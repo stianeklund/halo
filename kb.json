@@ -17261,7 +17261,8 @@
         },
         {
           "addr": "0xbb1f0",
-          "decl": "void FUN_000bb1f0(void);"
+          "decl": "void FUN_000bb1f0(int player_index@<eax>, int16_t param2);",
+          "ported": true
         },
         {
           "addr": "0xbb220",

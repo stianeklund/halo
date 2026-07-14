@@ -800,6 +800,24 @@ void FUN_000bb1c0(int player_index /* @<eax> */, int16_t param2)
   }
 }
 
+/* Sibling of FUN_000bb1c0 (0xbb1c0); another powerup branch of
+ * player_set_respawn_timer.  Looks up the player datum, fetches its unit
+ * object handle (player+0x34) and verifies it is a unit (object type mask 3,
+ * biped/vehicle family).  object_get_and_verify_type is called
+ * unconditionally, before the branch, matching the original.  When param2 is
+ * 0, clears bit 0x10 of the unit flags dword at +0x1b4. */
+void FUN_000bb1f0(int player_index /* @<eax> */, int16_t param2)
+{
+  char *player;
+  char *unit_obj;
+
+  player = (char *)datum_get(player_data, player_index);
+  unit_obj = (char *)object_get_and_verify_type(*(int *)(player + 0x34), 3);
+  if (param2 == 0) {
+    *(unsigned int *)(unit_obj + 0x1b4) &= 0xffffffef;
+  }
+}
+
 /* Allocate and initialise a new player datum.
  *
  * local_player_index  (a1) -- which local player slot to assign; NONE (-1) is
