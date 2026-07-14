@@ -5120,6 +5120,10 @@
       "score": 93.9,
       "source": "src/halo/game/players.c"
     },
+    "FUN_000bac10": {
+      "score": 93.0,
+      "source": "src/halo/game/players.c"
+    },
     "FUN_000baf90": {
       "score": 73.1,
       "source": "src/halo/game/players.c"

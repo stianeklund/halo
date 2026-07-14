@@ -361,6 +361,43 @@ void FUN_000ba890(int player_index, int param_2)
   }
 }
 
+/* Spawn an object from a small placement record and attach it to a parent.
+ *
+ * record         (EDI) -- pointer to a record whose tag_index lives at +0xC.
+ *                         Two 16-bit values at +0x10 and +0x12 are copied into
+ *                         the freshly created object (see below).
+ * parent_handle        -- object handle passed through to
+ *                         object_placement_data_new as the placement parent.
+ *
+ * If record->tag_index (+0xC) is NONE (-1), returns NONE without spawning.
+ * Otherwise builds an object_placement (0x88 bytes) for that tag, creates the
+ * object, and -- when creation succeeds -- verifies it against type_mask 4 and
+ * copies record+0x12 -> object+0x25E and record+0x10 -> object+0x260 (note the
+ * crossed source offsets; matches the original store order). Returns the new
+ * object handle, or NONE on early-out / failed creation. Structurally faithful
+ * lift of FUN_000bac10; EAX return is materialized as -1 at entry. */
+int FUN_000bac10(void *record, int parent_handle)
+{
+  int object_index;
+  void *object;
+  char placement[0x88];
+
+  object_index = -1;
+  if (*(int *)((char *)record + 0xc) != -1) {
+    object_placement_data_new(placement, *(int *)((char *)record + 0xc),
+                              parent_handle);
+    object_index = object_new(placement);
+    if (object_index != -1) {
+      object = object_get_and_verify_type(object_index, 4);
+      *(uint16_t *)((char *)object + 0x25e) =
+        *(uint16_t *)((char *)record + 0x12);
+      *(uint16_t *)((char *)object + 0x260) =
+        *(uint16_t *)((char *)record + 0x10);
+    }
+  }
+  return object_index;
+}
+
 /* Update a combined PVS (potentially-visible-set) bit vector from the current
  * player set (or, in editor mode, from the debug observer camera).
  *
