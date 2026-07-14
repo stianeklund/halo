@@ -11232,7 +11232,7 @@
         },
         {
           "addr": "0xc9bd0",
-          "decl": "void FUN_000c9bd0(void);"
+          "decl": "int FUN_000c9bd0(int value, int type);"
         },
         {
           "addr": "0xc9c10",
@@ -17460,10 +17460,6 @@
           "source_path": "src/halo/hs/hs.c"
         },
         {
-          "addr": "0xbe370",
-          "decl": "void FUN_000be370(void);"
-        },
-        {
           "addr": "0xbe3b0",
           "decl": "void FUN_000be3b0(void);"
         },
@@ -18102,6 +18098,11 @@
         {
           "addr": "0xc0b70",
           "decl": "void FUN_000c0b70(void);"
+        },
+        {
+          "addr": "0xbe370",
+          "decl": "void FUN_000be370(int16_t function_index, int thread_datum, char init);",
+          "ported": true
         }
       ],
       "name": "players.obj",

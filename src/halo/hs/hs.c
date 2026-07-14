@@ -171,6 +171,43 @@ void FUN_000be330(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xbe370 — HS script function handler: evaluate a macro function and, on a
+ * non-null result record, forward the record's first dword (+0x0) and a
+ * narrow unsigned int16 (+0x4) to FUN_000c9bd0, then commit that callee's
+ * return value to the calling HS thread. Unlike the handlers that always
+ * commit 0, this one reads FUN_000c9bd0's EAX result and passes it to
+ * hs_return. Same evaluator ABI (function_index, thread_datum, init) as the
+ * other hs_evaluate_* handlers.
+ *
+ * ABI (verified against disassembly 0xbe370): cdecl, plain RET. thread_datum
+ * (arg 2, cached in ESI) flows to both the evaluate call (arg 2) and the
+ * hs_return call (arg 1). On a non-null result the call site does
+ * MOVZX EDX,word[result+0x4] (UNSIGNED int16 -> int) and MOV EAX,dword[result]
+ * (full int), then PUSH EDX; PUSH EAX; CALL 0xc9bd0 -> int in EAX. That EAX is
+ * the value arg to hs_return. The combined ADD ESP,0x10 after the two trailing
+ * calls (0xc9bd0's 2 + hs_return's 2) confirms the arg counts. Ghidra's
+ * void(void) decl for 0xc9bd0 dropped both args; kb.json decl corrected to
+ * int(int,int) accordingly. result is int*, so the +0x4 read is at
+ * (char *)result + 4, a narrow unsigned int16 (MOVZX).
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560 = hs_macro_function_evaluate(int16 fn_index, int thread_datum,
+ *             char init) -> int* (result record, NULL on failure)
+ *   0xc9bd0 = FUN_000c9bd0(int value, int type) -> int (coerced value)
+ *   0xcbf80 = hs_return(int thread_handle, int value) */
+void FUN_000be370(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+  int value;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    value = FUN_000c9bd0(result[0], *(unsigned short *)((char *)result + 4));
+    hs_return(thread_datum, value);
+  }
+}
+
 /* 0xc0c30 — HS script function handler: apply an encounter state change.
  * Evaluates the macro arguments; on success the result block holds an
  * encounter handle at +0x0 (int) and a state value at +0x4 (int16). Calls
