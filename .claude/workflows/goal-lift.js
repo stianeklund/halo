@@ -60,6 +60,27 @@ const OBJECTS = (() => {
 })()
 const CRITERIA = (args && args.criteria) ? String(args.criteria).trim() : null
 
+// --addrs: hard pin-list of target addresses (enforced in code after selection,
+// like OBJECTS). Solves "low-scoring fresh function never surfaces in top-N".
+const ADDRS = (() => {
+  const raw = args && args.addrs
+  if (!raw) return null
+  const arr = Array.isArray(raw) ? raw : String(raw).split(',')
+  const norm = arr.map(s => parseInt(String(s).trim().replace(/^0x/i, ''), 16))
+    .filter(Number.isFinite)
+  return norm.length ? new Set(norm) : null
+})()
+// --liftRegArgs: lift @<reg>-defined/reg-arg targets instead of pre-screen
+// dropping them. The lift phase already handles @reg (CALLEE PREP step 2 +
+// @<reg> step 4); the VC71 comparator models the @reg-DEFINED prologue
+// (lift-learnings §32), so scores are honest. Proven 2026-07-14 (players.obj
+// 11/13) via a hand-edited copy; this makes it a first-class flag.
+const LIFT_REG_ARGS = !!(args && args.liftRegArgs)
+// --minCommitScore: floor for the mechanical NEEDS_RUNTIME+equiv acceptance
+// in reviewThenCommit (default 85, the historical lane). Set 88 to enforce
+// "no sub-88 equiv-backed commits" policy.
+const MIN_COMMIT = Number((args && args.minCommitScore) || 85)
+
 // ── Schemas ───────────────────────────────────────────────────────────────────
 
 // Facts come straight from llm_auto_lift.py select --json (authoritative). The
@@ -321,8 +342,11 @@ ${CACHE_CONTEXT ? `3a. ENRICH (run BEFORE decompile so the enrichment hook can i
      timeout 120 rtk python3 tools/retrieval/query.py --file /tmp/${t.addr.replace('0x','')}.decomp.c --obj-name ${t.obj} --min-vc71 85 --prompt 2>&1 || echo "[retrieval-timeout]"
 
 4. PRE-SCREEN (return immediately with pre_screen=<reason> if any match):
-   - Decompile has unaff_, in_EAX, in_ECX               → "skip_reg_args"
-   - Any callee has @<reg> and is NOT in kb.json          → "skip_reg_args"
+${LIFT_REG_ARGS ? `   - (reg-arg lifting ENABLED for this run: do NOT skip on unaff_/in_EAX/in_ECX
+     or @<reg> callees. Instead, record in disasm_notes the EXACT register each
+     implicit input arrives in — verified against the disassembly prologue, not
+     just Ghidra's decompile — plus each @<reg> callee's register contract.)` : `   - Decompile has unaff_, in_EAX, in_ECX               → "skip_reg_args"
+   - Any callee has @<reg> and is NOT in kb.json          → "skip_reg_args"`}
    - Body is 1-3 lines wrapping one FUN_ unchanged        → "skip_trivial"
    - Contains __SEH_prolog / __SEH_epilog                 → "skip_seh"
    - Calls xboxkrnl NT/kernel imports (Nt*/Ob*/Ke*/Rtl*/Ex*/Ps*/Io*/Hal*)
@@ -713,7 +737,7 @@ async function reviewThenCommit(brief, score, srcFile, path, phaseTitle, preEqui
     // equiv 100/100 seeds and was re-rejected on the same structural grounds).
     // NEEDS_RUNTIME means "structure is a near-miss, behavior unproven"; a
     // passing equivalence run at moderate+ confidence IS that proof.
-    if (eq && eq.passes && score >= 85 && (eq.confidence === 'high' || eq.confidence === 'moderate')) {
+    if (eq && eq.passes && score >= MIN_COMMIT && (eq.confidence === 'high' || eq.confidence === 'moderate')) {
       review = { verdict: 'AUTO_ACCEPT', rationale: `mechanical: NEEDS_RUNTIME + equiv passed (confidence=${eq.confidence}, coverage=${eq.coverage != null ? eq.coverage : '?'}%)` }
     } else if (eq && eq.passes) {
       // Weak-confidence pass: not enough to commit, too good to revert — the
@@ -964,6 +988,18 @@ if (OBJECTS) {
     return { committed: 0, goal: GOAL, reached_goal: false, skipped: 0, reverted: 0, reason: 'empty_queue_after_filter' }
   }
 }
+if (ADDRS) {
+  const before = targets.length
+  targets = targets.filter(t => ADDRS.has(parseInt((t.addr || '0').replace(/^0x/i, ''), 16)))
+  log(`Address pin-list kept ${targets.length}/${before} candidates (${ADDRS.size} pinned)`)
+  const found = new Set(targets.map(t => parseInt((t.addr || '0').replace(/^0x/i, ''), 16)))
+  const missing = [...ADDRS].filter(a => !found.has(a))
+  if (missing.length) log(`⚠ ${missing.length} pinned addr(s) not surfaced by the selector: ${missing.map(a => '0x' + a.toString(16)).join(', ')} — raise selector --limit or check lane/score filters`)
+  if (targets.length === 0) {
+    log('No viable targets in queue after addr pin-list')
+    return { committed: 0, goal: GOAL, reached_goal: false, skipped: 0, reverted: 0, reason: 'empty_queue_after_filter' }
+  }
+}
 log(`Selected ${targets.length} candidates across ${new Set(targets.map(t => t.obj)).size} objects`)
 
 // ── Code-side pre-screen — drop targets the SELECTOR already proved unsuitable,
@@ -973,9 +1009,12 @@ const CRT_LO = 0x1d0000, CRT_HI = 0x1de000
 const codeSkips = []
 targets = targets.filter(t => {
   const a = parseInt((t.addr || '0').replace(/^0x/i, ''), 16)
-  if (t.has_reg_args === true) { codeSkips.push({ ...t, status: 'skipped', reason: 'skip_reg_args (selector: @reg-defined prologue → sub-bar)' }); return false }
+  if (t.has_reg_args === true && !LIFT_REG_ARGS) { codeSkips.push({ ...t, status: 'skipped', reason: 'skip_reg_args (selector: @reg-defined prologue → sub-bar)' }); return false }
   if (Number.isFinite(a) && a >= CRT_LO && a < CRT_HI) { codeSkips.push({ ...t, status: 'skipped', reason: 'skip_nt_import (CRT/SEH region 0x1d0000-0x1de000)' }); return false }
-  if (t.lane && t.lane !== 'auto-lift' && t.lane !== 'cache-context') { codeSkips.push({ ...t, status: 'skipped', reason: `lane=${t.lane} (not auto-liftable)` }); return false }
+  // Pinned targets bypass the lane gate: an explicit --addrs entry is a
+  // deliberate operator choice, often of a manual-lift/cache-context lane fn.
+  const pinned = ADDRS && ADDRS.has(a)
+  if (!pinned && t.lane && t.lane !== 'auto-lift' && t.lane !== 'cache-context') { codeSkips.push({ ...t, status: 'skipped', reason: `lane=${t.lane} (not auto-liftable)` }); return false }
   return true
 })
 if (codeSkips.length) log(`Code pre-screen dropped ${codeSkips.length} before research (${codeSkips.filter(s => s.reason.startsWith('skip_reg_args')).length} reg-args, ${codeSkips.filter(s => s.reason.startsWith('skip_nt_import')).length} CRT/SEH, ${codeSkips.filter(s => s.reason.startsWith('lane=')).length} lane)`)
