@@ -4311,12 +4311,24 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xbb180": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xbb2f0": {
       "kind": "function",
       "status": "ported",
       "name": "player_new"
     },
+    "0xbb410": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xbb560": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbbbe0": {
       "kind": "function",
       "status": "ported"
     },
@@ -4346,6 +4358,10 @@
       "kind": "function",
       "status": "ported",
       "name": "players_respawn_coop"
+    },
+    "0xbc920": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xbcd40": {
       "kind": "function",
@@ -4390,6 +4406,14 @@
       "comments": {
         "summary": "Post-tick player update: ticks double-speed countdown, handles telefrag effect/kill, scans BSP-switch trigger volumes, advances BSP nibble counter, SP all-dead restart. Re-ported after pre-audit verified all 9 direct-address cast calls (0xa2ed0, 0xa2930, 0x1a7f80, 0xbc4b0 EBX-reg, 0x13d7f0, 0x18ef00, 0x100500, 0xbdb00 EBX-reg, 0x100380). Split-screen telefrag verified in xemu."
       }
+    },
+    "0xbe400": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbe770": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xc0e50": {
       "kind": "function",
@@ -5760,6 +5784,10 @@
         "main_halt_entry at 0x102c40 is __noreturn infinite loop calling subsystem ticks (input, rendering, presentation)."
       ]
     },
+    "0xe8db0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xe9080": {
       "kind": "function",
       "status": "ported",
@@ -5796,11 +5824,35 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xf5290": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf53a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf5500": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf63f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf6740": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xf67b0": {
       "kind": "function",
       "status": "ported"
     },
     "0xf67f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf6820": {
       "kind": "function",
       "status": "ported"
     },
@@ -5825,6 +5877,14 @@
       "status": "ported"
     },
     "0xf6b80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf6c40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf6d00": {
       "kind": "function",
       "status": "ported"
     },
@@ -6733,6 +6793,10 @@
       "status": "ported"
     },
     "0x10fed0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1130d0": {
       "kind": "function",
       "status": "ported"
     },
@@ -7792,6 +7856,27 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x134350": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Distribution mode at glowtag+0x26 (signed word): 0=fixed direction defaulting to +Z unit at particle+0x38..0x40, 1=per-variant table at glow_widget+0x5c+variant*0x6c (variant=particle+2 word), 2=random spherical normalized."
+      ],
+      "uncertain": [
+        "Float global 0x2546a4 (velocity magnitude scale) has no named constant; kept as raw *(float*)0x2546a4 matching units.c precedent, and particle+0x54 flag bit 2 semantics are unconfirmed."
+      ]
+    },
+    "0x1345b0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "GLOW_MARKER_MAX=5 inferred from the +0x22a ordering table capacity (0x234-0x22a = 10 bytes = 5 int16 slots) and the object_get_markers_by_string_id max_count arg.",
+        "g_glow_particle_data datum pool pointer lives at VA 0x5a90cc, extracted from the pristine XBE datum_delete call site operand."
+      ],
+      "uncertain": [
+        "VC71 76.4 percent is a structural cap: @eax reg-arg prologue plus VC71 register allocation putting the particle/tag pointer in edi where the original used esi, and LCS misaligning the two structurally identical A/B lerp blocks; equivalence 140/140 with 0 divergences confirms behavioral fidelity."
+      ]
+    },
     "0x134ae0": {
       "kind": "function",
       "status": "ported",
@@ -8416,6 +8501,10 @@
       ]
     },
     "0x1443f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1444f0": {
       "kind": "function",
       "status": "ported"
     },
