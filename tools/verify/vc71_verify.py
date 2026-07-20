@@ -612,6 +612,50 @@ def _build_rename_map(compiled_keys: set[str], matched: set[str]) -> dict[str, s
     return rename_map
 
 
+_regdef_map_cache: dict[str, list[tuple[int, str]]] | None = None
+
+
+def _regdef_params_for(fn: str, co) -> list[tuple[int, str]] | None:
+    """(param_idx, reg) pairs for fn's OWN @<reg> params from kb.json, else None.
+
+    Used to model the @reg-DEFINED prologue ceiling: cl.exe cannot express
+    @<eax>/@<ebx>/@<esi>/@<edi>/@<ax> parameter conventions, so the candidate
+    emits phantom-slot loads the reference never has.  compare_obj strips
+    those (candidate-only, count-aware) when given these pairs.  @<ecx>-only
+    functions are already compiled as __fastcall; for them the strip is a
+    harmless no-op (no phantom loads exist).  Keyed by both the declared name
+    and the FUN_<addr> alias so it resolves regardless of which symbol the
+    reference carries.
+    """
+    global _regdef_map_cache
+    if _regdef_map_cache is None:
+        regdef_map: dict[str, list[tuple[int, str]]] = {}
+        try:
+            kb = _load_kb()
+            for obj in kb.get("objects", []):
+                for entry in obj.get("functions", []):
+                    decl = entry.get("decl", "")
+                    if "@<" not in decl:
+                        continue
+                    m = re.search(r"\b(\w+)\s*\(", decl)
+                    if not m:
+                        continue
+                    regs = co.parse_regdef_from_decl(decl)
+                    if not regs:
+                        continue
+                    regdef_map[m.group(1)] = regs
+                    addr = entry.get("addr", "")
+                    if addr:
+                        try:
+                            regdef_map[f"FUN_{int(addr, 16):08x}"] = regs
+                        except ValueError:
+                            pass
+        except Exception:
+            pass
+        _regdef_map_cache = regdef_map
+    return _regdef_map_cache.get(fn.lstrip("_"))
+
+
 def run_compare_cached(
     compiled: Path,
     reference: Path,
@@ -649,6 +693,7 @@ def run_compare_cached(
     loadw_only = False
     imm_only = False
     reg_normalize = False
+    regdef_override_str = None
     i = 0
     while i < len(extra_args):
         a = extra_args[i]
@@ -666,6 +711,8 @@ def run_compare_cached(
             imm_only = True; i += 1
         elif a in ("--reg-normalize", "-r"):
             reg_normalize = True; i += 1
+        elif a == "--regdef-params" and i + 1 < len(extra_args):
+            regdef_override_str = extra_args[i + 1]; i += 2
         else:
             i += 1
 
@@ -820,7 +867,18 @@ def run_compare_cached(
     hits = 0
     misses = 0
 
+    # @reg-DEFINED prologue modeling: explicit --regdef-params overrides the
+    # kb.json-derived per-function lookup (see _regdef_params_for).
+    regdef_override = None
+    if regdef_override_str:
+        regdef_override = []
+        for tok in regdef_override_str.split(","):
+            idx, _, reg = tok.partition(":")
+            regdef_override.append((int(idx.strip()), reg.strip().lower()))
+
     for fn in sorted(matched):
+        regdef = (regdef_override if regdef_override is not None
+                  else _regdef_params_for(fn, co))
         cached_result = None
         # Overridden functions were scored against a per-function chunk, not the
         # whole-object `reference` the cache key is derived from — bypass cache.
@@ -841,8 +899,18 @@ def run_compare_cached(
             pct, diffs, fpu_warnings, loadw_warnings, imm_warnings = co.compare_functions(
                 compiled_funcs[fn], reference_funcs[fn],
                 reg_normalize=reg_normalize,
+                regdef_params=regdef,
             )
             cache_tag = ""
+            if regdef and not quiet:
+                n_stripped = co.strip_regparam_loads(
+                    compiled_funcs[fn], reference_funcs[fn], regdef)[1]
+                if n_stripped:
+                    raw_pct = co.compare_functions(
+                        compiled_funcs[fn], reference_funcs[fn],
+                        reg_normalize=reg_normalize)[0]
+                    print(f"  [REGPARM] {fn}: stripped {n_stripped} @<reg> "
+                          f"phantom load(s); raw {raw_pct:.1f}% -> modeled {pct:.1f}%")
             # Store result; always save diff_lines so future --show-diffs works.
             # Skip overridden functions — their score is against a per-function
             # chunk, not the whole-object reference the cache key encodes.
@@ -861,7 +929,8 @@ def run_compare_cached(
         reg_tag = ""
         if reg_normalize:
             mnem_pct = co.compare_functions(
-                compiled_funcs[fn], reference_funcs[fn], reg_normalize=False)[0]
+                compiled_funcs[fn], reference_funcs[fn], reg_normalize=False,
+                regdef_params=regdef)[0]
             reg_tag = f" [struct:{mnem_pct:.1f}%]"
 
         only_mode = fpu_only or loadw_only or imm_only
@@ -962,6 +1031,10 @@ def main():
     ap.add_argument("--regcall-elide", action="store_true",
                     help="Cast register-arg callee calls so VC71 generates matching "
                          "call-site sequences (mov+call instead of push+call+add)")
+    ap.add_argument("--regdef-params", default=None,
+                    help="Override @<reg>-DEFINED param modeling for the compared "
+                         "function(s): 'idx:reg[,idx:reg]' e.g. '0:eax'. By default "
+                         "this is derived per function from kb.json @<reg> annotations.")
     args = ap.parse_args()
 
     units = load_units()
@@ -1103,6 +1176,8 @@ def main():
         extra += ["--imm-only"]
     if args.reg_normalize:
         extra += ["--reg-normalize"]
+    if args.regdef_params:
+        extra += ["--regdef-params", args.regdef_params]
     extra += ["--threshold", str(args.threshold)]
 
     rc = run_compare_cached(

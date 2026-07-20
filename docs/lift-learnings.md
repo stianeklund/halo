@@ -1253,3 +1253,17 @@ Original call-site args (from the pristine body): case 0 pushes 0 (disable); cas
 - When exit paths *merge* (`jne` past a `mov eax,reg`), the decompiler often picks the wrong side. Trace EAX's last writer per exit edge in the disassembly before writing `return`.
 - The XBE routes subsystem APIs through 5-byte trampolines (`push ebp; mov ebp,esp; pop ebp; jmp impl` — the rasterizer widget family 0x17c970..0x17c9f0). Callers live on the *thunk* side, so the thunk decl carries the real signature while Ghidra shows the *impl* as `void f(void)` (no direct callers). Before lifting any function reached via such a thunk, diff both decls and trust the caller side.
 - Bisect/boot smoke tests miss this class: the code path (dynamic structure triangles / sprite groups) only runs in specific scenes, hours after a clean boot verification.
+
+## 32. @reg-DEFINED Prologue Ceiling (Phantom-Slot Loads) — Modeled by the Comparator
+
+**Automation:** FULL — `compare_obj.py::strip_regparam_loads` + `parse_regdef_from_decl`, applied automatically by `vc71_verify.py` for every function whose own kb.json decl carries `@<reg>` params (`_regdef_params_for`); proven by `compare_obj.py --self-test` cases RP1–RP9. Output tags the modeling: `[REGPARM] <fn>: stripped N @<reg> phantom load(s); raw X% -> modeled Y%`.
+
+**What happens:** cl.exe cannot express a function whose own params arrive in `@<eax>/@<ebx>/@<esi>/@<edi>/@<ax>` (only `@<ecx>[,@<edx>]`-only maps onto `__fastcall`, which `compile_vc71` already rewrites). The candidate compiles those params as stack args and must emit mov-family loads from the phantom caller-arg slot `disp(%ebp)`, `disp = 8 + 4*param_idx` — instructions the true reg-convention reference can never have. Each is an unmatched mnemonic in the LCS, capping a byte-faithful lift below the bar (the DEFINING-function analogue of the reg-arg caller ceiling; see §18 for the runtime mirror of the same `+4·N_regparams` slot arithmetic).
+
+**The model (safety invariants):**
+1. Candidate-only, and per `(disp, family)` at most `cand_count − ref_count` occurrences are stripped — a slot the reference also reads is never touched (RP6).
+2. Only loads FROM the exact phantom slot INTO the annotated register's own family are eligible: wrong-slot reads (RP7), loads into a different register (RP4b — their `mov` mnemonic already aligns with the reference's reg-to-reg move), and SIB/indexed sources (RP8) are never stripped.
+3. A lift that never loads the param has nothing to strip — the score cannot be inflated; genuinely wrong bodies still fail (RP5); reg-alloc cascade (extra spills, differing `sub esp,N`) survives untouched (RP2).
+4. Monotonic: reported = `max(raw, stripped)` — in mnemonic space a phantom `movl` may have aligned against an unrelated reference `movl`, so stripping can shift alignment down a fraction; the model removes a known convention penalty and never introduces one (RP9).
+
+**Calibration (2026-07-20):** the phantom load is worth ~0.2–1.6pp on real functions (unit_verify_vectors 95.1→96.1, object_postprocess_node_matrices 95.2→96.8, FUN_0013e1a0 89.3→90.9). A @reg function stuck at 60–75% is NOT capped by the prologue artifact — that gap is register-allocation cascade, a stale/bloated reference, or a genuinely divergent body. Check the delinked ref quality first, then permute; do not blame the convention.

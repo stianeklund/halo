@@ -484,6 +484,111 @@ def canonicalize_registers(insns: list[str]) -> list[str]:
     return result
 
 
+# --- @reg-defined parameter modeling (phantom-slot load stripping) ---
+#
+# kb.json annotates some functions' params as register-passed (@<eax>, @<ebx>,
+# @<esi>, @<edi>, @<ax>, ...) -- an original-MSVC convention cl.exe cannot
+# express in C (@<ecx>/@<edx>-only functions are handled separately by the
+# __fastcall rewrite in vc71_verify).  Our candidate compiles those params as
+# stack args, so it must emit mov-family loads from the phantom caller-arg
+# slot disp(%ebp), disp = 8 + 4*param_idx, that the true reg-convention
+# reference can never have.  Those loads are pure calling-convention
+# artifacts; stripping them (candidate-only, count-aware, family-constrained)
+# models what cl.exe would emit if it could take the param in the register,
+# WITHOUT masking real divergence:
+#   - only loads FROM the exact phantom slot with dest IN the annotated
+#     register's family are eligible (a load into a different register keeps
+#     its matching `mov` mnemonic against the reference's reg-to-reg move);
+#   - per (disp, family), at most cand_count - ref_count occurrences are
+#     removed (a slot the reference also reads is never stripped);
+#   - wrong-slot reads, extra spills, frame-size deltas, and genuinely wrong
+#     bodies survive untouched -- removing only candidate-surplus tokens can
+#     never lower the LCS match and can never fabricate one.
+# See docs/lift-learnings.md "@reg-defined prologue ceiling". Self-tests RP1-RP8.
+
+_MOV_LOAD_MNEMONICS = frozenset([
+    'mov', 'movl', 'movw', 'movb',
+    'movswl', 'movzwl', 'movsbl', 'movzbl', 'movsbw', 'movzbw',
+])
+
+_PHANTOM_LOAD_RE = re.compile(
+    r'^(?:0x([0-9a-f]+)|(\d+))\(%ebp\),\s*%([a-z]{2,3})$')
+
+
+def parse_regdef_from_decl(decl: str) -> list[tuple[int, str]]:
+    """Parse a kb.json decl's @<reg> annotations into (param_idx, reg) pairs.
+
+    Mirrors vc71_verify._get_regarg_callees' parsing so both sides agree on
+    param indexing (0-based, comma-split).
+    """
+    try:
+        params_str = decl[decl.index("(") + 1:decl.rindex(")")]
+    except ValueError:
+        return []
+    regs = []
+    for i, p in enumerate(params_str.split(",")):
+        m = re.search(r"@<(\w+)>", p)
+        if m:
+            regs.append((i, m.group(1).lower()))
+    return regs
+
+
+def _phantom_load_key(insn: str, slot_map: dict):
+    """(disp, family) if insn is a mov-family load from a phantom reg-param
+    slot into that param's own register family; else None."""
+    parts = insn.strip().split(None, 1)
+    if len(parts) != 2 or parts[0].lower() not in _MOV_LOAD_MNEMONICS:
+        return None
+    m = _PHANTOM_LOAD_RE.match(parts[1].strip())
+    if not m:
+        return None
+    disp = int(m.group(1), 16) if m.group(1) else int(m.group(2))
+    family = slot_map.get(disp)
+    if family is None:
+        return None
+    if _REG_TO_FAMILY.get(m.group(3).lower()) != family:
+        return None
+    return (disp, family)
+
+
+def strip_regparam_loads(insns: list[str], reference: list[str],
+                         regdef_params: list[tuple[int, str]] | None
+                         ) -> tuple[list[str], int]:
+    """Remove candidate-only phantom reg-param slot loads (see module comment).
+
+    Returns (stripped_insns, n_stripped).  Count-aware: per (disp, family),
+    strips at most candidate_count - reference_count occurrences, so a slot
+    the reference also loads is never touched.
+    """
+    if not regdef_params:
+        return insns, 0
+    slot_map = {}
+    for idx, reg in regdef_params:
+        family = _REG_TO_FAMILY.get(reg.lower())
+        if family is not None:
+            slot_map[8 + 4 * idx] = family
+    if not slot_map:
+        return insns, 0
+
+    from collections import Counter
+    ref_counts = Counter(
+        k for k in (_phantom_load_key(i, slot_map) for i in reference)
+        if k is not None)
+    cand_keys = [_phantom_load_key(i, slot_map) for i in insns]
+    excess = Counter(k for k in cand_keys if k is not None)
+    excess.subtract(ref_counts)
+
+    out = []
+    n_stripped = 0
+    for insn, key in zip(insns, cand_keys):
+        if key is not None and excess[key] > 0:
+            excess[key] -= 1
+            n_stripped += 1
+            continue
+        out.append(insn)
+    return out, n_stripped
+
+
 def normalize_instruction(insn: str) -> str:
     """Full instruction normalization: mnemonic + operand shape with canonical registers."""
     # Strip disassembler label annotations: <symbol+0xNN> or <LAB_xxx>
@@ -830,7 +935,9 @@ def compare_immediates(compiled: list[str], reference: list[str]) -> list[str]:
 
 
 def compare_functions(compiled: list[str], reference: list[str],
-                      reg_normalize: bool = False) -> tuple[float, list[str], list[str], list[str], list[str]]:
+                      reg_normalize: bool = False,
+                      regdef_params: list[tuple[int, str]] | None = None
+                      ) -> tuple[float, list[str], list[str], list[str], list[str]]:
     """Compare two functions.
     Returns (match_pct, diff_summary, fpu_warnings, loadw_warnings, imm_warnings).
 
@@ -838,7 +945,21 @@ def compare_functions(compiled: list[str], reference: list[str],
     canonicalization for LCS instead of mnemonic-only. This catches operand-level
     bugs (argument order swaps, wrong memory sources) while being tolerant of
     benign register allocation differences between compilers.
+
+    regdef_params: optional [(param_idx, reg)] pairs for a @<reg>-DEFINED
+    function (params arrive in registers cl.exe cannot model).  Candidate-only
+    phantom-slot loads are stripped before comparison (see strip_regparam_loads)
+    and the HIGHER of raw/stripped is reported: in mnemonic space a phantom
+    `movl` can align against any reference `movl`, so stripping occasionally
+    shifts alignment down a fraction -- the model removes a known convention
+    penalty and must never introduce one.
     """
+    if regdef_params:
+        stripped = strip_regparam_loads(compiled, reference, regdef_params)[0]
+        if len(stripped) != len(compiled):
+            raw = compare_functions(compiled, reference, reg_normalize)
+            modeled = compare_functions(stripped, reference, reg_normalize)
+            return modeled if modeled[0] >= raw[0] else raw
     if reg_normalize:
         c_seq = extract_normalized_sequence(compiled)
         r_seq = extract_normalized_sequence(reference)
@@ -1057,6 +1178,88 @@ def _self_test():
     ins = _first_function_insns_from_text(txt, {"FUN_00003000"})
     check("genuine neighbour slot still truncated", ins is not None and len(ins) == 2)
 
+    # --- @reg-defined phantom-slot load stripping (strip_regparam_loads) ---
+    # These guard the @reg-DEFINED prologue-ceiling modeling: a byte-faithful
+    # lift of a register-param function must recover its match, while every
+    # masking pathway (wrong body, wrong slot, other-register load, slot the
+    # reference also reads) must stay untouched.
+
+    # RP1. @<eax> leaf: the single phantom load is stripped -> 100%.
+    cand = ["movl 0x8(%ebp), %eax", "addl $0x1, %eax", "retl"]
+    ref = ["addl $0x1, %eax", "retl"]
+    stripped, n = strip_regparam_loads(cand, ref, [(0, 'eax')])
+    check("RP1 @eax leaf load stripped", n == 1 and len(stripped) == 2)
+    pct = compare_functions(cand, ref, regdef_params=[(0, 'eax')])[0]
+    check("RP1 @eax leaf recovers to 100", pct == 100.0)
+
+    # RP2. Cascade remains honest: an extra candidate spill is NOT stripped;
+    #      modeled improves over raw but stays < 100.
+    cand = ["movl 0x8(%ebp), %eax", "pushl %eax", "movl %edi, -0x4(%ebp)",
+            "calll 0x0", "retl"]
+    ref = ["pushl %eax", "calll 0x0", "retl"]
+    raw = compare_functions(cand, ref)[0]
+    modeled = compare_functions(cand, ref, regdef_params=[(0, 'eax')])[0]
+    check("RP2 cascade spill survives, raw < modeled < 100",
+          raw < modeled < 100.0)
+
+    # RP3. @<ax> word param: movswl widening load into %eax is family(eax)
+    #      -> stripped.
+    cand = ["movswl 0x8(%ebp), %eax", "pushl %eax", "retl"]
+    ref = ["movswl %ax, %eax", "pushl %eax", "retl"]
+    stripped, n = strip_regparam_loads(cand, ref, [(0, 'ax')])
+    check("RP3 @ax movswl widening load stripped", n == 1)
+
+    # RP4a. No regdef -> no-op even with a 0x8(%ebp) load present.
+    cand = ["movl 0x8(%ebp), %eax", "retl"]
+    stripped, n = strip_regparam_loads(cand, ["retl"], None)
+    check("RP4a no regdef is a no-op", n == 0 and stripped == cand)
+
+    # RP4b. Load into a DIFFERENT register than annotated is NOT stripped --
+    #       its mov mnemonic already aligns with the reference's reg-to-reg move.
+    cand = ["movl 0x8(%ebp), %esi", "retl"]
+    ref = ["movl %eax, %esi", "retl"]
+    stripped, n = strip_regparam_loads(cand, ref, [(0, 'eax')])
+    check("RP4b other-register load not stripped", n == 0)
+    pct = compare_functions(cand, ref, regdef_params=[(0, 'eax')])[0]
+    check("RP4b mnemonics still align to 100", pct == 100.0)
+
+    # RP5. Genuinely wrong body still fails after stripping.
+    cand = ["movl 0x8(%ebp), %eax", "xorl %ecx, %ecx", "subl $0x4, %esp",
+            "movl %ecx, (%esp)", "retl"]
+    ref = ["pushl %esi", "pushl %eax", "calll 0x0", "addl $0x8, %esp",
+           "popl %esi", "retl"]
+    modeled = compare_functions(cand, ref, regdef_params=[(0, 'eax')])[0]
+    check("RP5 wrong body still fails (<60%)", modeled < 60.0)
+
+    # RP6. Count-aware: the reference ALSO loads the slot (mis-annotation or
+    #      aliasing) -> excess 0, nothing stripped.
+    cand = ["movl 0x8(%ebp), %eax", "retl"]
+    ref = ["movl 0x8(%ebp), %eax", "retl"]
+    stripped, n = strip_regparam_loads(cand, ref, [(0, 'eax')])
+    check("RP6 ref-also-loads slot -> excess 0", n == 0)
+
+    # RP7. Wrong slot (disp mismatch) is never stripped.
+    cand = ["movl 0xc(%ebp), %eax", "retl"]
+    stripped, n = strip_regparam_loads(cand, ["retl"], [(0, 'eax')])
+    check("RP7 wrong-slot load not stripped", n == 0)
+
+    # RP8. Second param @<esi> maps to disp 0xc; SIB/indexed source rejected.
+    cand = ["movl 0xc(%ebp), %esi", "movl 0x8(%ebp,%eax,4), %edi", "retl"]
+    stripped, n = strip_regparam_loads(cand, ["retl"], [(1, 'esi'), (0, 'edi')])
+    check("RP8 disp 0xc second param stripped, SIB rejected",
+          n == 1 and stripped[0] == "movl 0x8(%ebp,%eax,4), %edi")
+
+    # RP9. Monotonicity fallback: when the phantom load's mnemonic was already
+    #      aligned (against a reference reg-to-reg move into the same register),
+    #      stripping would LOWER the mnemonic ratio -- modeled must fall back
+    #      to raw, never below it.
+    cand = ["movl 0x8(%ebp), %eax", "retl"]
+    ref = ["movl %edx, %eax", "retl"]
+    raw = compare_functions(cand, ref)[0]
+    modeled = compare_functions(cand, ref, regdef_params=[(0, 'eax')])[0]
+    check("RP9 modeled never below raw (max fallback)",
+          raw == 100.0 and modeled == raw)
+
     if failures:
         print(f"\nSELF-TEST FAILED: {len(failures)} case(s)")
         sys.exit(1)
@@ -1081,9 +1284,21 @@ def main():
                     help="Only report immediate-constant (wrong float/magic literal) warnings")
     ap.add_argument("--reg-normalize", "-r", action="store_true",
                     help="Use register-alias normalization for LCS (canonical operands)")
+    ap.add_argument("--regdef-params", default=None,
+                    help="Model @<reg>-DEFINED params for the compared function(s): "
+                         "'idx:reg[,idx:reg]' e.g. '0:eax' -- strips candidate-only "
+                         "phantom-slot loads (intended for --function runs; "
+                         "vc71_verify derives this from kb.json automatically)")
     ap.add_argument("--self-test", action="store_true",
                     help="Run built-in detector self-tests and exit")
     args = ap.parse_args()
+
+    regdef_params = None
+    if args.regdef_params:
+        regdef_params = []
+        for tok in args.regdef_params.split(","):
+            idx, _, reg = tok.partition(":")
+            regdef_params.append((int(idx.strip()), reg.strip().lower()))
 
     if args.self_test:
         _self_test()
@@ -1176,7 +1391,8 @@ def main():
 
     for fn in sorted(matched):
         pct, diffs, fpu_warnings, loadw_warnings, imm_warnings = compare_functions(
-            compiled_funcs[fn], reference_funcs[fn], reg_normalize=args.reg_normalize)
+            compiled_funcs[fn], reference_funcs[fn], reg_normalize=args.reg_normalize,
+            regdef_params=regdef_params)
         n_c = len(compiled_funcs[fn])
         n_r = len(reference_funcs[fn])
         status = "PASS" if pct >= args.threshold else "FAIL"
