@@ -15485,7 +15485,7 @@
         {
           "addr": "0x13e510",
           "decl": "void object_child_list_remove(void *list_head@<eax>, int object_handle@<ebx>);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13e5d0",
@@ -15706,7 +15706,7 @@
         {
           "addr": "0x140420",
           "decl": "int16_t object_find_in_cluster(int flags, int16_t cluster_count, int16_t *cluster_indices, int16_t max_count, int *out_handles);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x140720",
