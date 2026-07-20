@@ -48,8 +48,8 @@ hud_weapon.obj,true,0x000D8AF0-0x000D91F0,11
 input_abstraction.obj,true,0x000CE690-0x000CEC90,9
 input_xbox.obj,true,0x000CE4B0-0x000D03C0,26
 interface.obj,true,0x000DEC50-0x000E0310,17
-items.obj,true,0x000F4210-0x000F7540,42
-main.obj,true,0x000E8D20-0x00104630,103
+items.obj,true,0x000F4210-0x000F7540,41
+main.obj,true,0x000E8D20-0x00104630,104
 marketing_and_strategic_business_development.obj,true,0x000E02D0-0x000E0770,5
 network_game_globals.obj,true,0x00129130-0x0012AB20,30
 network_client_manager.obj,true,0x00124730-0x00127910,60
@@ -97,10 +97,11 @@ stack_walk_windows.obj,true,0x00092370-0x00092F60,6
 tag_groups.obj,true,0x0019B0D0-0x001B9D80,16
 tags.obj,true,0x001B9930-0x001BB4D0,27
 structure_bsp_definitions.obj,true,0x001929A0-0x00193A70,15
-structures.obj,true,0x00061CA0-0x00199560,127
-structure_detail_objects.obj,true,0x00193910-0x00193D80,5
+structures.obj,true,0x00061CA0-0x00199560,126
+structure_render.obj,true,0x001954E0-0x001956E0,1
+structure_detail_objects.obj,true,0x00193910-0x00193E00,8
 structure_runtime_decals.obj,true,0x001963C0-0x001965C0,1
-structure_visibility.obj,true,0x001965D0-0x00196D10,6
+structure_visibility.obj,true,0x001965D0-0x00197D00,7
 telnet_console.obj,true,0x00130980-0x00132660,27
 terminal.obj,true,0x000E3410-0x000E3C10,10
 tiff_file.obj,true,0x0007F3A0-0x000802D0,8
@@ -109,6 +110,7 @@ transport_endpoint_set_winsock.obj,true,0x00081EC0-0x00084B70,52
 ui_widget.obj,true,0x000E3B80-0x000ED0B0,121
 ui_widget_event_handler_functions.obj,true,0x000E9810-0x000E9A10,1
 ui_widget_game_data_input_functions.obj,true,0x000EDCD0-0x000F3BC0,72
+ui_widget_text_search_and_replace_functions.obj,true,0x000F5290-0x000F5490,1
 unicode.obj,true,0x0019D810-0x0019FC20,69
 bipeds.obj,true,0x001A01D0-0x001A3140,39
 units.obj,true,0x0008DC30-0x001B3890,208
