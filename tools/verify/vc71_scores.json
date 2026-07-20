@@ -14781,7 +14781,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_permute_region": {
-      "score": 87.6,
+      "score": 91.0,
       "source": "src/halo/objects/objects.c"
     },
     "object_placement_data_new": {

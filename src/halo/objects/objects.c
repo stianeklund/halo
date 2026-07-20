@@ -6383,11 +6383,12 @@ void object_permute_region(int object_handle, const char *marker_name,
 
   mode_tag = (char *)tag_get(0x6d6f6465, model_tag_index);
   regions_block = (int *)(mode_tag + 0xc4);
-  region_i = 0;
+  /* permuter 20260721: chained zero-init before the early-out lifts VC71
+   * match 87.6 -> 91.0 (register scheduling); semantically identical. */
+  region_iter = (region_i = 0);
   if (*regions_block <= 0)
     return;
 
-  region_iter = 0;
   do {
     if (region_index == -1 || region_index == region_iter) {
       region_element =
