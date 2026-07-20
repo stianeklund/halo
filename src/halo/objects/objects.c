@@ -4566,10 +4566,10 @@ void attachments_new(int object_handle)
       handle = -1;
       if (def != 0xffffffff) {
         group = element[0];
-        if (group < 0x6c696769) {
-          if (group == 0x6c696768) {        /* 'ligh' */
-            type = 0;
-          } else if (group == 0x636f6e74) { /* 'cont' */
+        if (group == 0x6c696768) {          /* 'ligh' */
+          type = 0;
+        } else if (group < 0x6c696768) {
+          if (group == 0x636f6e74) {        /* 'cont' */
             type = 3;
           } else if (group == 0x65666665) { /* 'effe' */
             type = 2;
@@ -6503,6 +6503,9 @@ int16_t object_find_in_cluster(int flags, int16_t cluster_count,
           (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, handle);
         object_data_t *obj = header->object;
 
+        /* (uint8_t) load reviewed vs ref (movswl 0x64): benign — only CL
+         * feeds SHL and type is 0..10; byte load scores 91.0 vs 87.3 (movswl
+         * perturbs 'found'-in-DI register allocation). LOADW-WARN accepted. */
         if (1 << ((uint8_t)obj->type & 0x1f) == 0) {
           char *msg =
             csprintf((char *)0x5ab100,
@@ -6547,6 +6550,9 @@ int16_t object_find_in_cluster(int flags, int16_t cluster_count,
           (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, handle);
         object_data_t *obj = header->object;
 
+        /* (uint8_t) load reviewed vs ref (movswl 0x64): benign — only CL
+         * feeds SHL and type is 0..10; byte load scores 91.0 vs 87.3 (movswl
+         * perturbs 'found'-in-DI register allocation). LOADW-WARN accepted. */
         if (1 << ((uint8_t)obj->type & 0x1f) == 0) {
           char *msg =
             csprintf((char *)0x5ab100,

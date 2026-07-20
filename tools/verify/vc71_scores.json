@@ -2793,7 +2793,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00084a70": {
-      "score": 95.8,
+      "score": 91.7,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00084ae0": {
@@ -2803,6 +2803,10 @@
     "FUN_00084fe0": {
       "score": 100.0,
       "source": "src/halo/camera/bored_camera.c"
+    },
+    "FUN_00085000": {
+      "score": 81.9,
+      "source": "src/halo/objects/objects.c"
     },
     "FUN_000850d0": {
       "score": 90.0,
@@ -2821,6 +2825,14 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00085260": {
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00085280": {
+      "score": 86.2,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_00085350": {
       "score": 100.0,
       "source": "src/halo/objects/objects.c"
     },
@@ -9401,7 +9413,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00134e50": {
-      "score": 57.1,
+      "score": 88.9,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00134e80": {
@@ -9597,7 +9609,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00139810": {
-      "score": 70.5,
+      "score": 71.2,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_001398b0": {
@@ -9605,7 +9617,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_001398d0": {
-      "score": 100.0,
+      "score": 42.9,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00139930": {
@@ -9913,7 +9925,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_0013e1a0": {
-      "score": 89.3,
+      "score": 90.9,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_0013e1f0": {
@@ -14549,7 +14561,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_add_to_dump": {
-      "score": 84.8,
+      "score": 86.6,
       "source": "src/halo/objects/objects.c"
     },
     "object_adjust_interpolation_position": {
@@ -14573,15 +14585,19 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_choose_random_change_colors": {
-      "score": 67.2,
+      "score": 67.4,
       "source": "src/halo/objects/objects.c"
     },
     "object_choose_random_region_permutations": {
-      "score": 71.1,
+      "score": 71.7,
       "source": "src/halo/objects/objects.c"
     },
     "object_compute_change_colors": {
-      "score": 61.8,
+      "score": 62.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "object_compute_child_marker_position": {
+      "score": 88.4,
       "source": "src/halo/objects/objects.c"
     },
     "object_compute_function_values": {
@@ -14620,8 +14636,12 @@
       "score": 100.0,
       "source": "src/halo/objects/damage.c"
     },
+    "object_detach_from_parent": {
+      "score": 99.1,
+      "source": "src/halo/objects/objects.c"
+    },
     "object_determine_variant_number": {
-      "score": 81.3,
+      "score": 82.0,
       "source": "src/halo/objects/objects.c"
     },
     "object_disconnect_from_map": {
@@ -14629,11 +14649,15 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_dump_write": {
-      "score": 86.7,
+      "score": 87.8,
       "source": "src/halo/objects/objects.c"
     },
     "object_find_in_cluster": {
       "score": 91.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "object_find_in_radius": {
+      "score": 60.7,
       "source": "src/halo/objects/objects.c"
     },
     "object_find_region_permutations_available_with_variant": {
@@ -14658,6 +14682,10 @@
     },
     "object_get_location": {
       "score": 97.1,
+      "source": "src/halo/objects/objects.c"
+    },
+    "object_get_markers_by_string_id": {
+      "score": 90.9,
       "source": "src/halo/objects/objects.c"
     },
     "object_get_node_matrices": {
@@ -14701,11 +14729,15 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_header_new": {
-      "score": 64.1,
+      "score": 65.1,
       "source": "src/halo/objects/objects.c"
     },
     "object_iterator_new": {
       "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
+    "object_iterator_next": {
+      "score": 80.6,
       "source": "src/halo/objects/objects.c"
     },
     "object_mark": {
@@ -14729,7 +14761,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_name_list_new": {
-      "score": 77.1,
+      "score": 77.9,
       "source": "src/halo/objects/objects.c"
     },
     "object_name_list_set_handle": {
@@ -14756,12 +14788,20 @@
       "score": 96.6,
       "source": "src/halo/objects/objects.c"
     },
+    "object_postprocess_node_matrices": {
+      "score": 96.8,
+      "source": "src/halo/objects/objects.c"
+    },
     "object_propagate_flag_to_children": {
-      "score": 61.8,
+      "score": 62.2,
+      "source": "src/halo/objects/objects.c"
+    },
+    "object_pvs_activate": {
+      "score": 100.0,
       "source": "src/halo/objects/objects.c"
     },
     "object_remove_from_name_list": {
-      "score": 68.6,
+      "score": 69.6,
       "source": "src/halo/objects/objects.c"
     },
     "object_reset": {
@@ -14777,7 +14817,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_select_random_region_permutations_by_variant": {
-      "score": 87.3,
+      "score": 87.9,
       "source": "src/halo/objects/objects.c"
     },
     "object_set_automatic_deactivation": {
@@ -14786,6 +14826,14 @@
     },
     "object_set_garbage": {
       "score": 63.4,
+      "source": "src/halo/objects/objects.c"
+    },
+    "object_set_garbage_flag": {
+      "score": 91.8,
+      "source": "src/halo/objects/objects.c"
+    },
+    "object_set_position": {
+      "score": 88.0,
       "source": "src/halo/objects/objects.c"
     },
     "object_set_region_count": {
@@ -14846,6 +14894,10 @@
     },
     "objects_initialize_for_new_map": {
       "score": 79.1,
+      "source": "src/halo/objects/objects.c"
+    },
+    "objects_place": {
+      "score": 100.0,
       "source": "src/halo/objects/objects.c"
     },
     "objects_reconnect_to_structure_bsp": {

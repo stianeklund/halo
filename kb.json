@@ -15527,7 +15527,7 @@
         {
           "addr": "0x13ecb0",
           "decl": "void attachments_new(int object_handle);",
-          "ported": false,
+          "ported": true,
           "source_path": "objects/objects.c"
         },
         {
