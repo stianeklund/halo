@@ -14292,6 +14292,10 @@
       "score": 43.9,
       "source": "src/halo/structures/structures.c"
     },
+    "lightning_offset_marker_position": {
+      "score": 92.5,
+      "source": "src/halo/objects/widgets/lightning.c"
+    },
     "load_symbol_table": {
       "score": 29.8,
       "source": "src/halo/cseries/stack_walk_windows.c"

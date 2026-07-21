@@ -14935,7 +14935,8 @@
     {
      "addr": "0x135420",
      "decl": "void lightning_offset_marker_position(int matrix_ptr@<ebx>, float *position_out@<esi>, float *random_bounds@<edi>);",
-     "ported": false
+     "source_path": "objects/widgets/lightning.c",
+          "ported": true
     },
     {
      "addr": "0x135510",
