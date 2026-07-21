@@ -12931,3 +12931,107 @@ void FUN_001414e0(int param_1, int param_2, int param_3, int param_4, int param_
                                      (int)parent_index * 0x34 + param_5,
                                      (int)self_index * 0x34 + param_5);
 }
+/* Light-volume widget parameter interpolation.
+ * TU: c:\halo\SOURCE\objects\widgets\light_volumes.c (confirmed via __FILE__
+ * assert xref at line 0x6e).
+ *
+ * FUN_00134c40 selects a light-volume parameter block for an object.  The
+ * definition holds a tag_block of parameter frames (header at +0x120, element
+ * stride 0xb0).  With <=1 frame it returns element 0 directly.  With more than
+ * one frame it reads the object's animation function value (function index at
+ * definition+0xb8, minus one) and, when that succeeds, blends two frames into a
+ * static scratch block at 0x0046ef70 and returns that block.
+ *
+ * The binary re-fetches element index 0 in every tag_block_get_element call
+ * (verified against disassembly — the three main-path calls and the <=1
+ * fallback call all pass index 0); this is preserved verbatim, not "fixed" into
+ * an interpolation-index fetch.  definition_ptr arrives in EBX (@<ebx>). */
+
+void *FUN_00134c40(int definition_ptr, int object_handle)
+{
+  int *count_ptr;
+  void *elem0;
+  void *elemA;
+  void *elemB;
+  float local_8;
+  float t;
+  bool ok;
+
+  if (definition_ptr == 0) {
+    display_assert("definition",
+                   "c:\\halo\\SOURCE\\objects\\widgets\\light_volumes.c", 0x6e,
+                   1);
+    system_exit(-1);
+  }
+
+  count_ptr = (int *)(definition_ptr + 0x120);
+  elem0 = tag_block_get_element(count_ptr, 0, 0xb0);
+
+  if (1 < *count_ptr) {
+    elemA = tag_block_get_element(count_ptr, 0, 0xb0);
+    elemB = tag_block_get_element(count_ptr, 0, 0xb0);
+    ok = object_get_function_value(
+        object_handle, (short)(*(short *)(definition_ptr + 0xb8) - 1),
+        &local_8);
+    if (ok) {
+      t = *(float *)0x002533c8 - local_8;
+
+      *(float *)0x0046ef80 =
+          local_8 * *(float *)((char *)elemB + 0x10) +
+          t * *(float *)((char *)elemA + 0x10);
+      *(float *)0x0046ef84 =
+          local_8 * *(float *)((char *)elemB + 0x14) +
+          t * *(float *)((char *)elemA + 0x14);
+      *(float *)0x0046ef88 =
+          local_8 * *(float *)((char *)elemB + 0x18) +
+          t * *(float *)((char *)elemA + 0x18);
+
+      *(float *)0x0046efac =
+          local_8 * *(float *)((char *)elemB + 0x3c) +
+          t * *(float *)((char *)elemA + 0x3c);
+      *(float *)0x0046efb0 =
+          local_8 * *(float *)((char *)elemB + 0x40) +
+          t * *(float *)((char *)elemA + 0x40);
+      *(float *)0x0046efb4 =
+          local_8 * *(float *)((char *)elemB + 0x44) +
+          t * *(float *)((char *)elemA + 0x44);
+
+      *(float *)0x0046efd8 =
+          local_8 * *(float *)((char *)elemB + 0x68) +
+          t * *(float *)((char *)elemA + 0x68);
+      *(float *)0x0046efdc =
+          local_8 * *(float *)((char *)elemB + 0x6c) +
+          t * *(float *)((char *)elemA + 0x6c);
+      *(float *)0x0046efe0 =
+          local_8 * *(float *)((char *)elemB + 0x70) +
+          t * *(float *)((char *)elemA + 0x70);
+      *(float *)0x0046efe4 =
+          local_8 * *(float *)((char *)elemB + 0x74) +
+          t * *(float *)((char *)elemA + 0x74);
+      *(float *)0x0046efe8 =
+          local_8 * *(float *)((char *)elemB + 0x78) +
+          t * *(float *)((char *)elemA + 0x78);
+      *(float *)0x0046efec =
+          local_8 * *(float *)((char *)elemB + 0x7c) +
+          t * *(float *)((char *)elemA + 0x7c);
+      *(float *)0x0046eff0 =
+          local_8 * *(float *)((char *)elemB + 0x80) +
+          t * *(float *)((char *)elemA + 0x80);
+      *(float *)0x0046eff4 =
+          local_8 * *(float *)((char *)elemB + 0x84) +
+          t * *(float *)((char *)elemA + 0x84);
+      *(float *)0x0046eff8 =
+          local_8 * *(float *)((char *)elemB + 0x88) +
+          t * *(float *)((char *)elemA + 0x88);
+      *(float *)0x0046effc =
+          local_8 * *(float *)((char *)elemB + 0x8c) +
+          t * *(float *)((char *)elemA + 0x8c);
+
+      return (void *)0x0046ef70;
+    }
+    return elem0;
+  }
+
+  elem0 = tag_block_get_element(count_ptr, 0, 0xb0);
+  return elem0;
+}

@@ -9412,6 +9412,10 @@
       "score": 100.0,
       "source": "src/halo/objects/objects.c"
     },
+    "FUN_00134c40": {
+      "score": 94.0,
+      "source": "src/halo/objects/objects.c"
+    },
     "FUN_00134e50": {
       "score": 88.9,
       "source": "src/halo/objects/objects.c"
