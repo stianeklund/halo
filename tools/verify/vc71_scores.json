@@ -14885,7 +14885,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_visible_to_any_player": {
-      "score": 84.7,
+      "score": 85.9,
       "source": "src/halo/objects/objects.c"
     },
     "object_wake": {

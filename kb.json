@@ -15722,7 +15722,7 @@
     },
     {
      "addr": "0x1407e0",
-     "decl": "int object_visible_to_any_player(int object_handle);",
+     "decl": "char object_visible_to_any_player(int object_handle);",
      "ported": false
     },
     {

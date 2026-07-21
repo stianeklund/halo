@@ -7054,7 +7054,7 @@ int16_t object_get_first_cluster(void *iter_state, int object_handle)
  * Confirmed: Object position at obj + 0x50 (unk_80/unk_84/unk_88).
  * Confirmed: Object bounding radius at obj + 0x5C (unk_92).
  */
-int object_visible_to_any_player(int object_handle)
+char object_visible_to_any_player(int object_handle)
 {
   object_header_data_t *header;
   object_data_t *obj;
