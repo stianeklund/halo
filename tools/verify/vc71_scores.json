@@ -9400,6 +9400,18 @@
       "score": 91.2,
       "source": "src/halo/text/draw_string.c"
     },
+    "FUN_00134070": {
+      "score": 80.8,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_001342a0": {
+      "score": 74.8,
+      "source": "src/halo/objects/objects.c"
+    },
+    "FUN_001345b0": {
+      "score": 76.4,
+      "source": "src/halo/objects/widgets/glow.c"
+    },
     "FUN_00134ae0": {
       "score": 98.9,
       "source": "src/halo/objects/objects.c"
@@ -14139,6 +14151,10 @@
     "global_scenario_get": {
       "score": 92.3,
       "source": "src/halo/scenario/scenario.c"
+    },
+    "glow_trailing_particle_new": {
+      "score": 77.5,
+      "source": "src/halo/objects/objects.c"
     },
     "halt_and_catch_fire": {
       "score": 81.3,

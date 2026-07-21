@@ -8318,6 +8318,14 @@
       "metadata": {
         "source_path": "src/halo/objects/widgets/lightning.c"
       }
+    },
+    {
+      "name": "halo/glow",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/widgets/glow.c.obj",
+      "base_path": "delinked/functions/001345b0.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/widgets/glow.c"
+      }
     }
   ]
 }

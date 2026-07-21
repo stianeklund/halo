@@ -14867,22 +14867,20 @@
     {
      "addr": "0x134070",
      "decl": "void FUN_00134070(int particle_ptr@<esi>, int glow_widget_ptr@<edi>, int object_handle, float delta, float ratio);",
-     "ported": false
+     "ported": true,
+     "source_path": "objects/objects.c"
     },
     {
      "addr": "0x1342a0",
      "decl": "void FUN_001342a0(int glow_widget_ptr@<esi>);",
-     "ported": false
+     "ported": true,
+     "source_path": "objects/objects.c"
     },
     {
      "addr": "0x134350",
      "decl": "int glow_trailing_particle_new(int glow_widget_ptr@<ebx>);",
-     "ported": false
-    },
-    {
-     "addr": "0x1345b0",
-     "decl": "void FUN_001345b0(int glow_widget@<eax>, int object_handle);",
-     "ported": false
+     "ported": true,
+     "source_path": "objects/objects.c"
     },
     {
      "addr": "0x134ae0",
@@ -39009,6 +39007,18 @@
     {
      "addr": "0x1b280",
      "decl": "char FUN_0001b280(int actor_handle@<ecx>, int object_handle@<eax>, float *in_attach0, float *in_attach1, float *in_attach2, int param_6, float *out_position, int *out_handle);"
+    }
+   ]
+  },
+  {
+   "name": "glow.obj",
+   "source": "objects/widgets/glow.c",
+   "functions": [
+    {
+     "addr": "0x1345b0",
+     "decl": "void FUN_001345b0(int glow_widget@<eax>, int object_handle);",
+     "ported": true,
+     "source_path": "objects/widgets/glow.c"
     }
    ]
   }

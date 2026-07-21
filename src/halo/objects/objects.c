@@ -562,6 +562,72 @@ done_minus1:
  * Confirmed: assert_halt for type range check at 0x1361fe.
  */
 
+/* FUN_001342a0 (0x1342a0 / objects.obj, object_lights.c) — build the glow
+ * particle chain for a glow-widget instance.
+ *
+ * Fetches the glow ('glw!' = 0x676c7721) tag block via
+ * tag_get(0x676c7721, widget+0x224), then allocates one particle node per
+ * widget+0x24c (int16 count) via glow_normal_particle_new, linking them into a
+ * doubly-linked list rooted at widget+0x250 (head) / widget+0x254 (tail).
+ * Node flag word at +0x54:
+ *   tag flag bit1 (0x02): force bit0 set;
+ *   tag flag bit2 (0x04): alternate bit0 per node using a persistent per-widget
+ *     parity toggle (init true: parity nodes clear bit0, off-parity nodes set
+ *     it), preserving the exact AND 0xfffffffe vs OR 1 order and the flip.
+ * Node links: +0x5c forward (prev->next = cur), +0x60 back (cur->prev = prev).
+ * Early-returns if any allocation fails (node == 0).
+ *
+ * Confirmed: sole input glow_widget_ptr arrives in ESI (@<esi> per kb decl).
+ * Confirmed: both callees are plain cdecl, called by name.
+ * Confirmed: loop bound is the int16 field at +0x24c, re-read at both the entry
+ * guard and the do/while condition — matched, not cached.
+ */
+void FUN_001342a0(int glow_widget_ptr)
+{
+    void *glow_tag;
+    int node;
+    int prev_node;
+    unsigned int flags;
+    bool parity;
+    short index;
+
+    glow_tag = tag_get(0x676c7721, *(int *)(glow_widget_ptr + 0x224));
+    index = 0;
+    parity = true;
+    prev_node = 0;
+    if (0 < *(short *)(glow_widget_ptr + 0x24c)) {
+        do {
+            node = glow_normal_particle_new(glow_widget_ptr, index,
+                                            *(short *)(glow_widget_ptr + 0x24c));
+            if (node == 0) {
+                return;
+            }
+            if ((*(unsigned char *)((int)glow_tag + 0x28) & 2) != 0) {
+                *(unsigned int *)(node + 0x54) = *(unsigned int *)(node + 0x54) | 1;
+            }
+            if ((*(unsigned char *)((int)glow_tag + 0x28) & 4) != 0) {
+                if (parity) {
+                    flags = *(unsigned int *)(node + 0x54) & 0xfffffffe;
+                } else {
+                    flags = *(unsigned int *)(node + 0x54) | 1;
+                }
+                parity = !parity;
+                *(unsigned int *)(node + 0x54) = flags;
+            }
+            if (*(int *)(glow_widget_ptr + 0x250) == 0) {
+                *(int *)(glow_widget_ptr + 0x250) = node;
+            }
+            if (prev_node != 0) {
+                *(int *)(prev_node + 0x5c) = node;
+            }
+            *(int *)(node + 0x60) = prev_node;
+            index = index + 1;
+            *(int *)(glow_widget_ptr + 0x254) = node;
+            prev_node = node;
+        } while (index < *(short *)(glow_widget_ptr + 0x24c));
+    }
+}
+
 /* FUN_00134ae0 (0x134ae0 / objects.obj, object_lights.c) — initialize a glow
  * widget instance attached to an object.
  *
@@ -13365,6 +13431,248 @@ void FUN_001414e0(int param_1, int param_2, int param_3, int param_4, int param_
                                      (int)grandparent_index * 0x34 + param_5,
                                      (int)parent_index * 0x34 + param_5,
                                      (int)self_index * 0x34 + param_5);
+}
+/* Object glow widgets — animated glow effects attached to game objects.
+ * TU: c:\halo\SOURCE\objects\widgets\glow.c (confirmed via __FILE__ assert). */
+
+/* glow_widget definition (glowdef) tag layout, group 'glw!' (0x676c7721):
+ *   +0x22  int16_t boundary_effect          // 0 = reflect/ping-pong, 1 = wrap
+ *   +0x80  int16_t function                 // object function index (-1 = none)
+ *   +0x84  float   scale_lower              // output remap: low bound
+ *   +0x88  float   scale_upper              //               high bound
+ *   +0x8c  float   input_lower              // input remap:  low bound
+ *   +0x90  float   input_upper              //               high bound
+ *
+ * particle instance fields:
+ *   +0x1c  float   scale                    // computed animated scale
+ *   +0x28  float   phase                    // animation phase counter
+ *   +0x54  uint    flags                    // bit0 = reverse direction
+ *
+ * glow_widget instance fields:
+ *   +0x224 int32_t definition_tag_index
+ *   +0x234 float   period                   // phase wrap period
+ */
+
+/* FUN_00134070 — advance a glow particle's phase animation by one frame and
+ * recompute its world position.  If the glow definition binds an object
+ * function, resample it and remap into the scale output.  Then step the phase
+ * counter by +/-delta (direction per particle flags bit0), wrapping against the
+ * period: boundary mode 0 reflects and flips direction, mode 1 plain-wraps.
+ * Ends by recomputing the particle's world position.
+ *
+ * ABI: particle_ptr in ESI, glow_widget_ptr in EDI (register args); the
+ * remaining three are cdecl stack args. */
+void FUN_00134070(int particle_ptr, int glow_widget_ptr, int object_handle,
+                  float delta, float ratio)
+{
+  void *glowdef;
+  short function_index;
+  unsigned int flags;
+  float function_value;
+
+  glowdef = tag_get(0x676c7721, *(int *)(glow_widget_ptr + 0x224));
+
+  function_index = *(short *)((char *)glowdef + 0x80);
+  if (function_index != -1) {
+    if (!object_get_function_value(object_handle, function_index,
+                                   &function_value))
+      function_value = 0.0f;
+    *(float *)(particle_ptr + 0x1c) =
+      (*(float *)((char *)glowdef + 0x88) - *(float *)((char *)glowdef + 0x84)) *
+        ((*(float *)((char *)glowdef + 0x90) -
+          *(float *)((char *)glowdef + 0x8c)) *
+           function_value +
+         *(float *)((char *)glowdef + 0x8c)) +
+      *(float *)((char *)glowdef + 0x84);
+  }
+
+  flags = *(unsigned int *)(particle_ptr + 0x54);
+
+  if (flags & 1) {
+    /* reverse phase: step down, wrap against 0.0 */
+    *(float *)(particle_ptr + 0x28) -= delta;
+    switch (*(short *)((char *)glowdef + 0x22)) {
+      case 0:
+        if (*(float *)(particle_ptr + 0x28) < 0.0f) {
+          do {
+            *(float *)(particle_ptr + 0x28) +=
+              *(float *)(glow_widget_ptr + 0x234);
+          } while (*(float *)(particle_ptr + 0x28) < 0.0f);
+          flags &= ~1u;
+          *(unsigned int *)(particle_ptr + 0x54) = flags;
+          *(float *)(particle_ptr + 0x28) =
+            *(float *)(glow_widget_ptr + 0x234) -
+            *(float *)(particle_ptr + 0x28);
+        }
+        break;
+      case 1:
+        while (*(float *)(particle_ptr + 0x28) < 0.0f)
+          *(float *)(particle_ptr + 0x28) +=
+            *(float *)(glow_widget_ptr + 0x234);
+        break;
+      default:
+        display_assert("glow effect received illegal boundary effect",
+                       "c:\\halo\\SOURCE\\objects\\widgets\\glow.c", 800, 1);
+        system_exit(-1);
+    }
+  } else {
+    /* forward phase: step up, wrap against period */
+    *(float *)(particle_ptr + 0x28) += delta;
+    switch (*(short *)((char *)glowdef + 0x22)) {
+      case 0:
+        if (*(float *)(particle_ptr + 0x28) >
+            *(float *)(glow_widget_ptr + 0x234)) {
+          do {
+            *(float *)(particle_ptr + 0x28) -=
+              *(float *)(glow_widget_ptr + 0x234);
+          } while (*(float *)(particle_ptr + 0x28) >
+                   *(float *)(glow_widget_ptr + 0x234));
+          *(float *)(particle_ptr + 0x28) =
+            *(float *)(glow_widget_ptr + 0x234) -
+            *(float *)(particle_ptr + 0x28);
+          flags |= 1u;
+          *(unsigned int *)(particle_ptr + 0x54) = flags;
+        }
+        break;
+      case 1:
+        if (*(float *)(particle_ptr + 0x28) >
+            *(float *)(glow_widget_ptr + 0x234)) {
+          do {
+            *(float *)(particle_ptr + 0x28) -=
+              *(float *)(glow_widget_ptr + 0x234);
+          } while (*(float *)(particle_ptr + 0x28) >
+                   *(float *)(glow_widget_ptr + 0x234));
+        }
+        break;
+      default:
+        display_assert("glow effect received illegal boundary effect",
+                       "c:\\halo\\SOURCE\\objects\\widgets\\glow.c", 829, 1);
+        system_exit(-1);
+    }
+  }
+
+  get_particle_world_position(glow_widget_ptr, particle_ptr, ratio);
+}
+/* Glow widget trailing-particle spawner.
+ *
+ * TU: c:\halo\SOURCE\objects\widgets\glow.c (confirmed via __FILE__ assert xref).
+ * The glow widget spawns "trailing" particles behind a glowing effect attached
+ * to a game object.  Its definition lives in a 'glw!' (0x676c7721) tag block,
+ * resolved through object handle at glow_widget+0x224.
+ */
+
+/* data_t* pool for glow trailing particles. */
+#define GLOW_PARTICLE_DATA (*(data_t **)0x005a90cc)
+
+/* glow_trailing_particle_new (0x134350 / objects.obj / glow.c)
+ *
+ * Allocates a new trailing-particle datum for a glow widget and initializes its
+ * position, velocity distribution, size, lifetime and color-lerp state from the
+ * 'glw!' tag definition.  The glow-widget pointer arrives in EBX (@<ebx>).
+ *
+ * Distribution mode is a signed word at glowtag+0x26:
+ *   0 = fixed direction  (velocity dir from tag_data+0x38..0x40 cleared to +Z unit)
+ *   1 = per-variant table (glow_widget+0x5c + variant*0x6c, variant = particle+2)
+ *   2 = random spherical  (three [-1,1] randoms then normalized)
+ * Any other value asserts and exits.
+ *
+ * Returns the new particle pointer (int), or 0 if the pool is full.
+ */
+int glow_trailing_particle_new(int glow_widget /* @<ebx> */)
+{
+  int glow_tag;   /* pvVar5 — 'glw!' tag definition block */
+  int particle;
+  int idx;
+  int variant;
+  int base;
+  int16_t dist;   /* distribution mode at glow_tag+0x26 (signed word) */
+  float fmin;
+  float fmax;
+  float scale;
+  float radius;
+  float t;
+
+  glow_tag = (int)tag_get(0x676c7721, *(int *)(glow_widget + 0x224));
+  particle = 0;
+
+  idx = data_new_at_index(GLOW_PARTICLE_DATA);
+  if (idx != -1) {
+    particle = (int)datum_get(GLOW_PARTICLE_DATA, idx);
+    *(int *)(particle + 4) = idx;
+
+    /* Initial world position. */
+    if (*(int16_t *)(glow_widget + 4) < 2) {
+      *(uint32_t *)(particle + 0x2c) = *(uint32_t *)(glow_widget + 0x68);
+      *(uint32_t *)(particle + 0x30) = *(uint32_t *)(glow_widget + 0x6c);
+      *(uint32_t *)(particle + 0x34) = *(uint32_t *)(glow_widget + 0x70);
+    } else {
+      fmax = *(float *)(glow_tag + 0x10c) * *(float *)(glow_widget + 0x234);
+      fmin = *(float *)(glow_tag + 0x108) * *(float *)(glow_widget + 0x234);
+      *(float *)(particle + 0x28) = random_real_range(
+          (int *)random_math_get_local_seed_address(), fmin, fmax);
+      get_particle_world_position(glow_widget, particle, 0.0f);
+    }
+
+    /* Velocity direction by distribution mode. */
+    dist = *(int16_t *)(glow_tag + 0x26);
+    if (dist == 0) {
+      *(uint32_t *)(particle + 0x38) = 0;
+      *(uint32_t *)(particle + 0x3c) = 0;
+      *(float *)(particle + 0x40) = 1.0f;
+    } else if (dist == 1) {
+      variant = *(int16_t *)(particle + 2);
+      base = glow_widget + variant * 0x6c + 0x5c;
+      *(uint32_t *)(particle + 0x38) = *(uint32_t *)(base);
+      *(uint32_t *)(particle + 0x3c) = *(uint32_t *)(base + 4);
+      *(uint32_t *)(particle + 0x40) = *(uint32_t *)(base + 8);
+    } else {
+      if (dist != 2) {
+        display_assert("unknown trailing particle distribution?",
+                       "c:\\halo\\SOURCE\\objects\\widgets\\glow.c", 996, 1);
+        system_exit(-1);
+      }
+      *(float *)(particle + 0x38) =
+          random_real_range((int *)random_math_get_local_seed_address(), -1.0f, 1.0f);
+      *(float *)(particle + 0x3c) =
+          random_real_range((int *)random_math_get_local_seed_address(), -1.0f, 1.0f);
+      *(float *)(particle + 0x40) =
+          random_real_range((int *)random_math_get_local_seed_address(), -1.0f, 1.0f);
+      normalize3d((float *)(particle + 0x38));
+    }
+
+    /* Scale the velocity direction by tag magnitude. */
+    scale = *(float *)(glow_tag + 0x104) * *(float *)0x2546a4;
+    *(float *)(particle + 0x38) = *(float *)(particle + 0x38) * scale;
+    *(float *)(particle + 0x3c) = *(float *)(particle + 0x3c) * scale;
+    *(float *)(particle + 0x40) = *(float *)(particle + 0x40) * scale;
+
+    /* Particle size (tag radius range / widget divisor). */
+    radius = random_real_range((int *)random_math_get_local_seed_address(),
+                               *(float *)(glow_tag + 0xa0),
+                               *(float *)(glow_tag + 0xa4));
+    *(float *)(particle + 0x20) =
+        radius / (float)*(int16_t *)(glow_widget + 0x228);
+
+    /* Lifetime in ticks. */
+    *(int16_t *)(particle + 0x52) =
+        (int16_t)(int)(*(float *)(glow_tag + 0x100) * TICKS_PER_SECOND);
+
+    /* Color lerp between tag min (0xb8..0xc0) and max (0xc8..0xd0). */
+    t = random_real_range((int *)random_math_get_local_seed_address(), 0.0f, 1.0f);
+    *(float *)(particle + 0xc) = 1.0f;
+    *(float *)(particle + 0x10) =
+        (*(float *)(glow_tag + 0xc8) - *(float *)(glow_tag + 0xb8)) * t +
+        *(float *)(glow_tag + 0xb8);
+    *(float *)(particle + 0x14) =
+        (*(float *)(glow_tag + 0xcc) - *(float *)(glow_tag + 0xbc)) * t +
+        *(float *)(glow_tag + 0xbc);
+    *(uint32_t *)(particle + 0x54) |= 2;
+    *(float *)(particle + 0x18) =
+        (*(float *)(glow_tag + 0xd0) - *(float *)(glow_tag + 0xc0)) * t +
+        *(float *)(glow_tag + 0xc0);
+  }
+
+  return particle;
 }
 /* Light-volume widget parameter interpolation.
  * TU: c:\halo\SOURCE\objects\widgets\light_volumes.c (confirmed via __FILE__

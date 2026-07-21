@@ -620,6 +620,11 @@ def _canonicalize_callee_key(sym_key: str) -> str:
 # would seed the wrong slot (2026-07-21, object_iterator_next campaign).
 _GLOBAL_NAME_ALIASES = {
     "g_object_header_data": 0x5a8d50,
+    # Glow trailing-particle datum pool pointer.  The delinked oracle labels it
+    # g_glow_particle_data; kb.json has no named global at this address, so the
+    # candidate references it as the raw pointer *(data_t**)0x5a90cc.  Alias so
+    # both sides seed the same pool (glow.obj equivalence, 2026-07-21).
+    "g_glow_particle_data": 0x5a90cc,
 }
 
 
@@ -1538,7 +1543,13 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     per_func_ref = _per_function_ref(func_name)
     if per_func_ref:
         try:
-            oracle_slice = extract_function(str(per_func_ref), delinked_sym)
+            try:
+                oracle_slice = extract_function(str(per_func_ref), delinked_sym)
+            except CoffParseError:
+                # A kb-renamed function (e.g. glow_trailing_particle_new)
+                # exports its real name — not FUN_<addr> — in the per-function
+                # delinked ref, so fall back to the kb function name.
+                oracle_slice = extract_function(str(per_func_ref), func_name)
             delinked_path = per_func_ref
             info(f"  (using per-function delinked ref: {per_func_ref.name})")
         except CoffParseError:
