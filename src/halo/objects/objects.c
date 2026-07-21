@@ -4730,6 +4730,7 @@ void object_name_list_new(int object_handle /* @<edi> */,
 {
   char *obj;
   int idx;
+  int *name_table;
 
   obj = (char *)object_get_and_verify_type(object_handle, -1);
   if (name_index < 0 || name_index >= 0x200) {
@@ -4739,8 +4740,9 @@ void object_name_list_new(int object_handle /* @<edi> */,
     system_exit(-1);
   }
   idx = (int)name_index;
-  if (*(int *)(*(int *)0x46f07c + idx * 4) == -1) {
-    *(int *)(*(int *)0x46f07c + idx * 4) = object_handle;
+  name_table = *(int **)0x46f07c;
+  if (name_table[idx] == -1) {
+    name_table[idx] = object_handle;
     *(int16_t *)(obj + 0x6a) = name_index;
     return;
   }
@@ -6817,6 +6819,7 @@ void FUN_00141970(int param_1)
   float *values;
   int n;
   short code;
+  short region;
   float value;
   int marker;
   float angle;
@@ -6877,13 +6880,13 @@ void FUN_00141970(int param_1)
         }
         break;
       default:
-        code = (short)(code - 0xa);
-        if ((code < 0) || (7 < code)) {
+        region = (short)(code - 0xa);
+        if ((region < 0) || (region >= 8)) {
           display_assert("region_index>=0 && region_index<MAXIMUM_REGIONS_PER_OBJECT",
                          "c:\\halo\\SOURCE\\objects\\objects.c", 0xa46, 1);
           system_exit(-1);
         }
-        value = (float)*(unsigned char *)((char *)obj + 0x128 + (int)code)
+        value = (float)*(unsigned char *)((char *)obj + 0x128 + (int)region)
                 * *(float *)0x261518;
         break;
       }
