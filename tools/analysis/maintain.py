@@ -354,6 +354,22 @@ def main():
     if sync_result.stdout.strip():
         print(sync_result.stdout.strip())
 
+    # Post-pass: sorting functions by address can strand a file-scope
+    # #include/#define/typedef (or scramble a #pragma diagnostic push/pop stack)
+    # below a now-relocated caller, producing a tree that fails maintain --check's
+    # blind spot but will not compile. Surface it loudly; the operator must hoist
+    # the flagged declarations to the top of the file before building.
+    log.info('Checking for stranded file-scope declarations...')
+    tools_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    strand = subprocess.run(
+        [sys.executable, os.path.join(tools_dir, 'audit', 'check_stranded_decls.py')]
+        + ([args.source] if args.source else []),
+        capture_output=True, text=True,
+    )
+    if strand.returncode != 0:
+        log.error('Reorder stranded file-scope declarations (hoist them before building):\n%s',
+                  strand.stdout.strip() or strand.stderr.strip())
+
 
 if __name__ == '__main__':
     main()
