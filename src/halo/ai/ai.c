@@ -649,8 +649,9 @@ void ai_update_team_status(void)
  * directions (param_1's encounter vs param_2, and param_2's encounter vs
  * param_1).
  *
- * Confirmed: [EBP+8]=param_1 (int), [EBP+C]=param_2 (int), [EBP+10]=velocity_ptr (ignored).
- * The third arg is pushed by FUN_001a0a40 but never accessed by this function.
+ * Confirmed: [EBP+8]=param_1 (int), [EBP+C]=param_2 (int),
+ * [EBP+10]=velocity_ptr (ignored). The third arg is pushed by FUN_001a0a40 but
+ * never accessed by this function.
  */
 void ai_handle_bump(int param_1, int param_2, float *velocity_ptr)
 {

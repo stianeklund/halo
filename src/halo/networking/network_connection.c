@@ -1,3 +1,5 @@
+#include "network_connection.h"
+
 /* Halo CE Xbox — network connection helpers.
  * c:\halo\SOURCE\networking\network_connection.c
  *
@@ -8,7 +10,6 @@
  * connections" bool, gating whether the server accepts new client joins.
  */
 
-#include "network_connection.h"
 
 /* network_server_allow_client_connections (0x1282f0).
  * Sets the server connection's accept-clients flag.  Asserts the connection
@@ -78,6 +79,67 @@ void network_connection_get_address(int connection, void *buf, int flag)
   }
 }
 
+/* network_connection_connect (0x128460).
+ * Initiates a transport connect on a connection's endpoints toward a remote
+ * address.  Asserts the connection and remote_address are non-null.  Returns
+ * false immediately if the connection has neither a reliable (+0x00) nor an
+ * unreliable (+0x04) endpoint.  When an unreliable endpoint is present it is
+ * connected synchronously via connect_endpoint (FUN_00083e20); a non-zero
+ * status logs an error and returns false.  When a reliable endpoint is present
+ * it is connected either asynchronously (async_process_ref != 0) via
+ * connect_endpoint_async (FUN_000841b0) — tolerating the "in progress" status
+ * -0x17 (0xffe9) as success — or synchronously via connect_endpoint.  Both
+ * connect helpers return their status in AX (16-bit).  Returns true on success.
+ * (The kb.json placeholder decl was void(void); the binary passes three cdecl
+ * args (connection, remote_address, async_process_ref) and returns a bool.) */
+bool network_connection_connect(int connection, int remote_address,
+                                int async_process_ref)
+{
+  network_connection *conn;
+  int reliable;
+  short status;
+  const char *err;
+
+  conn = (network_connection *)connection;
+  assert_halt(connection);
+  assert_halt(remote_address);
+
+  if (conn->reliable_endpoint == 0 && conn->unreliable_endpoint == 0) {
+    return false;
+  }
+
+  if (conn->unreliable_endpoint != 0) {
+    status = FUN_00083e20(conn->unreliable_endpoint, remote_address);
+    if (status != 0) {
+      err = FUN_00081c80(status);
+      error(2, "connect_endpoint() on unreliable endpoint returned error '%s'",
+            err);
+      return false;
+    }
+  }
+
+  reliable = conn->reliable_endpoint;
+  if (reliable != 0) {
+    if (async_process_ref != 0) {
+      status = FUN_000841b0(reliable, remote_address, async_process_ref);
+      if (status != 0 && status != -0x17) {
+        err = FUN_00081c80(status);
+        error(2, "connect_endpoint_async() returned error '%s'", err);
+        return false;
+      }
+      return true;
+    }
+    status = FUN_00083e20(reliable, remote_address);
+    if (status != 0) {
+      err = FUN_00081c80(status);
+      error(2, "connect_endpoint() on reliable endpoint returned error '%s'",
+            err);
+      return false;
+    }
+  }
+  return true;
+}
+
 /* network_connection_set_connection_rejection_procedure (0x128580).
  * Trivial setter: asserts the connection exists, then stores the rejection
  * callback pointer at connection+0xc. */
@@ -145,6 +207,260 @@ bool network_connection_going_stale(int connection)
   return (conn->flags >> _connection_going_stale_bit) & 1;
 }
 
+/* network_connection_read_unreliable (0x1286e0).
+ * Dequeues one datagram message from the connection's unreliable incoming
+ * queue (+0x14).  connection arrives in ESI.  Asserts the connection has an
+ * unreliable queue and is not a server-side client, and that message/buffer
+ * fields are valid (*size > sizeof(message_header)).  Peeks the 2-byte header,
+ * byte-swaps it to host order, and derives the payload size (header >> 4).
+ * Rejects datagrams larger than 400 bytes or larger than the caller buffer
+ * (resetting the queue).  When the whole datagram plus its 4-byte trailing
+ * source address is present it reads the payload into buffer, reads the source
+ * address, stamps the header word into buffer, asserts encryption is inactive,
+ * fills the optional out address (addr+0x10 family=4, addr+0x12=0), writes the
+ * payload size back through *size, and returns true.  A partial datagram logs
+ * an error, resets the queue, and returns false. */
+bool network_connection_read_unreliable(int connection, void *buffer, int *size,
+                                        void *addr)
+{
+  network_connection *conn;
+  unsigned short header;
+  int source_addr;
+  unsigned short *buf_size;
+  unsigned short packet_size;
+  unsigned int available;
+
+  conn = (network_connection *)connection;
+  buf_size = (unsigned short *)size;
+
+  assert_halt_msg(
+    connection != 0 && conn->unreliable_incoming_queue != 0 &&
+      (*(uint8_t *)&conn->flags &
+       FLAG(_connection_create_serverside_client_bit)) == 0,
+    "connection && connection->unreliable_incoming_queue && "
+    "!(connection->flags&FLAG(_connection_create_serverside_client_bit))");
+  assert_halt(buffer);
+  assert_halt(size);
+  assert_halt_msg(*buf_size > 2, "*buffer_size>sizeof(message_header)");
+
+  if (!circular_queue_try_read(conn->unreliable_incoming_queue, &header, 2,
+                               0)) {
+    return false;
+  }
+  byte_swap_message_header(&header, 0);
+  packet_size = header >> 4;
+
+  if (packet_size > DATAGRAM_MAXIMUM_SIZE) {
+    error(2,
+          "got an unusually large datagram (#d bytes); resetting unreliable "
+          "incoming queue",
+          packet_size);
+    circular_queue_reset(conn->unreliable_incoming_queue);
+    return false;
+  }
+
+  if (packet_size > *buf_size) {
+    error(2,
+          "packet in queue is #%d bytes, but we can only handle #%d bytes!; "
+          "resetting unreliable incoming queue",
+          packet_size, *buf_size);
+    circular_queue_reset(conn->unreliable_incoming_queue);
+    return false;
+  }
+
+  available = circular_queue_size(conn->unreliable_incoming_queue);
+  if ((unsigned int)packet_size + 4 <= available &&
+      circular_queue_try_read(conn->unreliable_incoming_queue, buffer,
+                              packet_size, 1) &&
+      circular_queue_try_read(conn->unreliable_incoming_queue, &source_addr, 4,
+                              1)) {
+    *(unsigned short *)buffer = header;
+    assert_halt_msg((header & 1) == 0, "encryption should not be active");
+    if (addr != (void *)0) {
+      *(int *)addr = source_addr;
+      *(unsigned short *)((char *)addr + 0x12) = 0;
+      *(unsigned short *)((char *)addr + 0x10) = 4;
+    }
+    *buf_size = packet_size;
+    return true;
+  }
+
+  available = circular_queue_size(conn->unreliable_incoming_queue);
+  error(2, "partial datagram in queue (#%d of #%d bytes); resetting queue",
+        available, packet_size);
+  circular_queue_reset(conn->unreliable_incoming_queue);
+  return false;
+}
+
+/* network_connection_notify_traffic_event (0x1288e0).
+ * Records a traffic event against a connection's statistics and optional debug
+ * traffic log.  Registers: event in ECX, enable/amount in EAX, connection in
+ * ESI.  All work is gated on enable > 0.  event selects an 8-way switch:
+ *   0 open the per-connection traffic log — derives a filename from the peer
+ *     address (transport_address_to_string, truncated at ':'), opens it
+ *     (crt_fopen; always fails in shipping so the log FILE* at +0x18 stays
+ *     null), writes a column header, and stamps the log start time (+0x1c);
+ *   1 close the log — dumps the datagram/stream counters, header overhead, and
+ *     connection lifetime, then crt_fclose;
+ *   2/3/4/5 append one timing row (elapsed seconds + the enable amount in the
+ *     udp-out / udp-in / tcp-out / tcp-in column); 2 and 3 also bump the
+ *     datagrams-sent (+0x20) / datagrams-received (+0x24) counters;
+ *   6/7 bump the stream-messages-sent (+0x28) / received (+0x2c) counters;
+ *   default asserts "unknown traffic event".
+ * The log body is dead in shipping (no log file opens); the counter increments
+ * in cases 2/3/6/7 are the only live side effects.  Log format strings are
+ * referenced by their original rodata address (the exact pointer the original
+ * passes to fwprintf).  The signed tick delta is folded to unsigned via
+ * _DAT_00265d40 (2^32) before scaling by _DAT_00294bf0 (seconds per tick). */
+void network_connection_notify_traffic_event(int event, int enable,
+                                             int connection)
+{
+  uint8_t addr_buf[24];
+  char name_buf[256];
+  network_connection *conn;
+  int now;
+  int i;
+  double elapsed;
+  const char *addr_str;
+
+  conn = (network_connection *)connection;
+  assert_halt(connection);
+
+  if (enable <= 0) {
+    return;
+  }
+
+  switch (event) {
+  case 0:
+    if (FUN_00083a60((int *)conn->reliable_endpoint, addr_buf) != 0 &&
+        FUN_00083a60((int *)conn->unreliable_endpoint, addr_buf) != 0) {
+      csmemset(addr_buf, 0, 0x18);
+      *(unsigned short *)(addr_buf + 0x10) = 4;
+    }
+    csmemset(name_buf, 0, sizeof(name_buf));
+    addr_str = transport_address_to_string(addr_buf);
+    csstrcpy(name_buf, addr_str);
+    for (i = 0; name_buf[i] != '\0'; i++) {
+      if (name_buf[i] == ':') {
+        name_buf[i] = '\0';
+        break;
+      }
+    }
+    FUN_0008dc30(name_buf, (const char *)0x294d58);
+    conn->traffic_log_file = crt_fopen(name_buf, (const char *)0x265938);
+    if (conn->traffic_log_file != (void *)0) {
+      crt_fprintf(conn->traffic_log_file, (const char *)0x294d10);
+      crt_fflush(conn->traffic_log_file);
+    }
+    conn->traffic_log_start_milliseconds = (int)system_milliseconds();
+    return;
+
+  case 1:
+    if (conn->traffic_log_file == (void *)0) {
+      break;
+    }
+    if (FUN_00083a60((int *)conn->reliable_endpoint, addr_buf) != 0) {
+      csmemset(addr_buf, 0, 0x18);
+      *(unsigned short *)(addr_buf + 0x10) = 4;
+    }
+    crt_fprintf(conn->traffic_log_file, (const char *)0x294d08);
+    crt_fprintf(conn->traffic_log_file, (const char *)0x294cf4,
+                conn->datagrams_sent);
+    crt_fprintf(conn->traffic_log_file, (const char *)0x294cdc,
+                conn->datagrams_received);
+    crt_fprintf(conn->traffic_log_file, (const char *)0x294cc0,
+                conn->stream_messages_sent);
+    crt_fprintf(conn->traffic_log_file, (const char *)0x294ca0,
+                conn->stream_messages_received);
+    crt_fprintf(conn->traffic_log_file, (const char *)0x294c6c, 0x1c);
+    crt_fprintf(conn->traffic_log_file, (const char *)0x294c3c, 0x28);
+    crt_fprintf(conn->traffic_log_file, (const char *)0x294bf8);
+    now = (int)system_milliseconds();
+    elapsed = (double)(now - conn->traffic_log_start_milliseconds);
+    if (now - conn->traffic_log_start_milliseconds < 0) {
+      elapsed += *(double *)0x265d40;
+    }
+    elapsed = elapsed * *(double *)0x294bf0;
+    crt_fprintf(conn->traffic_log_file, (const char *)0x294bcc, elapsed);
+    addr_str = transport_address_to_string(addr_buf);
+    crt_fprintf(conn->traffic_log_file, (const char *)0x294ba4, addr_str);
+    crt_fclose(conn->traffic_log_file);
+    conn->traffic_log_file = 0;
+    return;
+
+  case 2:
+    if (conn->traffic_log_file != (void *)0) {
+      now = (int)system_milliseconds();
+      elapsed = (double)(now - conn->traffic_log_start_milliseconds);
+      if (now - conn->traffic_log_start_milliseconds < 0) {
+        elapsed += *(double *)0x265d40;
+      }
+      elapsed = elapsed * *(double *)0x294bf0;
+      crt_fprintf(conn->traffic_log_file, (const char *)0x294b90, elapsed,
+                  enable, 0, 0, 0);
+      crt_fflush(conn->traffic_log_file);
+    }
+    conn->datagrams_sent += 1;
+    return;
+
+  case 3:
+    if (conn->traffic_log_file != (void *)0) {
+      now = (int)system_milliseconds();
+      elapsed = (double)(now - conn->traffic_log_start_milliseconds);
+      if (now - conn->traffic_log_start_milliseconds < 0) {
+        elapsed += *(double *)0x265d40;
+      }
+      elapsed = elapsed * *(double *)0x294bf0;
+      crt_fprintf(conn->traffic_log_file, (const char *)0x294b90, elapsed, 0,
+                  enable, 0, 0);
+      crt_fflush(conn->traffic_log_file);
+    }
+    conn->datagrams_received += 1;
+    return;
+
+  case 4:
+    if (conn->traffic_log_file != (void *)0) {
+      now = (int)system_milliseconds();
+      elapsed = (double)(now - conn->traffic_log_start_milliseconds);
+      if (now - conn->traffic_log_start_milliseconds < 0) {
+        elapsed += *(double *)0x265d40;
+      }
+      elapsed = elapsed * *(double *)0x294bf0;
+      crt_fprintf(conn->traffic_log_file, (const char *)0x294b90, elapsed, 0, 0,
+                  enable, 0);
+      crt_fflush(conn->traffic_log_file);
+      return;
+    }
+    break;
+
+  case 5:
+    if (conn->traffic_log_file != (void *)0) {
+      now = (int)system_milliseconds();
+      elapsed = (double)(now - conn->traffic_log_start_milliseconds);
+      if (now - conn->traffic_log_start_milliseconds < 0) {
+        elapsed += *(double *)0x265d40;
+      }
+      elapsed = elapsed * *(double *)0x294bf0;
+      crt_fprintf(conn->traffic_log_file, (const char *)0x294b90, elapsed, 0, 0,
+                  0, enable);
+      crt_fflush(conn->traffic_log_file);
+      return;
+    }
+    break;
+
+  case 6:
+    conn->stream_messages_sent += 1;
+    return;
+
+  case 7:
+    conn->stream_messages_received += 1;
+    return;
+
+  default:
+    assert_halt_msg(0, "!\"unknown traffic event\"");
+  }
+}
+
 /* network_connection_keep_alive (0x128d20).
  * Stamps the connection's last-keep-alive timestamp: samples the current
  * millisecond clock (system_milliseconds) and stores it into the dword at
@@ -168,9 +484,9 @@ void network_connection_keep_alive(int connection)
  * child-connection slots at +0x3c: for each live child it removes the child's
  * endpoint from the server's endpoint set (+0x38) and recursively deletes the
  * child, then deletes the endpoint set itself.  Finally the connection block
- * is freed.  network_connection_notify_traffic_event takes its arguments in registers (event=ECX,
- * enable=EAX, connection=ESI), matching the original MOV EAX,1 / MOV ECX,EAX
- * setup with the connection already live in ESI. */
+ * is freed.  network_connection_notify_traffic_event takes its arguments in
+ * registers (event=ECX, enable=EAX, connection=ESI), matching the original MOV
+ * EAX,1 / MOV ECX,EAX setup with the connection already live in ESI. */
 void network_connection_delete(int connection)
 {
   network_connection *conn;
@@ -246,12 +562,13 @@ void network_connection_delete(int connection)
  *    FUN_000831a0; with a destination it uses the addressed writer
  *    FUN_00084740 (result discarded).  Always returns true.
  *
- * network_connection_notify_traffic_event (traffic-event notifier) takes its args in registers
- * (event=ECX, enable=EAX, connection=ESI); every call site passes event=2,
- * enable=size, connection=connection.  The +0x18 debug-log block is dead in
- * shipping builds (no log file is ever opened) but is preserved faithfully:
- * _DAT_00265d40 (2^32) folds the signed tick delta back to unsigned before
- * scaling by _DAT_00294bf0, and the record is emitted with fwprintf/fflush. */
+ * network_connection_notify_traffic_event (traffic-event notifier) takes its
+ * args in registers (event=ECX, enable=EAX, connection=ESI); every call site
+ * passes event=2, enable=size, connection=connection.  The +0x18 debug-log
+ * block is dead in shipping builds (no log file is ever opened) but is
+ * preserved faithfully: _DAT_00265d40 (2^32) folds the signed tick delta back
+ * to unsigned before scaling by _DAT_00294bf0, and the record is emitted with
+ * fwprintf/fflush. */
 bool network_connection_write(void *connection, void *message,
                               unsigned short size, int dest_address,
                               bool reliable)
@@ -281,8 +598,8 @@ bool network_connection_write(void *connection, void *message,
       assert_halt_msg(size <= DATAGRAM_MAXIMUM_SIZE,
                       "buffer_size <= DATAGRAM_MAXIMUM_SIZE");
     }
-    result = FUN_00084740(conn->unreliable_endpoint, message, size,
-                          dest_address);
+    result =
+      FUN_00084740(conn->unreliable_endpoint, message, size, dest_address);
     network_connection_notify_traffic_event(2, size, (int)conn);
     goto finish;
   }
@@ -291,8 +608,8 @@ bool network_connection_write(void *connection, void *message,
     /* normal reliable path */
     assert_halt_msg(size <= 0x800, "message size exceeds maximum allowed size");
     assert_halt_msg((*(uint8_t *)&conn->flags &
-                   (FLAG(_connection_create_clientside_client_bit) |
-                    FLAG(_connection_create_serverside_client_bit))) != 0,
+                     (FLAG(_connection_create_clientside_client_bit) |
+                      FLAG(_connection_create_serverside_client_bit))) != 0,
                     "(flags & clientside) || (flags & serverside)");
     do {
       send_result = send_endpoint((int *)conn->reliable_endpoint,
@@ -350,292 +667,50 @@ finish:
   return result > 0;
 }
 
-/* network_connection_new (0x1296b0).
- * Allocates and initializes a transport connection.  The caller must request
- * either the server role (flags bit 0) or the clientside-client role (flags
- * bit 1); anything else asserts.  Server connections get the larger 0x50-byte
- * block (with the child-connection endpoint set at +0x38 and the accept-clients
- * flag at +0x4c), an unreliable incoming queue of 0x1900 and no reliable queue;
- * clientside clients get the 0x38-byte block, a reliable queue of 0x8000 and an
- * unreliable queue of 0x640.  Both create two transport endpoints (types 0x12
- * and 0x11) via get_next_endpoint_from_set, stamp the creation time (+0x08),
- * flags (+0x30) and well-known port (+0x34), bind/prepare each endpoint through
- * FUN_00083ce0/FUN_00083bd0 (and, for servers, FUN_000843a0 + add the primary
- * endpoint to the set), then allocate the incoming circular queues at +0x10
- * (reliable) and +0x14 (unreliable).  Any failure tears the partial connection
- * down via network_connection_delete and returns 0.  On success it fires the
- * connection-created traffic event (event 0, enable 1) and returns the block.
- * network_connection_notify_traffic_event takes its args in registers (event=ECX, enable=EAX,
- * connection=ESI), matching the original MOV EAX,1 / XOR ECX,ECX setup with the
- * connection live in ESI.  The reliable/unreliable guards compare the full
- * dword size against zero (original: MOV EAX,[size]; CMP EAX,EBX; JZ) — not a
- * byte test — so a 0x8000 reliable size still allocates the client queue.
- * The clientside path deliberately leaves the address scratch fields other than
- * family/port uninitialized (the server-only setup block that zeroes them is
- * skipped), matching the original. */
-int network_connection_new(unsigned int flags, unsigned short well_known_port)
+/* network_connection_new_serverside_client (0x129270).
+ * Wraps an already-accepted reliable transport endpoint (passed in EDI) in a
+ * fresh server-side client connection.  Asserts the endpoint is non-null,
+ * allocates a 0x38-byte connection block, marks it a server-side client
+ * (flags = 4 at +0x30), stores the endpoint at +0x00, and creates the reliable
+ * incoming queue (0x8000 bytes) at +0x10.  On queue-allocation failure it tears
+ * the connection down and returns null.  On success it fires the
+ * connection-created traffic event (event 0, enable 1, via registers) and
+ * returns the new connection block. */
+void *network_connection_new_serverside_client(int endpoint)
 {
-  int connection;
-  network_connection *conn;
-  network_server_connection *server;
-  int endpoint;
-  short status;
-  int reliable_size;
-  int unreliable_size;
-  int address[6];
+  network_connection *connection;
 
-  assert_halt_msg((flags & FLAG(_connection_create_server_bit)) != 0 ||
-                    (flags & FLAG(_connection_create_clientside_client_bit)) != 0,
-                  "(flags&FLAG(_connection_create_server_bit))|| "
-                  "(flags&FLAG(_connection_create_clientside_client_bit))");
+  assert_halt(endpoint);
 
-  if ((flags & FLAG(_connection_create_server_bit)) == 0) {
-    if ((flags & FLAG(_connection_create_clientside_client_bit)) == 0) {
-      return 0;
+  connection = (network_connection *)debug_malloc(
+    0x38, 1, "c:\\halo\\SOURCE\\networking\\network_connection.c", 0x347);
+  if (connection != (network_connection *)0) {
+    connection->flags = FLAG(_connection_create_serverside_client_bit);
+    connection->reliable_endpoint = endpoint;
+    connection->reliable_incoming_queue =
+      (int)circular_queue_new((int)"incoming-reliable", 0x8000);
+    if (connection->reliable_incoming_queue == 0) {
+      network_connection_delete((int)connection);
+      return (void *)0;
     }
-    connection = (int)debug_malloc(
-      0x38, 1, "c:\\halo\\SOURCE\\networking\\network_connection.c", 0xb6);
-    if (connection == 0) {
-      return 0;
-    }
-    reliable_size = 0x8000;
-    unreliable_size = 0x640;
-  } else {
-    assert_halt_msg(well_known_port > MAXIMUM_RESERVED_NETWORK_PORT,
-                    "well_known_port > MAXIMUM_RESERVED_NETWORK_PORT");
-    connection = (int)debug_malloc(
-      0x50, 1, "c:\\halo\\SOURCE\\networking\\network_connection.c", 0xa5);
-    if (connection == 0) {
-      return 0;
-    }
-    ((network_server_connection *)connection)->allow_client_connections = 1;
-    endpoint = create_endpoint_set(5);
-    ((network_server_connection *)connection)->endpoint_set = endpoint;
-    if (endpoint == 0) {
-      network_connection_delete(connection);
-      return 0;
-    }
-    reliable_size = 0;
-    unreliable_size = 0x1900;
+    network_connection_notify_traffic_event(0, 1, (int)connection);
   }
-
-  conn = (network_connection *)connection;
-  server = (network_server_connection *)connection;
-  conn->last_keep_alive_milliseconds = system_milliseconds();
-  conn->flags = flags;
-  endpoint = get_next_endpoint_from_set(0x12);
-  conn->reliable_endpoint = endpoint;
-  if (endpoint == 0) {
-    goto fail;
-  }
-
-  if ((flags & FLAG(_connection_create_server_bit)) != 0) {
-    address[1] = 0;
-    address[2] = 0;
-    address[3] = 0;
-    address[0] = 0;
-    address[5] = 0;
-    *(short *)((char *)&address[4]) = 4;
-    *(unsigned short *)((char *)&address[4] + 2) = well_known_port;
-    status = FUN_00083ce0((int *)endpoint, address);
-    if (status != 0 ||
-        (status = FUN_00083bd0(conn->reliable_endpoint, 0)) != 0 ||
-        (status = FUN_000843a0(conn->reliable_endpoint)) != 0 ||
-        (status = (short)add_endpoint_to_set(
-           conn->reliable_endpoint, (void *)server->endpoint_set)) != 0) {
-      goto fail;
-    }
-  }
-
-  endpoint = get_next_endpoint_from_set(0x11);
-  conn->unreliable_endpoint = endpoint;
-  if (endpoint == 0) {
-    goto fail;
-  }
-  address[0] = 0;
-  *(short *)((char *)&address[4]) = 4;
-  *(unsigned short *)((char *)&address[4] + 2) = well_known_port;
-  conn->well_known_port = well_known_port;
-  status = FUN_00083ce0((int *)endpoint, address);
-  if (status != 0) {
-    goto fail;
-  }
-  status = FUN_00083bd0(conn->unreliable_endpoint, 0);
-  if (status != 0) {
-    goto fail;
-  }
-  if (reliable_size != 0) {
-    conn->reliable_incoming_queue =
-      (int)circular_queue_new((int)"incoming-reliable", reliable_size);
-    if (conn->reliable_incoming_queue == 0) {
-      goto fail;
-    }
-  }
-  if (unreliable_size != 0) {
-    conn->unreliable_incoming_queue =
-      (int)circular_queue_new((int)"incoming-unreliable", unreliable_size);
-    if (conn->unreliable_incoming_queue == 0) {
-      goto fail;
-    }
-  }
-  network_connection_notify_traffic_event(0, 1, connection);
   return connection;
-
-fail:
-  network_connection_delete(connection);
-  return 0;
-}
-
-/* network_connection_connect (0x128460).
- * Initiates a transport connect on a connection's endpoints toward a remote
- * address.  Asserts the connection and remote_address are non-null.  Returns
- * false immediately if the connection has neither a reliable (+0x00) nor an
- * unreliable (+0x04) endpoint.  When an unreliable endpoint is present it is
- * connected synchronously via connect_endpoint (FUN_00083e20); a non-zero
- * status logs an error and returns false.  When a reliable endpoint is present
- * it is connected either asynchronously (async_process_ref != 0) via
- * connect_endpoint_async (FUN_000841b0) — tolerating the "in progress" status
- * -0x17 (0xffe9) as success — or synchronously via connect_endpoint.  Both
- * connect helpers return their status in AX (16-bit).  Returns true on success.
- * (The kb.json placeholder decl was void(void); the binary passes three cdecl
- * args (connection, remote_address, async_process_ref) and returns a bool.) */
-bool network_connection_connect(int connection, int remote_address,
-                                int async_process_ref)
-{
-  network_connection *conn;
-  int reliable;
-  short status;
-  const char *err;
-
-  conn = (network_connection *)connection;
-  assert_halt(connection);
-  assert_halt(remote_address);
-
-  if (conn->reliable_endpoint == 0 && conn->unreliable_endpoint == 0) {
-    return false;
-  }
-
-  if (conn->unreliable_endpoint != 0) {
-    status = FUN_00083e20(conn->unreliable_endpoint, remote_address);
-    if (status != 0) {
-      err = FUN_00081c80(status);
-      error(2, "connect_endpoint() on unreliable endpoint returned error '%s'",
-            err);
-      return false;
-    }
-  }
-
-  reliable = conn->reliable_endpoint;
-  if (reliable != 0) {
-    if (async_process_ref != 0) {
-      status = FUN_000841b0(reliable, remote_address, async_process_ref);
-      if (status != 0 && status != -0x17) {
-        err = FUN_00081c80(status);
-        error(2, "connect_endpoint_async() returned error '%s'", err);
-        return false;
-      }
-      return true;
-    }
-    status = FUN_00083e20(reliable, remote_address);
-    if (status != 0) {
-      err = FUN_00081c80(status);
-      error(2, "connect_endpoint() on reliable endpoint returned error '%s'",
-            err);
-      return false;
-    }
-  }
-  return true;
-}
-
-/* network_connection_read_unreliable (0x1286e0).
- * Dequeues one datagram message from the connection's unreliable incoming
- * queue (+0x14).  connection arrives in ESI.  Asserts the connection has an
- * unreliable queue and is not a server-side client, and that message/buffer
- * fields are valid (*size > sizeof(message_header)).  Peeks the 2-byte header,
- * byte-swaps it to host order, and derives the payload size (header >> 4).
- * Rejects datagrams larger than 400 bytes or larger than the caller buffer
- * (resetting the queue).  When the whole datagram plus its 4-byte trailing
- * source address is present it reads the payload into buffer, reads the source
- * address, stamps the header word into buffer, asserts encryption is inactive,
- * fills the optional out address (addr+0x10 family=4, addr+0x12=0), writes the
- * payload size back through *size, and returns true.  A partial datagram logs
- * an error, resets the queue, and returns false. */
-bool network_connection_read_unreliable(int connection, void *buffer, int *size, void *addr)
-{
-  network_connection *conn;
-  unsigned short header;
-  int source_addr;
-  unsigned short *buf_size;
-  unsigned short packet_size;
-  unsigned int available;
-
-  conn = (network_connection *)connection;
-  buf_size = (unsigned short *)size;
-
-  assert_halt_msg(
-    connection != 0 && conn->unreliable_incoming_queue != 0 &&
-      (*(uint8_t *)&conn->flags &
-       FLAG(_connection_create_serverside_client_bit)) == 0,
-    "connection && connection->unreliable_incoming_queue && "
-    "!(connection->flags&FLAG(_connection_create_serverside_client_bit))");
-  assert_halt(buffer);
-  assert_halt(size);
-  assert_halt_msg(*buf_size > 2, "*buffer_size>sizeof(message_header)");
-
-  if (!circular_queue_try_read(conn->unreliable_incoming_queue, &header, 2, 0)) {
-    return false;
-  }
-  byte_swap_message_header(&header, 0);
-  packet_size = header >> 4;
-
-  if (packet_size > DATAGRAM_MAXIMUM_SIZE) {
-    error(2, "got an unusually large datagram (#d bytes); resetting unreliable incoming queue",
-          packet_size);
-    circular_queue_reset(conn->unreliable_incoming_queue);
-    return false;
-  }
-
-  if (packet_size > *buf_size) {
-    error(2, "packet in queue is #%d bytes, but we can only handle #%d bytes!; resetting unreliable incoming queue",
-          packet_size, *buf_size);
-    circular_queue_reset(conn->unreliable_incoming_queue);
-    return false;
-  }
-
-  available = circular_queue_size(conn->unreliable_incoming_queue);
-  if ((unsigned int)packet_size + 4 <= available &&
-      circular_queue_try_read(conn->unreliable_incoming_queue, buffer, packet_size, 1) &&
-      circular_queue_try_read(conn->unreliable_incoming_queue, &source_addr, 4, 1)) {
-    *(unsigned short *)buffer = header;
-    assert_halt_msg((header & 1) == 0, "encryption should not be active");
-    if (addr != (void *)0) {
-      *(int *)addr = source_addr;
-      *(unsigned short *)((char *)addr + 0x12) = 0;
-      *(unsigned short *)((char *)addr + 0x10) = 4;
-    }
-    *buf_size = packet_size;
-    return true;
-  }
-
-  available = circular_queue_size(conn->unreliable_incoming_queue);
-  error(2, "partial datagram in queue (#%d of #%d bytes); resetting queue",
-        available, packet_size);
-  circular_queue_reset(conn->unreliable_incoming_queue);
-  return false;
 }
 
 /* network_connection_read_reliable (0x1292f0).
- * Sibling of network_connection_read_unreliable for the reliable stream incoming queue (+0x10);
- * connection arrives in EDI.  Peeks the 2-byte header, byte-swaps it, derives
- * payload size (header >> 4).  Rejects messages larger than 0x800 bytes or the
- * caller buffer (resetting the queue).  Returns false without logging when the
- * full payload is not yet buffered.  On success reads the payload into buffer,
- * stamps the header word, asserts encryption inactive, and — when an out
- * address is supplied — queries the reliable endpoint's peer address
- * (FUN_00083a60), zeroing the 0x18-byte address and setting family=4 on a
- * mismatch.  Writes the payload size back through *size, bumps the
+ * Sibling of network_connection_read_unreliable for the reliable stream
+ * incoming queue (+0x10); connection arrives in EDI.  Peeks the 2-byte header,
+ * byte-swaps it, derives payload size (header >> 4).  Rejects messages larger
+ * than 0x800 bytes or the caller buffer (resetting the queue).  Returns false
+ * without logging when the full payload is not yet buffered.  On success reads
+ * the payload into buffer, stamps the header word, asserts encryption inactive,
+ * and — when an out address is supplied — queries the reliable endpoint's peer
+ * address (FUN_00083a60), zeroing the 0x18-byte address and setting family=4 on
+ * a mismatch.  Writes the payload size back through *size, bumps the
  * stream-messages-received counter (+0x2c), and returns true. */
-bool network_connection_read_reliable(int connection, void *buffer, int *size, void *addr)
+bool network_connection_read_reliable(int connection, void *buffer, int *size,
+                                      void *addr)
 {
   network_connection *conn;
   unsigned short header;
@@ -659,14 +734,18 @@ bool network_connection_read_reliable(int connection, void *buffer, int *size, v
   packet_size = header >> 4;
 
   if (packet_size > 0x800) {
-    error(2, "got an unusually large message (#d bytes); resetting reliable incoming queue",
+    error(2,
+          "got an unusually large message (#d bytes); resetting reliable "
+          "incoming queue",
           packet_size);
     circular_queue_reset(conn->reliable_incoming_queue);
     return false;
   }
 
   if (packet_size > *buf_size) {
-    error(2, "packet in queue is #%d bytes, but we can only handle #%d bytes!; resetting reliable incoming queue",
+    error(2,
+          "packet in queue is #%d bytes, but we can only handle #%d bytes!; "
+          "resetting reliable incoming queue",
           packet_size, *buf_size);
     circular_queue_reset(conn->reliable_incoming_queue);
     return false;
@@ -674,7 +753,8 @@ bool network_connection_read_reliable(int connection, void *buffer, int *size, v
 
   available = circular_queue_size(conn->reliable_incoming_queue);
   if ((int)(unsigned int)packet_size <= available &&
-      circular_queue_try_read(conn->reliable_incoming_queue, buffer, packet_size, 1)) {
+      circular_queue_try_read(conn->reliable_incoming_queue, buffer,
+                              packet_size, 1)) {
     *(unsigned short *)buffer = header;
     assert_halt_msg((header & 1) == 0, "encryption should not be active");
     if (addr != (void *)0) {
@@ -778,6 +858,143 @@ finish:
   return ok;
 }
 
+/* network_connection_new (0x1296b0).
+ * Allocates and initializes a transport connection.  The caller must request
+ * either the server role (flags bit 0) or the clientside-client role (flags
+ * bit 1); anything else asserts.  Server connections get the larger 0x50-byte
+ * block (with the child-connection endpoint set at +0x38 and the accept-clients
+ * flag at +0x4c), an unreliable incoming queue of 0x1900 and no reliable queue;
+ * clientside clients get the 0x38-byte block, a reliable queue of 0x8000 and an
+ * unreliable queue of 0x640.  Both create two transport endpoints (types 0x12
+ * and 0x11) via get_next_endpoint_from_set, stamp the creation time (+0x08),
+ * flags (+0x30) and well-known port (+0x34), bind/prepare each endpoint through
+ * FUN_00083ce0/FUN_00083bd0 (and, for servers, FUN_000843a0 + add the primary
+ * endpoint to the set), then allocate the incoming circular queues at +0x10
+ * (reliable) and +0x14 (unreliable).  Any failure tears the partial connection
+ * down via network_connection_delete and returns 0.  On success it fires the
+ * connection-created traffic event (event 0, enable 1) and returns the block.
+ * network_connection_notify_traffic_event takes its args in registers
+ * (event=ECX, enable=EAX, connection=ESI), matching the original MOV EAX,1 /
+ * XOR ECX,ECX setup with the connection live in ESI.  The reliable/unreliable
+ * guards compare the full dword size against zero (original: MOV EAX,[size];
+ * CMP EAX,EBX; JZ) — not a byte test — so a 0x8000 reliable size still
+ * allocates the client queue. The clientside path deliberately leaves the
+ * address scratch fields other than family/port uninitialized (the server-only
+ * setup block that zeroes them is skipped), matching the original. */
+int network_connection_new(unsigned int flags, unsigned short well_known_port)
+{
+  int connection;
+  network_connection *conn;
+  network_server_connection *server;
+  int endpoint;
+  short status;
+  int reliable_size;
+  int unreliable_size;
+  int address[6];
+
+  assert_halt_msg((flags & FLAG(_connection_create_server_bit)) != 0 ||
+                    (flags & FLAG(_connection_create_clientside_client_bit)) !=
+                      0,
+                  "(flags&FLAG(_connection_create_server_bit))|| "
+                  "(flags&FLAG(_connection_create_clientside_client_bit))");
+
+  if ((flags & FLAG(_connection_create_server_bit)) == 0) {
+    if ((flags & FLAG(_connection_create_clientside_client_bit)) == 0) {
+      return 0;
+    }
+    connection = (int)debug_malloc(
+      0x38, 1, "c:\\halo\\SOURCE\\networking\\network_connection.c", 0xb6);
+    if (connection == 0) {
+      return 0;
+    }
+    reliable_size = 0x8000;
+    unreliable_size = 0x640;
+  } else {
+    assert_halt_msg(well_known_port > MAXIMUM_RESERVED_NETWORK_PORT,
+                    "well_known_port > MAXIMUM_RESERVED_NETWORK_PORT");
+    connection = (int)debug_malloc(
+      0x50, 1, "c:\\halo\\SOURCE\\networking\\network_connection.c", 0xa5);
+    if (connection == 0) {
+      return 0;
+    }
+    ((network_server_connection *)connection)->allow_client_connections = 1;
+    endpoint = create_endpoint_set(5);
+    ((network_server_connection *)connection)->endpoint_set = endpoint;
+    if (endpoint == 0) {
+      network_connection_delete(connection);
+      return 0;
+    }
+    reliable_size = 0;
+    unreliable_size = 0x1900;
+  }
+
+  conn = (network_connection *)connection;
+  server = (network_server_connection *)connection;
+  conn->last_keep_alive_milliseconds = system_milliseconds();
+  conn->flags = flags;
+  endpoint = get_next_endpoint_from_set(0x12);
+  conn->reliable_endpoint = endpoint;
+  if (endpoint == 0) {
+    goto fail;
+  }
+
+  if ((flags & FLAG(_connection_create_server_bit)) != 0) {
+    address[1] = 0;
+    address[2] = 0;
+    address[3] = 0;
+    address[0] = 0;
+    address[5] = 0;
+    *(short *)((char *)&address[4]) = 4;
+    *(unsigned short *)((char *)&address[4] + 2) = well_known_port;
+    status = FUN_00083ce0((int *)endpoint, address);
+    if (status != 0 ||
+        (status = FUN_00083bd0(conn->reliable_endpoint, 0)) != 0 ||
+        (status = FUN_000843a0(conn->reliable_endpoint)) != 0 ||
+        (status = (short)add_endpoint_to_set(
+           conn->reliable_endpoint, (void *)server->endpoint_set)) != 0) {
+      goto fail;
+    }
+  }
+
+  endpoint = get_next_endpoint_from_set(0x11);
+  conn->unreliable_endpoint = endpoint;
+  if (endpoint == 0) {
+    goto fail;
+  }
+  address[0] = 0;
+  *(short *)((char *)&address[4]) = 4;
+  *(unsigned short *)((char *)&address[4] + 2) = well_known_port;
+  conn->well_known_port = well_known_port;
+  status = FUN_00083ce0((int *)endpoint, address);
+  if (status != 0) {
+    goto fail;
+  }
+  status = FUN_00083bd0(conn->unreliable_endpoint, 0);
+  if (status != 0) {
+    goto fail;
+  }
+  if (reliable_size != 0) {
+    conn->reliable_incoming_queue =
+      (int)circular_queue_new((int)"incoming-reliable", reliable_size);
+    if (conn->reliable_incoming_queue == 0) {
+      goto fail;
+    }
+  }
+  if (unreliable_size != 0) {
+    conn->unreliable_incoming_queue =
+      (int)circular_queue_new((int)"incoming-unreliable", unreliable_size);
+    if (conn->unreliable_incoming_queue == 0) {
+      goto fail;
+    }
+  }
+  network_connection_notify_traffic_event(0, 1, connection);
+  return connection;
+
+fail:
+  network_connection_delete(connection);
+  return 0;
+}
+
 /* network_connection_idle (0x129a30).
  * Services a server connection's endpoint set once per call; connection
  * arrives in EBX and *output is cleared, receiving a newly-accepted client
@@ -787,14 +1004,15 @@ finish:
  * endpoint: activity on the server's own listening endpoint (== *connection)
  * accepts a new client — when accepting is enabled (+0x4c) and the set is not
  * full (< 5) it accepts the raw endpoint (FUN_00084450), prepares it
- * (FUN_00083bd0) and wraps it in a reliable connection (network_connection_new_serverside_client, endpoint
- * in EDI), storing it into the first free child slot (+0x3c[0..3]); otherwise
- * it rejects, either invoking the rejection callback (+0x0c) then destroying
- * the endpoint, or silently dropping it (FUN_00084940).  Activity on an
- * existing child endpoint drains it via network_connection_idle_client_reliable_endpoint; a failed drain removes
- * the child's endpoint from the set and marks the child closed (flags|0x10).
- * An endpoint matching no known child asserts "rogue endpoint".  Returns the
- * running success flag. */
+ * (FUN_00083bd0) and wraps it in a reliable connection
+ * (network_connection_new_serverside_client, endpoint in EDI), storing it into
+ * the first free child slot (+0x3c[0..3]); otherwise it rejects, either
+ * invoking the rejection callback (+0x0c) then destroying the endpoint, or
+ * silently dropping it (FUN_00084940).  Activity on an existing child endpoint
+ * drains it via network_connection_idle_client_reliable_endpoint; a failed
+ * drain removes the child's endpoint from the set and marks the child closed
+ * (flags|0x10). An endpoint matching no known child asserts "rogue endpoint".
+ * Returns the running success flag. */
 bool network_connection_idle(int connection, int *output)
 {
   network_server_connection *server;
@@ -837,7 +1055,8 @@ bool network_connection_idle(int connection, int *output)
             /* accept a new client */
             accepted = FUN_00084450(endpoint);
             if (accepted == 0 || FUN_00083bd0(accepted, 0) != 0 ||
-                (new_conn = (int)network_connection_new_serverside_client(accepted)) == 0) {
+                (new_conn = (int)network_connection_new_serverside_client(
+                   accepted)) == 0) {
               error(2, "accept_endpoint() returned NULL");
             } else {
               slot = server->client_connections;
@@ -876,13 +1095,13 @@ bool network_connection_idle(int connection, int *output)
           do {
             if (*slot != 0 && (*slot)->reliable_endpoint == endpoint) {
               child = server->client_connections[i];
-              ok = network_connection_idle_client_reliable_endpoint(
-                (int)child);
+              ok = network_connection_idle_client_reliable_endpoint((int)child);
               if (!ok) {
                 if ((short)remove_endpoint_from_set(
-                        (int *)child->reliable_endpoint,
-                        (uint32_t *)server->endpoint_set) != 0) {
-                  error(2, "failed to remove a client endpoint from the server's endpoint set");
+                      (int *)child->reliable_endpoint,
+                      (uint32_t *)server->endpoint_set) != 0) {
+                  error(2, "failed to remove a client endpoint from the "
+                           "server's endpoint set");
                 }
                 child->flags |= FLAG(_connection_closed_bit);
                 ok = true;
@@ -898,8 +1117,7 @@ bool network_connection_idle(int connection, int *output)
           assert_halt_msg(0, "rogue endpoint connected to the server");
         }
       }
-    next_endpoint:
-      ;
+    next_endpoint:;
     } while (ok);
   } else if (poll_result != -0xd) {
     err = FUN_00081c80(poll_result);
@@ -907,204 +1125,4 @@ bool network_connection_idle(int connection, int *output)
     return false;
   }
   return ok;
-}
-
-/* network_connection_notify_traffic_event (0x1288e0).
- * Records a traffic event against a connection's statistics and optional debug
- * traffic log.  Registers: event in ECX, enable/amount in EAX, connection in
- * ESI.  All work is gated on enable > 0.  event selects an 8-way switch:
- *   0 open the per-connection traffic log — derives a filename from the peer
- *     address (transport_address_to_string, truncated at ':'), opens it
- *     (crt_fopen; always fails in shipping so the log FILE* at +0x18 stays
- *     null), writes a column header, and stamps the log start time (+0x1c);
- *   1 close the log — dumps the datagram/stream counters, header overhead, and
- *     connection lifetime, then crt_fclose;
- *   2/3/4/5 append one timing row (elapsed seconds + the enable amount in the
- *     udp-out / udp-in / tcp-out / tcp-in column); 2 and 3 also bump the
- *     datagrams-sent (+0x20) / datagrams-received (+0x24) counters;
- *   6/7 bump the stream-messages-sent (+0x28) / received (+0x2c) counters;
- *   default asserts "unknown traffic event".
- * The log body is dead in shipping (no log file opens); the counter increments
- * in cases 2/3/6/7 are the only live side effects.  Log format strings are
- * referenced by their original rodata address (the exact pointer the original
- * passes to fwprintf).  The signed tick delta is folded to unsigned via
- * _DAT_00265d40 (2^32) before scaling by _DAT_00294bf0 (seconds per tick). */
-void network_connection_notify_traffic_event(int event, int enable, int connection)
-{
-  uint8_t addr_buf[24];
-  char name_buf[256];
-  network_connection *conn;
-  int now;
-  int i;
-  double elapsed;
-  const char *addr_str;
-
-  conn = (network_connection *)connection;
-  assert_halt(connection);
-
-  if (enable <= 0) {
-    return;
-  }
-
-  switch (event) {
-  case 0:
-    if (FUN_00083a60((int *)conn->reliable_endpoint, addr_buf) != 0 &&
-        FUN_00083a60((int *)conn->unreliable_endpoint, addr_buf) != 0) {
-      csmemset(addr_buf, 0, 0x18);
-      *(unsigned short *)(addr_buf + 0x10) = 4;
-    }
-    csmemset(name_buf, 0, sizeof(name_buf));
-    addr_str = transport_address_to_string(addr_buf);
-    csstrcpy(name_buf, addr_str);
-    for (i = 0; name_buf[i] != '\0'; i++) {
-      if (name_buf[i] == ':') {
-        name_buf[i] = '\0';
-        break;
-      }
-    }
-    FUN_0008dc30(name_buf, (const char *)0x294d58);
-    conn->traffic_log_file = crt_fopen(name_buf, (const char *)0x265938);
-    if (conn->traffic_log_file != (void *)0) {
-      crt_fprintf(conn->traffic_log_file, (const char *)0x294d10);
-      crt_fflush(conn->traffic_log_file);
-    }
-    conn->traffic_log_start_milliseconds = (int)system_milliseconds();
-    return;
-
-  case 1:
-    if (conn->traffic_log_file == (void *)0) {
-      break;
-    }
-    if (FUN_00083a60((int *)conn->reliable_endpoint, addr_buf) != 0) {
-      csmemset(addr_buf, 0, 0x18);
-      *(unsigned short *)(addr_buf + 0x10) = 4;
-    }
-    crt_fprintf(conn->traffic_log_file, (const char *)0x294d08);
-    crt_fprintf(conn->traffic_log_file, (const char *)0x294cf4,
-                conn->datagrams_sent);
-    crt_fprintf(conn->traffic_log_file, (const char *)0x294cdc,
-                conn->datagrams_received);
-    crt_fprintf(conn->traffic_log_file, (const char *)0x294cc0,
-                conn->stream_messages_sent);
-    crt_fprintf(conn->traffic_log_file, (const char *)0x294ca0,
-                conn->stream_messages_received);
-    crt_fprintf(conn->traffic_log_file, (const char *)0x294c6c, 0x1c);
-    crt_fprintf(conn->traffic_log_file, (const char *)0x294c3c, 0x28);
-    crt_fprintf(conn->traffic_log_file, (const char *)0x294bf8);
-    now = (int)system_milliseconds();
-    elapsed = (double)(now - conn->traffic_log_start_milliseconds);
-    if (now - conn->traffic_log_start_milliseconds < 0) {
-      elapsed += *(double *)0x265d40;
-    }
-    elapsed = elapsed * *(double *)0x294bf0;
-    crt_fprintf(conn->traffic_log_file, (const char *)0x294bcc, elapsed);
-    addr_str = transport_address_to_string(addr_buf);
-    crt_fprintf(conn->traffic_log_file, (const char *)0x294ba4,
-                addr_str);
-    crt_fclose(conn->traffic_log_file);
-    conn->traffic_log_file = 0;
-    return;
-
-  case 2:
-    if (conn->traffic_log_file != (void *)0) {
-      now = (int)system_milliseconds();
-      elapsed = (double)(now - conn->traffic_log_start_milliseconds);
-      if (now - conn->traffic_log_start_milliseconds < 0) {
-        elapsed += *(double *)0x265d40;
-      }
-      elapsed = elapsed * *(double *)0x294bf0;
-      crt_fprintf(conn->traffic_log_file, (const char *)0x294b90,
-                  elapsed, enable, 0, 0, 0);
-      crt_fflush(conn->traffic_log_file);
-    }
-    conn->datagrams_sent += 1;
-    return;
-
-  case 3:
-    if (conn->traffic_log_file != (void *)0) {
-      now = (int)system_milliseconds();
-      elapsed = (double)(now - conn->traffic_log_start_milliseconds);
-      if (now - conn->traffic_log_start_milliseconds < 0) {
-        elapsed += *(double *)0x265d40;
-      }
-      elapsed = elapsed * *(double *)0x294bf0;
-      crt_fprintf(conn->traffic_log_file, (const char *)0x294b90,
-                  elapsed, 0, enable, 0, 0);
-      crt_fflush(conn->traffic_log_file);
-    }
-    conn->datagrams_received += 1;
-    return;
-
-  case 4:
-    if (conn->traffic_log_file != (void *)0) {
-      now = (int)system_milliseconds();
-      elapsed = (double)(now - conn->traffic_log_start_milliseconds);
-      if (now - conn->traffic_log_start_milliseconds < 0) {
-        elapsed += *(double *)0x265d40;
-      }
-      elapsed = elapsed * *(double *)0x294bf0;
-      crt_fprintf(conn->traffic_log_file, (const char *)0x294b90,
-                  elapsed, 0, 0, enable, 0);
-      crt_fflush(conn->traffic_log_file);
-      return;
-    }
-    break;
-
-  case 5:
-    if (conn->traffic_log_file != (void *)0) {
-      now = (int)system_milliseconds();
-      elapsed = (double)(now - conn->traffic_log_start_milliseconds);
-      if (now - conn->traffic_log_start_milliseconds < 0) {
-        elapsed += *(double *)0x265d40;
-      }
-      elapsed = elapsed * *(double *)0x294bf0;
-      crt_fprintf(conn->traffic_log_file, (const char *)0x294b90,
-                  elapsed, 0, 0, 0, enable);
-      crt_fflush(conn->traffic_log_file);
-      return;
-    }
-    break;
-
-  case 6:
-    conn->stream_messages_sent += 1;
-    return;
-
-  case 7:
-    conn->stream_messages_received += 1;
-    return;
-
-  default:
-    assert_halt_msg(0, "!\"unknown traffic event\"");
-  }
-}
-
-/* network_connection_new_serverside_client (0x129270).
- * Wraps an already-accepted reliable transport endpoint (passed in EDI) in a
- * fresh server-side client connection.  Asserts the endpoint is non-null,
- * allocates a 0x38-byte connection block, marks it a server-side client
- * (flags = 4 at +0x30), stores the endpoint at +0x00, and creates the reliable
- * incoming queue (0x8000 bytes) at +0x10.  On queue-allocation failure it tears
- * the connection down and returns null.  On success it fires the
- * connection-created traffic event (event 0, enable 1, via registers) and
- * returns the new connection block. */
-void *network_connection_new_serverside_client(int endpoint)
-{
-  network_connection *connection;
-
-  assert_halt(endpoint);
-
-  connection = (network_connection *)debug_malloc(
-    0x38, 1, "c:\\halo\\SOURCE\\networking\\network_connection.c", 0x347);
-  if (connection != (network_connection *)0) {
-    connection->flags = FLAG(_connection_create_serverside_client_bit);
-    connection->reliable_endpoint = endpoint;
-    connection->reliable_incoming_queue =
-      (int)circular_queue_new((int)"incoming-reliable", 0x8000);
-    if (connection->reliable_incoming_queue == 0) {
-      network_connection_delete((int)connection);
-      return (void *)0;
-    }
-    network_connection_notify_traffic_event(0, 1, (int)connection);
-  }
-  return connection;
 }

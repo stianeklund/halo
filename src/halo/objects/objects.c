@@ -11,83 +11,127 @@ double fabs(double x);
 double pow(double x, double y);
 #endif
 
-/* Address-based function call macros for callees without proper kb.json entries */
+/* Lift-artifact warnings suppressed file-wide. The original per-function
+ * clang-diagnostic push/pop pairs were scrambled by maintain.py address
+ * sorting; consolidated to file scope (diagnostic-only, no codegen effect). */
+#pragma clang diagnostic ignored "-Wunused-but-set-variable"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#pragma clang diagnostic ignored "-Wuninitialized"
+
+
+/* Address-based function call macros for callees without proper kb.json entries
+ */
 #define XCALL(addr, type) ((type)(addr))
-#define CALL_FUN_001d0581() XCALL(0x1d0581, int(*)(void))()
-#define CALL_thunk_FUN_001029a0(a) XCALL(0x8e2f0, void(*)(int))(a)
-#define CALL_FUN_000b65c0(a) XCALL(0xb65c0, int(*)(unsigned short))(a)
-#define CALL_FUN_000b6740(a,b) XCALL(0xb6740, void(*)(unsigned short,void*))(a,b)
-#define CALL_FUN_000b7e30(a) XCALL(0xb7e30, void*(*)(unsigned short))(a)
-#define CALL_FUN_001a9240(a,b) XCALL(0x1a9240, void(*)(int,void*))(a,b)
-#define CALL_FUN_00084a70(a,b) XCALL(0x84a70, char(*)(float*,float*))(a,b)
-#define CALL_FUN_00084a10(a) XCALL(0x84a10, char(*)(float*))(a)
-#define CALL_game_time_get_rate() XCALL(0xb5cc0, float(*)(void))()
-#define CALL_FUN_000b5c30() XCALL(0xb5c30, char(*)(void))()
-#define CALL_FUN_000b5aa0() XCALL(0xb5aa0, int(*)(void))()
-#define CALL_FUN_0013d640(a,b) XCALL(0x13d640, int(*)(int,int))(a,b)
+#define CALL_FUN_001d0581() XCALL(0x1d0581, int (*)(void))()
+#define CALL_thunk_FUN_001029a0(a) XCALL(0x8e2f0, void (*)(int))(a)
+#define CALL_FUN_000b65c0(a) XCALL(0xb65c0, int (*)(unsigned short))(a)
+#define CALL_FUN_000b6740(a, b) \
+  XCALL(0xb6740, void (*)(unsigned short, void *))(a, b)
+#define CALL_FUN_000b7e30(a) XCALL(0xb7e30, void *(*)(unsigned short))(a)
+#define CALL_FUN_001a9240(a, b) XCALL(0x1a9240, void (*)(int, void *))(a, b)
+#define CALL_FUN_00084a70(a, b) XCALL(0x84a70, char (*)(float *, float *))(a, b)
+#define CALL_FUN_00084a10(a) XCALL(0x84a10, char (*)(float *))(a)
+#define CALL_game_time_get_rate() XCALL(0xb5cc0, float (*)(void))()
+#define CALL_FUN_000b5c30() XCALL(0xb5c30, char (*)(void))()
+#define CALL_FUN_000b5aa0() XCALL(0xb5aa0, int (*)(void))()
+#define CALL_FUN_0013d640(a, b) XCALL(0x13d640, int (*)(int, int))(a, b)
 /* real_rgb_color_brightness (0x7a750) — call by name, no XCALL needed */
-#define CALL_FUN_00198cb0(a,b,c,d,e,f,g,h) XCALL(0x198cb0, char(*)(int,void*,void*,void*,void*,void*,void*,void*))(a,b,c,d,e,f,g,h)
-#define CALL_FUN_001bf570(a,b,c) XCALL(0x1bf570, int(*)(int,int,int))(a,b,c)
-#define CALL_FUN_001396e0(a) XCALL(0x1396e0, void(*)(int))(a)
-#define CALL_FUN_001198f0(a,b) XCALL(0x1198f0, int(*)(void*,int))(a,b)
-#define CALL_FUN_001196d0(a,b) XCALL(0x1196d0, void(*)(void*,int))(a,b)
-#define CALL_FUN_001919a0(a,b,c) XCALL(0x1919a0, void(*)(void*,int,int))(a,b,c)
-#define CALL_FUN_001403a0(a,b,c) XCALL(0x1403a0, void(*)(int,unsigned short,float*))(a,b,c)
-#define CALL_FUN_0010a710(a,b) XCALL(0x10a710, float(*)(unsigned short,float))(a,b)
+#define CALL_FUN_00198cb0(a, b, c, d, e, f, g, h)                              \
+  XCALL(0x198cb0,                                                              \
+        char (*)(int, void *, void *, void *, void *, void *, void *, void *)) \
+  (a, b, c, d, e, f, g, h)
+#define CALL_FUN_001bf570(a, b, c) \
+  XCALL(0x1bf570, int (*)(int, int, int))(a, b, c)
+#define CALL_FUN_001396e0(a) XCALL(0x1396e0, void (*)(int))(a)
+#define CALL_FUN_001198f0(a, b) XCALL(0x1198f0, int (*)(void *, int))(a, b)
+#define CALL_FUN_001196d0(a, b) XCALL(0x1196d0, void (*)(void *, int))(a, b)
+#define CALL_FUN_001919a0(a, b, c) \
+  XCALL(0x1919a0, void (*)(void *, int, int))(a, b, c)
+#define CALL_FUN_001403a0(a, b, c) \
+  XCALL(0x1403a0, void (*)(int, unsigned short, float *))(a, b, c)
+#define CALL_FUN_0010a710(a, b) \
+  XCALL(0x10a710, float (*)(unsigned short, float))(a, b)
 /* first_person_weapon_center_flashlight: replaced XCALL with named call */
-/* first_person_weapon_adjust_light: replaced XCALL with named call — takes 5 args (MSVC stack-reuse) */
-#define CALL_FUN_000ddb90(a,b,c,d) XCALL(0xddb90, short(*)(int,int,void*,int))(a,b,c,d)
-#define CALL_FUN_0013fea0_2(a,b) XCALL(0x13fea0, int(*)(int,unsigned short))(a,b)
-#define CALL_FUN_0013fea0_5(a,b,c,d,e) XCALL(0x13fea0, int(*)(int,unsigned short,void*,void*,void*))(a,b,c,d,e)
-#define CALL_FUN_00140f10(a,b,c,d) XCALL(0x140f10, short(*)(void*,int,void*,int))(a,b,c,d)
-#define CALL_FUN_00099530(a,b) XCALL(0x99530, unsigned int(*)(float,float*))(a,b)
-#define CALL_FUN_0008fa40(a) XCALL(0x8fa40, void(*)(void*))(a)
-#define CALL_FUN_0008fac0(a) XCALL(0x8fac0, void(*)(void*))(a)
-#define CALL_FUN_001193f0(a) XCALL(0x1193f0, void(*)(void*))(a)
-#define CALL_FUN_00119320(a,b) XCALL(0x119320, int(*)(void*,int))(a,b)
-#define CALL_FUN_00140cc0(a) XCALL(0x140cc0, void(*)(int))(a)
-#define CALL_FUN_0013fc20(a,b,c) XCALL(0x13fc20, void(*)(void*,int,int))(a,b,c)
-#define CALL_FUN_0013fb30(a) XCALL(0x13fb30, void(*)(int))(a)
-#define CALL_FUN_00143c80(a,b) XCALL(0x143c80, int(*)(void*,void*))(a,b)
-#define CALL_FUN_0010bbc0(a,b,c) XCALL(0x10bbc0, void(*)(void*,void*,void*))(a,b,c)
-#define CALL_FUN_000f6d00_0() XCALL(0xf6d00, char(*)(void))()
-#define CALL_FUN_000f6d00_1(a) XCALL(0xf6d00, char(*)(void*))(a)
-#define CALL_FUN_00021fb0(a) XCALL(0x21fb0, char(*)(float*))(a)
-#define CALL_FUN_000a16b0(a) XCALL(0xa16b0, char(*)(void*))(a)
-#define CALL_FUN_00143ae0() XCALL(0x143ae0, void(*)(void))()
-#define CALL_FUN_001d9e59(a,b) XCALL(0x1d9e59, void*(*)(const char*,const char*))(a,b)
-#define CALL_FUN_001d9260 XCALL(0x1d9260, int(*)(void*,const char*,...))
-#define CALL_FUN_0013f3b0(a,b) XCALL(0x13f3b0, void(*)(void*,int))(a,b)
-#define CALL_FUN_0018f180(a,b) XCALL(0x18f180, void(*)(void*,void*))(a,b)
-#define CALL_FUN_00140ce0(a,b) XCALL(0x140ce0, void(*)(int,void*))(a,b)
-#define CALL_FUN_00013010(a) XCALL(0x13010, float(*)(void*))(a)
-#define CALL_FUN_001ba1f0(a) XCALL(0x1ba1f0, void(*)(int))(a)
-#define CALL_FUN_0013aed0(a) XCALL(0x13aed0, void(*)(int))(a)
-#define CALL_FUN_00184e50(a) XCALL(0x184e50, short*(*)(int))(a)
-#define CALL_FUN_00181900(a) XCALL(0x181900, void(*)(int))(a)
-#define CALL_FUN_001812c0(a) XCALL(0x1812c0, int(*)(void*))(a)
-#define CALL_FUN_00181670(a) XCALL(0x181670, void(*)(void*))(a)
-#define CALL_FUN_00089240(a,b) XCALL(0x89240, void(*)(int,void*))(a,b)
-#define CALL_FUN_00085b60(a,b,c) XCALL(0x85b60, void(*)(int,unsigned short,int))(a,b,c)
-#define CALL_FUN_00085c80(a,b,c) XCALL(0x85c80, void(*)(int,void*,void*))(a,b,c)
+/* first_person_weapon_adjust_light: replaced XCALL with named call — takes 5
+ * args (MSVC stack-reuse) */
+#define CALL_FUN_000ddb90(a, b, c, d) \
+  XCALL(0xddb90, short (*)(int, int, void *, int))(a, b, c, d)
+#define CALL_FUN_0013fea0_2(a, b) \
+  XCALL(0x13fea0, int (*)(int, unsigned short))(a, b)
+#define CALL_FUN_0013fea0_5(a, b, c, d, e)                              \
+  XCALL(0x13fea0, int (*)(int, unsigned short, void *, void *, void *)) \
+  (a, b, c, d, e)
+#define CALL_FUN_00140f10(a, b, c, d) \
+  XCALL(0x140f10, short (*)(void *, int, void *, int))(a, b, c, d)
+#define CALL_FUN_00099530(a, b) \
+  XCALL(0x99530, unsigned int (*)(float, float *))(a, b)
+#define CALL_FUN_0008fa40(a) XCALL(0x8fa40, void (*)(void *))(a)
+#define CALL_FUN_0008fac0(a) XCALL(0x8fac0, void (*)(void *))(a)
+#define CALL_FUN_001193f0(a) XCALL(0x1193f0, void (*)(void *))(a)
+#define CALL_FUN_00119320(a, b) XCALL(0x119320, int (*)(void *, int))(a, b)
+#define CALL_FUN_00140cc0(a) XCALL(0x140cc0, void (*)(int))(a)
+#define CALL_FUN_0013fc20(a, b, c) \
+  XCALL(0x13fc20, void (*)(void *, int, int))(a, b, c)
+#define CALL_FUN_0013fb30(a) XCALL(0x13fb30, void (*)(int))(a)
+#define CALL_FUN_00143c80(a, b) XCALL(0x143c80, int (*)(void *, void *))(a, b)
+#define CALL_FUN_0010bbc0(a, b, c) \
+  XCALL(0x10bbc0, void (*)(void *, void *, void *))(a, b, c)
+#define CALL_FUN_000f6d00_0() XCALL(0xf6d00, char (*)(void))()
+#define CALL_FUN_000f6d00_1(a) XCALL(0xf6d00, char (*)(void *))(a)
+#define CALL_FUN_00021fb0(a) XCALL(0x21fb0, char (*)(float *))(a)
+#define CALL_FUN_000a16b0(a) XCALL(0xa16b0, char (*)(void *))(a)
+#define CALL_FUN_00143ae0() XCALL(0x143ae0, void (*)(void))()
+#define CALL_FUN_001d9e59(a, b) \
+  XCALL(0x1d9e59, void *(*)(const char *, const char *))(a, b)
+#define CALL_FUN_001d9260 XCALL(0x1d9260, int (*)(void *, const char *, ...))
+#define CALL_FUN_0013f3b0(a, b) XCALL(0x13f3b0, void (*)(void *, int))(a, b)
+#define CALL_FUN_0018f180(a, b) XCALL(0x18f180, void (*)(void *, void *))(a, b)
+#define CALL_FUN_00140ce0(a, b) XCALL(0x140ce0, void (*)(int, void *))(a, b)
+#define CALL_FUN_00013010(a) XCALL(0x13010, float (*)(void *))(a)
+#define CALL_FUN_001ba1f0(a) XCALL(0x1ba1f0, void (*)(int))(a)
+#define CALL_FUN_0013aed0(a) XCALL(0x13aed0, void (*)(int))(a)
+#define CALL_FUN_00184e50(a) XCALL(0x184e50, short *(*)(int))(a)
+#define CALL_FUN_00181900(a) XCALL(0x181900, void (*)(int))(a)
+#define CALL_FUN_001812c0(a) XCALL(0x1812c0, int (*)(void *))(a)
+#define CALL_FUN_00181670(a) XCALL(0x181670, void (*)(void *))(a)
+#define CALL_FUN_00089240(a, b) XCALL(0x89240, void (*)(int, void *))(a, b)
+#define CALL_FUN_00085b60(a, b, c) \
+  XCALL(0x85b60, void (*)(int, unsigned short, int))(a, b, c)
+#define CALL_FUN_00085c80(a, b, c) \
+  XCALL(0x85c80, void (*)(int, void *, void *))(a, b, c)
 /* FUN_00138fd0 and FUN_00138f70 now in kb.json with proper declarations. */
-#define CALL_FUN_00180570(a,b) XCALL(0x180570, void(*)(int,void*))(a,b)
-#define CALL_FUN_00180660(a,b) XCALL(0x180660, void(*)(int,void*))(a,b)
-#define CALL_FUN_00189150(a,b,c,d) XCALL(0x189150, void(*)(int,int,float,void*))(a,b,c,d)
-#define CALL_FUN_001906b0(a,b) XCALL(0x1906b0, int(*)(int,int))(a,b)
-#define CALL_FUN_007c490(a,b,c,d,e,f) XCALL(0x7c490, void(*)(int,int,void*,void*,void*,float))(a,b,c,d,e,f)
-#define CALL_FUN_00196c90(a,b,c,d,e,f,g) XCALL(0x196c90, int(*)(void*,int,void*,void*,void*,void*,void*))(a,b,c,d,e,f,g)
-#define CALL_FUN_00123470(a,b,c,d) XCALL(0x123470, void(*)(void*,void*,int,void*))(a,b,c,d)
-#define CALL_FUN_00189320_5(a,b,c,d,e) XCALL(0x189320, void(*)(int,void*,void*,float,void*))(a,b,c,d,e)
-#define CALL_FUN_00139c20(a,b,c,d,e,f,g,h,i) XCALL(0x139c20, void(*)(int,unsigned short,float*,float,void*,void*,void*,void*,int))(a,b,c,d,e,f,g,h,i)
-#define CALL_FUN_00180770(a) XCALL(0x180770, unsigned char(*)(float))(a)
-#define CALL_FUN_001812b0() XCALL(0x1812b0, void(*)(void))()
-#define CALL_FUN_00181410() XCALL(0x181410, void(*)(void))()
-#define CALL_FUN_0007c270(a,b,c,d,e) XCALL(0x7c270, float*(*)(float*,unsigned int,float*,float*,float))(a,b,c,d,e)
-#define CALL_FUN_00180b10(a) XCALL(0x180b10, int(*)(int))(a)
-#define CALL_FUN_001390d0(a,b,c,d,e,f) XCALL(0x1390d0, void(*)(int,int,void*,float,float,void*))(a,b,c,d,e,f)
-#define CALL_FUN_00138ee0(a) XCALL(0x138ee0, int(*)(int))(a)
-#define CALL_FUN_000d1c90(a) XCALL(0xd1c90, unsigned int(*)(float*))(a)
+#define CALL_FUN_00180570(a, b) XCALL(0x180570, void (*)(int, void *))(a, b)
+#define CALL_FUN_00180660(a, b) XCALL(0x180660, void (*)(int, void *))(a, b)
+#define CALL_FUN_00189150(a, b, c, d) \
+  XCALL(0x189150, void (*)(int, int, float, void *))(a, b, c, d)
+#define CALL_FUN_001906b0(a, b) XCALL(0x1906b0, int (*)(int, int))(a, b)
+#define CALL_FUN_007c490(a, b, c, d, e, f)                          \
+  XCALL(0x7c490, void (*)(int, int, void *, void *, void *, float)) \
+  (a, b, c, d, e, f)
+#define CALL_FUN_00196c90(a, b, c, d, e, f, g)                        \
+  XCALL(0x196c90,                                                     \
+        int (*)(void *, int, void *, void *, void *, void *, void *)) \
+  (a, b, c, d, e, f, g)
+#define CALL_FUN_00123470(a, b, c, d) \
+  XCALL(0x123470, void (*)(void *, void *, int, void *))(a, b, c, d)
+#define CALL_FUN_00189320_5(a, b, c, d, e) \
+  XCALL(0x189320, void (*)(int, void *, void *, float, void *))(a, b, c, d, e)
+#define CALL_FUN_00139c20(a, b, c, d, e, f, g, h, i)                    \
+  XCALL(0x139c20, void (*)(int, unsigned short, float *, float, void *, \
+                           void *, void *, void *, int))                \
+  (a, b, c, d, e, f, g, h, i)
+#define CALL_FUN_00180770(a) XCALL(0x180770, unsigned char (*)(float))(a)
+#define CALL_FUN_001812b0() XCALL(0x1812b0, void (*)(void))()
+#define CALL_FUN_00181410() XCALL(0x181410, void (*)(void))()
+#define CALL_FUN_0007c270(a, b, c, d, e)                                     \
+  XCALL(0x7c270, float *(*)(float *, unsigned int, float *, float *, float)) \
+  (a, b, c, d, e)
+#define CALL_FUN_00180b10(a) XCALL(0x180b10, int (*)(int))(a)
+#define CALL_FUN_001390d0(a, b, c, d, e, f)                         \
+  XCALL(0x1390d0, void (*)(int, int, void *, float, float, void *)) \
+  (a, b, c, d, e, f)
+#define CALL_FUN_00138ee0(a) XCALL(0x138ee0, int (*)(int))(a)
+#define CALL_FUN_000d1c90(a) XCALL(0xd1c90, unsigned int (*)(float *))(a)
 /*
  * real_vector3d_valid — check whether a 3D vector contains only finite floats.
  *
@@ -104,8 +148,7 @@ double pow(double x, double y);
 int real_vector3d_valid(float *vector)
 {
   unsigned int *v = (unsigned int *)vector;
-  if ((v[0] & 0x7f800000) != 0x7f800000 &&
-      (v[1] & 0x7f800000) != 0x7f800000 &&
+  if ((v[0] & 0x7f800000) != 0x7f800000 && (v[1] & 0x7f800000) != 0x7f800000 &&
       (v[2] & 0x7f800000) != 0x7f800000) {
     return 1;
   }
@@ -132,14 +175,175 @@ bool valid_real_normal3d_perpendicular(float *a, float *b)
   float dot;
   char ok;
   ok = (char)valid_real_normal3d(a);
-  if (ok &&
-      (ok = (char)valid_real_normal3d(b), ok) &&
+  if (ok && (ok = (char)valid_real_normal3d(b), ok) &&
       (dot = a[2] * b[2] + a[1] * b[1] + a[0] * b[0],
        (*(unsigned int *)&dot & 0x7f800000) != 0x7f800000) &&
       fabs(dot) < 0.001) {
     return 1;
   }
   return 0;
+}
+
+/* ====================================================================
+ * FINAL 10 OBJECTS.OBJ FUNCTIONS
+ * ==================================================================== */
+
+/* 0x84ae0 — bored_camera_update: generates random camera positions/angles
+ * when the game is idle (attract mode). Validates the resulting camera
+ * parameters and asserts on invalid values.
+ *
+ * Source: c:\halo\SOURCE\camera\bored_camera.c
+ * 3 cdecl params: camera_state, unit_datum, result buffer.
+ */
+/* 0x84ae0 */
+void FUN_00084ae0(int *param_1, unsigned short *param_2, unsigned char *param_3)
+{
+  int iVar3;
+  int iVar4;
+  float *pfVar5;
+  int uVar6;
+  char cVar2;
+  char local_30[8];
+  int local_28 = 0;
+  int local_24 = 0;
+  int local_20 = 0;
+  int local_1c = 0;
+  char local_18[12];
+  float angles[2];
+  unsigned char *puVar1;
+
+  iVar3 = CALL_FUN_001d0581();
+  if (param_1 == (int *)0) {
+    display_assert("camera", "c:\\halo\\SOURCE\\camera\\bored_camera.c", 0x33,
+                   1);
+    CALL_thunk_FUN_001029a0(-1);
+  }
+  if (param_3 == (unsigned char *)0) {
+    display_assert("result", "c:\\halo\\SOURCE\\camera\\bored_camera.c", 0x34,
+                   1);
+    CALL_thunk_FUN_001029a0(-1);
+  }
+  iVar4 = param_1[2];
+  param_1[1] = param_1[1] + (*param_1 - iVar3);
+  *param_1 = iVar3;
+  if (3 < iVar4) {
+    iVar4 = 3;
+  }
+  if (param_1[1] < iVar4 * 1000) {
+    iVar3 = CALL_FUN_000b65c0(*param_2);
+    CALL_FUN_000b6740(*param_2, local_30);
+    *(int *)(param_3 + 4) = local_24;
+    *(int *)(param_3 + 8) = local_20;
+    *(int *)(param_3 + 0xc) = local_1c;
+    if (iVar3 != -1) {
+      if (*(int *)(local_28 + 0x4c) != 0) {
+        tag_block_get_element((void *)(local_28 + 0x4c), 0, 0x1c);
+      }
+      pfVar5 = (float *)CALL_FUN_000b7e30(*param_2);
+      angles[0] = *pfVar5;
+      angles[1] = pfVar5[1];
+      CALL_FUN_001a9240(iVar3, local_18);
+      /* Random bored-camera angles. The original evaluates each
+       * random_real_range(min,max) by pushing min/max, then calling the
+       * 0-arg local-seed getter, then random_real_range(seed, min, max).
+       * Ghidra mis-grouped the constants onto the 0-arg seed getter; they
+       * are the random ranges (radians). angles[] is a contiguous pair so
+       * angles_to_vector can read {angles[0], angles[1]} through one
+       * pointer (matches the original EBP-8 / EBP-4 stack layout). */
+      angles[1] = random_real_range((int *)random_math_get_local_seed_address(),
+                                    -1.0995574f, 0.39269909f);
+      angles[0] = random_real_range((int *)random_math_get_local_seed_address(),
+                                    -0.78539819f, 0.78539819f) +
+                  angles[0] + *(float *)0x256980;
+      angles_to_vector((float *)(param_3 + 0x24), angles);
+      observer_up_from_forward((float *)(param_3 + 0x24),
+                               (float *)(param_3 + 0x30));
+      *(float *)(param_3 + 0x20) = random_real_range(
+        (int *)random_math_get_local_seed_address(), 0.52359879f, 1.3962634f);
+      *(float *)(param_3 + 0x1c) = random_real_range(
+        (int *)random_math_get_local_seed_address(), 1.0f, 6.0f);
+      puVar1 = *(unsigned char **)0x31fc38;
+      *(int *)(param_3 + 0x3c) = *(int *)puVar1;
+      *(int *)(param_3 + 0x40) = *(int *)(puVar1 + 4);
+      *(int *)(param_3 + 0x44) = *(int *)(puVar1 + 8);
+      iVar3 = param_1[2] + 1;
+      if (3 < iVar3) {
+        iVar3 = 3;
+      }
+      param_1[1] = iVar3 * 10000;
+      param_3[0] = 1;
+      param_3[1] = 0;
+      param_3[2] = 0;
+      param_3[3] = 0;
+      *(float *)(param_3 + 0x48) = (float)(iVar3 * 10000);
+      param_1[2] = param_1[2] + 1;
+      if ((param_3[0] & 1) != 0) {
+        cVar2 =
+          CALL_FUN_00084a70((float *)(param_3 + 9), (float *)(param_3 + 0xc));
+        if (cVar2 != '\0' && (param_3[1] & 0x7f800000) != 0x7f800000 &&
+            *(float *)0x266e98 <= *(float *)(param_3 + 1) &&
+            *(float *)(param_3 + 1) <= *(float *)0x266e94 &&
+            (param_3[2] & 0x7f800000) != 0x7f800000 &&
+            *(float *)0x266e98 <= *(float *)(param_3 + 2) &&
+            *(float *)(param_3 + 2) <= *(float *)0x266e94 &&
+            (param_3[3] & 0x7f800000) != 0x7f800000 &&
+            *(float *)0x266e98 <= *(float *)(param_3 + 3) &&
+            *(float *)(param_3 + 3) <= *(float *)0x266e94 &&
+            (param_3[4] & 0x7f800000) != 0x7f800000 &&
+            *(float *)0x266e98 <= *(float *)(param_3 + 4) &&
+            *(float *)(param_3 + 4) <= *(float *)0x266e94 &&
+            (param_3[5] & 0x7f800000) != 0x7f800000 &&
+            *(float *)0x266e98 <= *(float *)(param_3 + 5) &&
+            *(float *)(param_3 + 5) <= *(float *)0x266e94 &&
+            (param_3[6] & 0x7f800000) != 0x7f800000 &&
+            *(float *)0x266e98 <= *(float *)(param_3 + 6) &&
+            *(float *)(param_3 + 6) <= *(float *)0x266e94) {
+          cVar2 = CALL_FUN_00084a10((float *)(param_3 + 0xf));
+          if (cVar2 != '\0' && (param_3[7] & 0x7f800000) != 0x7f800000 &&
+              *(float *)0x2533c0 <= *(float *)(param_3 + 7) &&
+              *(float *)(param_3 + 7) <= *(float *)0x266e94 &&
+              (param_3[8] & 0x7f800000) != 0x7f800000 &&
+              *(float *)0x255ef8 <= *(float *)(param_3 + 8) &&
+              *(float *)(param_3 + 8) <= *(float *)0x2568bc &&
+              (param_3[0x12] & 0x7f800000) != 0x7f800000 &&
+              *(float *)0x2533c0 <= *(float *)(param_3 + 0x12) &&
+              *(float *)(param_3 + 0x12) <= *(float *)0x266e90) {
+            return;
+          }
+        }
+        uVar6 = (int)csprintf(
+          (char *)0x5ab100,
+          "Invalid camera command.\nF: (%f, %f, %f) U: (%f, %f, %f)\nP: (%f, "
+          "%f, %f) O: (%f, %f, %f)\nD: %f V: (%f, %f, %f), FOV: %f, T: %f, FL: "
+          "%ld",
+          (double)*(float *)(param_3 + 9), (double)*(float *)(param_3 + 0xa),
+          (double)*(float *)(param_3 + 0xb), (double)*(float *)(param_3 + 0xc),
+          (double)*(float *)(param_3 + 0xd), (double)*(float *)(param_3 + 0xe),
+          (double)*(float *)(param_3 + 1), (double)*(float *)(param_3 + 2),
+          (double)*(float *)(param_3 + 3), (double)*(float *)(param_3 + 4),
+          (double)*(float *)(param_3 + 5), (double)*(float *)(param_3 + 6),
+          (double)*(float *)(param_3 + 7), (double)*(float *)(param_3 + 0xf),
+          (double)*(float *)(param_3 + 0x10),
+          (double)*(float *)(param_3 + 0x11), (double)*(float *)(param_3 + 8),
+          (double)*(float *)(param_3 + 0x12), *(int *)param_3);
+        display_assert((const char *)uVar6,
+                       "c:\\halo\\SOURCE\\camera\\bored_camera.c", 0x5f, 1);
+        CALL_thunk_FUN_001029a0(-1);
+      }
+    }
+  }
+}
+
+/* FUN_00084fe0 (0x84fe0) — Set the bored-camera enable flag and mark the
+ * camera state dirty so it will be re-evaluated this tick.
+ * Object: objects.obj / source: bored_camera.c
+ *
+ * Confirmed: MOV AL,[param_1]; MOV [0x2ee5a0],AL; MOV byte ptr [0x2ee5a1],1.
+ */
+void FUN_00084fe0(unsigned char param_1)
+{
+  *(char *)0x2ee5a0 = param_1;
+  *(char *)0x2ee5a1 = 1;
 }
 
 /* FUN_00085000 (0x85000 / objects.obj) — select a scripted animation camera
@@ -184,9 +388,55 @@ void FUN_00085000(int animation_tag, const char *camera_name)
   *(char *)0x2ee5a1 = 1;
   *(int *)0x2ee5d8 = animation_tag;
   *(int *)0x2ee5d0 = 0x3f9c61aa;
-  *(float *)0x2ee5a8 =
-    (float)((int)*(short *)(element + 0x22) / 0x1e);
+  *(float *)0x2ee5a8 = (float)((int)*(short *)(element + 0x22) / 0x1e);
   *(short *)0x2ee5dc = index;
+}
+
+/* FUN_000850d0 (0x850d0) — Switch to first-person camera mode 2 for the
+ * given unit handle, or report an error if the handle is -1.
+ * Object: objects.obj / source: bored_camera.c
+ *
+ * Confirmed: CMP [param_1],-1; JE error_path; MOV [0x2ee5a2],2;
+ * MOV [0x2ee5a1],1; MOV [0x2ee5d4],param_1; RET.
+ */
+void FUN_000850d0(int param_1)
+{
+  if (param_1 != -1) {
+    *(char *)0x2ee5a2 = 2;
+    *(char *)0x2ee5a1 = 1;
+    *(int *)0x2ee5d4 = param_1;
+    return;
+  }
+  error(2, "cannot set first person camera on a unit that doesn't exist.");
+}
+
+/* FUN_00085110 (0x85110) — Switch to first-person camera mode 3 for the
+ * given unit handle, or report an error if the handle is -1.
+ * Object: objects.obj / source: bored_camera.c
+ *
+ * Confirmed: identical to FUN_000850d0 but stores 3 in DAT_002ee5a2.
+ */
+void FUN_00085110(int param_1)
+{
+  if (param_1 != -1) {
+    *(char *)0x2ee5a2 = 3;
+    *(char *)0x2ee5a1 = 1;
+    *(int *)0x2ee5d4 = param_1;
+    return;
+  }
+  error(2, "cannot set first person camera on a unit that doesn't exist.");
+}
+
+/* FUN_00085150 (0x85150) — Check if first-person camera mode 2 is active for
+ * the given unit handle. Returns 1 if the bored-camera is enabled, mode is 2,
+ * and the stored unit handle matches param_1; otherwise 0. */
+int FUN_00085150(int param_1)
+{
+  if (*(char *)0x2ee5a0 != '\0' && *(short *)0x2ee5a2 == 2 &&
+      *(int *)0x2ee5d4 == param_1) {
+    return 1;
+  }
+  return 0;
 }
 
 /* FUN_00085180 (0x85180) — Configure camera globals from a cutscene-camera
@@ -222,6 +472,13 @@ void FUN_00085180(short param_1, short param_2, int param_3)
   *(int *)0x2ee5d4 = param_3;
   director_update(0.0f);
   observer_update(9.9957275390625e-5f);
+}
+
+/* Forwards (param1, param2, -1) to FUN_00085180. */
+void FUN_00085260(short param_1, short param_2)
+{
+  FUN_00085180(param_1, param_2, -1);
+  return;
 }
 
 /* FUN_00085280 (0x85280 / objects.obj) — set scripted camera globals from
@@ -277,6 +534,355 @@ void FUN_00085350(float *position, float *forward, float *up, float speed,
 int FUN_000853a0(void)
 {
   return (int)(*(float *)0x2ee5a8 * *(float *)0x253394);
+}
+
+/* 0x853c0 — camera_scripting_update: handles scripted camera with a 4-case
+ * switch on the camera scripting mode (DAT_002ee5a2). Includes orbit camera
+ * math with atan2/sin/cos and the same massive camera validation block.
+ *
+ * Source: c:\halo\SOURCE\camera\camera_scripting.c
+ * 3 cdecl params.
+ */
+/* 0x853c0 */
+void FUN_000853c0(int param_1, unsigned short *param_2, unsigned int *param_3)
+{
+  float *pfVar1;
+  int iVar2;
+  short sVar3;
+  float fVar4;
+  char cVar5;
+  short sVar6;
+  unsigned int uVar7;
+  int iVar8;
+  int iVar9;
+  int uVar10;
+  unsigned int uVar11;
+  unsigned int uVar12;
+  float fVar13;
+  float fVar14;
+  char local_48[4];
+  unsigned int local_44 = 0;
+  unsigned int local_40 = 0;
+  unsigned int local_3c = 0;
+  unsigned int local_2c = 0;
+  unsigned int local_28 = 0;
+  unsigned int local_24 = 0;
+  unsigned int local_20 = 0;
+  unsigned int local_1c = 0;
+  unsigned int local_18 = 0;
+  float local_14 = 0;
+  float local_10 = 0;
+  unsigned int local_c;
+  float local_8;
+
+  uVar12 = *(unsigned int *)*(int *)0x31fc1c;
+  uVar11 = *(unsigned int *)(*(int *)0x31fc1c + 4);
+  local_c = *(unsigned int *)(*(int *)0x31fc1c + 8);
+  fVar13 = (float)CALL_game_time_get_rate();
+  local_8 = fVar13;
+  *param_3 = 8;
+  cVar5 = CALL_FUN_000b5c30();
+  if (cVar5 == '\0') {
+    uVar7 = *param_3 & 0xffffffdf;
+  } else {
+    uVar7 = *param_3 | 0x20;
+  }
+  *param_3 = uVar7;
+  switch (*(short *)0x2ee5a2) {
+  case 0:
+    if (*(int *)0x2ee5d4 != -1) {
+      iVar9 = CALL_FUN_0013d640(*(int *)0x2ee5d4, -1);
+      if (iVar9 == 0)
+        break;
+      uVar12 = *(unsigned int *)(iVar9 + 0x50);
+      uVar11 = *(unsigned int *)(iVar9 + 0x54);
+      local_c = *(unsigned int *)(iVar9 + 0x58);
+    }
+    fVar4 = *(float *)0x2533c0;
+    if (local_8 != *(float *)0x2533c0) {
+      fVar4 = *(float *)0x2ee5a8 / local_8;
+    }
+    *(float *)(param_3 + 0x12) = fVar4;
+    *(float *)(param_3 + 8) = *(float *)0x2ee5d0;
+    pfVar1 = (float *)(param_3 + 9);
+    *pfVar1 = *(float *)0x2ee5b8;
+    *(float *)(param_3 + 10) = *(float *)0x2ee5bc;
+    *(float *)(param_3 + 0xb) = *(float *)0x2ee5c0;
+    *(float *)(param_3 + 0xc) = *(float *)0x2ee5c4;
+    *(float *)(param_3 + 0xd) = *(float *)0x2ee5c8;
+    *(float *)(param_3 + 0xe) = *(float *)0x2ee5cc;
+    if (*(int *)0x2ee5d4 == -1) {
+      *(float *)(param_3 + 1) = *(float *)0x2ee5ac;
+      *(float *)(param_3 + 2) = *(float *)0x2ee5b0;
+      *(float *)(param_3 + 3) = *(float *)0x2ee5b4;
+      *param_3 = *param_3 | 1;
+    } else {
+      fVar13 = (float)atan2((double)*(float *)(param_3 + 10), (double)*pfVar1);
+      fVar4 = *(float *)0x2ee5ac * *pfVar1 +
+              *(float *)0x2ee5b0 * *(float *)(param_3 + 10) +
+              *(float *)0x2ee5b4 * *(float *)(param_3 + 0xb);
+      if (*(float *)0x2533c0 < fVar4) {
+        fVar4 = *(float *)0x2533c0;
+      }
+      *(float *)(param_3 + 7) = -fVar4;
+      *(float *)(param_3 + 1) = *(float *)&uVar12;
+      *(float *)(param_3 + 2) = *(float *)&uVar11;
+      *(float *)(param_3 + 3) = *(float *)&local_c;
+      local_14 = *(float *)0x2ee5ac + fVar4 * *pfVar1;
+      local_10 = *(float *)0x2ee5b0 + fVar4 * *(float *)(param_3 + 10);
+      fVar4 = *(float *)0x2ee5b4 + fVar4 * *(float *)(param_3 + 0xb);
+      param_3[0x15] = 0;
+      *(unsigned char *)(param_3 + 0x13) = 1;
+      fVar14 = x87_fsin(fVar13);
+      *param_3 = *param_3 | 1;
+      fVar13 = x87_fcos(fVar13);
+      *(float *)(param_3 + 4) = fVar14 * local_10 + local_14 * fVar13;
+      *(float *)(param_3 + 5) = fVar14 * local_14 - fVar13 * local_10;
+      *(float *)(param_3 + 6) = fVar4;
+    }
+    break;
+  case 1:
+    tag_get(0x616e7472, *(int *)0x2ee5d8);
+    iVar9 = (int)tag_block_get_element(0, 0, 0);
+    sVar3 = *(short *)(iVar9 + 0x22);
+    sVar6 = (short)(int)*(float *)(param_2 + 2);
+    if (sVar6 < 0) {
+      iVar8 = 0;
+    } else {
+      iVar2 = sVar3 - 1;
+      iVar8 = (int)sVar6;
+      if (iVar2 < sVar6) {
+        iVar8 = iVar2;
+      }
+    }
+    CALL_FUN_00123470(0, (void *)iVar9, iVar8, local_48);
+    param_3[9] = local_44;
+    param_3[10] = local_40;
+    param_3[0xb] = local_3c;
+    param_3[0xc] = local_2c;
+    param_3[0xd] = local_28;
+    param_3[0xe] = local_24;
+    param_3[1] = local_20;
+    param_3[2] = local_1c;
+    param_3[7] = 0;
+    param_3[0x12] = 0;
+    param_3[8] = 0x3f9c61aa;
+    param_3[3] = local_18;
+    *param_3 = *param_3 | 1;
+    break;
+  case 2:
+    iVar9 = CALL_FUN_0013d640(*(int *)0x2ee5d4, 3);
+    if (iVar9 != 0) {
+      CALL_FUN_00089240(*(int *)0x2ee5d4, param_3);
+    }
+    break;
+  case 3:
+    iVar9 = CALL_FUN_0013d640(*(int *)0x2ee5d4, 3);
+    if (iVar9 != 0) {
+      if (*(char *)0x2ee5a1 != '\0') {
+        CALL_FUN_00085b60(param_1, *param_2, *(int *)0x2ee5d4);
+      }
+      CALL_FUN_00085c80(param_1, param_2, param_3);
+    }
+    break;
+  }
+  *(float *)0x2ee5a8 = *(float *)0x2ee5a8 - local_8 * *(float *)(param_2 + 2);
+  if (*(float *)0x2ee5a8 < *(float *)0x2533c0) {
+    *(float *)0x2ee5a8 = 0.0f;
+  }
+  *(char *)0x2ee5a1 = 0;
+  uVar12 = *param_3;
+  if ((uVar12 & 1) != 0) {
+    cVar5 = CALL_FUN_00084a70((float *)(param_3 + 9), (float *)(param_3 + 0xc));
+    if (cVar5 == '\0' || (param_3[1] & 0x7f800000) == 0x7f800000 ||
+        *(float *)(param_3 + 1) < *(float *)0x266e98 ||
+        *(float *)(param_3 + 1) > *(float *)0x266e94 ||
+        (param_3[2] & 0x7f800000) == 0x7f800000 ||
+        *(float *)(param_3 + 2) < *(float *)0x266e98 ||
+        *(float *)(param_3 + 2) > *(float *)0x266e94 ||
+        (param_3[3] & 0x7f800000) == 0x7f800000 ||
+        *(float *)(param_3 + 3) < *(float *)0x266e98 ||
+        *(float *)(param_3 + 3) > *(float *)0x266e94 ||
+        (param_3[4] & 0x7f800000) == 0x7f800000 ||
+        *(float *)(param_3 + 4) < *(float *)0x266e98 ||
+        *(float *)(param_3 + 4) > *(float *)0x266e94 ||
+        (param_3[5] & 0x7f800000) == 0x7f800000 ||
+        *(float *)(param_3 + 5) < *(float *)0x266e98 ||
+        *(float *)(param_3 + 5) > *(float *)0x266e94 ||
+        (param_3[6] & 0x7f800000) == 0x7f800000 ||
+        *(float *)(param_3 + 6) < *(float *)0x266e98 ||
+        *(float *)(param_3 + 6) > *(float *)0x266e94) {
+      goto camera_invalid;
+    }
+    cVar5 = CALL_FUN_00084a10((float *)(param_3 + 0xf));
+    if (cVar5 == '\0' || (param_3[7] & 0x7f800000) == 0x7f800000 ||
+        *(float *)(param_3 + 7) < *(float *)0x2533c0 ||
+        *(float *)(param_3 + 7) > *(float *)0x266e94 ||
+        (param_3[8] & 0x7f800000) == 0x7f800000 ||
+        *(float *)(param_3 + 8) < *(float *)0x255ef8 ||
+        *(float *)(param_3 + 8) > *(float *)0x2568bc ||
+        (param_3[0x12] & 0x7f800000) == 0x7f800000 ||
+        *(float *)(param_3 + 0x12) < *(float *)0x2533c0 ||
+        *(float *)(param_3 + 0x12) > *(float *)0x266e90) {
+    camera_invalid:
+      uVar10 = (int)csprintf(
+        (char *)0x5ab100,
+        "Invalid camera command.\nF: (%f, %f, %f) U: (%f, %f, %f)\nP: (%f, %f, "
+        "%f) O: (%f, %f, %f)\nD: %f V: (%f, %f, %f), FOV: %f, T: %f, FL: %ld",
+        (double)*(float *)(param_3 + 9), (double)*(float *)(param_3 + 10),
+        (double)*(float *)(param_3 + 0xb), (double)*(float *)(param_3 + 0xc),
+        (double)*(float *)(param_3 + 0xd), (double)*(float *)(param_3 + 0xe),
+        (double)*(float *)(param_3 + 1), (double)*(float *)(param_3 + 2),
+        (double)*(float *)(param_3 + 3), (double)*(float *)(param_3 + 4),
+        (double)*(float *)(param_3 + 5), (double)*(float *)(param_3 + 6),
+        (double)*(float *)(param_3 + 7), (double)*(float *)(param_3 + 0xf),
+        (double)*(float *)(param_3 + 0x10), (double)*(float *)(param_3 + 0x11),
+        (double)*(float *)(param_3 + 8), (double)*(float *)(param_3 + 0x12),
+        uVar12);
+      display_assert((const char *)uVar10,
+                     "c:\\halo\\SOURCE\\camera\\camera_scripting.c", 0x16e, 1);
+      CALL_thunk_FUN_001029a0(-1);
+    }
+  }
+}
+
+
+/* 0x9eb40 / effects.obj
+ * Create a new effect linked to an object. Allocates an effect datum via
+ * FUN_0009d2d0, stores object handle, marker indices, and optionally
+ * copies the default scale vector from **(float**)0x2ee708. Runs the
+ * marker-resolve callback and optionally the first-person weapon marker
+ * callback, then fires the initial effect_update tick. */
+int FUN_0009eb40(int definition_index, int object_index, short marker_index,
+                 short secondary_marker, short unknown)
+{
+  char *iVar4;
+  int iVar3;
+  float *default_scale;
+
+  if (object_index == -1) {
+    display_assert("object_index!=NONE", "c:\\halo\\SOURCE\\effects\\effects.c",
+                   0xf9, 1);
+    system_exit(-1);
+  }
+
+  iVar3 = FUN_0009d2d0(definition_index, object_index, 1);
+  if (iVar3 != -1) {
+    iVar4 = (char *)datum_get(*(data_t **)0x5aa8b0, iVar3);
+    *(int *)(iVar4 + 0x3c) = object_index;
+    *(short *)(iVar4 + 0x4c) =
+      (short)first_person_weapon_get_local_index(object_index);
+    *(short *)(iVar4 + 0x8) = marker_index;
+    *(short *)(iVar4 + 0xa) = secondary_marker;
+    *(short *)(iVar4 + 0xc) = unknown;
+    *(int *)(iVar4 + 0x34) = 0;
+    *(int *)(iVar4 + 0x38) = 0;
+    if (unknown == -1) {
+      default_scale = *(float **)0x2ee708;
+      *(int *)(iVar4 + 0x18) = *(int *)default_scale;
+      *(int *)(iVar4 + 0x1c) = *(int *)((char *)default_scale + 4);
+      *(int *)(iVar4 + 0x20) = *(int *)((char *)default_scale + 8);
+    }
+    *(unsigned char *)(iVar4 + 2) = *(unsigned char *)(iVar4 + 2) | 2;
+    csmemset(iVar4 + 0x5c, -1, 0x80);
+    FUN_0009d4e0((int)iVar4, (void *)&object_get_markers_by_string_id);
+    if (*(short *)(iVar4 + 0x4c) != -1) {
+      FUN_0009d4e0((int)iVar4, (void *)0xdd190);
+    }
+    effect_update(iVar3, 0.0f);
+  }
+  return iVar3;
+}
+
+/* FUN_0009ec30 / effects.obj — create a scaled effect attached to an object.
+ * Validates that object_index is not NONE and that both scale values are in
+ * [0,1]. Allocates an effect datum, applies scale/colour via FUN_0009d430,
+ * stores the attached object handle and first-person-weapon index, optionally
+ * marks as "violent" (via FUN_0009c700), performs debug logging if enabled,
+ * memsets the per-event slot array, runs marker-resolve callbacks, and fires
+ * the initial effect_update tick. Returns the new datum index or NONE (-1).
+ *
+ * VC71 ceiling 82.9% (180 compiled vs 165 ref insns) is STRUCTURAL, not a
+ * defect: the delinked boundary is correct (Ghidra body 0x9ec30-0x9ee32 =
+ * 514 bytes vs the 528-byte next-FUN span is only 14 bytes of NOP padding),
+ * and the +15 insns come from a callee our monolithic objects.c inlines that
+ * the original kept out-of-line as a separate-TU CALL. The residual diffs are
+ * FPU compare-direction (jnp/jne) and 16-bit store (orb/orw) idioms. Verified
+ * 2026-06-23; do not chase — no re-bounded export will close it. */
+int FUN_0009ec30(int param_1, int param_2, int param_3, short param_4,
+                 float param_5, float param_6, int param_7, int param_8)
+{
+  int iVar3;
+  char *iVar4;
+  short fpw_index;
+
+  if (param_3 == -1) {
+    display_assert("object_index!=NONE", "c:\\halo\\SOURCE\\effects\\effects.c",
+                   0x131, 1);
+    system_exit(-1);
+  }
+  if (param_5 < 0.0f || param_5 > 1.0f) {
+    csprintf((char *)0x5ab100, "scale_a %f not in [0,1]", (double)param_5);
+    display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\effects\\effects.c",
+                   0x132, 1);
+    system_exit(-1);
+  }
+  if (param_6 < 0.0f || param_6 > 1.0f) {
+    csprintf((char *)0x5ab100, "scale_b %f not in [0,1]", (double)param_6);
+    display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\effects\\effects.c",
+                   0x133, 1);
+    system_exit(-1);
+  }
+
+  iVar3 = FUN_0009d2d0(param_1, param_2, 1);
+  if (iVar3 != -1) {
+    iVar4 = (char *)datum_get(*(data_t **)0x5aa8b0, iVar3);
+    FUN_0009d430((int)iVar4, param_7, param_8, param_5, param_6);
+    *(int *)(iVar4 + 0x3c) = param_3;
+    fpw_index = (short)first_person_weapon_get_local_index(param_3);
+    *(short *)(iVar4 + 0x4c) = fpw_index;
+
+    if (*(char *)0x2eebe0 != '\0') {
+      if (FUN_0009c700(*(int *)(iVar4 + 0x3c))) {
+        *(unsigned short *)(iVar4 + 2) = *(unsigned short *)(iVar4 + 2) | 0x40;
+      }
+    }
+
+    if (*(char *)0x4557e8 != '\0') {
+      int *obj_data;
+      const char *object_name;
+      const char *effect_name;
+      const char *violent_str;
+
+      obj_data = (int *)object_try_and_get_and_verify_type(param_3, -1);
+      if (obj_data == NULL) {
+        object_name = "<none>";
+      } else {
+        object_name = tag_name_strip_path(tag_get_name(*obj_data));
+      }
+
+      if (*(unsigned char *)(iVar4 + 2) & 0x40) {
+        violent_str = "non";
+      } else {
+        violent_str = "";
+      }
+
+      effect_name = tag_name_strip_path(tag_get_name(param_1));
+      error(2, "created %sviolent %s on %s", violent_str, effect_name,
+            object_name);
+    }
+
+    csmemset(iVar4 + 0x5c, -1, 0x80);
+    FUN_0009d4e0((int)iVar4, (void *)&object_get_markers_by_string_id);
+    if (*(short *)(iVar4 + 0x4c) != -1) {
+      FUN_0009d4e0((int)iVar4, (void *)0xdd190);
+    }
+    if (param_4 != -1) {
+      *(short *)(iVar4 + 0x4c) = param_4;
+    }
+    effect_update(iVar3, 0.0f);
+  }
+  return iVar3;
 }
 
 /*
@@ -452,15 +1058,17 @@ char FUN_000ae110(int param_1, int param_2, int param_3)
       respawn_state = 0x1a;
     }
 
-    { void *vtable_fn = *(void **)((char *)current_game_engine + 0x64);
-    if (vtable_fn != NULL) {
-      char handled = ((char (*)(int, int, int, int, int))vtable_fn)(
+    {
+      void *vtable_fn = *(void **)((char *)current_game_engine + 0x64);
+      if (vtable_fn != NULL) {
+        char handled = ((char (*)(int, int, int, int, int))vtable_fn)(
           param_1, respawn_state, local_8, param_2, param_3);
-      if (handled)
-        return handled;
-    } }
-    return (char)game_engine_get_score_hud_text(
-        param_1, respawn_state, local_8, (wchar_t *)param_2, param_3);
+        if (handled)
+          return handled;
+      }
+    }
+    return (char)game_engine_get_score_hud_text(param_1, respawn_state, local_8,
+                                                (wchar_t *)param_2, param_3);
   }
 
   /* Live player: both aceb0 paths RETURN the dispatcher's AL ("text was
@@ -489,48 +1097,170 @@ char FUN_000ae110(int param_1, int param_2, int param_3)
  * against the per-function ref delinked/functions/000ae250.obj (verified via
  * `vc71_verify --function FUN_000ae250` 2026-06-23). Do NOT bump the committed
  * whole-file floor or re-export objects.obj — both reintroduce the COFF bug /
- * a false regression. See [[reference_inline_delinked_export_when_live_down]]. */
+ * a false regression. See [[reference_inline_delinked_export_when_live_down]].
+ */
 int FUN_000ae250(int param_1)
 {
-    int iVar2;
-    int iVar3;
-    int iVar4;
-    char cVar1;
-    int bVar7;
-    int buf[7];
-    int *puVar5;
-    int *puVar6;
+  int iVar2;
+  int iVar3;
+  int iVar4;
+  char cVar1;
+  int bVar7;
+  int buf[7];
+  int *puVar5;
+  int *puVar6;
 
-    if (*(char *)0x456b14 != '\0') {
-        iVar2 = FUN_000a8130(0);
-        iVar3 = FUN_000a8130(1);
-        iVar4 = (int)datum_get(*(data_t **)0x5aa6d4, param_1);
-        cVar1 = game_engine_teams_still_playing();
-        if (cVar1 != '\0') {
-            if (iVar2 == iVar3) goto done_minus1;
-            bVar7 = (iVar2 <= iVar3);
-        } else {
-            cVar1 = (char)FUN_000abb90(0);
-            bVar7 = (cVar1 == '\0') ? 1 : 0;
-        }
-        if (bVar7 == (int)0xffffffff) goto done_minus1;
-        return (int)(*(unsigned int *)(iVar4 + 0x20) == (unsigned int)bVar7);
+  if (*(char *)0x456b14 != '\0') {
+    iVar2 = FUN_000a8130(0);
+    iVar3 = FUN_000a8130(1);
+    iVar4 = (int)datum_get(*(data_t **)0x5aa6d4, param_1);
+    cVar1 = game_engine_teams_still_playing();
+    if (cVar1 != '\0') {
+      if (iVar2 == iVar3)
+        goto done_minus1;
+      bVar7 = (iVar2 <= iVar3);
+    } else {
+      cVar1 = (char)FUN_000abb90(0);
+      bVar7 = (cVar1 == '\0') ? 1 : 0;
     }
-    puVar5 = FUN_000abf50(buf, param_1);
-    puVar6 = buf;
-    for (iVar2 = 7; iVar2 != 0; iVar2 = iVar2 + -1) {
-        *puVar6 = *puVar5;
-        puVar5 = puVar5 + 1;
-        puVar6 = puVar6 + 1;
-    }
-    if ((unsigned int)buf[6] & 0x80000000) {
-        if (!((unsigned int)buf[6] & 0x7fffffff)) goto done_minus1;
-    }
-    return (int)(((unsigned int)buf[6] & 0x7fffffff) == 0);
+    if (bVar7 == (int)0xffffffff)
+      goto done_minus1;
+    return (int)(*(unsigned int *)(iVar4 + 0x20) == (unsigned int)bVar7);
+  }
+  puVar5 = FUN_000abf50(buf, param_1);
+  puVar6 = buf;
+  for (iVar2 = 7; iVar2 != 0; iVar2 = iVar2 + -1) {
+    *puVar6 = *puVar5;
+    puVar5 = puVar5 + 1;
+    puVar6 = puVar6 + 1;
+  }
+  if ((unsigned int)buf[6] & 0x80000000) {
+    if (!((unsigned int)buf[6] & 0x7fffffff))
+      goto done_minus1;
+  }
+  return (int)(((unsigned int)buf[6] & 0x7fffffff) == 0);
 done_minus1:
-    return (int)0xffffffff;
+  return (int)0xffffffff;
 }
 
+/* Object glow widgets — animated glow effects attached to game objects.
+ * TU: c:\halo\SOURCE\objects\widgets\glow.c (confirmed via __FILE__ assert). */
+
+/* glow_widget definition (glowdef) tag layout, group 'glw!' (0x676c7721):
+ *   +0x22  int16_t boundary_effect          // 0 = reflect/ping-pong, 1 = wrap
+ *   +0x80  int16_t function                 // object function index (-1 =
+ * none) +0x84  float   scale_lower              // output remap: low bound
+ *   +0x88  float   scale_upper              //               high bound
+ *   +0x8c  float   input_lower              // input remap:  low bound
+ *   +0x90  float   input_upper              //               high bound
+ *
+ * particle instance fields:
+ *   +0x1c  float   scale                    // computed animated scale
+ *   +0x28  float   phase                    // animation phase counter
+ *   +0x54  uint    flags                    // bit0 = reverse direction
+ *
+ * glow_widget instance fields:
+ *   +0x224 int32_t definition_tag_index
+ *   +0x234 float   period                   // phase wrap period
+ */
+
+/* FUN_00134070 — advance a glow particle's phase animation by one frame and
+ * recompute its world position.  If the glow definition binds an object
+ * function, resample it and remap into the scale output.  Then step the phase
+ * counter by +/-delta (direction per particle flags bit0), wrapping against the
+ * period: boundary mode 0 reflects and flips direction, mode 1 plain-wraps.
+ * Ends by recomputing the particle's world position.
+ *
+ * ABI: particle_ptr in ESI, glow_widget_ptr in EDI (register args); the
+ * remaining three are cdecl stack args. */
+void FUN_00134070(int particle_ptr, int glow_widget_ptr, int object_handle,
+                  float delta, float ratio)
+{
+  void *glowdef;
+  short function_index;
+  unsigned int flags;
+  float function_value;
+
+  glowdef = tag_get(0x676c7721, *(int *)(glow_widget_ptr + 0x224));
+
+  function_index = *(short *)((char *)glowdef + 0x80);
+  if (function_index != -1) {
+    if (!object_get_function_value(object_handle, function_index,
+                                   &function_value))
+      function_value = 0.0f;
+    *(float *)(particle_ptr + 0x1c) = (*(float *)((char *)glowdef + 0x88) -
+                                       *(float *)((char *)glowdef + 0x84)) *
+                                        ((*(float *)((char *)glowdef + 0x90) -
+                                          *(float *)((char *)glowdef + 0x8c)) *
+                                           function_value +
+                                         *(float *)((char *)glowdef + 0x8c)) +
+                                      *(float *)((char *)glowdef + 0x84);
+  }
+
+  flags = *(unsigned int *)(particle_ptr + 0x54);
+
+  if (flags & 1) {
+    /* reverse phase: step down, wrap against 0.0 */
+    *(float *)(particle_ptr + 0x28) -= delta;
+    switch (*(short *)((char *)glowdef + 0x22)) {
+    case 0:
+      if (*(float *)(particle_ptr + 0x28) < 0.0f) {
+        do {
+          *(float *)(particle_ptr + 0x28) +=
+            *(float *)(glow_widget_ptr + 0x234);
+        } while (*(float *)(particle_ptr + 0x28) < 0.0f);
+        flags &= ~1u;
+        *(unsigned int *)(particle_ptr + 0x54) = flags;
+        *(float *)(particle_ptr + 0x28) =
+          *(float *)(glow_widget_ptr + 0x234) - *(float *)(particle_ptr + 0x28);
+      }
+      break;
+    case 1:
+      while (*(float *)(particle_ptr + 0x28) < 0.0f)
+        *(float *)(particle_ptr + 0x28) += *(float *)(glow_widget_ptr + 0x234);
+      break;
+    default:
+      display_assert("glow effect received illegal boundary effect",
+                     "c:\\halo\\SOURCE\\objects\\widgets\\glow.c", 800, 1);
+      system_exit(-1);
+    }
+  } else {
+    /* forward phase: step up, wrap against period */
+    *(float *)(particle_ptr + 0x28) += delta;
+    switch (*(short *)((char *)glowdef + 0x22)) {
+    case 0:
+      if (*(float *)(particle_ptr + 0x28) >
+          *(float *)(glow_widget_ptr + 0x234)) {
+        do {
+          *(float *)(particle_ptr + 0x28) -=
+            *(float *)(glow_widget_ptr + 0x234);
+        } while (*(float *)(particle_ptr + 0x28) >
+                 *(float *)(glow_widget_ptr + 0x234));
+        *(float *)(particle_ptr + 0x28) =
+          *(float *)(glow_widget_ptr + 0x234) - *(float *)(particle_ptr + 0x28);
+        flags |= 1u;
+        *(unsigned int *)(particle_ptr + 0x54) = flags;
+      }
+      break;
+    case 1:
+      if (*(float *)(particle_ptr + 0x28) >
+          *(float *)(glow_widget_ptr + 0x234)) {
+        do {
+          *(float *)(particle_ptr + 0x28) -=
+            *(float *)(glow_widget_ptr + 0x234);
+        } while (*(float *)(particle_ptr + 0x28) >
+                 *(float *)(glow_widget_ptr + 0x234));
+      }
+      break;
+    default:
+      display_assert("glow effect received illegal boundary effect",
+                     "c:\\halo\\SOURCE\\objects\\widgets\\glow.c", 829, 1);
+      system_exit(-1);
+    }
+  }
+
+  get_particle_world_position(glow_widget_ptr, particle_ptr, ratio);
+}
 
 /* FUN_00136150 — create widgets for an object from its tag definition.
  *
@@ -584,69 +1314,193 @@ done_minus1:
  */
 void FUN_001342a0(int glow_widget_ptr)
 {
-    void *glow_tag;
-    int node;
-    int prev_node;
-    unsigned int flags;
-    bool parity;
-    short index;
+  void *glow_tag;
+  int node;
+  int prev_node;
+  unsigned int flags;
+  bool parity;
+  short index;
 
-    glow_tag = tag_get(0x676c7721, *(int *)(glow_widget_ptr + 0x224));
-    index = 0;
-    parity = true;
-    prev_node = 0;
-    if (0 < *(short *)(glow_widget_ptr + 0x24c)) {
-        do {
-            node = glow_normal_particle_new(glow_widget_ptr, index,
-                                            *(short *)(glow_widget_ptr + 0x24c));
-            if (node == 0) {
-                return;
-            }
-            if ((*(unsigned char *)((int)glow_tag + 0x28) & 2) != 0) {
-                *(unsigned int *)(node + 0x54) = *(unsigned int *)(node + 0x54) | 1;
-            }
-            if ((*(unsigned char *)((int)glow_tag + 0x28) & 4) != 0) {
-                if (parity) {
-                    flags = *(unsigned int *)(node + 0x54) & 0xfffffffe;
-                } else {
-                    flags = *(unsigned int *)(node + 0x54) | 1;
-                }
-                parity = !parity;
-                *(unsigned int *)(node + 0x54) = flags;
-            }
-            if (*(int *)(glow_widget_ptr + 0x250) == 0) {
-                *(int *)(glow_widget_ptr + 0x250) = node;
-            }
-            if (prev_node != 0) {
-                *(int *)(prev_node + 0x5c) = node;
-            }
-            *(int *)(node + 0x60) = prev_node;
-            index = index + 1;
-            *(int *)(glow_widget_ptr + 0x254) = node;
-            prev_node = node;
-        } while (index < *(short *)(glow_widget_ptr + 0x24c));
+  glow_tag = tag_get(0x676c7721, *(int *)(glow_widget_ptr + 0x224));
+  index = 0;
+  parity = true;
+  prev_node = 0;
+  if (0 < *(short *)(glow_widget_ptr + 0x24c)) {
+    do {
+      node = glow_normal_particle_new(glow_widget_ptr, index,
+                                      *(short *)(glow_widget_ptr + 0x24c));
+      if (node == 0) {
+        return;
+      }
+      if ((*(unsigned char *)((int)glow_tag + 0x28) & 2) != 0) {
+        *(unsigned int *)(node + 0x54) = *(unsigned int *)(node + 0x54) | 1;
+      }
+      if ((*(unsigned char *)((int)glow_tag + 0x28) & 4) != 0) {
+        if (parity) {
+          flags = *(unsigned int *)(node + 0x54) & 0xfffffffe;
+        } else {
+          flags = *(unsigned int *)(node + 0x54) | 1;
+        }
+        parity = !parity;
+        *(unsigned int *)(node + 0x54) = flags;
+      }
+      if (*(int *)(glow_widget_ptr + 0x250) == 0) {
+        *(int *)(glow_widget_ptr + 0x250) = node;
+      }
+      if (prev_node != 0) {
+        *(int *)(prev_node + 0x5c) = node;
+      }
+      *(int *)(node + 0x60) = prev_node;
+      index = index + 1;
+      *(int *)(glow_widget_ptr + 0x254) = node;
+      prev_node = node;
+    } while (index < *(short *)(glow_widget_ptr + 0x24c));
+  }
+}
+
+/* Glow widget trailing-particle spawner.
+ *
+ * TU: c:\halo\SOURCE\objects\widgets\glow.c (confirmed via __FILE__ assert
+ * xref). The glow widget spawns "trailing" particles behind a glowing effect
+ * attached to a game object.  Its definition lives in a 'glw!' (0x676c7721) tag
+ * block, resolved through object handle at glow_widget+0x224.
+ */
+
+/* data_t* pool for glow trailing particles. */
+#define GLOW_PARTICLE_DATA (*(data_t **)0x005a90cc)
+
+/* glow_trailing_particle_new (0x134350 / objects.obj / glow.c)
+ *
+ * Allocates a new trailing-particle datum for a glow widget and initializes its
+ * position, velocity distribution, size, lifetime and color-lerp state from the
+ * 'glw!' tag definition.  The glow-widget pointer arrives in EBX (@<ebx>).
+ *
+ * Distribution mode is a signed word at glowtag+0x26:
+ *   0 = fixed direction  (velocity dir from tag_data+0x38..0x40 cleared to +Z
+ * unit) 1 = per-variant table (glow_widget+0x5c + variant*0x6c, variant =
+ * particle+2) 2 = random spherical  (three [-1,1] randoms then normalized) Any
+ * other value asserts and exits.
+ *
+ * Returns the new particle pointer (int), or 0 if the pool is full.
+ */
+int glow_trailing_particle_new(int glow_widget /* @<ebx> */)
+{
+  int glow_tag; /* pvVar5 — 'glw!' tag definition block */
+  int particle;
+  int idx;
+  int variant;
+  int base;
+  int16_t dist; /* distribution mode at glow_tag+0x26 (signed word) */
+  float fmin;
+  float fmax;
+  float scale;
+  float radius;
+  float t;
+
+  glow_tag = (int)tag_get(0x676c7721, *(int *)(glow_widget + 0x224));
+  particle = 0;
+
+  idx = data_new_at_index(GLOW_PARTICLE_DATA);
+  if (idx != -1) {
+    particle = (int)datum_get(GLOW_PARTICLE_DATA, idx);
+    *(int *)(particle + 4) = idx;
+
+    /* Initial world position. */
+    if (*(int16_t *)(glow_widget + 4) < 2) {
+      *(uint32_t *)(particle + 0x2c) = *(uint32_t *)(glow_widget + 0x68);
+      *(uint32_t *)(particle + 0x30) = *(uint32_t *)(glow_widget + 0x6c);
+      *(uint32_t *)(particle + 0x34) = *(uint32_t *)(glow_widget + 0x70);
+    } else {
+      fmax = *(float *)(glow_tag + 0x10c) * *(float *)(glow_widget + 0x234);
+      fmin = *(float *)(glow_tag + 0x108) * *(float *)(glow_widget + 0x234);
+      *(float *)(particle + 0x28) = random_real_range(
+        (int *)random_math_get_local_seed_address(), fmin, fmax);
+      get_particle_world_position(glow_widget, particle, 0.0f);
     }
+
+    /* Velocity direction by distribution mode. */
+    dist = *(int16_t *)(glow_tag + 0x26);
+    if (dist == 0) {
+      *(uint32_t *)(particle + 0x38) = 0;
+      *(uint32_t *)(particle + 0x3c) = 0;
+      *(float *)(particle + 0x40) = 1.0f;
+    } else if (dist == 1) {
+      variant = *(int16_t *)(particle + 2);
+      base = glow_widget + variant * 0x6c + 0x5c;
+      *(uint32_t *)(particle + 0x38) = *(uint32_t *)(base);
+      *(uint32_t *)(particle + 0x3c) = *(uint32_t *)(base + 4);
+      *(uint32_t *)(particle + 0x40) = *(uint32_t *)(base + 8);
+    } else {
+      if (dist != 2) {
+        display_assert("unknown trailing particle distribution?",
+                       "c:\\halo\\SOURCE\\objects\\widgets\\glow.c", 996, 1);
+        system_exit(-1);
+      }
+      *(float *)(particle + 0x38) = random_real_range(
+        (int *)random_math_get_local_seed_address(), -1.0f, 1.0f);
+      *(float *)(particle + 0x3c) = random_real_range(
+        (int *)random_math_get_local_seed_address(), -1.0f, 1.0f);
+      *(float *)(particle + 0x40) = random_real_range(
+        (int *)random_math_get_local_seed_address(), -1.0f, 1.0f);
+      normalize3d((float *)(particle + 0x38));
+    }
+
+    /* Scale the velocity direction by tag magnitude. */
+    scale = *(float *)(glow_tag + 0x104) * *(float *)0x2546a4;
+    *(float *)(particle + 0x38) = *(float *)(particle + 0x38) * scale;
+    *(float *)(particle + 0x3c) = *(float *)(particle + 0x3c) * scale;
+    *(float *)(particle + 0x40) = *(float *)(particle + 0x40) * scale;
+
+    /* Particle size (tag radius range / widget divisor). */
+    radius = random_real_range((int *)random_math_get_local_seed_address(),
+                               *(float *)(glow_tag + 0xa0),
+                               *(float *)(glow_tag + 0xa4));
+    *(float *)(particle + 0x20) =
+      radius / (float)*(int16_t *)(glow_widget + 0x228);
+
+    /* Lifetime in ticks. */
+    *(int16_t *)(particle + 0x52) =
+      (int16_t)(int)(*(float *)(glow_tag + 0x100) * TICKS_PER_SECOND);
+
+    /* Color lerp between tag min (0xb8..0xc0) and max (0xc8..0xd0). */
+    t = random_real_range((int *)random_math_get_local_seed_address(), 0.0f,
+                          1.0f);
+    *(float *)(particle + 0xc) = 1.0f;
+    *(float *)(particle + 0x10) =
+      (*(float *)(glow_tag + 0xc8) - *(float *)(glow_tag + 0xb8)) * t +
+      *(float *)(glow_tag + 0xb8);
+    *(float *)(particle + 0x14) =
+      (*(float *)(glow_tag + 0xcc) - *(float *)(glow_tag + 0xbc)) * t +
+      *(float *)(glow_tag + 0xbc);
+    *(uint32_t *)(particle + 0x54) |= 2;
+    *(float *)(particle + 0x18) =
+      (*(float *)(glow_tag + 0xd0) - *(float *)(glow_tag + 0xc0)) * t +
+      *(float *)(glow_tag + 0xc0);
+  }
+
+  return particle;
 }
 
 /* FUN_00134ae0 (0x134ae0 / objects.obj, object_lights.c) — initialize a glow
  * widget instance attached to an object.
  *
  * Given an object handle and a widget datum handle, looks up the object datum,
- * resolves the glow-widget tag ('glw!' = 0x676c7721) referenced at object+0x224,
- * then runs the glow-widget initialization (FUN_001345b0) on the object datum,
- * builds the object's marker set for the widget tag (object_get_markers_by_string_id), and refreshes
- * the widget render batch (FUN_00133520).
+ * resolves the glow-widget tag ('glw!' = 0x676c7721) referenced at
+ * object+0x224, then runs the glow-widget initialization (FUN_001345b0) on the
+ * object datum, builds the object's marker set for the widget tag
+ * (object_get_markers_by_string_id), and refreshes the widget render batch
+ * (FUN_00133520).
  *
- * Confirmed: 2 cdecl args (object_handle @ [EBP+0x8], widget_datum @ [EBP+0xc]),
- * early-out if either is -1.
- * Confirmed: first datum_get(*(data_t**)0x5a90c8, widget_datum) -> object datum;
- * widget tag = tag_get(0x676c7721, *(object_datum+0x224)).
- * Confirmed: FUN_001345b0 is register-arg — glow_widget@<eax> receives the
- * second datum_get's return (object datum ptr); object_handle pushed (the EDI
- * push at 0x134b1f) is its single cdecl stack arg. The trailing ADD ESP,0x1c
- * batch-cleans this push plus object_get_markers_by_string_id's 4 args and FUN_00133520's 2 args.
- * Confirmed: object_get_markers_by_string_id(object_handle, widget_tag, local_buf[0x6c], 1).
- * Confirmed: FUN_00133520(object_handle, widget_datum).
+ * Confirmed: 2 cdecl args (object_handle @ [EBP+0x8], widget_datum @
+ * [EBP+0xc]), early-out if either is -1. Confirmed: first
+ * datum_get(*(data_t**)0x5a90c8, widget_datum) -> object datum; widget tag =
+ * tag_get(0x676c7721, *(object_datum+0x224)). Confirmed: FUN_001345b0 is
+ * register-arg — glow_widget@<eax> receives the second datum_get's return
+ * (object datum ptr); object_handle pushed (the EDI push at 0x134b1f) is its
+ * single cdecl stack arg. The trailing ADD ESP,0x1c batch-cleans this push plus
+ * object_get_markers_by_string_id's 4 args and FUN_00133520's 2 args.
+ * Confirmed: object_get_markers_by_string_id(object_handle, widget_tag,
+ * local_buf[0x6c], 1). Confirmed: FUN_00133520(object_handle, widget_datum).
  */
 void FUN_00134ae0(int object_handle, int widget_datum)
 {
@@ -657,8 +1511,10 @@ void FUN_00134ae0(int object_handle, int widget_datum)
   if ((object_handle != -1) && (widget_datum != -1)) {
     object_datum = (int)datum_get(*(data_t **)0x5a90c8, widget_datum);
     widget_tag = tag_get(0x676c7721, *(int *)(object_datum + 0x224));
-    FUN_001345b0((int)datum_get(*(data_t **)0x5a90c8, widget_datum), object_handle);
-    object_get_markers_by_string_id((int)object_handle, widget_tag, local_buf, 1);
+    FUN_001345b0((int)datum_get(*(data_t **)0x5a90c8, widget_datum),
+                 object_handle);
+    object_get_markers_by_string_id((int)object_handle, widget_tag, local_buf,
+                                    1);
     FUN_00133520(object_handle, widget_datum);
   }
 }
@@ -690,6 +1546,94 @@ void FUN_00134c20(int param_1)
   }
 }
 
+/* Light-volume widget parameter interpolation.
+ * TU: c:\halo\SOURCE\objects\widgets\light_volumes.c (confirmed via __FILE__
+ * assert xref at line 0x6e).
+ *
+ * FUN_00134c40 selects a light-volume parameter block for an object.  The
+ * definition holds a tag_block of parameter frames (header at +0x120, element
+ * stride 0xb0).  With <=1 frame it returns element 0 directly.  With more than
+ * one frame it reads the object's animation function value (function index at
+ * definition+0xb8, minus one) and, when that succeeds, blends two frames into a
+ * static scratch block at 0x0046ef70 and returns that block.
+ *
+ * The binary re-fetches element index 0 in every tag_block_get_element call
+ * (verified against disassembly — the three main-path calls and the <=1
+ * fallback call all pass index 0); this is preserved verbatim, not "fixed" into
+ * an interpolation-index fetch.  definition_ptr arrives in EBX (@<ebx>). */
+
+void *FUN_00134c40(int definition_ptr, int object_handle)
+{
+  int *count_ptr;
+  void *elem0;
+  void *elemA;
+  void *elemB;
+  float local_8;
+  float t;
+  bool ok;
+
+  if (definition_ptr == 0) {
+    display_assert("definition",
+                   "c:\\halo\\SOURCE\\objects\\widgets\\light_volumes.c", 0x6e,
+                   1);
+    system_exit(-1);
+  }
+
+  count_ptr = (int *)(definition_ptr + 0x120);
+  elem0 = tag_block_get_element(count_ptr, 0, 0xb0);
+
+  if (1 < *count_ptr) {
+    elemA = tag_block_get_element(count_ptr, 0, 0xb0);
+    elemB = tag_block_get_element(count_ptr, 0, 0xb0);
+    ok = object_get_function_value(
+      object_handle, (short)(*(short *)(definition_ptr + 0xb8) - 1), &local_8);
+    if (ok) {
+      t = *(float *)0x002533c8 - local_8;
+
+      *(float *)0x0046ef80 = local_8 * *(float *)((char *)elemB + 0x10) +
+                             t * *(float *)((char *)elemA + 0x10);
+      *(float *)0x0046ef84 = local_8 * *(float *)((char *)elemB + 0x14) +
+                             t * *(float *)((char *)elemA + 0x14);
+      *(float *)0x0046ef88 = local_8 * *(float *)((char *)elemB + 0x18) +
+                             t * *(float *)((char *)elemA + 0x18);
+
+      *(float *)0x0046efac = local_8 * *(float *)((char *)elemB + 0x3c) +
+                             t * *(float *)((char *)elemA + 0x3c);
+      *(float *)0x0046efb0 = local_8 * *(float *)((char *)elemB + 0x40) +
+                             t * *(float *)((char *)elemA + 0x40);
+      *(float *)0x0046efb4 = local_8 * *(float *)((char *)elemB + 0x44) +
+                             t * *(float *)((char *)elemA + 0x44);
+
+      *(float *)0x0046efd8 = local_8 * *(float *)((char *)elemB + 0x68) +
+                             t * *(float *)((char *)elemA + 0x68);
+      *(float *)0x0046efdc = local_8 * *(float *)((char *)elemB + 0x6c) +
+                             t * *(float *)((char *)elemA + 0x6c);
+      *(float *)0x0046efe0 = local_8 * *(float *)((char *)elemB + 0x70) +
+                             t * *(float *)((char *)elemA + 0x70);
+      *(float *)0x0046efe4 = local_8 * *(float *)((char *)elemB + 0x74) +
+                             t * *(float *)((char *)elemA + 0x74);
+      *(float *)0x0046efe8 = local_8 * *(float *)((char *)elemB + 0x78) +
+                             t * *(float *)((char *)elemA + 0x78);
+      *(float *)0x0046efec = local_8 * *(float *)((char *)elemB + 0x7c) +
+                             t * *(float *)((char *)elemA + 0x7c);
+      *(float *)0x0046eff0 = local_8 * *(float *)((char *)elemB + 0x80) +
+                             t * *(float *)((char *)elemA + 0x80);
+      *(float *)0x0046eff4 = local_8 * *(float *)((char *)elemB + 0x84) +
+                             t * *(float *)((char *)elemA + 0x84);
+      *(float *)0x0046eff8 = local_8 * *(float *)((char *)elemB + 0x88) +
+                             t * *(float *)((char *)elemA + 0x88);
+      *(float *)0x0046effc = local_8 * *(float *)((char *)elemB + 0x8c) +
+                             t * *(float *)((char *)elemA + 0x8c);
+
+      return (void *)0x0046ef70;
+    }
+    return elem0;
+  }
+
+  elem0 = tag_block_get_element(count_ptr, 0, 0xb0);
+  return elem0;
+}
+
 /*
  * FUN_00134e50 (0x134e50 / objects.obj) — raise a value to a power, skipping
  * the power call when the exponent is exactly 1.0.
@@ -709,36 +1653,40 @@ float FUN_00134e50(float value, float exponent)
   return value;
 }
 
-/* FUN_00134e80 (0x134e80 / objects.obj, object_lights.c) — render a light-volume
- * effect (group 'lmgs2'/0x6d677332 contrail-style sprite strip) along an object's
- * marker, fading by view-direction and distance falloff.
+/* FUN_00134e80 (0x134e80 / objects.obj, object_lights.c) — render a
+ * light-volume effect (group 'lmgs2'/0x6d677332 contrail-style sprite strip)
+ * along an object's marker, fading by view-direction and distance falloff.
  *
  * Resolves the light-volume tag from the light-volume datum, gates on the tag
- * having marker count (+0x6e > 0) and a positive sprite count (+0x120 > 0), then:
- *   - fetches the object's marker buffer for the tag (object_get_markers_by_string_id);
+ * having marker count (+0x6e > 0) and a positive sprite count (+0x120 > 0),
+ * then:
+ *   - fetches the object's marker buffer for the tag
+ * (object_get_markers_by_string_id);
  *   - computes a view-dependent intensity from the camera forward axis
  *     (globals 0x50655c/0x506560/0x506564) and camera position
  *     (0x506550/0x506554/0x506558), clamped to [0,1];
  *   - applies the tag's distance attenuation (+0x34/+0x38/+0x3c/+0x40) and the
- *     object function value (object_get_function_value, function index tag+0x44 - 1);
+ *     object function value (object_get_function_value, function index tag+0x44
+ * - 1);
  *   - if visible, emits a sprite strip via the rendering batch
  *     (FUN_0017cfc0/0017cfd0/0017d010/0017ad90).
  *
- * Confirmed: 2 cdecl args (object_handle @ [EBP+0x8], light_volume_datum @ [EBP+0xc]).
- * Confirmed: light tag 'lmgs2' = tag_get(0x6d677332, *(light_datum+4)).
- * Confirmed: FUN_00134c40 is register-arg — light_tag@<ebx> (EBX from MOV EBX,EAX
- * at 0x134ebe), object_handle pushed (EDI). Decompiler dropped the @<ebx> arg.
- * Confirmed: marker buffer base EBP-0xa4, size 0x6c; object_get_markers_by_string_id fills it.
- *   Marker position = buf+0x60/+0x64/+0x68 (FLD [EBP-0x44/-0x40/-0x3c]).
- *   Marker forward  = buf+0x3c/+0x40/+0x44 (FLD [EBP-0x68/-0x64/-0x60]).
- * Confirmed: object_handle copied to EDI; the [EBP+0x8] param slot is reused as a
- * float scratch (blend value), kept as a separate local here.
- * Confirmed: the per-segment curve is pow(frac, period) with the "skip when
- *   period==1.0" identity (four __CIpow_default reloc targets @ 0x1d9e70 in the
- *   delinked reference; same helper as FUN_00134e50 above). pow(x,1.0)==x, hence
- *   the exponent==1.0 short-circuit. (float)pow((double),(double)) lowers to the
- *   _CIpow intrinsic under VC71 and to a pow call under clang.
- * Uncertain: marker_state struct field meanings at +0x10/+0x14/+0x18/+0x3c/+0x40/
+ * Confirmed: 2 cdecl args (object_handle @ [EBP+0x8], light_volume_datum @
+ * [EBP+0xc]). Confirmed: light tag 'lmgs2' = tag_get(0x6d677332,
+ * *(light_datum+4)). Confirmed: FUN_00134c40 is register-arg — light_tag@<ebx>
+ * (EBX from MOV EBX,EAX at 0x134ebe), object_handle pushed (EDI). Decompiler
+ * dropped the @<ebx> arg. Confirmed: marker buffer base EBP-0xa4, size 0x6c;
+ * object_get_markers_by_string_id fills it. Marker position =
+ * buf+0x60/+0x64/+0x68 (FLD [EBP-0x44/-0x40/-0x3c]). Marker forward  =
+ * buf+0x3c/+0x40/+0x44 (FLD [EBP-0x68/-0x64/-0x60]). Confirmed: object_handle
+ * copied to EDI; the [EBP+0x8] param slot is reused as a float scratch (blend
+ * value), kept as a separate local here. Confirmed: the per-segment curve is
+ * pow(frac, period) with the "skip when period==1.0" identity (four
+ * __CIpow_default reloc targets @ 0x1d9e70 in the delinked reference; same
+ * helper as FUN_00134e50 above). pow(x,1.0)==x, hence the exponent==1.0
+ * short-circuit. (float)pow((double),(double)) lowers to the _CIpow intrinsic
+ * under VC71 and to a pow call under clang. Uncertain: marker_state struct
+ * field meanings at +0x10/+0x14/+0x18/+0x3c/+0x40/
  *   +0x44/+0x68/+0x78/+0x88/+0x8c (read-only here).
  */
 void FUN_00134e80(int object_handle, int light_volume_datum)
@@ -750,7 +1698,7 @@ void FUN_00134e80(int object_handle, int light_volume_datum)
   unsigned short marker_count;
   unsigned int rem;
   short i;
-  float cam_x, cam_y, cam_z;       /* marker position minus camera globals */
+  float cam_x, cam_y, cam_z; /* marker position minus camera globals */
   float intensity;
   float depth_factor;
   float dot_to_marker;
@@ -759,9 +1707,10 @@ void FUN_00134e80(int object_handle, int light_volume_datum)
   float period;
   float frac;
   float scratch;
-  float out_pos[3];                /* local_1c..: world position for sprite */
-  float color2[3];                 /* local_38..: per-segment color (FUN_0007c270 out / FUN_000d1c90 in) */
-  float interp_a, interp_b;        /* local_2c / local_28 */
+  float out_pos[3]; /* local_1c..: world position for sprite */
+  float color2[3]; /* local_38..: per-segment color (FUN_0007c270 out /
+                      FUN_000d1c90 in) */
+  float interp_a, interp_b; /* local_2c / local_28 */
   unsigned char zfn;
   float fn_val;
   unsigned int color_argb;
@@ -769,13 +1718,16 @@ void FUN_00134e80(int object_handle, int light_volume_datum)
   if ((object_handle != -1) && (light_volume_datum != -1)) {
     light_datum = (int)datum_get(*(data_t **)0x46f020, light_volume_datum);
     light_tag = (int)tag_get(0x6d677332, *(int *)(light_datum + 4));
-    if ((0 < *(short *)(light_tag + 0x6e)) && (0 < *(int *)(light_tag + 0x120))) {
+    if ((0 < *(short *)(light_tag + 0x6e)) &&
+        (0 < *(int *)(light_tag + 0x120))) {
       marker_state = (int)FUN_00134c40(light_tag, object_handle);
-      object_get_markers_by_string_id(object_handle, (void *)light_tag, marker_buf, 1);
+      object_get_markers_by_string_id(object_handle, (void *)light_tag,
+                                      marker_buf, 1);
 
-      /* Read marker position (buf+0x60..) and forward (buf+0x3c..) directly from
-       * the buffer on every use; the reference never caches them in locals, so
-       * mirroring that avoids spill/copy instructions. Match-sensitive. */
+      /* Read marker position (buf+0x60..) and forward (buf+0x3c..) directly
+       * from the buffer on every use; the reference never caches them in
+       * locals, so mirroring that avoids spill/copy instructions.
+       * Match-sensitive. */
       cam_x = *(float *)(marker_buf + 0x60) - *(float *)0x506550;
       cam_y = *(float *)(marker_buf + 0x64) - *(float *)0x506554;
       cam_z = *(float *)(marker_buf + 0x68) - *(float *)0x506558;
@@ -784,48 +1736,53 @@ void FUN_00134e80(int object_handle, int light_volume_datum)
        * per-term operand order mirror the reference (fwd_z*g564 + fwd_y*g560 +
        * g55c*fwd_x): x87 (-mno-sse) preserves source association, so this order
        * is load-bearing for both the VC71 match and runtime float fidelity. */
-      dot_to_marker = *(float *)(marker_buf + 0x44) * *(float *)0x506564
-                    + *(float *)(marker_buf + 0x40) * *(float *)0x506560
-                    + *(float *)0x50655c * *(float *)(marker_buf + 0x3c);
+      dot_to_marker = *(float *)(marker_buf + 0x44) * *(float *)0x506564 +
+                      *(float *)(marker_buf + 0x40) * *(float *)0x506560 +
+                      *(float *)0x50655c * *(float *)(marker_buf + 0x3c);
       if (dot_to_marker < *(float *)0x2533c0) {
         dot_to_marker = -dot_to_marker;
       }
 
-      blend = *(float *)0x2533c8;   /* 1.0 */
+      blend = *(float *)0x2533c8; /* 1.0 */
       depth_factor = *(float *)0x2533c8;
       if (*(float *)0x2533c0 < *(float *)(light_tag + 0x38)) {
-        t = ((cam_z * *(float *)0x506564 + cam_y * *(float *)0x506560
-              + *(float *)0x50655c * cam_x) - *(float *)(light_tag + 0x38))
-            / (*(float *)(light_tag + 0x34) - *(float *)(light_tag + 0x38));
+        t = ((cam_z * *(float *)0x506564 + cam_y * *(float *)0x506560 +
+              *(float *)0x50655c * cam_x) -
+             *(float *)(light_tag + 0x38)) /
+            (*(float *)(light_tag + 0x34) - *(float *)(light_tag + 0x38));
         /* clamp t to [0,1] kept x87-resident; NaN routes to 0.0 as above. */
-        depth_factor = (*(float *)0x2533c0 <= t)
-                     ? ((*(float *)0x2533c8 < t) ? *(float *)0x2533c8 : t)
-                     : *(float *)0x2533c0;
+        depth_factor = (*(float *)0x2533c0 <= t) ?
+                         ((*(float *)0x2533c8 < t) ? *(float *)0x2533c8 : t) :
+                         *(float *)0x2533c0;
       }
 
-      intensity = dot_to_marker * *(float *)(light_tag + 0x40)
-                + (*(float *)0x2533c8 - dot_to_marker) * *(float *)(light_tag + 0x3c);
-      /* clamp intensity to [0,1] kept x87-resident (nested ternary => reference's
-       * fcoms/test $0x5 idiom). The (0.0 <= x) outer test routes NaN -> 0.0,
-       * matching the original; do not reorder to (x < 0.0) which keeps NaN. */
-      scratch = (*(float *)0x2533c0 <= intensity)
-              ? ((*(float *)0x2533c8 < intensity) ? *(float *)0x2533c8 : intensity)
-              : *(float *)0x2533c0;
+      intensity =
+        dot_to_marker * *(float *)(light_tag + 0x40) +
+        (*(float *)0x2533c8 - dot_to_marker) * *(float *)(light_tag + 0x3c);
+      /* clamp intensity to [0,1] kept x87-resident (nested ternary =>
+       * reference's fcoms/test $0x5 idiom). The (0.0 <= x) outer test routes
+       * NaN -> 0.0, matching the original; do not reorder to (x < 0.0) which
+       * keeps NaN. */
+      scratch =
+        (*(float *)0x2533c0 <= intensity) ?
+          ((*(float *)0x2533c8 < intensity) ? *(float *)0x2533c8 : intensity) :
+          *(float *)0x2533c0;
       depth_factor = scratch * depth_factor;
 
-      zfn = object_get_function_value(object_handle,
-                                      (short)(*(short *)(light_tag + 0x44) - 1), &blend);
+      zfn = object_get_function_value(
+        object_handle, (short)(*(short *)(light_tag + 0x44) - 1), &blend);
       if (zfn != 0) {
         depth_factor = blend * depth_factor;
       }
 
-      if ((*(float *)0x2533c0 < depth_factor)
-          && ((*(float *)0x2533c0 < *(float *)(marker_state + 0x68))
-              || (*(float *)0x2533c0 < *(float *)(marker_state + 0x78)))
-          && ((*(float *)0x2533c0 < *(float *)(marker_state + 0x3c))
-              || (*(float *)0x2533c0 < *(float *)(marker_state + 0x40)))) {
+      if ((*(float *)0x2533c0 < depth_factor) &&
+          ((*(float *)0x2533c0 < *(float *)(marker_state + 0x68)) ||
+           (*(float *)0x2533c0 < *(float *)(marker_state + 0x78))) &&
+          ((*(float *)0x2533c0 < *(float *)(marker_state + 0x3c)) ||
+           (*(float *)0x2533c0 < *(float *)(marker_state + 0x40)))) {
         FUN_0017cfc0(5, 1);
-        FUN_0017cfd0(0, *(int *)(light_tag + 0x68), *(short *)(light_tag + 0x6c));
+        FUN_0017cfd0(0, *(int *)(light_tag + 0x68),
+                     *(short *)(light_tag + 0x6c));
         marker_count = *(unsigned short *)(light_tag + 0x6e);
         if (0 < (short)marker_count) {
           i = 0;
@@ -833,34 +1790,49 @@ void FUN_00134e80(int object_handle, int light_volume_datum)
           do {
             period = *(float *)(marker_state + 0x14);
             frac = (float)i / (float)(short)(marker_count - 1);
-            frac = (period != *(float *)0x2533c8) ? (float)pow((double)frac, (double)period) : frac;
+            frac = (period != *(float *)0x2533c8) ?
+                     (float)pow((double)frac, (double)period) :
+                     frac;
 
             period = *(float *)(marker_state + 0x44);
-            interp_a = (period != *(float *)0x2533c8) ? (float)pow((double)frac, (double)period) : frac;
-            interp_a = interp_a * *(float *)(marker_state + 0x40)
-                     + (*(float *)0x2533c8 - interp_a) * *(float *)(marker_state + 0x3c);
+            interp_a = (period != *(float *)0x2533c8) ?
+                         (float)pow((double)frac, (double)period) :
+                         frac;
+            interp_a =
+              interp_a * *(float *)(marker_state + 0x40) +
+              (*(float *)0x2533c8 - interp_a) * *(float *)(marker_state + 0x3c);
 
             period = *(float *)(marker_state + 0x88);
-            interp_b = (period != *(float *)0x2533c8) ? (float)pow((double)frac, (double)period) : frac;
+            interp_b = (period != *(float *)0x2533c8) ?
+                         (float)pow((double)frac, (double)period) :
+                         frac;
 
             period = *(float *)(marker_state + 0x8c);
-            fn_val = (period != *(float *)0x2533c8) ? (float)pow((double)frac, (double)period) : frac;
+            fn_val = (period != *(float *)0x2533c8) ?
+                       (float)pow((double)frac, (double)period) :
+                       frac;
 
-            t = frac * *(float *)(marker_state + 0x18) + *(float *)(marker_state + 0x10);
-            out_pos[0] = *(float *)(marker_buf + 0x3c) * t + *(float *)(marker_buf + 0x60);
-            out_pos[1] = *(float *)(marker_buf + 0x40) * t + *(float *)(marker_buf + 0x64);
-            out_pos[2] = *(float *)(marker_buf + 0x44) * t + *(float *)(marker_buf + 0x68);
+            t = frac * *(float *)(marker_state + 0x18) +
+                *(float *)(marker_state + 0x10);
+            out_pos[0] =
+              *(float *)(marker_buf + 0x3c) * t + *(float *)(marker_buf + 0x60);
+            out_pos[1] =
+              *(float *)(marker_buf + 0x40) * t + *(float *)(marker_buf + 0x64);
+            out_pos[2] =
+              *(float *)(marker_buf + 0x44) * t + *(float *)(marker_buf + 0x68);
 
             FUN_0007c270(color2, *(unsigned char *)(light_tag + 0x22) & 3,
-                         (float *)(marker_state + 0x6c), (float *)(marker_state + 0x7c),
-                         interp_b);
+                         (float *)(marker_state + 0x6c),
+                         (float *)(marker_state + 0x7c), interp_b);
 
             /* color2[0] is overwritten with the view/distance-scaled intensity
-             * (1-fn)*+0x68 + fn*+0x78, times depth_factor; color2[1..2] keep the
-             * FUN_0007c270 output, then the whole triple is packed to ARGB. */
-            color2[0] = (fn_val * *(float *)(marker_state + 0x78)
-                         + (*(float *)0x2533c8 - fn_val) * *(float *)(marker_state + 0x68))
-                        * depth_factor;
+             * (1-fn)*+0x68 + fn*+0x78, times depth_factor; color2[1..2] keep
+             * the FUN_0007c270 output, then the whole triple is packed to ARGB.
+             */
+            color2[0] = (fn_val * *(float *)(marker_state + 0x78) +
+                         (*(float *)0x2533c8 - fn_val) *
+                           *(float *)(marker_state + 0x68)) *
+                        depth_factor;
             color_argb = FUN_000d1c90(color2);
             FUN_0017d010(out_pos, interp_a, (float *)0, 0.0f, color_argb);
 
@@ -879,22 +1851,25 @@ void FUN_00134e80(int object_handle, int light_volume_datum)
  * deferred rendering with FUN_00134e80 as the draw callback.
  *
  * Gates on the same light-volume tag ('lmgs2') having marker count (+0x6e > 0)
- * and sprite count (+0x120 > 0); additionally, when the tag has a function index
+ * and sprite count (+0x120 > 0); additionally, when the tag has a function
+ * index
  * (+0x44 != 0) and a function-state pointer (param_4) is supplied, requires the
  * indexed function value (param_4->[+4][index-1]) to be > 0. Then fetches the
- * object marker buffer (object_get_markers_by_string_id) and, if the tag's near distance (+0x38) is
- * 0 or the camera-relative depth along the view forward axis is within it,
- * submits the volume via FUN_0017cfb0(object_handle, light_volume_datum,
- * &marker_position, FUN_00134e80).
+ * object marker buffer (object_get_markers_by_string_id) and, if the tag's near
+ * distance (+0x38) is 0 or the camera-relative depth along the view forward
+ * axis is within it, submits the volume via FUN_0017cfb0(object_handle,
+ * light_volume_datum, &marker_position, FUN_00134e80).
  *
  * Confirmed: 4 cdecl args. object_handle @ [EBP+0x8] (EBX), light_volume_datum
  * @ [EBP+0xc] (EDI); param_3 @ [EBP+0x10] is unused here; param_4 @ [EBP+0x14]
  * is a function-state pointer (reads ptr+0x4 then indexes by tag+0x44).
  * Confirmed: PUSH 0x134e80 at 0x135303 — FUN_00134e80 is the draw callback.
- * Confirmed: marker buffer base EBP-0x6c, size 0x6c; position at buf+0x60/+0x64/
- * +0x68 (FLD [EBP-0xc/-0x8/-0x4]); &buf[0x60] passed as position to FUN_0017cfb0.
+ * Confirmed: marker buffer base EBP-0x6c, size 0x6c; position at
+ * buf+0x60/+0x64/ +0x68 (FLD [EBP-0xc/-0x8/-0x4]); &buf[0x60] passed as
+ * position to FUN_0017cfb0.
  */
-void FUN_00135210(int object_handle, int light_volume_datum, int param_3, int param_4)
+void FUN_00135210(int object_handle, int light_volume_datum, int param_3,
+                  int param_4)
 {
   unsigned char marker_buf[0x6c];
   int light_tag;
@@ -904,15 +1879,17 @@ void FUN_00135210(int object_handle, int light_volume_datum, int param_3, int pa
 
   (void)param_3;
   if ((object_handle != -1) && (light_volume_datum != -1)) {
-    light_tag = (int)tag_get(0x6d677332,
-                             *(int *)((int)datum_get(*(data_t **)0x46f020,
-                                                     light_volume_datum) + 4));
+    light_tag = (int)tag_get(
+      0x6d677332,
+      *(int *)((int)datum_get(*(data_t **)0x46f020, light_volume_datum) + 4));
     fn_index = *(short *)(light_tag + 0x44);
-    if ((0 < *(short *)(light_tag + 0x6e)) && (0 < *(int *)(light_tag + 0x120))
-        && ((fn_index == 0) || (param_4 == 0)
-            || (*(float *)(*(int *)(param_4 + 4) - 4 + fn_index * 4)
-                > *(float *)0x2533c0))) {
-      object_get_markers_by_string_id(object_handle, (void *)light_tag, marker_buf, 1);
+    if ((0 < *(short *)(light_tag + 0x6e)) &&
+        (0 < *(int *)(light_tag + 0x120)) &&
+        ((fn_index == 0) || (param_4 == 0) ||
+         (*(float *)(*(int *)(param_4 + 4) - 4 + fn_index * 4) >
+          *(float *)0x2533c0))) {
+      object_get_markers_by_string_id(object_handle, (void *)light_tag,
+                                      marker_buf, 1);
       marker_pos = (float *)(marker_buf + 0x60);
       /* diff[] as an array (not scalars) forces VC71 to compute all three
        * marker-minus-camera subtractions eagerly and keep them x87-resident
@@ -921,9 +1898,10 @@ void FUN_00135210(int object_handle, int light_volume_datum, int param_3, int pa
       diff[0] = marker_pos[0] - *(float *)0x506550;
       diff[1] = marker_pos[1] - *(float *)0x506554;
       diff[2] = marker_pos[2] - *(float *)0x506558;
-      if ((*(float *)(light_tag + 0x38) == *(float *)0x2533c0)
-          || (*(float *)0x50655c * diff[0] + *(float *)0x506560 * diff[1]
-              + *(float *)0x506564 * diff[2] < *(float *)(light_tag + 0x38))) {
+      if ((*(float *)(light_tag + 0x38) == *(float *)0x2533c0) ||
+          (*(float *)0x50655c * diff[0] + *(float *)0x506560 * diff[1] +
+             *(float *)0x506564 * diff[2] <
+           *(float *)(light_tag + 0x38))) {
         FUN_0017cfb0(object_handle, light_volume_datum, marker_pos,
                      (int)FUN_00134e80);
       }
@@ -956,6 +1934,553 @@ void FUN_001353f0(int param_1)
   if (param_1 != -1) {
     datum_delete(*(data_t **)0x46f024, param_1);
   }
+}
+
+/* TU: c:\halo\SOURCE\objects\widgets\lightning.c
+ *
+ * Lightning widget marker helpers. */
+
+/* lightning_offset_marker_position — perturb a marker position by a random
+ * offset drawn within random_position_bounds, transform that offset into the
+ * marker's local frame via matrix_scale_transform_vector, then add it to the
+ * base position (in place).
+ *
+ * Register-arg ABI (verified against disasm prologue: TEST ESI @135426,
+ * TEST EBX @135447, TEST EDI @135468):
+ *   matrix_ptr    @ebx  (int handle; passed as float* to the transform)
+ *   position_out  @esi  (float* in/out, xyz)
+ *   random_bounds @edi  (float* xyz half-extents)
+ *
+ * FPU fidelity notes:
+ *   - The three random draws feed the offset components in REVERSED order:
+ *     3rd draw -> comp0, 2nd draw -> comp1, 1st draw -> comp2.  The 3rd draw
+ *     is kept live in ST0 (not spilled) and consumed by comp0 first.
+ *   - Each component is ((r + r) - 1.0f) * bound[i]; the (r + r) form matches
+ *     FADD ST,ST (not a multiply) and 1.0f is _DAT_002533c8 (read_memory
+ *     confirmed = 0x3f800000).
+ *   - The transform is called in place (in == out == offset); do NOT split
+ *     into a separate output buffer.
+ * Assert-tail flavor: display_assert(...) then system_exit(-1). */
+void lightning_offset_marker_position(int matrix_ptr /*@ebx*/,
+                                      float *position_out /*@esi*/,
+                                      float *random_bounds /*@edi*/)
+{
+  unsigned int *seed;
+  float draw1;
+  float draw2;
+  float draw3;
+  float offset[3];
+
+  if (position_out == (float *)0) {
+    display_assert("position",
+                   "c:\\halo\\SOURCE\\objects\\widgets\\lightning.c", 0x74, 1);
+    system_exit(-1);
+  }
+  if (matrix_ptr == 0) {
+    display_assert("matrix", "c:\\halo\\SOURCE\\objects\\widgets\\lightning.c",
+                   0x75, 1);
+    system_exit(-1);
+  }
+  if (random_bounds == (float *)0) {
+    display_assert("random_position_bounds",
+                   "c:\\halo\\SOURCE\\objects\\widgets\\lightning.c", 0x76, 1);
+    system_exit(-1);
+  }
+
+  seed = random_math_get_local_seed_address();
+  draw1 = random_math_real(seed);
+  seed = random_math_get_local_seed_address();
+  draw2 = random_math_real(seed);
+  seed = random_math_get_local_seed_address();
+  draw3 = random_math_real(seed);
+
+  offset[0] = ((draw3 + draw3) - 1.0f) * random_bounds[0];
+  offset[1] = ((draw2 + draw2) - 1.0f) * random_bounds[1];
+  offset[2] = ((draw1 + draw1) - 1.0f) * random_bounds[2];
+
+  matrix_scale_transform_vector((float *)matrix_ptr, offset, offset);
+
+  position_out[0] = offset[0] + position_out[0];
+  position_out[1] = offset[1] + position_out[1];
+  position_out[2] = offset[2] + position_out[2];
+}
+
+/* 0x135510 — lightning_widget_render (TU:
+ * c:\halo\SOURCE\objects\widgets\lightning.c;
+ * __FILE__ assert xrefs confirm the TU).
+ *
+ * Renders an object's lightning widget ('elec' tag) as a camera-facing sprite
+ * strip generated by recursive midpoint-displacement subdivision. 4 cdecl args
+ * (object handle, lightning datum, unused, function-state pointer).
+ *
+ * Per outer "instance" (tag+0x2 count):
+ *   For each node in the 'elec' node block (tag+0x98):
+ *     - On the first node, seed points[0] with the node's marker position
+ *       (perturbed by lightning_offset_marker_position) and its per-node attrs
+ *       (node+0x84..0x94).
+ *     - If the node is not flagged as a break (node+0x20 bit0) and is not the
+ *       last node, subdivide the segment [start, start+2^level] via midpoint
+ *       displacement: place points[end] from the next node's marker, build a
+ *       normalized perpendicular = cross(end-start, camera axis
+ * @0x50655c/60/64) (falling back to *0x31fc28 when degenerate), then for each
+ * subdivision level (largest step first, amplitude halved per level) jitter
+ * each midpoint along the perpendicular by random_real_range(-1,1) * width, and
+ *       average both endpoints' attrs. Accumulate point_count += 2^level.
+ *     - Otherwise (break flag or last node) emit the accumulated strip:
+ * allocate a rasterizer widget (2 verts per point), read optional
+ * width/color/alpha scale functions from the function-state
+ * (tag+0x2e/0x30/0x32), and for each point write two offset vertices (+/-
+ * perpendicular*width) plus a packed ARGB color and a running texture-v
+ * coordinate; track the point bbox and submit via FUN_0017cf60 with the bbox
+ * center as origin.
+ *
+ * Confirmed: 'elec' = 0x656c6563; bitmap tag = 0x6269746d (tag+0x40). Node
+ * block element size 0xe4; render info block (tag+0xa4) element size 0xb4,
+ * default &DAT_00326a78 when empty. lightning_offset_marker_position is
+ * register-arg
+ * (@ebx/@esi/@edi) and called by name. All five asserts tail-call
+ * system_exit(-1). Point struct = 0x24 (pos[3], attr[5], valid byte); marker
+ * record read at +0x38 (node matrix) and +0x60 (position). DAT_00325652 gated
+ * 0xc/0 around emit.
+ */
+
+typedef struct {
+  float position[3]; /* +0x00 */
+  float attr[5]; /* +0x0c: node +0x84..+0x94 */
+  char valid; /* +0x20 */
+  char pad[3];
+} lightning_point; /* 0x24 */
+
+typedef struct {
+  float x; /* +0x00 */
+  float y; /* +0x04 */
+  float z; /* +0x08 */
+  float v; /* +0x0c */
+  float u; /* +0x10 */
+  unsigned int color; /* +0x14 */
+} lightning_vertex; /* 0x18 */
+
+/* 0x135510 */
+void FUN_00135510(int *param_1, int param_2, int param_3, int *param_4)
+{
+  lightning_point points[4097];
+  unsigned char marker[0x6c];
+  char *tag;
+  int *block;
+  char *element;
+  char *next_element;
+  void *bitmap_elem;
+  int instance;
+  int point_count;
+  float intensity_mult;
+  char need_first;
+  int seg;
+  int seg_idx;
+  int level;
+  int subdiv_count;
+  int start_idx;
+  int end_idx;
+  int bit;
+  int lvl_count;
+  int step;
+  int j;
+  int jj;
+  int left;
+  int right;
+  int mid;
+  float amplitude;
+  float subdiv_f;
+  float width_interp;
+  float disp;
+  float seg_perp[3];
+  float ta;
+  float tb;
+  float tc;
+  float *fb;
+  unsigned int *seed;
+  int vertcount;
+  unsigned int handle;
+  lightning_vertex *vertices;
+  lightning_vertex *vp;
+  float v_step;
+  float rand_base_v;
+  float width_scale;
+  float alpha_scale;
+  float *color_ptr;
+  short s;
+  int i;
+  lightning_point *cur;
+  lightning_point *prevp;
+  lightning_point *nextp;
+  lightning_point *endp;
+  lightning_point *lp;
+  lightning_point *rp;
+  lightning_point *mp;
+  float vtx_perp[3];
+  float d0;
+  float d1;
+  float d2;
+  float width;
+  float vcoord;
+  float color[4];
+  unsigned int argb;
+  float minx;
+  float miny;
+  float minz;
+  float maxx;
+  float maxy;
+  float maxz;
+  float center[3];
+  void *source_elem;
+
+  (void)param_3;
+  if (param_1 == (int *)-1 || param_2 == -1) {
+    return;
+  }
+  tag = (char *)tag_get(
+    0x656c6563, *(int *)((char *)datum_get(*(void **)0x46f024, param_2) + 4));
+  block = (int *)(tag + 0x98);
+  if (*(int *)(tag + 0x98) <= 0) {
+    return;
+  }
+  element = (char *)tag_block_get_element(block, 0, 0xe4);
+  if (object_get_markers_by_string_id((int)param_1, element, marker, 1) <= 0) {
+    return;
+  }
+  bitmap_elem = tag_block_get_element(
+    (char *)tag_get(0x6269746d, *(int *)(tag + 0x40)) + 0x60, 0, 0x30);
+  if (xbox_texture_cache_get_hardware_format(bitmap_elem, 0, 1) == (void *)0) {
+    return;
+  }
+  if (*(short *)(tag + 2) <= 0) {
+    return;
+  }
+
+  instance = 0;
+  do {
+    point_count = 0;
+    intensity_mult = 1.0f;
+    need_first = 1;
+    if (param_4 != (int *)0 && param_4[1] != 0) {
+      s = *(short *)(tag + 0x2c);
+      if (s >= 1 && s <= 4) {
+        intensity_mult = *(float *)(param_4[1] + -4 + s * 4);
+      }
+    }
+    seg = 0;
+    if (*block > 0) {
+      seg_idx = 0;
+      do {
+        element = (char *)tag_block_get_element(block, seg_idx, 0xe4);
+        if (need_first != 0) {
+          point_count = 0;
+          csmemset(points, 0, 0x24024);
+          object_get_markers_by_string_id((int)param_1, element, marker, 1);
+          /* position and per-node attrs are raw dword (struct) copies, not FP
+           * loads */
+          *(int *)&points[0].position[0] = *(int *)(marker + 0x60);
+          *(int *)&points[0].position[1] = *(int *)(marker + 0x64);
+          *(int *)&points[0].position[2] = *(int *)(marker + 0x68);
+          lightning_offset_marker_position((int)(marker + 0x38),
+                                           points[0].position,
+                                           (float *)(element + 0x74));
+          *(int *)&points[0].attr[0] = *(int *)(element + 0x84);
+          *(int *)&points[0].attr[1] = *(int *)(element + 0x88);
+          *(int *)&points[0].attr[2] = *(int *)(element + 0x8c);
+          *(int *)&points[0].attr[3] = *(int *)(element + 0x90);
+          *(int *)&points[0].attr[4] = *(int *)(element + 0x94);
+          points[0].valid = 1;
+          need_first = 0;
+        }
+        if ((*(unsigned char *)(element + 0x20) & 1) == 0 &&
+            seg_idx != *block + -1) {
+          /* --- subdivide segment [start, start+2^level] --- */
+          next_element =
+            (char *)tag_block_get_element(block, seg_idx + 1, 0xe4);
+          level = *(unsigned short *)(element + 0x24);
+          subdiv_count = 1 << (level & 0x1f);
+          amplitude = 1.0f;
+          start_idx = (short)point_count;
+          end_idx = (short)subdiv_count + start_idx;
+          endp = &points[end_idx];
+          if (endp->valid != 0) {
+            display_assert("!points[point_count+segment_point_count].valid",
+                           "c:\\halo\\SOURCE\\objects\\widgets\\lightning.c",
+                           0x17f, 1);
+            system_exit(-1);
+          }
+          object_get_markers_by_string_id((int)param_1, next_element, marker,
+                                          1);
+          *(int *)&endp->position[0] = *(int *)(marker + 0x60);
+          *(int *)&endp->position[1] = *(int *)(marker + 0x64);
+          *(int *)&endp->position[2] = *(int *)(marker + 0x68);
+          lightning_offset_marker_position((int)(marker + 0x38), endp->position,
+                                           (float *)(next_element + 0x74));
+          *(int *)&endp->attr[0] = *(int *)(next_element + 0x84);
+          *(int *)&endp->attr[1] = *(int *)(next_element + 0x88);
+          *(int *)&endp->attr[2] = *(int *)(next_element + 0x8c);
+          *(int *)&endp->attr[3] = *(int *)(next_element + 0x90);
+          *(int *)&endp->attr[4] = *(int *)(next_element + 0x94);
+          endp->valid = 1;
+          /* seg_perp = cross(points[end]-points[start], camera axis) then
+           * normalize */
+          seg_perp[0] = endp->position[0] - points[start_idx].position[0];
+          seg_perp[1] = endp->position[1] - points[start_idx].position[1];
+          seg_perp[2] = endp->position[2] - points[start_idx].position[2];
+          ta =
+            seg_perp[0] * *(float *)0x506560 - seg_perp[1] * *(float *)0x50655c;
+          tb =
+            seg_perp[2] * *(float *)0x50655c - seg_perp[0] * *(float *)0x506564;
+          tc =
+            seg_perp[1] * *(float *)0x506564 - seg_perp[2] * *(float *)0x506560;
+          seg_perp[0] = tc;
+          seg_perp[1] = tb;
+          seg_perp[2] = ta;
+          if (normalize3d(seg_perp) == *(float *)0x2533c0) {
+            fb = *(float **)0x31fc28;
+            seg_perp[0] = fb[0];
+            seg_perp[1] = fb[1];
+            seg_perp[2] = fb[2];
+          }
+          if ((short)level > 0) {
+            bit = level + -1;
+            lvl_count = level;
+            do {
+              step = 1 << (bit & 0x1f);
+              if ((short)step <= 0) {
+                display_assert(
+                  "segment_point_start_index>0",
+                  "c:\\halo\\SOURCE\\objects\\widgets\\lightning.c", 0x198, 1);
+                system_exit(-1);
+              }
+              if ((short)step < (short)subdiv_count) {
+                subdiv_f = (float)subdiv_count;
+                j = step;
+                do {
+                  jj = (short)j;
+                  left = start_idx + jj - step;
+                  right = start_idx + jj + step;
+                  mid = start_idx + jj;
+                  lp = &points[left];
+                  rp = &points[right];
+                  mp = &points[mid];
+                  width_interp = ((*(float *)(next_element + 0x80) -
+                                   *(float *)(element + 0x80)) *
+                                    ((float)jj / subdiv_f) +
+                                  *(float *)(element + 0x80)) *
+                                 amplitude * intensity_mult;
+                  if (mp->valid != 0) {
+                    display_assert(
+                      "!points[point_count+segment_point_index].valid",
+                      "c:\\halo\\SOURCE\\objects\\widgets\\lightning.c", 0x1aa,
+                      1);
+                    system_exit(-1);
+                  }
+                  seed = random_math_get_local_seed_address();
+                  disp =
+                    random_real_range((int *)seed, -1.0f, 1.0f) * width_interp;
+                  mp->position[0] =
+                    (rp->position[0] + lp->position[0]) * *(float *)0x253398 +
+                    seg_perp[0] * disp;
+                  mp->position[1] =
+                    (rp->position[1] + lp->position[1]) * *(float *)0x253398 +
+                    seg_perp[1] * disp;
+                  mp->position[2] =
+                    (rp->position[2] + lp->position[2]) * *(float *)0x253398 +
+                    seg_perp[2] * disp;
+                  mp->attr[0] =
+                    (rp->attr[0] + lp->attr[0]) * *(float *)0x253398;
+                  mp->attr[1] =
+                    (rp->attr[1] + lp->attr[1]) * *(float *)0x253398;
+                  mp->attr[2] =
+                    (rp->attr[2] + lp->attr[2]) * *(float *)0x253398;
+                  mp->attr[3] =
+                    (rp->attr[3] + lp->attr[3]) * *(float *)0x253398;
+                  mp->attr[4] =
+                    (rp->attr[4] + lp->attr[4]) * *(float *)0x253398;
+                  mp->valid = 1;
+                  j = j + step + step;
+                } while ((short)j < (short)subdiv_count);
+              }
+              amplitude = amplitude * *(float *)0x253398;
+              bit = bit + -1;
+              lvl_count = lvl_count + -1;
+            } while (lvl_count != 0);
+          }
+          point_count =
+            point_count + (1 << (*(unsigned char *)(element + 0x24) & 0x1f));
+        } else {
+          /* --- emit accumulated strip --- */
+          *(unsigned short *)0x325652 = 0xc;
+          if ((short)point_count > 2) {
+            vertcount = (short)point_count + 1;
+            point_count = vertcount;
+            handle = (unsigned int)rasterizer_widget_set_zbuffer_enable(
+              6, vertcount * 2);
+            if (handle != 0xffffffff) {
+              vertices = (lightning_vertex *)rasterizer_widget_draw_sprite3d(
+                (int)handle);
+              v_step = *(float *)0x2533c8 / (float)vertcount;
+              seed = random_math_get_local_seed_address();
+              rand_base_v = random_math_real(seed);
+              width_scale = 1.0f;
+              color_ptr = *(float **)0x2ee708;
+              alpha_scale = 1.0f;
+              if (vertices == (lightning_vertex *)0) {
+                display_assert(
+                  "vertices", "c:\\halo\\SOURCE\\objects\\widgets\\lightning.c",
+                  0xef, 1);
+                system_exit(-1);
+              }
+              if (param_4 != (int *)0) {
+                if (param_4[1] != 0) {
+                  s = *(short *)(tag + 0x2e);
+                  if (s >= 1 && s <= 4) {
+                    width_scale = *(float *)(param_4[1] + -4 + s * 4);
+                  }
+                }
+                if (param_4[0] != 0) {
+                  s = *(short *)(tag + 0x30);
+                  if (s >= 1 && s <= 4) {
+                    color_ptr = (float *)(param_4[0] + -0xc + s * 0xc);
+                  }
+                }
+                if (param_4[1] != 0) {
+                  s = *(short *)(tag + 0x32);
+                  if (s >= 1 && s <= 4) {
+                    alpha_scale = *(float *)(param_4[1] + -4 + s * 4);
+                  }
+                }
+              }
+              vp = vertices;
+              i = 0;
+              if ((short)point_count > 0) {
+                do {
+                  cur = &points[i];
+                  prevp = (i > 0) ? &points[i + -1] : cur;
+                  nextp = (i < vertcount + -1) ? &points[i + 1] : cur;
+                  width = width_scale * cur->attr[0];
+                  if (cur->valid == 0) {
+                    display_assert(
+                      "points[vertex_index].valid",
+                      "c:\\halo\\SOURCE\\objects\\widgets\\lightning.c", 0x118,
+                      1);
+                    system_exit(-1);
+                  }
+                  vcoord = (float)i * v_step;
+                  d0 = nextp->position[0] - prevp->position[0];
+                  d1 = nextp->position[1] - prevp->position[1];
+                  d2 = nextp->position[2] - prevp->position[2];
+                  ta = d0 * *(float *)0x506560 - d1 * *(float *)0x50655c;
+                  tb = d2 * *(float *)0x50655c - d0 * *(float *)0x506564;
+                  tc = d1 * *(float *)0x506564 - d2 * *(float *)0x506560;
+                  vtx_perp[0] = tc;
+                  vtx_perp[1] = tb;
+                  vtx_perp[2] = ta;
+                  FUN_0010c2e0(vtx_perp);
+                  color[0] = alpha_scale * cur->attr[1];
+                  color[1] = cur->attr[2] * color_ptr[0];
+                  color[2] = cur->attr[3] * color_ptr[1];
+                  color[3] = cur->attr[4] * color_ptr[2];
+                  argb = FUN_000d1c90(color);
+                  vp[0].x = vtx_perp[0] * width + cur->position[0];
+                  vp[0].y = vtx_perp[1] * width + cur->position[1];
+                  vp[0].z = vtx_perp[2] * width + cur->position[2];
+                  vp[0].u = 0.0f;
+                  vp[0].v = vcoord + rand_base_v;
+                  vp[0].color = argb;
+                  vp[1].x = vtx_perp[0] * -width + cur->position[0];
+                  vp[1].y = vtx_perp[1] * -width + cur->position[1];
+                  vp[1].z = vtx_perp[2] * -width + cur->position[2];
+                  vp[1].v = vcoord + rand_base_v;
+                  vp[1].u = 1.0f;
+                  vp[1].color = argb;
+                  vp = vp + 2;
+                  if (i == 0) {
+                    maxx = cur->position[0];
+                    minx = cur->position[0];
+                    maxy = cur->position[1];
+                    miny = cur->position[1];
+                    maxz = cur->position[2];
+                    minz = cur->position[2];
+                  } else {
+                    if (cur->position[0] <= minx) {
+                      minx = cur->position[0];
+                    }
+                    if (cur->position[1] <= miny) {
+                      miny = cur->position[1];
+                    }
+                    if (cur->position[2] <= minz) {
+                      minz = cur->position[2];
+                    }
+                    if (maxx < cur->position[0]) {
+                      maxx = cur->position[0];
+                    }
+                    if (maxy < cur->position[1]) {
+                      maxy = cur->position[1];
+                    }
+                    if (maxz < cur->position[2]) {
+                      maxz = cur->position[2];
+                    }
+                  }
+                  i = i + 1;
+                } while ((short)i < (short)point_count);
+              }
+              center[0] = (minx + maxx) * *(float *)0x253398;
+              center[1] = (miny + maxy) * *(float *)0x253398;
+              center[2] = (minz + maxz) * *(float *)0x253398;
+              if (*(int *)(tag + 0xa4) > 0) {
+                source_elem = tag_block_get_element(tag + 0xa4, 0, 0xb4);
+              } else {
+                source_elem = (void *)0x326a78;
+              }
+              rasterizer_widget_end((int)handle);
+              FUN_0017cf60((unsigned int)source_elem, (unsigned int)bitmap_elem,
+                           (int)param_4, vertcount * -2, handle,
+                           vertcount * 2 + -2, center, 0);
+              rasterizer_widget_submit_occlusion_test((int)handle);
+            }
+            need_first = 1;
+          }
+          *(unsigned short *)0x325652 = 0;
+        }
+        seg = seg + 1;
+        seg_idx = (short)seg;
+      } while (seg_idx < *block);
+    }
+    instance = instance + 1;
+  } while ((short)instance < *(short *)(tag + 2));
+}
+
+/*
+ * FUN_00135f20 (0x135f20 / objects.obj) — find the widget_types table index
+ * whose group_tag (entry+0x00) matches the requested group tag.
+ *
+ * Linear search of the 5-entry widget_types table at 0x323528 (stride 0x28
+ * bytes). Returns the matching index in [0,4], or -1 (0xffff) if no entry
+ * matches.
+ *
+ * Confirmed: CMP dword ptr [ECX*8 + 0x323528], EDX where ECX = idx*5
+ *            -> compares the 4-byte group_tag at 0x323528 + idx*0x28.
+ * Confirmed: loop bound CMP AX,0x5 (int16_t counter).
+ * Confirmed: miss path MOV AX,SI where SI was OR'd to -1 -> returns (short)-1.
+ */
+short FUN_00135f20(int group_tag)
+{
+  short result;
+  short i;
+
+  result = -1;
+  i = 0;
+  do {
+    if (*(int *)(0x323528 + (int)i * 0x28) == group_tag) {
+      result = i;
+      break;
+    }
+    i = i + 1;
+  } while (i < 5);
+
+  return result;
 }
 
 /* FUN_0009ec30 declaration is in generated/decl.h */
@@ -1135,37 +2660,6 @@ void FUN_001360a0(void)
     ppuVar2 = ppuVar2 + 10;
   } while (sVar1 < 5);
   data_make_invalid(*(data_t **)0x5a90c4);
-}
-
-/*
- * FUN_00135f20 (0x135f20 / objects.obj) — find the widget_types table index
- * whose group_tag (entry+0x00) matches the requested group tag.
- *
- * Linear search of the 5-entry widget_types table at 0x323528 (stride 0x28
- * bytes). Returns the matching index in [0,4], or -1 (0xffff) if no entry
- * matches.
- *
- * Confirmed: CMP dword ptr [ECX*8 + 0x323528], EDX where ECX = idx*5
- *            -> compares the 4-byte group_tag at 0x323528 + idx*0x28.
- * Confirmed: loop bound CMP AX,0x5 (int16_t counter).
- * Confirmed: miss path MOV AX,SI where SI was OR'd to -1 -> returns (short)-1.
- */
-short FUN_00135f20(int group_tag)
-{
-  short result;
-  short i;
-
-  result = -1;
-  i = 0;
-  do {
-    if (*(int *)(0x323528 + (int)i * 0x28) == group_tag) {
-      result = i;
-      break;
-    }
-    i = i + 1;
-  } while (i < 5);
-
-  return result;
 }
 
 /* Call each widget type's dispose function.
@@ -1383,42 +2877,6 @@ int FUN_001363d0(int param_1)
 }
 
 /*
- * object_wake — disconnect a point light from the cluster partition.
- * (from c:\halo\SOURCE\objects\object_lights.c, line 0x4d0)
- *
- * Looks up the light datum in the point-light data table at 0x5a90bc.
- * If the light is active (flags bit 1) and connected to the map (flags bit 2),
- * removes it from the cluster partition at 0x5a90b0, then clears the
- * connected_to_map flag.
- *
- * Confirmed: datum_get(*(data_t**)0x5a90bc, object_handle) — 2 cdecl args.
- * Confirmed: TEST AL,0x2 for active flag, TEST AL,0x4 for connected_to_map.
- * Confirmed: cluster_partition_remove_object(0x5a90b0, handle, light+0x10).
- * Confirmed: AND byte ptr [ESI+0x2],0xfb clears bit 2.
- */
-void object_wake(int object_handle)
-{
-  char *light;
-  uint16_t flags;
-
-  light = (char *)datum_get(*(data_t **)0x5a90bc, object_handle);
-  flags = *(uint16_t *)(light + 0x2);
-
-  if ((flags & 0x2) == 0)
-    return;
-
-  if ((flags & 0x4) == 0) {
-    display_assert("TEST_FLAG(light->flags, _point_light_connected_to_map_bit)",
-                   "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x4d0, 1);
-    system_exit(-1);
-  }
-
-  cluster_partition_remove_object((void *)0x5a90b0, object_handle,
-                                  (void *)(light + 0x10));
-  *(uint8_t *)(light + 0x2) &= ~0x4;
-}
-
-/*
  * FUN_001365d0 (0x1365d0 / objects.obj) — initialise an object's maximum body
  * vitality and maximum shield vitality from its collision-model tag, with
  * optional caller overrides.
@@ -1436,7 +2894,8 @@ void object_wake(int object_handle)
  *
  * Confirmed (disasm 0x1365d0): tag_get(0x6f626a65 'obje', *obj); coll tag from
  * objtag+0x7c; vit from coll+0x8 (ECX store to +0x88), shield from coll+0xcc
- * (FST to +0x8c); compares against FLOAT 0.0 (0x2533c0) using AH&0x41 (<=0 set).
+ * (FST to +0x8c); compares against FLOAT 0.0 (0x2533c0) using AH&0x41 (<=0
+ * set).
  */
 void FUN_001365d0(int object_handle, float *body_vitality_override,
                   float *shield_vitality_override)
@@ -1505,6 +2964,48 @@ float FUN_001366b0(int object_handle, char use_raw_max)
   }
 
   return max_vitality;
+}
+
+/*
+ * object_wake — disconnect a point light from the cluster partition.
+ * (from c:\halo\SOURCE\objects\object_lights.c, line 0x4d0)
+ *
+ * Looks up the light datum in the point-light data table at 0x5a90bc.
+ * If the light is active (flags bit 1) and connected to the map (flags bit 2),
+ * removes it from the cluster partition at 0x5a90b0, then clears the
+ * connected_to_map flag.
+ *
+ * Confirmed: datum_get(*(data_t**)0x5a90bc, object_handle) — 2 cdecl args.
+ * Confirmed: TEST AL,0x2 for active flag, TEST AL,0x4 for connected_to_map.
+ * Confirmed: cluster_partition_remove_object(0x5a90b0, handle, light+0x10).
+ * Confirmed: AND byte ptr [ESI+0x2],0xfb clears bit 2.
+ */
+void object_wake(int object_handle)
+{
+  char *light;
+  uint16_t flags;
+
+  light = (char *)datum_get(*(data_t **)0x5a90bc, object_handle);
+  flags = *(uint16_t *)(light + 0x2);
+
+  if ((flags & 0x2) == 0)
+    return;
+
+  if ((flags & 0x4) == 0) {
+    display_assert("TEST_FLAG(light->flags, _point_light_connected_to_map_bit)",
+                   "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x4d0, 1);
+    system_exit(-1);
+  }
+
+  cluster_partition_remove_object((void *)0x5a90b0, object_handle,
+                                  (void *)(light + 0x10));
+  *(uint8_t *)(light + 0x2) &= ~0x4;
+}
+
+/* Returns 1.0 minus the ratio of param_2 squared to param_1 squared. */
+float FUN_001397f0(float param_1, float param_2)
+{
+  return 1.0f - (param_2 * param_2) / (param_1 * param_1);
 }
 
 /* 0x139810 / objects.obj — Scale a light color (RGB float triple) by a delta.
@@ -1608,37 +3109,1054 @@ int FUN_00139990(int param_1)
  * it to FUN_00189540 for each active channel. */
 void FUN_00139a30(int param_1)
 {
-    int iVar1;
-    int iVar2;
-    unsigned char *pbVar3;
-    float ctx[5]; /* contiguous: [local_18,local_14,local_10,local_c,local_8] */
+  int iVar1;
+  int iVar2;
+  unsigned char *pbVar3;
+  float ctx[5]; /* contiguous: [local_18,local_14,local_10,local_c,local_8] */
 
-    if (*(char *)0x5a8d58 == '\0')
-        return;
+  if (*(char *)0x5a8d58 == '\0')
+    return;
 
-    iVar2 = (int)datum_get(*(data_t **)0x5a90bc, param_1);
-    pbVar3 = (unsigned char *)tag_get(0x6c696768, *(int *)(iVar2 + 4));
-    *(int *)&ctx[0] = *(int *)(*(int *)0x2ee6f0);
-    ctx[4] = *(float *)(pbVar3 + 0xc) * *(float *)(pbVar3 + 4);
-    ctx[1] = *(float *)(*(int *)0x2ee6f0 + 4);
-    ctx[2] = *(float *)(*(int *)0x2ee6f0 + 8);
-    ctx[3] = *(float *)(*(int *)0x2ee6f0 + 0xc);
-    iVar1 = iVar2 + 0x30;
-    FUN_00189540(1, (void *)iVar1, *(float *)(pbVar3 + 0x18), *(void **)0x2ee6c4);
-    FUN_00189540(1, (void *)iVar1, *(float *)((char *)iVar2 + 0x54), ctx);
-    ctx[1] = ctx[1] * *(float *)0x2533f0;
-    ctx[2] = ctx[2] * *(float *)0x2533f0;
-    ctx[3] = ctx[3] * *(float *)0x2533f0;
-    if ((*pbVar3 & 2) == 0) {
-        ctx[4] = ctx[4] * *(float *)(pbVar3 + 0x24);
-        FUN_00189540(1, (void *)iVar1,
-                     *(float *)(pbVar3 + 0x24) * *(float *)((char *)iVar2 + 0x54),
-                     ctx);
+  iVar2 = (int)datum_get(*(data_t **)0x5a90bc, param_1);
+  pbVar3 = (unsigned char *)tag_get(0x6c696768, *(int *)(iVar2 + 4));
+  *(int *)&ctx[0] = *(int *)(*(int *)0x2ee6f0);
+  ctx[4] = *(float *)(pbVar3 + 0xc) * *(float *)(pbVar3 + 4);
+  ctx[1] = *(float *)(*(int *)0x2ee6f0 + 4);
+  ctx[2] = *(float *)(*(int *)0x2ee6f0 + 8);
+  ctx[3] = *(float *)(*(int *)0x2ee6f0 + 0xc);
+  iVar1 = iVar2 + 0x30;
+  FUN_00189540(1, (void *)iVar1, *(float *)(pbVar3 + 0x18), *(void **)0x2ee6c4);
+  FUN_00189540(1, (void *)iVar1, *(float *)((char *)iVar2 + 0x54), ctx);
+  ctx[1] = ctx[1] * *(float *)0x2533f0;
+  ctx[2] = ctx[2] * *(float *)0x2533f0;
+  ctx[3] = ctx[3] * *(float *)0x2533f0;
+  if ((*pbVar3 & 2) == 0) {
+    ctx[4] = ctx[4] * *(float *)(pbVar3 + 0x24);
+    FUN_00189540(1, (void *)iVar1,
+                 *(float *)(pbVar3 + 0x24) * *(float *)((char *)iVar2 + 0x54),
+                 ctx);
+  }
+  ctx[1] = ctx[1] * *(float *)0x2533f0;
+  ctx[2] = ctx[2] * *(float *)0x2533f0;
+  ctx[3] = ctx[3] * *(float *)0x2533f0;
+  FUN_00189540(1, (void *)iVar1, ctx[4], ctx);
+}
+
+/* 0x139b40 (object_lights.c) — register one lens-flare/light marker record
+ * into the per-frame light marker array at 0x5a8f6c (count at 0x5a90ac, max 8
+ * entries, 0x28-byte stride).
+ *
+ * Early-out if the array is already full (count >= 8) OR if all three color
+ * components in param_5 equal 0 (the FCOMP vs FLOAT_002533c0 == 0.0 guard:
+ * when color[0]==0 && color[1]==0 && color[2]==0 the record is skipped).
+ *
+ * Record layout filled at base = 0x5a8f6c + count*0x28:
+ *   +0x00 : tag_get('lens', param_1)               (lens tag definition)
+ *   +0x04 : param_2[0]                              (vec3 word 0)
+ *   +0x08 : param_2[1]                              (vec3 word 1)
+ *   +0x0c : param_2[2]                              (vec3 word 2)
+ *   +0x10 : FUN_00180b10(param_3)                   (compressed normal)
+ *   +0x14 : FUN_00180b10(param_4)                   (compressed normal)
+ *   +0x18 : real_a_rgb_color_to_pixel32(1.0f, param_5)  (pixel32 color)
+ *   +0x1c : 0xffff (short)
+ *   +0x1e : 0xffff (short)
+ *   +0x20 : (short)count                            (this record's index)
+ *   +0x22 : byte at global 0x50654a (0x506548+2)
+ *   +0x23 : (byte)FUN_00180770(param_6)             (alpha/intensity quantized)
+ * Then count++ at 0x5a90ac.
+ *
+ * Confirmed (disasm 0x139b40): cdecl 6 stack args, RET (no RET N); ADD ESP,0x1c
+ * = 8(rgb)+4(180770)+8(tag_get)+4(180b10)+4(180b10). param_6 is a float passed
+ * raw to FUN_00180770 (caller MOV+PUSH, no FILD; callee FLD [EBP+8]). param_3
+ * and param_4 are vec3 pointers passed as int (FUN_00180b10 derefs them);
+ * kept as int to match the existing int(*)(int) thunk.
+ */
+/* 0x139b40 */
+void FUN_00139b40(int param_1, int *param_2, int param_3, int param_4,
+                  float *param_5, float param_6)
+{
+  int iVar1;
+  char *base;
+  int *vec;
+
+  if ((*(short *)0x5a90ac < 8) &&
+      ((param_5[0] != *(float *)0x2533c0 || param_5[1] != *(float *)0x2533c0) ||
+       param_5[2] != *(float *)0x2533c0)) {
+    iVar1 = *(short *)0x5a90ac * 0x28;
+    base = (char *)0x5a8f6c + iVar1;
+
+    *(unsigned int *)(base + 0x18) = real_a_rgb_color_to_pixel32(1.0f, param_5);
+    base[0x23] = (char)CALL_FUN_00180770(param_6);
+    *(void **)(base + 0x00) = tag_get(0x6c656e73, param_1);
+    vec = (int *)(base + 0x04);
+    vec[0] = param_2[0];
+    vec[1] = param_2[1];
+    vec[2] = param_2[2];
+    /* permuter 20260721 (+4.2pp raw): offset 0x14 and the counter address
+     * held in iVar1 across uses (register-role reuse, value-identical).
+     * NB: rank-1 winner also mutated the +0x1c fill to 0xFF — REJECTED as a
+     * semantic corruption; 0xffff kept. */
+    iVar1 = 0x14;
+    *(int *)(base + 0x10) = CALL_FUN_00180b10(param_3);
+    *(int *)(base + iVar1) = CALL_FUN_00180b10(param_4);
+    base[0x22] = *(char *)0x50654a;
+    iVar1 = 0x5a90ac;
+    *(short *)(base + 0x1e) = (short)0xffff;
+    *(short *)(base + 0x1c) = (short)0xffff;
+    *(short *)(base + 0x20) = *(short *)iVar1;
+    *(short *)iVar1 = *(short *)iVar1 + 1;
+  }
+}
+
+/* 0x139e50 — light_fill_structure: fills a light output structure from
+ * intensity, color, and position data. Heavy FPU with many clamp operations.
+ *
+ * Register args: EBX=color_ptr, ESI=output_ptr, EDI=intensity_ptr
+ * Stack params: param_1(byte flags), param_2(float* position),
+ *               param_3(float* direction), param_4(float distance_scale)
+ *
+ * Source: c:\halo\SOURCE\objects\object_lights.c
+ */
+/*
+ * FUN_00139c20 (0x139c20 / object_lights.c) — gather the strongest point
+ * lights influencing a position and accumulate the brightest up to max_count
+ * into three parallel caller arrays.
+ *
+ * Iterates the connected-light cluster partition (0x5a90b0) for the cluster of
+ * the query position (cluster_idx = marker_index). For each light datum:
+ *   - skip if already visited this frame (light+0xc == lights_globals.frame_id
+ *     at 0x5a8d64), marking it visited afterward;
+ *   - skip if disconnected (light+0x8 == NONE);
+ *   - skip self-shadowing: if the light belongs to the excluding object
+ *     (light+0x2c == object_handle) and its 'ligh' tag has flag bit 2 set;
+ *   - skip if outside falloff: distance(position, light+0x30) >=
+ *     bias + light_radius (light+0x54).
+ * The attenuation is 1.0 - dist^2 / radius^2, and the weight is
+ * brightness(light+0x14) * attenuation.
+ *
+ * Selection (priority insertion with eviction):
+ *   - if the array is not yet full (*count < max_count) take the next slot and
+ *     increment *count;
+ *   - otherwise scan the existing weights (out_weights) for the dimmest entry;
+ *     if the new weight exceeds that minimum, evict it (slot = argmin),
+ *     else slot stays == *count and the store is skipped.
+ * On a kept slot: out_index[slot]=light_index, out_weights[slot]=weight,
+ * out_atten[slot]=attenuation.
+ *
+ * NOTE: out_index_base and out_atten_base alias the same caller buffer at
+ * different word offsets (caller passes local_28+2 and local_28); preserved as
+ * separate base pointers indexed by slot*4.
+ *
+ * Confirmed (disasm 0x139c20): cdecl 9 stack args; FSQRT distance; atten via
+ * 1.0(0x2533c8) - dist^2/radius^2; eviction slot register (ECX) ends at *count
+ * after the min-search loop and is only reassigned to argmin on evict; final
+ * CMP CX,max_count / JGE skips the store when no eviction occurs.
+ */
+void FUN_00139c20(int object_handle, int16_t marker_index, float *position,
+                  float bias, int out_index_base, float *out_weights,
+                  int out_atten_base, int16_t *count, int16_t max_count)
+{
+  int state;
+  float attenuation;
+  int light_index;
+  int light;
+  int16_t i;
+  int16_t slot;
+  int16_t argmin;
+  int16_t cur_count;
+  float dx, dy, dz, dist, radius;
+  float brightness, min_weight;
+  int slot_offset;
+
+  if (*(char *)0x5a8d60 == '\0') {
+    display_assert("lights_globals.marker_initialized",
+                   "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x544, 1);
+    system_exit(-1);
+  }
+
+  light_index =
+    cluster_partition_iter_first((void *)0x5a90b0, &state, marker_index);
+  while (light_index != -1) {
+    light = (int)datum_get(*(data_t **)0x5a90bc, light_index);
+    if (*(char *)0x5a8d60 == '\0') {
+      display_assert("lights_globals.marker_initialized",
+                     "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x66f, 1);
+      system_exit(-1);
     }
-    ctx[1] = ctx[1] * *(float *)0x2533f0;
-    ctx[2] = ctx[2] * *(float *)0x2533f0;
-    ctx[3] = ctx[3] * *(float *)0x2533f0;
-    FUN_00189540(1, (void *)iVar1, ctx[4], ctx);
+    if (*(int *)(light + 0xc) != *(int *)0x5a8d64) {
+      light = (int)datum_get(*(data_t **)0x5a90bc, light_index);
+      if (*(int *)(light + 0x8) != -1 &&
+          ((*(int *)(light + 0x2c) != object_handle ||
+            (*(unsigned char *)tag_get(0x6c696768, *(int *)(light + 0x4)) &
+             4) == 0))) {
+        dx = position[0] - *(float *)(light + 0x30);
+        dy = position[1] - *(float *)(light + 0x34);
+        dz = position[2] - *(float *)(light + 0x38);
+        dist = sqrtf(dx * dx + dy * dy + dz * dz);
+        radius = *(float *)(light + 0x54);
+        if (dist < bias + radius) {
+          attenuation = 1.0f - (dist * dist) / (radius * radius);
+          brightness = real_rgb_color_brightness((float *)(light + 0x14));
+
+          cur_count = *count;
+          if (cur_count < max_count) {
+            *count = cur_count + 1;
+            slot = cur_count;
+          } else {
+            min_weight = *(float *)0x2548fc;
+            argmin = -1;
+            slot = 0;
+            if (cur_count > 0) {
+              i = 0;
+              do {
+                if (out_weights[i] < min_weight) {
+                  min_weight = out_weights[i];
+                  argmin = i;
+                }
+                i++;
+              } while (i < *count);
+              slot = i; /* slot ends at *count after the search loop */
+            }
+            if (min_weight < brightness * attenuation)
+              slot = argmin;
+          }
+
+          if (slot < max_count) {
+            slot_offset = slot * 4;
+            *(int *)(out_index_base + slot_offset) = light_index;
+            out_weights[slot] = brightness * attenuation;
+            *(float *)(out_atten_base + slot_offset) = attenuation;
+          }
+        }
+      }
+      light = (int)datum_get(*(data_t **)0x5a90bc, light_index);
+      if (*(char *)0x5a8d60 == '\0') {
+        display_assert("lights_globals.marker_initialized",
+                       "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x67f, 1);
+        system_exit(-1);
+      }
+      if (*(int *)(light + 0xc) != *(int *)0x5a8d64)
+        *(int *)(light + 0xc) = *(int *)0x5a8d64;
+    }
+    light_index = cluster_partition_iter_next((void *)0x5a90b0, &state);
+  }
+}
+
+/* 0x139e50 */
+void FUN_00139e50(unsigned int param_1, float *param_2, float *param_3,
+                  float param_4, float *color_ptr, float *output_ptr,
+                  float *intensity_ptr)
+{
+  float fVar1;
+  float fVar2;
+  float fVar3;
+  float fVar4;
+  float fVar5;
+  float fVar6;
+  float gel_intensity;
+  float half_scale;
+  float sq;
+
+  gel_intensity = real_rgb_color_brightness(intensity_ptr);
+
+  /* gel * intensity + base */
+  output_ptr[0] = *(float *)0x323bfc * intensity_ptr[0] + *(float *)0x323bf8;
+  output_ptr[1] = *(float *)0x323bfc * intensity_ptr[1] + *(float *)0x323bf8;
+  fVar1 = *(float *)0x323bfc * intensity_ptr[2] + *(float *)0x323bf8;
+  *(short *)(output_ptr + 3) = 2;
+  output_ptr[2] = fVar1;
+  output_ptr[4] = intensity_ptr[0];
+  output_ptr[5] = intensity_ptr[1];
+  output_ptr[6] = intensity_ptr[2];
+  output_ptr[7] = -param_3[0];
+  output_ptr[8] = -param_3[1];
+  output_ptr[9] = -param_3[2];
+  output_ptr[10] = (float)((double)*(float *)0x323c00 * (double)color_ptr[0] *
+                           (double)gel_intensity);
+  output_ptr[11] = (float)((double)*(float *)0x323c00 * (double)gel_intensity *
+                           (double)color_ptr[1]);
+  output_ptr[12] = (float)((double)*(float *)0x323c00 * (double)color_ptr[2] *
+                           (double)gel_intensity);
+  output_ptr[13] = param_2[0];
+  output_ptr[14] = param_2[1];
+  output_ptr[15] = param_2[2];
+
+  /* clamp gel_intensity * 0x2533ec + 0x25337c to [0,1] */
+  fVar6 = gel_intensity * *(float *)0x2533ec + *(float *)0x25337c;
+  if (fVar6 < *(float *)0x2533c0) {
+    fVar6 = *(float *)0x2533c0;
+  } else if (fVar6 > *(float *)0x2533c8) {
+    fVar6 = *(float *)0x2533c8;
+  }
+  output_ptr[0x13] = fVar6;
+
+  /* specular color channels: color[i] * scale + bias, clamped */
+  fVar1 = color_ptr[0] * *(float *)0x254644 + *(float *)0x253398;
+  fVar2 = *(float *)0x2533c0;
+  if (*(float *)0x2533c0 <= fVar1) {
+    fVar2 = fVar1;
+    if (*(float *)0x2533c8 < fVar1)
+      fVar2 = *(float *)0x2533c8;
+  }
+  output_ptr[0x14] = fVar2;
+
+  fVar1 = color_ptr[1] * *(float *)0x254644 + *(float *)0x253398;
+  fVar3 = *(float *)0x2533c0;
+  if (*(float *)0x2533c0 <= fVar1) {
+    fVar3 = fVar1;
+    if (*(float *)0x2533c8 < fVar1)
+      fVar3 = *(float *)0x2533c8;
+  }
+  output_ptr[0x15] = fVar3;
+
+  fVar1 = color_ptr[2] * *(float *)0x254644 + *(float *)0x253398;
+  fVar4 = *(float *)0x2533c0;
+  if (*(float *)0x2533c0 <= fVar1) {
+    fVar4 = fVar1;
+    if (*(float *)0x2533c8 < fVar1)
+      fVar4 = *(float *)0x2533c8;
+  }
+  output_ptr[0x16] = fVar4;
+
+  /* intensity double + bias, clamped, multiply specular */
+  fVar1 = intensity_ptr[0] + intensity_ptr[0] + *(float *)0x25337c;
+  fVar5 = *(float *)0x2533c0;
+  if (*(float *)0x2533c0 <= fVar1) {
+    fVar5 = fVar1;
+    if (*(float *)0x2533c8 < fVar1)
+      fVar5 = *(float *)0x2533c8;
+  }
+  output_ptr[0x14] = fVar5 * fVar2;
+
+  fVar1 = intensity_ptr[1] + intensity_ptr[1] + *(float *)0x25337c;
+  fVar2 = *(float *)0x2533c0;
+  if (*(float *)0x2533c0 <= fVar1) {
+    fVar2 = fVar1;
+    if (*(float *)0x2533c8 < fVar1)
+      fVar2 = *(float *)0x2533c8;
+  }
+  output_ptr[0x15] = fVar2 * fVar3;
+
+  fVar2 = intensity_ptr[2] + intensity_ptr[2] + *(float *)0x25337c;
+  fVar1 = *(float *)0x2533c0;
+  if (*(float *)0x2533c0 <= fVar2) {
+    fVar1 = fVar2;
+    if (*(float *)0x2533c8 < fVar2)
+      fVar1 = *(float *)0x2533c8;
+  }
+  output_ptr[0x16] = fVar1 * fVar4;
+
+  /* pow(param_4, exponent) for ground shadow direction */
+  half_scale = (float)pow((double)param_4, *(double *)0x28c8d8);
+  output_ptr[0x17] = half_scale * output_ptr[7];
+  output_ptr[0x18] = half_scale * output_ptr[8];
+
+  sq = sqrtf(output_ptr[0x18] * output_ptr[0x18] +
+             output_ptr[0x17] * output_ptr[0x17]);
+  if (*(float *)0x29b4d0 <= sq) {
+    fVar1 = *(float *)0x29b4d0 / sq;
+    output_ptr[0x19] = -0.707f;
+    output_ptr[0x17] = half_scale * output_ptr[7] * fVar1;
+    output_ptr[0x18] = half_scale * output_ptr[8] * fVar1;
+  } else {
+    output_ptr[0x19] = -sqrtf(*(float *)0x2533c8 - sq * sq);
+  }
+
+  /* distance attenuation per channel */
+  fVar1 = (*(float *)0x2533c8 - param_4) * *(float *)0x253398;
+  fVar2 = (*(float *)0x2533c8 - output_ptr[4] * *(float *)0x255b9c) + fVar1;
+  fVar3 = *(float *)0x323bf8;
+  if (*(float *)0x323bf8 <= fVar2) {
+    fVar3 = fVar2;
+    if (*(float *)0x2533c8 < fVar2)
+      fVar3 = *(float *)0x2533c8;
+  }
+  output_ptr[0x1a] = fVar3;
+
+  fVar2 = (*(float *)0x2533c8 - output_ptr[5] * *(float *)0x255b9c) + fVar1;
+  fVar3 = *(float *)0x323bf8;
+  if (*(float *)0x323bf8 <= fVar2) {
+    fVar3 = fVar2;
+    if (*(float *)0x2533c8 < fVar2)
+      fVar3 = *(float *)0x2533c8;
+  }
+  output_ptr[0x1b] = fVar3;
+
+  fVar1 = (*(float *)0x2533c8 - output_ptr[6] * *(float *)0x255b9c) + fVar1;
+  fVar2 = *(float *)0x323bf8;
+  if (*(float *)0x323bf8 <= fVar1) {
+    fVar2 = fVar1;
+    if (*(float *)0x2533c8 < fVar1)
+      fVar2 = *(float *)0x2533c8;
+  }
+  output_ptr[0x1c] = fVar2;
+
+  if ((param_1 & 4) != 0) {
+    FUN_00139810(output_ptr, 0.2f);
+    FUN_00139810(output_ptr + 10, 0.3f);
+    FUN_00139810(output_ptr + 10, 0.2f);
+    FUN_00139810(output_ptr + 0x14, 0.5f);
+    output_ptr[0x13] = 1.0f;
+  }
+}
+
+/* 0x13a250 / objects.obj — Compute a light's world-space position and
+ * effective radius. Reads the light datum (from light data table 0x5a90bc)
+ * and the 'ligh' tag to determine how to compute the radius. Supports three
+ * modes based on the tag's shape_radius field at +0x14:
+ *   1. shape_radius >= 2568bc (1.0): use position directly, radius = stored
+ * radius
+ *   2. shape_radius >= 254a58 (0.001): compute position from direction *
+ * inner*outer, radius = stored_radius * outer_radius
+ *   3. shape_radius < 0.001: compute position from direction * (radius/inner),
+ *      radius = radius/inner
+ * Also handles a minimum radius check when param_3 is set.
+ * light_handle in EAX, out_position in EDI, out_radius in EBX (register args).
+ * Confirmed: PUSH EAX; PUSH [5a90bc]; CALL datum_get.
+ * Confirmed: ESI = light datum after datum_get.
+ * Confirmed: writes to [EDI], [EDI+4], [EDI+8] for position and [EBX] for
+ * radius. */
+void FUN_0013a250(int light_handle /* @<eax> */,
+                  float *out_position /* @<edi> */,
+                  float *out_radius /* @<ebx> */, char param_1, char param_2,
+                  char param_3)
+{
+  char *light;
+  char *tag;
+  float radius;
+
+  light = (char *)datum_get(*(data_t **)0x5a90bc, light_handle);
+  tag = (char *)tag_get(0x6c696768, *(int *)(light + 0x4));
+
+  /* Compute initial radius */
+  if (param_1 != '\0') {
+    radius = *(float *)(tag + 0xc) * *(float *)(tag + 0x4);
+  } else {
+    radius = *(float *)(light + 0x54);
+  }
+
+  /* Apply specular multiplier if not a specular-only light */
+  if ((*(unsigned char *)tag & 2) == 0) {
+    if (param_2 != '\0' || param_1 != '\0') {
+      radius = radius * *(float *)(tag + 0x24);
+    }
+  }
+
+  /* Check minimum radius */
+  if (param_3 != '\0' && radius < *(float *)(tag + 0x18)) {
+    out_position[0] = *(float *)(light + 0x30);
+    out_position[1] = *(float *)(light + 0x34);
+    out_position[2] = *(float *)(light + 0x38);
+    *out_radius = *(float *)(tag + 0x18);
+    return;
+  }
+
+  if (*(float *)(tag + 0x14) < *(float *)0x2568bc) {
+    if (*(float *)(tag + 0x14) < *(float *)0x254a58) {
+      radius = radius / *(float *)(tag + 0x20);
+      *out_radius = radius;
+    } else {
+      *out_radius = radius * *(float *)(tag + 0x28);
+      radius = radius * *(float *)(tag + 0x20);
+    }
+    out_position[0] =
+      radius * *(float *)(light + 0x3c) + *(float *)(light + 0x30);
+    out_position[1] =
+      radius * *(float *)(light + 0x40) + *(float *)(light + 0x34);
+    out_position[2] =
+      radius * *(float *)(light + 0x44) + *(float *)(light + 0x38);
+  } else {
+    out_position[0] = *(float *)(light + 0x30);
+    out_position[1] = *(float *)(light + 0x34);
+    out_position[2] = *(float *)(light + 0x38);
+    *out_radius = radius;
+  }
+}
+
+/* 0x13a340: compute a light's effective world position and radius from its
+ * datum (pool 0x5a90bc) and 'ligh' tag.  Intensity v scales by cutoff/falloff
+ * angles; near lights return the raw position + radius, others project along
+ * the light's forward axis (+0x3c..+0x44). */
+void FUN_0013a340(int param_1, float *param_2, float *param_3)
+{
+  int e;
+  unsigned char *L;
+  float v;
+
+  e = (int)datum_get(*(data_t **)0x5a90bc, param_1);
+  L = (unsigned char *)tag_get(0x6c696768, *(int *)(e + 4));
+  v = *(float *)(L + 0xc) * *(float *)(L + 4);
+  if ((*L & 2) == 0) {
+    v = v * *(float *)(L + 0x24);
+  }
+  if (v < *(float *)(L + 0x18)) {
+    param_2[0] = *(float *)(e + 0x30);
+    param_2[1] = *(float *)(e + 0x34);
+    param_2[2] = *(float *)(e + 0x38);
+    param_3[0] = *(float *)(L + 0x18);
+    return;
+  }
+  if (*(float *)(L + 0x14) < 1.5707964f) {
+    if (0.7853982f <= *(float *)(L + 0x14)) {
+      param_3[0] = v * *(float *)(L + 0x28);
+      v = v * *(float *)(L + 0x20);
+    } else {
+      v = v / *(float *)(L + 0x20);
+      param_3[0] = v;
+    }
+    param_2[0] = v * *(float *)(e + 0x3c) + *(float *)(e + 0x30);
+    param_2[1] = v * *(float *)(e + 0x40) + *(float *)(e + 0x34);
+    param_2[2] = v * *(float *)(e + 0x44) + *(float *)(e + 0x38);
+    return;
+  }
+  param_2[0] = *(float *)(e + 0x30);
+  param_2[1] = *(float *)(e + 0x34);
+  param_2[2] = *(float *)(e + 0x38);
+  param_3[0] = v;
+}
+
+/* 0x13a420 / objects.obj — Render point and spot lights.
+ * Iterates through the active lights array, computes position/radius for
+ * each enabled light, optionally gathers gel objects via FUN_00139350,
+ * and dispatches to FUN_00196060 for rasterizer rendering.
+ * No params (void). Bounded by profiling enter/exit calls.
+ * Confirmed: loop counter is int16_t, iterates DAT_005a8d68 entries.
+ * Confirmed: SUB ESP,0x41c for local buffer (1024 bytes for gel objects).
+ * Confirmed: FUN_00139350 called with EAX=handle, EBX=buf, EDI=0x200.
+ * Confirmed: FUN_00196060(obj_handle, &position, radius, gel_count, gel_buf).
+ */
+void FUN_0013a420(void)
+{
+  int16_t i;
+  int loop_idx;
+  char *light;
+  char *tag_data;
+  char is_specular;
+  int16_t gel_count;
+  float position[3];
+  float radius;
+  int16_t gel_buffer[512];
+
+  FUN_0017cc50();
+
+  if (*(char *)*(int *)0x46f074 == '\0')
+    goto done;
+  if (FUN_000ab9c0() == '\0')
+    goto done;
+
+  loop_idx = 0;
+  if (*(int16_t *)0x5a8d68 <= 0)
+    goto done;
+
+  do {
+    int saved_idx;
+    saved_idx = loop_idx;
+    i = (int16_t)loop_idx;
+
+    light =
+      (char *)datum_get(*(data_t **)0x5a90bc, *(int *)(0x5a8d6c + (int)i * 4));
+
+    if ((*(unsigned short *)(light + 0x2) & 1) == 0 ||
+        *(int *)(light + 0x8) == -1) {
+      loop_idx = saved_idx + 1;
+      continue;
+    }
+
+    /* Check if this is a specular light */
+    if ((*(unsigned short *)(light + 0x2) & 8) != 0) {
+      tag_data = (char *)tag_get(0x6c696768, *(int *)(light + 0x4));
+      is_specular = 1;
+      if ((*(unsigned char *)tag_data & 8) == 0) {
+        is_specular = 0;
+      }
+    } else {
+      is_specular = 0;
+    }
+
+    gel_count = 0;
+    if (is_specular == '\0') {
+      gel_count =
+        FUN_00139350(*(int *)(0x5a8d6c + (int)i * 4), gel_buffer, 0x200);
+    }
+
+    light =
+      (char *)datum_get(*(data_t **)0x5a90bc, *(int *)(0x5a8d6c + (int)i * 4));
+    tag_data = (char *)tag_get(0x6c696768, *(int *)(light + 0x4));
+    radius = *(float *)(light + 0x54);
+
+    if (*(float *)(tag_data + 0x14) < *(float *)0x2568bc) {
+      if (*(float *)(tag_data + 0x14) < *(float *)0x254a58) {
+        radius = radius / *(float *)(tag_data + 0x20);
+        position[0] =
+          radius * *(float *)(light + 0x3c) + *(float *)(light + 0x30);
+        position[1] =
+          radius * *(float *)(light + 0x40) + *(float *)(light + 0x34);
+        position[2] =
+          radius * *(float *)(light + 0x44) + *(float *)(light + 0x38);
+      } else {
+        float inner_scale;
+        radius = radius * *(float *)(tag_data + 0x28);
+        inner_scale = *(float *)(light + 0x54) * *(float *)(tag_data + 0x20);
+        position[0] =
+          inner_scale * *(float *)(light + 0x3c) + *(float *)(light + 0x30);
+        position[1] =
+          inner_scale * *(float *)(light + 0x40) + *(float *)(light + 0x34);
+        position[2] =
+          inner_scale * *(float *)(light + 0x44) + *(float *)(light + 0x38);
+      }
+    } else {
+      position[0] = *(float *)(light + 0x30);
+      position[1] = *(float *)(light + 0x34);
+      position[2] = *(float *)(light + 0x38);
+    }
+
+    FUN_00196060(*(int *)(light + 0x8), position, radius, gel_count,
+                 (int)((unsigned int)((is_specular != '\0') - 1) &
+                       (unsigned int)gel_buffer));
+
+    loop_idx = saved_idx + 1;
+  } while ((int16_t)loop_idx < *(int16_t *)0x5a8d68);
+
+done:
+  FUN_0017cc90();
+}
+
+/* 0x13a5f0 / objects.obj — Render specular lights.
+ * Similar to FUN_0013a420 but for specular lighting pass. Skips lights
+ * with the specular-only flag (tag byte 0 bit 2). Uses FUN_0013a250 to
+ * compute position/radius and FUN_00195f30 for the rasterizer pass.
+ * No params (void).
+ * Confirmed: same loop structure as 0x13a420 over DAT_005a8d68 lights.
+ * Confirmed: calls FUN_0013a250(handle, position, &radius, 0, 1, 0).
+ * Confirmed: calls FUN_00195f30(obj_handle, &position, radius, gel_count,
+ * gel_buf). Confirmed: profiling enter 0x17cd50, exit 0x17cd90. */
+void FUN_0013a5f0(void)
+{
+  int16_t i;
+  int loop_idx;
+  char *light;
+  char *tag_data;
+  char is_specular;
+  int gel_count;
+  float position[3];
+  float radius;
+  int16_t gel_buffer[512];
+
+  FUN_0017cd50();
+
+  if (*(char *)*(int *)0x46f074 == '\0')
+    goto done;
+  if (FUN_000ab9c0() == '\0')
+    goto done;
+
+  loop_idx = 0;
+  if (*(int16_t *)0x5a8d68 <= 0)
+    goto done;
+
+  do {
+    int saved_idx;
+    saved_idx = loop_idx;
+    i = (int16_t)loop_idx;
+
+    light =
+      (char *)datum_get(*(data_t **)0x5a90bc, *(int *)(0x5a8d6c + (int)i * 4));
+
+    if ((*(unsigned char *)(light + 0x2) & 1) == 0 ||
+        *(int *)(light + 0x8) == -1) {
+      goto next;
+    }
+
+    /* Skip specular-only lights (tag flag bit 2) */
+    tag_data = (char *)tag_get(0x6c696768, *(int *)(light + 0x4));
+    if ((*(unsigned char *)tag_data & 2) != 0) {
+      goto next;
+    }
+
+    /* Check if this is a gel light */
+    if ((*(unsigned char *)(light + 0x2) & 8) != 0) {
+      tag_data = (char *)tag_get(0x6c696768, *(int *)(light + 0x4));
+      is_specular = 1;
+      if ((*(unsigned char *)tag_data & 8) == 0) {
+        is_specular = 0;
+      }
+    } else {
+      is_specular = 0;
+    }
+
+    /* Gather gel objects if needed */
+    gel_count = 0;
+    if (is_specular == '\0') {
+      gel_count =
+        (int)FUN_00139350(*(int *)(0x5a8d6c + (int)i * 4), gel_buffer, 0x200);
+    }
+
+    /* Compute position and radius using FUN_0013a250 */
+    FUN_0013a250(*(int *)(0x5a8d6c + (int)i * 4), position, &radius, 0, 1, 0);
+
+    /* Dispatch to specular rasterizer */
+    {
+      int gel_buf_arg;
+      if (is_specular != '\0') {
+        gel_buf_arg = 0;
+      } else {
+        gel_buf_arg = (int)gel_buffer;
+      }
+      FUN_00195f30(*(int *)(light + 0x8), position, radius, gel_count,
+                   gel_buf_arg);
+    }
+
+    loop_idx = saved_idx;
+  next:
+    loop_idx = loop_idx + 1;
+  } while ((int16_t)loop_idx < *(int16_t *)0x5a8d68);
+
+done:
+  FUN_0017cd90();
+}
+
+/* 0x13a740 — compute_object_lighting_from_bsp: computes BSP-based lighting
+ * for an object, including lightmap sampling and dynamic light accumulation.
+ *
+ * Source: c:\halo\SOURCE\objects\object_lights.c
+ * 3 cdecl params.
+ */
+/* 0x13a740 */
+void FUN_0013a740(int param_1, int param_2, float *param_3)
+{
+  float fVar1;
+  char *puVar2;
+  float *pfVar3;
+  char cVar4;
+  int iVar5;
+  short *psVar6;
+  int uVar7;
+  int iVar8;
+  unsigned int uVar9;
+  char local_34[12];
+  float local_28[4];
+  char local_18[4];
+  int local_14;
+  int local_10;
+  int local_c;
+  short local_8[2];
+
+  pfVar3 = param_3;
+  puVar2 = *(char **)0x2ee710;
+  *param_3 = *(float *)puVar2;
+  param_3[1] = *(float *)(puVar2 + 4);
+  param_3[2] = *(float *)(puVar2 + 8);
+  cVar4 = CALL_FUN_00198cb0(param_1, (void *)0x29b204, local_34,
+                            (void *)((int)&param_3 + 2), local_8, &local_c,
+                            local_28 + 3, &local_14);
+  if (cVar4 != '\0') {
+    iVar5 = (int)scenario_get();
+    psVar6 = (short *)tag_block_get_element(
+      (void *)(iVar5 + 0x104), (int)*(short *)((int)&param_3 + 2), 0x20);
+    local_10 = (int)tag_block_get_element(psVar6 + 10, (int)local_8[0], 0x100);
+    if (*(int *)(iVar5 + 0xc) != -1 && *psVar6 != -1) {
+      uVar7 = (int)FUN_00076ff0(*(int *)(iVar5 + 0xc), *psVar6);
+      local_28[1] =
+        (float)(int)tag_block_get_element((void *)(iVar5 + 0xf8), local_c, 6);
+      iVar5 = local_10;
+      if (*(short *)(local_10 + 0xc4) != 2 &&
+          *(short *)(local_10 + 0xc4) != 3) {
+        display_assert("material->lightmap_vertices.type==_rasterizer_vertex_"
+                       "type_environment_lightmap_uncompressed || "
+                       "material->lightmap_vertices.type==_rasterizer_vertex_"
+                       "type_environment_lightmap_compressed",
+                       "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x356, 1);
+        CALL_thunk_FUN_001029a0(-1);
+      }
+      iVar8 = CALL_FUN_001bf570(uVar7, 0, 0);
+      if (iVar8 != 0) {
+        FUN_00138fd0(iVar5, uVar7, (unsigned short *)(int)local_28[1],
+                     *(float *)&local_28[3], *(float *)&local_14, (int)pfVar3);
+      }
+    }
+  }
+  if (*(short *)(param_2 + 4) != -1) {
+    param_3 = (float *)0;
+    if (*(char *)0x5a8d60 != '\0') {
+      display_assert("!lights_globals.marker_initialized",
+                     "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x664, 1);
+      CALL_thunk_FUN_001029a0(-1);
+    }
+    *(int *)0x5a8d64 = *(int *)0x5a8d64 + 1;
+    *(char *)0x5a8d60 = '\x01';
+    FUN_00139c20(-1, (int16_t) * (unsigned short *)(param_2 + 4),
+                 (float *)param_1, 0.0f, (int)(local_28 + 2), (float *)local_18,
+                 (int)local_28, (int16_t *)&param_3, 2);
+    if (*(char *)0x5a8d60 == '\0') {
+      display_assert("lights_globals.marker_initialized",
+                     "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x68e, 1);
+      CALL_thunk_FUN_001029a0(-1);
+    }
+    *(char *)0x5a8d60 = '\0';
+    if (0 < (short)(int)param_3) {
+      iVar5 = 0;
+      uVar9 = (unsigned int)param_3 & 0xffff;
+      do {
+        iVar8 = (int)datum_get(*(void **)0x5a90bc,
+                               *(int *)((int)local_28 + iVar5 + 8));
+        if ((*(unsigned char *)(iVar8 + 2) & 1) != 0) {
+          *pfVar3 =
+            *(float *)(iVar8 + 0x14) * *(float *)((int)local_28 + iVar5) +
+            *pfVar3;
+          pfVar3[1] =
+            *(float *)(iVar8 + 0x18) * *(float *)((int)local_28 + iVar5) +
+            pfVar3[1];
+          pfVar3[2] =
+            *(float *)(iVar8 + 0x1c) * *(float *)((int)local_28 + iVar5) +
+            pfVar3[2];
+        }
+        iVar5 = iVar5 + 4;
+        uVar9 = uVar9 - 1;
+      } while (uVar9 != 0);
+    }
+  }
+  /* clamp each channel to [0, 1] */
+  fVar1 = *(float *)0x2533c0;
+  if (*(float *)0x2533c0 <= *pfVar3 && *pfVar3 <= *(float *)0x2533c8) {
+    fVar1 = *pfVar3;
+  } else if (*pfVar3 > *(float *)0x2533c8) {
+    fVar1 = *(float *)0x2533c8;
+  }
+  *pfVar3 = fVar1;
+
+  fVar1 = *(float *)0x2533c0;
+  if (*(float *)0x2533c0 <= pfVar3[1] && pfVar3[1] <= *(float *)0x2533c8) {
+    fVar1 = pfVar3[1];
+  } else if (pfVar3[1] > *(float *)0x2533c8) {
+    fVar1 = *(float *)0x2533c8;
+  }
+  pfVar3[1] = fVar1;
+
+  if (*(float *)0x2533c0 <= pfVar3[2]) {
+    if (pfVar3[2] <= *(float *)0x2533c8) {
+      return;
+    }
+    pfVar3[2] = 1.0f;
+    return;
+  }
+  pfVar3[2] = 0.0f;
+}
+
+/* 0x13aa10: gather the light markers that illuminate an object.  Computes the
+ * object's bounding sphere (center local_2c, radius local_8) via FUN_0001aae0,
+ * then iterates the object's cluster set (object_get_first_cluster /
+ * FUN_0013d5f0 over iter_state local_10).  For each cluster it calls
+ * FUN_00139c20 to select the strongest point lights into the caller's marker
+ * array (param_2+0x44), capped at 2 (count at param_2+0x40).  Finally it
+ * converts each stored light datum handle into the light's object field
+ * (light+0x8) in place.  Guarded by lights_globals.marker_initialized
+ * (0x5a8d60) and a recursion/use counter (0x5a8d64). */
+void FUN_0013aa10(int param_1, int param_2)
+{
+  float center[3];
+  float radius;
+  unsigned int iter_state[2];
+  float weights[2];
+  float atten[2];
+  short *count;
+  short marker;
+  short i;
+  int light;
+
+  FUN_0001aae0(param_1, center, &radius);
+  count = (short *)(param_2 + 0x40);
+  *count = 0;
+
+  if (*(char *)0x5a8d60 != '\0') {
+    display_assert("!lights_globals.marker_initialized",
+                   "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x664, 1);
+    CALL_thunk_FUN_001029a0(-1);
+  }
+  *(int *)0x5a8d64 = *(int *)0x5a8d64 + 1;
+  *(char *)0x5a8d60 = '\x01';
+
+  marker = object_get_first_cluster(iter_state, param_1);
+  if (marker != -1) {
+    do {
+      FUN_00139c20(param_1, marker, center, radius, param_2 + 0x44, weights,
+                   (int)atten, count, 2);
+      marker = FUN_0013d5f0(iter_state, param_1);
+    } while (marker != -1);
+  }
+
+  if (*(char *)0x5a8d60 == '\0') {
+    display_assert("lights_globals.marker_initialized",
+                   "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x68e, 1);
+    CALL_thunk_FUN_001029a0(-1);
+  }
+  i = 0;
+  *(char *)0x5a8d60 = '\0';
+
+  if (*count > 0) {
+    do {
+      light = (int)datum_get(*(data_t **)0x5a90bc,
+                             *(int *)(param_2 + 0x44 + (int)i * 4));
+      *(int *)(param_2 + 0x44 + (int)i * 4) = *(int *)(light + 8);
+      i++;
+    } while (i < *count);
+  }
+}
+
+/* 0x13ab20 — compute_dynamic_object_lighting: computes dynamic lighting for
+ * objects using BSP ray casting, lightmap sampling, and shader lookups.
+ *
+ * Source: c:\halo\SOURCE\objects\object_lights.c
+ * 3 cdecl params. Returns char (bool).
+ */
+/* 0x13ab20 */
+char FUN_0013ab20(unsigned int param_1, int param_2, int *param_3)
+{
+  char cVar1;
+  int iVar2;
+  short *psVar3;
+  int iVar4;
+  unsigned short *puVar5;
+  int iVar6;
+  short sVar7;
+  short sVar8;
+  int *puVar9;
+  int *puVar10;
+  char *puVar11;
+  char local_94[12];
+  char local_88[12];
+  char local_7c[12];
+  char local_70[12];
+  char local_64[12];
+  char local_58[12];
+  char local_4c[12];
+  float local_40[3];
+  int local_34;
+  int local_30;
+  float local_2c;
+  float local_28;
+  float local_24;
+  short local_20[2];
+  short local_1c[2];
+  short *local_18;
+  int local_14;
+  float local_10;
+  float local_c;
+  float distance_scale;
+  char local_5;
+
+  local_5 = 0;
+  iVar2 = (int)scenario_get();
+  puVar9 = (int *)(iVar2 + 0x2c);
+  iVar6 = 0x1d;
+  puVar10 = param_3;
+  if (*(float *)(iVar2 + 0x2c) == *(float *)0x2533c0) {
+    puVar9 = (int *)0x29b190;
+    for (; iVar6 != 0; iVar6 = iVar6 - 1) {
+      *puVar10 = *puVar9;
+      puVar9 = puVar9 + 1;
+      puVar10 = puVar10 + 1;
+    }
+  } else {
+    for (; iVar6 != 0; iVar6 = iVar6 - 1) {
+      *puVar10 = *puVar9;
+      puVar9 = puVar9 + 1;
+      puVar10 = puVar10 + 1;
+    }
+    *(short *)(param_3 + 3) = 2;
+  }
+
+  if ((param_1 & 1) == 0) {
+    puVar11 = (char *)0x29b204;
+    sVar7 = 1;
+  } else {
+    puVar11 = (char *)0x29b210;
+    sVar7 = 4;
+  }
+  sVar8 = 0;
+  if (sVar7 != 0) {
+    while (cVar1 = CALL_FUN_00198cb0(param_2, puVar11 + sVar8 * 0xc, local_94,
+                                     local_1c, local_20, &local_34, &local_c,
+                                     &local_10),
+           cVar1 == '\0') {
+      sVar8 = sVar8 + 1;
+      if (sVar7 <= sVar8) {
+        return local_5;
+      }
+    }
+    iVar2 = (int)scenario_get();
+    psVar3 = (short *)tag_block_get_element((void *)(iVar2 + 0x104),
+                                            (int)local_1c[0], 0x20);
+    local_18 = psVar3;
+    iVar6 = (int)tag_block_get_element(psVar3 + 10, (int)local_20[0], 0x100);
+    iVar4 = (int)tag_get(0x73686472, *(int *)(iVar6 + 0xc));
+    if (*(short *)(iVar4 + 0x24) == 3 &&
+        (local_14 = (int)CALL_FUN_001906b0(iVar4, 3),
+         *(int *)(iVar2 + 0xc) != -1) &&
+        *psVar3 != -1 && *(int *)(local_14 + 0x94) != -1) {
+      puVar5 = (unsigned short *)tag_block_get_element((void *)(iVar2 + 0xf8),
+                                                       local_34, 6);
+      iVar2 = (int)FUN_00076ff0(*(int *)(iVar2 + 0xc), *local_18);
+      iVar4 = (int)tag_get(0x6269746d, *(int *)(local_14 + 0x94));
+      local_14 = (int)FUN_00076ff0(*(int *)(local_14 + 0x94),
+                                   (int)*(short *)(iVar6 + 0x10) %
+                                     *(int *)(iVar4 + 0x60));
+      if (iVar2 != 0 && local_14 != 0 &&
+          (iVar4 = CALL_FUN_00138ee0(iVar2), iVar4 != 0) &&
+          (iVar4 = CALL_FUN_00138ee0(local_14), iVar4 != 0)) {
+        CALL_FUN_001390d0(iVar6, local_14, puVar5, local_c, local_10,
+                          (void *)local_88);
+        FUN_00138fd0(iVar6, iVar2, puVar5, local_c, local_10, (int)local_40);
+        CALL_FUN_00180570((unsigned int)*puVar5 * 0x20 + *(int *)(iVar6 + 0xf8),
+                          (void *)local_64);
+        CALL_FUN_00180570((unsigned int)puVar5[1] * 0x20 +
+                            *(int *)(iVar6 + 0xf8),
+                          (void *)local_58);
+        CALL_FUN_00180570((unsigned int)puVar5[2] * 0x20 +
+                            *(int *)(iVar6 + 0xf8),
+                          (void *)local_4c);
+        FUN_00138f70((float *)local_7c, (float *)local_4c, (float *)local_58,
+                     (float *)local_64, local_c, local_10);
+        CALL_FUN_00013010((void *)local_7c);
+        CALL_FUN_00180660(
+          *(int *)(iVar6 + 0xf8) +
+            ((unsigned int)*puVar5 + *(int *)(iVar6 + 0xb4) * 4) * 8,
+          (void *)local_64);
+        CALL_FUN_00180660(
+          *(int *)(iVar6 + 0xf8) +
+            ((unsigned int)puVar5[1] + *(int *)(iVar6 + 0xb4) * 4) * 8,
+          (void *)local_58);
+        CALL_FUN_00180660(
+          *(int *)(iVar6 + 0xf8) +
+            ((unsigned int)puVar5[2] + *(int *)(iVar6 + 0xb4) * 4) * 8,
+          (void *)local_4c);
+        local_2c = (float)CALL_FUN_00013010((void *)local_64);
+        local_28 = (float)CALL_FUN_00013010((void *)local_58);
+        local_24 = (float)CALL_FUN_00013010((void *)local_4c);
+        FUN_00138f70((float *)local_70, (float *)local_4c, (float *)local_58,
+                     (float *)local_64, local_c, local_10);
+        distance_scale = (local_24 - local_2c) * local_10 +
+                         (local_28 - local_2c) * local_c + local_2c;
+        CALL_FUN_00013010((void *)local_70);
+        if (*(char *)0x5a8d59 != '\0') {
+          local_2c = local_40[0];
+          local_28 = local_40[1];
+          local_24 = local_40[2];
+          local_30 = 0x3f800000;
+          CALL_FUN_00189150(1, param_2, 0.5f, &local_30);
+          {
+            int ds_bits;
+            memcpy(&ds_bits, &distance_scale, 4);
+            ((void (*)(int, void *, void *, int, void *))FUN_00189320)(
+              1, (void *)param_2, local_70, ds_bits, &local_30);
+          }
+        }
+        FUN_00139e50(param_1, (float *)local_7c, (float *)local_70,
+                     distance_scale, (float *)local_88, (float *)param_3,
+                     (float *)local_40);
+        local_5 = 1;
+      }
+    }
+  }
+  return local_5;
 }
 
 /*
@@ -1691,26 +4209,25 @@ void object_move_to_limbo(int object_handle)
      * before the inner object_get_child_marker_definition call, matching
      * the reference's interleaved cdecl arg-evaluation push order. */
     marker_index = *(int16_t *)(light + 0x5c);
-    object_get_markers_by_string_id(
-      *(int *)(light + 0x2c),
-      (char *)object_get_child_marker_definition(*(int *)(light + 0x2c),
-                                                 marker_index),
-      marker_buf, 1);
+    object_get_markers_by_string_id(*(int *)(light + 0x2c),
+                                    (char *)object_get_child_marker_definition(
+                                      *(int *)(light + 0x2c), marker_index),
+                                    marker_buf, 1);
 
     /* Position/forward/up are copied as raw dword moves through a
      * destination base pointer (reference: lea 0x30(esi),ecx; mov
      * [ebp-off],tmp; mov tmp,(ecx)), NOT FPU load/store. */
     {
       int *dst;
-      dst = (int *)(light + 0x30);           /* position <- marker_buf+0x60 */
+      dst = (int *)(light + 0x30); /* position <- marker_buf+0x60 */
       dst[0] = *(int *)(marker_buf + 0x60);
       dst[1] = *(int *)(marker_buf + 0x64);
       dst[2] = *(int *)(marker_buf + 0x68);
-      dst = (int *)(light + 0x3c);           /* forward  <- marker_buf+0x3c */
+      dst = (int *)(light + 0x3c); /* forward  <- marker_buf+0x3c */
       dst[0] = *(int *)(marker_buf + 0x3c);
       dst[1] = *(int *)(marker_buf + 0x40);
       dst[2] = *(int *)(marker_buf + 0x44);
-      dst = (int *)(light + 0x48);           /* up       <- marker_buf+0x54 */
+      dst = (int *)(light + 0x48); /* up       <- marker_buf+0x54 */
       dst[0] = *(int *)(marker_buf + 0x54);
       dst[1] = *(int *)(marker_buf + 0x58);
       dst[2] = *(int *)(marker_buf + 0x5c);
@@ -1827,269 +4344,32 @@ void object_move_to_limbo(int object_handle)
   }
 }
 
-/* 0x13a5f0 / objects.obj — Render specular lights.
- * Similar to FUN_0013a420 but for specular lighting pass. Skips lights
- * with the specular-only flag (tag byte 0 bit 2). Uses FUN_0013a250 to
- * compute position/radius and FUN_00195f30 for the rasterizer pass.
- * No params (void).
- * Confirmed: same loop structure as 0x13a420 over DAT_005a8d68 lights.
- * Confirmed: calls FUN_0013a250(handle, position, &radius, 0, 1, 0).
- * Confirmed: calls FUN_00195f30(obj_handle, &position, radius, gel_count, gel_buf).
- * Confirmed: profiling enter 0x17cd50, exit 0x17cd90. */
-void FUN_0013a5f0(void)
+/*
+ * FUN_0013b150 (0x13b150 / objects.obj) — flush all lights flagged for limbo.
+ *
+ * Walks the light data table (global at 0x5a90bc) via the data-table forward
+ * iterator data_next_index (-1 seed -> first index, -1 return -> end). For each
+ * live light whose flags word (light+0x2) has bit 0x4 set, clears that bit and
+ * moves the light to limbo via object_move_to_limbo (0x13aed0).
+ *
+ * Confirmed (disasm 0x13b150): the table global is re-read each iteration;
+ * flags are a 16-bit word at +0x2; bit 0x4 tested via TEST CL,0x4; cleared via
+ * AND ECX,0xfffb.
+ */
+void FUN_0013b150(void)
 {
-  int16_t i;
-  int loop_idx;
-  char *light;
-  char *tag_data;
-  char is_specular;
-  int gel_count;
-  float position[3];
-  float radius;
-  int16_t gel_buffer[512];
+  int index;
+  int light;
 
-  FUN_0017cd50();
-
-  if (*(char *)*(int *)0x46f074 == '\0')
-    goto done;
-  if (FUN_000ab9c0() == '\0')
-    goto done;
-
-  loop_idx = 0;
-  if (*(int16_t *)0x5a8d68 <= 0)
-    goto done;
-
-  do {
-    int saved_idx;
-    saved_idx = loop_idx;
-    i = (int16_t)loop_idx;
-
-    light = (char *)datum_get(*(data_t **)0x5a90bc,
-                              *(int *)(0x5a8d6c + (int)i * 4));
-
-    if ((*(unsigned char *)(light + 0x2) & 1) == 0 ||
-        *(int *)(light + 0x8) == -1) {
-      goto next;
+  index = data_next_index(*(data_t **)0x5a90bc, -1);
+  while (index != -1) {
+    light = (int)datum_get(*(data_t **)0x5a90bc, index);
+    if ((*(unsigned short *)(light + 2) & 4) != 0) {
+      *(unsigned short *)(light + 2) &= 0xfffb;
+      object_move_to_limbo(index);
     }
-
-    /* Skip specular-only lights (tag flag bit 2) */
-    tag_data = (char *)tag_get(0x6c696768, *(int *)(light + 0x4));
-    if ((*(unsigned char *)tag_data & 2) != 0) {
-      goto next;
-    }
-
-    /* Check if this is a gel light */
-    if ((*(unsigned char *)(light + 0x2) & 8) != 0) {
-      tag_data = (char *)tag_get(0x6c696768, *(int *)(light + 0x4));
-      is_specular = 1;
-      if ((*(unsigned char *)tag_data & 8) == 0) {
-        is_specular = 0;
-      }
-    } else {
-      is_specular = 0;
-    }
-
-    /* Gather gel objects if needed */
-    gel_count = 0;
-    if (is_specular == '\0') {
-      gel_count = (int)FUN_00139350(
-          *(int *)(0x5a8d6c + (int)i * 4),
-          gel_buffer, 0x200);
-    }
-
-    /* Compute position and radius using FUN_0013a250 */
-    FUN_0013a250(
-        *(int *)(0x5a8d6c + (int)i * 4),
-        position, &radius, 0, 1, 0);
-
-    /* Dispatch to specular rasterizer */
-    {
-      int gel_buf_arg;
-      if (is_specular != '\0') {
-        gel_buf_arg = 0;
-      } else {
-        gel_buf_arg = (int)gel_buffer;
-      }
-      FUN_00195f30(
-          *(int *)(light + 0x8), position, radius, gel_count,
-          gel_buf_arg);
-    }
-
-    loop_idx = saved_idx;
-next:
-    loop_idx = loop_idx + 1;
-  } while ((int16_t)loop_idx < *(int16_t *)0x5a8d68);
-
-done:
-  FUN_0017cd90();
-}
-
-/* 0x13a250 / objects.obj — Compute a light's world-space position and
- * effective radius. Reads the light datum (from light data table 0x5a90bc)
- * and the 'ligh' tag to determine how to compute the radius. Supports three
- * modes based on the tag's shape_radius field at +0x14:
- *   1. shape_radius >= 2568bc (1.0): use position directly, radius = stored radius
- *   2. shape_radius >= 254a58 (0.001): compute position from direction * inner*outer,
- *      radius = stored_radius * outer_radius
- *   3. shape_radius < 0.001: compute position from direction * (radius/inner),
- *      radius = radius/inner
- * Also handles a minimum radius check when param_3 is set.
- * light_handle in EAX, out_position in EDI, out_radius in EBX (register args).
- * Confirmed: PUSH EAX; PUSH [5a90bc]; CALL datum_get.
- * Confirmed: ESI = light datum after datum_get.
- * Confirmed: writes to [EDI], [EDI+4], [EDI+8] for position and [EBX] for radius. */
-void FUN_0013a250(int light_handle /* @<eax> */,
-                  float *out_position /* @<edi> */,
-                  float *out_radius /* @<ebx> */,
-                  char param_1, char param_2, char param_3)
-{
-  char *light;
-  char *tag;
-  float radius;
-
-  light = (char *)datum_get(*(data_t **)0x5a90bc, light_handle);
-  tag = (char *)tag_get(0x6c696768, *(int *)(light + 0x4));
-
-  /* Compute initial radius */
-  if (param_1 != '\0') {
-    radius = *(float *)(tag + 0xc) * *(float *)(tag + 0x4);
-  } else {
-    radius = *(float *)(light + 0x54);
+    index = data_next_index(*(data_t **)0x5a90bc, index);
   }
-
-  /* Apply specular multiplier if not a specular-only light */
-  if ((*(unsigned char *)tag & 2) == 0) {
-    if (param_2 != '\0' || param_1 != '\0') {
-      radius = radius * *(float *)(tag + 0x24);
-    }
-  }
-
-  /* Check minimum radius */
-  if (param_3 != '\0' && radius < *(float *)(tag + 0x18)) {
-    out_position[0] = *(float *)(light + 0x30);
-    out_position[1] = *(float *)(light + 0x34);
-    out_position[2] = *(float *)(light + 0x38);
-    *out_radius = *(float *)(tag + 0x18);
-    return;
-  }
-
-  if (*(float *)(tag + 0x14) < *(float *)0x2568bc) {
-    if (*(float *)(tag + 0x14) < *(float *)0x254a58) {
-      radius = radius / *(float *)(tag + 0x20);
-      *out_radius = radius;
-    } else {
-      *out_radius = radius * *(float *)(tag + 0x28);
-      radius = radius * *(float *)(tag + 0x20);
-    }
-    out_position[0] = radius * *(float *)(light + 0x3c) + *(float *)(light + 0x30);
-    out_position[1] = radius * *(float *)(light + 0x40) + *(float *)(light + 0x34);
-    out_position[2] = radius * *(float *)(light + 0x44) + *(float *)(light + 0x38);
-  } else {
-    out_position[0] = *(float *)(light + 0x30);
-    out_position[1] = *(float *)(light + 0x34);
-    out_position[2] = *(float *)(light + 0x38);
-    *out_radius = radius;
-  }
-}
-
-/* 0x13a420 / objects.obj — Render point and spot lights.
- * Iterates through the active lights array, computes position/radius for
- * each enabled light, optionally gathers gel objects via FUN_00139350,
- * and dispatches to FUN_00196060 for rasterizer rendering.
- * No params (void). Bounded by profiling enter/exit calls.
- * Confirmed: loop counter is int16_t, iterates DAT_005a8d68 entries.
- * Confirmed: SUB ESP,0x41c for local buffer (1024 bytes for gel objects).
- * Confirmed: FUN_00139350 called with EAX=handle, EBX=buf, EDI=0x200.
- * Confirmed: FUN_00196060(obj_handle, &position, radius, gel_count, gel_buf). */
-void FUN_0013a420(void)
-{
-  int16_t i;
-  int loop_idx;
-  char *light;
-  char *tag_data;
-  char is_specular;
-  int16_t gel_count;
-  float position[3];
-  float radius;
-  int16_t gel_buffer[512];
-
-  FUN_0017cc50();
-
-  if (*(char *)*(int *)0x46f074 == '\0')
-    goto done;
-  if (FUN_000ab9c0() == '\0')
-    goto done;
-
-  loop_idx = 0;
-  if (*(int16_t *)0x5a8d68 <= 0)
-    goto done;
-
-  do {
-    int saved_idx;
-    saved_idx = loop_idx;
-    i = (int16_t)loop_idx;
-
-    light = (char *)datum_get(*(data_t **)0x5a90bc,
-                              *(int *)(0x5a8d6c + (int)i * 4));
-
-    if ((*(unsigned short *)(light + 0x2) & 1) == 0 ||
-        *(int *)(light + 0x8) == -1) {
-      loop_idx = saved_idx + 1;
-      continue;
-    }
-
-    /* Check if this is a specular light */
-    if ((*(unsigned short *)(light + 0x2) & 8) != 0) {
-      tag_data = (char *)tag_get(0x6c696768, *(int *)(light + 0x4));
-      is_specular = 1;
-      if ((*(unsigned char *)tag_data & 8) == 0) {
-        is_specular = 0;
-      }
-    } else {
-      is_specular = 0;
-    }
-
-    gel_count = 0;
-    if (is_specular == '\0') {
-      gel_count = FUN_00139350(
-          *(int *)(0x5a8d6c + (int)i * 4),
-          gel_buffer, 0x200);
-    }
-
-    light = (char *)datum_get(*(data_t **)0x5a90bc,
-                              *(int *)(0x5a8d6c + (int)i * 4));
-    tag_data = (char *)tag_get(0x6c696768, *(int *)(light + 0x4));
-    radius = *(float *)(light + 0x54);
-
-    if (*(float *)(tag_data + 0x14) < *(float *)0x2568bc) {
-      if (*(float *)(tag_data + 0x14) < *(float *)0x254a58) {
-        radius = radius / *(float *)(tag_data + 0x20);
-        position[0] = radius * *(float *)(light + 0x3c) + *(float *)(light + 0x30);
-        position[1] = radius * *(float *)(light + 0x40) + *(float *)(light + 0x34);
-        position[2] = radius * *(float *)(light + 0x44) + *(float *)(light + 0x38);
-      } else {
-        float inner_scale;
-        radius = radius * *(float *)(tag_data + 0x28);
-        inner_scale = *(float *)(light + 0x54) * *(float *)(tag_data + 0x20);
-        position[0] = inner_scale * *(float *)(light + 0x3c) + *(float *)(light + 0x30);
-        position[1] = inner_scale * *(float *)(light + 0x40) + *(float *)(light + 0x34);
-        position[2] = inner_scale * *(float *)(light + 0x44) + *(float *)(light + 0x38);
-      }
-    } else {
-      position[0] = *(float *)(light + 0x30);
-      position[1] = *(float *)(light + 0x34);
-      position[2] = *(float *)(light + 0x38);
-    }
-
-    FUN_00196060(
-        *(int *)(light + 0x8), position, radius, gel_count,
-        (int)((unsigned int)((is_specular != '\0') - 1) & (unsigned int)gel_buffer));
-
-    loop_idx = saved_idx + 1;
-  } while ((int16_t)loop_idx < *(int16_t *)0x5a8d68);
-
-done:
-  FUN_0017cc90();
 }
 
 /* Create a light-instance datum attached to an object marker (0x13b1b0).
@@ -2180,6 +4460,345 @@ int FUN_0013b290(int tag_index, int object_handle, int16_t marker,
     *(int *)(datum + 0x0c) = *(int *)0x5a8d64 - 1;
   }
   return handle;
+}
+
+/* 0x13b380 — render_lights: main per-frame light processing function.
+ * Iterates all active lights, updates colors/positions, submits to renderer.
+ *
+ * Source: c:\halo\SOURCE\objects\object_lights.c
+ * No params.
+ */
+/* 0x13b380 */
+void FUN_0013b380(void)
+{
+  float *pfVar1;
+  float fVar2;
+  char cVar3;
+  short sVar4;
+  int iVar5;
+  int iVar6;
+  int iVar7;
+  short *psVar8;
+  unsigned char *pbVar9;
+  char *puVar10;
+  int uVar11;
+  unsigned char *pbVar12;
+  char *puVar13;
+  short sVar14;
+  float fVar15;
+  char local_3e0[864]; /* local_3e0[60]+local_3a4[804] must be contiguous (MSVC
+                          stack alias) */
+  char *local_3a4 = local_3e0 + 60;
+  int light_params[14]; /* must be contiguous — rasterizer reads as 56-byte
+                           struct */
+  int local_48;
+  char lf_params[40]; /* lens flare params — rasterizer reads as 0x28-byte
+                         struct */
+  int local_1c;
+  float local_18;
+  int local_14;
+  int local_10;
+  float local_c;
+  float local_8;
+
+  local_1c = CALL_FUN_000b5aa0();
+  if (*(char *)0x449ef1 != '\0' && *(char *)0x323608 != '\0') {
+    CALL_FUN_0008fa40((int *)0x323600);
+  }
+  *(short *)0x5a8d5a = 0;
+  for (iVar5 = CALL_FUN_001198f0(*(void **)0x5a90bc, -1); iVar5 != -1;
+       iVar5 = CALL_FUN_001198f0(*(void **)0x5a90bc, iVar5)) {
+    iVar6 = (int)datum_get(*(void **)0x5a90bc, iVar5);
+    *(unsigned char *)(iVar6 + 2) = *(unsigned char *)(iVar6 + 2) & 0xf7;
+    *(int *)(iVar6 + 8) = -1;
+    if (*(int *)(iVar6 + 0x58) != -1) {
+      iVar7 = (int)tag_get(0x6c696768, *(int *)(iVar6 + 4));
+      local_10 = local_1c - *(int *)(iVar6 + 0x58);
+      if ((float)local_10 <= *(float *)(iVar7 + 0xf4)) {
+        iVar6 = CALL_FUN_0013d640(*(int *)(iVar6 + 0x2c), -1);
+        if (iVar6 != 0) {
+          CALL_FUN_001396e0(iVar5);
+          CALL_FUN_0013aed0(iVar5);
+        }
+      } else {
+        iVar6 = (int)datum_get(*(void **)0x5a90bc, iVar5);
+        CALL_FUN_001919a0((void *)0x5a90b0, iVar5, iVar6 + 0x10);
+        CALL_FUN_001196d0(*(void **)0x5a90bc, iVar5);
+      }
+    }
+  }
+  if (*(char *)0x5a8d60 != '\0') {
+    display_assert("!lights_globals.marker_initialized",
+                   "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x664, 1);
+    CALL_thunk_FUN_001029a0(-1);
+  }
+  *(int *)0x5a8d64 = *(int *)0x5a8d64 + 1;
+  *(char *)0x5a8d60 = '\x01';
+  *(short *)0x5a8d68 = (short)CALL_FUN_00196c90(
+    (void *)0x5a8d6c, 0x80, (void *)0x1398b0, (void *)0x1398d0,
+    (void *)0x13a340, (void *)0x139930, (void *)0x139990);
+  if (*(char *)0x5a8d60 == '\0') {
+    display_assert("lights_globals.marker_initialized",
+                   "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x68e, 1);
+    CALL_thunk_FUN_001029a0(-1);
+  }
+  *(char *)0x5a8d60 = 0;
+  FUN_001812b0();
+  iVar5 = 0;
+  if (0 < *(short *)0x5137cc) {
+    do {
+      psVar8 = CALL_FUN_00184e50(iVar5);
+      CALL_FUN_00181900((int)*psVar8);
+      iVar5 = iVar5 + 1;
+    } while ((short)iVar5 < *(short *)0x5137cc);
+  }
+  local_10 = 0;
+  if (0 < *(short *)0x5a8d68) {
+    do {
+      uVar11 = *(int *)((char *)0x5a8d6c + (short)local_10 * 4);
+      local_48 = uVar11;
+      iVar5 = (int)datum_get(*(void **)0x5a90bc, uVar11);
+      pbVar9 = (unsigned char *)tag_get(0x6c696768, *(int *)(iVar5 + 4));
+      local_c = 1.0f;
+      FUN_00139a30(uVar11);
+      if (*(int *)(iVar5 + 0x2c) == -1) {
+        iVar6 = 0;
+      } else {
+        iVar6 = CALL_FUN_0013d640(*(int *)(iVar5 + 0x2c), -1);
+      }
+      local_14 = iVar6;
+      if (*(int *)(iVar5 + 0x58) == -1) {
+        if (iVar6 == 0) {
+          display_assert("object", "c:\\halo\\SOURCE\\objects\\object_lights.c",
+                         0x1ac, 1);
+          CALL_thunk_FUN_001029a0(-1);
+        }
+        CALL_FUN_001403a0(*(int *)(iVar5 + 0x2c),
+                          *(unsigned short *)(iVar5 + 0x5e), &local_8);
+        puVar10 = *(char **)0x2ee708;
+        if (*(short *)(iVar5 + 0x60) != -1) {
+          puVar10 = (char *)(iVar6 + (*(short *)(iVar5 + 0x60) + 0x1e) * 0xc);
+        }
+        CALL_FUN_007c490(iVar5 + 0x14, *(int *)(pbVar9 + 0x34), pbVar9 + 0x38,
+                         pbVar9 + 0x48, puVar10, local_8);
+      } else {
+        local_18 = (float)(local_1c - *(int *)(iVar5 + 0x58));
+        fVar15 = (float)CALL_FUN_0010a710(*(unsigned short *)(pbVar9 + 0xfa),
+                                          (float)(int)local_18 /
+                                            *(float *)(pbVar9 + 0xf4));
+        local_8 = (*(float *)0x2533c8 - fVar15) * *(float *)(iVar5 + 0x78);
+        CALL_FUN_0007c270(
+          (float *)(iVar5 + 0x14), *(unsigned int *)(pbVar9 + 0x34),
+          (float *)(pbVar9 + 0x3c), (float *)(pbVar9 + 0x4c), local_8);
+      }
+      local_18 = *(float *)0x2533c8 - local_8;
+      if (*(float *)(iVar5 + 0x14) < *(float *)0x2533c0 ||
+          *(float *)(iVar5 + 0x14) > *(float *)0x2533c8) {
+        display_assert("light->color.red >=0.0f && light->color.red <=1.0f",
+                       "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x1bb, 1);
+        CALL_thunk_FUN_001029a0(-1);
+      }
+      if (*(float *)(iVar5 + 0x18) < *(float *)0x2533c0 ||
+          *(float *)(iVar5 + 0x18) > *(float *)0x2533c8) {
+        display_assert("light->color.green>=0.0f && light->color.green<=1.0f",
+                       "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x1bc, 1);
+        CALL_thunk_FUN_001029a0(-1);
+      }
+      if (*(float *)(iVar5 + 0x1c) < *(float *)0x2533c0 ||
+          *(float *)(iVar5 + 0x1c) > *(float *)0x2533c8) {
+        display_assert("light->color.blue >=0.0f && light->color.blue <=1.0f",
+                       "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x1bd, 1);
+        CALL_thunk_FUN_001029a0(-1);
+      }
+      if (local_14 != 0) {
+        uVar11 = object_get_root_parent(*(int *)(iVar5 + 0x2c));
+        iVar6 = (int)object_get_and_verify_type(uVar11, -1);
+        if ((1 << (*(unsigned char *)(iVar6 + 100) & 0x1f) & 3u) != 0) {
+          iVar6 = (int)object_get_and_verify_type(uVar11, 3);
+          if (*(float *)0x2533c0 < *(float *)(iVar6 + 0x32c)) {
+            pbVar12 = (unsigned char *)tag_get(0x6c696768, *(int *)(iVar5 + 4));
+            if ((*pbVar12 & 0x20) == 0) {
+              local_c = *(float *)0x2533c8 - *(float *)(iVar6 + 0x32c);
+              fVar2 = local_c * *(float *)(iVar5 + 0x14);
+              *(float *)(iVar5 + 0x14) = fVar2;
+              *(float *)(iVar5 + 0x18) = local_c * *(float *)(iVar5 + 0x18);
+              *(float *)(iVar5 + 0x1c) = local_c * *(float *)(iVar5 + 0x1c);
+              if (fVar2 < *(float *)0x2533c0 || fVar2 > *(float *)0x2533c8) {
+                display_assert(
+                  "light->color.red >=0.0f && light->color.red <=1.0f",
+                  "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x1d1, 1);
+                CALL_thunk_FUN_001029a0(-1);
+              }
+              if (*(float *)(iVar5 + 0x18) < *(float *)0x2533c0 ||
+                  *(float *)(iVar5 + 0x18) > *(float *)0x2533c8) {
+                display_assert(
+                  "light->color.green>=0.0f && light->color.green<=1.0f",
+                  "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x1d2, 1);
+                CALL_thunk_FUN_001029a0(-1);
+              }
+              if (*(float *)(iVar5 + 0x1c) < *(float *)0x2533c0 ||
+                  *(float *)(iVar5 + 0x1c) > *(float *)0x2533c8) {
+                display_assert(
+                  "light->color.blue >=0.0f && light->color.blue <=1.0f",
+                  "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x1d3, 1);
+                CALL_thunk_FUN_001029a0(-1);
+              }
+            }
+          }
+        }
+      }
+      pfVar1 = (float *)(iVar5 + 0x14);
+      if (*(float *)(iVar5 + 0x14) != *(float *)0x2533c0 ||
+          *(float *)(iVar5 + 0x18) != *(float *)0x2533c0 ||
+          *(float *)(iVar5 + 0x1c) != *(float *)0x2533c0) {
+        if ((*(unsigned char *)(iVar5 + 2) & 1) == 0) {
+          *(int *)(iVar5 + 0x54) = *(int *)(pbVar9 + 4);
+        } else {
+          fVar2 = (local_8 * *(float *)(pbVar9 + 0xc) +
+                   local_18 * *(float *)(pbVar9 + 8)) *
+                  *(float *)(pbVar9 + 4);
+          *(float *)(iVar5 + 0x54) = fVar2;
+          if (fVar2 != *(float *)0x2533c0) {
+            light_params[0] = (int)tag_get(0x6c696768, *(int *)(iVar5 + 4));
+            light_params[1] = *(int *)(iVar5 + 0x30);
+            light_params[2] = *(int *)(iVar5 + 0x34);
+            light_params[3] = *(int *)(iVar5 + 0x38);
+            light_params[4] = *(int *)(iVar5 + 0x3c);
+            light_params[5] = *(int *)(iVar5 + 0x40);
+            light_params[6] = *(int *)(iVar5 + 0x44);
+            light_params[7] = *(int *)(iVar5 + 0x48);
+            light_params[8] = *(int *)(iVar5 + 0x4c);
+            light_params[9] = *(int *)(iVar5 + 0x50);
+            light_params[13] = *(int *)(iVar5 + 0x54);
+            *(float *)&light_params[10] = *pfVar1;
+            light_params[11] = *(int *)(iVar5 + 0x18);
+            light_params[12] = *(int *)(iVar5 + 0x1c);
+            if (*pfVar1 < *(float *)0x2533c0 || *pfVar1 > *(float *)0x2533c8) {
+              display_assert(
+                "light->color.red >=0.0f && light->color.red <=1.0f",
+                "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x1ee, 1);
+              CALL_thunk_FUN_001029a0(-1);
+            }
+            if (*(float *)(iVar5 + 0x18) < *(float *)0x2533c0 ||
+                *(float *)(iVar5 + 0x18) > *(float *)0x2533c8) {
+              display_assert(
+                "light->color.green>=0.0f && light->color.green<=1.0f",
+                "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x1ef, 1);
+              CALL_thunk_FUN_001029a0(-1);
+            }
+            if (*(float *)(iVar5 + 0x1c) < *(float *)0x2533c0 ||
+                *(float *)(iVar5 + 0x1c) > *(float *)0x2533c8) {
+              display_assert(
+                "light->color.blue >=0.0f && light->color.blue <=1.0f",
+                "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x1f0, 1);
+              CALL_thunk_FUN_001029a0(-1);
+            }
+            if (*(int *)(iVar5 + 0x58) == -1) {
+              if ((*pbVar9 & 0x10) == 0) {
+                if (*(short *)(local_14 + 100) == 2 &&
+                    *(int *)(local_14 + 0xcc) != -1) {
+                  uVar11 = CALL_FUN_0013fea0_5(
+                    *(int *)(iVar5 + 0x2c), *(unsigned short *)(iVar5 + 0x5c),
+                    &light_params[1], &light_params[4], &light_params[7]);
+                  cVar3 = first_person_weapon_adjust_light(
+                    *(int *)(iVar5 + 0x2c), uVar11, &light_params[1],
+                    &light_params[4], &light_params[7]);
+                  if (cVar3 != '\0')
+                    goto LAB_0013baac;
+                }
+              } else {
+                first_person_weapon_center_flashlight(
+                  *(int *)(iVar5 + 0x2c), (float *)&light_params[1],
+                  (float *)&light_params[4], &light_params[7]);
+              LAB_0013baac:
+                *(unsigned char *)(iVar5 + 2) =
+                  *(unsigned char *)(iVar5 + 2) | 8;
+              }
+            }
+            uVar11 = CALL_FUN_001812c0(light_params);
+            *(int *)(iVar5 + 8) = uVar11;
+            *(short *)0x5a8d5a = (short)uVar11 + 1;
+          }
+        }
+        if (*(int *)(pbVar9 + 0xb8) != -1) {
+          *(int *)(lf_params + 0x00) =
+            (int)tag_get(0x6c656e73, *(int *)(pbVar9 + 0xb8));
+          *(unsigned int *)(lf_params + 0x18) =
+            CALL_FUN_00099530(local_c, (float *)(iVar5 + 0x14));
+          *(lf_params + 0x23) = CALL_FUN_00180770(local_8);
+          *(short *)(lf_params + 0x1e) = (short)local_48;
+          *(short *)(lf_params + 0x1c) =
+            (short)((unsigned int)local_48 >> 0x10);
+          *(unsigned char *)(lf_params + 0x22) = *(unsigned char *)0x50654a;
+          if (*(short *)(lf_params + 0x1c) == 0) {
+            display_assert("lens_flare_parameters.light_identifier!=0",
+                           "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x21c,
+                           1);
+            CALL_thunk_FUN_001029a0(-1);
+          }
+          if (*(short *)(lf_params + 0x1c) == -1) {
+            *(short *)(lf_params + 0x1c) = 0;
+          }
+          if (*(int *)(iVar5 + 0x58) == -1) {
+            uVar11 = CALL_FUN_0013fea0_2(*(int *)(iVar5 + 0x2c),
+                                         *(unsigned short *)(iVar5 + 0x5c));
+            if (*(short *)(local_14 + 100) == 2 &&
+                *(int *)(local_14 + 0xcc) != -1) {
+              sVar4 =
+                CALL_FUN_000ddb90(*(int *)(iVar5 + 0x2c), uVar11, local_3e0, 8);
+              if (0 < sVar4) {
+                *(unsigned char *)(lf_params + 0x22) =
+                  *(unsigned char *)(lf_params + 0x22) | 0x80;
+              }
+              if (sVar4 == 0)
+                goto LAB_0013bbaf;
+            } else {
+            LAB_0013bbaf:
+              sVar4 = CALL_FUN_00140f10((void *)*(int *)(iVar5 + 0x2c), uVar11,
+                                        local_3e0, 8);
+            }
+            sVar14 = 0;
+            if (0 < sVar4) {
+              puVar13 = local_3a4;
+              do {
+                *(int *)(lf_params + 0x04) = *(int *)(puVar13 + 0x24);
+                *(int *)(lf_params + 0x08) = *(int *)(puVar13 + 0x28);
+                *(int *)(lf_params + 0x0c) = *(int *)(puVar13 + 0x2c);
+                *(int *)(lf_params + 0x10) = CALL_FUN_00180b10((int)puVar13);
+                *(int *)(lf_params + 0x14) =
+                  CALL_FUN_00180b10((int)(puVar13 + 0x18));
+                *(short *)(lf_params + 0x20) = sVar14;
+                CALL_FUN_00181670(lf_params);
+                sVar14 = sVar14 + 1;
+                puVar13 = puVar13 + 0x6c;
+              } while (sVar14 < sVar4);
+            }
+          } else {
+            *(int *)(lf_params + 0x04) = *(int *)(iVar5 + 0x30);
+            *(int *)(lf_params + 0x08) = *(int *)(iVar5 + 0x34);
+            *(int *)(lf_params + 0x0c) = *(int *)(iVar5 + 0x38);
+            *(int *)(lf_params + 0x10) = CALL_FUN_00180b10(iVar5 + 0x3c);
+            *(int *)(lf_params + 0x14) = CALL_FUN_00180b10(iVar5 + 0x48);
+            *(short *)(lf_params + 0x20) = 0;
+            CALL_FUN_00181670(lf_params);
+          }
+        }
+      }
+      local_10 = local_10 + 1;
+    } while ((short)local_10 < *(short *)0x5a8d68);
+  }
+  sVar4 = 0;
+  if (0 < *(short *)0x5a90ac) {
+    do {
+      CALL_FUN_00181670((void *)((char *)0x5a8f6c + sVar4 * 0x28));
+      sVar4 = sVar4 + 1;
+    } while (sVar4 < *(short *)0x5a90ac);
+  }
+  *(short *)0x5a90ac = 0;
+  FUN_00181410();
+  if (*(char *)0x449ef1 != '\0' && *(char *)0x323608 != '\0') {
+    CALL_FUN_0008fac0((int *)0x323600);
+  }
 }
 
 /* FUN_0013bce0 — Compute object lighting from BSP lightmap/environment.
@@ -2311,48 +4930,20 @@ void FUN_0013bce0(int object_handle, float *lighting)
   }
 }
 
-/*
- * FUN_0013b150 (0x13b150 / objects.obj) — flush all lights flagged for limbo.
- *
- * Walks the light data table (global at 0x5a90bc) via the data-table forward
- * iterator data_next_index (-1 seed -> first index, -1 return -> end). For each
- * live light whose flags word (light+0x2) has bit 0x4 set, clears that bit and
- * moves the light to limbo via object_move_to_limbo (0x13aed0).
- *
- * Confirmed (disasm 0x13b150): the table global is re-read each iteration;
- * flags are a 16-bit word at +0x2; bit 0x4 tested via TEST CL,0x4; cleared via
- * AND ECX,0xfffb.
- */
-void FUN_0013b150(void)
-{
-  int index;
-  int light;
-
-  index = data_next_index(*(data_t **)0x5a90bc, -1);
-  while (index != -1) {
-    light = (int)datum_get(*(data_t **)0x5a90bc, index);
-    if ((*(unsigned short *)(light + 2) & 4) != 0) {
-      *(unsigned short *)(light + 2) &= 0xfffb;
-      object_move_to_limbo(index);
-    }
-    index = data_next_index(*(data_t **)0x5a90bc, index);
-  }
-}
-
 /* FUN_0013c030 (0x13c030 / objects.obj) — depth-first walk of an object's child
  * hierarchy, forwarding two opaque parameters down the tree.
  *
- * For each object node (param_1), verifies the datum (object_get_and_verify_type
- * with type_mask -1), recurses into the first-child handle (node+0xc8) carrying
- * param_2/param_3 unchanged, then advances along the sibling chain (node+0xc4)
- * until the handle is -1.
+ * For each object node (param_1), verifies the datum
+ * (object_get_and_verify_type with type_mask -1), recurses into the first-child
+ * handle (node+0xc8) carrying param_2/param_3 unchanged, then advances along
+ * the sibling chain (node+0xc4) until the handle is -1.
  *
  * Confirmed: 3 cdecl args. param_1 @ [EBP+0x8] (ESI), param_2 @ [EBP+0xc],
  * param_3 @ [EBP+0x10] (EBX). param_2/param_3 are only forwarded to the
  * recursion (no local use).
  * Confirmed: object_get_and_verify_type(param_1, -1) is called twice per node;
- * the first result (EDI) supplies the child (+0xc8) and sibling (+0xc4) handles,
- * the second call's result is discarded (re-verify side effect).
+ * the first result (EDI) supplies the child (+0xc8) and sibling (+0xc4)
+ * handles, the second call's result is discarded (re-verify side effect).
  * Confirmed: tail iteration over sibling chain (CMP ESI,-1; JNZ loop).
  */
 void FUN_0013c030(int param_1, int param_2, int param_3)
@@ -2365,6 +4956,34 @@ void FUN_0013c030(int param_1, int param_2, int param_3)
     FUN_0013c030(*(int *)(node + 0xc8), param_2, param_3);
     param_1 = *(int *)(node + 0xc4);
   }
+}
+
+/* Fills the bounding-box-style output struct param_3 from object param_1's tag
+   model bounds, then recurses into child/attached objects via FUN_0013c030,
+   which accumulates into the struct. Returns 1 if the count field
+   (param_3[7] low word) ended up > 0, else 0. */
+char FUN_0013c080(int param_1, int param_2, int *param_3)
+{
+  int *obj;
+  int t;
+
+  obj = (int *)object_get_and_verify_type(param_1, 0xffffffff);
+  t = (int)tag_get(0x6f626a65, *obj);
+  param_3[0] = *(int *)(t + 4);
+  param_3[2] = 0xff7fffff;
+  param_3[4] = 0xff7fffff;
+  param_3[6] = 0xff7fffff;
+  param_3[1] = 0x7f7fffff;
+  param_3[3] = 0x7f7fffff;
+  param_3[5] = 0x7f7fffff;
+  *(short *)(param_3 + 7) = 0;
+  *(short *)((char *)param_3 + 0x1e) = 0;
+  object_get_and_verify_type(param_1, 0xffffffff);
+  FUN_0013c030(obj[0x32], param_2, (int)param_3);
+  if (*(short *)(param_3 + 7) > 0) {
+    return 1;
+  }
+  return 0;
 }
 
 /* 0x13c100 / objects.obj */
@@ -2425,56 +5044,6 @@ short FUN_0013c1b0(short param_1)
   return *(short *)((char *)((void **)0x324608)[iVar1] + 8);
 }
 
-/*
- * FUN_0013c490 (0x13c490 / objects.obj) — run an object type's "can delete?"
- * predicate chain.
- *
- * Resolves the object, looks up its type definition via FUN_0013c100(type),
- * and walks the NULL-terminated array of type-handler vtable pointers at
- * type_def+0x5c. For each non-NULL handler, if it has a predicate at +0x24,
- * calls predicate(object_handle); if the predicate returns false the whole
- * function returns false. If the list is empty (first entry NULL) or every
- * predicate passes, returns true.
- *
- * Confirmed: PUSH -1, PUSH handle -> object_get_and_verify_type(handle, -1).
- * Confirmed: MOVSX EAX,[obj+0x64] -> object type, passed to FUN_0013c100.
- * Confirmed: handler list at type_def+0x5c, dword-stride, NULL-terminated.
- * Confirmed: handler predicate at handler+0x24; called handler-less as
- *            predicate(handle) (one cdecl arg, ADD ESP,4).
- * Confirmed: empty list -> return 1 (CL=1 path); predicate false -> return 0.
- */
-char FUN_0013c490(int object_handle)
-{
-  char *obj;
-  char *type_def;
-  int *handler_slot;
-  short i;
-  int (*predicate)(int);
-
-  obj = (char *)object_get_and_verify_type(object_handle, -1);
-  type_def = (char *)FUN_0013c100(*(short *)(obj + 0x64));
-  handler_slot = (int *)(type_def + 0x5c);
-
-  i = 0;
-  if (*(int *)(type_def + 0x5c) == 0) {
-    return 1;
-  }
-
-  for (;;) {
-    predicate = *(int (**)(int))(*handler_slot + 0x24);
-    if (predicate != 0) {
-      if ((char)predicate(object_handle) == 0) {
-        return 0;
-      }
-    }
-    i = i + 1;
-    handler_slot = (int *)(type_def + 0x5c + (int)i * 4);
-    if (*handler_slot == 0) {
-      return 1;
-    }
-  }
-}
-
 /* 0x13c250 / objects.obj */
 void *FUN_0013c250(int16_t param_1)
 {
@@ -2516,7 +5085,7 @@ void *FUN_0013c250(int16_t param_1)
 void FUN_0013c2e0(void)
 {
   int type;
-  int *next_slot;  /* where the next definition pointer is written */
+  int *next_slot; /* where the next definition pointer is written */
   int *child_slot; /* inner cursor for appending children */
   int16_t i;
   int def;
@@ -2624,6 +5193,56 @@ void FUN_0013c430(int param_1, void *param_2)
     sVar4 = sVar4 + 1;
     piVar1 = (int *)(iVar3 + 0x5c + (int)sVar4 * 4);
     iVar2 = *(int *)(iVar3 + 0x5c + (int)sVar4 * 4);
+  }
+}
+
+/*
+ * FUN_0013c490 (0x13c490 / objects.obj) — run an object type's "can delete?"
+ * predicate chain.
+ *
+ * Resolves the object, looks up its type definition via FUN_0013c100(type),
+ * and walks the NULL-terminated array of type-handler vtable pointers at
+ * type_def+0x5c. For each non-NULL handler, if it has a predicate at +0x24,
+ * calls predicate(object_handle); if the predicate returns false the whole
+ * function returns false. If the list is empty (first entry NULL) or every
+ * predicate passes, returns true.
+ *
+ * Confirmed: PUSH -1, PUSH handle -> object_get_and_verify_type(handle, -1).
+ * Confirmed: MOVSX EAX,[obj+0x64] -> object type, passed to FUN_0013c100.
+ * Confirmed: handler list at type_def+0x5c, dword-stride, NULL-terminated.
+ * Confirmed: handler predicate at handler+0x24; called handler-less as
+ *            predicate(handle) (one cdecl arg, ADD ESP,4).
+ * Confirmed: empty list -> return 1 (CL=1 path); predicate false -> return 0.
+ */
+char FUN_0013c490(int object_handle)
+{
+  char *obj;
+  char *type_def;
+  int *handler_slot;
+  short i;
+  int (*predicate)(int);
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  type_def = (char *)FUN_0013c100(*(short *)(obj + 0x64));
+  handler_slot = (int *)(type_def + 0x5c);
+
+  i = 0;
+  if (*(int *)(type_def + 0x5c) == 0) {
+    return 1;
+  }
+
+  for (;;) {
+    predicate = *(int (**)(int))(*handler_slot + 0x24);
+    if (predicate != 0) {
+      if ((char)predicate(object_handle) == 0) {
+        return 0;
+      }
+    }
+    i = i + 1;
+    handler_slot = (int *)(type_def + 0x5c + (int)i * 4);
+    if (*handler_slot == 0) {
+      return 1;
+    }
   }
 }
 
@@ -3155,8 +5774,8 @@ void FUN_0013cb30(void)
 
 /*
  * FUN_0013cb80 (0x13cb80 / object_types.c) — refresh scenario object placement
- * for the currently-loaded BSP cluster slot, and (when do_spawn is set) spawn the
- * eligible placements.
+ * for the currently-loaded BSP cluster slot, and (when do_spawn is set) spawn
+ * the eligible placements.
  *
  * No-op when in the editor (game_in_editor()) or no BSP slot is active
  * (DAT_00326a0c == -1). Iterates object types 0..0xb, skipping the mask 0x240
@@ -3165,41 +5784,42 @@ void FUN_0013cb30(void)
  * tag-block offsets:
  *   - fetches the scenario placement block (FUN_0013ca30, also writes the block
  *     element size) and the palette base index (FUN_0013cab0);
- *   - if this BSP slot has NOT yet been processed (bit (1<<DAT_00326a0c) clear in
- *     DAT_0046f078): for each placement, builds a rotation matrix from the
+ *   - if this BSP slot has NOT yet been processed (bit (1<<DAT_00326a0c) clear
+ * in DAT_0046f078): for each placement, builds a rotation matrix from the
  *     placement's Euler angles (element+0x14/+0x18/+0x1c via FUN_00109e90),
  *     stamps the placement position (element+0x8/+0xc/+0x10) as the matrix
  *     translation, transforms it (matrix_transform_point), then queries cluster
  *     membership (FUN_0018e720) for both the raw position and the transformed
- *     point; sets/clears the per-placement "in this BSP slot" flag (element+0x20)
- *     accordingly;
+ *     point; sets/clears the per-placement "in this BSP slot" flag
+ * (element+0x20) accordingly;
  *   - if do_spawn != 0: runs FUN_00145490, then for each placement not already
  *     instantiated (element+0x2 NONE or object_name_list_get_handle == -1), not
  *     flagged no-spawn (element+0x4 bit0), and flagged for this slot
- *     (element+0x20 bit (1<<DAT_00326a0c)): spawns it via object_new_from_scenario
- *     and runs objects_garbage_collect_tick.
- * After all types: marks this BSP slot processed (sets bit in DAT_0046f078).
+ *     (element+0x20 bit (1<<DAT_00326a0c)): spawns it via
+ * object_new_from_scenario and runs objects_garbage_collect_tick. After all
+ * types: marks this BSP slot processed (sets bit in DAT_0046f078).
  *
  * Lifecycle note: Gate B cluster edge calls object_new_from_scenario (0x144770)
  * and objects_garbage_collect_tick (0x144b50), both GC/lifecycle cluster
  * members, and mutates streaming state (DAT_0046f078 BSP-loaded mask and
  * per-placement flags element+0x20). Keep this edge covered by runtime checks.
  *
- * Confirmed: 1 cdecl arg (do_spawn @ [EBP+0x8], tested as a byte: MOV AL,[EBP+0x8]).
- * Confirmed: 12-iteration type loop (CMP SI,0xc); dual counter type/shift equal.
- * Confirmed: matrix out buffer base EBP-0x5c; translation stamped at +0x28/+0x2c/
- * +0x30; matrix_transform_point(matrix, element+0x8, &xform_point).
- * Confirmed: bit slot = DAT_00326a0c; loaded mask = DAT_0046f078 (word).
+ * Confirmed: 1 cdecl arg (do_spawn @ [EBP+0x8], tested as a byte: MOV
+ * AL,[EBP+0x8]). Confirmed: 12-iteration type loop (CMP SI,0xc); dual counter
+ * type/shift equal. Confirmed: matrix out buffer base EBP-0x5c; translation
+ * stamped at +0x28/+0x2c/ +0x30; matrix_transform_point(matrix, element+0x8,
+ * &xform_point). Confirmed: bit slot = DAT_00326a0c; loaded mask = DAT_0046f078
+ * (word).
  */
 void FUN_0013cb80(int do_spawn)
 {
-  unsigned char matrix[0x34];   /* EBP-0x5c: Euler matrix; translation at +0x28 */
-  float xform_point[3];         /* EBP-0x28: transformed position */
+  unsigned char matrix[0x34]; /* EBP-0x5c: Euler matrix; translation at +0x28 */
+  float xform_point[3]; /* EBP-0x28: transformed position */
   int scenario;
   int type;
   int def;
   int *block;
-  int element_size;             /* written by FUN_0013ca30 via &element_size */
+  int element_size; /* written by FUN_0013ca30 via &element_size */
   int palette_base;
   short *element;
   int obj_tag;
@@ -3226,8 +5846,8 @@ void FUN_0013cb80(int do_spawn)
     palette_base = FUN_0013cab0(scenario, type);
 
     /* Phase 1: refresh per-placement cluster membership, once per BSP slot. */
-    if (((unsigned int)*(unsigned short *)0x46f078
-         & (1 << (*(unsigned char *)0x326a0c & 0x1f))) == 0) {
+    if (((unsigned int)*(unsigned short *)0x46f078 &
+         (1 << (*(unsigned char *)0x326a0c & 0x1f))) == 0) {
       index = 0;
       if (*block > 0) {
         i = 0;
@@ -3237,23 +5857,27 @@ void FUN_0013cb80(int do_spawn)
             obj_tag = (int)tag_block_get_element((void *)palette_base,
                                                  (int)*element, 0x30);
             obj_tag = (int)tag_get(0x6f626a65, *(int *)(obj_tag + 0xc));
-            FUN_00109e90((float *)matrix,
-                         *(float *)((char *)element + 0x14),
+            FUN_00109e90((float *)matrix, *(float *)((char *)element + 0x14),
                          *(float *)((char *)element + 0x18),
                          *(float *)((char *)element + 0x1c));
-            /* stamp placement position into matrix translation (+0x28..+0x30) */
+            /* stamp placement position into matrix translation (+0x28..+0x30)
+             */
             *(int *)(matrix + 0x28) = *(int *)((char *)element + 0x8);
             *(int *)(matrix + 0x2c) = *(int *)((char *)element + 0xc);
             *(int *)(matrix + 0x30) = *(int *)((char *)element + 0x10);
-            matrix_transform_point((float *)matrix,
-                                   (float *)(obj_tag + 8), xform_point);
-            if ((FUN_0018e720((int)((char *)element + 8)) == -1)
-                && (FUN_0018e720((int)xform_point) == -1)) {
-              element[0x10] = (short)(element[0x10]
-                  & ~(unsigned short)(1 << (*(unsigned char *)0x326a0c & 0x1f)));
+            matrix_transform_point((float *)matrix, (float *)(obj_tag + 8),
+                                   xform_point);
+            if ((FUN_0018e720((int)((char *)element + 8)) == -1) &&
+                (FUN_0018e720((int)xform_point) == -1)) {
+              element[0x10] =
+                (short)(element[0x10] &
+                        ~(unsigned short)(1 << (*(unsigned char *)0x326a0c &
+                                                0x1f)));
             } else {
-              element[0x10] = (short)(element[0x10]
-                  | (unsigned short)(1 << (*(unsigned char *)0x326a0c & 0x1f)));
+              element[0x10] =
+                (short)(element[0x10] |
+                        (unsigned short)(1 << (*(unsigned char *)0x326a0c &
+                                               0x1f)));
             }
           }
           index++;
@@ -3262,7 +5886,8 @@ void FUN_0013cb80(int do_spawn)
       }
     }
 
-    /* Phase 2: spawn eligible placements (param tested as a byte in the original). */
+    /* Phase 2: spawn eligible placements (param tested as a byte in the
+     * original). */
     if ((char)do_spawn != '\0') {
       FUN_00145490();
       index = 0;
@@ -3270,11 +5895,12 @@ void FUN_0013cb80(int do_spawn)
         i = 0;
         do {
           element = (short *)tag_block_get_element(block, i, element_size);
-          if (((*(short *)((char *)element + 2) == -1)
-               || (object_name_list_get_handle(*(short *)((char *)element + 2)) == -1))
-              && ((*(unsigned char *)((char *)element + 4) & 1) == 0)
-              && (((unsigned int)*(unsigned short *)((char *)element + 0x20)
-                   & (1 << (*(unsigned char *)0x326a0c & 0x1f))) != 0)) {
+          if (((*(short *)((char *)element + 2) == -1) ||
+               (object_name_list_get_handle(*(short *)((char *)element + 2)) ==
+                -1)) &&
+              ((*(unsigned char *)((char *)element + 4) & 1) == 0) &&
+              (((unsigned int)*(unsigned short *)((char *)element + 0x20) &
+                (1 << (*(unsigned char *)0x326a0c & 0x1f))) != 0)) {
             object_new_from_scenario(element, palette_base);
             objects_garbage_collect_tick();
           }
@@ -3284,12 +5910,13 @@ void FUN_0013cb80(int do_spawn)
       }
     }
 
-next_type:
+  next_type:
     type++;
   } while ((short)type < 0xc);
 
   slot_bit = 1 << (*(unsigned char *)0x326a0c & 0x1f);
-  *(unsigned short *)0x46f078 = (unsigned short)(*(unsigned short *)0x46f078 | slot_bit);
+  *(unsigned short *)0x46f078 =
+    (unsigned short)(*(unsigned short *)0x46f078 | slot_bit);
 }
 
 /*
@@ -3301,15 +5928,16 @@ next_type:
  * 9). For each remaining type whose definition (FUN_0013c100) has both a valid
  * placement tag-block offset (def+0xa != NONE) and palette tag-block offset
  * (def+0xc != NONE): fetches the scenario placement block via FUN_0013ca30
- * (writing element_size to a local) and the palette base index via FUN_0013cab0,
- * then for each element in the block calls object_new_from_scenario
- * (object_new_from_scenario) on the element with that palette base, followed by
- * objects_garbage_collect_tick (objects_garbage_collect_tick). A final FUN_0013cb80(1) runs
- * after all types are placed.
+ * (writing element_size to a local) and the palette base index via
+ * FUN_0013cab0, then for each element in the block calls
+ * object_new_from_scenario (object_new_from_scenario) on the element with that
+ * palette base, followed by objects_garbage_collect_tick
+ * (objects_garbage_collect_tick). A final FUN_0013cb80(1) runs after all types
+ * are placed.
  *
  * Confirmed (disasm 0x13cdd0): game_in_editor early-out via AL; type/shift
- * dual-counter always equal (both INC each pass) so mask test is (1<<type)&0x240;
- * tag_block_get_element(block, index, element_size);
+ * dual-counter always equal (both INC each pass) so mask test is
+ * (1<<type)&0x240; tag_block_get_element(block, index, element_size);
  * object_new_from_scenario(element, base); element count re-read from *block
  * each pass; tail FUN_0013cb80(1).
  */
@@ -3317,7 +5945,7 @@ void FUN_0013cdd0(int scenario)
 {
   int type;
   int def;
-  int *block;       /* scenario placement tag block (count at *block) */
+  int *block; /* scenario placement tag block (count at *block) */
   int palette_base;
   int element_size; /* written by FUN_0013ca30 via &element_size */
   int16_t index;
@@ -3362,9 +5990,9 @@ void FUN_0013cdd0(int scenario)
  * offset (def+0xa != NONE) and palette tag-block offset (def+0xc != NONE):
  * fetches the scenario placement block via FUN_0013ca30 (which also writes the
  * block element size to a local). For each element whose cluster reference word
- * (element+0x2) is not NONE, indexes the scenario cluster block at scenario+0x204
- * (stride 0x24) by that reference and stamps the placement's (type, element
- * index) back into it at +0x20 / +0x22.
+ * (element+0x2) is not NONE, indexes the scenario cluster block at
+ * scenario+0x204 (stride 0x24) by that reference and stamps the placement's
+ * (type, element index) back into it at +0x20 / +0x22.
  *
  * Confirmed (disasm 0x13ce90): editor early-out via byte [EBP+0xc]; type loop
  * counter (EBX) is the value stamped at +0x20; element counter (ESI) is stamped
@@ -3400,8 +6028,8 @@ void FUN_0013ce90(int scenario, char editor_flag)
           e = (int)tag_block_get_element(block, e, element_size);
           ref = *(int16_t *)(e + 2);
           if (ref != -1) {
-            target = (int)tag_block_get_element((void *)(scenario + 0x204),
-                                                ref, 0x24);
+            target =
+              (int)tag_block_get_element((void *)(scenario + 0x204), ref, 0x24);
             *(int16_t *)(target + 0x20) = (int16_t)type;
             *(int16_t *)(target + 0x22) = element_index;
           }
@@ -3412,6 +6040,201 @@ void FUN_0013ce90(int scenario, char editor_flag)
     }
     type++;
   } while ((int16_t)type < 0xc);
+}
+
+
+/* 0x13cf50 — object_placement_update: creates or destroys objects based on
+ * scenario placement changes. Contains goto patterns for create/recreate.
+ *
+ * Source: c:\halo\SOURCE\objects\object_types.c
+ * 5 cdecl params. Returns int (object handle).
+ */
+/* 0x13cf50 */
+int FUN_0013cf50(int param_1, short *param_2, int param_3, short param_4,
+                 short param_5)
+{
+  float fVar1;
+  char cVar2;
+  int *piVar3;
+  int *puVar4;
+  int uVar5;
+  int iVar6;
+  char *puVar8;
+  char *pcVar10;
+  int uVar11;
+  int uVar12;
+  char local_cc[22];
+  short local_b6;
+  int local_b4;
+  int local_b0;
+  int local_ac;
+  char local_98[12];
+  char local_8c[72];
+  int local_44;
+  int local_40;
+  float local_3c;
+  unsigned int local_38;
+  float local_34;
+  float local_30;
+  float local_2c;
+  float local_28;
+  float local_24;
+  float local_20;
+  float local_1c;
+  float local_18;
+  float local_14;
+  char local_10[12];
+
+  if (*param_2 == -1) {
+    if (param_1 != -1) {
+      CALL_FUN_00140cc0(param_1);
+      param_1 = -1;
+    }
+    goto LAB_0013d51f;
+  }
+  if (param_1 == -1) {
+    iVar6 = (int)tag_block_get_element((void *)param_3, (int)*param_2, 0x30);
+    if (*(int *)(iVar6 + 0xc) == -1)
+      goto LAB_0013d51f;
+    CALL_FUN_0013fc20(local_cc, *(int *)(iVar6 + 0xc), -1);
+    local_b4 = *(int *)(param_2 + 4);
+    local_b0 = *(int *)(param_2 + 6);
+    local_ac = *(int *)(param_2 + 8);
+    CALL_FUN_0010bbc0(local_8c, param_2 + 10, local_98);
+    local_b6 = param_2[3];
+    goto LAB_0013d09e;
+  }
+  piVar3 = (int *)CALL_FUN_0013d640(param_1, -1);
+  iVar6 = (int)tag_block_get_element((void *)param_3, (int)*param_2, 0x30);
+  if (piVar3 == (int *)0) {
+  LAB_0013d03a:
+    param_1 = -1;
+    if (*(int *)(iVar6 + 0xc) == -1)
+      goto LAB_0013d51f;
+    CALL_FUN_0013fc20(local_cc, *(int *)(iVar6 + 0xc), -1);
+    local_b4 = *(int *)(param_2 + 4);
+    local_b0 = *(int *)(param_2 + 6);
+    local_ac = *(int *)(param_2 + 8);
+    CALL_FUN_0010bbc0(local_8c, param_2 + 10, local_98);
+    local_b6 = param_2[3];
+    goto LAB_0013d09e;
+  }
+  if (*piVar3 != *(int *)(iVar6 + 0xc)) {
+    CALL_FUN_00140cc0(param_1);
+    goto LAB_0013d03a;
+  }
+  goto after_create;
+LAB_0013d09e:
+  param_1 = CALL_FUN_00143c80(local_cc, local_8c);
+  if (param_1 == -1)
+    goto LAB_0013d51f;
+  FUN_0013c500(param_1, (int)param_2);
+after_create:
+  puVar4 = (int *)object_get_and_verify_type(param_1, -1);
+  CALL_FUN_0013fb30(param_1);
+  FUN_00109e90((float *)&local_38, *(float *)(param_2 + 10),
+               *(float *)(param_2 + 0xc), *(float *)(param_2 + 0xe));
+  cVar2 = CALL_FUN_000f6d00_0();
+  if (cVar2 == '\0') {
+    if ((local_38 & 0x7f800000) == 0x7f800000) {
+      uVar5 = (int)csprintf((char *)0x5ab100, "scale is not valid (%f)",
+                            (double)*(float *)&local_38);
+      display_assert((const char *)uVar5,
+                     "c:\\halo\\SOURCE\\objects\\object_types.c", 0x3cf, 1);
+      CALL_thunk_FUN_001029a0(-1);
+    }
+    cVar2 = CALL_FUN_00021fb0(&local_34);
+    if (cVar2 == '\0') {
+      uVar5 =
+        (int)csprintf((char *)0x5ab100, "forward is not a valid normal3d");
+      display_assert((const char *)uVar5,
+                     "c:\\halo\\SOURCE\\objects\\object_types.c", 0x3cf, 1);
+      CALL_thunk_FUN_001029a0(-1);
+    }
+    cVar2 = CALL_FUN_00021fb0(&local_28);
+    if (cVar2 == '\0') {
+      uVar5 = (int)csprintf((char *)0x5ab100, "left is not a valid normal3d");
+      display_assert((const char *)uVar5,
+                     "c:\\halo\\SOURCE\\objects\\object_types.c", 0x3cf, 1);
+      CALL_thunk_FUN_001029a0(-1);
+    }
+    cVar2 = CALL_FUN_00021fb0(&local_1c);
+    if (cVar2 == '\0') {
+      uVar5 = (int)csprintf((char *)0x5ab100, "up is not a valid normal3d");
+      display_assert((const char *)uVar5,
+                     "c:\\halo\\SOURCE\\objects\\object_types.c", 0x3cf, 1);
+      CALL_thunk_FUN_001029a0(-1);
+    }
+    cVar2 = CALL_FUN_000a16b0(local_10);
+    if (cVar2 == '\0') {
+      uVar5 = (int)csprintf((char *)0x5ab100, "position is not valid");
+      display_assert((const char *)uVar5,
+                     "c:\\halo\\SOURCE\\objects\\object_types.c", 0x3cf, 1);
+      CALL_thunk_FUN_001029a0(-1);
+    }
+    fVar1 = local_20 * local_2c + local_24 * local_30 + local_28 * local_34;
+    if (((*(unsigned int *)&fVar1 & 0x7f800000) == 0x7f800000) ||
+        *(double *)0x2549d8 <= fabs((double)fVar1)) {
+      csprintf(
+        (char *)0x5ab100,
+        "%s had a forward (%f,%f,%f) not perpendicular to left (%f,%f,%f)",
+        "&matrix", (double)local_34, (double)local_30, (double)local_2c,
+        (double)local_28, (double)local_24, (double)local_20);
+      display_assert((const char *)0x5ab100,
+                     "c:\\halo\\SOURCE\\objects\\object_types.c", 0x3cf, 1);
+      CALL_thunk_FUN_001029a0(-1);
+    }
+    fVar1 = local_14 * local_20 + local_18 * local_24 + local_1c * local_28;
+    if (((*(unsigned int *)&fVar1 & 0x7f800000) == 0x7f800000) ||
+        *(double *)0x2549d8 <= fabs((double)fVar1)) {
+      csprintf((char *)0x5ab100,
+               "%s had a up (%f,%f,%f) not perpendicular to left (%f,%f,%f)",
+               "&matrix", (double)local_1c, (double)local_18, (double)local_14,
+               (double)local_28, (double)local_24, (double)local_20);
+      display_assert((const char *)0x5ab100,
+                     "c:\\halo\\SOURCE\\objects\\object_types.c", 0x3cf, 1);
+      CALL_thunk_FUN_001029a0(-1);
+    }
+    fVar1 = local_14 * local_2c + local_18 * local_30 + local_1c * local_34;
+    if (((*(unsigned int *)&fVar1 & 0x7f800000) == 0x7f800000) ||
+        *(double *)0x2549d8 <= fabs((double)fVar1)) {
+      csprintf((char *)0x5ab100,
+               "%s had a forward (%f,%f,%f) not perpendicular to up (%f,%f,%f)",
+               "&matrix", (double)local_34, (double)local_30, (double)local_2c,
+               (double)local_1c, (double)local_18, (double)local_14);
+      display_assert((const char *)0x5ab100,
+                     "c:\\halo\\SOURCE\\objects\\object_types.c", 0x3cf, 1);
+      CALL_thunk_FUN_001029a0(-1);
+    }
+    cVar2 = CALL_FUN_000f6d00_1(&local_38);
+    if (cVar2 == '\0') {
+      uVar5 = (int)csprintf((char *)0x5ab100, "matrix is not valid");
+      display_assert((const char *)uVar5,
+                     "c:\\halo\\SOURCE\\objects\\object_types.c", 0x3cf, 1);
+      CALL_thunk_FUN_001029a0(-1);
+    }
+  }
+  iVar6 = (int)tag_get(0x6f626a65, *puVar4);
+  if (*(int *)(iVar6 + 0x8c) != -1) {
+    local_44 = *(int *)(param_2 + 4);
+    local_40 = *(int *)(param_2 + 6);
+    local_3c =
+      (float)puVar4[0x17] * *(float *)0x253398 + *(float *)(param_2 + 8);
+  }
+  object_set_position(param_1, (float *)local_10, &local_34, &local_1c);
+  *(short *)((int)puVar4 + 0x6a) = param_2[1];
+LAB_0013d51f:
+  if (param_2[1] != -1) {
+    iVar6 = (int)tag_block_get_element(
+      (void *)((int)global_scenario_get() + 0x204), (int)param_2[1], 0x24);
+    *(short *)(iVar6 + 0x20) = param_4;
+    *(short *)(iVar6 + 0x22) = param_5;
+    /* Store this object's handle (param_1, held in ESI / the return value) at
+     * the scenario name-table index param_2[1]. Confirmed at 0x13d551-0x13d557:
+     * PUSH ESI (=param_1); PUSH EDX (=param_2[1]); CALL 0x13d880. */
+    object_name_list_set_handle(param_2[1], param_1);
+  }
+  return param_1;
 }
 
 /* Wrap cluster_partition_iter_first for the non-collideable partition
@@ -3481,9 +6304,9 @@ int16_t FUN_0013d5f0(void *param_1, int param_2)
   if ((void *)iter[0] != (void *)0x5a8d40 &&
       (void *)iter[0] != (void *)0x5a8d30) {
     display_assert(
-        "iterator->cluster_partition==&collideable_object_cluster_partition || "
-        "iterator->cluster_partition==&noncollideable_object_cluster_partition",
-        "c:\\halo\\SOURCE\\objects\\objects.c", 0x419, 1);
+      "iterator->cluster_partition==&collideable_object_cluster_partition || "
+      "iterator->cluster_partition==&noncollideable_object_cluster_partition",
+      "c:\\halo\\SOURCE\\objects\\objects.c", 0x419, 1);
     CALL_thunk_FUN_001029a0(-1);
   }
   return (int16_t)FUN_001916d0(iter[0], &iter[1]);
@@ -3656,92 +6479,6 @@ void *object_iterator_next(void *iter)
 }
 
 /*
- * FUN_0013d8b0 (0x13d8b0 / objects.obj) — detach an object handle from every
- * other object that references it.
- *
- * Walks all objects via an inlined object iterator (type_mask = all, flags = 0)
- * and, for each object whose "referenced object" field (object+0xa0) equals the
- * target handle, resets that field to NONE (-1). FUN_0013c680 is then called
- * for every iterated object with (iterator.last_handle, target_handle) to run
- * any per-object detach side effects.
- *
- * Confirmed (disasm 0x13d8b0): data_verify(*(data_t**)0x5a8d50) first; iterator
- * struct inlined at EBP-0x10 (type_mask=-1, flags=0, current_index=0,
- * last_handle=-1, cookie=0x86868686 — matching object_iter_t); object pointer
- * returned by object_iterator_next (0x13d730) in EAX; CMP [EAX+0xa0],ESI then
- * conditional MOV [EAX+0xa0],-1; FUN_0013c680([EBP-0x8]=last_handle, ESI=handle).
- */
-void FUN_0013d8b0(int object_handle)
-{
-  object_iter_t it;
-  object_data_t *obj;
-
-  data_verify(*(data_t **)0x5a8d50);
-
-  it.type_mask = -1;
-  it.flags = 0;
-  it.current_index = 0;
-  it.last_handle = -1;
-  it.cookie = 0x86868686;
-
-  obj = (object_data_t *)object_iterator_next(&it);
-  while (obj != (object_data_t *)0) {
-    if (*(int *)((char *)obj + 0xa0) == object_handle)
-      *(int *)((char *)obj + 0xa0) = -1;
-    FUN_0013c680(it.last_handle, object_handle);
-    obj = (object_data_t *)object_iterator_next(&it);
-  }
-}
-
-/*
- * FUN_0013ddd0 (0x13ddd0 / objects.obj) — recursively precache the predicted
- * resources for an object and its attachment tree.
- *
- * Iterative+recursive walk over the object datum (table at 0x5a8d50). For each
- * object: resolves its definition pointer (obj+0x8), reads the 16-bit object
- * type at def+0x64, and asserts that (1 << type) is non-zero (i.e. the type is
- * in range; the original message reports the unexpected type). If the object's
- * tag index (def+0x0) is valid, fetches the 'obje' tag (0x6f626a65) and
- * precaches its predicted-resources block at tag+0x170. Then recurses into the
- * first child (def+0xc8) and tail-iterates to the next sibling (def+0xc4) via
- * the enclosing while loop.
- *
- * Confirmed (disasm 0x13ddd0): type is a signed 16-bit load (MOVSX ECX, word
- * ptr [ESI+0x64]); shift mask test is TEST EDX,EDX after SHL EDX,CL; assert
- * uses csprintf(0x5ab100, fmt, -1, type) then display_assert(reason,
- * "...objects.c", 0x69a, 1) then system_exit(-1); child at +0xc8, sibling at
- * +0xc4; precache arg is tag+0x170.
- */
-void FUN_0013ddd0(int object_handle)
-{
-  object_data_t *obj;
-  int *defn;
-  int type;
-  int tag;
-
-  while (object_handle != -1) {
-    obj = (object_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
-    defn = *(int **)((char *)obj + 8);
-    type = *(int16_t *)((char *)defn + 0x64);
-    if ((1 << (type & 0x1f)) == 0) {
-      display_assert(
-        csprintf((char *)0x5ab100,
-                 "got an object type we didn't expect "
-                 "(expected one of 0x%08x but got #%d).",
-                 0xffffffff, type),
-        "c:\\halo\\SOURCE\\objects\\objects.c", 0x69a, 1);
-      system_exit(-1);
-    }
-    if (defn[0] != -1) {
-      tag = (int)tag_get(0x6f626a65, defn[0]);
-      predicted_resources_precache((void *)(tag + 0x170));
-    }
-    FUN_0013ddd0(defn[0x32]);
-    object_handle = defn[0x31];
-  }
-}
-
-/*
  * object_set_garbage_flag — add or remove an object from the garbage
  * collection linked list.
  *
@@ -3815,76 +6552,10 @@ int object_get_root_parent(int object_handle)
   return result;
 }
 
-/*
- * object_header_block_allocate — grow an object's variable-length header data
- * region by `size` bytes and stamp a block_reference record at `offset`.
- *
- * Validates size>=0, data_size+size<=SHORT_MAX, offset>=0, and
- * offset+sizeof(block_reference)<=data_size, then resizes the object's pooled
- * data block (memory_pool_block_resize) to data_size+size. On success it bumps
- * data_size, writes the 4-byte block_reference {size, old_data_size} at
- * obj_base+offset, zero-fills the newly appended region, and returns 1.
- *
- * Confirmed: 3 cdecl args. params read as short via MOVSX (handle is int).
- * Confirmed: data_size at header+0x06 (uint16_t), object at header+0x08.
- * Confirmed: memory_pool_block_resize(*0x46f080, &header->object, new_size).
- * Confirmed: block_reference at obj_base+offset: [+0]=size, [+2]=old_data_size.
- * Confirmed: csmemset(header->object + old_data_size, 0, size).
- * Confirmed: asserts at objects.c lines 0x99b, 0x99c, 0x99e, 0x99f.
- */
-int object_header_block_allocate(int object_handle, int offset, int size)
-{
-  object_header_data_t *header;
-  short ssize;
-  short soffset;
-  short old_data_size;
-  char *obj_base;
-  short *block_ref;
-
-  header =
-    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
-  ssize = (short)size;
-  if (ssize < 0) {
-    display_assert("size>=0", "c:\\halo\\SOURCE\\objects\\objects.c", 0x99b, 1);
-    system_exit(-1);
-  }
-  if (0x7fff < (int)(short)header->data_size + (int)ssize) {
-    display_assert("object_header->data_size+size<=SHORT_MAX",
-                   "c:\\halo\\SOURCE\\objects\\objects.c", 0x99c, 1);
-    system_exit(-1);
-  }
-  soffset = (short)offset;
-  if (soffset < 0) {
-    display_assert("block_reference_offset>=0",
-                   "c:\\halo\\SOURCE\\objects\\objects.c", 0x99e, 1);
-    system_exit(-1);
-  }
-  if ((unsigned int)(int)(short)header->data_size < (unsigned int)((int)soffset + 4)) {
-    display_assert(
-      "block_reference_offset+sizeof(struct "
-      "object_header_block_reference)<=object_header->data_size",
-      "c:\\halo\\SOURCE\\objects\\objects.c", 0x99f, 1);
-    system_exit(-1);
-  }
-
-  if (memory_pool_block_resize(*(void **)0x46f080, (void **)&header->object,
-                               (int)(short)header->data_size + (int)ssize)) {
-    old_data_size = (short)header->data_size;
-    header->data_size = (uint16_t)(old_data_size + ssize);
-    obj_base = (char *)object_get_and_verify_type(object_handle, -1);
-    block_ref = (short *)(obj_base + soffset);
-    block_ref[1] = old_data_size;
-    block_ref[0] = ssize;
-    csmemset((char *)header->object + (int)old_data_size, 0, (int)ssize);
-    return 1;
-  }
-  return 0;
-}
-
 void FUN_0013d870(int unit_handle, void *data)
 {
-    (void)unit_handle;
-    (void)data;
+  (void)unit_handle;
+  (void)data;
 }
 
 /*
@@ -3908,6 +6579,45 @@ void object_name_list_set_handle(short param_1, int param_2)
   iVar1 = (int)global_scenario_get();
   if (param_1 < *(int *)(iVar1 + 0x204)) {
     (*(int **)0x46f07c)[param_1] = param_2;
+  }
+}
+
+/*
+ * FUN_0013d8b0 (0x13d8b0 / objects.obj) — detach an object handle from every
+ * other object that references it.
+ *
+ * Walks all objects via an inlined object iterator (type_mask = all, flags = 0)
+ * and, for each object whose "referenced object" field (object+0xa0) equals the
+ * target handle, resets that field to NONE (-1). FUN_0013c680 is then called
+ * for every iterated object with (iterator.last_handle, target_handle) to run
+ * any per-object detach side effects.
+ *
+ * Confirmed (disasm 0x13d8b0): data_verify(*(data_t**)0x5a8d50) first; iterator
+ * struct inlined at EBP-0x10 (type_mask=-1, flags=0, current_index=0,
+ * last_handle=-1, cookie=0x86868686 — matching object_iter_t); object pointer
+ * returned by object_iterator_next (0x13d730) in EAX; CMP [EAX+0xa0],ESI then
+ * conditional MOV [EAX+0xa0],-1; FUN_0013c680([EBP-0x8]=last_handle,
+ * ESI=handle).
+ */
+void FUN_0013d8b0(int object_handle)
+{
+  object_iter_t it;
+  object_data_t *obj;
+
+  data_verify(*(data_t **)0x5a8d50);
+
+  it.type_mask = -1;
+  it.flags = 0;
+  it.current_index = 0;
+  it.last_handle = -1;
+  it.cookie = 0x86868686;
+
+  obj = (object_data_t *)object_iterator_next(&it);
+  while (obj != (object_data_t *)0) {
+    if (*(int *)((char *)obj + 0xa0) == object_handle)
+      *(int *)((char *)obj + 0xa0) = -1;
+    FUN_0013c680(it.last_handle, object_handle);
+    obj = (object_data_t *)object_iterator_next(&it);
   }
 }
 
@@ -4018,41 +6728,42 @@ done:
   }
 }
 
+void garbage_collect_now(void)
+{
+  *(unsigned char *)(*(int *)0x46f084 + 2) = 1;
+}
+
 /* Writes object counts and memory-usage fraction into param_1.
  * param_1[0] = total non-empty object slots
  * param_1[1] = object slots with active flag (elem+2 bit 0)
  * *(float*)(param_1+2) = 1.0 - fraction of pool in use */
 void FUN_0013db60(short *param_1)
 {
-    short *psVar1;
-    int iVar2;
-    short sVar3;
-    data_t *objs_data;
+  short *psVar1;
+  int iVar2;
+  short sVar3;
+  data_t *objs_data;
 
-    csmemset(param_1, 0, 8);
-    objs_data = *(data_t **)0x5a8d50;
-    psVar1 = (short *)*(uint8_t **)((uint8_t *)objs_data + 0x34);
-    sVar3 = 0;
-    if (0 < *(int16_t *)((uint8_t *)objs_data + 0x2e)) {
-        do {
-            if (*psVar1 != 0) {
-                param_1[0] = param_1[0] + 1;
-                if (*(unsigned char *)((char *)psVar1 + 2) & 1) {
-                    param_1[1] = param_1[1] + 1;
-                }
-            }
-            objs_data = *(data_t **)0x5a8d50;
-            sVar3 = sVar3 + 1;
-            psVar1 = psVar1 + 6;
-        } while (sVar3 < *(int16_t *)((uint8_t *)objs_data + 0x2e));
-    }
-    iVar2 = memory_pool_get_contiguous_free_size(*(void **)0x46f080);
-    *(float *)(param_1 + 2) = *(float *)0x2533c8 - (float)iVar2 * *(float *)0x29ba04;
-}
-
-void garbage_collect_now(void)
-{
-  *(unsigned char *)(*(int *)0x46f084 + 2) = 1;
+  csmemset(param_1, 0, 8);
+  objs_data = *(data_t **)0x5a8d50;
+  psVar1 = (short *)*(uint8_t **)((uint8_t *)objs_data + 0x34);
+  sVar3 = 0;
+  if (0 < *(int16_t *)((uint8_t *)objs_data + 0x2e)) {
+    do {
+      if (*psVar1 != 0) {
+        param_1[0] = param_1[0] + 1;
+        if (*(unsigned char *)((char *)psVar1 + 2) & 1) {
+          param_1[1] = param_1[1] + 1;
+        }
+      }
+      objs_data = *(data_t **)0x5a8d50;
+      sVar3 = sVar3 + 1;
+      psVar1 = psVar1 + 6;
+    } while (sVar3 < *(int16_t *)((uint8_t *)objs_data + 0x2e));
+  }
+  iVar2 = memory_pool_get_contiguous_free_size(*(void **)0x46f080);
+  *(float *)(param_1 + 2) =
+    *(float *)0x2533c8 - (float)iVar2 * *(float *)0x29ba04;
 }
 
 void FUN_0013dbe0(int param_1)
@@ -4066,11 +6777,6 @@ void FUN_0013dbe0(int param_1)
   }
   *(short *)(iVar1 + 0x90) = 1;
   *(int *)(iVar1 + 0x94) = param_1;
-}
-
-void FUN_0013dcb0(void)
-{
-  *(short *)(*(int *)0x46f084 + 0x90) = 0;
 }
 
 /*
@@ -4098,7 +6804,8 @@ void FUN_0013dc10(short camera_point_index)
 {
   int iVar1;
   int cam;
-  char location[8]; /* scenario_location_from_point output; +4 = leaf index (short) */
+  char location[8]; /* scenario_location_from_point output; +4 = leaf index
+                       (short) */
 
   if (camera_point_index == -1) {
     *(short *)(*(int *)0x46f084 + 0x90) = 0;
@@ -4116,6 +6823,11 @@ void FUN_0013dc10(short camera_point_index)
   }
   *(short *)(iVar1 + 0x90) = 2;
   *(short *)(iVar1 + 0x94) = *(short *)(location + 4);
+}
+
+void FUN_0013dcb0(void)
+{
+  *(short *)(*(int *)0x46f084 + 0x90) = 0;
 }
 
 /*
@@ -4173,7 +6885,7 @@ short FUN_0013dcc0(void)
   }
 
   obj = (char *)object_get_and_verify_type(
-      object_get_root_parent(*(int *)(*(int *)0x46f084 + 0x94)), -1);
+    object_get_root_parent(*(int *)(*(int *)0x46f084 + 0x94)), -1);
 
   if ((*(unsigned int *)(obj + 4) & 0x800) != 0 &&
       *(short *)(obj + 0x4c) != -1) {
@@ -4204,6 +6916,53 @@ void object_definition_predict(int param_1)
   if (param_1 != -1) {
     tag = tag_get(0x6f626a65, param_1);
     predicted_resources_precache((char *)tag + 0x170);
+  }
+}
+
+/*
+ * FUN_0013ddd0 (0x13ddd0 / objects.obj) — recursively precache the predicted
+ * resources for an object and its attachment tree.
+ *
+ * Iterative+recursive walk over the object datum (table at 0x5a8d50). For each
+ * object: resolves its definition pointer (obj+0x8), reads the 16-bit object
+ * type at def+0x64, and asserts that (1 << type) is non-zero (i.e. the type is
+ * in range; the original message reports the unexpected type). If the object's
+ * tag index (def+0x0) is valid, fetches the 'obje' tag (0x6f626a65) and
+ * precaches its predicted-resources block at tag+0x170. Then recurses into the
+ * first child (def+0xc8) and tail-iterates to the next sibling (def+0xc4) via
+ * the enclosing while loop.
+ *
+ * Confirmed (disasm 0x13ddd0): type is a signed 16-bit load (MOVSX ECX, word
+ * ptr [ESI+0x64]); shift mask test is TEST EDX,EDX after SHL EDX,CL; assert
+ * uses csprintf(0x5ab100, fmt, -1, type) then display_assert(reason,
+ * "...objects.c", 0x69a, 1) then system_exit(-1); child at +0xc8, sibling at
+ * +0xc4; precache arg is tag+0x170.
+ */
+void FUN_0013ddd0(int object_handle)
+{
+  object_data_t *obj;
+  int *defn;
+  int type;
+  int tag;
+
+  while (object_handle != -1) {
+    obj = (object_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+    defn = *(int **)((char *)obj + 8);
+    type = *(int16_t *)((char *)defn + 0x64);
+    if ((1 << (type & 0x1f)) == 0) {
+      display_assert(csprintf((char *)0x5ab100,
+                              "got an object type we didn't expect "
+                              "(expected one of 0x%08x but got #%d).",
+                              0xffffffff, type),
+                     "c:\\halo\\SOURCE\\objects\\objects.c", 0x69a, 1);
+      system_exit(-1);
+    }
+    if (defn[0] != -1) {
+      tag = (int)tag_get(0x6f626a65, defn[0]);
+      predicted_resources_precache((void *)(tag + 0x170));
+    }
+    FUN_0013ddd0(defn[0x32]);
+    object_handle = defn[0x31];
   }
 }
 
@@ -4243,7 +7002,7 @@ int object_header_new(data_t *data, int16_t datum_size, int type_hint)
   int handle;
   char *datum;
   void **volatile block; /* datum+8, forced to [EBP-4] like the original */
-  int ds;            /* (int)datum_size, sign-extended once into EBX */
+  int ds; /* (int)datum_size, sign-extended once into EBX */
 
   if (type_hint == -1)
     handle = data_new_at_index(data);
@@ -4266,7 +7025,8 @@ int object_header_new(data_t *data, int16_t datum_size, int type_hint)
   return handle;
 }
 
-void object_postprocess_node_matrices(data_t *data, int object_handle /* @<ebx> */)
+void object_postprocess_node_matrices(data_t *data,
+                                      int object_handle /* @<ebx> */)
 {
   char *header;
   void **object_ptr;
@@ -4327,6 +7087,72 @@ void *object_header_block_reference_get(int object_handle, void *reference)
 }
 
 /*
+ * object_header_block_allocate — grow an object's variable-length header data
+ * region by `size` bytes and stamp a block_reference record at `offset`.
+ *
+ * Validates size>=0, data_size+size<=SHORT_MAX, offset>=0, and
+ * offset+sizeof(block_reference)<=data_size, then resizes the object's pooled
+ * data block (memory_pool_block_resize) to data_size+size. On success it bumps
+ * data_size, writes the 4-byte block_reference {size, old_data_size} at
+ * obj_base+offset, zero-fills the newly appended region, and returns 1.
+ *
+ * Confirmed: 3 cdecl args. params read as short via MOVSX (handle is int).
+ * Confirmed: data_size at header+0x06 (uint16_t), object at header+0x08.
+ * Confirmed: memory_pool_block_resize(*0x46f080, &header->object, new_size).
+ * Confirmed: block_reference at obj_base+offset: [+0]=size, [+2]=old_data_size.
+ * Confirmed: csmemset(header->object + old_data_size, 0, size).
+ * Confirmed: asserts at objects.c lines 0x99b, 0x99c, 0x99e, 0x99f.
+ */
+int object_header_block_allocate(int object_handle, int offset, int size)
+{
+  object_header_data_t *header;
+  short ssize;
+  short soffset;
+  short old_data_size;
+  char *obj_base;
+  short *block_ref;
+
+  header =
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  ssize = (short)size;
+  if (ssize < 0) {
+    display_assert("size>=0", "c:\\halo\\SOURCE\\objects\\objects.c", 0x99b, 1);
+    system_exit(-1);
+  }
+  if (0x7fff < (int)(short)header->data_size + (int)ssize) {
+    display_assert("object_header->data_size+size<=SHORT_MAX",
+                   "c:\\halo\\SOURCE\\objects\\objects.c", 0x99c, 1);
+    system_exit(-1);
+  }
+  soffset = (short)offset;
+  if (soffset < 0) {
+    display_assert("block_reference_offset>=0",
+                   "c:\\halo\\SOURCE\\objects\\objects.c", 0x99e, 1);
+    system_exit(-1);
+  }
+  if ((unsigned int)(int)(short)header->data_size <
+      (unsigned int)((int)soffset + 4)) {
+    display_assert("block_reference_offset+sizeof(struct "
+                   "object_header_block_reference)<=object_header->data_size",
+                   "c:\\halo\\SOURCE\\objects\\objects.c", 0x99f, 1);
+    system_exit(-1);
+  }
+
+  if (memory_pool_block_resize(*(void **)0x46f080, (void **)&header->object,
+                               (int)(short)header->data_size + (int)ssize)) {
+    old_data_size = (short)header->data_size;
+    header->data_size = (uint16_t)(old_data_size + ssize);
+    obj_base = (char *)object_get_and_verify_type(object_handle, -1);
+    block_ref = (short *)(obj_base + soffset);
+    block_ref[1] = old_data_size;
+    block_ref[0] = ssize;
+    csmemset((char *)header->object + (int)old_data_size, 0, (int)ssize);
+    return 1;
+  }
+  return 0;
+}
+
+/*
  * FUN_0013e1a0 — run animation-block initializer callbacks for an object.
  *
  * Resolves the object's tag definition and checks whether both a model
@@ -4362,6 +7188,122 @@ void FUN_0013e1a0(int object_handle /* @<edi> */)
   }
 }
 
+/* 0x13e1f0 / objects.obj — Seed the object's four change-color slots during
+ * spawn. For each of the 4 slots, copies the base RGB triple from the
+ * placement color_data, then (if the model tag declares a change-color
+ * animation for this slot index, block at obj_tag+0x164, element size 0x2c)
+ * derives a deterministic pseudo-random blend value from the object's basis
+ * vectors (obj+0xc/0x10/0x14) and the slot index, walks the slot's permutation
+ * sub-block (element+0x20, element size 0x1c) as a cumulative distribution,
+ * and on the first permutation whose threshold (perm[0]) is >= the blend
+ * value, blends an RGB pair (perm+0x4 .. perm+0x10) into the slot color via
+ * FUN_0007c270. Finally clamps each RGB component of the slot to [0,1] and
+ * writes the clamped triple to the +0x30 mirror (obj+0x138 slot layout:
+ * base RGB at +0, clamped RGB at +0x30).
+ * Role: object spawn-appearance setup; establishes per-object tinting.
+ * object_handle in EAX (register arg); color_data is first stack argument.
+ * Confirmed: PUSH -1; PUSH EAX; CALL object_get_and_verify_type.
+ * Confirmed: pseudo-random frac via x87_fmod(|dot|, 1.0) (CALL 0x1daf7e).
+ * Confirmed: clamp lo/hi = *(float*)0x2533c0 (0.0) / 0x2533c8 (1.0).
+ * Confirmed: 4 iterations; dest stride 0xc bytes, color_data stride 0xc. */
+void object_choose_random_change_colors(int object_handle /* @<eax> */,
+                                        void *color_data)
+{
+  char *obj;
+  int obj_tag;
+  float *src;
+  float *dst;
+  int i;
+  int count;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  obj_tag = (int)tag_get(0x6f626a65, *(int *)obj);
+  src = (float *)color_data;
+  dst = (float *)(obj + 0x138);
+
+  /* fixed 4-slot loop: separate index i and a 4->0 down-counter, matching
+   * the reference's movl $0x4/decl/jne tail. */
+  i = 0;
+  count = 4;
+  do {
+    float frac;
+
+    /* base RGB triple from placement data */
+    dst[0] = src[0];
+    dst[1] = src[1];
+    dst[2] = src[2];
+
+    if (i < *(int *)(obj_tag + 0x164)) {
+      char *cc_elem =
+        (char *)tag_block_get_element((void *)(obj_tag + 0x164), i, 0x2c);
+
+      /* deterministic pseudo-random selector from object basis + slot index;
+       * the FABS is applied to the dot sum before the modulo. The whole
+       * chain stays FPU-resident: fmul/faddp -> fabs -> fldl 1.0 -> call fmod.
+       * VC71 /Oi lowers fmod to _CIfmod (the call at 0x1daf7e) and fabsf to a
+       * bare FABS; clang takes the x87_fmod (FPREM) branch. */
+#if defined(_MSC_VER) && !defined(__clang__)
+      frac =
+        (float)fmod(fabs((double)(*(float *)(obj + 0x14) * *(float *)0x29bbe0 +
+                                  *(float *)(obj + 0xc) * *(float *)0x29bbdc +
+                                  *(float *)(obj + 0x10) * *(float *)0x29bbd8 +
+                                  (float)i * *(float *)0x29bbd4)),
+                    1.0);
+#else
+      frac = x87_fmod(fabsf(*(float *)(obj + 0x14) * *(float *)0x29bbe0 +
+                            *(float *)(obj + 0xc) * *(float *)0x29bbdc +
+                            *(float *)(obj + 0x10) * *(float *)0x29bbd8 +
+                            (float)i * *(float *)0x29bbd4),
+                      1.0);
+#endif
+
+      if (*(int *)(cc_elem + 0x20) > 0) {
+        int16_t j = 0;
+        do {
+          float *perm = (float *)tag_block_get_element((void *)(cc_elem + 0x20),
+                                                       (int)j, 0x1c);
+          if (frac <= perm[0]) {
+            float blend;
+            /* FABS applies only to obj+0x10 here, before adding the index
+             * term; then fmod. Kept FPU-resident to mirror the reference
+             * (flds; fabs; flds i; fmuls; faddp; fldl 1.0; call fmod). */
+#if defined(_MSC_VER) && !defined(__clang__)
+            blend = (float)fmod(fabs((double)*(float *)(obj + 0x10)) +
+                                  (float)i * *(float *)0x29bbd0,
+                                1.0);
+#else
+            blend = x87_fmod(fabsf(*(float *)(obj + 0x10)) +
+                               (float)i * *(float *)0x29bbd0,
+                             1.0);
+#endif
+            FUN_0007c270(dst, 1, perm + 1, perm + 4, blend);
+            break;
+          }
+          j = j + 1;
+        } while ((int)j < *(int *)(cc_elem + 0x20));
+      }
+    }
+
+    /* clamp each component to [0,1] and store in the +0x30 mirror.
+     * Same min/max idiom as object_compute_change_colors: strictly-below-lo
+     * -> lo, strictly-above-hi -> hi, else keep (NaN falls through to the
+     * value), matching fcomps/test $5/jp then fcomps/test $0x41/jne. */
+    dst[0xc] = (dst[0] < *(float *)0x2533c0) ?
+                 *(float *)0x2533c0 :
+                 ((dst[0] > *(float *)0x2533c8) ? *(float *)0x2533c8 : dst[0]);
+    dst[0xd] = (dst[1] < *(float *)0x2533c0) ?
+                 *(float *)0x2533c0 :
+                 ((dst[1] > *(float *)0x2533c8) ? *(float *)0x2533c8 : dst[1]);
+    dst[0xe] = (dst[2] < *(float *)0x2533c0) ?
+                 *(float *)0x2533c0 :
+                 ((dst[2] > *(float *)0x2533c8) ? *(float *)0x2533c8 : dst[2]);
+
+    src = src + 3;
+    dst = dst + 3;
+    i = i + 1;
+  } while (--count != 0);
+}
+
 /* 0x13e3f0 / objects.obj — Scan a model region's permutation block for
  * permutations matching a given variant number. Returns count of matching
  * permutation indices written to output[].
@@ -4371,7 +7313,7 @@ void FUN_0013e1a0(int object_handle /* @<edi> */)
  * Confirmed: matches on [+0x24]==variant, or variant==-1 && [+0x24]<100.
  * Confirmed: returns count in AX (int16_t). */
 int16_t object_find_region_permutations_available_with_variant(
-    void *region_element /* @<eax> */, int16_t variant, int16_t *output)
+  void *region_element /* @<eax> */, int16_t variant, int16_t *output)
 {
   int region_count;
   int16_t out_count;
@@ -4383,12 +7325,11 @@ int16_t object_find_region_permutations_available_with_variant(
   perm_idx = 0;
   if (region_count > 0) {
     do {
-      char *perm = (char *)tag_block_get_element(
-          (void *)(region + 0x40), (int)perm_idx, 0x58);
+      char *perm = (char *)tag_block_get_element((void *)(region + 0x40),
+                                                 (int)perm_idx, 0x58);
       if ((*(unsigned char *)(perm + 0x20) & 1) == 0) {
         int16_t perm_variant = *(int16_t *)(perm + 0x24);
-        if (perm_variant == variant ||
-            (variant == -1 && perm_variant < 100)) {
+        if (perm_variant == variant || (variant == -1 && perm_variant < 100)) {
           output[(int)out_count] = perm_idx;
           out_count = out_count + 1;
         }
@@ -4429,12 +7370,13 @@ int16_t object_determine_variant_number(int object_handle /* @<eax> */,
       if ((int16_t)result != 0) {
         return result;
       }
-      region = (char *)tag_block_get_element(
-          (void *)(model + 0xc4), (int)region_idx, 0x4c);
-      perm_index = (unsigned int)*(unsigned char *)(obj + 0x130 + (int)region_idx);
+      region = (char *)tag_block_get_element((void *)(model + 0xc4),
+                                             (int)region_idx, 0x4c);
+      perm_index =
+        (unsigned int)*(unsigned char *)(obj + 0x130 + (int)region_idx);
       if ((int)perm_index < *(int *)(region + 0x40)) {
-        char *perm = (char *)tag_block_get_element(
-            (void *)(region + 0x40), (int)perm_index, 0x58);
+        char *perm = (char *)tag_block_get_element((void *)(region + 0x40),
+                                                   (int)perm_index, 0x58);
         result = *(int16_t *)(perm + 0x24);
       }
       region_idx = region_idx + 1;
@@ -4488,6 +7430,292 @@ void object_child_list_remove(void *list_head /* @<eax> */,
         return;
     }
   }
+}
+
+/* 0x13e5d0 / objects.obj — Recompute the object's live change colors from its
+ * current animation-function values. Gated on the object tag flag bit 0 at
+ * obj_tag+0x24. For each change-color animation entry (block obj_tag+0x164,
+ * element size 0x2c): if its blend-function index (entry+0x2) is nonzero,
+ * blends an RGB pair (entry+0x8 .. entry+0x14) into the computed color slot
+ * (obj+0x168 + i*0xc) using the precomputed function value as the blend
+ * weight; if its scale-function index (entry+0x0) is nonzero, multiplies all
+ * three components of the slot by that function value; finally clamps each
+ * component to [0,1] in place. Function values are read directly from the
+ * precomputed array at obj+0xd0 (filled by object_compute_function_values).
+ * Role: object spawn-appearance / per-frame appearance update.
+ * object_handle in EAX (register arg).
+ * Confirmed: PUSH -1; PUSH EAX; CALL object_get_and_verify_type.
+ * Confirmed: gate on (*(uint8_t*)(obj_tag+0x24) & 1).
+ * Confirmed: function value = *(float*)(obj + 0xd0 + fn_idx*4).
+ * Confirmed: computed color slot base obj+0x168 (the +0x30 change-color
+ * mirror). Confirmed: clamp lo/hi = *(float*)0x2533c0 / 0x2533c8. */
+void object_compute_change_colors(int object_handle /* @<eax> */)
+{
+  char *obj;
+  int obj_tag;
+  int16_t i;
+  int16_t counter;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  obj_tag = (int)tag_get(0x6f626a65, *(int *)obj);
+  if ((*(unsigned char *)(obj_tag + 0x24) & 1) == 0) {
+    return;
+  }
+
+  i = 0;
+  counter = 0;
+  if (*(int *)(obj_tag + 0x164) <= 0) {
+    return;
+  }
+  do {
+    char *entry =
+      (char *)tag_block_get_element((void *)(obj_tag + 0x164), (int)i, 0x2c);
+    float *slot = (float *)(obj + 0x168 + (int)i * 0xc);
+    int16_t blend_fn;
+    int16_t scale_fn;
+
+    /* blend-function: blend the entry RGB pair into the slot */
+    blend_fn = *(int16_t *)(entry + 0x2);
+    if (blend_fn != 0) {
+      float fn_val = (int)blend_fn >= 5 ?
+                       *(float *)(obj + 0xe4 + ((int)blend_fn - 5) * 4) :
+                       *(float *)(obj + 0xd0 + (int)blend_fn * 4);
+      FUN_0007c270(slot, *(int *)(entry + 0x4), (float *)(entry + 0x8),
+                   (float *)(entry + 0x14), fn_val);
+    }
+
+    /* scale-function: multiply all three components by the function value */
+    scale_fn = *(int16_t *)entry;
+    if (scale_fn != 0) {
+      float fn_val = (int)scale_fn >= 5 ?
+                       *(float *)(obj + 0xe4 + ((int)scale_fn - 5) * 4) :
+                       *(float *)(obj + 0xd0 + (int)scale_fn * 4);
+      slot[0] = fn_val * slot[0];
+      slot[1] = fn_val * slot[1];
+      slot[2] = fn_val * slot[2];
+    }
+
+    /* clamp each component to [0,1] in place.
+     * Faithful to the reference min/max idiom: strictly-below-lo -> lo,
+     * strictly-above-hi -> hi, else keep (NaN falls through to the value,
+     * matching fcomps/test $5/jp then fcomps/test $0x41/jne polarity). */
+    slot[0] = (slot[0] < *(float *)0x2533c0) ?
+                *(float *)0x2533c0 :
+                ((slot[0] > *(float *)0x2533c8) ? *(float *)0x2533c8 : slot[0]);
+    slot[1] = (slot[1] < *(float *)0x2533c0) ?
+                *(float *)0x2533c0 :
+                ((slot[1] > *(float *)0x2533c8) ? *(float *)0x2533c8 : slot[1]);
+    slot[2] = (slot[2] < *(float *)0x2533c0) ?
+                *(float *)0x2533c0 :
+                ((slot[2] > *(float *)0x2533c8) ? *(float *)0x2533c8 : slot[2]);
+
+    counter = counter + 1;
+    i = counter;
+  } while ((int)i < *(int *)(obj_tag + 0x164));
+}
+
+/* 0x13e7b0 / objects.obj — Evaluate all of the object tag's animation
+ * functions for the current frame and store the results into the object's
+ * function-value array (obj+0xe4 onward), updating the per-function active
+ * bitmask byte at obj+0xd3.
+ *
+ * For each function definition (block obj_tag+0x158, element size 0x168):
+ *   - Builds a per-object time input: (game_time_get() + (handle&0xffff)*0x39)
+ *     scaled by a global constant (0x2546a4).
+ *   - Evaluates a periodic waveform (FUN_0010a5e0) over that time, optionally
+ *     scaled by a referenced function value, then applies inversion (flag 1),
+ *     a secondary sinusoidal offset term, a step threshold, an exponent/floor
+ *     stage, a modulo wrap, an additive function with clamp-to-1, a final
+ *     multiplier function, a transition remap (transition_function_evaluate),
+ *     a scale, and a range remap with min/max clamping (modes 1/2).
+ *   - Computes an "active" bit from flag bit 2 and a dependency function's
+ *     active bit (obj+0xd3 & (1<<elem[+0x36])).
+ *   - With flag bit 1, wraps the result by adding the prior slot value and
+ *     taking fmod(.,1.0) (accumulator).
+ *   - Writes the result to obj+0xe4+i*4 and updates obj+0xd3 bit i.
+ *
+ * Role: object spawn / per-frame appearance; feeds object_compute_change_colors
+ * and node/marker animation. Function values 0-4 (obj+0xd0) are engine
+ * built-ins; indices 5+ written here begin at obj+0xe4 (=obj+0xd0+5*4).
+ * object_handle in EAX (register arg).
+ * Confirmed: ESI=object_handle saved before object_get_and_verify_type(EAX,-1).
+ * Confirmed: time scale const *(float*)0x2546a4; output array obj+0xe4.
+ * Confirmed: CMP 0x5;JL branches are vestigial bounds checks (identical loads).
+ * Uncertain: many field offsets within the 0x168-byte element (see inline). */
+void object_compute_function_values(int object_handle /* @<eax> */)
+{
+  char *obj;
+  int obj_tag;
+  float time_base;
+  int func_count;
+  int16_t i;
+  int16_t counter;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  obj_tag = (int)tag_get(0x6f626a65, *(int *)obj);
+
+  /* per-object time input, scaled to seconds */
+  time_base = (float)(game_time_get() + (object_handle & 0xffff) * 0x39) *
+              *(float *)0x2546a4;
+
+  func_count = *(int *)(obj_tag + 0x158);
+  i = 0;
+  counter = 0;
+  if (func_count <= 0) {
+    return;
+  }
+  do {
+    char *elem =
+      (char *)tag_block_get_element((void *)(obj_tag + 0x158), (int)i, 0x168);
+    unsigned char active;
+    float value;
+    float t;
+    int16_t fn;
+    int16_t mode;
+
+    active = 1;
+
+    /* --- primary periodic waveform --- */
+    t = *(float *)(elem + 0x144);
+    fn = *(int16_t *)(elem + 0x8);
+    if (fn != 0) {
+      float fv = (int)fn >= 5 ? *(float *)(obj + 0xe4 + ((int)fn - 5) * 4) :
+                                *(float *)(obj + 0xd0 + (int)fn * 4);
+      if (fv > *(float *)0x2533c0) {
+        t = t / fv;
+      }
+    }
+    t = t * time_base;
+    value = FUN_0010a5e0(*(int16_t *)(elem + 0xa), t);
+
+    /* --- optional amplitude function --- */
+    fn = *(int16_t *)(elem + 0xc);
+    if (fn != 0) {
+      value = ((int)fn >= 5 ? *(float *)(obj + 0xe4 + ((int)fn - 5) * 4) :
+                              *(float *)(obj + 0xd0 + (int)fn * 4)) *
+              value;
+    }
+
+    /* --- inversion (flag bit 0) --- */
+    if ((*(unsigned char *)elem & 1) != 0) {
+      value = *(float *)0x2533c8 - value;
+    }
+
+    /* --- secondary sinusoidal offset term (when elem+0x14 != 0) --- */
+    if (*(float *)(elem + 0x14) != *(float *)0x2533c0) {
+      float w = FUN_0010a5e0(*(int16_t *)(elem + 0xe),
+                             time_base * *(float *)(elem + 0x10));
+      w = (w - *(float *)0x253398) * *(float *)(elem + 0x14);
+      value = w + w + value;
+    }
+
+    /* --- step threshold (when elem+0x18 != 0): 1.0 if value>thr else 0.0 ---
+     */
+    if (*(float *)(elem + 0x18) != *(float *)0x2533c0) {
+      float prev = value;
+      value = 1.0f;
+      if (prev <= *(float *)(elem + 0x18)) {
+        value = 0.0f;
+      }
+    }
+
+    /* --- exponent/floor stage (when elem+0x1c > 1) --- */
+    if (*(int16_t *)(elem + 0x1c) > 1) {
+      value = (float)floor((double)((float)*(int16_t *)(elem + 0x1c) * value)) *
+              *(float *)(elem + 0x140);
+    }
+
+    /* --- modulo wrap (when elem+0x13c > 0) --- */
+    if (*(float *)(elem + 0x13c) > *(float *)0x2533c0) {
+      /* VC71 /Oi lowers fmod to _CIfmod (flds value; flds elem+0x13c; call);
+       * clang takes the x87_fmod (FPREM) branch. */
+#if defined(_MSC_VER) && !defined(__clang__)
+      value = (float)fmod((double)value, (double)*(float *)(elem + 0x13c));
+#else
+      value = x87_fmod(value, (double)*(float *)(elem + 0x13c));
+#endif
+    }
+
+    /* --- additive function with clamp-to-1 --- */
+    fn = *(int16_t *)(elem + 0x22);
+    if (fn != 0) {
+      value = ((int)fn >= 5 ? *(float *)(obj + 0xe4 + ((int)fn - 5) * 4) :
+                              *(float *)(obj + 0xd0 + (int)fn * 4)) +
+              value;
+      if (value > *(float *)0x2533c8) {
+        value = *(float *)0x2533c8;
+      }
+    }
+
+    /* --- final multiplier function --- */
+    fn = *(int16_t *)(elem + 0x24);
+    if (fn != 0) {
+      value = ((int)fn >= 5 ? *(float *)(obj + 0xe4 + ((int)fn - 5) * 4) :
+                              *(float *)(obj + 0xd0 + (int)fn * 4)) *
+              value;
+    }
+
+    /* --- transition remap --- */
+    value = transition_function_evaluate(*(int16_t *)(elem + 0x1e), value);
+
+    /* --- scale (when elem+0x38 > 0) --- */
+    if (*(float *)(elem + 0x38) > *(float *)0x2533c0) {
+      value = value * *(float *)(elem + 0x38);
+    }
+
+    /* --- range remap (modes 1/2) --- */
+    mode = *(int16_t *)(elem + 0x26);
+    if (mode == 2) {
+      value = (*(float *)(elem + 0x2c) - *(float *)(elem + 0x28)) * value +
+              *(float *)(elem + 0x28);
+      if (*(float *)(elem + 0x28) + *(float *)0x253f44 >= value) {
+        active = (unsigned char)(*(unsigned int *)elem >> 2) & 1;
+      }
+    } else {
+      if (*(float *)(elem + 0x28) + *(float *)0x253f44 >= value) {
+        value = *(float *)(elem + 0x28);
+        active = (unsigned char)(*(unsigned int *)elem >> 2) & 1;
+      }
+      if (value > *(float *)(elem + 0x2c)) {
+        value = *(float *)(elem + 0x2c);
+      }
+      if (mode == 1) {
+        value = (value - *(float *)(elem + 0x28)) * *(float *)(elem + 0x138);
+      }
+    }
+
+    /* --- dependency on another function's active bit --- */
+    if (*(int16_t *)(elem + 0x36) != -1 &&
+        (*(unsigned char *)(obj + 0xd3) &
+         (unsigned char)(1 << (int)*(int16_t *)(elem + 0x36))) == 0) {
+      active = 0;
+    }
+
+    /* --- accumulator wrap (flag bit 1), using prior slot value --- */
+    if ((*(unsigned char *)elem & 2) != 0) {
+      /* accumulator wrap: fmod(value + prior_slot, 1.0) kept FPU-resident
+       * (flds value; fadds slot; fldl 1.0; call _CIfmod under VC71). */
+#if defined(_MSC_VER) && !defined(__clang__)
+      value =
+        (float)fmod((double)(value + *(float *)(obj + 0xe4 + (int)i * 4)), 1.0);
+#else
+      value = x87_fmod(value + *(float *)(obj + 0xe4 + (int)i * 4), 1.0);
+#endif
+    }
+
+    /* --- store result and update active bitmask --- */
+    *(float *)(obj + 0xe4 + (int)i * 4) = value;
+    if (active != 0) {
+      *(unsigned char *)(obj + 0xd3) =
+        *(unsigned char *)(obj + 0xd3) | (unsigned char)(1 << (int)i);
+    } else {
+      *(unsigned char *)(obj + 0xd3) =
+        *(unsigned char *)(obj + 0xd3) & ~(unsigned char)(1 << (int)i);
+    }
+
+    counter = counter + 1;
+    i = counter;
+  } while ((int)i < *(int *)(obj_tag + 0x158));
 }
 
 void object_scripting_set_collideable(int param_1, char param_2)
@@ -4622,29 +7850,30 @@ int object_mark(int object_handle)
 /* attachments_new (0x13ecb0 / objects.obj) — create every attachment defined in
  * an object's tag and record each in the object datum's attachment table.
  *
- * Resolves the object datum and its 'obje' tag, then for each attachment element
- * (block at tag+0x140, stride 0x48) whose definition tag (element+0xc) is valid,
- * classifies the attachment by its group tag (element+0x0) into one of five
- * types and dispatches to the matching creator:
- *   type 0 'ligh' -> FUN_0013b1b0  (light)        ; sets object flag 0x100
- *   type 1 'lsnd' -> game_looping_sound_new       ; sets object flag 0x400
- *   type 2 'effe' -> FUN_0009eb40  (effect)
- *   type 3 'cont' -> contrail_new
- *   type 4 'pctl' -> FUN_000a12e0  (particle)
- * The attachment type byte is stored at object+0xf4+i and the created handle at
- * object+0xfc+i*4. Marker indices passed to creators are element fields minus 1
- * (element+0x30/+0x32/+0x34 -> marker / secondary / tertiary).
+ * Resolves the object datum and its 'obje' tag, then for each attachment
+ * element (block at tag+0x140, stride 0x48) whose definition tag (element+0xc)
+ * is valid, classifies the attachment by its group tag (element+0x0) into one
+ * of five types and dispatches to the matching creator: type 0 'ligh' ->
+ * FUN_0013b1b0  (light)        ; sets object flag 0x100 type 1 'lsnd' ->
+ * game_looping_sound_new       ; sets object flag 0x400 type 2 'effe' ->
+ * FUN_0009eb40  (effect) type 3 'cont' -> contrail_new type 4 'pctl' ->
+ * FUN_000a12e0  (particle) The attachment type byte is stored at object+0xf4+i
+ * and the created handle at object+0xfc+i*4. Marker indices passed to creators
+ * are element fields minus 1 (element+0x30/+0x32/+0x34 -> marker / secondary /
+ * tertiary).
  *
  * DORMANT — kept ported=false. Gate B: caller edge from object_new (0x143c80,
- * lifecycle cluster member) at 0x144147, AND object-lifecycle mutation (fills the
- * object attachment table at +0xf4/+0xfc and sets creation flags at object+0x4).
- * Part of the object creation path; activate only with the lifecycle cluster.
+ * lifecycle cluster member) at 0x144147, AND object-lifecycle mutation (fills
+ * the object attachment table at +0xf4/+0xfc and sets creation flags at
+ * object+0x4). Part of the object creation path; activate only with the
+ * lifecycle cluster.
  *
  * Confirmed: 1 cdecl arg (object_handle @ [EBP+0x8]).
  * Confirmed: jump table at 0x13ee4c maps type 0..4 to the five creators.
  * Confirmed: attachment element def index = element[3] (+0xc); store offsets
  * object+0xf4+i (type byte) and object+0xfc+i*4 (handle).
- * Confirmed: loop index is int16_t (MOVSX EDI,AX); count re-read from tag+0x140.
+ * Confirmed: loop index is int16_t (MOVSX EDI,AX); count re-read from
+ * tag+0x140.
  */
 void attachments_new(int object_handle)
 {
@@ -4656,7 +7885,7 @@ void attachments_new(int object_handle)
   short type;
   int handle;
   int count;
-  short i;       /* attachment slot index (int16_t in original) */
+  short i; /* attachment slot index (int16_t in original) */
   int idx;
 
   obj = (int *)object_get_and_verify_type(object_handle, -1);
@@ -4666,23 +7895,24 @@ void attachments_new(int object_handle)
   count = *(int *)(obj_tag + 0x140);
   if (0 < count) {
     do {
-      element = (unsigned int *)tag_block_get_element((void *)(obj_tag + 0x140), idx, 0x48);
+      element = (unsigned int *)tag_block_get_element((void *)(obj_tag + 0x140),
+                                                      idx, 0x48);
       def = element[3];
       type = -1;
       handle = -1;
       if (def != 0xffffffff) {
         group = element[0];
-        if (group == 0x6c696768) {          /* 'ligh' */
+        if (group == 0x6c696768) { /* 'ligh' */
           type = 0;
         } else if (group < 0x6c696768) {
-          if (group == 0x636f6e74) {        /* 'cont' */
+          if (group == 0x636f6e74) { /* 'cont' */
             type = 3;
           } else if (group == 0x65666665) { /* 'effe' */
             type = 2;
           }
-        } else if (group == 0x6c736e64) {   /* 'lsnd' */
+        } else if (group == 0x6c736e64) { /* 'lsnd' */
           type = 1;
-        } else if (group == 0x7063746c) {   /* 'pctl' */
+        } else if (group == 0x7063746c) { /* 'pctl' */
           type = 4;
         }
       }
@@ -4696,8 +7926,9 @@ void attachments_new(int object_handle)
         }
         break;
       case 1:
-        handle = game_looping_sound_new(object_handle, (int)def, element + 4,
-                                        (short)(*(short *)((char *)element + 0x30) - 1));
+        handle = game_looping_sound_new(
+          object_handle, (int)def, element + 4,
+          (short)(*(short *)((char *)element + 0x30) - 1));
         if (handle != -1) {
           obj[1] = obj[1] | 0x400;
         }
@@ -4755,6 +7986,44 @@ void object_propagate_flag_to_children(int object_handle /* @<eax> */,
   }
 }
 
+/* 0x13ef70 / objects.obj — Add an object to the scenario name table.
+ * Validates name_index is in [0, 0x1FF], checks the name slot is free,
+ * and writes the object_handle into the name table. Sets the object's
+ * name field at obj+0x6a.
+ * object_handle in EDI, name_index in SI (register args).
+ * Confirmed: PUSH -1; PUSH EDI; CALL object_get_and_verify_type.
+ * Confirmed: CMP SI,0x200 for range check.
+ * Confirmed: name_table at DAT_0046f07c[name_index].
+ * Confirmed: on collision, calls error(2, "an object with the name '%s' already
+ * exists!", name). */
+void object_name_list_new(int object_handle /* @<edi> */,
+                          int16_t name_index /* @<si> */)
+{
+  char *obj;
+  int idx;
+  int *name_table;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  if (name_index < 0 || name_index >= 0x200) {
+    display_assert(
+      "name_index>=0 && name_index<MAXIMUM_OBJECT_NAMES_PER_SCENARIO",
+      "c:\\halo\\SOURCE\\objects\\objects.c", 0x1003, 1);
+    system_exit(-1);
+  }
+  idx = (int)name_index;
+  name_table = *(int **)0x46f07c;
+  if (name_table[idx] == -1) {
+    name_table[idx] = object_handle;
+    *(int16_t *)(obj + 0x6a) = name_index;
+    return;
+  }
+  {
+    void *scenario_data = (void *)((char *)global_scenario_get() + 0x204);
+    char *name = (char *)tag_block_get_element(scenario_data, idx, 0x24);
+    error(2, "an object with the name \'%s\' already exists!", name);
+  }
+}
+
 /* Remove an object from the scenario object-name lookup table.
  * Clears the name_index field (obj+0x6a) and removes all references
  * to object_handle from the name table at 0x46f07c.
@@ -4781,43 +8050,6 @@ void object_remove_from_name_list(int object_handle /* @<edi> */)
         name_table[(int)i] = -1;
       i++;
     } while ((int)i < *(int *)((char *)scenario + 0x204));
-  }
-}
-
-/* 0x13ef70 / objects.obj — Add an object to the scenario name table.
- * Validates name_index is in [0, 0x1FF], checks the name slot is free,
- * and writes the object_handle into the name table. Sets the object's
- * name field at obj+0x6a.
- * object_handle in EDI, name_index in SI (register args).
- * Confirmed: PUSH -1; PUSH EDI; CALL object_get_and_verify_type.
- * Confirmed: CMP SI,0x200 for range check.
- * Confirmed: name_table at DAT_0046f07c[name_index].
- * Confirmed: on collision, calls error(2, "an object with the name '%s' already exists!", name). */
-void object_name_list_new(int object_handle /* @<edi> */,
-                          int16_t name_index /* @<si> */)
-{
-  char *obj;
-  int idx;
-  int *name_table;
-
-  obj = (char *)object_get_and_verify_type(object_handle, -1);
-  if (name_index < 0 || name_index >= 0x200) {
-    display_assert(
-        "name_index>=0 && name_index<MAXIMUM_OBJECT_NAMES_PER_SCENARIO",
-        "c:\\halo\\SOURCE\\objects\\objects.c", 0x1003, 1);
-    system_exit(-1);
-  }
-  idx = (int)name_index;
-  name_table = *(int **)0x46f07c;
-  if (name_table[idx] == -1) {
-    name_table[idx] = object_handle;
-    *(int16_t *)(obj + 0x6a) = name_index;
-    return;
-  }
-  {
-    void *scenario_data = (void *)((char *)global_scenario_get() + 0x204);
-    char *name = (char *)tag_block_get_element(scenario_data, idx, 0x24);
-    error(2, "an object with the name \'%s\' already exists!", name);
   }
 }
 
@@ -4910,18 +8142,20 @@ int find_objects_from_point_vector(int param_1, int param_2, int param_3,
 
   bsp_ref_index = FUN_0018e720(param_1) & 0x7fffffff;
   bsp_ref_element = tag_block_get_element(
-      (void *)((char *)scenario_get() + 0xe0), bsp_ref_index, 0x10);
+    (void *)((char *)scenario_get() + 0xe0), bsp_ref_index, 0x10);
   bsp_index = *(short *)((char *)bsp_ref_element + 8);
   if (bsp_index == -1)
     return 0;
 
   object_reset_markers();
-  cluster_data = (int *)structure_bsp_get_cluster_sound_data(
-      scenario_get(), bsp_index);
+  cluster_data =
+    (int *)structure_bsp_get_cluster_sound_data(scenario_get(), bsp_index);
   cluster_ptr = cluster_data;
 
-  { void *bsp_data = scenario_get();
-  num_words = (*(int *)((char *)bsp_data + 0x134) + 0x1f) >> 5; }
+  {
+    void *bsp_data = scenario_get();
+    num_words = (*(int *)((char *)bsp_data + 0x134) + 0x1f) >> 5;
+  }
   outer_idx = 0;
   if ((short)num_words <= 0)
     goto post_loop;
@@ -4933,51 +8167,53 @@ int find_objects_from_point_vector(int param_1, int param_2, int param_3,
       abs_cluster = (short)base_cluster;
       cluster_end = abs_cluster + 0x20;
 
-      { void *sc = scenario_get();
-      if (cluster_end > *(int *)((char *)sc + 0x134)) {
-        void *sc2 = scenario_get();
-        cluster_end = (int)*(short *)((char *)sc2 + 0x134);
-      } }
+      {
+        void *sc = scenario_get();
+        if (cluster_end > *(int *)((char *)sc + 0x134)) {
+          void *sc2 = scenario_get();
+          cluster_end = (int)*(short *)((char *)sc2 + 0x134);
+        }
+      }
 
       cur_cluster = base_cluster;
       if ((short)base_cluster < (short)cluster_end) {
         do {
-          if ((cluster_data[abs_cluster >> 5] &
-               (1 << (abs_cluster & 0x1f))) != 0) {
+          if ((cluster_data[abs_cluster >> 5] & (1 << (abs_cluster & 0x1f))) !=
+              0) {
             obj_handle = cluster_partition_iter_first(
-                (void *)0x5a8d40, (int *)iter_state, (short)cur_cluster);
+              (void *)0x5a8d40, (int *)iter_state, (short)cur_cluster);
             while (obj_handle != -1) {
-              obj_datum =
-                  (int)datum_get(*(data_t **)0x5a8d50, obj_handle);
+              obj_datum = (int)datum_get(*(data_t **)0x5a8d50, obj_handle);
               obj_body = *(int **)(obj_datum + 8);
 
               type_val = (int)*(short *)((char *)obj_body + 0x64);
               type_mask = 1 << (type_val & 0x1f);
               if (type_mask == 0) {
                 csprintf((char *)0x5ab100,
-                    "got an object type we didn't expect "
-                    "(expected one of 0x%08x but got #%d).",
-                    -1, type_val);
+                         "got an object type we didn't expect "
+                         "(expected one of 0x%08x but got #%d).",
+                         -1, type_val);
                 display_assert((char *)0x5ab100,
-                    "c:\\halo\\SOURCE\\objects\\objects.c", 0x69a, 1);
+                               "c:\\halo\\SOURCE\\objects\\objects.c", 0x69a,
+                               1);
                 system_exit(-1);
               }
 
               if (*(char *)(*(int *)0x46f084 + 1) == '\0') {
-                display_assert(
-                    "object_globals->object_marker_initialized",
-                    "c:\\halo\\SOURCE\\objects\\objects.c", 0xdd7, 1);
+                display_assert("object_globals->object_marker_initialized",
+                               "c:\\halo\\SOURCE\\objects\\objects.c", 0xdd7,
+                               1);
                 system_exit(-1);
               }
 
               if (*(int *)((char *)obj_body + 8) != *(int *)0x5a8d28) {
                 *(int *)((char *)obj_body + 8) = *(int *)0x5a8d28;
-                result = FUN_0013f080(obj_handle, (char (*)(int, int))param_3, param_4,
-                                      result, param_5, (int *)param_6);
+                result = FUN_0013f080(obj_handle, (char (*)(int, int))param_3,
+                                      param_4, result, param_5, (int *)param_6);
               }
 
-              obj_handle = cluster_partition_iter_next(
-                  (void *)0x5a8d40, (int *)iter_state);
+              obj_handle = cluster_partition_iter_next((void *)0x5a8d40,
+                                                       (int *)iter_state);
             }
           }
           cur_cluster++;
@@ -5082,533 +8318,151 @@ void object_dump_write(void *stats /* @<esi> */, void *file)
     pcVar1 = (char *)FUN_0013c250((int16_t)st[1]);
   }
   crt_fprintf(
-      file,
-      "% 6d (% 6d) [% 7d/% 7d/% 7d/% 7d] % 7d % 7d %s\r\n",
-      (int)*(int16_t *)((char *)st + 0xc),
-      (int)*(int16_t *)((char *)st + 0xe),
-      (int)*(int16_t *)((char *)st + 0x10),
-      (int)*(int16_t *)((char *)st + 0x12),
-      (int)*(int16_t *)((char *)st + 0x14),
-      (int)*(int16_t *)((char *)st + 0x16),
-      (int)*(int16_t *)((char *)st + 0x6),
-      st[2],
-      pcVar1);
+    file, "% 6d (% 6d) [% 7d/% 7d/% 7d/% 7d] % 7d % 7d %s\r\n",
+    (int)*(int16_t *)((char *)st + 0xc), (int)*(int16_t *)((char *)st + 0xe),
+    (int)*(int16_t *)((char *)st + 0x10), (int)*(int16_t *)((char *)st + 0x12),
+    (int)*(int16_t *)((char *)st + 0x14), (int)*(int16_t *)((char *)st + 0x16),
+    (int)*(int16_t *)((char *)st + 0x6), st[2], pcVar1);
 }
 
-/* 0x140a00 / objects.obj — Select random region permutations for an object
- * matching a given variant number. For each region in the model, finds
- * available permutations matching the variant, picks one randomly, and
- * stores its index in the object's region permutation array at obj+0x130.
- * Returns 1 if all regions had at least one valid permutation; 0 if any
- * region had no available permutations matching the variant.
- * object_handle in EAX (register arg).
- * Confirmed: PUSH -1; PUSH EAX; CALL object_get_and_verify_type.
- * Confirmed: tag_block at model_tag+0xc4, element size 0x4c.
- * Confirmed: calls object_find_region_permutations_available_with_variant.
- * Confirmed: if count==0, tries variant=0 as fallback.
- * Confirmed: random_range(get_global_random_seed_address(), 0, count). */
-char object_select_random_region_permutations_by_variant(
-    int object_handle /* @<eax> */, void *model_tag, int16_t variant)
+
+/* 0x13f4b0 — objects_dump_memory: diagnostic memory dump of all objects,
+ * grouped by type and definition. Writes to a file.
+ *
+ * Source: objects.c
+ * No params. Has 768KB+ stack for large arrays (_chkstk handles this).
+ */
+/* 0x13f4b0 */
+void objects_dump_memory(void)
 {
-  char *obj;
-  int16_t region_count;
-  char all_ok;
-  int16_t i;
-  char *model = (char *)model_tag;
-  int16_t avail_buf[32];
+  unsigned short uVar1;
+  short sVar2;
+  int *piVar3;
+  int iVar4;
+  void *stream;
+  int *puVar5;
+  unsigned short uVar6;
+  short *psVar7;
+  unsigned int uVar8;
+  int dump_by_def[6144]; /* 1024 * 6 */
+  int local_6140;
+  short local_613c[12288]; /* 1024 * 12 */
+  int local_140;
+  short local_13c[128]; /* 12 entries * (4+8 shorts) + pad */
+  short sVar9;
+  unsigned short uVar10;
+  object_iter_t dump_iter;
 
-  obj = (char *)object_get_and_verify_type(object_handle, -1);
-  region_count = 0;
-  all_ok = 1;
-  i = 0;
-  if (*(int *)(model + 0xc4) > 0) {
-    /* permuter 20260721 (+1.1pp raw): loop body indexes via region_count
-     * (i kept in sync) — pure register-role swap, value-identical. */
-    region_count = i;
-    do {
-      int16_t count;
-      char *region;
-
-      region = (char *)tag_block_get_element(
-          (void *)(model + 0xc4), (int)region_count, 0x4c);
-      count = object_find_region_permutations_available_with_variant(
-          region, variant, avail_buf);
-      if (count == 0 &&
-          (variant == -1 ||
-           (count = object_find_region_permutations_available_with_variant(
-                region, 0, avail_buf),
-            count == 0))) {
-        *(unsigned char *)(obj + 0x130 + (int)region_count) = 0;
-        all_ok = 0;
-      } else {
-        int16_t chosen;
-        if (count == 1) {
-          chosen = 0;
-        } else {
-          int *seed = get_global_random_seed_address();
-          chosen = random_range((unsigned int *)seed, 0, count);
-        }
-        *(unsigned char *)(obj + 0x130 + (int)region_count) =
-            (unsigned char)*(unsigned char *)((char *)avail_buf + chosen * 2);
-      }
-      region_count = region_count + 1;
-      i = region_count;
-    } while ((int)region_count < *(int *)(model + 0xc4));
-  }
-  return all_ok;
-}
-
-/* 0x13e1f0 / objects.obj — Seed the object's four change-color slots during
- * spawn. For each of the 4 slots, copies the base RGB triple from the
- * placement color_data, then (if the model tag declares a change-color
- * animation for this slot index, block at obj_tag+0x164, element size 0x2c)
- * derives a deterministic pseudo-random blend value from the object's basis
- * vectors (obj+0xc/0x10/0x14) and the slot index, walks the slot's permutation
- * sub-block (element+0x20, element size 0x1c) as a cumulative distribution,
- * and on the first permutation whose threshold (perm[0]) is >= the blend
- * value, blends an RGB pair (perm+0x4 .. perm+0x10) into the slot color via
- * FUN_0007c270. Finally clamps each RGB component of the slot to [0,1] and
- * writes the clamped triple to the +0x30 mirror (obj+0x138 slot layout:
- * base RGB at +0, clamped RGB at +0x30).
- * Role: object spawn-appearance setup; establishes per-object tinting.
- * object_handle in EAX (register arg); color_data is first stack argument.
- * Confirmed: PUSH -1; PUSH EAX; CALL object_get_and_verify_type.
- * Confirmed: pseudo-random frac via x87_fmod(|dot|, 1.0) (CALL 0x1daf7e).
- * Confirmed: clamp lo/hi = *(float*)0x2533c0 (0.0) / 0x2533c8 (1.0).
- * Confirmed: 4 iterations; dest stride 0xc bytes, color_data stride 0xc. */
-void object_choose_random_change_colors(int object_handle /* @<eax> */,
-                                        void *color_data)
-{
-  char *obj;
-  int obj_tag;
-  float *src;
-  float *dst;
-  int i;
-  int count;
-
-  obj = (char *)object_get_and_verify_type(object_handle, -1);
-  obj_tag = (int)tag_get(0x6f626a65, *(int *)obj);
-  src = (float *)color_data;
-  dst = (float *)(obj + 0x138);
-
-  /* fixed 4-slot loop: separate index i and a 4->0 down-counter, matching
-   * the reference's movl $0x4/decl/jne tail. */
-  i = 0;
-  count = 4;
+  uVar10 = 0;
+  sVar9 = 0;
+  csmemset(dump_by_def, 0, sizeof(dump_by_def));
+  csmemset(local_613c, 0, sizeof(local_613c));
+  sVar2 = 0;
+  puVar5 = &local_140;
   do {
-    float frac;
-
-    /* base RGB triple from placement data */
-    dst[0] = src[0];
-    dst[1] = src[1];
-    dst[2] = src[2];
-
-    if (i < *(int *)(obj_tag + 0x164)) {
-      char *cc_elem = (char *)tag_block_get_element(
-          (void *)(obj_tag + 0x164), i, 0x2c);
-
-      /* deterministic pseudo-random selector from object basis + slot index;
-       * the FABS is applied to the dot sum before the modulo. The whole
-       * chain stays FPU-resident: fmul/faddp -> fabs -> fldl 1.0 -> call fmod.
-       * VC71 /Oi lowers fmod to _CIfmod (the call at 0x1daf7e) and fabsf to a
-       * bare FABS; clang takes the x87_fmod (FPREM) branch. */
-#if defined(_MSC_VER) && !defined(__clang__)
-      frac = (float)fmod(fabs((double)(
-                 *(float *)(obj + 0x14) * *(float *)0x29bbe0 +
-                 *(float *)(obj + 0xc) * *(float *)0x29bbdc +
-                 *(float *)(obj + 0x10) * *(float *)0x29bbd8 +
-                 (float)i * *(float *)0x29bbd4)),
-             1.0);
-#else
-      frac = x87_fmod(fabsf(
-                 *(float *)(obj + 0x14) * *(float *)0x29bbe0 +
-                 *(float *)(obj + 0xc) * *(float *)0x29bbdc +
-                 *(float *)(obj + 0x10) * *(float *)0x29bbd8 +
-                 (float)i * *(float *)0x29bbd4),
-             1.0);
-#endif
-
-      if (*(int *)(cc_elem + 0x20) > 0) {
-        int16_t j = 0;
+    *(short *)((char *)puVar5 + 4) = sVar2;
+    *puVar5 = -1;
+    sVar2 = sVar2 + 1;
+    puVar5 = puVar5 + 6;
+  } while (sVar2 < 0xc);
+  object_iterator_new(&dump_iter, -1, 0);
+  piVar3 = (int *)object_iterator_next(&dump_iter);
+  do {
+    if (piVar3 == (int *)0) {
+      /* Done iterating — output report */
+      stream = (void *)CALL_FUN_001d9e59("objects.txt", "wt");
+      if (stream != (void *)0) {
+        FUN_0013db60((short *)stream);
+        CALL_FUN_001d9260(
+          stream,
+          "#%d objects (#%d active) using %3.2f%% of available memory\n\n");
+        CALL_FUN_001d9260(stream, "OBJECTS BY TYPE\n");
+        CALL_FUN_001d9260(stream, "number (active) [garbage/   "
+                                  "dead/outside/at-rest] maxsize totsize\n");
+        psVar7 = local_13c;
+        iVar4 = 0xc;
         do {
-          float *perm = (float *)tag_block_get_element(
-              (void *)(cc_elem + 0x20), (int)j, 0x1c);
-          if (frac <= perm[0]) {
-            float blend;
-            /* FABS applies only to obj+0x10 here, before adding the index
-             * term; then fmod. Kept FPU-resident to mirror the reference
-             * (flds; fabs; flds i; fmuls; faddp; fldl 1.0; call fmod). */
-#if defined(_MSC_VER) && !defined(__clang__)
-            blend = (float)fmod(
-                fabs((double)*(float *)(obj + 0x10)) +
-                    (float)i * *(float *)0x29bbd0,
-                1.0);
-#else
-            blend = x87_fmod(
-                fabsf(*(float *)(obj + 0x10)) +
-                    (float)i * *(float *)0x29bbd0,
-                1.0);
-#endif
-            FUN_0007c270(dst, 1, perm + 1, perm + 4, blend);
-            break;
+          if (*(int *)(psVar7 - 2) == -1) {
+            if (*psVar7 != -1) {
+              FUN_0013c250(*psVar7);
+            }
+          } else {
+            CALL_FUN_001ba1f0(*(int *)(psVar7 - 2));
           }
-          j = j + 1;
-        } while ((int)j < *(int *)(cc_elem + 0x20));
+          CALL_FUN_001d9260(
+            stream, "% 6d (% 6d) [% 7d/% 7d/% 7d/% 7d] % 7d % 7d %s\r\n");
+          psVar7 = psVar7 + 0xc;
+          iVar4 = iVar4 - 1;
+        } while (iVar4 != 0);
+        CALL_FUN_001d9260(stream, "\n");
+        CALL_FUN_001d9260(stream, "OBJECTS BY DEFINITION\n");
+        CALL_FUN_001d9260(stream, "number (active) [garbage/   "
+                                  "dead/outside/at-rest] maxsize totsize\n");
+        if (0 < (short)uVar10) {
+          psVar7 = local_613c;
+          uVar8 = (unsigned int)uVar10;
+          do {
+            if (*(int *)(psVar7 - 2) == -1) {
+              if (*psVar7 != -1) {
+                FUN_0013c250(*psVar7);
+              }
+            } else {
+              CALL_FUN_001ba1f0(*(int *)(psVar7 - 2));
+            }
+            CALL_FUN_001d9260(
+              stream, "% 6d (% 6d) [% 7d/% 7d/% 7d/% 7d] % 7d % 7d %s\r\n");
+            psVar7 = psVar7 + 0xc;
+            uVar8 = uVar8 - 1;
+          } while (uVar8 != 0);
+        }
+        CALL_FUN_001d9260(stream, "\n");
+        if (0 < sVar9) {
+          CALL_FUN_001d9260(
+            stream, "WARNING: overflowed MAXIMUM_DUMPS (%d), this dump does "
+                    "not include %d objects that would not fit!\n");
+        }
+        CALL_FUN_001d9260(stream, "\n");
+        CALL_FUN_001d9260(stream, 0); /* _fclose */
       }
+      return;
     }
-
-    /* clamp each component to [0,1] and store in the +0x30 mirror.
-     * Same min/max idiom as object_compute_change_colors: strictly-below-lo
-     * -> lo, strictly-above-hi -> hi, else keep (NaN falls through to the
-     * value), matching fcomps/test $5/jp then fcomps/test $0x41/jne. */
-    dst[0xc] = (dst[0] < *(float *)0x2533c0)
-                   ? *(float *)0x2533c0
-                   : ((dst[0] > *(float *)0x2533c8) ? *(float *)0x2533c8 : dst[0]);
-    dst[0xd] = (dst[1] < *(float *)0x2533c0)
-                   ? *(float *)0x2533c0
-                   : ((dst[1] > *(float *)0x2533c8) ? *(float *)0x2533c8 : dst[1]);
-    dst[0xe] = (dst[2] < *(float *)0x2533c0)
-                   ? *(float *)0x2533c0
-                   : ((dst[2] > *(float *)0x2533c8) ? *(float *)0x2533c8 : dst[2]);
-
-    src = src + 3;
-    dst = dst + 3;
-    i = i + 1;
-  } while (--count != 0);
-}
-
-/* 0x13e5d0 / objects.obj — Recompute the object's live change colors from its
- * current animation-function values. Gated on the object tag flag bit 0 at
- * obj_tag+0x24. For each change-color animation entry (block obj_tag+0x164,
- * element size 0x2c): if its blend-function index (entry+0x2) is nonzero,
- * blends an RGB pair (entry+0x8 .. entry+0x14) into the computed color slot
- * (obj+0x168 + i*0xc) using the precomputed function value as the blend
- * weight; if its scale-function index (entry+0x0) is nonzero, multiplies all
- * three components of the slot by that function value; finally clamps each
- * component to [0,1] in place. Function values are read directly from the
- * precomputed array at obj+0xd0 (filled by object_compute_function_values).
- * Role: object spawn-appearance / per-frame appearance update.
- * object_handle in EAX (register arg).
- * Confirmed: PUSH -1; PUSH EAX; CALL object_get_and_verify_type.
- * Confirmed: gate on (*(uint8_t*)(obj_tag+0x24) & 1).
- * Confirmed: function value = *(float*)(obj + 0xd0 + fn_idx*4).
- * Confirmed: computed color slot base obj+0x168 (the +0x30 change-color mirror).
- * Confirmed: clamp lo/hi = *(float*)0x2533c0 / 0x2533c8. */
-void object_compute_change_colors(int object_handle /* @<eax> */)
-{
-  char *obj;
-  int obj_tag;
-  int16_t i;
-  int16_t counter;
-
-  obj = (char *)object_get_and_verify_type(object_handle, -1);
-  obj_tag = (int)tag_get(0x6f626a65, *(int *)obj);
-  if ((*(unsigned char *)(obj_tag + 0x24) & 1) == 0) {
-    return;
-  }
-
-  i = 0;
-  counter = 0;
-  if (*(int *)(obj_tag + 0x164) <= 0) {
-    return;
-  }
-  do {
-    char *entry = (char *)tag_block_get_element(
-        (void *)(obj_tag + 0x164), (int)i, 0x2c);
-    float *slot = (float *)(obj + 0x168 + (int)i * 0xc);
-    int16_t blend_fn;
-    int16_t scale_fn;
-
-    /* blend-function: blend the entry RGB pair into the slot */
-    blend_fn = *(int16_t *)(entry + 0x2);
-    if (blend_fn != 0) {
-      float fn_val = (int)blend_fn >= 5
-          ? *(float *)(obj + 0xe4 + ((int)blend_fn - 5) * 4)
-          : *(float *)(obj + 0xd0 + (int)blend_fn * 4);
-      FUN_0007c270(slot, *(int *)(entry + 0x4),
-                   (float *)(entry + 0x8), (float *)(entry + 0x14), fn_val);
+    uVar6 = 0;
+    uVar1 = 0xffff;
+    if (0 < (short)uVar10) {
+      do {
+        if (dump_by_def[(short)uVar6 * 6] == *piVar3) {
+          uVar1 = uVar6;
+          if (uVar6 != 0xffff)
+            goto LAB_0013f5ad;
+          break;
+        }
+        uVar6 = uVar6 + 1;
+      } while ((short)uVar6 < (short)uVar10);
     }
-
-    /* scale-function: multiply all three components by the function value */
-    scale_fn = *(int16_t *)entry;
-    if (scale_fn != 0) {
-      float fn_val = (int)scale_fn >= 5
-          ? *(float *)(obj + 0xe4 + ((int)scale_fn - 5) * 4)
-          : *(float *)(obj + 0xd0 + (int)scale_fn * 4);
-      slot[0] = fn_val * slot[0];
-      slot[1] = fn_val * slot[1];
-      slot[2] = fn_val * slot[2];
-    }
-
-    /* clamp each component to [0,1] in place.
-     * Faithful to the reference min/max idiom: strictly-below-lo -> lo,
-     * strictly-above-hi -> hi, else keep (NaN falls through to the value,
-     * matching fcomps/test $5/jp then fcomps/test $0x41/jne polarity). */
-    slot[0] = (slot[0] < *(float *)0x2533c0)
-                  ? *(float *)0x2533c0
-                  : ((slot[0] > *(float *)0x2533c8) ? *(float *)0x2533c8 : slot[0]);
-    slot[1] = (slot[1] < *(float *)0x2533c0)
-                  ? *(float *)0x2533c0
-                  : ((slot[1] > *(float *)0x2533c8) ? *(float *)0x2533c8 : slot[1]);
-    slot[2] = (slot[2] < *(float *)0x2533c0)
-                  ? *(float *)0x2533c0
-                  : ((slot[2] > *(float *)0x2533c8) ? *(float *)0x2533c8 : slot[2]);
-
-    counter = counter + 1;
-    i = counter;
-  } while ((int)i < *(int *)(obj_tag + 0x164));
-}
-
-/* 0x140ad0 / objects.obj — Choose random region permutations for an object's
- * model during spawn, honoring the object's requested variant (obj+0x6e).
- * Resolves the model tag (group 'mode') from the object tag (group 'obje'),
- * then asks object_select_random_region_permutations_by_variant to populate
- * the per-region permutation indices at obj+0x130. If the requested variant
- * is not positive, or selection by that variant fails for any region, falls
- * back to variant -1 (any), then determines an actual variant number via
- * object_determine_variant_number, records it in obj+0x6e, and (if positive)
- * re-selects permutations for that resolved variant.
- * Role: part of the object spawn-appearance setup chain in object_new.
- * object_handle in EDI (register arg).
- * Confirmed: PUSH -1; PUSH EDI; CALL object_get_and_verify_type.
- * Confirmed: tag_get('obje', obj->tag_index) then tag_get('mode', tag+0x34).
- * Confirmed: variant read as int16_t from obj+0x6e (sign-extended; <=0 path).
- * Confirmed: callees receive object_handle in EAX (MOV EAX,EDI before CALL). */
-void object_choose_random_region_permutations(int object_handle /* @<edi> */)
-{
-  char *obj;
-  int obj_tag;
-  void *model_tag;
-  int16_t variant;
-  int16_t resolved;
-
-  obj = (char *)object_get_and_verify_type(object_handle, -1);
-  obj_tag = (int)tag_get(0x6f626a65, *(int *)obj);
-  if (*(int *)(obj_tag + 0x34) == -1) {
-    return;
-  }
-
-  model_tag = tag_get(0x6d6f6465, *(int *)(obj_tag + 0x34));
-  variant = *(int16_t *)(obj + 0x6e);
-  if (variant < 1 ||
-      object_select_random_region_permutations_by_variant(
-          object_handle, model_tag, variant) == 0) {
-    object_select_random_region_permutations_by_variant(
-        object_handle, model_tag, -1);
-    resolved = object_determine_variant_number(object_handle, model_tag);
-    *(int16_t *)(obj + 0x6e) = resolved;
-    if (resolved > 0) {
-      object_select_random_region_permutations_by_variant(
-          object_handle, model_tag, resolved);
-    }
-  }
-}
-
-/* 0x13e7b0 / objects.obj — Evaluate all of the object tag's animation
- * functions for the current frame and store the results into the object's
- * function-value array (obj+0xe4 onward), updating the per-function active
- * bitmask byte at obj+0xd3.
- *
- * For each function definition (block obj_tag+0x158, element size 0x168):
- *   - Builds a per-object time input: (game_time_get() + (handle&0xffff)*0x39)
- *     scaled by a global constant (0x2546a4).
- *   - Evaluates a periodic waveform (FUN_0010a5e0) over that time, optionally
- *     scaled by a referenced function value, then applies inversion (flag 1),
- *     a secondary sinusoidal offset term, a step threshold, an exponent/floor
- *     stage, a modulo wrap, an additive function with clamp-to-1, a final
- *     multiplier function, a transition remap (transition_function_evaluate),
- *     a scale, and a range remap with min/max clamping (modes 1/2).
- *   - Computes an "active" bit from flag bit 2 and a dependency function's
- *     active bit (obj+0xd3 & (1<<elem[+0x36])).
- *   - With flag bit 1, wraps the result by adding the prior slot value and
- *     taking fmod(.,1.0) (accumulator).
- *   - Writes the result to obj+0xe4+i*4 and updates obj+0xd3 bit i.
- *
- * Role: object spawn / per-frame appearance; feeds object_compute_change_colors
- * and node/marker animation. Function values 0-4 (obj+0xd0) are engine
- * built-ins; indices 5+ written here begin at obj+0xe4 (=obj+0xd0+5*4).
- * object_handle in EAX (register arg).
- * Confirmed: ESI=object_handle saved before object_get_and_verify_type(EAX,-1).
- * Confirmed: time scale const *(float*)0x2546a4; output array obj+0xe4.
- * Confirmed: CMP 0x5;JL branches are vestigial bounds checks (identical loads).
- * Uncertain: many field offsets within the 0x168-byte element (see inline). */
-void object_compute_function_values(int object_handle /* @<eax> */)
-{
-  char *obj;
-  int obj_tag;
-  float time_base;
-  int func_count;
-  int16_t i;
-  int16_t counter;
-
-  obj = (char *)object_get_and_verify_type(object_handle, -1);
-  obj_tag = (int)tag_get(0x6f626a65, *(int *)obj);
-
-  /* per-object time input, scaled to seconds */
-  time_base = (float)(game_time_get() + (object_handle & 0xffff) * 0x39) *
-              *(float *)0x2546a4;
-
-  func_count = *(int *)(obj_tag + 0x158);
-  i = 0;
-  counter = 0;
-  if (func_count <= 0) {
-    return;
-  }
-  do {
-    char *elem = (char *)tag_block_get_element(
-        (void *)(obj_tag + 0x158), (int)i, 0x168);
-    unsigned char active;
-    float value;
-    float t;
-    int16_t fn;
-    int16_t mode;
-
-    active = 1;
-
-    /* --- primary periodic waveform --- */
-    t = *(float *)(elem + 0x144);
-    fn = *(int16_t *)(elem + 0x8);
-    if (fn != 0) {
-      float fv = (int)fn >= 5
-                     ? *(float *)(obj + 0xe4 + ((int)fn - 5) * 4)
-                     : *(float *)(obj + 0xd0 + (int)fn * 4);
-      if (fv > *(float *)0x2533c0) {
-        t = t / fv;
-      }
-    }
-    t = t * time_base;
-    value = FUN_0010a5e0(*(int16_t *)(elem + 0xa), t);
-
-    /* --- optional amplitude function --- */
-    fn = *(int16_t *)(elem + 0xc);
-    if (fn != 0) {
-      value = ((int)fn >= 5
-                   ? *(float *)(obj + 0xe4 + ((int)fn - 5) * 4)
-                   : *(float *)(obj + 0xd0 + (int)fn * 4)) *
-              value;
-    }
-
-    /* --- inversion (flag bit 0) --- */
-    if ((*(unsigned char *)elem & 1) != 0) {
-      value = *(float *)0x2533c8 - value;
-    }
-
-    /* --- secondary sinusoidal offset term (when elem+0x14 != 0) --- */
-    if (*(float *)(elem + 0x14) != *(float *)0x2533c0) {
-      float w = FUN_0010a5e0(*(int16_t *)(elem + 0xe),
-                             time_base * *(float *)(elem + 0x10));
-      w = (w - *(float *)0x253398) * *(float *)(elem + 0x14);
-      value = w + w + value;
-    }
-
-    /* --- step threshold (when elem+0x18 != 0): 1.0 if value>thr else 0.0 --- */
-    if (*(float *)(elem + 0x18) != *(float *)0x2533c0) {
-      float prev = value;
-      value = 1.0f;
-      if (prev <= *(float *)(elem + 0x18)) {
-        value = 0.0f;
-      }
-    }
-
-    /* --- exponent/floor stage (when elem+0x1c > 1) --- */
-    if (*(int16_t *)(elem + 0x1c) > 1) {
-      value = (float)floor((double)((float)*(int16_t *)(elem + 0x1c) * value)) *
-              *(float *)(elem + 0x140);
-    }
-
-    /* --- modulo wrap (when elem+0x13c > 0) --- */
-    if (*(float *)(elem + 0x13c) > *(float *)0x2533c0) {
-      /* VC71 /Oi lowers fmod to _CIfmod (flds value; flds elem+0x13c; call);
-       * clang takes the x87_fmod (FPREM) branch. */
-#if defined(_MSC_VER) && !defined(__clang__)
-      value = (float)fmod((double)value, (double)*(float *)(elem + 0x13c));
-#else
-      value = x87_fmod(value, (double)*(float *)(elem + 0x13c));
-#endif
-    }
-
-    /* --- additive function with clamp-to-1 --- */
-    fn = *(int16_t *)(elem + 0x22);
-    if (fn != 0) {
-      value = ((int)fn >= 5
-                   ? *(float *)(obj + 0xe4 + ((int)fn - 5) * 4)
-                   : *(float *)(obj + 0xd0 + (int)fn * 4)) +
-              value;
-      if (value > *(float *)0x2533c8) {
-        value = *(float *)0x2533c8;
-      }
-    }
-
-    /* --- final multiplier function --- */
-    fn = *(int16_t *)(elem + 0x24);
-    if (fn != 0) {
-      value = ((int)fn >= 5
-                   ? *(float *)(obj + 0xe4 + ((int)fn - 5) * 4)
-                   : *(float *)(obj + 0xd0 + (int)fn * 4)) *
-              value;
-    }
-
-    /* --- transition remap --- */
-    value = transition_function_evaluate(*(int16_t *)(elem + 0x1e), value);
-
-    /* --- scale (when elem+0x38 > 0) --- */
-    if (*(float *)(elem + 0x38) > *(float *)0x2533c0) {
-      value = value * *(float *)(elem + 0x38);
-    }
-
-    /* --- range remap (modes 1/2) --- */
-    mode = *(int16_t *)(elem + 0x26);
-    if (mode == 2) {
-      value = (*(float *)(elem + 0x2c) - *(float *)(elem + 0x28)) * value +
-              *(float *)(elem + 0x28);
-      if (*(float *)(elem + 0x28) + *(float *)0x253f44 >= value) {
-        active = (unsigned char)(*(unsigned int *)elem >> 2) & 1;
-      }
+    uVar6 = uVar1;
+    if ((short)uVar10 < 0x400) {
+      local_613c[(short)uVar10 * 0xc] = -1;
+      dump_by_def[(short)uVar10 * 6] = *piVar3;
+      uVar6 = uVar10;
+      uVar10 = uVar10 + 1;
     } else {
-      if (*(float *)(elem + 0x28) + *(float *)0x253f44 >= value) {
-        value = *(float *)(elem + 0x28);
-        active = (unsigned char)(*(unsigned int *)elem >> 2) & 1;
-      }
-      if (value > *(float *)(elem + 0x2c)) {
-        value = *(float *)(elem + 0x2c);
-      }
-      if (mode == 1) {
-        value = (value - *(float *)(elem + 0x28)) * *(float *)(elem + 0x138);
-      }
+      sVar9 = sVar9 + 1;
     }
-
-    /* --- dependency on another function's active bit --- */
-    if (*(int16_t *)(elem + 0x36) != -1 &&
-        (*(unsigned char *)(obj + 0xd3) &
-         (unsigned char)(1 << (int)*(int16_t *)(elem + 0x36))) == 0) {
-      active = 0;
+  LAB_0013f5ad:
+    iVar4 = (int)datum_get(*(void **)0x5a8d50, 0);
+    if (uVar6 != 0xffff) {
+      CALL_FUN_0013f3b0((int *)((char *)dump_by_def + (short)uVar6 * 24),
+                        iVar4);
     }
-
-    /* --- accumulator wrap (flag bit 1), using prior slot value --- */
-    if ((*(unsigned char *)elem & 2) != 0) {
-      /* accumulator wrap: fmod(value + prior_slot, 1.0) kept FPU-resident
-       * (flds value; fadds slot; fldl 1.0; call _CIfmod under VC71). */
-#if defined(_MSC_VER) && !defined(__clang__)
-      value = (float)fmod(
-          (double)(value + *(float *)(obj + 0xe4 + (int)i * 4)), 1.0);
-#else
-      value = x87_fmod(value + *(float *)(obj + 0xe4 + (int)i * 4), 1.0);
-#endif
+    if (0xb < *(unsigned char *)(iVar4 + 3)) {
+      display_assert("object->type < NUMBER_OF_OBJECT_TYPES",
+                     "c:\\halo\\SOURCE\\objects\\objects.c", 0, 1);
+      CALL_thunk_FUN_001029a0(-1);
     }
-
-    /* --- store result and update active bitmask --- */
-    *(float *)(obj + 0xe4 + (int)i * 4) = value;
-    if (active != 0) {
-      *(unsigned char *)(obj + 0xd3) =
-          *(unsigned char *)(obj + 0xd3) | (unsigned char)(1 << (int)i);
-    } else {
-      *(unsigned char *)(obj + 0xd3) =
-          *(unsigned char *)(obj + 0xd3) & ~(unsigned char)(1 << (int)i);
-    }
-
-    counter = counter + 1;
-    i = counter;
-  } while ((int)i < *(int *)(obj_tag + 0x158));
+    CALL_FUN_0013f3b0(
+      (int *)((char *)&local_140 + *(unsigned char *)(iVar4 + 3) * 24), iVar4);
+    piVar3 = (int *)object_iterator_next(&dump_iter);
+  } while (1);
 }
 
 /*
@@ -5624,11 +8478,11 @@ void object_compute_function_values(int object_handle /* @<eax> */)
  *
  * The allocation strategy differs between editor and non-editor modes:
  *   Non-editor: game_state_data_new("object", 0x800, 0xc) — data_array_new from
- *               game-state block; game_state_memory_pool_new("objects", 0x100000) —
- *               memory-pool_new from game-state block.
- *   Editor:     data_new("object", 0x2800, 0xc) — data_array_new from
- *               main heap; memory_pool_new("objects", &DAT_500000) — memory-
- *               pool_new from main heap using a size read from 0x500000.
+ *               game-state block; game_state_memory_pool_new("objects",
+ * 0x100000) — memory-pool_new from game-state block. Editor: data_new("object",
+ * 0x2800, 0xc) — data_array_new from main heap; memory_pool_new("objects",
+ * &DAT_500000) — memory- pool_new from main heap using a size read from
+ * 0x500000.
  *
  * Sub-system init call order (confirmed from disasm):
  *   widgets_initialize_for_new_map — unknown object sub-type A init
@@ -5642,12 +8496,11 @@ void object_compute_function_values(int object_handle /* @<eax> */)
  *            the editor allocation path.
  * Confirmed: ADD ESP,0x14 after display_assert+system_exit cleans 5 words
  *            (4 for display_assert + 1 for system_exit) in all 3 assert sites.
- * Confirmed: game_state_malloc("object globals", 0, 0x98) allocates object_globals;
- *            game_state_malloc("object name list", 0, 0x800) allocates name list.
- *            Both are game_state_alloc(name, tag?, size) — 3 cdecl args,
- *            ADD ESP,0xc each.
- * Confirmed: FUN_00191500 takes (void *partition, const char *name) — called
- *            twice; ADD ESP,0x10 cleans both calls (2 args * 2 calls).
+ * Confirmed: game_state_malloc("object globals", 0, 0x98) allocates
+ * object_globals; game_state_malloc("object name list", 0, 0x800) allocates
+ * name list. Both are game_state_alloc(name, tag?, size) — 3 cdecl args, ADD
+ * ESP,0xc each. Confirmed: FUN_00191500 takes (void *partition, const char
+ * *name) — called twice; ADD ESP,0x10 cleans both calls (2 args * 2 calls).
  */
 void objects_initialize(void)
 {
@@ -6118,6 +8971,48 @@ void object_disconnect_from_map(int object_handle)
   header->unk_2 &= ~0x20;
 }
 
+/*
+ * object_get_first_cluster (0x13fe10 / objects.obj) — begin iterating the
+ * cluster set that an object belongs to; returns the first cluster's marker (or
+ * NONE).
+ *
+ * Resolves the object's root parent (object_get_root_parent), then selects the
+ * cluster-partition table based on the root object's flags: table 0x5a8d40 when
+ * flag bit 0x2000000 is set, otherwise 0x5a8d30. Stores the table pointer in
+ * iter_state[0] and initializes the cluster iterator via FUN_00191690, seeding
+ * it with the root object's cluster reference (root_object+0xbc) and writing
+ * the iterator state into iter_state[1]. Returns FUN_00191690's first cluster
+ * marker.
+ *
+ * Read-only with respect to object lifecycle: writes only the caller's 8-byte
+ * iter_state buffer ([0] table ptr, [4] cluster iterator state). Paired with
+ * FUN_0013d5f0 (cluster-next) on the same iter_state.
+ *
+ * Confirmed: 2 cdecl args (iter_state @ [EBP+0x8] ESI, object_handle @
+ * [EBP+0xc]). Confirmed: object_get_root_parent(object_handle) result reused
+ * for both object_get_and_verify_type(root, -1) calls (flags read +0x4, cluster
+ * ref +0xbc). Confirmed: returns FUN_00191690's EAX (first cluster marker,
+ * int16_t in callers).
+ */
+int16_t object_get_first_cluster(void *iter_state, int object_handle)
+{
+  unsigned int **iter = (unsigned int **)iter_state;
+  int root;
+  int root_obj;
+  unsigned int *table;
+
+  root = object_get_root_parent(object_handle);
+  root_obj = (int)object_get_and_verify_type(root, -1);
+  table = (unsigned int *)0x5a8d40;
+  if ((*(unsigned int *)(root_obj + 4) & 0x2000000) == 0) {
+    table = (unsigned int *)0x5a8d30;
+  }
+  iter[0] = table;
+  root_obj = (int)object_get_and_verify_type(root, -1);
+  return (int16_t)FUN_00191690(iter[0], (int *)(iter + 1),
+                               *(int *)(root_obj + 0xbc));
+}
+
 /* Get the node matrices reference block for an object.
  * Returns the header block reference at offset 0x1a0 from the object header.
  * 0x13fe70 / objects.obj
@@ -6246,12 +9141,13 @@ void object_set_automatic_deactivation(int object_handle, char param_2)
  * Reads the object's tag definition via tag_get to check whether the tag
  * has a children block (tag[0x34] != -1). If it does, and the object's
  * bit 0 of obj->flags (active/inactive state) is out of sync with the
- * requested flag, calls object_propagate_flag_to_children (via EAX register arg) to propagate
- * the state change to child objects before committing the datum update.
+ * requested flag, calls object_propagate_flag_to_children (via EAX register
+ * arg) to propagate the state change to child objects before committing the
+ * datum update.
  *
- * object_propagate_flag_to_children (0x13ee60) takes (int object_handle @EAX, char param_1,
- *   char param_2) — 2 stack args, object_handle in EAX register. Uses
- *   args-array inline asm pattern to avoid EAX aliasing.
+ * object_propagate_flag_to_children (0x13ee60) takes (int object_handle @EAX,
+ * char param_1, char param_2) — 2 stack args, object_handle in EAX register.
+ * Uses args-array inline asm pattern to avoid EAX aliasing.
  *
  * Final datum update:
  *   flag==0: set obj->flags bit 0; clear datum byte[2] bit 1 (0x02).
@@ -6367,9 +9263,9 @@ void object_get_root_location(int object_handle, float *position_out,
 /*
  * object_get_location — returns the root object's 8-byte location pair.
  *
- * Resolves the topmost parent handle via object_get_root_parent(handle), verifies that
- * object with object_get_and_verify_type(root_handle, -1), then copies dwords
- * at offsets +0x48 and +0x4c into location_out.
+ * Resolves the topmost parent handle via object_get_root_parent(handle),
+ * verifies that object with object_get_and_verify_type(root_handle, -1), then
+ * copies dwords at offsets +0x48 and +0x4c into location_out.
  *
  * Confirmed: CALL 0x13d7f0 with object_handle, then CALL 0x13d680 with
  *            returned handle and mask -1.
@@ -6382,7 +9278,7 @@ void object_get_location(int object_handle, void *location_out)
    * evaluating object_get_root_parent (matches the original's interleaved push
    * scheduling). */
   object_data_t *obj = (object_data_t *)object_get_and_verify_type(
-      object_get_root_parent(object_handle), -1);
+    object_get_root_parent(object_handle), -1);
   uint32_t *out = (uint32_t *)location_out;
 
   out[0] = obj->unk_72;
@@ -6811,214 +9707,6 @@ void FUN_00140750(void)
 }
 
 /*
- * FUN_00141900 (0x141900 / objects.obj) — delete every object flagged for
- * deletion (object flags bit 0x400000).
- *
- * Mirrors FUN_00140750's structure: data_verify the object table, then walk all
- * objects with an inlined iterator (type_mask = -1, flags = 0, the binary inlines
- * object_iterator_new's five field stores).  Each object whose flags carry bit
- * 0x400000 is removed via object_delete_internal(handle, 0).
- *
- * Confirmed (disasm 0x141900): data_verify(*(data_t**)0x5a8d50); iterator at
- * EBP-0x10 with EAX=-1 written to type_mask(+0)/last_handle(+8), byte flags(+4)=0,
- * word index(+6)=0, cookie(+0xc)=0x86868686; TEST [EAX+4],0x400000 then
- * object_delete_internal(it.last_handle, 0) with PUSH 0 / PUSH last_handle.
- */
-void FUN_00141900(void)
-{
-  object_iter_t it;
-  object_data_t *obj;
-
-  data_verify(*(data_t **)0x5a8d50);
-
-  it.type_mask = -1;
-  it.flags = 0;
-  it.current_index = 0;
-  it.last_handle = -1;
-  it.cookie = 0x86868686;
-
-  obj = (object_data_t *)object_iterator_next(&it);
-  while (obj != (object_data_t *)0) {
-    if ((*(unsigned int *)((char *)obj + 4) & 0x400000) != 0) {
-      object_delete_internal(it.last_handle, 0);
-    }
-    obj = (object_data_t *)object_iterator_next(&it);
-  }
-}
-
-/*
- * FUN_00141970 (0x141970 / objects.obj) — evaluate the four object "function
- * input" values from the object tag and store them into the object's function
- * value cache (object+0xd4, four floats).
- *
- * For each of the four function-input source codes (object tag+0x108, stride 2),
- * a non-zero code selects a value via a jump table (table at 0x141b38, byte index
- * map at 0x141b58 keyed on code-1):
- *   code 1  -> object+0x90               (raw float)
- *   code 2  -> object+0x94, clamped <=1.0
- *   code 3  -> object+0x9c
- *   code 4  -> object+0x98
- *   code 5  -> if cached value == 1.0, a new random value (random_math_real)
- *   code 0x12 -> 0.0 when object+0xb6 bit 4 set, else 1.0
- *   code 0x13 -> heading-vs-scenario angle: atan2(marker[+4], marker[+8]) of the
- *                base node marker (object_get_node_matrix(handle,0)); wrapped
- *                against scenario+0x4c (FUN_000b6dd0), scaled (0x29c120) + offset
- *                (0x253398), clamped to [0,1]; falls back to the cached value when
- *                |marker[+0xc]| >= threshold (0x29c128)
- *   codes 0xa..0x11 (default) -> region state byte object+0x128+(code-0xa) * 0x261518
- *   any other code in default range -> assert (region_index out of range)
- *
- * Read-only with respect to object lifecycle: writes only the object's own
- * function value cache (object+0xd4..). No GC/garbage/cluster-list mutation.
- *
- * Confirmed: 1 cdecl arg (object_handle @ [EBP+0x8]); 4-iteration loop ([EBP-0x8]).
- * Confirmed: default value is 0.0 (FLOAT 0x2533c0); 1.0 = 0x2533c8.
- * Confirmed (push-then-fstp): FUN_000b6dd0 takes TWO args — param_1 = scenario+0x4c
- * (PUSH ECX at 0x141a9a), param_2 = the FPATAN result stored via FSTP [ESP] at
- * 0x141a8f over the PUSH ECX at 0x141a89; ADD ESP,8 cleans both. Decompiler
- * dropped param_2.
- * Confirmed: jump table at 0x141b38 / index map at 0x141b58 (code-1 keyed).
- */
-void FUN_00141970(int param_1)
-{
-  int *obj;
-  int obj_tag;
-  short *codes;
-  float *values;
-  int n;
-  short code;
-  short region;
-  float value;
-  int marker;
-  float angle;
-
-  obj = (int *)object_get_and_verify_type(param_1, -1);
-  obj_tag = (int)tag_get(0x6f626a65, *obj);
-  codes = (short *)(obj_tag + 0x108);
-  values = (float *)(obj + 0x35);   /* object+0xd4 */
-  n = 4;
-  do {
-    code = *codes;
-    if (code != 0) {
-      value = *(float *)0x2533c0;   /* default 0.0 */
-      switch (code) {
-      case 1:
-        value = *(float *)((char *)obj + 0x90);
-        break;
-      case 2:
-        value = *(float *)((char *)obj + 0x94);
-        if (*(float *)0x2533c8 < value) {
-          value = *(float *)0x2533c8;
-        }
-        break;
-      case 3:
-        value = *(float *)((char *)obj + 0x9c);
-        break;
-      case 4:
-        value = *(float *)((char *)obj + 0x98);
-        break;
-      case 5:
-        if (*values == 1.0f) {
-          value = random_math_real((unsigned int *)get_global_random_seed_address());
-        }
-        break;
-      case 0x12:
-        if ((*(unsigned char *)((char *)obj + 0xb6) & 4) == 0) {
-          value = *(float *)0x2533c8;
-        } else {
-          value = *(float *)0x2533c0;
-        }
-        break;
-      case 0x13:
-        marker = (int)object_get_node_matrix(param_1, 0);
-        if ((float)xbox_fabsf(*(float *)(marker + 0xc)) >= *(float *)0x29c128) {
-          value = *values;
-        } else {
-          angle = (float)xbox_atan2((double)*(float *)(marker + 4),
-                                    (double)*(float *)(marker + 8));
-          angle = FUN_000b6dd0(*(float *)((char *)global_scenario_get() + 0x4c), angle);
-          value = angle * *(float *)0x29c120 + *(float *)0x253398;
-          if (*(float *)0x2533c0 <= value) {
-            if (*(float *)0x2533c8 < value) {
-              value = *(float *)0x2533c8;
-            }
-          } else {
-            value = *(float *)0x2533c0;
-          }
-        }
-        break;
-      default:
-        region = (short)(code - 0xa);
-        if ((region < 0) || (region >= 8)) {
-          display_assert("region_index>=0 && region_index<MAXIMUM_REGIONS_PER_OBJECT",
-                         "c:\\halo\\SOURCE\\objects\\objects.c", 0xa46, 1);
-          system_exit(-1);
-        }
-        value = (float)*(unsigned char *)((char *)obj + 0x128 + (int)region)
-                * *(float *)0x261518;
-        break;
-      }
-      *values = value;
-    }
-    codes = codes + 1;
-    values = values + 1;
-    n = n - 1;
-  } while (n != 0);
-}
-
-/*
- * FUN_00145490 (0x145490 / objects.obj) — flush deferred object work: run one
- * garbage-collect tick, then compact the global objects memory pool (0x46f080).
- *
- * Confirmed (disasm 0x145490): CALL objects_garbage_collect_tick (0x144b50);
- * MOV EAX,[0x46f080]; PUSH EAX; CALL memory_pool_compact (0x11e840); POP ECX.
- */
-void FUN_00145490(void)
-{
-  objects_garbage_collect_tick();
-  memory_pool_compact(*(void **)0x46f080);
-}
-
-/*
- * object_get_first_cluster (0x13fe10 / objects.obj) — begin iterating the cluster
- * set that an object belongs to; returns the first cluster's marker (or NONE).
- *
- * Resolves the object's root parent (object_get_root_parent), then selects the
- * cluster-partition table based on the root object's flags: table 0x5a8d40 when
- * flag bit 0x2000000 is set, otherwise 0x5a8d30. Stores the table pointer in
- * iter_state[0] and initializes the cluster iterator via FUN_00191690, seeding it
- * with the root object's cluster reference (root_object+0xbc) and writing the
- * iterator state into iter_state[1]. Returns FUN_00191690's first cluster marker.
- *
- * Read-only with respect to object lifecycle: writes only the caller's 8-byte
- * iter_state buffer ([0] table ptr, [4] cluster iterator state). Paired with
- * FUN_0013d5f0 (cluster-next) on the same iter_state.
- *
- * Confirmed: 2 cdecl args (iter_state @ [EBP+0x8] ESI, object_handle @ [EBP+0xc]).
- * Confirmed: object_get_root_parent(object_handle) result reused for both
- * object_get_and_verify_type(root, -1) calls (flags read +0x4, cluster ref +0xbc).
- * Confirmed: returns FUN_00191690's EAX (first cluster marker, int16_t in callers).
- */
-int16_t object_get_first_cluster(void *iter_state, int object_handle)
-{
-  unsigned int **iter = (unsigned int **)iter_state;
-  int root;
-  int root_obj;
-  unsigned int *table;
-
-  root = object_get_root_parent(object_handle);
-  root_obj = (int)object_get_and_verify_type(root, -1);
-  table = (unsigned int *)0x5a8d40;
-  if ((*(unsigned int *)(root_obj + 4) & 0x2000000) == 0) {
-    table = (unsigned int *)0x5a8d30;
-  }
-  iter[0] = table;
-  root_obj = (int)object_get_and_verify_type(root, -1);
-  return (int16_t)FUN_00191690(iter[0], (int *)(iter + 1),
-                               *(int *)(root_obj + 0xbc));
-}
-
-/*
  * object_visible_to_any_player — check if an object is visible to any player.
  *
  * Returns true (1) if the object occupies a PVS-visible cluster AND is within
@@ -7185,6 +9873,113 @@ void object_pvs_activate(int param_1)
   *(int *)(iVar1 + 0x94) = param_1;
 }
 
+/* 0x140a00 / objects.obj — Select random region permutations for an object
+ * matching a given variant number. For each region in the model, finds
+ * available permutations matching the variant, picks one randomly, and
+ * stores its index in the object's region permutation array at obj+0x130.
+ * Returns 1 if all regions had at least one valid permutation; 0 if any
+ * region had no available permutations matching the variant.
+ * object_handle in EAX (register arg).
+ * Confirmed: PUSH -1; PUSH EAX; CALL object_get_and_verify_type.
+ * Confirmed: tag_block at model_tag+0xc4, element size 0x4c.
+ * Confirmed: calls object_find_region_permutations_available_with_variant.
+ * Confirmed: if count==0, tries variant=0 as fallback.
+ * Confirmed: random_range(get_global_random_seed_address(), 0, count). */
+char object_select_random_region_permutations_by_variant(
+  int object_handle /* @<eax> */, void *model_tag, int16_t variant)
+{
+  char *obj;
+  int16_t region_count;
+  char all_ok;
+  int16_t i;
+  char *model = (char *)model_tag;
+  int16_t avail_buf[32];
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  region_count = 0;
+  all_ok = 1;
+  i = 0;
+  if (*(int *)(model + 0xc4) > 0) {
+    /* permuter 20260721 (+1.1pp raw): loop body indexes via region_count
+     * (i kept in sync) — pure register-role swap, value-identical. */
+    region_count = i;
+    do {
+      int16_t count;
+      char *region;
+
+      region = (char *)tag_block_get_element((void *)(model + 0xc4),
+                                             (int)region_count, 0x4c);
+      count = object_find_region_permutations_available_with_variant(
+        region, variant, avail_buf);
+      if (count == 0 &&
+          (variant == -1 ||
+           (count = object_find_region_permutations_available_with_variant(
+              region, 0, avail_buf),
+            count == 0))) {
+        *(unsigned char *)(obj + 0x130 + (int)region_count) = 0;
+        all_ok = 0;
+      } else {
+        int16_t chosen;
+        if (count == 1) {
+          chosen = 0;
+        } else {
+          int *seed = get_global_random_seed_address();
+          chosen = random_range((unsigned int *)seed, 0, count);
+        }
+        *(unsigned char *)(obj + 0x130 + (int)region_count) =
+          (unsigned char)*(unsigned char *)((char *)avail_buf + chosen * 2);
+      }
+      region_count = region_count + 1;
+      i = region_count;
+    } while ((int)region_count < *(int *)(model + 0xc4));
+  }
+  return all_ok;
+}
+
+/* 0x140ad0 / objects.obj — Choose random region permutations for an object's
+ * model during spawn, honoring the object's requested variant (obj+0x6e).
+ * Resolves the model tag (group 'mode') from the object tag (group 'obje'),
+ * then asks object_select_random_region_permutations_by_variant to populate
+ * the per-region permutation indices at obj+0x130. If the requested variant
+ * is not positive, or selection by that variant fails for any region, falls
+ * back to variant -1 (any), then determines an actual variant number via
+ * object_determine_variant_number, records it in obj+0x6e, and (if positive)
+ * re-selects permutations for that resolved variant.
+ * Role: part of the object spawn-appearance setup chain in object_new.
+ * object_handle in EDI (register arg).
+ * Confirmed: PUSH -1; PUSH EDI; CALL object_get_and_verify_type.
+ * Confirmed: tag_get('obje', obj->tag_index) then tag_get('mode', tag+0x34).
+ * Confirmed: variant read as int16_t from obj+0x6e (sign-extended; <=0 path).
+ * Confirmed: callees receive object_handle in EAX (MOV EAX,EDI before CALL). */
+void object_choose_random_region_permutations(int object_handle /* @<edi> */)
+{
+  char *obj;
+  int obj_tag;
+  void *model_tag;
+  int16_t variant;
+  int16_t resolved;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  obj_tag = (int)tag_get(0x6f626a65, *(int *)obj);
+  if (*(int *)(obj_tag + 0x34) == -1) {
+    return;
+  }
+
+  model_tag = tag_get(0x6d6f6465, *(int *)(obj_tag + 0x34));
+  variant = *(int16_t *)(obj + 0x6e);
+  if (variant < 1 || object_select_random_region_permutations_by_variant(
+                       object_handle, model_tag, variant) == 0) {
+    object_select_random_region_permutations_by_variant(object_handle,
+                                                        model_tag, -1);
+    resolved = object_determine_variant_number(object_handle, model_tag);
+    *(int16_t *)(obj + 0x6e) = resolved;
+    if (resolved > 0) {
+      object_select_random_region_permutations_by_variant(object_handle,
+                                                          model_tag, resolved);
+    }
+  }
+}
+
 void objects_scripting_set_scale(int param_1, int param_2, int16_t param_3)
 {
   int iVar1;
@@ -7215,7 +10010,8 @@ void objects_scripting_set_scale(int param_1, int param_2, int16_t param_3)
  *      children via object_propagate_flag_to_children (EAX=handle, args 1,0).
  *   5. Sets obj->flags bit 0 (deleted/inactive).
  *   6. Clears datum header bit 0x02 (active).
- *   7. Removes the object from the name list via object_remove_from_name_list (EDI=handle).
+ *   7. Removes the object from the name list via object_remove_from_name_list
+ * (EDI=handle).
  *
  * Confirmed: cdecl, 2 stack args (PUSH+PUSH, ADD ESP,0x8 at recursive sites).
  * Confirmed: CALL 0x0013d680 — object_get_and_verify_type(handle, -1).
@@ -7228,9 +10024,9 @@ void objects_scripting_set_scale(int param_1, int param_2, int16_t param_3)
  * Confirmed: [ESI+0xC4] — sibling object handle (conditional on
  * delete_sibling). Confirmed: OR AL,0x8 / MOV [EBX+0x2],AL — sets datum header
  * bit 0x08. Confirmed: MOV EAX,EDI before CALL 0x0013ee60 — EAX register arg =
- * handle. Confirmed: PUSH 0x0 / PUSH 0x1 — object_propagate_flag_to_children stack args (1, 0).
- * Confirmed: TEST byte ptr [ESI+0x4],0x1 — checks obj->flags bit 0.
- * Confirmed: OR dword ptr [ESI+0x4],0x1 — sets obj->flags bit 0.
+ * handle. Confirmed: PUSH 0x0 / PUSH 0x1 — object_propagate_flag_to_children
+ * stack args (1, 0). Confirmed: TEST byte ptr [ESI+0x4],0x1 — checks obj->flags
+ * bit 0. Confirmed: OR dword ptr [ESI+0x4],0x1 — sets obj->flags bit 0.
  * Confirmed: AND CL,0xfd / MOV [EAX+0x2],CL — clears datum header bit 0x02.
  * Confirmed: CALL 0x0013eff0 — no stack args, EDI register arg = handle.
  */
@@ -7386,12 +10182,11 @@ void object_connect_to_map(int object_handle, void *location)
     hdr->unk_2 &= 0x7f;
 
     self_obj = (object_data_t *)object_get_and_verify_type(object_handle, -1);
-    obj_list =
-      (self_obj->flags & 0x2000000) ? (void *)0x5a8d40
-                                    : (void *)noncollideable_partition;
+    obj_list = (self_obj->flags & 0x2000000) ? (void *)0x5a8d40 :
+                                               (void *)noncollideable_partition;
     cluster_partition_add_object(obj_list, object_handle, (char *)obj + 0xbc,
-                                 (char *)obj_alias + 0x50, *(uint32_t *)&obj->unk_92,
-                                 (char *)obj + 0x48);
+                                 (char *)obj_alias + 0x50,
+                                 *(uint32_t *)&obj->unk_92, (char *)obj + 0x48);
 
     if ((hdr->unk_2 & 0x40) != 0) {
       if (hdr->unk_4 != 0xffff) {
@@ -7827,8 +10622,9 @@ void object_get_orientation(int object_handle, float *out_forward,
  * object_get_world_matrix — build a 4x3 world-space matrix for an object.
  *
  * Constructs the matrix from the object's position (obj+0xc), forward
- * vector (obj+0x24), and up vector (obj+0x30) via matrix4x3_from_forward_up_position (which
- * calls matrix_from_forward_and_up then copies position to offset 0x28).
+ * vector (obj+0x24), and up vector (obj+0x30) via
+ * matrix4x3_from_forward_up_position (which calls matrix_from_forward_and_up
+ * then copies position to offset 0x28).
  *
  * If the object has a parent (parent_object_index at obj+0xcc != -1),
  * retrieves the parent's node matrix via object_get_node_matrix (using the node
@@ -7861,6 +10657,94 @@ void *object_get_world_matrix(int object_handle, void *out_matrix)
   }
 
   return out_matrix;
+}
+
+/*
+ * FUN_001414e0 — inverse-kinematics matrix adjustment between two object
+ * markers.
+ *
+ * Resolves two named markers (marker A on object param_1, marker B on object
+ * param_3) into local marker buffers via object_get_markers_by_string_id, then
+ * walks marker A's animation-node parent chain (self -> parent -> grandparent)
+ * using the model tag's node block (mode tag, 'mode' = 0x6d6f6465). It composes
+ * inverse(markerA_matrix) * markerB_matrix into a local 4x3 matrix and hands
+ * that plus the three node matrices (self/parent/grandparent, indexed into the
+ * caller's node-matrix array at param_5 with a 0x34-byte stride) to the IK
+ * solver (inverse_kinematics_adjust_matrices @ 0x120fd0).
+ *
+ * Early-exits (returns) if either marker lookup fails or a parent index is NONE
+ * (-1). param_5 is the caller-owned node-matrix array (node_matrices).
+ *
+ * ABI: cdecl, 5 stack args (confirmed: MOV ESP,EBP / caller cleanup ADD
+ * ESP,...).
+ *
+ * Decompiler traps resolved:
+ *  - Ghidra's local_a4/local_a0 and local_d8 names were systematically off by
+ * 4; the marker buffers are single contiguous 0x6c-byte objects
+ * (matrix_identity fills +4, the node-matrix copy fills +0x38; the short node
+ * index is at +0). Declared as char[0x6c] so MSVC's full-buffer write cannot
+ * overflow.
+ *  - EBX register reuse: it holds the node block pointer (mode_tag + 0xb8)
+ * across both tag_block_get_element calls, then its low word is reused as the
+ *    grandparent index. Kept as two distinct C variables (nodes_block,
+ *    grandparent_index) to avoid aliasing.
+ *  - markerA matrix is read at bufA+4 (matrix_inverse); markerB matrix is read
+ * at bufB+0x38 (matrix4x3_multiply). Asymmetric on purpose — preserved.
+ *  - matrix4x3_multiply aliases b == out (&composed_matrix twice). Faithful.
+ *  - Node indices are signed shorts via MOVSX; NONE test is == -1.
+ */
+void FUN_001414e0(int param_1, int param_2, int param_3, int param_4,
+                  int param_5)
+{
+  char marker_a[0x6c];
+  char marker_b[0x6c];
+  char composed_matrix[0x34];
+  void *obj_datum;
+  int obje_tag;
+  int mode_tag;
+  int nodes_block;
+  void *node_element;
+  short self_index;
+  short parent_index;
+  short grandparent_index;
+
+  obj_datum = object_get_and_verify_type(param_1, -1);
+  obje_tag = (int)tag_get(0x6f626a65, *(int *)obj_datum);
+  mode_tag = (int)tag_get(0x6d6f6465, *(int *)(obje_tag + 0x34));
+
+  if (object_get_markers_by_string_id(param_1, (void *)param_2, marker_a, 1) ==
+      0) {
+    return;
+  }
+  if (object_get_markers_by_string_id(param_3, (void *)param_4, marker_b, 1) ==
+      0) {
+    return;
+  }
+
+  nodes_block = mode_tag + 0xb8;
+  self_index = *(short *)marker_a;
+
+  node_element =
+    tag_block_get_element((void *)nodes_block, (int)self_index, 0x9c);
+  parent_index = *(short *)((char *)node_element + 0x24);
+  if (parent_index == -1) {
+    return;
+  }
+
+  node_element =
+    tag_block_get_element((void *)nodes_block, (int)parent_index, 0x9c);
+  grandparent_index = *(short *)((char *)node_element + 0x24);
+  if (grandparent_index == -1) {
+    return;
+  }
+
+  matrix_inverse((float *)(marker_a + 4), (float *)composed_matrix);
+  matrix4x3_multiply((float *)(marker_b + 0x38), (float *)composed_matrix,
+                     (float *)composed_matrix);
+
+  inverse_kinematics_adjust_matrices(
+    (float *)composed_matrix, (int)grandparent_index * 0x34 + param_5,
+    (int)parent_index * 0x34 + param_5, (int)self_index * 0x34 + param_5);
 }
 
 /*
@@ -7965,6 +10849,238 @@ int16_t object_find_in_radius(int flags, unsigned int type_mask,
   }
 
   return found_count;
+}
+
+
+/* 0x1417c0 — objects_reconnect_to_structure_bsp: reconnects objects to
+ * the current BSP structure after a BSP switch. Iterates all objects and
+ * updates their cluster assignments.
+ *
+ * Source: objects.c
+ * No params. EBX is set locally to -1 (not a register arg).
+ */
+/* 0x1417c0 */
+void objects_reconnect_to_structure_bsp(void)
+{
+  int iVar1;
+  /* collision_bsp_test_sphere results buffer. Original frame is 0x1028 bytes =
+   * 0x1010 (buffer) + 0x10 (bsp_iter) + 0x8 (bsp_data), so the buffer is
+   * int[1028]. The test outcome is read back from the TAIL of this same buffer:
+   *   local_102c[771] (EBP-0x41c) = hit flag
+   *   local_102c[772] (EBP-0x418) = leaf/cluster index
+   * Hazard #5: these must index the buffer the callee wrote — not separate
+   * locals — or clang would not lay them contiguously with the array. */
+  int local_102c[1028];
+  int obj;
+  object_iter_t bsp_iter;
+  char bsp_data[8]; /* scenario_location_from_point output; bsp_data+4 = bsp
+                       index (short) */
+
+  object_iterator_new(&bsp_iter, -1, 0);
+  *(short *)(bsp_data + 4) = -1;
+  obj = (int)object_iterator_next(&bsp_iter);
+  while (obj != 0) {
+    if ((*(unsigned int *)(obj + 4) & 0x800) != 0 &&
+        *(int *)(obj + 0xcc) == -1) {
+      *(unsigned int *)(obj + 4) = *(unsigned int *)(obj + 4) & 0xfffff7ff;
+      *(short *)(obj + 0x4c) = -1;
+      {
+        int dat_handle;
+        dat_handle = (int)datum_get(*(void **)0x5a8d50, bsp_iter.last_handle);
+        *(short *)(dat_handle + 4) = -1;
+      }
+      CALL_FUN_0018f180(bsp_data, (void *)(obj + 0x50));
+      if (*(short *)(bsp_data + 4) == -1) {
+        /* Sphere-test the object's bounding sphere against the current BSP.
+         * Confirmed 6 cdecl args at 0x14185d-0x141873 (single ADD ESP,0x18):
+         *   collision_bsp_test_sphere(global_collision_bsp_get(), 0, 0,
+         *                             obj+0x50, *(int*)(obj+0x5c), local_102c)
+         * The objects.obj mass-lift dropped 5 of these (called with only the
+         * bsp), so origin/direction/radius/results* came from stale stack ->
+         * wild access -> the "Loading level..." kernel halt. */
+        collision_bsp_test_sphere((int)global_collision_bsp_get(), 0, 0,
+                                  obj + 0x50, *(int *)(obj + 0x5c), local_102c);
+        if (local_102c[771] == 0) {
+          CALL_FUN_0018f180(bsp_data, (void *)(obj + 0xc));
+        } else {
+          /* Hit: record the leaf/cluster index (local_102c[772]) in bsp_data[0]
+           * (MOV [EBP-0x8],EAX at 0x14188d — omitted by the original lift),
+           * then resolve the structure BSP index from the scenario block. */
+          *(int *)bsp_data = local_102c[772];
+          if (local_102c[772] == -1) {
+            *(short *)(bsp_data + 4) = -1;
+          } else {
+            int sc;
+            sc = (int)scenario_get();
+            iVar1 = (int)tag_block_get_element(
+              (void *)(sc + 0xe0), local_102c[772] & 0x7fffffff, 0x10);
+            *(short *)(bsp_data + 4) = *(short *)(iVar1 + 8);
+          }
+        }
+      }
+      CALL_FUN_00140ce0(bsp_iter.last_handle, bsp_data);
+    }
+    obj = (int)object_iterator_next(&bsp_iter);
+  }
+}
+
+/*
+ * FUN_00141900 (0x141900 / objects.obj) — delete every object flagged for
+ * deletion (object flags bit 0x400000).
+ *
+ * Mirrors FUN_00140750's structure: data_verify the object table, then walk all
+ * objects with an inlined iterator (type_mask = -1, flags = 0, the binary
+ * inlines object_iterator_new's five field stores).  Each object whose flags
+ * carry bit 0x400000 is removed via object_delete_internal(handle, 0).
+ *
+ * Confirmed (disasm 0x141900): data_verify(*(data_t**)0x5a8d50); iterator at
+ * EBP-0x10 with EAX=-1 written to type_mask(+0)/last_handle(+8), byte
+ * flags(+4)=0, word index(+6)=0, cookie(+0xc)=0x86868686; TEST [EAX+4],0x400000
+ * then object_delete_internal(it.last_handle, 0) with PUSH 0 / PUSH
+ * last_handle.
+ */
+void FUN_00141900(void)
+{
+  object_iter_t it;
+  object_data_t *obj;
+
+  data_verify(*(data_t **)0x5a8d50);
+
+  it.type_mask = -1;
+  it.flags = 0;
+  it.current_index = 0;
+  it.last_handle = -1;
+  it.cookie = 0x86868686;
+
+  obj = (object_data_t *)object_iterator_next(&it);
+  while (obj != (object_data_t *)0) {
+    if ((*(unsigned int *)((char *)obj + 4) & 0x400000) != 0) {
+      object_delete_internal(it.last_handle, 0);
+    }
+    obj = (object_data_t *)object_iterator_next(&it);
+  }
+}
+
+/*
+ * FUN_00141970 (0x141970 / objects.obj) — evaluate the four object "function
+ * input" values from the object tag and store them into the object's function
+ * value cache (object+0xd4, four floats).
+ *
+ * For each of the four function-input source codes (object tag+0x108, stride
+ * 2), a non-zero code selects a value via a jump table (table at 0x141b38, byte
+ * index map at 0x141b58 keyed on code-1): code 1  -> object+0x90 (raw float)
+ *   code 2  -> object+0x94, clamped <=1.0
+ *   code 3  -> object+0x9c
+ *   code 4  -> object+0x98
+ *   code 5  -> if cached value == 1.0, a new random value (random_math_real)
+ *   code 0x12 -> 0.0 when object+0xb6 bit 4 set, else 1.0
+ *   code 0x13 -> heading-vs-scenario angle: atan2(marker[+4], marker[+8]) of
+ * the base node marker (object_get_node_matrix(handle,0)); wrapped against
+ * scenario+0x4c (FUN_000b6dd0), scaled (0x29c120) + offset (0x253398), clamped
+ * to [0,1]; falls back to the cached value when |marker[+0xc]| >= threshold
+ * (0x29c128) codes 0xa..0x11 (default) -> region state byte
+ * object+0x128+(code-0xa) * 0x261518 any other code in default range -> assert
+ * (region_index out of range)
+ *
+ * Read-only with respect to object lifecycle: writes only the object's own
+ * function value cache (object+0xd4..). No GC/garbage/cluster-list mutation.
+ *
+ * Confirmed: 1 cdecl arg (object_handle @ [EBP+0x8]); 4-iteration loop
+ * ([EBP-0x8]). Confirmed: default value is 0.0 (FLOAT 0x2533c0); 1.0 =
+ * 0x2533c8. Confirmed (push-then-fstp): FUN_000b6dd0 takes TWO args — param_1 =
+ * scenario+0x4c (PUSH ECX at 0x141a9a), param_2 = the FPATAN result stored via
+ * FSTP [ESP] at 0x141a8f over the PUSH ECX at 0x141a89; ADD ESP,8 cleans both.
+ * Decompiler dropped param_2. Confirmed: jump table at 0x141b38 / index map at
+ * 0x141b58 (code-1 keyed).
+ */
+void FUN_00141970(int param_1)
+{
+  int *obj;
+  int obj_tag;
+  short *codes;
+  float *values;
+  int n;
+  short code;
+  short region;
+  float value;
+  int marker;
+  float angle;
+
+  obj = (int *)object_get_and_verify_type(param_1, -1);
+  obj_tag = (int)tag_get(0x6f626a65, *obj);
+  codes = (short *)(obj_tag + 0x108);
+  values = (float *)(obj + 0x35); /* object+0xd4 */
+  n = 4;
+  do {
+    code = *codes;
+    if (code != 0) {
+      value = *(float *)0x2533c0; /* default 0.0 */
+      switch (code) {
+      case 1:
+        value = *(float *)((char *)obj + 0x90);
+        break;
+      case 2:
+        value = *(float *)((char *)obj + 0x94);
+        if (*(float *)0x2533c8 < value) {
+          value = *(float *)0x2533c8;
+        }
+        break;
+      case 3:
+        value = *(float *)((char *)obj + 0x9c);
+        break;
+      case 4:
+        value = *(float *)((char *)obj + 0x98);
+        break;
+      case 5:
+        if (*values == 1.0f) {
+          value =
+            random_math_real((unsigned int *)get_global_random_seed_address());
+        }
+        break;
+      case 0x12:
+        if ((*(unsigned char *)((char *)obj + 0xb6) & 4) == 0) {
+          value = *(float *)0x2533c8;
+        } else {
+          value = *(float *)0x2533c0;
+        }
+        break;
+      case 0x13:
+        marker = (int)object_get_node_matrix(param_1, 0);
+        if ((float)xbox_fabsf(*(float *)(marker + 0xc)) >= *(float *)0x29c128) {
+          value = *values;
+        } else {
+          angle = (float)xbox_atan2((double)*(float *)(marker + 4),
+                                    (double)*(float *)(marker + 8));
+          angle = FUN_000b6dd0(*(float *)((char *)global_scenario_get() + 0x4c),
+                               angle);
+          value = angle * *(float *)0x29c120 + *(float *)0x253398;
+          if (*(float *)0x2533c0 <= value) {
+            if (*(float *)0x2533c8 < value) {
+              value = *(float *)0x2533c8;
+            }
+          } else {
+            value = *(float *)0x2533c0;
+          }
+        }
+        break;
+      default:
+        region = (short)(code - 0xa);
+        if ((region < 0) || (region >= 8)) {
+          display_assert(
+            "region_index>=0 && region_index<MAXIMUM_REGIONS_PER_OBJECT",
+            "c:\\halo\\SOURCE\\objects\\objects.c", 0xa46, 1);
+          system_exit(-1);
+        }
+        value = (float)*(unsigned char *)((char *)obj + 0x128 + (int)region) *
+                *(float *)0x261518;
+        break;
+      }
+      *values = value;
+    }
+    codes = codes + 1;
+    values = values + 1;
+    n = n - 1;
+  } while (n != 0);
 }
 
 /* Type-cast helpers for object_compute_node_matrices — kept at file scope for
@@ -8437,7 +11553,8 @@ void object_compute_node_matrices(int object_handle)
                                    0xb37, 1);
                     system_exit(-1);
                   }
-                  if (!((valid_real_point3d_b_fn)0xa16b0)(parent_node_mat + 10)) {
+                  if (!((valid_real_point3d_b_fn)0xa16b0)(parent_node_mat +
+                                                          10)) {
                     char *msg = csprintf(
                       (char *)0x5ab100, "%s had a bad position (%f,%f,%f)",
                       context, (double)parent_node_mat[10],
@@ -8985,17 +12102,14 @@ void FUN_00143550(int param_1)
     FUN_001894d0(1, nm, 0.3f);
   }
 
-  if (*(char *)0x5a8d24 != '\0' &&
-      *(short *)((char *)obj + 0x6a) != -1) {
+  if (*(char *)0x5a8d24 != '\0' && *(short *)((char *)obj + 0x6a) != -1) {
     int scen_elem;
     void *block_elem;
     scen_elem = (int)global_scenario_get();
     block_elem = tag_block_get_element(
-        (void *)(scen_elem + 0x204),
-        (int)*(short *)((char *)obj + 0x6a), 0x24);
+      (void *)(scen_elem + 0x204), (int)*(short *)((char *)obj + 0x6a), 0x24);
     object_get_world_position(param_1, (vector3_t *)root_pos);
-    FUN_00189cb0(
-        0, root_pos, block_elem, *(int *)0x2ee6f4);
+    FUN_00189cb0(0, root_pos, block_elem, *(int *)0x2ee6f4);
     tag_data = (char *)tag_get(0x6f626a65, *obj);
   }
 
@@ -9010,18 +12124,14 @@ void FUN_00143550(int param_1)
     } else {
       name_ptr = backslash + 1;
     }
-    FUN_00189cb0(
-        0, info_text_buf, name_ptr, *(int *)0x2ee6f0);
-    FUN_001894d0(
-        1, world_matrix, ((float *)obj)[0x17]);
-    FUN_00189320(
-        1, info_text_buf, root_pos, 1.0f, *(void **)0x2ee6e0);
+    FUN_00189cb0(0, info_text_buf, name_ptr, *(int *)0x2ee6f0);
+    FUN_001894d0(1, world_matrix, ((float *)obj)[0x17]);
+    FUN_00189320(1, info_text_buf, root_pos, 1.0f, *(void **)0x2ee6e0);
     tag_data = (char *)tag_get(0x6f626a65, *obj);
   }
 
   if (*(char *)0x324c30 != '\0') {
-    if (*(int *)(tag_data + 0x34) != -1 ||
-        *(int *)(tag_data + 0x7c) != -1) {
+    if (*(int *)(tag_data + 0x34) != -1 || *(int *)(tag_data + 0x7c) != -1) {
       void *sphere_color;
       float scale_val;
       sphere_color = *(void **)0x2ee6cc;
@@ -9094,14 +12204,15 @@ void FUN_00143550(int param_1)
         coll_elem = tag_block_get_element(coll_block, idx, 0x20);
         elem_node = *(short *)coll_elem;
         if (elem_node == -1) {
-          matrix_transform_point(world_matrix, (float *)((char *)coll_elem + 0x10), point_out);
+          matrix_transform_point(
+            world_matrix, (float *)((char *)coll_elem + 0x10), point_out);
         } else {
           void *nm;
           nm = object_get_node_matrix(param_1, elem_node);
-          matrix_transform_point((float *)nm, (float *)((char *)coll_elem + 0x10), point_out);
+          matrix_transform_point(
+            (float *)nm, (float *)((char *)coll_elem + 0x10), point_out);
         }
-        FUN_00189540(1, point_out,
-                     *(float *)((char *)coll_elem + 0x1c),
+        FUN_00189540(1, point_out, *(float *)((char *)coll_elem + 0x1c),
                      *(void **)0x2ee6d8);
         i++;
         idx = (int)i;
@@ -9115,27 +12226,29 @@ void FUN_00143550(int param_1)
       if (y_range[0] < y_range[1]) {
         z_range = (float *)(col_tag_data + 0x278);
         if (z_range[0] < z_range[1]) {
-          { float *dst = bbox_corners;
-          float *xr = x_range;
-          int xc;
-          for (xc = 0; xc < 2; xc++) {
-            float *yr = y_range;
-            int yc;
-            for (yc = 0; yc < 2; yc++) {
-              float *zr = z_range;
-              int zc;
-              for (zc = 0; zc < 2; zc++) {
-                dst[0] = *xr;
-                dst[1] = *yr;
-                dst[2] = *zr;
-                matrix_transform_point(world_matrix, dst, dst);
-                zr++;
-                dst += 3;
+          {
+            float *dst = bbox_corners;
+            float *xr = x_range;
+            int xc;
+            for (xc = 0; xc < 2; xc++) {
+              float *yr = y_range;
+              int yc;
+              for (yc = 0; yc < 2; yc++) {
+                float *zr = z_range;
+                int zc;
+                for (zc = 0; zc < 2; zc++) {
+                  dst[0] = *xr;
+                  dst[1] = *yr;
+                  dst[2] = *zr;
+                  matrix_transform_point(world_matrix, dst, dst);
+                  zr++;
+                  dst += 3;
+                }
+                yr++;
               }
-              yr++;
+              xr++;
             }
-            xr++;
-          } }
+          }
 
           for (bi = 0; bi < 2; bi++) {
             for (bj = 0; bj < 2; bj++) {
@@ -9143,17 +12256,17 @@ void FUN_00143550(int param_1)
                 if (bi == 0) {
                   int e = bk + bj * 2;
                   FUN_00189270(1, &bbox_corners[e * 3],
-                      &bbox_corners[(e + 4) * 3], *(void **)0x2ee6d8);
+                               &bbox_corners[(e + 4) * 3], *(void **)0x2ee6d8);
                 }
                 if (bj == 0) {
                   int e = bk + bi * 4;
                   FUN_00189270(1, &bbox_corners[e * 3],
-                      &bbox_corners[(e + 2) * 3], *(void **)0x2ee6d8);
+                               &bbox_corners[(e + 2) * 3], *(void **)0x2ee6d8);
                 }
                 if (bk == 0) {
                   int e = bj + bi * 2;
                   FUN_00189270(1, &bbox_corners[e * 6],
-                      &bbox_corners[e * 6 + 3], *(void **)0x2ee6d8);
+                               &bbox_corners[e * 6 + 3], *(void **)0x2ee6d8);
                 }
               }
             }
@@ -9172,8 +12285,8 @@ void FUN_00143550(int param_1)
  *   Type 0: light_delete (effect cleanup)
  *   Type 1: game_looping_sound_delete (sound cleanup)
  *   Type 2: effect_delete (decal cleanup)
- *   Type 3: object_compute_node_matrices + contrail_set_state_for_object (light cleanup)
- *   Type 4: FUN_0009f6e0 (contrail cleanup)
+ *   Type 3: object_compute_node_matrices + contrail_set_state_for_object (light
+ * cleanup) Type 4: FUN_0009f6e0 (contrail cleanup)
  *
  * Object attachment structure:
  *   obj+0xf4 to obj+0xf4+count: attachment type bytes (-1 = empty)
@@ -9844,7 +12957,8 @@ done:
  *     (*(int*)0x46f084 -> object_globals, int16 counter at +4).
  *   - if the interpolation period (obj+0x86) is non-zero, advance the
  *     interpolation tick (obj+0x84) and clear the period once it elapses.
- *     Asserts the object type is interpolatable (mask 0xfe0 over 1<<(type&0x1f)).
+ *     Asserts the object type is interpolatable (mask 0xfe0 over
+ * 1<<(type&0x1f)).
  *   - runs FUN_0013c5c0, damage update (if tag+0x7c != -1), FUN_0013c620,
  *     node matrices (unless flags&0x800000), function values, change colors.
  *   - propagates a flag to children when flags&0x2000 and either flags&1 is
@@ -9860,12 +12974,13 @@ done:
  * object_get_and_verify_type(handle, -1); tag via tag_get(0x6f626a65, obj[0]).
  * Confirmed: TEST byte[hdr+2],0x10 gates the whole body (JNE -> return 1).
  * Confirmed: INC word[*(int*)0x46f084 + 4] under TEST dword[obj+4],0x10000.
- * Confirmed: interp counter/period are int16 (INC/CMP word [esi+0x84]/[esi+0x86]).
- * Confirmed: display_assert(...,0x9cc,1) then system_exit(-1) on bad type.
- * Confirmed: EAX-passed callees (function_values/change_colors/propagate) via
- *            MOV EAX,EDI before CALL — @<eax> in kb.json.
- * Confirmed: self-recursion CALL 0x1444f0 for obj+0xC8 and obj+0xC4.
- * Confirmed: block ref path adds 0x1A0 to obj (obj+0x68 in int* terms).
+ * Confirmed: interp counter/period are int16 (INC/CMP word
+ * [esi+0x84]/[esi+0x86]). Confirmed: display_assert(...,0x9cc,1) then
+ * system_exit(-1) on bad type. Confirmed: EAX-passed callees
+ * (function_values/change_colors/propagate) via MOV EAX,EDI before CALL —
+ * @<eax> in kb.json. Confirmed: self-recursion CALL 0x1444f0 for obj+0xC8 and
+ * obj+0xC4. Confirmed: block ref path adds 0x1A0 to obj (obj+0x68 in int*
+ * terms).
  */
 bool object_update(int object_handle)
 {
@@ -9873,7 +12988,8 @@ bool object_update(int object_handle)
   object_data_t *obj;
   void *tag_def;
 
-  header = (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  header =
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
   obj = (object_data_t *)object_get_and_verify_type(object_handle, -1);
   tag_def = tag_get(0x6f626a65, (int)obj->tag_index);
 
@@ -9886,8 +13002,8 @@ bool object_update(int object_handle)
     if (obj->unk_134 != 0) {
       if ((1 << (obj->type & 0x1f) & 0xfe0) != 0) {
         display_assert(
-            "!TEST_FLAG(_object_mask_cannot_interpolate, object->object.type)",
-            "c:\\halo\\SOURCE\\objects\\objects.c", 0x9cc, 1);
+          "!TEST_FLAG(_object_mask_cannot_interpolate, object->object.type)",
+          "c:\\halo\\SOURCE\\objects\\objects.c", 0x9cc, 1);
         system_exit(-1);
       }
       obj->unk_132 = (int16_t)(obj->unk_132 + 1);
@@ -9909,7 +13025,8 @@ bool object_update(int object_handle)
 
     if ((obj->flags & 0x2000) != 0) {
       if ((obj->flags & 1) == 0 ||
-          *(int *)((char *)tag_get(0x6f626a65, (int)obj->tag_index) + 0x34) == -1) {
+          *(int *)((char *)tag_get(0x6f626a65, (int)obj->tag_index) + 0x34) ==
+            -1) {
         object_propagate_flag_to_children(object_handle, 1, 1);
       }
     }
@@ -9923,13 +13040,14 @@ bool object_update(int object_handle)
     }
 
     /* Re-fetch obj/tag: the original reloads ESI/EAX after the recursive
-     * calls (object_get_and_verify_type + tag_get) before the block-ref step. */
+     * calls (object_get_and_verify_type + tag_get) before the block-ref step.
+     */
     obj = (object_data_t *)object_get_and_verify_type(object_handle, -1);
     tag_def = tag_get(0x6f626a65, (int)obj->tag_index);
     if (*(int *)((char *)tag_def + 0x34) != -1 &&
         *(int *)((char *)tag_def + 0x44) != -1) {
       void *block_ref =
-          object_header_block_reference_get(object_handle, &obj->unk_416);
+        object_header_block_reference_get(object_handle, &obj->unk_416);
       FUN_0013c800(object_handle, block_ref);
     }
   }
@@ -9984,6 +13102,95 @@ void object_update_children_recursive(int object_handle)
     object_update_children_recursive(child_handle);
     child_handle = child_obj->next_object_index.value;
   }
+}
+
+/* 0x144770 / objects.obj — Create an object from a scenario palette entry.
+ * Looks up the palette element, initializes placement data with its tag,
+ * copies position and orientation from the placement data, then calls
+ * object_new. On success, links the object to the scenario via
+ * FUN_0013c500 and optionally adds it to the name list.
+ * cdecl, 2 params.
+ * Confirmed: SUB ESP,0x88 — placement buffer is 0x88 bytes.
+ * Confirmed: LEA EAX,[EBP-0x88] = base of placement buffer.
+ * Confirmed: object_placement_data_new(buf, tag_index, -1).
+ * Confirmed: position at buf+0x18 (3 floats from param+8).
+ * Confirmed: vectors3d_from_euler_angles3d(buf+0x34, buf+0x40, param+0x14).
+ * Confirmed: bsp_index at buf+0x16 (short from param+6).
+ * Confirmed: object_new(buf) returns handle.
+ * Confirmed: FUN_0013c500(handle, param) post-links.
+ * Confirmed: object_name_list_new called with EDI=handle, SI=name_index. */
+int object_new_from_scenario(void *placement_data, int palette_block)
+{
+  char *param;
+  int result;
+  int tag_index;
+  char placement_buf[0x88];
+  char *element;
+
+  param = (char *)placement_data;
+  result = -1;
+
+  /* Check that the tag index at param[0] is not -1 */
+  if (*(int16_t *)param == -1)
+    goto done;
+
+  /* If object_globals byte 0 is nonzero and the placement flag bit 0 is set,
+   * skip creation (already placed). */
+  if (*(char *)*(int *)0x46f084 != '\0' &&
+      (*(unsigned char *)(param + 0x4) & 1) != 0)
+    goto done;
+
+  /* Check if name slot is available (name_index valid and slot free) */
+  {
+    int16_t name_idx = *(int16_t *)(param + 0x2);
+    if (name_idx != -1) {
+      if (name_idx < 0 || name_idx >= 0x200)
+        goto do_create;
+      if (*(int *)(*(int *)0x46f07c + (int)name_idx * 4) != -1)
+        goto done;
+    }
+  }
+
+do_create:
+  /* Look up the palette element to get the tag index */
+  element = (char *)tag_block_get_element((void *)palette_block,
+                                          (int)*(int16_t *)param, 0x30);
+  tag_index = *(int *)(element + 0xc);
+  if (tag_index == -1)
+    goto done;
+
+  /* Initialize placement data */
+  object_placement_data_new(placement_buf, tag_index, -1);
+
+  /* Copy position (3 floats from param+8 to buf+0x18) */
+  {
+    int *src = (int *)(param + 0x8);
+    *(int *)(placement_buf + 0x18) = src[0];
+    *(int *)(placement_buf + 0x1c) = src[1];
+    *(int *)(placement_buf + 0x20) = src[2];
+  }
+
+  /* Compute forward/up vectors from euler angles */
+  vectors3d_from_euler_angles3d((float *)(placement_buf + 0x34),
+                                (float *)(placement_buf + 0x40),
+                                (float *)(param + 0x14));
+
+  /* Copy BSP index */
+  *(int16_t *)(placement_buf + 0x16) = *(int16_t *)(param + 0x6);
+
+  /* Create the object.  Failure paths all fall through to the single shared
+   * exit (return result), mirroring the reference's je/jne 0xde structure
+   * with result (EDI) pre-set to -1. */
+  result = object_new(placement_buf);
+  if (result == -1)
+    goto done;
+  FUN_0013c500(result, (int)param);
+  if (*(int16_t *)(param + 0x2) == -1)
+    goto done;
+  object_name_list_new(result, *(int16_t *)(param + 0x2));
+
+done:
+  return result;
 }
 
 /*
@@ -10060,94 +13267,25 @@ void object_attach_to_marker(int parent_handle, void *marker_name,
   object_attach_to_parent(parent_handle, child_handle, *(int *)parent_markers);
 }
 
-/* 0x144770 / objects.obj — Create an object from a scenario palette entry.
- * Looks up the palette element, initializes placement data with its tag,
- * copies position and orientation from the placement data, then calls
- * object_new. On success, links the object to the scenario via
- * FUN_0013c500 and optionally adds it to the name list.
- * cdecl, 2 params.
- * Confirmed: SUB ESP,0x88 — placement buffer is 0x88 bytes.
- * Confirmed: LEA EAX,[EBP-0x88] = base of placement buffer.
- * Confirmed: object_placement_data_new(buf, tag_index, -1).
- * Confirmed: position at buf+0x18 (3 floats from param+8).
- * Confirmed: vectors3d_from_euler_angles3d(buf+0x34, buf+0x40, param+0x14).
- * Confirmed: bsp_index at buf+0x16 (short from param+6).
- * Confirmed: object_new(buf) returns handle.
- * Confirmed: FUN_0013c500(handle, param) post-links.
- * Confirmed: object_name_list_new called with EDI=handle, SI=name_index. */
-int object_new_from_scenario(void *placement_data, int palette_block)
+/* 0x144940: spawn a scenario object by name index — resolve the name entry in
+ * scenario+0x204 (0x24 stride), look up its palette block and base, fetch the
+ * placement element, and hand it to object_new_from_scenario. */
+void object_new_by_name(short param_1)
 {
-  char *param;
-  int result;
-  int tag_index;
-  char placement_buf[0x88];
-  char *element;
+  int scn;
+  int e;
+  int palette;
+  int pal_base;
+  int placement;
+  int elem_size;
 
-  param = (char *)placement_data;
-  result = -1;
-
-  /* Check that the tag index at param[0] is not -1 */
-  if (*(int16_t *)param == -1)
-    goto done;
-
-  /* If object_globals byte 0 is nonzero and the placement flag bit 0 is set,
-   * skip creation (already placed). */
-  if (*(char *)*(int *)0x46f084 != '\0' &&
-      (*(unsigned char *)(param + 0x4) & 1) != 0)
-    goto done;
-
-  /* Check if name slot is available (name_index valid and slot free) */
-  {
-    int16_t name_idx = *(int16_t *)(param + 0x2);
-    if (name_idx != -1) {
-      if (name_idx < 0 || name_idx >= 0x200)
-        goto do_create;
-      if (*(int *)(*(int *)0x46f07c + (int)name_idx * 4) != -1)
-        goto done;
-    }
-  }
-
-do_create:
-  /* Look up the palette element to get the tag index */
-  element = (char *)tag_block_get_element(
-      (void *)palette_block, (int)*(int16_t *)param, 0x30);
-  tag_index = *(int *)(element + 0xc);
-  if (tag_index == -1)
-    goto done;
-
-  /* Initialize placement data */
-  object_placement_data_new(placement_buf, tag_index, -1);
-
-  /* Copy position (3 floats from param+8 to buf+0x18) */
-  {
-    int *src = (int *)(param + 0x8);
-    *(int *)(placement_buf + 0x18) = src[0];
-    *(int *)(placement_buf + 0x1c) = src[1];
-    *(int *)(placement_buf + 0x20) = src[2];
-  }
-
-  /* Compute forward/up vectors from euler angles */
-  vectors3d_from_euler_angles3d(
-      (float *)(placement_buf + 0x34),
-      (float *)(placement_buf + 0x40),
-      (float *)(param + 0x14));
-
-  /* Copy BSP index */
-  *(int16_t *)(placement_buf + 0x16) = *(int16_t *)(param + 0x6);
-
-  /* Create the object.  Failure paths all fall through to the single shared
-   * exit (return result), mirroring the reference's je/jne 0xde structure
-   * with result (EDI) pre-set to -1. */
-  result = object_new(placement_buf);
-  if (result == -1)
-    goto done;
-  FUN_0013c500(result, (int)param);
-  if (*(int16_t *)(param + 0x2) == -1)
-    goto done;
-  object_name_list_new(result, *(int16_t *)(param + 0x2));
-
-done:
-  return result;
+  scn = (int)global_scenario_get();
+  e = (int)tag_block_get_element((void *)(scn + 0x204), param_1, 0x24);
+  palette = FUN_0013ca30(scn, *(short *)(e + 0x20), &elem_size);
+  pal_base = FUN_0013cab0(scn, *(short *)(e + 0x20));
+  placement = (int)tag_block_get_element((void *)palette, *(short *)(e + 0x22),
+                                         elem_size);
+  object_new_from_scenario((void *)placement, pal_base);
 }
 
 /*
@@ -10256,6 +13394,24 @@ void object_delete_recursive(int object_handle, int delete_sibling)
   hdr->unk_2 = 0;
 }
 
+/* Scripting hook: attaches child object param_3 to parent param_1 at a marker,
+   but only when both handles are valid and the child is not already attached
+   (object+0xcc == -1). */
+void objects_scripting_attach(int param_1, int param_2, int param_3,
+                              int param_4)
+{
+  int object_ptr;
+
+  if ((param_1 != -1) && (param_3 != -1)) {
+    object_ptr = (int)object_get_and_verify_type(param_3, 0xffffffff);
+    if (*(int *)(object_ptr + 0xcc) == -1) {
+      object_attach_to_marker(param_1, (void *)param_2, param_3,
+                              (void *)param_4);
+    }
+  }
+  return;
+}
+
 /*
  * objects_garbage_collection — delete and immediately deactivate an object.
  *
@@ -10324,8 +13480,8 @@ void objects_garbage_collect_tick(void)
   char critical_buf[512];
   char status_buf[512];
 
-  int gc_level;             /* 0=forced, 1=mild, 2=critical */
-  int gc_level_wide;        /* switch subject (sign-extended gc_level) */
+  int gc_level; /* 0=forced, 1=mild, 2=critical */
+  int gc_level_wide; /* switch subject (sign-extended gc_level) */
   int garbage_object_count;
   int contiguous_free;
   int free_size;
@@ -10337,7 +13493,7 @@ void objects_garbage_collect_tick(void)
   gc_callback_entry_t *entry;
   const char *prefix;
   char is_critical;
-  char should_delete;       /* delete-decision; reused as "critical" flag */
+  char should_delete; /* delete-decision; reused as "critical" flag */
   char previously_critical;
   char more_to_release;
   char init_called;
@@ -10430,7 +13586,8 @@ delete_loop:
     should_delete = 1;
     goto compact_and_callbacks;
   default:
-    display_assert((char *)0, "c:\\halo\\SOURCE\\objects\\objects.c", 0x10da, 1);
+    display_assert((char *)0, "c:\\halo\\SOURCE\\objects\\objects.c", 0x10da,
+                   1);
     system_exit(-1);
   }
 
@@ -10444,8 +13601,8 @@ pop_next:
   if ((int16_t)gc_level == 1)
     is_critical = (char)(hdr->unk_2 & 1);
   if ((char)object_visible_to_any_player(handle) == 0 && is_critical != 0) {
-    obj = ((object_header_data_t *)datum_get(*(data_t **)0x5a8d50, handle))
-            ->object;
+    obj =
+      ((object_header_data_t *)datum_get(*(data_t **)0x5a8d50, handle))->object;
     type = obj->type;
     if ((1 << type) == 0) {
       display_assert(csprintf((char *)0x5ab100,
@@ -10480,7 +13637,7 @@ compact_and_callbacks:
   }
 
   if (should_delete != 0) {
-do_return_clear:
+  do_return_clear:
     *(char *)((char *)object_globals + 2) = 0;
     return;
   }
@@ -10527,9 +13684,9 @@ do_return_clear:
     crit_mem:
       is_critical = 1;
     sprintf_mem:
-      crt_sprintf(status_buf, "%4.2f%% memory free",
-                  (double)((float)contiguous_free * 100.0f *
-                           (1.0f / 1048576.0f)));
+      crt_sprintf(
+        status_buf, "%4.2f%% memory free",
+        (double)((float)contiguous_free * 100.0f * (1.0f / 1048576.0f)));
     after_status:
       if (should_delete == 0)
         goto not_critical;
@@ -10949,6 +14106,19 @@ void objects_update(void)
   }
 }
 
+/*
+ * FUN_00145490 (0x145490 / objects.obj) — flush deferred object work: run one
+ * garbage-collect tick, then compact the global objects memory pool (0x46f080).
+ *
+ * Confirmed (disasm 0x145490): CALL objects_garbage_collect_tick (0x144b50);
+ * MOV EAX,[0x46f080]; PUSH EAX; CALL memory_pool_compact (0x11e840); POP ECX.
+ */
+void FUN_00145490(void)
+{
+  objects_garbage_collect_tick();
+  memory_pool_compact(*(void **)0x46f080);
+}
+
 /* 0x1a9520 — get world-space position of the "body" marker on an object.
  * Thin wrapper: calls object_get_markers_by_string_id for marker "body",
  * then extracts XYZ from offset 0x60 in the marker output record. */
@@ -10959,2822 +14129,4 @@ void FUN_001a9520(int object_handle, float *out_position)
   out_position[0] = *(float *)(marker_buf + 0x60);
   out_position[1] = *(float *)(marker_buf + 0x64);
   out_position[2] = *(float *)(marker_buf + 0x68);
-}
-
-/* ====================================================================
- * FINAL 10 OBJECTS.OBJ FUNCTIONS
- * ==================================================================== */
-
-/* 0x84ae0 — bored_camera_update: generates random camera positions/angles
- * when the game is idle (attract mode). Validates the resulting camera
- * parameters and asserts on invalid values.
- *
- * Source: c:\halo\SOURCE\camera\bored_camera.c
- * 3 cdecl params: camera_state, unit_datum, result buffer.
- */
-/* 0x84ae0 */
-void FUN_00084ae0(int *param_1, unsigned short *param_2, unsigned char *param_3)
-{
-  int iVar3;
-  int iVar4;
-  float *pfVar5;
-  int uVar6;
-  char cVar2;
-  char local_30[8];
-  int local_28 = 0;
-  int local_24 = 0;
-  int local_20 = 0;
-  int local_1c = 0;
-  char local_18[12];
-  float angles[2];
-  unsigned char *puVar1;
-
-  iVar3 = CALL_FUN_001d0581();
-  if (param_1 == (int *)0) {
-    display_assert("camera", "c:\\halo\\SOURCE\\camera\\bored_camera.c", 0x33, 1);
-    CALL_thunk_FUN_001029a0(-1);
-  }
-  if (param_3 == (unsigned char *)0) {
-    display_assert("result", "c:\\halo\\SOURCE\\camera\\bored_camera.c", 0x34, 1);
-    CALL_thunk_FUN_001029a0(-1);
-  }
-  iVar4 = param_1[2];
-  param_1[1] = param_1[1] + (*param_1 - iVar3);
-  *param_1 = iVar3;
-  if (3 < iVar4) {
-    iVar4 = 3;
-  }
-  if (param_1[1] < iVar4 * 1000) {
-    iVar3 = CALL_FUN_000b65c0(*param_2);
-    CALL_FUN_000b6740(*param_2, local_30);
-    *(int *)(param_3 + 4) = local_24;
-    *(int *)(param_3 + 8) = local_20;
-    *(int *)(param_3 + 0xc) = local_1c;
-    if (iVar3 != -1) {
-      if (*(int *)(local_28 + 0x4c) != 0) {
-        tag_block_get_element((void *)(local_28 + 0x4c), 0, 0x1c);
-      }
-      pfVar5 = (float *)CALL_FUN_000b7e30(*param_2);
-      angles[0] = *pfVar5;
-      angles[1] = pfVar5[1];
-      CALL_FUN_001a9240(iVar3, local_18);
-      /* Random bored-camera angles. The original evaluates each
-       * random_real_range(min,max) by pushing min/max, then calling the
-       * 0-arg local-seed getter, then random_real_range(seed, min, max).
-       * Ghidra mis-grouped the constants onto the 0-arg seed getter; they
-       * are the random ranges (radians). angles[] is a contiguous pair so
-       * angles_to_vector can read {angles[0], angles[1]} through one
-       * pointer (matches the original EBP-8 / EBP-4 stack layout). */
-      angles[1] = random_real_range((int *)random_math_get_local_seed_address(),
-                                    -1.0995574f, 0.39269909f);
-      angles[0] = random_real_range((int *)random_math_get_local_seed_address(),
-                                    -0.78539819f, 0.78539819f)
-                  + angles[0] + *(float *)0x256980;
-      angles_to_vector((float *)(param_3 + 0x24), angles);
-      observer_up_from_forward((float *)(param_3 + 0x24), (float *)(param_3 + 0x30));
-      *(float *)(param_3 + 0x20) =
-          random_real_range((int *)random_math_get_local_seed_address(),
-                            0.52359879f, 1.3962634f);
-      *(float *)(param_3 + 0x1c) =
-          random_real_range((int *)random_math_get_local_seed_address(),
-                            1.0f, 6.0f);
-      puVar1 = *(unsigned char **)0x31fc38;
-      *(int *)(param_3 + 0x3c) = *(int *)puVar1;
-      *(int *)(param_3 + 0x40) = *(int *)(puVar1 + 4);
-      *(int *)(param_3 + 0x44) = *(int *)(puVar1 + 8);
-      iVar3 = param_1[2] + 1;
-      if (3 < iVar3) {
-        iVar3 = 3;
-      }
-      param_1[1] = iVar3 * 10000;
-      param_3[0] = 1;
-      param_3[1] = 0;
-      param_3[2] = 0;
-      param_3[3] = 0;
-      *(float *)(param_3 + 0x48) = (float)(iVar3 * 10000);
-      param_1[2] = param_1[2] + 1;
-      if ((param_3[0] & 1) != 0) {
-        cVar2 = CALL_FUN_00084a70((float *)(param_3 + 9), (float *)(param_3 + 0xc));
-        if (cVar2 != '\0'
-            && (param_3[1] & 0x7f800000) != 0x7f800000
-            && *(float *)0x266e98 <= *(float *)(param_3 + 1)
-            && *(float *)(param_3 + 1) <= *(float *)0x266e94
-            && (param_3[2] & 0x7f800000) != 0x7f800000
-            && *(float *)0x266e98 <= *(float *)(param_3 + 2)
-            && *(float *)(param_3 + 2) <= *(float *)0x266e94
-            && (param_3[3] & 0x7f800000) != 0x7f800000
-            && *(float *)0x266e98 <= *(float *)(param_3 + 3)
-            && *(float *)(param_3 + 3) <= *(float *)0x266e94
-            && (param_3[4] & 0x7f800000) != 0x7f800000
-            && *(float *)0x266e98 <= *(float *)(param_3 + 4)
-            && *(float *)(param_3 + 4) <= *(float *)0x266e94
-            && (param_3[5] & 0x7f800000) != 0x7f800000
-            && *(float *)0x266e98 <= *(float *)(param_3 + 5)
-            && *(float *)(param_3 + 5) <= *(float *)0x266e94
-            && (param_3[6] & 0x7f800000) != 0x7f800000
-            && *(float *)0x266e98 <= *(float *)(param_3 + 6)
-            && *(float *)(param_3 + 6) <= *(float *)0x266e94) {
-          cVar2 = CALL_FUN_00084a10((float *)(param_3 + 0xf));
-          if (cVar2 != '\0'
-              && (param_3[7] & 0x7f800000) != 0x7f800000
-              && *(float *)0x2533c0 <= *(float *)(param_3 + 7)
-              && *(float *)(param_3 + 7) <= *(float *)0x266e94
-              && (param_3[8] & 0x7f800000) != 0x7f800000
-              && *(float *)0x255ef8 <= *(float *)(param_3 + 8)
-              && *(float *)(param_3 + 8) <= *(float *)0x2568bc
-              && (param_3[0x12] & 0x7f800000) != 0x7f800000
-              && *(float *)0x2533c0 <= *(float *)(param_3 + 0x12)
-              && *(float *)(param_3 + 0x12) <= *(float *)0x266e90) {
-            return;
-          }
-        }
-        uVar6 = (int)csprintf((char *)0x5ab100,
-                 "Invalid camera command.\nF: (%f, %f, %f) U: (%f, %f, %f)\nP: (%f, %f, %f) O: (%f, %f, %f)\nD: %f V: (%f, %f, %f), FOV: %f, T: %f, FL: %ld",
-                 (double)*(float *)(param_3 + 9), (double)*(float *)(param_3 + 0xa),
-                 (double)*(float *)(param_3 + 0xb), (double)*(float *)(param_3 + 0xc),
-                 (double)*(float *)(param_3 + 0xd), (double)*(float *)(param_3 + 0xe),
-                 (double)*(float *)(param_3 + 1), (double)*(float *)(param_3 + 2),
-                 (double)*(float *)(param_3 + 3), (double)*(float *)(param_3 + 4),
-                 (double)*(float *)(param_3 + 5), (double)*(float *)(param_3 + 6),
-                 (double)*(float *)(param_3 + 7), (double)*(float *)(param_3 + 0xf),
-                 (double)*(float *)(param_3 + 0x10), (double)*(float *)(param_3 + 0x11),
-                 (double)*(float *)(param_3 + 8), (double)*(float *)(param_3 + 0x12),
-                 *(int *)param_3);
-        display_assert((const char *)uVar6, "c:\\halo\\SOURCE\\camera\\bored_camera.c", 0x5f, 1);
-        CALL_thunk_FUN_001029a0(-1);
-      }
-    }
-  }
-}
-
-/* 0x853c0 — camera_scripting_update: handles scripted camera with a 4-case
- * switch on the camera scripting mode (DAT_002ee5a2). Includes orbit camera
- * math with atan2/sin/cos and the same massive camera validation block.
- *
- * Source: c:\halo\SOURCE\camera\camera_scripting.c
- * 3 cdecl params.
- */
-/* 0x853c0 */
-void FUN_000853c0(int param_1, unsigned short *param_2, unsigned int *param_3)
-{
-  float *pfVar1;
-  int iVar2;
-  short sVar3;
-  float fVar4;
-  char cVar5;
-  short sVar6;
-  unsigned int uVar7;
-  int iVar8;
-  int iVar9;
-  int uVar10;
-  unsigned int uVar11;
-  unsigned int uVar12;
-  float fVar13;
-  float fVar14;
-  char local_48[4];
-  unsigned int local_44 = 0;
-  unsigned int local_40 = 0;
-  unsigned int local_3c = 0;
-  unsigned int local_2c = 0;
-  unsigned int local_28 = 0;
-  unsigned int local_24 = 0;
-  unsigned int local_20 = 0;
-  unsigned int local_1c = 0;
-  unsigned int local_18 = 0;
-  float local_14 = 0;
-  float local_10 = 0;
-  unsigned int local_c;
-  float local_8;
-
-  uVar12 = *(unsigned int *)*(int *)0x31fc1c;
-  uVar11 = *(unsigned int *)(*(int *)0x31fc1c + 4);
-  local_c = *(unsigned int *)(*(int *)0x31fc1c + 8);
-  fVar13 = (float)CALL_game_time_get_rate();
-  local_8 = fVar13;
-  *param_3 = 8;
-  cVar5 = CALL_FUN_000b5c30();
-  if (cVar5 == '\0') {
-    uVar7 = *param_3 & 0xffffffdf;
-  } else {
-    uVar7 = *param_3 | 0x20;
-  }
-  *param_3 = uVar7;
-  switch (*(short *)0x2ee5a2) {
-  case 0:
-    if (*(int *)0x2ee5d4 != -1) {
-      iVar9 = CALL_FUN_0013d640(*(int *)0x2ee5d4, -1);
-      if (iVar9 == 0) break;
-      uVar12 = *(unsigned int *)(iVar9 + 0x50);
-      uVar11 = *(unsigned int *)(iVar9 + 0x54);
-      local_c = *(unsigned int *)(iVar9 + 0x58);
-    }
-    fVar4 = *(float *)0x2533c0;
-    if (local_8 != *(float *)0x2533c0) {
-      fVar4 = *(float *)0x2ee5a8 / local_8;
-    }
-    *(float *)(param_3 + 0x12) = fVar4;
-    *(float *)(param_3 + 8) = *(float *)0x2ee5d0;
-    pfVar1 = (float *)(param_3 + 9);
-    *pfVar1 = *(float *)0x2ee5b8;
-    *(float *)(param_3 + 10) = *(float *)0x2ee5bc;
-    *(float *)(param_3 + 0xb) = *(float *)0x2ee5c0;
-    *(float *)(param_3 + 0xc) = *(float *)0x2ee5c4;
-    *(float *)(param_3 + 0xd) = *(float *)0x2ee5c8;
-    *(float *)(param_3 + 0xe) = *(float *)0x2ee5cc;
-    if (*(int *)0x2ee5d4 == -1) {
-      *(float *)(param_3 + 1) = *(float *)0x2ee5ac;
-      *(float *)(param_3 + 2) = *(float *)0x2ee5b0;
-      *(float *)(param_3 + 3) = *(float *)0x2ee5b4;
-      *param_3 = *param_3 | 1;
-    } else {
-      fVar13 = (float)atan2((double)*(float *)(param_3 + 10), (double)*pfVar1);
-      fVar4 = *(float *)0x2ee5ac * *pfVar1 +
-              *(float *)0x2ee5b0 * *(float *)(param_3 + 10) +
-              *(float *)0x2ee5b4 * *(float *)(param_3 + 0xb);
-      if (*(float *)0x2533c0 < fVar4) {
-        fVar4 = *(float *)0x2533c0;
-      }
-      *(float *)(param_3 + 7) = -fVar4;
-      *(float *)(param_3 + 1) = *(float *)&uVar12;
-      *(float *)(param_3 + 2) = *(float *)&uVar11;
-      *(float *)(param_3 + 3) = *(float *)&local_c;
-      local_14 = *(float *)0x2ee5ac + fVar4 * *pfVar1;
-      local_10 = *(float *)0x2ee5b0 + fVar4 * *(float *)(param_3 + 10);
-      fVar4 = *(float *)0x2ee5b4 + fVar4 * *(float *)(param_3 + 0xb);
-      param_3[0x15] = 0;
-      *(unsigned char *)(param_3 + 0x13) = 1;
-      fVar14 = x87_fsin(fVar13);
-      *param_3 = *param_3 | 1;
-      fVar13 = x87_fcos(fVar13);
-      *(float *)(param_3 + 4) = fVar14 * local_10 + local_14 * fVar13;
-      *(float *)(param_3 + 5) = fVar14 * local_14 - fVar13 * local_10;
-      *(float *)(param_3 + 6) = fVar4;
-    }
-    break;
-  case 1:
-    tag_get(0x616e7472, *(int *)0x2ee5d8);
-    iVar9 = (int)tag_block_get_element(0, 0, 0);
-    sVar3 = *(short *)(iVar9 + 0x22);
-    sVar6 = (short)(int)*(float *)(param_2 + 2);
-    if (sVar6 < 0) {
-      iVar8 = 0;
-    } else {
-      iVar2 = sVar3 - 1;
-      iVar8 = (int)sVar6;
-      if (iVar2 < sVar6) {
-        iVar8 = iVar2;
-      }
-    }
-    CALL_FUN_00123470(0, (void *)iVar9, iVar8, local_48);
-    param_3[9] = local_44;
-    param_3[10] = local_40;
-    param_3[0xb] = local_3c;
-    param_3[0xc] = local_2c;
-    param_3[0xd] = local_28;
-    param_3[0xe] = local_24;
-    param_3[1] = local_20;
-    param_3[2] = local_1c;
-    param_3[7] = 0;
-    param_3[0x12] = 0;
-    param_3[8] = 0x3f9c61aa;
-    param_3[3] = local_18;
-    *param_3 = *param_3 | 1;
-    break;
-  case 2:
-    iVar9 = CALL_FUN_0013d640(*(int *)0x2ee5d4, 3);
-    if (iVar9 != 0) {
-      CALL_FUN_00089240(*(int *)0x2ee5d4, param_3);
-    }
-    break;
-  case 3:
-    iVar9 = CALL_FUN_0013d640(*(int *)0x2ee5d4, 3);
-    if (iVar9 != 0) {
-      if (*(char *)0x2ee5a1 != '\0') {
-        CALL_FUN_00085b60(param_1, *param_2, *(int *)0x2ee5d4);
-      }
-      CALL_FUN_00085c80(param_1, param_2, param_3);
-    }
-    break;
-  }
-  *(float *)0x2ee5a8 = *(float *)0x2ee5a8 - local_8 * *(float *)(param_2 + 2);
-  if (*(float *)0x2ee5a8 < *(float *)0x2533c0) {
-    *(float *)0x2ee5a8 = 0.0f;
-  }
-  *(char *)0x2ee5a1 = 0;
-  uVar12 = *param_3;
-  if ((uVar12 & 1) != 0) {
-    cVar5 = CALL_FUN_00084a70((float *)(param_3 + 9), (float *)(param_3 + 0xc));
-    if (cVar5 == '\0'
-        || (param_3[1] & 0x7f800000) == 0x7f800000
-        || *(float *)(param_3 + 1) < *(float *)0x266e98
-        || *(float *)(param_3 + 1) > *(float *)0x266e94
-        || (param_3[2] & 0x7f800000) == 0x7f800000
-        || *(float *)(param_3 + 2) < *(float *)0x266e98
-        || *(float *)(param_3 + 2) > *(float *)0x266e94
-        || (param_3[3] & 0x7f800000) == 0x7f800000
-        || *(float *)(param_3 + 3) < *(float *)0x266e98
-        || *(float *)(param_3 + 3) > *(float *)0x266e94
-        || (param_3[4] & 0x7f800000) == 0x7f800000
-        || *(float *)(param_3 + 4) < *(float *)0x266e98
-        || *(float *)(param_3 + 4) > *(float *)0x266e94
-        || (param_3[5] & 0x7f800000) == 0x7f800000
-        || *(float *)(param_3 + 5) < *(float *)0x266e98
-        || *(float *)(param_3 + 5) > *(float *)0x266e94
-        || (param_3[6] & 0x7f800000) == 0x7f800000
-        || *(float *)(param_3 + 6) < *(float *)0x266e98
-        || *(float *)(param_3 + 6) > *(float *)0x266e94) {
-      goto camera_invalid;
-    }
-    cVar5 = CALL_FUN_00084a10((float *)(param_3 + 0xf));
-    if (cVar5 == '\0'
-        || (param_3[7] & 0x7f800000) == 0x7f800000
-        || *(float *)(param_3 + 7) < *(float *)0x2533c0
-        || *(float *)(param_3 + 7) > *(float *)0x266e94
-        || (param_3[8] & 0x7f800000) == 0x7f800000
-        || *(float *)(param_3 + 8) < *(float *)0x255ef8
-        || *(float *)(param_3 + 8) > *(float *)0x2568bc
-        || (param_3[0x12] & 0x7f800000) == 0x7f800000
-        || *(float *)(param_3 + 0x12) < *(float *)0x2533c0
-        || *(float *)(param_3 + 0x12) > *(float *)0x266e90) {
-camera_invalid:
-      uVar10 = (int)csprintf((char *)0x5ab100,
-               "Invalid camera command.\nF: (%f, %f, %f) U: (%f, %f, %f)\nP: (%f, %f, %f) O: (%f, %f, %f)\nD: %f V: (%f, %f, %f), FOV: %f, T: %f, FL: %ld",
-               (double)*(float *)(param_3 + 9), (double)*(float *)(param_3 + 10),
-               (double)*(float *)(param_3 + 0xb), (double)*(float *)(param_3 + 0xc),
-               (double)*(float *)(param_3 + 0xd), (double)*(float *)(param_3 + 0xe),
-               (double)*(float *)(param_3 + 1), (double)*(float *)(param_3 + 2),
-               (double)*(float *)(param_3 + 3), (double)*(float *)(param_3 + 4),
-               (double)*(float *)(param_3 + 5), (double)*(float *)(param_3 + 6),
-               (double)*(float *)(param_3 + 7), (double)*(float *)(param_3 + 0xf),
-               (double)*(float *)(param_3 + 0x10), (double)*(float *)(param_3 + 0x11),
-               (double)*(float *)(param_3 + 8), (double)*(float *)(param_3 + 0x12), uVar12);
-      display_assert((const char *)uVar10, "c:\\halo\\SOURCE\\camera\\camera_scripting.c", 0x16e, 1);
-      CALL_thunk_FUN_001029a0(-1);
-    }
-  }
-}
-
-/* 0x139b40 (object_lights.c) — register one lens-flare/light marker record
- * into the per-frame light marker array at 0x5a8f6c (count at 0x5a90ac, max 8
- * entries, 0x28-byte stride).
- *
- * Early-out if the array is already full (count >= 8) OR if all three color
- * components in param_5 equal 0 (the FCOMP vs FLOAT_002533c0 == 0.0 guard:
- * when color[0]==0 && color[1]==0 && color[2]==0 the record is skipped).
- *
- * Record layout filled at base = 0x5a8f6c + count*0x28:
- *   +0x00 : tag_get('lens', param_1)               (lens tag definition)
- *   +0x04 : param_2[0]                              (vec3 word 0)
- *   +0x08 : param_2[1]                              (vec3 word 1)
- *   +0x0c : param_2[2]                              (vec3 word 2)
- *   +0x10 : FUN_00180b10(param_3)                   (compressed normal)
- *   +0x14 : FUN_00180b10(param_4)                   (compressed normal)
- *   +0x18 : real_a_rgb_color_to_pixel32(1.0f, param_5)  (pixel32 color)
- *   +0x1c : 0xffff (short)
- *   +0x1e : 0xffff (short)
- *   +0x20 : (short)count                            (this record's index)
- *   +0x22 : byte at global 0x50654a (0x506548+2)
- *   +0x23 : (byte)FUN_00180770(param_6)             (alpha/intensity quantized)
- * Then count++ at 0x5a90ac.
- *
- * Confirmed (disasm 0x139b40): cdecl 6 stack args, RET (no RET N); ADD ESP,0x1c
- * = 8(rgb)+4(180770)+8(tag_get)+4(180b10)+4(180b10). param_6 is a float passed
- * raw to FUN_00180770 (caller MOV+PUSH, no FILD; callee FLD [EBP+8]). param_3
- * and param_4 are vec3 pointers passed as int (FUN_00180b10 derefs them);
- * kept as int to match the existing int(*)(int) thunk.
- */
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-but-set-variable"
-#pragma clang diagnostic ignored "-Wunused-variable"
-/* 0x139b40 */
-void FUN_00139b40(int param_1, int *param_2, int param_3, int param_4,
-                  float *param_5, float param_6)
-{
-  int iVar1;
-  char *base;
-  int *vec;
-
-  if ((*(short *)0x5a90ac < 8) &&
-      ((param_5[0] != *(float *)0x2533c0 || param_5[1] != *(float *)0x2533c0)
-       || param_5[2] != *(float *)0x2533c0)) {
-    iVar1 = *(short *)0x5a90ac * 0x28;
-    base = (char *)0x5a8f6c + iVar1;
-
-    *(unsigned int *)(base + 0x18) =
-        real_a_rgb_color_to_pixel32(1.0f, param_5);
-    base[0x23] = (char)CALL_FUN_00180770(param_6);
-    *(void **)(base + 0x00) = tag_get(0x6c656e73, param_1);
-    vec = (int *)(base + 0x04);
-    vec[0] = param_2[0];
-    vec[1] = param_2[1];
-    vec[2] = param_2[2];
-    /* permuter 20260721 (+4.2pp raw): offset 0x14 and the counter address
-     * held in iVar1 across uses (register-role reuse, value-identical).
-     * NB: rank-1 winner also mutated the +0x1c fill to 0xFF — REJECTED as a
-     * semantic corruption; 0xffff kept. */
-    iVar1 = 0x14;
-    *(int *)(base + 0x10) = CALL_FUN_00180b10(param_3);
-    *(int *)(base + iVar1) = CALL_FUN_00180b10(param_4);
-    base[0x22] = *(char *)0x50654a;
-    iVar1 = 0x5a90ac;
-    *(short *)(base + 0x1e) = (short)0xffff;
-    *(short *)(base + 0x1c) = (short)0xffff;
-    *(short *)(base + 0x20) = *(short *)iVar1;
-    *(short *)iVar1 = *(short *)iVar1 + 1;
-  }
-}
-
-/* 0x139e50 — light_fill_structure: fills a light output structure from
- * intensity, color, and position data. Heavy FPU with many clamp operations.
- *
- * Register args: EBX=color_ptr, ESI=output_ptr, EDI=intensity_ptr
- * Stack params: param_1(byte flags), param_2(float* position),
- *               param_3(float* direction), param_4(float distance_scale)
- *
- * Source: c:\halo\SOURCE\objects\object_lights.c
- */
-/*
- * FUN_00139c20 (0x139c20 / object_lights.c) — gather the strongest point
- * lights influencing a position and accumulate the brightest up to max_count
- * into three parallel caller arrays.
- *
- * Iterates the connected-light cluster partition (0x5a90b0) for the cluster of
- * the query position (cluster_idx = marker_index). For each light datum:
- *   - skip if already visited this frame (light+0xc == lights_globals.frame_id
- *     at 0x5a8d64), marking it visited afterward;
- *   - skip if disconnected (light+0x8 == NONE);
- *   - skip self-shadowing: if the light belongs to the excluding object
- *     (light+0x2c == object_handle) and its 'ligh' tag has flag bit 2 set;
- *   - skip if outside falloff: distance(position, light+0x30) >=
- *     bias + light_radius (light+0x54).
- * The attenuation is 1.0 - dist^2 / radius^2, and the weight is
- * brightness(light+0x14) * attenuation.
- *
- * Selection (priority insertion with eviction):
- *   - if the array is not yet full (*count < max_count) take the next slot and
- *     increment *count;
- *   - otherwise scan the existing weights (out_weights) for the dimmest entry;
- *     if the new weight exceeds that minimum, evict it (slot = argmin),
- *     else slot stays == *count and the store is skipped.
- * On a kept slot: out_index[slot]=light_index, out_weights[slot]=weight,
- * out_atten[slot]=attenuation.
- *
- * NOTE: out_index_base and out_atten_base alias the same caller buffer at
- * different word offsets (caller passes local_28+2 and local_28); preserved as
- * separate base pointers indexed by slot*4.
- *
- * Confirmed (disasm 0x139c20): cdecl 9 stack args; FSQRT distance; atten via
- * 1.0(0x2533c8) - dist^2/radius^2; eviction slot register (ECX) ends at *count
- * after the min-search loop and is only reassigned to argmin on evict; final
- * CMP CX,max_count / JGE skips the store when no eviction occurs.
- */
-void FUN_00139c20(int object_handle, int16_t marker_index, float *position,
-                  float bias, int out_index_base, float *out_weights,
-                  int out_atten_base, int16_t *count, int16_t max_count)
-{
-  int state;
-  float attenuation;
-  int light_index;
-  int light;
-  int16_t i;
-  int16_t slot;
-  int16_t argmin;
-  int16_t cur_count;
-  float dx, dy, dz, dist, radius;
-  float brightness, min_weight;
-  int slot_offset;
-
-  if (*(char *)0x5a8d60 == '\0') {
-    display_assert("lights_globals.marker_initialized",
-                   "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x544, 1);
-    system_exit(-1);
-  }
-
-  light_index = cluster_partition_iter_first((void *)0x5a90b0, &state,
-                                             marker_index);
-  while (light_index != -1) {
-    light = (int)datum_get(*(data_t **)0x5a90bc, light_index);
-    if (*(char *)0x5a8d60 == '\0') {
-      display_assert("lights_globals.marker_initialized",
-                     "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x66f, 1);
-      system_exit(-1);
-    }
-    if (*(int *)(light + 0xc) != *(int *)0x5a8d64) {
-      light = (int)datum_get(*(data_t **)0x5a90bc, light_index);
-      if (*(int *)(light + 0x8) != -1 &&
-          ((*(int *)(light + 0x2c) != object_handle ||
-            (*(unsigned char *)tag_get(0x6c696768, *(int *)(light + 0x4)) & 4)
-                == 0))) {
-        dx = position[0] - *(float *)(light + 0x30);
-        dy = position[1] - *(float *)(light + 0x34);
-        dz = position[2] - *(float *)(light + 0x38);
-        dist = sqrtf(dx * dx + dy * dy + dz * dz);
-        radius = *(float *)(light + 0x54);
-        if (dist < bias + radius) {
-          attenuation = 1.0f - (dist * dist) / (radius * radius);
-          brightness = real_rgb_color_brightness((float *)(light + 0x14));
-
-          cur_count = *count;
-          if (cur_count < max_count) {
-            *count = cur_count + 1;
-            slot = cur_count;
-          } else {
-            min_weight = *(float *)0x2548fc;
-            argmin = -1;
-            slot = 0;
-            if (cur_count > 0) {
-              i = 0;
-              do {
-                if (out_weights[i] < min_weight) {
-                  min_weight = out_weights[i];
-                  argmin = i;
-                }
-                i++;
-              } while (i < *count);
-              slot = i; /* slot ends at *count after the search loop */
-            }
-            if (min_weight < brightness * attenuation)
-              slot = argmin;
-          }
-
-          if (slot < max_count) {
-            slot_offset = slot * 4;
-            *(int *)(out_index_base + slot_offset) = light_index;
-            out_weights[slot] = brightness * attenuation;
-            *(float *)(out_atten_base + slot_offset) = attenuation;
-          }
-        }
-      }
-      light = (int)datum_get(*(data_t **)0x5a90bc, light_index);
-      if (*(char *)0x5a8d60 == '\0') {
-        display_assert("lights_globals.marker_initialized",
-                       "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x67f, 1);
-        system_exit(-1);
-      }
-      if (*(int *)(light + 0xc) != *(int *)0x5a8d64)
-        *(int *)(light + 0xc) = *(int *)0x5a8d64;
-    }
-    light_index = cluster_partition_iter_next((void *)0x5a90b0, &state);
-  }
-}
-
-/* 0x139e50 */
-void FUN_00139e50(unsigned int param_1, float *param_2, float *param_3,
-                  float param_4,
-                  float *color_ptr, float *output_ptr, float *intensity_ptr)
-{
-  float fVar1;
-  float fVar2;
-  float fVar3;
-  float fVar4;
-  float fVar5;
-  float fVar6;
-  float gel_intensity;
-  float half_scale;
-  float sq;
-
-  gel_intensity = real_rgb_color_brightness(intensity_ptr);
-
-  /* gel * intensity + base */
-  output_ptr[0] = *(float *)0x323bfc * intensity_ptr[0] + *(float *)0x323bf8;
-  output_ptr[1] = *(float *)0x323bfc * intensity_ptr[1] + *(float *)0x323bf8;
-  fVar1 = *(float *)0x323bfc * intensity_ptr[2] + *(float *)0x323bf8;
-  *(short *)(output_ptr + 3) = 2;
-  output_ptr[2] = fVar1;
-  output_ptr[4] = intensity_ptr[0];
-  output_ptr[5] = intensity_ptr[1];
-  output_ptr[6] = intensity_ptr[2];
-  output_ptr[7] = -param_3[0];
-  output_ptr[8] = -param_3[1];
-  output_ptr[9] = -param_3[2];
-  output_ptr[10] = (float)((double)*(float *)0x323c00 * (double)color_ptr[0] * (double)gel_intensity);
-  output_ptr[11] = (float)((double)*(float *)0x323c00 * (double)gel_intensity * (double)color_ptr[1]);
-  output_ptr[12] = (float)((double)*(float *)0x323c00 * (double)color_ptr[2] * (double)gel_intensity);
-  output_ptr[13] = param_2[0];
-  output_ptr[14] = param_2[1];
-  output_ptr[15] = param_2[2];
-
-  /* clamp gel_intensity * 0x2533ec + 0x25337c to [0,1] */
-  fVar6 = gel_intensity * *(float *)0x2533ec + *(float *)0x25337c;
-  if (fVar6 < *(float *)0x2533c0) {
-    fVar6 = *(float *)0x2533c0;
-  } else if (fVar6 > *(float *)0x2533c8) {
-    fVar6 = *(float *)0x2533c8;
-  }
-  output_ptr[0x13] = fVar6;
-
-  /* specular color channels: color[i] * scale + bias, clamped */
-  fVar1 = color_ptr[0] * *(float *)0x254644 + *(float *)0x253398;
-  fVar2 = *(float *)0x2533c0;
-  if (*(float *)0x2533c0 <= fVar1) {
-    fVar2 = fVar1;
-    if (*(float *)0x2533c8 < fVar1) fVar2 = *(float *)0x2533c8;
-  }
-  output_ptr[0x14] = fVar2;
-
-  fVar1 = color_ptr[1] * *(float *)0x254644 + *(float *)0x253398;
-  fVar3 = *(float *)0x2533c0;
-  if (*(float *)0x2533c0 <= fVar1) {
-    fVar3 = fVar1;
-    if (*(float *)0x2533c8 < fVar1) fVar3 = *(float *)0x2533c8;
-  }
-  output_ptr[0x15] = fVar3;
-
-  fVar1 = color_ptr[2] * *(float *)0x254644 + *(float *)0x253398;
-  fVar4 = *(float *)0x2533c0;
-  if (*(float *)0x2533c0 <= fVar1) {
-    fVar4 = fVar1;
-    if (*(float *)0x2533c8 < fVar1) fVar4 = *(float *)0x2533c8;
-  }
-  output_ptr[0x16] = fVar4;
-
-  /* intensity double + bias, clamped, multiply specular */
-  fVar1 = intensity_ptr[0] + intensity_ptr[0] + *(float *)0x25337c;
-  fVar5 = *(float *)0x2533c0;
-  if (*(float *)0x2533c0 <= fVar1) {
-    fVar5 = fVar1;
-    if (*(float *)0x2533c8 < fVar1) fVar5 = *(float *)0x2533c8;
-  }
-  output_ptr[0x14] = fVar5 * fVar2;
-
-  fVar1 = intensity_ptr[1] + intensity_ptr[1] + *(float *)0x25337c;
-  fVar2 = *(float *)0x2533c0;
-  if (*(float *)0x2533c0 <= fVar1) {
-    fVar2 = fVar1;
-    if (*(float *)0x2533c8 < fVar1) fVar2 = *(float *)0x2533c8;
-  }
-  output_ptr[0x15] = fVar2 * fVar3;
-
-  fVar2 = intensity_ptr[2] + intensity_ptr[2] + *(float *)0x25337c;
-  fVar1 = *(float *)0x2533c0;
-  if (*(float *)0x2533c0 <= fVar2) {
-    fVar1 = fVar2;
-    if (*(float *)0x2533c8 < fVar2) fVar1 = *(float *)0x2533c8;
-  }
-  output_ptr[0x16] = fVar1 * fVar4;
-
-  /* pow(param_4, exponent) for ground shadow direction */
-  half_scale = (float)pow((double)param_4, *(double *)0x28c8d8);
-  output_ptr[0x17] = half_scale * output_ptr[7];
-  output_ptr[0x18] = half_scale * output_ptr[8];
-
-  sq = sqrtf(output_ptr[0x18] * output_ptr[0x18] + output_ptr[0x17] * output_ptr[0x17]);
-  if (*(float *)0x29b4d0 <= sq) {
-    fVar1 = *(float *)0x29b4d0 / sq;
-    output_ptr[0x19] = -0.707f;
-    output_ptr[0x17] = half_scale * output_ptr[7] * fVar1;
-    output_ptr[0x18] = half_scale * output_ptr[8] * fVar1;
-  } else {
-    output_ptr[0x19] = -sqrtf(*(float *)0x2533c8 - sq * sq);
-  }
-
-  /* distance attenuation per channel */
-  fVar1 = (*(float *)0x2533c8 - param_4) * *(float *)0x253398;
-  fVar2 = (*(float *)0x2533c8 - output_ptr[4] * *(float *)0x255b9c) + fVar1;
-  fVar3 = *(float *)0x323bf8;
-  if (*(float *)0x323bf8 <= fVar2) {
-    fVar3 = fVar2;
-    if (*(float *)0x2533c8 < fVar2) fVar3 = *(float *)0x2533c8;
-  }
-  output_ptr[0x1a] = fVar3;
-
-  fVar2 = (*(float *)0x2533c8 - output_ptr[5] * *(float *)0x255b9c) + fVar1;
-  fVar3 = *(float *)0x323bf8;
-  if (*(float *)0x323bf8 <= fVar2) {
-    fVar3 = fVar2;
-    if (*(float *)0x2533c8 < fVar2) fVar3 = *(float *)0x2533c8;
-  }
-  output_ptr[0x1b] = fVar3;
-
-  fVar1 = (*(float *)0x2533c8 - output_ptr[6] * *(float *)0x255b9c) + fVar1;
-  fVar2 = *(float *)0x323bf8;
-  if (*(float *)0x323bf8 <= fVar1) {
-    fVar2 = fVar1;
-    if (*(float *)0x2533c8 < fVar1) fVar2 = *(float *)0x2533c8;
-  }
-  output_ptr[0x1c] = fVar2;
-
-  if ((param_1 & 4) != 0) {
-    FUN_00139810(output_ptr, 0.2f);
-    FUN_00139810(output_ptr + 10, 0.3f);
-    FUN_00139810(output_ptr + 10, 0.2f);
-    FUN_00139810(output_ptr + 0x14, 0.5f);
-    output_ptr[0x13] = 1.0f;
-  }
-}
-
-/* 0x13a740 — compute_object_lighting_from_bsp: computes BSP-based lighting
- * for an object, including lightmap sampling and dynamic light accumulation.
- *
- * Source: c:\halo\SOURCE\objects\object_lights.c
- * 3 cdecl params.
- */
-/* 0x13a740 */
-void FUN_0013a740(int param_1, int param_2, float *param_3)
-{
-  float fVar1;
-  char *puVar2;
-  float *pfVar3;
-  char cVar4;
-  int iVar5;
-  short *psVar6;
-  int uVar7;
-  int iVar8;
-  unsigned int uVar9;
-  char local_34[12];
-  float local_28[4];
-  char local_18[4];
-  int local_14;
-  int local_10;
-  int local_c;
-  short local_8[2];
-
-  pfVar3 = param_3;
-  puVar2 = *(char **)0x2ee710;
-  *param_3 = *(float *)puVar2;
-  param_3[1] = *(float *)(puVar2 + 4);
-  param_3[2] = *(float *)(puVar2 + 8);
-  cVar4 = CALL_FUN_00198cb0(param_1, (void *)0x29b204, local_34,
-                        (void *)((int)&param_3 + 2), local_8, &local_c,
-                        local_28 + 3, &local_14);
-  if (cVar4 != '\0') {
-    iVar5 = (int)scenario_get();
-    psVar6 = (short *)tag_block_get_element((void *)(iVar5 + 0x104), (int)*(short *)((int)&param_3 + 2), 0x20);
-    local_10 = (int)tag_block_get_element(psVar6 + 10, (int)local_8[0], 0x100);
-    if (*(int *)(iVar5 + 0xc) != -1 && *psVar6 != -1) {
-      uVar7 = (int)FUN_00076ff0(*(int *)(iVar5 + 0xc), *psVar6);
-      local_28[1] = (float)(int)tag_block_get_element((void *)(iVar5 + 0xf8), local_c, 6);
-      iVar5 = local_10;
-      if (*(short *)(local_10 + 0xc4) != 2 && *(short *)(local_10 + 0xc4) != 3) {
-        display_assert(
-          "material->lightmap_vertices.type==_rasterizer_vertex_type_environment_lightmap_uncompressed || material->lightmap_vertices.type==_rasterizer_vertex_type_environment_lightmap_compressed",
-          "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x356, 1);
-        CALL_thunk_FUN_001029a0(-1);
-      }
-      iVar8 = CALL_FUN_001bf570(uVar7, 0, 0);
-      if (iVar8 != 0) {
-        FUN_00138fd0(iVar5, uVar7, (unsigned short *)(int)local_28[1], *(float *)&local_28[3], *(float *)&local_14, (int)pfVar3);
-      }
-    }
-  }
-  if (*(short *)(param_2 + 4) != -1) {
-    param_3 = (float *)0;
-    if (*(char *)0x5a8d60 != '\0') {
-      display_assert("!lights_globals.marker_initialized",
-                     "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x664, 1);
-      CALL_thunk_FUN_001029a0(-1);
-    }
-    *(int *)0x5a8d64 = *(int *)0x5a8d64 + 1;
-    *(char *)0x5a8d60 = '\x01';
-    FUN_00139c20(-1, (int16_t) * (unsigned short *)(param_2 + 4),
-                 (float *)param_1, 0.0f, (int)(local_28 + 2),
-                 (float *)local_18, (int)local_28, (int16_t *)&param_3, 2);
-    if (*(char *)0x5a8d60 == '\0') {
-      display_assert("lights_globals.marker_initialized",
-                     "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x68e, 1);
-      CALL_thunk_FUN_001029a0(-1);
-    }
-    *(char *)0x5a8d60 = '\0';
-    if (0 < (short)(int)param_3) {
-      iVar5 = 0;
-      uVar9 = (unsigned int)param_3 & 0xffff;
-      do {
-        iVar8 = (int)datum_get(*(void **)0x5a90bc, *(int *)((int)local_28 + iVar5 + 8));
-        if ((*(unsigned char *)(iVar8 + 2) & 1) != 0) {
-          *pfVar3 = *(float *)(iVar8 + 0x14) * *(float *)((int)local_28 + iVar5) + *pfVar3;
-          pfVar3[1] = *(float *)(iVar8 + 0x18) * *(float *)((int)local_28 + iVar5) + pfVar3[1];
-          pfVar3[2] = *(float *)(iVar8 + 0x1c) * *(float *)((int)local_28 + iVar5) + pfVar3[2];
-        }
-        iVar5 = iVar5 + 4;
-        uVar9 = uVar9 - 1;
-      } while (uVar9 != 0);
-    }
-  }
-  /* clamp each channel to [0, 1] */
-  fVar1 = *(float *)0x2533c0;
-  if (*(float *)0x2533c0 <= *pfVar3 && *pfVar3 <= *(float *)0x2533c8) {
-    fVar1 = *pfVar3;
-  } else if (*pfVar3 > *(float *)0x2533c8) {
-    fVar1 = *(float *)0x2533c8;
-  }
-  *pfVar3 = fVar1;
-
-  fVar1 = *(float *)0x2533c0;
-  if (*(float *)0x2533c0 <= pfVar3[1] && pfVar3[1] <= *(float *)0x2533c8) {
-    fVar1 = pfVar3[1];
-  } else if (pfVar3[1] > *(float *)0x2533c8) {
-    fVar1 = *(float *)0x2533c8;
-  }
-  pfVar3[1] = fVar1;
-
-  if (*(float *)0x2533c0 <= pfVar3[2]) {
-    if (pfVar3[2] <= *(float *)0x2533c8) {
-      return;
-    }
-    pfVar3[2] = 1.0f;
-    return;
-  }
-  pfVar3[2] = 0.0f;
-}
-
-/* 0x13ab20 — compute_dynamic_object_lighting: computes dynamic lighting for
- * objects using BSP ray casting, lightmap sampling, and shader lookups.
- *
- * Source: c:\halo\SOURCE\objects\object_lights.c
- * 3 cdecl params. Returns char (bool).
- */
-/* 0x13ab20 */
-char FUN_0013ab20(unsigned int param_1, int param_2, int *param_3)
-{
-  char cVar1;
-  int iVar2;
-  short *psVar3;
-  int iVar4;
-  unsigned short *puVar5;
-  int iVar6;
-  short sVar7;
-  short sVar8;
-  int *puVar9;
-  int *puVar10;
-  char *puVar11;
-  char local_94[12];
-  char local_88[12];
-  char local_7c[12];
-  char local_70[12];
-  char local_64[12];
-  char local_58[12];
-  char local_4c[12];
-  float local_40[3];
-  int local_34;
-  int local_30;
-  float local_2c;
-  float local_28;
-  float local_24;
-  short local_20[2];
-  short local_1c[2];
-  short *local_18;
-  int local_14;
-  float local_10;
-  float local_c;
-  float distance_scale;
-  char local_5;
-
-  local_5 = 0;
-  iVar2 = (int)scenario_get();
-  puVar9 = (int *)(iVar2 + 0x2c);
-  iVar6 = 0x1d;
-  puVar10 = param_3;
-  if (*(float *)(iVar2 + 0x2c) == *(float *)0x2533c0) {
-    puVar9 = (int *)0x29b190;
-    for (; iVar6 != 0; iVar6 = iVar6 - 1) {
-      *puVar10 = *puVar9;
-      puVar9 = puVar9 + 1;
-      puVar10 = puVar10 + 1;
-    }
-  } else {
-    for (; iVar6 != 0; iVar6 = iVar6 - 1) {
-      *puVar10 = *puVar9;
-      puVar9 = puVar9 + 1;
-      puVar10 = puVar10 + 1;
-    }
-    *(short *)(param_3 + 3) = 2;
-  }
-
-  if ((param_1 & 1) == 0) {
-    puVar11 = (char *)0x29b204;
-    sVar7 = 1;
-  } else {
-    puVar11 = (char *)0x29b210;
-    sVar7 = 4;
-  }
-  sVar8 = 0;
-  if (sVar7 != 0) {
-    while (cVar1 = CALL_FUN_00198cb0(param_2, puVar11 + sVar8 * 0xc, local_94,
-                                 local_1c, local_20, &local_34, &local_c, &local_10),
-           cVar1 == '\0') {
-      sVar8 = sVar8 + 1;
-      if (sVar7 <= sVar8) {
-        return local_5;
-      }
-    }
-    iVar2 = (int)scenario_get();
-    psVar3 = (short *)tag_block_get_element((void *)(iVar2 + 0x104), (int)local_1c[0], 0x20);
-    local_18 = psVar3;
-    iVar6 = (int)tag_block_get_element(psVar3 + 10, (int)local_20[0], 0x100);
-    iVar4 = (int)tag_get(0x73686472, *(int *)(iVar6 + 0xc));
-    if (*(short *)(iVar4 + 0x24) == 3
-        && (local_14 = (int)CALL_FUN_001906b0(iVar4, 3), *(int *)(iVar2 + 0xc) != -1)
-        && *psVar3 != -1
-        && *(int *)(local_14 + 0x94) != -1) {
-      puVar5 = (unsigned short *)tag_block_get_element((void *)(iVar2 + 0xf8), local_34, 6);
-      iVar2 = (int)FUN_00076ff0(*(int *)(iVar2 + 0xc), *local_18);
-      iVar4 = (int)tag_get(0x6269746d, *(int *)(local_14 + 0x94));
-      local_14 = (int)FUN_00076ff0(*(int *)(local_14 + 0x94),
-                                    (int)*(short *)(iVar6 + 0x10) % *(int *)(iVar4 + 0x60));
-      if (iVar2 != 0 && local_14 != 0
-          && (iVar4 = CALL_FUN_00138ee0(iVar2), iVar4 != 0)
-          && (iVar4 = CALL_FUN_00138ee0(local_14), iVar4 != 0)) {
-        CALL_FUN_001390d0(iVar6, local_14, puVar5, local_c, local_10, (void *)local_88);
-        FUN_00138fd0(iVar6, iVar2, puVar5, local_c, local_10, (int)local_40);
-        CALL_FUN_00180570((unsigned int)*puVar5 * 0x20 + *(int *)(iVar6 + 0xf8), (void *)local_64);
-        CALL_FUN_00180570((unsigned int)puVar5[1] * 0x20 + *(int *)(iVar6 + 0xf8), (void *)local_58);
-        CALL_FUN_00180570((unsigned int)puVar5[2] * 0x20 + *(int *)(iVar6 + 0xf8), (void *)local_4c);
-        FUN_00138f70((float *)local_7c, (float *)local_4c, (float *)local_58, (float *)local_64, local_c, local_10);
-        CALL_FUN_00013010((void *)local_7c);
-        CALL_FUN_00180660(*(int *)(iVar6 + 0xf8) + ((unsigned int)*puVar5 + *(int *)(iVar6 + 0xb4) * 4) * 8, (void *)local_64);
-        CALL_FUN_00180660(*(int *)(iVar6 + 0xf8) + ((unsigned int)puVar5[1] + *(int *)(iVar6 + 0xb4) * 4) * 8, (void *)local_58);
-        CALL_FUN_00180660(*(int *)(iVar6 + 0xf8) + ((unsigned int)puVar5[2] + *(int *)(iVar6 + 0xb4) * 4) * 8, (void *)local_4c);
-        local_2c = (float)CALL_FUN_00013010((void *)local_64);
-        local_28 = (float)CALL_FUN_00013010((void *)local_58);
-        local_24 = (float)CALL_FUN_00013010((void *)local_4c);
-        FUN_00138f70((float *)local_70, (float *)local_4c, (float *)local_58, (float *)local_64, local_c, local_10);
-        distance_scale = (local_24 - local_2c) * local_10 + (local_28 - local_2c) * local_c + local_2c;
-        CALL_FUN_00013010((void *)local_70);
-        if (*(char *)0x5a8d59 != '\0') {
-          local_2c = local_40[0];
-          local_28 = local_40[1];
-          local_24 = local_40[2];
-          local_30 = 0x3f800000;
-          CALL_FUN_00189150(1, param_2, 0.5f, &local_30);
-          { int ds_bits; memcpy(&ds_bits, &distance_scale, 4);
-          ((void (*)(int, void *, void *, int, void *))FUN_00189320)(1, (void *)param_2, local_70, ds_bits, &local_30); }
-        }
-        FUN_00139e50(param_1, (float *)local_7c, (float *)local_70, distance_scale,
-                     (float *)local_88, (float *)param_3, (float *)local_40);
-        local_5 = 1;
-      }
-    }
-  }
-  return local_5;
-}
-
-/* 0x13b380 — render_lights: main per-frame light processing function.
- * Iterates all active lights, updates colors/positions, submits to renderer.
- *
- * Source: c:\halo\SOURCE\objects\object_lights.c
- * No params.
- */
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-but-set-variable"
-#pragma clang diagnostic ignored "-Wunused-variable"
-/* 0x13b380 */
-void FUN_0013b380(void)
-{
-  float *pfVar1;
-  float fVar2;
-  char cVar3;
-  short sVar4;
-  int iVar5;
-  int iVar6;
-  int iVar7;
-  short *psVar8;
-  unsigned char *pbVar9;
-  char *puVar10;
-  int uVar11;
-  unsigned char *pbVar12;
-  char *puVar13;
-  short sVar14;
-  float fVar15;
-  char local_3e0[864]; /* local_3e0[60]+local_3a4[804] must be contiguous (MSVC stack alias) */
-  char *local_3a4 = local_3e0 + 60;
-  int light_params[14]; /* must be contiguous — rasterizer reads as 56-byte struct */
-  int local_48;
-  char lf_params[40]; /* lens flare params — rasterizer reads as 0x28-byte struct */
-  int local_1c;
-  float local_18;
-  int local_14;
-  int local_10;
-  float local_c;
-  float local_8;
-
-  local_1c = CALL_FUN_000b5aa0();
-  if (*(char *)0x449ef1 != '\0' && *(char *)0x323608 != '\0') {
-    CALL_FUN_0008fa40((int *)0x323600);
-  }
-  *(short *)0x5a8d5a = 0;
-  for (iVar5 = CALL_FUN_001198f0(*(void **)0x5a90bc, -1); iVar5 != -1;
-       iVar5 = CALL_FUN_001198f0(*(void **)0x5a90bc, iVar5)) {
-    iVar6 = (int)datum_get(*(void **)0x5a90bc, iVar5);
-    *(unsigned char *)(iVar6 + 2) = *(unsigned char *)(iVar6 + 2) & 0xf7;
-    *(int *)(iVar6 + 8) = -1;
-    if (*(int *)(iVar6 + 0x58) != -1) {
-      iVar7 = (int)tag_get(0x6c696768, *(int *)(iVar6 + 4));
-      local_10 = local_1c - *(int *)(iVar6 + 0x58);
-      if ((float)local_10 <= *(float *)(iVar7 + 0xf4)) {
-        iVar6 = CALL_FUN_0013d640(*(int *)(iVar6 + 0x2c), -1);
-        if (iVar6 != 0) {
-          CALL_FUN_001396e0(iVar5);
-          CALL_FUN_0013aed0(iVar5);
-        }
-      } else {
-        iVar6 = (int)datum_get(*(void **)0x5a90bc, iVar5);
-        CALL_FUN_001919a0((void *)0x5a90b0, iVar5, iVar6 + 0x10);
-        CALL_FUN_001196d0(*(void **)0x5a90bc, iVar5);
-      }
-    }
-  }
-  if (*(char *)0x5a8d60 != '\0') {
-    display_assert("!lights_globals.marker_initialized",
-                   "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x664, 1);
-    CALL_thunk_FUN_001029a0(-1);
-  }
-  *(int *)0x5a8d64 = *(int *)0x5a8d64 + 1;
-  *(char *)0x5a8d60 = '\x01';
-  *(short *)0x5a8d68 = (short)CALL_FUN_00196c90((void *)0x5a8d6c, 0x80,
-                         (void *)0x1398b0, (void *)0x1398d0,
-                         (void *)0x13a340, (void *)0x139930, (void *)0x139990);
-  if (*(char *)0x5a8d60 == '\0') {
-    display_assert("lights_globals.marker_initialized",
-                   "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x68e, 1);
-    CALL_thunk_FUN_001029a0(-1);
-  }
-  *(char *)0x5a8d60 = 0;
-  FUN_001812b0();
-  iVar5 = 0;
-  if (0 < *(short *)0x5137cc) {
-    do {
-      psVar8 = CALL_FUN_00184e50(iVar5);
-      CALL_FUN_00181900((int)*psVar8);
-      iVar5 = iVar5 + 1;
-    } while ((short)iVar5 < *(short *)0x5137cc);
-  }
-  local_10 = 0;
-  if (0 < *(short *)0x5a8d68) {
-    do {
-      uVar11 = *(int *)((char *)0x5a8d6c + (short)local_10 * 4);
-      local_48 = uVar11;
-      iVar5 = (int)datum_get(*(void **)0x5a90bc, uVar11);
-      pbVar9 = (unsigned char *)tag_get(0x6c696768, *(int *)(iVar5 + 4));
-      local_c = 1.0f;
-      FUN_00139a30(uVar11);
-      if (*(int *)(iVar5 + 0x2c) == -1) {
-        iVar6 = 0;
-      } else {
-        iVar6 = CALL_FUN_0013d640(*(int *)(iVar5 + 0x2c), -1);
-      }
-      local_14 = iVar6;
-      if (*(int *)(iVar5 + 0x58) == -1) {
-        if (iVar6 == 0) {
-          display_assert("object", "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x1ac, 1);
-          CALL_thunk_FUN_001029a0(-1);
-        }
-        CALL_FUN_001403a0(*(int *)(iVar5 + 0x2c), *(unsigned short *)(iVar5 + 0x5e), &local_8);
-        puVar10 = *(char **)0x2ee708;
-        if (*(short *)(iVar5 + 0x60) != -1) {
-          puVar10 = (char *)(iVar6 + (*(short *)(iVar5 + 0x60) + 0x1e) * 0xc);
-        }
-        CALL_FUN_007c490(iVar5 + 0x14, *(int *)(pbVar9 + 0x34), pbVar9 + 0x38, pbVar9 + 0x48, puVar10, local_8);
-      } else {
-        local_18 = (float)(local_1c - *(int *)(iVar5 + 0x58));
-        fVar15 = (float)CALL_FUN_0010a710(*(unsigned short *)(pbVar9 + 0xfa),
-                                      (float)(int)local_18 / *(float *)(pbVar9 + 0xf4));
-        local_8 = (*(float *)0x2533c8 - fVar15) * *(float *)(iVar5 + 0x78);
-        CALL_FUN_0007c270((float *)(iVar5 + 0x14), *(unsigned int *)(pbVar9 + 0x34),
-                     (float *)(pbVar9 + 0x3c), (float *)(pbVar9 + 0x4c), local_8);
-      }
-      local_18 = *(float *)0x2533c8 - local_8;
-      if (*(float *)(iVar5 + 0x14) < *(float *)0x2533c0
-          || *(float *)(iVar5 + 0x14) > *(float *)0x2533c8) {
-        display_assert("light->color.red >=0.0f && light->color.red <=1.0f",
-                       "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x1bb, 1);
-        CALL_thunk_FUN_001029a0(-1);
-      }
-      if (*(float *)(iVar5 + 0x18) < *(float *)0x2533c0
-          || *(float *)(iVar5 + 0x18) > *(float *)0x2533c8) {
-        display_assert("light->color.green>=0.0f && light->color.green<=1.0f",
-                       "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x1bc, 1);
-        CALL_thunk_FUN_001029a0(-1);
-      }
-      if (*(float *)(iVar5 + 0x1c) < *(float *)0x2533c0
-          || *(float *)(iVar5 + 0x1c) > *(float *)0x2533c8) {
-        display_assert("light->color.blue >=0.0f && light->color.blue <=1.0f",
-                       "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x1bd, 1);
-        CALL_thunk_FUN_001029a0(-1);
-      }
-      if (local_14 != 0) {
-        uVar11 = object_get_root_parent(*(int *)(iVar5 + 0x2c));
-        iVar6 = (int)object_get_and_verify_type(uVar11, -1);
-        if ((1 << (*(unsigned char *)(iVar6 + 100) & 0x1f) & 3u) != 0) {
-          iVar6 = (int)object_get_and_verify_type(uVar11, 3);
-          if (*(float *)0x2533c0 < *(float *)(iVar6 + 0x32c)) {
-            pbVar12 = (unsigned char *)tag_get(0x6c696768, *(int *)(iVar5 + 4));
-            if ((*pbVar12 & 0x20) == 0) {
-              local_c = *(float *)0x2533c8 - *(float *)(iVar6 + 0x32c);
-              fVar2 = local_c * *(float *)(iVar5 + 0x14);
-              *(float *)(iVar5 + 0x14) = fVar2;
-              *(float *)(iVar5 + 0x18) = local_c * *(float *)(iVar5 + 0x18);
-              *(float *)(iVar5 + 0x1c) = local_c * *(float *)(iVar5 + 0x1c);
-              if (fVar2 < *(float *)0x2533c0 || fVar2 > *(float *)0x2533c8) {
-                display_assert("light->color.red >=0.0f && light->color.red <=1.0f",
-                               "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x1d1, 1);
-                CALL_thunk_FUN_001029a0(-1);
-              }
-              if (*(float *)(iVar5 + 0x18) < *(float *)0x2533c0
-                  || *(float *)(iVar5 + 0x18) > *(float *)0x2533c8) {
-                display_assert("light->color.green>=0.0f && light->color.green<=1.0f",
-                               "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x1d2, 1);
-                CALL_thunk_FUN_001029a0(-1);
-              }
-              if (*(float *)(iVar5 + 0x1c) < *(float *)0x2533c0
-                  || *(float *)(iVar5 + 0x1c) > *(float *)0x2533c8) {
-                display_assert("light->color.blue >=0.0f && light->color.blue <=1.0f",
-                               "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x1d3, 1);
-                CALL_thunk_FUN_001029a0(-1);
-              }
-            }
-          }
-        }
-      }
-      pfVar1 = (float *)(iVar5 + 0x14);
-      if (*(float *)(iVar5 + 0x14) != *(float *)0x2533c0
-          || *(float *)(iVar5 + 0x18) != *(float *)0x2533c0
-          || *(float *)(iVar5 + 0x1c) != *(float *)0x2533c0) {
-        if ((*(unsigned char *)(iVar5 + 2) & 1) == 0) {
-          *(int *)(iVar5 + 0x54) = *(int *)(pbVar9 + 4);
-        } else {
-          fVar2 = (local_8 * *(float *)(pbVar9 + 0xc) + local_18 * *(float *)(pbVar9 + 8)) *
-                  *(float *)(pbVar9 + 4);
-          *(float *)(iVar5 + 0x54) = fVar2;
-          if (fVar2 != *(float *)0x2533c0) {
-            light_params[0] = (int)tag_get(0x6c696768, *(int *)(iVar5 + 4));
-            light_params[1] = *(int *)(iVar5 + 0x30);
-            light_params[2] = *(int *)(iVar5 + 0x34);
-            light_params[3] = *(int *)(iVar5 + 0x38);
-            light_params[4] = *(int *)(iVar5 + 0x3c);
-            light_params[5] = *(int *)(iVar5 + 0x40);
-            light_params[6] = *(int *)(iVar5 + 0x44);
-            light_params[7] = *(int *)(iVar5 + 0x48);
-            light_params[8] = *(int *)(iVar5 + 0x4c);
-            light_params[9] = *(int *)(iVar5 + 0x50);
-            light_params[13] = *(int *)(iVar5 + 0x54);
-            *(float *)&light_params[10] = *pfVar1;
-            light_params[11] = *(int *)(iVar5 + 0x18);
-            light_params[12] = *(int *)(iVar5 + 0x1c);
-            if (*pfVar1 < *(float *)0x2533c0 || *pfVar1 > *(float *)0x2533c8) {
-              display_assert("light->color.red >=0.0f && light->color.red <=1.0f",
-                             "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x1ee, 1);
-              CALL_thunk_FUN_001029a0(-1);
-            }
-            if (*(float *)(iVar5 + 0x18) < *(float *)0x2533c0
-                || *(float *)(iVar5 + 0x18) > *(float *)0x2533c8) {
-              display_assert("light->color.green>=0.0f && light->color.green<=1.0f",
-                             "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x1ef, 1);
-              CALL_thunk_FUN_001029a0(-1);
-            }
-            if (*(float *)(iVar5 + 0x1c) < *(float *)0x2533c0
-                || *(float *)(iVar5 + 0x1c) > *(float *)0x2533c8) {
-              display_assert("light->color.blue >=0.0f && light->color.blue <=1.0f",
-                             "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x1f0, 1);
-              CALL_thunk_FUN_001029a0(-1);
-            }
-            if (*(int *)(iVar5 + 0x58) == -1) {
-              if ((*pbVar9 & 0x10) == 0) {
-                if (*(short *)(local_14 + 100) == 2 && *(int *)(local_14 + 0xcc) != -1) {
-                  uVar11 = CALL_FUN_0013fea0_5(*(int *)(iVar5 + 0x2c), *(unsigned short *)(iVar5 + 0x5c), &light_params[1], &light_params[4], &light_params[7]);
-                  cVar3 = first_person_weapon_adjust_light(*(int *)(iVar5 + 0x2c), uVar11, &light_params[1], &light_params[4], &light_params[7]);
-                  if (cVar3 != '\0') goto LAB_0013baac;
-                }
-              } else {
-                first_person_weapon_center_flashlight(*(int *)(iVar5 + 0x2c), (float *)&light_params[1], (float *)&light_params[4], &light_params[7]);
-LAB_0013baac:
-                *(unsigned char *)(iVar5 + 2) = *(unsigned char *)(iVar5 + 2) | 8;
-              }
-            }
-            uVar11 = CALL_FUN_001812c0(light_params);
-            *(int *)(iVar5 + 8) = uVar11;
-            *(short *)0x5a8d5a = (short)uVar11 + 1;
-          }
-        }
-        if (*(int *)(pbVar9 + 0xb8) != -1) {
-          *(int *)(lf_params + 0x00) = (int)tag_get(0x6c656e73, *(int *)(pbVar9 + 0xb8));
-          *(unsigned int *)(lf_params + 0x18) = CALL_FUN_00099530(local_c, (float *)(iVar5 + 0x14));
-          *(lf_params + 0x23) = CALL_FUN_00180770(local_8);
-          *(short *)(lf_params + 0x1e) = (short)local_48;
-          *(short *)(lf_params + 0x1c) = (short)((unsigned int)local_48 >> 0x10);
-          *(unsigned char *)(lf_params + 0x22) = *(unsigned char *)0x50654a;
-          if (*(short *)(lf_params + 0x1c) == 0) {
-            display_assert("lens_flare_parameters.light_identifier!=0",
-                           "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x21c, 1);
-            CALL_thunk_FUN_001029a0(-1);
-          }
-          if (*(short *)(lf_params + 0x1c) == -1) {
-            *(short *)(lf_params + 0x1c) = 0;
-          }
-          if (*(int *)(iVar5 + 0x58) == -1) {
-            uVar11 = CALL_FUN_0013fea0_2(*(int *)(iVar5 + 0x2c), *(unsigned short *)(iVar5 + 0x5c));
-            if (*(short *)(local_14 + 100) == 2 && *(int *)(local_14 + 0xcc) != -1) {
-              sVar4 = CALL_FUN_000ddb90(*(int *)(iVar5 + 0x2c), uVar11, local_3e0, 8);
-              if (0 < sVar4) {
-                *(unsigned char *)(lf_params + 0x22) = *(unsigned char *)(lf_params + 0x22) | 0x80;
-              }
-              if (sVar4 == 0) goto LAB_0013bbaf;
-            } else {
-LAB_0013bbaf:
-              sVar4 = CALL_FUN_00140f10((void *)*(int *)(iVar5 + 0x2c), uVar11, local_3e0, 8);
-            }
-            sVar14 = 0;
-            if (0 < sVar4) {
-              puVar13 = local_3a4;
-              do {
-                *(int *)(lf_params + 0x04) = *(int *)(puVar13 + 0x24);
-                *(int *)(lf_params + 0x08) = *(int *)(puVar13 + 0x28);
-                *(int *)(lf_params + 0x0c) = *(int *)(puVar13 + 0x2c);
-                *(int *)(lf_params + 0x10) = CALL_FUN_00180b10((int)puVar13);
-                *(int *)(lf_params + 0x14) = CALL_FUN_00180b10((int)(puVar13 + 0x18));
-                *(short *)(lf_params + 0x20) = sVar14;
-                CALL_FUN_00181670(lf_params);
-                sVar14 = sVar14 + 1;
-                puVar13 = puVar13 + 0x6c;
-              } while (sVar14 < sVar4);
-            }
-          } else {
-            *(int *)(lf_params + 0x04) = *(int *)(iVar5 + 0x30);
-            *(int *)(lf_params + 0x08) = *(int *)(iVar5 + 0x34);
-            *(int *)(lf_params + 0x0c) = *(int *)(iVar5 + 0x38);
-            *(int *)(lf_params + 0x10) = CALL_FUN_00180b10(iVar5 + 0x3c);
-            *(int *)(lf_params + 0x14) = CALL_FUN_00180b10(iVar5 + 0x48);
-            *(short *)(lf_params + 0x20) = 0;
-            CALL_FUN_00181670(lf_params);
-          }
-        }
-      }
-      local_10 = local_10 + 1;
-    } while ((short)local_10 < *(short *)0x5a8d68);
-  }
-  sVar4 = 0;
-  if (0 < *(short *)0x5a90ac) {
-    do {
-      CALL_FUN_00181670((void *)((char *)0x5a8f6c + sVar4 * 0x28));
-      sVar4 = sVar4 + 1;
-    } while (sVar4 < *(short *)0x5a90ac);
-  }
-  *(short *)0x5a90ac = 0;
-  FUN_00181410();
-  if (*(char *)0x449ef1 != '\0' && *(char *)0x323608 != '\0') {
-    CALL_FUN_0008fac0((int *)0x323600);
-  }
-}
-#pragma clang diagnostic pop
-
-/* 0x13cf50 — object_placement_update: creates or destroys objects based on
- * scenario placement changes. Contains goto patterns for create/recreate.
- *
- * Source: c:\halo\SOURCE\objects\object_types.c
- * 5 cdecl params. Returns int (object handle).
- */
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-but-set-variable"
-#pragma clang diagnostic ignored "-Wunused-variable"
-#pragma clang diagnostic ignored "-Wuninitialized"
-/* 0x13cf50 */
-int FUN_0013cf50(int param_1, short *param_2, int param_3, short param_4, short param_5)
-{
-  float fVar1;
-  char cVar2;
-  int *piVar3;
-  int *puVar4;
-  int uVar5;
-  int iVar6;
-  char *puVar8;
-  char *pcVar10;
-  int uVar11;
-  int uVar12;
-  char local_cc[22];
-  short local_b6;
-  int local_b4;
-  int local_b0;
-  int local_ac;
-  char local_98[12];
-  char local_8c[72];
-  int local_44;
-  int local_40;
-  float local_3c;
-  unsigned int local_38;
-  float local_34;
-  float local_30;
-  float local_2c;
-  float local_28;
-  float local_24;
-  float local_20;
-  float local_1c;
-  float local_18;
-  float local_14;
-  char local_10[12];
-
-  if (*param_2 == -1) {
-    if (param_1 != -1) {
-      CALL_FUN_00140cc0(param_1);
-      param_1 = -1;
-    }
-    goto LAB_0013d51f;
-  }
-  if (param_1 == -1) {
-    iVar6 = (int)tag_block_get_element((void *)param_3, (int)*param_2, 0x30);
-    if (*(int *)(iVar6 + 0xc) == -1) goto LAB_0013d51f;
-    CALL_FUN_0013fc20(local_cc, *(int *)(iVar6 + 0xc), -1);
-    local_b4 = *(int *)(param_2 + 4);
-    local_b0 = *(int *)(param_2 + 6);
-    local_ac = *(int *)(param_2 + 8);
-    CALL_FUN_0010bbc0(local_8c, param_2 + 10, local_98);
-    local_b6 = param_2[3];
-    goto LAB_0013d09e;
-  }
-  piVar3 = (int *)CALL_FUN_0013d640(param_1, -1);
-  iVar6 = (int)tag_block_get_element((void *)param_3, (int)*param_2, 0x30);
-  if (piVar3 == (int *)0) {
-LAB_0013d03a:
-    param_1 = -1;
-    if (*(int *)(iVar6 + 0xc) == -1) goto LAB_0013d51f;
-    CALL_FUN_0013fc20(local_cc, *(int *)(iVar6 + 0xc), -1);
-    local_b4 = *(int *)(param_2 + 4);
-    local_b0 = *(int *)(param_2 + 6);
-    local_ac = *(int *)(param_2 + 8);
-    CALL_FUN_0010bbc0(local_8c, param_2 + 10, local_98);
-    local_b6 = param_2[3];
-    goto LAB_0013d09e;
-  }
-  if (*piVar3 != *(int *)(iVar6 + 0xc)) {
-    CALL_FUN_00140cc0(param_1);
-    goto LAB_0013d03a;
-  }
-  goto after_create;
-LAB_0013d09e:
-  param_1 = CALL_FUN_00143c80(local_cc, local_8c);
-  if (param_1 == -1) goto LAB_0013d51f;
-  FUN_0013c500(param_1, (int)param_2);
-after_create:
-  puVar4 = (int *)object_get_and_verify_type(param_1, -1);
-  CALL_FUN_0013fb30(param_1);
-  FUN_00109e90((float *)&local_38, *(float *)(param_2 + 10), *(float *)(param_2 + 0xc),
-               *(float *)(param_2 + 0xe));
-  cVar2 = CALL_FUN_000f6d00_0();
-  if (cVar2 == '\0') {
-    if ((local_38 & 0x7f800000) == 0x7f800000) {
-      uVar5 = (int)csprintf((char *)0x5ab100,
-                "scale is not valid (%f)", (double)*(float *)&local_38);
-      display_assert((const char *)uVar5, "c:\\halo\\SOURCE\\objects\\object_types.c", 0x3cf, 1);
-      CALL_thunk_FUN_001029a0(-1);
-    }
-    cVar2 = CALL_FUN_00021fb0(&local_34);
-    if (cVar2 == '\0') {
-      uVar5 = (int)csprintf((char *)0x5ab100,
-                "forward is not a valid normal3d");
-      display_assert((const char *)uVar5, "c:\\halo\\SOURCE\\objects\\object_types.c", 0x3cf, 1);
-      CALL_thunk_FUN_001029a0(-1);
-    }
-    cVar2 = CALL_FUN_00021fb0(&local_28);
-    if (cVar2 == '\0') {
-      uVar5 = (int)csprintf((char *)0x5ab100,
-                "left is not a valid normal3d");
-      display_assert((const char *)uVar5, "c:\\halo\\SOURCE\\objects\\object_types.c", 0x3cf, 1);
-      CALL_thunk_FUN_001029a0(-1);
-    }
-    cVar2 = CALL_FUN_00021fb0(&local_1c);
-    if (cVar2 == '\0') {
-      uVar5 = (int)csprintf((char *)0x5ab100,
-                "up is not a valid normal3d");
-      display_assert((const char *)uVar5, "c:\\halo\\SOURCE\\objects\\object_types.c", 0x3cf, 1);
-      CALL_thunk_FUN_001029a0(-1);
-    }
-    cVar2 = CALL_FUN_000a16b0(local_10);
-    if (cVar2 == '\0') {
-      uVar5 = (int)csprintf((char *)0x5ab100,
-                "position is not valid");
-      display_assert((const char *)uVar5, "c:\\halo\\SOURCE\\objects\\object_types.c", 0x3cf, 1);
-      CALL_thunk_FUN_001029a0(-1);
-    }
-    fVar1 = local_20 * local_2c + local_24 * local_30 + local_28 * local_34;
-    if (((*(unsigned int *)&fVar1 & 0x7f800000) == 0x7f800000)
-        || *(double *)0x2549d8 <= fabs((double)fVar1)) {
-      csprintf((char *)0x5ab100,
-               "%s had a forward (%f,%f,%f) not perpendicular to left (%f,%f,%f)",
-               "&matrix", (double)local_34, (double)local_30, (double)local_2c,
-               (double)local_28, (double)local_24, (double)local_20);
-      display_assert((const char *)0x5ab100, "c:\\halo\\SOURCE\\objects\\object_types.c", 0x3cf, 1);
-      CALL_thunk_FUN_001029a0(-1);
-    }
-    fVar1 = local_14 * local_20 + local_18 * local_24 + local_1c * local_28;
-    if (((*(unsigned int *)&fVar1 & 0x7f800000) == 0x7f800000)
-        || *(double *)0x2549d8 <= fabs((double)fVar1)) {
-      csprintf((char *)0x5ab100,
-               "%s had a up (%f,%f,%f) not perpendicular to left (%f,%f,%f)",
-               "&matrix", (double)local_1c, (double)local_18, (double)local_14,
-               (double)local_28, (double)local_24, (double)local_20);
-      display_assert((const char *)0x5ab100, "c:\\halo\\SOURCE\\objects\\object_types.c", 0x3cf, 1);
-      CALL_thunk_FUN_001029a0(-1);
-    }
-    fVar1 = local_14 * local_2c + local_18 * local_30 + local_1c * local_34;
-    if (((*(unsigned int *)&fVar1 & 0x7f800000) == 0x7f800000)
-        || *(double *)0x2549d8 <= fabs((double)fVar1)) {
-      csprintf((char *)0x5ab100,
-               "%s had a forward (%f,%f,%f) not perpendicular to up (%f,%f,%f)",
-               "&matrix", (double)local_34, (double)local_30, (double)local_2c,
-               (double)local_1c, (double)local_18, (double)local_14);
-      display_assert((const char *)0x5ab100, "c:\\halo\\SOURCE\\objects\\object_types.c", 0x3cf, 1);
-      CALL_thunk_FUN_001029a0(-1);
-    }
-    cVar2 = CALL_FUN_000f6d00_1(&local_38);
-    if (cVar2 == '\0') {
-      uVar5 = (int)csprintf((char *)0x5ab100, "matrix is not valid");
-      display_assert((const char *)uVar5, "c:\\halo\\SOURCE\\objects\\object_types.c", 0x3cf, 1);
-      CALL_thunk_FUN_001029a0(-1);
-    }
-  }
-  iVar6 = (int)tag_get(0x6f626a65, *puVar4);
-  if (*(int *)(iVar6 + 0x8c) != -1) {
-    local_44 = *(int *)(param_2 + 4);
-    local_40 = *(int *)(param_2 + 6);
-    local_3c = (float)puVar4[0x17] * *(float *)0x253398 + *(float *)(param_2 + 8);
-  }
-  object_set_position(param_1, (float *)local_10, &local_34, &local_1c);
-  *(short *)((int)puVar4 + 0x6a) = param_2[1];
-LAB_0013d51f:
-  if (param_2[1] != -1) {
-    iVar6 = (int)tag_block_get_element(
-              (void *)((int)global_scenario_get() + 0x204), (int)param_2[1], 0x24);
-    *(short *)(iVar6 + 0x20) = param_4;
-    *(short *)(iVar6 + 0x22) = param_5;
-    /* Store this object's handle (param_1, held in ESI / the return value) at
-     * the scenario name-table index param_2[1]. Confirmed at 0x13d551-0x13d557:
-     * PUSH ESI (=param_1); PUSH EDX (=param_2[1]); CALL 0x13d880. */
-    object_name_list_set_handle(param_2[1], param_1);
-  }
-  return param_1;
-}
-#pragma clang diagnostic pop
-
-/* 0x13f4b0 — objects_dump_memory: diagnostic memory dump of all objects,
- * grouped by type and definition. Writes to a file.
- *
- * Source: objects.c
- * No params. Has 768KB+ stack for large arrays (_chkstk handles this).
- */
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-but-set-variable"
-#pragma clang diagnostic ignored "-Wunused-variable"
-/* 0x13f4b0 */
-void objects_dump_memory(void)
-{
-  unsigned short uVar1;
-  short sVar2;
-  int *piVar3;
-  int iVar4;
-  void *stream;
-  int *puVar5;
-  unsigned short uVar6;
-  short *psVar7;
-  unsigned int uVar8;
-  int dump_by_def[6144]; /* 1024 * 6 */
-  int local_6140;
-  short local_613c[12288]; /* 1024 * 12 */
-  int local_140;
-  short local_13c[128]; /* 12 entries * (4+8 shorts) + pad */
-  short sVar9;
-  unsigned short uVar10;
-  object_iter_t dump_iter;
-
-  uVar10 = 0;
-  sVar9 = 0;
-  csmemset(dump_by_def, 0, sizeof(dump_by_def));
-  csmemset(local_613c, 0, sizeof(local_613c));
-  sVar2 = 0;
-  puVar5 = &local_140;
-  do {
-    *(short *)((char *)puVar5 + 4) = sVar2;
-    *puVar5 = -1;
-    sVar2 = sVar2 + 1;
-    puVar5 = puVar5 + 6;
-  } while (sVar2 < 0xc);
-  object_iterator_new(&dump_iter, -1, 0);
-  piVar3 = (int *)object_iterator_next(&dump_iter);
-  do {
-    if (piVar3 == (int *)0) {
-      /* Done iterating — output report */
-      stream = (void *)CALL_FUN_001d9e59("objects.txt", "wt");
-      if (stream != (void *)0) {
-        FUN_0013db60((short *)stream);
-        CALL_FUN_001d9260(stream, "#%d objects (#%d active) using %3.2f%% of available memory\n\n");
-        CALL_FUN_001d9260(stream, "OBJECTS BY TYPE\n");
-        CALL_FUN_001d9260(stream,
-                     "number (active) [garbage/   dead/outside/at-rest] maxsize totsize\n");
-        psVar7 = local_13c;
-        iVar4 = 0xc;
-        do {
-          if (*(int *)(psVar7 - 2) == -1) {
-            if (*psVar7 != -1) {
-              FUN_0013c250(*psVar7);
-            }
-          } else {
-            CALL_FUN_001ba1f0(*(int *)(psVar7 - 2));
-          }
-          CALL_FUN_001d9260(stream,
-                       "% 6d (% 6d) [% 7d/% 7d/% 7d/% 7d] % 7d % 7d %s\r\n");
-          psVar7 = psVar7 + 0xc;
-          iVar4 = iVar4 - 1;
-        } while (iVar4 != 0);
-        CALL_FUN_001d9260(stream, "\n");
-        CALL_FUN_001d9260(stream, "OBJECTS BY DEFINITION\n");
-        CALL_FUN_001d9260(stream,
-                     "number (active) [garbage/   dead/outside/at-rest] maxsize totsize\n");
-        if (0 < (short)uVar10) {
-          psVar7 = local_613c;
-          uVar8 = (unsigned int)uVar10;
-          do {
-            if (*(int *)(psVar7 - 2) == -1) {
-              if (*psVar7 != -1) {
-                FUN_0013c250(*psVar7);
-              }
-            } else {
-              CALL_FUN_001ba1f0(*(int *)(psVar7 - 2));
-            }
-            CALL_FUN_001d9260(stream,
-                         "% 6d (% 6d) [% 7d/% 7d/% 7d/% 7d] % 7d % 7d %s\r\n");
-            psVar7 = psVar7 + 0xc;
-            uVar8 = uVar8 - 1;
-          } while (uVar8 != 0);
-        }
-        CALL_FUN_001d9260(stream, "\n");
-        if (0 < sVar9) {
-          CALL_FUN_001d9260(stream,
-                       "WARNING: overflowed MAXIMUM_DUMPS (%d), this dump does not include %d objects that would not fit!\n");
-        }
-        CALL_FUN_001d9260(stream, "\n");
-        CALL_FUN_001d9260(stream, 0); /* _fclose */
-      }
-      return;
-    }
-    uVar6 = 0;
-    uVar1 = 0xffff;
-    if (0 < (short)uVar10) {
-      do {
-        if (dump_by_def[(short)uVar6 * 6] == *piVar3) {
-          uVar1 = uVar6;
-          if (uVar6 != 0xffff) goto LAB_0013f5ad;
-          break;
-        }
-        uVar6 = uVar6 + 1;
-      } while ((short)uVar6 < (short)uVar10);
-    }
-    uVar6 = uVar1;
-    if ((short)uVar10 < 0x400) {
-      local_613c[(short)uVar10 * 0xc] = -1;
-      dump_by_def[(short)uVar10 * 6] = *piVar3;
-      uVar6 = uVar10;
-      uVar10 = uVar10 + 1;
-    } else {
-      sVar9 = sVar9 + 1;
-    }
-LAB_0013f5ad:
-    iVar4 = (int)datum_get(*(void **)0x5a8d50, 0);
-    if (uVar6 != 0xffff) {
-      CALL_FUN_0013f3b0((int *)((char *)dump_by_def + (short)uVar6 * 24), iVar4);
-    }
-    if (0xb < *(unsigned char *)(iVar4 + 3)) {
-      display_assert("object->type < NUMBER_OF_OBJECT_TYPES",
-                     "c:\\halo\\SOURCE\\objects\\objects.c", 0, 1);
-      CALL_thunk_FUN_001029a0(-1);
-    }
-    CALL_FUN_0013f3b0((int *)((char *)&local_140 + *(unsigned char *)(iVar4 + 3) * 24), iVar4);
-    piVar3 = (int *)object_iterator_next(&dump_iter);
-  } while (1);
-}
-#pragma clang diagnostic pop
-
-/* 0x1417c0 — objects_reconnect_to_structure_bsp: reconnects objects to
- * the current BSP structure after a BSP switch. Iterates all objects and
- * updates their cluster assignments.
- *
- * Source: objects.c
- * No params. EBX is set locally to -1 (not a register arg).
- */
-/* 0x1417c0 */
-void objects_reconnect_to_structure_bsp(void)
-{
-  int iVar1;
-  /* collision_bsp_test_sphere results buffer. Original frame is 0x1028 bytes =
-   * 0x1010 (buffer) + 0x10 (bsp_iter) + 0x8 (bsp_data), so the buffer is
-   * int[1028]. The test outcome is read back from the TAIL of this same buffer:
-   *   local_102c[771] (EBP-0x41c) = hit flag
-   *   local_102c[772] (EBP-0x418) = leaf/cluster index
-   * Hazard #5: these must index the buffer the callee wrote — not separate
-   * locals — or clang would not lay them contiguously with the array. */
-  int local_102c[1028];
-  int obj;
-  object_iter_t bsp_iter;
-  char bsp_data[8]; /* scenario_location_from_point output; bsp_data+4 = bsp index (short) */
-
-  object_iterator_new(&bsp_iter, -1, 0);
-  *(short *)(bsp_data + 4) = -1;
-  obj = (int)object_iterator_next(&bsp_iter);
-  while (obj != 0) {
-    if ((*(unsigned int *)(obj + 4) & 0x800) != 0 && *(int *)(obj + 0xcc) == -1) {
-      *(unsigned int *)(obj + 4) = *(unsigned int *)(obj + 4) & 0xfffff7ff;
-      *(short *)(obj + 0x4c) = -1;
-      {
-        int dat_handle;
-        dat_handle = (int)datum_get(*(void **)0x5a8d50, bsp_iter.last_handle);
-        *(short *)(dat_handle + 4) = -1;
-      }
-      CALL_FUN_0018f180(bsp_data, (void *)(obj + 0x50));
-      if (*(short *)(bsp_data + 4) == -1) {
-        /* Sphere-test the object's bounding sphere against the current BSP.
-         * Confirmed 6 cdecl args at 0x14185d-0x141873 (single ADD ESP,0x18):
-         *   collision_bsp_test_sphere(global_collision_bsp_get(), 0, 0,
-         *                             obj+0x50, *(int*)(obj+0x5c), local_102c)
-         * The objects.obj mass-lift dropped 5 of these (called with only the
-         * bsp), so origin/direction/radius/results* came from stale stack ->
-         * wild access -> the "Loading level..." kernel halt. */
-        collision_bsp_test_sphere((int)global_collision_bsp_get(), 0, 0,
-                                  obj + 0x50, *(int *)(obj + 0x5c), local_102c);
-        if (local_102c[771] == 0) {
-          CALL_FUN_0018f180(bsp_data, (void *)(obj + 0xc));
-        } else {
-          /* Hit: record the leaf/cluster index (local_102c[772]) in bsp_data[0]
-           * (MOV [EBP-0x8],EAX at 0x14188d — omitted by the original lift),
-           * then resolve the structure BSP index from the scenario block. */
-          *(int *)bsp_data = local_102c[772];
-          if (local_102c[772] == -1) {
-            *(short *)(bsp_data + 4) = -1;
-          } else {
-            int sc;
-            sc = (int)scenario_get();
-            iVar1 = (int)tag_block_get_element((void *)(sc + 0xe0),
-                                               local_102c[772] & 0x7fffffff, 0x10);
-            *(short *)(bsp_data + 4) = *(short *)(iVar1 + 8);
-          }
-        }
-      }
-      CALL_FUN_00140ce0(bsp_iter.last_handle, bsp_data);
-    }
-    obj = (int)object_iterator_next(&bsp_iter);
-  }
-}
-
-/* 0x135510 — lightning_widget_render (TU: c:\halo\SOURCE\objects\widgets\lightning.c;
- * __FILE__ assert xrefs confirm the TU).
- *
- * Renders an object's lightning widget ('elec' tag) as a camera-facing sprite
- * strip generated by recursive midpoint-displacement subdivision. 4 cdecl args
- * (object handle, lightning datum, unused, function-state pointer).
- *
- * Per outer "instance" (tag+0x2 count):
- *   For each node in the 'elec' node block (tag+0x98):
- *     - On the first node, seed points[0] with the node's marker position
- *       (perturbed by lightning_offset_marker_position) and its per-node attrs
- *       (node+0x84..0x94).
- *     - If the node is not flagged as a break (node+0x20 bit0) and is not the
- *       last node, subdivide the segment [start, start+2^level] via midpoint
- *       displacement: place points[end] from the next node's marker, build a
- *       normalized perpendicular = cross(end-start, camera axis @0x50655c/60/64)
- *       (falling back to *0x31fc28 when degenerate), then for each subdivision
- *       level (largest step first, amplitude halved per level) jitter each
- *       midpoint along the perpendicular by random_real_range(-1,1) * width, and
- *       average both endpoints' attrs. Accumulate point_count += 2^level.
- *     - Otherwise (break flag or last node) emit the accumulated strip: allocate
- *       a rasterizer widget (2 verts per point), read optional width/color/alpha
- *       scale functions from the function-state (tag+0x2e/0x30/0x32), and for
- *       each point write two offset vertices (+/- perpendicular*width) plus a
- *       packed ARGB color and a running texture-v coordinate; track the point
- *       bbox and submit via FUN_0017cf60 with the bbox center as origin.
- *
- * Confirmed: 'elec' = 0x656c6563; bitmap tag = 0x6269746d (tag+0x40). Node block
- * element size 0xe4; render info block (tag+0xa4) element size 0xb4, default
- * &DAT_00326a78 when empty. lightning_offset_marker_position is register-arg
- * (@ebx/@esi/@edi) and called by name. All five asserts tail-call system_exit(-1).
- * Point struct = 0x24 (pos[3], attr[5], valid byte); marker record read at +0x38
- * (node matrix) and +0x60 (position). DAT_00325652 gated 0xc/0 around emit.
- */
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-but-set-variable"
-#pragma clang diagnostic ignored "-Wunused-variable"
-
-typedef struct {
-  float position[3];   /* +0x00 */
-  float attr[5];       /* +0x0c: node +0x84..+0x94 */
-  char valid;          /* +0x20 */
-  char pad[3];
-} lightning_point;      /* 0x24 */
-
-typedef struct {
-  float x;             /* +0x00 */
-  float y;             /* +0x04 */
-  float z;             /* +0x08 */
-  float v;             /* +0x0c */
-  float u;             /* +0x10 */
-  unsigned int color;  /* +0x14 */
-} lightning_vertex;     /* 0x18 */
-
-/* 0x135510 */
-void FUN_00135510(int *param_1, int param_2, int param_3, int *param_4)
-{
-  lightning_point points[4097];
-  unsigned char marker[0x6c];
-  char *tag;
-  int *block;
-  char *element;
-  char *next_element;
-  void *bitmap_elem;
-  int instance;
-  int point_count;
-  float intensity_mult;
-  char need_first;
-  int seg;
-  int seg_idx;
-  int level;
-  int subdiv_count;
-  int start_idx;
-  int end_idx;
-  int bit;
-  int lvl_count;
-  int step;
-  int j;
-  int jj;
-  int left;
-  int right;
-  int mid;
-  float amplitude;
-  float subdiv_f;
-  float width_interp;
-  float disp;
-  float seg_perp[3];
-  float ta;
-  float tb;
-  float tc;
-  float *fb;
-  unsigned int *seed;
-  int vertcount;
-  unsigned int handle;
-  lightning_vertex *vertices;
-  lightning_vertex *vp;
-  float v_step;
-  float rand_base_v;
-  float width_scale;
-  float alpha_scale;
-  float *color_ptr;
-  short s;
-  int i;
-  lightning_point *cur;
-  lightning_point *prevp;
-  lightning_point *nextp;
-  lightning_point *endp;
-  lightning_point *lp;
-  lightning_point *rp;
-  lightning_point *mp;
-  float vtx_perp[3];
-  float d0;
-  float d1;
-  float d2;
-  float width;
-  float vcoord;
-  float color[4];
-  unsigned int argb;
-  float minx;
-  float miny;
-  float minz;
-  float maxx;
-  float maxy;
-  float maxz;
-  float center[3];
-  void *source_elem;
-
-  (void)param_3;
-  if (param_1 == (int *)-1 || param_2 == -1) {
-    return;
-  }
-  tag = (char *)tag_get(0x656c6563,
-                        *(int *)((char *)datum_get(*(void **)0x46f024, param_2) + 4));
-  block = (int *)(tag + 0x98);
-  if (*(int *)(tag + 0x98) <= 0) {
-    return;
-  }
-  element = (char *)tag_block_get_element(block, 0, 0xe4);
-  if (object_get_markers_by_string_id((int)param_1, element, marker, 1) <= 0) {
-    return;
-  }
-  bitmap_elem = tag_block_get_element(
-                    (char *)tag_get(0x6269746d, *(int *)(tag + 0x40)) + 0x60, 0, 0x30);
-  if (xbox_texture_cache_get_hardware_format(bitmap_elem, 0, 1) == (void *)0) {
-    return;
-  }
-  if (*(short *)(tag + 2) <= 0) {
-    return;
-  }
-
-  instance = 0;
-  do {
-    point_count = 0;
-    intensity_mult = 1.0f;
-    need_first = 1;
-    if (param_4 != (int *)0 && param_4[1] != 0) {
-      s = *(short *)(tag + 0x2c);
-      if (s >= 1 && s <= 4) {
-        intensity_mult = *(float *)(param_4[1] + -4 + s * 4);
-      }
-    }
-    seg = 0;
-    if (*block > 0) {
-      seg_idx = 0;
-      do {
-        element = (char *)tag_block_get_element(block, seg_idx, 0xe4);
-        if (need_first != 0) {
-          point_count = 0;
-          csmemset(points, 0, 0x24024);
-          object_get_markers_by_string_id((int)param_1, element, marker, 1);
-          /* position and per-node attrs are raw dword (struct) copies, not FP loads */
-          *(int *)&points[0].position[0] = *(int *)(marker + 0x60);
-          *(int *)&points[0].position[1] = *(int *)(marker + 0x64);
-          *(int *)&points[0].position[2] = *(int *)(marker + 0x68);
-          lightning_offset_marker_position((int)(marker + 0x38),
-                                           points[0].position,
-                                           (float *)(element + 0x74));
-          *(int *)&points[0].attr[0] = *(int *)(element + 0x84);
-          *(int *)&points[0].attr[1] = *(int *)(element + 0x88);
-          *(int *)&points[0].attr[2] = *(int *)(element + 0x8c);
-          *(int *)&points[0].attr[3] = *(int *)(element + 0x90);
-          *(int *)&points[0].attr[4] = *(int *)(element + 0x94);
-          points[0].valid = 1;
-          need_first = 0;
-        }
-        if ((*(unsigned char *)(element + 0x20) & 1) == 0 && seg_idx != *block + -1) {
-          /* --- subdivide segment [start, start+2^level] --- */
-          next_element = (char *)tag_block_get_element(block, seg_idx + 1, 0xe4);
-          level = *(unsigned short *)(element + 0x24);
-          subdiv_count = 1 << (level & 0x1f);
-          amplitude = 1.0f;
-          start_idx = (short)point_count;
-          end_idx = (short)subdiv_count + start_idx;
-          endp = &points[end_idx];
-          if (endp->valid != 0) {
-            display_assert("!points[point_count+segment_point_count].valid",
-                           "c:\\halo\\SOURCE\\objects\\widgets\\lightning.c", 0x17f, 1);
-            system_exit(-1);
-          }
-          object_get_markers_by_string_id((int)param_1, next_element, marker, 1);
-          *(int *)&endp->position[0] = *(int *)(marker + 0x60);
-          *(int *)&endp->position[1] = *(int *)(marker + 0x64);
-          *(int *)&endp->position[2] = *(int *)(marker + 0x68);
-          lightning_offset_marker_position((int)(marker + 0x38),
-                                           endp->position,
-                                           (float *)(next_element + 0x74));
-          *(int *)&endp->attr[0] = *(int *)(next_element + 0x84);
-          *(int *)&endp->attr[1] = *(int *)(next_element + 0x88);
-          *(int *)&endp->attr[2] = *(int *)(next_element + 0x8c);
-          *(int *)&endp->attr[3] = *(int *)(next_element + 0x90);
-          *(int *)&endp->attr[4] = *(int *)(next_element + 0x94);
-          endp->valid = 1;
-          /* seg_perp = cross(points[end]-points[start], camera axis) then normalize */
-          seg_perp[0] = endp->position[0] - points[start_idx].position[0];
-          seg_perp[1] = endp->position[1] - points[start_idx].position[1];
-          seg_perp[2] = endp->position[2] - points[start_idx].position[2];
-          ta = seg_perp[0] * *(float *)0x506560 - seg_perp[1] * *(float *)0x50655c;
-          tb = seg_perp[2] * *(float *)0x50655c - seg_perp[0] * *(float *)0x506564;
-          tc = seg_perp[1] * *(float *)0x506564 - seg_perp[2] * *(float *)0x506560;
-          seg_perp[0] = tc;
-          seg_perp[1] = tb;
-          seg_perp[2] = ta;
-          if (normalize3d(seg_perp) == *(float *)0x2533c0) {
-            fb = *(float **)0x31fc28;
-            seg_perp[0] = fb[0];
-            seg_perp[1] = fb[1];
-            seg_perp[2] = fb[2];
-          }
-          if ((short)level > 0) {
-            bit = level + -1;
-            lvl_count = level;
-            do {
-              step = 1 << (bit & 0x1f);
-              if ((short)step <= 0) {
-                display_assert("segment_point_start_index>0",
-                               "c:\\halo\\SOURCE\\objects\\widgets\\lightning.c", 0x198, 1);
-                system_exit(-1);
-              }
-              if ((short)step < (short)subdiv_count) {
-                subdiv_f = (float)subdiv_count;
-                j = step;
-                do {
-                  jj = (short)j;
-                  left = start_idx + jj - step;
-                  right = start_idx + jj + step;
-                  mid = start_idx + jj;
-                  lp = &points[left];
-                  rp = &points[right];
-                  mp = &points[mid];
-                  width_interp = ((*(float *)(next_element + 0x80)
-                                   - *(float *)(element + 0x80)) * ((float)jj / subdiv_f)
-                                  + *(float *)(element + 0x80)) * amplitude * intensity_mult;
-                  if (mp->valid != 0) {
-                    display_assert("!points[point_count+segment_point_index].valid",
-                                   "c:\\halo\\SOURCE\\objects\\widgets\\lightning.c", 0x1aa, 1);
-                    system_exit(-1);
-                  }
-                  seed = random_math_get_local_seed_address();
-                  disp = random_real_range((int *)seed, -1.0f, 1.0f) * width_interp;
-                  mp->position[0] =
-                      (rp->position[0] + lp->position[0]) * *(float *)0x253398
-                      + seg_perp[0] * disp;
-                  mp->position[1] =
-                      (rp->position[1] + lp->position[1]) * *(float *)0x253398
-                      + seg_perp[1] * disp;
-                  mp->position[2] =
-                      (rp->position[2] + lp->position[2]) * *(float *)0x253398
-                      + seg_perp[2] * disp;
-                  mp->attr[0] = (rp->attr[0] + lp->attr[0]) * *(float *)0x253398;
-                  mp->attr[1] = (rp->attr[1] + lp->attr[1]) * *(float *)0x253398;
-                  mp->attr[2] = (rp->attr[2] + lp->attr[2]) * *(float *)0x253398;
-                  mp->attr[3] = (rp->attr[3] + lp->attr[3]) * *(float *)0x253398;
-                  mp->attr[4] = (rp->attr[4] + lp->attr[4]) * *(float *)0x253398;
-                  mp->valid = 1;
-                  j = j + step + step;
-                } while ((short)j < (short)subdiv_count);
-              }
-              amplitude = amplitude * *(float *)0x253398;
-              bit = bit + -1;
-              lvl_count = lvl_count + -1;
-            } while (lvl_count != 0);
-          }
-          point_count = point_count
-                        + (1 << (*(unsigned char *)(element + 0x24) & 0x1f));
-        } else {
-          /* --- emit accumulated strip --- */
-          *(unsigned short *)0x325652 = 0xc;
-          if ((short)point_count > 2) {
-            vertcount = (short)point_count + 1;
-            point_count = vertcount;
-            handle = (unsigned int)rasterizer_widget_set_zbuffer_enable(6, vertcount * 2);
-            if (handle != 0xffffffff) {
-              vertices = (lightning_vertex *)rasterizer_widget_draw_sprite3d((int)handle);
-              v_step = *(float *)0x2533c8 / (float)vertcount;
-              seed = random_math_get_local_seed_address();
-              rand_base_v = random_math_real(seed);
-              width_scale = 1.0f;
-              color_ptr = *(float **)0x2ee708;
-              alpha_scale = 1.0f;
-              if (vertices == (lightning_vertex *)0) {
-                display_assert("vertices",
-                               "c:\\halo\\SOURCE\\objects\\widgets\\lightning.c", 0xef, 1);
-                system_exit(-1);
-              }
-              if (param_4 != (int *)0) {
-                if (param_4[1] != 0) {
-                  s = *(short *)(tag + 0x2e);
-                  if (s >= 1 && s <= 4) {
-                    width_scale = *(float *)(param_4[1] + -4 + s * 4);
-                  }
-                }
-                if (param_4[0] != 0) {
-                  s = *(short *)(tag + 0x30);
-                  if (s >= 1 && s <= 4) {
-                    color_ptr = (float *)(param_4[0] + -0xc + s * 0xc);
-                  }
-                }
-                if (param_4[1] != 0) {
-                  s = *(short *)(tag + 0x32);
-                  if (s >= 1 && s <= 4) {
-                    alpha_scale = *(float *)(param_4[1] + -4 + s * 4);
-                  }
-                }
-              }
-              vp = vertices;
-              i = 0;
-              if ((short)point_count > 0) {
-                do {
-                  cur = &points[i];
-                  prevp = (i > 0) ? &points[i + -1] : cur;
-                  nextp = (i < vertcount + -1) ? &points[i + 1] : cur;
-                  width = width_scale * cur->attr[0];
-                  if (cur->valid == 0) {
-                    display_assert("points[vertex_index].valid",
-                                   "c:\\halo\\SOURCE\\objects\\widgets\\lightning.c", 0x118, 1);
-                    system_exit(-1);
-                  }
-                  vcoord = (float)i * v_step;
-                  d0 = nextp->position[0] - prevp->position[0];
-                  d1 = nextp->position[1] - prevp->position[1];
-                  d2 = nextp->position[2] - prevp->position[2];
-                  ta = d0 * *(float *)0x506560 - d1 * *(float *)0x50655c;
-                  tb = d2 * *(float *)0x50655c - d0 * *(float *)0x506564;
-                  tc = d1 * *(float *)0x506564 - d2 * *(float *)0x506560;
-                  vtx_perp[0] = tc;
-                  vtx_perp[1] = tb;
-                  vtx_perp[2] = ta;
-                  FUN_0010c2e0(vtx_perp);
-                  color[0] = alpha_scale * cur->attr[1];
-                  color[1] = cur->attr[2] * color_ptr[0];
-                  color[2] = cur->attr[3] * color_ptr[1];
-                  color[3] = cur->attr[4] * color_ptr[2];
-                  argb = FUN_000d1c90(color);
-                  vp[0].x = vtx_perp[0] * width + cur->position[0];
-                  vp[0].y = vtx_perp[1] * width + cur->position[1];
-                  vp[0].z = vtx_perp[2] * width + cur->position[2];
-                  vp[0].u = 0.0f;
-                  vp[0].v = vcoord + rand_base_v;
-                  vp[0].color = argb;
-                  vp[1].x = vtx_perp[0] * -width + cur->position[0];
-                  vp[1].y = vtx_perp[1] * -width + cur->position[1];
-                  vp[1].z = vtx_perp[2] * -width + cur->position[2];
-                  vp[1].v = vcoord + rand_base_v;
-                  vp[1].u = 1.0f;
-                  vp[1].color = argb;
-                  vp = vp + 2;
-                  if (i == 0) {
-                    maxx = cur->position[0];
-                    minx = cur->position[0];
-                    maxy = cur->position[1];
-                    miny = cur->position[1];
-                    maxz = cur->position[2];
-                    minz = cur->position[2];
-                  } else {
-                    if (cur->position[0] <= minx) {
-                      minx = cur->position[0];
-                    }
-                    if (cur->position[1] <= miny) {
-                      miny = cur->position[1];
-                    }
-                    if (cur->position[2] <= minz) {
-                      minz = cur->position[2];
-                    }
-                    if (maxx < cur->position[0]) {
-                      maxx = cur->position[0];
-                    }
-                    if (maxy < cur->position[1]) {
-                      maxy = cur->position[1];
-                    }
-                    if (maxz < cur->position[2]) {
-                      maxz = cur->position[2];
-                    }
-                  }
-                  i = i + 1;
-                } while ((short)i < (short)point_count);
-              }
-              center[0] = (minx + maxx) * *(float *)0x253398;
-              center[1] = (miny + maxy) * *(float *)0x253398;
-              center[2] = (minz + maxz) * *(float *)0x253398;
-              if (*(int *)(tag + 0xa4) > 0) {
-                source_elem = tag_block_get_element(tag + 0xa4, 0, 0xb4);
-              } else {
-                source_elem = (void *)0x326a78;
-              }
-              rasterizer_widget_end((int)handle);
-              FUN_0017cf60((unsigned int)source_elem, (unsigned int)bitmap_elem,
-                           (int)param_4, vertcount * -2, handle, vertcount * 2 + -2,
-                           center, 0);
-              rasterizer_widget_submit_occlusion_test((int)handle);
-            }
-            need_first = 1;
-          }
-          *(unsigned short *)0x325652 = 0;
-        }
-        seg = seg + 1;
-        seg_idx = (short)seg;
-      } while (seg_idx < *block);
-    }
-    instance = instance + 1;
-  } while ((short)instance < *(short *)(tag + 2));
-}
-#pragma clang diagnostic pop
-
-/* 0x9eb40 / effects.obj
- * Create a new effect linked to an object. Allocates an effect datum via
- * FUN_0009d2d0, stores object handle, marker indices, and optionally
- * copies the default scale vector from **(float**)0x2ee708. Runs the
- * marker-resolve callback and optionally the first-person weapon marker
- * callback, then fires the initial effect_update tick. */
-int FUN_0009eb40(int definition_index, int object_index, short marker_index,
-                 short secondary_marker, short unknown)
-{
-  char *iVar4;
-  int iVar3;
-  float *default_scale;
-
-  if (object_index == -1) {
-    display_assert("object_index!=NONE",
-                   "c:\\halo\\SOURCE\\effects\\effects.c", 0xf9, 1);
-    system_exit(-1);
-  }
-
-  iVar3 = FUN_0009d2d0(definition_index, object_index, 1);
-  if (iVar3 != -1) {
-    iVar4 = (char *)datum_get(*(data_t **)0x5aa8b0, iVar3);
-    *(int *)(iVar4 + 0x3c) = object_index;
-    *(short *)(iVar4 + 0x4c) =
-      (short)first_person_weapon_get_local_index(object_index);
-    *(short *)(iVar4 + 0x8) = marker_index;
-    *(short *)(iVar4 + 0xa) = secondary_marker;
-    *(short *)(iVar4 + 0xc) = unknown;
-    *(int *)(iVar4 + 0x34) = 0;
-    *(int *)(iVar4 + 0x38) = 0;
-    if (unknown == -1) {
-      default_scale = *(float **)0x2ee708;
-      *(int *)(iVar4 + 0x18) = *(int *)default_scale;
-      *(int *)(iVar4 + 0x1c) = *(int *)((char *)default_scale + 4);
-      *(int *)(iVar4 + 0x20) = *(int *)((char *)default_scale + 8);
-    }
-    *(unsigned char *)(iVar4 + 2) = *(unsigned char *)(iVar4 + 2) | 2;
-    csmemset(iVar4 + 0x5c, -1, 0x80);
-    FUN_0009d4e0((int)iVar4, (void *)&object_get_markers_by_string_id);
-    if (*(short *)(iVar4 + 0x4c) != -1) {
-      FUN_0009d4e0((int)iVar4, (void *)0xdd190);
-    }
-    effect_update(iVar3, 0.0f);
-  }
-  return iVar3;
-}
-
-/* FUN_0009ec30 / effects.obj — create a scaled effect attached to an object.
- * Validates that object_index is not NONE and that both scale values are in
- * [0,1]. Allocates an effect datum, applies scale/colour via FUN_0009d430,
- * stores the attached object handle and first-person-weapon index, optionally
- * marks as "violent" (via FUN_0009c700), performs debug logging if enabled,
- * memsets the per-event slot array, runs marker-resolve callbacks, and fires
- * the initial effect_update tick. Returns the new datum index or NONE (-1).
- *
- * VC71 ceiling 82.9% (180 compiled vs 165 ref insns) is STRUCTURAL, not a
- * defect: the delinked boundary is correct (Ghidra body 0x9ec30-0x9ee32 =
- * 514 bytes vs the 528-byte next-FUN span is only 14 bytes of NOP padding),
- * and the +15 insns come from a callee our monolithic objects.c inlines that
- * the original kept out-of-line as a separate-TU CALL. The residual diffs are
- * FPU compare-direction (jnp/jne) and 16-bit store (orb/orw) idioms. Verified
- * 2026-06-23; do not chase — no re-bounded export will close it. */
-int FUN_0009ec30(int param_1, int param_2, int param_3, short param_4,
-                 float param_5, float param_6, int param_7, int param_8)
-{
-  int iVar3;
-  char *iVar4;
-  short fpw_index;
-
-  if (param_3 == -1) {
-    display_assert("object_index!=NONE",
-                   "c:\\halo\\SOURCE\\effects\\effects.c", 0x131, 1);
-    system_exit(-1);
-  }
-  if (param_5 < 0.0f || param_5 > 1.0f) {
-    csprintf((char *)0x5ab100, "scale_a %f not in [0,1]", (double)param_5);
-    display_assert((char *)0x5ab100,
-                   "c:\\halo\\SOURCE\\effects\\effects.c", 0x132, 1);
-    system_exit(-1);
-  }
-  if (param_6 < 0.0f || param_6 > 1.0f) {
-    csprintf((char *)0x5ab100, "scale_b %f not in [0,1]", (double)param_6);
-    display_assert((char *)0x5ab100,
-                   "c:\\halo\\SOURCE\\effects\\effects.c", 0x133, 1);
-    system_exit(-1);
-  }
-
-  iVar3 = FUN_0009d2d0(param_1, param_2, 1);
-  if (iVar3 != -1) {
-    iVar4 = (char *)datum_get(*(data_t **)0x5aa8b0, iVar3);
-    FUN_0009d430((int)iVar4, param_7, param_8, param_5, param_6);
-    *(int *)(iVar4 + 0x3c) = param_3;
-    fpw_index = (short)first_person_weapon_get_local_index(param_3);
-    *(short *)(iVar4 + 0x4c) = fpw_index;
-
-    if (*(char *)0x2eebe0 != '\0') {
-      if (FUN_0009c700(*(int *)(iVar4 + 0x3c))) {
-        *(unsigned short *)(iVar4 + 2) =
-          *(unsigned short *)(iVar4 + 2) | 0x40;
-      }
-    }
-
-    if (*(char *)0x4557e8 != '\0') {
-      int *obj_data;
-      const char *object_name;
-      const char *effect_name;
-      const char *violent_str;
-
-      obj_data = (int *)object_try_and_get_and_verify_type(param_3, -1);
-      if (obj_data == NULL) {
-        object_name = "<none>";
-      } else {
-        object_name = tag_name_strip_path(tag_get_name(*obj_data));
-      }
-
-      if (*(unsigned char *)(iVar4 + 2) & 0x40) {
-        violent_str = "non";
-      } else {
-        violent_str = "";
-      }
-
-      effect_name = tag_name_strip_path(tag_get_name(param_1));
-      error(2, "created %sviolent %s on %s", violent_str, effect_name,
-            object_name);
-    }
-
-    csmemset(iVar4 + 0x5c, -1, 0x80);
-    FUN_0009d4e0((int)iVar4, (void *)&object_get_markers_by_string_id);
-    if (*(short *)(iVar4 + 0x4c) != -1) {
-      FUN_0009d4e0((int)iVar4, (void *)0xdd190);
-    }
-    if (param_4 != -1) {
-      *(short *)(iVar4 + 0x4c) = param_4;
-    }
-    effect_update(iVar3, 0.0f);
-  }
-  return iVar3;
-}
-
-/* Forwards (param1, param2, -1) to FUN_00085180. */
-void FUN_00085260(short param_1, short param_2)
-{
-  FUN_00085180(param_1, param_2, -1);
-  return;
-}
-
-/* Returns 1.0 minus the ratio of param_2 squared to param_1 squared. */
-float FUN_001397f0(float param_1, float param_2)
-{
-  return 1.0f - (param_2 * param_2) / (param_1 * param_1);
-}
-
-/* Scripting hook: attaches child object param_3 to parent param_1 at a marker,
-   but only when both handles are valid and the child is not already attached
-   (object+0xcc == -1). */
-void objects_scripting_attach(int param_1, int param_2, int param_3, int param_4)
-{
-  int object_ptr;
-
-  if ((param_1 != -1) && (param_3 != -1)) {
-    object_ptr = (int)object_get_and_verify_type(param_3, 0xffffffff);
-    if (*(int *)(object_ptr + 0xcc) == -1) {
-      object_attach_to_marker(param_1, (void *)param_2, param_3, (void *)param_4);
-    }
-  }
-  return;
-}
-
-/* Fills the bounding-box-style output struct param_3 from object param_1's tag
-   model bounds, then recurses into child/attached objects via FUN_0013c030,
-   which accumulates into the struct. Returns 1 if the count field
-   (param_3[7] low word) ended up > 0, else 0. */
-char FUN_0013c080(int param_1, int param_2, int *param_3)
-{
-  int *obj;
-  int t;
-
-  obj = (int *)object_get_and_verify_type(param_1, 0xffffffff);
-  t = (int)tag_get(0x6f626a65, *obj);
-  param_3[0] = *(int *)(t + 4);
-  param_3[2] = 0xff7fffff;
-  param_3[4] = 0xff7fffff;
-  param_3[6] = 0xff7fffff;
-  param_3[1] = 0x7f7fffff;
-  param_3[3] = 0x7f7fffff;
-  param_3[5] = 0x7f7fffff;
-  *(short *)(param_3 + 7) = 0;
-  *(short *)((char *)param_3 + 0x1e) = 0;
-  object_get_and_verify_type(param_1, 0xffffffff);
-  FUN_0013c030(obj[0x32], param_2, (int)param_3);
-  if (*(short *)(param_3 + 7) > 0) {
-    return 1;
-  }
-  return 0;
-}
-
-/* 0x13a340: compute a light's effective world position and radius from its
- * datum (pool 0x5a90bc) and 'ligh' tag.  Intensity v scales by cutoff/falloff
- * angles; near lights return the raw position + radius, others project along
- * the light's forward axis (+0x3c..+0x44). */
-void FUN_0013a340(int param_1, float *param_2, float *param_3)
-{
-  int e;
-  unsigned char *L;
-  float v;
-
-  e = (int)datum_get(*(data_t **)0x5a90bc, param_1);
-  L = (unsigned char *)tag_get(0x6c696768, *(int *)(e + 4));
-  v = *(float *)(L + 0xc) * *(float *)(L + 4);
-  if ((*L & 2) == 0) {
-    v = v * *(float *)(L + 0x24);
-  }
-  if (v < *(float *)(L + 0x18)) {
-    param_2[0] = *(float *)(e + 0x30);
-    param_2[1] = *(float *)(e + 0x34);
-    param_2[2] = *(float *)(e + 0x38);
-    param_3[0] = *(float *)(L + 0x18);
-    return;
-  }
-  if (*(float *)(L + 0x14) < 1.5707964f) {
-    if (0.7853982f <= *(float *)(L + 0x14)) {
-      param_3[0] = v * *(float *)(L + 0x28);
-      v = v * *(float *)(L + 0x20);
-    } else {
-      v = v / *(float *)(L + 0x20);
-      param_3[0] = v;
-    }
-    param_2[0] = v * *(float *)(e + 0x3c) + *(float *)(e + 0x30);
-    param_2[1] = v * *(float *)(e + 0x40) + *(float *)(e + 0x34);
-    param_2[2] = v * *(float *)(e + 0x44) + *(float *)(e + 0x38);
-    return;
-  }
-  param_2[0] = *(float *)(e + 0x30);
-  param_2[1] = *(float *)(e + 0x34);
-  param_2[2] = *(float *)(e + 0x38);
-  param_3[0] = v;
-}
-
-/* 0x144940: spawn a scenario object by name index — resolve the name entry in
- * scenario+0x204 (0x24 stride), look up its palette block and base, fetch the
- * placement element, and hand it to object_new_from_scenario. */
-void object_new_by_name(short param_1)
-{
-  int scn;
-  int e;
-  int palette;
-  int pal_base;
-  int placement;
-  int elem_size;
-
-  scn = (int)global_scenario_get();
-  e = (int)tag_block_get_element((void *)(scn + 0x204), param_1, 0x24);
-  palette = FUN_0013ca30(scn, *(short *)(e + 0x20), &elem_size);
-  pal_base = FUN_0013cab0(scn, *(short *)(e + 0x20));
-  placement = (int)tag_block_get_element((void *)palette, *(short *)(e + 0x22),
-                                         elem_size);
-  object_new_from_scenario((void *)placement, pal_base);
-}
-
-/* 0x13aa10: gather the light markers that illuminate an object.  Computes the
- * object's bounding sphere (center local_2c, radius local_8) via FUN_0001aae0,
- * then iterates the object's cluster set (object_get_first_cluster /
- * FUN_0013d5f0 over iter_state local_10).  For each cluster it calls
- * FUN_00139c20 to select the strongest point lights into the caller's marker
- * array (param_2+0x44), capped at 2 (count at param_2+0x40).  Finally it
- * converts each stored light datum handle into the light's object field
- * (light+0x8) in place.  Guarded by lights_globals.marker_initialized
- * (0x5a8d60) and a recursion/use counter (0x5a8d64). */
-void FUN_0013aa10(int param_1, int param_2)
-{
-  float center[3];
-  float radius;
-  unsigned int iter_state[2];
-  float weights[2];
-  float atten[2];
-  short *count;
-  short marker;
-  short i;
-  int light;
-
-  FUN_0001aae0(param_1, center, &radius);
-  count = (short *)(param_2 + 0x40);
-  *count = 0;
-
-  if (*(char *)0x5a8d60 != '\0') {
-    display_assert("!lights_globals.marker_initialized",
-                   "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x664, 1);
-    CALL_thunk_FUN_001029a0(-1);
-  }
-  *(int *)0x5a8d64 = *(int *)0x5a8d64 + 1;
-  *(char *)0x5a8d60 = '\x01';
-
-  marker = object_get_first_cluster(iter_state, param_1);
-  if (marker != -1) {
-    do {
-      FUN_00139c20(param_1, marker, center, radius, param_2 + 0x44,
-                   weights, (int)atten, count, 2);
-      marker = FUN_0013d5f0(iter_state, param_1);
-    } while (marker != -1);
-  }
-
-  if (*(char *)0x5a8d60 == '\0') {
-    display_assert("lights_globals.marker_initialized",
-                   "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x68e, 1);
-    CALL_thunk_FUN_001029a0(-1);
-  }
-  i = 0;
-  *(char *)0x5a8d60 = '\0';
-
-  if (*count > 0) {
-    do {
-      light = (int)datum_get(*(data_t **)0x5a90bc,
-                             *(int *)(param_2 + 0x44 + (int)i * 4));
-      *(int *)(param_2 + 0x44 + (int)i * 4) = *(int *)(light + 8);
-      i++;
-    } while (i < *count);
-  }
-}
-
-/*
- * FUN_001414e0 — inverse-kinematics matrix adjustment between two object markers.
- *
- * Resolves two named markers (marker A on object param_1, marker B on object
- * param_3) into local marker buffers via object_get_markers_by_string_id, then
- * walks marker A's animation-node parent chain (self -> parent -> grandparent)
- * using the model tag's node block (mode tag, 'mode' = 0x6d6f6465). It composes
- * inverse(markerA_matrix) * markerB_matrix into a local 4x3 matrix and hands that
- * plus the three node matrices (self/parent/grandparent, indexed into the caller's
- * node-matrix array at param_5 with a 0x34-byte stride) to the IK solver
- * (inverse_kinematics_adjust_matrices @ 0x120fd0).
- *
- * Early-exits (returns) if either marker lookup fails or a parent index is NONE
- * (-1). param_5 is the caller-owned node-matrix array (node_matrices).
- *
- * ABI: cdecl, 5 stack args (confirmed: MOV ESP,EBP / caller cleanup ADD ESP,...).
- *
- * Decompiler traps resolved:
- *  - Ghidra's local_a4/local_a0 and local_d8 names were systematically off by 4;
- *    the marker buffers are single contiguous 0x6c-byte objects (matrix_identity
- *    fills +4, the node-matrix copy fills +0x38; the short node index is at +0).
- *    Declared as char[0x6c] so MSVC's full-buffer write cannot overflow.
- *  - EBX register reuse: it holds the node block pointer (mode_tag + 0xb8) across
- *    both tag_block_get_element calls, then its low word is reused as the
- *    grandparent index. Kept as two distinct C variables (nodes_block,
- *    grandparent_index) to avoid aliasing.
- *  - markerA matrix is read at bufA+4 (matrix_inverse); markerB matrix is read at
- *    bufB+0x38 (matrix4x3_multiply). Asymmetric on purpose — preserved.
- *  - matrix4x3_multiply aliases b == out (&composed_matrix twice). Faithful.
- *  - Node indices are signed shorts via MOVSX; NONE test is == -1.
- */
-void FUN_001414e0(int param_1, int param_2, int param_3, int param_4, int param_5)
-{
-  char marker_a[0x6c];
-  char marker_b[0x6c];
-  char composed_matrix[0x34];
-  void *obj_datum;
-  int obje_tag;
-  int mode_tag;
-  int nodes_block;
-  void *node_element;
-  short self_index;
-  short parent_index;
-  short grandparent_index;
-
-  obj_datum = object_get_and_verify_type(param_1, -1);
-  obje_tag = (int)tag_get(0x6f626a65, *(int *)obj_datum);
-  mode_tag = (int)tag_get(0x6d6f6465, *(int *)(obje_tag + 0x34));
-
-  if (object_get_markers_by_string_id(param_1, (void *)param_2, marker_a, 1) == 0) {
-    return;
-  }
-  if (object_get_markers_by_string_id(param_3, (void *)param_4, marker_b, 1) == 0) {
-    return;
-  }
-
-  nodes_block = mode_tag + 0xb8;
-  self_index = *(short *)marker_a;
-
-  node_element = tag_block_get_element((void *)nodes_block, (int)self_index, 0x9c);
-  parent_index = *(short *)((char *)node_element + 0x24);
-  if (parent_index == -1) {
-    return;
-  }
-
-  node_element = tag_block_get_element((void *)nodes_block, (int)parent_index, 0x9c);
-  grandparent_index = *(short *)((char *)node_element + 0x24);
-  if (grandparent_index == -1) {
-    return;
-  }
-
-  matrix_inverse((float *)(marker_a + 4), (float *)composed_matrix);
-  matrix4x3_multiply((float *)(marker_b + 0x38), (float *)composed_matrix,
-                     (float *)composed_matrix);
-
-  inverse_kinematics_adjust_matrices((float *)composed_matrix,
-                                     (int)grandparent_index * 0x34 + param_5,
-                                     (int)parent_index * 0x34 + param_5,
-                                     (int)self_index * 0x34 + param_5);
-}
-/* Object glow widgets — animated glow effects attached to game objects.
- * TU: c:\halo\SOURCE\objects\widgets\glow.c (confirmed via __FILE__ assert). */
-
-/* glow_widget definition (glowdef) tag layout, group 'glw!' (0x676c7721):
- *   +0x22  int16_t boundary_effect          // 0 = reflect/ping-pong, 1 = wrap
- *   +0x80  int16_t function                 // object function index (-1 = none)
- *   +0x84  float   scale_lower              // output remap: low bound
- *   +0x88  float   scale_upper              //               high bound
- *   +0x8c  float   input_lower              // input remap:  low bound
- *   +0x90  float   input_upper              //               high bound
- *
- * particle instance fields:
- *   +0x1c  float   scale                    // computed animated scale
- *   +0x28  float   phase                    // animation phase counter
- *   +0x54  uint    flags                    // bit0 = reverse direction
- *
- * glow_widget instance fields:
- *   +0x224 int32_t definition_tag_index
- *   +0x234 float   period                   // phase wrap period
- */
-
-/* FUN_00134070 — advance a glow particle's phase animation by one frame and
- * recompute its world position.  If the glow definition binds an object
- * function, resample it and remap into the scale output.  Then step the phase
- * counter by +/-delta (direction per particle flags bit0), wrapping against the
- * period: boundary mode 0 reflects and flips direction, mode 1 plain-wraps.
- * Ends by recomputing the particle's world position.
- *
- * ABI: particle_ptr in ESI, glow_widget_ptr in EDI (register args); the
- * remaining three are cdecl stack args. */
-void FUN_00134070(int particle_ptr, int glow_widget_ptr, int object_handle,
-                  float delta, float ratio)
-{
-  void *glowdef;
-  short function_index;
-  unsigned int flags;
-  float function_value;
-
-  glowdef = tag_get(0x676c7721, *(int *)(glow_widget_ptr + 0x224));
-
-  function_index = *(short *)((char *)glowdef + 0x80);
-  if (function_index != -1) {
-    if (!object_get_function_value(object_handle, function_index,
-                                   &function_value))
-      function_value = 0.0f;
-    *(float *)(particle_ptr + 0x1c) =
-      (*(float *)((char *)glowdef + 0x88) - *(float *)((char *)glowdef + 0x84)) *
-        ((*(float *)((char *)glowdef + 0x90) -
-          *(float *)((char *)glowdef + 0x8c)) *
-           function_value +
-         *(float *)((char *)glowdef + 0x8c)) +
-      *(float *)((char *)glowdef + 0x84);
-  }
-
-  flags = *(unsigned int *)(particle_ptr + 0x54);
-
-  if (flags & 1) {
-    /* reverse phase: step down, wrap against 0.0 */
-    *(float *)(particle_ptr + 0x28) -= delta;
-    switch (*(short *)((char *)glowdef + 0x22)) {
-      case 0:
-        if (*(float *)(particle_ptr + 0x28) < 0.0f) {
-          do {
-            *(float *)(particle_ptr + 0x28) +=
-              *(float *)(glow_widget_ptr + 0x234);
-          } while (*(float *)(particle_ptr + 0x28) < 0.0f);
-          flags &= ~1u;
-          *(unsigned int *)(particle_ptr + 0x54) = flags;
-          *(float *)(particle_ptr + 0x28) =
-            *(float *)(glow_widget_ptr + 0x234) -
-            *(float *)(particle_ptr + 0x28);
-        }
-        break;
-      case 1:
-        while (*(float *)(particle_ptr + 0x28) < 0.0f)
-          *(float *)(particle_ptr + 0x28) +=
-            *(float *)(glow_widget_ptr + 0x234);
-        break;
-      default:
-        display_assert("glow effect received illegal boundary effect",
-                       "c:\\halo\\SOURCE\\objects\\widgets\\glow.c", 800, 1);
-        system_exit(-1);
-    }
-  } else {
-    /* forward phase: step up, wrap against period */
-    *(float *)(particle_ptr + 0x28) += delta;
-    switch (*(short *)((char *)glowdef + 0x22)) {
-      case 0:
-        if (*(float *)(particle_ptr + 0x28) >
-            *(float *)(glow_widget_ptr + 0x234)) {
-          do {
-            *(float *)(particle_ptr + 0x28) -=
-              *(float *)(glow_widget_ptr + 0x234);
-          } while (*(float *)(particle_ptr + 0x28) >
-                   *(float *)(glow_widget_ptr + 0x234));
-          *(float *)(particle_ptr + 0x28) =
-            *(float *)(glow_widget_ptr + 0x234) -
-            *(float *)(particle_ptr + 0x28);
-          flags |= 1u;
-          *(unsigned int *)(particle_ptr + 0x54) = flags;
-        }
-        break;
-      case 1:
-        if (*(float *)(particle_ptr + 0x28) >
-            *(float *)(glow_widget_ptr + 0x234)) {
-          do {
-            *(float *)(particle_ptr + 0x28) -=
-              *(float *)(glow_widget_ptr + 0x234);
-          } while (*(float *)(particle_ptr + 0x28) >
-                   *(float *)(glow_widget_ptr + 0x234));
-        }
-        break;
-      default:
-        display_assert("glow effect received illegal boundary effect",
-                       "c:\\halo\\SOURCE\\objects\\widgets\\glow.c", 829, 1);
-        system_exit(-1);
-    }
-  }
-
-  get_particle_world_position(glow_widget_ptr, particle_ptr, ratio);
-}
-/* Glow widget trailing-particle spawner.
- *
- * TU: c:\halo\SOURCE\objects\widgets\glow.c (confirmed via __FILE__ assert xref).
- * The glow widget spawns "trailing" particles behind a glowing effect attached
- * to a game object.  Its definition lives in a 'glw!' (0x676c7721) tag block,
- * resolved through object handle at glow_widget+0x224.
- */
-
-/* data_t* pool for glow trailing particles. */
-#define GLOW_PARTICLE_DATA (*(data_t **)0x005a90cc)
-
-/* glow_trailing_particle_new (0x134350 / objects.obj / glow.c)
- *
- * Allocates a new trailing-particle datum for a glow widget and initializes its
- * position, velocity distribution, size, lifetime and color-lerp state from the
- * 'glw!' tag definition.  The glow-widget pointer arrives in EBX (@<ebx>).
- *
- * Distribution mode is a signed word at glowtag+0x26:
- *   0 = fixed direction  (velocity dir from tag_data+0x38..0x40 cleared to +Z unit)
- *   1 = per-variant table (glow_widget+0x5c + variant*0x6c, variant = particle+2)
- *   2 = random spherical  (three [-1,1] randoms then normalized)
- * Any other value asserts and exits.
- *
- * Returns the new particle pointer (int), or 0 if the pool is full.
- */
-int glow_trailing_particle_new(int glow_widget /* @<ebx> */)
-{
-  int glow_tag;   /* pvVar5 — 'glw!' tag definition block */
-  int particle;
-  int idx;
-  int variant;
-  int base;
-  int16_t dist;   /* distribution mode at glow_tag+0x26 (signed word) */
-  float fmin;
-  float fmax;
-  float scale;
-  float radius;
-  float t;
-
-  glow_tag = (int)tag_get(0x676c7721, *(int *)(glow_widget + 0x224));
-  particle = 0;
-
-  idx = data_new_at_index(GLOW_PARTICLE_DATA);
-  if (idx != -1) {
-    particle = (int)datum_get(GLOW_PARTICLE_DATA, idx);
-    *(int *)(particle + 4) = idx;
-
-    /* Initial world position. */
-    if (*(int16_t *)(glow_widget + 4) < 2) {
-      *(uint32_t *)(particle + 0x2c) = *(uint32_t *)(glow_widget + 0x68);
-      *(uint32_t *)(particle + 0x30) = *(uint32_t *)(glow_widget + 0x6c);
-      *(uint32_t *)(particle + 0x34) = *(uint32_t *)(glow_widget + 0x70);
-    } else {
-      fmax = *(float *)(glow_tag + 0x10c) * *(float *)(glow_widget + 0x234);
-      fmin = *(float *)(glow_tag + 0x108) * *(float *)(glow_widget + 0x234);
-      *(float *)(particle + 0x28) = random_real_range(
-          (int *)random_math_get_local_seed_address(), fmin, fmax);
-      get_particle_world_position(glow_widget, particle, 0.0f);
-    }
-
-    /* Velocity direction by distribution mode. */
-    dist = *(int16_t *)(glow_tag + 0x26);
-    if (dist == 0) {
-      *(uint32_t *)(particle + 0x38) = 0;
-      *(uint32_t *)(particle + 0x3c) = 0;
-      *(float *)(particle + 0x40) = 1.0f;
-    } else if (dist == 1) {
-      variant = *(int16_t *)(particle + 2);
-      base = glow_widget + variant * 0x6c + 0x5c;
-      *(uint32_t *)(particle + 0x38) = *(uint32_t *)(base);
-      *(uint32_t *)(particle + 0x3c) = *(uint32_t *)(base + 4);
-      *(uint32_t *)(particle + 0x40) = *(uint32_t *)(base + 8);
-    } else {
-      if (dist != 2) {
-        display_assert("unknown trailing particle distribution?",
-                       "c:\\halo\\SOURCE\\objects\\widgets\\glow.c", 996, 1);
-        system_exit(-1);
-      }
-      *(float *)(particle + 0x38) =
-          random_real_range((int *)random_math_get_local_seed_address(), -1.0f, 1.0f);
-      *(float *)(particle + 0x3c) =
-          random_real_range((int *)random_math_get_local_seed_address(), -1.0f, 1.0f);
-      *(float *)(particle + 0x40) =
-          random_real_range((int *)random_math_get_local_seed_address(), -1.0f, 1.0f);
-      normalize3d((float *)(particle + 0x38));
-    }
-
-    /* Scale the velocity direction by tag magnitude. */
-    scale = *(float *)(glow_tag + 0x104) * *(float *)0x2546a4;
-    *(float *)(particle + 0x38) = *(float *)(particle + 0x38) * scale;
-    *(float *)(particle + 0x3c) = *(float *)(particle + 0x3c) * scale;
-    *(float *)(particle + 0x40) = *(float *)(particle + 0x40) * scale;
-
-    /* Particle size (tag radius range / widget divisor). */
-    radius = random_real_range((int *)random_math_get_local_seed_address(),
-                               *(float *)(glow_tag + 0xa0),
-                               *(float *)(glow_tag + 0xa4));
-    *(float *)(particle + 0x20) =
-        radius / (float)*(int16_t *)(glow_widget + 0x228);
-
-    /* Lifetime in ticks. */
-    *(int16_t *)(particle + 0x52) =
-        (int16_t)(int)(*(float *)(glow_tag + 0x100) * TICKS_PER_SECOND);
-
-    /* Color lerp between tag min (0xb8..0xc0) and max (0xc8..0xd0). */
-    t = random_real_range((int *)random_math_get_local_seed_address(), 0.0f, 1.0f);
-    *(float *)(particle + 0xc) = 1.0f;
-    *(float *)(particle + 0x10) =
-        (*(float *)(glow_tag + 0xc8) - *(float *)(glow_tag + 0xb8)) * t +
-        *(float *)(glow_tag + 0xb8);
-    *(float *)(particle + 0x14) =
-        (*(float *)(glow_tag + 0xcc) - *(float *)(glow_tag + 0xbc)) * t +
-        *(float *)(glow_tag + 0xbc);
-    *(uint32_t *)(particle + 0x54) |= 2;
-    *(float *)(particle + 0x18) =
-        (*(float *)(glow_tag + 0xd0) - *(float *)(glow_tag + 0xc0)) * t +
-        *(float *)(glow_tag + 0xc0);
-  }
-
-  return particle;
-}
-/* Light-volume widget parameter interpolation.
- * TU: c:\halo\SOURCE\objects\widgets\light_volumes.c (confirmed via __FILE__
- * assert xref at line 0x6e).
- *
- * FUN_00134c40 selects a light-volume parameter block for an object.  The
- * definition holds a tag_block of parameter frames (header at +0x120, element
- * stride 0xb0).  With <=1 frame it returns element 0 directly.  With more than
- * one frame it reads the object's animation function value (function index at
- * definition+0xb8, minus one) and, when that succeeds, blends two frames into a
- * static scratch block at 0x0046ef70 and returns that block.
- *
- * The binary re-fetches element index 0 in every tag_block_get_element call
- * (verified against disassembly — the three main-path calls and the <=1
- * fallback call all pass index 0); this is preserved verbatim, not "fixed" into
- * an interpolation-index fetch.  definition_ptr arrives in EBX (@<ebx>). */
-
-void *FUN_00134c40(int definition_ptr, int object_handle)
-{
-  int *count_ptr;
-  void *elem0;
-  void *elemA;
-  void *elemB;
-  float local_8;
-  float t;
-  bool ok;
-
-  if (definition_ptr == 0) {
-    display_assert("definition",
-                   "c:\\halo\\SOURCE\\objects\\widgets\\light_volumes.c", 0x6e,
-                   1);
-    system_exit(-1);
-  }
-
-  count_ptr = (int *)(definition_ptr + 0x120);
-  elem0 = tag_block_get_element(count_ptr, 0, 0xb0);
-
-  if (1 < *count_ptr) {
-    elemA = tag_block_get_element(count_ptr, 0, 0xb0);
-    elemB = tag_block_get_element(count_ptr, 0, 0xb0);
-    ok = object_get_function_value(
-        object_handle, (short)(*(short *)(definition_ptr + 0xb8) - 1),
-        &local_8);
-    if (ok) {
-      t = *(float *)0x002533c8 - local_8;
-
-      *(float *)0x0046ef80 =
-          local_8 * *(float *)((char *)elemB + 0x10) +
-          t * *(float *)((char *)elemA + 0x10);
-      *(float *)0x0046ef84 =
-          local_8 * *(float *)((char *)elemB + 0x14) +
-          t * *(float *)((char *)elemA + 0x14);
-      *(float *)0x0046ef88 =
-          local_8 * *(float *)((char *)elemB + 0x18) +
-          t * *(float *)((char *)elemA + 0x18);
-
-      *(float *)0x0046efac =
-          local_8 * *(float *)((char *)elemB + 0x3c) +
-          t * *(float *)((char *)elemA + 0x3c);
-      *(float *)0x0046efb0 =
-          local_8 * *(float *)((char *)elemB + 0x40) +
-          t * *(float *)((char *)elemA + 0x40);
-      *(float *)0x0046efb4 =
-          local_8 * *(float *)((char *)elemB + 0x44) +
-          t * *(float *)((char *)elemA + 0x44);
-
-      *(float *)0x0046efd8 =
-          local_8 * *(float *)((char *)elemB + 0x68) +
-          t * *(float *)((char *)elemA + 0x68);
-      *(float *)0x0046efdc =
-          local_8 * *(float *)((char *)elemB + 0x6c) +
-          t * *(float *)((char *)elemA + 0x6c);
-      *(float *)0x0046efe0 =
-          local_8 * *(float *)((char *)elemB + 0x70) +
-          t * *(float *)((char *)elemA + 0x70);
-      *(float *)0x0046efe4 =
-          local_8 * *(float *)((char *)elemB + 0x74) +
-          t * *(float *)((char *)elemA + 0x74);
-      *(float *)0x0046efe8 =
-          local_8 * *(float *)((char *)elemB + 0x78) +
-          t * *(float *)((char *)elemA + 0x78);
-      *(float *)0x0046efec =
-          local_8 * *(float *)((char *)elemB + 0x7c) +
-          t * *(float *)((char *)elemA + 0x7c);
-      *(float *)0x0046eff0 =
-          local_8 * *(float *)((char *)elemB + 0x80) +
-          t * *(float *)((char *)elemA + 0x80);
-      *(float *)0x0046eff4 =
-          local_8 * *(float *)((char *)elemB + 0x84) +
-          t * *(float *)((char *)elemA + 0x84);
-      *(float *)0x0046eff8 =
-          local_8 * *(float *)((char *)elemB + 0x88) +
-          t * *(float *)((char *)elemA + 0x88);
-      *(float *)0x0046effc =
-          local_8 * *(float *)((char *)elemB + 0x8c) +
-          t * *(float *)((char *)elemA + 0x8c);
-
-      return (void *)0x0046ef70;
-    }
-    return elem0;
-  }
-
-  elem0 = tag_block_get_element(count_ptr, 0, 0xb0);
-  return elem0;
 }

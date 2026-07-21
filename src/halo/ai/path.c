@@ -388,7 +388,8 @@ char path_state_build_path(unsigned int path_buf, unsigned int *nav_state_out)
     goto LAB_0005ef13;
   }
 
-  cur_index = path_node_from_hash_table((char *)path_buf, *(unsigned int *)(path_buf + 0x5c));
+  cur_index = path_node_from_hash_table((char *)path_buf,
+                                        *(unsigned int *)(path_buf + 0x5c));
   if ((short)cur_index == -1) {
     if (*(float *)(path_buf + 0x6c) < *(float *)(path_buf + 0x60)) {
       cur_index = (unsigned int)*(unsigned short *)(path_buf + 0x68);
@@ -412,7 +413,7 @@ char path_state_build_path(unsigned int path_buf, unsigned int *nav_state_out)
     }
     nav_state_out[5] = 0;
     puVar10 = nav_state_out;
-LAB_0005eb88:
+  LAB_0005eb88:
     if ((short)cur_index != -1) {
       int depth_plus_one = *(short *)(iVar6 + 0x2e) + 1;
       smooth_step_count = 0;
@@ -433,16 +434,15 @@ LAB_0005eb88:
         sVar4 = *(short *)(node_ptr + 0x2e);
 
         if (sVar4 < 0x40) {
-
           if (sVar4 < 0 || sVar4 >= (short)raw_step_count) {
             display_assert(
-                "(node->depth >= 0) && (node->depth < raw_step_count)",
-                "c:\\halo\\SOURCE\\ai\\path.c", 0x1e8, 1);
+              "(node->depth >= 0) && (node->depth < raw_step_count)",
+              "c:\\halo\\SOURCE\\ai\\path.c", 0x1e8, 1);
             system_exit(-1);
           }
 
           raw_steps[*(short *)(node_ptr + 0x2e) * 4] =
-              *(unsigned int *)(node_ptr + 8);
+            *(unsigned int *)(node_ptr + 8);
           depth = (int)*(short *)(node_ptr + 0x2e);
 
           if ((short)prev_node_index == -1) {
@@ -457,12 +457,9 @@ LAB_0005eb88:
               system_exit(-1);
             }
             depth = (int)*(short *)(node_ptr + 0x2e);
-            raw_steps[depth * 4 + 1] =
-                *(unsigned int *)(prev_node_ptr + 0xc);
-            raw_steps[depth * 4 + 2] =
-                *(unsigned int *)(prev_node_ptr + 0x10);
-            raw_steps[depth * 4 + 3] =
-                *(unsigned int *)(prev_node_ptr + 0x14);
+            raw_steps[depth * 4 + 1] = *(unsigned int *)(prev_node_ptr + 0xc);
+            raw_steps[depth * 4 + 2] = *(unsigned int *)(prev_node_ptr + 0x10);
+            raw_steps[depth * 4 + 3] = *(unsigned int *)(prev_node_ptr + 0x14);
           }
         } else {
           all_nodes_flag = 0;
@@ -483,8 +480,8 @@ LAB_0005eb88:
         system_exit(-1);
       }
       if (*(short *)(node_ptr + 0x2e) != 0) {
-        display_assert("child_node->depth == 0",
-                       "c:\\halo\\SOURCE\\ai\\path.c", 0x1fc, 1);
+        display_assert("child_node->depth == 0", "c:\\halo\\SOURCE\\ai\\path.c",
+                       0x1fc, 1);
         system_exit(-1);
       }
 
@@ -495,11 +492,10 @@ LAB_0005eb88:
         if ((short)raw_step_count < 5) {
           smooth_step_count = raw_step_count;
         }
-        csmemcpy(smooth_steps, raw_steps,
-                 (int)(short)smooth_step_count << 4);
+        csmemcpy(smooth_steps, raw_steps, (int)(short)smooth_step_count << 4);
       } else {
-        FUN_000633b0(path_buf, raw_step_count, raw_steps,
-                     &smooth_step_count, smooth_steps, &all_nodes_flag);
+        FUN_000633b0(path_buf, raw_step_count, raw_steps, &smooth_step_count,
+                     smooth_steps, &all_nodes_flag);
         iVar6 = raw_step_count;
       }
 
@@ -510,15 +506,13 @@ LAB_0005eb88:
         if (4 < (short)smooth_step_count) {
           final_step_count = 4;
         }
-        csmemcpy(final_steps, smooth_steps,
-                 (int)(short)final_step_count << 4);
-LAB_0005ede3:
+        csmemcpy(final_steps, smooth_steps, (int)(short)final_step_count << 4);
+      LAB_0005ede3:
         *(char *)((char *)puVar10 + 0x19) = (char)final_step_count;
         *(char *)(puVar10 + 6) = all_nodes_flag;
         *(unsigned char *)puVar10 = 1;
         *(char *)((char *)puVar10 + 0x1a) = 0;
-        csmemcpy(puVar10 + 7, final_steps,
-                 (int)(short)final_step_count << 4);
+        csmemcpy(puVar10 + 7, final_steps, (int)(short)final_step_count << 4);
 
         puVar9 = nav_state_out;
         if (*(char *)(puVar10 + 6) != '\0') {
@@ -528,8 +522,8 @@ LAB_0005ede3:
           puVar10[3] = puVar10[(int)cVar3 * 4 + 6];
           nav_state_out[4] = puVar10[(int)cVar3 * 4 + 3];
           sVar4 = (short)raw_step_count;
-          *(float *)(puVar9 + 5) = FUN_0001ad60(
-              (float *)(puVar10 + 1), (float *)(path_buf + 0x50));
+          *(float *)(puVar9 + 5) =
+            FUN_0001ad60((float *)(puVar10 + 1), (float *)(path_buf + 0x50));
           puVar10 = puVar9;
         }
 
@@ -538,12 +532,13 @@ LAB_0005ede3:
         }
       } else {
         cVar3 = FUN_00061750(path_buf, smooth_step_count, smooth_steps,
-                             &final_step_count, final_steps,
-                             &all_nodes_flag);
+                             &final_step_count, final_steps, &all_nodes_flag);
         if (*(int *)(path_buf + 0x48) == 0) {
-          if (cVar3 != '\0') goto LAB_0005ede3;
+          if (cVar3 != '\0')
+            goto LAB_0005ede3;
         } else {
-          if (cVar3 != '\0') goto LAB_0005ede3;
+          if (cVar3 != '\0')
+            goto LAB_0005ede3;
           *(unsigned short *)(*(int *)(path_buf + 0x48) + 0x12) = 4;
         }
       }
@@ -554,11 +549,11 @@ LAB_0005ede3:
         csmemcpy((void *)(*(int *)(path_buf + 0x48) + 0x14100), raw_steps,
                  (int)sVar4 << 4);
         *(short *)(*(int *)(path_buf + 0x48) + 0x14500) =
-            (short)smooth_step_count;
+          (short)smooth_step_count;
         csmemcpy((void *)(*(int *)(path_buf + 0x48) + 0x14504), smooth_steps,
                  (int)(short)smooth_step_count << 4);
         *(short *)(*(int *)(path_buf + 0x48) + 0x14544) =
-            (short)final_step_count;
+          (short)final_step_count;
         csmemcpy((void *)(*(int *)(path_buf + 0x48) + 0x14548), final_steps,
                  (int)(short)final_step_count << 4);
       }
@@ -569,7 +564,7 @@ LAB_0005ede3:
   /* Neither branch produced a valid path */
   if (*(int *)(path_buf + 0x48) != 0) {
     *(unsigned short *)(*(int *)(path_buf + 0x48) + 0x12) =
-        (unsigned short)(*(short *)(path_buf + 0x68) != -1) + 2;
+      (unsigned short)(*(short *)(path_buf + 0x68) != -1) + 2;
   }
 
 LAB_0005ef13:
@@ -589,9 +584,8 @@ LAB_0005ef13:
     *(char *)(*(int *)(path_buf + 0x48) + 0xd) = 1;
   }
   if (*(short *)(*(int *)(path_buf + 0x48) + 0x12) == 0) {
-    display_assert(
-        "state->debug->path_build_result != _path_build_result_none",
-        "c:\\halo\\SOURCE\\ai\\path.c", 0x265, 1);
+    display_assert("state->debug->path_build_result != _path_build_result_none",
+                   "c:\\halo\\SOURCE\\ai\\path.c", 0x265, 1);
     system_exit(-1);
     return *(char *)nav_state_out;
   }

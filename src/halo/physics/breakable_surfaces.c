@@ -142,10 +142,10 @@ char breakable_surface_extant(short breakable_surface_index)
  * random perturbation. Sound effects are also triggered at the surface center.
  *
  * Confirmed: _chkstk with 0x1240 bytes stack frame.
- * Confirmed: scenario_get at 0x145adf, global_collision_bsp_get (global_collision_bsp) at
- * 0x145ae6. Confirmed: assert param_2!=NULL via display_assert at 0x145b05.
- * Confirmed: DAT_00324c32 early-out flag check at 0x145b14.
- * Confirmed: BFS queue in local_1244[1024], traversal count local_b4.
+ * Confirmed: scenario_get at 0x145adf, global_collision_bsp_get
+ * (global_collision_bsp) at 0x145ae6. Confirmed: assert param_2!=NULL via
+ * display_assert at 0x145b05. Confirmed: DAT_00324c32 early-out flag check at
+ * 0x145b14. Confirmed: BFS queue in local_1244[1024], traversal count local_b4.
  * Confirmed: tag_block_get_element calls for planes, edges, vertices, effects.
  * Confirmed: FUN_00061df0 projects 3D to 2D, project_point2d unprojects 2D to
  * 3D. Confirmed: FUN_00106200 point-in-polygon test with 0 radius. Confirmed:

@@ -600,25 +600,25 @@ void FUN_000146f0(int actor_handle)
 /* FUN_00014770 (0x14770) — Combat fight-action state evaluator.
  *
  * Evaluates the actor's combat targeting state. Two execution paths:
- *   PATH A (field_358 && tag_bit5): quick check via actor_has_accessible_firing_position.
- *     Success → encounter checks + optional firing position reset → tail.
- *     Failure → fall through to PATH B.
- *   PATH B: evaluation pipeline (csmemset → FUN_00027090 → FUN_000272d0),
- *     then randomized delay timer from tag range and weapon rate-of-fire.
- *   TAIL: if actor->field_268 >= 7, prop unreachable check with ranged weapon.
+ *   PATH A (field_358 && tag_bit5): quick check via
+ * actor_has_accessible_firing_position. Success → encounter checks + optional
+ * firing position reset → tail. Failure → fall through to PATH B. PATH B:
+ * evaluation pipeline (csmemset → FUN_00027090 → FUN_000272d0), then randomized
+ * delay timer from tag range and weapon rate-of-fire. TAIL: if actor->field_268
+ * >= 7, prop unreachable check with ranged weapon.
  *
  * Confirmed: cdecl, single stack arg (actor_handle).
  * Confirmed: _chkstk(0x1474c) at entry.
  * Confirmed: datum_get(actor_data, actor_handle) at 0x1478a.
  * Confirmed: assert !actor->meta.swarm at 0x14797.
  * Confirmed: guard on actor->field_4c at 0x147bb.
- * Confirmed: tag_get(actr) at 0x147cc; actor_combat_get_firing_variant_definition at 0x147d7.
- * Confirmed: field_160 (suppressed) guard at 0x147e8.
- * Confirmed: field_358+tag_bit5 branch at 0x147f0-0x14801.
- * Confirmed: actor_find_pathfinding_location at 0x14808; actor_has_accessible_firing_position at 0x1481e.
- * Confirmed: encounter/fp distance check at 0x1484f-0x1489e.
- * Confirmed: field_504/1fc prop check at 0x148a2-0x148ee.
- * Confirmed: evaluation pipeline at 0x14912-0x1496a.
+ * Confirmed: tag_get(actr) at 0x147cc;
+ * actor_combat_get_firing_variant_definition at 0x147d7. Confirmed: field_160
+ * (suppressed) guard at 0x147e8. Confirmed: field_358+tag_bit5 branch at
+ * 0x147f0-0x14801. Confirmed: actor_find_pathfinding_location at 0x14808;
+ * actor_has_accessible_firing_position at 0x1481e. Confirmed: encounter/fp
+ * distance check at 0x1484f-0x1489e. Confirmed: field_504/1fc prop check at
+ * 0x148a2-0x148ee. Confirmed: evaluation pipeline at 0x14912-0x1496a.
  * Confirmed: random timer with weapon rate cap at 0x1498f-0x14a1f.
  * Confirmed: tail check at 0x14a26 with actor_has_ranged_weapon (0x14a51)
  *   and actor_perception_unreachable at 0x14b27.
@@ -954,8 +954,8 @@ void FUN_00014c10(int actor_handle, void *state_data, int param_3)
    * Writes out2 int via *out2 (EBP-0x14).
    * Writes out3 int via *out3 (EBP-0x5); low byte = exclusion flag.
    */
-  fp_index_tmp = (short)FUN_00025c10(
-    actor_handle, query_buf, fp_result_ptr, &out2, huge_buf, &out3_int);
+  fp_index_tmp = (short)FUN_00025c10(actor_handle, query_buf, fp_result_ptr,
+                                     &out2, huge_buf, &out3_int);
 
   /* Temporary write (0x14d54); overwritten by FUN_000272d0 return */
   *(short *)((char *)state_data + 0x8) = fp_index_tmp;
@@ -1822,7 +1822,8 @@ void actor_clear_guard_state(int actor_handle)
  *
  * Confirmed: datum_get at 0x15cfd. MOV EAX,EDI / CALL FUN_00015bb0 at 0x15d4b.
  * Confirmed: CMP/DEC word [ESI+0x9c/0x9e] at 0x15d1d/0x15d7b.
- * Confirmed: actor_set_dormant at 0x15e0c. actor_target_unit_index+FUN_00046f10 at 0x15e3a. */
+ * Confirmed: actor_set_dormant at 0x15e0c. actor_target_unit_index+FUN_00046f10
+ * at 0x15e3a. */
 void FUN_00015cf0(int actor_handle)
 {
   char *actor;
@@ -2171,9 +2172,9 @@ char FUN_00016210(int actor_handle, int param_2, short *param_3)
  * Evaluates the actor's firing-position combat state and advances the
  * state machine. Three early-exit conditions (swarm, field_160, reset).
  * Main path: if field_4c is active and field_aa is flagged, runs
- * the firing-position evaluation pipeline (FUN_00024be0, actor_get_firing_position_group,
- * FUN_00025c10, FUN_000272d0), then selects a randomized delay timer
- * from the actor tag's min/max range, scaled by 30.0 Hz.
+ * the firing-position evaluation pipeline (FUN_00024be0,
+ * actor_get_firing_position_group, FUN_00025c10, FUN_000272d0), then selects a
+ * randomized delay timer from the actor tag's min/max range, scaled by 30.0 Hz.
  *
  * Confirmed: cdecl, single stack arg (actor_handle).
  * Confirmed: _chkstk with 0x14748 (83784 bytes) at 0x163d3/0x163d8.
@@ -2181,13 +2182,13 @@ char FUN_00016210(int actor_handle, int param_2, short *param_3)
  * 0x163e4/0x163e9. Confirmed: tag_get('actr', actor->field_58) at
  * 0x163f0/0x163f9. Confirmed: three early-return paths for
  * swarm/field_160/reset at 0x16407/0x16422/0x16443. Confirmed: main evaluation
- * pipeline: FUN_00024be0 at 0x1649b, csmemset(0x670) at 0x164b1, actor_get_firing_position_group
- * at 0x164c4, FUN_00025c10 at 0x164f1, FUN_000272d0 at 0x1650b. Confirmed:
- * random timer: random_real_range(seed, tag_min, tag_max) at 0x16563, FMUL
- * [0x253394]=30.0f at 0x16568, _ftol2 at 0x16571, store to actor->field_9c at
- * 0x16576. Inferred: actor+0xc0 = firing-position action state (int16_t).
- *   actor+0xc4 = firing-position target (int16_t).
- *   actor+0x9c = combat timer (int16_t). */
+ * pipeline: FUN_00024be0 at 0x1649b, csmemset(0x670) at 0x164b1,
+ * actor_get_firing_position_group at 0x164c4, FUN_00025c10 at 0x164f1,
+ * FUN_000272d0 at 0x1650b. Confirmed: random timer: random_real_range(seed,
+ * tag_min, tag_max) at 0x16563, FMUL [0x253394]=30.0f at 0x16568, _ftol2 at
+ * 0x16571, store to actor->field_9c at 0x16576. Inferred: actor+0xc0 =
+ * firing-position action state (int16_t). actor+0xc4 = firing-position target
+ * (int16_t). actor+0x9c = combat timer (int16_t). */
 unsigned int FUN_000163d0(int actor_handle)
 {
   char *actor;
@@ -4440,7 +4441,8 @@ LAB_done:
  * Post-initialization:
  *   - Copies field_c8 to 426/427, field_ca to 42c.
  *   - If field_f8 is set and FUN_0002a360 passes: dispatches
- *     actor_move_animation_impulse and FUN_00046f10 for firing-position targets.
+ *     actor_move_animation_impulse and FUN_00046f10 for firing-position
+ * targets.
  *   - field_a9&1: copies field_b0/ac to 430-43c.
  *   - field_a9&4: evasion/cliff-protection init or maintenance.
  *
@@ -4913,7 +4915,8 @@ void FUN_00019c70(int actor_handle)
  *   2. field_a4==1 && field_a6!=-1: distance/window check with LOS test.
  *   3. field_9e==0 && field_a1==0: iterate nearby actors (field_24 in [2,3])
  *      and count/assess proximity for retreat/support decisions.
- *   4. Fallback: actor_move_to_prop for type-0, actor_move_to_firing_position for type-1.
+ *   4. Fallback: actor_move_to_prop for type-0, actor_move_to_firing_position
+ * for type-1.
  *
  * Confirmed: cdecl, single stack arg (actor_handle).
  * Confirmed: datum_get(actor_data, actor_handle) at 0x19d10/0x19d12.
@@ -4924,10 +4927,11 @@ void FUN_00019c70(int actor_handle)
  * at 0x19ddf/0x19de4, FCOM [0x253dd0] / FCOMP [0x253dcc] at 0x19de4/0x19dff,
  *   unit_estimate_position + ai_test_line_of_sight at 0x19e24/0x19e59.
  * Confirmed: actor iteration with FUN_00064540/FUN_00064570 at 0x19e97/0x19ea0,
- *   loop head at 0x19eb2, actors_searching_same_position at 0x19ee0, inner datum_get at 0x19ef7.
- * Confirmed: encounter support encounter_mark_examined_pursuit_position at 0x19fac.
- * Confirmed: fallback actor_move_to_prop(actor_handle, field_270, 3.0f) at 0x19feb.
- *   or actor_move_to_firing_position(actor_handle, field_a6, 0) at 0x19fa2a.
+ *   loop head at 0x19eb2, actors_searching_same_position at 0x19ee0, inner
+ * datum_get at 0x19ef7. Confirmed: encounter support
+ * encounter_mark_examined_pursuit_position at 0x19fac. Confirmed: fallback
+ * actor_move_to_prop(actor_handle, field_270, 3.0f) at 0x19feb. or
+ * actor_move_to_firing_position(actor_handle, field_a6, 0) at 0x19fa2a.
  * Confirmed: FUN_0002f1a0(actor_handle) call at 0x1a035. */
 int actor_look_secondary(int actor_handle)
 {
@@ -5752,10 +5756,11 @@ char FUN_00024ca0(int actor_handle, short param_2)
  *
  * Confirmed: datum_get at 0x24d04; CALL FUN_00024ca0 at 0x24d46.
  * Confirmed: stride 0x3c at 0x25138; fp_ptr saved at [EBP-4] (0x24d24).
- * Confirmed: FUN_0010cd40 at 0x24e33, 0x24f3a; vector_to_line_distance_squared3d at 0x24fb8.
- * Confirmed: object_get_and_verify_type(target,2) at 0x25168.
- * Confirmed: fp->score = fp_ptr+0x24 = fp2_ptr+8 (element_base+0x38).
- * Confirmed: threat stride i*0x10 (SHL EAX,4 at 0x25076). */
+ * Confirmed: FUN_0010cd40 at 0x24e33, 0x24f3a;
+ * vector_to_line_distance_squared3d at 0x24fb8. Confirmed:
+ * object_get_and_verify_type(target,2) at 0x25168. Confirmed: fp->score =
+ * fp_ptr+0x24 = fp2_ptr+8 (element_base+0x38). Confirmed: threat stride i*0x10
+ * (SHL EAX,4 at 0x25076). */
 void FUN_00024cf0(int actor_handle, char *eval_state, unsigned short fp_count,
                   char *fp_array)
 {
@@ -5841,7 +5846,8 @@ void FUN_00024cf0(int actor_handle, char *eval_state, unsigned short fp_count,
                                         (float *)actor_traj_base, local_buf);
             local_14_score = 0.0f;
 
-            if (local_10_dsq < *(float *)(actor + 0x294) * *(float *)(actor + 0x294)) {
+            if (local_10_dsq <
+                *(float *)(actor + 0x294) * *(float *)(actor + 0x294)) {
               *(char *)(fp_ptr + 0x1d) = 1;
               if (*(char *)(eval_state + 0x14) == 0) {
                 *(char *)(fp_ptr + 0x1c) = 0;
@@ -6010,7 +6016,8 @@ void FUN_00024cf0(int actor_handle, char *eval_state, unsigned short fp_count,
                   system_exit(-1);
                 }
               } else {
-                /* 0 <= cos <= 0.866: flat max-cone score (preset 15); no assert */
+                /* 0 <= cos <= 0.866: flat max-cone score (preset 15); no assert
+                 */
               }
               *(float *)(fp2_ptr + 8) += los_score;
             }
@@ -6353,29 +6360,27 @@ char FUN_00025970(void *state, int actor_handle, char *actor)
   return *(char *)((char *)state + 0x30);
 }
 
-/* actor_has_accessible_firing_position (0x25a00) — actor_has_accessible_firing_position
- * Tests whether the given position is an accessible firing position for the
- * actor.  Checks that the position belongs to the actor's encounter's firing-
- * position list, is within range, and (for non-swarm actors) is reachable via
- * a path-state ray cast.
+/* actor_has_accessible_firing_position (0x25a00) —
+ * actor_has_accessible_firing_position Tests whether the given position is an
+ * accessible firing position for the actor.  Checks that the position belongs
+ * to the actor's encounter's firing- position list, is within range, and (for
+ * non-swarm actors) is reachable via a path-state ray cast.
  *
  * Confirmed: param_1=actor_handle, param_2=position (float *),
  *   param_3=surface_index (-1 = none), param_4=group_mask (bitfield).
  * Confirmed: actor+0x99 = is_swarm flag; actor+0x34 = encounter handle;
  *   actor+0x3a = firing_position_index (short); actor+0x58 = tag_index.
- * Confirmed: actor_get_firing_position_group = actor_get_firing_position_group (3 args).
- * Confirmed: path_state_estimated_distance = path_state_estimated_distance (6 args cdecl,
- *   ADD ESP,0x18 at 0x25bb6/all sites; output via arg4 float*, args 5/6 are
- *   optional out-pointers — this site shares two PUSH 0 with the 0x5e830
- *   branch, so it passes NULL/NULL); NOT an ESI-output function — unaff_ESI
- *   in Ghidra is an artifact of inlining; result is at [EBP-0x8] after the
- *   call.  arg3 is a raw int load (MOV ECX,[EDX+0x14]), not a float-to-int
- *   conversion.
- * Confirmed: threshold at 0x2533d8 = 4.0f; dist_sq threshold at 0x254e74 =
- *   16.0f.
- * Confirmed: huge path-state buffer at EBP-0x140e0 (82080 bytes); ray-init
- *   struct at EBP-0x54 (84 bytes).
- * Source file string: c:\halo\SOURCE\ai\actor_firing_position.c */
+ * Confirmed: actor_get_firing_position_group = actor_get_firing_position_group
+ * (3 args). Confirmed: path_state_estimated_distance =
+ * path_state_estimated_distance (6 args cdecl, ADD ESP,0x18 at 0x25bb6/all
+ * sites; output via arg4 float*, args 5/6 are optional out-pointers — this site
+ * shares two PUSH 0 with the 0x5e830 branch, so it passes NULL/NULL); NOT an
+ * ESI-output function — unaff_ESI in Ghidra is an artifact of inlining; result
+ * is at [EBP-0x8] after the call.  arg3 is a raw int load (MOV ECX,[EDX+0x14]),
+ * not a float-to-int conversion. Confirmed: threshold at 0x2533d8 = 4.0f;
+ * dist_sq threshold at 0x254e74 = 16.0f. Confirmed: huge path-state buffer at
+ * EBP-0x140e0 (82080 bytes); ray-init struct at EBP-0x54 (84 bytes). Source
+ * file string: c:\halo\SOURCE\ai\actor_firing_position.c */
 char actor_has_accessible_firing_position(int actor_handle, float *position,
                                           int surface_index, int group_mask)
 {
@@ -6440,7 +6445,8 @@ char actor_has_accessible_firing_position(int actor_handle, float *position,
   }
 
   /* iterate over encounter's firing positions */
-  fp_block = (char *)&((encounter_definition *)encounter_elem)->firing_positions;
+  fp_block =
+    (char *)&((encounter_definition *)encounter_elem)->firing_positions;
   fp_count = ((encounter_definition *)encounter_elem)->firing_positions.count;
   i = 0;
   if (fp_count <= 0) {
@@ -6552,8 +6558,9 @@ short FUN_00025c10(int actor_handle, void *eval_ctx, int *out_record,
   int owner_indices[0x200]; /* EBP-0x890 fp owner actor indices */
   char path_input[0x48]; /* EBP-0x90 path-input scratch. MUST be >= 0x48:
                           * path_input_new / actor_path_input_new do
-                          * csmemset(buf, 0, 0x48). Original reserved -0x90..-0x48
-                          * (0x48 bytes); a too-small [0x44] overflows by 4 bytes. */
+                          * csmemset(buf, 0, 0x48). Original reserved
+                          * -0x90..-0x48 (0x48 bytes); a too-small [0x44]
+                          * overflows by 4 bytes. */
   int prop_iter[2]; /* EBP-0x14 prop iterator */
   float vtmp[3]; /* EBP-0x3c scratch vector */
   float dir[3]; /* EBP-0x18 aim direction */
@@ -7356,7 +7363,8 @@ short FUN_00027090(int actor_handle, void *param_2, void *param_3,
  * If param_2 == -1: clears actor firing position via FUN_0002f1a0, sets
  * actor+0x3b8 = -1. Else: validates encounter, displaces any current
  * holder of the slot (param_4), sets actor+0x3b8 = param_2, updates the
- * platform prop if needed, and calls encounter_verify_firing_position_owner_actor_indices.
+ * platform prop if needed, and calls
+ * encounter_verify_firing_position_owner_actor_indices.
  *
  * Confirmed: datum_get(actor_data, actor_handle) at 0x272e3.
  * Confirmed: assert on actor->meta.encounter_index != NONE at 0x27305.
@@ -8539,7 +8547,8 @@ void actor_look_update(int actor_handle)
   /* Determine primary look mode */
   if (FUN_000210b0(actor_handle) && !*(char *)(actor + 0x456)) {
     look_spec_type = 2;
-    if (look_spec_28660_safe(actor_handle, actor, &look_spec_type, primary_vec)) {
+    if (look_spec_28660_safe(actor_handle, actor, &look_spec_type,
+                             primary_vec)) {
       look_mode = 7;
       strict_look = 1;
     } else {
@@ -8549,7 +8558,8 @@ void actor_look_update(int actor_handle)
   LAB_look_mode_from_actor:
     look_mode = (int)(unsigned short)(*(unsigned short *)(actor + 0x3e8));
     if (look_mode != 0 && look_mode != 1) {
-      if (look_spec_28660_safe(actor_handle, actor, (short *)(actor + 0x3ec), primary_vec)) {
+      if (look_spec_28660_safe(actor_handle, actor, (short *)(actor + 0x3ec),
+                               primary_vec)) {
         strict_look = (char)(*(short *)(actor + 0x3ec) == 2);
       } else {
         look_mode = 0;
@@ -8560,7 +8570,8 @@ void actor_look_update(int actor_handle)
   /* Secondary look mode */
   secondary_mode = 0;
   if (*(short *)(actor + 0x544) >= 0 && *(short *)(actor + 0x548) > 0) {
-    if (look_spec_28660_safe(actor_handle, actor, (short *)(actor + 0x54c), secondary_vec)) {
+    if (look_spec_28660_safe(actor_handle, actor, (short *)(actor + 0x54c),
+                             secondary_vec)) {
       secondary_mode = (int)(*(short *)(actor + 0x546));
     }
   }
@@ -8859,7 +8870,8 @@ LAB_000297c7:
 
   *(int *)(actor + 0x564) -= 1;
 
-  if (!look_spec_28660_safe(actor_handle, actor, (short *)(actor + 0x56c), primary_vec))
+  if (!look_spec_28660_safe(actor_handle, actor, (short *)(actor + 0x56c),
+                            primary_vec))
     goto LAB_00029ccc;
 
   if (!valid_real_normal3d(primary_vec)) {
@@ -8937,7 +8949,8 @@ LAB_00029b75:
     }
     *(int *)(actor + 0x568) -= 1;
     if (*(char *)(actor + 0x55f)) {
-      cVar7 = look_spec_28660_safe(actor_handle, actor, (short *)(actor + 0x57c), primary_vec);
+      cVar7 = look_spec_28660_safe(actor_handle, actor,
+                                   (short *)(actor + 0x57c), primary_vec);
       cVar5 = want_secondary;
       if (cVar7) {
         if (!want_secondary)

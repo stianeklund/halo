@@ -157,8 +157,8 @@ void FUN_0009c910(short *out)
  * effect_ptr[0x44] (scale_a) and/or effect_ptr[0x48] (scale_b) when the
  * corresponding bit (1<<bit_index) is set in flags_lo / flags_hi respectively.
  * 0x9c9a0 / effects.obj */
-float FUN_0009c9a0(int unused, int effect_ptr, float base_val, uint32_t flags_lo,
-                   uint32_t flags_hi, uint8_t bit_index)
+float FUN_0009c9a0(int unused, int effect_ptr, float base_val,
+                   uint32_t flags_lo, uint32_t flags_hi, uint8_t bit_index)
 {
   float val;
   uint32_t bit;
@@ -177,7 +177,8 @@ float FUN_0009c9a0(int unused, int effect_ptr, float base_val, uint32_t flags_lo
  * and to the range via bit 2*N+1, then returns random_real_range + scaled_min.
  * 0x9c9f0 / effects.obj */
 float FUN_0009c9f0(int bit_index, int effect_ptr, uint32_t flags_lo,
-                   uint32_t flags_hi, unsigned int *seed, float min_val, float max_val)
+                   uint32_t flags_hi, unsigned int *seed, float min_val,
+                   float max_val)
 {
   float base;
   float range;
@@ -1656,8 +1657,8 @@ void effect_update(int effect_index, float elapsed)
     void *parent_obj;
 
     /* if object was deleted, delete the effect too */
-    object = object_try_and_get_and_verify_type(
-      *(int *)((char *)effect + 0x3c), NONE);
+    object =
+      object_try_and_get_and_verify_type(*(int *)((char *)effect + 0x3c), NONE);
     if (object == NULL)
       goto delete_effect;
 

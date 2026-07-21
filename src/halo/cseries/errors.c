@@ -36,19 +36,6 @@ int FUN_0008e5f0(uint32_t code, int exception_pointers)
   return 1;
 }
 
-/* FUN_0008e680 (0x8e680) — Validate debug memory manager sentinels. Halts
- * if the SAFT guards have been corrupted. */
-void FUN_0008e680(int param_1, int param_2)
-{
-  if (*(int *)0x2ee74c != 0x53414654 || *(int *)0x2ee768 != 0x53414654) {
-    display_assert(csprintf((char *)0x5ab100,
-        "Debug memory manager is uninitialized or corrupted. (%s:%d)",
-        param_1, param_2),
-        "c:\\halo\\SOURCE\\cseries\\debug_memory.c", 0x91, 1);
-    system_exit(-1);
-  }
-}
-
 /* debug_memory_initialize (0x8e650) — initialize the debug memory manager
  * sentinel structure: writes SAFT guards at both ends and zeroes the
  * counters/state fields between them. */
@@ -61,6 +48,20 @@ void FUN_0008e650(void)
   *(uint32_t *)0x2ee75c = 0;
   *(uint32_t *)0x2ee760 = 0;
   *(uint32_t *)0x2ee768 = 0x53414654; /* end SAFT guard */
+}
+
+/* FUN_0008e680 (0x8e680) — Validate debug memory manager sentinels. Halts
+ * if the SAFT guards have been corrupted. */
+void FUN_0008e680(int param_1, int param_2)
+{
+  if (*(int *)0x2ee74c != 0x53414654 || *(int *)0x2ee768 != 0x53414654) {
+    display_assert(
+      csprintf((char *)0x5ab100,
+               "Debug memory manager is uninitialized or corrupted. (%s:%d)",
+               param_1, param_2),
+      "c:\\halo\\SOURCE\\cseries\\debug_memory.c", 0x91, 1);
+    system_exit(-1);
+  }
 }
 
 /* debug_alloc_verify (0x8e6d0) — check end-of-buffer sentinel for a pointer.
@@ -452,7 +453,8 @@ void errors_output_to_debug_file(char param_1)
   *(char *)0x5aa8e1 = param_1;
 }
 
-/* errors_overflow_suppression_enable (0x8f210) — Set the overflow suppression flag. */
+/* errors_overflow_suppression_enable (0x8f210) — Set the overflow suppression
+ * flag. */
 void errors_overflow_suppression_enable(char param_1)
 {
   *(char *)0x5aa8e4 = param_1;
@@ -517,6 +519,17 @@ void debug_string_to_display(const char *message, int include_timestamp)
 
   crt_fprintf(stream, (const char *)0x257984, message);
   crt_fclose(stream);
+}
+
+/* errors_initialize (0x8f370) — Initialize the error subsystem.
+ * Sets output-to-file, overflow suppression, and clears counters. */
+void errors_initialize(void)
+{
+  *(char *)0x5aa8e1 = 1;
+  *(char *)0x5aa8e4 = 1;
+  *(char *)0x5aa8e0 = 0;
+  *(int16_t *)0x5aa8e6 = 0;
+  stack_walk_initialize();
 }
 
 /* error() — the central error/warning handler for all subsystems.
@@ -652,17 +665,6 @@ bool error_occurred(void)
   return occurred;
 }
 
-/* errors_initialize (0x8f370) — Initialize the error subsystem.
- * Sets output-to-file, overflow suppression, and clears counters. */
-void errors_initialize(void)
-{
-  *(char *)0x5aa8e1 = 1;
-  *(char *)0x5aa8e4 = 1;
-  *(char *)0x5aa8e0 = 0;
-  *(int16_t *)0x5aa8e6 = 0;
-  stack_walk_initialize();
-}
-
 /* FUN_0008f630 (0x8f630) — reset error-tracking ring buffer
  *
  * Stamps the ring buffer header with a magic value, then iterates through
@@ -771,7 +773,8 @@ int FUN_0008f6b0(void)
     } while (i < *(int16_t *)0x3361b0);
   }
 
-  new_frame = *(int32_t *)0x3361ac + 1; /* hazard-ok: value-arithmetic (next frame index) */
+  new_frame = *(int32_t *)0x3361ac +
+              1; /* hazard-ok: value-arithmetic (next frame index) */
   *(uint8_t *)0x3361aa = 0;
   *(int32_t *)0x3361ac = new_frame % 0x78;
   return new_frame / 0x78;

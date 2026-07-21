@@ -10,8 +10,8 @@
  * Otherwise mark the offset valid and copy the caller's vector3 fog offset into
  * the globals at 0x4d8ebc / 0x4d8ec0 / 0x4d8ec4.
  *
- * Copies are plain dword moves in the original (no FPU ops), so the parameter is
- * treated as raw dwords rather than float loads/stores. */
+ * Copies are plain dword moves in the original (no FPU ops), so the parameter
+ * is treated as raw dwords rather than float loads/stores. */
 void FUN_001954e0(void *fog_offset)
 {
   uint32_t *src = (uint32_t *)fog_offset;

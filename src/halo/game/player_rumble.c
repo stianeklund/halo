@@ -36,7 +36,8 @@ void rumble_player_set_scale(float scale)
  * then scales the motor columns by damage_amount (lerped) and scale.
  *
  * 0xb9bc0 / player_rumble.obj */
-void rumble_player_impulse(short unit_index, float *rumble_def, float damage_amount, float scale)
+void rumble_player_impulse(short unit_index, float *rumble_def,
+                           float damage_amount, float scale)
 {
   char *slot_base;
   float *dest;
@@ -225,7 +226,8 @@ void rumble_update(void)
       player = (char *)datum_get(player_data, player_handle);
       local_player_index = *(int16_t *)(player + 2);
       if (local_player_index != NONE) {
-        controller = player_ui_get_single_player_local_player_from_controller(local_player_index);
+        controller = player_ui_get_single_player_local_player_from_controller(
+          local_player_index);
         if (player_ui_rumble_disabled(controller)) {
           input_set_rumble(local_player_index, 0, 0);
         } else {

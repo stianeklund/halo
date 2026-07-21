@@ -95,8 +95,8 @@ static void dump_float_case(const char *group, const char *name, float *values,
   debug_string_to_display(buf, 0);
 }
 
-static void dump_u32_case(const char *group, const char *name,
-                          uint32_t *values, int value_count, char *buf)
+static void dump_u32_case(const char *group, const char *name, uint32_t *values,
+                          int value_count, char *buf)
 {
   int i;
 
@@ -162,10 +162,10 @@ static void run_dual_oracle_tests(void)
     candidate_ret = vector3d_scale_add(base, direction, 2.5f, candidate_out);
 
     total += 4;
-    passed += check("dual v3d_scale_add ret",
-                    (uint32_t)(oracle_ret == oracle_out &&
-                               candidate_ret == candidate_out),
-                    1, buf);
+    passed += check(
+      "dual v3d_scale_add ret",
+      (uint32_t)(oracle_ret == oracle_out && candidate_ret == candidate_out), 1,
+      buf);
     passed += check("dual v3d_scale_add x", *(uint32_t *)&candidate_out[0],
                     *(uint32_t *)&oracle_out[0], buf);
     passed += check("dual v3d_scale_add y", *(uint32_t *)&candidate_out[1],
@@ -184,8 +184,8 @@ static void run_dual_oracle_tests(void)
     scalars_interpolate(10.0f, 20.0f, 0.75f, &candidate_out);
 
     total += 1;
-    passed += check("dual scalars_interpolate out",
-                    *(uint32_t *)&candidate_out, *(uint32_t *)&oracle_out, buf);
+    passed += check("dual scalars_interpolate out", *(uint32_t *)&candidate_out,
+                    *(uint32_t *)&oracle_out, buf);
   }
 #elif defined(DUAL_ORACLE_TARGET_scalars_interpolate_and_clamp_0_to_1)
   {
@@ -198,10 +198,8 @@ static void run_dual_oracle_tests(void)
 
     original(-5.0f, 5.0f, -0.25f, &oracle_low);
     original(-5.0f, 5.0f, 1.25f, &oracle_high);
-    scalars_interpolate_and_clamp_0_to_1(-5.0f, 5.0f, -0.25f,
-                                         &candidate_low);
-    scalars_interpolate_and_clamp_0_to_1(-5.0f, 5.0f, 1.25f,
-                                         &candidate_high);
+    scalars_interpolate_and_clamp_0_to_1(-5.0f, 5.0f, -0.25f, &candidate_low);
+    scalars_interpolate_and_clamp_0_to_1(-5.0f, 5.0f, 1.25f, &candidate_high);
 
     total += 2;
     passed += check("dual scalars_clamp low", *(uint32_t *)&candidate_low,
@@ -270,20 +268,22 @@ void run_tests(void)
     passed += check("v3d_scale_add z", *(uint32_t *)&out[2], 0x3FE66666, buf);
   }
 
-  /* matrix_transform_point: layout is [scale, 3x3-rotation-row-major, tx, ty, tz] = 13 floats */
+  /* matrix_transform_point: layout is [scale, 3x3-rotation-row-major, tx, ty,
+   * tz] = 13 floats */
   {
-    float mat[13] = { 1.0f,               /* scale (1 = no scaling) */
-                      1.0f, 0.0f, 0.0f,   /* row 0 of 3x3 rotation */
-                      0.0f, 1.0f, 0.0f,   /* row 1 */
-                      0.0f, 0.0f, 1.0f,   /* row 2 */
-                      10.0f, 20.0f, 30.0f /* translation */};
+    float mat[13] = { 1.0f, /* scale (1 = no scaling) */
+                      1.0f,  0.0f,  0.0f, /* row 0 of 3x3 rotation */
+                      0.0f,  1.0f,  0.0f, /* row 1 */
+                      0.0f,  0.0f,  1.0f, /* row 2 */
+                      10.0f, 20.0f, 30.0f /* translation */ };
     float in_point[3] = { 5.0f, 5.0f, 5.0f };
     float out_point[3];
 
     matrix_transform_point(mat, in_point, out_point);
 
     total += 3;
-    /* identity rotation + translation [10,20,30] applied to [5,5,5] = [15,25,35] */
+    /* identity rotation + translation [10,20,30] applied to [5,5,5] =
+     * [15,25,35] */
     passed +=
       check("mat_transform_pt x", *(uint32_t *)&out_point[0], 0x41700000, buf);
     passed +=
@@ -293,11 +293,8 @@ void run_tests(void)
   }
 
   {
-    float mat[13] = { 2.0f,
-                      0.0f, -1.0f, 0.0f,
-                      1.0f,  0.0f, 0.0f,
-                      0.0f,  0.0f, 1.0f,
-                      -3.0f, 4.0f, 5.0f };
+    float mat[13] = { 2.0f, 0.0f, -1.0f, 0.0f,  1.0f, 0.0f, 0.0f,
+                      0.0f, 0.0f, 1.0f,  -3.0f, 4.0f, 5.0f };
     float in_point[3] = { 2.0f, -1.0f, 0.5f };
     float out_point[3];
 
@@ -394,7 +391,7 @@ void run_tests(void)
   }
 
   {
-    float src_mat[12] = { 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f,
+    float src_mat[12] = { 1.0f, 0.0f, 0.0f, 0.0f,  0.0f, -1.0f,
                           0.0f, 1.0f, 0.0f, -4.0f, 8.0f, 12.0f };
     float dst_mat[12];
 
@@ -402,30 +399,27 @@ void run_tests(void)
     dump_float_case("matrix_inverse", "mat_inv_rot_trans", dst_mat, 12, buf);
   }
 
-  /* matrix4x3_multiply: layout is [scale, 3x3-rotation, tx, ty, tz] = 13 floats.
-   * mat_a = identity rotation, scale 1.0, translation (1, 2, 3).
-   * mat_b = 90-degree Z rotation, scale 1.0, translation (5, 5, 5).
-   * Expected: scale=1, rot=B*A, trans=B_trans*A_rot*A_scale+A_trans=(6,7,8). */
+  /* matrix4x3_multiply: layout is [scale, 3x3-rotation, tx, ty, tz] = 13
+   * floats. mat_a = identity rotation, scale 1.0, translation (1, 2, 3). mat_b
+   * = 90-degree Z rotation, scale 1.0, translation (5, 5, 5). Expected:
+   * scale=1, rot=B*A, trans=B_trans*A_rot*A_scale+A_trans=(6,7,8). */
   {
-    float mat_a[13] = { 1.0f,
-                        1.0f, 0.0f, 0.0f,
-                        0.0f, 1.0f, 0.0f,
-                        0.0f, 0.0f, 1.0f,
-                        1.0f, 2.0f, 3.0f };
-    float mat_b[13] = { 1.0f,
-                        0.0f, 1.0f, 0.0f,
-                       -1.0f, 0.0f, 0.0f,
-                        0.0f, 0.0f, 1.0f,
-                        5.0f, 5.0f, 5.0f };
+    float mat_a[13] = { 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+                        0.0f, 0.0f, 1.0f, 1.0f, 2.0f, 3.0f };
+    float mat_b[13] = { 1.0f, 0.0f, 1.0f, 0.0f, -1.0f, 0.0f, 0.0f,
+                        0.0f, 0.0f, 1.0f, 5.0f, 5.0f,  5.0f };
     float out_mat[13];
 
     matrix4x3_multiply(mat_a, mat_b, out_mat);
 
     total += 4;
     passed += check("mat_mul scale", *(uint32_t *)&out_mat[0], 0x3F800000, buf);
-    passed += check("mat_mul rot_10", *(uint32_t *)&out_mat[4], 0xBF800000, buf);
-    passed += check("mat_mul trans_x", *(uint32_t *)&out_mat[10], 0x40C00000, buf);
-    passed += check("mat_mul trans_z", *(uint32_t *)&out_mat[12], 0x41000000, buf);
+    passed +=
+      check("mat_mul rot_10", *(uint32_t *)&out_mat[4], 0xBF800000, buf);
+    passed +=
+      check("mat_mul trans_x", *(uint32_t *)&out_mat[10], 0x40C00000, buf);
+    passed +=
+      check("mat_mul trans_z", *(uint32_t *)&out_mat[12], 0x41000000, buf);
   }
 
   /* matrix_from_forward_and_up */
@@ -473,16 +467,16 @@ void run_tests(void)
 
     total += 6;
     match = system_stristr(empty_haystack, "");
-    passed += check("stristr empty", (uint32_t)(match - empty_haystack), 0,
-                    buf);
+    passed +=
+      check("stristr empty", (uint32_t)(match - empty_haystack), 0, buf);
 
     match = system_stristr(exact_haystack, "needle");
-    passed += check("stristr exact", (uint32_t)(match - exact_haystack), 0,
-                    buf);
+    passed +=
+      check("stristr exact", (uint32_t)(match - exact_haystack), 0, buf);
 
     match = system_stristr(first_case_haystack, "alpha");
-    passed += check("stristr first-case", match == NULL ? 0xffffffffu : 0, 0xffffffffu,
-                    buf);
+    passed += check("stristr first-case", match == NULL ? 0xffffffffu : 0,
+                    0xffffffffu, buf);
 
     match = system_stristr(rest_case_haystack, "Hello");
     passed += check("stristr rest-case", (uint32_t)(match - rest_case_haystack),
@@ -492,8 +486,8 @@ void run_tests(void)
     passed += check("stristr later", (uint32_t)(match - haystack), 2, buf);
 
     match = system_stristr(none_haystack, "xyz");
-    passed += check("stristr none", match == NULL ? 0xffffffffu : 0, 0xffffffffu,
-                    buf);
+    passed +=
+      check("stristr none", match == NULL ? 0xffffffffu : 0, 0xffffffffu, buf);
   }
 
   /* csstrtok */
@@ -559,14 +553,14 @@ void run_tests(void)
    * Input (zero-init except below) forces the flags&1 branch:
    *   flags(+0x04)=0x0001; position(+0x08)=(1,2,3); forward(+0x14)=(0.06,0.08);
    *   control(+0x3c)=(1,0,0); friction(+0x48)=0 -> damp=1;
-   *   c0=damp*(fwd.x*ctl.x - fwd.y*ctl.y)=0.06, c1=damp*(fwd.x*ctl.y + ... )=0.08
-   *   velocity(+0x2c)=0 -> raw0=0.06, raw1=0.08, |tang|=0.1.
-   * NO-CLAMP case: clamp(+0x50)=10 (0.1 <= 10) -> restore tang=(0.06,0.08).
-   * CLAMP case: clamp(+0x50)=0.05 (0.1 > 0.05) -> unit*0.05 = (0.03,0.04);
-   *   the clamp branch never reads raw0/raw1, so it locks that path too. */
+   *   c0=damp*(fwd.x*ctl.x - fwd.y*ctl.y)=0.06, c1=damp*(fwd.x*ctl.y + ...
+   * )=0.08 velocity(+0x2c)=0 -> raw0=0.06, raw1=0.08, |tang|=0.1. NO-CLAMP
+   * case: clamp(+0x50)=10 (0.1 <= 10) -> restore tang=(0.06,0.08). CLAMP case:
+   * clamp(+0x50)=0.05 (0.1 > 0.05) -> unit*0.05 = (0.03,0.04); the clamp branch
+   * never reads raw0/raw1, so it locks that path too. */
   {
     volatile char *dbg_synth = (volatile char *)0x4e4cf2; /* synth-path gate */
-    volatile char *dbg_stub = (volatile char *)0x4e4cf0;  /* draw-stub gate  */
+    volatile char *dbg_stub = (volatile char *)0x4e4cf0; /* draw-stub gate  */
     char saved_synth = *dbg_synth;
     char saved_stub = *dbg_stub;
     float physics[80];
@@ -574,24 +568,24 @@ void run_tests(void)
     int i;
 
     *dbg_synth = 1; /* take the no-query debug synth path */
-    *dbg_stub = 0;  /* skip the object debug-draw stub */
+    *dbg_stub = 0; /* skip the object debug-draw stub */
 
     /* ---- no-clamp (restore) case ---- */
     for (i = 0; i < 80; i++) {
       physics[i] = 0.0f;
     }
-    *(int *)&physics[0] = -1;       /* +0x00 object handle = none */
+    *(int *)&physics[0] = -1; /* +0x00 object handle = none */
     *(unsigned short *)((char *)physics + 4) = 0x0001; /* flags: ground mode */
-    physics[2] = 1.0f;              /* +0x08 position.x */
-    physics[3] = 2.0f;              /* +0x0c position.y */
-    physics[4] = 3.0f;              /* +0x10 position.z */
-    physics[5] = 0.06f;            /* +0x14 forward.x */
-    physics[6] = 0.08f;            /* +0x18 forward.y */
-    physics[0xf] = 1.0f;           /* +0x3c control.x */
-    physics[0x10] = 0.0f;          /* +0x40 control.y */
-    physics[0x11] = 0.0f;          /* +0x44 control.z */
-    physics[0x12] = 0.0f;          /* +0x48 friction -> damp = 1.0 */
-    physics[0x14] = 10.0f;         /* +0x50 clamp (large -> no clamp) */
+    physics[2] = 1.0f; /* +0x08 position.x */
+    physics[3] = 2.0f; /* +0x0c position.y */
+    physics[4] = 3.0f; /* +0x10 position.z */
+    physics[5] = 0.06f; /* +0x14 forward.x */
+    physics[6] = 0.08f; /* +0x18 forward.y */
+    physics[0xf] = 1.0f; /* +0x3c control.x */
+    physics[0x10] = 0.0f; /* +0x40 control.y */
+    physics[0x11] = 0.0f; /* +0x44 control.z */
+    physics[0x12] = 0.0f; /* +0x48 friction -> damp = 1.0 */
+    physics[0x14] = 10.0f; /* +0x50 clamp (large -> no clamp) */
 
     FUN_001a2f40(physics);
 
@@ -623,7 +617,7 @@ void run_tests(void)
     physics[0x10] = 0.0f;
     physics[0x11] = 0.0f;
     physics[0x12] = 0.0f;
-    physics[0x14] = 0.05f;          /* +0x50 clamp (small -> clamp branch) */
+    physics[0x14] = 0.05f; /* +0x50 clamp (small -> clamp branch) */
 
     FUN_001a2f40(physics);
 
@@ -638,10 +632,10 @@ void run_tests(void)
      * normalize(1/mag) + clamp-multiply chain, which round 1 ULP above the
      * ideal 0.03f/0.04f literals; both the original (ported=false) and our
      * lift produce these exact bits (runtime_oracle diff = 0). */
-    passed += check("a2f40 clamp vx", *(uint32_t *)&dump_values[0],
-                    0x3CF5C290, buf); /* ~0.03f (x87) */
-    passed += check("a2f40 clamp vy", *(uint32_t *)&dump_values[1],
-                    0x3D23D70B, buf); /* ~0.04f (x87) */
+    passed += check("a2f40 clamp vx", *(uint32_t *)&dump_values[0], 0x3CF5C290,
+                    buf); /* ~0.03f (x87) */
+    passed += check("a2f40 clamp vy", *(uint32_t *)&dump_values[1], 0x3D23D70B,
+                    buf); /* ~0.04f (x87) */
 
     *dbg_synth = saved_synth;
     *dbg_stub = saved_stub;
@@ -790,9 +784,8 @@ void run_tests(void)
   {
     /* "HaloInflateTest" compressed with zlib -9 (23 bytes, includes header) */
     static const unsigned char compressed[23] = {
-      0x78, 0xda, 0xf3, 0x48, 0xcc, 0xc9, 0xf7, 0xcc,
-      0x4b, 0xcb, 0x49, 0x2c, 0x49, 0x0d, 0x49, 0x2d,
-      0x2e, 0x01, 0x00, 0x2d, 0xdb, 0x05, 0xe8
+      0x78, 0xda, 0xf3, 0x48, 0xcc, 0xc9, 0xf7, 0xcc, 0x4b, 0xcb, 0x49, 0x2c,
+      0x49, 0x0d, 0x49, 0x2d, 0x2e, 0x01, 0x00, 0x2d, 0xdb, 0x05, 0xe8
     };
     unsigned char out_buf[32];
     int zs[14]; /* z_stream = 0x38 bytes */
@@ -803,10 +796,10 @@ void run_tests(void)
 
     inflate_ret = (int)0xfffffffe; /* Z_STREAM_ERROR fallback */
     if (init_ret == 0) {
-      zs[0] = (int)compressed;    /* next_in  */
+      zs[0] = (int)compressed; /* next_in  */
       zs[1] = sizeof(compressed); /* avail_in */
-      zs[3] = (int)out_buf;       /* next_out */
-      zs[4] = sizeof(out_buf);    /* avail_out */
+      zs[3] = (int)out_buf; /* next_out */
+      zs[4] = sizeof(out_buf); /* avail_out */
       inflate_ret = FUN_001155e0((int)zs, 4 /* Z_FINISH */);
       FUN_00115430((int)zs);
     }
@@ -815,16 +808,17 @@ void run_tests(void)
     passed += check("inflate_init", (uint32_t)init_ret, 0, buf);
     passed += check("inflate_z_stream_end", (uint32_t)inflate_ret, 1, buf);
     /* "Halo" in little-endian = 0x6F6C6148 */
-    passed += check("inflate_out[0..3]", *(uint32_t *)&out_buf[0], 0x6F6C6148, buf);
+    passed +=
+      check("inflate_out[0..3]", *(uint32_t *)&out_buf[0], 0x6F6C6148, buf);
     /* "Infl" in little-endian = 0x6C666E49 */
-    passed += check("inflate_out[4..7]", *(uint32_t *)&out_buf[4], 0x6C666E49, buf);
+    passed +=
+      check("inflate_out[4..7]", *(uint32_t *)&out_buf[4], 0x6C666E49, buf);
   }
 
   {
     static const unsigned char compressed[23] = {
-      0x78, 0xda, 0xf3, 0x48, 0xcc, 0xc9, 0xf7, 0xcc,
-      0x4b, 0xcb, 0x49, 0x2c, 0x49, 0x0d, 0x49, 0x2d,
-      0x2e, 0x01, 0x00, 0x2d, 0xdb, 0x05, 0xe8
+      0x78, 0xda, 0xf3, 0x48, 0xcc, 0xc9, 0xf7, 0xcc, 0x4b, 0xcb, 0x49, 0x2c,
+      0x49, 0x0d, 0x49, 0x2d, 0x2e, 0x01, 0x00, 0x2d, 0xdb, 0x05, 0xe8
     };
     unsigned char out_buf[4];
     uint32_t dump_values[4];
@@ -854,9 +848,8 @@ void run_tests(void)
 
   {
     static const unsigned char compressed[23] = {
-      0x78, 0xda, 0xf3, 0x48, 0xcc, 0xc9, 0xf7, 0xcc,
-      0x4b, 0xcb, 0x49, 0x2c, 0x49, 0x0d, 0x49, 0x2d,
-      0x2e, 0x01, 0x00, 0x2d, 0xdb, 0x05, 0xe8
+      0x78, 0xda, 0xf3, 0x48, 0xcc, 0xc9, 0xf7, 0xcc, 0x4b, 0xcb, 0x49, 0x2c,
+      0x49, 0x0d, 0x49, 0x2d, 0x2e, 0x01, 0x00, 0x2d, 0xdb, 0x05, 0xe8
     };
     unsigned char out_buf[16];
     uint32_t dump_values[5];
@@ -896,7 +889,7 @@ void run_tests(void)
 
     for (si = 0; si < 6; si++) {
       char *entry = slot_base + si * 0x80c;
-      slot_state[si * 3]     = *(uint32_t *)(entry);
+      slot_state[si * 3] = *(uint32_t *)(entry);
       slot_state[si * 3 + 1] = *(uint32_t *)(entry + 0x0c);
       slot_state[si * 3 + 2] = *(uint32_t *)(entry + 0x2c);
     }
@@ -908,8 +901,7 @@ void run_tests(void)
       char *entry = slot_base + si * 0x80c;
       int handle = *(int *)entry;
       passed += check("cache_slot_handle_valid",
-                      (uint32_t)(handle != 0 && handle != -1),
-                      1, buf);
+                      (uint32_t)(handle != 0 && handle != -1), 1, buf);
     }
   }
 

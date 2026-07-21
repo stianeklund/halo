@@ -67,7 +67,8 @@ void FUN_000e02d0(int param_1, short *param_2, float *param_3, float param_4,
   /* The original emits inline FSIN/FCOS on param_5 and stores the
    * results back into the param_4 / param_5 stack slots. */
 #ifdef XDK_BUILD
-  { float _angle = param_5;
+  {
+    float _angle = param_5;
     /* clang-format off */
     __asm fld _angle
     __asm fsin
@@ -78,7 +79,8 @@ void FUN_000e02d0(int param_1, short *param_2, float *param_3, float param_4,
     /* clang-format on */
   }
 #else
-  { float _angle = param_5;
+  {
+    float _angle = param_5;
     __asm__ volatile("fsin" : "=t"(param_4) : "0"(_angle));
     __asm__ volatile("fcos" : "=t"(param_5) : "0"(_angle));
   }
@@ -166,7 +168,8 @@ unsigned char xbox_demos_available(void)
 /* clean_up_for_image_launch — prepare the engine for XLaunchNewImage().
  *
  * 1. Log a diagnostic via error(2, ...).
- * 2. Call saved_game_files_take_mutex (saved-game files / sound shutdown helper).
+ * 2. Call saved_game_files_take_mutex (saved-game files / sound shutdown
+ * helper).
  * 3. If a map precache is in progress, log and abort it.
  * 4. Call D3DDevice_PersistDisplay() (D3D8 import at 0x1e9190).  On
  *    failure assert and tail-call halt_and_catch_fire via system_exit(-1).

@@ -1,3 +1,5 @@
+#include "x87_math.h"
+
 /*
  * rasterizer_xbox_decals.c
  *
@@ -17,7 +19,6 @@
  *   0x32516c  int     – most-recently-queried decal index (debug display)
  */
 
-#include "x87_math.h"
 
 /* Forward declarations for callbacks passed to lruv_cache_new.
  * FUN_0015afa0 is the eviction callback; FUN_0015b0c0 is the lock-query
@@ -747,7 +748,8 @@ void FUN_00158800(unsigned short *bounds)
     D3DDevice_SetTextureStageState(0, 0xe, 2);
     D3DDevice_SetTextureStageState(0, 0xf, 2);
     D3DDevice_SetRenderState_CullMode(0x901);
-    D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD, NV097_COLOR_MASK_RGB);
+    D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD,
+                                    NV097_COLOR_MASK_RGB);
     *(uint32_t *)0x1fb7a4 = 0x10101;
     D3DDevice_SetRenderState_Simple(0x40304, 0);
     *(uint32_t *)0x1fb784 = 0;
@@ -953,6 +955,123 @@ void FUN_00158ae0(int param_1)
 }
 
 /*
+ * FUN_00158df0 (0x158df0) — rasterizer scene render begin
+ *
+ * Ghidra mis-declares this as void(void); the real ABI is a single cdecl
+ * stack pointer parameter (`parameters`, a ushort/struct pointer). Copies the
+ * 600-byte (0x96-dword) parameters block into the global mirror at 0x5a5bc0,
+ * updates the "same render target" flag, resolves the clear color, then drives
+ * the per-frame render-begin call chain and installs the initial frustum-z /
+ * fill-mode state.
+ *
+ * Globals (hardcoded, not in kb.json; widths taken from disasm store/compare
+ * operand sizes, NOT the decompiler):
+ *   0x476ab0  device pointer, global_d3d_device (asserted non-NULL)
+ *   0x476ab8  BYTE same-target flag (mov [..],al — skips heavy setup when 1)
+ *   0x476abc  WORD previous parameters[1] (cmp/mov word; sentinel 0xffff)
+ *   0x3256bc  WORD mode flag (cmp word ptr,1 forces the clear color to 0)
+ *   0x3256be  BYTE wireframe flag (neg/sbb ternary picks D3DFILL_WIREFRAME)
+ *   0x5a5bc0  600-byte mirror of the parameters block
+ *   0x5a5dac  float color at offset 0x1ec inside the mirror, converted to
+ * pixel32
+ *
+ * Field offsets (parameters is a ushort pointer):
+ *   parameters[0]  byte +0x00  render target index (only 0 or 1 supported)
+ *   parameters[1]  byte +0x02  target id (0xffff = special/main target)
+ *   byte +0x05                 bool selector for FUN_00158140 arg4
+ *   float +0x44                camera.z_near
+ *
+ * All four assert terminals are PUSH -1 (or PUSH EDI with EDI still -1 from
+ * the OR EDI,-1 at 0x158e54) then CALL 0x8e2f0 = system_exit(-1) — NOT
+ * halt_and_catch_fire (the first parked lift substituted hcf at all four
+ * sites; review-gate REJECT, same anti-pattern as FUN_0015c680).
+ */
+/* 0x158df0 */
+void FUN_00158df0(unsigned short *parameters)
+{
+  unsigned int color_pixel;
+  char same_target;
+
+  if (parameters == 0) {
+    display_assert("parameters",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                   0x547, true);
+    system_exit(-1);
+  }
+  if (*(void **)0x476ab0 == 0) {
+    display_assert("global_d3d_device",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                   0x548, true);
+    system_exit(-1);
+  }
+
+  /* Copy 0x96 dwords (600 bytes) from parameters into the global mirror.
+   * MSVC lowers the constant-size memcpy to `rep movsl` (ECX=0x96). */
+  memcpy((void *)0x5a5bc0, parameters, 0x258);
+
+  /* Same-target detection: flag set only when we have rendered before
+   * (prev word != 0xffff sentinel) and the current target id IS 0xffff.
+   * The flag is computed in AL and branched on directly (test al,al) —
+   * the branch below uses the local, not a re-read of the byte global. */
+  if (*(unsigned short *)0x476abc != 0xffff && parameters[1] == 0xffff) {
+    same_target = 1;
+  } else {
+    same_target = 0;
+  }
+  *(char *)0x476ab8 = same_target;
+  *(unsigned short *)0x476abc = parameters[1];
+
+  if (same_target == 0) {
+    rasterizer_memory_pool_reset();
+    FUN_0015d060();
+    rasterizer_transparent_geometry_begin();
+    FUN_001659f0();
+    FUN_001812b0();
+  }
+  /* Disasm: push 0 before 0x1792c0 and 0x1592e0, no push before 0x16f880,
+   * push 0 before 0x158ae0, push (parameters+0x1e8) before 0x17c8f0;
+   * one deferred ADD ESP,0x10 cleans all four dword args. The decompiler
+   * dropped the first, second and fifth arguments. */
+  FUN_001792C0(0);
+  FUN_001592e0(0);
+  FUN_0016f880();
+  FUN_00158ae0(0);
+  rasterizer_environment_fog_screen_end((char *)parameters + 0x1e8);
+
+  if (*(short *)0x3256bc == 1) {
+    color_pixel = 0;
+  } else {
+    color_pixel = FUN_000d1dd0((float *)0x5a5dac);
+  }
+
+  if (*parameters == 0 || *parameters == 1) {
+    FUN_0016f910(0);
+    /* arg4 is a byte-wide bool; Ghidra's CONCAT31(extraout_EAX>>8,...) is an
+     * artifact of the bool being built in EAX — the upper bytes are garbage. */
+    FUN_00158140((unsigned int)*parameters, 0, color_pixel,
+                 (*((char *)parameters + 5) == 0), 1);
+    FUN_0016fa40(0);
+    if (*parameters == 0 && *(float *)((char *)parameters + 0x44) == 0.0f) {
+      display_assert("parameters->camera.z_near!=0.0f",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                     0x587, true);
+      system_exit(-1);
+    }
+  } else {
+    display_assert(
+      "### ERROR unsupported rasterizer target for scene rendering",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c", 0x58c, true);
+    system_exit(-1);
+  }
+
+  rasterizer_set_frustum_z(-1.0f, -1.0f);
+  /* Fill mode: byte 0x3256be selects D3DFILL_WIREFRAME (0x1b01) over
+   * D3DFILL_SOLID (0x1b02); original lowers this ternary to neg/sbb/add. */
+  D3DDevice_SetRenderState_FillMode((*(unsigned char *)0x3256be != 0) ? 0x1b01 :
+                                                                        0x1b02);
+}
+
+/*
  * FUN_00158f90 (0x158f90)
  *
  * Per-frame rasterizer render-pass dispatcher.  Asserts the D3D device is
@@ -1154,7 +1273,8 @@ void FUN_001595c0(void)
     D3DDevice_SetTextureStageState(0, 0xf, 1);
 
     D3DDevice_SetRenderState_CullMode(0x901);
-    D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD, NV097_COLOR_MASK_RGB);
+    D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD,
+                                    NV097_COLOR_MASK_RGB);
     *(uint32_t *)0x1fb7a4 = 0x10101;
     D3DDevice_SetRenderState_Simple(0x40304, 0);
     *(uint32_t *)0x1fb784 = 0;
@@ -1383,7 +1503,8 @@ void FUN_00159900(void *group)
 
     /* Render-state block (values decoded from the delinked reference; each
      * SetRenderState_Simple is followed by its render-state cache mirror). */
-    D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD, NV097_COLOR_MASK_NONE);
+    D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD,
+                                    NV097_COLOR_MASK_NONE);
     *(uint32_t *)0x1fb7a4 = 0;
     D3DDevice_SetRenderState_Simple(0x40304, 0);
     *(uint32_t *)0x1fb784 = 0;
@@ -1484,7 +1605,8 @@ void FUN_00159900(void *group)
   D3DDevice_SetRenderState_CullMode(cull);
 
   /* Render state for the distortion pass. */
-  D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD, NV097_COLOR_MASK_RGB);
+  D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD,
+                                  NV097_COLOR_MASK_RGB);
   *(uint32_t *)0x1fb7a4 = 0x10101;
   D3DDevice_SetRenderState_Simple(0x40300, 0);
   *(uint32_t *)0x1fb788 = 0;
@@ -1593,7 +1715,8 @@ void FUN_0015a4e0(void)
  * D3DDevice_SetVertexData4f, returns S_OK. No direct call sites.
  */
 /* 0x15a4f0 */
-int __stdcall FUN_0015a4f0(void *device, uint32_t reg, float a, float b, float c, float d)
+int __stdcall FUN_0015a4f0(void *device, uint32_t reg, float a, float b,
+                           float c, float d)
 {
   (void)device;
   D3DDevice_SetVertexData4f(reg, a, b, c, d);
@@ -2049,9 +2172,9 @@ void FUN_0015acc0(short *points, int16_t point_count, float *color)
   /* Fall-through assert blocks, matching the original layout (asserts first,
    * body unconditional after them). */
   if (!(points != 0 && color != 0 && 1 < point_count)) {
-    display_assert("points && color && point_count>1",
-                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_debug.c",
-                   0xf9, 1);
+    display_assert(
+      "points && color && point_count>1",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_debug.c", 0xf9, 1);
     system_exit(-1);
   }
   if (*(void **)0x476ab0 == 0) {
@@ -2075,9 +2198,8 @@ void FUN_0015acc0(short *points, int16_t point_count, float *color)
         success = 1;
       } else {
         success = 0;
-        FUN_00167ff0(0,
-                     "IDirect3DDevice8_SetVertexData2s(global_d3d_device, "
-                     "D3DVSDE_VERTEX, point->x, point->y)");
+        FUN_00167ff0(0, "IDirect3DDevice8_SetVertexData2s(global_d3d_device, "
+                        "D3DVSDE_VERTEX, point->x, point->y)");
       }
       p = p + 2;
       remaining = remaining - 1;
@@ -2368,11 +2490,9 @@ void FUN_0015b530(int decal_index)
 int FUN_0015b5a0(int index, int a1, int a2, int a3)
 {
   (void)a1;
-  D3DDevice_DrawVertices(
-      index,
-      a2,
-      *(uint32_t *)(0x29f7e8 + index * 8) * a3
-        + *(uint32_t *)(0x29f7ec + index * 8));
+  D3DDevice_DrawVertices(index, a2,
+                         *(uint32_t *)(0x29f7e8 + index * 8) * a3 +
+                           *(uint32_t *)(0x29f7ec + index * 8));
   return 0;
 }
 
@@ -2429,7 +2549,7 @@ int FUN_0015b650(int r1, int r2, int r3, int s1, int s2, int s3)
 int FUN_0015b6a0(int r1, int r2, int r3, int s1, int s2)
 {
   ((void(__stdcall *)(void *, uint32_t, uint32_t, void **, uint32_t))0x1ef100)(
-      (void *)s1, s2, r3, (void **)r2, r1);
+    (void *)s1, s2, r3, (void **)r2, r1);
   return 0;
 }
 
@@ -2817,10 +2937,12 @@ void FUN_0015bc40(int rendered_cluster_data)
       if (*(uint16_t *)0x476ad4 != blend) {
         *(uint16_t *)0x476ad4 = blend;
         if (blend == 1 || blend == 2) {
-          D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD, NV097_COLOR_MASK_RGBA);
+          D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD,
+                                          NV097_COLOR_MASK_RGBA);
           *(uint32_t *)0x1fb7a4 = 0x1010101;
         } else {
-          D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD, NV097_COLOR_MASK_RGB);
+          D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD,
+                                          NV097_COLOR_MASK_RGB);
           *(uint32_t *)0x1fb7a4 = 0x10101;
         }
         switch (*(uint16_t *)0x476ad4) {
@@ -2995,16 +3117,18 @@ void FUN_0015c190(int count, void *base, void *out, void *entries)
     staging[1] = src[-1];
     staging[2] = src[0];
     staging[3] = (uint8_t)((((uint8_t)((uint32_t)w >> 13) ^ hi) & 7) ^ hi);
-    staging[4] = (uint8_t)(((((uint8_t)((uint32_t)w >> 9)) ^ (uint8_t)(lo >> 3)) & 3)
-                           ^ (uint8_t)((uint32_t)w >> 3));
+    staging[4] =
+      (uint8_t)(((((uint8_t)((uint32_t)w >> 9)) ^ (uint8_t)(lo >> 3)) & 3) ^
+                (uint8_t)((uint32_t)w >> 3));
     staging[5] = (uint8_t)(((lo >> 2) & 7) | (uint8_t)(lo << 3));
 
     slot = (int)(uint32_t)(src[1] >> 4) % *(int *)((uint8_t *)base + 0x44);
     elem = tag_block_get_element((uint8_t *)base + 0x44, (int16_t)slot, 0x60);
-    packed = (uint16_t)((((src[1] & 0xf)
-                            % (int)*(uint8_t *)((uint8_t *)elem + 0x23)
-                          + (int)*(uint8_t *)((uint8_t *)elem + 0x22)) << 8)
-                        | (slot << 4));
+    packed =
+      (uint16_t)((((src[1] & 0xf) % (int)*(uint8_t *)((uint8_t *)elem + 0x23) +
+                   (int)*(uint8_t *)((uint8_t *)elem + 0x22))
+                  << 8) |
+                 (slot << 4));
 
     /* Packed index word runs INC AX-style between the four corners. */
     *(uint16_t *)(staging + 6) = packed;
@@ -3090,7 +3214,8 @@ void FUN_0015c5f0(void)
  * call sites.
  */
 /* 0x15c600 */
-int __stdcall FUN_0015c600(void *device, uint32_t reg, float a, float b, float c, float d)
+int __stdcall FUN_0015c600(void *device, uint32_t reg, float a, float b,
+                           float c, float d)
 {
   (void)device;
   D3DDevice_SetVertexData4f(reg, a, b, c, d);
@@ -3107,7 +3232,7 @@ int __stdcall FUN_0015c600(void *device, uint32_t reg, float a, float b, float c
 int FUN_0015c650(int r1, int r2, int r3, int s1, int s2)
 {
   ((void(__stdcall *)(void *, uint32_t, uint32_t, void **, uint32_t))0x1ef100)(
-      (void *)s1, s2, r3, (void **)r2, r1);
+    (void *)s1, s2, r3, (void **)r2, r1);
   return 0;
 }
 
@@ -3224,7 +3349,8 @@ void FUN_0015c6f0(void)
   /* Fixed render-state block (each Simple call mirrored by its cache global).
    */
   D3DDevice_SetRenderState_CullMode(0);
-  D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD, NV097_COLOR_MASK_RGB);
+  D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD,
+                                  NV097_COLOR_MASK_RGB);
   *(uint32_t *)0x1fb7a4 = 0x10101;
   D3DDevice_SetRenderState_Simple(0x40304, 1);
   *(uint32_t *)0x1fb784 = 1;
@@ -3367,7 +3493,7 @@ void FUN_0015c980(void *view_data)
 
   *(uint16_t *)0x325652 = 3;
   ((void(__stdcall *)(void *, uint32_t, uint32_t, void **, uint32_t))0x1ef100)(
-      *(void **)0x476ae4, 0, 0x20000, &locked, 0);
+    *(void **)0x476ae4, 0, 0x20000, &locked, 0);
   *(uint16_t *)0x325652 = 0;
   if (locked == (void *)0x0) {
     return;
@@ -3390,8 +3516,8 @@ void FUN_0015c980(void *view_data)
 
   do {
     cell = *(uint8_t **)view_data + (int16_t)cell_index * 8;
-    palette_elem = tag_block_get_element(
-        (uint8_t *)scenario + 0x3c0, *(int16_t *)(cell + 6), 0x30);
+    palette_elem = tag_block_get_element((uint8_t *)scenario + 0x3c0,
+                                         *(int16_t *)(cell + 6), 0x30);
     dobc = tag_get(0x646f6263, *(int *)((uint8_t *)palette_elem + 0xc));
 
     type_index = 0;
@@ -3403,11 +3529,8 @@ void FUN_0015c980(void *view_data)
         if (count > budget) {
           count = budget;
         }
-        FUN_0015c190(
-            count,
-            dobc,
-            (uint8_t *)locked + written * 8,
-            (uint8_t *)entry_pool + *(int *)sub * 6);
+        FUN_0015c190(count, dobc, (uint8_t *)locked + written * 8,
+                     (uint8_t *)entry_pool + *(int *)sub * 6);
         /* The cursor advances by the stored count read BEFORE the clamp
          * below writes back — original quirk, preserved. */
         stored = *(int *)(sub + 4);
@@ -3723,8 +3846,8 @@ int FUN_0015d020(int r1, int r2, int r3, int s1, int s2, int s3)
 int FUN_0015d040(int r1, int r2, int r3, int s1, int s2, int s3)
 {
   (void)s1;
-  return ((int(__stdcall *)(uint32_t, uint32_t, uint32_t, uint32_t, void **))0x1eef80)(
-      s2, s3, r3, r2, (void **)r1);
+  return ((int(__stdcall *)(uint32_t, uint32_t, uint32_t, uint32_t,
+                            void **))0x1eef80)(s2, s3, r3, r2, (void **)r1);
 }
 
 static const char kDrawPrimitivesFile[] =
@@ -3906,11 +4029,9 @@ int FUN_0015d170(int count)
 int FUN_0015d2a0(int index, int a1, int a2, int a3)
 {
   (void)a1;
-  D3DDevice_DrawVertices(
-      index,
-      a2,
-      *(uint32_t *)(0x29f7e8 + index * 8) * a3
-        + *(uint32_t *)(0x29f7ec + index * 8));
+  D3DDevice_DrawVertices(index, a2,
+                         *(uint32_t *)(0x29f7e8 + index * 8) * a3 +
+                           *(uint32_t *)(0x29f7ec + index * 8));
   return 0;
 }
 
@@ -3931,10 +4052,10 @@ int FUN_0015d2d0(int index, int a2, int s1, int s2, int s3, int s4)
   (void)s2;
   (void)s4;
   ((void(__stdcall *)(int, uint32_t, void *))0x1ecf90)(
-      index,
-      *(uint32_t *)(0x29f7e8 + index * 8) * s3
-        + *(uint32_t *)(0x29f7ec + index * 8),
-      (void *)(*(uint32_t *)0x1fb494 + a2 * 2));
+    index,
+    *(uint32_t *)(0x29f7e8 + index * 8) * s3 +
+      *(uint32_t *)(0x29f7ec + index * 8),
+    (void *)(*(uint32_t *)0x1fb494 + a2 * 2));
   return 0;
 }
 
@@ -4261,120 +4382,4 @@ void rasterizer_draw_dynamic_vertices(int first_primitive_index,
       error(2, "### ERROR rasterizer_draw_dynamic_vertices failed");
     }
   }
-}
-
-/*
- * FUN_00158df0 (0x158df0) — rasterizer scene render begin
- *
- * Ghidra mis-declares this as void(void); the real ABI is a single cdecl
- * stack pointer parameter (`parameters`, a ushort/struct pointer). Copies the
- * 600-byte (0x96-dword) parameters block into the global mirror at 0x5a5bc0,
- * updates the "same render target" flag, resolves the clear color, then drives
- * the per-frame render-begin call chain and installs the initial frustum-z /
- * fill-mode state.
- *
- * Globals (hardcoded, not in kb.json; widths taken from disasm store/compare
- * operand sizes, NOT the decompiler):
- *   0x476ab0  device pointer, global_d3d_device (asserted non-NULL)
- *   0x476ab8  BYTE same-target flag (mov [..],al — skips heavy setup when 1)
- *   0x476abc  WORD previous parameters[1] (cmp/mov word; sentinel 0xffff)
- *   0x3256bc  WORD mode flag (cmp word ptr,1 forces the clear color to 0)
- *   0x3256be  BYTE wireframe flag (neg/sbb ternary picks D3DFILL_WIREFRAME)
- *   0x5a5bc0  600-byte mirror of the parameters block
- *   0x5a5dac  float color at offset 0x1ec inside the mirror, converted to pixel32
- *
- * Field offsets (parameters is a ushort pointer):
- *   parameters[0]  byte +0x00  render target index (only 0 or 1 supported)
- *   parameters[1]  byte +0x02  target id (0xffff = special/main target)
- *   byte +0x05                 bool selector for FUN_00158140 arg4
- *   float +0x44                camera.z_near
- *
- * All four assert terminals are PUSH -1 (or PUSH EDI with EDI still -1 from
- * the OR EDI,-1 at 0x158e54) then CALL 0x8e2f0 = system_exit(-1) — NOT
- * halt_and_catch_fire (the first parked lift substituted hcf at all four
- * sites; review-gate REJECT, same anti-pattern as FUN_0015c680).
- */
-/* 0x158df0 */
-void FUN_00158df0(unsigned short *parameters)
-{
-  unsigned int color_pixel;
-  char same_target;
-
-  if (parameters == 0) {
-    display_assert("parameters",
-                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
-                   0x547, true);
-    system_exit(-1);
-  }
-  if (*(void **)0x476ab0 == 0) {
-    display_assert("global_d3d_device",
-                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
-                   0x548, true);
-    system_exit(-1);
-  }
-
-  /* Copy 0x96 dwords (600 bytes) from parameters into the global mirror.
-   * MSVC lowers the constant-size memcpy to `rep movsl` (ECX=0x96). */
-  memcpy((void *)0x5a5bc0, parameters, 0x258);
-
-  /* Same-target detection: flag set only when we have rendered before
-   * (prev word != 0xffff sentinel) and the current target id IS 0xffff.
-   * The flag is computed in AL and branched on directly (test al,al) —
-   * the branch below uses the local, not a re-read of the byte global. */
-  if (*(unsigned short *)0x476abc != 0xffff && parameters[1] == 0xffff) {
-    same_target = 1;
-  } else {
-    same_target = 0;
-  }
-  *(char *)0x476ab8 = same_target;
-  *(unsigned short *)0x476abc = parameters[1];
-
-  if (same_target == 0) {
-    rasterizer_memory_pool_reset();
-    FUN_0015d060();
-    rasterizer_transparent_geometry_begin();
-    FUN_001659f0();
-    FUN_001812b0();
-  }
-  /* Disasm: push 0 before 0x1792c0 and 0x1592e0, no push before 0x16f880,
-   * push 0 before 0x158ae0, push (parameters+0x1e8) before 0x17c8f0;
-   * one deferred ADD ESP,0x10 cleans all four dword args. The decompiler
-   * dropped the first, second and fifth arguments. */
-  FUN_001792C0(0);
-  FUN_001592e0(0);
-  FUN_0016f880();
-  FUN_00158ae0(0);
-  rasterizer_environment_fog_screen_end((char *)parameters + 0x1e8);
-
-  if (*(short *)0x3256bc == 1) {
-    color_pixel = 0;
-  } else {
-    color_pixel = FUN_000d1dd0((float *)0x5a5dac);
-  }
-
-  if (*parameters == 0 || *parameters == 1) {
-    FUN_0016f910(0);
-    /* arg4 is a byte-wide bool; Ghidra's CONCAT31(extraout_EAX>>8,...) is an
-     * artifact of the bool being built in EAX — the upper bytes are garbage. */
-    FUN_00158140((unsigned int)*parameters, 0, color_pixel,
-                 (*((char *)parameters + 5) == 0), 1);
-    FUN_0016fa40(0);
-    if (*parameters == 0 && *(float *)((char *)parameters + 0x44) == 0.0f) {
-      display_assert("parameters->camera.z_near!=0.0f",
-                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
-                     0x587, true);
-      system_exit(-1);
-    }
-  } else {
-    display_assert(
-      "### ERROR unsupported rasterizer target for scene rendering",
-      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c", 0x58c, true);
-    system_exit(-1);
-  }
-
-  rasterizer_set_frustum_z(-1.0f, -1.0f);
-  /* Fill mode: byte 0x3256be selects D3DFILL_WIREFRAME (0x1b01) over
-   * D3DFILL_SOLID (0x1b02); original lowers this ternary to neg/sbb/add. */
-  D3DDevice_SetRenderState_FillMode(
-    (*(unsigned char *)0x3256be != 0) ? 0x1b01 : 0x1b02);
 }

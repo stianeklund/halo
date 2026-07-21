@@ -18,8 +18,8 @@ void physical_memory_allocate(void)
     (unsigned long)physical_memory_map_globals.game_state_base_address ==
     GAME_STATE_BASE_ADDRESS);
 
-  physical_memory_map_globals.tag_cache_base_address =
-    XPhysicalAlloc(HALO_TAG_CACHE_SIZE, TAG_CACHE_BASE_ADDRESS - 0x80000000, 0, 4);
+  physical_memory_map_globals.tag_cache_base_address = XPhysicalAlloc(
+    HALO_TAG_CACHE_SIZE, TAG_CACHE_BASE_ADDRESS - 0x80000000, 0, 4);
   assert_halt(
     (unsigned long)physical_memory_map_globals.tag_cache_base_address ==
     TAG_CACHE_BASE_ADDRESS);

@@ -321,7 +321,8 @@ int actor_get_best_damaging_prop(int actor_handle, char prefer_visible)
 /* actor_perception_forget_recent_damage (0x2fb70) — Clear the recent-damage
  * tracking for all props visible to this actor. Resets field +0x74 to 0 and
  * field +0x6c to -1 for each prop in the iterator. */
-__declspec(noinline) void actor_perception_forget_recent_damage(int actor_handle)
+__declspec(noinline) void
+actor_perception_forget_recent_damage(int actor_handle)
 {
   int iter[2];
   char *prop;

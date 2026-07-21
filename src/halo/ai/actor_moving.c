@@ -1228,10 +1228,10 @@ char actor_path_3d_available(int actor_handle, float *dest_pos, float *dist_out)
  * The chosen candidate is written to out_vector and its index to out_index,
  * then the result is validated as a unit normal (|len^2 - 1| <= ~0.001).
  *
- * Register args confirmed from caller actor_move_compute_facing @ 0x2dd9a-0x2ddb4:
- *   ECX = facing_basis (this+0x174), EAX = in_vec (the desired vector),
- *   EDI = weight_vec (this+0x524); cdecl stack: use_3d, out_vector, out_index
- *   (caller cleans 0xc bytes). */
+ * Register args confirmed from caller actor_move_compute_facing @
+ * 0x2dd9a-0x2ddb4: ECX = facing_basis (this+0x174), EAX = in_vec (the desired
+ * vector), EDI = weight_vec (this+0x524); cdecl stack: use_3d, out_vector,
+ * out_index (caller cleans 0xc bytes). */
 void FUN_0002b830(float *facing_basis /* @<ecx> */, char use_3d,
                   float *out_vector, short *out_index,
                   float *in_vec /* @<eax> */, float *weight_vec /* @<edi> */)
@@ -1345,12 +1345,11 @@ void FUN_0002b830(float *facing_basis /* @<ecx> */, char use_3d,
  * direction in the local frame of the facing direction, writing the result
  * into the caller's output vector.
  *
- * Register args (confirmed from caller actor_move_compute_facing @ 0x2dbeb-0x2dbf7):
- *   use_3d              @<al>   : 0 selects the 2D (planar) path, nonzero the
- *                                 full 3D path.
- *   movement_direction  @<esi>  : float[3] unit movement direction.
- *   facing_direction    @<edi>  : float[3] unit facing direction.
- *   out                 @<ebx>  : float[3] result frame coordinates.
+ * Register args (confirmed from caller actor_move_compute_facing @
+ * 0x2dbeb-0x2dbf7): use_3d              @<al>   : 0 selects the 2D (planar)
+ * path, nonzero the full 3D path. movement_direction  @<esi>  : float[3] unit
+ * movement direction. facing_direction    @<edi>  : float[3] unit facing
+ * direction. out                 @<ebx>  : float[3] result frame coordinates.
  *
  * 3D path: out = ( movement.facing, movement.left, movement.up ) where
  *   biped_build_flying_axes(facing, left, up) builds the orthonormal frame
@@ -2108,12 +2107,14 @@ char actor_path_refresh(int actor_handle, char store_distance,
   float saved_pos[3]; /* [EBP-0x18..-0x10]: copy of old actor[0x488..0x490] */
   char *tag; /* [EBP-0xc]: actor tag pointer from tag_get */
   float dist; /* [EBP-0x8]: 3D distance actor→destination */
-  char local_nav[0x48]; /* [EBP-0x60]: nav-state struct (waypoint init output).
-                         * MUST be >= 0x48: actor_path_input_new -> path_input_new
-                         * does csmemset(buf, 0, 0x48). Original reserved -0x60..-0x18
-                         * (0x48 bytes); a too-small [44] overflowed and zeroed the
-                         * cached actor+0x4a8 nav_state_out pointer -> NULL write in
-                         * path_state_build_path -> PoA campaign access-violation. */
+  char
+    local_nav[0x48]; /* [EBP-0x60]: nav-state struct (waypoint init output).
+                      * MUST be >= 0x48: actor_path_input_new -> path_input_new
+                      * does csmemset(buf, 0, 0x48). Original reserved
+                      * -0x60..-0x18 (0x48 bytes); a too-small [44] overflowed
+                      * and zeroed the cached actor+0x4a8 nav_state_out pointer
+                      * -> NULL write in path_state_build_path -> PoA campaign
+                      * access-violation. */
   static char
     large_buf[0x1408c]; /* [EBP+0xfffebf14]: path-build scratch 82060 bytes */
   void
@@ -2432,8 +2433,9 @@ LAB_check_dest:
         *(unsigned int *)(actor + 0x28c),
         10.0f); /* original PUSHes bits 0x41200000 = 10.0f attractor weight.
                    param_5 is float: an (unsigned int) cast here would do an
-                   int->float NUMERIC conversion (1.09e9), not a bit-reinterpret,
-                   corrupting the A* attractor weight -> path.c:1005 cost assert. */
+                   int->float NUMERIC conversion (1.09e9), not a
+                   bit-reinterpret, corrupting the A* attractor weight ->
+                   path.c:1005 cost assert. */
     }
     path_state = ai_debug_get_path_storage(actor_handle);
     path_state_new(local_nav, large_buf, path_state);
@@ -3101,9 +3103,9 @@ char actor_move_to_prop(int actor_handle, int encounter_handle, float distance)
 /* 0x2daa0 — actor_move_compute_facing: Resolve the actor's desired facing
  * vector, movement-direction index, and steering speed for this update.
  *
- * Register args (confirmed from sole caller actor_move_update @ 0x2ed71-0x2edbf):
- *   ECX = move_dir  (actor's facing-direction selector, actor[0x42e]);
- *   AL  = want_facing (avoidance/facing flag, caller local_5).
+ * Register args (confirmed from sole caller actor_move_update @
+ * 0x2ed71-0x2edbf): ECX = move_dir  (actor's facing-direction selector,
+ * actor[0x42e]); AL  = want_facing (avoidance/facing flag, caller local_5).
  * cdecl stack args (caller cleans 0x3c = 15 dwords) — see below.
  *
  * Confirmed: datum_get(*0x6325a4, actor_handle) at 0x2dab8; tag_get('actr',

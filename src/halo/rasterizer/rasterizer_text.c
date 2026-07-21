@@ -821,7 +821,8 @@ void FUN_00181c20(void)
   int definition; /* entry[0] = tag definition ptr (EDI) */
 
   /* Relative position of flare to camera */
-  float delta[3]; /* [EBP-0x18/-0x14/-0x10] entry - camera (contiguous array for normalize3d) */
+  float delta[3]; /* [EBP-0x18/-0x14/-0x10] entry - camera (contiguous array for
+                     normalize3d) */
   float view_dot; /* [EBP-0x1c] dot(fwd, delta) */
 
   /* Reflection billboard offset */
@@ -877,14 +878,15 @@ void FUN_00181c20(void)
    * In MSVC layout: anim_alpha_out at EBP-0x3c (local_40),
    * anim_rgb[0..2] at EBP-0x38/0x34/0x30 (local_3c/38/34). */
   float anim_alpha_out; /* [EBP-0x3c] = local_40, from scalars_interpolate */
-  float anim_rgb[3];    /* [EBP-0x38..0x30] = local_3c/38/34, from FUN_0007c270 */
+  float anim_rgb[3]; /* [EBP-0x38..0x30] = local_3c/38/34, from FUN_0007c270 */
 
   /* Reflection size and position output */
-  float refl_size;       /* current reflection size (local_8 reused = local_c in Ghidra) */
-  float refl_anim;       /* animation period result (local_8 reused again) */
+  float refl_size; /* current reflection size (local_8 reused = local_c in
+                      Ghidra) */
+  float refl_anim; /* animation period result (local_8 reused again) */
   float flare_size_angle; /* [EBP-0x24] = local_28, rotation + offset */
-  float pos[3];          /* [EBP-0xa8..0xa0]: billboard position x/y/z */
-  float scale2d[2];      /* [EBP-0x94] = local_98/local_94 */
+  float pos[3]; /* [EBP-0xa8..0xa0]: billboard position x/y/z */
+  float scale2d[2]; /* [EBP-0x94] = local_98/local_94 */
   unsigned short refl_flags; /* *puVar8 */
   unsigned int stencil_mode; /* uVar15 */
   char occlusion_result; /* cVar4 return of FUN_0017cfd0 */
@@ -944,7 +946,8 @@ void FUN_00181c20(void)
         delta[2] = entry_z - *(float *)0x5a5bd0;
 
         /* view_dot = dot(camera_fwd, delta) */
-        view_dot = *(float *)0x5a5bd4 * delta[0] + *(float *)0x5a5bd8 * delta[1] +
+        view_dot = *(float *)0x5a5bd4 * delta[0] +
+                   *(float *)0x5a5bd8 * delta[1] +
                    *(float *)0x5a5bdc * delta[2];
 
         /* Reflection offset: 2*(view_fwd * dot - delta) */
@@ -1027,9 +1030,9 @@ void FUN_00181c20(void)
 
         {
           float v;
-          v =
-            depth_bias -
-            (dir_x * delta[0] + dir_y * delta[1] + dir_z * delta[2]) * depth_scale;
+          v = depth_bias -
+              (dir_x * delta[0] + dir_y * delta[1] + dir_z * delta[2]) *
+                depth_scale;
           if (v < *(float *)0x2533c0) {
             vis[2] = 0.0f;
           } else if (*(float *)0x2533c8 < v) {
@@ -1137,8 +1140,8 @@ void FUN_00181c20(void)
                     /* Interpolate alpha into anim_alpha_out (EBP-0x3c):
                      * lower=entry[0x50], upper=entry[0x60], t, output */
                     scalars_interpolate(*(float *)((char *)refl + 0x50),
-                                       *(float *)((char *)refl + 0x60),
-                                       refl_anim, &anim_alpha_out);
+                                        *(float *)((char *)refl + 0x60),
+                                        refl_anim, &anim_alpha_out);
 
                     /* Validate animation_color.alpha */
                     if (anim_alpha_out < *(float *)0x2533c0 ||
@@ -1186,9 +1189,9 @@ void FUN_00181c20(void)
                     }
 
                     anim_alpha = anim_alpha_out * anim_alpha;
-                    anim_r    = anim_r * anim_rgb[0];
-                    anim_g    = anim_g * anim_rgb[1];
-                    anim_b    = anim_b * anim_rgb[2];
+                    anim_r = anim_r * anim_rgb[0];
+                    anim_g = anim_g * anim_rgb[1];
+                    anim_b = anim_b * anim_rgb[2];
                   }
 
                   {
@@ -1789,8 +1792,8 @@ void rasterizer_text_cache_dispose(void)
  *       +0x6 (short):  screen_y
  */
 
-/* rasterizer_text_get_character_position: get hardware character screen position.
- * Original ABI: AX=index, EBX=*out_y, stack=*out_x
+/* rasterizer_text_get_character_position: get hardware character screen
+ * position. Original ABI: AX=index, EBX=*out_y, stack=*out_x
  */
 void rasterizer_text_get_character_position(short index, short *out_y,
                                             short *out_x)
@@ -1838,8 +1841,8 @@ void rasterizer_text_evict_character(int **slot)
   }
 }
 
-/* rasterizer_text_cache_character: cache a hardware character into the texture cache.
- * Original ABI: EDI=character pointer, stack=font pointer
+/* rasterizer_text_cache_character: cache a hardware character into the texture
+ * cache. Original ABI: EDI=character pointer, stack=font pointer
  */
 void rasterizer_text_cache_character(void *font_character, void *font)
 {
@@ -1974,8 +1977,8 @@ void rasterizer_text_cache_character(void *font_character, void *font)
     *(short *)(0x4d04b4 + i * 8) = *(short *)0x4d04a6;
     *(short *)(0x4d04b6 + i * 8) = *(short *)0x4d04a8;
 
-    pixel_data =
-      (unsigned char *)(*(int *)((int)font + 0x94) + *(int *)(character + 0x10));
+    pixel_data = (unsigned char *)(*(int *)((int)font + 0x94) +
+                                   *(int *)(character + 0x10));
 
     for (y = 0; y < char_height; y++) {
       pixel_out = (short *)bitmap_2d_address(

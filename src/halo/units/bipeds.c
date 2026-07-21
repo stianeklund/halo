@@ -3075,7 +3075,8 @@ void FUN_001a2f40(void *physics_arg /* @esi */)
        * (new_position.z = -1.#IND) and broken slope movement; full projection
        * (cross-product/Gram-Schmidt) is the steep-plane path. */
       if (physics[0x22] > *(float *)0x253f44) {
-        /* ---- 0x1a339b: solve d[2] via the dominant (z) normal component ---- */
+        /* ---- 0x1a339b: solve d[2] via the dominant (z) normal component ----
+         */
         gp = physics + 0x20;
         d[0] = physics[0xf] * physics[5] - physics[6] * physics[0x10];
         gx = d[0];
@@ -3224,11 +3225,10 @@ LAB_001a36a4:
      * 0x1a37ce..0x1a37f6 (last push = first C arg):
      *   draw_color, &pos_world, &new_pos, physics[0x15], physics[0x16],
      *   physics[0], &los_dir2, &los_dir, 0x10, results. */
-    result_count =
-      FUN_00150550((void *)draw_color, pos_world, new_pos,
-                   *(int *)&physics[0x15], *(int *)&physics[0x16],
-                   *(int *)&physics[0], &los_dir2[0], &los_dir[0], 0x10,
-                   results);
+    result_count = FUN_00150550((void *)draw_color, pos_world, new_pos,
+                                *(int *)&physics[0x15], *(int *)&physics[0x16],
+                                *(int *)&physics[0], &los_dir2[0], &los_dir[0],
+                                0x10, results);
   } else {
     /* debug-draw line record (0x1a3721..0x1a37cc): no query runs, count stays
      * 1. Builds results[0] (point/normal/plane_d/handles) from the position
@@ -3321,11 +3321,11 @@ LAB_001a36a4:
        * silently dropped the edge de-penetration push-outs and corrupted the
        * surviving new_velocity (= los_dir, copied unconditionally at 0x1a4160).
        *   los_dir2 (EBP-0x18) = query out-point-1 -> new_position (+0xac):
-       *                         nrm_d, proj base, in-range test, depth, push-out
-       *   proj     (EBP-0x6c) = projection of los_dir2 onto plane0: t2, distance
-       *   los_dir  (EBP-0x78) = query out-point-2 -> new_velocity (+0xb8):
-       *                         side dot, face dot, in-place scale_add
-       * nrm_d / proj-base read los_dir2 (disasm 0x9cc..0xa14). */
+       *                         nrm_d, proj base, in-range test, depth,
+       * push-out proj     (EBP-0x6c) = projection of los_dir2 onto plane0: t2,
+       * distance los_dir  (EBP-0x78) = query out-point-2 -> new_velocity
+       * (+0xb8): side dot, face dot, in-place scale_add nrm_d / proj-base read
+       * los_dir2 (disasm 0x9cc..0xa14). */
       nrm_d = -(plane0[0] * los_dir2[0] + plane0[1] * los_dir2[1] +
                 plane0[2] * los_dir2[2] - plane0[3]);
       proj[0] = plane0[0] * nrm_d + los_dir2[0];
@@ -3403,8 +3403,8 @@ LAB_001a36a4:
         if ((depth < 0.0f ? -depth : depth) <=
             physics[0x16] * *(float *)0x253398) {
           /* face dots bestN with los_dir (out-point-2), disasm 0xcc8 */
-          float face =
-            bestN[0] * los_dir[0] + bestN[2] * los_dir[2] + bestN[1] * los_dir[1];
+          float face = bestN[0] * los_dir[0] + bestN[2] * los_dir[2] +
+                       bestN[1] * los_dir[1];
           /* push-out de-penetrates los_dir2 (-> new_position), disasm 0xcec */
           float pushv = -depth;
           los_dir2[0] = bestN[0] * pushv + los_dir2[0];
@@ -3432,20 +3432,20 @@ LAB_001a36a4:
           results[0].normal[1] = bestN[1];
           results[0].normal[2] = bestN[2];
           results[0].plane_d = bestN[3];
-          results[0].point[0] = 0.0f;                            /* +0x00 */
-          results[0].point[1] = bestN[0] * pushv + los_dir2[0];  /* +0x04 X */
-          results[0].point[2] = bestN[1] * pushv + los_dir2[1];  /* +0x08 Y */
-          results[0].point[3] = bestN[2] * pushv + los_dir2[2];  /* +0x0c Z */
-          results[0].object_handle = -1;                         /* +0x20 */
-          results[0].surface_handle = best_edge;                 /* +0x24 */
-          results[0].flags = (int)0xffff0000;                    /* +0x28 */
+          results[0].point[0] = 0.0f; /* +0x00 */
+          results[0].point[1] = bestN[0] * pushv + los_dir2[0]; /* +0x04 X */
+          results[0].point[2] = bestN[1] * pushv + los_dir2[1]; /* +0x08 Y */
+          results[0].point[3] = bestN[2] * pushv + los_dir2[2]; /* +0x0c Z */
+          results[0].object_handle = -1; /* +0x20 */
+          results[0].surface_handle = best_edge; /* +0x24 */
+          results[0].flags = (int)0xffff0000; /* +0x28 */
           /* BISECT 2026-06-18: `result_count = 1;` (orig 0xd92) intentionally
-           * omitted. Setting it un-gates the edge-snap (physics+0xa4=best_edge),
-           * Loop B/C, and metric loop in the count==0 path — which correlates
-           * with an MP-load decals.c:479 cluster_index crash (FUN_001a2f40 not
-           * on the crash stack => persistent/global state via an unverified
-           * best_edge). Re-enable only after best_edge is re-derived from the
-           * mach-edge fallback disasm. */
+           * omitted. Setting it un-gates the edge-snap
+           * (physics+0xa4=best_edge), Loop B/C, and metric loop in the count==0
+           * path — which correlates with an MP-load decals.c:479 cluster_index
+           * crash (FUN_001a2f40 not on the crash stack => persistent/global
+           * state via an unverified best_edge). Re-enable only after best_edge
+           * is re-derived from the mach-edge fallback disasm. */
           *(int *)((char *)physics + 0xa8) = best_edge;
           *(unsigned char *)((char *)physics + 0xb1) = 0;
           *(unsigned char *)((char *)physics + 0xb2) = 0;
@@ -3499,7 +3499,7 @@ LAB_001a36a4:
        * (+0x28); restored to match the binary (see +0xa4 fix below). */
       if (*(int *)((char *)physics + 0xa8) != -1 &&
           *(int *)((char *)physics + 0xa8) ==
-              results[(short)best_index].surface_handle) {
+            results[(short)best_index].surface_handle) {
         same = 1;
       } else {
         same = 0;
@@ -3507,12 +3507,14 @@ LAB_001a36a4:
       metric = -(physics[0x2e] * e->normal[0] + e->normal[2] * physics[0x30] +
                  physics[0x2f] * e->normal[1]);
       if (want == 0) {
-        /* 0x1a3f13: FCOMP normal[2] (flds 0x4(%edi)) vs loop_best, test 0x41/jne
-         * -> take when normal[2] > loop_best (MAXIMUM: most upward-facing ground
-         * plane; Z is the up axis). loop_best inits to -FLT_MAX. The
+        /* 0x1a3f13: FCOMP normal[2] (flds 0x4(%edi)) vs loop_best, test
+         * 0x41/jne
+         * -> take when normal[2] > loop_best (MAXIMUM: most upward-facing
+         * ground plane; Z is the up axis). loop_best inits to -FLT_MAX. The
          * compare/store use normal[2] (Z/up), NOT normal[1] (Y): selecting on Y
          * lets a vertical wall (normal ~= +/-Y, Z~=0) win as "ground", so the
-         * biped is projected along/up the wall after a high-velocity contact. */
+         * biped is projected along/up the wall after a high-velocity contact.
+         */
         if (loop_flag9 == 0 && e->normal[2] > loop_best) {
           goto loopA_take;
         }
@@ -3525,7 +3527,8 @@ LAB_001a36a4:
         loop_flag9 = want;
         best_index = n;
         loop_flag1 = same;
-        loop_best = e->normal[2]; /* 0x1a3f26: mov 0x4(%edi) = normal[2] (Z/up) */
+        loop_best =
+          e->normal[2]; /* 0x1a3f26: mov 0x4(%edi) = normal[2] (Z/up) */
         loop_metric = metric;
       }
       if ((*(unsigned char *)((char *)physics + 0xa0) & 0x10) == 0) {
@@ -3578,14 +3581,15 @@ LAB_001a36a4:
      * the selected entry, then +0xc4 from the normal dot. EDI = &entry.normal
      */
     {
-      /* +0xa4 surface index = e->surface_handle (entry+0x24), NOT .flags (+0x28).
-       * Confirmed original 0x1a3fb9 mov ebx,[ebp+ebx-0x354] with buffer base
-       * ebp-0x378 (edi=entry+0x10) and ebx=best_index*0x2c => entry+0x24, stored
-       * to physics+0xa4 at 0x1a3fe6 -> biped+0x430. The 2026-06-18 bisect wrongly
-       * reverted to .flags, writing a flags bitfield (e.g. 0x30000) into the
-       * pathfinding last_good_surface field, so biped_find_pathfinding_surface_index
-       * passed it to collision_surface_find_closest_point2d and asserted
-       * (tag_groups.c:3089) on AI-spawned bipeds. Restored to match the binary. */
+      /* +0xa4 surface index = e->surface_handle (entry+0x24), NOT .flags
+       * (+0x28). Confirmed original 0x1a3fb9 mov ebx,[ebp+ebx-0x354] with
+       * buffer base ebp-0x378 (edi=entry+0x10) and ebx=best_index*0x2c =>
+       * entry+0x24, stored to physics+0xa4 at 0x1a3fe6 -> biped+0x430. The
+       * 2026-06-18 bisect wrongly reverted to .flags, writing a flags bitfield
+       * (e.g. 0x30000) into the pathfinding last_good_surface field, so
+       * biped_find_pathfinding_surface_index passed it to
+       * collision_surface_find_closest_point2d and asserted (tag_groups.c:3089)
+       * on AI-spawned bipeds. Restored to match the binary. */
       int sel_surface = e->surface_handle;
       *(unsigned char *)((char *)physics + 0xa0) &= 0xfe;
       *(int *)((char *)physics + 0x80) = *(int *)&e->normal[0];
@@ -3643,7 +3647,8 @@ LAB_001a4062_done:
            * (orig 0x1a408a: mov ecx,eax; flds [ecx+0x18]). The inner datum_get
            * asserts/HALTs on a stale handle — which only occurs if FUN_0014f2c0
            * returns a count larger than the filled records. Loop C below stays
-           * object_try_and_get_and_verify_type (0x13d640) — that IS faithful. */
+           * object_try_and_get_and_verify_type (0x13d640) — that IS faithful.
+           */
           o = object_get_and_verify_type(*eh, -1);
           ddx = *(float *)((char *)o + 0x18) - los_dir[0];
           ddy = *(float *)((char *)o + 0x1c) - los_dir[1];
@@ -3735,8 +3740,7 @@ LAB_001a4062_done:
               (int)((-(unsigned int)((flags & 0x80) != 0) & 0xffdffd00) +
                     0x20c3a0),
               surf, half, 0.0f, *(float *)((char *)tag + 0x42c),
-              *(int *)&physics[0],
-              debug_scratch)) {
+              *(int *)&physics[0], debug_scratch)) {
           float fr =
             *(float *)((char *)tag + 0x424) -
             (*(float *)((char *)tag + 0x42c) + *(float *)((char *)tag + 0x42c));

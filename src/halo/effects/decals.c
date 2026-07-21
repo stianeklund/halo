@@ -2137,17 +2137,35 @@ void FUN_0017cbb0(void *param_1, int param_2)
   FUN_0016bed0();
 }
 
-/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_0016c5a0). */
-void FUN_0017cbc0(int shader, int p2, int p3, int widget_handle, int p5, int p6, int zbuf_handle)
+/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_0016c5a0).
+ */
+void FUN_0017cbc0(int shader, int p2, int p3, int widget_handle, int p5, int p6,
+                  int zbuf_handle)
 {
-  (void)shader; (void)p2; (void)p3; (void)widget_handle; (void)p5; (void)p6; (void)zbuf_handle;
+  (void)shader;
+  (void)p2;
+  (void)p3;
+  (void)widget_handle;
+  (void)p5;
+  (void)p6;
+  (void)zbuf_handle;
   FUN_0016c5a0();
 }
 
-/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_0016c090). */
-void FUN_0017cbd0(int shader, int p2, int p3, int widget_handle, int p5, int p6, int zbuf_handle, float *position, int p9)
+/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_0016c090).
+ */
+void FUN_0017cbd0(int shader, int p2, int p3, int widget_handle, int p5, int p6,
+                  int zbuf_handle, float *position, int p9)
 {
-  (void)shader; (void)p2; (void)p3; (void)widget_handle; (void)p5; (void)p6; (void)zbuf_handle; (void)position; (void)p9;
+  (void)shader;
+  (void)p2;
+  (void)p3;
+  (void)widget_handle;
+  (void)p5;
+  (void)p6;
+  (void)zbuf_handle;
+  (void)position;
+  (void)p9;
   FUN_0016c090();
 }
 

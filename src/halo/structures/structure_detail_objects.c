@@ -257,8 +257,8 @@ void FUN_00193c00(void)
                 local_4c = 0x20;
                 do {
                   base_l = base;
-                  if ((*(unsigned int *)(psVar11 + 2) &
-                       (1u << local_48)) != 0) {
+                  if ((*(unsigned int *)(psVar11 + 2) & (1u << local_48)) !=
+                      0) {
                     iVar7 = *local_44 + local_34;
                     *local_44 = (short)(*local_44 + 1);
                     piVar10 = (int *)(base_l + iVar7 * 0x18);
@@ -315,8 +315,7 @@ void FUN_00193c00(void)
     local_8i = 0;
     base_l = base;
     do {
-      if (((local_2c & (1u << local_8i)) != 0) &&
-          ((cnt = *local_10) != 0)) {
+      if (((local_2c & (1u << local_8i)) != 0) && ((cnt = *local_10) != 0)) {
         piVar10 = (int *)(base + 0x5100 + comp_idx * 8);
         comp_idx = comp_idx + 1;
         *piVar10 = base_l;

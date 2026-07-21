@@ -64,8 +64,8 @@ void ai_profile_dispose_from_old_map(void)
  * Asserts (ai_script.c:0x57) that name and out_value are non-NULL. */
 bool FUN_000540f0(void *scenario, const char *name, int *out_value)
 {
-  char prefix[32];           /* [ebp-0x24], 0x20 bytes */
-  int result;                /* [ebp-0x4], accumulator (starts -1) */
+  char prefix[32]; /* [ebp-0x24], 0x20 bytes */
+  int result; /* [ebp-0x4], accumulator (starts -1) */
   const char *slash;
   int prefix_index;
   int sub_index;
@@ -101,19 +101,19 @@ bool FUN_000540f0(void *scenario, const char *name, int *out_value)
       prefix_index = FUN_00053e20(scenario, prefix);
       if (prefix_index != -1) {
         /* fetch the ai_profile element, then resolve the part after '/' */
-        element = tag_block_get_element((char *)scenario + 0x42c,
-                                        prefix_index, 0xb0);
+        element =
+          tag_block_get_element((char *)scenario + 0x42c, prefix_index, 0xb0);
         sub_index = FUN_00053e80(element, slash + 1);
         if (sub_index != -1) {
           /* selector 2: element+0x80 sub-block */
-          result = (((sub_index & 0xff) | 0xffff8000) << 16)
-                   | (prefix_index & 0xffff);
+          result =
+            (((sub_index & 0xff) | 0xffff8000) << 16) | (prefix_index & 0xffff);
         } else {
           sub_index = FUN_00053ee0(element, slash + 1);
           if (sub_index != -1) {
             /* selector 1: element+0x8c sub-block */
-            result = (((sub_index & 0xff) | 0x4000) << 16)
-                     | (prefix_index & 0xffff);
+            result =
+              (((sub_index & 0xff) | 0x4000) << 16) | (prefix_index & 0xffff);
           }
         }
       }
@@ -127,8 +127,8 @@ bool FUN_000540f0(void *scenario, const char *name, int *out_value)
 /* FUN_00054220 — format a packed ai_index_reference back into its name string
  * ("profile", "profile/sub", "none", or "<error>"). Writes at most
  * buffer_size bytes. 0x170 obj / 0x54220 XBE. */
-void FUN_00054220(unsigned int combined_index, void *scenario,
-                  char *buffer, int buffer_size)
+void FUN_00054220(unsigned int combined_index, void *scenario, char *buffer,
+                  int buffer_size)
 {
   void *element;
   unsigned int selector;
@@ -154,13 +154,15 @@ void FUN_00054220(unsigned int combined_index, void *scenario,
     return;
   case 1: {
     /* profile + element+0x8c sub-block (stride 0xac) */
-    void *sub = tag_block_get_element((char *)&((encounter_definition *)element)->platoons, sub_index, 0xac);
+    void *sub = tag_block_get_element(
+      (char *)&((encounter_definition *)element)->platoons, sub_index, 0xac);
     snprintf(buffer, buffer_size, (const char *)0x253d30, element, sub);
     return;
   }
   case 2: {
     /* profile + element+0x80 sub-block (stride 0xe8) */
-    void *sub = tag_block_get_element((char *)&((encounter_definition *)element)->squads, sub_index, 0xe8);
+    void *sub = tag_block_get_element(
+      (char *)&((encounter_definition *)element)->squads, sub_index, 0xe8);
     snprintf(buffer, buffer_size, (const char *)0x253d30, element, sub);
     return;
   }
@@ -191,10 +193,9 @@ void FUN_00054310(unsigned int combined_index, int *out)
   profile_index = combined_index & 0xffff;
   out[0] = profile_index;
 
-  if (ai_globals == 0
-      || *(char *)((char *)*(void **)0x632574 + 1) == 0
-      || profile_index < 0
-      || profile_index >= *(int *)((char *)ai_globals + 0x42c)) {
+  if (ai_globals == 0 || *(char *)((char *)*(void **)0x632574 + 1) == 0 ||
+      profile_index < 0 ||
+      profile_index >= *(int *)((char *)ai_globals + 0x42c)) {
     out[0] = -1;
     return;
   }
@@ -213,11 +214,12 @@ void FUN_00054310(unsigned int combined_index, int *out)
   case 2:
     sub_index = (int)(unsigned char)(combined_index >> 16);
     if (selector == 2) {
-      if (sub_index < 0 || sub_index >= ((encounter_definition *)element)->squads.count) {
+      if (sub_index < 0 ||
+          sub_index >= ((encounter_definition *)element)->squads.count) {
         out[1] = -1;
       } else {
-        void *sub = tag_block_get_element((char *)&((encounter_definition *)element)->squads,
-                                          sub_index, 0xe8);
+        void *sub = tag_block_get_element(
+          (char *)&((encounter_definition *)element)->squads, sub_index, 0xe8);
         out[1] = *(short *)((char *)sub + 0x22);
       }
     } else {
@@ -230,7 +232,8 @@ void FUN_00054310(unsigned int combined_index, int *out)
     return;
   }
 
-  if (out[1] < 0 || out[1] >= ((encounter_definition *)element)->platoons.count) {
+  if (out[1] < 0 ||
+      out[1] >= ((encounter_definition *)element)->platoons.count) {
     out[0] = -1;
     return;
   }
@@ -268,8 +271,8 @@ void *FUN_00054430(int *iter)
 
 /* ---------------------------------------------------------------------------
  * ai_index_reference iterators. Two record layouts:
- *   Layout A (encounter/squad iterator, FUN_000544a0 begin / FUN_000545a0 next),
- *     5 ints: [0]=profile index, [1]=encounter-key filter (-1=wildcard),
+ *   Layout A (encounter/squad iterator, FUN_000544a0 begin / FUN_000545a0
+ * next), 5 ints: [0]=profile index, [1]=encounter-key filter (-1=wildcard),
  *     [2]=cursor scratch, [3]=loop cursor, [4]=loop bound (inclusive).
  *   Layout B (actor iterator, FUN_00054680 begin / FUN_00054750 next), 6 ints:
  *     [0]=clump handle, [1]=squad filter (-1=wildcard), [2]=platoon filter
@@ -298,10 +301,9 @@ void FUN_000544a0(unsigned int combined_index, void *iter_arg)
   profile_index = combined_index & 0xffff;
   iter[0] = profile_index;
 
-  if (ai_globals == 0
-      || *(char *)((char *)*(void **)0x632574 + 1) == 0
-      || profile_index < 0
-      || profile_index >= *(int *)((char *)ai_globals + 0x42c)) {
+  if (ai_globals == 0 || *(char *)((char *)*(void **)0x632574 + 1) == 0 ||
+      profile_index < 0 ||
+      profile_index >= *(int *)((char *)ai_globals + 0x42c)) {
     iter[0] = -1;
     return;
   }
@@ -317,7 +319,8 @@ void FUN_000544a0(unsigned int combined_index, void *iter_arg)
     }
 
     sub_index = (short)((unsigned char *)&combined_index)[2];
-    if (sub_index < 0 || sub_index >= ((encounter_definition *)element)->squads.count) {
+    if (sub_index < 0 ||
+        sub_index >= ((encounter_definition *)element)->squads.count) {
       iter[0] = -1;
       return;
     }
@@ -409,10 +412,9 @@ void FUN_00054680(unsigned int combined_index, void *iter_arg)
   profile_index = combined_index & 0xffff;
   iter[0] = profile_index;
 
-  if (ai_globals == 0
-      || *(char *)((char *)*(void **)0x632574 + 1) == 0
-      || profile_index < 0
-      || profile_index >= *(int *)((char *)ai_globals + 0x42c)) {
+  if (ai_globals == 0 || *(char *)((char *)*(void **)0x632574 + 1) == 0 ||
+      profile_index < 0 ||
+      profile_index >= *(int *)((char *)ai_globals + 0x42c)) {
     iter[0] = -1;
     return;
   }
@@ -450,7 +452,8 @@ void FUN_00054680(unsigned int combined_index, void *iter_arg)
  * Pulls the next actor from the embedded encounter_actor_iterator (iter+3),
  * skipping any whose squad (field+0x3a) or platoon (field+0x3c) does not match
  * the iter[1]/iter[2] filters (-1 matches all). Returns the actor, NULL when
- * exhausted. 0x6a0 obj / 0x54750 XBE. Asserts (ai_script.c:0x1ba) iter non-NULL. */
+ * exhausted. 0x6a0 obj / 0x54750 XBE. Asserts (ai_script.c:0x1ba) iter
+ * non-NULL. */
 int FUN_00054750(void *iter_arg)
 {
   int *iter;
@@ -486,7 +489,7 @@ int FUN_00054750(void *iter_arg)
  * resource. 0x710 obj / 0x547c0 XBE. */
 int FUN_000547c0(int encounter_handle)
 {
-  int iter[6];               /* [ebp-0x18], Layout B */
+  int iter[6]; /* [ebp-0x18], Layout B */
   int resource;
   void *actor;
   int child;
@@ -532,7 +535,7 @@ int FUN_000547c0(int encounter_handle)
  * disabled or either handle is the -1 sentinel. 0x7b0 obj / 0x54860 XBE. */
 void FUN_00054860(int unit_handle, unsigned int ai_ref)
 {
-  char buffer[0x100];          /* [ebp-0x10c] */
+  char buffer[0x100]; /* [ebp-0x10c] */
   void *scenario;
   void *element;
   void *squad;
@@ -548,8 +551,7 @@ void FUN_00054860(int unit_handle, unsigned int ai_ref)
 
   if (*(char *)0x5aca59 != 0) {
     FUN_00054220(ai_ref, scenario, buffer, 0x100);
-    error(2, (const char *)0x25c460,
-          hs_runtime_get_executing_thread_name(),
+    error(2, (const char *)0x25c460, hs_runtime_get_executing_thread_name(),
           unit_handle & 0xffff, buffer);
   }
 
@@ -577,9 +579,10 @@ void FUN_00054860(int unit_handle, unsigned int ai_ref)
     i = 0;
     if (((encounter_definition *)element)->squads.count > 0) {
       do {
-        void *sq = tag_block_get_element((char *)&((encounter_definition *)element)->squads, i, 0xe8);
-        if (*(short *)((char *)sq + 0x22)
-            == *(unsigned char *)((char *)&ai_ref + 2)) {
+        void *sq = tag_block_get_element(
+          (char *)&((encounter_definition *)element)->squads, i, 0xe8);
+        if (*(short *)((char *)sq + 0x22) ==
+            *(unsigned char *)((char *)&ai_ref + 2)) {
           sub_index = i;
           if (sub_index < 0)
             goto bad_squad;
@@ -591,7 +594,8 @@ void FUN_00054860(int unit_handle, unsigned int ai_ref)
   }
 
   if (sub_index < ((encounter_definition *)element)->squads.count) {
-    squad = tag_block_get_element((char *)&((encounter_definition *)element)->squads, sub_index, 0xe8);
+    squad = tag_block_get_element(
+      (char *)&((encounter_definition *)element)->squads, sub_index, 0xe8);
     if (*(short *)((char *)squad + 0x20) != -1) {
       variant = tag_block_get_element((char *)scenario + 0x420,
                                       *(short *)((char *)squad + 0x20), 0x10);
@@ -600,18 +604,11 @@ void FUN_00054860(int unit_handle, unsigned int ai_ref)
         if (*(int *)((char *)actv + 0x10) != -1) {
           actr_tag = (int *)tag_get(0x61637472, *(int *)((char *)actv + 0x10));
           actor_create_for_unit(
-              (char)((*(unsigned int *)actr_tag >> 0x1a) & 0x101),
-              unit_handle,
-              *(int *)((char *)variant + 0xc),
-              profile_index,
-              sub_index,
-              0,
-              -1,
-              (char)((((encounter_definition *)element)->flags >> 4) & 0x101),
-              (short)*(unsigned short *)((char *)squad + 0x24),
-              (short)*(unsigned short *)((char *)squad + 0x26),
-              0xffff,
-              0);
+            (char)((*(unsigned int *)actr_tag >> 0x1a) & 0x101), unit_handle,
+            *(int *)((char *)variant + 0xc), profile_index, sub_index, 0, -1,
+            (char)((((encounter_definition *)element)->flags >> 4) & 0x101),
+            (short)*(unsigned short *)((char *)squad + 0x24),
+            (short)*(unsigned short *)((char *)squad + 0x26), 0xffff, 0);
           encounters_update_dirty_status();
           return;
         }
@@ -626,9 +623,10 @@ bad_squad:
   error(2, (const char *)0x25c3c0, element);
 }
 
-/* ai_profile_change_render_spray (ai_profile_change_render_spray) — ai_attach over the children
- * of a parent object: iterates every child (FUN_000ce450/FUN_000ce320) and
- * attaches the same ai_ref to each. 0x9d0 obj / 0x54a80 XBE. */
+/* ai_profile_change_render_spray (ai_profile_change_render_spray) — ai_attach
+ * over the children of a parent object: iterates every child
+ * (FUN_000ce450/FUN_000ce320) and attaches the same ai_ref to each. 0x9d0 obj /
+ * 0x54a80 XBE. */
 void ai_profile_change_render_spray(int parent_handle, unsigned int ai_ref)
 {
   int iter_state;
@@ -653,8 +651,7 @@ void FUN_00054ac0(int unit_handle)
 
   if (*(char *)0x5aca59 != 0) {
     error(2, "%s: ai_detach unit 0x%04X",
-          hs_runtime_get_executing_thread_name(),
-          unit_handle & 0xffff);
+          hs_runtime_get_executing_thread_name(), unit_handle & 0xffff);
   }
 
   if (unit_handle == -1)
@@ -685,8 +682,7 @@ void FUN_00054b20(int parent_handle)
   do {
     if (*(char *)0x5aca59 != 0) {
       error(2, "%s: ai_detach unit 0x%04X",
-            hs_runtime_get_executing_thread_name(),
-            child & 0xffff);
+            hs_runtime_get_executing_thread_name(), child & 0xffff);
     }
     if (child != -1) {
       object = object_get_and_verify_type(child, 3);
@@ -700,7 +696,8 @@ void FUN_00054b20(int parent_handle)
 
 /* FUN_00054bb0 — ai_place: place (spawn) the encounter named by an
  * ai_index_reference via encounter_create. The two sub-arguments are the
- * sub-index for the matching selector and -1 otherwise. 0xb00 obj/0x54bb0 XBE. */
+ * sub-index for the matching selector and -1 otherwise. 0xb00 obj/0x54bb0 XBE.
+ */
 void FUN_00054bb0(unsigned int ai_ref)
 {
   char buffer[0x100];
@@ -711,8 +708,8 @@ void FUN_00054bb0(unsigned int ai_ref)
 
   if (*(char *)0x5aca59 != 0) {
     FUN_00054220(ai_ref, global_scenario_get(), buffer, 0x100);
-    error(2, (const char *)0x25c49c,
-          hs_runtime_get_executing_thread_name(), buffer);
+    error(2, (const char *)0x25c49c, hs_runtime_get_executing_thread_name(),
+          buffer);
   }
 
   if (ai_ref == 0xffffffff)
@@ -728,245 +725,6 @@ void FUN_00054bb0(unsigned int ai_ref)
 }
 
 /* ---------------------------------------------------------------------------
- * ai_index_reference count accessor (the "how many of X" query).
- *
- * FUN_00055350 resolves a packed ai_index_reference to a tag record and reports
- * one of three count_type quantities about it:
- *     count_type 0 -> the record's "start"/min index
- *     count_type 1 -> the record's "end"/max index
- *     count_type 2 -> the span (end - start), clamped to >= 0
- * The record is located by the reference's selector (top 2 bits):
- *     selector 0 -> the ai_profile element itself (offsets +0x2a/+0x2c/+0x34)
- *     selector 1 -> a platoon record (encounter_get_platoon, offs +0x4/+6/+8/+c)
- *     selector 2 -> a squad record  (encounter_get_squad,    offs +0x16..+0x1c)
- * In addition to the EAX result the dispatcher returns two record fields through
- * the optional out parameters: *out_min receives a fixed record field (squad/
- * platoon "name" word at +0x16/+0x4, or the profile's +0x18) and *out_handle
- * receives a record dword (squad/platoon +0x1c/+0xc, or the profile's +0x34).
- * count_type arrives in EDI as an int16 (compared via di / sign-extended via
- * movsx). 0x12a0 obj / 0x55350 XBE. Asserts (ai_script.c) on bad count_type and
- * on the unreachable selector/count_type defaults. */
-int FUN_00055350(unsigned int ai_ref, int *out_min, int *out_handle,
-                 int count_type /* @<edi> */)
-{
-  int ret_val;      /* [ebp-0x4], EAX result */
-  int handle_val;   /* [ebp-0x8], flows to *out_handle */
-  int min_val;      /* EBX, flows to *out_min */
-  void *scenario;
-  void *element;
-  char *record;
-  int profile_index;
-  unsigned int selector;
-  short sub_index;
-
-  ret_val = 0;
-  handle_val = 0;
-  min_val = 0;
-
-  if ((short)count_type < 0 || (short)count_type >= 3) {
-    display_assert("(count_type >= 0) && (count_type < NUMBER_OF_AI_COUNT_TYPES)",
-                   "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x405, 1);
-    system_exit(-1);
-  }
-
-  if (ai_ref == 0xffffffff)
-    goto done;
-
-  scenario = global_scenario_get();
-  selector = ai_ref >> 0x1e;
-
-  switch (selector) {
-  case 0:
-    profile_index = ai_ref & 0xffff;
-    if (profile_index < 0
-        || profile_index >= *(int *)((char *)scenario + 0x42c))
-      goto done;
-    element = datum_get(*(data_t **)0x5ab270, profile_index);
-
-    switch ((short)count_type) {
-    case 0:
-      ret_val = *(short *)((char *)element + 0x2a);
-      break;
-    case 1:
-      ret_val = *(short *)((char *)element + 0x2c);
-      break;
-    case 2:
-      ret_val = (int)*(short *)((char *)element + 0x2a)
-                - (int)*(short *)((char *)element + 0x2c);
-      ret_val = (ret_val < 0) ? 0 : ret_val;
-      break;
-    default:
-      display_assert("!\"unreachable\"",
-                     "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x424, 1);
-      system_exit(-1);
-    }
-    min_val = *(short *)((char *)element + 0x18);
-    handle_val = *(int *)((char *)element + 0x34);
-    break;
-
-  case 1:
-    profile_index = ai_ref & 0xffff;
-    if (profile_index < 0
-        || profile_index >= *(int *)((char *)scenario + 0x42c))
-      goto done;
-    element = datum_get(*(data_t **)0x5ab270, profile_index);
-    sub_index = ((unsigned char *)&ai_ref)[2];
-    if (sub_index < 0 || sub_index >= *(short *)((char *)element + 0xa))
-      goto done;
-    record = FUN_00054020((char *)element, sub_index);
-
-    switch ((short)count_type) {
-    case 0:
-      min_val = *(short *)(record + 0x4);
-      ret_val = *(short *)(record + 0x6);
-      handle_val = *(int *)(record + 0xc);
-      break;
-    case 1:
-      min_val = *(short *)(record + 0x4);
-      ret_val = *(short *)(record + 0x8);
-      handle_val = *(int *)(record + 0xc);
-      break;
-    case 2:
-      min_val = *(short *)(record + 0x4);
-      ret_val = (int)*(short *)(record + 0x6)
-                - (int)*(short *)(record + 0x8);
-      ret_val = (ret_val < 0) ? 0 : ret_val;
-      handle_val = *(int *)(record + 0xc);
-      break;
-    default:
-      display_assert("!\"unreachable\"",
-                     "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x448, 1);
-      system_exit(-1);
-      min_val = *(short *)(record + 0x4);
-      handle_val = *(int *)(record + 0xc);
-    }
-    break;
-
-  case 2:
-    profile_index = ai_ref & 0xffff;
-    if (profile_index < 0
-        || profile_index >= *(int *)((char *)scenario + 0x42c))
-      goto done;
-    element = datum_get(*(data_t **)0x5ab270, profile_index);
-    sub_index = ((unsigned char *)&ai_ref)[2];
-    if (sub_index < 0 || sub_index >= *(short *)((char *)element + 0x6))
-      goto done;
-    record = encounter_get_squad((char *)element, sub_index);
-
-    switch ((short)count_type) {
-    case 0:
-      min_val = *(short *)(record + 0x16);
-      ret_val = *(short *)(record + 0x18);
-      handle_val = *(int *)(record + 0x1c);
-      break;
-    case 1:
-      min_val = *(short *)(record + 0x16);
-      ret_val = *(short *)(record + 0x1a);
-      handle_val = *(int *)(record + 0x1c);
-      break;
-    case 2:
-      min_val = *(short *)(record + 0x16);
-      ret_val = (int)*(short *)(record + 0x18)
-                - (int)*(short *)(record + 0x1a);
-      ret_val = (ret_val < 0) ? 0 : ret_val;
-      handle_val = *(int *)(record + 0x1c);
-      break;
-    default:
-      display_assert("!\"unreachable\"",
-                     "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x46d, 1);
-      system_exit(-1);
-      min_val = *(short *)(record + 0x16);
-      handle_val = *(int *)(record + 0x1c);
-    }
-    break;
-
-  default:
-    display_assert("!\"unreachable\"",
-                   "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x477, 1);
-    system_exit(-1);
-  }
-
-done:
-  if (out_min != 0)
-    *out_min = min_val;
-  if (out_handle != 0)
-    *out_handle = handle_val;
-  return ret_val;
-}
-
-/* FUN_00055620 — count_type 1 ("end"/max) accessor wrapper. 0x1570 obj. */
-int FUN_00055620(unsigned int ai_ref)
-{
-  return FUN_00055350(ai_ref, 0, 0, 1);
-}
-
-/* FUN_00055640 — count_type 2 ("span") accessor wrapper. 0x1590 obj. */
-int FUN_00055640(unsigned int ai_ref)
-{
-  return FUN_00055350(ai_ref, 0, 0, 2);
-}
-
-/* FUN_00055660 — count_type 0 ("start"/min) accessor wrapper. 0x15b0 obj. */
-int FUN_00055660(unsigned int ai_ref)
-{
-  return FUN_00055350(ai_ref, 0, 0, 0);
-}
-
-/* FUN_00055680 — ratio accessor: count_type 0 result divided by the record's
- * *out_min field (numerator = EAX, denominator = the value written through
- * out_min). Returns 0.0f when the denominator is non-positive. 0x15d0 obj. */
-float FUN_00055680(unsigned int ai_ref)
-{
-  int denom;
-  int numer;
-  union { int i; float f; } zero;
-
-  zero.i = 0;
-  numer = FUN_00055350(ai_ref, &denom, 0, 0);
-  if (denom > 0)
-    return (float)numer / (float)denom;
-  return zero.f;
-}
-
-/* FUN_000556c0 — float-field accessor: count_type 0 resolves the record and
- * writes its handle dword through out_handle; that dword is reinterpreted as a
- * float (bit pattern, not a numeric conversion). 0x1610 obj. */
-float FUN_000556c0(unsigned int ai_ref)
-{
-  union { int i; float f; } out;
-
-  out.i = 0;
-  FUN_00055350(ai_ref, 0, &out.i, 0);
-  return out.f;
-}
-
-/* FUN_000556f0 — predicate: returns true if the ai_index_reference names any
- * encounter whose first byte is zero. Walks the encounter iterator built by
- * FUN_00054310/FUN_00054430; returns false if exhausted without a match.
- * 0x1640 obj. */
-bool FUN_000556f0(unsigned int ai_ref)
-{
-  int iter[3];
-  char *encounter;
-
-  if (ai_ref == 0xffffffff)
-    return 0;
-
-  FUN_00054310(ai_ref, iter);
-  encounter = (char *)FUN_00054430(iter);
-  if (encounter == 0)
-    return 0;
-
-  do {
-    if (*encounter == 0)
-      return 1;
-    encounter = (char *)FUN_00054430(iter);
-  } while (encounter != 0);
-
-  return 0;
-}
-
-/* ---------------------------------------------------------------------------
  * ai_kill / ai_kill_silent / ai_erase / ai_erase_all / ai_spawn_actor +
  * ai_debug select commands. Each public command emits a verbose diagnostic
  * trace gated by the AI-spew flag at 0x5aca59, then performs its work.
@@ -978,7 +736,7 @@ bool FUN_000556f0(unsigned int ai_ref)
  * No-op when ai_ref is the -1 sentinel. 0x990 obj / 0x54c40 XBE. */
 void FUN_00054c40(unsigned int ai_ref /* @<eax> */, char by_player)
 {
-  int iter[6];                 /* [ebp-0x18], Layout B actor iterator */
+  int iter[6]; /* [ebp-0x18], Layout B actor iterator */
 
   if (ai_ref == 0xffffffff)
     return;
@@ -995,12 +753,12 @@ void FUN_00054c40(unsigned int ai_ref /* @<eax> */, char by_player)
  * 0x9f0 obj / 0x54ca0 XBE. */
 void FUN_00054ca0(unsigned int ai_ref)
 {
-  char buffer[0x100];          /* [ebp-0x100] */
+  char buffer[0x100]; /* [ebp-0x100] */
 
   if (*(char *)0x5aca59 != 0) {
     FUN_00054220(ai_ref, global_scenario_get(), buffer, 0x100);
-    error(2, (const char *)0x25c4ac,
-          hs_runtime_get_executing_thread_name(), buffer);
+    error(2, (const char *)0x25c4ac, hs_runtime_get_executing_thread_name(),
+          buffer);
   }
 
   FUN_00054c40(ai_ref, 0);
@@ -1010,12 +768,12 @@ void FUN_00054ca0(unsigned int ai_ref)
  * (by_player = 1). 0xa50 obj / 0x54d00 XBE. */
 void FUN_00054d00(unsigned int ai_ref)
 {
-  char buffer[0x100];          /* [ebp-0x100] */
+  char buffer[0x100]; /* [ebp-0x100] */
 
   if (*(char *)0x5aca59 != 0) {
     FUN_00054220(ai_ref, global_scenario_get(), buffer, 0x100);
-    error(2, (const char *)0x25c4bc,
-          hs_runtime_get_executing_thread_name(), buffer);
+    error(2, (const char *)0x25c4bc, hs_runtime_get_executing_thread_name(),
+          buffer);
   }
 
   FUN_00054c40(ai_ref, 1);
@@ -1026,15 +784,15 @@ void FUN_00054d00(unsigned int ai_ref)
  * selector passes the -1 wildcard. 0xab0 obj / 0x54d60 XBE. */
 void FUN_00054d60(unsigned int ai_ref)
 {
-  char buffer[0x100];          /* [ebp-0x100] */
-  unsigned char sub_byte;      /* [ebp+0xa] -> dl */
+  char buffer[0x100]; /* [ebp-0x100] */
+  unsigned char sub_byte; /* [ebp+0xa] -> dl */
   int sub_a;
   int sub_b;
 
   if (*(char *)0x5aca59 != 0) {
     FUN_00054220(ai_ref, global_scenario_get(), buffer, 0x100);
-    error(2, (const char *)0x25c4d4,
-          hs_runtime_get_executing_thread_name(), buffer);
+    error(2, (const char *)0x25c4d4, hs_runtime_get_executing_thread_name(),
+          buffer);
   }
 
   if (ai_ref == 0xffffffff)
@@ -1053,8 +811,7 @@ void FUN_00054d60(unsigned int ai_ref)
 void FUN_00054df0(void)
 {
   if (*(char *)0x5aca59 != 0) {
-    error(2, (const char *)0x25c4e4,
-          hs_runtime_get_executing_thread_name());
+    error(2, (const char *)0x25c4e4, hs_runtime_get_executing_thread_name());
   }
 
   ai_erase(-1, -1, -1, 0);
@@ -1091,18 +848,18 @@ void FUN_00054e40(int encounter_ref)
  * *(0x632574)+1. 0xdd0 obj / 0x54e80 XBE. */
 void FUN_00054e80(unsigned int ai_ref)
 {
-  char buffer[0x100];          /* [ebp-0x104] */
+  char buffer[0x100]; /* [ebp-0x104] */
   void *element;
   void *sq;
-  int profile_index;           /* [ebp-0x4] */
+  int profile_index; /* [ebp-0x4] */
   int sub_byte;
   short squad_index;
   short i;
 
   if (*(char *)0x5aca59 != 0) {
     FUN_00054220(ai_ref, global_scenario_get(), buffer, 0x100);
-    error(2, (const char *)0x25c4f8,
-          hs_runtime_get_executing_thread_name(), buffer);
+    error(2, (const char *)0x25c4f8, hs_runtime_get_executing_thread_name(),
+          buffer);
   }
 
   if (*(char *)((char *)*(void **)0x632574 + 1) == 0)
@@ -1131,7 +888,8 @@ void FUN_00054e80(unsigned int ai_ref)
   squad_index = -1;
   i = 0;
   do {
-    sq = tag_block_get_element((char *)&((encounter_definition *)element)->squads, (int)i, 0xe8);
+    sq = tag_block_get_element(
+      (char *)&((encounter_definition *)element)->squads, (int)i, 0xe8);
     if ((int)*(short *)((char *)sq + 0x22) == sub_byte) {
       squad_index = i;
       break;
@@ -1151,14 +909,15 @@ spawn:
  * Each resolves a packed ai_index_reference to its named profile (for the
  * optional trace spew), then walks the referenced encounters/squads/actors to
  * apply the effect. The on/off token comes from the string pair 0x25c530 /
- * 0x25c52c. Structurally identical to the ai_braindead family in encounters.obj.
+ * 0x25c52c. Structurally identical to the ai_braindead family in
+ * encounters.obj.
  * ------------------------------------------------------------------------- */
 
 /* FUN_00054f90 — ai_set_respawn: toggle the respawn flag on the named
  * encounter. 0xee0 obj / 0x54f90 XBE. */
 void FUN_00054f90(unsigned int combined_index, char flag)
 {
-  char name[256];          /* [ebp-0x100] */
+  char name[256]; /* [ebp-0x100] */
 
   if (*(char *)0x5aca59) {
     FUN_00054220(combined_index, global_scenario_get(), name, 0x100);
@@ -1174,7 +933,7 @@ void FUN_00054f90(unsigned int combined_index, char flag)
  * 0xf60 obj / 0x55010 XBE. */
 void FUN_00055010(unsigned int combined_index, char flag)
 {
-  char name[256];          /* [ebp-0x100] */
+  char name[256]; /* [ebp-0x100] */
 
   if (*(char *)0x5aca59) {
     FUN_00054220(combined_index, global_scenario_get(), name, 0x100);
@@ -1190,7 +949,7 @@ void FUN_00055010(unsigned int combined_index, char flag)
  * 0xfe0 obj / 0x55090 XBE. */
 void FUN_00055090(unsigned int combined_index, char flag)
 {
-  char name[256];          /* [ebp-0x100] */
+  char name[256]; /* [ebp-0x100] */
 
   if (*(char *)0x5aca59) {
     FUN_00054220(combined_index, global_scenario_get(), name, 0x100);
@@ -1208,8 +967,8 @@ void FUN_00055090(unsigned int combined_index, char flag)
  * and apply unit-effect 3 (actor_handle_unit_effect). 0x1060 obj / 0x55110. */
 void FUN_00055110(unsigned int combined_handle, int unit_handle)
 {
-  char name[256];          /* [ebp-0x118] */
-  int iter[6];             /* [ebp-0x18], Layout B actor iterator */
+  char name[256]; /* [ebp-0x118] */
+  int iter[6]; /* [ebp-0x18], Layout B actor iterator */
   void *actor;
   int encounter_handle;
   int slot;
@@ -1246,7 +1005,7 @@ void FUN_00055110(unsigned int combined_handle, int unit_handle)
 void FUN_000551e0(unsigned int combined_handle, int unit_group)
 {
   int unit;
-  int state;               /* [ebp-0x4] */
+  int state; /* [ebp-0x4] */
 
   unit = FUN_000ce450(unit_group, &state);
   if (unit == -1) {
@@ -1262,8 +1021,8 @@ void FUN_000551e0(unsigned int combined_handle, int unit_group)
  * on every squad named by combined_index. 0x1170 obj / 0x55220 XBE. */
 void FUN_00055220(unsigned int combined_index)
 {
-  char name[256];          /* [ebp-0x114] */
-  int iter[5];             /* [ebp-0x14], Layout A squad iterator */
+  char name[256]; /* [ebp-0x114] */
+  int iter[5]; /* [ebp-0x14], Layout A squad iterator */
   void *squad;
 
   if (*(char *)0x5aca59) {
@@ -1289,8 +1048,8 @@ void FUN_00055220(unsigned int combined_index)
  * 0x1200 obj / 0x552b0 XBE. */
 void FUN_000552b0(unsigned int combined_index)
 {
-  char name[256];          /* [ebp-0x114] */
-  int iter[5];             /* [ebp-0x14], Layout A squad iterator */
+  char name[256]; /* [ebp-0x114] */
+  int iter[5]; /* [ebp-0x14], Layout A squad iterator */
   void *squad;
 
   if (*(char *)0x5aca59) {
@@ -1312,6 +1071,250 @@ void FUN_000552b0(unsigned int combined_index)
 }
 
 /* ---------------------------------------------------------------------------
+ * ai_index_reference count accessor (the "how many of X" query).
+ *
+ * FUN_00055350 resolves a packed ai_index_reference to a tag record and reports
+ * one of three count_type quantities about it:
+ *     count_type 0 -> the record's "start"/min index
+ *     count_type 1 -> the record's "end"/max index
+ *     count_type 2 -> the span (end - start), clamped to >= 0
+ * The record is located by the reference's selector (top 2 bits):
+ *     selector 0 -> the ai_profile element itself (offsets +0x2a/+0x2c/+0x34)
+ *     selector 1 -> a platoon record (encounter_get_platoon, offs
+ * +0x4/+6/+8/+c) selector 2 -> a squad record  (encounter_get_squad,    offs
+ * +0x16..+0x1c) In addition to the EAX result the dispatcher returns two record
+ * fields through the optional out parameters: *out_min receives a fixed record
+ * field (squad/ platoon "name" word at +0x16/+0x4, or the profile's +0x18) and
+ * *out_handle receives a record dword (squad/platoon +0x1c/+0xc, or the
+ * profile's +0x34). count_type arrives in EDI as an int16 (compared via di /
+ * sign-extended via movsx). 0x12a0 obj / 0x55350 XBE. Asserts (ai_script.c) on
+ * bad count_type and on the unreachable selector/count_type defaults. */
+int FUN_00055350(unsigned int ai_ref, int *out_min, int *out_handle,
+                 int count_type /* @<edi> */)
+{
+  int ret_val; /* [ebp-0x4], EAX result */
+  int handle_val; /* [ebp-0x8], flows to *out_handle */
+  int min_val; /* EBX, flows to *out_min */
+  void *scenario;
+  void *element;
+  char *record;
+  int profile_index;
+  unsigned int selector;
+  short sub_index;
+
+  ret_val = 0;
+  handle_val = 0;
+  min_val = 0;
+
+  if ((short)count_type < 0 || (short)count_type >= 3) {
+    display_assert(
+      "(count_type >= 0) && (count_type < NUMBER_OF_AI_COUNT_TYPES)",
+      "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x405, 1);
+    system_exit(-1);
+  }
+
+  if (ai_ref == 0xffffffff)
+    goto done;
+
+  scenario = global_scenario_get();
+  selector = ai_ref >> 0x1e;
+
+  switch (selector) {
+  case 0:
+    profile_index = ai_ref & 0xffff;
+    if (profile_index < 0 ||
+        profile_index >= *(int *)((char *)scenario + 0x42c))
+      goto done;
+    element = datum_get(*(data_t **)0x5ab270, profile_index);
+
+    switch ((short)count_type) {
+    case 0:
+      ret_val = *(short *)((char *)element + 0x2a);
+      break;
+    case 1:
+      ret_val = *(short *)((char *)element + 0x2c);
+      break;
+    case 2:
+      ret_val = (int)*(short *)((char *)element + 0x2a) -
+                (int)*(short *)((char *)element + 0x2c);
+      ret_val = (ret_val < 0) ? 0 : ret_val;
+      break;
+    default:
+      display_assert("!\"unreachable\"", "c:\\halo\\SOURCE\\ai\\ai_script.c",
+                     0x424, 1);
+      system_exit(-1);
+    }
+    min_val = *(short *)((char *)element + 0x18);
+    handle_val = *(int *)((char *)element + 0x34);
+    break;
+
+  case 1:
+    profile_index = ai_ref & 0xffff;
+    if (profile_index < 0 ||
+        profile_index >= *(int *)((char *)scenario + 0x42c))
+      goto done;
+    element = datum_get(*(data_t **)0x5ab270, profile_index);
+    sub_index = ((unsigned char *)&ai_ref)[2];
+    if (sub_index < 0 || sub_index >= *(short *)((char *)element + 0xa))
+      goto done;
+    record = FUN_00054020((char *)element, sub_index);
+
+    switch ((short)count_type) {
+    case 0:
+      min_val = *(short *)(record + 0x4);
+      ret_val = *(short *)(record + 0x6);
+      handle_val = *(int *)(record + 0xc);
+      break;
+    case 1:
+      min_val = *(short *)(record + 0x4);
+      ret_val = *(short *)(record + 0x8);
+      handle_val = *(int *)(record + 0xc);
+      break;
+    case 2:
+      min_val = *(short *)(record + 0x4);
+      ret_val = (int)*(short *)(record + 0x6) - (int)*(short *)(record + 0x8);
+      ret_val = (ret_val < 0) ? 0 : ret_val;
+      handle_val = *(int *)(record + 0xc);
+      break;
+    default:
+      display_assert("!\"unreachable\"", "c:\\halo\\SOURCE\\ai\\ai_script.c",
+                     0x448, 1);
+      system_exit(-1);
+      min_val = *(short *)(record + 0x4);
+      handle_val = *(int *)(record + 0xc);
+    }
+    break;
+
+  case 2:
+    profile_index = ai_ref & 0xffff;
+    if (profile_index < 0 ||
+        profile_index >= *(int *)((char *)scenario + 0x42c))
+      goto done;
+    element = datum_get(*(data_t **)0x5ab270, profile_index);
+    sub_index = ((unsigned char *)&ai_ref)[2];
+    if (sub_index < 0 || sub_index >= *(short *)((char *)element + 0x6))
+      goto done;
+    record = encounter_get_squad((char *)element, sub_index);
+
+    switch ((short)count_type) {
+    case 0:
+      min_val = *(short *)(record + 0x16);
+      ret_val = *(short *)(record + 0x18);
+      handle_val = *(int *)(record + 0x1c);
+      break;
+    case 1:
+      min_val = *(short *)(record + 0x16);
+      ret_val = *(short *)(record + 0x1a);
+      handle_val = *(int *)(record + 0x1c);
+      break;
+    case 2:
+      min_val = *(short *)(record + 0x16);
+      ret_val = (int)*(short *)(record + 0x18) - (int)*(short *)(record + 0x1a);
+      ret_val = (ret_val < 0) ? 0 : ret_val;
+      handle_val = *(int *)(record + 0x1c);
+      break;
+    default:
+      display_assert("!\"unreachable\"", "c:\\halo\\SOURCE\\ai\\ai_script.c",
+                     0x46d, 1);
+      system_exit(-1);
+      min_val = *(short *)(record + 0x16);
+      handle_val = *(int *)(record + 0x1c);
+    }
+    break;
+
+  default:
+    display_assert("!\"unreachable\"", "c:\\halo\\SOURCE\\ai\\ai_script.c",
+                   0x477, 1);
+    system_exit(-1);
+  }
+
+done:
+  if (out_min != 0)
+    *out_min = min_val;
+  if (out_handle != 0)
+    *out_handle = handle_val;
+  return ret_val;
+}
+
+/* FUN_00055620 — count_type 1 ("end"/max) accessor wrapper. 0x1570 obj. */
+int FUN_00055620(unsigned int ai_ref)
+{
+  return FUN_00055350(ai_ref, 0, 0, 1);
+}
+
+/* FUN_00055640 — count_type 2 ("span") accessor wrapper. 0x1590 obj. */
+int FUN_00055640(unsigned int ai_ref)
+{
+  return FUN_00055350(ai_ref, 0, 0, 2);
+}
+
+/* FUN_00055660 — count_type 0 ("start"/min) accessor wrapper. 0x15b0 obj. */
+int FUN_00055660(unsigned int ai_ref)
+{
+  return FUN_00055350(ai_ref, 0, 0, 0);
+}
+
+/* FUN_00055680 — ratio accessor: count_type 0 result divided by the record's
+ * *out_min field (numerator = EAX, denominator = the value written through
+ * out_min). Returns 0.0f when the denominator is non-positive. 0x15d0 obj. */
+float FUN_00055680(unsigned int ai_ref)
+{
+  int denom;
+  int numer;
+  union {
+    int i;
+    float f;
+  } zero;
+
+  zero.i = 0;
+  numer = FUN_00055350(ai_ref, &denom, 0, 0);
+  if (denom > 0)
+    return (float)numer / (float)denom;
+  return zero.f;
+}
+
+/* FUN_000556c0 — float-field accessor: count_type 0 resolves the record and
+ * writes its handle dword through out_handle; that dword is reinterpreted as a
+ * float (bit pattern, not a numeric conversion). 0x1610 obj. */
+float FUN_000556c0(unsigned int ai_ref)
+{
+  union {
+    int i;
+    float f;
+  } out;
+
+  out.i = 0;
+  FUN_00055350(ai_ref, 0, &out.i, 0);
+  return out.f;
+}
+
+/* FUN_000556f0 — predicate: returns true if the ai_index_reference names any
+ * encounter whose first byte is zero. Walks the encounter iterator built by
+ * FUN_00054310/FUN_00054430; returns false if exhausted without a match.
+ * 0x1640 obj. */
+bool FUN_000556f0(unsigned int ai_ref)
+{
+  int iter[3];
+  char *encounter;
+
+  if (ai_ref == 0xffffffff)
+    return 0;
+
+  FUN_00054310(ai_ref, iter);
+  encounter = (char *)FUN_00054430(iter);
+  if (encounter == 0)
+    return 0;
+
+  do {
+    if (*encounter == 0)
+      return 1;
+    encounter = (char *)FUN_00054430(iter);
+  } while (encounter != 0);
+
+  return 0;
+}
+
+/* ---------------------------------------------------------------------------
  * ai_attack / ai_defend / ai_maneuver / ai_maneuver_enable: per-encounter mode
  * setters. Each resolves the packed ai_index_reference, then walks the
  * FUN_00054310/FUN_00054430 encounter iterator poking a single mode byte on
@@ -1322,8 +1325,8 @@ void FUN_000552b0(unsigned int combined_index)
  * encounter. 0x16a0 obj / 0x55750 XBE. */
 void FUN_00055750(unsigned int combined_index)
 {
-  char name[256];          /* [ebp-0x10c] */
-  int iter[3];             /* [ebp-0xc] */
+  char name[256]; /* [ebp-0x10c] */
+  int iter[3]; /* [ebp-0xc] */
   char *encounter;
 
   if (*(char *)0x5aca59) {
@@ -1351,8 +1354,8 @@ void FUN_00055750(unsigned int combined_index)
  * encounter. 0x1730 obj / 0x557e0 XBE. */
 void FUN_000557e0(unsigned int combined_index)
 {
-  char name[256];          /* [ebp-0x10c] */
-  int iter[3];             /* [ebp-0xc] */
+  char name[256]; /* [ebp-0x10c] */
+  int iter[3]; /* [ebp-0xc] */
   char *encounter;
 
   if (*(char *)0x5aca59) {
@@ -1380,8 +1383,8 @@ void FUN_000557e0(unsigned int combined_index)
  * encounter. 0x17c0 obj / 0x55870 XBE. */
 void FUN_00055870(unsigned int combined_index)
 {
-  char name[256];          /* [ebp-0x10c] */
-  int iter[3];             /* [ebp-0xc] */
+  char name[256]; /* [ebp-0x10c] */
+  int iter[3]; /* [ebp-0xc] */
   char *encounter;
 
   if (*(char *)0x5aca59) {
@@ -1407,11 +1410,12 @@ void FUN_00055870(unsigned int combined_index)
 
 /* FUN_00055900 — ai_maneuver_enable: enable/disable maneuvering on every named
  * encounter. Stores the inverse of the enable flag into encounter[2] (a
- * "maneuver disabled" byte): enable -> 0, disable -> 1. 0x1850 obj / 0x55900. */
+ * "maneuver disabled" byte): enable -> 0, disable -> 1. 0x1850 obj / 0x55900.
+ */
 void FUN_00055900(unsigned int combined_index, char flag)
 {
-  char name[256];          /* [ebp-0x10c] */
-  int iter[3];             /* [ebp-0xc] */
+  char name[256]; /* [ebp-0x10c] */
+  int iter[3]; /* [ebp-0xc] */
   char *encounter;
   char disabled;
 
@@ -1457,23 +1461,23 @@ int16_t FUN_000559a0(unsigned int encounter_handle /* @<eax> */, int field_0x34,
                      int16_t squad_index, void *actr_tag, void *actv_tag,
                      char match_flag, const void *debug_str)
 {
-  int iter[5];               /* [ebp-0x34] FUN_000544a0/FUN_000545a0 record */
-  void *scenario;            /* [ebp-0x1c] */
-  void *dest_element;        /* [ebp-0x20] dest profile element             */
-  void *dest_squads;         /* [ebp-0x4]  dest squads tag_block            */
-  int slot1;                 /* [ebp-0x8]  self                             */
-  int slot2;                 /* [ebp-0xc]  same-variant                     */
-  int slot3;                 /* [ebp-0x10] same-actor                       */
-  int slot4;                 /* [ebp-0x14] same-type                        */
-  int slot5;                 /* [ebp-0x18] fallback                         */
-  int cur;                   /* esi: current dest squad index               */
-  void *squad;               /* FUN_000545a0 return                         */
-  void *element;             /* per-squad tag element                       */
-  void *actr_element;        /* actor-palette element                       */
-  void *cand_actv;           /* edi: this dest squad's 'actv' tag           */
-  void *cand_actr;           /* ebx: this dest squad's 'actr' tag           */
-  short variant_index;       /* ax: dest squad's actor-variant index        */
-  int found;                 /* ebx in resolution: chosen squad index       */
+  int iter[5]; /* [ebp-0x34] FUN_000544a0/FUN_000545a0 record */
+  void *scenario; /* [ebp-0x1c] */
+  void *dest_element; /* [ebp-0x20] dest profile element             */
+  void *dest_squads; /* [ebp-0x4]  dest squads tag_block            */
+  int slot1; /* [ebp-0x8]  self                             */
+  int slot2; /* [ebp-0xc]  same-variant                     */
+  int slot3; /* [ebp-0x10] same-actor                       */
+  int slot4; /* [ebp-0x14] same-type                        */
+  int slot5; /* [ebp-0x18] fallback                         */
+  int cur; /* esi: current dest squad index               */
+  void *squad; /* FUN_000545a0 return                         */
+  void *element; /* per-squad tag element                       */
+  void *actr_element; /* actor-palette element                       */
+  void *cand_actv; /* edi: this dest squad's 'actv' tag           */
+  void *cand_actr; /* ebx: this dest squad's 'actr' tag           */
+  short variant_index; /* ax: dest squad's actor-variant index        */
+  int found; /* ebx in resolution: chosen squad index       */
 
   scenario = global_scenario_get();
   dest_element = tag_block_get_element((char *)global_scenario_get() + 0x42c,
@@ -1495,13 +1499,13 @@ int16_t FUN_000559a0(unsigned int encounter_handle /* @<eax> */, int field_0x34,
     variant_index = *(short *)((char *)element + 0x20);
     cand_actv = 0;
     cand_actr = 0;
-    if (variant_index >= 0
-        && (int)variant_index < *(int *)((char *)scenario + 0x420)) {
+    if (variant_index >= 0 &&
+        (int)variant_index < *(int *)((char *)scenario + 0x420)) {
       actr_element = tag_block_get_element((char *)scenario + 0x420,
                                            (int)variant_index, 0x10);
-      if (*(int *)((char *)actr_element + 0xc) != -1
-          && tag_get_group_tag(*(int *)((char *)actr_element + 0xc))
-                 == 0x61637476) {
+      if (*(int *)((char *)actr_element + 0xc) != -1 &&
+          tag_get_group_tag(*(int *)((char *)actr_element + 0xc)) ==
+            0x61637476) {
         cand_actv = tag_get(0x61637476, *(int *)((char *)actr_element + 0xc));
         if (*(int *)((char *)cand_actv + 0x10) != -1)
           cand_actr = tag_get(0x61637472, *(int *)((char *)cand_actv + 0x10));
@@ -1509,18 +1513,17 @@ int16_t FUN_000559a0(unsigned int encounter_handle /* @<eax> */, int field_0x34,
     }
     cur = iter[2];
 
-    if ((short)slot1 == (short)-1 && match_flag != 0
-        && (int)squad_index == cur)
+    if ((short)slot1 == (short)-1 && match_flag != 0 && (int)squad_index == cur)
       slot1 = cur;
-    if ((short)slot2 == (short)-1 && actv_tag != 0 && cand_actv != 0
-        && actv_tag == cand_actv)
+    if ((short)slot2 == (short)-1 && actv_tag != 0 && cand_actv != 0 &&
+        actv_tag == cand_actv)
       slot2 = cur;
-    if ((short)slot3 == (short)-1 && actr_tag != 0 && cand_actr != 0
-        && actr_tag == cand_actr)
+    if ((short)slot3 == (short)-1 && actr_tag != 0 && cand_actr != 0 &&
+        actr_tag == cand_actr)
       slot3 = cur;
-    if ((short)slot4 == (short)-1 && actr_tag != 0 && cand_actr != 0
-        && *(short *)((char *)actr_tag + 0x14)
-               == *(short *)((char *)cand_actr + 0x14))
+    if ((short)slot4 == (short)-1 && actr_tag != 0 && cand_actr != 0 &&
+        *(short *)((char *)actr_tag + 0x14) ==
+          *(short *)((char *)cand_actr + 0x14))
       slot4 = cur;
     if ((short)slot5 == (short)-1)
       slot5 = cur;
@@ -1547,15 +1550,15 @@ int16_t FUN_000559a0(unsigned int encounter_handle /* @<eax> */, int field_0x34,
         void *src_prof;
         void *src_sq;
         short si;
-        src_prof = tag_block_get_element(
-            (char *)global_scenario_get() + 0x42c, field_0x34 & 0xffff, 0xb0);
+        src_prof = tag_block_get_element((char *)global_scenario_get() + 0x42c,
+                                         field_0x34 & 0xffff, 0xb0);
         src_sq = tag_block_get_element((char *)src_prof + 0x80,
                                        (int)squad_index, 0xe8);
         si = *(short *)((char *)src_sq + 0x20);
         if (si >= 0 && (int)si < *(int *)((char *)scenario + 0x420)) {
           void *src_actr;
-          src_actr = tag_block_get_element((char *)scenario + 0x420,
-                                           (int)si, 0x10);
+          src_actr =
+            tag_block_get_element((char *)scenario + 0x420, (int)si, 0x10);
           if (*(int *)((char *)src_actr + 0xc) != -1)
             name = (void *)tag_get_name(*(int *)((char *)src_actr + 0xc));
         }
@@ -1649,27 +1652,28 @@ void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
                   int param_3, int param_4)
 {
   short target_squad_indices[64]; /* [ebp-0xc8], 0x80 bytes, init 0xffff */
-  int squad_iter[5];              /* [ebp-0x34], Layout A (FUN_000544a0) */
-  int actor_iter[3];              /* [ebp-0x2c], encounter_actor_iterator_new (iter[1]=handle) */
-  char enc_iter[0x1c];            /* [ebp-0x3c], encounter_iterator_next */
-  void *scenario;                 /* [ebp-0x40] */
-  void *src_datum;                /* [ebp-0xc]  source encounter datum */
-  void *dst_datum;                /* [ebp-0x1c] dest encounter datum   */
-  void *src_element;              /* [ebp-0x44] source profile element  */
-  void *dst_element;              /* [ebp-0x8]  dest profile element    */
-  int src_index;                  /* [ebp-0x10] / [ebp-0x18] */
-  int dst_index;                  /* [ebp-0x14] */
-  char match_flag;                /* [ebp-0x4]  */
-  void *squad;                    /* loop-1 squad pointer (esi) */
-  int src_squad;                  /* [ebp-0x2c] iter cursor (ebx) */
-  void *sub_element;              /* [ebp-0x48] */
-  int actr_tag;                   /* [ebp-0x20] */
-  void *actv_tag;                 /* esi in loop 1 */
+  int squad_iter[5]; /* [ebp-0x34], Layout A (FUN_000544a0) */
+  int actor_iter[3]; /* [ebp-0x2c], encounter_actor_iterator_new
+                        (iter[1]=handle) */
+  char enc_iter[0x1c]; /* [ebp-0x3c], encounter_iterator_next */
+  void *scenario; /* [ebp-0x40] */
+  void *src_datum; /* [ebp-0xc]  source encounter datum */
+  void *dst_datum; /* [ebp-0x1c] dest encounter datum   */
+  void *src_element; /* [ebp-0x44] source profile element  */
+  void *dst_element; /* [ebp-0x8]  dest profile element    */
+  int src_index; /* [ebp-0x10] / [ebp-0x18] */
+  int dst_index; /* [ebp-0x14] */
+  char match_flag; /* [ebp-0x4]  */
+  void *squad; /* loop-1 squad pointer (esi) */
+  int src_squad; /* [ebp-0x2c] iter cursor (ebx) */
+  void *sub_element; /* [ebp-0x48] */
+  int actr_tag; /* [ebp-0x20] */
+  void *actv_tag; /* esi in loop 1 */
   void *actv_element;
-  void *actor;                    /* loop-2/4 actor record */
-  char *record;                   /* loop-3 pending record (ebx) */
-  short cur_squad;                /* si */
-  short mapped;                   /* target_squad_indices[cur_squad] */
+  void *actor; /* loop-2/4 actor record */
+  char *record; /* loop-3 pending record (ebx) */
+  short cur_squad; /* si */
+  short mapped; /* target_squad_indices[cur_squad] */
 
   if (encounter_handle == -1)
     return;
@@ -1697,33 +1701,34 @@ void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
   while (squad != 0) {
     src_squad = squad_iter[2];
     if (src_squad < 0 || src_squad >= 0x40) {
-      display_assert("(source_iterator.squad_index >= 0) && "
-                     "(source_iterator.squad_index < MAXIMUM_SQUADS_PER_ENCOUNTER)",
-                     "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x623, 1);
+      display_assert(
+        "(source_iterator.squad_index >= 0) && "
+        "(source_iterator.squad_index < MAXIMUM_SQUADS_PER_ENCOUNTER)",
+        "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x623, 1);
       system_exit(-1);
     }
 
-    if (*(short *)((char *)squad + 0x18) > 0
-        || *(char *)((char *)src_datum + 0x1e) != 0) {
-      sub_element = tag_block_get_element((char *)&((encounter_definition *)src_element)->squads,
-                                          src_squad, 0xe8);
+    if (*(short *)((char *)squad + 0x18) > 0 ||
+        *(char *)((char *)src_datum + 0x1e) != 0) {
+      sub_element = tag_block_get_element(
+        (char *)&((encounter_definition *)src_element)->squads, src_squad,
+        0xe8);
       actr_tag = 0;
       actv_tag = 0;
-      if ((short)*(short *)((char *)sub_element + 0x20) >= 0
-          && (int)*(short *)((char *)sub_element + 0x20)
-                 < *(int *)((char *)scenario + 0x420)) {
-        void *actr_element =
-            tag_block_get_element((char *)scenario + 0x420,
-                                  (int)*(short *)((char *)sub_element + 0x20),
-                                  0x10);
-        if (*(int *)((char *)actr_element + 0xc) != -1
-            && tag_get_group_tag(*(int *)((char *)actr_element + 0xc))
-                   == 0x61637476) {
-          actv_element = tag_get(0x61637476,
-                                 *(int *)((char *)actr_element + 0xc));
+      if ((short)*(short *)((char *)sub_element + 0x20) >= 0 &&
+          (int)*(short *)((char *)sub_element + 0x20) <
+            *(int *)((char *)scenario + 0x420)) {
+        void *actr_element = tag_block_get_element(
+          (char *)scenario + 0x420, (int)*(short *)((char *)sub_element + 0x20),
+          0x10);
+        if (*(int *)((char *)actr_element + 0xc) != -1 &&
+            tag_get_group_tag(*(int *)((char *)actr_element + 0xc)) ==
+              0x61637476) {
+          actv_element =
+            tag_get(0x61637476, *(int *)((char *)actr_element + 0xc));
           if (*(int *)((char *)actv_element + 0x10) != -1) {
-            actr_tag = (int)tag_get(0x61637472,
-                                    *(int *)((char *)actv_element + 0x10));
+            actr_tag =
+              (int)tag_get(0x61637472, *(int *)((char *)actv_element + 0x10));
             actv_tag = actv_element;
           }
         }
@@ -1731,10 +1736,9 @@ void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
 
       crt_sprintf((char *)0x5ab100, (const char *)0x25c864 /* "squad %s" */,
                   sub_element);
-      target_squad_indices[src_squad] =
-          FUN_000559a0((unsigned int)dest_encounter, src_index,
-                       (int16_t)src_squad, (void *)actr_tag, actv_tag,
-                       match_flag, (const void *)0x5ab100);
+      target_squad_indices[src_squad] = FUN_000559a0(
+        (unsigned int)dest_encounter, src_index, (int16_t)src_squad,
+        (void *)actr_tag, actv_tag, match_flag, (const void *)0x5ab100);
     }
 
     squad = (void *)FUN_000545a0(squad_iter);
@@ -1753,8 +1757,8 @@ void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
     }
     mapped = target_squad_indices[cur_squad];
     if (mapped != (short)0xffff && !(match_flag && mapped == cur_squad)) {
-      if (mapped < 0
-          || (int)mapped >= ((encounter_definition *)dst_element)->squads.count) {
+      if (mapped < 0 ||
+          (int)mapped >= ((encounter_definition *)dst_element)->squads.count) {
         display_assert("(target_squad_indices[current_squad_index] >= 0) && "
                        "(target_squad_indices[current_squad_index] < "
                        "target_encounter_definition->squads.count)",
@@ -1782,14 +1786,15 @@ void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
           system_exit(-1);
         }
         mapped = target_squad_indices[cur_squad];
-        if (mapped != (short)0xffff
-            && !(match_flag && mapped == cur_squad)) {
-          if (mapped < 0
-              || (int)mapped >= ((encounter_definition *)dst_element)->squads.count) {
-            display_assert("(target_squad_indices[current_squad_index] >= 0) && "
-                           "(target_squad_indices[current_squad_index] < "
-                           "target_encounter_definition->squads.count)",
-                           "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x683, 1);
+        if (mapped != (short)0xffff && !(match_flag && mapped == cur_squad)) {
+          if (mapped < 0 ||
+              (int)mapped >=
+                ((encounter_definition *)dst_element)->squads.count) {
+            display_assert(
+              "(target_squad_indices[current_squad_index] >= 0) && "
+              "(target_squad_indices[current_squad_index] < "
+              "target_encounter_definition->squads.count)",
+              "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x683, 1);
             system_exit(-1);
           }
           *(int *)(record + 0x44) = dst_index;
@@ -1813,15 +1818,17 @@ void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
     if ((*(int *)((char *)actor + 0x30) & 0xffff) == src_index) {
       cur_squad = *(short *)((char *)actor + 0x38);
       if (cur_squad < 0 || cur_squad >= 0x40) {
-        display_assert("(source_iterator.squad_index >= 0) && "
-                       "(source_iterator.squad_index < MAXIMUM_SQUADS_PER_ENCOUNTER)",
-                       "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x6a4, 1);
+        display_assert(
+          "(source_iterator.squad_index >= 0) && "
+          "(source_iterator.squad_index < MAXIMUM_SQUADS_PER_ENCOUNTER)",
+          "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x6a4, 1);
         system_exit(-1);
       }
       mapped = target_squad_indices[cur_squad];
       if (mapped != (short)0xffff && !(match_flag && mapped == cur_squad)) {
-        if (mapped < 0
-            || (int)mapped >= ((encounter_definition *)dst_element)->squads.count) {
+        if (mapped < 0 ||
+            (int)mapped >=
+              ((encounter_definition *)dst_element)->squads.count) {
           display_assert("(target_squad_indices[current_squad_index] >= 0) && "
                          "(target_squad_indices[current_squad_index] < "
                          "target_encounter_definition->squads.count)",
@@ -1830,12 +1837,10 @@ void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
         }
         *(int *)((char *)actor + 0x30) = dst_index;
         *(short *)((char *)actor + 0x38) = target_squad_indices[cur_squad];
-        if (match_flag == 0
-            && *(short *)((char *)dst_element + 0x7e)
-                   == global_structure_bsp_index_get()) {
+        if (match_flag == 0 && *(short *)((char *)dst_element + 0x7e) ==
+                                 global_structure_bsp_index_get()) {
           encounterless_detach_actor(actor_iter[1]);
-          encounter_attach_actor(actor_iter[1],
-                                 *(int *)((char *)actor + 0x30),
+          encounter_attach_actor(actor_iter[1], *(int *)((char *)actor + 0x30),
                                  *(short *)((char *)actor + 0x38), 1);
         }
       }

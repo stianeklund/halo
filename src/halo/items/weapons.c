@@ -1,28 +1,9 @@
-/* 0xfae80 — weapon_get_label */
-char *weapon_get_label(int weapon_handle)
-{
-  char *result = (char *)0x25386f;
-  int *obj;
-  if (weapon_handle != -1) {
-    obj = (int *)object_get_and_verify_type(weapon_handle, 4);
-    result = (char *)tag_get(0x77656170, *obj) + 0x30c;
-  }
-  return result;
-}
-
-/* 0xfaeb0 — weapon_set_integrated_light_power */
-void weapon_set_integrated_light_power(int weapon_handle, int light_power)
-{
-  char *weapon_obj = (char *)object_get_and_verify_type(weapon_handle, 4);
-  *(int *)(weapon_obj + 0x1f8) = light_power;
-}
-
 /* 0xfae30 — weapon_preprocess_node_orientations
  *
  * Prefetches the weapon's animation graph block element for node orientation
  * processing. Resolves the weapon tag, finds the 'antr' tag, and calls
- * tag_block_get_element on the first animation element if the block is non-empty.
- * The result is discarded; the call likely primes an internal cache.
+ * tag_block_get_element on the first animation element if the block is
+ * non-empty. The result is discarded; the call likely primes an internal cache.
  *
  * Confirmed: cdecl, 1 stack arg (weapon_handle).
  * Confirmed: CALL object_get_and_verify_type(weapon_handle, 4).
@@ -43,6 +24,25 @@ void weapon_preprocess_node_orientations(int weapon_handle)
   if (*(int *)(antr + 0x18) != 0) {
     tag_block_get_element((void *)(antr + 0x18), 0, 0x1c);
   }
+}
+
+/* 0xfae80 — weapon_get_label */
+char *weapon_get_label(int weapon_handle)
+{
+  char *result = (char *)0x25386f;
+  int *obj;
+  if (weapon_handle != -1) {
+    obj = (int *)object_get_and_verify_type(weapon_handle, 4);
+    result = (char *)tag_get(0x77656170, *obj) + 0x30c;
+  }
+  return result;
+}
+
+/* 0xfaeb0 — weapon_set_integrated_light_power */
+void weapon_set_integrated_light_power(int weapon_handle, int light_power)
+{
+  char *weapon_obj = (char *)object_get_and_verify_type(weapon_handle, 4);
+  *(int *)(weapon_obj + 0x1f8) = light_power;
 }
 
 /* 0xfaed0 — weapon_estimate_time_to_target
@@ -254,16 +254,6 @@ int16_t weapon_get_animation_frame(int weapon_handle, int16_t param_2,
   return result;
 }
 
-void *FUN_000fb370(void *weapon_obj, int16_t magazine_index)
-{
-  int *tag_data = (int *)tag_get(0x77656170, *(int *)weapon_obj);
-
-  assert_halt(magazine_index >= 0 &&
-              magazine_index < *(int *)((char *)tag_data + 0x4f0));
-
-  return (void *)((char *)weapon_obj + (magazine_index + 50) * 12);
-}
-
 /* 0xfb2f0 — weapon_overcharged
  *
  * Returns 1 if the weapon's trigger state at +0x211 is 2 (overcharge) or
@@ -280,6 +270,16 @@ int weapon_overcharged(int weapon_handle)
   if (*(char *)(obj + 0x211) != 2 && *(char *)(obj + 0x211) != 3)
     return 0;
   return 1;
+}
+
+void *FUN_000fb370(void *weapon_obj, int16_t magazine_index)
+{
+  int *tag_data = (int *)tag_get(0x77656170, *(int *)weapon_obj);
+
+  assert_halt(magazine_index >= 0 &&
+              magazine_index < *(int *)((char *)tag_data + 0x4f0));
+
+  return (void *)((char *)weapon_obj + (magazine_index + 50) * 12);
 }
 
 /* 0xfb3c0 — weapon_has_activity
@@ -488,8 +488,8 @@ int weapon_set_animation_state(int weapon_handle, char param_2, int16_t state)
   }
 
   /* Choose a random animation and set the weapon state */
-  chosen = (int16_t)model_animation_choose_random(
-    1, *(int *)(weap_tag + 0x44), (int16_t)raw_index);
+  chosen = (int16_t)model_animation_choose_random(1, *(int *)(weap_tag + 0x44),
+                                                  (int16_t)raw_index);
   *(int16_t *)((char *)weapon_data + 0x80) = chosen;
   *(int16_t *)((char *)weapon_data + 0x82) = 0;
   *(char *)((char *)weapon_data + 0x1e8) = (char)state;
@@ -562,8 +562,7 @@ void weapon_set_total_rounds(int weapon_handle, int16_t *rounds_array)
     magazine = (char *)weapon + ((int)i * 3 + 0x96) * 4;
     current_loaded = *(int16_t *)(magazine + 8);
     *(int16_t *)(magazine + 6) = new_total;
-    new_loaded =
-      (current_loaded <= new_total) ? current_loaded : new_total;
+    new_loaded = (current_loaded <= new_total) ? current_loaded : new_total;
     *(int16_t *)(magazine + 8) = new_loaded;
   }
 }
@@ -593,9 +592,10 @@ bool weapon_handle_potential_inventory_item(int weapon_handle,
       int16_t transfer;
       check_tag = (int)tag_get(0x77656170, *weapon_data);
       if ((int16_t)i < 0 || (int)i >= *(int *)(check_tag + 0x4f0)) {
-        display_assert("magazine_index>=0 && "
-                       "magazine_index<weapon_definition->weapon.magazines.count",
-                       "c:\\halo\\SOURCE\\items\\weapons.c", 0x672, 1);
+        display_assert(
+          "magazine_index>=0 && "
+          "magazine_index<weapon_definition->weapon.magazines.count",
+          "c:\\halo\\SOURCE\\items\\weapons.c", 0x672, 1);
         system_exit(-1);
       }
       mag_offset = ((int)i * 3 + 0x96) * 4;
@@ -641,8 +641,7 @@ bool weapon_handle_potential_inventory_item(int weapon_handle,
           equip_block = (int *)(mag_def + 0x64);
           for (j = 0; (int)j < *equip_block; j++) {
             int16_t *entry;
-            entry =
-              (int16_t *)tag_block_get_element(equip_block, (int)j, 0x1c);
+            entry = (int16_t *)tag_block_get_element(equip_block, (int)j, 0x1c);
             if (*(int *)(entry + 0xc) == source_tag) {
               transfer = need;
               if (*entry <= need) {
@@ -717,8 +716,7 @@ void FUN_000fc990(int16_t magazine_index, int weapon_handle, int param_2)
         }
 
         *magazine_state = 1;
-        frame =
-          weapon_get_animation_frame(weapon_handle, 0, 7, anim_variant);
+        frame = weapon_get_animation_frame(weapon_handle, 0, 7, anim_variant);
         magazine_state[1] = frame;
         magazine_state[2] = frame;
       }
@@ -821,8 +819,7 @@ void weapon_reset_state(int weapon_handle)
 
       /* Compute trigger entry pointer:
        * base + trigger_index * 9 * 4 + 0x210 */
-      trigger_entry =
-        (char *)weapon_data + trigger_count_index * 36 + 0x210;
+      trigger_entry = (char *)weapon_data + trigger_count_index * 36 + 0x210;
 
       tag_block_get_element((void *)(weap_tag + 0x4fc), trigger_count_index,
                             0x114);
@@ -1055,16 +1052,15 @@ bool weapon_aim(int weapon_handle, int16_t trigger_index, void *param_3,
   proj_ref = *(int *)(trigger_elem + 0xa0);
 
   /* tag_get + projectile_aim share a single stack cleanup.
-   * Disassembly-verified push sequence at 0xfd46d–0xfd495 (14 pushes, right-to-left):
-   *   [P1] ECX=param_9, [P2] EDX=param_8, [P3] ECX=param_7, [P4] 0,
-   *   [P5] ESI=param_6, [P6] EDX=param_5, [P7-P10] 0,0,0,0,
-   *   [P11] ECX=param_4 (ECX reloaded via MOV ECX,[EBP+0x14] at 0xfd47c),
-   *   [P12] EDX=param_3, [P13] EAX=proj_ref, [P14] 'proj'
-   * tag_get (at 0xfd496) uses P14+'proj' and P13=proj_ref; ADD ESP,8 cleans them.
-   * PUSH EAX (proj_tag) at 0xfd49e, then CALL projectile_aim at 0xfd49f:
-   *   arg2=P12=param_3(origin), arg3=P11=param_4(target), arg8=P6=param_5,
-   *   arg9=P5=param_6(aim_vector), arg11=P3=param_7, arg12=P2=param_8,
-   *   arg13=P1=param_9. */
+   * Disassembly-verified push sequence at 0xfd46d–0xfd495 (14 pushes,
+   * right-to-left): [P1] ECX=param_9, [P2] EDX=param_8, [P3] ECX=param_7, [P4]
+   * 0, [P5] ESI=param_6, [P6] EDX=param_5, [P7-P10] 0,0,0,0, [P11] ECX=param_4
+   * (ECX reloaded via MOV ECX,[EBP+0x14] at 0xfd47c), [P12] EDX=param_3, [P13]
+   * EAX=proj_ref, [P14] 'proj' tag_get (at 0xfd496) uses P14+'proj' and
+   * P13=proj_ref; ADD ESP,8 cleans them. PUSH EAX (proj_tag) at 0xfd49e, then
+   * CALL projectile_aim at 0xfd49f: arg2=P12=param_3(origin),
+   * arg3=P11=param_4(target), arg8=P6=param_5, arg9=P5=param_6(aim_vector),
+   * arg11=P3=param_7, arg12=P2=param_8, arg13=P1=param_9. */
   proj_tag = tag_get(0x70726f6a, proj_ref);
   ((void (*)(void *, void *, void *, int, int, int, int, int, float *, int, int,
              void *, void *))0xf84d0)(proj_tag, param_3, param_4, 0, 0, 0, 0,

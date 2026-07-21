@@ -372,7 +372,8 @@ static int16_t input_normalize_stick(int16_t value)
 /* core-loop debug mode (d:\core_loop.xts): recorded-input playback reloads the
  * saved core and restarts from packet 0 each time the recording ends — a
  * deterministic replay loop that needs no player death. Set in
- * input_check_state_mode, consumed in input_state_process_packet (mode 4 EOF). */
+ * input_check_state_mode, consumed in input_state_process_packet (mode 4 EOF).
+ */
 static int core_loop_enabled = 0;
 #endif
 

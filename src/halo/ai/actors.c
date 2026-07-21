@@ -755,8 +755,9 @@ void FUN_000373b0(int actor_handle, int object_handle, float *position,
  * Confirmed: 4 cdecl args matching dispatch in actors_handle_spatial_effect;
  * ESP cleanup ADD ESP,0x14 after datum_get+tag_get; ADD ESP,0x10 after
  * FUN_00036960; ADD ESP,0x18 after FUN_00036890; ADD ESP,0x10 after
- * game_allegiance_get_team_is_friendly; ADD ESP,0xc after FUN_000369c0; ADD ESP,0x10 after
- * FUN_00027a60. Confirmed: FUN_00036890 reg ABI — @ecx=vec1, @eax=actor,
+ * game_allegiance_get_team_is_friendly; ADD ESP,0xc after FUN_000369c0; ADD
+ * ESP,0x10 after FUN_00027a60. Confirmed: FUN_00036890 reg ABI — @ecx=vec1,
+ * @eax=actor,
  * @edx=priority,
  *   @ebx=vec2; verified against sibling FUN_000373b0 call site at 0x374b4.
  * Confirmed: epsilon constant at 0x2533d0 (double, ~0.0001).
@@ -5049,8 +5050,9 @@ void FUN_0003be90(int actor_handle)
     encounter_idx = (int)(*(unsigned int *)(actor + 0x34) & 0xffff);
     encounter_elem = tag_block_get_element(
       (char *)global_scenario_get() + 0x42c, encounter_idx, 0xb0);
-    squad_elem = tag_block_get_element((char *)&((encounter_definition *)encounter_elem)->squads,
-                                       (int)*(short *)(actor + 0x3a), 0xe8);
+    squad_elem = tag_block_get_element(
+      (char *)&((encounter_definition *)encounter_elem)->squads,
+      (int)*(short *)(actor + 0x3a), 0xe8);
     crt_sprintf(local_114, "%s/%s", encounter_elem, squad_elem);
   }
 
@@ -6900,11 +6902,12 @@ char FUN_0003d9f0(int actor_handle)
  * 0x3df6d/0x3df83. Confirmed: actor_combat_get_firing_variant_definition =
  * actor_get_unit_speed_record at 0x3ded2. Confirmed: valid_real_normal3d =
  * assert_valid_real_normal3d (3 calls at 0x3e380..0x3e447). Confirmed:
- * valid_real_normal2d = assert_valid_real_normal2d at 0x3e4ac. Confirmed: game_allegiance_get_team_is_friendly
- * = object_is_in_team at 0x3e145. Confirmed: magnitude3d =
- * real_vector3d_length at 0x3e22e. Confirmed: normalize3d =
- * real_vector3d_normalize (in-place) at 0x3e33a. Confirmed: world_up constant
- * pointer at *(float**)0x31fc44 (x,y,z). Confirmed: zero-vector pointer at
+ * valid_real_normal2d = assert_valid_real_normal2d at 0x3e4ac. Confirmed:
+ * game_allegiance_get_team_is_friendly = object_is_in_team at 0x3e145.
+ * Confirmed: magnitude3d = real_vector3d_length at 0x3e22e. Confirmed:
+ * normalize3d = real_vector3d_normalize (in-place) at 0x3e33a. Confirmed:
+ * world_up constant pointer at *(float**)0x31fc44 (x,y,z). Confirmed:
+ * zero-vector pointer at
  * *(float**)0x31fc1c. Confirmed: forward-vector pointer at *(float**)0x31fc3c.
  * Confirmed: float 1.0 at [0x2533c8] (averaging divisor).
  * Confirmed: float 0.0 at [0x2533c0] (length threshold).
@@ -6972,9 +6975,10 @@ void FUN_0003dc20(int actor_handle)
      * Confirmed: component object handle array at swarm+0x18 (4 bytes each).
      * Confirmed: datum_get(swarm_component_data, comp_handle) called TWICE per
      *   iteration (faithful transcription of binary; first result = swarm_comp
-     *   for centroid accumulation, second = dat for object_get_world_position / weapon
-     * handle). Confirmed: object_get_world_position(obj_h, dat+4) at 0x3dd01. Confirmed:
-     * dat+0x10 = no_return (preferred weapon handle or -1). Confirmed: centroid
+     *   for centroid accumulation, second = dat for object_get_world_position /
+     * weapon handle). Confirmed: object_get_world_position(obj_h, dat+4) at
+     * 0x3dd01. Confirmed: dat+0x10 = no_return (preferred weapon handle or -1).
+     * Confirmed: centroid
      * += swarm_comp+4/+8/+0xc (FPU loads from ECX). Confirmed: averaging: 1.0f
      * / count at [0x2533c8] / FILD count. Confirmed: csmemset(actor+0x120, 0,
      * 0xa8) at 0x3dd74–0x3dd82. Confirmed: actor+0x158 = actor+0x164 = -1 at
@@ -7186,9 +7190,9 @@ LAB_3e02c:
   /* Walk child object chain to find equipped weapon and grenade.
    * Confirmed: chain starts at biped+0xc8; next ptr at obj+0xc4.
    * Confirmed: obj+0x64 == 0 → weapon; obj+0x64 == 5 → equipment/grenade.
-   * Confirmed: game_allegiance_get_team_is_friendly(actor+0x3e, obj+0x68) for team membership check.
-   * Confirmed: grenade condition: obj+0x1dc < 0 OR (actor+0x280==2 AND
-   *   child == actor+0x28c). */
+   * Confirmed: game_allegiance_get_team_is_friendly(actor+0x3e, obj+0x68) for
+   * team membership check. Confirmed: grenade condition: obj+0x1dc < 0 OR
+   * (actor+0x280==2 AND child == actor+0x28c). */
   {
     int child = *(int *)(biped + 0xc8);
     while (child != -1) {
@@ -7310,11 +7314,12 @@ LAB_3e02c:
     uy = world_up[2] * lx - lz * world_up[0];
     uz = lz * world_up[1] - world_up[2] * ly;
     /* FPU LIFO store order (orig 0x3e332-0x3e337): the three sub-products are
-     * pushed ux,uy,uz then fstp'd into +0x198,+0x19c,+0x1a0 — popping in REVERSE,
-     * so +0x198 receives the LAST-pushed (uz) and +0x1a0 the FIRST (ux). The prior
-     * lift stored in computation order, swapping the X and Z components (§4 cross-
-     * product / FPU-stack hazard). Invisible when ux==uz (e.g. horizontal look) but
-     * corrupts the look-frame basis the perception cone test (0x314f0) reads. */
+     * pushed ux,uy,uz then fstp'd into +0x198,+0x19c,+0x1a0 — popping in
+     * REVERSE, so +0x198 receives the LAST-pushed (uz) and +0x1a0 the FIRST
+     * (ux). The prior lift stored in computation order, swapping the X and Z
+     * components (§4 cross- product / FPU-stack hazard). Invisible when ux==uz
+     * (e.g. horizontal look) but corrupts the look-frame basis the perception
+     * cone test (0x314f0) reads. */
     *(float *)(actor + 0x198) = uz;
     *(float *)(actor + 0x19c) = uy;
     *(float *)(actor + 0x1a0) = ux;
@@ -7335,12 +7340,13 @@ LAB_3e02c:
     ax = lx * uy - ly * ux;
     ay = ux * lz - lx * uz;
     az = ly * uz - lz * uy;
-    /* FPU LIFO store order (orig 0x3e36e-0x3e37a): products pushed ax,ay,az then
-     * fstp'd into +0x1a4,+0x1a8,+0x1ac — popping in REVERSE, so +0x1a4 receives the
-     * LAST-pushed (az) and +0x1ac the FIRST (ax). The prior lift stored in computation
-     * order, swapping the right-vector X and Z components -> a degenerate look frame
-     * (right ~= look) that fails the perception vision-cone test (0x314f0 reads +0x1a4),
-     * so grunts never visually perceive their target. §4 cross-product / FPU-stack hazard. */
+    /* FPU LIFO store order (orig 0x3e36e-0x3e37a): products pushed ax,ay,az
+     * then fstp'd into +0x1a4,+0x1a8,+0x1ac — popping in REVERSE, so +0x1a4
+     * receives the LAST-pushed (az) and +0x1ac the FIRST (ax). The prior lift
+     * stored in computation order, swapping the right-vector X and Z components
+     * -> a degenerate look frame (right ~= look) that fails the perception
+     * vision-cone test (0x314f0 reads +0x1a4), so grunts never visually
+     * perceive their target. §4 cross-product / FPU-stack hazard. */
     *(float *)(actor + 0x1a4) = az;
     *(float *)(actor + 0x1a8) = ay;
     *(float *)(actor + 0x1ac) = ax;
@@ -7352,7 +7358,8 @@ LAB_3e02c:
    * The file/line/halt args are pre-pushed before csprintf; csprintf result
    * (pointer to buffer) is then pushed as arg1. See disasm 0x3e38c–0x3e3d8.
    * Confirmed: valid_real_normal3d = assert_valid_real_normal3d (3-component).
-   * Confirmed: valid_real_normal2d = assert_valid_real_normal2d (2-component). */
+   * Confirmed: valid_real_normal2d = assert_valid_real_normal2d (2-component).
+   */
   if (!valid_real_normal3d((float *)(actor + 0x174))) {
     csprintf(error_string_buffer, "%s: assert_valid_real_normal3d(%f, %f, %f)",
              "&actor->input.facing_vector", (double)*(float *)(actor + 0x174),
@@ -7537,16 +7544,17 @@ void actors_handle_unit_effect(int unit_handle, short unit_effect, int param_3)
  *   player_input_enabled(); return early if returns non-zero at 0x3ea2a.
  * Confirmed: actor+7 != 0 → unit_set_actively_controlled(actor+0x18, 1) + clear
  * actor+7 at 0x3ea2e..0x3ea43. Confirmed: unit_set_control(actor+0x18,
- * &control) at 0x3ea4f. Confirmed: actor+0x6ec != -1 → unit_apply_animation_impulse(actor+0x18,
- * (int)(uint16)(actor+0x6ec), actor+0x6f0) at 0x3ea65; XOR EAX,EAX; MOV
- * AX,word[ESI+0x6ec] = zero-extend. Confirmed: actor+0x6d4 > 0 →
- * unit_persistent_control(actor+0x18, MOVSX(actor+0x6d4), actor+0x6d8) at
- * 0x3ea85; MOVSX EDX,AX sign-extends the short. Inferred: actor+0x6dc =
- * animation_state_index (maps through 0x256c94 table). Inferred: actor+0x6f0 =
- * pointer/data block passed as 3rd arg to unit_apply_animation_impulse. Inferred: actor+0x6d4 =
- * animation_tick_count (short); actor+0x6d8 = animation control flags dword for
- * unit_persistent_control. Uncertain: exact semantics of unit_apply_animation_impulse's 2nd arg
- * (zero-extended index).
+ * &control) at 0x3ea4f. Confirmed: actor+0x6ec != -1 →
+ * unit_apply_animation_impulse(actor+0x18, (int)(uint16)(actor+0x6ec),
+ * actor+0x6f0) at 0x3ea65; XOR EAX,EAX; MOV AX,word[ESI+0x6ec] = zero-extend.
+ * Confirmed: actor+0x6d4 > 0 → unit_persistent_control(actor+0x18,
+ * MOVSX(actor+0x6d4), actor+0x6d8) at 0x3ea85; MOVSX EDX,AX sign-extends the
+ * short. Inferred: actor+0x6dc = animation_state_index (maps through 0x256c94
+ * table). Inferred: actor+0x6f0 = pointer/data block passed as 3rd arg to
+ * unit_apply_animation_impulse. Inferred: actor+0x6d4 = animation_tick_count
+ * (short); actor+0x6d8 = animation control flags dword for
+ * unit_persistent_control. Uncertain: exact semantics of
+ * unit_apply_animation_impulse's 2nd arg (zero-extended index).
  */
 void FUN_0003e7a0(int actor_handle /* @<eax> */)
 {
@@ -8183,7 +8191,8 @@ int FUN_0003f030(int actv_tag_index, int encounter_index, int squad_index,
     encounter_elem = (char *)tag_block_get_element(
       (char *)global_scenario_get() + 0x42c, encounter_index & 0xffff, 0xb0);
     if (encounter_elem != NULL) {
-      tag_block_get_element(&((encounter_definition *)encounter_elem)->squads, squad_index, 0xe8);
+      tag_block_get_element(&((encounter_definition *)encounter_elem)->squads,
+                            squad_index, 0xe8);
     }
   }
 
@@ -8197,8 +8206,8 @@ int FUN_0003f030(int actv_tag_index, int encounter_index, int squad_index,
   if (encounter_index != -1) {
     encounter_elem = (char *)tag_block_get_element(
       (char *)global_scenario_get() + 0x42c, encounter_index & 0xffff, 0xb0);
-    squad_elem =
-      (char *)tag_block_get_element(&((encounter_definition *)encounter_elem)->squads, squad_index, 0xe8);
+    squad_elem = (char *)tag_block_get_element(
+      &((encounter_definition *)encounter_elem)->squads, squad_index, 0xe8);
     sVar1 = *(short *)(squad_elem + 0x24);
     sVar7 = *(short *)(squad_elem + 0x26);
     encounter_flag =

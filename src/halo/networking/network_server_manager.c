@@ -16,8 +16,8 @@ bool FUN_0012bce0(int param_1, int param_2, short *param_3, short *param_4,
       "c:\\halo\\SOURCE\\networking\\network_messages.c", 0x139, 1);
     system_exit(-1);
   }
-  cVar1 = FUN_0011aa40((int)0x323510, (void *)param_1, (char *)param_2,
-                       param_3, param_4, param_5, (short)param_6);
+  cVar1 = FUN_0011aa40((int)0x323510, (void *)param_1, (char *)param_2, param_3,
+                       param_4, param_5, (short)param_6);
   if (!cVar1) {
     network_game_log("decode_network_game_message() failed");
   }
@@ -764,7 +764,8 @@ char FUN_0012ca00(int param_1, int param_2, int param_3)
  * Sets the server state to 1, clears the timer at +0x484, then copies a
  * "local game data loaded" flag from the client's game-data region into
  * server+0x438.  Asserts if the flag is zero (data not loaded). */
-__declspec(noinline) void network_game_server_all_machines_have_loaded(void *server)
+__declspec(noinline) void
+network_game_server_all_machines_have_loaded(void *server)
 {
   char *s = (char *)server;
   void *client;
@@ -1810,7 +1811,8 @@ __declspec(noinline) bool FUN_0012df50(void *server, void *machine)
   ptr = s + 0x15c;
   for (i = 0; i < 4; i++) {
     if ((short)*(signed char *)ptr == *(short *)(m + 0xc)) {
-      if (!network_game_remove_machine((void *)(s + 8), (void *)(s + 0x11c + i * 0x44))) {
+      if (!network_game_remove_machine((void *)(s + 8),
+                                       (void *)(s + 0x11c + i * 0x44))) {
         error(
           2, "network_game_server_remove_client_machine_from_game() failed to "
              "remove the offending machine from the server's copy of the game");
@@ -2315,9 +2317,10 @@ bool FUN_0012e750(int server)
   flags_ptr = (short *)(s + 0x44a);
   for (i = 0; i < 4; i++) {
     if ((*(short *)flags_ptr & 1) && !(*(short *)flags_ptr & 4)) {
-      if (wide_to_ascii((const wchar_t *)(s + 0x11c +
-                                          (int)*(short *)(flags_ptr - 1) * 0x44),
-                        name_buf, 0x20)) {
+      if (wide_to_ascii(
+            (const wchar_t *)(s + 0x11c +
+                              (int)*(short *)(flags_ptr - 1) * 0x44),
+            name_buf, 0x20)) {
         name = name_buf;
       } else {
         name = "<unknown name>";
@@ -2955,15 +2958,13 @@ bool FUN_0012f5d0(void *server)
     network_game_log(
       "failed to handle a message_server_game_settings_update because their "
       "was no server game");
-  }
-  else {
+  } else {
     csmemcpy(local_buf, (void *)game_data, 0x434);
     msg = encode_network_game_message(6, local_buf, 0x434);
     if (!msg) {
       network_game_log(
         "failed to create a message_server_game_settings_update message");
-    }
-    else {
+    } else {
       result = FUN_0012f430(server, msg);
       if (!result) {
         network_game_log(
@@ -3186,7 +3187,7 @@ char FUN_0012f990(int server, void *machine, void *message, int message_size)
 
         machine_idx_out = -1;
         client_machine = network_game_server_get_client_machine(
-            server, (int)machine, (int *)&machine_idx_out);
+          server, (int)machine, (int *)&machine_idx_out);
         network_game_server_get_game((void *)server);
         if (!client_machine || *(char *)(client_machine + 0x40) < 0 ||
             *(char *)(client_machine + 0x40) >= 4) {

@@ -93,8 +93,8 @@ void FUN_0018ff00(float *out, float *position, float scale, float magnitude)
   bank = 0;
   count = 3;
   do {
-    *phase = ((float)*(int *)0x5064c8 * *ts * scale + *position) *
-             *(float *)0x253f78;
+    *phase =
+      ((float)*(int *)0x5064c8 * *ts * scale + *position) * *(float *)0x253f78;
     *phase_bits &= 0x7fffffff;
     *phase = *phase + *(float *)0x2b229c;
     idx = (*phase_bits & 0x3f) + bank;

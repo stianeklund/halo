@@ -1,3 +1,6 @@
+#include "../../common.h"
+#include "common.h"
+
 /* Close all UI widgets and display the "damaged media" fatal error screen.
  *
  * Loads the "error_abort_to_dashboard_you_have_no_choice" widget by name,
@@ -30,6 +33,39 @@ void display_error_damaged_media(void)
         "ui\\shell\\error\\error_abort_to_dashboard_you_have_no_choice");
   input_frame_end();
   main_halt_entry();
+}
+
+/* ui_widget_display_deferred_errors — flushes the deferred-for-cinematic error
+ * queue (4 records at 0x46cc6c, one per local-player slot, 4 bytes each:
+ * int16 error_handle @+0, uint8 is_modal @+2, uint8 pause_game @+3). Must run
+ * only outside a cinematic; asserts otherwise ("Noooooooooooooooooo!!!",
+ * ui_widget.c line 0x93f, system_exit(-1) flavor). For each valid record
+ * (0 <= handle < 0x28) it re-issues ui_widget_display_error(handle, slot,
+ * is_modal, pause_game), then clears the slot to -1. Ref 0xe8db0. */
+void ui_widget_display_deferred_errors(void)
+{
+  int16_t error_handle;
+  int local_player_index;
+  int16_t *record;
+
+  if (cinematic_in_progress()) {
+    display_assert("Noooooooooooooooooo!!!",
+                   "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x93f, true);
+    system_exit(-1);
+  }
+
+  local_player_index = 0;
+  record = (int16_t *)0x46cc6c;
+  do {
+    error_handle = *record;
+    if (error_handle >= 0 && error_handle < 0x28) {
+      ui_widget_display_error(error_handle, local_player_index, (char)record[1],
+                              *(char *)((int)record + 3));
+    }
+    *record = -1;
+    local_player_index = local_player_index + 1;
+    record = record + 2;
+  } while ((int16_t)local_player_index < 4);
 }
 
 /* Guard wrapper: if param_1 is nonzero, change the selected AI encounter
@@ -2732,7 +2768,6 @@ void FUN_001034e0(int *param_1)
  *   0x103530  FUN_00103530  — depth-first marking walk over a node graph
  */
 
-#include "common.h"
 
 /*
  * FUN_00103530 — depth-first walk of a node graph.
@@ -2823,6 +2858,7 @@ void FUN_00103b80(int base, int obj, int index, int flag)
     (float *)(FUN_00117ee0((int *)(obj + 0x140), tri[3], 0x50) + 8),
     (float *)(FUN_00117ee0((int *)(obj + 0x140), tri[4], 0x50) + 8), flag);
 }
+
 /* Lazily opens the debug VRML output file ("debug.wrl") on the first call,
  * writes the VRML header, flushes it, and caches the FILE* in the global at
  * 0x46e394. Returns whether the handle is non-NULL (open succeeded). The
@@ -2839,13 +2875,13 @@ bool FUN_00103d30(void)
   }
   return *(void **)0x46e394 != NULL;
 }
+
 /* error_geometry.c — debug VRML ("error geometry") output subsystem.
  *
  * Source TU proven by the __FILE__ assert xref
  * "c:\halo\SOURCE\tool\error_geometry.c". Grouped under main.obj alongside its
  * sibling FUN_00103d30 (debug .wrl lazy-open) at 0x103d30.
  */
-#include "../../common.h"
 
 /* FUN_00103de0 (0x103de0)  error_geometry.c:0x44
  *
@@ -2883,37 +2919,4 @@ void FUN_00103de0(char *source)
     }
     FUN_001db4a9();
   }
-}
-
-/* ui_widget_display_deferred_errors — flushes the deferred-for-cinematic error
- * queue (4 records at 0x46cc6c, one per local-player slot, 4 bytes each:
- * int16 error_handle @+0, uint8 is_modal @+2, uint8 pause_game @+3). Must run
- * only outside a cinematic; asserts otherwise ("Noooooooooooooooooo!!!",
- * ui_widget.c line 0x93f, system_exit(-1) flavor). For each valid record
- * (0 <= handle < 0x28) it re-issues ui_widget_display_error(handle, slot,
- * is_modal, pause_game), then clears the slot to -1. Ref 0xe8db0. */
-void ui_widget_display_deferred_errors(void)
-{
-  int16_t error_handle;
-  int local_player_index;
-  int16_t *record;
-
-  if (cinematic_in_progress()) {
-    display_assert("Noooooooooooooooooo!!!",
-                   "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x93f, true);
-    system_exit(-1);
-  }
-
-  local_player_index = 0;
-  record = (int16_t *)0x46cc6c;
-  do {
-    error_handle = *record;
-    if (error_handle >= 0 && error_handle < 0x28) {
-      ui_widget_display_error(error_handle, local_player_index, (char)record[1],
-                              *(char *)((int)record + 3));
-    }
-    *record = -1;
-    local_player_index = local_player_index + 1;
-    record = record + 2;
-  } while ((int16_t)local_player_index < 4);
 }

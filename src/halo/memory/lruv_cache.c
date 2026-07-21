@@ -1,61 +1,39 @@
-/* 0x11c820: Validate an lrar_cache header ('lrar' magic @+0x44, minimum<maximum
- * address, block_size(+0x2c)>=1, block_count(+0x38)>=1). On corruption formats
- * the standard message into the shared scratch buffer (0x5ab100) and hits
- * display_assert + system_exit(-1). cache passed in EAX.
- * Source: c:\halo\SOURCE\memory\lrar_cache.c line 0x199. */
-void lruv_update_function_pointers(int cache)
+/* 0x11c530: Mark a cached block dirty / most-recently-used. Requires a
+ * non-NULL user pointer (asserted, line 0x12a). Runs the cache post-touch
+ * bookkeeping (FUN_0011c290, cache in EAX) then the block-relink step
+ * (FUN_0011c210, cache in EBX + block header in ESI, header = pointer-0x10),
+ * and finally SETS bit0 of the dword at pointer-0xc (header+4), marking the
+ * block in-use. Source: c:\halo\SOURCE\memory\lra_cache.c */
+void FUN_0011c530(int cache, int block)
 {
-  if ((*(int *)(cache + 0x44) != 0x6c726172) ||
-      (*(unsigned int *)(cache + 0x28) <= *(unsigned int *)(cache + 0x24)) ||
-      (*(int *)(cache + 0x2c) < 1) ||
-      (*(short *)(cache + 0x38) < 1)) {
-    display_assert(csprintf((char *)0x5ab100,
-                            "lrar cache %s @%p appears to be corrupt",
-                            cache, cache),
-                   "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x199, 1);
+  int header = block - 0x10;
+  if (block == 0) {
+    display_assert("pointer", "c:\\halo\\SOURCE\\memory\\lra_cache.c", 0x12a,
+                   1);
     system_exit(-1);
   }
+  FUN_0011c290(cache);
+  FUN_0011c210(cache, header);
+  *(unsigned int *)(header + 4) |= 1;
 }
 
-/* 0x11c7c0: Validate an lrar_cache block record ('klbR' magic @block+4, size
- * (block+0xc) in [0, cache->block_size@+0x2c), address (block+8) within the
- * cache's [minimum@+0x24, maximum@+0x28) range). On corruption formats
- * "... block @%p appears to be corrupt" and hits display_assert +
- * system_exit(-1). cache in EAX, block in ESI. Source: lrar_cache.c 0x186. */
-void FUN_0011c7c0(int cache, int block)
+/* 0x11c580: Release a cached block back to its cache. Requires a non-NULL user
+ * pointer (asserted, line 0x13a). The block header sits 0x10 bytes before the
+ * user pointer. Runs the cache post-touch bookkeeping (FUN_0011c290, cache in
+ * EAX) then the block-release step (FUN_0011c210, cache in EBX + header in
+ * ESI), and finally CLEARS bit0 of the dword at pointer-0xc (header+4),
+ * marking the block not-in-use. Source: c:\halo\SOURCE\memory\lra_cache.c */
+void FUN_0011c580(int cache, void *pointer)
 {
-  int size = *(int *)(block + 0xc);
-  if ((*(int *)(block + 4) != 0x52626c6b) ||
-      (size < 0) ||
-      (*(int *)(cache + 0x2c) <= size) ||
-      (*(unsigned int *)(block + 8) < *(unsigned int *)(cache + 0x24)) ||
-      (*(unsigned int *)(cache + 0x28) < *(unsigned int *)(block + 8) + size)) {
-    display_assert(csprintf((char *)0x5ab100,
-                            "lrar cache %s @%p block @%p appears to be corrupt",
-                            cache, cache, block),
-                   "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x186, 1);
+  char *block = (char *)pointer - 0x10;
+  if (pointer == NULL) {
+    display_assert("pointer", "c:\\halo\\SOURCE\\memory\\lra_cache.c", 0x13a,
+                   1);
     system_exit(-1);
   }
-}
-
-/* 0x11ca60: Look up and validate an lrar_cache block record by index. Validates
- * the cache header (lruv_update_function_pointers), bounds-checks block_index
- * against block_count (+0x38; line 0x16e), computes the record pointer
- * (block_index*0x10 + block_array@+0x30), validates it (FUN_0011c7c0), and
- * returns it. block_index in AX, cache in EDI. Source: lrar_cache.c. */
-int FUN_0011ca60(short block_index, int cache)
-{
-  int block;
-
-  lruv_update_function_pointers(cache);
-  if ((block_index < 0) || (*(short *)(cache + 0x38) <= block_index)) {
-    display_assert("block_index>=0 && block_index<cache->block_count",
-                   "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x16e, 1);
-    system_exit(-1);
-  }
-  block = (int)block_index * 0x10 + *(int *)(cache + 0x30);
-  FUN_0011c7c0(cache, block);
-  return block;
+  FUN_0011c290(cache);
+  FUN_0011c210(cache, (int)block);
+  *(unsigned int *)(block + 4) &= 0xfffffffe;
 }
 
 /* 0x11c5d0: Touch an lrar_cache block (FUN_0011c210 relink bookkeeping) and
@@ -65,133 +43,6 @@ int FUN_0011c5d0(int block, int cache)
 {
   FUN_0011c210(cache, block);
   return block - *(int *)(cache + 0x24);
-}
-
-/* 0x11c7a0: Free an lrar_cache block's user allocation. If the block's user
- * pointer (block[0]) is non-NULL, invokes the cache free callback (cache+0x40)
- * on it and clears the slot. block in ESI, cache on the stack.
- * (kb name lruv_allocation_size is a punpckhdq PDB misnomer; this is the
- * per-block free helper.) */
-void lruv_allocation_size(int block, int cache)
-{
-  if (*(int *)block != 0) {
-    (*(void (**)(int))(cache + 0x40))(*(int *)block);
-    *(int *)block = 0;
-  }
-}
-
-/* 0x11d090: Validate an lru_cache header ('curl' magic @+0x44; head@+0x34,
- * block_size@+0x2c, block_array@+0x30 non-zero; maximum@+0x28 ==
- * page_size(+0x20) * page_count(+0x24); page_count>=0x10; used(+0x40) in
- * [0, page_size]). On corruption formats "lru cache %s @%p appears to be
- * corrupt" and hits display_assert + system_exit(-1). cache in EAX.
- * Source: c:\halo\SOURCE\memory\lru_cache.c line 0x16b. */
-void FUN_0011d090(int cache)
-{
-  int page_size;
-
-  if ((*(int *)(cache + 0x44) == 0x6c727563) &&
-      (*(int *)(cache + 0x34) != 0) &&
-      (*(int *)(cache + 0x2c) != 0) &&
-      (*(int *)(cache + 0x30) != 0)) {
-    page_size = *(int *)(cache + 0x20);
-    if ((*(int *)(cache + 0x28) ==
-         page_size * *(unsigned int *)(cache + 0x24)) &&
-        (0xf < *(unsigned int *)(cache + 0x24)) &&
-        (-1 < page_size) &&
-        (-1 < *(int *)(cache + 0x40)) &&
-        (*(int *)(cache + 0x40) <= page_size)) {
-      return;
-    }
-  }
-  display_assert(csprintf((char *)0x5ab100,
-                          "lru cache %s @%p appears to be corrupt",
-                          cache, cache),
-                 "c:\\halo\\SOURCE\\memory\\lru_cache.c", 0x16b, 1);
-  system_exit(-1);
-}
-
-/* 0x11d300: Return an lru_cache's remaining free capacity: page_size(+0x20)
- * minus the used page count (+0x40), after validating the cache header
- * (FUN_0011d090, cache in EAX). cdecl(cache).
- * Source: c:\halo\SOURCE\memory\lru_cache.c */
-int FUN_0011d300(int cache)
-{
-  FUN_0011d090(cache);
-  return *(int *)(cache + 0x20) - *(int *)(cache + 0x40);
-}
-
-/* 0x11d320: lru_cache new-block allocator ('jblU' variant, magic 0x55626c6a).
- * cdecl(cache, value) -> payload pointer (Ghidra's __thiscall/ECX guess is
- * wrong: prologue does MOV ESI,[EBP+8] (cache) and MOV EAX,[EBP+0xc] (value),
- * the epilog is a plain RET, and PUSH ECX at 0x11d323 only reserves the local
- * LRU-serial slot).
- *
- * Validates the 'curl' header (FUN_0011d090, cache in EAX). If the live count
- * (cache+0x40) is below capacity (cache+0x20), it appends a fresh record at
- * cache+0x34 + count*stride(cache+0x24) and bumps the count. Once full it walks
- * all `count` records, validating each (FUN_0011d010), and picks the unlocked
- * block (block+4 bit0 == 0) with the smallest LRU serial (block+8, unsigned) as
- * the eviction victim; if every block is locked it returns NULL. The victim's
- * user pointer (block[0]) is passed to the evict callback (cache+0x30) before
- * reuse.
- *
- * The selected/new block is then initialised: +0x00 = value, +0x04 = magic
- * (bit0 clear/unlocked), +0x08 = next LRU serial (cache+0x3c, post-increment),
- * +0x0c = 0. The init callback (cache+0x2c) is invoked with (value, payload)
- * and the payload pointer (block+0x10) is returned (NULL on failure).
- * Source: c:\halo\SOURCE\memory\lru_cache.c */
-void *FUN_0011d320(int cache, int value)
-{
-  int count;
-  int block;
-  int victim;
-  unsigned int victim_serial;
-  int i;
-
-  victim = 0;
-  FUN_0011d090(cache);                     /* validate 'curl' header (cache@eax) */
-  count = *(int *)(cache + 0x40);          /* +0x40 live block count */
-  if (count == *(int *)(cache + 0x20)) {   /* +0x20 capacity: cache full -> evict LRU */
-    block = *(int *)(cache + 0x34);        /* +0x34 first block record */
-    victim_serial = 0;                     /* dead init; only read once victim != 0 */
-    if (count < 1) {
-      return (void *)0;
-    }
-    i = 0;
-    do {
-      FUN_0011d010(cache, (void *)block);  /* validate block header */
-      if (((*(unsigned char *)(block + 4) & 1) == 0) &&   /* +0x04 bit0 == unlocked */
-          ((victim == 0) ||
-           (*(unsigned int *)(block + 8) < victim_serial))) {  /* +0x08 older serial */
-        victim_serial = *(unsigned int *)(block + 8);
-        victim = block;
-      }
-      i = i + 1;
-      block = block + *(int *)(cache + 0x24);   /* +0x24 stride advance */
-    } while (i < *(int *)(cache + 0x40));        /* re-read count each iter (faithful) */
-    if (victim == 0) {
-      return (void *)0;                          /* all blocks locked */
-    }
-    (*(void (**)(int))(cache + 0x30))(*(int *)victim);  /* +0x30 evict callback(user_ptr) */
-    block = victim;
-  }
-  else {                                   /* room to append */
-    block = *(int *)(cache + 0x24) * count + *(int *)(cache + 0x34);
-    *(int *)(cache + 0x40) = count + 1;
-  }
-
-  if (block == 0) {
-    return (void *)0;
-  }
-  *(int *)block = value;                    /* +0x00 user value */
-  *(int *)(block + 4) = 0x55626c6a;         /* +0x04 'jblU' magic, unlocked */
-  *(int *)(block + 8) = *(int *)(cache + 0x3c);           /* +0x08 LRU serial */
-  *(int *)(cache + 0x3c) = *(int *)(cache + 0x3c) + 1;    /* +0x3c serial clock++ */
-  *(int *)(block + 0xc) = 0;                /* +0x0c link */
-  (*(void (**)(int, void *))(cache + 0x2c))(*(int *)block,
-                                            (void *)(block + 0x10));  /* +0x2c init cb(value,payload) */
-  return (void *)(block + 0x10);            /* +0x10 payload */
 }
 
 /* 0x11c5f0: 'hlbA' least-recently-used contiguous block allocator. Runs the
@@ -237,13 +88,13 @@ void *FUN_0011c5f0(int cache, int size, void *data)
     return (void *)0x0;
   }
 
-  prev_block = *(int **)(cache + 0x2c);   /* head@+0x2c */
+  prev_block = *(int **)(cache + 0x2c); /* head@+0x2c */
   free_block = (int *)0x0;
   wrap_count = 0;
   if (prev_block == (int *)0x0) {
     cur = (int *)0x0;
   } else {
-    cur = (int *)prev_block[3];           /* head->next */
+    cur = (int *)prev_block[3]; /* head->next */
   }
 
   do {
@@ -251,8 +102,7 @@ void *FUN_0011c5f0(int cache, int size, void *data)
       base_offset = 0;
     } else {
       FUN_0011c210(cache, (int)prev_block);
-      base_offset =
-        (prev_block[2] - *(int *)(cache + 0x24)) + (int)prev_block;
+      base_offset = (prev_block[2] - *(int *)(cache + 0x24)) + (int)prev_block;
     }
 
     if (cur == (int *)0x0) {
@@ -261,9 +111,8 @@ void *FUN_0011c5f0(int cache, int size, void *data)
 
     FUN_0011c210(cache, (int)cur);
     FUN_0011c210(cache, (int)cur);
-    if ((base_offset + size) <=
-        (int)((int)cur - *(int *)(cache + 0x24))) {
-      goto cap_check;   /* candidate fits before this block */
+    if ((base_offset + size) <= (int)((int)cur - *(int *)(cache + 0x24))) {
+      goto cap_check; /* candidate fits before this block */
     }
 
     /* current block overlaps the candidate range */
@@ -294,8 +143,7 @@ void *FUN_0011c5f0(int cache, int size, void *data)
       }
     } else {
       /* fits: evict unmarked blocks in [free_block, cur), then write record */
-      for (evict = free_block;
-           (evict != (int *)0x0) && (evict != cur);
+      for (evict = free_block; (evict != (int *)0x0) && (evict != cur);
            evict = (int *)evict[3]) {
         if ((*(unsigned char *)((int)evict + 4) & 2) == 0) {
           (*(void (**)(int))(cache + 0x34))(evict[0]);
@@ -305,10 +153,10 @@ void *FUN_0011c5f0(int cache, int size, void *data)
       }
       new_block = (int *)(*(int *)(cache + 0x24) + base_offset);
       result = (void *)((int)new_block + 0x10);
-      new_block[2] = size;                /* size   @+0x8 */
-      new_block[1] = 0x41626c68;          /* 'hlbA' @+0x4 */
-      new_block[0] = (int)data;           /* data   @+0x0 */
-      new_block[3] = (int)cur;            /* next   @+0xc */
+      new_block[2] = size; /* size   @+0x8 */
+      new_block[1] = 0x41626c68; /* 'hlbA' @+0x4 */
+      new_block[0] = (int)data; /* data   @+0x0 */
+      new_block[3] = (int)cur; /* next   @+0xc */
       (*(void (**)(void *, void *))(cache + 0x30))(data, result);
       if (prev_block != (int *)0x0) {
         prev_block[3] = (int)new_block;
@@ -323,40 +171,192 @@ void *FUN_0011c5f0(int cache, int size, void *data)
   } while (1);
 }
 
-/* 0x11c530: Mark a cached block dirty / most-recently-used. Requires a
- * non-NULL user pointer (asserted, line 0x12a). Runs the cache post-touch
- * bookkeeping (FUN_0011c290, cache in EAX) then the block-relink step
- * (FUN_0011c210, cache in EBX + block header in ESI, header = pointer-0x10),
- * and finally SETS bit0 of the dword at pointer-0xc (header+4), marking the
- * block in-use. Source: c:\halo\SOURCE\memory\lra_cache.c */
-void FUN_0011c530(int cache, int block)
+/* Store a short value through a pointer.
+ * 0x11c780 / lruv_cache.obj
+ */
+void FUN_0011c780(short *param_1, short param_2)
 {
-  int header = block - 0x10;
-  if (block == 0) {
-    display_assert("pointer", "c:\\halo\\SOURCE\\memory\\lra_cache.c", 0x12a, 1);
-    system_exit(-1);
-  }
-  FUN_0011c290(cache);
-  FUN_0011c210(cache, header);
-  *(unsigned int *)(header + 4) |= 1;
+  *param_1 = param_2;
 }
 
-/* 0x11c580: Release a cached block back to its cache. Requires a non-NULL user
- * pointer (asserted, line 0x13a). The block header sits 0x10 bytes before the
- * user pointer. Runs the cache post-touch bookkeeping (FUN_0011c290, cache in
- * EAX) then the block-release step (FUN_0011c210, cache in EBX + header in
- * ESI), and finally CLEARS bit0 of the dword at pointer-0xc (header+4),
- * marking the block not-in-use. Source: c:\halo\SOURCE\memory\lra_cache.c */
-void FUN_0011c580(int cache, void *pointer)
+/* Store 0xffff into a short through a pointer.
+ * 0x11c790 / lruv_cache.obj
+ */
+void FUN_0011c790(short *param_1)
 {
-  char *block = (char *)pointer - 0x10;
-  if (pointer == NULL) {
-    display_assert("pointer", "c:\\halo\\SOURCE\\memory\\lra_cache.c", 0x13a, 1);
+  *param_1 = (short)0xffff;
+}
+
+/* 0x11c7a0: Free an lrar_cache block's user allocation. If the block's user
+ * pointer (block[0]) is non-NULL, invokes the cache free callback (cache+0x40)
+ * on it and clears the slot. block in ESI, cache on the stack.
+ * (kb name lruv_allocation_size is a punpckhdq PDB misnomer; this is the
+ * per-block free helper.) */
+void lruv_allocation_size(int block, int cache)
+{
+  if (*(int *)block != 0) {
+    (*(void (**)(int))(cache + 0x40))(*(int *)block);
+    *(int *)block = 0;
+  }
+}
+
+/* 0x11c7c0: Validate an lrar_cache block record ('klbR' magic @block+4, size
+ * (block+0xc) in [0, cache->block_size@+0x2c), address (block+8) within the
+ * cache's [minimum@+0x24, maximum@+0x28) range). On corruption formats
+ * "... block @%p appears to be corrupt" and hits display_assert +
+ * system_exit(-1). cache in EAX, block in ESI. Source: lrar_cache.c 0x186. */
+void FUN_0011c7c0(int cache, int block)
+{
+  int size = *(int *)(block + 0xc);
+  if ((*(int *)(block + 4) != 0x52626c6b) || (size < 0) ||
+      (*(int *)(cache + 0x2c) <= size) ||
+      (*(unsigned int *)(block + 8) < *(unsigned int *)(cache + 0x24)) ||
+      (*(unsigned int *)(cache + 0x28) < *(unsigned int *)(block + 8) + size)) {
+    display_assert(csprintf((char *)0x5ab100,
+                            "lrar cache %s @%p block @%p appears to be corrupt",
+                            cache, cache, block),
+                   "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x186, 1);
     system_exit(-1);
   }
-  FUN_0011c290(cache);
-  FUN_0011c210(cache, (int)block);
-  *(unsigned int *)(block + 4) &= 0xfffffffe;
+}
+
+/* 0x11c820: Validate an lrar_cache header ('lrar' magic @+0x44, minimum<maximum
+ * address, block_size(+0x2c)>=1, block_count(+0x38)>=1). On corruption formats
+ * the standard message into the shared scratch buffer (0x5ab100) and hits
+ * display_assert + system_exit(-1). cache passed in EAX.
+ * Source: c:\halo\SOURCE\memory\lrar_cache.c line 0x199. */
+void lruv_update_function_pointers(int cache)
+{
+  if ((*(int *)(cache + 0x44) != 0x6c726172) ||
+      (*(unsigned int *)(cache + 0x28) <= *(unsigned int *)(cache + 0x24)) ||
+      (*(int *)(cache + 0x2c) < 1) || (*(short *)(cache + 0x38) < 1)) {
+    display_assert(csprintf((char *)0x5ab100,
+                            "lrar cache %s @%p appears to be corrupt", cache,
+                            cache),
+                   "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x199, 1);
+    system_exit(-1);
+  }
+}
+
+/* 0x11c870: Allocate and initialize an lrar_cache.
+ * Reserves the 0x48-byte cache header (debug_malloc) plus a block_count*0x10
+ * block array, validates the address-range / alignment / boundary / block-count
+ * invariants (each a display_assert + system_exit(-1) on failure), rounds the
+ * minimum address up to the alignment_bit granularity, installs the caller's
+ * lock/unlock callbacks (or the default FUN_0011c780/FUN_0011c790 pair when
+ * either is NULL), fills the header fields, stamps the 'lrar' signature at
+ * +0x44, and refreshes the function-pointer table before returning the cache.
+ * Returns NULL if the block-array allocation fails (frees the header first).
+ * Source: c:\halo\SOURCE\memory\lrar_cache.c */
+void *lrar_cache_new(const char *name, unsigned int minimum_address,
+                     unsigned int maximum_address, short block_count,
+                     short alignment_bit, short boundary_bit,
+                     void (*lock_proc)(short *, short),
+                     void (*unlock_proc)(short *))
+{
+  char *cache;
+  unsigned int alignment_mask;
+  void *blocks;
+
+  cache = (char *)debug_malloc(0x48, 0,
+                               "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x56);
+
+  if (maximum_address <= minimum_address) {
+    display_assert("minimum_address<maximum_address",
+                   "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x58, 1);
+    system_exit(-1);
+  }
+
+  alignment_mask = (1 << ((unsigned char)alignment_bit & 0x1f)) - 1;
+  if ((minimum_address & alignment_mask) != 0) {
+    minimum_address = (alignment_mask | minimum_address) + 1;
+  }
+
+  if (lock_proc == 0 || unlock_proc == 0) {
+    lock_proc = FUN_0011c780;
+    unlock_proc = FUN_0011c790;
+  }
+
+  if (alignment_bit < 0) {
+    display_assert("alignment_bit>=0", "c:\\halo\\SOURCE\\memory\\lrar_cache.c",
+                   0x66, 1);
+    system_exit(-1);
+  }
+  if (boundary_bit != -1 && boundary_bit < 0) {
+    display_assert("boundary_bit==NONE || boundary_bit>=0",
+                   "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x67, 1);
+    system_exit(-1);
+  }
+  if (block_count < 1) {
+    display_assert("block_count>0", "c:\\halo\\SOURCE\\memory\\lrar_cache.c",
+                   0x68, 1);
+    system_exit(-1);
+  }
+
+  if (cache != 0) {
+    blocks = debug_malloc((int)block_count << 4, 0,
+                          "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x6c);
+    if (blocks == 0) {
+      debug_free(cache, "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x8a);
+      return 0;
+    }
+    csmemset(cache, 0, 0x48);
+    csmemset(blocks, 0, (int)block_count << 4);
+    csstrncpy(cache, name, 0x1f);
+    *(unsigned int *)(cache + 0x24) = minimum_address;
+    *(unsigned int *)(cache + 0x28) = maximum_address;
+    *(short *)(cache + 0x22) = boundary_bit;
+    *(unsigned short *)(cache + 0x34) = 0xffff;
+    *(unsigned short *)(cache + 0x36) = 0xffff;
+    *(short *)(cache + 0x20) = alignment_bit;
+    *(void (**)(short *, short))(cache + 0x3c) = lock_proc;
+    *(unsigned char *)(cache + 0x1f) = 0;
+    *(unsigned int *)(cache + 0x2c) = maximum_address - minimum_address;
+    *(void **)(cache + 0x30) = blocks;
+    *(short *)(cache + 0x38) = block_count;
+    *(void (**)(short *))(cache + 0x40) = unlock_proc;
+    *(unsigned int *)(cache + 0x44) = 0x6c726172;
+    lruv_update_function_pointers((int)cache);
+  }
+
+  return cache;
+}
+
+/* 0x11ca20: Dispose of an lrar_cache. Refreshes the cache's function-pointer
+ * table (lruv_update_function_pointers, cache passed in EAX), then frees the
+ * block sub-buffer stored at cache+0x30 and finally the cache header itself,
+ * each via debug_free. Asserts against c:\halo\SOURCE\memory\lrar_cache.c
+ * lines 0x98/0x99. NOTE: the kb placeholder name "lruv_has_locked_proc" is a
+ * stale misnomer; this routine is a destructor, not a predicate. Disasm:
+ * mov esi,[ebp+8]; mov eax,esi; call 0x11c820; mov eax,[esi+0x30];
+ * push 0x98; push <file>; push eax; call debug_free; push 0x99; push <file>;
+ * push esi; call debug_free. */
+void lruv_has_locked_proc(void *cache)
+{
+  lruv_update_function_pointers((int)cache);
+  debug_free(*(void **)((char *)cache + 0x30),
+             "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x98);
+  debug_free(cache, "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x99);
+}
+
+/* 0x11ca60: Look up and validate an lrar_cache block record by index. Validates
+ * the cache header (lruv_update_function_pointers), bounds-checks block_index
+ * against block_count (+0x38; line 0x16e), computes the record pointer
+ * (block_index*0x10 + block_array@+0x30), validates it (FUN_0011c7c0), and
+ * returns it. block_index in AX, cache in EDI. Source: lrar_cache.c. */
+int FUN_0011ca60(short block_index, int cache)
+{
+  int block;
+
+  lruv_update_function_pointers(cache);
+  if ((block_index < 0) || (*(short *)(cache + 0x38) <= block_index)) {
+    display_assert("block_index>=0 && block_index<cache->block_count",
+                   "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x16e, 1);
+    system_exit(-1);
+  }
+  block = (int)block_index * 0x10 + *(int *)(cache + 0x30);
+  FUN_0011c7c0(cache, block);
+  return block;
 }
 
 /* 0x11cab0: Dispose of every live block in an lrar_cache. Refreshes the
@@ -383,9 +383,9 @@ void lrar_cache_dispose(int cache)
   while (block_index != -1) {
     while (1) {
       if ((*(int *)(cache + 0x44) != 0x6c726172) ||
-          (*(unsigned int *)(cache + 0x28) <= *(unsigned int *)(cache + 0x24)) ||
-          (*(int *)(cache + 0x2c) < 1) ||
-          (*(short *)(cache + 0x38) <= 0)) {
+          (*(unsigned int *)(cache + 0x28) <=
+           *(unsigned int *)(cache + 0x24)) ||
+          (*(int *)(cache + 0x2c) < 1) || (*(short *)(cache + 0x38) <= 0)) {
         display_assert(csprintf((char *)0x5ab100,
                                 "lrar cache %s @%p appears to be corrupt",
                                 cache, cache),
@@ -399,16 +399,16 @@ void lrar_cache_dispose(int cache)
       }
       block = (int *)(block_index * 0x10 + *(int *)(cache + 0x30));
       block_size = block[3];
-      if ((block[1] != 0x52626c6b) ||
-          (block_size < 0) ||
+      if ((block[1] != 0x52626c6b) || (block_size < 0) ||
           (*(int *)(cache + 0x2c) <= block_size) ||
           ((unsigned int)block[2] < *(unsigned int *)(cache + 0x24)) ||
           (*(unsigned int *)(cache + 0x28) <
            (unsigned int)(block[2] + block_size))) {
-        display_assert(csprintf((char *)0x5ab100,
-                                "lrar cache %s @%p block @%p appears to be corrupt",
-                                cache, cache, block),
-                       "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x186, 1);
+        display_assert(
+          csprintf((char *)0x5ab100,
+                   "lrar cache %s @%p block @%p appears to be corrupt", cache,
+                   cache, block),
+          "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x186, 1);
         system_exit(-1);
       }
       if (*block != 0) {
@@ -595,123 +595,6 @@ short FUN_0011cbf0(int cache, int size, void *data)
   return (short)new_block_index;
 }
 
-/* Store a short value through a pointer.
- * 0x11c780 / lruv_cache.obj
- */
-void FUN_0011c780(short *param_1, short param_2)
-{
-  *param_1 = param_2;
-}
-
-/* Store 0xffff into a short through a pointer.
- * 0x11c790 / lruv_cache.obj
- */
-void FUN_0011c790(short *param_1)
-{
-  *param_1 = (short)0xffff;
-}
-
-/* 0x11c870: Allocate and initialize an lrar_cache.
- * Reserves the 0x48-byte cache header (debug_malloc) plus a block_count*0x10
- * block array, validates the address-range / alignment / boundary / block-count
- * invariants (each a display_assert + system_exit(-1) on failure), rounds the
- * minimum address up to the alignment_bit granularity, installs the caller's
- * lock/unlock callbacks (or the default FUN_0011c780/FUN_0011c790 pair when
- * either is NULL), fills the header fields, stamps the 'lrar' signature at
- * +0x44, and refreshes the function-pointer table before returning the cache.
- * Returns NULL if the block-array allocation fails (frees the header first).
- * Source: c:\halo\SOURCE\memory\lrar_cache.c */
-void *lrar_cache_new(const char *name, unsigned int minimum_address,
-                     unsigned int maximum_address, short block_count,
-                     short alignment_bit, short boundary_bit,
-                     void (*lock_proc)(short *, short),
-                     void (*unlock_proc)(short *))
-{
-  char *cache;
-  unsigned int alignment_mask;
-  void *blocks;
-
-  cache = (char *)debug_malloc(0x48, 0,
-                               "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x56);
-
-  if (maximum_address <= minimum_address) {
-    display_assert("minimum_address<maximum_address",
-                   "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x58, 1);
-    system_exit(-1);
-  }
-
-  alignment_mask = (1 << ((unsigned char)alignment_bit & 0x1f)) - 1;
-  if ((minimum_address & alignment_mask) != 0) {
-    minimum_address = (alignment_mask | minimum_address) + 1;
-  }
-
-  if (lock_proc == 0 || unlock_proc == 0) {
-    lock_proc = FUN_0011c780;
-    unlock_proc = FUN_0011c790;
-  }
-
-  if (alignment_bit < 0) {
-    display_assert("alignment_bit>=0", "c:\\halo\\SOURCE\\memory\\lrar_cache.c",
-                   0x66, 1);
-    system_exit(-1);
-  }
-  if (boundary_bit != -1 && boundary_bit < 0) {
-    display_assert("boundary_bit==NONE || boundary_bit>=0",
-                   "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x67, 1);
-    system_exit(-1);
-  }
-  if (block_count < 1) {
-    display_assert("block_count>0", "c:\\halo\\SOURCE\\memory\\lrar_cache.c",
-                   0x68, 1);
-    system_exit(-1);
-  }
-
-  if (cache != 0) {
-    blocks = debug_malloc((int)block_count << 4, 0,
-                          "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x6c);
-    if (blocks == 0) {
-      debug_free(cache, "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x8a);
-      return 0;
-    }
-    csmemset(cache, 0, 0x48);
-    csmemset(blocks, 0, (int)block_count << 4);
-    csstrncpy(cache, name, 0x1f);
-    *(unsigned int *)(cache + 0x24) = minimum_address;
-    *(unsigned int *)(cache + 0x28) = maximum_address;
-    *(short *)(cache + 0x22) = boundary_bit;
-    *(unsigned short *)(cache + 0x34) = 0xffff;
-    *(unsigned short *)(cache + 0x36) = 0xffff;
-    *(short *)(cache + 0x20) = alignment_bit;
-    *(void (**)(short *, short))(cache + 0x3c) = lock_proc;
-    *(unsigned char *)(cache + 0x1f) = 0;
-    *(unsigned int *)(cache + 0x2c) = maximum_address - minimum_address;
-    *(void **)(cache + 0x30) = blocks;
-    *(short *)(cache + 0x38) = block_count;
-    *(void (**)(short *))(cache + 0x40) = unlock_proc;
-    *(unsigned int *)(cache + 0x44) = 0x6c726172;
-    lruv_update_function_pointers((int)cache);
-  }
-
-  return cache;
-}
-
-/* 0x11ca20: Dispose of an lrar_cache. Refreshes the cache's function-pointer
- * table (lruv_update_function_pointers, cache passed in EAX), then frees the
- * block sub-buffer stored at cache+0x30 and finally the cache header itself,
- * each via debug_free. Asserts against c:\halo\SOURCE\memory\lrar_cache.c
- * lines 0x98/0x99. NOTE: the kb placeholder name "lruv_has_locked_proc" is a
- * stale misnomer; this routine is a destructor, not a predicate. Disasm:
- * mov esi,[ebp+8]; mov eax,esi; call 0x11c820; mov eax,[esi+0x30];
- * push 0x98; push <file>; push eax; call debug_free; push 0x99; push <file>;
- * push esi; call debug_free. */
-void lruv_has_locked_proc(void *cache)
-{
-  lruv_update_function_pointers((int)cache);
-  debug_free(*(void **)((char *)cache + 0x30),
-             "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x98);
-  debug_free(cache, "c:\\halo\\SOURCE\\memory\\lrar_cache.c", 0x99);
-}
-
 /* 0x11cf00: lrar_cache block getter. Returns the data pointer stored at
  * offset 8 of block_array[block_index]. This belongs to the sibling
  * "lrar_cache" (asserts against c:\halo\SOURCE\memory\lrar_cache.c) that
@@ -862,6 +745,34 @@ void FUN_0011d010(int cache, void *entry)
   system_exit(-1);
 }
 
+/* 0x11d090: Validate an lru_cache header ('curl' magic @+0x44; head@+0x34,
+ * block_size@+0x2c, block_array@+0x30 non-zero; maximum@+0x28 ==
+ * page_size(+0x20) * page_count(+0x24); page_count>=0x10; used(+0x40) in
+ * [0, page_size]). On corruption formats "lru cache %s @%p appears to be
+ * corrupt" and hits display_assert + system_exit(-1). cache in EAX.
+ * Source: c:\halo\SOURCE\memory\lru_cache.c line 0x16b. */
+void FUN_0011d090(int cache)
+{
+  int page_size;
+
+  if ((*(int *)(cache + 0x44) == 0x6c727563) && (*(int *)(cache + 0x34) != 0) &&
+      (*(int *)(cache + 0x2c) != 0) && (*(int *)(cache + 0x30) != 0)) {
+    page_size = *(int *)(cache + 0x20);
+    if ((*(int *)(cache + 0x28) ==
+         page_size * *(unsigned int *)(cache + 0x24)) &&
+        (0xf < *(unsigned int *)(cache + 0x24)) && (-1 < page_size) &&
+        (-1 < *(int *)(cache + 0x40)) &&
+        (*(int *)(cache + 0x40) <= page_size)) {
+      return;
+    }
+  }
+  display_assert(csprintf((char *)0x5ab100,
+                          "lru cache %s @%p appears to be corrupt", cache,
+                          cache),
+                 "c:\\halo\\SOURCE\\memory\\lru_cache.c", 0x16b, 1);
+  system_exit(-1);
+}
+
 /* 0x11d110: Allocate and initialize an lru_cache. Rounds the per-element size
  * (block_size + 0x10 block header) up to a 4-byte multiple, derives the
  * element count from total_size, and allocates the 0x48-byte cache header. If
@@ -974,6 +885,93 @@ void FUN_0011d2a0(int cache)
     entry = (int *)((int)entry + *(int *)(cache + 0x24));
   } while (index < *(int *)(cache + 0x40));
   *(int *)(cache + 0x40) = 0;
+}
+
+/* 0x11d300: Return an lru_cache's remaining free capacity: page_size(+0x20)
+ * minus the used page count (+0x40), after validating the cache header
+ * (FUN_0011d090, cache in EAX). cdecl(cache).
+ * Source: c:\halo\SOURCE\memory\lru_cache.c */
+int FUN_0011d300(int cache)
+{
+  FUN_0011d090(cache);
+  return *(int *)(cache + 0x20) - *(int *)(cache + 0x40);
+}
+
+/* 0x11d320: lru_cache new-block allocator ('jblU' variant, magic 0x55626c6a).
+ * cdecl(cache, value) -> payload pointer (Ghidra's __thiscall/ECX guess is
+ * wrong: prologue does MOV ESI,[EBP+8] (cache) and MOV EAX,[EBP+0xc] (value),
+ * the epilog is a plain RET, and PUSH ECX at 0x11d323 only reserves the local
+ * LRU-serial slot).
+ *
+ * Validates the 'curl' header (FUN_0011d090, cache in EAX). If the live count
+ * (cache+0x40) is below capacity (cache+0x20), it appends a fresh record at
+ * cache+0x34 + count*stride(cache+0x24) and bumps the count. Once full it walks
+ * all `count` records, validating each (FUN_0011d010), and picks the unlocked
+ * block (block+4 bit0 == 0) with the smallest LRU serial (block+8, unsigned) as
+ * the eviction victim; if every block is locked it returns NULL. The victim's
+ * user pointer (block[0]) is passed to the evict callback (cache+0x30) before
+ * reuse.
+ *
+ * The selected/new block is then initialised: +0x00 = value, +0x04 = magic
+ * (bit0 clear/unlocked), +0x08 = next LRU serial (cache+0x3c, post-increment),
+ * +0x0c = 0. The init callback (cache+0x2c) is invoked with (value, payload)
+ * and the payload pointer (block+0x10) is returned (NULL on failure).
+ * Source: c:\halo\SOURCE\memory\lru_cache.c */
+void *FUN_0011d320(int cache, int value)
+{
+  int count;
+  int block;
+  int victim;
+  unsigned int victim_serial;
+  int i;
+
+  victim = 0;
+  FUN_0011d090(cache); /* validate 'curl' header (cache@eax) */
+  count = *(int *)(cache + 0x40); /* +0x40 live block count */
+  if (count ==
+      *(int *)(cache + 0x20)) { /* +0x20 capacity: cache full -> evict LRU */
+    block = *(int *)(cache + 0x34); /* +0x34 first block record */
+    victim_serial = 0; /* dead init; only read once victim != 0 */
+    if (count < 1) {
+      return (void *)0;
+    }
+    i = 0;
+    do {
+      FUN_0011d010(cache, (void *)block); /* validate block header */
+      if (((*(unsigned char *)(block + 4) & 1) ==
+           0) && /* +0x04 bit0 == unlocked */
+          ((victim == 0) || (*(unsigned int *)(block + 8) <
+                             victim_serial))) { /* +0x08 older serial */
+        victim_serial = *(unsigned int *)(block + 8);
+        victim = block;
+      }
+      i = i + 1;
+      block = block + *(int *)(cache + 0x24); /* +0x24 stride advance */
+    } while (i <
+             *(int *)(cache + 0x40)); /* re-read count each iter (faithful) */
+    if (victim == 0) {
+      return (void *)0; /* all blocks locked */
+    }
+    (*(void (**)(int))(cache + 0x30))(
+      *(int *)victim); /* +0x30 evict callback(user_ptr) */
+    block = victim;
+  } else { /* room to append */
+    block = *(int *)(cache + 0x24) * count + *(int *)(cache + 0x34);
+    *(int *)(cache + 0x40) = count + 1;
+  }
+
+  if (block == 0) {
+    return (void *)0;
+  }
+  *(int *)block = value; /* +0x00 user value */
+  *(int *)(block + 4) = 0x55626c6a; /* +0x04 'jblU' magic, unlocked */
+  *(int *)(block + 8) = *(int *)(cache + 0x3c); /* +0x08 LRU serial */
+  *(int *)(cache + 0x3c) =
+    *(int *)(cache + 0x3c) + 1; /* +0x3c serial clock++ */
+  *(int *)(block + 0xc) = 0; /* +0x0c link */
+  (*(void (**)(int, void *))(cache + 0x2c))(
+    *(int *)block, (void *)(block + 0x10)); /* +0x2c init cb(value,payload) */
+  return (void *)(block + 0x10); /* +0x10 payload */
 }
 
 /* 0x11d3f0: lru_cache entry commit helper.
@@ -1474,21 +1472,6 @@ void lruv_cache_dispose_all(void *cache)
   }
 }
 
-/* 0x1bfe90: Allocate and initialize a new lruv_cache from game state memory.
- * Returns a pointer to the initialized cache. */
-void *lruv_cache_new(const char *name, int capacity, int max_locked,
-                     int entry_size, void (*delete_cb)(int),
-                     int (*query_cb)(int))
-{
-  int alloc_size = lruv_cache_allocation_size(entry_size);
-  void *cache = game_state_malloc(name, "lruv cache", alloc_size);
-
-  lruv_cache_initialize(cache, (int)name, capacity, max_locked, entry_size,
-                        delete_cb, query_cb);
-
-  return cache;
-}
-
 /* FUN_0011de10  (0x11de10)  lruv_cache.obj  -  lru_cache "new block" allocator.
  *
  * int FUN_0011de10(lruv_cache_t *cache, unsigned int size)
@@ -1510,11 +1493,13 @@ void *lruv_cache_new(const char *name, int capacity, int max_locked,
  * its usage stamp (block+0x14) equals cache->field_30. NONE = -1. All stamp
  * compares are unsigned; all page-count compares signed. Verified against
  * disassembly 0x11de10-0x11e325. Asserts: c:\halo\SOURCE\memory\lruv_cache.c.
- * Frame is > 0x1000 (int holes[1024]) so MSVC emits _chkstk; clang covers it. */
+ * Frame is > 0x1000 (int holes[1024]) so MSVC emits _chkstk; clang covers it.
+ */
 int FUN_0011de10(void *cache, unsigned int size)
 {
   lruv_cache_t *c = (lruv_cache_t *)cache;
-  int holes[1024];              /* 256 holes x {block_index,max_stamp,start_page,page_count} */
+  int
+    holes[1024]; /* 256 holes x {block_index,max_stamp,start_page,page_count} */
   data_iter_t iter;
   lruv_cache_block_t *block;
   lruv_cache_block_t *rec;
@@ -1524,31 +1509,32 @@ int FUN_0011de10(void *cache, unsigned int size)
 
   int shift;
   int desired_page_count;
-  int accumulator;              /* current page position along the walk (EDI) */
-  int walk_cursor;              /* current block datum handle, or NONE (EBP-0xc) */
-  int pending_hole_block_index; /* block that will own the next opened hole (EBP-0x20) */
+  int accumulator; /* current page position along the walk (EDI) */
+  int walk_cursor; /* current block datum handle, or NONE (EBP-0xc) */
+  int pending_hole_block_index; /* block that will own the next opened hole
+                                   (EBP-0x20) */
 
-  int hole_write;               /* ring write cursor (EBP-0x8) */
-  int hole_read;                /* ring finalize/read cursor (EBP-0x4) */
-  int read_cursor;              /* per-segment accumulate cursor (SI) */
+  int hole_write; /* ring write cursor (EBP-0x8) */
+  int hole_read; /* ring finalize/read cursor (EBP-0x4) */
+  int read_cursor; /* per-segment accumulate cursor (SI) */
   int saved_read;
   int next_write;
-  int base;                     /* holes[] element base = cursor*4 */
+  int base; /* holes[] element base = cursor*4 */
 
-  unsigned int segment_stamp;   /* EBP-0x1c */
-  int segment_page_count;       /* EBP-0x10 */
+  unsigned int segment_stamp; /* EBP-0x1c */
+  int segment_page_count; /* EBP-0x10 */
   int locked;
   int skip_accumulate;
 
-  int oldest_unlocked_block;    /* EBP-0x18 */
+  int oldest_unlocked_block; /* EBP-0x18 */
   unsigned int oldest_unlocked_stamp; /* EBP-0x38 */
   unsigned int block_stamp;
 
-  int have_best;                /* EBP+0xf */
-  int best_block_index;         /* EBP-0x30 */
-  unsigned int best_max_stamp;  /* EBP-0x2c */
-  int best_start_page;          /* EBP-0x28 */
-  int best_page_count;          /* EBP-0x24 */
+  int have_best; /* EBP+0xf */
+  int best_block_index; /* EBP-0x30 */
+  unsigned int best_max_stamp; /* EBP-0x2c */
+  int best_start_page; /* EBP-0x28 */
+  int best_page_count; /* EBP-0x24 */
 
   int new_block_index;
   int region_end;
@@ -1593,9 +1579,9 @@ int FUN_0011de10(void *cache, unsigned int size)
     if (next_write != hole_read) {
       base = hole_write * 4;
       holes[base + 0] = pending_hole_block_index; /* owning block, or NONE */
-      holes[base + 2] = accumulator;              /* start_page */
-      holes[base + 1] = 0;                        /* max_stamp  */
-      holes[base + 3] = 0;                        /* page_count */
+      holes[base + 2] = accumulator; /* start_page */
+      holes[base + 1] = 0; /* max_stamp  */
+      holes[base + 3] = 0; /* page_count */
       hole_write = (hole_write == 0xff) ? 0 : (hole_write + 1);
     }
 
@@ -1608,7 +1594,8 @@ int FUN_0011de10(void *cache, unsigned int size)
       block = (lruv_cache_block_t *)datum_get(c->blocks, walk_cursor);
       if (accumulator == block->first_page_index) {
         /* contiguous block segment */
-        block_stamp = *(unsigned int *)&block->unk_14[0]; /* usage stamp @ +0x14 */
+        block_stamp =
+          *(unsigned int *)&block->unk_14[0]; /* usage stamp @ +0x14 */
         segment_stamp = block_stamp;
         segment_page_count = block->page_count;
         locked = 0;
@@ -1620,16 +1607,19 @@ int FUN_0011de10(void *cache, unsigned int size)
         if (block_stamp == (unsigned int)c->field_30) {
           locked = 1;
         } else if (!locked) {
-          if (oldest_unlocked_block == -1 || block_stamp < oldest_unlocked_stamp) {
+          if (oldest_unlocked_block == -1 ||
+              block_stamp < oldest_unlocked_stamp) {
             oldest_unlocked_block = walk_cursor;
             oldest_unlocked_stamp = block_stamp;
           }
         }
         pending_hole_block_index = walk_cursor;
         walk_cursor = block->next_block_index;
-        accumulator = block->first_page_index + block->page_count; /* block end */
+        accumulator =
+          block->first_page_index + block->page_count; /* block end */
         if (locked) {
-          hole_read = hole_write;     /* a locked block breaks contiguity: flush ring */
+          hole_read =
+            hole_write; /* a locked block breaks contiguity: flush ring */
           skip_accumulate = 1;
         }
       } else {
@@ -1656,14 +1646,13 @@ int FUN_0011de10(void *cache, unsigned int size)
         }
         holes[base + 3] = holes[base + 3] + segment_page_count;
         if (holes[base + 3] >= desired_page_count) {
-          if (!have_best
-              || (unsigned int)holes[base + 1] < best_max_stamp
-              || ((unsigned int)holes[base + 1] == best_max_stamp
-                  && holes[base + 3] < best_page_count)) {
+          if (!have_best || (unsigned int)holes[base + 1] < best_max_stamp ||
+              ((unsigned int)holes[base + 1] == best_max_stamp &&
+               holes[base + 3] < best_page_count)) {
             best_block_index = holes[base + 0];
-            best_max_stamp   = (unsigned int)holes[base + 1];
-            best_start_page  = holes[base + 2];
-            best_page_count  = holes[base + 3];
+            best_max_stamp = (unsigned int)holes[base + 1];
+            best_start_page = holes[base + 2];
+            best_page_count = holes[base + 3];
             have_best = 1;
           }
           if (hole_read != read_cursor) {
@@ -1696,9 +1685,9 @@ int FUN_0011de10(void *cache, unsigned int size)
     if (rec->first_page_index < region_end && block_end > best_start_page) {
       if (c->query_cb != 0) {
         if (c->query_cb(iter.datum_handle) != 0) {
-          display_assert(
-              "!cache->locked_block_proc || !cache->locked_block_proc(iterator.index)",
-              "c:\\halo\\SOURCE\\memory\\lruv_cache.c", 0x177, 1);
+          display_assert("!cache->locked_block_proc || "
+                         "!cache->locked_block_proc(iterator.index)",
+                         "c:\\halo\\SOURCE\\memory\\lruv_cache.c", 0x177, 1);
           system_exit(-1);
         }
       }
@@ -1708,7 +1697,8 @@ int FUN_0011de10(void *cache, unsigned int size)
   }
 
   /* datum pool exhausted: also evict the tracked oldest-unlocked block. */
-  if (c->blocks->unk_48 == c->blocks->maximum_count && oldest_unlocked_block != -1) {
+  if (c->blocks->unk_48 == c->blocks->maximum_count &&
+      oldest_unlocked_block != -1) {
     if (best_block_index == oldest_unlocked_block) {
       rec = (lruv_cache_block_t *)datum_get(c->blocks, oldest_unlocked_block);
       best_block_index = rec->previous_block_index;
@@ -1720,9 +1710,9 @@ int FUN_0011de10(void *cache, unsigned int size)
     }
     if (c->query_cb != 0) {
       if (c->query_cb(oldest_unlocked_block) != 0) {
-        display_assert(
-            "!cache->locked_block_proc || !cache->locked_block_proc(oldest_unlocked_block_index)",
-            "c:\\halo\\SOURCE\\memory\\lruv_cache.c", 0x189, 1);
+        display_assert("!cache->locked_block_proc || "
+                       "!cache->locked_block_proc(oldest_unlocked_block_index)",
+                       "c:\\halo\\SOURCE\\memory\\lruv_cache.c", 0x189, 1);
         system_exit(-1);
       }
     }
@@ -1750,7 +1740,8 @@ int FUN_0011de10(void *cache, unsigned int size)
       c->first_block_index = new_block_index;
     } else {
       /* insert before the current head */
-      head_rec = (lruv_cache_block_t *)datum_get(c->blocks, c->first_block_index);
+      head_rec =
+        (lruv_cache_block_t *)datum_get(c->blocks, c->first_block_index);
       if (head_rec->previous_block_index != -1) {
         display_assert("next_block->previous_block_index==NONE",
                        "c:\\halo\\SOURCE\\memory\\lruv_cache.c", 0x1a0, 1);
@@ -1765,7 +1756,8 @@ int FUN_0011de10(void *cache, unsigned int size)
     /* insert immediately after best_block_index */
     rec = (lruv_cache_block_t *)datum_get(c->blocks, best_block_index);
     if (rec->next_block_index != -1) {
-      next_rec = (lruv_cache_block_t *)datum_get(c->blocks, rec->next_block_index);
+      next_rec =
+        (lruv_cache_block_t *)datum_get(c->blocks, rec->next_block_index);
       new_rec->previous_block_index = next_rec->previous_block_index;
       next_rec->previous_block_index = new_block_index;
     } else {
@@ -1782,4 +1774,19 @@ int FUN_0011de10(void *cache, unsigned int size)
   *(int *)&new_rec->unk_14[0] = c->field_30;
   lruv_cache_verify(c, 1);
   return new_block_index;
+}
+
+/* 0x1bfe90: Allocate and initialize a new lruv_cache from game state memory.
+ * Returns a pointer to the initialized cache. */
+void *lruv_cache_new(const char *name, int capacity, int max_locked,
+                     int entry_size, void (*delete_cb)(int),
+                     int (*query_cb)(int))
+{
+  int alloc_size = lruv_cache_allocation_size(entry_size);
+  void *cache = game_state_malloc(name, "lruv cache", alloc_size);
+
+  lruv_cache_initialize(cache, (int)name, capacity, max_locked, entry_size,
+                        delete_cb, query_cb);
+
+  return cache;
 }

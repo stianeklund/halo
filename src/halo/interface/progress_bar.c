@@ -347,14 +347,15 @@ void progress_bar_generate_gradient_texture(void)
 
   for (row = 0; row < 16; row++) {
     /* Row brightness envelope: pow(sin(row * (1/15) * pi), 0.75) */
-    row_factor = (float)pow(x87_fsin((float)row * 0.066666670f * 3.14150f), 0.75);
+    row_factor =
+      (float)pow(x87_fsin((float)row * 0.066666670f * 3.14150f), 0.75);
 
     for (col = 0; col < 128; col++) {
       /* Column intensity: sin(col * (1/127) * pi) * row_factor * (250/255) +
        * (5/255) */
-      float intensity =
-        x87_fsin((float)col * 0.0078740157f * 3.14150f) * row_factor * 0.98039216f +
-        0.019607844f;
+      float intensity = x87_fsin((float)col * 0.0078740157f * 3.14150f) *
+                          row_factor * 0.98039216f +
+                        0.019607844f;
       val = (uint32_t)(int)(intensity * 255.0f) & 0xff;
       /* Replicate val across all 4 channels: AARRGGBB */
       *pixels = ((val << 8 | val) << 8 | val) << 8 | val;
@@ -690,10 +691,10 @@ void progress_bar_screen_initialize(void)
  * intensity. Confirmed: D3D transforms saved to 0x46c258/0x46c298/0x46c218,
  *   loading bar transforms set from 0x46c358/0x46c398/0x46c318.
  * Confirmed: render states: alpha blend enable, src/dst blend 0x302, blend
- * op 1. Confirmed: progress_bar_draw_fullscreen_overlay called with (0, 0, fade_alpha) cdecl.
- * Confirmed: progress_bar_draw_loading_bar called with EAX=rect, ECX=color, stack=(1.0f,
- * progress) cdecl. Confirmed: system_milliseconds stored to 0x5aa670 for
- * timeout tracking.
+ * op 1. Confirmed: progress_bar_draw_fullscreen_overlay called with (0, 0,
+ * fade_alpha) cdecl. Confirmed: progress_bar_draw_loading_bar called with
+ * EAX=rect, ECX=color, stack=(1.0f, progress) cdecl. Confirmed:
+ * system_milliseconds stored to 0x5aa670 for timeout tracking.
  */
 /* 0xe2e50 */
 void progress_bar_render(float normalized_progress)
@@ -761,7 +762,8 @@ void progress_bar_render(float normalized_progress)
     /* Set volume if this sound buffer is valid */
     if (*(int *)(0x46c3d8 + i * 4) != 0) {
       int volume =
-        (int)((float)pow(x87_fsin(factor * 3.1415), 0.3) * volumes[i] - 5000.0f);
+        (int)((float)pow(x87_fsin(factor * 3.1415), 0.3) * volumes[i] -
+              5000.0f);
       IDirectSoundBuffer_SetVolume(*(void **)(0x46c3d8 + i * 4), volume);
     }
   }

@@ -836,9 +836,10 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
   void *scenario_h;
   char local_buf[0x434];
   float saved_dist;
-  float local_18[4]; /* fog plane {normal[0..2], d} — must stay contiguous so
-                      * &local_18 is a valid real_plane3d for
-                      * plane3d_distance_to_point (matches original EBP-0x1c). */
+  float
+    local_18[4]; /* fog plane {normal[0..2], d} — must stay contiguous so
+                  * &local_18 is a valid real_plane3d for
+                  * plane3d_distance_to_point (matches original EBP-0x1c). */
   float local_10[3];
   float local_c;
   int iter_state;
@@ -1027,9 +1028,10 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
         pg = tag_block_get_element((char *)scen + 0x184, (int)pg_idx, 0x28);
         /* Original reads pg_surf as a SIGNED 16-bit word (movsx eax,word ptr
          * [eax+0x24] @0x14e23b), not a dword. Reading *(int*) here combines the
-         * +0x24 surface index with the +0x26 field: when +0x24=0 and +0x26=1 the
-         * dword is 0x00010000 (65536), which overflows the count-1 fog block at
-         * scen+0x190 and halts at tag_groups.c:3089. See feedback_check_disasm. */
+         * +0x24 surface index with the +0x26 field: when +0x24=0 and +0x26=1
+         * the dword is 0x00010000 (65536), which overflows the count-1 fog
+         * block at scen+0x190 and halts at tag_groups.c:3089. See
+         * feedback_check_disasm. */
         pg_surf = *(short *)((char *)pg + 0x24);
         fog_tag =
           tag_block_get_element((char *)scen + 0x190, (int)pg_surf, 0x88);
@@ -1175,7 +1177,8 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
    * 1/4096 (0x39800000), step = (1/4096)/|dot(direction, normal)| with a 1/32
    * fallback when the ray is parallel to the surface.  The retry is the
    * original's do/while with the live `frac <= 0` terminator checked AFTER the
-   * scenario_location_from_point call (clamp `frac = max(frac-step, 0)` keeps it
+   * scenario_location_from_point call (clamp `frac = max(frac-step, 0)` keeps
+   * it
    * >= 0, so the loop always terminates).  This REPLACES the prior lift that
    * used a wrong 1/512 refine, a swapped base/dir, and a top-tested
    * `while (frac >= 0)` whose clamp made `if (frac < 0) break` dead — the PoA
@@ -1196,8 +1199,8 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
         if (*(int *)((char *)collision_result + 0xc) == -1) {
           float d;
           float step;
-          d = FUN_00013070(direction,
-                           (float *)((char *)collision_result + 0x24));
+          d =
+            FUN_00013070(direction, (float *)((char *)collision_result + 0x24));
           if (d != 0.0f)
             step = (float)(0.000244140625 / fabs((double)d));
           else

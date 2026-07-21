@@ -38,22 +38,22 @@ void *sound_class_get(int class_index /* @<si> */)
  */
 void debug_sound_classes_enable(char *pattern, char enable)
 {
-    char **pp;
-    int i;
-    void *def;
+  char **pp;
+  int i;
+  void *def;
 
-    i = 0;
-    pp = (char **)0x32f5d0;
-    do {
-        if (**pp != '\0') {
-            if (crt_strstr(*pp, pattern) != NULL) {
-                def = sound_class_get_definition((short)i);
-                *(bool *)((char *)def + 0x28) = (enable == '\0');
-            }
-        }
-        i++;
-        pp++;
-    } while ((short)i < 0x33);
+  i = 0;
+  pp = (char **)0x32f5d0;
+  do {
+    if (**pp != '\0') {
+      if (crt_strstr(*pp, pattern) != NULL) {
+        def = sound_class_get_definition((short)i);
+        *(bool *)((char *)def + 0x28) = (enable == '\0');
+      }
+    }
+    i++;
+    pp++;
+  } while ((short)i < 0x33);
 }
 
 /* Search sound class names for pattern and set their min/max distances.
@@ -61,24 +61,24 @@ void debug_sound_classes_enable(char *pattern, char enable)
  */
 void debug_sound_classes_set_distances(char *pattern, float dist1, float dist2)
 {
-    char **pp;
-    int i;
-    void *def;
+  char **pp;
+  int i;
+  void *def;
 
-    i = 0;
-    pp = (char **)0x32f5d0;
-    do {
-        if (**pp != '\0') {
-            if (crt_strstr(*pp, pattern) != NULL) {
-                def = sound_class_get_definition((short)i);
-                *(float *)((char *)def + 0x18) = dist1;
-                def = sound_class_get_definition((short)i);
-                *(float *)((char *)def + 0x1c) = dist2;
-            }
-        }
-        i++;
-        pp++;
-    } while ((short)i < 0x33);
+  i = 0;
+  pp = (char **)0x32f5d0;
+  do {
+    if (**pp != '\0') {
+      if (crt_strstr(*pp, pattern) != NULL) {
+        def = sound_class_get_definition((short)i);
+        *(float *)((char *)def + 0x18) = dist1;
+        def = sound_class_get_definition((short)i);
+        *(float *)((char *)def + 0x1c) = dist2;
+      }
+    }
+    i++;
+    pp++;
+  } while ((short)i < 0x33);
 }
 
 /* Set wet-mix gain on all sound classes matching pattern.
@@ -87,34 +87,34 @@ void debug_sound_classes_set_distances(char *pattern, float dist1, float dist2)
  */
 void debug_sound_classes_set_wet(char *pattern, float wet)
 {
-    char **pp;
-    int i;
-    void *def;
-    float val;
+  char **pp;
+  int i;
+  void *def;
+  float val;
 
-    i = 0;
-    pp = (char **)0x32f5d0;
-    do {
-        if (**pp != '\0') {
-            if (crt_strstr(*pp, pattern) != NULL) {
-                val = 1.0f - wet;
-                if (val < 0.0f) {
-                    val = 0.0f;
-                } else {
-                    /* permuter: triple-mask + val±1 forces MSVC to keep val in
-                     * FPU ST0 across both comparisons instead of spilling */
-                    if ((((val > 1.0f) & 0xFFFFu) & 0xFFFFu) & 0xFFFFu)
-                        val = 1.0f;
-                    val++;
-                    val--;
-                }
-                def = sound_class_get_definition((short)i);
-                *(float *)((char *)def + 0x10) = val;
-            }
+  i = 0;
+  pp = (char **)0x32f5d0;
+  do {
+    if (**pp != '\0') {
+      if (crt_strstr(*pp, pattern) != NULL) {
+        val = 1.0f - wet;
+        if (val < 0.0f) {
+          val = 0.0f;
+        } else {
+          /* permuter: triple-mask + val±1 forces MSVC to keep val in
+           * FPU ST0 across both comparisons instead of spilling */
+          if ((((val > 1.0f) & 0xFFFFu) & 0xFFFFu) & 0xFFFFu)
+            val = 1.0f;
+          val++;
+          val--;
         }
-        i++;
-        pp++;
-    } while ((short)i < 0x33);
+        def = sound_class_get_definition((short)i);
+        *(float *)((char *)def + 0x10) = val;
+      }
+    }
+    i++;
+    pp++;
+  } while ((short)i < 0x33);
 }
 
 

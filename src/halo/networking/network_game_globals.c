@@ -76,11 +76,13 @@ bool FUN_001298f0(int connection, void *buffer, int *size, void *addr)
 
 /* FUN_00129980 (0x129980)
  *
- * Resets a network connection's endpoints. Called from network_game_client_reset
- * (0x1267c0) and network_game_client_leave_game (0x126140).
+ * Resets a network connection's endpoints. Called from
+ * network_game_client_reset (0x1267c0) and network_game_client_leave_game
+ * (0x126140).
  *
- * If the connection is currently connected, runs the network_connection_idle_client_reliable_endpoint teardown when
- * the connection's +0x30 flag byte has bit 1 or 2 set, then closes the active
+ * If the connection is currently connected, runs the
+ * network_connection_idle_client_reliable_endpoint teardown when the
+ * connection's +0x30 flag byte has bit 1 or 2 set, then closes the active
  * endpoint stored at +0x00.
  *
  * If the connection has a secondary endpoint (+0x04) and a non-zero bound port
@@ -544,12 +546,14 @@ bool network_game_client_start_frame(void)
 
   result = FUN_00127070(*(void **)0x46e8c0);
   if (!result) {
-    network_game_log("internal networking error [network_game_client_idle() failed]");
+    network_game_log(
+      "internal networking error [network_game_client_idle() failed]");
     return false;
   }
 
   if (FUN_00124cc0(*(void **)0x46e8c0) != 0) {
-    network_game_log("internal networking error [network_game_client_get_error()!=0]");
+    network_game_log(
+      "internal networking error [network_game_client_get_error()!=0]");
     return false;
   }
 
@@ -648,12 +652,14 @@ bool network_game_client_end_frame(void)
       } else {
         network_game_client_switch_to_postgame(*(void **)0x46e8c0, local_1c);
         /* arg1 is the client's connection handle at +0x82c, fetched via the
-         * 0x125710 getter (its kb name is a misnomer; it returns *(client+0x82c),
-         * the same send channel FUN_001263a0 passes to FUN_00128e00). arg4 is the
-         * address of the local_1c record filled by switch_to_postgame. */
-        result = FUN_00124d40(
-          (void *)network_game_client_get_seconds_to_game_start(*(void **)0x46e8c0),
-          msg, *msg >> 4, (int)local_1c, 0);
+         * 0x125710 getter (its kb name is a misnomer; it returns
+         * *(client+0x82c), the same send channel FUN_001263a0 passes to
+         * FUN_00128e00). arg4 is the address of the local_1c record filled by
+         * switch_to_postgame. */
+        result =
+          FUN_00124d40((void *)network_game_client_get_seconds_to_game_start(
+                         *(void **)0x46e8c0),
+                       msg, *msg >> 4, (int)local_1c, 0);
         if (!result) {
           network_game_log("failed to send a game update to the server");
           *(int *)0x46e8c8 = now;
@@ -714,8 +720,7 @@ void network_game_client_local_player_quit(short player)
       i = 0;
       slot = (char *)index_base + 0x242;
       while (!network_player_is_valid(slot - 0x1c) ||
-             *slot != *((char *)machine + 0x40) ||
-             slot[1] != player) {
+             *slot != *((char *)machine + 0x40) || slot[1] != player) {
         i = i + 1;
         slot = slot + 0x20;
         if (0xf < i) {
@@ -723,9 +728,8 @@ void network_game_client_local_player_quit(short player)
         }
       }
       record = (char *)index_base + i * 0x20 + 0x226;
-      if (record != NULL &&
-          !network_game_client_request_remove_player(*(void **)0x0046e8c0,
-                                                     record)) {
+      if (record != NULL && !network_game_client_request_remove_player(
+                              *(void **)0x0046e8c0, record)) {
         error(2, "failed to request player removal in-game for player #%d",
               (int)*(char *)(record + 0x1d));
       }

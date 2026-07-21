@@ -83,7 +83,8 @@ bool thread_new(int priority_flags, void *function, int param,
   }
 
   if (slot != NULL) {
-    handle = (int)CreateThread(NULL, 0x4000, function, (void *)param, 4, &thread_id);
+    handle =
+      (int)CreateThread(NULL, 0x4000, function, (void *)param, 4, &thread_id);
     slot->handle = handle;
     if (handle != 0) {
       priority = 0;

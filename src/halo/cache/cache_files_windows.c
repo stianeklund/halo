@@ -540,29 +540,6 @@ void FUN_001bcfb0(short map_file_index)
   SetFileTime(*(int *)entry, entry + 4, 0, 0);
 }
 
-/* Returns true if the named map has already been precached.
- * 0x1bd1b0 reads EDI as the canonical map name (set from 0x19b0d0). */
-bool cache_files_precache_map_loaded(char *map_name)
-{
-  int _edi = (int)((char *(*)(char *))0x19b0d0)(map_name);
-  int16_t result;
-#if defined(_MSC_VER) && !defined(__clang__)
-  __asm {
-    mov edi, _edi
-    mov eax, 0x1bd1b0
-    call eax
-    mov result, ax
-  }
-#else
-  asm volatile("movl $0x1bd1b0, %%eax\n\t"
-               "call *%%eax"
-               : "+D"(_edi), "=a"(result)
-               :
-               : "ecx", "edx", "memory", "cc");
-#endif
-  return result != -1;
-}
-
 /* FUN_001bd5f0 — open or create the 6 cache slot files on Z:.
  * For each slot: opens with OPEN_ALWAYS, checks if existing file has the
  * right size. If the file is new or wrong size, reads the old header (0x800
@@ -620,9 +597,8 @@ void FUN_001bd5f0(void)
         char err_buf[256];
         csprintf(err_buf, "couldn't open or create new cache file (#%d)",
                  xapi_GetLastError());
-        display_assert(err_buf,
-                       "c:\\halo\\SOURCE\\cache\\cache_files_windows.c",
-                       0x305, 1);
+        display_assert(
+          err_buf, "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x305, 1);
         system_exit(-1);
       }
       goto post_process;
@@ -653,9 +629,8 @@ void FUN_001bd5f0(void)
         char err_buf[256];
         csprintf(err_buf, "setup for new cache file failed (#%d)",
                  xapi_GetLastError());
-        display_assert(err_buf,
-                       "c:\\halo\\SOURCE\\cache\\cache_files_windows.c",
-                       0x2f9, 1);
+        display_assert(
+          err_buf, "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x2f9, 1);
         system_exit(-1);
       }
       CloseHandle(handle);
@@ -689,6 +664,103 @@ void FUN_001bd5f0(void)
   next_slot:
     entry_ptr += 0x80c;
   }
+}
+
+/* Returns true if the named map has already been precached.
+ * 0x1bd1b0 reads EDI as the canonical map name (set from 0x19b0d0). */
+bool cache_files_precache_map_loaded(char *map_name)
+{
+  int _edi = (int)((char *(*)(char *))0x19b0d0)(map_name);
+  int16_t result;
+#if defined(_MSC_VER) && !defined(__clang__)
+  __asm {
+    mov edi, _edi
+    mov eax, 0x1bd1b0
+    call eax
+    mov result, ax
+  }
+#else
+  asm volatile("movl $0x1bd1b0, %%eax\n\t"
+               "call *%%eax"
+               : "+D"(_edi), "=a"(result)
+               :
+               : "ecx", "edx", "memory", "cc");
+#endif
+  return result != -1;
+}
+
+/* Begin precaching a map from DVD to the cache partition. Returns true
+ * if the copy was already done or was successfully started. */
+bool cache_files_precache_map_begin(char *map_name, bool show_error)
+{
+  char path[256];
+  char header_buf[0x800];
+  char *canonical;
+  int16_t cache_idx;
+
+  canonical = ((char *(*)(char *))0x19b0d0)(map_name);
+  ((char *(*)(char *))0x19b0d0)(map_name);
+  cache_idx = ((int16_t(*)(void))0x1bd1b0)();
+
+  if (cache_idx == -1) {
+    if (!FUN_001bcb80(canonical, header_buf)) {
+      error(2, "couldn't find map '%s' on the DVD", canonical);
+      if (show_error)
+        ((void (*)(void))0xe8d20)();
+      return 0;
+    }
+
+    {
+      int copy_handle;
+      int buffer;
+      int16_t slot;
+      int block;
+      int file;
+      int mapped;
+
+      copy_handle = ((int (*)(bool))0x1ba250)(show_error);
+      buffer = (int)xbox_texture_cache_steal_memory(copy_handle);
+      slot =
+        FUN_001bd210(*(int16_t *)(header_buf + 0x60), *(int *)(header_buf + 8));
+
+      block = (int)FUN_001bc720(slot);
+      csmemset((void *)(block + 0xc), 0, 0x800);
+
+      *(uint8_t *)0x4e9220 = 1;
+      *(int16_t *)0x4e9222 = slot;
+      csstrncpy((char *)0x4e9224, canonical, 0x1f);
+      *(uint8_t *)0x4e9243 = 0;
+
+      ((int (*)(char *, const char *, ...))0x1d90f0)(path, "d:\\maps\\%s.map",
+                                                     canonical);
+      error(2, "starting precaching of map '%s'", canonical);
+
+      file = FUN_001bc7e0(slot);
+      mapped = (int)FUN_001bc7a0(slot);
+      FUN_001ba2f0(buffer, copy_handle, mapped, file, path);
+    }
+  }
+
+  return 1;
+}
+
+/* End the current map precache operation. Cleans up resources and
+ * resets the precache state. */
+void cache_files_precache_map_end(void)
+{
+  if (!*(uint8_t *)0x4e9220) {
+    display_assert("cache_file_globals.copy_in_progress",
+                   "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x3d4, 1);
+    system_exit(-1);
+  }
+
+  ((void (*)(void))0x1baf50)();
+  ((void (*)(void))0x1beb10)();
+  FUN_001bcfb0(*(int16_t *)0x4e9222);
+  ((void (*)(int16_t))0x1bd020)(*(int16_t *)0x4e9222);
+
+  *(uint8_t *)0x4e9220 = 0;
+  *(int16_t *)0x4e9222 = -1;
 }
 
 /* FUN_001bda90 — initialize the cache IO system: create the sleep event and
@@ -728,80 +800,6 @@ void FUN_001bdb10(void)
   FUN_001bda90();
   FUN_001bd5f0();
   FUN_001bc280();
-}
-
-/* Begin precaching a map from DVD to the cache partition. Returns true
- * if the copy was already done or was successfully started. */
-bool cache_files_precache_map_begin(char *map_name, bool show_error)
-{
-  char path[256];
-  char header_buf[0x800];
-  char *canonical;
-  int16_t cache_idx;
-
-  canonical = ((char *(*)(char *))0x19b0d0)(map_name);
-  ((char *(*)(char *))0x19b0d0)(map_name);
-  cache_idx = ((int16_t (*)(void))0x1bd1b0)();
-
-  if (cache_idx == -1) {
-    if (!FUN_001bcb80(canonical, header_buf)) {
-      error(2, "couldn't find map '%s' on the DVD", canonical);
-      if (show_error)
-        ((void (*)(void))0xe8d20)();
-      return 0;
-    }
-
-    {
-      int copy_handle;
-      int buffer;
-      int16_t slot;
-      int block;
-      int file;
-      int mapped;
-
-      copy_handle = ((int (*)(bool))0x1ba250)(show_error);
-      buffer = (int)xbox_texture_cache_steal_memory(copy_handle);
-      slot = FUN_001bd210(
-        *(int16_t *)(header_buf + 0x60), *(int *)(header_buf + 8));
-
-      block = (int)FUN_001bc720(slot);
-      csmemset((void *)(block + 0xc), 0, 0x800);
-
-      *(uint8_t *)0x4e9220 = 1;
-      *(int16_t *)0x4e9222 = slot;
-      csstrncpy((char *)0x4e9224, canonical, 0x1f);
-      *(uint8_t *)0x4e9243 = 0;
-
-      ((int (*)(char *, const char *, ...))0x1d90f0)(
-        path, "d:\\maps\\%s.map", canonical);
-      error(2, "starting precaching of map '%s'", canonical);
-
-      file = FUN_001bc7e0(slot);
-      mapped = (int)FUN_001bc7a0(slot);
-      FUN_001ba2f0(buffer, copy_handle, mapped, file, path);
-    }
-  }
-
-  return 1;
-}
-
-/* End the current map precache operation. Cleans up resources and
- * resets the precache state. */
-void cache_files_precache_map_end(void)
-{
-  if (!*(uint8_t *)0x4e9220) {
-    display_assert("cache_file_globals.copy_in_progress",
-                   "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x3d4, 1);
-    system_exit(-1);
-  }
-
-  ((void (*)(void))0x1baf50)();
-  ((void (*)(void))0x1beb10)();
-  FUN_001bcfb0(*(int16_t *)0x4e9222);
-  ((void (*)(int16_t))0x1bd020)(*(int16_t *)0x4e9222);
-
-  *(uint8_t *)0x4e9220 = 0;
-  *(int16_t *)0x4e9222 = -1;
 }
 
 /* Load cached game state if the cached map metadata matches the currently

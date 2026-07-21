@@ -33,9 +33,9 @@ void FUN_0010a930(int16_t type_index, void *buffer)
       sample = (float)pow((double)phase, *(double *)0x281de8);
       break;
     case 5:
-      sample = (x87_fsin_msub(phase, *(float *)0x256980, *(float *)0x2568bc) +
-                1.0f) *
-               *(float *)0x253398;
+      sample =
+        (x87_fsin_msub(phase, *(float *)0x256980, *(float *)0x2568bc) + 1.0f) *
+        *(float *)0x253398;
       break;
     default:
       display_assert(0, "c:\\halo\\SOURCE\\math\\periodic_functions.c", 0x19b,
@@ -640,8 +640,8 @@ void seed_random_orientation(unsigned int *seed, float *facing, float *up)
   s1 = *seed * 0x19660d + 0x3c6ef35f;
   azimuth = (float)(s1 >> 16) * *(float *)0x2647f4 * *(float *)0x255a54;
   s2 = s1 * 0x19660d + 0x3c6ef35f;
-  elevation = (float)(s2 >> 16) * *(float *)0x2647f4 * *(float *)0x256980
-              - *(float *)0x2568bc;
+  elevation = (float)(s2 >> 16) * *(float *)0x2647f4 * *(float *)0x256980 -
+              *(float *)0x2568bc;
   s3 = s2 * 0x19660d + 0x3c6ef35f;
   *seed = s3;
   roll = (float)(s3 >> 16) * *(float *)0x2647f4 * *(float *)0x255a54;
@@ -972,7 +972,8 @@ void FUN_0010c7d0(float *param_1, float *param_2, float param_3, float *param_4)
 
   angle = FUN_0010c510(param_1, param_2);
   if (param_3 < 0.5f) {
-    /* Rotate from param_1 side: scale angle by t, axis = cross(param_1, param_2) */
+    /* Rotate from param_1 side: scale angle by t, axis = cross(param_1,
+     * param_2) */
     blend = angle * param_3;
     axis[0] = param_2[2] * param_1[1] - param_2[1] * param_1[2];
     axis[1] = param_2[0] * param_1[2] - param_2[2] * param_1[0];
@@ -981,7 +982,8 @@ void FUN_0010c7d0(float *param_1, float *param_2, float param_3, float *param_4)
     param_4[1] = param_1[1];
     param_4[2] = param_1[2];
   } else {
-    /* Rotate from param_2 side: scale angle by (1-t), axis = cross(param_2, param_1) */
+    /* Rotate from param_2 side: scale angle by (1-t), axis = cross(param_2,
+     * param_1) */
     blend = angle * (1.0f - param_3);
     axis[0] = param_2[1] * param_1[2] - param_2[2] * param_1[1];
     axis[1] = param_2[2] * param_1[0] - param_2[0] * param_1[2];

@@ -14,11 +14,13 @@
  * when NULL), ECX = hud_globals (screen scale at +4/+8, mirror flag at +0xc),
  * EDX = bitmap_data (pixel dims at +4/+6).  Resolves the placement via
  * FUN_000d1f40, the corner geometry via FUN_000d1890, and blits via
- * FUN_000d2580.  Debug stack canary guards the frame.  hud_draw.c line 0x32e. */
-void FUN_000d3080(int crosshair_overlay /* @<eax> */, int hud_globals /* @<ecx> */,
-                  int bitmap_data /* @<edx> */, int bitmap_handle, short *placement,
-                  float scale, int angle, int color, int screen_pos,
-                  char use_bitmap_size, char param_11)
+ * FUN_000d2580.  Debug stack canary guards the frame.  hud_draw.c line 0x32e.
+ */
+void FUN_000d3080(int crosshair_overlay /* @<eax> */,
+                  int hud_globals /* @<ecx> */, int bitmap_data /* @<edx> */,
+                  int bitmap_handle, short *placement, float scale, int angle,
+                  int color, int screen_pos, char use_bitmap_size,
+                  char param_11)
 {
   int canary;
   int guard[128];
@@ -45,11 +47,13 @@ void FUN_000d3080(int crosshair_overlay /* @<eax> */, int hud_globals /* @<ecx> 
   scale_scaled[0] = scale * *(float *)(hud_globals + 4);
   scale_scaled[1] = scale * *(float *)(hud_globals + 8);
   mirror = 1;
-  if ((char)screen_pos == 0 || (*(unsigned char *)(hud_globals + 0xc) & 1) != 0) {
+  if ((char)screen_pos == 0 ||
+      (*(unsigned char *)(hud_globals + 0xc) & 1) != 0) {
     mirror = 0;
   }
-  FUN_000d1f40(*(short *)0x506548, (unsigned short *)placement, (short *)hud_globals,
-               0, (char)mirror, 0.0f, (short *)&screen_pos);
+  FUN_000d1f40(*(short *)0x506548, (unsigned short *)placement,
+               (short *)hud_globals, 0, (char)mirror, 0.0f,
+               (short *)&screen_pos);
   FUN_000d1890(out_corners, (float *)crosshair_overlay, use_bitmap_size,
                (short *)bitmap_data, *placement);
   FUN_000d2580(scale_scaled, (short *)&screen_pos, bitmap_handle, bitmap_data,
@@ -57,7 +61,8 @@ void FUN_000d3080(int crosshair_overlay /* @<eax> */, int hud_globals /* @<ecx> 
 
   sVar3 = 0x7f;
   do {
-    if (guard[(int)sVar3] != 0x62626262) goto LAB_000d3189;
+    if (guard[(int)sVar3] != 0x62626262)
+      goto LAB_000d3189;
     sVar3 = sVar3 - 1;
   } while (-1 < sVar3);
   sVar3 = -1;
@@ -68,8 +73,9 @@ LAB_000d3189:
     system_exit(-1);
   }
   if (sVar3 != -1) {
-    display_assert(csprintf((char *)0x5ab100, "corrupt stack at %d!", (int)sVar3),
-                   "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x32e, 1);
+    display_assert(
+      csprintf((char *)0x5ab100, "corrupt stack at %d!", (int)sVar3),
+      "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x32e, 1);
     system_exit(-1);
   }
 }
@@ -114,7 +120,8 @@ void FUN_000d3200(int bitmap_data, short screen_index, short *screen_pos,
 
   sVar3 = 0x7f;
   do {
-    if (guard[(int)sVar3] != 0x62626262) goto LAB_000d32c9;
+    if (guard[(int)sVar3] != 0x62626262)
+      goto LAB_000d32c9;
     sVar3 = sVar3 - 1;
   } while (-1 < sVar3);
   sVar3 = -1;
@@ -125,8 +132,9 @@ LAB_000d32c9:
     system_exit(-1);
   }
   if (sVar3 != -1) {
-    display_assert(csprintf((char *)0x5ab100, "corrupt stack at %d!", (int)sVar3),
-                   "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x358, 1);
+    display_assert(
+      csprintf((char *)0x5ab100, "corrupt stack at %d!", (int)sVar3),
+      "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x358, 1);
     system_exit(-1);
   }
 }
@@ -134,22 +142,22 @@ LAB_000d32c9:
 /* Contiguous meter-parameters block that FUN_000d3340 builds on its stack and
  * passes (as &meter_params) down through FUN_000d3080 -> FUN_000d2580, which
  * stores it into render_desc[0].  The unported rasterizer FUN_0015f8e0
- * (rasterizer_xbox_dynavobgeom.c) dereferences render_desc[0] as this struct and
- * reads fields at +0x10/+0x11 (tint modes) and +0x18 (gradient), which lie past
- * the four-dword color array.  These MUST be laid out contiguously with the
- * colors: the original builds them all at EBP-0x2c.  A prior lift declared the
- * trailing fields as separate C locals and passed only the color array, so C
- * placed the tint/gradient fields wherever it liked
- * wherever and the (void)-casts let clang dead-store-eliminate the writes ->
- * the rasterizer read stack garbage at +0x11 (tint_mode_2, usually 0 -> assert)
- * and +0x18 (gradient). */
+ * (rasterizer_xbox_dynavobgeom.c) dereferences render_desc[0] as this struct
+ * and reads fields at +0x10/+0x11 (tint modes) and +0x18 (gradient), which lie
+ * past the four-dword color array.  These MUST be laid out contiguously with
+ * the colors: the original builds them all at EBP-0x2c.  A prior lift declared
+ * the trailing fields as separate C locals and passed only the color array, so
+ * C placed the tint/gradient fields wherever it liked wherever and the
+ * (void)-casts let clang dead-store-eliminate the writes -> the rasterizer read
+ * stack garbage at +0x11 (tint_mode_2, usually 0 -> assert) and +0x18
+ * (gradient). */
 struct hud_meter_parameters {
-  unsigned int  color[4];     /* +0x00..+0x0c */
-  unsigned char tint_mode_1;  /* +0x10 */
-  unsigned char tint_mode_2;  /* +0x11  (rasterizer asserts != 0) */
-  unsigned char pad[2];       /* +0x12..+0x13 (never read) */
-  int           intensity;    /* +0x14 */
-  float         gradient;     /* +0x18  (rasterizer asserts == 1.0f) */
+  unsigned int color[4]; /* +0x00..+0x0c */
+  unsigned char tint_mode_1; /* +0x10 */
+  unsigned char tint_mode_2; /* +0x11  (rasterizer asserts != 0) */
+  unsigned char pad[2]; /* +0x12..+0x13 (never read) */
+  int intensity; /* +0x14 */
+  float gradient; /* +0x18  (rasterizer asserts == 1.0f) */
 };
 
 /* FUN_000d3340 (0xd3340) — draw an animated HUD "meter" element (e.g. a health
@@ -167,17 +175,18 @@ void FUN_000d3340(int param_1, int param_2, int meter_def, int param_4,
 {
   int canary;
   int guard[128];
-  float rgb_lower[3];   /* local_58 */
-  float rgb_upper[3];   /* local_4c */
+  float rgb_lower[3]; /* local_58 */
+  float rgb_upper[3]; /* local_4c */
   char color_use_bitmap; /* local_40 (byte: *bitmap == 4) */
-  int bitmap_data;      /* local_3c */
-  int tag_index;        /* local_38 */
-  int meter;            /* local_34, = meter_def */
-  struct hud_meter_parameters meter_params; /* colors + tint modes + gradient,
-                             * contiguous at EBP-0x2c; passed to d3080 */
-  float color[3];       /* local_14/local_10/local_c */
-  float alpha;          /* local_8 */
-  float fade;           /* param_7 reinterpreted as float (caller passes raw bits) */
+  int bitmap_data; /* local_3c */
+  int tag_index; /* local_38 */
+  int meter; /* local_34, = meter_def */
+  struct hud_meter_parameters
+    meter_params; /* colors + tint modes + gradient,
+                   * contiguous at EBP-0x2c; passed to d3080 */
+  float color[3]; /* local_14/local_10/local_c */
+  float alpha; /* local_8 */
+  float fade; /* param_7 reinterpreted as float (caller passes raw bits) */
   short *bitmap;
   int hardware_format;
   int resolved_tag;
@@ -194,25 +203,30 @@ void FUN_000d3340(int param_1, int param_2, int meter_def, int param_4,
   bitmap = (short *)tag_get(0x6269746d, resolved_tag);
   bitmap_data = (int)FUN_00077040(*(int *)(meter_def + 0x30),
                                   *(short *)(meter_def + 0x46), 0);
-  hardware_format = (int)xbox_texture_cache_get_hardware_format((void *)bitmap_data, 0, 1);
+  hardware_format =
+    (int)xbox_texture_cache_get_hardware_format((void *)bitmap_data, 0, 1);
   if (hardware_format != 0) {
     resolved_tag = verify_tag_reference((int *)(meter_def + 0x24));
-    tag_index = (int)FUN_000d1580(resolved_tag, *(short *)(meter_def + 0x46), 0);
+    tag_index =
+      (int)FUN_000d1580(resolved_tag, *(short *)(meter_def + 0x46), 0);
     color_use_bitmap = (char)(*bitmap == 4);
 
     /* saturate amount = (+0x48 * param_4 + +0x49) to [floor(+0x45), 0xff].
      * The product is recomputed inline (as the original does) at each site and
      * converted with a plain signed FILD. */
     meter_empty_alpha = *(unsigned char *)(meter_def + 0x45);
-    amount = FUN_000d1c50((float)(*(unsigned char *)(meter_def + 0x48) * (unsigned char)param_4 +
-                                  *(unsigned char *)(meter_def + 0x49)));
+    amount = FUN_000d1c50(
+      (float)(*(unsigned char *)(meter_def + 0x48) * (unsigned char)param_4 +
+              *(unsigned char *)(meter_def + 0x49)));
     if (amount < 0) {
       amount = 0;
     } else {
-      amount = FUN_000d1c50((float)(*(unsigned char *)(meter_def + 0x48) * (unsigned char)param_4 +
-                                    *(unsigned char *)(meter_def + 0x49)));
+      amount = FUN_000d1c50(
+        (float)(*(unsigned char *)(meter_def + 0x48) * (unsigned char)param_4 +
+                *(unsigned char *)(meter_def + 0x49)));
       if (amount < 0x100) {
-        amount = FUN_000d1c50((float)(*(unsigned char *)(meter_def + 0x48) * (unsigned char)param_4 +
+        amount = FUN_000d1c50((float)(*(unsigned char *)(meter_def + 0x48) *
+                                        (unsigned char)param_4 +
                                       *(unsigned char *)(meter_def + 0x49)));
       } else {
         amount = 0xff;
@@ -220,49 +234,60 @@ void FUN_000d3340(int param_1, int param_2, int meter_def, int param_4,
     }
     meter_alpha = *(unsigned char *)(meter_def + 0x45);
     if (meter_empty_alpha <= amount) {
-      amount = FUN_000d1c50((float)(*(unsigned char *)(meter_def + 0x48) * (unsigned char)param_4 +
-                                    *(unsigned char *)(meter_def + 0x49)));
+      amount = FUN_000d1c50(
+        (float)(*(unsigned char *)(meter_def + 0x48) * (unsigned char)param_4 +
+                *(unsigned char *)(meter_def + 0x49)));
       if (amount < 0) {
         meter_alpha = 0;
       } else {
-        amount = FUN_000d1c50((float)(*(unsigned char *)(meter_def + 0x48) * (unsigned char)param_4 +
+        amount = FUN_000d1c50((float)(*(unsigned char *)(meter_def + 0x48) *
+                                        (unsigned char)param_4 +
                                       *(unsigned char *)(meter_def + 0x49)));
         if (amount < 0x100) {
-          meter_alpha = FUN_000d1c50((float)(*(unsigned char *)(meter_def + 0x48) * (unsigned char)param_4 +
-                                             *(unsigned char *)(meter_def + 0x49)));
+          meter_alpha =
+            FUN_000d1c50((float)(*(unsigned char *)(meter_def + 0x48) *
+                                   (unsigned char)param_4 +
+                                 *(unsigned char *)(meter_def + 0x49)));
         } else {
           meter_alpha = 0xff;
         }
       }
     }
 
-    /* second saturate amount = (+0x48 * param_5 + +0x49) to [floor(+0x45), 0xff] */
-    amount = FUN_000d1c50((float)(*(unsigned char *)(meter + 0x48) * (unsigned char)param_5 +
-                                  *(unsigned char *)(meter + 0x49)));
+    /* second saturate amount = (+0x48 * param_5 + +0x49) to [floor(+0x45),
+     * 0xff] */
+    amount = FUN_000d1c50(
+      (float)(*(unsigned char *)(meter + 0x48) * (unsigned char)param_5 +
+              *(unsigned char *)(meter + 0x49)));
     if (amount < 0) {
       amount = 0;
     } else {
-      amount = FUN_000d1c50((float)(*(unsigned char *)(meter + 0x48) * (unsigned char)param_5 +
-                                    *(unsigned char *)(meter + 0x49)));
+      amount = FUN_000d1c50(
+        (float)(*(unsigned char *)(meter + 0x48) * (unsigned char)param_5 +
+                *(unsigned char *)(meter + 0x49)));
       if (amount < 0x100) {
-        amount = FUN_000d1c50((float)(*(unsigned char *)(meter + 0x48) * (unsigned char)param_5 +
-                                      *(unsigned char *)(meter + 0x49)));
+        amount = FUN_000d1c50(
+          (float)(*(unsigned char *)(meter + 0x48) * (unsigned char)param_5 +
+                  *(unsigned char *)(meter + 0x49)));
       } else {
         amount = 0xff;
       }
     }
     meter_empty_alpha = *(unsigned char *)(meter + 0x45);
     if (meter_empty_alpha <= amount) {
-      amount = FUN_000d1c50((float)(*(unsigned char *)(meter + 0x48) * (unsigned char)param_5 +
-                                    *(unsigned char *)(meter + 0x49)));
+      amount = FUN_000d1c50(
+        (float)(*(unsigned char *)(meter + 0x48) * (unsigned char)param_5 +
+                *(unsigned char *)(meter + 0x49)));
       if (amount < 0) {
         meter_empty_alpha = 0;
       } else {
-        amount = FUN_000d1c50((float)(*(unsigned char *)(meter + 0x48) * (unsigned char)param_5 +
-                                      *(unsigned char *)(meter + 0x49)));
+        amount = FUN_000d1c50(
+          (float)(*(unsigned char *)(meter + 0x48) * (unsigned char)param_5 +
+                  *(unsigned char *)(meter + 0x49)));
         if (amount < 0x100) {
-          meter_empty_alpha = FUN_000d1c50((float)(*(unsigned char *)(meter + 0x48) * (unsigned char)param_5 +
-                                                   *(unsigned char *)(meter + 0x49)));
+          meter_empty_alpha = FUN_000d1c50(
+            (float)(*(unsigned char *)(meter + 0x48) * (unsigned char)param_5 +
+                    *(unsigned char *)(meter + 0x49)));
         } else {
           meter_empty_alpha = 0xff;
         }
@@ -271,7 +296,8 @@ void FUN_000d3340(int param_1, int param_2, int meter_def, int param_4,
 
     if ((flags & 2) == 0) {
       if ((*(unsigned char *)(meter + 0x44) & 1) == 0) {
-        fade = *(float *)&param_7; /* param_7 carries IEEE-754 bits passed as int */
+        fade =
+          *(float *)&param_7; /* param_7 carries IEEE-754 bits passed as int */
         if (*(float *)0x2533c0 <= fade) {
           alpha = *(float *)0x2533c8 - fade;
           if (*(float *)0x2533c0 <= alpha) {
@@ -288,11 +314,11 @@ void FUN_000d3340(int param_1, int param_2, int meter_def, int param_4,
         color[0] = color[0] * alpha;
         color[1] = color[1] * alpha;
         meter_params.color[0] = (*(unsigned int *)(meter + 0x34) & 0xffffff) |
-                    ((int)(short)meter_alpha << 0x18);
+                                ((int)(short)meter_alpha << 0x18);
         meter_params.color[1] = *(unsigned int *)(meter + 0x38) & 0xffffff;
         color[2] = color[2] * alpha;
         meter_params.color[3] = (FUN_000d1dd0(color) & 0xffffff) |
-                    ((int)(short)meter_empty_alpha << 0x18);
+                                ((int)(short)meter_empty_alpha << 0x18);
       } else if ((flags & 1) == 0) {
         meter_params.color[3] = (int)(short)meter_alpha << 0x18;
         meter_params.color[1] = *(unsigned int *)(meter + 0x34) & 0xffffff;
@@ -311,7 +337,8 @@ void FUN_000d3340(int param_1, int param_2, int meter_def, int param_4,
         }
         FUN_0007c270(color, 0, rgb_lower, rgb_upper, alpha);
         meter_params.color[0] = FUN_000d1dd0(color);
-        meter_params.color[0] = meter_params.color[0] | (int)(short)meter_alpha << 0x18;
+        meter_params.color[0] = meter_params.color[0] | (int)(short)meter_alpha
+                                                          << 0x18;
         meter_params.color[1] = FUN_000d1dd0(color);
         meter_params.color[3] = (int)(short)meter_alpha << 0x18;
       }
@@ -320,23 +347,26 @@ void FUN_000d3340(int param_1, int param_2, int meter_def, int param_4,
       meter_params.color[0] = 0;
       meter_params.color[3] = 0;
     }
-    meter_params.color[2] = ((-1 - (*(unsigned int *)(meter + 0x40) >> 0x18)) * 0x1000000) |
-                (*(unsigned int *)(meter + 0x40) & 0xffffff);
+    meter_params.color[2] =
+      ((-1 - (*(unsigned int *)(meter + 0x40) >> 0x18)) * 0x1000000) |
+      (*(unsigned int *)(meter + 0x40) & 0xffffff);
     /* meter+0x14: packed ARGB flash/blend color the rasterizer copies into its
      * render-state (_DAT_001fb7c4).  Original stores FUN_000d1e90's EAX here;
      * zeroing it rendered the meter black (secondary a30 HUD regression). */
-    meter_params.intensity   = (int)FUN_000d1e90(
-        *(float *)(meter + 0x50), *(float *)0x2533c8 - *(float *)(meter + 0x4c));
-    meter_params.gradient    = 1.0f;   /* +0x18, rasterizer asserts == 1.0f */
-    meter_params.tint_mode_1 = 0;      /* +0x10 */
-    meter_params.tint_mode_2 = 1;      /* +0x11, rasterizer asserts != 0 */
-    FUN_000d3080(tag_index, meter_def, bitmap_data, (int)&meter_params, (short *)param_2,
-                 1.0f, 0, -1, (flags >> 2) & 0xffffff01, (char)color_use_bitmap, 0);
+    meter_params.intensity = (int)FUN_000d1e90(
+      *(float *)(meter + 0x50), *(float *)0x2533c8 - *(float *)(meter + 0x4c));
+    meter_params.gradient = 1.0f; /* +0x18, rasterizer asserts == 1.0f */
+    meter_params.tint_mode_1 = 0; /* +0x10 */
+    meter_params.tint_mode_2 = 1; /* +0x11, rasterizer asserts != 0 */
+    FUN_000d3080(tag_index, meter_def, bitmap_data, (int)&meter_params,
+                 (short *)param_2, 1.0f, 0, -1, (flags >> 2) & 0xffffff01,
+                 (char)color_use_bitmap, 0);
   }
 
   sVar6 = 0x7f;
   do {
-    if (guard[(int)sVar6] != 0x62626262) goto LAB_000d37e5;
+    if (guard[(int)sVar6] != 0x62626262)
+      goto LAB_000d37e5;
     sVar6 = sVar6 - 1;
   } while (-1 < sVar6);
   sVar6 = -1;
@@ -347,8 +377,9 @@ LAB_000d37e5:
     system_exit(-1);
   }
   if (sVar6 != -1) {
-    display_assert(csprintf((char *)0x5ab100, "corrupt stack at %d!", (int)sVar6),
-                   "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x1ac, 1);
+    display_assert(
+      csprintf((char *)0x5ab100, "corrupt stack at %d!", (int)sVar6),
+      "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x1ac, 1);
     system_exit(-1);
   }
 }
@@ -369,25 +400,26 @@ void FUN_000d3860(short local_player, void *element, void *position, int value,
 {
   int canary;
   int guard[128];
-  int div_scratch;      /* local_38 (loop quotient temp) */
-  int bitmap_data;      /* local_28 (FUN_00077040 result) */
+  int div_scratch; /* local_38 (loop quotient temp) */
+  int bitmap_data; /* local_28 (FUN_00077040 result) */
   short *source_bitmap; /* local_2c (bitm tag) */
-  int color;            /* local_1c (forwarded to d3200 color; raw int) */
-  float base_x;         /* local_18 (running float x before _ftol2) */
-  float digit_offset;   /* local_8 (glyph vertical/offset float) */
-  float scale_v;        /* local_14 (clamped scale) */
-  char special_big;     /* local_19 (999 < value) */
-  char is_negative;     /* local_21 (value < 0) */
-  short out_pos[2];     /* local_24/local_22: x,y — both written contiguously by FUN_000d1f40 */
-  short screen_pos[2];  /* local_10/local_e (x,y passed to d3200) */
-  int out_bitmap;       /* local_c (d16a0 out_bitmap) */
-  int out_sprite;       /* local_10-alt: d16a0 out_sprite */
-  int hud;              /* local, iVar4 (hud number widget) */
-  int gate;             /* local, iVar5 (texture cache guard) */
-  short running_x;      /* SI (accumulated glyph x-position) */
-  short digit_count;    /* AX in loops */
-  int special_count;    /* iVar5 reused (leading prefix count) */
-  int v;                /* param_4 working copy */
+  int color; /* local_1c (forwarded to d3200 color; raw int) */
+  float base_x; /* local_18 (running float x before _ftol2) */
+  float digit_offset; /* local_8 (glyph vertical/offset float) */
+  float scale_v; /* local_14 (clamped scale) */
+  char special_big; /* local_19 (999 < value) */
+  char is_negative; /* local_21 (value < 0) */
+  short out_pos[2]; /* local_24/local_22: x,y — both written contiguously by
+                       FUN_000d1f40 */
+  short screen_pos[2]; /* local_10/local_e (x,y passed to d3200) */
+  int out_bitmap; /* local_c (d16a0 out_bitmap) */
+  int out_sprite; /* local_10-alt: d16a0 out_sprite */
+  int hud; /* local, iVar4 (hud number widget) */
+  int gate; /* local, iVar5 (texture cache guard) */
+  short running_x; /* SI (accumulated glyph x-position) */
+  short digit_count; /* AX in loops */
+  int special_count; /* iVar5 reused (leading prefix count) */
+  int v; /* param_4 working copy */
   short sVar8;
 
   canary = FUN_000d1540();
@@ -399,7 +431,8 @@ void FUN_000d3860(short local_player, void *element, void *position, int value,
     bitmap_data = (int)FUN_00077040(*(int *)(hud + 0xc), 0, 0);
     sVar8 = (short)value;
     special_big = (char)(999 < sVar8);
-    gate = (int)xbox_texture_cache_get_hardware_format((void *)bitmap_data, 0, 1);
+    gate =
+      (int)xbox_texture_cache_get_hardware_format((void *)bitmap_data, 0, 1);
     if (gate != 0) {
       is_negative = (char)(sVar8 < 0);
       if ((*(char *)((int)position + 0x46) == 0) || ((short)param_5 == -1)) {
@@ -429,18 +462,21 @@ void FUN_000d3860(short local_player, void *element, void *position, int value,
           param_5 = value * 10;
         }
       }
-      v = ((int)sVar8 ^ ((int)sVar8 >> 0x1f)) - ((int)sVar8 >> 0x1f); /* abs(sVar8) */
+      v = ((int)sVar8 ^ ((int)sVar8 >> 0x1f)) -
+          ((int)sVar8 >> 0x1f); /* abs(sVar8) */
 
-      FUN_000d1f40(local_player, (unsigned short *)element, (short *)position, 0,
-                   (char)((flags >> 2) & 0xffffff01), 0.0f, out_pos);
+      FUN_000d1f40(local_player, (unsigned short *)element, (short *)position,
+                   0, (char)((flags >> 2) & 0xffffff01), 0.0f, out_pos);
 
       /* running_x = (short) of the base run position, per screen orientation */
       switch (*(short *)element) {
       case 0:
       case 2:
         running_x = (short)(((base_x - *(float *)0x253f40) *
-                             (float)(int)*(char *)(hud + 0x11) + digit_offset) *
-                            scale_v + (float)(int)out_pos[0]);
+                               (float)(int)*(char *)(hud + 0x11) +
+                             digit_offset) *
+                              scale_v +
+                            (float)(int)out_pos[0]);
         break;
       case 1:
       case 3:
@@ -448,8 +484,10 @@ void FUN_000d3860(short local_player, void *element, void *position, int value,
         break;
       case 4:
         running_x = (short)(((base_x - *(float *)0x2533c8) *
-                             (float)(int)*(char *)(hud + 0x11) + digit_offset) *
-                            scale_v * *(float *)0x253398 + (float)(int)out_pos[0]);
+                               (float)(int)*(char *)(hud + 0x11) +
+                             digit_offset) *
+                              scale_v * *(float *)0x253398 +
+                            (float)(int)out_pos[0]);
         break;
       default:
         display_assert("!\"unreachable\"",
@@ -462,7 +500,8 @@ void FUN_000d3860(short local_player, void *element, void *position, int value,
           if ((flags & 1) == 0) {
             color = *(int *)((int)position + 0x24);
           } else {
-            color = (int)FUN_000d2320((int *)((int)position + 0x24), timer_start);
+            color =
+              (int)FUN_000d2320((int *)((int)position + 0x24), timer_start);
           }
         } else {
           color = *(int *)((int)position + 0x3c);
@@ -474,8 +513,9 @@ void FUN_000d3860(short local_player, void *element, void *position, int value,
           out_sprite = 0;
           screen_pos[0] = running_x;
           screen_pos[1] = out_pos[1];
-          FUN_000d16a0(*(int *)(hud + 0xc), 0, (unsigned int)((is_negative != 0) + '\r'),
-                       &out_bitmap, &out_sprite);
+          FUN_000d16a0(*(int *)(hud + 0xc), 0,
+                       (unsigned int)((is_negative != 0) + '\r'), &out_bitmap,
+                       &out_sprite);
           if (bitmap_data != out_bitmap) {
             display_assert("source_bitmap==number_bitmap",
                            "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x203, 1);
@@ -516,11 +556,13 @@ void FUN_000d3860(short local_player, void *element, void *position, int value,
                            &out_bitmap, &out_sprite);
               if (bitmap_data != out_bitmap) {
                 display_assert("source_bitmap==number_bitmap",
-                               "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x21b, 1);
+                               "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x21b,
+                               1);
                 system_exit(-1);
               }
-              FUN_000d3200(out_bitmap, *(short *)element, screen_pos, out_sprite,
-                           scale_v, 0.0f, color, (char)(*source_bitmap == 4));
+              FUN_000d3200(out_bitmap, *(short *)element, screen_pos,
+                           out_sprite, scale_v, 0.0f, color,
+                           (char)(*source_bitmap == 4));
               running_x = (short)((float)(int)running_x -
                                   (float)(int)*(char *)(hud + 0x11) * scale_v);
               digit_count = digit_count - 1;
@@ -555,7 +597,8 @@ void FUN_000d3860(short local_player, void *element, void *position, int value,
             short d;
             d = (short)v;
             div_scratch = (int)d / 10;
-            if ((d == 0) && ((*(unsigned char *)((int)position + 0x45) & 1) == 0)) {
+            if ((d == 0) &&
+                ((*(unsigned char *)((int)position + 0x45) & 1) == 0)) {
               break;
             }
             screen_pos[1] = out_pos[1];
@@ -566,7 +609,8 @@ void FUN_000d3860(short local_player, void *element, void *position, int value,
                          &out_bitmap, &out_sprite);
             if (bitmap_data != out_bitmap) {
               display_assert("source_bitmap==number_bitmap",
-                             "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x23f, 1);
+                             "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x23f,
+                             1);
               system_exit(-1);
             }
             FUN_000d3200(out_bitmap, *(short *)element, screen_pos, out_sprite,
@@ -575,7 +619,8 @@ void FUN_000d3860(short local_player, void *element, void *position, int value,
                                 (float)(int)*(char *)(hud + 0x11) * scale_v);
             v = div_scratch;
             special_count = special_count + 1;
-          } while ((short)special_count < (short)*(char *)((int)position + 0x44));
+          } while ((short)special_count <
+                   (short)*(char *)((int)position + 0x44));
         }
 
         /* negative-sign glyph (index 0xc) */
@@ -599,7 +644,8 @@ void FUN_000d3860(short local_player, void *element, void *position, int value,
 
   sVar8 = 0x7f;
   do {
-    if (guard[(int)sVar8] != 0x62626262) goto LAB_000d3f15;
+    if (guard[(int)sVar8] != 0x62626262)
+      goto LAB_000d3f15;
     sVar8 = sVar8 - 1;
   } while (-1 < sVar8);
   sVar8 = -1;
@@ -610,8 +656,9 @@ LAB_000d3f15:
     system_exit(-1);
   }
   if (sVar8 != -1) {
-    display_assert(csprintf((char *)0x5ab100, "corrupt stack at %d!", (int)sVar8),
-                   "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x25a, 1);
+    display_assert(
+      csprintf((char *)0x5ab100, "corrupt stack at %d!", (int)sVar8),
+      "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x25a, 1);
     system_exit(-1);
   }
 }

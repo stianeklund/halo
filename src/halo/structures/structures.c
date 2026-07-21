@@ -1,4 +1,6 @@
 #include "x87_math.h" /* x87_fatan2f: inline FPATAN atan2, matches original */
+#define file_location_volume_names ((char *)0x505500)
+
 
 /* MSVC 7.1 FABS intrinsic: declared+pragma here so fabs() inlines to a single
  * FABS instruction instead of a CRT call. */
@@ -205,7 +207,8 @@ int FUN_00061ec0(float *p0, float *p1, float radius)
  * (FMUL [EAX],[EAX+4]), ECX as pt0 (FSUB [ECX],[ECX+4]), EDX as pt1
  * (FLD [EDX],[EDX+4]), ESI as the out pointer (FSTP [ESI]/MOV [ESI],0).
  * radius is the sole stack arg [EBP+8] (float).  Return AL (char). */
-char FUN_00061f10(float *vec_a, float *pt0, float *pt1, float *out, float radius)
+char FUN_00061f10(float *vec_a, float *pt0, float *pt1, float *out,
+                  float radius)
 {
   float dx;
   float dy;
@@ -244,8 +247,8 @@ char FUN_00061f10(float *vec_a, float *pt0, float *pt1, float *out, float radius
  * (FSTP [ESI],[ESI+4]).  Stack args: denom=[EBP+8], num=[EBP+0xc],
  * out_scalar=[EBP+0x10] (float*).  EAX is loaded from [EBP+0x10] (not an arg).
  * void return. */
-void FUN_00061fa0(float *vec, float *out_a, float *out_b, float denom, float num,
-                  float *out_scalar)
+void FUN_00061fa0(float *vec, float *out_a, float *out_b, float denom,
+                  float num, float *out_scalar)
 {
   float s;
   float c;
@@ -416,6 +419,108 @@ short FUN_00062410(void *obstacles, short disc_index_skip, float *position_xy,
   return -1;
 }
 
+/* 0x624b0 - find the nearest obstacle disc a ray/segment intersects.
+ * (TU: c:\halo\source\ai\path.h, inlined into path_obstacles.c)
+ *
+ * Pure cdecl min-find over obstacle discs. obstacles (disc_count at +2, discs
+ * at +8 stride 0x18), skip_index (short, disc to ignore), pt0/vec_a (float*
+ * ray endpoints passed to the intersection predicate), radius_base (float),
+ * max_distance (float, seeds result.distance and is the in/out scratch the
+ * predicate writes its computed distance through), check_extant (byte: when
+ * set, skip discs whose flag bit0 is set), result (out struct: float distance
+ * at +0, short disc_index at +4, short at +6).
+ *
+ * For each disc (except skip_index) the register-arg predicate
+ * FUN_00061f10(vec_a@eax, pt0@ecx, &disc[8]@edx, &max_distance@esi,
+ * radius_base+disc[4]) tests the ray against the disc and WRITES the hit
+ * distance back through &max_distance; when it hits and the new distance is
+ * closer than the best so far, result is updated.  Returns true if any disc
+ * was selected (result.disc_index != -1). */
+char FUN_000624b0(void *obstacles, short skip_index, float *pt0, float *vec_a,
+                  float radius_base, float max_distance, char check_extant,
+                  void *result)
+{
+  short i;
+  short disc_count;
+  float *disc;
+
+  *(float *)result = max_distance;
+  *(short *)((char *)result + 4) = -1;
+  *(short *)((char *)result + 6) = -1;
+  disc_count = *(short *)((char *)obstacles + 2);
+  i = 0;
+  if (disc_count > 0) {
+    do {
+      if (i != skip_index) {
+        if (i < 0 || i >= disc_count || disc_count > 0x80) {
+          display_assert("disc_index>=0 && disc_index<obstacles->disc_count && "
+                         "obstacles->disc_count<=MAXIMUM_DISC_COUNT",
+                         "c:\\halo\\source\\ai\\path.h", 0x18c, true);
+          system_exit(-1);
+        }
+        disc = (float *)((char *)obstacles + (int)i * 0x18 + 8);
+        if (check_extant == 0 || (*(char *)disc & 1) == 0) {
+          if (FUN_00061f10(vec_a, pt0, (float *)((char *)disc + 8),
+                           &max_distance, radius_base + disc[4]) != 0) {
+            if (*(float *)result > max_distance) {
+              *(float *)result = max_distance;
+              *(short *)((char *)result + 4) = i;
+              *(short *)((char *)result + 6) = *(short *)((char *)disc + 2);
+            }
+          }
+        }
+      }
+      disc_count = *(short *)((char *)obstacles + 2);
+      i = (short)(i + 1);
+    } while (i < disc_count);
+  }
+  return (char)(*(short *)((char *)result + 4) != -1);
+}
+
+/* 0x625a0 - build a 2D cone toward an obstacle disc for path planning.
+ * (TU: c:\halo\source\ai\path.h, inlined into path_obstacles.c)
+ *
+ * Pure cdecl. obstacles (param_1, disc_count at +2, discs at +8 stride 0x18),
+ * disc_index (short), point (float* 2D reference). Bounds-checks disc_index
+ * against disc_count (and disc_count <= MAXIMUM_DISC_COUNT=0x80).  Computes the
+ * 2D direction from the disc center (disc[2],disc[3]) to point, normalizes it
+ * (dividing by the distance unless the distance is below the 0x2533d0 epsilon,
+ * in which case the distance is forced to 0), then hands the direction, the
+ * distance, and (base_value + disc_radius(disc[4]) + 0x25ee6c) to
+ * FUN_00061fa0 to build the two cone boundary rays into out_a/out_b/out_scalar.
+ * 0x2533c8 == 1.0f. */
+void FUN_000625a0(void *obstacles, short disc_index, float *point,
+                  float base_value, float *out_b, float *out_a,
+                  float *out_scalar)
+{
+  float dir[2];
+  float dist;
+  float num;
+  float *disc;
+  short disc_count;
+
+  disc_count = *(short *)((char *)obstacles + 2);
+  if (disc_index < 0 || disc_index >= disc_count || disc_count > 0x80) {
+    display_assert("disc_index>=0 && disc_index<obstacles->disc_count && "
+                   "obstacles->disc_count<=MAXIMUM_DISC_COUNT",
+                   "c:\\halo\\source\\ai\\path.h", 0x18c, true);
+    system_exit(-1);
+  }
+  disc = (float *)((char *)obstacles + (int)disc_index * 0x18 + 8);
+  dir[0] = disc[2] - point[0];
+  dir[1] = disc[3] - point[1];
+  dist = sqrtf(dir[1] * dir[1] + dir[0] * dir[0]);
+  if (fabs(dist) < *(double *)0x002533d0) {
+    dist = 0.0f;
+  } else {
+    float inv = *(float *)0x002533c8 / dist;
+    dir[0] = dir[0] * inv;
+    dir[1] = dir[1] * inv;
+  }
+  num = base_value + disc[4] + *(float *)0x0025ee6c;
+  FUN_00061fa0(dir, out_a, out_b, dist, num, out_scalar);
+}
+
 /* 0x0062680 — FUN_00062680
  *
  * Given an obstacle-disc set (obstacles), a shared radius pad (arg2, an
@@ -544,110 +649,6 @@ void FUN_00062680(int16_t *partition, uint32_t arg2, int16_t index,
     } while (0 < (int16_t)i);
   }
   return;
-}
-
-/* 0x624b0 - find the nearest obstacle disc a ray/segment intersects.
- * (TU: c:\halo\source\ai\path.h, inlined into path_obstacles.c)
- *
- * Pure cdecl min-find over obstacle discs. obstacles (disc_count at +2, discs
- * at +8 stride 0x18), skip_index (short, disc to ignore), pt0/vec_a (float*
- * ray endpoints passed to the intersection predicate), radius_base (float),
- * max_distance (float, seeds result.distance and is the in/out scratch the
- * predicate writes its computed distance through), check_extant (byte: when
- * set, skip discs whose flag bit0 is set), result (out struct: float distance
- * at +0, short disc_index at +4, short at +6).
- *
- * For each disc (except skip_index) the register-arg predicate
- * FUN_00061f10(vec_a@eax, pt0@ecx, &disc[8]@edx, &max_distance@esi,
- * radius_base+disc[4]) tests the ray against the disc and WRITES the hit
- * distance back through &max_distance; when it hits and the new distance is
- * closer than the best so far, result is updated.  Returns true if any disc
- * was selected (result.disc_index != -1). */
-char FUN_000624b0(void *obstacles, short skip_index, float *pt0, float *vec_a,
-                  float radius_base, float max_distance, char check_extant,
-                  void *result)
-{
-  short i;
-  short disc_count;
-  float *disc;
-
-  *(float *)result = max_distance;
-  *(short *)((char *)result + 4) = -1;
-  *(short *)((char *)result + 6) = -1;
-  disc_count = *(short *)((char *)obstacles + 2);
-  i = 0;
-  if (disc_count > 0) {
-    do {
-      if (i != skip_index) {
-        if (i < 0 || i >= disc_count || disc_count > 0x80) {
-          display_assert(
-              "disc_index>=0 && disc_index<obstacles->disc_count && "
-              "obstacles->disc_count<=MAXIMUM_DISC_COUNT",
-              "c:\\halo\\source\\ai\\path.h", 0x18c, true);
-          system_exit(-1);
-        }
-        disc = (float *)((char *)obstacles + (int)i * 0x18 + 8);
-        if (check_extant == 0 || (*(char *)disc & 1) == 0) {
-          if (FUN_00061f10(vec_a, pt0, (float *)((char *)disc + 8),
-                           &max_distance, radius_base + disc[4]) != 0) {
-            if (*(float *)result > max_distance) {
-              *(float *)result = max_distance;
-              *(short *)((char *)result + 4) = i;
-              *(short *)((char *)result + 6) = *(short *)((char *)disc + 2);
-            }
-          }
-        }
-      }
-      disc_count = *(short *)((char *)obstacles + 2);
-      i = (short)(i + 1);
-    } while (i < disc_count);
-  }
-  return (char)(*(short *)((char *)result + 4) != -1);
-}
-
-/* 0x625a0 - build a 2D cone toward an obstacle disc for path planning.
- * (TU: c:\halo\source\ai\path.h, inlined into path_obstacles.c)
- *
- * Pure cdecl. obstacles (param_1, disc_count at +2, discs at +8 stride 0x18),
- * disc_index (short), point (float* 2D reference). Bounds-checks disc_index
- * against disc_count (and disc_count <= MAXIMUM_DISC_COUNT=0x80).  Computes the
- * 2D direction from the disc center (disc[2],disc[3]) to point, normalizes it
- * (dividing by the distance unless the distance is below the 0x2533d0 epsilon,
- * in which case the distance is forced to 0), then hands the direction, the
- * distance, and (base_value + disc_radius(disc[4]) + 0x25ee6c) to
- * FUN_00061fa0 to build the two cone boundary rays into out_a/out_b/out_scalar.
- * 0x2533c8 == 1.0f. */
-void FUN_000625a0(void *obstacles, short disc_index, float *point,
-                  float base_value, float *out_b, float *out_a,
-                  float *out_scalar)
-{
-  float dir[2];
-  float dist;
-  float num;
-  float *disc;
-  short disc_count;
-
-  disc_count = *(short *)((char *)obstacles + 2);
-  if (disc_index < 0 || disc_index >= disc_count || disc_count > 0x80) {
-    display_assert(
-        "disc_index>=0 && disc_index<obstacles->disc_count && "
-        "obstacles->disc_count<=MAXIMUM_DISC_COUNT",
-        "c:\\halo\\source\\ai\\path.h", 0x18c, true);
-    system_exit(-1);
-  }
-  disc = (float *)((char *)obstacles + (int)disc_index * 0x18 + 8);
-  dir[0] = disc[2] - point[0];
-  dir[1] = disc[3] - point[1];
-  dist = sqrtf(dir[1] * dir[1] + dir[0] * dir[0]);
-  if (fabs(dist) < *(double *)0x002533d0) {
-    dist = 0.0f;
-  } else {
-    float inv = *(float *)0x002533c8 / dist;
-    dir[0] = dir[0] * inv;
-    dir[1] = dir[1] * inv;
-  }
-  num = base_value + disc[4] + *(float *)0x0025ee6c;
-  FUN_00061fa0(dir, out_a, out_b, dist, num, out_scalar);
 }
 
 /* FUN_000628b0 (0x628b0)  --  cluster_partition_assign_groups
@@ -1290,8 +1291,8 @@ float FUN_001057f0(float *param_1, float *param_2, float *param_3)
  * frac = subdivision_index / subdivision_count (FILD/FIDIV); the new vertex is
  * inv_frac*parent1 + frac*parent2 component-wise (inv_frac = 1.0 - frac; 1.0 at
  * 0x2533c8), written into sphere->vertices[new_vertex] (vertices at sphere+0x4,
- * stride 3 floats), then normalized in place via normalize3d (return discarded).
- * Asserts subdivision_index in (0,count) and each vertex index in
+ * stride 3 floats), then normalized in place via normalize3d (return
+ * discarded). Asserts subdivision_index in (0,count) and each vertex index in
  * [0,vertex_count] (vertex_count is a short at sphere+0xc). */
 void calculate_vertex(short subdivision_index /* @<eax> */,
                       short subdivision_count /* @<ecx> */,
@@ -1315,8 +1316,8 @@ void calculate_vertex(short subdivision_index /* @<eax> */,
 
   if (subdivision_index <= 0 || subdivision_index >= subdivision_count) {
     display_assert(
-        "subdivision_index > 0 && subdivision_index < subdivision_count",
-        "c:\\halo\\SOURCE\\math\\geometry.c", 0x13b, true);
+      "subdivision_index > 0 && subdivision_index < subdivision_count",
+      "c:\\halo\\SOURCE\\math\\geometry.c", 0x13b, true);
     system_exit(-1);
   }
   vertex_count = *(short *)((char *)sphere + 0xc);
@@ -1510,7 +1511,7 @@ void FUN_00105980(float *matrix, short *out_vertex_count,
 short shell_update(short vertex_count, float *vertices /* @<ebx> */)
 {
   float line[3]; /* [EBP-0x14]=nx, [EBP-0x10]=ny, [EBP-0xc]=d */
-  float p0[2];   /* [EBP-0x8], [EBP-0x4] */
+  float p0[2]; /* [EBP-0x8], [EBP-0x4] */
   short state;
   short i;
   float eval;
@@ -1527,7 +1528,8 @@ short shell_update(short vertex_count, float *vertices /* @<ebx> */)
         state = 1;
       }
     } else if (s == 1) {
-      eval = line[0] * vertices[i * 2] + line[1] * vertices[i * 2 + 1] - line[2];
+      eval =
+        line[0] * vertices[i * 2] + line[1] * vertices[i * 2 + 1] - line[2];
       if (fabs(eval) >= *(double *)0x002533d0) {
         state = 2;
       }
@@ -2252,9 +2254,10 @@ int *FUN_00191750(short cluster_index /* @<esi> */, int **partition)
 {
   if (cluster_index < 0 ||
       (int)cluster_index >= *(int *)((char *)scenario_get() + 0x134)) {
-    display_assert(
-        "cluster_index>=0 && cluster_index<global_structure_bsp_get()->clusters.count",
-        "c:\\halo\\SOURCE\\structures\\cluster_partitions.c", 0xd5, true);
+    display_assert("cluster_index>=0 && "
+                   "cluster_index<global_structure_bsp_get()->clusters.count",
+                   "c:\\halo\\SOURCE\\structures\\cluster_partitions.c", 0xd5,
+                   true);
     system_exit(-1);
   }
   return *partition + cluster_index;
@@ -2532,8 +2535,8 @@ char FUN_00191bd0(int search_value /* @<ebx> */, void **param_1, char *out)
   do {
     if (i < 0 || i >= count) {
       display_assert(
-          "levels_up>=0 && levels_up<leaf_map_globals.node_stack_count",
-          "c:\\halo\\SOURCE\\structures\\leaf_map.c", 0x3b, true);
+        "levels_up>=0 && levels_up<leaf_map_globals.node_stack_count",
+        "c:\\halo\\SOURCE\\structures\\leaf_map.c", 0x3b, true);
       system_exit(-1);
     }
     node = *(int *)(0x004d8a8c + ((int)count - (int)i) * 4);
@@ -2977,6 +2980,16 @@ int FUN_00194380(int param_1, void *param_2)
   return -1;
 }
 
+/* 0x1954d0 - build lens flares for the current structure BSP.
+ * (TU: c:\halo\SOURCE\structures\structure_render.c)
+ *
+ * Pure void(void). Thin wrapper: fetches the scenario structure via
+ * scenario_get() and forwards it to build_structure_lens_flares. */
+void FUN_001954d0(void)
+{
+  build_structure_lens_flares(scenario_get());
+}
+
 /* FUN_00195530 (0x195530)
  * Integer greater-than comparator, likely a qsort/bsearch comparison callback.
  * Two cdecl stack int args, bool/AL return. Returns true only when
@@ -2994,16 +3007,6 @@ char FUN_00195530(int param_1, int param_2)
     return 0;
   }
   return param_2 < param_1;
-}
-
-/* 0x1954d0 - build lens flares for the current structure BSP.
- * (TU: c:\halo\SOURCE\structures\structure_render.c)
- *
- * Pure void(void). Thin wrapper: fetches the scenario structure via
- * scenario_get() and forwards it to build_structure_lens_flares. */
-void FUN_001954d0(void)
-{
-  build_structure_lens_flares(scenario_get());
 }
 
 /* 0x195550 - gather structure surfaces selected by a per-32-surface bitmask.
@@ -3135,8 +3138,8 @@ int FUN_001956d0(void *param_1, void *param_2, short param_3)
       triangles = rasterizer_widget_begin(handle);
       if (triangles == NULL) {
         display_assert("triangles",
-                       "c:\\halo\\SOURCE\\structures\\structure_render.c", 0x1e6,
-                       true);
+                       "c:\\halo\\SOURCE\\structures\\structure_render.c",
+                       0x1e6, true);
         system_exit(-1);
       }
       if (param_2 == NULL) {
@@ -3155,6 +3158,148 @@ int FUN_001956d0(void *param_1, void *param_2, short param_3)
     }
   }
   return -1;
+}
+
+/* 0x195790 - iterate structure materials/submaterials and dispatch render
+ * callbacks for each run of surfaces.
+ *
+ * Register ABI (prologue at 0x195790): MOV EBX,EAX -> the only register arg is
+ *   surface_material_offsets@<eax> (int* array of per-surface material
+ * offsets). Stack args: surface_count (u16, [EBP+0x8] initially, then reused as
+ * the running surface accumulator), lightmap_pass_index (int, [EBP+0xc]),
+ *   material_begin_cb ([EBP+0x10], cdecl void(void*)), surface_draw_cb
+ *   ([EBP+0x14], cdecl 6-arg), pass_end_cb ([EBP+0x18], cdecl void(void)),
+ *   param_7 ([EBP+0x1c], cdecl 12-arg transparent-draw callback).
+ *
+ * Walks scenario materials (tag_block at scenario+0x104, stride 0x20).  For
+ * each material whose surface range covers the current surface offset, resolves
+ * an optional lightmap bitmap (scenario+0xc), fires material_begin_cb, then
+ * walks the material's submaterials (tag_block at material+0x14, stride 0x100).
+ * For each submaterial in range it resolves the 'shdr' shader tag, advances the
+ * surface cursor over the run belonging to this submaterial, and — if the
+ * breakable surface is extant — dispatches either surface_draw_cb (opaque
+ * shader) or param_7 (transparent shader).  Ends each material with
+ * pass_end_cb. Asserts (structure_render.c:599) if surfaces remain unassigned.
+ */
+void FUN_00195790(int *surface_material_offsets /* @<eax> */,
+                  unsigned short surface_count, int lightmap_pass_index,
+                  void *material_begin_cb, void *surface_draw_cb,
+                  void *pass_end_cb, int param_7)
+{
+  typedef void (*material_begin_fn)(void *);
+  typedef void (*surface_draw_fn)(void *, unsigned short, int, int, int,
+                                  void *);
+  typedef void (*pass_end_fn)(void);
+  typedef void (*transparent_draw_fn)(void *, unsigned short, void *, int, int,
+                                      int, void *, void *, void *, void *,
+                                      void *, int);
+  void *scenario;
+  int *surf; /* EBX: current surface offset cursor */
+  int *surf_end; /* [EBP-0x4] */
+  char *materials;
+  int mat_idx; /* [EBP-0x14] */
+  int accum; /* [EBP+0x8] running surface accumulator */
+  void *lightmap; /* [EBP-0x8] */
+
+  scenario = scenario_get();
+  surf = surface_material_offsets;
+  surf_end = surface_material_offsets + (short)surface_count;
+  materials = (char *)scenario + 0x104;
+  accum = 0;
+  mat_idx = 0;
+
+  if (*(int *)materials > 0) {
+    do {
+      char *mat;
+      int *submat_block;
+      void *last_sub;
+      if (surf_end <= surf) {
+        return;
+      }
+      mat = (char *)tag_block_get_element(materials, mat_idx, 0x20);
+      submat_block = (int *)(mat + 0x14);
+      last_sub = tag_block_get_element(submat_block, *submat_block - 1, 0x100);
+      if (*surf < *(int *)((char *)last_sub + 0x18) +
+                    *(int *)((char *)last_sub + 0x14)) {
+        int submat_idx;
+        if (*(int *)((char *)scenario + 0xc) == -1) {
+          lightmap = (void *)0;
+        } else {
+          lightmap =
+            FUN_00076ff0(*(int *)((char *)scenario + 0xc), *(short *)mat);
+        }
+        if (material_begin_cb != (void *)0) {
+          ((material_begin_fn)material_begin_cb)(lightmap);
+        }
+        submat_idx = 0;
+        if (*submat_block > 0) {
+          do {
+            char *sub;
+            if (surf_end <= surf) {
+              break;
+            }
+            sub =
+              (char *)tag_block_get_element(submat_block, submat_idx, 0x100);
+            if (*surf < *(int *)(sub + 0x14) + *(int *)(sub + 0x18)) {
+              void *shader;
+              int *run_start;
+              short run_count;
+              run_start = surf;
+              shader = tag_get(0x73686472, *(int *)(sub + 0xc));
+              do {
+                surf = surf + 1;
+                if (surf_end <= surf) {
+                  break;
+                }
+              } while (*surf < *(int *)(sub + 0x14) + *(int *)(sub + 0x18));
+              run_count = (short)(surf - run_start);
+              if (breakable_surface_extant(*(short *)(sub + 0xac)) != '\0') {
+                if (shader_type_is_transparent(
+                      *(short *)((char *)shader + 0x24)) == '\0') {
+                  if (surface_draw_cb != (void *)0) {
+                    ((surface_draw_fn)surface_draw_cb)(
+                      shader, *(unsigned short *)(sub + 0x10),
+                      lightmap_pass_index, accum, run_count, sub + 0xb0);
+                  }
+                } else if (param_7 != 0) {
+                  void *xform;
+                  void *extra;
+                  unsigned short flags = *(unsigned short *)(sub + 0x12);
+                  if ((flags & 2) != 0) {
+                    xform = (void *)0x4d8ebc;
+                  } else {
+                    xform = *(void **)0x0031fc38;
+                  }
+                  if ((flags & 1) != 0) {
+                    extra = sub + 0x9c;
+                  } else {
+                    extra = (void *)0;
+                  }
+                  ((transparent_draw_fn)(unsigned int)param_7)(
+                    shader, *(unsigned short *)(sub + 0x10), lightmap,
+                    lightmap_pass_index, accum, run_count, sub + 0xb0,
+                    sub + 0x1c, extra, xform, sub + 0x28, 0);
+                }
+              }
+              accum = accum + run_count;
+            }
+            submat_idx = submat_idx + 1;
+          } while ((short)submat_idx < *submat_block);
+        }
+        if (pass_end_cb != (void *)0) {
+          ((pass_end_fn)pass_end_cb)();
+        }
+      }
+      mat_idx = mat_idx + 1;
+    } while ((short)mat_idx < *(int *)((char *)scenario + 0x104));
+  }
+
+  if (surf < surf_end) {
+    display_assert(
+      "there are more surfaces than materials that reference them, stupid.",
+      "c:\\halo\\SOURCE\\structures\\structure_render.c", 599, true);
+    system_exit(-1);
+  }
 }
 
 /* FUN_001959f0 (0x1959f0)
@@ -3992,145 +4137,6 @@ int16_t FUN_00196fd0(int *out_buf, int16_t max_count, int unused_10,
   return (int16_t)out_count;
 }
 
-/* 0x195790 - iterate structure materials/submaterials and dispatch render
- * callbacks for each run of surfaces.
- *
- * Register ABI (prologue at 0x195790): MOV EBX,EAX -> the only register arg is
- *   surface_material_offsets@<eax> (int* array of per-surface material offsets).
- * Stack args: surface_count (u16, [EBP+0x8] initially, then reused as the
- *   running surface accumulator), lightmap_pass_index (int, [EBP+0xc]),
- *   material_begin_cb ([EBP+0x10], cdecl void(void*)), surface_draw_cb
- *   ([EBP+0x14], cdecl 6-arg), pass_end_cb ([EBP+0x18], cdecl void(void)),
- *   param_7 ([EBP+0x1c], cdecl 12-arg transparent-draw callback).
- *
- * Walks scenario materials (tag_block at scenario+0x104, stride 0x20).  For each
- * material whose surface range covers the current surface offset, resolves an
- * optional lightmap bitmap (scenario+0xc), fires material_begin_cb, then walks
- * the material's submaterials (tag_block at material+0x14, stride 0x100).  For
- * each submaterial in range it resolves the 'shdr' shader tag, advances the
- * surface cursor over the run belonging to this submaterial, and — if the
- * breakable surface is extant — dispatches either surface_draw_cb (opaque
- * shader) or param_7 (transparent shader).  Ends each material with pass_end_cb.
- * Asserts (structure_render.c:599) if surfaces remain unassigned. */
-void FUN_00195790(int *surface_material_offsets /* @<eax> */,
-                  unsigned short surface_count, int lightmap_pass_index,
-                  void *material_begin_cb, void *surface_draw_cb,
-                  void *pass_end_cb, int param_7)
-{
-  typedef void (*material_begin_fn)(void *);
-  typedef void (*surface_draw_fn)(void *, unsigned short, int, int, int, void *);
-  typedef void (*pass_end_fn)(void);
-  typedef void (*transparent_draw_fn)(void *, unsigned short, void *, int, int,
-                                      int, void *, void *, void *, void *,
-                                      void *, int);
-  void *scenario;
-  int *surf;     /* EBX: current surface offset cursor */
-  int *surf_end; /* [EBP-0x4] */
-  char *materials;
-  int mat_idx;   /* [EBP-0x14] */
-  int accum;     /* [EBP+0x8] running surface accumulator */
-  void *lightmap;/* [EBP-0x8] */
-
-  scenario = scenario_get();
-  surf = surface_material_offsets;
-  surf_end = surface_material_offsets + (short)surface_count;
-  materials = (char *)scenario + 0x104;
-  accum = 0;
-  mat_idx = 0;
-
-  if (*(int *)materials > 0) {
-    do {
-      char *mat;
-      int *submat_block;
-      void *last_sub;
-      if (surf_end <= surf) {
-        return;
-      }
-      mat = (char *)tag_block_get_element(materials, mat_idx, 0x20);
-      submat_block = (int *)(mat + 0x14);
-      last_sub = tag_block_get_element(submat_block, *submat_block - 1, 0x100);
-      if (*surf < *(int *)((char *)last_sub + 0x18) +
-                      *(int *)((char *)last_sub + 0x14)) {
-        int submat_idx;
-        if (*(int *)((char *)scenario + 0xc) == -1) {
-          lightmap = (void *)0;
-        } else {
-          lightmap = FUN_00076ff0(*(int *)((char *)scenario + 0xc),
-                                  *(short *)mat);
-        }
-        if (material_begin_cb != (void *)0) {
-          ((material_begin_fn)material_begin_cb)(lightmap);
-        }
-        submat_idx = 0;
-        if (*submat_block > 0) {
-          do {
-            char *sub;
-            if (surf_end <= surf) {
-              break;
-            }
-            sub = (char *)tag_block_get_element(submat_block, submat_idx, 0x100);
-            if (*surf < *(int *)(sub + 0x14) + *(int *)(sub + 0x18)) {
-              void *shader;
-              int *run_start;
-              short run_count;
-              run_start = surf;
-              shader = tag_get(0x73686472, *(int *)(sub + 0xc));
-              do {
-                surf = surf + 1;
-                if (surf_end <= surf) {
-                  break;
-                }
-              } while (*surf < *(int *)(sub + 0x14) + *(int *)(sub + 0x18));
-              run_count = (short)(surf - run_start);
-              if (breakable_surface_extant(*(short *)(sub + 0xac)) != '\0') {
-                if (shader_type_is_transparent(
-                        *(short *)((char *)shader + 0x24)) == '\0') {
-                  if (surface_draw_cb != (void *)0) {
-                    ((surface_draw_fn)surface_draw_cb)(
-                        shader, *(unsigned short *)(sub + 0x10),
-                        lightmap_pass_index, accum, run_count, sub + 0xb0);
-                  }
-                } else if (param_7 != 0) {
-                  void *xform;
-                  void *extra;
-                  unsigned short flags = *(unsigned short *)(sub + 0x12);
-                  if ((flags & 2) != 0) {
-                    xform = (void *)0x4d8ebc;
-                  } else {
-                    xform = *(void **)0x0031fc38;
-                  }
-                  if ((flags & 1) != 0) {
-                    extra = sub + 0x9c;
-                  } else {
-                    extra = (void *)0;
-                  }
-                  ((transparent_draw_fn)(unsigned int)param_7)(
-                      shader, *(unsigned short *)(sub + 0x10), lightmap,
-                      lightmap_pass_index, accum, run_count, sub + 0xb0,
-                      sub + 0x1c, extra, xform, sub + 0x28, 0);
-                }
-              }
-              accum = accum + run_count;
-            }
-            submat_idx = submat_idx + 1;
-          } while ((short)submat_idx < *submat_block);
-        }
-        if (pass_end_cb != (void *)0) {
-          ((pass_end_fn)pass_end_cb)();
-        }
-      }
-      mat_idx = mat_idx + 1;
-    } while ((short)mat_idx < *(int *)((char *)scenario + 0x104));
-  }
-
-  if (surf < surf_end) {
-    display_assert(
-        "there are more surfaces than materials that reference them, stupid.",
-        "c:\\halo\\SOURCE\\structures\\structure_render.c", 599, true);
-    system_exit(-1);
-  }
-}
-
 /* 0x197130 - gather visible clusters referenced by a BSP leaf's surfaces.
  *
  * Register ABI (prologue at 0x197130): MOV EBX,[EBP+0x2c] then MOV ESI,EAX; the
@@ -4170,33 +4176,33 @@ int FUN_00197130(float *bounds, void *param_2, int *param_3, int count,
 
   if ((short)intersection == 0) {
     display_assert("intersection",
-                   "c:\\halo\\SOURCE\\structures\\structure_visibility.c", 0x2f0,
-                   true);
+                   "c:\\halo\\SOURCE\\structures\\structure_visibility.c",
+                   0x2f0, true);
     system_exit(-1);
   }
   if (bounds == (float *)0) {
     display_assert("parent_bounds",
-                   "c:\\halo\\SOURCE\\structures\\structure_visibility.c", 0x2f1,
-                   true);
+                   "c:\\halo\\SOURCE\\structures\\structure_visibility.c",
+                   0x2f1, true);
     system_exit(-1);
   }
   if (center == (float *)0) {
     display_assert("cull_sphere_center",
-                   "c:\\halo\\SOURCE\\structures\\structure_visibility.c", 0x2f2,
-                   true);
+                   "c:\\halo\\SOURCE\\structures\\structure_visibility.c",
+                   0x2f2, true);
     system_exit(-1);
   }
   if (cull_bounds == (float *)0) {
     display_assert("cull_bounds",
-                   "c:\\halo\\SOURCE\\structures\\structure_visibility.c", 0x2f3,
-                   true);
+                   "c:\\halo\\SOURCE\\structures\\structure_visibility.c",
+                   0x2f3, true);
     system_exit(-1);
   }
   if (*(short *)(leaf_element + 8) < 0 ||
       *(int *)((char *)scenario + 0x134) <= (int)*(short *)(leaf_element + 8)) {
     display_assert(
-        "leaf->cluster_index>=0 && leaf->cluster_index<structure->clusters.count",
-        "c:\\halo\\SOURCE\\structures\\structure_visibility.c", 0x2f4, true);
+      "leaf->cluster_index>=0 && leaf->cluster_index<structure->clusters.count",
+      "c:\\halo\\SOURCE\\structures\\structure_visibility.c", 0x2f4, true);
     system_exit(-1);
   }
 
@@ -4300,8 +4306,8 @@ short FUN_00197310(void *verts, void *plane, void *ref, void *arg1,
                                         0.0001f, (void *)0x1);
   if (*out == -1) {
     display_assert("result->vertex_count!=NONE",
-                   "c:\\halo\\SOURCE\\structures\\structure_visibility.c", 0x485,
-                   true);
+                   "c:\\halo\\SOURCE\\structures\\structure_visibility.c",
+                   0x485, true);
     system_exit(-1);
   }
 
@@ -4358,17 +4364,16 @@ short FUN_001974f0(int16_t connection_index, char pick, int *out)
   void *conn;
 
   scenario = (int)scenario_get();
-  conn = tag_block_get_element((void *)(scenario + 0x154), connection_index,
-                               0x40);
+  conn =
+    tag_block_get_element((void *)(scenario + 0x154), connection_index, 0x40);
   return FUN_00197310(
-      *(void **)((char *)conn + 0x38),
-      tag_block_get_element(
-          (void *)((char *)tag_block_get_element((void *)(scenario + 0xb0), 0,
-                                                 0x60) +
-                   0xc),
-          *(int *)((char *)conn + 4), 0x10),
-      (void *)0x506550, (void *)0x5065a4, *(short *)((char *)conn + 0x34),
-      (pick == 0) ? 1 : -1, (short *)out);
+    *(void **)((char *)conn + 0x38),
+    tag_block_get_element((void *)((char *)tag_block_get_element(
+                                     (void *)(scenario + 0xb0), 0, 0x60) +
+                                   0xc),
+                          *(int *)((char *)conn + 4), 0x10),
+    (void *)0x506550, (void *)0x5065a4, *(short *)((char *)conn + 0x34),
+    (pick == 0) ? 1 : -1, (short *)out);
 }
 
 /* 0x197570 - test a run of structure vertices against a stored plane.
@@ -4407,6 +4412,140 @@ char FUN_00197570(float *records, int16_t count, float threshold)
     } while (i < count);
   }
   return 0;
+}
+
+/* FUN_001978a0: recursive bsp3d structure-visibility traversal.
+ *   Original: c:\halo\SOURCE\structures\structure_visibility.c line ~0x2ab.
+ *
+ * Walks the structure BSP3D node tree from `node_index`. At each node it
+ * subdivides the incoming (parent) bounds across the node's fraction record
+ * (FUN_00196eb0 -> child bounds in `bounds`), tests those bounds against the
+ * cull bounds (FUN_00196a60) and the frustum planes (FUN_00196b10) unless the
+ * caller already reported "fully inside" ((short)intersection == 2), then for
+ * each of the node's two child slots that survive the splitting-plane sphere
+ * test recurses into subtrees (child >= 0) or dispatches leaves (child < 0,
+ * child != -1) via FUN_00197130. Returns the accumulated 16-bit count in AX.
+ *
+ * 11 cdecl stack args (recursive tail cleans ADD ESP,0x2c = 44 = 11*4).
+ * ESI is the running accumulator, EDI the propagated intersection mode.
+ *
+ * Verified against disasm 0x1978a0-0x197afa. Notes on decompiler traps fixed
+ * here:
+ *   - The two side flags are independent stack bytes (side[0]/side[1]),
+ *     defaulted to 1 and cleared by the plane test; Ghidra modelled them as a
+ *     CONCAT into param_2. param_2 is really a float* (parent bounds).
+ *   - The value passed to children in slot 7 is the UNCHANGED radius (held in
+ *     EBX across the FPU block), not fVar1; the decompiler mis-aliased EBX.
+ *   - FUN_00196eb0 is a 3-arg call (bounds, fractions, out); its 3rd arg is the
+ *     &local_24 push that tag_block_get_element left on the stack (this is the
+ *     ADD ESP,0xc "anomaly"). FUN_00196b10 takes &bounds in @eax. */
+unsigned short FUN_001978a0(int node_index, float *parent_bounds, void *param_3,
+                            int *param_4, int param_5, float *center,
+                            float radius, float *cull_bounds, int param_9,
+                            int param_10, int intersection)
+{
+  int accum;
+  char *scenario;
+  char *nodes_block;
+  unsigned char *fractions;
+  int mode;
+  int t;
+  int *node;
+  float *plane;
+  float dist;
+  unsigned char side[2];
+  int count;
+  int *child_ptr;
+  unsigned char *side_ptr;
+  int child;
+  float bounds[6];
+
+  accum = 0;
+  scenario = (char *)scenario_get();
+  nodes_block = (char *)tag_block_get_element(scenario + 0xb0, 0, 0x60);
+
+  if (parent_bounds == 0) {
+    display_assert("parent_bounds",
+                   "c:\\halo\\SOURCE\\structures\\structure_visibility.c",
+                   0x2ab, true);
+    system_exit(-1);
+  }
+  if (center == 0) {
+    display_assert("cull_sphere_center",
+                   "c:\\halo\\SOURCE\\structures\\structure_visibility.c",
+                   0x2ac, true);
+    system_exit(-1);
+  }
+  if (cull_bounds == 0) {
+    display_assert("cull_bounds",
+                   "c:\\halo\\SOURCE\\structures\\structure_visibility.c",
+                   0x2ad, true);
+    system_exit(-1);
+  }
+  /* the original loads intersection into EDI here and keeps that register as
+   * the running mode for the rest of the function */
+  mode = intersection;
+  if ((short)mode == 0) {
+    display_assert("intersection",
+                   "c:\\halo\\SOURCE\\structures\\structure_visibility.c",
+                   0x2ae, true);
+    system_exit(-1);
+  }
+
+  fractions =
+    (unsigned char *)tag_block_get_element(scenario + 0xbc, node_index, 6);
+  FUN_00196eb0(parent_bounds, fractions, bounds);
+
+  if ((short)mode != 2) {
+    mode = FUN_00196a60(cull_bounds, bounds);
+    if ((short)mode == 0)
+      return (unsigned short)accum;
+    t = FUN_00196b10(bounds, param_9, param_10);
+    if ((short)t == 2)
+      param_9 = 0;
+    if ((short)mode > (short)t)
+      mode = t;
+  }
+
+  if ((short)mode != 0) {
+    node = (int *)tag_block_get_element(nodes_block, node_index, 0xc);
+    plane = (float *)tag_block_get_element(nodes_block + 0xc, *node, 0x10);
+    dist = plane[2] * center[2] + plane[1] * center[1] + center[0] * plane[0] -
+           plane[3];
+
+    side[0] = 1;
+    if (!(dist < radius))
+      side[0] = 0;
+    side[1] = 1;
+    if (!(dist > -radius))
+      side[1] = 0;
+
+    child_ptr = node + 1;
+    side_ptr = side;
+    count = 2;
+    do {
+      if (*side_ptr != 0) {
+        child = *child_ptr;
+        /* recurse arm first: original falls through into the self-call and
+         * sinks the leaf arm past the join (JS to it) */
+        if (child >= 0) {
+          accum += FUN_001978a0(child, bounds, param_3, param_4 + (short)accum,
+                                param_5 - accum, center, radius, cull_bounds,
+                                param_9, param_10, mode);
+        } else if (child != -1) {
+          /* 0x19713c: callee reads the leaf ref from EAX (strips the sign
+           * bit itself via AND 0x7fffffff) — implicit @<eax> arg. */
+          accum += FUN_00197130(bounds, param_3, param_4 + (short)accum,
+                                param_5 - accum, center, radius, cull_bounds,
+                                param_9, param_10, mode, child);
+        }
+      }
+      child_ptr++;
+      side_ptr++;
+    } while (--count != 0);
+  }
+
+  return (unsigned short)accum;
 }
 
 /* FUN_00197e90 (0x197e90) — structures.obj
@@ -5576,8 +5715,6 @@ int16_t structure_find_in_cluster(uint16_t cluster_count, float *position,
  * volume/device-name table, one 256-byte row per file-reference location,
  * indexed by location * 0x100.
  */
-#define file_location_volume_names ((char *)0x505500)
-
 /*
  * set_file_location_volume_name (0x199360) - record the volume/device name for
  * a file-reference location.

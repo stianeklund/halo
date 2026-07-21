@@ -1,3 +1,9 @@
+#include "x87_math.h"
+#include <xmmintrin.h>
+
+typedef void *(*zlib_zalloc_fn)(void *, int, int);
+typedef void (*zlib_zfree_fn)(void *, void *);
+
 /* 0x1acb0 — 2D scale-add: out = base + scale * dir. */
 void FUN_0001acb0(float *base, float *dir, float scale, float *out)
 {
@@ -28,7 +34,6 @@ void FUN_0001ad40(float *in, float *out)
   out[1] = -in[1];
 }
 
-#include "x87_math.h"
 
 #if defined(__clang__)
 #define real_math_fabs_double_from_float(x) __builtin_fabs((double)(x))
@@ -566,7 +571,6 @@ void real_matrix4x3_transform_point(void *matrix, void *point, void *out)
 #ifndef _MSC_VER
 #define _MM_MALLOC_H_INCLUDED
 #endif
-#include <xmmintrin.h>
 
 #ifdef __clang__
 __attribute__((target("sse")))
@@ -1276,11 +1280,11 @@ float transition_function_evaluate(short function_type, float t)
  *
  * Constants (resolved from the binary):
  *   0.0f        @0x2533c0  initial accumulator
- *   1.0f        @0x2533c8  cos bias added to each cos term; normalization target
- *   0.25f       @0x25337c  weight for the 4th (constant-frequency) random term
- *   0.04479224f @0x28c8cc  frequency paired with random #3
- *   0.03129321f @0x28c8c8  frequency paired with random #2
- *   0.02515729f @0x28c8c4  frequency paired with random #1
+ *   1.0f        @0x2533c8  cos bias added to each cos term; normalization
+ * target 0.25f       @0x25337c  weight for the 4th (constant-frequency) random
+ * term 0.04479224f @0x28c8cc  frequency paired with random #3 0.03129321f
+ * @0x28c8c8  frequency paired with random #2 0.02515729f @0x28c8c4  frequency
+ * paired with random #1
  *
  * Faithfulness notes (verified against disassembly 0x10a830-0x10a923):
  *   - buf[i] is stored BEFORE the four random draws overwrite the accumulator.
@@ -1311,7 +1315,7 @@ void FUN_0010a830(float *buf)
     /* 4th random kept inline (no 32-bit spill in the original) */
     sum = (random_math_real((unsigned int *)get_global_random_seed_address()) +
            1.0f) *
-            0.25f +                                  /* 0x25337c */
+            0.25f + /* 0x25337c */
           (x87_fcos_mul(fi, 0.04479224f) + 1.0f) * r3 + /* 0x28c8cc */
           (x87_fcos_mul(fi, 0.03129321f) + 1.0f) * r2 + /* 0x28c8c8 */
           (x87_fcos_mul(fi, 0.02515729f) + 1.0f) * r1 + /* 0x28c8c4 */
@@ -2189,8 +2193,7 @@ char FUN_0010d4c0(float *p1, float p2, float p3, float *p4, float *p5,
   local_origin[1] = p4[0] - p1[0];
   local_origin[2] = p4[1] - p1[1];
   bp = local_origin[1] * p5[0] + local_origin[2] * p5[1];
-  c2 = (local_origin[2] * local_origin[2] +
-        local_origin[1] * local_origin[1]) -
+  c2 = (local_origin[2] * local_origin[2] + local_origin[1] * local_origin[1]) -
        p3 * p3;
   t = 0.0f;
   if (!(c2 <= 0.0f)) {
@@ -2778,90 +2781,90 @@ distance_check:
  * Returns 1 if intersection, 0 otherwise. */
 char FUN_0010e4d0(float *point, float *dir, float *v0, float *v1, float *v2)
 {
-    float tmin, tmax;
-    float e_x, e_y, p_x, p_y, num, den, t;
+  float tmin, tmax;
+  float e_x, e_y, p_x, p_y, num, den, t;
 
-    tmin = 0.0f;
-    tmax = 1.0f;
+  tmin = 0.0f;
+  tmax = 1.0f;
 
-    /* Edge 1: v0 -> v1 */
-    p_x = point[0] - v0[0];
-    p_y = point[1] - v0[1];
-    e_x = v1[0] - v0[0];
-    e_y = v1[1] - v0[1];
-    num = p_x * e_y - e_x * p_y;
-    den = e_x * dir[1] - e_y * dir[0];
-    if (fabs(den) < *(double *)0x2533d0) {
-        if (num > 0.0f)
-            return 0;
-    } else {
-        t = num / den;
-        if (den > 0.0f) {
-            if (t > 0.0f) {
-                tmin = t;
-                if (tmin > tmax)
-                    return 0;
-            }
-        } else {
-            if (t < 1.0f) {
-                tmax = t;
-                if (tmin > tmax)
-                    return 0;
-            }
-        }
-    }
-
-    /* Edge 2: v1 -> v2 */
-    p_x = point[0] - v1[0];
-    p_y = point[1] - v1[1];
-    e_x = v2[0] - v1[0];
-    e_y = v2[1] - v1[1];
-    num = p_x * e_y - e_x * p_y;
-    den = e_x * dir[1] - e_y * dir[0];
-    if (fabs(den) < *(double *)0x2533d0) {
-        if (num > 0.0f)
-            return 0;
-    } else {
-        t = num / den;
-        if (den > 0.0f) {
-            if (t > tmin) {
-                tmin = t;
-            }
-        } else {
-            if (t < tmax) {
-                tmax = t;
-            }
-        }
+  /* Edge 1: v0 -> v1 */
+  p_x = point[0] - v0[0];
+  p_y = point[1] - v0[1];
+  e_x = v1[0] - v0[0];
+  e_y = v1[1] - v0[1];
+  num = p_x * e_y - e_x * p_y;
+  den = e_x * dir[1] - e_y * dir[0];
+  if (fabs(den) < *(double *)0x2533d0) {
+    if (num > 0.0f)
+      return 0;
+  } else {
+    t = num / den;
+    if (den > 0.0f) {
+      if (t > 0.0f) {
+        tmin = t;
         if (tmin > tmax)
-            return 0;
-    }
-
-    /* Edge 3: v2 -> v0 */
-    p_x = point[0] - v2[0];
-    p_y = point[1] - v2[1];
-    e_x = v0[0] - v2[0];
-    e_y = v0[1] - v2[1];
-    num = p_x * e_y - e_x * p_y;
-    den = e_x * dir[1] - e_y * dir[0];
-    if (fabs(den) < *(double *)0x2533d0) {
-        if (num > 0.0f)
-            return 0;
+          return 0;
+      }
     } else {
-        t = num / den;
-        if (den > 0.0f) {
-            if (t > tmin) {
-                tmin = t;
-            }
-        } else {
-            if (t < tmax) {
-                tmax = t;
-            }
-        }
+      if (t < 1.0f) {
+        tmax = t;
         if (tmin > tmax)
-            return 0;
+          return 0;
+      }
     }
+  }
 
-    return 1;
+  /* Edge 2: v1 -> v2 */
+  p_x = point[0] - v1[0];
+  p_y = point[1] - v1[1];
+  e_x = v2[0] - v1[0];
+  e_y = v2[1] - v1[1];
+  num = p_x * e_y - e_x * p_y;
+  den = e_x * dir[1] - e_y * dir[0];
+  if (fabs(den) < *(double *)0x2533d0) {
+    if (num > 0.0f)
+      return 0;
+  } else {
+    t = num / den;
+    if (den > 0.0f) {
+      if (t > tmin) {
+        tmin = t;
+      }
+    } else {
+      if (t < tmax) {
+        tmax = t;
+      }
+    }
+    if (tmin > tmax)
+      return 0;
+  }
+
+  /* Edge 3: v2 -> v0 */
+  p_x = point[0] - v2[0];
+  p_y = point[1] - v2[1];
+  e_x = v0[0] - v2[0];
+  e_y = v0[1] - v2[1];
+  num = p_x * e_y - e_x * p_y;
+  den = e_x * dir[1] - e_y * dir[0];
+  if (fabs(den) < *(double *)0x2533d0) {
+    if (num > 0.0f)
+      return 0;
+  } else {
+    t = num / den;
+    if (den > 0.0f) {
+      if (t > tmin) {
+        tmin = t;
+      }
+    } else {
+      if (t < tmax) {
+        tmax = t;
+      }
+    }
+    if (tmin > tmax)
+      return 0;
+  }
+
+  return 1;
 }
 
 /* 0x10e6f0 — 3D ray vs triangle intersection (Möller–Trumbore-like).
@@ -3999,9 +4002,8 @@ char FUN_001104e0(float *p1, float p2, float *p3, float *p4, float p5,
       system_exit(-1);
     }
   }
-  dot =
-    ((p1[0] - p3[0]) * p4[0] + (p1[2] - p3[2]) * p4[2]) +
-    (p1[1] - p3[1]) * p4[1];
+  dot = ((p1[0] - p3[0]) * p4[0] + (p1[2] - p3[2]) * p4[2]) +
+        (p1[1] - p3[1]) * p4[1];
   if (-p2 <= dot) {
     if (dot <= p2 + p5 &&
         FUN_0010dbf0(p1, p3, p4, p2 + p5 - dot + p2, cosine)) {
@@ -4115,6 +4117,31 @@ void FUN_00110800(int param_1)
   FUN_00117cf0((int *)(param_1 + 4));
 }
 
+/* 0x110820 — bounded callback iterator (real_math.obj). For each index in
+ * [start, count) where count = *(short*)(obj+0x10), invoke the object's
+ * callback at obj+0x1c as callback(context=*(int*)(obj+0x14), param_1,
+ * passthru, index). Returns 0 the moment any callback returns nonzero, else 1
+ * once every element passes. The loop counter is a 16-bit signed short held in
+ * a 32-bit register (MSVC short-loop codegen). ABI: start in EAX, passthru in
+ * EBX (forwarded untouched to the callback), obj in ESI, param_1 on the stack
+ * => VC71 prologue ceiling. (Decompiler under-counts the 4-arg callback and
+ * misses the EBX passthrough; both recovered from disassembly.) */
+int FUN_00110820(int start /*@<eax>*/, int passthru /*@<ebx>*/,
+                 void *obj /*@<esi>*/, int param_1)
+{
+  int (*callback)(int, int, int, int);
+  int index;
+
+  index = start;
+  while ((short)index < *(short *)((char *)obj + 0x10)) { /* index < count */
+    callback = *(int (**)(int, int, int, int))((char *)obj + 0x1c);
+    if (callback(*(int *)((char *)obj + 0x14), param_1, passthru, index) != 0)
+      return 0;
+    index = index + 1;
+  }
+  return 1;
+}
+
 /*
  * 0x1108b0 — vector_tree BST search/insert.
  *
@@ -4146,87 +4173,84 @@ void FUN_00110800(int param_1)
  */
 char FUN_001108b0(int *tree, int vector, int *out_node)
 {
-    int *slot;
-    int *node;
-    int key;
-    int cmp;
-    int count;
-    int scan;
-    int new_node;
+  int *slot;
+  int *node;
+  int key;
+  int cmp;
+  int count;
+  int scan;
+  int new_node;
 
-    if (tree == (int *)0) {
-        display_assert("tree", "c:\\halo\\SOURCE\\math\\vector_tree.c", 0x4a,
-                       1);
-        system_exit(-1);
+  if (tree == (int *)0) {
+    display_assert("tree", "c:\\halo\\SOURCE\\math\\vector_tree.c", 0x4a, 1);
+    system_exit(-1);
+  }
+  if (vector == 0) {
+    display_assert("vector", "c:\\halo\\SOURCE\\math\\vector_tree.c", 0x4b, 1);
+    system_exit(-1);
+  }
+  if (out_node == (int *)0) {
+    display_assert("index_reference", "c:\\halo\\SOURCE\\math\\vector_tree.c",
+                   0x4c, 1);
+    system_exit(-1);
+  }
+
+  count = 0;
+  slot = tree; /* initially points at tree[0] = root index field */
+
+  do {
+    if (*slot == -1) {
+      /* Empty slot: insert here. Write free-list head into slot, then
+         allocate a node from the pool. */
+      *slot = tree[2];
+      new_node = FUN_00117da0(&tree[1]);
+      if (new_node != -1) {
+        new_node = FUN_00117ee0(&tree[1], new_node, 0x10);
+        ((int *)new_node)[1] = -1;
+        ((int *)new_node)[2] = -1;
+        ((int *)new_node)[3] = -1;
+        *out_node = new_node;
+        return 0;
+      }
+      *out_node = 0;
+      return 0;
     }
-    if (vector == 0) {
-        display_assert("vector", "c:\\halo\\SOURCE\\math\\vector_tree.c", 0x4b,
-                       1);
-        system_exit(-1);
+
+    /* Get pointer to current node's data block. */
+    node = (int *)FUN_00117ee0(&tree[1], *slot, 0x10);
+    key = (*(int (*)(int, int))tree[6])(tree[5], node[0]);
+    cmp = (*(int (*)(int, int, int, int))tree[7])(tree[5], vector, key, count);
+    if (cmp < 0) {
+      slot = node + 1; /* left child */
+    } else if (cmp > 0) {
+      slot = node + 3; /* right child */
+    } else {
+      /* Equal: increment persistent count, check against max.
+       * Both the outer-max check and inner-loop exhaustion share the
+       * same found epilogue (matches original's single LAB_1109a2).
+       */
+      count++;
+      scan = count;
+      if ((short)scan < (short)tree[4]) {
+        /* Inner duplicate scan: call comparator with increasing scan
+           value until non-zero result or scan reaches max. */
+        do {
+          cmp =
+            (*(int (*)(int, int, int, int))tree[7])(tree[5], vector, key, scan);
+          if (cmp != 0) {
+            /* Non-zero: follow equal/mid child. */
+            slot = node + 2;
+            goto next_iter;
+          }
+          scan++;
+        } while ((short)scan < (short)tree[4]);
+      }
+      /* Scan exhausted (or count already at max): found. */
+      *out_node = (int)node;
+      return 1;
+    next_iter:;
     }
-    if (out_node == (int *)0) {
-        display_assert("index_reference",
-                       "c:\\halo\\SOURCE\\math\\vector_tree.c", 0x4c, 1);
-        system_exit(-1);
-    }
-
-    count = 0;
-    slot = tree; /* initially points at tree[0] = root index field */
-
-    do {
-        if (*slot == -1) {
-            /* Empty slot: insert here. Write free-list head into slot, then
-               allocate a node from the pool. */
-            *slot = tree[2];
-            new_node = FUN_00117da0(&tree[1]);
-            if (new_node != -1) {
-                new_node = FUN_00117ee0(&tree[1], new_node, 0x10);
-                ((int *)new_node)[1] = -1;
-                ((int *)new_node)[2] = -1;
-                ((int *)new_node)[3] = -1;
-                *out_node = new_node;
-                return 0;
-            }
-            *out_node = 0;
-            return 0;
-        }
-
-        /* Get pointer to current node's data block. */
-        node = (int *)FUN_00117ee0(&tree[1], *slot, 0x10);
-        key = (*(int (*)(int, int))tree[6])(tree[5], node[0]);
-        cmp = (*(int (*)(int, int, int, int))tree[7])(tree[5], vector, key,
-                                                       count);
-        if (cmp < 0) {
-            slot = node + 1; /* left child */
-        } else if (cmp > 0) {
-            slot = node + 3; /* right child */
-        } else {
-            /* Equal: increment persistent count, check against max.
-             * Both the outer-max check and inner-loop exhaustion share the
-             * same found epilogue (matches original's single LAB_1109a2).
-             */
-            count++;
-            scan = count;
-            if ((short)scan < (short)tree[4]) {
-                /* Inner duplicate scan: call comparator with increasing scan
-                   value until non-zero result or scan reaches max. */
-                do {
-                    cmp = (*(int (*)(int, int, int, int))tree[7])(
-                        tree[5], vector, key, scan);
-                    if (cmp != 0) {
-                        /* Non-zero: follow equal/mid child. */
-                        slot = node + 2;
-                        goto next_iter;
-                    }
-                    scan++;
-                } while ((short)scan < (short)tree[4]);
-            }
-            /* Scan exhausted (or count already at max): found. */
-            *out_node = (int)node;
-            return 1;
-        next_iter: ;
-        }
-    } while (1);
+  } while (1);
 }
 
 /* 0x110a10 — zlib adler32 checksum (pure integer leaf, no calls).
@@ -4327,29 +4351,32 @@ unsigned int FUN_00110a10(unsigned int param_1, unsigned char *param_2,
  * not Z_STREAM_END (output buffer too small), or the raw deflate/init error
  * code.  param_5 is the compression level (e.g. -1 = Z_DEFAULT_COMPRESSION,
  * 9 = Z_BEST_COMPRESSION) passed to deflateInit_. */
-int FUN_00110b40(void *dest, int *destLen, int source,
-                 unsigned int sourceLen, int level)
+int FUN_00110b40(void *dest, int *destLen, int source, unsigned int sourceLen,
+                 int level)
 {
   unsigned int s[14];
   int r;
   int err;
 
-  s[0]  = (unsigned int)source;
-  s[1]  = sourceLen;
-  s[3]  = (unsigned int)dest;
-  s[4]  = (unsigned int)*destLen;
-  s[8]  = 0;
-  s[9]  = 0;
+  s[0] = (unsigned int)source;
+  s[1] = sourceLen;
+  s[3] = (unsigned int)dest;
+  s[4] = (unsigned int)*destLen;
+  s[8] = 0;
+  s[9] = 0;
   s[10] = 0;
   err = FUN_001127b0((int)s, level, "1.1.3", 0x38);
-  if (err != 0) goto compress_init_failed;
+  if (err != 0)
+    goto compress_init_failed;
   r = FUN_00110ed0((void *)s, 4);
-  if (r != 1) goto compress_deflate_failed;
+  if (r != 1)
+    goto compress_deflate_failed;
   *destLen = (int)s[5];
   return FUN_00111170((int)s);
 compress_deflate_failed:
   FUN_00111170((int)s);
-  if (r == 0) return -5;
+  if (r == 0)
+    return -5;
   return r;
 compress_init_failed:
   return err;
@@ -4383,29 +4410,21 @@ unsigned int FUN_00110c10(unsigned int crc, void *buf, int len)
     n8 = rem >> 3;
     do {
       rem = rem - 8;
-      crc =
-        *(unsigned int *)(0x28ce48 + ((*p ^ crc) & 0xff) * 4) ^ (crc >> 8);
+      crc = *(unsigned int *)(0x28ce48 + ((*p ^ crc) & 0xff) * 4) ^ (crc >> 8);
       p = p + 1;
-      crc =
-        *(unsigned int *)(0x28ce48 + ((*p ^ crc) & 0xff) * 4) ^ (crc >> 8);
+      crc = *(unsigned int *)(0x28ce48 + ((*p ^ crc) & 0xff) * 4) ^ (crc >> 8);
       p = p + 1;
-      crc =
-        *(unsigned int *)(0x28ce48 + ((*p ^ crc) & 0xff) * 4) ^ (crc >> 8);
+      crc = *(unsigned int *)(0x28ce48 + ((*p ^ crc) & 0xff) * 4) ^ (crc >> 8);
       p = p + 1;
-      crc =
-        *(unsigned int *)(0x28ce48 + ((*p ^ crc) & 0xff) * 4) ^ (crc >> 8);
+      crc = *(unsigned int *)(0x28ce48 + ((*p ^ crc) & 0xff) * 4) ^ (crc >> 8);
       p = p + 1;
-      crc =
-        *(unsigned int *)(0x28ce48 + ((*p ^ crc) & 0xff) * 4) ^ (crc >> 8);
+      crc = *(unsigned int *)(0x28ce48 + ((*p ^ crc) & 0xff) * 4) ^ (crc >> 8);
       p = p + 1;
-      crc =
-        *(unsigned int *)(0x28ce48 + ((*p ^ crc) & 0xff) * 4) ^ (crc >> 8);
+      crc = *(unsigned int *)(0x28ce48 + ((*p ^ crc) & 0xff) * 4) ^ (crc >> 8);
       p = p + 1;
-      crc =
-        *(unsigned int *)(0x28ce48 + ((*p ^ crc) & 0xff) * 4) ^ (crc >> 8);
+      crc = *(unsigned int *)(0x28ce48 + ((*p ^ crc) & 0xff) * 4) ^ (crc >> 8);
       p = p + 1;
-      crc =
-        (crc >> 8) ^ *(unsigned int *)(0x28ce48 + ((*p ^ crc) & 0xff) * 4);
+      crc = (crc >> 8) ^ *(unsigned int *)(0x28ce48 + ((*p ^ crc) & 0xff) * 4);
       p = p + 1;
       n8 = n8 - 1;
     } while (n8 != 0);
@@ -4432,11 +4451,15 @@ int FUN_00110d40(int param_1, int param_2, unsigned int param_3)
   unsigned int count;
   unsigned int ins_h;
 
-  if (param_1 == 0) goto stream_error_d40;
+  if (param_1 == 0)
+    goto stream_error_d40;
   state = *(int *)(param_1 + 0x1c);
-  if (state == 0) goto stream_error_d40;
-  if (param_2 == 0) goto stream_error_d40;
-  if (*(int *)(state + 4) != 0x2a) goto stream_error_d40;
+  if (state == 0)
+    goto stream_error_d40;
+  if (param_2 == 0)
+    goto stream_error_d40;
+  if (*(int *)(state + 4) != 0x2a)
+    goto stream_error_d40;
 
   *(int *)(param_1 + 0x30) = (int)FUN_00110a10(
     *(unsigned int *)(param_1 + 0x30), (unsigned char *)param_2, param_3);
@@ -4482,6 +4505,177 @@ stream_error_d40:
   return -2;
 }
 
+/* 0x110e40 — zlib putShortMSB: append a 16-bit value to the deflate pending
+ * buffer most-significant-byte first, as two post-increment put_byte stores
+ * (pending_buf @ state+0x8, pending count @ state+0x14). @<eax>=state =>
+ * VC71 prologue ceiling. */
+void FUN_00110e40(unsigned int byte_val /*@<ecx>*/, int state /*@<eax>*/)
+{
+  *(unsigned char *)(*(int *)(state + 8) + *(int *)(state + 0x14)) =
+    (unsigned char)(byte_val >> 8);
+  ++*(int *)(state + 0x14);
+  *(unsigned char *)(*(int *)(state + 8) + *(int *)(state + 0x14)) =
+    (unsigned char)byte_val;
+  ++*(int *)(state + 0x14);
+}
+
+/* 0x110e70 — zlib flush_pending: copy as many pending output bytes as fit into
+ * strm->next_out, capped at avail_out. strm fields: state @ +0x1c, next_out
+ * @ +0xc, avail_out @ +0x10, total_out @ +0x14; state fields: pending_buf @
+ * +0x8, pending_out @ +0x10, pending @ +0x14. Advances next_out/total_out and
+ * pending_out by len, drains avail_out/pending by len; when the buffer fully
+ * drains (pending==0) resets pending_out to pending_buf. @<eax>=strm => VC71
+ * prologue ceiling. (kb decl names the arg "state"; it is the z_streamp.) */
+void FUN_00110e70(int strm /*@<eax>*/)
+{
+  int s;
+  unsigned int len;
+
+  s = *(int *)(strm + 0x1c); /* strm->state */
+  len = *(unsigned int *)(s + 0x14); /* state->pending */
+  if (len > *(unsigned int *)(strm + 0x10)) /* > avail_out */
+    len = *(unsigned int *)(strm + 0x10);
+  if (len == 0)
+    return;
+  csmemcpy(*(void **)(strm + 0xc), /* next_out (dst) */
+           *(void **)(s + 0x10), /* pending_out (src) */
+           len);
+  *(int *)(strm + 0xc) += len; /* next_out += len */
+  *(int *)(s + 0x10) += len; /* pending_out += len */
+  *(int *)(strm + 0x14) += len; /* total_out += len */
+  *(int *)(strm + 0x10) -= len; /* avail_out -= len */
+  *(int *)(s + 0x14) -= len; /* pending -= len */
+  s = *(int *)(strm + 0x1c); /* reload strm->state */
+  if (*(int *)(s + 0x14) == 0) /* pending == 0 */
+    *(int *)(s + 0x10) = *(int *)(s + 8); /* pending_out = pending_buf */
+}
+
+/* 0x110ed0 — zlib deflate(): the compression driver/state machine. Validates
+ * the stream + flush (0..4); errors with Z_STREAM_ERROR(-2)/Z_BUF_ERROR(-5).
+ * On INIT_STATE writes the 2-byte zlib header (round-to-multiple-of-31, with
+ * PRESET_DICT bit + preset-dictionary adler when strstart!=0) and sets BUSY.
+ * Drains pending output (flush_pending). Then, when there is input/lookahead or
+ * a non-zero flush outside FINISH, runs
+ * configuration_table[level].func(s,flush) and acts on its block_state:
+ * need_more/finish_started -> Z_OK (last_flush=-1 if output is full);
+ * block_done -> _tr_align (PARTIAL) or _tr_stored_block + optional hash clear
+ * (FULL), then flush. On Z_FINISH writes the adler32 trailer (unless noheader)
+ * and returns Z_STREAM_END once fully flushed. strm fields:
+ * next_in[0]/avail_in[1]/next_out[3]/avail_out[4]/msg[6]/state[7]/adler[0xc];
+ * state fields: strm[0]/status[1]/pending[5]/noheader[6]/last_flush[8]/w_bits
+ * [0xa]/head[0xf]/hash_size[0x11]/strstart[0x19]/lookahead[0x1b]/level[0x1f].
+ */
+int FUN_00110ed0(void *strm, int flush)
+{
+  int *z;
+  int *s;
+  int old_flush;
+  int bstate;
+  unsigned int header;
+  int level_flags;
+  int (*deflate_func)(int *, int);
+
+  z = (int *)strm;
+  if (z == (int *)0 || (s = *(int **)(z + 7)) == (int *)0 || flush > 4 ||
+      flush < 0)
+    return -2; /* Z_STREAM_ERROR */
+  if (z[3] == 0 || (z[0] == 0 && z[1] != 0) ||
+      (s[1] == 0x29a && flush != 4)) { /* FINISH_STATE && !Z_FINISH */
+    z[6] = *(int *)0x320e18; /* msg = "stream error" */
+    return -2;
+  }
+  if (z[4] == 0) { /* avail_out == 0 */
+    z[6] = *(int *)0x320e24; /* msg = "buffer error" */
+    return -5; /* Z_BUF_ERROR */
+  }
+
+  old_flush = s[8]; /* save last_flush */
+  s[0] = (int)z; /* s->strm = strm */
+  s[8] = flush; /* s->last_flush = flush */
+
+  /* Write the zlib header. */
+  if (s[1] == 0x2a) { /* INIT_STATE */
+    header = (unsigned int)(((s[0xa] - 8) << 12) +
+                            0x800); /* (Z_DEFLATED|((w_bits-8)<<4))<<8 */
+    level_flags = (s[0x1f] - 1) >> 1;
+    if ((unsigned int)level_flags > 3)
+      level_flags = 3;
+    header |= (unsigned int)(level_flags << 6);
+    if (s[0x19] != 0) /* strstart != 0 */
+      header |= 0x20; /* PRESET_DICT */
+    header += 31 - header % 31;
+    s[1] = 0x71; /* BUSY_STATE */
+    FUN_00110e40(header, (int)s); /* putShortMSB(s, header) */
+    if (s[0x19] != 0) { /* preset dictionary adler32 */
+      FUN_00110e40((unsigned int)*(unsigned short *)((char *)z + 0x32), (int)s);
+      FUN_00110e40((unsigned int)z[0xc] & 0xffff, (int)s);
+    }
+    z[0xc] = 1; /* strm->adler = 1 */
+  }
+
+  /* Flush as much pending output as possible. */
+  if (s[5] != 0) { /* s->pending != 0 */
+    FUN_00110e70((int)z); /* flush_pending(strm) */
+    if (z[4] == 0) { /* avail_out == 0 */
+      s[8] = -1; /* last_flush = -1 */
+      return 0; /* Z_OK */
+    }
+  } else if (z[1] == 0 && flush <= old_flush && flush != 4) {
+    z[6] = *(int *)0x320e24; /* "buffer error" */
+    return -5;
+  }
+
+  /* No more input is allowed after the first Z_FINISH. */
+  if (s[1] == 0x29a && z[1] != 0) { /* FINISH_STATE && avail_in != 0 */
+    z[6] = *(int *)0x320e24;
+    return -5;
+  }
+
+  /* Start a new block or continue the current one. */
+  if (z[1] != 0 || s[0x1b] != 0 || (flush != 0 && s[1] != 0x29a)) {
+    deflate_func = *(int (**)(int *, int))(0x28d288 + s[0x1f] * 0xc);
+    bstate = deflate_func(s, flush); /* configuration_table[level].func */
+    if (bstate == 2 || bstate == 3) /* finish_started / finish_done */
+      s[1] = 0x29a; /* FINISH_STATE */
+    if (bstate == 0 || bstate == 2) { /* need_more / finish_started */
+      if (z[4] == 0) /* avail_out == 0 */
+        s[8] = -1; /* last_flush = -1 */
+      return 0; /* Z_OK */
+    }
+    if (bstate == 1) { /* block_done */
+      if (flush == 1) { /* Z_PARTIAL_FLUSH */
+        FUN_001176f0((int)s); /* _tr_align(s) */
+      } else { /* FULL_FLUSH or SYNC_FLUSH */
+        FUN_001176a0((int)s, (unsigned char *)0, 0,
+                     0); /* _tr_stored_block(s,0,0,0) */
+        if (flush == 3) { /* Z_FULL_FLUSH: clear hash */
+          *(unsigned short *)(s[0xf] + s[0x11] * 2 - 2) = 0;
+          csmemset((void *)s[0xf], 0, s[0x11] * 2 - 2);
+        }
+      }
+      FUN_00110e70((int)z); /* flush_pending(strm) */
+      if (z[4] == 0) { /* avail_out == 0 */
+        s[8] = -1; /* last_flush = -1 */
+        return 0;
+      }
+    }
+  }
+  /* Assert(strm->avail_out > 0, "bug2") */
+  if (z[4] == 0)
+    FUN_00117a80((const char *)0x28d2f8);
+  if (flush != 4) /* != Z_FINISH */
+    return 0; /* Z_OK */
+  if (s[6] != 0) /* noheader != 0: raw deflate, no trailer */
+    return 1; /* Z_STREAM_END */
+  /* Write the gzip/zlib adler32 trailer. */
+  FUN_00110e40((unsigned int)*(unsigned short *)((char *)z + 0x32),
+               (int)s); /* adler>>16 */
+  FUN_00110e40((unsigned int)z[0xc] & 0xffff, (int)s); /* adler&0xffff */
+  FUN_00110e70((int)z); /* flush_pending(strm) */
+  s[6] = -1; /* noheader = -1 */
+  return (s[5] == 0); /* pending==0 ? Z_STREAM_END(1) : Z_OK(0) */
+}
+
 /* zlib deflateEnd(strm): tear down a deflate stream. Validates the stream and
    its internal state (status must be 0x2a / 0x71 / 0x29a), then frees the
    pending, head, prev, and window buffers (when present) via the stream's
@@ -4495,11 +4689,14 @@ int FUN_00111170(int param_1)
   int status;
   int ptr;
 
-  if (param_1 == 0) goto z_stream_error;
+  if (param_1 == 0)
+    goto z_stream_error;
   state = *(int *)(param_1 + 0x1c);
-  if (state == 0) goto z_stream_error;
+  if (state == 0)
+    goto z_stream_error;
   status = *(int *)(state + 4);
-  if (status != 0x2a && status != 0x71 && status != 0x29a) goto z_stream_error;
+  if (status != 0x2a && status != 0x71 && status != 0x29a)
+    goto z_stream_error;
 
   zfree = (void (*)(int, int)) * (void **)(param_1 + 0x24);
 
@@ -4527,103 +4724,135 @@ z_stream_error:
   return -2;
 }
 
-/* 0x112590 — zlib deflateInit2_: allocate and initialize a deflate stream.
- * param_1=z_stream, param_2=level(-1=>6), param_3=method(must be 8),
- * param_4=windowBits(8..15; negative => raw deflate, |windowBits| with wrap=0),
- * param_5=memLevel(1..9), param_6=strategy(0..2), param_7=version string,
- * param_8=sizeof(z_stream) (must be 0x38). Validates the args and the zlib
- * version's first char; installs the default zalloc/zfree (FUN_00117ad0 /
- * FUN_00117b00) when the caller left them NULL; allocates the deflate_state
- * (0x16c0 bytes) and the window/prev/head/pending buffers via the stream's
- * zalloc callback; derives w_size/w_mask/hash_size/hash_bits/hash_mask/
- * hash_shift/lit_bufsize and the sym buffer pointers; then defers to
- * deflateReset (FUN_00112260). Returns the deflateReset result, or
- * Z_STREAM_ERROR(-2) / Z_MEM_ERROR(-4) / Z_VERSION_ERROR(-6).
- * deflate_state (s, int* index): [2]pending_buf [3]pending_buf_size [6]wrap
- * [9]w_size [0xa]w_bits [0xb]w_mask [0xc]window [0xe]prev [0xf]head
- * [0x11]hash_size [0x12]hash_bits [0x13]hash_mask [0x14]hash_shift [0x1f]level
- * [0x20]strategy [0x5a4]sym_end [0x5a5]lit_bufsize [0x5a7]sym_buf; byte+0x1d=
- * method. z_stream byte offsets: +0x18 msg, +0x1c state, +0x20 zalloc,
- * +0x24 zfree, +0x28 opaque. Version string ptr @0x31fc70, "insufficient
- * memory" msg ptr @0x320e20. */
-int FUN_00112590(int param_1, int param_2, int param_3, int param_4,
-                 int param_5, int param_6, char *param_7, int param_8)
+/* 0x111220 — zlib deflateCopy: create an independent copy of a deflate stream.
+ * Copies the z_stream header (14 dwords = 0x38 bytes) from source to dest, then
+ * allocates a fresh deflate_state (0x16c0 bytes) via dest->zalloc.  The new
+ * state is populated by bulk-copying the 0x16c0-byte source state, then
+ * re-allocating and re-copying the three variable-length sub-buffers
+ * (pending_buf at +0x30, d_buf at +0x38, l_buf at +0x3c) and the sliding
+ * window (+0x8).  Internal pointers that track position within pending_buf and
+ * within the window are fixed up so the new stream is self-consistent.  On any
+ * allocation failure, calls deflateFreeState (FUN_00111170) to clean up and
+ * returns Z_MEM_ERROR (-4).  Returns Z_STREAM_ERROR (-2) if either stream
+ * pointer is NULL or if the source has no internal state. */
+int FUN_00111220(int dest, int source)
 {
-  int *s;
-  int wrap;
-  int w_size;
-  int lit_bufsize;
-  int opaque;
-  void *(*zalloc)(int, unsigned int, unsigned int);
+  int *ds; /* new deflate_state */
+  int *ss; /* source deflate_state */
+  int w_size; /* [ds+0x1694] window count for size calculations */
+  int window_buf; /* new window allocation address */
 
-  if (param_7 == (char *)0 || *param_7 != **(char **)0x31fc70 || param_8 != 0x38)
-    return -6;
-  if (param_1 == 0)
-    return -2;
+  /* Validate: both stream pointers and source state must be non-NULL */
+  if (source == 0)
+    goto stream_error;
+  if (dest == 0)
+    goto stream_error;
+  ss = (int *)(*(int *)(source + 0x1c));
+  if (ss == 0)
+    goto stream_error;
 
-  *(int *)(param_1 + 0x18) = 0;
-  if (*(int *)(param_1 + 0x20) == 0) {
-    *(int *)(param_1 + 0x20) = (int)FUN_00117ad0;
-    *(int *)(param_1 + 0x28) = 0;
+  /* Copy z_stream header: 14 dwords (0x38 bytes) from source to dest */
+  memcpy((void *)dest, (void *)source, 0xe * sizeof(int));
+
+  /* Allocate a fresh deflate_state (0x16c0 bytes) */
+  ds = (int *)((zlib_zalloc_fn)(*(int *)(dest + 0x20)))(*(void **)(dest + 0x28),
+                                                        1, 0x16c0);
+  if (ds == 0)
+    return 0xfffffffc;
+
+  /* Link new state into dest z_stream */
+  *(int *)(dest + 0x1c) = (int)ds;
+
+  /* Bulk-copy source deflate_state (0x5b0 dwords = 0x16c0 bytes) */
+  memcpy(ds, ss, 0x5b0 * sizeof(int));
+
+  /* Fix strm back-pointer: new state must point to dest, not source */
+  ds[0] = dest;
+
+  /* Re-allocate the four variable-length sub-buffers.
+   * Results stored at the same byte offsets as in the source state. */
+  *(int *)((char *)ds + 0x30) = (int)((zlib_zalloc_fn)(*(int *)(dest + 0x20)))(
+    *(void **)(dest + 0x28), *(int *)((char *)ds + 0x24), 2);
+  *(int *)((char *)ds + 0x38) = (int)((zlib_zalloc_fn)(*(int *)(dest + 0x20)))(
+    *(void **)(dest + 0x28), *(int *)((char *)ds + 0x24), 2);
+  *(int *)((char *)ds + 0x3c) = (int)((zlib_zalloc_fn)(*(int *)(dest + 0x20)))(
+    *(void **)(dest + 0x28), *(int *)((char *)ds + 0x44), 2);
+  w_size = *(int *)((char *)ds + 0x1694);
+  *(int *)((char *)ds + 0x8) = (int)((zlib_zalloc_fn)(*(int *)(dest + 0x20)))(
+    *(void **)(dest + 0x28), w_size, 4);
+
+  if (*(int *)((char *)ds + 0x30) != 0 && *(int *)((char *)ds + 0x38) != 0 &&
+      *(int *)((char *)ds + 0x3c) != 0 && *(int *)((char *)ds + 0x8) != 0) {
+    /* Copy pending_buf (w_size * 2 bytes) */
+    csmemcpy((void *)*(int *)((char *)ds + 0x30),
+             (void *)*(int *)((char *)ss + 0x30),
+             *(int *)((char *)ds + 0x24) << 1);
+    /* Copy d_buf (w_size * 2 bytes) */
+    csmemcpy((void *)*(int *)((char *)ds + 0x38),
+             (void *)*(int *)((char *)ss + 0x38),
+             *(int *)((char *)ds + 0x24) << 1);
+    /* Copy l_buf (lit_bufsize * 2 bytes) */
+    csmemcpy((void *)*(int *)((char *)ds + 0x3c),
+             (void *)*(int *)((char *)ss + 0x3c),
+             *(int *)((char *)ds + 0x44) << 1);
+    /* Copy window ([ds+0xc] bytes) */
+    csmemcpy((void *)*(int *)((char *)ds + 0x8),
+             (void *)*(int *)((char *)ss + 0x8), *(int *)((char *)ds + 0xc));
+
+    /* Fix pending_out (+0x10): translate source-relative offset into new window
+     */
+    window_buf = *(int *)((char *)ds + 0x8);
+    *(int *)((char *)ds + 0x10) =
+      (*(int *)((char *)ss + 0x10) - *(int *)((char *)ss + 0x8)) + window_buf;
+
+    /* pending_buf_size (+0x1690) = window_buf + w_size*3 */
+    *(int *)((char *)ds + 0x1690) = window_buf + w_size + w_size * 2;
+
+    /* window_size (+0x169c) = window_buf + (w_size rounded down to even) */
+    *(int *)((char *)ds + 0x169c) = window_buf + (w_size & 0xfffffffe);
+
+    /* Fix intra-state pointers (all point into the deflate_state itself) */
+    *(int *)((char *)ds + 0xb1c) = (int)((char *)ds + 0x980);
+    *(int *)((char *)ds + 0xb10) = (int)((char *)ds + 0x8c);
+    *(int *)((char *)ds + 0xb28) = (int)((char *)ds + 0xa74);
+
+    return 0;
   }
-  if (*(int *)(param_1 + 0x24) == 0)
-    *(int *)(param_1 + 0x24) = (int)FUN_00117b00;
 
-  if (param_2 == -1)
-    param_2 = 6;
-  wrap = 0;
-  if (param_4 < 0) {
-    param_4 = -param_4;
-    wrap = 1;
-  }
-  if (param_5 < 1 || param_5 > 9 || param_3 != 8 || param_4 < 8 || param_4 > 0xf ||
-      param_2 < 0 || param_2 > 9 || param_6 < 0 || param_6 > 2)
-    return -2;
-
-  zalloc = *(void *(**)(int, unsigned int, unsigned int))(param_1 + 0x20);
-  opaque = *(int *)(param_1 + 0x28);
-  s = (int *)zalloc(opaque, 1, 0x16c0);
-  if (s == (int *)0)
-    return -4;
-  *(int *)(param_1 + 0x1c) = (int)s;
-  s[0xa] = param_4;
-  w_size = 1 << param_4;
-  s[6] = wrap;
-  s[0xb] = w_size - 1;
-  s[0x12] = param_5 + 7;
-  s[0] = param_1;
-  s[0x11] = 1 << (param_5 + 7);
-  s[0x13] = s[0x11] - 1;
-  s[9] = w_size;
-  s[0x14] = (unsigned int)(param_5 + 9) / 3;
-  s[0xc] = (int)zalloc(opaque, w_size, 2);
-  s[0xe] = (int)zalloc(opaque, s[9], 2);
-  s[0xf] = (int)zalloc(opaque, s[0x11], 2);
-  lit_bufsize = 1 << (param_5 + 6);
-  s[0x5a5] = lit_bufsize;
-  s[2] = (int)zalloc(opaque, lit_bufsize, 4);
-  s[3] = s[0x5a5] * 4;
-  if (s[0xc] != 0 && s[0xe] != 0 && s[0xf] != 0 && s[2] != 0) {
-    s[0x5a7] = s[2] + (int)((unsigned int)s[0x5a5] & 0xfffffffe);
-    s[0x5a4] = s[2] + s[0x5a5] * 3;
-    s[0x1f] = param_2;
-    s[0x20] = param_6;
-    *((char *)s + 0x1d) = 8;
-    return FUN_00112260(param_1);
-  }
-  *(int *)(param_1 + 0x18) = *(int *)0x320e20; /* "insufficient memory" */
-  FUN_00111170(param_1);
-  return -4;
+  FUN_00111170(dest);
+  return 0xfffffffc;
+stream_error:
+  return 0xfffffffe;
 }
 
-/* zlib deflateInit_: forwards to deflateInit2_ (FUN_00112590) with method=8,
-   windowBits=15, memLevel=8, strategy=0. Returns the deflateInit2_ result
-   code (Z_OK=0 on success, negative on error). noinline prevents inlining
-   across the original TU boundary (originally a separate zlib .c file). */
-__declspec(noinline) int FUN_001127b0(int param_1, int param_2, char *param_3,
-                                      int param_4)
+/* 0x1113c0 — zlib read_buf: copy up to `size` bytes from the stream input
+ * (strm->next_in, strm[0]) into `buf`, capping at strm->avail_in (strm[1]).
+ * Returns the byte count copied (0 if avail_in==0). When state->wrap (state at
+ * strm+0x1c, wrap at +0x18) is zero the running checksum strm->adler
+ * (strm+0x30) is folded over the copied bytes via FUN_00110a10 (adler32). Then
+ * advances avail_in (-=len), total_in (strm+8 +=len) and next_in (+=len). ABI:
+ * strm in EDI, size in ECX, buf pushed on the stack => VC71 prologue ceiling.
+ */
+unsigned int FUN_001113c0(int strm /*@<edi>*/, unsigned int size /*@<ecx>*/,
+                          void *buf)
 {
-  return FUN_00112590(param_1, param_2, 8, 0xf, 8, 0, param_3, param_4);
+  int *s;
+  unsigned int len;
+
+  s = (int *)strm;
+  len = (unsigned int)s[1]; /* avail_in */
+  if (len > size)
+    len = size;
+  if (len == 0)
+    return 0;
+  s[1] -= len; /* avail_in -= len */
+  if (*(int *)(s[7] + 0x18) == 0) /* state->wrap == 0 */
+    s[0xc] =
+      (int)FUN_00110a10((unsigned int)s[0xc], (unsigned char *)s[0], len);
+  csmemcpy(buf, (void *)s[0], len); /* next_in -> buf */
+  s[2] += len; /* total_in += len */
+  s[0] += len; /* next_in += len */
+  return len;
 }
 
 /* 0x111420 — zlib lm_init: initialize the deflate longest-match state for the
@@ -4658,131 +4887,21 @@ void FUN_00111420(int s)
   *(int *)(s + 0x58) = 2;
 }
 
-/* 0x110e40 — zlib putShortMSB: append a 16-bit value to the deflate pending
- * buffer most-significant-byte first, as two post-increment put_byte stores
- * (pending_buf @ state+0x8, pending count @ state+0x14). @<eax>=state =>
- * VC71 prologue ceiling. */
-void FUN_00110e40(unsigned int byte_val /*@<ecx>*/, int state /*@<eax>*/)
-{
-  *(unsigned char *)(*(int *)(state + 8) + *(int *)(state + 0x14)) =
-      (unsigned char)(byte_val >> 8);
-  ++*(int *)(state + 0x14);
-  *(unsigned char *)(*(int *)(state + 8) + *(int *)(state + 0x14)) =
-      (unsigned char)byte_val;
-  ++*(int *)(state + 0x14);
-}
-
-/* 0x110e70 — zlib flush_pending: copy as many pending output bytes as fit into
- * strm->next_out, capped at avail_out. strm fields: state @ +0x1c, next_out
- * @ +0xc, avail_out @ +0x10, total_out @ +0x14; state fields: pending_buf @
- * +0x8, pending_out @ +0x10, pending @ +0x14. Advances next_out/total_out and
- * pending_out by len, drains avail_out/pending by len; when the buffer fully
- * drains (pending==0) resets pending_out to pending_buf. @<eax>=strm => VC71
- * prologue ceiling. (kb decl names the arg "state"; it is the z_streamp.) */
-void FUN_00110e70(int strm /*@<eax>*/)
-{
-  int s;
-  unsigned int len;
-
-  s = *(int *)(strm + 0x1c);                /* strm->state */
-  len = *(unsigned int *)(s + 0x14);        /* state->pending */
-  if (len > *(unsigned int *)(strm + 0x10)) /* > avail_out */
-    len = *(unsigned int *)(strm + 0x10);
-  if (len == 0)
-    return;
-  csmemcpy(*(void **)(strm + 0xc),          /* next_out (dst) */
-           *(void **)(s + 0x10),            /* pending_out (src) */
-           len);
-  *(int *)(strm + 0xc) += len;              /* next_out += len */
-  *(int *)(s + 0x10) += len;                /* pending_out += len */
-  *(int *)(strm + 0x14) += len;             /* total_out += len */
-  *(int *)(strm + 0x10) -= len;             /* avail_out -= len */
-  *(int *)(s + 0x14) -= len;                /* pending -= len */
-  s = *(int *)(strm + 0x1c);                /* reload strm->state */
-  if (*(int *)(s + 0x14) == 0)              /* pending == 0 */
-    *(int *)(s + 0x10) = *(int *)(s + 8);   /* pending_out = pending_buf */
-}
-
-/* 0x1116b0 — zlib check_match (DEBUG): verify the match the deflater found
- * actually matches the look-ahead, and optionally dump it. Compares `length`
- * bytes of the window (s+0x30) at offsets `match` vs `start` via csmemcmp; on
- * mismatch it prints the offending positions and each byte pair (crt_fprintf),
- * then asserts "invalid match" (FUN_00117a80, which halts). When z_verbose
- * (*0x320e30) > 1 it dumps the matched run a byte at a time via fputc
- * (FUN_001db71f). In a correct build the compare always passes, so this is an
- * inert verification in release. ABI: length in EAX, match in ECX, start in EDX,
- * s on the stack => VC71 prologue ceiling. */
-void FUN_001116b0(int length /*@<eax>*/, int match /*@<ecx>*/,
-                  int start /*@<edx>*/, int s)
-{
-  int window;
-
-  window = *(int *)(s + 0x30);
-  if (csmemcmp((void *)(window + match), (void *)(window + start), length) != 0) {
-    crt_fprintf((void *)0x331070, (const char *)0x28d368, start, match, length);
-    do {
-      window = *(int *)(s + 0x30);
-      crt_fprintf((void *)0x331070, (const char *)0x28d360,
-                  (unsigned int)*(unsigned char *)(window + match),
-                  (unsigned int)*(unsigned char *)(window + start));
-      match = match + 1;
-      start = start + 1;
-      length = length - 1;
-    } while (length != 0);
-    FUN_00117a80((const char *)0x28d350);          /* assert("invalid match") */
-  }
-  if (*(int *)0x320e30 > 1) {                       /* z_verbose > 1 */
-    crt_fprintf((void *)0x331070, (const char *)0x28d344, start - match, length);
-    do {
-      window = *(int *)(s + 0x30);
-      FUN_001db71f((unsigned int)*(unsigned char *)(start + window),
-                   (void *)0x331070);              /* fputc(window[start]) */
-      start = start + 1;
-      length = length - 1;
-    } while (length != 0);
-  }
-}
-
-/* 0x110820 — bounded callback iterator (real_math.obj). For each index in
- * [start, count) where count = *(short*)(obj+0x10), invoke the object's
- * callback at obj+0x1c as callback(context=*(int*)(obj+0x14), param_1, passthru,
- * index). Returns 0 the moment any callback returns nonzero, else 1 once every
- * element passes. The loop counter is a 16-bit signed short held in a 32-bit
- * register (MSVC short-loop codegen). ABI: start in EAX, passthru in EBX
- * (forwarded untouched to the callback), obj in ESI, param_1 on the stack =>
- * VC71 prologue ceiling. (Decompiler under-counts the 4-arg callback and misses
- * the EBX passthrough; both recovered from disassembly.) */
-int FUN_00110820(int start /*@<eax>*/, int passthru /*@<ebx>*/,
-                 void *obj /*@<esi>*/, int param_1)
-{
-  int (*callback)(int, int, int, int);
-  int index;
-
-  index = start;
-  while ((short)index < *(short *)((char *)obj + 0x10)) {  /* index < count */
-    callback = *(int (**)(int, int, int, int))((char *)obj + 0x1c);
-    if (callback(*(int *)((char *)obj + 0x14), param_1, passthru, index) != 0)
-      return 0;
-    index = index + 1;
-  }
-  return 1;
-}
-
 /* 0x1114a0 — zlib longest_match(): the hash-chain match finder shared by
  * deflate_fast/deflate_slow. Given cur_match (a hash-chain head) it walks the
  * prev[] chain (state+0x38, masked by w_mask state+0x2c), at each candidate
  * quick-rejecting on the bytes at best_len/best_len-1 (scan_end/scan_end1) and
- * the first two bytes, then extending the match 8 bytes at a time up to MAX_MATCH
- * (strend = scan + 0x102). It keeps the longest, recording match_start (state+
- * 0x68) and best_len, stopping early at nice_match (state+0x88) or when the chain
- * passes the window limit. chain_length starts at max_chain (state+0x74), halved
- * when strstart >= good_match (state+0x84). Returns the best match length clamped
- * to lookahead (state+0x6c). @<eax>=state => VC71 prologue ceiling; the built-in
- * asserts ("Code too clever"/"need lookahead"/"no future"/"match[2]?"/"wild
- * scan") guard the scan bounds. state offsets: window 0x30 strstart 0x64
- * prev_length(best_len start) 0x70 max_chain 0x74 nice_match 0x88 w_size 0x24
- * window_size 0x34 prev 0x38 w_mask 0x2c good_match 0x84 lookahead 0x6c
- * match_start 0x68 hash_bits 0x48. */
+ * the first two bytes, then extending the match 8 bytes at a time up to
+ * MAX_MATCH (strend = scan + 0x102). It keeps the longest, recording
+ * match_start (state+ 0x68) and best_len, stopping early at nice_match
+ * (state+0x88) or when the chain passes the window limit. chain_length starts
+ * at max_chain (state+0x74), halved when strstart >= good_match (state+0x84).
+ * Returns the best match length clamped to lookahead (state+0x6c). @<eax>=state
+ * => VC71 prologue ceiling; the built-in asserts ("Code too clever"/"need
+ * lookahead"/"no future"/"match[2]?"/"wild scan") guard the scan bounds. state
+ * offsets: window 0x30 strstart 0x64 prev_length(best_len start) 0x70 max_chain
+ * 0x74 nice_match 0x88 w_size 0x24 window_size 0x34 prev 0x38 w_mask 0x2c
+ * good_match 0x84 lookahead 0x6c match_start 0x68 hash_bits 0x48. */
 int FUN_001114a0(int s, int cur_match)
 {
   char *scan;
@@ -4798,13 +4917,15 @@ int FUN_001114a0(int s, int cur_match)
   unsigned char scan_end1, scan_end;
   int len;
 
-  chain_length = *(unsigned int *)(s + 0x74);                 /* max_chain */
-  best_len = *(int *)(s + 0x70);                              /* prev_length */
-  scan_init = (char *)(*(int *)(s + 0x30) + *(int *)(s + 0x64));  /* window + strstart */
+  chain_length = *(unsigned int *)(s + 0x74); /* max_chain */
+  best_len = *(int *)(s + 0x70); /* prev_length */
+  scan_init =
+    (char *)(*(int *)(s + 0x30) + *(int *)(s + 0x64)); /* window + strstart */
   scan = scan_init;
   nice_match = *(int *)(s + 0x88);
   if ((unsigned int)(*(int *)(s + 0x24) - 0x106) < *(unsigned int *)(s + 0x64))
-    limit = (unsigned int)(*(int *)(s + 0x64) - *(int *)(s + 0x24) + 0x106);   /* strstart - MAX_DIST */
+    limit = (unsigned int)(*(int *)(s + 0x64) - *(int *)(s + 0x24) +
+                           0x106); /* strstart - MAX_DIST */
   else
     limit = 0;
   prev_tab = *(int *)(s + 0x38);
@@ -4813,35 +4934,37 @@ int FUN_001114a0(int s, int cur_match)
   scan_end1 = (unsigned char)scan_init[best_len - 1];
   scan_end = (unsigned char)scan_init[best_len];
   if (*(unsigned int *)(s + 0x48) < 8)
-    FUN_00117a80((const char *)0x28d334);                     /* "Code too clever" */
-  if (*(unsigned int *)(s + 0x84) <= *(unsigned int *)(s + 0x70))   /* prev_length >= good_match */
+    FUN_00117a80((const char *)0x28d334); /* "Code too clever" */
+  if (*(unsigned int *)(s + 0x84) <=
+      *(unsigned int *)(s + 0x70)) /* prev_length >= good_match */
     chain_length >>= 2;
-  if (*(unsigned int *)(s + 0x6c) < (unsigned int)nice_match)  /* lookahead < nice_match */
+  if (*(unsigned int *)(s + 0x6c) <
+      (unsigned int)nice_match) /* lookahead < nice_match */
     nice_match = *(int *)(s + 0x6c);
   if ((unsigned int)(*(int *)(s + 0x34) - 0x106) < *(unsigned int *)(s + 0x64))
-    FUN_00117a80((const char *)0x28d324);                     /* "need lookahead" */
+    FUN_00117a80((const char *)0x28d324); /* "need lookahead" */
   do {
     if (*(unsigned int *)(s + 0x64) <= (unsigned int)cur_match)
-      FUN_00117a80((const char *)0x28d318);                   /* "no future" */
+      FUN_00117a80((const char *)0x28d318); /* "no future" */
     match = (char *)(*(int *)(s + 0x30) + cur_match);
-    if (match[best_len] == (char)scan_end && match[best_len - 1] == (char)scan_end1 &&
-        *match == *scan_init && match[1] == scan_init[1]) {
+    if (match[best_len] == (char)scan_end &&
+        match[best_len - 1] == (char)scan_end1 && *match == *scan_init &&
+        match[1] == scan_init[1]) {
       scan = scan_init + 2;
       match = match + 2;
       if (*scan != *match)
-        FUN_00117a80((const char *)0x28d30c);                 /* "match[2]?" */
+        FUN_00117a80((const char *)0x28d30c); /* "match[2]?" */
       do {
       } while (*++scan == *++match && *++scan == *++match &&
                *++scan == *++match && *++scan == *++match &&
                *++scan == *++match && *++scan == *++match &&
-               *++scan == *++match && *++scan == *++match &&
-               scan < strend);
+               *++scan == *++match && *++scan == *++match && scan < strend);
       if ((char *)(*(int *)(s + 0x34) - 1 + *(int *)(s + 0x30)) < scan)
-        FUN_00117a80((const char *)0x28d300);                 /* "wild scan" */
+        FUN_00117a80((const char *)0x28d300); /* "wild scan" */
       len = (int)(scan - strend) + 0x102;
       scan = scan_init;
       if (len > best_len) {
-        *(int *)(s + 0x68) = cur_match;                       /* match_start = cur_match */
+        *(int *)(s + 0x68) = cur_match; /* match_start = cur_match */
         best_len = len;
         if (len >= nice_match)
           break;
@@ -4849,35 +4972,418 @@ int FUN_001114a0(int s, int cur_match)
         scan_end = (unsigned char)scan_init[len];
       }
     }
-    cur_match = (int)*(unsigned short *)(prev_tab + ((unsigned int)cur_match & w_mask) * 2);
+    cur_match = (int)*(
+      unsigned short *)(prev_tab + ((unsigned int)cur_match & w_mask) * 2);
     if ((unsigned int)cur_match <= limit)
       break;
     chain_length -= 1;
   } while (chain_length != 0);
-  if ((unsigned int)best_len > *(unsigned int *)(s + 0x6c))   /* > lookahead */
+  if ((unsigned int)best_len > *(unsigned int *)(s + 0x6c)) /* > lookahead */
     best_len = *(int *)(s + 0x6c);
   return best_len;
 }
 
+/* 0x1116b0 — zlib check_match (DEBUG): verify the match the deflater found
+ * actually matches the look-ahead, and optionally dump it. Compares `length`
+ * bytes of the window (s+0x30) at offsets `match` vs `start` via csmemcmp; on
+ * mismatch it prints the offending positions and each byte pair (crt_fprintf),
+ * then asserts "invalid match" (FUN_00117a80, which halts). When z_verbose
+ * (*0x320e30) > 1 it dumps the matched run a byte at a time via fputc
+ * (FUN_001db71f). In a correct build the compare always passes, so this is an
+ * inert verification in release. ABI: length in EAX, match in ECX, start in
+ * EDX, s on the stack => VC71 prologue ceiling. */
+void FUN_001116b0(int length /*@<eax>*/, int match /*@<ecx>*/,
+                  int start /*@<edx>*/, int s)
+{
+  int window;
+
+  window = *(int *)(s + 0x30);
+  if (csmemcmp((void *)(window + match), (void *)(window + start), length) !=
+      0) {
+    crt_fprintf((void *)0x331070, (const char *)0x28d368, start, match, length);
+    do {
+      window = *(int *)(s + 0x30);
+      crt_fprintf((void *)0x331070, (const char *)0x28d360,
+                  (unsigned int)*(unsigned char *)(window + match),
+                  (unsigned int)*(unsigned char *)(window + start));
+      match = match + 1;
+      start = start + 1;
+      length = length - 1;
+    } while (length != 0);
+    FUN_00117a80((const char *)0x28d350); /* assert("invalid match") */
+  }
+  if (*(int *)0x320e30 > 1) { /* z_verbose > 1 */
+    crt_fprintf((void *)0x331070, (const char *)0x28d344, start - match,
+                length);
+    do {
+      window = *(int *)(s + 0x30);
+      FUN_001db71f((unsigned int)*(unsigned char *)(start + window),
+                   (void *)0x331070); /* fputc(window[start]) */
+      start = start + 1;
+      length = length - 1;
+    } while (length != 0);
+  }
+}
+
+/* 0x111910 — zlib deflate_stored(): the level-0 "store" block_state function
+ * referenced by configuration_table[0].func. Copies input straight through with
+ * no compression, emitting stored blocks. Loop: ensure >1 byte of lookahead
+ * (fill_window, FUN_00111770), assert the slide guards, advance strstart by the
+ * whole lookahead, and flush a stored block whenever strstart reaches the next
+ * max_block boundary (FLUSH_BLOCK at max_start) or once strstart-block_start
+ * has built up MAX_DIST worth of data (second FLUSH_BLOCK). The terminal flush
+ * (when lookahead hits 0) emits the remaining block, last = (flush ==
+ * Z_FINISH).
+ *
+ * FLUSH_BLOCK expands to _tr_flush_block (FUN_001177c0) + flush_pending. To
+ * match the original codegen exactly, the two in-loop FLUSH_BLOCK sites INLINE
+ * flush_pending (the csmemcpy drain, identical to FUN_00110e70's body), while
+ * the terminal flush CALLS FUN_00110e70. The stored-block source pointer is
+ * NULL when block_start < 0 (signed test), else window + block_start.
+ *
+ * Signedness recovered from disasm branch flavors: block_start is signed long
+ * (jge/jl at 111948/11196a and the null-buf jl); max_block_size, max_start,
+ * strstart, lookahead, w_size are all unsigned (jnc/jc/ja). The two return
+ * idioms (need_more=0 / finish_started=2; block_done=1 / finish_done=3) are
+ * chosen so MSVC lowers the `flush == Z_FINISH ? ... : ...` ternaries to the
+ * branchless `dec eax; and eax,2` / `lea [eax+eax+1]` sequences.
+ *
+ * z_streamp(strm) fields: next_out[0xc] avail_out[0x10] total_out[0x14]
+ * state[0x1c]. deflate_state(s) fields: pending_buf_size[0xc] window[0x30]
+ * block_start[0x54] strstart[0x64] lookahead[0x6c] w_size[0x24]; and within
+ * strm->state: pending_buf[8] pending_out[0x10] pending[0x14]. cdecl, s in ESI,
+ * flush at [EBP+0xc]; returns the block_state byte in AL. */
+unsigned char FUN_00111910(int *strm, int flush)
+{
+  int s; /* deflate_state* (s in ESI)        */
+  int z; /* s->strm (z_stream) = *(int*)s    */
+  unsigned int max_block_size; /* ulg: min(0xffff, pending_buf_size-5) */
+  unsigned int max_start; /* ulg: block_start + max_block_size    */
+  int state; /* strm->state (deflate internal state) */
+  unsigned int len; /* inline flush_pending drain length    */
+
+  s = (int)strm;
+
+  /* max_block_size = MIN(pending_buf_size - 5, 0xffff); */
+  max_block_size = *(unsigned int *)(s + 0xc) - 5;
+  if (max_block_size > 0xffff)
+    max_block_size = 0xffff;
+
+  /* Copy as much input as possible into the window and flush. */
+  for (;;) {
+    /* Fill the window if we're nearly empty. */
+    if (*(unsigned int *)(s + 0x6c) <= 1) { /* lookahead <= 1 */
+      /* assert(strstart < 2*w_size - MIN_LOOKAHEAD || block_start >= w_size,
+       *        "slide too late"); */
+      if (*(unsigned int *)(s + 0x64) >= /* strstart >= */
+            2 * *(unsigned int *)(s + 0x24) - 0x106 && /* 2*w_size - 0x106 */
+          *(long *)(s + 0x54) < *(long *)(s + 0x24)) /* block_start < w_size */
+        FUN_00117a80((const char *)0x28d3a8); /* "slide too late" */
+
+      FUN_00111770(s); /* fill_window(s) */
+      if (*(unsigned int *)(s + 0x6c) == 0) /* lookahead == 0 */
+        break;
+    }
+    /* assert(block_start >= 0L, "block gone"); */
+    if (*(long *)(s + 0x54) < 0)
+      FUN_00117a80((const char *)0x28d39c); /* "block gone" */
+
+    /* strstart += lookahead;  lookahead = 0; */
+    *(unsigned int *)(s + 0x64) += *(unsigned int *)(s + 0x6c);
+    *(unsigned int *)(s + 0x6c) = 0;
+
+    /* Emit a stored block whenever strstart reaches the next block boundary. */
+    max_start = (unsigned int)*(long *)(s + 0x54) + max_block_size;
+    if (*(unsigned int *)(s + 0x64) == 0 || /* strstart == 0 */
+        *(unsigned int *)(s + 0x64) >=
+          max_start) { /* || strstart >= max_start */
+      /* strstart left at the boundary; the rest becomes lookahead. */
+      *(unsigned int *)(s + 0x6c) = /* lookahead = */
+        *(unsigned int *)(s + 0x64) - max_start; /*   strstart - max_start */
+      *(unsigned int *)(s + 0x64) = max_start; /* strstart = max_start */
+
+      /* FLUSH_BLOCK(s, 0): _tr_flush_block + inline flush_pending. */
+      FUN_001177c0(s,
+                   *(long *)(s + 0x54) < 0 ?
+                     0 :
+                     *(int *)(s + 0x30) +
+                       *(long *)(s + 0x54), /* window+block_start */
+                   max_start - (unsigned int)*(long *)(s + 0x54), /* len */
+                   0);
+      *(int *)(s + 0x54) = *(int *)(s + 0x64); /* block_start = strstart */
+
+      /* inline flush_pending(s->strm) */
+      z = *(int *)s; /* s->strm (z_stream) */
+      state = *(int *)(z + 0x1c); /* strm->state */
+      len = *(unsigned int *)(state + 0x14); /* pending */
+      if (len > *(unsigned int *)(z + 0x10)) /* > avail_out */
+        len = *(unsigned int *)(z + 0x10);
+      if (len != 0) {
+        csmemcpy(*(void **)(z + 0xc), *(void **)(state + 0x10), len);
+        *(int *)(z + 0xc) += len; /* next_out += len */
+        *(int *)(state + 0x10) += len; /* pending_out += len */
+        *(int *)(z + 0x14) += len; /* total_out += len */
+        *(int *)(z + 0x10) -= len; /* avail_out -= len */
+        *(int *)(state + 0x14) -= len; /* pending -= len */
+        state = *(int *)(z + 0x1c);
+        if (*(int *)(state + 0x14) == 0) /* pending == 0 */
+          *(int *)(state + 0x10) =
+            *(int *)(state + 8); /* pending_out = pending_buf */
+      }
+      if (*(int *)0x320e30 > 0) /* z_verbose > 0 */
+        crt_fprintf((void *)0x331070, (const char *)0x28d394); /* "[FLUSH]" */
+
+      if (*(unsigned int *)(z + 0x10) == 0) /* avail_out == 0 */
+        return 0; /* need_more */
+    }
+
+    /* Flush if we have enough buffered for a useful stored block. */
+    if (*(unsigned int *)(s + 0x64) - (unsigned int)*(long *)(s + 0x54) >=
+        *(unsigned int *)(s + 0x24) - 0x106) { /* >= w_size - MAX_DIST */
+      /* FLUSH_BLOCK(s, 0): _tr_flush_block + inline flush_pending. */
+      FUN_001177c0(
+        s,
+        *(long *)(s + 0x54) < 0 ? 0 : *(int *)(s + 0x30) + *(long *)(s + 0x54),
+        *(unsigned int *)(s + 0x64) - (unsigned int)*(long *)(s + 0x54), 0);
+      *(int *)(s + 0x54) = *(int *)(s + 0x64); /* block_start = strstart */
+
+      /* inline flush_pending(s->strm) */
+      z = *(int *)s; /* s->strm (z_stream) */
+      state = *(int *)(z + 0x1c); /* strm->state */
+      len = *(unsigned int *)(state + 0x14); /* pending */
+      if (len > *(unsigned int *)(z + 0x10)) /* > avail_out */
+        len = *(unsigned int *)(z + 0x10);
+      if (len != 0) {
+        csmemcpy(*(void **)(z + 0xc), *(void **)(state + 0x10), len);
+        *(int *)(z + 0xc) += len; /* next_out += len */
+        *(int *)(state + 0x10) += len; /* pending_out += len */
+        *(int *)(z + 0x14) += len; /* total_out += len */
+        *(int *)(z + 0x10) -= len; /* avail_out -= len */
+        *(int *)(state + 0x14) -= len; /* pending -= len */
+        state = *(int *)(z + 0x1c);
+        if (*(int *)(state + 0x14) == 0) /* pending == 0 */
+          *(int *)(state + 0x10) =
+            *(int *)(state + 8); /* pending_out = pending_buf */
+      }
+      if (*(int *)0x320e30 > 0)
+        crt_fprintf((void *)0x331070, (const char *)0x28d394); /* "[FLUSH]" */
+
+      if (*(unsigned int *)(z + 0x10) == 0) /* avail_out == 0 */
+        return 0; /* need_more */
+    }
+  }
+
+  /* lookahead == 0: emit the final block if there is anything to flush. */
+  if (flush == 0) /* Z_NO_FLUSH */
+    return 0; /* need_more */
+
+  /* FLUSH_BLOCK_ONLY(s, flush == Z_FINISH): _tr_flush_block, then a real
+   * flush_pending call (NOT inlined here). */
+  FUN_001177c0(
+    s, *(long *)(s + 0x54) < 0 ? 0 : *(int *)(s + 0x30) + *(long *)(s + 0x54),
+    *(unsigned int *)(s + 0x64) - (unsigned int)*(long *)(s + 0x54),
+    flush == 4); /* last = (flush == Z_FINISH) */
+  *(int *)(s + 0x54) = *(int *)(s + 0x64); /* block_start = strstart */
+  z = *(int *)s; /* s->strm (z_stream) */
+  FUN_00110e70(z); /* flush_pending(s->strm) */
+
+  if (*(int *)0x320e30 > 0) /* z_verbose > 0 */
+    crt_fprintf((void *)0x331070, (const char *)0x28d394); /* "[FLUSH]" */
+
+  if (*(unsigned int *)(z + 0x10) == 0) /* avail_out == 0 */
+    return (unsigned char)(((flush != 4) - 1) &
+                           2); /* finish_started : need_more */
+  return (unsigned char)(((flush == 4) << 1) +
+                         1); /* finish_done : block_done */
+}
+
+/* 0x111ba0 — zlib deflate_fast(): the level 1-3 block_state function referenced
+ * by configuration_table[1..3].func. Greedy matching: for each position it
+ * INSERT_STRINGs the head into the hash chains, runs longest_match
+ * (FUN_001114a0, s in EAX) when a candidate exists within MAX_DIST and strategy
+ * != HUFFMAN_ONLY, then either emits a match (>= MIN_MATCH: check_match +
+ * _tr_tally(s, dist, len-3), advancing strstart over the match while inserting
+ * strings until max_insert) or a single literal (_tr_tally(s, 0, byte)). When
+ * _tr_tally signals a full block it FLUSH_BLOCKs (_tr_flush_block + inline
+ * flush_pending). The terminal flush (lookahead==0) emits the remaining block
+ * with last=(flush== Z_FINISH). Returns the block_state
+ * (need_more=0/block_done=1/finish_started=2/ finish_done=3). cdecl, s in ESI.
+ * NOTE: the inline flush_pending operates on the z_stream (z = s->strm =
+ * *(int*)s), NOT the deflate_state base — z fields
+ * next_out[z+0xc]/avail_out[z+0x10]/total_out[z+0x14], state(=z->state) fields
+ * pending[state+0x14]/pending_out[state+0x10]/pending_buf[state+8]. state
+ * offsets (int*): strm[0] w_mask[0x2c] window[0x30] head[0x3c] prev[0x38]
+ * ins_h[0x40] hash_mask[0x4c] hash_shift[0x50] block_start[0x54]
+ * match_length[0x58] strstart [0x64] match_start[0x68] lookahead[0x6c]
+ * max_insert[0x78] w_size[0x24] strategy[0x80]. */
+unsigned char FUN_00111ba0(int *strm, int flush)
+{
+  int s;
+  int z; /* s->strm (z_stream) */
+  int state; /* z->state (== s) */
+  unsigned int len; /* inline flush_pending drain */
+  unsigned int hash_head;
+  int bflush;
+  int window;
+  unsigned int match_length;
+  unsigned int h;
+
+  s = (int)strm;
+  hash_head = 0;
+  for (;;) {
+    if (*(unsigned int *)(s + 0x6c) < 0x106) { /* lookahead < MIN_LOOKAHEAD */
+      FUN_00111770(s); /* fill_window(s) */
+      if (*(unsigned int *)(s + 0x6c) < 0x106 && flush == 0)
+        return 0; /* need_more */
+      if (*(unsigned int *)(s + 0x6c) == 0) /* lookahead == 0 */
+        break;
+    }
+    /* INSERT_STRING(strstart): hash the 3 bytes at strstart. */
+    if (*(unsigned int *)(s + 0x6c) >= 3) { /* lookahead >= MIN_MATCH */
+      window = *(int *)(s + 0x30);
+      h = ((*(unsigned int *)(s + 0x40)
+            << (*(unsigned char *)(s + 0x50) & 0x1f)) ^
+           *(unsigned char *)(window + *(int *)(s + 0x64) + 2)) &
+          *(unsigned int *)(s + 0x4c);
+      *(unsigned int *)(s + 0x40) = h; /* ins_h */
+      hash_head =
+        *(unsigned short *)(*(int *)(s + 0x3c) + h * 2); /* head[ins_h] */
+      *(unsigned short *)(*(int *)(s + 0x38) + (*(unsigned int *)(s + 0x2c) &
+                                                *(unsigned int *)(s + 0x64)) *
+                                                 2) =
+        (unsigned short)hash_head; /* prev[strstart & w_mask] = head[ins_h] */
+      *(unsigned short *)(*(int *)(s + 0x3c) +
+                          *(unsigned int *)(s + 0x40) * 2) =
+        (unsigned short)*(int *)(s + 0x64); /* head[ins_h] = strstart */
+    }
+    if (hash_head != 0 &&
+        *(unsigned int *)(s + 0x64) - hash_head <=
+          *(unsigned int *)(s + 0x24) - 0x106 &&
+        *(int *)(s + 0x80) != 2) { /* strategy != Z_HUFFMAN_ONLY */
+      *(int *)(s + 0x58) = FUN_001114a0(
+        s, hash_head); /* match_length = longest_match(s, cur_match) */
+    }
+    match_length = *(unsigned int *)(s + 0x58);
+    if (match_length >= 3) { /* MIN_MATCH */
+      FUN_001116b0((int)match_length, *(int *)(s + 0x68), *(int *)(s + 0x64),
+                   s); /* check_match(len, match_start, strstart, s) */
+      bflush = FUN_00116d10(s, *(int *)(s + 0x64) - *(int *)(s + 0x68),
+                            (int)match_length -
+                              3); /* _tr_tally(s, dist, len-MIN_MATCH) */
+      *(unsigned int *)(s + 0x6c) -=
+        match_length; /* lookahead -= match_length */
+      if (match_length <=
+            (unsigned int)*(int *)(s + 0x78) && /* <= max_insert */
+          *(unsigned int *)(s + 0x6c) >= 3) { /* lookahead >= MIN_MATCH */
+        *(int *)(s + 0x58) = (int)match_length - 1;
+        do { /* insert the matched substrings */
+          *(int *)(s + 0x64) += 1; /* strstart++ */
+          window = *(int *)(s + 0x30);
+          h = ((*(unsigned int *)(s + 0x40)
+                << (*(unsigned char *)(s + 0x50) & 0x1f)) ^
+               *(unsigned char *)(window + *(int *)(s + 0x64) + 2)) &
+              *(unsigned int *)(s + 0x4c);
+          *(unsigned int *)(s + 0x40) = h;
+          hash_head = *(unsigned short *)(*(int *)(s + 0x3c) + h * 2);
+          *(unsigned short *)(*(int *)(s + 0x38) +
+                              (*(unsigned int *)(s + 0x64) &
+                               *(unsigned int *)(s + 0x2c)) *
+                                2) = (unsigned short)hash_head;
+          *(unsigned short *)(*(int *)(s + 0x3c) +
+                              *(unsigned int *)(s + 0x40) * 2) =
+            (unsigned short)*(int *)(s + 0x64);
+          *(int *)(s + 0x58) -= 1;
+        } while (*(int *)(s + 0x58) != 0);
+        *(int *)(s + 0x64) += 1; /* strstart++ */
+      } else {
+        *(int *)(s + 0x64) += match_length; /* strstart += match_length */
+        window = *(int *)(s + 0x30) + *(int *)(s + 0x64);
+        *(int *)(s + 0x58) = 0; /* match_length = 0 */
+        h = *(unsigned char *)window;
+        *(unsigned int *)(s + 0x40) = h;
+        *(unsigned int *)(s + 0x40) =
+          ((h << (*(unsigned char *)(s + 0x50) & 0x1f)) ^
+           *(unsigned char *)(window + 1)) &
+          *(unsigned int *)(s + 0x4c);
+      }
+    } else {
+      /* Emit a single literal. */
+      if (*(int *)0x320e30 > 1) { /* z_verbose > 1 */
+        window = *(int *)(s + 0x30);
+        crt_fprintf(
+          (void *)0x331070, (const char *)0x28d3b8,
+          (unsigned int)*(unsigned char *)(*(int *)(s + 0x64) + window));
+      }
+      window = *(int *)(s + 0x30);
+      bflush = FUN_00116d10(
+        s, 0,
+        (int)(unsigned int)*(unsigned char *)(*(int *)(s + 0x64) + window));
+      *(unsigned int *)(s + 0x6c) -= 1; /* lookahead-- */
+      *(int *)(s + 0x64) += 1; /* strstart++ */
+    }
+    if (bflush != 0) {
+      /* FLUSH_BLOCK(s, 0). */
+      FUN_001177c0(
+        s, *(int *)(s + 0x54) < 0 ? 0 : *(int *)(s + 0x30) + *(int *)(s + 0x54),
+        *(int *)(s + 0x64) - *(int *)(s + 0x54), 0);
+      *(int *)(s + 0x54) = *(int *)(s + 0x64); /* block_start = strstart */
+      z = *(int *)s; /* s->strm (z_stream) */
+      state = *(int *)(z + 0x1c); /* strm->state */
+      len = *(unsigned int *)(state + 0x14); /* pending */
+      if (len > *(unsigned int *)(z + 0x10)) /* > avail_out */
+        len = *(unsigned int *)(z + 0x10);
+      if (len != 0) {
+        csmemcpy(*(void **)(z + 0xc), *(void **)(state + 0x10), len);
+        *(int *)(z + 0xc) += len; /* next_out += len */
+        *(int *)(state + 0x10) += len; /* pending_out += len */
+        *(int *)(z + 0x14) += len; /* total_out += len */
+        *(int *)(z + 0x10) -= len; /* avail_out -= len */
+        *(int *)(state + 0x14) -= len; /* pending -= len */
+        state = *(int *)(z + 0x1c);
+        if (*(int *)(state + 0x14) == 0)
+          *(int *)(state + 0x10) = *(int *)(state + 8);
+      }
+      if (*(int *)0x320e30 > 0) /* z_verbose > 0 */
+        crt_fprintf((void *)0x331070, (const char *)0x28d394);
+      if (*(unsigned int *)(z + 0x10) == 0) /* avail_out == 0 */
+        return 0; /* need_more */
+    }
+  }
+  /* lookahead == 0: final flush. */
+  FUN_001177c0(
+    s, *(int *)(s + 0x54) < 0 ? 0 : *(int *)(s + 0x30) + *(int *)(s + 0x54),
+    *(int *)(s + 0x64) - *(int *)(s + 0x54),
+    flush == 4); /* last = (flush == Z_FINISH) */
+  *(int *)(s + 0x54) = *(int *)(s + 0x64); /* block_start = strstart */
+  z = *(int *)s; /* s->strm */
+  FUN_00110e70(z); /* flush_pending(s->strm) */
+  if (*(int *)0x320e30 > 0)
+    crt_fprintf((void *)0x331070, (const char *)0x28d394);
+  if (*(unsigned int *)(z + 0x10) == 0) /* avail_out == 0 */
+    return (unsigned char)(flush == 4 ? 2 : 0); /* finish_started : need_more */
+  return (unsigned char)(flush == 4 ? 3 : 1); /* finish_done : block_done */
+}
+
 /* 0x111ea0 — zlib deflate_slow(): the level 4-9 block_state function (lazy
  * matching) referenced by configuration_table[4..9].func. Each step it
- * INSERT_STRINGs the head, shifts the current match to prev (prev_length[s+0x70]
- * = match_length, prev_match[s+0x5c] = match_start), and runs longest_match when
- * a candidate exists within MAX_DIST, prev_length < max_lazy and strategy !=
- * HUFFMAN_ONLY, discarding a length-3 match that is too far (filtered/0x1000).
- * If the PREVIOUS match was at least as good (prev_length >= MIN_MATCH &&
- * match_length <= prev_length) it emits that match (check_match + _tr_tally(s,
- * strstart-prev_match-1, prev_length-3)), advancing strstart over it while
- * inserting strings up to max_insert, and clears match_available. Otherwise, if
- * a literal was deferred (match_available[s+0x60]) it emits window[strstart-1];
- * else it defers the current byte. _tr_tally signalling a full block triggers a
- * FLUSH_BLOCK (_tr_flush_block + flush_pending). NOTE: unlike deflate_fast/stored
- * this CALLs flush_pending (FUN_00110e70(s->strm)) at every site — no inline
- * drain, so no z_stream-vs-state base hazard. The avail_out return is asymmetric:
- * the match path only checks when bflush!=0 (FLUSH_BLOCK's own return); the
- * literal path always checks after advancing; the defer path never checks.
- * Returns the block_state. cdecl, s in ESI. state offsets (byte): match_length
- * 0x58 match_start 0x68 prev_length 0x70 prev_match 0x5c match_available 0x60
+ * INSERT_STRINGs the head, shifts the current match to prev
+ * (prev_length[s+0x70] = match_length, prev_match[s+0x5c] = match_start), and
+ * runs longest_match when a candidate exists within MAX_DIST, prev_length <
+ * max_lazy and strategy != HUFFMAN_ONLY, discarding a length-3 match that is
+ * too far (filtered/0x1000). If the PREVIOUS match was at least as good
+ * (prev_length >= MIN_MATCH && match_length <= prev_length) it emits that match
+ * (check_match + _tr_tally(s, strstart-prev_match-1, prev_length-3)), advancing
+ * strstart over it while inserting strings up to max_insert, and clears
+ * match_available. Otherwise, if a literal was deferred
+ * (match_available[s+0x60]) it emits window[strstart-1]; else it defers the
+ * current byte. _tr_tally signalling a full block triggers a FLUSH_BLOCK
+ * (_tr_flush_block + flush_pending). NOTE: unlike deflate_fast/stored this
+ * CALLs flush_pending (FUN_00110e70(s->strm)) at every site — no inline drain,
+ * so no z_stream-vs-state base hazard. The avail_out return is asymmetric: the
+ * match path only checks when bflush!=0 (FLUSH_BLOCK's own return); the literal
+ * path always checks after advancing; the defer path never checks. Returns the
+ * block_state. cdecl, s in ESI. state offsets (byte): match_length 0x58
+ * match_start 0x68 prev_length 0x70 prev_match 0x5c match_available 0x60
  * max_lazy 0x78 strstart 0x64 lookahead 0x6c block_start 0x54 strategy 0x80
  * w_size 0x24 window 0x30 head 0x3c prev 0x38 ins_h 0x40 hash_mask 0x4c
  * hash_shift 0x50 w_mask 0x2c. */
@@ -4895,598 +5401,153 @@ unsigned char FUN_00111ea0(int *strm, int flush)
   s = (int)strm;
   hash_head = 0;
   for (;;) {
-    if (*(unsigned int *)(s + 0x6c) < 0x106) {        /* lookahead < MIN_LOOKAHEAD */
-      FUN_00111770(s);                                /* fill_window(s) */
+    if (*(unsigned int *)(s + 0x6c) < 0x106) { /* lookahead < MIN_LOOKAHEAD */
+      FUN_00111770(s); /* fill_window(s) */
       if (*(unsigned int *)(s + 0x6c) < 0x106 && flush == 0)
-        return 0;                                     /* need_more */
+        return 0; /* need_more */
       if (*(unsigned int *)(s + 0x6c) == 0)
         break;
     }
-    if (*(unsigned int *)(s + 0x6c) >= 3) {           /* INSERT_STRING(strstart) */
+    if (*(unsigned int *)(s + 0x6c) >= 3) { /* INSERT_STRING(strstart) */
       window = *(int *)(s + 0x30);
-      h = ((*(unsigned int *)(s + 0x40) << (*(unsigned char *)(s + 0x50) & 0x1f)) ^
-           *(unsigned char *)(window + *(int *)(s + 0x64) + 2)) & *(unsigned int *)(s + 0x4c);
+      h = ((*(unsigned int *)(s + 0x40)
+            << (*(unsigned char *)(s + 0x50) & 0x1f)) ^
+           *(unsigned char *)(window + *(int *)(s + 0x64) + 2)) &
+          *(unsigned int *)(s + 0x4c);
       *(unsigned int *)(s + 0x40) = h;
       hash_head = *(unsigned short *)(*(int *)(s + 0x3c) + h * 2);
-      *(unsigned short *)(*(int *)(s + 0x38) +
-                          (*(unsigned int *)(s + 0x2c) & *(unsigned int *)(s + 0x64)) * 2) =
-          (unsigned short)hash_head;
-      *(unsigned short *)(*(int *)(s + 0x3c) + *(unsigned int *)(s + 0x40) * 2) =
-          (unsigned short)*(int *)(s + 0x64);
+      *(unsigned short *)(*(int *)(s + 0x38) + (*(unsigned int *)(s + 0x2c) &
+                                                *(unsigned int *)(s + 0x64)) *
+                                                 2) = (unsigned short)hash_head;
+      *(unsigned short *)(*(int *)(s + 0x3c) +
+                          *(unsigned int *)(s + 0x40) * 2) =
+        (unsigned short)*(int *)(s + 0x64);
     }
-    *(int *)(s + 0x70) = *(int *)(s + 0x58);          /* prev_length = match_length */
-    *(int *)(s + 0x5c) = *(int *)(s + 0x68);          /* prev_match = match_start */
-    *(int *)(s + 0x58) = 2;                            /* match_length = MIN_MATCH-1 */
+    *(int *)(s + 0x70) = *(int *)(s + 0x58); /* prev_length = match_length */
+    *(int *)(s + 0x5c) = *(int *)(s + 0x68); /* prev_match = match_start */
+    *(int *)(s + 0x58) = 2; /* match_length = MIN_MATCH-1 */
     if (hash_head != 0 &&
-        (unsigned int)*(int *)(s + 0x70) < (unsigned int)*(int *)(s + 0x78) &&  /* prev_length < max_lazy */
-        *(unsigned int *)(s + 0x64) - hash_head <= *(unsigned int *)(s + 0x24) - 0x106) {
-      if (*(int *)(s + 0x80) != 2)                     /* strategy != Z_HUFFMAN_ONLY */
-        *(int *)(s + 0x58) = FUN_001114a0(s, hash_head);  /* longest_match(s, cur_match) */
+        (unsigned int)*(int *)(s + 0x70) <
+          (unsigned int)*(int *)(s + 0x78) && /* prev_length < max_lazy */
+        *(unsigned int *)(s + 0x64) - hash_head <=
+          *(unsigned int *)(s + 0x24) - 0x106) {
+      if (*(int *)(s + 0x80) != 2) /* strategy != Z_HUFFMAN_ONLY */
+        *(int *)(s + 0x58) =
+          FUN_001114a0(s, hash_head); /* longest_match(s, cur_match) */
       if ((unsigned int)*(int *)(s + 0x58) <= 5 &&
-          (*(int *)(s + 0x80) == 1 ||                  /* Z_FILTERED */
+          (*(int *)(s + 0x80) == 1 || /* Z_FILTERED */
            (*(int *)(s + 0x58) == 3 &&
             (unsigned int)(*(int *)(s + 0x64) - *(int *)(s + 0x68)) > 0x1000)))
-        *(int *)(s + 0x58) = 2;                        /* drop a too-distant length-3 match */
+        *(int *)(s + 0x58) = 2; /* drop a too-distant length-3 match */
     }
     prev_length = *(unsigned int *)(s + 0x70);
     match_length = *(unsigned int *)(s + 0x58);
     if (prev_length >= 3 && match_length <= prev_length) {
       /* Emit the PREVIOUS match. */
-      max_insert = *(int *)(s + 0x64) + *(int *)(s + 0x6c) - 3;   /* strstart + lookahead - MIN_MATCH */
-      FUN_001116b0((int)prev_length, *(int *)(s + 0x5c),
-                   *(int *)(s + 0x64) - 1, s);          /* check_match(prev_length, prev_match, strstart-1, s) */
-      bflush = FUN_00116d10(s, *(int *)(s + 0x64) - *(int *)(s + 0x5c) - 1,
-                            (int)prev_length - 3);      /* _tr_tally(s, strstart-prev_match-1, prev_length-3) */
-      *(unsigned int *)(s + 0x6c) += 1 - prev_length;   /* lookahead -= prev_length - 1 */
+      max_insert = *(int *)(s + 0x64) + *(int *)(s + 0x6c) -
+                   3; /* strstart + lookahead - MIN_MATCH */
+      FUN_001116b0((int)prev_length, *(int *)(s + 0x5c), *(int *)(s + 0x64) - 1,
+                   s); /* check_match(prev_length, prev_match, strstart-1, s) */
+      bflush = FUN_00116d10(
+        s, *(int *)(s + 0x64) - *(int *)(s + 0x5c) - 1,
+        (int)prev_length -
+          3); /* _tr_tally(s, strstart-prev_match-1, prev_length-3) */
+      *(unsigned int *)(s + 0x6c) +=
+        1 - prev_length; /* lookahead -= prev_length - 1 */
       *(int *)(s + 0x70) = (int)prev_length - 2;
       do {
-        *(int *)(s + 0x64) += 1;                        /* strstart++ */
+        *(int *)(s + 0x64) += 1; /* strstart++ */
         if (*(unsigned int *)(s + 0x64) <= (unsigned int)max_insert) {
           window = *(int *)(s + 0x30);
-          h = ((*(unsigned int *)(s + 0x40) << (*(unsigned char *)(s + 0x50) & 0x1f)) ^
-               *(unsigned char *)(window + *(int *)(s + 0x64) + 2)) & *(unsigned int *)(s + 0x4c);
-          *(unsigned int *)(s + 0x40) = h;
-          hash_head = *(unsigned short *)(*(int *)(s + 0x3c) + h * 2);
-          *(unsigned short *)(*(int *)(s + 0x38) +
-                              (*(unsigned int *)(s + 0x2c) & *(unsigned int *)(s + 0x64)) * 2) =
-              (unsigned short)hash_head;
-          *(unsigned short *)(*(int *)(s + 0x3c) + *(unsigned int *)(s + 0x40) * 2) =
-              (unsigned short)*(int *)(s + 0x64);
-        }
-        *(int *)(s + 0x70) -= 1;
-      } while (*(int *)(s + 0x70) != 0);
-      *(int *)(s + 0x60) = 0;                           /* match_available = 0 */
-      *(int *)(s + 0x58) = 2;                           /* match_length = MIN_MATCH-1 */
-      *(int *)(s + 0x64) += 1;                          /* strstart++ */
-      if (bflush != 0) {
-        FUN_001177c0(s, *(int *)(s + 0x54) < 0 ? 0 : *(int *)(s + 0x30) + *(int *)(s + 0x54),
-                     *(int *)(s + 0x64) - *(int *)(s + 0x54), 0);
-        *(int *)(s + 0x54) = *(int *)(s + 0x64);
-        FUN_00110e70(*(int *)s);                        /* flush_pending(s->strm) */
-        if (*(int *)0x320e30 > 0)
-          crt_fprintf((void *)0x331070, (const char *)0x28d394);
-        if (*(unsigned int *)(*(int *)s + 0x10) == 0)   /* avail_out == 0 */
-          return 0;
-      }
-    } else if (*(int *)(s + 0x60) != 0) {               /* match_available: emit deferred literal */
-      if (*(int *)0x320e30 > 1) {
-        window = *(int *)(s + 0x30);
-        crt_fprintf((void *)0x331070, (const char *)0x28d3b8,
-                    (unsigned int)*(unsigned char *)(*(int *)(s + 0x64) + window - 1));
-      }
-      window = *(int *)(s + 0x30);
-      bflush = FUN_00116d10(s, 0,
-                            (int)(unsigned int)*(unsigned char *)(*(int *)(s + 0x64) + window - 1));
-      if (bflush != 0) {
-        FUN_001177c0(s, *(int *)(s + 0x54) < 0 ? 0 : *(int *)(s + 0x30) + *(int *)(s + 0x54),
-                     *(int *)(s + 0x64) - *(int *)(s + 0x54), 0);
-        *(int *)(s + 0x54) = *(int *)(s + 0x64);
-        FUN_00110e70(*(int *)s);
-        if (*(int *)0x320e30 > 0)
-          crt_fprintf((void *)0x331070, (const char *)0x28d394);
-      }
-      *(int *)(s + 0x64) += 1;                          /* strstart++ */
-      *(int *)(s + 0x6c) -= 1;                          /* lookahead-- */
-      if (*(unsigned int *)(*(int *)s + 0x10) == 0)     /* avail_out == 0 */
-        return 0;
-    } else {
-      *(int *)(s + 0x60) = 1;                           /* match_available = 1 (defer) */
-      *(int *)(s + 0x64) += 1;                          /* strstart++ */
-      *(int *)(s + 0x6c) -= 1;                          /* lookahead-- */
-    }
-  }
-  /* lookahead == 0: final flush. */
-  if (flush == 0)
-    FUN_00117a80((const char *)0x28d3bc);               /* assert("no flush?") */
-  if (*(int *)(s + 0x60) != 0) {                        /* emit the last deferred literal */
-    if (*(int *)0x320e30 > 1) {
-      window = *(int *)(s + 0x30);
-      crt_fprintf((void *)0x331070, (const char *)0x28d3b8,
-                  (unsigned int)*(unsigned char *)(*(int *)(s + 0x64) + window - 1));
-    }
-    window = *(int *)(s + 0x30);
-    FUN_00116d10(s, 0, (int)(unsigned int)*(unsigned char *)(*(int *)(s + 0x64) + window - 1));
-    *(int *)(s + 0x60) = 0;
-  }
-  FUN_001177c0(s, *(int *)(s + 0x54) < 0 ? 0 : *(int *)(s + 0x30) + *(int *)(s + 0x54),
-               *(int *)(s + 0x64) - *(int *)(s + 0x54), flush == 4);
-  *(int *)(s + 0x54) = *(int *)(s + 0x64);
-  FUN_00110e70(*(int *)s);                              /* flush_pending(s->strm) */
-  if (*(int *)0x320e30 > 0)
-    crt_fprintf((void *)0x331070, (const char *)0x28d394);
-  if (*(unsigned int *)(*(int *)s + 0x10) == 0)         /* avail_out == 0 */
-    return (unsigned char)(flush == 4 ? 2 : 0);
-  return (unsigned char)(flush == 4 ? 3 : 1);
-}
-
-/* 0x111ba0 — zlib deflate_fast(): the level 1-3 block_state function referenced
- * by configuration_table[1..3].func. Greedy matching: for each position it
- * INSERT_STRINGs the head into the hash chains, runs longest_match (FUN_001114a0,
- * s in EAX) when a candidate exists within MAX_DIST and strategy != HUFFMAN_ONLY,
- * then either emits a match (>= MIN_MATCH: check_match + _tr_tally(s, dist,
- * len-3), advancing strstart over the match while inserting strings until
- * max_insert) or a single literal (_tr_tally(s, 0, byte)). When _tr_tally signals
- * a full block it FLUSH_BLOCKs (_tr_flush_block + inline flush_pending). The
- * terminal flush (lookahead==0) emits the remaining block with last=(flush==
- * Z_FINISH). Returns the block_state (need_more=0/block_done=1/finish_started=2/
- * finish_done=3). cdecl, s in ESI. NOTE: the inline flush_pending operates on the
- * z_stream (z = s->strm = *(int*)s), NOT the deflate_state base — z fields
- * next_out[z+0xc]/avail_out[z+0x10]/total_out[z+0x14], state(=z->state) fields
- * pending[state+0x14]/pending_out[state+0x10]/pending_buf[state+8]. state offsets
- * (int*): strm[0] w_mask[0x2c] window[0x30] head[0x3c] prev[0x38] ins_h[0x40]
- * hash_mask[0x4c] hash_shift[0x50] block_start[0x54] match_length[0x58] strstart
- * [0x64] match_start[0x68] lookahead[0x6c] max_insert[0x78] w_size[0x24]
- * strategy[0x80]. */
-unsigned char FUN_00111ba0(int *strm, int flush)
-{
-  int s;
-  int z;                 /* s->strm (z_stream) */
-  int state;             /* z->state (== s) */
-  unsigned int len;      /* inline flush_pending drain */
-  unsigned int hash_head;
-  int bflush;
-  int window;
-  unsigned int match_length;
-  unsigned int h;
-
-  s = (int)strm;
-  hash_head = 0;
-  for (;;) {
-    if (*(unsigned int *)(s + 0x6c) < 0x106) {        /* lookahead < MIN_LOOKAHEAD */
-      FUN_00111770(s);                                /* fill_window(s) */
-      if (*(unsigned int *)(s + 0x6c) < 0x106 && flush == 0)
-        return 0;                                     /* need_more */
-      if (*(unsigned int *)(s + 0x6c) == 0)           /* lookahead == 0 */
-        break;
-    }
-    /* INSERT_STRING(strstart): hash the 3 bytes at strstart. */
-    if (*(unsigned int *)(s + 0x6c) >= 3) {           /* lookahead >= MIN_MATCH */
-      window = *(int *)(s + 0x30);
-      h = ((*(unsigned int *)(s + 0x40) << (*(unsigned char *)(s + 0x50) & 0x1f)) ^
-           *(unsigned char *)(window + *(int *)(s + 0x64) + 2)) &
-          *(unsigned int *)(s + 0x4c);
-      *(unsigned int *)(s + 0x40) = h;                /* ins_h */
-      hash_head = *(unsigned short *)(*(int *)(s + 0x3c) + h * 2);  /* head[ins_h] */
-      *(unsigned short *)(*(int *)(s + 0x38) +
-                          (*(unsigned int *)(s + 0x2c) & *(unsigned int *)(s + 0x64)) * 2) =
-          (unsigned short)hash_head;                  /* prev[strstart & w_mask] = head[ins_h] */
-      *(unsigned short *)(*(int *)(s + 0x3c) + *(unsigned int *)(s + 0x40) * 2) =
-          (unsigned short)*(int *)(s + 0x64);         /* head[ins_h] = strstart */
-    }
-    if (hash_head != 0 &&
-        *(unsigned int *)(s + 0x64) - hash_head <= *(unsigned int *)(s + 0x24) - 0x106 &&
-        *(int *)(s + 0x80) != 2) {                    /* strategy != Z_HUFFMAN_ONLY */
-      *(int *)(s + 0x58) = FUN_001114a0(s, hash_head); /* match_length = longest_match(s, cur_match) */
-    }
-    match_length = *(unsigned int *)(s + 0x58);
-    if (match_length >= 3) {                          /* MIN_MATCH */
-      FUN_001116b0((int)match_length, *(int *)(s + 0x68),
-                   *(int *)(s + 0x64), s);            /* check_match(len, match_start, strstart, s) */
-      bflush = FUN_00116d10(s, *(int *)(s + 0x64) - *(int *)(s + 0x68),
-                            (int)match_length - 3);   /* _tr_tally(s, dist, len-MIN_MATCH) */
-      *(unsigned int *)(s + 0x6c) -= match_length;    /* lookahead -= match_length */
-      if (match_length <= (unsigned int)*(int *)(s + 0x78) &&  /* <= max_insert */
-          *(unsigned int *)(s + 0x6c) >= 3) {          /* lookahead >= MIN_MATCH */
-        *(int *)(s + 0x58) = (int)match_length - 1;
-        do {                                          /* insert the matched substrings */
-          *(int *)(s + 0x64) += 1;                    /* strstart++ */
-          window = *(int *)(s + 0x30);
-          h = ((*(unsigned int *)(s + 0x40) << (*(unsigned char *)(s + 0x50) & 0x1f)) ^
+          h = ((*(unsigned int *)(s + 0x40)
+                << (*(unsigned char *)(s + 0x50) & 0x1f)) ^
                *(unsigned char *)(window + *(int *)(s + 0x64) + 2)) &
               *(unsigned int *)(s + 0x4c);
           *(unsigned int *)(s + 0x40) = h;
           hash_head = *(unsigned short *)(*(int *)(s + 0x3c) + h * 2);
           *(unsigned short *)(*(int *)(s + 0x38) +
-                              (*(unsigned int *)(s + 0x64) & *(unsigned int *)(s + 0x2c)) * 2) =
-              (unsigned short)hash_head;
-          *(unsigned short *)(*(int *)(s + 0x3c) + *(unsigned int *)(s + 0x40) * 2) =
-              (unsigned short)*(int *)(s + 0x64);
-          *(int *)(s + 0x58) -= 1;
-        } while (*(int *)(s + 0x58) != 0);
-        *(int *)(s + 0x64) += 1;                       /* strstart++ */
-      } else {
-        *(int *)(s + 0x64) += match_length;            /* strstart += match_length */
-        window = *(int *)(s + 0x30) + *(int *)(s + 0x64);
-        *(int *)(s + 0x58) = 0;                         /* match_length = 0 */
-        h = *(unsigned char *)window;
-        *(unsigned int *)(s + 0x40) = h;
-        *(unsigned int *)(s + 0x40) =
-            ((h << (*(unsigned char *)(s + 0x50) & 0x1f)) ^
-             *(unsigned char *)(window + 1)) & *(unsigned int *)(s + 0x4c);
+                              (*(unsigned int *)(s + 0x2c) &
+                               *(unsigned int *)(s + 0x64)) *
+                                2) = (unsigned short)hash_head;
+          *(unsigned short *)(*(int *)(s + 0x3c) +
+                              *(unsigned int *)(s + 0x40) * 2) =
+            (unsigned short)*(int *)(s + 0x64);
+        }
+        *(int *)(s + 0x70) -= 1;
+      } while (*(int *)(s + 0x70) != 0);
+      *(int *)(s + 0x60) = 0; /* match_available = 0 */
+      *(int *)(s + 0x58) = 2; /* match_length = MIN_MATCH-1 */
+      *(int *)(s + 0x64) += 1; /* strstart++ */
+      if (bflush != 0) {
+        FUN_001177c0(
+          s,
+          *(int *)(s + 0x54) < 0 ? 0 : *(int *)(s + 0x30) + *(int *)(s + 0x54),
+          *(int *)(s + 0x64) - *(int *)(s + 0x54), 0);
+        *(int *)(s + 0x54) = *(int *)(s + 0x64);
+        FUN_00110e70(*(int *)s); /* flush_pending(s->strm) */
+        if (*(int *)0x320e30 > 0)
+          crt_fprintf((void *)0x331070, (const char *)0x28d394);
+        if (*(unsigned int *)(*(int *)s + 0x10) == 0) /* avail_out == 0 */
+          return 0;
       }
-    } else {
-      /* Emit a single literal. */
-      if (*(int *)0x320e30 > 1) {                      /* z_verbose > 1 */
+    } else if (*(int *)(s + 0x60) !=
+               0) { /* match_available: emit deferred literal */
+      if (*(int *)0x320e30 > 1) {
         window = *(int *)(s + 0x30);
-        crt_fprintf((void *)0x331070, (const char *)0x28d3b8,
-                    (unsigned int)*(unsigned char *)(*(int *)(s + 0x64) + window));
+        crt_fprintf(
+          (void *)0x331070, (const char *)0x28d3b8,
+          (unsigned int)*(unsigned char *)(*(int *)(s + 0x64) + window - 1));
       }
       window = *(int *)(s + 0x30);
-      bflush = FUN_00116d10(s, 0,
-                            (int)(unsigned int)*(unsigned char *)(*(int *)(s + 0x64) + window));
-      *(unsigned int *)(s + 0x6c) -= 1;                /* lookahead-- */
-      *(int *)(s + 0x64) += 1;                         /* strstart++ */
-    }
-    if (bflush != 0) {
-      /* FLUSH_BLOCK(s, 0). */
-      FUN_001177c0(s,
-                   *(int *)(s + 0x54) < 0 ? 0 : *(int *)(s + 0x30) + *(int *)(s + 0x54),
-                   *(int *)(s + 0x64) - *(int *)(s + 0x54), 0);
-      *(int *)(s + 0x54) = *(int *)(s + 0x64);          /* block_start = strstart */
-      z = *(int *)s;                                    /* s->strm (z_stream) */
-      state = *(int *)(z + 0x1c);                       /* strm->state */
-      len = *(unsigned int *)(state + 0x14);            /* pending */
-      if (len > *(unsigned int *)(z + 0x10))            /* > avail_out */
-        len = *(unsigned int *)(z + 0x10);
-      if (len != 0) {
-        csmemcpy(*(void **)(z + 0xc), *(void **)(state + 0x10), len);
-        *(int *)(z + 0xc) += len;                       /* next_out += len */
-        *(int *)(state + 0x10) += len;                  /* pending_out += len */
-        *(int *)(z + 0x14) += len;                      /* total_out += len */
-        *(int *)(z + 0x10) -= len;                      /* avail_out -= len */
-        *(int *)(state + 0x14) -= len;                  /* pending -= len */
-        state = *(int *)(z + 0x1c);
-        if (*(int *)(state + 0x14) == 0)
-          *(int *)(state + 0x10) = *(int *)(state + 8);
+      bflush = FUN_00116d10(
+        s, 0,
+        (int)(unsigned int)*(unsigned char *)(*(int *)(s + 0x64) + window - 1));
+      if (bflush != 0) {
+        FUN_001177c0(
+          s,
+          *(int *)(s + 0x54) < 0 ? 0 : *(int *)(s + 0x30) + *(int *)(s + 0x54),
+          *(int *)(s + 0x64) - *(int *)(s + 0x54), 0);
+        *(int *)(s + 0x54) = *(int *)(s + 0x64);
+        FUN_00110e70(*(int *)s);
+        if (*(int *)0x320e30 > 0)
+          crt_fprintf((void *)0x331070, (const char *)0x28d394);
       }
-      if (*(int *)0x320e30 > 0)                         /* z_verbose > 0 */
-        crt_fprintf((void *)0x331070, (const char *)0x28d394);
-      if (*(unsigned int *)(z + 0x10) == 0)             /* avail_out == 0 */
-        return 0;                                       /* need_more */
+      *(int *)(s + 0x64) += 1; /* strstart++ */
+      *(int *)(s + 0x6c) -= 1; /* lookahead-- */
+      if (*(unsigned int *)(*(int *)s + 0x10) == 0) /* avail_out == 0 */
+        return 0;
+    } else {
+      *(int *)(s + 0x60) = 1; /* match_available = 1 (defer) */
+      *(int *)(s + 0x64) += 1; /* strstart++ */
+      *(int *)(s + 0x6c) -= 1; /* lookahead-- */
     }
   }
   /* lookahead == 0: final flush. */
-  FUN_001177c0(s,
-               *(int *)(s + 0x54) < 0 ? 0 : *(int *)(s + 0x30) + *(int *)(s + 0x54),
-               *(int *)(s + 0x64) - *(int *)(s + 0x54),
-               flush == 4);                             /* last = (flush == Z_FINISH) */
-  *(int *)(s + 0x54) = *(int *)(s + 0x64);             /* block_start = strstart */
-  z = *(int *)s;                                        /* s->strm */
-  FUN_00110e70(z);                                     /* flush_pending(s->strm) */
+  if (flush == 0)
+    FUN_00117a80((const char *)0x28d3bc); /* assert("no flush?") */
+  if (*(int *)(s + 0x60) != 0) { /* emit the last deferred literal */
+    if (*(int *)0x320e30 > 1) {
+      window = *(int *)(s + 0x30);
+      crt_fprintf(
+        (void *)0x331070, (const char *)0x28d3b8,
+        (unsigned int)*(unsigned char *)(*(int *)(s + 0x64) + window - 1));
+    }
+    window = *(int *)(s + 0x30);
+    FUN_00116d10(
+      s, 0,
+      (int)(unsigned int)*(unsigned char *)(*(int *)(s + 0x64) + window - 1));
+    *(int *)(s + 0x60) = 0;
+  }
+  FUN_001177c0(
+    s, *(int *)(s + 0x54) < 0 ? 0 : *(int *)(s + 0x30) + *(int *)(s + 0x54),
+    *(int *)(s + 0x64) - *(int *)(s + 0x54), flush == 4);
+  *(int *)(s + 0x54) = *(int *)(s + 0x64);
+  FUN_00110e70(*(int *)s); /* flush_pending(s->strm) */
   if (*(int *)0x320e30 > 0)
     crt_fprintf((void *)0x331070, (const char *)0x28d394);
-  if (*(unsigned int *)(z + 0x10) == 0)                /* avail_out == 0 */
-    return (unsigned char)(flush == 4 ? 2 : 0);        /* finish_started : need_more */
-  return (unsigned char)(flush == 4 ? 3 : 1);          /* finish_done : block_done */
-}
-
-/* 0x111910 — zlib deflate_stored(): the level-0 "store" block_state function
- * referenced by configuration_table[0].func. Copies input straight through with
- * no compression, emitting stored blocks. Loop: ensure >1 byte of lookahead
- * (fill_window, FUN_00111770), assert the slide guards, advance strstart by the
- * whole lookahead, and flush a stored block whenever strstart reaches the next
- * max_block boundary (FLUSH_BLOCK at max_start) or once strstart-block_start has
- * built up MAX_DIST worth of data (second FLUSH_BLOCK). The terminal flush (when
- * lookahead hits 0) emits the remaining block, last = (flush == Z_FINISH).
- *
- * FLUSH_BLOCK expands to _tr_flush_block (FUN_001177c0) + flush_pending. To match
- * the original codegen exactly, the two in-loop FLUSH_BLOCK sites INLINE
- * flush_pending (the csmemcpy drain, identical to FUN_00110e70's body), while the
- * terminal flush CALLS FUN_00110e70. The stored-block source pointer is NULL when
- * block_start < 0 (signed test), else window + block_start.
- *
- * Signedness recovered from disasm branch flavors: block_start is signed long
- * (jge/jl at 111948/11196a and the null-buf jl); max_block_size, max_start,
- * strstart, lookahead, w_size are all unsigned (jnc/jc/ja). The two return
- * idioms (need_more=0 / finish_started=2; block_done=1 / finish_done=3) are
- * chosen so MSVC lowers the `flush == Z_FINISH ? ... : ...` ternaries to the
- * branchless `dec eax; and eax,2` / `lea [eax+eax+1]` sequences.
- *
- * z_streamp(strm) fields: next_out[0xc] avail_out[0x10] total_out[0x14]
- * state[0x1c]. deflate_state(s) fields: pending_buf_size[0xc] window[0x30]
- * block_start[0x54] strstart[0x64] lookahead[0x6c] w_size[0x24]; and within
- * strm->state: pending_buf[8] pending_out[0x10] pending[0x14]. cdecl, s in ESI,
- * flush at [EBP+0xc]; returns the block_state byte in AL. */
-unsigned char FUN_00111910(int *strm, int flush)
-{
-  int s;                       /* deflate_state* (s in ESI)        */
-  int z;                       /* s->strm (z_stream) = *(int*)s    */
-  unsigned int max_block_size; /* ulg: min(0xffff, pending_buf_size-5) */
-  unsigned int max_start;      /* ulg: block_start + max_block_size    */
-  int state;                   /* strm->state (deflate internal state) */
-  unsigned int len;            /* inline flush_pending drain length    */
-
-  s = (int)strm;
-
-  /* max_block_size = MIN(pending_buf_size - 5, 0xffff); */
-  max_block_size = *(unsigned int *)(s + 0xc) - 5;
-  if (max_block_size > 0xffff)
-    max_block_size = 0xffff;
-
-  /* Copy as much input as possible into the window and flush. */
-  for (;;) {
-    /* Fill the window if we're nearly empty. */
-    if (*(unsigned int *)(s + 0x6c) <= 1) {        /* lookahead <= 1 */
-      /* assert(strstart < 2*w_size - MIN_LOOKAHEAD || block_start >= w_size,
-       *        "slide too late"); */
-      if (*(unsigned int *)(s + 0x64) >=             /* strstart >= */
-              2 * *(unsigned int *)(s + 0x24) - 0x106 &&  /* 2*w_size - 0x106 */
-          *(long *)(s + 0x54) < *(long *)(s + 0x24))      /* block_start < w_size */
-        FUN_00117a80((const char *)0x28d3a8);            /* "slide too late" */
-
-      FUN_00111770(s);                                /* fill_window(s) */
-      if (*(unsigned int *)(s + 0x6c) == 0)           /* lookahead == 0 */
-        break;
-    }
-    /* assert(block_start >= 0L, "block gone"); */
-    if (*(long *)(s + 0x54) < 0)
-      FUN_00117a80((const char *)0x28d39c);            /* "block gone" */
-
-    /* strstart += lookahead;  lookahead = 0; */
-    *(unsigned int *)(s + 0x64) += *(unsigned int *)(s + 0x6c);
-    *(unsigned int *)(s + 0x6c) = 0;
-
-    /* Emit a stored block whenever strstart reaches the next block boundary. */
-    max_start = (unsigned int)*(long *)(s + 0x54) + max_block_size;
-    if (*(unsigned int *)(s + 0x64) == 0 ||           /* strstart == 0 */
-        *(unsigned int *)(s + 0x64) >= max_start) {    /* || strstart >= max_start */
-      /* strstart left at the boundary; the rest becomes lookahead. */
-      *(unsigned int *)(s + 0x6c) =                    /* lookahead = */
-          *(unsigned int *)(s + 0x64) - max_start;     /*   strstart - max_start */
-      *(unsigned int *)(s + 0x64) = max_start;         /* strstart = max_start */
-
-      /* FLUSH_BLOCK(s, 0): _tr_flush_block + inline flush_pending. */
-      FUN_001177c0(s,
-                   *(long *)(s + 0x54) < 0
-                       ? 0
-                       : *(int *)(s + 0x30) + *(long *)(s + 0x54), /* window+block_start */
-                   max_start - (unsigned int)*(long *)(s + 0x54),  /* len */
-                   0);
-      *(int *)(s + 0x54) = *(int *)(s + 0x64);         /* block_start = strstart */
-
-      /* inline flush_pending(s->strm) */
-      z = *(int *)s;                                    /* s->strm (z_stream) */
-      state = *(int *)(z + 0x1c);                       /* strm->state */
-      len = *(unsigned int *)(state + 0x14);            /* pending */
-      if (len > *(unsigned int *)(z + 0x10))            /* > avail_out */
-        len = *(unsigned int *)(z + 0x10);
-      if (len != 0) {
-        csmemcpy(*(void **)(z + 0xc), *(void **)(state + 0x10), len);
-        *(int *)(z + 0xc) += len;                       /* next_out += len */
-        *(int *)(state + 0x10) += len;                  /* pending_out += len */
-        *(int *)(z + 0x14) += len;                      /* total_out += len */
-        *(int *)(z + 0x10) -= len;                      /* avail_out -= len */
-        *(int *)(state + 0x14) -= len;                  /* pending -= len */
-        state = *(int *)(z + 0x1c);
-        if (*(int *)(state + 0x14) == 0)                /* pending == 0 */
-          *(int *)(state + 0x10) = *(int *)(state + 8); /* pending_out = pending_buf */
-      }
-      if (*(int *)0x320e30 > 0)                         /* z_verbose > 0 */
-        crt_fprintf((void *)0x331070, (const char *)0x28d394); /* "[FLUSH]" */
-
-      if (*(unsigned int *)(z + 0x10) == 0)             /* avail_out == 0 */
-        return 0;                                       /* need_more */
-    }
-
-    /* Flush if we have enough buffered for a useful stored block. */
-    if (*(unsigned int *)(s + 0x64) - (unsigned int)*(long *)(s + 0x54)
-        >= *(unsigned int *)(s + 0x24) - 0x106) {       /* >= w_size - MAX_DIST */
-      /* FLUSH_BLOCK(s, 0): _tr_flush_block + inline flush_pending. */
-      FUN_001177c0(s,
-                   *(long *)(s + 0x54) < 0
-                       ? 0
-                       : *(int *)(s + 0x30) + *(long *)(s + 0x54),
-                   *(unsigned int *)(s + 0x64) - (unsigned int)*(long *)(s + 0x54),
-                   0);
-      *(int *)(s + 0x54) = *(int *)(s + 0x64);          /* block_start = strstart */
-
-      /* inline flush_pending(s->strm) */
-      z = *(int *)s;                                    /* s->strm (z_stream) */
-      state = *(int *)(z + 0x1c);                       /* strm->state */
-      len = *(unsigned int *)(state + 0x14);            /* pending */
-      if (len > *(unsigned int *)(z + 0x10))            /* > avail_out */
-        len = *(unsigned int *)(z + 0x10);
-      if (len != 0) {
-        csmemcpy(*(void **)(z + 0xc), *(void **)(state + 0x10), len);
-        *(int *)(z + 0xc) += len;                       /* next_out += len */
-        *(int *)(state + 0x10) += len;                  /* pending_out += len */
-        *(int *)(z + 0x14) += len;                      /* total_out += len */
-        *(int *)(z + 0x10) -= len;                      /* avail_out -= len */
-        *(int *)(state + 0x14) -= len;                  /* pending -= len */
-        state = *(int *)(z + 0x1c);
-        if (*(int *)(state + 0x14) == 0)                /* pending == 0 */
-          *(int *)(state + 0x10) = *(int *)(state + 8); /* pending_out = pending_buf */
-      }
-      if (*(int *)0x320e30 > 0)
-        crt_fprintf((void *)0x331070, (const char *)0x28d394); /* "[FLUSH]" */
-
-      if (*(unsigned int *)(z + 0x10) == 0)             /* avail_out == 0 */
-        return 0;                                       /* need_more */
-    }
-  }
-
-  /* lookahead == 0: emit the final block if there is anything to flush. */
-  if (flush == 0)                                       /* Z_NO_FLUSH */
-    return 0;                                           /* need_more */
-
-  /* FLUSH_BLOCK_ONLY(s, flush == Z_FINISH): _tr_flush_block, then a real
-   * flush_pending call (NOT inlined here). */
-  FUN_001177c0(s,
-               *(long *)(s + 0x54) < 0
-                   ? 0
-                   : *(int *)(s + 0x30) + *(long *)(s + 0x54),
-               *(unsigned int *)(s + 0x64) - (unsigned int)*(long *)(s + 0x54),
-               flush == 4);                             /* last = (flush == Z_FINISH) */
-  *(int *)(s + 0x54) = *(int *)(s + 0x64);             /* block_start = strstart */
-  z = *(int *)s;                                        /* s->strm (z_stream) */
-  FUN_00110e70(z);                                     /* flush_pending(s->strm) */
-
-  if (*(int *)0x320e30 > 0)                             /* z_verbose > 0 */
-    crt_fprintf((void *)0x331070, (const char *)0x28d394); /* "[FLUSH]" */
-
-  if (*(unsigned int *)(z + 0x10) == 0)                 /* avail_out == 0 */
-    return (unsigned char)(((flush != 4) - 1) & 2);     /* finish_started : need_more */
-  return (unsigned char)(((flush == 4) << 1) + 1);      /* finish_done : block_done */
-}
-
-/* 0x110ed0 — zlib deflate(): the compression driver/state machine. Validates
- * the stream + flush (0..4); errors with Z_STREAM_ERROR(-2)/Z_BUF_ERROR(-5).
- * On INIT_STATE writes the 2-byte zlib header (round-to-multiple-of-31, with
- * PRESET_DICT bit + preset-dictionary adler when strstart!=0) and sets BUSY.
- * Drains pending output (flush_pending). Then, when there is input/lookahead or
- * a non-zero flush outside FINISH, runs configuration_table[level].func(s,flush)
- * and acts on its block_state: need_more/finish_started -> Z_OK (last_flush=-1
- * if output is full); block_done -> _tr_align (PARTIAL) or _tr_stored_block +
- * optional hash clear (FULL), then flush. On Z_FINISH writes the adler32 trailer
- * (unless noheader) and returns Z_STREAM_END once fully flushed. strm fields:
- * next_in[0]/avail_in[1]/next_out[3]/avail_out[4]/msg[6]/state[7]/adler[0xc];
- * state fields: strm[0]/status[1]/pending[5]/noheader[6]/last_flush[8]/w_bits
- * [0xa]/head[0xf]/hash_size[0x11]/strstart[0x19]/lookahead[0x1b]/level[0x1f]. */
-int FUN_00110ed0(void *strm, int flush)
-{
-  int *z;
-  int *s;
-  int old_flush;
-  int bstate;
-  unsigned int header;
-  int level_flags;
-  int (*deflate_func)(int *, int);
-
-  z = (int *)strm;
-  if (z == (int *)0 || (s = *(int **)(z + 7)) == (int *)0 ||
-      flush > 4 || flush < 0)
-    return -2;                                  /* Z_STREAM_ERROR */
-  if (z[3] == 0 || (z[0] == 0 && z[1] != 0) ||
-      (s[1] == 0x29a && flush != 4)) {          /* FINISH_STATE && !Z_FINISH */
-    z[6] = *(int *)0x320e18;                     /* msg = "stream error" */
-    return -2;
-  }
-  if (z[4] == 0) {                              /* avail_out == 0 */
-    z[6] = *(int *)0x320e24;                     /* msg = "buffer error" */
-    return -5;                                  /* Z_BUF_ERROR */
-  }
-
-  old_flush = s[8];                             /* save last_flush */
-  s[0] = (int)z;                                /* s->strm = strm */
-  s[8] = flush;                                 /* s->last_flush = flush */
-
-  /* Write the zlib header. */
-  if (s[1] == 0x2a) {                           /* INIT_STATE */
-    header = (unsigned int)(((s[0xa] - 8) << 12) + 0x800); /* (Z_DEFLATED|((w_bits-8)<<4))<<8 */
-    level_flags = (s[0x1f] - 1) >> 1;
-    if ((unsigned int)level_flags > 3)
-      level_flags = 3;
-    header |= (unsigned int)(level_flags << 6);
-    if (s[0x19] != 0)                           /* strstart != 0 */
-      header |= 0x20;                           /* PRESET_DICT */
-    header += 31 - header % 31;
-    s[1] = 0x71;                                /* BUSY_STATE */
-    FUN_00110e40(header, (int)s);               /* putShortMSB(s, header) */
-    if (s[0x19] != 0) {                         /* preset dictionary adler32 */
-      FUN_00110e40((unsigned int)*(unsigned short *)((char *)z + 0x32), (int)s);
-      FUN_00110e40((unsigned int)z[0xc] & 0xffff, (int)s);
-    }
-    z[0xc] = 1;                                 /* strm->adler = 1 */
-  }
-
-  /* Flush as much pending output as possible. */
-  if (s[5] != 0) {                              /* s->pending != 0 */
-    FUN_00110e70((int)z);                       /* flush_pending(strm) */
-    if (z[4] == 0) {                            /* avail_out == 0 */
-      s[8] = -1;                                /* last_flush = -1 */
-      return 0;                                 /* Z_OK */
-    }
-  } else if (z[1] == 0 && flush <= old_flush && flush != 4) {
-    z[6] = *(int *)0x320e24;                     /* "buffer error" */
-    return -5;
-  }
-
-  /* No more input is allowed after the first Z_FINISH. */
-  if (s[1] == 0x29a && z[1] != 0) {             /* FINISH_STATE && avail_in != 0 */
-    z[6] = *(int *)0x320e24;
-    return -5;
-  }
-
-  /* Start a new block or continue the current one. */
-  if (z[1] != 0 || s[0x1b] != 0 || (flush != 0 && s[1] != 0x29a)) {
-    deflate_func = *(int (**)(int *, int))(0x28d288 + s[0x1f] * 0xc);
-    bstate = deflate_func(s, flush);            /* configuration_table[level].func */
-    if (bstate == 2 || bstate == 3)             /* finish_started / finish_done */
-      s[1] = 0x29a;                             /* FINISH_STATE */
-    if (bstate == 0 || bstate == 2) {           /* need_more / finish_started */
-      if (z[4] == 0)                            /* avail_out == 0 */
-        s[8] = -1;                              /* last_flush = -1 */
-      return 0;                                 /* Z_OK */
-    }
-    if (bstate == 1) {                          /* block_done */
-      if (flush == 1) {                         /* Z_PARTIAL_FLUSH */
-        FUN_001176f0((int)s);                   /* _tr_align(s) */
-      } else {                                  /* FULL_FLUSH or SYNC_FLUSH */
-        FUN_001176a0((int)s, (unsigned char *)0, 0, 0); /* _tr_stored_block(s,0,0,0) */
-        if (flush == 3) {                       /* Z_FULL_FLUSH: clear hash */
-          *(unsigned short *)(s[0xf] + s[0x11] * 2 - 2) = 0;
-          csmemset((void *)s[0xf], 0, s[0x11] * 2 - 2);
-        }
-      }
-      FUN_00110e70((int)z);                     /* flush_pending(strm) */
-      if (z[4] == 0) {                          /* avail_out == 0 */
-        s[8] = -1;                              /* last_flush = -1 */
-        return 0;
-      }
-    }
-  }
-  /* Assert(strm->avail_out > 0, "bug2") */
-  if (z[4] == 0)
-    FUN_00117a80((const char *)0x28d2f8);
-  if (flush != 4)                               /* != Z_FINISH */
-    return 0;                                   /* Z_OK */
-  if (s[6] != 0)                                /* noheader != 0: raw deflate, no trailer */
-    return 1;                                   /* Z_STREAM_END */
-  /* Write the gzip/zlib adler32 trailer. */
-  FUN_00110e40((unsigned int)*(unsigned short *)((char *)z + 0x32), (int)s); /* adler>>16 */
-  FUN_00110e40((unsigned int)z[0xc] & 0xffff, (int)s);                       /* adler&0xffff */
-  FUN_00110e70((int)z);                         /* flush_pending(strm) */
-  s[6] = -1;                                    /* noheader = -1 */
-  return (s[5] == 0);                           /* pending==0 ? Z_STREAM_END(1) : Z_OK(0) */
-}
-
-/* 0x1113c0 — zlib read_buf: copy up to `size` bytes from the stream input
- * (strm->next_in, strm[0]) into `buf`, capping at strm->avail_in (strm[1]).
- * Returns the byte count copied (0 if avail_in==0). When state->wrap (state at
- * strm+0x1c, wrap at +0x18) is zero the running checksum strm->adler (strm+0x30)
- * is folded over the copied bytes via FUN_00110a10 (adler32). Then advances
- * avail_in (-=len), total_in (strm+8 +=len) and next_in (+=len). ABI: strm in
- * EDI, size in ECX, buf pushed on the stack => VC71 prologue ceiling. */
-unsigned int FUN_001113c0(int strm /*@<edi>*/, unsigned int size /*@<ecx>*/,
-                          void *buf)
-{
-  int *s;
-  unsigned int len;
-
-  s = (int *)strm;
-  len = (unsigned int)s[1];          /* avail_in */
-  if (len > size)
-    len = size;
-  if (len == 0)
-    return 0;
-  s[1] -= len;                       /* avail_in -= len */
-  if (*(int *)(s[7] + 0x18) == 0)    /* state->wrap == 0 */
-    s[0xc] = (int)FUN_00110a10((unsigned int)s[0xc],
-                               (unsigned char *)s[0], len);
-  csmemcpy(buf, (void *)s[0], len);  /* next_in -> buf */
-  s[2] += len;                       /* total_in += len */
-  s[0] += len;                       /* next_in += len */
-  return len;
+  if (*(unsigned int *)(*(int *)s + 0x10) == 0) /* avail_out == 0 */
+    return (unsigned char)(flush == 4 ? 2 : 0);
+  return (unsigned char)(flush == 4 ? 3 : 1);
 }
 
 /* 0x112260 — zlib deflateReset: reset a deflate stream so a fresh compression
@@ -5495,9 +5556,9 @@ unsigned int FUN_001113c0(int strm /*@<edi>*/, unsigned int size /*@<ecx>*/,
  * (strm+0x14), total_in (strm+0x8) and msg (strm+0x18); sets data_type
  * (strm+0x2c)=Z_UNKNOWN(2) and adler (strm+0x30)=1. Resets the deflate_state:
  * pending_out (s+0x10)=pending_buf (s+0x8), pending (s+0x14)=0, normalizes wrap
- * (s+0x18 = |wrap|), status (s+0x4) = wrap ? 0x71 : INIT_STATE(0x2a), last_flush
- * (s+0x20)=0; then _tr_init (FUN_00117250) and lm_init (FUN_00111420 @<esi>=
- * state). Returns Z_OK(0). */
+ * (s+0x18 = |wrap|), status (s+0x4) = wrap ? 0x71 : INIT_STATE(0x2a),
+ * last_flush (s+0x20)=0; then _tr_init (FUN_00117250) and lm_init (FUN_00111420
+ * @<esi>= state). Returns Z_OK(0). */
 int FUN_00112260(int strm)
 {
   int s;
@@ -5526,18 +5587,19 @@ int FUN_00112260(int strm)
  * `strm`. If the new level selects a different deflate function than the active
  * one (configuration_table[level].func) and input has been consumed, the
  * current block is flushed first — writing the zlib header if still in
- * INIT_STATE (status 0x2a) — via configuration_table[s->level].func(s, Z_BLOCK).
- * Then level/strategy and the good_length/max_lazy/nice_length/max_chain tuning
- * are updated from the config table. Returns Z_OK(0), Z_STREAM_ERROR(-2) or
- * Z_BUF_ERROR(-5).
- *   z_stream: [0]next_in [1]avail_in [2]total_in [3]next_out [4]avail_out
- *   [6]msg [7]state [0xc]adler ; deflate_state s: [0]strm [1]status [5]pending
- *   [8]last_flush [0xa]w_bits [0x19]wrap/dict [0x1b]high_water flag [0x1d]
- *   max_chain [0x1e]max_lazy [0x1f]level [0x20]strategy [0x21]good_length
+ * INIT_STATE (status 0x2a) — via configuration_table[s->level].func(s,
+ * Z_BLOCK). Then level/strategy and the
+ * good_length/max_lazy/nice_length/max_chain tuning are updated from the config
+ * table. Returns Z_OK(0), Z_STREAM_ERROR(-2) or Z_BUF_ERROR(-5). z_stream:
+ * [0]next_in [1]avail_in [2]total_in [3]next_out [4]avail_out [6]msg [7]state
+ * [0xc]adler ; deflate_state s: [0]strm [1]status [5]pending [8]last_flush
+ * [0xa]w_bits [0x19]wrap/dict [0x1b]high_water flag [0x1d] max_chain
+ * [0x1e]max_lazy [0x1f]level [0x20]strategy [0x21]good_length
  *   [0x22]nice_length. config table @0x28d280: { ush good_length, max_lazy,
  *   nice_length, max_chain; func } (12 B/entry). Callees: FUN_00110e40 =
- *   putShortMSB(@<ecx>=val, @<eax>=s); FUN_00110e70 = flush_pending(@<eax>=strm);
- *   FUN_001176f0 = _tr_align; FUN_00117a80 = trace/assert(msg). */
+ *   putShortMSB(@<ecx>=val, @<eax>=s); FUN_00110e70 =
+ * flush_pending(@<eax>=strm); FUN_001176f0 = _tr_align; FUN_00117a80 =
+ * trace/assert(msg). */
 int FUN_001122e0(int *strm, int level, int strategy)
 {
   int *s;
@@ -5561,7 +5623,8 @@ int FUN_001122e0(int *strm, int level, int strategy)
     return -2;
 
   level_off = level * 0xc;
-  if (*(void **)(0x28d288 + s[0x1f] * 0xc) == *(void **)(0x28d288 + level_off) ||
+  if (*(void **)(0x28d288 + s[0x1f] * 0xc) ==
+        *(void **)(0x28d288 + level_off) ||
       strm[2] == 0)
     goto set_params;
 
@@ -5580,7 +5643,7 @@ int FUN_001122e0(int *strm, int level, int strategy)
   s[0] = (int)strm;
   s[8] = 1;
   if (s[1] == 0x2a) { /* INIT_STATE: emit the zlib header */
-    s[1] = 0x71;      /* BUSY_STATE */
+    s[1] = 0x71; /* BUSY_STATE */
     header = (unsigned int)(((s[0xa] - 8) << 0xc) + 0x800);
     level_flags = (s[0x1f] - 1) >> 1;
     if ((unsigned int)level_flags > 3)
@@ -5664,6 +5727,106 @@ set_params:
   return err;
 }
 
+/* 0x112590 — zlib deflateInit2_: allocate and initialize a deflate stream.
+ * param_1=z_stream, param_2=level(-1=>6), param_3=method(must be 8),
+ * param_4=windowBits(8..15; negative => raw deflate, |windowBits| with wrap=0),
+ * param_5=memLevel(1..9), param_6=strategy(0..2), param_7=version string,
+ * param_8=sizeof(z_stream) (must be 0x38). Validates the args and the zlib
+ * version's first char; installs the default zalloc/zfree (FUN_00117ad0 /
+ * FUN_00117b00) when the caller left them NULL; allocates the deflate_state
+ * (0x16c0 bytes) and the window/prev/head/pending buffers via the stream's
+ * zalloc callback; derives w_size/w_mask/hash_size/hash_bits/hash_mask/
+ * hash_shift/lit_bufsize and the sym buffer pointers; then defers to
+ * deflateReset (FUN_00112260). Returns the deflateReset result, or
+ * Z_STREAM_ERROR(-2) / Z_MEM_ERROR(-4) / Z_VERSION_ERROR(-6).
+ * deflate_state (s, int* index): [2]pending_buf [3]pending_buf_size [6]wrap
+ * [9]w_size [0xa]w_bits [0xb]w_mask [0xc]window [0xe]prev [0xf]head
+ * [0x11]hash_size [0x12]hash_bits [0x13]hash_mask [0x14]hash_shift [0x1f]level
+ * [0x20]strategy [0x5a4]sym_end [0x5a5]lit_bufsize [0x5a7]sym_buf; byte+0x1d=
+ * method. z_stream byte offsets: +0x18 msg, +0x1c state, +0x20 zalloc,
+ * +0x24 zfree, +0x28 opaque. Version string ptr @0x31fc70, "insufficient
+ * memory" msg ptr @0x320e20. */
+int FUN_00112590(int param_1, int param_2, int param_3, int param_4,
+                 int param_5, int param_6, char *param_7, int param_8)
+{
+  int *s;
+  int wrap;
+  int w_size;
+  int lit_bufsize;
+  int opaque;
+  void *(*zalloc)(int, unsigned int, unsigned int);
+
+  if (param_7 == (char *)0 || *param_7 != **(char **)0x31fc70 ||
+      param_8 != 0x38)
+    return -6;
+  if (param_1 == 0)
+    return -2;
+
+  *(int *)(param_1 + 0x18) = 0;
+  if (*(int *)(param_1 + 0x20) == 0) {
+    *(int *)(param_1 + 0x20) = (int)FUN_00117ad0;
+    *(int *)(param_1 + 0x28) = 0;
+  }
+  if (*(int *)(param_1 + 0x24) == 0)
+    *(int *)(param_1 + 0x24) = (int)FUN_00117b00;
+
+  if (param_2 == -1)
+    param_2 = 6;
+  wrap = 0;
+  if (param_4 < 0) {
+    param_4 = -param_4;
+    wrap = 1;
+  }
+  if (param_5 < 1 || param_5 > 9 || param_3 != 8 || param_4 < 8 ||
+      param_4 > 0xf || param_2 < 0 || param_2 > 9 || param_6 < 0 || param_6 > 2)
+    return -2;
+
+  zalloc = *(void *(**)(int, unsigned int, unsigned int))(param_1 + 0x20);
+  opaque = *(int *)(param_1 + 0x28);
+  s = (int *)zalloc(opaque, 1, 0x16c0);
+  if (s == (int *)0)
+    return -4;
+  *(int *)(param_1 + 0x1c) = (int)s;
+  s[0xa] = param_4;
+  w_size = 1 << param_4;
+  s[6] = wrap;
+  s[0xb] = w_size - 1;
+  s[0x12] = param_5 + 7;
+  s[0] = param_1;
+  s[0x11] = 1 << (param_5 + 7);
+  s[0x13] = s[0x11] - 1;
+  s[9] = w_size;
+  s[0x14] = (unsigned int)(param_5 + 9) / 3;
+  s[0xc] = (int)zalloc(opaque, w_size, 2);
+  s[0xe] = (int)zalloc(opaque, s[9], 2);
+  s[0xf] = (int)zalloc(opaque, s[0x11], 2);
+  lit_bufsize = 1 << (param_5 + 6);
+  s[0x5a5] = lit_bufsize;
+  s[2] = (int)zalloc(opaque, lit_bufsize, 4);
+  s[3] = s[0x5a5] * 4;
+  if (s[0xc] != 0 && s[0xe] != 0 && s[0xf] != 0 && s[2] != 0) {
+    s[0x5a7] = s[2] + (int)((unsigned int)s[0x5a5] & 0xfffffffe);
+    s[0x5a4] = s[2] + s[0x5a5] * 3;
+    s[0x1f] = param_2;
+    s[0x20] = param_6;
+    *((char *)s + 0x1d) = 8;
+    return FUN_00112260(param_1);
+  }
+  *(int *)(param_1 + 0x18) = *(int *)0x320e20; /* "insufficient memory" */
+  FUN_00111170(param_1);
+  return -4;
+}
+
+/* zlib deflateInit_: forwards to deflateInit2_ (FUN_00112590) with method=8,
+   windowBits=15, memLevel=8, strategy=0. Returns the deflateInit2_ result
+   code (Z_OK=0 on success, negative on error). noinline prevents inlining
+   across the original TU boundary (originally a separate zlib .c file). */
+__declspec(noinline) int FUN_001127b0(int param_1, int param_2, char *param_3,
+                                      int param_4)
+{
+  return FUN_00112590(param_1, param_2, 8, 0xf, 8, 0, param_3, param_4);
+}
+
 /* zlib gzread: read up to len bytes from gzFile into buf via deflate state;
  * returns byte count or <0 on error. */
 int FUN_001127e0(int *param_1, int param_2, int param_3)
@@ -5674,7 +5837,7 @@ int FUN_001127e0(int *param_1, int param_2, int param_3)
     if (*(int *)((int)param_1 + 0x10) == 0) {
       *(void **)((int)param_1 + 0xc) = *(void **)((int)param_1 + 0x48);
       sVar1 = _fread(*(void **)((int)param_1 + 0x48), 1, 0x4000,
-                           *(void **)((int)param_1 + 0x40));
+                     *(void **)((int)param_1 + 0x40));
       if (sVar1 != 0x4000) {
         *(int *)((int)param_1 + 0x38) = -1;
       }
@@ -5683,6 +5846,85 @@ int FUN_001127e0(int *param_1, int param_2, int param_3)
     return FUN_001122e0(param_1, param_2, param_3);
   }
   return -2;
+}
+
+/* 0x112850 — zlib gzio get_byte: read the next raw byte from a gzip read-stream
+ * (gz @<esi>). Returns -1 when z_eof (gz+0x3c) is already set. When the input
+ * buffer is empty (count gz+0x4 == 0), clears errno (FUN_001db777) and refills
+ * up to 0x4000 bytes via fread (FUN_001db3f7) from the FILE* (gz+0x40) into the
+ * input buffer (gz+0x44); on a zero read sets z_eof (gz+0x3c=1) and, if the
+ * FILE error flag (*(FILE+0xc) & 0x20) is set, z_err (gz+0x38=-1), then returns
+ * -1; otherwise resets the read pointer (gz+0) to the buffer start. Consumes
+ * and returns one byte, advancing gz+0 and decrementing the count.
+ * @<esi>-defined: VC71 cannot reproduce the ESI-receiving prologue (structural
+ * ceiling). Callees: FUN_001db777=_errno (returns int*), FUN_001db3f7=fread. */
+unsigned int FUN_00112850(int gz)
+{
+  unsigned int n;
+  unsigned char b;
+
+  if (*(int *)(gz + 0x3c) != 0)
+    return 0xffffffff;
+  if (*(int *)(gz + 4) == 0) {
+    *(int *)FUN_001db777() = 0;
+    n = FUN_001db3f7(*(void **)(gz + 0x44), 1, 0x4000, *(void **)(gz + 0x40));
+    *(int *)(gz + 4) = n;
+    if (n == 0) {
+      *(int *)(gz + 0x3c) = 1;
+      if ((*(unsigned char *)(*(int *)(gz + 0x40) + 0xc) & 0x20) != 0)
+        *(int *)(gz + 0x38) = -1;
+      return 0xffffffff;
+    }
+    *(int *)gz = *(int *)(gz + 0x44);
+  }
+  *(int *)(gz + 4) = *(int *)(gz + 4) - 1;
+  b = **(unsigned char **)gz;
+  *(int *)gz = *(int *)gz + 1;
+  return (unsigned int)b;
+}
+
+/* 0x112cd0 — zlib gzio gz_destroy: tear down a gz stream (gz @<esi>). Frees the
+ * inflate/deflate workspace (gz+0x50); ends the deflate (write mode 'w' ->
+ * FUN_00111170 deflateEnd) or inflate (read mode 'r' -> FUN_00115430
+ * inflateEnd) engine when a state (gz+0x1c) exists; closes the backing FILE*
+ * (gz+0x40) via crt_fclose, treating a failed close whose errno != ENOENT(0x1d)
+ * as err=-1; if z_err (gz+0x38) is negative it overrides err; frees the input
+ * and output buffers (gz+0x44, gz+0x48), the path string (gz+0x54), and finally
+ * the gz struct itself — all via debug_free(ptr, gzio.c, line). Returns the
+ * accumulated error code, or Z_STREAM_ERROR(-2) for a NULL gz.
+ * @<esi>-defined => VC71 cannot reproduce the ESI-receiving prologue. */
+int FUN_00112cd0(int gz)
+{
+  int err;
+
+  err = 0;
+  if (gz == 0)
+    return -2;
+  if (*(int *)(gz + 0x50) != 0)
+    debug_free(*(void **)(gz + 0x50), "c:\\halo\\SOURCE\\memory\\zlib\\gzio.c",
+               0x143);
+  if (*(int *)(gz + 0x1c) != 0) {
+    if (*(char *)(gz + 0x5c) == 'w')
+      err = FUN_00111170(gz);
+    else if (*(char *)(gz + 0x5c) == 'r')
+      err = FUN_00115430(gz);
+  }
+  if (*(void **)(gz + 0x40) != (void *)0 &&
+      crt_fclose(*(void **)(gz + 0x40)) != 0 && *(int *)FUN_001db777() != 0x1d)
+    err = -1;
+  if (*(int *)(gz + 0x38) < 0)
+    err = *(int *)(gz + 0x38);
+  if (*(int *)(gz + 0x44) != 0)
+    debug_free(*(void **)(gz + 0x44), "c:\\halo\\SOURCE\\memory\\zlib\\gzio.c",
+               0x158);
+  if (*(int *)(gz + 0x48) != 0)
+    debug_free(*(void **)(gz + 0x48), "c:\\halo\\SOURCE\\memory\\zlib\\gzio.c",
+               0x159);
+  if (*(int *)(gz + 0x54) != 0)
+    debug_free(*(void **)(gz + 0x54), "c:\\halo\\SOURCE\\memory\\zlib\\gzio.c",
+               0x15a);
+  debug_free((void *)gz, "c:\\halo\\SOURCE\\memory\\zlib\\gzio.c", 0x15b);
+  return err;
 }
 
 /* 0x112db0 — zlib gzwrite: deflate up to len bytes from buf through the
@@ -5769,85 +6011,6 @@ void FUN_00112ee0(void *param_1, const char *param_2)
   return;
 }
 
-/* 0x112cd0 — zlib gzio gz_destroy: tear down a gz stream (gz @<esi>). Frees the
- * inflate/deflate workspace (gz+0x50); ends the deflate (write mode 'w' ->
- * FUN_00111170 deflateEnd) or inflate (read mode 'r' -> FUN_00115430
- * inflateEnd) engine when a state (gz+0x1c) exists; closes the backing FILE*
- * (gz+0x40) via crt_fclose, treating a failed close whose errno != ENOENT(0x1d)
- * as err=-1; if z_err (gz+0x38) is negative it overrides err; frees the input
- * and output buffers (gz+0x44, gz+0x48), the path string (gz+0x54), and finally
- * the gz struct itself — all via debug_free(ptr, gzio.c, line). Returns the
- * accumulated error code, or Z_STREAM_ERROR(-2) for a NULL gz.
- * @<esi>-defined => VC71 cannot reproduce the ESI-receiving prologue. */
-int FUN_00112cd0(int gz)
-{
-  int err;
-
-  err = 0;
-  if (gz == 0)
-    return -2;
-  if (*(int *)(gz + 0x50) != 0)
-    debug_free(*(void **)(gz + 0x50),
-               "c:\\halo\\SOURCE\\memory\\zlib\\gzio.c", 0x143);
-  if (*(int *)(gz + 0x1c) != 0) {
-    if (*(char *)(gz + 0x5c) == 'w')
-      err = FUN_00111170(gz);
-    else if (*(char *)(gz + 0x5c) == 'r')
-      err = FUN_00115430(gz);
-  }
-  if (*(void **)(gz + 0x40) != (void *)0 &&
-      crt_fclose(*(void **)(gz + 0x40)) != 0 && *(int *)FUN_001db777() != 0x1d)
-    err = -1;
-  if (*(int *)(gz + 0x38) < 0)
-    err = *(int *)(gz + 0x38);
-  if (*(int *)(gz + 0x44) != 0)
-    debug_free(*(void **)(gz + 0x44),
-               "c:\\halo\\SOURCE\\memory\\zlib\\gzio.c", 0x158);
-  if (*(int *)(gz + 0x48) != 0)
-    debug_free(*(void **)(gz + 0x48),
-               "c:\\halo\\SOURCE\\memory\\zlib\\gzio.c", 0x159);
-  if (*(int *)(gz + 0x54) != 0)
-    debug_free(*(void **)(gz + 0x54),
-               "c:\\halo\\SOURCE\\memory\\zlib\\gzio.c", 0x15a);
-  debug_free((void *)gz, "c:\\halo\\SOURCE\\memory\\zlib\\gzio.c", 0x15b);
-  return err;
-}
-
-/* 0x112850 — zlib gzio get_byte: read the next raw byte from a gzip read-stream
- * (gz @<esi>). Returns -1 when z_eof (gz+0x3c) is already set. When the input
- * buffer is empty (count gz+0x4 == 0), clears errno (FUN_001db777) and refills
- * up to 0x4000 bytes via fread (FUN_001db3f7) from the FILE* (gz+0x40) into the
- * input buffer (gz+0x44); on a zero read sets z_eof (gz+0x3c=1) and, if the
- * FILE error flag (*(FILE+0xc) & 0x20) is set, z_err (gz+0x38=-1), then returns
- * -1; otherwise resets the read pointer (gz+0) to the buffer start. Consumes
- * and returns one byte, advancing gz+0 and decrementing the count.
- * @<esi>-defined: VC71 cannot reproduce the ESI-receiving prologue (structural
- * ceiling). Callees: FUN_001db777=_errno (returns int*), FUN_001db3f7=fread. */
-unsigned int FUN_00112850(int gz)
-{
-  unsigned int n;
-  unsigned char b;
-
-  if (*(int *)(gz + 0x3c) != 0)
-    return 0xffffffff;
-  if (*(int *)(gz + 4) == 0) {
-    *(int *)FUN_001db777() = 0;
-    n = FUN_001db3f7(*(void **)(gz + 0x44), 1, 0x4000, *(void **)(gz + 0x40));
-    *(int *)(gz + 4) = n;
-    if (n == 0) {
-      *(int *)(gz + 0x3c) = 1;
-      if ((*(unsigned char *)(*(int *)(gz + 0x40) + 0xc) & 0x20) != 0)
-        *(int *)(gz + 0x38) = -1;
-      return 0xffffffff;
-    }
-    *(int *)gz = *(int *)(gz + 0x44);
-  }
-  *(int *)(gz + 4) = *(int *)(gz + 4) - 1;
-  b = **(unsigned char **)gz;
-  *(int *)gz = *(int *)gz + 1;
-  return (unsigned int)b;
-}
-
 /* 0x112f00 — zlib gz_flush internal: deflate-and-write buffered data for a
  * gzip write-stream (gz @<eax>, gz+0x5c=='w'). Loops draining the deflate
  * output: when the output buffer (gz+0x48, gz+0x10 = bytes left) has data,
@@ -5910,6 +6073,43 @@ unsigned int FUN_00112fc0(int gz, int flush)
   return uVar1;
 }
 
+/* zlib gzrewind: reset a gzip read-stream (param_1[0x17]/+0x5c byte == 'r') to
+   the start. Clears decode state, reinitializes crc, then either rewinds the
+   underlying FILE* (+0x40) when there is no gzip header start offset (+0x60),
+   or re-inits inflate (FUN_001153c0) and seeks to the header start. */
+int FUN_00113000(int *param_1)
+{
+  int ret;
+
+  if ((param_1 != (int *)0) && (*((char *)param_1 + 0x5c) == 'r')) {
+    param_1[0xe] = 0;
+    param_1[0xf] = 0;
+    param_1[1] = 0;
+    param_1[0] = param_1[0x11];
+    param_1[0x13] =
+      (int)FUN_00110c10(0, (void *)0, 0); /* crc32(0, Z_NULL, 0) */
+    if (param_1[0x18] == 0) {
+      _rewind((void *)param_1[0x10]); /* rewind(FILE*) */
+      return 0;
+    }
+    FUN_001153c0((int)param_1); /* inflateReset */
+    ret = _fseek((void *)param_1[0x10], param_1[0x18],
+                 0); /* fseek(FILE*, off, SEEK_SET) */
+    return ret;
+  }
+  return -1;
+}
+
+/* 0x113080 — zlib gz stream accessor: if the stream is non-null and in read
+ * mode (mode byte at +0x5c == 'r'), return the field at +0x3c; else 0. */
+unsigned int FUN_00113080(int param_1)
+{
+  if (param_1 != 0 && *(char *)(param_1 + 0x5c) == 'r') {
+    return *(unsigned int *)(param_1 + 0x3c);
+  }
+  return 0;
+}
+
 /* 0x1130a0 — zlib gzio putLong: write a 32-bit value little-endian to a FILE*
  * (value @<eax>, file @<ebx>) as four putc (FUN_001db6c7) calls, LSB first.
  * @<eax>/@<ebx>-defined => VC71 cannot reproduce the reg-receiving prologue
@@ -5964,45 +6164,9 @@ int FUN_00113110(int gz)
   return FUN_00112cd0(gz);
 }
 
-/* zlib gzrewind: reset a gzip read-stream (param_1[0x17]/+0x5c byte == 'r') to
-   the start. Clears decode state, reinitializes crc, then either rewinds the
-   underlying FILE* (+0x40) when there is no gzip header start offset (+0x60),
-   or re-inits inflate (FUN_001153c0) and seeks to the header start. */
-int FUN_00113000(int *param_1)
-{
-  int ret;
-
-  if ((param_1 != (int *)0) && (*((char *)param_1 + 0x5c) == 'r')) {
-    param_1[0xe] = 0;
-    param_1[0xf] = 0;
-    param_1[1] = 0;
-    param_1[0] = param_1[0x11];
-    param_1[0x13] =
-      (int)FUN_00110c10(0, (void *)0, 0); /* crc32(0, Z_NULL, 0) */
-    if (param_1[0x18] == 0) {
-      _rewind((void *)param_1[0x10]); /* rewind(FILE*) */
-      return 0;
-    }
-    FUN_001153c0((int)param_1); /* inflateReset */
-    ret = _fseek((void *)param_1[0x10], param_1[0x18],
-                       0); /* fseek(FILE*, off, SEEK_SET) */
-    return ret;
-  }
-  return -1;
-}
-
-/* 0x113080 — zlib gz stream accessor: if the stream is non-null and in read
- * mode (mode byte at +0x5c == 'r'), return the field at +0x3c; else 0. */
-unsigned int FUN_00113080(int param_1)
-{
-  if (param_1 != 0 && *(char *)(param_1 + 0x5c) == 'r') {
-    return *(unsigned int *)(param_1 + 0x3c);
-  }
-  return 0;
-}
-
 /* 0x113160 — zlib gzerror: return the error string for a gz_stream, and store
- * the z_err code in *errnum.  If the stream pointer is null, stores Z_STREAM_ERROR
+ * the z_err code in *errnum.  If the stream pointer is null, stores
+ * Z_STREAM_ERROR
  * (-2) and returns the static "stream error" string.  If z_err is 0 returns the
  * empty string.  For z_err == -1 (Z_ERRNO) or when the stream's msg pointer is
  * absent/empty the error text is looked up from the static table at 0x320e10
@@ -6030,11 +6194,13 @@ char *FUN_00113160(int gz, int *errnum)
     pcVar4 = ((char **)0x320e10)[-*(int *)(gz + 0x38)];
   }
   if (*(int *)(gz + 0x50) != 0) {
-    debug_free(*(void **)(gz + 0x50), "c:\\halo\\SOURCE\\memory\\zlib\\gzio.c", 0x365);
+    debug_free(*(void **)(gz + 0x50), "c:\\halo\\SOURCE\\memory\\zlib\\gzio.c",
+               0x365);
   }
   iVar1 = csstrlen(*(char **)(gz + 0x54));
   iVar2 = csstrlen(pcVar4);
-  buf = (char *)debug_malloc(iVar1 + 3 + iVar2, 0, "c:\\halo\\SOURCE\\memory\\zlib\\gzio.c", 0x366);
+  buf = (char *)debug_malloc(iVar1 + 3 + iVar2, 0,
+                             "c:\\halo\\SOURCE\\memory\\zlib\\gzio.c", 0x366);
   *(void **)(gz + 0x50) = buf;
   csstrcpy(buf, *(char **)(gz + 0x54));
   FUN_0008dc30(*(char **)(gz + 0x50), (char *)0x28d3ec);
@@ -6066,101 +6232,103 @@ void *FUN_001134a0(int fd, char *mode)
  * gzip read-stream into buf. Returns bytes read, 0 at stream end, -1 on error,
  * -2 if not a read stream. Rejects non-'r' mode (gz+0x5c) and sticky error/eof
  * (z_err gz[0xe] = -3/-1 -> -1, == 1 -> 0). Sets next_out (gz[3])=buf and
- * avail_out (gz[4])=len, then loops: in transparent mode (gz[0x16]) it drains the
- * input buffer (csmemcpy next_in->next_out) and reads the remainder straight from
- * the FILE* (gz[0x10]); otherwise it refills inbuf (gz[0x11]) via fread when
- * avail_in (gz[1]) is empty and !z_eof (gz[0xf]), runs inflate (FUN_001155e0),
- * and on Z_STREAM_END folds the output run into crc (gz[0x13]), checks the stored
- * CRC32 (get_long D3DX_getLong) + skips ISIZE, then check_header (FUN_001128c0)
+ * avail_out (gz[4])=len, then loops: in transparent mode (gz[0x16]) it drains
+ * the input buffer (csmemcpy next_in->next_out) and reads the remainder
+ * straight from the FILE* (gz[0x10]); otherwise it refills inbuf (gz[0x11]) via
+ * fread when avail_in (gz[1]) is empty and !z_eof (gz[0xf]), runs inflate
+ * (FUN_001155e0), and on Z_STREAM_END folds the output run into crc (gz[0x13]),
+ * checks the stored CRC32 (get_long D3DX_getLong) + skips ISIZE, then
+ * check_header (FUN_001128c0)
  * + inflateReset (FUN_001153c0) to support concatenated members. CRC (crc32
- * FUN_00110c10) is taken over each output run from `start`. cdecl; gz embeds the
- * z_stream at offset 0 so every field is gz-relative (single base). */
+ * FUN_00110c10) is taken over each output run from `start`. cdecl; gz embeds
+ * the z_stream at offset 0 so every field is gz-relative (single base). */
 int FUN_001134e0(int *gz, void *buf, int len)
 {
-  int start;        /* start of the not-yet-checksummed output run (EDI) */
+  int start; /* start of the not-yet-checksummed output run (EDI) */
   unsigned int n;
   int saved_in;
   int saved_out;
 
-  if (gz == 0 || *(char *)((int)gz + 0x5c) != 'r')   /* mode != 'r' */
-    return -2;                                        /* Z_STREAM_ERROR */
-  if (gz[0xe] == -3 || gz[0xe] == -1)                 /* z_err: DATA_ERROR / ERRNO */
+  if (gz == 0 || *(char *)((int)gz + 0x5c) != 'r') /* mode != 'r' */
+    return -2; /* Z_STREAM_ERROR */
+  if (gz[0xe] == -3 || gz[0xe] == -1) /* z_err: DATA_ERROR / ERRNO */
     return -1;
-  if (gz[0xe] == 1)                                   /* z_err: STREAM_END */
+  if (gz[0xe] == 1) /* z_err: STREAM_END */
     return 0;
 
   start = (int)buf;
-  gz[3] = (int)buf;                                   /* next_out = buf */
-  gz[4] = len;                                        /* avail_out = len */
+  gz[3] = (int)buf; /* next_out = buf */
+  gz[4] = len; /* avail_out = len */
   if (len == 0)
     goto finalize;
 
   do {
-    if (gz[0x16] != 0) {                              /* transparent (stored) copy */
-      n = (unsigned int)gz[1];                        /* avail_in */
+    if (gz[0x16] != 0) { /* transparent (stored) copy */
+      n = (unsigned int)gz[1]; /* avail_in */
       if (n > (unsigned int)gz[4])
-        n = (unsigned int)gz[4];                      /* n = min(avail_in, avail_out) */
+        n = (unsigned int)gz[4]; /* n = min(avail_in, avail_out) */
       if (n != 0) {
-        csmemcpy((void *)gz[3], *(void **)gz, n);     /* next_out <- next_in */
-        gz[3] = (int)buf + n;                         /* next_out = buf + n */
-        gz[0] += n;                                   /* next_in += n */
-        gz[4] -= n;                                   /* avail_out -= n */
-        gz[1] -= n;                                   /* avail_in -= n */
+        csmemcpy((void *)gz[3], *(void **)gz, n); /* next_out <- next_in */
+        gz[3] = (int)buf + n; /* next_out = buf + n */
+        gz[0] += n; /* next_in += n */
+        gz[4] -= n; /* avail_out -= n */
+        gz[1] -= n; /* avail_in -= n */
       }
-      if (gz[4] != 0)                                 /* read the rest straight from file */
+      if (gz[4] != 0) /* read the rest straight from file */
         gz[4] -= (int)FUN_001db3f7((void *)gz[3], 1, (unsigned int)gz[4],
                                    (void *)gz[0x10]);
-      len = len - gz[4];                              /* bytes produced */
-      gz[2] += len;                                   /* total_in += len */
-      gz[5] += len;                                   /* total_out += len */
+      len = len - gz[4]; /* bytes produced */
+      gz[2] += len; /* total_in += len */
+      gz[5] += len; /* total_out += len */
       if (len == 0)
-        gz[0xf] = 1;                                  /* z_eof */
+        gz[0xf] = 1; /* z_eof */
       return len;
     }
 
     /* Refill the input buffer when empty. */
-    if (gz[1] == 0 && gz[0xf] == 0) {                 /* avail_in == 0 && !z_eof */
-      *FUN_001db777() = 0;                            /* errno = 0 */
+    if (gz[1] == 0 && gz[0xf] == 0) { /* avail_in == 0 && !z_eof */
+      *FUN_001db777() = 0; /* errno = 0 */
       gz[1] = (int)FUN_001db3f7((void *)gz[0x11], 1, 0x4000, (void *)gz[0x10]);
       if (gz[1] == 0) {
-        gz[0xf] = 1;                                  /* z_eof = 1 */
-        if ((*(unsigned char *)(gz[0x10] + 0xc) & 0x20) != 0) {  /* FILE error flag */
-          gz[0xe] = -1;                               /* z_err = Z_ERRNO */
+        gz[0xf] = 1; /* z_eof = 1 */
+        if ((*(unsigned char *)(gz[0x10] + 0xc) & 0x20) !=
+            0) { /* FILE error flag */
+          gz[0xe] = -1; /* z_err = Z_ERRNO */
           goto finalize;
         }
       } else {
-        gz[0] = gz[0x11];                             /* next_in = inbuf */
+        gz[0] = gz[0x11]; /* next_in = inbuf */
       }
     }
 
-    gz[0xe] = FUN_001155e0((int)gz, 0);               /* z_err = inflate(gz, Z_NO_FLUSH) */
-    if (gz[0xe] == 1) {                               /* Z_STREAM_END: member done */
-      gz[0x13] = (int)FUN_00110c10((unsigned int)gz[0x13],
-                                   (void *)start, gz[3] - start);  /* crc the run */
+    gz[0xe] = FUN_001155e0((int)gz, 0); /* z_err = inflate(gz, Z_NO_FLUSH) */
+    if (gz[0xe] == 1) { /* Z_STREAM_END: member done */
+      gz[0x13] = (int)FUN_00110c10((unsigned int)gz[0x13], (void *)start,
+                                   gz[3] - start); /* crc the run */
       start = gz[3];
-      if (D3DX_getLong((int)gz) != gz[0x13]) {        /* stored CRC32 mismatch */
-        gz[0xe] = -3;                                 /* z_err = Z_DATA_ERROR */
+      if (D3DX_getLong((int)gz) != gz[0x13]) { /* stored CRC32 mismatch */
+        gz[0xe] = -3; /* z_err = Z_DATA_ERROR */
         goto finalize;
       }
-      D3DX_getLong((int)gz);                          /* read & discard ISIZE */
-      FUN_001128c0((int)gz);                          /* check_header for next member */
-      if (gz[0xe] == 0) {                             /* another member follows */
+      D3DX_getLong((int)gz); /* read & discard ISIZE */
+      FUN_001128c0((int)gz); /* check_header for next member */
+      if (gz[0xe] == 0) { /* another member follows */
         saved_in = gz[2];
         saved_out = gz[5];
-        FUN_001153c0((int)gz);                        /* inflateReset */
+        FUN_001153c0((int)gz); /* inflateReset */
         gz[2] = saved_in;
         gz[5] = saved_out;
-        gz[0x13] = (int)FUN_00110c10(0, 0, 0);        /* crc = crc32(0, NULL, 0) */
+        gz[0x13] = (int)FUN_00110c10(0, 0, 0); /* crc = crc32(0, NULL, 0) */
       }
     }
-    if (gz[0xe] != 0 || gz[0xf] != 0)                 /* error or eof */
+    if (gz[0xe] != 0 || gz[0xf] != 0) /* error or eof */
       goto finalize;
-  } while (gz[4] != 0);                               /* until output buffer full */
+  } while (gz[4] != 0); /* until output buffer full */
 
 finalize:
-  gz[0x13] = (int)FUN_00110c10((unsigned int)gz[0x13],
-                               (void *)start, gz[3] - start);
-  return len - gz[4];                                 /* bytes actually written */
+  gz[0x13] =
+    (int)FUN_00110c10((unsigned int)gz[0x13], (void *)start, gz[3] - start);
+  return len - gz[4]; /* bytes actually written */
 }
 
 /* zlib gzgetc(file): read a single byte from a gzip read-stream. Reads 1 byte
@@ -6188,10 +6356,12 @@ char *FUN_00113740(int *file, char *buf, int len)
   if (buf != (char *)0x0 && 0 < len) {
     p = buf;
     while (--len > 0) {
-      if (FUN_001134e0(file, p, 1) != 1) break;
+      if (FUN_001134e0(file, p, 1) != 1)
+        break;
       c = *p;
       p = p + 1;
-      if (c != '\n') continue;
+      if (c != '\n')
+        continue;
       break;
     }
     *p = '\0';
@@ -6212,94 +6382,97 @@ char *FUN_00113740(int *file, char *buf, int len)
  * Returns the new stream position, or 0xffffffff on error. */
 unsigned int FUN_001137a0(int *file, unsigned int offset, int whence)
 {
-    unsigned int uVar3;
-    int iVar2;
-    int *gz;
-    void *uVar1;
+  unsigned int uVar3;
+  int iVar2;
+  int *gz;
+  void *uVar1;
 
-    gz = file;
+  gz = file;
 
-    if (gz == (int *)0x0) {
-        return 0xffffffff;
-    }
-    if (whence == 2) {
-        return 0xffffffff;
-    }
-    if (gz[0xe] == -1 || gz[0xe] == -3) {
-        return 0xffffffff;
-    }
-
-    if (*(char *)((char *)gz + 0x5c) == 'w') {
-        /* write mode */
-        if (whence == 0) {
-            offset = offset - (unsigned int)gz[2];
-        }
-        if ((int)offset < 0) {
-            return 0xffffffff;
-        }
-        if (gz[0x11] == 0) {
-            uVar1 = debug_malloc(0x4000, 0, "c:\\halo\\SOURCE\\memory\\zlib\\gzio.c", 0x2ab);
-            gz[0x11] = (int)uVar1;
-            csmemset(uVar1, 0, 0x4000);
-        }
-        while ((int)offset > 0) {
-            uVar3 = 0x4000;
-            if ((int)offset < 0x4000) {
-                uVar3 = offset;
-            }
-            iVar2 = FUN_00112db0(gz, gz[0x11], (int)uVar3);
-            if (iVar2 == 0) break;
-            offset = offset - (unsigned int)iVar2;
-        }
-        return (unsigned int)gz[2];
-    } else {
-        /* read mode */
-        if (whence == 1) {
-            offset = offset + (unsigned int)gz[5];
-        }
-        if ((int)offset < 0) {
-            return 0xffffffff;
-        }
-        if (gz[0x16] != 0) {
-            /* transparent mode: use fseek directly */
-            gz[1] = 0;
-            gz[0] = gz[0x11];
-            iVar2 = _fseek((void *)gz[0x10], (int)offset, 0);
-            if (-1 < iVar2) {
-                gz[5] = (int)offset;
-                gz[2] = (int)offset;
-                return offset;
-            }
-        } else {
-        /* compressed mode: seek by rewinding then reading forward */
-        if (offset >= (unsigned int)gz[5]) {
-            offset = offset - (unsigned int)gz[5];
-        } else {
-            iVar2 = FUN_00113000(gz);
-            if (iVar2 < 0) {
-                return 0xffffffff;
-            }
-        }
-        if (offset != 0) {
-            if (gz[0x12] == 0) {
-                uVar1 = debug_malloc(0x4000, 0, "c:\\halo\\SOURCE\\memory\\zlib\\gzio.c", 0x2d5);
-                gz[0x12] = (int)uVar1;
-            }
-            for (; 0 < (int)offset; offset = offset - (unsigned int)iVar2) {
-                uVar3 = 0x4000;
-                if ((int)offset < 0x4000) {
-                    uVar3 = offset;
-                }
-                iVar2 = FUN_001134e0(gz, (void *)gz[0x12], (int)uVar3);
-                if (iVar2 < 1) {
-                    return 0xffffffff;
-                }
-            }
-        }
-        return (unsigned int)gz[5];
-        }
-    }
+  if (gz == (int *)0x0) {
     return 0xffffffff;
+  }
+  if (whence == 2) {
+    return 0xffffffff;
+  }
+  if (gz[0xe] == -1 || gz[0xe] == -3) {
+    return 0xffffffff;
+  }
+
+  if (*(char *)((char *)gz + 0x5c) == 'w') {
+    /* write mode */
+    if (whence == 0) {
+      offset = offset - (unsigned int)gz[2];
+    }
+    if ((int)offset < 0) {
+      return 0xffffffff;
+    }
+    if (gz[0x11] == 0) {
+      uVar1 = debug_malloc(0x4000, 0, "c:\\halo\\SOURCE\\memory\\zlib\\gzio.c",
+                           0x2ab);
+      gz[0x11] = (int)uVar1;
+      csmemset(uVar1, 0, 0x4000);
+    }
+    while ((int)offset > 0) {
+      uVar3 = 0x4000;
+      if ((int)offset < 0x4000) {
+        uVar3 = offset;
+      }
+      iVar2 = FUN_00112db0(gz, gz[0x11], (int)uVar3);
+      if (iVar2 == 0)
+        break;
+      offset = offset - (unsigned int)iVar2;
+    }
+    return (unsigned int)gz[2];
+  } else {
+    /* read mode */
+    if (whence == 1) {
+      offset = offset + (unsigned int)gz[5];
+    }
+    if ((int)offset < 0) {
+      return 0xffffffff;
+    }
+    if (gz[0x16] != 0) {
+      /* transparent mode: use fseek directly */
+      gz[1] = 0;
+      gz[0] = gz[0x11];
+      iVar2 = _fseek((void *)gz[0x10], (int)offset, 0);
+      if (-1 < iVar2) {
+        gz[5] = (int)offset;
+        gz[2] = (int)offset;
+        return offset;
+      }
+    } else {
+      /* compressed mode: seek by rewinding then reading forward */
+      if (offset >= (unsigned int)gz[5]) {
+        offset = offset - (unsigned int)gz[5];
+      } else {
+        iVar2 = FUN_00113000(gz);
+        if (iVar2 < 0) {
+          return 0xffffffff;
+        }
+      }
+      if (offset != 0) {
+        if (gz[0x12] == 0) {
+          uVar1 = debug_malloc(0x4000, 0,
+                               "c:\\halo\\SOURCE\\memory\\zlib\\gzio.c", 0x2d5);
+          gz[0x12] = (int)uVar1;
+        }
+        for (; 0 < (int)offset; offset = offset - (unsigned int)iVar2) {
+          uVar3 = 0x4000;
+          if ((int)offset < 0x4000) {
+            uVar3 = offset;
+          }
+          iVar2 = FUN_001134e0(gz, (void *)gz[0x12], (int)uVar3);
+          if (iVar2 < 1) {
+            return 0xffffffff;
+          }
+        }
+      }
+      return (unsigned int)gz[5];
+    }
+  }
+  return 0xffffffff;
 }
 
 /* zlib gzseek wrapper: seek file to offset 0 with whence=1 (relative). */
@@ -6307,9 +6480,6 @@ int FUN_00113910(void *file)
 {
   return FUN_001137a0(file, 0, 1);
 }
-
-typedef void *(*zlib_zalloc_fn)(void *, int, int);
-typedef void  (*zlib_zfree_fn)(void *, void *);
 
 /* 0x113930 — zlib inflate_blocks_reset: reset the inflate_blocks_state param_1
  * for a fresh block stream. Optionally writes the pending byte count to the OUT
@@ -6356,120 +6526,37 @@ void FUN_00113930(int s, int param_2, int last)
  * initialises mode=0, then calls inflate_blocks_reset to seed the checksum. */
 void *FUN_001139d0(int z, int adler_fn, int wsize)
 {
-    int *s;
+  int *s;
 
-    s = (int *)((zlib_zalloc_fn)(*(int *)(z + 0x20)))(*(void **)(z + 0x28), 1, 0x40);
-    if (s == 0) {
-        return 0;
-    }
+  s = (int *)((zlib_zalloc_fn)(*(int *)(z + 0x20)))(*(void **)(z + 0x28), 1,
+                                                    0x40);
+  if (s == 0) {
+    return 0;
+  }
 
-    s[9] = (int)((zlib_zalloc_fn)(*(int *)(z + 0x20)))(*(void **)(z + 0x28), 8, 0x5a0);
-    if (s[9] == 0) {
-        ((zlib_zfree_fn)(*(int *)(z + 0x24)))(*(void **)(z + 0x28), s);
-        return 0;
-    }
+  s[9] =
+    (int)((zlib_zalloc_fn)(*(int *)(z + 0x20)))(*(void **)(z + 0x28), 8, 0x5a0);
+  if (s[9] == 0) {
+    ((zlib_zfree_fn)(*(int *)(z + 0x24)))(*(void **)(z + 0x28), s);
+    return 0;
+  }
 
-    s[10] = (int)((zlib_zalloc_fn)(*(int *)(z + 0x20)))(*(void **)(z + 0x28), 1, wsize);
-    if (s[10] == 0) {
-        ((zlib_zfree_fn)(*(int *)(z + 0x24)))(*(void **)(z + 0x28), (void *)s[9]);
-        ((zlib_zfree_fn)(*(int *)(z + 0x24)))(*(void **)(z + 0x28), s);
-        return 0;
-    }
+  s[10] =
+    (int)((zlib_zalloc_fn)(*(int *)(z + 0x20)))(*(void **)(z + 0x28), 1, wsize);
+  if (s[10] == 0) {
+    ((zlib_zfree_fn)(*(int *)(z + 0x24)))(*(void **)(z + 0x28), (void *)s[9]);
+    ((zlib_zfree_fn)(*(int *)(z + 0x24)))(*(void **)(z + 0x28), s);
+    return 0;
+  }
 
-    s[0xb] = s[10] + wsize;
-    s[0xe] = adler_fn;
-    s[0]   = 0;
+  s[0xb] = s[10] + wsize;
+  s[0xe] = adler_fn;
+  s[0] = 0;
 
-    if (*(int *)0x320e30 > 0) {
-        crt_fprintf((void *)0x331070, "inflate:   blocks allocated\n");
-    }
+  if (*(int *)0x320e30 > 0) {
+    crt_fprintf((void *)0x331070, "inflate:   blocks allocated\n");
+  }
 
-    FUN_00113930((int)s, z, 0);
-    return s;
-}
-
-/* 0x111220 — zlib deflateCopy: create an independent copy of a deflate stream.
- * Copies the z_stream header (14 dwords = 0x38 bytes) from source to dest, then
- * allocates a fresh deflate_state (0x16c0 bytes) via dest->zalloc.  The new
- * state is populated by bulk-copying the 0x16c0-byte source state, then
- * re-allocating and re-copying the three variable-length sub-buffers
- * (pending_buf at +0x30, d_buf at +0x38, l_buf at +0x3c) and the sliding
- * window (+0x8).  Internal pointers that track position within pending_buf and
- * within the window are fixed up so the new stream is self-consistent.  On any
- * allocation failure, calls deflateFreeState (FUN_00111170) to clean up and
- * returns Z_MEM_ERROR (-4).  Returns Z_STREAM_ERROR (-2) if either stream
- * pointer is NULL or if the source has no internal state. */
-int FUN_00111220(int dest, int source)
-{
-    int *ds;        /* new deflate_state */
-    int *ss;        /* source deflate_state */
-    int w_size;     /* [ds+0x1694] window count for size calculations */
-    int window_buf; /* new window allocation address */
-
-    /* Validate: both stream pointers and source state must be non-NULL */
-    if (source == 0) goto stream_error;
-    if (dest   == 0) goto stream_error;
-    ss = (int *)(*(int *)(source + 0x1c));
-    if (ss == 0) goto stream_error;
-
-    /* Copy z_stream header: 14 dwords (0x38 bytes) from source to dest */
-    memcpy((void *)dest, (void *)source, 0xe * sizeof(int));
-
-    /* Allocate a fresh deflate_state (0x16c0 bytes) */
-    ds = (int *)((zlib_zalloc_fn)(*(int *)(dest + 0x20)))(*(void **)(dest + 0x28), 1, 0x16c0);
-    if (ds == 0) return 0xfffffffc;
-
-    /* Link new state into dest z_stream */
-    *(int *)(dest + 0x1c) = (int)ds;
-
-    /* Bulk-copy source deflate_state (0x5b0 dwords = 0x16c0 bytes) */
-    memcpy(ds, ss, 0x5b0 * sizeof(int));
-
-    /* Fix strm back-pointer: new state must point to dest, not source */
-    ds[0] = dest;
-
-    /* Re-allocate the four variable-length sub-buffers.
-     * Results stored at the same byte offsets as in the source state. */
-    *(int *)((char *)ds + 0x30) = (int)((zlib_zalloc_fn)(*(int *)(dest + 0x20)))(*(void **)(dest + 0x28), *(int *)((char *)ds + 0x24), 2);
-    *(int *)((char *)ds + 0x38) = (int)((zlib_zalloc_fn)(*(int *)(dest + 0x20)))(*(void **)(dest + 0x28), *(int *)((char *)ds + 0x24), 2);
-    *(int *)((char *)ds + 0x3c) = (int)((zlib_zalloc_fn)(*(int *)(dest + 0x20)))(*(void **)(dest + 0x28), *(int *)((char *)ds + 0x44), 2);
-    w_size = *(int *)((char *)ds + 0x1694);
-    *(int *)((char *)ds + 0x8)  = (int)((zlib_zalloc_fn)(*(int *)(dest + 0x20)))(*(void **)(dest + 0x28), w_size, 4);
-
-    if (*(int *)((char *)ds + 0x30) != 0 &&
-        *(int *)((char *)ds + 0x38) != 0 &&
-        *(int *)((char *)ds + 0x3c) != 0 &&
-        *(int *)((char *)ds + 0x8)  != 0) {
-
-        /* Copy pending_buf (w_size * 2 bytes) */
-        csmemcpy((void *)*(int *)((char *)ds + 0x30), (void *)*(int *)((char *)ss + 0x30), *(int *)((char *)ds + 0x24) << 1);
-        /* Copy d_buf (w_size * 2 bytes) */
-        csmemcpy((void *)*(int *)((char *)ds + 0x38), (void *)*(int *)((char *)ss + 0x38), *(int *)((char *)ds + 0x24) << 1);
-        /* Copy l_buf (lit_bufsize * 2 bytes) */
-        csmemcpy((void *)*(int *)((char *)ds + 0x3c), (void *)*(int *)((char *)ss + 0x3c), *(int *)((char *)ds + 0x44) << 1);
-        /* Copy window ([ds+0xc] bytes) */
-        csmemcpy((void *)*(int *)((char *)ds + 0x8),  (void *)*(int *)((char *)ss + 0x8),  *(int *)((char *)ds + 0xc));
-
-        /* Fix pending_out (+0x10): translate source-relative offset into new window */
-        window_buf = *(int *)((char *)ds + 0x8);
-        *(int *)((char *)ds + 0x10) = (*(int *)((char *)ss + 0x10) - *(int *)((char *)ss + 0x8)) + window_buf;
-
-        /* pending_buf_size (+0x1690) = window_buf + w_size*3 */
-        *(int *)((char *)ds + 0x1690) = window_buf + w_size + w_size * 2;
-
-        /* window_size (+0x169c) = window_buf + (w_size rounded down to even) */
-        *(int *)((char *)ds + 0x169c) = window_buf + (w_size & 0xfffffffe);
-
-        /* Fix intra-state pointers (all point into the deflate_state itself) */
-        *(int *)((char *)ds + 0xb1c) = (int)((char *)ds + 0x980);
-        *(int *)((char *)ds + 0xb10) = (int)((char *)ds + 0x8c);
-        *(int *)((char *)ds + 0xb28) = (int)((char *)ds + 0xa74);
-
-        return 0;
-    }
-
-    FUN_00111170(dest);
-    return 0xfffffffc;
-stream_error:
-    return 0xfffffffe;
+  FUN_00113930((int)s, z, 0);
+  return s;
 }

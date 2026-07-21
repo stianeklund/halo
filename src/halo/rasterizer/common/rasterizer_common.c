@@ -10,8 +10,7 @@ void rasterizer_initialize_for_new_map(void)
   if (*(int *)(globals + 0x134) == 0) {
     *(int *)0x476204 = 0;
   } else {
-    *(int *)0x476204 =
-      (int)tag_block_get_element(globals + 0x134, 0, 0x1ac);
+    *(int *)0x476204 = (int)tag_block_get_element(globals + 0x134, 0, 0x1ac);
   }
   assert_halt(*(int *)0x476204);
 

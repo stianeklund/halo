@@ -130,8 +130,8 @@ void *ai_debug_get_path_storage(int actor_handle)
       base = *(char **)0x331f5c;
       entry = base + off;
       if (*(char *)(entry + 0xc) == '\0') {
-        display_assert("path->valid", "c:\\halo\\SOURCE\\ai\\ai_debug.c",
-                       0x123, 1);
+        display_assert("path->valid", "c:\\halo\\SOURCE\\ai\\ai_debug.c", 0x123,
+                       1);
         system_exit(-1);
       }
       if (*(int *)(entry + 4) < oldest_time) {
@@ -213,7 +213,8 @@ void FUN_000494d0(char success)
  * Inferred: push-then-fstp float args at 0x4abf3-0x4abf8 (FSTP replaces
  * pushed dummy values with FPU-computed float values).
  * Register aliasing verified: EBX=1 set at 0x4ab44, used as arg to
- * object_try_and_get_and_verify_type at 0x4ab5d and as byte value 1 for flag stores. */
+ * object_try_and_get_and_verify_type at 0x4ab5d and as byte value 1 for flag
+ * stores. */
 void ai_debug_update(void)
 {
   /* camera-reset flag */

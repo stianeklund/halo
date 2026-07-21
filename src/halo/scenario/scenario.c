@@ -309,7 +309,8 @@ void FUN_0018b190(void *render_data, void *parent_model_effect,
               (*(int *)(obje + 0x34) != -1)) {
             fwd = *(float **)0x31fc44;
             /* Reload the marker-scale global per component (matches MSVC's
-             * per-use FLD [0x2549d4]; caching it in a local loses ~0.6pp VC71). */
+             * per-use FLD [0x2549d4]; caching it in a local loses ~0.6pp VC71).
+             */
             marker[0] = fwd[0] * *(float *)0x2549d4 + *(float *)(obj + 0x50);
             marker[1] = fwd[1] * *(float *)0x2549d4 + *(float *)(obj + 0x54);
             marker[2] = fwd[2] * *(float *)0x2549d4 + *(float *)(obj + 0x58);
@@ -362,6 +363,77 @@ void FUN_0018b190(void *render_data, void *parent_model_effect,
   }
 }
 
+/* The original FSTPs each FSUB delta to a 32-bit local and reloads it for
+ * the clamp compares, so they see the float-rounded value; clang keeps the
+ * delta in x87 ST and compares at 80-bit extended precision, which can take
+ * a different branch on overflow/NaN edges (rasterizer.c:1248 precedent).
+ * Force the same store+reload rounding. No-op under VC71, which spills. */
+#if !defined(_MSC_VER) || defined(__clang__)
+#define FADE_ROUND32(x) asm volatile("" : "+m"(x))
+#else
+#define FADE_ROUND32(x) ((void)0)
+#endif
+
+/* 0x18b610 — fade a 3-float lighting vector toward its desired values: each
+ * component steps by its delta clamped to [-step, +step]. Used by
+ * FUN_0018bc60 smooth lighting for the ambient/distant color triples.
+ * Register args: cur @<ecx>, des @<edx>; step on the stack. */
+void FUN_0018b610(float *cur, float *des, float step)
+{
+  float delta;
+
+  delta = des[0] - cur[0];
+  FADE_ROUND32(delta);
+  cur[0] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) + cur[0];
+  delta = des[1] - cur[1];
+  FADE_ROUND32(delta);
+  cur[1] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) + cur[1];
+  delta = des[2] - cur[2];
+  FADE_ROUND32(delta);
+  cur[2] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) + cur[2];
+}
+
+/* 0x18b6b0 — 4-float variant of FUN_0018b610 (delta clamped to
+ * [-step, +step] per component). Register args: cur @<ecx>, des @<edx>. */
+void FUN_0018b6b0(float *cur, float *des, float step)
+{
+  float delta;
+
+  delta = des[0] - cur[0];
+  FADE_ROUND32(delta);
+  cur[0] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) + cur[0];
+  delta = des[1] - cur[1];
+  FADE_ROUND32(delta);
+  cur[1] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) + cur[1];
+  delta = des[2] - cur[2];
+  FADE_ROUND32(delta);
+  cur[2] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) + cur[2];
+  delta = des[3] - cur[3];
+  FADE_ROUND32(delta);
+  cur[3] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) + cur[3];
+}
+
+/* 0x18b780 — direction variant of FUN_0018b610: fades a 3-float direction
+ * toward its desired values (delta clamped to [-step, +step] per component),
+ * then renormalizes the result via normalize3d (float length return
+ * discarded — FSTP ST0 at 0x18b818). Register args: cur @<ecx>,
+ * des @<edx>. */
+void FUN_0018b780(float *cur, float *des, float step)
+{
+  float delta;
+
+  delta = des[0] - cur[0];
+  FADE_ROUND32(delta);
+  cur[0] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) + cur[0];
+  delta = des[1] - cur[1];
+  FADE_ROUND32(delta);
+  cur[1] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) + cur[1];
+  delta = des[2] - cur[2];
+  FADE_ROUND32(delta);
+  cur[2] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) + cur[2];
+  normalize3d(cur);
+}
+
 /* 0x18b830 — render an object's blob shadow. ctx is a small shadow
  * descriptor: +0x0 object handle, +0x4 render-state pointer (forward vector
  * at +0x5c, ambient rgb at +0x68), +0xc receives the 4x3 shadow basis
@@ -389,9 +461,9 @@ char FUN_0018b830(void *ctx, float fade)
   perpendicular3d((float *)(*(int *)((char *)ctx + 4) + 0x5c), perp);
   /* length result discarded (FSTP ST0 in the original) */
   normalize3d(perp);
-  matrix4x3_from_forward_up_position((char *)ctx + 0xc, center, perp,
-                                     (float *)(*(int *)((char *)ctx + 4) +
-                                               0x5c));
+  matrix4x3_from_forward_up_position(
+    (char *)ctx + 0xc, center, perp,
+    (float *)(*(int *)((char *)ctx + 4) + 0x5c));
   state = *(int *)((char *)ctx + 4);
   color[0] = *(float *)(state + 0x68);
   color[1] = *(float *)(state + 0x6c);
@@ -400,16 +472,15 @@ char FUN_0018b830(void *ctx, float fade)
   if ((1 << (*(uint8_t *)(obj + 0x64) & 0x1f) & 3u) != 0) {
     obj = (char *)object_get_and_verify_type(*(int *)ctx, 3);
     if (*(float *)(obj + 0x32c) > *(const float *)0x2533c0) {
-      fade_local =
-        (*(const float *)0x2533c8 - *(float *)(obj + 0x32c)) * fade;
+      fade_local = (*(const float *)0x2533c8 - *(float *)(obj + 0x32c)) * fade;
     }
   }
   one_minus = *(const float *)0x2533c8 - fade_local;
   color[0] = color[0] * fade_local + one_minus;
   color[1] = color[1] * fade_local + one_minus;
   color[2] = color[2] * fade_local + one_minus;
-  return FUN_0017ccb0(*(int *)ctx, (float *)((char *)ctx + 0xc), color,
-                      radius, (float *)((char *)ctx + 0x40));
+  return FUN_0017ccb0(*(int *)ctx, (float *)((char *)ctx + 0xc), color, radius,
+                      (float *)((char *)ctx + 0x40));
 }
 
 /* 0x18b930 — build a plane from a normal and a point on the plane, plus the
@@ -422,8 +493,7 @@ void FUN_0018b930(float *plane, float *flipped, float *normal, float *point)
   *(int32_t *)plane = *(int32_t *)normal;
   *(int32_t *)(plane + 1) = *(int32_t *)(normal + 1);
   *(int32_t *)(plane + 2) = *(int32_t *)(normal + 2);
-  plane[3] =
-    normal[2] * point[2] + normal[1] * point[1] + normal[0] * point[0];
+  plane[3] = normal[2] * point[2] + normal[1] * point[1] + normal[0] * point[0];
   flipped[0] = -plane[0];
   flipped[1] = -plane[1];
   flipped[2] = -plane[2];
@@ -465,7 +535,8 @@ void FUN_0018b990(void *volume)
   r = *(float *)((char *)volume + 0x40);
   r4 = r * 4.0f;
 
-  /* plane 0: +C, d = dot(C,P) - r*0.5 (dot accumulates z,y,x per the original) */
+  /* plane 0: +C, d = dot(C,P) - r*0.5 (dot accumulates z,y,x per the original)
+   */
   dot = Cv[2] * P[2] + Cv[1] * P[1] + Cv[0] * P[0];
   planes[0] = Cv[0];
   planes[1] = Cv[1];
@@ -544,87 +615,6 @@ void FUN_0018b990(void *volume)
 
   FUN_00196190(P, r4, scalars, 6, planes);
   FUN_0017cd00();
-}
-
-/* The original FSTPs each FSUB delta to a 32-bit local and reloads it for
- * the clamp compares, so they see the float-rounded value; clang keeps the
- * delta in x87 ST and compares at 80-bit extended precision, which can take
- * a different branch on overflow/NaN edges (rasterizer.c:1248 precedent).
- * Force the same store+reload rounding. No-op under VC71, which spills. */
-#if !defined(_MSC_VER) || defined(__clang__)
-#define FADE_ROUND32(x) asm volatile("" : "+m"(x))
-#else
-#define FADE_ROUND32(x) ((void)0)
-#endif
-
-/* 0x18b610 — fade a 3-float lighting vector toward its desired values: each
- * component steps by its delta clamped to [-step, +step]. Used by
- * FUN_0018bc60 smooth lighting for the ambient/distant color triples.
- * Register args: cur @<ecx>, des @<edx>; step on the stack. */
-void FUN_0018b610(float *cur, float *des, float step)
-{
-  float delta;
-
-  delta = des[0] - cur[0];
-  FADE_ROUND32(delta);
-  cur[0] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) +
-           cur[0];
-  delta = des[1] - cur[1];
-  FADE_ROUND32(delta);
-  cur[1] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) +
-           cur[1];
-  delta = des[2] - cur[2];
-  FADE_ROUND32(delta);
-  cur[2] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) +
-           cur[2];
-}
-
-/* 0x18b6b0 — 4-float variant of FUN_0018b610 (delta clamped to
- * [-step, +step] per component). Register args: cur @<ecx>, des @<edx>. */
-void FUN_0018b6b0(float *cur, float *des, float step)
-{
-  float delta;
-
-  delta = des[0] - cur[0];
-  FADE_ROUND32(delta);
-  cur[0] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) +
-           cur[0];
-  delta = des[1] - cur[1];
-  FADE_ROUND32(delta);
-  cur[1] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) +
-           cur[1];
-  delta = des[2] - cur[2];
-  FADE_ROUND32(delta);
-  cur[2] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) +
-           cur[2];
-  delta = des[3] - cur[3];
-  FADE_ROUND32(delta);
-  cur[3] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) +
-           cur[3];
-}
-
-/* 0x18b780 — direction variant of FUN_0018b610: fades a 3-float direction
- * toward its desired values (delta clamped to [-step, +step] per component),
- * then renormalizes the result via normalize3d (float length return
- * discarded — FSTP ST0 at 0x18b818). Register args: cur @<ecx>,
- * des @<edx>. */
-void FUN_0018b780(float *cur, float *des, float step)
-{
-  float delta;
-
-  delta = des[0] - cur[0];
-  FADE_ROUND32(delta);
-  cur[0] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) +
-           cur[0];
-  delta = des[1] - cur[1];
-  FADE_ROUND32(delta);
-  cur[1] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) +
-           cur[1];
-  delta = des[2] - cur[2];
-  FADE_ROUND32(delta);
-  cur[2] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) +
-           cur[2];
-  normalize3d(cur);
 }
 
 /* 0x18bc60 — refresh a cached object render-state's lighting
@@ -904,27 +894,25 @@ void FUN_0018c100(void *record)
     diameter = FUN_0018b130(*(int *)rec);
     FADE_ROUND32(diameter);
     darkness = *(const float *)0x2533c8 -
-               real_rgb_color_brightness(
-                 (float *)(*(int *)(rec + 4) + 0x68));
+               real_rgb_color_brightness((float *)(*(int *)(rec + 4) + 0x68));
     FADE_ROUND32(darkness);
     if (*(const float *)0x253394 < diameter) {
       if (*(const float *)0x2b1b48 < darkness) {
-        size_fade = (diameter - *(const float *)0x253394) *
-                    *(const float *)0x253d48;
-        dark_fade = (darkness - *(const float *)0x2b1b48) *
-                    *(const float *)0x2b1b44;
+        size_fade =
+          (diameter - *(const float *)0x253394) * *(const float *)0x253d48;
+        dark_fade =
+          (darkness - *(const float *)0x2b1b48) * *(const float *)0x2b1b44;
         if (size_fade < *(const float *)0x2533c0) {
           size_fade = 0.0f;
         } else if (*(const float *)0x2533c8 < size_fade) {
           size_fade = 1.0f;
         }
-        if (FUN_0018b830(rec,
-                         ((dark_fade < *(const float *)0x2533c0)
-                            ? *(const float *)0x2533c0
-                            : ((*(const float *)0x2533c8 < dark_fade)
-                                 ? *(const float *)0x2533c8
-                                 : dark_fade)) *
-                           size_fade)) {
+        if (FUN_0018b830(rec, ((dark_fade < *(const float *)0x2533c0) ?
+                                 *(const float *)0x2533c0 :
+                                 ((*(const float *)0x2533c8 < dark_fade) ?
+                                    *(const float *)0x2533c8 :
+                                    dark_fade)) *
+                                size_fade)) {
           FUN_0018b190(rec, (void *)0, *(int *)rec);
           FUN_0018b990(rec);
         }
@@ -955,10 +943,9 @@ void FUN_0018c100(void *record)
          *(float *)(tagdef + 4) <
            *(float *)0x506754 * *(float *)(obj + 0x54) +
              *(float *)0x506758 * *(float *)(obj + 0x58) +
-             *(float *)0x506750 * *(float *)(obj + 0x50) -
-             *(float *)0x50675c)
-          ? 1
-          : 0;
+             *(float *)0x506750 * *(float *)(obj + 0x50) - *(float *)0x50675c) ?
+          1 :
+          0;
       FUN_0018b190(rec, &effect, *(int *)rec);
     }
   }
@@ -1062,6 +1049,49 @@ void scenario_test_pas(void)
   }
 }
 
+/* 0x18c4d0 — predicate: should the local player's view be drawn in
+ * first-person? Returns 1 when the director perspective for the given local
+ * player is 0 (first-person view). When the perspective is not first-person,
+ * the function still forces first-person if the player's unit is seated in a
+ * vehicle whose unit-tag seat definition has the "force first-person" flag set
+ * (unit seats block at tag+0x2e4, element size 0x11c, byte0 bit 3). Resolution
+ * path: player
+ * -> controlled unit handle (player_data+0x34) verified as a unit (type mask
+ * 3); require a valid parent/vehicle handle (unit+0xcc) and a valid seat index
+ * (unit+0x2a0, int16); resolve the vehicle object (also type mask 3), read its
+ * tag index (vehicle+0), fetch the 'unit' tag, and index its seats block by the
+ * seat index.
+ * cdecl: local_player_index [EBP+8] (int16, passed in a dword slot). Returns
+ * char bool in AL. player_data global at 0x5aa6d4 (data_t *). */
+char FUN_0018c4d0(int16_t local_player_index)
+{
+  char first_person;
+  char *player;
+  char *unit;
+  char *vehicle;
+  char *unit_tag;
+  char *seat;
+
+  first_person = (director_get_perspective(local_player_index) == 0) ? 1 : 0;
+  if (first_person == 0) {
+    player = (char *)datum_get(
+      *(data_t **)0x5aa6d4, local_player_get_player_index(local_player_index));
+    if (*(int *)(player + 0x34) != -1) {
+      unit = (char *)object_get_and_verify_type(*(int *)(player + 0x34), 3);
+      if (*(int *)(unit + 0xcc) != -1 && *(int16_t *)(unit + 0x2a0) != -1) {
+        vehicle = (char *)object_get_and_verify_type(*(int *)(unit + 0xcc), 3);
+        unit_tag = (char *)tag_get(0x756e6974, *(int *)vehicle);
+        seat = (char *)tag_block_get_element(
+          unit_tag + 0x2e4, (int)*(int16_t *)(unit + 0x2a0), 0x11c);
+        if ((*seat & 8) != 0) {
+          return 1;
+        }
+      }
+    }
+  }
+  return first_person;
+}
+
 /* 0x18c580 — 3-key record comparator: compares two records by signed int16 at
  * +2, then signed int16 at +4, then unsigned byte at +6; returns the first
  * non-zero difference (qsort/bsearch-style ordering). */
@@ -1077,190 +1107,6 @@ int FUN_0018c580(int param_1, int param_2)
              (int)*(unsigned char *)(param_2 + 6);
   }
   return diff;
-}
-
-/* 0x18ca40 — render the sky model (render\render_sky.c, assert line 0x26).
- * Gated on render.visible_sky_model (0x506789); the sky record comes from
- * FUN_0018e7d0(render.visible_sky_index @0x50678a). Decompresses the base
- * node pose from the 'mode' tag (FUN_00123aa0), advances each overlay
- * animation (sky+0xb8 block, 0x24/elem): phase accumulators live in the
- * static array 0x4d86d8, stepped by frame-seconds (0x50654c) / period
- * (elem+0x4) mod 1.0 (double 0x2573d8), applied via FUN_00122690 when the
- * 'antr' sequence's node count matches the model. Builds world node
- * matrices (FUN_00123c70 from the camera basis ptrs 0x31fc1c/3c/44), then
- * for each sky light (sky+0xc4 block, 0x74/elem): direction from the named
- * model marker's world position minus the camera (0x506550) — the marker
- * query fills a 0x6c record whose +0x60 position the original read through
- * overlapping locals — or from the euler angles at elem+0x68 when the
- * marker name is empty; the light is placed far along that direction
- * (0x2b1b50) facing back (perpendicular basis), FUN_00139b40. Finally the
- * node matrices are pulled into a scaled view space (scale 2^-10, position
- * * 0x2b1b4c), FUN_0017d1a0(1) selects the sky rasterizer mode, and the
- * model is drawn with unit region scales via the 13-arg FUN_00123ed0,
- * flushed through FUN_0016b240 (the 0x17cbf0 thunk's target, matching the
- * scenario_test_pvs reloc lesson). cdecl, void(void), 0x1658-byte frame via
- * _chkstk. */
-void FUN_0018ca40(void)
-{
-  float node_matrices[832]; /* EBP-0x1658: 64 x 0x34-byte node matrices */
-  float node_buf[512];      /* EBP-0x958: 64 x 0x20-byte node transforms */
-  char record[0x74];        /* EBP-0x158 render-model record */
-  float scales[8];          /* EBP-0xE4 per-region scales */
-  float view_matrix[13];    /* EBP-0xC4 */
-  char marker[0x6c];        /* EBP-0x90; pos2/negdir/perp overlapped its
-                             * dead world matrix in the original frame */
-  float pos2[3];
-  float negdir[3];
-  float perp[3];
-  float delta[3];
-  float phase;
-  float frame;
-  float len;
-  float *defcol;
-  char *rec;
-  char *mode_tag;
-  char *antr_tag;
-  char *elem;
-  char *seq;
-  int counter;
-  int i;
-
-  if (*(char *)0x506789 != 0) {
-    if (FUN_0018e7d0((int)*(uint16_t *)0x50678a) == NULL) {
-      display_assert("!render.visible_sky_model || "
-                     "scenario_get_sky(render.visible_sky_index)",
-                     "c:\\halo\\SOURCE\\render\\render_sky.c", 0x26, 1);
-      system_exit(-1);
-    }
-    if (*(char *)0x506789 != 0) {
-      rec = (char *)FUN_0018e7d0((int)*(uint16_t *)0x50678a);
-      mode_tag = (char *)tag_get(0x6d6f6465, *(int *)(rec + 0xc));
-      FUN_00123aa0(mode_tag, node_buf);
-      if (*(int *)(rec + 0x1c) != -1) {
-        antr_tag = (char *)tag_get(0x616e7472, *(int *)(rec + 0x1c));
-        if (*(int *)(rec + 0xb8) > 0) {
-          counter = 0;
-          i = 0;
-          do {
-            elem = (char *)tag_block_get_element(rec + 0xb8, i, 0x24);
-            if (*(int16_t *)elem >= 0 &&
-                (int)*(int16_t *)elem < *(int *)(antr_tag + 0x74) &&
-                *(float *)(elem + 4) != *(const float *)0x2533c0) {
-              seq = (char *)tag_block_get_element(
-                antr_tag + 0x74, (int)*(int16_t *)elem, 0xb4);
-              if ((int)*(int16_t *)(seq + 0x2c) ==
-                  *(int *)(mode_tag + 0xb8)) {
-#if defined(_MSC_VER) && !defined(__clang__)
-                /* VC71 /Oi lowers fmod to _CIfmod, matching the original;
-                 * clang takes the x87_fmod (FPREM) branch below. */
-                phase = (float)fmod(
-                  (double)(*(float *)0x50654c / *(float *)(elem + 4) +
-                           ((float *)0x4d86d8)[i]),
-                  *(const double *)0x2573d8);
-#else
-                phase =
-                  x87_fmod(*(float *)0x50654c / *(float *)(elem + 4) +
-                             ((float *)0x4d86d8)[i],
-                           *(const double *)0x2573d8);
-#endif
-                ((float *)0x4d86d8)[i] = phase;
-                frame = (float)(int)*(int16_t *)(seq + 0x22) * phase;
-                FUN_00122690(seq, frame, node_buf);
-              }
-            }
-            counter++;
-            i = (int)(int16_t)counter;
-          } while (i < *(int *)(rec + 0xb8));
-        }
-      }
-      FUN_00123c70(mode_tag, node_matrices, node_buf, *(float **)0x31fc1c,
-                   *(float **)0x31fc3c, *(float **)0x31fc44);
-      if (*(int *)(rec + 0xac) > 0) {
-        counter = 0;
-        i = 0;
-        do {
-          tag_block_get_element(rec + 0xac, i, 0x24); /* validation only */
-          counter++;
-          scales[i] = 1.0f;
-          i = (int)(int16_t)counter;
-        } while (i < *(int *)(rec + 0xac));
-      }
-      if (*(int *)(rec + 0xc4) > 0) {
-        counter = 0;
-        i = 0;
-        do {
-          elem = (char *)tag_block_get_element(rec + 0xc4, i, 0x74);
-          if (*(int *)(elem + 0xc) != -1) {
-            if (csstrlen(elem + 0x10) == 0) {
-              angles_to_vector(delta, (float *)(elem + 0x68));
-            } else {
-              if (FUN_00124730(*(int *)(rec + 0xc), elem + 0x10, 0, 0, -1,
-                               node_matrices, 0, marker, 1) == 0)
-                goto next_light;
-              delta[0] = *(float *)(marker + 0x60) - *(float *)0x506550;
-              delta[1] = *(float *)(marker + 0x64) - *(float *)0x506554;
-              delta[2] = *(float *)(marker + 0x68) - *(float *)0x506558;
-              len = sqrtf(delta[2] * delta[2] + delta[0] * delta[0] +
-                          delta[1] * delta[1]);
-              if (fabs((double)len) >= *(const double *)0x2533d0) {
-                len = *(const float *)0x2533c8 / len;
-                delta[0] = delta[0] * len;
-                delta[1] = delta[1] * len;
-                delta[2] = delta[2] * len;
-              }
-            }
-            pos2[0] =
-              delta[0] * *(const float *)0x2b1b50 + *(float *)0x506550;
-            pos2[1] =
-              delta[1] * *(const float *)0x2b1b50 + *(float *)0x506554;
-            pos2[2] =
-              delta[2] * *(const float *)0x2b1b50 + *(float *)0x506558;
-            negdir[0] = -delta[0];
-            negdir[1] = -delta[1];
-            negdir[2] = -delta[2];
-            perpendicular3d(negdir, perp);
-            len = sqrtf(perp[2] * perp[2] + perp[1] * perp[1] +
-                        perp[0] * perp[0]);
-            if (fabs((double)len) >= *(const double *)0x2533d0) {
-              len = *(const float *)0x2533c8 / len;
-              perp[0] = perp[0] * len;
-              perp[1] = perp[1] * len;
-              perp[2] = perp[2] * len;
-            }
-            FUN_00139b40(*(int *)(elem + 0xc), (int *)pos2, (int)negdir,
-                         (int)perp, *(float **)0x2ee708, 1.0f);
-          }
-        next_light:
-          counter++;
-          i = (int)(int16_t)counter;
-        } while (i < *(int *)(rec + 0xc4));
-      }
-      qmemcpy(view_matrix, *(void **)0x31fc60, 0x34);
-      view_matrix[10] = *(float *)0x506550 * *(const float *)0x2b1b4c;
-      view_matrix[11] = *(float *)0x506554 * *(const float *)0x2b1b4c;
-      view_matrix[12] = *(float *)0x506558 * *(const float *)0x2b1b4c;
-      view_matrix[0] = 0.0009765625f; /* 2^-10, immediate store */
-      if (*(int *)(mode_tag + 0xb8) > 0) {
-        counter = 0;
-        i = 0;
-        do {
-          matrix4x3_multiply(view_matrix, node_matrices + i * 13,
-                             node_matrices + i * 13); /* dup-args-ok */
-          counter++;
-          i = (int)(int16_t)counter;
-        } while (i < *(int *)(mode_tag + 0xb8));
-      }
-      FUN_0017d1a0(1);
-      csmemset(record, 0, 0x74);
-      defcol = *(float **)0x2ee708;
-      *(int32_t *)record = *(int32_t *)defcol;
-      *(int32_t *)(record + 4) = *(int32_t *)(defcol + 1);
-      *(int32_t *)(record + 8) = *(int32_t *)(defcol + 2);
-      FUN_00123ed0(*(int *)(rec + 0xc), 0.0f, node_matrices, 0, 0, scales,
-                   (int)record, (void *)0x506550, 0, 0, 0, 0, 1);
-      FUN_0016b240();
-    }
-  }
 }
 
 /* Sort record built by FUN_0018c5b0's gather pass; FUN_0018c580 is the
@@ -1299,18 +1145,18 @@ typedef struct particle_sort_record {
 void FUN_0018c5b0(void)
 {
   particle_sort_record_t gather[0x400]; /* EBP-0x24E8 */
-  int16_t runs[0x200];                  /* EBP-0x4E8 */
-  char record[0xa4];                    /* EBP-0xE8 build_sprites record */
-  float direction[3];                   /* EBP-0x44 */
-  float position[3];                    /* EBP-0x38 */
-  float life_delta;                     /* EBP-0x2C */
-  float radius;                         /* EBP-0x28 */
-  float radius_accum;                   /* EBP-0x24 */
-  float pixels;                         /* EBP-0x20 */
+  int16_t runs[0x200]; /* EBP-0x4E8 */
+  char record[0xa4]; /* EBP-0xE8 build_sprites record */
+  float direction[3]; /* EBP-0x44 */
+  float position[3]; /* EBP-0x38 */
+  float life_delta; /* EBP-0x2C */
+  float radius; /* EBP-0x28 */
+  float radius_accum; /* EBP-0x24 */
+  float pixels; /* EBP-0x20 */
   float size;
   float scale;
-  int emitted;                          /* EBP-0x1C */
-  int count;                            /* EBP-0x4 */
+  int emitted; /* EBP-0x1C */
+  int count; /* EBP-0x4 */
   int fp_raw;
   int fp_index;
   int index;
@@ -1320,7 +1166,7 @@ void FUN_0018c5b0(void)
   int16_t prev_tag;
   int16_t prev_sort;
   int16_t tag_index;
-  char prev_fp;                         /* EBP-0x5 */
+  char prev_fp; /* EBP-0x5 */
   char is_fp;
   char *part;
   char *tag;
@@ -1396,8 +1242,7 @@ void FUN_0018c5b0(void)
             radius_accum = 0.0f;
             emitted = 0;
             FUN_0018d2c0((uint32_t *)record, *runp, *(uint32_t *)(tag + 0x10),
-                         (int)(tag + 0xb0),
-                         rec->first_person != 0 ? 2u : 0u);
+                         (int)(tag + 0xb0), rec->first_person != 0 ? 2u : 0u);
             if (*runp > 0) {
               inner = (int)(uint16_t)*runp;
               do {
@@ -1419,8 +1264,8 @@ void FUN_0018c5b0(void)
                       (int)*(uint8_t *)(part + 0xf),
                       (int)*(uint16_t *)(part + 0xc));
                   } else {
-                    if (object_try_and_get_and_verify_type(
-                          *(int *)(part + 8), -1) == NULL) {
+                    if (object_try_and_get_and_verify_type(*(int *)(part + 8),
+                                                           -1) == NULL) {
                       particle_delete((int)rec->datum_index);
                       goto next_particle;
                     }
@@ -1458,9 +1303,9 @@ void FUN_0018c5b0(void)
                   } else {
                     flags3 &= ~4u; /* redundant AND kept from the original */
                   }
-                  FUN_0018d6e0(record, (int16_t)*(uint16_t *)(tag + 0xac),
-                               (int16_t)*(uint16_t *)(part + 0x24),
-                               (int16_t)*(uint16_t *)(part + 0x26), position,
+                  FUN_0018d6e0(record, (int16_t) * (uint16_t *)(tag + 0xac),
+                               (int16_t) * (uint16_t *)(part + 0x24),
+                               (int16_t) * (uint16_t *)(part + 0x26), position,
                                direction, *(float *)(part + 0x54), size,
                                (float *)(part + 0x60), scale, flags3);
                   *(int *)(part + 0x10) = *(int *)0x506540;
@@ -1484,6 +1329,185 @@ void FUN_0018c5b0(void)
   }
   if (*(char *)0x449ef1 != 0 && *(char *)0x326400 != 0) {
     profile_exit_private((void *)0x3263f8);
+  }
+}
+
+/* 0x18ca40 — render the sky model (render\render_sky.c, assert line 0x26).
+ * Gated on render.visible_sky_model (0x506789); the sky record comes from
+ * FUN_0018e7d0(render.visible_sky_index @0x50678a). Decompresses the base
+ * node pose from the 'mode' tag (FUN_00123aa0), advances each overlay
+ * animation (sky+0xb8 block, 0x24/elem): phase accumulators live in the
+ * static array 0x4d86d8, stepped by frame-seconds (0x50654c) / period
+ * (elem+0x4) mod 1.0 (double 0x2573d8), applied via FUN_00122690 when the
+ * 'antr' sequence's node count matches the model. Builds world node
+ * matrices (FUN_00123c70 from the camera basis ptrs 0x31fc1c/3c/44), then
+ * for each sky light (sky+0xc4 block, 0x74/elem): direction from the named
+ * model marker's world position minus the camera (0x506550) — the marker
+ * query fills a 0x6c record whose +0x60 position the original read through
+ * overlapping locals — or from the euler angles at elem+0x68 when the
+ * marker name is empty; the light is placed far along that direction
+ * (0x2b1b50) facing back (perpendicular basis), FUN_00139b40. Finally the
+ * node matrices are pulled into a scaled view space (scale 2^-10, position
+ * * 0x2b1b4c), FUN_0017d1a0(1) selects the sky rasterizer mode, and the
+ * model is drawn with unit region scales via the 13-arg FUN_00123ed0,
+ * flushed through FUN_0016b240 (the 0x17cbf0 thunk's target, matching the
+ * scenario_test_pvs reloc lesson). cdecl, void(void), 0x1658-byte frame via
+ * _chkstk. */
+void FUN_0018ca40(void)
+{
+  float node_matrices[832]; /* EBP-0x1658: 64 x 0x34-byte node matrices */
+  float node_buf[512]; /* EBP-0x958: 64 x 0x20-byte node transforms */
+  char record[0x74]; /* EBP-0x158 render-model record */
+  float scales[8]; /* EBP-0xE4 per-region scales */
+  float view_matrix[13]; /* EBP-0xC4 */
+  char marker[0x6c]; /* EBP-0x90; pos2/negdir/perp overlapped its
+                      * dead world matrix in the original frame */
+  float pos2[3];
+  float negdir[3];
+  float perp[3];
+  float delta[3];
+  float phase;
+  float frame;
+  float len;
+  float *defcol;
+  char *rec;
+  char *mode_tag;
+  char *antr_tag;
+  char *elem;
+  char *seq;
+  int counter;
+  int i;
+
+  if (*(char *)0x506789 != 0) {
+    if (FUN_0018e7d0((int)*(uint16_t *)0x50678a) == NULL) {
+      display_assert("!render.visible_sky_model || "
+                     "scenario_get_sky(render.visible_sky_index)",
+                     "c:\\halo\\SOURCE\\render\\render_sky.c", 0x26, 1);
+      system_exit(-1);
+    }
+    if (*(char *)0x506789 != 0) {
+      rec = (char *)FUN_0018e7d0((int)*(uint16_t *)0x50678a);
+      mode_tag = (char *)tag_get(0x6d6f6465, *(int *)(rec + 0xc));
+      FUN_00123aa0(mode_tag, node_buf);
+      if (*(int *)(rec + 0x1c) != -1) {
+        antr_tag = (char *)tag_get(0x616e7472, *(int *)(rec + 0x1c));
+        if (*(int *)(rec + 0xb8) > 0) {
+          counter = 0;
+          i = 0;
+          do {
+            elem = (char *)tag_block_get_element(rec + 0xb8, i, 0x24);
+            if (*(int16_t *)elem >= 0 &&
+                (int)*(int16_t *)elem < *(int *)(antr_tag + 0x74) &&
+                *(float *)(elem + 4) != *(const float *)0x2533c0) {
+              seq = (char *)tag_block_get_element(antr_tag + 0x74,
+                                                  (int)*(int16_t *)elem, 0xb4);
+              if ((int)*(int16_t *)(seq + 0x2c) == *(int *)(mode_tag + 0xb8)) {
+#if defined(_MSC_VER) && !defined(__clang__)
+                /* VC71 /Oi lowers fmod to _CIfmod, matching the original;
+                 * clang takes the x87_fmod (FPREM) branch below. */
+                phase = (float)fmod(
+                  (double)(*(float *)0x50654c / *(float *)(elem + 4) +
+                           ((float *)0x4d86d8)[i]),
+                  *(const double *)0x2573d8);
+#else
+                phase = x87_fmod(*(float *)0x50654c / *(float *)(elem + 4) +
+                                   ((float *)0x4d86d8)[i],
+                                 *(const double *)0x2573d8);
+#endif
+                ((float *)0x4d86d8)[i] = phase;
+                frame = (float)(int)*(int16_t *)(seq + 0x22) * phase;
+                FUN_00122690(seq, frame, node_buf);
+              }
+            }
+            counter++;
+            i = (int)(int16_t)counter;
+          } while (i < *(int *)(rec + 0xb8));
+        }
+      }
+      FUN_00123c70(mode_tag, node_matrices, node_buf, *(float **)0x31fc1c,
+                   *(float **)0x31fc3c, *(float **)0x31fc44);
+      if (*(int *)(rec + 0xac) > 0) {
+        counter = 0;
+        i = 0;
+        do {
+          tag_block_get_element(rec + 0xac, i, 0x24); /* validation only */
+          counter++;
+          scales[i] = 1.0f;
+          i = (int)(int16_t)counter;
+        } while (i < *(int *)(rec + 0xac));
+      }
+      if (*(int *)(rec + 0xc4) > 0) {
+        counter = 0;
+        i = 0;
+        do {
+          elem = (char *)tag_block_get_element(rec + 0xc4, i, 0x74);
+          if (*(int *)(elem + 0xc) != -1) {
+            if (csstrlen(elem + 0x10) == 0) {
+              angles_to_vector(delta, (float *)(elem + 0x68));
+            } else {
+              if (FUN_00124730(*(int *)(rec + 0xc), elem + 0x10, 0, 0, -1,
+                               node_matrices, 0, marker, 1) == 0)
+                goto next_light;
+              delta[0] = *(float *)(marker + 0x60) - *(float *)0x506550;
+              delta[1] = *(float *)(marker + 0x64) - *(float *)0x506554;
+              delta[2] = *(float *)(marker + 0x68) - *(float *)0x506558;
+              len = sqrtf(delta[2] * delta[2] + delta[0] * delta[0] +
+                          delta[1] * delta[1]);
+              if (fabs((double)len) >= *(const double *)0x2533d0) {
+                len = *(const float *)0x2533c8 / len;
+                delta[0] = delta[0] * len;
+                delta[1] = delta[1] * len;
+                delta[2] = delta[2] * len;
+              }
+            }
+            pos2[0] = delta[0] * *(const float *)0x2b1b50 + *(float *)0x506550;
+            pos2[1] = delta[1] * *(const float *)0x2b1b50 + *(float *)0x506554;
+            pos2[2] = delta[2] * *(const float *)0x2b1b50 + *(float *)0x506558;
+            negdir[0] = -delta[0];
+            negdir[1] = -delta[1];
+            negdir[2] = -delta[2];
+            perpendicular3d(negdir, perp);
+            len =
+              sqrtf(perp[2] * perp[2] + perp[1] * perp[1] + perp[0] * perp[0]);
+            if (fabs((double)len) >= *(const double *)0x2533d0) {
+              len = *(const float *)0x2533c8 / len;
+              perp[0] = perp[0] * len;
+              perp[1] = perp[1] * len;
+              perp[2] = perp[2] * len;
+            }
+            FUN_00139b40(*(int *)(elem + 0xc), (int *)pos2, (int)negdir,
+                         (int)perp, *(float **)0x2ee708, 1.0f);
+          }
+        next_light:
+          counter++;
+          i = (int)(int16_t)counter;
+        } while (i < *(int *)(rec + 0xc4));
+      }
+      qmemcpy(view_matrix, *(void **)0x31fc60, 0x34);
+      view_matrix[10] = *(float *)0x506550 * *(const float *)0x2b1b4c;
+      view_matrix[11] = *(float *)0x506554 * *(const float *)0x2b1b4c;
+      view_matrix[12] = *(float *)0x506558 * *(const float *)0x2b1b4c;
+      view_matrix[0] = 0.0009765625f; /* 2^-10, immediate store */
+      if (*(int *)(mode_tag + 0xb8) > 0) {
+        counter = 0;
+        i = 0;
+        do {
+          matrix4x3_multiply(view_matrix, node_matrices + i * 13,
+                             node_matrices + i * 13); /* dup-args-ok */
+          counter++;
+          i = (int)(int16_t)counter;
+        } while (i < *(int *)(mode_tag + 0xb8));
+      }
+      FUN_0017d1a0(1);
+      csmemset(record, 0, 0x74);
+      defcol = *(float **)0x2ee708;
+      *(int32_t *)record = *(int32_t *)defcol;
+      *(int32_t *)(record + 4) = *(int32_t *)(defcol + 1);
+      *(int32_t *)(record + 8) = *(int32_t *)(defcol + 2);
+      FUN_00123ed0(*(int *)(rec + 0xc), 0.0f, node_matrices, 0, 0, scales,
+                   (int)record, (void *)0x506550, 0, 0, 0, 0, 1);
+      FUN_0016b240();
+    }
   }
 }
 
@@ -1538,8 +1562,7 @@ void FUN_0018cf10(void *data, float *untransformed_origin,
     *(int32_t *)(transformed_origin + 2) =
       *(int32_t *)(untransformed_origin + 2);
     if (untransformed_direction != NULL) {
-      *(int32_t *)transformed_direction =
-        *(int32_t *)untransformed_direction;
+      *(int32_t *)transformed_direction = *(int32_t *)untransformed_direction;
       *(int32_t *)(transformed_direction + 1) =
         *(int32_t *)(untransformed_direction + 1);
       *(int32_t *)(transformed_direction + 2) =
@@ -1553,6 +1576,54 @@ void FUN_0018cf10(void *data, float *untransformed_origin,
                               transformed_direction);
     }
   }
+}
+
+/* 0x18d040 — resolve a sprite record's default scale then apply the
+ * per-record count multiplier (kb name scenario_object_name_index_from_string
+ * was a misattribution; the body is float scale math, no string handling).
+ * state+0x10 bit0 selects the mode: when set, a sentinel scale
+ * (*value == *(float *)0x2533c0) becomes 1.0 before the multiply; when clear
+ * and p1 == 0, the sentinel becomes -(src+0x8 / global 0x506728). Finally
+ * *value *= (short)(info+0x4). p2 is on the stack but unused (kept for ABI).
+ * Register args: state @<eax>, value @<ecx>. Only caller: FUN_0018d6e0
+ * (build_sprite). */
+void FUN_0018d040(void *state, float *value, int16_t p1, int p2, void *src,
+                  void *info)
+{
+  if ((*(uint8_t *)((char *)state + 0x10) & 1) != 0) {
+    if (*value == *(const float *)0x2533c0) {
+      *value = 1.0f;
+      *value = (float)*(int16_t *)((char *)info + 4) * *value;
+      return;
+    }
+  } else if (p1 == 0 && *value == *(const float *)0x2533c0) {
+    *value = -(*(float *)((char *)src + 8) / *(float *)0x506728);
+  }
+  *value = (float)*(int16_t *)((char *)info + 4) * *value;
+}
+
+/* 0x18d0b0 — per-frame coverage/big-sprite stats reset (kb name is a
+ * misnomer). If the debug flag at 0x5064e8 is set, format the accumulated
+ * coverage (float @0x506504) and big-sprite count (short @0x506508) into a
+ * line and emit it via FUN_00189c40(0, ...). Then zero both accumulators and
+ * run two matrix_transform_vector passes over the 0x5065b4 matrix using the
+ * pointers at *0x31fc44 / *0x31fc40 into the 0x506510 / 0x50651c buffers.
+ * cdecl, void(void). */
+void scenario_fog_region_get_fog_index(void)
+{
+  char line[512];
+
+  if (*(char *)0x5064e8 != 0) {
+    crt_sprintf(line, "   coverage: %.1f big sprites: %d",
+                (double)*(float *)0x506504, (int)*(short *)0x506508);
+    FUN_00189c40(0, line);
+  }
+  *(float *)0x506504 = 0.0f;
+  *(short *)0x506508 = 0;
+  matrix_transform_vector((float *)0x5065b4, *(float **)0x31fc44,
+                          (float *)0x506510);
+  matrix_transform_vector((float *)0x5065b4, *(float **)0x31fc40,
+                          (float *)0x50651c);
 }
 
 /* 0x18d140 — render_sprite.c: find or allocate the sprite group slot for a
@@ -1639,54 +1710,6 @@ int16_t FUN_0018d140(void *data, int bitmap)
   if (index != -1 && *(int *)((char *)data + (int)index * 0x10 + 0x28) == 0)
     return -1;
   return index;
-}
-
-/* 0x18d040 — resolve a sprite record's default scale then apply the
- * per-record count multiplier (kb name scenario_object_name_index_from_string
- * was a misattribution; the body is float scale math, no string handling).
- * state+0x10 bit0 selects the mode: when set, a sentinel scale
- * (*value == *(float *)0x2533c0) becomes 1.0 before the multiply; when clear
- * and p1 == 0, the sentinel becomes -(src+0x8 / global 0x506728). Finally
- * *value *= (short)(info+0x4). p2 is on the stack but unused (kept for ABI).
- * Register args: state @<eax>, value @<ecx>. Only caller: FUN_0018d6e0
- * (build_sprite). */
-void FUN_0018d040(void *state, float *value, int16_t p1, int p2, void *src,
-                  void *info)
-{
-  if ((*(uint8_t *)((char *)state + 0x10) & 1) != 0) {
-    if (*value == *(const float *)0x2533c0) {
-      *value = 1.0f;
-      *value = (float)*(int16_t *)((char *)info + 4) * *value;
-      return;
-    }
-  } else if (p1 == 0 && *value == *(const float *)0x2533c0) {
-    *value = -(*(float *)((char *)src + 8) / *(float *)0x506728);
-  }
-  *value = (float)*(int16_t *)((char *)info + 4) * *value;
-}
-
-/* 0x18d0b0 — per-frame coverage/big-sprite stats reset (kb name is a
- * misnomer). If the debug flag at 0x5064e8 is set, format the accumulated
- * coverage (float @0x506504) and big-sprite count (short @0x506508) into a
- * line and emit it via FUN_00189c40(0, ...). Then zero both accumulators and
- * run two matrix_transform_vector passes over the 0x5065b4 matrix using the
- * pointers at *0x31fc44 / *0x31fc40 into the 0x506510 / 0x50651c buffers.
- * cdecl, void(void). */
-void scenario_fog_region_get_fog_index(void)
-{
-  char line[512];
-
-  if (*(char *)0x5064e8 != 0) {
-    crt_sprintf(line, "   coverage: %.1f big sprites: %d",
-                (double)*(float *)0x506504, (int)*(short *)0x506508);
-    FUN_00189c40(0, line);
-  }
-  *(float *)0x506504 = 0.0f;
-  *(short *)0x506508 = 0;
-  matrix_transform_vector((float *)0x5065b4, *(float **)0x31fc44,
-                          (float *)0x506510);
-  matrix_transform_vector((float *)0x5065b4, *(float **)0x31fc40,
-                          (float *)0x50651c);
 }
 
 /* 0x18d2c0 — render_sprite builder init: populate a sprite-build record
@@ -1817,8 +1840,8 @@ void FUN_0018d490(float *basis, void *data, float *direction,
     system_exit(-1);
   }
   if (origin == NULL) {
-    display_assert("origin", "c:\\halo\\SOURCE\\render\\render_sprite.c",
-                   0x75, 1);
+    display_assert("origin", "c:\\halo\\SOURCE\\render\\render_sprite.c", 0x75,
+                   1);
     system_exit(-1);
   }
   if (basis == NULL) {
@@ -1856,8 +1879,7 @@ void FUN_0018d490(float *basis, void *data, float *direction,
   }
   if (sprite_type == 2) {
     dot = *(float *)0x506514 * direction[1] +
-          *(float *)0x506518 * direction[2] +
-          *(float *)0x506510 * direction[0];
+          *(float *)0x506518 * direction[2] + *(float *)0x506510 * direction[0];
     dot_sq = dot * dot;
     origin = (float *)0x506510;
     if (FUN_00012170(direction) * *(const float *)0x28ace8 < dot_sq)
@@ -1933,21 +1955,21 @@ void FUN_0018d6e0(void *data, int16_t mode, int16_t sequence_index,
                   float *color, float intensity, uint32_t flags)
 {
   float transformed_direction[3]; /* EBP-0xB0 */
-  float basis[10];                /* EBP-0xA4; [1..3] right, [4..6] up,
-                                   * [7..9] forward scratch */
-  float dbg_b[3];                 /* EBP-0x70 */
-  float dbg_d[3];                 /* EBP-0x64 */
-  float dbg_c[3];                 /* EBP-0x58 */
-  uint32_t mirror_y;              /* EBP-0x4C */
-  float bounds[6];                /* EBP-0x48: minx,maxx,miny,maxy,minz,maxz */
-  float sin_a;                    /* EBP-0x30 */
-  float sin_dx;                   /* EBP-0x2C (after elem ptr dies) */
-  float cos_a;                    /* EBP-0x28 */
-  float transformed_origin[3];    /* EBP-0x24 */
-  char *elem;                     /* EBP-0x18 */
-  char *bitm;                     /* EBP-0x14, then group ptr */
-  int vertex_index;               /* EBP-0x10 (read back as int16) */
-  float wpoint[3];                /* EBP-0xC: world vertex / debug p0 */
+  float basis[10]; /* EBP-0xA4; [1..3] right, [4..6] up,
+                    * [7..9] forward scratch */
+  float dbg_b[3]; /* EBP-0x70 */
+  float dbg_d[3]; /* EBP-0x64 */
+  float dbg_c[3]; /* EBP-0x58 */
+  uint32_t mirror_y; /* EBP-0x4C */
+  float bounds[6]; /* EBP-0x48: minx,maxx,miny,maxy,minz,maxz */
+  float sin_a; /* EBP-0x30 */
+  float sin_dx; /* EBP-0x2C (after elem ptr dies) */
+  float cos_a; /* EBP-0x28 */
+  float transformed_origin[3]; /* EBP-0x24 */
+  char *elem; /* EBP-0x18 */
+  char *bitm; /* EBP-0x14, then group ptr */
+  int vertex_index; /* EBP-0x10 (read back as int16) */
+  float wpoint[3]; /* EBP-0xC: world vertex / debug p0 */
   char *seq_elem;
   char *bitmap_elem;
   char *group;
@@ -1992,19 +2014,18 @@ void FUN_0018d6e0(void *data, int16_t mode, int16_t sequence_index,
   }
   if (*(int16_t *)((char *)data + 0xc) < *(int16_t *)((char *)data + 4)) {
     if (sequence_index >= 0 && (int)sequence_index < *(int *)(bitm + 0x54)) {
-      seq_elem = (char *)tag_block_get_element(bitm + 0x54,
-                                               (int)sequence_index, 0x40);
+      seq_elem =
+        (char *)tag_block_get_element(bitm + 0x54, (int)sequence_index, 0x40);
       if (*(int16_t *)(seq_elem + 0x20) != -1 && sprite_index >= 0 &&
           (int)sprite_index < *(int *)(seq_elem + 0x34)) {
-        elem = (char *)tag_block_get_element(seq_elem + 0x34,
-                                             (int)sprite_index, 0x20);
+        elem = (char *)tag_block_get_element(seq_elem + 0x34, (int)sprite_index,
+                                             0x20);
         if (*(int16_t *)elem == -1) {
           display_assert(
             csprintf((char *)0x5ab100,
                      "the bitmap group %s sequence %d sprite %d references "
                      "bitmap -1 (tell matt).",
-                     tag_get_name(*(int *)data), sequence_index,
-                     sprite_index),
+                     tag_get_name(*(int *)data), sequence_index, sprite_index),
             "c:\\halo\\SOURCE\\render\\render_sprite.c", 0x1b3, 1);
           system_exit(-1);
         }
@@ -2022,16 +2043,15 @@ void FUN_0018d6e0(void *data, int16_t mode, int16_t sequence_index,
               sin_a = x87_fsin(angle);
               cos_a = x87_fcos(angle);
             }
-            FUN_0018cf10(data, untransformed_origin,
-                         untransformed_direction, (uint8_t)flags,
-                         transformed_origin, transformed_direction);
-            FUN_0018d490(basis, data, transformed_direction, mode,
-                         (int)flags, transformed_origin);
+            FUN_0018cf10(data, untransformed_origin, untransformed_direction,
+                         (uint8_t)flags, transformed_origin,
+                         transformed_direction);
+            FUN_0018d490(basis, data, transformed_direction, mode, (int)flags,
+                         transformed_origin);
             FUN_0018d040(data, &scale, mode, (int)flags, transformed_origin,
                          bitmap_elem);
             anim = (char *)*(int *)((char *)data + 8);
-            if (anim != NULL && *(int16_t *)(anim + 0x2c) != 0 &&
-                mode != 0) {
+            if (anim != NULL && *(int16_t *)(anim + 0x2c) != 0 && mode != 0) {
               cross_product3d(basis + 1, basis + 4, basis + 7);
               intensity = FUN_0018d670(*(uint16_t *)(anim + 0x2c),
                                        transformed_origin, basis + 7) *
@@ -2045,8 +2065,8 @@ void FUN_0018d6e0(void *data, int16_t mode, int16_t sequence_index,
             } else {
               alpha_f = (float)(pixel >> 24) * intensity;
             }
-            final_color = ((uint32_t)(uint8_t)(int)alpha_f << 24) |
-                          (pixel & 0xffffff);
+            final_color =
+              ((uint32_t)(uint8_t)(int)alpha_f << 24) | (pixel & 0xffffff);
             mirror_x = flags & 2;
             mirror_y = flags & 4;
             corner = 0;
@@ -2127,8 +2147,8 @@ void FUN_0018d6e0(void *data, int16_t mode, int16_t sequence_index,
             *(int16_t *)((char *)data + 0xc) =
               *(int16_t *)((char *)data + 0xc) + 1;
             if ((*(uint8_t *)((char *)data + 0x10) & 1) == 0) {
-              area = render_frustum_cube_view_fraction((void *)0x5065a4,
-                                                       bounds);
+              area =
+                render_frustum_cube_view_fraction((void *)0x5065a4, bounds);
               *(float *)0x506504 = *(float *)0x506504 + area;
               if (area > *(const float *)0x253398) {
                 old_count = *(int16_t *)0x506508;
@@ -2143,8 +2163,7 @@ void FUN_0018d6e0(void *data, int16_t mode, int16_t sequence_index,
                 idx = (int)(int16_t)vertex_index;
                 verts = *(int *)(group + 4);
                 matrix_transform_point((float *)0x5065e8,
-                                       (float *)(verts +
-                                                 (idx * 3 - 12) * 8),
+                                       (float *)(verts + (idx * 3 - 12) * 8),
                                        wpoint);
                 matrix_transform_point((float *)0x5065e8,
                                        (float *)(verts + (idx * 3 - 9) * 8),
@@ -2190,9 +2209,9 @@ void FUN_0018d6e0(void *data, int16_t mode, int16_t sequence_index,
  * The animated frame is (int)fmod(count * 0x2b1bc4 * param_7 + 0.5, count).
  * fmod uses the x87_fmod helper (FPREM) to avoid clang's FPREM1
  * mis-lowering; atan2 matches VC71's inline FPATAN. cdecl, 10 stack args. */
-void FUN_0018dcf0(void *param_1, unsigned int param_2, int param_3,
-                  int param_4, void *param_5, void *param_6, float param_7,
-                  float param_8, void *param_9, float param_10)
+void FUN_0018dcf0(void *param_1, unsigned int param_2, int param_3, int param_4,
+                  void *param_5, void *param_6, float param_7, float param_8,
+                  void *param_9, float param_10)
 {
   float vec_a[3];
   float vec_b[3];
@@ -2240,8 +2259,8 @@ void FUN_0018dcf0(void *param_1, unsigned int param_2, int param_3,
     }
 
     tag = tag_get(0x6269746d, *(int *)param_1);
-    elem = (char *)tag_block_get_element((char *)tag + 0x54,
-                                         (short)param_3 + 1, 0x40);
+    elem = (char *)tag_block_get_element((char *)tag + 0x54, (short)param_3 + 1,
+                                         0x40);
     count = *(int16_t *)(elem + 0x34);
     zero_byte = 0;
     mode = 1;
@@ -2273,8 +2292,8 @@ void FUN_0018dcf0(void *param_1, unsigned int param_2, int param_3,
       }
     }
     FUN_0018d6e0(param_1, zero_byte, (int16_t)(param_3 + 1), (int16_t)frame,
-                 vec_a, 0, rotation, param_8, (float *)param_9,
-                 fade * param_10, mode);
+                 vec_a, 0, rotation, param_8, (float *)param_9, fade * param_10,
+                 mode);
   } else {
     fade = 0.0f; /* immediate store (MOV [fade],0x0), not a 0x2533c0 load */
   }
@@ -2284,8 +2303,8 @@ LAB_0018ded5:
   if (fade2 > *(float *)0x2533e8) {
     tag = tag_get(0x6269746d, *(int *)param_1);
     rotation_pre = (float)atan2((double)vec_b[1], (double)vec_b[0]);
-    elem = (char *)tag_block_get_element((char *)tag + 0x54, (short)param_3,
-                                         0x40);
+    elem =
+      (char *)tag_block_get_element((char *)tag + 0x54, (short)param_3, 0x40);
     count = *(int16_t *)(elem + 0x34);
     rotation = rotation_pre;
 #if defined(_MSC_VER) && !defined(__clang__)
@@ -2325,6 +2344,95 @@ void FUN_0018df70(short *iterator, int index_buffer, short count)
   *((char *)iterator + 9) = 0x73;
 }
 
+/* Triangle strip iterator (c:\halo\SOURCE\render\triangle_strips.c — the
+ * kb.json name scenario_trigger_volume_test_point was a misattribution;
+ * corrected from the assert strings). Iterates an indexed triangle strip
+ * set, emitting one triangle (3 uint16 vertex indices) per call.
+ *   +0 strip_count        strips remaining
+ *   +2 vertex_count       vertices remaining in the current strip
+ *   +4 current            pointer into the strip index stream
+ *   +8 parity             winding flag, toggles every emitted triangle
+ *   +9 signature          's' (asserted, triangle_strips.c:0x29)
+ */
+typedef struct triangle_strip_iterator {
+  int16_t strip_count;
+  int16_t vertex_count;
+  uint16_t *current;
+  char parity;
+  char signature;
+} triangle_strip_iterator;
+
+/* 0x18dfe0 — triangle_strip_iterator_next: emit the next triangle of the
+ * strip set into vertices[0..2], returning 1 while triangles remain, else 0.
+ * Mid-strip (vertex_count != 0) the triangle is the previous two indices
+ * plus the next one, with the first two swapped on odd parity to keep the
+ * winding consistent; at a strip boundary the next strip's header (vertex
+ * count, asserted >= 3 at line 0x41) is consumed and its first three
+ * indices are emitted with parity reset to 1.
+ * cdecl: iterator [EBP+8], vertices [EBP+0xc]; AL-only return (char).
+ * Confirmed: asserts "iterator" 0x27, "vertices" 0x28, signature 0x29;
+ * field offsets from MOV word/byte disasm; per-access current re-loads
+ * (vertices may alias the stream, so no local pointer cache). */
+char triangle_strip_iterator_next(void *iterator_ptr, uint16_t *vertices)
+{
+  triangle_strip_iterator *iterator;
+
+  iterator = (triangle_strip_iterator *)iterator_ptr;
+  if (iterator == (triangle_strip_iterator *)0) {
+    display_assert("iterator", "c:\\halo\\SOURCE\\render\\triangle_strips.c",
+                   0x27, 1);
+    system_exit(-1);
+  }
+  if (vertices == (uint16_t *)0) {
+    display_assert("vertices", "c:\\halo\\SOURCE\\render\\triangle_strips.c",
+                   0x28, 1);
+    system_exit(-1);
+  }
+  if (iterator->signature != 's') {
+    display_assert("iterator->signature==_valid_strip_iterator_signature",
+                   "c:\\halo\\SOURCE\\render\\triangle_strips.c", 0x29, 1);
+    system_exit(-1);
+  }
+
+  if (iterator->vertex_count != 0) {
+    if (iterator->parity != 0) {
+      vertices[0] = iterator->current[-1];
+      vertices[1] = iterator->current[-2];
+    } else {
+      vertices[0] = iterator->current[-2];
+      vertices[1] = iterator->current[-1];
+    }
+    vertices[2] = iterator->current[0];
+    iterator->vertex_count--;
+    iterator->current += 1;
+    iterator->parity = (char)(iterator->parity == 0);
+    return 1;
+  }
+
+  if (iterator->strip_count != 0) {
+    /* strip header: index count; the strip yields count-2 triangles, so
+     * count-3 remain after the first triangle below */
+    iterator->vertex_count = (int16_t)(*iterator->current - 3);
+    iterator->current += 1;
+    if (iterator->vertex_count < 0) {
+      display_assert("iterator->vertex_count>=0",
+                     "c:\\halo\\SOURCE\\render\\triangle_strips.c", 0x41, 1);
+      system_exit(-1);
+    }
+    iterator->parity = 1;
+    vertices[0] = *iterator->current;
+    iterator->current += 1;
+    vertices[1] = *iterator->current;
+    iterator->current += 1;
+    vertices[2] = *iterator->current;
+    iterator->strip_count--;
+    iterator->current += 1;
+    return 1;
+  }
+
+  return 0;
+}
+
 /* 0x18e140 — look up the multiplayer scenario-description tag and return its
  * scenario count. Asserts the out-param is non-NULL, then resolves the
  * 'mply' tag "ui\multiplayer_scenarios". When loaded, writes the tag's int16
@@ -2358,49 +2466,6 @@ int FUN_0018e140(short *out_short)
   }
   *out_short = 0;
   return 0;
-}
-
-/* 0x18c4d0 — predicate: should the local player's view be drawn in
- * first-person? Returns 1 when the director perspective for the given local
- * player is 0 (first-person view). When the perspective is not first-person,
- * the function still forces first-person if the player's unit is seated in a
- * vehicle whose unit-tag seat definition has the "force first-person" flag set
- * (unit seats block at tag+0x2e4, element size 0x11c, byte0 bit 3). Resolution
- * path: player
- * -> controlled unit handle (player_data+0x34) verified as a unit (type mask
- * 3); require a valid parent/vehicle handle (unit+0xcc) and a valid seat index
- * (unit+0x2a0, int16); resolve the vehicle object (also type mask 3), read its
- * tag index (vehicle+0), fetch the 'unit' tag, and index its seats block by the
- * seat index.
- * cdecl: local_player_index [EBP+8] (int16, passed in a dword slot). Returns
- * char bool in AL. player_data global at 0x5aa6d4 (data_t *). */
-char FUN_0018c4d0(int16_t local_player_index)
-{
-  char first_person;
-  char *player;
-  char *unit;
-  char *vehicle;
-  char *unit_tag;
-  char *seat;
-
-  first_person = (director_get_perspective(local_player_index) == 0) ? 1 : 0;
-  if (first_person == 0) {
-    player = (char *)datum_get(
-      *(data_t **)0x5aa6d4, local_player_get_player_index(local_player_index));
-    if (*(int *)(player + 0x34) != -1) {
-      unit = (char *)object_get_and_verify_type(*(int *)(player + 0x34), 3);
-      if (*(int *)(unit + 0xcc) != -1 && *(int16_t *)(unit + 0x2a0) != -1) {
-        vehicle = (char *)object_get_and_verify_type(*(int *)(unit + 0xcc), 3);
-        unit_tag = (char *)tag_get(0x756e6974, *(int *)vehicle);
-        seat = (char *)tag_block_get_element(
-          unit_tag + 0x2e4, (int)*(int16_t *)(unit + 0x2a0), 0x11c);
-        if ((*seat & 8) != 0) {
-          return 1;
-        }
-      }
-    }
-  }
-  return first_person;
 }
 
 /* 0x18e1d0 — scenario_debug_to_file: split a scenario's name (at scenario+0x20)
@@ -2671,95 +2736,6 @@ char FUN_0018e6a0(int unused, float *out_up, float *out_left, float *out_d,
     out_e[2] = src[2];
   }
   return 1;
-}
-
-/* Triangle strip iterator (c:\halo\SOURCE\render\triangle_strips.c — the
- * kb.json name scenario_trigger_volume_test_point was a misattribution;
- * corrected from the assert strings). Iterates an indexed triangle strip
- * set, emitting one triangle (3 uint16 vertex indices) per call.
- *   +0 strip_count        strips remaining
- *   +2 vertex_count       vertices remaining in the current strip
- *   +4 current            pointer into the strip index stream
- *   +8 parity             winding flag, toggles every emitted triangle
- *   +9 signature          's' (asserted, triangle_strips.c:0x29)
- */
-typedef struct triangle_strip_iterator {
-  int16_t strip_count;
-  int16_t vertex_count;
-  uint16_t *current;
-  char parity;
-  char signature;
-} triangle_strip_iterator;
-
-/* 0x18dfe0 — triangle_strip_iterator_next: emit the next triangle of the
- * strip set into vertices[0..2], returning 1 while triangles remain, else 0.
- * Mid-strip (vertex_count != 0) the triangle is the previous two indices
- * plus the next one, with the first two swapped on odd parity to keep the
- * winding consistent; at a strip boundary the next strip's header (vertex
- * count, asserted >= 3 at line 0x41) is consumed and its first three
- * indices are emitted with parity reset to 1.
- * cdecl: iterator [EBP+8], vertices [EBP+0xc]; AL-only return (char).
- * Confirmed: asserts "iterator" 0x27, "vertices" 0x28, signature 0x29;
- * field offsets from MOV word/byte disasm; per-access current re-loads
- * (vertices may alias the stream, so no local pointer cache). */
-char triangle_strip_iterator_next(void *iterator_ptr, uint16_t *vertices)
-{
-  triangle_strip_iterator *iterator;
-
-  iterator = (triangle_strip_iterator *)iterator_ptr;
-  if (iterator == (triangle_strip_iterator *)0) {
-    display_assert("iterator", "c:\\halo\\SOURCE\\render\\triangle_strips.c",
-                   0x27, 1);
-    system_exit(-1);
-  }
-  if (vertices == (uint16_t *)0) {
-    display_assert("vertices", "c:\\halo\\SOURCE\\render\\triangle_strips.c",
-                   0x28, 1);
-    system_exit(-1);
-  }
-  if (iterator->signature != 's') {
-    display_assert("iterator->signature==_valid_strip_iterator_signature",
-                   "c:\\halo\\SOURCE\\render\\triangle_strips.c", 0x29, 1);
-    system_exit(-1);
-  }
-
-  if (iterator->vertex_count != 0) {
-    if (iterator->parity != 0) {
-      vertices[0] = iterator->current[-1];
-      vertices[1] = iterator->current[-2];
-    } else {
-      vertices[0] = iterator->current[-2];
-      vertices[1] = iterator->current[-1];
-    }
-    vertices[2] = iterator->current[0];
-    iterator->vertex_count--;
-    iterator->current += 1;
-    iterator->parity = (char)(iterator->parity == 0);
-    return 1;
-  }
-
-  if (iterator->strip_count != 0) {
-    /* strip header: index count; the strip yields count-2 triangles, so
-     * count-3 remain after the first triangle below */
-    iterator->vertex_count = (int16_t)(*iterator->current - 3);
-    iterator->current += 1;
-    if (iterator->vertex_count < 0) {
-      display_assert("iterator->vertex_count>=0",
-                     "c:\\halo\\SOURCE\\render\\triangle_strips.c", 0x41, 1);
-      system_exit(-1);
-    }
-    iterator->parity = 1;
-    vertices[0] = *iterator->current;
-    iterator->current += 1;
-    vertices[1] = *iterator->current;
-    iterator->current += 1;
-    vertices[2] = *iterator->current;
-    iterator->strip_count--;
-    iterator->current += 1;
-    return 1;
-  }
-
-  return 0;
 }
 
 /* FUN_0018e720 (0x18e720) — bsp3d_find_leaf_point
@@ -3264,37 +3240,36 @@ void FUN_0018ef30(void *stream)
   const char *scen_name;
 
   if (*(int32_t *)0x326a08 != -1) {
-
-  if (*(void **)0x5064e4 == 0) {
-    display_assert("global_scenario", "c:\\halo\\SOURCE\\scenario\\scenario.c",
-                   0xb7, 1);
-    system_exit(-1);
-  }
-
-  bsp_index = *(int16_t *)0x326a0c;
-  element =
-    tag_block_get_element((char *)*(void **)0x5064e4 + 0x5a4, bsp_index, 0x20);
-  bsp_name = tag_get_name(*(int32_t *)((char *)element + 0x1c));
-  scen_name = tag_get_name(*(int32_t *)0x326a08);
-  crt_fprintf(stream, "\"%s\" bsp \"%s\" (#%d)\n", scen_name, bsp_name,
-              bsp_index);
-
-  data_iterator_new(&iter, *(data_t **)0x5aa6d4);
-  for (player = data_iterator_next(&iter); player != 0;
-       player = data_iterator_next(&iter)) {
-    crt_fprintf(stream, "player 0x%08x", iter.datum_handle);
-    handle = *(int32_t *)((char *)player + 0x34);
-    if (handle != -1) {
-      obj = object_get_and_verify_type(handle, 3);
-      crt_fprintf(
-        stream, " at (%.2f,%.2f,%.2f) (leaf#%d,cluster#%d)\n",
-        *(float *)((char *)obj + 0x50), *(float *)((char *)obj + 0x54),
-        *(float *)((char *)obj + 0x58), *(int32_t *)((char *)obj + 0x48),
-        (int)*(int16_t *)((char *)obj + 0x4c));
-    } else {
-      crt_fprintf(stream, " dead\n");
+    if (*(void **)0x5064e4 == 0) {
+      display_assert("global_scenario",
+                     "c:\\halo\\SOURCE\\scenario\\scenario.c", 0xb7, 1);
+      system_exit(-1);
     }
-  }
+
+    bsp_index = *(int16_t *)0x326a0c;
+    element = tag_block_get_element((char *)*(void **)0x5064e4 + 0x5a4,
+                                    bsp_index, 0x20);
+    bsp_name = tag_get_name(*(int32_t *)((char *)element + 0x1c));
+    scen_name = tag_get_name(*(int32_t *)0x326a08);
+    crt_fprintf(stream, "\"%s\" bsp \"%s\" (#%d)\n", scen_name, bsp_name,
+                bsp_index);
+
+    data_iterator_new(&iter, *(data_t **)0x5aa6d4);
+    for (player = data_iterator_next(&iter); player != 0;
+         player = data_iterator_next(&iter)) {
+      crt_fprintf(stream, "player 0x%08x", iter.datum_handle);
+      handle = *(int32_t *)((char *)player + 0x34);
+      if (handle != -1) {
+        obj = object_get_and_verify_type(handle, 3);
+        crt_fprintf(
+          stream, " at (%.2f,%.2f,%.2f) (leaf#%d,cluster#%d)\n",
+          *(float *)((char *)obj + 0x50), *(float *)((char *)obj + 0x54),
+          *(float *)((char *)obj + 0x58), *(int32_t *)((char *)obj + 0x48),
+          (int)*(int16_t *)((char *)obj + 0x4c));
+      } else {
+        crt_fprintf(stream, " dead\n");
+      }
+    }
 
   } else {
     crt_fprintf(stream, "<no scenario loaded>\n");
@@ -4024,8 +3999,7 @@ void FUN_0018fbc0(int16_t window_index, int structure_bsp_index,
     scnr = *(char **)0x5064e4;
     tag_ref = -1;
     if (0 < *(int *)(scnr + 0x30)) {
-      element =
-          (char *)tag_block_get_element((int *)(scnr + 0x30), 0, 0x10);
+      element = (char *)tag_block_get_element((int *)(scnr + 0x30), 0, 0x10);
       tag_ref = *(int *)(element + 0xc);
     }
     sky_tag = 0;
@@ -4063,8 +4037,7 @@ void FUN_0018fbc0(int16_t window_index, int structure_bsp_index,
       scnr = *(char **)0x5064e4;
       tag_ref = -1;
       if (0 < *(int *)(scnr + 0x30)) {
-        element =
-            (char *)tag_block_get_element((int *)(scnr + 0x30), 0, 0x10);
+        element = (char *)tag_block_get_element((int *)(scnr + 0x30), 0, 0x10);
         tag_ref = *(int *)(element + 0xc);
       }
       sky_tag = 0;
@@ -4085,8 +4058,8 @@ void FUN_0018fbc0(int16_t window_index, int structure_bsp_index,
     dz = camera_position[2] - *(float *)(rec + 0xc);
     dist = sqrtf(dx * dx + dy * dy + dz * dz);
 
-    if (window_index != -1 && dist < *(const float *)0x254cc0 &&
-        *rec != 0 && fog[7] != *(const float *)0x2533c0 &&
+    if (window_index != -1 && dist < *(const float *)0x254cc0 && *rec != 0 &&
+        fog[7] != *(const float *)0x2533c0 &&
         *(float *)(rec + 0x14) != *(const float *)0x2533c0) {
       /* smooth: move each record field toward the sky's fog block */
       interpolate_scalar((float *)(rec + 0x10), fog[6], dist);

@@ -1,3 +1,6 @@
+#define compute_packet_field_sizes \
+  ((void (*)(packet_definition *, short *, short *, short *))0x11add0)
+
 /* ========================================================================
  * data_encoding.c — Decode-side encoding state helpers
  * Original source: c:\halo\SOURCE\memory\data_encoding.c
@@ -9,32 +12,24 @@
  *   [3] = overflow flag (byte at low byte of word [3])
  * ======================================================================== */
 
-#define byte_swap_raw \
-  ((void (*)(void *, int, int))0x118620)
+#define byte_swap_raw ((void (*)(void *, int, int))0x118620)
 
-#define byte_swap_structures \
-  ((void (*)(void *, void *, int))0x118be0)
+#define byte_swap_structures ((void (*)(void *, void *, int))0x118be0)
 
-#define encode_state_new \
-  ((void (*)(int *, int, int))0x119c50)
+#define encode_state_new ((void (*)(int *, int, int))0x119c50)
 
-#define encode_raw_data \
-  ((int (*)(int *, int, short, int))0x119cc0)
+#define encode_raw_data ((int (*)(int *, int, short, int))0x119cc0)
 
 #define encode_packet_fields \
   ((void (*)(int, int *, short, void *, short, int, short *))0x11afa0)
 
-#define csstrcpy \
-  ((char *(*)(char *, const char *))0x8dff0)
+#define csstrcpy ((char *(*)(char *, const char *))0x8dff0)
 
-#define array_get_element \
-  ((int (*)(int *, int, int))0x117ee0)
+#define array_get_element ((int (*)(int *, int, int))0x117ee0)
 
-#define array_reset \
-  ((void (*)(int *, int))0x117b20)
+#define array_reset ((void (*)(int *, int))0x117b20)
 
-#define array_dispose \
-  ((void (*)(int *))0x117cf0)
+#define array_dispose ((void (*)(int *))0x117cf0)
 
 /* packet_header byte-swap definition at 0x3220c0 */
 #define packet_header_bs_def ((void *)0x3220c0)
@@ -75,8 +70,8 @@ bool FUN_0011a230(int *state, const char *source, short max_length)
 void FUN_0011a2d0(int *state, void *buffer, int buffer_size)
 {
   if (buffer == NULL) {
-    display_assert("buffer",
-                   "c:\\halo\\SOURCE\\memory\\data_encoding.c", 0xcc, 1);
+    display_assert("buffer", "c:\\halo\\SOURCE\\memory\\data_encoding.c", 0xcc,
+                   1);
     system_exit(-1);
   }
   if (buffer_size < 0) {
@@ -109,8 +104,8 @@ int FUN_0011a340(int *state, short count, void *bs_definition)
     system_exit(-1);
   }
   if (bs_definition == NULL) {
-    display_assert("bs_definition",
-                   "c:\\halo\\SOURCE\\memory\\data_encoding.c", 0xe0, 1);
+    display_assert("bs_definition", "c:\\halo\\SOURCE\\memory\\data_encoding.c",
+                   0xe0, 1);
     system_exit(-1);
   }
   total_size = *(short *)((char *)bs_definition + 4) * count;
@@ -141,8 +136,8 @@ __declspec(noinline) int FUN_0011a430(int *state, short count, int element_size)
     system_exit(-1);
   }
   if (count < 0) {
-    display_assert("count>=0",
-                   "c:\\halo\\SOURCE\\memory\\data_encoding.c", 0x101, 1);
+    display_assert("count>=0", "c:\\halo\\SOURCE\\memory\\data_encoding.c",
+                   0x101, 1);
     system_exit(-1);
   }
   switch (element_size) {
@@ -159,8 +154,7 @@ __declspec(noinline) int FUN_0011a430(int *state, short count, int element_size)
     byte_count = (int)count << 1;
     break;
   default:
-    display_assert(NULL,
-                   "c:\\halo\\SOURCE\\memory\\data_encoding.c", 0x109, 1);
+    display_assert(NULL, "c:\\halo\\SOURCE\\memory\\data_encoding.c", 0x109, 1);
     system_exit(-1);
     byte_count = (int)count;
     break;
@@ -194,8 +188,7 @@ __declspec(noinline) unsigned char FUN_0011a560(int *state)
   new_offset = state[1] + 1;
   if ((state[2] < new_offset) || ((char)state[3] != '\0')) {
     *(unsigned char *)(state + 3) = 1;
-  }
-  else {
+  } else {
     ptr = (unsigned char *)(*state + state[1]);
     state[1] = new_offset;
     if (ptr != NULL) {
@@ -220,8 +213,7 @@ short FUN_0011a5d0(int *state)
   }
   if ((state[2] < state[1] + 2) || ((char)state[3] != '\0')) {
     *(unsigned char *)(state + 3) = 1;
-  }
-  else {
+  } else {
     ptr = (short *)(*state + state[1]);
     byte_swap_raw(ptr, 1, -2);
     state[1] = state[1] + 2;
@@ -247,8 +239,7 @@ int FUN_0011a650(int *state)
   }
   if ((state[2] < state[1] + 4) || ((char)state[3] != '\0')) {
     *(unsigned char *)(state + 3) = 1;
-  }
-  else {
+  } else {
     ptr = (int *)(*state + state[1]);
     byte_swap_raw(ptr, 1, -4);
     state[1] = state[1] + 4;
@@ -292,8 +283,9 @@ __declspec(noinline) unsigned int FUN_0011a700(int *state, int maximum_value)
 
 /* decode_element_array — read count + structures from buffer (0x11a770).
  * Source: data_encoding.c line 0x15c. */
-void *FUN_0011a770(int *state, int element_size_type, unsigned int *element_count_ref,
-                   int maximum_element_count, void *bs_definition)
+void *FUN_0011a770(int *state, int element_size_type,
+                   unsigned int *element_count_ref, int maximum_element_count,
+                   void *bs_definition)
 {
   short sVar1;
   unsigned int count;
@@ -317,8 +309,8 @@ void *FUN_0011a770(int *state, int element_size_type, unsigned int *element_coun
     system_exit(-1);
   }
   if (bs_definition == NULL) {
-    display_assert("bs_definition",
-                   "c:\\halo\\SOURCE\\memory\\data_encoding.c", 0x15f, 1);
+    display_assert("bs_definition", "c:\\halo\\SOURCE\\memory\\data_encoding.c",
+                   0x15f, 1);
     system_exit(-1);
   }
   switch (element_size_type) {
@@ -336,8 +328,7 @@ void *FUN_0011a770(int *state, int element_size_type, unsigned int *element_coun
     count = (unsigned int)(int)FUN_0011a6d0(state);
     break;
   default:
-    display_assert(NULL,
-                   "c:\\halo\\SOURCE\\memory\\data_encoding.c", 0x172, 1);
+    display_assert(NULL, "c:\\halo\\SOURCE\\memory\\data_encoding.c", 0x172, 1);
     system_exit(-1);
     count = *element_count_ref;
     break;
@@ -399,70 +390,6 @@ void verify_packet_group_definitions(group_definition *group)
   }
 }
 
-/* network_messages.c — Network game packet group initialization.
- *
- * Corresponds to network_messages.obj.
- * initialize_network_game_packets at 0x12b640 is a thin wrapper that calls
- * verify_packet_group_definitions (0x11a930) with the global
- * s_network_game_messages_group (0x323510).
- *
- * verify_packet_group_definitions iterates the packet entries in the given
- * group, validates class bounds and size constraints, then calls
- * verify_packet_definition on each non-NULL definition.
- *
- * verify_packet_definition at 0x11b540 validates a single packet_definition:
- * checks non-NULL, size >= 0, version >= 0, name and fields non-NULL, then
- * (if not yet validated) computes total field sizes and confirms they match
- * the declared size. Sets validated = 1 after success.
- *
- * Original source: c:\halo\SOURCE\memory\data_packet_groups.c lines 0x28-0x2a
- * verify_packet_definition source: c:\halo\SOURCE\memory\data_packets.c lines
- * 0x20-0x2b
- */
-
-/* compute_packet_field_sizes at 0x11add0 — not yet ported (data_packets.c) */
-#define compute_packet_field_sizes \
-  ((void (*)(packet_definition *, short *, short *, short *))0x11add0)
-
-void verify_packet_definition(packet_definition *def)
-{
-  short computed_size;
-  short field_count;
-
-  if (def == NULL) {
-    display_assert("packet_definition",
-                   "c:\\halo\\SOURCE\\memory\\data_packets.c", 0x20, 1);
-    system_exit(-1);
-  }
-  if (def->size < 0) {
-    display_assert("packet_definition->size>=0",
-                   "c:\\halo\\SOURCE\\memory\\data_packets.c", 0x21, 1);
-    system_exit(-1);
-  }
-  if (def->version < 0) {
-    display_assert("packet_definition->version>=0",
-                   "c:\\halo\\SOURCE\\memory\\data_packets.c", 0x22, 1);
-    system_exit(-1);
-  }
-  if (def->name == NULL || def->fields == NULL) {
-    display_assert("packet_definition->name && packet_definition->fields",
-                   "c:\\halo\\SOURCE\\memory\\data_packets.c", 0x23, 1);
-    system_exit(-1);
-  }
-  if (!def->validated) {
-    compute_packet_field_sizes(def, &computed_size, def->fields, &field_count);
-    if (computed_size != def->size) {
-      display_assert(csprintf(error_string_buffer,
-                              "packet '%s' fields added up to #%d bytes but "
-                              "should have been #%d bytes.",
-                              def->name, (int)computed_size, (int)def->size),
-                     "c:\\halo\\SOURCE\\memory\\data_packets.c", 0x2b, 1);
-      system_exit(-1);
-    }
-    def->validated = 1;
-  }
-}
-
 /* ========================================================================
  * data_packet_groups.c — Packet group decode
  * ======================================================================== */
@@ -504,16 +431,14 @@ bool FUN_0011aa40(int group, void *decoded_packet, char *encoded_packet,
   }
   if (*encoded_packet_size == 0) {
     error_msg = "got packet with no header";
-  }
-  else {
+  } else {
     header_ptr = (char *)(*encoded_packet_size - 1 + (int)encoded_packet);
     byte_swap_structures(packet_header_bs_def, header_ptr, 1);
     packet_type_byte = *header_ptr;
     if (packet_type_byte < 0 ||
         *(short *)(group + 4) <= (short)packet_type_byte) {
       error_msg = "got packet with bad type";
-    }
-    else {
+    } else {
       packets_array = *(int *)(group + 0x10);
       if (*(short *)(packets_array + (int)packet_type_byte * 8) ==
           expected_packet_class) {
@@ -528,8 +453,7 @@ bool FUN_0011aa40(int group, void *decoded_packet, char *encoded_packet,
           }
         }
         *packet_type = (short)*header_ptr;
-      }
-      else {
+      } else {
         error_msg = "got packet with mismatched class";
       }
     }
@@ -559,7 +483,8 @@ void FUN_0011b2a0(int definition, int *decode_state, unsigned short version,
 
   cur_field = field_defs;
   cur_output = output;
-  if (*cur_field == 9) goto loop_done;
+  if (*cur_field == 9)
+    goto loop_done;
   do {
     if ((short)version >= cur_field[2] &&
         ((short)version <= cur_field[3] || cur_field[3] == 0)) {
@@ -607,10 +532,10 @@ void FUN_0011b2a0(int definition, int *decode_state, unsigned short version,
         unsigned short nested_count;
         unsigned short *nested_output;
 
-        nested_count = (unsigned short)FUN_0011a700(decode_state,
-                                                     (int)cur_field[1]);
-        compute_packet_field_sizes(
-          (packet_definition *)definition, 0, cur_field + 5, local_c);
+        nested_count =
+          (unsigned short)FUN_0011a700(decode_state, (int)cur_field[1]);
+        compute_packet_field_sizes((packet_definition *)definition, 0,
+                                   cur_field + 5, local_c);
         if ((short)nested_count < 0 || cur_field[1] < (short)nested_count) {
           nested_count = 0;
         }
@@ -636,8 +561,7 @@ void FUN_0011b2a0(int definition, int *decode_state, unsigned short version,
         }
         break;
       }
-    }
-    else {
+    } else {
       csmemset(cur_output, 0, (int)cur_field[4]);
     }
     cur_output = (unsigned short *)((int)cur_output + (int)cur_field[4]);
@@ -654,11 +578,71 @@ loop_done:
   }
 }
 
+/* network_messages.c — Network game packet group initialization.
+ *
+ * Corresponds to network_messages.obj.
+ * initialize_network_game_packets at 0x12b640 is a thin wrapper that calls
+ * verify_packet_group_definitions (0x11a930) with the global
+ * s_network_game_messages_group (0x323510).
+ *
+ * verify_packet_group_definitions iterates the packet entries in the given
+ * group, validates class bounds and size constraints, then calls
+ * verify_packet_definition on each non-NULL definition.
+ *
+ * verify_packet_definition at 0x11b540 validates a single packet_definition:
+ * checks non-NULL, size >= 0, version >= 0, name and fields non-NULL, then
+ * (if not yet validated) computes total field sizes and confirms they match
+ * the declared size. Sets validated = 1 after success.
+ *
+ * Original source: c:\halo\SOURCE\memory\data_packet_groups.c lines 0x28-0x2a
+ * verify_packet_definition source: c:\halo\SOURCE\memory\data_packets.c lines
+ * 0x20-0x2b
+ */
+
+/* compute_packet_field_sizes at 0x11add0 — not yet ported (data_packets.c) */
+void verify_packet_definition(packet_definition *def)
+{
+  short computed_size;
+  short field_count;
+
+  if (def == NULL) {
+    display_assert("packet_definition",
+                   "c:\\halo\\SOURCE\\memory\\data_packets.c", 0x20, 1);
+    system_exit(-1);
+  }
+  if (def->size < 0) {
+    display_assert("packet_definition->size>=0",
+                   "c:\\halo\\SOURCE\\memory\\data_packets.c", 0x21, 1);
+    system_exit(-1);
+  }
+  if (def->version < 0) {
+    display_assert("packet_definition->version>=0",
+                   "c:\\halo\\SOURCE\\memory\\data_packets.c", 0x22, 1);
+    system_exit(-1);
+  }
+  if (def->name == NULL || def->fields == NULL) {
+    display_assert("packet_definition->name && packet_definition->fields",
+                   "c:\\halo\\SOURCE\\memory\\data_packets.c", 0x23, 1);
+    system_exit(-1);
+  }
+  if (!def->validated) {
+    compute_packet_field_sizes(def, &computed_size, def->fields, &field_count);
+    if (computed_size != def->size) {
+      display_assert(csprintf(error_string_buffer,
+                              "packet '%s' fields added up to #%d bytes but "
+                              "should have been #%d bytes.",
+                              def->name, (int)computed_size, (int)def->size),
+                     "c:\\halo\\SOURCE\\memory\\data_packets.c", 0x2b, 1);
+      system_exit(-1);
+    }
+    def->validated = 1;
+  }
+}
+
 /* encode_packet — encode a data struct into a packet buffer (0x11b650).
  * Source: data_packets.c lines 0x3d-0x3f. */
-bool FUN_0011b650(int definition, short version, void *data,
-                  char *buffer, short *buffer_size_out,
-                  short maximum_buffer_size)
+bool FUN_0011b650(int definition, short version, void *data, char *buffer,
+                  short *buffer_size_out, short maximum_buffer_size)
 {
   int encode_state[4];
   char version_byte;
@@ -706,13 +690,13 @@ bool FUN_0011b750(int definition, int encoded_packet, short encoded_packet_size,
 
   result = 0;
   if (encoded_packet == 0) {
-    display_assert("encoded_packet",
-                   "c:\\halo\\SOURCE\\memory\\data_packets.c", 0x5f, 1);
+    display_assert("encoded_packet", "c:\\halo\\SOURCE\\memory\\data_packets.c",
+                   0x5f, 1);
     system_exit(-1);
   }
   if (decoded_packet == 0) {
-    display_assert("decoded_packet",
-                   "c:\\halo\\SOURCE\\memory\\data_packets.c", 0x60, 1);
+    display_assert("decoded_packet", "c:\\halo\\SOURCE\\memory\\data_packets.c",
+                   0x60, 1);
     system_exit(-1);
   }
   if (encoded_packet_size < 0) {
@@ -721,12 +705,10 @@ bool FUN_0011b750(int definition, int encoded_packet, short encoded_packet_size,
     system_exit(-1);
   }
   verify_packet_definition((packet_definition *)definition);
-  FUN_0011a2d0(decode_state, (void *)encoded_packet,
-               (int)encoded_packet_size);
+  FUN_0011a2d0(decode_state, (void *)encoded_packet, (int)encoded_packet_size);
   if (*(short *)(definition + 10) == 0) {
     version = 0;
-  }
-  else {
+  } else {
     version_byte = FUN_0011a560(decode_state);
     version = (unsigned short)version_byte;
   }
@@ -735,7 +717,8 @@ bool FUN_0011b750(int definition, int encoded_packet, short encoded_packet_size,
                  (unsigned short *)decoded_packet, 0,
                  *(short **)(definition + 0xc), 0);
     result = 1;
-    if ((char)decode_state[3] == '\0') goto done;
+    if ((char)decode_state[3] == '\0')
+      goto done;
   }
   result = 0;
 done:
@@ -850,8 +833,8 @@ void hashtable_dispose(short *table)
   if (table == NULL || *table < 1 || table[1] < 1 ||
       !(*(float *)((char *)table + 0x08) > 0.0f &&
         *(float *)((char *)table + 0x08) <= 1.0f) ||
-      (table[3] != -1 &&
-       (1 << ((unsigned char)table[3] & 0x1f)) != *(int *)((char *)table + 0x20))) {
+      (table[3] != -1 && (1 << ((unsigned char)table[3] & 0x1f)) !=
+                           *(int *)((char *)table + 0x20))) {
     display_assert("hashtable_valid(table)",
                    "c:\\halo\\SOURCE\\memory\\hashtable.c", 0x6e, 1);
     system_exit(-1);
@@ -902,10 +885,9 @@ int FUN_0011ba50(short *table, void *key, unsigned short *slot_index_out)
   if (*(int *)(table + 8) != 0) {
     hash_val = (unsigned short)(*(int (**)(int, void *))(table + 8))(
       *(int *)(table + 6), key);
-  }
-  else {
-    hash_val = (unsigned short)FUN_0011ba00((unsigned char *)key,
-                                            (unsigned int)*table);
+  } else {
+    hash_val =
+      (unsigned short)FUN_0011ba00((unsigned char *)key, (unsigned int)*table);
   }
   slot = (short)((unsigned short)(table[0x10] - 1) & hash_val);
   while (1) {
@@ -914,16 +896,16 @@ int FUN_0011ba50(short *table, void *key, unsigned short *slot_index_out)
       *slot_index_out = (unsigned short)slot;
       return 0;
     }
-    if (table[2] <= (short)probe_count) break;
+    if (table[2] <= (short)probe_count)
+      break;
     if (*(int *)(table + 10) != 0) {
-      element_ptr = array_get_element((int *)(table + 0xe), (int)slot,
-                                      (int)table[1]);
-      found = (*(int (**)(int, int, void *))(table + 10))(
-        *(int *)(table + 6), element_ptr, key);
-    }
-    else {
-      element_ptr = array_get_element((int *)(table + 0xe), (int)slot,
-                                      (int)table[1]);
+      element_ptr =
+        array_get_element((int *)(table + 0xe), (int)slot, (int)table[1]);
+      found = (*(int (**)(int, int, void *))(table + 10))(*(int *)(table + 6),
+                                                          element_ptr, key);
+    } else {
+      element_ptr =
+        array_get_element((int *)(table + 0xe), (int)slot, (int)table[1]);
       cmp_result = csmemcmp((void *)element_ptr, key, (int)*table);
       found = cmp_result == 0;
     }
@@ -949,11 +931,9 @@ int FUN_0011bb70(short *table, void *key)
 
   psVar1 = table;
   if ((((table == NULL) || (*table < 1)) || (table[1] < 1)) ||
-      (((*(float *)(table + 4) <= 0.0f) ||
-        (*(float *)(table + 4) > 1.0f)) ||
-       ((table[3] != -1 &&
-         ((1 << ((unsigned char)table[3] & 0x1f)) !=
-          *(int *)(table + 0x10)))))) {
+      (((*(float *)(table + 4) <= 0.0f) || (*(float *)(table + 4) > 1.0f)) ||
+       ((table[3] != -1 && ((1 << ((unsigned char)table[3] & 0x1f)) !=
+                            *(int *)(table + 0x10)))))) {
     display_assert("hashtable_valid(table)",
                    "c:\\halo\\SOURCE\\memory\\hashtable.c", 0x4d, 1);
     system_exit(-1);
@@ -961,8 +941,8 @@ int FUN_0011bb70(short *table, void *key)
   if (psVar1[2] != 0) {
     found = (char)FUN_0011ba50(psVar1, key, (unsigned short *)&slot);
     if (found != '\0') {
-      element_ptr = array_get_element((int *)(psVar1 + 0xe), (int)slot,
-                                      (int)psVar1[1]);
+      element_ptr =
+        array_get_element((int *)(psVar1 + 0xe), (int)slot, (int)psVar1[1]);
       return element_ptr + *psVar1;
     }
   }
@@ -985,18 +965,15 @@ void FUN_0011bc20(short *table, void *key)
 
   psVar3 = table;
   if (((((table == NULL) || (*table < 1)) || (table[1] < 1)) ||
-       ((*(float *)(table + 4) <= 0.0f) ||
-        (*(float *)(table + 4) > 1.0f))) ||
-      ((table[3] != -1 &&
-        ((1 << ((unsigned short)table[3] & 0x1f)) !=
-         *(int *)(table + 0x10))))) {
+       ((*(float *)(table + 4) <= 0.0f) || (*(float *)(table + 4) > 1.0f))) ||
+      ((table[3] != -1 && ((1 << ((unsigned short)table[3] & 0x1f)) !=
+                           *(int *)(table + 0x10))))) {
     display_assert("hashtable_valid(table)",
                    "c:\\halo\\SOURCE\\memory\\hashtable.c", 0xc3, 1);
     system_exit(-1);
   }
   if (key == NULL) {
-    display_assert("key",
-                   "c:\\halo\\SOURCE\\memory\\hashtable.c", 0xc4, 1);
+    display_assert("key", "c:\\halo\\SOURCE\\memory\\hashtable.c", 0xc4, 1);
     system_exit(-1);
   }
   found = (char)FUN_0011ba50(psVar3, key, (unsigned short *)&removed_slot);
@@ -1007,18 +984,17 @@ void FUN_0011bc20(short *table, void *key)
     return;
   }
   next_slot = (unsigned short)((int)(removed_slot + 1) &
-              (int)(unsigned short)(psVar3[0x10] - 1));
+                               (int)(unsigned short)(psVar3[0x10] - 1));
   cur_pos = (int)(short)next_slot;
-  bit_mask = *(unsigned int *)(*(int *)(psVar3 + 0xc) +
-             (cur_pos >> 5) * 4) & (1 << ((unsigned char)next_slot & 0x1f));
+  bit_mask = *(unsigned int *)(*(int *)(psVar3 + 0xc) + (cur_pos >> 5) * 4) &
+             (1 << ((unsigned char)next_slot & 0x1f));
   while (bit_mask != 0) {
-    next_element = array_get_element((int *)(psVar3 + 0xe), cur_pos,
-                                     (int)psVar3[1]);
+    next_element =
+      array_get_element((int *)(psVar3 + 0xe), cur_pos, (int)psVar3[1]);
     if (*(int *)(psVar3 + 8) == 0) {
-      key_hash = (unsigned short)FUN_0011ba00(
-        (unsigned char *)next_element, (unsigned int)*psVar3);
-    }
-    else {
+      key_hash = (unsigned short)FUN_0011ba00((unsigned char *)next_element,
+                                              (unsigned int)*psVar3);
+    } else {
       key_hash = (unsigned short)(*(int (**)(int, int))(psVar3 + 8))(
         *(int *)(psVar3 + 6), next_element);
     }
@@ -1039,28 +1015,26 @@ void FUN_0011bc20(short *table, void *key)
       }
     }
     goto no_shift;
-    do_shift:
-    {
-      int src_element;
-      int dst_element;
-      src_element = array_get_element((int *)(psVar3 + 0xe), cur_pos,
-                                      (int)psVar3[1]);
-      dst_element = array_get_element((int *)(psVar3 + 0xe), (int)removed_slot,
-                                      (int)psVar3[1]);
-      csmemcpy((void *)dst_element, (void *)src_element,
-               *(int *)(psVar3 + 0xe));
-      removed_slot = (short)next_slot;
-    }
-    no_shift:
+  do_shift: {
+    int src_element;
+    int dst_element;
+    src_element =
+      array_get_element((int *)(psVar3 + 0xe), cur_pos, (int)psVar3[1]);
+    dst_element = array_get_element((int *)(psVar3 + 0xe), (int)removed_slot,
+                                    (int)psVar3[1]);
+    csmemcpy((void *)dst_element, (void *)src_element, *(int *)(psVar3 + 0xe));
+    removed_slot = (short)next_slot;
+  }
+  no_shift:
     (void)0;
     next_slot = (unsigned short)((int)(next_slot + 1) &
-                (int)(unsigned short)(psVar3[0x10] - 1));
+                                 (int)(unsigned short)(psVar3[0x10] - 1));
     cur_pos = (int)(short)next_slot;
-    bit_mask = *(unsigned int *)(*(int *)(psVar3 + 0xc) +
-               (cur_pos >> 5) * 4) & (1 << ((unsigned char)next_slot & 0x1f));
+    bit_mask = *(unsigned int *)(*(int *)(psVar3 + 0xc) + (cur_pos >> 5) * 4) &
+               (1 << ((unsigned char)next_slot & 0x1f));
   }
-  bitmap_word = (unsigned int *)(*(int *)(psVar3 + 0xc) +
-                ((int)removed_slot >> 5) * 4);
+  bitmap_word =
+    (unsigned int *)(*(int *)(psVar3 + 0xc) + ((int)removed_slot >> 5) * 4);
   *bitmap_word = *bitmap_word & ~(1 << ((unsigned char)removed_slot & 0x1f));
 }
 
@@ -1080,11 +1054,10 @@ int FUN_0011be10(short *table, void *key)
     system_exit(-1);
     return 0;
   }
-  element_ptr = array_get_element((int *)(table + 0xe), (int)slot,
-                                  (int)table[1]);
+  element_ptr =
+    array_get_element((int *)(table + 0xe), (int)slot, (int)table[1]);
   csmemcpy((void *)element_ptr, key, (int)*table);
-  bitmap_word = (unsigned int *)(*(int *)(table + 0xc) +
-                ((int)slot >> 5) * 4);
+  bitmap_word = (unsigned int *)(*(int *)(table + 0xc) + ((int)slot >> 5) * 4);
   *bitmap_word = *bitmap_word | (1 << ((unsigned char)slot & 0x1f));
   table[2] = table[2] + 1;
   return *table + element_ptr;
@@ -1117,8 +1090,7 @@ int FUN_0011beb0(short *table, short growth_bits)
   old_array_capacity = *(int *)(table + 0x10);
   old_array_p2 = *(int *)(table + 0x12);
   if (((*table < 1) || (table[1] < 1)) ||
-      ((*(float *)(table + 4) <= 0.0f) ||
-       (*(float *)(table + 4) > 1.0f) ||
+      ((*(float *)(table + 4) <= 0.0f) || (*(float *)(table + 4) > 1.0f) ||
        ((old_capacity_bits != 0xffff &&
          ((1 << ((unsigned char)old_capacity_bits & 0x1f)) !=
           *(int *)(table + 0x10)))))) {
@@ -1127,8 +1099,8 @@ int FUN_0011beb0(short *table, short growth_bits)
     system_exit(-1);
   }
   if (growth_bits < 1) {
-    display_assert("growth_bits>0",
-                   "c:\\halo\\SOURCE\\memory\\hashtable.c", 0x87, 1);
+    display_assert("growth_bits>0", "c:\\halo\\SOURCE\\memory\\hashtable.c",
+                   0x87, 1);
     system_exit(-1);
   }
   if ((int)growth_bits + (int)table[3] > 0xf) {
@@ -1141,7 +1113,7 @@ int FUN_0011beb0(short *table, short growth_bits)
   bitmap_bytes = ((new_capacity + 0x1f) >> 5) << 2;
   table[2] = 0;
   new_bitmap = (int)debug_malloc(bitmap_bytes, 0,
-    "c:\\halo\\SOURCE\\memory\\hashtable.c", 0x8f);
+                                 "c:\\halo\\SOURCE\\memory\\hashtable.c", 0x8f);
   *(int *)(table + 0xc) = new_bitmap;
   if (new_bitmap != 0) {
     array_reset((int *)array_hdr, *(int *)array_hdr);
@@ -1153,11 +1125,9 @@ int FUN_0011beb0(short *table, short growth_bits)
         do {
           if ((*(unsigned int *)(old_bitmap + (i >> 5) * 4) &
                (1 << ((unsigned char)i & 0x1f))) != 0) {
-            element_ptr = array_get_element(&old_array_data, i,
-                                            old_array_data);
+            element_ptr = array_get_element(&old_array_data, i, old_array_data);
             dest_ptr = FUN_0011be10(table, (void *)element_ptr);
-            csmemcpy((void *)dest_ptr,
-                     (void *)(element_ptr + *table),
+            csmemcpy((void *)dest_ptr, (void *)(element_ptr + *table),
                      (int)table[1]);
           }
           idx = idx + 1;
@@ -1165,8 +1135,8 @@ int FUN_0011beb0(short *table, short growth_bits)
         } while (i < old_array_capacity);
       }
       if (old_bitmap != 0) {
-        debug_free((void *)old_bitmap,
-                   "c:\\halo\\SOURCE\\memory\\hashtable.c", 0xa8);
+        debug_free((void *)old_bitmap, "c:\\halo\\SOURCE\\memory\\hashtable.c",
+                   0xa8);
       }
       array_dispose(&old_array_data);
       return 1;
@@ -1191,11 +1161,9 @@ int FUN_0011c0f0(short *table, void *key)
   int result;
 
   if (((((table == NULL) || (*table < 1)) || (table[1] < 1)) ||
-       ((*(float *)(table + 4) <= 0.0f) ||
-        (*(float *)(table + 4) > 1.0f))) ||
+       ((*(float *)(table + 4) <= 0.0f) || (*(float *)(table + 4) > 1.0f))) ||
       ((table[3] != -1 &&
-        ((1 << ((unsigned char)table[3] & 0x1f)) !=
-         *(int *)(table + 0x10))))) {
+        ((1 << ((unsigned char)table[3] & 0x1f)) != *(int *)(table + 0x10))))) {
     display_assert("hashtable_valid(table)",
                    "c:\\halo\\SOURCE\\memory\\hashtable.c", 0x5d, 1);
     system_exit(-1);
@@ -1269,14 +1237,13 @@ void FUN_0011c210(int cache, int block)
       (cache_size = *(unsigned int *)(cache + 0x20),
        block_size < (int)cache_size)) {
     block_offset = block - *(int *)(cache + 0x24);
-    if ((block_offset >= 0) &&
-        (block_size + block_offset <= (int)cache_size)) {
+    if ((block_offset >= 0) && (block_size + block_offset <= (int)cache_size)) {
       if (*(int *)(block + 0xc) == 0) {
         next_offset = 0;
-      }
-      else {
+      } else {
         next_offset = *(int *)(block + 0xc) - *(int *)(cache + 0x24);
-        if (next_offset < 0) goto corrupt;
+        if (next_offset < 0)
+          goto corrupt;
       }
       if (next_offset + 0x10U <= cache_size) {
         return;
@@ -1284,11 +1251,10 @@ void FUN_0011c210(int cache, int block)
     }
   }
 corrupt:
-  display_assert(
-    csprintf(error_string_buffer,
-             "lra cache %s @%p block @%p appears to be corrupt",
-             (char *)cache, (void *)cache, (void *)block),
-    "c:\\halo\\SOURCE\\memory\\lra_cache.c", 0x18e, 1);
+  display_assert(csprintf(error_string_buffer,
+                          "lra cache %s @%p block @%p appears to be corrupt",
+                          (char *)cache, (void *)cache, (void *)block),
+                 "c:\\halo\\SOURCE\\memory\\lra_cache.c", 0x18e, 1);
   system_exit(-1);
 }
 
@@ -1297,18 +1263,16 @@ corrupt:
 void FUN_0011c290(int cache)
 {
   if (cache == 0) {
-    display_assert("cache",
-                   "c:\\halo\\SOURCE\\memory\\lra_cache.c", 0x198, 1);
+    display_assert("cache", "c:\\halo\\SOURCE\\memory\\lra_cache.c", 0x198, 1);
     system_exit(-1);
   }
   if (((*(int *)(cache + 0x38) != 0x6c726163) ||
        (*(int *)(cache + 0x24) == 0)) ||
       (*(int *)(cache + 0x20) < 0)) {
-    display_assert(
-      csprintf(error_string_buffer,
-               "lra cache %s @%p appears to be corrupt",
-               (char *)cache, (void *)cache),
-      "c:\\halo\\SOURCE\\memory\\lra_cache.c", 0x1a2, 1);
+    display_assert(csprintf(error_string_buffer,
+                            "lra cache %s @%p appears to be corrupt",
+                            (char *)cache, (void *)cache),
+                   "c:\\halo\\SOURCE\\memory\\lra_cache.c", 0x1a2, 1);
     system_exit(-1);
   }
   if (*(int *)(cache + 0x2c) != 0) {
@@ -1324,11 +1288,10 @@ int FUN_0011c310(const char *name, int size, void (*lock_proc)(void *, int),
   int cache;
   char owns_buffer;
 
-  cache = (int)debug_malloc(0x3c, 0,
-    "c:\\halo\\SOURCE\\memory\\lra_cache.c", 0x56);
+  cache =
+    (int)debug_malloc(0x3c, 0, "c:\\halo\\SOURCE\\memory\\lra_cache.c", 0x56);
   if (size < 0) {
-    display_assert("size>=0",
-                   "c:\\halo\\SOURCE\\memory\\lra_cache.c", 0x58, 1);
+    display_assert("size>=0", "c:\\halo\\SOURCE\\memory\\lra_cache.c", 0x58, 1);
     system_exit(-1);
   }
   if (lock_proc == NULL || unlock_proc == NULL) {
@@ -1338,12 +1301,12 @@ int FUN_0011c310(const char *name, int size, void (*lock_proc)(void *, int),
   if (cache != 0) {
     owns_buffer = 0;
     if (base_address == NULL) {
-      base_address = debug_malloc(size, 0,
-        "c:\\halo\\SOURCE\\memory\\lra_cache.c", 0x66);
+      base_address =
+        debug_malloc(size, 0, "c:\\halo\\SOURCE\\memory\\lra_cache.c", 0x66);
       owns_buffer = 1;
       if (base_address == NULL) {
-        debug_free((void *)cache,
-                   "c:\\halo\\SOURCE\\memory\\lra_cache.c", 0x7e);
+        debug_free((void *)cache, "c:\\halo\\SOURCE\\memory\\lra_cache.c",
+                   0x7e);
         return 0;
       }
     }
@@ -1376,8 +1339,7 @@ void FUN_0011c430(int cache)
     debug_free(*(void **)(cache + 0x24),
                "c:\\halo\\SOURCE\\memory\\lra_cache.c", 0x8c);
   }
-  debug_free((void *)cache,
-             "c:\\halo\\SOURCE\\memory\\lra_cache.c", 0x8d);
+  debug_free((void *)cache, "c:\\halo\\SOURCE\\memory\\lra_cache.c", 0x8d);
 }
 
 /* lra_cache_flush — unlock all blocks and clear the list (0x11c480).
@@ -1409,8 +1371,8 @@ void FUN_0011c4d0(int cache, void *pointer)
   int block_header;
 
   if (pointer == NULL) {
-    display_assert("pointer",
-                   "c:\\halo\\SOURCE\\memory\\lra_cache.c", 0x11a, 1);
+    display_assert("pointer", "c:\\halo\\SOURCE\\memory\\lra_cache.c", 0x11a,
+                   1);
     system_exit(-1);
   }
   block_header = (int)pointer - 0x10;
@@ -1522,13 +1484,15 @@ void *encode_network_game_message(int type, void *data,
   case 10:
     if (message_struct_size == 2)
       goto size_ok;
-    assertion = "message_struct_size==sizeof(message_server_pregame_keep_alive)";
+    assertion =
+      "message_struct_size==sizeof(message_server_pregame_keep_alive)";
     assertion_line = 0xac;
     break;
   case 11:
     if (message_struct_size == 2)
       goto size_ok;
-    assertion = "message_struct_size==sizeof(message_server_postgame_keep_alive)";
+    assertion =
+      "message_struct_size==sizeof(message_server_postgame_keep_alive)";
     assertion_line = 0xb1;
     break;
   case 12:
@@ -1567,7 +1531,8 @@ void *encode_network_game_message(int type, void *data,
   case 17:
     if (message_struct_size == 2)
       goto size_ok;
-    assertion = "message_struct_size==sizeof(message_client_game_start_request)";
+    assertion =
+      "message_struct_size==sizeof(message_client_game_start_request)";
     assertion_line = 0xb9;
     break;
   case 18:
@@ -1707,8 +1672,9 @@ size_ok:
   }
 
   {
-    void *msg = (void *)create_message(3, (int)encoded_buf, encoded_size,
-                                       (int)s_network_game_message_buffer, 0x604);
+    void *msg =
+      (void *)create_message(3, (int)encoded_buf, encoded_size,
+                             (int)s_network_game_message_buffer, 0x604);
     if (msg == NULL) {
       network_game_log("create_message() failed");
     }

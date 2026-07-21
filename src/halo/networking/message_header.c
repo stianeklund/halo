@@ -1,3 +1,40 @@
+#include "../../common.h"
+
+/* Global: pointer to key_agreement_packets group definition at 0x2ee588. */
+#define key_agreement_group ((void *)0x2ee588)
+
+/* 0x803d0 - Encode a key-agreement packet and wrap it in a message.
+ * Encodes the packet data (param_2) into a 128-byte stack buffer using
+ * encode_packet_group with message type param_1, then calls create_message
+ * to allocate and build the network message.  Sets the encrypted-key-exchange
+ * flag (bit 1) in the returned message header and returns the message pointer,
+ * or NULL on failure. */
+unsigned short *key_agreement_build_message(short type, void *data, int buffer,
+                                            unsigned short buffer_size)
+{
+  unsigned char encoded_buf[0x88];
+  int encoded_size;
+  unsigned short *msg;
+  int i;
+
+  encoded_buf[0] = 0;
+  for (i = 0; i < 0x7f; i++) {
+    encoded_buf[1 + i] = 0;
+  }
+  encoded_size = 0x80;
+
+  if (encode_packet_group((group_definition *)key_agreement_group, data,
+                          (char *)encoded_buf, &encoded_size, type, 1)) {
+    msg = (unsigned short *)create_message(
+      3, (int)encoded_buf, (unsigned int)encoded_size, buffer, buffer_size);
+    if (msg != (unsigned short *)0) {
+      *msg = (*msg & 0xfffe) | 2;
+      return msg;
+    }
+  }
+  return (unsigned short *)0;
+}
+
 /* ========================================================================
  * message_header.c — Message header, encryption, key agreement, prime sieve
  * Original source: c:\halo\SOURCE\bungie_net\common\message_header.c
@@ -5,7 +42,6 @@
  *                  c:\halo\SOURCE\bungie_net\common\key_agreement.c
  *                  c:\halo\SOURCE\bungie_net\common\prime_numbers.c
  * ======================================================================== */
-#include "../../common.h"
 
 /* 0x80530 - Peek at packet type from a key-agreement message buffer.
  * Reads the packet-type byte from param_1[param_2 - 1] into *param_3.
@@ -121,143 +157,6 @@ void tea_decrypt(unsigned int *v, unsigned int *w, int *key)
   w[1] = uVar1;
 }
 
-/* 0x80b40 - Build (encode) a 2-byte message header in-place.
- * Packs length (bits 15..4), type (bits 3..2), and flags (bits 1..0)
- * into *header. Asserts on NULL header, oversized length, invalid type,
- * and out-of-range flags. */
-void build_message_header(unsigned short *header, unsigned short length,
-                          unsigned char type, unsigned char flags)
-{
-  assert_halt_msg(header != (unsigned short *)0, "header != NULL");
-  assert_halt_msg((0 <= (int)length) && ((int)length <= 0xfff),
-                  "(0<=(length)) && ((length)<=MAXIMUM_MESSAGE_SIZE)");
-
-  *header = ((unsigned char)*header & 0xf) | (length << 4);
-
-  if (type == 0) {
-    goto bad_type;
-  }
-  if (type < 4) {
-    goto good_type;
-  }
-bad_type:
-  /* assert_halt_msg(0,...) is noreturn (system_exit); control never falls
-   * through into good_type. Layout matches the original's forward branches. */
-  assert_halt_msg(0, "(0<(type)) && ((type)<NUMBER_OF_MESSAGE_TYPES)");
-
-good_type:
-  *header = ((unsigned short)(type & 3) << 2) | (*header & 0xfff3);
-  assert_halt_msg((0 <= (int)flags) && ((int)flags <= 3),
-                  "(0<=flags) && ((flags)<=MESSAGE_FLAG_BITS_MASK)");
-  *header = (*header & 0xfffc) | (unsigned short)flags;
-}
-
-/* 0x80c20 - Byte-swap a 2-byte message header for network byte order.
- * param_2 == 0: host->network; param_2 == 1: network->host.
- * Both directions are identical (swap both bytes). */
-void byte_swap_message_header(unsigned short *header, int byte_order)
-{
-  unsigned short v;
-
-  assert_halt_msg(header != (unsigned short *)0, "header");
-
-  if (byte_order == 1) {
-    v = *header;
-    *header = (unsigned short)((v << 8) | (v >> 8));
-    return;
-  }
-  if (byte_order == 0) {
-    v = *header;
-    *header = (unsigned short)((v << 8) | (v >> 8));
-    return;
-  }
-
-  assert_halt_msg(0, "!\"bad value for byte order\"");
-}
-
-/* 0x80ca0 - Allocate (or use a provided buffer) and build a complete message.
- * If param_4 == 0, allocates (length+2) bytes via debug_malloc.
- * Writes the header at offset 0 and copies param_3 bytes of payload from
- * param_2 to offset 2. Returns the message buffer pointer (0 on alloc fail). */
-int create_message(int type, int payload, unsigned int payload_len, int buffer,
-                   unsigned short buffer_size)
-{
-  short msg_size;
-
-  msg_size = (short)(payload_len + 2);
-
-  if (buffer == 0) {
-    goto do_malloc;
-  }
-  if ((int)(unsigned int)buffer_size >= (int)msg_size) {
-    goto after_malloc;
-  }
-  /* assert_halt_msg(0,...) is noreturn (system_exit); control never falls
-   * through into do_malloc. The malloc block is hoisted after the size check
-   * so buffer==0 forward-jumps to it, matching the original's layout. */
-  assert_halt_msg(0, "buffer_size >= message_size");
-
-do_malloc:
-  buffer = (int)debug_malloc(
-    (int)msg_size, 0,
-    "c:\\halo\\SOURCE\\bungie_net\\common\\message_header.c", 0x2e);
-
-after_malloc:
-  if (buffer != 0) {
-    build_message_header((unsigned short *)buffer, payload_len + 2,
-                         (unsigned char)type, 0);
-    if (payload != 0) {
-      csmemcpy((void *)(buffer + 2), (void *)payload, payload_len & 0xffff);
-    }
-  }
-  return buffer;
-}
-
-/* 0x80d30 - Comparator for qsort over unsigned int arrays (ascending).
- * Returns 1 if *a < *b, -1 if *a > *b, 0 if equal. */
-int prime_compare(unsigned int *a, unsigned int *b)
-{
-  if (*a < *b) {
-    return 1;
-  }
-  return -(int)(*b < *a);
-}
-
-/* Global: pointer to key_agreement_packets group definition at 0x2ee588. */
-#define key_agreement_group ((void *)0x2ee588)
-
-/* 0x803d0 - Encode a key-agreement packet and wrap it in a message.
- * Encodes the packet data (param_2) into a 128-byte stack buffer using
- * encode_packet_group with message type param_1, then calls create_message
- * to allocate and build the network message.  Sets the encrypted-key-exchange
- * flag (bit 1) in the returned message header and returns the message pointer,
- * or NULL on failure. */
-unsigned short *key_agreement_build_message(short type, void *data, int buffer,
-                                            unsigned short buffer_size)
-{
-  unsigned char encoded_buf[0x88];
-  int encoded_size;
-  unsigned short *msg;
-  int i;
-
-  encoded_buf[0] = 0;
-  for (i = 0; i < 0x7f; i++) {
-    encoded_buf[1 + i] = 0;
-  }
-  encoded_size = 0x80;
-
-  if (encode_packet_group((group_definition *)key_agreement_group, data,
-                          (char *)encoded_buf, &encoded_size, type, 1)) {
-    msg = (unsigned short *)create_message(
-      3, (int)encoded_buf, (unsigned int)encoded_size, buffer, buffer_size);
-    if (msg != (unsigned short *)0) {
-      *msg = (*msg & 0xfffe) | 2;
-      return msg;
-    }
-  }
-  return (unsigned short *)0;
-}
-
 /* 0x80940 - Encrypt a message in-place using TEA + keystream XOR.
  * Encrypts full 8-byte TEA blocks followed by any remainder bytes via
  * key_message_xor_keystream.  Payload byte-count is derived from the
@@ -350,6 +249,108 @@ void message_decrypt(unsigned short *msgptr, unsigned int *key)
                     "(0<=flags) && ((flags)<=MESSAGE_FLAG_BITS_MASK)");
     *msgptr = (*msgptr & 0xfffc) | (hdr & 2);
   }
+}
+
+/* 0x80b40 - Build (encode) a 2-byte message header in-place.
+ * Packs length (bits 15..4), type (bits 3..2), and flags (bits 1..0)
+ * into *header. Asserts on NULL header, oversized length, invalid type,
+ * and out-of-range flags. */
+void build_message_header(unsigned short *header, unsigned short length,
+                          unsigned char type, unsigned char flags)
+{
+  assert_halt_msg(header != (unsigned short *)0, "header != NULL");
+  assert_halt_msg((0 <= (int)length) && ((int)length <= 0xfff),
+                  "(0<=(length)) && ((length)<=MAXIMUM_MESSAGE_SIZE)");
+
+  *header = ((unsigned char)*header & 0xf) | (length << 4);
+
+  if (type == 0) {
+    goto bad_type;
+  }
+  if (type < 4) {
+    goto good_type;
+  }
+bad_type:
+  /* assert_halt_msg(0,...) is noreturn (system_exit); control never falls
+   * through into good_type. Layout matches the original's forward branches. */
+  assert_halt_msg(0, "(0<(type)) && ((type)<NUMBER_OF_MESSAGE_TYPES)");
+
+good_type:
+  *header = ((unsigned short)(type & 3) << 2) | (*header & 0xfff3);
+  assert_halt_msg((0 <= (int)flags) && ((int)flags <= 3),
+                  "(0<=flags) && ((flags)<=MESSAGE_FLAG_BITS_MASK)");
+  *header = (*header & 0xfffc) | (unsigned short)flags;
+}
+
+/* 0x80c20 - Byte-swap a 2-byte message header for network byte order.
+ * param_2 == 0: host->network; param_2 == 1: network->host.
+ * Both directions are identical (swap both bytes). */
+void byte_swap_message_header(unsigned short *header, int byte_order)
+{
+  unsigned short v;
+
+  assert_halt_msg(header != (unsigned short *)0, "header");
+
+  if (byte_order == 1) {
+    v = *header;
+    *header = (unsigned short)((v << 8) | (v >> 8));
+    return;
+  }
+  if (byte_order == 0) {
+    v = *header;
+    *header = (unsigned short)((v << 8) | (v >> 8));
+    return;
+  }
+
+  assert_halt_msg(0, "!\"bad value for byte order\"");
+}
+
+/* 0x80ca0 - Allocate (or use a provided buffer) and build a complete message.
+ * If param_4 == 0, allocates (length+2) bytes via debug_malloc.
+ * Writes the header at offset 0 and copies param_3 bytes of payload from
+ * param_2 to offset 2. Returns the message buffer pointer (0 on alloc fail). */
+int create_message(int type, int payload, unsigned int payload_len, int buffer,
+                   unsigned short buffer_size)
+{
+  short msg_size;
+
+  msg_size = (short)(payload_len + 2);
+
+  if (buffer == 0) {
+    goto do_malloc;
+  }
+  if ((int)(unsigned int)buffer_size >= (int)msg_size) {
+    goto after_malloc;
+  }
+  /* assert_halt_msg(0,...) is noreturn (system_exit); control never falls
+   * through into do_malloc. The malloc block is hoisted after the size check
+   * so buffer==0 forward-jumps to it, matching the original's layout. */
+  assert_halt_msg(0, "buffer_size >= message_size");
+
+do_malloc:
+  buffer = (int)debug_malloc(
+    (int)msg_size, 0, "c:\\halo\\SOURCE\\bungie_net\\common\\message_header.c",
+    0x2e);
+
+after_malloc:
+  if (buffer != 0) {
+    build_message_header((unsigned short *)buffer, payload_len + 2,
+                         (unsigned char)type, 0);
+    if (payload != 0) {
+      csmemcpy((void *)(buffer + 2), (void *)payload, payload_len & 0xffff);
+    }
+  }
+  return buffer;
+}
+
+/* 0x80d30 - Comparator for qsort over unsigned int arrays (ascending).
+ * Returns 1 if *a < *b, -1 if *a > *b, 0 if equal. */
+int prime_compare(unsigned int *a, unsigned int *b)
+{
+  if (*a < *b) {
+    return 1;
+  }
+  return -(int)(*b < *a);
 }
 
 /* 0x80d50 - Sieve of Eratosthenes: return an ascending array of primes <=

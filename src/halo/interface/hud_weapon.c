@@ -1,3 +1,5 @@
+#include "x87_math.h"
+
 /* hud_weapon.c — weapon HUD interface (0xd8af0-0xd91f0)
  *
  * Lifted from Halo CE Xbox (cachebeta.xbe).  Owns the weapon-HUD globals
@@ -5,7 +7,6 @@
  * weapon / crosshair overlays.  Original source: hud_weapon.c.
  */
 
-#include "x87_math.h"
 
 /* Pointer to the weapon-HUD globals buffer (0x1e4 bytes), allocated by
  * FUN_000d8af0 and stored at the fixed global 0x46bd24. */
@@ -75,9 +76,9 @@ void *FUN_000d8bc0(int16_t local_player_index /* @<esi> */)
     }
     return (char *)weapon_hud_globals + local_player_index * 0x28;
   }
-  display_assert(
-      "local_player_index>=0 && local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
-      "c:\\halo\\SOURCE\\interface\\hud_weapon.c", 0x1ae, 1);
+  display_assert("local_player_index>=0 && "
+                 "local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
+                 "c:\\halo\\SOURCE\\interface\\hud_weapon.c", 0x1ae, 1);
   system_exit(-1);
 }
 
@@ -93,9 +94,9 @@ void *FUN_000d8c30(int16_t local_player_index /* @<esi> */)
     }
     return (char *)weapon_hud_globals + (local_player_index + 2) * 0x50;
   }
-  display_assert(
-      "local_player_index>=0 && local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
-      "c:\\halo\\SOURCE\\interface\\hud_weapon.c", 0x1b7, 1);
+  display_assert("local_player_index>=0 && "
+                 "local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
+                 "c:\\halo\\SOURCE\\interface\\hud_weapon.c", 0x1b7, 1);
   system_exit(-1);
 }
 
@@ -117,21 +118,9 @@ void FUN_000d8ca0(int object_handle /* @<eax> */,
     }
     player_index = local_player_get_player_index(local_player_index);
     player_datum = datum_get(*(data_t **)0x5aa6d4, player_index);
-    object_try_and_get_and_verify_type(*(int *)((char *)player_datum + 0x34), 3);
+    object_try_and_get_and_verify_type(*(int *)((char *)player_datum + 0x34),
+                                       3);
   }
-}
-
-/* FUN_000d8fd0 (0xd8fd0) — return the filename portion of a path (text after
- * the last '\\'), or the whole string when there is no separator. */
-char *FUN_000d8fd0(char *path)
-{
-  char *sep;
-
-  sep = strrchr(path, '\\');
-  if (sep != 0) {
-    return sep + 1;
-  }
-  return path;
 }
 
 /* FUN_000d8cf0 (0xd8cf0) — draw a weapon's crosshair / grenade / heat HUD for
@@ -170,20 +159,21 @@ void FUN_000d8cf0(int param_1, int param_2)
   if ((weapon_prevents_grenade_throwing(weapon) == 0) &&
       (*(char *)((char *)unit + 0x2cc) != -1) &&
       ((seat_parent = (int)object_try_and_get_and_verify_type(unit[0x33], 3),
-        seat_parent == 0 ||
-        ((*(int *)(seat_parent + 0x2d4) != param_2) &&
-         (*(int *)(seat_parent + 0x2d8) != param_2)))) &&
-      (grenade_type = unit_get_current_grenade_type(param_2), grenade_type != -1)) {
-
+        seat_parent == 0 || ((*(int *)(seat_parent + 0x2d4) != param_2) &&
+                             (*(int *)(seat_parent + 0x2d8) != param_2)))) &&
+      (grenade_type = unit_get_current_grenade_type(param_2),
+       grenade_type != -1)) {
     gg = game_globals_get();
-    element = (int)tag_block_get_element((char *)gg + 0x128, (int)grenade_type, 0x44);
+    element =
+      (int)tag_block_get_element((char *)gg + 0x128, (int)grenade_type, 0x44);
     whud_index = *(int *)(element + 0x20);
     state = FUN_000d8bc0((short)param_1);
 
     if (whud_index != -1) {
       grhi = (int)tag_get(0x67726869 /* 'grhi' */, whud_index);
 
-      cVar = *(char *)((char *)unit + *(signed char *)((char *)unit + 0x2cc) + 0x2ce);
+      cVar = *(char *)((char *)unit + *(signed char *)((char *)unit + 0x2cc) +
+                       0x2ce);
       flags7 = ((short)cVar <= *(short *)(grhi + 0x148));
       if (cVar == 0) {
         flags7 = flags7 | 2;
@@ -218,7 +208,8 @@ void FUN_000d8cf0(int param_1, int param_2)
                      -1, flags7, *(int *)((char *)state + 0x24), 0.0f);
       }
       if (*(int *)(grhi + 0x158) != -1) {
-        cVar = *(char *)((char *)unit + *(signed char *)((char *)unit + 0x2cc) + 0x2ce);
+        cVar = *(char *)((char *)unit + *(signed char *)((char *)unit + 0x2cc) +
+                         0x2ce);
         flags8 = ((short)cVar <= *(short *)(grhi + 0x148));
         if (cVar == 0) {
           flags8 = flags8 | 2;
@@ -252,37 +243,51 @@ LAB_corrupt:
     system_exit(-1);
   }
   if (sVar != -1) {
-    display_assert(csprintf((char *)0x5ab100, "corrupt stack at %d!", (int)sVar),
-                   "c:\\halo\\SOURCE\\interface\\hud_weapon.c", 0x3a2, 1);
+    display_assert(
+      csprintf((char *)0x5ab100, "corrupt stack at %d!", (int)sVar),
+      "c:\\halo\\SOURCE\\interface\\hud_weapon.c", 0x3a2, 1);
     system_exit(-1);
   }
 }
 
+/* FUN_000d8fd0 (0xd8fd0) — return the filename portion of a path (text after
+ * the last '\\'), or the whole string when there is no separator. */
+char *FUN_000d8fd0(char *path)
+{
+  char *sep;
+
+  sep = strrchr(path, '\\');
+  if (sep != 0) {
+    return sep + 1;
+  }
+  return path;
+}
+
 /* FUN_000d8ff0 (0xd8ff0) — draw the full weapon-HUD crosshair hierarchy for one
- * weapon.  @<eax> = weapon-HUD-hierarchy tag index (wphi), @<ecx> = player datum
- * pointer, stack = referencing weapon object handle and a per-weapon state buffer
- * (buf).  Walks the wphi child chain (up to 16 levels); for each crosshair block
- * and each overlay element it evaluates the state selector, resolves the bitmap
- * frame, and draws it.  Guarded by the return-address canary + 0x200-byte
- * stack-corruption sentinel idiom. */
+ * weapon.  @<eax> = weapon-HUD-hierarchy tag index (wphi), @<ecx> = player
+ * datum pointer, stack = referencing weapon object handle and a per-weapon
+ * state buffer (buf).  Walks the wphi child chain (up to 16 levels); for each
+ * crosshair block and each overlay element it evaluates the state selector,
+ * resolves the bitmap frame, and draws it.  Guarded by the return-address
+ * canary + 0x200-byte stack-corruption sentinel idiom. */
 void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
                   int weapon_handle, int buf)
 {
   int canary;
   int guard[128];
   int player_obj;
-  int *state;                /* per-player HUD block (FUN_000d8c30) */
-  int *wphi;                 /* wphi tag base, then reused as current-level hud */
+  int *state; /* per-player HUD block (FUN_000d8c30) */
+  int *wphi; /* wphi tag base, then reused as current-level hud */
   unsigned int render_flags;
   int unit_obj;
   int *weap;
-  int *level_hud[16];        /* [0] = wphi base */
-  int level_idx[16];         /* [0] = whud_index */
+  int *level_hud[16]; /* [0] = wphi base */
+  int level_idx[16]; /* [0] = whud_index */
   int level;
   int level_count;
   int child;
   unsigned int selector_mask;
-  short rect[18];            /* 0x24-byte crosshair screen rect; [0] = corner count */
+  short rect[18]; /* 0x24-byte crosshair screen rect; [0] = corner count */
   int stereo_flag;
   int xhair;
   int xhair_i;
@@ -308,7 +313,8 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
   float *uvs;
   int seq_elem;
   int is32bpp;
-  float rect2d[4];           /* contiguous rect passed by addr: [0]=rx0 [1]=rx1 [2]=ry0 [3]=ry1 */
+  float rect2d[4]; /* contiguous rect passed by addr: [0]=rx0 [1]=rx1 [2]=ry0
+                      [3]=ry1 */
   float sx, sy, dx, dy;
   int i;
   char *tag_name;
@@ -321,7 +327,8 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
     player_obj = *(int *)((char *)player + 0x34);
     state = (int *)FUN_000d8c30(*(short *)((char *)player + 2));
     wphi = (int *)tag_get(0x77706869 /* 'wphi' */, whud_index);
-    render_flags = (unsigned int)(*(short *)((char *)global_scenario_get() + 0x3c) != 2);
+    render_flags =
+      (unsigned int)(*(short *)((char *)global_scenario_get() + 0x3c) != 2);
     if (local_player_count() == 1) {
       render_flags = render_flags | 2;
     } else {
@@ -339,7 +346,8 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
         tag_get(0x77656170 /* 'weap' */, *weap);
       }
 
-      /* seed the hierarchy walk: level_hud[0] = wphi, level_idx[0] = whud_index */
+      /* seed the hierarchy walk: level_hud[0] = wphi, level_idx[0] = whud_index
+       */
       level_hud[0] = wphi;
       for (i = 1; i < 16; i = i + 1) {
         level_hud[i] = (int *)0;
@@ -352,7 +360,8 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
       level = 1;
       do {
         child = *(int *)((char *)level_hud[(short)level - 1] + 0xc);
-        if (child == -1) break;
+        if (child == -1)
+          break;
         level_idx[(short)level] = child;
         level_hud[(short)level] = (int *)tag_get(0x77706869, child);
         level = level + 1;
@@ -367,7 +376,8 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
         do {
           wphi = level_hud[(short)level];
 
-          /* zero the 0x24-byte screen rect: count=4 header, 8 dwords, trailing short */
+          /* zero the 0x24-byte screen rect: count=4 header, 8 dwords, trailing
+           * short */
           rect[0] = 4;
           for (i = 0; i < 8; i = i + 1) {
             *(int *)((char *)rect + 2 + i * 4) = 0;
@@ -379,9 +389,11 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
           if (0 < wphi[0x21]) {
             xhair_i = 0;
             do {
-              xhair_elem = (short *)tag_block_get_element(wphi + 0x21, xhair_i, 0x68);
+              xhair_elem =
+                (short *)tag_block_get_element(wphi + 0x21, xhair_i, 0x68);
               xhair_type = *xhair_elem;
-              if (((selector_mask & 1 << ((unsigned char)xhair_type & 0x1f)) != 0) &&
+              if (((selector_mask & 1 << ((unsigned char)xhair_type & 0x1f)) !=
+                   0) &&
                   (((int)(short)render_flags &
                     1 << (*(unsigned char *)(xhair_elem + 2) & 0x1f)) != 0)) {
                 state_slot = state + xhair_type;
@@ -389,11 +401,12 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
                 if (0 < *(int *)(xhair_elem + 0x1a)) {
                   overlay_i = 0;
                   do {
-                    overlay_elem = (int)tag_block_get_element(xhair_elem + 0x1a, overlay_i, 0x6c);
+                    overlay_elem = (int)tag_block_get_element(xhair_elem + 0x1a,
+                                                              overlay_i, 0x6c);
                     flags = *(unsigned int *)(overlay_elem + 0x48);
-                    if (((-1 < (char)flags) && (((flags & 4) == 0) || (0 < state[1]))) &&
+                    if (((-1 < (char)flags) &&
+                         (((flags & 4) == 0) || (0 < state[1]))) &&
                         (((flags & 0x40) == 0) || (state[1] == 0))) {
-
                       if ((local_player_count() < 2) ||
                           ((*(unsigned char *)(overlay_elem + 0xc) & 2) != 0)) {
                         scale = 1.0f;
@@ -401,12 +414,16 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
                         scale = 0.5f;
                       }
 
-                      /* bitmap tag reference is on the crosshair element (xhair+0x24) */
+                      /* bitmap tag reference is on the crosshair element
+                       * (xhair+0x24) */
                       if ((*(unsigned char *)(overlay_elem + 0x48) & 2) == 0) {
                         anim_block = (int)tag_block_get_element(
-                            (void *)((int)tag_get(0x6269746d /* 'bitm' */,
-                                verify_tag_reference((int *)((char *)xhair_elem + 0x24))) + 0x54),
-                            (int)*(short *)(overlay_elem + 0x46), 0x40);
+                          (void *)((int)tag_get(
+                                     0x6269746d /* 'bitm' */,
+                                     verify_tag_reference(
+                                       (int *)((char *)xhair_elem + 0x24))) +
+                                   0x54),
+                          (int)*(short *)(overlay_elem + 0x46), 0x40);
                       } else {
                         anim_block = 0;
                       }
@@ -414,7 +431,8 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
                       frame = 0;
                       switch (xhair_type) {
                       case 0:
-                        if ((*(unsigned char *)(overlay_elem + 0x48) & 1) == 0) {
+                        if ((*(unsigned char *)(overlay_elem + 0x48) & 1) ==
+                            0) {
                           frame = (short)*state_slot;
                           frame_index = *(int *)(overlay_elem + 0x24);
                           goto LAB_check_frame;
@@ -423,7 +441,8 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
                         if (*state_slot < 1) {
                           frame_index = *(int *)(overlay_elem + 0x24);
                         } else {
-                          frame_index = FUN_000d2320((int *)(overlay_elem + 0x24), 0);
+                          frame_index =
+                            FUN_000d2320((int *)(overlay_elem + 0x24), 0);
                         }
                         goto LAB_have_frame;
                       case 1:
@@ -432,14 +451,16 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
                           frame = (short)*state_slot -
                                   (short)((unsigned short)(flags >> 2) & 1);
                         } else {
-                          if (*state_slot == 0) goto LAB_next_overlay;
+                          if (*state_slot == 0)
+                            goto LAB_next_overlay;
                           frame = 0;
                         }
                         if (((flags & 1) == 0) || (*state < 1)) {
                           frame_index = *(int *)(overlay_elem + 0x24);
                           goto LAB_check_frame;
                         }
-                        frame_index = FUN_000d2320((int *)(overlay_elem + 0x24), 0);
+                        frame_index =
+                          FUN_000d2320((int *)(overlay_elem + 0x24), 0);
                         goto LAB_check_frame;
                       case 8:
                       case 9:
@@ -450,13 +471,15 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
                             cur_valid = 0;
                             goto LAB_time_check;
                           }
-                          bv = ((*(unsigned int *)(unit_obj + 0x1b8) & 0x800) == 0);
+                          bv = ((*(unsigned int *)(unit_obj + 0x1b8) & 0x800) ==
+                                0);
                           goto LAB_check_bv;
                         }
                         if (xhair_type == 8) {
                           if ((*(short *)(buf + 0xe) == 0) &&
                               (*(short *)(buf + 0x12) == 0)) {
-                            bv = ((*(unsigned int *)(unit_obj + 0x1b8) & 0x800) == 0);
+                            bv = ((*(unsigned int *)(unit_obj + 0x1b8) &
+                                   0x800) == 0);
                             goto LAB_check_bv;
                           }
                           cur_valid = 0;
@@ -476,27 +499,32 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
                             k = k - 1;
                           } while (k != 0);
                           if ((bv) && (*(char *)(unit_obj + 0x23d) == 0)) {
-                            bv = ((*(unsigned int *)(unit_obj + 0x1b8) & 0x2000) == 0);
+                            bv = ((*(unsigned int *)(unit_obj + 0x1b8) &
+                                   0x2000) == 0);
                             goto LAB_check_bv;
                           }
                           cur_valid = 0;
                           goto LAB_time_check;
                         }
-                        /* case 14: reuse cur_valid carried from a prior element */
-                        if (cur_valid != 0) goto LAB_state_check;
-LAB_time_check:
+                        /* case 14: reuse cur_valid carried from a prior element
+                         */
+                        if (cur_valid != 0)
+                          goto LAB_state_check;
+                      LAB_time_check:
                         hold = FUN_000d2300(overlay_elem + 0x24);
-                        if (game_time_get() - *state_slot < hold) goto LAB_state_check;
+                        if (game_time_get() - *state_slot < hold)
+                          goto LAB_state_check;
                         goto LAB_kill_slot;
-LAB_check_bv:
+                      LAB_check_bv:
                         if (bv) {
                           cur_valid = 0;
                           goto LAB_time_check;
                         }
                         cur_valid = 1;
-LAB_state_check:
-                        if (*state_slot != -1) goto LAB_animated;
-LAB_kill_slot:
+                      LAB_state_check:
+                        if (*state_slot != -1)
+                          goto LAB_animated;
+                      LAB_kill_slot:
                         *state_slot = -1;
                         goto LAB_next_overlay;
                       case 2:
@@ -512,86 +540,112 @@ LAB_kill_slot:
                       case 15:
                       case 16:
                       case 17:
-LAB_animated:
+                      LAB_animated:
                         if (*(short *)(overlay_elem + 0x44) < 1) {
                           frame = 0;
                         } else {
-                          frame = (short)((((game_time_get() - *state_slot) /
-                                            (int)*(short *)(overlay_elem + 0x44)) / 0x1e) %
-                                          *(int *)(anim_block + 0x34));
+                          frame =
+                            (short)((((game_time_get() - *state_slot) /
+                                      (int)*(short *)(overlay_elem + 0x44)) /
+                                     0x1e) %
+                                    *(int *)(anim_block + 0x34));
                         }
-                        if (((*(unsigned char *)(overlay_elem + 0x48) & 1) == 0) ||
+                        if (((*(unsigned char *)(overlay_elem + 0x48) & 1) ==
+                             0) ||
                             (*state_slot == -1)) {
                           frame_index = *(int *)(overlay_elem + 0x24);
                           goto LAB_check_frame;
                         }
-                        frame_index = FUN_000d2320((int *)(overlay_elem + 0x24), *state_slot);
+                        frame_index = FUN_000d2320((int *)(overlay_elem + 0x24),
+                                                   *state_slot);
                         goto LAB_check_frame;
                       default:
                         /* invalid crosshair state type — halt on bad data */
-                        display_assert(0, "c:\\halo\\SOURCE\\interface\\hud_weapon.c",
-                                       0x4a2, 1);
+                        display_assert(
+                          0, "c:\\halo\\SOURCE\\interface\\hud_weapon.c", 0x4a2,
+                          1);
                         system_exit(-1);
                       }
 
-LAB_check_frame:
+                    LAB_check_frame:
                       if (frame == -1) {
-                        tag_name = (char *)tag_get_name(level_idx[(short)level]);
+                        tag_name =
+                          (char *)tag_get_name(level_idx[(short)level]);
                         slash = strrchr(tag_name, '\\');
                         if (slash != 0) {
                           tag_name = slash + 1;
                         }
-                        display_assert(csprintf((char *)0x5ab100,
-                            "frame index NONE when drawing crosshair %d, element %d, for weapon interface '%s'",
-                            xhair_i, overlay_i, tag_name),
-                            "c:\\halo\\SOURCE\\interface\\hud_weapon.c", 0x4a5, 1);
+                        display_assert(
+                          csprintf((char *)0x5ab100,
+                                   "frame index NONE when drawing crosshair "
+                                   "%d, element %d, for weapon interface '%s'",
+                                   xhair_i, overlay_i, tag_name),
+                          "c:\\halo\\SOURCE\\interface\\hud_weapon.c", 0x4a5,
+                          1);
                         system_exit(-1);
                       }
 
-LAB_have_frame:
-                      bitm = (short *)tag_get(0x6269746d /* 'bitm' */,
-                                verify_tag_reference((int *)((char *)xhair_elem + 0x24)));
+                    LAB_have_frame:
+                      bitm =
+                        (short *)tag_get(0x6269746d /* 'bitm' */,
+                                         verify_tag_reference(
+                                           (int *)((char *)xhair_elem + 0x24)));
                       if (anim_block == 0) {
                         frame_sel = *(short *)(overlay_elem + 0x46);
                       } else {
-                        frame_sel = *(short *)tag_block_get_element((void *)(anim_block + 0x34),
-                                                                    (int)frame, 0x20);
+                        frame_sel = *(short *)tag_block_get_element(
+                          (void *)(anim_block + 0x34), (int)frame, 0x20);
                       }
-                      bitmap_elem = (int)tag_block_get_element((void *)(bitm + 0x30),
-                                                               (int)frame_sel, 0x30);
-                      if (xbox_texture_cache_get_hardware_format((void *)bitmap_elem, 0, 1) != 0) {
-                        if ((*(unsigned char *)(overlay_elem + 0x48) & 0x10) == 0) {
+                      bitmap_elem = (int)tag_block_get_element(
+                        (void *)(bitm + 0x30), (int)frame_sel, 0x30);
+                      if (xbox_texture_cache_get_hardware_format(
+                            (void *)bitmap_elem, 0, 1) != 0) {
+                        if ((*(unsigned char *)(overlay_elem + 0x48) & 0x10) ==
+                            0) {
                           if (anim_block == 0) {
                             uvs = (float *)0;
                           } else {
-                            uvs = (float *)((int)tag_block_get_element((void *)(anim_block + 0x34),
-                                                                       (int)frame, 0x20) + 8);
+                            uvs = (float *)((int)tag_block_get_element(
+                                              (void *)(anim_block + 0x34),
+                                              (int)frame, 0x20) +
+                                            8);
                           }
                           flags = (unsigned int)(*bitm == 4);
-                          FUN_000d3fa0(bitmap_elem, rect, overlay_elem, (int)uvs,
-                                       *(int *)&scale, 0, frame_index, stereo_flag, flags, 1);
+                          FUN_000d3fa0(bitmap_elem, rect, overlay_elem,
+                                       (int)uvs, *(int *)&scale, 0, frame_index,
+                                       stereo_flag, flags, 1);
                         } else {
-                          /* stretched draw: build a real_rectangle2d and inset by the
-                           * screen-bounds delta scaled into normalized HUD space */
+                          /* stretched draw: build a real_rectangle2d and inset
+                           * by the screen-bounds delta scaled into normalized
+                           * HUD space */
                           is32bpp = (*bitm == 4);
                           sx = 1.0f;
                           sy = 1.0f;
                           if (anim_block == 0) {
                             rect2d[0] = 0.0f;
-                            rect2d[1] = is32bpp ? (float)(int)*(short *)(bitmap_elem + 4) : (float)1;
+                            rect2d[1] =
+                              is32bpp ?
+                                (float)(int)*(short *)(bitmap_elem + 4) :
+                                (float)1;
                             rect2d[2] = 0.0f;
-                            rect2d[3] = is32bpp ? (float)(int)*(short *)(bitmap_elem + 6) : (float)1;
+                            rect2d[3] =
+                              is32bpp ?
+                                (float)(int)*(short *)(bitmap_elem + 6) :
+                                (float)1;
                             if (is32bpp) {
                               sx = (float)*(double *)0x2573d8;
                               sy = (float)*(double *)0x2573d8;
                             } else {
-                              sx = (*(float *)0x2533c8 / (float)(int)*(short *)(bitmap_elem + 4)) *
+                              sx = (*(float *)0x2533c8 /
+                                    (float)(int)*(short *)(bitmap_elem + 4)) *
                                    (float)*(double *)0x281f30;
-                              sy = (*(float *)0x2533c8 / (float)(int)*(short *)(bitmap_elem + 6)) *
+                              sy = (*(float *)0x2533c8 /
+                                    (float)(int)*(short *)(bitmap_elem + 6)) *
                                    (float)*(double *)0x281f30;
                             }
                           } else {
-                            seq_elem = (int)tag_block_get_element((void *)(anim_block + 0x34), (int)frame, 0x20);
+                            seq_elem = (int)tag_block_get_element(
+                              (void *)(anim_block + 0x34), (int)frame, 0x20);
                             rect2d[0] = *(float *)(seq_elem + 8);
                             rect2d[1] = *(float *)(seq_elem + 0xc);
                             rect2d[2] = *(float *)(seq_elem + 0x10);
@@ -599,21 +653,26 @@ LAB_have_frame:
                             sy = 1.0f;
                           }
                           dx = ((float)(int)*(short *)(bitmap_elem + 4) -
-                                (float)((int)*(short *)0x506582 - (int)*(short *)0x50657e) *
-                                (*(float *)0x2533c8 / scale)) * sx * *(float *)0x255964;
+                                (float)((int)*(short *)0x506582 -
+                                        (int)*(short *)0x50657e) *
+                                  (*(float *)0x2533c8 / scale)) *
+                               sx * *(float *)0x255964;
                           dy = ((float)(int)*(short *)(bitmap_elem + 6) -
-                                (float)((int)*(short *)0x506580 - (int)*(short *)0x50657c) *
-                                (*(float *)0x2533c8 / scale)) * sy * *(float *)0x255964;
+                                (float)((int)*(short *)0x506580 -
+                                        (int)*(short *)0x50657c) *
+                                  (*(float *)0x2533c8 / scale)) *
+                               sy * *(float *)0x255964;
                           rect2d[0] = rect2d[0] - dx;
                           rect2d[1] = dx + rect2d[1];
                           rect2d[2] = rect2d[2] - dy;
                           rect2d[3] = dy + rect2d[3];
-                          FUN_000d3fa0(bitmap_elem, rect, overlay_elem, (int)rect2d,
-                                       *(int *)&scale, 0, frame_index, stereo_flag, is32bpp, 1);
+                          FUN_000d3fa0(bitmap_elem, rect, overlay_elem,
+                                       (int)rect2d, *(int *)&scale, 0,
+                                       frame_index, stereo_flag, is32bpp, 1);
                         }
                       }
                     }
-LAB_next_overlay:
+                  LAB_next_overlay:
                     overlay = overlay + 1;
                     overlay_i = (int)(short)overlay;
                   } while (overlay_i < *(int *)(xhair_elem + 0x1a));
@@ -631,7 +690,8 @@ LAB_next_overlay:
 
   frame = 0x7f;
   do {
-    if (guard[(int)frame] != 0x62626262) goto LAB_corrupt;
+    if (guard[(int)frame] != 0x62626262)
+      goto LAB_corrupt;
     frame = frame - 1;
   } while (-1 < frame);
   frame = -1;
@@ -642,8 +702,9 @@ LAB_corrupt:
     system_exit(-1);
   }
   if (frame != -1) {
-    display_assert(csprintf((char *)0x5ab100, "corrupt stack at %d!", (int)frame),
-                   "c:\\halo\\SOURCE\\interface\\hud_weapon.c", 0x4e2, 1);
+    display_assert(
+      csprintf((char *)0x5ab100, "corrupt stack at %d!", (int)frame),
+      "c:\\halo\\SOURCE\\interface\\hud_weapon.c", 0x4e2, 1);
     system_exit(-1);
   }
 }

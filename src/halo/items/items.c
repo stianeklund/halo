@@ -1,3 +1,141 @@
+#include "x87_math.h"
+
+/*
+ * ui_widget_group.c
+ *
+ * TU: c:\halo\SOURCE\interface\ui_widget_group.c
+ *   (recovered from the __FILE__ assert string passed to display_assert at
+ *    0x000f4f28: "c:\halo\SOURCE\interface\ui_widget_group.c", line 0x1f5.)
+ *
+ * Shell UI tag preload for the current scenario.  Given the scenario tag
+ * index, resolves the 'scnr' tag, force-loads the shared multiplayer game
+ * text and white shell bitmap, then branches on the scenario type field
+ * (scnr + 0x3c, signed int16: 0 = solo, 1 = multiplayer, 2 = main_menu) to
+ * load the matching ui_widget_collection ('Soul') and, for the main menu, a
+ * long list of string-list ('ustr'), sound ('snd!') and music ('lsnd') tags.
+ * Every load is checked against -1 (NONE) and any failure is reported via
+ * error(2, ...).  An unrecognized scenario type asserts and calls
+ * system_exit(-1).
+ *
+ * cachebeta.xbe v01.10.12.2276, FUN_000f4ea0 @ 0x000f4ea0 (items.obj).
+ */
+
+void FUN_000f4ea0(int scenario_tag_index)
+{
+  void *scenario;
+  short scenario_type;
+
+  scenario = tag_get(0x73636e72 /* 'scnr' */, scenario_tag_index);
+
+  if (FUN_001b9b00(0x75737472 /* 'ustr' */, "ui\\multiplayer_game_text", 0) ==
+      -1)
+    error(2, "failed to load the multiplayer game text string list tag");
+
+  if (FUN_001b9b00(0x6269746d /* 'bitm' */, "ui\\shell\\bitmaps\\white", 0) ==
+      -1)
+    error(2, "generic white texture bitmap");
+
+  /* scnr + 0x3c is a signed int16 scenario type (MOVSX in the original). */
+  scenario_type = *(short *)((char *)scenario + 0x3c);
+
+  switch (scenario_type) {
+  case 0: /* solo */
+    if (FUN_001b9b00(0x536f756c /* 'Soul' */, "ui\\shell\\solo", 0) == -1)
+      error(2, "failed to load the solo scenario ui_widget_collection tag");
+    break;
+
+  case 1: /* multiplayer */
+    if (FUN_001b9b00(0x536f756c, "ui\\shell\\multiplayer", 0) == -1)
+      error(2,
+            "failed to load the multiplayer scenario ui_widget_collection tag");
+    break;
+
+  case 2: /* main_menu */
+    if (FUN_001b9b00(0x536f756c, "ui\\shell\\main_menu", 0) == -1)
+      error(2,
+            "failed to load the main menu scenario ui_widget_collection_tag");
+    if (FUN_001b9b00(0x76636b79 /* 'vcky' */, "ui\\english", 0) == -1)
+      error(2, "failed to load the browser's virtual keyboard tag");
+    if (FUN_001b9b00(0x75737472, "ui\\random_player_names", 0) == -1)
+      error(2, "failed to load random player names string list tag");
+    if (FUN_001b9b00(0x6d706c79 /* 'mply' */, "ui\\multiplayer_scenarios", 0) ==
+        -1)
+      error(2, "failed to load the multiplayer scenario description tag");
+    if (FUN_001b9b00(0x75737472, "ui\\saved_game_file_strings", 0) == -1)
+      error(2,
+            "failed to load the default saved game filename string list tag");
+    if (FUN_001b9b00(0x75737472, "ui\\default_multiplayer_game_setting_names",
+                     0) == -1)
+      error(
+        2, "failed to load the default playlist profile names string list tag");
+    if (FUN_001b9b00(0x75737472,
+                     "ui\\shell\\strings\\game_variant_descriptions", 0) == -1)
+      error(
+        2,
+        "failed to load the multiplayer variant description string list tag");
+    if (FUN_001b9b00(
+          0x75737472,
+          "ui\\shell\\main_menu\\player_profiles_select\\difficulty_names",
+          0) == -1)
+      error(2, "failed to load the game difficulty name string list tag");
+    if (FUN_001b9b00(0x75737472,
+                     "ui\\shell\\strings\\default_player_profile_names",
+                     0) == -1)
+      error(2,
+            "failed to load the default player profile names string list tag");
+    if (FUN_001b9b00(0x75737472,
+                     "ui\\shell\\main_menu\\player_profiles_select\\button_set_"
+                     "long_descriptions",
+                     0) == -1)
+      error(2,
+            "failed to load the button set long descriptions string list tag");
+    if (FUN_001b9b00(0x75737472,
+                     "ui\\shell\\main_menu\\player_profiles_select\\button_set_"
+                     "short_descriptions",
+                     0) == -1)
+      error(2,
+            "failed to load the button set short descriptions string list tag");
+    if (FUN_001b9b00(0x75737472,
+                     "ui\\shell\\main_menu\\player_profiles_select\\joystick_"
+                     "set_defaults_descriptions",
+                     0) == -1)
+      error(
+        2,
+        "failed to load the default joystick set descriptions string list tag");
+    if (FUN_001b9b00(0x75737472,
+                     "ui\\shell\\main_menu\\player_profiles_select\\joystick_"
+                     "set_short_descriptions",
+                     0) == -1)
+      error(
+        2,
+        "failed to load the joystick set short descriptions string list tag");
+    if (FUN_001b9b00(0x75737472,
+                     "ui\\shell\\main_menu\\player_profiles_select\\profile_"
+                     "description_labels",
+                     0) == -1)
+      error(2, "failed to load the profile description labels string list tag");
+    if (FUN_001b9b00(0x736e6421 /* 'snd!' */, "sound\\sfx\\ui\\cursor", 0) ==
+        -1)
+      error(2, "failed to load ui cursor sound tag");
+    if (FUN_001b9b00(0x736e6421, "sound\\sfx\\ui\\forward", 0) == -1)
+      error(2, "failed to load ui forward sound tag");
+    if (FUN_001b9b00(0x736e6421, "sound\\sfx\\ui\\back", 0) == -1)
+      error(2, "failed to load ui back sound tag");
+    if (FUN_001b9b00(0x736e6421, "sound\\sfx\\ui\\flag_failure", 0) == -1)
+      error(2, "failed to load ui failure sound tag");
+    if (FUN_001b9b00(0x6c736e64 /* 'lsnd' */, "sound\\music\\title1\\title1",
+                     0) == -1)
+      error(2, "failed to load main menu title music");
+    break;
+
+  default:
+    display_assert("unknown scenario type",
+                   "c:\\halo\\SOURCE\\interface\\ui_widget_group.c", 0x1f5,
+                   true);
+    system_exit(-1);
+  }
+}
+
 /*
  * text_search_and_replace_function_table[1]  (0x000f52f0, __cdecl)
  *
@@ -571,7 +709,6 @@ void FUN_000f6750(int object_datum, void *definition)
   }
 }
 
-#include "x87_math.h"
 
 /* Activate the pickup sound effect for an equipment item.
  * Looks up the equipment tag definition ('eqip') and plays the
@@ -1046,98 +1183,4 @@ void item_set_position(int item_handle, float *position, int flag)
     system_exit(-1);
   }
   *(int16_t *)0x4761d8 = *(int16_t *)0x4761d8 - 1;
-}
-/*
- * ui_widget_group.c
- *
- * TU: c:\halo\SOURCE\interface\ui_widget_group.c
- *   (recovered from the __FILE__ assert string passed to display_assert at
- *    0x000f4f28: "c:\halo\SOURCE\interface\ui_widget_group.c", line 0x1f5.)
- *
- * Shell UI tag preload for the current scenario.  Given the scenario tag
- * index, resolves the 'scnr' tag, force-loads the shared multiplayer game
- * text and white shell bitmap, then branches on the scenario type field
- * (scnr + 0x3c, signed int16: 0 = solo, 1 = multiplayer, 2 = main_menu) to
- * load the matching ui_widget_collection ('Soul') and, for the main menu, a
- * long list of string-list ('ustr'), sound ('snd!') and music ('lsnd') tags.
- * Every load is checked against -1 (NONE) and any failure is reported via
- * error(2, ...).  An unrecognized scenario type asserts and calls
- * system_exit(-1).
- *
- * cachebeta.xbe v01.10.12.2276, FUN_000f4ea0 @ 0x000f4ea0 (items.obj).
- */
-
-void FUN_000f4ea0(int scenario_tag_index)
-{
-  void *scenario;
-  short scenario_type;
-
-  scenario = tag_get(0x73636e72 /* 'scnr' */, scenario_tag_index);
-
-  if (FUN_001b9b00(0x75737472 /* 'ustr' */, "ui\\multiplayer_game_text", 0) == -1)
-    error(2, "failed to load the multiplayer game text string list tag");
-
-  if (FUN_001b9b00(0x6269746d /* 'bitm' */, "ui\\shell\\bitmaps\\white", 0) == -1)
-    error(2, "generic white texture bitmap");
-
-  /* scnr + 0x3c is a signed int16 scenario type (MOVSX in the original). */
-  scenario_type = *(short *)((char *)scenario + 0x3c);
-
-  switch (scenario_type) {
-  case 0: /* solo */
-    if (FUN_001b9b00(0x536f756c /* 'Soul' */, "ui\\shell\\solo", 0) == -1)
-      error(2, "failed to load the solo scenario ui_widget_collection tag");
-    break;
-
-  case 1: /* multiplayer */
-    if (FUN_001b9b00(0x536f756c, "ui\\shell\\multiplayer", 0) == -1)
-      error(2, "failed to load the multiplayer scenario ui_widget_collection tag");
-    break;
-
-  case 2: /* main_menu */
-    if (FUN_001b9b00(0x536f756c, "ui\\shell\\main_menu", 0) == -1)
-      error(2, "failed to load the main menu scenario ui_widget_collection_tag");
-    if (FUN_001b9b00(0x76636b79 /* 'vcky' */, "ui\\english", 0) == -1)
-      error(2, "failed to load the browser's virtual keyboard tag");
-    if (FUN_001b9b00(0x75737472, "ui\\random_player_names", 0) == -1)
-      error(2, "failed to load random player names string list tag");
-    if (FUN_001b9b00(0x6d706c79 /* 'mply' */, "ui\\multiplayer_scenarios", 0) == -1)
-      error(2, "failed to load the multiplayer scenario description tag");
-    if (FUN_001b9b00(0x75737472, "ui\\saved_game_file_strings", 0) == -1)
-      error(2, "failed to load the default saved game filename string list tag");
-    if (FUN_001b9b00(0x75737472, "ui\\default_multiplayer_game_setting_names", 0) == -1)
-      error(2, "failed to load the default playlist profile names string list tag");
-    if (FUN_001b9b00(0x75737472, "ui\\shell\\strings\\game_variant_descriptions", 0) == -1)
-      error(2, "failed to load the multiplayer variant description string list tag");
-    if (FUN_001b9b00(0x75737472, "ui\\shell\\main_menu\\player_profiles_select\\difficulty_names", 0) == -1)
-      error(2, "failed to load the game difficulty name string list tag");
-    if (FUN_001b9b00(0x75737472, "ui\\shell\\strings\\default_player_profile_names", 0) == -1)
-      error(2, "failed to load the default player profile names string list tag");
-    if (FUN_001b9b00(0x75737472, "ui\\shell\\main_menu\\player_profiles_select\\button_set_long_descriptions", 0) == -1)
-      error(2, "failed to load the button set long descriptions string list tag");
-    if (FUN_001b9b00(0x75737472, "ui\\shell\\main_menu\\player_profiles_select\\button_set_short_descriptions", 0) == -1)
-      error(2, "failed to load the button set short descriptions string list tag");
-    if (FUN_001b9b00(0x75737472, "ui\\shell\\main_menu\\player_profiles_select\\joystick_set_defaults_descriptions", 0) == -1)
-      error(2, "failed to load the default joystick set descriptions string list tag");
-    if (FUN_001b9b00(0x75737472, "ui\\shell\\main_menu\\player_profiles_select\\joystick_set_short_descriptions", 0) == -1)
-      error(2, "failed to load the joystick set short descriptions string list tag");
-    if (FUN_001b9b00(0x75737472, "ui\\shell\\main_menu\\player_profiles_select\\profile_description_labels", 0) == -1)
-      error(2, "failed to load the profile description labels string list tag");
-    if (FUN_001b9b00(0x736e6421 /* 'snd!' */, "sound\\sfx\\ui\\cursor", 0) == -1)
-      error(2, "failed to load ui cursor sound tag");
-    if (FUN_001b9b00(0x736e6421, "sound\\sfx\\ui\\forward", 0) == -1)
-      error(2, "failed to load ui forward sound tag");
-    if (FUN_001b9b00(0x736e6421, "sound\\sfx\\ui\\back", 0) == -1)
-      error(2, "failed to load ui back sound tag");
-    if (FUN_001b9b00(0x736e6421, "sound\\sfx\\ui\\flag_failure", 0) == -1)
-      error(2, "failed to load ui failure sound tag");
-    if (FUN_001b9b00(0x6c736e64 /* 'lsnd' */, "sound\\music\\title1\\title1", 0) == -1)
-      error(2, "failed to load main menu title music");
-    break;
-
-  default:
-    display_assert("unknown scenario type",
-                   "c:\\halo\\SOURCE\\interface\\ui_widget_group.c", 0x1f5, true);
-    system_exit(-1);
-  }
 }

@@ -305,9 +305,9 @@ store_long:
   return result;
 }
 
-/* 0xc5d60 — Compile a string literal expression. Asserts type is _hs_type_string
- * (9), stores the string pointer (source_offset + source_base) in the value
- * field, and always returns true. */
+/* 0xc5d60 — Compile a string literal expression. Asserts type is
+ * _hs_type_string (9), stores the string pointer (source_offset + source_base)
+ * in the value field, and always returns true. */
 bool FUN_000c5d60(int datum_index)
 {
   char *node;
@@ -385,14 +385,13 @@ bool FUN_000c5e90(int datum_index)
     system_exit(-1);
   }
 
-  tag_group =
-    *(int *)(0x26f2cc + (int)*(int16_t *)(node + 0x4) * 4);
+  tag_group = *(int *)(0x26f2cc + (int)*(int16_t *)(node + 0x4) * 4);
 
   i = 0;
   if (*(int *)(scenario + 0x4b4) > 0) {
     do {
-      element = (char *)tag_block_get_element(
-        (void *)(scenario + 0x4b4), (int)(int16_t)i, 0x28);
+      element = (char *)tag_block_get_element((void *)(scenario + 0x4b4),
+                                              (int)(int16_t)i, 0x28);
       cmp = csstrcmp(*(const char **)(element + 0x1c),
                      (const char *)(*(int *)(node + 0xc) + *(int *)0x46b6e8));
       if (cmp == 0 && *(int *)(element + 0x18) == tag_group) {
@@ -411,7 +410,8 @@ bool FUN_000c5e90(int datum_index)
  * element+offset against the node's source string using case-insensitive match.
  * On match, stores the element index (as short) into node+0x10.
  * On failure, formats "this is not a valid %s name" error. */
-bool FUN_000c6130(int datum_index, void *tag_block, int element_size, short offset)
+bool FUN_000c6130(int datum_index, void *tag_block, int element_size,
+                  short offset)
 {
   char *node;
   int i;
@@ -435,8 +435,9 @@ bool FUN_000c6130(int datum_index, void *tag_block, int element_size, short offs
   if (*(int *)tag_block > 0) {
     do {
       element = (char *)tag_block_get_element(tag_block, i, element_size);
-      cmp = crt_stricmp(element + (int)offset,
-                        (const char *)(*(int *)(node + 0xc) + *(int *)0x46b6e8));
+      cmp =
+        crt_stricmp(element + (int)offset,
+                    (const char *)(*(int *)(node + 0xc) + *(int *)0x46b6e8));
       if (cmp == 0) {
         *(int *)(node + 0x10) = (int)(int16_t)i;
         return true;
@@ -558,7 +559,8 @@ bool FUN_000c6460(int datum_index)
 
 /* 0xc64d0 — Compile AI encounter/squad literal (type 0x11).
  * Asserts type==_hs_type_ai and constant_type==type, then delegates to
- * FUN_000540f0 to look up an AI encounter or squad by name from the scenario. */
+ * FUN_000540f0 to look up an AI encounter or squad by name from the scenario.
+ */
 bool FUN_000c64d0(int datum_index)
 {
   char *node;
@@ -637,30 +639,6 @@ bool FUN_000c6660(int datum_index)
   return FUN_000c6130(datum_index, (void *)(scenario + 0x468), 0x74, 0);
 }
 
-/* 0xc68b0 — Compile navpoint literal (type 0x15).
- * Looks up a waypoint by name from the HUD globals tag (hudg+0x160,
- * element size 0x68). Returns false if no HUD globals tag is available. */
-bool FUN_000c68b0(int datum_index)
-{
-  char *node;
-  int tag_index;
-  char *hud_tag;
-
-  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
-  if (*(short *)(node + 0x4) != 0x15) {
-    display_assert(
-      "hs_syntax_get(expression_index)->type==_hs_type_navpoint",
-      "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x7b1, 1);
-    system_exit(-1);
-  }
-  tag_index = interface_get_tag_index(6);
-  if (tag_index == -1) {
-    return false;
-  }
-  hud_tag = (char *)tag_get(0x68756467, interface_get_tag_index(6));
-  return FUN_000c6130(datum_index, (void *)(hud_tag + 0x160), 0x68, 0);
-}
-
 /* 0xc6810 — Compile object name literal (types 0x25-0x2a).
  * "none" resolves to -1. Otherwise adds 6 to type (mapping object types to
  * enum range 0x2b-0x30), delegates to FUN_000c66d0, then restores type. */
@@ -685,6 +663,29 @@ bool FUN_000c6810(int datum_index)
   result = FUN_000c66d0(datum_index);
   *(short *)(node + 0x4) -= 6;
   return result;
+}
+
+/* 0xc68b0 — Compile navpoint literal (type 0x15).
+ * Looks up a waypoint by name from the HUD globals tag (hudg+0x160,
+ * element size 0x68). Returns false if no HUD globals tag is available. */
+bool FUN_000c68b0(int datum_index)
+{
+  char *node;
+  int tag_index;
+  char *hud_tag;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  if (*(short *)(node + 0x4) != 0x15) {
+    display_assert("hs_syntax_get(expression_index)->type==_hs_type_navpoint",
+                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x7b1, 1);
+    system_exit(-1);
+  }
+  tag_index = interface_get_tag_index(6);
+  if (tag_index == -1) {
+    return false;
+  }
+  hud_tag = (char *)tag_get(0x68756467, interface_get_tag_index(6));
+  return FUN_000c6130(datum_index, (void *)(hud_tag + 0x160), 0x68, 0);
 }
 
 /* 0xc69d0 — Compile object_list literal (type 0x17).

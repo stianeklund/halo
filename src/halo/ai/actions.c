@@ -1,10 +1,11 @@
+#include "../../common.h"
+
 /* actions.c — AI actor action dispatch.
  *
  * Corresponds to actions.obj.
  * Assertion path: c:\halo\SOURCE\ai\actions.c
  */
 
-#include "../../common.h"
 
 /* FUN_0001bba0 (0x1bba0) — Scan a vehicle unit's seats and select the seat
  * whose attach transform yields the greatest score for an actor.
@@ -170,6 +171,47 @@ void FUN_0001c190(int actor_handle)
   if (*(char *)(actor + 0x9f) == '\0' && *(int16_t *)(actor + 0xa8) > 0) {
     *(int16_t *)(actor + 0xa8) = *(int16_t *)(actor + 0xa8) - 1;
   }
+}
+
+/* 0x1c270 — encounter_get_squad: return pointer to a squad record by index.
+ *
+ * Validates squad_index is in [0, MAXIMUM_SQUADS_PER_ENCOUNTER) and also
+ * less than encounter->squad_count (at encounter+0x6).  Computes the
+ * absolute squad index as encounter->squad_base (encounter+0x4) +
+ * squad_index, validates it is in [0, MAXIMUM_SQUADS_PER_MAP), then
+ * returns squad_array + absolute_index * 0x20.
+ *
+ * __FILE__ = c:\halo\source\ai\encounters.h (inline helper defined there,
+ * compiled as an out-of-line instance here).
+ * MAXIMUM_SQUADS_PER_ENCOUNTER = 0x40; MAXIMUM_SQUADS_PER_MAP = 0x400.
+ * squad_array (0x5ab278) is a flat game_state_malloc block of 0x8000 bytes
+ * (0x400 * 0x20), initialized by FUN_00058eb0.
+ *
+ * Confirmed: encounter+0x4 = squad_base (int16_t), encounter+0x6 =
+ *   squad_count (int16_t).  Each squad record is 0x20 bytes.
+ * Confirmed: squad_array pointer at [0x5ab278] (MOVSX EAX,SI; SHL EAX,5;
+ *   ADD EAX,[0x5ab278]).
+ */
+char *encounter_get_squad(char *encounter, int16_t squad_index)
+{
+  int16_t squad_absolute;
+
+  if (squad_index < 0 || squad_index >= 0x40 ||
+      squad_index >= *(int16_t *)(encounter + 6)) {
+    display_assert(
+      "squad_index>=0 && squad_index<MAXIMUM_SQUADS_PER_ENCOUNTER && "
+      "squad_index<encounter->squad_count",
+      "c:\\halo\\source\\ai\\encounters.h", 0xdc, 1);
+    system_exit(-1);
+  }
+  squad_absolute = *(int16_t *)(encounter + 4) + squad_index;
+  if (squad_absolute < 0 || squad_absolute >= 0x400) {
+    display_assert(
+      "squad_absolute_index>=0 && squad_absolute_index<MAXIMUM_SQUADS_PER_MAP",
+      "c:\\halo\\source\\ai\\encounters.h", 0xdf, 1);
+    system_exit(-1);
+  }
+  return *(char **)0x5ab278 + (int16_t)squad_absolute * 0x20;
 }
 
 /* actor_action_perform (0x1c300) — actor_execute_current_action
@@ -1900,6 +1942,322 @@ char actor_action_try_to_throw_grenade(int actor_handle, char flag)
   return 0;
 }
 
+/* actor_action_consider_grenade (0x1fb80) — Probabilistically decides whether
+ * the actor should begin a grenade throw this tick. Gated by: the "already
+ * considering" flag (actor+0x6a0), the global AI grenade-enable flag
+ * (*(char**)0x632574 + 0x3b4), and the actv tag having both grenade type
+ * fields present (tag+0x180 and tag+0x182 != -1). Enforces a cooldown: if the
+ * last-throw timestamp (actor+0x6a4) is valid (!= -1) and the cooldown window
+ * (tag+0x1a4 * 30.0f + stamp) has not yet elapsed relative to game_time, bail.
+ * Otherwise re-stamps the cooldown, rolls a random value against
+ * (team-scaled multiplier * tag throw-chance at 0x1a0), and if the roll
+ * succeeds and actor_action_test_grenade passes, sets the consider flag and
+ * kicks off the throw. Returns 1 while inside the consider window, else 0. */
+char actor_action_consider_grenade(int actor_handle)
+{
+  char *actor;
+  char *actv_tag;
+  int current_time;
+  int *seed;
+  float expiry;
+  float throw_chance;
+  float team_mult;
+  float roll;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actv_tag = (char *)tag_get(0x61637476, *(int *)(actor + 0x5c));
+  if (*(char *)(actor + 0x6a0) == '\0') {
+    if (*(char *)(*(char **)0x632574 + 0x3b4) == '\0')
+      return 0;
+    if (*(short *)(actv_tag + 0x180) == -1)
+      return 0;
+    if (*(short *)(actv_tag + 0x182) == -1)
+      return 0;
+    current_time = game_time_get();
+    if (*(int *)(actor + 0x6a4) != -1) {
+      expiry = *(float *)(actv_tag + 0x1a4) * *(float *)0x253394 +
+               (float)*(int *)(actor + 0x6a4);
+      if (expiry > (float)current_time)
+        return 0;
+    }
+    throw_chance = *(float *)(actv_tag + 0x1a0);
+    team_mult = FUN_000b55b0(0x17, *(short *)(actor + 0x3e));
+    *(int *)(actor + 0x6a4) = current_time;
+    seed = get_global_random_seed_address();
+    roll = random_math_real((unsigned int *)seed);
+    if (team_mult * throw_chance <= roll ||
+        actor_action_test_grenade(actor_handle) == '\0')
+      return 0;
+    *(char *)(actor + 0x6a0) = 1;
+    actor_action_try_to_throw_grenade(actor_handle, 1);
+  }
+  return 1;
+}
+
+/* actor_action_try_to_evade (0x1fca0) - Attempt to start an evade (sidestep)
+ * action away from the actor's current target/attractor.
+ *
+ * Pre-screen guards (all fall through to a false return):
+ *   1. actor+0x158 (swarm element handle) must be NONE (-1).
+ *   2. FUN_0002a360(actor_handle) must be false (some blocking condition).
+ *   3. actor+0x504 (a boolean flag) must be clear.
+ *   4. actor+0x270 (target prop/attractor datum handle) must be valid (!= -1).
+ *   5. unit_tag+0x234 (evade-enable / max-evade scalar) must be > 0.0f.
+ *
+ * Reads the attractor direction (2D vector at prop+0xe0) and measures its
+ * alignment with the actor's facing (actor+0x174/0x178). When actr_tag flag
+ * 0x200000 is set the alignment is a 3-component dot (FUN_00013070); otherwise
+ * the attractor vector is copied, normalized (magnitude3d), and dotted in 2D.
+ * A zero-length attractor vector skips the alignment gate. The alignment must
+ * exceed 0.4f (0x253524) to proceed.
+ *
+ * Builds the alignment vector (normalized copy of prop+0xe0), requests a
+ * feasible evade direction from actor_move_try_evasion_direction with the
+ * "random" reference mode (4). On success the returned direction index selects
+ * an animation impulse (1 -> 7, 0 -> 6; anything else asserts), which is
+ * validated via unit_test_animation_impulse before being committed with
+ * actor_move_animation_impulse.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle); tag_get('actr', actor+0x58);
+ * object_get_and_verify_type(actor+0x18, 3); tag_get('unit', *object);
+ * datum_get(prop_data 0x5ab23c, actor+0x270). Confirmed float constants
+ * 0x2533c0 = 0.0f, 0x253524 = 0.4f. Confirmed FUN_0002ab40 result buffer is a
+ * pathfinding-location scratch (28-byte frame reservation, callee reads +0xc).
+ * Confirmed default-case assert "evade_direction == _actor_evade_left",
+ * line 0xce3, + system_exit(-1). Returns bool in AL. */
+char actor_action_try_to_evade(int actor_handle)
+{
+  char *actor;
+  int *actr_tag;
+  char *unit_tag;
+  char *prop;
+  float *attractor_vec;
+  float scratch[2];
+  float alignment_vec[2];
+  float dot;
+  int evade_dir_ref;
+  char out_flag;
+  char result;
+  int impulse;
+  char path_result[0x1c];
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  result = 0;
+  if (*(int *)(actor + 0x158) != -1) {
+    return result;
+  }
+  if (FUN_0002a360(actor_handle) != 0) {
+    return result;
+  }
+  if (*(char *)(actor + 0x504) != '\0') {
+    return result;
+  }
+  if (*(int *)(actor + 0x270) == -1) {
+    return result;
+  }
+
+  actr_tag = (int *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  unit_tag = (char *)tag_get(
+    0x756e6974, *(int *)object_get_and_verify_type(*(int *)(actor + 0x18), 3));
+  prop = (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(actor + 0x270));
+  if (*(float *)(unit_tag + 0x234) <= *(float *)0x2533c0) {
+    return result;
+  }
+
+  attractor_vec = (float *)(prop + 0xe0);
+  if ((*actr_tag & 0x200000) != 0) {
+    dot = FUN_00013070(attractor_vec, (float *)(actor + 0x174));
+  } else {
+    scratch[0] = attractor_vec[0];
+    scratch[1] = attractor_vec[1];
+    if (magnitude3d(scratch) <= *(float *)0x2533c0) {
+      goto do_evade;
+    }
+    dot = scratch[1] * *(float *)(actor + 0x178) +
+          scratch[0] * *(float *)(actor + 0x174);
+  }
+  if (dot <= *(float *)0x253524) {
+    return result;
+  }
+
+do_evade:
+  alignment_vec[0] = attractor_vec[0];
+  alignment_vec[1] = attractor_vec[1];
+  evade_dir_ref = 4;
+  magnitude3d(alignment_vec);
+  if (actor_move_try_evasion_direction(actor_handle, alignment_vec,
+                                       *(float *)(unit_tag + 0x234),
+                                       (unsigned short *)&evade_dir_ref, 0.0f,
+                                       &out_flag, path_result) != '\0') {
+    if ((unsigned short)evade_dir_ref == 1) {
+      impulse = 7;
+    } else if ((unsigned short)evade_dir_ref == 0) {
+      impulse = 6;
+    } else {
+      display_assert("evade_direction == _actor_evade_left",
+                     "c:\\halo\\SOURCE\\ai\\actions.c", 0xce3, 1);
+      system_exit(-1);
+    }
+    if (unit_test_animation_impulse(*(int *)(actor + 0x18), impulse) != 0) {
+      result = (char)actor_move_animation_impulse(
+        actor_handle, (int16_t)impulse, (int *)alignment_vec);
+    }
+  }
+  return result;
+}
+
+/* actor_action_try_to_dive (0x1fe70) - Attempt to start a dive/dodge action in
+ * a lateral direction chosen relative to the actor's facing frame.
+ *
+ * On entry the actor's avoidance-state record (base *(int*)0x331f58, stride
+ * 0x657c, indexed by the low 16 bits of the handle) is stamped at +0x184 with
+ * the current game time; the final outcome is written at +0x188:
+ *   1 = pre-screen / evasion-direction rejection, 2 = no feasible dive
+ *   possibility, 3 = animation impulse rejected, 4 = success.
+ *
+ * Pre-screen (outcome 1): the actor must not be in a vehicle (actor+0x158 ==
+ * NONE) and actor_move_try_evasion_direction must accept the requested
+ * direction. direction_ref is an IN/OUT reference-mode word: on success the
+ * callee overwrites it with the chosen reference direction (0..3), which then
+ * selects how the input 2D vector is rotated into (dive_x, dive_y).
+ *
+ * (dive_x, dive_y) is projected onto the actor's facing axes (actor+0x174 /
+ * +0x178) to build four candidate alignment scores. The static dive-possibility
+ * table at 0x2542b2 is walked; each 8-byte entry carries {impulse index (-2),
+ * animation_direction (0), score bias (+2, float)}. A possibility wins when its
+ * biased score beats the running best (seeded to -0.5f) and
+ * unit_test_animation_impulse accepts its impulse on the actor's object. If a
+ * winner is found the output direction is re-derived from the winning
+ * animation_direction and committed via actor_move_animation_impulse; on
+ * success a 0x2c event is fired (FUN_00046f10) and the impulse result is
+ * returned.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle); avoidance record
+ * *(int*)0x331f58 + (handle & 0xffff)*0x657c; game_time_get() stamp at +0x184;
+ * actor_move_try_evasion_direction 7-arg call (float scalars arg3/arg5, IN/OUT
+ * unsigned-short ref arg4, out flag + 28-byte path scratch); asserts at
+ * actions.c 0xd24 / 0xd3e / 0xd69 each followed by system_exit(-1); float
+ * constant 0xbf000000 = -0.5f. cases 2 and 3 are byte-identical in both
+ * switches (separate jump-table slots). Returns bool in AL. */
+char actor_action_try_to_dive(int actor_handle, short direction_ref,
+                              float param_3, float *direction, float param_5)
+{
+  char *actor;
+  int record;
+  char out_flag;
+  char path_result[0x1c];
+  float dive_x;
+  float dive_y;
+  float scores[4];
+  short best_index;
+  float best_score;
+  float out_vec[2];
+  unsigned short *poss;
+  char result;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  record = (actor_handle & 0xffff) * 0x657c + *(int *)0x331f58;
+  out_flag = 0;
+  *(int *)(record + 0x184) = game_time_get();
+
+  if (*(int *)(actor + 0x158) != -1 ||
+      actor_move_try_evasion_direction(
+        actor_handle, direction, param_3, (unsigned short *)&direction_ref,
+        param_5, &out_flag, path_result) == '\0') {
+    *(short *)(record + 0x188) = 1;
+    return '\0';
+  }
+
+  switch (direction_ref) {
+  case 0:
+    dive_x = *direction;
+    dive_y = -direction[1];
+    break;
+  case 1:
+    dive_y = direction[1];
+    dive_x = -*direction;
+    break;
+  case 2:
+    dive_x = direction[1];
+    dive_y = *direction;
+    break;
+  case 3:
+    dive_x = direction[1];
+    dive_y = *direction;
+    break;
+  default:
+    display_assert(0, "c:\\halo\\SOURCE\\ai\\actions.c", 0xd24, 1);
+    system_exit(-1);
+  }
+
+  /* The winning animation_direction shares out_vec[1]'s stack slot: it lives
+   * during the possibility scan, is read by the second switch's dispatch, then
+   * the slot is overwritten with the output vector's Y component. */
+  best_index = -1;
+  *(int *)(out_vec + 1) = -1;
+  best_score = -0.5f;
+  scores[2] =
+    dive_y * *(float *)(actor + 0x174) + dive_x * *(float *)(actor + 0x178);
+  scores[0] =
+    *(float *)(actor + 0x174) * dive_x + -*(float *)(actor + 0x178) * dive_y;
+  scores[3] = -scores[2];
+  scores[1] = -scores[0];
+
+  poss = (unsigned short *)0x2542b2;
+  do {
+    if ((short)poss[0] < 0 || 3 < (short)poss[0]) {
+      display_assert("(possibility->animation_direction >= 0) && "
+                     "(possibility->animation_direction < 4)",
+                     "c:\\halo\\SOURCE\\ai\\actions.c", 0xd3e, 1);
+      system_exit(-1);
+    }
+    if (best_score < scores[(short)poss[0]] + *(float *)(poss + 1) &&
+        unit_test_animation_impulse(*(int *)(actor + 0x18), poss[-1]) != 0) {
+      best_index = poss[-1];
+      *(int *)(out_vec + 1) = poss[0];
+      best_score = scores[(short)poss[0]] + *(float *)(poss + 1);
+    }
+    poss = poss + 4;
+  } while (poss[-1] != 0xffff);
+
+  if (best_index == -1) {
+    *(short *)(record + 0x188) = 2;
+    return '\0';
+  }
+
+  switch (*(short *)(out_vec + 1)) {
+  case 0:
+    out_vec[1] = -dive_y;
+    out_vec[0] = dive_x;
+    break;
+  case 1:
+    out_vec[0] = -dive_x;
+    out_vec[1] = dive_y;
+    break;
+  case 2:
+    out_vec[0] = dive_y;
+    out_vec[1] = dive_x;
+    break;
+  case 3:
+    out_vec[0] = dive_y;
+    out_vec[1] = dive_x;
+    break;
+  default:
+    display_assert(0, "c:\\halo\\SOURCE\\ai\\actions.c", 0xd69, 1);
+    system_exit(-1);
+  }
+
+  result = (char)actor_move_animation_impulse(actor_handle, best_index,
+                                              (int *)out_vec);
+  if (result == '\0') {
+    *(short *)(record + 0x188) = 3;
+    return result;
+  }
+  FUN_00046f10(0x2c, *(int *)(actor + 0x18), -1, -1, -1, -1, 0);
+  *(short *)(record + 0x188) = 4;
+  return result;
+}
+
 /* actors_searching_same_position (0x20140) — Returns true when two actors are
  * searching/investigating the same position. Each actor's search record is the
  * sub-struct at actor+0xa4, but only consulted when the actor's search-type tag
@@ -2072,320 +2430,6 @@ int actor_pursuit_find_nearby_actors(int actor_handle, char flag)
   }
   *(int *)(actor + 0x1d0) = best_index;
   return count;
-}
-
-/* actor_action_consider_grenade (0x1fb80) — Probabilistically decides whether
- * the actor should begin a grenade throw this tick. Gated by: the "already
- * considering" flag (actor+0x6a0), the global AI grenade-enable flag
- * (*(char**)0x632574 + 0x3b4), and the actv tag having both grenade type
- * fields present (tag+0x180 and tag+0x182 != -1). Enforces a cooldown: if the
- * last-throw timestamp (actor+0x6a4) is valid (!= -1) and the cooldown window
- * (tag+0x1a4 * 30.0f + stamp) has not yet elapsed relative to game_time, bail.
- * Otherwise re-stamps the cooldown, rolls a random value against
- * (team-scaled multiplier * tag throw-chance at 0x1a0), and if the roll
- * succeeds and actor_action_test_grenade passes, sets the consider flag and
- * kicks off the throw. Returns 1 while inside the consider window, else 0. */
-char actor_action_consider_grenade(int actor_handle)
-{
-  char *actor;
-  char *actv_tag;
-  int current_time;
-  int *seed;
-  float expiry;
-  float throw_chance;
-  float team_mult;
-  float roll;
-
-  actor = (char *)datum_get(actor_data, actor_handle);
-  actv_tag = (char *)tag_get(0x61637476, *(int *)(actor + 0x5c));
-  if (*(char *)(actor + 0x6a0) == '\0') {
-    if (*(char *)(*(char **)0x632574 + 0x3b4) == '\0')
-      return 0;
-    if (*(short *)(actv_tag + 0x180) == -1)
-      return 0;
-    if (*(short *)(actv_tag + 0x182) == -1)
-      return 0;
-    current_time = game_time_get();
-    if (*(int *)(actor + 0x6a4) != -1) {
-      expiry = *(float *)(actv_tag + 0x1a4) * *(float *)0x253394 +
-               (float)*(int *)(actor + 0x6a4);
-      if (expiry > (float)current_time)
-        return 0;
-    }
-    throw_chance = *(float *)(actv_tag + 0x1a0);
-    team_mult = FUN_000b55b0(0x17, *(short *)(actor + 0x3e));
-    *(int *)(actor + 0x6a4) = current_time;
-    seed = get_global_random_seed_address();
-    roll = random_math_real((unsigned int *)seed);
-    if (team_mult * throw_chance <= roll ||
-        actor_action_test_grenade(actor_handle) == '\0')
-      return 0;
-    *(char *)(actor + 0x6a0) = 1;
-    actor_action_try_to_throw_grenade(actor_handle, 1);
-  }
-  return 1;
-}
-
-/* actor_action_try_to_evade (0x1fca0) - Attempt to start an evade (sidestep)
- * action away from the actor's current target/attractor.
- *
- * Pre-screen guards (all fall through to a false return):
- *   1. actor+0x158 (swarm element handle) must be NONE (-1).
- *   2. FUN_0002a360(actor_handle) must be false (some blocking condition).
- *   3. actor+0x504 (a boolean flag) must be clear.
- *   4. actor+0x270 (target prop/attractor datum handle) must be valid (!= -1).
- *   5. unit_tag+0x234 (evade-enable / max-evade scalar) must be > 0.0f.
- *
- * Reads the attractor direction (2D vector at prop+0xe0) and measures its
- * alignment with the actor's facing (actor+0x174/0x178). When actr_tag flag
- * 0x200000 is set the alignment is a 3-component dot (FUN_00013070); otherwise
- * the attractor vector is copied, normalized (magnitude3d), and dotted in 2D.
- * A zero-length attractor vector skips the alignment gate. The alignment must
- * exceed 0.4f (0x253524) to proceed.
- *
- * Builds the alignment vector (normalized copy of prop+0xe0), requests a
- * feasible evade direction from actor_move_try_evasion_direction with the
- * "random" reference mode (4). On success the returned direction index selects
- * an animation impulse (1 -> 7, 0 -> 6; anything else asserts), which is
- * validated via unit_test_animation_impulse before being committed with
- * actor_move_animation_impulse.
- *
- * Confirmed: datum_get(actor_data, actor_handle); tag_get('actr', actor+0x58);
- * object_get_and_verify_type(actor+0x18, 3); tag_get('unit', *object);
- * datum_get(prop_data 0x5ab23c, actor+0x270). Confirmed float constants
- * 0x2533c0 = 0.0f, 0x253524 = 0.4f. Confirmed FUN_0002ab40 result buffer is a
- * pathfinding-location scratch (28-byte frame reservation, callee reads +0xc).
- * Confirmed default-case assert "evade_direction == _actor_evade_left",
- * line 0xce3, + system_exit(-1). Returns bool in AL. */
-char actor_action_try_to_evade(int actor_handle)
-{
-  char *actor;
-  int *actr_tag;
-  char *unit_tag;
-  char *prop;
-  float *attractor_vec;
-  float scratch[2];
-  float alignment_vec[2];
-  float dot;
-  int evade_dir_ref;
-  char out_flag;
-  char result;
-  int impulse;
-  char path_result[0x1c];
-
-  actor = (char *)datum_get(actor_data, actor_handle);
-  result = 0;
-  if (*(int *)(actor + 0x158) != -1) {
-    return result;
-  }
-  if (FUN_0002a360(actor_handle) != 0) {
-    return result;
-  }
-  if (*(char *)(actor + 0x504) != '\0') {
-    return result;
-  }
-  if (*(int *)(actor + 0x270) == -1) {
-    return result;
-  }
-
-  actr_tag = (int *)tag_get(0x61637472, *(int *)(actor + 0x58));
-  unit_tag = (char *)tag_get(
-      0x756e6974,
-      *(int *)object_get_and_verify_type(*(int *)(actor + 0x18), 3));
-  prop = (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(actor + 0x270));
-  if (*(float *)(unit_tag + 0x234) <= *(float *)0x2533c0) {
-    return result;
-  }
-
-  attractor_vec = (float *)(prop + 0xe0);
-  if ((*actr_tag & 0x200000) != 0) {
-    dot = FUN_00013070(attractor_vec, (float *)(actor + 0x174));
-  } else {
-    scratch[0] = attractor_vec[0];
-    scratch[1] = attractor_vec[1];
-    if (magnitude3d(scratch) <= *(float *)0x2533c0) {
-      goto do_evade;
-    }
-    dot = scratch[1] * *(float *)(actor + 0x178) +
-          scratch[0] * *(float *)(actor + 0x174);
-  }
-  if (dot <= *(float *)0x253524) {
-    return result;
-  }
-
-do_evade:
-  alignment_vec[0] = attractor_vec[0];
-  alignment_vec[1] = attractor_vec[1];
-  evade_dir_ref = 4;
-  magnitude3d(alignment_vec);
-  if (actor_move_try_evasion_direction(actor_handle, alignment_vec,
-                                       *(float *)(unit_tag + 0x234),
-                                       (unsigned short *)&evade_dir_ref, 0.0f,
-                                       &out_flag, path_result) != '\0') {
-    if ((unsigned short)evade_dir_ref == 1) {
-      impulse = 7;
-    } else if ((unsigned short)evade_dir_ref == 0) {
-      impulse = 6;
-    } else {
-      display_assert("evade_direction == _actor_evade_left",
-                     "c:\\halo\\SOURCE\\ai\\actions.c", 0xce3, 1);
-      system_exit(-1);
-    }
-    if (unit_test_animation_impulse(*(int *)(actor + 0x18), impulse) != 0) {
-      result = (char)actor_move_animation_impulse(
-        actor_handle, (int16_t)impulse, (int *)alignment_vec);
-    }
-  }
-  return result;
-}
-
-/* actor_action_try_to_dive (0x1fe70) - Attempt to start a dive/dodge action in
- * a lateral direction chosen relative to the actor's facing frame.
- *
- * On entry the actor's avoidance-state record (base *(int*)0x331f58, stride
- * 0x657c, indexed by the low 16 bits of the handle) is stamped at +0x184 with
- * the current game time; the final outcome is written at +0x188:
- *   1 = pre-screen / evasion-direction rejection, 2 = no feasible dive
- *   possibility, 3 = animation impulse rejected, 4 = success.
- *
- * Pre-screen (outcome 1): the actor must not be in a vehicle (actor+0x158 ==
- * NONE) and actor_move_try_evasion_direction must accept the requested
- * direction. direction_ref is an IN/OUT reference-mode word: on success the
- * callee overwrites it with the chosen reference direction (0..3), which then
- * selects how the input 2D vector is rotated into (dive_x, dive_y).
- *
- * (dive_x, dive_y) is projected onto the actor's facing axes (actor+0x174 /
- * +0x178) to build four candidate alignment scores. The static dive-possibility
- * table at 0x2542b2 is walked; each 8-byte entry carries {impulse index (-2),
- * animation_direction (0), score bias (+2, float)}. A possibility wins when its
- * biased score beats the running best (seeded to -0.5f) and
- * unit_test_animation_impulse accepts its impulse on the actor's object. If a
- * winner is found the output direction is re-derived from the winning
- * animation_direction and committed via actor_move_animation_impulse; on success
- * a 0x2c event is fired (FUN_00046f10) and the impulse result is returned.
- *
- * Confirmed: datum_get(actor_data, actor_handle); avoidance record
- * *(int*)0x331f58 + (handle & 0xffff)*0x657c; game_time_get() stamp at +0x184;
- * actor_move_try_evasion_direction 7-arg call (float scalars arg3/arg5, IN/OUT
- * unsigned-short ref arg4, out flag + 28-byte path scratch); asserts at
- * actions.c 0xd24 / 0xd3e / 0xd69 each followed by system_exit(-1); float
- * constant 0xbf000000 = -0.5f. cases 2 and 3 are byte-identical in both
- * switches (separate jump-table slots). Returns bool in AL. */
-char actor_action_try_to_dive(int actor_handle, short direction_ref, float param_3,
-                              float *direction, float param_5)
-{
-  char *actor;
-  int record;
-  char out_flag;
-  char path_result[0x1c];
-  float dive_x;
-  float dive_y;
-  float scores[4];
-  short best_index;
-  float best_score;
-  float out_vec[2];
-  unsigned short *poss;
-  char result;
-
-  actor = (char *)datum_get(actor_data, actor_handle);
-  record = (actor_handle & 0xffff) * 0x657c + *(int *)0x331f58;
-  out_flag = 0;
-  *(int *)(record + 0x184) = game_time_get();
-
-  if (*(int *)(actor + 0x158) != -1 ||
-      actor_move_try_evasion_direction(actor_handle, direction, param_3,
-                                       (unsigned short *)&direction_ref, param_5,
-                                       &out_flag, path_result) == '\0') {
-    *(short *)(record + 0x188) = 1;
-    return '\0';
-  }
-
-  switch (direction_ref) {
-  case 0:
-    dive_x = *direction;
-    dive_y = -direction[1];
-    break;
-  case 1:
-    dive_y = direction[1];
-    dive_x = -*direction;
-    break;
-  case 2:
-    dive_x = direction[1];
-    dive_y = *direction;
-    break;
-  case 3:
-    dive_x = direction[1];
-    dive_y = *direction;
-    break;
-  default:
-    display_assert(0, "c:\\halo\\SOURCE\\ai\\actions.c", 0xd24, 1);
-    system_exit(-1);
-  }
-
-  /* The winning animation_direction shares out_vec[1]'s stack slot: it lives
-   * during the possibility scan, is read by the second switch's dispatch, then
-   * the slot is overwritten with the output vector's Y component. */
-  best_index = -1;
-  *(int *)(out_vec + 1) = -1;
-  best_score = -0.5f;
-  scores[2] = dive_y * *(float *)(actor + 0x174) + dive_x * *(float *)(actor + 0x178);
-  scores[0] = *(float *)(actor + 0x174) * dive_x + -*(float *)(actor + 0x178) * dive_y;
-  scores[3] = -scores[2];
-  scores[1] = -scores[0];
-
-  poss = (unsigned short *)0x2542b2;
-  do {
-    if ((short)poss[0] < 0 || 3 < (short)poss[0]) {
-      display_assert(
-          "(possibility->animation_direction >= 0) && (possibility->animation_direction < 4)",
-          "c:\\halo\\SOURCE\\ai\\actions.c", 0xd3e, 1);
-      system_exit(-1);
-    }
-    if (best_score < scores[(short)poss[0]] + *(float *)(poss + 1) &&
-        unit_test_animation_impulse(*(int *)(actor + 0x18), poss[-1]) != 0) {
-      best_index = poss[-1];
-      *(int *)(out_vec + 1) = poss[0];
-      best_score = scores[(short)poss[0]] + *(float *)(poss + 1);
-    }
-    poss = poss + 4;
-  } while (poss[-1] != 0xffff);
-
-  if (best_index == -1) {
-    *(short *)(record + 0x188) = 2;
-    return '\0';
-  }
-
-  switch (*(short *)(out_vec + 1)) {
-  case 0:
-    out_vec[1] = -dive_y;
-    out_vec[0] = dive_x;
-    break;
-  case 1:
-    out_vec[0] = -dive_x;
-    out_vec[1] = dive_y;
-    break;
-  case 2:
-    out_vec[0] = dive_y;
-    out_vec[1] = dive_x;
-    break;
-  case 3:
-    out_vec[0] = dive_y;
-    out_vec[1] = dive_x;
-    break;
-  default:
-    display_assert(0, "c:\\halo\\SOURCE\\ai\\actions.c", 0xd69, 1);
-    system_exit(-1);
-  }
-
-  result = (char)actor_move_animation_impulse(actor_handle, best_index,
-                                              (int *)out_vec);
-  if (result == '\0') {
-    *(short *)(record + 0x188) = 3;
-    return result;
-  }
-  FUN_00046f10(0x2c, *(int *)(actor + 0x18), -1, -1, -1, -1, 0);
-  *(short *)(record + 0x188) = 4;
-  return result;
 }
 
 /* actor_action_handle_berserk_transition (0x20470) — Handles berserk state
@@ -2662,4 +2706,14 @@ bool FUN_000210b0(int actor_handle)
     result = *(short *)(actor + 0x5f2) == 2;
   }
   return result;
+}
+
+char *FUN_000210f0(int actor_handle)
+{
+  int weapon_handle = actor_attacking_target(actor_handle);
+  if (weapon_handle != -1) {
+    int *obj = (int *)object_get_and_verify_type(weapon_handle, 4);
+    return (char *)tag_get(0x77656170, *obj);
+  }
+  return 0;
 }

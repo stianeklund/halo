@@ -141,7 +141,8 @@ int FUN_00021350(float value)
  * annotation as cdecl (adds a [ebp+8] load); burst_ref/firing_ref are
  * address-taken out-params forced onto the stack here while the original keeps
  * them in registers. Residual diffs are FPU store/compare ordering. No recovery
- * lever remains. Verified 2026-06-23 [[project_sub80_vc71_audit_2026-06-23]]. */
+ * lever remains. Verified 2026-06-23 [[project_sub80_vc71_audit_2026-06-23]].
+ */
 void actor_combat_set_fire_timer(int actor_handle /* @<esi> */)
 {
   char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
@@ -185,7 +186,8 @@ void actor_combat_set_fire_timer(int actor_handle /* @<esi> */)
  * register-received by the original (VC71 adds a cdecl [ebp+8] load), and the
  * bool returns compile to branchy movb/xorb here vs the original's `sete %al`.
  * Field offsets (0x3bc/0x457/0x5f4/0x60c) and control flow match exactly — no
- * dropped branch. Verified 2026-06-23 [[project_sub80_vc71_audit_2026-06-23]]. */
+ * dropped branch. Verified 2026-06-23 [[project_sub80_vc71_audit_2026-06-23]].
+ */
 bool actor_combat_evaluate_firing(int actor_handle /* @<eax> */,
                                   void *timing_data /* @<edi> */)
 {
@@ -193,8 +195,7 @@ bool actor_combat_evaluate_firing(int actor_handle /* @<eax> */,
   char flag = *(char *)(actor + 0x457);
 
   if (*(short *)(actor + 0x60c) == 1) {
-    char *prop =
-      (char *)datum_get(*(void **)0x5ab23c, *(int *)(actor + 0x610));
+    char *prop = (char *)datum_get(*(void **)0x5ab23c, *(int *)(actor + 0x610));
     short prop_state = *(short *)(prop + 0x24);
     if (prop_state >= 4 && prop_state <= 5) {
       *(char *)(actor + 0x3bc) = 1;
@@ -249,8 +250,8 @@ char actor_combat_compute_ballistic_solution(int actor_handle, int param_2)
   actor = (int)datum_get(*(void **)0x6325a4, actor_handle);
   variant = tag_get(0x61637476, *(int *)(actor + 0x5c));
   defn_index = *(short *)((int)variant + 0x180);
-  element = tag_block_get_element((char *)game_globals_get() + 0x128,
-                                  defn_index, 0x44);
+  element =
+    tag_block_get_element((char *)game_globals_get() + 0x128, defn_index, 0x44);
 
   projectile = 0;
   if (element != (void *)0 && *(int *)((int)element + 0x40) != -1) {
@@ -283,7 +284,8 @@ char actor_combat_compute_ballistic_solution(int actor_handle, int param_2)
   }
 
   if (ground[1] * *(float *)(actor + 0x178) +
-        ground[0] * *(float *)(actor + 0x174) <= *(float *)0x2533dc) {
+        ground[0] * *(float *)(actor + 0x174) <=
+      *(float *)0x2533dc) {
     return 0;
   }
 
@@ -323,7 +325,7 @@ char actor_combat_compute_ballistic_solution(int actor_handle, int param_2)
  * (actor+0x1ca), it nudges out_pos toward the actor via FUN_00021430 with a
  * 1.5 weight. Returns 0 when no suitable target exists. */
 char actor_combat_find_grenade_target(int actor_handle, float *out_pos,
-                                       int *out_handle, int *out_extra)
+                                      int *out_handle, int *out_extra)
 {
   char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
   char *actv = (char *)tag_get(0x61637476 /* 'actv' */, *(int *)(actor + 0x5c));
@@ -502,8 +504,7 @@ int actor_combat_check_fire_target(int actor_handle /* @<edi> */, short mode)
     system_exit(-1);
   }
 
-  prop =
-    (char *)datum_get(*(void **)0x5ab23c, *(int *)(actor + 0x610));
+  prop = (char *)datum_get(*(void **)0x5ab23c, *(int *)(actor + 0x610));
 
   if (*(int *)(prop + 0x110) != -1)
     return 1;
@@ -570,7 +571,7 @@ void FUN_00022390(int actor_handle)
 
   if (*(char *)(actor + 0x604) != 0) {
     if (actor_combat_check_fire_target(actor_handle,
-            *(int16_t *)(actv + 0x156)) == 0) {
+                                       *(int16_t *)(actv + 0x156)) == 0) {
       *(char *)(actor + 0x604) = 0;
     }
   }
@@ -599,9 +600,10 @@ void FUN_00022390(int actor_handle)
   combat_prop = FUN_000b55b0(0xd, (int)*(unsigned short *)(actor + 0x3e));
   scaled_val = combat_prop * *(float *)(actv + 0x88) * TICKS_PER_SECOND;
   *(char *)(actor + 0x600) =
-      (float)*(int *)(actor + 0x61c) < scaled_val ? 1 : 0;
+    (float)*(int *)(actor + 0x61c) < scaled_val ? 1 : 0;
 
-  actor_combat_get_burst_parameters(actor_handle, actv, &burst_ref, &firing_ref);
+  actor_combat_get_burst_parameters(actor_handle, actv, &burst_ref,
+                                    &firing_ref);
 
   if (*(float *)(actor + 0x458) > *(float *)0x2533c0) {
     delay = *(float *)(actor + 0x458);
@@ -622,9 +624,8 @@ void FUN_00022390(int actor_handle)
   delay *= TICKS_PER_SECOND;
   *(short *)(actor + 0x5f4) = (short)(int)delay;
 
-  rate_of_fire =
-      FUN_000b55b0(0xb, (int)*(unsigned short *)(actor + 0x3e)) *
-      *(float *)(actv + 0x7c);
+  rate_of_fire = FUN_000b55b0(0xb, (int)*(unsigned short *)(actor + 0x3e)) *
+                 *(float *)(actv + 0x7c);
   if (firing_ref != NULL &&
       *(float *)((char *)firing_ref + 0xc) != *(float *)0x2533c0) {
     rate_of_fire *= *(float *)((char *)firing_ref + 0xc);
@@ -640,8 +641,8 @@ void FUN_00022390(int actor_handle)
     *(float *)(actor + 0x69c) = rof_modifier;
     if (*(char *)0x5aca5c != 0) {
       console_printf(0, "%s: manual damage modifier %.2f",
-          tag_name_strip_path(tag_get_name(*(int *)(actor + 0x5c))),
-          (double)rof_modifier);
+                     tag_name_strip_path(tag_get_name(*(int *)(actor + 0x5c))),
+                     (double)rof_modifier);
     }
   } else if (*(float *)(actv + 0xc8) > *(float *)0x2533c0) {
     weapon_handle = actor_attacking_target(actor_handle);
@@ -657,12 +658,12 @@ void FUN_00022390(int actor_handle)
         rof_modifier = *(float *)(actv + 0xc8) / damage_per_second;
         *(float *)(actor + 0x69c) = rof_modifier;
         if (*(char *)0x5aca5c != 0) {
-          console_printf(0,
-              "%s: proj %.1f rof %.1f dmg/s %.1f -> to get %.1f mod= %.2f",
-              tag_name_strip_path(tag_get_name(*(int *)(actor + 0x5c))),
-              (double)projectile_damage, (double)max_range,
-              (double)damage_per_second, (double)*(float *)(actv + 0xc8),
-              (double)rof_modifier);
+          console_printf(
+            0, "%s: proj %.1f rof %.1f dmg/s %.1f -> to get %.1f mod= %.2f",
+            tag_name_strip_path(tag_get_name(*(int *)(actor + 0x5c))),
+            (double)projectile_damage, (double)max_range,
+            (double)damage_per_second, (double)*(float *)(actv + 0xc8),
+            (double)rof_modifier);
         }
       }
     }
@@ -677,8 +678,7 @@ void FUN_00022390(int actor_handle)
 
   if (*(float *)(actv + 0x14c) > *(float *)0x2533c0 &&
       *(short *)(actor + 0x60c) == 1) {
-    prop = (char *)datum_get(*(void **)0x5ab23c,
-                                  *(int *)(actor + 0x610));
+    prop = (char *)datum_get(*(void **)0x5ab23c, *(int *)(actor + 0x610));
     prop_state = *(short *)(prop + 0x24);
     if (prop_state < 2 || prop_state > 3 || *(short *)(prop + 0x32) == 0) {
       suppress_flag = 1;
@@ -726,9 +726,9 @@ void FUN_00022390(int actor_handle)
     float sec_min = *(float *)((char *)burst_ref + 8);
     float sec_max = *(float *)((char *)burst_ref + 0xc);
     seed = get_global_random_seed_address();
-    error_secondary = FUN_000b55b0(0xc,
-        (int)*(unsigned short *)(actor + 0x3e)) *
-        random_real_range(seed, sec_min, sec_max);
+    error_secondary =
+      FUN_000b55b0(0xc, (int)*(unsigned short *)(actor + 0x3e)) *
+      random_real_range(seed, sec_min, sec_max);
   }
   if (*(char *)(actor + 0x1ca) != 0) {
     error_primary = error_primary + error_primary;
@@ -739,8 +739,8 @@ void FUN_00022390(int actor_handle)
   if (fire_timer > 0 &&
       *(float *)((char *)burst_ref + 0x24) > *(float *)0x2533c0) {
     float fire_timer_f = (float)(int)fire_timer;
-    cone_angle = fire_timer_f * *(float *)((char *)burst_ref + 0x24) *
-                 *(float *)0x2546a4;
+    cone_angle =
+      fire_timer_f * *(float *)((char *)burst_ref + 0x24) * *(float *)0x2546a4;
     if (cone_angle > *(float *)0x254a58) {
       cone_angle = *(float *)0x254a58;
     }
@@ -749,12 +749,12 @@ void FUN_00022390(int actor_handle)
       extended_radius = cone_radius * *(float *)0x2533ec;
       if (error_primary < extended_radius) {
         *(short *)(actor + 0x5f4) =
-            (short)(int)(error_primary / cone_radius * fire_timer_f);
+          (short)(int)(error_primary / cone_radius * fire_timer_f);
         error_secondary = (extended_radius / error_primary) * error_secondary;
         error_primary = extended_radius;
       } else {
         *(short *)(actor + 0x5f4) =
-            (short)(int)(fire_timer_f * *(float *)0x2533ec);
+          (short)(int)(fire_timer_f * *(float *)0x2533ec);
         error_secondary = (extended_radius / error_primary) * error_secondary;
         error_primary = extended_radius;
       }
@@ -775,18 +775,14 @@ void FUN_00022390(int actor_handle)
   sin_comb = x87_fsin(combined_angle);
 #endif
 
-  primary_err[0] =
-      (perp[0] * cos_yaw_v + 0.0f * sin_yaw_v) * error_primary;
-  primary_err[1] =
-      (perp[1] * cos_yaw_v + 0.0f * sin_yaw_v) * error_primary;
-  primary_err[2] =
-      (perp[2] * cos_yaw_v + sin_yaw_v) * error_primary;
+  primary_err[0] = (perp[0] * cos_yaw_v + 0.0f * sin_yaw_v) * error_primary;
+  primary_err[1] = (perp[1] * cos_yaw_v + 0.0f * sin_yaw_v) * error_primary;
+  primary_err[2] = (perp[2] * cos_yaw_v + sin_yaw_v) * error_primary;
   secondary_err[0] =
-      -((perp[0] * cos_comb + sin_comb * 0.0f) * error_secondary);
+    -((perp[0] * cos_comb + sin_comb * 0.0f) * error_secondary);
   secondary_err[1] =
-      -((perp[1] * cos_comb + sin_comb * 0.0f) * error_secondary);
-  secondary_err[2] =
-      -((perp[2] * cos_comb + sin_comb) * error_secondary);
+    -((perp[1] * cos_comb + sin_comb * 0.0f) * error_secondary);
+  secondary_err[2] = -((perp[2] * cos_comb + sin_comb) * error_secondary);
 
   fire_timer = *(short *)(actor + 0x5f4);
   if (fire_timer > 0) {
@@ -806,18 +802,17 @@ void FUN_00022390(int actor_handle)
   *(float *)(actor + 0x674) = secondary_err[1];
   *(float *)(actor + 0x678) = secondary_err[2];
   *(float *)(actor + 0x67c) =
-      *(float *)(actor + 0x64c) + *(float *)(actor + 0x664);
+    *(float *)(actor + 0x64c) + *(float *)(actor + 0x664);
   *(float *)(actor + 0x680) =
-      *(float *)(actor + 0x650) + *(float *)(actor + 0x668);
+    *(float *)(actor + 0x650) + *(float *)(actor + 0x668);
   *(float *)(actor + 0x684) =
-      *(float *)(actor + 0x654) + *(float *)(actor + 0x66c);
+    *(float *)(actor + 0x654) + *(float *)(actor + 0x66c);
 
   if (*(short *)(actor + 0x6e) > 6) {
     prop_flag = 0;
     prop_handle = -1;
     if (*(short *)(actor + 0x60c) == 1) {
-      prop = (char *)datum_get(*(void **)0x5ab23c,
-                                    *(int *)(actor + 0x610));
+      prop = (char *)datum_get(*(void **)0x5ab23c, *(int *)(actor + 0x610));
       prop_flag = *(char *)(prop + 0x61);
       prop_handle = *(int *)(prop + 0x18);
     }
@@ -858,27 +853,27 @@ void FUN_00022390(int actor_handle)
  * written to out_aim_vector. Returns the prop datum (or -1).
  *
  * VC71 75.0% (168/176 insns) is a STRUCTURAL ceiling: x87 op scheduling
- * (faddp/fsqrt order), register allocation (ebx vs edi for the arg, reg-vs-stack
- * -1 init), and byte/dword compare idioms (jle/jl, testl/testb). The
- * display_assert(...,0x749,1) is present and aligned; no FPU operand swap.
+ * (faddp/fsqrt order), register allocation (ebx vs edi for the arg,
+ * reg-vs-stack -1 init), and byte/dword compare idioms (jle/jl, testl/testb).
+ * The display_assert(...,0x749,1) is present and aligned; no FPU operand swap.
  * Verified 2026-06-23 [[project_sub80_vc71_audit_2026-06-23]]. */
 int actor_aim_grenade(int actor_handle, void *aim_params, float *out_aim_vector)
 {
   char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
-  float aim_x, aim_y, aim_z;   /* [ebp-0x24/-0x20/-0x1c] chosen aim vector  */
-  float nrm[3];                /* [ebp-0x18/-0x14/-0x10] rotated facing nrm;
-                                  MUST be contiguous — passed by &nrm[0] to
-                                  rotate_vector3d_by_sincos and
-                                  valid_real_normal3d, both of which read 3
-                                  adjacent floats. Separate scalar locals let
-                                  clang scatter the stack slots, so the pointer
-                                  reads picked up unrelated locals and a valid
-                                  unit normal failed assert_valid_real_normal3d. */
-  float planar[2];             /* [ebp-0xc/-0x8] planar dir for normalize    */
-  int result;                  /* [ebp-0x4] prop datum / -1             */
+  float aim_x, aim_y, aim_z; /* [ebp-0x24/-0x20/-0x1c] chosen aim vector  */
+  float nrm[3]; /* [ebp-0x18/-0x14/-0x10] rotated facing nrm;
+                   MUST be contiguous — passed by &nrm[0] to
+                   rotate_vector3d_by_sincos and
+                   valid_real_normal3d, both of which read 3
+                   adjacent floats. Separate scalar locals let
+                   clang scatter the stack slots, so the pointer
+                   reads picked up unrelated locals and a valid
+                   unit normal failed assert_valid_real_normal3d. */
+  float planar[2]; /* [ebp-0xc/-0x8] planar dir for normalize    */
+  int result; /* [ebp-0x4] prop datum / -1             */
   char *prop;
   short prop_type;
-  float aim_vec[3];            /* contiguous buffer for FUN_00022b40 (ESI)   */
+  float aim_vec[3]; /* contiguous buffer for FUN_00022b40 (ESI)   */
   float speed;
   float planar_mag;
   float t;
@@ -909,7 +904,8 @@ int actor_aim_grenade(int actor_handle, void *aim_params, float *out_aim_vector)
     planar[1] = aim_y;
     if (magnitude3d(planar) > *(float *)0x2533c0 &&
         planar[0] * *(float *)(actor + 0x174) +
-            planar[1] * *(float *)(actor + 0x178) < *(float *)0x2533dc) {
+            planar[1] * *(float *)(actor + 0x178) <
+          *(float *)0x2533dc) {
       nrm[0] = *(float *)(actor + 0x174);
       nrm[1] = *(float *)(actor + 0x178);
       nrm[2] = *(float *)(actor + 0x17c);
@@ -934,9 +930,9 @@ int actor_aim_grenade(int actor_handle, void *aim_params, float *out_aim_vector)
       nrm[0] = nrm[0] * planar_mag;
       nrm[1] = planar_mag * nrm[1];
       if (!valid_real_normal3d(nrm)) {
-        csprintf((char *)0x5ab100,
-                 "%s: assert_valid_real_normal3d(%f, %f, %f)", "&new_aim_vector",
-                 (double)nrm[0], (double)nrm[1], (double)aim_z);
+        csprintf((char *)0x5ab100, "%s: assert_valid_real_normal3d(%f, %f, %f)",
+                 "&new_aim_vector", (double)nrm[0], (double)nrm[1],
+                 (double)aim_z);
         display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\ai\\actor_combat.c",
                        0x749, 1);
         system_exit(-1);

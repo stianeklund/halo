@@ -198,7 +198,8 @@ bool xbox_texture_cache_request(void *hardware_format, bool block)
     int cache_page_index =
       lruv_block_get_address(*(void **)0x4ea980, cache_block_index) +
       *(int32_t *)0x4ea97c;
-    int new_texture_index = data_new_datum(*(void **)0x4ea978, cache_block_index);
+    int new_texture_index =
+      data_new_datum(*(void **)0x4ea978, cache_block_index);
     char *cache_entry = datum_get(*(void **)0x4ea978, cache_block_index);
 
     if (new_texture_index != cache_block_index) {

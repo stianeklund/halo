@@ -40,13 +40,13 @@ void FUN_000d3fe0(int param_1, short *param_2, int param_3,
   csmemset(local_24c, 0x62, 0x200);
   iVar1 = verify_tag_reference((int *)(param_3 + 0x24));
   local_8 = (short *)tag_get(0x6269746d, iVar1);
-  local_c = (int)FUN_00077040(*(int *)(param_3 + 0x30),
-                              *(short *)(param_3 + 0x54), 0);
+  local_c =
+    (int)FUN_00077040(*(int *)(param_3 + 0x30), *(short *)(param_3 + 0x54), 0);
   iVar2 = (int)xbox_texture_cache_get_hardware_format((void *)local_c, 0, 1);
   if (iVar2 != 0) {
-    puVar3 = (float *)FUN_000d1580(
-        verify_tag_reference((int *)(param_3 + 0x24)),
-        *(short *)(param_3 + 0x54), 0);
+    puVar3 =
+      (float *)FUN_000d1580(verify_tag_reference((int *)(param_3 + 0x24)),
+                            *(short *)(param_3 + 0x54), 0);
     if ((param_4 & 2) == 0) {
       if ((param_4 & 1) == 0) {
         uVar4 = *(int *)(param_3 + 0x34);
@@ -58,8 +58,8 @@ void FUN_000d3fe0(int param_1, short *param_2, int param_3,
     }
     sVar6 = *local_8;
     local_14 = (sVar6 == 4);
-    FUN_000d3080((int)puVar3, (int)param_3, local_c, 0, param_2, 1.0f, 0,
-                 uVar4, (param_4 >> 2) & 0xffffff01, (char)local_14, 0);
+    FUN_000d3080((int)puVar3, (int)param_3, local_c, 0, param_2, 1.0f, 0, uVar4,
+                 (param_4 >> 2) & 0xffffff01, (char)local_14, 0);
     local_8 = (short *)0;
     if (0 < *(int *)(param_3 + 0x58)) {
       iVar2 = 0;
@@ -68,8 +68,8 @@ void FUN_000d3fe0(int param_1, short *param_2, int param_3,
       icon_rect[2] = 0.0f;
       cVar5 = (char)(sVar6 == 4);
       while (1) {
-        local_1c = (int)tag_block_get_element((void *)(param_3 + 0x58), iVar2,
-                                              0x1e0);
+        local_1c =
+          (int)tag_block_get_element((void *)(param_3 + 0x58), iVar2, 0x1e0);
         icon_rect[1] = 1.0f;
         icon_rect[3] = 1.0f;
         if (cVar5 != '\0') {
@@ -90,22 +90,26 @@ void FUN_000d3fe0(int param_1, short *param_2, int param_3,
                      (short *)param_3, 0, draw_flag, 0, (short *)local_18);
         /* d1890: @<eax>=local_4c (out corners), @<edi>=puVar3 (in rect),
          * @<bl>=cVar5 (align flag); 2 stack args: bitmap, screen index. */
-        FUN_000d1890((float *)local_4c, puVar3, cVar5, (short *)local_c, *param_2);
+        FUN_000d1890((float *)local_4c, puVar3, cVar5, (short *)local_c,
+                     *param_2);
         /* d27a0: @<ecx>=local_1c (element ptr), @<eax>=scale[2];
          * 6 stack args; 6th = uVar4 (color, raw int bitpattern). */
         FUN_000d27a0(local_1c, scale, param_1, local_18, puVar3,
                      (float *)local_4c, 0, uVar4);
         iVar2 = iVar2 + 1;
         iVar2 = (int)(short)iVar2;
-        if (*(int *)(param_3 + 0x58) <= iVar2) break;
+        if (*(int *)(param_3 + 0x58) <= iVar2)
+          break;
         cVar5 = (char)local_14;
       }
     }
   }
-  (void)scale; (void)local_1c;
+  (void)scale;
+  (void)local_1c;
   sVar6 = 0x7f;
   do {
-    if (local_24c[(int)sVar6] != 0x62626262) goto LAB_000d41e7;
+    if (local_24c[(int)sVar6] != 0x62626262)
+      goto LAB_000d41e7;
     sVar6 = sVar6 - 1;
   } while (-1 < sVar6);
   sVar6 = -1;
@@ -129,9 +133,8 @@ LAB_000d41e7:
  * element tag block, performs bitmap lookup with optional animation cycling,
  * optional color interpolation, and renders each visible element via
  * FUN_000d3080. Protected by a stack canary (0x200 bytes of 0x62). */
-void FUN_000d4260(int param_1, int param_2, int param_3,
-                  unsigned int param_4, int param_5, unsigned char param_6,
-                  int param_7)
+void FUN_000d4260(int param_1, int param_2, int param_3, unsigned int param_4,
+                  int param_5, unsigned char param_6, int param_7)
 {
   int element;
   int bitmap_seq;
@@ -150,8 +153,8 @@ void FUN_000d4260(int param_1, int param_2, int param_3,
   local_4 = 0;
   if (0 < *(int *)(param_3 + 0x10)) {
     do {
-      element = (int)tag_block_get_element((void *)(param_3 + 0x10), local_4,
-                                           0x88);
+      element =
+        (int)tag_block_get_element((void *)(param_3 + 0x10), local_4, 0x88);
       if ((*(unsigned char *)(element + 0x4c) & 2) == 0 &&
           (param_4 & (int)*(short *)(element + 0x4a)) != 0) {
         bitmap_seq = (int)tag_block_get_element(
@@ -169,17 +172,15 @@ void FUN_000d4260(int param_1, int param_2, int param_3,
         } else {
           frame_idx =
             ((game_time_get() - param_5) / (int)*(short *)(element + 0x44)) /
-              30 %
-            *(int *)(bitmap_seq + 0x34);
+            30 % *(int *)(bitmap_seq + 0x34);
         }
         out_bitmap = 0;
         out_sprite = 0;
         FUN_000d16a0(*(int *)(param_3 + 0xc),
                      *(unsigned short *)(element + 0x48), frame_idx,
                      &out_bitmap, &out_sprite);
-        if (out_bitmap != 0 &&
-            (int)xbox_texture_cache_get_hardware_format((void *)out_bitmap, 0,
-                                                        1) != 0) {
+        if (out_bitmap != 0 && (int)xbox_texture_cache_get_hardware_format(
+                                 (void *)out_bitmap, 0, 1) != 0) {
           FUN_000d3080(out_sprite, element, out_bitmap, 0, (short *)param_2,
                        1.0f, 0, color, param_7, 0, 0);
         }
@@ -189,7 +190,8 @@ void FUN_000d4260(int param_1, int param_2, int param_3,
   }
   sVar5 = 0x7f;
   do {
-    if (local_214[(int)sVar5] != 0x62626262) goto LAB_000d43f5;
+    if (local_214[(int)sVar5] != 0x62626262)
+      goto LAB_000d43f5;
     sVar5 = sVar5 - 1;
   } while (-1 < sVar5);
   sVar5 = -1;
@@ -268,26 +270,25 @@ void FUN_000d44f0(int cursor, short *element, int param_1, int param_2)
     if ((*(unsigned char *)((int)element + 0xd) & 2) != 0) {
       param_2 = *(int *)(element + 4);
     }
-    FUN_000d3200(local_c, 2, local_10, local_14, scale, 0,
-                 param_2, 0);
+    FUN_000d3200(local_c, 2, local_10, local_14, scale, 0, param_2, 0);
     if ((*(unsigned char *)((int)element + 0xd) & 4) != 0) {
-      *(short *)(cursor + 2) = (short)((float)(int)element[1] * scale +
-                                        (float)(int)local_10[0]);
+      *(short *)(cursor + 2) =
+        (short)((float)(int)element[1] * scale + (float)(int)local_10[0]);
       return;
     }
     if (local_14 != 0) {
       int *rect = (int *)local_14;
       float rect_w = *(float *)(rect + 1) - *(float *)rect;
       *(short *)(cursor + 2) =
-          (short)(((float)(int)*(short *)(local_c + 4) * rect_w +
-                   (float)(int)element[1]) * scale +
-                  (float)(int)local_10[0]);
+        (short)(((float)(int)*(short *)(local_c + 4) * rect_w +
+                 (float)(int)element[1]) *
+                  scale +
+                (float)(int)local_10[0]);
       return;
     }
     *(short *)(cursor + 2) =
-        (short)((float)((int)*(short *)(local_c + 4) +
-                        (int)element[1]) * scale +
-                (float)(int)local_10[0]);
+      (short)((float)((int)*(short *)(local_c + 4) + (int)element[1]) * scale +
+              (float)(int)local_10[0]);
   }
 }
 
@@ -540,7 +541,6 @@ void scripted_hud_time_code_reset(void)
   }
 }
 
-
 /* hud_render_timer (0xd4ab0) */
 void hud_render_timer(void)
 {
@@ -651,20 +651,20 @@ void hud_render_timer(void)
     local_8 = iVar10;
     local_4 = iVar10;
     iVar8 = (int)((float)local_4 * *(float *)0x2546a4 * *(float *)0x25634c);
-    FUN_000d3860((short)*(int *)0x506548, &local_90, &local_68,
-                 iVar8, -1, iVar6, *piVar7, 2.0f);
+    FUN_000d3860((short)*(int *)0x506548, &local_90, &local_68, iVar8, -1,
+                 iVar6, *piVar7, 2.0f);
     local_4 = (int)(short)local_c;
     local_14 = (double)local_4 * *(double *)0x281b40;
     local_4 = (int)*(short *)&local_68;
     *(short *)&local_68 = (short)(int)((double)local_4 + local_14);
     iVar8 = (iVar10 / 30) % 60;
-    FUN_000d3860((short)*(int *)0x506548, &local_90, &local_68,
-                 iVar8, -1, iVar6, *piVar7, 2.0f);
+    FUN_000d3860((short)*(int *)0x506548, &local_90, &local_68, iVar8, -1,
+                 iVar6, *piVar7, 2.0f);
     local_4 = (int)*(short *)&local_68;
     *(short *)&local_68 = (short)(int)((double)local_4 + local_14);
     iVar8 = ((iVar10 % 1800) * 100) / 30;
-    FUN_000d3860((short)*(int *)0x506548, &local_90, &local_68,
-                 iVar8, -1, iVar6, *piVar7, 2.0f);
+    FUN_000d3860((short)*(int *)0x506548, &local_90, &local_68, iVar8, -1,
+                 iVar6, *piVar7, 2.0f);
   }
   if (*(int *)0x2f66e4 != -1) {
     loading_time = *(int *)0x2f66e8;
@@ -677,6 +677,65 @@ void hud_render_timer(void)
   }
 }
 
+/* hud_set_state_message (0xd4d90)
+ * Set a HUD message element reference for a player. */
+void hud_set_state_message(short param_1, short param_2)
+{
+  int iVar1;
+  int iVar3;
+  short sVar4;
+
+  if (*(char *)(*(int *)0x46bd10 + 1) == '\0' &&
+      *(int *)(*(int *)0x46bd0c + 0xfc) != -1) {
+    iVar3 = (int)(short)param_1 * 0x460 + *(int *)0x46bd18;
+    sVar4 = param_2;
+    if (param_2 != -1) {
+      iVar1 = (int)tag_get(0x686d7420, *(int *)(*(int *)0x46bd0c + 0xfc));
+      if ((int)(short)param_2 < *(int *)(iVar1 + 0x20)) {
+        *(int *)(iVar3 + 0x454) = (int)tag_block_get_element(
+          (void *)(iVar1 + 0x20), (int)(short)param_2, 0x40);
+        *(unsigned char *)(iVar3 + 0x459) = 0;
+        *(unsigned char *)(iVar3 + 0x458) = (param_2 != -1);
+        return;
+      }
+      sVar4 = -1;
+    }
+    *(unsigned char *)(iVar3 + 0x458) = (sVar4 != -1);
+  }
+}
+
+/* hud_set_state_message_icon (0xd4e30)
+ * Set a numeric value for a HUD message element. */
+void hud_set_state_message_icon(short param_1, short param_2, int param_3)
+{
+  int iVar1;
+
+  iVar1 = param_1 * 0x460 + *(int *)0x46bd18;
+  if (*(char *)(iVar1 + 0x458) != '\0' &&
+      *(char *)(*(int *)0x46bd10 + 1) == '\0' && *(int *)(iVar1 + 0x454) != 0) {
+    *(int *)(iVar1 + 0x434 + param_2 * 4) = param_3;
+    *(unsigned char *)(iVar1 + 0x459) &=
+      (unsigned char)~(1 << (unsigned char)param_2);
+  }
+}
+
+/* hud_set_state_message_text (0xd4e90)
+ * Set a tag reference value for a HUD message element. */
+void hud_set_state_message_text(short param_1, short param_2, short param_3,
+                                unsigned char param_4)
+{
+  int iVar1;
+
+  iVar1 = param_1 * 0x460 + *(int *)0x46bd18;
+  if (*(char *)(iVar1 + 0x458) != '\0' &&
+      *(char *)(*(int *)0x46bd10 + 1) == '\0' && *(int *)(iVar1 + 0x454) != 0) {
+    *(short *)(iVar1 + 0x434 + param_2 * 4) = param_3;
+    *(unsigned char *)(iVar1 + 0x436 + param_2 * 4) = param_4;
+    *(unsigned char *)(iVar1 + 0x459) |=
+      (unsigned char)(1 << (unsigned char)param_2);
+  }
+}
+
 /* hud_enable_custom_state_message (0xd4f00)
  * Toggle help text display state for a player. */
 void hud_enable_custom_state_message(short param_1, char param_2)
@@ -685,7 +744,7 @@ void hud_enable_custom_state_message(short param_1, char param_2)
 
   base = param_1 * 0x460 + *(int *)0x46bd18;
   *(unsigned char *)(base + 0x45e) =
-      *(unsigned char *)(base + 0x45e) | (*(char *)(base + 0x458) != param_2);
+    *(unsigned char *)(base + 0x45e) | (*(char *)(base + 0x458) != param_2);
   *(char *)(base + 0x458) = param_2;
   *(int *)(base + 0x454) = 0;
   if (param_2 != '\0') {
@@ -738,63 +797,6 @@ int hud_messaging_get_objective(void)
       (int)((unsigned int)(unsigned char)element[1] << 1));
   }
   return result;
-}
-
-/* hud_set_state_message (0xd4d90)
- * Set a HUD message element reference for a player. */
-void hud_set_state_message(short param_1, short param_2)
-{
-  int iVar1;
-  int iVar3;
-  short sVar4;
-
-  if (*(char *)(*(int *)0x46bd10 + 1) == '\0' &&
-      *(int *)(*(int *)0x46bd0c + 0xfc) != -1) {
-    iVar3 = (int)(short)param_1 * 0x460 + *(int *)0x46bd18;
-    sVar4 = param_2;
-    if (param_2 != -1) {
-      iVar1 = (int)tag_get(0x686d7420, *(int *)(*(int *)0x46bd0c + 0xfc));
-      if ((int)(short)param_2 < *(int *)(iVar1 + 0x20)) {
-        *(int *)(iVar3 + 0x454) = (int)tag_block_get_element(
-          (void *)(iVar1 + 0x20), (int)(short)param_2, 0x40);
-        *(unsigned char *)(iVar3 + 0x459) = 0;
-        *(unsigned char *)(iVar3 + 0x458) = (param_2 != -1);
-        return;
-      }
-      sVar4 = -1;
-    }
-    *(unsigned char *)(iVar3 + 0x458) = (sVar4 != -1);
-  }
-}
-
-/* hud_set_state_message_icon (0xd4e30)
- * Set a numeric value for a HUD message element. */
-void hud_set_state_message_icon(short param_1, short param_2, int param_3)
-{
-  int iVar1;
-
-  iVar1 = param_1 * 0x460 + *(int *)0x46bd18;
-  if (*(char *)(iVar1 + 0x458) != '\0' &&
-      *(char *)(*(int *)0x46bd10 + 1) == '\0' && *(int *)(iVar1 + 0x454) != 0) {
-    *(int *)(iVar1 + 0x434 + param_2 * 4) = param_3;
-    *(unsigned char *)(iVar1 + 0x459) &= (unsigned char)~(1 << (unsigned char)param_2);
-  }
-}
-
-/* hud_set_state_message_text (0xd4e90)
- * Set a tag reference value for a HUD message element. */
-void hud_set_state_message_text(short param_1, short param_2, short param_3,
-                                unsigned char param_4)
-{
-  int iVar1;
-
-  iVar1 = param_1 * 0x460 + *(int *)0x46bd18;
-  if (*(char *)(iVar1 + 0x458) != '\0' &&
-      *(char *)(*(int *)0x46bd10 + 1) == '\0' && *(int *)(iVar1 + 0x454) != 0) {
-    *(short *)(iVar1 + 0x434 + param_2 * 4) = param_3;
-    *(unsigned char *)(iVar1 + 0x436 + param_2 * 4) = param_4;
-    *(unsigned char *)(iVar1 + 0x459) |= (unsigned char)(1 << (unsigned char)param_2);
-  }
 }
 
 /* Find a message slot in the 4-entry array at base (each 0x8c bytes).
@@ -1063,7 +1065,8 @@ void FUN_000d5350(int param_1)
   }
 
   sVar2 = local_player_count();
-  if (sVar2 < 2 || (font_index = *(int *)(*(int *)0x5aa68c + 0x64), font_index == -1)) {
+  if (sVar2 < 2 ||
+      (font_index = *(int *)(*(int *)0x5aa68c + 0x64), font_index == -1)) {
     font_index = *(int *)(*(int *)0x5aa68c + 0x54);
   }
   sVar2 = local_player_count();
@@ -1073,19 +1076,20 @@ void FUN_000d5350(int param_1)
     short sVar3;
     sVar3 = local_player_count();
     FUN_000d1f40((short)param_1, (unsigned short *)(*(int *)0x5aa68c + 0x24),
-                 (short *)*(int *)0x5aa68c, 0, 1 < sVar3, 0, (short *)&local_64);
+                 (short *)*(int *)0x5aa68c, 0, 1 < sVar3, 0,
+                 (short *)&local_64);
   }
   local_62_dw = *(int *)((char *)&local_64 + 2);
 
   font_tag_data = (int)tag_get(0x666f6e74, font_index);
   if (is_splitscreen) {
-    font_height = (unsigned int)(unsigned short)(
-        *(short *)(font_tag_data + 8) + *(short *)(font_tag_data + 4));
+    font_height = (unsigned int)(unsigned short)(*(short *)(font_tag_data + 8) +
+                                                 *(short *)(font_tag_data + 4));
     local_62_dw = local_62_dw - *(int *)0x2f66ec;
   } else {
-    font_height = (unsigned int)(unsigned short)(
-        *(short *)(font_tag_data + 8) + *(short *)(font_tag_data + 6) +
-        *(short *)(font_tag_data + 4));
+    font_height = (unsigned int)(unsigned short)(*(short *)(font_tag_data + 8) +
+                                                 *(short *)(font_tag_data + 6) +
+                                                 *(short *)(font_tag_data + 4));
   }
   sVar15 = (short)local_62_dw;
 
@@ -1105,7 +1109,8 @@ void FUN_000d5350(int param_1)
     show_state = '\0';
   }
   if (*(char *)(slot_base + 0x458) == '\0' ||
-      (*(int *)(slot_base + 0x454) == 0 && *(short *)(slot_base + 0x230) == 0)) {
+      (*(int *)(slot_base + 0x454) == 0 &&
+       *(short *)(slot_base + 0x230) == 0)) {
     show_custom = '\0';
   } else {
     show_custom = '\x01';
@@ -1132,23 +1137,25 @@ void FUN_000d5350(int param_1)
             packed_color = *(uint32_t *)(*(int *)0x46bd0c + 0xd4);
           }
         } else {
-          packed_color = (uint32_t)FUN_000d2320((int *)(*(int *)0x46bd0c + 0xd0),
-              *(int *)(*(int *)0x46bd18 + 0x1180));
+          packed_color =
+            (uint32_t)FUN_000d2320((int *)(*(int *)0x46bd0c + 0xd0),
+                                   *(int *)(*(int *)0x46bd18 + 0x1180));
         }
         pixel32_to_real_argb_color(packed_color, color);
       }
     } else {
       iVar12 = *(int *)0x46bd0c + 0x100;
       iVar16 = game_time_get();
-      packed_color = (uint32_t)FUN_000d2320((int *)iVar12,
-          iVar16 + (((int)*(short *)(*(int *)0x46bd18 + 0x1194) -
-                     (int)*(short *)(iVar12 + 0x1c)) -
-                    (int)*(short *)(iVar12 + 0x1e)));
+      packed_color = (uint32_t)FUN_000d2320(
+        (int *)iVar12, iVar16 + (((int)*(short *)(*(int *)0x46bd18 + 0x1194) -
+                                  (int)*(short *)(iVar12 + 0x1c)) -
+                                 (int)*(short *)(iVar12 + 0x1e)));
       pixel32_to_real_argb_color(packed_color, color);
       local_2c = (int)*(short *)(iVar12 + 0x1e);
       {
         float fade;
-        fade = (float)(int)*(short *)(*(int *)0x46bd18 + 0x1194) / (float)local_2c;
+        fade =
+          (float)(int)*(short *)(*(int *)0x46bd18 + 0x1194) / (float)local_2c;
         if (1.0f < fade) {
           fade = 1.0f;
         }
@@ -1179,7 +1186,8 @@ void FUN_000d5350(int param_1)
       if (*(int *)(slot_base + 0x454) != 0) {
         if (show_custom == '\0') {
           display_assert("show_state_message",
-              "c:\\halo\\SOURCE\\interface\\hud_messaging.c", 0x42a, 1);
+                         "c:\\halo\\SOURCE\\interface\\hud_messaging.c", 0x42a,
+                         1);
           system_exit(-1);
         }
         hmt_tag = (int)tag_get(0x686d7420, *(int *)(*(int *)0x46bd0c + 0xfc));
@@ -1192,9 +1200,10 @@ void FUN_000d5350(int param_1)
     } else {
       if (*(int *)(*(int *)0x46bd18 + 0x1190) == 0 ||
           *(short *)(*(int *)0x46bd18 + 0x1194) == 0) {
-        display_assert(
-            "hud_messaging_globals->objective.message && hud_messaging_globals->objective.uptime",
-            "c:\\halo\\SOURCE\\interface\\hud_messaging.c", 0x41e, 1);
+        display_assert("hud_messaging_globals->objective.message && "
+                       "hud_messaging_globals->objective.uptime",
+                       "c:\\halo\\SOURCE\\interface\\hud_messaging.c", 0x41e,
+                       1);
         system_exit(-1);
       }
       {
@@ -1216,8 +1225,9 @@ void FUN_000d5350(int param_1)
       hmt_tag = (int)tag_get(0x686d7420, *(int *)(iVar16 + 0x5a0));
       message_ptr = *(int *)(*(int *)0x46bd18 + 0x1190);
 
-LAB_000d57ad:
-      local_30_dw = (int)(unsigned short)*(unsigned short *)(message_ptr + 0x20);
+    LAB_000d57ad:
+      local_30_dw =
+        (int)(unsigned short)*(unsigned short *)(message_ptr + 0x20);
       local_2c = 0;
       if (*(unsigned char *)(message_ptr + 0x24) != 0) {
         int tag_block_base;
@@ -1226,23 +1236,24 @@ LAB_000d57ad:
         psVar13 = local_38_p;
         do {
           pcVar9 = (char *)tag_block_get_element(
-              (void *)tag_block_base,
-              (int)(unsigned short)*(unsigned short *)(message_ptr + 0x22) + iVar16,
-              2);
+            (void *)tag_block_base,
+            (int)(unsigned short)*(unsigned short *)(message_ptr + 0x22) +
+              iVar16,
+            2);
           switch (*pcVar9) {
           case '\0':
-            uVar7 = (int)tag_data_get_pointer((void *)hmt_tag,
-                ((unsigned int)(unsigned short)local_30_dw) << 1,
-                (unsigned int)(unsigned char)pcVar9[1] << 1);
+            uVar7 = (int)tag_data_get_pointer(
+              (void *)hmt_tag, ((unsigned int)(unsigned short)local_30_dw) << 1,
+              (unsigned int)(unsigned char)pcVar9[1] << 1);
             draw_string_set_indents(
-                *(int *)((char *)rect_b + 2) - *(int *)((char *)rect_a + 2), 0);
+              *(int *)((char *)rect_b + 2) - *(int *)((char *)rect_a + 2), 0);
             FUN_0019cdb0(rect_a, (void *)uVar7, bounds_a, rect_b);
             rect_b[3] = rect_b[3] - 3;
             bounds_a[1] = rect_a[1];
             rasterizer_draw_string(bounds_a, 0, 0, 0, (unsigned short *)uVar7);
             rect_a[0] = rect_b[0];
-            local_30_dw = local_30_dw +
-                (int)(unsigned short)(unsigned char)pcVar9[1];
+            local_30_dw =
+              local_30_dw + (int)(unsigned short)(unsigned char)pcVar9[1];
             break;
           case '\x01': {
             unsigned char bVar1;
@@ -1254,9 +1265,10 @@ LAB_000d57ad:
             } else if (bVar1 <= 0x1f) {
               if (bVar1 <= 0x1c) {
                 /* prefs buffer is filled at base+0; the original indexes it at
-                 * base+8 (movzx bx,[ebp+edx-0x98] vs buffer base [ebp-0xa0]). */
+                 * base+8 (movzx bx,[ebp+edx-0x98] vs buffer base [ebp-0xa0]).
+                 */
                 icon_idx = (int)(unsigned short)
-                    prefs[(int)(signed char)((char *)0x2f66c2)[bVar1] + 8];
+                  prefs[(int)(signed char)((char *)0x2f66c2)[bVar1] + 8];
               } else {
                 icon_idx = (int)(short)(signed char)((char *)0x2f66c2)[bVar1];
               }
@@ -1267,18 +1279,22 @@ LAB_000d57ad:
                 custom_si = (short)((unsigned short)bVar1 - 0x20);
                 if (custom_si >= 8) {
                   display_assert("custom_index<NUMBER_OF_HUD_CUSTOM_ICONS",
-                      "c:\\halo\\SOURCE\\interface\\hud_messaging.c", 0x455, 1);
+                                 "c:\\halo\\SOURCE\\interface\\hud_messaging.c",
+                                 0x455, 1);
                   system_exit(-1);
                 }
                 ci = (int)custom_si;
                 if (((unsigned char)(1 << ((unsigned char)custom_si & 0x1f)) &
                      *(unsigned char *)((char *)psVar13 + 0x229)) == 0) {
                   if (*(int *)((char *)psVar13 + ci * 4 + 0x204) == 0) {
-                    error(2, "help message using old code. get latest code and tags.");
+                    error(
+                      2,
+                      "help message using old code. get latest code and tags.");
                   } else {
-                    FUN_000d44f0((int)rect_b,
-                        (short *)(*(int *)((char *)psVar13 + ci * 4 + 0x204)),
-                        (int)rect_a, (int)packed_color);
+                    FUN_000d44f0(
+                      (int)rect_b,
+                      (short *)(*(int *)((char *)psVar13 + ci * 4 + 0x204)),
+                      (int)rect_a, (int)packed_color);
                   }
                 } else {
                   short icon_ref;
@@ -1286,26 +1302,29 @@ LAB_000d57ad:
                   icon_ref = *(short *)((char *)psVar13 + ci * 4 + 0x204);
                   if (icon_ref == -1) {
                     icon_text = 0;
-                  } else if (*(char *)((char *)psVar13 + ci * 4 + 0x206) == '\0') {
+                  } else if (*(char *)((char *)psVar13 + ci * 4 + 0x206) ==
+                             '\0') {
                     icon_text = 0;
                     FUN_0019d420(*(int *)(*(int *)0x46bd0c + 0xc0),
-                        (int)(unsigned short)icon_ref);
+                                 (int)(unsigned short)icon_ref);
                   } else {
                     int scenario;
                     scenario = (int)global_scenario_get();
                     if (*(int *)(scenario + 0x580) == -1) {
                       display_assert(
-                          "global_scenario_get()->custom_object_names.index!=NONE",
-                          "c:\\halo\\SOURCE\\interface\\hud_messaging.c", 0x45e, 1);
+                        "global_scenario_get()->custom_object_names.index!="
+                        "NONE",
+                        "c:\\halo\\SOURCE\\interface\\hud_messaging.c", 0x45e,
+                        1);
                       system_exit(-1);
                     }
                     icon_text = 0;
                     scenario = (int)global_scenario_get();
                     FUN_0019d420(*(int *)(scenario + 0x580),
-                        (int)(unsigned short)icon_ref);
+                                 (int)(unsigned short)icon_ref);
                   }
-                  FUN_000d4470((char)(int)(void *)icon_text,
-                      rect_b, rect_a, (void *)psVar13);
+                  FUN_000d4470((char)(int)(void *)icon_text, rect_b, rect_a,
+                               (void *)psVar13);
                   psVar13 = local_38_p;
                 }
                 goto LAB_000d5b78;
@@ -1315,60 +1334,69 @@ LAB_000d57ad:
             if ((int)(short)icon_idx < *(int *)(*(int *)0x46bd0c + 0xc4)) {
               short remapped;
               int icon_element;
-              remapped = remap_sticks_for_local_player((short)icon_idx, param_1);
+              remapped =
+                remap_sticks_for_local_player((short)icon_idx, param_1);
               icon_element = (int)tag_block_get_element(
-                  (void *)(*(int *)0x46bd0c + 0xc4), (int)remapped, 0x10);
+                (void *)(*(int *)0x46bd0c + 0xc4), (int)remapped, 0x10);
               if ((*(unsigned char *)(icon_element + 0xd) & 1) == 0) {
-                FUN_000d44f0((int)rect_b, (short *)icon_element,
-                    (int)rect_a, (int)packed_color);
+                FUN_000d44f0((int)rect_b, (short *)icon_element, (int)rect_a,
+                             (int)packed_color);
               } else {
                 if ((*(unsigned char *)(icon_element + 0xd) & 2) != 0) {
                   pixel32_to_real_argb_color(packed_color, icon_color);
                   draw_string_set_font(font_index, -1, 0, 0, icon_color);
                 }
-                uVar7 = (int)FUN_0019d420(*(int *)(*(int *)0x46bd0c + 0xc0),
-                    (int)*(unsigned short *)(icon_element + 0xe));
-                draw_string_set_indents(
-                    *(int *)((char *)rect_b + 2) - *(int *)((char *)rect_a + 2), 0);
+                uVar7 = (int)FUN_0019d420(
+                  *(int *)(*(int *)0x46bd0c + 0xc0),
+                  (int)*(unsigned short *)(icon_element + 0xe));
+                draw_string_set_indents(*(int *)((char *)rect_b + 2) -
+                                          *(int *)((char *)rect_a + 2),
+                                        0);
                 FUN_0019cdb0(rect_a, (void *)uVar7, bounds_b, rect_b);
                 rect_b[3] = rect_b[3] - 3;
                 bounds_b[1] = rect_a[1];
-                rasterizer_draw_string(bounds_b, 0, 0, 0, (unsigned short *)uVar7);
+                rasterizer_draw_string(bounds_b, 0, 0, 0,
+                                       (unsigned short *)uVar7);
                 rect_a[0] = rect_b[0];
                 draw_string_set_font(font_index, -1, 0, 0, color);
               }
             } else {
               draw_string_set_indents(
-                  *(int *)((char *)rect_b + 2) - *(int *)((char *)rect_a + 2), 0);
-              FUN_0019cdb0(rect_a, (void *)L"<no button icon>", bounds_c, rect_b);
+                *(int *)((char *)rect_b + 2) - *(int *)((char *)rect_a + 2), 0);
+              FUN_0019cdb0(rect_a, (void *)L"<no button icon>", bounds_c,
+                           rect_b);
               rect_b[3] = rect_b[3] - 3;
               bounds_c[1] = rect_a[1];
               rasterizer_draw_string(bounds_c, 0, 0, 0,
-                  (unsigned short *)L"<no button icon>");
+                                     (unsigned short *)L"<no button icon>");
               rect_a[0] = rect_b[0];
             }
             break;
           }
           default:
             display_assert("!\"unreachable\"",
-                "c:\\halo\\SOURCE\\interface\\hud_messaging.c", 0x4a5, 1);
+                           "c:\\halo\\SOURCE\\interface\\hud_messaging.c",
+                           0x4a5, 1);
             system_exit(-1);
             break;
           }
-LAB_000d5b78:
+        LAB_000d5b78:
           local_2c = local_2c + 1;
           iVar16 = (int)(short)local_2c;
-        } while (iVar16 < (int)(unsigned int)*(unsigned char *)(message_ptr + 0x24));
+        } while (iVar16 <
+                 (int)(unsigned int)*(unsigned char *)(message_ptr + 0x24));
       }
     }
     draw_string_set_indents(0, 0);
     iVar16 = *(int *)&rect_b[2];
-    if (show_objective != '\0' || (cVar1 = is_splitscreen, show_state != '\0')) {
+    if (show_objective != '\0' ||
+        (cVar1 = is_splitscreen, show_state != '\0')) {
       goto LAB_000d5c20;
     }
   }
 
-  if (*(char *)(slot_base + 0x458) != '\0' || *(char *)(slot_base + 0x45e) != '\0') {
+  if (*(char *)(slot_base + 0x458) != '\0' ||
+      *(char *)(slot_base + 0x45e) != '\0') {
     if (cVar1 != '\0') {
       local_62_dw = (int)(short)font_height;
     }
@@ -1377,11 +1405,12 @@ LAB_000d5b78:
       if (is_splitscreen) {
         int split_y;
         split_y = (int)(short)local_62_dw - *(int *)0x2f66ec;
-        ftmp = (float)split_y +
-               (float)(int)(short)font_height * *(float *)(*(int *)0x5aa68c + 0x90);
+        ftmp = (float)split_y + (float)(int)(short)font_height *
+                                  *(float *)(*(int *)0x5aa68c + 0x90);
       } else {
-        ftmp = (float)(int)(short)font_height * *(float *)(*(int *)0x5aa68c + 0x90) +
-               (float)(int)(short)local_62_dw;
+        ftmp =
+          (float)(int)(short)font_height * *(float *)(*(int *)0x5aa68c + 0x90) +
+          (float)(int)(short)local_62_dw;
       }
       iVar16 = (int)ftmp;
     }
@@ -1390,7 +1419,7 @@ LAB_000d5b78:
 
 LAB_000d5c20:
   qsort((void *)slot_base, 4, 0x8c,
-      (int (__cdecl *)(const void *, const void *))hud_messaging_slot_compare);
+        (int(__cdecl *)(const void *, const void *))hud_messaging_slot_compare);
   msg_slot_idx = 0;
   if (0 < (short)max_slots) {
     do {
@@ -1410,9 +1439,8 @@ LAB_000d5c20:
       slot_offset = game_ticks - *piVar14;
       uptime_limit = *(float *)(*(int *)0x5aa68c + 0x68) * 30.0f;
       if (uptime_limit < (float)slot_offset) {
-        fade_alpha = 1.0f -
-            ((float)slot_offset - uptime_limit) /
-            (*(float *)(*(int *)0x5aa68c + 0x6c) * 30.0f);
+        fade_alpha = 1.0f - ((float)slot_offset - uptime_limit) /
+                              (*(float *)(*(int *)0x5aa68c + 0x6c) * 30.0f);
         if (fade_alpha < 0.0f) {
           fade_alpha = 0.0f;
         } else if (1.0f < fade_alpha) {
@@ -1426,9 +1454,9 @@ LAB_000d5c20:
       rect_b[2] = (short)font_height + rect_b[0];
       {
         float ftmp2;
-        ftmp2 = (float)(int)(short)font_height *
-                *(float *)(*(int *)0x5aa68c + 0x90) +
-                (float)(int)(short)iVar16;
+        ftmp2 =
+          (float)(int)(short)font_height * *(float *)(*(int *)0x5aa68c + 0x90) +
+          (float)(int)(short)iVar16;
         iVar16 = (int)ftmp2;
       }
       draw_string_set_font(font_index, -1, 0, 0, color);
@@ -1444,8 +1472,9 @@ LAB_000d5c20:
         }
         item_tag = (int)tag_get(0x6974656d, piVar14[0x21]);
         piVar10 = (int *)hud_get_item_string(
-            (int)(short)(*(short *)(item_tag + 0x180) + (short)item_variant));
-        if ((*(char *)((int)piVar14 + 0x8a) != (char)-1 || item_variant == '\0') &&
+          (int)(short)(*(short *)(item_tag + 0x180) + (short)item_variant));
+        if ((*(char *)((int)piVar14 + 0x8a) != (char)-1 ||
+             item_variant == '\0') &&
             (short)piVar14[0x22] == 0) {
           goto LAB_000d5e5d;
         }
@@ -1456,20 +1485,21 @@ LAB_000d5c20:
             max_count = 1;
           }
           usprintf(format_buf, (const wchar_t *)piVar10,
-              (int)(short)piVar14[0x22] / (int)max_count);
+                   (int)(short)piVar14[0x22] / (int)max_count);
           rasterizer_draw_string(rect_b, 0, 0, 0, (unsigned short *)format_buf);
         }
       }
       goto LAB_000d5e65_skip;
-LAB_000d5e5d:
+    LAB_000d5e5d:
       rasterizer_draw_string(rect_b, 0, 0, 0, (unsigned short *)piVar10);
-LAB_000d5e65_skip:
+    LAB_000d5e65_skip:
       slot_offset = game_ticks - *piVar14;
       {
         char alive;
-        alive = (char)((float)slot_offset <
-            (*(float *)(*(int *)0x5aa68c + 0x6c) +
-             *(float *)(*(int *)0x5aa68c + 0x68)) * 30.0f);
+        alive =
+          (char)((float)slot_offset < (*(float *)(*(int *)0x5aa68c + 0x6c) +
+                                       *(float *)(*(int *)0x5aa68c + 0x68)) *
+                                        30.0f);
         *(char *)((int)piVar14 + 0x82) = alive;
         if (!alive) {
           *piVar14 = -1;
@@ -1480,6 +1510,7 @@ LAB_000d5e65_skip:
   }
   return;
 }
+
 /* hud_find_nav_point_by_name (0xd5ec0)
  * Search the nav point definitions for a matching name, return its index. */
 short hud_find_nav_point_by_name(const char *param_1)
@@ -1875,8 +1906,7 @@ short FUN_000d6550(int param_1, float *param_2, float *param_3, int param_4)
   direction[2] = param_3[2] - param_2[2];
 
   if (FUN_0014df70(0xc2ad, param_2, direction, unit_handle,
-                   (short *)collision_result) ==
-        '\0' ||
+                   (short *)collision_result) == '\0' ||
       (*(short *)collision_result == 3 &&
        *(int *)(collision_result + 0x38) == param_4)) {
     result = 0;
@@ -1914,16 +1944,16 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
   char text_pos_buf[84];
   int local_34;
   float local_30[3];
-  float local_24[3] = {0, 0, 0};
+  float local_24[3] = { 0, 0, 0 };
   float distance;
   float local_14;
-  float screen_pos[2] = {0, 0};
+  float screen_pos[2] = { 0, 0 };
   float local_8;
   short screen_coords[2];
   local_34 = FUN_000d1540();
   csmemset(local_2ac, 0x62, 0x200);
-  iVar8 = (int)tag_block_get_element(
-    (void *)(*(int *)0x46bd0c + 0x160), (int)param_3, 0x68);
+  iVar8 = (int)tag_block_get_element((void *)(*(int *)0x46bd0c + 0x160),
+                                     (int)param_3, 0x68);
   pfVar4 = param_2;
   local_30[0] = *param_2;
   local_30[1] = param_2[1];
@@ -1938,40 +1968,39 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
   }
   unit_set_seat_state(uVar11, local_24);
   distance = sqrtf((*pfVar4 - local_24[0]) * (*pfVar4 - local_24[0]) +
-                  (pfVar4[1] - local_24[1]) * (pfVar4[1] - local_24[1]) +
-                  (pfVar4[2] - local_24[2]) * (pfVar4[2] - local_24[2]));
+                   (pfVar4[1] - local_24[1]) * (pfVar4[1] - local_24[1]) +
+                   (pfVar4[2] - local_24[2]) * (pfVar4[2] - local_24[2]));
   if (distance > *(float *)0x254cc0) {
     local_14 = 0.5f;
   } else {
-    local_14 = (float)pow(
-        (double)(*(float *)0x2533c8 - distance * *(float *)0x253d48),
-        *(double *)0x281e18) + *(float *)0x253398;
+    local_14 =
+      (float)pow((double)(*(float *)0x2533c8 - distance * *(float *)0x253d48),
+                 *(double *)0x281e18) +
+      *(float *)0x253398;
   }
   matrix_transform_point((float *)0x5065b4, local_30, local_30);
   sVar7 = param_4;
-  if (sVar7 == 1 ||
-      (cVar5 = render_camera_view_to_screen((int *)0x506550, (int *)0x5065a4, local_30,
-                            screen_pos),
-       cVar5 == '\0')) {
+  if (sVar7 == 1 || (cVar5 = render_camera_view_to_screen(
+                       (int *)0x506550, (int *)0x5065a4, local_30, screen_pos),
+                     cVar5 == '\0')) {
     screen_pos[0] = local_30[0];
     screen_pos[1] = -local_30[1];
     sVar7 = 1;
   } else {
-    screen_pos[0] = screen_pos[0] - (float)(((int)*(short *)0x506582 -
-                                   (int)*(short *)0x50657e) /
-                                      2 +
-                                  (int)*(short *)0x50657e);
-    screen_pos[1] = screen_pos[1] - (float)(((int)*(short *)0x506580 -
-                                 (int)*(short *)0x50657c) /
-                                    2 +
-                                (int)*(short *)0x50657c);
+    screen_pos[0] =
+      screen_pos[0] -
+      (float)(((int)*(short *)0x506582 - (int)*(short *)0x50657e) / 2 +
+              (int)*(short *)0x50657e);
+    screen_pos[1] =
+      screen_pos[1] -
+      (float)(((int)*(short *)0x506580 - (int)*(short *)0x50657c) / 2 +
+              (int)*(short *)0x50657c);
   }
   local_8 = 0.0f;
-  fVar1 =
-      ((float)((int)*(short *)0x50658a - (int)*(short *)0x506586) -
-       (*(float *)(*(int *)0x46bd0c + 300) +
-        *(float *)(*(int *)0x46bd0c + 0x128))) *
-      *(float *)0x253398;
+  fVar1 = ((float)((int)*(short *)0x50658a - (int)*(short *)0x506586) -
+           (*(float *)(*(int *)0x46bd0c + 300) +
+            *(float *)(*(int *)0x46bd0c + 0x128))) *
+          *(float *)0x253398;
   fVar3 = ((float)((int)*(short *)0x506588 - (int)*(short *)0x506584) -
            (*(float *)(*(int *)0x46bd0c + 0x124) +
             *(float *)(*(int *)0x46bd0c + 0x120))) *
@@ -1979,10 +2008,12 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
   fVar2 = fVar3 * fVar1;
   fVar1 = fVar1 * screen_pos[1];
   if (sVar7 == 1 ||
-      fVar2 * fVar2 <= fVar3 * screen_pos[0] * (fVar3 * screen_pos[0]) + fVar1 * fVar1) {
+      fVar2 * fVar2 <=
+        fVar3 * screen_pos[0] * (fVar3 * screen_pos[0]) + fVar1 * fVar1) {
     sVar7 = 1;
-    fVar1 = sqrtf((fVar2 * fVar2) /
-                 (fVar3 * screen_pos[0] * (fVar3 * screen_pos[0]) + fVar1 * fVar1));
+    fVar1 =
+      sqrtf((fVar2 * fVar2) /
+            (fVar3 * screen_pos[0] * (fVar3 * screen_pos[0]) + fVar1 * fVar1));
     screen_pos[0] = screen_pos[0] * fVar1;
     screen_pos[1] = fVar1 * screen_pos[1];
     if ((*(unsigned char *)(iVar8 + 0x4c) & 1) == 0) {
@@ -1990,14 +2021,14 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
     }
   }
   screen_pos[0] =
-      (float)(((int)*(short *)0x506582 - (int)*(short *)0x50657e) / 2) +
-      screen_pos[0];
-  screen_pos[1] = (float)(((int)*(short *)0x506580 - (int)*(short *)0x50657c) / 2) +
-            screen_pos[1];
+    (float)(((int)*(short *)0x506582 - (int)*(short *)0x50657e) / 2) +
+    screen_pos[0];
+  screen_pos[1] =
+    (float)(((int)*(short *)0x506580 - (int)*(short *)0x50657c) / 2) +
+    screen_pos[1];
   if (sVar7 == -1) {
-    display_assert(
-        "waypoint_type!=NONE",
-        "c:\\halo\\SOURCE\\interface\\hud_nav_points.c", 0x267, 1);
+    display_assert("waypoint_type!=NONE",
+                   "c:\\halo\\SOURCE\\interface\\hud_nav_points.c", 0x267, 1);
     system_exit(-1);
   }
   iVar9 = 0;
@@ -2066,12 +2097,11 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
       *(short *)text_element = 0;
       /* original writes the 5 color/style fields into text_pos_buf (arg3), NOT
        * text_element (arg2, whose only write is the first-word zero above).
-       * Disasm: stores at [EBP-0x60]/[EBP-0x5c]/[EBP-0x40]/[EBP-0x3f]/[EBP-0x3e]
-       * = text_pos_buf+0x24/+0x28/+0x44/+0x45/+0x46 (base EBP-0x84). */
-      *(unsigned int *)(text_pos_buf + 0x24) =
-          FUN_000d1dd0(local_24) | uVar13;
-      *(unsigned int *)(text_pos_buf + 0x28) =
-          FUN_000d1dd0(local_24) | uVar13;
+       * Disasm: stores at
+       * [EBP-0x60]/[EBP-0x5c]/[EBP-0x40]/[EBP-0x3f]/[EBP-0x3e] =
+       * text_pos_buf+0x24/+0x28/+0x44/+0x45/+0x46 (base EBP-0x84). */
+      *(unsigned int *)(text_pos_buf + 0x24) = FUN_000d1dd0(local_24) | uVar13;
+      *(unsigned int *)(text_pos_buf + 0x28) = FUN_000d1dd0(local_24) | uVar13;
       text_pos_buf[0x44] = 3;
       text_pos_buf[0x46] = 1;
       text_pos_buf[0x45] = 5;
@@ -2084,15 +2114,15 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
 
         tmp_int = (int)*(short *)(iVar9 + 4);
         bmp_w = (*(float *)(uVar11 + 4) - *(float *)uVar11);
-        text_x = (short)((float)(int)scr_x +
-                 bmp_w * (float)tmp_int * *(float *)0x253398 *
-                 local_14 * *(float *)0x281dfc);
+        text_x = (short)((float)(int)scr_x + bmp_w * (float)tmp_int *
+                                               *(float *)0x253398 * local_14 *
+                                               *(float *)0x281dfc);
 
         tmp_int = (int)*(short *)(iVar9 + 6);
         bmp_h = (*(float *)(uVar11 + 0xc) - *(float *)(uVar11 + 0x8));
-        text_y = (short)((float)(int)scr_y +
-                 bmp_h * (float)tmp_int * *(float *)0x253398 *
-                 local_14 * *(float *)0x281df8);
+        text_y = (short)((float)(int)scr_y + bmp_h * (float)tmp_int *
+                                               *(float *)0x253398 * local_14 *
+                                               *(float *)0x281df8);
 
         text_x = text_x + (*(short *)0x50657e - *(short *)0x506586);
         text_y = text_y + (*(short *)0x50657c - *(short *)0x506584);
@@ -2115,14 +2145,15 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
 
       {
         int rounded = FUN_000d1c50(distance);
-        FUN_000d3860((short)param_1, text_element, text_pos_buf,
-                     rounded, text_value, 0, 0, 0.0f);
+        FUN_000d3860((short)param_1, text_element, text_pos_buf, rounded,
+                     text_value, 0, 0, 0.0f);
       }
     }
   }
   sVar7 = 0x7f;
   do {
-    if (local_2ac[(int)sVar7] != 0x62626262) goto LAB_000d6c45;
+    if (local_2ac[(int)sVar7] != 0x62626262)
+      goto LAB_000d6c45;
     sVar7 = sVar7 - 1;
   } while (-1 < sVar7);
   sVar7 = -1;
@@ -2135,8 +2166,8 @@ LAB_000d6c45:
   }
   if (sVar7 != -1) {
     display_assert(
-        csprintf((char *)0x5ab100, "corrupt stack at %d!", (int)sVar7),
-        "c:\\halo\\SOURCE\\interface\\hud_nav_points.c", 0x2a3, 1);
+      csprintf((char *)0x5ab100, "corrupt stack at %d!", (int)sVar7),
+      "c:\\halo\\SOURCE\\interface\\hud_nav_points.c", 0x2a3, 1);
     system_exit(-1);
   }
 }
@@ -2288,7 +2319,8 @@ void FUN_000d6e50(int param_1)
         FUN_0001aae0(obj_handle, target_pos, local_1c);
         break;
       case 2:
-        game_engine_get_goal_position((int *)target_pos, (unsigned short)puVar6[3]);
+        game_engine_get_goal_position((int *)target_pos,
+                                      (unsigned short)puVar6[3]);
         break;
       }
       target_pos[2] = target_pos[2] + *(float *)(puVar6 + 1);
@@ -2296,7 +2328,10 @@ void FUN_000d6e50(int param_1)
         vis = (char)FUN_000d6550(param_1, local_28, target_pos, obj_handle);
         {
           int shifted = (int)vis << 4;
-          *puVar6 = *puVar6 ^ (unsigned short)(((unsigned char)shifted ^ (unsigned char)*puVar6) & 0xf0);
+          *puVar6 =
+            *puVar6 ^
+            (unsigned short)(((unsigned char)shifted ^ (unsigned char)*puVar6) &
+                             0xf0);
         }
       }
     }
@@ -2376,14 +2411,13 @@ void FUN_000d70b0(short param_1, unsigned int param_2, int *param_3,
               sound_stop_impulse(iVar1);
             }
           }
-          /* store the RETURNED sound datum handle (not the tag index piVar3[3]);
-           * this slot is consumed later by sound_stop_impulse. */
+          /* store the RETURNED sound datum handle (not the tag index
+           * piVar3[3]); this slot is consumed later by sound_stop_impulse. */
           *(int *)(param_4 + iVar6 * 4) =
-              sound_impulse_start(piVar3[3], new_var);
+            sound_impulse_start(piVar3[3], new_var);
         } else {
           display_assert("!\"unreachable\"",
-                         "c:\\halo\\SOURCE\\interface\\hud_sounds.c", 0x2f,
-                         1);
+                         "c:\\halo\\SOURCE\\interface\\hud_sounds.c", 0x2f, 1);
           system_exit(-1);
           *param_5 = *param_5 | (unsigned short)(1 << (bVar5 & 0x1f));
           goto next;
@@ -2621,8 +2655,7 @@ void FUN_000d7560(int param_1, char param_2)
           cVar1 = game_engine_has_shield(iVar4);
           if (cVar1 != '\0' &&
               (*(unsigned int *)(*(int *)0x46bd20 + 0x160) & 4) == 0) {
-            uVar8 =
-                (*(unsigned short *)((int)puVar5 + 0xb6) & 0x1000) >> 0xc;
+            uVar8 = (*(unsigned short *)((int)puVar5 + 0xb6) & 0x1000) >> 0xc;
             if (*(float *)pfVar3 < *(float *)((int)puVar5 + 0x94)) {
               uVar8 = uVar8 | 2;
             }
@@ -2644,7 +2677,7 @@ void FUN_000d7560(int param_1, char param_2)
           }
           if (*(float *)((int)puVar5 + 0x90) < *(float *)(pfVar3 + 1) &&
               *(float *)(pfVar3 + 1) - *(float *)((int)puVar5 + 0x90) <
-                  *(float *)0x281e94) {
+                *(float *)0x281e94) {
             uVar8 = uVar8 | 0x40;
           }
           if (*(float *)0x281e94 <=
@@ -2699,10 +2732,12 @@ void FUN_000d7800(int player_handle)
   local_c = FUN_000d1540();
   csmemset(local_20c, 0x62, 0x200);
   iVar2 = local_player_get_player_index(player_handle);
-  if (iVar2 == -1) goto LAB_000d794f;
+  if (iVar2 == -1)
+    goto LAB_000d794f;
   iVar2 = local_player_get_player_index(player_handle);
   iVar2 = (int)datum_get(*(data_t **)0x5aa6d4, iVar2);
-  if (*(int *)(iVar2 + 0x34) == -1) goto LAB_000d794f;
+  if (*(int *)(iVar2 + 0x34) == -1)
+    goto LAB_000d794f;
   iVar2 = (int)object_get_and_verify_type(*(int *)(iVar2 + 0x34), 3);
   pfVar4 = (float *)FUN_000d7280((short)player_handle);
   if (pfVar4[1] == -1.0f) {
@@ -2725,8 +2760,7 @@ void FUN_000d7800(int player_handle)
       pfVar4[2] = -1.0f;
     }
   } else {
-    if (pfVar4[2] < *(float *)0x2533c0 ||
-        *(float *)0x2533c8 < pfVar4[2]) {
+    if (pfVar4[2] < *(float *)0x2533c0 || *(float *)0x2533c8 < pfVar4[2]) {
       fVar5 = (float)game_time_get();
       pfVar4[3] = fVar5;
     }
@@ -2754,7 +2788,8 @@ LAB_000d794f:
   }
   sVar7 = 0x7f;
   do {
-    if (local_20c[(int)sVar7] != 0x62626262) goto LAB_000d79a8;
+    if (local_20c[(int)sVar7] != 0x62626262)
+      goto LAB_000d79a8;
     sVar7 = sVar7 - 1;
   } while (-1 < sVar7);
   sVar7 = -1;
@@ -2861,13 +2896,12 @@ void FUN_000d7a20(int param_1)
       local_8 = 0;
       local_c = 0;
       FUN_000d16a0(iVar6, sVar2, 0, &local_8, &local_c);
-      if (local_8 != 0 &&
-          (int)xbox_texture_cache_get_hardware_format((void *)local_8, 0, 1) !=
-              0) {
+      if (local_8 != 0 && (int)xbox_texture_cache_get_hardware_format(
+                            (void *)local_8, 0, 1) != 0) {
         local_10[0] = (short)pos_x;
         local_10[1] = (short)pos_y;
-        FUN_000d3200(local_8, 4, local_10, local_c, fVar7,
-                     *(float *)&param_1, *(int *)(iVar3 + 0x34c), 0);
+        FUN_000d3200(local_8, 4, local_10, local_c, fVar7, *(float *)&param_1,
+                     *(int *)(iVar3 + 0x34c), 0);
       }
     }
     iVar5 = iVar5 + 1;
@@ -2967,9 +3001,8 @@ void FUN_000d7d40(int param_1)
   csmemset(canary_buf, 0x62, 0x200);
 
   if (*(short *)(param_1 + 2) != *(short *)0x506548) {
-    display_assert(
-        "player->local_player_index==render.local_player_index",
-        "c:\\halo\\SOURCE\\interface\\hud_unit.c", 0x209, 1);
+    display_assert("player->local_player_index==render.local_player_index",
+                   "c:\\halo\\SOURCE\\interface\\hud_unit.c", 0x209, 1);
     system_exit(-1);
   }
 
@@ -3016,8 +3049,8 @@ void FUN_000d7d40(int param_1)
     vehicle_ptr = (int *)object_get_and_verify_type(parent_handle, 3);
     vehicle_tag = (int)tag_get(0x756e6974, *vehicle_ptr);
     seat_element = (int)tag_block_get_element(
-        (void *)(vehicle_tag + 0x2e4),
-        (int)*(short *)((char *)unit_ptr + 0x2a0), 0x11c);
+      (void *)(vehicle_tag + 0x2e4), (int)*(short *)((char *)unit_ptr + 0x2a0),
+      0x11c);
     unit_tag_data = (unsigned char *)seat_element;
 
     FUN_000d7280((short)local_player_idx);
@@ -3036,18 +3069,15 @@ void FUN_000d7d40(int param_1)
         unsigned char *next_obj_data;
         int next_unit;
 
-        next_obj_data = (unsigned char *)object_get_and_verify_type(
-            iVar13, (int)0xFFFFFFFF);
-        next_unit =
-            (int)object_try_and_get_and_verify_type(iVar13, 3);
-        if (next_unit != 0 &&
-            *(int *)(next_unit + 0xcc) == parent_handle &&
+        next_obj_data =
+          (unsigned char *)object_get_and_verify_type(iVar13, (int)0xFFFFFFFF);
+        next_unit = (int)object_try_and_get_and_verify_type(iVar13, 3);
+        if (next_unit != 0 && *(int *)(next_unit + 0xcc) == parent_handle &&
             *(short *)(next_unit + 0x2a0) != -1) {
           handle_slots[slot_count] = iVar13;
           sVar4 = local_player_count();
           iVar13 = FUN_001a6870(
-              vehicle_tag,
-              *(unsigned short *)(next_unit + 0x2a0), 1 < sVar4);
+            vehicle_tag, *(unsigned short *)(next_unit + 0x2a0), 1 < sVar4);
           tag_indices[slot_count] = iVar13;
           slot_count = slot_count + 1;
         }
@@ -3079,8 +3109,8 @@ void FUN_000d7d40(int param_1)
     while (uVar16 != 0) {
       uVar18 = uVar16 - 1;
 
-      iVar13 = (int)object_try_and_get_and_verify_type(
-          handle_slots[uVar16 - 1], 3);
+      iVar13 =
+        (int)object_try_and_get_and_verify_type(handle_slots[uVar16 - 1], 3);
       unit_data = iVar13;
 
       uVar16 = uVar18;
@@ -3108,7 +3138,6 @@ void FUN_000d7d40(int param_1)
         if (cVar3 != '\0' &&
             (iVar8 = iVar13, iVar21 = iVar7,
              (*(unsigned int *)(*(int *)0x46bd20 + 0x160) & 4) == 0)) {
-
           if (*(float *)(iVar13 + 0x94) < *(float *)0x25337c ||
               (*(unsigned int *)(*(int *)0x46bd20 + 0x160) & 8) != 0) {
             flags = 1;
@@ -3148,7 +3177,7 @@ void FUN_000d7d40(int param_1)
             }
 
             meter_max =
-                (int)(unsigned short)*(unsigned short *)(unhi_tag + 0x13e);
+              (int)(unsigned short)*(unsigned short *)(unhi_tag + 0x13e);
             if (meter_max == 0) {
               meter_max = 0xff;
             }
@@ -3178,8 +3207,7 @@ void FUN_000d7d40(int param_1)
               do {
                 saved_layer_idx = layer_idx;
 
-                local_34 =
-                    *(float *)(unit_data + 0x94) - (float)layer_idx;
+                local_34 = *(float *)(unit_data + 0x94) - (float)layer_idx;
                 if (local_34 < *(float *)0x2533c0) {
                   local_34 = 0.0f;
                 } else if (local_34 > *(float *)0x2533c8) {
@@ -3203,7 +3231,7 @@ void FUN_000d7d40(int param_1)
                 if ((local_34 < *(float *)0x2533c0 !=
                      (local_34 == *(float *)0x2533c0)) &&
                     (fVar2 < *(float *)0x2533c0 !=
-                         (fVar2 == *(float *)0x2533c0)))
+                     (fVar2 == *(float *)0x2533c0)))
                   break;
 
                 if (fVar1 <= local_34) {
@@ -3225,8 +3253,7 @@ void FUN_000d7d40(int param_1)
                 }
 
                 {
-                  float local_38_v =
-                      (float)(short)meter_max * local_34;
+                  float local_38_v = (float)(short)meter_max * local_34;
                   clamp_b = (int)local_38_v;
                   if (clamp_b < 0) {
                     clamp_b = 0;
@@ -3249,9 +3276,9 @@ void FUN_000d7d40(int param_1)
                     meter_data_ptr = widget_meter_data;
                   }
 
-                  FUN_000d3340(local_player_idx, unhi_tag,
-                               (int)meter_data_ptr, clamp_b, clamp_a,
-                               flags, flash_param_int, local_34);
+                  FUN_000d3340(local_player_idx, unhi_tag, (int)meter_data_ptr,
+                               clamp_b, clamp_a, flags, flash_param_int,
+                               local_34);
                 }
 
                 color_ptr = color_ptr + 1;
@@ -3264,9 +3291,8 @@ void FUN_000d7d40(int param_1)
           iVar21 = unhi_tag;
 
           if (*(int *)(unhi_tag + 0xbc) != -1) {
-            FUN_000d3fe0(local_player_idx, (short *)unhi_tag,
-                         unhi_tag + 0x8c, flags,
-                         *(int *)((char *)pfVar6 + 0x10));
+            FUN_000d3fe0(local_player_idx, (short *)unhi_tag, unhi_tag + 0x8c,
+                         flags, *(int *)((char *)pfVar6 + 0x10));
             iVar8 = unit_data;
             iVar21 = unhi_tag;
           }
@@ -3293,8 +3319,7 @@ void FUN_000d7d40(int param_1)
           if (uVar18 == 0) {
             if ((flags & 1) == 0) {
               *(int *)((char *)pfVar6 + 0x14) = (int)0xFFFFFFFF;
-            } else if (*(int *)((char *)pfVar6 + 0x14) ==
-                       (int)0xFFFFFFFF) {
+            } else if (*(int *)((char *)pfVar6 + 0x14) == (int)0xFFFFFFFF) {
               *(int *)((char *)pfVar6 + 0x14) = game_time_get();
             }
           }
@@ -3314,20 +3339,16 @@ void FUN_000d7d40(int param_1)
               int *h_src = (int *)(unhi_tag + 0x1e4);
               int *h_dst = health_meter_data;
               int h_cnt;
-              for (iVar8 = unit_data, h_cnt = 0x1a; h_cnt != 0;
-                   h_cnt--) {
+              for (iVar8 = unit_data, h_cnt = 0x1a; h_cnt != 0; h_cnt--) {
                 *h_dst = *h_src;
                 h_src++;
                 h_dst++;
               }
             }
 
-            if (*(float *)(unit_data + 0x90) <
-                *(float *)(iVar13 + 0x250)) {
-              if (*(float *)(unit_data + 0x90) <
-                      *(float *)(iVar13 + 0x254) ||
-                  *(float *)(unit_data + 0x90) ==
-                      *(float *)(iVar13 + 0x254)) {
+            if (*(float *)(unit_data + 0x90) < *(float *)(iVar13 + 0x250)) {
+              if (*(float *)(unit_data + 0x90) < *(float *)(iVar13 + 0x254) ||
+                  *(float *)(unit_data + 0x90) == *(float *)(iVar13 + 0x254)) {
                 /* override stores at base+0x38/+0x34 = indices 14/13, not 15/14
                  * (disasm: MOV [EBP-0x15c]/[EBP-0x160], base EBP-0x194). */
                 health_meter_data[14] = health_meter_data[13];
@@ -3339,47 +3360,41 @@ void FUN_000d7d40(int param_1)
 
             meter_scale = (float)(int)health_max;
 
-            iVar7 = FUN_000d1c50(
-                meter_scale * *(float *)(unit_data + 0x90));
+            iVar7 = FUN_000d1c50(meter_scale * *(float *)(unit_data + 0x90));
             if (iVar7 < 0) {
               health_alpha = 0;
             } else {
-              iVar7 = FUN_000d1c50(
-                  meter_scale * *(float *)(iVar8 + 0x90));
+              iVar7 = FUN_000d1c50(meter_scale * *(float *)(iVar8 + 0x90));
               if (iVar7 < 0x100) {
-                health_alpha = FUN_000d1c50(
-                    meter_scale * *(float *)(iVar8 + 0x90));
+                health_alpha =
+                  FUN_000d1c50(meter_scale * *(float *)(iVar8 + 0x90));
               } else {
                 health_alpha = 0xff;
               }
             }
 
-            iVar7 = FUN_000d1c50(
-                meter_scale * *(float *)(iVar8 + 0x90));
+            iVar7 = FUN_000d1c50(meter_scale * *(float *)(iVar8 + 0x90));
             if (iVar7 < 0) {
               health_flash_alpha = 0;
             } else {
-              iVar7 = FUN_000d1c50(
-                  meter_scale * *(float *)(iVar8 + 0x90));
+              iVar7 = FUN_000d1c50(meter_scale * *(float *)(iVar8 + 0x90));
               if (iVar7 < 0x100) {
-                health_flash_alpha = FUN_000d1c50(
-                    meter_scale * *(float *)(iVar8 + 0x90));
+                health_flash_alpha =
+                  FUN_000d1c50(meter_scale * *(float *)(iVar8 + 0x90));
               } else {
                 health_flash_alpha = 0xff;
               }
             }
 
-            FUN_000d3340(local_player_idx, iVar13,
-                         (int)health_meter_data, health_flash_alpha,
-                         health_alpha, flags, (int)0xbf800000,
-                         *(float *)(iVar8 + 0x90));
+            FUN_000d3340(local_player_idx, iVar13, (int)health_meter_data,
+                         health_flash_alpha, health_alpha, flags,
+                         (int)0xbf800000, *(float *)(iVar8 + 0x90));
             iVar21 = unhi_tag;
           }
 
           if (*(int *)(iVar21 + 0x1ac) != -1) {
-            FUN_000d3fe0(local_player_idx, (short *)iVar21,
-                         iVar21 + 0x17c, flags,
-                         *(int *)((char *)pfVar6 + 0x14));
+            FUN_000d3fe0(local_player_idx, (short *)iVar21, iVar21 + 0x17c,
+                         flags, *(int *)((char *)pfVar6 + 0x14));
           }
 
           pfVar6[1] = *(float *)(unit_data + 0x90);
@@ -3388,33 +3403,28 @@ void FUN_000d7d40(int param_1)
         if (uVar18 == 0 &&
             (*(unsigned char *)(*(int *)0x46bd20 + 0x160) & 0x10) == 0 &&
             FUN_000a9f90(player_index) != '\0') {
-
           local_130[0] = 2;
 
           sVar4 = local_player_count();
           bVar = (unsigned char)((sVar4 < 2) - 1) & 4;
-          if ((*(unsigned char *)(*(int *)0x46bd20 + 0x160) & 0x20) !=
-              0) {
+          if ((*(unsigned char *)(*(int *)0x46bd20 + 0x160) & 0x20) != 0) {
             bVar = bVar | 1;
           }
 
           if ((bVar & 1) == 0) {
             *(int *)((char *)pfVar6 + 0x18) = (int)0xFFFFFFFF;
-          } else if (*(int *)((char *)pfVar6 + 0x18) ==
-                     (int)0xFFFFFFFF) {
+          } else if (*(int *)((char *)pfVar6 + 0x18) == (int)0xFFFFFFFF) {
             *(int *)((char *)pfVar6 + 0x18) = game_time_get();
           }
 
           iVar13 = unhi_tag;
           if (*(int *)(unhi_tag + 0x29c) != -1) {
-            FUN_000d3fe0(local_player_idx, local_130,
-                         unhi_tag + 0x26c, (unsigned int)bVar,
-                         (int)0xFFFFFFFF);
+            FUN_000d3fe0(local_player_idx, local_130, unhi_tag + 0x26c,
+                         (unsigned int)bVar, (int)0xFFFFFFFF);
           }
           if (*(int *)(iVar13 + 0x304) != -1) {
-            FUN_000d3fe0(local_player_idx, local_130,
-                         iVar13 + 0x2d4, (unsigned int)bVar,
-                         (int)0xFFFFFFFF);
+            FUN_000d3fe0(local_player_idx, local_130, iVar13 + 0x2d4,
+                         (unsigned int)bVar, (int)0xFFFFFFFF);
           }
 
           sVar4 = local_player_count();
@@ -3423,8 +3433,7 @@ void FUN_000d7d40(int param_1)
                        (short *)local_78_buf);
 
           sVar4 = local_player_count();
-          FUN_000dbfb0(local_player_idx, 1 < sVar4,
-                       (int)local_78_buf);
+          FUN_000dbfb0(local_player_idx, 1 < sVar4, (int)local_78_buf);
         }
 
         {
@@ -3450,24 +3459,20 @@ void FUN_000d7d40(int param_1)
               int widget_element;
 
               widget_element = (int)tag_block_get_element(
-                  (void *)widget_block_ptr, widget_idx_int, 0x84);
+                (void *)widget_block_ptr, widget_idx_int, 0x84);
 
               if ((widget_type_mask &
-                   (1 << (*(unsigned char *)(widget_element + 0x68) &
-                          0x1f))) != 0) {
-                if ((*(unsigned char *)(widget_element + 0x6a) & 1) !=
-                    0) {
+                   (1 << (*(unsigned char *)(widget_element + 0x68) & 0x1f))) !=
+                  0) {
+                if ((*(unsigned char *)(widget_element + 0x6a) & 1) != 0) {
                   unsigned int packed_color;
-                  packed_color = FUN_000d1dd0(
-                      (float *)(unit_data + 0x138));
+                  packed_color = FUN_000d1dd0((float *)(unit_data + 0x138));
                   *(unsigned int *)(widget_element + 0x34) =
-                      packed_color | 0xff000000;
+                    packed_color | 0xff000000;
                 }
 
-                FUN_000d3fe0(local_player_idx,
-                             (short *)widget_base,
-                             widget_element,
-                             (unsigned int)widget_flags_mask,
+                FUN_000d3fe0(local_player_idx, (short *)widget_base,
+                             widget_element, (unsigned int)widget_flags_mask,
                              (int)0xFFFFFFFF);
               }
 
@@ -3485,7 +3490,7 @@ void FUN_000d7d40(int param_1)
 
             do {
               psVar12 = (short *)tag_block_get_element(
-                  (void *)(unhi_tag + 0x3cc), overlay_idx, 0x144);
+                (void *)(unhi_tag + 0x3cc), overlay_idx, 0x144);
 
               {
                 short overlay_type;
@@ -3493,105 +3498,78 @@ void FUN_000d7d40(int param_1)
                 unsigned int bitmask_20;
 
                 overlay_type = *psVar12;
-                type_bit =
-                    1 << ((unsigned char)overlay_type & 0x1f);
-                bitmask_20 = (unsigned int)*(unsigned short
-                                                *)((char *)pfVar6 +
-                                                   0x20);
+                type_bit = 1 << ((unsigned char)overlay_type & 0x1f);
+                bitmask_20 =
+                  (unsigned int)*(unsigned short *)((char *)pfVar6 + 0x20);
 
                 if ((type_bit & bitmask_20) != 0 &&
                     (full_shield & type_bit) == 0) {
-                  *(short *)((char *)pfVar6 +
-                             overlay_type * 2 + 0x22) =
-                      (short)0xffff;
+                  *(short *)((char *)pfVar6 + overlay_type * 2 + 0x22) =
+                    (short)0xffff;
                 }
 
                 overlay_type = *psVar12;
-                type_bit =
-                    1 << ((unsigned char)overlay_type & 0x1f);
+                type_bit = 1 << ((unsigned char)overlay_type & 0x1f);
 
                 if ((full_shield & type_bit) == 0) {
                   if ((damage_active & type_bit) == 0) {
                     psVar22 =
-                        (short *)((char *)pfVar6 +
-                                  overlay_type * 2 + 0x22);
+                      (short *)((char *)pfVar6 + overlay_type * 2 + 0x22);
                     if (*psVar22 != -1) {
-                      psVar22 = (short *)((char *)pfVar6 +
-                                          *psVar12 * 2 + 0x22);
-                      iVar13 =
-                          FUN_000d2300((int)(psVar12 + 0x24));
+                      psVar22 = (short *)((char *)pfVar6 + *psVar12 * 2 + 0x22);
+                      iVar13 = FUN_000d2300((int)(psVar12 + 0x24));
                       if (*psVar22 < iVar13)
                         goto overlay_active_no_shield;
                     }
                     *psVar22 = -1;
                   } else {
                   overlay_active_no_shield:
-                    tag_ref_result = verify_tag_reference(
-                        (int *)(psVar12 + 0x1c));
+                    tag_ref_result =
+                      verify_tag_reference((int *)(psVar12 + 0x1c));
                     sVar4 = local_player_count();
-                    psVar22 =
-                        (short *)((char *)pfVar6 +
-                                  *psVar12 * 2 + 0x22);
+                    psVar22 = (short *)((char *)pfVar6 + *psVar12 * 2 + 0x22);
                     sVar5 = game_time_get_elapsed();
                     *psVar22 = *psVar22 + sVar5;
 
                     if (tag_ref_result != (int)0xFFFFFFFF) {
                       int time_val = game_time_get();
-                      FUN_000d3fe0(
-                          local_player_idx,
-                          (short *)unhi_tag,
-                          (int)(psVar12 + 10),
-                          ((unsigned int)((sVar4 < 2) - 1) &
-                           4) |
-                              1,
-                          time_val -
-                              (int)*(short *)((char *)pfVar6 +
-                                              *psVar12 * 2 +
-                                              0x22));
+                      FUN_000d3fe0(local_player_idx, (short *)unhi_tag,
+                                   (int)(psVar12 + 10),
+                                   ((unsigned int)((sVar4 < 2) - 1) & 4) | 1,
+                                   time_val -
+                                     (int)*(short *)((char *)pfVar6 +
+                                                     *psVar12 * 2 + 0x22));
                     }
                   }
                 } else {
                   int overlay_ref2;
 
-                  tag_ref_result = verify_tag_reference(
-                      (int *)(psVar12 + 0x1c));
-                  overlay_ref2 = verify_tag_reference(
-                      (int *)(psVar12 + 0x50));
+                  tag_ref_result =
+                    verify_tag_reference((int *)(psVar12 + 0x1c));
+                  overlay_ref2 = verify_tag_reference((int *)(psVar12 + 0x50));
                   sVar4 = local_player_count();
-                  flags =
-                      (unsigned int)((sVar4 < 2) - 1) & 4;
+                  flags = (unsigned int)((sVar4 < 2) - 1) & 4;
 
-                  if (fraction_slots[*psVar12] <
-                          *(float *)(psVar12 + 0x72) &&
-                      fraction_slots[*psVar12] !=
-                          *(float *)(psVar12 + 0x72)) {
+                  if (fraction_slots[*psVar12] < *(float *)(psVar12 + 0x72) &&
+                      fraction_slots[*psVar12] != *(float *)(psVar12 + 0x72)) {
                     flags = flags | 1;
                   }
 
-                  psVar22 =
-                      (short *)((char *)pfVar6 +
-                                *psVar12 * 2 + 0x22);
+                  psVar22 = (short *)((char *)pfVar6 + *psVar12 * 2 + 0x22);
                   sVar5 = game_time_get_elapsed();
                   *psVar22 = *psVar22 + sVar5;
 
-                  psVar22 =
-                      (short *)((char *)pfVar6 +
-                                *psVar12 * 2 + 0x22);
-                  iVar13 =
-                      FUN_000d2300((int)(psVar12 + 0x24));
-                  *psVar22 =
-                      (short)((int)*psVar22 % (iVar13 << 1));
+                  psVar22 = (short *)((char *)pfVar6 + *psVar12 * 2 + 0x22);
+                  iVar13 = FUN_000d2300((int)(psVar12 + 0x24));
+                  *psVar22 = (short)((int)*psVar22 % (iVar13 << 1));
 
                   if (tag_ref_result != (int)0xFFFFFFFF) {
                     int time_val2 = game_time_get();
                     FUN_000d3fe0(
-                        local_player_idx,
-                        (short *)unhi_tag,
-                        (int)(psVar12 + 10), flags,
-                        time_val2 -
-                            (int)*(short *)((char *)pfVar6 +
-                                            *psVar12 * 2 +
-                                            0x22));
+                      local_player_idx, (short *)unhi_tag, (int)(psVar12 + 10),
+                      flags,
+                      time_val2 -
+                        (int)*(short *)((char *)pfVar6 + *psVar12 * 2 + 0x22));
                   }
 
                   if (overlay_ref2 != (int)0xFFFFFFFF) {
@@ -3629,25 +3607,21 @@ void FUN_000d7d40(int param_1)
                       }
                     }
 
-                    FUN_000d3340(
-                        local_player_idx, unhi_tag,
-                        (int)(psVar12 + 0x3e), alpha_b2,
-                        alpha_a2, flags, (int)0xbf800000,
-                        frac_value);
+                    FUN_000d3340(local_player_idx, unhi_tag,
+                                 (int)(psVar12 + 0x3e), alpha_b2, alpha_a2,
+                                 flags, (int)0xbf800000, frac_value);
                   }
                 }
               }
 
-              overlay_idx =
-                  (int)(short)(overlay_loop_idx + 1);
+              overlay_idx = (int)(short)(overlay_loop_idx + 1);
               overlay_loop_idx = overlay_loop_idx + 1;
-            } while (overlay_idx <
-                     *(int *)(unhi_tag + 0x3cc));
+            } while (overlay_idx < *(int *)(unhi_tag + 0x3cc));
           }
         }
 
         *(unsigned short *)((char *)pfVar6 + 0x20) =
-            (unsigned short)full_shield;
+          (unsigned short)full_shield;
       }
 
     next_slot:
@@ -3655,34 +3629,28 @@ void FUN_000d7d40(int param_1)
     }
   }
 
-done_canary_check:
-  {
-    short canary_idx = 0x7f;
-    do {
-      if (canary_buf[canary_idx] != 0x62626262)
-        goto canary_found;
-      canary_idx = canary_idx - 1;
-    } while (canary_idx >= 0);
-    canary_idx = -1;
+done_canary_check: {
+  short canary_idx = 0x7f;
+  do {
+    if (canary_buf[canary_idx] != 0x62626262)
+      goto canary_found;
+    canary_idx = canary_idx - 1;
+  } while (canary_idx >= 0);
+  canary_idx = -1;
 
-  canary_found:
-    {
-      int cookie_check = FUN_000d1540();
-      if (canary_cookie != cookie_check) {
-        display_assert("corrupt return address!",
-                       "c:\\halo\\SOURCE\\interface\\hud_unit.c",
-                       0x3c9, 1);
-        system_exit(-1);
-      }
-      if (canary_idx != -1) {
-        char *msg =
-            csprintf((char *)0x5ab100, "corrupt stack at %d!",
-                     (int)canary_idx);
-        display_assert(
-            msg, "c:\\halo\\SOURCE\\interface\\hud_unit.c",
-            0x3c9, 1);
-        system_exit(-1);
-      }
-    }
+canary_found: {
+  int cookie_check = FUN_000d1540();
+  if (canary_cookie != cookie_check) {
+    display_assert("corrupt return address!",
+                   "c:\\halo\\SOURCE\\interface\\hud_unit.c", 0x3c9, 1);
+    system_exit(-1);
   }
+  if (canary_idx != -1) {
+    char *msg =
+      csprintf((char *)0x5ab100, "corrupt stack at %d!", (int)canary_idx);
+    display_assert(msg, "c:\\halo\\SOURCE\\interface\\hud_unit.c", 0x3c9, 1);
+    system_exit(-1);
+  }
+}
+}
 }

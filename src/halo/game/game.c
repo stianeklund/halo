@@ -60,7 +60,8 @@ void FUN_000a6ba0(void)
 
   block = (int *)((char *)game_globals_get() + 0x164);
   if (*block != 0) {
-    index = (int)*(short *)((char *)tag_block_get_element(block, 0, 0xa0) + 0x20);
+    index =
+      (int)*(short *)((char *)tag_block_get_element(block, 0, 0xa0) + 0x20);
     FUN_000a6930(*(int *)((char *)tag_block_get_element(block, 0, 0xa0) + 0x24),
                  (unsigned short)index);
   }
@@ -1038,7 +1039,8 @@ float FUN_000b5590(int16_t value_type)
  *     force difficulty=1. Otherwise substitute the override value_type and
  *     use the actual difficulty level.
  *
- * The underlying scale is fetched by game_globals_difficulty_scale (@BX=value_type,
+ * The underlying scale is fetched by game_globals_difficulty_scale
+ * (@BX=value_type,
  * @DI=difficulty) from the game globals tag (matg) difficulty block.
  *
  * Confirmed: CALL 0xa7460 (game_difficulty_level_get) → EDI at 0xb55ba.

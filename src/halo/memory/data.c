@@ -91,19 +91,15 @@ void data_verify(data_t *data)
   }
   maximum_count = data->maximum_count;
   current_count = data->current_count;
-  if (data->data == NULL ||
-      data->magic != 0x64407440 ||
-      maximum_count < 0 ||
-      current_count < 0 ||
-      current_count > maximum_count ||
+  if (data->data == NULL || data->magic != 0x64407440 || maximum_count < 0 ||
+      current_count < 0 || current_count > maximum_count ||
       *(int16_t *)data->unk_44 < 0 ||
-      *(int16_t *)data->unk_44 > maximum_count ||
-      data->unk_48 < 0 ||
+      *(int16_t *)data->unk_44 > maximum_count || data->unk_48 < 0 ||
       data->unk_48 > current_count) {
-    display_assert(
-        csprintf(error_string_buffer,
-                 "%s data array @%p is bad or not allocated", data, data),
-        "c:\\halo\\SOURCE\\memory\\data.c", 0x1d6, 1);
+    display_assert(csprintf(error_string_buffer,
+                            "%s data array @%p is bad or not allocated", data,
+                            data),
+                   "c:\\halo\\SOURCE\\memory\\data.c", 0x1d6, 1);
     system_exit(-1);
   }
 }
@@ -269,7 +265,8 @@ void *data_iterator_next(data_iter_t *iterator)
   void *result;
   int handle;
 
-  assert_halt_msg(iterator->cookie == ((unsigned int)iterator->data ^ 0x69746572),
+  assert_halt_msg(iterator->cookie ==
+                    ((unsigned int)iterator->data ^ 0x69746572),
                   "uninitialized iterator passed to iterator_next()");
   data_verify(iterator->data);
   assert_halt(iterator->data->valid);

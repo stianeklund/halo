@@ -67,7 +67,10 @@ unsigned int FUN_0011e400(void *pool, int size)
   } else {
     alloc_point = *(unsigned int *)(p + 0x24);
   }
-  return ~-(unsigned int)(*(unsigned int *)(p + 0x28) + *(unsigned int *)(p + 0x24) < (unsigned int)size + alloc_point) & alloc_point;
+  return ~-(unsigned int)(*(unsigned int *)(p + 0x28) +
+                            *(unsigned int *)(p + 0x24) <
+                          (unsigned int)size + alloc_point) &
+         alloc_point;
 }
 
 /* Validate pool structure and all blocks in the linked list (0x11e430).

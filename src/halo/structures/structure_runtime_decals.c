@@ -58,8 +58,8 @@ void FUN_001963c0(uint32_t *old_cluster_visibility,
 
     if (should_render_cluster_decals) {
       int runtime_decal_offset;
-      for (runtime_decal_offset = 0;
-           runtime_decal_offset < runtime_decal_count; ++runtime_decal_offset) {
+      for (runtime_decal_offset = 0; runtime_decal_offset < runtime_decal_count;
+           ++runtime_decal_offset) {
         char *runtime_decal = tag_block_get_element(
           structure_runtime_decals, first_runtime_decal + runtime_decal_offset,
           0x10);

@@ -384,8 +384,8 @@ float collision_surface_area(int bsp, int surface_index)
                              ST-resident */
   volatile float cross_y;
   float cross_z;
-  float pa_x, pa_y, pa_z;          /* edge[side] vertex - anchor */
-  volatile float qa_x, qa_y;       /* edge[!side] vertex - anchor */
+  float pa_x, pa_y, pa_z; /* edge[side] vertex - anchor */
+  volatile float qa_x, qa_y; /* edge[!side] vertex - anchor */
   float qa_z;
   float *anchor;
   float *v0;
@@ -427,8 +427,8 @@ float collision_surface_area(int bsp, int surface_index)
       cross_x = qa_z * pa_y - qa_y * pa_z;
       cross_y = pa_z * qa_x - qa_z * pa_x;
       cross_z = pa_x * qa_y - qa_x * pa_y;
-      area = plane[2] * cross_z + plane[1] * cross_y + cross_x * plane[0] +
-             area;
+      area =
+        plane[2] * cross_z + plane[1] * cross_y + cross_x * plane[0] + area;
       edge = (int)tag_block_get_element((void *)edges_block,
                                         *(int *)(edge + 8 + side * 4), 0x18);
       is_owner = (*(int *)(edge + 0x14) == surface_index);
@@ -486,10 +486,10 @@ int collision_surface_test_line2d(int bsp, int surface_index, int param3,
   int *edge;
   float *v0;
   float *v1;
-  unsigned char side;         /* sete to a byte slot in the original */
-  volatile float edge_cross;  /* store-once/reload: the original spills it
-                                 to the out_result param home slot and
-                                 reloads it 3x (==0 test, divide, sign) */
+  unsigned char side; /* sete to a byte slot in the original */
+  volatile float edge_cross; /* store-once/reload: the original spills it
+                                to the out_result param home slot and
+                                reloads it 3x (==0 test, divide, sign) */
   float pt_cross;
   float ex, ey; /* v1 - v0 (edge vector), kept ST-resident */
   float cx, cy; /* point - v0, kept ST-resident */

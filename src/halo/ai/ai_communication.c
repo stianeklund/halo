@@ -221,10 +221,10 @@ void ai_conversation_advance(short param_1)
   do {
     if (*(short *)(conversation + 2) == param_1) {
       if (*(char *)0x5aca5f != '\0') {
-        console_printf(0, "%s: told to advance by scripting",
-          tag_block_get_element(
-            (char *)global_scenario_get() + 0x468,
-            0x74, (int)param_1));
+        console_printf(
+          0, "%s: told to advance by scripting",
+          tag_block_get_element((char *)global_scenario_get() + 0x468, 0x74,
+                                (int)param_1));
       }
       conversation[9] = 1;
     }

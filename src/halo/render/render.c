@@ -251,8 +251,8 @@ void render_window(int16_t *win, void *offset_or_null)
       ((void (*)(int))0x17c960)(0);
       *(int *)0x506784 = (int)*(int16_t *)(reflection_info + 0x18);
 
-      render_scene(-1, &reflection_cam, reflection_frustum,
-                   &reflection_cam, reflection_frustum, 1, 0);
+      render_scene(-1, &reflection_cam, reflection_frustum, &reflection_cam,
+                   reflection_frustum, 1, 0);
 
       /* restore BSP and switch back to main render target */
       *(int *)0x506784 = saved_bsp;
@@ -262,9 +262,8 @@ void render_window(int16_t *win, void *offset_or_null)
     }
   }
 
-  render_scene(*(int16_t *)win, render_cam, render_frustum,
-               rasterizer_cam, rasterizer_frustum, 0,
-               (char)rendered_reflection);
+  render_scene(*(int16_t *)win, render_cam, render_frustum, rasterizer_cam,
+               rasterizer_frustum, 0, (char)rendered_reflection);
 }
 
 void render_frame(void *a2, __int16 a3, _WORD *a4, _WORD *a5, void *a6,
@@ -292,8 +291,8 @@ void render_frame(void *a2, __int16 a3, _WORD *a4, _WORD *a5, void *a6,
       render_window_pregame(1, win);
     } else {
       if (a5 != NULL && a4 != NULL) {
-        offset[0] = (int16_t)(*(int16_t *)a4 * *(int16_t *)0x31fa98 +
-                              *(int16_t *)a5);
+        offset[0] =
+          (int16_t)(*(int16_t *)a4 * *(int16_t *)0x31fa98 + *(int16_t *)a5);
         offset[1] = (int16_t)(((int16_t *)a4)[1] * *(int16_t *)0x31fa98 +
                               ((int16_t *)a5)[1]);
       }

@@ -119,7 +119,8 @@ int sound_impulse_start(int sound_tag_index, float scale)
   *(float *)(source + 0x08) = 1.0f;
 
   /* original returns the sound datum handle (or -1) from this tail call;
-   * callers like hud_sounds_update (FUN_000d70b0) store it for sound_stop_impulse. */
+   * callers like hud_sounds_update (FUN_000d70b0) store it for
+   * sound_stop_impulse. */
   return sound_start(sound_tag_index, source, NONE, 0, 0, 0);
 }
 
@@ -391,7 +392,8 @@ void game_sound_update(float dt)
                            by 0x18f600 */
   uint8_t env_changed; /* [EBP-0x1]  non-zero if env changed */
 
-  /* 8-byte location struct returned by object_get_location (cluster_index etc.) */
+  /* 8-byte location struct returned by object_get_location (cluster_index etc.)
+   */
   int location[2]; /* [EBP-0x14] */
 
   int looping_sounds_handle;
@@ -464,7 +466,8 @@ void game_sound_update(float dt)
                object_try_and_get_and_verify_type(
                  *(int *)((char *)entry + 0x10), -1) != NULL) {
       /* Object exists or scripted: check if it lives in an audible cluster.
-       * object_get_and_verify_type = object_get_and_verify_type(handle, type_mask=-1) */
+       * object_get_and_verify_type = object_get_and_verify_type(handle,
+       * type_mask=-1) */
       object = object_get_and_verify_type(*(int *)((char *)entry + 0x10), -1);
       if ((*(uint32_t *)((char *)object + 4) & 0x800) != 0) {
         /* Object is in a visible cluster — get its location and maybe

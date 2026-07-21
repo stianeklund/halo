@@ -353,8 +353,8 @@ bool FUN_00130270(void *server, void *buffer, int size, void *addr)
                        "not in game");
       return 1;
     }
-    machine = network_game_server_get_client_machine_at_address(
-      (int)server, *(int *)addr);
+    machine = network_game_server_get_client_machine_at_address((int)server,
+                                                                *(int *)addr);
     if (machine == 0) {
       network_game_log("failed to handle a message_client_game_update message; "
                        "this client doesn't seem to be in the game");
@@ -387,7 +387,8 @@ bool FUN_00130580(void *server, void *machine, void *buffer, int size)
   char packet_type;
 
   msg = (unsigned short *)buffer;
-  if (server == (void *)0 || machine == (void *)0 || msg == (unsigned short *)0 ||
+  if (server == (void *)0 || machine == (void *)0 ||
+      msg == (unsigned short *)0 ||
       (unsigned short)size != (unsigned short)(msg[0] >> 4)) {
     display_assert("server && machine && message && (message_buffer_size == "
                    "GET_MESSAGE_SIZE(*message))",
