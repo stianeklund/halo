@@ -15533,7 +15533,7 @@
         {
           "addr": "0x13ee60",
           "decl": "void object_propagate_flag_to_children(int object_handle@<eax>, int param_1, int param_2);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13ef70",
@@ -15584,7 +15584,7 @@
         {
           "addr": "0x13f440",
           "decl": "void object_dump_write(void *stats@<esi>, void *file);",
-          "ported": false,
+          "ported": true,
           "reg_args": {
             "stats": "esi"
           }

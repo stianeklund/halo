@@ -4967,12 +4967,10 @@ void object_dump_write(void *stats /* @<esi> */, void *file)
   int *st = (int *)stats;
 
   pcVar1 = "unknown";
-  if (st[0] == -1) {
-    if ((int16_t)st[1] != -1) {
-      pcVar1 = (char *)FUN_0013c250((int16_t)st[1]);
-    }
-  } else {
+  if (st[0] != -1) {
     pcVar1 = (char *)tag_get_name(st[0]);
+  } else if ((int16_t)st[1] != -1) {
+    pcVar1 = (char *)FUN_0013c250((int16_t)st[1]);
   }
   crt_fprintf(
       file,

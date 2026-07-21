@@ -14649,7 +14649,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_dump_write": {
-      "score": 87.8,
+      "score": 97.6,
       "source": "src/halo/objects/objects.c"
     },
     "object_find_in_cluster": {
