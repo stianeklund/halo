@@ -1604,14 +1604,13 @@ void object_move_to_limbo(int object_handle)
 {
   char *light;
   char *parent_obj;
-  char *marker_def;
   void *node_matrix;
   char marker_buf[0x6c]; /* output from object_get_markers_by_string_id */
   char location[8]; /* scenario location (cluster_index etc.) */
   float local_pos[3]; /* computed light position */
-  float local_range; /* computed effective range */
+  float local_range; /* committed effective range */
+  float range; /* pre-clamp range temp (stays ST0-resident like the ref) */
   uint8_t tag_flags;
-  float falloff_angle;
   float offset;
   int16_t marker_index;
 
@@ -1619,25 +1618,35 @@ void object_move_to_limbo(int object_handle)
   tag_get(0x6c696768, *(int *)(light + 0x4));
 
   if (*(int *)(light + 0x58) == -1) {
-    /* No parent object index: compute from marker definition in tag. */
+    /* No parent object index: compute from marker definition in tag.
+     * Nested so the outer call's trailing args (marker_buf, 1) push
+     * before the inner object_get_child_marker_definition call, matching
+     * the reference's interleaved cdecl arg-evaluation push order. */
     marker_index = *(int16_t *)(light + 0x5c);
-    marker_def = (char *)object_get_child_marker_definition(
-      *(int *)(light + 0x2c), marker_index);
-    object_get_markers_by_string_id(*(int *)(light + 0x2c), marker_def,
-                                    marker_buf, 1);
+    object_get_markers_by_string_id(
+      *(int *)(light + 0x2c),
+      (char *)object_get_child_marker_definition(*(int *)(light + 0x2c),
+                                                 marker_index),
+      marker_buf, 1);
 
-    /* Copy position from marker buffer offset 0x60 → light+0x30 */
-    *(float *)(light + 0x30) = *(float *)(marker_buf + 0x60);
-    *(float *)(light + 0x34) = *(float *)(marker_buf + 0x64);
-    *(float *)(light + 0x38) = *(float *)(marker_buf + 0x68);
-    /* Copy forward from marker buffer offset 0x3c → light+0x3c */
-    *(float *)(light + 0x3c) = *(float *)(marker_buf + 0x3c);
-    *(float *)(light + 0x40) = *(float *)(marker_buf + 0x40);
-    *(float *)(light + 0x44) = *(float *)(marker_buf + 0x44);
-    /* Copy up from marker buffer offset 0x54 → light+0x48 */
-    *(float *)(light + 0x48) = *(float *)(marker_buf + 0x54);
-    *(float *)(light + 0x4c) = *(float *)(marker_buf + 0x58);
-    *(float *)(light + 0x50) = *(float *)(marker_buf + 0x5c);
+    /* Position/forward/up are copied as raw dword moves through a
+     * destination base pointer (reference: lea 0x30(esi),ecx; mov
+     * [ebp-off],tmp; mov tmp,(ecx)), NOT FPU load/store. */
+    {
+      int *dst;
+      dst = (int *)(light + 0x30);           /* position <- marker_buf+0x60 */
+      dst[0] = *(int *)(marker_buf + 0x60);
+      dst[1] = *(int *)(marker_buf + 0x64);
+      dst[2] = *(int *)(marker_buf + 0x68);
+      dst = (int *)(light + 0x3c);           /* forward  <- marker_buf+0x3c */
+      dst[0] = *(int *)(marker_buf + 0x3c);
+      dst[1] = *(int *)(marker_buf + 0x40);
+      dst[2] = *(int *)(marker_buf + 0x44);
+      dst = (int *)(light + 0x48);           /* up       <- marker_buf+0x54 */
+      dst[0] = *(int *)(marker_buf + 0x54);
+      dst[1] = *(int *)(marker_buf + 0x58);
+      dst[2] = *(int *)(marker_buf + 0x5c);
+    }
   } else {
     /* Has parent: transform offset through parent's node matrix. */
     parent_obj =
@@ -1664,43 +1673,56 @@ void object_move_to_limbo(int object_handle)
     char *ligh_tag = (char *)tag_get(0x6c696768, *(int *)(light2 + 0x4));
 
     tag_flags = *(uint8_t *)ligh_tag;
-    local_range = *(float *)(ligh_tag + 0xc) * *(float *)(ligh_tag + 0x4);
+    range = *(float *)(ligh_tag + 0xc) * *(float *)(ligh_tag + 0x4);
 
     if ((tag_flags & 0x2) == 0)
-      local_range *= *(float *)(ligh_tag + 0x24);
+      range = range * *(float *)(ligh_tag + 0x24);
 
-    if (local_range < *(float *)(ligh_tag + 0x18)) {
-      /* Range below cutoff: use position directly, clamp to cutoff. */
-      local_pos[0] = *(float *)(light2 + 0x30);
-      local_pos[1] = *(float *)(light2 + 0x34);
-      local_pos[2] = *(float *)(light2 + 0x38);
-      local_range = *(float *)(ligh_tag + 0x18);
+    if (range < *(float *)(ligh_tag + 0x18)) {
+      /* Range below cutoff: discard the computed range (ref: fstp st(0)),
+       * copy position (raw dwords through light2+0x30 base), clamp range
+       * to cutoff (int copy of the float bits). */
+      int *ps = (int *)(light2 + 0x30);
+      *(int *)&local_pos[0] = ps[0];
+      *(int *)&local_pos[1] = ps[1];
+      *(int *)&local_pos[2] = ps[2];
+      *(int *)&local_range = *(int *)(ligh_tag + 0x18);
     } else {
-      falloff_angle = *(float *)(ligh_tag + 0x14);
-      if (falloff_angle >= *(float *)0x2568bc) {
-        /* angle >= pi/2: use position as-is. */
-        local_pos[0] = *(float *)(light2 + 0x30);
-        local_pos[1] = *(float *)(light2 + 0x34);
-        local_pos[2] = *(float *)(light2 + 0x38);
-      } else if (falloff_angle >= *(float *)0x254a58) {
-        /* pi/4 <= angle < pi/2: offset along forward, scale range. */
-        offset = local_range * *(float *)(ligh_tag + 0x20);
-        local_pos[0] =
-          offset * *(float *)(light2 + 0x3c) + *(float *)(light2 + 0x30);
-        local_pos[1] =
-          offset * *(float *)(light2 + 0x40) + *(float *)(light2 + 0x34);
-        local_pos[2] =
-          offset * *(float *)(light2 + 0x44) + *(float *)(light2 + 0x38);
-        local_range = local_range * *(float *)(ligh_tag + 0x28);
+      /* Falloff angle is re-loaded fresh (and popped) for each comparison
+       * in the reference (flds 0x14; fcomps; test $5; jp), so access it
+       * inline. Spelled `<` with the angle>=pi/2 case as the out-of-line
+       * jump target (test $5; jp), matching the reference block layout and
+       * NaN routing (NaN falls into the >= branch). */
+      if (*(float *)(ligh_tag + 0x14) < *(float *)0x2568bc) {
+        if (*(float *)(ligh_tag + 0x14) < *(float *)0x254a58) {
+          /* angle < pi/4: offset = range / forward_modifier. */
+          local_range = range / *(float *)(ligh_tag + 0x20);
+          local_pos[0] =
+            local_range * *(float *)(light2 + 0x3c) + *(float *)(light2 + 0x30);
+          local_pos[1] =
+            local_range * *(float *)(light2 + 0x40) + *(float *)(light2 + 0x34);
+          local_pos[2] =
+            local_range * *(float *)(light2 + 0x44) + *(float *)(light2 + 0x38);
+        } else {
+          /* pi/4 <= angle < pi/2: scale range first, then offset position
+           * along forward (ref computes range*0x28 before offset=range*0x20;
+           * offset stays ST0-resident, fld st(0) for each component). */
+          local_range = range * *(float *)(ligh_tag + 0x28);
+          offset = range * *(float *)(ligh_tag + 0x20);
+          local_pos[0] =
+            offset * *(float *)(light2 + 0x3c) + *(float *)(light2 + 0x30);
+          local_pos[1] =
+            offset * *(float *)(light2 + 0x40) + *(float *)(light2 + 0x34);
+          local_pos[2] =
+            offset * *(float *)(light2 + 0x44) + *(float *)(light2 + 0x38);
+        }
       } else {
-        /* angle < pi/4: offset = range / forward_modifier. */
-        local_range = local_range / *(float *)(ligh_tag + 0x20);
-        local_pos[0] =
-          local_range * *(float *)(light2 + 0x3c) + *(float *)(light2 + 0x30);
-        local_pos[1] =
-          local_range * *(float *)(light2 + 0x40) + *(float *)(light2 + 0x34);
-        local_pos[2] =
-          local_range * *(float *)(light2 + 0x44) + *(float *)(light2 + 0x38);
+        /* angle >= pi/2: keep range, copy position as-is (raw dwords). */
+        int *ps = (int *)(light2 + 0x30);
+        local_range = range;
+        *(int *)&local_pos[0] = ps[0];
+        *(int *)&local_pos[1] = ps[1];
+        *(int *)&local_pos[2] = ps[2];
       }
     }
 
@@ -3523,6 +3545,11 @@ void *object_iterator_next(void *iter)
   object_header_data_t *entry;
   int16_t count;
   int16_t idx;
+  int handle;
+
+  /* Result/handle accumulator (EDI), pre-zeroed at entry (xor edi,edi) so
+   * the empty-table exit returns NULL via `mov eax,edi`. */
+  handle = 0;
 
   if (it->cookie != 0x86868686) {
     display_assert("uninitialized iterator passed to object_iterator_next()",
@@ -3537,21 +3564,25 @@ void *object_iterator_next(void *iter)
   count = data->current_count;
   entry = (object_header_data_t *)((char *)data->data + (int)idx * 0xc);
 
-  while (idx < count) {
-    int handle = ((int)(uint16_t)entry->unk_0 << 16) | (int)(uint16_t)idx;
+  if (idx >= count) {
+    it->current_index = idx;
+    return (void *)handle;
+  }
+
+  do {
+    /* salt (unk_0) and index sign-extended (movswl) then composited into
+     * the handle: (salt << 16) | index. */
+    handle = ((int)(int16_t)entry->unk_0 << 16) | (int)idx;
     idx++;
     if (entry->unk_0 != 0 && (entry->unk_2 & it->flags) == it->flags &&
-        (it->type_mask & (1 << (entry->type & 0x1f))) != 0) {
+        (it->type_mask & (1 << entry->type)) != 0) {
       it->last_handle = handle;
       it->current_index = idx;
       return entry->object;
     }
     entry = (object_header_data_t *)((char *)entry + 0xc);
-    if (idx >= count) {
-      it->current_index = idx;
-      return NULL;
-    }
-  }
+  } while (idx < count);
+
   it->current_index = idx;
   return NULL;
 }

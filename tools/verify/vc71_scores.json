@@ -14745,7 +14745,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_iterator_next": {
-      "score": 80.6,
+      "score": 84.5,
       "source": "src/halo/objects/objects.c"
     },
     "object_mark": {
@@ -14761,7 +14761,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_move_to_limbo": {
-      "score": 80.8,
+      "score": 97.1,
       "source": "src/halo/objects/objects.c"
     },
     "object_name_list_get_handle": {

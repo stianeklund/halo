@@ -15113,7 +15113,7 @@
     {
      "addr": "0x13aed0",
      "decl": "void object_move_to_limbo(int object_handle);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x13b150",
