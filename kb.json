@@ -15688,7 +15688,7 @@
     {
      "addr": "0x140160",
      "decl": "void object_set_region_count(int object_handle, int16_t region_count);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x140230",
@@ -15924,7 +15924,7 @@
     {
      "decl": "void objects_garbage_collect_tick(void);",
      "addr": "0x144b50",
-     "ported": false,
+     "ported": true,
      "source_path": "objects/objects.c"
     },
     {

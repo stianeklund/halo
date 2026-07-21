@@ -14845,7 +14845,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_set_region_count": {
-      "score": 83.3,
+      "score": 100.0,
       "source": "src/halo/objects/objects.c"
     },
     "object_translate": {
@@ -14889,7 +14889,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "objects_garbage_collect_tick": {
-      "score": 65.0,
+      "score": 88.2,
       "source": "src/halo/objects/objects.c"
     },
     "objects_garbage_collection": {

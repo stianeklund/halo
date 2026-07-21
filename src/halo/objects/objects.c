@@ -6313,8 +6313,10 @@ void object_set_region_count(int object_handle, int16_t region_count)
   int16_t model_region_count = *(int16_t *)((char *)mode_tag + 0xb8);
 
   /* Assert that this object type can be interpolated.
-   * _object_mask_cannot_interpolate = 0xFE0 (bits 5 through 11). */
-  if ((1 << (*(uint8_t *)((char *)obj + 0x64) & 0x1f)) & 0xfe0u) {
+   * _object_mask_cannot_interpolate = 0xFE0 (bits 5 through 11).
+   * The reference reads the type byte and shifts 1<<type with no explicit
+   * 0x1f mask (the SHL masks the count implicitly); match that shape. */
+  if ((1 << *(uint8_t *)((char *)obj + 0x64)) & 0xfe0) {
     display_assert(
       "!TEST_FLAG(_object_mask_cannot_interpolate, object->object.type)",
       "c:\\halo\\SOURCE\\objects\\objects.c", 0x5f3, 1);
@@ -6323,15 +6325,14 @@ void object_set_region_count(int object_handle, int16_t region_count)
 
   /* Copy region node data from the "new" buffer to the "current" buffer.
    * The two references at obj+0x19c and obj+0x198 each describe a
-   * {size, offset} pair into the object's dynamic data region. */
-  {
-    int copy_size = (int)model_region_count << 5;
-    void *src =
-      object_header_block_reference_get(object_handle, (char *)obj + 0x19c);
-    void *dst =
-      object_header_block_reference_get(object_handle, (char *)obj + 0x198);
-    csmemcpy(dst, src, copy_size);
-  }
+   * {size, offset} pair into the object's dynamic data region.
+   * Written inline so MSVC evaluates the args right-to-left and pushes the
+   * "src" pointer immediately after its call (matching the reference) instead
+   * of parking it in EBX -- that keeps EBX free for model_region_count. */
+  csmemcpy(
+    object_header_block_reference_get(object_handle, (char *)obj + 0x198),
+    object_header_block_reference_get(object_handle, (char *)obj + 0x19c),
+    (int)model_region_count << 5);
 
   /* If the new region_count is large enough, reset unk_132 and store it. */
   if ((int)region_count >= (int)obj->unk_134 - (int)obj->unk_132) {
@@ -10189,24 +10190,25 @@ void objects_garbage_collect_tick(void)
                    uint16_t mem_size);
   } gc_callback_entry_t;
 
-  int garbage_handles[2048];
-  char gc_working_mem[4096];
+  /* garbage_handles[2048] and gc_working_mem share stack storage (disjoint
+   * lifetimes): the original overlaps the 0x1000-byte working buffer onto the
+   * upper half of the handle array, producing a 0x2814-byte frame. The four
+   * message buffers are 0x200 each. */
+  union {
+    int garbage_handles[2048];
+    struct {
+      char _overlap_pad[0x1000];
+      char working[0x1000];
+    } cb;
+  } gc_mem;
   char result_buf[512];
   char message_buf[512];
   char critical_buf[512];
-  char status_buf[476];
-  int gc_level_wide;
-  int16_t garbage_object_count;
-  int16_t gc_level;
-  char did_callbacks;
-  char timed_out;
-  char init_called;
-  char more_to_release;
-  char should_delete;
+  char status_buf[512];
 
-  void *pool;
-  object_globals_t *og;
-  data_t *data;
+  int gc_level;             /* 0=forced, 1=mild, 2=critical */
+  int gc_level_wide;        /* switch subject (sign-extended gc_level) */
+  int garbage_object_count;
   int contiguous_free;
   int free_size;
   int handle;
@@ -10214,53 +10216,60 @@ void objects_garbage_collect_tick(void)
   object_header_data_t *hdr;
   object_data_t *obj;
   int16_t type;
-  gc_callback_entry_t *callbacks;
   gc_callback_entry_t *entry;
-  int previously_critical;
+  const char *prefix;
+  char is_critical;
+  char should_delete;       /* delete-decision; reused as "critical" flag */
+  char previously_critical;
+  char more_to_release;
+  char init_called;
+  char did_callbacks;
+  char timed_out;
+  char iterate_returned;
 
-  pool = *(void **)0x46f080;
-  og = object_globals;
-  data = *(data_t **)0x5a8d50;
-  callbacks = (gc_callback_entry_t *)0x29b868;
+  /* Globals are re-read on every use (no local caches) to mirror the
+   * original's repeated absolute loads: objects (pool) @0x46f080,
+   * object_globals @0x46f084, object_header_data @0x5a8d50. */
 
   /* Phase 1: determine GC level */
-  if (og->garbage_collect_now) {
+  if (*(char *)((char *)object_globals + 2) != 0) {
     gc_level = 0;
   } else {
-    contiguous_free = memory_pool_get_contiguous_free_size(pool);
-    if (contiguous_free <= (int)0xcccc) {
-      memory_pool_compact(pool);
-      contiguous_free = memory_pool_get_contiguous_free_size(pool);
-      if (contiguous_free > (int)0x19999) {
-        og->garbage_collect_now = 0;
-        return;
-      }
+    contiguous_free = memory_pool_get_contiguous_free_size(objects);
+    if (contiguous_free <= 0xcccc) {
+      memory_pool_compact(objects);
+      contiguous_free = memory_pool_get_contiguous_free_size(objects);
+      if (0x19999 < contiguous_free)
+        goto do_return_clear;
       gc_level = 2;
-    } else if ((int16_t)(0x800 - *(int16_t *)((char *)data + 0x30)) < 0x67) {
+    } else if (0x800 - *(int16_t *)((char *)*(void **)0x5a8d50 + 0x30) <=
+               0x66) {
       gc_level = 2;
     } else {
-      if (og->unk_4 < 0x32)
-        return;
+      if (*(int16_t *)((char *)object_globals + 4) < 0x32)
+        goto do_return_clear;
       gc_level = 1;
     }
   }
+  garbage_object_count = 0;
+  should_delete = 0;
 
-  /* Phase 2: debug output */
+  /* Phase 2: debug output (behind 0x5a8d4c debug flag) */
   if (*(char *)0x5a8d4c) {
-    contiguous_free = memory_pool_get_contiguous_free_size(pool);
+    contiguous_free = memory_pool_get_contiguous_free_size(objects);
     console_printf(0, "#%d objects using 0x%x bytes (0x%x contiguous free)",
-                   (int)*(int16_t *)((char *)data + 0x2e),
-                   (int)memory_pool_get_free_size(pool), contiguous_free);
+                   (int)*(int16_t *)((char *)*(void **)0x5a8d50 + 0x30),
+                   0x100000 - (int)memory_pool_get_free_size(objects),
+                   contiguous_free);
   }
 
   /* Phase 3: build garbage object list */
-  garbage_object_count = 0;
-  handle = og->unk_8.value;
+  handle = object_globals->unk_8.value;
   while (handle != -1) {
-    hdr = (object_header_data_t *)datum_get(data, handle);
+    hdr = (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, handle);
     obj = hdr->object;
     type = obj->type;
-    if ((1 << (type & 0x1f)) == 0) {
+    if ((1 << type) == 0) {
       display_assert(csprintf((char *)0x5ab100,
                               "got an object type we didn't expect (expected "
                               "one of 0x%08x but got #%d).",
@@ -10268,97 +10277,103 @@ void objects_garbage_collect_tick(void)
                      "c:\\halo\\SOURCE\\objects\\objects.c", 0x69a, 1);
       system_exit(-1);
     }
-    garbage_handles[garbage_object_count] = handle;
-    garbage_object_count++;
-    if (!(garbage_object_count < 2048)) {
+    if ((int16_t)garbage_object_count >= 0x800) {
       display_assert("garbage_object_count<MAXIMUM_OBJECTS_PER_MAP",
                      "c:\\halo\\SOURCE\\objects\\objects.c", 0x10c1, 1);
       system_exit(-1);
     }
+    gc_mem.garbage_handles[(int16_t)garbage_object_count] = handle;
+    garbage_object_count++;
     handle = (int)obj->unk_192;
   }
 
-  /* Phase 4: decide whether to delete */
-  gc_level_wide = (int)gc_level;
-  should_delete = 0;
+  gc_level_wide = (int)(int16_t)gc_level;
+
+  /* Phase 4+5: the GC-level switch is re-dispatched each loop iteration; the
+   * delete body does not itself set should_delete — the switch decides when to
+   * stop by re-evaluating the memory/slot pressure. */
+delete_loop:
   switch (gc_level_wide) {
   case 0:
     should_delete = 0;
-    break;
+    goto pop_next;
   case 1:
-    should_delete = (og->unk_4 <= 30) ? 0 : 1;
-    break;
-  case 2:
-    free_size = memory_pool_get_free_size(pool);
-    if (free_size < (int)0x19999 ||
-        (int16_t)(0x800 - *(int16_t *)((char *)data + 0x2e)) < (int16_t)0xcc) {
-      should_delete = 0;
-    } else {
-      should_delete = 1;
+    should_delete = *(int16_t *)((char *)object_globals + 4) <= 0x1e;
+    if (should_delete)
       goto compact_and_callbacks;
+    goto pop_next;
+  case 2:
+    free_size = memory_pool_get_free_size(objects);
+    if (free_size < 0x19999 ||
+        0x800 - *(int16_t *)((char *)*(void **)0x5a8d50 + 0x2e) < 0xcc) {
+      should_delete = 0;
+      goto pop_next;
     }
-    break;
+    should_delete = 1;
+    goto compact_and_callbacks;
   default:
-    display_assert("unreachable", "c:\\halo\\SOURCE\\objects\\objects.c",
-                   0x10da, 1);
+    display_assert((char *)0, "c:\\halo\\SOURCE\\objects\\objects.c", 0x10da, 1);
     system_exit(-1);
-    break;
   }
 
-  /* Phase 5: pop objects from list and attempt deletion */
-  while (should_delete == 0 && garbage_object_count > 0) {
-    garbage_object_count--;
-    handle = garbage_handles[garbage_object_count];
-    hdr = (object_header_data_t *)datum_get(data, handle);
-    obj = hdr->object;
-
-    if (gc_level == 1 && !(hdr->unk_2 & 1))
-      continue;
-
-    if (!object_visible_to_any_player(handle)) {
-      type = obj->type;
-      if ((1 << (type & 0x1f)) == 0) {
-        display_assert(csprintf((char *)0x5ab100,
-                                "got an object type we didn't expect (expected "
-                                "one of 0x%08x but got #%d).",
-                                -1, (int)type),
-                       "c:\\halo\\SOURCE\\objects\\objects.c", 0x69a, 1);
-        system_exit(-1);
-      }
-      if ((type & 3) <= 1) {
-        if (obj->unk_182 & 4) {
-          ai_debug_describe_actor(-1, handle, 0, (char *)0x5ab100, 256);
-          error(2, "garbage collecting living unit: %s", (char *)0x5ab100);
-        }
-      }
-      if (hdr->unk_2 & 1)
-        og->unk_4--;
-      object_set_garbage_flag(handle, 0);
-      object_delete_internal(handle, 0);
-      object_delete_recursive(handle, 0);
-      should_delete = 1;
+pop_next:
+  if ((int16_t)garbage_object_count == 0)
+    goto compact_and_callbacks;
+  garbage_object_count--;
+  handle = gc_mem.garbage_handles[(int16_t)garbage_object_count];
+  hdr = (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, handle);
+  is_critical = 1; /* "should-consider-for-delete"; bl in the original */
+  if ((int16_t)gc_level == 1)
+    is_critical = (char)(hdr->unk_2 & 1);
+  if ((char)object_visible_to_any_player(handle) == 0 && is_critical != 0) {
+    obj = ((object_header_data_t *)datum_get(*(data_t **)0x5a8d50, handle))
+            ->object;
+    type = obj->type;
+    if ((1 << type) == 0) {
+      display_assert(csprintf((char *)0x5ab100,
+                              "got an object type we didn't expect (expected "
+                              "one of 0x%08x but got #%d).",
+                              -1, (int)type),
+                     "c:\\halo\\SOURCE\\objects\\objects.c", 0x69a, 1);
+      system_exit(-1);
     }
+    if (((1 << *(uint8_t *)((char *)obj + 0x64)) & 3) != 0 &&
+        (obj->unk_182 & 4) == 0) {
+      error(2, "WARNING: garbage collecting a living unit (%s)",
+            ai_debug_describe_actor(-1, handle, 1, (char *)0x5ab100, 0x100));
+    }
+    if (hdr->unk_2 & 1)
+      (*(int16_t *)((char *)object_globals + 4))--;
+    object_set_garbage_flag(handle, 0);
+    object_delete_internal(handle, 0);
+    object_delete_recursive(handle, 0);
   }
+  goto delete_loop;
 
 compact_and_callbacks:
-  /* Phase 6: compact and run GC callbacks */
-  memory_pool_compact(pool);
+  /* Phase 6: compact and run GC release callbacks */
+  memory_pool_compact(objects);
 
   if (*(char *)0x5a8d4c) {
-    contiguous_free = memory_pool_get_contiguous_free_size(pool);
+    contiguous_free = memory_pool_get_contiguous_free_size(objects);
     console_printf(0, "compacted to #%d with 0x%x contiguous bytes free",
-                   (int)*(int16_t *)((char *)data + 0x2e), contiguous_free);
+                   (int)*(int16_t *)((char *)*(void **)0x5a8d50 + 0x30),
+                   contiguous_free);
   }
 
-  if (should_delete) {
-    og->garbage_collect_now = 0;
+  if (should_delete != 0) {
+do_return_clear:
+    *(char *)((char *)object_globals + 2) = 0;
     return;
   }
 
+  entry = (gc_callback_entry_t *)0x29b868;
+
   /* Determine timeout */
   timed_out = 0;
-  if (og->last_garbage_collection_tick != (uint32_t)-1) {
-    if (game_time_get() > (int)(og->last_garbage_collection_tick + 150))
+  if (object_globals->last_garbage_collection_tick != (uint32_t)-1) {
+    if ((int)(object_globals->last_garbage_collection_tick + 0x96) <
+        game_time_get())
       timed_out = 1;
   } else {
     timed_out = 1;
@@ -10366,87 +10381,98 @@ compact_and_callbacks:
 
   did_callbacks = 0;
   previously_critical = 0;
-  entry = &callbacks[0];
   init_called = 0;
 
-  /* Outer loop: check pressure and run callbacks */
+  /* Outer loop: classify pressure, build message, run callbacks */
   for (;;) {
-    int is_critical;
-    contiguous_free = memory_pool_get_contiguous_free_size(pool);
-    slots_free = (int16_t)(0x800 - *(int16_t *)((char *)data + 0x2e));
-
     is_critical = 0;
-    if (gc_level == 2) {
-      if (contiguous_free < (int)0x6666 || slots_free < 0x33) {
-        is_critical = 1;
-        crt_sprintf(
-          status_buf, "%.2f%% memory free, %d object slots free",
-          (double)((float)contiguous_free * 100.0f * (1.0f / 1048576.0f)),
-          slots_free);
+    should_delete = 0; /* reused: "critical" flag for this pass */
+    if (gc_level_wide == 2) {
+      contiguous_free = memory_pool_get_contiguous_free_size(objects);
+      slots_free = 0x800 - *(int16_t *)((char *)*(void **)0x5a8d50 + 0x2e);
+      if (contiguous_free <= 0x6666) {
+        should_delete = 1;
+        goto crit_mem;
       }
-    }
-
-    if (!is_critical && !previously_critical) {
-      if (did_callbacks)
-        goto finalize;
-      if (timed_out) {
-        if (contiguous_free < (int)0x6666 || slots_free < 0x33) {
-          crt_sprintf(
-            status_buf, "%.2f%% memory free, %d object slots free",
-            (double)((float)contiguous_free * 100.0f * (1.0f / 1048576.0f)),
-            slots_free);
-          error(2, "garbage collection warning (%s)", status_buf);
-        }
+      if (slots_free <= 0x33) {
+        should_delete = 1;
+        goto crit_slots;
       }
-      og->garbage_collect_now = 0;
-      return;
-    }
-
-    /* Critical path */
-    if (is_critical) {
-      crt_sprintf(critical_buf, "garbage collection %scritical (%s)",
-                  previously_critical ? "" : "now ", status_buf);
+      if (contiguous_free <= 0xcccc)
+        goto crit_mem;
+      if (0x66 < slots_free)
+        goto sprintf_mem;
+    crit_slots:
+      is_critical = 1;
+      crt_sprintf(status_buf, "%d slots free", slots_free);
+      goto after_status;
+    crit_mem:
+      is_critical = 1;
+    sprintf_mem:
+      crt_sprintf(status_buf, "%4.2f%% memory free",
+                  (double)((float)contiguous_free * 100.0f *
+                           (1.0f / 1048576.0f)));
+    after_status:
+      if (should_delete == 0)
+        goto not_critical;
+      prefix = previously_critical ? "still " : "";
     } else {
-      crt_sprintf(critical_buf, "garbage collection %scritical (%s)",
-                  "no longer ", status_buf);
+    not_critical:
+      if (previously_critical == 0) {
+        if (is_critical && timed_out) {
+          error(2, "garbage collection warning (%s)", status_buf);
+        } else if (did_callbacks == 0) {
+          *(char *)((char *)object_globals + 2) = 0;
+          return;
+        }
+      finalize:
+        object_globals->last_garbage_collection_tick =
+          (uint32_t)game_time_get();
+        *(char *)((char *)object_globals + 2) = 0;
+        return;
+      }
+      prefix = "not ";
     }
+
+    crt_sprintf(critical_buf, "garbage collection %scritical (%s)", prefix,
+                status_buf);
     console_printf(0, "%s", critical_buf);
     error(3, "%s", critical_buf);
     did_callbacks = 1;
 
-    if (is_critical && entry->iterate != NULL) {
-      /* Inner loop: run callbacks */
-      for (;;) {
-        if (!init_called && entry->init != NULL) {
-          entry->init(gc_working_mem, 0x1000);
-          init_called = 1;
-        }
-        more_to_release = 0;
-        if (entry->iterate(result_buf, &more_to_release, gc_working_mem,
-                           0x1000)) {
-          crt_sprintf(message_buf, "removing objects: %s", result_buf);
-          console_printf(0, "%s", message_buf);
-          error(3, "%s", message_buf);
-          break;
-        }
-        if (!more_to_release) {
-          entry++;
-          init_called = 0;
-          if (entry->iterate == NULL)
-            goto finalize;
-        }
-      }
-    } else {
+    if (should_delete == 0 || entry->iterate == NULL)
       goto finalize;
+
+    /* Inner loop: run each release callback until it stops releasing */
+    iterate_returned = 0;
+    for (;;) {
+      if (iterate_returned != 0)
+        break;
+      if (init_called == 0 && entry->init != NULL) {
+        entry->init(gc_mem.cb.working, 0x1000);
+        init_called = 1;
+      }
+      more_to_release = 0;
+      iterate_returned = (char)entry->iterate(result_buf, &more_to_release,
+                                              gc_mem.cb.working, 0x1000);
+      if (iterate_returned != 0) {
+        crt_sprintf(message_buf, "removing objects: %s", result_buf);
+        console_printf(0, "%s", message_buf);
+        error(3, "%s", message_buf);
+      }
+      if (more_to_release == 0) {
+        entry++;
+        init_called = 0;
+      }
+      if (entry->iterate == NULL)
+        break;
     }
+    if (iterate_returned == 0)
+      goto finalize;
 
     previously_critical = 1;
-    memory_pool_compact(pool);
+    memory_pool_compact(objects);
   }
-
-finalize:
-  og->last_garbage_collection_tick = (uint32_t)game_time_get();
-  og->garbage_collect_now = 0;
 }
 
 /*
