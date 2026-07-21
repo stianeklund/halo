@@ -4235,3 +4235,83 @@ void FUN_000bed70(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, 0);
   }
 }
+
+/* FUN_000bedb0 @ 0x000bedb0
+ *
+ * HaloScript macro-function evaluator wrapper (animation-state variant), a
+ * direct sibling of FUN_000bed70 above. Evaluates the script function via
+ * hs_macro_function_evaluate(function_index, thread_datum, init); while that
+ * returns NULL the evaluation is still pending and nothing is committed. Once a
+ * non-NULL evaluation record is returned, its fields are forwarded to the
+ * animation-state helper FUN_001457d0, then the calling thread is completed
+ * with hs_return(thread_datum, 0).
+ *
+ * cdecl frame (PUSH EBP; MOV EBP,ESP; PUSH ESI for thread_datum):
+ *   function_index  int16_t  [EBP+0x08]  -> hs_macro_function_evaluate arg1
+ *   thread_datum    int      [EBP+0x0c]  -> arg2; held in ESI, reused for
+ *                                           hs_return arg1
+ *   init            char     [EBP+0x10]  -> arg3
+ *
+ * hs_macro_function_evaluate returns the record pointer in EAX. On non-NULL the
+ * original forwards four cdecl args to FUN_001457d0 in reverse push order:
+ *   PUSH movzx(WORD [EAX+0xc])   -> arg4 = zero-extended 16-bit field @ +0xc
+ *   PUSH [EAX+8]                 -> arg3 = record[2] (char *, animation name)
+ *   PUSH [EAX+4]                 -> arg2 = record[1]
+ *   PUSH [EAX]                   -> arg1 = record[0]
+ * This is FUN_001457b0's 3-arg animation-state signature plus a trailing 16-bit
+ * argument; the arg4 load is `XOR EDX,EDX; MOV DX, WORD PTR [EAX+0xc]` (an
+ * unsigned-short widening, hence the [LOADW] shape). The combined ADD ESP,0x18
+ * after the two trailing calls folds FUN_001457d0's 4-dword cleanup (0x10) with
+ * hs_return's 2-dword cleanup (0x08), confirming both are cdecl. Ghidra modeled
+ * this void(void): the three cdecl params were unmodeled (in_stack_*) and
+ * FUN_001457d0's arguments were hidden because its kb decl was void(void). */
+void FUN_000bedb0(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    FUN_001457d0(record[0], record[1], (char *)record[2],
+                 *(unsigned short *)(record + 3));
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* FUN_000bee00 @ 0x000bee00
+ *
+ * HaloScript macro-function evaluator wrapper (byte-dispatch variant), a direct
+ * sibling of FUN_000bedb0 above. Evaluates the script function via
+ * hs_macro_function_evaluate(function_index, thread_datum, init); while that
+ * returns NULL the evaluation is still pending and nothing is committed. On a
+ * non-NULL evaluation record the zero-extended first byte of the record is
+ * forwarded to the side-effect routine at 0x184b60, then the calling thread is
+ * completed with hs_return(thread_datum, 0).
+ *
+ * cdecl frame (PUSH EBP; MOV EBP,ESP; PUSH ESI for thread_datum):
+ *   function_index  int16_t  [EBP+0x08]  -> hs_macro_function_evaluate arg1
+ *   thread_datum    int      [EBP+0x0c]  -> arg2; held in ESI, reused for
+ *                                           hs_return arg1
+ *   init            char     [EBP+0x10]  -> arg3
+ *
+ * hs_macro_function_evaluate returns the record pointer in EAX (TEST EAX,EAX /
+ * JZ). On non-NULL the original zero-extends the record's first byte
+ * (XOR EDX,EDX; MOV DL,BYTE PTR [EAX]) and pushes it as the single cdecl arg to
+ * the routine at 0x184b60, then pushes (0, thread_datum) for hs_return. One
+ * combined ADD ESP,0x0c folds 0x184b60's 1-dword cleanup with hs_return's
+ * 2-dword cleanup, confirming 0x184b60 is cdecl caller-cleaned with exactly one
+ * argument here. Ghidra modeled this void(void): the three cdecl params were
+ * unmodeled (in_stack_*) and 0x184b60's argument was hidden because its kb decl
+ * was void render_effects(void). The 0x184b60=render_effects attribution is
+ * unverified; only its 1-arg cdecl shape is proven at this call site. */
+void FUN_000bee00(int16_t function_index, int thread_datum, char init)
+{
+  unsigned char *record;
+
+  record = (unsigned char *)hs_macro_function_evaluate(function_index,
+                                                       thread_datum, init);
+  if (record != NULL) {
+    render_effects(*record);
+    hs_return(thread_datum, 0);
+  }
+}

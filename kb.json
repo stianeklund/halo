@@ -4388,7 +4388,7 @@
     },
     {
      "addr": "0x1457d0",
-     "decl": "void FUN_001457d0(void);"
+     "decl": "void FUN_001457d0(int object_handle, int animation_graph_tag, char *animation_name, int arg4);"
     },
     {
      "addr": "0x145990",
@@ -17688,11 +17688,15 @@
     },
     {
      "addr": "0xbedb0",
-     "decl": "void FUN_000bedb0(void);"
+     "decl": "void FUN_000bedb0(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "source_path": "src/halo/game/players.c"
     },
     {
      "addr": "0xbee00",
-     "decl": "void FUN_000bee00(void);"
+     "decl": "void FUN_000bee00(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "source_path": "src/halo/game/players.c"
     },
     {
      "addr": "0xbee40",
@@ -21352,7 +21356,7 @@
     },
     {
      "addr": "0x184b60",
-     "decl": "void render_effects(void);"
+     "decl": "void render_effects(int a);"
     },
     {
      "addr": "0x184de0",
