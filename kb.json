@@ -14946,7 +14946,7 @@
           "name": "FUN_00135f20",
           "addr": "0x135f20",
           "decl": "short FUN_00135f20(int group_tag);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x135f90",
@@ -14993,7 +14993,7 @@
         {
           "addr": "0x1366b0",
           "decl": "float FUN_001366b0(int object_handle, char use_raw_max);",
-          "ported": false,
+          "ported": true,
           "source_path": "objects/objects.c"
         },
         {
@@ -15604,7 +15604,7 @@
         {
           "addr": "0x13f950",
           "decl": "void objects_initialize_for_new_map(void);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13f9f0",

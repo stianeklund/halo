@@ -1091,7 +1091,8 @@ short FUN_00135f20(int group_tag)
   i = 0;
   do {
     if (*(int *)(0x323528 + (int)i * 0x28) == group_tag) {
-      return i;
+      result = i;
+      break;
     }
     i = i + 1;
   } while (i < 5);
@@ -1431,11 +1432,11 @@ float FUN_001366b0(int object_handle, char use_raw_max)
   obj = (char *)object_get_and_verify_type(object_handle, -1);
   max_vitality = *(float *)(obj + 0x88);
 
-  if (use_raw_max != 0) {
-    return max_vitality;
+  if (use_raw_max == 0) {
+    return FUN_000b55b0(1, (int)*(unsigned short *)(obj + 0x68)) * max_vitality;
   }
 
-  return FUN_000b55b0(1, (int)*(unsigned short *)(obj + 0x68)) * max_vitality;
+  return max_vitality;
 }
 
 /* 0x139810 / objects.obj — Scale a light color (RGB float triple) by a delta.
@@ -5578,34 +5579,31 @@ void objects_initialize(void)
  */
 void objects_initialize_for_new_map(void)
 {
-  object_globals_t *og;
-
-  ((pfn_void_t)0x1365a0)();
-  ((pfn_void_t)0x136040)();
-  ((pfn_void_t)0x13c3d0)();
-  ((pfn_void_t)0x1392b0)();
+  widgets_dispose();
+  FUN_00136040();
+  FUN_0013c3d0();
+  lights_initialize_for_new_map();
 
   data_delete_all(*(data_t **)0x5a8d50);
   csmemset(object_name_list, 0xff, 0x800);
 
   /* Reset collideable and noncollideable cluster partition structs.
    * These are 12-byte structs (3 data_t* fields) at fixed addresses. */
-  ((void (*)(void *))0x1915d0)((void *)0x5a8d40);
-  ((void (*)(void *))0x1915d0)((void *)0x5a8d30);
+  cluster_partition_clear((void *)0x5a8d40);
+  cluster_partition_clear((void *)0x5a8d30);
 
-  og = object_globals;
+  /* original re-reads object_globals per use (no cached pointer). */
+  csmemset(object_globals->combined_pvs, 0, 0x40);
+  csmemset(object_globals->combined_pvs_local, 0, 0x40);
 
-  csmemset(og->combined_pvs, 0, 0x40);
-  csmemset(og->combined_pvs_local, 0, 0x40);
-
-  og->pvs_activator_type = 0;
-  og->object_marker_initialized = 0;
+  object_globals->pvs_activator_type = 0;
+  object_globals->object_marker_initialized = 0;
 
   *(uint32_t *)0x5a8d28 = 0;
 
-  og->unk_8.value = 0xffffffff;
-  og->unk_4 = 0;
-  og->last_garbage_collection_tick = 0;
+  object_globals->unk_8.value = 0xffffffff;
+  object_globals->unk_4 = 0;
+  object_globals->last_garbage_collection_tick = 0;
 }
 
 /*

@@ -9437,7 +9437,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00135f20": {
-      "score": 82.4,
+      "score": 100.0,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00135f90": {
@@ -9493,7 +9493,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_001366b0": {
-      "score": 60.4,
+      "score": 90.6,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00136750": {
@@ -14893,7 +14893,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "objects_initialize_for_new_map": {
-      "score": 79.1,
+      "score": 95.2,
       "source": "src/halo/objects/objects.c"
     },
     "objects_place": {
