@@ -612,6 +612,17 @@ def _canonicalize_callee_key(sym_key: str) -> str:
     return _load_function_addr_to_name().get(addr, sym_key)
 
 
+# Ghidra-labeled globals in delinked refs whose name does NOT match kb.json's
+# name for the same address (or matches a DIFFERENT kb global).  Resolved by
+# explicit address, checked before the kb name lookup.  Do NOT generic-strip
+# the g_ prefix instead: g_object_header_data labels 0x5a8d50 (the object
+# table pointer) while kb's object_header_data is 0x5abc10 — a bare strip
+# would seed the wrong slot (2026-07-21, object_iterator_next campaign).
+_GLOBAL_NAME_ALIASES = {
+    "g_object_header_data": 0x5a8d50,
+}
+
+
 def _normalize_global_symbol(sym_name: str) -> str:
     """Strip MSVC/clang decoration to recover the bare C identifier:
     '__imp__actor_data' -> 'actor_data', '_actor_data@8' -> 'actor_data'."""
@@ -656,7 +667,10 @@ def _build_globals_seeds(*slot_maps: dict,
             if m:
                 orig_addr = int(m.group(1), 16)
             else:
-                orig_addr = name2addr.get(_normalize_global_symbol(sym_name))
+                bare = _normalize_global_symbol(sym_name)
+                orig_addr = _GLOBAL_NAME_ALIASES.get(bare)
+                if orig_addr is None:
+                    orig_addr = name2addr.get(bare)
             if orig_addr is None:
                 continue
             snap = _snapshot_value_at(snapshot_overrides, orig_addr, 4)

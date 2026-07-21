@@ -15355,7 +15355,7 @@
     {
      "addr": "0x13d730",
      "decl": "void *object_iterator_next(void *iter);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x13d7f0",
