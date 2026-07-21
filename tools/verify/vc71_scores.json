@@ -14593,7 +14593,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_choose_random_change_colors": {
-      "score": 67.4,
+      "score": 93.8,
       "source": "src/halo/objects/objects.c"
     },
     "object_choose_random_region_permutations": {
@@ -14601,7 +14601,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_compute_change_colors": {
-      "score": 62.0,
+      "score": 93.3,
       "source": "src/halo/objects/objects.c"
     },
     "object_compute_child_marker_position": {

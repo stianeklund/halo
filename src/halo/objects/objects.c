@@ -5114,15 +5114,19 @@ void object_choose_random_change_colors(int object_handle /* @<eax> */,
   float *src;
   float *dst;
   int i;
+  int count;
 
   obj = (char *)object_get_and_verify_type(object_handle, -1);
   obj_tag = (int)tag_get(0x6f626a65, *(int *)obj);
   src = (float *)color_data;
   dst = (float *)(obj + 0x138);
 
-  for (i = 0; i < 4; i = i + 1) {
+  /* fixed 4-slot loop: separate index i and a 4->0 down-counter, matching
+   * the reference's movl $0x4/decl/jne tail. */
+  i = 0;
+  count = 4;
+  do {
     float frac;
-    float c;
 
     /* base RGB triple from placement data */
     dst[0] = src[0];
@@ -5134,15 +5138,25 @@ void object_choose_random_change_colors(int object_handle /* @<eax> */,
           (void *)(obj_tag + 0x164), i, 0x2c);
 
       /* deterministic pseudo-random selector from object basis + slot index;
-       * the FABS is applied to the dot sum before the modulo */
-      frac = *(float *)(obj + 0x14) * *(float *)0x29bbe0 +
-             *(float *)(obj + 0xc) * *(float *)0x29bbdc +
-             *(float *)(obj + 0x10) * *(float *)0x29bbd8 +
-             (float)i * *(float *)0x29bbd4;
-      if (frac < 0.0f) {
-        frac = -frac;
-      }
-      frac = x87_fmod(frac, 1.0);
+       * the FABS is applied to the dot sum before the modulo. The whole
+       * chain stays FPU-resident: fmul/faddp -> fabs -> fldl 1.0 -> call fmod.
+       * VC71 /Oi lowers fmod to _CIfmod (the call at 0x1daf7e) and fabsf to a
+       * bare FABS; clang takes the x87_fmod (FPREM) branch. */
+#if defined(_MSC_VER) && !defined(__clang__)
+      frac = (float)fmod(fabs((double)(
+                 *(float *)(obj + 0x14) * *(float *)0x29bbe0 +
+                 *(float *)(obj + 0xc) * *(float *)0x29bbdc +
+                 *(float *)(obj + 0x10) * *(float *)0x29bbd8 +
+                 (float)i * *(float *)0x29bbd4)),
+             1.0);
+#else
+      frac = x87_fmod(fabsf(
+                 *(float *)(obj + 0x14) * *(float *)0x29bbe0 +
+                 *(float *)(obj + 0xc) * *(float *)0x29bbdc +
+                 *(float *)(obj + 0x10) * *(float *)0x29bbd8 +
+                 (float)i * *(float *)0x29bbd4),
+             1.0);
+#endif
 
       if (*(int *)(cc_elem + 0x20) > 0) {
         int16_t j = 0;
@@ -5151,13 +5165,20 @@ void object_choose_random_change_colors(int object_handle /* @<eax> */,
               (void *)(cc_elem + 0x20), (int)j, 0x1c);
           if (frac <= perm[0]) {
             float blend;
-            /* FABS applies only to obj+0x10 here, before adding index term */
-            blend = *(float *)(obj + 0x10);
-            if (blend < 0.0f) {
-              blend = -blend;
-            }
-            blend = blend + (float)i * *(float *)0x29bbd0;
-            blend = x87_fmod(blend, 1.0);
+            /* FABS applies only to obj+0x10 here, before adding the index
+             * term; then fmod. Kept FPU-resident to mirror the reference
+             * (flds; fabs; flds i; fmuls; faddp; fldl 1.0; call fmod). */
+#if defined(_MSC_VER) && !defined(__clang__)
+            blend = (float)fmod(
+                fabs((double)*(float *)(obj + 0x10)) +
+                    (float)i * *(float *)0x29bbd0,
+                1.0);
+#else
+            blend = x87_fmod(
+                fabsf(*(float *)(obj + 0x10)) +
+                    (float)i * *(float *)0x29bbd0,
+                1.0);
+#endif
             FUN_0007c270(dst, 1, perm + 1, perm + 4, blend);
             break;
           }
@@ -5166,26 +5187,24 @@ void object_choose_random_change_colors(int object_handle /* @<eax> */,
       }
     }
 
-    /* clamp each component to [0,1] and store in the +0x30 mirror */
-    c = *(float *)0x2533c0;
-    if (*(float *)0x2533c0 <= dst[0] && (c = *(float *)0x2533c8, dst[0] <= *(float *)0x2533c8)) {
-      c = dst[0];
-    }
-    dst[0xc] = c;
-    c = *(float *)0x2533c0;
-    if (*(float *)0x2533c0 <= dst[1] && (c = *(float *)0x2533c8, dst[1] <= *(float *)0x2533c8)) {
-      c = dst[1];
-    }
-    dst[0xd] = c;
-    c = *(float *)0x2533c0;
-    if (*(float *)0x2533c0 <= dst[2] && (c = *(float *)0x2533c8, dst[2] <= *(float *)0x2533c8)) {
-      c = dst[2];
-    }
-    dst[0xe] = c;
+    /* clamp each component to [0,1] and store in the +0x30 mirror.
+     * Same min/max idiom as object_compute_change_colors: strictly-below-lo
+     * -> lo, strictly-above-hi -> hi, else keep (NaN falls through to the
+     * value), matching fcomps/test $5/jp then fcomps/test $0x41/jne. */
+    dst[0xc] = (dst[0] < *(float *)0x2533c0)
+                   ? *(float *)0x2533c0
+                   : ((dst[0] > *(float *)0x2533c8) ? *(float *)0x2533c8 : dst[0]);
+    dst[0xd] = (dst[1] < *(float *)0x2533c0)
+                   ? *(float *)0x2533c0
+                   : ((dst[1] > *(float *)0x2533c8) ? *(float *)0x2533c8 : dst[1]);
+    dst[0xe] = (dst[2] < *(float *)0x2533c0)
+                   ? *(float *)0x2533c0
+                   : ((dst[2] > *(float *)0x2533c8) ? *(float *)0x2533c8 : dst[2]);
 
     src = src + 3;
     dst = dst + 3;
-  }
+    i = i + 1;
+  } while (--count != 0);
 }
 
 /* 0x13e5d0 / objects.obj — Recompute the object's live change colors from its
@@ -5229,12 +5248,13 @@ void object_compute_change_colors(int object_handle /* @<eax> */)
     float *slot = (float *)(obj + 0x168 + (int)i * 0xc);
     int16_t blend_fn;
     int16_t scale_fn;
-    float c;
 
     /* blend-function: blend the entry RGB pair into the slot */
     blend_fn = *(int16_t *)(entry + 0x2);
     if (blend_fn != 0) {
-      float fn_val = *(float *)(obj + 0xd0 + (int)blend_fn * 4);
+      float fn_val = (int)blend_fn >= 5
+          ? *(float *)(obj + 0xe4 + ((int)blend_fn - 5) * 4)
+          : *(float *)(obj + 0xd0 + (int)blend_fn * 4);
       FUN_0007c270(slot, *(int *)(entry + 0x4),
                    (float *)(entry + 0x8), (float *)(entry + 0x14), fn_val);
     }
@@ -5242,28 +5262,27 @@ void object_compute_change_colors(int object_handle /* @<eax> */)
     /* scale-function: multiply all three components by the function value */
     scale_fn = *(int16_t *)entry;
     if (scale_fn != 0) {
-      float fn_val = *(float *)(obj + 0xd0 + (int)scale_fn * 4);
+      float fn_val = (int)scale_fn >= 5
+          ? *(float *)(obj + 0xe4 + ((int)scale_fn - 5) * 4)
+          : *(float *)(obj + 0xd0 + (int)scale_fn * 4);
       slot[0] = fn_val * slot[0];
       slot[1] = fn_val * slot[1];
       slot[2] = fn_val * slot[2];
     }
 
-    /* clamp each component to [0,1] in place */
-    c = *(float *)0x2533c0;
-    if (*(float *)0x2533c0 <= slot[0] && (c = *(float *)0x2533c8, slot[0] <= *(float *)0x2533c8)) {
-      c = slot[0];
-    }
-    slot[0] = c;
-    c = *(float *)0x2533c0;
-    if (*(float *)0x2533c0 <= slot[1] && (c = *(float *)0x2533c8, slot[1] <= *(float *)0x2533c8)) {
-      c = slot[1];
-    }
-    slot[1] = c;
-    c = *(float *)0x2533c0;
-    if (*(float *)0x2533c0 <= slot[2] && (c = *(float *)0x2533c8, slot[2] <= *(float *)0x2533c8)) {
-      c = slot[2];
-    }
-    slot[2] = c;
+    /* clamp each component to [0,1] in place.
+     * Faithful to the reference min/max idiom: strictly-below-lo -> lo,
+     * strictly-above-hi -> hi, else keep (NaN falls through to the value,
+     * matching fcomps/test $5/jp then fcomps/test $0x41/jne polarity). */
+    slot[0] = (slot[0] < *(float *)0x2533c0)
+                  ? *(float *)0x2533c0
+                  : ((slot[0] > *(float *)0x2533c8) ? *(float *)0x2533c8 : slot[0]);
+    slot[1] = (slot[1] < *(float *)0x2533c0)
+                  ? *(float *)0x2533c0
+                  : ((slot[1] > *(float *)0x2533c8) ? *(float *)0x2533c8 : slot[1]);
+    slot[2] = (slot[2] < *(float *)0x2533c0)
+                  ? *(float *)0x2533c0
+                  : ((slot[2] > *(float *)0x2533c8) ? *(float *)0x2533c8 : slot[2]);
 
     counter = counter + 1;
     i = counter;
