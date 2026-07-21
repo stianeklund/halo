@@ -3935,31 +3935,34 @@ void FUN_000beb30(int16_t function_index, int thread_datum, char init)
 
 /* FUN_000beb70 @ 0x000beb70
  *
- * HaloScript macro-function trampoline (no-result command variant). A direct
- * sibling of the FUN_000beab0/FUN_000beaf0/FUN_000beb30 family above. Evaluates
- * the script function via hs_macro_function_evaluate(function_index,
- * thread_datum, init); unlike the sibling getters it does not consume the
- * returned evaluation record's fields. When the evaluation is complete
- * (non-zero EAX), it invokes the parameterless side-effect helper FUN_000c9d40
- * and then completes the calling script thread with hs_return(thread_datum, 0).
+ * HaloScript macro-function trampoline (object-list side-effect variant). A
+ * direct sibling of the FUN_000bebb0 family above. Evaluates the script function
+ * via hs_macro_function_evaluate(function_index, thread_datum, init), which
+ * returns a pointer to an evaluation record. On a non-NULL record it forwards
+ * the first dword (*record, MOV EDX,[EAX]) to FUN_000c9d40, then completes the
+ * calling script thread with hs_return(thread_datum, 0).
  *
  * cdecl frame (PUSH EBP; MOV EBP,ESP):
  *   function_index  int16_t  [EBP+0x08]  -> hs_macro_function_evaluate arg1
  *   thread_datum    int      [EBP+0x0c]  -> arg2, reused for hs_return arg1
  *   init            char     [EBP+0x10]  -> arg3
  *
- * hs_macro_function_evaluate returns in EAX; the original tests it (TEST
- * EAX,EAX / JZ) as a plain nonzero flag rather than dereferencing it, so it is
- * kept as an int here. FUN_000c9d40 is called with no arguments (void(void)).
- * Ghidra modeled this void(void) with the three cdecl params read as
- * in_stack_*; the correct prototype is the 3-arg cdecl below. */
+ * BUGFIX (was a players.obj lift regression, e14f0280): the original does
+ *   MOV EDX,[EAX]; PUSH EDX; CALL FUN_000c9d40   (0xbeb8c-0xbeb8f)
+ * i.e. it passes *record (the object-list handle) to FUN_000c9d40, which
+ * iterates that object list (object_list_iterator_first/next at 0xce450/0xce320).
+ * Ghidra models FUN_000c9d40 as void(void), so the original lift called it with
+ * no argument; FUN_000c9d40 then read a stale stack value as the handle and
+ * asserted "object list header index #N is unused or changed" (data.c). The
+ * decl for FUN_000c9d40 is corrected to take the object-list handle. */
 void FUN_000beb70(int16_t function_index, int thread_datum, char init)
 {
-  int result;
+  int *record;
 
-  result = hs_macro_function_evaluate(function_index, thread_datum, init);
-  if (result != 0) {
-    FUN_000c9d40();
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    FUN_000c9d40(*record);
     hs_return(thread_datum, 0);
   }
 }

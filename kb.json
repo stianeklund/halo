@@ -11244,7 +11244,7 @@
     },
     {
      "addr": "0xc9d40",
-     "decl": "void FUN_000c9d40(void);"
+     "decl": "void FUN_000c9d40(int object_list);"
     },
     {
      "addr": "0xc9d80",
