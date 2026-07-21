@@ -4384,7 +4384,7 @@
     },
     {
      "addr": "0x1457b0",
-     "decl": "void FUN_001457b0(void);"
+     "decl": "void FUN_001457b0(int object_handle, int animation_graph_tag, char *animation_name);"
     },
     {
      "addr": "0x1457d0",
@@ -11168,7 +11168,7 @@
     },
     {
      "addr": "0xc95c0",
-     "decl": "void FUN_000c95c0(void);"
+     "decl": "unsigned char FUN_000c95c0(unsigned char value);"
     },
     {
      "addr": "0xc95d0",
@@ -11236,7 +11236,7 @@
     },
     {
      "addr": "0xc9c10",
-     "decl": "void FUN_000c9c10(void);"
+     "decl": "void FUN_000c9c10(int a, float b);"
     },
     {
      "addr": "0xc9c80",
@@ -11256,11 +11256,11 @@
     },
     {
      "addr": "0xc9e50",
-     "decl": "void FUN_000c9e50(void);"
+     "decl": "void FUN_000c9e50(int, int, int);"
     },
     {
      "addr": "0xc9ec0",
-     "decl": "void FUN_000c9ec0(void);"
+     "decl": "void FUN_000c9ec0(int param_1, int param_2);"
     },
     {
      "addr": "0xc9f30",
@@ -11300,11 +11300,11 @@
     },
     {
      "addr": "0xca3f0",
-     "decl": "void FUN_000ca3f0(void);"
+     "decl": "void FUN_000ca3f0(int a, int b);"
     },
     {
      "addr": "0xca410",
-     "decl": "void FUN_000ca410(void);"
+     "decl": "void FUN_000ca410(int a, int b);"
     },
     {
      "addr": "0xca430",
@@ -14934,7 +14934,7 @@
      "addr": "0x135420",
      "decl": "void lightning_offset_marker_position(int matrix_ptr@<ebx>, float *position_out@<esi>, float *random_bounds@<edi>);",
      "source_path": "objects/widgets/lightning.c",
-          "ported": true
+     "ported": true
     },
     {
      "addr": "0x135510",
@@ -17393,7 +17393,9 @@
     },
     {
      "addr": "0xbdef0",
-     "decl": "void FUN_000bdef0(void);"
+     "decl": "void FUN_000bdef0(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "source_path": "src/halo/game/players.c"
     },
     {
      "addr": "0xbdf40",
@@ -17448,11 +17450,13 @@
     },
     {
      "addr": "0xbe1d0",
-     "decl": "void FUN_000be1d0(void);"
+     "decl": "void FUN_000be1d0(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xbe210",
-     "decl": "void FUN_000be210(void);"
+     "decl": "void FUN_000be210(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xbe250",
@@ -17460,15 +17464,19 @@
     },
     {
      "addr": "0xbe270",
-     "decl": "void FUN_000be270(void);"
+     "decl": "void FUN_000be270(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "source_path": "src/halo/game/players.c"
     },
     {
      "addr": "0xbe2b0",
-     "decl": "void FUN_000be2b0(void);"
+     "decl": "void FUN_000be2b0(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xbe2f0",
-     "decl": "void FUN_000be2f0(void);"
+     "decl": "void FUN_000be2f0(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xbe330",
@@ -17489,15 +17497,19 @@
     },
     {
      "addr": "0xbe440",
-     "decl": "void FUN_000be440(void);"
+     "decl": "void FUN_000be440(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "source_path": "src/halo/game/players.c"
     },
     {
      "addr": "0xbe480",
-     "decl": "void FUN_000be480(void);"
+     "decl": "void FUN_000be480(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xbe4c0",
-     "decl": "void FUN_000be4c0(void);"
+     "decl": "void FUN_000be4c0(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xbe500",
@@ -17555,7 +17567,9 @@
     },
     {
      "addr": "0xbe7c0",
-     "decl": "void FUN_000be7c0(void);"
+     "decl": "void FUN_000be7c0(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "source_path": "src/halo/hs/hs.c"
     },
     {
      "addr": "0xbe810",
@@ -17609,43 +17623,60 @@
     },
     {
      "addr": "0xbeab0",
-     "decl": "void FUN_000beab0(void);"
+     "decl": "void FUN_000beab0(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "source_path": "src/halo/game/players.c"
     },
     {
      "addr": "0xbeaf0",
-     "decl": "void FUN_000beaf0(void);"
+     "decl": "void FUN_000beaf0(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xbeb30",
-     "decl": "void FUN_000beb30(void);"
+     "decl": "void FUN_000beb30(int16_t function_index, int thread_datum, char init);",
+     "name": "FUN_000beb30",
+     "ported": true,
+     "source_path": "src/halo/game/players.c"
     },
     {
      "addr": "0xbeb70",
-     "decl": "void FUN_000beb70(void);"
+     "decl": "void FUN_000beb70(int16_t function_index, int thread_datum, char init);",
+     "name": "FUN_000beb70",
+     "ported": true,
+     "source_path": "src/halo/game/players.c"
     },
     {
      "addr": "0xbebb0",
-     "decl": "void FUN_000bebb0(void);"
+     "decl": "void FUN_000bebb0(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "source_path": "src/halo/game/players.c"
     },
     {
      "addr": "0xbebf0",
-     "decl": "void FUN_000bebf0(void);"
+     "decl": "void FUN_000bebf0(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xbec30",
-     "decl": "void FUN_000bec30(void);"
+     "decl": "void FUN_000bec30(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xbec70",
-     "decl": "void FUN_000bec70(void);"
+     "decl": "void FUN_000bec70(int16_t function_index, int thread_handle);",
+     "ported": true
     },
     {
      "addr": "0xbec90",
-     "decl": "void FUN_000bec90(void);"
+     "decl": "void FUN_000bec90(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "source_path": "src/halo/game/players.c"
     },
     {
      "addr": "0xbecd0",
-     "decl": "void FUN_000becd0(void);"
+     "decl": "void FUN_000becd0(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xbed20",
@@ -17655,7 +17686,9 @@
     },
     {
      "addr": "0xbed70",
-     "decl": "void FUN_000bed70(void);"
+     "decl": "void FUN_000bed70(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "source_path": "src/halo/game/players.c"
     },
     {
      "addr": "0xbedb0",
@@ -21172,7 +21205,7 @@
     },
     {
      "addr": "0x95660",
-     "decl": "void recorded_animation_play_and_delete(void);"
+     "decl": "char recorded_animation_play_and_delete(int a1, short a2);"
     },
     {
      "addr": "0x95680",
@@ -35663,7 +35696,7 @@
     },
     {
      "addr": "0x139300",
-     "decl": "void lights_enable(void);"
+     "decl": "unsigned char lights_enable(unsigned char value);"
     },
     {
      "addr": "0x139350",

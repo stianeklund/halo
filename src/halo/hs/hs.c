@@ -280,6 +280,54 @@ void FUN_000be5a0(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xbe7c0 — HS script function handler (recorded-animation play/delete
+ * dispatcher), structurally identical to FUN_000be810. Evaluates the macro
+ * arguments via hs_macro_function_evaluate(function_index, thread_datum,
+ * init); on a non-NULL evaluation record it reads two record fields, calls the
+ * byte-returning worker recorded_animation_play_and_delete, and completes the
+ * calling HS thread with hs_return(thread_datum, <byte>).
+ *
+ * cdecl frame (PUSH EBP; MOV EBP,ESP; PUSH ECX local; PUSH ESI):
+ *   function_index  int16_t  [EBP+0x08]
+ *   thread_datum    int      [EBP+0x0c]  -> held in ESI, reused for hs_return
+ *   init            char     [EBP+0x10]
+ *
+ * The disassembly (NOT the supplied Ghidra pseudocode, which wrongly modeled
+ * this void(void), called the worker as void(void) and read its return from a
+ * bare extraout_AL — the classic void-EAX/dropped-arg trap) shows: the
+ * [EBP-4] result slot is pre-zeroed before the evaluate call.
+ * hs_macro_function_evaluate returns the record pointer in EAX; when non-NULL:
+ *   record[0]  int    (offset 0x00, MOV EAX,[EAX])
+ *   record.w4  int16  (offset 0x04, zero-extended: XOR EDX,EDX; MOV DX,[EAX+4])
+ * and calls recorded_animation_play_and_delete(record[0], (short)record.w4)
+ * (PUSH EDX; PUSH EAX -> arg1=record[0], arg2=word@0x04). The AL byte return
+ * is stored into the pre-zeroed dword slot (MOV [EBP-4],AL), reloaded
+ * (MOV ECX,[EBP-4]) and the zero-extended value forwarded to
+ * hs_return(thread_datum, result) (PUSH value; PUSH thread_datum; CALL;
+ * ADD ESP,0x10 — the two worker args and the two hs_return args cleaned
+ * together). Callees (all cdecl, in kb.json):
+ *   0xcc560 = hs_macro_function_evaluate(int16_t, int, char) -> record*
+ *   0x95660 = recorded_animation_play_and_delete(int, short) -> char (AL)
+ *   0xcbf80 = hs_return(int thread_handle, int value) */
+void FUN_000be7c0(int16_t function_index, int thread_datum, char init)
+{
+  volatile unsigned short result_slot;
+  int *record;
+  unsigned int result;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    /* The original pre-zeroes the result dword and then stores only the byte
+     * return (AL) into it. Routing the zero-extended char return through a
+     * volatile stack slot reproduces that store-then-reload codegen shape. */
+    result_slot = (unsigned char)recorded_animation_play_and_delete(
+      record[0], (short)((unsigned short *)record)[2]);
+    result = (unsigned int)result_slot;
+    hs_return(thread_datum, result);
+  }
+}
+
 /* 0xbea90 — HS script command handler: force a full garbage-collection pass,
  * then return void to the calling HS thread. This is the `garbage_collect`
  * scripting command; unlike the hs_evaluate_* handlers it takes no macro

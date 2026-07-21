@@ -29982,6 +29982,11 @@
     "confidence": "weak",
     "coverage_pct": 100.0
   },
+  "0xbecd0": {
+    "class": "non_leaf",
+    "confidence": "high",
+    "coverage_pct": 61.2
+  },
   "0xbf800000": {
     "confidence": "moderate",
     "coverage_pct": 47.9

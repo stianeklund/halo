@@ -5260,6 +5260,10 @@
       "score": 55.7,
       "source": "src/halo/game/players.c"
     },
+    "FUN_000bdef0": {
+      "score": 94.9,
+      "source": "src/halo/game/players.c"
+    },
     "FUN_000bdf80": {
       "score": 100.0,
       "source": "src/halo/game/players.c"
@@ -5268,8 +5272,40 @@
       "score": 100.0,
       "source": "src/halo/game/players.c"
     },
+    "FUN_000be1d0": {
+      "score": 95.5,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000be210": {
+      "score": 95.5,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000be270": {
+      "score": 94.1,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000be2b0": {
+      "score": 94.1,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000be2f0": {
+      "score": 94.1,
+      "source": "src/halo/game/players.c"
+    },
     "FUN_000be3b0": {
       "score": 88.5,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000be440": {
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000be480": {
+      "score": 94.1,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000be4c0": {
+      "score": 91.3,
       "source": "src/halo/game/players.c"
     },
     "FUN_000be620": {
@@ -5308,8 +5344,52 @@
       "score": 100.0,
       "source": "src/halo/game/players.c"
     },
+    "FUN_000beab0": {
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000beaf0": {
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000beb30": {
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000beb70": {
+      "score": 95.5,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000bebb0": {
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000bebf0": {
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000bec30": {
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000bec70": {
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000bec90": {
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000becd0": {
+      "score": 88.9,
+      "source": "src/halo/game/players.c"
+    },
     "FUN_000bed20": {
       "score": 88.5,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000bed70": {
+      "score": 100.0,
       "source": "src/halo/game/players.c"
     },
     "FUN_000c0c30": {
