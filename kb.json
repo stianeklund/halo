@@ -14920,7 +14920,7 @@
     {
      "addr": "0x135210",
      "decl": "void FUN_00135210(int object_handle, int light_volume_datum, int param_3, int param_4);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x1353b0",

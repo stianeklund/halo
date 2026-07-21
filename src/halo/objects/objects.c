@@ -667,7 +667,11 @@ float FUN_00134e50(float value, float exponent)
  *   Marker forward  = buf+0x3c/+0x40/+0x44 (FLD [EBP-0x68/-0x64/-0x60]).
  * Confirmed: object_handle copied to EDI; the [EBP+0x8] param slot is reused as a
  * float scratch (blend value), kept as a separate local here.
- * Inferred: fmod-by-period uses the "skip when period==1.0" idiom (CALL 0x1d9e70).
+ * Confirmed: the per-segment curve is pow(frac, period) with the "skip when
+ *   period==1.0" identity (four __CIpow_default reloc targets @ 0x1d9e70 in the
+ *   delinked reference; same helper as FUN_00134e50 above). pow(x,1.0)==x, hence
+ *   the exponent==1.0 short-circuit. (float)pow((double),(double)) lowers to the
+ *   _CIpow intrinsic under VC71 and to a pow call under clang.
  * Uncertain: marker_state struct field meanings at +0x10/+0x14/+0x18/+0x3c/+0x40/
  *   +0x44/+0x68/+0x78/+0x88/+0x8c (read-only here).
  */
@@ -680,8 +684,7 @@ void FUN_00134e80(int object_handle, int light_volume_datum)
   unsigned short marker_count;
   unsigned int rem;
   short i;
-  float fwd_x, fwd_y, fwd_z;       /* camera forward axis (globals) */
-  float cam_x, cam_y, cam_z;       /* camera position (globals) */
+  float cam_x, cam_y, cam_z;       /* marker position minus camera globals */
   float intensity;
   float depth_factor;
   float dot_to_marker;
@@ -690,7 +693,6 @@ void FUN_00134e80(int object_handle, int light_volume_datum)
   float period;
   float frac;
   float scratch;
-  float pos_x, pos_y, pos_z;
   float out_pos[3];                /* local_1c..: world position for sprite */
   float color2[3];                 /* local_38..: per-segment color (FUN_0007c270 out / FUN_000d1c90 in) */
   float interp_a, interp_b;        /* local_2c / local_28 */
@@ -705,21 +707,20 @@ void FUN_00134e80(int object_handle, int light_volume_datum)
       marker_state = (int)FUN_00134c40(light_tag, object_handle);
       object_get_markers_by_string_id(object_handle, (void *)light_tag, marker_buf, 1);
 
-      pos_x = *(float *)(marker_buf + 0x60);
-      pos_y = *(float *)(marker_buf + 0x64);
-      pos_z = *(float *)(marker_buf + 0x68);
-      fwd_x = *(float *)(marker_buf + 0x3c);
-      fwd_y = *(float *)(marker_buf + 0x40);
-      fwd_z = *(float *)(marker_buf + 0x44);
+      /* Read marker position (buf+0x60..) and forward (buf+0x3c..) directly from
+       * the buffer on every use; the reference never caches them in locals, so
+       * mirroring that avoids spill/copy instructions. Match-sensitive. */
+      cam_x = *(float *)(marker_buf + 0x60) - *(float *)0x506550;
+      cam_y = *(float *)(marker_buf + 0x64) - *(float *)0x506554;
+      cam_z = *(float *)(marker_buf + 0x68) - *(float *)0x506558;
 
-      cam_x = pos_x - *(float *)0x506550;
-      cam_y = pos_y - *(float *)0x506554;
-      cam_z = pos_z - *(float *)0x506558;
-
-      /* view-direction dot with camera forward axis, |.| */
-      dot_to_marker = *(float *)0x50655c * fwd_x
-                    + fwd_y * *(float *)0x506560
-                    + fwd_z * *(float *)0x506564;
+      /* view-direction dot with camera forward axis, |.|. Summation order and
+       * per-term operand order mirror the reference (fwd_z*g564 + fwd_y*g560 +
+       * g55c*fwd_x): x87 (-mno-sse) preserves source association, so this order
+       * is load-bearing for both the VC71 match and runtime float fidelity. */
+      dot_to_marker = *(float *)(marker_buf + 0x44) * *(float *)0x506564
+                    + *(float *)(marker_buf + 0x40) * *(float *)0x506560
+                    + *(float *)0x50655c * *(float *)(marker_buf + 0x3c);
       if (dot_to_marker < *(float *)0x2533c0) {
         dot_to_marker = -dot_to_marker;
       }
@@ -727,27 +728,23 @@ void FUN_00134e80(int object_handle, int light_volume_datum)
       blend = *(float *)0x2533c8;   /* 1.0 */
       depth_factor = *(float *)0x2533c8;
       if (*(float *)0x2533c0 < *(float *)(light_tag + 0x38)) {
-        t = ((*(float *)0x50655c * cam_x + cam_y * *(float *)0x506560
-              + cam_z * *(float *)0x506564) - *(float *)(light_tag + 0x38))
+        t = ((cam_z * *(float *)0x506564 + cam_y * *(float *)0x506560
+              + *(float *)0x50655c * cam_x) - *(float *)(light_tag + 0x38))
             / (*(float *)(light_tag + 0x34) - *(float *)(light_tag + 0x38));
-        depth_factor = *(float *)0x2533c0;
-        if (*(float *)0x2533c0 <= t) {
-          depth_factor = t;
-          if (*(float *)0x2533c8 < t) {
-            depth_factor = *(float *)0x2533c8;
-          }
-        }
+        /* clamp t to [0,1] kept x87-resident; NaN routes to 0.0 as above. */
+        depth_factor = (*(float *)0x2533c0 <= t)
+                     ? ((*(float *)0x2533c8 < t) ? *(float *)0x2533c8 : t)
+                     : *(float *)0x2533c0;
       }
 
       intensity = dot_to_marker * *(float *)(light_tag + 0x40)
                 + (*(float *)0x2533c8 - dot_to_marker) * *(float *)(light_tag + 0x3c);
-      scratch = *(float *)0x2533c0;
-      if (*(float *)0x2533c0 <= intensity) {
-        scratch = intensity;
-        if (*(float *)0x2533c8 < intensity) {
-          scratch = *(float *)0x2533c8;
-        }
-      }
+      /* clamp intensity to [0,1] kept x87-resident (nested ternary => reference's
+       * fcoms/test $0x5 idiom). The (0.0 <= x) outer test routes NaN -> 0.0,
+       * matching the original; do not reorder to (x < 0.0) which keeps NaN. */
+      scratch = (*(float *)0x2533c0 <= intensity)
+              ? ((*(float *)0x2533c8 < intensity) ? *(float *)0x2533c8 : intensity)
+              : *(float *)0x2533c0;
       depth_factor = scratch * depth_factor;
 
       zfn = object_get_function_value(object_handle,
@@ -770,23 +767,23 @@ void FUN_00134e80(int object_handle, int light_volume_datum)
           do {
             period = *(float *)(marker_state + 0x14);
             frac = (float)i / (float)(short)(marker_count - 1);
-            frac = (period == *(float *)0x2533c8) ? frac : x87_fmod(frac, (double)period);
+            frac = (period != *(float *)0x2533c8) ? (float)pow((double)frac, (double)period) : frac;
 
             period = *(float *)(marker_state + 0x44);
-            interp_a = (period == *(float *)0x2533c8) ? frac : x87_fmod(frac, (double)period);
+            interp_a = (period != *(float *)0x2533c8) ? (float)pow((double)frac, (double)period) : frac;
             interp_a = interp_a * *(float *)(marker_state + 0x40)
                      + (*(float *)0x2533c8 - interp_a) * *(float *)(marker_state + 0x3c);
 
             period = *(float *)(marker_state + 0x88);
-            interp_b = (period == *(float *)0x2533c8) ? frac : x87_fmod(frac, (double)period);
+            interp_b = (period != *(float *)0x2533c8) ? (float)pow((double)frac, (double)period) : frac;
 
             period = *(float *)(marker_state + 0x8c);
-            fn_val = (period == *(float *)0x2533c8) ? frac : x87_fmod(frac, (double)period);
+            fn_val = (period != *(float *)0x2533c8) ? (float)pow((double)frac, (double)period) : frac;
 
             t = frac * *(float *)(marker_state + 0x18) + *(float *)(marker_state + 0x10);
-            out_pos[0] = fwd_x * t + pos_x;
-            out_pos[1] = fwd_y * t + pos_y;
-            out_pos[2] = fwd_z * t + pos_z;
+            out_pos[0] = *(float *)(marker_buf + 0x3c) * t + *(float *)(marker_buf + 0x60);
+            out_pos[1] = *(float *)(marker_buf + 0x40) * t + *(float *)(marker_buf + 0x64);
+            out_pos[2] = *(float *)(marker_buf + 0x44) * t + *(float *)(marker_buf + 0x68);
 
             FUN_0007c270(color2, *(unsigned char *)(light_tag + 0x22) & 3,
                          (float *)(marker_state + 0x6c), (float *)(marker_state + 0x7c),
@@ -837,7 +834,7 @@ void FUN_00135210(int object_handle, int light_volume_datum, int param_3, int pa
   int light_tag;
   short fn_index;
   float *marker_pos;
-  float depth;
+  float diff[3];
 
   (void)param_3;
   if ((object_handle != -1) && (light_volume_datum != -1)) {
@@ -847,15 +844,20 @@ void FUN_00135210(int object_handle, int light_volume_datum, int param_3, int pa
     fn_index = *(short *)(light_tag + 0x44);
     if ((0 < *(short *)(light_tag + 0x6e)) && (0 < *(int *)(light_tag + 0x120))
         && ((fn_index == 0) || (param_4 == 0)
-            || (*(float *)0x2533c0
-                < *(float *)(*(int *)(param_4 + 4) - 4 + fn_index * 4)))) {
+            || (*(float *)(*(int *)(param_4 + 4) - 4 + fn_index * 4)
+                > *(float *)0x2533c0))) {
       object_get_markers_by_string_id(object_handle, (void *)light_tag, marker_buf, 1);
       marker_pos = (float *)(marker_buf + 0x60);
-      depth = *(float *)0x50655c * (marker_pos[0] - *(float *)0x506550)
-            + *(float *)0x506560 * (marker_pos[1] - *(float *)0x506554)
-            + *(float *)0x506564 * (marker_pos[2] - *(float *)0x506558);
+      /* diff[] as an array (not scalars) forces VC71 to compute all three
+       * marker-minus-camera subtractions eagerly and keep them x87-resident
+       * across the near==0 branch, matching the reference (scalars get sunk
+       * into the || short-circuit). Match-sensitive: do not scalarize. */
+      diff[0] = marker_pos[0] - *(float *)0x506550;
+      diff[1] = marker_pos[1] - *(float *)0x506554;
+      diff[2] = marker_pos[2] - *(float *)0x506558;
       if ((*(float *)(light_tag + 0x38) == *(float *)0x2533c0)
-          || (depth < *(float *)(light_tag + 0x38))) {
+          || (*(float *)0x50655c * diff[0] + *(float *)0x506560 * diff[1]
+              + *(float *)0x506564 * diff[2] < *(float *)(light_tag + 0x38))) {
         FUN_0017cfb0(object_handle, light_volume_datum, marker_pos,
                      (int)FUN_00134e80);
       }
