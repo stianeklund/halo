@@ -15415,7 +15415,7 @@
     {
      "addr": "0x13dcc0",
      "decl": "short FUN_0013dcc0(void);",
-     "ported": false,
+     "ported": true,
      "source_path": "objects/objects.c"
     },
     {

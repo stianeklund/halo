@@ -4049,14 +4049,20 @@ short FUN_0013dcc0(void)
   int entry;
   char *obj;
   void *scenario;
+  short result;
 
+  /* switch compiles to the original's DEC/DEC dispatch; result held in a
+   * register to the shared epilogue (ref: movw %di,%ax). */
+  result = -1;
   globals = *(int *)0x46f084;
 
-  if (*(short *)(globals + 0x90) != 1) {
-    if (*(short *)(globals + 0x90) != 2) {
-      return -1;
-    }
+  switch (*(short *)(globals + 0x90)) {
+  default:
+    return result;
+  case 2:
     return *(short *)(globals + 0x94);
+  case 1:
+    break;
   }
 
   entry = (int)datum_absolute_index_to_index(*(data_t **)0x5a8d50,
@@ -4064,35 +4070,32 @@ short FUN_0013dcc0(void)
   if (entry == 0 || (1 << (*(unsigned char *)(entry + 3) & 0x1f)) == 0 ||
       *(int *)(entry + 8) == 0) {
     *(short *)(*(int *)0x46f084 + 0x90) = 0;
-    return -1;
+    return result;
   }
 
   obj = (char *)object_get_and_verify_type(
       object_get_root_parent(*(int *)(*(int *)0x46f084 + 0x94)), -1);
 
-  if ((*(unsigned int *)(obj + 4) & 0x800) == 0) {
-    return -1;
+  if ((*(unsigned int *)(obj + 4) & 0x800) != 0 &&
+      *(short *)(obj + 0x4c) != -1) {
+    /* Bounds-check the cluster index: must be >= 0 and < clusters.count.
+     * The original branches to the assert directly when cluster_index < 0
+     * (scenario_get() is only evaluated for the upper-bound comparison). */
+    if (*(short *)(obj + 0x4c) < 0 ||
+        (scenario = scenario_get(),
+         (int)*(short *)(obj + 0x4c) >= *(int *)((char *)scenario + 0x134))) {
+      display_assert(
+        "parent_object->object.location.cluster_index>=0 && "
+        "parent_object->object.location.cluster_index<global_structure_bsp_get"
+        "()->clusters.count",
+        "c:\\halo\\SOURCE\\objects\\objects.c", 0x8e7, 1);
+      system_exit(-1);
+    }
+
+    return *(short *)(obj + 0x4c);
   }
 
-  if (*(short *)(obj + 0x4c) == -1) {
-    return -1;
-  }
-
-  /* Bounds-check the cluster index: must be >= 0 and < clusters.count.
-   * The original branches to the assert directly when cluster_index < 0
-   * (scenario_get() is only evaluated for the upper-bound comparison). */
-  if (*(short *)(obj + 0x4c) < 0 ||
-      (scenario = scenario_get(),
-       *(int *)((char *)scenario + 0x134) <= (int)*(short *)(obj + 0x4c))) {
-    display_assert(
-      "parent_object->object.location.cluster_index>=0 && "
-      "parent_object->object.location.cluster_index<global_structure_bsp_get"
-      "()->clusters.count",
-      "c:\\halo\\SOURCE\\objects\\objects.c", 0x8e7, 1);
-    system_exit(-1);
-  }
-
-  return *(short *)(obj + 0x4c);
+  return result;
 }
 
 void object_definition_predict(int param_1)
