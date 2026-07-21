@@ -433,7 +433,7 @@
     },
     {
      "addr": "0x133300",
-     "decl": "void FUN_00133300(int particle_ptr@<edi>, int object_handle);"
+     "decl": "void FUN_00133300(int particle_ptr@<edi>, int object_handle, int glow_widget@<ebx>);"
     },
     {
      "addr": "0x1334f0",

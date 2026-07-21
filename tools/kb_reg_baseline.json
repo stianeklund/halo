@@ -436,7 +436,7 @@
     "0x130b70": "char FUN_00130b70(void *client@<esi>, const char *data, int count);",
     "0x1330f0": "void FUN_001330f0(int glow_widget@<eax>);",
     "0x1331d0": "void FUN_001331d0(int glow_widget@<eax>, int particle_ptr@<ecx>);",
-    "0x133300": "void FUN_00133300(int particle_ptr@<edi>, int object_handle);",
+    "0x133300": "void FUN_00133300(int particle_ptr@<edi>, int object_handle, int glow_widget@<ebx>);",
     "0x1339a0": "void get_particle_world_position(int glow_widget@<eax>, int particle_ptr, float param_3);",
     "0x134070": "void FUN_00134070(int particle_ptr@<esi>, int glow_widget_ptr@<edi>, int object_handle, float delta, float ratio);",
     "0x1342a0": "void FUN_001342a0(int glow_widget_ptr@<esi>);",

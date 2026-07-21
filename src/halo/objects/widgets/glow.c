@@ -189,7 +189,12 @@ void FUN_001345b0(int glow_widget, int object_handle)
       if ((*(unsigned char *)(particle + 0x54) & 2) == 0) {
         FUN_00134070(particle, glow_widget, object_handle,
                      *(float *)0x50654c * scale_b, ratio);
-        FUN_00133300(particle, object_handle);
+        /* FUN_00133300 recomputes the particle RGB colour from the glow tag,
+         * which it reaches via glow_widget passed in EBX (@<ebx>).  The
+         * original 0x1345b0 kept glow_widget in EBX across the call; our lift
+         * must pass it explicitly or the tag lookup reads garbage and the
+         * particle renders the wrong colour (orange-not-blue trail bug). */
+        FUN_00133300(particle, object_handle, glow_widget);
         *(int *)(particle + 0x24) = *(int *)(particle + 0x20);
       }
     }
