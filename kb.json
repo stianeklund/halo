@@ -17213,13 +17213,9 @@
      "ported": true
     },
     {
-     "addr": "0xbae10",
-     "decl": "bool player_examine_nearby_unit(int player_unit_handle, int nearby_unit_handle);"
-    },
-    {
      "addr": "0xbae20",
-     "decl": "bool FUN_000bae20(int player_unit_handle, int nearby_unit_handle);",
-     "ported": false
+     "decl": "bool player_examine_nearby_unit(int player_unit_handle, int nearby_unit_handle);",
+     "ported": true
     },
     {
      "addr": "0xbaeb0",

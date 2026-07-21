@@ -572,7 +572,7 @@ bool player_examine_nearby_unit(int player_unit_handle, int nearby_unit_handle)
 {
   int *nearby_obj;
   char *weap_tag;
-  short weapon_count;
+  int weapon_count;
   bool can_swap;
 
   nearby_obj = (int *)object_try_and_get_and_verify_type(nearby_unit_handle, 4);
