@@ -15497,7 +15497,7 @@
     {
      "addr": "0x13e7b0",
      "decl": "void object_compute_function_values(int object_handle@<eax>);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x13eb30",
@@ -15892,7 +15892,7 @@
     {
      "decl": "int object_new_from_scenario(void *placement_data, int palette_block);",
      "addr": "0x144770",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x144860",

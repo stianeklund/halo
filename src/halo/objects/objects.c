@@ -5399,7 +5399,9 @@ void object_compute_function_values(int object_handle /* @<eax> */)
     t = *(float *)(elem + 0x144);
     fn = *(int16_t *)(elem + 0x8);
     if (fn != 0) {
-      float fv = *(float *)(obj + 0xd0 + (int)fn * 4);
+      float fv = (int)fn >= 5
+                     ? *(float *)(obj + 0xe4 + ((int)fn - 5) * 4)
+                     : *(float *)(obj + 0xd0 + (int)fn * 4);
       if (fv > *(float *)0x2533c0) {
         t = t / fv;
       }
@@ -5410,7 +5412,10 @@ void object_compute_function_values(int object_handle /* @<eax> */)
     /* --- optional amplitude function --- */
     fn = *(int16_t *)(elem + 0xc);
     if (fn != 0) {
-      value = *(float *)(obj + 0xd0 + (int)fn * 4) * value;
+      value = ((int)fn >= 5
+                   ? *(float *)(obj + 0xe4 + ((int)fn - 5) * 4)
+                   : *(float *)(obj + 0xd0 + (int)fn * 4)) *
+              value;
     }
 
     /* --- inversion (flag bit 0) --- */
@@ -5443,13 +5448,22 @@ void object_compute_function_values(int object_handle /* @<eax> */)
 
     /* --- modulo wrap (when elem+0x13c > 0) --- */
     if (*(float *)(elem + 0x13c) > *(float *)0x2533c0) {
+      /* VC71 /Oi lowers fmod to _CIfmod (flds value; flds elem+0x13c; call);
+       * clang takes the x87_fmod (FPREM) branch. */
+#if defined(_MSC_VER) && !defined(__clang__)
+      value = (float)fmod((double)value, (double)*(float *)(elem + 0x13c));
+#else
       value = x87_fmod(value, (double)*(float *)(elem + 0x13c));
+#endif
     }
 
     /* --- additive function with clamp-to-1 --- */
     fn = *(int16_t *)(elem + 0x22);
     if (fn != 0) {
-      value = *(float *)(obj + 0xd0 + (int)fn * 4) + value;
+      value = ((int)fn >= 5
+                   ? *(float *)(obj + 0xe4 + ((int)fn - 5) * 4)
+                   : *(float *)(obj + 0xd0 + (int)fn * 4)) +
+              value;
       if (value > *(float *)0x2533c8) {
         value = *(float *)0x2533c8;
       }
@@ -5458,7 +5472,10 @@ void object_compute_function_values(int object_handle /* @<eax> */)
     /* --- final multiplier function --- */
     fn = *(int16_t *)(elem + 0x24);
     if (fn != 0) {
-      value = *(float *)(obj + 0xd0 + (int)fn * 4) * value;
+      value = ((int)fn >= 5
+                   ? *(float *)(obj + 0xe4 + ((int)fn - 5) * 4)
+                   : *(float *)(obj + 0xd0 + (int)fn * 4)) *
+              value;
     }
 
     /* --- transition remap --- */
@@ -5493,23 +5510,30 @@ void object_compute_function_values(int object_handle /* @<eax> */)
     /* --- dependency on another function's active bit --- */
     if (*(int16_t *)(elem + 0x36) != -1 &&
         (*(unsigned char *)(obj + 0xd3) &
-         (unsigned char)(1 << (*(int16_t *)(elem + 0x36) & 0x1f))) == 0) {
+         (unsigned char)(1 << (int)*(int16_t *)(elem + 0x36))) == 0) {
       active = 0;
     }
 
     /* --- accumulator wrap (flag bit 1), using prior slot value --- */
     if ((*(unsigned char *)elem & 2) != 0) {
+      /* accumulator wrap: fmod(value + prior_slot, 1.0) kept FPU-resident
+       * (flds value; fadds slot; fldl 1.0; call _CIfmod under VC71). */
+#if defined(_MSC_VER) && !defined(__clang__)
+      value = (float)fmod(
+          (double)(value + *(float *)(obj + 0xe4 + (int)i * 4)), 1.0);
+#else
       value = x87_fmod(value + *(float *)(obj + 0xe4 + (int)i * 4), 1.0);
+#endif
     }
 
     /* --- store result and update active bitmask --- */
     *(float *)(obj + 0xe4 + (int)i * 4) = value;
     if (active != 0) {
       *(unsigned char *)(obj + 0xd3) =
-          *(unsigned char *)(obj + 0xd3) | (unsigned char)(1 << ((int)i & 0x1f));
+          *(unsigned char *)(obj + 0xd3) | (unsigned char)(1 << (int)i);
     } else {
       *(unsigned char *)(obj + 0xd3) =
-          *(unsigned char *)(obj + 0xd3) & ~(unsigned char)(1 << ((int)i & 0x1f));
+          *(unsigned char *)(obj + 0xd3) & ~(unsigned char)(1 << (int)i);
     }
 
     counter = counter + 1;
@@ -9992,13 +10016,13 @@ int object_new_from_scenario(void *placement_data, int palette_block)
 
   /* Check that the tag index at param[0] is not -1 */
   if (*(int16_t *)param == -1)
-    return -1;
+    goto done;
 
   /* If object_globals byte 0 is nonzero and the placement flag bit 0 is set,
    * skip creation (already placed). */
   if (*(char *)*(int *)0x46f084 != '\0' &&
       (*(unsigned char *)(param + 0x4) & 1) != 0)
-    return -1;
+    goto done;
 
   /* Check if name slot is available (name_index valid and slot free) */
   {
@@ -10007,7 +10031,7 @@ int object_new_from_scenario(void *placement_data, int palette_block)
       if (name_idx < 0 || name_idx >= 0x200)
         goto do_create;
       if (*(int *)(*(int *)0x46f07c + (int)name_idx * 4) != -1)
-        return -1;
+        goto done;
     }
   }
 
@@ -10017,7 +10041,7 @@ do_create:
       (void *)palette_block, (int)*(int16_t *)param, 0x30);
   tag_index = *(int *)(element + 0xc);
   if (tag_index == -1)
-    return -1;
+    goto done;
 
   /* Initialize placement data */
   object_placement_data_new(placement_buf, tag_index, -1);
@@ -10039,15 +10063,18 @@ do_create:
   /* Copy BSP index */
   *(int16_t *)(placement_buf + 0x16) = *(int16_t *)(param + 0x6);
 
-  /* Create the object */
+  /* Create the object.  Failure paths all fall through to the single shared
+   * exit (return result), mirroring the reference's je/jne 0xde structure
+   * with result (EDI) pre-set to -1. */
   result = object_new(placement_buf);
-  if (result != -1) {
-    FUN_0013c500(result, (int)param);
-    if (*(int16_t *)(param + 0x2) != -1) {
-      object_name_list_new(result, *(int16_t *)(param + 0x2));
-    }
-  }
+  if (result == -1)
+    goto done;
+  FUN_0013c500(result, (int)param);
+  if (*(int16_t *)(param + 0x2) == -1)
+    goto done;
+  object_name_list_new(result, *(int16_t *)(param + 0x2));
 
+done:
   return result;
 }
 

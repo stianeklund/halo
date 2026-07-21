@@ -14609,7 +14609,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_compute_function_values": {
-      "score": 81.5,
+      "score": 95.3,
       "source": "src/halo/objects/objects.c"
     },
     "object_compute_node_matrices": {
@@ -14785,7 +14785,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_new_from_scenario": {
-      "score": 83.2,
+      "score": 97.5,
       "source": "src/halo/objects/objects.c"
     },
     "object_permute_region": {
