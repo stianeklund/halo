@@ -14801,7 +14801,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_remove_from_name_list": {
-      "score": 84.2,
+      "score": 87.7,
       "source": "src/halo/objects/objects.c"
     },
     "object_reset": {
@@ -14861,7 +14861,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_visible_to_any_player": {
-      "score": 84.4,
+      "score": 84.7,
       "source": "src/halo/objects/objects.c"
     },
     "object_wake": {

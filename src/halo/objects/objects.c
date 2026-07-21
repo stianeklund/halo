@@ -4658,7 +4658,6 @@ void object_remove_from_name_list(int object_handle /* @<edi> */)
 {
   char *obj;
   void *scenario;
-  int count;
   int *name_table;
   int16_t i;
 
@@ -4668,13 +4667,15 @@ void object_remove_from_name_list(int object_handle /* @<edi> */)
 
   scenario = global_scenario_get();
   *(int16_t *)(obj + 0x6a) = -1;
-  count = *(int *)((char *)scenario + 0x204);
-  name_table = *(int **)0x46f07c;
+  /* original re-reads the count from scenario+0x204 every iteration. */
   i = 0;
-  while ((int)i < count) {
-    if (name_table[(int)i] == object_handle)
-      name_table[(int)i] = -1;
-    i++;
+  if (*(int *)((char *)scenario + 0x204) > 0) {
+    name_table = *(int **)0x46f07c;
+    do {
+      if (name_table[(int)i] == object_handle)
+        name_table[(int)i] = -1;
+      i++;
+    } while ((int)i < *(int *)((char *)scenario + 0x204));
   }
 }
 
@@ -6928,7 +6929,9 @@ int object_visible_to_any_player(int object_handle)
   float dot;
   char *unit_obj;
   int unit_handle;
-  char result;
+  /* ref keeps the result bool in a stack slot (-0x1(%ebp)); volatile forces
+   * the same memory-backed slot under VC71. */
+  volatile char result;
 
   result = 0;
 
