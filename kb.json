@@ -14913,7 +14913,7 @@
     {
      "addr": "0x134e80",
      "decl": "void FUN_00134e80(int object_handle, int light_volume_datum);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x135210",
@@ -14939,7 +14939,7 @@
     {
      "addr": "0x135510",
      "decl": "void FUN_00135510(int *param_1, int param_2, int param_3, int *param_4);",
-     "ported": false,
+     "ported": true,
      "source": "src/halo/objects/objects.c"
     },
     {
@@ -15538,7 +15538,7 @@
     {
      "addr": "0x13ef70",
      "decl": "void object_name_list_new(int object_handle@<edi>, int16_t name_index@<si>);",
-     "ported": false,
+     "ported": true,
      "reg_args": {
       "object_handle": "edi",
       "name_index": "si"
