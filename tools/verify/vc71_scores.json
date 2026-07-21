@@ -9741,7 +9741,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_0013c490": {
-      "score": 84.1,
+      "score": 88.0,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_0013c500": {
@@ -14777,7 +14777,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_new": {
-      "score": 88.0,
+      "score": 88.2,
       "source": "src/halo/objects/objects.c"
     },
     "object_new_by_name": {

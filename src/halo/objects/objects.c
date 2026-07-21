@@ -2377,7 +2377,7 @@ short FUN_0013c1b0(short param_1)
  *            predicate(handle) (one cdecl arg, ADD ESP,4).
  * Confirmed: empty list -> return 1 (CL=1 path); predicate false -> return 0.
  */
-int FUN_0013c490(int object_handle)
+char FUN_0013c490(int object_handle)
 {
   char *obj;
   char *type_def;

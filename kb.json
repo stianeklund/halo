@@ -14836,7 +14836,7 @@
     {
      "addr": "0x9ec30",
      "decl": "int FUN_0009ec30(int param_1, int param_2, int param_3, short param_4, float param_5, float param_6, int param_7, int param_8);",
-     "ported": false,
+     "ported": true,
      "src": "src/halo/effects/effects.c"
     },
     {
@@ -15198,9 +15198,9 @@
      "ported": true
     },
     {
-     "decl": "int FUN_0013c490(int object_handle);",
+     "decl": "char FUN_0013c490(int object_handle);",
      "addr": "0x13c490",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x13c500",
@@ -15743,7 +15743,7 @@
     {
      "addr": "0x140ad0",
      "decl": "void object_choose_random_region_permutations(int object_handle@<edi>);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x140b80",
