@@ -15045,7 +15045,7 @@
         {
           "addr": "0x139b40",
           "decl": "void FUN_00139b40(int param_1, int *param_2, int param_3, int param_4, float *param_5, float param_6);",
-          "ported": false,
+          "ported": true,
           "source_path": "objects/objects.c"
         },
         {
@@ -15480,7 +15480,7 @@
           "reg_args": {
             "object_handle": "eax"
           },
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x13e510",
@@ -15575,7 +15575,7 @@
         {
           "addr": "0x13f3b0",
           "decl": "void object_add_to_dump(int object_handle@<ebx>, void *stats@<esi>);",
-          "ported": false,
+          "ported": true,
           "reg_args": {
             "object_handle": "ebx",
             "stats": "esi"
@@ -15736,7 +15736,7 @@
           "reg_args": {
             "object_handle": "eax"
           },
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x140ad0",
@@ -15761,7 +15761,7 @@
         {
           "addr": "0x140ce0",
           "decl": "void object_connect_to_map(int object_handle, void *location);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x140eb0",
@@ -15885,7 +15885,7 @@
         {
           "addr": "0x1446a0",
           "decl": "void object_update_children_recursive(int object_handle);",
-          "ported": false
+          "ported": true
         },
         {
           "decl": "int object_new_from_scenario(void *placement_data, int palette_block);",
@@ -15928,7 +15928,7 @@
         {
           "addr": "0x145170",
           "decl": "void objects_update(void);",
-          "ported": false
+          "ported": true
         },
         {
           "addr": "0x145490",

@@ -9437,7 +9437,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00135f20": {
-      "score": 51.9,
+      "score": 82.4,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00135f90": {
@@ -9617,7 +9617,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_001398d0": {
-      "score": 42.9,
+      "score": 100.0,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00139930": {
@@ -9633,7 +9633,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00139b40": {
-      "score": 86.3,
+      "score": 89.9,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00139c20": {
@@ -14561,7 +14561,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_add_to_dump": {
-      "score": 86.6,
+      "score": 88.7,
       "source": "src/halo/objects/objects.c"
     },
     "object_adjust_interpolation_position": {
@@ -14589,7 +14589,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_choose_random_region_permutations": {
-      "score": 71.7,
+      "score": 83.5,
       "source": "src/halo/objects/objects.c"
     },
     "object_compute_change_colors": {
@@ -14609,7 +14609,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_connect_to_map": {
-      "score": 87.6,
+      "score": 92.6,
       "source": "src/halo/objects/objects.c"
     },
     "object_deactivate": {
@@ -14641,7 +14641,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_determine_variant_number": {
-      "score": 82.0,
+      "score": 94.3,
       "source": "src/halo/objects/objects.c"
     },
     "object_disconnect_from_map": {
@@ -14793,7 +14793,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_propagate_flag_to_children": {
-      "score": 62.2,
+      "score": 91.1,
       "source": "src/halo/objects/objects.c"
     },
     "object_pvs_activate": {
@@ -14801,7 +14801,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_remove_from_name_list": {
-      "score": 69.6,
+      "score": 84.2,
       "source": "src/halo/objects/objects.c"
     },
     "object_reset": {
@@ -14817,7 +14817,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_select_random_region_permutations_by_variant": {
-      "score": 87.9,
+      "score": 89.0,
       "source": "src/halo/objects/objects.c"
     },
     "object_set_automatic_deactivation": {
@@ -14857,7 +14857,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_update_children_recursive": {
-      "score": 71.5,
+      "score": 96.0,
       "source": "src/halo/objects/objects.c"
     },
     "object_visible_to_any_player": {
@@ -14917,7 +14917,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "objects_update": {
-      "score": 87.8,
+      "score": 88.5,
       "source": "src/halo/objects/objects.c"
     },
     "observer_apply_acceleration": {

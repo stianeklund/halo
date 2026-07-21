@@ -4928,8 +4928,10 @@ void object_add_to_dump(int object_handle /* @<ebx> */,
   if (hdr_size > *(int16_t *)(st + 0x6)) {
     *(int16_t *)(st + 0x6) = hdr_size;
   }
-  *(int16_t *)(st + 0xc) = *(int16_t *)(st + 0xc) + 1;
+  /* permuter 20260721 (+2.0pp raw): byte-total updated before count, and an
+   * empty !st branch below — both reshape scheduling, value-identical. */
   *(int *)(st + 0x8) = *(int *)(st + 0x8) + (int)hdr_size;
+  *(int16_t *)(st + 0xc) = *(int16_t *)(st + 0xc) + 1;
 
   if ((*(unsigned char *)(hdr + 0x2) & 1) != 0) {
     *(int16_t *)(st + 0xe) = *(int16_t *)(st + 0xe) + 1;
@@ -4942,6 +4944,8 @@ void object_add_to_dump(int object_handle /* @<ebx> */,
   }
   if ((*(unsigned char *)(obj + 0x4) & 0x20) != 0) {
     *(int16_t *)(st + 0x16) = *(int16_t *)(st + 0x16) + 1;
+    if (!st) {
+    }
   }
 
   parent_handle = object_get_root_parent(object_handle);
@@ -5011,12 +5015,15 @@ char object_select_random_region_permutations_by_variant(
   all_ok = 1;
   i = 0;
   if (*(int *)(model + 0xc4) > 0) {
+    /* permuter 20260721 (+1.1pp raw): loop body indexes via region_count
+     * (i kept in sync) — pure register-role swap, value-identical. */
+    region_count = i;
     do {
       int16_t count;
       char *region;
 
       region = (char *)tag_block_get_element(
-          (void *)(model + 0xc4), (int)i, 0x4c);
+          (void *)(model + 0xc4), (int)region_count, 0x4c);
       count = object_find_region_permutations_available_with_variant(
           region, variant, avail_buf);
       if (count == 0 &&
@@ -5024,7 +5031,7 @@ char object_select_random_region_permutations_by_variant(
            (count = object_find_region_permutations_available_with_variant(
                 region, 0, avail_buf),
             count == 0))) {
-        *(unsigned char *)(obj + 0x130 + (int)i) = 0;
+        *(unsigned char *)(obj + 0x130 + (int)region_count) = 0;
         all_ok = 0;
       } else {
         int16_t chosen;
@@ -5034,12 +5041,12 @@ char object_select_random_region_permutations_by_variant(
           int *seed = get_global_random_seed_address();
           chosen = random_range((unsigned int *)seed, 0, count);
         }
-        *(unsigned char *)(obj + 0x130 + (int)i) =
+        *(unsigned char *)(obj + 0x130 + (int)region_count) =
             (unsigned char)*(unsigned char *)((char *)avail_buf + chosen * 2);
       }
       region_count = region_count + 1;
       i = region_count;
-    } while ((int)i < *(int *)(model + 0xc4));
+    } while ((int)region_count < *(int *)(model + 0xc4));
   }
   return all_ok;
 }
@@ -7175,9 +7182,15 @@ void object_delete(int object_handle)
  */
 void object_connect_to_map(int object_handle, void *location)
 {
+  /* permuter 20260721 (+5.0pp, 87.6 -> 92.6): obj_alias + a volatile slot
+   * holding the noncollideable-partition address reshape VC71 register
+   * scheduling; both are value-identical to the direct forms. */
+  object_data_t *obj_alias;
+  volatile unsigned int noncollideable_partition;
   object_header_data_t *hdr =
     (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
   object_data_t *obj = hdr->object;
+  obj_alias = obj;
 
   if ((object_handle & 0xffff0000) == 0) {
     display_assert("DATUM_INDEX_TO_IDENTIFIER(object_index)",
@@ -7191,6 +7204,7 @@ void object_connect_to_map(int object_handle, void *location)
     system_exit(-1);
   }
 
+  noncollideable_partition = 0x5a8d30;
   if (obj->parent_object_index.value != -1) {
     /* Child object: chain into parent's child linked list. */
     object_data_t *parent_obj = (object_data_t *)object_get_and_verify_type(
@@ -7230,9 +7244,10 @@ void object_connect_to_map(int object_handle, void *location)
 
     self_obj = (object_data_t *)object_get_and_verify_type(object_handle, -1);
     obj_list =
-      (self_obj->flags & 0x2000000) ? (void *)0x5a8d40 : (void *)0x5a8d30;
+      (self_obj->flags & 0x2000000) ? (void *)0x5a8d40
+                                    : (void *)noncollideable_partition;
     cluster_partition_add_object(obj_list, object_handle, (char *)obj + 0xbc,
-                                 (char *)obj + 0x50, *(uint32_t *)&obj->unk_92,
+                                 (char *)obj_alias + 0x50, *(uint32_t *)&obj->unk_92,
                                  (char *)obj + 0x48);
 
     if ((hdr->unk_2 & 0x40) != 0) {
@@ -9811,14 +9826,13 @@ void object_update_children_recursive(int object_handle)
     object_header_data_t *child_header =
       (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, child_handle);
     object_data_t *child_obj = child_header->object;
-    int16_t child_type = child_obj->type;
 
-    if ((1 << ((uint8_t)child_type & 0x1f)) == 0) {
+    if ((1 << child_obj->type) == 0) {
       char *msg =
         csprintf((char *)0x5ab100,
                  "got an object type we didn't expect (expected one of "
                  "0x%08x but got #%d).",
-                 -1, (int)child_type);
+                 -1, (int)child_obj->type);
       display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c", 0x69a, 1);
       system_exit(-1);
     }
@@ -10487,7 +10501,6 @@ void objects_update(void)
   void *scen;
   int16_t cluster_count_raw;
   int pvs_size;
-  void *combined_pvs;
   int pvs_changed;
 
   /* --- profiling entry (gated on two flags) --- */
@@ -10536,8 +10549,8 @@ void objects_update(void)
    * Confirmed: PUSH ESI (pre-push for next csmemcpy, not arg to pvs getter);
    *            CALL 0xba6c0; PUSH EAX(combined); PUSH EDI(curr_pvs);
    *            CALL csmemcpy. */
-  combined_pvs = players_get_combined_pvs();
-  csmemcpy(curr_pvs, combined_pvs, pvs_size);
+  /* permuter 20260721 (+0.8pp, 87.8 -> 88.5): call inlined into the arg. */
+  csmemcpy(curr_pvs, players_get_combined_pvs(), pvs_size);
 
   /* Step 3: compare prev vs curr — nonzero means PVS changed this tick.
    * Confirmed: PUSH ESI;PUSH EDI(curr_pvs);PUSH EBX(prev_pvs);
@@ -11183,13 +11196,19 @@ void FUN_00139b40(int param_1, int *param_2, int param_3, int param_4,
     vec[0] = param_2[0];
     vec[1] = param_2[1];
     vec[2] = param_2[2];
+    /* permuter 20260721 (+4.2pp raw): offset 0x14 and the counter address
+     * held in iVar1 across uses (register-role reuse, value-identical).
+     * NB: rank-1 winner also mutated the +0x1c fill to 0xFF — REJECTED as a
+     * semantic corruption; 0xffff kept. */
+    iVar1 = 0x14;
     *(int *)(base + 0x10) = CALL_FUN_00180b10(param_3);
-    *(int *)(base + 0x14) = CALL_FUN_00180b10(param_4);
+    *(int *)(base + iVar1) = CALL_FUN_00180b10(param_4);
     base[0x22] = *(char *)0x50654a;
+    iVar1 = 0x5a90ac;
     *(short *)(base + 0x1e) = (short)0xffff;
     *(short *)(base + 0x1c) = (short)0xffff;
-    *(short *)(base + 0x20) = *(short *)0x5a90ac;
-    *(short *)0x5a90ac = *(short *)0x5a90ac + 1;
+    *(short *)(base + 0x20) = *(short *)iVar1;
+    *(short *)iVar1 = *(short *)iVar1 + 1;
   }
 }
 
