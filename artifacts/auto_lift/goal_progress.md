@@ -664,3 +664,64 @@ path_smoothing.obj + path_obstacle_avoidance.obj — path-planning collision avo
 | valid_real_point2d | 0x60c40 | path_obstacle_avoidance.obj | 59.5 | parked | below_65pct |
 
 **Summary:** path_smoothing.obj + path_obstacle_avoidance.obj 2/20 committed (queue_exhausted). Committed: 2 functions at 90.4%/91.8% VC71 (pass1+redelink+permute). Build-failed: 1 function (FUN_000638f0, 95.7% verified, blocked on pre-existing integration-branch churn in game_engine.c). Parked: 2 functions below 65% VC71 (structural ceilings). Skipped: 8 functions — all register-arg-dependent or FPU-stack-aliased, requiring prior kb.json @<reg> annotations before liftability. **Blocker:** Complete lack of unmodeled-ABI infrastructure; the register-arg functions (FUN_00062b20, FUN_00062ba0, find_turning_point, path_add_step, path_add_steps, FUN_000616e0) all require @<reg> annotation work before they are liftable. Recommend prioritizing kb.json @eax/@ecx/@esi/@edx/@ebx registration for the entire path_smoothing/path_obstacle_avoidance cluster in a follow-up ABI-audit pass.
+
+## objects.obj goal-lift session 2026-07-13
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---:|---|---|
+| FUN_00134e50 | 0x134e50 | objects.obj | 88.9 | committed | Corrected binary behavior from mistaken fmod to pow; remaining gap is the MSVC tail-call/codegen shape, with external __CIpow outside generic Unicorn modeling. |
+| FUN_0013c030 | 0x13c030 | objects.obj | 100.0 | committed | Explicit per-function delinked objdiff and pipeline pass. |
+| object_find_region_permutations_available_with_variant | 0x13e3f0 | objects.obj | 98.9 | committed | Existing @eax ABI preserved; explicit per-function delinked objdiff and pipeline pass. |
+| object_delete_internal | 0x140bc0 | objects.obj | 96.0 | committed | Explicit per-function delinked objdiff and pipeline pass. |
+| object_set_garbage_flag | 0x13d920 | objects.obj | 91.8 | committed | Explicit per-function delinked objdiff and pipeline pass. |
+| FUN_00085280 | 0x85280 | objects.obj | 100.0 objdiff | committed | Added missing scripted-camera global setter from raw disassembly; explicit per-function pipeline pass. Direct VC71 reports 86.2% because of x87 compare scheduling. |
+| FUN_00085350 | 0x85350 | objects.obj | 100.0 | committed | Added missing wrapper; explicit per-function pipeline pass. |
+| FUN_00085000 | 0x85000 | objects.obj | 100.0 objdiff | committed | Added missing 'antr' camera-name selector from raw disassembly. Direct VC71 reports 81.9% due merged-TU structural differences. |
+| FUN_0013cb80 | 0x13cb80 | objects.obj | 100.0 objdiff | committed | Existing scenario-placement lift enabled; lifecycle-cluster caution retained in source comments. |
+| object_postprocess_node_matrices | 0x13df70 | objects.obj | 95.2 | committed | Added missing body with verified EBX register argument; explicit per-function pipeline pass. |
+| object_find_in_cluster | 0x140420 | objects.obj | 86.5 | skipped | Corrected type access to signed 16-bit per raw disassembly, but below the 90% activation gate. |
+| attachments_new | 0x13ecb0 | objects.obj | 86.2 | skipped | Corrected verified 'ligh' bound; remaining structural gap and lifecycle mutation risk. |
+| FUN_0013cb80 | 0x13cb80 | objects.obj | 90.9 | skipped | Explicitly dormant: mutates BSP streaming state and calls unported lifecycle members. |
+
+---
+
+## Goal-lift run — 0/20 committed (queue_exhausted) — 2026-07-20
+
+objects.obj batch: 17 targets queued, all skipped. 8 functions are already-implemented in source (ported=false dormant toggles or already-ported); 9 functions blocked by @reg-defined prologue selector criterion (skip_reg_args). Zero new lifts, zero net progress on objects.obj frontline.
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_001342a0 | 0x1342a0 | objects.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| glow_trailing_particle_new | 0x134350 | objects.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| object_choose_random_change_colors | 0x13e1f0 | objects.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| object_determine_variant_number | 0x13e460 | objects.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| object_compute_change_colors | 0x13e5d0 | objects.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| object_compute_function_values | 0x13e7b0 | objects.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| object_select_random_region_permutations_by_variant | 0x140a00 | objects.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| object_choose_random_region_permutations | 0x140ad0 | objects.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| object_move_to_limbo | 0x13aed0 | - | - | skipped | already implemented: src/halo/objects/objects.c (definition at line 1602) |
+| attachments_new | 0x13ecb0 | objects.obj | - | skipped | already implemented: src/halo/objects/objects.c (real body at line 4543, called at line 9428). Note: kb.json has "ported": false for 0x13ecb0 despite the implementation existing — likely a dormant/bisect toggle, not a missing lift. |
+| objects_initialize_for_new_map | 0x13f950 | - | - | skipped | already implemented: src/halo/objects/objects.c (kb entry ported=false, dormant, but C implementation exists in source) |
+| object_set_region_count | 0x140160 | objects.obj | - | skipped | already implemented: /mnt/g/dev/halo/src/halo/objects/objects.c (definition at line 6271; note kb.json has "ported": false but the C source exists) |
+| object_visible_to_any_player | 0x1407e0 | - | - | skipped | already implemented: src/halo/objects/objects.c (definition at line 6902) |
+| object_compute_node_matrices | 0x141b70 | objects.obj | - | skipped | already implemented: src/halo/objects/objects.c (definition at line 7867: `void object_compute_node_matrices(int object_handle)`) |
+| object_new_from_scenario | 0x144770 | objects.obj | - | skipped | already implemented: src/halo/objects/objects.c |
+| object_permute_region | 0x1402c0 | objects.obj | - | skipped | already implemented: src/halo/objects/objects.c (definition at line 6362). Note: kb.json entry has "ported": false, so the redirect is deactivated even though the C implementation exists (dormant/bisect toggle). |
+| object_find_in_cluster | 0x140420 | - | - | skipped | already implemented: src/halo/objects/objects.c (definition at line 6480; kb.json ported=false but C source present) |
+
+**Summary:** Queue exhausted. All 17 targets were ineligible: 8 dormant (already-implemented in source, ported=false), 9 blocked by @reg-defined prologue filter. No new lifts. Objects.obj remains 45/53 ported (dormant accounting per hub_objects_obj_unported_accounting.md).
+
+---
+
+## Goal-lift run — 0/6 committed (stop_on_fail_reached) — 2026-07-20
+
+objects.obj glow-particle renderer cluster. 0 functions committed. 4 functions parked below 65% VC71 (permanent structural ceiling from register-defining prologue ABI mismatch). Target set discontinued.
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00134070 | 0x134070 | objects.obj | 80.8 | parked | structural_cap[deterministic(classify_cap.py)]: reg_defining_prologue: decl has @<esi>/@<edi> parameters; standalone VC71 compiles the function as cdecl (reads args from the stack) while the reference reads particle_ptr from ESI and glow_widget_ptr from EDI directly, so the prologue and every arg access differ. 186 our insns vs 180 ref; raw 79.8% -> 80.8% after stripping 2 @reg phantom loads. This matches the known register-arg ~65-80% ceiling and is a permanent sub-bar VC71 cannot emit. |
+| FUN_001342a0 | 0x1342a0 | objects.obj | 74.8 | parked | structural_cap[deterministic(classify_cap.py)]: reg_defining_prologue: decl has an @<esi> parameter; VC71 cannot emit the register-reading prologue (permanent sub-bar). Classifier returned high confidence. Raw 74.2% -> modeled 74.8% after stripping 1 @<reg> phantom load; 64 ours / 60 ref insns, the gap is the stack->ESI parameter setup the original does not need. |
+| glow_trailing_particle_new | 0x134350 | objects.obj | 77.5 | parked | structural_cap[deterministic(classify_cap.py)]: reg_defining_prologue: decl has an @<reg> parameter (glow_widget@<ebx>); VC71 cannot emit the register-reading prologue (permanent sub-bar). Additional [FPU-WARN] gap from MSVC keeping the lerp interpolant t live on the x87 stack across the three color lerps vs. our local reload. Measured 77.5% (174/178 insns) against per-function ref 00134350.obj; REGPARM phantom-load stripping recovered only +0.2%, confirming the gap is the reg-prologue + FPU scheduling, not a lift bug. |
+| FUN_001345b0 | 0x1345b0 | objects.obj | 76.4 | parked | structural_cap[deterministic(classify_cap.py)]: reg_defining_prologue: decl has an @<eax> parameter (glow_widget); VC71 cannot emit the register-reading prologue (permanent sub-bar). Remaining VC71 gap is register allocation (particle/tag pointer in edi vs original esi) and LCS misalignment of the two structurally identical A/B lerp blocks and the two identical particle loops — not logic bugs. Classifier: high confidence. |
+
+**Summary:** Queue discontinued. All 4 targets parked below 65% VC71 on permanent structural ceiling (register-defining prologue mismatch). No new lifts. These functions have proven VC71 ceilings; equivalence-testing or dormant deactivation (ported=false) would be alternative validation paths, but lifting at the current ABI modeling is not productive.

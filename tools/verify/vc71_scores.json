@@ -5128,6 +5128,74 @@
       "score": 2.2,
       "source": "src/halo/game/player_rumble.c"
     },
+    "FUN_000ba100": {
+      "score": 84.2,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000ba170": {
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000ba220": {
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000ba240": {
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000ba2e0": {
+      "score": 77.3,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000ba390": {
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000ba3b0": {
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000ba3c0": {
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000ba410": {
+      "score": 83.5,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000ba4b0": {
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000ba4c0": {
+      "score": 95.8,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000ba500": {
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000ba550": {
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000ba5e0": {
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000ba6d0": {
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000ba6f0": {
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000ba800": {
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
     "FUN_000ba850": {
       "score": 76.4,
       "source": "src/halo/game/players.c"
@@ -5137,7 +5205,11 @@
       "source": "src/halo/game/players.c"
     },
     "FUN_000bac10": {
-      "score": 93.0,
+      "score": 94.3,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000bac80": {
+      "score": 66.1,
       "source": "src/halo/game/players.c"
     },
     "FUN_000baf90": {
@@ -5153,11 +5225,11 @@
       "source": "src/halo/game/players.c"
     },
     "FUN_000bb1c0": {
-      "score": 97.0,
+      "score": 100.0,
       "source": "src/halo/game/players.c"
     },
     "FUN_000bb1f0": {
-      "score": 97.0,
+      "score": 100.0,
       "source": "src/halo/game/players.c"
     },
     "FUN_000bb410": {
@@ -13772,6 +13844,10 @@
       "score": 79.3,
       "source": "src/halo/math/real_math.c"
     },
+    "any_player_is_in_the_air": {
+      "score": 75.1,
+      "source": "src/halo/game/players.c"
+    },
     "any_unit_is_dangerous": {
       "score": 91.9,
       "source": "src/halo/units/units.c"
@@ -14047,6 +14123,10 @@
     "find_objects_from_point_vector": {
       "score": 86.8,
       "source": "src/halo/objects/objects.c"
+    },
+    "find_unused_local_player_index": {
+      "score": 88.0,
+      "source": "src/halo/game/players.c"
     },
     "game_engine_dispose_from_old_map": {
       "score": 100.0,
@@ -14383,6 +14463,10 @@
     "lruv_update_function_pointers": {
       "score": 74.1,
       "source": "src/halo/memory/lruv_cache.c"
+    },
+    "machine_get_player_list": {
+      "score": 80.0,
+      "source": "src/halo/game/players.c"
     },
     "main_change_map_name": {
       "score": 65.7,
@@ -15033,7 +15117,7 @@
       "source": "src/halo/game/players.c"
     },
     "player_apply_overshield_effect": {
-      "score": 73.1,
+      "score": 73.9,
       "source": "src/halo/game/players.c"
     },
     "player_build_action_update": {
@@ -15044,12 +15128,20 @@
       "score": 100.0,
       "source": "src/halo/effects/player_effects.c"
     },
+    "player_examine_nearby_unit": {
+      "score": 3.3,
+      "source": "src/halo/game/players.c"
+    },
     "player_new": {
       "score": 96.3,
       "source": "src/halo/game/players.c"
     },
+    "player_register_machine": {
+      "score": 76.9,
+      "source": "src/halo/game/players.c"
+    },
     "player_reset_action_result": {
-      "score": 80.0,
+      "score": 84.2,
       "source": "src/halo/game/players.c"
     },
     "player_rumble_initialize": {
@@ -15065,7 +15157,7 @@
       "source": "src/halo/game/players.c"
     },
     "player_set_unit_camo_flag": {
-      "score": 97.1,
+      "score": 100.0,
       "source": "src/halo/game/players.c"
     },
     "player_spawn": {
@@ -15073,15 +15165,15 @@
       "source": "src/halo/game/players.c"
     },
     "player_try_to_enter_vehicle": {
-      "score": 58.8,
+      "score": 59.2,
       "source": "src/halo/game/players.c"
     },
     "player_try_to_spawn_in_vehicle": {
-      "score": 78.5,
+      "score": 78.7,
       "source": "src/halo/game/players.c"
     },
     "player_update_nearby_biped": {
-      "score": 77.3,
+      "score": 77.6,
       "source": "src/halo/game/players.c"
     },
     "player_update_nearby_vehicle": {
@@ -15094,6 +15186,18 @@
     },
     "player_update_spawn_state": {
       "score": 85.1,
+      "source": "src/halo/game/players.c"
+    },
+    "players_compute_local_player_count": {
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
+    "players_get_combined_pvs": {
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
+    "players_get_combined_pvs_local": {
+      "score": 100.0,
       "source": "src/halo/game/players.c"
     },
     "players_respawn_coop": {

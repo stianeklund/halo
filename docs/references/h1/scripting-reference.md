@@ -124,11 +124,6 @@ Globals for stock levels are typically declared in the base_*.hsc file but used 
 The number of globals you can declare is limited.
 
 ## Value types
-
-
-
-
-
 void
 
 Void means "no value", used for the return type of functions or static scripts which are not meant to return anything, e.g. cinematic_start.
@@ -225,7 +220,6 @@ Dead units will also still remain in the list and are counted by list_count, but
 ```lisp
 (players)
 
-```
 sound
 
 Sound
@@ -327,6 +321,7 @@ A "Scenery" value (a block in the scenario tag)
 
 
 There are two integer variable types: short and long. Both hold whole numbers, but long variables can hold much larger numbers than short variables. It's worth noting both use the same amount of memory, so you should decide the type you use based on what range of values makes sense or the values the functions you call accept (avoids a cast). If you need to optimize memory usage you can use the bitwise functions to implement a bitfield.
+```
 
 ## Functions
 
@@ -336,31 +331,35 @@ There are two integer variable types: short and long. Both hold whole numbers, b
 Control functions include waking and sleeping script theads and conditionally executing expressions.
 
 
+```lisp
+
 (<passthrough> begin <expression(s)>)
 (begin
-```lisp
 (object_destroy mid_banshee_1)
 (ai_erase mid_banshee/pilot_1)
 )
-
 ```
+
 The begin expression evaluates a series of expressions in order. It's primarily used to wrap a series of expressions into a single expression to be used as a cond result or one of the branches of an if expression. It is not necessary to wrap all the top-level expressions within a script declaration with a begin; there is already one implicit. The return value of the last expression in the sequence will be returned by cond.
 
-(<passthrough> begin_random <expression(s)>)
+```lisp(<passthrough> begin_random <expression(s)>)
 (begin_random
 (begin (vehicle_unload fort_cship "cd-passengerl01") (sleep 5))
 (begin (vehicle_unload fort_cship "cd-passengerl02") (sleep 5))
 (begin (vehicle_unload fort_cship "cd-passengerl03") (sleep 5))
 )
+```
 
 Like begin, but evaluates the sequence of expressions in random order and returns the last value evaluated. An example use case is making passengers exit a dropship in random order. This function can contain up to 32 expressions.
 
+```lisp
 (<passthrough> cond (<boolean1> <result1>) [(<boolean2> <result2>) [...]])
 (cond
 ((game_is_cooperative) (wake fast_setup))
 ((not (= normal (game_difficulty_get))) (wake fast_setup))
 (true (wake tutorial_setup))
 )
+```
 
 Tests each branch's condition expression. On the first true condition, the associated result expression is evaluated and its value returned. Has no default value. This is similar to an if-elseif-elseif... chain in other languages.
 
@@ -376,7 +375,6 @@ Tests each branch's condition expression. On the first true condition, the assoc
 )
 (ai_place area_a_cov/grunts)
 )
-
 ```
 Conditionally evaluates expressions based on a condition. If the condition is true, the <then> branch is evaluated. If the condition is false, the optional [<else>] branch is evaluated instead. If you want to execute a series of expressions then you must wrap them with a begin. This returns the value of the branch expression chosen.
 
