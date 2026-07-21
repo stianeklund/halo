@@ -15672,7 +15672,7 @@
     {
      "addr": "0x13ffc0",
      "decl": "void object_set_garbage(int object_handle, int flag);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x140070",

@@ -14737,7 +14737,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_header_new": {
-      "score": 65.1,
+      "score": 87.5,
       "source": "src/halo/objects/objects.c"
     },
     "object_iterator_new": {
@@ -14833,7 +14833,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_set_garbage": {
-      "score": 63.4,
+      "score": 89.5,
       "source": "src/halo/objects/objects.c"
     },
     "object_set_garbage_flag": {

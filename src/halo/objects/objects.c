@@ -4142,6 +4142,9 @@ void object_beautify(int param_1, char param_2)
 int object_header_new(data_t *data, int16_t datum_size, int type_hint)
 {
   int handle;
+  char *datum;
+  void **volatile block; /* datum+8, forced to [EBP-4] like the original */
+  int ds;            /* (int)datum_size, sign-extended once into EBX */
 
   if (type_hint == -1)
     handle = data_new_at_index(data);
@@ -4149,16 +4152,16 @@ int object_header_new(data_t *data, int16_t datum_size, int type_hint)
     handle = data_new_datum(data, type_hint);
 
   if (handle != -1) {
-    char *datum = (char *)datum_get(data, handle);
-
-    if (!memory_pool_block_new(*(void **)0x46f080, (void **)(datum + 8),
-                               (int)datum_size)) {
+    datum = (char *)datum_get(data, handle);
+    ds = (int)datum_size;
+    block = (void **)(datum + 8);
+    if (memory_pool_block_new(*(void **)0x46f080, block, ds)) {
+      *(int16_t *)(datum + 6) = datum_size;
+      csmemset(*block, 0, ds);
+    } else {
       datum_delete(data, handle);
       return -1;
     }
-
-    *(int16_t *)(datum + 6) = datum_size;
-    csmemset(*(void **)(datum + 8), 0, (int)datum_size);
   }
 
   return handle;
@@ -6123,66 +6126,58 @@ void object_set_automatic_deactivation(int object_handle, char param_2)
  */
 void object_set_garbage(int object_handle, int flag)
 {
-  /* ESI = object_data_t*, EDI = object_handle (saved for register-arg calls)
-   */
-  object_data_t *obj =
-    (object_data_t *)object_get_and_verify_type(object_handle, -1);
+  /* ESI = object_data_t*, EBX = tag_def, EAX = flags_bit / hdr. Fields are
+   * re-read inline (not cached in a bool) to mirror the original's repeated
+   * CMP [EBX+0x34],-1 and its reuse of (flags & 1) in EAX. */
+  object_data_t *obj;
+  object_header_data_t *hdr;
+  void *tag_def;
 
-  /* Get object tag definition; check if it has an attachments/children block
-   * (non-null block at tag+0x34 == not -1). */
-  void *tag_def = tag_get(0x6f626a65, (int)obj->tag_index);
-  int has_children = (*(int *)((char *)tag_def + 0x34) != -1);
-  int bit0 = (int)(obj->flags & 1);
+  obj = (object_data_t *)object_get_and_verify_type(object_handle, -1);
+  tag_def = tag_get(0x6f626a65, (int)obj->tag_index);
 
-  if (has_children) {
-    if (bit0 != 0) {
-      /* bit0 is set */
-      if ((char)flag != 0) {
-        /* Already inactive but being asked to unmark: propagate to children
-         * with (param_1=0, param_2=1). */
-        object_propagate_flag_to_children(object_handle, 0, 1);
-        goto lab_0014000a;
-      }
-      /* bit0 set, flag==0: no child propagation needed */
-      goto lab_0014000a;
-    } else {
-      /* bit0 is clear */
-      if ((char)flag == 0) {
-        /* Becoming inactive: propagate to children with (param_1=1,
-         * param_2=0). */
-        object_propagate_flag_to_children(object_handle, 1, 0);
-        goto lab_00140017;
-      } else {
-        /* bit0 clear, flag!=0: re-check children block presence */
-        if (!has_children)
-          return;
-        goto lab_00140017;
-      }
-    }
+  /* Children block present at tag+0x34 (!= -1)? */
+  if (*(int *)((char *)tag_def + 0x34) != -1) {
+    if ((obj->flags & 1) != 0 && (char)flag != 0)
+      /* bit0 set && flag!=0: propagate (0,1), then fall through to
+       * lab_0014000a. */
+      object_propagate_flag_to_children(object_handle, 0, 1);
+    else
+      goto lab_0014003b;
   }
 
 lab_0014000a:
   if ((char)flag == 0)
     goto lab_00140017;
-  /* flag != 0 and came from "has_children + bit0 set" path: skip datum
-   * update if children block is absent. */
-  if (!has_children)
+lab_00140011:
+  if (*(int *)((char *)tag_def + 0x34) == -1)
     return;
+  goto lab_00140017;
 
-lab_00140017: {
+lab_00140017:
   /* Commit the datum-level flags. */
-  object_header_data_t *hdr =
-    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
+  hdr = (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
   if ((char)flag == 0) {
     /* Mark as garbage: set bit 0 of obj->flags, clear hdr->unk_2 bit 1. */
     obj->flags |= 1;
     hdr->unk_2 &= (uint8_t)~0x02;
-  } else {
-    /* Unmark garbage: clear bit 0 of obj->flags, set hdr->unk_2 bit 1. */
-    obj->flags &= ~(uint32_t)1;
-    hdr->unk_2 |= 0x02;
+    return;
   }
-}
+  goto lab_00140056;
+
+lab_0014003b:
+  if ((obj->flags & 1) != 0)
+    goto lab_0014000a;
+  if ((char)flag != 0)
+    goto lab_00140011;
+  /* bit0 clear && flag==0: propagate (1,0), then commit. */
+  object_propagate_flag_to_children(object_handle, 1, 0);
+  goto lab_00140017;
+
+lab_00140056:
+  /* Unmark garbage: clear bit 0 of obj->flags, set hdr->unk_2 bit 1. */
+  obj->flags &= ~(uint32_t)1;
+  hdr->unk_2 |= 0x02;
 }
 
 /* Walk the parent chain to the root object and copy its position and
