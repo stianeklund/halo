@@ -15437,7 +15437,7 @@
     {
      "addr": "0x13ded0",
      "decl": "int object_header_new(data_t *data, int16_t datum_size, int type_hint@<eax>);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x13df70",
@@ -15549,7 +15549,7 @@
     {
      "addr": "0x13eff0",
      "decl": "void object_remove_from_name_list(int object_handle@<edi>);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x13f060",

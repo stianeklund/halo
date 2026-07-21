@@ -7917,9 +7917,13 @@ typedef void (*overlay_adjust_fn)(int object_handle, void *anim_data);
 typedef void (*anim_interpolate_fn)(uint16_t node_count, void *interp_data,
                                     void *anim_data, int16_t frame_index,
                                     int16_t frame_count);
-typedef int (*valid_real_vectors_fn)(float *fwd, float *left, float *up);
-typedef int (*valid_real_matrix4x3_fn)(float *m);
-typedef int (*valid_fwd_and_up_fn)(float *fwd, float *up);
+typedef char (*valid_real_vectors_fn)(float *fwd, float *left, float *up);
+typedef char (*valid_real_matrix4x3_fn)(float *m);
+typedef char (*valid_fwd_and_up_fn)(float *fwd, float *up);
+/* Byte-returning point3d validator: the original tests AL (testb), so this
+ * target uses a char-returning cast rather than the shared int typedef at
+ * file scope (which object_new relies on). */
+typedef char (*valid_real_point3d_b_fn)(float *p);
 typedef void (*matrix_4x3_multiply_fn)(float *a, float *b, float *out);
 typedef void (*matrix_4x3_from_point_fn)(float *out, float *point);
 typedef void (*model_node_set_default_fn)(float *out, void *anim_data);
@@ -8162,7 +8166,7 @@ void object_compute_node_matrices(int object_handle)
 
     /* Validate object position and orientation if not using override */
     if (!override_decompressor) {
-      if (!((valid_real_point3d_fn)0xa16b0)((float *)((char *)obj + 0x0c))) {
+      if (!((valid_real_point3d_b_fn)0xa16b0)((float *)((char *)obj + 0x0c))) {
         char *name = (char *)tag_get_name(*(int *)obj);
         char *msg =
           csprintf((char *)0x5ab100,
@@ -8318,7 +8322,7 @@ void object_compute_node_matrices(int object_handle)
                     !((valid_real_vectors_fn)0xf6c40)(parent_node_mat + 1,
                                                       parent_node_mat + 4,
                                                       parent_node_mat + 7) ||
-                    !((valid_real_point3d_fn)0xa16b0)(parent_node_mat + 10)) {
+                    !((valid_real_point3d_b_fn)0xa16b0)(parent_node_mat + 10)) {
                   /* Parent node matrix is invalid — detailed error
                    * reporting */
                   void *parent_obj_2 = object_get_and_verify_type(
@@ -8367,7 +8371,7 @@ void object_compute_node_matrices(int object_handle)
                                    0xb37, 1);
                     system_exit(-1);
                   }
-                  if (!((valid_real_point3d_fn)0xa16b0)(parent_node_mat + 10)) {
+                  if (!((valid_real_point3d_b_fn)0xa16b0)(parent_node_mat + 10)) {
                     char *msg = csprintf(
                       (char *)0x5ab100, "%s had a bad position (%f,%f,%f)",
                       context, (double)parent_node_mat[10],
@@ -8381,7 +8385,7 @@ void object_compute_node_matrices(int object_handle)
                                    parent_node_mat[2] * parent_node_mat[5] +
                                    parent_node_mat[3] * parent_node_mat[6];
                     if ((*(uint32_t *)&dot_fl & 0x7f800000) == 0x7f800000 ||
-                        (dot_fl < 0 ? -dot_fl : dot_fl) >= *(double *)0x2549d8) {
+                        !(fabs(dot_fl) < *(double *)0x2549d8)) {
                       char *msg = csprintf(
                         (char *)0x5ab100,
                         "%s had a forward (%f,%f,%f) not perpendicular "
@@ -8400,7 +8404,7 @@ void object_compute_node_matrices(int object_handle)
                                    parent_node_mat[8] * parent_node_mat[5] +
                                    parent_node_mat[9] * parent_node_mat[6];
                     if ((*(uint32_t *)&dot_ul & 0x7f800000) == 0x7f800000 ||
-                        (dot_ul < 0 ? -dot_ul : dot_ul) >= *(double *)0x2549d8) {
+                        !(fabs(dot_ul) < *(double *)0x2549d8)) {
                       char *msg = csprintf(
                         (char *)0x5ab100,
                         "%s had a up (%f,%f,%f) not perpendicular to "
@@ -8419,7 +8423,7 @@ void object_compute_node_matrices(int object_handle)
                                    parent_node_mat[2] * parent_node_mat[8] +
                                    parent_node_mat[3] * parent_node_mat[9];
                     if ((*(uint32_t *)&dot_uf & 0x7f800000) == 0x7f800000 ||
-                        (dot_uf < 0 ? -dot_uf : dot_uf) >= *(double *)0x2549d8) {
+                        !(fabs(dot_uf) < *(double *)0x2549d8)) {
                       char *msg = csprintf(
                         (char *)0x5ab100,
                         "%s had a forward (%f,%f,%f) not perpendicular "
@@ -8553,7 +8557,7 @@ void object_compute_node_matrices(int object_handle)
                 if ((*(uint32_t *)node_matrices & 0x7f800000) == 0x7f800000 ||
                     !((valid_real_vectors_fn)0xf6c40)(fwd, left,
                                                       node_matrices + 7) ||
-                    !((valid_real_point3d_fn)0xa16b0)(node_matrices + 10)) {
+                    !((valid_real_point3d_b_fn)0xa16b0)(node_matrices + 10)) {
                   if ((*(uint32_t *)node_matrices & 0x7f800000) == 0x7f800000) {
                     char *msg =
                       csprintf((char *)0x5ab100, "%s had a bad scale %f",
@@ -8567,8 +8571,7 @@ void object_compute_node_matrices(int object_handle)
                     float mag_fwd = fwd[0] * fwd[0] + fwd[1] * fwd[1] +
                                     fwd[2] * fwd[2] - *(float *)0x2533c8;
                     if ((*(uint32_t *)&mag_fwd & 0x7f800000) == 0x7f800000 ||
-                        (mag_fwd < 0 ? -mag_fwd : mag_fwd) >=
-                          *(double *)0x2549d8) {
+                        !(fabs(mag_fwd) < *(double *)0x2549d8)) {
                       char *msg = csprintf(
                         (char *)0x5ab100, "%s had a bad forward (%f,%f,%f)",
                         "object_compute_node_matrices root node matrix",
@@ -8582,8 +8585,7 @@ void object_compute_node_matrices(int object_handle)
                     float mag_left = left[0] * left[0] + left[1] * left[1] +
                                      left[2] * left[2] - *(float *)0x2533c8;
                     if ((*(uint32_t *)&mag_left & 0x7f800000) == 0x7f800000 ||
-                        (mag_left < 0 ? -mag_left : mag_left) >=
-                          *(double *)0x2549d8) {
+                        !(fabs(mag_left) < *(double *)0x2549d8)) {
                       char *msg = csprintf(
                         (char *)0x5ab100, "%s had a bad left (%f,%f,%f)",
                         "object_compute_node_matrices root node matrix",
@@ -8599,7 +8601,7 @@ void object_compute_node_matrices(int object_handle)
                                    node_matrices[7] * node_matrices[7] -
                                    *(float *)0x2533c8;
                     if ((*(uint32_t *)&mag_up & 0x7f800000) == 0x7f800000 ||
-                        (mag_up < 0 ? -mag_up : mag_up) >= *(double *)0x2549d8) {
+                        !(fabs(mag_up) < *(double *)0x2549d8)) {
                       char *msg = csprintf(
                         (char *)0x5ab100, "%s had a bad up (%f,%f,%f)",
                         "object_compute_node_matrices root node matrix",
@@ -8629,7 +8631,7 @@ void object_compute_node_matrices(int object_handle)
                     float dot_fl =
                       fwd[0] * left[0] + fwd[1] * left[1] + fwd[2] * left[2];
                     if ((*(uint32_t *)&dot_fl & 0x7f800000) == 0x7f800000 ||
-                        (dot_fl < 0 ? -dot_fl : dot_fl) >= *(double *)0x2549d8) {
+                        !(fabs(dot_fl) < *(double *)0x2549d8)) {
                       char *msg = csprintf(
                         (char *)0x5ab100,
                         "%s had a forward (%f,%f,%f) not perpendicular "
@@ -8647,7 +8649,7 @@ void object_compute_node_matrices(int object_handle)
                                    node_matrices[8] * left[1] +
                                    node_matrices[9] * left[2];
                     if ((*(uint32_t *)&dot_ul & 0x7f800000) == 0x7f800000 ||
-                        (dot_ul < 0 ? -dot_ul : dot_ul) >= *(double *)0x2549d8) {
+                        !(fabs(dot_ul) < *(double *)0x2549d8)) {
                       char *msg = csprintf(
                         (char *)0x5ab100,
                         "%s had a up (%f,%f,%f) not perpendicular to "
@@ -8666,7 +8668,7 @@ void object_compute_node_matrices(int object_handle)
                                    node_matrices[8] * fwd[1] +
                                    node_matrices[9] * fwd[2];
                     if ((*(uint32_t *)&dot_uf & 0x7f800000) == 0x7f800000 ||
-                        (dot_uf < 0 ? -dot_uf : dot_uf) >= *(double *)0x2549d8) {
+                        !(fabs(dot_uf) < *(double *)0x2549d8)) {
                       char *msg = csprintf(
                         (char *)0x5ab100,
                         "%s had a forward (%f,%f,%f) not perpendicular "
@@ -8683,7 +8685,7 @@ void object_compute_node_matrices(int object_handle)
                   if ((*(uint32_t *)node_matrices & 0x7f800000) == 0x7f800000 ||
                       !((valid_real_vectors_fn)0xf6c40)(fwd, left,
                                                         node_matrices + 7) ||
-                      !((valid_real_point3d_fn)0xa16b0)(node_matrices + 10)) {
+                      !((valid_real_point3d_b_fn)0xa16b0)(node_matrices + 10)) {
                     char *msg = csprintf(
                       (char *)0x5ab100, "%s: assert_valid_real_matrix4x3",
                       "object_compute_node_matrices root node matrix");
@@ -8719,7 +8721,7 @@ void object_compute_node_matrices(int object_handle)
                 float mag_fwd = fwd2[0] * fwd2[0] + fwd2[1] * fwd2[1] +
                                 fwd2[2] * fwd2[2] - *(float *)0x2533c8;
                 if ((*(uint32_t *)&mag_fwd & 0x7f800000) == 0x7f800000 ||
-                    (mag_fwd < 0 ? -mag_fwd : mag_fwd) >= *(double *)0x2549d8) {
+                    !(fabs(mag_fwd) < *(double *)0x2549d8)) {
                   char *msg = csprintf(
                     (char *)0x5ab100, "%s had a bad forward (%f,%f,%f)", name2,
                     (double)fwd2[0], (double)fwd2[1], (double)fwd2[2]);
@@ -8732,8 +8734,7 @@ void object_compute_node_matrices(int object_handle)
                 float mag_left = left2[0] * left2[0] + left2[1] * left2[1] +
                                  left2[2] * left2[2] - *(float *)0x2533c8;
                 if ((*(uint32_t *)&mag_left & 0x7f800000) == 0x7f800000 ||
-                    (mag_left < 0 ? -mag_left : mag_left) >=
-                      *(double *)0x2549d8) {
+                    !(fabs(mag_left) < *(double *)0x2549d8)) {
                   char *msg = csprintf(
                     (char *)0x5ab100, "%s had a bad left (%f,%f,%f)", name2,
                     (double)left2[0], (double)left2[1], (double)left2[2]);
@@ -8748,7 +8749,7 @@ void object_compute_node_matrices(int object_handle)
                                node_matrices[7] * node_matrices[7] -
                                *(float *)0x2533c8;
                 if ((*(uint32_t *)&mag_up & 0x7f800000) == 0x7f800000 ||
-                    (mag_up < 0 ? -mag_up : mag_up) >= *(double *)0x2549d8) {
+                    !(fabs(mag_up) < *(double *)0x2549d8)) {
                   char *msg = csprintf(
                     (char *)0x5ab100, "%s had a bad up (%f,%f,%f)", name2,
                     (double)node_matrices[7], (double)node_matrices[8],
@@ -8776,7 +8777,7 @@ void object_compute_node_matrices(int object_handle)
                 float dot_fl =
                   fwd2[0] * left2[0] + fwd2[1] * left2[1] + fwd2[2] * left2[2];
                 if ((*(uint32_t *)&dot_fl & 0x7f800000) == 0x7f800000 ||
-                    (dot_fl < 0 ? -dot_fl : dot_fl) >= *(double *)0x2549d8) {
+                    !(fabs(dot_fl) < *(double *)0x2549d8)) {
                   char *msg = csprintf(
                     (char *)0x5ab100,
                     "%s had a forward (%f,%f,%f) not perpendicular "
@@ -8793,7 +8794,7 @@ void object_compute_node_matrices(int object_handle)
                                node_matrices[8] * left2[1] +
                                node_matrices[9] * left2[2];
                 if ((*(uint32_t *)&dot_ul & 0x7f800000) == 0x7f800000 ||
-                    (dot_ul < 0 ? -dot_ul : dot_ul) >= *(double *)0x2549d8) {
+                    !(fabs(dot_ul) < *(double *)0x2549d8)) {
                   char *msg = csprintf(
                     (char *)0x5ab100,
                     "%s had a up (%f,%f,%f) not perpendicular to "
@@ -8811,7 +8812,7 @@ void object_compute_node_matrices(int object_handle)
                                fwd2[1] * node_matrices[8] +
                                fwd2[2] * node_matrices[9];
                 if ((*(uint32_t *)&dot_uf & 0x7f800000) == 0x7f800000 ||
-                    (dot_uf < 0 ? -dot_uf : dot_uf) >= *(double *)0x2549d8) {
+                    !(fabs(dot_uf) < *(double *)0x2549d8)) {
                   char *msg = csprintf(
                     (char *)0x5ab100,
                     "%s had a forward (%f,%f,%f) not perpendicular "
@@ -8827,7 +8828,7 @@ void object_compute_node_matrices(int object_handle)
               if ((*(uint32_t *)node_matrices & 0x7f800000) == 0x7f800000 ||
                   !((valid_real_vectors_fn)0xf6c40)(fwd2, left2,
                                                     node_matrices + 7) ||
-                  !((valid_real_point3d_fn)0xa16b0)(node_matrices + 10)) {
+                  !((valid_real_point3d_b_fn)0xa16b0)(node_matrices + 10)) {
                 char *msg = csprintf((char *)0x5ab100,
                                      "%s: assert_valid_real_matrix4x3", name2);
                 display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c",

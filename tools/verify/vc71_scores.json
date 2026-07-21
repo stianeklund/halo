@@ -14613,7 +14613,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_compute_node_matrices": {
-      "score": 73.4,
+      "score": 77.0,
       "source": "src/halo/objects/objects.c"
     },
     "object_connect_to_map": {
