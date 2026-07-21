@@ -236,6 +236,18 @@ _ORACLE_SWITCH_TABLE_FIXUPS = {
             0x0002005C, 0x0002006C, 0x0002007C, 0x0002008A,
         ),
     },
+    # FUN_00141970: two-level MSVC switch — 8-entry pointer table @0x141b38
+    # followed by a byte index-map @0x141b58 (codes->table index), both carried
+    # by ONE symbol (the movzbl addresses the map as switchdata+0x20).  Entries
+    # that are `bytes` are emitted verbatim after the packed pointers; values
+    # read from the pristine cachebeta.xbe (ghidra read_memory 0x141b38, 52B).
+    0x00141970: {
+        "switchD_001419d6::switchdataD_00141b38": (
+            0x001419F7, 0x00141A04, 0x001419DD, 0x001419EA,
+            0x00141A2A, 0x00141A4B, 0x00141A62, 0x00141ACE,
+            b"\x00\x01\x02\x03\x04" + b"\x07" * 13 + b"\x05\x06",
+        ),
+    },
 }
 
 
@@ -255,7 +267,10 @@ def _apply_oracle_switch_table_fixups(func_addr: int, function_slice,
             continue
         data = bytearray()
         for target_va in target_vas:
-            data.extend(struct.pack("<I", CODE_BASE + target_va - section_base_delta))
+            if isinstance(target_va, (bytes, bytearray)):
+                data.extend(target_va)  # raw suffix (e.g. byte index-map)
+            else:
+                data.extend(struct.pack("<I", CODE_BASE + target_va - section_base_delta))
         patched[symbol_name] = bytes(data)
     return patched
 
