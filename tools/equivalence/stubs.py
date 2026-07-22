@@ -1151,6 +1151,30 @@ class StubManager:
                     uc.reg_write(UC_X86_REG_ESP, caller_esp + _seq_nsp * 4)
                 return True
 
+            if symbol_name in ("fabs", "fabsf"):
+                # CRT/inline float abs — cdecl, arg on stack (fabsf: dword
+                # float, fabs: qword double), |x| returned in ST0.  These are
+                # OUR runtime helpers (no kb decl), so without a named model
+                # the candidate-side call fell through unstubbed.
+                if symbol_name == "fabsf":
+                    _v = struct.unpack('<f', bytes(uc.mem_read(caller_esp + 4, 4)))[0]
+                else:
+                    _v = struct.unpack('<d', bytes(uc.mem_read(caller_esp + 4, 8)))[0]
+                _write_st0_double(uc, abs(_v))
+                return True
+
+            if symbol_name in ("atan2_", "atan2"):
+                # inlines.h double atan2_(double y, double x) — cdecl,
+                # two qword doubles on the stack, result in ST0.
+                _y = struct.unpack('<d', bytes(uc.mem_read(caller_esp + 4, 8)))[0]
+                _x = struct.unpack('<d', bytes(uc.mem_read(caller_esp + 12, 8)))[0]
+                try:
+                    _r = math.atan2(_y, _x)
+                except ValueError:
+                    _r = 0.0
+                _write_st0_double(uc, _r)
+                return True
+
             if symbol_name in ("_chkstk", "__chkstk", "chkstk", "fun_001d90e0"):
                 size = uc.reg_read(UC_X86_REG_EAX) & 0xFFFFFFFF
                 ret_addr = int.from_bytes(bytes(uc.mem_read(caller_esp, 4)),
