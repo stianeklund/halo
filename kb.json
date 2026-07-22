@@ -417,7 +417,7 @@
     },
     {
      "addr": "0x1330f0",
-     "decl": "void FUN_001330f0(int glow_widget@<eax>);"
+     "decl": "void FUN_001330f0(int glow_widget@<eax>, int particle_ptr@<esi>);"
     },
     {
      "addr": "0x133170",

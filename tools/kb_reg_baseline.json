@@ -434,7 +434,7 @@
     "0x1300b0": "char FUN_001300b0(int server @<esi>, int machine, void *message_data, int message_size);",
     "0x130180": "char FUN_00130180(int server @<eax>, int machine, void *message_data, int message_size);",
     "0x130b70": "char FUN_00130b70(void *client@<esi>, const char *data, int count);",
-    "0x1330f0": "void FUN_001330f0(int glow_widget@<eax>);",
+    "0x1330f0": "void FUN_001330f0(int glow_widget@<eax>, int particle_ptr@<esi>);",
     "0x1331d0": "void FUN_001331d0(int glow_widget@<eax>, int particle_ptr@<ecx>);",
     "0x133300": "void FUN_00133300(int particle_ptr@<edi>, int object_handle, int glow_widget@<ebx>);",
     "0x1339a0": "void get_particle_world_position(int glow_widget@<eax>, int particle_ptr, float param_3);",

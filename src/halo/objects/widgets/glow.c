@@ -205,7 +205,12 @@ void FUN_001345b0(int glow_widget, int object_handle)
        particle = *(int *)(particle + 0x5c)) {
     if ((*(unsigned char *)(particle + 0x54) & 2) != 0) {
       *(short *)(particle + 0x50) += (short)game_time_get();
-      FUN_001330f0(glow_widget);
+      /* FUN_001330f0 computes the age-based fade into particle+0x58; it reads
+       * the particle via ESI (movswl 0x50/0x52(%esi), fstps 0x58(%esi) in the
+       * pristine XBE) — an undeclared @<esi> arg the original kept live in
+       * ESI across the loop.  Dropping it read garbage and broke the trailing
+       * particle fade/colour (orange-not-blue trail bug, loop-B class). */
+      FUN_001330f0(glow_widget, particle);
       tag_block = tag_get(GLOW_TAG, *(int *)(w + 0x224));
       if ((*(unsigned char *)((char *)tag_block + 0x28) & 0x10) != 0) {
         int age = *(short *)(particle + 0x50);
