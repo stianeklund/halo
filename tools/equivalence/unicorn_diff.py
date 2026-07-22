@@ -302,6 +302,51 @@ def _relocate_rdata_text_refs(function_slice, rdata_map: dict,
         patched[symbol_name] = bytes(chunk)
     return patched
 
+
+def _relocate_text_label_refs(function_slice, code: bytes,
+                              maps_full_text: bool) -> bytes:
+    """Relocate DIR32 references to intra-.text labels (MSVC switch tables).
+
+    MSVC/VC71 emits ``switch`` jump tables inside the function's own .text
+    section: the indirect ``jmp dword ptr [reg*4 + $LNNNNN]`` disp32 and each
+    table entry are DIR32 relocations to internal labels ($LNNNNN) defined in
+    that same section.  ``patch_dir32_relocs`` skips them (they are in
+    ``defined_symbols``), leaving the encoded field at its raw addend (usually
+    0), so the jump reads a garbage/zero target and control escapes into
+    unmapped memory.  Clang instead parks its tables in .rdata, which the
+    rdata_map/_relocate_rdata_text_refs path already handles.
+
+    We resolve each such label to its section-relative offset (captured in
+    ``FunctionSlice.text_symbol_offsets``) and patch the field to the address
+    the code is loaded at: ``CODE_BASE + (offset - base_delta) + addend``.
+    ``base_delta`` is 0 when the full .text section is mapped at CODE_BASE
+    (a label at section offset V lands at CODE_BASE+V) and the function's
+    ``section_offset`` when only the extracted slice is mapped at CODE_BASE
+    (matching ``_relocate_rdata_text_refs``).
+    """
+    text_offsets = getattr(function_slice, "text_symbol_offsets", None)
+    if not text_offsets:
+        return code
+    patched = bytearray(code)
+    base_delta = 0 if maps_full_text else function_slice.section_offset
+    for reloc in function_slice.relocs:
+        if reloc.reloc_type != 0x0006:  # IMAGE_REL_I386_DIR32
+            continue
+        sym = reloc.symbol_name
+        # Section symbols (".text"/".rdata"/...) are handled elsewhere; only
+        # named intra-section labels are rebased here.
+        if sym.startswith("."):
+            continue
+        target_off = text_offsets.get(sym)
+        if target_off is None:
+            continue
+        off = reloc.virtual_address
+        if off + 4 <= len(patched):
+            addend = struct.unpack_from("<I", patched, off)[0]
+            struct.pack_into("<I", patched, off,
+                             CODE_BASE + (target_off - base_delta) + addend)
+    return bytes(patched)
+
 # ---------------------------------------------------------------------------
 # kb.json helpers
 # ---------------------------------------------------------------------------
@@ -1709,6 +1754,11 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             return_slots=True, rdata_map=orc_rdata,
             snapshot_regions=snapshot_overrides)
         oracle_code_patched = bytes(oracle_code_patched)
+        # Rebase intra-.text label refs (MSVC/VC71 switch jump tables) that
+        # patch_dir32_relocs leaves untouched because their labels are
+        # defined_symbols. Skipped harmlessly when no such labels exist.
+        oracle_code_patched = _relocate_text_label_refs(
+            oracle_slice, oracle_code_patched, oracle_text is not None)
         lft_globals_base = GLOBALS_BASE + len(orc_data_slots) * 256
         lifted_code_patched, lft_data_slots, lft_rdata_seeds = patch_dir32_relocs(
             lifted_slice.code, lifted_slice.relocs, lft_defined,
@@ -1716,6 +1766,8 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             return_slots=True, rdata_map=lft_rdata,
             snapshot_regions=snapshot_overrides)
         lifted_code_patched = bytes(lifted_code_patched)
+        lifted_code_patched = _relocate_text_label_refs(
+            lifted_slice, lifted_code_patched, False)
 
         globals_seeds = _build_globals_seeds(orc_data_slots, lft_data_slots,
                                              snapshot_overrides=snapshot_overrides)

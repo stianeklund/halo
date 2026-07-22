@@ -78,6 +78,7 @@ class FunctionSlice:
     section_offset: int = 0  # offset of this function within its section
     rdata_map: dict = field(default_factory=dict)  # {symbol_name: bytes} for .rdata refs
     rdata_relocs: dict = field(default_factory=dict)  # {symbol_name: [CoffReloc]} relative to rdata_map bytes
+    text_symbol_offsets: dict = field(default_factory=dict)  # {symbol_name: section-relative offset} for symbols defined in the function's own (.text) section — used to relocate intra-section DIR32 refs such as MSVC switch jump tables
 
 
 class CoffParseError(Exception):
@@ -274,6 +275,18 @@ def extract_function(obj_path: str, func_name: str) -> FunctionSlice:
     defined = {s.name for s in symbols if s.section_num > 0}
 
     text_sec_idx = target_sym.section_num - 1
+
+    # Map every symbol defined in the function's own section to its
+    # section-relative offset.  MSVC/VC71 emits switch jump tables and their
+    # case labels as DIR32 relocations to internal labels ($LNNNNN) that live
+    # in this same .text section; patch_dir32_relocs skips them (they are in
+    # defined_symbols), so the harness must rebase them to the load address
+    # itself.  This map lets it (see _relocate_text_label_refs in unicorn_diff).
+    text_symbol_offsets = {
+        s.name: s.value for s in symbols
+        if s.section_num - 1 == text_sec_idx
+    }
+
     rdata_map = {}
     rdata_relocs = {}
     section_reloc_cache = {}
@@ -312,6 +325,7 @@ def extract_function(obj_path: str, func_name: str) -> FunctionSlice:
         section_offset=func_offset,
         rdata_map=rdata_map,
         rdata_relocs=rdata_relocs,
+        text_symbol_offsets=text_symbol_offsets,
     )
 
 
