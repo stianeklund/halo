@@ -15723,7 +15723,7 @@
     {
      "addr": "0x1407e0",
      "decl": "char object_visible_to_any_player(int object_handle);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x1409d0",
