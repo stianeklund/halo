@@ -752,7 +752,8 @@ class StubManager:
 
     def prepare_stubs(self, stub_map: dict, globals_base: int = None,
                       shared_sentinels: dict = None,
-                      real_callees: bool = False) -> int:
+                      real_callees: bool = False,
+                      snapshot_regions: dict = None) -> int:
         """Prepare callee stubs for all symbols in the stub_map.
 
         By default each callee is a return-0 trampoline (only its call site is
@@ -780,12 +781,14 @@ class StubManager:
                 prepared += 1
 
         if real_callees:
-            self._load_real_callees(stub_map, globals_base, shared_sentinels)
+            self._load_real_callees(stub_map, globals_base, shared_sentinels,
+                                    snapshot_regions=snapshot_regions)
 
         return prepared
 
     def _load_real_callees(self, top_stub_map: dict, globals_base: int,
-                           shared_sentinels: dict) -> None:
+                           shared_sentinels: dict,
+                           snapshot_regions: dict = None) -> None:
         """BFS-load native oracle code for non-intercept callees.
 
         Mutates self._stubs (sets has_real_code + patched code), discovers
@@ -814,6 +817,20 @@ class StubManager:
             name = self._resolve_name(sentinel_addr)
             if name in self._INTERCEPT_NAMES or name in self._FTOL2_ADDRS:
                 continue
+            # Explicit snapshot stub_returns override wins over real-code
+            # loading.  The snapshot author deliberately stubbed this callee's
+            # return value (e.g. object_header_block_reference_get -> a node
+            # block pointer) precisely because its real body has preconditions
+            # the synthetic state cannot satisfy — running that body would
+            # assert (reference->offset>0) and halt the walk.  Leaving it as a
+            # trampoline lets get_stub_code bake in the MOV EAX,<override>;RET,
+            # applied identically to oracle and candidate.
+            if self.stub_return_overrides:
+                _c = self._canonical_names.get(sentinel_addr, "").lower()
+                _r = self._stub_names.get(sentinel_addr, "").lstrip("_").lower()
+                if (_c in self.stub_return_overrides
+                        or _r in self.stub_return_overrides):
+                    continue
             stub = self._stubs.get(sentinel_addr)
             if stub is None:
                 continue  # no decl/abi -> synthetic ret-stub
@@ -832,9 +849,14 @@ class StubManager:
             defined = getattr(fs, 'defined_symbols', set())
             rdata = getattr(fs, 'rdata_map', {})
             # DIR32 -> fresh globals slots (each unique global one 256B slot).
+            # snapshot_regions: identity-relocate DAT_/FLOAT_ globals that
+            # fall inside snapshot regions, so recursively-loaded callees
+            # (e.g. valid_real_normal3d's epsilon read) see the authored
+            # bytes instead of fresh-zeroed slots.
             patched, slots, rdata_seeds = patch_dir32_relocs(
                 fs.code, fs.relocs, defined,
-                globals_base=glob_cursor, return_slots=True, rdata_map=rdata)
+                globals_base=glob_cursor, return_slots=True, rdata_map=rdata,
+                snapshot_regions=snapshot_regions)
             glob_cursor += max(1, len(slots)) * 256
             self._callee_dir32_slots.update(slots)
             self._extra_rdata_seeds.update(rdata_seeds)

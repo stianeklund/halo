@@ -1928,7 +1928,8 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                 combined_stub_map,
                 globals_base=callee_globals_base,
                 shared_sentinels=shared_stub_sentinels,
-                real_callees=real_callees)
+                real_callees=real_callees,
+                snapshot_regions=snapshot_overrides)
             info(f"  stubs prepared: {n_prepared}/{len(combined_stub_map)}")
             if real_callees and stub_mgr._callee_dir32_slots:
                 # Seed the globals the loaded callee code reads (DAT_ -> snapshot
