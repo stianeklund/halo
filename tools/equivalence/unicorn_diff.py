@@ -355,6 +355,8 @@ def _relocate_text_label_refs(function_slice, code: bytes,
         return code
     patched = bytearray(code)
     base_delta = 0 if maps_full_text else function_slice.section_offset
+    slice_lo = function_slice.section_offset
+    slice_hi = slice_lo + len(function_slice.code)
     for reloc in function_slice.relocs:
         if reloc.reloc_type != 0x0006:  # IMAGE_REL_I386_DIR32
             continue
@@ -363,8 +365,20 @@ def _relocate_text_label_refs(function_slice, code: bytes,
         # named intra-section labels are rebased here.
         if sym.startswith("."):
             continue
+        # Ghidra-delinked switch DATA symbols (switchD_*::switchdataD_*) are
+        # served by _apply_oracle_switch_table_fixups / the globals-slot path;
+        # rebasing them here pointed the jmp at slice-relative addresses whose
+        # bytes are NOT loaded (table lives outside the extracted slice) ->
+        # jmp *0 -> ORACLE-CRASH eip=0 (FUN_000d04d0 regression, 2026-07-23).
+        if "switchdata" in sym or sym.startswith("switchD_"):
+            continue
         target_off = text_offsets.get(sym)
         if target_off is None:
+            continue
+        # Only rebase labels whose bytes are actually inside the extracted
+        # slice; a label outside it (another function's table/label in a
+        # whole-TU delinked obj) cannot be a valid target in this mapping.
+        if not maps_full_text and not (slice_lo <= target_off < slice_hi):
             continue
         off = reloc.virtual_address
         if off + 4 <= len(patched):
