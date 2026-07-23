@@ -34450,7 +34450,7 @@
     },
     {
      "addr": "0x120ba0",
-     "decl": "void interpolate_node_orientations(void);"
+     "decl": "void interpolate_node_orientations(int16_t node_count, void *interp_data, void *anim_data, int16_t interp_tick, int16_t interp_total);"
     },
     {
      "addr": "0x120cb0",
@@ -34507,7 +34507,7 @@
     },
     {
      "addr": "0x122450",
-     "decl": "void overlay_animation_apply_scaled(void);"
+     "decl": "void overlay_animation_apply_scaled(void *anim_entry, int frame, void *in_node_data, void *out_node_data);"
     },
     {
      "addr": "0x122690",
