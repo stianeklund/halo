@@ -1893,7 +1893,21 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         # --real-callees, _load_callee_code loads the *delinked* sibling body for
         # BOTH sides (same bytes), giving a valid, lift-isolating comparison.
         # Gated (additive) so the rest of the suite is unperturbed.
-        _sibling_resolve = os.environ.get("BIPED_SIBLING_RESOLVE") == "1"
+        # Defined-sibling redirect is REQUIRED whenever we load real callee
+        # bodies: the candidate maps only the target function slice, so a call
+        # to a DEFINED intra-object sibling (whole-.obj candidate) is otherwise
+        # left at its raw rel32 (disp 0 for a clang obj) — a `call $+5` that
+        # pushes a return address the (absent) callee never pops.  Each such
+        # call leaks 4 bytes; enough of them corrupt the frame so the epilogue
+        # RETs into a stack value and control escapes (eip=0x1ffffc wild fetch).
+        # Under --real-callees the sibling body is loaded at a shared sentinel
+        # for BOTH sides, so redirecting is both crash-safe and symmetric.
+        # Intercept-named siblings still route to their Python model: they are
+        # in force_redirect_names (→ the intercept sentinel), _load_real_callees
+        # skips _INTERCEPT_NAMES (no real code written), and should_intercept
+        # fires the model via hook_code before any sentinel byte executes.
+        _sibling_resolve = (os.environ.get("BIPED_SIBLING_RESOLVE") == "1"
+                            or real_callees)
         # call_count counts EXTERN calls only; a candidate whose only calls
         # are defined intra-object siblings (e.g. FUN_0018c370 -> FUN_0018c100)
         # has call_count == 0 yet still needs sibling-resolve patching, or its
