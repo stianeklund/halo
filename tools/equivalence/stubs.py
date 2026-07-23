@@ -414,7 +414,8 @@ class CalleeStub:
 def patch_rel32_calls(code: bytes, relocs: list, defined_symbols: set,
                       code_base: int = 0x00400000,
                       symbol_sentinels: Optional[dict[str, int]] = None,
-                      include_defined: bool = False) -> tuple:
+                      include_defined: bool = False,
+                      force_redirect_names: Optional[set] = None) -> tuple:
     """Rewrite REL32 call relocations to sentinel addresses.
 
     Returns (patched_code, stub_map) where stub_map is
@@ -426,11 +427,26 @@ def patch_rel32_calls(code: bytes, relocs: list, defined_symbols: set,
     intra-object sibling calls would otherwise keep their original (now wrong)
     displacements.  Section-relative ".text"/".rdata" relocs are still skipped
     (they carry an addend, not a single resolvable symbol).
+
+    force_redirect_names: set of canonical (underscore-stripped) symbol names
+    that must ALWAYS be redirected to a sentinel, even when the symbol is a
+    DEFINED intra-object sibling and include_defined is False.  Used for
+    Python-intercept callees (StubManager._INTERCEPT_NAMES, e.g.
+    object_get_and_verify_type): the oracle references them via a per-function
+    delinked ref where they are external and thus already redirected, but the
+    candidate is the WHOLE .obj where the same callee is a defined sibling.
+    Left unpatched, the sibling call's disp stays 0 (a no-op `call $+5`) so it
+    falls through leaving the pre-call EAX intact — silently substituting the
+    caller's argument for the callee's result and producing a false write-trace
+    divergence.  Redirecting to the shared sentinel makes the Python model run
+    identically on BOTH sides, restoring symmetry.
     """
     patched = bytearray(code)
     stub_map = {}
     if symbol_sentinels is None:
         symbol_sentinels = {}
+    if force_redirect_names is None:
+        force_redirect_names = frozenset()
     next_idx = len(symbol_sentinels)
 
     for r in relocs:
@@ -439,7 +455,8 @@ def patch_rel32_calls(code: bytes, relocs: list, defined_symbols: set,
         sym = r.symbol_name
         if sym.startswith(".text") or sym.startswith(".rdata"):
             continue
-        if sym in defined_symbols and not include_defined:
+        if (sym in defined_symbols and not include_defined
+                and sym.lstrip("_") not in force_redirect_names):
             continue
 
         sym_key = sym.lstrip("_")

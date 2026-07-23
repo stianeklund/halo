@@ -245,7 +245,13 @@ _ORACLE_SWITCH_TABLE_FIXUPS = {
         "switchD_001419d6::switchdataD_00141b38": (
             0x001419F7, 0x00141A04, 0x001419DD, 0x001419EA,
             0x00141A2A, 0x00141A4B, 0x00141A62, 0x00141ACE,
-            b"\x00\x01\x02\x03\x04" + b"\x07" * 13 + b"\x05\x06",
+            # Byte index-map @0x141b58 keyed on ecx=code-1, dispatch bounded to
+            # ecx<=0x12 (code 0x13).  Read verbatim from pristine cachebeta.xbe
+            # (VA 0x141b58): 00 01 02 03 04, twelve 07 (indices 5..16 -> region
+            # default), 05 (index 17 = code 0x12 -> caseD_12), 06 (index 18 =
+            # code 0x13 -> caseD_13).  A prior hand-authored copy had THIRTEEN
+            # 07s, shifting code 0x12->region (assert) and code 0x13->caseD_12.
+            b"\x00\x01\x02\x03\x04" + b"\x07" * 12 + b"\x05\x06",
         ),
     },
 }
@@ -253,13 +259,30 @@ _ORACLE_SWITCH_TABLE_FIXUPS = {
 
 def _apply_oracle_switch_table_fixups(func_addr: int, function_slice,
                                       rdata_map: dict,
-                                      maps_full_text: bool) -> dict:
-    """Add binary-backed switch table bytes missing from delinked COFF."""
+                                      maps_full_text: bool) -> tuple[dict, dict]:
+    """Add binary-backed switch table bytes missing from delinked COFF.
+
+    Returns (patched_rdata_map, identity_seeds).
+
+    ``identity_seeds`` maps the switchdata symbol's ORIGINAL XBE virtual
+    address -> the same fixup bytes, so they are mapped verbatim at that VA in
+    the emulator.  MSVC two-level ``switch`` dispatch emits a byte index-map
+    (code -> pointer-table index) read via an ABSOLUTE displacement with NO
+    relocation (``movzbl <switchdata+0x20>(ecx), edx``), then an indirect jump
+    through the reloc'd pointer table (``jmp [switchdata + edx*4]``).  The
+    pointer-table read is redirected to a globals slot by patch_dir32_relocs,
+    but the absolute index-map read has no reloc to redirect — left unseeded it
+    reads zero, so ``edx`` is always 0 and every code dispatches to table[0]
+    (e.g. FUN_00141970 wrote the case-1 value to all four function slots).
+    Seeding the block at its original VA makes the absolute read resolve while
+    the reloc'd pointer-table read keeps using its slot.
+    """
     fixups = _ORACLE_SWITCH_TABLE_FIXUPS.get(func_addr)
     if not fixups:
-        return rdata_map
+        return rdata_map, {}
 
     patched = dict(rdata_map)
+    identity_seeds = {}
     section_base_delta = (func_addr - function_slice.section_offset
                           if maps_full_text else func_addr)
     for symbol_name, target_vas in fixups.items():
@@ -272,7 +295,10 @@ def _apply_oracle_switch_table_fixups(func_addr: int, function_slice,
             else:
                 data.extend(struct.pack("<I", CODE_BASE + target_va - section_base_delta))
         patched[symbol_name] = bytes(data)
-    return patched
+        m = re.search(r'switchdataD_([0-9a-fA-F]+)', symbol_name)
+        if m:
+            identity_seeds[int(m.group(1), 16)] = bytes(data)
+    return patched, identity_seeds
 
 
 def _relocate_rdata_text_refs(function_slice, rdata_map: dict,
@@ -858,7 +884,21 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
         _seed_known_globals(uc, GLOBALS_BASE, GLOBALS_SIZE)
         if globals_seeds:
             for addr, data in globals_seeds.items():
-                uc.mem_write(addr, data)
+                try:
+                    uc.mem_write(addr, data)
+                except unicorn.UcError:
+                    # Seed lands outside the pre-mapped globals region (e.g. a
+                    # switch index-map seeded at its original low VA). Map the
+                    # spanned pages first, then write.
+                    start_page = addr & ~0xFFFF
+                    end_page = (addr + len(data) + 0xFFFF) & ~0xFFFF
+                    for page in range(start_page, end_page, 0x10000):
+                        try:
+                            uc.mem_map(page, 0x10000)
+                            uc.mem_write(page, b'\x00' * 0x10000)
+                        except unicorn.UcError:
+                            pass
+                    uc.mem_write(addr, data)
 
     # Apply memory overrides (state snapshot replay)
     _override_mapped = set()
@@ -1742,7 +1782,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         # Patch DIR32 relocations for both, with non-overlapping slot ranges
         orc_defined = getattr(oracle_slice, 'defined_symbols', set())
         lft_defined = getattr(lifted_slice, 'defined_symbols', set())
-        orc_rdata = _apply_oracle_switch_table_fixups(
+        orc_rdata, orc_switch_identity_seeds = _apply_oracle_switch_table_fixups(
             int(addr, 16), oracle_slice, getattr(oracle_slice, 'rdata_map', {}),
             oracle_text is not None)
         orc_rdata = _relocate_rdata_text_refs(
@@ -1773,6 +1813,10 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                                              snapshot_overrides=snapshot_overrides)
         globals_seeds.update(orc_rdata_seeds)
         globals_seeds.update(lft_rdata_seeds)
+        # Seed MSVC two-level switch index-maps at their original VA so the
+        # oracle's absolute (non-reloc'd) index-map read resolves; the reloc'd
+        # pointer-table read keeps using its globals slot from orc_rdata_seeds.
+        globals_seeds.update(orc_switch_identity_seeds)
         shared_stub_sentinels = {}
         orc_stub_map = {}
         lft_stub_map = {}
@@ -1819,7 +1863,8 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             oracle_code_patched, orc_stub_map = patch_rel32_calls(
                 bytes(oracle_code_patched), orc_relocs_canon, orc_defined,
                 code_base=orc_code_base,
-                symbol_sentinels=shared_stub_sentinels)
+                symbol_sentinels=shared_stub_sentinels,
+                force_redirect_names=StubManager._INTERCEPT_NAMES)
 
         # For lifted code, also patch REL32 if present.
         # Lifted runs from CODE_BASE directly (no section prefix).
@@ -1840,11 +1885,22 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         # has call_count == 0 yet still needs sibling-resolve patching, or its
         # unpatched rel32 (disp 0) falls through leaving the return address on
         # the stack -> epilogue RETs into the saved-EBP slot.
-        if lft_cls.call_count > 0 or _sibling_resolve:
+        # Intercept-named callees (object_get_and_verify_type, datum_get, ...)
+        # must always route to their Python model, even when the candidate's
+        # WHOLE .obj defines them as intra-object siblings while the oracle's
+        # per-function ref sees them as external.  Otherwise the defined
+        # sibling call is left unpatched (disp 0, no-op) and falls through with
+        # the caller's EAX standing in for the callee's result — see the
+        # force_redirect_names doc in patch_rel32_calls.
+        _intercept_names = StubManager._INTERCEPT_NAMES
+        if lft_cls.call_count > 0 or _sibling_resolve or (
+                lft_defined & {("_" + n) for n in _intercept_names}
+                or (lft_defined & _intercept_names)):
             lifted_code_patched, lft_stub_map = patch_rel32_calls(
                 bytes(lifted_code_patched), lft_relocs_canon, lft_defined,
                 symbol_sentinels=shared_stub_sentinels,
-                include_defined=_sibling_resolve)
+                include_defined=_sibling_resolve,
+                force_redirect_names=_intercept_names)
 
         combined_stub_map = dict(orc_stub_map)
         combined_stub_map.update(lft_stub_map)
