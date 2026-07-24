@@ -8760,7 +8760,7 @@ int16_t unit_next_weapon_index(int unit_handle, int16_t weapon_index,
 
           /* 0xfb090: check weapon must-be-readied flag */
           must_be_readied =
-            (char)((int (*)(int))0xfb090)(unit->unk_680[iter_index].value);
+            (char)weapon_must_be_readied(unit->unk_680[iter_index].value);
           if (must_be_readied != 0)
             return (int16_t)best_index;
 
@@ -8830,7 +8830,7 @@ bool unit_set_in_vehicle(int unit_handle, bool flag)
   if (!((bool (*)(int, bool))0xfd360)(weapon_handle, flag))
     return false;
 
-  ((void (*)(int, int))0xde360)(unit_handle, 0xd);
+  first_person_weapon_message_from_unit(unit_handle, 0xd);
 
   unit_detach_weapon(unit_handle, weapon_handle);
 
@@ -8840,7 +8840,7 @@ bool unit_set_in_vehicle(int unit_handle, bool flag)
   new_index = unit_next_weapon_index(unit_handle, -1, 0);
   unit->unk_676 = (uint16_t)new_index;
 
-  if (!((bool (*)(int))0xfaf50)(weapon_handle))
+  if (!weapon_can_be_fired(weapon_handle))
     object_delete(weapon_handle);
 
   return true;
@@ -9872,7 +9872,7 @@ void unit_set_control(int unit_handle, void *unit_control)
   }
 
   /* validate facing_vector is a valid normal */
-  if (!((bool (*)(float *))0x21fb0)((float *)(cd + 0x1c))) {
+  if (!valid_real_normal3d((float *)(cd + 0x1c))) {
     display_assert(
       csprintf(error_string_buffer,
                "%s: assert_valid_real_normal3d(%f, %f, %f)",
@@ -9883,7 +9883,7 @@ void unit_set_control(int unit_handle, void *unit_control)
   }
 
   /* validate aiming_vector is a valid normal */
-  if (!((bool (*)(float *))0x21fb0)((float *)(cd + 0x28))) {
+  if (!valid_real_normal3d((float *)(cd + 0x28))) {
     display_assert(
       csprintf(error_string_buffer,
                "%s: assert_valid_real_normal3d(%f, %f, %f)",
@@ -9895,7 +9895,7 @@ void unit_set_control(int unit_handle, void *unit_control)
 
   /* validate looking_vector is a valid normal */
   looking = (float *)(cd + 0x34);
-  if (!((bool (*)(float *))0x21fb0)(looking)) {
+  if (!valid_real_normal3d(looking)) {
     display_assert(csprintf(error_string_buffer,
                             "%s: assert_valid_real_normal3d(%f, %f, %f)",
                             "&control_data->looking_vector", (double)looking[0],
@@ -13336,7 +13336,7 @@ char FUN_001b3690(int unit_handle)
 
   /* [1] Debug trace enter */
   if (*(char *)0x449ef1 != 0 && *(char *)0x32de90 != 0) {
-    ((void (*)(void *))0x8fa40)((void *)0x32de88);
+    profile_enter_private((void *)0x32de88);
   }
   unit_control_trace(unit_handle, (const char *)0x2b7c98);
 
@@ -13492,7 +13492,7 @@ char FUN_001b3690(int unit_handle)
         *(float *)((char *)unit + 0x32c) = 0.0f;
       }
     } else {
-      cVar6 = ((char (*)(void))0xa8e30)();
+      cVar6 = game_engine_running();
       fVar20 = *(float *)0x28ac20;
       if (cVar6 != 0 && *(short *)((char *)unit + 0x3d2) != 0 &&
           *(short *)((char *)unit + 0x3d2) == 1) {
@@ -13647,9 +13647,9 @@ char FUN_001b3690(int unit_handle)
         if (zoom_level_new == (char)-1) {
           unit[0xbe] = 0;
         }
-        iVar10 = ((int (*)(int))0xba500)(unit_handle);
+        iVar10 = player_index_from_unit_index(unit_handle);
         if (iVar10 != -1) {
-          int pi = ((int (*)(int))0xba500)(unit_handle);
+          int pi = player_index_from_unit_index(unit_handle);
           int pd = (int)datum_get(*(void **)0x5aa6d4, pi);
           if (*(short *)(pd + 2) != -1) {
             iVar10 = (int)object_get_and_verify_type(unit_handle, 3);
@@ -13671,7 +13671,7 @@ char FUN_001b3690(int unit_handle)
                   (float)(int)(signed char)zoom_level_new / (float)denom;
               }
               if (zoom_sound_ref != -1) {
-                ((void (*)(int, float))0x1c7480)(zoom_sound_ref, zoom_interp);
+                sound_impulse_start(zoom_sound_ref, zoom_interp);
               }
             }
           }
@@ -13715,7 +13715,7 @@ char FUN_001b3690(int unit_handle)
       unit_control_trace(unit_handle, (const char *)0x2b7bf0);
     } else if (*(char *)((char *)unit + 0x266) == 0) {
       /* Smooth */
-      ((void (*)(float *, float *, float *, float, float))0x10f770)(
+      angular_accelerate_to_position(
         aim_vec, (float *)((char *)unit + 0x1e0),
         (float *)((char *)unit + 0x1f8), aim_vel_limit, aim_accel_limit);
       unit_control_trace(unit_handle, (const char *)0x2b7bc4);
@@ -13775,7 +13775,7 @@ char FUN_001b3690(int unit_handle)
       unit_control_trace(unit_handle, (const char *)0x2b7bac);
     } else if (*(char *)((char *)unit + 0x267) == 0) {
       float *lk = (float *)((char *)unit + 0x210);
-      ((void (*)(float *, float *, float *, float, float))0x10f770)(
+      angular_accelerate_to_position(
         lk, (float *)((char *)unit + 0x204), (float *)((char *)unit + 0x21c),
         aim_vel_limit, aim_accel_limit);
       unit_control_trace(unit_handle, (const char *)0x2b7b80);
@@ -14006,7 +14006,7 @@ char FUN_001b3690(int unit_handle)
   /* Weapon alert sound */
   if ((local_7 != 0 || unit[0x72] != -1) &&
       (FUN_001ab8c0(unit_handle), *(char *)0x5054fa != 0) && unit[0x72] != -1) {
-    iVar10 = ((int (*)(void))0xb5aa0)();
+    iVar10 = game_time_get();
     if (iVar10 >= *(int *)0x32e480 + 0x1e) {
       ((void (*)(int, const char *, ...))0x8f390)(
         2, (const char *)0x2b7b20, (double)*(float *)((char *)unit + 0x290),
@@ -14178,7 +14178,7 @@ label_flashlight_done:
   /* [20] Debug trace exit */
   unit_control_trace(unit_handle, (const char *)0x2b7aec);
   if (*(char *)0x449ef1 != 0 && *(char *)0x32de90 != 0) {
-    ((void (*)(void *))0x8fac0)((void *)0x32de88);
+    profile_exit_private((void *)0x32de88);
   }
 
   return 1;
