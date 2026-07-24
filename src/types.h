@@ -695,9 +695,12 @@ typedef struct {
   int16_t desired_zoom_level;    ///< offset=0x24
   uint8_t field_0x26;            ///< offset=0x26 aim-assist enabled flag
   int8_t  field_0x27;            ///< offset=0x27 aim-assist idle counter
-  uint8_t pad_0x28[0x8];         ///< offset=0x28
+  int32_t field_0x28;            ///< offset=0x28 (new_unit initializes to -1)
+  uint8_t pad_0x2c[0x4];         ///< offset=0x2c
   real    field_0x30;            ///< offset=0x30
-  uint8_t pad_0x34[0xc];         ///< offset=0x34
+  uint8_t pad_0x34[0x4];         ///< offset=0x34
+  real    field_0x38;            ///< offset=0x38 (new_unit init -1.49; look-pitch related)
+  real    field_0x3c;            ///< offset=0x3c (new_unit init  1.49; look-pitch related)
 } player_control_t;
 
 /// size=0x38

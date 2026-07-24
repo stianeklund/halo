@@ -77,25 +77,25 @@ void player_clear_aim_assist(int unit_handle)
  * to [0, 2*pi) by adding 2*pi if negative. */
 void player_control_set_facing(uint16_t local_player_index, float *direction)
 {
-  char *player_slot;
+  player_control_t *pc;
   float *desired_yaw;
 
   assert_halt(local_player_index >= 0 &&
               local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
 
-  player_slot = (char *)player_control_globals +
-                (int)(int16_t)local_player_index * 0x40 + 0x10;
-  desired_yaw = (float *)(player_slot + 0xc);
+  pc = (player_control_t *)((char *)player_control_globals +
+                            (int)(int16_t)local_player_index * 0x40 + 0x10);
+  desired_yaw = &pc->desired_angles_yaw;
 
   /* Convert direction vector to yaw/pitch angles */
   vector_to_angles(desired_yaw, direction);
 
   /* assert_valid_real on desired_angles.pitch (slot+0x10) */
-  if ((*(uint32_t *)(player_slot + 0x10) & 0x7f800000u) == 0x7f800000u) {
+  if ((*(uint32_t *)&pc->desired_angles_pitch & 0x7f800000u) == 0x7f800000u) {
     char *msg = csprintf((char *)0x5ab100, "%s: assert_valid_real(0x%08X %f)",
                          "player_control->desired_angles.pitch",
-                         *(uint32_t *)(player_slot + 0x10),
-                         (double)*(float *)(player_slot + 0x10));
+                         *(uint32_t *)&pc->desired_angles_pitch,
+                         (double)pc->desired_angles_pitch);
     display_assert(msg, "c:\\halo\\SOURCE\\game\\player_control.c", 0xbb, 1);
     system_exit(NONE);
   }
@@ -116,34 +116,34 @@ void player_control_set_facing(uint16_t local_player_index, float *direction)
 
 void player_control_new_unit(uint16_t local_player_index, int player_index)
 {
-  int *slot;
+  player_control_t *pc;
   float *facing;
   int unit;
 
   assert_halt(local_player_index >= 0 &&
               local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
-  slot =
-    (int *)((char *)player_control_globals + local_player_index * 0x40 + 0x10);
-  csmemset(slot, 0, 0x40);
-  *slot = player_index;
-  *(int16_t *)(slot + 8) = -1;
-  *(int16_t *)((char *)slot + 0x22) = -1;
-  *(int16_t *)(slot + 9) = -1;
-  *(char *)((char *)slot + 0x26) = 0;
-  slot[10] = -1;
-  *(float *)(slot + 0xf) = 1.49f;
-  *(float *)(slot + 0xe) = -1.49f;
-  *(int16_t *)(slot + 2) = 0;
-  *(int16_t *)((char *)slot + 10) = 0;
+  pc =
+    (player_control_t *)((char *)player_control_globals + local_player_index * 0x40 + 0x10);
+  csmemset(pc, 0, 0x40);
+  pc->unit_index = player_index;
+  pc->desired_weapon_index = -1;
+  pc->desired_grenade_index = -1;
+  pc->desired_zoom_level = -1;
+  pc->field_0x26 = 0;
+  pc->field_0x28 = -1;
+  pc->field_0x3c = 1.49f;
+  pc->field_0x38 = -1.49f;
+  pc->action_flags = 0;
+  pc->persistent_action_flags = 0;
   if (player_index != -1) {
     unit = (int)object_get_and_verify_type(player_index, 3);
-    facing = (float *)(slot + 3);
+    facing = &pc->desired_angles_yaw;
     vector_to_angles(facing, (float *)(unit + 0x1d4));
     if (*facing < *(float *)0x2533c0)
       *facing += *(float *)0x255a54;
-    *(int16_t *)(slot + 8) = *(int16_t *)(unit + 0x2a4);
-    *(int16_t *)((char *)slot + 0x22) = (int16_t) * (char *)(unit + 0x2cd);
-    *(int16_t *)(slot + 9) = (int16_t) * (char *)(unit + 0x2d1);
+    pc->desired_weapon_index = *(int16_t *)(unit + 0x2a4);
+    pc->desired_grenade_index = (int16_t) * (char *)(unit + 0x2cd);
+    pc->desired_zoom_level = (int16_t) * (char *)(unit + 0x2d1);
   }
 }
 
