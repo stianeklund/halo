@@ -299,7 +299,7 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
 
     /* check for forced weapon from AI/script */
     {
-      int16_t forced = ((int16_t(*)(int))0x1ac350)(*(int *)player);
+      int16_t forced = unit_find_weapon_to_ready(*(int *)player);
       if (forced != NONE && *(int16_t *)(player + 0x20) != forced) {
         *(int16_t *)(player + 0x20) = forced;
         *(int16_t *)(player + 0x24) = NONE;

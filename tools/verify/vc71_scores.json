@@ -5041,7 +5041,7 @@
       "source": "src/halo/game/player_control.c"
     },
     "FUN_000b8650": {
-      "score": 80.8,
+      "score": 81.4,
       "source": "src/halo/game/player_control.c"
     },
     "FUN_000b8c70": {
@@ -15297,7 +15297,7 @@
       "source": "src/halo/game/player_control.c"
     },
     "player_control_get_facing": {
-      "score": 80.8,
+      "score": 81.4,
       "source": "src/halo/game/player_control.c"
     },
     "player_control_initialize_for_new_map": {

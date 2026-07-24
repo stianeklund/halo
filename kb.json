@@ -22980,7 +22980,7 @@
     },
     {
      "addr": "0x1ac350",
-     "decl": "void sound_dispose(void);"
+     "decl": "int16_t unit_find_weapon_to_ready(int unit_handle);"
     },
     {
      "addr": "0x1ac3b0",
