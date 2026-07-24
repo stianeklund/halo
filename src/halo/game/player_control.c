@@ -131,8 +131,8 @@ void player_control_new_unit(uint16_t local_player_index, int player_index)
   pc->desired_zoom_level = -1;
   pc->field_0x26 = 0;
   pc->field_0x28 = -1;
-  pc->field_0x3c = 1.49f;
-  pc->field_0x38 = -1.49f;
+  pc->field_0x3c = 1.4922565f;  /* +85.5 degrees in radians (look-pitch limit) */
+  pc->field_0x38 = -1.4922565f; /* -85.5 degrees in radians (look-pitch limit) */
   pc->action_flags = 0;
   pc->persistent_action_flags = 0;
   if (player_index != -1) {
