@@ -47,6 +47,7 @@ words in your message. Listed for transparency, not as a to-do.
 | `halo-verify-debug` | "/verify, VC71, delink, objdiff, lift_pipeline, equivalence, golden tests, dual-oracle, low-match, behavior/runtime failure: verification l… | `vc71`, `vc71_verify`, `low match`, `low-match`, `match percent` |
 | `halo-xbdm` | Standard RDCP and XBDM command handling for real Xbox debugging | `xbdm`, `rdcp`, `real xbox`, `getmem` |
 | `halo-xbox-re` | "Halo CE Xbox reverse engineering, binary evidence, disassembly, Ghidra, ABI, structs, globals, unknowns, output contract: core doctrine fo… | `lift`, `lifting`, `ported`, `porting`, `ghidra` |
+| `header-recovery` | Recover the original Bungie header files and place recovered types in them, instead of piling every struct into src/types.h. Header paths a… | `header file`, `create header`, `.h file`, `new header`, `where does this struct go` |
 | `input-replay-testing` | Deterministic controller-input record/replay for testing on real engine | `input replay`, `deterministic input`, `capture scenario`, `capture_scenario`, `replay fixture` |
 | `lift-arg-hazards` | Argument hazard detection for lifted functions — cdecl mis-grouping (ADD ESP tell), NULL register args, and caller-site register order swap… | `call site`, `call-site`, `add esp`, `fstp`, `cdecl` |
 | `lift-crash-signals` | Xbox runtime crash diagnosis — key register signals, call-stack walk procedure, | `crash signal`, `eip`, `cr2`, `trap frame`, `register dump` |

@@ -10,7 +10,18 @@ description: Turn a struct-recovery evidence table into a conservative C89 struc
 Input: an evidence table from `struct-recovery` (offset, width, signedness, evidence).
 Output: a C89 struct whose layout the compiler *proves* at build time.
 
-## House style (src/types.h)
+## Where the struct goes
+
+`src/types.h` is the **default**, not the only answer. Before adding a struct
+there, check whether the binary proves a header for that subsystem — asserts
+inside header-resident inline functions stamp the header's path into the XBE.
+If one exists (e.g. `c:\halo\source\ai\encounters.h`), the struct and its
+`cs()`/`co()` asserts belong in that header instead. See
+[`header-recovery`](../header-recovery/SKILL.md) for the extraction command,
+the placement tiers, and the rule that you may **never invent a header name**.
+Everything below applies identically wherever the struct lands.
+
+## House style
 
 The repo already has assertion macros — use them, always, for every struct:
 
