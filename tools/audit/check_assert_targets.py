@@ -305,12 +305,13 @@ def _source_counts(func: KbFunc) -> Optional[Dict[str, int]]:
             break
     if body is None:
         return None
-    # assert_halt/assert_halt_msg (src/common.h, src/xdk_common.h) expand to
-    # display_assert(...) + system_exit(-1) — count each as one system_exit.
+    # assert_halt/assert_halt_msg/assert_halt_at (src/common.h, src/xdk_common.h)
+    # expand to display_assert(...) + system_exit(-1) — count each as one
+    # system_exit. assert_halt_at carries the recovered original (file,line).
     return {
         "system_exit":
             len(re.findall(r"\bsystem_exit\s*\(", body)) +
-            len(re.findall(r"\bassert_halt(?:_msg)?\s*\(", body)),
+            len(re.findall(r"\bassert_halt(?:_msg|_at)?\s*\(", body)),
         "halt_and_catch_fire":
             len(re.findall(r"\bhalt_and_catch_fire\s*\(", body)),
     }
