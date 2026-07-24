@@ -217,22 +217,8 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
 
   /* fill action with sentinel 0xfa, then read actual input */
   csmemset(action, 0xfa, 0x20);
-  {
-    /* player_control_get_input reads EBX as the output action struct.
-     * With -fno-omit-frame-pointer, EBP-relative memory refs are stable
-     * across pushes, so push operands can use memory constraints. */
-    int _dt_bits = *(int *)&delta_time;
-    int _idx = (int)local_player_index;
-    int _ebx = (int)action;
-    asm volatile(
-      "pushl %[dt]\n\t"
-      "pushl %[idx]\n\t"
-      "call *%[fn]\n\t"
-      "addl $8, %%esp"
-      : "+b"(_ebx)
-      : [fn] "r"((void *)0xb70b0), [dt] "g"(_dt_bits), [idx] "g"(_idx)
-      : "eax", "ecx", "edx", "memory", "cc");
-  }
+  /* get_local_player_input_blob fills *action (0x20 bytes, passed in EBX). */
+  get_local_player_input_blob(action, local_player_index, delta_time);
 
   player_index = local_player_get_player_index(local_player_index);
 
@@ -345,19 +331,12 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
         weapon_datum, *(int16_t *)(player + 0x24));
     }
 
-    /* apply turning/look input (unless scripted camera) */
+    /* apply turning/look input (unless scripted camera). FUN_000b7f90 takes
+     * local_player_index in EAX; a0/a1 are the raw turn/look input dwords at
+     * action+0x0c / action+0x10. */
     if (!((bool (*)(int16_t))0x86270)(local_player_index)) {
-      /* player_control_handle_turning reads EAX as local_player_index */
-      int _a0 = *(int *)(action + 0x0c);
-      int _a1 = *(int *)(action + 0x10);
-      int _eax = (int)local_player_index;
-      asm volatile("pushl %[a1]\n\t"
-                   "pushl %[a0]\n\t"
-                   "call *%[fn]\n\t"
-                   "addl $8, %%esp"
-                   : "+a"(_eax)
-                   : [fn] "r"((void *)0xb7f90), [a0] "r"(_a0), [a1] "r"(_a1)
-                   : "ecx", "edx", "memory", "cc");
+      FUN_000b7f90(local_player_index, *(int *)(action + 0x0c),
+                   *(int *)(action + 0x10));
     }
 
     /* autoaim idle detection: if the player is looking at an enemy

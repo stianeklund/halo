@@ -5004,6 +5004,50 @@
       "score": 69.6,
       "source": "src/halo/game/game_time.c"
     },
+    "FUN_000b6380": {
+      "score": 100.0,
+      "source": "src/halo/game/player_control.c"
+    },
+    "FUN_000b63f0": {
+      "score": 11.1,
+      "source": "src/halo/game/player_control.c"
+    },
+    "FUN_000b6460": {
+      "score": 100.0,
+      "source": "src/halo/game/player_control.c"
+    },
+    "FUN_000b6990": {
+      "score": 100.0,
+      "source": "src/halo/game/player_control.c"
+    },
+    "FUN_000b6a20": {
+      "score": 100.0,
+      "source": "src/halo/game/player_control.c"
+    },
+    "FUN_000b6ea0": {
+      "score": 85.5,
+      "source": "src/halo/game/player_control.c"
+    },
+    "FUN_000b6fc0": {
+      "score": 94.3,
+      "source": "src/halo/game/player_control.c"
+    },
+    "FUN_000b7f40": {
+      "score": 100.0,
+      "source": "src/halo/game/player_control.c"
+    },
+    "FUN_000b85c0": {
+      "score": 56.2,
+      "source": "src/halo/game/player_control.c"
+    },
+    "FUN_000b8650": {
+      "score": 79.7,
+      "source": "src/halo/game/player_control.c"
+    },
+    "FUN_000b8c70": {
+      "score": 95.1,
+      "source": "src/halo/game/player_control.c"
+    },
     "FUN_000b8d70": {
       "score": 94.3,
       "source": "src/halo/game/player_queues_new.c"
@@ -15244,6 +15288,38 @@
       "score": 98.4,
       "source": "src/halo/game/players.c"
     },
+    "player_clear_aim_assist": {
+      "score": 100.0,
+      "source": "src/halo/game/player_control.c"
+    },
+    "player_control_dispose": {
+      "score": 4.7,
+      "source": "src/halo/game/player_control.c"
+    },
+    "player_control_get_facing": {
+      "score": 79.7,
+      "source": "src/halo/game/player_control.c"
+    },
+    "player_control_initialize_for_new_map": {
+      "score": 56.2,
+      "source": "src/halo/game/player_control.c"
+    },
+    "player_control_new_unit": {
+      "score": 94.3,
+      "source": "src/halo/game/player_control.c"
+    },
+    "player_control_set_facing": {
+      "score": 85.5,
+      "source": "src/halo/game/player_control.c"
+    },
+    "player_control_set_unit_seat": {
+      "score": 100.0,
+      "source": "src/halo/game/player_control.c"
+    },
+    "player_control_update": {
+      "score": 95.1,
+      "source": "src/halo/game/player_control.c"
+    },
     "player_effect_get": {
       "score": 100.0,
       "source": "src/halo/effects/player_effects.c"
@@ -15851,6 +15927,10 @@
     "unit_get_grenade_count": {
       "score": 86.6,
       "source": "src/halo/units/units.c"
+    },
+    "unit_get_local_player_index": {
+      "score": 100.0,
+      "source": "src/halo/game/player_control.c"
     },
     "unit_get_melee_range_and_ticks": {
       "score": 85.4,

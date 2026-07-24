@@ -16553,7 +16553,7 @@
     },
     {
      "addr": "0xb70b0",
-     "decl": "void get_local_player_input_blob(void);"
+     "decl": "void get_local_player_input_blob(void *action@<ebx>, short local_player_index, real delta_time);"
     },
     {
      "addr": "0xb7e30",
@@ -16565,7 +16565,7 @@
     },
     {
      "addr": "0xb7f90",
-     "decl": "void FUN_000b7f90(void);"
+     "decl": "void FUN_000b7f90(short local_player_index@<eax>, int a0, int a1);"
     },
     {
      "addr": "0xb8cf0",
