@@ -16570,7 +16570,8 @@
     },
     {
      "addr": "0xb8cf0",
-     "decl": "void FUN_000b8cf0(void);"
+     "decl": "void FUN_000b8cf0(int16_t local_player_index, float *delta);",
+     "ported": true
     },
     {
      "addr": "0xb8d30",

@@ -556,9 +556,8 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
     /* apply turning/look input (unless scripted camera); the yaw and pitch
      * deltas for this frame live at action+0x0c / action+0x10. */
     if (!director_inhibited_facing(local_player_index)) {
-      player_control_update_desired_angles(local_player_index,
-                                           input.look_yaw_delta,
-                                           input.look_pitch_delta);
+      player_control_update_desired_angles(
+        local_player_index, input.look_yaw_delta, input.look_pitch_delta);
     }
 
     /* autoaim idle detection: if the player is looking at an enemy
@@ -686,4 +685,18 @@ void player_control_update(float delta_time)
   collision_log_end_period();
   if (profile_global_enable && *(char *)0x2f02a0)
     profile_exit_private((void *)0x2f0298);
+}
+
+/* Forward a packed look-delta pair to a local player's desired-angle update.
+ * delta points at two floats: delta[0] is the yaw (turn) delta and delta[1]
+ * the pitch (look) delta -- established from the push order at the
+ * player_control_update_desired_angles call site (first PUSH is the last
+ * argument, so [delta+4] becomes pitch_delta and [delta+0] yaw_delta).
+ * The deltas are only forwarded, never computed here.
+ *
+ * c:\halo\SOURCE\game\player_control.c */
+void FUN_000b8cf0(int16_t local_player_index, float *delta)
+{
+  assert_halt_at("c:\\halo\\SOURCE\\game\\player_control.c", 0x467, delta);
+  player_control_update_desired_angles(local_player_index, delta[0], delta[1]);
 }
