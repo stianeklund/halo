@@ -683,7 +683,8 @@ typedef struct {
 typedef struct {
   int32_t unit_index;            ///< offset=0x00 owning unit datum handle
   int32_t field_0x04;            ///< offset=0x04
-  int32_t field_0x08;            ///< offset=0x08
+  uint16_t action_flags;         ///< offset=0x08 (player_control_set_action_flags)
+  uint16_t persistent_action_flags; ///< offset=0x0a (persistent variant)
   real    desired_angles_yaw;    ///< offset=0x0c player->desired_angles.yaw
   real    desired_angles_pitch;  ///< offset=0x10 player->desired_angles.pitch
   real    field_0x14;            ///< offset=0x14

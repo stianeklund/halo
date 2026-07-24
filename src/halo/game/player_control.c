@@ -17,15 +17,15 @@ void player_control_dispose(void)
 void player_control_set_action_flags(int16_t local_player_index, uint16_t flags,
                                      bool persistent)
 {
-  uint16_t *slot;
+  player_control_t *pc;
 
   assert_halt(local_player_index >= 0 &&
               local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
-  slot = (uint16_t *)((char *)player_control_globals +
-                      local_player_index * 0x40 + 0x10);
-  *(uint16_t *)((char *)slot + 8) |= flags;
+  pc = (player_control_t *)((char *)player_control_globals +
+                            local_player_index * 0x40 + 0x10);
+  pc->action_flags |= flags;
   if (persistent)
-    *(uint16_t *)((char *)slot + 0xa) |= flags;
+    pc->persistent_action_flags |= flags;
 }
 
 /* Get the local player index for the player controlling a unit.
@@ -57,7 +57,7 @@ void player_clear_aim_assist(int unit_handle)
   int player_handle;
   char *player;
   int16_t local_player_index;
-  char *slot;
+  player_control_t *pc;
 
   unit_obj = (char *)object_get_and_verify_type(unit_handle, 3);
   player_handle = *(int *)(unit_obj + 0x1c8);
@@ -65,8 +65,8 @@ void player_clear_aim_assist(int unit_handle)
     player = (char *)datum_get(player_data, player_handle);
     local_player_index = *(int16_t *)(player + 0x2);
     if (local_player_index != NONE) {
-      slot = (char *)player_control_get_data((int16_t)local_player_index);
-      *(int16_t *)(slot + 0x24) = NONE;
+      pc = (player_control_t *)player_control_get_data((int16_t)local_player_index);
+      pc->desired_zoom_level = NONE;
     }
   }
 }
@@ -157,7 +157,7 @@ void player_control_set_unit_seat(int unit_handle, int seat_index)
   int player_handle;
   char *player;
   int16_t local_player_index;
-  char *slot;
+  player_control_t *pc;
 
   unit_obj = (char *)object_get_and_verify_type(unit_handle, 3);
   player_handle = *(int *)(unit_obj + 0x1c8);
@@ -165,8 +165,8 @@ void player_control_set_unit_seat(int unit_handle, int seat_index)
     player = (char *)datum_get(player_data, player_handle);
     local_player_index = *(int16_t *)(player + 0x2);
     if (local_player_index != NONE) {
-      slot = (char *)player_control_get_data(local_player_index);
-      *(int16_t *)(slot + 0x20) = (int16_t)seat_index;
+      pc = (player_control_t *)player_control_get_data(local_player_index);
+      pc->desired_weapon_index = (int16_t)seat_index;
     }
   }
 }
