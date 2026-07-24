@@ -12920,10 +12920,15 @@ void unit_died(int unit_handle, char param_2)
 
   /* Notify current weapon */
   if (*(int16_t *)(unit + 0x2a2) != -1) {
-    temp_unit = (int)object_get_and_verify_type(unit_handle, 3);
-    weapon_handle =
-      unit_get_weapon(unit_handle, *(int16_t *)(temp_unit + 0x2a2));
-    weapon_owner_update(weapon_handle);
+    /* a1 is narrowed to int16 into weapon+0x1e0; a2 feeds
+     * weapon->weapon.primary_trigger at weapon+0x1e4. The original pushes 0
+     * for both before evaluating the handle (0x1b3166), so keep this nested. */
+    weapon_owner_update(
+      unit_get_weapon(unit_handle,
+                      *(int16_t *)((char *)object_get_and_verify_type(
+                                     unit_handle, 3) +
+                                   0x2a2)),
+      0, 0.0f);
   }
 
   /* Clear integrated light bit */
@@ -13893,7 +13898,7 @@ char FUN_001b3690(int unit_handle)
       {
         int ud3 = (int)object_get_and_verify_type(unit_handle, 3);
         int w2 = unit_get_weapon(unit_handle, *(int16_t *)(ud3 + 0x2a2));
-        ((void (*)(int, uint32_t, float))0xfc4b0)(w2, uVar15, flash_mod);
+        weapon_owner_update(w2, (int)uVar15, flash_mod);
       }
     }
   } /* end tag 0x400 check */

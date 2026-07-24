@@ -30878,7 +30878,7 @@
     },
     {
      "addr": "0xfc4b0",
-     "decl": "void weapon_owner_update(int weapon_handle);"
+     "decl": "void weapon_owner_update(int weapon_handle, int a1, float a2);"
     },
     {
      "addr": "0xfc550",
