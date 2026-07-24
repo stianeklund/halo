@@ -16572,10 +16572,6 @@
      "addr": "0xb8cf0",
      "decl": "void FUN_000b8cf0(int16_t local_player_index, float *delta);",
      "ported": true
-    },
-    {
-     "addr": "0xb8d30",
-     "decl": "void FUN_000b8d30(void);"
     }
    ],
    "name": "player_control.obj",
@@ -16712,6 +16708,11 @@
   },
   {
    "functions": [
+    {
+     "addr": "0xb8d30",
+     "decl": "void update_server_add_player(int handle);",
+     "ported": true
+    },
     {
      "addr": "0xb8d70",
      "decl": "bool update_client_new(void);",

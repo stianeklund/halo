@@ -5056,12 +5056,16 @@
       "score": 93.9,
       "source": "src/halo/game/player_control.c"
     },
+    "FUN_000b8d30": {
+      "score": 100.0,
+      "source": "src/halo/game/player_queues_new.c"
+    },
     "FUN_000b8d70": {
       "score": 94.3,
       "source": "src/halo/game/player_queues_new.c"
     },
     "FUN_000b8e40": {
-      "score": 97.4,
+      "score": 100.0,
       "source": "src/halo/game/player_queues_new.c"
     },
     "FUN_000b8f00": {
@@ -5089,7 +5093,7 @@
       "source": "src/halo/game/player_queues_new.c"
     },
     "FUN_000b9040": {
-      "score": 96.4,
+      "score": 98.2,
       "source": "src/halo/game/player_queues_new.c"
     },
     "FUN_000b90d0": {
@@ -5101,7 +5105,7 @@
       "source": "src/halo/game/player_queues_new.c"
     },
     "FUN_000b91b0": {
-      "score": 97.4,
+      "score": 100.0,
       "source": "src/halo/game/player_queues_new.c"
     },
     "FUN_000b9270": {
@@ -5121,7 +5125,7 @@
       "source": "src/halo/game/player_queues_new.c"
     },
     "FUN_000b97b0": {
-      "score": 60.6,
+      "score": 99.3,
       "source": "src/halo/game/player_queues_new.c"
     },
     "FUN_000b9990": {
@@ -16210,6 +16214,10 @@
     },
     "update_client_new": {
       "score": 91.2,
+      "source": "src/halo/game/player_queues_new.c"
+    },
+    "update_server_add_player": {
+      "score": 100.0,
       "source": "src/halo/game/player_queues_new.c"
     },
     "ustrncpy": {
