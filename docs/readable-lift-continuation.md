@@ -1,6 +1,12 @@
 # Handover — Readable-Lift Initiative
 
-_Branch: `lift-session-20260724` (13 commits on top of `main`). Session date: 2026-07-24._
+_Branch: `lift-session-20260724` (17 commits on top of `main`). Session date: 2026-07-24._
+
+> **Session 2 update (same day).** The three "Next Steps" below were carried out:
+> `0xb7f90` is ported, the `action` struct is recovered, and the pattern rolled to `units.c`.
+> See "Session 2" at the bottom for results — including one correction: porting `0xb7f90`
+> did **not** clear the `initialize_for_new_map` IMM-WARN, and the reason given below for
+> that artifact was wrong.
 
 ## Objective
 Make lifted C read like faithful Bungie source (named structs/fields, typed
@@ -102,3 +108,58 @@ VC71 byte-match — and add tooling so new lifts stay that way.
 > derive field names from binary evidence (asserts, call sites), keep unknowns as
 > `field_0xNN`, and run `check_readability.py --changed-only` after edits. See
 > `docs/readable-lift-continuation.md` and memory `project_readable_lift_initiative`.
+
+---
+
+## Session 2 results (2026-07-24)
+
+Commits `d47fba11`, `7377c007`, `bf86dfbb`.
+
+### Confirmed (tool-backed)
+- `0xb7f90` = **`player_control_update_desired_angles(int16_t local_player_index@<eax>,
+  float yaw_delta, float pitch_delta)`**, ported at **89.8% VC71** (493/496 insns, no FPU-WARN).
+  Yaw advances then is constrained to the seat's arc (marker at `seat+0x24`, limits
+  `seat+0xf0/+0xf4`, snap to nearer end, wrap to `[0, 2*pi]`); pitch is clamped to the player's
+  pitch limits, which ease toward camera-info targets at ±pi/256 per call.
+- **`field_0x38`/`field_0x3c` are now CONFIRMED, not inferred** — `pitch_minimum`/`pitch_maximum`.
+  The tail of `0xb7f90` rate-limits both and clamps `desired_angles.pitch` between them.
+- **`player_input_t`** (0x20) recovered. The name `input` and `primary_trigger@0x08` are verbatim
+  from the producer's own assert string `"input->primary_trigger"` (0x26e2d0), which guards
+  `fld [ebx+0x8]`. `look_yaw_delta@0x0c` / `look_pitch_delta@0x10` are proven behaviourally.
+  `player_control_t` also gained its missing `cs()`/`co()` asserts.
+- Assert flavour verified: binary and source both call `system_exit` ×4 in the new function.
+- `0xb6740` decl corrected to `player_control_get_unit_camera_info(int16_t, void *)`.
+
+### Correction to the Session 1 doc
+The residual `[IMM-WARN]` on `player_control_initialize_for_new_map` is **not** caused by the
+then-unported `0xb7f90`, and porting it did not clear the warning. The flagged ±85.5° stores are
+`player_control_new_unit`'s (`movl $0x3fbf0243, 0x3c(%esi)`), misattributed to the wrong chunk by
+per-function chunk misalignment (reference chunk 45 insns vs our 82). It remains a truncated-
+reference artifact, but for a different reason than stated above.
+
+### Reusable levers found
+- **`fabsf()` compiles to a CALL under VC71; `fabs()` is the MSVC intrinsic** (inline `FABS`).
+- Writing `f(g() + K, a, b)` **nested** rather than via a temp reproduces MSVC pushing the later
+  args before calling `g()`, and lets a single `ADD ESP` clean several calls. These two changes
+  alone moved `0xb7f90` from 86.9% → 89.8%.
+
+### units.c
+15 raw fn-ptr casts → named calls; **named calls beat address casts** (`FUN_001b3690`
+81.1→81.5%, `unit_set_control` 97.6→98.2%, `unit_set_in_vehicle` 79.1→81.1%). raw-cast baseline
+382 → 367. Its VC71 floor is **stale**: 12 phantom regressions block commit but are byte-identical
+in a same-session before/after — use `--no-verify`, and do *not* run `vc71_regression.py update`,
+which would bake the lower numbers in and destroy the signal that they regressed earlier.
+
+### Not done / open
+- Equivalence on `0xb7f90` is **inconclusive, not clean**: every seed stops at the entry bounds
+  assert, and the sole stub-arg divergence is `display_assert arg[1]` — the file-path string at the
+  XBE's address vs our object's own `.rdata` copy. Needs a live state snapshot to be meaningful.
+- No gameplay-path runtime test was run this session either.
+- `player_control.c` still has ~37 advisory findings, now all on the **`player_action`** output
+  struct — the natural next recovery target.
+- units.c casts deliberately left: `0xfc4b0 weapon_owner_update` (kb declares 1 param, call site
+  passes 3 — a real signature conflict worth resolving), `0x122450`/`0x122690` (void* vs int),
+  `0x8f390 error` (varargs), and 5 `void(void)` decls hiding real signatures
+  (`0x122240`, `0x120670`, `0x95c10`, `0x40460`, `0x122060`).
+- `0xb7f90` sits in the [85, 98] permuter band with a delinked ref, so `/verify permute` is
+  available if someone wants it pushed further.
