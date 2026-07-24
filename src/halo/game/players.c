@@ -1441,18 +1441,8 @@ typedef struct {
  * primary_trigger (float) +0x18  desired_weapon_index (int16) +0x1a
  * desired_grenade_index (int16) +0x1c  desired_zoom_level (int16) +0x1e  pad
  * Total: 0x20 bytes per action entry. */
-typedef struct {
-  uint32_t buttons;
-  float desired_facing_yaw;
-  float desired_facing_pitch;
-  float throttle_x;
-  float throttle_y;
-  float primary_trigger;
-  int16_t desired_weapon_index;
-  int16_t desired_grenade_index;
-  int16_t desired_zoom_level;
-  char pad[2];
-} player_action_t;
+/* player_action_t now lives in src/types.h, where cs()/co() asserts lock the
+ * layout above. */
 
 /* Apply a powerup timer to a player. Despite the kb.json name "respawn_timer",
  * the binary assert and source path show this sets the powerup countdown at

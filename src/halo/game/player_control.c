@@ -641,32 +641,34 @@ final_copy:
 
     /* build and submit player action struct */
     {
-      char player_action[0x20];
-      *(int *)(player_action + 0x00) = pc->field_0x04;
-      *(int *)(player_action + 0x04) = *(int *)&pc->desired_angles_yaw;
-      *(int *)(player_action + 0x08) = *(int *)&pc->desired_angles_pitch;
-      *(int16_t *)(player_action + 0x18) = pc->desired_weapon_index;
-      *(int16_t *)(player_action + 0x1a) = pc->desired_grenade_index;
-      *(int *)(player_action + 0x0c) = *(int *)&pc->field_0x14;
-      *(int16_t *)(player_action + 0x1c) = pc->desired_zoom_level;
-      *(int *)(player_action + 0x14) = *(int *)&pc->primary_trigger;
-      *(int *)(player_action + 0x10) = pc->field_0x18;
+      char action_buf[0x20];
+      player_action_t *action = (player_action_t *)action_buf;
+
+      action->buttons = pc->field_0x04;
+      *(int *)&action->desired_facing_yaw = *(int *)&pc->desired_angles_yaw;
+      *(int *)&action->desired_facing_pitch = *(int *)&pc->desired_angles_pitch;
+      action->desired_weapon_index = pc->desired_weapon_index;
+      action->desired_grenade_index = pc->desired_grenade_index;
+      *(int *)&action->throttle_x = *(int *)&pc->field_0x14;
+      action->desired_zoom_level = pc->desired_zoom_level;
+      *(int *)&action->primary_trigger = *(int *)&pc->primary_trigger;
+      *(int *)&action->throttle_y = *(int *)&pc->field_0x18;
 
       /* validate action facing angles */
-      bits = *(uint32_t *)(player_action + 0x08);
+      bits = *(uint32_t *)&action->desired_facing_pitch;
       if ((bits & 0x7f800000) == 0x7f800000) {
         display_assert("action.desired_facing.pitch",
                        "c:\\halo\\SOURCE\\game\\player_control.c", 0x369, 1);
         system_exit(NONE);
       }
-      bits = *(uint32_t *)(player_action + 0x04);
+      bits = *(uint32_t *)&action->desired_facing_yaw;
       if ((bits & 0x7f800000) == 0x7f800000) {
         display_assert("action.desired_facing.yaw",
                        "c:\\halo\\SOURCE\\game\\player_control.c", 0x36a, 1);
         system_exit(NONE);
       }
 
-      update_client_queue(player_action);
+      update_client_queue(action_buf);
     }
   }
 }

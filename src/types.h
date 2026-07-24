@@ -735,6 +735,41 @@ typedef struct {
   uint32_t field_0x18;           ///< offset=0x18
   uint32_t action_flags;         ///< offset=0x1c bit1 grenade switch, bit2 melee/throw
 } player_input_t;
+/// size=0x20
+/// The action player_control_get_facing builds from a player control slot and
+/// hands to update_client_queue. Bungie calls the local "action" and the angle
+/// pair "desired_facing" -- both verbatim from this function's own assert
+/// strings "action.desired_facing.yaw"/".pitch" (player_control.c:0x369-0x36a),
+/// which guard +0x04 and +0x08. The three index fields and primary_trigger are
+/// copied straight from the identically-named player_control_t fields;
+/// field_0xNN are copied from player_control_t fields that are themselves not
+/// yet identified.
+/// buttons/throttle_x/throttle_y names come from the prior recovery that lived
+/// as a local typedef in game/players.c (bit 6 binoculars, bit 14 zoom, bit 7
+/// alt_attack); consolidated here so there is one definition.
+typedef struct {
+  uint32_t buttons;              ///< offset=0x00 bit6 binoculars, bit7 alt_attack, bit14 zoom
+  real    desired_facing_yaw;    ///< offset=0x04 action.desired_facing.yaw
+  real    desired_facing_pitch;  ///< offset=0x08 action.desired_facing.pitch
+  real    throttle_x;            ///< offset=0x0c
+  real    throttle_y;            ///< offset=0x10
+  real    primary_trigger;       ///< offset=0x14
+  int16_t desired_weapon_index;  ///< offset=0x18
+  int16_t desired_grenade_index; ///< offset=0x1a
+  int16_t desired_zoom_level;    ///< offset=0x1c
+  uint8_t pad_0x1e[0x2];         ///< offset=0x1e
+} player_action_t;
+cs(player_action_t, 0x20);
+co(player_action_t, buttons,               0x00);
+co(player_action_t, throttle_x,            0x0c);
+co(player_action_t, throttle_y,            0x10);
+co(player_action_t, desired_facing_yaw,    0x04);
+co(player_action_t, desired_facing_pitch,  0x08);
+co(player_action_t, primary_trigger,       0x14);
+co(player_action_t, desired_weapon_index,  0x18);
+co(player_action_t, desired_grenade_index, 0x1a);
+co(player_action_t, desired_zoom_level,    0x1c);
+
 cs(player_input_t, 0x20);
 co(player_input_t, primary_trigger,  0x08);
 co(player_input_t, look_yaw_delta,   0x0c);
