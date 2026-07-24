@@ -2,7 +2,7 @@
 name: header-recovery
 tier: agent
 triggers: ["header file", "create header", ".h file", "new header", "where does this struct go", "split types.h", "types.h is huge", "include guard", "header layout"]
-description: Recover the original Bungie header files and place recovered types in them, instead of piling every struct into src/types.h. Header paths are binary-proven from __FILE__ strings stamped by asserts inside header-resident inline functions. Headers carry types/macros/inlines only — function declarations come from kb.json via build/generated/decl.h. Zero codegen risk, gated on build + unchanged VC71.
+description: Recover the original Bungie header files and place recovered types in them, instead of piling every struct into src/types.h. Header paths are binary-proven from __FILE__ strings stamped by asserts inside header-resident inline functions. Headers carry types/macros/inlines only — function declarations come from kb.json via build/generated/decl.h. NOT automatically codegen-neutral: adding an #include line shifts __LINE__ for every assert_halt below it. Gated on byte-identical .text.
 ---
 
 # Header Recovery
@@ -100,20 +100,50 @@ so it belongs in `src/halo/ai/encounters.h`, not `types.h`.
   `project_maintain_reorder_strands_file_scope_decls`); `--check` does not catch
   it. Re-read the head of any file `maintain.py` reorders after a header move.
 
-## 5. Gates
+## 5. The `__LINE__` trap — a header move is NOT automatically free
 
-Headers emit no code, so the bar is absolute:
+Moving a type emits no code, but **adding the `#include` line does**. `assert_halt`
+expands to `display_assert(#cond, __FILE__, __LINE__, true)`, and `__LINE__`
+becomes a literal `push $<line>` in `.text`. Insert one `#include` at the top of a
+`.c` file and every `assert_halt` below it shifts by one:
+
+```
+-    4a5f:  push   $0xd5c
++    4a5f:  push   $0xd5d
+```
+
+Measured on 2026-07-24: `actors.c` (3 `assert_halt`) produced exactly 3 changed
+instructions, `encounters.c` (1) produced 1, `actor_looking.c` and `ai_profile.c`
+(0) produced none. The count of changed instructions equals the number of
+`assert_halt` calls below the insertion point.
+
+**Keep the line count of the `.c` file constant** — delete an adjacent blank line
+when you add the `#include`. (The durable fix is converting those sites to
+`assert_halt_at(file, line, cond)`, which hardcodes the *recovered original* line
+and is then immune to shifts *and* matches the original binary's immediate — see
+the readable-lift initiative. Do that as separate, deliberate work, never
+silently as part of a header move.)
+
+## 6. Gates
 
 1. `tools/build/build.py -q --target halo` — clean.
-2. **VC71 match unchanged for every affected TU.** Not "no big drop" — *unchanged*.
-   A header move that shifts a single instruction means something moved
-   semantically (a type width changed, a struct gained padding, a macro now
-   resolves differently). Investigate; do not accept it.
-3. The `cs()`/`co()` asserts still compile in their new home — that is what proves
-   the layout survived the move.
-4. `tools/audit/check_readability.py --changed-only` for the touched `.c` files.
+2. **`.text` byte-identical for every affected TU.** This is the real gate and it
+   works even where no delinked reference is mapped (most TUs), unlike VC71:
 
-## 6. Commit discipline
+   ```bash
+   # capture objects, stash the move, rebuild, compare
+   objdump -d --no-show-raw-insn build/CMakeFiles/halo.dir/src/<path>.c.obj | tail -n +3
+   ```
+   Compare before/after; **0 differing lines is the pass condition.** Whole-object
+   `md5sum` will differ even on a clean move (debug/line tables embed the path),
+   so compare disassembled `.text`, not the raw file.
+3. If a delinked reference *is* mapped, VC71 match must also be unchanged — not
+   "no big drop", unchanged.
+4. The `cs()`/`co()` asserts still compile in their new home — that is what proves
+   the layout survived the move.
+5. `tools/audit/check_readability.py --changed-only` for the touched `.c` files.
+
+## 7. Commit discipline
 
 **One header per commit** (`Separation` rule). A reviewer must be able to read
 "commit 4 = encounters.h" and skim it. Never mix a header move with a lift, a
