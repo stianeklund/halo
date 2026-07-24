@@ -1,3 +1,4 @@
+#include "encounters.h"
 /* ai_profile.c — AI difficulty/profile subsystem.
  *
  * Corresponds to addresses 0x540b0-0x56320 in the XBE (ai_profile.obj TU).

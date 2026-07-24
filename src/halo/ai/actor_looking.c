@@ -6,6 +6,7 @@
  */
 
 #include "../../common.h"
+#include "encounters.h"
 #include "../../x87_math.h"
 
 /* Cross-object callee declarations */

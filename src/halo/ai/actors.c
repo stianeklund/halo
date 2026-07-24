@@ -1,5 +1,5 @@
 #include "x87_math.h"
-
+#include "encounters.h"
 /* Check if an actor has a swarm component or its unit is in a vehicle seat. */
 int FUN_0002a360(int actor_handle)
 {

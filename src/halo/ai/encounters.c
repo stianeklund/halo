@@ -28,8 +28,8 @@
  * (encounter_leave), encounters_create_for_new_map (tally reset), FUN_0005de80
  * (encounter_update), encounter lifecycle stubs (0x5df80–0x5dfb0).
  */
-
 #include "../../common.h"
+#include "encounters.h"
 
 
 /* 0x00053da0 — encounters_update dispatcher (FUN_00053da0).
