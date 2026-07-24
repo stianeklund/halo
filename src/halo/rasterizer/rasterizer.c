@@ -215,6 +215,33 @@ void FUN_0016eef0(void *group)
   FUN_00174510(grp, 0);
 }
 
+/* 0x16f880
+ *
+ * FUN_0016f880
+ *
+ * Re-seeds the xbox rasterizer profile state block from the current render
+ * window. Copies the current window index (short @0x5a5bc2 -- the same
+ * global the text/decal window filters read) into the profile gate
+ * (short @0x325184), and marks "no profile currently open" by storing -1
+ * into the open-profile index (short @0x325180).
+ *
+ * Both stores and the load are 16-bit in the original (MOV AX,[5a5bc2] /
+ * MOV [325184],AX / MOV word ptr [325180],0FFFFh), so the globals must be
+ * accessed as `short`, not int. The two profile words are 4 bytes apart and
+ * are separate fields, not one dword.
+ *
+ * Consumers: src/halo/rasterizer/xbox/rasterizer_xbox_profile.c gates
+ * profiling on `*(short *)0x325184 == 0` and treats 0x325180 == -1 as
+ * "no open profile".
+ *
+ * void FUN_0016f880(void); cdecl, no args, no return value, no callees.
+ */
+void FUN_0016f880(void)
+{
+  *(short *)0x325184 = *(short *)0x5a5bc2;
+  *(short *)0x325180 = -1;
+}
+
 /* 0x172a30
  *
  * FUN_00172a30
