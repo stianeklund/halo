@@ -17703,7 +17703,9 @@
     },
     {
      "addr": "0xbee40",
-     "decl": "void FUN_000bee40(void);"
+     "decl": "void FUN_000bee40(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "source_path": "src/halo/game/players.c"
     },
     {
      "addr": "0xbee80",

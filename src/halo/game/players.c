@@ -3926,11 +3926,11 @@ void FUN_000beb30(int16_t function_index, int thread_datum, char init)
 /* FUN_000beb70 @ 0x000beb70
  *
  * HaloScript macro-function trampoline (object-list side-effect variant). A
- * direct sibling of the FUN_000bebb0 family above. Evaluates the script function
- * via hs_macro_function_evaluate(function_index, thread_datum, init), which
- * returns a pointer to an evaluation record. On a non-NULL record it forwards
- * the first dword (*record, MOV EDX,[EAX]) to FUN_000c9d40, then completes the
- * calling script thread with hs_return(thread_datum, 0).
+ * direct sibling of the FUN_000bebb0 family above. Evaluates the script
+ * function via hs_macro_function_evaluate(function_index, thread_datum, init),
+ * which returns a pointer to an evaluation record. On a non-NULL record it
+ * forwards the first dword (*record, MOV EDX,[EAX]) to FUN_000c9d40, then
+ * completes the calling script thread with hs_return(thread_datum, 0).
  *
  * cdecl frame (PUSH EBP; MOV EBP,ESP):
  *   function_index  int16_t  [EBP+0x08]  -> hs_macro_function_evaluate arg1
@@ -3940,11 +3940,12 @@ void FUN_000beb30(int16_t function_index, int thread_datum, char init)
  * BUGFIX (was a players.obj lift regression, e14f0280): the original does
  *   MOV EDX,[EAX]; PUSH EDX; CALL FUN_000c9d40   (0xbeb8c-0xbeb8f)
  * i.e. it passes *record (the object-list handle) to FUN_000c9d40, which
- * iterates that object list (object_list_iterator_first/next at 0xce450/0xce320).
- * Ghidra models FUN_000c9d40 as void(void), so the original lift called it with
- * no argument; FUN_000c9d40 then read a stale stack value as the handle and
- * asserted "object list header index #N is unused or changed" (data.c). The
- * decl for FUN_000c9d40 is corrected to take the object-list handle. */
+ * iterates that object list (object_list_iterator_first/next at
+ * 0xce450/0xce320). Ghidra models FUN_000c9d40 as void(void), so the original
+ * lift called it with no argument; FUN_000c9d40 then read a stale stack value
+ * as the handle and asserted "object list header index #N is unused or changed"
+ * (data.c). The decl for FUN_000c9d40 is corrected to take the object-list
+ * handle. */
 void FUN_000beb70(int16_t function_index, int thread_datum, char init)
 {
   int *record;
@@ -4302,6 +4303,53 @@ void FUN_000bee00(int16_t function_index, int thread_datum, char init)
                                                        thread_datum, init);
   if (record != NULL) {
     render_effects(*record);
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* FUN_000bee40 @ 0x000bee40
+ *
+ * HaloScript macro-function evaluator wrapper (unit blink-enable variant), a
+ * direct sibling of FUN_000bee00 above. Evaluates the script function via
+ * hs_macro_function_evaluate(function_index, thread_datum, init); while that
+ * returns NULL the evaluation is still pending and nothing is committed. On a
+ * non-NULL evaluation record the record's first dword (a unit handle) and the
+ * zero-extended byte at +0x4 (the boolean flag) are forwarded to
+ * unit_scripting_can_blink, then the calling thread is completed with
+ * hs_return(thread_datum, 0).
+ *
+ * cdecl frame (PUSH EBP; MOV EBP,ESP; PUSH ESI for thread_datum; no _chkstk,
+ * no locals):
+ *   function_index  int16_t  [EBP+0x08]  -> hs_macro_function_evaluate arg1
+ *                                           (loaded to ECX)
+ *   thread_datum    int      [EBP+0x0c]  -> arg2; held in ESI across the whole
+ *                                           body, reused for hs_return arg1
+ *   init            char     [EBP+0x10]  -> arg3 (loaded to EAX)
+ *
+ * hs_macro_function_evaluate returns the record pointer in EAX (TEST EAX,EAX /
+ * JZ skips the body). On non-NULL the original reads the record's +0x4 field as
+ * a ZERO-EXTENDED BYTE (XOR EDX,EDX; MOV DL,BYTE PTR [EAX+0x4]) — not a dword —
+ * and reloads the handle with MOV EAX,DWORD PTR [EAX], then PUSH EDX; PUSH EAX.
+ * The hs_return arg1 comes from the preserved ESI (the ORIGINAL thread_datum),
+ * not from the returned record pointer. A single combined ADD ESP,0x10 at
+ * 0xbee72 folds unit_scripting_can_blink's 2-dword cleanup with hs_return's
+ * 2-dword cleanup; the context-pack ARG_COUNT warning on 0xcbf80 ("cleanup=4")
+ * is that merge, and the PUSH count proves hs_return still takes exactly 2.
+ * No FPU ops. Ghidra modeled this void(void): the three cdecl params were
+ * unmodeled (in_stack_*), so all three come off the stack — no @<reg>.
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x1a9c00 = unit_scripting_can_blink(int unit_handle, char can_blink)
+ *   0xcbf80  = hs_return(int thread_handle, int value) */
+void FUN_000bee40(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    unit_scripting_can_blink(record[0], *(unsigned char *)(record + 1));
     hs_return(thread_datum, 0);
   }
 }
