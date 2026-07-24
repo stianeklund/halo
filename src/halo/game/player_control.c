@@ -65,7 +65,8 @@ void player_clear_aim_assist(int unit_handle)
     player = (char *)datum_get(player_data, player_handle);
     local_player_index = *(int16_t *)(player + 0x2);
     if (local_player_index != NONE) {
-      pc = (player_control_t *)player_control_get_data((int16_t)local_player_index);
+      pc = (player_control_t *)player_control_get_data(
+        (int16_t)local_player_index);
       pc->desired_zoom_level = NONE;
     }
   }
@@ -122,8 +123,8 @@ void player_control_new_unit(uint16_t local_player_index, int player_index)
 
   assert_halt(local_player_index >= 0 &&
               local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
-  pc =
-    (player_control_t *)((char *)player_control_globals + local_player_index * 0x40 + 0x10);
+  pc = (player_control_t *)((char *)player_control_globals +
+                            local_player_index * 0x40 + 0x10);
   csmemset(pc, 0, 0x40);
   pc->unit_index = player_index;
   pc->desired_weapon_index = -1;
@@ -131,8 +132,8 @@ void player_control_new_unit(uint16_t local_player_index, int player_index)
   pc->desired_zoom_level = -1;
   pc->field_0x26 = 0;
   pc->field_0x28 = -1;
-  pc->field_0x3c = 1.4922565f;  /* +85.5 degrees in radians (look-pitch limit) */
-  pc->field_0x38 = -1.4922565f; /* -85.5 degrees in radians (look-pitch limit) */
+  pc->pitch_maximum = 1.4922565f; /* +85.5 degrees in radians */
+  pc->pitch_minimum = -1.4922565f; /* -85.5 degrees in radians */
   pc->action_flags = 0;
   pc->persistent_action_flags = 0;
   if (player_index != -1) {
@@ -169,6 +170,229 @@ void player_control_set_unit_seat(int unit_handle, int seat_index)
       pc->desired_weapon_index = (int16_t)seat_index;
     }
   }
+}
+
+/* Apply this frame's look input to a local player's desired aiming angles.
+ * yaw_delta/pitch_delta are the raw turn/look deltas (action+0x0c,
+ * action+0x10).
+ *
+ * Yaw advances first, then is constrained to the arc the occupied seat allows:
+ * the arc is centred on a marker direction on the unit (the seat definition at
+ * +0x24 names the marker) and spans [seat+0xf0, seat+0xf4] about it. A yaw
+ * landing outside the arc snaps to whichever end is nearer; the result is then
+ * wrapped into [0, 2*pi].
+ *
+ * The pitch limits are not constants: pc->pitch_minimum/pitch_maximum ease
+ * toward targets read from the camera-info limit block at a bounded +-pi/256
+ * per call, and those targets are themselves clamped to +-85.5 degrees. Pitch
+ * advances last and is clamped to the just-updated limits.
+ *
+ * c:\halo\SOURCE\game\player_control.c */
+void player_control_update_desired_angles(int16_t local_player_index,
+                                          float yaw_delta, float pitch_delta)
+{
+  player_control_t *pc;
+  float *desired_pitch;
+  void *globals_tag;
+  char camera_info[0xc]; /* {unit handle, seat index, limit block ptr} */
+  char marker_buf[0x6c]; /* object_get_markers_by_string_id output */
+  float marker_angles[2]; /* yaw, pitch */
+  float forward[3];
+  float pitch_minimum_target;
+  float pitch_maximum_target;
+  float pitch_target;
+  float delta;
+  char *unit_obj;
+  char *limits;
+
+  assert_halt_at("c:\\halo\\SOURCE\\game\\player_control.c", 0xb1,
+                 local_player_index >= 0 &&
+                   local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+
+  pc = (player_control_t *)((char *)player_control_globals +
+                            (int)local_player_index * 0x40 + 0x10);
+  globals_tag =
+    tag_block_get_element((char *)game_globals_get() + 0x110, 0, 0x80);
+
+  desired_pitch = &pc->desired_angles_pitch;
+  pitch_minimum_target = -1.4922565f; /* -85.5 degrees */
+  pitch_maximum_target = 1.4922565f; /* +85.5 degrees */
+
+  /* valid_euler_angles2d(&player->desired_angles): pitch within +-85.5
+   * degrees, yaw within [0, 2*pi], neither infinite nor NaN. */
+  if ((*(uint32_t *)&pc->desired_angles_pitch & 0x7f800000) == 0x7f800000 ||
+      pc->desired_angles_pitch > 1.4922565f ||
+      pc->desired_angles_pitch < -1.4922565f ||
+      (*(uint32_t *)&pc->desired_angles_yaw & 0x7f800000) == 0x7f800000 ||
+      pc->desired_angles_yaw > 6.2831855f || pc->desired_angles_yaw < 0.0f) {
+    display_assert("valid_euler_angles2d(&player->desired_angles)",
+                   "c:\\halo\\SOURCE\\game\\player_control.c", 0x494, 1);
+    system_exit(NONE);
+  }
+
+  player_control_get_unit_camera_info(local_player_index, camera_info);
+  pc->desired_angles_yaw = yaw_delta + pc->desired_angles_yaw;
+
+  /* constrain yaw to the arc this seat permits */
+  if (*(int16_t *)(camera_info + 4) != NONE) {
+    char *seat;
+
+    /* one nested expression: the original cleans all three calls with a
+     * single ADD ESP,0x1c */
+    seat = (char *)tag_block_get_element(
+      (char *)tag_get(
+        0x756e6974 /* 'unit' */,
+        *(int *)object_get_and_verify_type(*(int *)camera_info, 3)) +
+        0x2e4,
+      *(int16_t *)(camera_info + 4), 0x11c);
+
+    if (*(float *)(seat + 0xf0) != 0.0f || *(float *)(seat + 0xf4) != 0.0f) {
+      float yaw_low;
+      float yaw_high;
+      float arc;
+      float delta_high;
+
+      object_get_markers_by_string_id(*(int *)camera_info, seat + 0x24,
+                                      marker_buf, 1);
+      /* the marker's forward vector sits at +0x3c in the marker record */
+      vector_to_angles(marker_angles, (float *)(marker_buf + 0x3c));
+
+      yaw_low = marker_angles[0] + *(float *)(seat + 0xf0);
+      yaw_high = marker_angles[0] + *(float *)(seat + 0xf4);
+
+      arc = yaw_high - yaw_low;
+      if (arc >= 3.1415927f)
+        arc -= 6.2831855f;
+      if (arc <= -3.1415927f)
+        arc += 6.2831855f;
+
+      delta_high = yaw_high - pc->desired_angles_yaw;
+      if (delta_high >= 3.1415927f)
+        delta_high -= 6.2831855f;
+      if (delta_high <= -3.1415927f)
+        delta_high += 6.2831855f;
+
+      delta = pc->desired_angles_yaw - yaw_low;
+      if (delta >= 3.1415927f)
+        delta -= 6.2831855f;
+      if (delta <= -3.1415927f)
+        delta += 6.2831855f;
+
+      if (arc < 0.0f)
+        arc += 6.2831855f;
+
+      /* outside the arc: snap to the nearer end */
+      if (!((delta_high >= 0.0f && delta_high < arc) ||
+            (delta >= 0.0f && delta < arc))) {
+        if (fabs(delta_high) > fabs(delta))
+          pc->desired_angles_yaw = yaw_low;
+        else
+          pc->desired_angles_yaw = yaw_high;
+      }
+    }
+  }
+
+  while (pc->desired_angles_yaw < 0.0f)
+    pc->desired_angles_yaw += 6.2831855f;
+  while (pc->desired_angles_yaw > 6.2831855f)
+    pc->desired_angles_yaw -= 6.2831855f;
+
+  /* ease the pitch limits toward the camera's targets */
+  limits = *(char **)(camera_info + 8);
+  if (limits != NULL) {
+    unit_obj = (char *)object_get_and_verify_type(*(int *)camera_info, 3);
+    pitch_target = *(float *)(limits + 0x40);
+
+    if (*(float *)(limits + 0x48) != 0.0f ||
+        *(float *)(limits + 0x44) != 0.0f) {
+      pitch_minimum_target = *(float *)(limits + 0x44);
+      pitch_maximum_target = *(float *)(limits + 0x48);
+
+      /* shift the targets by how far the player has turned off the unit's
+       * own facing, so the limits track the body rather than the world */
+      if (*(int16_t *)(camera_info + 4) != NONE &&
+          *(float *)(unit_obj + 0x38) > 0.0f) {
+        float offset;
+
+        marker_angles[0] = pc->desired_angles_yaw;
+        marker_angles[1] = 0.0f;
+        angles_to_vector(forward, marker_angles);
+        offset = 0.2f - FUN_0010c510(forward, (float *)(unit_obj + 0x30));
+        pitch_minimum_target -= offset;
+        pitch_maximum_target -= offset;
+        pitch_target -= offset;
+      }
+
+      if (pitch_minimum_target < -1.4922565f)
+        pitch_minimum_target = -1.4922565f;
+      else if (pitch_minimum_target > 1.4922565f)
+        pitch_minimum_target = 1.4922565f;
+
+      if (pitch_maximum_target < -1.4922565f)
+        pitch_maximum_target = -1.4922565f;
+      else if (pitch_maximum_target > 1.4922565f)
+        pitch_maximum_target = 1.4922565f;
+    }
+
+    if (pitch_target != 0.0f || pc->field_0x26 != 0) {
+      float scaled;
+      float magnitude;
+
+      scaled =
+        (float)(fabs(*desired_pitch - pitch_target) * 0.6366197466850281);
+      if ((*(uint32_t *)desired_pitch & 0x7f800000) == 0x7f800000) {
+        display_assert(
+          csprintf((char *)0x5ab100, "%s: assert_valid_real(0x%08X %f)",
+                   "player->desired_angles.pitch", *(uint32_t *)desired_pitch,
+                   (double)*desired_pitch),
+          "c:\\halo\\SOURCE\\game\\player_control.c", 0x4f2, 1);
+        system_exit(NONE);
+      }
+
+      magnitude =
+        sqrtf(*(float *)(unit_obj + 0x18) * *(float *)(unit_obj + 0x18) +
+              *(float *)(unit_obj + 0x1c) * *(float *)(unit_obj + 0x1c) +
+              *(float *)(unit_obj + 0x20) * *(float *)(unit_obj + 0x20));
+
+      if (pitch_target != 0.0f)
+        interpolate_scalar(desired_pitch, pitch_target,
+                           magnitude * scaled * 0.08f);
+      else
+        interpolate_scalar(desired_pitch, pitch_target,
+                           magnitude * *(float *)((char *)globals_tag + 0x54) *
+                             scaled);
+
+      if ((*(uint32_t *)desired_pitch & 0x7f800000) == 0x7f800000) {
+        display_assert(
+          csprintf((char *)0x5ab100, "%s: assert_valid_real(0x%08X %f)",
+                   "player->desired_angles.pitch", *(uint32_t *)desired_pitch,
+                   (double)*desired_pitch),
+          "c:\\halo\\SOURCE\\game\\player_control.c", 0x4fd, 1);
+        system_exit(NONE);
+      }
+    }
+  }
+
+  /* the limits themselves move no faster than pi/256 per call */
+  delta = pitch_minimum_target - pc->pitch_minimum;
+  if (delta < -0.0122718466f)
+    delta = -0.0122718466f;
+  else if (delta > 0.0122718466f)
+    delta = 0.0122718466f;
+  pc->pitch_minimum += delta;
+
+  delta = pitch_maximum_target - pc->pitch_maximum;
+  if (delta < -0.0122718466f)
+    delta = -0.0122718466f;
+  else if (delta > 0.0122718466f)
+    delta = 0.0122718466f;
+  pc->pitch_maximum += delta;
+
+  pc->desired_angles_pitch = pitch_delta + pc->desired_angles_pitch;
+  if (pc->desired_angles_pitch < pc->pitch_minimum)
+    pc->desired_angles_pitch = pc->pitch_minimum;
+  else if (pc->desired_angles_pitch > pc->pitch_maximum)
+    pc->desired_angles_pitch = pc->pitch_maximum;
 }
 
 void player_control_initialize_for_new_map(void)
@@ -275,24 +499,22 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
 
     /* look up unit definition tag and current weapon */
     tag_get(0x756e6974, *(int *)unit_obj);
-    weapon_datum = unit_get_weapon(
-      pc->unit_index, *(uint16_t *)(unit_obj + 0x2a2));
+    weapon_datum =
+      unit_get_weapon(pc->unit_index, *(uint16_t *)(unit_obj + 0x2a2));
 
     /* validate player weapon index */
     if (pc->desired_weapon_index == NONE ||
-        unit_get_weapon(
-          pc->unit_index, pc->desired_weapon_index) == NONE) {
+        unit_get_weapon(pc->unit_index, pc->desired_weapon_index) == NONE) {
       pc->desired_weapon_index = *(int16_t *)(unit_obj + 0x2a4);
     }
 
     /* weapon interaction (action bit 0) */
     if ((*(uint8_t *)(action + 0x1c) & 1) ||
-        unit_get_weapon(
-          pc->unit_index, pc->desired_weapon_index) == NONE ||
+        unit_get_weapon(pc->unit_index, pc->desired_weapon_index) == NONE ||
         pc->desired_weapon_index == NONE) {
-      int16_t new_wp = unit_inventory_next_weapon(
-        pc->unit_index, pc->desired_weapon_index,
-        *(uint8_t *)(action + 0x1c) & 1);
+      int16_t new_wp =
+        unit_inventory_next_weapon(pc->unit_index, pc->desired_weapon_index,
+                                   *(uint8_t *)(action + 0x1c) & 1);
       pc->desired_weapon_index = new_wp;
       pc->desired_zoom_level = NONE;
     }
@@ -308,15 +530,15 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
 
     /* validate grenade type */
     if (pc->desired_grenade_index == NONE ||
-        unit_get_grenade_count(
-          pc->unit_index, pc->desired_grenade_index) == 0) {
+        unit_get_grenade_count(pc->unit_index, pc->desired_grenade_index) ==
+          0) {
       pc->desired_grenade_index = (int16_t) * (int8_t *)(unit_obj + 0x2cd);
     }
 
     /* grenade switch (action bit 1) */
     if ((*(uint8_t *)(action + 0x1c) & 2) ||
-        unit_get_grenade_count(
-          pc->unit_index, pc->desired_grenade_index) == 0 ||
+        unit_get_grenade_count(pc->unit_index, pc->desired_grenade_index) ==
+          0 ||
         pc->desired_grenade_index == NONE) {
       pc->desired_grenade_index = unit_inventory_next_grenade(
         pc->unit_index, pc->desired_grenade_index, 1);
@@ -327,16 +549,16 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
         (*(uint8_t *)((char *)player_control_globals + 0xc) & 1) == 0 &&
         !game_time_get_paused() && weapon_datum != NONE &&
         !cinematic_in_progress()) {
-      pc->desired_zoom_level = weapon_rotate_zoom_level(
-        weapon_datum, pc->desired_zoom_level);
+      pc->desired_zoom_level =
+        weapon_rotate_zoom_level(weapon_datum, pc->desired_zoom_level);
     }
 
-    /* apply turning/look input (unless scripted camera). FUN_000b7f90 takes
-     * local_player_index in EAX; a0/a1 are the raw turn/look input dwords at
-     * action+0x0c / action+0x10. */
+    /* apply turning/look input (unless scripted camera); the yaw and pitch
+     * deltas for this frame live at action+0x0c / action+0x10. */
     if (!director_inhibited_facing(local_player_index)) {
-      FUN_000b7f90(local_player_index, *(int *)(action + 0x0c),
-                   *(int *)(action + 0x10));
+      player_control_update_desired_angles(local_player_index,
+                                           *(float *)(action + 0x0c),
+                                           *(float *)(action + 0x10));
     }
 
     /* autoaim idle detection: if the player is looking at an enemy

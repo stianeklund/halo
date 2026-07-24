@@ -699,8 +699,8 @@ typedef struct {
   uint8_t pad_0x2c[0x4];         ///< offset=0x2c
   real    field_0x30;            ///< offset=0x30
   uint8_t pad_0x34[0x4];         ///< offset=0x34
-  real    field_0x38;            ///< offset=0x38 (new_unit init -85.5 deg; look-pitch limit)
-  real    field_0x3c;            ///< offset=0x3c (new_unit init +85.5 deg; look-pitch limit)
+  real    pitch_minimum;         ///< offset=0x38 lower clamp for desired_angles.pitch
+  real    pitch_maximum;         ///< offset=0x3c upper clamp for desired_angles.pitch
 } player_control_t;
 
 /// size=0x38

@@ -16455,7 +16455,7 @@
     },
     {
      "addr": "0xb6740",
-     "decl": "void player_control_get_unit_camera_info(void);"
+     "decl": "void player_control_get_unit_camera_info(int16_t local_player_index, void *camera_info);"
     },
     {
      "addr": "0xb6870",
@@ -16565,7 +16565,8 @@
     },
     {
      "addr": "0xb7f90",
-     "decl": "void FUN_000b7f90(short local_player_index@<eax>, int a0, int a1);"
+     "decl": "void player_control_update_desired_angles(int16_t local_player_index@<eax>, float yaw_delta, float pitch_delta);",
+     "ported": true
     },
     {
      "addr": "0xb8cf0",

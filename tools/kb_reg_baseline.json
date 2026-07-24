@@ -208,7 +208,7 @@
     "0xb3c60": "char FUN_000b3c60(int team@<edi>);",
     "0xb54e0": "float game_globals_difficulty_scale(int16_t value_type@<bx>, int16_t difficulty@<di>);",
     "0xb70b0": "void get_local_player_input_blob(void *action@<ebx>, short local_player_index, real delta_time);",
-    "0xb7f90": "void FUN_000b7f90(short local_player_index@<eax>, int a0, int a1);",
+    "0xb7f90": "void player_control_update_desired_angles(int16_t local_player_index@<eax>, float yaw_delta, float pitch_delta);",
     "0xb8650": "void player_control_get_facing(int16_t local_player_index@<edi>, float delta_time);",
     "0xb9040": "void *update_get_buffer_entry(int snapshot_index@<eax>);",
     "0xb9e30": "uint32_t rumble_calculate(char *slot@<eax>);",
