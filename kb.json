@@ -6406,11 +6406,11 @@
     },
     {
      "addr": "0x86270",
-     "decl": "void director_inhibited_facing(void);"
+     "decl": "bool director_inhibited_facing(short local_player_index);"
     },
     {
      "addr": "0x862c0",
-     "decl": "void director_inhibited_input(void);"
+     "decl": "bool director_inhibited_input(short local_player_index);"
     },
     {
      "addr": "0x86310",
@@ -16964,7 +16964,7 @@
     },
     {
      "addr": "0xe0b50",
-     "decl": "void player_ui_autolevel_enabled(void);"
+     "decl": "bool player_ui_autolevel_enabled(short local_player_index);"
     },
     {
      "addr": "0xe0bf0",
@@ -30889,7 +30889,7 @@
     },
     {
      "addr": "0xfc710",
-     "decl": "void weapon_rotate_zoom_level(void);"
+     "decl": "int16_t weapon_rotate_zoom_level(int weapon_datum, int16_t current_index);"
     },
     {
      "addr": "0xfc780",

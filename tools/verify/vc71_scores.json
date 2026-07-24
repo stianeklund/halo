@@ -5037,15 +5037,15 @@
       "source": "src/halo/game/player_control.c"
     },
     "FUN_000b85c0": {
-      "score": 56.2,
+      "score": 56.7,
       "source": "src/halo/game/player_control.c"
     },
     "FUN_000b8650": {
-      "score": 79.7,
+      "score": 80.8,
       "source": "src/halo/game/player_control.c"
     },
     "FUN_000b8c70": {
-      "score": 95.1,
+      "score": 97.5,
       "source": "src/halo/game/player_control.c"
     },
     "FUN_000b8d70": {
@@ -15297,11 +15297,11 @@
       "source": "src/halo/game/player_control.c"
     },
     "player_control_get_facing": {
-      "score": 79.7,
+      "score": 80.8,
       "source": "src/halo/game/player_control.c"
     },
     "player_control_initialize_for_new_map": {
-      "score": 56.2,
+      "score": 56.7,
       "source": "src/halo/game/player_control.c"
     },
     "player_control_new_unit": {
@@ -15317,7 +15317,7 @@
       "source": "src/halo/game/player_control.c"
     },
     "player_control_update": {
-      "score": 95.1,
+      "score": 97.5,
       "source": "src/halo/game/player_control.c"
     },
     "player_effect_get": {

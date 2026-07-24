@@ -182,7 +182,7 @@ void player_control_initialize_for_new_map(void)
   *((int *)player_control_globals + 2) = 0;
   *((int *)player_control_globals + 3) = 0;
   for (i = 0; (int16_t)i < 4; i++) {
-    scenario = ((int (*)(void))0x18e450)();
+    scenario = (int)game_globals_get();
     iVar = (int)tag_block_get_element((void *)(scenario + 0x110), 0, 0x80);
     player_control_new_unit(i, -1);
     if (*(float *)((char *)0x4570a8 + i * 4) == *(float *)0x2533c0)
@@ -240,7 +240,7 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
   }
 
   /* if director is controlling the camera, clear input */
-  if (((bool (*)(int16_t))0x862c0)(local_player_index))
+  if (director_inhibited_input(local_player_index))
     csmemset(action, 0, 0x20);
 
   /* handle weapon/vehicle switching when playing locally */
@@ -251,18 +251,18 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
     if (flags & 0x18) {
       int new_weapon;
       if (flags & 0x10)
-        new_weapon = ((int (*)(int))0x1aa080)(*(int *)player);
+        new_weapon = units_debug_get_next_unit(*(int *)player);
       else
-        new_weapon = ((int (*)(int))0x1aa170)(*(int *)player);
+        new_weapon = FUN_001AA170(*(int *)player);
       if (new_weapon != NONE)
-        ((void (*)(int16_t, int))0xba5f0)(local_player_index, new_weapon);
+        players_set_local_player_unit(local_player_index, new_weapon);
     }
 
     /* grenade throw (action bit 5) */
     if (flags & 0x20) {
       if (*(int *)player == NONE)
         goto final_copy;
-      ((void (*)(int))0x1aa240)(*(int *)player);
+      unit_debug_ninja_rope(*(int *)player);
     }
   }
 
@@ -275,22 +275,22 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
 
     /* look up unit definition tag and current weapon */
     tag_get(0x756e6974, *(int *)unit_obj);
-    weapon_datum = ((int (*)(int, uint16_t))0x1adeb0)(
+    weapon_datum = unit_get_weapon(
       *(int *)player, *(uint16_t *)(unit_obj + 0x2a2));
 
     /* validate player weapon index */
     if (*(int16_t *)(player + 0x20) == NONE ||
-        ((int (*)(int, int16_t))0x1adeb0)(
+        unit_get_weapon(
           *(int *)player, *(int16_t *)(player + 0x20)) == NONE) {
       *(int16_t *)(player + 0x20) = *(int16_t *)(unit_obj + 0x2a4);
     }
 
     /* weapon interaction (action bit 0) */
     if ((*(uint8_t *)(action + 0x1c) & 1) ||
-        ((int (*)(int, int16_t))0x1adeb0)(
+        unit_get_weapon(
           *(int *)player, *(int16_t *)(player + 0x20)) == NONE ||
         *(int16_t *)(player + 0x20) == NONE) {
-      int16_t new_wp = ((int16_t(*)(int, int16_t, int))0x1b1b40)(
+      int16_t new_wp = unit_inventory_next_weapon(
         *(int *)player, *(int16_t *)(player + 0x20),
         *(uint8_t *)(action + 0x1c) & 1);
       *(int16_t *)(player + 0x20) = new_wp;
@@ -308,17 +308,17 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
 
     /* validate grenade type */
     if (*(int16_t *)(player + 0x22) == NONE ||
-        ((int16_t(*)(int, int16_t))0x1aae70)(
+        unit_get_grenade_count(
           *(int *)player, *(int16_t *)(player + 0x22)) == 0) {
       *(int16_t *)(player + 0x22) = (int16_t) * (int8_t *)(unit_obj + 0x2cd);
     }
 
     /* grenade switch (action bit 1) */
     if ((*(uint8_t *)(action + 0x1c) & 2) ||
-        ((int16_t(*)(int, int16_t))0x1aae70)(
+        unit_get_grenade_count(
           *(int *)player, *(int16_t *)(player + 0x22)) == 0 ||
         *(int16_t *)(player + 0x22) == NONE) {
-      *(int16_t *)(player + 0x22) = ((int16_t(*)(int, int16_t, int))0x1a9980)(
+      *(int16_t *)(player + 0x22) = unit_inventory_next_grenade(
         *(int *)player, *(int16_t *)(player + 0x22), 1);
     }
 
@@ -327,14 +327,14 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
         (*(uint8_t *)((char *)player_control_globals + 0xc) & 1) == 0 &&
         !game_time_get_paused() && weapon_datum != NONE &&
         !cinematic_in_progress()) {
-      *(int16_t *)(player + 0x24) = ((int16_t(*)(int, int16_t))0xfc710)(
+      *(int16_t *)(player + 0x24) = weapon_rotate_zoom_level(
         weapon_datum, *(int16_t *)(player + 0x24));
     }
 
     /* apply turning/look input (unless scripted camera). FUN_000b7f90 takes
      * local_player_index in EAX; a0/a1 are the raw turn/look input dwords at
      * action+0x0c / action+0x10. */
-    if (!((bool (*)(int16_t))0x86270)(local_player_index)) {
+    if (!director_inhibited_facing(local_player_index)) {
       FUN_000b7f90(local_player_index, *(int *)(action + 0x0c),
                    *(int *)(action + 0x10));
     }
@@ -345,7 +345,7 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
      * exceeds a tag-defined threshold, enable autoaim assist. */
     if (*(int *)(unit_obj + 0xcc) == NONE) {
       float abs_facing;
-      if (!((bool (*)(int16_t))0xe0b50)(local_player_index))
+      if (!player_ui_autolevel_enabled(local_player_index))
         goto reset_autoaim;
       /* FABS + FCOMP double: check if facing yaw exceeds threshold */
       abs_facing = *(float *)(player + 0x14);
@@ -444,7 +444,7 @@ final_copy:
         system_exit(NONE);
       }
 
-      ((void (*)(void *))0xb8f40)(player_action);
+      update_client_queue(player_action);
     }
   }
 }
@@ -456,7 +456,7 @@ void player_control_update(float delta_time)
   if (profile_global_enable && *(char *)0x2f02a0)
     profile_enter_private((void *)0x2f0298);
   collision_log_begin_period(2);
-  ((void (*)(void))0xb8f70)();
+  update_client_queue_push();
   for (i = 0; i < 4; i++)
     player_control_get_facing(i, delta_time);
   collision_log_end_period();
