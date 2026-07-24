@@ -312,8 +312,14 @@ const researchPrompt = (t) =>
   `Gather Ghidra context for ${t.name} at ${t.addr} (${t.obj}). READ-ONLY — no edits.
 
 1. Ghidra MCP preflight already ran globally for this batch — do NOT re-run
-   check_ghidra_mcp.py. If any Ghidra MCP call below errors/times out →
-   pre_screen="infra_blocked", skip_reason="ghidra_unavailable".
+   check_ghidra_mcp.py.
+   TWO ways to reach Ghidra; the CLI pack (step 3a) is ALWAYS available because it
+   talks to the bridge over HTTP, independent of this session's MCP attachment:
+     (a) Ghidra MCP tools (mcp__ghidra__decompile_function etc.) — preferred when present.
+     (b) the cached context pack written by step 3a — the fallback.
+   A missing/erroring MCP tool is NOT infra_blocked on its own. Only return
+   pre_screen="infra_blocked", skip_reason="ghidra_unavailable" when step 3a ALSO
+   fails to produce a pack with a non-empty decompile_c or disassembly.
 
 2. KB LOOKUP: rtk jq '[.. | objects | select(.addr? == "${t.addr}")] | .[0]' kb.json
 
@@ -326,10 +332,20 @@ const researchPrompt = (t) =>
     → pre_screen="skip_already_in_source", skip_reason="already implemented: <file>"
     Return immediately — no Ghidra call needed.
 
-${CACHE_CONTEXT ? `3a. ENRICH (run BEFORE decompile so the enrichment hook can inject callee/struct tables):
-    timeout 90 rtk python3 tools/llm_auto_lift.py cache-context --target ${t.addr} --force 2>&1 || echo "[cache-context-skip]"
+3a. ENRICH + FALLBACK SOURCE (run BEFORE decompile so the enrichment hook can
+    inject callee/struct tables, and so a pack exists if MCP tools are absent):
+    timeout 240 rtk python3 tools/llm_auto_lift.py cache-context --target ${t.addr} --force 2>&1 || echo "[cache-context-skip]"
+    The pack lands at artifacts/auto_lift/context_cache/${t.name}.json with fields:
+    decompile_c, disassembly, callees, callers, callee_details, call_site_audit,
+    struct_offsets, buffer_alias, buffer_warnings. Read what you need with rtk jq, e.g.
+      rtk jq -r '.decompile_c' artifacts/auto_lift/context_cache/${t.name}.json
+    If the pack has a non-empty decompile_c or disassembly, you have Ghidra context —
+    proceed normally even if every MCP tool below is unavailable.
 
-` : ''}3. DECOMPILE: Ghidra MCP decompile_function at ${t.addr}
+3. DECOMPILE: Ghidra MCP decompile_function at ${t.addr}
+   If that tool is not exposed in your toolset or it errors, use the step-3a pack's
+   .decompile_c instead (and .disassembly for anything the decompile leaves unclear).
+   Note in disasm_notes which source you used.
    This fires a PostToolUse retrieval hook that injects a system message with
    similar ALREADY-PORTED functions (worked examples: decl + C source + their
    VC71 %) and hazard warnings from similar functions that FAILED.
@@ -354,6 +370,8 @@ ${LIFT_REG_ARGS ? `   - (reg-arg lifting ENABLED for this run: do NOT skip on un
    Otherwise pre_screen="ok"
 
 5. CALLEES: Ghidra MCP get_function_callees at ${t.addr}.
+   If unavailable, use the step-3a pack: rtk jq '.callees, .callee_details' \\
+     artifacts/auto_lift/context_cache/${t.name}.json
    Return JSON array: [{addr,name,has_reg_args,in_kb}]
 
 6. DELINKED CHECK: objdump -t delinked/*.obj 2>/dev/null | grep -i "${t.name.replace('FUN_', '')}"
@@ -362,6 +380,7 @@ ${LIFT_REG_ARGS ? `   - (reg-arg lifting ENABLED for this run: do NOT skip on un
 7. HAZARD SCAN: rtk python3 tools/audit/check_lift_hazards.py 2>&1 | grep -A2 "${t.addr.replace('0x', '')}"
 
 8. DISASM NOTES (only if FPU ops, struct access, or >2 CALLs): Ghidra MCP disassemble_function.
+   If unavailable, use the step-3a pack's .disassembly (rtk jq -r '.disassembly' ...).
    Return key observations only: push order per CALL, FPU subtraction direction, buffer sizes. Max 400 words.
 
 Return full brief. Use field name "source_path" for the intended source file path
@@ -504,6 +523,11 @@ Re-export a fresh per-function delinked reference for ${name} and re-run VC71 ve
 This is the primary fix for "badly delinked object" false-low scores.
 
 1. Find the function end address in Ghidra: decompile_function at ${addr}, note the last instruction address.
+   If decompile_function is not in your toolset, get the end address either from the
+   cached pack's disassembly (last instruction):
+     timeout 240 rtk python3 tools/llm_auto_lift.py cache-context --target ${addr} --force 2>&1 || true
+     rtk jq -r '.disassembly' artifacts/auto_lift/context_cache/${name}.json | tail -5
+   or from the next symbol via mcp__ghidra-live__list_symbols_in_range (end = next symbol - 1).
 2. Export via mcp__ghidra-live__export_delinked_object:
    selection_mode="range", range="<start_no_0x>-<end_no_0x>" (exact function body range).
    The file MUST be named delinked/functions/<8-hex-lowercase-addr>.obj (zero-padded,
