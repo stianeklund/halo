@@ -365,12 +365,8 @@ bool network_game_player_is_local(void *player)
     return true;
   }
 
-  if (player == NULL) {
-    display_assert("player",
-                   "c:\\halo\\SOURCE\\networking\\network_game_globals.c", 0x9b,
-                   1);
-    system_exit(-1);
-  }
+  assert_halt_at("c:\\halo\\SOURCE\\networking\\network_game_globals.c", 0x9b,
+               player);
 
   return *(char *)((char *)player + 0x1c) == '\0';
 }

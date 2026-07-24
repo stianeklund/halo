@@ -29,6 +29,23 @@ double __cdecl fabs(double);
 #include "inlines.h"
 #include "decl.h"
 
+/* assert_halt_at(file, line, cond) — byte-match-faithful assert.
+ * assert_halt stamps OUR __FILE__/__LINE__, so the emitted .rdata path string
+ * and the `push <line>` immediate never match the original binary (an
+ * [IMM-WARN] on every assert site, plus LCS churn from the wrong string ref).
+ * assert_halt_at takes the ORIGINAL Bungie source path and assert line recovered
+ * from the XBE, reproducing the exact string and line immediate. The message is
+ * #cond, so a condition written with real names also reproduces the original
+ * expression string. Recover (file,line) via
+ * tools/audit/check_assert_targets.py --emit-asserts. Readable-lift Phase 0. */
+#define assert_halt_at(file, line, cond)                       \
+    do {                                                     \
+        if (!(cond)) {                                       \
+            display_assert(#cond, file, line, true);         \
+            system_exit(-1);                                 \
+        }                                                    \
+    } while (0)
+
 #define assert_halt(cond)                                    \
     do {                                                     \
         if (!(cond)) {                                       \

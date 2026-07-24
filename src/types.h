@@ -47,6 +47,18 @@ typedef unsigned int size_t;
 typedef uint32_t _DWORD;
 typedef uint16_t _WORD;
 typedef uint8_t _BYTE;
+
+/* Bungie cseries primitive aliases (readable-lift initiative, Phase 0).
+ * Codegen-neutral typedefs over existing widths so lifted code can use the
+ * original engine type names instead of stdint / Ghidra spellings. Struct
+ * types (real_vector3d, real_euler_angles2d, real_point3d, ...) are defined
+ * per object during struct-recovery, not here. */
+typedef uint8_t  boolean;
+typedef uint8_t  byte;
+typedef uint16_t word;
+typedef uint32_t dword;
+typedef float    real;
+
 #define __int16 short
 #define __int8 char
 

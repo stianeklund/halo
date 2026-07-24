@@ -49,6 +49,15 @@ extern "C" {
 
 static const int _scenario_type_main_menu = 2;
 
+/* assert_halt_at(file, line, cond) — byte-match-faithful assert (see common.h). */
+#define assert_halt_at(file, line, cond)                       \
+    do {                                                     \
+        if (!(cond)) {                                       \
+            display_assert(#cond, file, line, true);         \
+            system_exit(-1);                                 \
+        }                                                    \
+    } while (0)
+
 #define assert_halt(cond)                                    \
     do {                                                     \
         if (!(cond)) {                                       \
