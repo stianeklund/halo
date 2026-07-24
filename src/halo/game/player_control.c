@@ -424,7 +424,7 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
 {
   player_control_t *pc; /* player control struct (ESI) */
   void *game_tag_elem;
-  char action[0x20]; /* input action struct, filled by get_input */
+  player_input_t input; /* one frame of controller input */
   int player_index;
 
   assert_halt(local_player_index >= 0 &&
@@ -440,9 +440,9 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
   }
 
   /* fill action with sentinel 0xfa, then read actual input */
-  csmemset(action, 0xfa, 0x20);
+  csmemset(&input, 0xfa, 0x20);
   /* get_local_player_input_blob fills *action (0x20 bytes, passed in EBX). */
-  get_local_player_input_blob(action, local_player_index, delta_time);
+  get_local_player_input_blob(&input, local_player_index, delta_time);
 
   player_index = local_player_get_player_index(local_player_index);
 
@@ -465,11 +465,11 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
 
   /* if director is controlling the camera, clear input */
   if (director_inhibited_input(local_player_index))
-    csmemset(action, 0, 0x20);
+    csmemset(&input, 0, 0x20);
 
   /* handle weapon/vehicle switching when playing locally */
   if (game_connection() == 0) {
-    uint8_t flags = *(uint8_t *)(action + 0x1c);
+    uint8_t flags = *(uint8_t *)&input.action_flags;
 
     /* weapon switch (action bits 3-4) */
     if (flags & 0x18) {
@@ -509,12 +509,12 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
     }
 
     /* weapon interaction (action bit 0) */
-    if ((*(uint8_t *)(action + 0x1c) & 1) ||
+    if ((*(uint8_t *)&input.action_flags & 1) ||
         unit_get_weapon(pc->unit_index, pc->desired_weapon_index) == NONE ||
         pc->desired_weapon_index == NONE) {
       int16_t new_wp =
         unit_inventory_next_weapon(pc->unit_index, pc->desired_weapon_index,
-                                   *(uint8_t *)(action + 0x1c) & 1);
+                                   *(uint8_t *)&input.action_flags & 1);
       pc->desired_weapon_index = new_wp;
       pc->desired_zoom_level = NONE;
     }
@@ -536,7 +536,7 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
     }
 
     /* grenade switch (action bit 1) */
-    if ((*(uint8_t *)(action + 0x1c) & 2) ||
+    if ((*(uint8_t *)&input.action_flags & 2) ||
         unit_get_grenade_count(pc->unit_index, pc->desired_grenade_index) ==
           0 ||
         pc->desired_grenade_index == NONE) {
@@ -545,7 +545,7 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
     }
 
     /* melee/throw request (action bit 2) */
-    if ((*(uint8_t *)(action + 0x1c) & 4) &&
+    if ((*(uint8_t *)&input.action_flags & 4) &&
         (*(uint8_t *)((char *)player_control_globals + 0xc) & 1) == 0 &&
         !game_time_get_paused() && weapon_datum != NONE &&
         !cinematic_in_progress()) {
@@ -557,8 +557,8 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
      * deltas for this frame live at action+0x0c / action+0x10. */
     if (!director_inhibited_facing(local_player_index)) {
       player_control_update_desired_angles(local_player_index,
-                                           *(float *)(action + 0x0c),
-                                           *(float *)(action + 0x10));
+                                           input.look_yaw_delta,
+                                           input.look_pitch_delta);
     }
 
     /* autoaim idle detection: if the player is looking at an enemy
@@ -576,7 +576,7 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
       if (!(abs_facing > *(double *)0x25fea8))
         goto reset_autoaim;
       /* check trigger and throttle below firing threshold */
-      if (*(float *)(action + 0x10) >= *(float *)0x253f44)
+      if (input.look_pitch_delta >= *(float *)0x253f44)
         goto reset_autoaim;
       if (pc->field_0x30 >= *(float *)0x253f44)
         goto reset_autoaim;
@@ -600,10 +600,10 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
 
 final_copy:
   /* copy action results to player control struct */
-  pc->field_0x04 = *(int *)(action + 0x18);
-  *(int *)&pc->field_0x14 = *(int *)(action + 0x00);
-  pc->field_0x18 = *(int *)(action + 0x04);
-  *(int *)&pc->primary_trigger = *(int *)(action + 0x08);
+  pc->field_0x04 = input.field_0x18;
+  *(int *)&pc->field_0x14 = *(int *)&input.field_0x00;
+  pc->field_0x18 = *(int *)&input.field_0x04;
+  *(int *)&pc->primary_trigger = *(int *)&input.primary_trigger;
 
   /* validate primary_trigger */
   {

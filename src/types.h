@@ -702,6 +702,47 @@ typedef struct {
   real    pitch_minimum;         ///< offset=0x38 lower clamp for desired_angles.pitch
   real    pitch_maximum;         ///< offset=0x3c upper clamp for desired_angles.pitch
 } player_control_t;
+cs(player_control_t, 0x40);
+co(player_control_t, unit_index,             0x00);
+co(player_control_t, action_flags,           0x08);
+co(player_control_t, persistent_action_flags, 0x0a);
+co(player_control_t, desired_angles_yaw,     0x0c);
+co(player_control_t, desired_angles_pitch,   0x10);
+co(player_control_t, primary_trigger,        0x1c);
+co(player_control_t, desired_weapon_index,   0x20);
+co(player_control_t, desired_grenade_index,  0x22);
+co(player_control_t, desired_zoom_level,     0x24);
+co(player_control_t, pitch_minimum,          0x38);
+co(player_control_t, pitch_maximum,          0x3c);
+
+/// size=0x20
+/// One frame of controller input for a local player, filled by
+/// get_local_player_input_blob (0xb70b0, buffer in EBX) and consumed by
+/// player_control_get_facing. Bungie calls the parameter "input" -- recovered
+/// from that function's own assert string "input->primary_trigger", which
+/// guards a load of +0x08. Field widths are taken from the producer's stores
+/// (byte at +0x14/+0x15, dword elsewhere); field_0xNN are offsets whose
+/// purpose is not yet established.
+typedef struct {
+  real    field_0x00;            ///< offset=0x00
+  real    field_0x04;            ///< offset=0x04
+  real    primary_trigger;       ///< offset=0x08 input->primary_trigger
+  real    look_yaw_delta;        ///< offset=0x0c added to desired_angles.yaw
+  real    look_pitch_delta;      ///< offset=0x10 added to desired_angles.pitch
+  uint8_t field_0x14;            ///< offset=0x14
+  uint8_t field_0x15;            ///< offset=0x15
+  uint8_t pad_0x16[0x2];         ///< offset=0x16
+  uint32_t field_0x18;           ///< offset=0x18
+  uint32_t action_flags;         ///< offset=0x1c bit1 grenade switch, bit2 melee/throw
+} player_input_t;
+cs(player_input_t, 0x20);
+co(player_input_t, primary_trigger,  0x08);
+co(player_input_t, look_yaw_delta,   0x0c);
+co(player_input_t, look_pitch_delta, 0x10);
+co(player_input_t, field_0x14,       0x14);
+co(player_input_t, field_0x15,       0x15);
+co(player_input_t, field_0x18,       0x18);
+co(player_input_t, action_flags,     0x1c);
 
 /// size=0x38
 typedef struct {
