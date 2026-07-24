@@ -198,7 +198,7 @@ void player_control_initialize_for_new_map(void)
  * Called once per local player per frame from player_control_update. */
 void player_control_get_facing(int16_t local_player_index, float delta_time)
 {
-  char *player; /* player control struct (ESI) */
+  player_control_t *pc; /* player control struct (ESI) */
   void *game_tag_elem;
   char action[0x20]; /* input action struct, filled by get_input */
   int player_index;
@@ -206,8 +206,8 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
   assert_halt(local_player_index >= 0 &&
               local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
 
-  player =
-    (char *)player_control_globals + (int)local_player_index * 0x40 + 0x10;
+  pc = (player_control_t *)((char *)player_control_globals +
+                            (int)local_player_index * 0x40 + 0x10);
 
   /* get game globals tag element (input sensitivity thresholds etc.) */
   {
@@ -225,13 +225,13 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
   /* validate desired facing angles if player exists */
   if (player_index != NONE) {
     uint32_t bits;
-    bits = *(uint32_t *)(player + 0x10);
+    bits = *(uint32_t *)&pc->desired_angles_pitch;
     if ((bits & 0x7f800000) == 0x7f800000) {
       display_assert("player->desired_angles.pitch",
                      "c:\\halo\\SOURCE\\game\\player_control.c", 0x2ce, 1);
       system_exit(NONE);
     }
-    bits = *(uint32_t *)(player + 0x0c);
+    bits = *(uint32_t *)&pc->desired_angles_yaw;
     if ((bits & 0x7f800000) == 0x7f800000) {
       display_assert("player->desired_angles.yaw",
                      "c:\\halo\\SOURCE\\game\\player_control.c", 0x2cf, 1);
@@ -251,75 +251,75 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
     if (flags & 0x18) {
       int new_weapon;
       if (flags & 0x10)
-        new_weapon = units_debug_get_next_unit(*(int *)player);
+        new_weapon = units_debug_get_next_unit(pc->unit_index);
       else
-        new_weapon = FUN_001AA170(*(int *)player);
+        new_weapon = FUN_001AA170(pc->unit_index);
       if (new_weapon != NONE)
         players_set_local_player_unit(local_player_index, new_weapon);
     }
 
     /* grenade throw (action bit 5) */
     if (flags & 0x20) {
-      if (*(int *)player == NONE)
+      if (pc->unit_index == NONE)
         goto final_copy;
-      unit_debug_ninja_rope(*(int *)player);
+      unit_debug_ninja_rope(pc->unit_index);
     }
   }
 
   /* unit-specific handling */
-  if (*(int *)player != NONE) {
+  if (pc->unit_index != NONE) {
     char *unit_obj;
     int weapon_datum;
 
-    unit_obj = (char *)object_get_and_verify_type(*(int *)player, 3);
+    unit_obj = (char *)object_get_and_verify_type(pc->unit_index, 3);
 
     /* look up unit definition tag and current weapon */
     tag_get(0x756e6974, *(int *)unit_obj);
     weapon_datum = unit_get_weapon(
-      *(int *)player, *(uint16_t *)(unit_obj + 0x2a2));
+      pc->unit_index, *(uint16_t *)(unit_obj + 0x2a2));
 
     /* validate player weapon index */
-    if (*(int16_t *)(player + 0x20) == NONE ||
+    if (pc->desired_weapon_index == NONE ||
         unit_get_weapon(
-          *(int *)player, *(int16_t *)(player + 0x20)) == NONE) {
-      *(int16_t *)(player + 0x20) = *(int16_t *)(unit_obj + 0x2a4);
+          pc->unit_index, pc->desired_weapon_index) == NONE) {
+      pc->desired_weapon_index = *(int16_t *)(unit_obj + 0x2a4);
     }
 
     /* weapon interaction (action bit 0) */
     if ((*(uint8_t *)(action + 0x1c) & 1) ||
         unit_get_weapon(
-          *(int *)player, *(int16_t *)(player + 0x20)) == NONE ||
-        *(int16_t *)(player + 0x20) == NONE) {
+          pc->unit_index, pc->desired_weapon_index) == NONE ||
+        pc->desired_weapon_index == NONE) {
       int16_t new_wp = unit_inventory_next_weapon(
-        *(int *)player, *(int16_t *)(player + 0x20),
+        pc->unit_index, pc->desired_weapon_index,
         *(uint8_t *)(action + 0x1c) & 1);
-      *(int16_t *)(player + 0x20) = new_wp;
-      *(int16_t *)(player + 0x24) = NONE;
+      pc->desired_weapon_index = new_wp;
+      pc->desired_zoom_level = NONE;
     }
 
     /* check for forced weapon from AI/script */
     {
-      int16_t forced = unit_find_weapon_to_ready(*(int *)player);
-      if (forced != NONE && *(int16_t *)(player + 0x20) != forced) {
-        *(int16_t *)(player + 0x20) = forced;
-        *(int16_t *)(player + 0x24) = NONE;
+      int16_t forced = unit_find_weapon_to_ready(pc->unit_index);
+      if (forced != NONE && pc->desired_weapon_index != forced) {
+        pc->desired_weapon_index = forced;
+        pc->desired_zoom_level = NONE;
       }
     }
 
     /* validate grenade type */
-    if (*(int16_t *)(player + 0x22) == NONE ||
+    if (pc->desired_grenade_index == NONE ||
         unit_get_grenade_count(
-          *(int *)player, *(int16_t *)(player + 0x22)) == 0) {
-      *(int16_t *)(player + 0x22) = (int16_t) * (int8_t *)(unit_obj + 0x2cd);
+          pc->unit_index, pc->desired_grenade_index) == 0) {
+      pc->desired_grenade_index = (int16_t) * (int8_t *)(unit_obj + 0x2cd);
     }
 
     /* grenade switch (action bit 1) */
     if ((*(uint8_t *)(action + 0x1c) & 2) ||
         unit_get_grenade_count(
-          *(int *)player, *(int16_t *)(player + 0x22)) == 0 ||
-        *(int16_t *)(player + 0x22) == NONE) {
-      *(int16_t *)(player + 0x22) = unit_inventory_next_grenade(
-        *(int *)player, *(int16_t *)(player + 0x22), 1);
+          pc->unit_index, pc->desired_grenade_index) == 0 ||
+        pc->desired_grenade_index == NONE) {
+      pc->desired_grenade_index = unit_inventory_next_grenade(
+        pc->unit_index, pc->desired_grenade_index, 1);
     }
 
     /* melee/throw request (action bit 2) */
@@ -327,8 +327,8 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
         (*(uint8_t *)((char *)player_control_globals + 0xc) & 1) == 0 &&
         !game_time_get_paused() && weapon_datum != NONE &&
         !cinematic_in_progress()) {
-      *(int16_t *)(player + 0x24) = weapon_rotate_zoom_level(
-        weapon_datum, *(int16_t *)(player + 0x24));
+      pc->desired_zoom_level = weapon_rotate_zoom_level(
+        weapon_datum, pc->desired_zoom_level);
     }
 
     /* apply turning/look input (unless scripted camera). FUN_000b7f90 takes
@@ -348,7 +348,7 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
       if (!player_ui_autolevel_enabled(local_player_index))
         goto reset_autoaim;
       /* FABS + FCOMP double: check if facing yaw exceeds threshold */
-      abs_facing = *(float *)(player + 0x14);
+      abs_facing = pc->field_0x14;
       if (abs_facing < 0.0f)
         abs_facing = -abs_facing;
       if (!(abs_facing > *(double *)0x25fea8))
@@ -356,36 +356,36 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
       /* check trigger and throttle below firing threshold */
       if (*(float *)(action + 0x10) >= *(float *)0x253f44)
         goto reset_autoaim;
-      if (*(float *)(player + 0x30) >= *(float *)0x253f44)
+      if (pc->field_0x30 >= *(float *)0x253f44)
         goto reset_autoaim;
       /* all conditions met — increment idle counter */
       {
-        int count = (int)*(int8_t *)(player + 0x27) + 1;
+        int count = (int)pc->field_0x27 + 1;
         if (count < 0)
           count = 0;
         else if (count > 0x7f)
           count = 0x7f;
-        *(int8_t *)(player + 0x27) = (int8_t)count;
-        *(uint8_t *)(player + 0x26) =
+        pc->field_0x27 = (int8_t)count;
+        pc->field_0x26 =
           (int16_t)(int8_t)count > *(int16_t *)((char *)game_tag_elem + 0x6e);
       }
       goto final_copy;
     reset_autoaim:
-      *(uint8_t *)(player + 0x27) = 0;
+      *(uint8_t *)&pc->field_0x27 = 0;
     }
-    *(uint8_t *)(player + 0x26) = 0;
+    pc->field_0x26 = 0;
   }
 
 final_copy:
   /* copy action results to player control struct */
-  *(int *)(player + 0x04) = *(int *)(action + 0x18);
-  *(int *)(player + 0x14) = *(int *)(action + 0x00);
-  *(int *)(player + 0x18) = *(int *)(action + 0x04);
-  *(int *)(player + 0x1c) = *(int *)(action + 0x08);
+  pc->field_0x04 = *(int *)(action + 0x18);
+  *(int *)&pc->field_0x14 = *(int *)(action + 0x00);
+  pc->field_0x18 = *(int *)(action + 0x04);
+  *(int *)&pc->primary_trigger = *(int *)(action + 0x08);
 
   /* validate primary_trigger */
   {
-    uint32_t bits = *(uint32_t *)(player + 0x1c);
+    uint32_t bits = *(uint32_t *)&pc->primary_trigger;
     if ((bits & 0x7f800000) == 0x7f800000) {
       display_assert("player->primary_trigger",
                      "c:\\halo\\SOURCE\\game\\player_control.c", 0x351, 1);
@@ -398,19 +398,19 @@ final_copy:
   if (player_index != NONE) {
     uint32_t bits;
     /* validate final desired angles and trigger */
-    bits = *(uint32_t *)(player + 0x10);
+    bits = *(uint32_t *)&pc->desired_angles_pitch;
     if ((bits & 0x7f800000) == 0x7f800000) {
       display_assert("player->desired_angles.pitch",
                      "c:\\halo\\SOURCE\\game\\player_control.c", 0x35d, 1);
       system_exit(NONE);
     }
-    bits = *(uint32_t *)(player + 0x0c);
+    bits = *(uint32_t *)&pc->desired_angles_yaw;
     if ((bits & 0x7f800000) == 0x7f800000) {
       display_assert("player->desired_angles.yaw",
                      "c:\\halo\\SOURCE\\game\\player_control.c", 0x35e, 1);
       system_exit(NONE);
     }
-    bits = *(uint32_t *)(player + 0x1c);
+    bits = *(uint32_t *)&pc->primary_trigger;
     if ((bits & 0x7f800000) == 0x7f800000) {
       display_assert("player->primary_trigger",
                      "c:\\halo\\SOURCE\\game\\player_control.c", 0x35f, 1);
@@ -420,15 +420,15 @@ final_copy:
     /* build and submit player action struct */
     {
       char player_action[0x20];
-      *(int *)(player_action + 0x00) = *(int *)(player + 0x04);
-      *(int *)(player_action + 0x04) = *(int *)(player + 0x0c);
-      *(int *)(player_action + 0x08) = *(int *)(player + 0x10);
-      *(int16_t *)(player_action + 0x18) = *(int16_t *)(player + 0x20);
-      *(int16_t *)(player_action + 0x1a) = *(int16_t *)(player + 0x22);
-      *(int *)(player_action + 0x0c) = *(int *)(player + 0x14);
-      *(int16_t *)(player_action + 0x1c) = *(int16_t *)(player + 0x24);
-      *(int *)(player_action + 0x14) = *(int *)(player + 0x1c);
-      *(int *)(player_action + 0x10) = *(int *)(player + 0x18);
+      *(int *)(player_action + 0x00) = pc->field_0x04;
+      *(int *)(player_action + 0x04) = *(int *)&pc->desired_angles_yaw;
+      *(int *)(player_action + 0x08) = *(int *)&pc->desired_angles_pitch;
+      *(int16_t *)(player_action + 0x18) = pc->desired_weapon_index;
+      *(int16_t *)(player_action + 0x1a) = pc->desired_grenade_index;
+      *(int *)(player_action + 0x0c) = *(int *)&pc->field_0x14;
+      *(int16_t *)(player_action + 0x1c) = pc->desired_zoom_level;
+      *(int *)(player_action + 0x14) = *(int *)&pc->primary_trigger;
+      *(int *)(player_action + 0x10) = pc->field_0x18;
 
       /* validate action facing angles */
       bits = *(uint32_t *)(player_action + 0x08);

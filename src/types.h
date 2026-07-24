@@ -675,6 +675,30 @@ typedef struct {
   char unk_0[0x110];
 } player_control_globals_t;
 
+/// size=0x40
+/// One per local player; lives in player_control_globals at +0x10, stride 0x40.
+/// Names carrying a "player->..." comment are recovered verbatim from the
+/// binary's own assert strings (desired_angles.yaw/pitch, primary_trigger);
+/// field_0xNN are offsets whose purpose is not yet established.
+typedef struct {
+  int32_t unit_index;            ///< offset=0x00 owning unit datum handle
+  int32_t field_0x04;            ///< offset=0x04
+  int32_t field_0x08;            ///< offset=0x08
+  real    desired_angles_yaw;    ///< offset=0x0c player->desired_angles.yaw
+  real    desired_angles_pitch;  ///< offset=0x10 player->desired_angles.pitch
+  real    field_0x14;            ///< offset=0x14
+  int32_t field_0x18;            ///< offset=0x18
+  real    primary_trigger;       ///< offset=0x1c player->primary_trigger
+  int16_t desired_weapon_index;  ///< offset=0x20
+  int16_t desired_grenade_index; ///< offset=0x22
+  int16_t desired_zoom_level;    ///< offset=0x24
+  uint8_t field_0x26;            ///< offset=0x26 aim-assist enabled flag
+  int8_t  field_0x27;            ///< offset=0x27 aim-assist idle counter
+  uint8_t pad_0x28[0x8];         ///< offset=0x28
+  real    field_0x30;            ///< offset=0x30
+  uint8_t pad_0x34[0xc];         ///< offset=0x34
+} player_control_t;
+
 /// size=0x38
 typedef struct {
   char    name[32];                ///< offset=0x00
