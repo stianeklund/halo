@@ -1708,8 +1708,9 @@ void FUN_00134e80(int object_handle, int light_volume_datum)
   float frac;
   float scratch;
   float out_pos[3]; /* local_1c..: world position for sprite */
-  float color2[3]; /* local_38..: per-segment color (FUN_0007c270 out /
-                      FUN_000d1c90 in) */
+  float color2[4]; /* local_38..: per-segment ARGB. [0]=alpha (intensity),
+                      [1..3]=RGB (FUN_0007c270 out at EBP-0x34); packed as a
+                      4-float a_rgb by FUN_000d1c90 (EBP-0x38). */
   float interp_a, interp_b; /* local_2c / local_28 */
   unsigned char zfn;
   float fn_val;
@@ -1821,14 +1822,14 @@ void FUN_00134e80(int object_handle, int light_volume_datum)
             out_pos[2] =
               *(float *)(marker_buf + 0x44) * t + *(float *)(marker_buf + 0x68);
 
-            FUN_0007c270(color2, *(unsigned char *)(light_tag + 0x22) & 3,
+            FUN_0007c270(color2 + 1, *(unsigned char *)(light_tag + 0x22) & 3,
                          (float *)(marker_state + 0x6c),
                          (float *)(marker_state + 0x7c), interp_b);
 
-            /* color2[0] is overwritten with the view/distance-scaled intensity
-             * (1-fn)*+0x68 + fn*+0x78, times depth_factor; color2[1..2] keep
-             * the FUN_0007c270 output, then the whole triple is packed to ARGB.
-             */
+            /* color2[0] = view/distance-scaled intensity (alpha):
+             * ((1-fn)*+0x68 + fn*+0x78) * depth_factor; RGB stays at
+             * color2[1..3] where FUN_0007c270 wrote it (reference: c270 out =
+             * EBP-0x34, d1c90 arg = EBP-0x38 — one float apart). */
             color2[0] = (fn_val * *(float *)(marker_state + 0x78) +
                          (*(float *)0x2533c8 - fn_val) *
                            *(float *)(marker_state + 0x68)) *
