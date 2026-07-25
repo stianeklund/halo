@@ -6835,3 +6835,98 @@ void FUN_000bfa70(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, value.dw);
   }
 }
+
+/* FUN_000bfab0 @ 0x000bfab0
+ *
+ * HaloScript builtin dispatcher; the QUERY-side hybrid of the two twins that
+ * bracket it. It shares the FLOAT second record field of FUN_000bfa30 (FLD
+ * dword ptr [EAX+0x4]) with the pre-zeroed-dword / low-byte-store result
+ * widening of FUN_000bf8f0 / FUN_000bf9a0 -- i.e. the worker's boolean AL
+ * result is what goes back to the script, not the constant 0 the setters use.
+ *
+ * cdecl frame: PUSH EBP; MOV EBP,ESP; PUSH ECX (one 4-byte local at EBP-0x4);
+ * PUSH ESI; ... POP ESI; MOV ESP,EBP; POP EBP; RET. Body spans
+ * 0xbfab0-0xbfaf7. No SUB ESP, no _chkstk, no SEH, no struct writes, no
+ * buffers. ESI is the only callee-saved register and holds thread_datum live
+ * across the evaluate call. The exit RET carries no immediate => cdecl, caller
+ * cleans.
+ *   function_index  int16_t  [EBP+0x08]  -> ECX
+ *   thread_datum    int      [EBP+0x0c]  -> ESI, reused as hs_return arg1
+ *   init            char     [EBP+0x10]  -> EAX
+ * Ghidra modelled this void(void), so the three cdecl params surfaced as
+ * in_stack_* pseudo-locals; they are STACK args, not @<reg> -- no unaff_/
+ * in_EAX/in_ECX appears (lift-learnings 31 void-decl trap). kb.json's stale
+ * `void FUN_000bfab0(void);` decl was corrected to the 3-arg cdecl form as part
+ * of this lift, as was the callee 0x97220's equally stale `void
+ * FUN_00097220(void);`; a (void) decl over a stack-arg callee is the ESP-drift
+ * class of bug from 0x158df0.
+ *
+ * Binary evidence (traced backward from each CALL):
+ *   CALL 0xcc560 pushes EAX([EBP+0x10]) / ESI([EBP+0xc]) / ECX([EBP+0x8]) in
+ *   cdecl reverse order -> C order (function_index, thread_datum, init); ADD
+ *   ESP,0xc = 3 args. Straight pass-through, no reordering.
+ *
+ *   TEST EAX,EAX / JZ skips BOTH remaining calls when the result is NULL, so
+ *   the 0xcc560 return is a POINTER that is dereferenced even though kb.json
+ *   declares it as returning int (same as every twin above; the cast is local
+ *   and the kb decl is left alone).
+ *
+ *   Record deref, exactly two fields, one read each (no buffer-alias risk):
+ *     FLD dword ptr [EAX+0x4]  -> FLOAT at record+4
+ *     MOV EDX,dword ptr [EAX]  -> DWORD at record+0
+ *   The FLD is a 4-byte x87 float load, NOT an integer load. The flashlight
+ *   twins (FUN_000bf920 / FUN_000bf960) carry a zero-extended BYTE at this
+ *   same +0x4 offset, so the width is taken from THIS function's disassembly
+ *   and NOT copied from them (lift-learnings 24 LOADW).
+ *
+ *   CALL 0x97220 is the push-then-fstp float hazard (decompiler trap 2): the
+ *   PUSH ECX before it is a DUMMY slot immediately overwritten by FSTP dword
+ *   ptr [ESP], so the first (highest) pushed argument is the FLOAT from
+ *   record+4, not ECX. PUSH EDX (record[0]) follows. cdecl reverse -> C order
+ *   FUN_00097220(record[0], *(float *)(record+4)). Ghidra printed a bare
+ *   zero-argument `FUN_00097220()` -- the disassembly, not the decompile, is
+ *   authoritative. Passing ECX, or an (int) cast of the float, would silently
+ *   corrupt the argument (lift-learnings 6 float-smuggling).
+ *
+ *   Result widening: MOV dword ptr [EBP-0x4],0x0 is emitted BEFORE the
+ *   evaluate call (MSVC scheduling of the zero-init of the result slot), then
+ *   after the worker returns MOV byte ptr [EBP-0x4],AL then MOV EAX,dword ptr
+ *   [EBP-0x4]. That is a pre-zeroed dword with only its low byte overwritten
+ *   and read back as an int -- NOT a MOVZX and NOT a sign-extending
+ *   (int)(char) cast (lift-learnings 24 LOADW). The worker's return is
+ *   therefore a BYTE in AL, zero-extended. The union below reproduces exactly
+ *   that store pair; it is the same idiom that scored 100% on FUN_000bf8f0.
+ *
+ *   CALL 0xcbf80 pushes EAX (the widened byte) then ESI = cdecl reverse ->
+ *   hs_return(thread_datum, value.i). ONE combined ADD ESP,0x10 cleans the 4
+ *   pushes of both 2-arg calls -- the ARG_COUNT hazard on hs_return
+ *   ("cleanup=4 vs decl=2") is that same FALSE POSITIVE documented on the
+ *   twins; hs_return really takes 2 args, do NOT "fix" its decl.
+ *
+ * Callees (all cdecl, all in kb.json, no @<reg> args anywhere):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x97220  = FUN_00097220(int, float) -> char in AL  (unnamed worker; the
+ *              immediate neighbour of FUN_00097260 used by FUN_000bfa30, so
+ *              the two are almost certainly a setter/query pair, but nothing
+ *              in this function names either -- left as FUN_)
+ *   0xcbf80  = hs_return(int thread_handle, int value)
+ *
+ * Placement: kept here beside its twins deliberately -- the hs helpers are
+ * static in this TU; revert any maintain.py relocation. */
+void FUN_000bfab0(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+  union {
+    unsigned char b;
+    int i;
+  } value;
+
+  value.i = 0;
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    value.b =
+      (unsigned char)FUN_00097220(record[0], *(float *)((char *)record + 4));
+    hs_return(thread_datum, value.i);
+  }
+}
