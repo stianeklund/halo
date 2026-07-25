@@ -6225,3 +6225,77 @@ void FUN_000bf7e0(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, value.i);
   }
 }
+
+/* FUN_000bf870 @ 0x000bf870
+ *
+ * HaloScript builtin dispatcher, structurally the SAME function as
+ * FUN_000bf1e0 above: identical 3-parameter cdecl shape, identical
+ * evaluate / NULL-check / worker / hs_return skeleton, identical
+ * "worker takes (dword @ record+0, zero-extended BYTE @ record+4) and the
+ * script gets a CONSTANT 0" tail. The only difference from FUN_000bf1e0 is
+ * the worker called: 0x1a7d80 (units.obj) instead of 0x1ac030.
+ *
+ * cdecl frame: PUSH EBP; MOV EBP,ESP; PUSH ESI. No local dword, no _chkstk,
+ * no SUB ESP, no FPU, no SEH, no local buffers. ESI is the only callee-saved
+ * register and holds thread_datum live across the evaluate call (never
+ * rewritten in the body, so no register-aliasing risk -- lift-learnings 1).
+ * The exit RET carries no immediate => cdecl, caller cleans.
+ *   function_index  int16_t  [EBP+0x08]  -> ECX
+ *   thread_datum    int      [EBP+0x0c]  -> ESI, reused as hs_return arg1
+ *                                          (NOT sourced from the record)
+ *   init            char     [EBP+0x10]  -> EAX (loaded as a dword)
+ * Ghidra modelled this void(void), so the three cdecl params surfaced as
+ * in_stack_00000004/8/c pseudo-locals (off by 4); they are STACK args, not
+ * @<reg> -- no unaff_/in_EAX/in_ECX appears (lift-learnings 31 void-decl
+ * trap). kb.json's stale `void FUN_000bf870(void);` decl was corrected to the
+ * 3-arg cdecl form as part of this lift; leaving a (void) decl over a
+ * stack-arg callee is the ESP-drift class of bug from 0x158df0.
+ *
+ * Binary evidence (traced backward from each CALL in the disassembly):
+ *   CALL 0xcc560 pushes EAX([EBP+0x10]) / ESI([EBP+0xc]) / ECX([EBP+0x8]) in
+ *   cdecl reverse order -> C order (function_index, thread_datum, init);
+ *   ADD ESP,0xc = 3 args. Straight pass-through, no reordering.
+ *
+ *   TEST EAX,EAX / JZ <end> skips BOTH remaining calls when the result is
+ *   NULL, so the 0xcc560 return is a POINTER that is dereferenced even though
+ *   kb.json declares it as returning int (same as every twin above; the cast
+ *   is local and the kb decl is left alone).
+ *
+ *   Record deref: XOR EDX,EDX; MOV DL,byte ptr [EAX+0x4] -> zero-extended
+ *   BYTE at record+4; MOV EAX,dword ptr [EAX] -> DWORD at record+0. Ghidra
+ *   rendered the byte as `piVar1[1]`, i.e. an int at +0x4 -- that width is
+ *   WRONG (lift-learnings 24 LOADW); it is a single unsigned byte.
+ *   Only offsets +0x0 and +0x4 are touched, one deref each -- no
+ *   buffer-alias risk.
+ *
+ *   CALL 0x1a7d80 pushes EDX (the zero-extended byte) then EAX (the dword) =
+ *   cdecl reverse -> C order (record[0], byte at record+4).
+ *
+ *   CALL 0xcbf80 pushes 0x0 then ESI -> hs_return(thread_datum, 0). The
+ *   script return value is the CONSTANT 0, not the evaluated record and not
+ *   the worker's result (0x1a7d80 is void); the entire observable effect of
+ *   this handler is the 0x1a7d80 side effect. ONE combined ADD ESP,0x10
+ *   cleans the 4 pushes of both 2-arg calls -- the ARG_COUNT hazard reported
+ *   on hs_return ("cleanup=4 stack args vs decl=2") is a FALSE POSITIVE from
+ *   that merged cleanup; hs_return really takes 2 args, do NOT "fix" its decl.
+ *
+ * Callees (all cdecl, all in kb.json, all ported, no @<reg> args anywhere):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x1a7d80 = FUN_001a7d80(int datum_handle, char flag) -> void
+ *              (units.obj, lifted in src/halo/units/units.c; parameter names
+ *              are kb.json's, the semantics are Uncertain)
+ *   0xcbf80  = hs_return(int thread_handle, int value)
+ *
+ * Placement: kept here beside its twins deliberately -- the hs helpers are
+ * static in this TU; revert any maintain.py relocation. */
+void FUN_000bf870(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    FUN_001a7d80(record[0], (char)*(unsigned char *)((char *)record + 4));
+    hs_return(thread_datum, 0);
+  }
+}
