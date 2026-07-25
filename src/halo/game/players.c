@@ -5524,3 +5524,66 @@ void FUN_000bf560(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, 0);
   }
 }
+
+/* FUN_000bf5a0 @ 0xbf5a0 -- HS macro-function wrapper, two-argument
+ * (unit + seat-name) variant. Same skeleton as FUN_000bf560 above: evaluate
+ * the script arguments, and on a non-NULL argument record hand TWO record
+ * fields to a worker, then return a CONSTANT 0 to the script thread. The
+ * worker returns void, so hs_return's second argument is an immediate PUSH
+ * 0x0 -- there is no result slot in this frame.
+ *
+ * Binary evidence (cachebeta.xbe, 0xbf5a0..0xbf5d5, 26 instructions):
+ *   Frame: PUSH EBP; MOV EBP,ESP; PUSH ESI. No local dword (no `PUSH ECX` in
+ *   the prologue), no _chkstk, no FPU, no SEH, no local buffers. ESI is the
+ *   only callee-saved register and it holds thread_datum live across the
+ *   evaluate call. Epilogue POP ESI; POP EBP; RET with NO immediate (cdecl,
+ *   caller-cleaned).
+ *     function_index  int16_t  [EBP+0x08]  -> ECX  (callee uses it as int16_t)
+ *     thread_datum    int      [EBP+0x0c]  -> ESI, reused directly as
+ *                                            hs_return arg1 (it is NOT
+ *                                            re-sourced from the record)
+ *     init            char     [EBP+0x10]  -> EAX
+ *   CALL 0xcc560 @0xbf5b0 pushes EAX(init), ESI(thread_datum), ECX
+ *   (function_index) in cdecl reverse order -> C order (function_index,
+ *   thread_datum, init); ADD ESP,0xC = 3 stack args. TEST EAX,EAX; JZ 0xbf5d3
+ *   skips BOTH remaining calls on a NULL record, so EAX is an
+ *   evaluation-record POINTER, not a value.
+ *   Record deref is TWO FULL DWORD MOVs -- no movzx/movsx anywhere, so unlike
+ *   FUN_000bf1a0 (word field) and FUN_000bf1e0 (byte field) there is no
+ *   narrowing load here:
+ *     MOV EDX,dword ptr [EAX+0x4]   -> record+4 (loaded FIRST)
+ *     MOV EAX,dword ptr [EAX]       -> record+0
+ *   PUSH EDX; PUSH EAX; CALL 0x1ae750 -- the +4 field is pushed FIRST, so in
+ *   cdecl order it is the SECOND C argument: unit_scripting_set_seat(record[0],
+ *   record[1]). The callee's kb decl proves arg1 is an `int unit_handle` and
+ *   arg2 a `const char *seat_name`, so record+4 is a string pointer, cast at
+ *   the call site.
+ *   CALL 0xcbf80 @0xbf5cb pushes 0x0 then ESI -> hs_return(thread_datum, 0).
+ *   The second argument is an IMMEDIATE 0, not a result slot.
+ *   ONE combined ADD ESP,0x10 at 0xbf5d0 folds unit_scripting_set_seat's 2
+ *   dwords with hs_return's 2; any ARG_COUNT warning on 0xcbf80
+ *   ("cleanup=4 stack args vs decl=2") is that merge -- hs_return really takes
+ *   2 args, do NOT "fix" its decl.
+ *   Ghidra modelled this void(void), so the three cdecl params appeared as
+ *   in_stack_00000004/8/c pseudo-locals (off by 4); they are stack args, not
+ *   @<reg> (lift-learnings 31 / void-decl trap). kb.json's decl was corrected
+ *   from `void(void)` to the 3-arg cdecl form as part of this lift.
+ *
+ * Callees (all cdecl, in kb.json, no @<reg> args anywhere; the delinked
+ * reference carries exactly one DISP32 reloc for each, in this order):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *              (kb decl says `int`, but the call site dereferences the result;
+ *              cast at the call site, as every twin above does)
+ *   0x1ae750 = unit_scripting_set_seat(int unit_handle, const char *seat_name)
+ *   0xcbf80  = hs_return(int thread_handle, int value) */
+void FUN_000bf5a0(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    unit_scripting_set_seat(record[0], (const char *)record[1]);
+    hs_return(thread_datum, 0);
+  }
+}
