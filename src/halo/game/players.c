@@ -6930,3 +6930,83 @@ void FUN_000bfab0(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, value.i);
   }
 }
+
+/* FUN_000bfb00 @ 0x000bfb00
+ *
+ * HaloScript builtin dispatcher, float-return twin of the byte/int dispatchers
+ * above (FUN_000bf920 / FUN_000bfab0): identical 3-parameter cdecl shape and
+ * identical evaluate / NULL-check / worker / hs_return skeleton. The only
+ * difference is that the worker returns a FLOAT and its raw 32-bit pattern is
+ * handed straight to hs_return.
+ *
+ * cdecl frame: PUSH EBP; MOV EBP,ESP; PUSH ECX (one 4-byte local); PUSH ESI;
+ * ... POP ESI; MOV ESP,EBP; POP EBP; RET. 25 instructions total. No _chkstk, no
+ * SUB ESP, no buffers, no SEH. ESI is the only callee-saved register and holds
+ * thread_datum live across the evaluate call. The exit RET carries no immediate
+ * => cdecl, caller cleans.
+ *   function_index  int16_t  [EBP+0x08]  -> ECX
+ *   thread_datum    int      [EBP+0x0c]  -> ESI, reused as hs_return arg1
+ *   init            char     [EBP+0x10]  -> EAX
+ * Ghidra modelled this void(void), so the three cdecl params surfaced as
+ * in_stack_* pseudo-locals; they are STACK args, not @<reg> (lift-learnings 31
+ * void-decl trap). kb.json's stale `void FUN_000bfb00(void);` decl was
+ * corrected to the 3-arg cdecl form as part of this lift.
+ *
+ * Binary evidence (traced backward from each CALL):
+ *   CALL 0xcc560 pushes EAX([EBP+0x10]) / ESI([EBP+0xc]) / ECX([EBP+0x8]) in
+ *   cdecl reverse order -> C order (function_index, thread_datum, init); ADD
+ *   ESP,0xc = 3 args. Straight pass-through.
+ *
+ *   TEST EAX,EAX / JZ skips BOTH remaining calls when the result is NULL, so
+ *   the 0xcc560 return is a POINTER that is dereferenced even though kb.json
+ *   declares it as returning int (same as every twin above).
+ *
+ *   Record deref (1 field): MOV EDX,dword ptr [EAX] -> full 32-bit DWORD at
+ *   record+0. NOT a MOVSX word load -- do not copy the `*(int16_t *)record`
+ *   idiom of the int16 twins here. Only +0x0 is touched, one deref, so there is
+ *   no buffer-alias risk.
+ *
+ *   CALL 0x96470 device_get_position takes exactly ONE stack arg (PUSH EDX =
+ *   record[0]) and returns a FLOAT: the very next instruction is
+ *   FSTP dword ptr [EBP-0x4]. kb.json declared it `void device_get_position
+ *   (void);`, which is WRONG on both counts -- against that decl the call site
+ *   would push nothing and read EAX garbage (feedback_xcall_type_audit: a
+ *   float-returning callee declared void reads EAX instead of ST0). The decl
+ *   was corrected to `float device_get_position(int device_object);`, matching
+ *   its immediate neighbour `float device_get_power(int device_object);` at
+ *   0x964a0. This lift is its only source caller.
+ *
+ *   The result is then re-read from the SAME 4-byte slot as an integer
+ *   (MOV EAX,[EBP-0x4]; PUSH EAX) and pushed to hs_return. There is no _ftol2
+ *   and no FISTP anywhere in the body, so this is a BIT REINTERPRETATION, not a
+ *   float->int conversion; Ghidra's `(int)(float)extraout_ST0` is a decompiler
+ *   artifact and writing `(int)value` would emit a truncation the original does
+ *   not perform. The union below reproduces the FSTP/MOV pair exactly.
+ *
+ *   CALL 0xcbf80 pushes the raw float bits then ESI -> hs_return(thread_datum,
+ *   bits). ONE combined ADD ESP,0xc cleans device_get_position's 1 arg plus
+ *   hs_return's 2 args (feedback_cdecl_push_order: do NOT infer a 3-arg
+ *   hs_return from that single cleanup).
+ *
+ * Callees (all cdecl, all in kb.json, no @<reg> args anywhere):
+ *   0xcc560 = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x96470 = device_get_position(int device_object) -> float
+ *   0xcbf80 = hs_return(int thread_handle, int value)
+ *
+ * Placement: kept here beside its twins deliberately -- the hs helpers are
+ * static in this TU; revert any maintain.py relocation. */
+void FUN_000bfb00(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+  union {
+    float f;
+    int i;
+  } value;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    value.f = device_get_position(record[0]);
+    hs_return(thread_datum, value.i);
+  }
+}
