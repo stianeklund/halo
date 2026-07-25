@@ -4691,3 +4691,75 @@ void FUN_000bf060(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, result);
   }
 }
+
+/* FUN_000bf0b0 @ 0x000bf0b0
+ *
+ * HaloScript builtin dispatcher, third structural twin of FUN_000bf010 /
+ * FUN_000bf060 above: same cdecl frame, same pre-zeroed result dword, same
+ * evaluate -> worker -> hs_return skeleton. The only differences are the
+ * worker (unit_custom_animation_at_frame) and one extra evaluated argument
+ * (five fields instead of four).
+ *
+ * cdecl frame 0xbf0b0-0xbf10e (PUSH EBP; MOV EBP,ESP; PUSH ECX for the single
+ * dword local at EBP-0x4; PUSH ESI -- the only callee-saved register, and it
+ * holds thread_datum live across the evaluate call). No _chkstk, no FPU, no
+ * SEH, no local buffers. RET carries no immediate.
+ *   function_index  int16_t  [EBP+0x08]  -> ECX
+ *   thread_datum    int      [EBP+0x0c]  -> ESI, reused as hs_return arg1
+ *                                          (do NOT source it from the record)
+ *   init            char     [EBP+0x10]  -> EAX
+ *
+ * Binary evidence:
+ *   MOV dword [EBP-0x4],0 pre-zeroes the whole result slot BEFORE the evaluate
+ *   call; later only MOV byte [EBP-0x4],AL writes the low 8 bits and
+ *   MOV EAX,dword [EBP-0x4] reads all 32 -- i.e. a zero-extended 8-bit
+ *   result, modelled as a volatile dword (same as both twins above), NOT as a
+ *   type-punned char.
+ *   CALL 0xcc560 pushes EAX([EBP+0x10]), ESI([EBP+0xc]), ECX([EBP+0x8]) in
+ *   cdecl reverse order -> C order (function_index, thread_datum, init);
+ *   ADD ESP,0xc = 3 args. TEST EAX,EAX / JZ skips both remaining calls on a
+ *   NULL record.
+ *   The record is the evaluated-argument block, 0x14 bytes / 5 fields:
+ *     +0x00 int   (MOV [EAX])
+ *     +0x04 int   (MOV [EAX+4])
+ *     +0x08 int   (MOV [EAX+8])
+ *     +0x0c BYTE  ZERO-extended (XOR ECX,ECX; MOV CL,[EAX+0xc])
+ *     +0x10 WORD  ZERO-extended (XOR EDX,EDX; MOV DX,[EAX+0x10]) -- note this
+ *                 is a MOVZX-shaped load, not MOVSX; Ghidra's "(short)" cast
+ *                 on this field is misleading. Do not widen either narrow
+ *                 field to a dword read (lift-learnings 24, LOADW).
+ *   CALL 0x1af100 pushes EDX,ECX,EDX,ECX,EDX in cdecl reverse order -> C
+ *   order (field0, field1, field2, field3_byte, field4_word). ECX/EDX are
+ *   RELOADED between the repeated pushes, so the repeats carry different
+ *   values -- push-sequence reload, not duplicated arguments.
+ *   CALL 0xcbf80 pushes the result dword then ESI -> hs_return(thread_datum,
+ *   result). ONE combined ADD ESP,0x1c folds unit_custom_animation_at_frame's
+ *   5 dwords with hs_return's 2; the ARG_COUNT enrichment warning on 0xcbf80
+ *   ("cleanup=7 stack args vs decl=2") is that merge -- hs_return really
+ *   takes 2 args, do NOT "fix" its decl.
+ *   Ghidra modelled this void(void), so the three cdecl params showed up as
+ *   in_stack_00000004/8/c pseudo-locals (off by 4); they are stack args, not
+ *   @<reg> (lift-learnings 31 / void-decl trap).
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x1af100 = unit_custom_animation_at_frame(int unit_handle, int, int, int,
+ *              int16_t frame) -> char in AL
+ *   0xcbf80  = hs_return(int thread_handle, int value) */
+void FUN_000bf0b0(int16_t function_index, int thread_datum, char init)
+{
+  volatile unsigned int result_slot;
+  int *record;
+  unsigned int result;
+
+  result_slot = 0;
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    result_slot = (unsigned char)unit_custom_animation_at_frame(
+      record[0], record[1], record[2], (int)*(unsigned char *)(record + 3),
+      *(unsigned short *)(record + 4));
+    result = (unsigned int)result_slot;
+    hs_return(thread_datum, result);
+  }
+}
