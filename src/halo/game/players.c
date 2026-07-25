@@ -4610,9 +4610,83 @@ void FUN_000bf010(int16_t function_index, int thread_datum, char init)
   record =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (record != NULL) {
-    result_slot = (unsigned char)FUN_001ac180(record[0], record[1],
-                                             (void *)record[2],
-                                             (int)*(unsigned char *)(record + 3));
+    result_slot =
+      (unsigned char)FUN_001ac180(record[0], record[1], (void *)record[2],
+                                  (int)*(unsigned char *)(record + 3));
+    result = (unsigned int)result_slot;
+    hs_return(thread_datum, result);
+  }
+}
+
+/* FUN_000bf060 @ 0x000bf060
+ *
+ * HaloScript builtin dispatcher, immediate structural twin of FUN_000bf010
+ * above: same cdecl frame, same pre-zeroed result dword, same four evaluated
+ * arguments -- only the middle callee differs (FUN_001A7DF0 instead of
+ * FUN_001AC180). Evaluates the script function via
+ * hs_macro_function_evaluate(function_index, thread_datum, init); on a
+ * non-NULL evaluation record it reads four fields out of the caller-owned
+ * argument block, passes them to FUN_001A7DF0, and forwards that call's 8-bit
+ * result (AL) to hs_return.
+ *
+ * cdecl frame 0xbf060-0xbf0ae, 30 insns (PUSH EBP; MOV EBP,ESP; PUSH ECX for
+ * one dword local at EBP-0x4; PUSH ESI -- the only callee-saved register).
+ * No _chkstk, no FPU, no SEH, no local buffers. RET carries no immediate.
+ *   function_index  int16_t  [EBP+0x08]  -> ECX
+ *   thread_datum    int      [EBP+0x0c]  -> ESI, held live across the
+ *                                          evaluate call and reused as
+ *                                          hs_return arg1 (do NOT source it
+ *                                          from the record)
+ *   init            char     [EBP+0x10]  -> EAX
+ *
+ * Binary evidence:
+ *   MOV dword [EBP-0x4],0 at 0xbf071 pre-zeroes the result slot BEFORE the
+ *   evaluate call. CALL 0xcc560 @0xbf078 pushes EAX([EBP+0x10]),
+ *   ESI([EBP+0xc]), ECX([EBP+0x8]) in cdecl reverse order -> C order
+ *   (function_index, thread_datum, init); ADD ESP,0xc. TEST EAX,EAX /
+ *   JZ 0xbf0aa skips both remaining calls on a NULL record.
+ *   The record is the evaluated-argument block, 0x10 bytes / 4 fields:
+ *     +0x00 int   (MOV EAX,[EAX])
+ *     +0x04 int   (MOV EDX,[EAX+4])
+ *     +0x08 int   (MOV ECX,[EAX+8])
+ *     +0x0c BYTE  zero-extended (XOR EDX,EDX; MOV DL,[EAX+0xc]) -- a byte
+ *                 load, NOT a dword; do not widen it
+ *   CALL 0x1a7df0 @0xbf095 pushes EDX(+0xc byte), ECX(+0x8), EDX(+0x4),
+ *   EAX(+0x0) in cdecl reverse order -> C order (field0, field1, field2,
+ *   field3). EDX is RELOADED between the two PUSH EDX (the +0x4 load sits
+ *   between them), so the two pushes carry different values -- push-sequence
+ *   reload, not a duplicated argument.
+ *   At 0xbf09a only MOV byte [EBP-0x4],AL writes the low 8 bits; at 0xbf09d
+ *   MOV ECX,dword [EBP-0x4] reads all 32 -- a zero-extended 8-bit result,
+ *   which is why the slot is modelled as a volatile dword rather than a plain
+ *   char (same shape as FUN_000bf010's slot above).
+ *   CALL 0xcbf80 @0xbf0a2 pushes ECX(result dword) then ESI ->
+ *   hs_return(thread_datum, result).
+ *   ONE combined ADD ESP,0x18 at 0xbf0a7 folds FUN_001A7DF0's 4 dwords with
+ *   hs_return's 2; the ARG_COUNT enrichment warning on 0xcbf80
+ *   ("cleanup=6 stack args vs decl=2") is that merge -- hs_return really
+ *   takes 2 args, do NOT "fix" its decl.
+ *   Ghidra modelled this void(void), so the three cdecl params showed up as
+ *   in_stack_00000004/8/c pseudo-locals (off by 4); they are stack args,
+ *   not @<reg>.
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x1a7df0 = FUN_001a7df0(int datum_handle, int, int, int) -> char in AL
+ *              (semantics of the returned flag are UNKNOWN)
+ *   0xcbf80  = hs_return(int thread_handle, int value) */
+void FUN_000bf060(int16_t function_index, int thread_datum, char init)
+{
+  volatile unsigned int result_slot;
+  int *record;
+  unsigned int result;
+
+  result_slot = 0;
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    result_slot = (unsigned char)FUN_001a7df0(
+      record[0], record[1], record[2], (int)*(unsigned char *)(record + 3));
     result = (unsigned int)result_slot;
     hs_return(thread_datum, result);
   }
