@@ -7010,3 +7010,74 @@ void FUN_000bfb00(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, value.i);
   }
 }
+
+/* FUN_000bfb40 @ 0x000bfb40
+ *
+ * HaloScript builtin dispatcher; a SETTER twin of FUN_000bf920 /
+ * FUN_000bf960 with a FLOAT payload instead of a byte one. Identical
+ * 3-parameter cdecl shape and the same evaluate / NULL-check / worker /
+ * hs_return skeleton. The worker's result is discarded and the script gets a
+ * CONSTANT 0 back (PUSH 0x0), which is what distinguishes this from the
+ * query-side twin FUN_000bfab0 that shares the same (int, float) worker ABI.
+ *
+ * cdecl frame: PUSH EBP; MOV EBP,ESP; PUSH ESI; ... POP ESI; POP EBP; RET.
+ * Body spans 0xbfb40-0xbfb78. NO local slot at all (no PUSH ECX / SUB ESP),
+ * no _chkstk, no FPU arithmetic, no SEH, no struct writes, no buffers. ESI is
+ * the only callee-saved register and holds thread_datum live across the
+ * evaluate call. The exit RET carries no immediate => cdecl, caller cleans.
+ *   function_index  int16_t  [EBP+0x08]  -> ECX
+ *   thread_datum    int      [EBP+0x0c]  -> ESI, reused as hs_return arg1
+ *   init            char     [EBP+0x10]  -> EAX
+ * Ghidra modelled this void(void), so the three cdecl params surfaced as
+ * in_stack_* pseudo-locals; they are STACK args, not @<reg> -- no unaff_/
+ * in_EAX/in_ECX appears (lift-learnings 31 void-decl trap). kb.json's stale
+ * `void FUN_000bfb40(void);` decl was corrected to the 3-arg cdecl form as
+ * part of this lift, as was the callee 0x97040's equally stale `void
+ * FUN_00097040(void);`; a (void) decl over a stack-arg callee is the ESP-drift
+ * class of bug from 0x158df0.
+ *
+ * Binary evidence (traced backward from each CALL):
+ *   CALL 0xcc560 pushes EAX([EBP+0x10]) / ESI([EBP+0xc]) / ECX([EBP+0x8]) in
+ *   cdecl reverse order -> C order (function_index, thread_datum, init); ADD
+ *   ESP,0xc = 3 args. Straight pass-through, no reordering.
+ *   TEST EAX,EAX / JZ 0xbfb76 skips BOTH remaining calls, so the 0xcc560
+ *   return is a record POINTER that is dereferenced even though kb.json
+ *   declares it as returning int (same as every twin; the cast is local and
+ *   the kb decl is left alone).
+ *   The record is read at exactly two offsets, one field each -- no buffer
+ *   aliasing is possible: FLD dword ptr [EAX+0x4] (a FLOAT, which Ghidra
+ *   hides entirely) and MOV EDX,dword ptr [EAX] (a dword handle).
+ *   CALL 0x97040 is the push-then-fstp float-argument idiom (lift-learnings
+ *   hazard 2): PUSH ECX is a DUMMY slot reservation immediately overwritten
+ *   by FSTP dword ptr [ESP], then PUSH EDX. Entry stack is therefore
+ *   [ESP+0]=EDX (dword) and [ESP+4]=the float => C order
+ *   FUN_00097040(record[0], *(float *)(record+4)). Ghidra printed a bare
+ *   zero-argument `FUN_00097040()` -- the disassembly, not the decompile, is
+ *   authoritative here; lifting it 0-arg would drift ESP and pass nothing.
+ *   CALL 0xcbf80 pushes 0x0 then ESI => hs_return(thread_datum, 0). The
+ *   returned value is a literal constant; the observable effect of this
+ *   builtin is the 0x97040 side effect.
+ *   ONE combined ADD ESP,0x10 cleans the 4 pushes of both 2-arg calls -- the
+ *   ARG_COUNT hazard on hs_return ("cleanup=4 vs decl=2") is the same FALSE
+ *   POSITIVE documented on the twins at 0xbf8b0 / 0xbf920; hs_return really
+ *   takes 2 args, do NOT "fix" its decl.
+ *
+ * Callees (raw CALL targets):
+ *   0xcc560  = hs_macro_function_evaluate  (returns the record pointer)
+ *   0x97040  = FUN_00097040(int, float) -> void  (unnamed worker; the setter
+ *              counterpart of 0x97220, whose result FUN_000bfab0 returns)
+ *   0xcbf80  = hs_return
+ *
+ * Placement: kept here beside its twins deliberately -- the hs helpers are
+ * static in this TU; revert any maintain.py relocation. */
+void FUN_000bfb40(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    FUN_00097040(record[0], *(float *)((char *)record + 4));
+    hs_return(thread_datum, 0);
+  }
+}
