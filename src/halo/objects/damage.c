@@ -388,8 +388,16 @@ float object_get_actual_shield_vitality(int object_handle, char param_2)
   return scale * shield_max_vitality;
 }
 
-/* object_deplete_shield (0x136b40) — Trigger initial body-damage effect on an
- * object.
+/* object_deplete_shield (0x136b40) — One-shot "vitality pool just hit zero"
+ * transition for the pool tracked by obj+0x94.
+ *
+ * Name is INFERRED, not string-proven: this is the paired sibling of the
+ * confirmed object_deplete_body (0x137540). FUN_001a7b50 (units.c) contains two
+ * adjacent, structurally identical blocks — one calls 0x136b40 when the
+ * obj+0x94 ratio transitions to zero, the other calls object_deplete_body when
+ * the obj+0x90 ratio does. The two functions differ only in which flag bit they
+ * latch (0x8 here vs 0x4) and which 'coll' effect field they fire
+ * (coll+0x1a4 here vs coll+0xb4).
  *
  * If bit 3 of the damage flags byte (obj+0xb6) is not already set:
  *   1. Looks up the object's collision model tag (obje+0x7c -> 'coll')
@@ -405,8 +413,13 @@ float object_get_actual_shield_vitality(int object_handle, char param_2)
  * Confirmed: tag_get('obje', [ESI]) at CALL 0x1ba140.
  * Confirmed: CMP EAX,-1 at 0x136b72 checks collision model index.
  * Confirmed: tag_get('coll', obje[0x7c]) at second CALL 0x1ba140.
- * Confirmed: 8 pushes [0,0,0,0,-1,EDI,EDI,ECX] before CALL 0x9ec30.
- * Confirmed: OR byte [ESI+0xb6],0x8 at 0x136b9d sets bit 3.
+ * Confirmed: 8 pushes [0,0,0,0,-1,EDI,EDI,ECX] before CALL 0x9ec30. The
+ *   ADD ESP,0x28 after it is 0x20 (8 args) plus the folded 0x8 cleanup of the
+ *   preceding tag_get, so the ARG_COUNT hazard (cleanup=10) is a FALSE POSITIVE
+ *   and FUN_0009ec30's 8-param decl is correct.
+ * Confirmed: params 5/6 are plain PUSH 0 immediates (no FLD/FSTP), i.e. float
+ *   literal zeros, not a push-then-fstp float.
+ * Confirmed: OR byte [ESI+0xb6],0x8 at 0x136b9d sets bit 3 (BYTE, not widened).
  * Confirmed: MOV [ESI+0x98],0x0 at 0x136ba8 clears dword.
  * Confirmed: MOV EAX,EDI; CALL 0x136a00 => FUN_00136a00(@EAX=handle, 0).
  */
@@ -424,7 +437,7 @@ void object_deplete_shield(int object_handle)
     if (coll_index != -1) {
       coll_tag = (char *)tag_get(0x636f6c6c, coll_index);
       FUN_0009ec30(*(int *)(coll_tag + 0x1a4), object_handle, object_handle, -1,
-                   0, 0, 0, 0); /* dup-args-ok: confirmed PUSH EDI,EDI */
+                   0.0f, 0.0f, 0, 0); /* dup-args-ok: confirmed PUSH EDI,EDI */
     }
     *(unsigned char *)(obj + 0xb6) |= 8;
     *(int *)(obj + 0x98) = 0;

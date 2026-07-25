@@ -2307,7 +2307,7 @@ void FUN_001a7b50(int datum_handle, float body_damage, float shield_damage)
     shield_ratio = 1.0f;
   }
   if (0.0f < *(float *)(obj + 0x94) && body_ratio <= 0.0f) {
-    FUN_00136b40(datum_handle);
+    object_deplete_shield(datum_handle);
   }
   *(float *)(obj + 0x94) = body_ratio;
   if (0.0f < *(float *)(obj + 0x90) && shield_ratio <= 0.0f) {
@@ -12233,7 +12233,7 @@ void unit_place(int unit_handle, void *placement)
       *(float *)(unit + 0x94) = 0.0f;
 
       /* Update position and children */
-      FUN_00136b40(unit_handle);
+      object_deplete_shield(unit_handle);
       object_update_children_recursive(unit_handle);
     }
   }

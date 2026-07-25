@@ -35590,8 +35590,8 @@
     },
     {
      "addr": "0x136b40",
-     "decl": "void FUN_00136b40(int object_handle);",
-     "ported": false
+     "decl": "void object_deplete_shield(int object_handle);",
+     "ported": true
     },
     {
      "addr": "0x136bc0",
