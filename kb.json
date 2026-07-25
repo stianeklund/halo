@@ -18031,7 +18031,8 @@
     },
     {
      "addr": "0xbfd90",
-     "decl": "void FUN_000bfd90(void);"
+     "decl": "void FUN_000bfd90(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xbfdb0",
