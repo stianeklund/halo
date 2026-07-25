@@ -5894,3 +5894,71 @@ void FUN_000bf6c0(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, *(int *)&value);
   }
 }
+
+/* FUN_000bf700 @ 0xbf700 -- HS script-function wrapper, one-argument variant
+ *   whose worker returns a FLOAT.  Structurally identical to FUN_000bf6c0
+ *   directly above; the ONLY difference is the worker address (0x1a7d00 here
+ *   vs 0x1a7cc0 there).  Frame: PUSH EBP / MOV EBP,ESP / PUSH ECX / PUSH ESI,
+ *   no _chkstk, no SUB ESP, no SEH; plain RET with no immediate => cdecl,
+ *   caller cleans.  The prologue `PUSH ECX` is not an argument -- it reserves
+ *   the single 4-byte local at [EBP-0x4] used to spill ST(0).
+ *
+ * Signature (Confirmed by disassembly + family shape): the hs script function
+ * dispatch table calls every entry as
+ *   void (*)(int16_t function_index, int thread_datum, char init)
+ *   [EBP+0x8]  -> ECX, function_index (int16_t)
+ *   [EBP+0xc]  -> ESI, thread_datum; ESI is the callee-saved register kept
+ *                 live across the evaluate call and reused for hs_return
+ *   [EBP+0x10] -> EAX, init (char, loaded as a dword)
+ * Ghidra modelled this void(void), so the three cdecl params surfaced as
+ * in_stack_00000004/8/c pseudo-locals (off by 4); they are STACK args, not
+ * @<reg> (no unaff_/in_EAX/in_ECX appears -- lift-learnings 31 void-decl trap).
+ * kb.json's decl was corrected from `void(void)` to the 3-arg cdecl form as
+ * part of this lift.
+ *
+ * Call sites (traced backward from each CALL in the disassembly):
+ *   CALL 0xcc560 @0xbf710 -- PUSH EAX (init) / PUSH ESI (thread_datum) /
+ *   PUSH ECX (function_index); cdecl reverse order => the C order is
+ *   (function_index, thread_datum, init), a straight pass-through.
+ *   ADD ESP,0xc = exactly 3 stack args.  TEST EAX,EAX / JZ skips BOTH
+ *   remaining calls, i.e. it is the NULL guard on the argument record; the
+ *   result is a pointer even though kb.json declares
+ *   hs_macro_function_evaluate as returning `int`, so it is cast locally here
+ *   (do NOT change the kb decl), exactly as every twin above does.
+ *
+ *   CALL 0x1a7d00 @0xbf720 -- MOV EDX,dword ptr [EAX] then PUSH EDX, i.e. the
+ *   FULL DWORD at record+0.  There is no MOVSX/MOVZX anywhere in the function,
+ *   so unlike FUN_000bf1a0 (word field) and FUN_000bf1e0 (byte field) this
+ *   argument is a plain int32 handle, and only that ONE field of the record is
+ *   read (single deref of one offset -- no buffer-alias risk).
+ *
+ *   CALL 0xcbf80 @0xbf72d -- FLOAT-SMUGGLING (lift-learnings 6).  The
+ *   disassembly does FSTP dword ptr [EBP-0x4] / MOV EAX,[EBP-0x4] / PUSH EAX:
+ *   the float is stored to the local slot and re-loaded as a DWORD, so what
+ *   reaches hs_return is the IEEE-754 BIT PATTERN, not `(int)f`.  Ghidra's
+ *   `(int)fVar2` is wrong -- a numeric cast would truncate (0.75 -> 0), and no
+ *   FISTP / _ftol2 appears anywhere.  Hence the `*(int *)&value` punning below;
+ *   it also forces the same spill+reload the original emits.  Push order EAX
+ *   then ESI => hs_return(thread_datum, bits).  ONE combined ADD ESP,0xc at
+ *   0xbf732 folds hs_return's two args (8) with the single arg still on the
+ *   stack from the 0x1a7d00 call (4, never individually cleaned); the
+ *   ARG_COUNT warning on 0xcbf80 ("cleanup=3 stack args vs decl=2") is that
+ *   merge -- hs_return really takes 2 args, do NOT "fix" its decl.
+ *
+ * Callees (all cdecl, all in kb.json, no @<reg> args anywhere):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x1a7d00 = FUN_001a7d00(int datum_handle) -> float  (unnamed in kb.json;
+ *              the parameter name is kb's, the semantics are Uncertain)
+ *   0xcbf80  = hs_return(int thread_handle, int value) */
+void FUN_000bf700(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+  float value;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    value = FUN_001a7d00(record[0]);
+    hs_return(thread_datum, *(int *)&value);
+  }
+}
