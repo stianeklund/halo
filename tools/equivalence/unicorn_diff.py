@@ -1401,10 +1401,15 @@ def _record_leaf_classification(addr: str, is_leaf: bool) -> None:
     cat = "leaf" if is_leaf else "non_leaf"
     existing = data.get(norm)
     if isinstance(existing, dict):
-        existing["class"] = cat
-        data[norm] = existing
+        entry = dict(existing)
+        entry["class"] = cat
     else:
-        data[norm] = {"class": cat}
+        entry = {"class": cat}
+    # Skip the write when nothing changed: the equivalence cron runs in the
+    # MAIN worktree, and an unconditional rewrite dirties it (parking lands).
+    if data.get(norm) == entry:
+        return
+    data[norm] = entry
     try:
         _LEAF_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
         _LEAF_CACHE_PATH.write_text(
@@ -1415,8 +1420,22 @@ def _record_leaf_classification(addr: str, is_leaf: bool) -> None:
         pass
 
 
+_CONFIDENCE_RANK = {"weak": 0, "moderate": 1, "high": 2}
+
+
 def _record_confidence(addr, confidence: str, coverage_pct: float) -> None:
-    """Persist confidence and coverage to leaf_cache.json."""
+    """Persist confidence and coverage to leaf_cache.json, per-key BEST-OF.
+
+    A re-measurement must never DOWNGRADE a recorded entry. Coverage varies run
+    to run (stub availability, snapshot state, concolic luck), and the previous
+    unconditional overwrite silently replaced good measurements with worse ones
+    -- e.g. 0x6c high/86.3 -> weak/75.0 and 0xa83a0 100.0 -> 73.4, both from
+    routine cron sweeps.
+
+    The write is also skipped when nothing actually changes. The equivalence
+    cron (run_local_equiv.sh) runs in the MAIN worktree, so an unconditional
+    rewrite left main dirty and parked every auto-session land.
+    """
     if not addr:
         return
     if isinstance(addr, int):
@@ -1433,11 +1452,23 @@ def _record_confidence(addr, confidence: str, coverage_pct: float) -> None:
         data = {}
     existing = data.get(norm)
     if isinstance(existing, dict):
-        existing["confidence"] = confidence
-        existing["coverage_pct"] = coverage_pct
-        data[norm] = existing
+        old_cov = existing.get("coverage_pct")
+        old_conf = existing.get("confidence")
+        if isinstance(old_cov, (int, float)):
+            better = (coverage_pct > old_cov
+                      or (coverage_pct == old_cov
+                          and _CONFIDENCE_RANK.get(confidence, -1)
+                          > _CONFIDENCE_RANK.get(old_conf, -1)))
+            if not better:
+                return
+        entry = dict(existing)
+        entry["confidence"] = confidence
+        entry["coverage_pct"] = coverage_pct
     else:
-        data[norm] = {"confidence": confidence, "coverage_pct": coverage_pct}
+        entry = {"confidence": confidence, "coverage_pct": coverage_pct}
+    if data.get(norm) == entry:
+        return
+    data[norm] = entry
     try:
         _LEAF_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
         _LEAF_CACHE_PATH.write_text(
