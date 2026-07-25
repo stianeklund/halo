@@ -32044,7 +32044,7 @@
     },
     {
      "addr": "0x53800",
-     "decl": "void FUN_00053800(void);"
+     "decl": "void FUN_00053800(char *text, int column_count, short *column_positions, void *context @<eax>);"
     },
     {
      "addr": "0x53890",
@@ -32353,7 +32353,8 @@
    "functions": [
     {
      "addr": "0x53b80",
-     "decl": "void FUN_00053b80(void);"
+     "decl": "void FUN_00053b80(void);",
+     "ported": true
     },
     {
      "addr": "0x53bf0",
