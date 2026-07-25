@@ -6678,3 +6678,79 @@ void FUN_000bf9a0(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, value.i);
   }
 }
+
+/* FUN_000bfa30 @ 0x000bfa30
+ *
+ * HaloScript builtin dispatcher; byte-shape twin of FUN_000bf920 /
+ * FUN_000bf960 / FUN_000bf8b0 above -- identical 3-parameter cdecl shape and
+ * identical evaluate / NULL-check / worker / hs_return skeleton. The delta is
+ * the worker (0x97260) and, more importantly, the WIDTH of the second record
+ * field: this one is a FLOAT (FLD dword), not the zero-extended BYTE the
+ * flashlight twins pass.
+ *
+ * cdecl frame: PUSH EBP; MOV EBP,ESP; PUSH ESI; ... POP ESI; POP EBP; RET.
+ * Body spans 0xbfa30-0xbfa68. No locals, no SUB ESP, no _chkstk, no SEH. ESI is
+ * the only callee-saved register and holds thread_datum live across the
+ * evaluate call. The exit RET carries no immediate => cdecl, caller cleans.
+ *   function_index  int16_t  [EBP+0x08]  -> ECX
+ *   thread_datum    int      [EBP+0x0c]  -> ESI, reused as hs_return arg1
+ *   init            char     [EBP+0x10]  -> EAX
+ * Ghidra modelled this void(void), so the three cdecl params surfaced as
+ * in_stack_* pseudo-locals; they are STACK args, not @<reg> -- no unaff_/
+ * in_EAX/in_ECX appears (lift-learnings 31 void-decl trap). kb.json's stale
+ * `void FUN_000bfa30(void);` decl was corrected to the 3-arg cdecl form as part
+ * of this lift, as was the callee 0x97260's equally stale `void
+ * FUN_00097260(void);`; a (void) decl over a stack-arg callee is the ESP-drift
+ * class of bug from 0x158df0.
+ *
+ * Binary evidence (traced backward from each CALL):
+ *   CALL 0xcc560 pushes EAX([EBP+0x10]) / ESI([EBP+0xc]) / ECX([EBP+0x8]) in
+ *   cdecl reverse order -> C order (function_index, thread_datum, init); ADD
+ *   ESP,0xc = 3 args. Straight pass-through, no reordering.
+ *
+ *   TEST EAX,EAX / JZ 0xbfa66 skips BOTH remaining calls when the result is
+ *   NULL, so the 0xcc560 return is a POINTER that is dereferenced even though
+ *   kb.json declares it as returning int (same as every twin above; the cast is
+ *   local and the kb decl is left alone).
+ *
+ *   Record deref, exactly two fields, one read each (no buffer-alias risk):
+ *     FLD dword ptr [EAX+0x4]  -> FLOAT at record+4
+ *     MOV EDX,dword ptr [EAX]  -> DWORD at record+0
+ *   The FLD is a 4-byte x87 float load, NOT an integer load: Ghidra dropped it
+ *   entirely and the flashlight twins carry a BYTE at this same offset, so the
+ *   width is taken from THIS function's disassembly (lift-learnings 24 LOADW).
+ *
+ *   CALL 0x97260 is the push-then-fstp float hazard (decompiler trap 2): the
+ *   PUSH ECX before it is a DUMMY slot immediately overwritten by
+ *   FSTP dword ptr [ESP], so the first (highest) pushed argument is the FLOAT
+ *   from record+4, not ECX. PUSH EDX (record[0]) follows. cdecl reverse -> C
+ *   order FUN_00097260(record[0], *(float *)(record+4)). Two DISTINCT args --
+ *   passing ECX, or an (int) cast of the float, would silently corrupt the
+ *   argument (lift-learnings 6 float-smuggling).
+ *
+ *   CALL 0xcbf80 pushes 0x0 then ESI -> hs_return(thread_datum, 0). The script
+ *   return value is the CONSTANT 0, not the record and not the worker's result;
+ *   the entire observable effect is the 0x97260 side effect. ONE combined
+ *   ADD ESP,0x10 cleans the 4 pushes of both 2-arg calls -- the ARG_COUNT
+ *   hazard on hs_return ("cleanup=4 vs decl=2") is that same FALSE POSITIVE
+ *   documented on the twins; hs_return really takes 2 args, do NOT "fix" its
+ *   decl.
+ *
+ * Callees (all cdecl, all in kb.json, no @<reg> args anywhere):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x97260  = FUN_00097260(int, float)  -- unnamed worker, semantics unknown
+ *   0xcbf80  = hs_return(int thread_handle, int value)
+ *
+ * Placement: kept here beside its twins deliberately -- the hs helpers are
+ * static in this TU; revert any maintain.py relocation. */
+void FUN_000bfa30(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    FUN_00097260(record[0], *(float *)((char *)record + 4));
+    hs_return(thread_datum, 0);
+  }
+}

@@ -17946,7 +17946,9 @@
     },
     {
      "addr": "0xbfa30",
-     "decl": "void FUN_000bfa30(void);"
+     "decl": "void FUN_000bfa30(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "source_path": "src/halo/game/players.c"
     },
     {
      "addr": "0xbfa70",
@@ -30681,7 +30683,7 @@
     },
     {
      "addr": "0x97260",
-     "decl": "void FUN_00097260(void);"
+     "decl": "void FUN_00097260(int arg0, float arg1);"
     }
    ],
    "name": "edit_text.obj",
