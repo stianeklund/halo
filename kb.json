@@ -17806,7 +17806,8 @@
     },
     {
      "addr": "0xbf340",
-     "decl": "void FUN_000bf340(void);"
+     "decl": "void FUN_000bf340(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xbf380",
@@ -27305,7 +27306,7 @@
     },
     {
      "addr": "0x1b5500",
-     "decl": "void FUN_001b5500(void);"
+     "decl": "void FUN_001b5500(int param_1);"
     },
     {
      "addr": "0x1b5580",
