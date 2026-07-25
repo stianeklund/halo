@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from collections import Counter
@@ -155,6 +156,57 @@ def _dup_addrs(counter: "Counter") -> dict:
     return {a: c for a, c in counter.items() if c > 1}
 
 
+# Markers for the generated progress block in README.md. A changed line must
+# match one of these to count as "stats only"; anything else means a human
+# edited the README and we must NOT auto-commit it.
+_README_STAT_MARKERS = (
+    "Ported Functions:",
+    "Ported Code Bytes:",
+    "Average VC71 Match Accuracy:",
+    "Equivalence Verified:",
+    "img.shields.io/badge/decompilation-",
+    "img.shields.io/badge/functions-",
+)
+# The progress bar line, e.g. "  `[███░░░] 56.82%`". Keyed off the block glyphs
+# rather than exact punctuation, which has changed shape before.
+_README_BAR_RE = re.compile(r"^[+-][^█░]*[█░]+[^█░]*$")
+
+
+def _absorb_readme_stats_refresh(main_wt: str) -> bool:
+    """Commit a README-only, stats-only regen in the main worktree.
+
+    Returns True only if it actually committed. Fails CLOSED: any other dirty
+    path, any non-stats line in the README diff, or any git error leaves the
+    tree untouched so the caller still parks.
+    """
+    st = git("status", "--porcelain", "--untracked-files=no", cwd=main_wt)
+    lines = [ln for ln in st.stdout.splitlines() if ln.strip()]
+    if len(lines) != 1:
+        return False
+    # NB: parse by token, not fixed columns -- the porcelain status code is
+    # " M" with a LEADING space, which a .strip() on the line silently eats.
+    code, _, path = lines[0].strip().partition(" ")
+    if path.strip() != "README.md" or "M" not in code:
+        return False
+    d = git("diff", "--unified=0", "--", "README.md", cwd=main_wt)
+    if d.returncode != 0 or not d.stdout.strip():
+        return False
+    changed = [ln for ln in d.stdout.splitlines()
+               if ln[:1] in "+-" and not ln.startswith(("+++", "---"))]
+    if not changed:
+        return False
+    for ln in changed:
+        if _README_BAR_RE.match(ln):
+            continue
+        if not any(m in ln for m in _README_STAT_MARKERS):
+            return False
+    if not git_ok("add", "--", "README.md", cwd=main_wt):
+        return False
+    return git_ok("commit", "--no-verify", "-m",
+                  "chore: README progress stats refresh (auto, post-land)",
+                  "--", "README.md", cwd=main_wt)
+
+
 def run_gates(main_wt: str, *, rebased: bool, backup: str | None,
               branch: str) -> tuple[bool, str, dict]:
     """Run the four reintegration gates. Return (ok, fail_reason, detail)."""
@@ -255,6 +307,17 @@ def main() -> int:
     st = git("status", "--porcelain", "--untracked-files=no", cwd=main_wt)
     if st.returncode != 0:
         return result(INCONCLUSIVE, "main_worktree_status_error", as_json=J)
+    if st.stdout.strip():
+        # Every successful land changes the ported-function count, so the
+        # dashboard's README stats go stale and a background regen rewrites
+        # them in main -- dirtying it and parking the NEXT land. That is a
+        # self-inflicted loop over a generated file, so absorb it: commit a
+        # README-only, stats-only refresh and carry on. Anything else still
+        # parks.
+        absorbed = _absorb_readme_stats_refresh(main_wt)
+        if absorbed:
+            st = git("status", "--porcelain", "--untracked-files=no",
+                     cwd=main_wt)
     if st.stdout.strip():
         return result(INCONCLUSIVE, "main_worktree_dirty", as_json=J,
                       main_worktree=main_wt,

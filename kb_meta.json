@@ -4598,6 +4598,16 @@
         "The 1-instruction VC71 gap (25/26, 94.1%) matches the same idiom-level ceiling seen on the identical-worker twin FUN_000bfab0 at 95.1%, so it is presumed a scheduling nuance around the record+4 float load rather than a semantic difference."
       ]
     },
+    "0xbfc10": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Callee 0x96510 device_group_set_actual_value's first parameter is declared int to match the zero-extended PUSH EDX at the call site and the sibling decls 0x966b0/0x96f20; the underlying field is a 16-bit device-group index (XOR EDX,EDX; MOV DX,word ptr [EAX])."
+      ],
+      "uncertain": [
+        "VC71 stalls at 88.5% (25/27) on two family-wide codegen idioms our source cannot trigger: the original pushes the float arg via FLD/FSTP [ESP] while VC71 compiles our float copy to MOV/PUSH, and it loads the 16-bit index with XOR EDX,EDX; MOV DX where VC71 emits MOVZWL; the same two deltas appear in the committed siblings 0xbfb40, 0xbfb80 and 0xbfbc0."
+      ]
+    },
     "0xc0e50": {
       "kind": "function",
       "status": "ported",
