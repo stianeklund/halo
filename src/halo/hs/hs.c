@@ -1,4 +1,54 @@
 
+/* 0xbefd0 — HS script function handler: stop a unit's custom animation.
+ *
+ * Byte-shape twin of FUN_000bdf40 (differs only in the middle callee). cdecl
+ * frame: PUSH EBP; MOV EBP,ESP; PUSH ESI; ... POP ESI; POP EBP; RET (no RET
+ * immediate — caller cleans).
+ *
+ * Params from the EBP offsets (Ghidra modeled this void(void) and dropped all
+ * three; the in_stack_* names in its output are the tell — they are stack
+ * params, NOT register args):
+ *   function_index  int16_t  [EBP+0x08] -> ECX -> evaluate arg 1
+ *   thread_datum    int      [EBP+0x0c] -> ESI (cached: used twice)
+ *   init            char     [EBP+0x10] -> EAX -> evaluate arg 3
+ *
+ * CALL 0xcc560 pushes EAX(init), ESI(thread_datum), ECX(function_index) and
+ * cleans with ADD ESP,0xc — 3 stack args, so the C order is
+ * (function_index, thread_datum, init). TEST EAX,EAX; JZ end is the NULL
+ * guard on the returned result record.
+ *
+ * The middle call does MOV EDX,dword ptr [EAX]; PUSH EDX — a FULL 32-bit load
+ * of the record's first dword (unlike the byte load in the 0xbdef0 sibling),
+ * passed as unit_stop_custom_animation(unit_handle).
+ *
+ * The single trailing ADD ESP,0xc at 0xbeffc is MERGED cleanup for the 1 arg
+ * of unit_stop_custom_animation plus the 2 args of hs_return (1+2 = 3 dwords).
+ * The call-site audit's "hs_return cleanup=3 vs decl=2" is a false positive
+ * from that adjacent-call merging; the disasm shows exactly 2 pushes for
+ * hs_return (PUSH 0x0; PUSH ESI). Same pattern documented on the twin.
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560   = hs_macro_function_evaluate(int16 fn_index, int thread_datum,
+ *               char init) -> int* (result record, NULL on failure)
+ *   0x1af0d0  = unit_stop_custom_animation(int unit_handle)
+ *   0xcbf80   = hs_return(int thread_handle, int value)
+ *
+ * Placed in hs.c rather than players.c (where kb groups 0xbefd0) per the same
+ * lift directive as the twin: players.c does not compile under VC71 (clang-only
+ * __attribute__ / raw fnptr casts), so it would be permanently unmeasurable
+ * there. */
+void FUN_000befd0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    unit_stop_custom_animation(result[0]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* 0xc0c30 — HS script function handler: apply an encounter state change.
  * Evaluates the macro arguments; on success the result block holds an
  * encounter handle at +0x0 (int) and a state value at +0x4 (int16). Calls
