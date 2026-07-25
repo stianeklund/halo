@@ -7152,11 +7152,98 @@ void FUN_000bfb80(int16_t function_index, int thread_datum, char init)
     int i;
   } value;
 
-  record =
-    (unsigned short *)hs_macro_function_evaluate(function_index, thread_datum,
-                                                 init);
+  record = (unsigned short *)hs_macro_function_evaluate(function_index,
+                                                        thread_datum, init);
   if (record != NULL) {
     value.f = device_group_get_value((int)record[0]);
+    hs_return(thread_datum, value.i);
+  }
+}
+
+/* FUN_000bfbc0 @ 0x000bfbc0
+ *
+ * HaloScript builtin dispatcher; a near-exact twin of FUN_000bfab0 above --
+ * same 3-parameter cdecl shape, same evaluate / NULL-check / worker /
+ * hs_return skeleton, and the same "pre-zeroed dword whose low BYTE is
+ * overwritten by the worker's AL" result-widening tail.  The two differences
+ * from FUN_000bfab0 are the record's first field (an UNSIGNED 16-bit index
+ * loaded with the MOVZX idiom rather than a dword object handle) and the
+ * worker called (0x96f20 rather than 0x97220).
+ *
+ * cdecl frame: PUSH EBP; MOV EBP,ESP; PUSH ECX (ONE 4-byte local, the result
+ * slot at [EBP-4]); PUSH ESI; ... POP ESI; plain RET (no immediate) => cdecl,
+ * caller cleans.  Body spans 0xbfbc0-0xbfc0a (75 bytes).  No _chkstk, no SEH,
+ * no loops, no buffers, no struct writes, no FPU arithmetic.
+ *   function_index  int16_t  [EBP+0x08]  -> ECX
+ *   thread_datum    int      [EBP+0x0c]  -> ESI, held live across BOTH calls
+ *                                           and reused as hs_return arg1
+ *   init            char     [EBP+0x10]  -> EAX
+ * Ghidra modelled this void(void), so the three cdecl params surfaced as
+ * in_stack_* pseudo-locals; they are STACK args, not @<reg> -- no unaff_/
+ * in_EAX/in_ECX appears (lift-learnings 31 void-decl trap).  kb.json's stale
+ * `void FUN_000bfbc0(void);` decl was corrected to the 3-arg cdecl form as
+ * part of this lift, as was the callee 0x96f20's equally stale
+ * `void FUN_00096f20(void);` -- see below.
+ *
+ * Binary evidence (traced backward from each CALL):
+ *   MOV dword ptr [EBP-0x4],0x0 is emitted BEFORE the evaluate call (MSVC
+ *   scheduling of the result slot's zero-init).
+ *   CALL 0xcc560 pushes EAX([EBP+0x10]) / ESI([EBP+0xc]) / ECX([EBP+0x8]) in
+ *   cdecl reverse order -> C order (function_index, thread_datum, init); ADD
+ *   ESP,0xc = 3 args.  Straight pass-through, no reordering.
+ *   TEST EAX,EAX / JZ skips BOTH remaining calls, so the 0xcc560 return is a
+ *   record POINTER that is dereferenced even though kb.json declares it as
+ *   returning int (same as every twin; the cast is local, kb decl untouched).
+ *   Ghidra typed that return `int iVar1` and dropped the dereferences
+ *   entirely; the disassembly reads TWO fields from it:
+ *     record+0x00  FLD is preceded by XOR EDX,EDX; MOV DX,word ptr [EAX] --
+ *                  the MOVZX idiom, an UNSIGNED 16-bit index (zero-extended,
+ *                  NOT sign-extended: lift-learnings 24 LOADW).
+ *     record+0x04  FLD dword ptr [EAX+4] -- a float.
+ *   CALL 0x96f20 is the push-then-fstp float hazard (lift-decompiler-traps
+ *   2): PUSH ECX is a DUMMY slot immediately overwritten by FSTP dword ptr
+ *   [ESP] at 0xbfbec-0xbfbed, then PUSH EDX.  Ghidra rendered this as a
+ *   ZERO-argument call; the real cdecl order is
+ *   FUN_00096f20((int)record[0], *(float *)(record + 4)).  kb.json declared
+ *   it `void (void)`, which would have dropped BOTH arguments (ESP drift,
+ *   the 0x158df0 class of bug) and discarded the AL return (lift-learnings
+ *   16 void-EAX); the decl was corrected to
+ *   `char FUN_00096f20(int arg0, float arg1);` (ported:false, so only the
+ *   thunk decl changes).  Left as FUN_ -- nothing here names it.
+ *   Result widening: MOV byte ptr [EBP-0x4],AL then MOV EAX,dword ptr
+ *   [EBP-0x4]; PUSH EAX.  A pre-zeroed dword with only its low byte
+ *   overwritten and read back as an int -- NOT a MOVZX and NOT a
+ *   sign-extending (int)(char) cast.  The union below reproduces exactly that
+ *   store pair; it is the same idiom that scored 100% on FUN_000bf8f0 and
+ *   FUN_000bfab0.
+ *   CALL 0xcbf80 pushes EAX (the widened byte) then ESI = cdecl reverse ->
+ *   hs_return(thread_datum, value.i).  ONE combined ADD ESP,0x10 at 0xbfc03
+ *   cleans the 2 pushes of 0x96f20 plus hs_return's 2 -- the ARG_COUNT hazard
+ *   on hs_return ("cleanup=4 vs decl=2") is the same FALSE POSITIVE
+ *   documented on the twins at 0xbf8b0 / 0xbf920 / 0xbfab0 / 0xbfb40;
+ *   hs_return really takes 2 args, do NOT "fix" its decl.
+ *
+ * Callees (raw CALL targets, all cdecl, no @<reg> args anywhere):
+ *   0xcc560 = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x96f20 = FUN_00096f20(int index, float value) -> char in AL
+ *   0xcbf80 = hs_return(int thread_handle, int value)
+ *
+ * Placement: kept here beside its twins deliberately -- the hs helpers are
+ * static in this TU; revert any maintain.py relocation. */
+void FUN_000bfbc0(int16_t function_index, int thread_datum, char init)
+{
+  unsigned short *record;
+  union {
+    unsigned char b;
+    int i;
+  } value;
+
+  value.i = 0;
+  record = (unsigned short *)hs_macro_function_evaluate(function_index,
+                                                        thread_datum, init);
+  if (record != NULL) {
+    value.b = (unsigned char)FUN_00096f20((int)record[0],
+                                          *(float *)((char *)record + 4));
     hs_return(thread_datum, value.i);
   }
 }
