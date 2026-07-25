@@ -4959,3 +4959,77 @@ void FUN_000bf1e0(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, 0);
   }
 }
+
+/* FUN_000bf220 @ 0x000bf220
+ *
+ * HaloScript builtin dispatcher, next in the 0xbf110/0xbf160/0xbf1a0/0xbf1e0
+ * family above: identical 3-parameter cdecl shape, identical
+ * evaluate / NULL-check / worker / hs_return skeleton, identical "worker
+ * returns nothing, script gets a CONSTANT 0" tail. The differences from the
+ * twins are the worker (unit_scripting_enter_vehicle at 0x1b32d0, which takes
+ * THREE args instead of two) and the record layout: all three fields here are
+ * full 32-bit dwords, with no MOVZX/MOVSX anywhere in the frame -- so, unlike
+ * FUN_000bf1a0 (word) and FUN_000bf1e0 (byte), there is no narrowing load to
+ * reproduce (lift-learnings 24 / LOADW).
+ *
+ * cdecl frame, PUSH EBP; MOV EBP,ESP; PUSH ESI. No local dword, no _chkstk,
+ * no FPU, no SEH, no local buffers. ESI is the only callee-saved register and
+ * holds thread_datum live across the evaluate call. RET carries no immediate
+ * (caller cleans). 24 instructions, 0xbf220-0xbf259.
+ *   function_index  int16_t  [EBP+0x08]  -> ECX
+ *   thread_datum    int      [EBP+0x0c]  -> ESI, reused as hs_return arg1
+ *                                          (NOT sourced from the record)
+ *   init            char     [EBP+0x10]  -> EAX
+ *
+ * Binary evidence:
+ *   CALL 0xcc560 @0xbf230 pushes EAX([EBP+0x10]), ESI([EBP+0xc]),
+ *   ECX([EBP+0x8]) in cdecl reverse order -> C order
+ *   (function_index, thread_datum, init); ADD ESP,0xc = 3 args. Straight
+ *   pass-through, no reordering.
+ *
+ *   TEST EAX,EAX / JZ 0xbf257 skips BOTH remaining calls when the result is
+ *   NULL, so the 0xcc560 return is a POINTER that is dereferenced, even though
+ *   kb.json declares it as returning int (same as the twins; the cast is local
+ *   and the kb decl is left alone).
+ *
+ *   Record deref: MOV EDX,dword ptr [EAX+0x8]; MOV ECX,dword ptr [EAX+0x4];
+ *   MOV EDX,dword ptr [EAX] -- three DWORD loads, +0x8 first because the +0x0
+ *   load overwrites EAX (the record pointer itself). MSVC's right-to-left
+ *   cdecl argument evaluation reproduces that order from the natural call
+ *   expression. Note EDX is reused across the +0x8 and +0x0 loads.
+ *
+ *   CALL 0x1b32d0 @0xbf247 pushes EDX(record+0x8), ECX(record+0x4),
+ *   EDX(record+0x0) = cdecl reverse -> C order
+ *   (record[0], record[1], (char *)record[2]) =
+ *   (unit_handle, vehicle_handle, seat_name). The third field is a dword in
+ *   the record and a char* in the callee's kb decl, so it is cast at the call
+ *   site; the kb decl is left alone.
+ *
+ *   CALL 0xcbf80 @0xbf24f pushes 0x0 then ESI -> hs_return(thread_datum, 0).
+ *   The script return value is the CONSTANT 0; unit_scripting_enter_vehicle
+ *   is void. ONE merged ADD ESP,0x14 @0xbf254 cleans both calls (3 + 2 = 5
+ *   dwords) -- the ARG_COUNT hazard on hs_return (cleanup=5 vs decl=2) is a
+ *   false positive from that merged cleanup, exactly as on the twins.
+ *
+ *   Ghidra modelled this void(void), so the three cdecl params showed up as
+ *   in_stack_00000004/8/c pseudo-locals (off by 4); they are stack args, not
+ *   @<reg> (lift-learnings 31 / void-decl trap). kb.json decl corrected from
+ *   void(void) to (int16_t, int, char).
+ *
+ * Callees (all cdecl, in kb.json, no @<reg> args anywhere):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x1b32d0 = unit_scripting_enter_vehicle(int unit_handle,
+ *              int vehicle_handle, char *seat_name) -- void, already carries
+ *              a correct 3-arg decl in kb.json
+ *   0xcbf80  = hs_return(int thread_handle, int value) */
+void FUN_000bf220(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    unit_scripting_enter_vehicle(record[0], record[1], (char *)record[2]);
+    hs_return(thread_datum, 0);
+  }
+}
