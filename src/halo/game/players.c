@@ -5401,3 +5401,65 @@ void FUN_000bf4c0(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, value.i);
   }
 }
+
+/* FUN_000bf510 @ 0xbf510 -- HS macro-function wrapper (2-argument variant).
+ * Same idiom as FUN_000bf4c0 directly above, one record field narrower.
+ *
+ * Binary evidence (cachebeta.xbe, 0xbf510..0xbf555):
+ *   Frame: PUSH EBP; MOV EBP,ESP; PUSH ECX (one dword local at EBP-4);
+ *   PUSH ESI. No _chkstk. Params are stack args at EBP+8 (int16
+ *   function_index), EBP+0xC (int thread_datum, held in ESI across the whole
+ *   body) and EBP+0x10 (char init).
+ *   MOV dword ptr [EBP-4],0 is emitted BEFORE the first CALL -- the local is
+ *   fully zeroed up front, which is what makes the later WORD store a
+ *   zero-extension rather than a partial update. Preserve that order.
+ *   CALL 0xcc560 pushes EAX(init), ESI(thread_datum), ECX(function_index) in
+ *   cdecl reverse order -> C order (function_index, thread_datum, init);
+ *   ADD ESP,0xC. TEST EAX,EAX; JZ end -- EAX is an evaluation-record POINTER,
+ *   not a value, proven by the following dereferences:
+ *     +0x00 int (MOV EAX,dword ptr [EAX])
+ *     +0x04 int (MOV EDX,dword ptr [EAX+0x4])
+ *   CALL 0x1b5400 pushes EDX(+0x4) then EAX(+0x0) in cdecl reverse order ->
+ *   C order (record[0], record[1]). The +0x4 load runs first because the
+ *   +0x0 load overwrites EAX (the record pointer itself); MSVC's right-to-left
+ *   cdecl argument evaluation reproduces that order from the call expression.
+ *   Result handling: MOV word ptr [EBP-4],AX (WORD store only, into the dword
+ *   zeroed above), then MOV ECX,dword ptr [EBP-4] (full DWORD read) -- an
+ *   explicit zero-extension through the stack slot; modeled with a union so
+ *   the widened value is provably the zero-extended low 16 bits.
+ *   CALL 0xcbf80 pushes ECX (widened result) then ESI ->
+ *   hs_return(thread_datum, value). The following ADD ESP,0x10 (16 bytes) is a
+ *   SHARED cleanup for 0x1b5400's 2 pushes plus hs_return's 2; any ARG_COUNT
+ *   warning on 0xcbf80 ("cleanup=4 vs decl=2") is that merge -- hs_return
+ *   really takes 2 args, do NOT "fix" its decl.
+ *   Ghidra modelled this void(void), so the three cdecl params appeared as
+ *   in_stack_00000004/8/c pseudo-locals (off by 4); they are stack args, not
+ *   @<reg> (lift-learnings 31 / void-decl trap). kb.json's decl was corrected
+ *   from `void(void)` to the 3-arg cdecl form, and 0x1b5400's decl from
+ *   `void(void)` to the 2-arg / uint16_t-return form the call site proves
+ *   (check_arg_counts: single site, push=2; check_stdcall_ret: plain RET, so
+ *   cdecl).
+ *
+ * Callees (all cdecl, in kb.json, no @<reg> args anywhere):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x1b5400 = FUN_001b5400(int, int) -> uint16_t in AX (unported; lives in
+ *              the vehicle-scripting address neighbourhood alongside
+ *              0x1b3400/vehicle_* but its own semantics are unproven, so the
+ *              mechanical FUN_ name is kept)
+ *   0xcbf80  = hs_return(int thread_handle, int value) */
+void FUN_000bf510(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+  union {
+    int i;
+    unsigned short w;
+  } value;
+
+  value.i = 0;
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    value.w = FUN_001b5400(record[0], record[1]);
+    hs_return(thread_datum, value.i);
+  }
+}
