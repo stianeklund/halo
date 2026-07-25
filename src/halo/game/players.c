@@ -7589,3 +7589,68 @@ void FUN_000bfcd0(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, 0);
   }
 }
+
+/* FUN_000bfd10 @ 0x000bfd10
+ *
+ * HaloScript builtin dispatcher for a ZERO-ARGUMENT script function, the
+ * immediate neighbour of FUN_000bfcd0 above. It is the DEGENERATE member of
+ * the handler family that fills the tail of this TU: because the script
+ * builtin takes no arguments there is no argument record to evaluate, so the
+ * hs_macro_function_evaluate call and its NULL check -- present in every twin
+ * from FUN_000bf870 through FUN_000bfcd0 -- are simply absent. What remains is
+ * the worker call followed by the constant script return.
+ *
+ * Ghidra modelled the function as void(void), so the cdecl STACK parameters
+ * surfaced as an `in_stack_00000008` pseudo-local (lift-learnings 31 void-decl
+ * trap). These are STACK args, not @<reg>: no unaff_/in_EAX/in_ECX appears
+ * anywhere in the decompile, and the body has no register-defining prologue.
+ * The stale `void FUN_000bfd10(void);` kb.json decl was corrected to the 3-arg
+ * cdecl form as part of this lift; a (void) decl over a stack-arg callee is
+ * the ESP-drift class of bug from 0x158df0.
+ *
+ * Binary evidence (the ENTIRE body, 10 instructions, 0xbfd10-0xbfd27; cdecl
+ * prologue PUSH EBP / MOV EBP,ESP with no SUB ESP, no _chkstk, no callee-saved
+ * pushes, no locals, no FPU, no SEH, no buffers, no struct deref, no loops and
+ * no branches -- straight-line, so there is no register-aliasing ambiguity and
+ * no buffer-alias risk anywhere in this function):
+ *
+ *   CALL 0x1459d0 is emitted with NO preceding pushes and NO stack cleanup
+ *   afterwards -> breakable_surfaces_reset(), 0 args, matching its kb decl.
+ *   It comes FIRST, before the script return, and that ordering is the whole
+ *   observable effect of the builtin. (Ghidra's label for this callee reads
+ *   `breakable_surfaces_initialize_for_new_map`; the kb.json name
+ *   breakable_surfaces_reset is used instead, per that entry. The callee is
+ *   ported=false and still thunks to the original -- it is declared in kb and
+ *   callable by name, so no stub is added here.)
+ *
+ *   MOV EAX,[EBP+0xc] / PUSH 0x0 / PUSH EAX / CALL 0xcbf80 -> cdecl reverse
+ *   push order gives C order hs_return(thread_datum, 0). The script return
+ *   value is the LITERAL 0, not any computed result. [EBP+0xc] is the SECOND
+ *   cdecl stack parameter, i.e. thread_datum, matching the slot every twin in
+ *   this family uses for it.
+ *
+ *   ADD ESP,0x8 cleans exactly those 2 pushes. Unlike the twins -- where ONE
+ *   combined ADD ESP,0x10 covers two 2-arg calls and produces the well-known
+ *   ARG_COUNT false positive on hs_return -- this function has a single
+ *   multi-arg call, so the cleanup is a clean 2-arg confirmation of
+ *   hs_return's arity. RET carries no immediate => cdecl, caller cleans.
+ *
+ * [EBP+0x08] (function_index) and [EBP+0x10] (init) are NEVER read by the
+ * body. They are retained in the signature because this is the fixed cdecl
+ * shape of the HS builtin handler family -- the dispatch table pushes three
+ * arguments at every call site, and declaring fewer would reintroduce the same
+ * ESP-drift hazard the corrected decl exists to prevent. Their being unused is
+ * a property of THIS builtin (it takes no script arguments), not evidence of a
+ * narrower signature.
+ *
+ * Callees (both cdecl, both in kb.json, no @<reg> args anywhere):
+ *   0x1459d0 = breakable_surfaces_reset(void)
+ *   0xcbf80  = hs_return(int thread_handle, int value)
+ *
+ * Placement: kept here beside its twins deliberately -- the hs helpers are
+ * static in this TU; revert any maintain.py relocation. */
+void FUN_000bfd10(int16_t function_index, int thread_datum, char init)
+{
+  breakable_surfaces_reset();
+  hs_return(thread_datum, 0);
+}
