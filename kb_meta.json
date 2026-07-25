@@ -226,12 +226,15 @@
     },
     "0x1d4f0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
-        "Return type is void* (pointer to actor+0xa4 pursuit-location sub-record) or NULL; disasm shows ADD EAX,0xa4 on match and XOR EDX/MOV EAX,EDX (NULL) otherwise."
+        "Return type is void* (pointer to actor+0xa4 pursuit-location sub-record) or NULL; disasm shows ADD EAX,0xa4 on match and XOR EDX/MOV EAX,EDX (NULL) otherwise.",
+        "The mode word at actor+0x6c gates the result on the set {7,5}, matching the same field_6c mode set observed in FUN_0001d530 at 0x1d530.",
+        "Unicorn equivalence reports 100/100 stub-arg divergences that are a reloc artifact, not a lift bug: the delinked oracle leaves the actor_data global reloc at 0 while the clang candidate resolves it, so datum_get arg[0] differs while arg[1] and the return value match; VC71 is byte-identical at 20/20 insns."
       ],
       "uncertain": [
-        "VC71 caps at 76.9% (19/20 insns) due to an MSVC branch-scheduling idiom: original hoists XOR EDX,EDX before a JNE to the pointer block and returns 0 via MOV EAX,EDX on fall-through, which clang will not reproduce from clean C; behavior verified equivalent (100/100 seeds)."
+        "VC71 caps at 76.9% (19/20 insns) due to an MSVC branch-scheduling idiom: original hoists XOR EDX,EDX before a JNE to the pointer block and returns 0 via MOV EAX,EDX on fall-through, which clang will not reproduce from clean C; behavior verified equivalent (100/100 seeds).",
+        "The returned pointer type is unproven; actor+0xa4 is likely a real_point3d pursuit location based on the symbol name, but this function supplies no typed evidence, so the return stays void *."
       ]
     },
     "0x1d5c0": {
@@ -3998,6 +4001,27 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xb8cf0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "delta[0] is the yaw delta and delta[1] the pitch delta, inferred from the push order at the player_control_update_desired_angles (0xb7f90) call site: PUSH [ESI+4] precedes PUSH [ESI], so the first-pushed dword is the last C argument (pitch_delta)."
+      ],
+      "uncertain": [
+        "The width of local_player_index is uncertain: the sole caller (0xa3b0f) pushes a full dword from EBX and the prologue reads it with a plain MOV EAX,[EBP+8] rather than MOVSX, so the original parameter may have been a 32-bit int narrowed only by the callee; it is declared int16_t here to match player_control_update_desired_angles."
+      ]
+    },
+    "0xb8d30": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Name update_server_add_player is INFERRED from source-position symmetry, not string evidence: the assert __FILE__ is player_queues_new.c and the assert line 0xeb (235) falls between update_server_start (0xcf) and update_server_get_update (0x11a), mirroring update_client_add_player's position after update_client_start.",
+        "Global 0x4570c8 is the update-server queue data_t* (update_server_globals+0x08); it is not declared in kb.json, so the raw *(data_t **)0x4570c8 idiom already used elsewhere in this TU was followed."
+      ],
+      "uncertain": [
+        "The kb.json entry was moved from player_control.obj to player_queues_new.obj (binary __FILE__ evidence) and a per-function delinked reference was exported to delinked/functions/000b8d30.obj because the whole-object delinked ref delinked/player_queues_new.obj starts at 0xb8d70 and does not contain this function."
+      ]
+    },
     "0xb8d70": {
       "kind": "function",
       "status": "ported"
@@ -4452,6 +4476,78 @@
       ],
       "uncertain": [
         "The 2nd param of 0x95660 is declared short to mirror sibling worker 0x95680 and reproduce the caller XOR EDX,EDX zero-extend load; the callee body was not decompiled, so its true param signedness (short vs unsigned short/uint16) is unconfirmed."
+      ]
+    },
+    "0xbee80": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "hs_macro_function_evaluate (0xcc560) is declared int in kb.json but 0xbee80 dereferences its return at offset 0 (MOV EDX,[EAX]) to obtain the unit handle passed to unit_open, so the return is really a pointer to an HS evaluation record; cast at the call site rather than widening the callee decl."
+      ],
+      "uncertain": [
+        "The combined ADD ESP,0xC at 0xbeeac folds unit_open's single-dword cleanup with hs_return's two-dword cleanup, which is what produces the ARG_COUNT hazard warning (cleanup=3 vs decl=2) on 0xcbf80; the PUSH count proves hs_return takes exactly 2 args and its decl must not be changed."
+      ]
+    },
+    "0xbeec0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The kb decl for hs_macro_function_evaluate (0xcc560) returns int but the value is really a record pointer: the original does MOV EDX,[EAX] after TEST EAX,EAX, so the return is cast to int* at this call site rather than widening the callee decl."
+      ],
+      "uncertain": [
+        "The record's first dword is treated as a unit handle solely because it is forwarded to unit_close (0x1ae180); the evaluation-record layout beyond offset 0 is unknown and no other field is read here."
+      ]
+    },
+    "0xbef40": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "HS built-in wrapper that kills a unit: hs_macro_function_evaluate returns a record pointer whose first dword is the unit handle, passed to unit_kill (0x1a7fa0); real Bungie name still TBD so the FUN_000bef40 placeholder is retained."
+      ]
+    },
+    "0xbef80": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "FUN_001AC0E0 (0x1ac0e0) is called with the evaluation record's first dword, which in the sibling handler FUN_000bef40 is a unit handle passed to unit_kill; the argument is therefore inferred to be a unit/object handle."
+      ],
+      "uncertain": [
+        "The semantics of FUN_001AC0E0's 16-bit AX result are unknown; it is only forwarded verbatim to hs_return as the script return value."
+      ]
+    },
+    "0xbefd0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameter list (int16_t function_index, int thread_datum, char init) is inferred from the EBP+0x08/+0x0c/+0x10 reads feeding the ECX/ESI/EAX pushes into hs_macro_function_evaluate (0xcc560), whose kb.json declaration fixes the widths; Ghidra modeled this function as void(void) and dropped all three stack params.",
+        "The call-site audit finding 'hs_return cleanup=3 vs decl=2' is a false positive caused by adjacent-call cleanup merging: the single ADD ESP,0xc at 0xbeffc cleans the 1 argument of unit_stop_custom_animation plus the 2 arguments of hs_return, and the disassembly shows exactly two pushes (PUSH 0x0; PUSH ESI) for hs_return."
+      ],
+      "uncertain": [
+        "The implementation lives in src/halo/hs/hs.c rather than players.obj's src/halo/game/players.c because players.c does not compile under VC71, so maintain.py --check reports a placement issue for this function by design; the same deviation is already recorded for the byte-shape twin FUN_000bdf40 at 0xbdf40."
+      ]
+    },
+    "0xbf010": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The EBP-4 slot is modelled as a volatile unsigned int because the original pre-zeroes the full dword at 0xbf021, stores only AL, then re-reads all 32 bits; this mirrors sibling FUN_000bef80's 16-bit slot in the same TU and reproduces the zero-extension without a movzx."
+      ],
+      "uncertain": [
+        "FUN_001ac180's four evaluated-argument fields are typed from its kb.json decl (actor, anim_tag, entry, do_flag) only; the HaloScript builtin this dispatcher binds is unidentified, so the semantics of record fields +0x00/+0x04/+0x08/+0x0c and of the returned AL flag are unproven."
+      ]
+    },
+    "0xbf060": {
+      "kind": "function",
+      "status": "unknown",
+      "uncertain": [
+        "The semantics of FUN_001a7df0's char/AL return value are unknown; it is zero-extended into a pre-cleared dword and forwarded verbatim to hs_return, so only the width (8 bits) is binary-confirmed."
+      ]
+    },
+    "0xbf0b0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Field +0x10 of the hs evaluated-argument block is loaded ZERO-extended (XOR EDX,EDX; MOV DX,[EAX+0x10]) even though unit_custom_animation_at_frame's kb decl types the parameter int16_t; the lift passes *(unsigned short *)(record + 4) to reproduce the movzx-shaped load."
       ]
     },
     "0xc0e50": {
@@ -8012,7 +8108,10 @@
     },
     "0x136b40": {
       "kind": "function",
-      "status": "ported"
+      "status": "ported",
+      "inferred": [
+        "Name object_deplete_shield is inferred, not string-proven: it is the paired sibling of the confirmed object_deplete_body (0x137540), called from the adjacent structurally identical block in FUN_001a7b50 (units.c) on the obj+0x94 vitality ratio while object_deplete_body handles obj+0x90."
+      ]
     },
     "0x137370": {
       "kind": "function",
@@ -9089,6 +9188,38 @@
     "0x1844b0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x184570": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Global 0x4d0cbc is a 0x30-byte (384-bit) per-group flag bitmap for transparent geometry groups: rasterizer_transparent_geometry_begin (0x184300) csmemsets it to 0 with size 0x30, and rasterizer_transparent_geometry_group_new (0x184330) caps the group count at 0x180, matching one bit per group."
+      ],
+      "uncertain": [
+        "The semantic name of FUN_00184570 is unknown; the only caller (rasterizer_transparent_geometry_group_draw, 0x1730xx region in rasterizer.c) tests it for zero before drawing, which is consistent with an already-processed/drawn predicate but is not proven, so the FUN_ placeholder name was kept."
+      ]
+    },
+    "0x1845b0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The global at 0x4d0cbc is a per-group flag bit vector: 0x30 bytes = 12 dwords = 384 bits, exactly matching the 0x180 transparent-geometry-group cap enforced at rasterizer_text.c:2387, and it is zeroed by the csmemset((void*)0x4d0cbc, 0, 0x30) in the same reset path.",
+        "The second parameter is effectively a bool/char: only its low byte is examined (MOV CL,[EBP+0xc]; TEST CL,CL), so the kb decl keeps int for stack-ABI stability while the C lift casts to char at the test site."
+      ],
+      "uncertain": [
+        "Branch polarity is inverted relative to any set-flag reading of the parameter: a zero low byte SETS the group bit and a non-zero low byte CLEARS it, so the semantic meaning of the flag is not established and the function is left named FUN_001845b0."
+      ]
+    },
+    "0x184610": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Group record fields: +0x54 is an int dynamic-vertex-buffer index with sentinel -1, +0x58 is a nullable pointer to an int16 vertex index; inferred from the MOV AX,word[EAX] load at +0x58 and the CMP ESI,-1 sentinel test at +0x54."
+      ],
+      "uncertain": [
+        "The kb.json name for callee 0x17c9c0 (rasterizer_widget_draw_sprite2d) does not fit this use, where its single stack arg is the group's dynamic-vertex-buffer index and its short result is returned as a vertex index; the name may be misattributed.",
+        "kb.json assigns 0x184610 to render.obj but the assert __FILE__ string is c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\rasterizer_transparent_geometry.c, so render.c is a mixed-TU aggregate for this address cluster."
+      ]
     },
     "0x184b80": {
       "kind": "function",
