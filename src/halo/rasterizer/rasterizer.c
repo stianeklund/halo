@@ -2549,3 +2549,21 @@ void rasterizer_set_vblank_callback(void *cb)
 {
   ((void (*)(void *))0x155c10)(cb);
 }
+
+/* FUN_0016FEB0 (0x16feb0) -- empty no-op.
+ *
+ * The entire function is a single instruction:
+ *
+ *   0016feb0:  c3            RET
+ *
+ * No prologue, no frame, no FPU, no memory access, no callees. Under the
+ * cdecl `void (void)` signature in kb.json this is a release-build no-op:
+ * a debug/profiling hook whose body compiled out. Called unconditionally
+ * from FUN_00158f90 (rasterizer_xbox_decals.c).
+ *
+ * kb.json assigns 0x16feb0 to rasterizer.obj; its address neighbours here
+ * are rasterizer_initialize (0x16fb80) and 0x16fec0.
+ */
+void FUN_0016FEB0(void)
+{
+}
