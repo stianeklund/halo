@@ -4829,3 +4829,72 @@ void FUN_000bf160(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, 0);
   }
 }
+
+/* FUN_000bf1a0 @ 0x000bf1a0
+ *
+ * HaloScript builtin dispatcher, the immediate twin of FUN_000bf160 above:
+ * same 3-parameter cdecl shape, same evaluate/NULL-check/hs_return skeleton,
+ * same "worker return value discarded, script gets a CONSTANT 0" tail. The two
+ * differences from the twin are the worker (0x1ac070 instead of 0x1ac0a0) and
+ * the width of the record's second field (a WORD here, a BYTE there).
+ *
+ * cdecl frame, PUSH EBP; MOV EBP,ESP; PUSH ESI. No local dword (no `PUSH ECX`
+ * in the prologue), no _chkstk, no FPU, no SEH, no local buffers. ESI is the
+ * only callee-saved register and holds thread_datum live across the evaluate
+ * call. RET carries no immediate (caller cleans).
+ *   function_index  int16_t  [EBP+0x08]  -> ECX
+ *   thread_datum    int      [EBP+0x0c]  -> ESI, reused as hs_return arg1
+ *                                          (do NOT source it from the record)
+ *   init            char     [EBP+0x10]  -> EAX
+ *
+ * Binary evidence:
+ *   CALL 0xcc560 pushes EAX([EBP+0x10]), ESI([EBP+0xc]), ECX([EBP+0x8]) in
+ *   cdecl reverse order -> C order (function_index, thread_datum, init);
+ *   ADD ESP,0xc = 3 args. Straight pass-through. TEST EAX,EAX / JZ skips both
+ *   remaining calls on a NULL record, so the return is a POINTER (it is
+ *   dereferenced below) even though kb.json declares 0xcc560 as returning
+ *   `int` -- cast at the call site, as all 25+ twins in this file do.
+ *   The record is the evaluated-argument block, 2 fields:
+ *     +0x00 int   (MOV EAX,dword [EAX])
+ *     +0x04 WORD  ZERO-extended (XOR EDX,EDX; MOV DX,word [EAX+0x4]) -- a
+ *                 MOVZX-shaped load; do NOT widen it to a dword read and do
+ *                 NOT let it sign-extend via a signed `short` (lift-learnings
+ *                 24, LOADW). This is the ONLY divergence from FUN_000bf160,
+ *                 whose same-slot field is a byte.
+ *   Note the load order: the +0x4 word is fetched BEFORE the +0x0 dword,
+ *   because the dword load overwrites EAX (the record pointer itself). MSVC's
+ *   right-to-left cdecl argument evaluation reproduces that order from the
+ *   call expression below.
+ *   CALL 0x1ac070 pushes EDX(+0x4 word) then EAX(+0x0 dword) in cdecl reverse
+ *   order -> C order (field0_dword, field1_word). Ghidra printed this as a
+ *   0-argument call and left both pushes dangling -- the classic dropped-arg
+ *   trap (lift-learnings 31 / 0xfc4b0 weapon_owner_update precedent); the
+ *   kb.json decl was `void(void)` and has been corrected to 2 cdecl args,
+ *   exactly as its neighbour 0x1ac0a0 was for the twin above.
+ *   0xbf1c6 is the ONLY call site of 0x1ac070 in the whole XBE
+ *   (check_arg_counts.py --callee 0x1ac070: sites=1, push=2).
+ *   CALL 0xcbf80 pushes 0x0 then ESI -> hs_return(thread_datum, 0).
+ *   ONE combined ADD ESP,0x10 folds FUN_001AC070's 2 dwords with hs_return's
+ *   2; any ARG_COUNT warning on 0xcbf80 ("cleanup=4 vs decl=2") is that merge
+ *   -- hs_return really takes 2 args, do NOT "fix" its decl. It is also why
+ *   check_arg_counts reports cleanup=none for 0x1ac070 at this site.
+ *   Ghidra modelled this void(void), so the three cdecl params showed up as
+ *   in_stack_00000004/8/c pseudo-locals (off by 4); they are stack args, not
+ *   @<reg> (lift-learnings 31 / void-decl trap).
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x1ac070 = FUN_001AC070(int, int) -- sound_manager.obj neighbour of
+ *              0x1ac0a0, UNPORTED, semantics UNKNOWN; return value discarded
+ *   0xcbf80  = hs_return(int thread_handle, int value) */
+void FUN_000bf1a0(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    FUN_001ac070(record[0], (int)*(unsigned short *)(record + 1));
+    hs_return(thread_datum, 0);
+  }
+}
