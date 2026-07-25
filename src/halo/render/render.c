@@ -304,3 +304,24 @@ void render_frame(void *a2, __int16 a3, _WORD *a4, _WORD *a5, void *a6,
   rasterizer_windows_end();
   rasterizer_frame_end();
 }
+
+/* Test the per-group flag bit for a transparent geometry group (0x184570).
+ * Returns 1 when the group's bit in the 384-bit flag array at 0x4d0cbc is
+ * CLEAR (or when the group pointer does not resolve to a presorted index),
+ * 0 when the bit is SET. The array is 0x30 bytes (0x180 groups, one bit per
+ * group) and is cleared by rasterizer_transparent_geometry_begin.
+ * Binary: MOVSX EDX,AX / SAR EDX,5 -> signed word index; NEG EAX / SBB AL,AL /
+ * INC AL -> AL = (bit == 0). */
+char FUN_00184570(void *group)
+{
+  short presorted_index;
+
+  presorted_index =
+    rasterizer_transparent_geometry_group_to_presorted_index(
+      (unsigned int)group);
+  if (presorted_index != -1) {
+    return (char)(((1 << (presorted_index & 0x1f)) &
+                   ((unsigned int *)0x4d0cbc)[presorted_index >> 5]) == 0);
+  }
+  return 1;
+}
