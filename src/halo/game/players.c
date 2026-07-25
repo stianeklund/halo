@@ -7081,3 +7081,82 @@ void FUN_000bfb40(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, 0);
   }
 }
+
+/* FUN_000bfb80 @ 0x000bfb80
+ *
+ * HaloScript builtin dispatcher; the device-GROUP counterpart of the
+ * device-OBJECT reader FUN_000bfb00. Same 3-parameter cdecl shape and the
+ * same evaluate / NULL-check / worker / hs_return skeleton as every twin in
+ * this run; what distinguishes it is that the record's first field is an
+ * UNSIGNED 16-bit device-group index (MOVZX idiom) rather than a dword
+ * object handle, and that the worker returns a float in ST0 whose raw 32-bit
+ * pattern is handed to hs_return verbatim.
+ *
+ * cdecl frame: PUSH EBP; MOV EBP,ESP; PUSH ECX (ONE 4-byte local -- the FSTP
+ * scratch slot at [EBP-4], nothing else); PUSH ESI; ... POP ESI; leave-ish
+ * epilogue; plain RET (no immediate) => cdecl, caller cleans. No _chkstk, no
+ * SEH, no FPU arithmetic, no loops, no buffers, no struct writes.
+ *   function_index  int16_t  [EBP+0x08]  -> ECX
+ *   thread_datum    int      [EBP+0x0c]  -> ESI, held live across BOTH calls
+ *                                           and reused as hs_return arg1
+ *   init            char     [EBP+0x10]  -> EAX
+ * Ghidra modelled this void(void), so the three cdecl params surfaced as
+ * in_stack_* pseudo-locals; they are STACK args, not @<reg> -- no unaff_/
+ * in_EAX/in_ECX appears (lift-learnings 31 void-decl trap). kb.json's stale
+ * `void FUN_000bfb80(void);` decl was corrected to the 3-arg cdecl form as
+ * part of this lift, as was the callee 0x966b0's equally stale
+ * `void device_group_get_value(void);` -- see below.
+ *
+ * Binary evidence (traced backward from each CALL):
+ *   CALL 0xcc560 pushes EAX([EBP+0x10]) / ESI([EBP+0xc]) / ECX([EBP+0x8]) in
+ *   cdecl reverse order -> C order (function_index, thread_datum, init); ADD
+ *   ESP,0xc = 3 args. Straight pass-through, no reordering.
+ *   TEST EAX,EAX / JZ skips BOTH remaining calls, so the 0xcc560 return is a
+ *   record POINTER that is dereferenced even though kb.json declares it as
+ *   returning int (same as every twin; the cast is local, kb decl untouched).
+ *   Exactly ONE record field is read: XOR EDX,EDX; MOV DX, word ptr [EAX].
+ *   That is the MOVZX idiom -- an UNSIGNED 16-bit load at record+0x0, unlike
+ *   the signed-short siblings FUN_000bdfe0 / FUN_000be030. Lifted as
+ *   `unsigned short *` so the widening is zero-extension, not sign-extension.
+ *   CALL 0x966b0 takes the zero-extended index as its ONE dword stack arg
+ *   (PUSH EDX) and returns a float in ST0 -- FSTP dword ptr [EBP-4] lands
+ *   immediately after the call. kb.json declared it `void (void)`, which
+ *   would have dropped the argument (ESP drift, the 0x158df0 class of bug)
+ *   and read EAX garbage as the result; the decl was corrected to
+ *   `float device_group_get_value(int device_group_index);` (it is
+ *   ported:false, so only the thunk decl changes).
+ *   FSTP dword [EBP-4]; MOV EAX,[EBP-4]; PUSH EAX is the float-smuggling
+ *   idiom (lift-learnings 6): the float's 32-bit BIT PATTERN is passed
+ *   verbatim into hs_return's untyped dword value slot. Modelled with a
+ *   union -- a numeric (int) cast would truncate and silently return 0.
+ *   CALL 0xcbf80 pushes EAX(value bits) then ESI => hs_return(thread_datum,
+ *   value bits).
+ *   ONE combined ADD ESP,0xc cleans the 1 push of 0x966b0 (whose cleanup
+ *   MSVC folded forward) plus hs_return's 2 -- the ARG_COUNT hazard on
+ *   hs_return ("cleanup=3 vs decl=2") is the same FALSE POSITIVE documented
+ *   on the twins at 0xbf8b0 / 0xbf920 / 0xbfb40; hs_return really takes 2
+ *   args, do NOT "fix" its decl.
+ *
+ * Callees (raw CALL targets, all cdecl, no @<reg> args anywhere):
+ *   0xcc560 = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x966b0 = device_group_get_value(int device_group_index) -> float
+ *   0xcbf80 = hs_return(int thread_handle, int value)
+ *
+ * Placement: kept here beside its twins deliberately -- the hs helpers are
+ * static in this TU; revert any maintain.py relocation. */
+void FUN_000bfb80(int16_t function_index, int thread_datum, char init)
+{
+  unsigned short *record;
+  union {
+    float f;
+    int i;
+  } value;
+
+  record =
+    (unsigned short *)hs_macro_function_evaluate(function_index, thread_datum,
+                                                 init);
+  if (record != NULL) {
+    value.f = device_group_get_value((int)record[0]);
+    hs_return(thread_datum, value.i);
+  }
+}
