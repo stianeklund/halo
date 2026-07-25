@@ -4489,3 +4489,62 @@ void FUN_000bef40(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, 0);
   }
 }
+
+/* FUN_000bef80 @ 0x000bef80
+ *
+ * HaloScript builtin dispatcher, same family as FUN_000bdef0 / FUN_000bef40
+ * above. Evaluates the script function via
+ * hs_macro_function_evaluate(function_index, thread_datum, init); on a
+ * non-NULL evaluation record it loads the record's FIRST DWORD (a full 32-bit
+ * load: MOV EDX,[EAX]; PUSH EDX -- a unit/object handle, exactly as
+ * FUN_000bef40 does for unit_kill) and passes it to FUN_001AC0E0, whose
+ * 16-bit result (AX) is forwarded to hs_return.
+ *
+ * cdecl frame (PUSH EBP; MOV EBP,ESP; PUSH ECX for one dword local;
+ * PUSH ESI). 29 instructions, 0xbef80-0xbefc1. Plain RET (caller cleans),
+ * no _chkstk, no FPU, no SEH.
+ *   function_index  int16_t  [EBP+0x08]  -> ECX
+ *   thread_datum    int      [EBP+0x0c]  -> ESI, held live across the
+ *                                          evaluate call and reused as
+ *                                          hs_return arg1 (do NOT source it
+ *                                          from the record)
+ *   init            char     [EBP+0x10]  -> EAX
+ *
+ * Binary evidence:
+ *   CALL 0xcc560 pushes EAX([EBP+0x10]), ESI([EBP+0xc]), ECX([EBP+0x8]) in
+ *   cdecl reverse order -> C order (function_index, thread_datum, init);
+ *   ADD ESP,0xc. TEST EAX,EAX / JZ skips both remaining calls on NULL.
+ *   MOV dword [EBP-0x4],0 is emitted BEFORE the evaluate call (the result
+ *   slot is pre-zeroed); inside the taken branch MOV word [EBP-0x4],AX
+ *   writes only the low 16 bits and MOV EAX,dword [EBP-0x4] reads all 32 --
+ *   i.e. a zero-extended 16-bit result, which is why the slot is modelled as
+ *   a volatile dword rather than a plain int.
+ *   One combined ADD ESP,0xc after the hs_return CALL folds FUN_001AC0E0's
+ *   1 dword arg with hs_return's 2 (adjacent-call cleanup); the ARG_COUNT
+ *   warning on 0xcbf80 ("cleanup=3 vs decl=2") is that merge -- hs_return
+ *   really takes 2 args, do NOT "fix" its decl.
+ *   Ghidra modelled this void(void), so the three cdecl params showed up as
+ *   in_stack_00000004/8/c pseudo-locals (off by 4) and the FUN_001AC0E0
+ *   argument was dropped entirely; both are lift artifacts, not @<reg>.
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x1ac0e0 = FUN_001AC0E0(int handle) -> int16_t in AX (decl corrected
+ *              from Ghidra's void(void); semantics of the returned 16-bit
+ *              value are UNKNOWN)
+ *   0xcbf80  = hs_return(int thread_handle, int value) */
+void FUN_000bef80(int16_t function_index, int thread_datum, char init)
+{
+  volatile unsigned int result_slot;
+  int *record;
+  unsigned int result;
+
+  result_slot = 0;
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    result_slot = (unsigned short)FUN_001AC0E0(record[0]);
+    result = (unsigned int)result_slot;
+    hs_return(thread_datum, result);
+  }
+}
