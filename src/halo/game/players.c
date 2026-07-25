@@ -5821,3 +5821,76 @@ void FUN_000bf680(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, FUN_001a9ef0(record[0]));
   }
 }
+
+/* FUN_000bf6c0 @ 0xbf6c0 -- HS script-function wrapper, one-argument variant
+ *   whose worker returns a FLOAT (26 instructions, 0xbf6c0-0xbf6f8; PUSH EBP /
+ *   MOV EBP,ESP / PUSH ECX / PUSH ESI frame, no _chkstk, no SUB ESP, no SEH;
+ *   POP ESI / MOV ESP,EBP / POP EBP / RET with no immediate => plain cdecl,
+ *   caller cleans).  The prologue `PUSH ECX` is not an argument -- it reserves
+ *   the single 4-byte local at [EBP-0x4] used to spill ST(0).
+ *
+ * Same evaluate / NULL-check / worker / hs_return skeleton as the
+ * 0xbf110 / 0xbf160 / 0xbf1a0 / 0xbf1e0 / 0xbf600 / 0xbf640 / 0xbf680 family
+ * above.  Two differences from those twins:
+ *   (a) the worker (0x1a7cc0) returns a float in ST(0), not an int in EAX;
+ *   (b) hs_return's second argument is that float's RAW BIT PATTERN, not a
+ *       converted integer and not an immediate 0.
+ *
+ * Signature (Confirmed by disassembly + family shape): the hs script function
+ * dispatch table calls every entry as
+ *   void (*)(int16_t function_index, int thread_datum, char init)
+ *   [EBP+0x8]  -> ECX, function_index (int16_t)
+ *   [EBP+0xc]  -> ESI, thread_datum; ESI is the callee-saved register kept
+ *                 live across the evaluate call and reused for hs_return
+ *   [EBP+0x10] -> EAX, init (char, loaded as a dword)
+ * Ghidra modelled this void(void), so the three cdecl params surfaced as
+ * in_stack_00000004/8/c pseudo-locals (off by 4); they are STACK args, not
+ * @<reg> (lift-learnings 31 / void-decl trap).  kb.json's decl was corrected
+ * from `void(void)` to the 3-arg cdecl form as part of this lift.
+ *
+ * Call sites (traced backward from each CALL in the disassembly):
+ *   CALL 0xcc560 @0xbf6d0 -- PUSH EAX (init) / PUSH ESI (thread_datum) /
+ *   PUSH ECX (function_index); cdecl reverse order => the C order is
+ *   (function_index, thread_datum, init), a straight pass-through.
+ *   ADD ESP,0xc = exactly 3 stack args.  TEST EAX,EAX / JZ 0xbf6f4 skips BOTH
+ *   remaining calls, i.e. it is the NULL guard on the argument record; the
+ *   result is a pointer even though kb.json declares
+ *   hs_macro_function_evaluate as returning `int`, so it is cast locally here
+ *   (do NOT change the kb decl), exactly as every twin above does.
+ *
+ *   CALL 0x1a7cc0 @0xbf6de -- MOV EDX,dword ptr [EAX] then PUSH EDX, i.e. the
+ *   FULL DWORD at record+0.  There is no MOVSX/MOVZX anywhere in the function,
+ *   so unlike FUN_000bf1a0 (word field) and FUN_000bf1e0 (byte field) this
+ *   argument is a plain int32 handle, and only that ONE field of the record is
+ *   read (single deref of one offset -- no buffer-alias risk).
+ *
+ *   CALL 0xcbf80 @0xbf6ec -- FLOAT-SMUGGLING (lift-learnings 6).  The
+ *   disassembly does FSTP dword ptr [EBP-0x4] / MOV EAX,[EBP-0x4] / PUSH EAX:
+ *   the float is stored to the local slot and re-loaded as a DWORD, so what
+ *   reaches hs_return is the IEEE-754 BIT PATTERN, not `(int)f`.  Ghidra's
+ *   `(int)fVar2` is wrong -- a numeric cast would truncate (0.75 -> 0).  Hence
+ *   the `*(int *)&value` punning below; it also forces the same spill+reload
+ *   the original emits.  Push order EAX then ESI => hs_return(thread_datum,
+ *   bits).  ONE combined ADD ESP,0xc at 0xbf6f1 folds hs_return's two args (8)
+ *   with the prologue's PUSH ECX local slot (4); the ARG_COUNT warning on
+ *   0xcbf80 ("cleanup=3 stack args vs decl=2") is that merge -- hs_return
+ *   really takes 2 args, do NOT "fix" its decl.
+ *
+ * Callees (all cdecl, all in kb.json, all ported, no @<reg> args anywhere):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x1a7cc0 = FUN_001a7cc0(int datum_handle) -> float  (unnamed in kb.json,
+ *              implemented in src/halo/units/units.c; the parameter name is
+ *              kb's, the semantics are Uncertain)
+ *   0xcbf80  = hs_return(int thread_handle, int value) */
+void FUN_000bf6c0(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+  float value;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    value = FUN_001a7cc0(record[0]);
+    hs_return(thread_datum, *(int *)&value);
+  }
+}
