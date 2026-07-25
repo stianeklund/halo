@@ -4450,3 +4450,42 @@ void FUN_000beec0(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, 0);
   }
 }
+
+/* 0xbef40 — HS script function handler: kill a unit. Structural twin of
+ * FUN_000beec0 above; only the middle callee differs (unit_kill @0x1a7fa0
+ * instead of unit_close @0x1ae180). 13 instructions, standard EBP frame, ESI
+ * is the one callee-saved register and holds thread_datum live across the
+ * evaluate call — which is why the SAME value feeds both
+ * hs_macro_function_evaluate and hs_return (do not source hs_return's arg1
+ * from the record).
+ *
+ * Binary evidence (0xbef40-0xbef71):
+ *   EAX=[EBP+0x10] (init), ECX=[EBP+0x08] (function_index), ESI=[EBP+0x0c]
+ *   (thread_datum). CALL 1 @0xbef50 pushes EAX, ESI, ECX (cdecl reverse
+ *   order) then ADD ESP,0xC -> C order (function_index, thread_datum, init).
+ *   TEST EAX,EAX / JZ 0xbef6f skips both remaining calls on NULL.
+ *   CALL 2 @0xbef5f: MOV EDX,[EAX]; PUSH EDX -- the argument is the
+ *   DEREFERENCE of the returned record at offset 0, not the pointer.
+ *   CALL 3 @0xbef67: PUSH 0; PUSH ESI -> hs_return(thread_datum, 0).
+ *   ONE combined ADD ESP,0xC at 0xbef6c folds unit_kill's 1 dword with
+ *   hs_return's 2 dwords; the ARG_COUNT enrichment warning on 0xcbf80
+ *   ("cleanup=3 vs decl=2") is that merge -- hs_return really takes 2 args,
+ *   do NOT "fix" its decl. POP ESI; POP EBP; RET (no immediate -> cdecl).
+ *   Ghidra modeled this void(void), so the three cdecl params appeared as
+ *   in_stack_* pseudo-locals; they are stack args, not @<reg>.
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x1a7fa0 = unit_kill(int unit_handle)
+ *   0xcbf80  = hs_return(int thread_handle, int value) */
+void FUN_000bef40(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    unit_kill(*record);
+    hs_return(thread_datum, 0);
+  }
+}
