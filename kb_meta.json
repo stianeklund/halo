@@ -4588,6 +4588,16 @@
         "The semantic meaning of the result record beyond its first dword (a device object handle passed to device_get_power) is unknown; only offset 0 is read by this function."
       ]
     },
+    "0xbfb40": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "CALL 0x97040 uses the MSVC push-then-fstp float-argument idiom (PUSH ECX dummy overwritten by FSTP dword ptr [ESP], then PUSH EDX), so its real cdecl shape is void FUN_00097040(int, float); its stale kb.json (void) decl was corrected as part of this lift."
+      ],
+      "uncertain": [
+        "The 1-instruction VC71 gap (25/26, 94.1%) matches the same idiom-level ceiling seen on the identical-worker twin FUN_000bfab0 at 95.1%, so it is presumed a scheduling nuance around the record+4 float load rather than a semantic difference."
+      ]
+    },
     "0xc0e50": {
       "kind": "function",
       "status": "ported",

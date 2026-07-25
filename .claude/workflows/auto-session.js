@@ -117,6 +117,14 @@ for (let i = 1; i <= BATCHES; i++) {
   const land = await agent(
     `Run this command from the current working directory and return its stdout JSON verbatim as your structured result:
 \`rtk python3 tools/integrate/auto_reintegrate.py --branch ${BRANCH} --main-worktree ${MAIN_WT} --json\`
+
+IMPORTANT — this gate runs a full clean build and routinely takes MORE than the
+default 120s Bash timeout. Pass an explicit long timeout on the Bash call
+(timeout: 600000). If it still exceeds that, re-run it with run_in_background
+and poll the output file until the JSON appears; do NOT report a timeout as a
+park reason while the gate may still be running, and do NOT re-run the gate
+concurrently with itself.
+
 The tool prints a single JSON object with keys: status (landed|parked|inconclusive), reason, and optionally conflicts, main_old, main_new. Do not modify it. Do not run any other git commands. Parse that JSON and return it.`,
     { label: `land:batch-${i}`, phase: 'Batch', ...MECH, schema: LAND_SCHEMA })
 
