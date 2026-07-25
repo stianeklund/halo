@@ -4400,3 +4400,53 @@ void FUN_000bee80(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, 0);
   }
 }
+
+/* FUN_000beec0 @ 0x000beec0
+ *
+ * HaloScript macro-function evaluator wrapper (unit "close" variant), the
+ * direct sibling of FUN_000bee80 above: byte-identical in shape, differing
+ * only in which record-first-dword consumer it calls (unit_close 0x1ae180
+ * instead of unit_open 0x1ae160). Evaluates the script function via
+ * hs_macro_function_evaluate(function_index, thread_datum, init); while that
+ * returns NULL the evaluation is still pending and nothing is committed. On a
+ * non-NULL evaluation record the record's first dword (a unit handle) is
+ * forwarded to unit_close, then the calling script thread is completed with
+ * hs_return(thread_datum, 0).
+ *
+ * cdecl frame (PUSH EBP; MOV EBP,ESP; PUSH ESI for thread_datum; no _chkstk,
+ * no locals, no FPU, plain RET so the caller cleans):
+ *   function_index  int16_t  [EBP+0x08]  -> hs_macro_function_evaluate arg1
+ *                                           (loaded to ECX)
+ *   thread_datum    int      [EBP+0x0c]  -> arg2; held in ESI across the whole
+ *                                           body, reused for hs_return arg1
+ *   init            char     [EBP+0x10]  -> arg3 (loaded to EAX)
+ *
+ * The evaluate call pushes EAX([+0x10]), ESI([+0x0c]), ECX([+0x08]) and cleans
+ * with ADD ESP,0xC, so its first argument is [EBP+0x08]. The returned EAX is
+ * tested (TEST EAX,EAX / JZ epilogue) and then dereferenced at offset 0
+ * (MOV EDX,[EAX]; PUSH EDX) as the single unit_close argument — i.e. the kb
+ * decl `int hs_macro_function_evaluate(...)` really returns a record POINTER;
+ * cast at the call site rather than widening the callee decl. hs_return's arg1
+ * comes from the preserved ESI (the ORIGINAL thread_datum), not from the
+ * record. A single combined ADD ESP,0xC at 0xbeeec folds unit_close's 1-dword
+ * cleanup with hs_return's 2-dword cleanup; the ARG_COUNT enrichment warning
+ * on 0xcbf80 ("cleanup=3 vs decl=2") is that merge, and the PUSH count proves
+ * hs_return still takes exactly 2 args (do NOT "fix" either decl). Ghidra
+ * modeled this void(void), so the three cdecl params showed up as in_stack_*
+ * — they are stack args, not @<reg>.
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x1ae180 = unit_close(int unit_handle)
+ *   0xcbf80  = hs_return(int thread_handle, int value) */
+void FUN_000beec0(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    unit_close(*record);
+    hs_return(thread_datum, 0);
+  }
+}
