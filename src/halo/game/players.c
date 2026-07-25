@@ -7248,6 +7248,101 @@ void FUN_000bfbc0(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* FUN_000bfc10 @ 0x000bfc10
+ *
+ * HaloScript builtin dispatcher; the device-GROUP SETTER twin of the
+ * device-group reader FUN_000bfb80 above and of the (dword, float) setter
+ * FUN_000bfb40. Identical 3-parameter cdecl shape and the same evaluate /
+ * NULL-check / worker / hs_return skeleton as every twin in this run. What
+ * distinguishes it: the record's first field is an UNSIGNED 16-bit
+ * device-group index (the XOR/MOV-DX zero-extend idiom) and the second is a
+ * FLOAT, so the worker takes (group_index, value); the script return is the
+ * CONSTANT 0, so the entire observable effect is the 0x96510 side effect.
+ *
+ * cdecl frame: PUSH EBP; MOV EBP,ESP; PUSH ESI; ... POP ESI; POP EBP; RET.
+ * Body spans 0xbfc10-0xbfc4b (28 instructions). NO local slot at all (no
+ * PUSH ECX / SUB ESP), no _chkstk, no FPU arithmetic, no SEH, no struct
+ * writes, no buffers. ESI is the only callee-saved register and holds
+ * thread_datum live across the evaluate call. The exit RET carries no
+ * immediate => cdecl, caller cleans.
+ *   function_index  int16_t  [EBP+0x08]  -> ECX
+ *   thread_datum    int      [EBP+0x0c]  -> ESI, reused as hs_return arg1
+ *   init            char     [EBP+0x10]  -> EAX
+ * Ghidra modelled this void(void), so the three cdecl params surfaced as
+ * in_stack_* pseudo-locals; they are STACK args, not @<reg> -- no unaff_/
+ * in_EAX/in_ECX appears (lift-learnings 31 void-decl trap). kb.json's stale
+ * `void FUN_000bfc10(void);` decl was corrected to the 3-arg cdecl form as
+ * part of this lift, as was the callee 0x96510's equally stale `void
+ * device_group_set_actual_value(void);`; a (void) decl over a stack-arg
+ * callee is the ESP-drift class of bug from 0x158df0.
+ *
+ * Binary evidence (traced backward from each CALL):
+ *   CALL 0xcc560 pushes EAX([EBP+0x10]) / ESI([EBP+0xc]) / ECX([EBP+0x8]) in
+ *   cdecl reverse order -> C order (function_index, thread_datum, init); ADD
+ *   ESP,0xc = 3 args. Straight pass-through, no reordering.
+ *   TEST EAX,EAX / JZ 0xbfc49 skips BOTH remaining calls, so the 0xcc560
+ *   return is a record POINTER that is dereferenced even though kb.json
+ *   declares it as returning int (same as every twin; the cast is local and
+ *   the kb decl is left alone).
+ *   The record is read at exactly two offsets, one field each -- no buffer
+ *   aliasing is possible: FLD dword ptr [EAX+0x4] (a FLOAT, which Ghidra
+ *   hides entirely) and XOR EDX,EDX / MOV DX,word ptr [EAX]. That second
+ *   read is a zero-extended UNSIGNED 16-bit load, NOT an int (lift-learnings
+ *   24 LOADW) -- hence the `unsigned short *` record type, matching the
+ *   device-group reader twin FUN_000bfb80.
+ *   CALL 0x96510 is the push-then-fstp float-argument idiom (lift-learnings
+ *   hazard 2): PUSH ECX is a DUMMY slot reservation immediately overwritten
+ *   by FSTP dword ptr [ESP], then PUSH EDX. Entry stack is therefore
+ *   [ESP+0]=EDX (the zero-extended group index) and [ESP+4]=the float => C
+ *   order device_group_set_actual_value(record[0], *(float *)(record+4)).
+ *   Ghidra printed a bare zero-argument call -- the disassembly, not the
+ *   decompile, is authoritative here; lifting it 0-arg would drift ESP and
+ *   pass nothing.
+ *   CALL 0xcbf80 pushes 0x0 then ESI -> hs_return(thread_datum, 0). ONE
+ *   combined ADD ESP,0x10 cleans the 4 pushes of both 2-arg calls -- the
+ *   ARG_COUNT hazard on hs_return ("cleanup=4 vs decl=2") is that same FALSE
+ *   POSITIVE documented on the twins; hs_return really takes 2 args, do NOT
+ *   "fix" its decl.
+ *
+ * Reloc audit of delinked/functions/000bfc10.obj: exactly three DISP32
+ * targets -- FUN_000cc560, device_group_set_actual_value, hs_return -- with
+ * no global and no string reference.
+ *
+ * Callees (all cdecl, all in kb.json, no @<reg> args anywhere):
+ *   0xcc560 = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x96510 = device_group_set_actual_value(int device_group_index,
+ *             float value); the first parameter is typed `int` to mirror its
+ *             already-declared reader sibling device_group_get_value(int) --
+ *             the binary only proves a 32-bit push of a zero-extended word.
+ *   0xcbf80 = hs_return(int thread_handle, int value)
+ *
+ * Codegen-shape note (why the float read is `volatile`): under this repo's
+ * VC71 flags (/O2 /Ot) MSVC folds a plain `*(float *)p` argument into a
+ * 4-byte integer copy (`mov 0x4(%eax),%edx; push %edx`), which the original
+ * does NOT do -- it uses the x87 push-then-fstp idiom. Five source spellings
+ * were probe-compiled (pointer cast, `((float *)r)[1]`, struct member, local
+ * float temp, int* base) and ALL folded to the integer copy; only marking the
+ * read `volatile` -- or dropping to /Os, which then breaks the prologue --
+ * restores `flds 0x4(%eax) ... push %ecx; fstps (%esp)`. The qualifier is a
+ * pure codegen lever: the field is read exactly once either way, so the
+ * observable behaviour is unchanged. The same fold silently costs the twin
+ * FUN_000bfb40 above the same two instructions (not touched here).
+ *
+ * Placement: kept here beside its twins deliberately -- the hs helpers are
+ * static in this TU; revert any maintain.py relocation. */
+void FUN_000bfc10(int16_t function_index, int thread_datum, char init)
+{
+  unsigned short *record;
+
+  record = (unsigned short *)hs_macro_function_evaluate(function_index,
+                                                        thread_datum, init);
+  if (record != NULL) {
+    device_group_set_actual_value((int)record[0],
+                                  *(volatile float *)((char *)record + 4));
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* FUN_000bfc50 @ 0x000bfc50
  *
  * HaloScript builtin dispatcher; byte-shape twin of FUN_000bf920 above:
