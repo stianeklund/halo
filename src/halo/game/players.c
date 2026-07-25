@@ -5463,3 +5463,64 @@ void FUN_000bf510(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, value.i);
   }
 }
+
+/* FUN_000bf560 @ 0xbf560 -- HS macro-function wrapper, single-string-argument
+ * variant. Structurally the same skeleton as FUN_000bf160 above: evaluate the
+ * script arguments, and on a non-NULL argument record pass ONE record field to
+ * a worker, then return a CONSTANT 0 to the script thread. There is no result
+ * slot -- the worker returns void and hs_return's second argument is an
+ * immediate PUSH 0x0.
+ *
+ * Binary evidence (cachebeta.xbe, 0xbf560..0xbf591, 22 instructions):
+ *   Frame: PUSH EBP; MOV EBP,ESP; PUSH ESI. NO local dword (no `PUSH ECX` in
+ *   the prologue, unlike FUN_000bf4c0/FUN_000bf510), no _chkstk, no FPU, no
+ *   SEH, no local buffers. ESI is the only callee-saved register and it holds
+ *   thread_datum live across the evaluate call. RET carries no immediate
+ *   (cdecl, caller-cleaned).
+ *     function_index  int16_t  [EBP+0x08]  -> ECX
+ *     thread_datum    int      [EBP+0x0c]  -> ESI, reused directly as
+ *                                            hs_return arg1 (it is NOT
+ *                                            re-sourced from the record)
+ *     init            char     [EBP+0x10]  -> EAX
+ *   CALL 0xcc560 pushes EAX(init), ESI(thread_datum), ECX(function_index) in
+ *   cdecl reverse order -> C order (function_index, thread_datum, init);
+ *   ADD ESP,0xC = 3 args. TEST EAX,EAX; JZ 0xbf58f skips BOTH remaining calls
+ *   on a NULL record, so EAX is an evaluation-record POINTER, not a value.
+ *   Record deref is a SINGLE field: MOV EDX,dword ptr [EAX] -> record+0, a
+ *   full 32-bit dword. There is no movzx/movsx anywhere, so unlike
+ *   FUN_000bf1a0 (word field) and FUN_000bf1e0 (byte field) there is no
+ *   narrowing load here, and unlike the FUN_000bf160 twin there is no second
+ *   (+0x4 byte) field either.
+ *   PUSH EDX; CALL 0x1ae730 -> scripting_set_magic_base_seat(record[0]) with
+ *   ONE argument; the callee's kb decl proves the parameter is a `const char *`
+ *   (string pointer), so the dword is cast at the call site.
+ *   CALL 0xcbf80 pushes 0x0 then ESI -> hs_return(thread_datum, 0). The second
+ *   argument is an IMMEDIATE 0, not a result slot -- there is no local result
+ *   dword in this frame at all.
+ *   ONE combined ADD ESP,0xc at 0xbf58c folds scripting_set_magic_base_seat's
+ *   1 dword with hs_return's 2; any ARG_COUNT warning on 0xcbf80
+ *   ("cleanup=12 vs decl=2") is that merge -- hs_return really takes 2 args,
+ *   do NOT "fix" its decl.
+ *   Ghidra modelled this void(void), so the three cdecl params appeared as
+ *   in_stack_00000004/8/c pseudo-locals (off by 4); they are stack args, not
+ *   @<reg> (lift-learnings 31 / void-decl trap). kb.json's decl was corrected
+ *   from `void(void)` to the 3-arg cdecl form as part of this lift.
+ *
+ * Callees (all cdecl, in kb.json, no @<reg> args anywhere; the delinked
+ * reference carries exactly one DISP32 reloc for each):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *              (kb decl says `int`, but the call site dereferences the result;
+ *              cast at the call site, as every twin above does)
+ *   0x1ae730 = scripting_set_magic_base_seat(const char *)
+ *   0xcbf80  = hs_return(int thread_handle, int value) */
+void FUN_000bf560(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    scripting_set_magic_base_seat((const char *)record[0]);
+    hs_return(thread_datum, 0);
+  }
+}
