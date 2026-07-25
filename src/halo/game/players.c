@@ -5620,3 +5620,64 @@ void FUN_000bf5e0(int16_t function_index, int thread_datum, char init)
   scripting_magic_melee_attack();
   hs_return(thread_datum, 0);
 }
+
+/* FUN_000bf600 @ 0xbf600 -- HS script-function wrapper, one-argument variant
+ *   that RETURNS the callee's value (25 instructions; PUSH EBP / MOV EBP,ESP /
+ *   PUSH ESI frame, no _chkstk, no SUB ESP, no locals, no FPU, no memory
+ *   writes; POP ESI / POP EBP / RET with no immediate => plain cdecl).
+ *
+ * Signature (Confirmed by disassembly + family shape): the hs script function
+ * dispatch table calls every entry as
+ *   void (*)(int16_t function_index, int thread_datum, char init)
+ *   [EBP+0x8]  -> ECX, function_index (int16_t)
+ *   [EBP+0xc]  -> ESI, thread_datum; ESI is kept live across BOTH calls
+ *   [EBP+0x10] -> EAX, init (char)
+ * Ghidra modelled this void(void), so the three cdecl params surfaced as
+ * in_stack_00000004/8/c pseudo-locals (off by 4); they are STACK args, not
+ * @<reg> (lift-learnings 31 / void-decl trap). kb.json's decl was corrected
+ * from `void(void)` to the 3-arg cdecl form as part of this lift.
+ *
+ * Call sites (traced backward from each CALL in the disassembly):
+ *   CALL 0xcc560 @0xbf610 -- PUSH EAX (init) / PUSH ESI (thread_datum) /
+ *   PUSH ECX (function_index); cdecl reverse order => the C order is
+ *   (function_index, thread_datum, init). ADD ESP,0xc = exactly 3 stack args.
+ *   TEST EAX,EAX / JZ exit is the NULL guard on the argument record.
+ *
+ *   CALL 0x1a9e40 @0xbf61f -- MOV EDX,[EAX] then PUSH EDX, i.e. the FULL DWORD
+ *   at record+0. There is no MOVSX/MOVZX anywhere in the function, so unlike
+ *   FUN_000bf1a0 (word field) and FUN_000bf1e0 (byte field) this argument is a
+ *   plain int32 unit handle. One stack arg, cleaned by the merged ADD ESP
+ * below.
+ *
+ *   CALL 0xcbf80 @0xbf626 -- PUSH EAX / PUSH ESI. The pushed EAX comes straight
+ *   out of unit_scripting_unit_riders' return register with no zero/sign-extend
+ *   and no temp spill, so it is the plain int result => the second argument of
+ *   hs_return is that value, NOT an immediate 0 as in the void-valued twins
+ *   above. Do not discard it (dropped-arg trap).
+ *   ONE combined ADD ESP,0xc at 0xbf62b folds unit_scripting_unit_riders'
+ * single dword with hs_return's two (4 + 8 = 12); any ARG_COUNT warning on
+ * 0xcbf80
+ *   ("cleanup=3 stack args vs decl=2") is that merge -- hs_return really takes
+ *   2 args, do NOT "fix" its decl. Same pattern as FUN_000bf1a0.
+ *
+ * Nesting the riders call inside hs_return's argument list reproduces the
+ * original order: MSVC evaluates/pushes right-to-left, so the inner CALL runs
+ * first, its EAX is pushed, then ESI (thread_datum) is pushed.
+ *
+ * Callees (all cdecl, all in kb.json, no @<reg> args anywhere; the delinked
+ * reference carries exactly one DISP32 reloc for FUN_001a9e40):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *              (kb decl says `int`, but the call site dereferences the result;
+ *              cast at the call site, as every twin above does)
+ *   0x1a9e40 = unit_scripting_unit_riders(int unit_handle) -> int
+ *   0xcbf80  = hs_return(int thread_handle, int value) */
+void FUN_000bf600(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    hs_return(thread_datum, unit_scripting_unit_riders(record[0]));
+  }
+}
