@@ -7328,3 +7328,77 @@ void FUN_000bfc50(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, 0);
   }
 }
+
+/* FUN_000bfc90 @ 0x000bfc90
+ *
+ * HaloScript builtin dispatcher, byte-shape twin of FUN_000bfc50 directly
+ * above and of FUN_000bf8b0 / FUN_000bf8f0 / FUN_000bf920 earlier in this TU:
+ * identical 3-parameter cdecl shape and identical evaluate / NULL-check /
+ * worker / hs_return skeleton, including the same "worker takes (dword @
+ * record+0, zero-extended BYTE @ record+4) and the script gets a CONSTANT 0"
+ * tail. The only difference from FUN_000bfc50 is the worker called: 0x96630
+ * device_operates_automatically_set instead of 0x965f0 device_one_sided_set.
+ *
+ * Ghidra modelled the function as void(void), so all three cdecl STACK
+ * parameters surfaced as in_stack_* pseudo-locals and the 0x96630 call lost
+ * BOTH of its arguments (kb.json also declared that callee void(void)). The
+ * `void FUN_000bfc90(void);` decl was corrected to the 3-arg cdecl form as
+ * part of this lift; a (void) decl over a stack-arg callee is the ESP-drift
+ * class of bug from 0x158df0.
+ *
+ * Binary evidence (traced backward from each CALL of the 24-instruction body
+ * 0xbfc90-0xbfcc7; cdecl prologue PUSH EBP / MOV EBP,ESP / PUSH ESI, no SUB
+ * ESP, no locals, no FPU, no SEH, RET with no immediate so the caller cleans):
+ *   CALL 0xcc560 pushes EAX([EBP+0x10]) / ESI([EBP+0xc]) / ECX([EBP+0x8]) in
+ *   cdecl reverse order -> C order (function_index, thread_datum, init); ADD
+ *   ESP,0xc = 3 args. Straight pass-through, no reordering. ESI (the thread
+ *   datum) is callee-saved across the call and reused for hs_return.
+ *
+ *   TEST EAX,EAX / JZ 0xbfcc5 skips BOTH remaining calls when the result is
+ *   NULL, so the 0xcc560 return is a POINTER that is dereferenced even though
+ *   kb.json declares it as returning int (same as every twin; the cast is
+ *   local and the kb decl is left alone).
+ *
+ *   Record deref (2 fields): MOV EAX,dword ptr [EAX] -> DWORD at record+0;
+ *   XOR EDX,EDX; MOV DL,byte ptr [EAX+0x4] -> zero-extended BYTE at record+4.
+ *   Ghidra renders the +4 read as an int -- that width is WRONG (lift-learnings
+ *   24 LOADW); taking it would pass a garbage flag. The load is unsigned
+ *   (XOR/MOV DL, not MOVSX). Only +0x0 and +0x4 are touched, one deref each --
+ *   no buffer-alias risk.
+ *
+ *   CALL 0x96630 pushes EDX (the zero-extended byte) then EAX (the dword) =
+ *   cdecl reverse -> C order (record[0], byte at record+4). Distinct reloads,
+ *   NOT a duplicated argument. Ghidra shows this call with ZERO arguments --
+ *   that is wrong; the disassembly plainly pushes EDX then EAX.
+ *
+ *   CALL 0xcbf80 pushes 0x0 then ESI -> hs_return(thread_datum, 0). The script
+ *   return value is the CONSTANT 0, not the record and not the worker's result;
+ *   the entire observable effect is the 0x96630 side effect. ONE combined ADD
+ *   ESP,0x10 cleans the 4 pushes of both 2-arg calls -- the ARG_COUNT hazard on
+ *   hs_return ("cleanup=4 vs decl=2") is that same FALSE POSITIVE documented on
+ *   the twins; hs_return really takes 2 args, do NOT "fix" its decl.
+ *
+ * Callees (all cdecl, all in kb.json, no @<reg> args anywhere):
+ *   0xcc560 = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x96630 = device_operates_automatically_set(int object_list,
+ *             char operates_automatically); its stale
+ *             `void device_operates_automatically_set(void);` kb decl was
+ *             corrected here -- calling through a (void) decl would have left
+ *             8 bytes of drift. Callee is unported, so the change is decl-only.
+ *             Arg names are mechanical (naming-confidence: behaviour-only).
+ *   0xcbf80 = hs_return(int thread_handle, int value)
+ *
+ * Placement: kept here beside its twins deliberately -- the hs helpers are
+ * static in this TU; revert any maintain.py relocation. */
+void FUN_000bfc90(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    device_operates_automatically_set(
+      record[0], (char)*(unsigned char *)((char *)record + 4));
+    hs_return(thread_datum, 0);
+  }
+}
