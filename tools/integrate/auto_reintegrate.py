@@ -167,12 +167,15 @@ def run_gates(main_wt: str, *, rebased: bool, backup: str | None,
     #   * the branch DROPPED objects (branch object count < main's), or
     #   * the branch INTRODUCED new duplicate addrs (a dup whose count exceeds
     #     main's count for that addr) -- the ~530-dup signature.
-    branch = _kb_stats(None)
-    main = _kb_stats("main")
-    if branch is None or main is None:
+    # NB: do NOT bind these to `branch`/`main` -- `branch` is this function's
+    # str parameter, and shadowing it with a tuple crashed the no-drop gate
+    # below (TypeError deep inside subprocess, after the rebase had run).
+    branch_kb = _kb_stats(None)
+    main_kb = _kb_stats("main")
+    if branch_kb is None or main_kb is None:
         return False, "kb_partition_unreadable", detail
-    branch_objs, branch_addrs = branch
-    main_objs, main_addrs = main
+    branch_objs, branch_addrs = branch_kb
+    main_objs, main_addrs = main_kb
     detail["kb_objects_branch"] = branch_objs
     detail["kb_objects_main"] = main_objs
     # New/worsened dups = addrs duplicated on the branch beyond main's baseline.
