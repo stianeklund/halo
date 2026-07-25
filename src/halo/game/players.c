@@ -5587,3 +5587,36 @@ void FUN_000bf5a0(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, 0);
   }
 }
+
+/* FUN_000bf5e0 @ 0xbf5e0 -- HS script-function wrapper, zero-argument variant
+ *   (10 instructions, bare EBP frame, no SUB ESP, no locals, no FPU).
+ *
+ * Signature (Confirmed by disassembly + family shape): the hs script function
+ * dispatch table calls every entry as
+ *   void (*)(int16_t function_index, int thread_datum, char init)
+ * Only thread_datum ([EBP+0xc]) is read here:
+ *   MOV EAX,[EBP+0xc]   -- plain full-width MOV, no MOVZX/MOVSX
+ *   PUSH 0x0 / PUSH EAX -- cdecl reverse order -> hs_return(thread_datum, 0)
+ *   ADD ESP,0x8         -- exactly 2 stack args, no merged cleanup here
+ * function_index and init are never touched: this is a zero-argument script
+ * function, so there is NO hs_macro_function_evaluate call, no argument
+ * record, and consequently no NULL check (unlike the 1-/2-argument twins
+ * above).  The 3-arg cdecl decl is still required so the table dispatch ABI
+ * matches its twins.
+ *
+ * Ghidra modelled this void(void), so the cdecl params surfaced as
+ * in_stack_00000008 (off by 4 => [EBP+0xc]); they are STACK args, not @<reg>
+ * (lift-learnings 31 / void-decl trap).  kb.json's decl was corrected from
+ * `void(void)` to the 3-arg cdecl form as part of this lift.
+ *
+ * Callees (both cdecl, in kb.json, no @<reg> args):
+ *   0x1b2260 = scripting_magic_melee_attack(void)  -- no args, no ADD ESP
+ *   0xcbf80  = hs_return(int thread_handle, int value) */
+void FUN_000bf5e0(int16_t function_index, int thread_datum, char init)
+{
+  (void)function_index;
+  (void)init;
+
+  scripting_magic_melee_attack();
+  hs_return(thread_datum, 0);
+}
