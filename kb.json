@@ -18004,7 +18004,9 @@
     },
     {
      "addr": "0xbfcd0",
-     "decl": "void FUN_000bfcd0(void);"
+     "decl": "void FUN_000bfcd0(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "source_path": "src/halo/game/players.c"
     },
     {
      "addr": "0xbfd10",
@@ -36354,7 +36356,7 @@
     },
     {
      "addr": "0x96670",
-     "decl": "void device_group_change_only_once_more_set(void);"
+     "decl": "void device_group_change_only_once_more_set(int device_group_index, char change_only_once_more);"
     },
     {
      "addr": "0x966b0",

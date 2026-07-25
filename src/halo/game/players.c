@@ -7402,3 +7402,95 @@ void FUN_000bfc90(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, 0);
   }
 }
+
+/* FUN_000bfcd0 @ 0x000bfcd0
+ *
+ * HaloScript builtin dispatcher, the immediate neighbour of FUN_000bfc90
+ * above and the same skeleton as every twin earlier in this TU: evaluate the
+ * argument record, NULL-check it, invoke one device worker with two fields of
+ * that record, then hand the script a CONSTANT 0.
+ *
+ * The ONE structural difference from FUN_000bfc90 / FUN_000bfc50 is the WIDTH
+ * of the first record field: those twins load a full DWORD (MOV EAX,[EAX]),
+ * this one loads a SIGNED WORD (MOVSX EAX, word ptr [EAX]). That is
+ * lift-learnings 24 (LOADW) territory -- taking Ghidra's `int` rendering would
+ * emit a plain dword load and silently pass 2 bytes of neighbouring record
+ * data in the high half. The second field is unchanged: XOR EDX,EDX / MOV DL,
+ * byte ptr [EAX+4] = ZERO-extended byte, not signed.
+ *
+ * Ghidra modelled the function as void(void), so all three cdecl STACK
+ * parameters surfaced as in_stack_* pseudo-locals and the 0x96670 call lost
+ * BOTH of its arguments (kb.json also declared that callee void(void)). The
+ * `void FUN_000bfcd0(void);` decl was corrected to the 3-arg cdecl form as
+ * part of this lift; a (void) decl over a stack-arg callee is the ESP-drift
+ * class of bug from 0x158df0.
+ *
+ * Binary evidence (traced backward from each CALL of the body 0xbfcd0-0xbfd09;
+ * cdecl prologue PUSH EBP / MOV EBP,ESP / PUSH ESI, no SUB ESP, no _chkstk, no
+ * locals, no FPU, no buffers, no SEH; RET with no immediate so the caller
+ * cleans):
+ *   CALL 0xcc560 pushes EAX([EBP+0x10]) / ESI([EBP+0xc]) / ECX([EBP+0x8]) in
+ *   cdecl reverse order -> C order (function_index, thread_datum, init); ADD
+ *   ESP,0xc = exactly 3 args, matching the kb decl. Straight pass-through, no
+ *   reordering. ESI (the thread datum) is callee-saved across all three calls
+ *   and is reloaded from nothing -- it is reused directly for hs_return, so
+ *   there is no register-aliasing ambiguity about which C variable it holds.
+ *
+ *   TEST EAX,EAX / JZ 0xbfd06 skips BOTH remaining calls when the result is
+ *   NULL, so the 0xcc560 return is a POINTER that is dereferenced even though
+ *   kb.json declares it as returning int (same as every twin; the cast is
+ *   local and the kb decl is left alone).
+ *
+ *   Record deref (2 fields, one load each -- no buffer-alias risk):
+ *     XOR EDX,EDX ; MOV DL, byte ptr [EAX+0x4]  -> unsigned BYTE at record+4
+ *     MOVSX EAX, word ptr [EAX]                 -> signed  WORD at record+0
+ *   The byte at +4 MUST be read BEFORE the word at +0, because the MOVSX
+ *   overwrites the record base in EAX. Writing the two loads as the two
+ *   arguments of one cdecl call reproduces that order for free: MSVC evaluates
+ *   and pushes cdecl arguments right-to-left, so the +4 byte (last argument) is
+ *   materialised first, exactly as in the original.
+ *
+ *   CALL 0x96670 pushes EDX (the zero-extended byte) then EAX (the sign-
+ *   extended word) = cdecl reverse -> C order (word at record+0, byte at
+ *   record+4). Distinct reloads, NOT a duplicated argument. Ghidra shows this
+ *   call with ZERO arguments -- that is wrong; the disassembly plainly pushes
+ *   EDX then EAX. dump_caller_regsetup 0x96670 confirms it, and this is that
+ *   callee's ONLY call site in the image.
+ *
+ *   CALL 0xcbf80 pushes 0x0 then ESI -> hs_return(thread_datum, 0). The script
+ *   return value is the CONSTANT 0, not the record and not the worker's result;
+ *   the entire observable effect is the 0x96670 side effect. ONE combined ADD
+ *   ESP,0x10 cleans the 4 pushes of both 2-arg calls -- the ARG_COUNT hazard on
+ *   hs_return ("cleanup=4 vs decl=2") is the same FALSE POSITIVE documented on
+ *   the twins; hs_return really takes 2 args, do NOT "fix" its decl.
+ *
+ * Callees (all cdecl, all in kb.json, no @<reg> args anywhere):
+ *   0xcc560 = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x96670 = device_group_change_only_once_more_set(int device_group_index,
+ *             char change_only_once_more); its stale
+ *             `void device_group_change_only_once_more_set(void);` kb decl was
+ *             corrected here -- calling through a (void) decl would have left
+ *             8 bytes of drift (the a10 object-list dropped-arg class). The
+ *             first parameter is declared `int` because only the CALLER's load
+ *             width is proven (a signed 16-bit field); the push is a full
+ *             sign-extended dword and the callee's own parameter width is not
+ *             observable from here. The sign extension is expressed in the
+ *             source by the int16_t deref, not by the decl. Callee is unported,
+ *             so the change is decl-only. Arg names are mechanical, taken from
+ *             the existing symbol name (naming-confidence: behaviour-only).
+ *   0xcbf80 = hs_return(int thread_handle, int value)
+ *
+ * Placement: kept here beside its twins deliberately -- the hs helpers are
+ * static in this TU; revert any maintain.py relocation. */
+void FUN_000bfcd0(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    device_group_change_only_once_more_set(
+      *(int16_t *)record, (char)*(unsigned char *)((char *)record + 4));
+    hs_return(thread_datum, 0);
+  }
+}
