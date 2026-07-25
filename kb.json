@@ -17801,7 +17801,8 @@
     },
     {
      "addr": "0xbf300",
-     "decl": "void FUN_000bf300(void);"
+     "decl": "void FUN_000bf300(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xbf340",

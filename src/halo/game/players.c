@@ -5184,3 +5184,74 @@ void FUN_000bf2b0(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, value.i);
   }
 }
+
+/* FUN_000bf300 @ 0x000bf300
+ *
+ * HaloScript builtin dispatcher, same family as FUN_000bf110/0xbf160/0xbf1a0/
+ * 0xbf1e0/0xbf2b0 above: identical 3-parameter cdecl shape, identical
+ * evaluate / NULL-check / worker / hs_return skeleton, and the "worker return
+ * discarded, script gets a CONSTANT 0" tail (like 0xbf160/0xbf1a0/0xbf1e0,
+ * unlike the result-slot variant 0xbf2b0). The record here is TWO dwords and
+ * the worker is unit_scripting_set_emotion_animation.
+ *
+ * cdecl frame, 0xbf300-0xbf335, 24 instructions: PUSH EBP; MOV EBP,ESP;
+ * PUSH ESI. No local dword (no PUSH ECX in the prologue), no _chkstk, no FPU,
+ * no SEH, no local buffers. RET carries no immediate (caller cleans, cdecl).
+ *   function_index  int16_t  [EBP+0x08]  -> ECX
+ *   thread_datum    int      [EBP+0x0c]  -> ESI (the only callee-saved
+ *                                          register; held live across the
+ *                                          evaluate call and reused as
+ *                                          hs_return arg1 -- do NOT source it
+ *                                          from the record)
+ *   init            char     [EBP+0x10]  -> EAX
+ *
+ * Binary evidence:
+ *   CALL 0xcc560 @0xbf310 pushes EAX([EBP+0x10]), ESI([EBP+0xc]),
+ *   ECX([EBP+0x8]) in cdecl reverse order -> C order (function_index,
+ *   thread_datum, init); ADD ESP,0xc = 3 args, straight pass-through.
+ *   TEST EAX,EAX / JZ 0xbf333 skips BOTH remaining calls on a NULL record, so
+ *   the 0xcc560 return is a POINTER that is dereferenced even though kb.json
+ *   declares it as returning `int` -- cast at the call site, as every twin in
+ *   this family does; the kb decl is left alone.
+ *
+ *   Record deref, TWO fields, BOTH FULL DWORD MOVs -- there is no MOVZX/MOVSX
+ *   anywhere in the function, so unlike FUN_000bf1a0 (word field) and
+ *   FUN_000bf1e0 (byte field) neither field is narrowed:
+ *     +0x00 int    unit index      (MOV EAX,dword ptr [EAX]     @0xbf31f)
+ *     +0x04 char * animation name  (MOV EDX,dword ptr [EAX+0x4] @0xbf31c)
+ *   The +0x4 load runs BEFORE the +0x0 load because the +0x0 load overwrites
+ *   EAX (the record pointer itself); MSVC's right-to-left cdecl argument
+ *   evaluation reproduces that order from the call expression below.
+ *
+ *   CALL 0x1a9b30 @0xbf323 pushes EDX(+0x4) then EAX(+0x0) = cdecl reverse
+ *   -> C order (record[0], record[1]). Nothing reads EAX afterwards, so the
+ *   return value is discarded (0x1a9b30 is void).
+ *
+ *   CALL 0xcbf80 @0xbf32b pushes the immediate 0x0 then ESI ->
+ *   hs_return(thread_datum, 0); the script return value is the CONSTANT 0,
+ *   there is no result slot. ONE combined ADD ESP,0x10 @0xbf330 folds
+ *   unit_scripting_set_emotion_animation's 2 dwords with hs_return's 2 -- any
+ *   ARG_COUNT warning on 0xcbf80 ("cleanup=4 vs decl=2") is that merged
+ *   cleanup, hs_return really takes 2 args, do NOT "fix" its decl.
+ *
+ *   Ghidra modelled this void(void), so the three cdecl params showed up as
+ *   in_stack_00000004/8/c pseudo-locals (off by 4); they are stack args, not
+ *   @<reg> (lift-learnings 31 / void-decl trap). kb.json's decl was corrected
+ *   from `void(void)` to the 3-arg cdecl form.
+ *
+ * Callees (all cdecl, in kb.json, no @<reg> args anywhere):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x1a9b30 = unit_scripting_set_emotion_animation(int unit_index,
+ *              const char *animation_name) -- void, result discarded
+ *   0xcbf80  = hs_return(int thread_handle, int value) */
+void FUN_000bf300(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    unit_scripting_set_emotion_animation(record[0], (const char *)record[1]);
+    hs_return(thread_datum, 0);
+  }
+}
