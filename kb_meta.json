@@ -4550,6 +4550,34 @@
         "Field +0x10 of the hs evaluated-argument block is loaded ZERO-extended (XOR EDX,EDX; MOV DX,[EAX+0x10]) even though unit_custom_animation_at_frame's kb decl types the parameter int16_t; the lift passes *(unsigned short *)(record + 4) to reproduce the movzx-shaped load."
       ]
     },
+    "0xbf5e0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "FUN_000bf5e0 is a zero-argument hs script-function wrapper: only [EBP+0xc] (thread_datum) is read, so function_index and init are inferred from the 3-arg cdecl dispatch-table shape shared by its 14 already-ported twins in players.obj rather than from any read in this body."
+      ]
+    },
+    "0xbf600": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Prototype void(int16_t function_index, int thread_datum, char init) is inferred from the hs script-function dispatch-table family shape plus the ADD ESP,0xc after CALL 0xcc560; kb.json's original void(void) decl made all three cdecl stack args surface as in_stack_ pseudo-locals."
+      ],
+      "uncertain": [
+        "The single ADD ESP,0xc at 0xbf62b folds unit_scripting_unit_riders' one dword with hs_return's two, so any ARG_COUNT warning claiming hs_return takes 3 stack args is that merge and hs_return's 2-arg decl must not be changed."
+      ]
+    },
+    "0xbf640": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The 3-arg cdecl signature void(int16_t function_index, int thread_datum, char init) is inferred from the hs script-function dispatch ABI shared with the 0xbf110/0xbf160/0xbf1a0/0xbf1e0/0xbf5e0/0xbf600 siblings; kb.json previously declared void(void), which made the stack args surface as Ghidra in_stack_ pseudo-locals.",
+        "hs_macro_function_evaluate (0xcc560) is declared as returning int in kb.json but the result is dereferenced here (MOV EDX,[EAX]), so it is a pointer to an argument record; the cast is applied locally rather than changing the shared kb declaration."
+      ],
+      "uncertain": [
+        "The semantics of the worker FUN_001a9ec0 are unknown; it is unnamed in kb.json and only its int return value is observed, forwarded verbatim as the hs_return script result."
+      ]
+    },
     "0xc0e50": {
       "kind": "function",
       "status": "ported",
@@ -9011,6 +9039,10 @@
       "status": "ported"
     },
     "0x15d5b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x16fb80": {
       "kind": "function",
       "status": "ported"
     },

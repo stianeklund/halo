@@ -41,7 +41,12 @@ def main():
     print("=" * 70)
     print()
     
-    os.chdir('/mnt/g/dev/halo')
+    # Run against the checkout this script lives in, NOT a hardcoded worktree.
+    # Hardcoding /mnt/g/dev/halo made a verify run from any secondary worktree
+    # regenerate the MAIN worktree's README.md, leaving it dirty and parking
+    # auto-session reintegration (park_reason=main_worktree_dirty).
+    os.chdir(os.path.dirname(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__)))))
     
     all_passed = True
     
@@ -64,7 +69,8 @@ def main():
     print("-" * 70)
     
     gen_ok = run_command(
-        'python3 tools/report/generate_decomp_report.py -o /tmp/test_report.json 2>&1',
+        'python3 tools/report/generate_decomp_report.py -o /tmp/test_report.json '
+        '--no-readme 2>&1',
         'Generate JSON report'
     )
     all_passed &= gen_ok
@@ -84,7 +90,8 @@ def main():
     
     # Test HTML generation
     html_ok = run_command(
-        'python3 tools/report/generate_decomp_report.py --html /tmp/test_dashboard.html 2>&1',
+        'python3 tools/report/generate_decomp_report.py --html /tmp/test_dashboard.html '
+        '--no-readme 2>&1',
         'Generate HTML dashboard'
     )
     all_passed &= html_ok
