@@ -6508,8 +6508,8 @@ void FUN_000bf8f0(int16_t function_index, int thread_datum, char init)
  *
  * Callees (all cdecl, all in kb.json, no @<reg> args anywhere):
  *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
- *   0x1ae210 = units_set_desired_flashlight_state(int object_list, char desired)
- *   0xcbf80  = hs_return(int thread_handle, int value)
+ *   0x1ae210 = units_set_desired_flashlight_state(int object_list, char
+ * desired) 0xcbf80  = hs_return(int thread_handle, int value)
  *
  * Placement: kept here beside its twins deliberately -- the hs helpers are
  * static in this TU; revert any maintain.py relocation. */
@@ -6752,5 +6752,86 @@ void FUN_000bfa30(int16_t function_index, int thread_datum, char init)
   if (record != NULL) {
     FUN_00097260(record[0], *(float *)((char *)record + 4));
     hs_return(thread_datum, 0);
+  }
+}
+
+/* FUN_000bfa70 @ 0x000bfa70
+ *
+ * HaloScript builtin dispatcher; the same evaluate / NULL-check / accessor /
+ * hs_return skeleton as the FUN_000bf9xx / FUN_000bfa30 twins above and as
+ * FUN_000c1350 / FUN_000c1390 in hs.c. The delta here is the accessor: it
+ * reads a device object handle out of the result record and returns the
+ * device's power as a FLOAT.
+ *
+ * cdecl frame: PUSH EBP; MOV EBP,ESP; PUSH ECX (one 4-byte local at EBP-4);
+ * saves ESI only. 26 instructions total; no SUB ESP, no _chkstk, no SEH, no
+ * struct writes, no buffers (buffer_alias: 0 hits). ESI caches thread_datum
+ * across the whole body and is reused as hs_return's first argument. The exit
+ * RET carries no immediate => cdecl, caller cleans.
+ *   function_index  int16_t  [EBP+0x08]  -> ECX
+ *   thread_datum    int      [EBP+0x0c]  -> ESI
+ *   init            char     [EBP+0x10]  -> EAX
+ * Ghidra modelled this void(void), so the three cdecl params surfaced as
+ * in_stack_* pseudo-locals; they are STACK args, not @<reg> -- no unaff_/
+ * in_EAX/in_ECX appears (lift-learnings 31 void-decl trap). kb.json's stale
+ * `void FUN_000bfa70(void);` decl was corrected to the 3-arg cdecl form as part
+ * of this lift.
+ *
+ * Binary evidence (traced backward from each CALL):
+ *   CALL 0xcc560 pushes EAX([EBP+0x10]) / ESI([EBP+0xc]) / ECX([EBP+0x8]) in
+ *   cdecl reverse order -> C order (function_index, thread_datum, init); ADD
+ *   ESP,0xc = 3 args. Straight pass-through, no reordering.
+ *
+ *   TEST EAX,EAX / JZ end skips BOTH remaining calls when the result is NULL,
+ *   so the 0xcc560 return is a POINTER that is dereferenced even though kb.json
+ *   declares it as returning int (same as every twin above; the cast is local
+ *   and the kb decl is left alone).
+ *
+ *   MOV EDX,dword ptr [EAX] -> the FIRST DWORD of the result record, a device
+ *   object handle. PUSH EDX; CALL 0x964a0. Ghidra dropped this argument
+ *   entirely (it printed a bare `FUN_000964a0()`), which would have lost the
+ *   `*record` load -- the disassembly, not the decompile, is authoritative
+ *   here. device_get_power's stack slot is NOT cleaned at its own call site:
+ *   the single ADD ESP,0xc after the NEXT call covers 3 dwords (1 for
+ *   device_get_power + 2 for hs_return). So device_get_power = 1 cdecl stack
+ *   arg, float return in ST0. kb.json's stale `void device_get_power(void);`
+ *   was corrected to `float device_get_power(int device_object);` as part of
+ *   this lift -- a (void) decl over a stack-arg callee is the ESP-drift class
+ *   of bug from 0x158df0, and a void return over an ST0 float is the XCALL
+ *   ST0-vs-EAX hazard.
+ *
+ *   FSTP dword ptr [EBP-4] ; MOV EAX,[EBP-4] ; PUSH EAX -> store the float,
+ *   reload the SAME dword, push the raw bits. This is a TYPE-PUN, not a numeric
+ *   (int) conversion; a `(int)f` cast would truncate and commit the wrong bits
+ *   into the script return slot (lift-learnings 6 float-smuggling). Modelled
+ *   with a float/int union, matching FUN_000c1350 / FUN_000c1390 in hs.c.
+ *   Ghidra mis-modelled this as `(int)(float)extraout_ST0`.
+ *
+ *   CALL 0xcbf80 pushes EAX(the punned bits) then ESI -> cdecl reverse ->
+ *   hs_return(thread_datum, value.dw). thread_datum flows to BOTH calls. The
+ *   arg-count enrichment flagged "cleanup=3 vs decl=2" on hs_return; that is
+ *   the FALSE POSITIVE explained by the folded device_get_power cleanup above.
+ *   hs_return really takes 2 args -- do NOT "fix" its decl.
+ *
+ * Callees (all cdecl, all in kb.json, no @<reg> args anywhere):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x964a0  = device_get_power(int device_object) -> float in ST0
+ *   0xcbf80  = hs_return(int thread_handle, int value)
+ *
+ * Placement: kept here beside its twins deliberately -- the hs helpers are
+ * static in this TU; revert any maintain.py relocation. */
+void FUN_000bfa70(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+  union {
+    float f;
+    int dw;
+  } value;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    value.f = device_get_power(record[0]);
+    hs_return(thread_datum, value.dw);
   }
 }

@@ -17952,7 +17952,9 @@
     },
     {
      "addr": "0xbfa70",
-     "decl": "void FUN_000bfa70(void);"
+     "decl": "void FUN_000bfa70(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "source_path": "src/halo/game/players.c"
     },
     {
      "addr": "0xbfab0",
@@ -36318,7 +36320,7 @@
     },
     {
      "addr": "0x964a0",
-     "decl": "void device_get_power(void);"
+     "decl": "float device_get_power(int device_object);"
     },
     {
      "addr": "0x964d0",
