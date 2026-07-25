@@ -5750,3 +5750,74 @@ void FUN_000bf640(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, FUN_001a9ec0(record[0]));
   }
 }
+
+/* FUN_000bf680 @ 0xbf680 -- HS script-function wrapper, one-argument variant
+ *   that RETURNS the worker's value (23 instructions, 0xbf680-0xbf6b0;
+ *   PUSH EBP / MOV EBP,ESP / PUSH ESI frame, no _chkstk, no SUB ESP, no
+ *   locals, no FPU, no SEH, no memory writes; RET with no immediate =>
+ *   plain cdecl, caller cleans).
+ *
+ * Structurally identical to FUN_000bf640 directly above; the only difference
+ * is the worker called on the record's first dword (0x1a9ef0 here instead of
+ * 0x1a9ec0). Do NOT copy the `hs_return(thread_datum, 0)` tail of the
+ * void-valued twins (0xbf1a0 / 0xbf1e0) -- this variant forwards the worker's
+ * return value.
+ *
+ * Signature (Confirmed by disassembly + family shape): the hs script function
+ * dispatch table calls every entry as
+ *   void (*)(int16_t function_index, int thread_datum, char init)
+ *   [EBP+0x8]  -> ECX, function_index (int16_t)
+ *   [EBP+0xc]  -> ESI, thread_datum; ESI is the callee-saved register kept
+ *                 live across the evaluate call and reused for hs_return
+ *   [EBP+0x10] -> EAX, init (char)
+ * Ghidra modelled this void(void), so the three cdecl params surfaced as
+ * in_stack_00000004/8/c pseudo-locals (off by 4); they are STACK args, not
+ * @<reg> (lift-learnings 31 / void-decl trap). kb.json's decl was corrected
+ * from `void(void)` to the 3-arg cdecl form as part of this lift.
+ *
+ * Call sites (traced backward from each CALL in the disassembly):
+ *   CALL 0xcc560 @0xbf690 -- PUSH EAX (init) / PUSH ESI (thread_datum) /
+ *   PUSH ECX (function_index); cdecl reverse order => the C order is
+ *   (function_index, thread_datum, init), a straight pass-through with no
+ *   reordering. ADD ESP,0xc = exactly 3 stack args.
+ *   TEST EAX,EAX / JZ 0xbf6ae skips BOTH remaining calls, i.e. it is the NULL
+ *   guard on the argument record; the result is a pointer even though kb.json
+ *   declares hs_macro_function_evaluate as returning `int`, so it is cast
+ *   locally here (do NOT change the kb decl) exactly as every twin above does.
+ *
+ *   CALL 0x1a9ef0 @0xbf69e -- MOV EDX,dword ptr [EAX] then PUSH EDX, i.e. the
+ *   FULL DWORD at record+0. There is no MOVSX/MOVZX anywhere in the function,
+ *   so unlike FUN_000bf1a0 (word field) and FUN_000bf1e0 (byte field) this
+ *   argument is a plain int32 handle, and only that single field is read (no
+ *   buffer-alias risk -- a single deref of one offset).
+ *   One stack arg, cleaned by the merged ADD ESP below.
+ *
+ *   CALL 0xcbf80 @0xbf6a6 -- PUSH EAX / PUSH ESI. The pushed EAX is
+ *   FUN_001a9ef0's return register, with no zero/sign-extend and no temp
+ *   spill, so the second argument of hs_return is that value, NOT an
+ *   immediate 0 as in the void-valued twins. Do not discard it (dropped-arg
+ *   trap). thread_datum comes from ESI ([EBP+0xc]), not from the record.
+ *   ONE combined ADD ESP,0xc at 0xbf6ab folds FUN_001a9ef0's single dword with
+ *   hs_return's two (4 + 8 = 12); the ARG_COUNT warning on 0xcbf80
+ *   ("cleanup=3 stack args vs decl=2") is that merge -- hs_return really takes
+ *   2 args, do NOT "fix" its decl. Same pattern as FUN_000bf640/0xbf600.
+ *
+ * Nesting the worker call inside hs_return's argument list reproduces the
+ * original order: MSVC evaluates/pushes right-to-left, so the inner CALL runs
+ * first, its EAX is pushed, then ESI (thread_datum) is pushed.
+ *
+ * Callees (all cdecl, all in kb.json, all ported, no @<reg> args anywhere):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x1a9ef0 = FUN_001a9ef0(int unit_handle) -> int  (unnamed in kb.json;
+ *              the parameter name is kb's, the semantics are Uncertain)
+ *   0xcbf80  = hs_return(int thread_handle, int value) */
+void FUN_000bf680(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    hs_return(thread_datum, FUN_001a9ef0(record[0]));
+  }
+}
