@@ -119,6 +119,62 @@ void FUN_000bf110(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xbf830 — HS script function handler: mark a unit as scripted so it does not
+ * drop its items.
+ *
+ * Byte-shape twin of FUN_000befd0 above; the ONLY difference is the middle
+ * callee (0x1a9c40 instead of 0x1af0d0). cdecl frame: PUSH EBP; MOV EBP,ESP;
+ * PUSH ESI; ... POP ESI; POP EBP; RET (no RET immediate — caller cleans). No
+ * locals, no _chkstk, no FPU ops anywhere in the body.
+ *
+ * Params from the EBP offsets (Ghidra modelled this `void(void)` and dropped
+ * all three; the in_stack_* names in its output are the tell — they are STACK
+ * params, NOT register args):
+ *   function_index  int16_t  [EBP+0x08] -> ECX -> evaluate arg 1
+ *   thread_datum    int      [EBP+0x0c] -> ESI (cached: used twice)
+ *   init            char     [EBP+0x10] -> EAX -> evaluate arg 3
+ *
+ * CALL 0xcc560 @0xbf840 pushes EAX(init), ESI(thread_datum), ECX(function_index)
+ * and cleans with ADD ESP,0xc — 3 stack args, so the C order is
+ * (function_index, thread_datum, init). TEST EAX,EAX; JZ 0xbf85f is the NULL
+ * guard on the returned result record.
+ *
+ * CALL 0x1a9c40 @0xbf84f is preceded by MOV EDX,dword ptr [EAX]; PUSH EDX — a
+ * FULL 32-bit load of the record's first dword (result[0]), NOT the byte load
+ * (XOR EDX,EDX; MOV DL,[EAX]) used by the 0xbdef0 sibling. Getting that width
+ * wrong is the one real trap here. The callee is void, so nothing is read back.
+ *
+ * CALL 0xcbf80 @0xbf857 pushes 0x0 then ESI => hs_return(thread_datum, 0). The
+ * committed value is a literal 0.
+ *
+ * The single trailing ADD ESP,0xc at 0xbf85c is MERGED cleanup for the 1 arg of
+ * unit_scripting_doesnt_drop_items plus the 2 args of hs_return (1+2 = 3
+ * dwords). The call-site audit's "hs_return cleanup=3 vs decl=2" is that same
+ * false positive already documented on the 0xbefd0 twin. Do NOT "fix"
+ * hs_return's decl.
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560   = hs_macro_function_evaluate(int16 fn_index, int thread_datum,
+ *               char init) -> int* (result record, NULL on failure)
+ *   0x1a9c40  = unit_scripting_doesnt_drop_items(int object_list)
+ *   0xcbf80   = hs_return(int thread_handle, int value)
+ *
+ * Placed in hs.c rather than players.c (where kb groups 0xbf830) per the same
+ * lift directive as the twins: players.c does not compile under VC71 (clang-only
+ * __attribute__ / raw fnptr casts), so it would be permanently unmeasurable
+ * there. */
+void FUN_000bf830(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    unit_scripting_doesnt_drop_items(result[0]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* 0xc0c30 — HS script function handler: apply an encounter state change.
  * Evaluates the macro arguments; on success the result block holds an
  * encounter handle at +0x0 (int) and a state value at +0x4 (int16). Calls
