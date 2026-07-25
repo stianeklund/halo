@@ -4578,6 +4578,16 @@
         "The semantics of the worker FUN_001a9ec0 are unknown; it is unnamed in kb.json and only its int return value is observed, forwarded verbatim as the hs_return script result."
       ]
     },
+    "0xbfa70": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The 0xcc560 return is dereferenced as a pointer to a result record even though kb.json declares it as returning int; the cast is local to this lift and the kb decl is left unchanged, matching every sibling HS dispatcher."
+      ],
+      "uncertain": [
+        "The semantic meaning of the result record beyond its first dword (a device object handle passed to device_get_power) is unknown; only offset 0 is read by this function."
+      ]
+    },
     "0xc0e50": {
       "kind": "function",
       "status": "ported",

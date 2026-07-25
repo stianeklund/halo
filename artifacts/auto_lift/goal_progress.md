@@ -854,3 +854,18 @@ players.obj cluster. 4 functions committed at 100% VC71.
 | FUN_000bf640 | 0xbf640 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
 
 **Summary:** players.obj 4/4 goal threshold reached. All functions at 100% VC71 match.
+
+---
+
+## Goal-lift run — 4/4 committed (goal_reached) — 2026-07-25
+
+players.obj cluster. 4 functions committed (3× 100% VC71, 1× 94.1% VC71).
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_000bf960 | 0xbf960 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000bf9a0 | 0xbf9a0 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000bfa30 | 0xbfa30 | players.obj | 94.1 | committed | mechanical gate: 94.1% clean (pass1) |
+| FUN_000bfa70 | 0xbfa70 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+
+**Summary:** players.obj 4/4 goal threshold reached. Committed: 3× 100% + 1× 94.1% VC71.
