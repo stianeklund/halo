@@ -325,3 +325,43 @@ char FUN_00184570(void *group)
   }
   return 1;
 }
+
+/* FUN_001845b0: set or clear this group's bit in the transparent-geometry-group
+ * bit vector at 0x4d0cbc (0x30 bytes = 12 dwords = 384 bits, matching the
+ * 0x180 group cap; zeroed by the csmemset above). A group pointer that does not
+ * resolve to a presorted index (-1) is silently ignored.
+ *
+ * NOTE the branch polarity, which is the opposite of what a "set flag" reading
+ * would suggest and must not be "normalized": only the LOW BYTE of clear_bit is
+ * tested (MOV CL,[EBP+0xc]; TEST CL,CL), and
+ *   low byte == 0  -> OR   mask (SET the bit)   [own POP EBP/RET at 0x1845e8]
+ *   low byte != 0  -> ANDN mask (CLEAR the bit) [RET at 0x18460d]
+ * The set path returns early (two distinct RET sites), so the early-return
+ * shape is reproduced here rather than an if/else.
+ *
+ * The index math runs on the SIGN-EXTENDED short (MOVSX ECX,AX then SAR ECX,5),
+ * so the shift must stay arithmetic on a signed int. The explicit `& 0x1f` on
+ * the shift count is real, not a Ghidra artifact: the original emits
+ * AND ECX,0x1f before SHL EDX,CL in both branches. The word index (SAR ECX,5)
+ * is recomputed inside each branch rather than hoisted above the TEST, so the
+ * expression is written out per branch here. (0x1845b0) */
+void FUN_001845b0(void *group, int clear_bit)
+{
+  short group_presorted_index;
+  int index;
+
+  group_presorted_index =
+    rasterizer_transparent_geometry_group_to_presorted_index(
+      (unsigned int)group);
+  if (group_presorted_index == -1) {
+    return;
+  }
+  index = group_presorted_index;
+  if ((char)clear_bit == 0) {
+    *(unsigned int *)(0x4d0cbc + (index >> 5) * 4) =
+      *(unsigned int *)(0x4d0cbc + (index >> 5) * 4) | (1 << (index & 0x1f));
+    return;
+  }
+  *(unsigned int *)(0x4d0cbc + (index >> 5) * 4) =
+    *(unsigned int *)(0x4d0cbc + (index >> 5) * 4) & ~(1 << (index & 0x1f));
+}

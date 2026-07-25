@@ -11388,6 +11388,10 @@
       "score": 95.8,
       "source": "src/halo/render/render.c"
     },
+    "FUN_001845b0": {
+      "score": 97.0,
+      "source": "src/halo/render/render.c"
+    },
     "FUN_00184bc0": {
       "score": 91.7,
       "source": "src/halo/render/render.c"
