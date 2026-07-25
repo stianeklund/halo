@@ -7654,3 +7654,71 @@ void FUN_000bfd10(int16_t function_index, int thread_datum, char init)
   breakable_surfaces_reset();
   hs_return(thread_datum, 0);
 }
+
+/* FUN_000bfd50 @ 0x000bfd50
+ *
+ * HaloScript builtin dispatcher for a ZERO-ARGUMENT script function, the exact
+ * byte-shape twin of FUN_000bfd10 above with a different worker: the builtin
+ * takes no script arguments, so the hs_macro_function_evaluate call and its
+ * NULL check -- present in every twin from FUN_000bf870 through FUN_000bfcd0 --
+ * are simply absent. What remains is the worker call followed by the constant
+ * script return.
+ *
+ * Ghidra modelled the function as void(void), so the cdecl STACK parameters
+ * surfaced as an `in_stack_00000008` pseudo-local (lift-learnings 31 void-decl
+ * trap). These are STACK args, not @<reg>: no unaff_/in_EAX/in_ECX appears
+ * anywhere in the decompile, and the body has no register-defining prologue.
+ * The stale `void FUN_000bfd50(void);` kb.json decl was corrected to the 3-arg
+ * cdecl form as part of this lift; a (void) decl over a stack-arg callee is
+ * the ESP-drift class of bug from 0x158df0.
+ *
+ * Binary evidence (the ENTIRE body, 8 instructions, 0xbfd50-0xbfd67; cdecl
+ * prologue PUSH EBP / MOV EBP,ESP with no SUB ESP, no _chkstk, no callee-saved
+ * pushes, no locals, no FPU, no SEH, no buffers, no struct deref, no loops and
+ * no branches -- straight-line, so there is no register-aliasing ambiguity and
+ * no buffer-alias risk anywhere in this function):
+ *
+ *   CALL 0xa6a80 is emitted with NO preceding pushes and NO stack cleanup
+ *   afterwards (the next instruction is a MOV, not an ADD ESP) -> a 0-argument
+ *   call, matching FUN_000a6a80's kb decl `void FUN_000a6a80(void)`. That is
+ *   the cheat-all-weapons worker (already ported in game.c, carrying the
+ *   contiguous-placement-buffer fix for the 0xf3c90060 tag-index assert); it
+ *   is called BY NAME here, never re-lifted or inlined. It comes FIRST, before
+ *   the script return, and that ordering is the whole observable effect of the
+ *   builtin.
+ *
+ *   MOV EAX,[EBP+0xc] / PUSH 0x0 / PUSH EAX / CALL 0xcbf80 -> cdecl reverse
+ *   push order gives C order hs_return(thread_datum, 0). The script return
+ *   value is the LITERAL 0, not the worker's result (the worker is void and
+ *   its EAX is never read -- lift-silent-bugs check 4 does not apply, nothing
+ *   here consumes an implicit EAX). [EBP+0xc] is the SECOND cdecl stack
+ *   parameter, i.e. thread_datum, the slot every twin in this family uses for
+ *   it. [EBP+0x08] is never loaded.
+ *
+ *   ADD ESP,0x8 cleans exactly those 2 pushes. Unlike the twins -- where ONE
+ *   combined ADD ESP,0x10 covers two 2-arg calls and produces the well-known
+ *   ARG_COUNT false positive on hs_return -- this function has a single
+ *   multi-arg call, so the cleanup is a clean 2-arg confirmation of
+ *   hs_return's arity. Do NOT "fix" hs_return's decl. RET carries no
+ *   immediate => cdecl, caller cleans the incoming args; do not declare it
+ *   __stdcall.
+ *
+ * [EBP+0x08] (function_index) and [EBP+0x10] (init) are NEVER read by the
+ * body. They are retained in the signature because this is the fixed cdecl
+ * shape of the HS builtin handler family -- the dispatch table pushes three
+ * arguments at every call site, and declaring fewer would reintroduce the same
+ * ESP-drift hazard the corrected decl exists to prevent. Their being unused is
+ * a property of THIS builtin (it takes no script arguments), not evidence of a
+ * narrower signature.
+ *
+ * Callees (both cdecl, both in kb.json, both ported, no @<reg> args anywhere):
+ *   0xa6a80 = FUN_000a6a80(void)   -- cheat-all-weapons worker
+ *   0xcbf80 = hs_return(int thread_handle, int value)
+ *
+ * Placement: kept here beside its twins deliberately -- the hs helpers are
+ * static in this TU; revert any maintain.py relocation. */
+void FUN_000bfd50(int16_t function_index, int thread_datum, char init)
+{
+  FUN_000a6a80();
+  hs_return(thread_datum, 0);
+}
