@@ -656,6 +656,94 @@ def check_callee_output_size(filepath, content, lines):
     return errors
 
 
+KNOWN_FLOAT_INPUT_ARITY = {
+    'FUN_000d1c90': (4, 'real_argb_color_to_pixel32 reads float[4] {a,r,g,b}'),
+    'FUN_000d1dd0': (3, 'real_rgb_color_to_pixel32 reads float[3] {r,g,b}'),
+}
+
+FLOAT_ARITY_CALL_RE = re.compile(
+    r'\b(?:CALL_)?(' + '|'.join(KNOWN_FLOAT_INPUT_ARITY) + r')\s*\(\s*([^;)]*?)\s*\)'
+)
+
+FLOAT_ARRAY_DECL_RE = re.compile(
+    r'\bfloat\s+(\w+)\s*\[\s*(0x[0-9a-fA-F]+|\d+)\s*\]'
+)
+
+
+def check_packer_input_arity(filepath, content, lines):
+    """Flag known float[N]-input consumers called with an undersized float
+    buffer (lift-learnings §33 — the plasma-bolt-orange bug).
+
+    FUN_000d1c90 reads FOUR floats {a,r,g,b}. FUN_00134e80 passed a
+    float[3] whose base doubled as the RGB out-buffer of FUN_0007c270:
+    the pack shifted every channel (R<-G, G<-B, B<-stack garbage) and the
+    plasma-pistol bolt rendered orange. Also checks `buf + k` / `&buf[k]`
+    call forms against the remaining element count.
+
+    Conservative: only flags when the argument resolves to a float array
+    declared in the same file; struct-offset pointers, params, and
+    multi-line calls are skipped.
+    """
+    decls = {}
+    for lineno, line in enumerate(lines, 1):
+        for m in FLOAT_ARRAY_DECL_RE.finditer(line):
+            n = m.group(2)
+            size = int(n, 16) if n.startswith('0x') else int(n)
+            decls[m.group(1)] = (size, lineno)
+    if not decls:
+        return []
+
+    def resolve(name, call_line):
+        """Nearest preceding declaration of `name` wins: a `float *name`
+        pointer/param decl (a different function's scope) shadows an earlier
+        `float name[N]` array. Returns (size, decl_line) or None."""
+        arr_re = re.compile(r'\bfloat\s+' + re.escape(name) +
+                            r'\s*\[\s*(0x[0-9a-fA-F]+|\d+)\s*\]')
+        ptr_re = re.compile(r'\bfloat\s*\*\s*' + re.escape(name) + r'\b')
+        for lineno in range(call_line, 0, -1):
+            am = arr_re.search(lines[lineno - 1])
+            if am:
+                n = am.group(1)
+                return (int(n, 16) if n.startswith('0x') else int(n), lineno)
+            if ptr_re.search(lines[lineno - 1]):
+                return None
+        return None
+
+    errors = []
+    for m in FLOAT_ARITY_CALL_RE.finditer(content):
+        callee, arg = m.group(1), m.group(2)
+        need, desc = KNOWN_FLOAT_INPUT_ARITY[callee]
+        am = re.search(r'&\s*(\w+)\s*\[\s*(\d+)\s*\]', arg)
+        if am and am.group(1) in decls:
+            name, off = am.group(1), int(am.group(2))
+        else:
+            am = re.search(r'\b(\w+)\s*\+\s*(\d+)\b', arg)
+            if am and am.group(1) in decls:
+                name, off = am.group(1), int(am.group(2))
+            else:
+                ids = [w for w in re.findall(r'[A-Za-z_]\w*', arg)
+                       if w in decls]
+                if len(ids) != 1:
+                    continue
+                name, off = ids[0], 0
+        call_line = content.count('\n', 0, m.start()) + 1
+        resolved = resolve(name, call_line)
+        if resolved is None:
+            continue
+        size, decl_line = resolved
+        avail = size - off
+        if avail < need:
+            relpath = os.path.relpath(filepath, ROOT_DIR)
+            lineno = call_line
+            errors.append(
+                f'  {relpath}:{lineno}: {callee} needs {need} floats '
+                f'({desc}) but {name}[{size}] (declared line {decl_line})'
+                f'{f" + offset {off}" if off else ""} leaves only {avail} '
+                f'— channel-shift / stack-garbage read'
+            )
+    return errors
+
+
 X87_MATH_PATTERN = re.compile(
     r'\b((?:cos|sin|tan|fmod)f?)\s*\('
 )
@@ -1479,6 +1567,7 @@ def main():
     all_alias_errors = []
     all_frame_errors = []
     all_output_size_errors = []
+    all_packer_arity_errors = []
     all_x87_math_errors = []
     all_concat_errors = []
     all_float_smuggle_errors = []
@@ -1502,6 +1591,7 @@ def main():
         all_ptr_float_errors.extend(check_pointer_as_float(fpath, content, lines, params_map))
         all_alias_errors.extend(check_buffer_alias(fpath, content, lines))
         all_output_size_errors.extend(check_callee_output_size(fpath, content, lines))
+        all_packer_arity_errors.extend(check_packer_input_arity(fpath, content, lines))
         all_x87_math_errors.extend(check_x87_math(fpath, content, lines))
         all_concat_errors.extend(check_concat_survival(fpath, content, lines))
         all_float_smuggle_errors.extend(check_float_int_bit_smuggling(fpath, content, lines))
@@ -1525,6 +1615,7 @@ def main():
             f'pointer_as_float: {len(all_ptr_float_errors)}, '
             f'buffer_alias: {len(all_alias_errors)}, '
             f'callee_output_size: {len(all_output_size_errors)}, '
+            f'packer_arity: {len(all_packer_arity_errors)}, '
             f'x87_math: {len(all_x87_math_errors)}, '
             f'concat_survival: {len(all_concat_errors)}, '
             f'float_smuggling: {len(all_float_smuggle_errors)}, '
@@ -1542,7 +1633,8 @@ def main():
         total = (len(all_void_eax_errors) + len(all_intrinsic_errors) + len(all_buffer_errors) +
                  len(all_duplicate_errors) + len(all_ptr_float_errors) +
                  len(all_alias_errors) + len(all_frame_errors) +
-                 len(all_output_size_errors) + len(all_x87_math_errors) +
+                 len(all_output_size_errors) + len(all_packer_arity_errors) +
+                 len(all_x87_math_errors) +
                  len(all_concat_errors) + len(all_float_smuggle_errors) +
                  len(all_addr_value_add_errors) + len(all_param_loop_errors) +
                  len(all_discard_result_errors) + len(all_inplace_mut_errors) +
@@ -1580,6 +1672,19 @@ def main():
                 file=sys.stderr,
             )
             for e in all_buffer_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
+
+        if all_packer_arity_errors:
+            print(
+                'ERROR: undersized float buffer passed to a known float[N]\n'
+                'consumer. FUN_000d1c90 reads 4 floats {a,r,g,b};\n'
+                'FUN_000d1dd0 reads 3 {r,g,b}. An undersized buffer shifts\n'
+                'every channel and reads stack garbage (lift-learnings §33 —\n'
+                'the plasma-pistol bolt rendered orange for weeks):\n',
+                file=sys.stderr,
+            )
+            for e in all_packer_arity_errors:
                 print(e, file=sys.stderr)
             print(file=sys.stderr)
 
@@ -1778,7 +1883,8 @@ def main():
             print(file=sys.stderr)
 
     if all_void_eax_errors or all_intrinsic_errors or all_buffer_errors \
-            or all_output_size_errors or all_concat_errors:
+            or all_output_size_errors or all_packer_arity_errors \
+            or all_concat_errors:
         return 1
 
     return 0
