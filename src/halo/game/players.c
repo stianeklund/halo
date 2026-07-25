@@ -5103,8 +5103,84 @@ void FUN_000bf260(int16_t function_index, int thread_datum, char init)
   record =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (record != NULL) {
-    value.b =
-      FUN_001a9c90(record[0], (const char *)record[1], record[2]);
+    value.b = FUN_001a9c90(record[0], (const char *)record[1], record[2]);
+    hs_return(thread_datum, value.i);
+  }
+}
+
+/* FUN_000bf2b0 @ 0x000bf2b0
+ *
+ * HaloScript builtin dispatcher, the immediate twin of FUN_000bf260 above:
+ * identical 3-parameter cdecl shape, identical evaluate / NULL-check / worker /
+ * hs_return skeleton, identical byte-predicate-into-pre-zeroed-dword result
+ * marshalling. The ONLY difference from the twin is the worker called
+ * (0x1a9da0 unit_scripting_vehicle_test_seat instead of 0x1a9c90).
+ *
+ * cdecl frame: PUSH EBP; MOV EBP,ESP; PUSH ECX (one dword local at [EBP-4]);
+ * PUSH ESI. No _chkstk, no FPU, no SEH, no local buffers. RET carries no
+ * immediate (caller cleans, cdecl).
+ *   function_index  int16_t  [EBP+0x08]  -> ECX
+ *   thread_datum    int      [EBP+0x0c]  -> ESI (callee-saved, held live
+ *                                          across all three calls and reused
+ *                                          as hs_return arg1 -- do NOT source
+ *                                          it from the record)
+ *   init            char     [EBP+0x10]  -> EAX
+ *
+ * Binary evidence:
+ *   0xbf2c1 MOV dword ptr [EBP-4],0 -- the dword result slot is pre-zeroed
+ *   BEFORE the evaluate call, between the argument pushes and the CALL.
+ *   CALL 0xbf2c8 -> 0xcc560 pushes EAX([EBP+0x10]), ESI([EBP+0xc]),
+ *   ECX([EBP+0x8]) in cdecl reverse order -> C order (function_index,
+ *   thread_datum, init); ADD ESP,0xc at 0xbf2cd = 3 args, straight
+ *   pass-through. TEST EAX,EAX / JZ 0xbf2f4 skips both remaining calls on a
+ *   NULL record, so the return is a POINTER (dereferenced below) even though
+ *   kb.json declares 0xcc560 as returning `int` -- cast at the call site, as
+ *   every twin in this family does.
+ *   The record is the evaluated-argument block, 3 dwords. All three loads are
+ *   FULL DWORD MOVs -- no movzx/movsx, so unlike FUN_000bf1a0 (word field) and
+ *   FUN_000bf1e0 (byte field) there is no narrowing load here:
+ *     +0x00 int    vehicle index (MOV EDX,[EAX])
+ *     +0x04 char * seat name     (MOV ECX,[EAX+4])
+ *     +0x08 int    unit index    (MOV EDX,[EAX+8])
+ *   CALL 0xbf2df -> 0x1a9da0 pushes EDX(+0x8), ECX(+0x4), EDX(+0x0) in cdecl
+ *   reverse order -> C order (record[0], record[1], record[2]). The loads run
+ *   high-offset-first because the +0x0 load overwrites EAX (the record pointer
+ *   itself); MSVC's right-to-left cdecl argument evaluation reproduces that
+ *   order from the call expression below.
+ *   Result handling: MOV byte ptr [EBP-4],AL (BYTE store only, into the dword
+ *   zeroed at 0xbf2c1), then MOV EAX,dword ptr [EBP-4] (full DWORD read) -- an
+ *   explicit zero-extension through a stack slot. Modeled with a union so the
+ *   widened value is the zero-extended byte; a plain (int) cast of the signed
+ *   `char` return would SIGN-extend and diverge for results >= 0x80.
+ *   CALL 0xbf2ec -> 0xcbf80 pushes EAX (the widened result) then ESI ->
+ *   hs_return(thread_datum, value). The following ADD ESP,0x14 (20 bytes) at
+ *   0xbf2f1 is a SHARED cleanup for 0x1a9da0's 3 pushes plus hs_return's 2;
+ *   any ARG_COUNT warning on 0xcbf80 ("cleanup=5 vs decl=2") is that merge --
+ *   hs_return really takes 2 args, do NOT "fix" its decl.
+ *   Ghidra modelled this void(void), so the three cdecl params showed up as
+ *   in_stack_00000004/8/c pseudo-locals (off by 4); they are stack args, not
+ *   @<reg> (lift-learnings 31 / void-decl trap). kb.json's decl was corrected
+ *   from `void(void)` to the 3-arg cdecl form.
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x1a9da0 = unit_scripting_vehicle_test_seat(int vehicle_index,
+ *              const char *seat_name, int unit_index) -> char predicate in AL
+ *   0xcbf80  = hs_return(int thread_handle, int value) */
+void FUN_000bf2b0(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+  union {
+    int i;
+    unsigned char b;
+  } value;
+
+  value.i = 0;
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    value.b = unit_scripting_vehicle_test_seat(
+      record[0], (const char *)record[1], record[2]);
     hs_return(thread_datum, value.i);
   }
 }
