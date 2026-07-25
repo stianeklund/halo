@@ -5779,8 +5779,14 @@ void FUN_0013cb30(void)
  * the eligible placements.
  *
  * No-op when in the editor (game_in_editor()) or no BSP slot is active
- * (DAT_00326a0c == -1). Iterates object types 0..0xb, skipping the mask 0x240
- * (bits 6 and 9 — types with no scenario placement). For each type whose
+ * (DAT_00326a0c == -1). Iterates object types 0..0xb, processing ONLY the mask
+ * 0x240 (bits 6 and 9 = scenery and light_fixture — the BSP-cluster-scoped
+ * placement types); every other type is skipped. Confirmed from the original at
+ * 0x13cb80+0x49: `test $0x240,%eax; je next_type` — i.e. skip when the bit is
+ * CLEAR. This is the complement of the sibling FUN_0013cdd0, whose `test
+ * $0x240,%eax; jne next_type` places all the non-BSP-scoped types at scenario
+ * load. Getting this backwards leaves scenery (e.g. the teleporter plasma
+ * effect) unspawned. For each processed type whose
  * definition (FUN_0013c100) has valid placement (def+0xa) and palette (def+0xc)
  * tag-block offsets:
  *   - fetches the scenario placement block (FUN_0013ca30, also writes the block
@@ -5835,7 +5841,7 @@ void FUN_0013cb80(int do_spawn)
   scenario = (int)global_scenario_get();
   type = 0;
   do {
-    if (((1 << (type & 0x1f)) & 0x240) != 0) {
+    if (((1 << (type & 0x1f)) & 0x240) == 0) {
       goto next_type;
     }
     def = (int)FUN_0013c100((int16_t)type);
