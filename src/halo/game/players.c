@@ -6049,3 +6049,89 @@ void FUN_000bf740(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, value.i);
   }
 }
+
+/* FUN_000bf790 @ 0x000bf790 -- HS script-function wrapper, two-argument
+ *   predicate variant that returns the worker's byte result to the script
+ *   engine.
+ *
+ * Structurally the same three-call family shape as the twins above; the
+ * distinguishing details are (a) TWO record fields are read, both as FULL
+ * DWORDs, and (b) the worker returns a byte in AL that is zero-extended
+ * through a pre-zeroed dword local.
+ *
+ * Frame: PUSH EBP / MOV EBP,ESP / PUSH ECX / PUSH ESI; no _chkstk, no
+ *   SUB ESP, no SEH, no FPU; exit RET has no immediate => cdecl, caller
+ *   cleans.  The prologue `PUSH ECX` is not an argument -- it reserves the
+ *   single 4-byte local at [EBP-0x4].
+ *
+ * Signature (Confirmed by disassembly + family shape):
+ *   [EBP+0x8]  -> ECX, function_index (int16_t)
+ *   [EBP+0xc]  -> ESI, thread_datum; ESI is the callee-saved register kept
+ *                 live across the evaluate call and reused for hs_return
+ *   [EBP+0x10] -> EAX, init (char, loaded as a dword)
+ * Ghidra modelled this void(void), so the three cdecl params surfaced as
+ * in_stack_00000004/8/c pseudo-locals (off by 4); they are STACK args, not
+ * @<reg> -- no unaff_/in_EAX/in_ECX appears (lift-learnings 31 void-decl
+ * trap).  kb.json's decl was corrected from `void(void)` to the 3-arg cdecl
+ * form as part of this lift.
+ *
+ * Call sites (traced backward from each CALL in the disassembly):
+ *   CALL 0xcc560 -- PUSH EAX (init) / PUSH ESI (thread_datum) / PUSH ECX
+ *   (function_index), then ADD ESP,0xc: cdecl reverse order => the C order is
+ *   (function_index, thread_datum, init), a straight pass-through of exactly
+ *   3 stack args.  TEST EAX,EAX / JZ 0xbf7d0 skips BOTH remaining calls, i.e.
+ *   it is the NULL guard on the evaluation record.  The result is a POINTER
+ *   even though kb.json declares hs_macro_function_evaluate as returning
+ *   `int`, so it is cast locally here (do NOT change the kb decl), exactly as
+ *   every twin above does.
+ *
+ *   CALL 0x1a7e70 -- MOV EDX,dword ptr [EAX+0x4] is issued BEFORE
+ *   MOV EAX,dword ptr [EAX] overwrites the record pointer, then PUSH EDX /
+ *   PUSH EAX => the C order is (record[0], record[1]).  MSVC's right-to-left
+ *   cdecl argument evaluation reproduces that +0x4-then-+0x0 load order from
+ *   the source form below.  BOTH fields are full dwords -- there is no
+ *   MOVZX/MOVSX anywhere in the function, so unlike FUN_000bf1a0 (word field)
+ *   and FUN_000bf1e0 (byte field) neither argument is narrowed
+ *   (lift-learnings 24 LOADW).  Only offsets +0x0 and +0x4 of the record are
+ *   touched, both via a single deref each -- no buffer-alias risk.
+ *
+ *   The byte return: `MOV dword ptr [EBP-0x4],0x0` zeroes the local before the
+ *   evaluate call, then after the worker returns `MOV byte ptr [EBP-0x4],AL` /
+ *   MOV ECX,dword ptr [EBP-0x4] / PUSH ECX stores only AL into that pre-zeroed
+ *   dword and reloads the whole dword.  Net effect is a zero-extension of the
+ *   byte (uint8 -> int), NOT the sign-extension a plain
+ *   `int value = FUN_001a7e70(...)` would produce from the `char` return, so
+ *   the union width-pun below is required for both correctness and codegen
+ *   (same idiom as FUN_000bf260 / FUN_000bf2b0 above).
+ *
+ *   CALL 0xcbf80 -- PUSH ECX (the zero-extended value) / PUSH ESI
+ *   (thread_datum) => hs_return(thread_datum, value).  hs_return's first
+ *   argument is the PARAMETER thread_datum held in ESI, not any record field.
+ *   ONE combined ADD ESP,0x10 folds hs_return's two args (8) with the two args
+ *   still on the stack from the 0x1a7e70 call (8, never individually cleaned);
+ *   the ARG_COUNT warning on 0xcbf80 ("cleanup=4 stack args vs decl=2") and
+ *   the "cleanup=none" report for 0x1a7e70 at this site are both that merge --
+ *   hs_return really takes 2 args, do NOT "fix" its decl.
+ *
+ * Callees (all cdecl, all in kb.json, no @<reg> args anywhere):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x1a7e70 = FUN_001a7e70(int unit_handle, int definition_index) -> char
+ *              (unnamed in kb.json; parameter names are kb's, the semantics
+ *              are Uncertain)
+ *   0xcbf80  = hs_return(int thread_handle, int value) */
+void FUN_000bf790(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+  union {
+    int i;
+    unsigned char b;
+  } value;
+
+  value.i = 0;
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    value.b = FUN_001a7e70(record[0], record[1]);
+    hs_return(thread_datum, value.i);
+  }
+}
