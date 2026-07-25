@@ -6383,3 +6383,69 @@ void FUN_000bf8b0(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, 0);
   }
 }
+
+/* FUN_000bf8f0 @ 0x000bf8f0
+ *
+ * HaloScript builtin dispatcher for the solo-player integrated night-vision
+ * query. Same 3-parameter cdecl shape as the twins above (FUN_000bf870 /
+ * FUN_000bf8b0 / FUN_000bf740), but with two structural differences that are
+ * confirmed in the disassembly and must NOT be "normalised" to match them:
+ *   1. There is NO hs_macro_function_evaluate call and NO NULL check. The
+ *      worker is called unconditionally and its result is always committed.
+ *   2. The worker takes no arguments, so none of the three parameters are
+ *      forwarded; only thread_datum is read at all.
+ *
+ * cdecl frame: PUSH EBP; MOV EBP,ESP; PUSH ECX => one 4-byte local dword at
+ * [EBP-0x4]. 15 instructions total (0xbf8f0-0xbf916). No _chkstk, no SUB ESP,
+ * no FPU, no SEH, no local buffers, and no callee-saved register is touched
+ * (so no register-aliasing risk -- lift-learnings 1). The exit RET carries no
+ * immediate => cdecl, caller cleans.
+ *   function_index  int16_t  [EBP+0x08]  UNUSED by the body
+ *   thread_datum    int      [EBP+0x0c]  -> ECX, hs_return arg1
+ *   init            char     [EBP+0x10]  UNUSED by the body
+ * Ghidra modelled this void(void), so the params surfaced as
+ * in_stack_00000008 pseudo-locals (off by 4); they are STACK args, not
+ * @<reg> -- no unaff_/in_EAX/in_ECX appears (lift-learnings 31 void-decl
+ * trap). kb.json's stale `void FUN_000bf8f0(void);` decl was corrected to the
+ * 3-arg cdecl form as part of this lift; leaving a (void) decl over a
+ * stack-arg callee is the ESP-drift class of bug from 0x158df0. The two unused
+ * parameters are deliberately KEPT in the declaration: the caller is the
+ * shared HS dispatcher table, which pushes all three regardless.
+ *
+ * Binary evidence (traced backward from each CALL in the disassembly):
+ *   MOV dword ptr [EBP-0x4],0x0 at entry pre-zeroes the whole local dword
+ *   BEFORE the call.
+ *
+ *   CALL 0x1b2610 @0xbf8fa takes no arguments (no PUSH before it, no ADD ESP
+ *   after it => 0-arg cdecl) and returns a single byte in AL.
+ *
+ *   MOV ECX,[EBP+0xc] then MOV byte ptr [EBP-0x4],AL: only AL is stored into
+ *   the already-zeroed dword, so the byte result is zero-extended (uint8 ->
+ *   int) rather than sign-extended and rather than MOVZX'd. Ghidra's
+ *   `local_8 = (uint)bVar1` hides this; the union below reproduces the
+ *   pre-zero + byte-only store shape.
+ *
+ *   MOV EAX,[EBP-0x4]; PUSH EAX; PUSH ECX; CALL 0xcbf80 -> cdecl reverse push
+ *   order => C order hs_return(thread_datum, value). ADD ESP,0x8 here is
+ *   standalone (not merged with another call's cleanup, unlike the twins), so
+ *   it matches hs_return's 2 declared args exactly and produces no ARG_COUNT
+ *   hazard. Epilogue: MOV ESP,EBP; POP EBP; RET.
+ *
+ * Callees (both cdecl, both in kb.json, both ported, no @<reg> args):
+ *   0x1b2610 = unit_solo_player_integrated_night_vision_is_active(void)
+ *              -> char (byte in AL; do NOT widen the return at the call)
+ *   0xcbf80  = hs_return(int thread_handle, int value)
+ *
+ * Placement: kept here beside its twins deliberately -- the hs helpers are
+ * static in this TU; revert any maintain.py relocation. */
+void FUN_000bf8f0(int16_t function_index, int thread_datum, char init)
+{
+  union {
+    unsigned char b;
+    int i;
+  } value;
+
+  value.i = 0;
+  value.b = (unsigned char)unit_solo_player_integrated_night_vision_is_active();
+  hs_return(thread_datum, value.i);
+}
