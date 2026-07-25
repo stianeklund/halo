@@ -7247,3 +7247,84 @@ void FUN_000bfbc0(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, value.i);
   }
 }
+
+/* FUN_000bfc50 @ 0x000bfc50
+ *
+ * HaloScript builtin dispatcher; byte-shape twin of FUN_000bf920 above:
+ * identical 3-parameter cdecl shape and identical evaluate / NULL-check /
+ * worker / hs_return skeleton, including the same "worker takes (dword @
+ * record+0, zero-extended BYTE @ record+4) and the script gets a CONSTANT 0"
+ * tail. The only difference is the worker called: 0x965f0
+ * device_one_sided_set instead of 0x1ae210.
+ *
+ * cdecl frame: PUSH EBP; MOV EBP,ESP; PUSH ESI; ... POP ESI; POP EBP; RET.
+ * Body spans 0xbfc50-0xbfc87. No locals, no _chkstk, no SUB ESP, no FPU, no
+ * SEH. ESI is the only callee-saved register and holds thread_datum live across
+ * the evaluate call. The exit RET carries no immediate => cdecl, caller cleans.
+ *   function_index  int16_t  [EBP+0x08]  -> ECX
+ *   thread_datum    int      [EBP+0x0c]  -> ESI, reused as hs_return arg1
+ *   init            char     [EBP+0x10]  -> EAX
+ * Ghidra modelled this void(void), so the three cdecl params surfaced as
+ * in_stack_* pseudo-locals; they are STACK args, not @<reg> -- no unaff_/
+ * in_EAX/in_ECX appears (lift-learnings 31 void-decl trap). kb.json's stale
+ * `void FUN_000bfc50(void);` decl was corrected to the 3-arg cdecl form as part
+ * of this lift; a (void) decl over a stack-arg callee is the ESP-drift class of
+ * bug from 0x158df0.
+ *
+ * Binary evidence (traced backward from each CALL):
+ *   CALL 0xcc560 pushes EAX([EBP+0x10]) / ESI([EBP+0xc]) / ECX([EBP+0x8]) in
+ *   cdecl reverse order -> C order (function_index, thread_datum, init); ADD
+ *   ESP,0xc = 3 args. Straight pass-through, no reordering.
+ *
+ *   TEST EAX,EAX / JZ 0xbfc85 skips BOTH remaining calls when the result is
+ *   NULL, so the 0xcc560 return is a POINTER that is dereferenced even though
+ *   kb.json declares it as returning int (same as every twin above; the cast is
+ *   local and the kb decl is left alone).
+ *
+ *   Record deref (2 fields): MOV EAX,dword ptr [EAX] -> DWORD at record+0;
+ *   XOR EDX,EDX; MOV DL,byte ptr [EAX+0x4] -> zero-extended BYTE at record+4.
+ *   Ghidra renders the +4 read as an int -- that width is WRONG (lift-learnings
+ *   24 LOADW); taking it would pass a garbage one-sided flag. The load is
+ *   unsigned (XOR/MOV DL, not MOVSX). Only +0x0 and +0x4 are touched, one deref
+ *   each -- no buffer-alias risk.
+ *
+ *   CALL 0x965f0 pushes EDX (the zero-extended byte) then EAX (the dword) =
+ *   cdecl reverse -> C order (record[0], byte at record+4). Distinct reloads,
+ *   NOT a duplicated argument. Ghidra shows this call with ZERO arguments --
+ *   that is wrong; the disassembly plainly pushes EDX then EAX.
+ *
+ *   CALL 0xcbf80 pushes 0x0 then ESI -> hs_return(thread_datum, 0). The script
+ *   return value is the CONSTANT 0, not the record and not the worker's result;
+ *   the entire observable effect is the 0x965f0 side effect. ONE combined ADD
+ *   ESP,0x10 cleans the 4 pushes of both 2-arg calls -- the ARG_COUNT hazard on
+ *   hs_return ("cleanup=4 vs decl=2") is that same FALSE POSITIVE documented on
+ *   the twins; hs_return really takes 2 args, do NOT "fix" its decl.
+ *
+ * Reloc audit of delinked/functions/000bfc50.obj: the first three DISP32
+ * targets (offsets 0x11/0x26/0x2e) are FUN_000cc560, FUN_000965f0,
+ * FUN_000cbf80 -- matching the three calls below with no extra global or string
+ * reference. (The exported range also covers the following function 0xbfc90,
+ * whose relocs are the trailing three.)
+ *
+ * Callees (all cdecl, all in kb.json, no @<reg> args anywhere):
+ *   0xcc560 = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x965f0 = device_one_sided_set(int object_list, char one_sided); its stale
+ *             `void device_one_sided_set(void);` kb decl was corrected here --
+ *             calling through a (void) decl would have left 8 bytes of drift.
+ *             Arg names are mechanical (naming-confidence: behaviour-only).
+ *   0xcbf80 = hs_return(int thread_handle, int value)
+ *
+ * Placement: kept here beside its twins deliberately -- the hs helpers are
+ * static in this TU; revert any maintain.py relocation. */
+void FUN_000bfc50(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    device_one_sided_set(record[0],
+                         (char)*(unsigned char *)((char *)record + 4));
+    hs_return(thread_datum, 0);
+  }
+}
