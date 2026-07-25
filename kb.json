@@ -2213,7 +2213,8 @@
     },
     {
      "addr": "0x1d4f0",
-     "decl": "void actor_get_pursuit_location(void);"
+     "decl": "void *actor_get_pursuit_location(int actor_handle);",
+     "ported": true
     },
     {
      "addr": "0x1d530",
