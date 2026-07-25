@@ -5324,3 +5324,80 @@ void FUN_000bf340(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, 0);
   }
 }
+
+/* FUN_000bf4c0 @ 0x000bf4c0
+ *
+ * HaloScript builtin dispatcher, same family as FUN_000bf260/0xbf2b0/0xbf300/
+ * 0xbf340 above: identical 3-parameter cdecl shape, identical evaluate /
+ * NULL-check / worker / hs_return skeleton. The worker here is the already
+ * ported vehicle_scripting_load_magic (0x1b3400) and its 16-bit AX result is
+ * handed back to the script.
+ *
+ * cdecl frame: PUSH EBP; MOV EBP,ESP; PUSH ECX (ONE local dword, the result
+ * slot at [EBP-4]); PUSH ESI. No _chkstk, no FPU, no SEH, no local buffers.
+ * RET carries no immediate (caller cleans, cdecl).
+ *   function_index  int16_t  [EBP+0x08]  -> ECX
+ *   thread_datum    int      [EBP+0x0c]  -> ESI (the only callee-saved
+ *                                          register; held live across the
+ *                                          evaluate call and reused as
+ *                                          hs_return arg1 -- do NOT source it
+ *                                          from the record)
+ *   init            char     [EBP+0x10]  -> EAX
+ *
+ * Binary evidence:
+ *   MOV dword ptr [EBP-4],0 runs BEFORE the evaluate call (the result slot is
+ *   pre-zeroed even on the NULL-record path).
+ *   CALL 0xcc560 pushes EAX([EBP+0x10]), ESI([EBP+0xc]), ECX([EBP+0x8]) in
+ *   cdecl reverse order -> C order (function_index, thread_datum, init);
+ *   ADD ESP,0xc = 3 args, straight pass-through. TEST EAX,EAX / JZ skips both
+ *   remaining calls on a NULL record, so the 0xcc560 return is a POINTER that
+ *   is dereferenced below even though kb.json declares it as returning `int`
+ *   -- cast at the call site, as every twin in this family does.
+ *   The record is the evaluated-argument block, 3 dwords, all read with plain
+ *   full-width MOVs (there is NO MOVZX/MOVSX anywhere on the record, unlike
+ *   FUN_000bf1a0's word field or FUN_000bf1e0's byte field):
+ *     +0x00 int  (MOV EDX,dword ptr [EAX])
+ *     +0x04 int  (MOV ECX,dword ptr [EAX+0x4])
+ *     +0x08 int  (MOV EDX,dword ptr [EAX+0x8])
+ *   CALL 0x1b3400 pushes EDX(+0x8), ECX(+0x4), EDX(+0x0) in cdecl reverse
+ *   order -> C order (record[0], record[1], record[2]). The loads run
+ *   high-offset-first because the +0x0 load overwrites EAX (the record pointer
+ *   itself); MSVC's right-to-left cdecl argument evaluation reproduces that
+ *   order from the call expression below.
+ *   Result handling: MOV word ptr [EBP-4],AX (WORD store only, into the dword
+ *   zeroed before the evaluate call), then MOV EAX,dword ptr [EBP-4] (full
+ *   DWORD read) -- an explicit zero-extension through a stack slot, the
+ *   zero-init-then-narrow-store idiom of FUN_000be030/0xbf260 at word width;
+ *   modeled with a union so the widened value is provably the zero-extended
+ *   16 bits (the upper 16 bits of the slot are 0).
+ *   CALL 0xcbf80 pushes EAX (the widened result) then ESI ->
+ *   hs_return(thread_datum, value). The following ADD ESP,0x14 (20 bytes) is a
+ *   SHARED cleanup for 0x1b3400's 3 pushes plus hs_return's 2; any ARG_COUNT
+ *   warning on 0xcbf80 ("cleanup=5 vs decl=2") is that merge -- hs_return
+ *   really takes 2 args, do NOT "fix" its decl.
+ *   Ghidra modelled this void(void), so the three cdecl params showed up as
+ *   in_stack_00000004/8/c pseudo-locals (off by 4); they are stack args, not
+ *   @<reg> (lift-learnings 31 / void-decl trap). kb.json's decl was corrected
+ *   from `void(void)` to the 3-arg cdecl form.
+ *
+ * Callees (all cdecl, in kb.json, no @<reg> args anywhere):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x1b3400 = vehicle_scripting_load_magic(int vehicle_handle,
+ *              int seat_substring, int group_handle) -> uint16_t in AX
+ *   0xcbf80  = hs_return(int thread_handle, int value) */
+void FUN_000bf4c0(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+  union {
+    int i;
+    unsigned short w;
+  } value;
+
+  value.i = 0;
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    value.w = vehicle_scripting_load_magic(record[0], record[1], record[2]);
+    hs_return(thread_datum, value.i);
+  }
+}
