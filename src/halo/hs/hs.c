@@ -49,6 +49,76 @@ void FUN_000befd0(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xbf110 — HS script function handler: query a per-object boolean and return
+ * it to the calling HS thread.
+ *
+ * Structural graft of the two neighbours: the full-dword argument load of
+ * 0xbefd0 combined with the byte-result-into-a-pre-zeroed-dword-slot return
+ * shape of 0xc1500.
+ *
+ * cdecl frame: PUSH EBP; MOV EBP,ESP; PUSH ECX (one dword local at EBP-0x4);
+ * PUSH ESI. No _chkstk. Epilog POP ESI; MOV ESP,EBP; POP EBP; RET — caller
+ * cleans, so kb's `void(void)` is the usual Ghidra in_stack_* artifact, NOT a
+ * register-arg function. Params from the EBP offsets:
+ *   function_index  int16_t  [EBP+0x08] -> ECX -> evaluate arg 1
+ *   thread_datum    int      [EBP+0x0c] -> ESI (kept live across both calls)
+ *   init            char     [EBP+0x10] -> EAX -> evaluate arg 3
+ *
+ * CALL 0xcc560 @0xbf128 pushes EAX(init), ESI(thread_datum), ECX(function_index)
+ * and cleans with ADD ESP,0xc, so the C order is
+ * (function_index, thread_datum, init). TEST EAX,EAX; JZ 0xbf14c wraps the
+ * whole body in the NULL guard on the returned result record.
+ *
+ * MOV dword ptr [EBP-0x4],0x0 at 0xbf121 sits INSIDE that push sequence, i.e.
+ * BEFORE the evaluate call — hence `value.i = 0;` first.
+ *
+ * CALL 0x1ac150 @0xbf137 is preceded by MOV EDX,dword ptr [EAX]; PUSH EDX — a
+ * FULL 32-bit load of the record's first dword (a handle), one stack arg.
+ * Ghidra modelled this callee as `void FUN_001ac150(void)` and dropped both the
+ * argument and the result (§16/§31 implicit-EAX): the result comes back in AL
+ * and is stored NARROW with MOV byte ptr [EBP-0x4],AL at 0xbf13c, then reloaded
+ * as a full dword (MOV EAX,[EBP-0x4] at 0xbf13f). Because the slot was
+ * pre-zeroed, the dword handed to hs_return is the zero-extended low byte —
+ * keep the union byte-store idiom, a plain `value.i = ...` would emit a dword
+ * store and lose that shape.
+ *
+ * The single trailing ADD ESP,0xc at 0xbf149 is MERGED cleanup for the 1 arg of
+ * FUN_001ac150 plus the 2 args of hs_return (1+2 = 3 dwords) — the call-site
+ * audit's "hs_return cleanup=3 vs decl=2" is the same false positive already
+ * documented on the 0xbefd0 twin above. Do NOT "fix" hs_return's decl.
+ *
+ * No FPU ops, no struct writes, no local buffers; the only struct access is
+ * result[0] (offset +0x0, dword).
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560   = hs_macro_function_evaluate(int16 fn_index, int thread_datum,
+ *               char init) -> int* (result record, NULL on failure)
+ *   0x1ac150  = FUN_001ac150(int handle) -> byte in AL (return width beyond the
+ *               low byte is UNKNOWN — only AL is consumed here)
+ *   0xcbf80   = hs_return(int thread_handle, int value)
+ *
+ * Placed in hs.c rather than players.c (where kb groups 0xbf110) per the same
+ * lift directive as the neighbours: players.c does not compile under VC71
+ * (clang-only __attribute__ / raw fnptr casts), so it would be permanently
+ * unmeasurable there. NOTE: a global `maintain.py` run will try to move this
+ * function (and the 0xbefd0 twin) into players.c — that move must be rejected. */
+void FUN_000bf110(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+  union {
+    int i;
+    unsigned char b;
+  } value;
+
+  value.i = 0;
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    value.b = (unsigned char)FUN_001ac150(result[0]);
+    hs_return(thread_datum, value.i);
+  }
+}
+
 /* 0xc0c30 — HS script function handler: apply an encounter state change.
  * Evaluates the macro arguments; on success the result block holds an
  * encounter handle at +0x0 (int) and a state value at +0x4 (int16). Calls
