@@ -21351,7 +21351,8 @@
     },
     {
      "addr": "0x184610",
-     "decl": "int FUN_00184610(void *group);"
+     "decl": "short FUN_00184610(void *group);",
+     "ported": true
     },
     {
      "addr": "0x184680",

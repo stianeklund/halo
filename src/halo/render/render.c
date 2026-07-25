@@ -1,3 +1,103 @@
+/* Test the per-group flag bit for a transparent geometry group (0x184570).
+ * Returns 1 when the group's bit in the 384-bit flag array at 0x4d0cbc is
+ * CLEAR (or when the group pointer does not resolve to a presorted index),
+ * 0 when the bit is SET. The array is 0x30 bytes (0x180 groups, one bit per
+ * group) and is cleared by rasterizer_transparent_geometry_begin.
+ * Binary: MOVSX EDX,AX / SAR EDX,5 -> signed word index; NEG EAX / SBB AL,AL /
+ * INC AL -> AL = (bit == 0). */
+char FUN_00184570(void *group)
+{
+  short presorted_index;
+
+  presorted_index = rasterizer_transparent_geometry_group_to_presorted_index(
+    (unsigned int)group);
+  if (presorted_index != -1) {
+    return (char)(((1 << (presorted_index & 0x1f)) &
+                   ((unsigned int *)0x4d0cbc)[presorted_index >> 5]) == 0);
+  }
+  return 1;
+}
+
+/* FUN_001845b0: set or clear this group's bit in the transparent-geometry-group
+ * bit vector at 0x4d0cbc (0x30 bytes = 12 dwords = 384 bits, matching the
+ * 0x180 group cap; zeroed by the csmemset above). A group pointer that does not
+ * resolve to a presorted index (-1) is silently ignored.
+ *
+ * NOTE the branch polarity, which is the opposite of what a "set flag" reading
+ * would suggest and must not be "normalized": only the LOW BYTE of clear_bit is
+ * tested (MOV CL,[EBP+0xc]; TEST CL,CL), and
+ *   low byte == 0  -> OR   mask (SET the bit)   [own POP EBP/RET at 0x1845e8]
+ *   low byte != 0  -> ANDN mask (CLEAR the bit) [RET at 0x18460d]
+ * The set path returns early (two distinct RET sites), so the early-return
+ * shape is reproduced here rather than an if/else.
+ *
+ * The index math runs on the SIGN-EXTENDED short (MOVSX ECX,AX then SAR ECX,5),
+ * so the shift must stay arithmetic on a signed int. The explicit `& 0x1f` on
+ * the shift count is real, not a Ghidra artifact: the original emits
+ * AND ECX,0x1f before SHL EDX,CL in both branches. The word index (SAR ECX,5)
+ * is recomputed inside each branch rather than hoisted above the TEST, so the
+ * expression is written out per branch here. (0x1845b0) */
+void FUN_001845b0(void *group, int clear_bit)
+{
+  short group_presorted_index;
+  int index;
+
+  group_presorted_index =
+    rasterizer_transparent_geometry_group_to_presorted_index(
+      (unsigned int)group);
+  if (group_presorted_index == -1) {
+    return;
+  }
+  index = group_presorted_index;
+  if ((char)clear_bit == 0) {
+    *(unsigned int *)(0x4d0cbc + (index >> 5) * 4) =
+      *(unsigned int *)(0x4d0cbc + (index >> 5) * 4) | (1 << (index & 0x1f));
+    return;
+  }
+  *(unsigned int *)(0x4d0cbc + (index >> 5) * 4) =
+    *(unsigned int *)(0x4d0cbc + (index >> 5) * 4) & ~(1 << (index & 0x1f));
+}
+
+/* FUN_00184610: resolve the first vertex index of a transparent geometry group
+ * (0x184610). Two mutually exclusive sources on the group record:
+ *   +0x58  pointer to an int16 vertex index (nullable) -- when set, the stored
+ *          index is returned directly. The load is `MOV AX,word ptr [EAX]`, a
+ *          WORD load, so this must stay a 16-bit read (Ghidra models the upper
+ *          half of EAX as CONCAT22 garbage).
+ *   +0x54  dynamic-vertex-buffer index, sentinel -1 -- when not -1 it is passed
+ *          (PUSH ESI / CALL 0x17c9c0 / ADD ESP,4 -- one stack arg; Ghidra drops
+ *          it and shows a 0-arg call) to 0x17c9c0, whose short result is the
+ *          return value.
+ * With neither source the group has no vertices: report through error() at
+ * level 2 and return -1 (EDI is pre-seeded 0xffffffff at entry purely to feed
+ * `MOV AX,DI` on this path, so it is not modelled as a variable here).
+ * The null-group assert tail is CALL 0x8e2f0 = system_exit(-1), not
+ * halt_and_catch_fire (Ghidra prints thunk_FUN_001029a0). Every return path is
+ * `MOV AX,...`, hence the 16-bit return type. */
+short FUN_00184610(void *group)
+{
+  short *vertex_index;
+  int dynamic_vertex_buffer_index;
+
+  if (group == 0) {
+    display_assert(
+      "group",
+      "c:\\halo\\SOURCE\\rasterizer\\rasterizer_transparent_geometry.c", 0xf4,
+      1);
+    system_exit(-1);
+  }
+  vertex_index = *(short **)((char *)group + 0x58);
+  if (vertex_index != 0) {
+    return *vertex_index;
+  }
+  dynamic_vertex_buffer_index = *(int *)((char *)group + 0x54);
+  if (dynamic_vertex_buffer_index != -1) {
+    return rasterizer_widget_draw_sprite2d(dynamic_vertex_buffer_index);
+  }
+  error(2, "### ERROR transparent geometry group has no vertices");
+  return -1;
+}
+
 void render_initialize(void)
 {
   cached_object_render_states = game_state_data_new(
@@ -303,65 +403,4 @@ void render_frame(void *a2, __int16 a3, _WORD *a4, _WORD *a5, void *a6,
   ((void (*)(void))0xe28e0)();
   rasterizer_windows_end();
   rasterizer_frame_end();
-}
-
-/* Test the per-group flag bit for a transparent geometry group (0x184570).
- * Returns 1 when the group's bit in the 384-bit flag array at 0x4d0cbc is
- * CLEAR (or when the group pointer does not resolve to a presorted index),
- * 0 when the bit is SET. The array is 0x30 bytes (0x180 groups, one bit per
- * group) and is cleared by rasterizer_transparent_geometry_begin.
- * Binary: MOVSX EDX,AX / SAR EDX,5 -> signed word index; NEG EAX / SBB AL,AL /
- * INC AL -> AL = (bit == 0). */
-char FUN_00184570(void *group)
-{
-  short presorted_index;
-
-  presorted_index =
-    rasterizer_transparent_geometry_group_to_presorted_index(
-      (unsigned int)group);
-  if (presorted_index != -1) {
-    return (char)(((1 << (presorted_index & 0x1f)) &
-                   ((unsigned int *)0x4d0cbc)[presorted_index >> 5]) == 0);
-  }
-  return 1;
-}
-
-/* FUN_001845b0: set or clear this group's bit in the transparent-geometry-group
- * bit vector at 0x4d0cbc (0x30 bytes = 12 dwords = 384 bits, matching the
- * 0x180 group cap; zeroed by the csmemset above). A group pointer that does not
- * resolve to a presorted index (-1) is silently ignored.
- *
- * NOTE the branch polarity, which is the opposite of what a "set flag" reading
- * would suggest and must not be "normalized": only the LOW BYTE of clear_bit is
- * tested (MOV CL,[EBP+0xc]; TEST CL,CL), and
- *   low byte == 0  -> OR   mask (SET the bit)   [own POP EBP/RET at 0x1845e8]
- *   low byte != 0  -> ANDN mask (CLEAR the bit) [RET at 0x18460d]
- * The set path returns early (two distinct RET sites), so the early-return
- * shape is reproduced here rather than an if/else.
- *
- * The index math runs on the SIGN-EXTENDED short (MOVSX ECX,AX then SAR ECX,5),
- * so the shift must stay arithmetic on a signed int. The explicit `& 0x1f` on
- * the shift count is real, not a Ghidra artifact: the original emits
- * AND ECX,0x1f before SHL EDX,CL in both branches. The word index (SAR ECX,5)
- * is recomputed inside each branch rather than hoisted above the TEST, so the
- * expression is written out per branch here. (0x1845b0) */
-void FUN_001845b0(void *group, int clear_bit)
-{
-  short group_presorted_index;
-  int index;
-
-  group_presorted_index =
-    rasterizer_transparent_geometry_group_to_presorted_index(
-      (unsigned int)group);
-  if (group_presorted_index == -1) {
-    return;
-  }
-  index = group_presorted_index;
-  if ((char)clear_bit == 0) {
-    *(unsigned int *)(0x4d0cbc + (index >> 5) * 4) =
-      *(unsigned int *)(0x4d0cbc + (index >> 5) * 4) | (1 << (index & 0x1f));
-    return;
-  }
-  *(unsigned int *)(0x4d0cbc + (index >> 5) * 4) =
-    *(unsigned int *)(0x4d0cbc + (index >> 5) * 4) & ~(1 << (index & 0x1f));
 }
