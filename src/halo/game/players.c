@@ -9000,6 +9000,111 @@ void FUN_000c0230(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* FUN_000c0270 @ 0x000c0270
+ *
+ * HaloScript builtin dispatcher, direct structural twin of FUN_000c02b0 just
+ * below and of FUN_000c0230 / FUN_000c0130 / FUN_000c00f0 / FUN_000c0070 /
+ * FUN_000c0030 / FUN_000bfff0 / FUN_000bff70 above: identical 3-parameter
+ * cdecl shape and the same evaluate / NULL-check / worker / hs_return
+ * skeleton. Like the 0xc02b0 twin -- and UNLIKE the 0xc0230 / 0xc0130 group
+ * -- the worker here takes TWO arguments, so the evaluated argument record is
+ * read at two offsets of MIXED width instead of a single dword. The only
+ * difference from 0xc02b0 is the worker dispatched to: 0x54f90 here vs
+ * 0x55010 there.
+ *
+ * cdecl frame: PUSH EBP; MOV EBP,ESP; PUSH ESI; ... POP ESI; POP EBP; RET.
+ * Body spans 0xc0270-0xc02a7 (0x38 bytes). No locals, no SUB ESP, no
+ * _chkstk, no FPU, no SEH, no stack buffers, no struct stores, no globals.
+ * ESI is the only callee-saved register and holds thread_datum live across the
+ * evaluate call, which is why it is saved. The exit RET carries no immediate
+ * => cdecl, caller cleans.
+ *   function_index  int16_t  [EBP+0x08]  -> ECX  (pushed as a full dword; the
+ *                                          int16 narrowing lives inside the
+ *                                          callee, matching every twin)
+ *   thread_datum    int      [EBP+0x0c]  -> ESI, reused as hs_return arg1
+ *   init            char     [EBP+0x10]  -> EAX  (loaded as a full dword but
+ *                                          declared char to match the callee
+ *                                          decl and every twin in this family)
+ * Ghidra modelled this void(void), so the three cdecl params surfaced as
+ * in_stack_* pseudo-locals; they are STACK args, not @<reg> -- no unaff_/
+ * in_EAX/in_ECX appears (lift-learnings 31 void-decl trap). kb.json's stale
+ * `void FUN_000c0270(void);` decl was corrected to the 3-arg cdecl form as
+ * part of this lift; a (void) decl over a stack-arg callee is the ESP-drift
+ * class of bug from 0x158df0.
+ *
+ * Binary evidence (traced backward from each CALL in the disassembly, not the
+ * decompiler):
+ *   MOV EAX,[EBP+0x10] / MOV ECX,[EBP+0x8] / MOV ESI,[EBP+0xc] then
+ *   PUSH EAX / PUSH ESI / PUSH ECX; CALL 0xcc560 (0xc0280); ADD ESP,0xc.
+ *   cdecl reverse push order -> C order (function_index, thread_datum, init)
+ *   = a straight pass-through of all three params. ESI is written exactly
+ *   once from [EBP+0xc] and is never reloaded, so the Ghidra
+ *   register-aliasing trap (decompiler-traps 1) cannot apply to the later
+ *   PUSH ESI.
+ *
+ *   TEST EAX,EAX / JZ 0xc02a5 skips BOTH remaining calls when the result is
+ *   NULL, so the 0xcc560 return is a POINTER that is dereferenced even though
+ *   kb.json declares it as returning int (same as every twin; the cast is
+ *   local and the kb decl is left alone).
+ *
+ *   Record deref -- TWO fields of MIXED width, and this is the only place a
+ *   width mistake could hide (lift-learnings 24 LOADW):
+ *     0xc028c XOR EDX,EDX
+ *     0xc028e MOV DL,byte ptr [EAX+0x4]  -> ZERO-EXTENDED BYTE at +0x4
+ *     0xc0291 MOV EAX,dword ptr [EAX]    -> FULL DWORD at +0x0
+ *   The zero-extension (XOR/MOV DL, not MOVSX) is why +0x4 is read through an
+ *   unsigned char lvalue below; Ghidra's `(char)puVar1[1]` is a dword-indexed
+ *   spelling of the same byte offset and would invite a full-width load.
+ *   record+0x0 must NOT be narrowed. Only +0x0 and +0x4 are touched, one
+ *   deref each, so there is no buffer-alias risk (decompiler-traps 5) in this
+ *   8-byte window. The two loads are emitted in reverse of push order, which
+ *   is just cdecl right-to-left evaluation, not struct-field rotation
+ *   (decompiler-traps 3) -- both offsets are unambiguous in the raw
+ *   disassembly.
+ *
+ *   CALL 0x54f90 (0xc0295) is preceded by PUSH EDX then PUSH EAX = cdecl
+ *   reverse -> FUN_00054f90(record+0x0, record+0x4), matching
+ *   FUN_00054f90(unsigned int combined_index, char flag). This two-argument
+ *   worker is the ONLY divergence from the 0xc0230 twin.
+ *
+ *   CALL 0xcbf80 (0xc029d) is preceded by PUSH 0x0 then PUSH ESI = cdecl
+ *   reverse -> hs_return(thread_datum, 0). The script return value is the
+ *   literal CONSTANT 0, not a record field and not the worker's result
+ *   (FUN_00054f90 is void); the entire observable effect is the worker's side
+ *   effect.
+ *
+ *   ONE combined ADD ESP,0x10 at 0xc02a2 cleans the 2 pushes of the 0x54f90
+ *   call plus the 2 pushes of the hs_return call -- so the ARG_COUNT finding
+ *   on hs_return ("cleanup=4 stack args, decl=2") is the same FALSE POSITIVE
+ *   documented on every committed twin; hs_return really takes 2 args and its
+ *   kb decl was left unchanged.
+ *
+ * Reloc audit of delinked/functions/000c0270.obj: .text scnlen 0x40 with
+ * exactly 3 relocations -- matching the three CALL targets below, with no
+ * extra global or string reference.
+ *
+ * Callees (all cdecl, all in kb.json, no @<reg> args anywhere):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x54f90  = FUN_00054f90(unsigned int combined_index, char flag)
+ *   0xcbf80  = hs_return(int thread_handle, int value)
+ *
+ * Placement: kept here beside its twins deliberately -- the hs helpers are
+ * static in this TU; revert any maintain.py relocation. NOTE: do NOT run
+ * maintain.py on this file with an ABSOLUTE path -- it then treats the file
+ * as a foreign TU, "moves" all functions out to the same relative path, and
+ * leaves players.c empty (observed 2026-07-26). */
+void FUN_000c0270(int16_t function_index, int thread_datum, char init)
+{
+  unsigned char *record;
+
+  record = (unsigned char *)hs_macro_function_evaluate(function_index,
+                                                       thread_datum, init);
+  if (record != NULL) {
+    FUN_00054f90(*(unsigned int *)record, (char)record[4]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* FUN_000c02b0 @ 0x000c02b0
  *
  * HaloScript builtin dispatcher for ai_set_deaf, direct structural twin of
