@@ -7958,3 +7958,63 @@ void FUN_000bfdd0(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, 0);
   }
 }
+
+/* FUN_000bfe10 @ 0x000bfe10
+ *
+ * HaloScript builtin dispatcher for a ZERO-ARGUMENT script function: it
+ * unconditionally invokes the worker (reload the cheat table from file) and
+ * then commits the calling script thread with a literal 0 result. This is a
+ * byte-shape twin of FUN_000bfdb0 / FUN_000bfd90 above, differing ONLY in the
+ * worker address; unlike FUN_000bfdd0 there is no argument-list evaluate call
+ * and no NULL check, so do not "normalise" this one to that shape.
+ *
+ * Ghidra modelled the function as void(void), so the cdecl STACK parameter
+ * surfaced as an `in_stack_00000008` pseudo-local (lift-learnings 31 void-decl
+ * trap). That name is relative to the POST-prologue frame and is NOT arg1: the
+ * disassembly reads [EBP+0x0c], i.e. the SECOND cdecl stack slot. These are
+ * STACK args, not @<reg>: no unaff_/in_EAX/in_ECX appears in the decompile and
+ * the body has no register-defining prologue. The stale
+ * `void FUN_000bfe10(void);` kb.json decl was corrected to the 3-arg cdecl form
+ * as part of this lift; a (void) decl over a stack-arg callee is the ESP-drift
+ * class of bug from 0x158df0.
+ *
+ * Binary evidence (the ENTIRE body, 0xbfe10-0xbfe27; prologue PUSH EBP /
+ * MOV EBP,ESP with no SUB ESP, no _chkstk, no PUSH of callee-saved registers;
+ * epilogue POP EBP / RET with no immediate => cdecl, caller cleans. No locals,
+ * no FPU, no SEH, no buffers, no loops, no branches at all and no jump table,
+ * so there is no push-then-fstp float, no struct-field rotation, no
+ * buffer-alias risk and no register-aliasing-over-distance risk):
+ *
+ *   CALL 0x000a66d0 -> cheats_load_from_file(). Zero arguments, no ESP cleanup
+ *   after the call, confirming the void(void) arity in kb.json. It is called
+ *   FIRST and UNCONDITIONALLY -- side-effect order is worker-then-return.
+ *
+ *   MOV EAX,[EBP+0x0c] -> arg2 = thread_datum, loaded in the same basic block
+ *   as the PUSH that consumes it. [EBP+0x08] function_index and [EBP+0x10]
+ *   init are NEVER read anywhere in the body; they are declared purely to keep
+ *   the shared HS evaluator ABI (and therefore the caller's push sequence)
+ *   intact across the family.
+ *
+ *   PUSH 0x0 / PUSH EAX / CALL 0x000cbf80 -> cdecl reverse push order (first
+ *   PUSH is the LAST C argument) gives hs_return(thread_datum, 0). The script
+ *   return value is the LITERAL 0 from PUSH 0x0, not the worker's result:
+ *   cheats_load_from_file is void and its EAX is never read, so
+ *   lift-silent-bugs check 4 (void-EAX implicit return, lift-learnings 16) does
+ *   not apply here.
+ *
+ *   ADD ESP,0x8 at 0xbfe23 cleans exactly hs_return's two pushes -- a clean,
+ *   uncombined cleanup that independently re-confirms hs_return's arity of 2
+ *   (unlike the combined ADD ESP,0xc in FUN_000bfdd0, which produces a
+ *   spurious ARG_COUNT hazard finding).
+ *
+ * Callees (both cdecl, both in kb.json, both ported, no @<reg> args anywhere):
+ *   0xa66d0 = cheats_load_from_file(void)
+ *   0xcbf80 = hs_return(int thread_handle, int value)
+ *
+ * Placement: kept here beside its twins deliberately -- the hs helpers are
+ * static in this TU; revert any maintain.py relocation. */
+void FUN_000bfe10(int16_t function_index, int thread_datum, char init)
+{
+  cheats_load_from_file();
+  hs_return(thread_datum, 0);
+}
