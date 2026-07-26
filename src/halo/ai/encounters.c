@@ -254,6 +254,61 @@ int FUN_00053e80(void *ai_profile_element, const char *name)
   return -1;
 }
 
+/* 0x00053ee0 — FUN_00053ee0 (find sub-block element by name).
+ *
+ * Third sibling of FUN_00053e20 / FUN_00053e80 above: the identical linear
+ * "find <thing> by name" scan, here over the tag_block at +0x8c of the passed
+ * record with a 0xac-byte element stride.  The tag_block header is the usual
+ * {int32 count; void *address} pair; each element's leading field (offset 0)
+ * is a <=32-byte name string (encounters.h: char name[0x20] at +0x00).
+ *
+ * Returns the 0-based index of the first element whose name matches (case
+ * insensitively, first 0x20 bytes), or -1 if none / empty block.
+ *
+ * Caller (ai_profile.c): used as "selector 1" (the +0x8c sub-block) after
+ * FUN_00053e80 ("selector 2", +0x80) misses.
+ *
+ * Confirmed (from disassembly 0x53ee0-0x53f32):
+ *   - Frame: PUSH EBP/EBX/ESI/EDI, no _chkstk, no locals, no FPU.
+ *     EDI = ai_profile_element+0x8c (the tag_block, held throughout),
+ *     EBX = name, ESI = loop index, EAX = return value.
+ *   - Pre-loop: MOV ECX,[EDI+0x8c] (count) taken BEFORE ADD EDI,0x8c;
+ *     OR EAX,0xffffffff (default -1); XOR ESI,ESI; TEST ECX,ECX;
+ *     JLE 0x53f2e — the empty-block fall-through returns the -1 in EAX.
+ *   - Two cdecl calls sharing one ADD ESP,0x18 (6 dwords) at 0x53f16:
+ *       0x53f01-0x53f08: PUSH 0xac; PUSH ESI(index); PUSH EDI(block)
+ *                        CALL 0x19b210 -> tag_block_get_element
+ *       0x53f0d-0x53f11: PUSH 0x20; PUSH EBX(name); PUSH EAX(element)
+ *                        CALL 0x1e6596 -> _strnicmp
+ *     The element pointer is passed straight in as strnicmp's first arg
+ *     (name field lives at element+0).
+ *   - Loop bottom re-reads the count from [EDI] each iteration
+ *     (MOV EAX,[EDI] at 0x53f1d), so the bound is deliberately NOT hoisted.
+ *   - Two epilogues: loop-exhausted at 0x53f24 does OR EAX,0xffffffff
+ *     (return -1); match at 0x53f2c does MOV EAX,ESI (return index).
+ *
+ * Note: Ghidra renders the strnicmp call as a zero-argument `__strnicmp()`
+ * whose result is read through `extraout_EAX` (the swallowed-getter trap) —
+ * the shared ADD ESP,0x18 hides the three pushes, which is also why an
+ * arg-count audit reports cleanup=6 vs decl=3.  Both are artifacts; the
+ * disassembly above is authoritative: a plain 3-arg cdecl compare.
+ */
+int FUN_00053ee0(void *ai_profile_element, const char *name)
+{
+  char *block;
+  int i;
+  void *elem;
+
+  block = (char *)ai_profile_element + 0x8c;
+  for (i = 0; i < *(int *)block; i++) {
+    elem = tag_block_get_element(block, i, 0xac);
+    if (__strnicmp((const char *)elem, name, 0x20) == 0) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 /* 0x00054020 — encounter_get_platoon_ptr (FUN_00054020).
  *
  * Returns a pointer to the platoon record for a given encounter and relative

@@ -32478,7 +32478,8 @@
     },
     {
      "addr": "0x53ee0",
-     "decl": "int FUN_00053ee0(void *ai_profile_element, const char *name);"
+     "decl": "int FUN_00053ee0(void *ai_profile_element, const char *name);",
+     "ported": true
     },
     {
      "addr": "0x53f40",
