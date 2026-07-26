@@ -4684,6 +4684,20 @@
         "The single ADD ESP,0xc at 0xc005f cleans the 1 push of FUN_00054ac0 plus the 2 pushes of hs_return, so the call_site_audit ARG_COUNT warning claiming hs_return takes 3 stack args is a false positive and hs_return's 2-arg decl must not be changed."
       ]
     },
+    "0xc00b0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The single ADD ESP,0xc at 0xc00dc is the shared cdecl cleanup for three pushes spanning two calls (1 arg to FUN_00054bb0 plus 2 args to hs_return), so call_site_audit's ARG_COUNT warning claiming hs_return takes 3 stack args is a false positive and both callee decls were left unchanged."
+      ]
+    },
+    "0xc00f0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The single ADD ESP,0xc at 0xc011c is the shared cdecl cleanup for three pushes spanning two calls (1 arg to FUN_00054ca0 plus 2 args to hs_return), so call_site_audit's ARG_COUNT warning claiming hs_return takes 3 stack args is a false positive and both callee decls were left unchanged."
+      ]
+    },
     "0xc0e50": {
       "kind": "function",
       "status": "ported",

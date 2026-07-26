@@ -945,3 +945,27 @@ players.obj cluster. 4 functions committed at 100% VC71.
 | FUN_000c0030 | 0xc0030 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
 
 **Summary:** players.obj 4/4 goal threshold reached. All functions at 100% VC71 match.
+
+---
+
+## Goal-lift run — 4/4 committed (goal_reached) — 2026-07-26 (session lift-session-20260724)
+
+players.obj cluster. 4 functions committed at 100% VC71.
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_000c0070 | 0xc0070 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c00b0 | 0xc00b0 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c00f0 | 0xc00f0 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c0130 | 0xc0130 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+
+**Summary:** players.obj 4/4 goal threshold reached. All functions at 100% VC71 match.
+
+---
+
+## Goal-lift run — 0/4 committed (queue_exhausted) — 2026-07-26
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+
+Queue exhausted; no candidates remaining in selection pool.
