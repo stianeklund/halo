@@ -315,6 +315,24 @@ players.obj cluster (desired-flashlight-state HS handler and related player logi
 | function | addr | obj | vc71 | action | reason |
 |---|---|---|---|---|---|
 | FUN_0001cb30 | 0x1cb30 | - | - | skipped | Disassembly shows an implicit incoming EAX register argument (PUSH EAX at 0x1cb3b uses EAX without any prior definition in the function) forwarded as datum_get's 2nd parameter (int datum_handle). Ghidra's decompile silently dropped this argument, showing datum_get(DAT_006325a4) with only 1 of its 2 required args. kb.json's current decl 'void FUN_0001cb30(void)' is stale/wrong (real signature takes a stack param_1 at EBP+8 plus an implicit @eax register arg). Needs kb.json correction (add @eax annotation) before lifting; lifting directly from the decompile as-is would drop the datum_handle argument and call datum_get with garbage. |
+
+---
+
+## Goal-lift run — 4/4 committed (goal_reached) — 2026-07-26
+
+players.obj cluster (continuation). 4 functions committed at 100% VC71.
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00172520 | 0x172520 | rasterizer.obj | - | skipped | Body is a single unchanged call: FUN_0016f910(4); return; — 4 instructions total (PUSH 4 / CALL / POP ECX / RET). Matches the skip_trivial pre-screen (1-3 line wrapper around one FUN_). |
+| rasterizer_window_get_fog | 0x172720 | rasterizer.obj | - | skipped | Body is a single unchanged wrapper call: `FUN_0016fa40(4); return;` (4 instructions total: PUSH 4 / CALL / POP ECX / RET). Matches the "1-3 lines wrapping one FUN_ unchanged" pre-screen. |
+| structure_detail_objects_dispose_from_old_map | 0x1939c0 | structure_detail_objects.obj | - | skipped | Function body is a single RET instruction — an empty no-op stub in the original binary (Ghidra: `void FUN_001939c0(void) { return; }`, disassembly: `001939c0: RET`). Zero callees, zero FPU/struct/branch content, nothing to lift or verify. No delinked reference symbol exists either. |
+| FUN_000c02f0 | 0xc02f0 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c03f0 | 0xc03f0 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c0430 | 0xc0430 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c0470 | 0xc0470 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+
+**Summary:** players.obj 4/4 goal threshold reached. Committed: 4× 100%. Skipped: 3 trivial/empty (single-line calls or RET-only stubs).
 | FUN_0001d530 | 0x1d530 | - | - | skipped | Hidden @eax input argument that Ghidra's decompiled signature omits. Both call sites in the sole caller (FUN_00020280 @ 0x20280, addrs 0x2030b and 0x203a4) execute `MOV EAX,EDI` immediately before `CALL 0x0001d530` without pushing EAX — EDI is the caller's object/datum handle param. Inside FUN_0001d530 that un-pushed EAX is consumed as the 2nd arg (datum_handle) to the first call, `datum_get(ECX=DAT_006325a4, EAX=<handle>)`, whose return value is discarded. Ghidra renders a bogus 1-arg call `datum_get(DAT_006325a4);` and never emits in_EAX/unaff_ tokens, so the mechanical pre-screen would miss it; only cross-checking both call sites' disassembly against the callee's asm revealed it. Existing kb.json decl (`void FUN_0001d530(void);`) is stale/wrong: real signature is 2 stack args (char param_1 @ EBP+8, int param_2 @ EBP+0xc, cdecl, `ADD ESP,0x8` cleanup at both call sites) PLUS the undocumented @eax handle. Do not lift until kb.json declares the @eax parameter (check-callee-regs / lift-arg-hazards doctrine). |
 | actor_action_handle_vehicle_entry | 0x1dfa0 | actions.obj (also present in actors.obj) | - | skipped | Callee FUN_0001cb30 (0x1cb30) is called at BOTH call sites (0x1e0a1 and 0x1e1a6) with the actor_handle passed in EAX (`MOV EAX,EBX` immediately before `CALL`), plus one stack-pushed arg (an object/tag handle), returning bool in AL. kb.json only has `void FUN_0001cb30(void);` — no @eax annotation, wrong arity. Unaccounted register-arg callee per pre-screen rule (skip_reg_args). Needs kb.json fixed for FUN_0001cb30's real signature (@eax actor_handle + stack object handle → bool) first. |
 | actor_action_handle_combat_selection | 0x1e8a0 | - | - | skipped | Callee FUN_000b5590 (called twice as FUN_000b5590(0x15)/FUN_000b5590(0x14)) decompiles as `void FUN_000b5590(void)` — Ghidra drops the visible stack argument. Disassembly: PUSH EBP/MOV EBP,ESP; CALL FUN_000a7460; MOV EBX,[EBP+8]; MOV EDI,EAX; CALL FUN_000b54e0 — the stack arg is loaded into EBX and never referenced again before the second CALL; it (and EAX from the first call, staged into EDI) are almost certainly forwarded via register — classic register-argument passing the decompiler can't see. None of the 11 non-intrinsic callees (FUN_00013070, FUN_00013ef0, FUN_00014620, FUN_0001d030, FUN_0001d350, FUN_000211f0, FUN_00031440, FUN_0003b320, FUN_0008d9f0, FUN_000b5590, FUN_000b5aa0) are registered in kb.json with documented @<reg> ABIs. Blocked until FUN_000b5590 (and its callees FUN_000a7460/FUN_000b54e0) are lifted/registered with correct register-arg annotations. |
@@ -969,3 +987,74 @@ players.obj cluster. 4 functions committed at 100% VC71.
 |---|---|---|---|---|---|
 
 Queue exhausted; no candidates remaining in selection pool.
+
+---
+
+## Goal-lift run — 4/4 committed (goal_reached) — 2026-07-26 (session lift-session-20260724)
+
+players.obj cluster. 4 functions committed at 100% VC71.
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_000c0230 | 0xc0230 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c02b0 | 0xc02b0 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c0570 | 0xc0570 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c05b0 | 0xc05b0 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+
+**Summary:** players.obj 4/4 goal threshold reached. All functions at 100% VC71 match.
+
+---
+
+## Goal-lift run — 4/4 committed (goal_reached) — 2026-07-26 (current)
+
+players.obj cluster (continuation from prior session). 4 functions committed at 100% VC71 match. 2 wrapper trivials skipped.
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00172520 | 0x172520 | rasterizer.obj | - | skipped | Body is a single unchanged wrapper call: FUN_0016f910(4). Whole function is 4 instructions (PUSH 4; CALL 0x16f910; POP ECX; RET) — no logic to recover. |
+| rasterizer_window_get_fog | 0x172720 | rasterizer.obj | - | skipped | Body is a single unchanged wrapper call: `FUN_0016fa40(4);`. Disassembly is 4 instructions (PUSH 0x4 / CALL 0x16fa40 / POP ECX / RET). Nothing to lift beyond the one-line forward. |
+| FUN_000c01b0 | 0xc01b0 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c01d0 | 0xc01d0 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c0210 | 0xc0210 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c0270 | 0xc0270 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+
+**Summary:** players.obj goal-lift run complete. Committed: 4× 100% VC71. Skipped: 2 trivial single-call wrappers to ported callees.
+
+---
+
+## Goal-lift run — 4/4 committed (goal_reached) — 2026-07-26 (session end)
+
+Multi-object cluster (rasterizer.obj, structure_detail_objects.obj, draw_string.obj, main.obj, players.obj). 4 functions committed at ≥90% VC71. Goal threshold reached.
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00172520 | 0x172520 | rasterizer.obj | - | skipped | Body is a single-line wrapper: `FUN_0016f910(4); return;` (4 instructions total: PUSH 4 / CALL 0x16f910 / POP ECX / RET). Matches the "1-3 lines wrapping one FUN_ unchanged" pre-screen rule. |
+| structure_detail_objects_dispose_from_old_map | 0x1939c0 | structure_detail_objects.obj | - | skipped | Function body is a single bare RET — an empty no-op stub. Decompile is `void FUN_001939c0(void) { return; }`, disassembly is exactly one instruction (`001939c0: RET`). No callees, no callers recorded, no struct access, no FPU. Nothing to lift beyond an empty function body; not worth a lift commit, and it has no delinked reference so there is no byte-match evidence lane either. |
+| FUN_0019c1b0 | 0x19c1b0 | draw_string.obj | - | skipped | Decompile has `ushort *in_EAX` (implicit @eax register arg, used as a 4x int16 clip rect) plus unresolved `in_stack_00000004..1c` args (Ghidra never recovered the real stack frame; kb decl is `void FUN_0019c1b0(void);`). Also survives CONCAT22 in several places and calls through an unlifted function pointer `in_stack_00000004`. Not liftable without an ABI/frame recovery pass. |
+| FUN_001036c0 | 0x1036c0 | main.obj | - | skipped | Decompile carries implicit register parameters: `int in_EAX;` (used as the base object pointer: `*(int*)(in_EAX+0x10)`, `in_EAX+0xc`) and `undefined4 in_ECX;` (byte-extracted: `local_5 = (char)((uint)in_ECX >> 0x18)`, i.e. a bool/flag passed in CH/high byte of ECX). kb.json decl is the placeholder `void FUN_001036c0(void);` with no @<reg> annotations, so the real ABI is unrecorded. Per step 4, reg-arg targets are skipped. |
+| FUN_000c04b0 | 0xc04b0 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c0530 | 0xc0530 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c0670 | 0xc0670 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c06b0 | 0xc06b0 | players.obj | 94.1 | committed | mechanical gate: 94.1% clean (pass1) |
+
+**Summary:** 4/4 goal threshold reached. Committed: 3× 100% + 1× 94.1%. Skipped: 4 functions (trivial wrapper, empty stub, register-arg artifact, @reg missing from kb).
+
+---
+
+## Goal-lift run — 4/4 committed (goal_reached) — 2026-07-26 (cont)
+
+Encounters and players.obj cluster. 4 functions committed at ≥90% VC71. Goal threshold reached.
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00172520 | 0x172520 | rasterizer.obj | - | skipped | Body is a single unchanged call: FUN_0016f910(4); return; — trivial wrapper, no lift value. |
+| rasterizer_window_get_fog | 0x172720 | rasterizer.obj | - | skipped | Body is a single-line wrapper: `FUN_0016fa40(4); return;` (4 instructions total: PUSH 4 / CALL 0x16fa40 / POP ECX / RET). No FPU, no structs, no register args, one already-ported callee. Not worth a lift agent — this is a direct 2-line write if desired, but per pre-screen rules it is skip_trivial. |
+| structure_detail_objects_dispose | 0x1939d0 | structure_detail_objects.obj | - | skipped | Function body is a single RET — an empty no-op stub in the original binary (`001939d0: RET`). Decompile is `void FUN_001939d0(void) { return; }`. Nothing to lift; per repo doctrine (feedback_empty_stubs: an empty C body silently replaces the original and provides no verification value) this should not be ported. No callees, no callers recorded, no delinked reference exists. |
+| FUN_0019c1b0 | 0x19c1b0 | draw_string.obj | - | skipped | Decompile carries implicit register arguments/results: `ushort *in_EAX` (a clip-rect pointer read from EAX on entry) and `int extraout_EAX` (result of FUN_0019cff0 consumed as a pointer). kb.json decl is only `void FUN_0019c1b0(void);` — no @<reg> annotation, and Ghidra lost the whole stack frame. Two callees also carry ABI hazards. Not liftable without first recovering the ABI. |
+| FUN_001036c0 | 0x1036c0 | main.obj | - | skipped | Decompile contains in_EAX (real register argument: `MOV EBX,EAX` at 0x1036c5 uses EAX as the incoming struct/table base pointer). kb.json decl is `void FUN_001036c0(void);` — wrong on both counts: the function takes a hidden @eax pointer plus 3 stack args and RETURNS int in EAX. Per pre-screen rule 4, reg-arg targets are skipped. Fixing this requires a kb.json ABI change out of scope for a READ-ONLY context-gathering pass. |
+| FUN_00053bf0 | 0x53bf0 | encounters.obj | 90.2 | committed | mechanical gate: 90.2% clean (pass1) |
+| FUN_00053e80 | 0x53e80 | encounters.obj | 95 | committed | mechanical gate: 95% clean (pass1) |
+| FUN_000c06f0 | 0xc06f0 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c0730 | 0xc0730 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+
+**Summary:** 4/4 goal threshold reached. Committed: 2× 100% + 1× 95% + 1× 90.2%. Skipped: 4 functions (trivial wrappers, empty stub, register-arg ABI recovery needed, implicit register args unknown).

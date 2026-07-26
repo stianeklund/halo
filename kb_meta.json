@@ -1274,6 +1274,24 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x53bf0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The single ADD ESP,0x20 at the end of FUN_00053bf0 is a merged cleanup for both CALLs (5 dwords for crt_sprintf + 3 for FUN_00053800), so the call-site argument-count audit's ARG_COUNT finding of cleanup=8 vs decl=3 for FUN_00053800 is a false positive.",
+        "The three tally globals 0x5ac76e, 0x5ac7f6 and 0x5ac87e are signed 16-bit counters: all three are loaded with MOVSX WORD PTR before the varargs sprintf, so reading them as int would be a load-width bug."
+      ]
+    },
+    "0x53e80": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameter 1 is named ai_profile_element only by analogy with the sibling FUN_00053e20 (scenario+0x42c); the binary proves only that a tag_block header lives at +0x80 with a 0xe8-byte element stride, not which tag the record belongs to."
+      ],
+      "uncertain": [
+        "The element's leading 0x20 bytes are treated as a name string solely because _strnicmp is called with length 0x20 at element+0; the actual field width inside the 0xe8-byte element is unverified."
+      ]
+    },
     "0x54020": {
       "kind": "function",
       "status": "ported"
@@ -4696,6 +4714,67 @@
       "status": "unknown",
       "inferred": [
         "The single ADD ESP,0xc at 0xc011c is the shared cdecl cleanup for three pushes spanning two calls (1 arg to FUN_00054ca0 plus 2 args to hs_return), so call_site_audit's ARG_COUNT warning claiming hs_return takes 3 stack args is a false positive and both callee decls were left unchanged."
+      ]
+    },
+    "0xc01d0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "hs_macro_function_evaluate (0xcc560) is declared in kb.json as returning int, but 0xc01d0 tests EAX for NULL and then dereferences it (MOV EDX,[EAX] at 0xc01ec), so the return value is really a pointer to the evaluated argument record; the cast is kept local to this lift and the kb decl was deliberately left unchanged, matching every committed twin.",
+        "The third parameter is loaded as a full dword (MOV EAX,[EBP+0x10]) but is typed char to match hs_macro_function_evaluate's kb declaration and the rest of the dispatcher family; the narrowing is not observable in this function."
+      ],
+      "uncertain": [
+        "The call_site_audit ARG_COUNT finding on hs_return at 0xc01f7 (cleanup=3 stack args vs decl=2) is a false positive: the single ADD ESP,0xc at 0xc01fc is the merged cleanup for FUN_00054e40's one push plus hs_return's two pushes, so hs_return's two-parameter declaration is correct and was left unchanged."
+      ]
+    },
+    "0xc0230": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "hs_macro_function_evaluate (0xcc560) is declared returning int in kb.json but its result is TEST-ed for NULL and dereferenced at +0x0, so the return is really a record pointer; the cast is local to this lift and the callee decl was deliberately left unchanged, matching the committed twins 0xc0130/0xc00f0/0xc0070/0xc0030."
+      ],
+      "uncertain": [
+        "The record pointer is typed unsigned int * solely because the single consumed field record[0] is passed to FUN_00054e80(unsigned int ai_ref); the record struct's full layout is unknown since only offset 0x0 is read here."
+      ]
+    },
+    "0xc02f0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "hs_macro_function_evaluate (0xcc560) is declared as returning int in kb.json but its result is dereferenced here as a pointer to an 8-byte argument record (+0x0 dword, +0x4 byte); the pointer cast is kept local and the kb decl was left unchanged, matching every twin in this dispatcher family."
+      ],
+      "uncertain": [
+        "The ARG_COUNT finding on hs_return (cleanup=4 stack args vs decl=2) is a false positive: the single ADD ESP,0x10 at 0xc0322 cleans the two pushes of the FUN_00055090 call plus the two pushes of the hs_return call, so hs_return really takes two stack arguments."
+      ]
+    },
+    "0xc0470": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "hs_macro_function_evaluate (0xcc560) returns a record POINTER here (TEST EAX,EAX; MOV EDX,[EAX]) even though its shared kb.json decl types the return as int; the pointer cast is kept local to FUN_000c0470 rather than changing the family-wide decl."
+      ],
+      "uncertain": [
+        "The meaning of record[0] passed to FUN_000552b0 is unknown beyond being a full 32-bit field at record+0 (no MOVSX/MOVZX narrowing); the parameter is named combined_index only by the existing kb.json decl for 0x552b0, not by independent evidence at this call site."
+      ]
+    },
+    "0xc06b0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "FUN_000566a0 (0x566a0) takes two dword cdecl stack args, inferred from the PUSH EDX; PUSH EAX pair at 0xc06d7 covered by the merged ADD ESP,0x10; its stale kb decl was void encounters_initialize(void) which would have dropped both args."
+      ],
+      "uncertain": [
+        "The name encounters_initialize for 0x566a0 is unproven and inconsistent with a two-value consumer, so it was reverted to the FUN_000566a0 placeholder; the real parameter widths of that callee are unknown and only the caller-side extensions (signed int16 at record+0x0, unsigned int16 at record+0x4) are binary-evidenced."
+      ]
+    },
+    "0xc0730": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The three dword fields at record+0x0/+0x4/+0x8 forwarded to FUN_00058c40 are typed int because the binary only proves 32-bit GPR copies; a float typing would make MSVC emit FLD/FSTP instead of the original MOV/PUSH pairs."
+      ],
+      "uncertain": [
+        "The semantics of worker FUN_00058c40 (0x58c40) are unknown; its kb.json decl was widened from void(void) to three cdecl int params purely from this single call site's PUSH sequence, and its parameters remain unnamed."
       ]
     },
     "0xc0e50": {
