@@ -8871,6 +8871,49 @@ void FUN_000c01d0(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* FUN_000c0210 @ 0x000c0210
+ *
+ * HaloScript builtin dispatcher for a ZERO-ARGUMENT script function -- the
+ * degenerate member of the twin family above (0xc01d0 / 0xc0130 / 0xc00f0 /
+ * 0xc0070 / 0xc0030 / 0xbfff0 / 0xbff70). Because the builtin takes no script
+ * arguments, there is no hs_macro_function_evaluate call, no returned record,
+ * and therefore no NULL check: the body is just the worker followed by
+ * hs_return. Ghidra's `void FUN_000c0210(void);` decl was corrected to the
+ * same 3-argument cdecl form as the twins (the HS dispatcher-table ABI);
+ * function_index and init are genuinely unread by this variant, but the
+ * parameter list is the shared table signature and must not be trimmed.
+ *
+ * Full body from disassembly, 10 instructions, 0xc0210-0xc0227:
+ *   PUSH EBP; MOV EBP,ESP
+ *   CALL 0x54e20                 ; no pushes -> FUN_00054e20(void)
+ *   MOV EAX,[EBP+0xc]            ; SECOND cdecl stack arg = thread_datum
+ *   PUSH 0x0; PUSH EAX; CALL 0xcbf80; ADD ESP,0x8
+ *   POP EBP; RET
+ * cdecl push order: last PUSH (EAX) is arg1 = thread_handle, first PUSH (0)
+ * is arg2 = value -- so hs_return(thread_datum, 0), and the 0 is a literal
+ * constant, not a result (FUN_00054e20 is void). No FPU ops, no locals, no
+ * _chkstk, no struct stores, no buffers; the frame has no PUSH ESI/EDI,
+ * unlike the twins that call hs_macro_function_evaluate.
+ *
+ * Reloc audit of delinked/functions/000c0210.obj: exactly two DISP32 targets
+ * inside this function's 0x18 bytes, at offsets 0x4 and 0xf -> FUN_00054e20
+ * and FUN_000cbf80. No global, constant, or string reference.
+ *
+ * Callees (both cdecl, both in kb.json, no @<reg> args):
+ *   0x54e20  = FUN_00054e20(void)                       -- the worker
+ *   0xcbf80  = hs_return(int thread_handle, int value)
+ *
+ * Placement: kept here beside its twins deliberately -- the hs helpers are
+ * static in this TU; revert any maintain.py relocation. */
+void FUN_000c0210(int16_t function_index, int thread_datum, char init)
+{
+  (void)function_index;
+  (void)init;
+
+  FUN_00054e20();
+  hs_return(thread_datum, 0);
+}
+
 /* FUN_000c0230 @ 0x000c0230
  *
  * HaloScript builtin dispatcher, direct structural twin of FUN_000c0130 /
