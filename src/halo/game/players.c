@@ -8435,3 +8435,77 @@ void FUN_000c0030(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, 0);
   }
 }
+
+/* FUN_000c0070 @ 0x000c0070
+ *
+ * HaloScript builtin dispatcher, direct structural twin of FUN_000c0030
+ * immediately above: identical 3-parameter cdecl shape, identical
+ * evaluate / NULL-check / worker / hs_return skeleton, and the same
+ * one-argument worker arity. The ONLY difference between the two functions
+ * is the worker dispatched to -- 0x54b20 here vs 0x54ac0 there.
+ *
+ * cdecl frame: PUSH EBP; MOV EBP,ESP; PUSH ESI; ... POP ESI; POP EBP; RET.
+ * 24 instructions, no locals, no SUB ESP, no _chkstk, no FPU, no SEH, no
+ * stack buffers, no struct stores. ESI is the only callee-saved register and
+ * holds thread_datum live across the evaluate call, which is why it is saved.
+ * The exit RET carries no immediate => cdecl, caller cleans.
+ *   function_index  int16_t  [EBP+0x08]  -> ECX  (pushed as a full dword; the
+ *                                          int16 narrowing lives inside the
+ *                                          callee, matching every twin)
+ *   thread_datum    int      [EBP+0x0c]  -> ESI, reused as hs_return arg1
+ *   init            char     [EBP+0x10]  -> EAX
+ * Ghidra modelled this void(void), so the three cdecl params surfaced as
+ * in_stack_* pseudo-locals; they are STACK args, not @<reg> -- no unaff_/
+ * in_EAX/in_ECX appears (lift-learnings 31 void-decl trap). kb.json's stale
+ * `void FUN_000c0070(void);` decl was corrected to the 3-arg cdecl form as
+ * part of this lift; a (void) decl over a stack-arg callee is the ESP-drift
+ * class of bug from 0x158df0.
+ *
+ * Binary evidence (traced backward from each CALL):
+ *   MOV EAX,[EBP+0x10] / MOV ECX,[EBP+0x8] / MOV ESI,[EBP+0xc] then
+ *   PUSH EAX / PUSH ESI / PUSH ECX; CALL 0xcc560 (0xc0080); ADD ESP,0xc.
+ *   cdecl reverse push order -> C order (function_index, thread_datum, init)
+ *   = a straight pass-through of all three params. ESI is written exactly
+ *   once at 0xc007a and never reloaded, so the Ghidra register-aliasing trap
+ *   (decompiler-traps 1) cannot apply to the later PUSH ESI.
+ *
+ *   TEST EAX,EAX / JZ skips BOTH remaining calls when the result is NULL, so
+ *   the 0xcc560 return is a POINTER that is dereferenced even though kb.json
+ *   declares it as returning int (same as every twin; the cast is local and
+ *   the kb decl is left alone).
+ *
+ *   Record deref (ONE field, ONE FULL DWORD): MOV EDX,dword ptr [EAX] -- a
+ *   32-bit read at record+0, no MOVSX/MOVZX, so record[0] must NOT be
+ *   narrowed (lift-learnings 24 LOADW, in reverse). Only +0x0 is touched,
+ *   one deref, no buffer-alias risk.
+ *
+ *   CALL 0x54b20 (0xc008f) is preceded by a single PUSH EDX = ONE argument,
+ *   record[0], matching FUN_00054b20(int parent_handle).
+ *
+ *   CALL 0xcbf80 (0xc0097) is preceded by PUSH 0x0 then PUSH ESI = cdecl
+ *   reverse -> hs_return(thread_datum, 0). The script return value is the
+ *   literal CONSTANT 0, not a record field and not the worker's result
+ *   (FUN_00054b20 is void). ONE combined ADD ESP,0xc at 0xc009c cleans the
+ *   1 push of the 0x54b20 call plus the 2 pushes of the hs_return call --
+ *   the ARG_COUNT hazard on hs_return ("cleanup=3 vs decl=2") is the same
+ *   FALSE POSITIVE documented on the twins; hs_return really takes 2 args,
+ *   do NOT "fix" its decl.
+ *
+ * Callees (all cdecl, all in kb.json, no @<reg> args anywhere):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x54b20  = FUN_00054b20(int parent_handle)
+ *   0xcbf80  = hs_return(int thread_handle, int value)
+ *
+ * Placement: kept here beside its twins deliberately -- the hs helpers are
+ * static in this TU; revert any maintain.py relocation. */
+void FUN_000c0070(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    FUN_00054b20(record[0]);
+    hs_return(thread_datum, 0);
+  }
+}
