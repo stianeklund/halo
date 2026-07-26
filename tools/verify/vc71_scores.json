@@ -7845,7 +7845,7 @@
       "source": "src/halo/main/main.c"
     },
     "FUN_00102510": {
-      "score": 68.2,
+      "score": 68.4,
       "source": "src/halo/main/main.c"
     },
     "FUN_001029a0": {
@@ -7882,6 +7882,10 @@
     },
     "FUN_00103de0": {
       "score": 93.2,
+      "source": "src/halo/main/main.c"
+    },
+    "FUN_00104240": {
+      "score": 94.6,
       "source": "src/halo/main/main.c"
     },
     "FUN_00104bd0": {
