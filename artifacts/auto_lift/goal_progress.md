@@ -1058,3 +1058,46 @@ Encounters and players.obj cluster. 4 functions committed at ≥90% VC71. Goal t
 | FUN_000c0730 | 0xc0730 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
 
 **Summary:** 4/4 goal threshold reached. Committed: 2× 100% + 1× 95% + 1× 90.2%. Skipped: 4 functions (trivial wrappers, empty stub, register-arg ABI recovery needed, implicit register args unknown).
+
+---
+
+## Goal-lift run — 4/4 committed (goal_reached) — 2026-07-26 (final)
+
+Multi-object frontier pass (encounters.obj, players.obj, rasterizer.obj, structure_detail_objects.obj, draw_string.obj, main.obj). 4 functions committed at ≥90% VC71. 5 functions skipped (structural issues preventing lift). Goal threshold reached.
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00172520 | 0x172520 | rasterizer.obj | - | skipped | Body is a single unmodified call: `void __cdecl FUN_00172520(void) { FUN_0016f910(4); }` — 1-line wrapper around one FUN_, no logic to recover. |
+| rasterizer_window_get_fog | 0x172720 | rasterizer.obj | - | skipped | Body is a single unchanged wrapper call: FUN_0016fa40(4); return; (4 instructions total: PUSH 4 / CALL / POP ECX / RET). Matches the skip_trivial pre-screen rule. |
+| structure_detail_objects_dispose_from_old_map | 0x1939c0 | structure_detail_objects.obj | - | skipped | Function is a single `RET` in the pristine XBE — an empty no-op stub (Ghidra: `void FUN_001939c0(void) { return; }`, disassembly: `001939c0: RET`). Zero callees, zero body, nothing to lift. Also matches the known "Empty stubs override thunks" footgun class; there is no delinked reference symbol for it, so VC71 verify could not produce evidence either. Not worth a lift slot. |
+| FUN_0019c1b0 | 0x19c1b0 | draw_string.obj | - | skipped | Decompile declares `ushort *in_EAX` (clip-rect pointer passed in EAX) plus `int extraout_EAX` from FUN_0019cff0, and the kb.json decl is a bare `void FUN_0019c1b0(void);` with no @<reg> annotation. Additionally all three named callees (FUN_0019bd30, parse_string/0x19be30, FUN_0019cff0) are declared `void f(void)` in kb.json while the call-site audit shows real stack cleanup of 4, ?, and 3 args respectively (§7 GETTER_SWALLOWED hazards on two of them), and there is an indirect call through `dword ptr [EBP+8]` with 10 args. Lifting this requires fixing the ABI of the target and three callees first. |
+| FUN_001036c0 | 0x1036c0 | main.obj | - | skipped | Decompile uses implicit register arguments: `int in_EAX;` (base struct pointer, deref at +0xc/+0x10) and `undefined4 in_ECX;` (high byte used as a bool: `local_5 = (char)((uint)in_ECX >> 0x18)`). kb.json decl is `void FUN_001036c0(void);` with no @<reg> annotations, so the ABI is unrecorded. Additionally three stack args are read past the frame (in_stack_00000004/8/c), meaning the kb decl is wrong on both register and stack arity. |
+| FUN_00053ee0 | 0x53ee0 | encounters.obj | 95 | committed | mechanical gate: 95% clean (pass1) |
+| FUN_000c0770 | 0xc0770 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c07f0 | 0xc07f0 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c0830 | 0xc0830 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+
+**Summary:** 4/4 goal threshold reached. Committed: 3× 100% + 1× 95%. Skipped: 5 functions (1-line wrappers, empty no-op stub, @<reg> not annotated in kb.json, callee ABI recovery needed, implicit register args unknown).
+
+---
+
+## Goal-lift run — 4/4 committed (goal_reached) — 2026-07-26
+
+players.obj cluster (light-fixture-related player state helpers and utility functions). 4 functions committed at 100% VC71. Goal threshold reached.
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00172520 | 0x172520 | rasterizer.obj | - | skipped | Body is a single-line wrapper: `FUN_0016f910(4); return;` — 4 instructions total (PUSH 4 / CALL / POP ECX / RET). No reg args, no FPU, no struct access, no SEH, no NT imports. Trivial pass-through wrapper around an already-ported callee. |
+| rasterizer_window_get_fog | 0x172720 | rasterizer.obj | - | skipped | Body is a single unchanged forwarding call: `FUN_0016fa40(4);` (PUSH 4 / CALL / POP ECX / RET). Matches the "1-3 lines wrapping one FUN_ unchanged" pre-screen rule. |
+| structure_detail_objects_dispose_from_old_map | 0x1939c0 | structure_detail_objects.obj | - | skipped | Function body is a single `RET` — the retail build compiled this to an empty void(void) stub. Ghidra decompile is literally `void FUN_001939c0(void) { return; }`, disassembly is `001939c0: RET`. Zero callees, zero locals, no FPU, no struct access. There is nothing to lift and no byte-match evidence to gain (no delinked reference for structure_detail_objects.obj exists either). Lifting it would add an empty function body with no recovered behavior. |
+| structure_detail_objects_dispose | 0x1939d0 | structure_detail_objects.obj | - | skipped | Function body is a single RET instruction (001939d0: RET). Ghidra decompiles it to `void FUN_001939d0(void) { return; }` — an empty release-build stub with no callees, no globals, no FPU, and no side effects. Nothing to lift; no delinked reference exists for structure_detail_objects.obj so there is also no VC71 byte-match evidence lane. Recommend leaving unported (or landing as a trivially empty body only if the object completion tally requires it). |
+| FUN_0019c1b0 | 0x19c1b0 | draw_string.obj | - | skipped | Decompile has `ushort *in_EAX` (a live register argument: the first clip-rect pointer is passed in EAX, confirmed by disasm `TEST EAX,EAX` at 0019c1b6 before any stack access). kb.json decl is `void FUN_0019c1b0(void);` — no @<reg> annotation, and the stack args (EBP+0x8 callback ptr, +0xc short*, +0x10 ushort*, +0x14 color, +0x18, +0x1c/+0x20 loop bounds) are all missing too. Additionally three callees (FUN_0019bd30, parse_string/0x19be30, FUN_0019cff0) are declared `void f(void)` in kb.json while the call sites clean up 4/3 stack args, so their signatures are wrong as well. Not liftable until the ABI is fixed. |
+| FUN_001036c0 | 0x1036c0 | main.obj | - | skipped | Decompile contains in_EAX (real @<eax> pointer param: MOV EBX,EAX at 0x1036c5, then [EBX+0xc] array / [EBX+0x10] count) and in_ECX. kb.json decl is "void FUN_001036c0(void);" — wrong on three counts: missing the @<eax> register param, missing the 3 stack params ([EBP+8], [EBP+0xc], [EBP+0x10]), and missing the int return (EAX = ESI|0x80000000, ESI&0x7fffffff, or -1). Per pre-screen rule 4 this is skip_reg_args. |
+| FUN_000b6bd0 | 0xb6bd0 | player_control.obj | - | skipped | Decompile uses `float *unaff_ESI` as an implicit register parameter (ESI) throughout the entire body — every field access is unaff_ESI[0..7] / +0x14 / +0x15. kb.json decl is `void FUN_000b6bd0(void);` with no @<reg> annotation, so the ABI is unrecorded and the function cannot be lifted without adding an `@esi` parameter first. |
+| FUN_0017cc00 | 0x17cc00 | decals.obj | - | skipped | 0x17cc00 is a pure one-instruction thunk: `JMP 0x00160c30`. There is no body to lift — Ghidra's decompile at this address actually decompiles the JMP target (FUN_00160c30, shown as thunk_FUN_00160c30). Lifting it as C would either duplicate FUN_00160c30's body at the wrong address/TU or produce a 1-line wrapper. The real lift target is 0x160c30, whose __FILE__ evidence points at c:\halo\SOURCE\rasterizer\xbox\rasterizer_xbox_environment.c — NOT decals.obj, so the kb object attribution for this address is also suspect. |
+| FUN_000c0870 | 0xc0870 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c08b0 | 0xc08b0 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c08f0 | 0xc08f0 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c0930 | 0xc0930 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+
+**Summary:** players.obj 4/4 goal threshold reached. Committed: 4× 100% VC71 (all mechanical pass1 clean). Skipped: 7 pre-screen rejects (6 reg-arg ABI issues, 1 thunk alias, 3 empty/trivial stubs). No hazards or regressions detected; build green.

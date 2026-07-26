@@ -1292,6 +1292,13 @@
         "The element's leading 0x20 bytes are treated as a name string solely because _strnicmp is called with length 0x20 at element+0; the actual field width inside the 0xe8-byte element is unverified."
       ]
     },
+    "0x53ee0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Element stride 0xac and sub-block offset +0x8c are confirmed from the disassembly pushes; the element layout beyond the leading char name[0x20] field is unverified."
+      ]
+    },
     "0x54020": {
       "kind": "function",
       "status": "ported"
@@ -4775,6 +4782,50 @@
       ],
       "uncertain": [
         "The semantics of worker FUN_00058c40 (0x58c40) are unknown; its kb.json decl was widened from void(void) to three cdecl int params purely from this single call site's PUSH sequence, and its parameters remain unnamed."
+      ]
+    },
+    "0xc0770": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "hs_macro_function_evaluate (0xcc560) returns a POINTER to the evaluated-argument record, not a boolean; the binary only ever tests it with TEST EAX,EAX, so the pointer typing is inferred from the three [EAX+N] dword loads that follow."
+      ],
+      "uncertain": [
+        "The three forwarded record fields at +0x0/+0x4/+0x8 are typed int only because the binary proves 32-bit dword-through-GPR copies (MOV/PUSH, no MOVSX/MOVZX, no FLD/FSTP); their true semantic types depend on ai_scripting_follow_distance (0x58cc0), which is not yet lifted."
+      ]
+    },
+    "0xc07f0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The evaluated-argument record returned in EAX by hs_macro_function_evaluate (0xcc560) is a pointer, not a boolean, even though the original only tests it with TEST EAX,EAX; kb.json still types that return as int so the lift casts it to int*."
+      ],
+      "uncertain": [
+        "The field at record+0x4 is proven to be an 8-bit zero-extended load (XOR EDX,EDX; MOV DL) but its semantic meaning is unknown; it is forwarded verbatim as FUN_00056980's char parameter."
+      ]
+    },
+    "0xc0830": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "hs_macro_function_evaluate (0xcc560) returns a POINTER to the evaluated-argument record, not the int its kb.json decl declares; the lift casts EAX to int* to read the dword at +0x0 and the zero-extended byte at +0x4."
+      ]
+    },
+    "0xc0870": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameter names function_index/thread_datum/init are inferred by structural analogy with the identical siblings FUN_000c07f0 and FUN_000c0830 and with hs_macro_function_evaluate's kb.json declaration, not from any string or PDB evidence at 0xc0870 itself."
+      ],
+      "uncertain": [
+        "The semantics of the forwarded worker FUN_00056b20 and of the evaluated-argument record fields at +0x0 (dword) and +0x4 (zero-extended byte) are unknown; only their widths and argument order are binary-confirmed."
+      ]
+    },
+    "0xc0930": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The 32-bit MOV EDX,[EAX] at 0x000c0956 is a full-width dword load with no MOVSX/MOVZX, so the evaluated-argument record's first field is typed int rather than a narrow int16_t/char field."
       ]
     },
     "0xc0e50": {
