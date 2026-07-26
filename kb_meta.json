@@ -314,6 +314,17 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1e8a0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The melee-attack delay window fires when (float)game_time exceeds delay*30 + actor+0x380; verified by TEST AH,0x41/JNP flag analysis at 0x1eb50 (Ghidra's decompile shows the inverted <= direction).",
+        "Comparisons were written in !(a > b) form at seven sites to reproduce VC71's JE/JNE/JNP NaN-semantics opcode choices observed in the delinked reference; semantics match the disassembly flag tests exactly."
+      ],
+      "uncertain": [
+        "Field-role labels in the header comment (berserk timer tag+0x328, melee preference actor+0x378, retry window actor+0x37c, last-attack time actor+0x380, vehicle charge cooldown actor+0x388) are contextual interpretations; offsets and arithmetic are confirmed from disassembly."
+      ]
+    },
     "0x1ef90": {
       "kind": "function",
       "status": "ported"
@@ -1303,11 +1314,51 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x540b0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x540c0": {
       "kind": "function",
       "status": "ported"
     },
+    "0x540d0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x540e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x540f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x54220": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x54310": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x54430": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x544a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x545a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x54680": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x54750": {
       "kind": "function",
       "status": "ported"
     },
@@ -4828,6 +4879,13 @@
         "The 32-bit MOV EDX,[EAX] at 0x000c0956 is a full-width dword load with no MOVSX/MOVZX, so the evaluated-argument record's first field is typed int rather than a narrow int16_t/char field."
       ]
     },
+    "0xc09b0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "hs_macro_function_evaluate returns a POINTER to the evaluated-argument record; the original only TESTs EAX for NULL, so the pointer type is inferred from the subsequent MOV EDX,[EAX] dereference rather than from a typed use."
+      ]
+    },
     "0xc0e50": {
       "kind": "function",
       "status": "ported",
@@ -6200,6 +6258,17 @@
     "0xe8db0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0xe8e20": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Object reclassified from main.obj to ui_widget.obj: both display_assert call sites stamp __FILE__ 'c:\\halo\\SOURCE\\interface\\ui_widget.c' (lines 0x967 and 0x986), and the sibling callee ui_widget_load_by_name_or_tag (0xe84e0) already lives in ui_widget.obj.",
+        "kb decl was corrected from 'void FUN_000e8e20(void)' to a single int16_t stack parameter: the prologue does MOV BX, word ptr [EBP+8] and holds BX live to the final MOV word ptr [ESI+0x40], BX."
+      ],
+      "uncertain": [
+        "The widget-node field names are unverified: +0x34 is treated as first-child pointer, +0x2c as next-sibling pointer, +0x0e as an int16 widget type compared against 1 (text box), and +0x40 as the int16 string-index sink; no struct definition backs these offsets yet."
+      ]
     },
     "0xe9080": {
       "kind": "function",
