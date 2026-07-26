@@ -68,6 +68,87 @@ void ui_widget_display_deferred_errors(void)
   } while ((int16_t)local_player_index < 4);
 }
 
+/* ui_widget_display_scenario_help — displays the in-game player-help dialog for
+ * the scenario that is currently loaded. Copies the scenario tag name into a
+ * 256-byte buffer, lowercases it, and matches it against ten level codes
+ * ("a10".."d40") to select the matching player_help_screen widget tag. The
+ * screen is loaded for the single-player local controller; string_index is then
+ * written into the first child widget of type 1 (text box) at +0x40.
+ * Asserts: "string_index>=0" (ui_widget.c 0x967) and "expected text box widget
+ * in player help screen" (0x986), both system_exit(-1) flavor. Global
+ * 0x326a08 is global_scenario_index (NONE when no scenario is loaded).
+ * Ref 0xe8e20. */
+void ui_widget_display_scenario_help(int16_t string_index)
+{
+  const char *screen_name;
+  void *screen;
+  int widget;
+  char scenario_name[256];
+
+  if (string_index < 0) {
+    display_assert("string_index>=0",
+                   "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x967, true);
+    system_exit(-1);
+  }
+
+  if (*(int *)0x326a08 == NONE) {
+    error(2, "can't display scenario help because no scenario is loaded");
+  } else {
+    csstrncpy(scenario_name, tag_get_name(*(int *)0x326a08), 0xff);
+    scenario_name[255] = 0;
+    csstr_tolower(scenario_name);
+
+    if (crt_strstr(scenario_name, "a10") != NULL) {
+      screen_name = "ui\\shell\\solo_game\\player_help\\player_help_screen_a10";
+    } else if (crt_strstr(scenario_name, "a30") != NULL) {
+      screen_name = "ui\\shell\\solo_game\\player_help\\player_help_screen_a30";
+    } else if (crt_strstr(scenario_name, "a50") != NULL) {
+      screen_name = "ui\\shell\\solo_game\\player_help\\player_help_screen_a50";
+    } else if (crt_strstr(scenario_name, "b30") != NULL) {
+      screen_name = "ui\\shell\\solo_game\\player_help\\player_help_screen_b30";
+    } else if (crt_strstr(scenario_name, "b40") != NULL) {
+      screen_name = "ui\\shell\\solo_game\\player_help\\player_help_screen_b40";
+    } else if (crt_strstr(scenario_name, "c10") != NULL) {
+      screen_name = "ui\\shell\\solo_game\\player_help\\player_help_screen_c10";
+    } else if (crt_strstr(scenario_name, "c20") != NULL) {
+      screen_name = "ui\\shell\\solo_game\\player_help\\player_help_screen_c20";
+    } else if (crt_strstr(scenario_name, "c40") != NULL) {
+      screen_name = "ui\\shell\\solo_game\\player_help\\player_help_screen_c40";
+    } else if (crt_strstr(scenario_name, "d20") != NULL) {
+      screen_name = "ui\\shell\\solo_game\\player_help\\player_help_screen_d20";
+    } else if (crt_strstr(scenario_name, "d40") != NULL) {
+      screen_name = "ui\\shell\\solo_game\\player_help\\player_help_screen_d40";
+    } else {
+      error(2, "can't display scenario help; unknown scenario is active '%s'",
+            scenario_name);
+      return;
+    }
+
+    screen = ui_widget_load_by_name_or_tag(
+      screen_name, NONE, 0,
+      (int)player_ui_get_single_player_local_player_controller(0), NONE, NONE,
+      NONE);
+    if (screen != NULL) {
+      widget = *(int *)((int)screen + 0x34);
+      while (1) {
+        if (widget == 0) {
+          display_assert("expected text box widget in player help screen",
+                         "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x986,
+                         true);
+          system_exit(-1);
+        }
+        if (*(int16_t *)(widget + 0xe) == 1) {
+          break;
+        }
+        widget = *(int *)(widget + 0x2c);
+      }
+      *(int16_t *)(widget + 0x40) = string_index;
+    } else {
+      error(2, "failed to load in-game help dialog");
+    }
+  }
+}
+
 /* Guard wrapper: if param_1 is nonzero, change the selected AI encounter
  * by calling ai_debug_change_selected_encounter with direction 0. */
 void FUN_000ffe10(char param_1)
@@ -2996,8 +3077,7 @@ void FUN_00104240(int point_count, float *points, float *color)
       crt_fprintf(*(void **)0x46e394, "\tMaterialBinding { value PER_FACE }\n");
       crt_fprintf(*(void **)0x46e394,
                   "\tMaterial { diffuseColor[%f %f %f] transparency[%f] }\n",
-                  color[1], color[2], color[3],
-                  *(float *)0x2533c8 - color[0]);
+                  color[1], color[2], color[3], *(float *)0x2533c8 - color[0]);
       crt_fprintf(*(void **)0x46e394, "\tIndexedFaceSet { coordIndex[");
       if (count > 0) {
         i = 0;
