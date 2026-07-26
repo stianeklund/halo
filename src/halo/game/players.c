@@ -10082,10 +10082,88 @@ void FUN_000c0730(int16_t function_index, int thread_datum, char init)
 {
   int *record;
 
-  record = (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (record != NULL) {
     /* dwords @ +0x0 / +0x4 / +0x8, in C argument order */
     FUN_00058c40(record[0], record[1], record[2]);
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* FUN_000c0770 @ 0x000c0770
+ * HS script function handler.  Byte-for-byte structural twin of the preceding
+ * FUN_000c0730, differing only in the forwarded worker (0x58cc0 instead of
+ * 0x58c40): evaluate the macro function's arguments, forward three full 32-bit
+ * fields of the evaluated-argument record, then hand a literal 0 back to the
+ * script thread.
+ *
+ * Argument evaluation via hs_macro_function_evaluate (0xcc560) at 0x000c0780:
+ * PUSH EAX([EBP+0x10]); PUSH ESI([EBP+0xc]); PUSH ECX([EBP+8]); ADD ESP,0xc --
+ * first PUSH is the last C arg, so the call is
+ * evaluate(function_index, thread_datum, init).  TEST EAX,EAX; JZ 0x000c07a7 ->
+ * epilogue, so a NULL result record skips BOTH tail calls and the thread gets
+ * NO hs_return on that path.
+ *
+ * EAX is a POINTER to the evaluated-argument record, not a boolean, even though
+ * it is only ever tested with TEST EAX,EAX.  kb.json still declares
+ * hs_macro_function_evaluate as returning `int`, hence the cast here; keep the
+ * return-in-EAX shape if that decl is later narrowed to a real record pointer.
+ *
+ * On a non-NULL record three DWORD loads (full 32-bit MOV, no MOVSX/MOVZX, so
+ * no narrow-field load-width concern -- lift-learnings 24) are pushed:
+ *   0x000c078c: MOV EDX, dword ptr [EAX+0x8]
+ *   0x000c078f: MOV ECX, dword ptr [EAX+0x4]
+ *   0x000c0792: PUSH EDX                      ; first push  => C arg 3 (+0x8)
+ *   0x000c0793: MOV EDX, dword ptr [EAX+0x0]  ; reloads EDX AFTER it was pushed
+ *   0x000c0795: PUSH ECX                      ;             => C arg 2 (+0x4)
+ *   0x000c0796: PUSH EDX                      ; last push   => C arg 1 (+0x0)
+ * so the call at 0x000c0797 is
+ * ai_scripting_follow_distance(record[0], record[1], record[2]).  All three
+ * loads are taken off the ORIGINAL EAX base before EAX is clobbered, so there
+ * is no aliasing subtlety; the EDX reuse at 0x000c0793 is a scheduling
+ * artifact, not a second value for arg 3.  That callee's EAX is never tested or
+ * reused (the next instruction pushes an immediate), so its result is
+ * discarded.
+ *
+ * kb.json carried a stale `void ai_scripting_follow_distance(void);` decl for
+ * that worker while the single call site here pushes 3 dwords -- the ESP-drift
+ * trap of lift-learnings 31.  Lifting against the stale decl would silently
+ * drop 12 bytes of arguments, so the decl was widened to 3 cdecl int params
+ * first.  dump_caller_regsetup.py confirms 0x58cc0 has exactly ONE call site in
+ * the pristine XBE (this one), so no other caller is affected by that
+ * widening.  The three fields are typed `int` because the binary only proves
+ * 32-bit dword-through-GPR copies; a float typing would make MSVC emit
+ * FLD/FSTP instead of the MOV/PUSH pairs the original uses.
+ *
+ * ABI: frame is PUSH EBP; MOV EBP,ESP; PUSH ESI ... POP ESI; POP EBP; RET (no
+ * immediate) => cdecl, caller cleans, zero stack locals (no SUB ESP, no
+ * _chkstk, no SEH).  Args are ordinary STACK args at [EBP+8]/[EBP+0xc]/
+ * [EBP+0x10]; thread_datum is cached in ESI and re-used as hs_return's first
+ * argument at the tail.  Ghidra rendered the parameters as `in_stack_*`
+ * pseudo-locals over a `void FUN_000c0770(void)` signature and dropped all
+ * three arguments of the 0x58cc0 call entirely.
+ *
+ * The value handed back to the thread is a hardcoded literal 0 (PUSH 0x0;
+ * PUSH ESI at 0x000c079f), not a computed result.
+ *
+ * Apparent arg-count hazard on hs_return (reported cleanup = 5 stack args) is a
+ * FALSE POSITIVE: the single `ADD ESP,0x14` at 0x000c07a4 is a MERGED cdecl
+ * cleanup for BOTH tail calls -- 3 dwords for ai_scripting_follow_distance plus
+ * 2 dwords for hs_return.  Do NOT "fix" either decl.
+ *
+ * No FPU instructions, no struct stores, no memset, and no buffer pointers
+ * passed anywhere, so no operand-order or buffer-alias concerns.
+ */
+void FUN_000c0770(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    /* dwords @ +0x0 / +0x4 / +0x8, in C argument order */
+    ai_scripting_follow_distance(record[0], record[1], record[2]);
     hs_return(thread_datum, 0);
   }
 }

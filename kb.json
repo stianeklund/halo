@@ -18235,7 +18235,8 @@
     },
     {
      "addr": "0xc0770",
-     "decl": "void FUN_000c0770(void);"
+     "decl": "void FUN_000c0770(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xc07b0",
@@ -32434,7 +32435,7 @@
     },
     {
      "addr": "0x58cc0",
-     "decl": "void ai_scripting_follow_distance(void);"
+     "decl": "void ai_scripting_follow_distance(int param_1, int param_2, int param_3);"
     },
     {
      "addr": "0x58d40",
