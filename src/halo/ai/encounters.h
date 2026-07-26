@@ -13,6 +13,20 @@
 #include "../../types.h"
 
 /* ---------------------------------------------------------------------------
+ * Encounter geometry limits. Both names are verbatim from assert predicate
+ * strings compiled into the XBE, so the identifiers are the originals — only
+ * the values had to be recovered from the code the asserts guard.
+ *
+ * MAXIMUM_SQUADS_PER_ENCOUNTER = 0x40
+ *   name from "encounter_definition->squads.count <= MAXIMUM_SQUADS_PER_ENCOUNTER"
+ *   (encounters.c:0x5a4) and "squad_index>=0 && squad_index<MAXIMUM_SQUADS_PER_ENCOUNTER"
+ *   (actions.c:0x202). Value from the bound actually tested at those sites and
+ *   at ai_script.c 0x54430-region squad-index checks (cmp against 0x40), and
+ *   from the short[0x40] scratch array in ai_script.c's squad migration path.
+ * ------------------------------------------------------------------------- */
+#define MAXIMUM_SQUADS_PER_ENCOUNTER 0x40
+
+/* ---------------------------------------------------------------------------
  * encounter_definition — one element of the scenario "encounters" tag-block
  * (element stride 0xb0, block at scenario+0x42c). This is READ-ONLY tag data.
  * The mutable per-map runtime encounter record (data_t pool *0x5ab270) is a
