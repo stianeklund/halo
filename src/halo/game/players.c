@@ -9163,3 +9163,84 @@ void FUN_000c0570(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, 0);
   }
 }
+
+/* FUN_000c05b0 @ 0x000c05b0
+ *
+ * HaloScript builtin dispatcher, direct structural twin of FUN_000c0570 /
+ * FUN_000c0130 / FUN_000c0030 and the rest of this family. The ONLY structural
+ * difference is that its worker takes TWO arguments instead of one.
+ *
+ * 27 instructions, cdecl. Frame is PUSH EBP; MOV EBP,ESP; PUSH ESI; ...;
+ * POP ESI; POP EBP; RET with NO immediate => caller cleans, cdecl.
+ *
+ * The Ghidra decompile rendered this as `void FUN_000c05b0(void)` with three
+ * `in_stack_*` pseudo-locals, and the kb.json decl was the matching stale
+ * `void FUN_000c05b0(void);`. Those in_stack_* values are ordinary STACK
+ * arguments, not @<reg> args -- per lift-learnings 31 (void-decl trap) a
+ * (void) decl over a 3-stack-arg callee is the 0x158df0 ESP-drift bug class,
+ * so the decl was corrected to the 3-arg cdecl form shared by every sibling:
+ *   function_index int16_t [EBP+0x08] -> ECX  (pushed as a full dword; the
+ *                                              int16 narrowing lives inside
+ *                                              the callee)
+ *   thread_datum   int     [EBP+0x0c] -> ESI  (callee-saved: live across the
+ *                                              evaluate call, reused as
+ *                                              hs_return arg1)
+ *   init           char    [EBP+0x10] -> EAX
+ *
+ * Call-site trace (first PUSH is the LAST C argument):
+ *   CALL 0xc05c0 -> 0xcc560: PUSH EAX(init); PUSH ESI(thread_datum);
+ *     PUSH ECX(function_index); ADD ESP,0xc => C order
+ *     (function_index, thread_datum, init) -- a straight pass-through of all
+ *     three parameters. ESI is written exactly once at 0xc05ba and never
+ *     reloaded, so the Ghidra register-aliasing trap cannot apply to the
+ *     later PUSH ESI.
+ *   CALL 0xc05d5 -> 0x55900: XOR EDX,EDX; MOV DL,byte ptr [EAX+0x4];
+ *     MOV EAX,dword ptr [EAX]; PUSH EDX; PUSH EAX => C order
+ *     (record[0], zero-extended byte at record+4).
+ *   CALL 0xc05dd -> 0xcbf80: PUSH 0x0; PUSH ESI => hs_return(thread_datum, 0).
+ *
+ * LOAD WIDTH (lift-learnings 24): Ghidra wrote the second worker argument as
+ * `(char)puVar1[1]`, i.e. a DWORD at record+4. The disassembly is
+ * `XOR EDX,EDX; MOV DL, byte ptr [EAX+0x4]` -- a ZERO-EXTENDED single BYTE.
+ * Reading it as a dword would pass garbage in the upper bits to
+ * FUN_00055900's `flag`, so it is read here as
+ * *((unsigned char *)record + 4). The record+0 load is
+ * `MOV EAX,dword ptr [EAX]` -- a FULL 32-bit load with no MOVSX/MOVZX, so it
+ * must NOT be narrowed.
+ *
+ * NULL guard: TEST EAX,EAX; JZ skips BOTH tail calls, so the 0xcc560 return
+ * value is dereferenced as a POINTER even though kb.json types it as `int`.
+ * The cast is kept local here; the kb declaration is deliberately left
+ * untouched (it is shared with every other dispatcher in this family).
+ *
+ * Apparent arg-count hazard on hs_return is a FALSE POSITIVE: the single
+ * `ADD ESP,0x10` at 0xc05e2 is a MERGED cleanup for BOTH tail calls -- 2
+ * dwords for FUN_00055900 (PUSH EDX; PUSH EAX) plus 2 dwords for hs_return
+ * (PUSH 0; PUSH ESI) = 4 dwords. MSVC combined the two cdecl cleanups;
+ * hs_return's 2-arg decl and FUN_00055900's 2-arg decl are both correct. Do
+ * NOT "fix" either decl.
+ *
+ * Callees (all cdecl, all in kb.json, ported, no @<reg> args anywhere):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x55900  = FUN_00055900(unsigned int combined_index, char flag)
+ *   0xcbf80  = hs_return(int thread_handle, int value)
+ *
+ * No FPU, no _chkstk/SUB ESP, no locals beyond the record pointer, no stack
+ * buffers, no struct stores, no SEH, no CONCAT, no intrinsics.
+ *
+ * Placement: kept here beside its twins deliberately -- the hs helpers are
+ * static in this TU; revert any maintain.py relocation. NOTE: do NOT run
+ * maintain.py on this file with an ABSOLUTE path -- it then treats the file
+ * as a foreign TU, "moves" all functions out to the same relative path, and
+ * leaves players.c empty (observed 2026-07-26). */
+void FUN_000c05b0(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    FUN_00055900((unsigned int)record[0], (char)*((unsigned char *)record + 4));
+    hs_return(thread_datum, 0);
+  }
+}
