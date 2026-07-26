@@ -18178,7 +18178,8 @@
     },
     {
      "addr": "0xc0470",
-     "decl": "void FUN_000c0470(void);"
+     "decl": "void FUN_000c0470(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xc04b0",
