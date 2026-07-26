@@ -8904,6 +8904,61 @@ void FUN_000c0130(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* FUN_000c01b0 @ 0x000c01b0
+ *
+ * HaloScript builtin implementation, same 2-parameter shape as the ported
+ * FUN_000bdf80 / FUN_000be6f0 family in this TU: invoke a no-argument worker,
+ * then complete the calling script thread with hs_return(thread_handle, 0).
+ * Unlike the 3-parameter dispatcher twins (0xc0130 / 0xc0230) it never reads
+ * [EBP+0x10], so no `init` parameter is declared -- narrowest form the body
+ * proves.
+ *
+ * cdecl frame: PUSH EBP; MOV EBP,ESP; ... POP EBP; RET. Body spans
+ * 0xc01b0-0xc01c7 (24 bytes, 10 instructions). No locals, no SUB ESP, no
+ * _chkstk, no FPU, no SEH, no stack buffers, no struct stores, no globals, no
+ * callee-saved register spills. The exit RET carries no immediate => cdecl,
+ * caller cleans.
+ *   function_index  int16_t  [EBP+0x08]  never loaded (declared, unused)
+ *   thread_handle   int      [EBP+0x0c]  -> hs_return arg1
+ *
+ * Binary evidence (traced backward from each CALL):
+ *   0xc01b3  CALL 0x54df0   -- zero args pushed, no ESP cleanup after it, and
+ *                              its EAX return is never consumed (the next
+ *                              instruction overwrites EAX from the stack), so
+ *                              this is a bare `FUN_00054df0();` statement.
+ *                              kb.json declares it void(void); do not invent
+ *                              args or a result for it.
+ *   0xc01b8  MOV EAX,[EBP+0xc]   -- second cdecl param
+ *   0xc01bb  PUSH 0x0            -- hs_return arg2 (value)
+ *   0xc01bd  PUSH EAX            -- hs_return arg1 (thread_handle)
+ *   0xc01be  CALL 0xcbf80 (hs_return)
+ *   0xc01c3  ADD ESP,0x8         -- exactly 2 cdecl args, matching
+ *                                   `void hs_return(int, int)`
+ * cdecl reverse push order => hs_return(thread_handle, 0), NOT
+ * hs_return(0, thread_handle) (lift-learnings: first PUSH is the last C arg).
+ * EAX is the only register written and it is written immediately before its
+ * PUSH, so the Ghidra register-aliasing trap (decompiler-traps 1) cannot
+ * apply. The worker CALL must stay BEFORE the [EBP+0xc] load to preserve
+ * side-effect and codegen order.
+ *
+ * Ghidra modelled this void(void), so the two cdecl params surfaced as
+ * in_stack_* pseudo-locals (in_stack_00000008 == [EBP+0xc], Ghidra's stack
+ * offset 0 being the return address) and it mislabelled the read as the FIRST
+ * parameter. They are STACK args, not @<reg> -- no unaff_/in_EAX/in_ECX
+ * appears (lift-learnings 31 void-decl trap). kb.json's stale
+ * `void FUN_000c01b0(void);` decl was corrected to the 2-arg cdecl form as
+ * part of this lift; a (void) decl over a stack-arg callee is the ESP-drift
+ * class of bug from 0x158df0. No direct CALL imm32 site exists in the XBE
+ * (dump_caller_regsetup.py: 0 call sites) -- like every handler in this
+ * family it is reached only through the HaloScript builtin table, so the
+ * arity is established by the body's own [EBP+N] reads, not by an
+ * ADD ESP at a call site. */
+void FUN_000c01b0(int16_t function_index, int thread_handle)
+{
+  FUN_00054df0();
+  hs_return(thread_handle, 0);
+}
+
 /* FUN_000c0230 @ 0x000c0230
  *
  * HaloScript builtin dispatcher, direct structural twin of FUN_000c0130 /

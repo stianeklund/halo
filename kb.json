@@ -18121,7 +18121,8 @@
     },
     {
      "addr": "0xc01b0",
-     "decl": "void FUN_000c01b0(void);"
+     "decl": "void FUN_000c01b0(int16_t function_index, int thread_handle);",
+     "ported": true
     },
     {
      "addr": "0xc01d0",
