@@ -559,7 +559,7 @@ bool FUN_000c6460(int datum_index)
 
 /* 0xc64d0 — Compile AI encounter/squad literal (type 0x11).
  * Asserts type==_hs_type_ai and constant_type==type, then delegates to
- * FUN_000540f0 to look up an AI encounter or squad by name from the scenario.
+ * ai_index_from_string to look up an AI encounter or squad by name from the scenario.
  */
 bool FUN_000c64d0(int datum_index)
 {
@@ -578,7 +578,7 @@ bool FUN_000c64d0(int datum_index)
                    "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x745, 1);
     system_exit(-1);
   }
-  result = FUN_000540f0((void *)global_scenario_get(),
+  result = ai_index_from_string((void *)global_scenario_get(),
                         (const char *)(*(int *)(node + 0xc) + *(int *)0x46b6e8),
                         (int *)(node + 0x10));
   if (!result) {

@@ -32187,62 +32187,62 @@
    "functions": [
     {
      "addr": "0x540b0",
-     "decl": "void FUN_000540b0(void);",
+     "decl": "void ai_script_initialize(void);",
      "ported": true
     },
     {
      "addr": "0x540c0",
-     "decl": "void ai_profile_dispose(void);",
+     "decl": "void ai_script_dispose(void);",
      "ported": true
     },
     {
      "addr": "0x540d0",
-     "decl": "void FUN_000540d0(void);",
+     "decl": "void ai_script_initialize_for_new_map(void);",
      "ported": true
     },
     {
      "addr": "0x540e0",
-     "decl": "void ai_profile_dispose_from_old_map(void);",
+     "decl": "void ai_script_dispose_from_old_map(void);",
      "ported": true
     },
     {
      "addr": "0x540f0",
-     "decl": "bool FUN_000540f0(void *scenario, const char *name, int *out_value);",
+     "decl": "bool ai_index_from_string(void *scenario, const char *name, int *out_value);",
      "ported": true
     },
     {
      "addr": "0x54220",
-     "decl": "void FUN_00054220(unsigned int combined_index, void *scenario, char *buffer, int buffer_size);",
+     "decl": "void ai_index_to_string(unsigned int combined_index, void *scenario, char *buffer, int buffer_size);",
      "ported": true
     },
     {
      "addr": "0x54310",
-     "decl": "void FUN_00054310(unsigned int combined_index, int *out);",
+     "decl": "void ai_index_platoon_iterator_new(unsigned int combined_index, int *out);",
      "ported": true
     },
     {
      "addr": "0x54430",
-     "decl": "void *FUN_00054430(int *iter);",
+     "decl": "void *ai_index_platoon_iterator_next(int *iter);",
      "ported": true
     },
     {
      "addr": "0x544a0",
-     "decl": "void FUN_000544a0(unsigned int combined_index, void *iter);",
+     "decl": "void ai_index_squad_iterator_new(unsigned int combined_index, void *iter);",
      "ported": true
     },
     {
      "addr": "0x545a0",
-     "decl": "int FUN_000545a0(void *iter);",
+     "decl": "int ai_index_squad_iterator_next(void *iter);",
      "ported": true
     },
     {
      "addr": "0x54680",
-     "decl": "void FUN_00054680(unsigned int combined_index, void *iter);",
+     "decl": "void ai_index_actor_iterator_new(unsigned int combined_index, void *iter);",
      "ported": true
     },
     {
      "addr": "0x54750",
-     "decl": "int FUN_00054750(void *iter);",
+     "decl": "int ai_index_actor_iterator_next(void *iter);",
      "ported": true
     },
     {
@@ -32257,7 +32257,7 @@
     },
     {
      "addr": "0x54a80",
-     "decl": "void ai_profile_change_render_spray(int parent_handle, unsigned int ai_ref);",
+     "decl": "void FUN_00054a80(int parent_handle, unsigned int ai_ref);",
      "ported": true
     },
     {

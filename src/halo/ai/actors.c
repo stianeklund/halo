@@ -8112,7 +8112,7 @@ actor_found:
  * ADD ESP,0x8). Confirmed: actor_create_for_unit with 12 cdecl args at 0x3f2a1
  * (ADD ESP,0x30). Confirmed: actor_verify_activation(actor_handle) at 0x3f33c
  * on success. Confirmed: object_delete(unit_index) at 0x3f32a on actor creation
- * failure. Confirmed: FUN_00054220(combined_idx, scenario, buf, 256) at
+ * failure. Confirmed: ai_index_to_string(combined_idx, scenario, buf, 256) at
  * 0x3f16b/0x3f2f8 with pre-pushed args from global_scenario_get (ADD ESP,0x10
  * cleans 4 args). Confirmed: error(2, format, tag_name, encounter_name) at
  * 0x3f194/0x3f321 with pre-pushed encounter_name from stack (ADD
@@ -8179,7 +8179,7 @@ int FUN_0003f030(int actv_tag_index, int encounter_index, int squad_index,
       combined_index =
         (((unsigned int)(squad_index & 0xff) | 0xffff8000u) << 16) |
         ((unsigned int)encounter_index & 0xffff);
-      FUN_00054220(combined_index, scenario_ptr, name_buffer, 256);
+      ai_index_to_string(combined_index, scenario_ptr, name_buffer, 256);
     }
     tag_name = tag_name_strip_path(tag_get_name(actv_tag_index));
     error(2, "WARNING: cannot create unit for actor %s %s", tag_name,
@@ -8235,7 +8235,7 @@ int FUN_0003f030(int actv_tag_index, int encounter_index, int squad_index,
       combined_index =
         (((unsigned int)(squad_index & 0xff) | 0xffff8000u) << 16) |
         ((unsigned int)encounter_index & 0xffff);
-      FUN_00054220(combined_index, scenario_ptr, name_buffer, 256);
+      ai_index_to_string(combined_index, scenario_ptr, name_buffer, 256);
     }
     tag_name = tag_name_strip_path(tag_get_name(actv_tag_index));
     error(2, "WARNING: cannot create actor %s %s", tag_name, name_buffer);
