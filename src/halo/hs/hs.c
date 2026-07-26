@@ -175,6 +175,63 @@ void FUN_000bf830(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc0970 — HS script function handler: dispatch the result record's first
+ * dword to FUN_00058d40, then return void to the calling HS thread.
+ *
+ * Byte-shape twin of FUN_000befd0 / FUN_000bf830 above; the ONLY difference is
+ * the middle callee. cdecl frame: PUSH EBP; MOV EBP,ESP; PUSH ESI; ... POP ESI;
+ * POP EBP; RET (no RET immediate — caller cleans). No _chkstk, no locals.
+ *
+ * Params from the EBP offsets (Ghidra modeled this void(void) and dropped all
+ * three; the in_stack_* names in its output are the tell — they are stack
+ * params, NOT register args):
+ *   function_index  int16_t  [EBP+0x08] -> ECX -> evaluate arg 1
+ *   thread_datum    int      [EBP+0x0c] -> ESI (cached: used twice)
+ *   init            char     [EBP+0x10] -> EAX -> evaluate arg 3
+ *
+ * CALL 0xcc560 @ 0xc0980 pushes EAX(init), ESI(thread_datum), ECX(function_index)
+ * and cleans with ADD ESP,0xc — 3 stack args, so the C order is
+ * (function_index, thread_datum, init). TEST EAX,EAX; JZ 0xc099f is the NULL
+ * guard on the returned result record.
+ *
+ * The middle call @ 0xc098f does MOV EDX,dword ptr [EAX]; PUSH EDX — a FULL
+ * 32-bit load of the record's first dword (contrast the byte load in the
+ * 0xbdef0 sibling), so FUN_00058d40 takes exactly ONE stack arg. Ghidra's
+ * void(void) decl for 0x58d40 dropped it; kb.json corrected to
+ * void FUN_00058d40(int). Same correction was applied to 0xc95d0 (twin
+ * 0xbdf40) and 0xc95c0 (0xbdef0).
+ *
+ * hs_return @ 0xc0997 is PUSH 0x0; PUSH ESI — the committed value is always
+ * the literal 0; nothing is read back from the middle call.
+ *
+ * The single trailing ADD ESP,0xc at 0xc099c is MERGED cleanup for the 1 arg
+ * of FUN_00058d40 plus the 2 args of hs_return (1+2 = 3 dwords). The call-site
+ * audit's "hs_return cleanup=3 vs decl=2" is a FALSE POSITIVE from that
+ * adjacent-call merging; the disasm shows exactly 2 pushes for hs_return.
+ * Same false positive documented on both twins.
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560   = hs_macro_function_evaluate(int16 fn_index, int thread_datum,
+ *               char init) -> int* (result record, NULL on failure)
+ *   0x58d40   = FUN_00058d40(int handle)
+ *   0xcbf80   = hs_return(int thread_handle, int value)
+ *
+ * Placed in hs.c rather than players.c (where kb groups 0xc0970) per the same
+ * lift directive as the twins: players.c does not compile under VC71 (clang-only
+ * __attribute__ / raw fnptr casts), so it would be permanently unmeasurable
+ * there. */
+void FUN_000c0970(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_00058d40(result[0]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* 0xc0c30 — HS script function handler: apply an encounter state change.
  * Evaluates the macro arguments; on success the result block holds an
  * encounter handle at +0x0 (int) and a state value at +0x4 (int16). Calls
