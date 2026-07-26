@@ -9900,3 +9900,64 @@ void FUN_000c0670(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, 0);
   }
 }
+
+/* 0xc06b0 -- HS script function handler: evaluate a macro function's arguments
+ * and, on success, forward a 2-field record to FUN_000566a0 before returning a
+ * constant 0 to the calling HS thread.
+ *
+ * Behavior (from disassembly at 0x000c06b0): calls
+ * hs_macro_function_evaluate(function_index, thread_datum, init) -- 3 pushes,
+ * ADD ESP,0xc.  TEST EAX,EAX; JZ -> epilogue, so a NULL result record skips
+ * everything (the thread gets NO hs_return in that path).  On a non-NULL
+ * record it reads two 16-bit fields with DIFFERENT extension:
+ *   XOR EDX,EDX; MOV DX, word ptr [EAX+0x4]   ; ZERO-extended int16 @ +0x4
+ *   MOVSX EAX, word ptr [EAX+0x0]             ; SIGN-extended int16 @ +0x0
+ * then PUSH EDX; PUSH EAX (first PUSH = last C arg) => the signed word at +0x0
+ * is arg 1 and the unsigned word at +0x4 is arg 2.  Do not swap them, and do
+ * not widen the +0x4 field to int -- the zero-extension is load-width evidence
+ * (lift-learnings 24), unlike the sibling FUN_000c0670 whose record fields are
+ * full dwords.  FUN_000566a0's EAX is never tested or reused (the next
+ * instruction pushes an immediate), so its result is discarded.
+ *
+ * ABI: frame is PUSH EBP; MOV EBP,ESP; PUSH ESI ... POP ESI; POP EBP; RET (no
+ * immediate) => cdecl, caller cleans, zero stack locals (no SUB ESP, no
+ * _chkstk, no SEH).  Args are ordinary STACK args at [EBP+8]/[EBP+0xc]/
+ * [EBP+0x10]; thread_datum is cached in ESI and reused for the hs_return call.
+ * Ghidra rendered them as `in_stack_*` pseudo-locals over a
+ * `void FUN_000c06b0(void)` signature and kb.json carried the matching stale
+ * `(void)` decl -- the 0x158df0 ESP-drift trap of lift-learnings 31 -- so the
+ * decl was corrected to the 3-arg cdecl form shared by every sibling here.
+ *
+ * FUN_000566a0's kb decl was likewise stale AND misnamed: it read
+ * `void encounters_initialize(void);` while the call site pushes two dword
+ * stack slots.  Calling it as `(void)` is the a10 dropped-arg crash class, so
+ * the decl was corrected to two dword args; RET carries no immediate (cdecl,
+ * confirmed with check_stdcall_ret.py --addr 0x566a0).  The
+ * `encounters_initialize` name is unproven and inconsistent with a two-value
+ * consumer, so it was reverted to the FUN_ placeholder per Explicit-Unknowns.
+ * The function was referenced by nothing in src/ under the old name.
+ *
+ * The value handed back to the thread is a hardcoded literal 0 (PUSH 0x0;
+ * PUSH ESI), not a computed result, so no zero-init/narrow-store union idiom
+ * is needed here.
+ *
+ * Apparent arg-count hazard on hs_return is a FALSE POSITIVE: the single
+ * `ADD ESP,0x10` at 0x000c06e4 is a MERGED cdecl cleanup for BOTH tail calls
+ * -- 2 dwords for FUN_000566a0 plus 2 dwords for hs_return.  Do NOT "fix"
+ * either decl.
+ *
+ * No FPU instructions, no struct stores, no memset, and no buffer pointers
+ * passed anywhere, so no operand-order or buffer-alias concerns.
+ */
+void FUN_000c06b0(int16_t function_index, int thread_datum, char init)
+{
+  short *record;
+
+  record =
+    (short *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    /* record[0] = signed int16 @ +0x0; record[2] = unsigned int16 @ +0x4 */
+    FUN_000566a0(record[0], (unsigned short)record[2]);
+    hs_return(thread_datum, 0);
+  }
+}
