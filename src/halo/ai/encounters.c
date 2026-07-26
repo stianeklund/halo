@@ -75,6 +75,49 @@ void FUN_00053b80(void)
 }
 
 
+/* 0x00053bf0 — debug overlay row: path-flood / path-find / action-change tally
+ * counters (FUN_00053bf0).
+ *
+ * Sibling of FUN_00053b80 above (same family, same shared scratch buffer, same
+ * row printer, same three tab stops {150, 300, 450}), differing only in the
+ * format string and in having three counters instead of four.
+ *
+ * Globals (raw pointer-cast idiom, matching this TU):
+ *   0x5ab280 (char[])  : shared debug sprintf scratch buffer
+ *   0x5ac76e (int16)   : path-flood tally
+ *   0x5ac7f6 (int16)   : path-find tally
+ *   0x5ac87e (int16)   : action-change tally
+ *   0x2ee6c4 (void *)  : row-printer context pointer, passed to FUN_00053800
+ *                        in EAX (see FUN_00053b80's note).
+ *
+ * All three tallies are read with MOVSX WORD PTR in the original, i.e. they are
+ * signed 16-bit globals sign-extended to int for the varargs call — declaring
+ * them int would be a load-width bug.
+ *
+ * The frame is PUSH EBP; MOV EBP,ESP; SUB ESP,8 — the only local is the
+ * 3-element int16 column array at EBP-0x8.  A single ADD ESP,0x20 cleans both
+ * calls (5 dwords for the sprintf + 3 for the row printer); the call-site
+ * argument-count audit reads that merged cleanup as 8 stack args for
+ * FUN_00053800, which is a false positive.
+ *
+ * As in the sibling, the original schedules the three column stores between the
+ * sprintf argument pushes and its CALL; they target a local, so the observable
+ * order is unchanged.
+ */
+void FUN_00053bf0(void)
+{
+  short column_positions[3];
+
+  crt_sprintf((char *)0x5ab280, "path_flood %d|tpath_find %d|taction_change %d",
+              (int)*(int16_t *)0x5ac76e, (int)*(int16_t *)0x5ac7f6,
+              (int)*(int16_t *)0x5ac87e);
+  column_positions[0] = 0x96; /* 150 */
+  column_positions[1] = 0x12c; /* 300 */
+  column_positions[2] = 0x1c2; /* 450 */
+  FUN_00053800((char *)0x5ab280, 3, column_positions, *(void **)0x2ee6c4);
+}
+
+
 /* 0x00053da0 — encounters_update dispatcher (FUN_00053da0).
  *
  * Master per-frame update tick for the encounter subsystem.  First recomputes
