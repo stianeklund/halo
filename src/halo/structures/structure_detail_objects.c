@@ -335,3 +335,15 @@ void FUN_00193c00(void)
   FUN_0017cb70((void *)(base + 0x5200));
   FUN_0017cb80(); /* leave/unlock */
 }
+
+/* structure_detail_objects_dispose_from_old_map (0x1939c0) —
+ * structure_detail_objects.obj
+ *
+ * Empty no-op in this build: the disassembly is a single RET (C3) — no
+ * prologue, no stack frame, no CALLs, no FPU. Preserved as an empty body to
+ * keep the address populated and the ABI intact, matching the sibling
+ * structure_runtime_decals_dispose_from_old_map (0x1963a0). Both are invoked
+ * from structures_dispose_from_old_map (0x1983e0). */
+void structure_detail_objects_dispose_from_old_map(void)
+{
+}
