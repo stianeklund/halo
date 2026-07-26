@@ -57,17 +57,17 @@ network_client_message_handler.obj,true,0x001277F0-0x001280A0,10
 network_messages.obj,true,0x0011A230-0x0012B900,38
 network_server_manager.obj,true,0x0012BCE0-0x0012FB90,84
 network_server_message_handler.obj,true,0x0012FD80-0x00130780,8
-objects.obj,true,0x00084A10-0x001A9720,216
+objects.obj,true,0x00084A10-0x001A9720,215
 observer.obj,true,0x00089240-0x0008D5A0,41
 particle_systems.obj,true,0x0009F570-0x000A1370,22
 particles.obj,true,0x000A1210-0x000A2770,20
 physical_memory_map.obj,true,0x001BDB70-0x001BDF00,3
-player_control.obj,true,0x000B6380-0x000B8F30,47
+player_control.obj,true,0x000B6380-0x000B8EF0,46
 player_effects.obj,true,0x000A2690-0x000A3D80,29
-player_queues_new.obj,true,0x000B8D70-0x000B9C70,19
+player_queues_new.obj,true,0x000B8D30-0x000B9C70,20
 player_rumble.obj,true,0x000B9B30-0x000BA1D0,12
 player_ui.obj,true,0x000E0620-0x000E1970,40
-players.obj,true,0x000BA100-0x000C0D70,249
+players.obj,true,0x000BA100-0x000C0D70,248
 point_physics.obj,true,0x00154270-0x00154C50,14
 predicted_resources.obj,true,0x001BDD40-0x001BE0C0,8
 profile.obj,true,0x0008F870-0x000924A0,50
@@ -186,3 +186,4 @@ rasterizer_xbox_profile.obj,true,0x0016F910-0x0016FC40,2
 <xdk_stubs>,true,0x001CFB73-0x0024D209,530
 wind.obj,true,0x0018FF00-0x001901E0,2
 action_vehicle.obj,true,0x0001AEB0-0x0001B950,3
+glow.obj,true,0x001345B0-0x001347B0,1

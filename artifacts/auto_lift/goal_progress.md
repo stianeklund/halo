@@ -202,6 +202,21 @@ hs.obj cluster (hs.c thread spawning wrappers and harness support). 9 functions 
 ##  else if(match_available){ LITERAL: if(z_verbose>1)print window[strstart-1]; _tr_tally(s,0,window[strstart-1])->bflush; if(bflush){_tr_flush_block; block_start=strstart; FUN_00110e70(*(int*)s); print;} strstart++; lookahead--; if(*(int*)(*(int*)s+0x10)==0) return 0; }
 ##  else { DEFER: match_available=1; strstart++; lookahead--; continue; }  (NO avail_out check on defer)
 ##  FINAL(lookahead==0, 0x112180): if(flush==0) assert("no flush?" 0x28d3bc); if(match_available){ emit last literal window[strstart-1] via _tr_tally(s,0,..); match_available=0; } _tr_flush_block(s,buf,strstart-block_start,flush==4); block_start=strstart; FUN_00110e70(*(int*)s); print; if(avail_out==0) return flush==4?2:0; return flush==4?3:1.
+
+---
+
+## Goal-lift run — 4/4 committed (goal_reached) — 2026-07-25
+
+players.obj cluster (desired-flashlight-state HS handler and related player logic). 4 functions committed at ≥90% VC71. Goal threshold reached.
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_000bfc10 | 0xbfc10 | players.obj | 94.3 | committed | mechanical gate: 94.3% clean (pass1) |
+| FUN_000bfd10 | 0xbfd10 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000bfd50 | 0xbfd50 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000bfd90 | 0xbfd90 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+
+**Summary:** players.obj 4/4 goal threshold reached. Committed: 3× 100% + 1× 94.3%.
 ##  @reg calls SAME as deflate_fast: longest_match(s@eax,cur_match)[decl SET this session], check_match(len@eax,match@ecx,start@edx,s)[ported], _tr_tally FUN_00116d10(s,dist,len)[ported], _tr_flush_block 1177c0[ported], fill_window 111770@esi[set].
 ##  CRITICAL avail_out-check ASYMMETRY (verified vs disasm 0x11205e/0x1120ab/0x11216a): MATCH path bflush==0 -> loop (NO avail_out check); MATCH bflush!=0 -> FLUSH_BLOCK incl avail_out-return. LITERAL path ALWAYS checks avail_out after strstart++/lookahead--. DEFER path NO check. Get this wrong = wrong return timing.
 ## NEXT compression-critical (advisor): deflate_slow 0x111ea0 (prepped above) + longest_match 0x1114a0 (@eax hot loop, the actual match-finder — the LAST piece; decl already @<eax> set). Both fresh-window + full regime (closure-grep + VC71 + advisor) only.
@@ -884,3 +899,49 @@ players.obj cluster. 4 functions committed (1× 100% VC71, 2× 94%+ VC71, 1× 95
 | FUN_000bfb80 | 0xbfb80 | players.obj | 94.5 | committed | mechanical gate: 94.5% clean (pass1) |
 
 **Summary:** players.obj 4/4 goal threshold reached. Committed: 1× 100% + 3× 94%+ VC71 (95.1%, 94.5%, 94.1%).
+
+---
+
+## Goal-lift run — 4/4 committed (goal_reached) — 2026-07-25
+
+players.obj cluster. 4 functions committed (3× 100% VC71, 1× 88.5% VC71). 1 parked below 90% threshold with NEEDS_RUNTIME verdict.
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_000bfbc0 | 0xbfbc0 | players.obj | 90.3 | committed | mechanical gate: 90.3% clean (pass1) |
+| FUN_000bfc10 | 0xbfc10 | players.obj | 88.5 | parked | NEEDS_RUNTIME: Target: FUN_000bfc10 @ 0x000bfc10 — players.obj — /mnt/g/dev/halo-clean-main/src/halo/game/players.c:7320. HaloScript builtin dispatcher; setter counterpart of the device-group reader FUN_000bfb80 and a byte-shape twin of FUN_000bfbc0 immediately above it. Structural Match: 88.5% VC71 (25 compiled / 27 reference insns), re-measured with --no-cache. This is the <90% band. The pipeline's own low_match_policy stage returned verdict=FAIL in all four completed runs for this target (top-line 76.4%, goal90 band gate). Delinked reference precondition is satisfied: delinked/functions/000bfc10.obj exists and I confirmed it is byte-identical to the pristine XBE at 0xbfc10. Mismatch Classes: Fully classified, benign — see mismatch_classes. Equivalent float-argument materialization (integer dword copy vs FLD/FSTP) plus equivalent zero-extended index materialization. Identical control flow, identical callee-entry stack bytes, no FPU ordering risk, no unclassified difference remaining. Call Argument Audit: Complete — see call_argument_audit. All three CALLs traced in the pristine XBE; every argument confirmed by position and width, cross-checked against callee prologue reads, a second independent call site, and check_arg_counts. Memory Offset / Global Side-effect Audit: Complete — see memory_offset_audit. Exactly two record loads (+0x0 word zero-extended, +0x4 float), both binary-confirmed; zero stores, zero globals, zero locals, no buffers. ABI Audit: Clean — see abi_audit. regs=none, 0 reg-arg drift, cdecl confirmed on both target and the re-declared callee, no other lifted caller affected by the decl widening. Confirmed: Reference bytes: pristine XBE 0xbfc10 == delinked 000bfc10.obj, 27 instructions. Argument order and stack layout at all three CALLs, byte-identical between lift and original. Record field types and offsets (+0x0 unsigned short, +0x4 float), and the +0x4 float proven by the callee's own `fld dword ptr [ebp+0xc]`. device_group_set_actual_value takes 2 cdecl stack args (check_arg_counts, two call sites). ABI audit, reg-arg drift check, stdcall-RET check, hazard scan, buffer-alias scan, and build: all clean. The 2-instruction VC71 gap is a codegen shape difference only; the shipped clang object emits the reference's own fld/fstp form. Inferred: The FLD/FSTP vs integer-move difference is behaviorally inert for every non-SNaN input; the callee clamps to [0,1] and re-loads the value with FLD regardless. kb.json's `int device_group_index` (vs the callee's 16-bit read) is harmless because the callee re-reads only the low word, and the original likewise pushes a full dword. The combined `add esp,0x10` arg-count finding on hs_return is the known false-positive class already accepted on the committed twins. Uncertain: Parameter-slot narrowing in the shipped build. Clang emits `movsx eax, WORD [ebp+8]` and `movsx ecx, BYTE [ebp+0x10]`, whereas the original forwards both slots as full dwords (`mov ecx,[ebp+8]`, `mov eax,[ebp+0x10]`). If the hs dispatcher ever places a value in slot 1 whose upper 16 bits carry information — a datum handle's salt, for instance — the lift would discard it where the original preserves it. The function has zero direct callers; it is reached only through the function-pointer table entry at VA 0x27060c, and I did not trace the dispatcher's push widths. The same signature shape is already committed on several twins with no reported regression, so this is a TU-wide inherited pattern rather than a new defect, but it is unresolved for this function. The equivalence lane is vacuous for this function's body. equivalence.json shows covered_pcs = function offsets 0x00–0x1a and 0x39–0x3b only; offsets 0x1c–0x36 — the record loads and BOTH remaining CALLs — were never executed by any of the 100 seeds (unique_returns: 0, coverage 51.7%, "moderate"). The stubbed hs_macro_function_evaluate returns 0, so every seed takes the NULL early-exit. "100 passed, 0 diverged" here proves only that both sides agree on returning early. The acceptance narrative is not supported by the run record. It cites "permute", but every run logs `permute: skipped (--permute not set)`. It cites "a 0-divergence pass on the live-state infection_swarm snapshot ... accepted runtime behavioral evidence" while stating in the same passage that artifacts/snapshots/infection_swarm.json does not exist in this worktree and zero-fill was used. No such run exists in artifacts/lift_runs/. That claimed runtime evidence cannot be credited. Verdict Rationale: The static case for this lift is unusually strong. I re-derived every fact from the pristine XBE rather than the decompiler, and found no defect: argument order, argument count, field offsets, field widths and signedness, the hidden float at +0x4, calling convention, and the absence of register args are all confirmed correct, and the two-instruction VC71 gap resolves to a pair of equivalent argument-materialization idioms that leave the callee-entry stack byte-identical. Hazard, buffer-alias, reg-arg, stdcall-RET and ABI audits are clean, and the kb.json decl corrections are binary-justified with no other lifted caller exposed. I found nothing that warrants REJECT. But 88.5% falls in the <90% band, where policy requires golden or runtime behavioral verification in addition to classified mismatches — and that requirement is not met. The only behavioral lane that ran is a zero-fill unicorn_diff whose coverage map proves it never executed a single instruction of the part of the function that could be wrong: both CALLs and both record loads are outside the covered PC set. Everything this lift actually does is untested by it. Worse, the acceptance path presented to me asserts two lanes that never ran — a permute stage logged as skipped, and a live-state snapshot run against a file that does not exist — while the pipeline's own low_match_policy returned FAIL on every run. A reviewer that accepts on that basis is accepting a narrative, not evidence. Fail-closed, the correct disposition is not rejection but escalation: the mismatches are classified and harmless, so this may well be correct, yet the structural evidence alone is too weak for an unattended commit at this score. Clearing it is cheap and specific — re-run unicorn_diff with a stub-return override (or a state snapshot) that makes hs_macro_function_evaluate return a non-NULL record so offsets 0x1c–0x36 are actually executed, and confirm covered_pcs closes that gap with 0 divergences and 0 stub-arg mismatches. A golden-harness case, or an A/B trajectory run exercising a device-group script, would serve equally. Separately, and independent of this verdict, the dispatcher's push widths for slot 1 should be traced once for this whole family of hs handlers, since the int16_t/char narrowing is inherited by every committed twin. AUTOLIFT_REVIEW: NEEDS_RUNTIME |
+| FUN_000bfc50 | 0xbfc50 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000bfc90 | 0xbfc90 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000bfcd0 | 0xbfcd0 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+
+**Summary:** players.obj 4/4 goal threshold reached. Committed: 3× 100% + 1× 90.3% VC71. Parked: 1 function (FUN_000bfc10 at 88.5% VC71) with NEEDS_RUNTIME verdict pending behavioral verification.
+
+---
+
+## Goal-lift run — 4/4 committed (goal_reached) — 2026-07-26
+
+players.obj cluster. 4 functions committed (3× 100% VC71, 1× 93.6% VC71).
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_000bfdb0 | 0xbfdb0 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000bfdd0 | 0xbfdd0 | players.obj | 93.6 | committed | mechanical gate: 93.6% clean (pass1) |
+| FUN_000bfe10 | 0xbfe10 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000bfe30 | 0xbfe30 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+
+**Summary:** players.obj 4/4 goal threshold reached. Committed: 3× 100% + 1× 93.6% VC71.
+
+---
+
+## Goal-lift run — 4/4 committed (goal_reached) — 2026-07-26
+
+players.obj cluster. 4 functions committed at 100% VC71.
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_000bfe70 | 0xbfe70 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000bff70 | 0xbff70 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000bfff0 | 0xbfff0 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c0030 | 0xc0030 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+
+**Summary:** players.obj 4/4 goal threshold reached. All functions at 100% VC71 match.

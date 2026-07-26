@@ -4602,10 +4602,86 @@
       "kind": "function",
       "status": "unknown",
       "inferred": [
-        "Callee 0x96510 device_group_set_actual_value's first parameter is declared int to match the zero-extended PUSH EDX at the call site and the sibling decls 0x966b0/0x96f20; the underlying field is a 16-bit device-group index (XOR EDX,EDX; MOV DX,word ptr [EAX])."
+        "Callee 0x96510 device_group_set_actual_value's first parameter is declared int to match the zero-extended PUSH EDX at the call site and the sibling decls 0x966b0/0x96f20; the underlying field is a 16-bit device-group index (XOR EDX,EDX; MOV DX,word ptr [EAX]).",
+        "The record layout at the hs_macro_function_evaluate return is inferred from two reads only: an unsigned 16-bit device-group index at +0 and a float value at +4; nothing proves the record has no other fields."
       ],
       "uncertain": [
-        "VC71 stalls at 88.5% (25/27) on two family-wide codegen idioms our source cannot trigger: the original pushes the float arg via FLD/FSTP [ESP] while VC71 compiles our float copy to MOV/PUSH, and it loads the 16-bit index with XOR EDX,EDX; MOV DX where VC71 emits MOVZWL; the same two deltas appear in the committed siblings 0xbfb40, 0xbfb80 and 0xbfbc0."
+        "VC71 stalls at 88.5% (25/27) on two family-wide codegen idioms our source cannot trigger: the original pushes the float arg via FLD/FSTP [ESP] while VC71 compiles our float copy to MOV/PUSH, and it loads the 16-bit index with XOR EDX,EDX; MOV DX where VC71 emits MOVZWL; the same two deltas appear in the committed siblings 0xbfb40, 0xbfb80 and 0xbfbc0.",
+        "device_group_set_actual_value's first parameter is typed int to mirror its reader sibling device_group_get_value(int); the binary only proves a 32-bit push of a zero-extended word, so an int16_t parameter is equally consistent."
+      ]
+    },
+    "0xbfd10": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The first and third cdecl parameters (function_index at [EBP+0x08] and init at [EBP+0x10]) are never read by the body; they are inferred from the fixed 3-argument HS builtin handler shape shared by every twin in this TU and from the dispatch table pushing three arguments, not from any load in this function."
+      ],
+      "uncertain": [
+        "The parameter names function_index, thread_datum and init are mechanical, carried over from the sibling handlers in this TU rather than proven from a string or PDB symbol for this specific builtin; only the [EBP+0x0c] thread_datum slot is confirmed by a load in the body."
+      ]
+    },
+    "0xbfdb0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The function_index ([EBP+0x08]) and init ([EBP+0x10]) parameters are never read by the body; the 3-arg cdecl shape is inferred from the shared HaloScript builtin dispatch-table convention used by every twin from FUN_000bf870 through FUN_000bfd90 in this TU, and is required to avoid the 0x158df0-class ESP-drift hazard the stale void(void) decl carried."
+      ]
+    },
+    "0xbfdd0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "hs_macro_function_evaluate's kb-declared int return is really a pointer to the evaluated-argument record: TEST EAX,EAX/JZ guards both tail calls and EAX is then dereferenced with MOV DX,word ptr [EAX]. Cast locally; the shared kb decl is deliberately left as int, matching every twin in this HS-builtin cluster."
+      ],
+      "uncertain": [
+        "The evaluated-argument record's layout beyond the zero-extended uint16 at offset +0 is unknown; this handler reads exactly one WORD field and nothing else, so no wider struct can be inferred from this function alone."
+      ]
+    },
+    "0xbfe30": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The int return of hs_macro_function_evaluate (0xcc560) is really a pointer to the evaluated-argument record: TEST EAX,EAX guards a subsequent MOV DL,byte ptr [EAX] deref, so it is cast to uint8_t* locally while the shared kb.json decl stays int, as on every twin in this cluster."
+      ],
+      "uncertain": [
+        "Parameters function_index ([EBP+0x08]) and init ([EBP+0x10]) are only forwarded to the evaluate call and are otherwise unread, so their exact semantics come from the HS builtin handler family convention rather than from this body; the 3-arg cdecl arity itself is confirmed by ADD ESP,0xc after the evaluate call."
+      ]
+    },
+    "0xbfe70": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "hs_macro_function_evaluate's kb-declared int return is really a pointer to the evaluated-argument record; FUN_000bfe70 dereferences it as a zero-extended unsigned byte at offset +0 (XOR EDX,EDX / MOV DL,[EAX]), and the cast is kept local so the shared decl stays consistent across the hs twin cluster."
+      ]
+    },
+    "0xbff70": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "hs_macro_function_evaluate (0xcc560) returns a POINTER to a script-argument record; kb.json declares int, so the lift casts locally to int* and leaves the kb decl alone (same precedent as the 0xbf920/0xbf960 twins)."
+      ],
+      "uncertain": [
+        "The record fields are two full DWORDs at +0x0 and +0x4 passed to FUN_00054860 as (unit_handle, ai_ref); the semantic meaning of the +0x4 dword is unnamed because FUN_00054860 itself is still an unnamed FUN_ symbol."
+      ]
+    },
+    "0xbfff0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The kb.json decl arrived as void FUN_000bfff0(void) and was corrected to the 3-arg cdecl form (int16_t function_index, int thread_datum, char init) from the EBP+0x8/+0xc/+0x10 loads; the third param is loaded as a full dword but is declared char to match the identical twins FUN_000bf920 and FUN_000bff70 and the hs_macro_function_evaluate decl."
+      ],
+      "uncertain": [
+        "The single ADD ESP,0x10 at 0xc0020 cleans the pushes of BOTH 2-arg calls (FUN_00057770 and hs_return), so an ARG_COUNT hazard reading cleanup=4 vs decl=2 on hs_return is a known false positive already documented on the twins; hs_return really takes 2 args."
+      ]
+    },
+    "0xc0030": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The 0xcc560 return value is dereferenced (MOV EDX,[EAX]) after a NULL test, so it is a record pointer even though kb.json declares hs_macro_function_evaluate as returning int; only field +0x0 is read and it is read as a full dword, so record[0] must not be narrowed to int16 as it is in the FUN_000bf920/FUN_000bf960 twins."
+      ],
+      "uncertain": [
+        "The single ADD ESP,0xc at 0xc005f cleans the 1 push of FUN_00054ac0 plus the 2 pushes of hs_return, so the call_site_audit ARG_COUNT warning claiming hs_return takes 3 stack args is a false positive and hs_return's 2-arg decl must not be changed."
       ]
     },
     "0xc0e50": {
