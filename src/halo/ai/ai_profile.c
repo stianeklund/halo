@@ -44,6 +44,16 @@
  * ai_script.c and are part of the byte match.
  */
 
+/* NUMBER_OF_AI_COUNT_TYPES — identifier verbatim from the assert predicate
+ * "(count_type >= 0) && (count_type < NUMBER_OF_AI_COUNT_TYPES)"
+ * (ai_script.c:0x405); value 3 from the bound that assert guards. The three
+ * count types are the switch arms in FUN_00055350 (@0x55350):
+ *   0 -> the first count field, 1 -> the second, 2 -> their saturating
+ *   difference (first - second, clamped at 0). Which field is which is not yet
+ *   proven, so they are not named here.
+ * MAXIMUM_SQUADS_PER_ENCOUNTER comes from encounters.h. */
+#define NUMBER_OF_AI_COUNT_TYPES 3
+
 /* ---------------------------------------------------------------------------
  * Subsystem lifecycle hooks (0x540b0-0x540e0).
  *
@@ -1173,7 +1183,7 @@ int FUN_00055350(unsigned int ai_ref, int *out_min, int *out_handle,
   handle_val = 0;
   min_val = 0;
 
-  if ((short)count_type < 0 || (short)count_type >= 3) {
+  if ((short)count_type < 0 || (short)count_type >= NUMBER_OF_AI_COUNT_TYPES) {
     display_assert(
       "(count_type >= 0) && (count_type < NUMBER_OF_AI_COUNT_TYPES)",
       "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x405, 1);
@@ -1718,7 +1728,7 @@ validate:
 void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
                   int param_3, int param_4)
 {
-  short target_squad_indices[64]; /* [ebp-0xc8], 0x80 bytes, init 0xffff */
+  short target_squad_indices[MAXIMUM_SQUADS_PER_ENCOUNTER]; /* [ebp-0xc8], 0x80 bytes, init 0xffff */
   int squad_iter[5]; /* [ebp-0x34], Layout A (ai_index_squad_iterator_new) */
   int actor_iter[3]; /* [ebp-0x2c], encounter_actor_iterator_new
                         (iter[1]=handle) */
@@ -1767,7 +1777,7 @@ void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
   squad = (void *)ai_index_squad_iterator_next(squad_iter);
   while (squad != 0) {
     src_squad = squad_iter[2];
-    if (src_squad < 0 || src_squad >= 0x40) {
+    if (src_squad < 0 || src_squad >= MAXIMUM_SQUADS_PER_ENCOUNTER) {
       display_assert(
         "(source_iterator.squad_index >= 0) && "
         "(source_iterator.squad_index < MAXIMUM_SQUADS_PER_ENCOUNTER)",
@@ -1816,7 +1826,7 @@ void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
   actor = (void *)encounter_actor_iterator_next(actor_iter);
   while (actor != 0) {
     cur_squad = *(short *)((char *)actor + 0x3a);
-    if (cur_squad < 0 || cur_squad >= 0x40) {
+    if (cur_squad < 0 || cur_squad >= MAXIMUM_SQUADS_PER_ENCOUNTER) {
       display_assert("(current_squad_index >= 0) && "
                      "(current_squad_index < MAXIMUM_SQUADS_PER_ENCOUNTER)",
                      "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x651, 1);
@@ -1846,7 +1856,7 @@ void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
     while (record != 0) {
       if ((*(int *)(record + 0x44) & 0xffff) == src_index) {
         cur_squad = *(short *)(record + 0x48);
-        if (cur_squad < 0 || cur_squad >= 0x40) {
+        if (cur_squad < 0 || cur_squad >= MAXIMUM_SQUADS_PER_ENCOUNTER) {
           display_assert("(current_squad_index >= 0) && "
                          "(current_squad_index < MAXIMUM_SQUADS_PER_ENCOUNTER)",
                          "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x677, 1);
@@ -1884,7 +1894,7 @@ void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
   while (actor != 0) {
     if ((*(int *)((char *)actor + 0x30) & 0xffff) == src_index) {
       cur_squad = *(short *)((char *)actor + 0x38);
-      if (cur_squad < 0 || cur_squad >= 0x40) {
+      if (cur_squad < 0 || cur_squad >= MAXIMUM_SQUADS_PER_ENCOUNTER) {
         display_assert(
           "(source_iterator.squad_index >= 0) && "
           "(source_iterator.squad_index < MAXIMUM_SQUADS_PER_ENCOUNTER)",
