@@ -1,16 +1,47 @@
 #include "encounters.h"
-/* ai_profile.c — AI difficulty/profile subsystem.
+/* THIS FILE IS c:\halo\SOURCE\ai\ai_script.c — NOT ai_profile.c.
  *
- * Corresponds to addresses 0x540b0-0x56320 in the XBE (ai_profile.obj TU).
- * Source path confirmed via __FILE__ string @ 0x25c0ac:
- *   c:\halo\SOURCE\ai\ai_profile.c
+ * The filename ai_profile.c and the kb.json object label "ai_profile.obj" are
+ * both a delinker MISATTRIBUTION. They are retained only because renaming them
+ * would break the delinked/ai_profile.obj reference mapping that the VC71 gate
+ * depends on. Do not name anything in here ai_profile_*.
  *
- * Script-command strings observed:
- *   0x27e61c  "ai_profile_random"
- *   0x27e630  "ai_profile_disable"
+ * Corresponds to 0x540b0-0x55dd0+ in the XBE (46 functions, all ported).
+ *
+ * Evidence that the TU is ai_script.c (all three agree):
+ *  1. __FILE__ xref sweep of the pristine XBE. The string
+ *       "c:\halo\SOURCE\ai\ai_script.c"  @ VA 0x25c394
+ *     is referenced from 24 .text sites, spanning 0x54111..0x55ed7 — i.e.
+ *     exactly this address range. The string
+ *       "c:\halo\SOURCE\ai\ai_profile.c" @ VA 0x25c0ac
+ *     is referenced from only 2 sites, 0x536a6 and 0x536ee, which are OUTSIDE
+ *     this range: the real ai_profile.c lives near 0x536xx.
+ *     (An earlier revision of this header cited the 0x25c0ac string as proof of
+ *     the path. That was wrong — the string being present in .rdata says
+ *     nothing about which object references it. Always resolve the xref.)
+ *  2. All 20 display_assert() calls in this file pass
+ *     "c:\halo\SOURCE\ai\ai_script.c" as __FILE__.
+ *  3. The punpckhdq debug-PDB corpus contains the matching symbol set
+ *     (ai_script_*, ai_index_*, ai_scripting_*) and no ai_profile_* symbol
+ *     whose behaviour matches anything here.
+ *
+ * Consequently the "ai_profile_random" / "ai_profile_disable" script-command
+ * strings at 0x27e61c/0x27e630 belong to the real ai_profile.c, not to this TU.
+ *
+ * What this TU actually is: the HaloScript (HS) interface to the AI system —
+ * ai_index_reference parsing/formatting, the platoon/squad/actor iterators over
+ * an ai_index_reference, and the ai_scripting_* script-command bodies. Its
+ * callers are hs.c / hs_compile.c (script dispatch), encounters.c, actors.c,
+ * players.c and ai_debug.c.
  *
  * Functions are lifted incrementally below. Declarations come from the
  * force-included generated header (src/common.h -> build/generated/decl.h).
+ *
+ * NOTE for editors: there are no __LINE__ uses in this file — every
+ * display_assert() passes a hard-coded line literal (e.g. 0x405). Inserting or
+ * deleting lines therefore cannot shift an assert immediate, but you must never
+ * "correct" those literals either: they encode the line numbers of the ORIGINAL
+ * ai_script.c and are part of the byte match.
  */
 
 /* ---------------------------------------------------------------------------
@@ -24,7 +55,9 @@
  *  _dispose_from_old_map at 0x42a30/0x42b80/0x42b90/0x42ca0).
  * ------------------------------------------------------------------------- */
 
-/* ai_profile_initialize (0x540b0) — no global state to construct. */
+/* ai_script_initialize (0x540b0) — no global state to construct.
+ * Address proven by caller position: ai_initialize() calls this in the slot
+ * where every other AI subsystem calls its *_initialize (ai.c). */
 void ai_script_initialize(void)
 {
 }
@@ -34,8 +67,9 @@ void ai_script_dispose(void)
 {
 }
 
-/* ai_profile_initialize_for_new_map (0x540d0) — profiles come from the
- * scenario tag, loaded by the tag system; nothing to do per map. */
+/* ai_script_initialize_for_new_map (0x540d0) — the encounter definitions come
+ * from the scenario tag, loaded by the tag system; nothing to do per map.
+ * Address proven by caller position in ai_initialize_for_new_map() (ai.c). */
 void ai_script_initialize_for_new_map(void)
 {
 }
@@ -46,16 +80,33 @@ void ai_script_dispose_from_old_map(void)
 }
 
 /* ---------------------------------------------------------------------------
- * ai_index_reference: a packed 32-bit handle naming an ai_profile entry in the
- * scenario tag (block at scenario+0x42c, element size 0xb0) plus an optional
- * sub-reference. Bit layout:
- *     bits  0-15 : ai_profile block index
- *     bits 16-23 : sub-index (into element+0x80 [stride 0xe8] or
- *                             element+0x8c [stride 0xac])
- *     bits 30-31 : selector  0=profile only, 1=+0x8c sub, 2=+0x80 sub, 3=error
- * String form is "<profile>" or "<profile>/<sub>"; the keyword "none" maps to
- * the all-ones sentinel (-1). These helpers live in ai_profile.obj but assert
- * against ai_script.c line numbers.
+ * ai_index_reference: a packed 32-bit handle naming an ENCOUNTER (plus an
+ * optional squad or platoon sub-reference) — this is what HaloScript's "ai"
+ * argument type resolves to. Bit layout:
+ *     bits  0-15 : encounter index
+ *     bits 16-23 : sub-index (into the encounter's squads or platoons block)
+ *     bits 30-31 : selector  0 = encounter only
+ *                            1 = + platoons  sub (encounter_definition+0x8c)
+ *                            2 = + squads    sub (encounter_definition+0x80)
+ *                            3 = error
+ * String form is "<encounter>" or "<encounter>/<sub>"; the keyword "none" maps
+ * to the all-ones sentinel (-1).
+ *
+ * The block these indices address is the scenario "encounters" tag-block:
+ * block at scenario+0x42c, element stride 0xb0, sub-blocks at +0x80 (stride
+ * 0xe8) and +0x8c (stride 0xac). Those are byte-for-byte the offsets already
+ * recovered as encounter_definition.{squads,platoons} in encounters.h — so the
+ * thing this file's locals call a "profile" is an encounter_definition, and the
+ * "sub" is a squad or a platoon. Naming here follows the binary (the PDB symbols
+ * are ai_index_{platoon,squad,actor}_iterator_*), not the misleading
+ * ai_profile.c filename; see the file header.
+ *
+ * CAUTION (same trap encounters.h warns about): the index selects a RUNTIME
+ * encounter record out of the data_t pool at *0x5ab270, which is a DIFFERENT
+ * struct from the read-only encounter_definition tag element. Identical numeric
+ * offsets on the two are unrelated fields. Accesses below via `element` are on
+ * the RUNTIME record; the tag-block strides above describe the sub-block
+ * geometry only.
  * ------------------------------------------------------------------------- */
 
 /* ai_index_from_string — parse a name string ("profile" or "profile/sub") into a
@@ -101,7 +152,7 @@ bool ai_index_from_string(void *scenario, const char *name, int *out_value)
       prefix[len] = '\0';
       prefix_index = FUN_00053e20(scenario, prefix);
       if (prefix_index != -1) {
-        /* fetch the ai_profile element, then resolve the part after '/' */
+        /* fetch the encounter element, then resolve the part after '/' */
         element =
           tag_block_get_element((char *)scenario + 0x42c, prefix_index, 0xb0);
         sub_index = FUN_00053e80(element, slash + 1);
@@ -241,11 +292,18 @@ void ai_index_platoon_iterator_new(unsigned int combined_index, int *out)
   out[2] = out[1];
 }
 
-/* ai_index_platoon_iterator_next — iterator step over the encounters named by an
- * ai_index_reference record (the out[3] produced by ai_index_platoon_iterator_new). Returns the
- * current encounter's squad pointer and advances out[1]; returns NULL when the
- * record is exhausted (out[0]==-1 or out[1]>out[2]). 0x380 obj / 0x54430 XBE.
- * Asserts (ai_script.c:0x109) that iter is non-NULL. */
+/* ai_index_platoon_iterator_next — step the 3-int record produced by
+ * ai_index_platoon_iterator_new. Returns the current PLATOON record and advances
+ * iter[1]; returns NULL when the record is exhausted (iter[0]==-1 or
+ * iter[1]>iter[2]). 0x380 obj / 0x54430 XBE.
+ * Asserts (ai_script.c:0x109) that iter is non-NULL.
+ *
+ * This is the platoon pair, not the squad pair: the step below resolves the
+ * cursor through FUN_00054020(encounter, platoon_index), whose kb.json decl
+ * names its second parameter platoon_index. (An earlier revision of this comment
+ * called the result "the current encounter's squad pointer" — that was wrong;
+ * the squad walker is ai_index_squad_iterator_next @0x545a0, which returns
+ * encounter_get_squad().) */
 void *ai_index_platoon_iterator_next(int *iter)
 {
   void *result;
@@ -527,11 +585,19 @@ int FUN_000547c0(int encounter_handle)
  * ai_attach / ai_detach / ai_place script-command implementations.
  * The verbose AI-spew flag at 0x5aca59 gates a diagnostic error(2, ...) trace
  * at each entry; the AI-enabled gate at *(0x632574)+1 gates the actual work in
- * the attach path. (FUN_00054a80 keeps its legacy kb name
- * FUN_00054a80; behaviorally it is ai_attach over children.)
+ * the attach path.
+ *
+ * 0x54a80 is deliberately left as FUN_00054a80. It previously carried the name
+ * ai_profile_change_render_spray, which is a real PDB symbol but belongs to the
+ * real ai_profile.c near 0x536xx — not to this TU (see the file header). Its
+ * behaviour is "ai_attach applied over an object's children", so the correct
+ * name is one of ai_scripting_attach_unit / _attach_units / _attach_free, but
+ * nothing in the binary distinguishes those three yet. Per the Explicit-Unknowns
+ * rule it stays visibly unknown rather than plausibly wrong; resolving it needs
+ * the HS function table entry whose evaluator points at this address.
  * ------------------------------------------------------------------------- */
 
-/* FUN_00054860 — ai_attach: create one actor (from the ai_profile squad named
+/* FUN_00054860 — ai_attach: create one actor (from the encounter squad named
  * by ai_ref) and attach it to the unit object unit_handle. No-ops if AI is
  * disabled or either handle is the -1 sentinel. 0x7b0 obj / 0x54860 XBE. */
 void FUN_00054860(int unit_handle, unsigned int ai_ref)
@@ -1080,7 +1146,7 @@ void FUN_000552b0(unsigned int combined_index)
  *     count_type 1 -> the record's "end"/max index
  *     count_type 2 -> the span (end - start), clamped to >= 0
  * The record is located by the reference's selector (top 2 bits):
- *     selector 0 -> the ai_profile element itself (offsets +0x2a/+0x2c/+0x34)
+ *     selector 0 -> the runtime encounter record itself (offsets +0x2a/+0x2c/+0x34)
  *     selector 1 -> a platoon record (encounter_get_platoon, offs
  * +0x4/+6/+8/+c) selector 2 -> a squad record  (encounter_get_squad,    offs
  * +0x16..+0x1c) In addition to the EAX result the dispatcher returns two record
