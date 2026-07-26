@@ -8117,3 +8117,84 @@ void FUN_000bfe30(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, 0);
   }
 }
+
+/* FUN_000bfe70 @ 0x000bfe70
+ *
+ * HaloScript builtin dispatcher; byte-shape twin of FUN_000bfe30 directly
+ * above -- same three-call skeleton, differing ONLY in the middle worker
+ * (0x3f7b0 ai_globals_dialogue_triggers_enabled instead of 0x3f770
+ * ai_globals_ai_active).
+ *
+ * ABI: PUSH EBP / MOV EBP,ESP / PUSH ESI, no _chkstk and no locals, RET with
+ * no immediate -> plain cdecl over three incoming stack slots. Ghidra reported
+ * them as `in_stack_00000004/8/c` because the stale kb.json decl said
+ * `void FUN_000bfe70(void);`; the decl is corrected here to the 3-arg cdecl
+ * form used by every twin in this cluster.
+ *
+ *   [EBP+0x08] -> ECX  int16_t function_index
+ *   [EBP+0x0c] -> ESI  int     thread_datum  (held in ESI across the body)
+ *   [EBP+0x10] -> EAX  char    init
+ *
+ * Call-site verification (every register feeding a PUSH is loaded from its
+ * [EBP+N] slot in the same prologue block, so lift-decompiler-traps hazard 1,
+ * register aliasing over distance, does not apply):
+ *
+ *   PUSH EAX / PUSH ESI / PUSH ECX / CALL 0xcc560 -- cdecl reverse push order
+ *   (first PUSH is the LAST C argument) gives
+ *   hs_macro_function_evaluate(function_index, thread_datum, init), a straight
+ *   pass-through in slot order. ADD ESP,0xc cleans exactly those 3 pushes.
+ *
+ *   TEST EAX,EAX / JZ (to the epilogue) skips BOTH remaining calls, and EAX is
+ *   then dereferenced, so 0xcc560's declared `int` return is really a POINTER
+ *   to the evaluated-argument record. Cast to the record pointer LOCALLY; the
+ *   kb.json decl stays `int` so the shared declaration matches every twin.
+ *
+ *   XOR EDX,EDX / MOV DL,byte ptr [EAX] -- the record's only consumed field is
+ *   a ZERO-EXTENDED 8-bit value at offset +0. The width and signedness are
+ *   load-bearing (lift-learnings 24 LOADW): this is NOT the dword `record[0]`
+ *   form of FUN_000bf920 (offset +4) nor a 16-bit MOV DX, and the XOR+MOV DL
+ *   pairing rather than MOVSX proves UNSIGNED. Hence `uint8_t *record` and a
+ *   plain deref; reading it as an int would be a LOADW-class bug.
+ *
+ *   PUSH EDX / CALL 0x3f7b0 -- one argument, that zero-extended byte, i.e.
+ *   ai_globals_dialogue_triggers_enabled(<flag>). Its kb decl parameter type is
+ *   `char`, so the deref is cast at the call site rather than widening the
+ *   shared decl.
+ *
+ *   PUSH 0x0 / PUSH ESI / CALL 0xcbf80 -- cdecl reverse order gives
+ *   hs_return(thread_datum, 0). The script return value is the LITERAL 0 from
+ *   PUSH 0x0, not the worker's result: ai_globals_dialogue_triggers_enabled is
+ *   void and its EAX is never read, so lift-silent-bugs check 4 (void-EAX
+ *   implicit return, lift-learnings 16) does not apply.
+ *
+ *   The single ADD ESP,0xc at 0xbfea1 cleans BOTH tail calls together (1 arg
+ *   for 0x3f7b0 plus 2 args for hs_return). check_lift_hazards therefore
+ *   reports an ARG_COUNT finding "hs_return cleanup=3 stack args, decl=2":
+ *   that is this MERGED-cleanup artifact (MSVC folds consecutive cdecl
+ *   cleanups), NOT a 3-arg callee. Do NOT "fix" hs_return's decl -- its arity
+ *   of 2 is independently confirmed by the clean, uncombined ADD ESP,0x8 in the
+ *   single-call twins FUN_000bfe10 / FUN_000bfdb0 above.
+ *
+ * [EBP+0x08] function_index and [EBP+0x10] init are read only to be forwarded
+ * to the evaluate call; nothing else in the body consumes them. No FPU ops, no
+ * struct stores, no buffers passed (buffer_alias: 0 hits), no jump table, no
+ * SEH, no @<reg> callees anywhere in the chain.
+ *
+ * Callees (all three cdecl, all in kb.json, all ported):
+ *   0xcc560 = hs_macro_function_evaluate(int16_t, int, char) -> record pointer
+ *   0x3f7b0 = ai_globals_dialogue_triggers_enabled(char)
+ *   0xcbf80 = hs_return(int thread_handle, int value)
+ *
+ * Placement: kept here beside its twins deliberately -- the hs helpers are
+ * static in this TU; revert any maintain.py relocation. */
+void FUN_000bfe70(int16_t function_index, int thread_datum, char init)
+{
+  uint8_t *record;
+
+  record =
+    (uint8_t *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    ai_globals_dialogue_triggers_enabled((char)*record);
+    hs_return(thread_datum, 0);
+  }
+}
