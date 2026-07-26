@@ -7790,3 +7790,71 @@ void FUN_000bfd90(int16_t function_index, int thread_datum, char init)
   cheat_teleport_to_camera();
   hs_return(thread_datum, 0);
 }
+
+/* FUN_000bfdb0 @ 0x000bfdb0
+ *
+ * HaloScript builtin dispatcher for a ZERO-ARGUMENT script function; the exact
+ * byte-shape twin of FUN_000bfd90 directly above, differing only in the worker
+ * it calls. The builtin takes no script arguments, so the
+ * hs_macro_function_evaluate call and its NULL check -- present in the twins
+ * from FUN_000bf870 through FUN_000bfcd0 -- are simply absent. What remains is
+ * the worker call followed by the constant script return. Do NOT "normalise"
+ * this handler to the evaluate/NULL-check shape: there is no evaluate call and
+ * no branch anywhere in the body.
+ *
+ * Ghidra modelled the function as void(void), so the cdecl STACK parameters
+ * surfaced as an `in_stack_00000008` pseudo-local (lift-learnings 31 void-decl
+ * trap). These are STACK args, not @<reg>: no unaff_/in_EAX/in_ECX appears in
+ * the decompile, and the body has no register-defining prologue. The stale
+ * `void FUN_000bfdb0(void);` kb.json decl was corrected to the 3-arg cdecl form
+ * as part of this lift; a (void) decl over a stack-arg callee is the ESP-drift
+ * class of bug from 0x158df0.
+ *
+ * Binary evidence (the ENTIRE body, 10 instructions, 0xbfdb0-0xbfdc7; cdecl
+ * prologue PUSH EBP / MOV EBP,ESP with no SUB ESP, no _chkstk, no callee-saved
+ * pushes, no locals, no FPU, no SEH, no buffers, no struct deref, no loops and
+ * no branches -- straight-line, so there is no register-aliasing ambiguity, no
+ * push-then-fstp float, no struct-field rotation and no buffer-alias risk):
+ *
+ *   CALL 0xa68e0 is emitted with NO preceding pushes and NO stack cleanup
+ *   afterwards (the next instruction is a MOV, not an ADD ESP) -> a 0-argument
+ *   call, matching cheat_all_powerups' kb decl `void cheat_all_powerups(void)`.
+ *   It is called BY NAME (the worker already lives in cheats.c), never
+ *   re-lifted or inlined. It comes FIRST, before the script return, and that
+ *   ordering is the whole observable effect of the builtin.
+ *
+ *   MOV EAX,[EBP+0xc] / PUSH 0x0 / PUSH EAX / CALL 0xcbf80 -> cdecl reverse
+ *   push order (first PUSH is the LAST C argument) gives C order
+ *   hs_return(thread_datum, 0). The script return value is the LITERAL 0 from
+ *   PUSH 0x0, not the worker's result: cheat_all_powerups is void and its EAX
+ *   is never read, so lift-silent-bugs check 4 (void-EAX implicit return,
+ *   lift-learnings 16) does not apply -- nothing here consumes an implicit EAX.
+ *   [EBP+0xc] is the SECOND cdecl stack parameter, i.e. thread_datum, the slot
+ *   every twin in this family uses for it. [EBP+0x08] is never loaded.
+ *
+ *   ADD ESP,0x8 cleans exactly those 2 pushes -- a clean 2-arg confirmation of
+ *   hs_return's arity (this function has a single multi-arg call, so it does
+ *   not produce the combined-ADD-ESP,0x10 ARG_COUNT false positive the
+ *   evaluate/NULL-check twins do). Do NOT "fix" hs_return's decl. RET carries
+ *   no immediate => cdecl, caller cleans the incoming args; do not declare it
+ *   __stdcall.
+ *
+ * [EBP+0x08] (function_index) and [EBP+0x10] (init) are NEVER read by the body.
+ * They are retained in the signature because this is the fixed cdecl shape of
+ * the HS builtin handler family -- the shared dispatch table pushes three
+ * arguments at every call site, and declaring fewer would reintroduce the same
+ * ESP-drift hazard the corrected decl exists to prevent. Their being unused is
+ * a property of THIS builtin (it takes no script arguments), not evidence of a
+ * narrower signature.
+ *
+ * Callees (both cdecl, both in kb.json, both ported, no @<reg> args anywhere):
+ *   0xa68e0 = cheat_all_powerups(void)
+ *   0xcbf80 = hs_return(int thread_handle, int value)
+ *
+ * Placement: kept here beside its twins deliberately -- the hs helpers are
+ * static in this TU; revert any maintain.py relocation. */
+void FUN_000bfdb0(int16_t function_index, int thread_datum, char init)
+{
+  cheat_all_powerups();
+  hs_return(thread_datum, 0);
+}
