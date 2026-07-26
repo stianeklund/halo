@@ -287,7 +287,6 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x1c6440,bink_playback_start,stubbable,bink_playback.obj,pass,,50,50,0
 0x1c6870,bink_playback_update,data_only,bink_playback.obj,error,emulation_error,0,50,0
 0x1c6880,FUN_001c6880,stubbable,bink_playback.obj,pass,,50,50,0
-0x7c270,FUN_0007c270,data_only,bitmaps.obj,fail,divergence,0,50,0
 0x7c5f0,FUN_0007c5f0,data_only,bitmaps.obj,fail,divergence,0,50,0
 0x7c6c0,FUN_0007c6c0,data_only,bitmaps.obj,fail,divergence,0,50,0
 0x7c8b0,bitmap_changed,data_only,bitmaps.obj,pass,,50,50,0
@@ -1319,6 +1318,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x134be0,FUN_00134be0,stubbable,objects.obj,pass,,50,50,0
 0x134c20,FUN_00134c20,stubbable,objects.obj,pass,,50,50,0
 0x134c40,FUN_00134c40,stubbable,objects.obj,pass,,50,50,0
+0x135210,FUN_00135210,stubbable,objects.obj,pass,,50,50,0
 0x1353b0,FUN_001353b0,stubbable,objects.obj,pass,,50,50,0
 0x1353f0,FUN_001353f0,stubbable,objects.obj,pass,,50,50,0
 0x135420,lightning_offset_marker_position,stubbable,objects.obj,not_applicable,oracle_extract_failed,0,0,0
@@ -1407,6 +1407,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x13fea0,object_get_child_marker_definition,stubbable,objects.obj,fail,divergence,0,50,0
 0x13fef0,object_has_node,stubbable,objects.obj,fail,divergence,0,50,0
 0x13ff50,object_set_automatic_deactivation,stubbable,objects.obj,fail,divergence,0,50,0
+0x13ffc0,object_set_garbage,stubbable,objects.obj,fail,divergence,0,50,0
 0x140230,object_adjust_interpolation_position,stubbable,objects.obj,fail,divergence,0,50,0
 0x140420,object_find_in_cluster,leaf,objects.obj,pass,,50,50,0
 0x140720,object_name_list_get_handle,data_only,objects.obj,pass,,50,50,0
@@ -1433,8 +1434,10 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x143c80,object_new,stubbable,objects.obj,error,emulation_error,0,50,0
 0x1443f0,object_try_place,stubbable,objects.obj,fail,divergence,0,50,0
 0x1446a0,object_update_children_recursive,leaf,objects.obj,error,timeout,0,0,0
+0x144770,object_new_from_scenario,data_only,objects.obj,fail,divergence,19,50,0
 0x144940,object_new_by_name,stubbable,objects.obj,error,emulation_error,0,50,0
 0x1449b0,object_delete_recursive,stubbable,objects.obj,error,emulation_error,0,50,0
+0x144b50,objects_garbage_collect_tick,stubbable,objects.obj,fail,divergence,0,50,0
 0x145490,FUN_00145490,stubbable,objects.obj,pass,,50,50,0
 0x1a9520,FUN_001a9520,stubbable,objects.obj,error,emulation_error,0,50,0
 0x8c030,FUN_0008c030,data_only,observer.obj,fail,divergence,0,50,0
@@ -1477,12 +1480,14 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0xb6a20,player_clear_aim_assist,stubbable,player_control.obj,pass,,50,50,0
 0xb7f40,player_control_set_unit_seat,stubbable,player_control.obj,pass,,50,50,0
 0xb6990,unit_get_local_player_index,stubbable,player_control.obj,pass,,50,50,0
+0xb8cf0,FUN_000b8cf0,stubbable,player_control.obj,error,emulation_error,0,50,0
 0xa2700,player_effect_initialize,stubbable,player_effects.obj,fail,divergence,0,50,0
 0xa2740,player_effect_dispose,leaf,player_effects.obj,pass,,50,50,0
 0xa2750,player_effect_initialize_for_new_map,stubbable,player_effects.obj,pass,,50,50,0
 0xa2790,player_effect_dispose_from_old_map,leaf,player_effects.obj,pass,,50,50,0
 0xa2ca0,player_effect_update,stubbable,player_effects.obj,error,timeout,0,0,0
 0xa2e80,player_effect_apply,stubbable,player_effects.obj,pass,,3,50,0
+0xb8d30,update_server_add_player,stubbable,player_queues_new.obj,pass,,50,50,0
 0xb8d70,update_client_new,stubbable,player_queues_new.obj,error,emulation_error,0,50,0
 0xb8e40,update_client_start,stubbable,player_queues_new.obj,pass,,50,50,0
 0xb8f90,update_get_maximum_actions,data_only,player_queues_new.obj,pass,,50,50,0
@@ -1623,7 +1628,8 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x10c780,FUN_0010c780,stubbable,random_math.obj,fail,divergence,5,50,0
 0x10c7d0,FUN_0010c7d0,stubbable,random_math.obj,pass,,14,50,0
 0x10c920,FUN_0010c920,data_only,random_math.obj,pass,,50,50,0
-0x174d10,rasterizer_transparent_geometry_group_draw,stubbable,rasterizer.obj,pass,,50,50,0
+0x16f880,FUN_0016f880,data_only,rasterizer.obj,pass,,50,50,0
+0x16feb0,FUN_0016FEB0,leaf,rasterizer.obj,pass,,50,50,0
 0x17c7e0,rasterizer_frame_begin,data_only,rasterizer.obj,pass,,50,50,0
 0x17c8d0,rasterizer_window_begin,stubbable,rasterizer.obj,pass,,50,50,0
 0x17c950,rasterizer_set_vblank_callback,stubbable,rasterizer.obj,pass,,50,50,0
@@ -1795,6 +1801,8 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x184dc0,render_frame_present,stubbable,render.obj,pass,,50,50,0
 0x185290,render_window,stubbable,render.obj,error,emulation_error,0,50,0
 0x185680,render_frame,stubbable,render.obj,error,emulation_error,0,50,0
+0x184570,FUN_00184570,stubbable,render.obj,pass,,50,50,0
+0x1845b0,FUN_001845b0,stubbable,render.obj,pass,,50,50,0
 0x188890,FUN_00188890,stubbable,render_debug.obj,not_applicable,oracle_extract_failed,0,0,0
 0x188970,FUN_00188970,stubbable,render_debug.obj,not_applicable,oracle_extract_failed,0,0,0
 0x188a90,FUN_00188a90,stubbable,render_debug.obj,not_applicable,oracle_extract_failed,0,0,0
@@ -2755,6 +2763,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x136a00,FUN_00136a00,stubbable,damage.obj,pass,,50,50,0
 0x136a80,object_get_actual_body_vitality,stubbable,damage.obj,pass,,50,50,0
 0x136ae0,object_get_actual_shield_vitality,stubbable,damage.obj,pass,,50,50,0
+0x136b40,object_deplete_shield,stubbable,damage.obj,fail,divergence,0,50,0
 0x136f40,FUN_00136f40,stubbable,damage.obj,pass,,50,50,0
 0x137170,FUN_00137170,stubbable,damage.obj,not_applicable,lifted_extract_failed,0,0,0
 0x137370,render_debug_object_damage,stubbable,damage.obj,pass,,50,50,0
