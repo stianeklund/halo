@@ -1712,12 +1712,28 @@
       "score": 100.0,
       "source": "src/halo/ai/ai_debug.c"
     },
+    "FUN_00053b80": {
+      "score": 94.5,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "FUN_00053bf0": {
+      "score": 90.2,
+      "source": "src/halo/ai/encounters.c"
+    },
     "FUN_00053da0": {
       "score": 93.8,
       "source": "src/halo/ai/encounters.c"
     },
     "FUN_00053e20": {
       "score": 93.8,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "FUN_00053e80": {
+      "score": 95.0,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "FUN_00053ee0": {
+      "score": 95.0,
       "source": "src/halo/ai/encounters.c"
     },
     "FUN_00054020": {

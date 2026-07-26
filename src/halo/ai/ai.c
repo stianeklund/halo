@@ -75,7 +75,7 @@ void ai_initialize(void)
   actors_initialize();
   FUN_00064100();
   FUN_00058eb0();
-  FUN_000540b0();
+  ai_script_initialize();
   ai_communication_initialize();
   actor_move_get_avoidance_direction();
 }
@@ -86,7 +86,7 @@ void ai_initialize(void)
 void ai_dispose(void)
 {
   ai_communication_dispose();
-  ai_profile_dispose();
+  ai_script_dispose();
   encounters_dispose();
   FUN_00064140();
   actors_dispose();
@@ -103,7 +103,7 @@ void ai_dispose(void)
 void ai_dispose_from_old_map(void)
 {
   ai_communication_dispose_from_old_map();
-  ai_profile_dispose_from_old_map();
+  ai_script_dispose_from_old_map();
   encounter_compute_activation_cluster_bit_vector();
   FUN_00064160();
   actors_dispose_from_old_map();
@@ -998,7 +998,7 @@ void ai_initialize_for_new_map(void)
   actor_in_combat();
   FUN_00064150();
   encounters_initialize_for_new_map();
-  FUN_000540d0();
+  ai_script_initialize_for_new_map();
   ai_communication_initialize_for_new_map();
 
   *(int16_t *)((char *)g + 0x132) = 0;
