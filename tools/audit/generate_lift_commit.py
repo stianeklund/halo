@@ -139,17 +139,31 @@ def _load_kb_functions(ref=None):
 
 
 def compare_kb_json(old_ref=None, new_ref=None):
-    """Compare two versions of kb.json and return (ports, renames).
+    """Compare two versions of kb.json; return (ports, renames, decl_fixes).
 
     A "port" is either a brand-new kb entry OR an existing entry whose
     `ported` flag flipped to true — the latter is how every modern lift
     registers (the address was catalogued long before it was lifted).
+
+    A decl change on an already-ported entry splits two ways, because the two
+    mean very different things in a lift:
+      * `renames`    -- the function NAME changed (evidence earned it a real
+                        name, or an unproven name was demoted to a FUN_
+                        placeholder per Explicit-Unknowns).
+      * `decl_fixes` -- the name is identical and only the SIGNATURE changed.
+                        This is the routine stale-`void(void)` correction on a
+                        callee the lifted function calls (the 0x158df0 /
+                        a10 dropped-arg trap).  Lumping these in with renames
+                        printed nonsense like `FUN_00058c40 -> FUN_00058c40`
+                        and inflated the subject's object count, making a
+                        one-function port read as "(2 objects)".
     """
     old_funcs = _load_kb_functions(old_ref)
     new_funcs = _load_kb_functions(new_ref)
 
     ports = []
     renames = []
+    decl_fixes = []
 
     for addr, (new_decl, new_ported) in new_funcs.items():
         if addr not in old_funcs:
@@ -161,9 +175,12 @@ def compare_kb_json(old_ref=None, new_ref=None):
             # not a separate rename.
             ports.append((addr, new_decl))
         elif old_decl != new_decl:
-            renames.append((addr, old_decl, new_decl))
+            if _decl_name(old_decl) != _decl_name(new_decl):
+                renames.append((addr, old_decl, new_decl))
+            else:
+                decl_fixes.append((addr, old_decl, new_decl))
 
-    return ports, renames
+    return ports, renames, decl_fixes
 
 
 def staged_kb_json_changes():
@@ -171,7 +188,7 @@ def staged_kb_json_changes():
     # Check if kb.json is staged
     staged = run(["git", "diff", "--cached", "--name-only"])
     if "kb.json" not in staged:
-        return [], []
+        return [], [], []
     return compare_kb_json(old_ref="HEAD")
 
 
@@ -359,13 +376,14 @@ def _build_match_tag(vc71_match, equivalence):
 
 
 def generate_message(batch_name=None, since_ref=None, vc71_match=None,
-                     equivalence=None, ports_renames=None):
-    if ports_renames is not None:
-        ports, renames = ports_renames
+                     equivalence=None, kb_changes=None):
+    if kb_changes is not None:
+        ports, renames, decl_fixes = kb_changes
     elif since_ref:
-        ports, renames = compare_kb_json(old_ref=since_ref, new_ref="HEAD")
+        ports, renames, decl_fixes = compare_kb_json(old_ref=since_ref,
+                                                     new_ref="HEAD")
     else:
-        ports, renames = staged_kb_json_changes()
+        ports, renames, decl_fixes = staged_kb_json_changes()
 
     if since_ref:
         meta_diff = run(["git", "diff", since_ref, "HEAD", "--", "kb_meta.json"])
@@ -397,7 +415,10 @@ def generate_message(batch_name=None, since_ref=None, vc71_match=None,
 
     match_tag = _build_match_tag(vc71_match, equivalence)
 
-    # Identify objects affected by ports/renames to include in subject
+    # Objects named in the subject come from the PORTS (and true renames) only.
+    # Incidental callee decl corrections are deliberately excluded: they land in
+    # whatever TU the callee happens to live in, and counting them made a
+    # single-function port announce itself as "(2 objects)".
     affected_addrs = [addr for addr, _ in ports] + [addr for addr, _, _ in renames]
     objs = sorted(list(set(object_for_addr(addr) for addr in affected_addrs)))
     obj_tag = ""
@@ -437,6 +458,15 @@ def generate_message(batch_name=None, since_ref=None, vc71_match=None,
             old_name = old.split("(")[0].split()[-1]
             new_name = new.split("(")[0].split()[-1]
             lines.append(f"- {old_name} -> {new_name} @ {addr} ({obj})")
+        lines.append("")
+
+    if decl_fixes:
+        lines.append("Callee decls corrected (signature only, name unchanged):")
+        for addr, old, new in sorted(decl_fixes, key=lambda x: x[0]):
+            obj = object_for_addr(addr)
+            lines.append(f"- {_decl_name(new)} @ {addr} ({obj})")
+            lines.append(f"    {old.strip()}")
+            lines.append(f" -> {new.strip()}")
         lines.append("")
 
     if meta_changes:
@@ -557,9 +587,10 @@ def main():
     args = ap.parse_args()
 
     if args.since:
-        ports, renames = compare_kb_json(old_ref=args.since, new_ref="HEAD")
+        ports, renames, decl_fixes = compare_kb_json(old_ref=args.since,
+                                                     new_ref="HEAD")
     else:
-        ports, renames = staged_kb_json_changes()
+        ports, renames, decl_fixes = staged_kb_json_changes()
 
     # Stage cross-TU call-site fixups for any renamed callee (staged-commit mode
     # only — --since builds a message over an already-committed range and has no
@@ -629,7 +660,7 @@ def main():
     msg = generate_message(batch_name=args.batch_name, since_ref=args.since,
                            vc71_match=args.vc71_match,
                            equivalence=args.equivalence,
-                           ports_renames=(ports, renames))
+                           kb_changes=(ports, renames, decl_fixes))
     print(msg)
 
 
