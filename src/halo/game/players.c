@@ -9848,3 +9848,55 @@ void FUN_000c05b0(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, 0);
   }
 }
+
+/* FUN_000c0670 @ 0x000c0670
+ *
+ * hs (HaloScript) macro-function handler, same family as FUN_000c0570 and
+ * FUN_000c05b0 immediately above.  Evaluates the script argument record for
+ * `function_index` on script thread `thread_datum`, and on a non-NULL record
+ * forwards two dwords out of it to the worker at 0x000564b0, then returns
+ * void (0) to the script thread.
+ *
+ * Frame: PUSH EBP; MOV EBP,ESP; PUSH ESI; ... POP ESI; POP EBP; RET (no
+ * immediate) => cdecl, caller cleans.  No SUB ESP / no _chkstk => zero stack
+ * locals.  Args are ordinary STACK args at [EBP+8]/[EBP+0xc]/[EBP+0x10]; the
+ * Ghidra decompile rendered them as `in_stack_*` pseudo-locals over a
+ * `void FUN_000c0670(void)` signature, and kb.json carried the matching stale
+ * `(void)` decl.  Per lift-learnings 31 (void-decl trap) that is the
+ * 0x158df0 ESP-drift bug class, so the decl was corrected to the 3-arg cdecl
+ * form shared by every sibling in this family.
+ *
+ * The evaluate result is a POINTER to a 2-dword record, not the `int` the
+ * kb decl claims: the disassembly derefs it as
+ *   MOV EDX, dword ptr [EAX+0x4]   ; record[1] -- FULL dword
+ *   MOV EAX, dword ptr [EAX+0x0]   ; record[0]
+ * EAX is only overwritten by its own [EAX+0] load AFTER EDX has been taken,
+ * so both reads are off the original record base (no aliasing subtlety).
+ * Unlike the twin FUN_000c05b0, which loads its second worker arg as a BYTE,
+ * this one loads a full dword -- hence `record[1]` (int), not a char.
+ *
+ * FUN_000564b0's kb decl was also the stale `void FUN_000564b0(void);`; the
+ * push sequence (PUSH EDX; PUSH EAX; first PUSH = last C arg) proves two
+ * dword stack args, so it was corrected to
+ * `void FUN_000564b0(int arg0, int arg1);` (RET carries no immediate =>
+ * cdecl, confirmed with check_stdcall_ret.py --addr 0x564b0).
+ *
+ * Apparent arg-count hazard on hs_return is a FALSE POSITIVE (identical to
+ * the one documented on FUN_000c05b0): the single `ADD ESP,0x10` at
+ * 0x000c06a0 is a MERGED cdecl cleanup for BOTH tail calls -- 2 dwords for
+ * FUN_000564b0 plus 2 dwords for hs_return.  Do NOT "fix" either decl.
+ *
+ * No FPU instructions at all, no struct stores, no memset, and no buffer
+ * pointers passed anywhere, so no operand-order or buffer-alias concerns.
+ */
+void FUN_000c0670(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    FUN_000564b0(record[0], record[1]);
+    hs_return(thread_datum, 0);
+  }
+}
