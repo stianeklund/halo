@@ -1979,7 +1979,7 @@
     },
     {
      "addr": "0x1e6596",
-     "decl": "void __strnicmp(void);"
+     "decl": "int __strnicmp(const char *s1, const char *s2, unsigned int count);"
     },
     {
      "addr": "0x1e65eb",
@@ -32471,7 +32471,8 @@
     },
     {
      "addr": "0x53e80",
-     "decl": "int FUN_00053e80(void *ai_profile_element, const char *name);"
+     "decl": "int FUN_00053e80(void *ai_profile_element, const char *name);",
+     "ported": true
     },
     {
      "addr": "0x53ee0",
