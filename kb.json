@@ -18303,7 +18303,9 @@
     },
     {
      "addr": "0xc0af0",
-     "decl": "void FUN_000c0af0(void);"
+     "decl": "void FUN_000c0af0(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "source_path": "src/halo/game/players.c"
     },
     {
      "addr": "0xc0b30",
