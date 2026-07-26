@@ -204,6 +204,56 @@ int FUN_00053e20(void *scenario, const char *name)
   return -1;
 }
 
+/* 0x00053e80 — FUN_00053e80 (find sub-block element by name).
+ *
+ * Direct sibling of FUN_00053e20 above: the same linear "find <thing> by
+ * name" scan, but over the tag_block at +0x80 of the passed record with a
+ * 0xe8-byte element stride.  The tag_block header is the usual
+ * {int32 count; void *address} pair; each element's leading field (offset 0)
+ * is a <=32-byte name string.
+ *
+ * Returns the 0-based index of the first element whose name matches (case
+ * insensitively, first 0x20 bytes), or -1 if none / empty block.
+ *
+ * Confirmed (from disassembly 0x53e80-0x53ed2):
+ *   - Frame: PUSH EBP/EBX/ESI/EDI, no _chkstk, no locals.
+ *     EDI = ai_profile_element+0x80 (the tag_block), EBX = name,
+ *     ESI = loop index, EAX = return value.
+ *   - Two cdecl calls sharing one ADD ESP,0x18 (6 dwords) at 0x53eb6:
+ *       0x53ea1-0x53ea8: PUSH 0xe8; PUSH ESI(index); PUSH EDI(block)
+ *                        CALL 0x19b210 -> tag_block_get_element
+ *       0x53ead-0x53eb1: PUSH 0x20; PUSH EBX(name); PUSH EAX(element)
+ *                        CALL 0x1e6596 -> _strnicmp
+ *     The element pointer is passed straight in as strnicmp's first arg
+ *     (name field lives at element+0).
+ *   - Pre-test TEST ECX,ECX / JLE skips the loop on an empty block; the
+ *     bottom test re-reads the count from [EDI] each iteration
+ *     (MOV EAX,[EDI] at 0x53ebd), so the bound is deliberately not hoisted.
+ *   - Not-found returns -1 via OR EAX,0xffffffff in two epilogues
+ *     (empty-block fall-through at 0x53ece, loop-exhausted at 0x53ec6).
+ *   - No FPU ops, no local buffers.
+ *
+ * Note: Ghidra renders the strnicmp call as a zero-argument `__strnicmp()`
+ * whose result is read through `extraout_EAX` (the swallowed-getter trap) —
+ * the shared ADD ESP,0x18 hides the three pushes.  The disassembly above is
+ * authoritative: it is a plain 3-arg cdecl case-insensitive compare.
+ */
+int FUN_00053e80(void *ai_profile_element, const char *name)
+{
+  char *block;
+  int i;
+  void *elem;
+
+  block = (char *)ai_profile_element + 0x80;
+  for (i = 0; i < *(int *)block; i++) {
+    elem = tag_block_get_element(block, i, 0xe8);
+    if (__strnicmp((const char *)elem, name, 0x20) == 0) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 /* 0x00054020 — encounter_get_platoon_ptr (FUN_00054020).
  *
  * Returns a pointer to the platoon record for a given encounter and relative
