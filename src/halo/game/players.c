@@ -9295,6 +9295,90 @@ void FUN_000c02f0(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* FUN_000c03f0 @ 0x000c03f0
+ *
+ * HaloScript builtin dispatcher, direct structural twin of FUN_000c02f0 /
+ * FUN_000c02b0 / FUN_000c0030 and the rest of this family: identical
+ * 3-parameter cdecl shape, identical evaluate / NULL-check / worker /
+ * hs_return skeleton. The differences from 0xc02f0 are the worker address
+ * (0x551e0 here) and the record field widths (see LOAD WIDTH below).
+ *
+ * cdecl frame (0xc03f0-0xc0425, 22 instructions): PUSH EBP; MOV EBP,ESP;
+ * PUSH ESI; ... POP ESI; POP EBP; RET with NO immediate => caller cleans.
+ * No SUB ESP, no _chkstk, no locals beyond the record pointer, no FPU, no
+ * SEH, no stack buffers, no struct stores, no globals, no CONCAT, no
+ * intrinsics. ESI is the only callee-saved register pushed; it holds
+ * thread_datum live across the evaluate call, which is exactly why it is
+ * saved.
+ *
+ * Ghidra models this as `void __cdecl FUN_000c03f0(void)`, so the three cdecl
+ * params surface as in_stack_00000004/8/c pseudo-locals. Per lift-learnings 31
+ * that is the void-decl trap, NOT a register-argument signal -- the
+ * disassembly loads all three from the frame:
+ *   MOV EAX,[EBP+0x10] -> init           (char)
+ *   MOV ECX,[EBP+0x08] -> function_index (int16_t; pushed as a full dword,
+ *                                         the narrowing lives in the callee)
+ *   MOV ESI,[EBP+0x0c] -> thread_datum   (int), reused as hs_return arg1
+ * The stale kb.json decl `void FUN_000c03f0(void);` was corrected to the
+ * 3-arg cdecl form as part of this lift; a (void) decl over a callee that
+ * consumes three stack dwords is precisely the 0x158df0 ESP-drift crash class.
+ *
+ * Call-site verification (pushes traced backward in the raw XBE disassembly,
+ * not the decompiler; first PUSH is the LAST C argument):
+ *   CALL 0xc0400 -> 0xcc560: PUSH EAX(init); PUSH ESI(thread_datum);
+ *     PUSH ECX(function_index); ADD ESP,0xc => 3 stack args, C order
+ *     (function_index, thread_datum, init) -- a straight pass-through of all
+ *     three parameters. ESI is written exactly once at 0xc03fa and never
+ *     reloaded, so the Ghidra register-aliasing trap (decompiler-traps 1)
+ *     cannot apply to the later PUSH ESI.
+ *   CALL 0xc0413 -> 0x551e0: MOV EDX,[EAX+0x4]; MOV EAX,[EAX]; PUSH EDX;
+ *     PUSH EAX => C order (record[0], record[1]). The [EAX+4] load is issued
+ *     BEFORE the [EAX] load (MSVC scheduling), but the push order fixes the
+ *     mapping: first-pushed EDX is the LAST argument. This matches
+ *     FUN_000551e0's decl (unsigned int combined_handle, int unit_group).
+ *   CALL 0xc041b -> 0xcbf80: PUSH 0x0; PUSH ESI => hs_return(thread_datum, 0).
+ *
+ * LOAD WIDTH (lift-learnings 24): unlike the 0xc02b0/0xc02f0/0xc05b0 twins,
+ * which read a zero-extended BYTE at record+4 (XOR EDX,EDX; MOV DL,[EAX+4]),
+ * BOTH loads here are FULL 32-bit dwords with no MOVSX/MOVZX, so
+ * record[0]/record[1] must NOT be narrowed to int16/int8. Only +0x0 and +0x4
+ * are touched, one deref each, so there is no buffer-alias risk
+ * (decompiler-traps 5) in this 8-byte window.
+ *
+ * NULL guard: TEST EAX,EAX; JZ 0xc0423 skips BOTH tail calls, so the 0xcc560
+ * return value is dereferenced as a POINTER even though kb.json types it as
+ * `int`. The cast is kept local here; the kb declaration is deliberately left
+ * untouched (it is shared with every other dispatcher in this family).
+ *
+ * Apparent arg-count hazard on hs_return is a FALSE POSITIVE: the single
+ * `ADD ESP,0x10` at 0xc0420 is a MERGED cleanup for BOTH tail calls -- 2
+ * dwords for FUN_000551e0 (PUSH EDX; PUSH EAX) plus 2 dwords for hs_return
+ * (PUSH 0; PUSH ESI) = 4 dwords. MSVC combined the two cdecl cleanups;
+ * hs_return's 2-arg decl and FUN_000551e0's 2-arg decl are both correct. Do
+ * NOT "fix" either decl.
+ *
+ * Callees (all cdecl, all in kb.json, ported, no @<reg> args anywhere):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x551e0  = FUN_000551e0(unsigned int combined_handle, int unit_group)
+ *   0xcbf80  = hs_return(int thread_handle, int value)
+ *
+ * Placement: kept here beside its twins deliberately -- the hs helpers are
+ * static in this TU; revert any maintain.py relocation. NOTE: do NOT run
+ * maintain.py on this file with an ABSOLUTE path -- it then treats the file
+ * as a foreign TU, "moves" all functions out to the same relative path, and
+ * leaves players.c empty (observed 2026-07-26). */
+void FUN_000c03f0(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    FUN_000551e0((unsigned int)record[0], record[1]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* FUN_000c0570 @ 0x000c0570
  *
  * HaloScript builtin dispatcher, direct structural twin of FUN_000c0030 /
