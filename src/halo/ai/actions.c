@@ -1831,6 +1831,279 @@ char actor_action_handle_active_cover_seeking(int actor_handle, char param2,
   return result;
 }
 
+/* actor_action_handle_combat_selection (0x1e8a0) — Master combat action
+ * selector. Resolves the actor's 'actr'/'actv' tags, the current firing
+ * variant, and the target prop (actor+0x270; distance at prop+0x11c).
+ * When a target prop exists, three stages run in order:
+ * 1. Berserk gate (action 10, state 1): if prop+0x74 is set, or prop+0x12f
+ *    with prop+0x121 <= 1, or the 'actr' timer tag+0x328 (seconds) satisfies
+ *    (short)(tag+0x328 * 30) <= actor+0xc2, berserk immediately when
+ *    distance <= variant+0xa0, else berserk only after
+ *    actor_action_try_to_seek_cover fails.
+ * 2. Melee charge attempt: gated on ranged-weapon/target flags, a 10-tick
+ *    retry window (actor+0x37c), the 'actv' range (actv+0x170 when melee is
+ *    preferred, else actv+0x160), a minimum distance 0.8f + max(0,
+ *    tag+0x37c) when actor+0x1cb is set, and a randomized delay window past
+ *    actor+0x380; on success builds action data via FUN_00013ef0(2) and
+ *    switches to action 10.
+ * 3. Vehicle charge attempt: when actor+0x15e == 4 and not already charging,
+ *    honors a cooldown (vehi+0x390 seconds past actor+0x388) and requires
+ *    distance > variant+0x160 with prop+0x38 clear; builds action data via
+ *    FUN_00013ef0(4).
+ * Otherwise decides between charging (want/force flags from actor+0x375,
+ * 'actr' flag 0x1000000, action-10 sub-state 2/3/4/5 flags, and for state 4
+ * the vehicle ram distances vehi+0x394 / FUN_00013070 >= 0.5f) and falling
+ * back to fight (FUN_00014620 + actor_action_change(3)). Ends with a
+ * state-consistency assert ladder (actions.c lines 0x87b-0x892).
+ * FPU compares verified against disassembly: berserk timer uses
+ * tag+0x328 > 0.0f; the delay window fires when
+ * delay*30 + last(actor+0x380) < game_time (TEST AH,0x41; JNP at 0x1eb50);
+ * the vehicle cooldown blocks while game_time <= until. */
+char actor_action_handle_combat_selection(int actor_handle)
+{
+  char *actor;
+  char *prop;
+  int actr_tag;
+  int actv_tag;
+  char *variant;
+  int *veh_object;
+  int vehi_tag;
+  int now;
+  int last_fire;
+  int last_charge;
+  float distance;
+  float delay;
+  float threshold;
+  float min_throw;
+  float charge_until;
+  short state;
+  char want_charge;
+  char result;
+  char melee_preferred;
+  char force_charge;
+  char action_buf[132];
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actr_tag = (int)tag_get(0x61637472, *(int *)(actor + 0x58));
+  actv_tag = (int)tag_get(0x61637476, *(int *)(actor + 0x5c));
+  variant = actor_combat_get_firing_variant_definition(actor_handle);
+  result = 0;
+  prop = 0;
+  distance = 3.4028235e+38f;
+  if (*(int *)(actor + 0x270) != -1) {
+    prop = (char *)datum_get(prop_data, *(int *)(actor + 0x270));
+    distance = *(float *)(prop + 0x11c);
+    if (*(short *)(actor + 0x6c) == 10 && *(short *)(actor + 0xa0) == 1) {
+      if ((*(char *)(prop + 0x74) != '\0' ||
+           (*(char *)(prop + 0x12f) != '\0' && *(char *)(prop + 0x121) <= 1)) ||
+          (*(float *)(actr_tag + 0x328) > *(float *)0x2533c0 &&
+           *(short *)(actor + 0xc2) >=
+               (short)(int)(*(float *)(actr_tag + 0x328) * TICKS_PER_SECOND))) {
+        if (!(distance > *(float *)(variant + 0xa0)) ||
+            (result = actor_action_try_to_seek_cover(actor_handle, 0, 0)) ==
+                '\0')
+          actor_berserk(actor_handle, 1);
+      }
+    }
+    if ((!actor_has_ranged_weapon(actor_handle) ||
+         (*(int *)(prop + 0x110) == -1 && *(char *)(prop + 0x14) == '\0')) &&
+        (*(short *)(actor + 0x6c) != 10 ||
+         (*(short *)(actor + 0xa0) != 2 && *(short *)(actor + 0xa0) != 3)) &&
+        result == '\0' && *(char *)(actor + 6) == '\0' &&
+        *(int *)(actor + 0x158) == -1 && *(short *)(actor + 0x5f2) != 2) {
+      /* result discarded in the original; the call performs the
+       * handle-verify assert side effect */
+      object_get_and_verify_type(*(int *)(actor + 0x18), 3);
+      now = game_time_get();
+      melee_preferred = *(char *)(actor + 0x378);
+      if (!actor_has_ranged_weapon(actor_handle) &&
+          (*(int *)actr_tag & 0x20000) == 0)
+        melee_preferred = 1;
+      if (*(char *)(actor + 0x378) != '\0')
+        delay = 0.0f;
+      else
+        delay = *(float *)(actr_tag + 0x378);
+      delay = FUN_000b5590(0x15) * delay;
+      delay = FUN_000b5590(0x14) + delay;
+      threshold = melee_preferred != '\0' ? *(float *)(actv_tag + 0x170)
+                                          : *(float *)(actv_tag + 0x160);
+      if ((*(int *)(actor + 0x37c) == -1 ||
+           *(int *)(actor + 0x37c) + 10 < now) &&
+          !(distance > threshold)) {
+        if (*(char *)(actor + 0x1cb) != '\0') {
+          if (*(float *)0x2533c0 > *(float *)(actr_tag + 0x37c))
+            min_throw = *(float *)0x2533c0;
+          else
+            min_throw = *(float *)(actr_tag + 0x37c);
+          if (distance > *(float *)0x2533f0 + min_throw)
+            goto handle_vehicle_charge;
+        }
+        last_fire = *(int *)(actor + 0x380);
+        if (last_fire != -1 &&
+            (float)now <= delay * TICKS_PER_SECOND + (float)last_fire)
+          goto handle_vehicle_charge;
+        /* result discarded in the original */
+        actor_has_ranged_weapon(actor_handle);
+        *(int *)(actor + 0x37c) = now;
+        if (FUN_00013ef0(actor_handle, 2, action_buf) != '\0') {
+          actor_action_change(actor_handle, 10, (int)action_buf);
+          result = 1;
+        }
+      }
+    }
+  handle_vehicle_charge:
+    if (*(short *)(actor + 0x6c) != 10 && *(char *)(actor + 0x1cb) == '\0') {
+      if (result != '\0')
+        return result;
+      if (*(short *)(actor + 0x15e) > 0) {
+        veh_object =
+          (int *)object_get_and_verify_type(*(int *)(actor + 0x158), 2);
+        vehi_tag = (int)tag_get(0x76656869, *veh_object);
+        last_charge = *(int *)(actor + 0x388);
+        if (last_charge != -1) {
+          charge_until = *(float *)(vehi_tag + 0x390) * TICKS_PER_SECOND +
+                         (float)last_charge;
+          now = game_time_get();
+          if (!((float)now > charge_until))
+            goto decide_charge;
+        }
+        if (*(short *)(actor + 0x15e) == 4 &&
+            distance > *(float *)(variant + 0x160) &&
+            *(short *)(prop + 0x38) == 0 &&
+            FUN_00013ef0(actor_handle, 4, action_buf) != '\0') {
+          actor_action_change(actor_handle, 10, (int)action_buf);
+          result = 1;
+          return result;
+        }
+      }
+    } else {
+      if (result != '\0')
+        return result;
+    }
+  }
+decide_charge:
+  if (*(char *)(actor + 0x375) == '\0') {
+    want_charge = 0;
+  } else {
+    want_charge = 1;
+    if (*(char *)(actor + 0x1cb) != '\0')
+      want_charge = 0;
+  }
+  force_charge = 0;
+  if (*(char *)(actor + 0x1cb) == '\0' &&
+      !actor_has_ranged_weapon(actor_handle) &&
+      (*(int *)actr_tag & 0x1000000) != 0)
+    want_charge = 1;
+  if (*(short *)(actor + 0x6c) == 10) {
+    state = *(short *)(actor + 0xa0);
+    if (state == 2 || state == 3) {
+      if (*(char *)(actor + 0xa3) == '\0' && *(char *)(actor + 0xa4) == '\0' &&
+          *(char *)(actor + 0xc5) == '\0') {
+        want_charge = 1;
+        goto maybe_start_charge;
+      }
+      goto force_charge_transition;
+    }
+    if (*(char *)(actor + 0x1cb) != '\0') {
+      want_charge = 0;
+      goto try_fight;
+    }
+    if (state != 4 && state != 5)
+      goto check_charge_flags;
+    if (*(char *)(actor + 0xc5) != '\0')
+      goto force_charge_transition;
+    if (*(short *)(actor + 0x15e) <= 1)
+      goto force_charge_transition;
+    want_charge = 1;
+    if (state != 4)
+      goto maybe_start_charge;
+    veh_object = (int *)object_get_and_verify_type(*(int *)(actor + 0x158), 2);
+    vehi_tag = (int)tag_get(0x76656869, *veh_object);
+    if (*(char *)(actor + 0x484) != '\0' && *(short *)(actor + 0x46c) == 5 &&
+        *(int *)(actor + 0x470) == *(int *)(actor + 0x270)) {
+      want_charge = 0;
+      goto try_fight;
+    }
+    if (distance < *(float *)(vehi_tag + 0x394)) {
+      want_charge = 0;
+      goto try_fight;
+    }
+    if (!(*(float *)(vehi_tag + 0x394) + *(float *)(vehi_tag + 0x394) >
+          distance))
+      goto maybe_start_charge;
+    if (!(FUN_00013070((float *)(actor + 0x174), (float *)(prop + 0xe0)) <
+          *(float *)0x253398))
+      goto maybe_start_charge;
+  abandon_charge:
+    want_charge = 0;
+    goto try_fight;
+  force_charge_transition:
+    force_charge = 1;
+  }
+check_charge_flags:
+  if (want_charge == '\0')
+    goto try_fight;
+  if (force_charge == '\0') {
+  maybe_start_charge:
+    if (*(short *)(actor + 0x6c) == 10)
+      goto charge_started;
+  }
+  if (FUN_00013ef0(actor_handle, 0, action_buf) == '\0')
+    goto abandon_charge;
+  actor_action_change(actor_handle, 10, (int)action_buf);
+  result = 1;
+charge_started:
+  if (want_charge != '\0') {
+    if (result != '\0')
+      return result;
+    goto verify_action_state;
+  }
+  if (result != '\0')
+    return result;
+try_fight:
+  if (*(short *)(actor + 0x6c) != 3) {
+    if (FUN_00014620(actor_handle, action_buf) == '\0') {
+      display_assert("success", "c:\\halo\\SOURCE\\ai\\actions.c", 0x87b, 1);
+      system_exit(-1);
+    }
+    actor_action_change(actor_handle, 3, (int)action_buf);
+    result = 1;
+    return result;
+  }
+verify_action_state:
+  if (want_charge != '\0') {
+    if (*(short *)(actor + 0x6c) != 10) {
+      display_assert("actor->state.action == _actor_action_charge",
+                     "c:\\halo\\SOURCE\\ai\\actions.c", 0x886, 1);
+      system_exit(-1);
+    }
+    state = *(short *)(actor + 0xa0);
+    if (state == 2 || state == 3) {
+      if (*(char *)(actor + 0xa3) == '\0' && *(char *)(actor + 0xa4) == '\0' &&
+          *(char *)(actor + 0xc5) == '\0')
+        return result;
+      display_assert("!actor->state.action_data.charge.finished_melee_attack "
+                     "&& !actor->state.action_data.charge.aborted_melee_attack"
+                     " && !actor->state.action_data.charge.unable_to_advance",
+                     "c:\\halo\\SOURCE\\ai\\actions.c", 0x889, 1);
+      system_exit(-1);
+    } else if (state == 4 || state == 5) {
+      if (*(char *)(actor + 0xc5) == '\0')
+        return result;
+      display_assert("!actor->state.action_data.charge.unable_to_advance",
+                     "c:\\halo\\SOURCE\\ai\\actions.c", 0x88d, 1);
+      system_exit(-1);
+    }
+  } else {
+    if (*(short *)(actor + 0x6c) != 3) {
+      display_assert("actor->state.action == _actor_action_fight",
+                     "c:\\halo\\SOURCE\\ai\\actions.c", 0x892, 1);
+      system_exit(-1);
+    }
+  }
+  return result;
+}
+
 /* actor_action_handle_done_fleeing (0x1f6e0)
  * Handles the transition when an actor finishes fleeing (action type 4).
  * If the actor's current action is type 4 and the flag at actor+0xab is set,

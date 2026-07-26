@@ -2314,7 +2314,8 @@
     },
     {
      "addr": "0x1e8a0",
-     "decl": "char actor_action_handle_combat_selection(int actor_handle);"
+     "decl": "char actor_action_handle_combat_selection(int actor_handle);",
+     "ported": true
     },
     {
      "addr": "0x1ef90",
