@@ -10362,3 +10362,63 @@ void FUN_000c0870(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, 0);
   }
 }
+
+/* FUN_000c08b0 @ 0x000c08b0
+ * HS script function handler.  Structural twin of FUN_000c0870 directly above
+ * (and of FUN_000c0830 / FUN_000c07f0 above that); the ONLY difference is the
+ * worker it forwards to (FUN_00056bc0 @ 0x56bc0 here).  Evaluate the macro
+ * function's arguments, forward one full 32-bit field plus one zero-extended
+ * byte field of the evaluated-argument record, then hand a literal 0 back to
+ * the script thread.
+ *
+ * Evaluates the arguments via hs_macro_function_evaluate (0xcc560):
+ * PUSH EAX([EBP+0x10]); PUSH ESI([EBP+0xc]); PUSH ECX([EBP+8]); ADD ESP,0xc --
+ * first PUSH is the last C arg, so the call is
+ * evaluate(function_index, thread_datum, init).  TEST EAX,EAX; JZ -> epilogue,
+ * so a NULL result record skips BOTH tail calls and the thread gets NO
+ * hs_return on that path.
+ *
+ * EAX is a POINTER to the evaluated-argument record, not a boolean, even
+ * though it is only ever tested with TEST EAX,EAX; hs_macro_function_evaluate
+ * is still declared returning `int` in kb.json, hence the cast.
+ *
+ * Record field loads, both off the ORIGINAL EAX base (EDX is loaded before EAX
+ * is overwritten, so there is no aliasing subtlety):
+ *   0xc08cc: XOR EDX,EDX
+ *   0xc08ce: MOV DL, byte ptr [EAX+0x4]   ; ZERO-EXTENDED 8-bit load @ +0x4
+ *   0xc08d1: MOV EAX, dword ptr [EAX]     ; full 32-bit load @ +0x0
+ * The byte width at +0x4 is binary evidence (lift-learnings 24); Ghidra's
+ * `(char)piVar1[1]` hides it behind a truncated dword load.  PUSH EDX; PUSH
+ * EAX at the call means first PUSH is the last C arg, i.e.
+ * FUN_00056bc0(dword@+0x0, byte@+0x4) -- do NOT swap.  Its EAX result is never
+ * tested or reused (the next instruction pushes an immediate), so it is
+ * discarded; the value handed back to the script thread is a hardcoded
+ * literal 0, not a computed result.
+ *
+ * ABI: frame is PUSH EBP; MOV EBP,ESP; PUSH ESI ... POP ESI; POP EBP; RET (no
+ * immediate) => cdecl, caller cleans, zero stack locals (no SUB ESP, no
+ * _chkstk, no SEH), ESI the only callee-saved register.  Args are ordinary
+ * STACK args at [EBP+8]/[EBP+0xc]/[EBP+0x10]; thread_datum is cached in ESI
+ * and reused for the hs_return call.  Ghidra rendered them as `in_stack_*`
+ * pseudo-locals over a `void FUN_000c08b0(void)` signature and kb.json carried
+ * the matching stale `(void)` decl -- the 0x158df0 ESP-drift trap of
+ * lift-learnings 31 -- so the decl was corrected to the 3-arg cdecl form
+ * shared by every sibling here.
+ *
+ * Apparent arg-count hazard on hs_return is a FALSE POSITIVE: the single
+ * `ADD ESP,0x10` at 0x000c08e2 is a MERGED cdecl cleanup for BOTH tail calls
+ * -- 2 dwords for FUN_00056bc0 plus 2 dwords for hs_return.  Do NOT "fix"
+ * either decl.
+ */
+void FUN_000c08b0(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    /* dword @ +0x0, then the zero-extended byte @ +0x4 */
+    FUN_00056bc0(record[0], (unsigned char)record[1]);
+    hs_return(thread_datum, 0);
+  }
+}
