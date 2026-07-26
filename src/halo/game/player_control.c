@@ -194,7 +194,16 @@ void player_control_update_desired_angles(int16_t local_player_index,
   player_control_t *pc;
   float *desired_pitch;
   void *globals_tag;
-  char camera_info[0xc]; /* {unit handle, seat index, limit block ptr} */
+  /* +0x00 unit handle, +0x04 seat index, +0x08 seat-limit block ptr -- the
+   * three fields player_control_get_unit_camera_info (0xb6740) stores
+   * directly. It ALSO does `lea eax,[esi+0xc]` and forwards that to
+   * unit_set_seat_state (0x1a9240), which writes a float[3] seat position at
+   * +0x0c..+0x18, so the buffer is larger than the three visible stores. The
+   * original reserves it at [ebp-0x38] with the next local (desired_pitch) at
+   * [ebp-0x10] -- 0x28 bytes of headroom; matched here. Sizing this 0xc let
+   * the callee's write land on marker_angles and hang a10 after the opening
+   * cinematic. */
+  char camera_info[0x28];
   char marker_buf[0x6c]; /* object_get_markers_by_string_id output */
   float marker_angles[2]; /* yaw, pitch */
   float forward[3];
