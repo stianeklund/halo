@@ -2920,3 +2920,97 @@ void FUN_00103de0(char *source)
     FUN_001db4a9();
   }
 }
+
+/* FUN_00104240 (0x104240)  error_geometry.c:0xd3-0xd5
+ *
+ * Emits a debug polygon (point cloud) as a VRML/Open-Inventor "Separator"
+ * block to the open error-geometry stream *(void**)0x46e394.  Each packed
+ * 3-float point is transformed by the world matrix at 0x31fb08 into a local
+ * float[3] and scaled by *(float*)0x253f00 (=100.0f, world units -> cm) before
+ * printing.  Point separator is ", " except after the last point, which closes
+ * the array with "] }\n".  Material: diffuseColor = color[1..3],
+ * transparency = *(float*)0x2533c8 (=1.0f) - color[0], i.e. color[] is packed
+ * alpha-first.  Gated on the debug-geometry-enabled predicate FUN_00103d30 and
+ * on count >= 3.
+ *
+ * cdecl, verified from disassembly at 0x104240: [EBP+0x8]=point_count (only
+ * the low 16 bits are used: BX), [EBP+0xc]=points (EDI, stride 12B),
+ * [EBP+0x10]=color (ESI).  Frame = 0xc bytes = the single float[3] transform
+ * output at EBP-0xc (LEA EDX,[EBP-0xc] is the 'out' arg at 0x10431a).  The
+ * (short) truncation is load-bearing in three places: the <0 assert, the >2
+ * gate and the >0 loop gates.  The loop trip count is the ZERO-extended low 16
+ * bits (MOVZX EBX,BX) while the last-element test uses the SIGN-extended value
+ * (MOVSX EAX,BX; DEC EAX, which MSVC spills over the dead [EBP+0xc] param
+ * slot).  The stream global is re-loaded before every crt_fprintf in the
+ * original, so it is never cached in a local here.  Assert tails are
+ * system_exit(-1) (CALL 0x8e2f0), not halt_and_catch_fire.
+ */
+void FUN_00104240(int point_count, float *points, float *color)
+{
+  float p[3];
+  const char *sep;
+  float *pt;
+  short count;
+  int i;
+  int last;
+  unsigned int n;
+
+  count = (short)point_count;
+  if (count < 0) {
+    display_assert("point_count>=0", "c:\\halo\\SOURCE\\tool\\error_geometry.c",
+                   0xd3, true);
+    system_exit(-1);
+  }
+  if (points == 0) {
+    display_assert("points", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0xd4,
+                   true);
+    system_exit(-1);
+  }
+  if (color == 0) {
+    display_assert("color", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0xd5,
+                   true);
+    system_exit(-1);
+  }
+  if (count >= 3) {
+    if (FUN_00103d30()) {
+      crt_fprintf(*(void **)0x46e394, "Separator\n{\n");
+      crt_fprintf(*(void **)0x46e394, "\tCoordinate3 { point[");
+      if (count > 0) {
+        last = (int)count - 1;
+        i = 0;
+        pt = points;
+        n = (unsigned int)(unsigned short)count;
+        do {
+          matrix_transform_point((float *)0x31fb08, pt, p);
+          sep = ", ";
+          if (i >= last)
+            sep = "] }\n";
+          crt_fprintf(*(void **)0x46e394, "%f %f %f%s",
+                      p[0] * *(float *)0x253f00, p[1] * *(float *)0x253f00,
+                      p[2] * *(float *)0x253f00, sep);
+          i = i + 1;
+          pt = pt + 3;
+          n = n - 1;
+        } while (n != 0);
+      }
+      crt_fprintf(*(void **)0x46e394, "\tMaterialBinding { value PER_FACE }\n");
+      crt_fprintf(*(void **)0x46e394,
+                  "\tMaterial { diffuseColor[%f %f %f] transparency[%f] }\n",
+                  color[1], color[2], color[3],
+                  *(float *)0x2533c8 - color[0]);
+      crt_fprintf(*(void **)0x46e394, "\tIndexedFaceSet { coordIndex[");
+      if (count > 0) {
+        i = 0;
+        n = (unsigned int)(unsigned short)count;
+        do {
+          crt_fprintf(*(void **)0x46e394, "%d,", i);
+          i = i + 1;
+          n = n - 1;
+        } while (n != 0);
+      }
+      crt_fprintf(*(void **)0x46e394, "-1] }\n");
+      crt_fprintf(*(void **)0x46e394, "}\n");
+      crt_fflush(*(void **)0x46e394);
+    }
+  }
+}
