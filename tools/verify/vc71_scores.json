@@ -14352,6 +14352,14 @@
       "score": 89.9,
       "source": "src/halo/ai/actions.c"
     },
+    "actor_action_handle_combat_selection": {
+      "score": 90.6,
+      "source": "src/halo/ai/actions.c"
+    },
+    "actor_action_test_grenade": {
+      "score": 93.6,
+      "source": "src/halo/ai/actions.c"
+    },
     "actor_activation_debug_color": {
       "score": 94.2,
       "source": "src/halo/ai/actors.c"
@@ -14387,6 +14395,10 @@
     "actor_combat_set_fire_timer": {
       "score": 72.7,
       "source": "src/halo/ai/actor_combat.c"
+    },
+    "actor_get_pursuit_location": {
+      "score": 100.0,
+      "source": "src/halo/ai/actions.c"
     },
     "actor_kill": {
       "score": 84.9,

@@ -1036,6 +1036,108 @@ void actor_action_change(int actor_handle, int new_action_type, int param_3)
   }
 }
 
+/* actor_action_test_grenade (0x1d180) — Decide whether the actor may throw a
+ * grenade this tick, recording the outcome code in its AI-state slot.
+ *
+ * Confirmed: datum_get(actor_data, actor_handle) at 0x1d193.
+ * Confirmed: tag_get(0x61637476 'actv', actor+0x5c) at 0x1d1a3.
+ * Confirmed: game_time_get() stored to slot+0x150 (last-test timestamp).
+ * Confirmed: slot = (actor_handle & 0xffff) * 0x657c + *0x331f58.
+ * Confirmed: encounter pool datum_get(*0x5ab270, actor+0x34) at 0x1d1fa.
+ * Confirmed: FPU chain 0x1d219..0x1d233 that the decompiler drops —
+ *            FUN_000b55b0 result is multiplied by actv+0x1a8 (saved to the
+ *            EBP-0x4 scratch BEFORE the call), doubled via FLD ST0/FADDP when
+ *            actor+0x1ca != 0, then scaled by TICKS_PER_SECOND (*0x253394)
+ *            before _ftol2 truncates it to a signed short (MOVSX EDI,AX).
+ * Confirmed: the out-short for FUN_00021ae0 is the upper half of the incoming
+ *            actor_handle stack slot (LEA EAX,[EBP+0xa] at 0x1d29e), which is
+ *            why the handle is copied to a register before that call.
+ * Confirmed: CMP AX,[EBX+0x186] / JL is a SIGNED 16-bit compare; the +0x156
+ *            store is 16-bit arithmetic (ADD AX,[EDX+0x5c] at 0x1d25a).
+ * Slot fields: +0x150 int last test time, +0x154 short result code,
+ *   +0x156 short retry delay, +0x158 short count, +0x15a short count required.
+ * Result codes at +0x154: 0 already performing an action, 5 encounter grenade
+ *   cooldown still running, 6 no target found, 7 not enough grenades,
+ *   8 no throw solution, 9 throw rejected, 10 throw accepted (only path that
+ *   returns 1). */
+char actor_action_test_grenade(int actor_handle)
+{
+  char *actor;
+  char *actv;
+  int slot;
+  int handle_copy;
+  short delay;
+  short grenade_count;
+  char ok;
+  /* Stack frame is exactly SUB ESP,0x18 — these four locals fill it. */
+  float cooldown_scale; /* EBP-0x04 */
+  int encounter; /* EBP-0x08: encounter ptr, then out_handle */
+  int extra; /* EBP-0x0c: game time, then out_extra */
+  float grenade_pos[3]; /* EBP-0x18 */
+  float delay_f;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actv = (char *)tag_get(0x61637476 /* 'actv' */, *(int *)(actor + 0x5c));
+  extra = game_time_get();
+  slot = (actor_handle & 0xffff) * 0x657c + *(int *)0x331f58;
+  *(int *)(slot + 0x150) = extra;
+
+  if (*(int *)(actor + 0x158) != -1) {
+    *(short *)(slot + 0x154) = 0;
+    return 0;
+  }
+
+  if (*(int *)(actor + 0x34) != -1) {
+    encounter = (int)datum_get(*(data_t **)0x5ab270, *(int *)(actor + 0x34));
+    cooldown_scale = *(float *)(actv + 0x1a8);
+    delay_f = FUN_000b55b0(0x18, (int)*(unsigned short *)(encounter + 2)) *
+              cooldown_scale;
+    if (*(char *)(actor + 0x1ca) != '\0') {
+      delay_f = delay_f + delay_f;
+    }
+    delay = (short)(int)(delay_f * TICKS_PER_SECOND);
+    if (*(int *)(encounter + 0x5c) != -1 &&
+        (int)delay + *(int *)(encounter + 0x5c) > extra) {
+      *(short *)(slot + 0x154) = 5;
+      *(short *)(slot + 0x156) =
+        (short)((delay - (short)extra) + *(short *)(encounter + 0x5c));
+      return 0;
+    }
+  }
+
+  handle_copy = actor_handle;
+  /* Nested rather than early-return: VC71 lays the four cold failure blocks
+   * out-of-line at the tail in unwind order 9, 7, 8, 6, matching the original
+   * (LAB_0001d2f3 / 0x1d305 / 0x1d32c / 0x1d33e). */
+  if (actor_combat_find_grenade_target(actor_handle, grenade_pos, &encounter,
+                                       &extra) != '\0') {
+    /* The out-short aliases the upper half of the actor_handle param slot. */
+    ok = FUN_00021ae0(handle_copy, *(float *)(actv + 0x188),
+                      *(float *)(actv + 0x19c), grenade_pos,
+                      (short *)((char *)&actor_handle + 2));
+    if (ok != '\0') {
+      grenade_count = *(short *)((char *)&actor_handle + 2);
+      if (grenade_count >= *(short *)(actv + 0x186)) {
+        if (FUN_00021e50(handle_copy, *(unsigned short *)(actv + 0x182),
+                         grenade_pos, encounter, extra) != '\0') {
+          *(short *)(slot + 0x154) = 10;
+          return 1;
+        }
+        *(short *)(slot + 0x154) = 9;
+        return 0;
+      }
+      *(short *)(slot + 0x158) = grenade_count;
+      *(short *)(slot + 0x154) = 7;
+      *(short *)(slot + 0x15a) = *(short *)(actv + 0x186);
+      return 0;
+    }
+    *(short *)(slot + 0x154) = 8;
+    return 0;
+  }
+  *(short *)(slot + 0x154) = 6;
+  return 0;
+}
+
 /* actor_action_try_to_seek_cover (0x1d350) — Attempt to make the actor seek
  * cover. Gets actor+0x270 as param_2 for FUN_00015040, then calls
  * actor_action_change with action 4 if successful. */
@@ -1898,10 +2000,10 @@ char actor_action_handle_combat_selection(int actor_handle)
            (*(char *)(prop + 0x12f) != '\0' && *(char *)(prop + 0x121) <= 1)) ||
           (*(float *)(actr_tag + 0x328) > *(float *)0x2533c0 &&
            *(short *)(actor + 0xc2) >=
-               (short)(int)(*(float *)(actr_tag + 0x328) * TICKS_PER_SECOND))) {
+             (short)(int)(*(float *)(actr_tag + 0x328) * TICKS_PER_SECOND))) {
         if (!(distance > *(float *)(variant + 0xa0)) ||
             (result = actor_action_try_to_seek_cover(actor_handle, 0, 0)) ==
-                '\0')
+              '\0')
           actor_berserk(actor_handle, 1);
       }
     }
@@ -1925,8 +2027,8 @@ char actor_action_handle_combat_selection(int actor_handle)
         delay = *(float *)(actr_tag + 0x378);
       delay = FUN_000b5590(0x15) * delay;
       delay = FUN_000b5590(0x14) + delay;
-      threshold = melee_preferred != '\0' ? *(float *)(actv_tag + 0x170)
-                                          : *(float *)(actv_tag + 0x160);
+      threshold = melee_preferred != '\0' ? *(float *)(actv_tag + 0x170) :
+                                            *(float *)(actv_tag + 0x160);
       if ((*(int *)(actor + 0x37c) == -1 ||
            *(int *)(actor + 0x37c) + 10 < now) &&
           !(distance > threshold)) {
