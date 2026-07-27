@@ -967,7 +967,7 @@ const selectCmds = OBJECTS
   ? OBJECTS.map(o => `rtk python3 tools/llm_auto_lift.py -q select --object ${o} --min-score 0 --limit ${RETURN_CAP} --json 2>&1`)
   : [`rtk python3 tools/llm_auto_lift.py -q select --limit ${BATCH_LIMIT} --json 2>&1`]
 
-const selection = await agent(
+const selectPrompt =
   `Select next batch of Halo CE Xbox functions to lift.
 ${OBJECTS
     ? `Run EACH of these commands (one per allowlisted object) and concatenate all their JSON arrays into one combined list before parsing:\n${selectCmds.join('\n')}`
@@ -991,11 +991,40 @@ ${OBJECTS
     : `Prefer, in order: game_engine.obj, lruv_cache.obj, hud.obj, items.obj, input_xbox.obj —
 sort those to the front, then the rest by score descending.`}
 ${CRITERIA ? `\nADDITIONAL USER CRITERIA (apply on top of the rules above): ${CRITERIA}\n` : ''}
-Return up to ${RETURN_CAP} entries, each with the parsed fields above.`,
-  { label: 'select', phase: 'Select', ...M.extract, schema: TARGETS_SCHEMA }
-)
+Return up to ${RETURN_CAP} entries, each with the parsed fields above.`
 
-if (!selection || !selection.targets || selection.targets.length === 0) {
+// Select is the ONE serial single point of failure in this workflow: every other
+// stage runs inside parallel()/pipeline(), where a dead agent degrades to null
+// and the batch carries on. A single API 529 here used to abort the whole
+// auto-session run, so retry before giving up.
+//
+// These retries are immediate -- workflow scripts have no sleep primitive
+// (Date.now/Math.random throw by design, to keep runs resumable). That is
+// acceptable because agent() only returns null AFTER the harness has exhausted
+// its own internal retries, so the backoff has already elapsed. Against a
+// sustained outage this burns through its attempts quickly rather than waiting
+// the outage out; that case is meant to surface, not be papered over.
+const SELECT_ATTEMPTS = 3
+let selection = null
+for (let attempt = 1; attempt <= SELECT_ATTEMPTS; attempt++) {
+  selection = await agent(selectPrompt, {
+    label: attempt === 1 ? 'select' : `select-retry-${attempt}`,
+    phase: 'Select', ...M.extract, schema: TARGETS_SCHEMA,
+  })
+  if (selection) break
+  log(`select returned null (attempt ${attempt}/${SELECT_ATTEMPTS}) — infra failure, retrying`)
+}
+
+// Distinguish an infra failure from a genuinely empty frontier. Collapsing the
+// two into "empty_queue" made auto-session report a transient API 529 as
+// "queue_exhausted" and skip every remaining batch (2026-07-27: 1 function
+// landed, 3 batches abandoned, frontier was nowhere near empty).
+if (!selection || !selection.targets) {
+  log(`Select failed after ${SELECT_ATTEMPTS} attempts — infra, NOT an empty queue`)
+  return { committed: 0, goal: GOAL, reached_goal: false, skipped: 0, reverted: 0, reason: 'select_agent_null' }
+}
+
+if (selection.targets.length === 0) {
   log('No viable targets in queue')
   return { committed: 0, goal: GOAL, reached_goal: false, skipped: 0, reverted: 0, reason: 'empty_queue' }
 }
