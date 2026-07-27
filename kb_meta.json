@@ -4886,6 +4886,17 @@
         "hs_macro_function_evaluate returns a POINTER to the evaluated-argument record; the original only TESTs EAX for NULL, so the pointer type is inferred from the subsequent MOV EDX,[EAX] dereference rather than from a typed use."
       ]
     },
+    "0xc0b30": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "hs_macro_function_evaluate (0xcc560) is declared as returning int in kb.json but the return value is dereferenced (MOV EDX,[EAX]) on the non-NULL path, so it is really a pointer to an evaluated-argument record; the lift casts it to int * at the call site.",
+        "The single ADD ESP,0xc at 0x000c0b5c is a MERGED cdecl cleanup covering both tail calls (1 dword for FUN_000572c0 plus 2 dwords for hs_return), so the ARG_COUNT hazard reporting hs_return as taking 3 stack args is a false positive and neither decl should be widened."
+      ],
+      "uncertain": [
+        "The semantic meaning of the record[0] field forwarded to FUN_000572c0 is unknown; it is read as a full 32-bit dword at offset +0x0 with no sign or zero extension, and FUN_000572c0 remains an unnamed FUN_ placeholder."
+      ]
+    },
     "0xc0e50": {
       "kind": "function",
       "status": "ported",
@@ -6264,10 +6275,13 @@
       "status": "ported",
       "inferred": [
         "Object reclassified from main.obj to ui_widget.obj: both display_assert call sites stamp __FILE__ 'c:\\halo\\SOURCE\\interface\\ui_widget.c' (lines 0x967 and 0x986), and the sibling callee ui_widget_load_by_name_or_tag (0xe84e0) already lives in ui_widget.obj.",
-        "kb decl was corrected from 'void FUN_000e8e20(void)' to a single int16_t stack parameter: the prologue does MOV BX, word ptr [EBP+8] and holds BX live to the final MOV word ptr [ESI+0x40], BX."
+        "kb decl was corrected from 'void FUN_000e8e20(void)' to a single int16_t stack parameter: the prologue does MOV BX, word ptr [EBP+8] and holds BX live to the final MOV word ptr [ESI+0x40], BX.",
+        "Parameter is a single int16 stack arg (MOV BX,[EBP+8] at 0xe8e2a, consumed at 0xe9024 MOV [ESI+0x40],BX); kb.json previously declared it void(void), which would have left the text-box string index uninitialized at every call site.",
+        "The ten needle strings (a10,a30,a50,b30,b40,c10,c20,c40,d20,d40) and their player_help_screen paths were read byte-exact out of cachebeta.xbe .rdata at 0x284838-0x284a94, not guessed from the branch suffixes."
       ],
       "uncertain": [
-        "The widget-node field names are unverified: +0x34 is treated as first-child pointer, +0x2c as next-sibling pointer, +0x0e as an int16 widget type compared against 1 (text box), and +0x40 as the int16 string-index sink; no struct definition backs these offsets yet."
+        "The widget-node field names are unverified: +0x34 is treated as first-child pointer, +0x2c as next-sibling pointer, +0x0e as an int16 widget type compared against 1 (text box), and +0x40 as the int16 string-index sink; no struct definition backs these offsets yet.",
+        "Widget field names are behavioural only: +0x34 first child, +0x2c next sibling, +0x0e int16 type (1 = text box), +0x40 int16 string index; no struct type was recovered so the lift keeps raw offset derefs."
       ]
     },
     "0xe9080": {
@@ -6839,6 +6853,24 @@
     "0x102e40": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x103a00": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Inferred signature char FUN_00103a00(uint32_t mark, int base, uint32_t *node, void *visit_arg): 0x103a00 is only ever seen as the visit callback pushed by FUN_00103c00 into FUN_00103530, whose indirect call site at 0x103566 was verified as 4-arg cdecl with a char (AL) result; the function body itself was not disassembled."
+      ]
+    },
+    "0x103c00": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Inferred: base+0x00 is a vertex array (stride 0xc = 3 floats), base+0xc an edge array (stride 0x1c), base+0x18 a surface array (stride 0x18) with the surface count at base+0x1c; strides and the 0x1c count offset are confirmed from the FUN_00117ee0 call sites, the array roles are inferred from how the resolved pointers are consumed (FUN_001037b0 plane-from-3-points).",
+        "Inferred: the return value is the count of distinct marked regions; the implicit-EAX return itself is confirmed (MOV EAX,[EBP-0x8] at 0x103d17 plus XOR EAX,EAX at 0x103c0d on the empty-mesh path), but no caller was inspected to confirm how the count is used."
+      ],
+      "uncertain": [
+        "Uncertain: VC71 is stuck at 83.4% solely because the reference materializes the high-bit test as AND 0x80000000 / NEG / SBB / NEG (the MSVC C++ bool conversion) while the VC71 C front end folds every equivalent C spelling (!= 0, ?1:0, !!, and the byte-offset *4 form, all measured at exactly 83.4%) into a single SHR 31; treated as a C-vs-C++ front-end ceiling rather than a lift defect."
+      ]
     },
     "0x105830": {
       "kind": "function",
@@ -9086,6 +9118,16 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x146be0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Scenario breakable-surface block lives at scenario+0x16c with 0x30-byte elements: center xyz at +0x00/+0x04/+0x08, bounding radius at +0x0c, and a dword id at +0x10 that is passed verbatim (raw MOV EAX,[ESI+0x10]) as the third argument to FUN_00145ad0."
+      ],
+      "uncertain": [
+        "The damage_params fields at +0x28/+0x2c/+0x30 are assumed to be the damage epicenter xyz purely from the sphere-intersection arithmetic; no independent evidence names them, and the meaning of the jpt! tag fields at +0x1d4/+0x1d8 tested against 0.0f for the early-out is unconfirmed."
+      ]
+    },
     "0x146db0": {
       "kind": "function",
       "status": "ported"
@@ -9882,6 +9924,10 @@
       "comments": {
         "summary": "Allocates 0xa430 bytes via game_state_malloc for structure detail objects, stores pointer at 0x4d8ea0, and inits 4 fields at +0xa420..+0xa42c."
       }
+    },
+    "0x1939c0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1939f0": {
       "kind": "function",
