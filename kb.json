@@ -24374,7 +24374,7 @@
     {
      "addr": "0x1939d0",
      "decl": "void structure_detail_objects_dispose(void);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x1939f0",
