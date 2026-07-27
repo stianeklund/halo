@@ -30,6 +30,15 @@ const DRY_RUN    = !!(args && args.dryRun)
 const OBJECTS    = (args && args.objects) || undefined
 const CRITERIA   = (args && args.criteria) || undefined
 
+// Resolving the child by NAME uses a workflow registry snapshotted at session
+// start, so mid-session edits to goal-lift.js are silently ignored -- the agents
+// keep running the stale script. Passing goalLiftPath makes the child resolve by
+// scriptPath instead, which is read from disk at invoke time. Left optional so
+// the workflow stays portable across worktrees (no hardcoded absolute path).
+const GOAL_LIFT = (args && args.goalLiftPath)
+  ? { scriptPath: args.goalLiftPath }
+  : 'goal-lift'
+
 // Deterministic tool-runs only -- all the reasoning cost is inside the nested
 // goal-lift workflow, which sets its own (Opus-high) model policy.
 const MECH = { model: 'haiku', effort: 'low' }
@@ -101,7 +110,7 @@ for (let i = 1; i <= BATCHES; i++) {
   const glArgs = { goal: BATCH_GOAL, dryRun: DRY_RUN }
   if (OBJECTS) glArgs.objects = OBJECTS
   if (CRITERIA) glArgs.criteria = CRITERIA
-  const r = await workflow('goal-lift', glArgs)
+  const r = await workflow(GOAL_LIFT, glArgs)
 
   const committed = (r && r.committed) || 0
   functionsCommitted += committed
