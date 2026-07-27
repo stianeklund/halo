@@ -19292,10 +19292,6 @@
      "ported": true
     },
     {
-     "addr": "0x172de0",
-     "decl": "void FUN_00172de0(void *decal, int param_2, void *param_3, void *param_4);"
-    },
-    {
      "addr": "0x173090",
      "decl": "void FUN_00173090(void);"
     },
@@ -28884,7 +28880,7 @@
     },
     {
      "addr": "0x17ed90",
-     "decl": "void FUN_0017ed90(void);"
+     "decl": "int FUN_0017ed90(void *triangle_buffer, void *vertex_buffer);"
     },
     {
      "addr": "0x17edd0",
@@ -35055,7 +35051,7 @@
     },
     {
      "addr": "0x15e430",
-     "decl": "void FUN_0015e430(void);"
+     "decl": "void FUN_0015e430(void *triangle_buffer, int a2, int triangle_count, void *vertex_buffer);"
     },
     {
      "addr": "0x15e650",
@@ -37023,6 +37019,11 @@
      "addr": "0x172590",
      "decl": "void FUN_00172590(int param_1);",
      "ported": true
+    },
+    {
+     "addr": "0x172de0",
+     "decl": "void FUN_00172de0(void *shader, int frame_index, void *triangle_buffer, void *vertex_buffer);",
+     "ported": true
     }
    ]
   },
@@ -37770,7 +37771,7 @@
     },
     {
      "addr": "0x001e9320",
-     "decl": "void D3DDevice_SetRenderState_PSTextureModes(void);"
+     "decl": "void __stdcall D3DDevice_SetRenderState_PSTextureModes(uint32_t modes);"
     },
     {
      "addr": "0x001e93a0",
