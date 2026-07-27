@@ -28007,6 +28007,9 @@
     "confidence": "moderate",
     "coverage_pct": 33.6
   },
+  "0x1beb0": {
+    "class": "non_leaf"
+  },
   "0x1bec30": {
     "class": "non_leaf",
     "confidence": "moderate",

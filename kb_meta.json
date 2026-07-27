@@ -114,6 +114,19 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1beb0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Return type char (actor+0x9c) inferred from every return path loading AL from [ESI+0x9c] at 0x1bf65 and 0x1c025; kb.json previously declared void(void) and no direct CALL site exists in the XBE, so the function is dispatched indirectly and the consumer of the flag is unverified.",
+        "FUN_0001beb0 returns char: every exit path loads AL from actor+0x9c (0x1bf65, 0x1c025), including the failed actor_move_to_prop path; kb decl updated from void(void) to char(int actor_handle) with the stack arg read at [EBP+8]."
+      ],
+      "uncertain": [
+        "Remaining VC71 gap at 67.6% is two effects: VC71 hoists a zero into EBX (push ebx / xor ebx,ebx / cmpb %bl,X) where the original emits mov al,X / test al,al, and it places the shared engaged-store tail out of line (jge+jmp / jnp+jmp instead of jl / jp); neither was reachable from source-level rewrites tried (char temps, truthiness form, duplicated store), so the true ceiling for this shape is unproven.",
+        "Float thresholds at 0x253f78 and 0x253f30 compared against prop+0x11c are unnamed globals; semantic meaning (likely awareness/vitality thresholds) not established from binary evidence.",
+        "VC71 residual at 87.3% is the EBX zero-register hoist (push/xor/pop ebx plus cmpb bl vs testb al at ~6 sites), a known structural floor; permuter found no improvement."
+      ]
+    },
     "0x1c270": {
       "kind": "function",
       "status": "ported"
