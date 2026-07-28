@@ -16072,6 +16072,10 @@
       "score": 100.0,
       "source": "src/halo/rasterizer/rasterizer_sprites.c"
     },
+    "rasterizer_window_get_fog": {
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
     "real_math_initialize": {
       "score": 100.0,
       "source": "src/halo/math/real_math.c"
