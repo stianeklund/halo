@@ -29,6 +29,7 @@ _SP2 = _STACK_BASE + 0x200   # candidate stack pointer (different frame layout)
 # Sentinel addresses
 _SENTINEL_A = 0x40000000
 _SENTINEL_B = 0x40004000
+_SENTINEL_C = 0x40008000
 
 
 class _FakeReloc:
@@ -352,6 +353,62 @@ def test_filter_none_preserves_historical_behaviour():
     d = compare_stub_arg_traces(oracle, cand, seed_label="s17")
     assert d.has_differences() and d.arg_mismatches == 2
     print("  PASS  test_filter_none_preserves_historical_behaviour")
+
+
+def test_shifted_sequence_reports_no_arg_mismatches():
+    """A sequence shifted by one extra leading call must not manufacture
+    argument evidence against the calls that DO match.
+
+    The real shape, from object_has_node:
+      oracle    = [tag_get('obje',0), tag_get('mode',0)]
+      candidate = [datum_get(0,0),   tag_get('obje',0), tag_get('mode',0)]
+    The candidate makes exactly the same two tag_get calls, but pairing the
+    lists positionally compares tag_get against datum_get and reported
+    "arg[0]: oracle=0x6f626a65 candidate=0x0" -- a dropped tag-group literal
+    that does not exist. ~20 of the ledger's 50 arg_mismatch entries were this.
+    """
+    oracle = _make_tracer(
+        _rec(0, _SENTINEL_A, "tag_get", 0x6F626A65, 0x00),
+        _rec(1, _SENTINEL_B, "tag_get", 0x6D6F6465, 0x00),
+    )
+    cand = _make_tracer(
+        _rec(0, _SENTINEL_C, "datum_get", 0x00, 0x00),
+        _rec(1, _SENTINEL_A, "tag_get", 0x6F626A65, 0x00),
+        _rec(2, _SENTINEL_B, "tag_get", 0x6D6F6465, 0x00),
+    )
+    d = compare_stub_arg_traces(
+        oracle, cand, seed_label="s18",
+        comparable_sentinels={_SENTINEL_A, _SENTINEL_B, _SENTINEL_C})
+    assert d.sequence_diverged, "the sequence genuinely differs -- still fail"
+    assert d.sequence_diverge_index == 0, (
+        f"first disagreement is at index 0, got {d.sequence_diverge_index}; "
+        "a min(len) index would leave misaligned pairs arg-compared")
+    assert d.arg_mismatches == 0, (
+        f"expected no fabricated arg mismatches, got {d.arg_mismatches}: "
+        f"{d.details}")
+    print("  PASS  test_shifted_sequence_reports_no_arg_mismatches")
+
+
+def test_real_arg_bug_before_divergence_still_caught():
+    """The boundary for the truncation: an argument bug in the matching PREFIX
+    must survive, even when the sequence diverges later on. Truncating too
+    eagerly (e.g. at index 0 whenever lengths differ) would hide it."""
+    oracle = _make_tracer(
+        _rec(0, _SENTINEL_A, "foo", 0x10, 0x20),
+        _rec(1, _SENTINEL_B, "bar", 0xAA),
+    )
+    cand = _make_tracer(
+        _rec(0, _SENTINEL_A, "foo", 0x20, 0x10),   # swapped -- REAL bug
+        _rec(1, _SENTINEL_C, "baz", 0xAA),         # sequence diverges here
+    )
+    d = compare_stub_arg_traces(
+        oracle, cand, seed_label="s19",
+        comparable_sentinels={_SENTINEL_A, _SENTINEL_B, _SENTINEL_C})
+    assert d.sequence_diverged and d.sequence_diverge_index == 1
+    assert d.arg_mismatches == 2, (
+        f"the swapped args at index 0 are before the divergence and must "
+        f"still be reported, got {d.arg_mismatches}")
+    print("  PASS  test_real_arg_bug_before_divergence_still_caught")
 
 
 def main():
