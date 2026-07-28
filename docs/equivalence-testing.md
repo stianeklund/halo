@@ -361,6 +361,94 @@ batch summary's verdicts are reused via `--skip-existing`, so a stale `pass`
 can persist across source changes. Measure a baseline by re-running, not by
 reading the last batch summary — an apparent regression is often drift.
 
+### What does NOT lift the remaining tail (measured 2026-07-28)
+
+260 of 822 cached targets still sit below 30% coverage (154 of them
+`non_leaf`). Three plausible generic levers were measured against that
+population; **none of them is the lever**, so do not spend another cycle
+assuming one is.
+
+| Candidate lever | How measured | Result |
+|---|---|---|
+| Better **callee return values** (`stub_return_overrides` / accessor arena) | 11 non-leaf low-coverage targets, `--rich-stub-returns` on vs off | **0 improved**, coverage identical to 0.1pp |
+| Same, with sub-emulation disabled so the return table is actually consulted | 6 targets × {default, `--no-real-callees`, `--no-real-callees --rich-stub-returns`} | **0 improved** |
+| **Real captured state** on its own | `FUN_00130270`, `FUN_00130580` with `host_snapshots/network_server_mp.json`, the frame that covers them | 10.0% → 10.0%, 14.3% → 14.3% — **no change** |
+| **Argument-consistency** (satisfying the relational entry gate) | same two, plus `size`/`buffer` pinned so `(uint16)size == msg[0] >> 4` | 10.0% → **16.1%**; 14.3% → **11.2%** (down — a different category path) |
+
+Why the return-value lever is dead: `--real-callees` (default since
+2026-07-28) already sub-emulates those accessors' real bodies — 18 to 96 real
+callees load per target — so the return table is bypassed. And on these
+functions execution never reaches an accessor anyway; it dies at the entry
+gate.
+
+The gates that actually block are **conjunctions**, and each conjunct needs a
+different fix:
+
+1. *Argument-range* — `hs_evaluate_inequality` asserts
+   `function_index >= 0xf && function_index <= 0x12` (4 values in 2^16, so
+   random seeding never passes).
+2. *Argument-to-memory relational* — the network handlers assert
+   `(uint16)datagram_size == GET_MESSAGE_SIZE(*message)`, coupling a scalar
+   argument to memory reached through another argument.
+3. *Chained pool state* — past the gate,
+   `datum_get(*(data_t **)0x5aa6c4, …) → thread+0x10 → *+0x4 → …` walks a
+   pointer chain that zero-fill and scratch pages cannot satisfy.
+
+These compound: pinning `hs_evaluate_inequality`'s `function_index` into its
+valid range moved coverage 9.8% → **0.0%** and 8 passes → 8 errors, because
+clearing gate 1 just runs it into gate 3. Satisfying one constraint in
+isolation can *lower* coverage and *lose* passing seeds.
+
+`z3_seeds.extract_branch_seeds` is the component nominally responsible for
+gate 1, and its own docstring names the limitation: it "creates a seed vector
+with that value for **every** parameter … a coarse approximation". It has no
+notion of *which* argument a solved constant constrains. `concolic_z3.py` is
+separately barred from gates 1 and 2 by design — it requires a model in which
+some observed **global** differs, precisely because it assumes the caller
+cannot choose incoming argument values (it can: see `arg_overrides`).
+
+**Practical consequence.** The remaining tail is not reachable by a generic
+mechanism; it needs per-function authored setup — one snapshot with
+`arg_overrides` per function, which is exactly what
+`host_snapshots/manifest.json` already does for the actor targets. Budget
+that per function, and prefer targets where a real frame already exists.
+Whoever revisits this should re-measure rather than trusting the table above,
+using `--no-leaf-cache`.
+
+### Worked example: authoring past a relational gate
+
+`network_server_mp_gameupdate.json` is the pattern to copy. Read the gate out
+of the C, solve it by hand, and pin the result in the manifest's `args`:
+
+- `FUN_00130270` asserts `(uint16)datagram_size == GET_MESSAGE_SIZE(*message)`,
+  i.e. `size == msg[0] >> 4`. So `msg[0] ∈ [size<<4, (size<<4)|15]` — the low
+  four bits are free.
+- Those free bits pick the path: `msg[0] & 3` must be 0 for valid flags, and
+  `(msg[0] >> 2) & 3` is the category. Only **category 3** reaches the packet
+  switch, so the low nibble must be `0xc`.
+- Inside category 3, `packet_type = *((char *)msg + size - 1)` — the **last**
+  byte of the header selects the handler. `0x19`
+  (`message_client_game_update`) is the deepest chain.
+
+`size = 16`, `buffer = "0c01" + 00×13 + "19"` follows from those three facts
+and lifts coverage 10.0% → **24.4%**, 40/40 pass.
+
+Two things this example establishes:
+
+- **Keep the un-pinned entry too.** Pinning a valid header means the assert
+  path is no longer exercised, so the two snapshots cover *different* code.
+  `regression_targets.json` carries both, told apart by the optional `label`
+  field (display only — `name` is still the symbol unicorn_diff resolves).
+- **Do not share one pin across sibling handlers.** The identical pin *lowers*
+  `FUN_00130580` (14.3% → 11.2%) because that function dispatches on category
+  differently. One snapshot per function, not per object.
+
+`build_host_snapshots.py` parses manifest `args` with
+`halorec_to_snapshot._parse_arg_value`, so a value is an int when it parses as
+one (`"0x5a90e0"`) and otherwise passes through verbatim — which is what lets
+`buffer` carry a hex blob. JSON numbers and `[lo, hi]` scalar ranges also pass
+through untouched.
+
 ## Divergence Triage And The Ledger
 
 A batch run reports N divergences; on its own that number is not actionable,

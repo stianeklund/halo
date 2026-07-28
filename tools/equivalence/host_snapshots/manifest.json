@@ -86,6 +86,17 @@
       "recording": "Blood Gultch - Enter exit warthog vehicle.halorec",
       "frame": "40",
       "note": "Unpatched Warthog enter/exit and physics state."
+    },
+    {
+      "out": "network_server_mp_gameupdate.json",
+      "recording": "network_server_mp.halorec",
+      "frame": "first",
+      "args": {
+        "server": "0x5a90e0",
+        "size": 16,
+        "buffer": "0c010000000000000000000000000019"
+      },
+      "note": "Same live MP-host frame as network_server_mp.json, but with the ENTRY GATE SATISFIED so the datagram dispatcher actually dispatches. FUN_00130270 asserts (uint16)datagram_size == GET_MESSAGE_SIZE(*message), i.e. size == msg[0]>>4; random seeds hit that 1-in-2^16 and stall at 10.0% coverage on the assert path. Pinning size=16 with msg[0]=0x010c makes the header self-consistent, sets flags valid (msg[0]&3==0) and selects category 3 -- the only category that reaches the packet switch. The last header byte (buffer[size-1]) is the packet type; 0x19 = message_client_game_update, the deepest chain (get_state -> get_client_machine_at_address -> decode -> handle_client_update_packet). Measured 10.0% -> 24.4% coverage, 10/10 PASS. Kept as a SEPARATE snapshot because the same pin LOWERS FUN_00130580 (14.3% -> 11.2%, a different category path), so the original entry must stay as-is."
     }
   ]
 }

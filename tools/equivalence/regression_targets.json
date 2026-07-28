@@ -654,6 +654,18 @@
         "tools/equivalence/regression_snapshots/evaluate_game_complexity.json"
       ],
       "reason": "real-callee + live snapshot: player + vehicle-seat counting via data_iterator + global complexity-flag branches"
+    },
+    {
+      "addr": "0x130270",
+      "name": "FUN_00130270",
+      "label": "FUN_00130270[gameupd]",
+      "obj": "network_server_message_handler.obj",
+      "seeds": 40,
+      "flags": [
+        "--state-snapshot", "tools/equivalence/host_snapshots/network_server_mp_gameupdate.json",
+        "--allow-stubs", "--mem-trace", "--no-stub-arg-trace"
+      ],
+      "reason": "Same function as the FUN_00130270 entry above, but on the gate-satisfied snapshot: size=16 / msg[0]=0x010c makes the header self-consistent, so the assert path is skipped and the category-3 packet switch actually dispatches (packet_type 0x19 = client_game_update, the deepest chain). Covers 24.4% vs 10.0% (40/40 PASS) and exercises code the sibling entry never reaches; the sibling still covers the assert/early-exit path, so both are kept. NOTE: both write the same artifacts/equivalence/FUN_00130270_smoke.log, so the log reflects whichever ran last. SKIPs when host snapshot absent."
     }
   ]
 }
