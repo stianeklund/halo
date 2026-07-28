@@ -422,30 +422,32 @@ int16_t FUN_0019c0a0(void *state)
   pos = *(short *)(s + 0xc);
   c = *(int16_t *)(*(int *)(s + 0x8) + (int)pos * 2);
   *(int16_t *)(s + 0x12) = c;
-  *(short *)(s + 0xc) = (short)(pos + 1);
+  pos = (short)(pos + 1);
+  *(short *)(s + 0xc) = pos;
 
   switch ((unsigned short)c) {
   case 0:
     *(int16_t *)(s + 0x14) = 0;
-    return *(int16_t *)(s + 0x14);
+    return *(volatile int16_t *)(s + 0x14);
   case 9:
     *(int16_t *)(s + 0x14) = 3;
-    return *(int16_t *)(s + 0x14);
+    return *(volatile int16_t *)(s + 0x14);
   case 0xd:
     *(int16_t *)(s + 0x14) = 1;
-    return *(int16_t *)(s + 0x14);
+    return *(volatile int16_t *)(s + 0x14);
   case 0x7c:
-    c2 = *(int16_t *)(*(int *)(s + 0x8) + (int)(short)(pos + 1) * 2);
-    *(short *)(s + 0xc) = (short)(pos + 2);
+    c2 = *(int16_t *)(*(int *)(s + 0x8) + (int)pos * 2);
+    pos = (short)(pos + 1);
+    *(short *)(s + 0xc) = pos;
     if (c2 == 0x6e) {
       *(int16_t *)(s + 0x12) = 0xd;
       *(int16_t *)(s + 0x14) = 1;
-      return *(int16_t *)(s + 0x14);
+      return *(volatile int16_t *)(s + 0x14);
     }
     /* fall through */
   default:
     *(int16_t *)(s + 0x14) = 6;
     break;
   }
-  return *(int16_t *)(s + 0x14);
+  return *(volatile int16_t *)(s + 0x14);
 }

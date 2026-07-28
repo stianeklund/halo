@@ -322,6 +322,12 @@ def _trim_unlabeled_bleed(insns: list, label_positions: set[int]) -> list:
 
 _DATA_GARBAGE_MARKERS = ('<unknown>', 'addb\t%al, (%eax)', 'addb %al, (%eax)')
 
+# Scaled indirect jump through a switch jump table: `jmp *0x0(,%edx,4)`,
+# `jmp *0x100(,%eax,4)`, etc.  AT&T form, 4-byte scale (dword table entries).
+# Presence of this instruction means MSVC emitted the table in .text right
+# after the function's final RET -- see _trim_trailing_table_data.
+_INDIRECT_TABLE_JMP_RE = re.compile(r'\bjmp\w*\s+\*[^(]*\(\s*,\s*%\w+\s*,\s*4\s*\)')
+
 
 def _trim_trailing_table_data(insns: list) -> list:
     """Trim inline switch-table data disassembled as garbage after the final RET.
@@ -344,6 +350,16 @@ def _trim_trailing_table_data(insns: list) -> list:
         return insns
     tail = insns[last_ret + 1:]
     if any(any(m in ins for m in _DATA_GARBAGE_MARKERS) for ins in tail):
+        return insns[:last_ret + 1]
+    # Marker-independent rule: a scaled indirect jump (jmp *disp(,%reg,4)) is
+    # proof MSVC emitted a switch jump table, and MSVC always places that table
+    # in .text after the function's final RET.  Enumerating the table's garbage
+    # decode is unreliable -- the bytes decode differently per table (this path
+    # was added because a byte-index table decoded as `addb $0x4, %al` /
+    # `addb %al, (%esp,%eax)`, none of which are in _DATA_GARBAGE_MARKERS, so
+    # ~55 phantom insns survived and capped FUN_0019c0a0 at 43.7% against a real
+    # 35-insn body).  Keyed on the jump, not on the data.
+    if any(_INDIRECT_TABLE_JMP_RE.search(ins) for ins in insns[:last_ret + 1]):
         return insns[:last_ret + 1]
     return insns
 
@@ -1177,6 +1193,35 @@ def _self_test():
            "   a: ret\n")
     ins = _first_function_insns_from_text(txt, {"FUN_00003000"})
     check("genuine neighbour slot still truncated", ins is not None and len(ins) == 2)
+
+    # --- Switch jump-table data trimming (_trim_trailing_table_data) ---
+    # Guards the 2026-07-28 fix: the byte-index table after FUN_0019c0a0's final
+    # ret decoded as `addb $0x4, %al` / `addb %al, (%esp,%eax)`, none of which are
+    # in _DATA_GARBAGE_MARKERS, so ~55 phantom insns survived and capped the
+    # function at 38.1% against a real 37-insn body (fixed -> 77.5%).
+
+    # T1. Marker-based path still works (addb %al, (%eax) from 00 00 pairs).
+    ins = _trim_trailing_table_data(
+        ["movl (%eax), %eax", "retl", "addb %al, (%eax)", "addb %al, (%eax)"])
+    check("T1 marker-based table trim", len(ins) == 2)
+
+    # T2. NEW: table whose decode matches no marker is still trimmed, because
+    #     the body contains a scaled indirect jump (proof of a jump table).
+    ins = _trim_trailing_table_data(
+        ["jmp\t*0x0(,%edx,4)", "movw $0x6, 0x14(%eax)", "retl",
+         "addb $0x4, %al", "addb %al, (%esp,%eax)", "addb $0x2, %al"])
+    check("T2 unmarked table trimmed via indirect jmp", len(ins) == 3)
+
+    # T3. CRITICAL negative: NO indirect table jmp and no marker -> do NOT trim.
+    #     Prevents the rule from eating a genuine trailing block.
+    ins = _trim_trailing_table_data(
+        ["movl (%eax), %eax", "retl", "xorl %eax, %eax", "retl"])
+    check("T3 no jmp-table evidence -> no trim", len(ins) == 4)
+
+    # T4. Negative: a scaled indirect CALL is not a jump table -> no trim.
+    ins = _trim_trailing_table_data(
+        ["call\t*0x0(,%edx,4)", "retl", "xorl %eax, %eax", "retl"])
+    check("T4 indirect call is not a jump table", len(ins) == 4)
 
     # --- @reg-defined phantom-slot load stripping (strip_regparam_loads) ---
     # These guard the @reg-DEFINED prologue-ceiling modeling: a byte-faithful
