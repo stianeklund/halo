@@ -167,6 +167,107 @@ def test_chkstk_ignored():
     print("  PASS  test_chkstk_ignored")
 
 
+def test_assert_metadata_soft_matched():
+    """display_assert's message/__FILE__/__LINE__ differ by construction.
+
+    Our lifted sources do not reproduce the original's line numbering and our
+    string literals land in a different section. 101 of the 331 divergences in
+    the 2026-07-28 batch were nothing but this.
+    """
+    oracle = _make_tracer(
+        _rec(0, _SENTINEL_A, "_display_assert", 0x1f4a20, 0x1f4b00, 0xa89, 0x1),
+    )
+    cand = _make_tracer(
+        _rec(0, _SENTINEL_A, "_display_assert", 0x4c1180, 0x4c1200, 0x374, 0x1),
+    )
+    d = compare_stub_arg_traces(oracle, cand, seed_label="s8")
+    assert d.arg_mismatches == 0, f"expected 0 hard mismatches, got {d.arg_mismatches}"
+    assert d.soft_semantic_matches == 3, d.soft_semantic_matches
+    assert d.soft_reasons.get("assert-metadata") == 3, d.soft_reasons
+    assert not d.has_differences(), f"assert metadata should not fail: {d}"
+    assert "assert-metadata" in d.summary(), d.summary()
+    print("  PASS  test_assert_metadata_soft_matched")
+
+
+def test_assert_halt_arg_still_compared():
+    """Arg 3 (`halt`) is behavioural — whether the assert aborts — not metadata."""
+    oracle = _make_tracer(
+        _rec(0, _SENTINEL_A, "_display_assert", 0x1f4a20, 0x1f4b00, 0xa89, 0x1),
+    )
+    cand = _make_tracer(
+        _rec(0, _SENTINEL_A, "_display_assert", 0x1f4a20, 0x1f4b00, 0xa89, 0x0),
+    )
+    d = compare_stub_arg_traces(oracle, cand, seed_label="s9")
+    assert d.arg_mismatches == 1, f"halt arg must be compared, got {d.arg_mismatches}"
+    assert d.has_differences()
+    print("  PASS  test_assert_halt_arg_still_compared")
+
+
+def test_assert_exemption_does_not_cover_other_callees():
+    """The metadata rule is a display_assert contract, not a general one."""
+    oracle = _make_tracer(_rec(0, _SENTINEL_A, "datum_get", 0x1f4a20, 0x2, 0xa89))
+    cand = _make_tracer(_rec(0, _SENTINEL_A, "datum_get", 0x4c1180, 0x2, 0x374))
+    d = compare_stub_arg_traces(oracle, cand, seed_label="s10")
+    assert d.arg_mismatches == 2, d.arg_mismatches
+    assert d.has_differences()
+    print("  PASS  test_assert_exemption_does_not_cover_other_callees")
+
+
+def test_memset_fill_low_byte_soft_matched():
+    """memset(p, -1, n) and memset(p, 0xff, n) write identical bytes."""
+    oracle = _make_tracer(_rec(0, _SENTINEL_A, "_csmemset", 0x40000, 0xffffffff, 0x20))
+    cand = _make_tracer(_rec(0, _SENTINEL_A, "_csmemset", 0x40000, 0xff, 0x20))
+    d = compare_stub_arg_traces(oracle, cand, seed_label="s11")
+    assert d.arg_mismatches == 0, d.arg_mismatches
+    assert d.soft_reasons.get("memset-fill") == 1, d.soft_reasons
+    assert not d.has_differences()
+    print("  PASS  test_memset_fill_low_byte_soft_matched")
+
+
+def test_memset_differing_low_byte_still_fails():
+    """Only the low byte is unobservable; a different one is a real bug."""
+    oracle = _make_tracer(_rec(0, _SENTINEL_A, "_csmemset", 0x40000, 0xffffffff, 0x20))
+    cand = _make_tracer(_rec(0, _SENTINEL_A, "_csmemset", 0x40000, 0x00, 0x20))
+    d = compare_stub_arg_traces(oracle, cand, seed_label="s12")
+    assert d.arg_mismatches == 1, d.arg_mismatches
+    assert d.has_differences()
+    print("  PASS  test_memset_differing_low_byte_still_fails")
+
+
+def test_memset_size_arg_still_compared():
+    """A benign fill must not launder a wrong destination or size."""
+    oracle = _make_tracer(_rec(0, _SENTINEL_A, "_csmemset", 0x40000, 0xffffffff, 0x40))
+    cand = _make_tracer(_rec(0, _SENTINEL_A, "_csmemset", 0x40000, 0xff, 0x10))
+    d = compare_stub_arg_traces(oracle, cand, seed_label="s13")
+    assert d.arg_mismatches == 1, d.arg_mismatches
+    assert d.details[0][3] == 2, f"expected the size arg to fail, got {d.details[0]}"
+    print("  PASS  test_memset_size_arg_still_compared")
+
+
+def test_candidate_globals_slot_above_nominal_top():
+    """Candidate DIR32 slots sit above the oracle's and can pass 0x600000.
+
+    Using the nominal arena top made every such slot pointer a hard mismatch.
+    """
+    from stubs import (set_globals_arena_top, reset_globals_arena_top,
+                       GLOBALS_SIZE)
+    reset_globals_arena_top()
+    o_slot = GLOBALS_BASE + 0x300
+    c_slot = GLOBALS_BASE + GLOBALS_SIZE + 0x200300   # candidate base ran past
+    oracle = _make_tracer(_rec(0, _SENTINEL_A, "foo", o_slot))
+    cand = _make_tracer(_rec(0, _SENTINEL_A, "foo", c_slot))
+
+    d = compare_stub_arg_traces(oracle, cand, seed_label="s14")
+    assert d.arg_mismatches == 1, "without the arena top this must still fail"
+
+    set_globals_arena_top(c_slot + 0x100)
+    d = compare_stub_arg_traces(oracle, cand, seed_label="s14b")
+    assert d.arg_mismatches == 0, f"expected soft match, got {d.arg_mismatches}"
+    assert d.soft_stack_ptr_matches == 1, d.soft_stack_ptr_matches
+    reset_globals_arena_top()
+    print("  PASS  test_candidate_globals_slot_above_nominal_top")
+
+
 def test_rdata_dir32_patched():
     relocs = [
         _FakeReloc(IMAGE_REL_I386_DIR32, ".rdata$switch", 0),
@@ -201,17 +302,21 @@ def test_empty_traces():
 
 
 def main():
+    # Auto-discover, so a new test is never silently left out of the run.
     print("Running stub-arg trace comparator self-tests...")
-    test_identical()
-    test_swapped_args()
-    test_stack_ptr_soft_match()
-    test_stack_ptr_one_side_only()
-    test_sequence_length_diverged()
-    test_sequence_callee_diverged()
-    test_chkstk_ignored()
-    test_rdata_dir32_patched()
-    test_empty_traces()
-    print("\nAll tests passed.")
+    tests = [v for k, v in sorted(globals().items())
+             if k.startswith("test_") and callable(v)]
+    failed = 0
+    for t in tests:
+        try:
+            t()
+        except AssertionError as exc:
+            print(f"  FAIL  {t.__name__}: {exc}")
+            failed += 1
+    if failed:
+        print(f"\n{failed}/{len(tests)} FAILED")
+        return 1
+    print(f"\nAll {len(tests)} tests passed.")
     return 0
 
 

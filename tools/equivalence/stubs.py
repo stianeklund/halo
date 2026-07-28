@@ -16,7 +16,7 @@ import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 IMAGE_REL_I386_DIR32 = 0x0006
 IMAGE_REL_I386_REL32 = 0x0014
@@ -103,6 +103,10 @@ class StubArgDiff:
     # True when call sequences diverge (different length or different callee order)
     sequence_diverged: bool
     sequence_diverge_index: int  # index where divergence first occurs (-1 if none)
+    # Args excused by a callee-contract rule, counted per reason so an
+    # exemption is always visible in the summary rather than silently dropped.
+    soft_semantic_matches: int = 0
+    soft_reasons: Dict[str, int] = field(default_factory=dict)
 
     def has_differences(self) -> bool:
         return self.sequence_diverged or self.arg_mismatches > 0
@@ -115,9 +119,33 @@ class StubArgDiff:
             parts.append(f"{self.arg_mismatches} arg mismatch(es)")
         if self.soft_stack_ptr_matches:
             parts.append(f"{self.soft_stack_ptr_matches} stack-ptr arg(s) soft-matched")
+        for reason, n in sorted(self.soft_reasons.items()):
+            parts.append(f"{n} {reason} arg(s) soft-matched")
         if not parts:
             parts.append("ok")
         return "stub-args: " + ", ".join(parts)
+
+
+_GLOBALS_ARENA_TOP = None
+
+
+def _globals_arena_top() -> int:
+    """Top of the synthetic DIR32 slot arena actually in use this run."""
+    if _GLOBALS_ARENA_TOP is None:
+        return GLOBALS_BASE + GLOBALS_SIZE
+    return max(_GLOBALS_ARENA_TOP, GLOBALS_BASE + GLOBALS_SIZE)
+
+
+def set_globals_arena_top(top: int) -> None:
+    """Record the highest DIR32 slot address allocated for either side."""
+    global _GLOBALS_ARENA_TOP
+    if _GLOBALS_ARENA_TOP is None or top > _GLOBALS_ARENA_TOP:
+        _GLOBALS_ARENA_TOP = top
+
+
+def reset_globals_arena_top() -> None:
+    global _GLOBALS_ARENA_TOP
+    _GLOBALS_ARENA_TOP = None
 
 
 def _is_stack_ptr(v: int) -> bool:
@@ -126,9 +154,16 @@ def _is_stack_ptr(v: int) -> bool:
     Both are allocator-numbered scratch regions: the oracle and candidate
     each assign their own slot addresses independently (e.g. two string
     literal args to display_assert), so the same conceptual pointer differs
-    numerically between the two sides for reasons unrelated to correctness."""
+    numerically between the two sides for reasons unrelated to correctness.
+
+    The candidate's slots are placed ABOVE the oracle's
+    (lft_globals_base = GLOBALS_BASE + len(orc_data_slots) * 256), so with
+    enough oracle slots the candidate arena runs past GLOBALS_BASE+GLOBALS_SIZE.
+    Using the nominal top here made every such candidate slot look like a hard
+    mismatch. set_globals_arena_top() raises the ceiling to what was actually
+    allocated."""
     return (_STACK_BASE <= v < _STACK_TOP
-            or GLOBALS_BASE <= v < GLOBALS_BASE + GLOBALS_SIZE)
+            or GLOBALS_BASE <= v < _globals_arena_top())
 
 
 def _is_chkstk_name(name: str) -> bool:
@@ -171,6 +206,45 @@ _INLINED_INTRINSIC_KEYS = frozenset((
 
 def _is_inlined_intrinsic_name(name: str) -> bool:
     return name.lstrip("_").lower() in _INLINED_INTRINSIC_KEYS
+
+
+# display_assert(const char *reason, const char *filepath, int lineno, bool halt)
+#
+# Args 0-2 are compile-time metadata about the assert site, not computed
+# values, and they differ between oracle and candidate by construction: our
+# lifted sources do not reproduce the original's line numbering (a real
+# observed pair is oracle=0xa89 candidate=0x374), and our string literals land
+# in a different section than the original's. 101 of the 331 divergences in the
+# 2026-07-28 batch were nothing but this.
+#
+# Arg 3 (`halt`) is behavioural — whether the assert aborts — so it is still
+# compared, as is the call sequence itself. An assert that fires on one side
+# and not the other still shows up as a sequence divergence.
+_ASSERT_METADATA_CALLEES = frozenset((
+    "display_assert", "fun_0008d9f0", "assert", "assert_halt",
+))
+_ASSERT_METADATA_ARGS = frozenset((0, 1, 2))
+
+
+def _is_assert_metadata_arg(name: str, arg_index: int) -> bool:
+    return (name.lstrip("_").lower() in _ASSERT_METADATA_CALLEES
+            and arg_index in _ASSERT_METADATA_ARGS)
+
+
+# csmemset(void *buffer, int c, size_t size) — `c` is converted to unsigned
+# char, so only its low byte is observable: memset(p, -1, n) and
+# memset(p, 0xff, n) write identical bytes. All 92 fill-argument divergences in
+# the 2026-07-28 batch were exactly that pair (oracle 0xffffffff / candidate
+# 0xff). The literal is still structurally wrong and VC71's [IMM-WARN] reports
+# it; it is not a behavioural difference.
+_BYTE_FILL_CALLEES = frozenset(("csmemset", "memset", "fun_0008db80"))
+_BYTE_FILL_ARG = 1
+
+
+def _is_byte_fill_equivalent(name: str, arg_index: int, o_val: int, c_val: int) -> bool:
+    return (name.lstrip("_").lower() in _BYTE_FILL_CALLEES
+            and arg_index == _BYTE_FILL_ARG
+            and (o_val & 0xFF) == (c_val & 0xFF))
 
 
 def compare_stub_arg_traces(oracle_tracer: StubArgTracer,
@@ -222,6 +296,8 @@ def compare_stub_arg_traces(oracle_tracer: StubArgTracer,
 
     arg_mismatches = 0
     soft_matches = 0
+    soft_semantic = 0
+    soft_reasons = {}
     details = []
 
     # Per-arg comparison over matching prefix
@@ -236,6 +312,16 @@ def compare_stub_arg_traces(oracle_tracer: StubArgTracer,
             if _is_stack_ptr(o_val) and _is_stack_ptr(c_val):
                 soft_matches += 1
                 continue
+            if _is_assert_metadata_arg(o_rec.callee_name, ai):
+                soft_semantic += 1
+                soft_reasons["assert-metadata"] = \
+                    soft_reasons.get("assert-metadata", 0) + 1
+                continue
+            if _is_byte_fill_equivalent(o_rec.callee_name, ai, o_val, c_val):
+                soft_semantic += 1
+                soft_reasons["memset-fill"] = \
+                    soft_reasons.get("memset-fill", 0) + 1
+                continue
             arg_mismatches += 1
             details.append((seed_label, o_rec.seq, o_rec.callee_name, ai, o_val, c_val))
 
@@ -246,6 +332,8 @@ def compare_stub_arg_traces(oracle_tracer: StubArgTracer,
         details=details,
         sequence_diverged=seq_diverged,
         sequence_diverge_index=seq_diverge_idx,
+        soft_semantic_matches=soft_semantic,
+        soft_reasons=soft_reasons,
     )
 
 
@@ -477,6 +565,10 @@ def patch_rel32_calls(code: bytes, relocs: list, defined_symbols: set,
     return bytes(patched), stub_map
 
 
+# Scratch arena for pointer-returning accessor stubs.
+STUB_OBJECT_ARENA = 0x10000000
+_ARENA_PAGE = 0x10000
+
 DEFAULT_STUB_RETURNS = {
     "createfilea": 0x100,
     "readfile": 1,
@@ -489,9 +581,51 @@ DEFAULT_STUB_RETURNS = {
     "file_read": 1,
     "display_assert": 0,
     "system_exit": 0,
-    "debug_malloc": 0x10000000,
-    "csmemcpy": 0x10000000,
+    "debug_malloc": STUB_OBJECT_ARENA,
+    "csmemcpy": STUB_OBJECT_ARENA,
 }
+
+# Pointer-returning accessors, ranked by how many of the 331 divergent
+# functions in the 2026-07-28 batch call them. All return 0 by default, which
+# reads as "object not found", so every caller takes its NULL-check bail-out
+# and the interesting body is never executed -- a large part of why 261 cached
+# entries sat below 30% coverage and 170 at exactly 0.0%.
+#
+# Handing back a distinct mapped scratch page instead lets the caller proceed,
+# and on a measured sample it moved functions from 0.0% to 100% coverage. It is
+# OPT-IN (--rich-stub-returns), not the default, because a zero-filled page is
+# not a valid object: a caller that reads a function pointer out of the
+# returned struct and calls through it fetches from ~0 and dies
+# (UC_ERR_FETCH_UNMAPPED at eip=0xff86). On a 200-function sample of
+# previously-passing targets that turned ~6% of clean passes into errors --
+# trading a trivially-clean verdict for a deeper crash, which is worse
+# evidence, not better.
+#
+# The sound version of this lever is the plan's first choice: sub-emulate the
+# real callee (--real-callees), or replay real state (--state-snapshot), so the
+# returned pointer refers to an object that actually exists. Use this flag for
+# coverage exploration, not for verdicts.
+#
+# Distinct pages, not one shared address, so a caller that confuses two
+# accessors' results still shows as a difference. Values are identical on both
+# sides, so the differential itself stays sound.
+ACCESSOR_STUB_RETURNS = {
+    "object_get_and_verify_type": STUB_OBJECT_ARENA + 1 * _ARENA_PAGE,
+    "datum_get":                  STUB_OBJECT_ARENA + 2 * _ARENA_PAGE,
+    "tag_get":                    STUB_OBJECT_ARENA + 3 * _ARENA_PAGE,
+    "tag_block_get_element":      STUB_OBJECT_ARENA + 4 * _ARENA_PAGE,
+    "global_scenario_get":        STUB_OBJECT_ARENA + 5 * _ARENA_PAGE,
+    "scenario_get":               STUB_OBJECT_ARENA + 5 * _ARENA_PAGE,
+    "object_header_get":          STUB_OBJECT_ARENA + 6 * _ARENA_PAGE,
+}
+
+# Set by unicorn_diff when --rich-stub-returns is passed.
+ENABLE_ACCESSOR_STUB_RETURNS = False
+
+
+def set_accessor_stub_returns(enabled: bool) -> None:
+    global ENABLE_ACCESSOR_STUB_RETURNS
+    ENABLE_ACCESSOR_STUB_RETURNS = bool(enabled)
 
 
 class StubManager:
@@ -561,6 +695,12 @@ class StubManager:
             return canon, DEFAULT_STUB_RETURNS[canon]
         if raw in DEFAULT_STUB_RETURNS:
             return raw, DEFAULT_STUB_RETURNS[raw]
+
+        if ENABLE_ACCESSOR_STUB_RETURNS:
+            if canon in ACCESSOR_STUB_RETURNS:
+                return canon, ACCESSOR_STUB_RETURNS[canon]
+            if raw in ACCESSOR_STUB_RETURNS:
+                return raw, ACCESSOR_STUB_RETURNS[raw]
 
         return None, None
 

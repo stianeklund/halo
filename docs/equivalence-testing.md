@@ -206,6 +206,76 @@ and move the target to runtime oracle or dual-oracle harness coverage.
 | `phase1_coverage_pct` | float | Coverage before concolic (only if concolic ran) |
 | `unique_returns` | int | Distinct EAX values across all seeds |
 
+## What The Harness Deliberately Does Not Compare
+
+The stub-argument differential records every stubbed callee's arguments on both
+sides and fails a seed when they differ. Some differences are guaranteed by
+construction and are excused — but always *reported*, so an exemption never
+silently hides evidence. They appear in the run summary:
+
+```
+stub-arg differential: 100 calls, 0 arg mismatch(es), 0 soft-matched stack ptr(s), 50 memset-fill
+```
+
+| Exemption | Why it cannot indicate a lift bug |
+|-----------|-----------------------------------|
+| `display_assert` args 0–2 | `(reason, filepath, lineno, halt)`. Our sources do not reproduce the original's line numbering, and our string literals land in a different section. Arg 3 (`halt`) **is** compared, and an assert that fires on only one side still shows as a call-sequence divergence. |
+| `csmemset` arg 1, equal mod 256 | The fill value is converted to `unsigned char`, so `memset(p, -1, n)` and `memset(p, 0xff, n)` write identical bytes. A different low byte still fails. VC71's `[IMM-WARN]` is what catches the wrong literal. |
+| Stack pointers on both sides | MSVC and clang lay out frames differently. |
+| DIR32 slot pointers on both sides | The two sides get **disjoint** slot ranges (`lft_globals_base = GLOBALS_BASE + len(orc_data_slots) * 256`), so the candidate's arena can run past `GLOBALS_BASE + GLOBALS_SIZE`. `set_globals_arena_top()` tells the comparator how far it actually reaches. |
+
+Each exemption is pinned by `test_stub_arg_trace.py`, together with the case
+that must still fail (wrong `halt`, wrong fill low byte, wrong memset size, and
+the rules not applying to other callees).
+
+## Reaching Past The Early-Exit Path
+
+Two things kept functions pinned at low coverage:
+
+- **No auto-map for leaves.** The unmapped-access auto-map hook was gated on
+  `map_globals`, which is only set for stubbed non-leaf runs. A leaf that reads
+  a global — or dereferences an `int`-typed parameter that is really a pointer —
+  died on its first access with `UC_ERR_READ_UNMAPPED` before executing
+  anything. `auto_map_unmapped=True` installs the hook without also mapping and
+  seeding the globals region.
+- **Accessors stubbed to 0.** `object_get_and_verify_type`, `datum_get`,
+  `tag_get`, `tag_block_get_element` and `global_scenario_get` all return
+  `void *`, and a stub returning 0 reads as "not found", so every caller took
+  its NULL-check bail-out. They now return distinct pages in a scratch arena
+  (`STUB_OBJECT_ARENA`, `stubs.py`) — distinct so that a caller confusing two
+  accessors' results still shows as a difference, identical across both sides
+  so the differential stays sound, and zero-filled on first touch by the
+  auto-map hook so the dereference that follows is safe.
+
+Both changes are symmetric across oracle and candidate. They make functions
+execute *more* of their body, so they can surface divergences that were
+previously hidden behind an early return — that is the intended outcome, and
+those belong in the ledger as new entries rather than being treated as a
+regression.
+
+### Measured effect
+
+Controlled before/after, same targets and seeds, `--no-leaf-cache`, HEAD versus
+the changes. The default configuration only — `--rich-stub-returns` is off:
+
+| Sample | Metric | Before | After |
+|---|---|---|---|
+| 100 functions below 30% coverage | mean coverage | 6.8% | **16.2%** |
+| | at/above the 60% `high` threshold | 3 | **12** |
+| | verdict `error` → `pass` | — | **8** |
+| | coverage regressions | — | **0** |
+| 100 previously-passing functions | `pass` → `fail`/`error` | — | **0** |
+| | coverage regressions | — | **0** |
+
+Re-running a random 20 of the 115 ledger entries classified
+`assert_metadata` / `stack_ptr_args` / `benign_arg_width`: **19 now pass**.
+
+One caveat this exercise exposed: only 91 of the 100 sampled
+"previously-passing" functions still passed at HEAD, before any change. The
+batch summary's verdicts are reused via `--skip-existing`, so a stale `pass`
+can persist across source changes. Measure a baseline by re-running, not by
+reading the last batch summary — an apparent regression is often drift.
+
 ## Divergence Triage And The Ledger
 
 A batch run reports N divergences; on its own that number is not actionable,
