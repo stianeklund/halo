@@ -83,6 +83,91 @@ The concolic module (`tools/equivalence/concolic.py`) handles:
 Disable with `--no-concolic` if Phase 2 causes false positives on
 functions with deliberately uninitialized state.
 
+### Solved injections (`concolic_z3.py`)
+
+The heuristics above read the CMP immediate next to a branch and try
+`imm`, `imm±1`. That works when the compared value *is* the global, and
+fails as soon as anything sits in between — one arithmetic step, a second
+condition, a value derived from two globals.
+
+`concolic_z3.solve_uncovered()` replaces the guess with a solve. It runs
+before the heuristics and its results lead the injection list:
+
+1. Symbolize every concrete global address the run recorded a read from.
+2. Walk the executed path (the union of visited PCs) from the function
+   entry, lifting each instruction with `x86_to_z3` in **permissive**
+   mode and accumulating each branch's condition in the direction really
+   taken.
+3. At the uncovered branch, assert the direction that was never executed.
+4. Solve; emit the globals whose solved value differs from the observed
+   one, as a single joint injection.
+
+The heuristics still run and their injections are still appended, so this
+is strictly additive — a missing z3, a `LiftError`, or an unsatisfiable
+path costs nothing relative to the previous behaviour.
+
+Three properties are worth knowing because they shape what you see:
+
+- **Permissive lifting is correct here.** The output is a hypothesis that
+  gets re-run and measured, so a dropped instruction costs seed quality,
+  never correctness. Proof callers (`z3_equiv`) must keep `strict=True` —
+  see Phase 0 and `X86Lifter.__init__`.
+- **A register-gated branch reports nothing.** The solver is required to
+  find a model in which at least one *relevant* global differs, where
+  relevant means it appears in the path condition. Without that
+  narrowing, Z3 would flip an unrelated global purely to satisfy
+  "something in memory must differ", implying a causal link that is not
+  there. `register-gated` in the stats line means the branch is not
+  reachable by injection at all.
+- **`CALL` is modelled as `EAX := 0`** to match what stubs actually do,
+  and callee stack cleanup is not modelled.
+
+Every attempt lands in exactly one bucket and `SolveStats.accounted()`
+asserts they sum — an attempt that falls through uncounted reads as
+success in the aggregate, which is the failure this harness exists to
+catch. When nothing was injectable the line also says *why*:
+
+```
+concolic: z3 path solve — 4 attempted, 0 solved, 0 unreachable-by-memory,
+          0 register-gated, 4 no-injectable-globals, 0 path-not-reached,
+          0 timeout, 0 error [rejected: 5x null-page]
+```
+
+`HALO_CONCOLIC_NO_Z3=1` disables the lane, for A/B measurement without a
+source swap. Self-test: `test_concolic_z3.py`.
+
+#### Measured effect: none, and the reason is upstream
+
+A/B on 60 targets under 30% coverage (30 seeds, `--allow-stubs`,
+`--mem-trace`, `--no-leaf-cache`, `HALO_CONCOLIC_NO_Z3` as the switch):
+
+| | off | on |
+|---|---|---|
+| mean coverage | 11.9% | 11.9% |
+| ≥60% coverage | 3 | 3 |
+| better / worse / unchanged | — | 0 / 0 / 59 |
+
+The lane reached only **6 of 60** targets. It is gated behind
+`coverage < 60 and passed > 0`, and **24** of the other 54 had *zero
+passing seeds* — the candidate errors on every seed, so no amount of
+injection-value quality applies.
+
+On the 6 it did reach, all 32 attempts are accounted for: 22
+`no-injectable-globals`, 8 `unreachable-by-memory`, 2 `register-gated`,
+0 `path-not-reached`. The rejection breakdown names the real blocker —
+**every** rejected address was `null-page`. These functions take 0 back
+from a stubbed callee and dereference it; the auto-map hook keeps
+execution alive and the read lands below 0x10000. Injecting there is
+correctly refused: it would be testing behaviour the real game never
+has.
+
+So the constraint on this population is **stub-return modelling**, not
+input generation. That is Phase 2's unfinished half (`--real-callees`,
+`--state-snapshot`), not something Phase 3 can reach. Phase 3 is kept
+because it is sound, self-tested, free when idle, and applies wherever
+a function reads real globals — but it is not the lever on the ~16%
+behavioural-coverage number.
+
 ## Memory-Trace Differential
 
 `--mem-trace` records all memory writes (excluding stack) during emulation

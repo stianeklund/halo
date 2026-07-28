@@ -2442,12 +2442,19 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             if uncovered:
                 # Step 4: ground residual-branch injection in real frame values.
                 corpus = load_value_corpus(value_corpus)
+                z3_stats = {}
                 injections = generate_memory_injections(
                     uncovered, merged_global_reads, oracle_func_base,
-                    value_corpus=corpus)
+                    value_corpus=corpus,
+                    code=oracle_code_patched,
+                    visited_pcs=all_visited_pcs,
+                    z3_stats=z3_stats)
                 if corpus:
                     info(f"  concolic: using real-frame value corpus "
                          f"({len(corpus)} globals)")
+                if z3_stats.get("stats") is not None:
+                    info(f"  concolic: z3 path solve — "
+                         f"{z3_stats['stats'].summary()}")
 
                 if injections:
                     info(f"\n  concolic: {len(uncovered)} uncovered branch(es), "
