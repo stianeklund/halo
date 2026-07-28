@@ -15,8 +15,13 @@ char *system_stristr(const char *str, const char *substr)
       if (sc == '\0')
         return NULL;
     } while (sc != c);
-    if (((int(__cdecl *)(const char *, const char *, size_t))0x1e6596)(
-          str, substr + 1, len) == 0)
+    /* CRT __strnicmp (0x1e6596), cdecl, 3 stack args -- verified against the
+       pristine XBE prologue (push ebp; mov ebp,esp; cmp [ebp+0x10],0).  Called
+       by name rather than through a raw address cast so the equivalence oracle
+       can resolve it: a hardcoded address is not a relocation, so the emulator
+       cannot follow the call and the candidate returned 0x1e6596 itself where
+       the oracle ran the real comparison. */
+    if (__strnicmp(str, substr + 1, len) == 0)
       return (char *)(str - 1);
   }
 }
