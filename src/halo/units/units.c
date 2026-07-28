@@ -2253,14 +2253,23 @@ void FUN_001a7a90(int param_1, float body_dmg, float shield_dmg)
 }
 
 /* FUN_001a7ad0 (0x1a7ad0)
- * Iterates child objects and applies damage to each alive object. */
-void FUN_001a7ad0(int parent_handle, int param_2, int param_3)
+ * Iterates child objects and applies damage to each alive object.
+ *
+ * Confirmed: params 2 and 3 are floats, not ints.  The original copies them
+ * with plain dword moves (MOV ECX,[EBP+0x10]; MOV [EBP-0x4],ECX @0x1a7af3)
+ * — there is no FILD/int-to-float conversion anywhere in the body, so
+ * Ghidra's "(float)param_N" cast is invented.  The sibling 0x1a7b50 takes
+ * (int, float, float) as well.  The previous int-typed lift was still
+ * bit-faithful (it cast the pointers, never the values); the float typing
+ * additionally lets callers reproduce the original's FLD/FSTP argument
+ * push instead of a PUSH. */
+void FUN_001a7ad0(int parent_handle, float param_2, float param_3)
 {
   int iter_state;
   int child;
   char *obj;
-  int local_c;
-  int local_8;
+  float local_c;
+  float local_8;
 
   child = FUN_000ce450(parent_handle, &iter_state);
   while (child != -1) {
@@ -2269,7 +2278,7 @@ void FUN_001a7ad0(int parent_handle, int param_2, int param_3)
     if (child != -1) {
       obj = (char *)object_get_and_verify_type(child, -1);
       if ((*(uint8_t *)(obj + 0xb6) & 4) == 0) {
-        FUN_001365d0(child, (float *)&local_c, (float *)&local_8);
+        FUN_001365d0(child, &local_c, &local_8);
       }
     }
     child = FUN_000ce320(parent_handle, &iter_state);
