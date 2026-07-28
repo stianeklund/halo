@@ -388,6 +388,34 @@ float *plane2d_from_points(float *out_line, float *point_a, float *point_b)
   return NULL;
 }
 
+/*
+ * FUN_00099490 — build a 3D plane from a point on the plane and its normal.
+ *
+ * plane_out[0..2] = normal[0..2] (copied via integer moves in the original,
+ * which is what VC71 emits for plain float assignment), and
+ * plane_out[3] = dot(plane_out[0..2], point).
+ *
+ * NOTE (binary fidelity): the dot product's left operand is re-read out of
+ * plane_out (EAX), not out of the normal argument, even though the two hold
+ * equal values after the copy. Preserve that shape — substituting normal[i]
+ * changes the emitted loads. Terms are written x + y + z in source order; the
+ * x87 push order in the original (z, then y, then x with FADDPs) is exactly
+ * what MSVC emits for left-to-right evaluation of that expression.
+ *
+ * 0x99490 / decals.obj
+ */
+void FUN_00099490(float *plane_out, float *point, float *normal)
+{
+  float *plane_normal;
+
+  plane_normal = plane_out;
+  plane_normal[0] = normal[0];
+  plane_normal[1] = normal[1];
+  plane_normal[2] = normal[2];
+  plane_out[3] =
+    plane_out[0] * point[0] + plane_out[1] * point[1] + plane_out[2] * point[2];
+}
+
 /* Signed distance from a point to a plane (normal·point - d). */
 float plane3d_distance_to_point(float *plane, float *point)
 {
