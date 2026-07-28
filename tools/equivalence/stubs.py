@@ -249,7 +249,9 @@ def _is_byte_fill_equivalent(name: str, arg_index: int, o_val: int, c_val: int) 
 
 def compare_stub_arg_traces(oracle_tracer: StubArgTracer,
                              cand_tracer: StubArgTracer,
-                             seed_label: str = "") -> StubArgDiff:
+                             seed_label: str = "",
+                             comparable_sentinels: Optional[set] = None
+                             ) -> StubArgDiff:
     """Compare oracle and candidate StubArgTracer records for one seed.
 
     Rules:
@@ -258,13 +260,29 @@ def compare_stub_arg_traces(oracle_tracer: StubArgTracer,
         values are stack pointers (STACK_BASE..STACK_TOP) — those differ due
         to legitimate frame-layout differences and count as soft matches.
       - Varargs callees: only fixed args (those recorded) are compared.
+
+    ``comparable_sentinels`` restricts the comparison to callees that BOTH
+    sides route through a sentinel.  A record only exists when the call was
+    intercepted, and the two sides do not intercept the same set: when the
+    oracle maps its whole .text (raw intra-.text calls, see ``oracle_text``)
+    its sibling calls resolve internally and are never recorded, while the
+    candidate — which maps only the target slice — must redirect the same
+    calls to sentinels, so they ARE recorded.  Comparing those unfiltered
+    reports `oracle=<end at 0> candidate=_datum_get[...]`: a pure bookkeeping
+    artifact, since both sides execute the same callee bytes. Passing the
+    intersection of the two stub maps keeps the differential sound where it
+    is meaningful and silent where it is not.  None = compare everything
+    (the historical behaviour, correct whenever both sides stub alike).
     """
-    oc = [r for r in oracle_tracer.records
-          if not _is_chkstk_name(r.callee_name)
-          and not _is_inlined_intrinsic_name(r.callee_name)]
-    cc = [r for r in cand_tracer.records
-          if not _is_chkstk_name(r.callee_name)
-          and not _is_inlined_intrinsic_name(r.callee_name)]
+    def _keep(r):
+        if _is_chkstk_name(r.callee_name) or _is_inlined_intrinsic_name(r.callee_name):
+            return False
+        if comparable_sentinels is not None and r.callee_addr not in comparable_sentinels:
+            return False
+        return True
+
+    oc = [r for r in oracle_tracer.records if _keep(r)]
+    cc = [r for r in cand_tracer.records if _keep(r)]
 
     total_calls = len(oc)
     seq_diverged = False
