@@ -2180,7 +2180,7 @@
     },
     {
      "addr": "0x1cda0",
-     "decl": "void FUN_0001cda0(void);"
+     "decl": "void FUN_0001cda0(char param_eax@<eax>, int param_ecx@<ecx>, int param_edx@<edx>, int actor_handle, int param_2, char param_3, int param_4, unsigned char param_5, char *out_6, char *out_7, char *out_8, char *out_9, char *out_10, char *out_11);"
     },
     {
      "addr": "0x1cf10",
@@ -2328,7 +2328,8 @@
     },
     {
      "addr": "0x1ef90",
-     "decl": "char actor_action_handle_lost_contact(int actor_handle);"
+     "decl": "char actor_action_handle_lost_contact(int actor_handle);",
+     "ported": true
     },
     {
      "addr": "0x1f6e0",
@@ -32932,11 +32933,11 @@
     },
     {
      "addr": "0x59d30",
-     "decl": "void encounter_modify_pursuit_desires(void);"
+     "decl": "void encounter_modify_pursuit_desires(int encounter_index, int param_2, char *out_3, int *out_4, char *out_5, int *out_6, int *out_7, int *out_8);"
     },
     {
      "addr": "0x59dd0",
-     "decl": "void encounter_determine_pursuit_availability(void);"
+     "decl": "void encounter_determine_pursuit_availability(int encounter_index, int actor_handle, int param_3, char param_4, char *out_5, char *out_6, char *out_7, char *out_8, char *out_9, char *out_10, char *out_11, char *out_12);"
     },
     {
      "addr": "0x5a050",
@@ -33039,7 +33040,7 @@
     },
     {
      "addr": "0x5b5e0",
-     "decl": "void encounter_mark_examined_pursuit_position(int enc_idx, int actor_handle, int16_t firing_pos, int threat_enc);"
+     "decl": "char encounter_mark_examined_pursuit_position(int enc_idx, int actor_handle, int16_t firing_pos, int threat_enc);"
     },
     {
      "addr": "0x5b6e0",
