@@ -14356,6 +14356,10 @@
       "score": 92.7,
       "source": "src/halo/math/real_math.c"
     },
+    "action_vehicle_setup_impromptu": {
+      "score": 87.6,
+      "source": "src/halo/ai/actions.c"
+    },
     "actor_action_allow_cover_seeking": {
       "score": 86.1,
       "source": "src/halo/ai/actions.c"

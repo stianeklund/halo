@@ -84,6 +84,129 @@ int FUN_0001bba0(int actor_handle, int vehicle_handle, float *out_attach0,
   return best_index;
 }
 
+/* action_vehicle_setup_impromptu (0x1bcd0) — Build an "impromptu vehicle entry"
+ * action state block for an actor and a candidate vehicle, returning whether
+ * the actor actually committed to a path toward a seat.
+ *
+ * The caller-supplied state block is 0x4c bytes (csmemset 0x4c) and is filled
+ * as: +0x00 vehicle handle (int), +0x04 chosen seat index (int16), +0x06 flag
+ * byte, +0x20/+0x24 the two radii passed in, +0x30 destination vec3 and +0x48
+ * an opaque handle (both written by FUN_0001b280).
+ *
+ * Early rejections, in binary order: actor+0x158 must be -1 (no pending
+ * vehicle), actor+0x6 must be clear (actor not suppressed), and actor+0x6c
+ * (current action) must not already be 9 (the vehicle action).
+ *
+ * The vehicle is then qualified. It is disqualified outright when object+0xb6
+ * bit 2 (0x4) is set. Otherwise the vehicle's world position minus the actor's
+ * position at actor+0x12c is taken, and the vehicle qualifies only when that
+ * squared distance is below radius_b squared AND FUN_00012170(object+0x18)
+ * (a magnitude/dot over the object's orientation vector) is at or below
+ * *0x253f2c. Independently, object+0x38 must be at or above *0x253398.
+ *
+ * When qualified, FUN_0001bba0 picks the best seat (truncated to int16). A
+ * valid seat sets the +0x06 flag, then the actor's unit must have an entry
+ * animation for that seat, FUN_0001b280 must produce a destination, and
+ * actor_move_to_point must accept it — only then is 1 returned.
+ *
+ * Confirmed: cdecl, five stack args; ESI holds the state block (advanced by
+ * 0x30 before the last two calls), EDI the vehicle handle, BL the qualified
+ * flag. Confirmed: datum_get(actor_data, actor_handle) is called TWICE (0x1bce3
+ * and 0x1bd5d); the first result feeds actor+0x18 at the animation check, the
+ * second feeds the position deltas — not CSE'd in the original.
+ * Confirmed: radius_a/radius_b are floats stored as plain dwords to
+ * +0x20/+0x24. Confirmed: the assert tail is display_assert(...,1) followed by
+ * system_exit(-1) (CALL 0x8e2f0), reason "state_data", line 0x38 of
+ * c:\halo\SOURCE\ai\action_vehicle.c.
+ * Confirmed: the delta is (vehicle world position - actor position), FSUB in
+ * that order; the squared sum accumulates dy*dy + dz*dz then + dx*dx.
+ * Confirmed FPU directions: FCOMPP + TEST AH,0x41 / JNZ skips when
+ * radius_b*radius_b <= dist^2; FCOMP [0x253f2c] + TEST AH,0x41 / JNZ keeps the
+ * qualified flag when the scalar is <= the constant; FCOMP [0x253398] +
+ * TEST AH,0x5 / JNP takes the body when object+0x38 >= the constant.
+ * Confirmed: the return byte lives at EBP-1 and is loaded into AL before the
+ * single RET at 0x1be8c — Ghidra rendered this function as void(void). */
+char action_vehicle_setup_impromptu(int actor_handle, int vehicle_handle,
+                                    float radius_a, float radius_b,
+                                    void *out_action_data)
+{
+  char *actor;
+  char *actor_pos;
+  char *object;
+  char *state;
+  short seat;
+  char qualified;
+  char result;
+  float attach0[3];
+  float attach1[3];
+  float delta[3];
+
+  result = 0;
+  actor = (char *)datum_get(actor_data, actor_handle);
+  if (out_action_data == NULL) {
+    display_assert("state_data", "c:\\halo\\SOURCE\\ai\\action_vehicle.c", 0x38,
+                   1);
+    system_exit(-1);
+  }
+  state = (char *)out_action_data;
+  csmemset(state, 0, 0x4c);
+  *(float *)(state + 0x20) = radius_a;
+  *(float *)(state + 0x24) = radius_b;
+  if (*(int *)(actor + 0x158) != -1) {
+    return result;
+  }
+  if (*(char *)(actor + 0x6) != '\0') {
+    return result;
+  }
+  if (*(short *)(actor + 0x6c) == 9) {
+    return result;
+  }
+
+  actor_pos = (char *)datum_get(actor_data, actor_handle);
+  object = (char *)object_get_and_verify_type(vehicle_handle, 3);
+  if ((*(unsigned char *)(object + 0xb6) & 4) == 0) {
+    object_get_world_position(vehicle_handle, (vector3_t *)delta);
+    delta[0] = delta[0] - *(float *)(actor_pos + 0x12c);
+    delta[1] = delta[1] - *(float *)(actor_pos + 0x130);
+    delta[2] = delta[2] - *(float *)(actor_pos + 0x134);
+    if (radius_b * radius_b >
+        delta[1] * delta[1] + delta[2] * delta[2] + delta[0] * delta[0]) {
+      qualified = 1;
+      if (FUN_00012170((float *)(object + 0x18)) <= *(const float *)0x253f2c) {
+        goto qualified_resolved;
+      }
+    }
+  }
+  /* Single shared XOR BL,BL join in the original, reached from the flag-set
+   * else, the out-of-range test, and the fall-through when the scalar exceeds
+   * *0x253f2c. */
+  qualified = 0;
+qualified_resolved:
+  if (*(float *)(object + 0x38) >= *(const float *)0x253398 &&
+      qualified != '\0') {
+    *(int *)state = vehicle_handle;
+    seat = (short)FUN_0001bba0(actor_handle, vehicle_handle, &attach0[0],
+                               &attach1[0], delta);
+    *(short *)(state + 0x4) = seat;
+    if (seat != -1) {
+      *(unsigned char *)(state + 0x6) = 1;
+      if (unit_has_animation_to_enter_seat(*(int *)(actor + 0x18),
+                                           vehicle_handle, seat) != '\0') {
+        if (FUN_0001b280(actor_handle, vehicle_handle, &attach0[0], &attach1[0],
+                         delta, NULL, (float *)(state + 0x30),
+                         (int *)(state + 0x48)) != '\0') {
+          if (actor_move_to_point(actor_handle, (float *)(state + 0x30),
+                                  *(int *)(state + 0x48),
+                                  vehicle_handle) != '\0') {
+            result = 1;
+          }
+        }
+      }
+    }
+  }
+  return result;
+}
+
 /* FUN_0001beb0 (0x1beb0) — Update an actor's pursuit/follow state and, when the
  * actor is not suppressed (actor+0x6 clear), either drive it toward its pursuit
  * prop or run the no-pursuit path.
@@ -1944,6 +2067,202 @@ char actor_action_handle_combat_targeting(int actor_handle)
   return 0;
 }
 
+/* actor_action_handle_vehicle_entry (0x1dfa0) — Periodic scan for a vehicle
+ * the actor should board. Throttled to once per 0x2d ticks via the stamp at
+ * actor+0x384, and skipped entirely while the actor is in action state 4 with
+ * actor+0xa8 > 0, or in action state 0xb.
+ *
+ * Two candidate sources, tried in order:
+ * 1. Allies — only when the 'actr' definition flag 0x1000 is set. Walks the
+ *    clump-actor iterator (FUN_00064540/FUN_00064570) and accepts an ally
+ *    record of type 2..3 with +0x12e set, +0x60 clear, a valid handle at
+ *    +0x110 that passes FUN_0001cb30, resolves as an object of type mask 2,
+ *    and whose object+0x2d4 equals ally+0x18. The candidate must be within
+ *    100.0 squared units of actor+0x12c and closer than the best so far; the
+ *    recorded distance becomes (ally+0x11c)^2 and the two radii 8.0 / 10.0.
+ * 2. The AI-globals impromptu-vehicle table (*(char **)0x632574 + 0x3b8,
+ *    int16 count at +0x3b6, stride 0x28) — only when actor+0x84 >= 0x3c and
+ *    no ally candidate was found. Entries are filtered by object type mask 2,
+ *    FUN_0001cb30, distance against the entry+0x4 radius (skipped when that
+ *    radius is the FLT_MAX sentinel), an int16 bitmask at entry+0x8 tested
+ *    against actor+0x3e, an int16 bitmask at entry+0xa tested against
+ *    actor+0x4, and an optional array of entry+0xc identifiers at entry+0x10
+ *    matched on the low 16 bits of actor+0x34 plus a 2-bit tag in bits 30..31
+ *    selecting actor+0x3c (tag 1) or actor+0x3a (tag 2). Accepted entries
+ *    record radii entry+0x4 + 3.0 and entry+0x4 + 6.0.
+ *
+ * Confirmed: returns bool in AL — the three early-outs land at 0x1e351 and
+ * return DL (zeroed at 0x1dfd9), the no-candidate epilogue at 0x1e348 does
+ * XOR AL,AL, and only the committed path at 0x1e341 does MOV AL,0x1.
+ * Confirmed: action_vehicle_setup_impromptu (0x1bcd0) takes 5 stack args
+ * (ADD ESP,0x14 at 0x1e326) and returns char (TEST AL,AL at 0x1e329); the
+ * two float radii are passed as raw dword MOV/PUSH at 0x1e310-0x1e31e.
+ * Confirmed: distance_squared3d operand order differs between the two loops —
+ * (actor+0x12c, pos) at 0x1e0ee, (pos, actor+0x12c) at 0x1e1cf.
+ * Confirmed: 132-byte action buffer at EBP-0xb0 (frame SUB ESP,0xb0, next
+ * local up is the position vector at EBP-0x2c), matching the other action
+ * builders in this TU.
+ * Confirmed: the table base is re-read from 0x632574 at the bottom of every
+ * iteration (0x1e2f0) and the index is compared as int16 (0x1e2f7). */
+char actor_action_handle_vehicle_entry(int actor_handle)
+{
+  char *actor;
+  int *actr_tag;
+  int now;
+  int ally;
+  char *ai_globals;
+  char *entry;
+  void *object;
+  int best_handle;
+  float best_dist2;
+  float radius_a;
+  float radius_b;
+  float dist2;
+  int index;
+  int identifier;
+  short id_count;
+  short i;
+  char matched;
+  char result;
+  int iter[2];
+  vector3_t pos;
+  short action_buf[66];
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actr_tag = (int *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  now = game_time_get();
+  result = 0;
+  if (*(short *)(actor + 0x6c) == 4 && *(short *)(actor + 0xa8) > 0) {
+    return result;
+  }
+  if (*(short *)(actor + 0x6c) == 0xb) {
+    return result;
+  }
+  if (*(int *)(actor + 0x384) != -1 && *(int *)(actor + 0x384) + 0x2d >= now) {
+    return result;
+  }
+  *(int *)(actor + 0x384) = now;
+
+  best_dist2 = 3.4028235e+38f;
+  radius_a = 3.4028235e+38f;
+  radius_b = 3.4028235e+38f;
+  best_handle = -1;
+
+  /* Source 1: allied actors already heading for / owning a vehicle. */
+  if ((*actr_tag & 0x1000) != 0) {
+    FUN_00064540(iter, actor_handle);
+    ally = FUN_00064570(iter);
+    if (ally != 0) {
+      do {
+        if (*(short *)(ally + 0x24) >= 2 && *(short *)(ally + 0x24) <= 3 &&
+            *(char *)(ally + 0x12e) != '\0' && *(char *)(ally + 0x60) == '\0' &&
+            *(int *)(ally + 0x110) != -1 &&
+            FUN_0001cb30(*(int *)(ally + 0x110), actor_handle) != '\0') {
+          object =
+            object_try_and_get_and_verify_type(*(int *)(ally + 0x110), 2);
+          if (object != NULL &&
+              *(int *)((char *)object + 0x2d4) == *(int *)(ally + 0x18)) {
+            object_get_world_position(*(int *)(ally + 0x110), &pos);
+            dist2 = distance_squared3d((float *)(actor + 0x12c), (float *)&pos);
+            if (dist2 < 100.0f && dist2 < best_dist2) {
+              best_handle = *(int *)(ally + 0x110);
+              best_dist2 = *(float *)(ally + 0x11c) * *(float *)(ally + 0x11c);
+              radius_a = 8.0f;
+              radius_b = 10.0f;
+            }
+          }
+        }
+        ally = FUN_00064570(iter);
+      } while (ally != 0);
+      if (best_handle != -1) {
+        goto commit;
+      }
+    }
+  }
+
+  /* Source 2: the AI-globals impromptu vehicle table. */
+  if (*(int *)(actor + 0x84) < 0x3c) {
+    return 0;
+  }
+  ai_globals = *(char **)0x632574;
+  index = 0;
+  if (*(short *)(ai_globals + 0x3b6) <= 0) {
+    return 0;
+  }
+  do {
+    entry = ai_globals + 0x3b8 + (short)index * 0x28;
+    object = object_try_and_get_and_verify_type(*(int *)entry, 2);
+    if (object != NULL && FUN_0001cb30(*(int *)entry, actor_handle) != '\0') {
+      object_get_world_position(*(int *)entry, &pos);
+      dist2 = distance_squared3d((float *)&pos, (float *)(actor + 0x12c));
+      if (dist2 < best_dist2 &&
+          (*(unsigned int *)(entry + 4) == 0x7f7fffff ||
+           dist2 <= *(float *)(entry + 4) * *(float *)(entry + 4)) &&
+          (*(short *)(entry + 8) <= 0 ||
+           (*(short *)(actor + 0x3e) != -1 &&
+            ((int)*(short *)(entry + 8) & (1 << *(short *)(actor + 0x3e))) !=
+              0)) &&
+          (*(short *)(entry + 0xa) <= 0 ||
+           ((int)*(short *)(entry + 0xa) &
+            (1 << *(unsigned char *)(actor + 4))) != 0)) {
+        id_count = *(short *)(entry + 0xc);
+        matched = 1;
+        if (id_count > 0) {
+          matched = 0;
+          for (i = 0; i < id_count; i++) {
+            identifier = *(int *)(entry + 0x10 + i * 4);
+            if (identifier != -1) {
+              /* 0x1e289 NEG/SBB/INC materializes this compare into a byte
+               * before it is branched on — keep it as an assignment. */
+              matched = (char)(((*(unsigned int *)(actor + 0x34) ^
+                                 (unsigned int)identifier) &
+                                0xffff) == 0);
+              if (matched != 0) {
+                switch ((unsigned int)identifier >> 0x1e) {
+                case 1:
+                  matched =
+                    (char)(*(unsigned short *)(actor + 0x3c) ==
+                           (unsigned short)(((unsigned int)identifier >> 0x10) &
+                                            0xff));
+                  break;
+                case 2:
+                  matched =
+                    (char)(*(unsigned short *)(actor + 0x3a) ==
+                           (unsigned short)(((unsigned int)identifier >> 0x10) &
+                                            0xff));
+                  break;
+                }
+                if (matched != 0) {
+                  break;
+                }
+              }
+            }
+          }
+        }
+        if (matched != 0) {
+          best_handle = *(int *)entry;
+          best_dist2 = dist2;
+          radius_a = *(float *)(entry + 4) + 3.0f;
+          radius_b = *(float *)(entry + 4) + 6.0f;
+        }
+      }
+    }
+    ai_globals = *(char **)0x632574;
+    index++;
+  } while ((short)index < *(short *)(ai_globals + 0x3b6));
+  if (best_handle == -1) {
+    return 0;
+  }
+
+commit:
+  if (action_vehicle_setup_impromptu(actor_handle, best_handle, radius_a,
+                                     radius_b, action_buf) == '\0') {
+    return 0;
+  }
+  actor_action_change(actor_handle, 9, (int)action_buf);
+  return 1;
+}
+
 /* actor_action_handle_active_cover_seeking (0x1e700) — When the actor's
  * active-cover gate flag (actor+0x4c) is set, evaluate whether the actor should
  * panic and seek cover. If the actor's stress field (actor+0x1bc) is at or
@@ -2026,209 +2345,6 @@ char actor_action_handle_active_cover_seeking(int actor_handle, char param2,
     }
   }
   return result;
-}
-
-/* actor_action_handle_vehicle_entry (0x1dfa0) — Periodic scan for a vehicle
- * the actor should board. Throttled to once per 0x2d ticks via the stamp at
- * actor+0x384, and skipped entirely while the actor is in action state 4 with
- * actor+0xa8 > 0, or in action state 0xb.
- *
- * Two candidate sources, tried in order:
- * 1. Allies — only when the 'actr' definition flag 0x1000 is set. Walks the
- *    clump-actor iterator (FUN_00064540/FUN_00064570) and accepts an ally
- *    record of type 2..3 with +0x12e set, +0x60 clear, a valid handle at
- *    +0x110 that passes FUN_0001cb30, resolves as an object of type mask 2,
- *    and whose object+0x2d4 equals ally+0x18. The candidate must be within
- *    100.0 squared units of actor+0x12c and closer than the best so far; the
- *    recorded distance becomes (ally+0x11c)^2 and the two radii 8.0 / 10.0.
- * 2. The AI-globals impromptu-vehicle table (*(char **)0x632574 + 0x3b8,
- *    int16 count at +0x3b6, stride 0x28) — only when actor+0x84 >= 0x3c and
- *    no ally candidate was found. Entries are filtered by object type mask 2,
- *    FUN_0001cb30, distance against the entry+0x4 radius (skipped when that
- *    radius is the FLT_MAX sentinel), an int16 bitmask at entry+0x8 tested
- *    against actor+0x3e, an int16 bitmask at entry+0xa tested against
- *    actor+0x4, and an optional array of entry+0xc identifiers at entry+0x10
- *    matched on the low 16 bits of actor+0x34 plus a 2-bit tag in bits 30..31
- *    selecting actor+0x3c (tag 1) or actor+0x3a (tag 2). Accepted entries
- *    record radii entry+0x4 + 3.0 and entry+0x4 + 6.0.
- *
- * Confirmed: returns bool in AL — the three early-outs land at 0x1e351 and
- * return DL (zeroed at 0x1dfd9), the no-candidate epilogue at 0x1e348 does
- * XOR AL,AL, and only the committed path at 0x1e341 does MOV AL,0x1.
- * Confirmed: action_vehicle_setup_impromptu (0x1bcd0) takes 5 stack args
- * (ADD ESP,0x14 at 0x1e326) and returns char (TEST AL,AL at 0x1e329); the
- * two float radii are passed as raw dword MOV/PUSH at 0x1e310-0x1e31e.
- * Confirmed: distance_squared3d operand order differs between the two loops —
- * (actor+0x12c, pos) at 0x1e0ee, (pos, actor+0x12c) at 0x1e1cf.
- * Confirmed: 132-byte action buffer at EBP-0xb0 (frame SUB ESP,0xb0, next
- * local up is the position vector at EBP-0x2c), matching the other action
- * builders in this TU.
- * Confirmed: the table base is re-read from 0x632574 at the bottom of every
- * iteration (0x1e2f0) and the index is compared as int16 (0x1e2f7). */
-char actor_action_handle_vehicle_entry(int actor_handle)
-{
-  char *actor;
-  int *actr_tag;
-  int now;
-  int ally;
-  char *ai_globals;
-  char *entry;
-  void *object;
-  int best_handle;
-  float best_dist2;
-  float radius_a;
-  float radius_b;
-  float dist2;
-  int index;
-  int identifier;
-  short id_count;
-  short i;
-  char matched;
-  char result;
-  int iter[2];
-  vector3_t pos;
-  short action_buf[66];
-
-  actor = (char *)datum_get(actor_data, actor_handle);
-  actr_tag = (int *)tag_get(0x61637472, *(int *)(actor + 0x58));
-  now = game_time_get();
-  result = 0;
-  if (*(short *)(actor + 0x6c) == 4 && *(short *)(actor + 0xa8) > 0) {
-    return result;
-  }
-  if (*(short *)(actor + 0x6c) == 0xb) {
-    return result;
-  }
-  if (*(int *)(actor + 0x384) != -1 &&
-      *(int *)(actor + 0x384) + 0x2d >= now) {
-    return result;
-  }
-  *(int *)(actor + 0x384) = now;
-
-  best_dist2 = 3.4028235e+38f;
-  radius_a = 3.4028235e+38f;
-  radius_b = 3.4028235e+38f;
-  best_handle = -1;
-
-  /* Source 1: allied actors already heading for / owning a vehicle. */
-  if ((*actr_tag & 0x1000) != 0) {
-    FUN_00064540(iter, actor_handle);
-    ally = FUN_00064570(iter);
-    if (ally != 0) {
-      do {
-        if (*(short *)(ally + 0x24) >= 2 && *(short *)(ally + 0x24) <= 3 &&
-            *(char *)(ally + 0x12e) != '\0' &&
-            *(char *)(ally + 0x60) == '\0' &&
-            *(int *)(ally + 0x110) != -1 &&
-            FUN_0001cb30(*(int *)(ally + 0x110), actor_handle) != '\0') {
-          object = object_try_and_get_and_verify_type(*(int *)(ally + 0x110),
-                                                      2);
-          if (object != NULL &&
-              *(int *)((char *)object + 0x2d4) == *(int *)(ally + 0x18)) {
-            object_get_world_position(*(int *)(ally + 0x110), &pos);
-            dist2 =
-                distance_squared3d((float *)(actor + 0x12c), (float *)&pos);
-            if (dist2 < 100.0f && dist2 < best_dist2) {
-              best_handle = *(int *)(ally + 0x110);
-              best_dist2 =
-                  *(float *)(ally + 0x11c) * *(float *)(ally + 0x11c);
-              radius_a = 8.0f;
-              radius_b = 10.0f;
-            }
-          }
-        }
-        ally = FUN_00064570(iter);
-      } while (ally != 0);
-      if (best_handle != -1) {
-        goto commit;
-      }
-    }
-  }
-
-  /* Source 2: the AI-globals impromptu vehicle table. */
-  if (*(int *)(actor + 0x84) < 0x3c) {
-    return 0;
-  }
-  ai_globals = *(char **)0x632574;
-  index = 0;
-  if (*(short *)(ai_globals + 0x3b6) <= 0) {
-    return 0;
-  }
-  do {
-    entry = ai_globals + 0x3b8 + (short)index * 0x28;
-    object = object_try_and_get_and_verify_type(*(int *)entry, 2);
-    if (object != NULL &&
-        FUN_0001cb30(*(int *)entry, actor_handle) != '\0') {
-      object_get_world_position(*(int *)entry, &pos);
-      dist2 = distance_squared3d((float *)&pos, (float *)(actor + 0x12c));
-      if (dist2 < best_dist2 &&
-          (*(unsigned int *)(entry + 4) == 0x7f7fffff ||
-           dist2 <= *(float *)(entry + 4) * *(float *)(entry + 4)) &&
-          (*(short *)(entry + 8) <= 0 ||
-           (*(short *)(actor + 0x3e) != -1 &&
-            ((int)*(short *)(entry + 8) &
-             (1 << *(short *)(actor + 0x3e))) != 0)) &&
-          (*(short *)(entry + 0xa) <= 0 ||
-           ((int)*(short *)(entry + 0xa) &
-            (1 << *(unsigned char *)(actor + 4))) != 0)) {
-        id_count = *(short *)(entry + 0xc);
-        matched = 1;
-        if (id_count > 0) {
-          matched = 0;
-          for (i = 0; i < id_count; i++) {
-            identifier = *(int *)(entry + 0x10 + i * 4);
-            if (identifier != -1) {
-              /* 0x1e289 NEG/SBB/INC materializes this compare into a byte
-               * before it is branched on — keep it as an assignment. */
-              matched = (char)(((*(unsigned int *)(actor + 0x34) ^
-                                 (unsigned int)identifier) &
-                                0xffff) == 0);
-              if (matched != 0) {
-                switch ((unsigned int)identifier >> 0x1e) {
-                case 1:
-                  matched =
-                      (char)(*(unsigned short *)(actor + 0x3c) ==
-                             (unsigned short)(((unsigned int)identifier >>
-                                               0x10) &
-                                              0xff));
-                  break;
-                case 2:
-                  matched =
-                      (char)(*(unsigned short *)(actor + 0x3a) ==
-                             (unsigned short)(((unsigned int)identifier >>
-                                               0x10) &
-                                              0xff));
-                  break;
-                }
-                if (matched != 0) {
-                  break;
-                }
-              }
-            }
-          }
-        }
-        if (matched != 0) {
-          best_handle = *(int *)entry;
-          best_dist2 = dist2;
-          radius_a = *(float *)(entry + 4) + 3.0f;
-          radius_b = *(float *)(entry + 4) + 6.0f;
-        }
-      }
-    }
-    ai_globals = *(char **)0x632574;
-    index++;
-  } while ((short)index < *(short *)(ai_globals + 0x3b6));
-  if (best_handle == -1) {
-    return 0;
-  }
-
-commit:
-  if (action_vehicle_setup_impromptu(actor_handle, best_handle, radius_a,
-                                     radius_b, action_buf) == '\0') {
-    return 0;
-  }
-  actor_action_change(actor_handle, 9, (int)action_buf);
-  return 1;
 }
 
 /* actor_action_handle_combat_selection (0x1e8a0) — Master combat action
@@ -2548,8 +2664,7 @@ char actor_action_handle_done_fleeing(int actor_handle)
  * action was started against). Prop fields 0xb9 / 0xba are int8 flags.
  *
  * Returns the sub-handler's result, or 0 when no transition happened. */
-char actor_action_handle_combat_status(int actor_handle, int param2,
-                                       int param3)
+char actor_action_handle_combat_status(int actor_handle, int param2, int param3)
 {
   char *actor;
   char *prop;
@@ -2605,8 +2720,7 @@ char actor_action_handle_combat_status(int actor_handle, int param2,
       prop = (char *)datum_get(prop_data, prop_handle);
       if (*(int *)(actor + 0x270) == *(int *)(actor + 0x3c0)) {
         if (*(char *)(prop + 0xb9) != 0 ||
-            (*(short *)(actor + 0x6c) == 5 &&
-             *(short *)(actor + 0xa4) == 0)) {
+            (*(short *)(actor + 0x6c) == 5 && *(short *)(actor + 0xa4) == 0)) {
           if (*(char *)(prop + 0xba) != 0)
             goto no_transition;
           action_type = *(short *)(actor + 0x6c);
