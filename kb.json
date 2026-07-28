@@ -28493,7 +28493,8 @@
     },
     {
      "addr": "0x19b5d0",
-     "decl": "void draw_string_set_indents(int width, int height);"
+     "decl": "void draw_string_set_indents(short initial_indent, short paragraph_indent);",
+     "ported": true
     },
     {
      "addr": "0x19b640",
