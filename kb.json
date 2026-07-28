@@ -31615,7 +31615,7 @@
     },
     {
      "addr": "0x31df0",
-     "decl": "void prop_position_refresh(void);"
+     "decl": "void prop_position_refresh(int actor_handle, int prop_handle, void *out_data, int param_4, char refresh_status);"
     },
     {
      "addr": "0x32170",
@@ -31623,7 +31623,7 @@
     },
     {
      "addr": "0x32380",
-     "decl": "void actor_perception_refresh_danger_zone(void);"
+     "decl": "void actor_perception_refresh_danger_zone(int actor_handle);"
     },
     {
      "addr": "0x32940",
@@ -31651,11 +31651,11 @@
     },
     {
      "addr": "0x33330",
-     "decl": "void actor_perception_become_acknowledged(int actor_handle, int prop_handle, int param_3);"
+     "decl": "char actor_perception_become_acknowledged(int actor_handle, int prop_handle, int out_acknowledged);"
     },
     {
      "addr": "0x33440",
-     "decl": "void prop_status_refresh(void);"
+     "decl": "void prop_status_refresh(int actor_handle, int prop_handle, void *out_data);"
     },
     {
      "addr": "0x342a0",
@@ -31667,11 +31667,13 @@
     },
     {
      "addr": "0x34c80",
-     "decl": "void actor_perception_refresh(void);"
+     "decl": "void actor_perception_refresh(int actor_handle);"
     },
     {
      "addr": "0x355f0",
-     "decl": "void FUN_000355f0(int actor_handle);"
+     "decl": "void FUN_000355f0(int actor_handle);",
+     "ported": true,
+     "source_path": "src/halo/ai/actor_perception.c"
     }
    ],
    "name": "actor_perception.obj",
@@ -33242,7 +33244,7 @@
     },
     {
      "addr": "0x648a0",
-     "decl": "void prop_orphan_transition(void);"
+     "decl": "int prop_orphan_transition(int actor_handle, int prop_handle);"
     },
     {
      "addr": "0x64970",
