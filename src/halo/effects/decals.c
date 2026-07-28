@@ -688,6 +688,84 @@ void decals_delete_permanent_from_cluster(int16_t cluster_index)
   }
 }
 
+/*
+ * decal_delete — unlink a decal from its list and release its datum.
+ *
+ * Warns once per session (two independent byte latches) when a locked
+ * (+2 bit 0) or permanent (+2 bit 1) decal is deleted, repairs the
+ * doubly-linked neighbours (prev at +0x30, next at +0x34), then updates the
+ * list head: decal_globals->first_disconnected_decal_index (+0x2800) when
+ * cluster_index (+4) is -1, otherwise the [layer][cluster] slot via
+ * FUN_00098aa0. Every path ends in datum_delete.
+ *
+ * 0x9a160 / decals.obj
+ */
+void decal_delete(int decal_index)
+{
+  void *decal;
+  void *other;
+  int first;
+
+  decal = datum_get(global_decal_data, decal_index);
+  if (decal == NULL) {
+    display_assert("decal", "c:\\halo\\SOURCE\\effects\\decals.c", 0x3b3, true);
+    system_exit(-1);
+  }
+
+  if ((*(uint8_t *)((char *)decal + 2) & 1) != 0 &&
+      decals_reported_locked_delete == 0) {
+    error(2, "### ERROR decals: deleting locked decal (#%d) -- tell Bernie!!",
+          decal_index);
+    decals_reported_locked_delete = 1;
+  }
+
+  if ((*(uint8_t *)((char *)decal + 2) & 2) != 0 &&
+      decals_reported_permanent_delete == 0) {
+    error(2,
+          "### ERROR decals: deleting permanent decal (#%d) -- tell Bernie!!",
+          decal_index);
+    decals_reported_permanent_delete = 1;
+  }
+
+  if (*(int *)((char *)decal + 0x34) != -1) {
+    other = datum_get(global_decal_data, *(int *)((char *)decal + 0x34));
+    *(int *)((char *)other + 0x30) = *(int *)((char *)decal + 0x30);
+  }
+
+  if (*(int *)((char *)decal + 0x30) != -1) {
+    other = datum_get(global_decal_data, *(int *)((char *)decal + 0x30));
+    *(int *)((char *)other + 0x34) = *(int *)((char *)decal + 0x34);
+    datum_delete(global_decal_data, decal_index);
+    return;
+  }
+
+  if (*(int16_t *)((char *)decal + 4) == -1) {
+    if (*(int *)(decal_globals + 0x2800) != decal_index) {
+      display_assert(
+        "decal_globals->first_disconnected_decal_index==decal_index",
+        "c:\\halo\\SOURCE\\effects\\decals.c", 0x3db, true);
+      system_exit(-1);
+    }
+    *(int *)(decal_globals + 0x2800) = *(int *)((char *)decal + 0x34);
+    datum_delete(global_decal_data, decal_index);
+    return;
+  }
+
+  first = FUN_00098fe0(*(int16_t *)((char *)decal + 4),
+                       *(int16_t *)((char *)decal + 6));
+  if (first != decal_index) {
+    display_assert(
+      "decal_get_first_decal_index(decal->cluster_index, decal->layer)"
+      "==decal_index",
+      "c:\\halo\\SOURCE\\effects\\decals.c", 0x3e0, true);
+    system_exit(-1);
+  }
+
+  FUN_00098aa0(*(int16_t *)((char *)decal + 4), *(int16_t *)((char *)decal + 6),
+               *(int *)((char *)decal + 0x34));
+  datum_delete(global_decal_data, decal_index);
+}
+
 void FUN_0009a300(float *bounds, float *projection, float *basis)
 {
   int16_t plane_basis;

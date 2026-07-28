@@ -14676,6 +14676,10 @@
       "score": 77.5,
       "source": "src/halo/cseries/debug_memory.c"
     },
+    "decal_delete": {
+      "score": 96.2,
+      "source": "src/halo/effects/decals.c"
+    },
     "destroy_endpoint": {
       "score": 100.0,
       "source": "src/halo/bungie_net/network/transport_endpoint_set_winsock.c"
