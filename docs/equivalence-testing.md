@@ -655,6 +655,90 @@ truncation, so the tail can be compared against its true counterpart. Until
 then, the sequence divergence is the finding to chase first; fix that and the
 arg comparison over the whole sequence comes back for free.
 
+### Resolving oracle globals from the XBE instead of by name (2026-07-29)
+
+Three of the categories in the table above — `oracle arena slot / candidate
+real VA`, its reverse, and part of `differing constant` — turned out to share
+one cause, and it was not in any lift.
+
+A delinked reference's data labels come from **Ghidra**, and Ghidra's name for
+an address need not be kb.json's. 0x5aa8b8 is the decal datum-pool pointer:
+Ghidra calls it `g_decals_data`, kb.json declares it `global_decal_data`.
+Neither normalizes to the other, so `_build_globals_seeds` resolved nothing,
+the oracle's slot for it stayed zero-filled, and the oracle called
+`datum_get(0, idx)` while the candidate — which reaches the same global through
+an absolute immediate that the emulator's flat memory *does* seed — passed
+`0x700700`. All 50 seeds of `FUN_0015b0c0` failed on what read as a dropped
+argument.
+
+Name matching was never the right tool. Relocations are function-relative, so
+`func_va + reloc.virtual_address` points at exactly the dword the original
+linker wrote, and reading it out of the pristine XBE resolves **any** label:
+
+```
++0x46  g_decals_data   -> 0x5aa8b8     (name matching: unresolved)
++0x5c  DAT_0032516c    -> 0x32516c     (name matching: correct)
+```
+
+`_xbe_dir32_symbol_addrs()` does this for the target's own relocs and
+`_xbe_addrs_at_sites()` for real-callee slots; both feed `sym_addr_hints`,
+which outranks every name heuristic — including a bare-name match landing on a
+*different* kb global, the hazard `_GLOBAL_NAME_ALIASES` exists to paper over.
+A symbol whose sites disagree is dropped rather than guessed.
+
+**The comparator needed the same map.** `&some_global` is a DIR32 reloc in the
+oracle, so it pushes a *slot* address, while the candidate pushes the global's
+*real* address. Both are correct; numerically they never match. `input_flush`
+reported 150 arg mismatches across 50 seeds for exactly this
+(`0x500000` vs `0x46ba4c`, `0x500100` vs `0x46bb38`, `0x500200` vs `0x46bba0`).
+
+The excusal is on the **displacement**, not on a range: a pair is soft-matched
+only when `o_val - c_val` equals `slot - real_address` for a global this
+function actually relocates. That keeps it sound — both sides must have applied
+the same offset to the same object, so a wrong index is still reported — and it
+covers indices that leave the slot's 256-byte window. They routinely do, in
+both directions: `game_engine_clear_goal_position` computes
+`0x4566f8 + (short)index * 0x20`, so negative indices land *below*
+`GLOBALS_BASE`, and a first cut that range-checked the arena excused only 5 of
+41 seeds. `test_wrong_offset_into_right_global_is_still_reported` and
+`test_unmapped_slot_is_still_reported` pin the soundness boundary.
+
+Census over all 50 `arg_mismatch` entries at 50 seeds: **47 report zero arg
+mismatches**, up from 42 before this change (33 when the triage started). The
+equivalence regression gate stays at 69 passed / 0 failed / 0 errors.
+
+Measured effect, at the ledger's 50 seeds:
+
+| target | before | after |
+|---|---|---|
+| `FUN_0015b0c0` | 6/50 | **50/50** |
+| `input_flush` | 0/50 | **50/50** (150 aliases) |
+| `game_engine_clear_goal_position` | 8/50 | **49/50** (41 aliases) |
+| `FUN_001a7ea0` | 4/50 | **50/50** |
+| `FUN_00019110` | 0 passing | arg mismatches → 0 (fails for another reason) |
+
+**Unproven part, stated plainly.** Extending the hints to real-callee slots is
+live and correct (7/7 sites resolved on `FUN_0008c030`) but has **not** been
+observed to change any result: every real-callee global in the sampled targets
+is spelled `DAT_<hex>`, which name matching already resolved correctly. It is
+kept because it removes the same latent failure mode from that path, and it is
+unit-tested rather than left to chance — not because it fixed anything
+measurable.
+
+**Still open** — the 3 entries that are not arg-clean, with causes identified
+but not fixed:
+
+- `FUN_0008c030` — oracle passes `0x0` where the candidate passes scratch
+  pointers (`0x10000800`, `0x10000c00`); runs under `--real-callees`.
+- `FUN_000142a0` — candidate reads `0xcccccccc`, the concolic phase's data-page
+  fill, through a data ref the oracle reaches via an un-injected slot. Same
+  address-space asymmetry, but on *injected* values rather than passed pointers.
+- `debug_keys_initialize` — no result within 600 s.
+
+`FUN_0005ff70` (scratch-pointer layout) and `FUN_0011be10` (errors on every
+seed, task #21's class) came back arg-clean in the census and are no longer
+`arg_mismatch` findings, though `FUN_0011be10` still errors.
+
 #### The two real bugs (both VC71-blind)
 
 Both were sign/zero-extension of a 16-bit value, in **opposite** directions,
