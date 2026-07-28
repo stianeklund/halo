@@ -25,6 +25,7 @@
  *   0x130ab0  terminal_string_process_tabs
  *   0x19b560  draw_string_set_tab_stops
  *   0x19b640  draw_string_set_color
+ *   0x19b790  draw_string_get_color
  *   0x19b800  draw_string_set_style_justify_flags
  *   0x19b8b0  draw_string_set_font
  */
@@ -263,6 +264,35 @@ void draw_string_set_color(const void *color)
   *(int *)0x4d9b1c = *(const int *)&c[1]; /* red   */
   *(int *)0x4d9b20 = *(const int *)&c[2]; /* green */
   *(int *)0x4d9b24 = *(const int *)&c[3]; /* blue  */
+}
+
+/*
+ * draw_string_get_color — read the draw-string ARGB color state into *color.
+ *
+ * Exact inverse of draw_string_set_color: copies the four color dwords out of
+ * the globals block at 0x4d9b18..0x4d9b24 into the caller's 16-byte buffer.
+ *
+ * Confirmed: single cdecl stack param at [EBP+0x8], loaded into ESI.
+ * Confirmed: NULL guard is TEST ESI,ESI / JNZ — assert reason "color",
+ *            line 0x188, halt=1, then system_exit(-1) (noreturn, no cleanup).
+ * Confirmed: copy is four plain dword MOVs (global -> [ESI+0/4/8/c]) with the
+ *            EAX/ECX/EDX/EAX register rotation being MSVC scheduling only; no
+ *            FPU ops appear anywhere in the function.
+ * Confirmed: field order in ESI: [+0]=alpha, [+4]=red, [+8]=green, [+c]=blue.
+ */
+void draw_string_get_color(void *color)
+{
+  int *out = (int *)color;
+
+  if (out == NULL) {
+    display_assert("color", "c:\\halo\\SOURCE\\text\\draw_string.c", 0x188, 1);
+    system_exit(-1);
+  }
+  /* Raw dword copies preserve the bit-exact float representation. */
+  out[0] = *(const int *)0x4d9b18; /* alpha */
+  out[1] = *(const int *)0x4d9b1c; /* red   */
+  out[2] = *(const int *)0x4d9b20; /* green */
+  out[3] = *(const int *)0x4d9b24; /* blue  */
 }
 
 /*
