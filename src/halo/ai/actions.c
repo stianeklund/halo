@@ -1687,7 +1687,24 @@ float point_to_line_distance3d(float *p1, float *p2, float *p3)
  * Confirmed: jump table at 0x1da74. Confirmed: lookup table at 0x2542e8
  * = {0, 0, 0, 1, 2, 3, 4, 5, 0, 0, 0, 0}.
  * Confirmed: game_time_get() throttle with +0x2d cooldown at actor+0x64.
+ *
+ * noinline (VC71 verification only): the original build emits this as a real
+ * out-of-line function at 0x1d7c0 and CALLs it -- the delinked reference for
+ * actor_action_handle_lost_contact carries a reloc to FUN_0001d7c0.  Our TU has
+ * the body in scope, so cl.exe inlines all ~224 instructions of it into that
+ * caller (its 12-way `jmp *` switch, the 0x2542e8 lookup table and the
+ * actor+0x60/0x62/0x64/0x6c/0x9c field accesses all appear in the caller's
+ * codegen, none of which the reference contains).  That alone held
+ * actor_action_handle_lost_contact at 70.3% (830 insns vs the reference's 606)
+ * and produced four spurious [LOADW-WARN] hits on the inlined callee's fields.
+ *
+ * The guard is `_MSC_VER && !__clang__` because our clang build targets
+ * i386-pc-win32 and therefore also defines _MSC_VER; this must apply to cl.exe
+ * ONLY and must never change the shipped binary's codegen.
  */
+#if defined(_MSC_VER) && !defined(__clang__)
+__declspec(noinline)
+#endif
 char actor_action_set_default_state(int actor_handle, short state)
 {
   char *actor;
