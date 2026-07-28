@@ -2046,7 +2046,8 @@
     },
     {
      "addr": "0x1bcd0",
-     "decl": "char action_vehicle_setup_impromptu(int actor_handle, int vehicle_handle, float radius_a, float radius_b, void *out_action_data);"
+     "decl": "char action_vehicle_setup_impromptu(int actor_handle, int vehicle_handle, float radius_a, float radius_b, void *out_action_data);",
+     "ported": true
     },
     {
      "addr": "0x1beb0",
