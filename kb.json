@@ -34627,7 +34627,8 @@
     },
     {
      "addr": "0x120cb0",
-     "decl": "short FUN_00120cb0(int animation_graph_tag_index, const char *name);"
+     "decl": "short FUN_00120cb0(int animation_graph_tag_index, const char *name);",
+     "ported": true
     },
     {
      "addr": "0x120d10",
