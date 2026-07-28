@@ -821,6 +821,79 @@ def _build_globals_seeds(*slot_maps: dict,
     return seeds
 
 
+def _seed_dllimport_indirection(orc_slots: dict, lft_slots: dict) -> dict:
+    """Make a dllimport (indirect) reference resolve to the same storage as the
+    other side's direct reference to the same global.
+
+    kb.json globals are declared ``HDATA`` = ``__declspec(dllimport)``, so the
+    clang candidate reaches one via a pointer-to-pointer::
+
+        mov eax,[__imp__event_manager_globals]   ; slot holds &global
+        push eax                                  ; the global's address
+
+    The delinked MSVC oracle has no import table and references the same
+    storage directly as ``DAT_0046bd40``, which patch_dir32_relocs rewrites to
+    a globals slot.  The candidate's ``__imp_`` slot, though, is only seeded
+    when a snapshot or _KNOWN_GLOBAL_BYTES entry exists for the target -- with
+    neither, it stays zero-filled and the extra deref yields a NULL pointer.
+    The two sides then pass different pointers and write to different pages,
+    so both the stub-arg compare and the memory-trace compare are meaningless
+    rather than merely imprecise.
+
+    So: point each ``__imp_X`` slot at the OTHER side's direct slot for X,
+    falling back to its own side's direct slot.  Both sides then agree on the
+    pointer and share one page of storage.
+
+    When BOTH sides go through ``__imp_X`` nothing is emitted -- they already
+    agree (both deref the same zero), and the existing snapshot /
+    known-globals seeding in _build_globals_seeds still takes precedence,
+    since callers apply that map after this one.
+    """
+    import re, struct as _struct
+    name2addr = _load_symbol_addrs()
+
+    def _direct_slots(smap):
+        """{real_address: slot} for non-dllimport symbols we can resolve.
+
+        The delinked oracle names data by address (``DAT_0046bd40``), so match
+        that spelling too -- resolving only friendly names would miss every
+        oracle-side direct reference, which is exactly the side we need.
+        """
+        out = {}
+        for sym, slot in smap.items():
+            if sym.startswith("__imp_"):
+                continue
+            m = re.match(r'(?:DAT|PTR|PTR_FUN|PTR_DAT|FLOAT|s)_([0-9a-fA-F]{4,})$',
+                         sym)
+            if m:
+                out.setdefault(int(m.group(1), 16), slot)
+                continue
+            bare = _normalize_global_symbol(sym)
+            addr = (_GLOBAL_NAME_ALIASES.get(bare) if bare else None)
+            if addr is None and bare:
+                addr = name2addr.get(bare)
+            if addr is not None:
+                out.setdefault(addr, slot)
+        return out
+
+    orc_direct = _direct_slots(orc_slots)
+    lft_direct = _direct_slots(lft_slots)
+    seeds = {}
+    for smap, other_direct, own_direct in ((orc_slots, lft_direct, orc_direct),
+                                           (lft_slots, orc_direct, lft_direct)):
+        for sym, slot in smap.items():
+            if not sym.startswith("__imp_"):
+                continue
+            bare = _normalize_global_symbol(sym)
+            addr = _GLOBAL_NAME_ALIASES.get(bare) or name2addr.get(bare)
+            if addr is None:
+                continue
+            target = other_direct.get(addr, own_direct.get(addr))
+            if target is not None:
+                seeds[slot] = _struct.pack("<I", target)
+    return seeds
+
+
 # ---------------------------------------------------------------------------
 # Unicorn emulation
 # ---------------------------------------------------------------------------
@@ -1974,8 +2047,13 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         reset_globals_arena_top()
         set_globals_arena_top(lft_globals_base + len(lft_data_slots) * 256)
 
-        globals_seeds = _build_globals_seeds(orc_data_slots, lft_data_slots,
-                                             snapshot_overrides=snapshot_overrides)
+        # dllimport indirection first, so real snapshot / known-globals data
+        # from _build_globals_seeds overrides it rather than the reverse.
+        globals_seeds = _seed_dllimport_indirection(orc_data_slots,
+                                                    lft_data_slots)
+        globals_seeds.update(_build_globals_seeds(
+            orc_data_slots, lft_data_slots,
+            snapshot_overrides=snapshot_overrides))
         globals_seeds.update(orc_rdata_seeds)
         globals_seeds.update(lft_rdata_seeds)
         # Seed MSVC two-level switch index-maps at their original VA so the

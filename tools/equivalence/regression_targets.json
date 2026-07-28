@@ -690,6 +690,30 @@
       "seeds": 40,
       "flags": ["--z3-equiv", "--allow-stubs", "--mem-trace", "--float-tolerance", "32"],
       "reason": "Third data-page-execution-guard tripwire. 0% -> 60.0% coverage, 40/40 PASS, confidence high. Kept alongside the two 100%-coverage ones because it exercises a partial-coverage path rather than a whole tiny function."
+    },
+    {
+      "addr": "0x5ae70",
+      "name": "FUN_0005ae70",
+      "obj": "encounters.obj",
+      "seeds": 50,
+      "flags": ["--allow-stubs", "--mem-trace", "--float-tolerance", "32"],
+      "reason": "Sign-extension fix: the squad index is the handle's low word ZERO-extended (original is a plain 'AND ESI,0xffff; PUSH ESI'), but the lift had an (int16_t) cast that sign-extended indices >= 0x8000. Was 32/50 with 'arg[1] to tag_block_get_element: oracle=0x8020 candidate=0xffff8020'; now 50/50 clean. VC71 is blind to it -- 78.4% both before and after -- so this differential is the only guard."
+    },
+    {
+      "addr": "0xdc1d0",
+      "name": "event_manager_initialize",
+      "obj": "event_manager.obj",
+      "seeds": 20,
+      "flags": ["--allow-stubs", "--mem-trace"],
+      "reason": "Tripwire for the dllimport-indirection seeding (_seed_dllimport_indirection). kb.json HDATA globals are __declspec(dllimport), so the candidate reaches event_manager_globals via a pointer-to-pointer while the delinked oracle references DAT_0046bd40 directly; the unseeded import slot made the candidate pass NULL to csmemset. Was 0/N with 'arg[0]: oracle=0x500000 candidate=0x0'; now clean."
+    },
+    {
+      "addr": "0xe1350",
+      "name": "player_ui_initialize",
+      "obj": "player_ui.obj",
+      "seeds": 20,
+      "flags": ["--allow-stubs", "--mem-trace"],
+      "reason": "Second dllimport-indirection tripwire, different object and global (player_ui_globals @0x46bee0), so the fix is not pinned to one symbol."
     }
   ]
 }

@@ -16194,7 +16194,7 @@
     },
     {
      "addr": "0x9fd30",
-     "decl": "void FUN_0009fd30(void *ps@<ebx>, int type_index, float dt);",
+     "decl": "void FUN_0009fd30(void *ps@<ebx>, int16_t type_index, float dt);",
      "ported": true
     },
     {
