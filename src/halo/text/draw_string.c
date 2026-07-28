@@ -24,6 +24,7 @@
  * Re-implemented functions (by XBE address, ascending):
  *   0x130ab0  terminal_string_process_tabs
  *   0x19b560  draw_string_set_tab_stops
+ *   0x19b5d0  draw_string_set_indents
  *   0x19b640  draw_string_set_color
  *   0x19b790  draw_string_get_color
  *   0x19b800  draw_string_set_style_justify_flags
@@ -216,6 +217,38 @@ void draw_string_set_tab_stops(void *stops, short count)
     return;
 copy:
   csmemcpy((void *)0x4d9b2a, stops, (int)*(short *)0x4d9b28 << 1);
+}
+
+/*
+ * draw_string_set_indents — set the initial and paragraph indents.
+ *
+ * Both indents must be non-negative.  Stored as words at 0x4d9b4e
+ * (initial) and 0x4d9b50 (paragraph).
+ *
+ * Confirmed: both params read as words (66 8b 75 08 = MOV SI,word ptr
+ *            [EBP+8]; 66 8b 7d 0c = MOV DI,word ptr [EBP+0xc]) and tested
+ *            with TEST/JGE, so both are signed 16-bit — hence the short
+ *            parameter types, which is what makes VC71 emit the word load.
+ * Confirmed: assert strings "initial_indent>=0" (line 0x16e) and
+ *            "paragraph_indent>=0" (line 0x16f); both tails call
+ *            0x8e2f0 (system_exit) with -1, not halt_and_catch_fire.
+ * Confirmed: store order is [0x4d9b50] (paragraph) before [0x4d9b4e]
+ *            (initial).
+ */
+void draw_string_set_indents(short initial_indent, short paragraph_indent)
+{
+  if (initial_indent < 0) {
+    display_assert("initial_indent>=0",
+                   "c:\\halo\\SOURCE\\text\\draw_string.c", 0x16e, 1);
+    system_exit(-1);
+  }
+  if (paragraph_indent < 0) {
+    display_assert("paragraph_indent>=0",
+                   "c:\\halo\\SOURCE\\text\\draw_string.c", 0x16f, 1);
+    system_exit(-1);
+  }
+  *(short *)0x4d9b50 = paragraph_indent;
+  *(short *)0x4d9b4e = initial_indent;
 }
 
 /*
