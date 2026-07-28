@@ -47,6 +47,8 @@ extern "C" {
 #define PAGE_READWRITE                 0x04
 #define TICKS_PER_SECOND               (*(float *)0x253394) /* 30.0f */
 
+#include "nv097.h"
+
 static const int _scenario_type_main_menu = 2;
 
 /* assert_halt_at(file, line, cond) — byte-match-faithful assert (see common.h). */
