@@ -33,7 +33,7 @@ Progress breakdown from the [Decompilation Progress Dashboard](https://stianeklu
   `[███████████████████████░░░░░░░░░░░░░░░░░] 58.06%`
 * **Ported Code Bytes:** `877,819 / 1,731,050` (`50.71%`)
   `[████████████████████░░░░░░░░░░░░░░░░░░░░] 50.71%`
-* **Average VC71 Match Accuracy:** `89.00%` (`3,025` scored functions, weighted: `83.40%`)
+* **Average VC71 Match Accuracy:** `89.30%` (`3,251` scored functions, weighted: `84.00%`)
 * **Equivalence Verified:** `3,157` functions tested (`1,011` high confidence)
 * **Translation Units:** `174` source units (`39` platform/SDK buckets tracked separately)
 
