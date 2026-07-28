@@ -14700,6 +14700,10 @@
       "score": 96.2,
       "source": "src/halo/effects/decals.c"
     },
+    "decals_reconnect_to_structure_bsp": {
+      "score": 95.6,
+      "source": "src/halo/effects/decals.c"
+    },
     "destroy_endpoint": {
       "score": 100.0,
       "source": "src/halo/bungie_net/network/transport_endpoint_set_winsock.c"

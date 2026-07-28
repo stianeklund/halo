@@ -6119,7 +6119,8 @@
     },
     {
      "addr": "0x99b70",
-     "decl": "void decals_reconnect_to_structure_bsp(void);"
+     "decl": "void decals_reconnect_to_structure_bsp(void);",
+     "ported": true
     },
     {
      "addr": "0x99d60",
