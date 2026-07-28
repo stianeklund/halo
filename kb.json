@@ -21605,7 +21605,7 @@
     },
     {
      "addr": "0x186790",
-     "decl": "void render_frustum_triangle_visible(void);"
+     "decl": "bool render_frustum_triangle_visible(void *plane_ctx, void *v0, void *v1, void *v2);"
     },
     {
      "addr": "0x1867f0",
@@ -24451,7 +24451,8 @@
     },
     {
      "addr": "0x196850",
-     "decl": "void FUN_00196850(int param_1);"
+     "decl": "void FUN_00196850(int param_1);",
+     "ported": true
     },
     {
      "addr": "0x196a60",
