@@ -376,6 +376,64 @@ batch summary's verdicts are reused via `--skip-existing`, so a stale `pass`
 can persist across source changes. Measure a baseline by re-running, not by
 reading the last batch summary — an apparent regression is often drift.
 
+### Executing from a data page (the all-errors population)
+
+A target where every seed errors has no verdict at all, and coverage work
+cannot see it — there is no coverage to improve. The nightly recorded **456
+such rows**, and the dominant fault was not what the name suggests:
+
+| fault (first seed) | count |
+|---|---|
+| `UC_ERR_FETCH_UNMAPPED` | **315** (186 oracle-side, 129 lifted-side) |
+| `UC_ERR_READ_UNMAPPED` | 47 |
+| timeout | 40 |
+| insn-limit | 25 |
+| `UC_ERR_INSN_INVALID` | 22 |
+
+Read the side attribution with care: the oracle runs first, so an
+`ORACLE-CRASH` masks the candidate entirely. The 186/129 split is mostly
+ordering, not evidence that the reference is worse.
+
+The mechanism, from a `BIPED_RING_TRACE=1` trace of `FUN_0003a810`
+(`init_cb = *(void(**)(int))(type_def + 0x10); if (init_cb) init_cb(...)`):
+a stubbed `datum_get` returns 0, so the chain reads a **small non-zero**
+value out of synthetic state, that value passes the `!= NULL` check, and the
+indirect call lands in a page auto-mapped for data. Those pages are
+zero-filled — and `00 00` decodes as `add [eax], al`, a two-byte instruction
+touching neither ESP nor control flow. So execution **slid through the whole
+page**, two bytes at a time, and only stopped on walking off the end,
+reporting `FETCH_UNMAPPED` at an address unrelated to the actual call. The
+ring trace is unmistakable: `0xff27, 0xff29, 0xff2b, …` with ESP constant.
+
+`hook_mem_unmapped` carried a comment claiming it filled with `0xCC` (INT3)
+"so that accidental code execution on data pages stops immediately" — while
+the code wrote zeros. Both halves were wrong: these are *data* pages, so a
+non-zero fill is read back as pointers, counts and sizes, and
+`hook_interrupt` swallows INT3 anyway (it exists for MSVC retail assert
+halts), which would only turn a two-byte slide into a one-byte one.
+
+The fix guards the **execution** instead, in `hook_code`: if the PC is inside
+a page in `_mapped_regions` and is not a stub sentinel, recover exactly as
+`hook_fetch_unmapped` does for a still-unmapped target — `EAX=0`, pop the
+return address, continue — bounded at 64 recoveries per run. Applied
+identically to both sides, so a candidate that computes a *different* call
+target surfaces in the differential instead of both sides crashing.
+
+Measured A/B via `HALO_NO_DATA_EXEC_GUARD=1` (a flag, not a source swap):
+
+| Sample | Result |
+|---|---|
+| 26 `FETCH_UNMAPPED` error targets | **3 error→pass** (0%→60%, 0%→100%, 0%→100%), **2 error→fail** (divergences previously hidden behind the crash), 21 unchanged |
+| 26 previously-passing targets | **0 regressions**, 0 coverage changes |
+
+19% of the sampled class gained a verdict — worthwhile, not a silver bullet.
+Three tripwires (`FUN_000d7cd0`, `hs_runtime_get_executing_thread_name`,
+`game_state_memory_pool_new`) are in `regression_targets.json`; each returns
+to all-seeds-error with the guard disabled, so they cannot pass vacuously.
+
+The 21 unchanged targets are a different root cause and remain open — e.g.
+`actor_died`, `actor_erase`, `actor_delete_props` still sit at 0%.
+
 ### What does NOT lift the remaining tail (measured 2026-07-28)
 
 260 of 822 cached targets still sit below 30% coverage (154 of them

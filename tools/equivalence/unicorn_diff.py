@@ -1073,6 +1073,14 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
     insn_count = [0]
     stub_trace_count = [0]
     visited_pcs = {}
+    # Times we caught execution running inside an auto-mapped DATA page and
+    # returned to the caller instead of letting it slide (see hook_code).
+    # HALO_NO_DATA_EXEC_GUARD=1 disables the guard, so its effect can be
+    # A/B-measured with a flag instead of a source swap (a source swap during a
+    # long measurement has burned us before).
+    data_exec_recoveries = [0]
+    MAX_DATA_EXEC_RECOVERIES = 64
+    _data_exec_guard = os.environ.get("HALO_NO_DATA_EXEC_GUARD") != "1"
     _ring = None
     if os.environ.get("BIPED_RING_TRACE") == "1":
         from collections import deque
@@ -1085,6 +1093,42 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
             _ring.append((address, uc.reg_read(_ESP_T)))
         if address not in visited_pcs:
             visited_pcs[address] = size
+        # Executing inside a page we auto-mapped for DATA is never legitimate:
+        # it means an indirect call went through synthetic state -- a garbage
+        # function pointer that still passed a `!= NULL` check. Those pages are
+        # zero-filled, and zeros decode as `add [eax], al`: a 2-byte
+        # instruction that alters neither ESP nor control flow, so execution
+        # SLID through the entire page and only stopped on walking off the end,
+        # reporting UC_ERR_FETCH_UNMAPPED at an address unrelated to the actual
+        # call. That is the single largest error class in the batch.
+        #
+        # The fill cannot just be made non-zero (the hook_mem_unmapped comment
+        # proposes 0xCC): these are DATA pages, so the fill is read back as
+        # pointers and counts, and 0xCC is swallowed by hook_interrupt anyway,
+        # which only turns a 2-byte slide into a 1-byte one. Guard the
+        # EXECUTION instead, exactly as hook_fetch_unmapped does for a target
+        # that is still unmapped: EAX=0, pop the return address, continue.
+        # Applied identically to oracle and candidate, so a wrong call target
+        # surfaces in the differential rather than crashing both sides.
+        if (_data_exec_guard and (address & ~0xFFFF) in _mapped_regions
+                and address not in stub_addrs):
+            if data_exec_recoveries[0] >= MAX_DATA_EXEC_RECOVERIES:
+                uc.emu_stop()
+                return
+            data_exec_recoveries[0] += 1
+            from unicorn.x86_const import (UC_X86_REG_EAX as _EAX_G,
+                                           UC_X86_REG_ESP as _ESP_G,
+                                           UC_X86_REG_EIP as _EIP_G)
+            try:
+                _esp = uc.reg_read(_ESP_G)
+                _ret = struct.unpack('<I', bytes(uc.mem_read(_esp, 4)))[0]
+            except Exception:
+                uc.emu_stop()
+                return
+            uc.reg_write(_EAX_G, 0)
+            uc.reg_write(_ESP_G, _esp + 4)
+            uc.reg_write(_EIP_G, _ret)
+            return
         if verbose and address in stub_addrs and stub_trace_count[0] < 64:
             symbol_name = ""
             if stub_manager is not None:
@@ -1176,9 +1220,12 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
 
         def hook_mem_unmapped(uc, access, address, size, value, user_data):
             # Auto-map a 64KB page for any unmapped read/write.
-            # Fill with 0xCC (INT3) so that accidental code execution on
-            # data pages stops immediately instead of sliding through zero
-            # bytes as 2-byte ADD [eax],al instructions.
+            # Fill with ZEROS. An earlier version of this comment proposed
+            # 0xCC (INT3) to stop accidental code execution on data pages, but
+            # that is not viable: the fill is read back as data (pointers,
+            # counts, sizes), so a non-zero fill changes program meaning, and
+            # hook_interrupt swallows INT3 regardless. Accidental execution is
+            # caught in hook_code via _mapped_regions instead.
             page_base = address & ~0xFFFF
             last_unmapped_access[0] = (
                 f"page={page_base:#x} addr={address:#x} size={size} access={access}"
