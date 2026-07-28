@@ -242,6 +242,27 @@ void FUN_0016f880(void)
   *(short *)0x325180 = -1;
 }
 
+/* 0x172720
+ *
+ * rasterizer_window_get_fog
+ *
+ * Closes rasterizer profile section 4 and nothing else.
+ *
+ * Confirmed: the whole body is PUSH 4 / CALL 0x16fa40 / POP ECX / RET —
+ * a cdecl one-argument call with the MSVC POP ECX cleanup.  0x16fa40 is
+ * the profile-section end (paired with 0x16f910 begin), so this is the
+ * close half of the 0x172520 / 0x172720 profile-4 pair.
+ *
+ * Uncertain: the kb.json name "rasterizer_window_get_fog" comes from PDB
+ * line-containment, not from a string or assert in this function, and it
+ * does not describe this body — nothing here reads or returns fog state.
+ * The name is left as-is rather than churned, but treat it as unverified.
+ */
+void rasterizer_window_get_fog(void)
+{
+  FUN_0016fa40(4);
+}
+
 /* 0x172a30
  *
  * FUN_00172a30
