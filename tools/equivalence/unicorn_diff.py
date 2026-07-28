@@ -1420,7 +1420,34 @@ def _record_leaf_classification(addr: str, is_leaf: bool) -> None:
         pass
 
 
-_CONFIDENCE_RANK = {"weak": 0, "moderate": 1, "high": 2}
+_CONFIDENCE_RANK = {"none": -1, "weak": 0, "moderate": 1, "high": 2}
+
+# Below this much coverage, a run has not tested the function in any meaningful
+# sense and must not be recorded with a confidence tier at all. 129 cached
+# entries were carrying a tier at literally 0.0% coverage -- a verdict with no
+# evidence behind it reads downstream exactly like a verdict with evidence.
+COVERAGE_FLOOR_PCT = 10.0
+
+
+def _classify_confidence(coverage_pct: float, output_varied: bool,
+                         passed: int) -> str:
+    """Map a run's coverage and observable-output diversity to a tier.
+
+    `output_varied` means the oracle produced more than one distinct
+    observable result across seeds -- counting return value, scratch-buffer
+    payload, AND memory writes. Judging diversity on the return value alone
+    (the previous `monotonic_return -> weak` rule) mislabels every function
+    whose real output is a buffer it was handed: vector3d_scale_add covers
+    100% of its body and writes different floats every seed, yet returned the
+    same out-pointer each time and was therefore recorded "weak".
+    """
+    if passed <= 0 or coverage_pct < COVERAGE_FLOOR_PCT:
+        return "none"
+    if coverage_pct >= 60:
+        return "high" if output_varied else "moderate"
+    if coverage_pct >= 30:
+        return "moderate"
+    return "weak"
 
 
 def _record_confidence(addr, confidence: str, coverage_pct: float) -> None:
@@ -2013,13 +2040,23 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         return finish("not_applicable", False, "external_relocations", 2)
 
     # --- Z3 formal equivalence proof (optional) ---
+    #
+    # A proof is ADDITIVE evidence, not a substitute for the seed sweep. This
+    # used to `return finish("pass", ..., seeds=0)`, so a proven function was
+    # never emulated at all -- meaning any flaw in the proof (see the strict-lift
+    # soundness gate in z3_equiv/x86_to_z3, and test_z3_strict_lift.py) silenced
+    # every other check on that function. Now we record the proof and fall
+    # through to Unicorn; the two are independent oracles and a disagreement
+    # between them is itself a finding worth surfacing.
+    z3_proven = False
     if z3_equiv and is_leaf:
         try:
             from z3_equiv import prove_equivalence
             info("\n  Attempting Z3 formal equivalence proof...")
             eq_result = prove_equivalence(oracle_slice.code, lifted_slice.code, abi)
             if eq_result.proven:
-                log(f"  Z3 PROVEN EQUIVALENT")
+                log(f"  Z3 PROVEN EQUIVALENT (continuing to Unicorn for confirmation)")
+                z3_proven = True
                 # Update cache
                 if record_leaf:
                     try:
@@ -2035,9 +2072,6 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                     _LEAF_CACHE_PATH.write_text(
                         json.dumps(dict(sorted(cache_data.items())), indent=2) + "\n",
                         encoding="utf-8")
-                return finish("pass", True, None, 0,
-                              passed=0, failed=0, errors=0, seeds=0,
-                              z3_proven=True)
             elif eq_result.counterexample:
                 log(f"  Z3 found divergence: {eq_result.counterexample}")
                 log(f"  Falling through to Unicorn to confirm...")
@@ -2121,6 +2155,8 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     _heap_compare_on = os.environ.get("BIPED_HEAP_COMPARE") == "1"
     all_visited_pcs = {}
     oracle_returns = set()
+    oracle_scratch_digests = set()
+    oracle_write_digests = set()
     merged_global_reads = {}
     merged_auto_mapped_pages = set()
     oracle_func_base = (CODE_BASE + oracle_slice.section_offset) if oracle_text else CODE_BASE
@@ -2207,6 +2243,17 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                 all_visited_pcs[pc] = sz
         if not abi['ret_void']:
             oracle_returns.add(oracle_state.eax)
+        # Observable-output evidence beyond EAX. A function can be fully
+        # exercised and still return the same value every seed (e.g. one that
+        # returns its own out-param pointer) -- judging path diversity on EAX
+        # alone marks those "weak" at 100% coverage. Scratch payloads and
+        # memory writes are the outputs that actually vary there.
+        if oracle_state.scratch_data:
+            oracle_scratch_digests.add(hash(oracle_state.scratch_data))
+        if oracle_state.mem_writes:
+            oracle_write_digests.add(
+                hash(tuple(sorted((w.address, w.size, w.value)
+                                  for w in oracle_state.mem_writes))))
         for addr, val in oracle_state.global_reads.items():
             if addr not in merged_global_reads:
                 merged_global_reads[addr] = val
@@ -2310,15 +2357,11 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     coverage_pct = covered_bytes / oracle_func_size * 100 if oracle_func_size > 0 else 0
     unique_returns = len(oracle_returns)
     monotonic_return = unique_returns <= 1 and not abi['ret_void'] and passed > 0
+    output_varied = (unique_returns > 1
+                     or len(oracle_scratch_digests) > 1
+                     or len(oracle_write_digests) > 1)
 
-    if monotonic_return:
-        confidence = "weak"
-    elif coverage_pct >= 60:
-        confidence = "high"
-    elif coverage_pct >= 30:
-        confidence = "moderate"
-    else:
-        confidence = "weak"
+    confidence = _classify_confidence(coverage_pct, output_varied, passed)
 
     info("")
     info(f"  coverage: {covered_bytes}/{oracle_func_size} bytes ({coverage_pct:.1f}%) — confidence: {confidence}")
@@ -2345,9 +2388,20 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             info(f"    gap: +0x{_g0 - oracle_func_base:x}..+0x{_g1 - oracle_func_base:x} ({_g1 - _g0}B)")
     if monotonic_return:
         ret_val = next(iter(oracle_returns)) if oracle_returns else 0
-        log(f"  WARNING: all {passed} seeds returned identical value (0x{ret_val:08x}) — low path diversity")
+        if output_varied:
+            # Constant EAX but the buffers/writes differ — normal for a
+            # function that returns its own out-param. Not a diversity problem.
+            info(f"  note: all {passed} seeds returned identical value "
+                 f"(0x{ret_val:08x}), but scratch/memory output varied")
+        else:
+            log(f"  WARNING: all {passed} seeds returned identical value "
+                f"(0x{ret_val:08x}) and no scratch/memory output varied "
+                f"— low path diversity")
     if coverage_pct < 30 and passed > 0:
         log(f"  WARNING: only {coverage_pct:.1f}% code coverage — likely testing only early-exit path")
+    if confidence == "none" and passed > 0:
+        log(f"  WARNING: coverage {coverage_pct:.1f}% is below the "
+            f"{COVERAGE_FLOOR_PCT:.0f}% floor — recording no confidence tier")
 
     # --- Concolic Phase 2: coverage-guided memory injection ---
     phase1_coverage = coverage_pct
@@ -2446,6 +2500,12 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                                     all_visited_pcs[pc] = sz
                             if not abi['ret_void']:
                                 oracle_returns.add(orc_s.eax)
+                            if orc_s.scratch_data:
+                                oracle_scratch_digests.add(hash(orc_s.scratch_data))
+                            if orc_s.mem_writes:
+                                oracle_write_digests.add(
+                                    hash(tuple(sorted((w.address, w.size, w.value)
+                                                      for w in orc_s.mem_writes))))
 
                             ret_eax = (not abi['ret_void'] and not abi['ret_st0']
                                        and not abi.get('ret_is_ptr', False))
@@ -2477,15 +2537,12 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                     unique_returns = len(oracle_returns)
                     monotonic_return = (unique_returns <= 1
                                         and not abi['ret_void'] and passed > 0)
+                    output_varied = (unique_returns > 1
+                                     or len(oracle_scratch_digests) > 1
+                                     or len(oracle_write_digests) > 1)
 
-                    if coverage_pct >= 60 and not monotonic_return:
-                        confidence = "high"
-                    elif coverage_pct >= 60:
-                        confidence = "moderate"
-                    elif coverage_pct >= 30:
-                        confidence = "moderate"
-                    else:
-                        confidence = "weak"
+                    confidence = _classify_confidence(coverage_pct,
+                                                      output_varied, passed)
 
                     info(f"  concolic result: {concolic_seeds_run} seeds, "
                          f"coverage {phase1_coverage:.1f}% → {coverage_pct:.1f}%, "
@@ -2586,6 +2643,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         passed=passed, failed=failed, errors=errors,
         error_details=error_details,
         seeds=total_seeds,
+        z3_proven=z3_proven,
         coverage_pct=round(coverage_pct, 1),
         func_size=oracle_func_size,
         # {hex pc: instruction size} of every oracle PC visited across all seeds
@@ -2617,6 +2675,17 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         ]
     if concolic_seeds_run:
         extra["phase1_coverage_pct"] = round(phase1_coverage, 1)
+
+    # A Z3 proof and a seed divergence cannot both be right. Surface the
+    # contradiction explicitly rather than letting the "fail" verdict quietly
+    # coexist with a z3_proven=True flag downstream.
+    if z3_proven and failed > 0:
+        log("")
+        log("  *** CONTRADICTION: Z3 proved equivalence but Unicorn found "
+            f"{failed} diverging seed(s).")
+        log("      One of the two oracles is wrong -- treat the proof as "
+            "unsound until this is explained.")
+        extra["z3_proof_contradicted"] = True
 
     if failed > 0:
         return finish("fail", True, "divergence", 1, **extra)

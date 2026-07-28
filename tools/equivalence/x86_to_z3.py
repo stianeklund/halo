@@ -298,12 +298,31 @@ class X86State:
 class X86Lifter:
     """Lift x86 machine code to Z3 expressions."""
 
-    def __init__(self, state: X86State, code_base: int = 0):
+    def __init__(self, state: X86State, code_base: int = 0, strict: bool = False):
+        """
+        strict: when True, an instruction the lifter does not model raises
+            LiftError instead of being silently skipped. Proof callers
+            (z3_equiv) MUST use strict=True — skipping an instruction drops
+            its semantics from the formula, so both sides can lift to the
+            same (wrong) expression and the solver reports UNSAT for code
+            that is not actually equivalent. Seed generation (z3_seeds) can
+            use strict=False, where a skipped instruction only costs seed
+            quality, never soundness.
+        """
         self.state = state
         self.code_base = code_base
+        self.strict = strict
         self.md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
         self.md.detail = True
         self.branches: list[BranchPoint] = []
+
+    def _unsupported(self, insn) -> None:
+        """Record (or, in strict mode, refuse) an instruction we cannot model."""
+        desc = f"{insn.mnemonic} at 0x{insn.address:x}"
+        if self.strict:
+            raise LiftError(f"unsupported instruction {desc}")
+        self.state.unsupported_insns.append(desc)
+        return None
 
     def _read_operand(self, insn, op, bits: int = 32):
         """Read a capstone operand, returning a Z3 BitVec of the given width."""
@@ -753,8 +772,7 @@ class X86Lifter:
             s.cf = z3.Extract(0, 0, shifted) == z3.BitVecVal(1, 1)
             return None
 
-        s.unsupported_insns.append(f"{insn.mnemonic} at 0x{insn.address:x}")
-        return None
+        return self._unsupported(insn)
 
     def _lift_fpu(self, insn) -> Optional[BranchPoint]:
         s = self.state
@@ -927,8 +945,7 @@ class X86Lifter:
                 s.fpu_set_st(0, fresh)
             return None
 
-        s.unsupported_insns.append(f"{insn.mnemonic} at 0x{insn.address:x}")
-        return None
+        return self._unsupported(insn)
 
     def _lift_fpu_arith(self, insn) -> None:
         s = self.state

@@ -43,8 +43,11 @@ def test_load_normalizes():
 
 
 def _fake_uncovered():
+    # Keep in sync with concolic.Branch: generate_memory_injections reads
+    # is_fpu, which was added by the FPU concolic work (b4c0e905) after this
+    # fixture was written, leaving the test red on an AttributeError.
     br = types.SimpleNamespace(jcc_id=0, cmp_imm=0, cmp_op_size=4,
-                              has_mem_operand=False, mem_disp=0)
+                              has_mem_operand=False, mem_disp=0, is_fpu=False)
     return [types.SimpleNamespace(branch=br, untaken_is_target=True)]
 
 
