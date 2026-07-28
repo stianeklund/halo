@@ -301,6 +301,59 @@ def test_empty_traces():
     print("  PASS  test_empty_traces")
 
 
+def test_excused_sentinel_is_dropped_from_both_sides():
+    """A callee one side resolves internally must not read as a divergence.
+
+    When the oracle maps its whole .text, its intra-.text calls never reach
+    a sentinel and so are never recorded, while the candidate's equivalents
+    are. Both execute the same bytes, so comparing unfiltered reports a
+    phantom `oracle=<end at 0>` seq-divergence (observed on FUN_0013c620).
+    """
+    oracle = _make_tracer()                                   # recorded nothing
+    cand = _make_tracer(
+        _rec(0, _SENTINEL_A, "datum_get", 0x00, 0x02),
+        _rec(1, _SENTINEL_B, "bar", 0xAA),
+    )
+    # Neither sentinel is comparable -> nothing to diff.
+    d = compare_stub_arg_traces(oracle, cand, seed_label="s15",
+                                comparable_sentinels=set())
+    assert not d.has_differences(), f"excused calls must not diverge: {d}"
+    assert d.total_calls == 0
+    print("  PASS  test_excused_sentinel_is_dropped_from_both_sides")
+
+
+def test_unexcused_missing_call_still_diverges():
+    """The boundary: a genuinely DROPPED call must keep failing.
+
+    "No record" is also what a dropped call looks like, so the filter must
+    be driven by whether the silent side resolves the callee internally --
+    never by absence alone. FUN_00019110 omits the oracle's leading
+    datum_get; if this ever passes, that real bug goes invisible.
+    """
+    oracle = _make_tracer(
+        _rec(0, _SENTINEL_A, "datum_get", 0x700300, 0x02),
+        _rec(1, _SENTINEL_B, "bar", 0xAA),
+    )
+    cand = _make_tracer(
+        _rec(0, _SENTINEL_B, "bar", 0xAA),
+    )
+    # Both sentinels ARE comparable (neither side resolves them internally).
+    d = compare_stub_arg_traces(oracle, cand, seed_label="s16",
+                                comparable_sentinels={_SENTINEL_A, _SENTINEL_B})
+    assert d.has_differences(), "a dropped call must still diverge"
+    assert d.sequence_diverged
+    print("  PASS  test_unexcused_missing_call_still_diverges")
+
+
+def test_filter_none_preserves_historical_behaviour():
+    """Default (None) must compare everything, exactly as before."""
+    oracle = _make_tracer(_rec(0, _SENTINEL_A, "foo", 0x10, 0x20))
+    cand = _make_tracer(_rec(0, _SENTINEL_A, "foo", 0x20, 0x10))
+    d = compare_stub_arg_traces(oracle, cand, seed_label="s17")
+    assert d.has_differences() and d.arg_mismatches == 2
+    print("  PASS  test_filter_none_preserves_historical_behaviour")
+
+
 def main():
     # Auto-discover, so a new test is never silently left out of the run.
     print("Running stub-arg trace comparator self-tests...")

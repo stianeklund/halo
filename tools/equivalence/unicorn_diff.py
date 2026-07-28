@@ -1832,6 +1832,10 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     use_stubs = False
     stub_manager = None
     globals_seeds = None
+    # None = compare every recorded stub call (correct when both sides stub
+    # alike). Narrowed to the oracle/candidate intersection once both stub
+    # maps exist; must stay bound for the leaf path, which never builds them.
+    comparable_stub_sentinels = None
     oracle_code_patched = oracle_slice.code
     lifted_code_patched = lifted_slice.code
     if not is_leaf and allow_stubs:
@@ -2006,6 +2010,34 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
 
         combined_stub_map = dict(orc_stub_map)
         combined_stub_map.update(lft_stub_map)
+        # A stub-arg record exists only for an INTERCEPTED call, and the two
+        # sides do not intercept the same set. Excuse a one-sided absence
+        # ONLY when that side provably resolves the callee internally --
+        # never merely because it produced no record, since "no record" is
+        # also what a genuinely DROPPED call looks like (FUN_00019110 omits
+        # the oracle's leading datum_get; that must keep failing).
+        #   candidate silent  -> excused iff it DEFINES the symbol (whole .obj
+        #                        sibling, executed natively)
+        #   oracle silent     -> excused iff oracle_text is mapped (raw
+        #                        intra-.text calls resolve inside the mapping)
+        #                        or it defines the symbol
+        def _defines(defined_set, sym):
+            s = sym.lstrip("_")
+            return s in defined_set or ("_" + s) in defined_set
+
+        _excused = set()
+        for _sent, _sym in combined_stub_map.items():
+            _in_orc, _in_lft = _sent in orc_stub_map, _sent in lft_stub_map
+            if _in_orc and not _in_lft:
+                if _defines(lft_defined, _sym):
+                    _excused.add(_sent)
+            elif _in_lft and not _in_orc:
+                if oracle_text is not None or _defines(orc_defined, _sym):
+                    _excused.add(_sent)
+        comparable_stub_sentinels = set(combined_stub_map) - _excused
+        if _excused:
+            info(f"  stub-arg: {len(_excused)} callee(s) excused from the "
+                 f"call-sequence compare (resolved internally on one side)")
         if combined_stub_map:
             stub_mgr = StubManager(KB_JSON, DELINKED_DIR)
             stub_mgr.stub_return_overrides = snapshot_stub_returns
@@ -2338,7 +2370,8 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         stub_arg_diff = None
         if enable_stub_arg_trace and oracle_tracer and cand_tracer:
             stub_arg_diff = compare_stub_arg_traces(
-                oracle_tracer, cand_tracer, seed_label=seed_label)
+                oracle_tracer, cand_tracer, seed_label=seed_label,
+                comparable_sentinels=comparable_stub_sentinels)
             stub_arg_total_calls += stub_arg_diff.total_calls
             stub_arg_total_mismatches += stub_arg_diff.arg_mismatches
             stub_arg_total_soft += stub_arg_diff.soft_stack_ptr_matches
