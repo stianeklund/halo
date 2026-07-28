@@ -293,13 +293,18 @@ def compare_stub_arg_traces(oracle_tracer: StubArgTracer,
         seq_diverged = True
         seq_diverge_idx = min(len(oc), len(cc))
 
-    # Check callee identity up to the shorter of the two
-    if not seq_diverged:
-        for i, (o, c) in enumerate(zip(oc, cc)):
-            if o.callee_addr != c.callee_addr:
-                seq_diverged = True
+    # Check callee identity up to the shorter of the two.  Run this even when
+    # the lengths already differ: the length check only tells us the sequences
+    # cannot match, while the FIRST position where the callees disagree is what
+    # bounds the arg comparison below.  Skipping it (as this did before) left
+    # seq_diverge_idx = min(len) while the real divergence could be at index 0,
+    # so misaligned pairs before it were still arg-compared.
+    for i, (o, c) in enumerate(zip(oc, cc)):
+        if o.callee_addr != c.callee_addr:
+            if not seq_diverged or i < seq_diverge_idx:
                 seq_diverge_idx = i
-                break
+            seq_diverged = True
+            break
 
     if seq_diverged:
         _i = seq_diverge_idx
@@ -318,8 +323,26 @@ def compare_stub_arg_traces(oracle_tracer: StubArgTracer,
     soft_reasons = {}
     details = []
 
-    # Per-arg comparison over matching prefix
+    # Per-arg comparison over the matching prefix ONLY.  Past the divergence
+    # index the two lists no longer describe the same calls, so comparing them
+    # pairwise reports differences between UNRELATED callees as argument bugs.
+    #
+    # That is not a corner case: when one side resolves an intra-object sibling
+    # internally, its sequence is the other's shifted by one, and every
+    # subsequent pair mismatches.  object_has_node had
+    #   oracle    = [tag_get('obje',0), tag_get('mode',0)]
+    #   candidate = [datum_get(0,0), tag_get('obje',0), tag_get('mode',0)]
+    # -- the candidate makes exactly the same two tag_get calls -- yet the
+    # unbounded compare reported "arg[0] to _tag_get: oracle=0x6f626a65
+    # candidate=0x0", i.e. a dropped tag-group literal that does not exist.
+    # About 20 of the divergence ledger's 50 `arg_mismatch` entries were this
+    # artifact, several filed as P1 "wrong argument to a named callee".
+    #
+    # The seed still FAILS on the sequence divergence itself, which is honest;
+    # it just no longer manufactures argument evidence against innocent code.
     pairs = list(zip(oc, cc))
+    if seq_diverged and seq_diverge_idx >= 0:
+        pairs = pairs[:seq_diverge_idx]
     for o_rec, c_rec in pairs:
         n_args = max(len(o_rec.args), len(c_rec.args))
         for ai in range(n_args):

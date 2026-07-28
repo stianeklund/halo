@@ -610,14 +610,50 @@ default flip) silently invalidates evidence while the flag still reads
 50 two of them still diverged. Passing at low coverage (several were 5–18%) is
 not proof of correctness, only that the recorded evidence no longer reproduces.
 
-**2. The 15-entry `object_get_and_verify_type` cluster was one artifact, not
-15 bugs.** All showed `arg[1]: oracle=0xffffffff candidate=0x0`, which looks
-like a systematically dropped type-mask — but every call site in `objects.c`
-passes `-1` correctly. `objects.c` *defines* that callee, so it is an
-intra-object sibling: resolved internally on the candidate side and stubbed on
-the oracle's, which desynchronises the call sequence and misaligns the arg
-index. The harness already excuses this ("N callee(s) excused from the
-call-sequence compare"); the ledger evidence predates that exemption.
+**2. Roughly 20 entries were ONE comparator bug, not 20 bugs.** Two clusters —
+15 × `object_get_and_verify_type` at `arg[1]: oracle=0xffffffff candidate=0x0`
+and 5 × `tag_get` at `arg[0]: oracle=0x6f626a65 candidate=0x0` — looked like a
+systematically dropped constant, but every call site in `objects.c` passes the
+right value. The cause was in `compare_stub_arg_traces`, and the sequence dump
+shows it plainly:
+
+```
+oracle    = [tag_get('obje',0), tag_get('mode',0)]
+candidate = [datum_get(0,0),   tag_get('obje',0), tag_get('mode',0)]
+```
+
+`objects.c` *defines* `datum_get`'s neighbours, so an intra-object sibling
+resolves internally on the oracle side (which maps its whole `.text`) while the
+candidate must route the same call through a sentinel. The candidate's sequence
+is therefore the oracle's **shifted by one** — it makes exactly the same two
+`tag_get` calls — but the comparator paired the lists positionally and compared
+`tag_get` against `datum_get`, reporting a dropped `'obje'` tag-group literal
+that does not exist.
+
+Two things were wrong, both now fixed:
+
+- The per-arg loop ran over `zip(oc, cc)` **unbounded**, despite the comment
+  above it saying "over matching prefix". Past the divergence the two lists
+  no longer describe the same calls. It now truncates at the divergence index.
+- The callee-identity scan was skipped whenever the lengths already differed,
+  leaving `seq_diverge_idx = min(len)` — 2 in the example above — so even a
+  correct truncation would still have arg-compared the misaligned pairs 0 and 1.
+  The scan now always runs, giving the true first disagreement (index 0 here).
+
+The seed still **fails** on the sequence divergence itself, which is honest; it
+just no longer manufactures argument evidence against innocent code. Real arg
+bugs inside the matching prefix are unaffected —
+`test_real_arg_bug_before_divergence_still_caught` pins that boundary, and
+`test_swapped_args` still passes.
+
+**Known limitation.** Truncating means a genuine wrong-argument bug *after* an
+artifact divergence is no longer reported. That evidence was never sound (it
+came from comparing misaligned entries), so nothing trustworthy was lost — but
+it is a coverage gap, not a clean win. Closing it properly needs sequence
+*alignment* (LCS over callee identity, skipping the one-sided calls) instead of
+truncation, so the tail can be compared against its true counterpart. Until
+then, the sequence divergence is the finding to chase first; fix that and the
+arg comparison over the whole sequence comes back for free.
 
 #### The two real bugs (both VC71-blind)
 
