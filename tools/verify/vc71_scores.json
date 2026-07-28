@@ -12456,6 +12456,10 @@
       "score": 96.1,
       "source": "src/halo/structures/structure_visibility.c"
     },
+    "FUN_00196850": {
+      "score": 91.5,
+      "source": "src/halo/structures/structure_visibility.c"
+    },
     "FUN_00196fd0": {
       "score": 96.2,
       "source": "src/halo/structures/structures.c"

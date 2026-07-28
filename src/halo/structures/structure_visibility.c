@@ -120,6 +120,111 @@ void FUN_001966b0(int param_1)
   }
 }
 
+/* FUN_00196850: structure visibility SURFACE sweep (sibling of 0x1966b0,
+ * which does the cube/portal sweep).
+ *   For every rendered cluster, walk cluster->surface_indices (a long buffer
+ *   at +0x48, count at +0x44). The buffer is a sequence of runs; each run has
+ *   a 3-long header {geometry_index, part_index, surface_count} followed by
+ *   surface_count raw surface indices. Every not-yet-marked surface is tested
+ *   against the frustum as a triangle of three 0x20-byte vertices and, if
+ *   visible, its bit is set in the surface bit-vector at 0x5137d0. The marked
+ *   count at 0x5937d0 (int16) caps the sweep at 0x4000.
+ *   param_1 = structure_bsp: +0xf8 surfaces (6-byte: three u16 vertex
+ *   indices), +0x104 geometries (0x20), +0x134 clusters (0x68). The geometry's
+ *   nested part block (+0x14, 0x100-byte elements) carries the vertex base at
+ *   part+0xf8.
+ *   The plane context (first arg to the frustum test) is the rendered-cluster
+ *   record +0x14 unless pvs debug is on or no visible cluster is cached, in
+ *   which case the global default at 0x5065a4 is used -- identical selection
+ *   to 0x1966b0. Ghidra's decompile drops both this block and the part
+ *   element; do not trust it. */
+void FUN_00196850(int param_1)
+{
+  short *rendered_cluster;
+  void *plane_ctx;
+  char *part;
+  char *cluster;
+  char *geometry;
+  char *vertex_base;
+  unsigned short *surface;
+  int *surface_index_buffer;
+  int cluster_i;
+  int i;
+  /* volatile long: the original keeps the run-end bound in its stack slot and
+   * re-reads it on every inner-loop test rather than caching it in a register
+   * (permuter-confirmed, +2.5pp VC71). Semantically identical -- nothing else
+   * writes this local. */
+  volatile long run_end;
+  int surface_index;
+  unsigned int bit_mask;
+
+  if (*(char *)0x449ef1 != '\0' && *(char *)0x32c960 != '\0') {
+    profile_enter_private((void *)0x32c958);
+  }
+  cluster_i = 0;
+  if (0 < *(short *)0x5137cc) {
+    do {
+      rendered_cluster = (short *)rendered_cluster_get(cluster_i);
+      cluster = (char *)tag_block_get_element((char *)param_1 + 0x134,
+                                              (int)*rendered_cluster, 0x68);
+      if (*(unsigned char *)0x505701 == 0 && *(int *)0x506784 != -1) {
+        plane_ctx = (void *)(rendered_cluster + 10); /* record + 0x14 */
+      } else {
+        plane_ctx = (void *)0x5065a4;
+      }
+      surface_index_buffer = *(int **)(cluster + 0x48);
+      i = 0;
+      if (0 < *(int *)(cluster + 0x44)) {
+        do {
+          run_end = surface_index_buffer[1]; /* part index (loaded first) */
+          geometry = (char *)tag_block_get_element((char *)param_1 + 0x104,
+                                                   *surface_index_buffer, 0x20);
+          part = (char *)tag_block_get_element(geometry + 0x14, run_end, 0x100);
+          run_end = surface_index_buffer[2] + 3 + i;
+          i = i + 3;
+          surface_index_buffer = surface_index_buffer + 3;
+          while (i < run_end && *(short *)0x5937d0 < 0x4000) {
+            surface_index = *surface_index_buffer;
+            surface_index_buffer = surface_index_buffer + 1;
+            if (*(int *)(cluster + 0x44) < (int)((char *)surface_index_buffer -
+                                                 *(char **)(cluster + 0x48)) >>
+                2) {
+              display_assert(
+                "surface_index_buffer-(long *) "
+                "cluster->surface_indices.address<=cluster->surface_indices."
+                "count",
+                "c:\\halo\\SOURCE\\structures\\structure_visibility.c", 0x1a0,
+                1);
+              system_exit(-1);
+            }
+            bit_mask = 1u << (surface_index & 0x1f);
+            if ((*(unsigned int *)((char *)0x5137d0 +
+                                   (surface_index >> 5) * 4) &
+                 bit_mask) == 0) {
+              surface = (unsigned short *)tag_block_get_element(
+                (char *)param_1 + 0xf8, surface_index, 6);
+              vertex_base = *(char **)(part + 0xf8);
+              if (render_frustum_triangle_visible(
+                    plane_ctx, vertex_base + (surface[0] << 5),
+                    vertex_base + (surface[1] << 5),
+                    vertex_base + (surface[2] << 5)) != 0) {
+                *(unsigned int *)((char *)0x5137d0 +
+                                  (surface_index >> 5) * 4) |= bit_mask;
+                *(short *)0x5937d0 = *(short *)0x5937d0 + 1;
+              }
+            }
+            i = i + 1;
+          }
+        } while (i < *(int *)(cluster + 0x44));
+      }
+      cluster_i = cluster_i + 1;
+    } while ((short)cluster_i < *(short *)0x5137cc);
+  }
+  if (*(char *)0x449ef1 != '\0' && *(char *)0x32c960 != '\0') {
+    profile_exit_private((void *)0x32c958);
+  }
+}
+
 /* Recursively flood rendered clusters across BSP portal connections (0x197b00).
  * DFS over the cluster portal graph. Sets a per-cluster "visited" bit (dynamic
  * bit-vector at *0x4d8ed8) on entry and clears it on exit (backtrack). The
