@@ -60,6 +60,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 KB_PATH = REPO_ROOT / "kb.json"
 XBE_PATH = REPO_ROOT / "halo-patched" / "cachebeta.xbe"
 REPORT_DIR = REPO_ROOT / "artifacts" / "audit"
+BASELINE_PATH = REPO_ROOT / "tools" / "audit" / "arg_count_baseline.json"
 
 # ---------------------------------------------------------------------------
 # XBE loading — adapted from tools/analysis/classify_common.py (self-contained)
@@ -786,6 +787,64 @@ def _self_test() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Baseline: pre-existing HIGH findings accepted as latent
+# ---------------------------------------------------------------------------
+
+def _finding_key(r: CalleeResult) -> str:
+    return r.addr_str if r.addr_str.startswith("0x") else "0x%06x" % r.addr
+
+
+def _observed_str(observed: Dict[int, int]) -> Dict[str, int]:
+    """JSON-safe form of the cleanup histogram (int keys are not valid JSON)."""
+    return {str(k): v for k, v in sorted(observed.items())}
+
+
+def _load_baseline() -> Dict[str, Dict]:
+    if not BASELINE_PATH.exists():
+        return {}
+    return json.loads(BASELINE_PATH.read_text()).get("entries", {})
+
+
+def _write_baseline(highs: List[CalleeResult]) -> None:
+    entries = {
+        _finding_key(r): {
+            "name": r.name,
+            "declared_stack": r.declared_stack,
+            "verdict": r.verdict,
+            "observed": _observed_str(r.observed),
+        }
+        for r in highs
+    }
+    payload = {
+        "_comment": (
+            "Pre-existing arg-count mismatches (kb.json declared stack args vs "
+            "ADD ESP,N cleanup at original call sites) accepted as latent. "
+            "--check gates only HIGH findings absent from this file or whose "
+            "declared_stack/verdict/observed changed -- a finding that CHANGES "
+            "re-fires rather than staying forgiven. Do NOT baseline a function "
+            "called from lifted C: fix its kb.json decl instead. "
+            "Regenerate: check_arg_counts.py --update-baseline"
+        ),
+        "entries": dict(sorted(entries.items())),
+    }
+    BASELINE_PATH.write_text(json.dumps(payload, indent=2) + "\n")
+
+
+def _new_highs(highs: List[CalleeResult],
+               baseline: Dict[str, Dict]) -> List[CalleeResult]:
+    """HIGH findings that are absent from the baseline, or changed since."""
+    out = []
+    for r in highs:
+        b = baseline.get(_finding_key(r))
+        if (b is None
+                or b.get("declared_stack") != r.declared_stack
+                or b.get("verdict") != r.verdict
+                or b.get("observed") != _observed_str(r.observed)):
+            out.append(r)
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -798,7 +857,9 @@ def main() -> None:
     ap.add_argument("--callee", metavar="ADDR",
                     help="Filter to one callee (hex, e.g. 0xacff0)")
     ap.add_argument("--check", action="store_true",
-                    help="Exit 1 if any HIGH finding is present")
+                    help="Exit 1 on HIGH findings not covered by the baseline")
+    ap.add_argument("--update-baseline", action="store_true",
+                    help=f"Write current HIGH findings to {BASELINE_PATH.name}")
     ap.add_argument("--self-test", action="store_true",
                     help="Run self-tests and exit")
     ap.add_argument("--verbose", "-v", action="store_true",
@@ -862,8 +923,28 @@ def main() -> None:
             print(f"\nFull report written to: {report_path}")
         print(f"Runtime: {elapsed:.1f}s")
 
-    if args.check and stats["findings_high"] > 0:
-        sys.exit(1)
+    highs = [r for r in results if r.severity == "HIGH"]
+
+    if args.update_baseline:
+        _write_baseline(highs)
+        print(f"\nbaseline written: {BASELINE_PATH} ({len(highs)} entries)")
+        return
+
+    if args.check:
+        new = _new_highs(highs, _load_baseline())
+        if new:
+            print(f"\n--check FAILED: {len(new)} non-baselined arg-count "
+                  f"mismatch(es) (of {len(highs)} HIGH total):")
+            for r in new[:20]:
+                print(f"  {r.addr_str:12s} {r.name:44s} "
+                      f"declared={r.declared_stack} observed={dict(sorted(r.observed.items()))} "
+                      f"{r.verdict}")
+            if len(new) > 20:
+                print(f"  ... and {len(new) - 20} more")
+            print("\nFix the kb.json decl. Only --update-baseline if the callee "
+                  "is provably never called from lifted C.")
+            sys.exit(1)
+        print(f"\n--check OK: {len(highs)} HIGH finding(s), all baselined.")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,5059 @@
+{
+  "_comment": "Pre-existing arg-count mismatches (kb.json declared stack args vs ADD ESP,N cleanup at original call sites) accepted as latent. --check gates only HIGH findings absent from this file or whose declared_stack/verdict/observed changed -- a finding that CHANGES re-fires rather than staying forgiven. Do NOT baseline a function called from lifted C: fix its kb.json decl instead. Regenerate: check_arg_counts.py --update-baseline",
+  "entries": {
+    "0x100390": {
+      "name": "main_respawn",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x100500": {
+      "name": "main_switch_structure_bsp",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1006f0": {
+      "name": "main_get_solo_level_from_name",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 4
+      }
+    },
+    "0x1034b0": {
+      "name": "FUN_001034b0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1036c0": {
+      "name": "FUN_001036c0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x103c00": {
+      "name": "FUN_00103c00",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x107520": {
+      "name": "FUN_00107520",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "9": 1
+      }
+    },
+    "0x107ec0": {
+      "name": "get_edge_vertex",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 3
+      }
+    },
+    "0x108270": {
+      "name": "get_face_vertex",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "7": 1,
+        "21": 1
+      }
+    },
+    "0x108400": {
+      "name": "subdivide_triangle",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "6": 1
+      }
+    },
+    "0x1089d0": {
+      "name": "FUN_001089d0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x108a10": {
+      "name": "FUN_00108a10",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 4,
+        "9": 1
+      }
+    },
+    "0x108bc0": {
+      "name": "FUN_00108bc0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 5,
+        "6": 1
+      }
+    },
+    "0x108e20": {
+      "name": "FUN_00108e20",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 6
+      }
+    },
+    "0x10a5e0": {
+      "name": "FUN_0010a5e0",
+      "declared_stack": 2,
+      "verdict": "OVER-DECLARED",
+      "observed": {
+        "1": 8,
+        "2": 9
+      }
+    },
+    "0x10b270": {
+      "name": "random_real_range",
+      "declared_stack": 3,
+      "verdict": "OVER-DECLARED",
+      "observed": {
+        "1": 1,
+        "2": 1,
+        "3": 101
+      }
+    },
+    "0x10b6e0": {
+      "name": "rotate_vector3d_by_sincos",
+      "declared_stack": 4,
+      "verdict": "OVER-DECLARED",
+      "observed": {
+        "2": 1,
+        "4": 19,
+        "8": 4,
+        "9": 2
+      }
+    },
+    "0x10c3c0": {
+      "name": "FUN_0010c3c0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1,
+        "8": 1
+      }
+    },
+    "0x11abb0": {
+      "name": "data_packet_group_append_packet_header",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x11fdb0": {
+      "name": "FUN_0011fdb0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x11feb0": {
+      "name": "FUN_0011feb0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 2
+      }
+    },
+    "0x11fef0": {
+      "name": "FUN_0011fef0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0x11ff70": {
+      "name": "FUN_0011ff70",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 5,
+        "3": 1
+      }
+    },
+    "0x120250": {
+      "name": "FUN_00120250",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x120400": {
+      "name": "FUN_00120400",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1204a0": {
+      "name": "FUN_001204a0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x120670": {
+      "name": "build_damage_animation_index",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 4,
+        "6": 1
+      }
+    },
+    "0x120a40": {
+      "name": "animation_graph_node_matrices_from_orientations",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "6": 1
+      }
+    },
+    "0x122240": {
+      "name": "overlay_animation_apply",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 4,
+        "6": 1
+      }
+    },
+    "0x12350": {
+      "name": "action_alert_next_position",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x124d00": {
+      "name": "FUN_00124D00",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 2
+      }
+    },
+    "0x124e90": {
+      "name": "network_game_client_ponged",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x124f40": {
+      "name": "network_game_client_accepted_into_game",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x125050": {
+      "name": "network_game_client_game_settings_updated",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x125180": {
+      "name": "unstrip_player_index",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1258a0": {
+      "name": "network_game_client_add_player",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0x125c60": {
+      "name": "network_game_client_countdown_timer_update",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x125cb0": {
+      "name": "network_game_client_advertised_game_is_valid",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 2
+      }
+    },
+    "0x125ce0": {
+      "name": "FUN_00125ce0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x126700": {
+      "name": "network_game_client_new_advertised_game",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1267c0": {
+      "name": "network_game_client_reset",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1,
+        "5": 1
+      }
+    },
+    "0x1271a0": {
+      "name": "FUN_001271a0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x128c0": {
+      "name": "action_avoid_setup",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x131280": {
+      "name": "FUN_00131280",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1313f0": {
+      "name": "FUN_001313f0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1,
+        "9": 1
+      }
+    },
+    "0x131840": {
+      "name": "FUN_00131840",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 4,
+        "12": 1
+      }
+    },
+    "0x1318f0": {
+      "name": "telnet_console_print",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 3
+      }
+    },
+    "0x131a20": {
+      "name": "FUN_00131a20",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "6": 2,
+        "12": 3
+      }
+    },
+    "0x131fc0": {
+      "name": "FUN_00131fc0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 2
+      }
+    },
+    "0x132460": {
+      "name": "flag_render_proper",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x1335e0": {
+      "name": "FUN_001335e0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "9": 1,
+        "18": 1
+      }
+    },
+    "0x1336a0": {
+      "name": "FUN_001336a0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "10": 1,
+        "20": 1
+      }
+    },
+    "0x148240": {
+      "name": "FUN_00148240",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "6": 1,
+        "13": 1
+      }
+    },
+    "0x148370": {
+      "name": "FUN_00148370",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 2
+      }
+    },
+    "0x148440": {
+      "name": "FUN_00148440",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 3
+      }
+    },
+    "0x1486e0": {
+      "name": "FUN_001486e0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1,
+        "6": 1
+      }
+    },
+    "0x148780": {
+      "name": "FUN_00148780",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "8": 1
+      }
+    },
+    "0x148b90": {
+      "name": "bsp3d_test_sphere_recursive",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0x148eb0": {
+      "name": "FUN_00148eb0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 2
+      }
+    },
+    "0x149570": {
+      "name": "FUN_00149570",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2,
+        "10": 1
+      }
+    },
+    "0x149680": {
+      "name": "FUN_00149680",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 4
+      }
+    },
+    "0x14bdb0": {
+      "name": "collision_sphere_test_vector",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 1
+      }
+    },
+    "0x14bf30": {
+      "name": "collision_cylinder_test_vector",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 1
+      }
+    },
+    "0x14c220": {
+      "name": "collision_prism_test_vector",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 1
+      }
+    },
+    "0x14dab0": {
+      "name": "FUN_0014dab0",
+      "declared_stack": 2,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 4,
+        "6": 1
+      }
+    },
+    "0x14ef30": {
+      "name": "collision_log_usage",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1506d0": {
+      "name": "FUN_001506d0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "9": 1
+      }
+    },
+    "0x150710": {
+      "name": "FUN_00150710",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 4
+      }
+    },
+    "0x150b60": {
+      "name": "FUN_00150b60",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x150dd0": {
+      "name": "friction_evaluate",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 6
+      }
+    },
+    "0x151a50": {
+      "name": "physics_compute_biped_collision",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1524d0": {
+      "name": "physics_compute_vehicle_collision",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x152680": {
+      "name": "FUN_00152680",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 1
+      }
+    },
+    "0x152e40": {
+      "name": "FUN_00152e40",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 1
+      }
+    },
+    "0x154270": {
+      "name": "FUN_00154270",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 12,
+        "8": 2
+      }
+    },
+    "0x154540": {
+      "name": "FUN_00154540",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 2
+      }
+    },
+    "0x154630": {
+      "name": "FUN_00154630",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 2,
+        "8": 1
+      }
+    },
+    "0x154750": {
+      "name": "FUN_00154750",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 1
+      }
+    },
+    "0x1559b0": {
+      "name": "rasterizer_spin_begin",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x155da0": {
+      "name": "rasterizer_set_texture_direct_non_blocking",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x1560a0": {
+      "name": "rasterizer_set_texture_non_blocking",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 1
+      }
+    },
+    "0x156850": {
+      "name": "rasterizer_set_model_lighting_point_light",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x1569f0": {
+      "name": "FUN_001569f0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x15d8b0": {
+      "name": "FUN_0015d8b0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 2
+      }
+    },
+    "0x15dc10": {
+      "name": "FUN_0015dc10",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 3,
+        "5": 3,
+        "8": 2,
+        "9": 1
+      }
+    },
+    "0x15de60": {
+      "name": "FUN_0015de60",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 3,
+        "6": 3
+      }
+    },
+    "0x15e0f0": {
+      "name": "FUN_0015e0f0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 2
+      }
+    },
+    "0x15e650": {
+      "name": "FUN_0015e650",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "6": 2,
+        "8": 1
+      }
+    },
+    "0x165ea0": {
+      "name": "FUN_00165ea0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "7": 1
+      }
+    },
+    "0x167ee0": {
+      "name": "FUN_00167ee0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x168ae0": {
+      "name": "FUN_00168ae0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x16ab00": {
+      "name": "FUN_0016ab00",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "6": 2
+      }
+    },
+    "0x16b180": {
+      "name": "FUN_0016b180",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 2
+      }
+    },
+    "0x16b2b0": {
+      "name": "FUN_0016b2b0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "7": 1
+      }
+    },
+    "0x16c090": {
+      "name": "FUN_0016c090",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "9": 1
+      }
+    },
+    "0x16fbd0": {
+      "name": "FUN_0016fbd0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x16fcf0": {
+      "name": "FUN_0016fcf0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 2
+      }
+    },
+    "0x1792a0": {
+      "name": "FUN_001792a0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1795c0": {
+      "name": "FUN_001795c0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x17d060": {
+      "name": "FUN_0017d060",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 1
+      }
+    },
+    "0x17d070": {
+      "name": "FUN_0017d070",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x17d9d0": {
+      "name": "FUN_0017d9d0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 6
+      }
+    },
+    "0x17dec0": {
+      "name": "FUN_0017dec0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x17df10": {
+      "name": "FUN_0017df10",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 2
+      }
+    },
+    "0x17edd0": {
+      "name": "rasterizer_frame_statistics_count_static_vertices",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 13
+      }
+    },
+    "0x1812c0": {
+      "name": "FUN_001812c0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x182610": {
+      "name": "FUN_00182610",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 6,
+        "3": 1
+      }
+    },
+    "0x182840": {
+      "name": "rasterizer_xbox_bitmap_swizzle2d_byte",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 4
+      }
+    },
+    "0x182910": {
+      "name": "rasterizer_xbox_bitmap_swizzle2d_word",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 2
+      }
+    },
+    "0x1829f0": {
+      "name": "rasterizer_xbox_bitmap_swizzle2d_long",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 2
+      }
+    },
+    "0x182ac0": {
+      "name": "rasterizer_xbox_bitmap_swizzle3d_byte",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 2
+      }
+    },
+    "0x182bd0": {
+      "name": "rasterizer_xbox_bitmap_swizzle3d_word",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 2
+      }
+    },
+    "0x182cf0": {
+      "name": "rasterizer_xbox_bitmap_swizzle3d_long",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 2
+      }
+    },
+    "0x185950": {
+      "name": "render_camera_build_frustum_bounds",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x186690": {
+      "name": "render_frustum_build_point_flags",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 3
+      }
+    },
+    "0x186d40": {
+      "name": "render_camera_debug_frustum",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x187f80": {
+      "name": "FUN_00187f80",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x188010": {
+      "name": "render_contrail",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x18e690": {
+      "name": "FUN_0018e690",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 2
+      }
+    },
+    "0x190240": {
+      "name": "FUN_00190240",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x190550": {
+      "name": "FUN_00190550",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 3
+      }
+    },
+    "0x190a30": {
+      "name": "shader_type_is_valid_for_environment",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x190a50": {
+      "name": "shader_type_is_valid_for_model",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1,
+        "9": 1
+      }
+    },
+    "0x190a90": {
+      "name": "shader_environment_texture_animation_evaluate",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 5,
+        "7": 3
+      }
+    },
+    "0x192050": {
+      "name": "leaf_map_build_portal_from_leaves",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x192c30": {
+      "name": "intersect_planes3d",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x192da0": {
+      "name": "leaf_map_build_portals_from_leaf",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 2
+      }
+    },
+    "0x192f80": {
+      "name": "leaf_map_build_leaf_face_for_leaf_on_node",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1931e0": {
+      "name": "FUN_001931e0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1,
+        "4": 1
+      }
+    },
+    "0x193340": {
+      "name": "FUN_00193340",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1975e0": {
+      "name": "FUN_001975e0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x199a60": {
+      "name": "directory_create_or_delete_contents",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x19aad0": {
+      "name": "file_set_eof",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1,
+        "6": 1
+      }
+    },
+    "0x19ac00": {
+      "name": "file_write",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 13,
+        "6": 1,
+        "9": 1
+      }
+    },
+    "0x19acf0": {
+      "name": "file_write_to_position",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x19adf0": {
+      "name": "file_get_size",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0x19b790": {
+      "name": "draw_string_get_color",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x19b7e0": {
+      "name": "FUN_0019B7E0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1,
+        "8": 1
+      }
+    },
+    "0x19bd30": {
+      "name": "FUN_0019bd30",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 4
+      }
+    },
+    "0x19be30": {
+      "name": "parse_string",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x19c1b0": {
+      "name": "FUN_0019c1b0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "7": 1
+      }
+    },
+    "0x19c3c0": {
+      "name": "FUN_0019c3c0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "7": 1
+      }
+    },
+    "0x19cff0": {
+      "name": "FUN_0019cff0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 6,
+        "3": 1
+      }
+    },
+    "0x19d380": {
+      "name": "FUN_0019d380",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 3
+      }
+    },
+    "0x19dc20": {
+      "name": "ustrncmp",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 2
+      }
+    },
+    "0x19ded0": {
+      "name": "ustrstr",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 5,
+        "8": 1
+      }
+    },
+    "0x19f540": {
+      "name": "biped_limp_noodle_valid_joint_rotation",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 1
+      }
+    },
+    "0x1a2b10": {
+      "name": "FUN_001a2b10",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1a2b90": {
+      "name": "FUN_001a2b90",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1a71c0": {
+      "name": "FUN_001a71c0",
+      "declared_stack": 5,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "6": 1
+      }
+    },
+    "0x1b55c0": {
+      "name": "vehicle_hover",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1b5610": {
+      "name": "FUN_001b5610",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1b56b0": {
+      "name": "FUN_001b56b0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1b5ff0": {
+      "name": "FUN_001b5ff0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1b6140": {
+      "name": "FUN_001b6140",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1b6250": {
+      "name": "FUN_001b6250",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1b6e20": {
+      "name": "FUN_001b6e20",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 2
+      }
+    },
+    "0x1b7020": {
+      "name": "FUN_001b7020",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 3
+      }
+    },
+    "0x1b72b0": {
+      "name": "FUN_001b72b0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x1b81d0": {
+      "name": "FUN_001b81d0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x1b8570": {
+      "name": "FUN_001b8570",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x1b9fa0": {
+      "name": "FUN_001b9fa0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1ba9d0": {
+      "name": "FUN_001ba9d0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0x1badc0": {
+      "name": "cache_copy_get_status",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1bb190": {
+      "name": "FUN_001bb190",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 2
+      }
+    },
+    "0x1bb2d0": {
+      "name": "FUN_001bb2d0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 2,
+        "7": 1
+      }
+    },
+    "0x1bb430": {
+      "name": "FUN_001bb430",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 4
+      }
+    },
+    "0x1bb5a0": {
+      "name": "acquire_read_request",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1bb8a0": {
+      "name": "FUN_001bb8a0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1bc3b0": {
+      "name": "FUN_001bc3b0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 5
+      }
+    },
+    "0x1bdf60": {
+      "name": "FUN_001bdf60",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1be100": {
+      "name": "FUN_001be100",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1be140": {
+      "name": "FUN_001be140",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1c0d50": {
+      "name": "FUN_001c0d50",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 2,
+        "7": 1
+      }
+    },
+    "0x1c0ee0": {
+      "name": "FUN_001c0ee0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1c0f70": {
+      "name": "player_profile_save_last_level_played",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1,
+        "5": 3,
+        "13": 1
+      }
+    },
+    "0x1c1280": {
+      "name": "FUN_001c1280",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0x1c1720": {
+      "name": "FUN_001c1720",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1,
+        "4": 1,
+        "6": 1
+      }
+    },
+    "0x1c18f0": {
+      "name": "player_profile_new",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 5
+      }
+    },
+    "0x1c1b00": {
+      "name": "FUN_001c1b00",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1c1bc0": {
+      "name": "player_profile_get_from_path",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 4
+      }
+    },
+    "0x1c1c00": {
+      "name": "FUN_001c1c00",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1c1cc0": {
+      "name": "FUN_001c1cc0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1c1e20": {
+      "name": "FUN_001c1e20",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0x1c22e0": {
+      "name": "playlist_profile_create_default_profiles_on_disk",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1c26b0": {
+      "name": "FUN_001c26b0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x1c26f0": {
+      "name": "playlist_profile_delete",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 3
+      }
+    },
+    "0x1c2890": {
+      "name": "saved_game_file_close",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 11
+      }
+    },
+    "0x1c29a0": {
+      "name": "saved_game_file_get_type",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 8
+      }
+    },
+    "0x1c29c0": {
+      "name": "saved_game_file_get_useable_untitled_profile_name",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 2
+      }
+    },
+    "0x1c2bf0": {
+      "name": "saved_game_file_name_unique",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1c2c50": {
+      "name": "saved_game_file_remember_player1_last_used_profile_directory",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1c2d20": {
+      "name": "saved_game_file_retrieve_player1_last_used_profile_directory",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1c2e00": {
+      "name": "saved_game_file_remember_last_used_multiplayer_variant_directory",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 4
+      }
+    },
+    "0x1c2ed0": {
+      "name": "saved_game_file_retrieve_last_used_multiplayer_variant_directory",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1c2fb0": {
+      "name": "saved_game_file_remember_last_used_multiplayer_map",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1c3080": {
+      "name": "saved_game_file_retrieve_last_used_multiplayer_map",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1c3710": {
+      "name": "FUN_001c3710",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 3
+      }
+    },
+    "0x1c38d0": {
+      "name": "saved_game_file_find_profile_index_for_directory_path",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0x1c3e40": {
+      "name": "FUN_001c3e40",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 5
+      }
+    },
+    "0x1c4210": {
+      "name": "FUN_001c4210",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1c4850": {
+      "name": "FUN_001c4850",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 6
+      }
+    },
+    "0x1c4990": {
+      "name": "FUN_001c4990",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0x1c4da0": {
+      "name": "FUN_001c4da0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2,
+        "4": 2
+      }
+    },
+    "0x1c53f0": {
+      "name": "FUN_001c53f0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 2
+      }
+    },
+    "0x1c6900": {
+      "name": "FUN_001c6900",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1c6b20": {
+      "name": "FUN_001c6b20",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x1c6bf0": {
+      "name": "FUN_001c6bf0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x1c6d20": {
+      "name": "FUN_001c6d20",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 2
+      }
+    },
+    "0x1c6d90": {
+      "name": "FUN_001c6d90",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1c6ed0": {
+      "name": "FUN_001c6ed0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x1c6fb0": {
+      "name": "FUN_001c6fb0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x1c7500": {
+      "name": "scripted_sound_time",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1c77a0": {
+      "name": "FUN_001c77a0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1c7f80": {
+      "name": "scripted_sound_new",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x1c8f20": {
+      "name": "sound_get_permutation_pitch",
+      "declared_stack": 2,
+      "verdict": "OVER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1ca2b0": {
+      "name": "FUN_001ca2b0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1cadd0": {
+      "name": "FUN_001cadd0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 1,
+        "8": 1
+      }
+    },
+    "0x1cb210": {
+      "name": "FUN_001cb210",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1cc5b0": {
+      "name": "FUN_001cc5b0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1cce80": {
+      "name": "sound_update_time",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 2
+      }
+    },
+    "0x1cd190": {
+      "name": "FUN_001cd190",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1cd8b0": {
+      "name": "FUN_001cd8b0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 2
+      }
+    },
+    "0x1ce550": {
+      "name": "sound_refresh_looping",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "6": 2
+      }
+    },
+    "0x1cebb0": {
+      "name": "FUN_001cebb0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1cfa0": {
+      "name": "actor_action_can_stop_conversing",
+      "declared_stack": 2,
+      "verdict": "OVER-DECLARED",
+      "observed": {
+        "1": 15
+      }
+    },
+    "0x1d8ebe": {
+      "name": "DbgPrint",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "6": 2
+      }
+    },
+    "0x1d91f0": {
+      "name": "_shortsort",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x1d9dfd": {
+      "name": "__fsopen",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x1da700": {
+      "name": "_strncmp",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x1daaaa": {
+      "name": "_isalpha",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1dad15": {
+      "name": "FUN_001dad15",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 2
+      }
+    },
+    "0x1db134": {
+      "name": "_wcschr",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 3
+      }
+    },
+    "0x1db156": {
+      "name": "_wcscat",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1,
+        "5": 1
+      }
+    },
+    "0x1db180": {
+      "name": "_wcscpy",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2,
+        "5": 1
+      }
+    },
+    "0x1db19c": {
+      "name": "FUN_001db19c",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x1db2ff": {
+      "name": "FUN_001db2ff",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x1db443": {
+      "name": "_wprintf",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1db4a9": {
+      "name": "FUN_001db4a9",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1db7fc": {
+      "name": "__fseek_lk",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x1dbabf": {
+      "name": "_ftell",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1dbb00": {
+      "name": "FUN_001dbb00",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1dbcf4": {
+      "name": "__global_unwind2",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1dbd36": {
+      "name": "__local_unwind2",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 3
+      }
+    },
+    "0x1dbed0": {
+      "name": "_memchr",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x1dbf75": {
+      "name": "_wcscmp",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1dbfa7": {
+      "name": "FUN_001dbfa7",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1dbfac": {
+      "name": "_wcscspn",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1dbfef": {
+      "name": "_wcsncat",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x1dc02c": {
+      "name": "_wcsncmp",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x1dc09e": {
+      "name": "_wcspbrk",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1dc0de": {
+      "name": "_wcsrchr",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1dc10e": {
+      "name": "_wcsspn",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1dc154": {
+      "name": "_wcsstr",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1dc1b2": {
+      "name": "_wcstok",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1dc257": {
+      "name": "FUN_001dc257",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x1dc2c3": {
+      "name": "__wcsicmp",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1dc34b": {
+      "name": "__wcsnicmp",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1,
+        "4": 1
+      }
+    },
+    "0x1dc512": {
+      "name": "_fgetwc",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1dc61e": {
+      "name": "_fputwc",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1dc766": {
+      "name": "_ungetwc",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1dc7ac": {
+      "name": "_fgetws",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x1dc82c": {
+      "name": "_fputws",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1dc89a": {
+      "name": "__getws",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1dc914": {
+      "name": "__putws",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1dc9a3": {
+      "name": "_vfwprintf",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 2
+      }
+    },
+    "0x1dca00": {
+      "name": "_vprintf",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0x1dcace": {
+      "name": "FUN_001dcace",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 3
+      }
+    },
+    "0x1dcb6c": {
+      "name": "FUN_001dcb6c",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1dcc99": {
+      "name": "__wfsopen",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x1dccf5": {
+      "name": "FUN_001dccf5",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1dcd08": {
+      "name": "__wfreopen",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x1dcd6e": {
+      "name": "FUN_001dcd6e",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1dce6e": {
+      "name": "FUN_001dce6e",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1dd00c": {
+      "name": "FUN_001dd00c",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 2
+      }
+    },
+    "0x1dd1d1": {
+      "name": "FUN_001dd1d1",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x1dd1e8": {
+      "name": "FUN_001dd1e8",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1,
+        "5": 1
+      }
+    },
+    "0x1dd1ff": {
+      "name": "FUN_001dd1ff",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1dd3d4": {
+      "name": "FUN_001dd3d4",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1dd467": {
+      "name": "__wctime",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1dd49a": {
+      "name": "__wasctime",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1dd6f5": {
+      "name": "FUN_001dd6f5",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "8": 1
+      }
+    },
+    "0x1dde12": {
+      "name": "_malloc",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1ddf9a": {
+      "name": "FUN_001ddf9a",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1,
+        "11": 1
+      }
+    },
+    "0x1de043": {
+      "name": "FUN_001de043",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x1de0a3": {
+      "name": "FUN_001de0a3",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1,
+        "10": 1
+      }
+    },
+    "0x1de14a": {
+      "name": "FUN_001de14a",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x1de3d8": {
+      "name": "FUN_001de3d8",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 3
+      }
+    },
+    "0x1df28e": {
+      "name": "FUN_001df28e",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 2,
+        "6": 2
+      }
+    },
+    "0x1df419": {
+      "name": "__write",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 9,
+        "6": 3
+      }
+    },
+    "0x1df57e": {
+      "name": "FUN_001df57e",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "6": 3
+      }
+    },
+    "0x1dfa55": {
+      "name": "__errcode",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 2
+      }
+    },
+    "0x1dfb20": {
+      "name": "__handle_qnan1",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 3
+      }
+    },
+    "0x1dfd36": {
+      "name": "__set_exp",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 7
+      }
+    },
+    "0x1dfe1f": {
+      "name": "FUN_001dfe1f",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 3
+      }
+    },
+    "0x1e02de": {
+      "name": "__openfile",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x1e0984": {
+      "name": "FUN_001e0984",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x1e1de4": {
+      "name": "__fload",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 3
+      }
+    },
+    "0x1e1e20": {
+      "name": "FUN_001e1e20",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 2
+      }
+    },
+    "0x1e1ed5": {
+      "name": "FUN_001e1ed5",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 3
+      }
+    },
+    "0x1e209e": {
+      "name": "__read",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 11,
+        "6": 2,
+        "8": 1
+      }
+    },
+    "0x1e2460": {
+      "name": "FUN_001e2460",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 9
+      }
+    },
+    "0x1e24d2": {
+      "name": "__lseek",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 17
+      }
+    },
+    "0x1e2669": {
+      "name": "FUN_001e2669",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 4
+      }
+    },
+    "0x1e290d": {
+      "name": "_write_multi_char",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 3
+      }
+    },
+    "0x1e3110": {
+      "name": "__wopenfile",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 2
+      }
+    },
+    "0x1e35d8": {
+      "name": "FUN_001e35d8",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 5
+      }
+    },
+    "0x1e360": {
+      "name": "actor_action_find_escape_from_danger",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 1
+      }
+    },
+    "0x1e3a9a": {
+      "name": "FUN_001e3a9a",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x1e3e48": {
+      "name": "__ld12cvt",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 2
+      }
+    },
+    "0x1e4345": {
+      "name": "FUN_001e4345",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 2
+      }
+    },
+    "0x1e4493": {
+      "name": "FUN_001e4493",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 2
+      }
+    },
+    "0x1e4c1c": {
+      "name": "FUN_001e4c1c",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 2
+      }
+    },
+    "0x1e4f07": {
+      "name": "__sopen",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x1e540f": {
+      "name": "FUN_001e540f",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 2
+      }
+    },
+    "0x1e56fe": {
+      "name": "__wsopen",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x1e59e3": {
+      "name": "___addl",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 7
+      }
+    },
+    "0x1e5abd": {
+      "name": "FUN_001e5abd",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x1e61de": {
+      "name": "FUN_001e61de",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 2
+      }
+    },
+    "0x1e6254": {
+      "name": "FUN_001e6254",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "7": 1
+      }
+    },
+    "0x1e6805": {
+      "name": "FUN_001e6805",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1e6831": {
+      "name": "FUN_001e6831",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x1e68bb": {
+      "name": "___loctotime_t",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "7": 3
+      }
+    },
+    "0x220c0": {
+      "name": "actor_aim_projectile",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x2b310": {
+      "name": "FUN_0002b310",
+      "declared_stack": 6,
+      "verdict": "OVER-DECLARED",
+      "observed": {
+        "4": 2
+      }
+    },
+    "0x2b830": {
+      "name": "FUN_0002b830",
+      "declared_stack": 6,
+      "verdict": "OVER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x2bd80": {
+      "name": "FUN_0002bd80",
+      "declared_stack": 4,
+      "verdict": "OVER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x2daa0": {
+      "name": "actor_move_compute_facing",
+      "declared_stack": 17,
+      "verdict": "OVER-DECLARED",
+      "observed": {
+        "15": 1
+      }
+    },
+    "0x2f470": {
+      "name": "actor_get_vision_distances",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "6": 2
+      }
+    },
+    "0x2f5f0": {
+      "name": "FUN_0002f5f0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 2
+      }
+    },
+    "0x2f6e0": {
+      "name": "actor_perception_desire_prop",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "13": 1
+      }
+    },
+    "0x30b80": {
+      "name": "actor_perception_aiming_vector_test_blockage",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 3,
+        "6": 1,
+        "8": 1
+      }
+    },
+    "0x30e60": {
+      "name": "FUN_00030e60",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 2
+      }
+    },
+    "0x30f50": {
+      "name": "FUN_00030f50",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x314f0": {
+      "name": "actor_visibility_at_point",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "8": 1,
+        "10": 4,
+        "18": 1
+      }
+    },
+    "0x31c00": {
+      "name": "actor_perception_unit_from_swarm",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 2
+      }
+    },
+    "0x31df0": {
+      "name": "prop_position_refresh",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 4,
+        "7": 1
+      }
+    },
+    "0x32170": {
+      "name": "FUN_00032170",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 2
+      }
+    },
+    "0x32380": {
+      "name": "actor_perception_refresh_danger_zone",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x33440": {
+      "name": "prop_status_refresh",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 2
+      }
+    },
+    "0x342a0": {
+      "name": "actor_perception_refresh_test_object",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x34c80": {
+      "name": "actor_perception_refresh",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x3b6f0": {
+      "name": "actor_has_unlimited_grenades",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x40150": {
+      "name": "ai_handle_allegiance_broken_notification",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 2
+      }
+    },
+    "0x40460": {
+      "name": "ai_handle_damage",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "6": 2
+      }
+    },
+    "0x41250": {
+      "name": "ai_consider_major_upgrade",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x430d0": {
+      "name": "ai_communication_consider_speech",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "7": 3
+      }
+    },
+    "0x43270": {
+      "name": "actor_communication_team",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1,
+        "5": 1
+      }
+    },
+    "0x432b0": {
+      "name": "FUN_000432b0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1,
+        "12": 1
+      }
+    },
+    "0x43360": {
+      "name": "FUN_00043360",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x43740": {
+      "name": "FUN_00043740",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x43f20": {
+      "name": "ai_communication_update_speech_timers",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 2
+      }
+    },
+    "0x441c0": {
+      "name": "ai_communication_get_player_rating",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 4
+      }
+    },
+    "0x447d0": {
+      "name": "ai_conversation_find_participant",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 2
+      }
+    },
+    "0x454a0": {
+      "name": "FUN_000454a0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "11": 2
+      }
+    },
+    "0x45830": {
+      "name": "FUN_00045830",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "7": 2
+      }
+    },
+    "0x458f0": {
+      "name": "ai_communication_find_global_actor_to_talk",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "9": 5,
+        "11": 1
+      }
+    },
+    "0x45a10": {
+      "name": "ai_conversation_begin",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0x460e0": {
+      "name": "FUN_000460e0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 1
+      }
+    },
+    "0x49280": {
+      "name": "FUN_00049280",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 3
+      }
+    },
+    "0x49300": {
+      "name": "FUN_00049300",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 3
+      }
+    },
+    "0x4b320": {
+      "name": "FUN_0004b320",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "10": 2
+      }
+    },
+    "0x4b770": {
+      "name": "ai_debug_lineofsight",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x4c2a0": {
+      "name": "FUN_0004c2a0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x4c920": {
+      "name": "FUN_0004c920",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 2
+      }
+    },
+    "0x52bb0": {
+      "name": "FUN_00052bb0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x53f40": {
+      "name": "FUN_00053f40",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 1
+      }
+    },
+    "0x54220": {
+      "name": "ai_index_to_string",
+      "declared_stack": 4,
+      "verdict": "OVER-DECLARED",
+      "observed": {
+        "2": 1,
+        "4": 59
+      }
+    },
+    "0x57330": {
+      "name": "FUN_00057330",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x58af0": {
+      "name": "FUN_00058af0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0x5ac60": {
+      "name": "FUN_0005ac60",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 2
+      }
+    },
+    "0x5b6e0": {
+      "name": "encounter_pursuit_position_already_examined",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "6": 2
+      }
+    },
+    "0x5bad0": {
+      "name": "encounter_post_combat_select_random_behavior",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 2
+      }
+    },
+    "0x5e330": {
+      "name": "path_heap_bubble_down",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x5e680": {
+      "name": "path_heap_insert",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0x5f1d0": {
+      "name": "FUN_0005f1d0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x5f240": {
+      "name": "build_path_edges_for_surface",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x5f3c0": {
+      "name": "closest_point_to_attractor",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 2
+      }
+    },
+    "0x5f490": {
+      "name": "path_attractor_weight",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 2
+      }
+    },
+    "0x60070": {
+      "name": "FUN_00060070",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0x60c80": {
+      "name": "path_add_step",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "6": 3
+      }
+    },
+    "0x61080": {
+      "name": "FUN_00061080",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "11": 1,
+        "13": 1
+      }
+    },
+    "0x61280": {
+      "name": "path_add_steps",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x616e0": {
+      "name": "FUN_000616e0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "6": 1
+      }
+    },
+    "0x64170": {
+      "name": "prop_add",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1,
+        "3": 3
+      }
+    },
+    "0x645a0": {
+      "name": "prop_new_unacknowledged",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 3,
+        "5": 1
+      }
+    },
+    "0x647c0": {
+      "name": "FUN_000647c0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 3
+      }
+    },
+    "0x64970": {
+      "name": "prop_orphan_from_friend",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x64a60": {
+      "name": "prop_orphan_update_information",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x64ec0": {
+      "name": "FUN_00064ec0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 3,
+        "6": 1,
+        "10": 1
+      }
+    },
+    "0x64f50": {
+      "name": "FUN_00064f50",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x651a0": {
+      "name": "FUN_000651a0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x652f0": {
+      "name": "FUN_000652f0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 2
+      }
+    },
+    "0x659f0": {
+      "name": "TIFFSetField",
+      "declared_stack": 3,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 7,
+        "4": 2,
+        "5": 1,
+        "6": 3,
+        "18": 1
+      }
+    },
+    "0x65e90": {
+      "name": "TIFFGetField",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 2,
+        "5": 1,
+        "6": 1,
+        "16": 1
+      }
+    },
+    "0x65f70": {
+      "name": "_TIFFgetfield",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 9,
+        "4": 5
+      }
+    },
+    "0x66190": {
+      "name": "FUN_00066190",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 2,
+        "5": 1
+      }
+    },
+    "0x66320": {
+      "name": "FUN_00066320",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 7
+      }
+    },
+    "0x66380": {
+      "name": "TIFFDefaultDirectory",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 2,
+        "2": 1
+      }
+    },
+    "0x663f0": {
+      "name": "FUN_000663f0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 9
+      }
+    },
+    "0x66550": {
+      "name": "FUN_00066550",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 10
+      }
+    },
+    "0x666a0": {
+      "name": "FUN_000666a0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 2
+      }
+    },
+    "0x66920": {
+      "name": "FUN_00066920",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x66cc0": {
+      "name": "FUN_00066cc0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x66d40": {
+      "name": "FUN_00066d40",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0x66e70": {
+      "name": "FUN_00066e70",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 2
+      }
+    },
+    "0x67760": {
+      "name": "FUN_00067760",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 8
+      }
+    },
+    "0x67960": {
+      "name": "FUN_00067960",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 3,
+        "5": 1
+      }
+    },
+    "0x679f0": {
+      "name": "FUN_000679f0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x67ac0": {
+      "name": "FUN_00067ac0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x67b40": {
+      "name": "FUN_00067b40",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0x67b80": {
+      "name": "FUN_00067b80",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x67c50": {
+      "name": "FUN_00067c50",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x67f70": {
+      "name": "FUN_00067f70",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x680a0": {
+      "name": "FUN_000680a0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x68c70": {
+      "name": "FUN_00068c70",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 2
+      }
+    },
+    "0x69020": {
+      "name": "FUN_00069020",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x69200": {
+      "name": "FUN_00069200",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 10,
+        "2": 1
+      }
+    },
+    "0x69520": {
+      "name": "FUN_00069520",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x69600": {
+      "name": "FUN_00069600",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 8
+      }
+    },
+    "0x696d0": {
+      "name": "FUN_000696d0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x69b90": {
+      "name": "FUN_00069b90",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0x69c40": {
+      "name": "FUN_00069c40",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x6a210": {
+      "name": "FUN_0006a210",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 2
+      }
+    },
+    "0x6a2a0": {
+      "name": "FUN_0006a2a0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x6a310": {
+      "name": "FUN_0006a310",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2,
+        "8": 2
+      }
+    },
+    "0x6a5d0": {
+      "name": "FUN_0006a5d0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x6b440": {
+      "name": "FUN_0006b440",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 2
+      }
+    },
+    "0x6bcb0": {
+      "name": "FUN_0006bcb0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x6be40": {
+      "name": "FUN_0006be40",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 1
+      }
+    },
+    "0x6c5e0": {
+      "name": "FUN_0006c5e0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0x6c960": {
+      "name": "FUN_0006c960",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 6
+      }
+    },
+    "0x6cfa0": {
+      "name": "FUN_0006cfa0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1,
+        "7": 1
+      }
+    },
+    "0x6d590": {
+      "name": "TIFFFdOpen",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x6d820": {
+      "name": "TIFFScanlineSize",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 6,
+        "2": 1,
+        "7": 2
+      }
+    },
+    "0x6d880": {
+      "name": "TIFFIsTiled",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 2
+      }
+    },
+    "0x6d9c0": {
+      "name": "FUN_0006d9c0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x6e740": {
+      "name": "FUN_0006e740",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0x6e7d0": {
+      "name": "FUN_0006e7d0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0x6e870": {
+      "name": "FUN_0006e870",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 2
+      }
+    },
+    "0x6eaf0": {
+      "name": "FUN_0006eaf0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0x6ec50": {
+      "name": "FUN_0006ec50",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0x6eea0": {
+      "name": "FUN_0006eea0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "6": 4
+      }
+    },
+    "0x6f040": {
+      "name": "FUN_0006f040",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x6f1b0": {
+      "name": "FUN_0006f1b0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 3
+      }
+    },
+    "0x6f1d0": {
+      "name": "FUN_0006f1d0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 4,
+        "2": 1
+      }
+    },
+    "0x6f1f0": {
+      "name": "FUN_0006f1f0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 3
+      }
+    },
+    "0x6f220": {
+      "name": "FUN_0006f220",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2,
+        "4": 1
+      }
+    },
+    "0x6f260": {
+      "name": "FUN_0006f260",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 5
+      }
+    },
+    "0x6f320": {
+      "name": "FUN_0006f320",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x6f690": {
+      "name": "FUN_0006f690",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 2
+      }
+    },
+    "0x6f780": {
+      "name": "FUN_0006f780",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 2
+      }
+    },
+    "0x6f820": {
+      "name": "FUN_0006f820",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 2
+      }
+    },
+    "0x6f890": {
+      "name": "FUN_0006f890",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 4
+      }
+    },
+    "0x6f9d0": {
+      "name": "FUN_0006f9d0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 5,
+        "3": 1,
+        "4": 1,
+        "5": 4
+      }
+    },
+    "0x6fbd0": {
+      "name": "FUN_0006fbd0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 3
+      }
+    },
+    "0x6fc60": {
+      "name": "FUN_0006fc60",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x6fd30": {
+      "name": "FUN_0006fd30",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 5
+      }
+    },
+    "0x6fe10": {
+      "name": "TIFFFlushData1",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 10
+      }
+    },
+    "0x706b0": {
+      "name": "FUN_000706b0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x70b70": {
+      "name": "FUN_00070b70",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 3
+      }
+    },
+    "0x71400": {
+      "name": "FUN_00071400",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 3
+      }
+    },
+    "0x715c0": {
+      "name": "DecodeBlockRGB__single_pixel",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 3
+      }
+    },
+    "0x717b0": {
+      "name": "FUN_000717b0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x71840": {
+      "name": "FUN_00071840",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x71890": {
+      "name": "FUN_00071890",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x71af0": {
+      "name": "FUN_00071af0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x71fa0": {
+      "name": "FUN_00071fa0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x72060": {
+      "name": "FUN_00072060",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x73b00": {
+      "name": "FUN_00073b00",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x73e40": {
+      "name": "FUN_00073e40",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x747d0": {
+      "name": "FUN_000747d0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x78c30": {
+      "name": "bitmap_2d_sharpen",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x796e0": {
+      "name": "FUN_000796e0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x798e0": {
+      "name": "FUN_000798e0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x79bb0": {
+      "name": "FUN_00079bb0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x79e70": {
+      "name": "FUN_00079e70",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x7a1e0": {
+      "name": "FUN_0007a1e0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x7a4a0": {
+      "name": "bitmap_2d_uncompress_from_mipmap",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x7b310": {
+      "name": "bitmap_sharpen",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x7be60": {
+      "name": "bitmap_compress_to_mipmap",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0x7c490": {
+      "name": "FUN_0007c490",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "6": 1
+      }
+    },
+    "0x7d0d0": {
+      "name": "bitmap_format_to_a8r8g8b8",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 2
+      }
+    },
+    "0x7d300": {
+      "name": "palette_find_closest_match",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x7dad0": {
+      "name": "bitmap_2d_get_pixel",
+      "declared_stack": 4,
+      "verdict": "OVER-DECLARED",
+      "observed": {
+        "3": 2
+      }
+    },
+    "0x7ece0": {
+      "name": "bitmap_cube_map_face_insert",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 2,
+        "8": 1,
+        "9": 1,
+        "11": 1
+      }
+    },
+    "0x7f150": {
+      "name": "FUN_0007f150",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x7ff40": {
+      "name": "FUN_0007ff40",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 4
+      }
+    },
+    "0x800d0": {
+      "name": "FUN_000800d0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x81300": {
+      "name": "FUN_00081300",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 2
+      }
+    },
+    "0x817e0": {
+      "name": "create_mutex",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 2,
+        "4": 1
+      }
+    },
+    "0x81910": {
+      "name": "FUN_00081910",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 2,
+        "2": 1,
+        "5": 1
+      }
+    },
+    "0x81e00": {
+      "name": "FUN_00081e00",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0x81f30": {
+      "name": "transport_nonce_is_equal",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0x81fa0": {
+      "name": "FUN_00081fa0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x82bd0": {
+      "name": "FUN_00082bd0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 1
+      }
+    },
+    "0x82c90": {
+      "name": "FUN_00082c90",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x85ab0": {
+      "name": "FUN_00085ab0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x85b60": {
+      "name": "FUN_00085b60",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x85c80": {
+      "name": "FUN_00085c80",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x86a50": {
+      "name": "FUN_00086a50",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 2
+      }
+    },
+    "0x86fa0": {
+      "name": "director_set_player_camera_scripted",
+      "declared_stack": 1,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 3
+      }
+    },
+    "0x87800": {
+      "name": "FUN_00087800",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x87950": {
+      "name": "editor_camera_set_focus",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0x88c40": {
+      "name": "first_person_camera_new",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 2
+      }
+    },
+    "0x88c80": {
+      "name": "FUN_00088c80",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x89240": {
+      "name": "FUN_00089240",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x89a20": {
+      "name": "FUN_00089a20",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "8": 2
+      }
+    },
+    "0x89ab0": {
+      "name": "camera_track_splut",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0x89c00": {
+      "name": "FUN_00089c00",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x8aa30": {
+      "name": "observer_obsolete_position",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x8acb0": {
+      "name": "observer_set_camera",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x8f810": {
+      "name": "FUN_0008f810",
+      "declared_stack": 2,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x8f870": {
+      "name": "profile_seconds_elapsed",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x8f880": {
+      "name": "profile_lapsed_frames",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x8f8c0": {
+      "name": "profile_lapsed_msec",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x8f8e0": {
+      "name": "find_profile_section",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 2
+      }
+    },
+    "0x908a0": {
+      "name": "profile_find_frame_value",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x90d10": {
+      "name": "profile_frame_get_value",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x91110": {
+      "name": "profile_frame_iterator_next",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1,
+        "3": 1,
+        "10": 1,
+        "11": 1
+      }
+    },
+    "0x91cf0": {
+      "name": "FUN_00091cf0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x91d50": {
+      "name": "FUN_00091d50",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x91da0": {
+      "name": "FUN_00091da0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1,
+        "6": 1
+      }
+    },
+    "0x92710": {
+      "name": "load_symbol_table",
+      "declared_stack": 2,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x93be0": {
+      "name": "FUN_00093be0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 4
+      }
+    },
+    "0x94290": {
+      "name": "FUN_00094290",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x94ba0": {
+      "name": "FUN_00094ba0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x958f0": {
+      "name": "FUN_000958f0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x95be0": {
+      "name": "FUN_00095be0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x95c10": {
+      "name": "FUN_00095c10",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0x967a0": {
+      "name": "FUN_000967a0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 8
+      }
+    },
+    "0x96850": {
+      "name": "device_effect_new",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0x9dcf0": {
+      "name": "FUN_0009dcf0",
+      "declared_stack": 7,
+      "verdict": "OVER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0xa2d30": {
+      "name": "player_effect_continuous_refresh",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0xa2ed0": {
+      "name": "player_telefrag_effect_start",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0xa40a0": {
+      "name": "weather_particle_system_new",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0xa4200": {
+      "name": "weather_particle_system_delete",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0xa4ab0": {
+      "name": "FUN_000a4ab0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0xa5830": {
+      "name": "FUN_000a5830",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1,
+        "5": 1
+      }
+    },
+    "0xa5ac0": {
+      "name": "FUN_000a5ac0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 1
+      }
+    },
+    "0xa5c60": {
+      "name": "FUN_000a5c60",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "8": 1
+      }
+    },
+    "0xa5d70": {
+      "name": "FUN_000a5d70",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "11": 2
+      }
+    },
+    "0xa5f00": {
+      "name": "FUN_000a5f00",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "7": 1
+      }
+    },
+    "0xa6470": {
+      "name": "FUN_000a6470",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 1
+      }
+    },
+    "0xab9a0": {
+      "name": "FUN_000ab9a0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0xb43b0": {
+      "name": "FUN_000b43b0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0xb46b0": {
+      "name": "race_update_team_score",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0xb4bf0": {
+      "name": "FUN_000b4bf0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0xb5d60": {
+      "name": "game_time_statistics_frame",
+      "declared_stack": 3,
+      "verdict": "OVER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0xb6620": {
+      "name": "player_control_get_target_object_index",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0xb7e30": {
+      "name": "player_control_get_facing_angles",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 3
+      }
+    },
+    "0xbb670": {
+      "name": "FUN_000bb670",
+      "declared_stack": 2,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 3
+      }
+    },
+    "0xbbb80": {
+      "name": "player_teleport",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1,
+        "5": 1
+      }
+    },
+    "0xbbfe0": {
+      "name": "FUN_000bbfe0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 7
+      }
+    },
+    "0xbc320": {
+      "name": "player_handle_powerup",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0xc40f0": {
+      "name": "FUN_000c40f0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 12,
+        "4": 1,
+        "5": 1
+      }
+    },
+    "0xc4b00": {
+      "name": "hs_evaluate_by_name",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0xc9700": {
+      "name": "FUN_000c9700",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0xc98e0": {
+      "name": "FUN_000c98e0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 2,
+        "3": 1
+      }
+    },
+    "0xc9990": {
+      "name": "FUN_000c9990",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0xc99e0": {
+      "name": "FUN_000c99e0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 3
+      }
+    },
+    "0xca160": {
+      "name": "FUN_000ca160",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 3
+      }
+    },
+    "0xce240": {
+      "name": "object_list_delete",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0xce740": {
+      "name": "input_abstraction_update_local_player_preferences",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0xce840": {
+      "name": "input_abstraction_update_device_changes",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0xd9960": {
+      "name": "FUN_000d9960",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0xd9f20": {
+      "name": "render_weapon_hud",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "7": 1
+      }
+    },
+    "0xdb1e0": {
+      "name": "FUN_000db1e0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0xdb330": {
+      "name": "render_blip",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 2
+      }
+    },
+    "0xdd190": {
+      "name": "first_person_weapon_get_marker_by_name",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 3
+      }
+    },
+    "0xddb90": {
+      "name": "first_person_weapon_get_marker_by_name_render",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0xde560": {
+      "name": "FUN_000de560",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0xdedf0": {
+      "name": "FUN_000dedf0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0xdf3d0": {
+      "name": "FUN_000df3d0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0xe0740": {
+      "name": "player_ui_set_single_player_local_player_controller",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0xe0840": {
+      "name": "player_ui_local_player_joined_multiplayer_game",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0xe0890": {
+      "name": "player_ui_local_player_wants_to_play_multiplayer",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 3
+      }
+    },
+    "0xe08e0": {
+      "name": "player_ui_clear_multiplayer_autojoin_for_local_player",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0xe0980": {
+      "name": "player_ui_get_active_player_profile",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0xe09e0": {
+      "name": "player_ui_get_active_player_profile_index",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 3
+      }
+    },
+    "0xe0a10": {
+      "name": "player_ui_get_last_single_player_level_played",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 6
+      }
+    },
+    "0xe0a60": {
+      "name": "player_ui_set_game_variant",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0xe0ab0": {
+      "name": "player_ui_game_variant_specified",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0xe0bf0": {
+      "name": "player_ui_get_path_to_local_player_profile_directory",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 4,
+        "7": 3
+      }
+    },
+    "0xe1490": {
+      "name": "player_ui_set_active_player_profile",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 3,
+        "4": 1,
+        "6": 1
+      }
+    },
+    "0xe1500": {
+      "name": "player_ui_begin_editing_profile",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 4
+      }
+    },
+    "0xe3a10": {
+      "name": "terminal_output",
+      "declared_stack": 3,
+      "verdict": "OVER-DECLARED",
+      "observed": {
+        "2": 4,
+        "3": 1,
+        "4": 2,
+        "6": 3
+      }
+    },
+    "0xe3c90": {
+      "name": "ui_widgets_set_fade_value",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1,
+        "3": 1
+      }
+    },
+    "0xe3cd0": {
+      "name": "widget_instance_get_nth_child",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 6
+      }
+    },
+    "0xe3d50": {
+      "name": "widget_free",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 3
+      }
+    },
+    "0xe4370": {
+      "name": "widget_instance_set_visibility_recursive",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 3
+      }
+    },
+    "0xe43d0": {
+      "name": "main_menu_active",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1,
+        "13": 1
+      }
+    },
+    "0xe4420": {
+      "name": "ui_set_next_level",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0xe4500": {
+      "name": "display_error_deferred",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 2,
+        "6": 1
+      }
+    },
+    "0xe4590": {
+      "name": "display_error_abort_to_dashboard_deferred",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0xe4800": {
+      "name": "FUN_000e4800",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 2
+      }
+    },
+    "0xe4c70": {
+      "name": "FUN_000e4c70",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0xe54e0": {
+      "name": "get_ui_rgb_white",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0xe59e0": {
+      "name": "ui_widgets_pop_stack",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 6
+      }
+    },
+    "0xe5b10": {
+      "name": "FUN_000e5b10",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0xe6140": {
+      "name": "FUN_000e6140",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0xe6450": {
+      "name": "FUN_000e6450",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "4": 1
+      }
+    },
+    "0xe73c0": {
+      "name": "FUN_000e73c0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 5
+      }
+    },
+    "0xe76b0": {
+      "name": "FUN_000e76b0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 1
+      }
+    },
+    "0xe9d40": {
+      "name": "FUN_000E9D40",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0xf3740": {
+      "name": "multiplayer_game_set_text_box_for_game_ruleset",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 2
+      }
+    },
+    "0xf3850": {
+      "name": "multiplayer_game_set_text_box_for_teams_noteams",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0xf7110": {
+      "name": "FUN_000f7110",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0xfb910": {
+      "name": "FUN_000fb910",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0xfc8e0": {
+      "name": "weapon_get_field_of_view",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0xfcbd0": {
+      "name": "FUN_000fcbd0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0xfcc90": {
+      "name": "FUN_000fcc90",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0xfcd10": {
+      "name": "FUN_000fcd10",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 1
+      }
+    },
+    "0xfd0b0": {
+      "name": "FUN_000fd0b0",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "5": 1
+      }
+    },
+    "0xfdc90": {
+      "name": "FUN_000fdc90",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "2": 5
+      }
+    },
+    "0xfe450": {
+      "name": "FUN_000fe450",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "3": 4
+      }
+    },
+    "0xfffa0": {
+      "name": "main_set_map_name",
+      "declared_stack": 0,
+      "verdict": "UNDER-DECLARED",
+      "observed": {
+        "1": 3,
+        "2": 1
+      }
+    }
+  }
+}

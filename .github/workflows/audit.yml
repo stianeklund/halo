@@ -1,0 +1,122 @@
+name: Audit Gates
+
+# The three binary-evidence audits that, until now, ran nowhere: they existed
+# as tools and were invoked only by hand, so nothing caught a regression in
+# them between one manual run and the next.
+#
+# Two of them (xcall-types, arg-counts) are fast and also gate at pre-commit;
+# this job is their backstop, since --no-verify bypasses the hook. The third
+# (callee-reg-args) takes ~5 minutes, which is too slow for a commit hook, so
+# CI is its only home.
+#
+# All three need the pristine XBE, which GitHub-hosted runners do not have --
+# hence self-hosted. Each has a committed baseline of pre-existing findings;
+# only NEW findings, or ones whose evidence CHANGED, fail the job.
+
+on:
+  schedule:
+    # 03:00 UTC -- clear of the equivalence nightly (00:00) and its chained
+    # progress-report run, so a slow batch cannot delay this.
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'kb.json'
+      - 'tools/audit/**'
+
+env:
+  XBE_DIR: /mnt/g/dev/halo/halo-patched
+
+jobs:
+  audit:
+    name: Binary-evidence audits
+    runs-on: self-hosted
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Link local assets
+        run: ln -sfn ${{ env.XBE_DIR }} halo-patched
+
+      - name: Verify prerequisites
+        run: |
+          python3 -c "import capstone; print('capstone ok')"
+          test -f halo-patched/cachebeta.xbe
+
+      - name: Baseline-gate self-test
+        run: python3 tools/audit/test_baseline_gates.py
+
+      - name: XCALL type audit
+        run: |
+          set +e
+          OUTPUT=$(python3 tools/audit/check_xcall_types.py --all 2>&1)
+          RC=$?
+          echo "$OUTPUT"
+          if [ $RC -ne 0 ]; then
+            printf '## ❌ XCALL Type Mismatch (%d ERROR)\n\n```\n%s\n```\n' "$RC" "$OUTPUT" >> "$GITHUB_STEP_SUMMARY"
+          else
+            printf '## ✅ XCALL Type Audit\n\nNo ERROR-level float↔int mismatches.\n' >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit $RC
+
+      - name: Arg-count audit (kb.json decls vs call-site ADD ESP)
+        if: always()
+        run: |
+          set +e
+          OUTPUT=$(python3 tools/audit/check_arg_counts.py --check --no-report 2>&1)
+          RC=$?
+          echo "$OUTPUT"
+          if [ $RC -ne 0 ]; then
+            printf '## ❌ New Arg-Count Mismatch\n\n```\n%s\n```\n' "$(echo "$OUTPUT" | sed -n '/--check FAILED/,$p')" >> "$GITHUB_STEP_SUMMARY"
+          else
+            printf '## ✅ Arg-Count Audit\n\n%s\n' "$(echo "$OUTPUT" | grep -- '--check OK')" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit $RC
+
+      - name: Callee register-arg audit
+        if: always()
+        run: |
+          set +e
+          OUTPUT=$(python3 tools/audit/check_callee_reg_args.py --check 2>&1)
+          RC=$?
+          echo "$OUTPUT"
+          if [ $RC -ne 0 ]; then
+            printf '## ❌ New Missing @<reg> Callee\n\n```\n%s\n```\n' "$(echo "$OUTPUT" | sed -n '/--check FAILED/,$p')" >> "$GITHUB_STEP_SUMMARY"
+          else
+            printf '## ✅ Callee Register-Arg Audit\n\n%s\n' "$(echo "$OUTPUT" | grep -- '--check OK')" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit $RC
+
+      # Moved here from runtime-oracle.yml. Both are static capstone sweeps of
+      # the pristine XBE with nothing to do with the Xbox, but they lived in a
+      # workflow that DEPLOYS to the shared dev box -- so whenever that
+      # hardware batch broke, these two went red with it and their result
+      # became unreadable. They belong with the other binary-evidence audits.
+      - name: Assert-target detector (system_exit vs halt_and_catch_fire)
+        if: always()
+        run: |
+          set +e
+          OUTPUT=$(python3 tools/audit/check_assert_targets.py --check 2>&1)
+          RC=$?
+          echo "$OUTPUT" | tail -30
+          if [ $RC -ne 0 ]; then
+            printf '## ❌ Assert-target swaps detected\n\n```\n%s\n```\n' "$(echo "$OUTPUT" | grep ERROR | head -20)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            printf '## ✅ Assert-target detector\n\nNo system_exit/halt_and_catch_fire swaps in ported functions.\n' >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit $RC
+
+      - name: Stdcall-decl mismatch detector (kb.json decl vs binary RET)
+        if: always()
+        run: |
+          set +e
+          OUTPUT=$(python3 tools/audit/check_stdcall_ret.py --check 2>&1)
+          RC=$?
+          echo "$OUTPUT" | tail -30
+          if [ $RC -ne 0 ]; then
+            NEW=$(echo "$OUTPUT" | grep -E "^ERROR" | grep -v "\[baselined\]" | head -20)
+            printf '## ❌ New stdcall-decl mismatches\n\n```\n%s\n```\n' "$NEW" >> "$GITHUB_STEP_SUMMARY"
+          else
+            printf '## ✅ Stdcall-decl detector\n\nNo non-baselined decl-vs-RET mismatches.\n' >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit $RC

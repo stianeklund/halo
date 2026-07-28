@@ -1,0 +1,185 @@
+{
+  "_comment": "Pre-existing unported callees that read a register before writing it, with no @<reg> in kb.json, accepted as latent. Many are false positives (stdcall Win32 imports, tail-call thunks). --check gates only findings absent from this file or whose register set CHANGED, so a finding that grows a register re-fires. Add the @<reg> to kb.json (do NOT baseline) before porting a caller. Regenerate: check_callee_reg_args.py --update-baseline",
+  "entries": {
+    "0x046530": {
+      "name": "FUN_00046530",
+      "inputs": [
+        "ecx"
+      ]
+    },
+    "0x046cb0": {
+      "name": "ai_conversation_update",
+      "inputs": [
+        "eax"
+      ]
+    },
+    "0x0496c0": {
+      "name": "ai_debug_highlight_cluster",
+      "inputs": [
+        "ecx"
+      ]
+    },
+    "0x0534d0": {
+      "name": "FUN_000534d0",
+      "inputs": [
+        "eax"
+      ]
+    },
+    "0x053890": {
+      "name": "FUN_00053890",
+      "inputs": [
+        "eax"
+      ]
+    },
+    "0x05bbe0": {
+      "name": "FUN_0005bbe0",
+      "inputs": [
+        "ecx",
+        "edi",
+        "esi"
+      ]
+    },
+    "0x077cd0": {
+      "name": "FUN_00077cd0",
+      "inputs": [
+        "eax"
+      ]
+    },
+    "0x0841b0": {
+      "name": "FUN_000841b0",
+      "inputs": [
+        "ecx"
+      ]
+    },
+    "0x0c4580": {
+      "name": "hs_tokens_enumerate",
+      "inputs": [
+        "ecx"
+      ]
+    },
+    "0x0ca050": {
+      "name": "FUN_000ca050",
+      "inputs": [
+        "ecx"
+      ]
+    },
+    "0x0e5ab0": {
+      "name": "ui_play_audio_feedback_sound",
+      "inputs": [
+        "edx"
+      ]
+    },
+    "0x103860": {
+      "name": "FUN_00103860",
+      "inputs": [
+        "eax"
+      ]
+    },
+    "0x1087b0": {
+      "name": "FUN_001087b0",
+      "inputs": [
+        "eax"
+      ]
+    },
+    "0x10a5e0": {
+      "name": "FUN_0010a5e0",
+      "inputs": [
+        "ecx"
+      ]
+    },
+    "0x138900": {
+      "name": "FUN_00138900",
+      "inputs": [
+        "ecx"
+      ]
+    },
+    "0x141b70": {
+      "name": "object_compute_node_matrices",
+      "inputs": [
+        "ecx"
+      ]
+    },
+    "0x1559d0": {
+      "name": "_rasterizer_windows_begin",
+      "inputs": [
+        "ecx",
+        "edi",
+        "esi"
+      ]
+    },
+    "0x155cf0": {
+      "name": "rasterizer_set_texture_direct",
+      "inputs": [
+        "eax"
+      ]
+    },
+    "0x183120": {
+      "name": "FUN_00183120",
+      "inputs": [
+        "eax"
+      ]
+    },
+    "0x1844b0": {
+      "name": "rasterizer_transparent_geometry_group_to_presorted_index",
+      "inputs": [
+        "eax"
+      ]
+    },
+    "0x184de0": {
+      "name": "render_location_visible",
+      "inputs": [
+        "ecx"
+      ]
+    },
+    "0x190c00": {
+      "name": "numeric_countdown_timer_get",
+      "inputs": [
+        "eax"
+      ]
+    },
+    "0x190d90": {
+      "name": "numeric_countdown_timer_stop",
+      "inputs": [
+        "eax"
+      ]
+    },
+    "0x190da0": {
+      "name": "numeric_countdown_timer_restart",
+      "inputs": [
+        "eax"
+      ]
+    },
+    "0x1935f0": {
+      "name": "structure_bsp_find_material_for_surface",
+      "inputs": [
+        "eax"
+      ]
+    },
+    "0x1be7b0": {
+      "name": "FUN_001be7b0",
+      "inputs": [
+        "eax"
+      ]
+    },
+    "0x1bea30": {
+      "name": "xbox_texture_cache_steal_memory",
+      "inputs": [
+        "eax"
+      ]
+    },
+    "0x1bf260": {
+      "name": "texture_cache_debug_render",
+      "inputs": [
+        "ecx"
+      ]
+    },
+    "0x1cfaec": {
+      "name": "ResumeThread",
+      "inputs": [
+        "ecx",
+        "edi",
+        "esi"
+      ]
+    }
+  }
+}

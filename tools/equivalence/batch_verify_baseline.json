@@ -1,0 +1,3941 @@
+{
+  "_comment": "Frozen baseline of KNOWN equivalence divergences for batch_verify.py --fail-on-new. Only failures ABSENT from this file (or whose status/reason string CHANGED) fail the nightly. Provisional: generated from the 2026-07-28 summary, which predates a full post-Phase-2 batch, so some entries here may no longer diverge -- that direction is safe (they simply stop appearing). Refresh with: python3 tools/equivalence/freeze_batch_baseline.py",
+  "source_summary_mtime": "2026-07-28T05:29:22.062242",
+  "rows": [
+    {
+      "name": "FUN_000142a0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00014540",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00014c10",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_000153e0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00015520",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00015900",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00016cf0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00016e70",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00016ff0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00017090",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000170c0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000170f0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00019110",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00019280",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00019750",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_000198d0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0001a080",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0001ac00",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00021390",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00021410",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_000257a0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00027090",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00027a60",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00027dd0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00028ed0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0002a2b0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0002b830",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0002bab0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0002f5b0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00036a90",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00036b10",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00036b50",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00036c50",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00037240",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_000373b0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_000374f0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00037630",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_000378e0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00038370",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0003a740",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0003a760",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0003a770",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0003a790",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0003a7b0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0003a7d0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0003a7f0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0003a800",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0003a810",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0003a840",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0003a8a0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0003a920",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0003b860",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0003baa0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0003be90",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0003cb50",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0003d9f0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0003dc20",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0003ec80",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0003f030",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000425c0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00053e20",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00054a80",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00054b20",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "FUN_00054ca0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00054d00",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000551e0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00055620",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00055640",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00055660",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00055680",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000559a0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00056830",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00056a20",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00056b20",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00056bc0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00056d80",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00056de0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000576a0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00057bc0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00057f90",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00057fd0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00058020",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00058070",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00059bf0",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "FUN_0005a120",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0005a640",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "FUN_0005a6e0",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "FUN_0005ae70",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0005de80",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0005ff70",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00061df0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00061fa0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00064400",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "FUN_0007c5f0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0007c6c0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_000831a0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00085350",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000853c0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0008c030",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0008c150",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0008c440",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0008e5f0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00098200",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "FUN_00099220",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00099840",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0009a300",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0009c4b0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0009c910",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "FUN_0009d430",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0009d590",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0009e560",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0009fd30",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_000a0fd0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000a1510",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "FUN_000a1590",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "FUN_000a18c0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000a1910",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000a1a90",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000a9fd0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000a9ff0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000abfd0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000ac030",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "FUN_000ac3e0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000aceb0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000ad140",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000adc40",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000ae920",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000af9a0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000afa40",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000afdf0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000afe50",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000aff20",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000b0ac0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000b23b0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000b2740",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000b2bc0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000b3020",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000b3120",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000b3770",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000b39a0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000b8cf0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000b97b0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_000c4ff0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000c6130",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_000c73a0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000c74c0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_000c7b10",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "FUN_000c7be0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000c7ca0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000cada0",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "FUN_000cc1d0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000cc340",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000cc3a0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000cd840",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000d1400",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000d1540",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000d1550",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000d1580",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_000d16a0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_000d1a70",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_000d1c90",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_000d1f40",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_000d2320",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_000d2580",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_000d27a0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000d6120",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000d6140",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000d6160",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000d6390",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000d63b0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000d63d0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000d6490",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000d64c0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000d64f0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000d6520",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000d6e50",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000d7080",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000d7240",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_000d7800",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000d7cd0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000d7d10",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000d7d40",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000d8cf0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000e0570",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000f90d0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000f9c40",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000fb370",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_000fc990",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_000fcaf0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00109010",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_001093b0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00109ba0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00109fc0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0010a1c0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0010a4c0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0010ae80",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0010af70",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0010b9c0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0010c510",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0010c780",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0010c8e0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0010cc90",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00114630",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00114690",
+      "status": "error",
+      "reason": "mem-limit"
+    },
+    {
+      "name": "FUN_001146e0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00114f60",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_001155c0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00116250",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_001164d0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_001167f0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00117000",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_001170b0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00117130",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_001171a0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00117250",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_001173f0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_001179e0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00117ff0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00118260",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_001187f0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00118ba0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00118be0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0011a6d0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0011be10",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0011c310",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0011c430",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0011c480",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0011c4d0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0011ca60",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0011cbf0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0011cf00",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0011cf60",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0011d2a0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0011d300",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0011d320",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0011d3f0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0011d420",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0011d450",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0011db90",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0011ec10",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00127070",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00127ea0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00129130",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00129cf0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0012d5b0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0012de20",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0012e090",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00136150",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_001365d0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_001366b0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00136840",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "FUN_00138eb0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00139e50",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0013a740",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0013aa10",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0013ab20",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0013b150",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "FUN_0013b1b0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0013b290",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0013b380",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0013bce0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0013c030",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "FUN_0013c080",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0013ca30",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0013cab0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0013d5f0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0013e1a0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00140750",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_001414e0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00141900",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00143550",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00145ad0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00146a90",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0014b220",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0014b620",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0014cb00",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0014cfe0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0014d840",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0014f020",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0014f2c0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_001550c0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0015b0c0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0015b5a0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0015b650",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0015b6a0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0015c2b0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0015c650",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0015c6f0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0015c980",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0015cbb0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0015d020",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0015d040",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0015d2a0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0015d2d0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00180570",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_001805f0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_001806e0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00181150",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00189450",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_001894d0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_001896d0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_00189860",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0018a770",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0018a990",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0018a9d0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0018aa00",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0018ab30",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0018ac50",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0018c580",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0018d360",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_0018e7d0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0018ecd0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_001911b0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_00194360",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_001959f0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_001974f0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0019B330",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0019a490",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_0019c0a0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_001a2900",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_001a6350",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_001a71c0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_001a7730",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_001a7ad0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_001a7d80",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_001a7df0",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_001a7ea0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_001a9520",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_001b0630",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_001b1400",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_001b2780",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_001b3690",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_001bc850",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_001bd5f0",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "FUN_001bdb10",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_001c0750",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "FUN_001c0cf0",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "FUN_001c6170",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "actor_action_can_stop_guarding",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "actor_action_change",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "actor_action_deny_transition",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "actor_action_handle_combat_targeting",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "actor_action_handle_panic_from_surprise",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "actor_attach_unit",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "actor_combat_check_fire_target",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "actor_combat_compute_ballistic_solution",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "actor_delete_props",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "actor_died",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "actor_erase",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "actor_has_ranged_weapon",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "actor_look_compute_prop_interest",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "actor_look_update",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "actor_move_compute_facing",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "actor_move_force_stop",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "actor_move_to_firing_position",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "actor_move_to_move_position",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "actor_move_to_point",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "actor_move_to_prop",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "actor_set_active",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "actor_set_dormant",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "actor_verify_activation",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "actors_initialize",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "ai_communication_initialize",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "ai_debug_initialize_for_new_map",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "ai_enemies_attacking_player",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "ai_index_to_string",
+      "status": "error",
+      "reason": "mem-limit"
+    },
+    {
+      "name": "ai_test_line_of_fire",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "animation_get_node_orientations",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "arccosine",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "attachments_delete",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "attachments_new",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "bink_playback_initialize",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "bink_playback_update",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "biped_exit_seat_end",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "bitmap_get_max_mipmap_count",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "bitmap_mipmap_get_depth",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "bitmap_mipmap_get_height",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "bitmap_mipmap_get_pixel_count",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "bitmap_mipmap_get_pixel_data_size",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "bitmap_mipmap_get_row_pitch",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "bitmap_mipmap_width",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "bitmap_rebuild",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "breakable_surface_get",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "breakable_surfaces_get_bsp_surface_data",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "breakable_surfaces_initialize_for_new_map",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "bsp3d_clip_line_to_leaves",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "bsp3d_find_leaf",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "build_message_header",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "byte_swap_message_header",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "cache_files_precache_is_copying_map",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "cache_files_precache_map_loaded",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "cheats_initialize",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "cinematic_initialize",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "cinematic_initialize_for_new_map",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "circular_queue_delete",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "cluster_partition_copy",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "collision_cylinder_test_point",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "collision_features_from_surface",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "collision_log_add_call",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "collision_log_add_time",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "collision_log_end_period",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "contrail_delete",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "contrails_reconnect_to_structure_bsp",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "contrails_update",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "countdown_timer_get_time_remaining",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "countdown_timer_increment",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "create_message",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "dangerous_effects_near_player",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "data_compact",
+      "status": "error",
+      "reason": "mem-limit"
+    },
+    {
+      "name": "data_dispose",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "data_initialize",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "data_iterator_new",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "data_new_at_index",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "data_new_datum",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "data_next_index",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "data_prev_index",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "datum_absolute_index_to_index",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "datum_delete",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "debug_keys_initialize",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "debug_string_to_display",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "decal_new_from_collision",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "decals_dispose_from_old_map",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "decals_initialize",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "decals_initialize_for_new_map",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "decals_update_for_new_map",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "director_initialize_for_new_map",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "director_update",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "display_debug_string",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "effect_new_attached_from_markers",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "effect_new_unattached_from_markers",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "effect_update",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "effects_reconnect_to_structure_bsp",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "effects_start_on_first_person_weapon",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "effects_stop_on_first_person_weapon",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "effects_update",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "encode_network_game_message",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "encounter_stand_down",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "event_manager_dispose",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "event_manager_flush",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "event_manager_initialize",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "file_delete",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "file_error",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "file_get_eof",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "file_get_position",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "file_reference_get_location",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "file_reference_get_name",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "file_references_equal",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "file_rename",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "file_set_position",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "find_files_begin",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "find_files_next",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "first_person_weapon_message_from_weapon",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "game_allegiance_initialize_for_new_map",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "game_engine_allow_weapon_pick_up",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "game_engine_clear_goal_position",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "game_engine_did_player_win",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "game_engine_dispose",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "game_engine_game_over",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "game_engine_get_place",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "game_engine_get_score_hud_text",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "game_engine_get_starting_location_rating",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "game_engine_handle_client_message",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "game_engine_handle_server_message",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "game_engine_hud_update_player",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "game_engine_player_added",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "game_engine_post_event",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "game_engine_post_rasterize_post_game",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "game_engine_postspawn_player_update",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "game_engine_start_over",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "game_engine_statistics_append",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "game_engine_update_player_always_invis",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "game_engine_validate_map_netgame_flags",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "game_frame",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "game_globals_difficulty_scale",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "game_initialize",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "game_initialize_for_new_map",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "game_load",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "game_precache_new_map",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "game_sound_music_stop_for_vehicle",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "game_sound_update",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "game_state_call_after_load_procs",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "game_state_gpu_alloc",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "game_state_initialize_for_new_map",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "game_state_memory_pool_new",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "game_state_read_header_from_persistent_storage",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "game_state_save",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "game_state_save_to_persistent_storage",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "game_state_validate_core_header",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "game_state_write_to_file",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "game_tick",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "game_time_get",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "game_time_get_elapsed",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "game_time_start",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "get_postgame_hilite_colors",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "global_collision_bsp_get",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "hs_can_cast",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "hs_compile_source",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "hs_evaluate_arithmetic",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "hs_evaluate_begin",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "hs_evaluate_begin_random",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "hs_evaluate_debug_string",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "hs_evaluate_if",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "hs_evaluate_inspect",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "hs_evaluate_logical",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "hs_evaluate_object_cast_up",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "hs_evaluate_set",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "hs_evaluate_sleep",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "hs_evaluate_sleep_until",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "hs_macro_function_evaluate",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "hs_return",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "hs_runtime_get_executing_thread_name",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "hs_thread_new",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "hs_thread_stack_alloc",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "hs_validate_syntax",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "hud_autosave",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "hud_load",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "hud_messaging_initialize_for_new_map",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "hud_render_timer",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "initialize_network_game_packets",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "input_abstraction_dispose",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "input_abstraction_initialize",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "input_abstraction_update",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "input_flush",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "input_frame_begin",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "input_get_device_states",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "input_initialize",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "input_key_is_down",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "input_open_state_file",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "input_update",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "input_update_keyboard_devices",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "interface_dispose",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "interface_dispose_from_old_map",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "interface_draw_text",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "interface_get_color",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "interface_initialize_for_new_map",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "load_symbol_table",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "local_player_count",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "local_time_get",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "lru_cache_dispose",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "lruv_allocation_size",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "lruv_block_delete",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "lruv_block_get_address",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "lruv_block_touched",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "lruv_cache_dispose",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "lruv_cache_dispose_all",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "lruv_cache_get_page_usage",
+      "status": "error",
+      "reason": "mem-limit"
+    },
+    {
+      "name": "lruv_cache_initialize",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "lruv_cache_new",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "lruv_cache_set_callbacks",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "lruv_cache_verify",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "lruv_debug_to_file",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "lruv_has_locked_proc",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "lruv_idle",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "lruv_new",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "main",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "main_rasterizer_throttle",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "memory_pool_delete",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "network_connection_active",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "network_connection_connect",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "network_connection_connected",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "network_connection_get_address",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "network_connection_going_stale",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "network_connection_idle",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "network_connection_idle_client_reliable_endpoint",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "network_connection_new",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "network_connection_new_serverside_client",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "network_connection_notify_traffic_event",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "network_connection_read_reliable",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "network_connection_read_unreliable",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "network_connection_server_accept_client_connection",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "network_connection_set_connection_rejection_procedure",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "network_connection_write",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "network_game_client_dispose",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "network_game_invalidate",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "network_game_remove_player",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "network_game_server_handle_client_update_packet",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "network_game_update_player",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "network_server_allow_client_connections",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "object_activate",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "object_add_to_dump",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "object_adjust_interpolation_position",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "object_beautify",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "object_can_take_damage",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "object_child_list_remove",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "object_connect_to_map",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "object_deactivate",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "object_delete_internal",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "object_delete_recursive",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "object_deplete_body",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "object_deplete_shield",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "object_destroy",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "object_determine_variant_number",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "object_disconnect_from_map",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "object_get_child_marker_definition",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "object_get_maximum_body_vitality",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "object_get_node_matrix",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "object_get_world_matrix",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "object_has_node",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "object_markers_need_update",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "object_new",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "object_new_by_name",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "object_new_from_scenario",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "object_propagate_flag_to_children",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "object_reset",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "object_scripting_set_collideable",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "object_select_random_region_permutations_by_variant",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "object_set_automatic_deactivation",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "object_set_garbage",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "object_set_garbage_flag",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "object_translate",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "object_try_place",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "object_update_children_recursive",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "objects_dump_memory",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "objects_garbage_collect_tick",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "objects_initialize",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "objects_initialize_for_new_map",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "objects_reconnect_to_structure_bsp",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "objects_scripting_detach",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "orientations_interpolate",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "overlay_animation_apply_continuous_scaled",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "particle_systems_update",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "particles_update",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "path_3d_available",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "path_3d_build_path",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "path_state_new",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "periodic_functions_initialize",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "physical_memory_allocate",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "physical_memory_map_verify",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "player_control_initialize_for_new_map",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "player_control_update",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "player_effect_initialize",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "player_effect_update",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "player_ui_dispose",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "player_ui_initialize",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "players_initialize_for_new_map",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "players_update_pvs",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "point_physics_definition_get_mass",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "process_ui_widgets",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "profile_enter_private",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "profile_frame_end",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "profile_frame_start",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "profile_render_window_start",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "progress_bar_draw_loading_bar",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "progress_bar_render",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "progress_bar_screen_initialize",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "progress_bar_set_quad_texcoords",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "project_point2d",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "projectile_accelerate",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "projectile_aim_ballistic",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "projectile_aim_linear",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "projectile_new",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "prop_get_active_by_unit_index",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "prop_iterator_next",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "quantize_real_to_byte_lower_bound",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "quantize_real_to_byte_upper_bound",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "quaternion_to_angle_and_vector",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "random_direction3d",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "random_direction_table_get_element",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "random_seed_get_direction3d",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "rasterizer_draw_dynamic_vertices",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "rasterizer_initialize_for_new_map",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "rasterizer_memory_pool_copy",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "rasterizer_preinitialize",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "rasterizer_text_draw_cached_char",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "rasterizer_text_draw_cached_chars",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "real_a_rgb_color_to_pixel32",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "recorded_animations_initialize_for_new_map",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "reference_list_remove",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "release_mutex",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "render_debug_collision_surface",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "render_frame",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "render_frame_pregame",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "render_structure_visibility",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "render_window",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "rotate_vector3d_by_sincos",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "rumble_player_impulse",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "saved_game_files_initialize",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "scenario_leaf_index_from_point",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "scenario_load",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "scripting_magic_melee_attack",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "scripting_set_magic_base_seat",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "shell_dispose",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "shell_initialize",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "sort_dumps",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "sort_statistic_buffer",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "sound_cache_sound_finished",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "sound_can_play",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "sound_channel_get",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "sound_channel_set_properties",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "sound_channel_start_new",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "sound_channel_stop",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "sound_channel_update_status",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "sound_check_promotion",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "sound_class_get_definition",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "sound_class_get_min_distance",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "sound_collect_like_sounds",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "sound_compute_source_obstruction",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "sound_create_looping_entry",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "sound_dsound_channel_stop_check",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "sound_dsound_channel_try_resolve",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "sound_dsound_channel_update_3d",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "sound_dsound_gain_to_volume",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "sound_dsound_pitch_to_frequency",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "sound_dsound_update_channel_properties",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "sound_find_oldest_channel",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "sound_get_default_priority",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "sound_idle",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "sound_impulse_start",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "sound_start",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "sound_start_next_looping_permutation",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "sound_stop_channel",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "sound_update_channel",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "sound_update_music",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "sound_update_music_channel",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "stack_memory_pool_allocate",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "stack_walk",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "stack_walk_initialize",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "stack_walk_with_context",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "system_free",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "system_get_used_memory_size",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "system_malloc",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "take_mutex",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "telnet_console_dispose",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "telnet_console_initialize",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "terminal_age_lines",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "thread_close",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "thread_is_done",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "thread_new",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "ui_widget_begin_filesystem_checks",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "ui_widget_close",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "ui_widget_display_error",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "ui_widget_load_by_name_or_tag",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "ui_widget_load_error_screen",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "ui_widget_set_events_suppressed",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "ui_widgets_disable_pause_game",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "unicode_sprintf",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "unit_abort_animation",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "unit_apply_animation_impulse",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "unit_board_vehicle",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "unit_can_enter_seat",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "unit_cause_melee_damage",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "unit_cause_player_melee_damage",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "unit_clear_seat_equipment",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "unit_control_trace",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "unit_current_weapon_is_busy",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "unit_debug_ninja_rope",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "unit_destroy",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "unit_drop_weapons_on_death",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "unit_exit_seat_end",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "unit_export_function_values",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "unit_find_nearby_seat",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "unit_get_weapon_name",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "unit_get_zoom_magnification",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "unit_handle_deleted_object",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "unit_handle_region_destroyed",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "unit_has_night_vision_weapon",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "unit_inventory_next_weapon",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "unit_leap_begin",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "unit_reset_weapon_state",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "unit_scripting_doesnt_drop_items",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "unit_select_weapon_after_vehicle_exit",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "unit_set_seat",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "unit_test_animation_impulse",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "unit_throw_grenade_begin",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "unit_try_add_grenade",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "unit_update_seat_occupancy",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "unit_update_weapon_readiness",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "units_set_desired_flashlight_state",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "unlock_global_random_seed",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "update_client_new",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "update_client_queue_push",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "update_loaded_module_section_attributes",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "update_server_apply_actions",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "update_server_new",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "vector_intersects_pill3d",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "vehicle_get_estimated_position",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "vehicle_moving_near_any_player",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "vehicle_scripting_load_magic",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "verify_tag_reference",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "virtual_keyboard_set_validation",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "weapon_activate",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "weapon_try_place",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "widgets_render_object_widgets",
+      "status": "error",
+      "reason": "timeout"
+    },
+    {
+      "name": "xbox_game_state_close_file",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "xbox_game_state_dispose_buffer",
+      "status": "fail",
+      "reason": "divergence"
+    },
+    {
+      "name": "xbox_texture_cache_request",
+      "status": "error",
+      "reason": "emulation_error"
+    },
+    {
+      "name": "xbox_texture_cache_setup_d3d_texture",
+      "status": "fail",
+      "reason": "divergence"
+    }
+  ]
+}

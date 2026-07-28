@@ -644,8 +644,24 @@ def main():
             writer.writerows(csv_rows)
         print(f"CSV: {csv_path}")
 
-    if args.fail_on_new and comparison.get("new_failures"):
-        return 1
+    if args.fail_on_new:
+        # --fail-on-new means EXACTLY that: a known, baselined divergence must
+        # not fail the build, or the gate is red from the first run and gets
+        # switched off (which is why the nightly carried continue-on-error).
+        # Returning 1 on any failure below would have overridden this flag and
+        # made it a no-op, so the early return is the whole point.
+        new = comparison.get("new_failures") or []
+        if new:
+            print(f"\n--fail-on-new: {len(new)} NEW failure(s) vs baseline "
+                  f"{comparison.get('baseline') or '(none)'}:")
+            for row in new[:25]:
+                print(f"  {row['name']}: {row['status']} — {row.get('reason', '')}")
+            if len(new) > 25:
+                print(f"  ... and {len(new) - 25} more")
+            return 1
+        print(f"\n--fail-on-new: no new failures vs baseline "
+              f"({len(comparison.get('known_failures') or [])} known).")
+        return 0
     return 1 if results["fail"] > 0 else 0
 
 
