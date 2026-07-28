@@ -1630,6 +1630,15 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     decl = entry.get("decl", "")
     addr = entry.get("addr", "")
     obj_name = entry.get("_obj_name", "")
+    # Capture the target address NOW, for the leaf_cache write ~1100 lines
+    # below. Six later loops in this same function say `for addr, ... in`
+    # (global_reads, and the five mem-trace diff lists), each of which rebinds
+    # this `addr` at function scope -- so by the time we record coverage it can
+    # hold a *memory* address instead of the function's. That is how
+    # leaf_cache.json collected keys like 0x3f800034 / 0xccccccda / 0x700804,
+    # none of which is a function in kb.json: the measurement was filed under
+    # a garbage key, and the real target's entry never got updated.
+    target_addr = addr
     info(f"  decl : {decl}")
     info(f"  addr : {addr}")
     info(f"  obj  : {obj_name}")
@@ -2720,7 +2729,8 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                 log(line)
 
     if record_leaf:
-        _record_confidence(addr, confidence, round(coverage_pct, 1))
+        # target_addr, NOT addr -- see the capture near the top of run_diff.
+        _record_confidence(target_addr, confidence, round(coverage_pct, 1))
 
     extra = dict(
         passed=passed, failed=failed, errors=errors,

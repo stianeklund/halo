@@ -55,6 +55,21 @@ and consumed by:
 - `tools/llm_auto_lift.py` — `+3 eq_high_conf` scoring bonus
 - `tools/equivalence/batch_verify.py` — included in batch reports
 
+**Historical caveat on entries recorded before 2026-07-28.** `run_diff` bound
+the target address once near its top and wrote it to the cache ~1100 lines
+later, and in between six loops spelled `for addr, ... in` (the `global_reads`
+map and the five mem-trace diff lists) rebound that same name at function
+scope. When any of them iterated, the measurement was filed under a *memory*
+address instead of the function's — so the target's own entry silently never
+updated, and the cache collected keys that are not functions at all. 159 such
+keys were present (`0x100xxxxx` is `STUB_OBJECT_ARENA`; `0x1`, `0x10`, `0x6c`
+and friends are offsets), against a real function span of `0x12000..0x24d009`.
+They have been removed, and `test_leaf_cache_key.py` pins the call site with an
+AST check — behavioural, because whether the bug bites depends on whether a
+given run happens to observe global reads or trace differences, while the shape
+is always wrong. Treat pre-fix `coverage_pct` values as a floor: some targets
+were never credited with their best run.
+
 ## Concolic Feedback (Phase 2)
 
 When Phase 1 coverage is below 60%, Phase 2 activates automatically:
