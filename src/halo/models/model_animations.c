@@ -157,6 +157,50 @@ void quaternion_decompress_6byte(void *compressed_data, float *dest)
   dest[3] = (float)(int)s3 * (1.0f / 32767.0f);
 }
 
+/* FUN_00120cb0 (0x120cb0) — Look up an animation by name in an 'antr'
+ * (model_animations) tag's animation block.
+ *
+ * Walks the tag_block at antr+0x74 (element stride 0xb4) comparing `name`
+ * case-insensitively against each element's name field at element+0x0, and
+ * returns the matching int16 animation index, or -1 if no element matches.
+ *
+ * Confirmed: CALL 0x1ba140 tag_get(0x616e7472, animation_graph_tag_index)
+ *            — PUSH EAX([EBP+8]) then PUSH 0x616e7472, ADD ESP,8.
+ * Confirmed: ESI = tag_get result + 0x74 (the animation tag_block).
+ * Confirmed: CALL 0x19b210 tag_block_get_element(ESI, MOVSX(DI), 0xb4)
+ *            — pushes 0xb4, EAX(index), ESI(block).
+ * Confirmed: CALL 0x1dd801 crt_stricmp(EBX([EBP+0xc]) = name, EAX = element).
+ *            The single ADD ESP,0x14 at 0x120cea is the COMBINED cleanup for
+ *            tag_block_get_element (12) + crt_stricmp (8) — not a 5-arg call.
+ * Confirmed: counter lives in DI and is widened with MOVSX EAX,DI before both
+ *            the element fetch and the loop compare — int16 semantics.
+ * Confirmed: the block count is re-read from memory each iteration
+ *            (MOV ECX,[ESI] at 0x120cf1); it is not hoisted into a register.
+ * Confirmed: not-found path is OR AX,0xffff (-1); found path is MOV AX,DI.
+ */
+short FUN_00120cb0(int animation_graph_tag_index, const char *name)
+{
+  char *antr_tag;
+  int *animation_block;
+  short animation_index;
+  char *element;
+
+  antr_tag = (char *)tag_get(0x616e7472, animation_graph_tag_index);
+  animation_block = (int *)(antr_tag + 0x74);
+  animation_index = 0;
+  if (*animation_block > 0) {
+    do {
+      element = (char *)tag_block_get_element(animation_block,
+                                              (int)animation_index, 0xb4);
+      if (crt_stricmp(name, element) == 0) {
+        return animation_index;
+      }
+      animation_index = animation_index + 1;
+    } while ((int)animation_index < *animation_block);
+  }
+  return -1;
+}
+
 /* find_keyframe_index (0x120d10) — Binary search for a keyframe by frame index.
  *
  * Given a sorted array of keyframe frame indices and a target frame, returns
