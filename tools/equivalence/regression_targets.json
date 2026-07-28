@@ -666,6 +666,30 @@
         "--allow-stubs", "--mem-trace", "--no-stub-arg-trace"
       ],
       "reason": "Same function as the FUN_00130270 entry above, but on the gate-satisfied snapshot: size=16 / msg[0]=0x010c makes the header self-consistent, so the assert path is skipped and the category-3 packet switch actually dispatches (packet_type 0x19 = client_game_update, the deepest chain). Covers 24.4% vs 10.0% (40/40 PASS) and exercises code the sibling entry never reaches; the sibling still covers the assert/early-exit path, so both are kept. NOTE: both write the same artifacts/equivalence/FUN_00130270_smoke.log, so the log reflects whichever ran last. SKIPs when host snapshot absent."
+    },
+    {
+      "addr": "0xd7cd0",
+      "name": "FUN_000d7cd0",
+      "obj": "hud_messaging.obj",
+      "seeds": 40,
+      "flags": ["--z3-equiv", "--allow-stubs", "--mem-trace", "--float-tolerance", "32"],
+      "reason": "Tripwire for the data-page execution guard (hook_code / _mapped_regions). Before it, an indirect call through synthetic state landed in a zero-filled auto-mapped page, whose zeros decode as 2-byte 'add [eax],al' and slid execution through the whole page -- 0% coverage, all 40 seeds ORACLE-CRASH FETCH_UNMAPPED. Now 100.0% coverage, 40/40 PASS, confidence high. Reverting the guard returns this to error."
+    },
+    {
+      "addr": "0xcb980",
+      "name": "hs_runtime_get_executing_thread_name",
+      "obj": "hs_runtime.obj",
+      "seeds": 40,
+      "flags": ["--z3-equiv", "--allow-stubs", "--mem-trace", "--float-tolerance", "32"],
+      "reason": "Second data-page-execution-guard tripwire, different object. 0% coverage / all-seeds error before the guard; 100.0% coverage, 40/40 PASS after."
+    },
+    {
+      "addr": "0x1bfe50",
+      "name": "game_state_memory_pool_new",
+      "obj": "game_state.obj",
+      "seeds": 40,
+      "flags": ["--z3-equiv", "--allow-stubs", "--mem-trace", "--float-tolerance", "32"],
+      "reason": "Third data-page-execution-guard tripwire. 0% -> 60.0% coverage, 40/40 PASS, confidence high. Kept alongside the two 100%-coverage ones because it exercises a partial-coverage path rather than a whole tiny function."
     }
   ]
 }
