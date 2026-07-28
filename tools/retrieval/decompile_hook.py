@@ -231,6 +231,31 @@ def main() -> int:
         venv_python = REPO_ROOT / ".venv" / "bin" / "python3"
         py = str(venv_python) if venv_python.exists() else "python3"
         log_path = Path("/tmp/retrieval_server.log")
+
+        # A failed connect() does NOT mean no server: the socket is only created
+        # after the index rebuild, so a server that is up and using ~1.3 GB looks
+        # absent for minutes. Spawning on that signal alone is what leaked 14
+        # servers (~8.7 GB) and OOM-ed the box. Ask the lock instead -- it is
+        # taken before the rebuild, so a starting server is visible immediately.
+        holder = None
+        try:
+            sys.path.insert(0, str(REPO_ROOT / "tools" / "retrieval"))
+            from server import singleton_holder_pid  # type: ignore
+            holder = singleton_holder_pid()
+        except Exception:
+            holder = None  # cannot tell -> fall through and start one
+
+        if holder is not None:
+            print(
+                json.dumps({"systemMessage": (
+                    f"[retrieval-hook] Server (pid {holder}) is still starting — "
+                    "rebuilding its index. Not spawning another; this query is "
+                    "skipped and later ones will be served."
+                )}),
+                flush=True,
+            )
+            return 0
+
         import subprocess as _sp
         _sp.Popen(
             [py, str(server_py)],

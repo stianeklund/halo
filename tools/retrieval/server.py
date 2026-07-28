@@ -68,6 +68,61 @@ def _canonical_repo_root() -> Path:
 REPO_ROOT = _canonical_repo_root()
 SOCK_PATH = Path("/tmp/retrieval_server.sock")
 PID_PATH = Path("/tmp/retrieval_server.pid")
+# Held for the process lifetime by the one server that wins startup.  flock is
+# released by the kernel when the holder dies -- including SIGKILL and OOM-kill
+# -- so unlike a PID file it cannot go stale and wedge every future start.
+LOCK_PATH = Path("/tmp/retrieval_server.lock")
+_lock_fd = None  # module-level: keeps the descriptor (and the lock) alive
+
+
+def acquire_singleton_lock():
+    """Take the exclusive server lock, or return None if one is already up.
+
+    This is the readiness signal the socket cannot be, because the socket is
+    only created after the index rebuild -- minutes and ~1.3 GB later.  Anything
+    probing for a live server during that window sees nothing and starts another
+    one, which starts its own rebuild, which widens the window further.  The
+    lock is taken before any of that work, so a starting server is visible from
+    its first instant.
+    """
+    global _lock_fd
+    import fcntl
+    fd = os.open(str(LOCK_PATH), os.O_RDWR | os.O_CREAT, 0o600)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        os.close(fd)
+        return None
+    _lock_fd = fd
+    os.ftruncate(fd, 0)
+    os.write(fd, str(os.getpid()).encode())
+    return fd
+
+
+def singleton_holder_pid():
+    """PID of the running/starting server, or None if the lock is free.
+
+    Used by would-be spawners to answer "is one already coming up?" without
+    racing.  Probing is non-destructive: it never touches SOCK_PATH or PID_PATH,
+    so it cannot orphan a live server the way a careless start would.
+    """
+    import fcntl
+    try:
+        fd = os.open(str(LOCK_PATH), os.O_RDWR | os.O_CREAT, 0o600)
+    except OSError:
+        return None
+    try:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            try:
+                return int(os.pread(fd, 32, 0).decode().strip() or 0) or -1
+            except (ValueError, OSError):
+                return -1  # held, but the pid is unreadable
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        return None
+    finally:
+        os.close(fd)
 
 # venv shim
 _VENV_SP = REPO_ROOT / ".venv" / "lib" / "python3.12" / "site-packages"
@@ -341,10 +396,30 @@ def _handle(conn: socket.socket, state: tuple) -> None:
 
 
 def main() -> None:
+    # Claim singleton status BEFORE any other action.  Two separate bugs made
+    # this file leak ~1.3 GB per accidental start until the box ran out of RAM:
+    #   1. the socket -- the only liveness signal spawners had -- was created
+    #      after the index rebuild, so a starting server looked absent for
+    #      minutes and every probe in that window started another one;
+    #   2. this function then unlinked SOCK_PATH/PID_PATH unconditionally, so
+    #      each new server severed the previous one's socket, leaving it running
+    #      and unreachable forever.  Started with start_new_session=True, those
+    #      orphans reparent to init and never exit.
+    # Both are closed by taking the lock first and only cleaning up files once
+    # we know no one else owns them.
+    if acquire_singleton_lock() is None:
+        holder = singleton_holder_pid()
+        print(f"[server] another server is running or starting (pid {holder}); "
+              "exiting without touching its socket", flush=True)
+        return
+
     if SOCK_PATH.exists():
         SOCK_PATH.unlink()
     if PID_PATH.exists():
         PID_PATH.unlink()
+
+    # Publish our pid before the slow part so probes can see a starting server.
+    PID_PATH.write_text(str(os.getpid()))
 
     if _is_index_stale():
         print("[server] index is stale — rebuilding...", flush=True)
@@ -353,8 +428,6 @@ def main() -> None:
         print("[server] index is fresh", flush=True)
 
     state = _load()
-
-    PID_PATH.write_text(str(os.getpid()))
 
     server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     server.bind(str(SOCK_PATH))
