@@ -3743,9 +3743,11 @@ void FUN_0005ae70(int encounter_handle)
 
   encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
   scenario = (char *)global_scenario_get();
+  /* The index is the handle's low word, ZERO-extended: the original is a
+     plain 32-bit `AND ESI,0xffff; PUSH ESI` at 0x5ae70+0x1e -- no MOVSX.
+     An `(int16_t)` cast here would sign-extend indices >= 0x8000. */
   squad = (char *)tag_block_get_element(
-    (char *)(scenario + 0x42c), (int)(int16_t)(encounter_handle & 0xffff),
-    0xb0);
+    (char *)(scenario + 0x42c), (int)(encounter_handle & 0xffff), 0xb0);
   squad_index = 0;
   squad_count = *(int16_t *)(encounter + 0x6);
   if (squad_count <= 0) {

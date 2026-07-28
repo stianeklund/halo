@@ -199,7 +199,11 @@ void particle_systems_dispose_from_old_map(void)
  * Each particle has its creation physics applied via an indirect call. If the
  * particle fails to resolve a valid location, it's deleted; otherwise it's
  * linked into the type's particle list. */
-void FUN_0009fd30(void *ps_arg, int type_index, float dt)
+/* type_index is a SIGNED 16-bit index: the original loads it once with
+   `MOVSWL 0x8(%ebp),%ECX` at 0x9fd30+0x19 and feeds that one sign-extended
+   value to both the `* 0x40` stride (`SHL $0x6`) and the tag-block index.
+   Declaring it `int` dropped the sign-extension for values >= 0x8000. */
+void FUN_0009fd30(void *ps_arg, int16_t type_index, float dt)
 {
   char *ps = (char *)ps_arg;
   char *tag_def;

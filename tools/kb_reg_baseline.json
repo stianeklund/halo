@@ -155,7 +155,7 @@
     "0x9e310": "void FUN_0009e310(void *effect@<ebx>);",
     "0x9f920": "void FUN_0009f920(void *type_state@<eax>, void *sys_def@<ecx>, void *ps_datum);",
     "0x9f9d0": "void FUN_0009f9d0(void *particle@<eax>, void *sys_def@<ecx>);",
-    "0x9fd30": "void FUN_0009fd30(void *ps@<ebx>, int type_index, float dt);",
+    "0x9fd30": "void FUN_0009fd30(void *ps@<ebx>, int16_t type_index, float dt);",
     "0xa0080": "void FUN_000a0080(void *sys_def@<ecx>, short state_index@<eax>, void *output@<edi>);",
     "0xa1770": "void FUN_000a1770(int particle@<eax>, int tag_group@<ecx>, int physics_tag@<esi>, int param);",
     "0xa18c0": "void FUN_000a18c0(int datum_handle@<ebx>);",

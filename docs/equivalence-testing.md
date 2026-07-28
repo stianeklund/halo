@@ -584,6 +584,95 @@ targets before acting on them.
 
 Self-test: `python3 tools/equivalence/test_triage_classify.py`.
 
+### `arg_mismatch` triage, worked through (2026-07-28)
+
+`arg_mismatch` is the ledger's highest-value class — a wrong argument to a
+named callee is the §10 signature bug. All 50 entries were classified by the
+oracle/candidate value *pair*, which turns out to separate cause cleanly:
+
+| Bucket | n | Cause |
+|--------|---|-------|
+| oracle in globals arena, candidate `0x0` | 7 | **Harness**: `__imp__` indirection (below) |
+| oracle arena slot, candidate real XBE VA | 2 | **Harness**: one side reloc'd, the other hardcodes the absolute |
+| both synthetic, different slot | 3 | **Harness**: separate oracle/candidate slot arenas |
+| reversed (oracle `0x0`, candidate slot) | 5 | **Harness**: same, other direction |
+| differing constant | 24 | mostly **stale** (see below) |
+| sign/zero-extension of a 16-bit value | 2 | **REAL** — both fixed here |
+| other | 7 | mixed |
+
+Two lessons outweigh the counts:
+
+**1. Most entries no longer reproduced.** `evidence_stale` compares dates at
+*day* granularity, so a same-day harness change (here the `--real-callees`
+default flip) silently invalidates evidence while the flag still reads
+`false`. Re-measure before acting: of a 10-target sample, 7 were already clean.
+**Re-measure at the ledger's seed count** — at 4 seeds 7 looked clean, but at
+50 two of them still diverged. Passing at low coverage (several were 5–18%) is
+not proof of correctness, only that the recorded evidence no longer reproduces.
+
+**2. The 15-entry `object_get_and_verify_type` cluster was one artifact, not
+15 bugs.** All showed `arg[1]: oracle=0xffffffff candidate=0x0`, which looks
+like a systematically dropped type-mask — but every call site in `objects.c`
+passes `-1` correctly. `objects.c` *defines* that callee, so it is an
+intra-object sibling: resolved internally on the candidate side and stubbed on
+the oracle's, which desynchronises the call sequence and misaligns the arg
+index. The harness already excuses this ("N callee(s) excused from the
+call-sequence compare"); the ledger evidence predates that exemption.
+
+#### The two real bugs (both VC71-blind)
+
+Both were sign/zero-extension of a 16-bit value, in **opposite** directions,
+and VC71 scored *identically* before and after each fix (78.4% and 71.8%) —
+one instruction in ~90 gets aligned away by the LCS. Only the stub-arg
+differential saw them.
+
+- `FUN_0005ae70` (encounters): the squad index is the handle's low word
+  **zero**-extended — the original is a plain `AND ESI,0xffff; PUSH ESI` — but
+  the lift had an `(int16_t)` cast that sign-extended. 32/50 → 50/50.
+- `FUN_0009fd30` (particle_systems): `type_index` is a **signed** 16-bit
+  param — the original loads it once with `MOVSWL 0x8(%ebp),%ECX` and feeds
+  that to both the `* 0x40` stride (`SHL $0x6`) and the tag-block index — but
+  the lift declared it `int`, dropping the sign-extension. Fixed by typing the
+  parameter `int16_t` in both the source and the kb.json decl.
+
+Both only diverge for indices ≥ 0x8000, which real data never reaches: these
+are latent fidelity bugs, not live ones.
+
+**Detector gap:** `[LOADW-WARN]` (§24) did *not* catch either, though it fired
+on other functions in the same file. It models narrowing on *memory field
+loads* (`movswl (%ebx)`); here the narrowing applies to a value already in a
+register — a parameter or a computed index — which that check structurally
+cannot see.
+
+#### `__imp__` indirection (`_seed_dllimport_indirection`)
+
+kb.json globals are declared `HDATA` = `__declspec(dllimport)`, so the clang
+candidate reaches one through a **pointer-to-pointer**:
+
+```asm
+mov eax,[__imp__event_manager_globals]   ; the slot holds &global
+push eax                                  ; ... the global's address
+```
+
+The delinked MSVC oracle has no import table and references the same storage
+directly as `DAT_0046bd40`. `patch_dir32_relocs` gives each a globals slot —
+but for the direct side the slot address *is* the pointer, while the indirect
+side's slot must *contain* it. That slot was only seeded when a snapshot or
+`_KNOWN_GLOBAL_BYTES` entry existed; with neither it stayed zero and the
+candidate passed `NULL`. Both sides then wrote to different pages, so the
+memory-trace compare was meaningless rather than merely imprecise.
+
+`_seed_dllimport_indirection` points each `__imp_X` slot at the *other* side's
+direct slot for X (falling back to its own), so both agree on the pointer and
+share one page. It runs **before** `_build_globals_seeds` so real snapshot data
+still wins. When both sides go through `__imp_X` it emits nothing — they
+already agree, both dereferencing the same zero.
+
+Self-test: `python3 tools/equivalence/test_dllimport_indirection.py`. Note the
+first cut resolved only friendly names and so never matched the oracle's
+`DAT_<addr>` spelling — it produced an empty seed map and *zero* behavioural
+change; `test_dat_spelling_is_required` pins that.
+
 ## Integration Points
 
 | Consumer | What it uses | How |
