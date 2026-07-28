@@ -28779,7 +28779,7 @@
   },
   "0x5ff70": {
     "class": "non_leaf",
-    "confidence": "none",
+    "confidence": "high",
     "coverage_pct": 84.1
   },
   "0x60c40": {
@@ -29866,7 +29866,7 @@
   },
   "0xcf500": {
     "class": "non_leaf",
-    "confidence": "none",
+    "confidence": "moderate",
     "coverage_pct": 100.0
   },
   "0xcf690": {

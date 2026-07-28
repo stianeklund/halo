@@ -148,6 +148,71 @@ def reset_globals_arena_top() -> None:
     _GLOBALS_ARENA_TOP = None
 
 
+# {oracle_slot_address: original_XBE_address} for this run's oracle DIR32
+# slots, derived from the pristine XBE (see _xbe_dir32_symbol_addrs).  Only the
+# oracle side: the candidate's slots sit strictly above every oracle slot, so
+# an address landing on one of these keys is unambiguously the oracle's.
+def _cva_ok(addr) -> bool:
+    """True for a kb.json 'addr' string we can turn into an int."""
+    if not isinstance(addr, str) or not addr:
+        return False
+    try:
+        int(addr, 16)
+    except ValueError:
+        return False
+    return True
+
+
+_GLOBALS_SLOT_REAL = {}
+# {(slot - real_address) & 0xffffffff} -- the fixed displacement between the
+# two address spaces for each mapped global.
+_GLOBALS_SLOT_DISPLACEMENTS = set()
+
+
+def set_globals_slot_real_map(mapping: dict) -> None:
+    """Record {slot_address: original_XBE_address} for oracle DIR32 slots."""
+    _GLOBALS_SLOT_REAL.clear()
+    _GLOBALS_SLOT_REAL.update(mapping or {})
+    _GLOBALS_SLOT_DISPLACEMENTS.clear()
+    _GLOBALS_SLOT_DISPLACEMENTS.update(
+        (slot - real) & 0xFFFFFFFF for slot, real in _GLOBALS_SLOT_REAL.items())
+
+
+def reset_globals_slot_real_map() -> None:
+    _GLOBALS_SLOT_REAL.clear()
+    _GLOBALS_SLOT_DISPLACEMENTS.clear()
+
+
+def _is_slot_vs_real_global(o_val: int, c_val: int) -> bool:
+    """True when both sides passed the address of the SAME global, expressed in
+    the two different address spaces the harness gives them.
+
+    ``&some_global`` is a DIR32 reloc in the oracle, so patch_dir32_relocs
+    rewrites it to a 256-byte slot and the oracle pushes that slot address.
+    The candidate reaches the same global through an absolute immediate and
+    pushes its real XBE address.  Both are correct and denote one object;
+    numerically they never match.  input_flush pushed three of them into
+    csmemset and reported 150 arg mismatches across 50 seeds -- 0x500000 vs
+    0x46ba4c, 0x500100 vs 0x46bb38, 0x500200 vs 0x46bba0 (2026-07-28).
+
+    _is_stack_ptr already excuses the case where BOTH values land in the slot
+    arena; this is the asymmetric one.
+
+    The test is on the DISPLACEMENT, not on a range: the pair is excused only
+    when ``o_val - c_val`` equals ``slot - real_address`` for a global this
+    function actually relocates.  That keeps it sound -- the two sides must
+    have applied the SAME offset to the same object, so a wrong index is still
+    reported -- while covering indices that leave the slot's 256-byte window.
+    They routinely do, and not only upward: game_engine_clear_goal_position
+    computes ``0x4566f8 + (short)index * 0x20``, so a negative index lands
+    BELOW GLOBALS_BASE and a range check excused only the 5 non-negative seeds
+    out of 41 (2026-07-28).
+    """
+    if not _GLOBALS_SLOT_DISPLACEMENTS:
+        return False
+    return ((o_val - c_val) & 0xFFFFFFFF) in _GLOBALS_SLOT_DISPLACEMENTS
+
+
 def _is_stack_ptr(v: int) -> bool:
     """Return True when v looks like a pointer into the emulated stack region,
     OR into the synthetic globals/rdata slot region (GLOBALS_BASE..+SIZE).
@@ -352,6 +417,11 @@ def compare_stub_arg_traces(oracle_tracer: StubArgTracer,
                 continue
             if _is_stack_ptr(o_val) and _is_stack_ptr(c_val):
                 soft_matches += 1
+                continue
+            if _is_slot_vs_real_global(o_val, c_val):
+                soft_semantic += 1
+                soft_reasons["globals-slot-alias"] = \
+                    soft_reasons.get("globals-slot-alias", 0) + 1
                 continue
             if _is_assert_metadata_arg(o_rec.callee_name, ai):
                 soft_semantic += 1
@@ -690,6 +760,11 @@ class StubManager:
         # real_callees is enabled): DIR32 slots the loaded callee code reads
         # from (caller seeds them) and any .rdata constant seeds.
         self._callee_dir32_slots: dict[str, int] = {}
+        # {symbol_name: absolute VA of the DIR32 reloc SITE in the pristine
+        # XBE}.  The caller reads those 4 bytes to recover which global each
+        # callee slot stands for -- the same ground-truth resolution the
+        # target function gets, extended to real-callee code.
+        self._callee_dir32_sites: dict[str, int] = {}
         self._extra_rdata_seeds: dict[int, bytes] = {}
         self._real_code_count = 0
         # Optional stub argument tracer; set via set_tracer() before each run.
@@ -1040,6 +1115,16 @@ class StubManager:
                 snapshot_regions=snapshot_regions)
             glob_cursor += max(1, len(slots)) * 256
             self._callee_dir32_slots.update(slots)
+            # Record where each of this callee's DIR32 relocs lives in the
+            # original image, so the caller can resolve slot -> real global.
+            _cva = kb_entry.get("addr") if kb_entry else None
+            if _cva_ok(_cva):
+                _cva = int(_cva, 16)
+                for _r in fs.relocs:
+                    if (_r.reloc_type == IMAGE_REL_I386_DIR32
+                            and _r.symbol_name in slots):
+                        self._callee_dir32_sites.setdefault(
+                            _r.symbol_name, _cva + _r.virtual_address)
             self._extra_rdata_seeds.update(rdata_seeds)
             # REL32 -> sentinels, relative to where this callee will be written.
             # include_defined: sibling (intra-object) calls must also redirect

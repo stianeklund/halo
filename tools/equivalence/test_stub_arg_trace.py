@@ -411,6 +411,99 @@ def test_real_arg_bug_before_divergence_still_caught():
     print("  PASS  test_real_arg_bug_before_divergence_still_caught")
 
 
+_REAL_GLOBAL = 0x0046BA4C   # input_flush's first csmemset target
+
+
+def _with_slot_map(mapping, fn):
+    """Run fn() with the oracle slot -> real-address map installed."""
+    from stubs import set_globals_slot_real_map, reset_globals_slot_real_map
+    set_globals_slot_real_map(mapping)
+    try:
+        return fn()
+    finally:
+        reset_globals_slot_real_map()
+
+
+def test_slot_vs_real_global_soft_matches():
+    """`&global` is a slot address in the oracle and a real VA in the
+    candidate.  Same object, two address spaces -- not an arg bug."""
+    oracle = _make_tracer(_rec(0, _SENTINEL_A, "_csmemset", GLOBALS_BASE, 0, 8))
+    cand = _make_tracer(_rec(0, _SENTINEL_A, "_csmemset", _REAL_GLOBAL, 0, 8))
+    d = _with_slot_map(
+        {GLOBALS_BASE: _REAL_GLOBAL},
+        lambda: compare_stub_arg_traces(oracle, cand, seed_label="sg0"))
+    assert d.arg_mismatches == 0, f"expected soft match, got {d.arg_mismatches}"
+    assert d.soft_reasons.get("globals-slot-alias") == 1, d.soft_reasons
+    print("  PASS  test_slot_vs_real_global_soft_matches")
+
+
+def test_slot_alias_preserves_offset_within_the_global():
+    """Offset into the object must agree: slot+0x10 pairs with real+0x10."""
+    oracle = _make_tracer(_rec(0, _SENTINEL_A, "_csmemset", GLOBALS_BASE + 0x10))
+    cand = _make_tracer(_rec(0, _SENTINEL_A, "_csmemset", _REAL_GLOBAL + 0x10))
+    d = _with_slot_map(
+        {GLOBALS_BASE: _REAL_GLOBAL},
+        lambda: compare_stub_arg_traces(oracle, cand, seed_label="sg1"))
+    assert d.arg_mismatches == 0, f"expected soft match, got {d.arg_mismatches}"
+    print("  PASS  test_slot_alias_preserves_offset_within_the_global")
+
+
+def test_wrong_offset_into_right_global_is_still_reported():
+    """The soundness property: identifying the global correctly does NOT
+    excuse indexing into it wrongly.  A range-based excusal would swallow
+    this; the exact base+offset test must not."""
+    oracle = _make_tracer(_rec(0, _SENTINEL_A, "_csmemset", GLOBALS_BASE + 0x10))
+    cand = _make_tracer(_rec(0, _SENTINEL_A, "_csmemset", _REAL_GLOBAL + 0x20))
+    d = _with_slot_map(
+        {GLOBALS_BASE: _REAL_GLOBAL},
+        lambda: compare_stub_arg_traces(oracle, cand, seed_label="sg2"))
+    assert d.arg_mismatches == 1, (
+        f"a wrong offset into a correctly-identified global must still be "
+        f"reported, got {d.arg_mismatches}")
+    print("  PASS  test_wrong_offset_into_right_global_is_still_reported")
+
+
+def test_slot_alias_inactive_without_a_map():
+    """Strictly additive: with no map installed, nothing is excused."""
+    oracle = _make_tracer(_rec(0, _SENTINEL_A, "_csmemset", GLOBALS_BASE))
+    cand = _make_tracer(_rec(0, _SENTINEL_A, "_csmemset", _REAL_GLOBAL))
+    d = _with_slot_map(
+        {}, lambda: compare_stub_arg_traces(oracle, cand, seed_label="sg3"))
+    assert d.arg_mismatches == 1, (
+        f"no map means no excusal, got {d.arg_mismatches}")
+    print("  PASS  test_slot_alias_inactive_without_a_map")
+
+
+def test_slot_alias_covers_index_below_the_arena():
+    """game_engine_clear_goal_position computes base + (short)idx * 0x20, so a
+    negative index puts the oracle's value BELOW GLOBALS_BASE.  A range check
+    excused only the non-negative seeds; the displacement test must cover
+    both."""
+    off = -0x20 * 3
+    oracle = _make_tracer(_rec(0, _SENTINEL_A, "_csmemset", GLOBALS_BASE + off))
+    cand = _make_tracer(_rec(0, _SENTINEL_A, "_csmemset", _REAL_GLOBAL + off))
+    assert GLOBALS_BASE + off < GLOBALS_BASE, "test premise: must be below arena"
+    d = _with_slot_map(
+        {GLOBALS_BASE: _REAL_GLOBAL},
+        lambda: compare_stub_arg_traces(oracle, cand, seed_label="sg5"))
+    assert d.arg_mismatches == 0, (
+        f"negative index must still soft-match, got {d.arg_mismatches}")
+    print("  PASS  test_slot_alias_covers_index_below_the_arena")
+
+
+def test_unmapped_slot_is_still_reported():
+    """A slot with no XBE-derived real address must not be excused against
+    an arbitrary candidate value."""
+    oracle = _make_tracer(_rec(0, _SENTINEL_A, "_csmemset", GLOBALS_BASE + 0x100))
+    cand = _make_tracer(_rec(0, _SENTINEL_A, "_csmemset", _REAL_GLOBAL))
+    d = _with_slot_map(
+        {GLOBALS_BASE: _REAL_GLOBAL},
+        lambda: compare_stub_arg_traces(oracle, cand, seed_label="sg4"))
+    assert d.arg_mismatches == 1, (
+        f"unmapped slot must not be excused, got {d.arg_mismatches}")
+    print("  PASS  test_unmapped_slot_is_still_reported")
+
+
 def main():
     # Auto-discover, so a new test is never silently left out of the run.
     print("Running stub-arg trace comparator self-tests...")

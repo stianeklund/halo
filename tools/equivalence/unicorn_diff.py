@@ -750,8 +750,88 @@ def _snapshot_value_at(snapshot_overrides: dict, addr: int, n: int = 4):
     return None
 
 
+_XBE_SECTIONS_CACHE = None
+
+
+def _xbe_sections() -> list:
+    """Pristine-XBE section headers, loaded once ([] when unavailable)."""
+    global _XBE_SECTIONS_CACHE
+    if _XBE_SECTIONS_CACHE is None:
+        try:
+            from extract_globals import _load_xbe_sections, XBE_PATH
+            _XBE_SECTIONS_CACHE = (_load_xbe_sections()
+                                   if XBE_PATH.exists() else [])
+        except Exception:
+            _XBE_SECTIONS_CACHE = []
+    return _XBE_SECTIONS_CACHE
+
+
+def _xbe_dir32_symbol_addrs(func_va: int, relocs) -> dict:
+    """Resolve each DIR32 relocation's symbol to the absolute address the
+    ORIGINAL code stored at that spot, by reading the pristine XBE at
+    func_va + reloc_offset.  Returns {symbol_name: original_address}.
+
+    Relocs are function-relative (coff_loader rebases them by func_offset),
+    so func_va + r.virtual_address is exactly the dword the linker wrote.
+    That makes this ground truth and, unlike name matching, completely
+    label-independent: it resolves `g_decals_data` -- a Ghidra label with no
+    kb.json counterpart, since kb calls 0x5aa8b8 `global_decal_data` -- just
+    as well as `DAT_0032516c`.  Name matching resolved only the latter, so
+    the oracle's slot for the former stayed zero while the candidate read
+    the seeded pool pointer through its absolute immediate.  Every seed then
+    diverged on arg[0] of datum_get and looked like a dropped argument
+    (FUN_0015b0c0, 2026-07-28).
+
+    Only DIR32 relocs are read: a DISP32 (call) site holds a displacement,
+    not an address.  Values outside the XBE's mapped VA range are ignored,
+    and a symbol resolving to two different addresses is dropped rather
+    than guessed.
+    """
+    from stubs import IMAGE_REL_I386_DIR32
+    # Pass the un-deduplicated pair list: a symbol relocated at two sites that
+    # hold different addresses must be dropped, and a dict would hide that.
+    return _xbe_addrs_at_sites(
+        (r.symbol_name, func_va + r.virtual_address) for r in relocs
+        if getattr(r, "reloc_type", None) == IMAGE_REL_I386_DIR32)
+
+
+def _xbe_addrs_at_sites(sites) -> dict:
+    """{symbol: address} by reading 4 bytes at each relocation SITE in the
+    pristine XBE.
+
+    ``sites`` is either {symbol: site_va} or an iterable of (symbol, site_va)
+    pairs.  Values outside the XBE's mapped VA range are ignored, and a symbol
+    whose sites disagree is dropped rather than guessed.
+    """
+    import struct as _struct
+    secs = _xbe_sections()
+    if not secs:
+        return {}
+    from extract_globals import _read_xbe_bytes
+    lo = min(s["vaddr"] for s in secs)
+    hi = max(s["vaddr"] + s["vsize"] for s in secs)
+    items = sites.items() if isinstance(sites, dict) else sites
+    out, ambiguous = {}, set()
+    for sym, site in items:
+        raw = _read_xbe_bytes(secs, site, 4)
+        if not raw or len(raw) != 4:
+            continue
+        val = _struct.unpack("<I", raw)[0]
+        if not (lo <= val < hi):
+            continue
+        prev = out.get(sym)
+        if prev is not None and prev != val:
+            ambiguous.add(sym)
+            continue
+        out[sym] = val
+    for sym in ambiguous:
+        out.pop(sym, None)
+    return out
+
+
 def _build_globals_seeds(*slot_maps: dict,
-                         snapshot_overrides: dict = None) -> dict:
+                         snapshot_overrides: dict = None,
+                         sym_addr_hints: dict = None) -> dict:
     """Build {slot_address: bytes} from DIR32 slot mappings + _KNOWN_GLOBAL_BYTES
     + optional state-snapshot overrides.
 
@@ -767,9 +847,15 @@ def _build_globals_seeds(*slot_maps: dict,
     seeds = {}
     for smap in slot_maps:
         for sym_name, slot_addr in smap.items():
-            orig_addr = None
-            m = re.match(r'(?:DAT|PTR|PTR_FUN|PTR_DAT|s)_([0-9a-fA-F]{4,})', sym_name)
-            if m:
+            # XBE-derived hints first: the address the original linker wrote
+            # at this reloc site is ground truth, so it outranks every name
+            # heuristic -- including a bare-name match that lands on a
+            # DIFFERENT kb global (the hazard _GLOBAL_NAME_ALIASES documents).
+            orig_addr = (sym_addr_hints or {}).get(sym_name)
+            if orig_addr is not None:
+                pass
+            elif (m := re.match(r'(?:DAT|PTR|PTR_FUN|PTR_DAT|s)_([0-9a-fA-F]{4,})',
+                                sym_name)):
                 orig_addr = int(m.group(1), 16)
             else:
                 bare = _normalize_global_symbol(sym_name)
@@ -821,7 +907,8 @@ def _build_globals_seeds(*slot_maps: dict,
     return seeds
 
 
-def _seed_dllimport_indirection(orc_slots: dict, lft_slots: dict) -> dict:
+def _seed_dllimport_indirection(orc_slots: dict, lft_slots: dict,
+                                orc_addr_hints: dict = None) -> dict:
     """Make a dllimport (indirect) reference resolve to the same storage as the
     other side's direct reference to the same global.
 
@@ -852,16 +939,22 @@ def _seed_dllimport_indirection(orc_slots: dict, lft_slots: dict) -> dict:
     import re, struct as _struct
     name2addr = _load_symbol_addrs()
 
-    def _direct_slots(smap):
+    def _direct_slots(smap, hints=None):
         """{real_address: slot} for non-dllimport symbols we can resolve.
 
         The delinked oracle names data by address (``DAT_0046bd40``), so match
         that spelling too -- resolving only friendly names would miss every
         oracle-side direct reference, which is exactly the side we need.
+        XBE-derived hints outrank both, and cover Ghidra labels that match no
+        kb.json name at all (see _xbe_dir32_symbol_addrs).
         """
         out = {}
         for sym, slot in smap.items():
             if sym.startswith("__imp_"):
+                continue
+            hinted = (hints or {}).get(sym)
+            if hinted is not None:
+                out.setdefault(hinted, slot)
                 continue
             m = re.match(r'(?:DAT|PTR|PTR_FUN|PTR_DAT|FLOAT|s)_([0-9a-fA-F]{4,})$',
                          sym)
@@ -876,7 +969,9 @@ def _seed_dllimport_indirection(orc_slots: dict, lft_slots: dict) -> dict:
                 out.setdefault(addr, slot)
         return out
 
-    orc_direct = _direct_slots(orc_slots)
+    # Hints are read out of the pristine XBE at the ORACLE's reloc sites, so
+    # they only apply to the oracle map -- the candidate's code layout differs.
+    orc_direct = _direct_slots(orc_slots, orc_addr_hints)
     lft_direct = _direct_slots(lft_slots)
     seeds = {}
     for smap, other_direct, own_direct in ((orc_slots, lft_direct, orc_direct),
@@ -2043,17 +2138,34 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         # slots the candidate arena runs past GLOBALS_BASE+GLOBALS_SIZE. Tell
         # the stub-arg comparator how far it actually reaches, or every such
         # candidate slot pointer reads as a hard argument mismatch.
-        from stubs import set_globals_arena_top, reset_globals_arena_top
+        from stubs import (set_globals_arena_top, reset_globals_arena_top,
+                           set_globals_slot_real_map,
+                           reset_globals_slot_real_map)
         reset_globals_arena_top()
         set_globals_arena_top(lft_globals_base + len(lft_data_slots) * 256)
+
+        # Resolve the oracle's DIR32 symbols against the pristine XBE, so a
+        # Ghidra label with no kb.json counterpart still seeds its slot.
+        orc_addr_hints = _xbe_dir32_symbol_addrs(int(addr, 16),
+                                                 oracle_slice.relocs)
+
+        # Tell the stub-arg comparator which real global each oracle slot
+        # stands for, so `&global` passed as an argument compares equal
+        # across the two address spaces instead of reading as a wrong arg.
+        reset_globals_slot_real_map()
+        set_globals_slot_real_map({
+            slot: orc_addr_hints[sym]
+            for sym, slot in orc_data_slots.items() if sym in orc_addr_hints})
 
         # dllimport indirection first, so real snapshot / known-globals data
         # from _build_globals_seeds overrides it rather than the reverse.
         globals_seeds = _seed_dllimport_indirection(orc_data_slots,
-                                                    lft_data_slots)
+                                                    lft_data_slots,
+                                                    orc_addr_hints)
         globals_seeds.update(_build_globals_seeds(
             orc_data_slots, lft_data_slots,
-            snapshot_overrides=snapshot_overrides))
+            snapshot_overrides=snapshot_overrides,
+            sym_addr_hints=orc_addr_hints))
         globals_seeds.update(orc_rdata_seeds)
         globals_seeds.update(lft_rdata_seeds)
         # Seed MSVC two-level switch index-maps at their original VA so the
@@ -2205,9 +2317,22 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             if real_callees and stub_mgr._callee_dir32_slots:
                 # Seed the globals the loaded callee code reads (DAT_ -> snapshot
                 # / known_globals), same path as the caller's own globals.
+                callee_hints = _xbe_addrs_at_sites(
+                    stub_mgr._callee_dir32_sites)
                 globals_seeds.update(_build_globals_seeds(
                     stub_mgr._callee_dir32_slots,
-                    snapshot_overrides=snapshot_overrides))
+                    snapshot_overrides=snapshot_overrides,
+                    sym_addr_hints=callee_hints))
+                # Extend the slot -> real-global map with the callee slots, so
+                # a `&global` argument coming out of real callee code compares
+                # across address spaces the same way the target's own does.
+                set_globals_slot_real_map({
+                    **{slot: orc_addr_hints[sym]
+                       for sym, slot in orc_data_slots.items()
+                       if sym in orc_addr_hints},
+                    **{slot: callee_hints[sym]
+                       for sym, slot in stub_mgr._callee_dir32_slots.items()
+                       if sym in callee_hints}})
                 globals_seeds.update(stub_mgr._extra_rdata_seeds)
                 info(f"  real callees: {stub_mgr._real_code_count} loaded, "
                      f"{len(stub_mgr._callee_dir32_slots)} callee globals seeded")
