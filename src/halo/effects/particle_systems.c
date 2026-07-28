@@ -284,8 +284,15 @@ void FUN_0009fd30(void *ps_arg, int16_t type_index, float dt)
     /* Get marker from attached object */
     char *obj = (char *)object_get_and_verify_type(*(int *)(ps + 0xc), -1);
     char *obj_tag = (char *)tag_get(0x6f626a65, *(int *)obj);
+    /* The 'obje' particle_systems block at +0x140 has 0x48-byte elements --
+       original is `PUSH 0x48` at 0x9fd30+0x110, and five other sites
+       (contrails.c x2, particles.c, objects.c x2) already use 0x48 for the
+       same block.  This was 0x6c, which is the marker_buf entry stride below
+       and unrelated: with the wrong stride any attachment index != 0 lands
+       mid-element, so marker_elem+0x10 is a bogus string_id and the marker
+       lookup fails or matches the wrong marker. */
     char *marker_elem = (char *)tag_block_get_element(
-      (void *)(obj_tag + 0x140), (int)*(short *)(ps + 0x10), 0x6c);
+      (void *)(obj_tag + 0x140), (int)*(short *)(ps + 0x10), 0x48);
     location_valid = object_get_markers_by_string_id(
       *(int *)(ps + 0xc), (void *)(marker_elem + 0x10), marker_buf, 8);
     object_get_location(*(int *)(ps + 0xc), ps + 0x18);
