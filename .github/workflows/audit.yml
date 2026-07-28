@@ -23,9 +23,17 @@ on:
     paths:
       - 'kb.json'
       - 'tools/audit/**'
+      # The equivalence harness self-tests run here rather than in
+      # equivalence.yml because several of them (test_xbe_symbol_addrs) read
+      # the pristine XBE, which only this workflow links.
+      - 'tools/equivalence/**'
 
 env:
   XBE_DIR: /mnt/g/dev/halo/halo-patched
+  # The other audits need only capstone, which system python3 has. The
+  # equivalence self-tests also want z3/unicorn, which live in the venv --
+  # without it two suites SKIP instead of running.
+  VENV_PYTHON: /mnt/g/dev/halo/.venv/bin/python3
 
 jobs:
   audit:
@@ -45,6 +53,39 @@ jobs:
 
       - name: Baseline-gate self-test
         run: python3 tools/audit/test_baseline_gates.py
+
+      # The equivalence harness's own self-tests, which until now ran nowhere:
+      # they were invoked only by hand, so the soundness pins on the stub-arg
+      # comparator (a wrong offset into the right global must still be
+      # REPORTED, an unmapped slot must still be REPORTED) could be loosened
+      # into something that excuses real bugs and nothing would notice.
+      #
+      # run_all_tests.py rather than `unittest discover`: half these suites are
+      # plain `sys.exit(main())` scripts that discovery does not see at all --
+      # including test_stub_arg_trace.py, so a discovery step would have gone
+      # green while running none of it.
+      - name: Equivalence harness self-tests
+        if: always()
+        run: |
+          set +e
+          PY="${{ env.VENV_PYTHON }}"
+          [ -x "$PY" ] || PY=python3
+          OUTPUT=$("$PY" tools/equivalence/run_all_tests.py 2>&1)
+          RC=$?
+          echo "$OUTPUT"
+          TALLY=$(echo "$OUTPUT" | grep -E '^[0-9]+ passed,')
+          if [ $RC -ne 0 ]; then
+            printf '## ❌ Equivalence Harness Self-Tests\n\n```\n%s\n```\n' "$OUTPUT" >> "$GITHUB_STEP_SUMMARY"
+          else
+            # Surface skips: a suite that skipped itself for a missing optional
+            # dep (z3) or an unlinked XBE is a silent coverage hole, not a pass.
+            SKIPPED=$(echo "$OUTPUT" | grep -E '^  SKIP ')
+            printf '## ✅ Equivalence Harness Self-Tests\n\n%s\n' "$TALLY" >> "$GITHUB_STEP_SUMMARY"
+            if [ -n "$SKIPPED" ]; then
+              printf '\nSkipped (missing optional dependency -- coverage hole):\n```\n%s\n```\n' "$SKIPPED" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          fi
+          exit $RC
 
       - name: XCALL type audit
         run: |

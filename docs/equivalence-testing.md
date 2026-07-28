@@ -802,6 +802,48 @@ change; `test_dat_spelling_is_required` pins that.
 | `tools/llm_auto_lift.py` | `leaf_cache.json` | `+3 eq_high_conf` for high-confidence entries |
 | `/verify equivalence` skill | CLI invocation | Delegates to unicorn_diff |
 
+### Who tests the harness (2026-07-29)
+
+The harness verifies lifts; two gates now verify the harness. Both were added
+after noticing that the XBE-global fix above shipped with its soundness pins
+running nowhere.
+
+| Gate | Fires on | Runs |
+|------|----------|------|
+| `audit.yml` → *Equivalence harness self-tests* | nightly 03:00 UTC; PR touching `tools/equivalence/**` | `run_all_tests.py` (~5s) |
+| `pre-commit-regression-test.sh` | staged `src/*.c`, `src/*.h`, `kb.json`, **`tools/equivalence/*.py`** | `run_all_tests.py`, then `regression_test.py --quick` (~130s) |
+
+Two things this had to get right, both of which a naive version gets wrong:
+
+**`unittest discover` is the wrong runner here.** Only 6 of the 12 suites are
+`unittest.TestCase`-based; the other 6 are plain `sys.exit(main())` scripts,
+and discovery finds *zero* tests in them. `test_stub_arg_trace.py` — which
+holds the pins that a wrong offset into the right global must still be
+REPORTED, and that the slot alias is inert without a map — is in the second
+group. A discovery step would have reported 49 tests passing while running
+none of the ones that matter most. `run_all_tests.py` executes each file as a
+subprocess and trusts its exit code, so both shapes count.
+
+**The pre-commit filter used to exclude the harness.** It gated on
+`src/*.c`, `src/*.h`, `kb.json` only, so a commit touching nothing but
+`tools/equivalence/**` — exactly the change that can break the differential —
+skipped the hook and offered no opinion at all.
+
+`run_all_tests.py` also refuses two ways of passing vacuously: a suite with no
+`__main__` block is an ERROR (it would exit 0 having run nothing), and a suite
+that self-skips for a missing optional dep is a SKIP, surfaced in the CI
+summary as a coverage hole rather than folded into the pass count. Without the
+venv (`z3` absent) the tally is 10 passed / 2 skipped, which is why `audit.yml`
+prefers `VENV_PYTHON` and falls back to `python3`.
+
+Not covered by either gate: `batch_verify.py`'s nightly behaviour itself, and
+the fact that `batch_verify_baseline.json` still lists as failing the targets
+the XBE fix repaired. That direction is safe — `--fail-on-new` only fails on
+divergences *absent* from the baseline, so a fixed target simply stops
+appearing — but those entries now over-forgive, and should be refreshed with
+`freeze_batch_baseline.py` after the first post-fix nightly (not before, so the
+refresh rests on measured results).
+
 ## File Map
 
 ```
@@ -822,4 +864,5 @@ tools/equivalence/
   batch_verify.py       — Batch runner for multiple functions
   triage_failures.py    — Divergence classifier + ledger writer
   divergence_ledger.json— Persistent per-divergence category/status/priority
+  run_all_tests.py      — Runs all 12 test_*.py suites (both styles); CI gate
 ```
