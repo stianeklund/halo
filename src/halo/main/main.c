@@ -2940,6 +2940,87 @@ void FUN_00103b80(int base, int obj, int index, int flag)
     (float *)(FUN_00117ee0((int *)(obj + 0x140), tri[4], 0x50) + 8), flag);
 }
 
+/*
+ * FUN_00103c00 — walk a BSP's surface list and flood-mark unassigned surfaces.
+ *
+ * `bsp` is a collision-BSP-like structure of tag blocks:
+ *   bsp+0x00 (bsp[0])  vertex block,  element size 0x0c (3 floats)
+ *   bsp+0x0c (bsp[3])  edge block,    element size 0x1c
+ *   bsp+0x18 (bsp[6])  surface block, element size 0x18
+ *   bsp+0x1c (bsp[7])  surface element count
+ *
+ * For every surface i, the three edge indices at surface[0]/[1]/[2] are
+ * resolved. Each edge index carries a direction flag in bit 31: the low 31
+ * bits index the edge block, and the flag selects which of the two vertex
+ * indices stored at edge+0x0c / edge+0x10 is this surface's vertex. That
+ * vertex index is resolved against the vertex block to a float* position.
+ *
+ * The three positions build a plane via FUN_001037b0(out, p0, p1, p2). If the
+ * surface's field at +0x0c is still 0xffffffff (unassigned), a depth-first
+ * marking walk FUN_00103530 is seeded from this surface with the running
+ * count as the mark value and FUN_00103a00 as the visitor. The number of
+ * seeded walks is returned.
+ *
+ * ABI: cdecl, one stack param. Ghidra prints void __cdecl f(void) with the
+ * param surfacing as in_stack_00000004, and prints no return — but 0x103c0d
+ * XOR EAX,EAX (zero-iteration path) and 0x103d17 MOV EAX,[EBP-0x8] before the
+ * epilogue prove the count is returned in EAX (lift-learnings §16 void-EAX).
+ *
+ * The 5-arg FUN_00103530 call is reconstructed from the disassembly push
+ * sequence (Ghidra dropped all five args): PUSH [EBP-0x4](i), PUSH
+ * [EBP-0x8](count), PUSH LEA[EBP-0x18](plane), PUSH 0x103a00, PUSH EDI(bsp);
+ * first arg is the last push.
+ *
+ * The three vertex lookups are written inline as arguments so MSVC's
+ * right-to-left evaluation reproduces the original interleaved sequence:
+ * the vertex for edge[1] is produced and pushed first, then edge[2], then
+ * edge[0], and all three are held on the stack across the intervening calls.
+ * That production order is NOT the argument order.
+ *
+ * FUN_00117ee0(block, index, element_size) returns &block[index].
+ */
+int FUN_00103c00(int *bsp)
+{
+  int *edges;
+  uint32_t *surface;
+  int count;
+  int i;
+  float plane[4];
+
+  count = 0;
+  i = 0;
+  if (0 < bsp[7]) {
+    edges = bsp + 3;
+    do {
+      surface = (uint32_t *)FUN_00117ee0(bsp + 6, i, 0x18);
+      FUN_001037b0(
+        plane,
+        (float *)FUN_00117ee0(
+          bsp,
+          ((int *)(FUN_00117ee0(edges, (int)(surface[0] & 0x7fffffff), 0x1c) +
+                   0xc))[(int)(surface[0] & 0x80000000) != 0],
+          0xc),
+        (float *)FUN_00117ee0(
+          bsp,
+          ((int *)(FUN_00117ee0(edges, (int)(surface[2] & 0x7fffffff), 0x1c) +
+                   0xc))[(int)(surface[2] & 0x80000000) != 0],
+          0xc),
+        (float *)FUN_00117ee0(
+          bsp,
+          ((int *)(FUN_00117ee0(edges, (int)(surface[1] & 0x7fffffff), 0x1c) +
+                   0xc))[(int)(surface[1] & 0x80000000) != 0],
+          0xc));
+      if (surface[3] == 0xffffffff) {
+        FUN_00103530((int)bsp, FUN_00103a00, (uint32_t)plane, (uint32_t)count,
+                     i);
+        count = count + 1;
+      }
+      i = i + 1;
+    } while (i < bsp[7]);
+  }
+  return count;
+}
+
 /* Lazily opens the debug VRML output file ("debug.wrl") on the first call,
  * writes the VRML header, flushes it, and caches the FILE* in the global at
  * 0x46e394. Returns whether the handle is non-NULL (open succeeded). The
