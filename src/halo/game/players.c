@@ -5391,6 +5391,64 @@ void FUN_000bf3d0(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* FUN_000bf420 @ 0x000bf420
+ *
+ * HaloScript builtin dispatcher, the exact twin of FUN_000bf3d0 above: same
+ * 3-parameter cdecl shape, same evaluate / NULL-check / worker / hs_return
+ * skeleton, same THREE-field record (int, float, float), same "worker return
+ * discarded, script gets a CONSTANT 0" tail.  The two differ only in the
+ * worker called: 0xbf3d0 calls 0x1a7ad0 (damage every child object), this one
+ * calls 0x1a7b50 (set body/shield vitality on one object).
+ *
+ * cdecl frame, 0xbf420-0xbf461, instruction-for-instruction identical to
+ * 0xbf3d0 apart from the CALL target at 0xbf44f.
+ *   function_index  int16_t  [EBP+0x08]  -> ECX
+ *   thread_datum    int      [EBP+0x0c]  -> ESI (callee-saved; held live
+ *                                          across evaluate and reused as
+ *                                          hs_return arg1 -- do NOT source
+ *                                          it from the record)
+ *   init            char     [EBP+0x10]  -> EAX
+ *
+ * Binary evidence:
+ *   CALL 0xcc560 @0xbf430 pushes EAX([EBP+0x10]), ESI([EBP+0xc]),
+ *   ECX([EBP+0x8]) in cdecl reverse order -> C order; ADD ESP,0xc = 3 args.
+ *   TEST EAX,EAX / JZ 0xbf45f skips BOTH remaining calls on a NULL record.
+ *
+ *   Record deref, THREE fields, MIXED widths:
+ *     +0x00 int    object handle   (MOV EDX,dword ptr [EAX]  @0xbf43f)
+ *     +0x04 float  body damage     (FLD  float ptr [EAX+0x4] @0xbf448)
+ *     +0x08 float  shield damage   (FLD  float ptr [EAX+0x8] @0xbf43c)
+ *   Field names follow 0x1a7b50's already-established parameter names.
+ *
+ *   ONE combined ADD ESP,0x14 @0xbf45c folds 0x1a7b50's 3 dwords with
+ *   hs_return's 2 -- any ARG_COUNT warning on 0xcbf80 is that merged
+ *   cleanup; hs_return really takes 2 args, do NOT "fix" its decl.
+ *
+ *   Ghidra modelled this void(void), so the three cdecl params showed up as
+ *   in_stack_00000004/8/c pseudo-locals (off by 4); they are stack args, not
+ *   @<reg> (lift-learnings 31 / void-decl trap).  kb.json's decl was
+ *   corrected from `void(void)` to the 3-arg cdecl form.  Ghidra's
+ *   "(float)piVar1[1]" cast is likewise invented -- the fields are loaded
+ *   with FLD, there is no FILD anywhere in the function.
+ *
+ * Callees (all cdecl, in kb.json, no @<reg> args anywhere):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x1a7b50 = FUN_001a7b50(int datum_handle, float body_damage,
+ *              float shield_damage) -- void
+ *   0xcbf80  = hs_return(int thread_handle, int value) */
+void FUN_000bf420(int16_t function_index, int thread_datum, char init)
+{
+  void *record;
+
+  record = (void *)hs_macro_function_evaluate(function_index, thread_datum,
+                                              init);
+  if (record != NULL) {
+    FUN_001a7b50(*(int *)record, *(float *)((char *)record + 4),
+                 *(float *)((char *)record + 8));
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* FUN_000bf4c0 @ 0x000bf4c0
  *
  * HaloScript builtin dispatcher, same family as FUN_000bf260/0xbf2b0/0xbf300/
