@@ -1559,7 +1559,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     _max_insn = max_insn if max_insn is not None else (1_000_000 if allow_stubs else MAX_INSN)
 
     sys.path.insert(0, str(_SCRIPT_DIR))
-    from coff_loader import extract_function, CoffParseError
+    from coff_loader import extract_function, CoffParseError, slice_looks_truncated
     from abi import parse_decl
     from seeds import generate_seeds
     import state as state_mod
@@ -1820,6 +1820,23 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     if not lifted_slice.code:
         log("ERROR: lifted code is empty")
         return finish("error", True, "empty_lifted_code", 1)
+
+    # A delinked reference that does not reach the target leaves an oracle slice
+    # that is only the first byte(s) of the prologue.  Emulating it compares the
+    # lift against nothing, while byte-coverage reports 100% because every byte
+    # present was executed -- a truncated reference otherwise yields a confident
+    # -looking divergence.  This is missing evidence, not a behavioural result,
+    # so it must not reach the seed loop.  Re-export the delinked object over a
+    # range that covers the function (see the delinked-reference precondition in
+    # CLAUDE.md) to make the target testable.
+    truncated = slice_looks_truncated(oracle_slice)
+    if truncated:
+        log(f"ERROR: delinked reference does not cover {func_name}: {truncated}")
+        log(f"  oracle slice is {len(oracle_slice.code)} byte(s) at section offset "
+            f"0x{oracle_slice.section_offset:x} and runs to the end of the section;")
+        log(f"  the lifted body is {len(lifted_slice.code)} bytes.")
+        log(f"  Re-export {delinked_path.name} over a range covering this function.")
+        return finish("not_applicable", False, "oracle_truncated", 2)
 
     # --- Check for external relocations ---
     oracle_ok = _check_relocations(oracle_slice, "oracle", quiet=quiet)

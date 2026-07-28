@@ -79,6 +79,7 @@ class FunctionSlice:
     rdata_map: dict = field(default_factory=dict)  # {symbol_name: bytes} for .rdata refs
     rdata_relocs: dict = field(default_factory=dict)  # {symbol_name: [CoffReloc]} relative to rdata_map bytes
     text_symbol_offsets: dict = field(default_factory=dict)  # {symbol_name: section-relative offset} for symbols defined in the function's own (.text) section — used to relocate intra-section DIR32 refs such as MSVC switch jump tables
+    reached_section_end: bool = False  # slice ran to the end of its section rather than stopping at a following function symbol.  A delinked reference that does not cover this function looks exactly like this, so callers should treat it as a truncation suspect (see slice_looks_truncated).
 
 
 class CoffParseError(Exception):
@@ -258,6 +259,8 @@ def extract_function(obj_path: str, func_name: str) -> FunctionSlice:
                 and sym.sym_type == 0x20):
             next_offset = sym.value
 
+    reached_section_end = next_offset >= len(section.data)
+
     code = section.data[func_offset:next_offset]
     # Strip trailing NOPs
     while code.endswith(b"\x90"):
@@ -326,7 +329,66 @@ def extract_function(obj_path: str, func_name: str) -> FunctionSlice:
         rdata_map=rdata_map,
         rdata_relocs=rdata_relocs,
         text_symbol_offsets=text_symbol_offsets,
+        reached_section_end=reached_section_end,
     )
+
+
+# Instructions a complete function body can end on.  RET/IRET are the normal
+# case; JMP covers tail calls and thunks; CALL covers a tail call to a noreturn
+# callee (assert/halt paths end this way); INT3/UD2 are trap tails.
+_TERMINATOR_MNEMONICS = frozenset({
+    "ret", "retf", "iret", "iretd", "jmp", "call", "int3", "ud2",
+})
+
+
+def slice_looks_truncated(slice_: FunctionSlice) -> Optional[str]:
+    """Return a reason string if this slice is not a whole function body.
+
+    A delinked reference that stops before the target function produces a slice
+    that starts at the function's entry and runs to the end of the section --
+    e.g. the single byte 0x55 ("push ebp") for a function whose delinked object
+    ends one byte past its entry point.  Emulating that is meaningless: control
+    runs off the end of the mapping, yet byte-coverage reports 100% because the
+    one byte present was executed.  Callers must not turn such a run into a
+    divergence verdict; it is missing evidence, not a behavioural difference.
+
+    Only slices that reached the end of their section are considered, because a
+    slice bounded by a following function symbol is complete by construction.
+    Trailing 0x90/0xCC alignment padding is stripped first; trailing 0x00 is NOT
+    stripped, since a relocation-zeroed operand (e.g. "E9 00 00 00 00") is part
+    of a real instruction.
+
+    Returns None when the slice looks like a complete function.
+    """
+    if not slice_.reached_section_end:
+        return None
+    code = slice_.code
+    while code and code[-1] in (0x90, 0xCC):
+        code = code[:-1]
+    if not code:
+        return "slice is empty after stripping padding"
+    try:
+        import capstone
+    except ImportError:
+        # Without a disassembler, fall back to the unambiguous case: a slice too
+        # short to hold any call/branch cannot be a real function body.
+        return ("slice is %d byte(s) and runs to the end of the section"
+                % len(code)) if len(code) < 2 else None
+    md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
+    last = None
+    pos = 0
+    for insn in md.disasm(code, 0):
+        last = insn
+        pos = insn.address + insn.size
+    if last is None:
+        return "slice does not disassemble"
+    if pos != len(code):
+        return "disassembly stops %d byte(s) before the end of the slice" % (
+            len(code) - pos)
+    if last.mnemonic not in _TERMINATOR_MNEMONICS:
+        return ("slice ends on '%s', not a terminating instruction"
+                % last.mnemonic)
+    return None
 
 
 def load_text_section(obj_path: str) -> Optional[bytes]:
