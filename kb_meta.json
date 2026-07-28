@@ -114,17 +114,26 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1bcd0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1beb0": {
       "kind": "function",
       "status": "unknown",
       "inferred": [
         "Return type char (actor+0x9c) inferred from every return path loading AL from [ESI+0x9c] at 0x1bf65 and 0x1c025; kb.json previously declared void(void) and no direct CALL site exists in the XBE, so the function is dispatched indirectly and the consumer of the flag is unverified.",
-        "FUN_0001beb0 returns char: every exit path loads AL from actor+0x9c (0x1bf65, 0x1c025), including the failed actor_move_to_prop path; kb decl updated from void(void) to char(int actor_handle) with the stack arg read at [EBP+8]."
+        "FUN_0001beb0 returns char: every exit path loads AL from actor+0x9c (0x1bf65, 0x1c025), including the failed actor_move_to_prop path; kb decl updated from void(void) to char(int actor_handle) with the stack arg read at [EBP+8].",
+        "The kb.json declaration was void FUN_0001beb0(void); binary evidence shows one cdecl stack arg (EDI = [EBP+8], callers ADD ESP,4) and a char return in AL loaded from actor+0x9c at 0x1bf65 and 0x1c025 on every exit path, including the actor[0x4c]==0 early-out which jumps to the shared epilogue at 0x1c025 rather than returning void.",
+        "Return value is actor+0x9c (engage flag): all three RET sites load AL from [ESI+0x9c]; kb.json decl was previously the incorrect 'void FUN_0001beb0(void)' and was corrected to 'char FUN_0001beb0(int actor_handle)'."
       ],
       "uncertain": [
         "Remaining VC71 gap at 67.6% is two effects: VC71 hoists a zero into EBX (push ebx / xor ebx,ebx / cmpb %bl,X) where the original emits mov al,X / test al,al, and it places the shared engaged-store tail out of line (jge+jmp / jnp+jmp instead of jl / jp); neither was reachable from source-level rewrites tried (char temps, truthiness form, duplicated store), so the true ceiling for this shape is unproven.",
         "Float thresholds at 0x253f78 and 0x253f30 compared against prop+0x11c are unnamed globals; semantic meaning (likely awareness/vitality thresholds) not established from binary evidence.",
-        "VC71 residual at 87.3% is the EBX zero-register hoist (push/xor/pop ebx plus cmpb bl vs testb al at ~6 sites), a known structural floor; permuter found no improvement."
+        "VC71 residual at 87.3% is the EBX zero-register hoist (push/xor/pop ebx plus cmpb bl vs testb al at ~6 sites), a known structural floor; permuter found no improvement.",
+        "The float threshold read at 0x253f30 (compared against prop[0x11c]) has no other named use anywhere in src/ and its meaning is unknown; it is left as a raw *(float *)0x253f30 load.",
+        "The residual VC71 gap at 84.3 percent is VC71 hoisting a zero into EBX for the seven byte-flag tests (PUSH EBX / XOR EBX,EBX / CMP field,BL) where the original emits MOV AL,field / TEST AL,AL with an ESI+EDI-only frame; staging the char loads through a local does not suppress the hoist and rewriting the two FCOMPs distance-first duplicates the set_pursue store, costing 8 further points.",
+        "Semantic meaning of actor+0x9c/0x9e/0x9f/0xa0 and prop+0x32/prop+0x11c is unproven; names in the block comment are behavioural descriptions only, and the .rdata float constants at 0x253f78 and 0x253f30 are referenced by raw address because no symbol exists for them."
       ]
     },
     "0x1c270": {
@@ -223,10 +232,13 @@
       "status": "ported",
       "inferred": [
         "Field semantics inferred from usage: tag+0x1a8 is a float throw-power scale, encounter+2 is the team index (arg to FUN_000b55b0 0x18), encounter+0x5c is a cooldown-until game-tick; computed delay is in game ticks.",
-        "Doubling flag at actor+0x1ca (byte) is read from the ACTOR datum (EDI), disasm-confirmed not the tag block; when nonzero the delay is doubled."
+        "Doubling flag at actor+0x1ca (byte) is read from the ACTOR datum (EDI), disasm-confirmed not the tag block; when nonzero the delay is doubled.",
+        "Verdict codes written to the AI state slot at +0x154 are 0 (actor busy), 5 (encounter grenade throttle active), 6 (no target), 7 (too few grenades), 8 (trajectory test failed), 9 (final viability test failed), 10 (approved); only code 10 returns 1.",
+        "Ghidra's decompile silently drops the entire FPU chain at 0x1d219-0x1d233 (FMUL actv+0x1a8, conditional FADDP doubling on actor+0x1ca, FMUL of the 30.0f constant at 0x253394) and shows only the FUN_000b55b0 call followed by _ftol2."
       ],
       "uncertain": [
-        "VC71 76.7% is a structural cap: MSVC cold-block outlining of tail return blocks (reasons 6/8/7 placed after 10/9) plus the original reusing the incoming param stack slot (EBP+0xa) as out_count scratch, which portable C cannot replicate; 162/164 instructions recovered, equivalence 100/100."
+        "VC71 76.7% is a structural cap: MSVC cold-block outlining of tail return blocks (reasons 6/8/7 placed after 10/9) plus the original reusing the incoming param stack slot (EBP+0xa) as out_count scratch, which portable C cannot replicate; 162/164 instructions recovered, equivalence 100/100.",
+        "The original stores the FUN_00021ae0 grenade-count out-param in the dead upper half of its own incoming parameter slot (LEA EAX,[EBP+0xA]); the lift uses a plain short local, which adds one frame dword (SUB ESP,0x1C vs 0x18) and shifts every other local displacement by 4 bytes, capping VC71 at 71.4 percent."
       ]
     },
     "0x1d350": {
@@ -314,7 +326,7 @@
     },
     "0x1dfa0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "FUN_0001bcd0 signature corrected from placeholder void(void) to char(int actor,int target,float near,float far,void*out): decompile shows csmemset(out,0,0x4c), out[8]=near, out[9]=far used as capture radius in far*far<=dist2; arg3/arg4 pushed as float bits (8.0/10.0 in Path A, radius+DAT_254644/254640 in Path B).",
         "FUN_0001cb30 (ported, @<eax>) called in both paths as FUN_0001cb30(*(int*)(prop_or_record+0x110 / +0), actor_handle): the referenced object handle is the stack record_index arg and actor_handle is the @<eax> datum_handle arg (mov eax,ebx before CALL)."
@@ -4639,6 +4651,48 @@
         "Field +0x10 of the hs evaluated-argument block is loaded ZERO-extended (XOR EDX,EDX; MOV DX,[EAX+0x10]) even though unit_custom_animation_at_frame's kb decl types the parameter int16_t; the lift passes *(unsigned short *)(record + 4) to reproduce the movzx-shaped load."
       ]
     },
+    "0xbf3d0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "kb.json decl was void(void); disassembly proves 3 cdecl stack args (ECX=[EBP+8] int16 function_index, ESI=[EBP+0xc] thread_datum, EAX=[EBP+0x10] char init) with ADD ESP,0xc after CALL 0xcc560, so the decl was corrected to (int16_t, int, char) matching every twin in this HS-dispatcher family.",
+        "The 0xcc560 hs_macro_function_evaluate return is declared int in kb.json but is dereferenced as a pointer to a {int handle; float; float} record here (FLD dword [EAX+4] and FLD dword [EAX+8] prove the two trailing fields are floats, not dwords); the return type of 0xcc560 was left alone and the pointer cast applied at the use site, as all sibling dispatchers do.",
+        "Args 2 and 3 of the worker call at 0xbf3ff are floats, not ints: the original emits FLD dword [EAX+4]/[EAX+8] with SUB ESP,8 and two FSTP dword stores (the MSVC push-then-fstp float-argument idiom), so kb.json's decl for FUN_001a7ad0 (0x1a7ad0) was corrected from (int,int,int) to (int,float,float); dump_caller_regsetup.py confirms 0xbf3ff is that callee's only call site in the XBE, and its neighbours 0x1a7a90 and 0x1a7b50 already carry the same (int handle, float, float) damage-pair shape.",
+        "Record fields +0x4 and +0x8 are FLOATS (FLD dword ptr, push-then-fstp at CALL 0x1a7ad0), not the ints Ghidra reports; they are transferred as raw dwords because kb.json declares 0x1a7ad0 as (int,int,int) and its ported units.c body forwards those two slots to FUN_001365d0 as float*, so the pushed bytes are bit-identical with no numeric conversion."
+      ],
+      "uncertain": [
+        "VC71 is 83.6% (27 candidate vs 28 reference insns): the residual gap is the MSVC combined float-push schedule (FLD [EAX+8]; MOV EDX,[EAX]; SUB ESP,8; FSTP [ESP+4]; FLD [EAX+4]; FSTP [ESP]; PUSH EDX), where the int arg load is hoisted between the FPU loads. Introducing an explicit int local for record[0] produced byte-identical codegen (still 83.6%), so the argument-load form is not the lever; on a 28-instruction function a fixed ~4-instruction scheduling divergence costs ~14pp. Not proven to be a hard cap.",
+        "The residual VC71 gap is a proven codegen limitation rather than a lift defect: VC71 pushes a float argument that is a direct memory load with an integer MOV/PUSH instead of FLD/FSTP even when the prototype is float (demonstrated by FUN_00097260, declared void(int,float), which still compiles to MOV 0x4(EAX),EDX; PUSH EDX), costing about two instructions per float argument and capping this 28-instruction two-float forwarder at 83.6%.",
+        "The single ADD ESP,0x14 after CALL 0xcbf80 is a merged cleanup for 0x1a7ad0 (3 args) plus hs_return (2 args); any ARG_COUNT warning claiming hs_return takes 5 stack args is a false positive and must not be used to change hs_return's decl."
+      ]
+    },
+    "0xbf420": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "VC71 capped at 83.6% (high confidence, ledger): the entire residual is the two-float push-then-fstp call setup for FUN_001a7b50 which our VC71 lane compiles as integer movl+push; same fixed residual appears on every shipped float-passing sibling (FUN_000bfa30/bfab0/bfb40/bfbc0 at 90-95%), costing ~16pp here because this 28-insn function passes two floats.",
+        "Record returned by hs_macro_function_evaluate is a 12-byte struct {int handle; float; float}: field widths proven by MOV dword [EAX] plus FLD dword [EAX+0x4] and FLD dword [EAX+0x8]; no MOVZX/MOVSX anywhere, so no field is narrowed.",
+        "Ghidra modelled 0xbf420 as void(void) with in_stack_00000004/8/c pseudo-locals; the corrected cdecl prototype (int16_t function_index, int thread_datum, char init) is inferred from the [EBP+0x8]/[EBP+0xc]/[EBP+0x10] loads and from hs_macro_function_evaluate's kb.json decl, which the three pushes match exactly.",
+        "The record fields at +0x4 and +0x8 are floats, not ints: the binary loads them with FLD dword (x87 single load) and stores them into the argument slots with FSTP, so Ghidra's (float)piVar1[1] int-to-float conversion is wrong and the lift uses a float* reinterpret of the same 32 bits.",
+        "Record returned by hs_macro_function_evaluate is 3 dwords: +0x00 int datum handle (MOV EDX,[EAX]), +0x04 float and +0x08 float (both FLD float ptr, never MOV+FILD), inferred from the load widths and the float prototype of the 0x1a7b50 worker."
+      ],
+      "uncertain": [
+        "The two float record fields are named body_damage/shield_damage only by inheritance from the kb decl of callee 0x1a7b50; nothing in this function's own binary evidence names them.",
+        "VC71 match is capped at 83.6% because VC71 /O2 pushes a float argument loaded straight from memory with an integer MOV/PUSH instead of the original's FLD/FSTP x87 round-trip; the residual is the two float args of the 0x1a7b50 call and is not source-fixable, so byte-match cannot confirm those two argument slots and the 100/100 unicorn equivalence run is the behavioural evidence for them.",
+        "Script-level name of this HaloScript builtin and the exact meaning of the two float scalars are unknown; FUN_001a7b50's kb decl calls them body_damage/shield_damage but no string or PDB evidence ties this dispatcher to a named script function, so record members stay mechanical."
+      ]
+    },
+    "0xbf470": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Result record of hs_macro_function_evaluate for this handler is { int32 object_handle @0x0; float @0x4; float @0x8 }; the two floats are proven by FLD [EAX+8]/FSTP [ESP+4] and FLD [EAX+4]/FSTP [ESP] at 0xbf48c-0xbf49b, so Ghidra's piVar1[1]/piVar1[2] int reads are a push-then-fstp misread.",
+        "kb decl for FUN_001a7c70 (0x1a7c70) was corrected from (int,int,int) to (int, float, float): 0xbf49f is its only call site in the XBE per dump_caller_regsetup, and its impl forwards both values verbatim to FUN_001a7b50(int, float, float), so the old int decl forced a spurious numeric int-to-float conversion on the forward."
+      ],
+      "uncertain": [
+        "VC71 83.6% (27/28 insns) is the documented float-memory-arg cap: VC71 emits MOV/PUSH for a float argument loaded straight from memory where the original emits FLD/FSTP, costing about 2 instructions per float arg; FUN_000bf3d0 and FUN_000bf420 reproduce the identical 83.6%/27-28 signature, and no source form recovers it."
+      ]
+    },
     "0xbf5e0": {
       "kind": "function",
       "status": "unknown",
@@ -6871,7 +6925,8 @@
       "kind": "function",
       "status": "unknown",
       "inferred": [
-        "Inferred signature char FUN_00103a00(uint32_t mark, int base, uint32_t *node, void *visit_arg): 0x103a00 is only ever seen as the visit callback pushed by FUN_00103c00 into FUN_00103530, whose indirect call site at 0x103566 was verified as 4-arg cdecl with a char (AL) result; the function body itself was not disassembled."
+        "Inferred signature char FUN_00103a00(uint32_t mark, int base, uint32_t *node, void *visit_arg): 0x103a00 is only ever seen as the visit callback pushed by FUN_00103c00 into FUN_00103530, whose indirect call site at 0x103566 was verified as 4-arg cdecl with a char (AL) result; the function body itself was not disassembled.",
+        "The decl was corrected from the void(void) placeholder to char FUN_00103a00(uint32_t mark, int base, uint32_t *node, uint32_t visit_arg) because 0x103a00 is pushed as the visit-callback slot of FUN_00103530 at 0x103cf9, whose callback signature is fixed by the indirect call at 0x103566."
       ]
     },
     "0x103c00": {
@@ -6879,10 +6934,14 @@
       "status": "unknown",
       "inferred": [
         "Inferred: base+0x00 is a vertex array (stride 0xc = 3 floats), base+0xc an edge array (stride 0x1c), base+0x18 a surface array (stride 0x18) with the surface count at base+0x1c; strides and the 0x1c count offset are confirmed from the FUN_00117ee0 call sites, the array roles are inferred from how the resolved pointers are consumed (FUN_001037b0 plane-from-3-points).",
-        "Inferred: the return value is the count of distinct marked regions; the implicit-EAX return itself is confirmed (MOV EAX,[EBP-0x8] at 0x103d17 plus XOR EAX,EAX at 0x103c0d on the empty-mesh path), but no caller was inspected to confirm how the count is used."
+        "Inferred: the return value is the count of distinct marked regions; the implicit-EAX return itself is confirmed (MOV EAX,[EBP-0x8] at 0x103d17 plus XOR EAX,EAX at 0x103c0d on the empty-mesh path), but no caller was inspected to confirm how the count is used.",
+        "Returns the region/walk count in EAX (MOV EAX,[EBP-0x8] @0x103d17); Ghidra's void(void) decl dropped both the single [EBP+8] stack parameter and this return value.",
+        "The five arguments to FUN_00103530 at 0x103cf9 were reconstructed from the disassembly push order (PUSH EDX=i, ESI=count, EAX=&plane, 0x103a00, EDI=bsp; ADD ESP,0x14); Ghidra emitted the call with zero arguments."
       ],
       "uncertain": [
-        "Uncertain: VC71 is stuck at 83.4% solely because the reference materializes the high-bit test as AND 0x80000000 / NEG / SBB / NEG (the MSVC C++ bool conversion) while the VC71 C front end folds every equivalent C spelling (!= 0, ?1:0, !!, and the byte-offset *4 form, all measured at exactly 83.4%) into a single SHR 31; treated as a C-vs-C++ front-end ceiling rather than a lift defect."
+        "Uncertain: VC71 is stuck at 83.4% solely because the reference materializes the high-bit test as AND 0x80000000 / NEG / SBB / NEG (the MSVC C++ bool conversion) while the VC71 C front end folds every equivalent C spelling (!= 0, ?1:0, !!, and the byte-offset *4 form, all measured at exactly 83.4%) into a single SHR 31; treated as a C-vs-C++ front-end ceiling rather than a lift defect.",
+        "FUN_00103a00's kb decl was corrected to char(uint32_t,int,uint32_t*,uint32_t) to match FUN_00103530's visit-callback signature at 0x103566; the callback's own disassembly was not re-verified in this lift.",
+        "The plane built by FUN_001037b0 takes its p0/p1/p2 from surface words 0, 2, 1 respectively (not 0,1,2) per the accumulated push order at 0x103cd7; a swap of words 1 and 2 would flip the plane normal with no VC71 or assert signal, so this ordering is unverified at runtime."
       ]
     },
     "0x105830": {
@@ -9939,6 +9998,10 @@
       }
     },
     "0x1939c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1939d0": {
       "kind": "function",
       "status": "ported"
     },

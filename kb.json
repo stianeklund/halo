@@ -2042,7 +2042,7 @@
     },
     {
      "addr": "0x1bcd0",
-     "decl": "void action_vehicle_setup_impromptu(void);"
+     "decl": "char action_vehicle_setup_impromptu(int actor_handle, int vehicle_handle, float radius_a, float radius_b, void *out_action_data);"
     },
     {
      "addr": "0x1beb0",
@@ -2303,7 +2303,9 @@
     },
     {
      "addr": "0x1dfa0",
-     "decl": "void actor_action_handle_vehicle_entry(int actor_handle);"
+     "decl": "char actor_action_handle_vehicle_entry(int actor_handle);",
+     "ported": true,
+     "source_path": "src/halo/ai/actions.c"
     },
     {
      "addr": "0x1e360",
@@ -6663,7 +6665,7 @@
     {
      "addr": "0x9ca70",
      "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
+     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
      "ported": true
     },
     {
@@ -6724,7 +6726,7 @@
     {
      "addr": "0x9dcf0",
      "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-     "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
+     "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
      "ported": true
     },
     {
