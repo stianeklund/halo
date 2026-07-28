@@ -19,10 +19,14 @@ sys.path.insert(0, str(_SCRIPT_DIR))
 
 try:
     import z3
-    from x86_to_z3 import X86State, X86Lifter, FP80, FP32, BV32, RNE
+    from x86_to_z3 import (X86State, X86Lifter, LiftError,
+                           FP80, FP32, BV32, RNE)
     _Z3_AVAILABLE = True
 except ImportError:
     _Z3_AVAILABLE = False
+
+    class LiftError(Exception):
+        """Placeholder so `except LiftError` parses when z3 is unavailable."""
 
 MAX_INSNS_FOR_EQUIV = 200
 MAX_BRANCHES_FOR_EQUIV = 20
@@ -198,10 +202,19 @@ def prove_equivalence(
 
     shared_vars = _setup_shared_inputs(abi)
 
+    # strict=True: an instruction the lifter cannot model must abort the proof,
+    # not be skipped. A skipped instruction drops its semantics from the
+    # formula on BOTH sides, so non-equivalent code can lift to identical
+    # expressions and the solver reports UNSAT -- a false proof. Since a
+    # z3_proven verdict is treated as superseding VC71, that false proof would
+    # be the strongest-looking evidence we have on the least-tested function.
     oracle_state = X86State("orc_")
     _apply_inputs_to_state(oracle_state, abi, shared_vars)
-    oracle_lifter = X86Lifter(oracle_state, code_base=0)
-    oracle_branches = oracle_lifter.lift_function(oracle_code, address=0)
+    oracle_lifter = X86Lifter(oracle_state, code_base=0, strict=True)
+    try:
+        oracle_branches = oracle_lifter.lift_function(oracle_code, address=0)
+    except LiftError as e:
+        return EquivResult(not_applicable=True, reason=f"oracle not liftable: {e}")
 
     if oracle_state.has_transcendental:
         return EquivResult(not_applicable=True, reason="oracle uses transcendental FPU ops")
@@ -211,11 +224,23 @@ def prove_equivalence(
 
     lifted_state = X86State("lft_")
     _apply_inputs_to_state(lifted_state, abi, shared_vars)
-    lifted_lifter = X86Lifter(lifted_state, code_base=0)
-    lifted_branches = lifted_lifter.lift_function(lifted_code, address=0)
+    lifted_lifter = X86Lifter(lifted_state, code_base=0, strict=True)
+    try:
+        lifted_branches = lifted_lifter.lift_function(lifted_code, address=0)
+    except LiftError as e:
+        return EquivResult(not_applicable=True, reason=f"lifted not liftable: {e}")
 
     if lifted_state.has_transcendental:
         return EquivResult(not_applicable=True, reason="lifted uses transcendental FPU ops")
+
+    # Belt-and-braces: strict mode should have raised, but if any path ever
+    # records an unsupported instruction without raising, refuse the proof.
+    for side, st in (("oracle", oracle_state), ("lifted", lifted_state)):
+        if st.unsupported_insns:
+            return EquivResult(
+                not_applicable=True,
+                reason=f"{side} has unsupported instructions: "
+                       f"{', '.join(st.unsupported_insns[:3])}")
 
     # Build the inequality assertion: some output differs
     diffs = []
