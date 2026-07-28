@@ -14360,6 +14360,10 @@
       "score": 90.6,
       "source": "src/halo/ai/actions.c"
     },
+    "actor_action_handle_vehicle_entry": {
+      "score": 92.5,
+      "source": "src/halo/ai/actions.c"
+    },
     "actor_action_test_grenade": {
       "score": 93.6,
       "source": "src/halo/ai/actions.c"
