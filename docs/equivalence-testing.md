@@ -206,6 +206,68 @@ and move the target to runtime oracle or dual-oracle harness coverage.
 | `phase1_coverage_pct` | float | Coverage before concolic (only if concolic ran) |
 | `unique_returns` | int | Distinct EAX values across all seeds |
 
+## Divergence Triage And The Ledger
+
+A batch run reports N divergences; on its own that number is not actionable,
+because most divergences are produced by the harness rather than by the lift.
+`tools/equivalence/triage_failures.py` classifies each one from its smoke log
+and persists the result to `tools/equivalence/divergence_ledger.json`.
+
+```bash
+# Classify, write/merge the ledger, and print the prioritized bug list
+python3 tools/equivalence/triage_failures.py \
+    --summary-path artifacts/batch_verify/summary.json \
+    --ledger --bug-list
+```
+
+Every category maps to one of three **buckets**:
+
+| Bucket | Meaning |
+|--------|---------|
+| `harness-artifact` | The emulator, not the lift, produced the difference |
+| `needs-evidence` | Cannot be adjudicated from the smoke log alone |
+| `suspect-real` | Candidate lift bug — investigate |
+
+The two classes that dominate a real batch, and why they are artifacts:
+
+- **`assert_metadata`** — `_display_assert(message, __FILE__, __LINE__)`. Our
+  lifted sources do not reproduce the original's line numbering, so `arg[2]`
+  differs by construction (`oracle=0xa89 candidate=0x374` is a real observed
+  pair), and our string literals land in a different section than the
+  original's, so `arg[0]`/`arg[1]` differ too. The exemption is narrow: it
+  applies only when *every* differing value is either a small integer (a line
+  number) or an image-range pointer (a literal). A garbage or stack value in an
+  assert argument is **not** exempted, and any co-occurring divergence — a real
+  callee's argument, EAX, ST0, scratch, or a call-sequence change — overrides
+  the exemption entirely.
+- **`stack_ptr_args`** — MSVC (oracle) and clang (candidate) lay out frames
+  differently, so `&local` passed to a stubbed callee has a different numeric
+  value on each side however faithful the lift is.
+
+The strongest evidence class is **`arg_mismatch`**: a wrong argument to a
+*named* non-assert callee. It reports the callee and argument index, which is
+exactly the `docs/lift-learnings.md` §10 caller-side argument swap/drop
+signature.
+
+**Priority** is assigned by crossing the behavioural verdict with the
+structural one (VC71 match, read from `artifacts/verify_cache/vc71.sqlite`):
+
+| Priority | Rule |
+|----------|------|
+| `P0` | `suspect-real` **and** VC71 < 85% — diverges behaviourally *and* structurally, so it is a lift bug rather than a structural ceiling (§19) |
+| `P1` | `suspect-real` `arg_mismatch` at VC71 ≥ 85% |
+| `P2` | any other `suspect-real` |
+
+Ledger entries are merged, not overwritten: `first_seen` is preserved, and a
+`status` a human has moved off its auto value (to `confirmed-bug` or `fixed`)
+survives re-runs. An entry that stops diverging is kept with status
+`no-longer-diverging` rather than silently disappearing. Each entry records
+`evidence_log_date` and an `evidence_stale` flag, so a verdict classified from
+a smoke log older than the batch summary is visible as such — re-run those
+targets before acting on them.
+
+Self-test: `python3 tools/equivalence/test_triage_classify.py`.
+
 ## Integration Points
 
 | Consumer | What it uses | How |
@@ -233,4 +295,6 @@ tools/equivalence/
   known_globals.json    — XBE global values for emulator seeding
   leaf_cache.json       — Persistent classification + confidence cache
   batch_verify.py       — Batch runner for multiple functions
+  triage_failures.py    — Divergence classifier + ledger writer
+  divergence_ledger.json— Persistent per-divergence category/status/priority
 ```

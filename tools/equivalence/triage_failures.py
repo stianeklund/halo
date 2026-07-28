@@ -1,24 +1,61 @@
 #!/usr/bin/env python3
-"""Triage batch_verify failures by parsing smoke logs and result JSONs.
+"""Triage batch_verify divergences and maintain the divergence ledger.
 
-Classifies each failure into actionable categories:
-  - genuine: both sides complete normally, results differ — investigate
-  - dirty_eax: oracle uses mov ax (16-bit), upper EAX bits are stale
-  - insn_limit: one/both sides hit 100K instruction limit
-  - exec_asymmetry: >10x instruction count ratio with different ESP
-  - stack_divergence: both sides have different abnormal ESP deltas
-  - ftol2: oracle calls _ftol2 intrinsic (stubbed to return 0)
-  - intrinsic: oracle calls other CRT intrinsic (_CIlog, _CIpow, etc.)
-  - assert_path: divergence only on seeds that trigger assert/halt
-  - stub_asymmetry: oracle/lifted call different reloc patterns
-  - scratch_divergence: only scratch buffer differs (constant/global)
-  - coverage_limited: <30% coverage, only early-exit path tested
-  - unknown: doesn't fit other categories
+A batch reports N divergences; that number is not actionable on its own,
+because most divergences are produced by the harness rather than by the lift.
+Each failure is classified from its smoke log into a category, and every
+category maps to one of four buckets:
+
+  suspect-real      candidate lift bug — investigate
+  needs-evidence    cannot be adjudicated from the smoke log alone
+  benign-difference provably behaviour-identical source difference
+  harness-artifact  the emulator, not the lift, produced the difference
+
+Categories, by bucket:
+
+  suspect-real
+    - arg_mismatch: wrong argument to a named non-assert callee. The strongest
+      evidence class — this is the lift-learnings §10 caller-side swap/drop
+      signature, and it names the callee and argument index.
+    - call_seq: the two sides called different callees, or in a different order
+    - genuine: both sides complete normally, computed results differ
+
+  needs-evidence
+    - globals_reloc_placement: one side holds a DIR32 slot address, the other
+      an XBE data address — confirm both denote the same global
+    - assert_call_seq: call sequence diverged around an assert path
+    - insn_limit / exec_asymmetry / stack_divergence / stub_asymmetry
+    - scratch_divergence: only the scratch buffer differs (constant/global)
+    - coverage_limited: <30% coverage, only the early-exit path tested
+    - unknown: doesn't fit other categories
+
+  benign-difference
+    - benign_arg_width: memset fill literal written 0xff instead of -1; the
+      argument is converted to unsigned char, so the bytes written are
+      identical. Worth fixing for structural (VC71/IMM) match, not a bug.
+
+  harness-artifact
+    - assert_metadata: only _display_assert's message/__FILE__/__LINE__ args
+      differ. Our sources do not reproduce the original's line numbering.
+    - stack_ptr_args: only stack-pointer args differ (MSVC vs clang frames)
+    - dirty_eax: oracle uses mov ax/al, upper EAX bits are stale
+    - stub_residual: oracle EAX is callee stub garbage, lifted returns 0
+    - leaf_mismatch: lifted is a leaf (same-TU callees), crashes on garbage
+    - ftol2 / intrinsic: oracle calls a CRT intrinsic that is stubbed to 0
+    - assert_path: divergence only on seeds that trigger assert/halt
+    - stale: the smoke log passes now; the batch result is outdated
 
 Usage:
     python3 tools/equivalence/triage_failures.py
     python3 tools/equivalence/triage_failures.py --details
-    python3 tools/equivalence/triage_failures.py --category genuine
+    python3 tools/equivalence/triage_failures.py --category arg_mismatch
+
+    # Write/merge the committed ledger and print the prioritized bug list
+    python3 tools/equivalence/triage_failures.py \\
+        --summary-path artifacts/batch_verify/summary.json --ledger --bug-list
+
+Self-test: python3 tools/equivalence/test_triage_classify.py
+Doc:       docs/equivalence-testing.md
 """
 
 import argparse
@@ -26,12 +63,18 @@ import json
 import re
 import sys
 from collections import Counter, defaultdict
+from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 SUMMARY = ROOT / "artifacts" / "batch_verify_full" / "summary.json"
 RESULTS_DIR = ROOT / "artifacts" / "batch_verify_full"
 SMOKE_DIR = ROOT / "artifacts" / "equivalence"
+VC71_DB = ROOT / "artifacts" / "verify_cache" / "vc71.sqlite"
+# The ledger lives beside leaf_cache.json / batch_verify_allowlist.json because
+# it must be committed, and artifacts/equivalence/ is hard-gitignored ("must
+# NEVER be committed" — it holds game-state snapshots and logs).
+LEDGER = ROOT / "tools" / "equivalence" / "divergence_ledger.json"
 
 FTOL2_NAMES = {"FUN_001d9068", "_ftol2", "ftol2"}
 CRT_INTRINSICS = {
@@ -61,6 +104,66 @@ CRT_INTRINSICS = {
 HALT_NAMES = {"FUN_001029a0", "_system_exit", "system_exit",
               "_halt_and_catch_fire", "halt_and_catch_fire"}
 ASSERT_NAMES = {"FUN_0008d9f0", "_display_assert", "display_assert"}
+
+# Callees whose arguments are assert *metadata* (message pointer, __FILE__
+# pointer, __LINE__ number) rather than computed values. A divergence in these
+# args is expected: our lifted sources do not reproduce the original's line
+# numbering, and our string literals land in a different section than the
+# original's. See docs/lift-learnings.md §29 and the header-recovery skill.
+ASSERT_ARG_CALLEES = ASSERT_NAMES | {"_assert", "assert_halt"}
+
+# csmemset(void *buffer, int c, size_t size) — `c` is converted to unsigned
+# char, so only its low byte is observable. memset(p, -1, n) and
+# memset(p, 0xff, n) write identical bytes. All 92 fill-argument divergences in
+# the 2026-07-28 batch were exactly that pair.
+BYTE_FILL_CALLEES = {"_csmemset", "csmemset", "_memset", "memset"}
+BYTE_FILL_ARG = 1
+
+# Synthetic DIR32 slot arena. unicorn_diff gives the two sides DISJOINT slot
+# ranges -- `lft_globals_base = GLOBALS_BASE + len(orc_data_slots) * 256`
+# (unicorn_diff.py) -- and the candidate's base can therefore run past the
+# nominal 0x600000 top. A reference to a global can end up relocated into a
+# slot on one side while the other reads the original XBE data address; see
+# concolic._is_spurious_address, which rejects this region for the same reason.
+GLOBALS_ARENA_LO = 0x00500000
+GLOBALS_ARENA_HI = 0x00800000
+
+# XBE image address window. Anything in here is a static pointer (string
+# literal, table); anything below LINE_MAX is plausibly a __LINE__ number.
+XBE_IMAGE_LO = 0x00010000
+XBE_IMAGE_HI = 0x00800000
+LINE_MAX = 100000
+
+# Where each category lands. Three buckets:
+#   harness-artifact — the emulator, not the lift, produced the difference
+#   needs-evidence   — cannot be adjudicated from the smoke log alone
+#   suspect-real     — candidate lift bug, investigate
+BUCKETS = {
+    "assert_metadata": "harness-artifact",
+    "stack_ptr_args": "harness-artifact",
+    "dirty_eax": "harness-artifact",
+    "stub_residual": "harness-artifact",
+    "leaf_mismatch": "harness-artifact",
+    "ftol2": "harness-artifact",
+    "intrinsic": "harness-artifact",
+    "assert_path": "harness-artifact",
+    "stale": "harness-artifact",
+    "insn_limit": "needs-evidence",
+    "exec_asymmetry": "needs-evidence",
+    "stack_divergence": "needs-evidence",
+    "stub_asymmetry": "needs-evidence",
+    "scratch_divergence": "needs-evidence",
+    "coverage_limited": "needs-evidence",
+    "assert_call_seq": "needs-evidence",
+    "globals_reloc_placement": "needs-evidence",
+    "unknown": "needs-evidence",
+    "call_seq": "suspect-real",
+    "arg_mismatch": "suspect-real",
+    "genuine": "suspect-real",
+    # Provably behaviour-identical source differences. Not a bug, but worth
+    # fixing for structural (VC71/IMM) match.
+    "benign_arg_width": "benign-difference",
+}
 
 
 def parse_smoke_log(path: Path) -> dict:
@@ -143,6 +246,37 @@ def parse_smoke_log(path: Path) -> dict:
     crashes = re.findall(r'(ORACLE|LIFTED)-CRASH:\s+(.*)', text)
     info["crashes"] = crashes
 
+    # --- Stub-argument differential -------------------------------------
+    # This is the dominant failure shape (272 of 331 in the 2026-07-28 batch)
+    # and the classifier below is the only thing that can see it.
+    stub_arg_lines = re.findall(r'FAIL:\s*stub-args:\s*(.*)', text)
+    info["stub_arg_lines"] = stub_arg_lines
+    info["stub_call_seq"] = any("call-seq diverged" in ln for ln in stub_arg_lines)
+    info["stub_arg_mismatch"] = any("arg mismatch" in ln for ln in stub_arg_lines)
+    info["stub_stack_ptr"] = any("stack-ptr arg" in ln for ln in stub_arg_lines)
+
+    # Per-callee argument divergences:
+    #   seed[ N] call[K] <callee> arg[J]: oracle=0x.. candidate=0x..
+    arg_diffs = []
+    for m in re.finditer(
+        r'call\[(\d+)\]\s+(\S+)\s+arg\[(\d+)\]:\s*'
+        r'oracle=(0x[0-9a-f]+)\s+candidate=(0x[0-9a-f]+)', text
+    ):
+        arg_diffs.append({
+            "call": int(m.group(1)),
+            "callee": m.group(2),
+            "arg": int(m.group(3)),
+            "oracle": int(m.group(4), 16),
+            "candidate": int(m.group(5), 16),
+        })
+    info["arg_diffs"] = arg_diffs
+    info["arg_diff_callees"] = sorted({d["callee"] for d in arg_diffs})
+
+    # Which comparison fields actually failed, independent of stub-args
+    info["fail_eax"] = bool(re.search(r'FAIL:\s*EAX', text))
+    info["fail_scratch"] = bool(re.search(r'FAIL:\s*scratch', text))
+    info["fail_st0"] = bool(re.search(r'FAIL:\s*ST0', text))
+
     # Stubs prepared ratio
     m = re.search(r'stubs prepared:\s*(\d+)/(\d+)', text)
     if m:
@@ -216,6 +350,98 @@ def _is_stub_residual(fails: list) -> bool:
     return len(orc_vals) >= 3 and len(lft_vals) <= 2
 
 
+def _is_assert_metadata(diff: dict) -> bool:
+    """True if one arg divergence is explainable as assert metadata.
+
+    Two shapes qualify:
+      - both sides are small integers  -> __LINE__, which our sources do not
+        reproduce (e.g. oracle=0xa89 candidate=0x374)
+      - both sides are static image addresses -> the message / __FILE__ string
+        literal, placed in a different section by our compiler
+    A value that is neither (a stack address, a computed pointer, garbage) does
+    NOT qualify, so a genuinely wrong argument still shows through.
+    """
+    o, c = diff["oracle"], diff["candidate"]
+    if o == c:
+        return True
+    if o < LINE_MAX and c < LINE_MAX:
+        return True
+    in_img = (XBE_IMAGE_LO <= o < XBE_IMAGE_HI) and (XBE_IMAGE_LO <= c < XBE_IMAGE_HI)
+    return in_img
+
+
+def _is_benign_arg_diff(diff: dict) -> bool:
+    """True if the two argument values are interchangeable at the callee.
+
+    Only claims made from the callee's own contract count here. memset's fill
+    argument is the one instance in the current set: it is converted to
+    unsigned char, so oracle=0xffffffff (a source `-1`) and candidate=0xff
+    write the same bytes. The lift is still structurally wrong -- the literal
+    should be -1 -- but it is not a behavioural bug.
+    """
+    if diff["oracle"] == diff["candidate"]:
+        return True
+    if diff["callee"] in BYTE_FILL_CALLEES and diff["arg"] == BYTE_FILL_ARG:
+        return (diff["oracle"] & 0xFF) == (diff["candidate"] & 0xFF)
+    return False
+
+
+def _is_globals_placement_diff(diff: dict) -> bool:
+    """True if the two values look like the same global placed differently.
+
+    One side is inside the synthetic DIR32 slot arena and the other is a plain
+    XBE data address. That is the shape the emulator produces when a global
+    reference is relocated into a slot on one side but read at its original
+    address on the other -- it says nothing about whether the lift is correct,
+    so it cannot be called a bug, but it also cannot be proven benign from the
+    log alone (the two addresses might genuinely be different globals). These
+    land in needs-evidence: confirm both addresses denote the same global.
+    """
+    o, c = diff["oracle"], diff["candidate"]
+    o_arena = GLOBALS_ARENA_LO <= o < GLOBALS_ARENA_HI
+    c_arena = GLOBALS_ARENA_LO <= c < GLOBALS_ARENA_HI
+    if o_arena == c_arena:
+        return False
+    other = c if o_arena else o
+    return XBE_IMAGE_LO <= other < GLOBALS_ARENA_LO
+
+
+def _assert_metadata_only(smoke: dict) -> bool:
+    """True if every observed divergence is assert message/file/line metadata."""
+    diffs = smoke.get("arg_diffs", [])
+    if not diffs:
+        return False
+    callees = set(smoke.get("arg_diff_callees", []))
+    if not callees or not callees <= ASSERT_ARG_CALLEES:
+        return False
+    # Any non-arg failure channel means something else also diverged.
+    if smoke.get("fail_eax") or smoke.get("fail_scratch") or smoke.get("fail_st0"):
+        return False
+    if smoke.get("stub_call_seq"):
+        return False
+    return all(_is_assert_metadata(d) for d in diffs)
+
+
+def _stack_ptr_only(smoke: dict) -> bool:
+    """True if the only reported stub-arg problem is stack-pointer arguments.
+
+    Oracle (MSVC) and candidate (clang) lay out frames differently, so a pointer
+    to a local passed to a stubbed callee has a different numeric value on each
+    side by construction. The emulator reports it; it is not a lift bug.
+    """
+    if not smoke.get("stub_stack_ptr"):
+        return False
+    if smoke.get("fail_eax") or smoke.get("fail_scratch") or smoke.get("fail_st0"):
+        return False
+    if smoke.get("stub_call_seq"):
+        return False
+    # Every line that reported a mismatch must have attributed it to stack ptrs
+    for ln in smoke.get("stub_arg_lines", []):
+        if "arg mismatch" in ln and "stack-ptr arg" not in ln:
+            return False
+    return True
+
+
 def classify(row: dict, smoke: dict) -> tuple:
     """Return (category, detail) for a failure."""
     if not smoke.get("exists"):
@@ -235,6 +461,80 @@ def classify(row: dict, smoke: dict) -> tuple:
     non_ftol = [i for i in intrinsics if i != "_ftol2"]
     if non_ftol:
         return "intrinsic", f"oracle calls {', '.join(non_ftol)}"
+
+    # --- Stub-argument differential classes -----------------------------
+    # Checked before the generic fall-through: a stub-arg failure is the most
+    # common shape by far, and most instances are metadata, not behaviour.
+
+    # Assert message/__FILE__/__LINE__ only — expected, benign.
+    if _assert_metadata_only(smoke):
+        diffs = smoke.get("arg_diffs", [])
+        lines = [d for d in diffs if d["oracle"] < LINE_MAX and d["candidate"] < LINE_MAX
+                 and d["oracle"] != d["candidate"]]
+        if lines:
+            d = lines[0]
+            detail = (f"assert metadata only (arg[{d['arg']}] __LINE__ "
+                      f"{d['oracle']} vs {d['candidate']})")
+        else:
+            detail = "assert metadata only (message/__FILE__ pointers)"
+        return "assert_metadata", detail
+
+    # Stack-pointer arguments differ because the two frames differ — expected.
+    if _stack_ptr_only(smoke):
+        return "stack_ptr_args", "only stack-pointer args differ (frame layout)"
+
+    # Call sequence diverged, but every argument diff seen is assert metadata:
+    # the assert fired at a different point, which needs state to adjudicate.
+    if smoke.get("stub_call_seq") and smoke.get("arg_diff_callees"):
+        if set(smoke["arg_diff_callees"]) <= ASSERT_ARG_CALLEES:
+            return "assert_call_seq", "call-seq diverged around an assert path"
+
+    # A wrong argument to a real (non-assert) callee. This is the strongest
+    # evidence class in the whole set: it names the callee and the arg index,
+    # which is exactly the §10 caller-side argument swap/drop signature.
+    real_diffs = [x for x in smoke.get("arg_diffs", [])
+                  if x["callee"] not in ASSERT_ARG_CALLEES]
+    substantive = [x for x in real_diffs if not _is_benign_arg_diff(x)]
+
+    # Every real-callee argument difference is provably behaviour-identical
+    # (today: a memset fill literal written 0xff instead of -1).
+    if real_diffs and not substantive and not smoke.get("stub_call_seq"):
+        if not (smoke.get("fail_eax") or smoke.get("fail_scratch")
+                or smoke.get("fail_st0")):
+            d = real_diffs[0]
+            return "benign_arg_width", (
+                f"arg[{d['arg']}] to {d['callee']}: "
+                f"{d['oracle']:#x} vs {d['candidate']:#x} — same low byte, "
+                f"identical effect (source literal should be -1)")
+
+    # Every remaining difference is a globals-placement asymmetry.
+    if substantive and all(_is_globals_placement_diff(d) for d in substantive):
+        d = substantive[0]
+        return "globals_reloc_placement", (
+            f"arg[{d['arg']}] to {d['callee']}: {d['oracle']:#x} vs "
+            f"{d['candidate']:#x} — one side is a DIR32 slot, the other an XBE "
+            f"address; confirm both denote the same global")
+
+    if substantive:
+        d = substantive[0]
+        seq = " (+call-seq)" if smoke.get("stub_call_seq") else ""
+        detail = (f"arg[{d['arg']}] to {d['callee']}: "
+                  f"oracle={d['oracle']:#x} candidate={d['candidate']:#x}{seq}")
+        return "arg_mismatch", detail
+
+    # Call sequence diverged with no other signal: the two sides called
+    # different callees, or in a different order. That is a behavioural
+    # difference and stays suspect until explained.
+    if smoke.get("stub_call_seq") and not smoke.get("arg_diffs"):
+        if not (smoke.get("fail_eax") or smoke.get("fail_scratch")
+                or smoke.get("fail_st0")):
+            idx = ""
+            for ln in smoke.get("stub_arg_lines", []):
+                m = re.search(r'call-seq diverged at index (\d+)', ln)
+                if m:
+                    idx = f" at index {m.group(1)}"
+                    break
+            return "call_seq", f"stub call sequence diverged{idx}"
 
     # Assert-path: oracle hits halt with ESP_delta != 0
     if smoke.get("has_halt") or smoke.get("has_assert"):
@@ -340,6 +640,167 @@ def classify(row: dict, smoke: dict) -> tuple:
     return "unknown", "unclassified"
 
 
+def load_vc71_scores() -> dict:
+    """Latest VC71 match_pct per function from the verify cache.
+
+    Returns {fn_name: {"match": float, "source": str}}. Missing cache or an
+    unreadable DB is not fatal — the ledger just carries no VC71 column.
+    """
+    if not VC71_DB.exists():
+        return {}
+    try:
+        import sqlite3
+        con = sqlite3.connect(f"file:{VC71_DB}?mode=ro", uri=True)
+        rows = con.execute(
+            "SELECT fn_name, match_pct, source_path, created_utc FROM fn_results"
+        ).fetchall()
+        con.close()
+    except Exception as exc:          # noqa: BLE001 - advisory data only
+        print(f"[warn] VC71 cache unreadable: {exc}", file=sys.stderr)
+        return {}
+
+    best = {}
+    for fn, pct, src, created in rows:
+        prev = best.get(fn)
+        if prev is None or created > prev["created"]:
+            best[fn] = {"match": pct, "source": src, "created": created}
+    for v in best.values():
+        v.pop("created", None)
+        src = v.get("source") or ""
+        if src.startswith(str(ROOT)):
+            v["source"] = str(Path(src).relative_to(ROOT))
+    return best
+
+
+def _priority(bucket, category, vc71):
+    """Investigation priority for a suspect-real entry.
+
+    A function that diverges behaviourally *and* scores below the 85% VC71
+    band is a lift bug, not a structural ceiling — see docs/lift-learnings.md
+    §19. Those are P0. Behavioural divergence at a high structural score is
+    still real but likelier to be subtle (P1).
+    """
+    if bucket != "suspect-real":
+        return "-"
+    if vc71 is not None and vc71 < 85.0:
+        return "P0"
+    if category == "arg_mismatch":
+        return "P1"
+    return "P2"
+
+
+def build_ledger(categories: dict, existing: dict, batch_date: str,
+                 summary_meta: dict) -> dict:
+    """Merge this triage run into the persistent ledger.
+
+    Auto-derived fields (category, bucket, evidence, seeds, coverage, VC71) are
+    always refreshed. Human-owned fields (status once moved past its auto
+    value, and notes) are preserved across runs.
+    """
+    vc71 = load_vc71_scores()
+    prev_entries = existing.get("entries", {})
+    entries = {}
+
+    for cat, items in categories.items():
+        bucket = BUCKETS.get(cat, "needs-evidence")
+        for it in items:
+            key = it["addr"] or it["name"]
+            old = prev_entries.get(key, {})
+            score = vc71.get(it["name"], {})
+            match = score.get("match")
+            if match is not None:
+                match = round(match, 2)   # keep the committed file diff-stable
+
+            # A fresh smoke log with no failures means the batch verdict is
+            # outdated: the function does not diverge on current source.
+            auto_status = "no-longer-diverging" if cat == "stale" else bucket
+
+            status = old.get("status")
+            # Only adopt the auto status while nobody has adjudicated it.
+            if status is None or status == old.get("auto_status"):
+                status = auto_status
+
+            entries[key] = {
+                "name": it["name"],
+                "obj": it["obj"],
+                "addr": it["addr"],
+                "category": cat,
+                "bucket": bucket,
+                "auto_status": auto_status,
+                "status": status,
+                "priority": _priority(bucket, cat, match),
+                "evidence": it["detail"],
+                "seeds": it["pass_rate"],
+                "coverage_pct": it["coverage"],
+                "confidence": it["confidence"],
+                "vc71_match": match,
+                "vc71_source": score.get("source"),
+                "evidence_log_date": it.get("log_date"),
+                "evidence_stale": bool(
+                    it.get("log_date") and batch_date
+                    and it["log_date"] < batch_date
+                ),
+                "first_seen": old.get("first_seen", batch_date),
+                "last_seen": batch_date,
+                "notes": old.get("notes", ""),
+            }
+
+    # Entries that were in the ledger but no longer diverge: keep them with a
+    # closed status so a fixed bug stays visible rather than silently vanishing.
+    for key, old in prev_entries.items():
+        if key in entries:
+            continue
+        closed = dict(old)
+        if closed.get("status") not in ("fixed", "no-longer-diverging"):
+            closed["status"] = "no-longer-diverging"
+        closed["last_seen"] = old.get("last_seen", "")
+        closed["resolved_in"] = batch_date
+        entries[key] = closed
+
+    by_cat = Counter(e["category"] for e in entries.values()
+                     if not e.get("resolved_in"))
+    by_bucket = Counter(e["bucket"] for e in entries.values()
+                        if not e.get("resolved_in"))
+    by_status = Counter(e["status"] for e in entries.values())
+    by_priority = Counter(e["priority"] for e in entries.values()
+                          if not e.get("resolved_in") and e["priority"] != "-")
+
+    return {
+        "schema": 1,
+        "batch": summary_meta,
+        "counts": {
+            "open": sum(1 for e in entries.values() if not e.get("resolved_in")),
+            "by_category": dict(sorted(by_cat.items())),
+            "by_bucket": dict(sorted(by_bucket.items())),
+            "by_status": dict(sorted(by_status.items())),
+            "by_priority": dict(sorted(by_priority.items())),
+        },
+        "entries": dict(sorted(entries.items(), key=lambda kv: kv[1]["name"])),
+    }
+
+
+def print_bug_list(ledger: dict, limit: int = 0) -> None:
+    """Prioritized suspect-real bug list, worst structural score first."""
+    open_real = [e for e in ledger["entries"].values()
+                 if not e.get("resolved_in") and e["bucket"] == "suspect-real"
+                 and e["status"] not in ("fixed", "harness-artifact",
+                                         "no-longer-diverging")]
+    order = {"P0": 0, "P1": 1, "P2": 2, "-": 3}
+    open_real.sort(key=lambda e: (order.get(e["priority"], 9),
+                                  e["vc71_match"] if e["vc71_match"] is not None else 101.0))
+    if limit:
+        open_real = open_real[:limit]
+    print(f"\n{'='*104}")
+    print(f"PRIORITIZED BUG LIST ({len(open_real)} suspect-real)")
+    print(f"{'='*104}")
+    print(f"{'Pri':<4} {'Function':<48} {'VC71':>6}  {'Seeds':>6}  {'Category':<14} Evidence")
+    print(f"{'-'*4} {'-'*48} {'-'*6}  {'-'*6}  {'-'*14} {'-'*20}")
+    for e in open_real:
+        vc = f"{e['vc71_match']:.1f}" if e["vc71_match"] is not None else "  n/a"
+        print(f"{e['priority']:<4} {e['name'][:48]:<48} {vc:>6}  "
+              f"{e['seeds']:>6}  {e['category']:<14} {e['evidence'][:44]}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Triage batch_verify failures")
     parser.add_argument("--details", action="store_true",
@@ -347,11 +808,21 @@ def main():
     parser.add_argument("--category", type=str, default=None,
                         help="Filter to one category")
     parser.add_argument("--summary-path", type=Path, default=SUMMARY)
+    parser.add_argument("--ledger", action="store_true",
+                        help="Write/merge the persistent divergence ledger")
+    parser.add_argument("--ledger-path", type=Path, default=LEDGER)
+    parser.add_argument("--bug-list", action="store_true",
+                        help="Print the prioritized suspect-real bug list")
+    parser.add_argument("--bug-limit", type=int, default=0,
+                        help="Cap the bug list to N entries (0 = all)")
     args = parser.parse_args()
 
     summary = json.loads(args.summary_path.read_text(encoding="utf-8"))
     failures = [r for r in summary.get("rows", []) if r["status"] == "fail"]
     print(f"Triaging {len(failures)} failures...\n")
+
+    batch_date = datetime.fromtimestamp(
+        args.summary_path.stat().st_mtime).strftime("%Y-%m-%d")
 
     categories = defaultdict(list)
     for row in failures:
@@ -359,6 +830,10 @@ def main():
         smoke_path = SMOKE_DIR / f"{name}_smoke.log"
         smoke = parse_smoke_log(smoke_path)
         cat, detail = classify(row, smoke)
+        log_date = ""
+        if smoke_path.exists():
+            log_date = datetime.fromtimestamp(
+                smoke_path.stat().st_mtime).strftime("%Y-%m-%d")
         categories[cat].append({
             "name": name,
             "addr": row.get("addr", ""),
@@ -367,14 +842,17 @@ def main():
             "pass_rate": f"{row.get('seeds_passed', 0)}/{row.get('seeds_total', 0)}",
             "coverage": smoke.get("coverage", 0),
             "confidence": smoke.get("confidence", ""),
+            "log_date": log_date,
         })
 
     # Print summary
     print(f"{'Category':<22} {'Count':>5}  Description")
     print(f"{'-'*22} {'-'*5}  {'-'*50}")
-    order = ["genuine", "dirty_eax", "stub_residual", "leaf_mismatch",
+    order = ["arg_mismatch", "genuine", "call_seq", "dirty_eax", "stub_residual", "leaf_mismatch",
              "insn_limit", "exec_asymmetry", "stack_divergence",
-             "ftol2", "intrinsic", "assert_path",
+             "ftol2", "intrinsic", "assert_path", "assert_metadata",
+             "assert_call_seq", "stack_ptr_args", "benign_arg_width",
+             "globals_reloc_placement",
              "stub_asymmetry", "scratch_divergence", "coverage_limited",
              "stale", "unknown"]
     for cat in order:
@@ -383,6 +861,13 @@ def main():
         entries = categories[cat]
         desc = {
             "genuine": "Both sides complete normally, results differ — INVESTIGATE",
+            "arg_mismatch": "Wrong arg to a named callee — INVESTIGATE (§10)",
+            "call_seq": "Stub call sequence diverged — INVESTIGATE",
+            "assert_metadata": "Only assert message/__FILE__/__LINE__ args differ",
+            "assert_call_seq": "Call-seq diverged around an assert path",
+            "stack_ptr_args": "Only stack-pointer args differ (frame layout)",
+            "benign_arg_width": "memset fill literal 0xff vs -1 — same bytes",
+            "globals_reloc_placement": "DIR32 slot vs XBE address — verify same global",
             "dirty_eax": "Oracle uses mov ax (16-bit), upper EAX bits stale",
             "stub_residual": "Oracle EAX is callee stub garbage, lifted returns 0",
             "leaf_mismatch": "Lifted is leaf (same-TU callees), crashes on garbage",
@@ -398,7 +883,7 @@ def main():
             "stale": "Smoke log passes now — batch result outdated",
             "unknown": "Could not classify",
         }.get(cat, "")
-        marker = " ←" if cat == "genuine" else ""
+        marker = " ←" if BUCKETS.get(cat) == "suspect-real" else ""
         print(f"{cat:<22} {len(entries):>5}  {desc}{marker}")
 
     if args.category:
@@ -422,27 +907,50 @@ def main():
             for e in sorted(entries, key=lambda x: x["coverage"], reverse=True):
                 print(f"  {e['name']:45s} {e['pass_rate']:>6s}  cov={e['coverage']:5.1f}%  {e['detail']}")
 
-    # Actionable summary
-    n_genuine = len(categories.get("genuine", []))
-    n_ftol2 = len(categories.get("ftol2", []))
-    n_intrinsic = len(categories.get("intrinsic", []))
-    n_infra = sum(len(categories.get(c, []))
-                  for c in ("dirty_eax", "stub_residual", "leaf_mismatch",
-                            "insn_limit", "exec_asymmetry", "stack_divergence"))
-    n_noise = sum(len(categories.get(c, []))
-                  for c in ("assert_path", "coverage_limited", "stub_asymmetry", "unknown"))
+    # Bucket rollup — what the categories mean for the investigation queue
+    buckets = Counter()
+    for cat, items in categories.items():
+        buckets[BUCKETS.get(cat, "needs-evidence")] += len(items)
+    total = sum(buckets.values())
     print(f"\n{'='*70}")
-    print(f"ACTION ITEMS:")
-    if n_genuine:
-        print(f"  1. Investigate {n_genuine} genuine divergences (real bugs)")
-    if n_ftol2:
-        print(f"  2. Fix _ftol2 stub → resolves {n_ftol2} failures")
-    if n_intrinsic:
-        print(f"  3. Add CRT intrinsic stubs → resolves {n_intrinsic} failures")
-    if n_infra:
-        print(f"  ({n_infra} test infra issues: dirty EAX, instruction limits, execution asymmetry)")
-    if n_noise:
-        print(f"  ({n_noise} noise: assert paths, low coverage, stub asymmetry)")
+    print("BUCKETS:")
+    for b in ("suspect-real", "needs-evidence", "benign-difference",
+              "harness-artifact"):
+        n = buckets.get(b, 0)
+        pct = (100.0 * n / total) if total else 0.0
+        print(f"  {b:<18} {n:>4}  ({pct:4.1f}%)")
+
+    ledger = None
+    if args.ledger or args.bug_list:
+        existing = {}
+        if args.ledger_path.exists():
+            existing = json.loads(args.ledger_path.read_text(encoding="utf-8"))
+        ledger = build_ledger(categories, existing, batch_date, {
+            "summary_path": str(args.summary_path.relative_to(ROOT)
+                                if args.summary_path.is_absolute() and
+                                str(args.summary_path).startswith(str(ROOT))
+                                else args.summary_path),
+            "batch_date": batch_date,
+            "results": summary.get("results", {}),
+        })
+
+    if args.ledger and ledger is not None:
+        args.ledger_path.parent.mkdir(parents=True, exist_ok=True)
+        args.ledger_path.write_text(
+            json.dumps(ledger, indent=2, sort_keys=False) + "\n", encoding="utf-8")
+        c = ledger["counts"]
+        print(f"\nLedger written: {args.ledger_path.relative_to(ROOT)}")
+        print(f"  open={c['open']}  by_bucket={c['by_bucket']}")
+        print(f"  by_priority={c['by_priority']}  by_status={c['by_status']}")
+        stale = sum(1 for e in ledger["entries"].values()
+                    if e.get("evidence_stale") and not e.get("resolved_in"))
+        if stale:
+            print(f"  [warn] {stale} entries classified from smoke logs older "
+                  f"than the batch summary ({batch_date}) — re-run those "
+                  f"targets to refresh evidence")
+
+    if args.bug_list and ledger is not None:
+        print_bug_list(ledger, args.bug_limit)
 
 
 if __name__ == "__main__":
