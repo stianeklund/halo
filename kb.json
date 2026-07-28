@@ -220,6 +220,14 @@
     {
      "addr": "0x32eaa4",
      "decl": "void *game_state_callback_32eaa4;"
+    },
+    {
+     "addr": "0x4557e0",
+     "decl": "uint8_t decals_reported_locked_delete;"
+    },
+    {
+     "addr": "0x4557e1",
+     "decl": "uint8_t decals_reported_permanent_delete;"
     }
    ],
    "functions": [
@@ -6128,7 +6136,8 @@
     },
     {
      "addr": "0x9a160",
-     "decl": "void decal_delete(int decal_index);"
+     "decl": "void decal_delete(int decal_index);",
+     "ported": true
     },
     {
      "addr": "0x9a300",
