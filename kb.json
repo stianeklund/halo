@@ -6124,7 +6124,8 @@
     },
     {
      "addr": "0x99d60",
-     "decl": "void decals_disconnect_from_structure_bsp(void);"
+     "decl": "void decals_disconnect_from_structure_bsp(void);",
+     "ported": true
     },
     {
      "addr": "0x99f80",
@@ -13464,7 +13465,7 @@
     },
     {
      "addr": "0x103a00",
-     "decl": "void FUN_00103a00(void);"
+     "decl": "char FUN_00103a00(uint32_t mark, int base, uint32_t *node, uint32_t visit_arg);"
     },
     {
      "addr": "0x103b80",
@@ -13473,7 +13474,8 @@
     },
     {
      "addr": "0x103c00",
-     "decl": "void FUN_00103c00(void);"
+     "decl": "int FUN_00103c00(int *bsp);",
+     "ported": true
     },
     {
      "addr": "0x103d30",
