@@ -2532,6 +2532,113 @@ char actor_action_handle_done_fleeing(int actor_handle)
   return 1;
 }
 
+/* actor_action_handle_combat_status (0x1f770) — Central "should the actor
+ * change action?" arbiter. Asks actor_action_try_to_panic (0x1d6d0) for a
+ * panic/urgency code in [0,4] and dispatches through a 5-entry jump table
+ * (table at 0x1f900); anything outside that range trips the actions.c:2841
+ * assert.
+ *
+ * param2/param3 are read as bytes only (byte [EBP+0xc] / byte [EBP+0x10]).
+ * param3 both forces the internal gate on and, on the no-transition tail,
+ * forces a final actor_action_handle_lost_contact retry.
+ *
+ * Actor fields consulted: 0x6c (current action type, int16), 0x6e (threat /
+ * combat level, int16), 0xa4 (action timer, int16), 0x1c8 (int8 flag),
+ * 0x1e4 (int16 counter), 0x270 (current prop handle), 0x3c0 (prop handle the
+ * action was started against). Prop fields 0xb9 / 0xba are int8 flags.
+ *
+ * Returns the sub-handler's result, or 0 when no transition happened. */
+char actor_action_handle_combat_status(int actor_handle, int param2,
+                                       int param3)
+{
+  char *actor;
+  char *prop;
+  short panic_code;
+  short level;
+  short action_type;
+  int prop_handle;
+  char result;
+  char gate;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  panic_code = actor_action_try_to_panic(actor_handle);
+  result = 0;
+  gate = ((char)param3 != 0) ? (char)1 : (char)param2;
+
+  switch (panic_code) {
+  case 0:
+    goto no_transition;
+
+  case 1:
+  case 2:
+    if (gate == 0)
+      goto no_transition;
+    level = *(short *)(actor + 0x6e);
+    if (level >= 5) {
+      result = actor_action_handle_combat_selection(actor_handle);
+      goto check_result;
+    } else {
+      if (level < 2 && *(short *)(actor + 0x6c) != 2) {
+        if (level != 0)
+          goto no_transition;
+        if (*(char *)(actor + 0x1c8) == 0 && *(short *)(actor + 0x1e4) <= 0)
+          goto no_transition;
+      }
+      goto lost_contact;
+    }
+
+  case 4:
+    if (*(short *)(actor + 0x6e) < 4)
+      goto lost_contact;
+    result = actor_action_handle_combat_selection(actor_handle);
+    goto check_result;
+
+  case 3:
+    if (gate != 0 && *(short *)(actor + 0x6e) >= 4) {
+      result = actor_action_handle_combat_selection(actor_handle);
+      goto check_result;
+    }
+    if (*(short *)(actor + 0x6e) >= 2) {
+      prop_handle = *(int *)(actor + 0x270);
+      if (prop_handle == -1)
+        goto no_transition;
+      prop = (char *)datum_get(prop_data, prop_handle);
+      if (*(int *)(actor + 0x270) == *(int *)(actor + 0x3c0)) {
+        if (*(char *)(prop + 0xb9) != 0 ||
+            (*(short *)(actor + 0x6c) == 5 &&
+             *(short *)(actor + 0xa4) == 0)) {
+          if (*(char *)(prop + 0xba) != 0)
+            goto no_transition;
+          action_type = *(short *)(actor + 0x6c);
+          if (action_type == 5 && *(short *)(actor + 0xa4) == 0)
+            goto no_transition;
+          if (action_type != 7)
+            goto lost_contact;
+          if (*(short *)(actor + 0xa4) == 0)
+            goto no_transition;
+        }
+      }
+    }
+    goto lost_contact;
+
+  default:
+    display_assert((char *)0, "c:\\halo\\SOURCE\\ai\\actions.c", 0xb19, 1);
+    system_exit(-1);
+  }
+
+lost_contact:
+  result = actor_action_handle_lost_contact(actor_handle);
+
+check_result:
+  if (result != 0)
+    return result;
+
+no_transition:
+  if ((char)param3 == 0)
+    return result;
+  return actor_action_handle_lost_contact(actor_handle);
+}
+
 /* actor_action_handle_combat_failure (0x1f920) — Checks if the actor's current
  * action (offset 0x6c) is type 10 and handles combat failure based on the
  * actor's state (offset 0xa0). For states 2/3, if flags at 0xa3 or 0xa4 are
