@@ -41,7 +41,13 @@ except ImportError:
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 KB_PATH   = REPO_ROOT / "kb.json"
-XBE_PATH  = REPO_ROOT / "halo-patched" / "default.xbe"
+# Pristine, NOT the patched default.xbe. Callees are disassembled over a
+# fixed-size window that can run past the function end into its neighbour;
+# in a patched build that neighbour may be a `push imm; ret` redirect stub,
+# whose bytes read as an edi/edx/esi read-before-write and fabricate a
+# finding (observed at 0x97260, whose neighbour 0x972b0 is ported).
+XBE_PATH  = REPO_ROOT / "halo-patched" / "cachebeta.xbe"
+BASELINE_PATH = REPO_ROOT / "tools" / "audit" / "callee_reg_args_baseline.json"
 SRC_ROOT  = REPO_ROOT / "src" / "halo"
 
 # Registers we track for implicit input detection.
@@ -323,6 +329,45 @@ def calls_in_text(text: str, known_names: dict[str, int]) -> set[int]:
 
 
 # ---------------------------------------------------------------------------
+# Baseline: pre-existing findings accepted as latent
+# ---------------------------------------------------------------------------
+
+def _load_baseline() -> dict:
+    if not BASELINE_PATH.exists():
+        return {}
+    return json.loads(BASELINE_PATH.read_text()).get("entries", {})
+
+
+def _write_baseline(findings: list) -> None:
+    entries = {
+        "0x%06x" % f["addr"]: {"name": f["name"], "inputs": sorted(f["inputs"])}
+        for f in findings
+    }
+    payload = {
+        "_comment": (
+            "Pre-existing unported callees that read a register before writing "
+            "it, with no @<reg> in kb.json, accepted as latent. Many are false "
+            "positives (stdcall Win32 imports, tail-call thunks). --check gates "
+            "only findings absent from this file or whose register set CHANGED, "
+            "so a finding that grows a register re-fires. Add the @<reg> to "
+            "kb.json (do NOT baseline) before porting a caller. "
+            "Regenerate: check_callee_reg_args.py --update-baseline"
+        ),
+        "entries": dict(sorted(entries.items())),
+    }
+    BASELINE_PATH.write_text(json.dumps(payload, indent=2) + "\n")
+
+
+def _new_findings(findings: list, baseline: dict) -> list:
+    out = []
+    for f in findings:
+        b = baseline.get("0x%06x" % f["addr"])
+        if b is None or b.get("inputs") != sorted(f["inputs"]):
+            out.append(f)
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -330,7 +375,9 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                   formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--check", action="store_true",
-                    help="Exit 1 if any findings (for CI gating)")
+                    help="Exit 1 on findings not covered by the baseline")
+    ap.add_argument("--update-baseline", action="store_true",
+                    help=f"Write current findings to {BASELINE_PATH.name}")
     ap.add_argument("--xbe", default=str(XBE_PATH), metavar="PATH",
                     help="Patched XBE to disassemble (default: halo-patched/default.xbe)")
     ap.add_argument("--max-insns", type=int, default=50, metavar="N",
@@ -399,6 +446,9 @@ def main():
 
     if not findings:
         print(f"OK — checked {len(to_check)} unported callee(s), no implicit register inputs found.")
+        if args.update_baseline:
+            _write_baseline([])   # else a stale baseline would survive
+            print(f"baseline written: {BASELINE_PATH} (0 entries)")
         sys.exit(0)
 
     real = [f for f in findings if not f["chkstk"]]
@@ -423,8 +473,23 @@ def main():
             print(f"  {f['addr']:08x}  {f['name']}  — {f['decl'][:70]}")
         print()
 
-    if args.check and real:
-        sys.exit(1)
+    if args.update_baseline:
+        _write_baseline(real)
+        print(f"baseline written: {BASELINE_PATH} ({len(real)} entries)")
+        sys.exit(0)
+
+    if args.check:
+        new = _new_findings(real, _load_baseline())
+        if new:
+            print(f"\n--check FAILED: {len(new)} non-baselined missing-@<reg> "
+                  f"callee(s) (of {len(real)} total):")
+            for f in new:
+                regs = " ".join(f"@<{r}>" for r in f["inputs"])
+                print(f"  {f['addr']:08x}  {f['name']}  {regs}")
+            print("\nAdd the @<reg> annotation to kb.json before porting a caller.")
+            print("Only --update-baseline if the register is provably not an input.")
+            sys.exit(1)
+        print(f"--check OK: {len(real)} finding(s), all baselined.")
     sys.exit(0)
 
 

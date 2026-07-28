@@ -106,12 +106,19 @@ jobs:
           fi
           echo "extra_flags=$EXTRA_FLAGS" >> "$GITHUB_OUTPUT"
 
-      - name: Load previous baseline
+      # The baseline is the COMMITTED, reviewed set of known divergences --
+      # not the cached previous summary. A cached summary from a run that
+      # introduced a regression would enter the baseline automatically and
+      # bless that regression as "known"; requiring a commit (via
+      # tools/equivalence/freeze_batch_baseline.py) keeps a human in the loop.
+      - name: Load committed baseline
         id: baseline
         run: |
           BASELINE=""
-          if [ -f artifacts/batch_verify/summary.json ]; then
-            BASELINE="--baseline artifacts/batch_verify/summary.json"
+          if [ -f tools/equivalence/batch_verify_baseline.json ]; then
+            BASELINE="--baseline tools/equivalence/batch_verify_baseline.json"
+          else
+            echo "::warning::no committed baseline; --fail-on-new would treat every failure as new"
           fi
           echo "flags=$BASELINE" >> "$GITHUB_OUTPUT"
 
@@ -127,8 +134,11 @@ jobs:
           path: artifacts/batch_verify
           key: batch-verify-${{ hashFiles('kb.json', 'src/**', 'tools/equivalence/**') }}
 
+      # No continue-on-error: with --fail-on-new the job fails ONLY on a
+      # divergence absent from the committed baseline, so a red run now means
+      # something actually regressed. Before this, the step could not fail at
+      # all, so the nightly reported green through any regression.
       - name: Run batch verification
-        continue-on-error: true
         env:
           # 4 workers on the 15 GB self-hosted box: cap per-child RSS at 3 GB so
           # aggregate peak (jobs * limit = 12 GB) leaves headroom and never OOMs
@@ -149,6 +159,7 @@ jobs:
             --skip-existing \
             --allowlist tools/equivalence/batch_verify_allowlist.json \
             --skip-allowlisted \
+            --fail-on-new \
             ${{ steps.mode.outputs.extra_flags }} \
             ${{ steps.baseline.outputs.flags }} \
             --output-dir artifacts/batch_verify
