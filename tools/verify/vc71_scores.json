@@ -500,6 +500,10 @@
       "score": 88.1,
       "source": "src/halo/ai/actions.c"
     },
+    "FUN_0001beb0": {
+      "score": 96.6,
+      "source": "src/halo/ai/actions.c"
+    },
     "FUN_0001c030": {
       "score": 100.0,
       "source": "src/halo/ai/actions.c"
@@ -14349,7 +14353,7 @@
       "source": "src/halo/math/real_math.c"
     },
     "actor_action_allow_cover_seeking": {
-      "score": 89.9,
+      "score": 86.1,
       "source": "src/halo/ai/actions.c"
     },
     "actor_action_handle_combat_selection": {

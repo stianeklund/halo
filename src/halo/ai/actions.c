@@ -84,6 +84,101 @@ int FUN_0001bba0(int actor_handle, int vehicle_handle, float *out_attach0,
   return best_index;
 }
 
+/* FUN_0001beb0 (0x1beb0) — Update an actor's pursuit/follow state and, when the
+ * actor is not suppressed (actor+0x6 clear), either drive it toward its pursuit
+ * prop or run the no-pursuit path.
+ *
+ * Refreshes the nearby-actor scan via actor_pursuit_find_nearby_actors(handle,
+ * actor+0x1cc) which republishes the chosen prop handle at actor+0x1d0, then
+ * decides two output flags: actor+0x9f ("move toward the prop") and actor+0x9c
+ * (the returned state byte).
+ *
+ * When actor+0x9d is set: with no prop (handle == -1) it seeds the countdown at
+ * actor+0xaa to 150 if it is zero; otherwise it sets actor+0x9c once
+ * game_time_get() has reached actor+0xa4 + 0xa8c (2700 ticks).
+ *
+ * When actor+0x9d is clear: actor+0x9c is set, and with a valid prop the prop
+ * record is resolved and its scalar at prop+0x11c compared against two .rdata
+ * constants. prop+0x32 (signed int16) below 2, or prop+0x11c at/above
+ * *0x253f78, keeps actor+0x9c set; otherwise prop+0x11c above *0x253f30 (and
+ * not already blocked via actor+0xa0) selects the move-to-prop path
+ * (actor+0x9f = 1, actor+0x9c = 0), and anything else clears both.
+ *
+ * Confirmed: cdecl, one stack arg at EBP+8 held in EDI for the whole body;
+ * ESI = datum_get(actor_data, actor_handle). Confirmed: the function returns
+ * actor+0x9c in AL (MOV AL,[ESI+0x9c] at 0x1bf65 and the shared 0x1c025 load
+ * before the single RET at 0x1c02b) — kb.json previously declared it
+ * void(void). Confirmed field widths: actor+0xaa and prop+0x32 are int16
+ * (CMPW/MOVW), actor+0xa4 and actor+0x1d0 int32, the rest bytes. Confirmed:
+ * FUN_00020280's flag arg is zero-extended (XOR ECX,ECX; MOV CL,[ESI+0x1cc]).
+ * Confirmed: the distance passed to actor_move_to_prop is the immediate
+ * 0x41000000 = 8.0f. Confirmed FPU directions: FCOMPS [0x253f78] + TEST AH,5 /
+ * JP takes the branch when prop+0x11c >= the constant; FCOMPS [0x253f30] +
+ * TEST AH,0x41 / JNE takes the else when prop+0x11c <= the constant. */
+char FUN_0001beb0(int actor_handle)
+{
+  int actor;
+  int prop;
+
+  actor = (int)datum_get(actor_data, actor_handle);
+  if (*(char *)(actor + 0x4c) == '\0') {
+    return *(char *)(actor + 0x9c);
+  }
+  *(char *)(actor + 0x9f) = 0;
+  actor_pursuit_find_nearby_actors(actor_handle,
+                                   *(unsigned char *)(actor + 0x1cc));
+  if (*(char *)(actor + 0x9d) != '\0') {
+    if (*(int *)(actor + 0x1d0) == -1) {
+      if (*(short *)(actor + 0xaa) == 0) {
+        *(short *)(actor + 0xaa) = 0x96;
+      }
+      goto LAB_0001bf35;
+    }
+    if (game_time_get() < *(int *)(actor + 0xa4) + 0xa8c) {
+      goto LAB_0001bf35;
+    }
+  LAB_0001bf2e:
+    *(char *)(actor + 0x9c) = 1;
+    goto LAB_0001bf35;
+  }
+  *(char *)(actor + 0x9c) = 1;
+  if (*(int *)(actor + 0x1d0) == -1) {
+    goto LAB_0001bf35;
+  }
+  prop = (int)datum_get(prop_data, *(int *)(actor + 0x1d0));
+  if (*(char *)(actor + 0x9e) == '\0' || *(char *)(actor + 0xa0) != '\0') {
+    if (*(short *)(prop + 0x32) < 2 ||
+        *(const float *)0x253f78 <= *(float *)(prop + 0x11c)) {
+      goto LAB_0001bf2e;
+    }
+    if (*(char *)(actor + 0xa0) != '\0') {
+      goto LAB_0001c009;
+    }
+  }
+  /* LAB_0001bfdf */
+  if (*(float *)(prop + 0x11c) > *(const float *)0x253f30) {
+    *(char *)(actor + 0x9f) = 1;
+    *(char *)(actor + 0x9c) = 0;
+    goto LAB_0001bf35;
+  }
+  prop = 0;
+LAB_0001c009:
+  *(char *)(actor + 0x9f) = prop;
+  *(char *)(actor + 0x9c) = prop;
+LAB_0001bf35:
+  if (*(char *)(actor + 6) == '\0') {
+    if (*(char *)(actor + 0x9f) != '\0') {
+      if (actor_move_to_prop(actor_handle, *(int *)(actor + 0x1d0), 8.0f) ==
+          '\0') {
+        *(char *)(actor + 0xa0) = 1;
+      }
+    } else {
+      FUN_0002f1a0(actor_handle);
+    }
+  }
+  return *(char *)(actor + 0x9c);
+}
+
 /* FUN_0001c030 (0x1c030) — Initialize actor guard state based on combat status.
  * Sets guard mode (0x3e8) to 3/5/1 depending on whether the actor is a
  * designated combatant, has a valid encounter with positive attack count,
