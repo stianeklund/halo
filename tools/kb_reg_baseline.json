@@ -24,7 +24,7 @@
     "0x17ab0": "bool FUN_00017ab0(int actor_handle, short scenario_idx, char *state_data, int cmd_param @<eax>, int unit_handle @<ecx>);",
     "0x18b90": "bool FUN_00018b90(int unit_handle @<eax>, int actor_handle, short scenario_index, char *output, void *command);",
     "0x1ada0": "char FUN_0001ada0(int actor_handle@<eax>, int param_2, int param_3, int param_4, int param_5, int param_6);",
-  "0x1b280": "char FUN_0001b280(int actor_handle@<ecx>, int object_handle@<eax>, float *in_attach0, float *in_attach1, float *in_attach2, char *param_6, float *out_position, int *out_handle);",
+    "0x1b280": "char FUN_0001b280(int actor_handle@<ecx>, int object_handle@<eax>, float *in_attach0, float *in_attach1, float *in_attach2, char *param_6, float *out_position, int *out_handle);",
     "0x1cb30": "char FUN_0001cb30(int record_index, int datum_handle@<eax>);",
     "0x1d530": "char FUN_0001d530(int actor_handle @<eax>, char param_1, int actor_index);",
     "0x20f80": "int actor_combat_check_mode(int actor_handle @<eax>, short mode);",
@@ -670,6 +670,7 @@
     "0x224904": "int __stdcall connect(void *xnet@<ecx>, unsigned int socket, const void *name, int namelen);",
     "0x225021": "int __stdcall socket(void *xnet@<ecx>, int af, int type, int protocol);",
     "0x2256bb": "int __stdcall recv(void *xnet@<ecx>, unsigned int socket, char *buf, int len, int flags);",
-    "0x2258a4": "int __stdcall send(void *xnet@<ecx>, unsigned int socket, const char *buf, int len, int flags);"
+    "0x2258a4": "int __stdcall send(void *xnet@<ecx>, unsigned int socket, const char *buf, int len, int flags);",
+    "0x1cda0": "void FUN_0001cda0(char param_eax@<eax>, int param_ecx@<ecx>, int param_edx@<edx>, int actor_handle, int param_2, char param_3, int param_4, unsigned char param_5, char *out_6, char *out_7, char *out_8, char *out_9, char *out_10, char *out_11);"
   }
 }

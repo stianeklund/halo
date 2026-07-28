@@ -14372,6 +14372,10 @@
       "score": 83.7,
       "source": "src/halo/ai/actions.c"
     },
+    "actor_action_handle_lost_contact": {
+      "score": 70.3,
+      "source": "src/halo/ai/actions.c"
+    },
     "actor_action_handle_vehicle_entry": {
       "score": 92.5,
       "source": "src/halo/ai/actions.c"

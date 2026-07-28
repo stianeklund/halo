@@ -2620,6 +2620,322 @@ verify_action_state:
   return result;
 }
 
+/* actor_action_handle_lost_contact (0x1ef90) — Decides what an actor does when
+ * it has lost contact with its target: retry an uncover/search behaviour, pick
+ * a new firing position to pursue, fall back to the encounter's default state,
+ * or give up and go to action type 6 ("done"). Returns non-zero when an action
+ * change was committed.
+ *
+ * Confirmed (disassembly 0x1ef90-0x1f6d1, delinked ref 0001ef90.obj):
+ *  - _chkstk frame is 0x147f4: search_scratch[0x1408c] at EBP-0x147f4,
+ *    eval_ctx[0x670] at EBP-0x768, out_record[15] at EBP-0xf8,
+ *    action_buf[0x84] at EBP-0xbc, scalars in EBP-0x38..EBP-0x1.
+ *  - ESI holds the actor datum for the whole body; EDI holds the ENCOUNTER
+ *    datum in the first half and is reused for the prop datum / firing
+ *    position later. The encounter pointer is still live at the actions.c:2629
+ *    assert (only reached from paths that never touch the pursuit block).
+ *  - The three assert tails are display_assert(...,1) + system_exit(-1)
+ *    (CALL 0x8e2f0) — NOT halt_and_catch_fire, which the decompiler claimed.
+ *  - encounter_mark_examined_pursuit_position returns a bool in AL
+ *    (TEST AL,AL at 0x1f4dd); kb.json previously declared it void.
+ *  - encounter_modify_pursuit_desires takes 8 stack args (ADD ESP,0x20 at
+ *    0x1f163), encounter_determine_pursuit_availability 12 (ADD ESP,0x30),
+ *    FUN_0001cda0 11 stack args plus EAX/ECX/EDX register args (the three
+ *    loads at 0x1f1e2/0x1f1e6/0x1f1dc are consumed by no PUSH). All three
+ *    were declared (void) in kb.json before this lift.
+ *  - The pursuit-eligibility threshold read from the 'actr' tag (+0x354 /
+ *    +0x356) is a SEPARATE int16 from the firing-position index; the
+ *    decompiler merged both into one variable.
+ *  - The 0xd sound event is FUN_00046f10(0xd, actor+0x18,
+ *    actor_target_unit_index(...), -1, -1, -1, 0): the pushes for the trailing
+ *    constants precede CALL 0x3b380 (cdecl arg mis-grouping), and the two
+ *    cleanups are merged into one ADD ESP,0x1c.
+ *  - actor_get_firing_position_group's 3-arg cleanup is merged with
+ *    FUN_00025c10's 6-arg cleanup into ADD ESP,0x24 at 0x1f446.
+ *
+ * Actor fields: +0x4 actor type (int16), +0x6 int8 gate, +0x18 unit handle,
+ * +0x34 encounter index, +0x3a int16 passed to the desire query, +0x58 actor
+ * definition tag index, +0x6a/+0x6c/+0x6e int16 state, +0x72/+0x74 int16
+ * counters, +0x98/+0x9d/+0xa1 int8 flags, +0xa4/+0xa6 int16 pending firing
+ * position, +0x160 int8 "already searching", +0x1d0 int32 handle, +0x1e4
+ * int16 counter, +0x270 current prop handle, +0x375 int8, +0x3bc/+0x3bd int8
+ * "tried uncover/search" latches, +0x3c0 prop the pursuit was started against,
+ * +0x3c4 int16 examined-position count. Prop field +0x7c is the threatening
+ * encounter index; encounter field +0x42 is the "search allowed" flag.
+ *
+ * Uncertain: the four int slots exchanged with the pursuit-desire helpers
+ * (EBP-0x24/-0x28/-0x30/-0x34) are typed int because the binary only ever
+ * moves them as raw dwords; some may be floats. */
+char actor_action_handle_lost_contact(int actor_handle)
+{
+  char *actor;
+  char *encounter;
+  char *prop;
+  void *actor_tag;
+  char result;
+  char can_search;
+  char flag_b;
+  char flag_a;
+  char have_pos;
+  char flag_6;
+  char flag_a2;
+  char flag_e;
+  char flag_12;
+  char found;
+  char flag_2c;
+  char flag_38;
+  int val_24;
+  int val_28;
+  int val_30;
+  int val_34;
+  int threat;
+  short firing_pos;
+  short threshold;
+  short delay;
+  short action;
+  short action_buf[66];
+  int out_record[15];
+  char eval_ctx[0x670];
+  char search_scratch[0x1408c];
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  actor_tag = tag_get(0x61637472 /* 'actr' */, *(int *)(actor + 0x58));
+  if (*(int *)(actor + 0x34) == -1)
+    encounter = (char *)0;
+  else
+    encounter = (char *)datum_get(*(data_t **)0x5ab270, *(int *)(actor + 0x34));
+
+  result = 0;
+  can_search = 0;
+  flag_a = 0;
+  if (encounter != (char *)0 && *(char *)(encounter + 0x42) != '\0' &&
+      *(short *)(actor + 0x6e) < 3 && *(short *)(actor + 0x72) == 0 &&
+      *(short *)(actor + 0x74) == 0)
+    can_search = 1;
+  if (*(short *)(actor + 0x1e4) > 0 && *(short *)(actor + 0x6e) < 3 &&
+      *(short *)(actor + 0x74) == 0)
+    flag_a = 1;
+  if (*(short *)(actor + 0x6a) < 3) {
+    if (actor_action_try_to_panic(actor_handle) == 0) {
+      result = 1;
+      return result;
+    }
+  }
+
+  if (*(char *)(actor + 0x160) == '\0' && flag_a == '\0' &&
+      can_search == '\0' && *(short *)(actor + 0x6e) > 1) {
+    /* ---- pursuit block: pick / re-pick a position to search ---- */
+    if (*(int *)(actor + 0x270) == -1)
+      prop = (char *)0;
+    else
+      prop = (char *)datum_get(prop_data, *(int *)(actor + 0x270));
+
+    flag_12 = 0;
+    flag_6 = 0;
+    flag_a = 0;
+    flag_a2 = 0;
+    flag_e = 0;
+    flag_b = 0;
+    can_search = 0;
+    if (prop == (char *)0 || *(char *)(prop + 0xbb) == '\0') {
+      val_30 = FUN_0003a790(*(short *)(actor + 4));
+      val_24 = FUN_0003a7b0(*(short *)(actor + 4));
+      val_34 = FUN_0003a7d0(*(short *)(actor + 4));
+      flag_38 = (char)FUN_0003a7f0(*(short *)(actor + 4));
+      val_28 = 0;
+      have_pos = 0;
+      flag_2c = 0;
+      if (prop != (char *)0) {
+        flag_a = 1;
+        flag_6 = 1;
+      }
+      flag_e = 1;
+      flag_a2 = 1;
+      flag_b = 1;
+      if (*(int *)(actor + 0x34) != -1) {
+        encounter_modify_pursuit_desires(
+          *(int *)(actor + 0x34), *(unsigned short *)(actor + 0x3a), &flag_12,
+          &val_28, &flag_38, &val_30, &val_24, &val_34);
+        if (*(char *)(actor + 6) == '\0') {
+          encounter_determine_pursuit_availability(
+            *(int *)(actor + 0x34), actor_handle, val_28, flag_38, &flag_6,
+            &flag_a, &flag_a2, &flag_e, &flag_b, &have_pos, &flag_2c,
+            &can_search);
+        } else {
+          flag_a2 = 1;
+          flag_a = 1;
+          flag_6 = 1;
+          flag_b = 1;
+          flag_e = 1;
+        }
+      }
+      FUN_0001cda0(have_pos, val_24, val_30, actor_handle, val_34, flag_2c, 0,
+                   *(unsigned char *)(actor + 0x375), &flag_6, &flag_a,
+                   &flag_a2, &flag_e, &flag_b, &can_search);
+    }
+
+    if (*(int *)(actor + 0x3c0) != *(int *)(actor + 0x270)) {
+      *(short *)(actor + 0x3c4) = 0;
+      *(int *)(actor + 0x3c0) = *(int *)(actor + 0x270);
+      *(char *)(actor + 0x3bc) = 0;
+      *(char *)(actor + 0x3bd) = 0;
+    }
+    if (flag_6 != '\0' &&
+        (char)FUN_0001a080(actor_handle, flag_a2, (char *)action_buf) != '\0') {
+      actor_action_change(actor_handle, 5, (int)action_buf);
+      result = 1;
+      return result;
+    }
+    actor_perception_tried_to_uncover(actor_handle, *(int *)(actor + 0x270));
+    if (flag_a2 != '\0' &&
+        (char)FUN_00019750(actor_handle, *(unsigned char *)(actor + 0x375),
+                           (char *)action_buf) != '\0') {
+      actor_action_change(actor_handle, 7, (int)action_buf);
+      result = 1;
+      return result;
+    }
+    actor_perception_tried_to_search(actor_handle, *(int *)(actor + 0x270));
+    if (*(char *)(actor + 0x3bc) != '\0' && *(char *)(actor + 0x3bd) == '\0') {
+      FUN_00046f10(0xd, *(int *)(actor + 0x18),
+                   actor_target_unit_index(actor_handle), -1, -1, -1, 0);
+      *(char *)(actor + 0x3bd) = 1;
+    }
+    if (flag_e == '\0')
+      goto pursuit_failed;
+
+    firing_pos = -1;
+    have_pos = 0;
+    *(char *)(actor + 0x98) = 1;
+    if (*(char *)(actor + 6) != '\0') {
+      if (flag_b == '\0')
+        goto pursuit_failed;
+      if ((char)FUN_000198d0(actor_handle, flag_12, (char *)action_buf) == '\0')
+        goto pursuit_failed;
+      action = 7;
+      goto commit_action;
+    }
+
+    if (*(short *)(actor + 0x6c) == 5 && flag_b != '\0' &&
+        *(short *)(actor + 0xa4) == 1) {
+      firing_pos = *(short *)(actor + 0xa6);
+      have_pos = 1;
+      if (firing_pos != -1)
+        goto try_pursuit_move;
+    }
+
+    if (*(int *)(actor + 0x1d0) == -1)
+      threshold = *(short *)((char *)actor_tag + 0x356);
+    else
+      threshold = *(short *)((char *)actor_tag + 0x354);
+    if (flag_12 == '\0' && *(int *)(actor + 0x3c0) == *(int *)(actor + 0x270) &&
+        *(short *)(actor + 0x3c4) >= threshold)
+      goto pursuit_failed;
+
+    csmemset(eval_ctx, 0, 0x670);
+    *(short *)(eval_ctx + 4) = 5;
+    *(int *)(eval_ctx + 8) = *(int *)(actor + 0x270);
+    if (prop == (char *)0)
+      *(int *)(eval_ctx + 0xc) = -1;
+    else
+      *(int *)(eval_ctx + 0xc) = *(int *)(prop + 0x7c);
+    *(char *)(eval_ctx + 0x10) = flag_12;
+    *(char *)(eval_ctx + 0x43) = (char)(*(int *)(actor + 0x270) != -1);
+    *(int *)eval_ctx = actor_get_firing_position_group(actor_handle, 5, 0);
+    *(float *)(eval_ctx + 0x1c) = 20.0f;
+    /* &found is a single byte at EBP-0x1d in the original frame; FUN_00025c10's
+     * kb.json prototype types the slot as int * (its definition lives in
+     * actor_looking.c), so the address is cast here rather than widened. */
+    firing_pos = FUN_00025c10(actor_handle, eval_ctx, out_record,
+                              (int *)&actor_tag, search_scratch, (int *)&found);
+    if (firing_pos == -1)
+      goto pursuit_failed;
+    if (have_pos == '\0' && (char)FUN_0001a100(actor_handle, firing_pos,
+                                               (char *)action_buf) != '\0') {
+      action = 5;
+      goto commit_action;
+    }
+
+  try_pursuit_move:
+    if (flag_b == '\0')
+      goto pursuit_failed;
+    if ((char)FUN_000197d0(actor_handle, firing_pos, flag_12,
+                           (char *)action_buf) == '\0')
+      goto pursuit_failed;
+    action = 7;
+
+  commit_action:
+    actor_action_change(actor_handle, action, (int)action_buf);
+    result = 1;
+    if (prop == (char *)0)
+      threat = -1;
+    else
+      threat = *(int *)(prop + 0x7c);
+    if (*(int *)(actor + 0x34) == -1)
+      return result;
+    if (encounter_mark_examined_pursuit_position(
+          *(int *)(actor + 0x34), actor_handle, firing_pos, threat) == '\0')
+      return result;
+    if (*(short *)(actor + 0x3c4) == 0)
+      FUN_00046f10(0x10, *(int *)(actor + 0x18), -1, -1, -1, -1, 0);
+    *(short *)(actor + 0x3c4) += 1;
+    return result;
+
+  pursuit_failed:
+    if (*(short *)(actor + 0x3c4) > 0 && *(int *)(actor + 0x18) != -1)
+      FUN_00046f10(0x13, *(int *)(actor + 0x18), -1, -1, -1, -1, 0);
+    if (*(char *)(actor + 6) == '\0' && can_search != '\0' &&
+        FUN_0001c0e0(actor_handle, flag_e, (int)action_buf) != '\0') {
+      actor_action_change(actor_handle, 8, (int)action_buf);
+      result = 1;
+      return result;
+    }
+  } else {
+    if (flag_a != '\0') {
+      if (*(short *)(actor + 0x6c) == 6 && *(char *)(actor + 0xa1) != '\0') {
+        result = 1;
+        return result;
+      }
+      if (FUN_000159d0(actor_handle, action_buf) != '\0')
+        goto change_to_done;
+    }
+    if (can_search != '\0') {
+      if (encounter == (char *)0) {
+        display_assert("encounter", "c:\\halo\\SOURCE\\ai\\actions.c", 0xa45,
+                       1);
+        system_exit(-1);
+      }
+      result = actor_action_set_default_state(actor_handle, -1);
+      if (result != '\0')
+        return result;
+    }
+  }
+
+  if (actor_action_try_to_panic(actor_handle) == 1)
+    goto assert_handled;
+  delay = 0;
+  action = *(short *)(actor + 0x6c);
+  if ((action != 7 || *(char *)(actor + 0x9d) != '\0') && action != 8)
+    delay = 0x5a;
+  actor_perception_abandoned_search(actor_handle, *(int *)(actor + 0x270));
+  if ((char)FUN_00015900(actor_handle, delay, (char *)action_buf) == '\0') {
+    display_assert("success", "c:\\halo\\SOURCE\\ai\\actions.c", 0xa62, 1);
+    system_exit(-1);
+  }
+change_to_done:
+  actor_action_change(actor_handle, 6, (int)action_buf);
+  result = 1;
+  return result;
+
+assert_handled:
+  if (actor_action_try_to_panic(actor_handle) != 1) {
+    display_assert("handled || (actor_action_class(actor_index) == "
+                   "_action_class_passive)",
+                   "c:\\halo\\SOURCE\\ai\\actions.c", 0xa67, 1);
+    system_exit(-1);
+  }
+  return result;
+}
+
 /* actor_action_handle_done_fleeing (0x1f6e0)
  * Handles the transition when an actor finishes fleeing (action type 4).
  * If the actor's current action is type 4 and the flag at actor+0xab is set,
