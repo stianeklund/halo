@@ -12,6 +12,7 @@ By injecting non-zero values at the read addresses, we reach the
 interesting code paths.
 """
 
+import os
 import struct
 from dataclasses import dataclass, field
 from typing import Optional
@@ -265,13 +266,26 @@ def load_value_corpus(path) -> dict:
 
 
 def generate_memory_injections(uncovered: list, global_reads: dict,
-                               code_base: int, value_corpus: dict = None) -> list:
+                               code_base: int, value_corpus: dict = None,
+                               code: bytes = None, visited_pcs: dict = None,
+                               use_z3: bool = True, z3_stats: dict = None) -> list:
     """Generate memory override dicts that might force untaken branches.
 
-    For each uncovered branch:
+    Sources, in the order they are tried:
+
+    0. **Solved** (`concolic_z3`): lift the executed path with `x86_to_z3`,
+       negate the uncovered branch's condition, and ask Z3 for initial
+       memory that satisfies the conjunction.  Requires `code` and
+       `visited_pcs`; skipped silently when z3 is unavailable.  A solved
+       injection is one joint assignment over several addresses, so it can
+       flip conditions the per-address heuristics below cannot express.
     1. If the CMP uses a memory operand and we have a global_read near
        the branch, inject values that flip the condition.
     2. Fallback: for all zero-valued global reads, try small non-zero values.
+
+    The heuristics always run and their results are appended, so wiring the
+    solver in is strictly additive: a `LiftError`, a missing z3, or an
+    unsatisfiable path costs nothing relative to the previous behaviour.
 
     `value_corpus` (Step 4: real-frame leverage) maps a global address to the real
     values it held across recorded frames. When present for a target address, those
@@ -295,6 +309,26 @@ def generate_memory_injections(uncovered: list, global_reads: dict,
 
     zero_reads = {addr: (sz, val) for addr, (sz, val) in global_reads.items()
                   if val == 0 and not _is_spurious_address(addr)}
+
+    # Source 0: solved injections, ahead of the guesses so the caller's
+    # injection budget spends on them first.  Kept in its own list so a
+    # solved result cannot suppress the zero-read fallback below -- that
+    # would make the wiring subtractive for functions where the solver
+    # covers one branch and the heuristics would have covered another.
+    solved_injections = []
+    if os.environ.get("HALO_CONCOLIC_NO_Z3"):
+        use_z3 = False  # measurement escape hatch: A/B without a source swap
+
+    if use_z3 and code and visited_pcs:
+        try:
+            import concolic_z3
+            solved, stats = concolic_z3.solve_uncovered(
+                code, code_base, visited_pcs, uncovered, global_reads)
+            solved_injections.extend(solved)
+            if z3_stats is not None:
+                z3_stats["stats"] = stats
+        except Exception:
+            pass  # heuristics below still run
 
     injections = []
 
@@ -328,7 +362,7 @@ def generate_memory_injections(uncovered: list, global_reads: dict,
 
     seen = set()
     deduped = []
-    for inj in injections:
+    for inj in solved_injections + injections:
         key = tuple(sorted((k, v) for k, v in inj.items()))
         if key not in seen:
             seen.add(key)
