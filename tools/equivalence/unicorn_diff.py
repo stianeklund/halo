@@ -3010,9 +3010,17 @@ def main():
                              "halorec_frame_sweep.py --emit-value-corpus; concolic Phase 2 "
                              "injects these feasible engine-produced values for residual "
                              "uncovered branches instead of invented constants.")
-    parser.add_argument("--real-callees", action="store_true",
+    parser.add_argument("--real-callees", action="store_true", default=None,
                         help="Run callees as native oracle code (loops iterate over "
-                             "snapshot data) instead of return-0 stubs. Implies --allow-stubs.")
+                             "snapshot data) instead of return-0 stubs. Implies "
+                             "--allow-stubs. ON BY DEFAULT since 2026-07-28; use "
+                             "--no-real-callees to get return-0 stubs back.")
+    parser.add_argument("--no-real-callees", dest="real_callees",
+                        action="store_false",
+                        help="Stub every callee to return 0 instead of sub-emulating "
+                             "it. Measured cost of doing so, on 60 targets under 30%% "
+                             "coverage: 10 that pass with real callees only error, and "
+                             "2 more fail.")
     parser.add_argument("--no-stub-arg-trace", action="store_true",
                         help="Disable stub-argument differential (default: enabled with "
                              "--allow-stubs). When enabled, oracle and candidate argument "
@@ -3025,8 +3033,25 @@ def main():
                              "the declared convention, so the differential cannot "
                              "see the mismatch — the box crashes instead.")
     args = parser.parse_args()
-    if args.real_callees:
-        args.allow_stubs = True
+    # Default ON, but only where stubbing is already in play.  The A/B evidence
+    # for this default (60 targets under 30% coverage, plus 22 healthy controls)
+    # compared --allow-stubs against --real-callees -- both with stubs enabled --
+    # so it says nothing about runs that deliberately use neither.  Letting the
+    # new default force allow_stubs on would silently change those too, well
+    # beyond what was measured.
+    # ...and not when a state snapshot is driving the run.  A snapshot already
+    # supplies the real engine state that sub-emulating a callee only tries to
+    # approximate, and its stub_returns are curated by whoever captured it --
+    # some callee bodies asserts against synthetic state, which is exactly why
+    # they were pinned to a return value instead.  Measured on FUN_000d04d0:
+    # loading 29 real callees changed coverage not at all (14.3% either way) and
+    # turned a passing seed into "call-seq diverged at index 3, 4 arg
+    # mismatch(es)".  Snapshot runs were tuned against return-0 stubs; three of
+    # the 62 regression targets (all --state-snapshot) failed on the flip.
+    if args.real_callees is None:
+        args.real_callees = bool(args.allow_stubs) and not args.state_snapshot
+    elif args.real_callees:
+        args.allow_stubs = True  # explicit --real-callees still implies stubs
     if args.rich_stub_returns:
         from stubs import set_accessor_stub_returns
         set_accessor_stub_returns(True)
