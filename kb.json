@@ -2339,7 +2339,8 @@
     },
     {
      "addr": "0x1f770",
-     "decl": "char actor_action_handle_combat_status(int actor_handle, int param2, int param3);"
+     "decl": "char actor_action_handle_combat_status(int actor_handle, int param2, int param3);",
+     "ported": true
     },
     {
      "addr": "0x1f920",
