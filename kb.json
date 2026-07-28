@@ -2046,7 +2046,8 @@
     },
     {
      "addr": "0x1beb0",
-     "decl": "void FUN_0001beb0(void);"
+     "decl": "char FUN_0001beb0(int actor_handle);",
+     "ported": true
     },
     {
      "addr": "0x1c030",
