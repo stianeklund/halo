@@ -2040,10 +2040,6 @@
    ],
    "functions": [
     {
-     "addr": "0x1b8a0",
-     "decl": "void action_vehicle_perform(void);"
-    },
-    {
      "addr": "0x1bba0",
      "decl": "int FUN_0001bba0(int actor_handle, int vehicle_handle, float *out_attach0, float *out_attach1, float *out_attach2);",
      "ported": true
@@ -20420,7 +20416,7 @@
     },
     {
      "addr": "0x1ada0",
-     "decl": "void FUN_0001ada0(void);"
+     "decl": "char FUN_0001ada0(int actor_handle@<eax>, int param_2, int param_3, int param_4, int param_5, int param_6);"
     },
     {
      "addr": "0x109010",
@@ -39215,11 +39211,16 @@
     },
     {
      "addr": "0x1aeb0",
-     "decl": "char FUN_0001aeb0(int actor_handle, int vehicle_handle, short seat_index, int param_4, float *out_attach0, float *out_attach1, float *out_attach2, int param_8, int param_9, int param_10, int param_11);"
+     "decl": "char FUN_0001aeb0(int actor_handle, int vehicle_handle, short seat_index, int param_4, float *out_attach0, float *out_attach1, float *out_attach2, int param_8, char *out_flag_9, char *out_flag_10, char *out_flag_11);"
     },
     {
      "addr": "0x1b280",
-     "decl": "char FUN_0001b280(int actor_handle@<ecx>, int object_handle@<eax>, float *in_attach0, float *in_attach1, float *in_attach2, int param_6, float *out_position, int *out_handle);"
+     "decl": "char FUN_0001b280(int actor_handle@<ecx>, int object_handle@<eax>, float *in_attach0, float *in_attach1, float *in_attach2, char *param_6, float *out_position, int *out_handle);"
+    },
+    {
+     "addr": "0x1b8a0",
+     "decl": "int action_vehicle_perform(int actor_handle);",
+     "ported": true
     }
    ]
   },
