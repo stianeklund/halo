@@ -52,6 +52,14 @@ def check_prerequisites(target):
     return None
 
 
+def _label(target):
+    """Display name. Two entries may share one `name` (same function, different
+    state snapshot / arg pins), which would otherwise print identical rows —
+    an optional `label` tells them apart. Display only; `name` is still what
+    unicorn_diff resolves as the target symbol."""
+    return target.get("label") or target["name"]
+
+
 def run_target(target, seed_override=None):
     name = target["name"]
     seeds = seed_override or target.get("seeds", 20)
@@ -116,7 +124,7 @@ def main():
         for t in targets:
             skip = check_prerequisites(t)
             status = f"SKIP: {skip}" if skip else t.get("reason", "")
-            print(f"{t['addr']:<12} {t['name']:<20} {t['obj']:<20} {t.get('seeds', 20):<6} {status}")
+            print(f"{t['addr']:<12} {_label(t):<20} {t['obj']:<20} {t.get('seeds', 20):<6} {status}")
         return 0
 
     seed_override = 5 if args.quick else None
@@ -129,7 +137,7 @@ def main():
     for t in targets:
         skip = check_prerequisites(t)
         if skip:
-            print(f"  SKIP  {t['name']:<24} {skip}")
+            print(f"  SKIP  {_label(t):<24} {skip}")
             skipped += 1
             continue
 
@@ -137,13 +145,13 @@ def main():
         seeds_used = seed_override or t.get("seeds", 20)
 
         if status == "pass":
-            print(f"  PASS  {t['name']:<24} {seeds_used} seeds — {detail}")
+            print(f"  PASS  {_label(t):<24} {seeds_used} seeds — {detail}")
             passed += 1
         elif status == "fail":
-            print(f"  FAIL  {t['name']:<24} {seeds_used} seeds — {detail}")
+            print(f"  FAIL  {_label(t):<24} {seeds_used} seeds — {detail}")
             failed += 1
         else:
-            print(f"  ERR   {t['name']:<24} {detail}")
+            print(f"  ERR   {_label(t):<24} {detail}")
             errors += 1
 
     elapsed = time.time() - t0

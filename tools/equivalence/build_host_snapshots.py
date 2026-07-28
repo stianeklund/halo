@@ -48,7 +48,7 @@ def _parse_frame(sel):
 
 
 def main():
-    from halorec_to_snapshot import build_snapshot
+    from halorec_to_snapshot import build_snapshot, _parse_arg_value
 
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     rec_dir, env_name = _find_recordings_dir(manifest)
@@ -66,7 +66,14 @@ def main():
             print(f"[host-snapshots] SKIP {s['out']}: recording not found ({rec})")
             skipped += 1
             continue
-        args = {k: (int(v, 0) if isinstance(v, str) else v)
+        # Reuse halorec_to_snapshot's own --arg parser: int when it parses as
+        # one ("0x5a90e0"), otherwise the string verbatim. A plain int(v, 0)
+        # here crashed on a buffer BLOB -- and a blob is how you satisfy an
+        # entry gate that couples a scalar arg to memory reached through
+        # another arg (see "What does NOT lift the remaining tail" in
+        # docs/equivalence-testing.md). JSON numbers/lists pass through, so a
+        # [lo, hi] scalar range works too.
+        args = {k: (_parse_arg_value(v) if isinstance(v, str) else v)
                 for k, v in (s.get("args") or {}).items()}
         snap, idx, t = build_snapshot(
             str(rec), args=args, build_label=s["out"],
