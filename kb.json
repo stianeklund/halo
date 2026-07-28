@@ -13474,8 +13474,7 @@
     },
     {
      "addr": "0x103c00",
-     "decl": "int FUN_00103c00(int *bsp);",
-     "ported": true
+     "decl": "int FUN_00103c00(int *bsp);"
     },
     {
      "addr": "0x103d30",
@@ -28503,7 +28502,8 @@
     },
     {
      "addr": "0x19b790",
-     "decl": "void draw_string_get_color(void);"
+     "decl": "void draw_string_get_color(void *color);",
+     "ported": true
     },
     {
      "addr": "0x19b7e0",
