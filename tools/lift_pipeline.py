@@ -171,6 +171,36 @@ def parse_match_percent(text: str) -> Optional[float]:
   return float(m.group(1)) if m else None
 
 
+def parse_match_percent_for_function(
+    text: str, names: list) -> tuple:
+  """Return (pct, exact) for a specific function's score.
+
+  vc71_verify.py prints one `PASS/FAIL <name>: NN.N% match` line for EVERY
+  function in the translation unit even when --function is passed, so the bare
+  `first NN.N% match in the output` parse above returns whichever function sorts
+  first by address in the file -- not the target.
+
+  Observed 2026-07-28 in src/halo/text/draw_string.c: both draw_string_get_color
+  (really 100.0%) and FUN_0019c0a0 (really 77.5%) were reported by the pipeline
+  as 67.8%, which is FUN_0019b3c0's score -- the first function in that file.
+  This is not cosmetic: vc71_match_pct feeds the permuter [85, 99) eligibility
+  band and the low_match_policy accept/reject gate, so a lift could be gated on
+  an unrelated function's score.
+
+  `names` is tried in order; pass both the kb name and the FUN_<addr> spelling,
+  since vc71_verify may print either. Returns exact=False when no target line was
+  found and the caller is falling back to the whole-file first match.
+  """
+  for name in names:
+    if not name:
+      continue
+    m = re.search(r'(?:PASS|FAIL)\s+' + re.escape(name) + r':\s*(\d+\.\d+)%\s*match',
+                  text)
+    if m:
+      return float(m.group(1)), True
+  return parse_match_percent(text), False
+
+
 def render_template(value: str, *, target: Target, artifact_dir: Path) -> str:
   out = value
   replacements = {
@@ -810,7 +840,17 @@ def run_pipeline(args: argparse.Namespace) -> int:
       output = (proc.stdout or "") + (proc.stderr or "")
       vc71_has_fpu_warn = "FPU-WARN" in output
       vc71_has_imm_warn = "IMM-WARN" in output
-      vc71_match_pct = parse_match_percent(output)
+      # Score the TARGET's line, not the first function in the TU (see
+      # parse_match_percent_for_function).  vc71_verify may print the kb name or
+      # the FUN_<addr> spelling, so offer both.
+      vc71_names = [target.name]
+      if target.addr:
+        try:
+          vc71_names.append(f"FUN_{int(target.addr, 16):08x}")
+        except (ValueError, TypeError):
+          pass
+      vc71_match_pct, vc71_pct_exact = parse_match_percent_for_function(
+          output, vc71_names)
       vc71_verify_ok = proc.returncode == 0
       if proc.returncode == 0:
         details = f"{vc71_match_pct:.1f}% match" if vc71_match_pct is not None else "PASS"
@@ -825,6 +865,12 @@ def run_pipeline(args: argparse.Namespace) -> int:
         review_tags += " [REVIEW FPU-WARN]"
       if vc71_has_imm_warn:
         review_tags += " [REVIEW IMM-WARN]"
+      # Never let an unattributed number pass as the target's score in silence:
+      # it gates the permuter band and low_match_policy.
+      if vc71_match_pct is not None and not vc71_pct_exact:
+        review_tags += (" [WARN score not attributed to target"
+                        f" ({'/'.join(n for n in vc71_names if n)});"
+                        " whole-file first match]")
       stages.append(StageResult("vc71_verify", ran=True, ok=vc71_verify_ok,
                                 details=details + review_tags))
     else:
