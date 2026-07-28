@@ -834,13 +834,21 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
                   collect_mem_trace: bool = False,
                   memory_overrides: dict = None,
                   max_insn: int = None,
-                  stub_arg_tracer=None) -> "state.CPUState":
+                  stub_arg_tracer=None,
+                  auto_map_unmapped: bool = False) -> "state.CPUState":
     """Run a function in a fresh Unicorn instance.
 
     Returns a CPUState with captured registers and scratch memory.
     If emulation fails, returns a CPUState with .error set.
 
     map_globals: if True, maps a zeroed globals region at 0x500000
+    auto_map_unmapped: if True, installs the auto-map hook without also
+        mapping/seeding the globals region. A leaf that reads a global (or
+        dereferences an int-typed parameter that is really a pointer) would
+        otherwise die on its first access with UC_ERR_READ_UNMAPPED before
+        executing anything, which is why 170 cached entries sit at 0.0%
+        coverage. The hook is symmetric across oracle and candidate, so a
+        genuine difference in what each side reads still surfaces.
     stub_manager: if set, installs a fetch-unmapped hook to intercept calls
     globals_seeds: dict of {address: bytes} to write into the globals region
                    after zero-initialization (seeds known global values).
@@ -1164,7 +1172,7 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
         uc.hook_add(UC_HOOK_MEM_READ, hook_mem_read)
 
     # Non-leaf support: handle unmapped memory access
-    if map_globals:
+    if map_globals or auto_map_unmapped:
 
         def hook_mem_unmapped(uc, access, address, size, value, user_data):
             # Auto-map a 64KB page for any unmapped read/write.
@@ -1881,6 +1889,14 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         lifted_code_patched = _relocate_text_label_refs(
             lifted_slice, lifted_code_patched, False)
 
+        # The candidate's slots sit above the oracle's, so with enough oracle
+        # slots the candidate arena runs past GLOBALS_BASE+GLOBALS_SIZE. Tell
+        # the stub-arg comparator how far it actually reaches, or every such
+        # candidate slot pointer reads as a hard argument mismatch.
+        from stubs import set_globals_arena_top, reset_globals_arena_top
+        reset_globals_arena_top()
+        set_globals_arena_top(lft_globals_base + len(lft_data_slots) * 256)
+
         globals_seeds = _build_globals_seeds(orc_data_slots, lft_data_slots,
                                              snapshot_overrides=snapshot_overrides)
         globals_seeds.update(orc_rdata_seeds)
@@ -2172,6 +2188,9 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     stub_arg_total_calls = 0
     stub_arg_total_mismatches = 0
     stub_arg_total_soft = 0
+    # {reason: count} for args excused by a callee-contract rule (assert
+    # metadata, memset fill width). Reported so an exemption stays visible.
+    stub_arg_soft_reasons = {}
     stub_arg_mismatch_details = []  # (seed_label, seq, callee_name, arg_pos, o_val, c_val)
     stub_arg_failed_seeds = 0
 
@@ -2183,6 +2202,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         try:
             oracle_state = _run_function(oracle_code_patched, abi, seed_vec,
                                          verbose=verbose, map_globals=use_stubs,
+                                         auto_map_unmapped=True,
                                          stub_manager=stub_manager,
                                          globals_seeds=globals_seeds,
                                          section_code=oracle_text,
@@ -2202,6 +2222,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         try:
             lifted_state = _run_function(lifted_code_patched, abi, seed_vec,
                                          verbose=verbose, map_globals=use_stubs,
+                                         auto_map_unmapped=True,
                                          stub_manager=stub_manager,
                                          globals_seeds=globals_seeds,
                                          lifted=True,
@@ -2321,6 +2342,9 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             stub_arg_total_calls += stub_arg_diff.total_calls
             stub_arg_total_mismatches += stub_arg_diff.arg_mismatches
             stub_arg_total_soft += stub_arg_diff.soft_stack_ptr_matches
+            for _reason, _n in stub_arg_diff.soft_reasons.items():
+                stub_arg_soft_reasons[_reason] = \
+                    stub_arg_soft_reasons.get(_reason, 0) + _n
             if stub_arg_diff.has_differences():
                 stub_arg_failed_seeds += 1
                 stub_arg_mismatch_details.extend(stub_arg_diff.details)
@@ -2562,9 +2586,11 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         log(f"  mem-trace: {trace_diff_count} seed(s) with write-trace divergences")
 
     if enable_stub_arg_trace:
+        _soft_extra = "".join(
+            f", {n} {reason}" for reason, n in sorted(stub_arg_soft_reasons.items()))
         log(f"  stub-arg differential: {stub_arg_total_calls} calls, "
             f"{stub_arg_total_mismatches} arg mismatch(es), "
-            f"{stub_arg_total_soft} soft-matched stack ptr(s)")
+            f"{stub_arg_total_soft} soft-matched stack ptr(s){_soft_extra}")
         if stub_arg_mismatch_details and not quiet:
             for (sl, seq, callee, ai, o_val, c_val) in stub_arg_mismatch_details[:20]:
                 log(f"    {sl} call[{seq}] {callee} arg[{ai}]: "
@@ -2894,6 +2920,12 @@ def main():
                         help="Attempt Z3 formal equivalence proof before Unicorn testing")
     parser.add_argument("--allow-stubs", action="store_true",
                         help="Enable non-leaf emulation with callee stubbing and DIR32 patching")
+    parser.add_argument("--rich-stub-returns", action="store_true",
+                        help="Return scratch pointers (not 0) from stubbed pointer-returning "
+                             "accessors so callers get past their NULL check. Raises coverage, "
+                             "but the scratch page is not a real object, so a caller that calls "
+                             "through a function pointer in it will crash. Coverage exploration "
+                             "only — prefer --real-callees or --state-snapshot for verdicts.")
     parser.add_argument("--max-insn", type=int, default=None, metavar="N",
                         help="Maximum instructions per emulation run (default: 1M with --allow-stubs, 100K otherwise)")
     parser.add_argument("--float-tolerance", type=int, default=0, metavar="ULP",
@@ -2937,6 +2969,10 @@ def main():
                              "see the mismatch — the box crashes instead.")
     args = parser.parse_args()
     if args.real_callees:
+        args.allow_stubs = True
+    if args.rich_stub_returns:
+        from stubs import set_accessor_stub_returns
+        set_accessor_stub_returns(True)
         args.allow_stubs = True
 
     if args.from_halorec:
