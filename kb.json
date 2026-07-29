@@ -16528,7 +16528,9 @@
     },
     {
      "addr": "0xb6ab0",
-     "decl": "void player_control_action_test_accept(void);"
+     "decl": "bool player_control_action_test_accept(void);",
+     "name": "player_control_action_test_accept",
+     "ported": true
     },
     {
      "addr": "0xb6ad0",
