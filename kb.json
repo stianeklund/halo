@@ -16481,7 +16481,8 @@
     },
     {
      "addr": "0xb6690",
-     "decl": "void player_control_get_field_of_view(void);"
+      "decl": "real player_control_get_field_of_view(int16_t local_player_index);",
+      "ported": true
     },
     {
      "addr": "0xb6740",
@@ -31085,7 +31086,7 @@
     },
     {
      "addr": "0xfc8e0",
-     "decl": "void weapon_get_field_of_view(void);"
+      "decl": "real weapon_get_field_of_view(int weapon_handle, real base_field_of_view, uint16_t zoom_level);"
     },
     {
      "addr": "0xfc930",
