@@ -4703,10 +4703,14 @@
       "status": "unknown",
       "inferred": [
         "Result record of hs_macro_function_evaluate for this handler is { int32 object_handle @0x0; float @0x4; float @0x8 }; the two floats are proven by FLD [EAX+8]/FSTP [ESP+4] and FLD [EAX+4]/FSTP [ESP] at 0xbf48c-0xbf49b, so Ghidra's piVar1[1]/piVar1[2] int reads are a push-then-fstp misread.",
-        "kb decl for FUN_001a7c70 (0x1a7c70) was corrected from (int,int,int) to (int, float, float): 0xbf49f is its only call site in the XBE per dump_caller_regsetup, and its impl forwards both values verbatim to FUN_001a7b50(int, float, float), so the old int decl forced a spurious numeric int-to-float conversion on the forward."
+        "kb decl for FUN_001a7c70 (0x1a7c70) was corrected from (int,int,int) to (int, float, float): 0xbf49f is its only call site in the XBE per dump_caller_regsetup, and its impl forwards both values verbatim to FUN_001a7b50(int, float, float), so the old int decl forced a spurious numeric int-to-float conversion on the forward.",
+        "kb.json decl for callee 0x1a7c70 was corrected from (int,int,int) to (int parent_handle, float body_damage, float shield_damage) as part of this lift: 0xbf470 loads record+4 and record+8 with FLD and stores them via FSTP into the argument slots, and 0x1a7c70 itself contains no FPU instruction at all -- it holds those two dwords in EBX/EDI and re-pushes them verbatim into 0x1a7b50, whose decl already declared them float, so the int decl was making C insert a spurious integer-to-float conversion in the already-ported units.c implementation; 0xbf470 is the only caller of 0x1a7c70 in the binary, and FUN_001a7c70 measured 88.6 percent VC71 both before and after the decl fix.",
+        "Record layout at +0x00 int handle / +0x04 float / +0x08 float is inferred from the load widths at the 0x1a7c70 call site (MOV EDX,[EAX]; FLD [EAX+4]; FLD [EAX+8]) plus the already-established parameter names of the sibling worker 0x1a7b50; the producer hs_macro_function_evaluate was not re-analysed.",
+        "kb.json decl for callee 0x1a7c70 was corrected from (int,int,int) to (int parent_handle, float body_damage, float shield_damage) as part of this lift; evidence is that the original forwards [EBP+0xc]/[EBP+0x10] as raw dwords via EBX/EDI with no FILD to 0x1a7b50 (already declared float,float), and the corrected decl raised FUN_001a7c70 in units.c from its previous score to 100.0% (33/33)."
       ],
       "uncertain": [
-        "VC71 83.6% (27/28 insns) is the documented float-memory-arg cap: VC71 emits MOV/PUSH for a float argument loaded straight from memory where the original emits FLD/FSTP, costing about 2 instructions per float arg; FUN_000bf3d0 and FUN_000bf420 reproduce the identical 83.6%/27-28 signature, and no source form recovers it."
+        "VC71 83.6% (27/28 insns) is the documented float-memory-arg cap: VC71 emits MOV/PUSH for a float argument loaded straight from memory where the original emits FLD/FSTP, costing about 2 instructions per float arg; FUN_000bf3d0 and FUN_000bf420 reproduce the identical 83.6%/27-28 signature, and no source form recovers it.",
+        "The specific HaloScript builtin this dispatcher serves is unknown; function_index is passed straight through to hs_macro_function_evaluate and no name string was recovered."
       ]
     },
     "0xbf5e0": {
@@ -6425,6 +6429,16 @@
     "0xf5500": {
       "kind": "function",
       "status": "ported"
+    },
+    "0xf5660": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Column-cursor semantics (11 columns, wrap -1 -> 10, keymap stride 0xb at 0x28a790) are inferred from the sibling move handlers 0xf5700/0xf5750/0xf57a0 in the same TU; the binary only proves the constants 0xa and 0xb."
+      ],
+      "uncertain": [
+        "VC71 sits at 74.4 percent: the 6 unmatched instructions are all int16 register-allocation differences (VC71 emits xorl+movw / decl / testw+jge / movl $0xa where the original emits movw / decw / jns / movw $0xa) plus an MSVC loop-entry jmp; no C-level spelling of the short local was found that forces 16-bit ops, and the three sibling handlers in the same TU cap at 75.6, 82.6 and 83.0 percent with the identical idiom."
+      ]
     },
     "0xf63f0": {
       "kind": "function",
@@ -10376,7 +10390,13 @@
     },
     "0x19be30": {
       "kind": "function",
-      "status": "ported"
+      "status": "ported",
+      "inferred": [
+        "Token codes 0/1/2/3/4/6/7 are mechanical labels only; code 5 also keeps the parse loop running but no path in this function ever produces it, which is the evidence the original post-switch dispatch was a switch statement rather than an if-chain."
+      ],
+      "uncertain": [
+        "The semantics of FUN_0019d380 and of unicode string-table entries 4, 5 and 6 are unknown; they are treated as opaque character-set membership tests, so the choice between token 6 and token 2 for a plain character is unexplained."
+      ]
     },
     "0x19d080": {
       "kind": "function",
