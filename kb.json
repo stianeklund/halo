@@ -16466,7 +16466,8 @@
     },
     {
      "addr": "0xb64c0",
-     "decl": "void evaluate_piecewise_linear_function(void);"
+     "decl": "float evaluate_piecewise_linear_function(int16_t count, float *function, float input);",
+     "ported": true
     },
     {
      "addr": "0xb65c0",
