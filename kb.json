@@ -16558,7 +16558,9 @@
     },
     {
      "addr": "0xb6b30",
-     "decl": "void player_control_action_test_grenade_trigger(void);"
+     "decl": "bool player_control_action_test_grenade_trigger(void);",
+     "name": "player_control_action_test_grenade_trigger",
+     "ported": true
     },
     {
      "addr": "0xb6b40",
