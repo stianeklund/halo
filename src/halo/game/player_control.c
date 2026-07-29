@@ -486,6 +486,39 @@ void player_control_action_test_reset(void)
   fields[1] = 0;
 }
 
+/* Test (and mark as tested/used) the "accept" player action.
+ *
+ * Disassembly (0xb6ab0), 10 instructions, no calls:
+ *   MOV EAX,[player_control_globals]   ; pointer loaded ONCE, reused for all
+ *   MOV EDX,[EAX+0x4] / MOV ECX,0x4 / OR EDX,ECX / MOV [EAX+0x4],EDX
+ *   OR  [EAX+0x8],ECX                  ; same constant, CSE'd into ECX
+ *   MOV EAX,[EAX] / SHR EAX,0x2 / AND EAX,0x1 / RET
+ *
+ * NOTE: Ghidra decompiles this as `void` — it is NOT.  EAX is live at RET and
+ * carries bit 2 of the dword at +0x00 (lift-learnings 16, void-EAX implicit
+ * return).  kb.json's `void ...(void)` decl was corrected to a bool return.
+ *
+ * The constant 4 is FLAG(2) where 2 is the "accept" action's bit index; the
+ * final SHR 2 / AND 1 is the matching TEST_FLAG.  The two ORs mark the action
+ * in the two accumulator dwords at +0x04 and +0x08 (siblings 0xb6ad0 "back",
+ * 0xb6af0 "action", 0xb6b10 "jump" use the same shape with other bit indices).
+ * player_control_action_test_reset (0xb6a90) zeroes +0x00/+0x04 each frame.
+ *
+ * player_control_globals_t is opaque (0x110 bytes) with no named fields at
+ * +0x00/+0x04/+0x08, so raw dword access is used; the exact meaning of the
+ * three dwords is UNKNOWN beyond the bit-per-action encoding. */
+bool player_control_action_test_accept(void)
+{
+  uint32_t *fields;
+  uint32_t flag;
+
+  fields = (uint32_t *)player_control_globals;
+  flag = 1u << 2;
+  fields[1] |= flag;
+  fields[2] |= flag;
+  return (bool)((fields[0] >> 2) & 1u);
+}
+
 /* Set a player control slot's desired facing angles from a 3D direction vector.
  * Converts the direction vector to yaw+pitch via vector_to_angles (atan2-based
  * vector_to_angles), validates both angles for NaN/Inf, and normalizes yaw
