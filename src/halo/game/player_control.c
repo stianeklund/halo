@@ -278,6 +278,30 @@ void player_control_get_unit_camera_info(int16_t local_player_index,
   }
 }
 
+/* Return the object handle of the unit a local player is currently
+ * controlling.
+ * Binary (0xb6870): MOVSX ESI,word [EBP+8] bounds-checked against
+ * [0, MAXIMUM_NUMBER_OF_LOCAL_PLAYERS) (same assert line 0xb1 as the
+ * siblings above), then
+ *   MOV ECX,[player_control_globals] / MOVSX EAX,SI / SHL EAX,6 /
+ *   MOV EAX,[EAX+ECX+0x10] / RET.
+ * The sign-extend of the short is explicit in the original, so the parameter
+ * is signed -- an unsigned load would make the `< 0` half of the bounds check
+ * (TEST SI,SI / JL) unreachable.  The dword at slot+0x0 is pc->unit_index.
+ * Assert tail is the system_exit(-1) flavor (CALL 0x8d9f0 display_assert then
+ * PUSH -1 / CALL 0x8e2f0), not halt_and_catch_fire. */
+int32_t player_control_get_unit_index(int16_t local_player_index)
+{
+  player_control_t *pc;
+
+  assert_halt_at("c:\\halo\\SOURCE\\game\\player_control.c", 0xb1,
+                 local_player_index >= 0 &&
+                   local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+  pc = (player_control_t *)((char *)player_control_globals +
+                            local_player_index * 0x40 + 0x10);
+  return pc->unit_index;
+}
+
 /* Get the local player index for the player controlling a unit.
  * Looks up the unit's player handle (unit+0x1c8), then reads the local
  * player index (player+0x2) from the player datum. Returns NONE (0xffff)
