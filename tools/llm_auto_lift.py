@@ -18,6 +18,7 @@ import json
 import logging
 import os
 import re
+import struct
 import subprocess
 import sys
 import time
@@ -51,6 +52,103 @@ INTRINSIC_RE = re.compile(
 DISQUALIFIED_OBJECTS = {"<xdk_stubs>", "<common>"}
 
 FAILURES_DIR = ARTIFACT_ROOT / "failures"
+
+
+PRISTINE_XBE = ROOT / "halo-patched" / "cachebeta.xbe"
+
+# Opcodes that can only begin a thunk or an empty stub, never a real function
+# body. Keyed on the FIRST byte at the entry point:
+#   E9 jmp rel32 / EB jmp rel8   -- forwarding thunk
+#   FF 25 jmp [m32]              -- indirect (import) thunk
+#   C3 ret / C2 ret imm16        -- empty stub, returns immediately
+_THUNK_FIRST_BYTES = {0xE9: "jmp_thunk", 0xEB: "jmp_thunk"}
+_STUB_FIRST_BYTES = {0xC3: "ret_stub", 0xC2: "ret_stub"}
+
+_xbe_cache: list = []
+
+
+def _load_pristine_xbe():
+    """Lazily load (data, sections) for the pristine XBE, or (None, None).
+
+    Cached, and failure-tolerant: without the XBE the thunk filter simply does
+    not fire, which is the pre-existing behaviour rather than a hard error.
+    """
+    if _xbe_cache:
+        return _xbe_cache[0]
+    result = (None, None)
+    try:
+        data = PRISTINE_XBE.read_bytes()
+        base = struct.unpack_from("<I", data, 0x104)[0]
+        n_sects = struct.unpack_from("<I", data, 0x11C)[0]
+        hdrs_va = struct.unpack_from("<I", data, 0x120)[0]
+        hdr_off = hdrs_va - base
+        sections = []
+        for i in range(n_sects):
+            off = hdr_off + i * 0x38
+            sections.append((
+                struct.unpack_from("<I", data, off + 0x04)[0],  # va
+                struct.unpack_from("<I", data, off + 0x08)[0],  # vsize
+                struct.unpack_from("<I", data, off + 0x0C)[0],  # raw_off
+                struct.unpack_from("<I", data, off + 0x10)[0],  # raw_size
+            ))
+        result = (data, sections)
+    except Exception as exc:  # missing/short/corrupt XBE
+        log.debug("pristine XBE unavailable for thunk detection: %s", exc)
+    _xbe_cache.append(result)
+    return result
+
+
+def _read_va(va: int, length: int) -> bytes | None:
+    data, sections = _load_pristine_xbe()
+    if data is None:
+        return None
+    for (sec_va, sec_vsize, raw_off, raw_size) in sections:
+        if sec_va <= va < sec_va + sec_vsize:
+            off_in_sec = va - sec_va
+            avail = raw_size - off_in_sec
+            if avail <= 0:
+                return None
+            start = raw_off + off_in_sec
+            return data[start:start + min(length, avail)]
+    return None
+
+
+def _thunk_or_stub_kind(addr: str) -> str | None:
+    """Classify an entry point as 'jmp_thunk' / 'ret_stub', else None.
+
+    Binary evidence only -- reads the first byte at the function's entry in the
+    pristine XBE. Returns None whenever the XBE or the address is unreadable, so
+    an unavailable binary can never cause a real target to be dropped.
+    """
+    try:
+        va = int(str(addr), 16) if str(addr).lower().startswith("0x") else int(str(addr), 16)
+    except (TypeError, ValueError):
+        return None
+    body = _read_va(va, 2)
+    if not body:
+        return None
+    first = body[0]
+    if first in _THUNK_FIRST_BYTES:
+        return _THUNK_FIRST_BYTES[first]
+    if first in _STUB_FIRST_BYTES:
+        return _STUB_FIRST_BYTES[first]
+    if first == 0xFF and len(body) > 1 and body[1] == 0x25:
+        return "jmp_thunk"
+    return None
+
+
+def _prior_fail_attempts(fail_path) -> int:
+    """Attempt count from a failure record, or 0 when absent/unreadable.
+
+    Best-effort: a malformed record must not break target selection, so any
+    parse problem reports 0 rather than raising.
+    """
+    try:
+        with open(fail_path, "r", encoding="utf-8") as fh:
+            return int(json.load(fh).get("attempts") or 0)
+    except Exception:
+        return 0
+
 
 # Known callee buffer requirements (synced with tools/audit/check_lift_hazards.py)
 KNOWN_BUFFER_SIZES = {
@@ -554,6 +652,18 @@ class LiftabilityScorer:
                 src_loc = _is_already_in_source(addr)
                 if src_loc:
                     log.debug("skip %s (%s): implementation in %s", name, addr, src_loc)
+                    continue
+
+                # Skip JMP thunks and bare-RET stubs, read from the pristine XBE.
+                # These score HIGH (tiny, few params, cdecl, delinked ref present)
+                # and so dominate the queue head, but there is nothing to lift: a
+                # thunk's body is one jump, and an empty stub is actively unsafe
+                # to "implement" because an empty C body silently replaces the
+                # original. A whole auto-session run burned its entire queue on
+                # these (14 of 25 candidates were thunks).
+                body_kind = _thunk_or_stub_kind(addr)
+                if body_kind:
+                    log.debug("skip %s (%s): %s", name, addr, body_kind)
                     continue
 
                 score = 0
@@ -1611,6 +1721,13 @@ def cmd_select(args: argparse.Namespace):
         for item in selected:
             row = asdict(item)
             row["target"] = asdict(item.target)
+            # Prior-failure state must be in the JSON, not just the human table's
+            # "[skip:prior_fail]" marker: automated consumers (goal-lift) parse
+            # --json only, so a marker-only signal is invisible to them and the
+            # queue keeps re-serving the same parked targets every session.
+            fail_path = FAILURES_DIR / f"{item.target.name}.json"
+            row["prior_fail"] = fail_path.exists()
+            row["prior_fail_attempts"] = _prior_fail_attempts(fail_path)
             out.append(row)
         kw = {"separators": (",", ":")} if args.quiet else {"indent": 2}
         print(json.dumps(out, **kw))

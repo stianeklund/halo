@@ -973,19 +973,23 @@ ${OBJECTS
     ? `Run EACH of these commands (one per allowlisted object) and concatenate all their JSON arrays into one combined list before parsing:\n${selectCmds.join('\n')}`
     : `Run: ${selectCmds[0]}`}
 (-q is a GLOBAL flag before the subcommand — it makes the JSON compact.)
-This emits a JSON array; each element has: total_score, lane, and target{addr, name,
-object_name, has_reg_args, source_path, score_details{...}}. For each element parse:
+This emits a JSON array; each element has: total_score, lane, prior_fail,
+prior_fail_attempts, and target{addr, name, object_name, has_reg_args,
+source_path, score_details{...}}. For each element parse:
   addr=target.addr, name=target.name, obj=target.object_name, score=total_score,
   has_reg_args=target.has_reg_args (boolean, verbatim),
+  prior_fail=prior_fail (boolean, verbatim — top-level, NOT under target),
   delinked=(target.score_details.delinked_ref is present and > 0),
   source_exists=(target.score_details.source_exists is present),
   lane=lane.
 Do NOT invent these booleans — copy them from the JSON. (The code-side pre-screen
-depends on has_reg_args/lane being exact.)
+depends on has_reg_args/lane/prior_fail being exact.)
 
-Filter: keep lane=="auto-lift" (also allow "cache-context"); skip [skip:prior_fail]
-markers unless fewer than 10 non-prior-fail entries remain;
+Filter: keep lane=="auto-lift" (also allow "cache-context");
 skip hs_runtime.obj (C99/VC71 violations unfixed) and xbox_crt.obj (NT-import/CRT wrappers).
+Do NOT drop prior_fail entries yourself — return them with the flag set and let
+the code-side pre-screen decide, so it can keep them when the queue would
+otherwise run dry.
 ${OBJECTS
     ? `HARD RESTRICTION: only return candidates whose obj is one of: ${OBJECTS.join(', ')}. Discard everything else (this is also enforced in code afterward, so don't waste entries on other objects).`
     : `Prefer, in order: game_engine.obj, lruv_cache.obj, hud.obj, items.obj, input_xbox.obj —
@@ -1060,8 +1064,19 @@ log(`Selected ${targets.length} candidates across ${new Set(targets.map(t => t.o
 // them in 6 Opus research agents that drift. Saves the research tokens entirely.
 const CRT_LO = 0x1d0000, CRT_HI = 0x1de000
 const codeSkips = []
+// Prior-failure de-duplication. A parked target stays at the head of the
+// selector's ranking forever (the score does not know it failed), so without
+// this every session re-researches the same already-parked functions and
+// commits nothing. Enforced in code, not in the select prompt, so it cannot
+// drift -- but only while enough fresh candidates remain, because a park is
+// often recoverable and we must not starve the queue.
+const PRIOR_FAIL_KEEP_FLOOR = 10
+const freshCount = targets.filter(t => t.prior_fail !== true).length
+const dropPriorFails = freshCount >= PRIOR_FAIL_KEEP_FLOOR
 targets = targets.filter(t => {
   const a = parseInt((t.addr || '0').replace(/^0x/i, ''), 16)
+  const pinnedAddr = ADDRS && ADDRS.has(a)
+  if (t.prior_fail === true && dropPriorFails && !pinnedAddr) { codeSkips.push({ ...t, status: 'skipped', reason: `skip_prior_fail (parked before, ${freshCount} fresh candidates available)` }); return false }
   if (t.has_reg_args === true && !LIFT_REG_ARGS) { codeSkips.push({ ...t, status: 'skipped', reason: 'skip_reg_args (selector: @reg-defined prologue → sub-bar)' }); return false }
   if (Number.isFinite(a) && a >= CRT_LO && a < CRT_HI) { codeSkips.push({ ...t, status: 'skipped', reason: 'skip_nt_import (CRT/SEH region 0x1d0000-0x1de000)' }); return false }
   // Pinned targets bypass the lane gate: an explicit --addrs entry is a
@@ -1070,7 +1085,7 @@ targets = targets.filter(t => {
   if (!pinned && t.lane && t.lane !== 'auto-lift' && t.lane !== 'cache-context') { codeSkips.push({ ...t, status: 'skipped', reason: `lane=${t.lane} (not auto-liftable)` }); return false }
   return true
 })
-if (codeSkips.length) log(`Code pre-screen dropped ${codeSkips.length} before research (${codeSkips.filter(s => s.reason.startsWith('skip_reg_args')).length} reg-args, ${codeSkips.filter(s => s.reason.startsWith('skip_nt_import')).length} CRT/SEH, ${codeSkips.filter(s => s.reason.startsWith('lane=')).length} lane)`)
+if (codeSkips.length) log(`Code pre-screen dropped ${codeSkips.length} before research (${codeSkips.filter(s => s.reason.startsWith('skip_prior_fail')).length} prior-fail, ${codeSkips.filter(s => s.reason.startsWith('skip_reg_args')).length} reg-args, ${codeSkips.filter(s => s.reason.startsWith('skip_nt_import')).length} CRT/SEH, ${codeSkips.filter(s => s.reason.startsWith('lane=')).length} lane)`)
 if (targets.length === 0) {
   log('No viable targets after code pre-screen')
   return { committed: 0, goal: GOAL, reached_goal: false, skipped: codeSkips.length, reverted: 0, reason: 'empty_queue_after_prescreen' }
