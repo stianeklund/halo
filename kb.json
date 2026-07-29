@@ -16516,7 +16516,9 @@
     },
     {
      "addr": "0xb6a70",
-     "decl": "int16_t player_control_get_zoom_level(int16_t local_player_index, ...);"
+     "decl": "int16_t player_control_get_zoom_level(int16_t local_player_index);",
+     "name": "player_control_get_zoom_level",
+     "ported": true
     },
     {
      "addr": "0xb6a90",
