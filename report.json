@@ -27,9 +27,9 @@
       "scored_count": 3778
     },
     "equivalence": {
-      "tested": 738,
-      "high_confidence": 239,
-      "avg_coverage": 56.9
+      "tested": 770,
+      "high_confidence": 244,
+      "avg_coverage": 56.7
     },
     "snapshot": null,
     "runtime_oracle": {
@@ -43,8 +43,8 @@
     }
   },
   "meta": {
-    "timestamp": "2026-07-29T10:04:17.800272+02:00",
-    "commit": "76a3c427ab6",
+    "timestamp": "2026-07-29T10:04:55.097150+02:00",
+    "commit": "a5d7116f519",
     "branch": "main",
     "tool_version": "1.0.0"
   },
@@ -1364,9 +1364,9 @@
           "ported": true,
           "match_percent": 100.0,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 87.0,
+          "equiv_confidence": "moderate",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -1388,9 +1388,9 @@
           "ported": true,
           "match_percent": 100.0,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 87.0,
+          "equiv_confidence": "moderate",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -1652,9 +1652,9 @@
           "ported": true,
           "match_percent": 100.0,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 100.0,
+          "equiv_confidence": "moderate",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -2420,9 +2420,9 @@
           "ported": true,
           "match_percent": 82.3,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 23.5,
+          "equiv_confidence": "weak",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -2756,9 +2756,9 @@
           "ported": true,
           "match_percent": 87.2,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 69.2,
+          "equiv_confidence": "high",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -2957,12 +2957,12 @@
         "total": 0
       },
       "equivalence": {
-        "tested": 2,
-        "high_confidence": 0,
-        "avg_coverage": 66.3,
+        "tested": 7,
+        "high_confidence": 1,
+        "avg_coverage": 71.3,
         "classes": {
-          "uncached": 106,
-          "non_leaf": 7,
+          "uncached": 101,
+          "non_leaf": 12,
           "leaf": 7
         }
       },
@@ -3135,9 +3135,9 @@
           "ported": true,
           "match_percent": 89.7,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 56.6,
+          "equiv_confidence": "moderate",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -3159,9 +3159,9 @@
           "ported": true,
           "match_percent": 76.0,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 88.7,
+          "equiv_confidence": "none",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -3183,9 +3183,9 @@
           "ported": true,
           "match_percent": 89.9,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 51.7,
+          "equiv_confidence": "none",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -3255,9 +3255,9 @@
           "ported": true,
           "match_percent": 93.7,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 25.4,
+          "equiv_confidence": "none",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -3399,9 +3399,9 @@
           "ported": true,
           "match_percent": 96.6,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 52.2,
+          "equiv_confidence": "moderate",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -3423,9 +3423,9 @@
           "ported": true,
           "match_percent": 91.1,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 53.8,
+          "equiv_confidence": "none",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -3447,9 +3447,9 @@
           "ported": true,
           "match_percent": 92.0,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 51.1,
+          "equiv_confidence": "none",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -3471,9 +3471,9 @@
           "ported": true,
           "match_percent": 96.6,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 52.6,
+          "equiv_confidence": "moderate",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -3519,9 +3519,9 @@
           "ported": true,
           "match_percent": 90.2,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 81.4,
+          "equiv_confidence": "none",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -4743,9 +4743,9 @@
           "ported": true,
           "match_percent": 100.0,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 100.0,
+          "equiv_confidence": "high",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -4863,9 +4863,9 @@
           "ported": true,
           "match_percent": 96.6,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 29.5,
+          "equiv_confidence": "weak",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -5391,9 +5391,9 @@
           "ported": true,
           "match_percent": 90.4,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 93.9,
+          "equiv_confidence": "high",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -5992,12 +5992,12 @@
         "total": 3
       },
       "equivalence": {
-        "tested": 38,
-        "high_confidence": 7,
-        "avg_coverage": 54.0,
+        "tested": 50,
+        "high_confidence": 9,
+        "avg_coverage": 55.8,
         "classes": {
-          "non_leaf": 31,
-          "uncached": 84,
+          "non_leaf": 43,
+          "uncached": 72,
           "leaf": 9
         }
       },
@@ -13047,9 +13047,9 @@
           "ported": true,
           "match_percent": 81.2,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 22.4,
+          "equiv_confidence": "weak",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -13080,11 +13080,12 @@
         "total": 0
       },
       "equivalence": {
-        "tested": 0,
+        "tested": 1,
         "high_confidence": 0,
-        "avg_coverage": null,
+        "avg_coverage": 22.4,
         "classes": {
-          "uncached": 4
+          "uncached": 3,
+          "non_leaf": 1
         }
       },
       "snapshot": {
@@ -19330,9 +19331,9 @@
           "ported": true,
           "match_percent": 87.4,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 42.9,
+          "equiv_confidence": "moderate",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -21139,12 +21140,12 @@
         "total": 0
       },
       "equivalence": {
-        "tested": 59,
+        "tested": 60,
         "high_confidence": 11,
-        "avg_coverage": 73.3,
+        "avg_coverage": 72.8,
         "classes": {
-          "non_leaf": 45,
-          "uncached": 156,
+          "non_leaf": 46,
+          "uncached": 155,
           "leaf": 36
         }
       },
@@ -37130,9 +37131,9 @@
           "ported": true,
           "match_percent": 86.4,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 70.8,
+          "equiv_confidence": "moderate",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -37691,13 +37692,13 @@
         "total": 0
       },
       "equivalence": {
-        "tested": 19,
+        "tested": 20,
         "high_confidence": 8,
-        "avg_coverage": 56.4,
+        "avg_coverage": 57.1,
         "classes": {
-          "uncached": 64,
+          "uncached": 63,
           "leaf": 14,
-          "non_leaf": 13
+          "non_leaf": 14
         }
       },
       "snapshot": {
@@ -42237,9 +42238,9 @@
           "ported": true,
           "match_percent": 99.5,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 17.6,
+          "equiv_confidence": "none",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -42910,13 +42911,13 @@
         "total": 3
       },
       "equivalence": {
-        "tested": 70,
+        "tested": 71,
         "high_confidence": 10,
-        "avg_coverage": 37.9,
+        "avg_coverage": 37.6,
         "classes": {
           "leaf": 3,
-          "uncached": 127,
-          "non_leaf": 85
+          "uncached": 126,
+          "non_leaf": 86
         }
       },
       "snapshot": {
@@ -59726,7 +59727,7 @@
           "ported": true,
           "match_percent": 87.2,
           "vc71_flagged": null,
-          "equiv_class": null,
+          "equiv_class": "non_leaf",
           "equiv_coverage": null,
           "equiv_confidence": null,
           "equiv_status": null,
@@ -59883,9 +59884,9 @@
         "high_confidence": 2,
         "avg_coverage": 54.2,
         "classes": {
-          "uncached": 17,
+          "uncached": 16,
           "leaf": 2,
-          "non_leaf": 1
+          "non_leaf": 2
         }
       },
       "snapshot": {
@@ -61305,9 +61306,9 @@
           "ported": true,
           "match_percent": 93.4,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 48.8,
+          "equiv_confidence": "moderate",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -61656,12 +61657,12 @@
         "total": 1
       },
       "equivalence": {
-        "tested": 15,
+        "tested": 16,
         "high_confidence": 4,
-        "avg_coverage": 66.1,
+        "avg_coverage": 65.0,
         "classes": {
-          "non_leaf": 18,
-          "uncached": 52,
+          "non_leaf": 19,
+          "uncached": 51,
           "leaf": 2
         }
       },
@@ -74358,9 +74359,9 @@
           "ported": true,
           "match_percent": 92.6,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 76.2,
+          "equiv_confidence": "high",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -75399,12 +75400,12 @@
         "total": 0
       },
       "equivalence": {
-        "tested": 11,
-        "high_confidence": 8,
-        "avg_coverage": 73.2,
+        "tested": 12,
+        "high_confidence": 9,
+        "avg_coverage": 73.4,
         "classes": {
-          "non_leaf": 5,
-          "uncached": 127,
+          "non_leaf": 6,
+          "uncached": 126,
           "leaf": 7
         }
       },
@@ -81069,9 +81070,9 @@
           "ported": true,
           "match_percent": 70.2,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 76.1,
+          "equiv_confidence": "high",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -81717,9 +81718,9 @@
           "ported": true,
           "match_percent": 74.3,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 10.4,
+          "equiv_confidence": "weak",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -81809,12 +81810,12 @@
         "total": 2
       },
       "equivalence": {
-        "tested": 7,
-        "high_confidence": 7,
-        "avg_coverage": 99.5,
+        "tested": 9,
+        "high_confidence": 8,
+        "avg_coverage": 87.0,
         "classes": {
-          "uncached": 50,
-          "non_leaf": 7,
+          "uncached": 48,
+          "non_leaf": 9,
           "leaf": 2
         }
       },
@@ -81891,9 +81892,9 @@
           "ported": true,
           "match_percent": 80.3,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 57.8,
+          "equiv_confidence": "moderate",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -82500,12 +82501,12 @@
         "total": 0
       },
       "equivalence": {
-        "tested": 2,
+        "tested": 3,
         "high_confidence": 1,
-        "avg_coverage": 33.1,
+        "avg_coverage": 41.3,
         "classes": {
-          "uncached": 25,
-          "non_leaf": 2
+          "uncached": 24,
+          "non_leaf": 3
         }
       },
       "snapshot": {
@@ -84009,9 +84010,9 @@
           "ported": true,
           "match_percent": 87.4,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 24.0,
+          "equiv_confidence": "none",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -84138,11 +84139,12 @@
         "total": 0
       },
       "equivalence": {
-        "tested": 0,
+        "tested": 1,
         "high_confidence": 0,
-        "avg_coverage": null,
+        "avg_coverage": 24.0,
         "classes": {
-          "uncached": 14
+          "uncached": 13,
+          "non_leaf": 1
         }
       },
       "snapshot": {
@@ -87202,9 +87204,9 @@
           "ported": true,
           "match_percent": 88.0,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 82.6,
+          "equiv_confidence": "none",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -88051,12 +88053,12 @@
         "total": 0
       },
       "equivalence": {
-        "tested": 12,
+        "tested": 13,
         "high_confidence": 7,
-        "avg_coverage": 71.2,
+        "avg_coverage": 72.1,
         "classes": {
-          "uncached": 35,
-          "non_leaf": 13
+          "uncached": 34,
+          "non_leaf": 14
         }
       },
       "snapshot": {
@@ -95639,9 +95641,9 @@
           "ported": true,
           "match_percent": 89.2,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 7.5,
+          "equiv_confidence": "none",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -95999,9 +96001,9 @@
           "ported": true,
           "match_percent": 100.0,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 26.1,
+          "equiv_confidence": "weak",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -96416,12 +96418,12 @@
         "total": 0
       },
       "equivalence": {
-        "tested": 5,
+        "tested": 7,
         "high_confidence": 2,
-        "avg_coverage": 66.7,
+        "avg_coverage": 52.4,
         "classes": {
-          "uncached": 34,
-          "non_leaf": 4,
+          "uncached": 32,
+          "non_leaf": 6,
           "leaf": 1
         }
       },
@@ -99408,9 +99410,9 @@
           "ported": true,
           "match_percent": 97.0,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 25.2,
+          "equiv_confidence": "weak",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -99489,12 +99491,12 @@
         "total": 0
       },
       "equivalence": {
-        "tested": 2,
+        "tested": 3,
         "high_confidence": 0,
-        "avg_coverage": 33.6,
+        "avg_coverage": 30.8,
         "classes": {
-          "uncached": 34,
-          "non_leaf": 2
+          "uncached": 33,
+          "non_leaf": 3
         }
       },
       "snapshot": {
@@ -108300,9 +108302,9 @@
           "ported": true,
           "match_percent": 98.2,
           "vc71_flagged": null,
-          "equiv_class": null,
-          "equiv_coverage": null,
-          "equiv_confidence": null,
+          "equiv_class": "non_leaf",
+          "equiv_coverage": 30.5,
+          "equiv_confidence": "none",
           "equiv_status": null,
           "equiv_proven": false,
           "equiv_reason": null,
@@ -108381,12 +108383,12 @@
         "total": 0
       },
       "equivalence": {
-        "tested": 3,
+        "tested": 4,
         "high_confidence": 2,
-        "avg_coverage": 100.0,
+        "avg_coverage": 82.6,
         "classes": {
-          "uncached": 25,
-          "non_leaf": 1,
+          "uncached": 24,
+          "non_leaf": 2,
           "leaf": 2
         }
       },
