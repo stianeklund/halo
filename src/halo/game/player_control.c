@@ -173,6 +173,47 @@ int32_t player_control_get_target_object_index(int16_t local_player_index)
   return NONE;
 }
 
+/* Return the field of view (radians) the local player's view should use.
+ * Default is the tag-less fallback 1.2217305 (== 70 degrees, the float at
+ * 0x26e270); the original FLDs it before the unit_index test and FSTPs it
+ * again on the taken branch, so it is initialised up front here.
+ * With a unit: resolve the unit object, fetch its 'unit' tag, and ask the
+ * currently held weapon (unit+0x2a2 is the weapon slot index, loaded
+ * ZERO-extended) for its zoomed field of view; the weapon call is a tail
+ * return of ST0. With no weapon the unit tag's own base field of view
+ * (unit_tag+0x1a0) is used instead.
+ * tag_get's result is live in EBX across unit_get_weapon -- Ghidra discards
+ * it (lift-learnings SS11 discarded-result); it is the source of both
+ * +0x1a0 reads. Ghidra also reports `void (void)`: the parameter is the
+ * MOVSX word at [EBP+8] and the return is a float in ST0. */
+real player_control_get_field_of_view(int16_t local_player_index)
+{
+  player_control_t *pc;
+  char *unit_obj;
+  char *unit_tag;
+  int weapon_handle;
+  real field_of_view;
+
+  assert_halt_at("c:\\halo\\SOURCE\\game\\player_control.c", 0xb1,
+                 local_player_index >= 0 &&
+                   local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+  field_of_view = 1.2217305f;
+  pc = (player_control_t *)((char *)player_control_globals +
+                            local_player_index * 0x40 + 0x10);
+  if (pc->unit_index != NONE) {
+    unit_obj = (char *)object_get_and_verify_type(pc->unit_index, 3);
+    unit_tag = (char *)tag_get(0x756e6974 /* 'unit' */, *(int *)unit_obj);
+    weapon_handle =
+      unit_get_weapon(pc->unit_index, *(uint16_t *)(unit_obj + 0x2a2));
+    if (weapon_handle != NONE)
+      return weapon_get_field_of_view(weapon_handle,
+                                      *(real *)(unit_tag + 0x1a0),
+                                      (uint16_t)pc->desired_zoom_level);
+    field_of_view = *(real *)(unit_tag + 0x1a0);
+  }
+  return field_of_view;
+}
+
 /* Get the local player index for the player controlling a unit.
  * Looks up the unit's player handle (unit+0x1c8), then reads the local
  * player index (player+0x2) from the player datum. Returns NONE (0xffff)
