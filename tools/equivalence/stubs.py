@@ -945,10 +945,16 @@ class StubManager:
         # immediate in the pristine XBE.  A mismatch means BOTH oracle and
         # candidate stubs honor the same wrong convention — invisible to the
         # differential, fatal on the box (ESP drift, the 0x158df0 boot crash).
-        # Mismatch strings accumulate here; unicorn_diff fails the run on any,
-        # unless --no-stub-conv-check.
+        # Mismatch strings accumulate here for reporting; the run-failing subset
+        # is blocking_convention_mismatches() (registration cannot yet know
+        # which stubs are even used -- see that method).
         self.convention_mismatches: list[str] = []
+        # Structured form of the same: {sentinel, addr, name, msg}.
+        self._conv_mismatches: list[dict] = []
         self._conv_checked: set[int] = set()
+        # Sentinels whose SYNTHETIC stub actually ran (populated by
+        # execute_stub, which real-code callees never reach).
+        self._executed_stubs: set[int] = set()
         self._kb_addrs_sorted: Optional[list[int]] = None
 
     def reset_stub_sequences(self):
@@ -1107,7 +1113,7 @@ class StubManager:
         stub = CalleeStub(name=symbol_name, code=b"", abi=abi,
                           sentinel_addr=sentinel_addr, has_real_code=False)
         self._stubs[sentinel_addr] = stub
-        self._check_convention(symbol_name, kb_entry, decl, abi)
+        self._check_convention(symbol_name, kb_entry, decl, abi, sentinel_addr)
         return stub, kb_entry
 
     def _next_kb_addr(self, addr: int) -> int:
@@ -1128,7 +1134,8 @@ class StubManager:
         return addr + 0x2000
 
     def _check_convention(self, symbol_name: str, kb_entry: Optional[dict],
-                          decl: str, abi: dict) -> None:
+                          decl: str, abi: dict,
+                          sentinel_addr: int = 0) -> None:
         """Verify the declared convention against the callee's binary RET.
 
         Both oracle and candidate stubs honor the kb.json decl, so a wrong
@@ -1171,7 +1178,41 @@ class StubManager:
                    f"{res.pop_bytes} — the stub honors the WRONG convention on "
                    f"both sides; fix the kb.json decl (lift-learnings §30)")
             self.convention_mismatches.append(msg)
+            self._conv_mismatches.append({"sentinel": sentinel_addr,
+                                          "addr": addr,
+                                          "name": symbol_name,
+                                          "msg": msg})
             print(f"  [stub-conv MISMATCH] {msg}", file=sys.stderr)
+
+    def blocking_convention_mismatches(self) -> list[str]:
+        """The mismatches that could actually corrupt ESP in *this* run.
+
+        A declared convention is only consulted when a SYNTHETIC stub is both
+        emitted and executed, so the raw list over-reports on two counts:
+
+        * ``has_real_code`` -- get_stub_code returns the callee's own oracle
+          bytes, whose real ``RET N`` pops correctly, so the decl is never
+          used.  Registration runs before _load_real_callees, so at check time
+          we cannot yet know this.
+        * never executed -- registration covers every callee in the stub map
+          regardless of reachability, so a decl bug on a callee no seed ever
+          calls used to block the whole target (measured: bink_playback_stop
+          blocked on FUN_000e5590 with 0 stub calls on the covered path).
+
+        Neither case can drift ESP, so neither should fail the run.  A wrong
+        decl is still a real kb.json defect -- it stays in
+        ``convention_mismatches`` and is reported as a warning.  Fixing it is
+        check_stdcall_ret.py's job, which gates separately at pre-commit/CI.
+        """
+        blocking = []
+        for m in self._conv_mismatches:
+            stub = self._stubs.get(m["sentinel"])
+            if stub is not None and stub.has_real_code:
+                continue
+            if m["sentinel"] not in self._executed_stubs:
+                continue
+            blocking.append(m["msg"])
+        return blocking
 
     def prepare_stubs(self, stub_map: dict, globals_base: int = None,
                       shared_sentinels: dict = None,
@@ -1541,6 +1582,11 @@ class StubManager:
             # Read caller's current state
             caller_esp = uc.reg_read(UC_X86_REG_ESP)
             symbol_name = self._resolve_name(address)
+            # Only synthetic stubs reach here (should_intercept returns False
+            # for real-code callees), so this is exactly the set whose declared
+            # convention governs the stack -- see
+            # blocking_convention_mismatches().
+            self._executed_stubs.add(address)
 
             # --- Stub argument capture (depth==1 only: top-level callee) ---
             if (self._tracer is not None and self._depth == 1

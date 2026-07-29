@@ -434,6 +434,110 @@ to all-seeds-error with the guard disabled, so they cannot pass vacuously.
 The 21 unchanged targets are a different root cause and remain open — e.g.
 `actor_died`, `actor_erase`, `actor_delete_props` still sit at 0%.
 
+### Most of the all-errors table was a fossil (2026-07-29)
+
+Re-reading `summary.json` a day later, 435 rows were `status: error` — but
+**270 of them had a per-target result JSON from 07-08/07-09**, i.e. from before
+both the data-page guard (`b37696b4`, 07-28 22:03) and real-callees-by-default
+(07-28). The batch had been run with `--skip-existing`, so it carried those
+rows forward verbatim instead of re-running them.
+
+The effect is not evenly spread — clustering the error rows by cause and by
+result age separates a fixed bug from a live one:
+
+| cluster | stale | fresh |
+|---|---|---|
+| `FETCH_UNMAPPED` at `0xffXX` (the data-page slide above) | 124 | 14 |
+| `stub_convention_mismatch` | 0 | **64** |
+| `READ_UNMAPPED` | 45 | 0 |
+| timeout | 21 | 0 |
+| `INSN-LIMIT` | 22 | 12 |
+| `eip=0xcccccccc` | 17 | 8 |
+
+The largest cluster was 90% stale — it is the already-fixed slide, whose
+signature addresses (`0xff84`, `0xff85`, `0xff86`) are exactly the
+two-bytes-at-a-time walk documented above. Meanwhile the one cluster that is
+**100% fresh** was invisible underneath it.
+
+Lesson: age the per-target JSONs before believing an aggregate. A
+`--skip-existing` batch reports a mixture of measurements and memories.
+
+### The convention gate blocked 64 targets on 15 decls (2026-07-29)
+
+`stub_convention_mismatch` is not a harness malfunction — it is the harness
+refusing to run because a kb.json decl disagrees with the callee's `RET`
+immediate in the pristine XBE (§30, the `0x158df0` boot crash). Honoring a
+wrong decl makes the stub pop the wrong number of bytes on *both* sides, so
+the differential passes while the box drifts ESP. That has to fail.
+
+But all 64 blocked targets traced to just **15 distinct callees**, 14 of them
+in the `0x1d0xxx–0x1d6xxx` CRT region, all declared by Ghidra as placeholder
+`void FUN_xxx(void)` over a body that RETs 4/8/12/16/24:
+
+| callee | binary | targets blocked |
+|---|---|---|
+| `FUN_001d0c48` | RET 8 | 42 |
+| `FUN_001d5c66` | RET 12 | 25 |
+| `FUN_001d0c65` | RET 12 | 12 |
+| `FUN_001d0362` | RET 4 | 10 |
+| `FUN_001d18aa` | RET 16 | 9 |
+
+None is called from lifted C (`grep -rl` across `src/` finds no caller), so
+none was a live ESP drift in the shipped build.
+
+The gate was over-broad on two independent counts, both structural:
+
+1. It ran inside `_register_stub`, which executes **before**
+   `_load_real_callees`. A callee that ends up with `has_real_code=True` has
+   `get_stub_code` return its own oracle bytes, whose real `RET N` pops
+   correctly — the decl is never consulted.
+2. It fired for every callee in the stub map **regardless of reachability**.
+   `bink_playback_stop` was blocked by `FUN_000e5590` while reporting
+   `stub-arg differential: 0 calls` — no path reached it. Unblocked, it passes
+   20/20.
+
+So the verdict moved from setup to after the seed loop, and now fails only on
+mismatches that are both synthetic and *executed*
+(`StubManager.blocking_convention_mismatches()`, fed by `_executed_stubs`,
+which only `execute_stub` populates and real-code callees never reach).
+Non-blocking mismatches are still printed as warnings — a wrong decl remains
+a real defect, and `check_stdcall_ret.py` is what fixes it.
+
+`test_stub_conv_gate.py` pins both directions. The relaxation is only sound
+while the executed-synthetic case still fails, so that case is the first test
+in the file; `test_unknown_sentinel_is_not_silently_excused` pins that absence
+from `_stubs` does not excuse (only a positive `has_real_code` does), since
+excusing on absence would forgive precisely the case we cannot reason about.
+
+Measured on the same 64 targets, 50 seeds each:
+
+| outcome | count |
+|---|---|
+| pass | **48** |
+| fail (divergence previously hidden behind the block) | 6 |
+| error, different cause (`emulation_error`) | 6 |
+| timeout at 90s (they now get far enough to spend it) | 3 |
+| not_applicable | 1 |
+
+**Zero** were still blocked by an *executed* wrong-convention stub, so nothing
+in this set relied on the gate — but "zero" is also what a gate that stopped
+observing stub execution would report. So the non-blocking path now prints its
+own evidence, e.g. for `create_message`:
+
+```
+stub-conv: 2 mismatch(es) did not block — 3 synthetic stub(s) executed
+           this run, none of them wrongly declared
+```
+
+Three executed, neither `FUN_001d0c48` nor `FUN_001d5c66` among them. A
+vacuous gate would say `0 synthetic stub(s) executed` while claiming the same
+verdict, so the two cases stay distinguishable in the log.
+
+The 6 new divergences (`cache_files_precache_map_status`, `create_message`,
+`find_files_next`, `FUN_0007c6c0`, `hs_compile_source`,
+`network_game_client_dispose`) are evidence gained, not cleanliness: they were
+always diverging and the block hid it. They need ordinary triage.
+
 ### What does NOT lift the remaining tail (measured 2026-07-28)
 
 260 of 822 cached targets still sit below 30% coverage (154 of them

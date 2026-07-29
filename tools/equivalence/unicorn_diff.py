@@ -2343,18 +2343,24 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
             if stub_mgr.convention_mismatches:
                 # Both oracle and candidate stubs honor the declared (wrong)
                 # convention, so the differential is blind to this — but the
-                # box is not (ESP drift, lift-learnings §30). Fail the run.
+                # box is not (ESP drift, lift-learnings §30).
+                #
+                # The VERDICT is deferred to after the seed loop: at this point
+                # _load_real_callees has not run, so we cannot yet tell which of
+                # these callees will execute their own oracle bytes (decl never
+                # consulted) or will never be called at all. Failing here blocked
+                # 64 targets on 15 unported CRT decls, none of them reached by
+                # lifted C. See blocking_convention_mismatches().
                 n_mm = len(stub_mgr.convention_mismatches)
-                if stub_conv_check:
-                    log(f"ERROR: {n_mm} stub convention mismatch(es) — "
-                        f"kb.json decl vs binary RET (lift-learnings §30):")
-                    for m in stub_mgr.convention_mismatches:
-                        log(f"  {m}")
-                    log("  Fix the kb.json decl (check_stdcall_ret.py --addr "
-                        "0xADDR); bypass with --no-stub-conv-check.")
-                    return finish("error", True, "stub_convention_mismatch", 2)
-                log(f"WARNING: {n_mm} stub convention mismatch(es) ignored "
-                    f"(--no-stub-conv-check)")
+                log(f"WARNING: {n_mm} stub convention mismatch(es) — kb.json "
+                    f"decl vs binary RET (lift-learnings §30):")
+                for m in stub_mgr.convention_mismatches:
+                    log(f"  {m}")
+                log("  Fix the kb.json decl (check_stdcall_ret.py --addr "
+                    "0xADDR). The run fails only if one of these stubs is "
+                    "actually executed"
+                    + ("" if stub_conv_check else " (disabled: "
+                       "--no-stub-conv-check)") + ".")
             stub_manager = stub_mgr
             use_stubs = True
 
@@ -3042,6 +3048,30 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         log("      One of the two oracles is wrong -- treat the proof as "
             "unsound until this is explained.")
         extra["z3_proof_contradicted"] = True
+
+    # Stub-convention verdict (lift-learnings §30), deferred from setup: a wrong
+    # decl only corrupts ESP if the SYNTHETIC stub honoring it actually ran. Both
+    # sides drift identically, so a pass here is not evidence of anything --
+    # report it even when every seed agreed.
+    if stub_conv_check and stub_manager is not None:
+        blocking = stub_manager.blocking_convention_mismatches()
+        if blocking:
+            log("")
+            log(f"ERROR: {len(blocking)} EXECUTED stub(s) honored a wrong "
+                f"convention — kb.json decl vs binary RET:")
+            for m in blocking:
+                log(f"  {m}")
+            log("  Both sides drift ESP identically, so the differential is "
+                "blind; fix the decl (check_stdcall_ret.py --addr 0xADDR).")
+            return finish("error", True, "stub_convention_mismatch", 2, **extra)
+        if stub_manager.convention_mismatches:
+            # State WHY the mismatches did not block. Without this a gate that
+            # silently stopped observing stub execution would look identical to
+            # one correctly finding nothing to complain about.
+            n_exec = len(stub_manager._executed_stubs)
+            log(f"  stub-conv: {len(stub_manager.convention_mismatches)} "
+                f"mismatch(es) did not block — {n_exec} synthetic stub(s) "
+                f"executed this run, none of them wrongly declared")
 
     if failed > 0:
         return finish("fail", True, "divergence", 1, **extra)
