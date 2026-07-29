@@ -16570,7 +16570,9 @@
     },
     {
      "addr": "0xb6b50",
-     "decl": "void player_control_action_test_move_relative_all_directions(void);"
+     "decl": "int player_control_action_test_move_relative_all_directions(void);",
+     "name": "player_control_action_test_move_relative_all_directions",
+     "ported": true
     },
     {
      "addr": "0xb6b70",
