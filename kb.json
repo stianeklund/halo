@@ -16498,7 +16498,9 @@
     },
     {
      "addr": "0xb68c0",
-     "decl": "void player_control_get_desired_weapon(void);"
+     "decl": "int player_control_get_desired_weapon(int16_t local_player_index, int unit_handle);",
+     "name": "player_control_get_desired_weapon",
+     "ported": true
     },
     {
      "addr": "0xb6940",
