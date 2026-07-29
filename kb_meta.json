@@ -114,6 +114,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1b8a0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1bcd0": {
       "kind": "function",
       "status": "ported"
@@ -360,7 +364,7 @@
     },
     "0x1f770": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "param2 supplies the initial disposition when (char)param3==0; param3 non-zero forces disposition to 1 and enables the lost-contact fallback tail. Only the low byte of param2/param3 is used (kb decl types them int but the binary byte-tests them).",
         "The default-case display_assert passes a NULL reason string (Ghidra literal 0), consistent with an unreachable/HALT assert rather than the expression-string form (e.g. \"success\") used by other asserts in actions.c."
@@ -2813,12 +2817,24 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x99b70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x99d60": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x99fd0": {
       "kind": "function",
       "status": "ported",
       "comments": {
         "summary": "Clears permanent decal state for a cluster across 5 decal layers: walks per-layer linked lists, validates cluster ownership, unsets permanent flag, decrements permanent_count, and releases matching decals."
       }
+    },
+    "0x9a160": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x9a300": {
       "kind": "function",
@@ -6941,7 +6957,8 @@
       "uncertain": [
         "Uncertain: VC71 is stuck at 83.4% solely because the reference materializes the high-bit test as AND 0x80000000 / NEG / SBB / NEG (the MSVC C++ bool conversion) while the VC71 C front end folds every equivalent C spelling (!= 0, ?1:0, !!, and the byte-offset *4 form, all measured at exactly 83.4%) into a single SHR 31; treated as a C-vs-C++ front-end ceiling rather than a lift defect.",
         "FUN_00103a00's kb decl was corrected to char(uint32_t,int,uint32_t*,uint32_t) to match FUN_00103530's visit-callback signature at 0x103566; the callback's own disassembly was not re-verified in this lift.",
-        "The plane built by FUN_001037b0 takes its p0/p1/p2 from surface words 0, 2, 1 respectively (not 0,1,2) per the accumulated push order at 0x103cd7; a swap of words 1 and 2 would flip the plane normal with no VC71 or assert signal, so this ordering is unverified at runtime."
+        "The plane built by FUN_001037b0 takes its p0/p1/p2 from surface words 0, 2, 1 respectively (not 0,1,2) per the accumulated push order at 0x103cd7; a swap of words 1 and 2 would flip the plane normal with no VC71 or assert signal, so this ordering is unverified at runtime.",
+        "The plane buffer at EBP-0x18 is sized 4 floats from frame arithmetic (SUB ESP,0x18 minus the two dword scalars at EBP-0x8/EBP-0x4); FUN_001037b0 is unported so its actual write size is unverified."
       ]
     },
     "0x105830": {
@@ -9479,6 +9496,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x172720": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x174d10": {
       "kind": "function",
       "status": "ported"
@@ -10309,12 +10330,20 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x19b5d0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x19b640": {
       "kind": "function",
       "status": "ported",
       "inferred": [
         "Field order in the color struct is alpha at [+0], red at [+4], green at [+8], blue at [+0xc] \u2014 inferred from assertion strings naming alpha/red/green/blue in sequence and confirmed by ESI offsets in disassembly."
       ]
+    },
+    "0x19b790": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x19b800": {
       "kind": "function",
@@ -10329,6 +10358,14 @@
       "inferred": [
         "tag_get return value is discarded; the call is used solely for its assertion/crash side-effect on invalid tag indices \u2014 confirmed by absence of any use of EAX after the call at 0x19b8bd."
       ]
+    },
+    "0x19b8f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x19be30": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x19d080": {
       "kind": "function",
