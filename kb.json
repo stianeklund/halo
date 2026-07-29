@@ -16522,7 +16522,9 @@
     },
     {
      "addr": "0xb6a90",
-     "decl": "void player_control_action_test_reset(void);"
+     "decl": "void player_control_action_test_reset(void);",
+     "name": "player_control_action_test_reset",
+     "ported": true
     },
     {
      "addr": "0xb6ab0",
