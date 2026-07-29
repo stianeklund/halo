@@ -1502,6 +1502,10 @@ def _run_function(code: bytes, abi: dict, arg_values: list,
 
     # Attach stub-arg tracer for this run (detached in the finally block below)
     if stub_manager is not None and stub_arg_tracer is not None:
+        # Record this side's target extent so the comparator can tell the
+        # target's own calls from calls made by natively-executed callees.
+        # Each side has its own layout, hence per-tracer rather than global.
+        stub_arg_tracer.target_range = (entry_point, entry_point + len(code))
         stub_manager.set_tracer(stub_arg_tracer)
 
     err_msg = None

@@ -16,7 +16,7 @@ import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Tuple
 
 IMAGE_REL_I386_DIR32 = 0x0006
 IMAGE_REL_I386_REL32 = 0x0014
@@ -75,6 +75,11 @@ class StubCallRecord:
     callee_name: str   # resolved callee name (from _stub_names)
     args: List[int]    # dword values: reg-args first, then stack-args (ESP+4, ESP+8, …)
     is_varargs: bool   # True when callee has a '...' param
+    # Return address captured at intercept time, i.e. call_site + 5.  Identifies
+    # WHO made the call: inside the target's own byte extent, or inside a callee
+    # body the emulator is executing natively.  0 = not captured (older records,
+    # or an unreadable stack) and must never be treated as "outside".
+    caller_addr: int = 0
 
 
 @dataclass
@@ -84,6 +89,12 @@ class StubArgTracer:
     Attach via StubManager.set_tracer() before a run, then read .records after.
     """
     records: List[StubCallRecord] = field(default_factory=list)
+    # (start, end) byte extent of the TARGET function in this run's address
+    # space.  Set by the runner; when present, compare_stub_arg_traces drops
+    # records whose caller_addr falls outside it -- those calls were made by a
+    # natively-executed callee, not by the function under test.  None = no
+    # attribution available, compare everything (historical behaviour).
+    target_range: Optional[Tuple[int, int]] = None
 
     def reset(self):
         self.records = []
@@ -117,6 +128,14 @@ class StubArgDiff:
     # none of them could be told apart from the log alone.
     oracle_seq: List[str] = field(default_factory=list)
     candidate_seq: List[str] = field(default_factory=list)
+    # Records dropped per side because caller_addr fell outside that side's
+    # target extent, i.e. the call was made by a natively-executed callee and
+    # belongs to that callee's own equivalence target, not this one. Reported
+    # rather than silently swallowed: a large count means the two sides are
+    # executing very different amounts of code, which is context a reader of
+    # the divergence needs.
+    nested_dropped_oracle: int = 0
+    nested_dropped_candidate: int = 0
 
     def has_differences(self) -> bool:
         return self.sequence_diverged or self.arg_mismatches > 0
@@ -193,6 +212,11 @@ class StubArgDiff:
         kind, desc = self.sequence_relation()
         if kind:
             lines.append("  call-seq %s: %s" % (kind.upper(), desc))
+        if self.nested_dropped_oracle or self.nested_dropped_candidate:
+            lines.append(
+                "  call-seq NESTED-DROPPED oracle=%d candidate=%d "
+                "(calls made by natively-executed callees, attributed away)"
+                % (self.nested_dropped_oracle, self.nested_dropped_candidate))
         return lines
 
     def summary(self) -> str:
@@ -423,15 +447,49 @@ def compare_stub_arg_traces(oracle_tracer: StubArgTracer,
     is meaningful and silent where it is not.  None = compare everything
     (the historical behaviour, correct whenever both sides stub alike).
     """
-    def _keep(r):
-        if _is_chkstk_name(r.callee_name) or _is_inlined_intrinsic_name(r.callee_name):
-            return False
-        if comparable_sentinels is not None and r.callee_addr not in comparable_sentinels:
-            return False
-        return True
+    def _keeper(tracer):
+        """Per-side filter: each side has its own target extent."""
+        rng = getattr(tracer, "target_range", None)
 
-    oc = [r for r in oracle_tracer.records if _keep(r)]
-    cc = [r for r in cand_tracer.records if _keep(r)]
+        def _keep(r):
+            if (_is_chkstk_name(r.callee_name)
+                    or _is_inlined_intrinsic_name(r.callee_name)):
+                return False
+            if (comparable_sentinels is not None
+                    and r.callee_addr not in comparable_sentinels):
+                return False
+            # Only the TARGET's own calls are the target's behaviour.  When one
+            # side stubs an intra-object sibling and the other executes it
+            # natively, the native side additionally records every call the
+            # SIBLING makes -- extra entries that make the sequences differ
+            # without the target having done anything different.  Those belong
+            # to the sibling's own equivalence target, so drop them here.
+            # caller_addr == 0 means attribution was unavailable: keep the
+            # record, since absent evidence is not evidence of nesting.
+            if rng is not None and r.caller_addr:
+                # Upper bound inclusive: a CALL as the function's last
+                # instruction leaves a return address equal to `end`.
+                if not (rng[0] <= r.caller_addr <= rng[1]):
+                    return False
+            return True
+
+        return _keep
+
+    def _nested_count(tracer, keep):
+        """How many records `keep` rejected specifically for being nested."""
+        rng = getattr(tracer, "target_range", None)
+        if rng is None:
+            return 0
+        return sum(1 for r in tracer.records
+                   if r.caller_addr and not (rng[0] <= r.caller_addr <= rng[1])
+                   and not _is_chkstk_name(r.callee_name)
+                   and not _is_inlined_intrinsic_name(r.callee_name))
+
+    _keep_orc, _keep_cand = _keeper(oracle_tracer), _keeper(cand_tracer)
+    oc = [r for r in oracle_tracer.records if _keep_orc(r)]
+    cc = [r for r in cand_tracer.records if _keep_cand(r)]
+    n_nested_orc = _nested_count(oracle_tracer, _keep_orc)
+    n_nested_cand = _nested_count(cand_tracer, _keep_cand)
 
     total_calls = len(oc)
     seq_diverged = False
@@ -533,6 +591,8 @@ def compare_stub_arg_traces(oracle_tracer: StubArgTracer,
         # recorded sequences are exactly what produced the verdict.
         oracle_seq=[r.callee_name for r in oc],
         candidate_seq=[r.callee_name for r in cc],
+        nested_dropped_oracle=n_nested_orc,
+        nested_dropped_candidate=n_nested_cand,
     )
 
 
@@ -1509,12 +1569,20 @@ class StubManager:
                     except Exception:
                         _args.append(0)
 
+                # The sentinel was reached by CALL, so [ESP] holds the return
+                # address (call_site + 5).  Attributes the call to its caller.
+                try:
+                    _ra = int.from_bytes(
+                        bytes(uc.mem_read(caller_esp, 4)), "little")
+                except Exception:
+                    _ra = 0
                 self._tracer.records.append(StubCallRecord(
                     seq=len(self._tracer.records),
                     callee_addr=address,
                     callee_name=self._stub_names.get(address, hex(address)),
                     args=_args,
                     is_varargs=_is_varargs,
+                    caller_addr=_ra,
                 ))
             # --- end arg capture ---
 
