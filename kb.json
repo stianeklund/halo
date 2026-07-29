@@ -16461,7 +16461,8 @@
     },
     {
      "addr": "0xb6430",
-     "decl": "void scripted_player_control_set_camera_control(void);"
+     "decl": "void scripted_player_control_set_camera_control(bool camera_control);",
+     "ported": true
     },
     {
      "addr": "0xb64c0",
