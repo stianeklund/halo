@@ -13508,7 +13508,9 @@
     },
     {
      "addr": "0x104430",
-     "decl": "void FUN_00104430(void);"
+     "decl": "void FUN_00104430(int polygon_count, short *point_counts, float *points, float *color);",
+     "ported": true,
+     "source_path": "src/halo/main/main.c"
     }
    ],
    "name": "main.obj",
