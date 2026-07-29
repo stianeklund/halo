@@ -793,8 +793,12 @@ void FUN_000d1090(void)
       draw_ptr =
         (autoaim > 0.0f) ? *(const void **)0x2ee6d0 : *(const void **)0x2ee6d8;
 
-      zoom_level = (int16_t)player_control_get_zoom_level(
-        (int16_t) * (int *)0x506548, draw_ptr);
+      /* NOTE: the original pushes draw_ptr at 0xd1336 immediately before the
+       * zoom_level call, but 0xb6a70 reads only [EBP+8] -- that push is the
+       * trailing argument of the enclosing hud_set_element_digital call
+       * (lift-learnings SS3 cdecl arg mis-grouping), not a second parameter. */
+      zoom_level =
+        (int16_t)player_control_get_zoom_level((int16_t) * (int *)0x506548);
       magnification =
         weapon_get_zoom_magnification(weapon_obj_handle, zoom_level);
 
