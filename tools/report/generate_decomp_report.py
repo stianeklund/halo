@@ -1776,7 +1776,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 return;
             }
 
-            var snaps = HISTORY.snapshots.slice(-90);
+            var snaps = HISTORY.snapshots;
             var labels = snaps.map(function(s) { return s.timestamp.slice(0, 10); });
             var funcs = snaps.map(function(s) { return s.summary.functions.ported; });
 
