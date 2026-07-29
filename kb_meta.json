@@ -6403,6 +6403,17 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xf46e0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Profile record table at 0x5aa3c0 has 3 entries of stride 0x34 (pointer bound 0x5aa45c); field map inferred from access widths: +0x00 int id, +0x04 wchar_t name[12], +0x1c short controller-setup index, +0x1e ushort flags (bit0 = use-default-name, bits 8..15 = ustr string index), +0x2c/+0x2d byte description indices."
+      ],
+      "uncertain": [
+        "kb name multiplayer_game_set_text_box_for_game_ruleset (0xf3740) is retained but its arity was wrong (declared void(void), binary shows 2 cdecl stack args); the name may not describe what the call at 0xf4866 actually does, which passes a single item id by pointer with count 1.",
+        "The 2-instruction VC71 gap is a 16-bit-vs-32-bit MOVZX destination width on the FUN_0019d420 description-index args; the original narrows to CX/DX because that callee's second parameter is 16-bit, but its shared kb decl (int, int) was left alone to avoid regressing hud_messaging.c and network_game_manager.c."
+      ]
+    },
     "0xf5290": {
       "kind": "function",
       "status": "ported"
