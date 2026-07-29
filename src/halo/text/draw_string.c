@@ -238,8 +238,8 @@ copy:
 void draw_string_set_indents(short initial_indent, short paragraph_indent)
 {
   if (initial_indent < 0) {
-    display_assert("initial_indent>=0",
-                   "c:\\halo\\SOURCE\\text\\draw_string.c", 0x16e, 1);
+    display_assert("initial_indent>=0", "c:\\halo\\SOURCE\\text\\draw_string.c",
+                   0x16e, 1);
     system_exit(-1);
   }
   if (paragraph_indent < 0) {
@@ -390,6 +390,30 @@ void draw_string_set_font(int tag_index, int style, int justify, int flags,
   *(int *)0x4d9b0c = tag_index;
   draw_string_set_color(color);
   draw_string_set_style_justify_flags((short)style, (short)justify, flags);
+}
+
+/*
+ * draw_string_set_highlight — store the two-word highlight range.
+ *
+ * Confirmed: both params are read as words (MOV AX,word ptr [EBP+0x8];
+ *            MOV CX,word ptr [EBP+0xc]), so both are 16-bit — hence the
+ *            short parameter types, which is what makes VC71 emit the
+ *            word load instead of a 32-bit one.
+ * Confirmed: stores are word-sized to 0x4d9b4a then 0x4d9b4c, in that
+ *            order (the reverse of the sibling draw_string_set_indents).
+ * Confirmed: 8 instructions total, no asserts, no range checks, no
+ *            callees, plain RET => cdecl.
+ * Uncertain: parameter semantics.  There are no asserts or strings
+ *            naming these values, so the names stay mechanical; the
+ *            pair is presumably a start/end character range, but that
+ *            is not proven by the binary.
+ *
+ * 0x19b8f0 / draw_string.obj
+ */
+void draw_string_set_highlight(short param_1, short param_2)
+{
+  *(short *)0x4d9b4a = param_1;
+  *(short *)0x4d9b4c = param_2;
 }
 
 /*
