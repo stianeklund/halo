@@ -1905,6 +1905,25 @@ void main_menu_load(void)
   main_menu_load_pending = false;
 }
 
+/*
+ * main_roll_credits (0x102070)
+ *
+ * End-of-campaign hook. Emits an informational error-log line, drops back to
+ * the main menu, then hands off to the event-manager reset at 0xdc110.
+ *
+ * Binary shape (6 instructions, no frame):
+ *   PUSH 0x28b68c / PUSH 2 / CALL error / ADD ESP,8  -> error(2, msg)
+ *   CALL 0x101fe0                                    -> main_menu_load()
+ *   JMP  0x000dc110                                  -> tail call
+ * The trailing JMP is a tail call, written here as a plain final statement.
+ */
+void main_roll_credits(void)
+{
+  error(2, "congratulations, you won the game!");
+  main_menu_load();
+  FUN_000dc110();
+}
+
 void main_pregame_render(void)
 {
   vector3_t unk[3];
