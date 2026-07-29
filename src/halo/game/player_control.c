@@ -343,6 +343,26 @@ int player_control_get_desired_weapon(int16_t local_player_index,
   return unit_get_weapon(unit_handle, *(int16_t *)(unit_obj + 0x2a2));
 }
 
+/* Return the aim-assist ("autoaim") level for a local player.
+ * Frame is PUSH EBP / MOV EBP,ESP / PUSH ESI; the index is loaded as a
+ * 16-bit value (MOV SI,[EBP+8]) and range-checked with signed compares
+ * (TEST SI,SI / JL; CMP SI,4 / JL), so the parameter is int16_t, not int.
+ * The success path re-reads the globals pointer (MOV ECX,[0x457090] --
+ * not hoisted), sign-extends the index (MOVSX EAX,SI), scales it by the
+ * 0x40 slot stride (SHL EAX,6) and returns FLD [EAX+ECX+0x3c] in ST(0),
+ * i.e. player_control_t+0x2c relative to the 0x10-based slot array.
+ * The failure path is display_assert(...) + system_exit(-1) (CALL 0x8e2f0,
+ * NOT halt_and_catch_fire -- Ghidra's thunk_FUN_001029a0 is wrong here). */
+float player_control_get_autoaim_level(int16_t local_player_index)
+{
+  assert_halt_at("c:\\halo\\SOURCE\\game\\player_control.c", 0xb1,
+                 local_player_index >= 0 &&
+                   local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+  return ((player_control_t *)((char *)player_control_globals +
+                               local_player_index * 0x40 + 0x10))
+    ->autoaim_level;
+}
+
 /* Get the local player index for the player controlling a unit.
  * Looks up the unit's player handle (unit+0x1c8), then reads the local
  * player index (player+0x2) from the player datum. Returns NONE (0xffff)
