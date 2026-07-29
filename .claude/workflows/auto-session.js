@@ -94,6 +94,9 @@ let functionsCommitted = 0
 let stoppedReason = 'batches_exhausted'
 let parkReason = null
 let parkConflicts = null
+// Batches whose lift work is committed but whose land was blocked by something
+// environmental (dirty/locked main worktree). They remain landable.
+let unlandedBatches = 0
 
 // Infra failures (API 529 killing an agent, Ghidra bridge down) are transient
 // and must NOT be treated as "no work left". Retry the batch a bounded number of
@@ -176,20 +179,51 @@ The tool prints a single JSON object with keys: status (landed|parked|inconclusi
     continue
   }
 
-  // 5. Parked / inconclusive -> stop piling commits that cannot land.
-  stoppedReason = land.status  // 'parked' | 'inconclusive'
+  // 5. The batch did not land. The gate distinguishes two very different
+  //    cases and we must not collapse them:
+  //
+  //    'parked'       -> a real signal about THIS WORK: merge/rebase conflict,
+  //                      a failed gate, or a non-FF result. Every further
+  //                      commit makes the eventual resolution harder, so stop.
+  //
+  //    'inconclusive' -> environmental and unrelated to the work: the main
+  //                      worktree is dirty or locked (another lane is mid-edit
+  //                      there), missing, or the branch is not ahead. The
+  //                      commits ARE landable; the only thing missing is a
+  //                      moment when main is quiet. Stopping here threw away
+  //                      five of six batches per session for a reason that had
+  //                      nothing to do with the lifts. Keep lifting and retry
+  //                      the land next batch -- total growth is already bounded
+  //                      by BATCHES, and the work stays on the branch either way.
   parkReason = land.reason
   parkConflicts = land.conflicts || null
+
+  if (land.status === 'inconclusive') {
+    unlandedBatches++
+    log(`… Batch ${i} could not land yet (inconclusive: ${land.reason})`)
+    log(`  Continuing — ${unlandedBatches} batch(es) now waiting to land.`)
+    continue
+  }
+
+  stoppedReason = land.status  // 'parked'
   log(`⚠ Batch ${i} did not land (${land.status}: ${land.reason})`)
   if (parkConflicts && parkConflicts.length) log(`  conflicts: ${parkConflicts.join(', ')}`)
   log(`Stopping so the branch does not accumulate un-landable commits.`)
   break
 }
 
+// Finishing every batch while landing was merely blocked is NOT a clean run:
+// the work is committed but still sitting on the branch. Say so explicitly
+// rather than reporting 'batches_exhausted' as if everything had landed.
+if (stoppedReason === 'batches_exhausted' && unlandedBatches > 0) {
+  stoppedReason = 'completed_with_unlanded'
+}
+
 // ── Report ────────────────────────────────────────────────────────────────────
 phase('Report')
 log(`\n── Auto-session complete ─────────────────`)
 log(`Batches landed:      ${batchesLanded}`)
+if (unlandedBatches) log(`Batches unlanded:    ${unlandedBatches} (committed on ${BRANCH}, landing was blocked)`)
 log(`Functions committed: ${functionsCommitted}`)
 log(`Stop reason:         ${stoppedReason}`)
 if (parkReason) log(`Park reason:         ${parkReason}`)
@@ -198,6 +232,7 @@ if (budget.total) log(`Budget remaining:    ~${Math.round(budget.remaining() / 1
 return {
   branch: BRANCH,
   batches_landed: batchesLanded,
+  batches_unlanded: unlandedBatches,
   functions_committed: functionsCommitted,
   stopped_reason: stoppedReason,
   park_reason: parkReason,
