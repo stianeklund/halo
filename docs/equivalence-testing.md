@@ -544,6 +544,37 @@ Every category maps to one of three **buckets**:
 | `needs-evidence` | Cannot be adjudicated from the smoke log alone |
 | `suspect-real` | Candidate lift bug — investigate |
 
+### Call-sequence divergences have three shapes (2026-07-29)
+
+`call-seq diverged at index N` was the single largest failure class — 71 of 186
+on the 07-29 batch, all filed `suspect-real` — and it could not be adjudicated
+at all, because the harness recorded only the index and never the two sequences.
+`stubs.py::StubArgDiff` now keeps both and `sequence_relation()` classifies the
+shape:
+
+| Shape | Meaning | Bucket |
+|-------|---------|--------|
+| `truncated` | Shorter sequence is a **prefix** of the longer: one side stopped early (oracle crash, early return, insn limit). Both sides agree on every call they both made. | harness-artifact |
+| `shifted` | One extra call in the **middle**, tail lines up. The comparison then walks two lists off by one, so every later position reports divergent. | harness-artifact |
+| `divergent` | Genuinely different callee at the same position. | suspect-real |
+
+Measured across all 71: **57 truncated, 4 shifted, 3 divergent** (7 no longer
+reproduced). That is 95% artifact, and it moved the corpus from 108 suspect-real
+to 40.
+
+Two properties are pinned by test in `test_stub_arg_trace.py` and
+`test_triage_classify.py`, because both failure modes are silent:
+
+- A genuinely different callee must **not** be explained away as a shift —
+  otherwise the alignment story launders real control-flow bugs.
+- A smoke log with **no shape marker** (written before this change) keeps the
+  old `suspect-real` verdict. Absent evidence is not evidence of an artifact;
+  defaulting old logs to `harness-artifact` would retire real bugs unexamined.
+
+Re-run a target to get the marker: the shape is written to the smoke log by
+`unicorn_diff.py`, capped at the first two diverging seeds (the sequences were
+identical across seeds in every case observed).
+
 The two classes that dominate a real batch, and why they are artifacts:
 
 - **`assert_metadata`** — `_display_assert(message, __FILE__, __LINE__)`. Our
