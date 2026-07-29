@@ -214,6 +214,70 @@ real player_control_get_field_of_view(int16_t local_player_index)
   return field_of_view;
 }
 
+/* Fill a camera-info block for a local player's controlled unit.
+ *
+ * camera_info layout (the caller reserves 0x28 bytes -- see
+ * player_control_update_desired_angles):
+ *   +0x00 int     object handle the camera follows (unit, or its vehicle)
+ *   +0x04 int16   seat index within that vehicle (NONE when on foot)
+ *   +0x08 void*   camera/seat limit block (vehicle seat +0x84, else unit
+ *                 tag +0x1a8)
+ *   +0x0c real[3] seat position, written by unit_set_seat_state (0x1a9240)
+ *
+ * On foot the block comes from the unit's own 'unit' tag. When the unit is
+ * riding something (unit+0xcc is the vehicle handle, unit+0x2a0 the seat
+ * index) the vehicle's 'vehi' seat block (tag+0x2e4, stride 0x11c) supplies
+ * both the handle and the limit block, and the object pointer is re-resolved
+ * against the vehicle. object_try_and_get_and_verify_type is used for the
+ * vehicle so a stale handle simply leaves the on-foot result in place.
+ *
+ * c:\halo\SOURCE\game\player_control.c */
+void player_control_get_unit_camera_info(int16_t local_player_index,
+                                         void *camera_info)
+{
+  char *info;
+  player_control_t *pc;
+  char *unit_obj;
+  char *vehicle_obj;
+  char *seat;
+  int handle;
+
+  info = (char *)camera_info;
+  assert_halt_at("c:\\halo\\SOURCE\\game\\player_control.c", 0x402, info);
+  *(void **)(info + 8) = NULL;
+
+  assert_halt_at("c:\\halo\\SOURCE\\game\\player_control.c", 0xb1,
+                 local_player_index >= 0 &&
+                   local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+
+  pc = (player_control_t *)((char *)player_control_globals +
+                            (int)local_player_index * 0x40 + 0x10);
+  handle = pc->unit_index;
+  *(int *)info = handle;
+  *(int16_t *)(info + 4) = NONE;
+  if (handle != NONE) {
+    unit_obj = (char *)object_get_and_verify_type(handle, 3);
+    unit_set_seat_state(*(int *)info, (real *)(info + 0xc));
+    if (*(int *)(unit_obj + 0xcc) != NONE) {
+      vehicle_obj = (char *)object_try_and_get_and_verify_type(
+        *(int *)(unit_obj + 0xcc), 2);
+      if (vehicle_obj != NULL) {
+        seat = (char *)tag_block_get_element(
+          (char *)tag_get(0x76656869 /* 'vehi' */, *(int *)vehicle_obj) + 0x2e4,
+          *(int16_t *)(unit_obj + 0x2a0), 0x11c);
+        handle = *(int *)(unit_obj + 0xcc);
+        *(int *)info = handle;
+        *(void **)(info + 8) = seat + 0x84;
+        *(int16_t *)(info + 4) = *(int16_t *)(unit_obj + 0x2a0);
+        unit_obj = (char *)object_get_and_verify_type(handle, 3);
+      }
+    }
+    if (*(int16_t *)(info + 4) == NONE)
+      *(void **)(info + 8) =
+        (char *)tag_get(0x756e6974 /* 'unit' */, *(int *)unit_obj) + 0x1a8;
+  }
+}
+
 /* Get the local player index for the player controlling a unit.
  * Looks up the unit's player handle (unit+0x1c8), then reads the local
  * player index (player+0x2) from the player datum. Returns NONE (0xffff)

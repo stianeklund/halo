@@ -16486,7 +16486,9 @@
     },
     {
      "addr": "0xb6740",
-     "decl": "void player_control_get_unit_camera_info(int16_t local_player_index, void *camera_info);"
+     "decl": "void player_control_get_unit_camera_info(int16_t local_player_index, void *camera_info);",
+     "name": "player_control_get_unit_camera_info",
+     "ported": true
     },
     {
      "addr": "0xb6870",
