@@ -53,6 +53,52 @@ What happens:
 In plain terms: this is a **sequence/structure similarity score**, not a strict
 byte-equality score.
 
+### Which delinked reference gets used (and why it matters)
+
+A TU can have many references on disk: a whole-object export, narrow range
+exports (`<stem>_<hex>_<hex>.obj`), and per-function chunks
+(`delinked/functions/<hex8>.obj`). The score is only meaningful if the chosen
+one actually bounds the function, and two failure modes are invisible in the
+output:
+
+- **Too narrow.** A function with no reference is reported as `DROP`, which
+  produces no score line at all — so the loss looks like the file simply having
+  fewer functions. Measured 2026-07-29: `objects.c` was scored against a
+  2-function `objects_FUN_00084a10.obj` while a 754-function `objects.obj` sat
+  in `delinked/` unregistered, and `actor_moving.c` against 1 of 33. Fixed by
+  registering the whole-object references in `objdiff.json` and ranking
+  candidates by symbol count.
+- **Too wide.** A reference slice runs to the next symbol in *its own* object,
+  so it absorbs whatever follows: alignment filler (`bipeds.obj`'s
+  `FUN_001a0680` slice is 152 instructions where the function is 91) or the
+  neighbouring function (`player_queues_new.obj`'s `FUN_000b97b0` is 154 where
+  the function is 68). Both score the lift against code it never claimed to
+  implement — 61.5% instead of 83.2% in the first case.
+
+Ranking is by symbol count but only among **same-TU** names, because neither
+half of that rule is safe alone: preferring the exact stem loses coverage
+(`units.obj` has 18 symbols, `units_new.obj` 88), and preferring the widest
+picks a *different TU* (`files_windows.obj`, 368 symbols, is a registered
+candidate for `files.c`, whose own reference has 17). "Same TU" admits only
+address-range and `FUN_<addr>` suffixes — never a bare word, since sibling TUs
+share prefixes.
+
+Where a function is available from several references, the **pristine XBE
+decides**: whichever slice length is closest to the real instruction count
+wins. Nothing else can arbitrate — `kb.json`'s span is the distance to the next
+*listed* function and overshoots wherever the listing has a gap (`FUN_000b97b0`
+spans 480 bytes for a 196-byte function), and each reference's own bounds are
+exactly what is in question.
+
+Not yet done: padding that appears on **both** sides currently contributes free
+LCS matches, so every score is slightly inflated. Trimming it symmetrically is
+the more complete fix but recalibrates the whole committed baseline (measured:
+`files.c` `file_open` 85.2% → 80.6% with its reference unchanged), so it needs a
+deliberate repopulate rather than a drive-by change. `_trim_trailing_padding`
+exists and is used only to *detect* over-run when choosing between references.
+
+Self-tests: `tools/verify/test_ref_selection.py`.
+
 
 ## Signal 2: FPU risk warnings
 

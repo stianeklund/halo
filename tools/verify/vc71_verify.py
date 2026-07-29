@@ -21,6 +21,7 @@ Usage:
 
 import argparse
 import bisect
+import functools
 import json
 import os
 import re
@@ -198,6 +199,132 @@ def _func_span(function: str) -> int | None:
     return (starts[i] - addr) if i < len(starts) else None
 
 
+def _trim_trailing_padding(insns: list[str]) -> list[str]:
+    """Drop inter-function alignment padding from the end of a symbol's slice.
+
+    A symbol slice runs to the next symbol, so it absorbs whatever alignment
+    filler the linker put after the function.  Measured 2026-07-29:
+    delinked/bipeds.obj's FUN_001a0680 slice is 152 instructions where the
+    function is 91 -- instruction 91 is the real `ret` (pristine XBE 0x1a0680
+    +0xf3), followed by 61 instructions of `nop`-run + `ret` filler.  That
+    padding is pure mismatch against a candidate that does not have it, so the
+    function scored 61.5% against the bloated slice and 86.7% against a
+    correctly-bounded per-function chunk.
+
+    Keeps the last instruction that is neither `nop` nor `ret`, plus one
+    trailing `ret` if present -- so a normal `pop ebp; ret` ending survives
+    untouched, a multi-`ret` body is never cut (the last real instruction still
+    follows every interior `ret`), and only genuine trailing filler is removed.
+    """
+    def _mnem(insn: str) -> str:
+        return insn.split(None, 1)[0] if insn else ""
+
+    def _is_pad(insn: str) -> bool:
+        # "nop" also covers the multi-byte forms objdump prints with operands
+        # ("nopw 0x0(%eax)", "nopl ..."), which a plain equality test misses.
+        m = _mnem(insn)
+        return m.startswith("nop") or m in ("ret", "retl", "retw", "retq")
+
+    last_real = -1
+    for i, insn in enumerate(insns):
+        if not _is_pad(insn):
+            last_real = i
+    if last_real < 0:
+        return insns  # nothing but nop/ret: an empty stub, leave it alone
+    end = last_real + 1
+    if end < len(insns) and _mnem(insns[end]) in ("ret", "retl", "retw", "retq"):
+        end += 1
+    return insns[:end]
+
+
+_true_insn_cache: dict[int, int | None] = {}
+_xbe_sections_cache: list[tuple[int, int, int, int]] | None = None
+
+
+def _xbe_read(va: int, n: int) -> bytes | None:
+    """Read n bytes at virtual address va from the pristine XBE."""
+    global _xbe_sections_cache
+    xbe_path = REPO_ROOT / "halo-patched" / "cachebeta.xbe"
+    if not xbe_path.exists():
+        return None
+    try:
+        import struct
+        data = xbe_path.read_bytes()
+        if _xbe_sections_cache is None:
+            base = struct.unpack_from("<I", data, 0x104)[0]
+            nsec = struct.unpack_from("<I", data, 0x11C)[0]
+            shdr = struct.unpack_from("<I", data, 0x120)[0] - base
+            _xbe_sections_cache = [struct.unpack_from("<IIII", data, shdr + i * 0x38 + 4)
+                                   for i in range(nsec)]
+        for vaddr, vsize, raw, _rawsz in _xbe_sections_cache:
+            if vaddr <= va < vaddr + vsize:
+                off = raw + va - vaddr
+                return data[off:off + n]
+    except Exception:
+        return None
+    return None
+
+
+def _true_insn_count(function: str) -> int | None:
+    """Instruction count of a function as it exists in the pristine XBE.
+
+    The binary is the source of truth for where a function ends, and nothing
+    else here is: kb.json's span is the distance to the next *listed* function,
+    which overshoots wherever the listing has a gap (FUN_000b97b0's span is
+    480 bytes for a 196-byte function), and a reference slice runs to the next
+    symbol in its own object, which overshoots into padding or the neighbouring
+    function.  Used only to choose between already-valid references.
+
+    Counts up to the first `ret` followed by `nop` padding, which is where MSVC
+    ends a function.  Returns None when capstone or the XBE is unavailable, so
+    every caller must treat None as "no opinion".
+    """
+    if function in _true_insn_cache:
+        return _true_insn_cache[function]
+    result = None
+    try:
+        import capstone
+        addr = _func_addr(function)
+        span = _func_span(function)
+        if addr is not None and span:
+            code = _xbe_read(addr, span + 32)
+            if code:
+                md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
+                insns = list(md.disasm(code, addr))
+                for i, insn in enumerate(insns):
+                    if (insn.mnemonic == "ret" and i + 1 < len(insns)
+                            and insns[i + 1].mnemonic.startswith("nop")):
+                        result = i + 1
+                        break
+                else:
+                    result = len(insns) or None
+    except Exception:
+        result = None
+    _true_insn_cache[function] = result
+    return result
+
+
+def _closer_to_truth(a: int, b: int, truth: int | None) -> bool:
+    """Whether length a is a better fit for the function than length b."""
+    if truth is None:
+        return False
+    return abs(a - truth) < abs(b - truth)
+
+
+def _slice_is_bloated(insns: list[str]) -> bool:
+    """Whether a reference slice over-ran the function into alignment filler.
+
+    Used only to pick BETWEEN references, never to edit the compared
+    instruction lists.  Trimming the lists for scoring is the more complete fix
+    but recalibrates every score in the committed baseline: padding present on
+    both sides currently contributes free LCS matches, so symmetric trimming
+    *lowers* honest scores (measured 2026-07-29: files.c file_open 85.2% ->
+    80.6% with the reference unchanged).  That needs a deliberate baseline
+    repopulate, not a drive-by change.
+    """
+    return len(_trim_trailing_padding(insns)) < len(insns)
+
+
 def _ref_insns_valid(n_r: int, span: int | None) -> bool:
     """Whether a reference's instruction count plausibly matches the function's
     byte size.  Rejects both truncated and bloated references:
@@ -241,14 +368,60 @@ def choose_unit(source: str, units: list[dict], function: str | None) -> dict | 
             "metadata": {"source_path": str(source)},
         }
 
-    def unit_priority(unit: dict) -> tuple[bool, bool, str]:
+    # Among the references registered for THIS TU, prefer the one that actually
+    # covers the most functions.  A partial range export or per-function chunk
+    # carries one or two symbols, so choosing one silently DROPs every other
+    # function in the file -- and a DROP produces no score line, so the loss is
+    # invisible in the output.  Measured 2026-07-29: objects.c was scored
+    # against a 2-symbol objects_FUN_00084a10.obj while a 754-symbol
+    # objects.obj sat on disk, and actor_moving.c against 1 of 33.
+    #
+    # Ranked by symbol count rather than by name, because neither direction of
+    # a name rule is safe alone: delinked/units.obj holds 4 symbols while the
+    # units_batch*.obj slices hold more (so "prefer the exact stem" would LOSE
+    # coverage), yet delinked/actors.obj is a candidate for actor_moving.c
+    # while being a different TU (so "prefer the biggest" would pick a wrong
+    # reference and fake the score).  Counting only same-TU names gets both.
+    # Same-TU means the exact stem, or the stem followed only by address-range
+    # / FUN_<addr> suffixes -- the forms the delinker emits for a slice of one
+    # TU.  A bare "<stem>_<word>" is NOT accepted: sibling TUs share prefixes,
+    # so files.c would otherwise adopt the 368-symbol files_windows.obj (a
+    # different TU) over its own correct 17-symbol files.obj and report scores
+    # against the wrong code.  This deliberately also skips units_new.obj /
+    # objects_full.obj: they may well be wider exports of the same TU, but the
+    # name cannot prove it, and a wrong reference fakes the score.
+    stem = Path(source).stem.lower()
+    _range_suffix = re.compile(r"^(?:_FUN_[0-9a-f]+|_[0-9a-f]{4,})+$", re.IGNORECASE)
+
+    def _same_tu(base: str) -> bool:
+        b = base.lower()
+        if not b.endswith(".obj"):
+            return False
+        b = b[:-len(".obj")]
+        if b == stem:
+            return True
+        if not b.startswith(stem):
+            return False
+        return bool(_range_suffix.match(b[len(stem):]))
+
+    @functools.lru_cache(maxsize=None)
+    def _n_symbols(base_path: str) -> int:
+        return len(object_symbols(REPO_ROOT / base_path))
+
+    def unit_priority(unit: dict) -> tuple[bool, bool, int, str]:
         name = unit.get("name", "")
-        base = Path(unit.get("base_path", "")).name
+        base_path = unit.get("base_path", "")
+        base = Path(base_path).name
         # Prefer units whose name explicitly contains the function address (per-function export)
         name_matches = any(alias in name for alias in aliases if alias.startswith("FUN_"))
         # Then prefer full object files over chunk exports
         is_chunk = bool(re.match(r"[0-9a-f]{8}\.obj$", base, re.IGNORECASE))
-        return (not name_matches, is_chunk, base)
+        # Then the widest same-TU reference.  Chunks are per-function by
+        # construction, so counting them is pointless and would cost hundreds
+        # of llvm-nm calls per run (delinked/functions/*.obj); leave them at 0
+        # so the is_chunk tier keeps them last regardless.
+        width = -_n_symbols(base_path) if (_same_tu(base) and not is_chunk) else 0
+        return (not name_matches, is_chunk, width, base)
 
     existing.sort(key=unit_priority)
 
@@ -798,14 +971,102 @@ def run_compare_cached(
             return None
         return cand if _ref_insns_valid(len(cand), _func_span(fn)) else None
 
-    # (1) Override a truncated/invalid whole-object reference with the chunk.
+    _tu_units_cache: list[dict] = []
+
+    def _tu_units() -> list[dict]:
+        """Registered units for this TU (loaded once, not once per function)."""
+        if not _tu_units_cache:
+            try:
+                _tu_units_cache.extend(find_units(str(source), load_units()))
+            except Exception:
+                _tu_units_cache.append({})
+        return [u for u in _tu_units_cache if u]
+
+    _sib_objs_cache: list[Path] = []
+    _sib_slices_cache: dict[str, dict] = {}
+
+    def _sibling_objects() -> list[Path]:
+        """Other whole/range references for this TU, disassembled at most once.
+
+        Skips delinked/functions/<hex8>.obj -- those are per-function chunks
+        already covered by _valid_chunk_ref, and a TU like objects.c registers
+        ~150 of them, which would otherwise be disassembled per function.
+        """
+        if not _sib_objs_cache:
+            for u in _tu_units():
+                p = REPO_ROOT / u.get("base_path", "")
+                if not p.exists():
+                    continue
+                if re.match(r"[0-9a-f]{8}\.obj$", p.name, re.IGNORECASE):
+                    continue
+                try:
+                    if p.samefile(reference):
+                        continue
+                except OSError:
+                    continue
+                _sib_objs_cache.append(p)
+        return _sib_objs_cache
+
+    def _sib_slices(p: Path) -> dict:
+        key = str(p)
+        if key not in _sib_slices_cache:
+            try:
+                _sib_slices_cache[key] = co.disassemble(key)
+            except Exception:
+                _sib_slices_cache[key] = {}
+        return _sib_slices_cache[key]
+
+    def _sibling_refs(fn: str) -> list[list[str]]:
+        """Slices of fn from OTHER registered references for the same TU.
+
+        A narrow range export is often the only correctly-bounded reference for
+        a function: FUN_000b97b0 is 68 instructions in the pristine XBE, and
+        delinked/ has it at 68 (player_queues_b97b0_b9880.obj), 112
+        (…_b9900.obj) and 154 (player_queues_new.obj).  Without this the
+        widest-reference rule scores it against the 154-instruction slice.
+        """
+        out = []
+        for p in _sibling_objects():
+            slices = _sib_slices(p)
+            for alias in set(function_aliases(fn)) | {fn}:
+                s = slices.get(alias)
+                if s and _ref_insns_valid(len(s), _func_span(fn)):
+                    out.append(s)
+                    break
+        return out
+
+    # (1) Replace a whole-object slice that does not bound the function well.
+    # The pristine XBE decides: a slice is preferred when its instruction count
+    # is closer to the function's real length.  This catches both failure modes
+    # a byte-span gate cannot -- padding over-run (bipeds.obj FUN_001a0680 is
+    # 152 instructions for a 91-instruction function, scoring 61.5% against the
+    # filler vs 83.2% correctly bounded) and over-run into the neighbouring
+    # function, which carries no padding to detect.
     for fn in list(matched):
         whole = reference_funcs.get(fn, [])
-        if _ref_insns_valid(len(whole), _func_span(fn)):
+        truth = _true_insn_count(fn)
+        span_ok = _ref_insns_valid(len(whole), _func_span(fn))
+        # Nothing to do when the slice is already valid, unpadded, and either
+        # matches the binary or the binary gave no opinion.
+        if span_ok and not _slice_is_bloated(whole) and (
+                truth is None or len(whole) == truth):
             continue
-        cand = _valid_chunk_ref(fn)
-        if cand is not None and len(cand) > len(whole):
-            reference_funcs[fn] = cand
+        alternates = _sibling_refs(fn)
+        chunk = _valid_chunk_ref(fn)
+        if chunk is not None:
+            alternates.append(chunk)
+        best, best_len = None, len(whole)
+        for alt in alternates:
+            if truth is not None:
+                if _closer_to_truth(len(alt), best_len, truth):
+                    best, best_len = alt, len(alt)
+            elif _slice_is_bloated(whole) and not _slice_is_bloated(alt):
+                # No binary opinion: only trust the unambiguous padding signal.
+                best, best_len = alt, len(alt)
+            elif not span_ok and len(alt) > best_len:
+                best, best_len = alt, len(alt)
+        if best is not None:
+            reference_funcs[fn] = best
             ref_overrides.add(fn)
 
     # (2) Add candidate functions the whole-object reference dropped entirely.

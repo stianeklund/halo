@@ -8326,6 +8326,102 @@
       "metadata": {
         "source_path": "src/halo/objects/widgets/glow.c"
       }
+    },
+    {
+      "name": "halo/weapons",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/items/weapons.c.obj",
+      "base_path": "delinked/weapons.obj",
+      "metadata": {
+        "source_path": "halo/items/weapons.c"
+      }
+    },
+    {
+      "name": "halo/bsp3d",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/bsp3d.c.obj",
+      "base_path": "delinked/bsp3d.obj",
+      "metadata": {
+        "source_path": "halo/physics/bsp3d.c"
+      }
+    },
+    {
+      "name": "halo/collision_usage",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/collision_usage.c.obj",
+      "base_path": "delinked/collision_usage.obj",
+      "metadata": {
+        "source_path": "halo/physics/collision_usage.c"
+      }
+    },
+    {
+      "name": "halo/sound_classes",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/sound/sound_classes.c.obj",
+      "base_path": "delinked/sound_classes.obj",
+      "metadata": {
+        "source_path": "halo/sound/sound_classes.c"
+      }
+    },
+    {
+      "name": "halo/objects",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects.obj",
+      "metadata": {
+        "source_path": "objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/actor_moving",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_moving.c.obj",
+      "base_path": "delinked/actor_moving.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actor_moving.c"
+      }
+    },
+    {
+      "name": "halo/tiff_file",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/bitmaps/tiff_file.c.obj",
+      "base_path": "delinked/tiff_file.obj",
+      "metadata": {
+        "source_path": "src/halo/bitmaps/tiff_file.c"
+      }
+    },
+    {
+      "name": "halo/lruv_cache",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/memory/lruv_cache.c.obj",
+      "base_path": "delinked/lruv_cache.obj",
+      "metadata": {
+        "source_path": "src/halo/memory/lruv_cache.c"
+      }
+    },
+    {
+      "name": "halo/objects",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
+      "base_path": "delinked/objects.obj",
+      "metadata": {
+        "source_path": "src/halo/objects/objects.c"
+      }
+    },
+    {
+      "name": "halo/rasterizer_xbox_profile",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox_profile.c.obj",
+      "base_path": "delinked/rasterizer_xbox_profile.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox_profile.c"
+      }
+    },
+    {
+      "name": "halo/units",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/units/units.c.obj",
+      "base_path": "delinked/units.obj",
+      "metadata": {
+        "source_path": "src/halo/units/units.c"
+      }
+    },
+    {
+      "name": "halo/units",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/units/units.c.obj",
+      "base_path": "delinked/units.obj",
+      "metadata": {
+        "source_path": "units/units.c"
+      }
     }
   ]
 }
