@@ -60,6 +60,65 @@ void player_control_set_action_flags(int16_t local_player_index, uint16_t flags,
     pc->persistent_action_flags |= flags;
 }
 
+/* Evaluate a piecewise-linear transfer function sampled at `count` evenly
+ * spaced points over [0,1], with odd symmetry about 0 (the sign of `input`
+ * is stripped up front and re-applied to the result).
+ *
+ * Binary shape (0xb64c0):
+ *   [EBP-0x1] negate flag, [EBP-0x8] count-1, [EBP-0xC] int scratch that
+ *   holds (int)count and is later reused for low_index. The clamped
+ *   position `t` reuses the incoming `input` stack slot [EBP+0x10], so the
+ *   parameter is written back to here as well.
+ *   0x64cd FCOMP 0.0f  -> negate = (input < 0.0f)
+ *   0x64f6 FCOM  0.0   -> lower clamp (double 0.0 literal @0x2602c0)
+ *   0x6510 FSUB  1.0f  -> (float)count - 1.0f  (@0x2533c8)
+ *   0x6594 FSUB  f[low]  => (f[high] - f[low])
+ *   0x659a FSUBR t       => (t - (float)low_index)
+ *   0x659f FADD  f[low]  => + f[low]
+ * `count` is read as a WORD (MOVSX / CMP BX,word) so it is int16_t, and the
+ * _ftol2 result is consumed 16-bit (TEST AX,AX). The assert runs after the
+ * clamping, so it can only fire on count <= 0 or function == NULL. */
+float evaluate_piecewise_linear_function(int16_t count, float *function,
+                                         float input)
+{
+  bool negate;
+  int32_t count_minus_1;
+  int16_t low_index;
+  int16_t high_index;
+  float result;
+
+  negate = input < 0.0f;
+  count_minus_1 = count - 1;
+
+  /* PIN(fabs(input)*(count-1), 0.0, count-1.0f) -- written as the macro
+   * expansion so the scaled value stays CSE'd in ST0 and the clamp has a
+   * single shared store into the `input` slot (0x64f6..0x6529). */
+  input = (float)(fabs(input) * count_minus_1 < 0.0
+                    ? 0.0
+                    : (fabs(input) * count_minus_1 > count - 1.0f
+                         ? count - 1.0f
+                         : fabs(input) * count_minus_1));
+
+  low_index = (int16_t)input;
+  if (low_index < 0)
+    low_index = 0;
+  else if (low_index > count_minus_1)
+    low_index = (int16_t)count_minus_1;
+
+  high_index = low_index + 1;
+  if (high_index > count_minus_1)
+    high_index = (int16_t)count_minus_1;
+
+  assert_halt_at("c:\\halo\\SOURCE\\game\\player_control.c", 0x14b,
+                 function && low_index>=0 && low_index<=high_index && high_index<count);
+
+  result = (function[high_index] - function[low_index]) *
+           (input - low_index) + function[low_index];
+  if (negate)
+    result = -result;
+  return result;
+}
+
 /* Get the local player index for the player controlling a unit.
  * Looks up the unit's player handle (unit+0x1c8), then reads the local
  * player index (player+0x2) from the player datum. Returns NONE (0xffff)

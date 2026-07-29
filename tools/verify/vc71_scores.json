@@ -14852,6 +14852,10 @@
       "score": 10.5,
       "source": "src/halo/cseries/errors.c"
     },
+    "evaluate_piecewise_linear_function": {
+      "score": 93.2,
+      "source": "src/halo/game/player_control.c"
+    },
     "fast_vector_intersects_sphere": {
       "score": 42.4,
       "source": "src/halo/math/real_math.c"
