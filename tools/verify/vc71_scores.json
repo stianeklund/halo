@@ -5136,6 +5136,10 @@
       "score": 100.0,
       "source": "src/halo/game/player_control.c"
     },
+    "FUN_000b6a70": {
+      "score": 100.0,
+      "source": "src/halo/game/player_control.c"
+    },
     "FUN_000b6ea0": {
       "score": 85.5,
       "source": "src/halo/game/player_control.c"
@@ -15957,6 +15961,10 @@
       "source": "src/halo/game/player_control.c"
     },
     "player_control_get_field_of_view": {
+      "score": 100.0,
+      "source": "src/halo/game/player_control.c"
+    },
+    "player_control_get_zoom_level": {
       "score": 100.0,
       "source": "src/halo/game/player_control.c"
     },

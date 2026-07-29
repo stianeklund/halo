@@ -1,11 +1,24 @@
 /* Return a pointer to the player control data slot for a local player.
- * Each slot is 0x40 bytes, starting at offset 0x10 in the globals struct. */
+ * Each slot is 0x40 bytes, starting at offset 0x10 in the globals struct.
+ *
+ * The original never inlines this helper: 0xb6380 exists as a real function and
+ * every in-TU caller (0xb6a20, 0xb6a70, ...) emits PUSH/CALL 0xb6380 rather
+ * than the slot arithmetic.  MSVC's auto-inliner does expand it into very small
+ * callers (player_control_get_zoom_level went 12 -> 26 instructions), so the
+ * expansion is suppressed here to reproduce the original codegen.  Guarded to
+ * VC71 only; clang neither needs nor recognizes the pragma. */
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma auto_inline(off)
+#endif
 void *player_control_get_data(int16_t local_player_index)
 {
   assert_halt(local_player_index >= 0 &&
               local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
   return (char *)player_control_globals + local_player_index * 0x40 + 0x10;
 }
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma auto_inline(on)
+#endif
 
 /* Allocate the player control globals block out of the game state heap.
  * Binary: PUSH 0x110 / PUSH 0 / PUSH "player control globals" /
@@ -433,6 +446,26 @@ void player_clear_aim_assist(int unit_handle)
       pc->desired_zoom_level = NONE;
     }
   }
+}
+
+/* Return the current zoom (magnification) level for a local player, or NONE
+ * when the index is NONE.
+ *
+ * The default result is hoisted before the guard (OR EAX,0xffffffff at 0xb6a76)
+ * and only the low word is overwritten on the taken path (MOV AX,word
+ * [EAX+0x24] at 0xb6a85), so the field is a int16_t load, not a
+ * sign/zero-extended dword. The guard compares CX (16-bit) against -1. */
+int16_t player_control_get_zoom_level(int16_t local_player_index)
+{
+  player_control_t *pc;
+  int16_t zoom_level;
+
+  zoom_level = NONE;
+  if (local_player_index != NONE) {
+    pc = (player_control_t *)player_control_get_data(local_player_index);
+    zoom_level = pc->desired_zoom_level;
+  }
+  return zoom_level;
 }
 
 /* Set a player control slot's desired facing angles from a 3D direction vector.
