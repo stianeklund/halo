@@ -676,6 +676,43 @@ bool player_control_action_test_grenade_trigger(void)
   return (bool)((fields[0] >> 5) & 1u);
 }
 
+/* Test the "zoom" player action.
+ *
+ * Disassembly (0xb6b40), 5 instructions, no calls, no frame:
+ *   MOV EAX,[player_control_globals]   ; pointer loaded ONCE
+ *   MOV EAX,dword ptr [EAX]            ; dword at +0x00
+ *   SHR EAX,0x6
+ *   AND EAX,0x1
+ *   RET
+ *
+ * NOTE: Ghidra decompiles this as `void` with an empty body -- it is NOT.
+ * EAX is live at RET and carries bit 6 of the dword at +0x00
+ * (lift-learnings 16, void-EAX implicit return).  kb.json's
+ * `void ...(void)` decl was corrected to a bool return, matching the siblings
+ * 0xb6ab0/0xb6ad0/0xb6af0/0xb6b10/0xb6b20/0xb6b30.
+ *
+ * Same PURE-test shape as player_control_action_test_jump (0xb6b10),
+ * _primary_trigger (0xb6b20) and _grenade_trigger (0xb6b30): there are NO `OR`
+ * stores into the accumulator dwords at +0x04/+0x08, unlike the 10-insn members
+ * of the family, so the action is not marked as consumed here.  Adding those
+ * ORs would be an invented side effect.  Bit index is 6 (SHR EAX,0x6), i.e.
+ * FLAG(6) is the "zoom" action bit.
+ *
+ * The read is at globals+0x00 -- the GLOBAL action dword -- not the per-player
+ * player_control_t.action_flags at slot+0x08; the two are distinct, and +0x00
+ * is NOT the 0x10-based per-player slot array (stride 0x40) used elsewhere in
+ * this TU, so it must not be indexed by local_player_index.
+ *
+ * player_control_globals_t is opaque (0x110 bytes) with no named field at
+ * +0x00, so raw dword access is used. */
+bool player_control_action_test_zoom(void)
+{
+  uint32_t *fields;
+
+  fields = (uint32_t *)player_control_globals;
+  return (bool)((fields[0] >> 6) & 1u);
+}
+
 /* Set a player control slot's desired facing angles from a 3D direction vector.
  * Converts the direction vector to yaw+pitch via vector_to_angles (atan2-based
  * vector_to_angles), validates both angles for NaN/Inf, and normalizes yaw

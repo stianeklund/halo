@@ -16564,7 +16564,9 @@
     },
     {
      "addr": "0xb6b40",
-     "decl": "void player_control_action_test_zoom(void);"
+     "decl": "bool player_control_action_test_zoom(void);",
+     "name": "player_control_action_test_zoom",
+     "ported": true
     },
     {
      "addr": "0xb6b50",
