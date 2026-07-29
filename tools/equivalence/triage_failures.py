@@ -38,6 +38,7 @@ Categories, by bucket:
     - assert_metadata: only _display_assert's message/__FILE__/__LINE__ args
       differ. Our sources do not reproduce the original's line numbering.
     - stack_ptr_args: only stack-pointer args differ (MSVC vs clang frames)
+    - load_width: one side reads the field wider than the other (int vs int16/8)
     - dirty_eax: oracle uses mov ax/al, upper EAX bits are stale
     - stub_residual: oracle EAX is callee stub garbage, lifted returns 0
     - leaf_mismatch: lifted is a leaf (same-TU callees), crashes on garbage
@@ -148,6 +149,8 @@ BUCKETS = {
     "intrinsic": "harness-artifact",
     "assert_path": "harness-artifact",
     "stale": "harness-artifact",
+    # A real lift bug: the field/return type is the wrong width on one side.
+    "load_width": "suspect-real",
     "insn_limit": "needs-evidence",
     "exec_asymmetry": "needs-evidence",
     "stack_divergence": "needs-evidence",
@@ -325,6 +328,50 @@ def _is_dirty_eax(fails: list) -> bool:
         if (orc & 0xFF) == (lft & 0xFF):
             continue
         return False
+    return True
+
+
+def _repeated_byte32(v: int):
+    """If `v` is one non-zero byte repeated across all 4 bytes, return it."""
+    b = [(v >> s) & 0xFF for s in (0, 8, 16, 24)]
+    return b[0] if len(set(b)) == 1 and b[0] != 0 else None
+
+
+def _is_load_width(fails: list) -> bool:
+    """True if every EAX divergence is one side reading a field WIDER than the other.
+
+    Shape: one side is a 32-bit repeated-byte value (0xcccccccc, 0xffffffff --
+    the wide read pulled in adjacent fill bytes) and the other is that same byte
+    zero-extended from 8 or 16 bits (0x000000cc, 0x0000ffff). Both sides read the
+    same memory; only the WIDTH differs, which means one of them has the field's
+    type wrong (int vs int16_t/int8_t, or a `short` return declared `int`).
+
+    This must be checked BEFORE _is_dirty_eax, which the same shape also
+    satisfies (the low bits match, the upper bits differ) and which buckets it as
+    a harness artifact. A `mov ax` leaving stale upper bits is benign; reading a
+    narrow field at the wrong width is a real lift bug, so they cannot share a
+    category. The discriminator is the repeated-byte fill: stale upper bits are
+    arbitrary leftovers, whereas a too-wide read of fill memory yields the fill
+    pattern itself.
+    """
+    eax_diffs = [f for f in fails if "EAX:" in f["diff"]]
+    if not eax_diffs:
+        return False
+    for f in eax_diffs:
+        m = re.search(r'EAX: oracle=(0x[0-9a-f]+) lifted=(0x[0-9a-f]+)', f["diff"])
+        if not m:
+            return False
+        orc = int(m.group(1), 16)
+        lft = int(m.group(2), 16)
+        if orc == lft:
+            return False
+        wide, narrow = (lft, orc) if _repeated_byte32(lft) else (orc, lft)
+        fill = _repeated_byte32(wide)
+        if fill is None:
+            return False
+        # The narrow side must be that same byte zero-extended from 8 or 16 bits.
+        if narrow not in (fill, (fill << 8) | fill):
+            return False
     return True
 
 
@@ -551,6 +598,22 @@ def classify(row: dict, smoke: dict) -> tuple:
     lft_insn = smoke.get("lifted_insn", 0)
     orc_esp = smoke.get("oracle_esp", 0)
     lft_esp = smoke.get("lifted_esp", 0)
+
+    # Load width: one side reads the field wider than the other. Ordered ahead of
+    # dirty_eax deliberately -- the shapes overlap and dirty_eax would bucket this
+    # real bug as a harness artifact.
+    if fails and _is_load_width(fails):
+        only_eax = all(
+            f["diff"].startswith("EAX:") and ";" not in f["diff"]
+            for f in fails
+        )
+        if only_eax:
+            m = re.search(r'EAX: oracle=(0x[0-9a-f]+) lifted=(0x[0-9a-f]+)',
+                          fails[0]["diff"])
+            detail = ("field read at different widths (oracle=%s lifted=%s) -- "
+                      "check the field/return type for int vs int16_t/int8_t"
+                      % (m.group(1), m.group(2))) if m else "field width mismatch"
+            return "load_width", detail
 
     # Dirty EAX: oracle uses mov ax (16-bit), upper bits are stale pointer
     if fails and _is_dirty_eax(fails):
@@ -848,7 +911,8 @@ def main():
     # Print summary
     print(f"{'Category':<22} {'Count':>5}  Description")
     print(f"{'-'*22} {'-'*5}  {'-'*50}")
-    order = ["arg_mismatch", "genuine", "call_seq", "dirty_eax", "stub_residual", "leaf_mismatch",
+    order = ["arg_mismatch", "genuine", "call_seq", "load_width",
+             "dirty_eax", "stub_residual", "leaf_mismatch",
              "insn_limit", "exec_asymmetry", "stack_divergence",
              "ftol2", "intrinsic", "assert_path", "assert_metadata",
              "assert_call_seq", "stack_ptr_args", "benign_arg_width",
@@ -863,6 +927,7 @@ def main():
             "genuine": "Both sides complete normally, results differ — INVESTIGATE",
             "arg_mismatch": "Wrong arg to a named callee — INVESTIGATE (§10)",
             "call_seq": "Stub call sequence diverged — INVESTIGATE",
+            "load_width": "Field read at different widths — INVESTIGATE (int vs int16/int8)",
             "assert_metadata": "Only assert message/__FILE__/__LINE__ args differ",
             "assert_call_seq": "Call-seq diverged around an assert path",
             "stack_ptr_args": "Only stack-pointer args differ (frame layout)",

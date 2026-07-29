@@ -1132,7 +1132,11 @@ IEEE-754 comparisons involving NaN are **unordered**: `NaN < 1e-8f`, `NaN <= 1e-
 
 ## 24. Narrow Field Read as a Wider Type (`int` vs `int16_t`/`int8_t`)
 
-**Automation:** FULL — `compare_obj.py::compare_load_widths` surfaces `[LOADW-WARN]` in `vc71_verify.py`; sweep the whole tree with `python3 tools/verify/vc71_regression.py loadw`. Self-test: `python3 tools/verify/compare_obj.py --self-test`. This is a byte-diff-lane check (needs a delinked reference), not a source hazard scan — see below.
+**Automation:** FULL, in TWO lanes.
+- *Byte-diff lane (needs a delinked reference):* `compare_obj.py::compare_load_widths` surfaces `[LOADW-WARN]` in `vc71_verify.py`; sweep the whole tree with `python3 tools/verify/vc71_regression.py loadw`. Self-test: `python3 tools/verify/compare_obj.py --self-test`. Not a source hazard scan — see below.
+- *Runtime lane (no reference needed):* `triage_failures.py::_is_load_width` classifies the divergence as `load_width`/suspect-real. Self-test: `python3 tools/equivalence/test_triage_classify.py`. Added 2026-07-29 because this class was being absorbed by `_is_dirty_eax` — the shapes overlap (low bits match, upper differ), and `dirty_eax` buckets as *harness-artifact*, so a real wrong-width return was filed as benign. `load_width` is therefore ordered **ahead of** `dirty_eax` in `classify()`, and both directions are pinned by test so widening one does not swallow the other. Found `unit_inventory_next_weapon`: oracle returns a 16-bit `NONE` (`0x0000ffff`), our lift a 32-bit `-1` (`0xffffffff`).
+
+**Correction (2026-07-29):** the claim below that this class "does not reproduce under zero-fill equivalence" is too strong. It does not reproduce under *zero* fill, but the concolic phase fills untouched globals with `0xcc`, so a too-wide read returns the fill pattern itself (`oracle=0x000000cc lifted=0xcccccccc`) — which is exactly what makes the runtime lane possible. Adjacent-field-is-nonzero is the requirement; zero-fill is only one way to violate it.
 
 **What happens:** The decompiler widens a narrow field. Ghidra frequently types a 16- or 8-bit field as `undefined4`/`int`, so the lift reads `*(int *)(p + off)` (a 32-bit load) where the original does a signed/unsigned 16- or 8-bit load (`movsx`/`movzx`, or a 16/8-bit `mov`). The extra bytes come from the **adjacent field**: when the next field is non-zero, the widened read returns a garbage value.
 
