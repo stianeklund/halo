@@ -610,6 +610,37 @@ bool player_control_action_test_jump(void)
   return (bool)((fields[0] >> 1) & 1u);
 }
 
+/* Test the "primary trigger" player action.
+ *
+ * Disassembly (0xb6b20), 5 instructions, no calls, no frame:
+ *   MOV EAX,[player_control_globals]   ; pointer loaded ONCE
+ *   MOV EAX,dword ptr [EAX]            ; dword at +0x00
+ *   SHR EAX,0x4
+ *   AND EAX,0x1
+ *   RET
+ *
+ * NOTE: Ghidra decompiles this as `void` with an empty body -- it is NOT.
+ * EAX is live at RET and carries bit 4 of the dword at +0x00
+ * (lift-learnings 16, void-EAX implicit return).  kb.json's
+ * `void ...(void)` decl was corrected to a bool return, matching the siblings
+ * 0xb6ab0/0xb6ad0/0xb6af0/0xb6b10.
+ *
+ * Same PURE-test shape as player_control_action_test_jump (0xb6b10): there are
+ * NO `OR` stores into the accumulator dwords at +0x04/+0x08, unlike the 10-insn
+ * members of the family, so the action is not marked as consumed here.  Adding
+ * those ORs would be an invented side effect.  Bit index is 4 (SHR EAX,0x4),
+ * i.e. FLAG(4) is the "primary trigger" action bit.
+ *
+ * player_control_globals_t is opaque (0x110 bytes) with no named field at
+ * +0x00, so raw dword access is used. */
+bool player_control_action_test_primary_trigger(void)
+{
+  uint32_t *fields;
+
+  fields = (uint32_t *)player_control_globals;
+  return (bool)((fields[0] >> 4) & 1u);
+}
+
 /* Set a player control slot's desired facing angles from a 3D direction vector.
  * Converts the direction vector to yaw+pitch via vector_to_angles (atan2-based
  * vector_to_angles), validates both angles for NaN/Inf, and normalizes yaw
