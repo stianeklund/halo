@@ -475,10 +475,69 @@ def build_base_c(func_name: str, func_body: str, file_statics: str = "") -> str:
 """
 
 
+def _fix_struct_scope_issue(base_c_path: Path) -> None:
+    """Move struct/union definitions outside the #ifndef TYPES_H guard.
+
+    Structs defined inside #ifndef TYPES_H are unavailable after #endif.
+    This moves them to after the #endif so the function body can use them.
+    """
+    content = base_c_path.read_text()
+
+    # Simple fix: if there's a struct definition inside #ifndef TYPES_H,
+    # move it outside. Match the pattern: #ifndef, then struct..., then #endif
+    # This is a band-aid fix for the permuter tool's struct scope issue.
+
+    lines = content.split('\n')
+    ifndef_idx = None
+    endif_idx = None
+    struct_lines = []
+
+    # Find #ifndef TYPES_H and #endif
+    for i, line in enumerate(lines):
+        if '#ifndef TYPES_H' in line:
+            ifndef_idx = i
+        elif '#endif' in line and ifndef_idx is not None:
+            endif_idx = i
+            break
+
+    if ifndef_idx is None or endif_idx is None:
+        return
+
+    # Collect struct definitions between #ifndef and #endif
+    i = ifndef_idx + 1
+    output_lines = lines[:ifndef_idx+1]
+
+    while i < endif_idx:
+        line = lines[i]
+        if line.strip().startswith('struct ') and '{' in line:
+            # Collect this struct definition until we find the closing };
+            struct_start = i
+            while i < endif_idx and '};' not in lines[i]:
+                struct_lines.append(lines[i])
+                i += 1
+            if i < endif_idx:
+                struct_lines.append(lines[i])  # Include the }; line
+                i += 1
+        else:
+            output_lines.append(line)
+            i += 1
+
+    # Add the #endif
+    output_lines.append(lines[endif_idx])
+
+    # Add struct definitions after #endif
+    output_lines.extend(struct_lines)
+
+    # Add the rest of the file
+    output_lines.extend(lines[endif_idx+1:])
+
+    base_c_path.write_text('\n'.join(output_lines))
+
 
 def compile_base(work_dir: Path) -> bool:
     """Pre-compile base.c to verify the setup before permuter starts."""
     base_c = work_dir / "base.c"
+    _fix_struct_scope_issue(base_c)
     base_o = work_dir / "base.o"
     result = subprocess.run(
         [str(COMPILE_SH), str(base_c), "-o", str(base_o)],
