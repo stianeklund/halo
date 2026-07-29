@@ -119,6 +119,29 @@ float evaluate_piecewise_linear_function(int16_t count, float *function,
   return result;
 }
 
+/* Return the aiming unit index for a local player's controlled unit.
+ * Binary (0xb65c0): MOVSX ESI,word [EBP+8] bounds-checked against
+ * [0, MAXIMUM_NUMBER_OF_LOCAL_PLAYERS), then
+ *   MOV ECX,[player_control_globals] / SHL EAX,6 /
+ *   MOV EDX,[EAX+ECX+0x10] / LEA EAX,[EAX+ECX+0x10] / PUSH EDX /
+ *   CALL unit_get_aiming_unit_index / ADD ESP,4 / RET.
+ * The LEA computes the slot pointer that the MOV already used, i.e. the
+ * original called an inlined player_control_get_data; the `pc` local here
+ * reproduces that shape.
+ * The result is never touched after the call, so the return value is the
+ * callee's implicit EAX (lift-learnings SS16 void-EAX) -- Ghidra's
+ * `void (void)` is wrong on both the parameter and the return. */
+int32_t player_control_get_aiming_unit_index(int16_t local_player_index)
+{
+  player_control_t *pc;
+
+  assert_halt_at("c:\\halo\\SOURCE\\game\\player_control.c", 0xb1,
+                 local_player_index>=0 && local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+  pc = (player_control_t *)((char *)player_control_globals +
+                            local_player_index * 0x40 + 0x10);
+  return unit_get_aiming_unit_index(pc->unit_index);
+}
+
 /* Get the local player index for the player controlling a unit.
  * Looks up the unit's player handle (unit+0x1c8), then reads the local
  * player index (player+0x2) from the player datum. Returns NONE (0xffff)
