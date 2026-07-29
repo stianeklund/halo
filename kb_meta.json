@@ -4176,6 +4176,37 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xb6b10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb6b20": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Bit index 4 of the dword at player_control_globals+0x00 is the primary-trigger action bit; the mapping bit-index -> action name is inferred from the sibling family naming (0xb6ab0 accept=2, 0xb6ad0 back=3, 0xb6af0 action=0, 0xb6b10 jump=1), not from any string or PDB evidence."
+      ],
+      "uncertain": [
+        "player_control_globals_t is still opaque (0x110 bytes) with no named field at +0x00, so the dword is accessed as a raw uint32_t; the full meaning of the three dwords at +0x00/+0x04/+0x08 beyond the bit-per-action encoding remains unknown."
+      ]
+    },
+    "0xb6b30": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Bit 5 of the dword at player_control_globals+0x00 is the grenade-trigger action bit; the bit index is confirmed by SHR EAX,0x5 but the field name at +0x00 is inferred from the sibling family (0xb6ab0/0xb6ad0/0xb6af0), not from a string or PDB symbol."
+      ],
+      "uncertain": [
+        "player_control_globals_t remains opaque (char unk_0[0x110]) so the +0x00 dword is accessed by raw cast; whether it is the same flags word as the per-player player_control_t.action_flags at slot+0x08 is unproven and the two are treated as distinct."
+      ]
+    },
+    "0xb6b40": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Bit 6 of the action dword at player_control_globals+0x00 is the zoom action bit; the bit index is Confirmed from SHR EAX,0x6 but the zoom semantic comes from the pre-existing kb.json name, not from a string or PDB."
+      ]
+    },
     "0xb6ea0": {
       "kind": "function",
       "status": "ported"
@@ -6632,7 +6663,9 @@
         "Return type is bool: the sole non-noreturn exit at 0xf7c6a executes MOV AL,0x1 immediately before MOV ESP,EBP; POP EBP; RET, so item_update returns true. No direct caller xref exists (dispatched through an object update table), so the consumer of the return value is unverified.",
         "The 0x6c-byte ground-point marker record and the collision result written by FUN_000130d0 share one stack slot because VC7.1 packs their disjoint lifetimes; the collision record begins at marker_buf+0x1c and the marker real_matrix4x3 at marker_buf+0x38, so the lift uses a single marker_buf and offsets rather than two locals.",
         "The 0x6c-byte marker buffer and the 0x50-byte FUN_000130d0 collision result share stack space in the original (disjoint lifetimes, both ending at the same address); the collision result begins 0x1c bytes into the marker buffer, and the 52-byte block copied out of marker_buf+0x38 is the marker's real_matrix4x3 (scale, forward, left, up, position), corroborated by item_set_position already reading the ground normal at marker_buf+0x54.",
-        "FUN_000f7110 (0xf7110) takes three register arguments plus one stack pointer: EAX = a point (NULL at the at-rest call site), ESI = a vector, EBX = the item handle, with the stack argument pushed immediately before; kb decl updated to void FUN_000f7110(float *hit_point, float *point@<eax>, float *normal@<esi>, int item_handle@<ebx>)."
+        "FUN_000f7110 (0xf7110) takes three register arguments plus one stack pointer: EAX = a point (NULL at the at-rest call site), ESI = a vector, EBX = the item handle, with the stack argument pushed immediately before; kb decl updated to void FUN_000f7110(float *hit_point, float *point@<eax>, float *normal@<esi>, int item_handle@<ebx>).",
+        "Ghidra split ONE 0x6c-byte object_marker buffer (EBP-0xcc) and ONE 0x50-byte collision_result (EBP-0xb0) into a dozen independent local_XX slots; MSVC packed the two aggregates on top of each other because their live ranges are disjoint, and the lift declares them separately (collision +0x00 short type, +0x0c location, +0x18 point3d, +0x24 normal, +0x34 short, +0x38 hit handle, +0x44 surface index).",
+        "The 13-dword rep-movsd in the spin block copies marker_buf+0x38 (the marker world real_matrix4x3: scale, forward, left, up, position = 52 bytes) into a local matrix, and the sound block at the +0x264 tag field builds a separate 0x2c-byte location struct (point, normal, global forward at 0x31fc38, object leaf/cluster from obj+0x48/+0x4c)."
       ],
       "uncertain": [
         "The 13-dword REP MOVSD at 0xf7ab6 copies collision_result+0x1c into a real_matrix4x3, so the matrix's scale field is fed from the hit point's y component (+0x1c sits inside the point at +0x18); the original field name for that 52-byte region of the collision result is unknown.",
@@ -6643,7 +6676,8 @@
         "Two dot-product expressions (0xf76d0, 0xf766f) were written in the exact FLD order emitted by the binary rather than natural x,y,z order; the original source order is unknown and the two associations differ only below float rounding.",
         "When FUN_000130d0 reports no collision the lift still passes marker_buf+0x28 as object_translate's location argument, exactly as the original does; whether that slot is initialized on the no-collision path is unverified.",
         "Argument 3 of object_translate is assumed to be the address collision+0x0c because the corresponding argument 6 of FUN_0009f430 is provably a LEA of that slot; the object_translate push itself was not read from disassembly, so it could be the dword value at that address instead.",
-        "The 0x6c-byte object marker record at EBP-0xc8 and the collision result returned by FUN_000130d0 at EBP-0xac share one stack slot in the original frame; the lift reproduces the overlap by indexing the collision fields at marker_buf+0x1c, which is correct only because the two are never live simultaneously."
+        "The 0x6c-byte object marker record at EBP-0xc8 and the collision result returned by FUN_000130d0 at EBP-0xac share one stack slot in the original frame; the lift reproduces the overlap by indexing the collision fields at marker_buf+0x1c, which is correct only because the two are never live simultaneously.",
+        "The bounce impulse uses two distinct adjacent .rdata floats (0x25686c for the normal.x term, 0x256870 for the normal.y and normal.z terms), which is consistent with MSVC folding a leading negation into a separate pooled constant for -(dot)*k, but the exact source-level expression was not recovered; VC71 emits the three fmuls in the opposite operand order regardless of how the multiplication is associated in C, leaving a persistent FPU-WARN."
       ]
     },
     "0xf7cb0": {
