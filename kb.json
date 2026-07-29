@@ -16492,9 +16492,9 @@
     },
     {
      "addr": "0xb6870",
-     "decl": "int player_control_get_unit_index(short local_player_index);",
+     "decl": "int32_t player_control_get_unit_index(int16_t local_player_index);",
      "name": "player_control_get_unit_index",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0xb68c0",
