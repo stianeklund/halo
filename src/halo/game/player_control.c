@@ -468,6 +468,24 @@ int16_t player_control_get_zoom_level(int16_t local_player_index)
   return zoom_level;
 }
 
+/* Zero the first two dwords of player_control_globals (+0x00 and +0x04).
+ * Disassembly (0xb6a90): MOV EAX,[player_control_globals] /
+ * MOV dword ptr [EAX],0x0 / MOV dword ptr [EAX+0x4],0x0 / RET.
+ * The globals pointer is loaded exactly once into EAX and both stores go
+ * through it, so the global is read once here rather than twice.
+ * Both stores are full 32-bit dword width (MOV dword ptr, imm32).
+ * player_control_globals_t is opaque (0x110 bytes) with no named fields at
+ * +0x00/+0x04, so raw dword access is used.  The meaning of the two fields
+ * is UNKNOWN; the name comes from kb.json. */
+void player_control_action_test_reset(void)
+{
+  uint32_t *fields;
+
+  fields = (uint32_t *)player_control_globals;
+  fields[0] = 0;
+  fields[1] = 0;
+}
+
 /* Set a player control slot's desired facing angles from a 3D direction vector.
  * Converts the direction vector to yaw+pitch via vector_to_angles (atan2-based
  * vector_to_angles), validates both angles for NaN/Inf, and normalizes yaw
