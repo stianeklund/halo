@@ -16504,7 +16504,9 @@
     },
     {
      "addr": "0xb6940",
-     "decl": "float player_control_get_autoaim_level(int16_t local_player_index);"
+     "decl": "float player_control_get_autoaim_level(int16_t local_player_index);",
+     "name": "player_control_get_autoaim_level",
+     "ported": true
     },
     {
      "addr": "0xb69d0",
