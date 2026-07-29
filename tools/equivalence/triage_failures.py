@@ -153,6 +153,11 @@ BUCKETS = {
     # every call they both made, so neither is a control-flow difference.
     "call_seq_truncated": "harness-artifact",
     "call_seq_shifted": "harness-artifact",
+    # One side CALLed a callee the other INLINED, so the two surviving sequences
+    # describe different amounts of code and cannot be compared. NOT filed as an
+    # artifact: the comparison is uninformative, which is not the same as proven
+    # benign, and a real bug could sit behind it unnoticed.
+    "call_seq_inline_asymmetry": "needs-evidence",
     # A real lift bug: the field/return type is the wrong width on one side.
     "load_width": "suspect-real",
     "insn_limit": "needs-evidence",
@@ -284,7 +289,7 @@ def parse_smoke_log(path: Path) -> dict:
     # 2026-07-29, which is why _seq_relation-based categories only apply when
     # the marker is actually present -- an older log keeps the old verdict
     # rather than being silently reclassified on missing evidence.
-    m = re.search(r'call-seq (TRUNCATED|SHIFTED|DIVERGENT)', text)
+    m = re.search(r'call-seq (TRUNCATED|SHIFTED|DIVERGENT|INLINE-ASYMMETRY)', text)
     info["seq_relation"] = m.group(1).lower() if m else ""
 
     # Which comparison fields actually failed, independent of stub-args
@@ -606,6 +611,10 @@ def classify(row: dict, smoke: dict) -> tuple:
             if rel == "shifted":
                 return "call_seq_shifted", (
                     f"sequences off by one{idx}; identical without the extra call")
+            if rel == "inline-asymmetry":
+                return "call_seq_inline_asymmetry", (
+                    f"one side CALLed a callee the other INLINED{idx}; the "
+                    f"surviving sequences are not comparable")
             if rel == "divergent":
                 return "call_seq", f"different callee at the same position{idx}"
             return "call_seq", f"stub call sequence diverged{idx} (shape not recorded)"
@@ -957,6 +966,8 @@ def main():
             "call_seq": "Different callee at the same position — INVESTIGATE",
             "call_seq_truncated": "One side stopped early (shared calls all agree)",
             "call_seq_shifted": "Call sequences off by one (alignment)",
+            "call_seq_inline_asymmetry":
+                "One side CALLed what the other INLINED (not comparable)",
             "load_width": "Field read at different widths — INVESTIGATE (int vs int16/int8)",
             "assert_metadata": "Only assert message/__FILE__/__LINE__ args differ",
             "assert_call_seq": "Call-seq diverged around an assert path",

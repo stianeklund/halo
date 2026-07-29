@@ -610,6 +610,64 @@ def test_unmapped_slot_is_still_reported():
     print("  PASS  test_unmapped_slot_is_still_reported")
 
 
+def test_one_sided_nesting_is_flagged_as_inline_asymmetry():
+    """Nested drops on one side only means inline-vs-call, not a real difference.
+
+    Attribution fixes the side that CALLed the callee (its inner calls are
+    dropped) but cannot touch the side that INLINED it (identical inner calls
+    issue from within the target's own extent). The surviving sequences then
+    describe different amounts of code. object_get_node_matrix is the worked
+    example: both sides end at the same assert (line 0x424), yet the candidate
+    shows the inlined helper's three calls first.
+    """
+    # Three extra calls, as in the real case: a single extra would be explained
+    # (correctly, and more specifically) by the `shifted` rule, which is tested
+    # separately and runs first.
+    oracle = _ranged_tracer(_TGT,
+                            _rec(0, _SENTINEL_A, "assert", 0x424,
+                                 caller_addr=_IN),
+                            _rec(1, _SENTINEL_B, "inner1", 0x1,
+                                 caller_addr=_OUTSIDE),
+                            _rec(2, _SENTINEL_B, "inner2", 0x2,
+                                 caller_addr=_OUTSIDE),
+                            _rec(3, _SENTINEL_B, "inner3", 0x3,
+                                 caller_addr=_OUTSIDE))
+    cand = _ranged_tracer(_TGT,
+                          _rec(0, _SENTINEL_B, "inner1", 0x1, caller_addr=_IN),
+                          _rec(1, _SENTINEL_B, "inner2", 0x2, caller_addr=_IN),
+                          _rec(2, _SENTINEL_B, "inner3", 0x3, caller_addr=_IN),
+                          _rec(3, _SENTINEL_A, "assert", 0x424,
+                               caller_addr=_IN))
+    d = compare_stub_arg_traces(oracle, cand, seed_label="s-inline")
+    assert d.sequence_diverged, "still a divergence, just not an adjudicable one"
+    kind, _ = d.sequence_relation()
+    assert kind == "inline-asymmetry", kind
+    assert d.nested_dropped_oracle == 3 and d.nested_dropped_candidate == 0, (
+        f"{d.nested_dropped_oracle}/{d.nested_dropped_candidate}")
+    print("  PASS  test_one_sided_nesting_is_flagged_as_inline_asymmetry")
+
+
+def test_symmetric_nesting_still_reports_divergent():
+    """The opposite direction: equal nesting on both sides is comparable.
+
+    inline-asymmetry must key on the ASYMMETRY, not on nesting existing at all —
+    otherwise any target with nested calls becomes unadjudicable and real
+    control-flow bugs stop being reported.
+    """
+    oracle = _ranged_tracer(_TGT,
+                            _rec(0, _SENTINEL_A, "foo", 0x1, caller_addr=_IN),
+                            _rec(1, _SENTINEL_B, "inner", 0x1,
+                                 caller_addr=_OUTSIDE))
+    cand = _ranged_tracer(_TGT,
+                          _rec(0, _SENTINEL_B, "bar", 0x1, caller_addr=_IN),
+                          _rec(1, _SENTINEL_B, "inner", 0x1,
+                               caller_addr=_OUTSIDE))
+    d = compare_stub_arg_traces(oracle, cand, seed_label="s-sym")
+    kind, _ = d.sequence_relation()
+    assert kind == "divergent", f"symmetric nesting must stay adjudicable: {kind}"
+    print("  PASS  test_symmetric_nesting_still_reports_divergent")
+
+
 def test_nested_call_is_attributed_away():
     """A call made by a natively-executed callee is not the target's behaviour.
 

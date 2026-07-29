@@ -183,6 +183,25 @@ class StubArgDiff:
                             "without it) -- alignment artifact, not a control-flow "
                             "difference" % (side, k))
         first = next((i for i, (a, b) in enumerate(zip(o, c)) if a != b), min(len(o), len(c)))
+        # One side had calls attributed away as nested while the other had none:
+        # the two sides resolved the same callee differently -- one CALLed it (so
+        # its inner calls are nested and dropped), the other INLINED it (so the
+        # identical inner calls issue from within the target's own extent and are
+        # kept). The surviving sequences are then not comparable, and the
+        # difference is not evidence about the target. object_get_node_matrix is
+        # the worked example: both sides end at the SAME assert (line 0x424),
+        # but the candidate shows the inlined helper's datum_get/tag_get/tag_get
+        # first while the oracle's three equivalents were dropped as nested.
+        if bool(self.nested_dropped_oracle) != bool(self.nested_dropped_candidate):
+            return ("inline-asymmetry",
+                    "one side CALLed a callee the other INLINED (nested dropped: "
+                    "oracle=%d candidate=%d), so the surviving sequences are not "
+                    "comparable; first difference at index %d: oracle=%s "
+                    "candidate=%s" % (
+                        self.nested_dropped_oracle,
+                        self.nested_dropped_candidate, first,
+                        o[first] if first < len(o) else "(end)",
+                        c[first] if first < len(c) else "(end)"))
         return ("divergent",
                 "callees differ at index %d: oracle=%s candidate=%s -- real "
                 "control-flow difference" % (

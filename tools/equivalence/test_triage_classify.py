@@ -279,6 +279,27 @@ def test_call_seq_without_shape_marker_stays_suspect_real():
     print("  ok  call-seq with no shape marker stays suspect-real")
 
 
+def test_inline_asymmetry_is_needs_evidence_not_artifact():
+    """One side CALLed what the other INLINED: uninformative, not proven benign.
+
+    The comparison cannot say anything about the target, so it must not stay
+    suspect-real -- but it also must not be filed as harness-artifact, because a
+    real bug could sit behind an uncomparable sequence. needs-evidence is the
+    calibrated bucket: re-run with symmetric callee resolution to decide.
+    """
+    body = "".join(
+        f"  seed[ {i}] FAIL: stub-args: call-seq diverged at index 0\n"
+        "  call-seq INLINE-ASYMMETRY: one side CALLed a callee the other "
+        "INLINED (nested dropped: oracle=3 candidate=0)\n"
+        for i in range(20)
+    )
+    cat, detail = classify(ROW, _smoke(body))
+    assert cat == "call_seq_inline_asymmetry", cat
+    assert BUCKETS[cat] == "needs-evidence", BUCKETS[cat]
+    assert "INLINED" in detail, detail
+    print("  ok  inline-asymmetry is needs-evidence")
+
+
 def test_narrow_field_read_wide_is_load_width():
     """oracle reads 16 bits, we read 32 and pull in the adjacent fill.
 

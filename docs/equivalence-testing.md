@@ -592,16 +592,41 @@ sibling's own equivalence target, not this one. The drop count is reported as
 `call-seq NESTED-DROPPED oracle=N candidate=M`, never silently swallowed — a
 large asymmetry there is exactly the context a reader of the divergence needs.
 
-Result on the three: `FUN_0005a120` went clean on 45 of 46 seeds; the other two
-stopped being `divergent` and now self-classify as `truncated` / `shifted`.
-**The class contains no genuine control-flow divergences.**
+Result on the three: `FUN_0005a120` went clean on 45 of 46 seeds;
+`object_delete_recursive` stopped being `divergent` and self-classifies as
+`shifted`; `FUN_000d6cc0` stayed `divergent` for the reason below. **None is a
+lift bug.**
 
-Attribution cannot see through **inlining** — when clang inlines the sibling,
-its calls issue from inside the target's own extent (`FUN_000d6cc0` is 1152
-candidate bytes against 400 oracle bytes, and its extra `_display_assert` at
-`+0x447` is `hud_get_nav_point_data`'s NULL-guard, line `0x60`, firing on
-un-seeded harness memory). Those land in the existing `truncated`/`shifted`
-buckets, which is the honest place for them.
+#### Attribution cannot see through inlining — `inline-asymmetry`
+
+When clang **inlines** the sibling, its calls issue from inside the target's own
+extent, so attribution cannot reach them. Two sub-cases, both measured:
+
+- **One-sided nesting.** The side that CALLed the callee has its inner calls
+  dropped; the side that inlined it keeps the identical inner calls. The
+  surviving sequences then describe different amounts of code and are not
+  comparable. `sequence_relation()` reports `inline-asymmetry` when nested drops
+  are non-zero on exactly one side, and triage files it **`needs-evidence`** —
+  not `harness-artifact`, because "uninformative" is not "proven benign".
+  `object_get_node_matrix` is the worked example: both sides end at the *same*
+  assert (line `0x424`), but the candidate shows the inlined helper's
+  `datum_get`/`tag_get('obje')`/`tag_get('mode')` first while the oracle's three
+  equivalents were dropped as nested. The rule keys on the **asymmetry**, not on
+  nesting existing at all — symmetric nesting stays adjudicable, or any target
+  with nested calls would silently become unreportable.
+
+- **No nesting either side, inlined guard fires.** `FUN_000d6cc0` is 1152
+  candidate bytes against 400 oracle bytes because `hud_get_nav_point_data` was
+  inlined; its extra `_display_assert` at `+0x447` is that helper's NULL-guard
+  (line `0x60`) firing because `nav_point_data` (`0x46bd1c`) is zero in a
+  zero-filled harness. The oracle CALLs the helper, gets a stub returning 0, and
+  never runs the guard. Confirmed by measurement rather than inference: seeding
+  `0x46bd1c` non-NULL via `--state-snapshot` removes the call-seq divergence on
+  every seed that completes (4 of 12 — the other 8 become ORACLE-CRASH
+  `eip=0xffffffff`, the known synthetic-block artifact, so they are
+  inconclusive rather than clean). This shape is not mechanically separable
+  from a real divergence, so it stays `divergent`/`suspect-real` in the ledger
+  with the diagnosis recorded.
 
 Three properties pinned by test, each a silent failure mode:
 
