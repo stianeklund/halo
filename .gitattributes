@@ -1,6 +1,14 @@
 # Enforce LF for all text files
 * text=auto eol=lf
 
+# README.md carries a generated progress block (GAME_CODE_PROGRESS_START/END)
+# rewritten by tools/report/generate_decomp_report.py after every lift. Several
+# lanes regenerate it independently, so branch and main disagree on the same
+# lines and every rebase collides -- once per replayed commit. It is generated
+# output, so always keep the copy already on the target branch; the next report
+# run rewrites the block regardless. Requires: git config merge.ours.driver true
+README.md merge=ours
+
 # Explicitly mark binary files to avoid corruption
 *.iso binary
 *.bin binary
