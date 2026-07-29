@@ -228,7 +228,7 @@ class HistoryManager:
         if not snapshots:
             return {'labels': [], 'functions': [], 'bytes': [], 'velocity': []}
         
-        recent = snapshots[-90:] if len(snapshots) > 90 else snapshots
+        recent = snapshots
         
         labels = []
         functions = []
