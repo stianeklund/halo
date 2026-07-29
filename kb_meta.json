@@ -4154,6 +4154,28 @@
         "VC71 auto-inlines player_control_get_data into this very small caller (12 -> 26 instructions), which the original never does; the definition of player_control_get_data is therefore wrapped in a VC71-only #pragma auto_inline(off)/(on) pair, restoring an exact 12/12 instruction match without changing any other function in the TU."
       ]
     },
+    "0xb6a90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb6ab0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb6ad0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Returns bool in EAX, not void: Ghidra dropped the implicit return (lift-learnings 16); the tail MOV EAX,[EAX] / SHR EAX,0x3 / AND EAX,0x1 leaves bit 3 of the dword at player_control_globals+0x00 live at RET, so the kb.json decl was corrected from void to bool."
+      ],
+      "uncertain": [
+        "The three dwords at player_control_globals +0x00/+0x04/+0x08 are unnamed (the struct is an opaque 0x110-byte blob); bit 3 is inferred to be the back action only from the function name and the sibling family at 0xb6ab0-0xb6bd0, and the +0x04/+0x08 dwords are described as tested/used accumulators without direct string evidence."
+      ]
+    },
+    "0xb6af0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xb6ea0": {
       "kind": "function",
       "status": "ported"
@@ -6609,7 +6631,8 @@
         "FUN_000f7110 (0xf7110) register-arg signature inferred from both call sites (0xf76cb, 0xf7a00): EBX=item_handle, ESI=vector3d, EAX=point-or-NULL, plus one stack point; the semantic role of the EAX slot is unknown.",
         "Return type is bool: the sole non-noreturn exit at 0xf7c6a executes MOV AL,0x1 immediately before MOV ESP,EBP; POP EBP; RET, so item_update returns true. No direct caller xref exists (dispatched through an object update table), so the consumer of the return value is unverified.",
         "The 0x6c-byte ground-point marker record and the collision result written by FUN_000130d0 share one stack slot because VC7.1 packs their disjoint lifetimes; the collision record begins at marker_buf+0x1c and the marker real_matrix4x3 at marker_buf+0x38, so the lift uses a single marker_buf and offsets rather than two locals.",
-        "The 0x6c-byte marker buffer and the 0x50-byte FUN_000130d0 collision result share stack space in the original (disjoint lifetimes, both ending at the same address); the collision result begins 0x1c bytes into the marker buffer, and the 52-byte block copied out of marker_buf+0x38 is the marker's real_matrix4x3 (scale, forward, left, up, position), corroborated by item_set_position already reading the ground normal at marker_buf+0x54."
+        "The 0x6c-byte marker buffer and the 0x50-byte FUN_000130d0 collision result share stack space in the original (disjoint lifetimes, both ending at the same address); the collision result begins 0x1c bytes into the marker buffer, and the 52-byte block copied out of marker_buf+0x38 is the marker's real_matrix4x3 (scale, forward, left, up, position), corroborated by item_set_position already reading the ground normal at marker_buf+0x54.",
+        "FUN_000f7110 (0xf7110) takes three register arguments plus one stack pointer: EAX = a point (NULL at the at-rest call site), ESI = a vector, EBX = the item handle, with the stack argument pushed immediately before; kb decl updated to void FUN_000f7110(float *hit_point, float *point@<eax>, float *normal@<esi>, int item_handle@<ebx>)."
       ],
       "uncertain": [
         "The 13-dword REP MOVSD at 0xf7ab6 copies collision_result+0x1c into a real_matrix4x3, so the matrix's scale field is fed from the hit point's y component (+0x1c sits inside the point at +0x18); the original field name for that 52-byte region of the collision result is unknown.",
@@ -6619,7 +6642,8 @@
         "The collision result (0x50 bytes at EBP-0xac) and the object-marker buffer (0x6c bytes at EBP-0xc8) overlap in the original MSVC frame; they are declared as separate locals here because their live ranges are disjoint and no field is read across them, but the original source's declaration scoping is unknown.",
         "Two dot-product expressions (0xf76d0, 0xf766f) were written in the exact FLD order emitted by the binary rather than natural x,y,z order; the original source order is unknown and the two associations differ only below float rounding.",
         "When FUN_000130d0 reports no collision the lift still passes marker_buf+0x28 as object_translate's location argument, exactly as the original does; whether that slot is initialized on the no-collision path is unverified.",
-        "Argument 3 of object_translate is assumed to be the address collision+0x0c because the corresponding argument 6 of FUN_0009f430 is provably a LEA of that slot; the object_translate push itself was not read from disassembly, so it could be the dword value at that address instead."
+        "Argument 3 of object_translate is assumed to be the address collision+0x0c because the corresponding argument 6 of FUN_0009f430 is provably a LEA of that slot; the object_translate push itself was not read from disassembly, so it could be the dword value at that address instead.",
+        "The 0x6c-byte object marker record at EBP-0xc8 and the collision result returned by FUN_000130d0 at EBP-0xac share one stack slot in the original frame; the lift reproduces the overlap by indexing the collision fields at marker_buf+0x1c, which is correct only because the two are never live simultaneously."
       ]
     },
     "0xf7cb0": {

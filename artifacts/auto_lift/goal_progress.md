@@ -1543,3 +1543,76 @@ Mixed batch (rasterizer, draw_string, main, decals, player_control, actions). 2 
 
 **Summary:** 4/4 committed (goal_reached); 2 parked (int16 cap 77.3%, frame-overlap cap 84.2%); 20 skipped (9 prior-fail bypassed, 6 already-implemented/dormant, 3 kb.json ABI gaps, 2 CRT/attribution issues). All commits pass policy gates (100% or high-confidence match).
 
+
+## Goal-lift run — 4/4 committed (goal_reached) — 2026-07-29 15:XX
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_000f5660 | 0xf5660 | items.obj | - | skipped | skip_prior_fail (parked before, 21 fresh candidates available) |
+| FUN_00172520 | 0x172520 | rasterizer.obj | - | skipped | skip_prior_fail (parked before, 21 fresh candidates available) |
+| parse_string | 0x19be30 | draw_string.obj | - | skipped | skip_prior_fail (parked before, 21 fresh candidates available) |
+| FUN_0019c1b0 | 0x19c1b0 | draw_string.obj | - | skipped | skip_prior_fail (parked before, 21 fresh candidates available) |
+| FUN_001036c0 | 0x1036c0 | main.obj | - | skipped | skip_prior_fail (parked before, 21 fresh candidates available) |
+| FUN_000bf470 | 0xbf470 | players.obj | - | skipped | skip_prior_fail (parked before, 21 fresh candidates available) |
+| FUN_000b6bd0 | 0xb6bd0 | player_control.obj | - | skipped | skip_prior_fail (parked before, 21 fresh candidates available) |
+| decal_update | 0x996b0 | decals.obj | - | skipped | skip_prior_fail (parked before, 21 fresh candidates available) |
+| FUN_0019bd30 | 0x19bd30 | draw_string.obj | - | skipped | skip_prior_fail (parked before, 21 fresh candidates available) |
+| FUN_000f5fb0 | 0xf5fb0 | items.obj (kb assignment) — but the binary evidence disagrees: the asserts in this function stamp "c:\halo\SOURCE\interface\virtual_keyboard.c", so the true TU is virtual_keyboard.c/interface, not items.obj. Worth reclassifying before any lift. | - | skipped | Default case calls thunk_FUN_001d0581 (0x1d0581), which lies inside the 0x1d0000-0x1de000 CRT region (MSVC rand()), used as `uVar3 % 10`. Per pre-screen rule 4 this is an automatic skip. Secondary blockers that would also need resolving first: three extraout_* register returns from callees whose kb.json decls are `void` (FUN_001c2bf0 -> AL, FUN_000f5f10 -> EAX, FUN_000f5800 -> AX), i.e. lifting this function requires first correcting those callee signatures (lift-learnings §16 void-EAX). |
+| decals_update | 0x99f80 | decals.obj | - | skipped | Callee decal_update (0x996b0) takes an implicit register argument: the loop body does `MOV EDI,[EBP-0x8]` (data_iter_t field +0x8 = current element index/datum) immediately before `CALL 0x000996b0`, and kb.json declares it as `void decal_update(void);` with NO @<reg> annotation. Lifting this caller would drop that argument silently. kb.json must first gain `void decal_update(int index@<edi>);` (or equivalent, verified from 0x996b0's disassembly) before decals_update can be lifted. |
+| FUN_0019c3c0 | 0x19c3c0 | draw_string.obj | - | skipped | Decompile declares `ushort *in_EAX` (implicit register-passed clip-rect pointer) and `int extraout_EAX` (register-returned glyph record from FUN_0019cff0). kb.json decl is `void FUN_0019c3c0(void);` yet the body reads six stack params (in_stack_00000004 callback code*, _8 short*, _c ushort*, _10 uint, _18/_1c shorts) — the signature is unrecoverable without ABI work. Two callees also carry §7_GETTER_SWALLOWED hazards (FUN_0019bd30 decl 0 args / cleanup=4; FUN_0019cff0 decl 0 args / cleanup=2), so their kb decls are wrong too and they are not annotated with @<reg> despite defining EAX. |
+| FUN_00103600 | 0x103600 | main.obj | - | skipped | Decompile carries unaff_EBX (float* point, 3 floats) and unaff_ESI (int* tag_block/data_array) as implicit register inputs, but kb.json declares it `void FUN_00103600(void);` with no @<reg> annotations. Lifting it as-is would read garbage. Requires a kb.json ABI decision (add `float *point@<ebx>, void *block@<esi>`) before it is liftable — out of scope for a read-only context pass. |
+| actor_action_can_stop_conversing | 0x1cfa0 | actions.obj | - | skipped | already implemented: /mnt/g/dev/halo-clean-main/src/halo/ai/actions.c:1159 (int actor_action_can_stop_conversing(int actor_handle, int flag)) |
+| actor_action_set_default_state | 0x1d7c0 | actions.obj | - | skipped | already implemented: /mnt/g/dev/halo-clean-main/src/halo/ai/actions.c:1708 (char actor_action_set_default_state(int actor_handle, short state)) |
+| actor_action_handle_done_fleeing | 0x1f6e0 | actions.obj | - | skipped | already implemented: src/halo/ai/actions.c |
+| actor_action_handle_combat_failure | 0x1f920 | actions.obj | - | skipped | already implemented: /mnt/g/dev/halo-clean-main/src/halo/ai/actions.c:3095 (char actor_action_handle_combat_failure(int actor_handle)); kb.json still has "ported": false |
+| actor_action_handle_berserk_transition | 0x20470 | actions.obj | - | skipped | already implemented: /mnt/g/dev/halo-clean-main/src/halo/ai/actions.c:3710 (definition `char actor_action_handle_berserk_transition(int actor_handle, short param_2)`). Note: kb.json entry has "ported": false, so the lift exists in source but the patch redirect is deactivated — worth a separate activation/verification check rather than a re-lift. |
+| actor_action_handle_grenade_throwing | 0x205a0 | actions.obj | - | skipped | already implemented: /mnt/g/dev/halo-clean-main/src/halo/ai/actions.c:3767 (definition `char actor_action_handle_grenade_throwing(int actor_handle)`); kb.json entry exists with decl `char actor_action_handle_grenade_throwing(int actor_handle);` but "ported": false. No Ghidra work performed. |
+| plane_negate | 0x994d0 | geometry.obj | - | skipped | already implemented: /mnt/g/dev/halo-clean-main/src/halo/math/geometry.c:15 (void plane_negate(float *plane_in, float *plane_out)). kb.json entry has ported=false, so it is a dormant/deactivated lift, not a missing one. |
+| object_compute_node_matrices | 0x141b70 | objects.obj | - | skipped | already implemented: /mnt/g/dev/halo-clean-main/src/halo/objects/objects.c:11159 (definition `void object_compute_node_matrices(int object_handle)`). kb.json entry exists with decl `void object_compute_node_matrices(int object_handle);` but "ported": false — likely a dormant/bisect deactivation, not a missing lift. |
+| FUN_000f56b0 | 0xf56b0 | items.obj | 81.8 | parked | structural_cap[deterministic(classify_cap.py)]: int16 narrow-field promotion cap (classify_cap.py, high confidence): 22/22 instructions with no missing or extra instruction, so the whole gap is register-width selection plus one loop-entry jmp. The original keeps the column cursor in AX with true 16-bit ops (movw load, incw %ax, xorw %ax,%ax for the 0xb->0 wrap); C89 integer promotion forces col+1 to int width, so VC71 emits movw load + xorl %eax,%eax widening, incl %eax and xorl %eax,%eax. No C89 expression reaches the 16-bit forms. Documented int16/movswl permanent-gap pattern, corroborated by three structurally identical already-ported siblings in the same TU using the same idiom: FUN_000f5700 75.6%, FUN_000f5750 82.6%, FUN_000f57a0 83.0%. Classifier also reports a ledger prior cap at 81.8%. |
+| item_update | 0xf7340 | items.obj | 86.9 | parked | REJECT: Target: item_update (0xf7340, items.obj) — /mnt/g/dev/halo-clean-main/src/halo/items/items.c
+
+Structural Match: 86.9% claimed; UNVERIFIABLE. No candidate source exists to compile. Below the target's own parked best_score of 88.0%.
+
+Mismatch Classes: unclassifiable — no body to diff.
+
+Call Argument Audit: FAILED — six contradictory ABI decls for callee FUN_000f7110, with @eax/@esi swapping between the position pointer and the collision normal, and the stack param moving between first and last position.
+
+Memory Offset / Global Side-effect Audit: not performed; an undischarged frame-offset delta with [FPU-WARN] is recorded in the parked history.
+
+ABI Audit: vacuous pass; patched_xbe build FAILS.
+
+Confirmed (direct evidence):
+- No implementation of item_update exists in src/ — grep returns zero hits, at HEAD and in the working tree. items.c ends at line 1236 with item_set_position.
+- The build is broken: patched_xbe errors with "kb.json ported=true for 'item_update' but symbol absent from EXE exports".
+- Only the kb.json half of the patch landed: item_update gains `bool item_update(int item_handle);` + `"ported": true`, and FUN_000f7110 gains three register args.
+- The 86.9% number derives from permuter scratch under build/vc71/permuter_tmp/, not the committed tree.
+- Five prior attempts, zero promotions, and this submission scores below all-time best.
+- No lifted C currently calls FUN_000f7110, so the orphaned decl has no consumer to validate it.
+
+Inferred:
+- The acceptance path ran its VC71 measurement against a permuter working copy and reported that score for a tree state where the corresponding source hunk had been reverted or never applied. The "pass1+permute" path therefore reflects a scratch artifact, not the submission.
+- The FUN_000f7110 register assignment was never derived from disassembly; six different orderings across six attempts indicates guessing rather than evidence.
+
+Uncertain:
+- Which FUN_000f7110 signature is actually correct — no caller register-setup evidence was gathered for any variant.
+- Whether the 4-byte frame-offset delta and its [FPU-WARN] from attempt 3 is benign; never discharged.
+
+Verdict Rationale:
+This is not a marginal-score judgment call. Multiple independent blocking categories are each individually sufficient:
+
+1. There is no lift. The function body does not exist in the repository. Nothing can be reviewed, run, or committed. This is REJECT rather than NEEDS_RUNTIME because runtime verification has no artifact to execute — there is no candidate implementation to compare against the original.
+2. The build is broken. Committing this state leaves main unable to produce a patched XBE.
+3. The structural evidence is fabricated relative to the tree. The 86.9% describes permuter scratch, so every "pass" downstream of it is meaningless.
+4. All green gates are vacuous. ABI audit regs=none, a clean hazard scan, and 0 reg-baseline drift are all artifacts of having no code to inspect — they must not be read as clearance.
+5. An orphaned, unverified ABI change on an unported callee would survive the missing lift and silently mis-order arguments (position vs normal) for whoever lifts a caller next.
+
+Required remediation before re-submission: revert both kb.json edits (item_update ported:true + decl, and the FUN_000f7110 register-arg decl) along with the matching tools/kb_reg_baseline.json entries so the tree builds again; then re-run the lift so the C body actually lands in items.c; then establish the FUN_000f7110 signature from caller register-setup disassembly (dump_caller_regsetup.py over all call sites) rather than from decompiler inference; and discharge the [FPU-WARN] frame-offset delta recorded in attempt 3.
+
+AUTOLIFT_REVIEW: REJECT |
+| player_control_action_test_reset | 0xb6a90 | player_control.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| player_control_action_test_accept | 0xb6ab0 | player_control.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| player_control_action_test_back | 0xb6ad0 | player_control.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| player_control_action_test_action | 0xb6af0 | player_control.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+
+**Summary:** 4/4 committed (goal_reached); 2 parked (81.8% VC71 int16-cap, 86.9% VC71 REJECTED for missing lift); 21 skipped (9 prior-fail bypass, 6 already-implemented/dormant, 3 kb.json ABI gaps, 2 CRT/attribution issues, 1 item_update REJECT).

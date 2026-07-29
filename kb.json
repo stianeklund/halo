@@ -16546,7 +16546,9 @@
     },
     {
      "addr": "0xb6b10",
-     "decl": "void player_control_action_test_jump(void);"
+     "decl": "bool player_control_action_test_jump(void);",
+     "name": "player_control_action_test_jump",
+     "ported": true
     },
     {
      "addr": "0xb6b20",
