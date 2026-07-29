@@ -695,8 +695,10 @@ typedef struct {
   int16_t desired_zoom_level;    ///< offset=0x24
   uint8_t field_0x26;            ///< offset=0x26 aim-assist enabled flag
   int8_t  field_0x27;            ///< offset=0x27 aim-assist idle counter
-  int32_t field_0x28;            ///< offset=0x28 (new_unit initializes to -1)
-  uint8_t pad_0x2c[0x4];         ///< offset=0x2c
+  int32_t target_object_index;   ///< offset=0x28 aim-assist target object handle (new_unit initializes to -1)
+  real    autoaim_level;         ///< offset=0x2c aim-assist level returned by
+                                 ///< player_control_get_autoaim_level (FLD
+                                 ///< [globals + index*0x40 + 0x3c])
   real    field_0x30;            ///< offset=0x30
   uint8_t pad_0x34[0x4];         ///< offset=0x34
   real    pitch_minimum;         ///< offset=0x38 lower clamp for desired_angles.pitch
@@ -710,8 +712,10 @@ co(player_control_t, desired_angles_yaw,     0x0c);
 co(player_control_t, desired_angles_pitch,   0x10);
 co(player_control_t, primary_trigger,        0x1c);
 co(player_control_t, desired_weapon_index,   0x20);
+co(player_control_t, target_object_index,    0x28);
 co(player_control_t, desired_grenade_index,  0x22);
 co(player_control_t, desired_zoom_level,     0x24);
+co(player_control_t, autoaim_level,          0x2c);
 co(player_control_t, pitch_minimum,          0x38);
 co(player_control_t, pitch_maximum,          0x3c);
 
