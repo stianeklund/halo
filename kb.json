@@ -16510,7 +16510,9 @@
     },
     {
      "addr": "0xb69d0",
-     "decl": "void players_unzoom_all(void);"
+     "decl": "void players_unzoom_all(void);",
+     "name": "players_unzoom_all",
+     "ported": true
     },
     {
      "addr": "0xb6a70",

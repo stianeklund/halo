@@ -382,6 +382,34 @@ int16_t unit_get_local_player_index(int unit_handle)
   return (int16_t)NONE;
 }
 
+/* Reset every local player's desired zoom level to NONE (un-zoom all).
+ * No frame (PUSH ESI / PUSH EDI only): ESI is the 16-bit loop counter and
+ * EDI is a byte-offset accumulator advanced by the 0x40 slot stride.  The
+ * loop head re-tests the inlined player_control_get_data assert on every
+ * iteration (TEST SI,SI / JL fail; CMP SI,4 / JL body), and the tail test
+ * (CMP SI,4 / JGE return) is the loop's own bound -- so the assert is not
+ * hoisted out.  The globals pointer is re-read inside the loop
+ * (MOV EAX,[0x457090]) and the store is a WORD write of 0xffff to
+ * [EDI+EAX+0x34], i.e. player_control_t+0x24 (desired_zoom_level) relative
+ * to the 0x10-based slot array.  The failure path is display_assert(...)
+ * + system_exit(-1), the assert_halt flavor. */
+void players_unzoom_all(void)
+{
+  int16_t local_player_index;
+  player_control_t *pc;
+
+  for (local_player_index = 0;
+       local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS;
+       local_player_index++) {
+    assert_halt_at("c:\\halo\\SOURCE\\game\\player_control.c", 0xb1,
+                   local_player_index >= 0 &&
+                     local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+    pc = (player_control_t *)((char *)player_control_globals +
+                              local_player_index * 0x40 + 0x10);
+    pc->desired_zoom_level = NONE;
+  }
+}
+
 /* Clear the aim-assist weapon interaction slot for a unit's controlling player.
  * Looks up the player datum via the unit's player handle (unit+0x1c8), then
  * finds the local player index (player+0x2), retrieves the player control slot,
