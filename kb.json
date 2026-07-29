@@ -9597,7 +9597,7 @@
     },
     {
      "addr": "0x1c0ed0",
-     "decl": "void FUN_001c0ed0(void);"
+     "decl": "unsigned short FUN_001c0ed0(void);"
     },
     {
      "addr": "0x1c0ee0",
@@ -12811,10 +12811,6 @@
     {
      "addr": "0xf4210",
      "decl": "void multiplayer_settings_select_list_update_item(void);"
-    },
-    {
-     "addr": "0xf46e0",
-     "decl": "void FUN_000f46e0(void);"
     },
     {
      "addr": "0xf4b60",
@@ -25811,7 +25807,7 @@
     },
     {
      "addr": "0xf3740",
-     "decl": "void multiplayer_game_set_text_box_for_game_ruleset(void);"
+     "decl": "void multiplayer_game_set_text_box_for_game_ruleset(int *ids, int count);"
     },
     {
      "addr": "0xf3850",
@@ -25819,11 +25815,16 @@
     },
     {
      "addr": "0xf3960",
-     "decl": "void FUN_000f3960(void);"
+     "decl": "int __cdecl FUN_000f3960(const void *a, const void *b);"
     },
     {
      "addr": "0xf39c0",
      "decl": "void FUN_000f39c0(void);"
+    },
+    {
+     "addr": "0xf46e0",
+     "decl": "void FUN_000f46e0(int *widget);",
+     "ported": true
     }
    ],
    "name": "ui_widget_game_data_input_functions.obj",
