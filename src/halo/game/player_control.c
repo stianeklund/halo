@@ -302,6 +302,47 @@ int32_t player_control_get_unit_index(int16_t local_player_index)
   return pc->unit_index;
 }
 
+/* Return the weapon handle a local player wants to be holding for a unit.
+ * Binary (0xb68c0): bounds-checks local_player_index exactly like its
+ * siblings above (assert line 0xb1, system_exit(-1) tail flavor), then
+ *   MOV ECX,[player_control_globals] / MOVSX EAX,SI / SHL EAX,6 /
+ *   LEA EAX,[EAX+ECX+0x10]           -> the local player's control slot
+ *   CMP [EAX],ESI                    -> slot->unit_index == unit_handle?
+ *   XOR EDX,EDX / MOV DX,[EAX+0x20]  -> slot->desired_weapon_index
+ *   PUSH EDX / PUSH ESI / CALL unit_get_weapon / CMP EAX,-1 / JNZ ->return
+ * and otherwise falls through to
+ *   PUSH 3 / PUSH ESI / CALL object_get_and_verify_type
+ *   MOVSX EAX,word [EAX+0x2a2] / PUSH EAX / PUSH ESI / CALL unit_get_weapon
+ *   ADD ESP,0x10 (MSVC merged both slow-path cleanups; each call still
+ *                 pushes exactly two args) / POP ESI / POP EBP / RET.
+ * Ghidra's `void (void)` is wrong on BOTH the parameters and the return:
+ * the RET does no callee cleanup (cdecl, two stack args) and both exits
+ * leave unit_get_weapon's EAX untouched (lift-learnings SS16 void-EAX).
+ * The two 16-bit loads deliberately differ in extension and are preserved:
+ * slot+0x20 is ZERO-extended (XOR EDX,EDX / MOV DX), unit+0x2a2 is
+ * SIGN-extended (MOVSX) -- see the identical unit+0x2a2 reads above. */
+int player_control_get_desired_weapon(int16_t local_player_index,
+                                      int unit_handle)
+{
+  player_control_t *pc;
+  char *unit_obj;
+  int weapon_handle;
+
+  assert_halt_at("c:\\halo\\SOURCE\\game\\player_control.c", 0xb1,
+                 local_player_index >= 0 &&
+                   local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+  pc = (player_control_t *)((char *)player_control_globals +
+                            local_player_index * 0x40 + 0x10);
+  if (pc->unit_index == unit_handle) {
+    weapon_handle =
+      unit_get_weapon(unit_handle, (uint16_t)pc->desired_weapon_index);
+    if (weapon_handle != NONE)
+      return weapon_handle;
+  }
+  unit_obj = (char *)object_get_and_verify_type(unit_handle, 3);
+  return unit_get_weapon(unit_handle, *(int16_t *)(unit_obj + 0x2a2));
+}
+
 /* Get the local player index for the player controlling a unit.
  * Looks up the unit's player handle (unit+0x1c8), then reads the local
  * player index (player+0x2) from the player datum. Returns NONE (0xffff)
