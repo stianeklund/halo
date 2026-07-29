@@ -21,6 +21,28 @@ void player_control_dispose(void)
 {
 }
 
+/* Toggle bit 0 of the flag dword at player_control_globals+0xc.
+ * NOTE: the polarity is INVERTED relative to the name and is preserved as-is
+ * from the binary: a zero argument SETS bit 0, a non-zero argument CLEARS it.
+ * Disassembly (0xb6430): MOV AL,[EBP+8] / TEST AL,AL /
+ * MOV ECX,[player_control_globals] / MOV EDX,[ECX+0xc] / JNZ ->AND 0xfffffffe;
+ * fallthrough ->OR 0x1.  Both the pointer load and the dword load are hoisted
+ * above the branch by MSVC, so they are written once here.
+ * player_control_globals_t has no named field at +0xc (opaque 0x110 bytes),
+ * hence the raw offset arithmetic. */
+void scripted_player_control_set_camera_control(bool camera_control)
+{
+  uint32_t *flags;
+  uint32_t value;
+
+  flags = (uint32_t *)((char *)player_control_globals + 0xc);
+  value = *flags;
+  if (!camera_control)
+    *flags = value | 1u;
+  else
+    *flags = value & 0xfffffffeu;
+}
+
 /* Set action flags on a local player's control slot.
  * ORs the given flags into the player's action_flags field, and
  * optionally into the persistent_action_flags field as well. */
