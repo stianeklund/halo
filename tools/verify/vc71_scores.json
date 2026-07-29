@@ -12756,6 +12756,10 @@
       "score": 100.0,
       "source": "src/halo/text/draw_string.c"
     },
+    "FUN_0019b8f0": {
+      "score": 100.0,
+      "source": "src/halo/text/draw_string.c"
+    },
     "FUN_0019bcc0": {
       "score": 76.3,
       "source": "src/halo/text/draw_string.c"
@@ -14817,6 +14821,10 @@
       "source": "src/halo/networking/network_game_globals.c"
     },
     "draw_string_get_color": {
+      "score": 100.0,
+      "source": "src/halo/text/draw_string.c"
+    },
+    "draw_string_set_highlight": {
       "score": 100.0,
       "source": "src/halo/text/draw_string.c"
     },

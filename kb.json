@@ -28526,7 +28526,8 @@
     },
     {
      "addr": "0x19b8f0",
-     "decl": "void draw_string_set_highlight(void);"
+     "decl": "void draw_string_set_highlight(short param_1, short param_2);",
+     "ported": true
     },
     {
      "addr": "0x19b910",
