@@ -2269,6 +2269,184 @@ done:
 }
 
 /*
+ * main_framerate_render - 0x102700
+ *
+ * Draws up to three debug overlays in the lower-right corner of the screen,
+ * each gated by its own console/debug byte flag and each requiring the
+ * interface-globals font tag at *(int*)(*(int*)0x46bd0c + 0x54) to be valid
+ * (!= -1, the tag "none" sentinel).
+ *
+ * Confirmed:
+ *  - No arguments; void return. cdecl, frame `sub esp,0x1c`, saves EBX/ESI/EDI.
+ *    EBX is zeroed in the prologue and used as the literal 0 for every
+ *    NULL/0 push and as the compare operand for the three byte flags.
+ *  - Overlay 1 (flag 0x46e004, framerate): fps = 1.0f / max(frame_seconds,
+ *    0.01f), where frame_seconds is flt_46DA08 (the same current-frame
+ *    seconds global main_frame_rate_debug samples). Disasm:
+ *    FLD [0x46da08]; FCOMP [0x25bb10 = 0.01f]; TEST AH,0x41; JNE — i.e. the
+ *    0.01f branch is taken when frame_seconds <= 0.01f, so the selected value
+ *    is max(). Then FLD [0x2533c8 = 1.0f]; FDIV ST(1) => 1.0f / max (numerator
+ *    is the 1.0f constant; division direction verified in disasm).
+ *    The quotient is stored to a float slot, reloaded, and FISTP'd => (int).
+ *  - Overlay 1 alternate: when byte 0x46dd9a != 0 the displayed number is
+ *    60 / (int)*(int16_t*)0x46dd96 via MOV EAX,0x3c; CDQ; IDIV — a signed
+ *    32-bit divide (not the 64-bit divide Ghidra's `(longlong)` suggests).
+ *    0x46dd96 is the "current frame divisor" main_set_frame_rate maintains,
+ *    so this path prints the locked tick rate instead of the measured rate.
+ *  - Overlay 1 color: CMP SI,0x1e; JGE keeps *(void**)0x2ee6d4, otherwise
+ *    *(void**)0x2ee6d0 — i.e. (short)value >= 30 ? normal : warning color.
+ *  - Overlay 2 (flag 0x46e005): walks a 15-entry int16 ring buffer at
+ *    0x46ddde backwards from the head index at *(int16_t*)0x46dddc:
+ *    index = (head + 14) % 15, stepping by the same (+14 % 15) until the
+ *    head is reached again (do/while, so an already-equal first index skips
+ *    the loop entirely). Each entry is printed on its own line, the rect
+ *    top/bottom both moving up 0x14 per line. Entry value 2 uses
+ *    *(void**)0x2ee6c4, anything else *(void**)0x2ee6d0.
+ *  - Overlay 3 (flag 0x46e006): only when cache_files_precache_in_progress()
+ *    and cache_files_precache_map_status(&progress) returns 0. Prints
+ *    (int)(progress * 100.0f [0x253f00]) as a percentage.
+ *  - Screen rect: the 8 bytes at 0x506584/0x506588 are copied as two dwords
+ *    into a 4 x int16 rectangle2d {top,left,bottom,right}; overlays 1 and 2
+ *    then set top = bottom - 0x32 and left = right - 0x32, overlay 3 sets
+ *    left = right - 0x32 and top = bottom - 0x64. The -0x32/-0x14/-0x64
+ *    adjustments are 32-bit adds of a dword load with only the low 16 bits
+ *    stored back (MSVC's short-arithmetic idiom), confirmed at 0x10279f,
+ *    0x102861 and 0x10294e.
+ *  - Text buffer: snprintf(buf, 3, "%d", v) followed by an explicit
+ *    buf[3] = 0 (the `& 0xffffff` Ghidra shows for overlay 2 is that NUL
+ *    store into a 4-byte char buffer, not float bit masking). Format string
+ *    "%d" is at 0x25acb8.
+ *  - Per-overlay call order differs and is preserved verbatim: overlays 1
+ *    and 3 do set_style -> set_color -> set_font -> text_draw, overlay 2 does
+ *    set_style -> set_font -> set_color -> text_draw (0x102881, 0x102887,
+ *    0x1028a5).
+ *  - 0x19b7e0 takes one stack argument at all five original call sites
+ *    (verified with dump_caller_regsetup.py); its body is
+ *    `tag_get('font', arg); *(int*)0x4d9b0c = arg;` and it returns with a
+ *    plain RET, so it is cdecl with a single int tag-index parameter. Its
+ *    kb.json decl was `void(void)`, which would have dropped the argument.
+ *  - The interface-globals pointer at 0x46bd0c is re-read at the top of each
+ *    overlay in the original; not hoisted here either.
+ *
+ * Inferred:
+ *  - 0x46e004/0x46e005/0x46e006 are three separate debug-render toggles
+ *    (framerate, frame-time history, precache progress).
+ *  - 0x2ee6d0 is a "bad/warning" text color shared by overlays 1 and 2;
+ *    0x2ee6d4, 0x2ee6c4 and 0x2ee6f4 are the respective normal colors.
+ *
+ * Uncertain:
+ *  - The meaning of the int16 ring-buffer entries in overlay 2 (only the
+ *    special value 2 is distinguished) and the exact semantic names of the
+ *    three toggles.
+ *  - The original frame is 0x1c bytes with a dead 4-byte slot at EBP-0x14
+ *    and several stack slots shared between overlays (the float at EBP-8
+ *    serves as fps, as overlay 2's text buffer and as overlay 3's out
+ *    parameter). That sharing is MSVC slot coalescing of disjoint lifetimes
+ *    and is not reproduced field-for-field here.
+ */
+void main_framerate_render(void)
+{
+  int16_t bounds[4]; /* rectangle2d: top, left, bottom, right */
+  int percent;
+  int frame_rate;
+  float scaled;
+  float value;
+  char string[4];
+  int font_tag;
+  int displayed;
+  int index;
+  const void *color;
+
+  font_tag = -1;
+
+  /* Overlay 1: measured (or locked) frame rate. */
+  if (*(char *)0x46e004 != 0 &&
+      (font_tag = *(int *)(*(int *)0x46bd0c + 0x54)) != -1) {
+    *(int *)&bounds[0] = *(int *)0x506584;
+    *(int *)&bounds[2] = *(int *)0x506588;
+
+    value = *(float *)0x46da08 > 0.01f ? *(float *)0x46da08 : 0.01f;
+    value = 1.0f / value;
+    frame_rate = (int)value;
+
+    displayed = frame_rate;
+    if (*(char *)0x46dd9a != 0) {
+      displayed = 60 / (int)*(int16_t *)0x46dd96;
+    }
+
+    snprintf(string, 3, "%d", (int)(int16_t)displayed);
+    string[3] = 0;
+
+    bounds[1] = (int16_t)(bounds[3] - 0x32);
+    bounds[0] = (int16_t)(bounds[2] - 0x32);
+
+    draw_string_set_style_justify_flags(-1, 0, 0);
+
+    color = *(const void **)0x2ee6d4;
+    if ((int16_t)displayed < 30) {
+      color = *(const void **)0x2ee6d0;
+    }
+    draw_string_set_color(color);
+    draw_string_set_font_tag(font_tag);
+    rasterizer_text_draw(bounds, NULL, NULL, 0, string);
+  }
+
+  /* Overlay 2: int16 ring buffer at 0x46ddde, newest line at the bottom. */
+  if (*(char *)0x46e005 != 0 &&
+      (font_tag = *(int *)(*(int *)0x46bd0c + 0x54)) != -1) {
+    *(int *)&bounds[0] = *(int *)0x506584;
+    *(int *)&bounds[2] = *(int *)0x506588;
+    bounds[0] = (int16_t)(bounds[2] - 0x32);
+    bounds[1] = (int16_t)(bounds[3] - 0x32);
+
+    index = (int16_t)(((int)*(int16_t *)0x46dddc + 14) % 15);
+    if ((int16_t)index != *(int16_t *)0x46dddc) {
+      do {
+        bounds[0] = (int16_t)(bounds[0] - 0x14);
+        bounds[2] = (int16_t)(bounds[2] - 0x14);
+
+        snprintf(string, 3, "%d",
+                 (int)*(int16_t *)(0x46ddde + (int16_t)index * 2));
+        string[3] = 0;
+
+        draw_string_set_style_justify_flags(-1, 1, 0);
+        draw_string_set_font_tag(font_tag);
+
+        color = *(const void **)0x2ee6c4;
+        if (*(int16_t *)(0x46ddde + (int16_t)index * 2) != 2) {
+          color = *(const void **)0x2ee6d0;
+        }
+        draw_string_set_color(color);
+        rasterizer_text_draw(bounds, NULL, NULL, 0, string);
+
+        index = (int16_t)(((int16_t)index + 14) % 15);
+      } while ((int16_t)index != *(int16_t *)0x46dddc);
+    }
+  }
+
+  /* Overlay 3: map precache progress percentage. */
+  if (*(char *)0x46e006 != 0 && cache_files_precache_in_progress() &&
+      (font_tag = *(int *)(*(int *)0x46bd0c + 0x54)) != -1 &&
+      cache_files_precache_map_status(&value) == 0) {
+    scaled = value * 100.0f;
+    *(int *)&bounds[0] = *(int *)0x506584;
+    *(int *)&bounds[2] = *(int *)0x506588;
+    percent = (int)scaled;
+
+    snprintf(string, 3, "%d", (int)(int16_t)percent);
+    string[3] = 0;
+
+    bounds[1] = (int16_t)(bounds[3] - 0x32);
+    bounds[0] = (int16_t)(bounds[2] - 0x64);
+
+    draw_string_set_style_justify_flags(-1, 0, 0);
+    draw_string_set_color(*(const void **)0x2ee6f4);
+    draw_string_set_font_tag(font_tag);
+    rasterizer_text_draw(bounds, NULL, NULL, 0, string);
+  }
+}
+
+/*
  * halt_and_catch_fire (0x1029a0) — fatal-error "bluescreen" renderer.
  * Entered after an unrecoverable engine fault. Guards against re-entrant
  * invocation with an INT3 breakpoint, then silences rumble on every
