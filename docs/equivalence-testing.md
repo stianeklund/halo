@@ -462,6 +462,28 @@ two-bytes-at-a-time walk documented above. Meanwhile the one cluster that is
 Lesson: age the per-target JSONs before believing an aggregate. A
 `--skip-existing` batch reports a mixture of measurements and memories.
 
+The mechanism was `run_local_equiv.sh full`, which passes `--skip-existing`
+into the persistent `artifacts/batch_verify/` and feeds the previous
+`summary.json` back as `--baseline` — so each nightly filled only the gaps,
+carried the rest forward untouched, and compared the mixture against itself.
+
+`--skip-existing` is now **age-aware**: `reusable_results()` discards any
+cached result older than the newest mtime across `HARNESS_SOURCES` (the
+driver, stubs, ABI/COFF loading, seed generation, concolic, the z3 lane, state
+injection). A cached result is evidence about the harness that produced it, so
+any harness edit invalidates everything measured before it. Keying on source
+mtime rather than a date means there is no cutoff to maintain. The run prints
+what it did, and `summary.json` carries `reused_results` /
+`invalidated_results` so a reader can tell a measurement from a carry-forward
+without stat-ing every file.
+
+`test_batch_reuse.py` pins the split, that `summary.json` is never counted as
+a per-target result, and — the two that matter — that `harness_mtime()`
+actually resolves real files and that every name in `HARNESS_SOURCES` exists.
+A zero cutoff, or a renamed module, would silently restore
+reuse-everything-forever; the list already had one bogus entry
+(`value_corpus.py`) that this test caught on first run.
+
 ### The convention gate blocked 64 targets on 15 decls (2026-07-29)
 
 `stub_convention_mismatch` is not a harness malfunction — it is the harness

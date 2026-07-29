@@ -57,6 +57,60 @@ LEAF_CACHE = ROOT / "tools" / "equivalence" / "leaf_cache.json"
 RESULTS_DIR = ROOT / "artifacts" / "batch_verify"
 FAIL_STATUSES = {"fail", "error"}
 
+# Sources whose change invalidates a cached per-target result. Anything that can
+# alter a verdict belongs here; erring toward re-running is cheap next to
+# reporting a stale one as current.
+HARNESS_SOURCES = (
+    "unicorn_diff.py",      # the driver and comparators
+    "stubs.py",             # stub/real-callee behaviour, stub-arg trace
+    "abi.py",               # decl parsing -> arg placement and return reads
+    "coff_loader.py",       # how oracle/candidate objects are loaded+relocated
+    "seeds.py", "z3_seeds.py",          # which inputs get tried
+    "concolic.py", "concolic_z3.py",    # phase-2 injection
+    "x86_to_z3.py", "z3_equiv.py",      # the proof lane
+    "state.py", "state_snapshot.py",    # injected memory state
+)
+
+
+def harness_mtime(harness_dir: Path = None) -> float:
+    """Newest mtime across the sources that can change a verdict."""
+    d = harness_dir or Path(__file__).resolve().parent
+    newest = 0.0
+    for name in HARNESS_SOURCES:
+        f = d / name
+        if f.exists():
+            newest = max(newest, f.stat().st_mtime)
+    return newest
+
+
+def reusable_results(output_dir: Path, harness_dir: Path = None):
+    """Split cached per-target results into (reusable stems, n_invalidated).
+
+    A cached result is only evidence about the CURRENT harness. Without this,
+    --skip-existing carried results forward indefinitely: on 2026-07-29 the
+    summary reported 435 error rows of which 270 were per-target JSONs from
+    07-08/07-09, predating both the data-page guard (b37696b4) and
+    real-callees-by-default. The aggregate read as a measurement while being
+    mostly memory, and the 124-row fossil cluster hid the one cluster that was
+    live (see docs/equivalence-testing.md, "Most of the all-errors table was a
+    fossil").
+
+    Keyed on source mtime rather than a date so it needs no maintenance: any
+    harness edit invalidates every result produced before it.
+    """
+    cutoff = harness_mtime(harness_dir)
+    reusable, invalidated = set(), 0
+    if not output_dir.is_dir():
+        return reusable, invalidated
+    for p in sorted(output_dir.glob("*.json")):
+        if p.name == "summary.json":
+            continue
+        if p.stat().st_mtime < cutoff:
+            invalidated += 1
+        else:
+            reusable.add(p.stem)
+    return reusable, invalidated
+
 
 DELINKED_DIR = ROOT / "delinked"
 
@@ -431,12 +485,13 @@ def main():
     output_dir = args.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    existing = set()
+    existing, n_invalidated = (set(), 0)
     if args.skip_existing:
-        for p in output_dir.glob("*.json"):
-            if p.name == "summary.json":
-                continue
-            existing.add(p.stem)
+        existing, n_invalidated = reusable_results(output_dir)
+        if n_invalidated:
+            print(f"--skip-existing: {n_invalidated} cached result(s) predate "
+                  f"the current harness and will be re-run; "
+                  f"{len(existing)} reused")
 
     csv_rows = []
     results = {"pass": 0, "fail": 0, "error": 0, "not_applicable": 0,
@@ -478,6 +533,10 @@ def main():
             "elapsed_seconds": elapsed,
             "interrupted": interrupted,
             "skipped": skipped,
+            # Reuse accounting, so a reader can tell a measurement from a
+            # carry-forward without stat()ing every per-target file.
+            "reused_results": len(existing),
+            "invalidated_results": n_invalidated,
         }, indent=2) + "\n", encoding="utf-8")
         return summary_path, elapsed, comparison
 
