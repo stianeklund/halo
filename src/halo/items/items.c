@@ -851,6 +851,56 @@ void item_attach_to_unit(int item_handle, int unit_handle)
   }
 }
 
+/* Get an item's world position, even while carried in a unit's inventory
+ * (0xf6a60). Zeroes out_position unconditionally, then:
+ * - if the item exists and its in-inventory flag (bit 0 at +0x1a4) is
+ *   CLEAR, copies the item's own physics position at +0x50..+0x58;
+ * - if the flag is SET and the owning player handle at +0x70 is valid,
+ *   resolves the player record and, if the player's unit handle at +0x34
+ *   is valid, copies the carrying unit's position at +0x50..+0x58
+ *   (object_get_and_verify_type asserts internally; the original does
+ *   not NULL-check its result).
+ * Position dwords are copied as raw 32-bit moves, matching the original
+ * struct-assignment codegen. */
+/* 3-float world position (real_point3d), copied as a unit so VC71 emits the
+ * original's base-register + 0/4/8 displacement store sequence. */
+typedef struct {
+  float x;
+  float y;
+  float z;
+} item_position3d;
+
+void item_get_position_even_if_in_inventory(int object_handle,
+                                            float *out_position)
+{
+  char *obj;
+  int handle;
+  uint32_t *out;
+
+  out = (uint32_t *)out_position;
+  obj = (char *)object_try_and_get_and_verify_type(object_handle, 0x1c);
+  out[0] = 0;
+  out[1] = 0;
+  out[2] = 0;
+  if (obj == NULL)
+    return;
+  if (*(unsigned char *)(obj + 0x1a4) & 1) {
+    /* in inventory: look up the owning player's unit */
+    handle = *(int *)(obj + 0x70);
+    if (handle == NONE)
+      return;
+    obj = (char *)datum_get(*(data_t **)0x5aa6d4, handle);
+    handle = *(int *)(obj + 0x34);
+    if (handle == NONE)
+      return;
+    obj = (char *)object_get_and_verify_type(handle, 3);
+    *(item_position3d *)out_position = *(item_position3d *)(obj + 0x50);
+    return;
+  }
+  /* not in inventory: item's own position */
+  *(item_position3d *)out_position = *(item_position3d *)(obj + 0x50);
+}
+
 /* Initialize the danger countdown for an item (0xf6af0).
  * If the item's danger count at +0x1a8 is zero, spawns an effect using
  * the tag reference at +0x2f4 of the 'item' tag definition (detonation

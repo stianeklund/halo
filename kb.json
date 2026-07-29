@@ -12965,7 +12965,8 @@
     },
     {
      "addr": "0xf6a60",
-     "decl": "void item_get_position_even_if_in_inventory(void);"
+     "decl": "void item_get_position_even_if_in_inventory(int object_handle, float *out_position);",
+     "ported": true
     },
     {
      "addr": "0xf6af0",
