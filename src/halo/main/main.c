@@ -3444,3 +3444,153 @@ void FUN_00104240(int point_count, float *points, float *color)
     }
   }
 }
+
+/* FUN_00104430 (0x104430)  error_geometry.c:0x14c-0x14e
+ *
+ * Emits a debug *multi-polygon* mesh as a VRML/Open-Inventor "Separator" block
+ * to the open error-geometry stream *(void**)0x46e394.  Sibling of
+ * FUN_00104240 (single point-cloud) but takes a per-polygon vertex count
+ * array, so it writes a real IndexedFaceSet with a coordIndex list.
+ *
+ *   polygon_count  number of polygons
+ *   point_counts   short[polygon_count], vertices in each polygon
+ *   points         packed 3-float vertices, concatenated over all polygons
+ *   color          4 floats per polygon, packed alpha-first (may be NULL)
+ *
+ * Three passes over point_counts[]:
+ *   1. Coordinate3 point[]  -- every vertex, transformed by the world matrix at
+ *      0x31fb08 into a local float[3] and scaled by *(float*)0x253f00 (=100.0f,
+ *      world units -> cm).  A single running vertex index walks `points`.
+ *   2. Material diffuseColor[] -- per polygon, color[p*4+1..3] repeated once per
+ *      *triangle* (i = 2 .. point_counts[p]-1) then a newline.  ESI is NOT
+ *      advanced inside the inner loop in the original (0x1045e0-0x104610), so
+ *      the same triple really is printed repeatedly.  transparency =
+ *      *(float*)0x2533c8 (=1.0f) - color[0] (plain FSUB, not FSUBR).
+ *   3. IndexedFaceSet coordIndex[] -- fan triangulation: for each polygon,
+ *      (base, base+i-1, base+i, -1) for i = 2 .. point_counts[p]-1, then
+ *      base += point_counts[p] (MOVSX word at 0x1046d4).  Ghidra dropped all
+ *      three %d arguments and the base accumulator from its decompile; they are
+ *      recovered from the pushes at 0x1046a0-0x1046b5 (PUSH base+i / DEC /
+ *      PUSH base+i-1 / PUSH base, ADD ESP,0x14 = 5 dwords).
+ *
+ * cdecl, verified from disassembly at 0x104430: [EBP+0x8]=polygon_count (ESI,
+ * full 32-bit -- no short truncation, unlike FUN_00104240), [EBP+0xc]=
+ * point_counts (EDI, stride 2B), [EBP+0x10]=points, [EBP+0x14]=color (EBX).
+ * Frame = 0x14 bytes = float[3] transform output at EBP-0x14..EBP-0xc plus the
+ * running vertex index at EBP-0x4 and one loop down-counter at EBP-0x8; the
+ * other two down-counters are spilled over the dead [EBP+0x10] and [EBP+0x8]
+ * param slots, so they are three distinct locals here.  All inner counters are
+ * 16-bit (CMP DI/BX/SI, WORD PTR [reg]).  The stream global is re-loaded before
+ * every crt_fprintf in the original, so it is never cached in a local.  Assert
+ * tails are system_exit(-1) (CALL 0x8e2f0), not halt_and_catch_fire.
+ */
+void FUN_00104430(int polygon_count, short *point_counts, float *points,
+                 float *color)
+{
+  float p[3];
+  float *pt;
+  float *cp;
+  short *pc;
+  short i;
+  int vertex_index;
+  int n1;
+  int n2;
+  int n3;
+
+  if (polygon_count < 0) {
+    display_assert("polygon_count>=0",
+                   "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x14c, true);
+    system_exit(-1);
+  }
+  if (point_counts == 0) {
+    display_assert("point_counts", "c:\\halo\\SOURCE\\tool\\error_geometry.c",
+                   0x14d, true);
+    system_exit(-1);
+  }
+  if (points == 0) {
+    display_assert("points", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x14e,
+                   true);
+    system_exit(-1);
+  }
+  if (polygon_count > 0) {
+    if (FUN_00103d30()) {
+      crt_fprintf(*(void **)0x46e394, "Separator\n{\n");
+      crt_fprintf(*(void **)0x46e394, "\tCoordinate3\n\t{\n\t\tpoint\n\t\t[\n");
+      vertex_index = 0;
+      if (polygon_count > 0) {
+        pc = point_counts;
+        n1 = polygon_count;
+        do {
+          i = 0;
+          if (*pc > 0) {
+            pt = points + vertex_index * 3;
+            do {
+              matrix_transform_point((float *)0x31fb08, pt, p);
+              crt_fprintf(*(void **)0x46e394, "\t\t\t%f %f %f,\n",
+                          p[0] * *(float *)0x253f00, p[1] * *(float *)0x253f00,
+                          p[2] * *(float *)0x253f00);
+              i = i + 1;
+              vertex_index = vertex_index + 1;
+              pt = pt + 3;
+            } while (i < *pc);
+          }
+          pc = pc + 1;
+          n1 = n1 - 1;
+        } while (n1 != 0);
+      }
+      crt_fprintf(*(void **)0x46e394, "\t\t]\n\t}\n");
+      crt_fprintf(*(void **)0x46e394,
+                  "\tMaterialBinding\n\t{\n\t\tvalue PER_FACE\n\t}\n");
+      if (color != 0) {
+        crt_fprintf(*(void **)0x46e394,
+                    "\tMaterial\n\t{\n\t\tdiffuseColor\n\t\t[\n");
+        if (polygon_count > 0) {
+          n2 = polygon_count;
+          cp = color + 2;
+          pc = point_counts;
+          do {
+            i = 2;
+            if (*pc > 2) {
+              do {
+                crt_fprintf(*(void **)0x46e394, "\t\t\t%f %f %f, ", cp[-1],
+                            cp[0], cp[1]);
+                i = i + 1;
+              } while (i < *pc);
+            }
+            crt_fprintf(*(void **)0x46e394, "\n");
+            cp = cp + 4;
+            pc = pc + 1;
+            n2 = n2 - 1;
+          } while (n2 != 0);
+        }
+        crt_fprintf(*(void **)0x46e394,
+                    "\t\t]\n\t\ttransparency[%f]\n\t}\n",
+                    *(float *)0x2533c8 - color[0]);
+      }
+      crt_fprintf(*(void **)0x46e394,
+                  "\tIndexedFaceSet\n\t{\n\t\tcoordIndex\n\t\t[\n");
+      vertex_index = 0;
+      if (polygon_count > 0) {
+        n3 = polygon_count;
+        pc = point_counts;
+        do {
+          crt_fprintf(*(void **)0x46e394, "\t\t\t");
+          i = 2;
+          if (*pc > 2) {
+            do {
+              crt_fprintf(*(void **)0x46e394, "%d,%d,%d,-1, ", vertex_index,
+                          vertex_index + i - 1, vertex_index + i);
+              i = i + 1;
+            } while (i < *pc);
+          }
+          crt_fprintf(*(void **)0x46e394, "\n");
+          vertex_index = vertex_index + *pc;
+          pc = pc + 1;
+          n3 = n3 - 1;
+        } while (n3 != 0);
+      }
+      crt_fprintf(*(void **)0x46e394, "\t\t]\n\t}\n}\n");
+      crt_fflush(*(void **)0x46e394);
+    }
+  }
+}
