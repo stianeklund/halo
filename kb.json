@@ -16456,7 +16456,8 @@
     },
     {
      "addr": "0xb63d0",
-     "decl": "void player_control_initialize(void);"
+     "decl": "void player_control_initialize(void);",
+     "ported": true
     },
     {
      "addr": "0xb6430",

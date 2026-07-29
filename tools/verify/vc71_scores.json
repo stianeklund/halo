@@ -5080,6 +5080,10 @@
       "score": 100.0,
       "source": "src/halo/game/player_control.c"
     },
+    "FUN_000b63d0": {
+      "score": 100.0,
+      "source": "src/halo/game/player_control.c"
+    },
     "FUN_000b63f0": {
       "score": 11.1,
       "source": "src/halo/game/player_control.c"
