@@ -20,6 +20,10 @@ CodeBurn analysis: **~1.7M tokens wasted in 7 days** (~$0.64). The root causes a
 - **The Edit tool confirms success.** Do not re-read to verify your edit worked.
 - **Failure exception only:** If an edit fails, re-read *only* the failing line range (≤20 lines), never the full file.
 
+### Wording and language
+- Be brief and concise. Don't use words as "This is the smoking gun", "Honestly", "I'll be honest".
+- Use natural normal concise language.
+
 ### Research Ratio Gate (4:1 minimum)
 - **Target: 4+ reads per edit.** CodeBurn measured 2.2:1 (1,958 reads vs. 878 edits), causing ~932K wasted tokens from edit-without-research retries.
 - Before editing any function, perform at least these research steps:
@@ -30,12 +34,12 @@ CodeBurn analysis: **~1.7M tokens wasted in 7 days** (~$0.64). The root causes a
 - If you have not done 4 reads, do more research before editing.
 
 ### File-Specific Bans & Caps
-| File / Directory | Action | Max Lines | Why |
-|------------------|--------|-----------|-----|
-| `kb.json` | `rtk jq` ONLY | **0** | 6,000+ lines; 239 redundant reads = ~143K tokens |
-| `objects.c`, `units.c`, `sound_manager.c` | `rtk read -o -l` | **100** | 100+ redundant reads each = ~300K tokens |
-| `build/`, `build_debug/`, `node_modules/`, `.git/`, `halo-patched/`, `__pycache__/`, `dist/` | **NEVER** | **0** | Generated artifacts; 7 reads = ~4K tokens for zero value |
-| Any `*.log` | **NEVER** | **0** | Run the command instead of reading output |
+| File / Directory                                                                             | Action           | Max Lines | Why                                                      |
+|----------------------------------------------------------------------------------------------|------------------|-----------|----------------------------------------------------------|
+| `kb.json`                                                                                    | `rtk jq` ONLY    | **0**     | 6,000+ lines; 239 redundant reads = ~143K tokens         |
+| `objects.c`, `units.c`, `sound_manager.c`                                                    | `rtk read -o -l` | **100**   | 100+ redundant reads each = ~300K tokens                 |
+| `build/`, `build_debug/`, `node_modules/`, `.git/`, `halo-patched/`, `__pycache__/`, `dist/` | **NEVER**        | **0**     | Generated artifacts; 7 reads = ~4K tokens for zero value |
+| Any `*.log`                                                                                  | **NEVER**        | **0**     | Run the command instead of reading output                |
 
 ### Session Memory
 Maintain a mental ledger of files already read in this conversation. If you need a fact from a file you've already read, recall it from context or `rtk rg` for the specific string — do not re-read the file.
@@ -53,7 +57,7 @@ A hook (`tools/audit/token_discipline_hook.py`, wired in `.claude/settings.json`
 - **JSON Mastery:** ALWAYS use `rtk jq` for querying/parsing `kb.json`. Never use `python -c`.
 - **Pre-edit research:** Before editing any function, run `rtk rg '<function_name>' src/` to find all callers and related symbols.
 - **Ghidra Pre-flight:** Before using any `ghidra` or `ghidra-live` MCP tool, run `python3 tools/audit/check_ghidra_mcp.py`. If it fails, alert the user and stop.
-- **Ghidra Token Discipline:** Never dump full decompile/disassembly "just in case." Use `get_function_callees` first (tiny output) to map the call graph. When you already have ported C, don't re-decompile the same function — diff only the specific section. For disassembly verification, use `read_memory` at a specific address range, not `disassemble_function`. Decompile the smallest/most-targeted function first (leaf helpers, not 400-line handlers).
+- **Ghidra Token Discipline:** Never dump full decompile/disassembly "just in case." Use `get_function_callees` first (tiny output) to map the call graph. When you already have ported C, don't re-decompile the same function — diff only the specific section. For disassembly verification, use `read_memory` at a specific address range, not `disassemble_function`. Decompile the smallest/most-targeted function first (leaf helpers, not 400-line handlers). **After a Ghidra decompile/callers call that informs N edits to one source file, record the target line ranges from the first read. All subsequent edits must use `rtk read -o <line> -l 40` — never re-read the file from offset 0.**
 - **Tooling:** Always prefix with `rtk`. Use `rtk fd` (files), `rtk rg` (text), `rtk ast-grep` (structure), `rtk fzf` (selecting). If `rtk rg` returns empty or errors with flags, fall back to bare `grep -rn` immediately — don't retry with different flag permutations.
 
 ### 2. Implementation & kb.json Discipline
@@ -67,22 +71,24 @@ A hook (`tools/audit/token_discipline_hook.py`, wired in `.claude/settings.json`
 - **Auto-lift delegates to `/lift`:** `tools/llm_auto_lift.py` provides target selection, liftability scoring, and Ghidra context caching. Code generation is delegated to `/lift` which has full agent context. Legacy `review`/`promote` subcommands exist for old batch artifacts.
 - **Never transcribe MSVC intrinsics as C function calls.** Ghidra shows them as regular calls but they have non-standard ABIs that corrupt the stack or registers when called from C. Use the equivalent C idiom — the compiler generates the intrinsic automatically:
 
-  | Address | Intrinsic | Refs | Ghidra shows | Write in C instead |
-  |---------|-----------|------|--------------|-------------------|
-  | 0x1d90e0 | `_chkstk` | 71 | `regparm(1)` call | declare locals normally (or `static` for large buffers) |
-  | 0x1d9068 | `_ftol2` | 228 | `_ftol2(var)` or cast | `(int)float_expr` |
-  | 0x1dd5c8 | `__SEH_prolog` | 74 | mangled params | `__try/__except` — clang supports this natively on `-target i386-pc-win32`; see `docs/seh-handling.md` |
-  | 0x1dd601 | `__SEH_epilog` | 73 | mangled return | (paired with prolog — handled automatically by `__try/__except`) |
-  | 0x1dd620 | `_allmul` | 10 | 4-arg call | `(int64_t)a * b` |
-  | 0x1dd660 | `_aullshr` | 1 | register call | `(uint64_t)val >> shift` |
-  | 0x1dd680 | `_aullrem` | 1 | 4-arg call | `(uint64_t)a % b` |
-  | 0x1dd770 | `_aulldiv` | 1 | 4-arg call | `(uint64_t)a / b` |
+  | Address  | Intrinsic      | Refs | Ghidra shows          | Write in C instead                                                                                     |
+  |----------|----------------|------|-----------------------|--------------------------------------------------------------------------------------------------------|
+  | 0x1d90e0 | `_chkstk`      | 71   | `regparm(1)` call     | declare locals normally (or `static` for large buffers)                                                |
+  | 0x1d9068 | `_ftol2`       | 228  | `_ftol2(var)` or cast | `(int)float_expr`                                                                                      |
+  | 0x1dd5c8 | `__SEH_prolog` | 74   | mangled params        | `__try/__except` — clang supports this natively on `-target i386-pc-win32`; see `docs/seh-handling.md` |
+  | 0x1dd601 | `__SEH_epilog` | 73   | mangled return        | (paired with prolog — handled automatically by `__try/__except`)                                       |
+  | 0x1dd620 | `_allmul`      | 10   | 4-arg call            | `(int64_t)a * b`                                                                                       |
+  | 0x1dd660 | `_aullshr`     | 1    | register call         | `(uint64_t)val >> shift`                                                                               |
+  | 0x1dd680 | `_aullrem`     | 1    | 4-arg call            | `(uint64_t)a % b`                                                                                      |
+  | 0x1dd770 | `_aulldiv`     | 1    | 4-arg call            | `(uint64_t)a / b`                                                                                      |
 
   Never add these to kb.json. They are compiler runtime, not game functions.
 
   **SEH functions specifically:** All 74 `__SEH_prolog` callers are LIBCMT/XAPILIB CRT helpers. Use `__try { <body> } __except(1) { return 0; }` (or the appropriate error return). The SEH is a safety net — in normal execution the `__try` body runs to completion. `vc71_verify` will report ~55% match because the frame shape differs (clang emits an inline SEH frame; the original uses compact thunks). This is expected and accepted for these CRT wrappers. New source files go in `src/halo/cseries/xbox_crt.c`; register the object as `XAPILIB:xbox_crt.obj` in `kb.json`.
 
 - **MSVC-style `__asm` is broken under clang.** Our `-target i386-pc-win32` flag makes clang define `_MSC_VER`, so `#ifdef _MSC_VER` guards select MSVC-style `__asm {}` blocks. Unlike GCC-style `asm volatile`, MSVC-style `__asm` does **not** communicate register clobbers to the optimizer. If a GPR (EAX, EDX, ECX, etc.) holds a live value before the `__asm` block, and the asm instruction overwrites that register, the optimizer will reuse the stale value after the block — causing silent corruption or ACCESS_VIOLATION. **Rule:** Always guard MSVC-only asm with `#if defined(_MSC_VER) && !defined(__clang__)`, and provide a GCC-style `asm volatile` alternative in the `#else` branch with proper output constraints and clobber lists. **Known dangerous instructions:** `RDTSC` (clobbers EAX:EDX), `CPUID` (clobbers EAX/EBX/ECX/EDX), `MUL`/`DIV` (implicit EAX/EDX). FPU-only asm (`FLD`, `FMUL`, `FPATAN`, etc.) is safe since it doesn't touch GPRs.
+
+- **Audit XCALL return and param types against kb.json.** XCALL raw function-pointer casts silently use the wrong register or push convention when the cast type doesn't match the real function signature. On x86: `float` return reads ST(0), `int`/`uint32_t` return reads EAX — wrong type = garbage from wrong register. `float` param is pushed via FLD+FSTP[ESP]; `int` param is pushed via PUSH — `(int)float_var` truncates before pushing. **Run `rtk python3 tools/audit/check_xcall_types.py` after adding or modifying any XCALL macro.** ERROR-level (float↔int) mismatches are blockers. Example: `real_a_rgb_color_to_pixel32` (0x99530) returns `uint32_t` in EAX; an XCALL cast `float(*)` read ST(0) garbage instead — the plasma-pistol overcharge orb was invisible for weeks.
 
 - **Verify callee buffer sizes.** Ghidra may under-size local buffers. When a lifted function passes a stack buffer to a callee, check the callee's `memset`/init size in disassembly — it reveals the true required size. Example: `FUN_0013fc20` (object placement init) writes 0x88 bytes; Ghidra showed the caller's buffer as 0x30, causing a stack overflow.
 
@@ -99,6 +105,7 @@ A hook (`tools/audit/token_discipline_hook.py`, wired in `.claude/settings.json`
 - **Lift Pipeline:** Use `rtk python3 tools/lift_pipeline.py --target <name_or_addr> --no-metadata-update --verify-policy auto` as the primary post-lift validation orchestrator. It runs build, ABI audit, VC71 verify when a delinked reference is mapped, optional behavior/runtime checks, and low-match policy gates.
 - **Hazard Scan:** Run `rtk python3 tools/audit/check_lift_hazards.py` after source edits or when reviewing auto-lift output. Treat intrinsic calls, undersized buffers, suspicious duplicate arguments, pointer-as-float warnings, and CONCAT survival as blockers until investigated.  Checks and their lift-learnings sections: XCALL (§1), buffer-alias (§2), intrinsics (table), duplicate-args (§3), pointer-as-float (§4), frame-size (§2 stack), callee-output-size (projection §5), x87-math, void-EAX (§16), CONCAT (§13, ERROR), float-smuggling (§6), addr-value-add (§17), param-loop-corruption (§4), discarded-result (§8/§11). Use `--changed-only` to scan the union of staged, unstaged-tracked, and untracked files you have touched; use `--staged-only` (what the pre-commit hook uses) for staged files only. **WARN-level findings in files you touched are review items, not ignorable noise** — an fmod/FPREM1 warning in `hud_messaging.c` was ignored as pre-existing noise and shipped a visible HUD rendering bug (2026-06-10).
 - **Learnings-must-ship-a-detector rule:** Every new `docs/lift-learnings.md` section **must ship, in the same commit**, either (a) a check wired into `check_lift_hazards.py` / `draft_decompiler.py` / `buffer_alias_detector.py` / the call-site audit, or (b) a one-line `Automation: not mechanically detectable because …` justification in the section.  A documented grep/regex counts as (a) only when it is actually implemented as a check.
+- **XCALL Type Audit:** Run `rtk python3 tools/audit/check_xcall_types.py` after adding or modifying XCALL macros. ERROR-level (float↔int return/param) mismatches are blockers — they silently read the wrong register (ST0 vs EAX) or truncate float args.
 - **Golden Master Test Harness:** A specialized test harness intercepts the engine boot in `src/halo/shell_xbox.c`. It lets you run functions inside the engine context and verify their side-effects/return values against the exact Xbox ASM output. 
   - *Usage:* Add tests to `src/halo/test_harness.c`. Ensure your function is unmapped in `kb.json` (`"ported": false`), run `rtk python3 tools/verify/run_golden_tests.py` to capture the original FPU hex values. Then map your function (`"ported": true`) and press Enter to verify your C implementation.
   - *Use cases:* FPU math functions, struct/object initializers, and complex isolated state transitions.
@@ -179,6 +186,7 @@ A hook (`tools/audit/token_discipline_hook.py`, wired in `.claude/settings.json`
 - Need real Xbox probing: `/deploy --xbe-only`, then `/xbdm <mode>`.
 - Need xemu build/load: `/build` or `/xemu build-load`.
 - Need regression investigation: `/debug-regression <symptom>`.
+- Need to replay an existing fixture (quick path — no flags to remember): `/replay-input` — picks level/scenario/build interactively, fires `capture_scenario.py replay`.
 - Need deterministic input testing (capture gameplay, replay the exact same input repeatedly, or diff patched vs unpatched build on identical input): `rtk python3 tools/xbox/capture_scenario.py replay --level <lvl> --scenario <name> [--xbe cachebeta.xbe|default.xbe]` — skill `input-replay-testing`, doc `docs/input-fixture-capture.md`.
 - Need an A/B regression test (does the patched build behave like the original on the same input): `rtk python3 tools/equivalence/ab_check.py --level <lvl> --scenario <name>` — one command: **builds+deploys your candidate and gates build-liveness first** (`verify_toggles_live --all-off`, so it tests your local build not a stale on-box one; `--no-deploy` to skip), then replays the fixture on cachebeta (golden) + default (candidate), captures both trajectories, runs the tolerant `behavior_diff`, and prints the localized divergence (exit 0 clean / 3 divergent / 2 inconclusive = deploy or gate failed). Add `--golden <frozen>.halorec` to reuse a frozen faithful golden (CI tripwire), `--aa-first` to self-check determinism. Skill `ab-trajectory-testing`, doc `docs/ab-trajectory-testing.md`.
 
@@ -190,7 +198,7 @@ A hook (`tools/audit/token_discipline_hook.py`, wired in `.claude/settings.json`
 - **`tools/equivalence/trajectory_diff.py`** — STRICT byte-diff of two `.halorec` trajectories at the exact tick. This is the **A/A determinism check only** (masks the known sub-frame phase counters actor+0x4a/+0x7c, prop+0x26); it is the wrong tool for A/B because it flags benign x87/phase drift. Exit 0 clean / 3 divergent.
 - **`tools/equivalence/behavior_diff.py`** — TOLERANT behavioral diff = the **A/B regression oracle**. Aligns by nearest tick within ±W, matches entities by datum SLOT (salts differ across builds), reports a discrete-field divergence only when SUSTAINED (≥`min_run` samples), compares positions at a value eps and handles by LIVENESS, and checks aggregate invariants. The earliest sustained onset names the time+field+entity to investigate. Built-in watch-list targets a10 AI; override with `--config`. Exit 0 clean / 3 divergent.
 - **`tools/equivalence/aa_check.py`** — Orchestrates the A/A determinism check: replays one fixture twice on the same build (cachebeta) and runs `trajectory_diff`. Must be CLEAN before trusting any A/B result. Skill `ab-trajectory-testing`.
-- **`tools/equivalence/ab_check.py`** — The one-command A/B regression check (primary entry point). By default **builds+deploys the candidate (`build_deploy_run.sh -q`, which always re-patches via the `patched_xbe` ALL target) and gates build-liveness (`verify_toggles_live --all-off`) before capturing** — so it tests your local build, not a stale on-box one; either step failing → exit 2 INCONCLUSIVE, no diff. Then replays the fixture on cachebeta (golden) + default (candidate), captures both, runs `behavior_diff`, prints the localized divergence + verdict (exit 0 clean / 3 divergent). `--no-deploy` skips the rebuild (verdict flagged UNVERIFIED unless `--verify-live`); `--golden <path>` reuses/`--freeze` writes a frozen faithful golden (CI tripwire); `--aa-first` self-checks determinism; `--reuse` diffs existing captures. Skill `ab-trajectory-testing`.
+- **`tools/equivalence/ab_check.py`** — The one-command A/B regression check (primary entry point). By default **builds+deploys the candidate (`build_deploy_run.sh -q`, which always re-patches via the `patched_xbe` ALL target) and gates build-liveness (`verify_toggles_live --all-off`) before capturing** — so it tests your local build, not a stale on-box one; either step failing → exit 2 INCONCLUSIVE, no diff. Then replays the fixture on cachebeta (golden) + default (candidate), captures both, runs `behavior_diff`, prints the localized divergence + verdict (exit 0 clean / 3 divergent). `--no-deploy` skips the rebuild (verdict flagged UNVERIFIED unless `--verify-live`); `--golden <path>` reuses/`--freeze` writes a frozen faithful golden (CI tripwire — capture cachebeta once, reuse); `--aa-first` self-checks determinism before the A/B; `--reuse` diffs existing captures. Skill `ab-trajectory-testing`.
 - **`tools/analysis/frontier.py`** — Decompilation frontier scoring and target recommendations.
 - **`tools/analysis/fun_pipeline.py`** — FUN_ function naming pipeline. Four stages: `reclassify` moves `<common>` FUN_ functions to named objects (feeds frontier.py accuracy); `prioritize` tiers remaining FUN_ functions by evidence quality (P0 = attributed + signature, P3 = unclassified); `propose` outputs a Ghidra work queue for decompile-based naming; `apply` writes proposed names back to kb.json. Run `status` first to gauge naming debt. Prerequisite for accurate frontier scoring when `<common>` is large.
 - **`tools/llm_auto_lift.py`** — Target selection, liftability scoring, and Ghidra context caching. Use `select` for combined frontier/liftability target choice; `cache-context` to pre-cache Ghidra output; code generation delegated to `/lift`.
@@ -254,13 +262,13 @@ re-run `migrate_skill_frontmatter.py` + `gen_skills_index.py`.
 
 ## RTK Commands by Workflow
 
-| Category | Typical Savings | Examples |
-|----------|-----------------|----------|
-| **Build** | 70-90% | `rtk cmake`, `rtk tsc`, `rtk lint` |
-| **Test** | 90-99% | `rtk pytest`, `rtk cargo test`, `rtk vitest` |
-| **Git** | 60-80% | `rtk git status`, `rtk git diff`, `rtk git log` |
-| **Files** | 60-75% | `rtk read`, `rtk grep`, `rtk find`, `rtk ls` |
-| **Ghidra**| 70-90% | `rtk python3 tools/audit/check_ghidra_mcp.py` |
+| Category   | Typical Savings | Examples                                        |
+|------------|-----------------|-------------------------------------------------|
+| **Build**  | 70-90%          | `rtk cmake`, `rtk tsc`, `rtk lint`              |
+| **Test**   | 90-99%          | `rtk pytest`, `rtk cargo test`, `rtk vitest`    |
+| **Git**    | 60-80%          | `rtk git status`, `rtk git diff`, `rtk git log` |
+| **Files**  | 60-75%          | `rtk read`, `rtk grep`, `rtk find`, `rtk ls`    |
+| **Ghidra** | 70-90%          | `rtk python3 tools/audit/check_ghidra_mcp.py`   |
 
 Use `rtk gain` to view savings statistics.
 <!-- /rtk-instructions -->
