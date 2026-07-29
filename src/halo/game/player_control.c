@@ -713,6 +713,47 @@ bool player_control_action_test_zoom(void)
   return (bool)((fields[0] >> 6) & 1u);
 }
 
+/* Test whether ALL FOUR move-relative direction bits (11..14) of the global
+ * action dword are set simultaneously.  Original (0xb6b50, 8 instructions):
+ *
+ *   MOV EAX,[0x00457090]      ; player_control_globals
+ *   MOV EAX,dword ptr [EAX]   ; globals+0x00, global action dword
+ *   NOT EAX
+ *   AND EAX,0x7800
+ *   NEG EAX / SBB EAX,EAX / INC EAX   ; == (eax == 0)
+ *   RET
+ *
+ * NOTE: Ghidra decompiles this as `void` with an empty body -- it is NOT.
+ * EAX is live at RET (lift-learnings 16, void-EAX implicit return); kb.json's
+ * `void ...(void)` decl was corrected to a returning one, like the siblings
+ * 0xb6ab0/0xb6ad0/0xb6af0/0xb6b10/0xb6b20/0xb6b30/0xb6b40.
+ *
+ * The return type is `int`, not this project's `bool` (which is a 1-byte
+ * `unsigned char`): the original's SBB/INC operate on the full 32-bit EAX
+ * (`sbb eax,eax; inc eax`), whereas a 1-byte return makes VC71 emit
+ * `sbb al,al; inc al` -- measured, 75.0% vs 100.0% match.  The value is still
+ * 0/1, so it is usable in any boolean context.
+ *
+ * The mask is an ALL-SET test, not an ANY-SET test: NOT+AND+(==0) means every
+ * one of bits 11,12,13,14 must be set.  `(v & 0x7800) != 0` would be the
+ * inverted-polarity bug and is invisible to both VC71 and asserts.
+ *
+ * Same PURE-test shape as the other 8-instruction members of the family: no
+ * `OR` stores into the accumulator dwords at +0x04/+0x08, so the action is not
+ * marked consumed here.  Adding those ORs would be an invented side effect.
+ *
+ * The read is at globals+0x00 -- the GLOBAL action dword -- not the per-player
+ * slot array at +0x10 (stride 0x40), so it must not be indexed by
+ * local_player_index.  player_control_globals_t is opaque (0x110 bytes) with no
+ * named field at +0x00, so raw dword access is used. */
+int player_control_action_test_move_relative_all_directions(void)
+{
+  uint32_t *fields;
+
+  fields = (uint32_t *)player_control_globals;
+  return (~fields[0] & 0x7800u) == 0;
+}
+
 /* Set a player control slot's desired facing angles from a 3D direction vector.
  * Converts the direction vector to yaw+pitch via vector_to_angles (atan2-based
  * vector_to_angles), validates both angles for NaN/Inf, and normalizes yaw

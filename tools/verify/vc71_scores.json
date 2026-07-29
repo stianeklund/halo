@@ -5172,6 +5172,10 @@
       "score": 100.0,
       "source": "src/halo/game/player_control.c"
     },
+    "FUN_000b6b50": {
+      "score": 100.0,
+      "source": "src/halo/game/player_control.c"
+    },
     "FUN_000b6ea0": {
       "score": 85.5,
       "source": "src/halo/game/player_control.c"
@@ -15981,6 +15985,10 @@
       "source": "src/halo/game/players.c"
     },
     "player_clear_aim_assist": {
+      "score": 100.0,
+      "source": "src/halo/game/player_control.c"
+    },
+    "player_control_action_test_move_relative_all_directions": {
       "score": 100.0,
       "source": "src/halo/game/player_control.c"
     },
