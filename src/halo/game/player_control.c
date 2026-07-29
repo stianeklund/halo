@@ -7,6 +7,16 @@ void *player_control_get_data(int16_t local_player_index)
   return (char *)player_control_globals + local_player_index * 0x40 + 0x10;
 }
 
+/* Allocate the player control globals block out of the game state heap.
+ * Binary: PUSH 0x110 / PUSH 0 / PUSH "player control globals" /
+ * CALL game_state_malloc / ADD ESP,0xc / MOV [player_control_globals],EAX.
+ * The 0x110 literal is exactly sizeof(player_control_globals_t). */
+void player_control_initialize(void)
+{
+  player_control_globals = (player_control_globals_t *)game_state_malloc(
+    "player control globals", NULL, sizeof(player_control_globals_t));
+}
+
 void player_control_dispose(void)
 {
 }
