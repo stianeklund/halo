@@ -575,6 +575,44 @@ Re-run a target to get the marker: the shape is written to the smoke log by
 `unicorn_diff.py`, capped at the first two diverging seeds (the sequences were
 identical across seeds in every case observed).
 
+#### The three `divergent` ones were also artifacts: calls attributed to the wrong function (2026-07-29)
+
+Investigating the three `divergent` survivors showed the comparator was counting
+calls the target never made. The two sides do not execute the same amount of
+code: the oracle CALLs an intra-object sibling and gets a **stub**, while the
+candidate either loads that sibling's real body or has **inlined** it. Every call
+the sibling then makes was recorded as if the target had made it — so the
+sequences differed while the target itself did nothing different.
+
+`StubCallRecord.caller_addr` now records the return address captured at intercept
+time (`[ESP]` at the sentinel, i.e. `call_site + 5`), and `StubArgTracer`
+carries the target's byte extent for its own side. `compare_stub_arg_traces`
+drops records whose caller falls outside that extent: those calls belong to the
+sibling's own equivalence target, not this one. The drop count is reported as
+`call-seq NESTED-DROPPED oracle=N candidate=M`, never silently swallowed — a
+large asymmetry there is exactly the context a reader of the divergence needs.
+
+Result on the three: `FUN_0005a120` went clean on 45 of 46 seeds; the other two
+stopped being `divergent` and now self-classify as `truncated` / `shifted`.
+**The class contains no genuine control-flow divergences.**
+
+Attribution cannot see through **inlining** — when clang inlines the sibling,
+its calls issue from inside the target's own extent (`FUN_000d6cc0` is 1152
+candidate bytes against 400 oracle bytes, and its extra `_display_assert` at
+`+0x447` is `hud_get_nav_point_data`'s NULL-guard, line `0x60`, firing on
+un-seeded harness memory). Those land in the existing `truncated`/`shifted`
+buckets, which is the honest place for them.
+
+Three properties pinned by test, each a silent failure mode:
+
+- An extra call made from **inside** the target's extent still fails. Attribution
+  must not become a blanket excuse for extra calls.
+- `caller_addr == 0` means *unknown*, not *nested* — same principle as the
+  missing shape marker above.
+- A `CALL` as the function's last instruction leaves a return address equal to
+  `end`, so the upper bound is **inclusive**. An exclusive bound would attribute
+  the target's own final call to a callee and hide a dropped tail call.
+
 The two classes that dominate a real batch, and why they are artifacts:
 
 - **`assert_metadata`** — `_display_assert(message, __FILE__, __LINE__)`. Our

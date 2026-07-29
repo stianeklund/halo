@@ -45,9 +45,22 @@ def _make_tracer(*records):
     return t
 
 
-def _rec(seq, addr, name, *args):
+def _rec(seq, addr, name, *args, caller_addr=0):
     return StubCallRecord(seq=seq, callee_addr=addr, callee_name=name,
-                          args=list(args), is_varargs=False)
+                          args=list(args), is_varargs=False,
+                          caller_addr=caller_addr)
+
+
+# A target function occupying [0x400000, 0x400100); anything outside was called
+# by a natively-executed callee, not by the target.
+_TGT = (0x400000, 0x400100)
+_IN, _OUTSIDE = 0x400040, 0x40008034
+
+
+def _ranged_tracer(rng, *records):
+    t = _make_tracer(*records)
+    t.target_range = rng
+    return t
 
 
 def test_identical():
@@ -595,6 +608,93 @@ def test_unmapped_slot_is_still_reported():
     assert d.arg_mismatches == 1, (
         f"unmapped slot must not be excused, got {d.arg_mismatches}")
     print("  PASS  test_unmapped_slot_is_still_reported")
+
+
+def test_nested_call_is_attributed_away():
+    """A call made by a natively-executed callee is not the target's behaviour.
+
+    The asymmetry this fixes: when one side CALLs an intra-object sibling (and
+    gets a stub) while the other executes that sibling for real, the executing
+    side additionally records every call the SIBLING makes. Those extra records
+    made the sequences differ even though the target did nothing different --
+    FUN_0005a120 failed 5 seeds purely on this. The sibling has its own
+    equivalence target; its calls are not evidence about this one.
+    """
+    oracle = _ranged_tracer(_TGT, _rec(0, _SENTINEL_A, "foo", 0x1,
+                                       caller_addr=_IN))
+    cand = _ranged_tracer(_TGT,
+                          _rec(0, _SENTINEL_A, "foo", 0x1, caller_addr=_IN),
+                          _rec(1, _SENTINEL_B, "bar", 0x2,
+                               caller_addr=_OUTSIDE))
+    d = compare_stub_arg_traces(oracle, cand, seed_label="s-nest")
+    assert not d.sequence_diverged, f"nested call must not diverge: {d}"
+    assert d.candidate_seq == ["foo"], d.candidate_seq
+    assert d.nested_dropped_candidate == 1, d.nested_dropped_candidate
+    print("  PASS  test_nested_call_is_attributed_away")
+
+
+def test_in_range_extra_call_still_diverges():
+    """The opposite direction: an extra call the TARGET itself makes is real.
+
+    Attribution must not become a blanket excuse for extra calls -- only for
+    calls provably made from outside the target's own bytes.
+    """
+    oracle = _ranged_tracer(_TGT, _rec(0, _SENTINEL_A, "foo", 0x1,
+                                       caller_addr=_IN))
+    cand = _ranged_tracer(_TGT,
+                          _rec(0, _SENTINEL_A, "foo", 0x1, caller_addr=_IN),
+                          _rec(1, _SENTINEL_B, "bar", 0x2, caller_addr=_IN + 8))
+    d = compare_stub_arg_traces(oracle, cand, seed_label="s-inrange")
+    assert d.sequence_diverged, "an extra call by the target must still fail"
+    assert d.nested_dropped_candidate == 0, d.nested_dropped_candidate
+    print("  PASS  test_in_range_extra_call_still_diverges")
+
+
+def test_unattributed_call_is_not_assumed_nested():
+    """caller_addr == 0 means "unknown", which must not read as "nested".
+
+    Same principle as the missing call-seq shape marker: absent evidence is not
+    evidence of an artifact. A record with no attribution keeps its old
+    behaviour, so an older or partially-readable run can never be silently
+    downgraded to clean.
+    """
+    oracle = _ranged_tracer(_TGT, _rec(0, _SENTINEL_A, "foo", 0x1,
+                                       caller_addr=_IN))
+    cand = _ranged_tracer(_TGT,
+                          _rec(0, _SENTINEL_A, "foo", 0x1, caller_addr=_IN),
+                          _rec(1, _SENTINEL_B, "bar", 0x2))  # caller unknown
+    d = compare_stub_arg_traces(oracle, cand, seed_label="s-unattr")
+    assert d.sequence_diverged, "unattributed extra call must still fail"
+    print("  PASS  test_unattributed_call_is_not_assumed_nested")
+
+
+def test_attribution_is_off_without_a_range():
+    """Strictly additive: no target_range installed => nothing is attributed."""
+    oracle = _make_tracer(_rec(0, _SENTINEL_A, "foo", 0x1, caller_addr=_IN))
+    cand = _make_tracer(_rec(0, _SENTINEL_A, "foo", 0x1, caller_addr=_IN),
+                        _rec(1, _SENTINEL_B, "bar", 0x2,
+                             caller_addr=_OUTSIDE))
+    d = compare_stub_arg_traces(oracle, cand, seed_label="s-norange")
+    assert d.sequence_diverged, "no range => historical behaviour"
+    assert d.nested_dropped_candidate == 0
+    print("  PASS  test_attribution_is_off_without_a_range")
+
+
+def test_call_at_function_end_is_kept():
+    """A CALL as the last instruction leaves a return address equal to `end`.
+
+    An exclusive upper bound would attribute the target's own final call to a
+    callee and drop it -- exactly the kind of off-by-one that would silently
+    hide a dropped tail call.
+    """
+    oracle = _ranged_tracer(_TGT, _rec(0, _SENTINEL_A, "foo", 0x1,
+                                       caller_addr=_TGT[1]))
+    cand = _ranged_tracer(_TGT, _rec(0, _SENTINEL_A, "foo", 0x9,
+                                     caller_addr=_TGT[1]))
+    d = compare_stub_arg_traces(oracle, cand, seed_label="s-tail")
+    assert not d.sequence_diverged, f"tail call must be kept: {d}"
+    assert d.arg_mismatches == 1, "and still arg-compared"
+    print("  PASS  test_call_at_function_end_is_kept")
 
 
 def main():
