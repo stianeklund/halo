@@ -225,6 +225,53 @@ def test_call_seq_divergence_is_suspect():
     print("  ok  call-sequence divergence -> call_seq/suspect-real")
 
 
+def test_narrow_field_read_wide_is_load_width():
+    """oracle reads 16 bits, we read 32 and pull in the adjacent fill.
+
+    This shape also satisfies _is_dirty_eax (low 16 bits match), which buckets
+    it harness-artifact. It must reach load_width/suspect-real instead, or a real
+    wrong-width return type is filed as benign and never looked at. Real case:
+    unit_inventory_next_weapon returns a short NONE (0xffff), our lift an int -1.
+    """
+    body = "".join(
+        f"  seed[ {i}] FAIL: EAX: oracle=0x0000ffff lifted=0xffffffff\n"
+        for i in range(8)
+    )
+    cat, detail = classify(ROW, _smoke(body))
+    assert cat == "load_width", cat
+    assert BUCKETS[cat] == "suspect-real", BUCKETS[cat]
+    print("  ok  16-bit field read as 32-bit -> load_width/suspect-real")
+
+
+def test_byte_field_read_wide_is_load_width():
+    """Same bug one width down: oracle reads 8 bits of 0xcc, we read 32."""
+    body = "".join(
+        f"  seed[ {i}] FAIL: EAX: oracle=0x000000cc lifted=0xcccccccc\n"
+        for i in range(4)
+    )
+    cat, _ = classify(ROW, _smoke(body))
+    assert cat == "load_width", cat
+    print("  ok  8-bit field read as 32-bit -> load_width")
+
+
+def test_stale_upper_bits_stays_dirty_eax():
+    """The benign direction must NOT be captured by the new detector.
+
+    A real `mov ax` leaves arbitrary leftovers in the upper bits -- not a
+    repeated-byte fill -- so it stays dirty_eax/harness-artifact. Without this
+    pin, widening load_width would quietly reclassify a whole benign class as
+    suspect-real and bury the genuine bugs in noise.
+    """
+    body = "".join(
+        f"  seed[ {i}] FAIL: EAX: oracle=0x00601234 lifted=0x00001234\n"
+        for i in range(50)
+    )
+    cat, _ = classify(ROW, _smoke(body))
+    assert cat == "dirty_eax", cat
+    assert BUCKETS[cat] == "harness-artifact", BUCKETS[cat]
+    print("  ok  stale upper bits stay dirty_eax/harness-artifact")
+
+
 def test_every_category_has_a_bucket():
     """A category with no bucket would silently become needs-evidence."""
     import triage_failures as tf
