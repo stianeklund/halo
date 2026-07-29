@@ -172,14 +172,15 @@ _README_STAT_MARKERS = (
 _README_BAR_RE = re.compile(r"^[+-][^█░]*[█░]+[^█░]*$")
 
 
-def _absorb_readme_stats_refresh(main_wt: str) -> bool:
-    """Commit a README-only, stats-only regen in the main worktree.
+def _readme_stats_only_dirt(main_wt: str) -> bool:
+    """True when the ONLY tracked dirt in main is a stats-only README regen.
 
-    Returns True only if it actually committed. Fails CLOSED: any other dirty
-    path, any non-stats line in the README diff, or any git error leaves the
-    tree untouched so the caller still parks.
+    Fails CLOSED: any other dirty path, any non-stats line in the README diff,
+    or any git error returns False so the caller parks.
     """
     st = git("status", "--porcelain", "--untracked-files=no", cwd=main_wt)
+    if st.returncode != 0:
+        return False
     lines = [ln for ln in st.stdout.splitlines() if ln.strip()]
     if len(lines) != 1:
         return False
@@ -200,11 +201,48 @@ def _absorb_readme_stats_refresh(main_wt: str) -> bool:
             continue
         if not any(m in ln for m in _README_STAT_MARKERS):
             return False
+    return True
+
+
+def _absorb_readme_stats_refresh(main_wt: str) -> bool:
+    """Commit a README-only, stats-only regen in the main worktree.
+
+    Returns True only if it actually committed. Fails CLOSED: any other dirty
+    path, any non-stats line in the README diff, or any git error leaves the
+    tree untouched so the caller still parks.
+
+    NB: committing here fires the repo's post-commit dashboard hook, which
+    regenerates README in the background and re-dirties it moments later. The
+    caller must therefore re-check with _settle_readme_regen(), not assume the
+    tree stays clean.
+    """
+    if not _readme_stats_only_dirt(main_wt):
+        return False
     if not git_ok("add", "--", "README.md", cwd=main_wt):
         return False
     return git_ok("commit", "--no-verify", "-m",
                   "chore: README progress stats refresh (auto, post-land)",
                   "--", "README.md", cwd=main_wt)
+
+
+def _settle_readme_regen(main_wt: str) -> bool:
+    """Discard a post-absorb background README regen so main is truly clean.
+
+    The post-commit dashboard hook re-writes README asynchronously after the
+    absorb commit, so the tree flaps dirty again with a fresh set of generated
+    numbers. README is a generated file and the next regen rewrites it anyway,
+    so discarding that drift loses nothing -- and leaving it dirty would make
+    the fast-forward refuse to touch the worktree.
+
+    Returns True only if the tree ends up clean of tracked changes. Fails
+    CLOSED: a README diff that is not stats-only is left alone so we park.
+    """
+    if not _readme_stats_only_dirt(main_wt):
+        return False
+    if not git_ok("checkout", "--", "README.md", cwd=main_wt):
+        return False
+    st = git("status", "--porcelain", "--untracked-files=no", cwd=main_wt)
+    return st.returncode == 0 and not st.stdout.strip()
 
 
 def run_gates(main_wt: str, *, rebased: bool, backup: str | None,
@@ -318,6 +356,13 @@ def main() -> int:
         if absorbed:
             st = git("status", "--porcelain", "--untracked-files=no",
                      cwd=main_wt)
+            # The absorb commit itself fires the post-commit dashboard hook,
+            # which regenerates README in the background. Without settling
+            # that, the re-check below sees the flap and parks -- the exact
+            # loop the absorb exists to break.
+            if st.stdout.strip() and _settle_readme_regen(main_wt):
+                st = git("status", "--porcelain", "--untracked-files=no",
+                         cwd=main_wt)
     if st.stdout.strip():
         return result(INCONCLUSIVE, "main_worktree_dirty", as_json=J,
                       main_worktree=main_wt,
