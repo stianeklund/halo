@@ -13407,7 +13407,8 @@
     },
     {
      "addr": "0x102700",
-     "decl": "void main_framerate_render(void);"
+     "decl": "void main_framerate_render(void);",
+     "ported": true
     },
     {
      "addr": "0x1029a0",
@@ -28515,7 +28516,7 @@
     },
     {
      "addr": "0x19b7e0",
-     "decl": "void FUN_0019B7E0(void);"
+     "decl": "void draw_string_set_font_tag(int font_tag_index);"
     },
     {
      "addr": "0x19b800",
