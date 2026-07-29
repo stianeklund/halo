@@ -16476,7 +16476,8 @@
     },
     {
      "addr": "0xb6620",
-     "decl": "void player_control_get_target_object_index(void);"
+     "decl": "int32_t player_control_get_target_object_index(int16_t local_player_index);",
+     "ported": true
     },
     {
      "addr": "0xb6690",

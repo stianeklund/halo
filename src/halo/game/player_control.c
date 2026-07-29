@@ -93,11 +93,11 @@ float evaluate_piecewise_linear_function(int16_t count, float *function,
   /* PIN(fabs(input)*(count-1), 0.0, count-1.0f) -- written as the macro
    * expansion so the scaled value stays CSE'd in ST0 and the clamp has a
    * single shared store into the `input` slot (0x64f6..0x6529). */
-  input = (float)(fabs(input) * count_minus_1 < 0.0
-                    ? 0.0
-                    : (fabs(input) * count_minus_1 > count - 1.0f
-                         ? count - 1.0f
-                         : fabs(input) * count_minus_1));
+  input = (float)(fabs(input) * count_minus_1 < 0.0 ?
+                    0.0 :
+                    (fabs(input) * count_minus_1 > count - 1.0f ?
+                       count - 1.0f :
+                       fabs(input) * count_minus_1));
 
   low_index = (int16_t)input;
   if (low_index < 0)
@@ -110,10 +110,11 @@ float evaluate_piecewise_linear_function(int16_t count, float *function,
     high_index = (int16_t)count_minus_1;
 
   assert_halt_at("c:\\halo\\SOURCE\\game\\player_control.c", 0x14b,
-                 function && low_index>=0 && low_index<=high_index && high_index<count);
+                 function && low_index >= 0 && low_index <= high_index &&
+                   high_index < count);
 
-  result = (function[high_index] - function[low_index]) *
-           (input - low_index) + function[low_index];
+  result = (function[high_index] - function[low_index]) * (input - low_index) +
+           function[low_index];
   if (negate)
     result = -result;
   return result;
@@ -136,10 +137,40 @@ int32_t player_control_get_aiming_unit_index(int16_t local_player_index)
   player_control_t *pc;
 
   assert_halt_at("c:\\halo\\SOURCE\\game\\player_control.c", 0xb1,
-                 local_player_index>=0 && local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+                 local_player_index >= 0 &&
+                   local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
   pc = (player_control_t *)((char *)player_control_globals +
                             local_player_index * 0x40 + 0x10);
   return unit_get_aiming_unit_index(pc->unit_index);
+}
+
+/* Return the target (aim-assist) object index for a local player, or NONE if
+ * that object handle no longer resolves to a live object.
+ * Binary (0xb6620): MOVSX ESI,word [EBP+8] bounds-checked against
+ * [0, MAXIMUM_NUMBER_OF_LOCAL_PLAYERS) (same assert line 0xb1 as the sibling
+ * above), then
+ *   MOV ECX,[player_control_globals] / SHL EAX,6 /
+ *   MOV EDX,[EAX+ECX+0x38] / LEA ESI,[EAX+ECX+0x10] /
+ *   PUSH -1 / PUSH EDX / CALL object_try_and_get_and_verify_type / ADD ESP,8 /
+ *   TEST EAX,EAX / JZ -> OR EAX,-1 ; else MOV EAX,[ESI+0x28] / RET.
+ * The LEA reproduces the inlined player_control_get_data; EDX is the same slot
+ * field the fallthrough re-reads, i.e. pc->target_object_index at +0x28
+ * (globals base + idx*0x40 + 0x10 + 0x28 = the +0x38 displacement above).
+ * The success path returns the datum HANDLE, not the pointer the callee
+ * returned -- Ghidra's `void (void)` is wrong on both param and return
+ * (lift-learnings SS16 void-EAX); the WORD load makes the param int16_t. */
+int32_t player_control_get_target_object_index(int16_t local_player_index)
+{
+  player_control_t *pc;
+
+  assert_halt_at("c:\\halo\\SOURCE\\game\\player_control.c", 0xb1,
+                 local_player_index >= 0 &&
+                   local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+  pc = (player_control_t *)((char *)player_control_globals +
+                            local_player_index * 0x40 + 0x10);
+  if (object_try_and_get_and_verify_type(pc->target_object_index, -1) != NULL)
+    return pc->target_object_index;
+  return NONE;
 }
 
 /* Get the local player index for the player controlling a unit.
@@ -245,7 +276,7 @@ void player_control_new_unit(uint16_t local_player_index, int player_index)
   pc->desired_grenade_index = -1;
   pc->desired_zoom_level = -1;
   pc->field_0x26 = 0;
-  pc->field_0x28 = -1;
+  pc->target_object_index = -1;
   pc->pitch_maximum = 1.4922565f; /* +85.5 degrees in radians */
   pc->pitch_minimum = -1.4922565f; /* -85.5 degrees in radians */
   pc->action_flags = 0;
