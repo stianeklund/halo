@@ -6,8 +6,9 @@ name: Audit Gates
 #
 # Two of them (xcall-types, arg-counts) are fast and also gate at pre-commit;
 # this job is their backstop, since --no-verify bypasses the hook. The third
-# (callee-reg-args) takes ~5 minutes, which is too slow for a commit hook, so
-# CI is its only home.
+# (callee-reg-args) takes 6m33s measured (run 30435934282), which is too slow
+# for a commit hook and for a per-push run, so the schedule and PRs are its
+# only homes.
 #
 # All three need the pristine XBE, which GitHub-hosted runners do not have --
 # hence self-hosted. Each has a committed baseline of pre-existing findings;
@@ -19,6 +20,22 @@ on:
     # progress-report run, so a slow batch cannot delay this.
     - cron: '0 3 * * *'
   workflow_dispatch:
+  # Push to main runs the FAST subset (see the `if:` on the callee register-arg
+  # step). Without this, these gates fired only nightly and on PRs -- and since
+  # work lands by direct push to main, a change to the equivalence harness could
+  # sit untested for up to 24h while main.yml's green check said nothing about
+  # it. Measured on run 30435934282: the whole job is 6m47s, of which the
+  # callee register-arg sweep alone is 6m33s (96.6%). The other six gates total
+  # ~13s, so running them per-push costs almost nothing on the shared box.
+  push:
+    branches: [main]
+    paths:
+      - 'kb.json'
+      - 'tools/audit/**'
+      - 'tools/equivalence/**'
+      # A change to this workflow should run this workflow -- otherwise an edit
+      # to the gating logic lands unverified.
+      - '.github/workflows/audit.yml'
   pull_request:
     paths:
       - 'kb.json'
@@ -27,6 +44,7 @@ on:
       # equivalence.yml because several of them (test_xbe_symbol_addrs) read
       # the pristine XBE, which only this workflow links.
       - 'tools/equivalence/**'
+      - '.github/workflows/audit.yml'
 
 env:
   XBE_DIR: /mnt/g/dev/halo/halo-patched
@@ -50,6 +68,17 @@ jobs:
         run: |
           python3 -c "import capstone; print('capstone ok')"
           test -f halo-patched/cachebeta.xbe
+
+      # State the mode in the summary. A green check that silently covered a
+      # subset is worse than a red one: it reads as "audited" to anyone who does
+      # not know which trigger fired.
+      - name: Note audit mode
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            printf '## Audit mode: FAST (push)\n\nAll gates except the callee register-arg sweep (6m33s), which runs on the nightly schedule and on PRs.\n' >> "$GITHUB_STEP_SUMMARY"
+          else
+            printf '## Audit mode: FULL (%s)\n\nAll gates including the callee register-arg sweep.\n' "${{ github.event_name }}" >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Baseline-gate self-test
         run: python3 tools/audit/test_baseline_gates.py
@@ -114,8 +143,14 @@ jobs:
           fi
           exit $RC
 
+      # The one slow gate: 6m33s of the job's 6m47s. Skipped on push so the
+      # per-push run costs ~13s; the nightly schedule and PRs still run it in
+      # full. Do NOT add a fast/partial mode here instead -- the sweep is slow
+      # because it disassembles every unported callee, and a sampled version
+      # would report "OK" from having looked at a subset, which is the exact
+      # failure this workflow exists to prevent.
       - name: Callee register-arg audit
-        if: always()
+        if: ${{ always() && github.event_name != 'push' }}
         run: |
           set +e
           OUTPUT=$(python3 tools/audit/check_callee_reg_args.py --check 2>&1)
