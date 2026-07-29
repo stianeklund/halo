@@ -154,6 +154,99 @@ def test_sequence_callee_diverged():
     print("  PASS  test_sequence_callee_diverged")
 
 
+def test_sequences_are_recorded():
+    """The comparator must keep the two sequences, not just the divergence index.
+
+    Without them a call_seq verdict cannot be adjudicated at all -- which was the
+    state on the 07-29 batch, where call_seq was the largest failure class (71 of
+    186) and every one of them read only "diverged at index N".
+    """
+    oracle = _make_tracer(
+        _rec(0, _SENTINEL_A, "foo", 0x1),
+        _rec(1, _SENTINEL_B, "bar", 0x2),
+    )
+    cand = _make_tracer(_rec(0, _SENTINEL_A, "foo", 0x1))
+    d = compare_stub_arg_traces(oracle, cand, seed_label="s-rec")
+    assert d.oracle_seq == ["foo", "bar"], d.oracle_seq
+    assert d.candidate_seq == ["foo"], d.candidate_seq
+    assert any("call-seq oracle" in ln for ln in d.sequence_detail())
+    print("  PASS  test_sequences_are_recorded")
+
+
+def test_shifted_sequence_is_flagged_as_alignment():
+    """One extra call on one side, rest lining up = alignment artifact, not a bug.
+
+    This is the case worth separating: the comparison walks two lists off by one,
+    so every position after the insertion 'diverges' while both sides really call
+    the same things in the same order.
+    """
+    oracle = _make_tracer(
+        _rec(0, _SENTINEL_A, "foo", 0x1),
+        _rec(1, _SENTINEL_B, "extra", 0x9),
+        _rec(2, _SENTINEL_C, "bar", 0x2),
+    )
+    cand = _make_tracer(
+        _rec(0, _SENTINEL_A, "foo", 0x1),
+        _rec(2, _SENTINEL_C, "bar", 0x2),
+    )
+    d = compare_stub_arg_traces(oracle, cand, seed_label="s-shift")
+    assert d.sequence_diverged
+    kind, _ = d.sequence_relation()
+    assert kind == "shifted", kind
+    assert any("SHIFTED" in ln for ln in d.sequence_detail())
+    print("  PASS  test_shifted_sequence_is_flagged_as_alignment")
+
+
+def test_truncated_sequence_is_flagged_as_early_exit():
+    """Shorter is a prefix of longer = one side stopped, not a divergence.
+
+    Four of six call_seq targets sampled on 07-29 were this shape (oracle made
+    2 calls, candidate 4-5, oracle's list a prefix). Calling that a wrong-callee
+    bug would put four artifacts on the bug list.
+    """
+    oracle = _make_tracer(
+        _rec(0, _SENTINEL_A, "foo", 0x1),
+        _rec(1, _SENTINEL_B, "bar", 0x2),
+    )
+    cand = _make_tracer(
+        _rec(0, _SENTINEL_A, "foo", 0x1),
+        _rec(1, _SENTINEL_B, "bar", 0x2),
+        _rec(2, _SENTINEL_C, "baz", 0x3),
+        _rec(3, _SENTINEL_C, "baz", 0x4),
+    )
+    d = compare_stub_arg_traces(oracle, cand, seed_label="s-trunc")
+    assert d.sequence_diverged
+    kind, _ = d.sequence_relation()
+    assert kind == "truncated", kind
+    assert any("TRUNCATED" in ln for ln in d.sequence_detail())
+    print("  PASS  test_truncated_sequence_is_flagged_as_early_exit")
+
+
+def test_genuinely_different_callee_is_not_called_a_shift():
+    """The opposite direction: a real wrong-callee must NOT be excused.
+
+    Equal lengths with a different callee at one position can never be explained
+    by an off-by-one, so sequence_shift() must return None or the alignment
+    story would launder real control-flow bugs.
+    """
+    oracle = _make_tracer(
+        _rec(0, _SENTINEL_A, "foo", 0x1),
+        _rec(1, _SENTINEL_B, "bar", 0x2),
+    )
+    cand = _make_tracer(
+        _rec(0, _SENTINEL_A, "foo", 0x1),
+        _rec(1, _SENTINEL_C, "baz", 0x2),
+    )
+    d = compare_stub_arg_traces(oracle, cand, seed_label="s-real")
+    assert d.sequence_diverged
+    kind, desc = d.sequence_relation()
+    assert kind == "divergent", kind
+    assert "index 1" in desc, desc
+    assert not any("SHIFTED" in ln or "TRUNCATED" in ln
+                   for ln in d.sequence_detail())
+    print("  PASS  test_genuinely_different_callee_is_not_called_a_shift")
+
+
 def test_chkstk_ignored():
     oracle = _make_tracer(
         _rec(0, _SENTINEL_A, "FUN_001d90e0", 0x00, 0x00),

@@ -107,9 +107,93 @@ class StubArgDiff:
     # exemption is always visible in the summary rather than silently dropped.
     soft_semantic_matches: int = 0
     soft_reasons: Dict[str, int] = field(default_factory=dict)
+    # The two callee-name sequences, kept so a divergence can actually be
+    # adjudicated. Recording only the index (as this did) says a divergence
+    # happened but not what it was, and the two cases have opposite meanings: a
+    # SHIFTED sequence (one side has an extra or missing call, the rest lining up
+    # after the offset) is a comparator-alignment artifact, whereas a genuinely
+    # DIFFERENT callee at the same position is a real control-flow bug. On the
+    # 07-29 batch this was 71 of 186 failures -- the largest single class -- and
+    # none of them could be told apart from the log alone.
+    oracle_seq: List[str] = field(default_factory=list)
+    candidate_seq: List[str] = field(default_factory=list)
 
     def has_differences(self) -> bool:
         return self.sequence_diverged or self.arg_mismatches > 0
+
+    def sequence_relation(self):
+        """Classify HOW the two sequences differ: -> (kind, description).
+
+        Three outcomes, and only the last is a lift bug:
+
+        ``truncated``  the shorter sequence is a PREFIX of the longer -- one side
+                       simply stopped making calls. Both sides agree on every
+                       call they both made, so this is one side ending early
+                       (oracle crash, early return, instruction limit), not a
+                       control-flow difference. This is the common case: of six
+                       call_seq targets sampled on 07-29, four were this.
+        ``shifted``    one side has an extra call in the MIDDLE and the tail
+                       still lines up. The comparison then walks two lists off
+                       by one, so every later position reports as divergent.
+                       An alignment artifact.
+        ``divergent``  neither -- the two sides genuinely call different things
+                       at the same position. A real control-flow difference.
+                       Example: FUN_000d6cc0, where the candidate calls
+                       _display_assert where the oracle calls
+                       _global_scenario_get.
+
+        Prefix is tested first because it subsumes an extra call at either END,
+        and 'one side stopped' is the more accurate description of that shape
+        than 'off by one'.
+        """
+        o, c = self.oracle_seq, self.candidate_seq
+        if o == c:
+            return (None, "")
+        longer, shorter, side = (o, c, "oracle") if len(o) > len(c) else (c, o, "candidate")
+        if longer[:len(shorter)] == shorter:
+            return ("truncated",
+                    "%s stopped after %d call(s); %s continued to %d -- both agree "
+                    "on every shared call, so one side ended early rather than "
+                    "diverging" % ("oracle" if side == "candidate" else "candidate",
+                                   len(shorter), side, len(longer)))
+        if len(longer) - len(shorter) == 1:
+            for k in range(len(longer)):
+                if longer[:k] + longer[k + 1:] == shorter:
+                    return ("shifted",
+                            "%s has one extra call at index %d (sequences identical "
+                            "without it) -- alignment artifact, not a control-flow "
+                            "difference" % (side, k))
+        first = next((i for i, (a, b) in enumerate(zip(o, c)) if a != b), min(len(o), len(c)))
+        return ("divergent",
+                "callees differ at index %d: oracle=%s candidate=%s -- real "
+                "control-flow difference" % (
+                    first,
+                    o[first] if first < len(o) else "(end)",
+                    c[first] if first < len(c) else "(end)"))
+
+    def sequence_detail(self, window: int = 4) -> List[str]:
+        """Human-readable lines describing a sequence divergence.
+
+        Emitted on its own lines, never folded into summary(): triage_failures
+        regexes on the exact `call-seq diverged at index N` text in summary(),
+        so that string has to stay byte-stable.
+        """
+        if not self.sequence_diverged:
+            return []
+        i = max(0, self.sequence_diverge_index - window)
+        j = self.sequence_diverge_index + window + 1
+        lines = [
+            "  call-seq oracle   [%d..%d] len=%d: %s"
+            % (i, min(j, len(self.oracle_seq)), len(self.oracle_seq),
+               " ".join(self.oracle_seq[i:j]) or "(empty)"),
+            "  call-seq candidate[%d..%d] len=%d: %s"
+            % (i, min(j, len(self.candidate_seq)), len(self.candidate_seq),
+               " ".join(self.candidate_seq[i:j]) or "(empty)"),
+        ]
+        kind, desc = self.sequence_relation()
+        if kind:
+            lines.append("  call-seq %s: %s" % (kind.upper(), desc))
+        return lines
 
     def summary(self) -> str:
         parts = []
@@ -445,6 +529,10 @@ def compare_stub_arg_traces(oracle_tracer: StubArgTracer,
         sequence_diverge_index=seq_diverge_idx,
         soft_semantic_matches=soft_semantic,
         soft_reasons=soft_reasons,
+        # Built from the same filtered lists the comparison walked, so the
+        # recorded sequences are exactly what produced the verdict.
+        oracle_seq=[r.callee_name for r in oc],
+        candidate_seq=[r.callee_name for r in cc],
     )
 
 

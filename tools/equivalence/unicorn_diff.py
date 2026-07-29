@@ -2464,6 +2464,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
 
     passed = 0
     failed = 0
+    seq_detail_logged = 0  # cap call-seq dumps; see the emit site below
     errors = 0
     error_details = []
     first_diff = None
@@ -2678,6 +2679,14 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
                     log(f"  {seed_label} FAIL: {diff.summary()}")
                 if stub_arg_diff is not None and stub_arg_diff.has_differences():
                     log(f"  {seed_label} FAIL: {stub_arg_diff.summary()}")
+                    # Only for the first few diverging seeds: the sequences are
+                    # identical across seeds in every case observed, so logging
+                    # all 50 adds bulk without adding evidence.
+                    if seq_detail_logged < 2:
+                        for line in stub_arg_diff.sequence_detail():
+                            log(line)
+                        if stub_arg_diff.sequence_diverged:
+                            seq_detail_logged += 1
         else:
             passed += 1
             if verbose and si < 3:

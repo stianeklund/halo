@@ -225,6 +225,60 @@ def test_call_seq_divergence_is_suspect():
     print("  ok  call-sequence divergence -> call_seq/suspect-real")
 
 
+def _seq_body(shape):
+    body = "".join(
+        f"  seed[ {i}] FAIL: stub-args: call-seq diverged at index 2\n"
+        for i in range(20)
+    )
+    return body + f"  call-seq {shape}: (detail)\n"
+
+
+def test_truncated_call_seq_is_harness_artifact():
+    """One side stopped early -> artifact, not a bug.
+
+    57 of the 71 call_seq targets on the 07-29 batch were this shape. Leaving
+    them as suspect-real makes the largest class in the corpus 95% noise.
+    """
+    cat, _ = classify(ROW, _smoke(_seq_body("TRUNCATED")))
+    assert cat == "call_seq_truncated", cat
+    assert BUCKETS[cat] == "harness-artifact", BUCKETS[cat]
+    print("  ok  truncated call-seq -> harness-artifact")
+
+
+def test_shifted_call_seq_is_harness_artifact():
+    cat, _ = classify(ROW, _smoke(_seq_body("SHIFTED")))
+    assert cat == "call_seq_shifted", cat
+    assert BUCKETS[cat] == "harness-artifact", BUCKETS[cat]
+    print("  ok  shifted call-seq -> harness-artifact")
+
+
+def test_divergent_call_seq_stays_suspect_real():
+    """The 3-of-71 real case must survive the split."""
+    cat, detail = classify(ROW, _smoke(_seq_body("DIVERGENT")))
+    assert cat == "call_seq", cat
+    assert BUCKETS[cat] == "suspect-real", BUCKETS[cat]
+    assert "different callee" in detail, detail
+    print("  ok  divergent call-seq -> call_seq/suspect-real")
+
+
+def test_call_seq_without_shape_marker_stays_suspect_real():
+    """Logs predating the shape marker must NOT be reclassified as artifacts.
+
+    Absent evidence is not evidence of an artifact -- an old log has no marker,
+    and defaulting those to harness-artifact would silently retire real bugs
+    that were never re-examined.
+    """
+    body = "".join(
+        f"  seed[ {i}] FAIL: stub-args: call-seq diverged at index 2\n"
+        for i in range(20)
+    )
+    cat, detail = classify(ROW, _smoke(body))
+    assert cat == "call_seq", cat
+    assert BUCKETS[cat] == "suspect-real", BUCKETS[cat]
+    assert "not recorded" in detail, detail
+    print("  ok  call-seq with no shape marker stays suspect-real")
+
+
 def test_narrow_field_read_wide_is_load_width():
     """oracle reads 16 bits, we read 32 and pull in the adjacent fill.
 
