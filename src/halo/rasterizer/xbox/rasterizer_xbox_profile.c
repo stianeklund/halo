@@ -212,3 +212,85 @@ void FUN_0016fa40(short profile)
     *(unsigned int *)0x47e45c |= bit;
   }
 }
+
+/* 0x16fbd0 — profile section elapsed-time query (asserts at
+ * rasterizer_xbox_profile.c lines 0x177/0x187).
+ *
+ * Ghidra typed this `void FUN_0016fbd0(void)`: BOTH the stack parameter
+ * (MOV EDI,[EBP+8]; CMP DI,0x1d — 16-bit signed compares throughout) and the
+ * ST0 float return were lost, and the accumulator loop was collapsed into an
+ * empty countdown with the FADDP/FDIVP dropped.  Both return expressions are
+ * reconstructed from the disassembly.
+ *
+ * Returns seconds: the per-profile performance-counter delta at
+ * 0x47e270 (int64, 8-byte stride, 0x1d entries) divided by the
+ * QueryPerformanceFrequency LARGE_INTEGER latched into 0x325178 by
+ * FUN_0016f6c0.  Both operands are loaded with FILD qword (signed 64-bit),
+ * and the dividend is the counter — not the reverse.
+ *
+ * profile == 0x1d (NUMBER_OF_RASTERIZER_PROFILES) is the "all profiles"
+ * request and sums all 0x1d counters.  The accumulator is the same x87
+ * register value that the entry FLD/FST of 0.0f (0x2533c0) seeds, which is
+ * why the entry constant doubles as the gate-off return value and the
+ * assert paths FSTP ST0 to discard it.
+ *
+ * The two no-data constants differ: 0.0f (0x2533c0) when profiling is
+ * disabled, -1.0f (0x255e94) when the requested profile has not completed
+ * this frame.
+ *
+ * The int64 counter is copied through the 8-byte frame slot at EBP-8 before
+ * FILD qword, matching the original's two 32-bit MOVs per iteration; hence
+ * the explicit `counter_value` local rather than a direct cast of the
+ * dereference. */
+float FUN_0016fbd0(int16_t profile)
+{
+  float total;
+  /* volatile reproduces the original's 8-byte staging slot at EBP-8: each
+   * counter is copied through it with two 32-bit MOVs before FILD qword
+   * (SUB ESP,8 in the prologue).  Without it VC71 folds the copy away and
+   * FILDs straight from the counter array. */
+  volatile int64_t counter_value;
+  const int64_t *counter;
+  int count;
+  int slot;
+
+  total = 0.0f;
+  if (*(short *)0x3256ba == 3 || *(char *)0x325704 != 0) {
+    if (*(int *)0x476ab0 == 0) {
+      display_assert("global_d3d_device",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_"
+                     "profile.c",
+                     0x177, 1);
+      system_exit(-1);
+    }
+    if (profile == 0x1d) {
+      /* "all profiles": sum every per-profile counter */
+      counter = (const int64_t *)0x47e270;
+      count = 0x1d;
+      do {
+        counter_value = *counter;
+        total += (float)counter_value;
+        counter++;
+        count--;
+      } while (count != 0);
+      return total / (float)*(int64_t *)0x325178;
+    }
+    if (profile < 0 || profile >= 0x1d) {
+      display_assert("profile>=0 && profile<NUMBER_OF_RASTERIZER_PROFILES",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_"
+                     "profile.c",
+                     0x187, 1);
+      system_exit(-1);
+    }
+    /* warn when the profile has not completed this frame */
+    FUN_0016f480("profile not completed (query)", profile,
+                 (char)(*(short *)0x325180 == -1));
+    slot = profile;
+    if ((1u << (unsigned int)slot) & *(unsigned int *)0x47e45c) {
+      counter_value = *(const int64_t *)(slot * 8 + 0x47e270);
+      return (float)counter_value / (float)*(int64_t *)0x325178;
+    }
+    total = -1.0f;
+  }
+  return total;
+}

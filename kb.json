@@ -19304,7 +19304,8 @@
     },
     {
      "addr": "0x16fbd0",
-     "decl": "void FUN_0016fbd0(void);"
+     "decl": "float FUN_0016fbd0(int16_t profile);",
+     "ported": true
     },
     {
      "addr": "0x16fcf0",
