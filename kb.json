@@ -19299,7 +19299,8 @@
     },
     {
      "addr": "0x16fb80",
-     "decl": "void rasterizer_initialize(void);"
+     "decl": "const char *rasterizer_initialize(short profile);",
+     "ported": true
     },
     {
      "addr": "0x16fbd0",
