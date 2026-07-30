@@ -1916,6 +1916,155 @@ static void player_set_spawn_action_result(int player_handle,
   *(int16_t *)(player + 0x2a) = seat_index;
 }
 
+/* Re-seat every local player into the scenario's pending structure BSP
+ * (0xbca60).
+ *
+ * players_globals+0x2a holds the BSP-switch request (int16, -1 = none) and
+ * players_globals+0x24 a 16-bit state/count that must be > 1 for the switch to
+ * run.  When either gate fails the function only clears every player's
+ * +0x3c field and returns.
+ *
+ * Otherwise it picks a destination position:
+ *   1. scenario+0x39c[bsp_index] (8-byte elements) names a spawn-reference; if
+ *      its +6 field is valid it indexes scenario+0x4e4 (0x5c-byte elements) and
+ *      seeds the position from that element's +0x24 vector3.  The position is
+ *      then raised in 0.05 steps (up to 0.3) while FUN_0014dc30(0x4029, ...)
+ *      still reports a collision; success sets use_camera_height.
+ *   2. It then walks every player looking for one whose unit is already inside
+ *      the target BSP's cluster (FUN_0018ef00) and at a valid location whose
+ *      collision-BSP reference (scenario+0xe0, 0x10-byte elements, +8) is
+ *      valid.  That player's camera position either replaces the seed position
+ *      outright (use_camera_height == 0) or just raises its z.
+ *
+ * With a donor player found, every OTHER local player's unit is re-seated to
+ * that position via players_update_before_game_client and has its +0x3c field
+ * cleared; the BSP request is then retired and all +0x3c fields reset.
+ * No donor -> "no players in the bsp" assert.
+ *
+ * NOTE: the original reuses one stack slot (EBP-0x8) for both the collision
+ * search offset and biped_get_camera_height_and_offset's camera-height output;
+ * `search_offset` below is that shared slot, so the frame stays 0x38 bytes.
+ */
+void players_reconnect_to_structure_bsp(void)
+{
+  data_iter_t iter;
+  vector3_t camera_pos;
+  vector3_t position;
+  float height_offset;
+  int donor_unit_handle;
+  float search_offset;
+  char use_camera_height;
+  char *player;
+  int16_t bsp_index;
+  int16_t spawn_index;
+  int16_t local_player;
+  int player_index;
+  int unit_handle;
+  int location;
+  int bsp_reference;
+  bool found;
+  void *scenario;
+  void *element;
+
+  if (*(int16_t *)((char *)players_globals + 0x2a) != -1 &&
+      *(int16_t *)((char *)players_globals + 0x24) > 1) {
+    scenario = global_scenario_get();
+    element = tag_block_get_element(
+      (char *)scenario + 0x39c,
+      (int)*(int16_t *)((char *)players_globals + 0x2a), 8);
+
+    found = false;
+    donor_unit_handle = -1;
+    use_camera_height = 0;
+
+    spawn_index = *(int16_t *)((char *)element + 6);
+    if (spawn_index != -1) {
+      void *spawn;
+
+      search_offset = 0.0f;
+      spawn =
+        tag_block_get_element((char *)scenario + 0x4e4, (int)spawn_index, 0x5c);
+      position = *(vector3_t *)((char *)spawn + 0x24);
+      do {
+        if (FUN_0014dc30(0x4029, (float *)&position, -1) == 0)
+          break;
+        position.z = position.z + 0.05f;
+        search_offset = search_offset + 0.05f;
+      } while (search_offset < 0.3f);
+      use_camera_height = 1;
+      if (search_offset >= 0.3f)
+        use_camera_height = 0;
+    }
+
+    /* Find a player whose unit is already inside the requested BSP. */
+    data_iterator_new(&iter, player_data);
+    player = (char *)data_iterator_next(&iter);
+    while (player != NULL) {
+      if (found)
+        break;
+      unit_handle = *(int *)(player + 0x34);
+      if (unit_handle != -1) {
+        bsp_index = *(int16_t *)((char *)players_globals + 0x2a);
+        if (bsp_index != -1) {
+          element = tag_block_get_element((char *)global_scenario_get() + 0x39c,
+                                          (int)bsp_index, 8);
+          if (FUN_0018ef00((int)*(uint16_t *)element, unit_handle) != 0) {
+            biped_get_camera_height_and_offset(*(int *)(player + 0x34),
+                                               &camera_pos, &height_offset,
+                                               &search_offset);
+            if (FUN_0018e720((int)&camera_pos) != -1) {
+              /* Deliberately re-evaluated: the original calls twice. */
+              location = FUN_0018e720((int)&camera_pos) & 0x7fffffff;
+              element = tag_block_get_element((char *)scenario_get() + 0xe0,
+                                              location, 0x10);
+              bsp_reference = *(int16_t *)((char *)element + 8);
+              if (bsp_reference != -1) {
+                if (use_camera_height == 0) {
+                  position = camera_pos;
+                } else {
+                  position.z = search_offset + position.z;
+                }
+                donor_unit_handle = *(int *)(player + 0x34);
+                found = true;
+              }
+            }
+          }
+        }
+      }
+      player = (char *)data_iterator_next(&iter);
+    }
+
+    if (!found) {
+      display_assert("no players in the bsp",
+                     "c:\\halo\\SOURCE\\game\\players.c", 0x63a, 1);
+      system_exit(-1);
+    }
+
+    for (local_player = local_player_get_next(-1); local_player != -1;
+         local_player = local_player_get_next(local_player)) {
+      player_index = local_player_get_player_index(local_player);
+      player = (char *)datum_get(player_data, player_index);
+      if (*(int *)(player + 0x34) != -1 &&
+          *(int *)(player + 0x34) != donor_unit_handle) {
+        players_update_before_game_client(player_index, donor_unit_handle,
+                                          &position);
+        player = (char *)datum_get(player_data, player_index);
+        *(int16_t *)(player + 0x3c) = -1;
+      }
+    }
+
+    *(int16_t *)((char *)players_globals + 0x2a) = -1;
+  }
+
+  /* Shared tail: invalidate every player's cached BSP field. */
+  data_iterator_new(&iter, player_data);
+  player = (char *)data_iterator_next(&iter);
+  while (player != NULL) {
+    *(int16_t *)(player + 0x3c) = -1;
+    player = (char *)data_iterator_next(&iter);
+  }
+}
+
 void player_update_nearby_biped(int datum_handle, int object_handle)
 {
   char *player;
