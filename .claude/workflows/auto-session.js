@@ -97,6 +97,9 @@ let parkConflicts = null
 // Batches whose lift work is committed but whose land was blocked by something
 // environmental (dirty/locked main worktree). They remain landable.
 let unlandedBatches = 0
+// True when the run stopped on an API/infra failure rather than on anything
+// about the work, i.e. resuming this run recovers it. See the isInfra branch.
+let resumable = false
 
 // Infra failures (API 529 killing an agent, Ghidra bridge down) are transient
 // and must NOT be treated as "no work left". Retry the batch a bounded number of
@@ -138,7 +141,21 @@ for (let i = 1; i <= BATCHES; i++) {
 
     stoppedReason = isEmpty ? 'queue_exhausted' : isInfra ? 'infra_blocked' : 'no_commit'
     log(`Stopping: ${stoppedReason} (${reason})`)
-    if (isInfra) parkReason = `infra: ${reason} (after ${infraRetries} retries)`
+    if (isInfra) {
+      parkReason = `infra: ${reason} (after ${infraRetries} retries)`
+      // An infra stop is the ONE case where nothing is wrong with the work:
+      // the API was unavailable, so agents returned null. Re-running from
+      // scratch re-pays for every agent that already succeeded; resuming
+      // replays those from cache and re-runs only the failures. Measured on
+      // run wf_6c878a7b-e6d: 1.94M tokens for the original attempt vs 170K
+      // for the resume. Flag it so the caller resumes instead of restarting.
+      //
+      // Caveat: the run cache is SESSION-scoped. Once this session ends the
+      // cache is gone and the work must be redone from scratch, so a resume
+      // is worth attempting promptly -- but only after the outage has passed,
+      // since an immediate resume just re-fails (observed twice here).
+      resumable = true
+    }
     break
   }
 
@@ -237,5 +254,9 @@ return {
   stopped_reason: stoppedReason,
   park_reason: parkReason,
   conflicts: parkConflicts,
+  // Resume with Workflow({scriptPath, resumeFromRunId}) rather than launching a
+  // fresh run: succeeded agents replay from cache, only failures re-run. Wait
+  // for the outage to clear first -- an immediate resume re-fails.
+  resumable,
   dry_run: DRY_RUN,
 }
