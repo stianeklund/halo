@@ -28,8 +28,15 @@
  *   0x47e468  short     – "tell Bernie!" warning-emission counter, capped
  *                        at 3 (signed word CMP/JGE against 3)
  *   0x47e450  short     – current frame slot index, 0..15 (signed mod 16)
+ *   0x47e454  short     – report frame slot index, indexes the 0x47e008 table
  *   0x47e440  dword     – per-frame accumulator, cleared on frame arm
  *   0x47e444  dword     – per-frame accumulator, cleared on frame arm
+ *                        (0x47e440/0x47e444 are one int64: FUN_0016FDD0 reads
+ *                        them with a single 64-bit negate, MOV EAX/MOV ECX/
+ *                        NEG EAX/ADC ECX,0/NEG ECX)
+ *   0x47e448  dword     – int64 with 0x47e44c; the saturated negation of the
+ *   0x47e44c  dword     – 0x47e440 accumulator, stored via CDQ so the high
+ *                        dword is always a sign-extension of the low
  *   0x47e188  dword[2] x 0x1d – per-profile record (8-byte stride), both
  *                        dwords zeroed on begin and on end
  */
@@ -540,4 +547,77 @@ int FUN_0016fcf0(int16_t profile)
     result = -1;
   }
   return result;
+}
+
+/* 0x16fdd0 — end-of-frame profile report (assert at
+ * rasterizer_xbox_profile.c line 0x1c7).
+ *
+ * Runs behind the same profile-enabled gate as the rest of the file, then does
+ * three things: saturate the negated per-frame accumulator into the int64 at
+ * 0x47e448, insert a type-1 FUN_0016f610 push-buffer marker with the odd
+ * context `slot * 2 + 1`, and hand the reporting pair (elapsed seconds,
+ * saturated ticks) to FUN_0008f810.
+ *
+ * The negate is a real 64-bit negation of 0x47e440 (MOV EAX,[0x47e440];
+ * MOV ECX,[0x47e444]; NEG EAX; ADC ECX,0; NEG ECX), and the saturation reuses
+ * the flags NEG ECX just set — JS skips when the result is negative, JG
+ * saturates when the high dword is positive, otherwise CMP EAX,0x7fffffff /
+ * JBE.  The store is CDQ; MOV [0x47e448],EAX; MOV [0x47e44c],EDX, i.e. the
+ * high dword is a sign-extension of the truncated low dword, not an
+ * independent value — so a negative accumulator that does not fit in 32 bits
+ * is silently truncated rather than clamped.  Ghidra reconstructed this as
+ * three separate DAT_ assignments plus an unreachable `0x7ffffffe <` compare;
+ * the disassembly is a plain signed int64 compare against 0x7fffffff.
+ *
+ * The original's frame is PUSH EBP; MOV EBP,ESP; SUB ESP,0x8 for the int64
+ * negate staging slot.  [EBP-4] is written on both paths and never read — it
+ * is dead staging, not a variable.
+ *
+ * FUN_0008f810 call site (0x16fe95) — three stack dwords, ADD ESP,0xc:
+ * MOVSX ECX,word[0x47e454]; MOV EDX,[0x47e44c]; MOV EAX,[0x47e448];
+ * FILD qword[ECX*8+0x47e008]; PUSH EDX; PUSH EAX; PUSH ECX;
+ * FMUL dword[0x254cb8]; FILD qword[0x325178]; FDIVP; FSTP dword[ESP].
+ * The PUSH ECX slot is overwritten by FSTP [ESP], so ECX is NOT an argument —
+ * arg1 is the FPU-computed float and arg2 is the int64 re-read out of
+ * 0x47e448 (PUSH high, PUSH low is MSVC's 64-bit push order).  kb.json
+ * declared FUN_0008f810 as (int, int); its delinked body reads [EBP+8] and
+ * [EBP+0xc] only, so the high dword is passed but unused.  Corrected to
+ * (float, int64_t) — the 12-byte cleanup and the float in slot 1 are both
+ * unambiguous.
+ *
+ * Both FILDs are qword: the 0x47e008 sample and the timer frequency at
+ * 0x325178 are int64.  FDIVP computes st(1)/st(0), so the sample (scaled by
+ * the float at 0x254cb8) is the numerator and the frequency the divisor.
+ *
+ * The assert tail is `display_assert(..., 1); system_exit(-1);` (PUSH -1;
+ * CALL 0x8e2f0), not halt_and_catch_fire — Ghidra's thunk_FUN_001029a0 is
+ * wrong. */
+void FUN_0016FDD0(void)
+{
+  int64_t negated;
+  int saturated;
+  int slot;
+
+  if (*(short *)0x3256ba == 3 || *(char *)0x325704 != 0) {
+    if (*(int *)0x476ab0 == 0) {
+      display_assert("global_d3d_device",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_"
+                     "profile.c",
+                     0x1c7, 1);
+      system_exit(-1);
+    }
+    negated = -*(const int64_t *)0x47e440;
+    saturated = (int)negated;
+    if (negated > 0x7fffffff) {
+      saturated = 0x7fffffff;
+    }
+    *(int64_t *)0x47e448 = saturated;
+    D3DDevice_InsertCallback(1, (void *)FUN_0016f610,
+                             (unsigned int)(*(short *)0x47e450 * 2 + 1));
+    slot = *(short *)0x47e454;
+    FUN_0008f810((float)*(const int64_t *)(slot * 8 + 0x47e008) *
+                     *(const float *)0x254cb8 /
+                     (float)*(const int64_t *)0x325178,
+                 *(const int64_t *)0x47e448);
+  }
 }
