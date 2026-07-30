@@ -1234,3 +1234,381 @@ void item_set_position(int item_handle, float *position, int flag)
   }
   *(int16_t *)0x4761d8 = *(int16_t *)0x4761d8 - 1;
 }
+
+/* 13-dword (real_matrix4x3) block lifted out of the "ground point" marker
+ * record.  The original copies it with REP MOVSD; a struct assignment is
+ * required to reproduce that -- transcribing Ghidra's `for (i = 0xd; ...)`
+ * loop literally makes VC71 emit a real loop instead. */
+typedef struct {
+  float m[13];
+} item_ground_matrix;
+
+/* Collision test flag mask used by every collision query in item_update. */
+#define ITEM_COLLISION_FLAGS 0x1ff3e9
+
+/* item_update (0xf7340)
+ *
+ * Per-tick update for a free-standing item object (weapon, equipment,
+ * grenade lying in the world).  Runs the item's ballistic flight, its
+ * at-rest attachment to a BSP surface or to another object, its tumble
+ * rotation, and its detonation countdown.
+ *
+ * Structure (all confirmed against disassembly):
+ *  1. Resolve the object (object_get_and_verify_type, type mask 0x1c) and
+ *     its 'item' tag definition.  Enter the profile region guarded by the
+ *     two global enable bytes at 0x449ef1 / 0x31e718.
+ *  2. Push a collision-user-stack entry (id 0xb) at global depth 0x4761d8,
+ *     asserting the depth stays below MAXIMUM_COLLISION_USER_STACK_DEPTH.
+ *  3. Only when object flag bit 0x800 (+0x04) is set and the parent handle
+ *     (+0xcc) is NONE:
+ *      a. If tag flag bit 1 is set and the item's up-vector Z has drifted
+ *         from the reference value, snap the up vector to the global up
+ *         (0x31fc44) and re-orthonormalize forward via two cross products,
+ *         falling back to the global forward (0x31fc3c) if the result
+ *         degenerates.
+ *      b. If the item is NOT at rest (object flag 0x20 at +0x04) integrate
+ *         velocity (+0x18) with gravity (0x32512c unless tag flag 4),
+ *         sweep the segment through the collision world, and on a hit
+ *         either spawn the impact effect (tag+0x254) and sound (tag+0x264)
+ *         and bounce, or come to rest -- attaching to the BSP surface
+ *         (flag 8, surface index at +0x1aa, structure BSP index at +0x1ac)
+ *         or to the hit object (flag 0x10, handle at +0x1b8, node-local
+ *         position at +0x1bc).
+ *      c. If the item IS at rest, re-validate the attachment each tick and
+ *         drop the item (item_set_position with the gravity vector) when
+ *         the surface has been broken or the carrier object is gone; then
+ *         damp the angular velocity by the constant at 0x2555d0.
+ *      d. If the "spinning" flag (bit 2 at +0x1a4) is set, rotate the item
+ *         axes about the stored spin axis by the cached sin/cos at
+ *         +0x1d4/+0x1d8 and re-orthonormalize.
+ *  4. Tick the detonation countdown at +0x1a8; at zero spawn the tag's
+ *     detonation effect (tag+0x304) and delete the object.
+ *  5. Record the game time in +0x1b4 when flag bit 0 is set, pop the
+ *     collision-user stack, and leave the profile region.
+ *
+ * Confirmed: 1 cdecl stack arg (item object handle, [EBP+8]).
+ * Confirmed: returns 1 in AL (MOV AL,0x1 immediately before the epilogue).
+ * Confirmed: asserts at items.c lines 0xae and 0x1d4 (collision depth) and
+ *   0x11b (unreachable surface type), all tailing into system_exit(-1).
+ * Confirmed: FUN_000f7110 is called with three register arguments
+ *   (EAX = optional out point, ESI = normal, EBX = item handle) plus one
+ *   stack argument; see its kb.json declaration.
+ * Confirmed: FUN_000f6b80 takes the item handle in EAX.
+ * Uncertain: the exact semantics of the marker/collision record fields;
+ *   they are addressed by raw offset into the single 0x6c-byte buffer that
+ *   VC7.1 shares between the marker record and the collision result. */
+bool item_update(int item_handle)
+{
+  float new_point[3];      /* EBP-0x0c */
+  float velocity[3];       /* EBP-0x18 */
+  char *item_tag;          /* EBP-0x1c (spilled across the reg-arg calls) */
+  float scale;             /* EBP-0x20 */
+  char *item_obj;          /* EBP-0x24 (spilled) */
+  float *velocity_field;   /* EBP-0x28 (spilled) */
+  float matrix[13];        /* EBP-0x5c: ground matrix / impulse-sound record */
+  char marker_buf[0x6c];   /* EBP-0xc8: marker record, collision result at +0x1c */
+  float *global_vector;
+  float impulse;
+  void *node_matrix;
+  char *surface;
+  int16_t countdown;
+
+  item_obj = (char *)object_get_and_verify_type(item_handle, 0x1c);
+  item_tag = (char *)tag_get(0x6974656d /* 'item' */, *(int *)item_obj);
+
+  if (*(bool *)0x449ef1 && *(bool *)0x31e718)
+    profile_enter_private((void *)0x31e710);
+
+  if (*(int16_t *)0x4761d8 >= 0x20) {
+    display_assert("global_current_collision_user_depth < "
+                   "MAXIMUM_COLLISION_USER_STACK_DEPTH",
+                   "c:\\halo\\SOURCE\\items\\items.c", 0xae, 1);
+    system_exit(-1);
+  }
+
+  {
+    int16_t depth = *(int16_t *)0x4761d8;
+    *(int16_t *)(0x5a8c80 + (int)depth * 2) = 0xb;
+    *(int16_t *)0x4761d8 = depth + 1;
+  }
+
+  if ((*(uint32_t *)(item_obj + 0x4) & 0x800) &&
+      *(int *)(item_obj + 0xcc) == NONE) {
+
+    /* Re-snap the up vector and re-orthonormalize forward. */
+    if ((*(uint8_t *)(item_tag + 0x17c) & 1) &&
+        fabsf(*(float *)(item_obj + 0x38) - *(float *)0x2533c8) >=
+          (float)*(double *)0x2533d0) {
+      global_vector = *(float **)0x31fc44;
+      *(item_position3d *)(item_obj + 0x30) =
+        *(item_position3d *)global_vector;
+      cross_product3d((float *)(item_obj + 0x30), (float *)(item_obj + 0x24),
+                      new_point);
+      cross_product3d(new_point, (float *)(item_obj + 0x30),
+                      (float *)(item_obj + 0x24));
+      if (normalize3d((float *)(item_obj + 0x24)) == *(float *)0x2533c0) {
+        global_vector = *(float **)0x31fc3c;
+        *(item_position3d *)(item_obj + 0x24) =
+          *(item_position3d *)global_vector;
+      }
+    }
+
+    if (!(*(uint8_t *)(item_obj + 0x4) & 0x20)) {
+      /* ---- in flight ---------------------------------------------- */
+      velocity_field = (float *)(item_obj + 0x18);
+      velocity[0] = velocity_field[0];
+      velocity[1] = velocity_field[1];
+      velocity[2] = velocity_field[2];
+
+      if (!(*(uint8_t *)(item_tag + 0x17c) & 0x4))
+        velocity[2] = velocity[2] - *(float *)0x32512c;
+
+      new_point[0] = velocity[0] + *(float *)(item_obj + 0xc);
+      new_point[1] = velocity[1] + *(float *)(item_obj + 0x10);
+      new_point[2] = velocity[2] + *(float *)(item_obj + 0x14);
+
+      if (FUN_000130d0(ITEM_COLLISION_FLAGS, (float *)(item_obj + 0xc),
+                       new_point, *(int *)(item_obj + 0x1b0),
+                       (int16_t *)(marker_buf + 0x1c))) {
+        /* Lift the impact point off the surface along its normal. */
+        new_point[0] = *(float *)(marker_buf + 0x40) * *(float *)0x2533e8 +
+                       new_point[0];
+        new_point[1] = *(float *)(marker_buf + 0x44) * *(float *)0x2533e8 +
+                       new_point[1];
+        new_point[2] = *(float *)(marker_buf + 0x48) * *(float *)0x2533e8 +
+                       new_point[2];
+
+        scale = FUN_00012fe0(velocity) / *(float *)0x28aa80;
+        if (scale < *(float *)0x2533c0)
+          scale = 0.0f;
+        else if (scale > *(float *)0x2533c8)
+          scale = 1.0f;
+
+        if (*(int *)(item_tag + 0x254) != NONE &&
+            FUN_0009f3b0(marker_buf + 0x34)) {
+          FUN_0009f430(*(int *)(item_tag + 0x254), 8,
+                       *(int16_t *)(marker_buf + 0x50), marker_buf + 0x34,
+                       marker_buf + 0x40, marker_buf + 0x28, scale);
+        }
+
+        if (*(int *)(item_tag + 0x264) != NONE) {
+          matrix[2] = new_point[0];
+          matrix[3] = new_point[1];
+          matrix[4] = new_point[2];
+          matrix[5] = *(float *)(marker_buf + 0x40);
+          matrix[6] = *(float *)(marker_buf + 0x44);
+          matrix[7] = *(float *)(marker_buf + 0x48);
+          global_vector = *(float **)0x31fc38;
+          matrix[8] = global_vector[0];
+          matrix[9] = global_vector[1];
+          matrix[10] = global_vector[2];
+          matrix[11] = *(float *)(item_obj + 0x48);
+          matrix[12] = *(float *)(item_obj + 0x4c);
+          unattached_impulse_sound_new(*(int *)(item_tag + 0x264), &matrix[2],
+                                       scale);
+        }
+
+        if ((*(int16_t *)(marker_buf + 0x1c) == 2 ||
+             (*(int16_t *)(marker_buf + 0x1c) == 3 &&
+              ((1 << (FUN_000f68b0(*(int *)(marker_buf + 0x54)) & 0x1f)) &
+               0x3c0) != 0)) &&
+            *(float *)(marker_buf + 0x48) > *(float *)0x28aaf4 &&
+            -(*(float *)(marker_buf + 0x44) * velocity[1] +
+              *(float *)(marker_buf + 0x40) * velocity[0] +
+              *(float *)(marker_buf + 0x48) * velocity[2]) <
+              *(float *)0x2533e8) {
+          /* ---- comes to rest ---------------------------------------- */
+          new_point[0] = *(float *)(marker_buf + 0x34);
+          new_point[1] = *(float *)(marker_buf + 0x38);
+          new_point[2] = *(float *)(marker_buf + 0x3c);
+          FUN_000f7110(new_point, (float *)(marker_buf + 0x40), item_handle,
+                       (float *)(marker_buf + 0x34));
+
+          velocity[2] = 0.0f;
+          velocity[1] = 0.0f;
+          velocity[0] = 0.0f;
+          FUN_00012fb0((float *)(marker_buf + 0x40),
+                       *(float *)(marker_buf + 0x44) *
+                           *(float *)(item_obj + 0x40) +
+                         *(float *)(marker_buf + 0x48) *
+                           *(float *)(item_obj + 0x44) +
+                         *(float *)(marker_buf + 0x40) *
+                           *(float *)(item_obj + 0x3c),
+                       (float *)(item_obj + 0x3c));
+
+          if (!game_engine_running() && *(int *)(item_obj + 0x70) == NONE)
+            object_set_garbage_flag(item_handle, 1);
+
+          *(uint32_t *)(item_obj + 0x4) = *(uint32_t *)(item_obj + 0x4) | 0x20;
+
+          switch (*(int16_t *)(marker_buf + 0x1c)) {
+          case 2: /* BSP surface */
+            *(uint32_t *)(item_obj + 0x1a4) =
+              *(uint32_t *)(item_obj + 0x1a4) | 0x8;
+            *(int16_t *)(item_obj + 0x1aa) = *(int16_t *)(marker_buf + 0x60);
+            *(int16_t *)(item_obj + 0x1ac) = global_structure_bsp_index_get();
+            break;
+          case 3: /* another object */
+            *(uint32_t *)(item_obj + 0x1a4) =
+              *(uint32_t *)(item_obj + 0x1a4) | 0x10;
+            *(int *)(item_obj + 0x1b8) = *(int *)(marker_buf + 0x54);
+            node_matrix =
+              object_get_node_matrix(*(int *)(marker_buf + 0x54), 0);
+            real_matrix3x3_transform_point(node_matrix,
+                                           (float *)(marker_buf + 0x34),
+                                           (float *)(item_obj + 0x1bc));
+            break;
+          default:
+            display_assert("!\"unreachable\"",
+                           "c:\\halo\\SOURCE\\items\\items.c", 0x11b, 1);
+            system_exit(-1);
+          }
+
+          *(item_position3d *)(item_obj + 0x1c8) =
+            *(item_position3d *)(marker_buf + 0x40);
+          FUN_000f6b80(item_handle);
+          *(int *)(item_obj + 0x1b0) = NONE;
+        } else {
+          /* ---- bounces ---------------------------------------------- */
+          impulse = (*(float *)(marker_buf + 0x40) * velocity[0] *
+                       *(float *)0x25686c -
+                     *(float *)(marker_buf + 0x44) * velocity[1] *
+                       *(float *)0x256870) -
+                    *(float *)(marker_buf + 0x48) * velocity[2] *
+                      *(float *)0x256870;
+          if (*(int16_t *)(marker_buf + 0x1c) != 2 &&
+              *(float *)0x2533ec <= impulse)
+            impulse = *(float *)0x2533ec;
+
+          new_point[0] = *(float *)(marker_buf + 0x34);
+          velocity[0] = *(float *)(marker_buf + 0x40) * impulse + velocity[0];
+          new_point[1] = *(float *)(marker_buf + 0x38);
+          new_point[2] = *(float *)(marker_buf + 0x3c);
+          velocity[1] = *(float *)(marker_buf + 0x44) * impulse + velocity[1];
+          velocity[2] = impulse * *(float *)(marker_buf + 0x48) + velocity[2];
+
+          if (FUN_0014dc30(ITEM_COLLISION_FLAGS, new_point, item_handle)) {
+            vector3d_scale_add((float *)(marker_buf + 0x34),
+                               (float *)(marker_buf + 0x40), 0.05f, new_point);
+          }
+          FUN_0014dc30(ITEM_COLLISION_FLAGS, new_point, item_handle);
+        }
+      }
+
+      velocity_field[0] = velocity[0];
+      velocity_field[1] = velocity[1];
+      velocity_field[2] = velocity[2];
+      object_translate(item_handle, new_point, marker_buf + 0x28);
+    } else if (!(*(uint8_t *)(item_tag + 0x17c) & 0x4)) {
+      /* ---- at rest: re-validate the attachment -------------------- */
+      object_get_markers_by_string_id(item_handle, (void *)0x28aa90,
+                                      marker_buf, 1);
+
+      if ((*(uint8_t *)(item_obj + 0x1a4) & 0x8) &&
+          *(int16_t *)(item_obj + 0x1aa) != (int16_t)NONE &&
+          *(int16_t *)(item_obj + 0x1ac) == global_structure_bsp_index_get()) {
+        surface = (char *)tag_block_get_element(
+          (char *)global_collision_bsp_get() + 0x3c,
+          (int)*(int16_t *)(item_obj + 0x1aa), 0xc);
+        if ((*(uint8_t *)(surface + 0x8) & 0x8) &&
+            breakable_surface_extant(*(uint8_t *)(surface + 0x9)) == '\0') {
+          FUN_00012fb0(*(float **)0x31fc50, *(float *)0x32512c, new_point);
+          *(uint32_t *)(item_obj + 0x1a4) =
+            *(uint32_t *)(item_obj + 0x1a4) & 0xfffffff7;
+          *(int16_t *)(item_obj + 0x1aa) = (int16_t)NONE;
+          goto drop_item;
+        }
+      } else if (*(uint8_t *)(item_obj + 0x1a4) & 0x10) {
+        if (object_try_and_get_and_verify_type(*(int *)(item_obj + 0x1b8),
+                                               NONE)) {
+          node_matrix =
+            object_get_node_matrix(*(int *)(item_obj + 0x1b8), 0);
+          matrix_transform_point(node_matrix, (float *)(item_obj + 0x1bc),
+                                 new_point);
+          FUN_000f7110((float *)0, (float *)(item_obj + 0x1c8), item_handle,
+                       new_point);
+        } else {
+          FUN_00012fb0(*(float **)0x31fc50, *(float *)0x32512c, new_point);
+          *(uint32_t *)(item_obj + 0x1a4) =
+            *(uint32_t *)(item_obj + 0x1a4) & 0xffffffef;
+        drop_item:
+          item_set_position(item_handle, new_point, 0);
+        }
+      }
+
+      *(float *)(item_obj + 0x3c) =
+        *(float *)(item_obj + 0x3c) * *(float *)0x2555d0;
+      *(float *)(item_obj + 0x40) =
+        *(float *)(item_obj + 0x40) * *(float *)0x2555d0;
+      *(float *)(item_obj + 0x44) =
+        *(float *)(item_obj + 0x44) * *(float *)0x2555d0;
+      FUN_000f6b80(item_handle);
+    }
+
+    if (*(uint8_t *)(item_obj + 0x1a4) & 0x4) {
+      /* ---- spinning ------------------------------------------------ */
+      if ((*(uint8_t *)(item_obj + 0x4) & 0x20) &&
+          object_get_markers_by_string_id(item_handle, (void *)0x28aa90,
+                                          marker_buf, 1) != 0) {
+        *(item_ground_matrix *)matrix =
+          *(item_ground_matrix *)(marker_buf + 0x38);
+        rotate_vector3d_by_sincos(&matrix[1], (float *)(item_obj + 0x1c8),
+                                  *(float *)(item_obj + 0x1d4),
+                                  *(float *)(item_obj + 0x1d8));
+        rotate_vector3d_by_sincos(&matrix[7], (float *)(item_obj + 0x1c8),
+                                  *(float *)(item_obj + 0x1d4),
+                                  *(float *)(item_obj + 0x1d8));
+        cross_product3d(&matrix[7], &matrix[1], &matrix[4]);
+        cross_product3d(&matrix[4], &matrix[7], &matrix[1]);
+        normalize3d(&matrix[1]);
+        normalize3d(&matrix[4]);
+        normalize3d(&matrix[7]);
+        object_compute_child_marker_position(
+          object_get_and_verify_type(item_handle, NONE), marker_buf, matrix);
+      } else {
+        rotate_vector3d_by_sincos((float *)(item_obj + 0x24),
+                                  (float *)(item_obj + 0x1c8),
+                                  *(float *)(item_obj + 0x1d4),
+                                  *(float *)(item_obj + 0x1d8));
+        rotate_vector3d_by_sincos((float *)(item_obj + 0x30),
+                                  (float *)(item_obj + 0x1c8),
+                                  *(float *)(item_obj + 0x1d4),
+                                  *(float *)(item_obj + 0x1d8));
+      }
+
+      normalize3d((float *)(item_obj + 0x30));
+      cross_product3d((float *)(item_obj + 0x30), (float *)(item_obj + 0x24),
+                      new_point);
+      cross_product3d(new_point, (float *)(item_obj + 0x30),
+                      (float *)(item_obj + 0x24));
+      normalize3d((float *)(item_obj + 0x24));
+    }
+  }
+
+  countdown = *(int16_t *)(item_obj + 0x1a8);
+  if (countdown > 0) {
+    countdown = countdown - 1;
+    *(int16_t *)(item_obj + 0x1a8) = countdown;
+    if (countdown == 0) {
+      FUN_0009ec30(*(int *)(item_tag + 0x304), item_handle,
+                   item_handle, /* dup-args-ok: same handle as source and target */
+                   NONE, 0, 0, 0, 0);
+      object_delete(item_handle);
+    }
+  }
+
+  if (*(uint8_t *)(item_obj + 0x1a4) & 0x1)
+    *(int *)(item_obj + 0x1b4) = game_time_get();
+
+  if (*(int16_t *)0x4761d8 <= 1) {
+    display_assert("global_current_collision_user_depth > 1",
+                   "c:\\halo\\SOURCE\\items\\items.c", 0x1d4, 1);
+    system_exit(-1);
+  }
+  *(int16_t *)0x4761d8 = *(int16_t *)0x4761d8 - 1;
+
+  if (*(bool *)0x449ef1 && *(bool *)0x31e718)
+    profile_exit_private((void *)0x31e710);
+
+  return 1;
+}

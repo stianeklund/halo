@@ -12996,11 +12996,12 @@
     },
     {
      "addr": "0xf7110",
-     "decl": "void FUN_000f7110(void);"
+     "decl": "void FUN_000f7110(float *out_point@<eax>, float *normal@<esi>, int item_handle@<ebx>, float *point);"
     },
     {
      "addr": "0xf7340",
-     "decl": "void item_update(void);"
+     "decl": "bool item_update(int item_handle);",
+     "ported": true
     }
    ],
    "name": "items.obj",
