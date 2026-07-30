@@ -59,6 +59,25 @@ def git_ok(*args: str, cwd: str | None = None) -> bool:
     return git(*args, cwd=cwd).returncode == 0
 
 
+def _merge_driver(path: str) -> str | None:
+    """Return the merge driver git resolves for `path`, or None if unset.
+
+    `git check-attr merge -- <path>` prints "<path>: merge: <value>", where
+    <value> is "unspecified" when no attribute applies. Used by the no-drop
+    gate to recognise files whose post-rebase content is ALLOWED to differ
+    from the pre-rebase branch (merge=ours generated output).
+    """
+    cp = git("check-attr", "merge", "--", path)
+    if cp.returncode != 0:
+        return None
+    # Split from the right: the path itself may contain ": ".
+    parts = cp.stdout.strip().rsplit(": ", 1)
+    if len(parts) != 2:
+        return None
+    value = parts[1].strip()
+    return None if value in ("unspecified", "unset") else value
+
+
 def resolve_main_worktree() -> tuple[str | None, bool]:
     """Return (path_of_worktree_checked_out_on_main, is_locked).
 
@@ -298,14 +317,36 @@ def run_gates(main_wt: str, *, rebased: bool, backup: str | None,
         return False, "build_failed", detail
 
     # Gate 4 -- no-drop proof (only meaningful after a rebase replayed commits).
+    #
+    # The gate exists to prove the rebase did not silently drop or mangle real
+    # work. A file declared `merge=ours` in .gitattributes is the one case where
+    # post-rebase content differing from the pre-rebase branch is CORRECT rather
+    # than suspicious: that driver deliberately keeps the target's copy, because
+    # the file is generated output several lanes rewrite independently
+    # (README.md's progress block). Policing it here re-blocks exactly what the
+    # driver was added to unblock -- observed as
+    # gate_failed:rebase_dropped_or_changed_files / no_drop_drifted=['README.md']
+    # after all 6 land attempts of a 24-function session had already failed on
+    # the dirty-worktree check.
+    #
+    # The exemption is derived from git's own attribute lookup rather than a
+    # hardcoded filename list, so it cannot fall out of sync with the driver
+    # config: a path is exempt if and only if git says its merge driver is
+    # `ours`. Adding merge=ours to a source file would exempt it too, which is
+    # why that attribute should stay restricted to generated output.
     if rebased and backup:
         base = git("merge-base", "main", backup).stdout.strip()
         changed = git("diff", "--name-only", base, backup).stdout.splitlines()
         drifted = [f for f in changed
                    if not git_ok("diff", "--quiet", backup, branch, "--", f)]
         if drifted:
-            detail["no_drop_drifted"] = drifted
-            return False, "rebase_dropped_or_changed_files", detail
+            exempt = [f for f in drifted if _merge_driver(f) == "ours"]
+            real = [f for f in drifted if f not in exempt]
+            if exempt:
+                detail["no_drop_exempt_merge_ours"] = exempt
+            if real:
+                detail["no_drop_drifted"] = real
+                return False, "rebase_dropped_or_changed_files", detail
 
     return True, "", detail
 
