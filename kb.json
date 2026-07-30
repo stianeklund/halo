@@ -16621,7 +16621,8 @@
     },
     {
      "addr": "0xb6e60",
-     "decl": "void interpolate_scalar(float *value, float target, float max_delta);"
+     "decl": "void interpolate_scalar(float *value, float target, float max_delta);",
+     "ported": true
     },
     {
      "addr": "0xb70b0",
