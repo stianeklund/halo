@@ -297,6 +297,50 @@ void FUN_0016f880(void)
   *(short *)0x325180 = -1;
 }
 
+/* Profile-name table: 0x1d (NUMBER_OF_RASTERIZER_PROFILES) pointers into
+ * .rdata, verified in the XBE (0x2a3a8c..0x2a3c50 plus 0x25be84 and
+ * 0x26de40).  Indexed with a 4-byte stride by the MOV EAX,[ECX*4+0x325188]
+ * at 0x16fb96. */
+#define NUMBER_OF_RASTERIZER_PROFILES 0x1d
+#define rasterizer_profile_names ((const char *const *)0x325188)
+
+/* 0x16fb80
+ *
+ * Return the display name of a rasterizer profile.
+ *
+ * Confirmed: one 16-bit stack parameter (MOV SI,word ptr [EBP+8]), a signed
+ * range check 0 <= profile < 0x1d, then MOVSX ECX,SI / MOV EAX,[ECX*4 +
+ * 0x325188] -- the loaded dword is the return value in EAX.  All four
+ * original call sites (0x17f8b3, 0x17f8d2, 0x17fdf1, 0x17fe09, all inside
+ * FUN_0017ef00) push exactly one dword and clean up with ADD ESP,4, and each
+ * pushes the returned EAX straight into a "|t%s|t%.2f|t%d" style formatting
+ * call -- so the element type is `const char *`, the profile's name string.
+ * (The `push eax` / `sub esp,8` / `fstp qword [esp]` sequence preceding the
+ * call at 0x17f8b3 belongs to that outer formatting call, not to this one --
+ * lift-learnings section 7 cdecl mis-grouping; the ADD ESP,4 is the tell.)
+ *
+ * The assert tail is display_assert(..., halt=1) then system_exit(-1)
+ * (CALL 0x8e2f0), not halt_and_catch_fire; __LINE__ is 0x16b = 363.
+ *
+ * Uncertain: the kb.json name "rasterizer_initialize" does not describe this
+ * body -- nothing here initializes anything; it is a profile-name accessor
+ * (rasterizer_profile_get_name shape), and its __FILE__ places it in
+ * rasterizer_xbox_profile.c alongside FUN_0016f910 / FUN_0016fa40.  The name
+ * and the rasterizer.obj mapping are left as-is rather than churned through
+ * the ABI baseline; treat both as unverified.
+ */
+const char *rasterizer_initialize(short profile)
+{
+  if (profile < 0 || profile >= NUMBER_OF_RASTERIZER_PROFILES) {
+    display_assert(
+      "profile>=0 && profile<NUMBER_OF_RASTERIZER_PROFILES",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_profile.c", 0x16b,
+      1);
+    system_exit(-1);
+  }
+  return rasterizer_profile_names[profile];
+}
+
 /* FUN_0016FEB0 (0x16feb0) -- empty no-op.
  *
  * The entire function is a single instruction:
