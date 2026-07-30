@@ -17416,7 +17416,8 @@
     },
     {
      "addr": "0xbc6c0",
-     "decl": "void debug_player_teleport(void);"
+     "decl": "void debug_player_teleport(int local_player_a, int local_player_b);",
+     "ported": true
     },
     {
      "addr": "0xbc750",
