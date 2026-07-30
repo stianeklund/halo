@@ -16635,7 +16635,8 @@
     },
     {
      "addr": "0xb7f10",
-     "decl": "void player_control_get_facing_direction(void);"
+     "decl": "real * player_control_get_facing_direction(int16_t local_player_index, real *facing_out);",
+     "ported": true
     },
     {
      "addr": "0xb7f90",
