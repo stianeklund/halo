@@ -19345,10 +19345,6 @@
      "decl": "void FUN_00170c90(void *effect);"
     },
     {
-     "addr": "0x171bc0",
-     "decl": "void FUN_00171bc0(void);"
-    },
-    {
      "addr": "0x172520",
      "decl": "void FUN_00172520(void);"
     },
@@ -37107,6 +37103,17 @@
     {
      "addr": "0x8d410",
      "decl": "void FUN_0008d410(void);"
+    }
+   ]
+  },
+  {
+   "name": "rasterizer_xbox_screen_effect.obj",
+   "source": "rasterizer/xbox/rasterizer_xbox_screen_effect.c",
+   "functions": [
+    {
+     "addr": "0x171bc0",
+     "decl": "void FUN_00171bc0(void);",
+     "ported": true
     }
    ]
   },
