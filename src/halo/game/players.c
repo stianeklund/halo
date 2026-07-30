@@ -1580,6 +1580,71 @@ void player_update_weapon_timers(int datum_handle)
   }
 }
 
+/* 0xbc6c0 — HaloScript debug command: teleport one local player's unit to
+ * another local player's unit position.
+ *
+ * Both parameters are local-player indices (0..3); the only caller is the HS
+ * macro handler at 0xc1cb0, which sign-extends the first script argument and
+ * zero-extends the second out of the evaluated argument block.  Each index is
+ * resolved to a player index via local_player_get_player_index and then to
+ * that player's unit object handle (player+0x34).  When both units are live,
+ * the second player's unit supplies the destination position (object+0x50)
+ * and the first player is moved there.
+ *
+ * Confirmed from the disassembly of 0xbc6c0-0xbc74f:
+ *  - Both params are read with 32-bit loads (MOV ESI,dword ptr [EBP+8] and
+ *    [EBP+0xc]).  No MOVSX/MOV-word appears, so they are int-width in the
+ *    original source even though local_player_get_player_index's own
+ *    parameter is int16_t (that narrowing costs no instruction on a cdecl
+ *    stack slot).  Ghidra's "short" typing of the slots is its own invention.
+ *  - local_player_get_player_index is called TWICE per operand: once for the
+ *    == -1 test and once again for the value.  This is original codegen, not
+ *    a decompiler artifact; do not hoist it to a single call.
+ *  - The two failure paths are OR EDI,EAX / OR ESI,EAX with EAX known to be
+ *    -1 — the compiler's encoding of a plain "= -1".
+ *  - The frame has no locals at all (PUSH EBP / MOV EBP,ESP / PUSH ESI /
+ *    PUSH EDI, no SUB ESP, no _chkstk), so the destination position must be
+ *    computed inline in the argument list; a named local would have to be
+ *    spilled across the player_index_from_unit_index call.
+ *  - Ghidra dropped the whole tail: it showed object_get_and_verify_type's
+ *    result discarded and FUN_000bb670 called with no arguments.  The real
+ *    tail is ADD EAX,0x50 / PUSH EAX / PUSH ESI / PUSH EDI / CALL 0xba500 /
+ *    ADD ESP,4 / PUSH EAX / CALL 0xbb670 / ADD ESP,0xc — three cdecl stack
+ *    args, no EBX setup.
+ *  - FUN_000bb670's bool result is genuinely discarded here (no TEST/CMP of
+ *    AL before the epilogue), unlike in player_teleport (0xbbb80). */
+void debug_player_teleport(int local_player_a, int local_player_b)
+{
+  int unit_a;
+  int unit_b;
+
+  if (local_player_get_player_index(local_player_a) == NONE) {
+    unit_a = NONE;
+  } else {
+    unit_a =
+      *(int *)((char *)datum_get(
+                 player_data, local_player_get_player_index(local_player_a)) +
+               0x34);
+  }
+
+  if (local_player_get_player_index(local_player_b) == NONE) {
+    unit_b = NONE;
+  } else {
+    unit_b =
+      *(int *)((char *)datum_get(
+                 player_data, local_player_get_player_index(local_player_b)) +
+               0x34);
+  }
+
+  if (unit_a != NONE && unit_b != NONE) {
+    /* Argument order in the binary is right-to-left: the position is computed
+     * and pushed first, then the unit handle, then the nested player-index
+     * lookup for the player being moved. */
+    FUN_000bb670(player_index_from_unit_index(unit_a), unit_b,
+                 (char *)object_get_and_verify_type(unit_b, 3) + 0x50);
+  }
+}
+
 #if defined(__clang__) || defined(__GNUC__)
 __attribute__((noinline))
 #else

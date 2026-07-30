@@ -14916,6 +14916,10 @@
       "score": 77.5,
       "source": "src/halo/cseries/debug_memory.c"
     },
+    "debug_player_teleport": {
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
     "decal_delete": {
       "score": 96.2,
       "source": "src/halo/effects/decals.c"
@@ -16142,6 +16146,10 @@
     },
     "player_spawn": {
       "score": 92.0,
+      "source": "src/halo/game/players.c"
+    },
+    "player_teleport": {
+      "score": 96.0,
       "source": "src/halo/game/players.c"
     },
     "player_try_to_enter_vehicle": {
