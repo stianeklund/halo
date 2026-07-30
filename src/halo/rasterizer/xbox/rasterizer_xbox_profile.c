@@ -294,3 +294,76 @@ float FUN_0016fbd0(int16_t profile)
   }
   return total;
 }
+
+/* 0x16fcf0 — profile section raw-tick query (asserts at
+ * rasterizer_xbox_profile.c lines 0x19f/0x1ae).
+ *
+ * The integer sibling of FUN_0016fbd0: same gate, same asserts, same
+ * "profile not completed" warning, but it returns the raw performance-counter
+ * delta from the 0x47e188 record array (int64, 8-byte stride, 0x1d entries)
+ * saturated into an int32, rather than seconds from 0x47e270.
+ *
+ * Ghidra typed this `void FUN_0016fcf0(void)`: BOTH the stack parameter
+ * (MOV EDI,[EBP+8]; CMP DI,0x1d — 16-bit signed compares throughout) and the
+ * EAX return were lost (§16 void-EAX), and the tail was reduced to bare
+ * `return`s.  Four distinct return values are reconstructed from the
+ * disassembly:
+ *   profiling disabled          -> 0     (XOR EAX,EAX in the prologue)
+ *   profile == 0x1d             -> 0     (its own XOR EAX,EAX + epilogue)
+ *   profile not completed       -> -1    (OR EAX,0xffffffff at 0x16fdc1)
+ *   otherwise                   -> saturated int32 of the int64 counter
+ *
+ * Unlike FUN_0016fbd0, profile == 0x1d does NOT sum all profiles here — it
+ * returns 0 — and the check happens BEFORE the range assert, so 0x1d is the
+ * "no profile" sentinel rather than an "all profiles" request.
+ *
+ * The saturation is a single signed 64-bit compare against 0x7fffffff; MSVC
+ * expands it to the TEST EDX,EDX / JL / JG / CMP EAX,0x7fffffff / JBE
+ * tri-branch seen in the original.  The int64 is read straight out of the
+ * array (no EBP-8 staging slot and no volatile here — the original's frame is
+ * PUSH EBP; MOV EBP,ESP; XOR EAX,EAX; PUSH EDI with no SUB ESP at all, so
+ * both the counter and the slot index stay in registers).
+ *
+ * The assert tails are `display_assert(..., 1); system_exit(-1);` (PUSH -1;
+ * CALL 0x8e2f0), not halt_and_catch_fire — Ghidra's thunk_FUN_001029a0 is
+ * wrong. */
+int FUN_0016fcf0(int16_t profile)
+{
+  int result;
+  int slot;
+  int64_t counter_value;
+
+  result = 0;
+  if (*(short *)0x3256ba == 3 || *(char *)0x325704 != 0) {
+    if (*(int *)0x476ab0 == 0) {
+      display_assert("global_d3d_device",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_"
+                     "profile.c",
+                     0x19f, 1);
+      system_exit(-1);
+    }
+    if (profile == 0x1d) {
+      return 0;
+    }
+    if (profile < 0 || profile >= 0x1d) {
+      display_assert("profile>=0 && profile<NUMBER_OF_RASTERIZER_PROFILES",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_"
+                     "profile.c",
+                     0x1ae, 1);
+      system_exit(-1);
+    }
+    /* warn when the profile has not completed this frame */
+    FUN_0016f480("profile not completed (query)", profile,
+                 (char)(*(short *)0x325180 == -1));
+    slot = profile;
+    if ((1u << (unsigned int)slot) & *(unsigned int *)0x47e45c) {
+      counter_value = *(const int64_t *)(slot * 8 + 0x47e188);
+      if (counter_value > 0x7fffffff) {
+        return 0x7fffffff;
+      }
+      return (int)counter_value;
+    }
+    result = -1;
+  }
+  return result;
+}
