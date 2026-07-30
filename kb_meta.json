@@ -4235,11 +4235,45 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xb6bb0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Return type bool is inferred from EAX being live at RET (lift-learnings 16 void-EAX); Ghidra reports void(void). Confirmed by the identical 5-instruction shape of the ported siblings 0xb6b90/0xb6ba0/0xb6b40, which score 100% VC71 with a bool return."
+      ]
+    },
+    "0xb6bc0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb6e10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb6e60": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The negation of max_delta is a real source-level local that VC71 keeps FPU-resident: the original has no SUB ESP, pushes -max_delta first (FLD [EBP+0x10]; FCHS at 0xb6e6e) so it survives as ST1 across the comparison, and pops it with FSTP ST0 at 0xb6e7f on the fall-through path; writing the negation inline as -max_delta instead drops the match from 96.6% to 82.0% because VC71 then schedules it as ST0 and compares against memory."
+      ],
+      "uncertain": [
+        "One instruction still differs at index 12: our lift emits JNE where the original emits JNP after an identical TEST AH,0x5, so the two encodings differ only in how an unordered (NaN) compare is routed; all 29 other instructions match and equivalence reaches 100 percent code coverage with 98 of 100 seeds passing at 32 ULP, so the ordered-input behaviour is proven identical but NaN-input routing is not.",
+        "The two remaining byte-exact equivalence divergences are catastrophic-cancellation seeds (value near 753200, target near -0.38, so the delta is the negation of value to within a rounding step); the MSVC oracle round-trips the delta through the float32 parameter slot at [EBP+0xc] while the clang-built candidate keeps 80-bit x87 precision, giving -0.375 versus -0.3797 for the same inputs, which is a compiler excess-precision artifact rather than a lift defect."
+      ]
+    },
     "0xb6ea0": {
       "kind": "function",
       "status": "ported"
     },
     "0xb6fc0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb7e30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb7f10": {
       "kind": "function",
       "status": "ported"
     },
@@ -4604,6 +4638,16 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xbb220": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "kb.json decl was void(void) but the disasm reads MOV ESI,[EBP+0x8]; corrected to void players_handle_deleted_object(int object_handle) as part of this lift."
+      ],
+      "uncertain": [
+        "The object type byte at +0x64 is tested byte-wide (TEST DL,0x3), so only types 0 and 1 pass; the semantic names for those two types (assumed biped/vehicle unit family) are inferred from sibling callers using type mask 3, not proven here."
+      ]
+    },
     "0xbb2f0": {
       "kind": "function",
       "status": "ported",
@@ -4616,6 +4660,23 @@
     "0xbb560": {
       "kind": "function",
       "status": "ported"
+    },
+    "0xbb670": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Corrected decl to plain cdecl (int, int, void*): all three original call sites (0xbbbc3, 0xbc744, 0xbca2e) push three stack args and clean ADD ESP,0xc, and 0xbca2e literally pushes EBX as the first stack arg, so the previous @<ebx> annotation was a mis-transcription of the CALLER's own register arg (players_update_before_game_client takes player_index in EBX)."
+      ]
+    },
+    "0xbbb80": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Ghidra reported void(void); the three cdecl stack params (player_handle, anchor_unit_handle, anchor_position at EBP+8/+0xc/+0x10) and the char/bool return are proven by disassembly (XOR CL,CL / MOV AL,CL on the NULL path, AL tail-passthrough on the success path)."
+      ],
+      "uncertain": [
+        "The name anchor_unit_handle/anchor_position reflects the co-op respawn call site only; object field +0xcc is read as a seat/parent datum handle but its exact meaning is not independently proven here."
+      ]
     },
     "0xbbbe0": {
       "kind": "function",
@@ -4643,6 +4704,21 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xbc520": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbc6c0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Both parameters are local-player indices (0..3): the sole caller at 0xc1cb0 is an HS macro handler, and callee local_player_get_player_index asserts the value is in [0,4).",
+        "Parameters are int-width, not int16_t: the prologue reads them with MOV ESI,dword ptr [EBP+8]/[EBP+0xc] and no MOVSX appears anywhere, so the narrowing to the callee's int16_t parameter happens free on the cdecl stack slot; declaring them int scores 100.0% VC71 (57/57 insns)."
+      ],
+      "uncertain": [
+        "FUN_000bb670's bool result is discarded at this call site (no TEST/CMP of AL before the epilogue), so it is unknown whether the original source ignored a failure or the function was declared void in this translation unit."
+      ]
+    },
     "0xbc750": {
       "kind": "function",
       "status": "ported",
@@ -4651,6 +4727,20 @@
     "0xbc920": {
       "kind": "function",
       "status": "ported"
+    },
+    "0xbca60": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Loop bound and step (0.3 / 0.05) are float constants at 0x2533e4 and 0x2533e8; their gameplay meaning (world-units of vertical clearance) is inferred, not proven.",
+        "players_globals+0x24 is read as a signed 16-bit value and gated on > 1 (CMP 1 / JLE); its exact meaning (player count vs state enum) is unknown.",
+        "players_globals+0x2a is the pending structure-BSP index (int16, -1 = none), consistent with its use in players_update_before_game_client at 0xbc920.",
+        "The player record field +0x3c reset to -1 on every path is inferred to be a cached BSP/cluster association; only the write is proven.",
+        "The original reuses one stack slot (EBP-0x8) for both the collision search offset and biped_get_camera_height_and_offset's camera-height out-param; the lift keeps a single variable to preserve the 0x38-byte frame."
+      ],
+      "uncertain": [
+        "FUN_0014dc30(0x4029, &position, -1) is treated as a collision/overlap test whose nonzero return means blocked; the 0x4029 mask meaning is unverified."
+      ]
     },
     "0xbcd40": {
       "kind": "function",
@@ -4854,7 +4944,9 @@
         "kb decl for FUN_001a7c70 (0x1a7c70) was corrected from (int,int,int) to (int, float, float): 0xbf49f is its only call site in the XBE per dump_caller_regsetup, and its impl forwards both values verbatim to FUN_001a7b50(int, float, float), so the old int decl forced a spurious numeric int-to-float conversion on the forward.",
         "kb.json decl for callee 0x1a7c70 was corrected from (int,int,int) to (int parent_handle, float body_damage, float shield_damage) as part of this lift: 0xbf470 loads record+4 and record+8 with FLD and stores them via FSTP into the argument slots, and 0x1a7c70 itself contains no FPU instruction at all -- it holds those two dwords in EBX/EDI and re-pushes them verbatim into 0x1a7b50, whose decl already declared them float, so the int decl was making C insert a spurious integer-to-float conversion in the already-ported units.c implementation; 0xbf470 is the only caller of 0x1a7c70 in the binary, and FUN_001a7c70 measured 88.6 percent VC71 both before and after the decl fix.",
         "Record layout at +0x00 int handle / +0x04 float / +0x08 float is inferred from the load widths at the 0x1a7c70 call site (MOV EDX,[EAX]; FLD [EAX+4]; FLD [EAX+8]) plus the already-established parameter names of the sibling worker 0x1a7b50; the producer hs_macro_function_evaluate was not re-analysed.",
-        "kb.json decl for callee 0x1a7c70 was corrected from (int,int,int) to (int parent_handle, float body_damage, float shield_damage) as part of this lift; evidence is that the original forwards [EBP+0xc]/[EBP+0x10] as raw dwords via EBX/EDI with no FILD to 0x1a7b50 (already declared float,float), and the corrected decl raised FUN_001a7c70 in units.c from its previous score to 100.0% (33/33)."
+        "kb.json decl for callee 0x1a7c70 was corrected from (int,int,int) to (int parent_handle, float body_damage, float shield_damage) as part of this lift; evidence is that the original forwards [EBP+0xc]/[EBP+0x10] as raw dwords via EBX/EDI with no FILD to 0x1a7b50 (already declared float,float), and the corrected decl raised FUN_001a7c70 in units.c from its previous score to 100.0% (33/33).",
+        "Record field names (parent object handle at +0x00, body damage at +0x04, shield damage at +0x08) are inherited from the already-established parameter names of the worker FUN_001a7b50 that FUN_001a7c70 forwards to; the binary proves the widths (one dword MOV, two FLDs) but not the semantic labels.",
+        "kb.json's decl for callee 0x1a7c70 was corrected from (int, int, int) to (int, float, float) as part of this lift: its params 2 and 3 are FSTP-materialized floats at this call site (0xbf494/0xbf49b) and are forwarded verbatim to FUN_001a7b50(int, float, float). FUN_001a7c70 re-measured at 100.0% VC71 after the change, so the correction is codegen-neutral."
       ],
       "uncertain": [
         "VC71 83.6% (27/28 insns) is the documented float-memory-arg cap: VC71 emits MOV/PUSH for a float argument loaded straight from memory where the original emits FLD/FSTP, costing about 2 instructions per float arg; FUN_000bf3d0 and FUN_000bf420 reproduce the identical 83.6%/27-28 signature, and no source form recovers it.",
@@ -6599,13 +6691,15 @@
         "The audio-call argument 1 is Confirmed from the call site (PUSH 0x1; CALL 0x000e5ab0; ADD ESP,0x4 = cdecl one stack arg), but the interpretation of selector 1 as the UI cursor-move sound is Inferred from the sibling handlers passing 1 for moves, 2 for key-accept and 3 for commit.",
         "Global 0x46cefa is the virtual-keyboard column cursor and 0x46cef8 the row cursor; both are int16_t (MOVSX word loads), and 0x28a790 is a byte keymap table with an 11-byte row stride, so this handler is the dpad-right column advance.",
         "Keymap grid at 0x28a790 inferred as byte[5][11] (stride 0xb) from the IMUL ECX,ECX,0xb row scaling and the CMP AX,0xb column wrap; the duplicate-key skip loop is inferred to step over merged/wide keys (e.g. space bar) but no tag data was inspected to confirm the grid contents.",
-        "Column-advance twin of the ported row handlers FUN_000f5700/5750 in the same virtual_keyboard TU: same keymap base 0x28a790 indexed [col + row*0xb], same pre-move key-byte skip loop, same ui_play_audio_feedback_sound(1) tail and char-1 return; only the cursor global (0x46cefa vs 0x46cef8) and the wrap constant (0xb vs 5) differ."
+        "Column-advance twin of the ported row handlers FUN_000f5700/5750 in the same virtual_keyboard TU: same keymap base 0x28a790 indexed [col + row*0xb], same pre-move key-byte skip loop, same ui_play_audio_feedback_sound(1) tail and char-1 return; only the cursor global (0x46cefa vs 0x46cef8) and the wrap constant (0xb vs 5) differ.",
+        "The keymap byte table at 0x28a790 is a 5-row by 11-column (0xb stride) char array; the 0xb column modulus and 5-row modulus are read off the CMP constants in this function and its row siblings, not from any tag or header definition."
       ],
       "uncertain": [
         "VC71 caps at 81.8% (22/22 insns, no missing or extra instructions): residual gap is only the 16-bit cursor arithmetic (original incw %ax / xorw %ax,%ax / movw load vs C89-promoted incl %eax / xorl %eax,%eax) plus one loop-entry jmp for block layout. C integer promotion makes the 16-bit ops unreachable from C89; sibling row-movers score 75.6/82.6/83.0% with the same idiom.",
         "VC71 match is 77.3% at an exact 22/22 instruction count, and classify_cap.py rates this a high-confidence permanent int16 narrow-field promotion cap: the original keeps the column cursor in AX with true 16-bit ops (movw load, incw ax, xorw ax,ax for the 0xb wrap) whereas C89 integer promotion forces the increment to int width, so no C89 expression can reach the 16-bit forms. Corroborated by the structurally identical siblings FUN_000f5700 at 75.6 percent, FUN_000f5750 at 82.6 percent and FUN_000f57a0 at 83.0 percent.",
         "The loop has no iteration bound: if all 11 bytes of the current keymap row are equal it never terminates, and this hazard is preserved verbatim from the binary rather than guarded.",
-        "VC71 is 77.3% at an exact 22/22 instruction count, so the entire gap is register-width selection plus one loop-entry jmp: the original keeps the column cursor in AX with true 16-bit ops (movw / incw %ax / xorw %ax,%ax) while C89 integer promotion of col+1 forces VC71 to widen; classify_cap.py rates this a high-confidence int16 narrow-field promotion cap, corroborated by siblings FUN_000f5700 at 75.6 percent, FUN_000f5750 at 82.6 percent and FUN_000f57a0 at 83.0 percent using the identical idiom."
+        "VC71 is 77.3% at an exact 22/22 instruction count, so the entire gap is register-width selection plus one loop-entry jmp: the original keeps the column cursor in AX with true 16-bit ops (movw / incw %ax / xorw %ax,%ax) while C89 integer promotion of col+1 forces VC71 to widen; classify_cap.py rates this a high-confidence int16 narrow-field promotion cap, corroborated by siblings FUN_000f5700 at 75.6 percent, FUN_000f5750 at 82.6 percent and FUN_000f57a0 at 83.0 percent using the identical idiom.",
+        "The skip-while-equal loop can spin forever if every column in the current row holds the same keymap byte; the original has no iteration guard either, so the lift reproduces that unguarded do/while faithfully rather than adding a bound."
       ]
     },
     "0xf63f0": {
@@ -6695,7 +6789,10 @@
         "The 0x6c-byte marker buffer and the 0x50-byte FUN_000130d0 collision result share stack space in the original (disjoint lifetimes, both ending at the same address); the collision result begins 0x1c bytes into the marker buffer, and the 52-byte block copied out of marker_buf+0x38 is the marker's real_matrix4x3 (scale, forward, left, up, position), corroborated by item_set_position already reading the ground normal at marker_buf+0x54.",
         "FUN_000f7110 (0xf7110) takes three register arguments plus one stack pointer: EAX = a point (NULL at the at-rest call site), ESI = a vector, EBX = the item handle, with the stack argument pushed immediately before; kb decl updated to void FUN_000f7110(float *hit_point, float *point@<eax>, float *normal@<esi>, int item_handle@<ebx>).",
         "Ghidra split ONE 0x6c-byte object_marker buffer (EBP-0xcc) and ONE 0x50-byte collision_result (EBP-0xb0) into a dozen independent local_XX slots; MSVC packed the two aggregates on top of each other because their live ranges are disjoint, and the lift declares them separately (collision +0x00 short type, +0x0c location, +0x18 point3d, +0x24 normal, +0x34 short, +0x38 hit handle, +0x44 surface index).",
-        "The 13-dword rep-movsd in the spin block copies marker_buf+0x38 (the marker world real_matrix4x3: scale, forward, left, up, position = 52 bytes) into a local matrix, and the sound block at the +0x264 tag field builds a separate 0x2c-byte location struct (point, normal, global forward at 0x31fc38, object leaf/cluster from obj+0x48/+0x4c)."
+        "The 13-dword rep-movsd in the spin block copies marker_buf+0x38 (the marker world real_matrix4x3: scale, forward, left, up, position = 52 bytes) into a local matrix, and the sound block at the +0x264 tag field builds a separate 0x2c-byte location struct (point, normal, global forward at 0x31fc38, object leaf/cluster from obj+0x48/+0x4c).",
+        "item_update returns bool: the epilogue sets MOV AL,0x1 at 0xf7c6a immediately before MOV ESP,EBP/POP EBP/RET, and no caller could be found in kb (dispatched via an object-update function table), so the return is inferred from codegen only.",
+        "MSVC packed two pairs of disjoint-lifetime aggregates into the 0xc8-byte frame, so the lift deliberately aliases them: the 0x50-byte collision result is markers+0x1c (EBP-0xac) and the impulse-sound location block is matrix+2 (EBP-0x54); reproducing the aliasing made every EBP displacement in the VC71 diff match the delinked reference.",
+        "item_update returns bool (MOV AL,0x1 before the epilogue at 0xf7c6a); kb decl was corrected from void item_update(void) to bool item_update(int item_handle) after confirming the single cdecl stack arg at [EBP+8]."
       ],
       "uncertain": [
         "The 13-dword REP MOVSD at 0xf7ab6 copies collision_result+0x1c into a real_matrix4x3, so the matrix's scale field is fed from the hit point's y component (+0x1c sits inside the point at +0x18); the original field name for that 52-byte region of the collision result is unknown.",
@@ -6707,7 +6804,9 @@
         "When FUN_000130d0 reports no collision the lift still passes marker_buf+0x28 as object_translate's location argument, exactly as the original does; whether that slot is initialized on the no-collision path is unverified.",
         "Argument 3 of object_translate is assumed to be the address collision+0x0c because the corresponding argument 6 of FUN_0009f430 is provably a LEA of that slot; the object_translate push itself was not read from disassembly, so it could be the dword value at that address instead.",
         "The 0x6c-byte object marker record at EBP-0xc8 and the collision result returned by FUN_000130d0 at EBP-0xac share one stack slot in the original frame; the lift reproduces the overlap by indexing the collision fields at marker_buf+0x1c, which is correct only because the two are never live simultaneously.",
-        "The bounce impulse uses two distinct adjacent .rdata floats (0x25686c for the normal.x term, 0x256870 for the normal.y and normal.z terms), which is consistent with MSVC folding a leading negation into a separate pooled constant for -(dot)*k, but the exact source-level expression was not recovered; VC71 emits the three fmuls in the opposite operand order regardless of how the multiplication is associated in C, leaving a persistent FPU-WARN."
+        "The bounce impulse uses two distinct adjacent .rdata floats (0x25686c for the normal.x term, 0x256870 for the normal.y and normal.z terms), which is consistent with MSVC folding a leading negation into a separate pooled constant for -(dot)*k, but the exact source-level expression was not recovered; VC71 emits the three fmuls in the opposite operand order regardless of how the multiplication is associated in C, leaving a persistent FPU-WARN.",
+        "FUN_000f7110 (0xf7110) was re-declared with three register arguments (EAX, ESI, EBX) plus one stack argument based purely on the two call sites inside item_update (0xf76b9-0xf76cb passes hit_point on the stack with EAX=&target, ESI=&hit_normal, EBX=object_index; 0xf79f2-0xf7a00 passes &target on the stack with EAX=0, ESI=obj+0x1c8, EBX=object_index); the callee body was not decompiled, so the parameter semantics and types are unverified.",
+        "VC71 reports an [FPU-WARN] on the bounce-impulse block claiming the reference multiplies by the constant at 0x25686c before the velocity component, but the pristine disassembly at 0xf7809-0xf7812 is FLD normal.x, FMUL [EBP-0x18], FMUL [0x25686c]; the warning is believed to be a block-index misalignment caused by our three extra instructions."
       ]
     },
     "0xf7cb0": {
@@ -9749,9 +9848,40 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x16f500": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The 0x47e460 error mask is modelled as volatile unsigned short to reproduce the dead 16-bit reload that follows the OR-store on all three error paths; the load width (zero-extended word) is confirmed but the volatile qualifier is an inference about why the reload survived.",
+        "0x47e460 is a 16-bit error bitmask: bit0 = profile index out of range, bit1 = begin over an already-open section, bit2 = end with no open section; inferred from the three OR-immediate paths."
+      ],
+      "uncertain": [
+        "The original keeps the begin flag in EBX across the QueryPerformanceCounter call and normalizes it with AND BL,0x1 after SHR 31; neither a plain (context>>31)&1 nor a 1-bit bitfield read reproduces that mask under VC71, which rematerializes the flag into ECX after the call instead, so the source form that produced the EBX live range is still unidentified.",
+        "The dead 16-bit reload after each error-flag store (MOV AX/DX,[0x47e460]) is reproduced with an explicit (void) volatile re-read; whether the original global was declared volatile or the reload came from a discarded compound-assignment value is unproven.",
+        "VC71 match is 83.6% with 6 unmatched instructions, all register-allocation and scheduling artifacts: the original holds the begin flag in EBX with AND BL,1 across the QueryPerformanceCounter call and the END-path hi-dword check load uses SHL+base addressing where VC71 re-derives a scaled index; no semantic difference."
+      ]
+    },
+    "0x16f730": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "0x47e460 is written as a 16-bit word (MOV word ptr [0x47e460],BX at 0x16f816) but all three status bits are read as a byte (MOV AL/CL/DL, byte ptr), so the lift uses unsigned char for the reads and short for the clear; Ghidra's single _DAT_0047e460 = 0 hides this width split (lift-learnings 24 LOADW).",
+        "AND EAX,0x8000000f followed by JNS/DEC/OR 0xfffffff0/INC is the MSVC signed modulo-16 idiom, so the frame index is written as (frame + 1) % 16 on a signed int rather than & 15; writing the mask directly loses the four fixup instructions."
+      ],
+      "uncertain": [
+        "The residual 16.3 percent VC71 gap is concentrated in the three identical warning blocks: the original stores the NOT/AND result to [EBP-4] and branches on the AND flags without reloading, and increments the warning counter as a register load/inc/store rather than INC word ptr. A non-volatile local is folded away by VC71 (two different formulations produced byte-identical output at 80.2 percent) and a volatile local forces an extra reload plus test per block, so neither spelling reproduces the original store-then-branch-on-flags shape; 83.7 percent may therefore be an expression-level cap rather than a lift defect, but this is not proven.",
+        "The error call pushes four stack args (ADD ESP,0x10) against the three-parameter varargs decl error(unsigned short, const char *, ...); the -1 vararg is not consumed by the single %s in the format string, so its purpose is unidentified. Sibling call sites in this TU use the same shape."
+      ]
+    },
     "0x16fb80": {
       "kind": "function",
-      "status": "ported"
+      "status": "ported",
+      "inferred": [
+        "The return type const char* is inferred from all four original call sites (0x17f8b3, 0x17f8d2, 0x17fdf1, 0x17fe09 inside FUN_0017ef00) pushing the returned EAX into a printf-style call whose format string at 0x2afa80 is |t%s|t%.2f|t%d, plus the fact that every one of the 29 dwords at 0x325188 is a valid .rdata string pointer; only the 4-byte stride itself is directly proven by MOV EAX,[ECX*4+0x325188]."
+      ],
+      "uncertain": [
+        "The kb.json name rasterizer_initialize is wrong for 0x16fb80: the body is a profile-name accessor (rasterizer_profile_get_name shape) returning rasterizer_profile_names[profile] from the 29-entry const char* table at 0x325188, and its __FILE__ places it in rasterizer_xbox_profile.c rather than rasterizer.c; the name and the rasterizer.obj mapping were left unchanged to avoid churning the ABI baseline."
+      ]
     },
     "0x172720": {
       "kind": "function",
@@ -10632,11 +10762,13 @@
       "status": "ported",
       "inferred": [
         "Token codes 0/1/2/3/4/6/7 are mechanical labels only; code 5 also keeps the parse loop running but no path in this function ever produces it, which is the evidence the original post-switch dispatch was a switch statement rather than an if-chain.",
-        "Result token values are inferred from the binary only: 0=NUL/end, 1=newline (|n or CR), 2=non-printable, 3=tab (|t or TAB), 4=justification changed (|l|r|c), 6=printable, 7=style changed (|b|i|k|u|p, loops), -1=NONE; value 5 also continues the loop but is never produced by this function."
+        "Result token values are inferred from the binary only: 0=NUL/end, 1=newline (|n or CR), 2=non-printable, 3=tab (|t or TAB), 4=justification changed (|l|r|c), 6=printable, 7=style changed (|b|i|k|u|p, loops), -1=NONE; value 5 also continues the loop but is never produced by this function.",
+        "State-block field names (font_index +0x00, font_ptr +0x04, string +0x08, cursor +0x0c, style +0x0e, justification +0x10, last_char +0x12, result +0x14) are inferred from access widths and the FUN_0019bcc0 register-argument pairing, not from strings or a PDB."
       ],
       "uncertain": [
         "The semantics of FUN_0019d380 and of unicode string-table entries 4, 5 and 6 are unknown; they are treated as opaque character-set membership tests, so the choice between token 6 and token 2 for a plain character is unexplained.",
-        "VC71 47.2% is provably the arithmetic ceiling, not a lift defect: compare_obj._trim_trailing_table_data discards everything after the last RET for any function containing a scaled indirect jump, so the 163-instruction reference is extracted as 91, and 91/193 = 47.2% means the LCS already covers every extracted reference instruction in order."
+        "VC71 47.2% is provably the arithmetic ceiling, not a lift defect: compare_obj._trim_trailing_table_data discards everything after the last RET for any function containing a scaled indirect jump, so the 163-instruction reference is extracted as 91, and 91/193 = 47.2% means the LCS already covers every extracted reference instruction in order.",
+        "The meaning of parse result values 2, 5 and 6 and of the three character sets fetched by FUN_0019d3c0(tag_index, 4|5|6) is unproven, so they are left numeric; result 5 is never produced by this function and is only tested in the loop condition."
       ]
     },
     "0x19d080": {
