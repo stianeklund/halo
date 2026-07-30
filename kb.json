@@ -19271,7 +19271,8 @@
     },
     {
      "addr": "0x16f500",
-     "decl": "void FUN_0016f500(void);"
+     "decl": "void FUN_0016f500(int profile_and_flag);",
+     "ported": true
     },
     {
      "addr": "0x16f610",
