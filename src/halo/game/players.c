@@ -127,6 +127,16 @@ int16_t players_get_respawn_failure(void)
   return *(int16_t *)((char *)players_globals + 0x2c);
 }
 
+/* Out-of-line by original codegen: every in-TU caller (players_debug_render at
+ * 0xbc520, ...) emits PUSH/CALL 0xba3c0 rather than the slot arithmetic, so the
+ * assert and the players_globals index never appear inlined in the caller.
+ * MSVC's auto-inliner does expand it (players_debug_render grew by 14
+ * instructions, dragging in this function's own assert line number), so the
+ * expansion is suppressed.  Guarded to VC71 only; clang neither needs nor
+ * recognizes the pragma. */
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma auto_inline(off)
+#endif
 int local_player_get_player_index(int16_t local_player_index)
 {
   assert_halt(local_player_index >= NONE &&
@@ -135,6 +145,9 @@ int local_player_get_player_index(int16_t local_player_index)
     return NONE;
   return *(int *)&players_globals->unk_0[4 + local_player_index * 4];
 }
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma auto_inline(on)
+#endif
 
 int local_player_set_player_index(unsigned __int16 local_player_index,
                                   int player_index)
@@ -163,6 +176,13 @@ __int16 local_player_count(void)
   return *(__int16 *)&players_globals->unk_0[0x24];
 }
 
+/* Out-of-line by original codegen: players_debug_render (0xbc520) PUSH/CALLs
+ * 0xba4c0 for both of its walk steps rather than expanding the four-slot scan,
+ * and MSVC's auto-inliner does expand it (13 instructions per site), so the
+ * expansion is suppressed.  VC71 only; clang does not recognize the pragma. */
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma auto_inline(off)
+#endif
 __int16 local_player_get_next(__int16 local_player_index)
 {
   __int16 result;
@@ -178,6 +198,9 @@ __int16 local_player_get_next(__int16 local_player_index)
   }
   return result;
 }
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma auto_inline(on)
+#endif
 
 int player_index_from_unit_index(int unit_index)
 {
@@ -1577,6 +1600,114 @@ void player_update_weapon_timers(int datum_handle)
           *(unsigned int *)(unit + 0x1b4) &= ~0x10u;
       }
     }
+  }
+}
+
+/* 0xbc520 — debug visualisation of every local player's "fixed" camera
+ * position.  Gated on the debug toggle at 0x46b6c4.
+ *
+ * For each local player (walked with local_player_get_next, at most two
+ * iterations — see the loop bound below) whose player slot is occupied, the
+ * player's unit handle (player+0x34) is resolved and its camera position is
+ * asked for twice:
+ *   1. biped_get_camera_height_and_offset(unit, &position, &scratch, &scratch)
+ *      seeds `position`; the height/camera-height outputs are thrown away into
+ *      one shared scratch slot (the original passes the SAME pointer for both
+ *      out-parameters — faithful, not a lift bug).
+ *   2. after biped_fix_position accepts the position in-place, the call is
+ *      repeated into a discarded vector3 so that the height offset and camera
+ *      height land in their own slots.
+ * The position's z is then raised by the 'bipd' tag's camera height
+ * (bipd+0x42c), the world-up vector ([0x31fc44]) is scaled by the height
+ * offset, and the resulting segment is collision-tested (FUN_0014e7d0,
+ * flags 0x4029).  The arrow is drawn (FUN_00189860) in the "hit" colour
+ * ([0x2ee6d0]) when the test reports a collision and the "miss" colour
+ * ([0x2ee6d4]) otherwise.
+ *
+ * Confirmed from the disassembly of 0xbc520-0xbc6bf:
+ *  - SUB ESP,0x84; EBX/ESI/EDI saved inside the debug-toggle guard.
+ *  - biped_fix_position gets the SAME buffer for initial and final position
+ *    (in-place fixup) and scale 2.0f; its first argument is the -1 literal and
+ *    the unit handle is the second (kb.json's parameter names are the reverse
+ *    of that, but the push order is unambiguous).
+ *  - `local_14` in Ghidra's output is position[2], not an independent local:
+ *    EBP-0x10 is the third float of the vector at EBP-0x18, so the FADD of
+ *    bipd+0x42c raises the position's z.
+ *  - the collision result buffer at EBP-0x84 is 0x50 bytes.
+ *  - the float at EBP-0x4 (camera height) is pushed as a raw dword via
+ *    MOV ECX,[EBP-0x4]; PUSH ECX for both FUN_0014e7d0 and FUN_00189860 — it
+ *    is a float argument, not an int.
+ *  - the assert tail is display_assert(...,true) then system_exit(-1) at
+ *    0x8e2f0 (Ghidra's thunk_FUN_001029a0 is wrong).
+ *  - the loop counter is compared as a 16-bit value against 2, NOT against
+ *    MAXIMUM_NUMBER_OF_LOCAL_PLAYERS — kept faithful.
+ * Uncertain: whether the inlined slot check + assert came from an inline
+ * accessor in the original source (the assert string is the one used by
+ * local_player_get_player_index) or was written out here.
+ */
+void players_debug_render(void)
+{
+  char collision_result[0x50];
+  vector3_t discarded_position;
+  float height_vec[3];
+  float scratch;
+  vector3_t position;
+  int counter;
+  float height_offset;
+  float camera_height;
+
+  int16_t local_player_index;
+  int player_index;
+  int unit_handle;
+  char *player;
+  int *unit;
+  char *bipd_tag;
+
+  if (*(char *)0x46b6c4 != '\0') {
+    counter = 0;
+    local_player_index = local_player_get_next(NONE);
+    do {
+      if (local_player_index == NONE)
+        return;
+      assert_halt_at("c:\\halo\\SOURCE\\game\\players.c", 0x3ab,
+                     local_player_index>=NONE && local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+      if (*(int *)&players_globals->unk_0[4 + local_player_index * 4] != -1) {
+        player_index = local_player_get_player_index(local_player_index);
+        player = (char *)datum_get(player_data, player_index);
+        unit_handle = *(int *)(player + 0x34);
+        if (unit_handle != -1) {
+          unit = (int *)object_get_and_verify_type(unit_handle, 3);
+          biped_get_camera_height_and_offset(unit_handle, &position, &scratch,
+                                             &scratch);
+          if (biped_fix_position(-1, unit_handle, (float *)&position,
+                                 (float *)&position, 2.0f, '\0', '\x01',
+                                 '\x01') != '\0') {
+            bipd_tag = (char *)tag_get(0x62697064, *unit);
+            biped_get_camera_height_and_offset(unit_handle,
+                                               &discarded_position,
+                                               &height_offset, &camera_height);
+            position.z = position.z + *(float *)(bipd_tag + 0x42c);
+            height_vec[0] = height_offset * global_up_vector_ptr[0];
+            height_vec[1] = height_offset * global_up_vector_ptr[1];
+            height_vec[2] = height_offset * global_up_vector_ptr[2];
+            /* The original branches around two full FUN_00189860 call sites
+             * (MSVC tail-merged the shared `push flag; call` at the join, which
+             * is why Ghidra reconstructed it as one call with a
+             * default-then-override colour variable). */
+            if (FUN_0014e7d0(0x4029, (float *)&position, height_vec,
+                             camera_height, unit_handle,
+                             collision_result) != '\0')
+              FUN_00189860('\0', &position, height_vec, camera_height,
+                           *(void **)0x2ee6d0);
+            else
+              FUN_00189860('\0', &position, height_vec, camera_height,
+                           *(void **)0x2ee6d4);
+          }
+        }
+      }
+      counter = counter + 1;
+      local_player_index = local_player_get_next(local_player_index);
+    } while ((int16_t)counter < 2);
   }
 }
 

@@ -16180,6 +16180,10 @@
       "score": 100.0,
       "source": "src/halo/game/players.c"
     },
+    "players_debug_render": {
+      "score": 97.2,
+      "source": "src/halo/game/players.c"
+    },
     "players_get_combined_pvs": {
       "score": 100.0,
       "source": "src/halo/game/players.c"
@@ -16193,7 +16197,7 @@
       "source": "src/halo/game/players.c"
     },
     "players_reconnect_to_structure_bsp": {
-      "score": 93.4,
+      "score": 96.6,
       "source": "src/halo/game/players.c"
     },
     "players_respawn_coop": {
