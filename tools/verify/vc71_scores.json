@@ -11652,6 +11652,10 @@
       "score": 95.3,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
+    "FUN_0016FDD0": {
+      "score": 94.6,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_profile.c"
+    },
     "FUN_0016eef0": {
       "score": 79.8,
       "source": "src/halo/rasterizer/rasterizer.c"
@@ -11694,6 +11698,10 @@
     },
     "FUN_0016fcf0": {
       "score": 96.3,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_profile.c"
+    },
+    "FUN_0016fdd0": {
+      "score": 94.6,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_profile.c"
     },
     "FUN_00172590": {

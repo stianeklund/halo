@@ -6990,7 +6990,7 @@
     },
     {
      "addr": "0x8f810",
-     "decl": "void FUN_0008f810(int param_1, int param_2);",
+     "decl": "void FUN_0008f810(float seconds, int64_t ticks);",
      "ported": true,
      "source_path": "halo/cseries/errors.c"
     }
@@ -19316,7 +19316,8 @@
     },
     {
      "addr": "0x16fdd0",
-     "decl": "void FUN_0016FDD0(void);"
+     "decl": "void FUN_0016FDD0(void);",
+     "ported": true
     },
     {
      "addr": "0x16feb0",
