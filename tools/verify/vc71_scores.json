@@ -5220,6 +5220,10 @@
       "score": 96.8,
       "source": "src/halo/game/player_control.c"
     },
+    "FUN_000b7f10": {
+      "score": 100.0,
+      "source": "src/halo/game/player_control.c"
+    },
     "FUN_000b7f40": {
       "score": 100.0,
       "source": "src/halo/game/player_control.c"

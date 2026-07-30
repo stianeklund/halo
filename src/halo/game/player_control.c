@@ -1133,11 +1133,12 @@ real *player_control_get_facing_angles(int16_t local_player_index)
   /* inlined player_control_get_data() -- keeps that helper's assert line */
   assert_halt_at("c:\\halo\\SOURCE\\game\\player_control.c", 0xb1,
                  local_player_index >= 0 &&
-                 local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+                   local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
   player = (player_control_t *)((char *)player_control_globals +
                                 local_player_index * 0x40 + 0x10);
 
-  if (!((*(uint32_t *)&player->desired_angles_pitch & 0x7f800000) != 0x7f800000 &&
+  if (!((*(uint32_t *)&player->desired_angles_pitch & 0x7f800000) !=
+          0x7f800000 &&
         player->desired_angles_pitch < 1.49225652217865f &&
         player->desired_angles_pitch >= -1.49225652217865f &&
         (*(uint32_t *)&player->desired_angles_yaw & 0x7f800000) != 0x7f800000 &&
@@ -1148,6 +1149,42 @@ real *player_control_get_facing_angles(int16_t local_player_index)
     system_exit(NONE);
   }
   return &player->desired_angles_yaw;
+}
+
+/* Build the this-frame action record for a local player and hand back the
+ * caller's buffer.
+ *
+ * The body is a three-call composition; the interesting part is the MSVC
+ * push-sharing at 0xb7f19..0xb7f36, which the decompiler renders as two
+ * unrelated calls:
+ *
+ *     PUSH ESI / CALL 0xb7e30 / ADD ESP,4     ; angles = get_facing_angles(idx)
+ *     PUSH EAX                                ; -> arg3 of 0xbb560
+ *     PUSH EDI                                ; -> arg2 of 0xbb560
+ *     PUSH ESI / CALL 0xba3c0 / ADD ESP,4     ; local_player_get_player_index
+ *     PUSH EAX                                ; -> arg1 of 0xbb560
+ *     CALL 0xbb560 / ADD ESP,0xC
+ *
+ * The two cleanups are 4 then 0xC (not one 0x10): the angles and out pointers
+ * are pushed into 0xbb560's frame before the inner call runs.  That is just
+ * cdecl right-to-left evaluation, so the nested call expression below emits
+ * the same shape.
+ *
+ * 0xb7f38 is MOV EAX,EDI -- the function returns its own second parameter, an
+ * implicit-EAX return (lift-learnings 16) that the previous kb.json decl
+ * (void(void)) dropped along with both parameters.
+ *
+ * local_player_index is forwarded to both callees straight out of its dword
+ * stack slot (MOV ESI,[EBP+8]); there is no MOVSX, so no widening cast here.
+ *
+ * c:\halo\SOURCE\game\player_control.c */
+real *player_control_get_facing_direction(int16_t local_player_index,
+                                          real *facing_out)
+{
+  player_build_action_update(
+    local_player_get_player_index(local_player_index), facing_out,
+    player_control_get_facing_angles(local_player_index));
+  return facing_out;
 }
 
 /* Set the desired weapon index on a unit's controlling player.
