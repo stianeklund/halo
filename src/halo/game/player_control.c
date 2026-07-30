@@ -850,6 +850,32 @@ bool player_control_action_test_look_relative_right(void)
   return (bool)((fields[0] >> 10) & 1u);
 }
 
+/* Test whether the "look relative up" action bit is set (lift-learnings 16,
+ * void-EAX implicit return).  kb.json's `void ...(void)` decl was corrected to
+ * a bool return, matching the siblings 0xb6ab0/0xb6ad0/0xb6af0/0xb6b10/0xb6b20/
+ * 0xb6b30/0xb6b40/0xb6b90/0xb6ba0.
+ *
+ * Disassembly (0xb6bb0), 5 instructions, no calls -- the PURE-test shape:
+ *   MOV EAX,[player_control_globals] / MOV EAX,[EAX] / SHR EAX,0x7 /
+ *   AND EAX,0x1 / RET
+ * There are NO `OR` stores into the accumulator dwords at +0x04/+0x08, unlike
+ * the 10-insn members of the family, so the action is not marked as consumed
+ * here.  Adding those ORs would be an invented side effect.
+ * Bit index is 7 (SHR EAX,0x7) -- one of the four bits (7..10) covered by the
+ * 0x780 mask in player_control_action_test_look_relative_all_directions.
+ *
+ * The read is at globals+0x00 -- the GLOBAL action dword -- not the per-player
+ * slot array at +0x10 (stride 0x40), so it must not be indexed by
+ * local_player_index.  player_control_globals_t is opaque (0x110 bytes) with no
+ * named field at +0x00, so raw dword access is used. */
+bool player_control_action_test_look_relative_up(void)
+{
+  uint32_t *fields;
+
+  fields = (uint32_t *)player_control_globals;
+  return (bool)((fields[0] >> 7) & 1u);
+}
+
 /* Set a player control slot's desired facing angles from a 3D direction vector.
  * Converts the direction vector to yaw+pitch via vector_to_angles (atan2-based
  * vector_to_angles), validates both angles for NaN/Inf, and normalizes yaw
