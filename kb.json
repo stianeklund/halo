@@ -16600,7 +16600,9 @@
     },
     {
      "addr": "0xb6bc0",
-     "decl": "void player_control_action_test_look_relative_down(void);"
+     "decl": "bool player_control_action_test_look_relative_down(void);",
+     "name": "player_control_action_test_look_relative_down",
+     "ported": true
     },
     {
      "addr": "0xb6bd0",
