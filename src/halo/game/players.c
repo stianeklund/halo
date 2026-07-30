@@ -1670,7 +1670,8 @@ void players_debug_render(void)
       if (local_player_index == NONE)
         return;
       assert_halt_at("c:\\halo\\SOURCE\\game\\players.c", 0x3ab,
-                     local_player_index>=NONE && local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+                     local_player_index >= NONE &&
+                       local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
       if (*(int *)&players_globals->unk_0[4 + local_player_index * 4] != -1) {
         player_index = local_player_get_player_index(local_player_index);
         player = (char *)datum_get(player_data, player_index);
@@ -1683,8 +1684,7 @@ void players_debug_render(void)
                                  (float *)&position, 2.0f, '\0', '\x01',
                                  '\x01') != '\0') {
             bipd_tag = (char *)tag_get(0x62697064, *unit);
-            biped_get_camera_height_and_offset(unit_handle,
-                                               &discarded_position,
+            biped_get_camera_height_and_offset(unit_handle, &discarded_position,
                                                &height_offset, &camera_height);
             position.z = position.z + *(float *)(bipd_tag + 0x42c);
             height_vec[0] = height_offset * global_up_vector_ptr[0];
@@ -4155,6 +4155,55 @@ void FUN_000be8f0(int16_t function_index, int thread_datum, char init)
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (record != NULL) {
     object_set_ranged_attack_inhibited(record[0], (char)record[1]);
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* FUN_000be930 @ 0x000be930
+ *
+ * HaloScript builtin implementation (`object_set_melee_attack_inhibited`).
+ * Byte-shape twin of FUN_000be8f0 directly above -- differs only in the
+ * middle callee (melee instead of ranged). Evaluates the script function via
+ * hs_macro_function_evaluate(function_index, thread_datum, init); on a
+ * non-NULL evaluation record it forwards the record's first dword (the object
+ * handle) and the record's byte at +4 (the inhibit flag) to
+ * object_set_melee_attack_inhibited, then resolves the script thread with
+ * hs_return(thread_datum, 0).
+ *
+ * NOTE: Ghidra names this `player_effect_initialize` -- that name is stale and
+ * wrong; the callee set proves it is an HS macro-function handler.
+ *
+ * cdecl frame (PUSH EBP; MOV EBP,ESP; PUSH ESI -- no locals, no _chkstk):
+ *   function_index  int16_t  [EBP+0x08] -> ECX (evaluate arg 0)
+ *   thread_datum    int      [EBP+0x0c] -> ESI, reused for hs_return arg 0
+ *   init            char     [EBP+0x10] -> EAX (evaluate arg 2)
+ *
+ * Ghidra modeled this as void(void) and hid all three stack args as
+ * in_stack_XXXXXXXX; the kb decl is corrected to (int16_t, int, char) to match
+ * the 0xbdef0/0xbdf40/0xbe8f0 twins.
+ *
+ * The flag argument is a ZERO-EXTENDED single-byte load at record+4
+ * (0xbe94b: XOR EDX,EDX; MOV DL,byte ptr [EAX+0x4]; PUSH EDX), not a dword
+ * read of record[1] -- hence the unsigned char deref below.
+ *
+ * A single ADD ESP,0x10 after the hs_return CALL cleans BOTH trailing calls
+ * (2 + 2 dwords). check_arg_counts therefore reports hs_return as taking 4
+ * stack args -- that is a false positive from adjacent-call cleanup folding;
+ * hs_return really takes 2.
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560 = hs_macro_function_evaluate(int16_t, int, char) -> int* record
+ *   0x1369b0 = object_set_melee_attack_inhibited(int object_handle, char flag)
+ *   0xcbf80 = hs_return(int thread_handle, int value) */
+void FUN_000be930(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    object_set_melee_attack_inhibited(record[0],
+                                      *((unsigned char *)record + 4));
     hs_return(thread_datum, 0);
   }
 }
