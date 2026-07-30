@@ -15,7 +15,9 @@
  *   0x3256ba  short     – rasterizer debug mode selector (3 enables profiling)
  *   0x325704  char      – profile-enable flag (alternate gate)
  *   0x325184  short     – gate: must be 0 for profiling
- *   0x47e458  short     – gate: must be 0 for profiling
+ *   0x47e458  short     – profile-suppression nesting counter ("local_
+ *                        profile_enable"); must be 0 for profiling.  Pushed/
+ *                        popped by FUN_0016f8a0, which asserts 0 <= it < 100
  *   0x325180  short     – currently open profile index, -1 = none
  *   0x47e45c  unsigned  – bitmask of profiles completed this frame
  *   0x47e188  dword[2] x 0x1d – per-profile record (8-byte stride), both
@@ -65,6 +67,49 @@ bool FUN_0016f6c0(void)
   csmemset((void *)0x47e008, 0, 0x80);
   QueryPerformanceFrequency((void *)0x325178);
   return 1;
+}
+
+/* 0x16f8a0 — nesting counter for the profile-disable gate 0x47e458
+ * (asserts at rasterizer_xbox_profile.c lines 0xf4/0xf9; the assert reason
+ * strings name the counter "local_profile_enable").
+ *
+ * A non-zero argument decrements the counter (asserting it is > 0 first); a
+ * zero argument increments it (asserting it is < 100).  Since FUN_0016f910 /
+ * FUN_0016fa40 only profile while 0x47e458 == 0, the counter is a
+ * suppression depth: the zero-argument call pushes a suppression, the
+ * non-zero call pops one.  The parameter name follows that reading
+ * (true => allow profiling again); the polarity is Inferred from the gate
+ * compare in the neighbouring functions, not from a string.
+ *
+ * Frame is PUSH EBP / MOV EBP,ESP / ... / POP EBP / RET (no immediate), so
+ * __cdecl with a single 1-byte argument read as `MOV AL,[EBP+8]; TEST AL,AL`.
+ * 0x47e458 is accessed with word-sized INC/DEC/CMP, hence `short`.
+ *
+ * Like FUN_0016f6c0 above, this kb.json entry carries no object mapping, so
+ * maintain.py wants to route it to rasterizer.c; it is kept here on the same
+ * binary evidence (the 0x47e458 gate shared with FUN_0016f910 /
+ * FUN_0016fa40 and the shared __FILE__ string at 0x2a3ca4). */
+void FUN_0016f8a0(bool enable_profiling)
+{
+  if (enable_profiling) {
+    if (*(short *)0x47e458 <= 0) {
+      display_assert("local_profile_enable>0",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_"
+                     "profile.c",
+                     0xf4, 1);
+      system_exit(-1);
+    }
+    *(short *)0x47e458 = *(short *)0x47e458 - 1;
+  } else {
+    if (*(short *)0x47e458 >= 100) {
+      display_assert("local_profile_enable<100",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_"
+                     "profile.c",
+                     0xf9, 1);
+      system_exit(-1);
+    }
+    *(short *)0x47e458 = *(short *)0x47e458 + 1;
+  }
 }
 
 /* 0x16f910 — profile section begin (asserts at rasterizer_xbox_profile.c

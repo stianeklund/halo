@@ -19294,7 +19294,8 @@
     },
     {
      "addr": "0x16f8a0",
-     "decl": "void FUN_0016f8a0(void);"
+     "decl": "void FUN_0016f8a0(bool enable_profiling);",
+     "ported": true
     },
     {
      "addr": "0x16fb80",
