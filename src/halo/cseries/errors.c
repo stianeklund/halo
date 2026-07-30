@@ -780,10 +780,20 @@ int FUN_0008f6b0(void)
   return new_frame / 0x78;
 }
 
-/* FUN_0008f810 (0x8f810) — store two 32-bit performance counter values into
- * globals at 0x449ed8 / 0x449edc. */
-void FUN_0008f810(int param_1, int param_2)
+/* FUN_0008f810 (0x8f810) — latch the last profile report: elapsed seconds and
+ * the saturated tick count, into the globals at 0x449ed8 / 0x449edc.
+ *
+ * ABI corrected from the (int, int) kb.json declaration while lifting the
+ * caller FUN_0016FDD0 (0x16fdd0): that call site pushes three dwords and
+ * cleans 12 bytes (ADD ESP,0xc), and the first slot is written by
+ * FSTP dword ptr [ESP] over a dummy PUSH — so arg1 is a float and arg2 is an
+ * int64 (PUSH high; PUSH low).  This body reads [EBP+8] and [EBP+0xc] only,
+ * so the int64's high dword is passed but never used; the low dword is the
+ * saturated int32 the caller built with CDQ.  Both stores are plain 32-bit
+ * MOVs in the original (VC71 copies a float memory argument through a GPR
+ * rather than FLD/FSTP), which is why the float lands via a dword store. */
+void FUN_0008f810(float seconds, int64_t ticks)
 {
-  *(int *)0x449ed8 = param_1;
-  *(int *)0x449edc = param_2;
+  *(float *)0x449ed8 = seconds;
+  *(int *)0x449edc = (int)ticks;
 }
