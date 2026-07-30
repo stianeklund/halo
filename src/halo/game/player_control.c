@@ -1101,6 +1101,55 @@ void player_control_new_unit(uint16_t local_player_index, int player_index)
   }
 }
 
+/* Return a pointer to a local player's desired facing angles (the 2-float
+ * euler_angles2d {yaw, pitch} at player_control_t+0x0c).
+ *
+ * Binary: 0xb7e30 ends with LEA EAX,[ESI+0xc] / POP ESI / POP EBP / RET, so the
+ * function returns &player->desired_angles -- kb.json previously declared it
+ * void(void), which was wrong on both the parameter and the return.
+ *
+ * Two things the original inlines and this lift must inline too, or the codegen
+ * diverges:
+ *   1. player_control_get_data(): the slot arithmetic appears literally here
+ *      (MOV ECX,[player_control_globals]; MOVSX EAX,SI; SHL EAX,6;
+ *      LEA ESI,[EAX+ECX+0x10]) with no CALL to 0xb6380, and it carries that
+ *      helper's own assert line (0xb1).  The helper is defined above under
+ *      #pragma auto_inline(off) -- which is what other callers in this TU
+ *      need -- so it is expanded by hand here instead.
+ *   2. valid_euler_angles2d(): six inline tests, no CALL.  Pitch is validated
+ *      BEFORE yaw.  Each test is a NaN/Inf reject on the raw bits followed by
+ *      an upper (strict <) and lower (>=) bound:
+ *        pitch in [-1.49225652217865, 1.49225652217865)   (0x26e378 / 0x26e37c)
+ *        yaw   in [0.0, 6.2831855)                        (0x2533c0 / 0x255a54)
+ *      The bound values were read out of the XBE (.rdata bit patterns
+ *      0xbfbf0243 / 0x3fbf0243 / 0x00000000 / 0x40c90fdb); no name evidence
+ *      exists for the pitch bounds, so they stay as literals.
+ *
+ * c:\halo\SOURCE\game\player_control.c */
+real *player_control_get_facing_angles(int16_t local_player_index)
+{
+  player_control_t *player;
+
+  /* inlined player_control_get_data() -- keeps that helper's assert line */
+  assert_halt_at("c:\\halo\\SOURCE\\game\\player_control.c", 0xb1,
+                 local_player_index >= 0 &&
+                 local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+  player = (player_control_t *)((char *)player_control_globals +
+                                local_player_index * 0x40 + 0x10);
+
+  if (!((*(uint32_t *)&player->desired_angles_pitch & 0x7f800000) != 0x7f800000 &&
+        player->desired_angles_pitch < 1.49225652217865f &&
+        player->desired_angles_pitch >= -1.49225652217865f &&
+        (*(uint32_t *)&player->desired_angles_yaw & 0x7f800000) != 0x7f800000 &&
+        player->desired_angles_yaw < 6.2831855f &&
+        player->desired_angles_yaw >= 0.0f)) {
+    display_assert("valid_euler_angles2d(&player->desired_angles)",
+                   "c:\\halo\\SOURCE\\game\\player_control.c", 0x3c0, 1);
+    system_exit(NONE);
+  }
+  return &player->desired_angles_yaw;
+}
+
 /* Set the desired weapon index on a unit's controlling player.
  * Resolves the unit's player handle (unit+0x1c8), looks up the local player
  * index (player+0x2), retrieves the player control slot, and writes
