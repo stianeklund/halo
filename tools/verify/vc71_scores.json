@@ -16192,6 +16192,10 @@
       "score": 100.0,
       "source": "src/halo/game/players.c"
     },
+    "players_reconnect_to_structure_bsp": {
+      "score": 93.4,
+      "source": "src/halo/game/players.c"
+    },
     "players_respawn_coop": {
       "score": 91.0,
       "source": "src/halo/game/players.c"

@@ -17431,7 +17431,8 @@
     },
     {
      "addr": "0xbca60",
-     "decl": "void players_reconnect_to_structure_bsp(void);"
+     "decl": "void players_reconnect_to_structure_bsp(void);",
+     "ported": true
     },
     {
      "addr": "0xbcd40",
