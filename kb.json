@@ -17412,7 +17412,8 @@
     },
     {
      "addr": "0xbc520",
-     "decl": "void players_debug_render(void);"
+     "decl": "void players_debug_render(void);",
+     "ported": true
     },
     {
      "addr": "0xbc6c0",
