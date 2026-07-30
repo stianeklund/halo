@@ -5216,6 +5216,10 @@
       "score": 94.3,
       "source": "src/halo/game/player_control.c"
     },
+    "FUN_000b7e30": {
+      "score": 96.8,
+      "source": "src/halo/game/player_control.c"
+    },
     "FUN_000b7f40": {
       "score": 100.0,
       "source": "src/halo/game/player_control.c"
@@ -16058,6 +16062,10 @@
     },
     "player_control_get_facing": {
       "score": 81.7,
+      "source": "src/halo/game/player_control.c"
+    },
+    "player_control_get_facing_angles": {
+      "score": 96.8,
       "source": "src/halo/game/player_control.c"
     },
     "player_control_get_field_of_view": {
