@@ -902,6 +902,48 @@ bool player_control_action_test_look_relative_down(void)
   return (bool)((fields[0] >> 8) & 1u);
 }
 
+/* Signed angular difference `param_2 - param_1`, wrapped into (-pi, pi).
+ *
+ * Confirmed from disassembly (0xb6dd0, 12 instructions, plain EBP frame, no
+ * locals, no _chkstk, no CALLs, cdecl with the result in ST(0)):
+ *   FLD  [EBP+0xc]        ; param_2
+ *   FSUB [EBP+0x8]        ; st0 = param_2 - param_1  (NOT param_1 - param_2)
+ *   FCOM [0x00256980]     ; vs pi
+ *   FNSTSW AX / TEST AH,0x1 / JNZ skip   ; C0 set => delta < pi => skip
+ *   FSUB [0x00255a54]     ; delta -= 2*pi  when delta >= pi
+ *   FCOM [0x0026e280]     ; vs -pi
+ *   FNSTSW AX / TEST AH,0x41 / JP skip   ; (C0|C3)==0 => delta > -pi => skip
+ *   FADD [0x00255a54]     ; delta += 2*pi  when delta <= -pi
+ *
+ * Branch-polarity derivation for the second test (the boundary differs from
+ * the first, so it is spelled out rather than assumed).  TEST AH,0x41 keeps
+ * C0 (less) and C3 (equal); JP is taken only on even parity of that result:
+ *   delta <  -pi -> C0=1        -> 0x01 -> PF=0 -> fall through -> add
+ *   delta == -pi -> C3=1        -> 0x40 -> PF=0 -> fall through -> add
+ *   delta >  -pi -> C0=C3=0     -> 0x00 -> PF=1 -> JP taken     -> skip
+ * So the low correction is `delta <= -pi` while the high one is
+ * `delta >= pi`, giving a half-open result range of (-pi, pi).
+ *
+ * Each correction is applied at most once -- the original has no loop, so a
+ * delta outside (-3*pi, 3*pi) is deliberately left unwrapped.  Both `if`s are
+ * evaluated in sequence (the second is not an `else`), matching the fall-
+ * through from the first block into the second FCOM.
+ *
+ * Constants are read as raw-address globals (pi at 0x256980, 2*pi at 0x255a54,
+ * -pi at 0x26e280) to share the original's constant pool; substituting source
+ * literals would change the emitted immediates. */
+float FUN_000b6dd0(float param_1, float param_2)
+{
+  float delta;
+
+  delta = param_2 - param_1;
+  if (delta >= *(float *)0x256980)
+    delta -= *(float *)0x255a54;
+  if (delta <= *(float *)0x26e280)
+    delta += *(float *)0x255a54;
+  return delta;
+}
+
 /* Set a player control slot's desired facing angles from a 3D direction vector.
  * Converts the direction vector to yaw+pitch via vector_to_angles (atan2-based
  * vector_to_angles), validates both angles for NaN/Inf, and normalizes yaw
