@@ -16615,7 +16615,8 @@
     },
     {
      "addr": "0xb6e10",
-     "decl": "void limit2d(void);"
+     "decl": "bool limit2d(float *v, float max_length);",
+     "ported": true
     },
     {
      "addr": "0xb6e60",

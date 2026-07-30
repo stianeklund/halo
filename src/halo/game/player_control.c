@@ -944,6 +944,40 @@ float FUN_000b6dd0(float param_1, float param_2)
   return delta;
 }
 
+/* Clamp a 2D vector to a maximum length, in place.
+ *
+ * Returns true when the vector was longer than `max_length` and therefore
+ * rescaled, false when it was left untouched.  The boolean is real: the
+ * original sets AL on the clamped path (MOV AL,1 at 0xb6e3c) and clears it on
+ * the pass-through (XOR AL,AL at 0xb6e51), so a `void` lift would leave EAX
+ * garbage for callers.
+ *
+ * Squared lengths are compared to avoid a square root on the common
+ * (unclamped) path.  The summand order below is the original's FPU load order:
+ * 0xb6e16 loads v[1] before 0xb6e19 loads v[0].  The scale is
+ * `max_length / sqrt(len_sq)` -- 0xb6e3e is FDIVR against [EBP+0xc], which
+ * divides the memory operand by ST0, not the other way round.
+ *
+ * The comparison is written with `len_sq` on the left on purpose.  0xb6e2f is
+ * FLD ST(1) / FCOMPP / TEST AH,0x41 / JNZ, i.e. len_sq is re-pushed above the
+ * squared limit and the branch skips the clamp when C0|C3 (len_sq <= max^2).
+ * Spelling it `max*max < len_sq` instead collapses to FCOMP ST(1) + JP and
+ * loses an instruction. */
+bool limit2d(float *v, float max_length)
+{
+  float len_sq;
+  float scale;
+
+  len_sq = v[1] * v[1] + v[0] * v[0];
+  if (len_sq > max_length * max_length) {
+    scale = max_length / sqrtf(len_sq);
+    v[0] = scale * v[0];
+    v[1] = scale * v[1];
+    return true;
+  }
+  return false;
+}
+
 /* Set a player control slot's desired facing angles from a 3D direction vector.
  * Converts the direction vector to yaw+pitch via vector_to_angles (atan2-based
  * vector_to_angles), validates both angles for NaN/Inf, and normalizes yaw
