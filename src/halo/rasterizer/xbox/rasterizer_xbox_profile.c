@@ -22,6 +22,51 @@
  *                        dwords zeroed on begin and on end
  */
 
+/* 0x16f6c0 - profiler frame/state reset ("rasterizer_profile_initialize"
+ * shaped).  Zeroes the two per-profile record arrays that follow 0x47e188
+ * (0x47e270 and 0x47e358, both dword[2] x 0x1d, 8-byte stride), clears the
+ * three 0x80-byte tables at 0x47e008/0x47e088/0x47e108 that immediately
+ * precede 0x47e188, and latches the performance-counter frequency into
+ * 0x325178 (LARGE_INTEGER).
+ *
+ * The original returns TRUE (`MOV AL,0x1` at 0x16f72b, immediately before
+ * `POP ESI; RET`) - hence the bool return rather than the void the
+ * decompiler reports.  No callers are known (no xrefs; probably reached
+ * through a function/callback table), so the return value's consumer is
+ * unidentified.
+ *
+ * The zeroing loop's four stores are emitted in the original's order
+ * (0x47e358, 0x47e35c, 0x47e270, 0x47e274) with a single shared byte offset,
+ * matching the EAX offset / ESI=0 / ECX=0x1d shape of the disassembly.
+ * The three csmemset calls share one batched `ADD ESP,0x24` in the original;
+ * their order (0x108, 0x088, 0x008) is as MSVC emitted it.
+ *
+ * NOTE: this kb.json entry carries no object mapping, so maintain.py routes
+ * it to rasterizer.c; binary evidence (the 0x47eXXX profile record arrays and
+ * the 0x1d NUMBER_OF_RASTERIZER_PROFILES count shared with FUN_0016f910 /
+ * FUN_0016fa40) places it in this TU. */
+bool FUN_0016f6c0(void)
+{
+  int count;
+  int offset;
+
+  count = 0x1d;
+  offset = 0;
+  do {
+    *(unsigned int *)(offset + 0x47e358) = 0;
+    *(unsigned int *)(offset + 0x47e35c) = 0;
+    *(unsigned int *)(offset + 0x47e270) = 0;
+    *(unsigned int *)(offset + 0x47e274) = 0;
+    offset += 8;
+    count--;
+  } while (count != 0);
+  csmemset((void *)0x47e108, 0, 0x80);
+  csmemset((void *)0x47e088, 0, 0x80);
+  csmemset((void *)0x47e008, 0, 0x80);
+  QueryPerformanceFrequency((void *)0x325178);
+  return 1;
+}
+
 /* 0x16f910 — profile section begin (asserts at rasterizer_xbox_profile.c
  * lines 0x103/0x109/0x10a) */
 void FUN_0016f910(short profile)
