@@ -24,6 +24,83 @@
  *                        dwords zeroed on begin and on end
  */
 
+/* 0x16f500 — GPU push-buffer profile callback: timestamps the begin or the
+ * end of a profile section.  Registered with D3DDevice_InsertCallback by
+ * FUN_0016f910 (type 0, context = index | 0x80000000) and FUN_0016fa40
+ * (type 1, context = index), so the single stack argument packs two fields:
+ *
+ *   bit 31    - begin flag (SHR EBX,0x1f / AND BL,0x1 at 0x16f50d)
+ *   bits 0-15 - profile index, validated 0..0x1c against
+ *               NUMBER_OF_RASTERIZER_PROFILES = 0x1d.  The original tests the
+ *               *16-bit* half (TEST SI,SI / CMP SI,0x1d) precisely so the
+ *               begin flag in bit 31 stays outside the range compare.
+ *
+ * kb.json declared this void(void); the prologue's MOV ESI,[EBP+0x8] plus the
+ * plain RET (no immediate) prove one __cdecl stack argument.
+ *
+ * 0x47e460 is a 16-bit warning word - every access is a word load/store
+ * (XOR reg,reg; MOV reg16,[0x47e460]; OR reg,imm; MOV word[0x47e460],reg16):
+ *   1 - profile index out of range
+ *   2 - begin over an already-open profile
+ *   4 - end with no open profile
+ * Each of the three warning paths ends in a dead re-read of the word
+ * (0x16f559 / 0x16f5de / 0x16f5fd), the residue of a macro that yields the
+ * flag word; the volatile qualifier is what keeps the load/modify/store split
+ * rather than a folded OR word ptr[...],imm.
+ *
+ * Per-profile 8-byte (LARGE_INTEGER) slots, 0x1d entries - the same arrays
+ * FUN_0016f6c0 zeroes:
+ *   0x47e358 - open-section start timestamp, 0 = no section open
+ *   0x47e270 - elapsed ticks of the last completed section
+ *
+ * The begin path indexes with a scaled index (MOVSX ECX,SI then
+ * [ECX*0x8 + base]); the end path with a pre-scaled byte offset (MOVSX EAX,SI;
+ * SHL EAX,0x3 then [EAX + base]), the same `offset` idiom as FUN_0016f6c0 -
+ * hence the two different local spellings below.  The 64-bit subtract is the
+ * original's SUB/SBB pair at 0x16f59c/0x16f5a1, now minus start. */
+void FUN_0016f500(int profile_and_flag)
+{
+  /* one 8-byte LARGE_INTEGER at [EBP-0x8]; LEA EAX,[EBP-0x8] is the QPC arg */
+  unsigned __int64 now;
+  short profile;
+  unsigned char is_begin;
+  int slot;
+  int offset;
+
+  profile = (short)profile_and_flag;
+  is_begin = (unsigned char)(((unsigned int)profile_and_flag >> 0x1f) & 1);
+  if (profile < 0 || profile >= 0x1d) {
+    *(volatile unsigned short *)0x47e460 =
+        (unsigned short)(*(volatile unsigned short *)0x47e460 | 1);
+    (void)*(volatile unsigned short *)0x47e460; /* dead re-read at 0x16f5fd */
+    return;
+  }
+  QueryPerformanceCounter(&now);
+  if (is_begin) {
+    slot = profile;
+    if (*(unsigned __int64 *)(slot * 8 + 0x47e358) != 0) {
+      *(volatile unsigned short *)0x47e460 =
+          (unsigned short)(*(volatile unsigned short *)0x47e460 | 2);
+      (void)*(volatile unsigned short *)0x47e460; /* dead re-read at 0x16f559 */
+    }
+    *(unsigned __int64 *)(slot * 8 + 0x47e358) = now;
+    return;
+  }
+  offset = (int)profile * 8;
+  /* the open-slot test reads the two halves (MOV ECX,[..358]; OR ECX,[..35c]
+   * at 0x16f57f) and the subtract below re-loads them (0x16f58d/0x16f596) */
+  if ((*(unsigned int *)(offset + 0x47e358) |
+       *(unsigned int *)(offset + 0x47e35c)) != 0) {
+    *(unsigned __int64 *)(offset + 0x47e270) =
+        now - *(unsigned __int64 *)(offset + 0x47e358);
+    *(unsigned __int64 *)(offset + 0x47e358) = 0;
+    return;
+  }
+  *(volatile unsigned short *)0x47e460 =
+      (unsigned short)(*(volatile unsigned short *)0x47e460 | 4);
+  (void)*(volatile unsigned short *)0x47e460; /* dead re-read at 0x16f5de */
+}
+
 /* 0x16f6c0 - profiler frame/state reset ("rasterizer_profile_initialize"
  * shaped).  Zeroes the two per-profile record arrays that follow 0x47e188
  * (0x47e270 and 0x47e358, both dword[2] x 0x1d, 8-byte stride), clears the

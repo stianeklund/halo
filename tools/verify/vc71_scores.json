@@ -11656,6 +11656,10 @@
       "score": 79.8,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
+    "FUN_0016f500": {
+      "score": 95.4,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_profile.c"
+    },
     "FUN_0016f610": {
       "score": 88.4,
       "source": "src/halo/rasterizer/rasterizer.c"
