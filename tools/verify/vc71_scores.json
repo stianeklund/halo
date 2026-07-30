@@ -11684,6 +11684,10 @@
       "score": 91.3,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_profile.c"
     },
+    "FUN_0016fcf0": {
+      "score": 96.3,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_profile.c"
+    },
     "FUN_00172590": {
       "score": 93.0,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_shadows.c"
