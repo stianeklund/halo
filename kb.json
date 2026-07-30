@@ -16610,7 +16610,8 @@
     },
     {
      "addr": "0xb6dd0",
-     "decl": "float FUN_000b6dd0(float param_1, float param_2);"
+     "decl": "float FUN_000b6dd0(float param_1, float param_2);",
+     "ported": true
     },
     {
      "addr": "0xb6e10",
