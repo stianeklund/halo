@@ -978,6 +978,53 @@ bool limit2d(float *v, float max_length)
   return false;
 }
 
+/* Move `*value` toward `target`, by at most `max_delta` per call.
+ *
+ * Equivalent to `*value += clamp(target - *value, -max_delta, +max_delta)`.
+ *
+ * The delta is assigned back over the `target` parameter on purpose: the
+ * original has no locals at all (PUSH EBP / MOV EBP,ESP with no SUB ESP) and
+ * spills the difference into the incoming parameter slot -- 0xb6e63 is
+ * FLD [EBP+0xc]; FSUB [ECX]; FSTP [EBP+0xc].  Introducing a fresh local here
+ * would grow the frame and shift every subsequent access.
+ *
+ * Subtraction direction is confirmed: FLD target then FSUB of the memory
+ * operand (no FSUBR), i.e. `target - *value`.
+ *
+ * Three separate stores rather than a clamped temporary: the original's three
+ * paths each FLD their own addend (-max_delta is left live in ST1 from the
+ * first comparison at 0xb6e6e, max_delta is reloaded at 0xb6e91, the delta at
+ * 0xb6e97) and tail-merge onto a single FADD [ECX]; FSTP [ECX] at 0xb6e9a.
+ * The addend is on the left of the `+` because it is ST0 and `*value` is the
+ * memory operand of the FADD, not the other way round.
+ *
+ * Written as a nested `if` with the -max_delta case in the trailing `else`,
+ * not as an `if / else if / else` chain.  0xb6e6e is FLD max_delta; FCHS;
+ * FLD delta; FCOMP -- -max_delta is pushed FIRST and stays live as ST1 across
+ * the comparison, so the taken branch at 0xb6e9a already has its addend in
+ * ST0 and the fall-through has to FSTP ST0 to discard it (0xb6e7f).  Testing
+ * `target < -max_delta` instead makes VC71 schedule the negation as ST0 and
+ * compare against memory (FCOMP [EBP+0xc]), losing that reuse.
+ *
+ * TEST AH,0x5 + JNP at 0xb6e79 is "not less", i.e. the fall-through condition
+ * is `delta >= -max_delta` (an unordered/NaN compare sets C0|C2, giving even
+ * parity and therefore falling through as well). */
+void interpolate_scalar(float *value, float target, float max_delta)
+{
+  float neg_max_delta;
+
+  target = target - *value;
+  neg_max_delta = -max_delta;
+  if (target >= neg_max_delta) {
+    if (target > max_delta)
+      *value = max_delta + *value;
+    else
+      *value = target + *value;
+  } else {
+    *value = neg_max_delta + *value;
+  }
+}
+
 /* Set a player control slot's desired facing angles from a 3D direction vector.
  * Converts the direction vector to yaw+pitch via vector_to_angles (atan2-based
  * vector_to_angles), validates both angles for NaN/Inf, and normalizes yaw

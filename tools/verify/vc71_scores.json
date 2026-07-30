@@ -5204,6 +5204,10 @@
       "score": 100.0,
       "source": "src/halo/game/player_control.c"
     },
+    "FUN_000b6e60": {
+      "score": 96.6,
+      "source": "src/halo/game/player_control.c"
+    },
     "FUN_000b6ea0": {
       "score": 85.5,
       "source": "src/halo/game/player_control.c"
@@ -15260,6 +15264,10 @@
       "score": 92.3,
       "source": "src/halo/input/input_xbox.c"
     },
+    "interpolate_scalar": {
+      "score": 96.6,
+      "source": "src/halo/game/player_control.c"
+    },
     "item_get_position_even_if_in_inventory": {
       "score": 100.0,
       "source": "src/halo/items/items.c"
@@ -16054,6 +16062,10 @@
     },
     "player_control_get_field_of_view": {
       "score": 100.0,
+      "source": "src/halo/game/player_control.c"
+    },
+    "player_control_get_unit_camera_info": {
+      "score": 95.1,
       "source": "src/halo/game/player_control.c"
     },
     "player_control_get_zoom_level": {
