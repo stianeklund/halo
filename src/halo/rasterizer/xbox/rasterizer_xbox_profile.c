@@ -20,6 +20,16 @@
  *                        popped by FUN_0016f8a0, which asserts 0 <= it < 100
  *   0x325180  short     – currently open profile index, -1 = none
  *   0x47e45c  unsigned  – bitmask of profiles completed this frame
+ *   0x47e460  short     – sticky profile error bits, drained by FUN_0016f730:
+ *                        1 = callback recieved invalid context, 2 = begin
+ *                        out-of-synch, 4 = end out-of-synch.  Written word-
+ *                        sized (FUN_0016f500, and the clear at 0x16f816);
+ *                        FUN_0016f730 tests it with byte loads
+ *   0x47e468  short     – "tell Bernie!" warning-emission counter, capped
+ *                        at 3 (signed word CMP/JGE against 3)
+ *   0x47e450  short     – current frame slot index, 0..15 (signed mod 16)
+ *   0x47e440  dword     – per-frame accumulator, cleared on frame arm
+ *   0x47e444  dword     – per-frame accumulator, cleared on frame arm
  *   0x47e188  dword[2] x 0x1d – per-profile record (8-byte stride), both
  *                        dwords zeroed on begin and on end
  */
@@ -144,6 +154,93 @@ bool FUN_0016f6c0(void)
   csmemset((void *)0x47e008, 0, 0x80);
   QueryPerformanceFrequency((void *)0x325178);
   return 1;
+}
+
+/* 0x16f730 — end-of-frame profile flush / next-frame arm (assert at
+ * rasterizer_xbox_profile.c line 0xc2, the same __FILE__ string at 0x2a3ca4
+ * the rest of this TU uses).
+ *
+ * Drains the three sticky error bits in 0x47e460 as "tell Bernie!" warnings
+ * (at most three warnings ever, via the counter at 0x47e468), clears the bit
+ * word, and — when profiling is enabled — advances the 16-slot frame index
+ * at 0x47e450 and inserts the FUN_0016f610 push-buffer marker with context
+ * index*2.
+ *
+ * Frame is PUSH EBP / MOV EBP,ESP / PUSH ECX / PUSH EBX / PUSH ESI ...
+ * POP EBX / MOV ESP,EBP / POP EBP / RET (no immediate), so __cdecl void(void);
+ * the EBP-4 slot is a dead MSVC temp for the bit test and is not a variable.
+ * EBX is the shared zero and ESI the shared constant 3.
+ *
+ * Widths are from the disassembly, not the decompiler (which renders the
+ * clear as a 32-bit store): the three reads of 0x47e460 are
+ * `MOV AL,byte ptr [0x47e460]` while the clear at 0x16f816 is
+ * `MOV word ptr [0x47e460],BX`.  0x47e468 is word-sized with a signed
+ * compare (`CMP word ptr [0x47e468],SI` / JGE) and `INC word ptr`, and
+ * 0x47e450 is read `MOVSX EAX,word ptr`, hence `short` throughout.
+ *
+ * The `~bit & 1` tests are transcribed literally from `NOT AL; AND AL,1;
+ * JNZ past`: the warning fires when the original bit IS set.
+ *
+ * The five zero-stores are emitted between the mod-16 AND and its negative
+ * fixup (0x16f828-0x16f860); that is scheduling, the source order below is
+ * the disassembly's store order.  `AND EAX,0x8000000f` + `JNS/DEC/OR
+ * 0xfffffff0/INC` is MSVC's signed `% 16`, not `& 15`.  The callback context
+ * re-reads 0x47e450 after the store (`MOV [0x47e450],AX; MOVSX EAX,AX;
+ * SHL EAX,1`).
+ *
+ * Like the rest of this TU, the kb.json entry carries no object mapping, so
+ * maintain.py wants to route it to rasterizer.c; it is kept here on the
+ * shared-__FILE__ and shared-globals evidence. */
+void FUN_0016f730(void)
+{
+  unsigned char bit_clear;
+  int slot;
+  short frame_slot;
+
+  if (*(int *)0x476ab0 == 0) {
+    display_assert("global_d3d_device",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_"
+                   "profile.c",
+                   0xc2, 1);
+    system_exit(-1);
+  }
+
+  bit_clear = (unsigned char)(~(*(volatile unsigned char *)0x47e460) & 1);
+  if (bit_clear == 0 && *(short *)0x47e468 < 3) {
+    error(2, "### PROFILE: %s -- tell Bernie!", 0xffffffff,
+          "callback recieved invalid context");
+    *(short *)0x47e468 = *(short *)0x47e468 + 1;
+  }
+  bit_clear = (unsigned char)(~(*(volatile unsigned char *)0x47e460 >> 1) & 1);
+  if (bit_clear == 0 && *(short *)0x47e468 < 3) {
+    error(2, "### PROFILE: %s -- tell Bernie!", 0xffffffff,
+          "begin out-of-synch");
+    *(short *)0x47e468 = *(short *)0x47e468 + 1;
+  }
+  bit_clear = (unsigned char)(~(*(volatile unsigned char *)0x47e460 >> 2) & 1);
+  if (bit_clear == 0 && *(short *)0x47e468 < 3) {
+    error(2, "### PROFILE: %s -- tell Bernie!", 0xffffffff,
+          "end out-of-synch");
+    *(short *)0x47e468 = *(short *)0x47e468 + 1;
+  }
+  *(volatile short *)0x47e460 = 0;
+
+  /* The index read is hoisted above the gate compare: that placement is
+   * what reproduces the original's scheduling (it costs 2.7pp of match
+   * when written inside the branch).  0x47e450 is a plain global that
+   * nothing above writes, so the hoist is observationally inert. */
+  frame_slot = *(short *)0x47e450;
+  if (*(short *)0x3256ba == 3 || *(char *)0x325704 != 0) {
+    slot = ((int)frame_slot + 1) % 16;
+    *(unsigned int *)0x47e45c = 0;
+    *(short *)0x325184 = 0;
+    *(short *)0x325180 = -1;
+    *(unsigned int *)0x47e440 = 0;
+    *(unsigned int *)0x47e444 = 0;
+    *(short *)0x47e450 = (short)slot;
+    D3DDevice_InsertCallback(0, (void *)FUN_0016f610,
+                             (unsigned int)((int)*(short *)0x47e450 << 1));
+  }
 }
 
 /* 0x16f8a0 — nesting counter for the profile-disable gate 0x47e458
