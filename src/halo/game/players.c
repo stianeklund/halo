@@ -1074,6 +1074,40 @@ void player_build_action_update(int datum_handle, float *aiming_out,
   matrix_transform_vector(matrix, aiming_out, aiming_out); /* dup-args-ok */
 }
 
+/* 0xbbb80 — Teleport a player's unit to an anchor object's position.
+ *
+ * Ejects the unit from any seat it currently occupies (object+0xcc holds the
+ * seat/parent object handle, -1 when none), then defers the actual placement
+ * to FUN_000bb670.
+ *
+ * Returns FUN_000bb670's result (nonzero when the unit was moved), and 0 when
+ * the player has no live unit.  Confirmed from disassembly: the failure path
+ * is XOR CL,CL / MOV AL,CL, while the success path falls straight into the
+ * epilogue with the callee's AL untouched (tail passthrough).
+ *
+ * All three args are cdecl stack params ([EBP+8], [EBP+0xc], [EBP+0x10]) —
+ * the Ghidra decompile saw none of them and reported void(void). */
+bool player_teleport(int player_handle, int anchor_unit_handle,
+                     void *anchor_position)
+{
+  char *player;
+  int unit_handle;
+  char *unit;
+
+  player = (char *)datum_get(player_data, player_handle);
+  unit_handle = *(int *)(player + 0x34);
+  unit = (char *)object_try_and_get_and_verify_type(unit_handle, 1);
+  /* Nested-if (rather than early-return) shape: the original places the
+   * failure epilogue out of line at 0xbbbcf, after the success epilogue, and
+   * hoists its zero into CL above the TEST. */
+  if (unit != NULL) {
+    if (*(int *)(unit + 0xcc) != -1)
+      unit_exit_seat_end(unit_handle);
+    return FUN_000bb670(player_handle, anchor_unit_handle, anchor_position);
+  }
+  return 0;
+}
+
 /* 0xbbbe0 — Choose the best-scoring starting location for a player.
  *
  * Scores every starting location as pow(random[0,1], 0.5) * rating and
@@ -1555,8 +1589,7 @@ static bool
 players_respawn_coop_teleport(int player_handle, int anchor_unit_handle,
                               void *anchor_position)
 {
-  return ((bool (*)(int, int, void *))0xbbb80)(
-    player_handle, anchor_unit_handle, anchor_position);
+  return player_teleport(player_handle, anchor_unit_handle, anchor_position);
 }
 
 /* Attempt to respawn all dead players in co-op by teleporting them to a

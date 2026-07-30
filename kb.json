@@ -17370,11 +17370,12 @@
     },
     {
      "addr": "0xbb670",
-     "decl": "char FUN_000bb670(int player_index @<ebx>, int object_handle, void *position);"
+     "decl": "char FUN_000bb670(int player_index, int object_handle, void *position);"
     },
     {
      "addr": "0xbbb80",
-     "decl": "void player_teleport(void);"
+     "decl": "bool player_teleport(int player_handle, int anchor_unit_handle, void *anchor_position);",
+     "ported": true
     },
     {
      "addr": "0xbbbe0",
