@@ -19280,7 +19280,8 @@
     },
     {
      "addr": "0x16f6c0",
-     "decl": "void FUN_0016f6c0(void);"
+     "decl": "bool FUN_0016f6c0(void);",
+     "ported": true
     },
     {
      "addr": "0x16f730",
