@@ -19275,7 +19275,8 @@
     },
     {
      "addr": "0x16f610",
-     "decl": "void FUN_0016f610(void);"
+     "decl": "void FUN_0016f610(uint32_t marker);",
+     "ported": true
     },
     {
      "addr": "0x16f6c0",

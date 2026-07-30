@@ -215,6 +215,61 @@ void FUN_0016eef0(void *group)
   FUN_00174510(grp, 0);
 }
 
+/* 0x16f610
+ *
+ * FUN_0016f610 -- performance-timer start/stop marker (16 slots).
+ *
+ * Confirmed from disassembly:
+ *   - One 32-bit stack argument at [EBP+8] (kb.json previously declared
+ *     `void (void)`, which was wrong). It packs two fields:
+ *       bit0      = phase selector (0 = start, 1 = stop)
+ *       bits 1..  = slot index, taken as (int16)(arg >> 1)
+ *     The shift is logical (SHR) on the full dword, but the range check is
+ *     done on the 16-bit result only (TEST SI,SI / JL, CMP SI,0x10 / JGE),
+ *     so the signed bound test is on the truncated int16 -- hence `short`
+ *     here, not int. Slot use is MOVSX SI + SHL 3, i.e. stride 8.
+ *   - The only callee is QueryPerformanceCounter (import thunk 0x1d33e6),
+ *     called as `PUSH LEA [EBP-8]; CALL` with no stack cleanup (stdcall).
+ *     The frame is `SUB ESP,8` -- exactly one 64-bit counter, no _chkstk.
+ *   - START path stores the counter into start[] (0x47e108) and nothing else.
+ *   - STOP path stores the counter into stop[] (0x47e088), records the slot
+ *     into the 16-bit last-index global (MOV word ptr [0x47e454],SI), and
+ *     stores the 64-bit difference into delta[] (0x47e008). The SUB/SBB pair
+ *     proves the direction is stop - start (EDI/EBX hold start.low/high).
+ *   - No FPU anywhere.
+ *
+ * Inferred: the three 0x47e008/0x47e088/0x47e108 regions are contiguous
+ * 128-byte arrays of 16 x int64 (delta/stop/start), from the 0x80-byte gaps
+ * and the common index stride.
+ *
+ * The arrays are addressed through constant-address macros rather than local
+ * pointer variables so that the base folds into the displacement, matching
+ * the original's `0x47e108(,%eax,8)` scaled-index form.
+ */
+#define PERF_TIMER_DELTA ((int64_t *)0x47e008)
+#define PERF_TIMER_STOP ((int64_t *)0x47e088)
+#define PERF_TIMER_START ((int64_t *)0x47e108)
+
+void FUN_0016f610(uint32_t marker)
+{
+  int64_t counter;
+  int64_t started;
+  short slot;
+
+  slot = (short)(marker >> 1);
+  if (slot >= 0 && slot < 0x10) {
+    QueryPerformanceCounter(&counter);
+    if ((marker & 1) != 0) {
+      started = PERF_TIMER_START[slot];
+      PERF_TIMER_STOP[slot] = counter;
+      *(short *)0x47e454 = slot;
+      PERF_TIMER_DELTA[slot] = counter - started;
+      return;
+    }
+    PERF_TIMER_START[slot] = counter;
+  }
+}
+
 /* 0x16f880
  *
  * FUN_0016f880
@@ -240,6 +295,24 @@ void FUN_0016f880(void)
 {
   *(short *)0x325184 = *(short *)0x5a5bc2;
   *(short *)0x325180 = -1;
+}
+
+/* FUN_0016FEB0 (0x16feb0) -- empty no-op.
+ *
+ * The entire function is a single instruction:
+ *
+ *   0016feb0:  c3            RET
+ *
+ * No prologue, no frame, no FPU, no memory access, no callees. Under the
+ * cdecl `void (void)` signature in kb.json this is a release-build no-op:
+ * a debug/profiling hook whose body compiled out. Called unconditionally
+ * from FUN_00158f90 (rasterizer_xbox_decals.c).
+ *
+ * kb.json assigns 0x16feb0 to rasterizer.obj; its address neighbours here
+ * are rasterizer_initialize (0x16fb80) and 0x16fec0.
+ */
+void FUN_0016FEB0(void)
+{
 }
 
 /* 0x172720
@@ -2569,22 +2642,4 @@ void rasterizer_frame_end(void)
 void rasterizer_set_vblank_callback(void *cb)
 {
   ((void (*)(void *))0x155c10)(cb);
-}
-
-/* FUN_0016FEB0 (0x16feb0) -- empty no-op.
- *
- * The entire function is a single instruction:
- *
- *   0016feb0:  c3            RET
- *
- * No prologue, no frame, no FPU, no memory access, no callees. Under the
- * cdecl `void (void)` signature in kb.json this is a release-build no-op:
- * a debug/profiling hook whose body compiled out. Called unconditionally
- * from FUN_00158f90 (rasterizer_xbox_decals.c).
- *
- * kb.json assigns 0x16feb0 to rasterizer.obj; its address neighbours here
- * are rasterizer_initialize (0x16fb80) and 0x16fec0.
- */
-void FUN_0016FEB0(void)
-{
 }
