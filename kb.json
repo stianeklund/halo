@@ -17341,7 +17341,8 @@
     },
     {
      "addr": "0xbb220",
-     "decl": "void players_handle_deleted_object(void);"
+     "decl": "void players_handle_deleted_object(int object_handle);",
+     "ported": true
     },
     {
      "addr": "0xbb290",

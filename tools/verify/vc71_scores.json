@@ -16180,6 +16180,10 @@
       "score": 100.0,
       "source": "src/halo/game/players.c"
     },
+    "players_handle_deleted_object": {
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
     "players_respawn_coop": {
       "score": 91.0,
       "source": "src/halo/game/players.c"

@@ -843,6 +843,35 @@ void FUN_000bb1f0(int player_index /* @<eax> */, int16_t param2)
   }
 }
 
+/* React to an object being deleted (0xbb220).
+ *
+ * Verifies the doomed object with a wildcard type mask (-1 = any type), then
+ * inspects the object type byte at +0x64.  The original builds (1 << type)
+ * and does a byte-wide TEST against 3, so only object types 0 and 1 (the
+ * biped/vehicle unit family) take the body; everything else returns.
+ *
+ * For a matching object, every player datum whose unit handle (player+0x34)
+ * is the deleted object is reported dead via player_died, passing the
+ * iterator's current datum handle (iter+0x8) rather than the player pointer.
+ *
+ * The object_get_and_verify_type result is dereferenced with no NULL check,
+ * faithful to the original. */
+void players_handle_deleted_object(int object_handle)
+{
+  char *object;
+  char *player;
+  data_iter_t iter;
+
+  object = (char *)object_get_and_verify_type(object_handle, -1);
+  if (((1 << *(unsigned char *)(object + 0x64)) & 3) != 0) {
+    data_iterator_new(&iter, player_data);
+    while ((player = (char *)data_iterator_next(&iter)) != NULL) {
+      if (*(int *)(player + 0x34) == object_handle)
+        player_died((int)iter.datum_handle);
+    }
+  }
+}
+
 /* Allocate and initialise a new player datum.
  *
  * local_player_index  (a1) -- which local player slot to assign; NONE (-1) is
@@ -5382,8 +5411,8 @@ void FUN_000bf3d0(int16_t function_index, int thread_datum, char init)
 {
   void *record;
 
-  record = (void *)hs_macro_function_evaluate(function_index, thread_datum,
-                                              init);
+  record =
+    (void *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (record != NULL) {
     FUN_001a7ad0(*(int *)record, *(float *)((char *)record + 4),
                  *(float *)((char *)record + 8));
@@ -5440,8 +5469,8 @@ void FUN_000bf420(int16_t function_index, int thread_datum, char init)
 {
   void *record;
 
-  record = (void *)hs_macro_function_evaluate(function_index, thread_datum,
-                                              init);
+  record =
+    (void *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (record != NULL) {
     FUN_001a7b50(*(int *)record, *(float *)((char *)record + 4),
                  *(float *)((char *)record + 8));
@@ -10912,9 +10941,8 @@ void FUN_000c0b70(int16_t function_index, int thread_datum, char init)
 {
   unsigned char *record;
 
-  record =
-    (unsigned char *)hs_macro_function_evaluate(function_index, thread_datum,
-                                                init);
+  record = (unsigned char *)hs_macro_function_evaluate(function_index,
+                                                       thread_datum, init);
   if (record != NULL) {
     /* dword @ +0x0; zero-extended byte @ +0x4 */
     FUN_00057850(*(unsigned int *)record, record[4]);
