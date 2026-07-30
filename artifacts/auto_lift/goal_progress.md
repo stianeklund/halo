@@ -1653,3 +1653,62 @@ AUTOLIFT_REVIEW: REJECT |
 
 **Summary:** 4 functions committed at 100% VC71. Goal reached. 1 target rejected on post-hoc review (item_update: dropped args to callee FUN_000f7110, wrong return type, vacuous equivalence <90% band). 1 target parked at structural ceiling (FUN_000f56b0: int16 promotion ceiling, C89-inexpressible). 18 targets skipped due to missing kb.json ABI info, TU mismatch, CRT/thunk dependencies, or prior-fail status.
 
+
+---
+
+## Goal-lift run — 0/4 committed (infra_blocked_twice) — 2026-07-29T21:30:00Z
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_000f5660 | 0xf5660 | items.obj | - | skipped | skip_prior_fail (parked before, 21 fresh candidates available) |
+| FUN_00172520 | 0x172520 | rasterizer.obj | - | skipped | skip_prior_fail (parked before, 21 fresh candidates available) |
+| parse_string | 0x19be30 | draw_string.obj | - | skipped | skip_prior_fail (parked before, 21 fresh candidates available) |
+| FUN_0019c1b0 | 0x19c1b0 | draw_string.obj | - | skipped | skip_prior_fail (parked before, 21 fresh candidates available) |
+| FUN_001036c0 | 0x1036c0 | main.obj | - | skipped | skip_prior_fail (parked before, 21 fresh candidates available) |
+| FUN_000bf470 | 0xbf470 | players.obj | - | skipped | skip_prior_fail (parked before, 21 fresh candidates available) |
+| FUN_000b6bd0 | 0xb6bd0 | player_control.obj | - | skipped | skip_prior_fail (parked before, 21 fresh candidates available) |
+| decal_update | 0x996b0 | decals.obj | - | skipped | skip_prior_fail (parked before, 21 fresh candidates available) |
+| FUN_0019bd30 | 0x19bd30 | draw_string.obj | - | skipped | skip_prior_fail (parked before, 21 fresh candidates available) |
+| FUN_000f5fb0 | 0xf5fb0 | items.obj (kb classification) — but the TU is actually c:\halo\SOURCE\interface\virtual_keyboard.c per the __FILE__ assert strings; siblings FUN_000f57a0 / FUN_000f5f30 already live in src/halo/items/items.c | - | skipped | Callee FUN_000f5800 (0xf5800) takes an implicit register argument that is NOT annotated in kb.json. At 000f62cc the caller does `MOVSX SI, byte ptr [EAX + ECX*1 + 0x28a790]` immediately followed by `CALL 0x000f5800` with NO stack push and no ESP cleanup — the keycode is passed in SI/ESI. kb.json declares it `void FUN_000f5800(void);` (ported=null), so lifting this caller in C would pass nothing and the callee would read garbage. Fix path: annotate 0xf5800 as `wchar_t FUN_000f5800(int16_t keycode@<esi>);` (its return also comes back in AX, used at 000f62e0 `MOV word ptr [EDX],AX`) and re-queue. Secondary blockers: 0xf5f10 ("object_get_type") is declared `void(void)` but its EAX result is consumed; 0x1c2bf0 ("saved_game_file_name_unique") is declared `void(void)` but the call site pushes 1 arg (ADD ESP,4) and consumes AL. |
+| decals_update | 0x99f80 | decals.obj | - | skipped | Callee decal_update (0x996b0) takes an implicit register argument in EDI that is NOT declared in kb.json. Disassembly at 0x99fb0-0x99fb3: `MOV EDI,dword ptr [EBP + -0x8]` immediately before `CALL 0x000996b0`, inside the loop body. kb.json declares `void decal_update(void);` with no @<reg> annotation, so lifting this caller in C would pass nothing and decal_update would read a garbage EDI. Fix prerequisite: add `+decal_index@<edi>` (or equivalent) to decal_update's kb.json decl and re-audit its other callers, then re-queue this target. |
+| FUN_0019c3c0 | 0x19c3c0 | draw_string.obj | - | skipped | Decompile declares `ushort *in_EAX` (implicit register parameter — a clip-rect pointer read from EAX at entry, `TEST EAX,EAX` before any write). kb.json decl is `void FUN_0019c3c0(void);` with no @<reg> annotation, and the function also has 5+ stack params exposed only as `in_stack_00000004..1c` (fn-ptr, short*, ushort*, uint color, short y0, short y1). Additionally callee FUN_0019c0a0 at 0019c4e5 is invoked with `LEA EAX,[EBP-0x38]` — an @eax register arg — and is not in kb.json with that annotation. Reg-arg lift blocked. |
+| FUN_00103600 | 0x103600 | main.obj | - | skipped | Decompile contains unaff_EBX (float* vector) and unaff_ESI (int* dynamic array/pool header) — the function takes two implicit register arguments (@ebx, @esi) that are not declared in kb.json (decl is "void FUN_00103600(void);"). Per pre-screen rule 4, skip. |
+| actor_action_can_stop_conversing | 0x1cfa0 | actions.obj | - | skipped | already implemented: /mnt/g/dev/halo-clean-main/src/halo/ai/actions.c:1159 (int actor_action_can_stop_conversing(int actor_handle, int flag)); kb.json entry has "ported": false but the C definition exists |
+| actor_action_set_default_state | 0x1d7c0 | actions.obj | - | skipped | already implemented: /mnt/g/dev/halo-clean-main/src/halo/ai/actions.c:1708 (char actor_action_set_default_state(int actor_handle, short state)); kb.json entry is ported=false (dormant/bisect toggle), but the C body exists and is called from actions.c:1845, actions.c:2924, encounters.c:1261, encounters.c:1292 |
+| actor_action_handle_done_fleeing | 0x1f6e0 | actions.obj | - | skipped | already implemented: /mnt/g/dev/halo-clean-main/src/halo/ai/actions.c:2962 |
+| actor_action_handle_combat_failure | 0x1f920 | actions.obj | - | skipped | already implemented: /mnt/g/dev/halo-clean-main/src/halo/ai/actions.c:3095 (definition `char actor_action_handle_combat_failure(int actor_handle)`; kb.json still has "ported": false) |
+| actor_action_handle_berserk_transition | 0x20470 | actions.obj | - | skipped | already implemented: /mnt/g/dev/halo-clean-main/src/halo/ai/actions.c:3710 (definition `char actor_action_handle_berserk_transition(int actor_handle, short param_2)`, block comment at line 3704). Called from src/halo/ai/actors.c at lines 1059, 1236, 1483, 1996, 3000. Note: kb.json entry for 0x20470 still has "ported": false — the C body exists but the patch is deactivated; that is a toggle question, not a lift task. |
+| actor_action_handle_grenade_throwing | 0x205a0 | actions.obj | - | skipped | already implemented: /mnt/g/dev/halo-clean-main/src/halo/ai/actions.c:3767 (char actor_action_handle_grenade_throwing(int actor_handle)); note kb.json entry still has "ported": false |
+| plane_negate | 0x994d0 | geometry.obj | - | skipped | already implemented: /mnt/g/dev/halo-clean-main/src/halo/math/geometry.c:15 (void plane_negate(float *plane_in, float *plane_out)) |
+| object_compute_node_matrices | 0x141b70 | objects.obj | - | skipped | already implemented: /mnt/g/dev/halo-clean-main/src/halo/objects/objects.c:11159 (definition `void object_compute_node_matrices(int object_handle)`). kb.json entry 0x141b70 has decl `void object_compute_node_matrices(int object_handle);` with "ported": false — the implementation exists in source but the port toggle is off (dormant/bisect state), not a missing lift. No Ghidra work performed. |
+| FUN_000f56b0 | 0xf56b0 | items.obj (virtual_keyboard.obj TU per neighbor comments) | - | infra_blocked | agent_null |
+| item_update | 0xf7340 | items.obj | - | infra_blocked | agent_null |
+
+**Summary:** 0 functions committed. Run halted by infrastructure blocks on 2 targets (agent_null). 9 functions skipped due to skip_prior_fail (parked candidates held for re-evaluation). 10 functions skipped due to pre-screen blockers: 5 missing @<reg> annotations on unported callees (FUN_000f5800, decal_update, FUN_0019c0a0, implicit register parameters in FUN_0019c3c0 and FUN_00103600), 5 already-implemented with dormant/bisect toggles or no-op status.
+
+**Key Blockers for Next Run:**
+1. **Infrastructure:** Investigate agent_null blocks on FUN_000f56b0 and item_update
+2. **Register-arg annotation gap:** Fix callee signatures in kb.json before re-queueing dependents (FUN_000f5800 @<esi>, decal_update @<edi>, etc.)
+3. **Dormant-toggle alignment:** Decide whether to activate existing implementations or continue bisect-only use
+
+**Candidate pool status:** 21 fresh candidates available (parked functions held for re-evaluation pending fixes to blockers).
+
+---
+
+## Goal-lift run — 0/4 committed (queue_exhausted)
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_000f5660 | 0xf5660 | items.obj | - | skipped | skip_prior_fail (parked before, 21 fresh candidates available) |
+| FUN_00172520 | 0x172520 | rasterizer.obj | - | skipped | skip_prior_fail (parked before, 21 fresh candidates available) |
+| parse_string | 0x19be30 | draw_string.obj | - | skipped | skip_prior_fail (parked before, 21 fresh candidates available) |
+| FUN_0019c1b0 | 0x19c1b0 | draw_string.obj | - | skipped | skip_prior_fail (parked before, 21 fresh candidates available) |
+| FUN_001036c0 | 0x1036c0 | main.obj | - | skipped | skip_prior_fail (parked before, 21 fresh candidates available) |
+| FUN_000bf470 | 0xbf470 | players.obj | - | skipped | skip_prior_fail (parked before, 21 fresh candidates available) |
+| FUN_000b6bd0 | 0xb6bd0 | player_control.obj | - | skipped | skip_prior_fail (parked before, 21 fresh candidates available) |
+| decal_update | 0x996b0 | decals.obj | - | skipped | skip_prior_fail (parked before, 21 fresh candidates available) |
+| FUN_0019bd30 | 0x19bd30 | draw_string.obj | - | skipped | skip_prior_fail (parked before, 21 fresh candidates available) |
+| actor_action_can_stop_conversing | 0x1cfa0 | actions.obj | - | skipped | already implemented: /mnt/g/dev/halo-clean-main/src/halo/ai/actions.c:1159 (kb entry has ported=false, but the C definition exists) |
+| plane_negate | 0x994d0 | geometry.obj | - | skipped | already implemented: /mnt/g/dev/halo-clean-main/src/halo/math/geometry.c:15 (void plane_negate(float *plane_in, float *plane_out)). kb.json entry has ported:false, so it is implemented but not activated — activation/verification decision, not a lift. |
+| object_compute_node_matrices | 0x141b70 | objects.obj | - | skipped | already implemented: /mnt/g/dev/halo-clean-main/src/halo/objects/objects.c:11159 (definition `void object_compute_node_matrices(int object_handle)`); kb.json entry 0x141b70 has "ported": false but the C body exists (dormant/bisect state, not a missing lift) |
+| players_handle_deleted_object | 0xbb220 | players.obj | - | infra_blocked | agent_null |

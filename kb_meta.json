@@ -4207,6 +4207,34 @@
         "Bit 6 of the action dword at player_control_globals+0x00 is the zoom action bit; the bit index is Confirmed from SHR EAX,0x6 but the zoom semantic comes from the pre-existing kb.json name, not from a string or PDB."
       ]
     },
+    "0xb6b50": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Return type is int (4-byte EAX), not the project's 1-byte bool: the original ends in NEG EAX / SBB EAX,EAX / INC EAX on the full register, and a bool return makes VC71 emit sbb al,al / inc al (measured 75.0% vs 100.0%)."
+      ],
+      "uncertain": [
+        "The name's mapping of mask 0x7800 to the four move-relative direction bits (11..14) is behavior-only evidence; the individual bit-to-direction assignment is not proven by this function."
+      ]
+    },
+    "0xb6b70": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Return type int (not bool) is inferred from the full-width NEG/SBB/INC EAX idiom; the sibling 0xb6b50 measured 100.0% with int and 75.0% with the 1-byte bool typedef."
+      ]
+    },
+    "0xb6b90": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Bit index 9 of the global action dword at player_control_globals+0x00 is the 'look relative left' action; the name comes from the kb.json family ordering (left/right/up/down at 0xb6b90/ba0/bb0/bc0) and the 0x780 (bits 7-10) mask used by player_control_action_test_look_relative_all_directions at 0xb6b70, not from a binary string."
+      ]
+    },
+    "0xb6ba0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xb6ea0": {
       "kind": "function",
       "status": "ported"
@@ -6570,12 +6598,14 @@
         "Semantics inferred from the sibling row handlers at 0xf5700/0xf5750 plus the caller at items.c:629: this is the COLUMN-axis cursor-move handler for the virtual keyboard, advancing 0x46cefa rightward modulo 0xb (11 keymap columns) while skipping columns whose keymap character equals the pre-move character, so duplicate/merged keys are stepped over in a single press.",
         "The audio-call argument 1 is Confirmed from the call site (PUSH 0x1; CALL 0x000e5ab0; ADD ESP,0x4 = cdecl one stack arg), but the interpretation of selector 1 as the UI cursor-move sound is Inferred from the sibling handlers passing 1 for moves, 2 for key-accept and 3 for commit.",
         "Global 0x46cefa is the virtual-keyboard column cursor and 0x46cef8 the row cursor; both are int16_t (MOVSX word loads), and 0x28a790 is a byte keymap table with an 11-byte row stride, so this handler is the dpad-right column advance.",
-        "Keymap grid at 0x28a790 inferred as byte[5][11] (stride 0xb) from the IMUL ECX,ECX,0xb row scaling and the CMP AX,0xb column wrap; the duplicate-key skip loop is inferred to step over merged/wide keys (e.g. space bar) but no tag data was inspected to confirm the grid contents."
+        "Keymap grid at 0x28a790 inferred as byte[5][11] (stride 0xb) from the IMUL ECX,ECX,0xb row scaling and the CMP AX,0xb column wrap; the duplicate-key skip loop is inferred to step over merged/wide keys (e.g. space bar) but no tag data was inspected to confirm the grid contents.",
+        "Column-advance twin of the ported row handlers FUN_000f5700/5750 in the same virtual_keyboard TU: same keymap base 0x28a790 indexed [col + row*0xb], same pre-move key-byte skip loop, same ui_play_audio_feedback_sound(1) tail and char-1 return; only the cursor global (0x46cefa vs 0x46cef8) and the wrap constant (0xb vs 5) differ."
       ],
       "uncertain": [
         "VC71 caps at 81.8% (22/22 insns, no missing or extra instructions): residual gap is only the 16-bit cursor arithmetic (original incw %ax / xorw %ax,%ax / movw load vs C89-promoted incl %eax / xorl %eax,%eax) plus one loop-entry jmp for block layout. C integer promotion makes the 16-bit ops unreachable from C89; sibling row-movers score 75.6/82.6/83.0% with the same idiom.",
         "VC71 match is 77.3% at an exact 22/22 instruction count, and classify_cap.py rates this a high-confidence permanent int16 narrow-field promotion cap: the original keeps the column cursor in AX with true 16-bit ops (movw load, incw ax, xorw ax,ax for the 0xb wrap) whereas C89 integer promotion forces the increment to int width, so no C89 expression can reach the 16-bit forms. Corroborated by the structurally identical siblings FUN_000f5700 at 75.6 percent, FUN_000f5750 at 82.6 percent and FUN_000f57a0 at 83.0 percent.",
-        "The loop has no iteration bound: if all 11 bytes of the current keymap row are equal it never terminates, and this hazard is preserved verbatim from the binary rather than guarded."
+        "The loop has no iteration bound: if all 11 bytes of the current keymap row are equal it never terminates, and this hazard is preserved verbatim from the binary rather than guarded.",
+        "VC71 is 77.3% at an exact 22/22 instruction count, so the entire gap is register-width selection plus one loop-entry jmp: the original keeps the column cursor in AX with true 16-bit ops (movw / incw %ax / xorw %ax,%ax) while C89 integer promotion of col+1 forces VC71 to widen; classify_cap.py rates this a high-confidence int16 narrow-field promotion cap, corroborated by siblings FUN_000f5700 at 75.6 percent, FUN_000f5750 at 82.6 percent and FUN_000f57a0 at 83.0 percent using the identical idiom."
       ]
     },
     "0xf63f0": {
