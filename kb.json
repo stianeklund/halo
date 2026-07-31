@@ -19357,7 +19357,8 @@
     },
     {
      "addr": "0x172640",
-     "decl": "void FUN_00172640(void);"
+     "decl": "void FUN_00172640(void);",
+     "ported": true
     },
     {
      "addr": "0x172650",

@@ -380,6 +380,24 @@ void rasterizer_window_get_fog(void)
   FUN_0016fa40(4);
 }
 
+/* 0x172640
+ *
+ * FUN_00172640
+ *
+ * Clear the stashed shadow-parameters pointer at 0x47e4b0, discarding
+ * whatever shadow-parameter block the last caller registered.
+ *
+ * The whole body is a single store: MOV dword ptr [0x0047e4b0],0x0 @00172640
+ * followed immediately by RET -- no frame, no arguments, no return value.
+ * 0x47e4b0 is the same dword FUN_00172a30 zeroes at the end of its
+ * shadow-generate setup above, and that FUN_00172de0 reads before using the
+ * block; writing 0 here is the "no parameters registered" state.
+ */
+void FUN_00172640(void)
+{
+  *(int *)0x47e4b0 = 0;
+}
+
 /* 0x172a30
  *
  * FUN_00172a30
