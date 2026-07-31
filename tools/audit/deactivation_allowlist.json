@@ -7,13 +7,6 @@
     "since": "2026-06-10"
   },
   {
-    "addr": "0x1cfa0",
-    "name": "actor_action_can_stop_conversing",
-    "object": "actions.obj",
-    "reason": "pre-gate baseline 2026-06-10",
-    "since": "2026-06-10"
-  },
-  {
     "addr": "0x1d7c0",
     "name": "actor_action_set_default_state",
     "object": "actions.obj",

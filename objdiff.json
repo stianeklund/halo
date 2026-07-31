@@ -8430,6 +8430,14 @@
       "metadata": {
         "source_path": "src/halo/rasterizer/rasterizer.c"
       }
+    },
+    {
+      "name": "halo/actions_FUN_0001cfa0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actions.c.obj",
+      "base_path": "delinked/actions_FUN_0001cfa0.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actions.c"
+      }
     }
   ]
 }
