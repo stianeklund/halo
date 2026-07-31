@@ -28616,7 +28616,7 @@
     },
     {
      "addr": "0x19be30",
-     "decl": "void parse_string(void);"
+     "decl": "void parse_string(void *state);"
     },
     {
      "addr": "0x19c0a0",
@@ -28625,7 +28625,8 @@
     },
     {
      "addr": "0x19c1b0",
-     "decl": "void FUN_0019c1b0(void);"
+     "decl": "void FUN_0019c1b0(const uint16_t *clip_a@<eax>, draw_string_emit_proc emit, int16_t *pen, const uint16_t *clip_b, int color, int *buffer, int16_t first, int16_t last);",
+     "ported": true
     },
     {
      "addr": "0x19c3c0",
@@ -30889,7 +30890,7 @@
     },
     {
      "addr": "0x19cff0",
-     "decl": "void FUN_0019cff0(void);"
+     "decl": "void *FUN_0019cff0(void *font_table, uint16_t character);"
     },
     {
      "addr": "0x19d060",

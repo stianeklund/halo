@@ -1048,4 +1048,23 @@ cs(tag_block, 0xc);
 co(tag_block, count,   0x00);
 co(tag_block, address, 0x04);
 
+/* -------------------------------------------------------------------------
+ * draw_string_emit_proc — per-glyph blitter passed into the draw-string
+ * clipping loop (FUN_0019c1b0, text/draw_string.c).
+ *
+ * Ten cdecl arguments; ADD ESP,0x28 after CALL [EBP+8] @0019c3a0 fixes the
+ * count, and the two concrete implementations in the same translation unit
+ * (FUN_0019b3c0 / FUN_0019b430) fix the widths: slots 5/6 are the clipped
+ * destination and 9/10 the clipped extent, all int16_t; slots 7/8 are the
+ * source-rectangle offsets produced by the clip, int32_t.
+ *
+ * This lives here rather than in the .c because kb.json declarations are
+ * emitted into build/generated/decl.h and thunks.c, and the generator cannot
+ * parse an inline function-pointer parameter -- it needs a plain type name.
+ * ------------------------------------------------------------------------- */
+typedef void (*draw_string_emit_proc)(void *state, void *font_table,
+                                      void *glyph, int color, short dest_x,
+                                      short dest_y, int src_x, int src_y,
+                                      short width, short height);
+
 #endif /* TYPES_H */
