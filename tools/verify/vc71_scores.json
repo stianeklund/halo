@@ -1193,15 +1193,15 @@
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00037b50": {
-      "score": 95.3,
+      "score": 94.8,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00037d50": {
-      "score": 95.7,
+      "score": 95.2,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00038000": {
-      "score": 95.3,
+      "score": 94.8,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00038200": {
@@ -1213,11 +1213,11 @@
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00038880": {
-      "score": 95.4,
+      "score": 94.9,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00038b10": {
-      "score": 94.9,
+      "score": 94.1,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00038c70": {
@@ -1241,11 +1241,11 @@
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00039f30": {
-      "score": 94.6,
+      "score": 94.1,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003a190": {
-      "score": 95.7,
+      "score": 95.2,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003a3b0": {
@@ -1253,7 +1253,7 @@
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003a480": {
-      "score": 95.5,
+      "score": 95.1,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003a600": {
@@ -14777,7 +14777,7 @@
       "source": "src/halo/ai/actor_combat.c"
     },
     "actor_combat_get_burst_parameters": {
-      "score": 88.0,
+      "score": 66.7,
       "source": "src/halo/ai/actor_combat.c"
     },
     "actor_combat_get_firing_variant_definition": {
@@ -14797,7 +14797,7 @@
       "source": "src/halo/ai/actions.c"
     },
     "actor_kill": {
-      "score": 84.9,
+      "score": 76.1,
       "source": "src/halo/ai/actors.c"
     },
     "actor_look_compute_prop_interest": {
