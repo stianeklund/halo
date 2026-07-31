@@ -1511,6 +1511,37 @@ void FUN_00174b60(float *a, float *b, float *out)
   out[3] = a[3] - b[3];
 }
 
+/* FUN_00174b90: componentwise 4-float scale-and-add, out = a + t * b
+ * (0x174b90). The 4-component twin of the subtract helper at 0x174b60 above,
+ * and like it a real_vector4d / plane / quaternion-shaped operand — do NOT
+ * reduce it to a 3-vector helper.
+ *
+ * Four identical FLD/FMUL m32/FADD m32/FSTP quads at offsets 0/4/8/0xc:
+ *   FLD  [EBP+0x10]  ; the scalar, re-loaded fresh for every component
+ *   FMUL [ECX + i]   ; ECX = [EBP+0xc]  -> the SCALED vector (param 2)
+ *   FADD [EDX + i]   ; EDX = [EBP+0x8]  -> the ADDEND vector (param 1)
+ *   FSTP [EAX + i]   ; EAX = [EBP+0x14] -> out
+ * Argument roles therefore run addend-first: the FIRST stack arg is the term
+ * added un-scaled, the SECOND is the one multiplied by the scalar. Swapping
+ * them is silent and near-invisible to a byte-match, hence the explicit note.
+ * Multiplication is written first in each statement (t * b[i], not b[i] * t)
+ * to keep the FLD-scalar-then-FMUL order.
+ *
+ * The scalar is re-FLD'd per component rather than parked in ST(0), so the
+ * expression is spelled out four times with no loop and no common
+ * subexpression. Each lane is read immediately before being stored, so out
+ * may alias a or b; keep the statement order as written. No FSUB/FDIV, so no
+ * operand-direction hazard. Pure leaf: no CALLs, no branches, no globals. No
+ * naming evidence in the binary for a semantic name, so the mechanical name
+ * is retained. */
+void FUN_00174b90(float *a, float *b, float t, float *out)
+{
+  out[0] = t * b[0] + a[0];
+  out[1] = t * b[1] + a[1];
+  out[2] = t * b[2] + a[2];
+  out[3] = t * b[3] + a[3];
+}
+
 /* rasterizer_transparent_geometry_group_draw: draw one sorted transparent
  * geometry group, dispatching per shader type (generic/chicago/glass/meter/
  * plasma/water), handling extra layers via self-recursion, predicted shader
