@@ -747,3 +747,141 @@ void FUN_0019c1b0(const uint16_t *clip_a, draw_string_emit_proc emit,
            src_x, src_y, (short)width, (short)height);
   }
 }
+
+/*
+ * FUN_0019c3c0 — the FUN_0019c0a0-tokenizer twin of FUN_0019c1b0 above.
+ *
+ * Structurally the same glyph clip-and-emit loop, with one single difference:
+ * the per-iteration string advance calls FUN_0019c0a0 (0x19c0a0) instead of
+ * parse_string (0x19be30). Ghidra's callee sets are otherwise identical --
+ * {FUN_0019bd30, FUN_0019cff0, parse_string} for 0x19c1b0 versus
+ * {FUN_0019bd30, FUN_0019cff0, FUN_0019c0a0} here -- and the two bodies match
+ * instruction for instruction around that call. Every offset, clip pairing and
+ * glyph field is therefore the same, and the "Confirmed"/"Uncertain" notes on
+ * FUN_0019c1b0 apply verbatim, including the clip_b parameter-slot reuse
+ * (MOV [EBP+0x10],DI @0019c520 here) that is modelled with a separate local.
+ *
+ * The int16_t result of FUN_0019c0a0 is discarded: CALL @0019c4e5 is followed
+ * immediately by MOV ECX,[EBP-0x26] with no use of EAX. The call is made for
+ * its side effect on the state block's cursor at +0x0c, which is also the
+ * loop variable.
+ *
+ * ABI recovered from the sole call site @0019cc24 in FUN_0019c960 and cross-
+ * checked with check_arg_counts (declared_stack=7, observed push=7,
+ * cleanup=7): `clip_a` arrives in EAX (@<eax>) -- TEST EAX,EAX @0019c3c6
+ * precedes any write, and the caller does LEA EAX,[EBP-0x3c] immediately
+ * before the CALL -- followed by seven cdecl stack params. Ghidra typed the
+ * whole thing void(void) and invented six in_stack_ locals.
+ *
+ * 0x19c3c0 / draw_string.obj
+ */
+void FUN_0019c3c0(const uint16_t *clip_a, draw_string_emit_proc emit,
+                  int16_t *pen, const uint16_t *clip_b, int color, int *buffer,
+                  int16_t first, int16_t last)
+{
+  char state[0x1c];
+  int clip_left;
+  int clip_top;
+  int clip_bottom;
+  int clip_right;
+  int edge;
+  int effective_color;
+  int src_x;
+  int src_y;
+  void *glyph;
+  short glyph_height;
+  short pen_x;
+  short dest_x;
+  short dest_y;
+  short width;
+  short height;
+
+  clip_left = -0x8000;
+  clip_top = -0x8000;
+  clip_right = 0x7fff;
+  clip_bottom = 0x7fff;
+
+  if (clip_a != 0) {
+    edge = clip_a[RECT2D_LEFT];
+    if ((short)edge > (short)clip_left)
+      clip_left = edge;
+    edge = clip_a[RECT2D_RIGHT];
+    if ((short)edge < (short)clip_right)
+      clip_right = edge;
+    edge = clip_a[RECT2D_TOP];
+    if ((short)edge > (short)clip_top)
+      clip_top = edge;
+    edge = clip_a[RECT2D_BOTTOM];
+    if ((short)edge < (short)clip_bottom)
+      clip_bottom = edge;
+  }
+
+  if (clip_b != 0) {
+    edge = clip_b[RECT2D_LEFT];
+    if ((short)clip_left < (short)edge)
+      clip_left = edge;
+    edge = clip_b[RECT2D_RIGHT];
+    if ((short)edge < (short)clip_right)
+      clip_right = edge;
+    edge = clip_b[RECT2D_TOP];
+    if ((short)clip_top < (short)edge)
+      clip_top = edge;
+    edge = clip_b[RECT2D_BOTTOM];
+    if ((short)edge < (short)clip_bottom)
+      clip_bottom = edge;
+  }
+
+  if ((short)clip_left >= (short)clip_right)
+    return;
+  if ((short)clip_top >= (short)clip_bottom)
+    return;
+
+  FUN_0019bd30(*(short *)0x4d9b14, state, buffer, *(int *)0x4d9b0c,
+               *(short *)0x4d9b16, (float *)0x4d9b18);
+
+  *(int16_t *)(state + 0xc) = first;
+  while (*(int16_t *)(state + 0xc) < last) {
+    if (*(int16_t *)(state + 0xc) >= *(short *)0x4d9b4a &&
+        *(int16_t *)(state + 0xc) < *(short *)0x4d9b4c)
+      effective_color = color ^ 0xffffff;
+    else
+      effective_color = color;
+
+    FUN_0019c0a0(state);
+    glyph = FUN_0019cff0(*(void **)(state + 4),
+                         (uint16_t) * (int16_t *)(state + 0x12));
+    if (glyph == 0)
+      continue;
+
+    pen_x = pen[0];
+    dest_y = (short)(pen[1] - *(int16_t *)((char *)glyph + 0xa));
+    width = *(int16_t *)((char *)glyph + 4);
+    src_x = 0;
+    src_y = 0;
+    glyph_height = *(int16_t *)((char *)glyph + 6);
+    dest_x = (short)(pen_x - *(int16_t *)((char *)glyph + 8));
+    pen[0] = (int16_t)(*(int16_t *)((char *)glyph + 2) + pen_x);
+
+    if (dest_x + width > (short)clip_right)
+      width = clip_right - dest_x;
+    if (dest_x < (short)clip_left) {
+      src_x = clip_left - dest_x;
+      dest_x = (short)clip_left;
+      width = width - src_x;
+    }
+
+    if (dest_y + glyph_height > (short)clip_bottom)
+      height = clip_bottom - dest_y;
+    else
+      height = glyph_height;
+    if (dest_y < (short)clip_top) {
+      src_y = clip_top - dest_y;
+      dest_y = (short)clip_top;
+      height = height - src_y;
+    }
+
+    if ((short)width > 0 && (short)height > 0)
+      emit(state, *(void **)(state + 4), glyph, effective_color, dest_x, dest_y,
+           src_x, src_y, (short)width, (short)height);
+  }
+}

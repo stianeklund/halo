@@ -12976,6 +12976,10 @@
       "score": 87.9,
       "source": "src/halo/text/draw_string.c"
     },
+    "FUN_0019c3c0": {
+      "score": 84.9,
+      "source": "src/halo/text/draw_string.c"
+    },
     "FUN_0019d080": {
       "score": 88.9,
       "source": "src/halo/text/international_strings.c"

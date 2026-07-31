@@ -8470,6 +8470,14 @@
       "metadata": {
         "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox_screen_effect.c"
       }
+    },
+    {
+      "name": "halo/draw_string_FUN_0019c3c0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/text/draw_string.c.obj",
+      "base_path": "delinked/draw_string_FUN_0019c3c0.obj",
+      "metadata": {
+        "source_path": "src/halo/text/draw_string.c"
+      }
     }
   ]
 }
