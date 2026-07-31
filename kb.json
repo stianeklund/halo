@@ -557,7 +557,7 @@
     },
     {
      "addr": "0x15d8b0",
-     "decl": "void FUN_0015d8b0(void);"
+     "decl": "void FUN_0015d8b0(int vertices_per_primitive, int a2, int triangle_count, int dynamic_vertex_buffer_index);"
     },
     {
      "addr": "0x16de60",
@@ -19365,7 +19365,8 @@
     },
     {
      "addr": "0x1726a0",
-     "decl": "void FUN_001726a0(void);"
+     "decl": "void FUN_001726a0(void);",
+     "ported": true
     },
     {
      "addr": "0x172720",
@@ -19399,6 +19400,7 @@
     },
     {
      "addr": "0x1741d0",
+     "ported": true,
      "decl": "void FUN_001741d0(float *quad);"
     },
     {
@@ -19407,7 +19409,8 @@
     },
     {
      "addr": "0x174510",
-     "decl": "void FUN_00174510(void *group, int a2);"
+     "decl": "void FUN_00174510(void *group, int has_lightmap);",
+     "ported": true
     },
     {
      "addr": "0x174980",
@@ -19415,11 +19418,13 @@
     },
     {
      "addr": "0x1749b0",
-     "decl": "void FUN_001749b0(void);"
+     "decl": "void FUN_001749b0(void);",
+     "ported": true
     },
     {
      "addr": "0x174b60",
-     "decl": "void FUN_00174b60(void);"
+     "decl": "void FUN_00174b60(float *a, float *b, float *out);",
+     "ported": true
     },
     {
      "addr": "0x174b90",
@@ -28562,7 +28567,8 @@
     },
     {
      "addr": "0x19b510",
-     "decl": "void draw_string_get_string(void);"
+     "decl": "char *draw_string_get_string(short index);",
+     "ported": true
     },
     {
      "addr": "0x19b560",
@@ -28586,7 +28592,8 @@
     },
     {
      "addr": "0x19b7e0",
-     "decl": "void draw_string_set_font_tag(int font_tag_index);"
+     "decl": "void draw_string_set_font_tag(int font_tag_index);",
+     "ported": true
     },
     {
      "addr": "0x19b800",
@@ -28605,7 +28612,8 @@
     },
     {
      "addr": "0x19b910",
-     "decl": "void bitmap_draw_character(void);"
+     "decl": "void bitmap_draw_character(int unused_param_1, const char *font_definition, const char *character, unsigned int color, short x0, short y0, short sx, short sy, short dx, short dy);",
+     "ported": true
     },
     {
      "addr": "0x19bcc0",
@@ -35144,15 +35152,15 @@
    "functions": [
     {
      "addr": "0x15dc10",
-     "decl": "void FUN_0015dc10(void);"
+     "decl": "void FUN_0015dc10(int vertices_per_primitive, int a2, int triangle_count, void *vertex_buffer);"
     },
     {
      "addr": "0x15de60",
-     "decl": "void FUN_0015de60(void);"
+     "decl": "void FUN_0015de60(int vertices_per_primitive, int a2, int triangle_count, void *vertex_buffer, void *a5);"
     },
     {
      "addr": "0x15e0f0",
-     "decl": "void FUN_0015e0f0(void);"
+     "decl": "void FUN_0015e0f0(void *triangle_buffer, int a2, int triangle_count, int dynamic_vertex_buffer_index);"
     },
     {
      "addr": "0x15e430",
@@ -37772,7 +37780,7 @@
     },
     {
      "addr": "0x001e7030",
-     "decl": "void D3DDevice_GetVisibilityTestResult(void);"
+     "decl": "int __stdcall D3DDevice_GetVisibilityTestResult(unsigned int index, unsigned int *result, unsigned int *timestamp);"
     },
     {
      "addr": "0x001e70e0",
@@ -37864,7 +37872,7 @@
     },
     {
      "addr": "0x001e8a70",
-     "decl": "void D3DDevice_EndVisibilityTest(void);"
+     "decl": "int __stdcall D3DDevice_EndVisibilityTest(unsigned int index);"
     },
     {
      "addr": "0x001e8ad0",

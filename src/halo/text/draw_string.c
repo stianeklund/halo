@@ -23,6 +23,7 @@
  *
  * Re-implemented functions (by XBE address, ascending):
  *   0x130ab0  terminal_string_process_tabs
+ *   0x19b510  draw_string_get_string
  *   0x19b560  draw_string_set_tab_stops
  *   0x19b5d0  draw_string_set_indents
  *   0x19b640  draw_string_set_color
@@ -39,6 +40,9 @@
 
 /* Maximum tab stops allowed (asserted in draw_string_set_tab_stops). */
 #define MAXIMUM_NUMBER_OF_TAB_STOPS 16
+
+/* Text-string table bound (asserted in draw_string_get_string, CMP SI,0x1). */
+#define NUMBER_OF_TEXT_STRINGS 1
 
 /* Word offsets into a 4 x int16_t clip rectangle {top, left, bottom, right}. */
 #define RECT2D_TOP 0
@@ -203,6 +207,37 @@ void FUN_0019b430(int param_1, int param_2, int param_3, int param_4,
 }
 
 /*
+ * draw_string_get_string — resolve a text-string index to its string data.
+ *
+ * Validates index is in [0, NUMBER_OF_TEXT_STRINGS), then forwards
+ * (index + 7) to the string-table lookup FUN_0019d3c0 along with the
+ * table handle held at 0x4d9b08, returning that lookup's result.
+ *
+ * Confirmed: assert string "index>=0 && index<NUMBER_OF_TEXT_STRINGS" in
+ *            draw_string.c line 0x155; tail is display_assert then the
+ *            -1 exit (merged ADD ESP,0x14 covers both calls), and the
+ *            assert block FALLS THROUGH into the lookup path.
+ * Confirmed: both bounds compares are 16-bit (TEST SI,SI / CMP SI,0x1),
+ *            so the parameter is a short.
+ * Confirmed: NUMBER_OF_TEXT_STRINGS == 1 (from CMP SI,0x1).
+ * Confirmed: no MOV to EAX after the CALL — FUN_0019d3c0's pointer result
+ *            is this function's return value (implicit-EAX return).
+ * Inferred:  the +7 is an index bias into the string table, not an
+ *            address offset (ESI holds the index, never a pointer).
+ * Uncertain: 0x4d9b08 sits just below the 0x4d9b0c draw-string global
+ *            block; it is read as an int handle here but unnamed.
+ */
+char *draw_string_get_string(short index)
+{
+  if (!(index >= 0 && index < NUMBER_OF_TEXT_STRINGS)) {
+    display_assert("index>=0 && index<NUMBER_OF_TEXT_STRINGS",
+                   "c:\\halo\\SOURCE\\text\\draw_string.c", 0x155, 1);
+    system_exit(-1);
+  }
+  return FUN_0019d3c0(*(int *)0x4d9b08, index + 7);
+}
+
+/*
  * draw_string_set_tab_stops — set the tab stop array for subsequent draws.
  *
  * Validates count is in [0, MAXIMUM_NUMBER_OF_TAB_STOPS).  Stores the
@@ -343,6 +378,29 @@ void draw_string_get_color(void *color)
 }
 
 /*
+ * draw_string_set_font_tag — set only the draw-string font tag index.
+ *
+ * The 1-argument subset of the sibling draw_string_set_font (0x19b8b0):
+ * validates that the index names a 'font' tag, then stores the index.
+ *
+ * Confirmed: MOV ESI,[EBP+0x8] — one cdecl stack param, no register args.
+ * Confirmed: PUSH ESI; PUSH 0x666f6e74 ('font'); CALL tag_get (0x1ba140);
+ *            ADD ESP,0x8 => cdecl, 2 stack args, matches tag_get's decl.
+ * Confirmed: tag_get's EAX is never read — the call is a validation-only
+ *            side effect and its result is discarded.
+ * Confirmed: MOV [0x4d9b0c],ESI stores the *parameter*, not tag_get's
+ *            return value.
+ * Confirmed: POP ESI; POP EBP; RET (no immediate) => cdecl, void return.
+ *
+ * 0x19b7e0 / draw_string.obj
+ */
+void draw_string_set_font_tag(int font_tag_index)
+{
+  tag_get(0x666f6e74, font_tag_index); /* validate 'font' tag; result unused */
+  *(int *)0x4d9b0c = font_tag_index;
+}
+
+/*
  * draw_string_set_style_justify_flags — set text style, justification, flags.
  *
  * Validates:
@@ -428,6 +486,193 @@ void draw_string_set_highlight(short param_1, short param_2)
 {
   *(short *)0x4d9b4a = param_1;
   *(short *)0x4d9b4c = param_2;
+}
+
+/*
+ * draw_character_software_globals (base 0x4d9ae8) — the software glyph
+ * blitter's target surface.  Only two members are touched here:
+ *   [+0x00] bitmap_data *bitmap                       (0x4d9ae8)
+ *   [+0x04] unsigned char log2(bytes per pixel)       (0x4d9aec)
+ * The pointer is re-read from memory at every use, exactly as the
+ * original does (four separate MOV reg,[0x4d9ae8] per glyph row).
+ */
+#define dcs_bitmap (*(char **)0x4d9ae8)
+#define dcs_pixel_shift (*(unsigned char *)0x4d9aec)
+
+/* bitmap_data members reached through dcs_bitmap (byte offsets). */
+#define dcs_bitmap_width (*(short *)(dcs_bitmap + 0x4))
+#define dcs_bitmap_height (*(short *)(dcs_bitmap + 0x6))
+#define dcs_bitmap_format (*(short *)(dcs_bitmap + 0xc))
+#define dcs_bitmap_pixels (*(char **)(dcs_bitmap + 0x2c))
+
+/*
+ * bitmap_draw_character — software blit of one font glyph into the
+ * draw-character target surface.
+ *
+ * Copies a dx x dy block out of the font's 8-bit coverage bitmap
+ * (character pixels at [sy][sx]) to the target bitmap at (x0, y0),
+ * blending with `color` in one of three ways selected by the target
+ * bitmap format:
+ *   formats 0/1/2 (8 bits/pixel): dst = min(dst, coverage*alpha >> 8)
+ *   format  6     (RGB565):       per-channel lerp towards `color`
+ *   format  0xb   (ARGB8888):     per-channel lerp, alpha = max()
+ * Any other format asserts and then leaves the row untouched.
+ *
+ * Confirmed: 10 cdecl stack slots (EBP+0x8 .. EBP+0x2c); the slot at
+ *            EBP+0x8 is never read.  The previous kb.json declaration
+ *            was `void bitmap_draw_character(void)`, which is wrong;
+ *            corrected as part of this lift.
+ * Confirmed: row pitch is (bits_per_pixel(format) * width) / 8.  The
+ *            CDQ / AND EDX,7 / ADD / SAR 3 sequence in the original is
+ *            just VC71's signed divide-by-8, so the C says "/ 8".
+ * Confirmed: three asserts, each display_assert(...,1) followed by
+ *            PUSH -1; CALL 0x8e2f0 (system_exit), at lines 0x1e6,
+ *            0x1e7 and 0x22c.  Execution continues afterwards (the
+ *            original reloads x0/dx from their slots after the call).
+ * Confirmed: dst advances 1/2/4 bytes per pixel for the 8bpp / 565 /
+ *            8888 cases (INC ESI, ADD ESI,2, ADD ESI,4); src always 1.
+ * Confirmed: the coverage byte is loaded into a 16-bit variable in the
+ *            8bpp and 8888 cases (MOVZX AX,byte / MOVZX CX,byte then
+ *            MOVSX for the multiply) but used directly as a byte in the
+ *            565 case (MOV AL,byte / MOVZX EAX,AL) -- the three case
+ *            bodies are not written identically in the original.
+ * Inferred:  param 2 is the font definition (only +0x94, the coverage
+ *            pixel base, is read) and param 3 the per-character record
+ *            (+0x4 = row stride int16, +0x10 = pixel offset int32).
+ * Uncertain: param 1's purpose -- the slot exists but is never read.
+ * Uncertain: the RGB565 pack masks (color >> 16) with 0xfff8 rather
+ *            than 0xf8, so the alpha bits leak into the red term.
+ *            Harmless (every consumer masks the result back down) but
+ *            reproduced exactly as the original computes it.
+ *
+ * 0x19b910 / draw_string.obj
+ */
+void bitmap_draw_character(int unused_param_1, const char *font_definition,
+                           const char *character, unsigned int color, short x0,
+                           short y0, short sx, short sy, short dx, short dy)
+{
+  const unsigned char *character_pixels;
+  const unsigned char *src;
+  char *dst;
+  short format;
+  short alpha;
+  short row;
+  short col;
+  short coverage;
+  short a;
+  short ia;
+  int color_565;
+  unsigned short dst_pixel16;
+  unsigned int dst_pixel32;
+  unsigned int alpha_out;
+  unsigned char dst_coverage;
+
+  character_pixels = *(const unsigned char *const *)(font_definition + 0x94) +
+                     *(const int *)(character + 0x10);
+  format = dcs_bitmap_format;
+  alpha = (short)(color >> 24);
+  if (format == 6) {
+    color_565 = ((((color >> 16) & 0xfff8) << 5) | ((color >> 8) & 0xfc)) << 3 |
+                ((color >> 3) & 0x1f);
+  }
+
+  for (row = 0; row < dy; row++) {
+    dst = (x0 << dcs_pixel_shift) +
+          y0 * ((bitmap_format_bits_per_pixel(dcs_bitmap_format) *
+                 dcs_bitmap_width) /
+                8) +
+          dcs_bitmap_pixels;
+    src = *(const short *)(character + 0x4) * sy + sx + character_pixels;
+
+    if (y0 < 0 || y0 > dcs_bitmap_height) {
+      display_assert(
+          "y0>=0 && y0<=draw_character_software_globals.bitmap->height",
+          "c:\\halo\\SOURCE\\text\\draw_string.c", 0x1e6, 1);
+      system_exit(-1);
+    }
+    if (x0 < 0 || x0 + dx > dcs_bitmap_width) {
+      display_assert(
+          "x0>=0 && x0+dx<=draw_character_software_globals.bitmap->width",
+          "c:\\halo\\SOURCE\\text\\draw_string.c", 0x1e7, 1);
+      system_exit(-1);
+    }
+
+    switch (format) {
+    case 0:
+    case 1:
+    case 2:
+      /* 8 bits/pixel: keep the darker of the two coverages. */
+      for (col = 0; col < dx; col++) {
+        coverage = *src;
+        if (coverage != 0) {
+          dst_coverage = *(unsigned char *)dst;
+          a = (short)((coverage * alpha) >> 8);
+          if (a > dst_coverage) {
+            a = dst_coverage;
+          }
+          *(unsigned char *)dst = (unsigned char)a;
+        }
+        src++;
+        dst++;
+      }
+      break;
+
+    case 6:
+      /* RGB565: lerp each field towards the pre-packed color. */
+      for (col = 0; col < dx; col++) {
+        if (*src != 0) {
+          dst_pixel16 = *(unsigned short *)dst;
+          a = (short)((*src * alpha) >> 8);
+          ia = (short)(0xff - a);
+          *(unsigned short *)dst = (unsigned short)(
+              ((((color_565 & 0x7ff) * a + (dst_pixel16 & 0x7ff) * ia) >> 8) &
+               0x7e0) |
+              ((((color_565 & 0x1f) * a + (dst_pixel16 & 0x1f) * ia) >> 8) &
+               0x1f) |
+              (((a * (color_565 & 0xffff) + ia * dst_pixel16) >> 8) & 0xf800));
+        }
+        src++;
+        dst += 2;
+      }
+      break;
+
+    case 0xb:
+      /* ARGB8888: lerp each channel, keep the larger alpha. */
+      for (col = 0; col < dx; col++) {
+        coverage = *src;
+        if (coverage != 0) {
+          dst_pixel32 = *(unsigned int *)dst;
+          a = (short)((coverage * alpha) >> 8);
+          ia = (short)(0xff - a);
+          alpha_out = (unsigned int)a;
+          if ((unsigned int)a <= (dst_pixel32 >> 24)) {
+            alpha_out = dst_pixel32 >> 24;
+          }
+          *(unsigned int *)dst =
+              ((((dst_pixel32 >> 16) & 0xff) * ia >> 8) +
+               (((color >> 16) & 0xff) * a >> 8))
+                  << 16 |
+              ((((dst_pixel32 >> 8) & 0xff) * ia >> 8) +
+               (((color >> 8) & 0xff) * a >> 8))
+                  << 8 |
+              (((dst_pixel32 & 0xff) * ia >> 8) + ((color & 0xff) * a >> 8)) |
+              (alpha_out << 24);
+        }
+        src++;
+        dst += 4;
+      }
+      break;
+
+    default:
+      display_assert("### ERROR unsupported bitmap format",
+                     "c:\\halo\\SOURCE\\text\\draw_string.c", 0x22c, 1);
+      system_exit(-1);
+      break;
+    }
+
+    sy++;
+    y0++;
+  }
 }
 
 /*

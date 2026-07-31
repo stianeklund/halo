@@ -944,6 +944,46 @@ int FUN_00172650(void *device, uint32_t reg, float a, float b)
   return 0;
 }
 
+/* 0x1726a0
+ *
+ * FUN_001726a0
+ *
+ * Handles the "empty shadow" case: called when a shadow was cast but no
+ * geometry was submitted for it.
+ *
+ * Asserts the D3D device exists. When rendering is enabled
+ * (*(short *)0x5a5bc0 == 0) and the shadow feature flag is set
+ * (*(char *)0x3256ca != 0):
+ *   1. If no shadow parameters are active (*(char *)0x47e4b5 == 0), emits the
+ *      "empty shadow has been cast" warning.
+ *   2. Once per run (latched via *(char *)0x3251fc), performs the fallback
+ *      target setup through FUN_00158140 and sets the latch.
+ *
+ * Note: the guard tests the 16-bit word at 0x5a5bc0 for zero, yet that same
+ * zero-extended word is what gets passed as FUN_00158140's first argument.
+ * This is what the original code does; preserved verbatim.
+ */
+void FUN_001726a0(void)
+{
+  if (*(void **)0x476ab0 == 0) {
+    display_assert(
+      "global_d3d_device",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_shadows.c", 0x233,
+      1);
+    system_exit(-1);
+  }
+  if (*(short *)0x5a5bc0 == 0 && *(char *)0x3256ca != 0) {
+    if (*(char *)0x47e4b5 == 0) {
+      error(2, "### WARNING empty shadow has been cast");
+    }
+    if (*(char *)0x3251fc == 0) {
+      /* Zero-extended 16-bit read (XOR EAX,EAX; MOV AX,[0x5a5bc0]). */
+      FUN_00158140((int)*(unsigned short *)0x5a5bc0, 0, 0, 0, 1);
+      *(char *)0x3251fc = 1;
+    }
+  }
+}
+
 /* 0x172720
  *
  * rasterizer_window_get_fog
@@ -1147,6 +1187,328 @@ char FUN_00172a30(int param_1, const float *shadow_matrix,
     }
   }
   return 1;
+}
+
+/* 0x1741d0
+ *
+ * FUN_001741d0 — submit one text quad (4 vertices) to D3D.
+ *
+ * TU: c:\halo\SOURCE\rasterizer\xbox\rasterizer_xbox_text.c (proven by the
+ * __FILE__ string in the device assert at line 0xd8).
+ *
+ * Called by rasterizer_text_draw_cached_char / _draw_cached_chars
+ * (src/halo/rasterizer/rasterizer_text.c) with an 80-byte quad_verts buffer.
+ * Vertex format is 5 floats (20 bytes) per vertex, 4 vertices:
+ *   +0x00 position.x   +0x04 position.y
+ *   +0x08 texcoord.u   +0x0c texcoord.v
+ *   +0x10 color        (raw 0xAARRGGBB dword stored into the float slot)
+ * The cursor register (ESI) starts at quad+0xc and advances by 0x14, so each
+ * vertex is addressed as v[-3..+1] — that biased-cursor form is preserved.
+ *
+ * D3D primitive: Begin(7 = D3DPT_QUADLIST). Vertex register 9 = D3DVSDE_DIFFUSE
+ * (color), 4 = D3DVSDE_TEXCOORD0, 0 = D3DVSDE_VERTEX.
+ *
+ * `success` mirrors the original D3D result-check macro: BL is initialized to 1
+ * (MOV BL,0x1) and only ever re-set to 1, so all four FUN_00167ff0
+ * (report_d3d_call_failed) branches are unreachable at runtime — they are kept
+ * to preserve the basic-block layout. Each per-call check compiles to
+ * TEST BL,BL / JZ / MOV BL,1 / JMP — reproduced by the
+ * `if (success) success = 1; else { success = 0; report; }` shape (same idiom
+ * as FUN_0015acc0 in rasterizer_xbox_decals.c); the post-End check is the plain
+ * `if (!success)` form. `volatile` is required: a plain local folds to constant
+ * 1 and VC71 dead-codes every report branch.
+ *
+ * The device assert tail is display_assert(..., halt=1) followed by
+ * system_exit(-1) — NOT halt_and_catch_fire (PUSH -1; CALL 0x8e2f0).
+ */
+void FUN_001741d0(float *quad)
+{
+  float *v;
+  int remaining;
+  char success;
+
+  if (*(void **)0x476ab0 == 0) {
+    display_assert("global_d3d_device",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_text.c",
+                   0xd8, 1);
+    system_exit(-1);
+  }
+  /* MOV AL,[0x3256da]; TEST AL,AL — then CMP word ptr [0x5a5bc0],0. */
+  if (*(char *)0x3256da != 0 && *(short *)0x5a5bc0 == 0) {
+    D3DDevice_Begin(7);
+    success = 1;
+    v = quad + 3;
+    remaining = 4;
+    do {
+      /* MOV EAX,[ESI+4]: the color slot is moved as a raw dword, not a float.
+       */
+      D3DDevice_SetVertexDataColor(9, *(unsigned int *)&v[1]);
+      if (success != 0) {
+        success = 1;
+      } else {
+        success = 0;
+        FUN_00167ff0(0,
+                     "IDirect3DDevice8_SetVertexDataColor(global_d3d_device, "
+                     "9, vertices[vertex_index].color)");
+      }
+      D3DDevice_SetVertexData2f(4, v[-1], v[0]);
+      if (success != 0) {
+        success = 1;
+      } else {
+        success = 0;
+        FUN_00167ff0(0,
+                     "IDirect3DDevice8_SetVertexData2f(global_d3d_device, 4, "
+                     "vertices[vertex_index].texcoord.u, "
+                     "vertices[vertex_index].texcoord.v)");
+      }
+      D3DDevice_SetVertexData2f(0, v[-3], v[-2]);
+      if (success != 0) {
+        success = 1;
+      } else {
+        success = 0;
+        FUN_00167ff0(0, "IDirect3DDevice8_SetVertexData2f(global_d3d_device, "
+                        "VSDE_VERTEX, vertices[vertex_index].position.x, "
+                        "vertices[vertex_index].position.y)");
+      }
+      v = v + 5;
+      remaining = remaining - 1;
+    } while (remaining != 0);
+    D3DDevice_End();
+    if (!success) {
+      FUN_00167ff0(0, "IDirect3DDevice8_End(global_d3d_device)");
+      error(2, "### ERROR rasterizer_text_draw_character failed");
+    }
+  }
+}
+
+/* 0x174510
+ *
+ * FUN_00174510
+ *
+ * TU: c:\halo\SOURCE\rasterizer\xbox\rasterizer_xbox_transparent_geometry.c
+ * (proven by the __FILE__ string 0x2a4800 used by all four asserts below).
+ *
+ * Pure 6-way dispatcher for a transparent-geometry group's index/vertex
+ * submission path.  Three group fields select the target:
+ *   group+0x48  non-zero -> "lightmap-capable" pair (0x15e0f0 / 0x15e430)
+ *   group+0x58  non-zero -> the second entry of whichever pair is selected
+ *   has_lightmap (byte)   -> asserted false on every path except the
+ *                            0x58-non-zero non-lightmap pair
+ * Branch order (0x48, then 0x58, then the has_lightmap byte) is load-bearing:
+ * the assert line numbers 0x6d / 0x71 / 0x9c / 0xb4 depend on it.
+ *
+ * Ghidra dropped every argument on the six dispatch calls; all arg lists were
+ * reconstructed from the PUSH sequences + ADD ESP cleanup at the call sites.
+ *
+ * Confirmed: group+0x44 is read both as a signed dword (the JL sign test at
+ * 0x174603) and as a signed word (MOV DI, word ptr [ESI+0x44]; NEG DI); the
+ * widths below mirror the disassembly exactly.
+ */
+void FUN_00174510(void *group, int has_lightmap)
+{
+  char *g;
+  char *vertex_buffer;
+  short vertices_per_primitive;
+  short primitive_count;
+
+  g = (char *)group;
+  if (g == 0) {
+    display_assert("group",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_"
+                   "transparent_geometry.c",
+                   0x6d, 1);
+    system_exit(-1);
+  }
+
+  if (*(int *)(g + 0x48) != 0) {
+    if ((char)has_lightmap != 0) {
+      display_assert("!has_lightmap",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_"
+                     "transparent_geometry.c",
+                     0x71, 1);
+      system_exit(-1);
+    }
+    /* if/else (not early-return): the original falls through into the 0x15e430
+     * block and places the 0x15e0f0 block out of line at LAB_00174582, so the
+     * test emits `je` rather than `jne`. */
+    if (*(int *)(g + 0x58) != 0) {
+      FUN_0015e430(*(void **)(g + 0x48), *(int *)(g + 0x4c), *(int *)(g + 0x50),
+                   *(void **)(g + 0x58));
+    } else {
+      FUN_0015e0f0(*(void **)(g + 0x48), *(int *)(g + 0x4c), *(int *)(g + 0x50),
+                   *(int *)(g + 0x54));
+    }
+    return;
+  }
+
+  /* single load of 0x58: the original keeps it in EAX across the test and
+   * derives the fifth 0x15de60 argument with LEA ECX,[EAX+0x14]. */
+  vertex_buffer = *(char **)(g + 0x58);
+  if (vertex_buffer != 0) {
+    if ((char)has_lightmap != 0) {
+      FUN_0015de60(*(int *)(g + 0x44), *(int *)(g + 0x4c), *(int *)(g + 0x50),
+                   vertex_buffer, vertex_buffer + 0x14);
+    } else {
+      FUN_0015dc10(*(int *)(g + 0x44), *(int *)(g + 0x4c), *(int *)(g + 0x50),
+                   vertex_buffer);
+    }
+    return;
+  }
+
+  if ((char)has_lightmap != 0) {
+    display_assert("!has_lightmap",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_"
+                   "transparent_geometry.c",
+                   0x9c, 1);
+    system_exit(-1);
+  }
+
+  if (*(int *)(g + 0x44) >= 0) {
+    FUN_0015d8b0(*(int *)(g + 0x44), *(int *)(g + 0x4c), *(int *)(g + 0x50),
+                 *(int *)(g + 0x54));
+    return;
+  }
+
+  /* negative 0x44 encodes an indexed strip/fan: the magnitude is the vertex
+   * count per primitive. */
+  vertices_per_primitive = (short)-*(short *)(g + 0x44);
+  if (vertices_per_primitive == 3 || vertices_per_primitive == 4) {
+    primitive_count =
+      (short)(*(int *)(g + 0x50) / ((int)vertices_per_primitive - 2));
+  } else {
+    primitive_count = 1;
+    if (*(int *)(g + 0x50) != (int)vertices_per_primitive - 2) {
+      display_assert("group->triangle_count==vertices_per_primitive-2",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_"
+                     "transparent_geometry.c",
+                     0xb4, 1);
+      system_exit(-1);
+    }
+  }
+  rasterizer_draw_dynamic_vertices(0, primitive_count, *(int *)(g + 0x54),
+                                   vertices_per_primitive);
+}
+
+/* 0x1749b0 — end the frame's overdraw visibility test, fold the returned
+ * pixel count into the global accumulator at 0x47e4c4 and, on the last
+ * window (when the interface-globals font tag is valid), draw the overdraw
+ * ratio "visible_pixels / viewport_area" as text near the lower-right
+ * corner.
+ *
+ * Both D3D entry points are __stdcall and return an HRESULT in EAX; the
+ * kb.json `void(void)` decls dropped every argument and the return value
+ * (RET 4 / RET 12 in the XBE prove the arg counts).  The result fetch spins
+ * while the GPU still reports the test as pending (0x88760828).
+ *
+ * Globals (from the disassembly at 0x1749b0-0x174b58):
+ *   0x325740  two enable bytes, both must be non-zero (MOV EAX; TEST AL,AL;
+ *             TEST AH,AH)
+ *   0x5a5bc2  short  current window index
+ *   0x47e4c4  int    accumulated visible-pixel count (reset on window 0)
+ *   0x46bd0c  ptr    interface globals; +0x54 = font tag index
+ *   0x5a5bf4 / 0x5a5bf8  int viewport origin / extent (lo 16 = x, hi 16 = y)
+ *   0x5a5bfc / 0x5a5c00  int screen rect, copied as two dwords into the
+ *             local text rect
+ *   0x25fb8c  float  4294967296.0f — the signed-FILD-of-unsigned fixup
+ *   0x2ee6e0  ptr    to the draw-string color (the POINTER stored there is
+ *             the argument, not its address)
+ *
+ * The failure string names rasterizer_transparent_geometry_groups_begin even
+ * though this ends a visibility test; the literal is copied verbatim. */
+void FUN_001749b0(void)
+{
+  unsigned int enable_flags;
+  short rect[4]; /* [EBP-0xc] x0, y0, x1, y1 */
+  int area; /* [EBP-0x10] viewport area — the FIDIV divisor */
+  unsigned int pixels; /* [EBP-0x14] visibility-test result, seeded to -1 */
+  unsigned int timestamp; /* [EBP-0x1c] second out param */
+  char text[0x100]; /* [EBP-0x11c] */
+  char ok; /* EBX — running success flag */
+  int hr;
+  int font_tag; /* ESI */
+  float value;
+
+  enable_flags = *(unsigned int *)0x325740;
+  if ((char)enable_flags == 0 || (char)(enable_flags >> 8) == 0) {
+    return;
+  }
+
+  pixels = 0xffffffff;
+  if (*(short *)0x5a5bc2 == 0) {
+    *(int *)0x47e4c4 = 0;
+  }
+
+  hr = D3DDevice_EndVisibilityTest(0xfff);
+  if (hr < 0) {
+    ok = 0;
+    FUN_00167ff0(
+      hr, "IDirect3DDevice8_EndVisibilityTest(global_d3d_device, index)");
+  } else {
+    ok = 1;
+  }
+
+  /* the two LEAs and the index push are re-done every iteration in the
+   * original (the loop head is the first LEA, not the CALL). */
+  do {
+    hr = D3DDevice_GetVisibilityTestResult(0xfff, &pixels, &timestamp);
+  } while (hr == (int)0x88760828);
+  if (ok != 0 && hr >= 0) {
+    ok = 1;
+  } else {
+    ok = 0;
+    FUN_00167ff0(hr, "hr");
+  }
+
+  *(int *)0x47e4c4 = *(int *)0x47e4c4 + (int)pixels;
+
+  if ((int)*(short *)0x5a5bc2 == (int)main_get_window_count() - 1 &&
+      (font_tag = *(int *)(*(int *)0x46bd0c + 0x54)) != -1) {
+    /* FILD of a count that is logically unsigned: the FADD of 2^32 is the
+     * standard fixup for a negative signed load.  Keep the shape. */
+    value = (float)*(int *)0x47e4c4;
+    *(int *)&rect[0] = *(int *)0x5a5bfc;
+    *(int *)&rect[2] = *(int *)0x5a5c00;
+    if (*(int *)0x47e4c4 < 0) {
+      value = value + *(const float *)0x25fb8c;
+    }
+    /* width via a dword subtract (low 16 taken afterwards), height via a
+     * word subtract of the high halves; FIDIV divides value BY area. */
+    area = (int)(short)(*(int *)0x5a5bf8 - *(int *)0x5a5bf4) *
+           (int)(short)(*(short *)0x5a5bfa - *(short *)0x5a5bf6);
+    crt_sprintf(text, "%.02f", (double)(value / (float)area));
+
+    /* both reads use the pre-update y1/x1 (the original loads them before
+     * the in-place ADD word ptr [EBP-0x6],-0x32). */
+    rect[1] = (short)(rect[3] - 0xa0);
+    rect[0] = (short)(rect[2] - 0x32);
+    rect[3] = (short)(rect[3] - 0x32);
+
+    draw_string_set_style_justify_flags(-1, 1, 0);
+    draw_string_set_color(*(void **)0x2ee6e0);
+    draw_string_set_font_tag(font_tag);
+    FUN_00158ae0(0);
+    rasterizer_text_draw(rect, (short *)0, (const void *)0, 0, text);
+  }
+
+  if (ok == 0) {
+    error(2, "### ERROR rasterizer_transparent_geometry_groups_begin failed");
+  }
+}
+
+/* FUN_00174b60: componentwise 4-float subtract, out = a - b (0x174b60).
+ * Four FLD/FSUB m32/FSTP triples at offsets 0/4/8/0xc — the FLD is from
+ * param1 and the FSUB against param2, so the direction is a - b (not
+ * swapped). Four components, not three: this is a real_vector4d / plane /
+ * quaternion-shaped operand, so do NOT reduce it to a 3-vector helper.
+ * Each lane is read immediately before being stored, so out may alias a
+ * or b; keep the statement order as written. No naming evidence in the
+ * binary for a semantic name, so the mechanical name is retained. */
+void FUN_00174b60(float *a, float *b, float *out)
+{
+  out[0] = a[0] - b[0];
+  out[1] = a[1] - b[1];
+  out[2] = a[2] - b[2];
+  out[3] = a[3] - b[3];
 }
 
 /* rasterizer_transparent_geometry_group_draw: draw one sorted transparent

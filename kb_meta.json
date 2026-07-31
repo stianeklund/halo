@@ -9891,9 +9891,28 @@
         "The kb.json name rasterizer_initialize is wrong for 0x16fb80: the body is a profile-name accessor (rasterizer_profile_get_name shape) returning rasterizer_profile_names[profile] from the 29-entry const char* table at 0x325188, and its __FILE__ places it in rasterizer_xbox_profile.c rather than rasterizer.c; the name and the rasterizer.obj mapping were left unchanged to avoid churning the ABI baseline."
       ]
     },
+    "0x1726a0": {
+      "kind": "function",
+      "status": "unknown",
+      "uncertain": [
+        "The guard tests the 16-bit word at 0x5a5bc0 for zero, yet that same zero-extended word is what is passed as FUN_00158140's first argument, so the argument is always 0 on the taken path; this is faithful to the original and not a lift error."
+      ]
+    },
     "0x172720": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x174510": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "group+0x4c is the second argument of all six dispatch callees; its meaning is unknown, only its width (dword) is proven by the PUSH.",
+        "The four callee decls FUN_0015e0f0/FUN_0015de60/FUN_0015dc10/FUN_0015d8b0 were corrected from void(void) to 4/5/4/4 stack args, reconstructed from PUSH sequences and ADD ESP cleanup at the original call sites; parameter NAMES are inferred by analogy with FUN_0015e430 and rasterizer_draw_dynamic_vertices, only the counts and widths are proven.",
+        "The semantic split between group+0x48 (lightmap-capable dispatch pair) and group+0x58 (second entry of each pair) is inferred from the dispatch structure alone; no string or PDB evidence names either field."
+      ],
+      "uncertain": [
+        "Two other call sites of FUN_0015dc10 (0x162f1d) and FUN_0015de60 (0x161684, 0x161e88) show one extra dword of ADD ESP cleanup than the declared arg count; those cleanups are low-confidence (likely merged with a neighbouring pop) and were NOT used to widen the decls, since every high-confidence site including all three reached from 0x174510 agrees with 4/5/4."
+      ]
     },
     "0x174d10": {
       "kind": "function",
@@ -10721,6 +10740,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x19b510": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x19b560": {
       "kind": "function",
       "status": "ported"
@@ -10742,7 +10765,7 @@
     },
     "0x19b7e0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "0x19b7e0 is draw_string_set_font_tag(int font_tag_index): it calls tag_get('font', index) and stores the index to 0x4d9b0c. One cdecl stack arg confirmed at all five original call sites; the prior kb decl void(void) would have dropped it."
       ]
@@ -10762,6 +10785,10 @@
       ]
     },
     "0x19b8f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x19b910": {
       "kind": "function",
       "status": "ported"
     },
