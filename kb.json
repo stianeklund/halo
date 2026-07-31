@@ -12854,7 +12854,8 @@
     },
     {
      "addr": "0xf56b0",
-     "decl": "char FUN_000f56b0(void);"
+     "decl": "char FUN_000f56b0(void);",
+     "ported": true
     },
     {
      "addr": "0xf5700",
