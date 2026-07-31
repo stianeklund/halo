@@ -6679,7 +6679,7 @@
     {
      "addr": "0x9ca70",
      "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
+     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
      "ported": true
     },
     {
@@ -6740,7 +6740,7 @@
     {
      "addr": "0x9dcf0",
      "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-     "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
+     "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
      "ported": true
     },
     {
@@ -19335,10 +19335,6 @@
     {
      "addr": "0x16fec0",
      "decl": "void FUN_0016fec0(void);"
-    },
-    {
-     "addr": "0x1700d0",
-     "decl": "void FUN_001700d0(void);"
     },
     {
      "addr": "0x1703f0",
@@ -37123,6 +37119,11 @@
    "name": "rasterizer_xbox_screen_effect.obj",
    "source": "rasterizer/xbox/rasterizer_xbox_screen_effect.c",
    "functions": [
+    {
+     "addr": "0x1700d0",
+     "decl": "real_vector2d FUN_001700d0(real_vector2d *v@<esi>);",
+     "ported": true
+    },
     {
      "addr": "0x171bc0",
      "decl": "void FUN_00171bc0(void);",

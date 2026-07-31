@@ -59,6 +59,24 @@ typedef uint16_t word;
 typedef uint32_t dword;
 typedef float    real;
 
+/* Bungie's 2D real vector. Lives here rather than in its recovering TU
+ * (rasterizer_xbox_screen_effect.c) because FUN_001700d0 returns it by value,
+ * so the type appears in that function's kb.json decl and therefore in the
+ * generated decl.h, which every TU includes.
+ *
+ * The component names are not guessed: the assert string at 0x1700d0 reads
+ * "v->i!=0.0f && v->j!=0.0f", giving both field names. Size 8 with the
+ * components at +0x00 / +0x04 follows from FLD [ESI] @001700f7 and
+ * FLD [ESI+0x4] @00170106. Returned in EAX:EDX by both MSVC and
+ * clang -target i386-pc-win32. */
+typedef struct {
+  real i;                          ///< offset=0x00
+  real j;                          ///< offset=0x04
+} real_vector2d;
+cs(real_vector2d, 0x8);
+co(real_vector2d, i, 0x0);
+co(real_vector2d, j, 0x4);
+
 #define __int16 short
 #define __int8 char
 

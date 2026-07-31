@@ -510,6 +510,7 @@
     "0x15d2a0": "int FUN_0015d2a0(int index@<eax>, int a1, int a2, int a3);",
     "0x15d2d0": "int FUN_0015d2d0(int index@<eax>, int a2@<ecx>, int s1, int s2, int s3, int s4);",
     "0x16f480": "void FUN_0016f480(const char *message@<esi>, int16_t profile_index@<di>, char condition);",
+    "0x1700d0": "real_vector2d FUN_001700d0(real_vector2d *v@<esi>);",
     "0x1703f0": "int __stdcall FUN_001703f0(void *device, uint32_t reg@<edx>, float a, float b);",
     "0x170440": "void FUN_00170440(void *params@<eax>, short pass, short pass_count);",
     "0x172650": "int __stdcall FUN_00172650(void *device, uint32_t reg@<edx>, float a, float b);",

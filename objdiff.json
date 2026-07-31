@@ -8462,6 +8462,14 @@
       "metadata": {
         "source_path": "src/halo/rasterizer/rasterizer.c"
       }
+    },
+    {
+      "name": "halo/rasterizer_xbox_screen_effect_FUN_001700d0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox_screen_effect.c.obj",
+      "base_path": "delinked/rasterizer_xbox_screen_effect_FUN_001700d0.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox_screen_effect.c"
+      }
     }
   ]
 }

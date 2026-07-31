@@ -31,6 +31,55 @@
  *   0x25eeac  float   - texture-coordinate scale constant
  */
 
+/* 0x1700d0
+ *
+ * FUN_001700d0
+ *
+ * Componentwise reciprocal of a 2D vector: returns {1/v->i, 1/v->j}.
+ *
+ * Returns the pair BY VALUE in EAX:EDX. This is the part Ghidra drops
+ * entirely -- it renders the function `void FUN_001700d0(void)` -- but the
+ * tail is unambiguous: the two quotients are spilled with
+ * FSTP [EBP-0x8] @0017013b and FSTP [EBP-0x4] @0017014a, then reloaded as
+ * integers into MOV EAX,[EBP-0x8] @00170147 and MOV EDX,[EBP-0x4] @0017014d.
+ * That is exactly the MSVC 8-byte POD return convention, and clang with
+ * -target i386-pc-win32 emits the same pair of loads for a returned
+ * {float,float}, so the struct return is faithful on both compilers.
+ *
+ * `v` arrives in ESI (@<esi>): TEST ESI,ESI @001700d6 tests it before any
+ * write to ESI, and all four call sites in FUN_00170440 do LEA ESI,[EBP-N]
+ * immediately before the CALL.
+ *
+ * Both asserts are the system_exit(-1) flavour (PUSH -0x1; CALL 0x0008e2f0
+ * @001700ed and @00170129), not halt_and_catch_fire -- Ghidra renders the
+ * tail as thunk_FUN_001029a0, which is the wrong helper here.
+ *
+ * The divides are 1.0f (constant at 0x2533c8) divided by each component;
+ * the zero comparisons are against 0.0f at 0x2533c0.
+ */
+real_vector2d FUN_001700d0(real_vector2d *v)
+{
+  real_vector2d out;
+
+  if (v == NULL) {
+    display_assert(
+      "v", "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_screen_effect.c",
+      0x1e, 1);
+    system_exit(-1);
+  }
+  if (v->i == 0.0f || v->j == 0.0f) {
+    display_assert(
+      "v->i!=0.0f && v->j!=0.0f",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_screen_effect.c",
+      0x1f, 1);
+    system_exit(-1);
+  }
+
+  out.i = 1.0f / v->i;
+  out.j = 1.0f / v->j;
+  return out;
+}
+
 /* 0x171bc0
  *
  * FUN_00171bc0
