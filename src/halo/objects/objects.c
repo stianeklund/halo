@@ -18,7 +18,7 @@ double pow(double x, double y);
 #pragma clang diagnostic ignored "-Wunused-variable"
 #pragma clang diagnostic ignored "-Wuninitialized"
 
-
+#include "objects.h"
 /* Address-based function call macros for callees without proper kb.json entries
  */
 #define XCALL(addr, type) ((type)(addr))
