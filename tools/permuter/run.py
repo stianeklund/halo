@@ -95,6 +95,20 @@ typedef signed char int8_t;
 typedef short int16_t;
 typedef int int32_t;
 typedef unsigned char bool;
+/* Bungie cseries primitive aliases (src/types.h). The cpp-expanded game
+ * structs in type_statics use these (e.g. `real desired_angles_yaw;`) but
+ * cpp emits them in include order, which can place a struct that USES `real`
+ * ahead of types.h's `typedef float real;`. VC71 never trips on this because
+ * types.h is force-included via /FI, but the bare `cpp -nostdinc` pycparser
+ * path has no such predefinition and aborts with a syntax error at the first
+ * use -> 0 iterations and a vacuous "no improvements found". Declaring them
+ * up front here makes the forward use parse. */
+typedef uint8_t boolean;
+typedef uint8_t byte;
+typedef uint16_t word;
+typedef uint32_t dword;
+typedef float real;
+typedef struct { real i; real j; } real_vector2d;
 typedef struct { float x; float y; float z; } vector3_t;
 typedef struct { float x; float y; float z; float w; } vector4_t;
 typedef struct { short index; short salt; } datum_handle_t;
@@ -186,12 +200,24 @@ def find_delinked_reference(source: Path, func_name: str | None = None) -> Path 
                 matches.append((unit.get("name", ""), candidate))
 
     if func_name:
-        # 1. per-function obj registered in objdiff.json
+        # 1. per-function obj registered in objdiff.json.
+        # Units are named either by the lifted name or by the FUN_<addr>
+        # alias (e.g. "halo/actions_FUN_0001cfa0" for
+        # actor_action_can_stop_conversing), so try both spellings. Matching
+        # only the lifted name silently fell through to step 2/4 and handed
+        # back matches[0] -- which, when the whole-TU object is absent, is a
+        # DIFFERENT function's per-function unit. The permuter then scored
+        # every candidate against the wrong function's reference.
+        alias = _resolve_ref_name(func_name)
         for name, cand in matches:
-            if func_name in name:
+            if func_name in name or (alias and alias in name):
                 return cand
-        # 2. whole-TU object that actually carries the symbol
-        tu = matches[0][1] if matches else None
+        # 2. whole-TU object that actually carries the symbol.
+        # Only the unit whose name has no FUN_<addr> suffix is a whole-TU
+        # object; a per-function unit for another function is not a valid
+        # fallback and must not be returned as "the TU".
+        tu = next((c for n, c in matches
+                   if not re.search(r"FUN_[0-9a-fA-F]{8}", n)), None)
         if tu is not None and _ref_has_function(tu, func_name):
             return tu
         # 3. per-function chunk fallback
