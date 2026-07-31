@@ -165,3 +165,6 @@ tests/golden/periodic_tables/*.bin
 
 # host-local scratch (probes, memory dumps, capture artifacts)
 tmp/
+
+# destructive-command-guard local config
+.dcg/
