@@ -149,6 +149,58 @@ def first_function_insns(obj_path: str, aliases) -> list[str] | None:
     return _first_function_insns_from_text(result.stdout, aliases)
 
 
+def _parse_objdump_insn(line: str) -> str | None:
+    """Return the instruction text of an llvm-objdump body line, else None.
+
+    Shared by the main scan and _has_back_edge_into so both strip the optional
+    `<hex>:` address prefix and skip banner/ellipsis lines identically."""
+    stripped = line.strip()
+    if (not stripped or stripped.startswith("...")
+            or stripped.startswith("Disassembly of section")):
+        return None
+    parts = stripped.split(None, 1)
+    insn = stripped
+    if parts and re.match(r'^[0-9a-f]+:', parts[0]):
+        insn = parts[1] if len(parts) > 1 else ""
+    return insn or None
+
+
+def _has_back_edge_into(lines: list[str], start_idx: int, defined: set[str]) -> bool:
+    """True if code at/after `start_idx` branches to a label defined before it.
+
+    A genuine *neighbour* function never branches back into ours, so a back
+    edge across a candidate boundary proves the two sides are one function.
+    This is the naming-independent backstop for the `seen_switches` exemption:
+    Ghidra sometimes names a switch's default arm plain `LAB_<addr>` instead of
+    `switchD_<addr>::default`, so the sub-label check cannot recognise it and
+    the ret+label rule cuts the function at its first mid-body `ret`.
+
+    Observed on parse_string (0x19be30, draw_string.obj): the first `ret` sits
+    at chunk offset 0x145 with LAB_0019bf76 at 0x146, and the arms at
+    0x19c033/03d/047/051/058 all `jmp LAB_0019bf60` (offset 0x130) — before the
+    boundary. The reference was truncated to 91 of 163 instructions, scoring a
+    197-insn candidate at 50.7% and parking it 7 times.
+
+    Scanning stops at the first non-jump-target symbol: that is a hard
+    neighbour boundary, and anything past it cannot vouch for our body.
+    """
+    for raw in lines[start_idx:]:
+        line = raw.rstrip()
+        m = re.match(r'^(?:[0-9a-f]+ )?<([^>]+)>:', line)
+        if m:
+            sym = re.sub(r'@\d+$', '', m.group(1).lstrip("_@"))
+            if not sym.startswith(("LAB_", "switchD_", "$")):
+                return False
+            continue
+        insn = _parse_objdump_insn(line)
+        if insn is None:
+            continue
+        for ref in re.findall(r'<([^>]+)>', insn):
+            if re.sub(r'@\d+$', '', ref.lstrip("_@")) in defined:
+                return True
+    return False
+
+
 def _first_function_insns_from_text(stdout: str, aliases) -> list[str] | None:
     """Pure-text core of first_function_insns (see its docstring). Parses
     `llvm-objdump -d --no-show-raw-insn --no-leading-addr` output. Split out so
@@ -170,8 +222,14 @@ def _first_function_insns_from_text(stdout: str, aliases) -> list[str] | None:
     # branch — so `referenced` cannot see it).  A *neighbour's* switch appears
     # with a new id after our terminating ret, so it still hard-breaks.
     seen_switches: set[str] = set()
+    # Every symbol defined at or after our entry point, for the back-edge test:
+    # a branch from past a candidate boundary to one of these proves the code
+    # after the boundary is still ours.  Includes the entry aliases so a loop
+    # back to the function head counts.
+    defined: set[str] = set(want)
 
-    for raw_line in stdout.splitlines():
+    lines = stdout.splitlines()
+    for line_idx, raw_line in enumerate(lines):
         line = raw_line.rstrip()
         m = re.match(r'^(?:[0-9a-f]+ )?<([^>]+)>:', line)
         if m:
@@ -180,6 +238,7 @@ def _first_function_insns_from_text(stdout: str, aliases) -> list[str] | None:
                 in_target = sym in want
                 found = found or in_target
                 continue
+            defined.add(sym)
             # Inside the target function.  A real next symbol (FUN_/thunk_/any
             # non-jump-target) is a hard boundary — stop (handles jmp-terminated
             # trampolines whose successor carries a proper symbol).  A jump-target
@@ -206,6 +265,21 @@ def _first_function_insns_from_text(stdout: str, aliases) -> list[str] | None:
                 last = mn
                 break
             if last in _RET_MNEMS:
+                # Last real insn was a `ret` and this label is not a known
+                # internal target — normally a neighbour slot.  Before cutting,
+                # check for a back edge from past here into our body: if one
+                # exists this is internal control flow whose label Ghidra just
+                # did not mark as a switch sub-label.  See _has_back_edge_into.
+                # `defined` minus this label: only a branch to code defined
+                # STRICTLY BEFORE the boundary is evidence.  A jump to the
+                # boundary label itself proves nothing — a neighbour's entry
+                # label is naturally branched to from inside the neighbour, so
+                # counting it would accept any looping neighbour as ours (and
+                # each wrong continue grows `defined`, feeding the next).
+                if _has_back_edge_into(lines, line_idx + 1, defined - {sym}):
+                    if swid:
+                        seen_switches.add(swid)
+                    continue
                 break
             if swid:
                 seen_switches.add(swid)
@@ -213,13 +287,7 @@ def _first_function_insns_from_text(stdout: str, aliases) -> list[str] | None:
 
         if not in_target:
             continue
-        stripped = line.strip()
-        if not stripped or stripped.startswith("...") or stripped.startswith("Disassembly of section"):
-            continue
-        parts = stripped.split(None, 1)
-        insn = stripped
-        if parts and re.match(r'^[0-9a-f]+:', parts[0]):
-            insn = parts[1] if len(parts) > 1 else ""
+        insn = _parse_objdump_insn(line)
         if insn:
             insns.append(insn)
             # Record any label this instruction jumps to (operand `<name>`), so a
@@ -238,7 +306,12 @@ def _first_function_insns_from_text(stdout: str, aliases) -> list[str] | None:
     # (addb %al,(%eax) etc.).  The per-function chunk path previously skipped
     # this, counting ~20 phantom "instructions" per jump-table function and
     # tanking the score (e.g. FUN_001a88b0 read 31 insns vs a real 10).
-    insns = _trim_trailing_table_data(insns)
+    # `defined` lets the trim tell a post-RET shared-epilogue/default arm from
+    # inline table data.  Only this per-function-chunk path supplies it; the
+    # whole-object path in disassemble() tracks label *positions*, not names,
+    # and is left on the previous behaviour to keep this fix's blast radius to
+    # the path that was actually wrong.
+    insns = _trim_trailing_table_data(insns, defined)
     return insns or None
 
 
@@ -329,7 +402,20 @@ _DATA_GARBAGE_MARKERS = ('<unknown>', 'addb\t%al, (%eax)', 'addb %al, (%eax)')
 _INDIRECT_TABLE_JMP_RE = re.compile(r'\bjmp\w*\s+\*[^(]*\(\s*,\s*%\w+\s*,\s*4\s*\)')
 
 
-def _trim_trailing_table_data(insns: list) -> list:
+def _tail_branches_into_body(tail: list, body_label_names: set) -> bool:
+    """True if any tail instruction branches to a label defined in the body.
+
+    Distinguishes a real post-RET code block (shared epilogue, switch default
+    arm) from inline table data: table bytes decode to garbage arithmetic, not
+    to a symbolic branch back into the function we are measuring."""
+    for ins in tail:
+        for ref in re.findall(r'<([^>]+)>', ins):
+            if re.sub(r'@\d+$', '', ref.lstrip("_@")) in body_label_names:
+                return True
+    return False
+
+
+def _trim_trailing_table_data(insns: list, body_label_names: set | None = None) -> list:
     """Trim inline switch-table data disassembled as garbage after the final RET.
 
     MSVC places jump tables and byte index tables in .text after the
@@ -349,6 +435,19 @@ def _trim_trailing_table_data(insns: list) -> list:
     if last_ret < 0 or last_ret == len(insns) - 1:
         return insns
     tail = insns[last_ret + 1:]
+    # Real code can follow the final RET: a multi-exit function whose arms all
+    # `jmp` back to a shared epilogue leaves that epilogue's RET as the last
+    # one, with the arms after it.  Both rules below would then discard real
+    # body -- the indirect-jmp rule unconditionally, since such a function
+    # usually also has a switch.  parse_string (0x19be30) lost 72 of 163 insns
+    # that way, scoring a 197-insn candidate at 50.7%.  A tail that branches
+    # back into the body is code; trim only from the first data marker onward,
+    # so a reference holding arms AND the table still drops just the table.
+    if body_label_names and _tail_branches_into_body(tail, body_label_names):
+        for j, ins in enumerate(tail):
+            if any(m in ins for m in _DATA_GARBAGE_MARKERS):
+                return insns[:last_ret + 1 + j]
+        return insns
     if any(any(m in ins for m in _DATA_GARBAGE_MARKERS) for ins in tail):
         return insns[:last_ret + 1]
     # Marker-independent rule: a scaled indirect jump (jmp *disp(,%reg,4)) is
@@ -1193,6 +1292,59 @@ def _self_test():
            "   a: ret\n")
     ins = _first_function_insns_from_text(txt, {"FUN_00003000"})
     check("genuine neighbour slot still truncated", ins is not None and len(ins) == 2)
+
+    # B4. Back edge: the switch default arm named plain LAB_ (not
+    #     switchD_::default), so seen_switches cannot exempt it, and nothing
+    #     before the ret references it -- but its block branches BACK to the
+    #     shared epilogue label defined earlier, proving one function.
+    #     Regression for parse_string 0x19be30: truncated 163 -> 91 insns,
+    #     scoring a 197-insn candidate at 50.7% and parking it 7 times.
+    txt = ("<_FUN_00004000>:\n"
+           "   0: cmp $0x2, %eax\n"
+           "   3: jmp *0x100(,%eax,4)\n"
+           "<LAB_00004030>:\n"
+           "  30: mov %ebx, %eax\n"
+           "  32: ret\n"
+           "<LAB_00004033>:\n"
+           "  33: mov $0x1, %ebx\n"
+           "  38: jmp 0x30 <LAB_00004030>\n")
+    ins = _first_function_insns_from_text(txt, {"FUN_00004000"})
+    check("back edge past ret+unreferenced label not truncated",
+          ins is not None and len(ins) == 6)
+
+    # B5. Negative pair for B4: identical shape but the post-ret block jumps
+    #     FORWARD to its own label instead of back into our body -> still a
+    #     neighbour, must cut.  Pins that B4 keys on the edge direction and not
+    #     merely on the presence of a jmp after the ret.
+    txt = ("<_FUN_00005000>:\n"
+           "   0: mov (%edi), %eax\n"
+           "   2: ret\n"
+           "<LAB_00005008>:\n"
+           "   8: mov $0x1, %ebx\n"
+           "   d: jmp 0x20 <LAB_00005020>\n"
+           "<LAB_00005020>:\n"
+           "  20: xor %eax, %eax\n"
+           "  22: ret\n")
+    ins = _first_function_insns_from_text(txt, {"FUN_00005000"})
+    check("forward-only jump after ret still truncated",
+          ins is not None and len(ins) == 2)
+
+    # B6. Negative: a neighbour whose body branches to its OWN entry label must
+    #     still cut.  Only labels defined strictly BEFORE the boundary are
+    #     back-edge evidence; counting the boundary label itself made
+    #     FUN_00113a90 run 57 -> 999 insns through a LAB_-only symbol run with
+    #     no hard boundary, each wrong continue feeding the next.
+    txt = ("<_FUN_00006000>:\n"
+           "   0: mov (%edi), %eax\n"
+           "   2: ret\n"
+           "<LAB_00006008>:\n"
+           "   8: inc %eax\n"
+           "   9: cmp $0x4, %eax\n"
+           "   c: jbe 0x8 <LAB_00006008>\n"
+           "   e: ret\n")
+    ins = _first_function_insns_from_text(txt, {"FUN_00006000"})
+    check("self-referencing neighbour label still truncated",
+          ins is not None and len(ins) == 2)
 
     # --- Switch jump-table data trimming (_trim_trailing_table_data) ---
     # Guards the 2026-07-28 fix: the byte-index table after FUN_0019c0a0's final

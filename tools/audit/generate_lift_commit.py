@@ -305,12 +305,23 @@ def _find_latest_vc71_match(ports=None):
     When staged ports are known, only accept a summary whose target_pick stage
     names one of them — otherwise a recent run for a DIFFERENT (e.g. reverted)
     candidate gets its score stamped onto this commit.
+
+    With NO attributable ports this returns None rather than falling back to the
+    newest run.  The `if tokens:` guard below used to be skipped when the token
+    set was empty, which is precisely the case for a commit that ports nothing
+    (a bug fix to already-ported code): the guard turned off instead of
+    suppressing the score, and the most recent unrelated run got stamped on.
+    That produced "(81.8% VC71, 5/5 equiv)" on two unrelated commits, where the
+    81.8% belonged to FUN_000f56b0 — a function not implemented in the tree at
+    all.  No attributable target means no number.
     """
     runs_dir = REPO_ROOT / "artifacts" / "lift_runs"
     if not runs_dir.exists():
         return None
     tokens = {n.lower() for cands in _port_fn_names(ports or []) for n in cands}
     tokens |= {str(addr).lower() for addr, _ in (ports or [])}
+    if not tokens:
+        return None
     summaries = sorted(
         (s for s in runs_dir.glob("*/summary.json")
          if _TIMESTAMP_RUN_RE.match(s.parent.name)),
@@ -347,6 +358,11 @@ def _find_latest_equivalence(ports=None):
     if not equiv_dir.exists():
         return None
     tokens = {n.lower() for cands in _port_fn_names(ports or []) for n in cands}
+    # No attributable target -> no seed count.  See _find_latest_vc71_match for
+    # why an empty token set must suppress the number instead of disabling the
+    # filename filter below.
+    if not tokens:
+        return None
     logs = sorted(equiv_dir.glob("*_smoke.log"), key=lambda p: p.stat().st_mtime, reverse=True)
     for log in logs[:5]:
         if tokens and not any(tok in log.stem.lower() for tok in tokens):
@@ -428,11 +444,16 @@ def generate_message(batch_name=None, since_ref=None, vc71_match=None,
         else:
             obj_tag = f" ({len(objs)} objects)"
 
+    # "Port" only when a function actually transitions to ported.  A commit that
+    # touches already-ported code (bug fix, decl correction, cleanup) is not a
+    # port, and titling it one misfiles it in the history that `git log` and the
+    # progress report read as the record of what was lifted when.
+    verb = "Port" if ports else "Update"
     lines = []
     if batch_name:
-        lines.append(f"Port {batch_name}{obj_tag}{match_tag}")
+        lines.append(f"{verb} {batch_name}{obj_tag}{match_tag}")
     else:
-        lines.append(f"Port functions{obj_tag}{match_tag}")
+        lines.append(f"{verb} functions{obj_tag}{match_tag}")
     lines.append("")
 
     if ports:
