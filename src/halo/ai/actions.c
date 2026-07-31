@@ -158,7 +158,7 @@ char action_vehicle_setup_impromptu(int actor_handle, int vehicle_handle,
   if (*(char *)(actor + 0x6) != '\0') {
     return result;
   }
-  if (*(short *)(actor + 0x6c) == 9) {
+  if (*(short *)(actor + 0x6c) == _actor_action_vehicle) {
     return result;
   }
 
@@ -454,7 +454,7 @@ int32_t actor_action_perform(int actor_handle)
   actor = (char *)datum_get(actor_data, actor_handle);
   action = *(short *)(actor + 0x6c);
 
-  assert_halt(action >= 0 && action < 14);
+  assert_halt(action >= 0 && action < NUMBER_OF_ACTOR_ACTIONS);
 
   handler = *(action_execute_fn_t *)(0x253fb8 + action * 0x38);
   if (handler != NULL) {
@@ -488,7 +488,7 @@ void actor_action_update(int actor_handle)
   actor = (char *)datum_get(actor_data, actor_handle);
   action = *(short *)(actor + 0x6c);
 
-  assert_halt(action >= 0 && action < 14);
+  assert_halt(action >= 0 && action < NUMBER_OF_ACTOR_ACTIONS);
 
   handler = *(action_update_fn_t *)(0x253fbc + action * 0x38);
   if (handler != NULL) {
@@ -523,7 +523,7 @@ void actor_action_control(int actor_handle)
   actor = (char *)datum_get(actor_data, actor_handle);
   action = *(short *)(actor + 0x6c);
 
-  assert_halt(action >= 0 && action < 14);
+  assert_halt(action >= 0 && action < NUMBER_OF_ACTOR_ACTIONS);
 
   handler = *(action_notify_fn_t *)(0x253fc0 + action * 0x38);
   if (handler != NULL) {
@@ -556,7 +556,7 @@ void actor_action_replace_prop(int actor_handle, int old_prop, int new_prop)
   actor = (char *)datum_get(actor_data, actor_handle);
   action = *(short *)(actor + 0x6c);
 
-  assert_halt(action >= 0 && action < 14);
+  assert_halt(action >= 0 && action < NUMBER_OF_ACTOR_ACTIONS);
 
   handler = *(action_prop_replace_fn_t *)(0x253fcc + action * 0x38);
   if (handler != NULL) {
@@ -589,7 +589,7 @@ void actor_action_flush_position_indices(int actor_handle)
   actor = (char *)datum_get(actor_data, actor_handle);
   action = *(short *)(actor + 0x6c);
 
-  assert_halt(action >= 0 && action < 14);
+  assert_halt(action >= 0 && action < NUMBER_OF_ACTOR_ACTIONS);
 
   handler = *(action_slot30_fn_t *)(0x253fd0 + action * 0x38);
   if (handler != NULL) {
@@ -622,7 +622,7 @@ void actor_action_flush_structure_indices(int actor_handle)
   actor = (char *)datum_get(actor_data, actor_handle);
   action = *(short *)(actor + 0x6c);
 
-  assert_halt(action >= 0 && action < 14);
+  assert_halt(action >= 0 && action < NUMBER_OF_ACTOR_ACTIONS);
 
   handler = *(action_slot34_fn_t *)(0x253fd4 + action * 0x38);
   if (handler != NULL) {
@@ -982,7 +982,7 @@ char actor_action_deny_transition(int actor_handle)
       }
     }
   }
-  if (*(short *)(actor + 0x6c) == 0xb) {
+  if (*(short *)(actor + 0x6c) == _actor_action_obey) {
     if ((*(char *)(actor + 0x9e) == '\0') &&
         (*(char *)(actor + 0xa1) == '\0')) {
       return 1;
@@ -1141,7 +1141,7 @@ char actor_action_can_stop_guarding(int actor_handle, short min_state,
   char *actor;
 
   actor = (char *)datum_get(actor_data, actor_handle);
-  assert_halt(*(short *)(actor + 0x6c) == 6);
+  assert_halt(*(short *)(actor + 0x6c) == _actor_action_guard);
   if (*(char *)(actor + 0xa4) != '\0') {
     return max_state <= *(short *)(actor + 0x6e);
   }
@@ -1254,13 +1254,13 @@ void actor_action_change(int actor_handle, int new_action_type, int param_3)
 
   (*(uint16_t *)0x5ac87c)++;
 
-  assert_halt(new_action_type >= 0 && new_action_type < 14);
+  assert_halt(new_action_type >= 0 && new_action_type < NUMBER_OF_ACTOR_ACTIONS);
 
   table_offset = new_action_type * 0x38;
 
   assert_halt(*(int *)(0x253fa0 + table_offset) == new_action_type);
 
-  assert_halt(*(short *)(actor + 0x6c) >= 0 && *(short *)(actor + 0x6c) < 14);
+  assert_halt(*(short *)(actor + 0x6c) >= 0 && *(short *)(actor + 0x6c) < NUMBER_OF_ACTOR_ACTIONS);
 
   handler =
     *(action_handler_fn_t *)(0x253fc4 + *(short *)(actor + 0x6c) * 0x38);
@@ -1565,7 +1565,7 @@ char FUN_0001d530(int actor_handle, char param_1, int actor_index)
 const char *actor_action_name(int16_t action_type)
 {
   const char *name = (const char *)0x254608;
-  if (action_type >= 0 && action_type < 0xe) {
+  if (action_type >= 0 && action_type < NUMBER_OF_ACTOR_ACTIONS) {
     name = *(const char **)(0x253fa4 + action_type * 0x38);
   }
   return name;
@@ -1625,7 +1625,7 @@ void *actor_action_debug_color(int actor_handle)
   *(uint32_t *)0x6328ec = color[3];
 
   action = *(int16_t *)(actor + 0x6c);
-  if (action >= 0 && action < 14) {
+  if (action >= 0 && action < NUMBER_OF_ACTOR_ACTIONS) {
     color = *(uint32_t **)(*(int *)(0x253fa8 + action * 0x38));
     *(uint32_t *)0x6328e0 = color[0];
     *(uint32_t *)0x6328e4 = color[1];
@@ -1663,7 +1663,7 @@ int16_t actor_action_try_to_panic(int actor_handle)
   actor = (char *)datum_get(actor_data, actor_handle);
   action = *(int16_t *)(actor + 0x6c);
 
-  assert_halt(action >= 0 && action < 14);
+  assert_halt(action >= 0 && action < NUMBER_OF_ACTOR_ACTIONS);
 
   return *(int16_t *)(0x253fb0 + action * 0x38);
 }
@@ -1790,7 +1790,7 @@ char actor_action_set_default_state(int actor_handle, short state)
   case 5:
   case 6:
   case 7:
-    if (*(short *)(actor + 0x6c) == 2 &&
+    if (*(short *)(actor + 0x6c) == _actor_action_alert &&
         *(short *)(actor + 0x9c) == *(short *)(0x2542e8 + switch_val * 2))
       break;
     if (FUN_00012000(actor_handle, (int)*(short *)(0x2542e8 + switch_val * 2),
@@ -1806,7 +1806,7 @@ char actor_action_set_default_state(int actor_handle, short state)
     }
     break;
   case 8:
-    if ((*(short *)(actor + 0x6c) != 6 || *(short *)(actor + 0xc0) != 1) &&
+    if ((*(short *)(actor + 0x6c) != _actor_action_guard || *(short *)(actor + 0xc0) != 1) &&
         FUN_00015880(actor_handle, (char *)local_88)) {
       actor_action_change(actor_handle, 6, (int)local_88);
       result = 1;
@@ -1814,7 +1814,7 @@ char actor_action_set_default_state(int actor_handle, short state)
     }
     break;
   case 9:
-    if (*(short *)(actor + 0x6c) == 6) {
+    if (*(short *)(actor + 0x6c) == _actor_action_guard) {
       if (*(short *)(actor + 0xc0) != 3)
         *(char *)(actor + 0xaa) = 1;
     } else {
@@ -1839,13 +1839,13 @@ char actor_action_set_default_state(int actor_handle, short state)
     }
     break;
   case 11:
-    if (*(short *)(actor + 0x6c) != 4) {
+    if (*(short *)(actor + 0x6c) != _actor_action_flee) {
       if (FUN_00015040(actor_handle, 0xd, -1, 1, 0, 0, (short *)local_88)) {
         actor_action_change(actor_handle, 4, (int)local_88);
         result = 1;
         return result;
       }
-      if (*(short *)(actor + 0x6c) != 6 &&
+      if (*(short *)(actor + 0x6c) != _actor_action_guard &&
           FUN_00015880(actor_handle, (char *)local_88)) {
         actor_action_change(actor_handle, 6, (int)local_88);
         result = 1;
@@ -1856,7 +1856,7 @@ char actor_action_set_default_state(int actor_handle, short state)
   }
 
   /* Final idle fallback: if actor is in action 0, try alert action */
-  if (*(short *)(actor + 0x6c) == 0 &&
+  if (*(short *)(actor + 0x6c) == _actor_action_none &&
       FUN_00012000(actor_handle, 0, -1, (int)local_88)) {
   action_change_2:
     actor_action_change(actor_handle, 2, (int)local_88);
@@ -1880,7 +1880,7 @@ char actor_action_handle_initial_action(int actor_handle)
 
   actor = (char *)datum_get(actor_data, actor_handle);
   result = 0;
-  if ((*(short *)(actor + 0x6c) == 0) && (*(short *)(actor + 0x6a) != 0)) {
+  if ((*(short *)(actor + 0x6c) == _actor_action_none) && (*(short *)(actor + 0x6a) != 0)) {
     result = actor_action_set_default_state(actor_handle, 0xffff);
   }
   return result;
@@ -2041,7 +2041,7 @@ char actor_action_handle_panic_transition(int actor_handle, short param_2,
   panic_level = *(short *)(actor + 0x308);
   result = 0;
   if (param_2 <= panic_level && *(char *)(actor + 0x160) == '\0') {
-    if (*(short *)(actor + 0x6c) == 4 &&
+    if (*(short *)(actor + 0x6c) == _actor_action_flee &&
         (shield_value = *(short *)(actor + 0xa8), shield_value > 0)) {
       if (panic_level < shield_value) {
         *(short *)(actor + 0xa8) = shield_value;
@@ -2188,10 +2188,10 @@ char actor_action_handle_vehicle_entry(int actor_handle)
   actr_tag = (int *)tag_get(0x61637472, *(int *)(actor + 0x58));
   now = game_time_get();
   result = 0;
-  if (*(short *)(actor + 0x6c) == 4 && *(short *)(actor + 0xa8) > 0) {
+  if (*(short *)(actor + 0x6c) == _actor_action_flee && *(short *)(actor + 0xa8) > 0) {
     return result;
   }
-  if (*(short *)(actor + 0x6c) == 0xb) {
+  if (*(short *)(actor + 0x6c) == _actor_action_obey) {
     return result;
   }
   if (*(int *)(actor + 0x384) != -1 && *(int *)(actor + 0x384) + 0x2d >= now) {
@@ -2465,7 +2465,7 @@ char actor_action_handle_combat_selection(int actor_handle)
   if (*(int *)(actor + 0x270) != -1) {
     prop = (char *)datum_get(prop_data, *(int *)(actor + 0x270));
     distance = *(float *)(prop + 0x11c);
-    if (*(short *)(actor + 0x6c) == 10 && *(short *)(actor + 0xa0) == 1) {
+    if (*(short *)(actor + 0x6c) == _actor_action_charge && *(short *)(actor + 0xa0) == 1) {
       if ((*(char *)(prop + 0x74) != '\0' ||
            (*(char *)(prop + 0x12f) != '\0' && *(char *)(prop + 0x121) <= 1)) ||
           (*(float *)(actr_tag + 0x328) > *(float *)0x2533c0 &&
@@ -2479,7 +2479,7 @@ char actor_action_handle_combat_selection(int actor_handle)
     }
     if ((!actor_has_ranged_weapon(actor_handle) ||
          (*(int *)(prop + 0x110) == -1 && *(char *)(prop + 0x14) == '\0')) &&
-        (*(short *)(actor + 0x6c) != 10 ||
+        (*(short *)(actor + 0x6c) != _actor_action_charge ||
          (*(short *)(actor + 0xa0) != 2 && *(short *)(actor + 0xa0) != 3)) &&
         result == '\0' && *(char *)(actor + 6) == '\0' &&
         *(int *)(actor + 0x158) == -1 && *(short *)(actor + 0x5f2) != 2) {
@@ -2524,7 +2524,7 @@ char actor_action_handle_combat_selection(int actor_handle)
       }
     }
   handle_vehicle_charge:
-    if (*(short *)(actor + 0x6c) != 10 && *(char *)(actor + 0x1cb) == '\0') {
+    if (*(short *)(actor + 0x6c) != _actor_action_charge && *(char *)(actor + 0x1cb) == '\0') {
       if (result != '\0')
         return result;
       if (*(short *)(actor + 0x15e) > 0) {
@@ -2566,7 +2566,7 @@ decide_charge:
       !actor_has_ranged_weapon(actor_handle) &&
       (*(int *)actr_tag & 0x1000000) != 0)
     want_charge = 1;
-  if (*(short *)(actor + 0x6c) == 10) {
+  if (*(short *)(actor + 0x6c) == _actor_action_charge) {
     state = *(short *)(actor + 0xa0);
     if (state == 2 || state == 3) {
       if (*(char *)(actor + 0xa3) == '\0' && *(char *)(actor + 0xa4) == '\0' &&
@@ -2617,7 +2617,7 @@ check_charge_flags:
     goto try_fight;
   if (force_charge == '\0') {
   maybe_start_charge:
-    if (*(short *)(actor + 0x6c) == 10)
+    if (*(short *)(actor + 0x6c) == _actor_action_charge)
       goto charge_started;
   }
   if (FUN_00013ef0(actor_handle, 0, action_buf) == '\0')
@@ -2633,7 +2633,7 @@ charge_started:
   if (result != '\0')
     return result;
 try_fight:
-  if (*(short *)(actor + 0x6c) != 3) {
+  if (*(short *)(actor + 0x6c) != _actor_action_fight) {
     if (FUN_00014620(actor_handle, action_buf) == '\0') {
       display_assert("success", "c:\\halo\\SOURCE\\ai\\actions.c", 0x87b, 1);
       system_exit(-1);
@@ -2644,7 +2644,7 @@ try_fight:
   }
 verify_action_state:
   if (want_charge != '\0') {
-    if (*(short *)(actor + 0x6c) != 10) {
+    if (*(short *)(actor + 0x6c) != _actor_action_charge) {
       display_assert("actor->state.action == _actor_action_charge",
                      "c:\\halo\\SOURCE\\ai\\actions.c", 0x886, 1);
       system_exit(-1);
@@ -2667,7 +2667,7 @@ verify_action_state:
       system_exit(-1);
     }
   } else {
-    if (*(short *)(actor + 0x6c) != 3) {
+    if (*(short *)(actor + 0x6c) != _actor_action_fight) {
       display_assert("actor->state.action == _actor_action_fight",
                      "c:\\halo\\SOURCE\\ai\\actions.c", 0x892, 1);
       system_exit(-1);
@@ -2871,7 +2871,7 @@ char actor_action_handle_lost_contact(int actor_handle)
       goto commit_action;
     }
 
-    if (*(short *)(actor + 0x6c) == 5 && flag_b != '\0' &&
+    if (*(short *)(actor + 0x6c) == _actor_action_uncover && flag_b != '\0' &&
         *(short *)(actor + 0xa4) == 1) {
       firing_pos = *(short *)(actor + 0xa6);
       have_pos = 1;
@@ -2947,7 +2947,7 @@ char actor_action_handle_lost_contact(int actor_handle)
     }
   } else {
     if (flag_a != '\0') {
-      if (*(short *)(actor + 0x6c) == 6 && *(char *)(actor + 0xa1) != '\0') {
+      if (*(short *)(actor + 0x6c) == _actor_action_guard && *(char *)(actor + 0xa1) != '\0') {
         result = 1;
         return result;
       }
@@ -3005,7 +3005,7 @@ char actor_action_handle_done_fleeing(int actor_handle)
   short action_buf[66];
 
   actor = (char *)datum_get(actor_data, actor_handle);
-  if (*(short *)(actor + 0x6c) != 4) {
+  if (*(short *)(actor + 0x6c) != _actor_action_flee) {
     return 0;
   }
   if (*(char *)(actor + 0xab) == '\0') {
@@ -3065,7 +3065,7 @@ char actor_action_handle_combat_status(int actor_handle, int param2, int param3)
       result = actor_action_handle_combat_selection(actor_handle);
       goto check_result;
     } else {
-      if (level < 2 && *(short *)(actor + 0x6c) != 2) {
+      if (level < 2 && *(short *)(actor + 0x6c) != _actor_action_alert) {
         if (level != 0)
           goto no_transition;
         if (*(char *)(actor + 0x1c8) == 0 && *(short *)(actor + 0x1e4) <= 0)
@@ -3092,7 +3092,7 @@ char actor_action_handle_combat_status(int actor_handle, int param2, int param3)
       prop = (char *)datum_get(prop_data, prop_handle);
       if (*(int *)(actor + 0x270) == *(int *)(actor + 0x3c0)) {
         if (*(char *)(prop + 0xb9) != 0 ||
-            (*(short *)(actor + 0x6c) == 5 && *(short *)(actor + 0xa4) == 0)) {
+            (*(short *)(actor + 0x6c) == _actor_action_uncover && *(short *)(actor + 0xa4) == 0)) {
           if (*(char *)(prop + 0xba) != 0)
             goto no_transition;
           action_type = *(short *)(actor + 0x6c);
@@ -3137,7 +3137,7 @@ char actor_action_handle_combat_failure(int actor_handle)
   short sVar2;
 
   actor = (char *)datum_get(actor_data, actor_handle);
-  if (*(short *)(actor + 0x6c) == 10) {
+  if (*(short *)(actor + 0x6c) == _actor_action_charge) {
     sVar2 = *(short *)(actor + 0xa0);
     if ((sVar2 == 2) || (sVar2 == 3)) {
       if ((*(char *)(actor + 0xa3) != '\0') ||
@@ -3814,7 +3814,7 @@ char actor_action_handle_grenade_throwing(int actor_handle)
   actv_tag = (char *)tag_get(0x61637476, *(int *)(actor + 0x5c));
   result = 0;
   if (*(short *)(actor + 0x268) < 5 ||
-      (*(short *)(actor + 0x6c) == 4 && *(short *)(actor + 0xa8) > 0)) {
+      (*(short *)(actor + 0x6c) == _actor_action_flee && *(short *)(actor + 0xa8) > 0)) {
     *(char *)(actor + 0x6a0) = 0;
     return 0;
   }
@@ -3825,7 +3825,7 @@ char actor_action_handle_grenade_throwing(int actor_handle)
     }
   } else if (*(short *)(actv_tag + 0x184) == 2) {
     if (*(char *)(prop + 0x14) != '\0' ||
-        (*(short *)(actor + 0x6c) == 4 && *(short *)(actor + 0xa8) != 0)) {
+        (*(short *)(actor + 0x6c) == _actor_action_flee && *(short *)(actor + 0xa8) != 0)) {
       result = actor_action_consider_grenade(actor_handle);
     }
   }
@@ -3946,7 +3946,7 @@ char actor_action_handle_evasion(int actor_handle)
       }
     }
   }
-  if (*(short *)(actor + 0x6c) == 10 &&
+  if (*(short *)(actor + 0x6c) == _actor_action_charge &&
       (*(short *)(actor + 0xa0) == 2 || *(short *)(actor + 0xa0) == 3)) {
     b_sidestep = 0;
   }

@@ -865,6 +865,51 @@ co(ai_firing_pos_entry_t, handle_b,  0x20);
 co(ai_firing_pos_entry_t, radius,    0x24);
 
 /* ---------------------------------------------------------------------------
+ * actor_action_type — the discriminant in actor->state.action, an int16 field
+ * at actor+0x6c (MOVSX EDX,word ptr [ESI+0x6c] @0x1d0da proves signed 16-bit).
+ *
+ * Bound: assert "(actor->state.action >= 0) && (actor->state.action <
+ * NUMBER_OF_ACTOR_ACTIONS)" compiles to CMP AX,0xe at 0x1d0b4 and 0x1c325.
+ *
+ * Ordering comes from the action-definition table (stride 0x38, one char*
+ * name per entry) whose names read, in index order: none, sleep, alert,
+ * fight, flee, uncover, guard, search, wait, vehicle, charge, obey, converse,
+ * avoid. Three asserts pin exact values against that order, and all three
+ * agree (a one-stride shift of the table base would break all three):
+ *   "actor->state.action == _actor_action_fight"  -> CMP word [ESI+0x6c],0x3  @0x1ef57
+ *   "actor->state.action == _actor_action_guard"  -> CMP word [ESI+0x6c],0x6  @0x1cf29
+ *   "actor->state.action == _actor_action_charge" -> CMP word [ESI+0x6c],0xa  @0x1eec3
+ *
+ * Values live in an int16_t field, so these are #defines rather than a C89
+ * enum (which is int-width and could widen a load; see lift-learnings §24).
+ * No typedef is declared: a typedef consumes MSVC internal symbol numbers and
+ * perturbs $L label counters in every TU including types.h. Verified inert as
+ * plain #defines (actions.obj .text byte-identical before/after).
+ * ------------------------------------------------------------------------- */
+#define _actor_action_none      0
+#define _actor_action_sleep     1
+#define _actor_action_alert     2
+#define _actor_action_fight     3
+#define _actor_action_flee      4
+#define _actor_action_uncover   5
+#define _actor_action_guard     6
+#define _actor_action_search    7
+#define _actor_action_wait      8
+#define _actor_action_vehicle   9
+#define _actor_action_charge    10
+#define _actor_action_obey      11
+#define _actor_action_converse  12
+#define _actor_action_avoid     13
+#define NUMBER_OF_ACTOR_ACTIONS 14
+
+/* actor->target.target_type is an int16 field at actor+0x268 (MOVSX EAX,word
+ * ptr [ESI+0x268] @0x3033c). Bound from assert "(actor->target.target_type >=
+ * 0) && (actor->target.target_type < NUMBER_OF_ACTOR_TARGET_TYPES)" ->
+ * CMP AX,0xc @0x30316. The individual member names are NOT yet recovered —
+ * only the count is proven. */
+#define NUMBER_OF_ACTOR_TARGET_TYPES 12
+
+/* ---------------------------------------------------------------------------
  * tag_block — the engine's ubiquitous tag-data block header: an element count
  * plus a pointer to the element array. Consumed everywhere via
  * tag_block_get_element(block, index, element_size). The 12-byte size is not
