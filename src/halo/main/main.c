@@ -3103,6 +3103,100 @@ void FUN_00103530(int base, char (*visit)(uint32_t, int, uint32_t *, uint32_t),
 }
 
 /*
+ * FUN_001036c0 — find-or-create the edge entry for an unordered vertex pair
+ * and append a value to its list.
+ *
+ * `table+0xc` is an array header (its element count at table+0x10) of
+ * 0x1c-byte edge entries. Each entry holds the pair's two endpoint keys at
+ * +0xc/+0x10 and, at its own base, a nested array of 4-byte values.
+ *
+ * Scans for an entry matching {key_a, key_b} in EITHER orientation. On a
+ * forward match (entry+0xc==key_a, entry+0x10==key_b) the orientation flag is
+ * set; on a reversed match (entry+0xc==key_b, entry+0x10==key_a) it is
+ * cleared. With no match, a new entry is allocated, its nested array
+ * initialised with element size 4, and the keys stored in argument order
+ * (flag set). `value` is then appended to that entry's nested array.
+ *
+ * Returns the entry index with bit 31 SET when the pair was matched/stored
+ * forward and CLEARED when it was matched reversed, so the caller recovers
+ * both the entry and the traversal direction from one int. Returns -1 if any
+ * allocation fails.
+ *
+ * ABI: `table` arrives in EAX (@<eax>) — MOV EBX,EAX @0x1036c5 reads it before
+ * any write. Three cdecl stack params follow. Ghidra mis-typed this void(void),
+ * so the stack params surfaced as in_stack_00000004/8/c pseudo-locals and all
+ * three RET paths as bare `return;` despite returning in EAX.
+ *
+ * ECX is NOT an input. PUSH ECX @0x1036c3 is MSVC's 4-byte local reservation;
+ * Ghidra rendered the reserved dword's high byte as `(char)((uint)in_ECX >>
+ * 0x18)` and thereby invented an ECX parameter. Sole call site @0x1038fa
+ * confirms it: ECX is loaded from the caller's [EBP-4] and PUSHED as stack arg
+ * 1, while EAX is pushed as stack arg 2 at 0x1038f5 and then RELOADED from
+ * [EBP+8] at 0x1038f6 to carry the register argument (the push-then-reload
+ * hazard).
+ *
+ * `reversed` is deliberately left uninitialised, matching the original: on the
+ * count<0 path ([EBP-1] never written) the original reads whatever the reserved
+ * PUSH ECX left there. That path is unreachable in practice — the field is an
+ * array element count, never negative.
+ *
+ * Callees: FUN_00117ee0(array, index, elem_size) -> &array[index];
+ *          FUN_00117da0(array) -> new index or -1;
+ *          array_new(array, elem_size).
+ */
+int FUN_001036c0(int *table, int value, int key_a, int key_b)
+{
+  int *edge;
+  int *slot;
+  int index;
+  int value_index;
+  char reversed;
+
+  index = 0;
+  if (table[4] > 0) {
+    do {
+      edge = (int *)FUN_00117ee0(table + 3, index, 0x1c);
+      if (edge[3] == key_a && edge[4] == key_b) {
+        reversed = 1;
+        break;
+      }
+      if (edge[3] == key_b && edge[4] == key_a) {
+        reversed = 0;
+        break;
+      }
+      index = index + 1;
+    } while (index < table[4]);
+  }
+  if (index == table[4]) {
+    index = FUN_00117da0(table + 3);
+    reversed = 1;
+    if (index == -1) {
+      return -1;
+    }
+    edge = (int *)FUN_00117ee0(table + 3, index, 0x1c);
+    array_new(edge, 4);
+    edge[3] = key_a;
+    edge[4] = key_b;
+  }
+  if (index == -1) {
+    return -1;
+  }
+  edge = (int *)FUN_00117ee0(table + 3, index, 0x1c);
+  value_index = FUN_00117da0(edge);
+  if (value_index == -1) {
+    return -1;
+  }
+  slot = (int *)FUN_00117ee0(edge, value_index, 4);
+  *slot = value;
+  if (reversed != 0) {
+    index = (int)((unsigned int)index | 0x80000000u);
+  } else {
+    index = (int)((unsigned int)index & 0x7fffffffu);
+  }
+  return index;
+}
+
+/*
  * FUN_00103b80 — resolve a triangle's three vertices and forward them.
  *
  * Looks up element `tri` in table A (obj+0x134, stride 0x34) at `index`.
@@ -3461,8 +3555,8 @@ void FUN_00104240(int point_count, float *points, float *color)
  *   1. Coordinate3 point[]  -- every vertex, transformed by the world matrix at
  *      0x31fb08 into a local float[3] and scaled by *(float*)0x253f00 (=100.0f,
  *      world units -> cm).  A single running vertex index walks `points`.
- *   2. Material diffuseColor[] -- per polygon, color[p*4+1..3] repeated once per
- *      *triangle* (i = 2 .. point_counts[p]-1) then a newline.  ESI is NOT
+ *   2. Material diffuseColor[] -- per polygon, color[p*4+1..3] repeated once
+ * per *triangle* (i = 2 .. point_counts[p]-1) then a newline.  ESI is NOT
  *      advanced inside the inner loop in the original (0x1045e0-0x104610), so
  *      the same triple really is printed repeatedly.  transparency =
  *      *(float*)0x2533c8 (=1.0f) - color[0] (plain FSUB, not FSUBR).
@@ -3485,7 +3579,7 @@ void FUN_00104240(int point_count, float *points, float *color)
  * tails are system_exit(-1) (CALL 0x8e2f0), not halt_and_catch_fire.
  */
 void FUN_00104430(int polygon_count, short *point_counts, float *points,
-                 float *color)
+                  float *color)
 {
   float p[3];
   float *pt;
@@ -3563,8 +3657,7 @@ void FUN_00104430(int polygon_count, short *point_counts, float *points,
             n2 = n2 - 1;
           } while (n2 != 0);
         }
-        crt_fprintf(*(void **)0x46e394,
-                    "\t\t]\n\t\ttransparency[%f]\n\t}\n",
+        crt_fprintf(*(void **)0x46e394, "\t\t]\n\t\ttransparency[%f]\n\t}\n",
                     *(float *)0x2533c8 - color[0]);
       }
       crt_fprintf(*(void **)0x46e394,

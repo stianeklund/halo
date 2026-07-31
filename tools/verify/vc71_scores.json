@@ -8028,6 +8028,10 @@
       "score": 100.0,
       "source": "src/halo/main/main.c"
     },
+    "FUN_00102070": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
+    },
     "FUN_00102090": {
       "score": 81.2,
       "source": "src/halo/main/main.c"
@@ -8050,6 +8054,10 @@
     },
     "FUN_00102510": {
       "score": 68.4,
+      "source": "src/halo/main/main.c"
+    },
+    "FUN_00102700": {
+      "score": 93.5,
       "source": "src/halo/main/main.c"
     },
     "FUN_001029a0": {
@@ -8076,7 +8084,15 @@
       "score": 98.8,
       "source": "src/halo/main/main.c"
     },
+    "FUN_001036c0": {
+      "score": 91.3,
+      "source": "src/halo/main/main.c"
+    },
     "FUN_00103b80": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
+    },
+    "FUN_00103c00": {
       "score": 100.0,
       "source": "src/halo/main/main.c"
     },
@@ -8094,6 +8110,10 @@
     },
     "FUN_00104240": {
       "score": 94.6,
+      "source": "src/halo/main/main.c"
+    },
+    "FUN_00104430": {
+      "score": 92.9,
       "source": "src/halo/main/main.c"
     },
     "FUN_00104bd0": {
@@ -15440,6 +15460,10 @@
       "score": 67.9,
       "source": "src/halo/main/main.c"
     },
+    "main_framerate_render": {
+      "score": 93.5,
+      "source": "src/halo/main/main.c"
+    },
     "main_game_render": {
       "score": 95.5,
       "source": "src/halo/main/main.c"
@@ -15469,6 +15493,10 @@
       "source": "src/halo/main/main.c"
     },
     "main_queue_map_name": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
+    },
+    "main_roll_credits": {
       "score": 100.0,
       "source": "src/halo/main/main.c"
     },
