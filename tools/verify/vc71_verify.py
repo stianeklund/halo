@@ -1394,11 +1394,31 @@ def main():
     # try satisfying the entire run from cache before touching the compiler.
     # We still need the obj for disassembly in case of any miss — so we only
     # skip compile when ALL functions are cache hits.
-    if need_compile and cache is not None and vc71_obj.exists() and not args.no_cache:
+    # Only reuse the object when it is at least as new as the source.  Reusing a
+    # STALE object silently measures code that is no longer in the tree, in both
+    # directions:
+    #   * a function deleted from the source keeps scoring from the old object --
+    #     FUN_000f56b0 sat at exactly 81.8% across 13 attempts while having no
+    #     definition at all, and the unmoving score read as a structural ceiling.
+    #   * a function newly added to the source is absent from the object, so
+    #     --function <new fn> aborts with "not found in both objects" and the
+    #     lift pipeline reports "VC71 compilation or comparison failed".
+    # The SQLite result cache keys on the source hash and was never the problem;
+    # only this object reuse is.  Compare mtimes rather than trusting existence.
+    obj_is_current = (
+        vc71_obj.exists()
+        and source.exists()
+        and vc71_obj.stat().st_mtime >= source.stat().st_mtime
+    )
+    if need_compile and cache is not None and obj_is_current and not args.no_cache:
         # We'll attempt cached compare first; compile only if there are misses.
-        # The cached-compare path handles this transparently because it reads
-        # the existing obj for disassembly on misses.
+        # The cached-compare path reads this object for disassembly on misses,
+        # which is sound now that we know it matches the current source.
         need_compile = False  # tentative; compile_vc71 called below if obj absent
+    elif (need_compile and cache is not None and vc71_obj.exists()
+          and not args.no_cache and not args.quiet):
+        print(f"[cache] {vc71_obj.name} is older than {source.name}; recompiling",
+              flush=True)
 
     if need_compile:
         if not args.quiet:
