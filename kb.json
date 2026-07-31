@@ -16609,7 +16609,8 @@
     },
     {
      "addr": "0xb6bd0",
-     "decl": "void FUN_000b6bd0(void);"
+     "decl": "void FUN_000b6bd0(char *input_state@<esi>);",
+     "ported": true
     },
     {
      "addr": "0xb6dd0",

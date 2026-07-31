@@ -902,6 +902,162 @@ bool player_control_action_test_look_relative_down(void)
   return (bool)((fields[0] >> 8) & 1u);
 }
 
+/* Fold one local player's input blob into player_control_globals' action
+ * bitfield, then reconcile the sticky/latched action bits (0xb6bd0).
+ *
+ * `input_state` arrives in ESI (@<esi>) -- MOV AL,[ESI+0x14] @0xb6bd0 is the
+ * function's FIRST instruction, so ESI is read before any write. There is no
+ * EBP frame and no stack parameter. Sole caller: get_local_player_input_blob
+ * @0xb70b0. Ghidra typed the whole thing void(void) with `float *unaff_ESI`,
+ * so every flag word came out as a bogus `(float)` store -- the disassembly
+ * shows plain integer AND/OR on [ESI+0x18]/[ESI+0x1c], no FPU involved.
+ *
+ * input_state layout (offsets from the disassembly, not the decompiler):
+ *   +0x00 float  axis A          +0x14 char   accept/press flag
+ *   +0x04 float  axis B          +0x15 char   secondary press flag
+ *   +0x08 float  trigger        +0x18 uint32 button flags (0x02, 0x40, 0x2000)
+ *   +0x0c float  axis C          +0x1c uint32 latch flags (0x01, 0x02, 0x04)
+ *   +0x10 float  axis D
+ *
+ * player_control_globals is opaque (0x110 bytes, no named fields), so raw
+ * dword access is used as elsewhere in this TU:
+ *   fields[0] = action bitfield being built
+ *   fields[1] = "already tested" mask   fields[2] = sticky action state
+ *
+ * The four axis blocks are tri-state: FCOMP against 0.0f twice, once for
+ * `> 0` and once for `< 0`, with zero setting neither bit. Branch polarity
+ * per the derivation on FUN_000b6dd0 above -- TEST AH,0x41 keeps C0|C3 so
+ * JNZ is taken unless st0 > mem, and TEST AH,0x5 + JP is taken unless
+ * st0 < mem. 0.0f is read from its pool address 0x2533c0 rather than written
+ * as a literal, for the reason given above.
+ *
+ * The tail reconciles three sticky bits, gated on the byte at 0x2f0292.
+ * Both gate arms follow the same shape -- if the action was already tested
+ * (fields[1] bit) just clear the source flag; otherwise, when the sticky bit
+ * (fields[2]) is live, refresh it from the source flag and then clear that
+ * flag -- but they read DIFFERENT source bits and use different masks:
+ *   0x2f0292 == 0:  esi+0x18 bit 0x40, esi+0x1c bit 0x01, fields[2] bit 0x8
+ *   0x2f0292 != 0:  esi+0x18 bit 0x02, esi+0x1c bit 0x02, fields[2] bit 0x4
+ * Note the asymmetry in the third block: the != 0 arm tests and sets
+ * fields[2] bit 0x4 (TEST AL,0x4 @0xb6da5, OR EAX,0x4 @0xb6daf) where the
+ * == 0 arm uses bit 0x8 (TEST AL,0x8 @0xb6d58, OR EAX,0x8 @0xb6d62). That is
+ * what the binary does and is preserved verbatim; it may well be an original
+ * bug, but this is not the place to fix it. */
+void FUN_000b6bd0(char *input_state)
+{
+  uint32_t *fields;
+
+  if (input_state[0x14] != 0 && cinematic_can_be_skipped()) {
+    main_skip_cinematic();
+  }
+  fields = (uint32_t *)player_control_globals;
+  if ((*(uint32_t *)(input_state + 0x18) & 0x40) != 0) {
+    fields[0] |= 1;
+  }
+  if ((*(uint32_t *)(input_state + 0x18) & 2) != 0) {
+    fields[0] |= 2;
+  }
+  if (input_state[0x14] != 0) {
+    fields[0] |= 4;
+  }
+  if (input_state[0x15] != 0) {
+    fields[0] |= 8;
+  }
+  if (*(float *)(input_state + 8) > *(float *)0x2533c0) {
+    fields[0] |= 0x10;
+  }
+  if ((*(uint32_t *)(input_state + 0x18) & 0x2000) != 0) {
+    fields[0] |= 0x20;
+  }
+  if ((*(uint32_t *)(input_state + 0x1c) & 4) != 0) {
+    fields[0] |= 0x40;
+  }
+  if (*(float *)(input_state + 0x10) > *(float *)0x2533c0) {
+    fields[0] |= 0x80;
+  } else if (*(float *)(input_state + 0x10) < *(float *)0x2533c0) {
+    fields[0] |= 0x100;
+  }
+  if (*(float *)(input_state + 0xc) > *(float *)0x2533c0) {
+    fields[0] |= 0x200;
+  } else if (*(float *)(input_state + 0xc) < *(float *)0x2533c0) {
+    fields[0] |= 0x400;
+  }
+  if (*(float *)input_state > *(float *)0x2533c0) {
+    fields[0] |= 0x800;
+  } else if (*(float *)input_state < *(float *)0x2533c0) {
+    fields[0] |= 0x1000;
+  }
+  if (*(float *)(input_state + 4) > *(float *)0x2533c0) {
+    fields[0] |= 0x2000;
+  } else if (*(float *)(input_state + 4) < *(float *)0x2533c0) {
+    fields[0] |= 0x4000;
+  }
+
+  if ((fields[1] & 1) == 0) {
+    if ((fields[2] & 1) != 0) {
+      if ((*(uint32_t *)(input_state + 0x18) & 0x40) != 0) {
+        fields[2] |= 1;
+      } else {
+        fields[2] &= 0xfffffffe;
+      }
+      *(uint32_t *)(input_state + 0x18) &= 0xffffffbf;
+    }
+  } else {
+    *(uint32_t *)(input_state + 0x18) &= 0xffffffbf;
+  }
+
+  if (*(char *)0x2f0292 != 0) {
+    if ((fields[1] & 4) == 0) {
+      if ((fields[2] & 4) == 0) {
+        goto latch_1c;
+      }
+      if ((*(uint32_t *)(input_state + 0x18) & 2) != 0) {
+        fields[2] |= 4;
+      } else {
+        fields[2] &= 0xfffffffb;
+      }
+    }
+    *(uint32_t *)(input_state + 0x18) &= 0xfffffffd;
+  latch_1c:
+    if ((fields[1] & 8) == 0) {
+      if ((fields[2] & 4) == 0) {
+        return;
+      }
+      if ((*(uint32_t *)(input_state + 0x1c) & 2) != 0) {
+        fields[2] |= 4;
+      } else {
+        fields[2] &= 0xfffffffb;
+      }
+    }
+    *(uint32_t *)(input_state + 0x1c) &= 0xfffffffd;
+    return;
+  }
+
+  if ((fields[1] & 4) == 0) {
+    if ((fields[2] & 4) == 0) {
+      goto latch_1c_alt;
+    }
+    if ((*(uint32_t *)(input_state + 0x18) & 0x40) != 0) {
+      fields[2] |= 4;
+    } else {
+      fields[2] &= 0xfffffffb;
+    }
+  }
+  *(uint32_t *)(input_state + 0x18) &= 0xffffffbf;
+latch_1c_alt:
+  if ((fields[1] & 8) == 0) {
+    if ((fields[2] & 8) == 0) {
+      return;
+    }
+    if ((*(uint32_t *)(input_state + 0x1c) & 1) != 0) {
+      fields[2] |= 8;
+    } else {
+      fields[2] &= 0xfffffff7;
+    }
+  }
+  *(uint32_t *)(input_state + 0x1c) &= 0xfffffffe;
+}
+
 /* Signed angular difference `param_2 - param_1`, wrapped into (-pi, pi).
  *
  * Confirmed from disassembly (0xb6dd0, 12 instructions, plain EBP frame, no
