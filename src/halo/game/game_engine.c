@@ -5488,22 +5488,28 @@ void FUN_000ae920(wchar_t *title_buf, int player_handle)
     has_teams = 0;
     if (current_game_engine)
       has_teams = *(char *)0x456b14;
-    if (won == -1) {
-      usprintf(title_buf, L"Game ends in a draw");
-      return;
-    }
-    if (won == 0) {
-      if (has_teams == 0)
-        usprintf(title_buf, L"You lost");
-      else
-        usprintf(title_buf, L"Your team lost");
-      return;
-    }
-    if (won == 1) {
-      if (has_teams == 0)
-        usprintf(title_buf, L"You won");
-      else
+    /* switch, not an if-chain: the original dispatches at 0xaea17 with
+     * CMP EAX,-1/JE; TEST EAX,EAX/JE; CMP EAX,1/JNE default -- MSVC's
+     * sorted sequential-compare switch idiom.  Case bodies are emitted in
+     * SOURCE order (1 at 0xaea41-, 0 at 0xaea55-, -1 at 0xaea81) with the
+     * last-dispatched case falling through, which is why case 1 is written
+     * first.  Inner test is `if (has_teams)` because the original does
+     * TEST CL,CL / JE <no-teams-arm>. */
+    switch (won) {
+    case 1:
+      if (has_teams)
         usprintf(title_buf, L"Your team won");
+      else
+        usprintf(title_buf, L"You won");
+      return;
+    case 0:
+      if (has_teams)
+        usprintf(title_buf, L"Your team lost");
+      else
+        usprintf(title_buf, L"You lost");
+      return;
+    case -1:
+      usprintf(title_buf, L"Game ends in a draw");
       return;
     }
   } else {
@@ -5517,12 +5523,16 @@ void FUN_000ae920(wchar_t *title_buf, int player_handle)
       {
         int team0_score = FUN_000a8130(0);
         int team1_score = FUN_000a8130(1);
-        if (team1_score < team0_score) {
+        /* Compare operand order follows the original CMP ESI,EAX at 0xaeb3c
+         * (ESI = team 0, EAX = team 1) -- JLE then JGE.  Spelling these as
+         * `team1 < team0` reverses the CMP operands and flips VC71 to
+         * JGE/JG. */
+        if (team0_score > team1_score) {
           usprintf(title_buf, L"Red leads Blue %s to %s %s", score_a, score_b,
                    lives_buf);
           return;
         }
-        if (team1_score <= team0_score) {
+        if (team0_score >= team1_score) {
           usprintf(title_buf, L"Teams tied at %s %s", score_b, lives_buf);
           return;
         }
@@ -5537,10 +5547,21 @@ void FUN_000ae920(wchar_t *title_buf, int player_handle)
        * [ebp-0x2c]..[ebp-0x10] = 0x1c bytes for it.  The previous [28]
        * over-reserved 112 bytes and inflated the frame to 0x2e0 against the
        * original's SUB ESP,0x27c, shifting every other local's offset. */
-      int local_stats[7];
+      typedef struct {
+        int v[7];
+      } postgame_stat_block_t;
+      postgame_stat_block_t local_stats;
       uint32_t place;
 
-      FUN_000abf50(local_stats, player_handle);
+      /* Struct assignment, not a bare call.  FUN_000abf50 returns int* and
+       * the original at 0xaeb39 uses &local_stats as the hidden
+       * struct-return buffer, then copies the RETURNED pointer back:
+       * MOV ESI,EAX / MOV ECX,7 / LEA EDI,[EBP-0x2c] / REP MOVSD (0xaeb48).
+       * Discarding the return value dropped the copy entirely.  The REP
+       * MOVSD also clobbers EDI (title_buf), which is why the original
+       * reloads title_buf from [EBP+8] in both tail branches. */
+      local_stats = *(postgame_stat_block_t *)FUN_000abf50(
+        (int *)&local_stats, player_handle);
       /* Original 0xaeb58: PUSH EBX (= player_handle), NOT a constant 0.
        * Slot 0x4c formats ONE player's score (KOTH: FUN_000b1de0 reads the
        * hill ticks at player+0xc0), so passing 0 made the FFA title line
@@ -5549,8 +5570,11 @@ void FUN_000ae920(wchar_t *title_buf, int player_handle)
         player_handle, score_buf);
       /* Single load, as the original: MOV EAX,[EBP-0x14] at 0xaeb5e feeds
        * both the tied-bit test and the &0x7f place index in each branch. */
-      place = *(uint32_t *)(local_stats + 6);
-      if ((place & 0x80000000) != 0)
+      place = (uint32_t)local_stats.v[6];
+      /* `> 0` (unsigned), not `!= 0`: the original tests
+       * TEST EAX,0x80000000 / JBE at 0xaeb84.  Spelling it `!= 0` lets VC71
+       * peephole the sign-bit mask into TEST EAX,EAX / JNS. */
+      if ((place & 0x80000000) > 0)
         usprintf(title_buf, L"Tied for %s place with %s %s",
                  *(wchar_t **)(0x2efe28 + (place & 0x7f) * 4),
                  score_buf, lives_buf);
