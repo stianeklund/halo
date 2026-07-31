@@ -19374,10 +19374,6 @@
      "ported": true
     },
     {
-     "addr": "0x172730",
-     "decl": "void FUN_00172730(void);"
-    },
-    {
      "addr": "0x172a30",
      "decl": "char FUN_00172a30(int param_1, const float *shadow_matrix, const float *shadow_color, float object_bounding_radius, float *out_radius);",
      "ported": true
@@ -37153,6 +37149,11 @@
      "decl": "void FUN_00172590(int param_1);",
      "ported": true
     },
+     {
+      "addr": "0x172730",
+      "decl": "void FUN_00172730(void);",
+      "ported": true
+     },
     {
      "addr": "0x172de0",
      "decl": "void FUN_00172de0(void *shader, int frame_index, void *triangle_buffer, void *vertex_buffer);",

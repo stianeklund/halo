@@ -62,6 +62,127 @@ void FUN_00172590(int param_1)
   }
 }
 
+/* 0x172730
+ *
+ * FUN_00172730
+ *
+ * Composites the shadow accumulation buffer with a four-tap diagonal blur.
+ *
+ * Asserts the D3D device exists.  When both shadow feature flags are set
+ * (*(char *)0x3256ca != 0 and *(char *)0x3256f6 != 0):
+ *   1. Binds render target 2 into texture stages 0..3 and programs each
+ *      stage's address/filter states (0x0a/0x0b = 4, 0x0d/0x0e = 2,
+ *      0x0f = 1).
+ *   2. Cull CCW (0x901); colour write mask 0x10101, alpha blend off and
+ *      alpha test off (with the shadowed copies of those states updated at
+ *      0x1fb7a4 / 0x1fb784 / 0x1fb788); Z buffer and Z bias off.
+ *   3. Uploads eight vertex-shader constant rows at register -0x51.  Each
+ *      row is a texture-coordinate generation vector offset by +/- 1/256
+ *      (0x3b800000) in x or y — the four diagonal taps of the blur, each
+ *      emitted twice.
+ *   4. Zero-fills the 0xf0-byte pixel-shader state block at 0x5a5ac0, pokes
+ *      the seven combiner/mask dwords, and installs it.
+ *   5. Draws a full-screen quad (D3DPT_QUADLIST, clockwise) spanning
+ *      [-129/128, +127/128] in both axes with texcoords (0,0)..(1,1).
+ */
+void FUN_00172730(void)
+{
+  /* One contiguous 0x80-byte block: SetVertexShaderConstant uploads all
+   * eight vec4 rows starting at &texture_offsets[0]. */
+  float texture_offsets[32];
+  /* 16-bit loop counter: the original compares CMP DI,4 (signed word) and
+   * carries a separate 32-bit copy in ESI for the D3D stage argument.
+   * Measured alternatives, all VC71 vs the delinked reference for this
+   * function: plain `stage < 4` 85.6%, explicit two-variable EDI/ESI form
+   * 85.6% (178 vs 175 insns), `do { } while (stage < 4)` 85.6%, and the
+   * biased condition below 91.7%.  The bias keeps the induction value and
+   * the trip counter distinct instead of letting VC71 strength-reduce them
+   * into one down-counter (movl $4,%edi / decl %edi / jne), which is what
+   * the reference does not do. */
+  short stage;
+
+  if (*(void **)0x476ab0 == 0) {
+    display_assert(
+      "global_d3d_device",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_shadows.c", 0x1f, 1);
+    system_exit(-1);
+  }
+  if (*(char *)0x3256ca != 0 && *(char *)0x3256f6 != 0) {
+    for (stage = 0; (stage - 1) < (4 - 1); stage++) {
+      FUN_001584f0(stage, 2, 0);
+      D3DDevice_SetTextureStageState(stage, 10, 4);
+      D3DDevice_SetTextureStageState(stage, 0xb, 4);
+      D3DDevice_SetTextureStageState(stage, 0xd, 2);
+      D3DDevice_SetTextureStageState(stage, 0xe, 2);
+      D3DDevice_SetTextureStageState(stage, 0xf, 1);
+    }
+    D3DDevice_SetRenderState_CullMode(0x901);
+    D3DDevice_SetRenderState_Simple(0x40358, 0x10101);
+    *(int *)0x1fb7a4 = 0x10101;
+    D3DDevice_SetRenderState_Simple(0x40304, 0);
+    *(int *)0x1fb784 = 0;
+    D3DDevice_SetRenderState_Simple(0x40300, 0);
+    *(int *)0x1fb788 = 0;
+    D3DDevice_SetRenderState_ZEnable(0);
+    D3DDevice_SetRenderState_ZBias(0);
+    FUN_00178b40(0x26, 8, 0);
+    /* 1/256 = 0x3b800000 */
+    texture_offsets[0] = 1.0f;
+    texture_offsets[1] = 0.0f;
+    texture_offsets[2] = 0.0f;
+    texture_offsets[3] = -0.00390625f;
+    texture_offsets[4] = 0.0f;
+    texture_offsets[5] = 1.0f;
+    texture_offsets[6] = 0.0f;
+    texture_offsets[7] = -0.00390625f;
+    texture_offsets[8] = 1.0f;
+    texture_offsets[9] = 0.0f;
+    texture_offsets[10] = 0.0f;
+    texture_offsets[11] = 0.00390625f;
+    texture_offsets[12] = 0.0f;
+    texture_offsets[13] = 1.0f;
+    texture_offsets[14] = 0.0f;
+    texture_offsets[15] = 0.00390625f;
+    texture_offsets[16] = 1.0f;
+    texture_offsets[17] = 0.0f;
+    texture_offsets[18] = 0.0f;
+    texture_offsets[19] = -0.00390625f;
+    texture_offsets[20] = 0.0f;
+    texture_offsets[21] = 1.0f;
+    texture_offsets[22] = 0.0f;
+    texture_offsets[23] = 0.00390625f;
+    texture_offsets[24] = 1.0f;
+    texture_offsets[25] = 0.0f;
+    texture_offsets[26] = 0.0f;
+    texture_offsets[27] = 0.00390625f;
+    texture_offsets[28] = 0.0f;
+    texture_offsets[29] = 1.0f;
+    texture_offsets[30] = 0.0f;
+    texture_offsets[31] = -0.00390625f;
+    D3DDevice_SetVertexShaderConstant(-0x51, texture_offsets, 8);
+    csmemset((void *)0x5a5ac0, 0, 0xf0);
+    *(int *)0x5a5b98 = 0x8421;
+    *(int *)0x5a5b94 = 1;
+    *(int *)0x5a5ac0 = 0x8a009a0;
+    *(int *)0x5a5b28 = 0x30c00;
+    *(int *)0x5a5b48 = 0xaa00ba0;
+    *(int *)0x5a5b74 = 0x30c00;
+    *(int *)0x5a5ae0 = 0xc20001c;
+    rasterizer_set_pixel_shader((void *)0x5a5ac0);
+    FUN_00158140(3, 0, 0, 0, 0);
+    D3DDevice_Begin(7);
+    D3DDevice_SetVertexData2s(4, 0, 0);
+    D3DDevice_SetVertexData2f(0, -1.0078125f, 1.0078125f);
+    D3DDevice_SetVertexData2s(4, 1, 0);
+    D3DDevice_SetVertexData2f(0, 0.9921875f, 1.0078125f);
+    D3DDevice_SetVertexData2s(4, 1, 1);
+    D3DDevice_SetVertexData2f(0, 0.9921875f, -0.9921875f);
+    D3DDevice_SetVertexData2s(4, 0, 1);
+    D3DDevice_SetVertexData2f(0, -1.0078125f, -0.9921875f);
+    D3DDevice_End();
+  }
+}
+
 /* 0x172de0
  *
  * FUN_00172de0
