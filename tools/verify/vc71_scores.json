@@ -14777,7 +14777,7 @@
       "source": "src/halo/ai/actor_combat.c"
     },
     "actor_combat_get_burst_parameters": {
-      "score": 66.7,
+      "score": 84.9,
       "source": "src/halo/ai/actor_combat.c"
     },
     "actor_combat_get_firing_variant_definition": {
@@ -14797,7 +14797,7 @@
       "source": "src/halo/ai/actions.c"
     },
     "actor_kill": {
-      "score": 76.1,
+      "score": 75.6,
       "source": "src/halo/ai/actors.c"
     },
     "actor_look_compute_prop_interest": {
