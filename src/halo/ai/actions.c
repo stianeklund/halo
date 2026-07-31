@@ -3998,10 +3998,12 @@ char FUN_00021080(int actor_handle)
 
 /* FUN_000210b0 (0x210b0) — Primary-look eligibility predicate. Resolves the
  * actor via datum_get(actor_data, actor_handle) and returns true only when the
- * signed 16-bit action counter/timer at actor+0x60c is positive (> 0; signed
- * CMP/JLE in the original) AND the fire_state enum at actor+0x5f2 (same field
- * read by sibling FUN_00021080) equals 2. When the counter is <= 0 it returns
- * false without inspecting fire_state. Called by actor_looking to gate primary
+ * signed 16-bit control.current_fire_target_type at actor+0x60c is positive
+ * (> 0; signed CMP/JLE in the original) AND the fire_state enum at actor+0x5f2
+ * (same field read by sibling FUN_00021080) equals 2. Positive here means "a
+ * fire target is set" — the named values are _actor_fire_target_prop (1) and
+ * _actor_fire_target_manual_point (2); 0 is never named by an assert string.
+ * When no fire target is set it returns false without inspecting fire_state. Called by actor_looking to gate primary
  * look-mode selection. */
 bool FUN_000210b0(int actor_handle)
 {

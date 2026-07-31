@@ -4178,7 +4178,7 @@ void FUN_0003b410(int actor_handle, int old_prop, int new_prop)
   }
 
   /* Update prop reference at +0x610 (only if +0x60c == 1) */
-  if (*(short *)(actor + 0x60c) == 1 && *(int *)(actor + 0x610) == old_prop) {
+  if (*(short *)(actor + 0x60c) == _actor_fire_target_prop && *(int *)(actor + 0x610) == old_prop) {
     *(int *)(actor + 0x610) = new_prop;
     if (new_prop == -1) {
       *(short *)(actor + 0x60c) = 0;

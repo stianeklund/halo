@@ -4140,7 +4140,7 @@ bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
 
   case 7:
     if (unit_handle == *(int *)(actor + 0x18) && command != NULL) {
-      if (*(short *)(actor + 0x60c) != 2 ||
+      if (*(short *)(actor + 0x60c) != _actor_fire_target_manual_point ||
           !(distance_squared3d((float *)((char *)command + 0x38),
                                (float *)(actor + 0x610)) >= 0.5f)) {
         char *weapon_tag;

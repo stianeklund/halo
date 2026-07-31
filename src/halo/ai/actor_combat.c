@@ -10,7 +10,7 @@ int actor_combat_check_mode(int actor_handle /* @<eax> */, short mode)
 
   switch (mode) {
   case 1:
-    if (*(short *)(actor + 0x60c) == 1 && *(short *)(actor + 0x268) >= 8)
+    if (*(short *)(actor + 0x60c) == _actor_fire_target_prop && *(short *)(actor + 0x268) >= 8)
       return 1;
     break;
   case 2:
@@ -19,7 +19,7 @@ int actor_combat_check_mode(int actor_handle /* @<eax> */, short mode)
       return 1;
     break;
   case 3:
-    if (*(short *)(actor + 0x60c) == 1 && *(short *)(actor + 0x268) >= 8 &&
+    if (*(short *)(actor + 0x60c) == _actor_fire_target_prop && *(short *)(actor + 0x268) >= 8 &&
         *(char *)(actor + 0x161) != 0)
       return 1;
     break;
@@ -194,7 +194,7 @@ bool actor_combat_evaluate_firing(int actor_handle /* @<eax> */,
   char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
   char flag = *(char *)(actor + 0x457);
 
-  if (*(short *)(actor + 0x60c) == 1) {
+  if (*(short *)(actor + 0x60c) == _actor_fire_target_prop) {
     char *prop = (char *)datum_get(*(void **)0x5ab23c, *(int *)(actor + 0x610));
     short prop_state = *(short *)(prop + 0x24);
     if (prop_state >= 4 && prop_state <= 5) {
@@ -497,7 +497,7 @@ int actor_combat_check_fire_target(int actor_handle /* @<edi> */, short mode)
   if (mode != 3)
     return 1;
 
-  if (*(short *)(actor + 0x60c) != 1) {
+  if (*(short *)(actor + 0x60c) != _actor_fire_target_prop) {
     display_assert(
       "actor->control.current_fire_target_type == _actor_fire_target_prop",
       "c:\\halo\\SOURCE\\ai\\actor_combat.c", 0x3ca, 1);
@@ -677,7 +677,7 @@ void FUN_00022390(int actor_handle)
   }
 
   if (*(float *)(actv + 0x14c) > *(float *)0x2533c0 &&
-      *(short *)(actor + 0x60c) == 1) {
+      *(short *)(actor + 0x60c) == _actor_fire_target_prop) {
     prop = (char *)datum_get(*(void **)0x5ab23c, *(int *)(actor + 0x610));
     prop_state = *(short *)(prop + 0x24);
     if (prop_state < 2 || prop_state > 3 || *(short *)(prop + 0x32) == 0) {
@@ -811,7 +811,7 @@ void FUN_00022390(int actor_handle)
   if (*(short *)(actor + 0x6e) > 6) {
     prop_flag = 0;
     prop_handle = -1;
-    if (*(short *)(actor + 0x60c) == 1) {
+    if (*(short *)(actor + 0x60c) == _actor_fire_target_prop) {
       prop = (char *)datum_get(*(void **)0x5ab23c, *(int *)(actor + 0x610));
       prop_flag = *(char *)(prop + 0x61);
       prop_handle = *(int *)(prop + 0x18);

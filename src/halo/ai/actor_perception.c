@@ -1123,7 +1123,7 @@ iterate_props:
         retire_threshold =
           (int16_t)((-(uint16_t)(*(char *)(actor + 0x162) != 0) & 0xff) + 0x2d);
         if (*(int16_t *)(prop + 0x32) > 1 ||
-            (*(int16_t *)(actor + 0x60c) == 1 &&
+            (*(int16_t *)(actor + 0x60c) == _actor_fire_target_prop &&
              *(int *)(actor + 0x610) == iter[0] && game_time_get() % 3 == 0)) {
           *(int16_t *)(prop + 0x3c) = (int16_t)(*(int16_t *)(prop + 0x3c) + 1);
           if (*(int16_t *)(prop + 0x3c) >= retire_threshold)

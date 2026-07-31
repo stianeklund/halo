@@ -909,6 +909,19 @@ co(ai_firing_pos_entry_t, radius,    0x24);
  * only the count is proven. */
 #define NUMBER_OF_ACTOR_TARGET_TYPES 12
 
+/* actor->control.current_fire_target_type — int16 at actor+0x60c (CMP word ptr
+ * [ESI+0x60c],1 @0x22032, where ESI comes straight from datum_get on the actor
+ * pool pointer 0x6325a4 loaded @0x22013, so the base register is proven).
+ *
+ * Values come from asserts that name the member and compare the field:
+ *   "... == _actor_fire_target_prop"          -> CMP word [ESI+0x60c],1 @0x22032
+ *   "... == _actor_fire_target_manual_point"  -> CMP AX,2 @0x232ee and @0x23b4f
+ * Two independent sites agree on 2. The value 0 is never named by any assert
+ * string, so it is deliberately left undefined rather than guessed. int16
+ * field, so #define rather than a C89 int-width enum (lift-learnings §24). */
+#define _actor_fire_target_prop         1
+#define _actor_fire_target_manual_point 2
+
 /* ---------------------------------------------------------------------------
  * actor_t — an element of the "actor" data_t pool.
  *
@@ -964,7 +977,9 @@ typedef struct {
   int32_t stimuli_panic_prop_index;                   /* +0x30c  MOV EAX,[ESI+0x30c] @0x1c624 */
   char pad_310[0xa8];
   int16_t firing_positions_current_position_index;    /* +0x3b8  MOVSX EDX,word [ESI+0x3b8] @0x5b463 */
-  char pad_3ba[0x18a];
+  char pad_3ba[0xc6];
+  int32_t control_path_destination_orders_ignore_target_object_index;/* +0x480  CMP dword [ESI+0x480],-1 @0x2d16b (NONE sentinel) */
+  char pad_484[0xc0];
   int16_t control_secondary_look_type;                /* +0x544  CMP word [ESI+0x544],0 @0x6443d */
   char pad_546[0x6];
   int16_t control_secondary_look_direction_type;      /* +0x54c  CMP word [ESI+0x54c],1 @0x64447 */
@@ -976,7 +991,7 @@ typedef struct {
   char control_idle_minor_active;                     /* +0x55f  MOV AL,byte [ESI+0x55f] @0x644b5 */
   char pad_560[0x4];
   int32_t control_idle_major_timer;                   /* +0x564  MOV EAX,[ESI+0x564] @0x299e4 */
-  char pad_568[0x4];
+  int32_t control_idle_minor_timer;                   /* +0x568  MOV EAX,[ESI+0x568]; TEST; JG @0x29c49..0x29c54 */
   int16_t control_idle_major_direction_type;          /* +0x56c  CMP word [ESI+0x56c],1 @0x64483 */
   char pad_56e[0x2];
   int32_t control_idle_major_direction_prop_index;    /* +0x570  CMP dword [ESI+0x570],EDI @0x6448d */
@@ -990,7 +1005,11 @@ typedef struct {
   float control_desired_looking_vector[3];            /* +0x5bc  LEA EBX,[ESI+0x5bc] @0x2913d */
   char pad_5c8[0x2a];
   int16_t control_fire_state;                         /* +0x5f2  MOVSX from word [EBX+0x5f2] @0x237d7, 5-case jump table */
-  char pad_5f4[0x98];
+  char pad_5f4[0x18];
+  int16_t control_current_fire_target_type;           /* +0x60c  CMP word [ESI+0x60c],1 @0x22032; ESI from datum_get on ACTOR_TABLE_PTR @0x22013 */
+  char pad_60e[0x2];
+  int32_t control_current_fire_target_prop_index;     /* +0x610  MOV [EBX+0x610],EAX after CMP EAX,-1 @0x22f52-0x22f55 */
+  char pad_614[0x78];
   float control_burst_aim_vector[3];                  /* +0x68c  LEA EDI,[EBX+0x68c] @0x23d1a */
   char pad_698[0x64];
   float output_facing_vector[3];                      /* +0x6fc  LEA EDI,[ESI+0x6fc] @0x2a0c8 */
@@ -1012,12 +1031,14 @@ co(actor_t, danger_zone_object_index,                      0x28c);
 co(actor_t, stimuli_panic_type,                            0x308);
 co(actor_t, stimuli_panic_prop_index,                      0x30c);
 co(actor_t, firing_positions_current_position_index,       0x3b8);
+co(actor_t, control_path_destination_orders_ignore_target_object_index, 0x480);
 co(actor_t, control_secondary_look_type,                   0x544);
 co(actor_t, control_secondary_look_direction_type,         0x54c);
 co(actor_t, control_secondary_look_direction_prop_index,   0x550);
 co(actor_t, control_idle_major_active,                     0x55c);
 co(actor_t, control_idle_minor_active,                     0x55f);
 co(actor_t, control_idle_major_timer,                      0x564);
+co(actor_t, control_idle_minor_timer,                      0x568);
 co(actor_t, control_idle_major_direction_type,             0x56c);
 co(actor_t, control_idle_major_direction_prop_index,       0x570);
 co(actor_t, control_idle_minor_direction_type,             0x57c);
@@ -1026,6 +1047,8 @@ co(actor_t, control_desired_facing_vector,                 0x5a4);
 co(actor_t, control_desired_aiming_vector,                 0x5b0);
 co(actor_t, control_desired_looking_vector,                0x5bc);
 co(actor_t, control_fire_state,                            0x5f2);
+co(actor_t, control_current_fire_target_type,              0x60c);
+co(actor_t, control_current_fire_target_prop_index,        0x610);
 co(actor_t, control_burst_aim_vector,                      0x68c);
 co(actor_t, output_facing_vector,                          0x6fc);
 co(actor_t, output_aiming_vector,                          0x708);
