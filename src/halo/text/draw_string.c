@@ -452,6 +452,76 @@ void *FUN_0019bcc0(int16_t style, int font_index)
 }
 
 /*
+ * FUN_0019bd30 — initialise a draw-string tokenizer/render state block.
+ *
+ * Validates style and justification, fills the state block, packs the four
+ * float colour components into one 8-bit-per-channel word, and resolves the
+ * font table for (style, font_index).
+ *
+ * State block layout (offsets corroborated by FUN_0019c0a0 below, which
+ * consumes the same struct):
+ *   +0x00 int      font_index
+ *   +0x04 void *   font table, from FUN_0019bcc0(style, font_index)
+ *   +0x08 int *    buffer      (the wide-char string; +8 per FUN_0019c0a0)
+ *   +0x0c int16_t  pos = 0     (tokenizer cursor; +0xc per FUN_0019c0a0)
+ *   +0x0e int16_t  style
+ *   +0x10 int16_t  justification
+ *   +0x18 int      packed colour
+ * +0x12 (current_char) and +0x14 (token_type) are deliberately left alone --
+ * FUN_0019c0a0 writes them as it tokenizes.
+ *
+ * ABI: two register params. `style` arrives in AX (@<ax>) -- MOV ESI,EAX
+ * @0019bd34 then CMP SI,-1, so it is read before any write and used 16-bit.
+ * `state` arrives in EBX (@<ebx>) -- MOV [EBX],ECX @0019bda4 writes THROUGH it
+ * with no prior write to EBX. Four cdecl stack params follow. Ghidra typed the
+ * function void(void).
+ *
+ * Assert bounds come from the message strings themselves, so the magic numbers
+ * are evidenced rather than guessed: _text_style_plain is -1 and
+ * NUMBER_OF_TEXT_STYLES is 4 (CMP SI,0x4 @0019bd45);
+ * NUMBER_OF_TEXT_JUSTIFICATIONS is 3 (CMP AX,0x3 @0019bd74). Both assert tails
+ * call system_exit(-1), not halt_and_catch_fire.
+ *
+ * Colour packing is a progressive shift-or, matching the original's
+ * interleaved SHL/OR chain: channel 0 ends up in the high byte, channel 3 in
+ * the low byte. 255.0f is the multiplier at 0x2602c8.
+ *
+ * CALL 0x1d9068 at four sites is the _ftol2 intrinsic, written here as a plain
+ * (int) cast -- never as a call (non-standard ABI, see the intrinsics table).
+ *
+ * 0x19bd30 / draw_string.obj
+ */
+void FUN_0019bd30(int16_t style, void *state, int *buffer, int font_index,
+                  int16_t justification, float *color)
+{
+  int packed;
+
+  if (style != -1 && (style < 0 || style >= 4)) {
+    display_assert(
+      "style==_text_style_plain || (style>=0 && style<NUMBER_OF_TEXT_STYLES)",
+      "c:\\halo\\SOURCE\\text\\draw_string.c", 0x415, 1);
+    system_exit(-1);
+  }
+  if (justification < 0 || justification >= 3) {
+    display_assert(
+      "justification>=0 && justification<NUMBER_OF_TEXT_JUSTIFICATIONS",
+      "c:\\halo\\SOURCE\\text\\draw_string.c", 0x416, 1);
+    system_exit(-1);
+  }
+  *(int *)state = font_index;
+  *(int **)((char *)state + 8) = buffer;
+  *(int16_t *)((char *)state + 0x10) = justification;
+  *(int16_t *)((char *)state + 0xc) = 0;
+  *(int16_t *)((char *)state + 0xe) = style;
+  packed = (int)(color[0] * 255.0f);
+  packed = (packed << 8) | (int)(color[1] * 255.0f);
+  packed = (packed << 8) | (int)(color[2] * 255.0f);
+  packed = (packed << 8) | (int)(color[3] * 255.0f);
+  *(int *)((char *)state + 0x18) = packed;
+  *(void **)((char *)state + 4) = FUN_0019bcc0(style, font_index);
+}
+
+/*
  * FUN_0019c0a0 — advance a wide-char string tokenizer by one character.
  *
  * Reads the next wide character (int16_t) from state->buffer[pos], stores it

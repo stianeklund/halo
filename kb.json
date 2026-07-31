@@ -28611,7 +28611,8 @@
     },
     {
      "addr": "0x19bd30",
-     "decl": "void FUN_0019bd30(void);"
+     "decl": "void FUN_0019bd30(int16_t style@<ax>, void *state@<ebx>, int *buffer, int font_index, int16_t justification, float *color);",
+     "ported": true
     },
     {
      "addr": "0x19be30",
