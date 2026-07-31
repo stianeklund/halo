@@ -29,6 +29,7 @@
  *   0x19b790  draw_string_get_color
  *   0x19b800  draw_string_set_style_justify_flags
  *   0x19b8b0  draw_string_set_font
+ *   0x19c1b0  FUN_0019c1b0 (glyph clip-and-emit loop)
  */
 
 /* Telnet console globals accessed here (base 0x46eee0). */
@@ -38,6 +39,19 @@
 
 /* Maximum tab stops allowed (asserted in draw_string_set_tab_stops). */
 #define MAXIMUM_NUMBER_OF_TAB_STOPS 16
+
+/* Word offsets into a 4 x int16_t clip rectangle {top, left, bottom, right}. */
+#define RECT2D_TOP 0
+#define RECT2D_LEFT 1
+#define RECT2D_BOTTOM 2
+#define RECT2D_RIGHT 3
+
+/*
+ * The per-glyph emit callback type (draw_string_emit_proc) lives in
+ * src/types.h -- the kb.json declaration generator cannot parse an inline
+ * function-pointer parameter, so it needs a plain type name. FUN_0019b3c0
+ * and FUN_0019b430 below are two of the concrete implementations passed in.
+ */
 
 /*
  * terminal_string_process_tabs — forward rendered text to telnet console.
@@ -577,4 +591,159 @@ int16_t FUN_0019c0a0(void *state)
     break;
   }
   return *(volatile int16_t *)(s + 0x14);
+}
+
+/*
+ * FUN_0019c1b0 — clip a character range of a string and emit one glyph at a
+ * time through a caller-supplied blitter.
+ *
+ * Intersects up to two clip rectangles, seeds a tokenizer state block via
+ * FUN_0019bd30, then walks characters [first, last) of the string. For each
+ * character parse_string advances the tokenizer, FUN_0019cff0 resolves the
+ * glyph, and the glyph's destination rectangle is clipped against the
+ * intersection before the blitter is called. Fully clipped-away glyphs still
+ * advance the pen.
+ *
+ * ABI: one register param plus seven cdecl stack params (ADD ESP,0x1C at the
+ * single call site @0019c88c). `clip_a` arrives in EAX (@<eax>): TEST EAX,EAX
+ * @0019c1b6 reads it before any write, MOV CX,[EAX+2] @0019c1d9 dereferences
+ * it, and the caller loads it with LEA EAX,[EBP-0x38] one instruction before
+ * the CALL. Ghidra typed the function void(void).
+ *
+ * State block is the same 0x1c-byte struct FUN_0019bd30 fills; the frame is
+ * SUB ESP,0x38 = 0x1c state + 0x1c of separate locals. Ghidra rendered three
+ * state fields as independent locals (buffer-alias confusion, lift-learnings
+ * §5): local_38 = EBP-0x34 = state+0x04 (font table), local_30 = EBP-0x2c =
+ * state+0x0c (tokenizer pos), and the EBP-0x26 read = state+0x12
+ * (current character). Reading them from `state` is what makes the loop
+ * terminate: nothing here increments the counter -- parse_string advances
+ * state+0x0c, exactly as FUN_0019c0a0 does.
+ *
+ * Confirmed: the clip pairing is (+2 left, +6 right) and (+0 top, +4 bottom) --
+ *            CMP SI,DX @0019c25f and CMP DI,BX @0019c268 test those two pairs
+ *            for an empty rectangle, so +2/+6 and +0/+4 are the opposing edges.
+ * Confirmed: FUN_0019cff0(state->font_table, state->current_char) returns a
+ *            glyph descriptor or NULL; fields read are +2 (pen advance),
+ *            +4 (width), +6 (height), +8 (origin x), +0xa (origin y).
+ * Confirmed: 0x4d9b4a/0x4d9b4c are a half-open *character index* range and the
+ *            effect is a highlight -- CMP AX,[0x4d9b4a] / CMP AX,[0x4d9b4c]
+ *            @0019c2b0 test the tokenizer position and select an XOR 0xFFFFFF
+ *            of the colour. This upgrades the "Uncertain: parameter semantics"
+ *            note on draw_string_set_highlight above to confirmed.
+ * Uncertain: the original reuses the `clip_b` parameter slot as a scratch
+ *            int16_t for the glyph height (MOV [EBP+0x10],DI @0019c311) after
+ *            the rectangle intersection has finished with it, and one later
+ *            read is a full dword (MOV EDI,[EBP+0x10] @0019c369) whose high
+ *            half is stale pointer bits. A separate local is used here: every
+ *            consumer truncates to 16 bits, so this is equivalent, but it
+ *            costs a stack slot the original did not spend.
+ *
+ * 0x19c1b0 / draw_string.obj
+ */
+void FUN_0019c1b0(const uint16_t *clip_a, draw_string_emit_proc emit,
+                  int16_t *pen, const uint16_t *clip_b, int color, int *buffer,
+                  int16_t first, int16_t last)
+{
+  char state[0x1c];
+  int clip_left;
+  int clip_top;
+  int clip_bottom;
+  int clip_right;
+  int edge;
+  int effective_color;
+  int src_x;
+  int src_y;
+  void *glyph;
+  short glyph_height;
+  short pen_x;
+  short dest_x;
+  short dest_y;
+  short width;
+  short height;
+
+  clip_left = -0x8000;
+  clip_top = -0x8000;
+  clip_right = 0x7fff;
+  clip_bottom = 0x7fff;
+
+  if (clip_a != 0) {
+    edge = clip_a[RECT2D_LEFT];
+    if ((short)edge > (short)clip_left)
+      clip_left = edge;
+    edge = clip_a[RECT2D_RIGHT];
+    if ((short)edge < (short)clip_right)
+      clip_right = edge;
+    edge = clip_a[RECT2D_TOP];
+    if ((short)edge > (short)clip_top)
+      clip_top = edge;
+    edge = clip_a[RECT2D_BOTTOM];
+    if ((short)edge < (short)clip_bottom)
+      clip_bottom = edge;
+  }
+  if (clip_b != 0) {
+    edge = clip_b[RECT2D_LEFT];
+    if ((short)edge > (short)clip_left)
+      clip_left = edge;
+    edge = clip_b[RECT2D_RIGHT];
+    if ((short)edge < (short)clip_right)
+      clip_right = edge;
+    edge = clip_b[RECT2D_TOP];
+    if ((short)edge > (short)clip_top)
+      clip_top = edge;
+    edge = clip_b[RECT2D_BOTTOM];
+    if ((short)edge < (short)clip_bottom)
+      clip_bottom = edge;
+  }
+  if ((short)clip_left >= (short)clip_right ||
+      (short)clip_top >= (short)clip_bottom)
+    return;
+
+  FUN_0019bd30(*(short *)0x4d9b14, state, buffer, *(int *)0x4d9b0c,
+               *(short *)0x4d9b16, (float *)0x4d9b18);
+
+  *(int16_t *)(state + 0xc) = first;
+  while (*(int16_t *)(state + 0xc) < last) {
+    if (*(int16_t *)(state + 0xc) >= *(short *)0x4d9b4a &&
+        *(int16_t *)(state + 0xc) < *(short *)0x4d9b4c)
+      effective_color = color ^ 0xffffff;
+    else
+      effective_color = color;
+
+    parse_string(state);
+    glyph = FUN_0019cff0(*(void **)(state + 4),
+                         (uint16_t) * (int16_t *)(state + 0x12));
+    if (glyph == 0)
+      continue;
+
+    pen_x = pen[0];
+    dest_y = (short)(pen[1] - *(int16_t *)((char *)glyph + 0xa));
+    width = *(int16_t *)((char *)glyph + 4);
+    src_x = 0;
+    src_y = 0;
+    glyph_height = *(int16_t *)((char *)glyph + 6);
+    dest_x = (short)(pen_x - *(int16_t *)((char *)glyph + 8));
+    pen[0] = (int16_t)(*(int16_t *)((char *)glyph + 2) + pen_x);
+
+    if (dest_x + width > (short)clip_right)
+      width = clip_right - dest_x;
+    if (dest_x < (short)clip_left) {
+      src_x = clip_left - dest_x;
+      dest_x = (short)clip_left;
+      width = width - src_x;
+    }
+
+    if (dest_y + glyph_height > (short)clip_bottom)
+      height = clip_bottom - dest_y;
+    else
+      height = glyph_height;
+    if (dest_y < (short)clip_top) {
+      src_y = clip_top - dest_y;
+      dest_y = (short)clip_top;
+      height = height - src_y;
+    }
+
+    if ((short)width > 0 && (short)height > 0)
+      emit(state, *(void **)(state + 4), glyph, effective_color, dest_x, dest_y,
+           src_x, src_y, (short)width, (short)height);
+  }
 }

@@ -560,6 +560,7 @@
     "0x19bcc0": "void *FUN_0019bcc0(int16_t style@<si>, int font_index@<edi>);",
     "0x19bd30": "void FUN_0019bd30(int16_t style@<ax>, void *state@<ebx>, int *buffer, int font_index, int16_t justification, float *color);",
     "0x19c0a0": "int16_t FUN_0019c0a0(void *state@<eax>);",
+    "0x19c1b0": "void FUN_0019c1b0(const uint16_t *clip_a@<eax>, draw_string_emit_proc emit, int16_t *pen, const uint16_t *clip_b, int color, int *buffer, int16_t first, int16_t last);",
     "0x1a03c0": "void FUN_001a03c0(int unit_handle@<eax>, int node_count, float *positions, void *nodes@<edi>);",
     "0x1a0a40": "void FUN_001a0a40(int contact_handle@<edi>, int unit_handle@<ebx>, float *velocity_ptr);",
     "0x1a0b30": "char FUN_001a0b30(int unit_handle@<edi>);",
